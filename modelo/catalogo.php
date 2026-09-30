@@ -129,12 +129,8 @@ function lw_cat_normaliza(array $d) {
         foreach (['dormitorios', 'banos', 'villa_m2', 'terraza_m2'] as $k) {
             if (isset($m[$k])) $m[$k] = 0 + $m[$k];
         }
-        if (!empty($m['techos'])) {
-            foreach ($m['techos'] as $ck => $t) {
-                foreach (['now', 'y2027'] as $k) {
-                    if (isset($t[$k])) $m['techos'][$ck][$k] = 0 + $t[$k];
-                }
-            }
+        if (!empty($m['techos']) && is_array($m['techos'])) {
+            $m['techos'] = lw_cat_techos_normaliza($m['techos']);
         }
         // 21-sep-2026: cada extra llega como {nombre,desc,precio} (antes solo el precio a
         // secas — nombre/desc vivían duplicados a mano en modelo/datos.php). `sub_en`/
@@ -149,6 +145,57 @@ function lw_cat_normaliza(array $d) {
         }
         $out[$slug] = $m;
     }
+    return $out;
+}
+
+/**
+ * Techos de un modelo, ya limpios y EN ORDEN — 30-sep-2026.
+ *
+ * Hasta hoy la web solo conocía dos techos escritos a mano ('sirap' y 'bambu'). Desde que
+ * Administración puede dar de alta techos nuevos, retirarlos y limitarlos a ciertos
+ * proyectos, `catalogo_publico()` trae por modelo `{clave: {nombre, desc, now, y2027,
+ * orden, proyectos?}}` con SOLO los activos. Este es el único sitio donde se ordenan: la
+ * caché, la red y el respaldo pasan todos por aquí, así que ninguna plantilla ordena.
+ *
+ *  · `jsonb` NO conserva el orden de las claves (ordena por longitud y luego por bytes: por
+ *    eso llega 'bambu' antes que 'sirap'). Manda `orden`.
+ *  · Sin `orden` (el `catalogo_respaldo.json` anterior al 30-sep no lo trae) se ordena por
+ *    precio 2026 (`now`), del más barato al más caro, y después por clave. Con los datos de hoy
+ *    eso da exactamente el orden que la web pintaba a mano (sirap, bambu) sin nombrar
+ *    ninguna clave.
+ *  · `proyectos` (slugs) solo existe si el techo se limita a esos proyectos. Ausente =
+ *    todos. Un valor que no sea una lista de textos se descarta entero — y con él el techo:
+ *    una restricción ilegible no puede convertirse en «vale para todos».
+ *  · `uasort`, no `usort`: la clave es el identificador estable del techo (la usan
+ *    `lw_estimacion()`, `?roof=` y booking-notify) y no puede renumerarse.
+ */
+function lw_cat_techos_normaliza(array $techos) {
+    $out = [];
+    foreach ($techos as $clave => $t) {
+        if (!is_array($t)) continue;
+        foreach (['now', 'y2027'] as $k) {
+            if (isset($t[$k])) $t[$k] = 0 + $t[$k];
+        }
+        if (!isset($t['now']) || !isset($t['y2027'])) continue;   // sin precio no se vende
+        if (isset($t['orden'])) {
+            if (is_numeric($t['orden'])) $t['orden'] = 0 + $t['orden']; else unset($t['orden']);
+        }
+        if (array_key_exists('proyectos', $t)) {
+            $ok = is_array($t['proyectos']) && $t['proyectos'];
+            if ($ok) foreach ($t['proyectos'] as $p) { if (!is_string($p) || $p === '') { $ok = false; break; } }
+            if (!$ok) continue;
+            $t['proyectos'] = array_values($t['proyectos']);
+        }
+        $t['nombre'] = (string) ($t['nombre'] ?? $clave);
+        $out[(string) $clave] = $t;
+    }
+    uksort($out, function ($a, $b) use ($out) {
+        $ta = $out[$a]; $tb = $out[$b];
+        $oa = $ta['orden'] ?? PHP_INT_MAX; $ob = $tb['orden'] ?? PHP_INT_MAX;
+        if ($oa != $ob) return $oa <=> $ob;
+        if ($ta['now'] != $tb['now']) return $ta['now'] <=> $tb['now'];
+        return strcmp((string) $a, (string) $b);
+    });
     return $out;
 }
 

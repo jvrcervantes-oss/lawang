@@ -112,8 +112,11 @@ $portada = $g[0] ?? null;
 // 24-sep-2026: manda la VISTA marcada en la intranet (Fotos del deck → «Vista en la ficha»,
 // columna deck_fotos.vista). El pie es solo el respaldo de las fotos sin marcar: es texto
 // libre y en Dune cruzó la planta con la aérea.
-$heroDay      = lw_foto_por_vista($m['id'], 'techo_sirap') ?? lw_foto_por_pie($m['id'], ['sirap', 'ulin exterior']) ?? $g[0] ?? null;
-$heroTechoAlt = lw_foto_por_vista($m['id'], 'techo_bambu') ?? lw_foto_por_pie($m['id'], ['bamboo exterior', 'bambu exterior', 'roof bamboo', 'bamboo', 'bambu'], null, ['aerea', 'floor plan', 'top view']) ?? $g[2] ?? $g[1] ?? $g[0] ?? null;
+// 30-sep-2026: las dos capas del hero (día / «Signature roof») siguen siendo las fotos de
+// los dos techos históricos — la cadena de respaldo vive ahora en lw_techo_foto() (lib.php)
+// para que la tarjeta de cada techo y el hero no puedan divergir.
+$heroDay      = lw_techo_foto($m['id'], 'sirap', $g);
+$heroTechoAlt = lw_techo_foto($m['id'], 'bambu', $g);
 $heroInterior = lw_foto_por_vista($m['id'], 'interior') ?? lw_foto_por_pie($m['id'], ['living room', 'bedroom', 'interior']) ?? $g[6] ?? $g[1] ?? $g[0] ?? null;
 $heroKitchen  = lw_foto_por_vista($m['id'], 'cocina') ?? lw_foto_por_pie($m['id'], ['kitchen']);
 $heroToilet   = lw_foto_por_vista($m['id'], 'bano') ?? lw_foto_por_pie($m['id'], ['toilet']);
@@ -138,16 +141,30 @@ foreach ($CAT as $cmId => $v) {
         'villa'  => $v['villa'],
         'specs'  => $v['specs'],
         'thumb'  => $v['thumb'],
-        'techos' => [
-            'sirap' => ['nombre' => $v['techos']['sirap']['nombre'], 'eur' => $v['techos']['sirap']['eur']],
-            'bambu' => ['nombre' => $v['techos']['bambu']['nombre'], 'eur' => $v['techos']['bambu']['eur']],
-        ],
+        'techos' => lw_techos_cfg($v['techos']),
         'extras' => $v['extras'],
     ];
 }
 
-// ── Comparativa de cubiertas: solo si ESTE modelo tiene los dos techos resueltos ─────
-$techosComp = (!empty($m['techos']['sirap']) && !empty($m['techos']['bambu'])) ? $m['techos'] : null;
+// ── Comparativa de cubiertas (30-sep-2026): una tarjeta por techo que esta página puede
+//    ofrecer (lw_techos_para: ficha genérica = solo los no limitados a un proyecto), en el
+//    orden de `orden`. Antes exigía 'sirap' y 'bambu' escritos a mano y un techo nuevo no
+//    salía. Con un solo techo no hay nada que comparar: la sección se oculta, como hoy.
+$techosComp = lw_techos_para($m['techos'] ?? [], null);
+if (count($techosComp) < 2) $techosComp = null;
+$techoFoto = [];   // clave => url|null
+$vistaTecho = [];  // clave => 'day'|'roof' — qué capa del hero enseña cada techo al elegirlo
+foreach (lw_techos_para($m['techos'] ?? [], null) as $tk => $tt) {
+    $tk = (string) $tk;
+    $techoFoto[$tk] = lw_techo_foto($m['id'], $tk, $g);
+    // Cada techo enseña la capa «roof» solo si ESA capa es su foto; si no, la de día. Por
+    // foto y no por posición: si Administración reordena o retira un techo, el bambú sigue
+    // enseñando su foto. Un techo nuevo con foto propia no cambia el hero (sus dos capas son
+    // las de los techos históricos): se ve en su tarjeta.
+    $vistaTecho[$tk] = ($techoFoto[$tk] !== null && $techoFoto[$tk] === $heroTechoAlt && $heroTechoAlt !== $heroDay) ? 'roof' : 'day';
+}
+// Al motor (assets/au-landing-cfg.js): sustituye al `=== 'bambu' ? 'roof'` que tenía escrito.
+$cfgJs['vistaTecho'] = (object) $vistaTecho;
 
 // ── Snapshot financiero ───────────────────────────────────────────────────────────
 // 22-sep-2026: Dali, Dune (1 dormitorio) y Dream (2 dormitorios) pasan del ejemplo de
@@ -251,7 +268,7 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <head>
 <meta charset="utf-8">
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260923093252" defer></script>
+<script src="/assets/i18n-landing.js?v=20260930110400" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and price, configured live.">
@@ -570,6 +587,7 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 /* ── 02 · CUBIERTAS: tarjetas altas a foto completa con marco interior (como las villas) ── */
 .techos{display:grid;grid-template-columns:1fr;gap:clamp(18px,2.2vw,32px);margin-top:clamp(2.5rem,5vh,3.5rem)}
 @media(min-width:768px){.techos{grid-template-columns:1fr 1fr}}
+@media(min-width:1100px){.techos.n3{grid-template-columns:repeat(3,1fr)}}
 .tcard{position:relative;display:block;min-height:clamp(460px,62vh,600px);border-radius:14px;overflow:hidden;background:var(--va);color:var(--rl);box-shadow:0 30px 60px -30px rgba(20,26,17,.55);transition:transform .5s var(--ease)}
 .tcard:hover{transform:translateY(-6px)}
 .tcard > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
@@ -798,7 +816,7 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <div class="cfg__step" data-paso="2" hidden>
 <div>
 <span class="paso-tit"><?= lw_i18n('¿Qué techo?', 'Which roof?') ?></span>
-<p class="paso-txt">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
+<p class="paso-txt"><?= lw_e(lw_techos_frase(count($vistaTecho))) ?></p>
 </div>
 <div id="lw-techos" class="lista"></div>
 </div>
@@ -932,31 +950,22 @@ foreach ($incluido as $it) {
 <div class="cab center reveal">
 <p class="kicker"><?= lw_i18n('Materialidad', 'Craft & materiality') ?></p>
 <h2 class="titulo">Roof finishes</h2>
-<p class="entrada">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
+<p class="entrada"><?= lw_e(lw_techos_frase(count($techosComp))) ?></p>
 </div>
-<div class="techos">
+<div class="techos<?= count($techosComp) % 3 === 0 ? ' n3' : '' ?>">
+<?php foreach ($techosComp as $tk => $tc): $tFoto = $techoFoto[(string) $tk] ?? null; ?>
 <div class="tcard reveal">
-<?php if ($heroDay): ?><img alt="<?= lw_e($techosComp['sirap']['nombre']) ?>" src="<?= lw_e($heroDay) ?>" loading="lazy"><?php endif; ?>
+<?php if ($tFoto): ?><img alt="<?= lw_e($tc['nombre']) ?>" src="<?= lw_e($tFoto) ?>" loading="lazy"><?php endif; ?>
 <div class="tcard-cuerpo">
-<span class="tcard-nb"><?= lw_e($techosComp['sirap']['nombre']) ?></span>
-<span class="tcard-pr"><?= lw_e(lw_precio_fmt($techosComp['sirap']['now'] ?? null)) ?></span>
-<p><?= lw_e($techosComp['sirap']['desc'] ?? '') ?></p>
-<?php if ($antes2027 && !empty($techosComp['sirap']['y2027'])): ?>
-<p class="y27">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['sirap']['y2027'])) ?>.</p>
+<span class="tcard-nb"><?= lw_e($tc['nombre']) ?></span>
+<span class="tcard-pr"><?= lw_e(lw_precio_fmt(lw_techo_precio_activo($tc))) ?></span>
+<p><?= lw_e($tc['desc'] ?? '') ?></p>
+<?php if ($antes2027 && !empty($tc['y2027'])): ?>
+<p class="y27">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($tc['y2027'])) ?>.</p>
 <?php endif; ?>
 </div>
 </div>
-<div class="tcard reveal">
-<?php if ($heroTechoAlt): ?><img alt="<?= lw_e($techosComp['bambu']['nombre']) ?>" src="<?= lw_e($heroTechoAlt) ?>" loading="lazy"><?php endif; ?>
-<div class="tcard-cuerpo">
-<span class="tcard-nb"><?= lw_e($techosComp['bambu']['nombre']) ?></span>
-<span class="tcard-pr"><?= lw_e(lw_precio_fmt($techosComp['bambu']['now'] ?? null)) ?></span>
-<p><?= lw_e($techosComp['bambu']['desc'] ?? '') ?></p>
-<?php if ($antes2027 && !empty($techosComp['bambu']['y2027'])): ?>
-<p class="y27">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['bambu']['y2027'])) ?>.</p>
-<?php endif; ?>
-</div>
-</div>
+<?php endforeach; ?>
 </div>
 </div>
 </section>
@@ -1094,7 +1103,7 @@ foreach ($incluido as $it) {
 <!-- Motor del configurador ANTES del script inline que lo invoca (window.lwAuCfgInit
      tiene que existir cuando se llama más abajo) — sin defer a propósito, o el inline
      que sigue se ejecutaría primero y fallaría "lwAuCfgInit is not a function". -->
-<script src="/assets/au-landing-cfg.js?v=20260922203350"></script>
+<script src="/assets/au-landing-cfg.js?v=20260930110400"></script>
 <script>
 (function () {
   'use strict';

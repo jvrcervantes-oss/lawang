@@ -197,27 +197,32 @@ function lw_deck_forecast_ejemplo() {
 }
 
 /**
- * Catálogo de las cinco villas resuelto para la plantilla: precio activo (2026 o 2027,
- * según el reloj del servidor en Bali) en EUR y en AUD, specs y render de portada.
+ * Catálogo de las villas resuelto para la plantilla: precio activo (2026 o 2027, según el
+ * reloj del servidor en Bali) en EUR y en AUD, specs y render de portada.
+ *
+ * $proyecto (30-sep-2026): slug de la landing de UN proyecto ('palmfield'), o null en las
+ * páginas genéricas. Filtra los techos con lw_techos_para() — ver allí el porqué.
  */
-function lw_au_catalogo() {
+function lw_au_catalogo($proyecto = null) {
     $modelos = require __DIR__ . '/modelos.php';
     $out = [];
     foreach ($modelos as $id => $m) {
         // FIX DE EMERGENCIA (21-sep-2026, hallazgo de code-review + caída real en
         // produccion): un modelo publicado sin filas en `modelo_techos` (Loftbung, desde
-        // el 15-sep) llegaba aqui con `$m['techos']` sin definir. `lw_techo_precio_activo()`
-        // exige `array $techo` sin admitir null, asi que `$m['techos']['sirap']` sobre un
-        // array inexistente lanzaba un TypeError SIN CAPTURAR — fatal, y esta funcion la
-        // llaman TODAS las paginas de producto (/dali, /modelo/<id>, /palmfield) para
-        // montar el selector de villa del configurador: un modelo mal cargado tiraba abajo
-        // las tres. Mismo criterio que "sin render no se enseña": un modelo sin los dos
-        // techos resueltos no puede participar en el configurador (necesita precio de
-        // villa por techo) y se omite del catálogo entero en vez de reventar la página.
-        if (empty($m['techos']['sirap']) || empty($m['techos']['bambu'])) continue;
+        // el 15-sep) llegaba aqui con `$m['techos']` sin definir y tiraba abajo con un
+        // TypeError TODAS las paginas de producto (/dali, /modelo/<id>, /palmfield).
+        // Mismo criterio que "sin render no se enseña": un modelo sin ningún techo que esta
+        // página pueda ofrecer no participa en el configurador (necesita precio de villa
+        // por techo) y se omite del catálogo en vez de reventar la página.
+        // 30-sep-2026: antes exigía 'sirap' Y 'bambu' escritos a mano; ahora basta ≥1 techo
+        // (Administración puede dar de alta, retirar y limitar techos por proyecto).
+        $techos = lw_techos_para($m['techos'] ?? [], $proyecto);
+        if (!$techos) continue;
         $imgs  = lw_modelo_imgs($id);
-        $sirap = lw_techo_precio_activo($m['techos']['sirap']);
-        $bambu = lw_techo_precio_activo($m['techos']['bambu']);
+        $tOut  = [];
+        foreach ($techos as $clave => $t) {
+            $tOut[$clave] = ['nombre' => $t['nombre'], 'eur' => lw_techo_precio_activo($t)];
+        }
         $out[$id] = [
             'id'        => $id,
             'nombre'    => $m['nombre'],
@@ -231,14 +236,13 @@ function lw_au_catalogo() {
             'thumb'     => $imgs[0] ?? null,
             'sinRender' => empty($imgs),
             'imgs'      => $imgs,
-            'techos'    => [
-                'sirap' => ['nombre' => $m['techos']['sirap']['nombre'], 'eur' => $sirap],
-                'bambu' => ['nombre' => $m['techos']['bambu']['nombre'], 'eur' => $bambu],
-            ],
-            // El "desde" de cada villa es su techo más barato — nunca la suma de los dos,
-            // que es el error que ya cazó Diseño el 3-sep: Sirap y Bambú son dos PRECIOS
-            // de villa alternativos, no un precio y un recargo.
-            'desde_eur' => min($sirap, $bambu),
+            // En el orden de `orden` (catalogo.php). {clave: {nombre, eur}}; al JS va como
+            // lista con lw_techos_cfg().
+            'techos'    => $tOut,
+            // El "desde" de cada villa es su techo más barato — nunca una suma, que es el
+            // error que ya cazó Diseño el 3-sep: cada techo es un PRECIO de villa
+            // alternativo, no un precio y un recargo.
+            'desde_eur' => min(array_column($tOut, 'eur')),
             // Extras resueltos: metadatos comunes + el precio de ESTE modelo. Un modelo sin
             // la clave `extras` (los que lleguen nuevos al catálogo) sale con la lista vacía
             // y la plantilla oculta el paso — nunca con un precio heredado de otro modelo.

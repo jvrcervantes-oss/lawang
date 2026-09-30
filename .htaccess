@@ -81,6 +81,16 @@ RedirectMatch 404 (?i)\.test\.js$
 # tambien el PATH_INFO; estos RedirectMatch solo dan el 404 bonito en la ruta normal.
 RedirectMatch 404 (?i)/modelo/(lib|modelos|datos)\.php$
 
+# Catalogo de modelos: `catalogo.php` y sus respaldos `catalogo*_respaldo.json` los lee PHP
+# (require_once / file_get_contents), nunca el navegador: caian con 200 (auditoria 30-sep-2026;
+# el .php con cuerpo vacio, los .json con el respaldo del catalogo entero). Por PATH_INFO se saltan
+# el RedirectMatch, asi que el cierre de verdad es el <FilesMatch>; un include de PHP no pasa por Apache.
+RedirectMatch 404 (?i)/modelo/catalogo[^/]*\.(php|json)$
+<FilesMatch "(?i)^catalogo(_[^/]*)?\.(php|json)$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
 # Arneses de prueba, en cualquier carpeta y por patron. Antes iban por nombre en la linea
 # de arriba y el que llego despues (api/test_ghl.php) respondio 200 en produccion desde el
 # primer despliegue: la lista a mano ERA el bug, igual que en el hook de cache-bust.

@@ -174,5 +174,17 @@ ok('`estado` y `contrato_id` no pueden colarse ni por el allowlist', () => {
   assert.ok(!LW_CSV_ESCRIBIBLES.includes('contrato_id'));
 });
 
+ok('🔴 30-sep: CSV con `;` (Excel en español) y con BOM se lee igual que con comas', () => {
+  const coma = 'codigo,proyecto,superficie_m2,notas\nA1,Sumba Hills,355,"a, b"\n';
+  const pyc = '﻿codigo;proyecto;superficie_m2;notas\r\nA1;Sumba Hills;355;"a; b"\r\n';
+  const rc = lwCsvAnaliza(coma, CTX), rp = lwCsvAnaliza(pyc, CTX);
+  assert.ok(!rp.error, rp.error);
+  assert.deepStrictEqual(rp.ignoradas, []);
+  assert.strictEqual(rp.validas.length, 1);
+  assert.strictEqual(rp.validas[0].superficie_m2, rc.validas[0].superficie_m2);
+  assert.strictEqual(rp.validas[0].notas, 'a; b', 'un ; ENTRECOMILLADO es texto, no separador');
+  assert.strictEqual(rc.validas[0].notas, 'a, b');
+});
+
 console.log(fallos ? `\n${fallos} fallo(s)` : '\nOK proyectos_csv.test.js — las reglas del import se sostienen');
 process.exit(fallos ? 1 : 0);

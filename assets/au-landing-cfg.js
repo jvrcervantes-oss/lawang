@@ -26,7 +26,11 @@ window.lwAuCfgInit = function (opts) {
   function $(id) { return document.getElementById(id); }
   function txt(id, s) { var e = $(id); if (e) e.textContent = s; }
 
-  var S = {villa: villaDef, techo: 'sirap', extras: {}, div: 'EUR'};
+  // 30-sep-2026: los techos llegan como LISTA ordenada [{id, nombre, eur}] (lw_techos_cfg(),
+  // modelo/lib.php), no como {sirap, bambu} escritos a mano: Administración puede dar de alta,
+  // retirar y limitar techos por proyecto. El techo por defecto es el PRIMERO de la villa
+  // elegida; se engancha siempre por `id` (clave estable), nunca por el nombre visible.
+  var S = {villa: villaDef, techo: null, extras: {}, div: 'EUR'};
   try { var _g = localStorage.getItem('lw_deck_cur'); if (CFG.divisas[_g]) S.div = _g; } catch (e) {}
   // 22-sep-2026: `opts.ocultarVilla` — en una ficha de UN modelo, elegir OTRA villa desde
   // dentro del propio configurador no aplica (para eso está "More from the collection").
@@ -49,11 +53,25 @@ window.lwAuCfgInit = function (opts) {
   function alterna(n) { return S.div === 'EUR' ? '' : eur(n); }
 
   function modelo() { return CFG.modelos[S.villa] || null; }
+  function techosDe(m) { return (m && m.techos) || []; }
+  function techoPorId(m, id) {
+    var ts = techosDe(m);
+    for (var i = 0; i < ts.length; i++) { if (ts[i].id === id) return ts[i]; }
+    return null;
+  }
+  function techoDefecto(m) { var ts = techosDe(m); return ts.length ? ts[0].id : null; }
+  // Si la villa nueva no tiene el techo elegido (retirado o limitado a otro proyecto), vuelve
+  // al primero de esa villa en vez de quedarse con un radio que no existe.
+  function ajustaTecho() {
+    var m = modelo();
+    if (!techoPorId(m, S.techo)) S.techo = techoDefecto(m);
+  }
   function techoActivo() {
     var m = modelo();
     if (!m) return null;
-    return m.techos[S.techo] || m.techos.sirap || null;
+    return techoPorId(m, S.techo) || techoPorId(m, techoDefecto(m));
   }
+  function vistaDe(id) { return ((CFG.vistaTecho || {})[id]) || 'day'; }
   function precioVilla() {
     var t = techoActivo();
     return t ? t.eur : 0;
@@ -68,21 +86,24 @@ window.lwAuCfgInit = function (opts) {
   function pintaTechos() {
     var m = modelo(), cont = $('lw-techos');
     if (!m || !cont) return;
-    var base = Math.min.apply(null, ['sirap', 'bambu']
-      .filter(function (k) { return m.techos[k]; })
-      .map(function (k) { return m.techos[k].eur; }));
+    var ts = techosDe(m);
     cont.innerHTML = '';
-    ['sirap', 'bambu'].forEach(function (k) {
-      var t = m.techos[k];
-      if (!t) return;
+    if (!ts.length) return;
+    ajustaTecho();
+    var base = Math.min.apply(null, ts.map(function (t) { return t.eur; }));
+    ts.forEach(function (t) {
       var d = t.eur - base;
       var l = document.createElement('label');
       l.className = 'op';
-      l.innerHTML =
-        '<input type="radio" name="lw-techo" value="' + k + '"' + (k === S.techo ? ' checked' : '') + '>' +
+      // La clave va por propiedad, nunca concatenada en el HTML (es un dato de la base).
+      var inp = document.createElement('input');
+      inp.type = 'radio'; inp.name = 'lw-techo'; inp.value = t.id;
+      inp.checked = t.id === S.techo;
+      l.appendChild(inp);
+      l.insertAdjacentHTML('beforeend',
         '<span><span class="op__nb"></span></span>' +
-        (d ? '<span class="op__pr" data-eur="' + d + '"><b></b><i></i></span>'
-           : '<span class="op__pr"><b>Included</b></span>');
+        (d ? '<span class="op__pr" data-eur="' + Number(d) + '"><b></b><i></i></span>'
+           : '<span class="op__pr"><b>Included</b></span>'));
       l.querySelector('.op__nb').textContent = t.nombre;
       if (d) {
         l.querySelector('b').textContent = '+ ' + pinta(d);
@@ -98,10 +119,13 @@ window.lwAuCfgInit = function (opts) {
     (m.extras || []).forEach(function (x) {
       var l = document.createElement('label');
       l.className = 'op';
-      l.innerHTML =
-        '<input type="checkbox" name="lw-extra" value="' + x.id + '"' + (S.extras[x.id] ? ' checked' : '') + '>' +
+      var inp = document.createElement('input');
+      inp.type = 'checkbox'; inp.name = 'lw-extra'; inp.value = x.id;
+      inp.checked = !!S.extras[x.id];
+      l.appendChild(inp);
+      l.insertAdjacentHTML('beforeend',
         '<span><span class="op__nb"></span><span class="op__sp"></span></span>' +
-        '<span class="op__pr" data-eur="' + x.eur + '"><b></b><i></i></span>';
+        '<span class="op__pr" data-eur="' + Number(x.eur) + '"><b></b><i></i></span>');
       l.querySelector('.op__nb').textContent = x.nombre;
       l.querySelector('.op__sp').textContent = x.desc || '';
       l.querySelector('b').textContent = '+ ' + pinta(x.eur);
@@ -188,7 +212,7 @@ window.lwAuCfgInit = function (opts) {
     var p = new URLSearchParams(location.search);
     ['villa', 'roof', 'extras', 'cur'].forEach(function (k) { p.delete(k); });
     if (S.villa !== villaDef) p.set('villa', S.villa);
-    if (S.techo !== 'sirap')  p.set('roof', S.techo);
+    if (S.techo && S.techo !== techoDefecto(m)) p.set('roof', S.techo);
     if (els.length) p.set('extras', els.map(function (x) { return x.id; }).join(','));
     if (S.div !== 'EUR') p.set('cur', S.div);
     var q = p.toString();
@@ -205,12 +229,13 @@ window.lwAuCfgInit = function (opts) {
     var t = e.target;
     if (!t) return;
     if (t.type === 'radio') {
-      if (t.name === 'lw-villa') { S.villa = t.value; pintaTechos(); pintaExtras(); }
+      if (t.name === 'lw-villa') { S.villa = t.value; ajustaTecho(); pintaTechos(); pintaExtras(); }
       else if (t.name === 'lw-techo') {
         S.techo = t.value;
         // Hero cinematico (solo en paginas de producto que lo definen — /dali no lo tiene):
-        // el techo bambu ensena la vista alternativa, sirap vuelve a la vista de dia real.
-        if (window.lwSetView) window.lwSetView(t.value === 'bambu' ? 'roof' : 'day');
+        // cada techo ensena la capa que PHP le asigno (CFG.vistaTecho: 'roof' si esa capa es
+        // su foto, 'day' si no). Antes: `=== 'bambu'` escrito a mano.
+        if (window.lwSetView) window.lwSetView(vistaDe(t.value));
       }
       else { return; }
       recalcular();
@@ -282,8 +307,10 @@ window.lwAuCfgInit = function (opts) {
   // Estado desde la query (enlace compartible)
   var q  = new URLSearchParams(location.search);
   var vq = q.get('villa'); if (vq && CFG.modelos[vq]) S.villa = vq;
-  var tq = q.get('roof');  if (tq === 'sirap' || tq === 'bambu') S.techo = tq;
   var cq = q.get('cur');   if (CFG.divisas[cq]) S.div = cq;
+  // ?roof= acepta cualquier techo que tenga la villa YA resuelta (no una lista fija).
+  S.techo = techoDefecto(modelo());
+  var tq = q.get('roof');  if (tq && techoPorId(modelo(), tq)) S.techo = tq;
   var validos = {};
   ((CFG.modelos[S.villa] || {}).extras || []).forEach(function (x) { validos[x.id] = true; });
   (q.get('extras') || '').split(',').forEach(function (id) {
@@ -297,7 +324,7 @@ window.lwAuCfgInit = function (opts) {
   pintaExtras();
   muestraPaso(1);
   recalcular();
-  // Enlace compartido con ?roof=bambu: el hero arranca ya en la vista alternativa,
+  // Enlace compartido con ?roof=<clave>: el hero arranca ya en la vista de ese techo,
   // no solo el radio marcado.
-  if (window.lwSetView && S.techo === 'bambu') window.lwSetView('roof');
+  if (window.lwSetView && S.techo && vistaDe(S.techo) === 'roof') window.lwSetView('roof');
 };
