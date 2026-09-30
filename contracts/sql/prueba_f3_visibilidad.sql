@@ -364,3 +364,235 @@ select 200 + row_number() over (order by a.pref)::int,
 
 select orden, caso, ok, detalle from _f3 order by orden;
 rollback;
+
+
+-- #####################################################################################
+-- PARTE 2 — AJUSTES DE F3 (supabase/migrations/20260930081209_f3_ajustes_visibilidad.sql y
+-- 20260930081234_f3_ajustes_destructivo.sql). Escrita el 30-sep-2026. Se lanza SOLO este bloque
+-- (desde «PARTE 2» hasta el final), en varias llamadas a execute_sql, una por TRAMO (la línea
+-- `select set_config('f3aj.perfiles', …)`): '1-2', '3-4', '5-6', '7-8' = posiciones de la lista
+-- de perfiles (los SM con equipo, el PM con más proyectos, el agente con más contratos, un admin
+-- y un super_admin, en orden de rol y correo). Con la policy vieja cada perfil tarda ~10 s y el
+-- MCP corta a ~60 s. Los casos 21-25 van en el tramo que empieza en 1. Acaba en ROLLBACK.
+--
+-- POR QUÉ NO SE APLICA LA MIGRACIÓN DENTRO DE LA PRUEBA (a diferencia de la parte 1): rehacer
+-- policies coge un bloqueo exclusivo de contratos/facturas mientras dure la transacción, y esta
+-- prueba tarda decenas de segundos: la intranet se quedaría sin poder leer. Por eso cada tabla se
+-- mira de tres formas a la vez, sin tocar ninguna policy:
+--   A = la policy VIEJA (la de F3, fila a fila con puede_ver_contrato / documento_visible /
+--       cliente_visible), evaluada como postgres con las claims del usuario;
+--   B = la policy NUEVA (con mis_contratos_visibles / mis_proyectos_supervisados), igual;
+--   C = lo que devuelve de verdad la RLS viva con `set local role authenticated`.
+-- Antes de aplicar: se antepone al bloque (tras el begin) la parte de FUNCIONES de las dos
+-- migraciones (guardia, A, funciones de D, parches B y C, y E) — no toca policies — y se exige
+-- A = B (C es aún la policy vieja, = A). Después de aplicar: el bloque tal cual; se exige
+-- A = B = C (C ya es la policy nueva). Arrays ordenados por id: igualdad = diferencia simétrica vacía.
+-- Casos:
+--   20  paridad A = B = C por perfil y tabla (contratos, facturas, recibi_aplicaciones,
+--       contrato_vencimientos, contrato_firmas, contrato_eventos, correos_enviados, clients,
+--       documents), con el tiempo de C (count(*) con RLS, una pasada).
+--   21  SM inactivo no ve: G con activo=false → _sm_ve_venta, puede_ver_contrato y
+--       mis_contratos_visibles no le dan ninguna venta de su equipo.
+--   22  JWT de agente sin fila en usuarios con el correo del manager: ya no ve el equipo.
+--   23  crm_contrato_closer_set sobre una venta que V no ve → PT404; sobre una que ve → pasa la
+--       puerta (PT409 por p_previo falso).
+--   24  usuario_supervisa_proyecto asignando a un SM → 22023; a un PM → pasa.
+--   25  contrato_visible ya no existe.
+-- Sin correos ni uids en el fichero: los perfiles se eligen por estructura y la salida solo
+-- muestra rol + prefijo del correo.
+-- RESULTADO 30-sep-2026:
+--   ANTES de aplicar (funciones antepuestas, policies sin tocar, ROLLBACK; tramos 1-2, 3-4, 5-6,
+--   7-8): 72/72 paridades A = B = C en verde (8 perfiles × 9 tablas: 4 SM con equipo —Gus,
+--   Victor, Carmen y el cuarto—, el PM con 12 proyectos, el usuario con más contratos —hoy un
+--   sales_manager SIN equipo—, un admin y un super_admin); casos 21-25 en verde. Un primer intento aplicando la migración DENTRO de la
+--   prueba cortó por tiempo (60 s) con bloqueo exclusivo sobre contratos/facturas: rollback
+--   comprobado, producción intacta; de ahí el diseño A/B/C de arriba.
+--   Aplicadas 20260930081209 y 20260930081234 (08:12 UTC). Huella de dinero
+--   (comisiones_devengadas 10:90d2f4e0…, solicitudes_pago 9:c596a487…) igual antes y después;
+--   0 filas nuevas. get_advisors: nada nuevo salvo el aviso esperado de EXECUTE a authenticated
+--   en las dos funciones nuevas (las policies las necesitan).
+--   DESPUÉS (tramos 1-2 y 3-8, ROLLBACK): 72/72 A = B = C con la RLS viva ya nueva; 21-25 verde.
+--   Tiempos count(*) con RLS, antes → después (ms): SM facturas 630-750 → 13-29; SM contratos
+--   ~230-270 → 12-15; SM contrato_vencimientos ~600-680 → 13-20; SM contrato_eventos ~1050-1290
+--   → 13-15; PM facturas ~315-346 → 2; PM contratos ~170-196 → 2; SM sin equipo facturas ~530 → 2.
+--   Aparte, el rol='agente' con más contratos (6 tablas, A = B = C en verde): contratos 246 → 2,
+--   facturas 607 → 2, contrato_vencimientos 538 → 5, contrato_eventos 1083 → 2.
+--   clients y documents siguen ~200-330 ms para SM/PM/agente: cliente_visible fila a fila, fuera de
+--   este encargo (misma receta aplicable, con su propia semántica).
+-- #####################################################################################
+begin;
+select set_config('f3aj.perfiles', '1-2', true);   -- TRAMO: '1-2' | '3-4' | '5-6' | '7-8'
+create temporary table _aj(orden int, caso text, ok boolean, detalle text) on commit drop;
+create temporary table _perfil(uid uuid, email text, pref text) on commit drop;
+create temporary table _pred(tabla text, viejo text, nuevo text) on commit drop;
+grant all on _aj, _perfil, _pred to authenticated;
+
+insert into _perfil
+select s.user_id, s.email, s.pref from (
+  select u.user_id, u.email, u.rol || ':' || split_part(u.email, '@', 1) pref,
+         row_number() over (order by u.rol, u.email) ord
+    from public.usuarios u
+   where u.activo and u.user_id is not null
+     and ((u.rol = 'sales_manager' and exists (select 1 from public.equipos_venta ev
+                                                 where ev.activo and lower(ev.manager_email) = lower(u.email)))
+          or u.user_id in (
+               (select x.user_id from public.usuarios x where x.activo and x.rol = 'project_manager'
+                 order by cardinality(coalesce(x.proyectos_supervisados, '{}'::uuid[])) desc limit 1),
+               (select x.user_id from public.usuarios x where x.activo and x.rol not in ('admin', 'super_admin')
+                 order by (select count(*) from public.contratos c where c.creado_por = x.email) desc limit 1),
+               (select x.user_id from public.usuarios x where x.activo and x.rol = 'admin' order by x.user_id limit 1),
+               (select x.user_id from public.usuarios x where x.activo and x.rol = 'super_admin' order by x.user_id limit 1)))) s
+ where s.ord between split_part(current_setting('f3aj.perfiles'), '-', 1)::int
+                 and split_part(current_setting('f3aj.perfiles'), '-', 2)::int;
+
+-- viejo = USING de F3 (20260930065223); nuevo = USING de 20260930081209. clients y documents no
+-- cambian de policy: viejo = nuevo (lo que se mide es que A y E2 no les muevan nada).
+insert into _pred values
+ ('contratos',
+  $p$public.puede_ver_contrato(id)$p$,
+  $p$(select public.es_admin()) or ((select public.es_agente()) and (coalesce(creado_por = (select auth.email()), false) or id = any ((select public.mis_contratos_visibles())::uuid[])))$p$),
+ ('facturas',
+  $p$public.es_agente() and public.documento_visible(creado_por, proyecto_id, contrato_id)$p$,
+  $p$(select public.es_agente()) and ((select public.es_admin()) or coalesce(creado_por = (select auth.email()), false) or proyecto_id = any ((select public.mis_proyectos_supervisados())::uuid[]) or contrato_id = any ((select public.mis_contratos_visibles())::uuid[]))$p$),
+ ('recibi_aplicaciones',
+  $p$public.es_agente() and exists (select 1 from public.facturas d where d.id = any (array[x.recibi_id, x.factura_id]) and public.documento_visible(d.creado_por, d.proyecto_id, d.contrato_id))$p$,
+  $p$(select public.es_agente()) and exists (select 1 from public.facturas d where d.id = any (array[x.recibi_id, x.factura_id]) and ((select public.es_admin()) or coalesce(d.creado_por = (select auth.email()), false) or d.proyecto_id = any ((select public.mis_proyectos_supervisados())::uuid[]) or d.contrato_id = any ((select public.mis_contratos_visibles())::uuid[])))$p$),
+ ('contrato_vencimientos',
+  $p$public.es_agente() and public.puede_ver_contrato(contrato_id)$p$,
+  $p$(select public.es_agente()) and contrato_id is not null and ((select public.es_admin()) or contrato_id = any ((select public.mis_contratos_visibles())::uuid[]))$p$),
+ ('contrato_firmas',
+  $p$public.es_agente() and public.puede_ver_contrato(contrato_id)$p$,
+  $p$(select public.es_agente()) and contrato_id is not null and ((select public.es_admin()) or contrato_id = any ((select public.mis_contratos_visibles())::uuid[]))$p$),
+ ('contrato_eventos',
+  $p$public.es_super_admin() or (public.es_agente() and evento <> all (array['editado_estando_firmado', 'desbloqueado_estando_firmado', 'factura_sin_bloquear', 'cobro_a_factura_huerfana', 'cobro_a_otro_comprador', 'comprador_sin_ficha']::text[]) and public.puede_ver_contrato(contrato_id))$p$,
+  $p$(select public.es_super_admin()) or ((select public.es_agente()) and evento <> all (array['editado_estando_firmado', 'desbloqueado_estando_firmado', 'factura_sin_bloquear', 'cobro_a_factura_huerfana', 'cobro_a_otro_comprador', 'comprador_sin_ficha']::text[]) and contrato_id is not null and ((select public.es_admin()) or contrato_id = any ((select public.mis_contratos_visibles())::uuid[])))$p$),
+ ('correos_enviados',
+  $p$public.es_agente() and (public.es_admin() or coalesce(enviado_por = (select auth.email()), false) or public.puede_ver_contrato(contrato_id))$p$,
+  $p$(select public.es_agente()) and ((select public.es_admin()) or coalesce(enviado_por = (select auth.email()), false) or contrato_id = any ((select public.mis_contratos_visibles())::uuid[]))$p$),
+ ('clients',
+  $p$public.es_agente() and public.cliente_visible(propietario, id)$p$,
+  $p$public.es_agente() and public.cliente_visible(propietario, id)$p$),
+ ('documents',
+  $p$public.es_agente() and retirado_el is null and exists (select 1 from public.clients c where c.id = x.client_id and public.cliente_visible(c.propietario, c.id))$p$,
+  $p$public.es_agente() and retirado_el is null and exists (select 1 from public.clients c where c.id = x.client_id and public.cliente_visible(c.propietario, c.id))$p$);
+
+create function pg_temp.aj_claims(p_uid uuid, p_email text) returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claim.sub', p_uid::text, true);
+  perform set_config('request.jwt.claim.email', p_email, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', p_uid, 'email', p_email, 'role', 'authenticated')::text, true);
+end $$;
+grant execute on function pg_temp.aj_claims(uuid, text) to authenticated;
+
+do $$
+declare u record; p record; a text[]; b text[]; c text[]; t0 timestamptz; ms numeric; n bigint;
+begin
+  for u in select * from _perfil order by pref loop
+    for p in select * from _pred loop
+      execute 'reset role';
+      perform pg_temp.aj_claims(u.uid, u.email);
+      execute format('select coalesce(array_agg(x.id::text order by x.id), ''{}'') from public.%I x where %s', p.tabla, p.viejo) into a;
+      execute format('select coalesce(array_agg(x.id::text order by x.id), ''{}'') from public.%I x where %s', p.tabla, p.nuevo) into b;
+      execute 'set local role authenticated';
+      execute format('select coalesce(array_agg(x.id::text order by x.id), ''{}'') from public.%I x', p.tabla) into c;
+      t0 := clock_timestamp();
+      execute format('select count(*) from public.%I', p.tabla) into n;
+      ms := round(extract(epoch from clock_timestamp() - t0) * 1000);
+      execute 'reset role';
+      insert into _aj values (20, 'Paridad ' || u.pref || ' · ' || p.tabla,
+        a = b and a = c,
+        format('vieja %s · nueva %s · RLS viva %s filas · %s ms', cardinality(a), cardinality(b), cardinality(c), ms));
+    end loop;
+  end loop;
+  execute 'reset role';
+end $$;
+
+-- 21-25 · casos de A, B, C y E1 (solo en el tramo que empieza en 1)
+do $$
+declare g record; v record; pm record; sa record; c_g uuid; c_v uuid; v_proy uuid; e text;
+begin
+  if split_part(current_setting('f3aj.perfiles'), '-', 1) <> '1' then return; end if;
+  execute 'reset role';
+  select ev.id eq, u.user_id, u.email into g
+    from public.equipos_venta ev join public.usuarios u on lower(u.email) = lower(ev.manager_email)
+   where ev.activo and u.activo and u.rol = 'sales_manager'
+   order by (select count(*) from public.contrato_closer k where k.equipo_id = ev.id and k.equipo_congelado_en is not null) desc
+   limit 1;
+  select ev.id eq, u.user_id, u.email into v
+    from public.equipos_venta ev join public.usuarios u on lower(u.email) = lower(ev.manager_email)
+   where ev.activo and u.activo and u.rol = 'sales_manager' and ev.id <> g.eq
+   order by u.user_id limit 1;
+  select user_id, email into pm from public.usuarios where activo and rol = 'project_manager' order by user_id limit 1;
+  select user_id, email into sa from public.usuarios where activo and rol = 'super_admin' order by user_id limit 1;
+  select id into v_proy from public.proyectos order by id limit 1;
+  -- una venta del equipo de G que ni G ni V firmaron como autores
+  select c.id into c_g from public.contratos c
+   where public._venta_equipo(c.id) = g.eq
+     and lower(coalesce(c.creado_por, '')) not in (lower(g.email), lower(v.email))
+   order by c.id limit 1;
+  select c.id into c_v from public.contratos c where public._venta_equipo(c.id) = v.eq order by c.id limit 1;
+
+  -- 21 · G inactivo (las funciones DEFINER se llaman como postgres con las claims de G)
+  update public.usuarios set activo = false where user_id = g.user_id;
+  perform pg_temp.aj_claims(g.user_id, g.email);
+  insert into _aj values (21, 'SM inactivo no ve las ventas de su equipo',
+    c_g is not null and not public._sm_ve_venta(c_g) and not public.puede_ver_contrato(c_g)
+      and not (c_g = any (public.mis_contratos_visibles())),
+    format('_sm_ve_venta=%s puede_ver=%s en_mis=%s', public._sm_ve_venta(c_g), public.puede_ver_contrato(c_g),
+           c_g = any (public.mis_contratos_visibles())));
+  update public.usuarios set activo = true where user_id = g.user_id;
+
+  -- 22 · JWT de agente sin fila en usuarios, con el correo de G
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000f3a', true);
+  perform set_config('request.jwt.claim.email', g.email, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-4000-8000-000000000f3a', 'email', g.email,
+          'role', 'authenticated', 'app_metadata', json_build_object('agente', true))::text, true);
+  insert into _aj values (22, 'JWT de agente sin fila activa con el correo del manager: no ve el equipo',
+    public.es_agente() and not public._sm_ve_venta(c_g) and not public.puede_ver_contrato(c_g)
+      and not (c_g = any (public.mis_contratos_visibles())),
+    format('es_agente=%s puede_ver=%s', public.es_agente(), public.puede_ver_contrato(c_g)));
+
+  -- 23 · crm_contrato_closer_set, con V como usuario con la herramienta «ranking»
+  perform pg_temp.aj_claims(sa.user_id, sa.email);   -- el trigger de usuarios solo deja tocar herramientas a un super_admin
+  update public.usuarios set herramientas = array_append(coalesce(herramientas, '{}'), 'ranking') where user_id = v.user_id;
+  perform pg_temp.aj_claims(v.user_id, v.email);
+  execute 'set local role authenticated';
+  begin
+    perform public.crm_contrato_closer_set(c_g, null, 'previo-falso');
+    e := 'sin error';
+  exception when others then e := sqlstate;
+  end;
+  begin
+    perform public.crm_contrato_closer_set(c_v, null, 'previo-falso');
+    e := e || ' / sin error';
+  exception when others then e := e || ' / ' || sqlstate;
+  end;
+  execute 'reset role';
+  insert into _aj values (23, 'crm_contrato_closer_set: venta no visible → PT404; visible → pasa la puerta (PT409)',
+    e = 'PT404 / PT409', e);
+
+  -- 24 · usuario_supervisa_proyecto (como super_admin)
+  perform pg_temp.aj_claims(sa.user_id, sa.email);
+  execute 'set local role authenticated';
+  begin
+    perform public.usuario_supervisa_proyecto(g.user_id, v_proy, true);
+    e := 'sin error';
+  exception when others then e := sqlstate;
+  end;
+  begin
+    perform public.usuario_supervisa_proyecto(pm.user_id, v_proy, true);
+    e := e || ' / ok';
+  exception when others then e := e || ' / ' || sqlstate;
+  end;
+  execute 'reset role';
+  insert into _aj values (24, 'supervisa: a un SM → 22023; a un PM → pasa', e = '22023 / ok', e);
+
+  -- 25 · contrato_visible borrada
+  insert into _aj values (25, 'contrato_visible ya no existe',
+    to_regprocedure('public.contrato_visible(text,uuid)') is null,
+    coalesce(to_regprocedure('public.contrato_visible(text,uuid)')::text, 'borrada'));
+end $$;
+
+reset role;
+select orden, caso, ok, detalle from _aj order by orden, caso;
+rollback;

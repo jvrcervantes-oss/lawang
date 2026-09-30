@@ -5758,9 +5758,13 @@
           sb.from('modelos').select('id,nombre,precio_construccion,moneda').eq('activo', true),
           sb.from('modelos_villa').select('id,proyecto,modelo,modelo_id').eq('proyecto_id', p.id),
           sb.from('unidades').select('modelo').eq('proyecto_id', p.id),
+          // Solo project_manager (F3, 30-sep-2026, LAW-468): desde F3 el sales_manager ve
+          // por su EQUIPO, no por proyecto, y el servidor rechaza asignarle uno (22023 en
+          // usuario_supervisa_proyecto). Ofrecerlo aquí era un dato muerto que parecía dar
+          // visibilidad.
           puedeUsuarios
             ? sb.from('usuarios').select('user_id,email,nombre,rol,proyectos_supervisados,activo')
-                .in('rol', ['sales_manager', 'project_manager']).order('nombre')
+                .eq('rol', 'project_manager').order('nombre')
             : Promise.resolve({ data: [] })
         ]).then(function (rs) {
           var catalogo = (rs[0] && rs[0].data) || [];
@@ -5841,9 +5845,9 @@
           if (puedeUsuarios && managers.length) {
             campos.push({
               k: 'managers', tipo: 'multicheck',
-              label: 'Sales manager / Project manager de este proyecto',
+              label: 'Project manager de este proyecto',
               opciones: managers.map(function (m) {
-                return [m.user_id, (m.nombre || m.email) + ' · ' + (m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager') + (m.activo ? '' : ' (desactivado)')];
+                return [m.user_id, (m.nombre || m.email) + (m.activo ? '' : ' (desactivado)')];
               }),
               valor: managers.filter(function (m) { return (m.proyectos_supervisados || []).indexOf(p.id) !== -1; })
                              .map(function (m) { return m.user_id; })
