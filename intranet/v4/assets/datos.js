@@ -8156,7 +8156,7 @@
     var selProyecto = document.getElementById('lw-co-proyecto');
 
     Promise.all([
-      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,vigente_desde,vigente_hasta,created_at').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
+      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,vigente_desde,vigente_hasta,created_at,sustituye_a').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
       q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
       q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
       q(sb.from('condicion_tramos').select('id,condicion_id,orden,disparador_tipo,umbral,pct_tramo').order('orden'), 'tramos de comisión'),
@@ -8188,9 +8188,12 @@
          Se pintan separadas para que nadie desactive la vigente creyéndola un duplicado de la cerrada. */
       var hoyC = hoyBali();
       var T = function (x, h) { return (typeof lwT === 'function') ? lwT(x, h) : x; };
+      /* Cerrada = tiene fecha de fin y, o ya pasó, o nadie la sustituye (cierre a mano). La que tiene una
+         sustituta futura sigue VIGENTE hasta el día antes: la misma regla que _condicion_cerrada en la base. */
+      var sustituida = {}; conds.forEach(function (c) { if (c.sustituye_a) sustituida[c.sustituye_a] = 1; });
       var estadoCond = function (c) {
-        if (c.vigente_hasta) return 'cerrada';
-        if (!c.activo) return 'inactiva';
+        if (c.vigente_hasta && (c.vigente_hasta < hoyC || !sustituida[c.id])) return 'cerrada';
+        if (!c.activo && !c.vigente_hasta) return 'inactiva';
         return c.vigente_desde > hoyC ? 'futura' : 'vigente';
       };
       pon2('k-cond-activas', String(conds.filter(function (c) { return estadoCond(c) === 'vigente'; }).length));
@@ -8237,7 +8240,7 @@
             (c.vigente_hasta ? '<br><span class="text-outline text-[11px]">' + esc(T('hasta %f', { f: fFecha(c.vigente_hasta) })) + '</span>' : '');
           var etq = (estandar ? 'Estándar de ' + lwMarca('%marca') : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos');
           var ESTADO = {
-            vigente: ['bg-primary-fixed text-on-primary-fixed', T('Vigente')],
+            vigente: ['bg-primary-fixed text-on-primary-fixed', c.vigente_hasta ? T('Vigente hasta el %f', { f: fFecha(c.vigente_hasta) }) : T('Vigente')],
             futura: ['bg-surface-container-high text-on-surface-variant', T('Empieza el %f', { f: fFecha(c.vigente_desde) })],
             cerrada: ['bg-surface-container-high text-on-surface-variant', T('Cerrada el %f', { f: fFecha(c.vigente_hasta) })],
             inactiva: ['bg-surface-container-high text-on-surface-variant', T('Inactiva')]
@@ -8246,7 +8249,8 @@
              sin fecha de fin), la cerrada no se reabre ni se borra (sigue pagando las ventas de su periodo),
              la futura se borra. Lo decide la base; esto solo no ofrece lo que rechazaría. */
           // una inactiva vieja solo se puede reactivar si no empezó (la base rechaza aplicarla a ventas pasadas)
-          var bCerrar = est === 'vigente' || (est === 'inactiva' && c.vigente_desde >= hoyC)
+          // la vigente con sustituta ya tiene su fin: cerrarla antes abriría un hueco sin condición
+          var bCerrar = (est === 'vigente' && c.activo && !c.vigente_hasta) || (est === 'inactiva' && c.vigente_desde >= hoyC)
             ? '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
               'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc(etq) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
               esc(c.activo ? T('Cerrar') : T('Reactivar')) + '</button>' : '';
@@ -8268,8 +8272,9 @@
               /* Editar (22-sep-2026, owner): %, base, importe fijo, override y —si
                  no ha devengado— los tramos. Equipo, proyecto y nivel no: son la
                  identidad de la condición. */
-              '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
-              'data-lw-edita-cond="' + esc(c.id) + '" data-lw-etq="' + esc(etq) + '">Editar</button>' +
+              // una cerrada no se edita (sus cifras no cambian: se crea una nueva, lo exige la base)
+              (est === 'cerrada' ? '' : '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+              'data-lw-edita-cond="' + esc(c.id) + '" data-lw-etq="' + esc(etq) + '">Editar</button>') +
               bCerrar + bBorrar + '</div></td></tr>');
         };
         var sep = function (txt) {

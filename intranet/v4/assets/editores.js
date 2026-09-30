@@ -8380,20 +8380,21 @@
       ata('me-anadir', function () {
         var eq = eqMe(); if (!eq) return sinEquipo();
         if (admin) return window.LW_V4.abreAnadirMiembro(eq.id, eq.nombre);   // admin: con fecha y vista previa
-        sb.rpc('equipo_candidatos', { p_equipo: eq.id }).then(function (r) {
+        // el servidor da solo nombre y email enmascarado (j***@dominio) y el id con el que se pide el alta
+        sb.rpc('equipo_candidatos_sm', { p_equipo: eq.id }).then(function (r) {
           if (r.error) return aviso(T6('No he podido traer la gente disponible: %e', { e: r.error.message }), '#93000a');
-          var ops = (r.data || []).map(function (u) { return [u.email, (u.nombre && u.nombre !== u.email ? u.nombre + ' · ' : '') + u.email]; });
+          var ops = (r.data || []).map(function (u) { return [u.usuario, (u.nombre && u.nombre !== u.email ? u.nombre + ' · ' : '') + u.email]; });
           if (!ops.length) {
             return modal(T6('Añadir miembro — %e', { e: eq.nombre }), [
               { tipo: 'nota', label: T6('Ahora mismo no hay nadie disponible: todos los usuarios activos están ya en un equipo o son managers o administración. Para traer a alguien de otro equipo, pídeselo a administración.') }
             ], T6('Entendido'), function () { return Promise.resolve({}); }, { sinRecarga: true });
           }
           modal(T6('Añadir miembro — %e', { e: eq.nombre }), [
-            { k: 'email', label: T6('Persona'), tipo: 'select', req: 1, opciones: [['', T6('— elige a alguien sin equipo —')]].concat(ops),
+            { k: 'usuario', label: T6('Persona'), tipo: 'select', req: 1, opciones: [['', T6('— elige a alguien sin equipo —')]].concat(ops),
               ayuda: T6('solo sale quien no está en ningún equipo; entra con fecha de hoy y administración recibe un aviso') }
           ], T6('Añadir al equipo'), function (v) {
-            // la fecha la pone el servidor (hoy en Bali): la que mandara el navegador no cuenta
-            return sb.rpc('equipo_miembro_guarda', { p_id: null, p_equipo: eq.id, p_email: v.email, p_desde: hoyBali(), p_hasta: null });
+            // el email y la fecha (hoy en Bali) los pone el servidor
+            return sb.rpc('equipo_miembro_anade', { p_equipo: eq.id, p_usuario: v.usuario });
           });
         });
       });
@@ -8441,8 +8442,7 @@
       });
 
       /* Plantilla de reparto: filas editables; la suma se ve en vivo y se valida aquí solo como ayuda
-         (manda plantilla_reparto_guarda). Si la función aún no existe en la base, el botón sale apagado
-         con el motivo — se sabe preguntando con una llamada que no puede escribir (p_filas nulo). */
+         (manda plantilla_reparto_guarda, que ya existe en la base: sin llamada de sondeo). */
       var cajaPl = document.getElementById('lw-me-plantilla');
       function sumaPl() {
         var s = 0, filas = cajaPl ? cajaPl.querySelectorAll('[data-lw-fila]') : [];
@@ -8493,14 +8493,7 @@
         var bG = document.querySelector('main [data-accion="me-plantilla-guarda"]');
         var bF = document.querySelector('main [data-accion="me-plantilla-fila"]');
         if (bF) { bF.disabled = false; bF.title = ''; }
-        if (!bG) return;
-        sb.rpc('plantilla_reparto_guarda', { p_equipo: null, p_filas: null }).then(function (r) {
-          var falta = r.error && (r.error.code === 'PGRST202' || /could not find the function/i.test(r.error.message || ''));
-          bG.disabled = !!falta;
-          bG.title = falta ? T6('Guardar la plantilla está pendiente de activar en el servidor') : '';
-          var nota = document.querySelector('[data-lw="me-plantilla-nota"]');
-          if (nota) nota.textContent = falta ? T6('Guardar la plantilla está pendiente de activar en el servidor: de momento puedes verla, no cambiarla.') : '';
-        });
+        if (bG) { bG.disabled = false; bG.title = ''; }
       };
       if (cajaPl && cajaPl.getAttribute('data-lw-pendiente')) {   // datos.js llegó antes que este fichero
         try { window.LW_V4.pintaPlantilla(JSON.parse(cajaPl.getAttribute('data-lw-pendiente'))); } catch (e) {
@@ -8689,7 +8682,7 @@
             /* Condición y tramos por el servidor, en UNA transacción (26-sep-2026, LAW-336 pieza 6):
                antes eran un insert, otro insert y un delete de compensación si fallaba el segundo.
                El id, el autor y el permiso los decide la base (condicion_comision_guarda). */
-            return sb.rpc('condicion_comision_guarda', {
+            return guardaCondicionConfirmada({
               p_id: null,
               p_cond: {
                 equipo_id: v.equipo_id, proyecto_id: v.proyecto_id, nivel: v.nivel,
@@ -8700,10 +8693,34 @@
               },
               p_tramos: tramosParaServidor(tramos)
             });
-          });
+          }, { sinRecarga: true });   // recarga guardaCondicionConfirmada, que puede abrir antes la confirmación
         });
         });
       });
+
+      /* F6, regla 3b de Administración (30-sep-2026): una fecha de inicio en el pasado cambia de condición
+         a ventas ya hechas sin comisión devengada. La base las cuenta y rechaza con el hint
+         «lw-confirmar-ventas:N»; aquí se enseña ese número y, si se confirma, se reenvía con él. Si entretanto
+         cambia, la base vuelve a rechazar: el número que se aplica es el que se vio. */
+      function guardaCondicionConfirmada(params) {
+        return sb.rpc('condicion_comision_guarda', params).then(function (r) {
+          var m = r.error && /^lw-confirmar-ventas:(\d+)$/.exec(r.error.hint || '');
+          if (!m) {
+            if (!r.error) setTimeout(function () { location.reload(); }, 450);
+            return r;
+          }
+          var n = Number(m[1]);
+          modal('Confirmar ventas que cambian de condición', [
+            { tipo: 'nota', label: r.error.message },
+            { tipo: 'nota', label: 'Ninguna de esas ventas tiene comisión devengada todavía: cuando devenguen, lo harán con la condición nueva. Las que ya devengaron no cambian nunca.' }
+          ], 'Confirmar (' + n + (n === 1 ? ' venta)' : ' ventas)'), function () {
+            return sb.rpc('condicion_comision_guarda', Object.assign({}, params, {
+              p_cond: Object.assign({}, params.p_cond, { confirmar_ventas: n })
+            }));
+          });
+          return {};
+        });
+      }
 
       /* BORRAR (18-sep-2026, owner: «permíteme borrar condiciones que no
          quiera»). Los tramos caen en cascada (FK). Las comisiones YA devengadas
@@ -8811,7 +8828,7 @@
             /* Cabecera y tramos por el servidor en UNA transacción (26-sep-2026, LAW-336 pieza 6):
                condicion_comision_guarda decide con la fila guardada (equipo, nivel), no toca los tramos
                si hay devengos y exige el motivo en ese caso. */
-            return sb.rpc('condicion_comision_guarda', {
+            return guardaCondicionConfirmada({
               p_id: id,
               p_cond: {
                 pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
@@ -8822,7 +8839,7 @@
               p_tramos: tramosParaServidor(tramos),
               p_motivo: (v.motivo || '').trim() || null
             });
-          });
+          }, { sinRecarga: true });   // recarga guardaCondicionConfirmada
         });
       };
     },

@@ -3987,6 +3987,7 @@
     'Tus closers dejarán de ver su comisión': 'Your closers will stop seeing their commission',
     'Tus closers verán su comisión': 'Your closers will see their commission',
     'Vigente': 'In force',
+    'Vigente hasta el %f': 'In force until %f',
     'Vuelve a aplicarse a las comisiones que se disparen desde ahora.': 'It applies again to commissions triggered from now on.',
     'como lo llamas tú en tu equipo, p. ej. «Setter de Sumba»': 'what you call it in your team, e.g. “Sumba setter”',
     'con una fecha pasada verás antes qué ventas cambiarían de equipo': 'with a past date you will first see which sales would change team',
