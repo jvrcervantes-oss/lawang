@@ -1545,10 +1545,16 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       wrap.appendChild(el);
       var sello = SELLO[row.estado];
       if(sello){
+        /* 30-sep-2026: el sello va en el BORDE INFERIOR de la parcela, no en el centroide.
+           En el centroide tapaba el código y los m² que el propio plano lleva pintados
+           (unas 10 de las 13 vendidas/reservadas quedaban ilegibles). Más pequeño y con
+           menos tracking para que quepa en las parcelas estrechas (C5..C10). */
         var c = centroide(pts);
+        var baja = Math.max.apply(null, pts.map(function(p){ return p[1]; }));
         var badge = document.createElement('span');
-        badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold tracking-widest text-[9px] sm:text-[11px] px-2 py-0.5 rounded-sm shadow';
-        badge.style.left = c[0]+'%'; badge.style.top = c[1]+'%'; badge.style.transform = 'translate(-50%,-50%)';
+        badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold tracking-wide rounded-sm shadow';
+        badge.style.fontSize = (window.innerWidth >= 640 ? 9 : 7) + 'px'; badge.style.padding = '1px 4px'; badge.style.lineHeight = '1.2';
+        badge.style.left = c[0]+'%'; badge.style.top = (baja - 1.2)+'%'; badge.style.transform = 'translate(-50%,-100%)';
         badge.textContent = sello[0];
         wrap.appendChild(badge);
       }
