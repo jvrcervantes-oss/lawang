@@ -190,11 +190,18 @@ afirma('el panel nace escondido y lo abre el botón',
   afirma('se pueden subir anexos a mano en cualquier contrato, también en Construcción',
     // LAW-78 (27-sep-2026): la subida pide el contrato GUARDADO (las páginas van al archivo
     // con su id) y no se ofrece con él bloqueado o en firma; sigue en todas las plantillas.
-    /<div class="dz"><label class="up" id="anxUpLabel">/.test(anexos)
+    /<div class="dz"[^>]*><label class="up" id="anxUpLabel">/.test(anexos)
     && !/tipologia_construccion[^\n]*anxUpLabel|anxUpLabel[^\n]*tipologia_construccion/.test(anexos)
     && /if\(inp\) inp\.addEventListener\('change'/.test(anexos)
     && !/retiraAnexosManuales|ANEXO_MANUAL_RETIRADO/.test(anexos + app),
     'el owner quiere adjuntar el PDF que quiera; quitarlo otra vez es una decisión suya, no un refactor');
+  /* 30-sep-2026, owner: «que te deje seleccionar desde los archivos que hay en la intranet ya
+     subidos». Junto a la subida del ordenador, y por el MISMO camino (anadeAnexosDeFicheros). */
+  afirma('se puede elegir como anexo un documento ya subido a la intranet, junto a la subida desde el ordenador',
+    /<button type="button" class="up" data-accion="anexo-intranet">/.test(anexos)
+    && /anadeAnexosDeFicheros\(\[\{ file, titulo/.test(anexos)
+    && /files\.map\(f => \(\{ file:f/.test(anexos),
+    'el owner lo pidió: quitarlo es una decisión suya, y las dos vías tienen que compartir la subida');
   /* 27-sep-2026, el owner revierte el bloqueo: «si no hay anexo, que deje mandar
      igual». Sin anexo del modelo se avisa y se decide; no se bloquea. Desde el 27-sep
      (varios documentos marcados) también avisa si uno marcado no se pudo adjuntar. */

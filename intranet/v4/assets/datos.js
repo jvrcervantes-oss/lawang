@@ -3827,7 +3827,7 @@
           : '';
       }
 
-      /* ── KPIs (5: 90 días, críticos 7d, vencido, cobrado, cartera) ──────── */
+      /* ── KPIs (3: 90 días, críticos 7d, vencido) ─────────────────────────── */
       function pintarKpis(m) {
         pon2('k-prevision', fmt(m.proximos90, MONEDA));
         pon2('k-prevision-chip', 'previsto en el trimestre');
@@ -3843,16 +3843,8 @@
         pon2('k-vencidos-n', nc + (nc === 1 ? ' contrato' : ' contratos'));
         pon2('k-vencidos-total', 'Total: ' + fmt(m.vencido, MONEDA));
         pon2('k-vencidos-chip', venc.length ? 'el más antiguo, del ' + fFecha(venc[0].fecha) : 'nada vencido');
-        // `m.cobrado` (logica.js) SUMA también lo cobrado de preliminares sueltos
-        // y —si «Incluir sin firmar» está encendido— de contratos sin firmar: no
-        // es "solo recibís de firmados" (hallazgo del code-review de esta
-        // subtarea: el texto viejo de esta pantalla lo daba por hecho y mentía
-        // en cuanto había una Carta de Reserva o el interruptor encendido).
-        // Mismo texto que la clásica: solo el % sobre la cartera, o nada.
-        pon2('k-cobrado', fmt(m.cobrado, MONEDA));
-        pon2('k-cobrado-pie', m.cartera ? Math.round(m.cobrado / m.cartera * 100) + '% de la cartera' : '');
-        pon2('k-cartera', fmt(m.cartera, MONEDA));
-        pon2('k-cartera-pie', 'contratos firmados, sin contar las Cartas de Reserva');
+        // Cobrado y Cartera salieron de esta pantalla el 30-sep-2026 (owner): están
+        // en Resumen y en las columnas de «Por proyecto».
       }
 
       /* ── la tabla: cascada completa, paginada de verdad (25/página) ─────── */

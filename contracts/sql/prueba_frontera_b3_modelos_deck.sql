@@ -227,8 +227,10 @@ begin
     r := r || '4 doc=' || (select tipo || '/' || techo_clave from modelo_documentos where id = dd.id) || '; ';
   end if;
   -- la clásica: ficha + base (+1000 mueve los techos) + un techo tocado a mano (manda) en UNA llamada
-  rm := modelo_ficha_guarda(m.id, '{"notas":"prueba b3"}', jsonb_build_object('base', m.precio_construccion + 1000),
-         jsonb_build_array(jsonb_build_object('id', tt.id, 'precio_ahora', 88888)), '[]');
+  -- (modelo_ficha_guarda se retiro el 30-sep-2026: solo encadenaba estas tres llamadas, en este orden)
+  perform modelo_guarda(m.id, '{"notas":"prueba b3"}');
+  rm := modelo_precios_guarda(m.id, jsonb_build_object('base', m.precio_construccion + 1000));
+  perform modelo_techos_guarda(m.id, jsonb_build_array(jsonb_build_object('id', tt.id, 'precio_ahora', 88888)));
   r := r || '5 clásica: base ' || m.precio_construccion || '→' || (select precio_construccion from modelos where id = m.id)
         || '; techo tocado=' || (select precio_ahora from modelo_techos where id = tt.id)
         || '; otro techo ' || ot.precio_ahora || '→' || (select precio_ahora from modelo_techos where id = ot.id)

@@ -51,6 +51,13 @@ const LW_CSV_COLUMNAS = {
   fase:'fase_masterplan', zone:'zona_masterplan', zona:'zona_masterplan',
 };
 
+/* Cabecera de la PLANTILLA que descarga v4/proyectos (30-sep-2026). Vive aquí,
+   junto al mapa de arriba, para que quien añada una columna al importador vea
+   esta lista al lado. Cada nombre TIENE que ser una clave de LW_CSV_COLUMNAS:
+   se comprueba con `node contracts/proyectos_csv.test.js`. */
+const LW_CSV_PLANTILLA_COLS = ['codigo','proyecto','tipo','modelo','superficie_m2','precio_suelo',
+  'precio_construccion','precio','moneda','notas','fase','zona'];
+
 /* Quita acentos y todo lo que no sea letra/número: «Superficie (m2)» y
    «superficie_m2» casan igual. De la puntuación exacta no puede depender que una
    columna se reconozca o se pierda.
