@@ -140,5 +140,6 @@ Deno.test('describeFalloSmtp: 554 / 5.7.1 en el texto, el texto libre del servid
   ok(describeFalloSmtp(null).texto === 'No se pudo enviar por SMTP (desconocido)', 'nada');
   ok(describeFalloSmtp({ code: 'con espacios <b>' }).smtp_code === 'desconocido', 'un code raro no se copia');
   ok(describeFalloSmtp({ responseCode: 99999 }).smtp_response_code === null, 'número fuera de rango');
+  ok(describeFalloSmtp({ code: 'X', response: '250 2.0.0 Ok: queued as 4.10.1' }).texto === 'No se pudo enviar por SMTP (250, 2.0.0, X)', 'solo el estado tras el código');
   ok(describeFalloSmtp({ code: 'X', response: 'version 10.5.7.1234 raro' }).texto === 'No se pudo enviar por SMTP (X)', 'un 5.7.1 dentro de otro número no cuenta');
 });

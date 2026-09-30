@@ -223,7 +223,7 @@ export function describeFalloSmtp(e: unknown): FalloSmtp {
   const rc = typeof o.responseCode === 'number' ? o.responseCode : /^\d{3}$/.test(String(o.responseCode ?? '')) ? Number(o.responseCode) : NaN;
   if (Number.isInteger(rc) && rc >= 200 && rc <= 599) num = rc;
   else { const m = /^(\d{3})[ -]/.exec(resp); if (m && Number(m[1]) >= 200 && Number(m[1]) <= 599) num = Number(m[1]); }
-  const est = /(?<![\d.])[245]\.\d{1,3}\.\d{1,3}(?![\d.])/.exec(resp)?.[0] ?? '';
+  const est = /^\d{3}[ -]([245]\.\d{1,3}\.\d{1,3})(?![\d.])/m.exec(resp)?.[1] ?? '';   // solo el estado que sigue al código de respuesta, no cualquier número con puntos
   const piezas = [num === null ? '' : String(num), est, code === 'desconocido' && (num !== null || est !== '') ? '' : code].filter((x) => x !== '');
   const frase = /Outbound sending is disabled/i.test(resp) ? 'Outbound sending is disabled' : '';
   const dentro = piezas.length ? piezas.join(', ') : 'desconocido';
