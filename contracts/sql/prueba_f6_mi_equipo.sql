@@ -1,4 +1,4 @@
--- PRUEBA — F6 «Mi equipo» y condiciones (30-sep-2026): migraciones 20260930070138, 071319, 075711 y 082130.
+-- PRUEBA — F6 «Mi equipo» y condiciones (30-sep-2026): migraciones 20260930070138, 071319, 075711, 082130 y 085658.
 -- Se ejecuta ENTERA en una llamada con execute_sql (MCP) o psql como postgres. NO ESCRIBE NADA: cada caso va en un
 -- sub-bloque que acaba en excepción (Postgres deshace lo que hizo, claims incluidos) y el bloque entero termina en
 -- `raise exception 'RES: …'`. Cada caso debe decir «ok»; un «FALLO» es una regla de equipo o de dinero que no se cumple.
@@ -14,7 +14,7 @@ declare
   v_hoy date := (now() at time zone 'Asia/Makassar')::date;
   v_eq uuid; v_sm record; v_sm2 record; v_adm record; v_pm record; v_otro record; v_libre record; v_closer record;
   v_tr jsonb := '[{"disparador_tipo":"contrato_firmado","pct_tramo":100}]';
-  v_sin jsonb; v_ret record; v_d date; v_esperado int;
+  v_sin jsonb; v_sin2 jsonb; v_ret record; v_d date; v_esperado int;
   v_dev0 text := (select count(*) || ':' || md5(coalesce(string_agg(to_jsonb(d)::text, '|' order by d.id), '')) from public.comisiones_devengadas d);
   v_sp0 text := (select count(*) || ':' || md5(coalesce(string_agg(to_jsonb(s)::text, '|' order by s.id), '')) from public.solicitudes_pago s);
 begin
@@ -41,25 +41,29 @@ begin
       v_otro.user_id is not null, v_libre.user_id is not null, v_closer.user_id is not null;
   end if;
 
-  -- M1 · el SM no mete a sí mismo, a otro SM, a admin, a un PM ni a alguien de otro equipo
+  -- M1 · el SM entra solo por id (equipo_miembro_anade): a sí mismo, a otro SM, a admin, a un PM, a alguien de otro
+  --      equipo o a un id que no es de nadie → todos rechazados con 42501 y el MISMO mensaje genérico (no revela
+  --      rol ni estado de terceros)
   begin
     perform set_config('request.jwt.claims', json_build_object('sub', v_sm.user_id, 'email', v_sm.e, 'role', 'authenticated')::text, true);
     v_t := '';
-    begin perform public.equipo_miembro_guarda(null, v_eq, v_sm.e, v_hoy, null); v_t := v_t || 'pasa/'; exception when others then v_t := v_t || 'no/'; end;
-    begin perform public.equipo_miembro_guarda(null, v_eq, v_sm2.e, v_hoy, null); v_t := v_t || 'pasa/'; exception when others then v_t := v_t || 'no/'; end;
-    begin perform public.equipo_miembro_guarda(null, v_eq, v_adm.e, v_hoy, null); v_t := v_t || 'pasa/'; exception when others then v_t := v_t || 'no/'; end;
-    begin perform public.equipo_miembro_guarda(null, v_eq, v_pm.e, v_hoy, null); v_t := v_t || 'pasa/'; exception when others then v_t := v_t || 'no/'; end;
-    begin perform public.equipo_miembro_guarda(null, v_eq, v_otro.e, v_hoy, null); v_t := v_t || 'pasa'; exception when others then v_t := v_t || 'no'; end;
+    for v_x in select u from unnest(array[v_sm.user_id, v_sm2.user_id, v_adm.user_id, v_pm.user_id, v_otro.user_id, gen_random_uuid()]) u loop
+      begin perform public.equipo_miembro_anade(v_eq, v_x.u); v_t := v_t || 'pasa/';
+      exception when others then
+        v_t := v_t || case when sqlstate = '42501' and sqlerrm = 'Esa persona no se puede añadir a tu equipo' then 'gen/' else sqlstate || ':' || sqlerrm || '/' end;
+      end;
+    end loop;
     raise exception '%', v_t;
-  exception when others then r := r || 'M1 rechazos=' || sqlerrm || case when sqlerrm = 'no/no/no/no/no' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'M1 rechazos genericos=' || sqlerrm || case when sqlerrm = 'gen/gen/gen/gen/gen/gen/' then ' ok; ' else ' FALLO; ' end; end;
 
-  -- M2 · el SM añade a alguien libre con fecha pasada: la base la fuerza a hoy; y el alta por id (equipo_miembro_anade)
+  -- M2 · el SM ya no usa equipo_miembro_guarda (por email): rechazo 42501 que remite a administración
   begin
     perform set_config('request.jwt.claims', json_build_object('sub', v_sm.user_id, 'email', v_sm.e, 'role', 'authenticated')::text, true);
-    v_id := public.equipo_miembro_guarda(null, v_eq, v_libre.e, v_hoy - 10, null);
-    select format('%s', m.desde = v_hoy) into v_t from public.equipo_miembros m where m.id = v_id;
+    begin perform public.equipo_miembro_guarda(null, v_eq, v_libre.e, v_hoy, null); v_t := 'pasa';
+    exception when others then v_t := case when sqlstate = '42501' and sqlerrm like '%es de administración%' then 'no' else sqlstate || ':' || sqlerrm end; end;
     raise exception '%', v_t;
-  exception when others then r := r || 'M2 fecha forzada a hoy=' || sqlerrm || case when sqlerrm = 't' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'M2 SM por email=' || sqlerrm || case when sqlerrm = 'no' then ' ok; ' else ' FALLO; ' end; end;
+
   begin
     perform set_config('request.jwt.claims', json_build_object('sub', v_sm.user_id, 'email', v_sm.e, 'role', 'authenticated')::text, true);
     select format('%s/%s/%s/%s',
@@ -68,12 +72,13 @@ begin
                    where u.rol in ('sales_manager', 'admin', 'super_admin', 'project_manager')
                       or exists (select 1 from public.equipo_miembros em where lower(em.closer_email) = lower(u.email) and (em.hasta is null or em.hasta >= v_hoy))),
       exists (select 1 from public.equipo_candidatos_sm(v_eq) c3 where c3.usuario = v_libre.user_id),
-      has_function_privilege('authenticated', 'public.equipo_candidatos(uuid)', 'execute'))
+      coalesce(to_regprocedure('public.equipo_candidatos(uuid)') is null
+               or not has_function_privilege('authenticated', to_regprocedure('public.equipo_candidatos(uuid)'), 'execute'), false))
       into v_t from public.equipo_candidatos_sm(v_eq) c;
     v_id := public.equipo_miembro_anade(v_eq, v_libre.user_id);
     select v_t || '/' || (m.desde = v_hoy and lower(m.closer_email) = v_libre.e) into v_t from public.equipo_miembros m where m.id = v_id;
     raise exception '%', v_t;
-  exception when others then r := r || 'M3 candidatos y alta por id=' || sqlerrm || case when sqlerrm = 't/t/t/f/true' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'M3 candidatos y alta por id=' || sqlerrm || case when sqlerrm = 't/t/t/t/true' then ' ok; ' else ' FALLO; ' end; end;
 
   -- M4 · admin retroactiva: sin confirmar → rechazo; con recuento distinto → rechazo; con el de la vista previa → ok
   begin
@@ -218,6 +223,58 @@ begin
     exception when others then v_t := v_t || 'no:' || sqlerrm; end;
     raise exception '%', v_t;
   exception when others then r := r || 'C6 retroactiva con recuento=' || sqlerrm || case when sqlerrm = 'true/no/true:true' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- C7 · el SM cambia las cifras de una condición en vigor desde antes de hoy → 42501 «crea una condición nueva desde hoy»
+  --      (sintética: la crea admin con inicio hace 5 días; el SM la reconoce como suya)
+  begin
+    v_sin := jsonb_build_object('equipo_id', v_eq, 'nivel', 'team_lead', 'closer_email', 'x@prueba.invalid', 'pct_comision', 2, 'base_calculo', 'precio_total');
+    perform set_config('request.jwt.claims', json_build_object('sub', v_adm.user_id, 'email', v_adm.e, 'role', 'authenticated')::text, true);
+    v_a := public.condicion_comision_guarda(null, v_sin || jsonb_build_object('vigente_desde', v_hoy - 5), v_tr);
+    perform set_config('request.jwt.claims', json_build_object('sub', v_sm.user_id, 'email', v_sm.e, 'role', 'authenticated')::text, true);
+    v_t := format('%s/', public._condicion_es_mia('team_lead', v_eq));
+    begin perform public.condicion_comision_guarda(v_a, v_sin || jsonb_build_object('vigente_desde', v_hoy - 5, 'pct_comision', 3), v_tr);
+          v_t := v_t || 'pasa';
+    exception when others then
+      v_t := v_t || case when sqlstate = '42501' and sqlerrm like '%crea una condición nueva desde hoy%' then 'no' else sqlstate || ':' || sqlerrm end;
+    end;
+    raise exception '%', v_t;
+  exception when others then r := r || 'C7 SM cifras en vigor=' || sqlerrm || case when sqlerrm = 't/no' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- C8 · admin cambia el % de una condición REAL en vigor con ventas afectadas: sin confirmar → 22023 con el hint
+  --      del recuento; con otro número → 22023; con el recuento → ok y el log guarda ventas_max. Control: re-guardar
+  --      las MISMAS cifras y tramos (leídos de la tabla) no pide confirmación. Guardar una condición no dispara el motor.
+  begin
+    select c.* into v_ret from public.condiciones_comision c
+     where c.vigente_desde < v_hoy and (c.vigente_hasta is null or c.vigente_hasta >= v_hoy)
+       and not public._condicion_cerrada(c.id) and c.base_calculo <> 'importe_fijo' and c.pct_comision < 99
+       and public._condicion_ventas_afectadas(c.equipo_id, c.proyecto_id, c.nivel, c.closer_email, c.vigente_desde, coalesce(c.vigente_hasta, v_hoy)) > 0
+     order by (select count(*) from public.comisiones_devengadas d where d.condicion_id = c.id), c.vigente_desde
+     limit 1;
+    if v_ret.id is null then raise exception 'sin condición real en vigor con ventas afectadas'; end if;
+    v_esperado := public._condicion_ventas_afectadas(v_ret.equipo_id, v_ret.proyecto_id, v_ret.nivel, v_ret.closer_email,
+                    v_ret.vigente_desde, coalesce(v_ret.vigente_hasta, v_hoy));
+    perform set_config('request.jwt.claims', json_build_object('sub', v_adm.user_id, 'email', v_adm.e, 'role', 'authenticated')::text, true);
+    v_sin := jsonb_build_object('closer_email', v_ret.closer_email, 'pct_comision', v_ret.pct_comision, 'base_calculo', v_ret.base_calculo,
+                                'vigente_desde', v_ret.vigente_desde);
+    select coalesce(jsonb_agg(jsonb_build_object('disparador_tipo', t.disparador_tipo, 'umbral', t.umbral, 'pct_tramo', t.pct_tramo) order by t.orden), '[]'::jsonb)
+      into v_sin2 from public.condicion_tramos t where t.condicion_id = v_ret.id;
+    v_t := '';
+    begin perform public.condicion_comision_guarda(v_ret.id, v_sin, v_sin2, 'prueba F6: mismas cifras'); v_t := v_t || 'igual/';
+    exception when others then v_t := v_t || 'igual-no:' || sqlerrm || '/'; end;
+    v_sin := v_sin || jsonb_build_object('pct_comision', v_ret.pct_comision + 1);
+    begin perform public.condicion_comision_guarda(v_ret.id, v_sin, v_sin2, 'prueba F6: no debe quedar'); v_t := v_t || 'pasa/';
+    exception when others then get stacked diagnostics v_h = pg_exception_hint;
+      v_t := v_t || (sqlstate = '22023' and v_h = 'lw-confirmar-ventas:' || v_esperado and sqlerrm like '%hasta a %') || '/'; end;
+    begin perform public.condicion_comision_guarda(v_ret.id, v_sin || jsonb_build_object('confirmar_ventas', v_esperado + 1), v_sin2, 'prueba F6: no debe quedar');
+          v_t := v_t || 'pasa/';
+    exception when others then v_t := v_t || case when sqlstate = '22023' then 'no/' else sqlstate || '/' end; end;
+    begin perform public.condicion_comision_guarda(v_ret.id, v_sin || jsonb_build_object('confirmar_ventas', v_esperado), v_sin2, 'prueba F6: no debe quedar');
+          v_t := v_t || exists (select 1 from public.condiciones_comision_log l
+                                 where l.condicion_id = v_ret.id and (l.despues ->> 'ventas_max')::int = v_esperado
+                                   and (l.despues ->> 'pct_comision')::numeric = v_ret.pct_comision + 1);
+    exception when others then v_t := v_t || 'no:' || sqlerrm; end;
+    raise exception '%', v_t;
+  exception when others then r := r || 'C8 admin cifras en vigor con recuento=' || sqlerrm || case when sqlerrm = 'igual/true/no/true' then ' ok; ' else ' FALLO; ' end; end;
 
   -- dinero intacto: ninguna comisión ni solicitud nueva o cambiada al acabar (todo lo de arriba se deshizo)
   if (select count(*) || ':' || md5(coalesce(string_agg(to_jsonb(d)::text, '|' order by d.id), '')) from public.comisiones_devengadas d) <> v_dev0
