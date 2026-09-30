@@ -8289,21 +8289,76 @@
         });
       });
 
+      /* F6 (30-sep-2026, owner: «alta con fecha retroactiva solo admin, con vista previa de las ventas que
+         se moverían y confirmación»). Un alta con fecha pasada o cualquier cambio de una fila puede pasar
+         ventas ya hechas a otro equipo, y con el recálculo de comisiones encendido eso es dinero. Así que
+         primero se SIMULA en la base (equipo_miembro_vista_previa hace la escritura de verdad y la deshace),
+         se enseña la lista, y el alta confirmada lleva el recuento visto: si al guardar ya no coincide, la
+         base la rechaza. La lista de la vista previa y la del alta salen del mismo código del servidor. */
+      var T6 = function (x, h) { return window.lwT ? window.lwT(x, h) : x; };
+      var hoyBali = function () { return new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); };
+      function abreConfirmaMovimiento(p, x) {
+        var n = x.n || 0, ventas = x.ventas || [];
+        modal(T6('Confirmar el cambio de equipo'), [
+          { tipo: 'nota', label: n
+              ? T6('Este cambio pasa %n venta(s) ya hechas a otro equipo. Ninguna tiene comisión devengada: las que ya la tienen no se mueven nunca. Cuando devenguen, lo harán con las condiciones de su equipo nuevo.', { n: n })
+              : T6('Este cambio no mueve ninguna venta ya hecha.') },
+          { tipo: 'custom', render: function (d) {
+              if (!ventas.length) return;
+              var t = document.createElement('table'); t.className = 'w-full text-left border-collapse';
+              var cab = document.createElement('tr');
+              [T6('Venta'), T6('Fecha'), T6('Proyecto'), T6('Cliente'), T6('Equipo antes → después')].forEach(function (h) {
+                var th = document.createElement('th'); th.className = 'py-2 pr-3 font-label-md text-[11px] uppercase tracking-wider text-outline'; th.textContent = h; cab.appendChild(th);
+              });
+              t.appendChild(cab);
+              ventas.forEach(function (vt) {
+                var tr = document.createElement('tr'); tr.className = 'border-t border-outline-variant/30';
+                [vt.numero, vt.fecha, vt.proyecto, vt.comprador, (vt.equipo_antes || T6('sin equipo')) + ' → ' + (vt.equipo_despues || T6('sin equipo'))].forEach(function (c) {
+                  var td = document.createElement('td'); td.className = 'py-2 pr-3 font-body-sm text-body-sm text-on-surface'; td.textContent = c == null ? '—' : String(c); tr.appendChild(td);
+                });
+                t.appendChild(tr);
+              });
+              d.appendChild(t);
+            } },
+          /* No se enseña «0 comisiones nuevas»: mover el equipo no dispara el motor, así que la simulación
+             siempre daría 0 y se leería como «no mueve dinero». Lo que pasa de verdad es esto: */
+          { tipo: 'nota', label: T6('La comisión de estas ventas no se calcula ahora: cuando se vuelvan a evaluar (el próximo cobro, factura o cambio del contrato) aplicarán las condiciones del equipo nuevo, bote del manager incluido.') }
+        ], n ? T6('Confirmar (%n ventas)', { n: n }) : T6('Confirmar'), function () {
+          return sb.rpc('equipo_miembro_guarda_confirmada', Object.assign({}, p, { p_confirmar: n }));
+        });
+      }
+      // `siempre`: fecha pasada o edición de una fila → confirmación aunque no mueva nada
+      function guardaConVistaPrevia(p, siempre) {
+        return sb.rpc('equipo_miembro_vista_previa', p).then(function (r) {
+          if (r.error) return r;
+          var x = r.data || {};
+          if (!siempre && !(x.n > 0)) {
+            return sb.rpc('equipo_miembro_guarda', p).then(function (g) {
+              if (!g.error) setTimeout(function () { location.reload(); }, 450);
+              return g;
+            });
+          }
+          abreConfirmaMovimiento(p, x);
+          return {};
+        });
+      }
+
       window.LW_V4.abreAnadirMiembro = function (equipoId, equipoNombre) {
         if (!admin) return soloAdmin();
         if (!(window.LW_V4.usuariosLista || []).length) return aviso('La lista de usuarios aún no ha cargado — espera un momento y vuelve a pulsar.', '#8A6A34');
         modal('Añadir miembro — ' + (equipoNombre || ''), [
           { k: 'closer_email', label: 'Closer', tipo: 'select', req: 1, opciones: opsUsuarios('', '— elige un usuario —'),
             ayuda: 'solo usuarios dados de alta en la intranet: el email es la clave con la que se le atribuyen ventas y comisiones' },
-          { k: 'desde', label: 'Desde', tipo: 'date', req: 1, medio: 1, valor: new Date().toISOString().slice(0, 10) },
+          { k: 'desde', label: 'Desde', tipo: 'date', req: 1, medio: 1, valor: hoyBali(),
+            ayuda: T6('con una fecha pasada verás antes qué ventas cambiarían de equipo') },
           { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, ayuda: 'vacío = sigue activo' }
         ], 'Añadir al equipo', function (v) {
           if (v.hasta && v.hasta < v.desde) return { error: { message: '«Hasta» no puede ser anterior a «Desde».' } };
-          // por el servidor (LAW-336 pieza 7): congela antes las ventas afectadas (owner, 26-sep: el equipo
-          // de una venta no cambia después), impide estar en dos equipos a la vez, added_by de la sesión
-          return sb.rpc('equipo_miembro_guarda', { p_id: null, p_equipo: equipoId,
-            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null });
-        });
+          // por el servidor (LAW-336 pieza 7 + F6): congela antes, impide estar en dos equipos, y con fecha
+          // pasada exige el recuento de la vista previa
+          return guardaConVistaPrevia({ p_id: null, p_equipo: equipoId,
+            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null }, v.desde < hoyBali());
+        }, { sinRecarga: true });
       };
 
       window.LW_V4.abreDarBaja = function (miembroId, closerEmail) {
@@ -8348,10 +8403,165 @@
           { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, valor: b.getAttribute('data-lw-hasta') || '', ayuda: 'vacío = sigue activo' }
         ], 'Guardar miembro', function (v) {
           if (v.hasta && v.hasta < v.desde) return { error: { message: '«Hasta» no puede ser anterior a «Desde».' } };
-          return sb.rpc('equipo_miembro_guarda', { p_id: id, p_equipo: v.equipo_id,   // por el servidor (LAW-336 pieza 7)
-            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null });
-        });
+          // F6: cambiar una fila (fechas, equipo, persona) puede mover ventas → siempre con vista previa
+          return guardaConVistaPrevia({ p_id: id, p_equipo: v.equipo_id,
+            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null }, true);
+        }, { sinRecarga: true });
       };
+
+      /* ---- «Mi equipo» (F6): el SM sobre SU equipo, admin sobre el que eligió ----
+         Todo por RPC; la base decide quién puede entrar (nadie de otro equipo, ni él mismo, ni un
+         SM o admin), fuerza la fecha de hoy al SM, y deja log + aviso a administración. */
+      var eqMe = function () { return window.LW_V4.miEquipo; };
+      var sinEquipo = function () { return aviso(T6('Primero elige un equipo.'), '#8A6A34'); };
+
+      ata('me-anadir', function () {
+        var eq = eqMe(); if (!eq) return sinEquipo();
+        if (admin) return window.LW_V4.abreAnadirMiembro(eq.id, eq.nombre);   // admin: con fecha y vista previa
+        // el servidor da solo nombre y email enmascarado (j***@dominio) y el id con el que se pide el alta
+        sb.rpc('equipo_candidatos_sm', { p_equipo: eq.id }).then(function (r) {
+          if (r.error) return aviso(T6('No he podido traer la gente disponible: %e', { e: r.error.message }), '#93000a');
+          var ops = (r.data || []).map(function (u) { return [u.usuario, (u.nombre && u.nombre !== u.email ? u.nombre + ' · ' : '') + u.email]; });
+          if (!ops.length) {
+            return modal(T6('Añadir miembro — %e', { e: eq.nombre }), [
+              { tipo: 'nota', label: T6('Ahora mismo no hay nadie disponible: todos los usuarios activos están ya en un equipo o son managers o administración. Para traer a alguien de otro equipo, pídeselo a administración.') }
+            ], T6('Entendido'), function () { return Promise.resolve({}); }, { sinRecarga: true });
+          }
+          modal(T6('Añadir miembro — %e', { e: eq.nombre }), [
+            { k: 'usuario', label: T6('Persona'), tipo: 'select', req: 1, opciones: [['', T6('— elige a alguien sin equipo —')]].concat(ops),
+              ayuda: T6('solo sale quien no está en ningún equipo; entra con fecha de hoy y administración recibe un aviso') }
+          ], T6('Añadir al equipo'), function (v) {
+            // el email y la fecha (hoy en Bali) los pone el servidor
+            return sb.rpc('equipo_miembro_anade', { p_equipo: eq.id, p_usuario: v.usuario });
+          });
+        });
+      });
+
+      var cuerpoMe = document.getElementById('lw-me-miembros');
+      if (cuerpoMe) cuerpoMe.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-accion="me-rol"], [data-accion="me-baja"]');
+        if (!b || b.disabled) return;
+        ev.preventDefault(); ev.stopPropagation();
+        var eq = eqMe(); if (!eq) return sinEquipo();
+        var id = b.getAttribute('data-id');
+        var m = (eq.miembros || []).filter(function (x) { return x.id === id; })[0];
+        if (!m) return aviso(T6('No encuentro a esa persona en el equipo: recarga la página.'), '#8A6A34');
+        var quien = m.closer_email;
+        if (b.getAttribute('data-accion') === 'me-rol') {
+          return modal(T6('Rol — %e', { e: quien }), [
+            { k: 'rol', label: T6('Tipo de rol'), tipo: 'select', req: 1, medio: 1, valor: m.rol || 'closer',
+              opciones: [['closer', T6('Closer')], ['setter', T6('Setter')], ['otro', T6('Otro')]],
+              ayuda: T6('el tipo es fijo para que el ranking sepa quién cerró') },
+            { k: 'rol_nombre', label: T6('Nombre del rol (opcional)'), medio: 1, valor: m.rol_nombre || '',
+              ayuda: T6('como lo llamas tú en tu equipo, p. ej. «Setter de Sumba»') }
+          ], T6('Guardar rol'), function (v) {
+            return sb.rpc('equipo_miembro_rol', { p_id: id, p_rol: v.rol, p_rol_nombre: v.rol_nombre || null });
+          });
+        }
+        modal(T6('Dar de baja — %e', { e: quien }), [
+          { tipo: 'nota', label: admin
+              ? T6('Sale del equipo con fecha de hoy. Sus ventas ya hechas se quedan con el equipo con el que se hicieron.')
+              : T6('Sale de tu equipo con fecha de hoy. Sus ventas ya hechas se quedan con el equipo con el que se hicieron. Administración recibe un aviso.') }
+        ], T6('Dar de baja'), function () {
+          return sb.rpc('equipo_miembro_baja', { p_id: id, p_hasta: hoyBali() });   // el SM, siempre hoy (lo fuerza la base)
+        });
+      });
+
+      ata('me-interruptor', function () {
+        var eq = eqMe(); if (!eq) return sinEquipo();
+        var pasaA = !eq.ven;
+        modal(pasaA ? T6('Tus closers verán su comisión') : T6('Tus closers dejarán de ver su comisión'), [
+          { tipo: 'nota', label: pasaA
+              ? T6('Desde ya, cada closer de %e ve SOLO su propia parte de las ventas del equipo: nunca el bote ni lo de sus compañeros.', { e: eq.nombre })
+              : T6('Desde ya, los closers de %e no ven ninguna cifra de su parte del equipo: ni en «Mis comisiones», ni en avisos, correos, exportaciones o el asistente. Lo que venden por su cuenta lo siguen viendo.', { e: eq.nombre }) }
+        ], pasaA ? T6('Encender') : T6('Apagar'), function () {
+          return sb.rpc('equipo_closers_ven_comision', { p_equipo: eq.id, p_valor: pasaA });
+        });
+      });
+
+      /* Plantilla de reparto: filas editables; la suma se ve en vivo y se valida aquí solo como ayuda
+         (manda plantilla_reparto_guarda, que ya existe en la base: sin llamada de sondeo). */
+      var cajaPl = document.getElementById('lw-me-plantilla');
+      function sumaPl() {
+        var s = 0, filas = cajaPl ? cajaPl.querySelectorAll('[data-lw-fila]') : [];
+        Array.prototype.forEach.call(filas, function (f) { s += Number(f.querySelector('[data-k="pct"]').value) || 0; });
+        s = Math.round(s * 100) / 100;
+        var el = document.querySelector('[data-lw="me-suma"]');
+        if (el) {
+          el.textContent = filas.length ? T6('Suma %s%', { s: s }) : T6('Sin plantilla');
+          el.className = 'shrink-0 inline-flex items-center px-3 py-1 rounded-full font-label-md text-[12px] ' +
+            (!filas.length ? 'bg-surface-container-high text-on-surface-variant' : s === 100 ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-error-container text-on-error-container');
+        }
+        return { suma: s, n: filas.length };
+      }
+      function filaPl(f) {
+        var d = document.createElement('div');
+        d.className = 'flex flex-wrap sm:flex-nowrap items-center gap-2';
+        d.setAttribute('data-lw-fila', '1');
+        var sel = document.createElement('select');
+        sel.setAttribute('data-k', 'rol_tipo'); sel.setAttribute('aria-label', T6('Tipo de rol'));
+        sel.className = 'pl-3 pr-8 py-2 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px]';
+        [['closer', 'Closer'], ['setter', 'Setter'], ['otro', 'Otro']].forEach(function (o) {
+          var op = document.createElement('option'); op.value = o[0]; op.textContent = T6(o[1]); if ((f.rol_tipo || 'closer') === o[0]) op.selected = true; sel.appendChild(op);
+        });
+        var nom = document.createElement('input');
+        nom.type = 'text'; nom.maxLength = 60; nom.value = f.rol_nombre || ''; nom.setAttribute('data-k', 'rol_nombre');
+        nom.placeholder = T6('Nombre del rol'); nom.setAttribute('aria-label', T6('Nombre del rol'));
+        nom.className = 'flex-1 min-w-[8rem] px-3 py-2 rounded-full bg-surface-container-low border border-control-border/40 font-body-sm text-body-sm';
+        var pct = document.createElement('input');
+        pct.type = 'number'; pct.min = '0'; pct.max = '100'; pct.step = '0.01'; pct.value = f.pct == null ? '' : f.pct; pct.setAttribute('data-k', 'pct');
+        pct.setAttribute('aria-label', T6('Porcentaje'));
+        pct.className = 'w-24 px-3 py-2 rounded-full bg-surface-container-low border border-control-border/40 font-body-sm text-body-sm text-right';
+        pct.addEventListener('input', sumaPl);
+        var quita = document.createElement('button');
+        quita.type = 'button'; quita.setAttribute('data-accion', 'me-plantilla-quita'); quita.setAttribute('data-real', '1');   // que maqueta.js no lo tome por «cerrar»
+        quita.setAttribute('aria-label', T6('Quitar este rol'));
+        quita.className = 'w-8 h-8 rounded-full text-error hover:bg-error-container/40 flex items-center justify-center';
+        quita.innerHTML = '<span class="material-symbols-outlined text-[18px]">close</span>';
+        quita.addEventListener('click', function () { d.remove(); sumaPl(); });
+        var pc = document.createElement('span'); pc.className = 'font-body-sm text-body-sm text-outline'; pc.textContent = '%';
+        d.appendChild(sel); d.appendChild(nom); d.appendChild(pct); d.appendChild(pc); d.appendChild(quita);
+        return d;
+      }
+      window.LW_V4.pintaPlantilla = function (filas) {
+        if (!cajaPl) return;
+        cajaPl.innerHTML = '';
+        (filas || []).forEach(function (f) { cajaPl.appendChild(filaPl(f)); });
+        sumaPl();
+        var bG = document.querySelector('main [data-accion="me-plantilla-guarda"]');
+        var bF = document.querySelector('main [data-accion="me-plantilla-fila"]');
+        if (bF) { bF.disabled = false; bF.title = ''; }
+        if (bG) { bG.disabled = false; bG.title = ''; }
+      };
+      if (cajaPl && cajaPl.getAttribute('data-lw-pendiente')) {   // datos.js llegó antes que este fichero
+        try { window.LW_V4.pintaPlantilla(JSON.parse(cajaPl.getAttribute('data-lw-pendiente'))); } catch (e) {
+          var notaPl = document.querySelector('[data-lw="me-plantilla-nota"]');   // que se vea, no solo en consola
+          if (notaPl) notaPl.textContent = T6('No he podido leer la plantilla: %e', { e: e.message });
+        }
+        cajaPl.removeAttribute('data-lw-pendiente');
+      }
+      ata('me-plantilla-fila', function () {
+        if (!eqMe()) return sinEquipo();
+        if (cajaPl) cajaPl.appendChild(filaPl({ rol_tipo: 'closer', rol_nombre: '', pct: '' }));
+        sumaPl();
+      });
+      ata('me-plantilla-guarda', function (b) {
+        var eq = eqMe(); if (!eq) return sinEquipo();
+        var filas = Array.prototype.map.call(cajaPl ? cajaPl.querySelectorAll('[data-lw-fila]') : [], function (f) {
+          return { rol_tipo: f.querySelector('[data-k="rol_tipo"]').value,
+                   rol_nombre: f.querySelector('[data-k="rol_nombre"]').value.trim(),
+                   pct: Number(f.querySelector('[data-k="pct"]').value) };
+        });
+        var s = sumaPl();
+        if (filas.some(function (f) { return !f.rol_nombre; })) return aviso(T6('Cada rol necesita un nombre.'), '#8A6A34');
+        if (s.n && s.suma !== 100) return aviso(T6('La plantilla suma %s% y tiene que sumar 100%.', { s: s.suma }), '#8A6A34');
+        b.disabled = true;
+        sb.rpc('plantilla_reparto_guarda', { p_equipo: eq.id, p_filas: filas }).then(function (r) {
+          b.disabled = false;
+          if (r.error) return aviso(T6('No se pudo guardar: %e', { e: r.error.message }), '#93000a');
+          aviso(T6('Plantilla guardada'));
+        });
+      });
 
       window.LW_V4.abreToggleEquipo = function (equipoId, nombre, activoActual) {
         if (!admin) return soloAdmin();
@@ -8476,8 +8686,9 @@
                   ayuda: 'es lo que TÚ pagas a tu equipo en cada venta; tu comisión la fija administración' },
             { k: 'vigente_desde', label: 'Vigente desde', tipo: 'date', req: 1, medio: 1,
               valor: hoyC,
-              ayuda: admin ? 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha: lo anterior no devenga'
-                : 'desde hoy en adelante: solo cuentan las ventas creadas desde esta fecha' },
+              ayuda: (admin ? 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha: lo anterior no devenga'
+                : 'desde hoy en adelante: solo cuentan las ventas creadas desde esta fecha') +
+                '. Si ya hay una condición para ese mismo alcance, se cierra sola el día antes' },
             { k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
               opciones: opsCloser,
               visibleSi: admin ? { k: 'nivel', valores: ROLES_EQUIPO_C } : undefined,
@@ -8509,7 +8720,7 @@
             /* Condición y tramos por el servidor, en UNA transacción (26-sep-2026, LAW-336 pieza 6):
                antes eran un insert, otro insert y un delete de compensación si fallaba el segundo.
                El id, el autor y el permiso los decide la base (condicion_comision_guarda). */
-            return sb.rpc('condicion_comision_guarda', {
+            return guardaCondicionConfirmada({
               p_id: null,
               p_cond: {
                 equipo_id: v.equipo_id, proyecto_id: v.proyecto_id, nivel: v.nivel,
@@ -8520,10 +8731,34 @@
               },
               p_tramos: tramosParaServidor(tramos)
             });
-          });
+          }, { sinRecarga: true });   // recarga guardaCondicionConfirmada, que puede abrir antes la confirmación
         });
         });
       });
+
+      /* F6, regla 3b de Administración (30-sep-2026): una fecha de inicio en el pasado cambia de condición
+         a ventas ya hechas sin comisión devengada. La base las cuenta y rechaza con el hint
+         «lw-confirmar-ventas:N»; aquí se enseña ese número y, si se confirma, se reenvía con él. Si entretanto
+         cambia, la base vuelve a rechazar: el número que se aplica es el que se vio. */
+      function guardaCondicionConfirmada(params) {
+        return sb.rpc('condicion_comision_guarda', params).then(function (r) {
+          var m = r.error && /^lw-confirmar-ventas:(\d+)$/.exec(r.error.hint || '');
+          if (!m) {
+            if (!r.error) setTimeout(function () { location.reload(); }, 450);
+            return r;
+          }
+          var n = Number(m[1]);
+          modal('Confirmar ventas que cambian de condición', [
+            { tipo: 'nota', label: r.error.message },
+            { tipo: 'nota', label: 'Son ventas que todavía no han cobrado toda su comisión: lo que les quede por cobrar se calculará con lo que confirmes ahora. Lo que ya se generó no cambia.' }
+          ], 'Confirmar (' + n + (n === 1 ? ' venta)' : ' ventas)'), function () {
+            return sb.rpc('condicion_comision_guarda', Object.assign({}, params, {
+              p_cond: Object.assign({}, params.p_cond, { confirmar_ventas: n })
+            }));
+          });
+          return {};
+        });
+      }
 
       /* BORRAR (18-sep-2026, owner: «permíteme borrar condiciones que no
          quiera»). Los tramos caen en cascada (FK). Las comisiones YA devengadas
@@ -8535,7 +8770,9 @@
         // el boton solo sale en filas desactivadas; esto es por si alguien lo llama a mano
         var cond = ((window.LW_V4.condicionesLista || {})[id]);
         if (!admin && !esMiCondicion(cond)) return soloAdmin();
-        if (cond && cond.activo) return aviso('Desactiva la condición antes de borrarla: una activa puede estar aplicándose a contratos firmados.', '#8A6A34');
+        // F6: solo se borra la que aún no ha empezado (la base lo exige igual); las demás se cierran
+        var hoyBC = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+        if (cond && !(cond.vigente_desde > hoyBC)) return aviso('Solo se borra una condición que aún no ha empezado; esta se cierra en su lugar.', '#8A6A34');
         sb.from('comisiones_devengadas').select('id', { count: 'exact', head: true }).eq('condicion_id', id).then(function (r) {
           var n = r.error ? 0 : (r.count || 0);
           if (n) {
@@ -8554,11 +8791,14 @@
       window.LW_V4.abreToggleCondicion = function (condId, etiqueta, activoActual) {
         if (!admin && !esMiCondicion((window.LW_V4.condicionesLista || {})[condId])) return soloAdmin();
         var pasaA = !activoActual;
-        modal((pasaA ? 'Reactivar' : 'Desactivar') + ' condición — ' + (etiqueta || ''), [
+        var TC = function (x) { return window.lwT ? window.lwT(x) : x; };
+        /* F6 (reglas de Administración): desactivar = CERRAR con fecha de hoy. Sin fecha de fin la
+           condición dejaría de aplicarse también hacia atrás y, con el recálculo encendido, movería dinero. */
+        modal((pasaA ? TC('Reactivar condición') : TC('Cerrar condición')) + ' — ' + (etiqueta || ''), [
           { tipo: 'nota', label: pasaA
-              ? 'Vuelve a aplicarse a las comisiones que se disparen desde ahora.'
-              : 'Deja de aplicarse a comisiones nuevas. Lo ya devengado no cambia.' }
-        ], pasaA ? 'Reactivar' : 'Desactivar', function () {
+              ? TC('Vuelve a aplicarse a las comisiones que se disparen desde ahora.')
+              : TC('Se cierra con fecha de hoy: las ventas hasta hoy siguen cobrando con ella y las de mañana en adelante ya no. Una condición cerrada no se reabre; si quieres otras cifras, crea una nueva (cierra sola la anterior).') }
+        ], pasaA ? TC('Reactivar') : TC('Cerrar condición'), function () {
           return sb.rpc('condicion_comision_activa', { p_id: condId, p_activo: pasaA });   // por el servidor (LAW-336 pieza 6)
         });
       };
@@ -8584,10 +8824,23 @@
             { tipo: 'lectura', label: 'Equipo · proyecto', valor: etq },
             { tipo: 'lectura', label: 'Nivel', valor: !cond.equipo_id ? lwMarca('Estándar (quien cierra, paga %marca)') : (NOMBRE_NIVEL[cond.nivel] || cond.nivel), medio: 1 }
           ];
-          if (ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1) {
+          /* A quién se aplica (todo el equipo o una persona) es la identidad de la condición, como equipo,
+             proyecto y nivel (30-sep-2026, f6_f): cambiarlo en una empezada o cerrada movería ventas ya hechas
+             sin recuento. Solo se cambia en una FUTURA sin devengos que no sustituye ni es sustituida; la regla
+             la aplica condicion_comision_guarda, aquí solo se enseña apagado con el motivo. */
+          var hoyB = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+          var lista = window.LW_V4.condicionesLista || {};
+          var esSustituida = Object.keys(lista).some(function (k) { return lista[k] && lista[k].sustituye_a === id; });
+          var alcanceLibre = !n && cond.vigente_desde > hoyB && !cond.sustituye_a && !cond.vigente_hasta && !esSustituida;
+          var esPersonal = ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1;
+          if (esPersonal && alcanceLibre) {
             campos.push({ k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
               valor: cond.closer_email || '', opciones: opsUsuarios(cond.closer_email || '', '— todo el equipo —'),
-              ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso' });
+              ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso. Solo se cambia mientras la condición no ha empezado' });
+          } else if (esPersonal) {
+            campos.push({ tipo: 'lectura', label: 'Override individual', medio: 1,
+              valor: cond.closer_email || '— todo el equipo —',
+              ayuda: 'Para cambiar a quién se aplica, crea una condición nueva desde hoy' });
           }
           campos.push(
             { k: 'vigente_desde', label: 'Vigente desde', tipo: 'date', req: 1, medio: 1,
@@ -8626,18 +8879,18 @@
             /* Cabecera y tramos por el servidor en UNA transacción (26-sep-2026, LAW-336 pieza 6):
                condicion_comision_guarda decide con la fila guardada (equipo, nivel), no toca los tramos
                si hay devengos y exige el motivo en ese caso. */
-            return sb.rpc('condicion_comision_guarda', {
+            return guardaCondicionConfirmada({
               p_id: id,
               p_cond: {
                 pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
                 importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
                 vigente_desde: v.vigente_desde,
-                closer_email: ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1 ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : cond.closer_email
+                closer_email: esPersonal && alcanceLibre ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : cond.closer_email
               },
               p_tramos: tramosParaServidor(tramos),
               p_motivo: (v.motivo || '').trim() || null
             });
-          });
+          }, { sinRecarga: true });   // recarga guardaCondicionConfirmada
         });
       };
     },

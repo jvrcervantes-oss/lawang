@@ -7879,6 +7879,99 @@
      verificado con sesión no-admin simulada). Las acciones de escritura viven
      en editores.js (ED['equipos-venta'] / ED.condiciones, expuestas en
      `window.LW_V4`); aquí solo se lee y se pinta. */
+  /* ---------- «Mi equipo» (F6, 30-sep-2026) ----------
+     Un panel para UN equipo: el del SM (el primero que dirige) o, para admin, el
+     que elija en el filtro de «Miembros». Aquí solo se lee y se pinta; cada botón
+     lleva su data-accion y lo atiende editores.js (ED['equipos-venta']), que
+     escribe SIEMPRE por RPC: la regla de quién puede añadir a quién, la fecha de
+     hoy y el recuento de la vista previa los decide la base, no esta pantalla.
+     Nada se esconde por estado: lo que no se puede hacer sale apagado con su
+     motivo (title + texto). */
+  var ROL_MIEMBRO = { closer: 'Closer', setter: 'Setter', otro: 'Otro' };
+  function hoyBali() { return new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); }
+  function pintaMiEquipo(sb, ctx) {
+    var T = function (x, h) { return (typeof lwT === 'function') ? lwT(x, h) : x; };
+    var panel = document.querySelector('[data-lw-mi-equipo]');
+    if (!panel) return;
+    var cuerpo = document.getElementById('lw-me-miembros');
+    var cajaPl = document.getElementById('lw-me-plantilla');
+    var bAnadir = boton('me-anadir'), bInt = boton('me-interruptor');
+    var bFila = boton('me-plantilla-fila'), bGuarda = boton('me-plantilla-guarda');
+    var hoy = hoyBali();
+    var eq = ctx.equipos.filter(function (e) { return e.id === ctx.equipoId; })[0] || null;
+    var apaga = function (b, motivo) { if (!b) return; b.disabled = !!motivo; b.title = motivo || ''; };
+    window.LW_V4.miEquipo = null;
+
+    if (!eq) {
+      pon2('me-titulo', ctx.esAdm ? T('Elige un equipo') : T('Todavía no diriges ningún equipo'));
+      pon2('me-sub', ctx.esAdm
+        ? T('Elige un equipo en el filtro de «Miembros» para gestionar sus miembros, roles, plantilla y lo que ven sus closers.')
+        : T('Cuando administración te asigne un equipo, aquí gestionarás sus miembros, roles y reparto.'));
+      var sinEq = T('Primero hace falta un equipo');
+      [bAnadir, bInt, bFila, bGuarda].forEach(function (b) { apaga(b, sinEq); });
+      if (cuerpo) cuerpo.innerHTML = '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Sin equipo elegido.')) + '</td></tr>';
+      if (cajaPl) cajaPl.innerHTML = '';
+      pon2('me-suma', '—'); pon2('me-interruptor-txt', '—'); pon2('me-plantilla-nota', '');
+      return;
+    }
+
+    var activos = ctx.miembros.filter(function (m) { return m.equipo_id === eq.id && (!m.hasta || m.hasta >= hoy); })
+      .sort(function (a, b) { return String(ctx.nombreDe(a.closer_email)).localeCompare(String(ctx.nombreDe(b.closer_email)), 'es'); });
+    window.LW_V4.miEquipo = { id: eq.id, nombre: eq.nombre, ven: eq.closers_ven_comision !== false, miembros: activos };
+    pon2('me-titulo', eq.nombre);
+    pon2('me-sub', ctx.esAdm
+      ? T('Como administración puedes hacerlo todo aquí; las altas con fecha pasada se hacen desde «+ Miembro» en la tabla de equipos, con vista previa.')
+      : T('Añade a gente que aún no esté en ningún equipo (entra con fecha de hoy), ponle su rol y dale de baja cuando se vaya. Cada cambio queda registrado y le llega a administración.'));
+    apaga(bAnadir, eq.activo ? '' : T('El equipo está de baja'));
+
+    if (cuerpo) {
+      cuerpo.innerHTML = activos.length ? activos.map(function (m) {
+        var yo = (m.closer_email || '').toLowerCase() === ctx.miEmail;
+        var tipo = ROL_MIEMBRO[m.rol] || m.rol || 'Closer';
+        var motivoBaja = (yo && !ctx.esAdm) ? T('Tu propia fila la cambia administración') : '';
+        return '<tr class="border-b border-outline-variant/30">' +
+          '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(ctx.nombreDe(m.closer_email)) +
+            (yo ? ' <span class="font-body-sm text-body-sm text-outline">(' + esc(T('tú')) + ')</span>' : '') + '</td>' +
+          '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider bg-primary-fixed text-on-primary-fixed">' + esc(T(tipo)) + '</span>' +
+            (m.rol_nombre ? '<span class="ml-2 font-body-sm text-body-sm text-on-surface-variant">' + esc(m.rol_nombre) + '</span>' : '') + '</td>' +
+          '<td class="hidden sm:table-cell px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(m.desde)) + '</td>' +
+          '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
+            '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-accion="me-rol" data-id="' + esc(m.id) + '">' + esc(T('Rol')) + '</button>' +
+            '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px] disabled:opacity-40 disabled:cursor-not-allowed" data-accion="me-baja" data-id="' + esc(m.id) + '"' +
+              (motivoBaja ? ' disabled title="' + esc(motivoBaja) + '"' : '') + '>' + esc(T('Dar de baja')) + '</button>' +
+          '</div></td></tr>';
+      }).join('') : '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Nadie en el equipo todavía.')) + '</td></tr>';
+    }
+
+    // interruptor: qué cambia para ellos, dicho claro
+    if (bInt) {
+      var ven = eq.closers_ven_comision !== false;
+      bInt.setAttribute('aria-checked', ven ? 'true' : 'false');
+      bInt.classList.toggle('bg-deep-lagoon', ven);
+      bInt.classList.toggle('bg-surface-container-high', !ven);
+      var bol = panel.querySelector('[data-lw="me-bolita"]'); if (bol) bol.classList.toggle('translate-x-5', ven);
+      pon2('me-interruptor-txt', ven
+        ? T('Encendido: cada closer ve SOLO su propia parte de las ventas del equipo, nunca el bote ni lo de sus compañeros. Lo que vende por su cuenta lo ve siempre.')
+        : T('Apagado: tus closers no ven ninguna cifra de su parte del equipo (ni en «Mis comisiones», ni en avisos, correos, exportaciones o el asistente). Lo que venden por su cuenta sí lo ven.'));
+      apaga(bInt, '');
+    }
+
+    // plantilla: lectura por RPC (la tabla no tiene grant para el navegador)
+    pon2('me-plantilla-nota', '');
+    if (cajaPl) cajaPl.innerHTML = '<p class="font-body-sm text-body-sm text-outline">' + esc(T('Trayendo la plantilla…')) + '</p>';
+    sb.rpc('plantilla_reparto_lee', { p_equipo: eq.id }).then(function (r) {
+      if (window.LW_V4.miEquipo && window.LW_V4.miEquipo.id !== eq.id) return;   // cambió de equipo mientras llegaba
+      if (r.error) {
+        if (cajaPl) cajaPl.innerHTML = '';
+        pon2('me-plantilla-nota', T('No he podido leer la plantilla: %e', { e: r.error.message }));
+        apaga(bFila, T('No he podido leer la plantilla')); apaga(bGuarda, T('No he podido leer la plantilla'));
+        return;
+      }
+      if (window.LW_V4.pintaPlantilla) window.LW_V4.pintaPlantilla(r.data || []);
+      else if (cajaPl) cajaPl.setAttribute('data-lw-pendiente', JSON.stringify(r.data || []));
+    });
+  }
+
   REG['equipos-venta'] = function (sb) {
     /* Sales manager (23-sep-2026, owner: «el Sales Manager entra a su panel y
        configura cuánto van a cobrar sus closers… no todos ven lo de todos,
@@ -7897,8 +7990,8 @@
     var hoy = new Date().toISOString().slice(0, 10);
 
     Promise.all([
-      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,created_at').order('nombre'), 'equipos de venta', cuerpoEq),
-      q(sb.from('equipo_miembros').select('id,equipo_id,closer_email,desde,hasta').order('desde', { ascending: false }), 'miembros de equipo', cuerpoMi),
+      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,created_at,closers_ven_comision').order('nombre'), 'equipos de venta', cuerpoEq),
+      q(sb.from('equipo_miembros').select('id,equipo_id,closer_email,desde,hasta,rol,rol_nombre').order('desde', { ascending: false }), 'miembros de equipo', cuerpoMi),
       q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios')
     ]).then(function (r) {
       var equipos = r[0], miembros = r[1] || [], usuarios = r[2] || [];
@@ -7909,7 +8002,7 @@
         miembros = miembros.filter(function (m) { return misIds.indexOf(m.equipo_id) !== -1; });
         var avisoEq = document.querySelector('[data-lw-aviso-admin] p');
         if (avisoEq) avisoEq.innerHTML = equipos.length
-          ? 'Este es tu equipo: <b class="text-on-surface">' + esc(equipos.map(function (e) { return e.nombre; }).join(', ')) + '</b>. Las altas y bajas de closers las hace administración; lo que cobra cada uno lo configuras tú en <a href="../condiciones/" class="underline text-deep-lagoon">Condiciones</a>.'
+          ? 'Este es tu equipo: <b class="text-on-surface">' + esc(equipos.map(function (e) { return e.nombre; }).join(', ')) + '</b>. Puedes añadir a gente que aún no esté en ningún equipo (con fecha de hoy) y dar de baja a los tuyos; mover a alguien de otro equipo o fechas pasadas lo hace administración. Lo que cobra cada uno lo configuras en <a href="../condiciones/" class="underline text-deep-lagoon">Condiciones</a>.'
           : 'Todavía no diriges ningún equipo de venta. Cuando administración te asigne uno, aparecerá aquí con sus closers.';
       }
       // el editor de miembro ofrece el equipo en un select: la lista es esta, no otra consulta
@@ -7988,7 +8081,14 @@
         }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Sin miembros para este filtro.</td></tr>';
       }
       pintaMiembros();
-      if (selEq) selEq.addEventListener('change', pintaMiembros);
+      var ctxMe = { equipos: equipos, miembros: miembros, nombreDe: nombreDe, esAdm: esAdmEq, miEmail: miEmailEq, equipoId: null };
+      var repintaMe = function () {
+        // el SM, su equipo (o el del filtro si dirige varios); admin, el del filtro
+        ctxMe.equipoId = (selEq && selEq.value) || (!esAdmEq && equipos[0] ? equipos[0].id : null);
+        pintaMiEquipo(sb, ctxMe);
+      };
+      repintaMe();
+      if (selEq) selEq.addEventListener('change', function () { pintaMiembros(); repintaMe(); });
 
       // acciones — delegadas, con stopPropagation para ganar a maqueta.js (Regla 0)
       if (cuerpoEq) cuerpoEq.addEventListener('click', function (ev) {
@@ -8059,7 +8159,7 @@
     var selProyecto = document.getElementById('lw-co-proyecto');
 
     Promise.all([
-      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,vigente_desde,created_at').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
+      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,vigente_desde,vigente_hasta,created_at,sustituye_a').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
       q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
       q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
       q(sb.from('condicion_tramos').select('id,condicion_id,orden,disparador_tipo,umbral,pct_tramo').order('orden'), 'tramos de comisión'),
@@ -8086,7 +8186,20 @@
       window.LW_V4.condicionesLista = {}; conds.forEach(function (c) { window.LW_V4.condicionesLista[c.id] = c; });
       window.LW_V4.tramosDe = tramosDe;   // los lee «Editar condición» (editores.js) para precargar los tramos
 
-      pon2('k-cond-activas', String(conds.filter(function (c) { return c.activo; }).length));
+      /* LAW-462 (F6, 30-sep-2026): «activa» ya no basta. Una condición CERRADA (vigente_hasta) sigue
+         aplicándose a las ventas de su periodo y no se reabre; una FUTURA aún no se ha aplicado a nada.
+         Se pintan separadas para que nadie desactive la vigente creyéndola un duplicado de la cerrada. */
+      var hoyC = hoyBali();
+      var T = function (x, h) { return (typeof lwT === 'function') ? lwT(x, h) : x; };
+      /* Cerrada = tiene fecha de fin y, o ya pasó, o nadie la sustituye (cierre a mano). La que tiene una
+         sustituta futura sigue VIGENTE hasta el día antes: la misma regla que _condicion_cerrada en la base. */
+      var sustituida = {}; conds.forEach(function (c) { if (c.sustituye_a) sustituida[c.sustituye_a] = 1; });
+      var estadoCond = function (c) {
+        if (c.vigente_hasta && (c.vigente_hasta < hoyC || !sustituida[c.id])) return 'cerrada';
+        if (!c.activo && !c.vigente_hasta) return 'inactiva';
+        return c.vigente_desde > hoyC ? 'futura' : 'vigente';
+      };
+      pon2('k-cond-activas', String(conds.filter(function (c) { return estadoCond(c) === 'vigente'; }).length));
       pon2('k-cond-total', String(conds.length));
       pon2('k-cond-manager', String(conds.filter(function (c) { return c.nivel === 'manager'; }).length));
       // «de equipo» = lo que paga el manager: closer, setter y team lead (24-sep-2026)
@@ -8107,7 +8220,11 @@
           var okProyecto = !fp || c.proyecto_id === fp || !c.proyecto_id;
           return okEquipo && okProyecto;
         });
-        cuerpo.innerHTML = lista.length ? lista.map(function (c) {
+        var enVigor = lista.filter(function (c) { return estadoCond(c) !== 'cerrada'; });
+        var cerradas = lista.filter(function (c) { return estadoCond(c) === 'cerrada'; })
+          .sort(function (a, b) { return String(b.vigente_hasta).localeCompare(String(a.vigente_hasta)); });
+        var fila = function (c) {
+          var est = estadoCond(c);
           var t = (tramosDe[c.id] || []).slice().sort(function (a, b) { return a.orden - b.orden; });
           var resumenTramos = t.length
             ? t.map(function (x) { return x.pct_tramo + '% ' + etiquetaDe(window.LW_V4.DISPARADORES, x.disparador_tipo); }).join(' · ')
@@ -8122,37 +8239,54 @@
                                : 'todo el equipo · ' + esc(ROL_EQ[c.nivel] || c.nivel))
               : 'manager';
           var importeOBase = c.base_calculo === 'importe_fijo' ? fmt(c.importe_fijo, 'EUR') : (c.pct_comision + '%');
-          var vigencia = c.vigente_desde && c.vigente_desde > '1900-01-01' ? '<br><span class="text-outline text-[11px]">desde ' + esc(fFecha(c.vigente_desde)) + '</span>' : '';
-          return '<tr class="border-b border-outline-variant/30">' +
+          var vigencia = (c.vigente_desde && c.vigente_desde > '1900-01-01' ? '<br><span class="text-outline text-[11px]">' + esc(T('desde %f', { f: fFecha(c.vigente_desde) })) + '</span>' : '') +
+            (c.vigente_hasta ? '<br><span class="text-outline text-[11px]">' + esc(T('hasta %f', { f: fFecha(c.vigente_hasta) })) + '</span>' : '');
+          var etq = (estandar ? 'Estándar de ' + lwMarca('%marca') : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos');
+          var ESTADO = {
+            vigente: ['bg-primary-fixed text-on-primary-fixed', c.vigente_hasta ? T('Vigente hasta el %f', { f: fFecha(c.vigente_hasta) }) : T('Vigente')],
+            futura: ['bg-surface-container-high text-on-surface-variant', T('Empieza el %f', { f: fFecha(c.vigente_desde) })],
+            cerrada: ['bg-surface-container-high text-on-surface-variant', T('Cerrada el %f', { f: fFecha(c.vigente_hasta) })],
+            inactiva: ['bg-surface-container-high text-on-surface-variant', T('Inactiva')]
+          }[est];
+          /* Acciones por estado (reglas de Administración, F6): la vigente se CIERRA (nunca se «desactiva»
+             sin fecha de fin), la cerrada no se reabre ni se borra (sigue pagando las ventas de su periodo),
+             la futura se borra. Lo decide la base; esto solo no ofrece lo que rechazaría. */
+          // una inactiva vieja solo se puede reactivar si no empezó (la base rechaza aplicarla a ventas pasadas)
+          // la vigente con sustituta ya tiene su fin: cerrarla antes abriría un hueco sin condición
+          var bCerrar = (est === 'vigente' && c.activo && !c.vigente_hasta) || (est === 'inactiva' && c.vigente_desde >= hoyC)
+            ? '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+              'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc(etq) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
+              esc(c.activo ? T('Cerrar') : T('Reactivar')) + '</button>' : '';
+          var bBorrar = est === 'futura'
+            ? '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" ' +
+              'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc(etq) + '">' + esc(T('Borrar')) + '</button>' : '';
+          return '<tr class="border-b border-outline-variant/30' + (est === 'cerrada' ? ' opacity-70' : '') + '">' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + (estandar ? 'Estándar de ' + esc(lwMarca('%marca')) : esc(equipoDe[c.equipo_id] || '—')) + vigencia + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + (c.proyecto_id ? esc(proyectoDe[c.proyecto_id] || '—') : 'Todos los proyectos') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + quien + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(importeOBase) +
               '<br><span class="text-outline text-[11px]">' + esc(etiquetaDe(window.LW_V4.BASES_CALCULO, c.base_calculo)) + '</span></td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline max-w-xs">' + esc(resumenTramos) + '</td>' +
-            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
-              (c.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
-              (c.activo ? 'Activa' : 'Inactiva') + '</span></td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider whitespace-nowrap ' +
+              ESTADO[0] + '">' + esc(ESTADO[1]) + '</span></td>' +
             (!esAdmC && c.nivel === 'manager'
               ? '<td class="px-5 py-4 text-right font-body-sm text-body-sm text-outline">la fija administración</td></tr>'
               : '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
               /* Editar (22-sep-2026, owner): %, base, importe fijo, override y —si
                  no ha devengado— los tramos. Equipo, proyecto y nivel no: son la
                  identidad de la condición. */
-              '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
-              'data-lw-edita-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de ' + lwMarca('%marca') : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '">Editar</button>' +
-              '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
-              'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de ' + lwMarca('%marca') : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
-              (c.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
-              /* Borrar solo la que ya esta desactivada (Seguridad, revision previa
-                 18-sep): una activa puede estar aplicandose a contratos firmados
-                 sin devengo todavia, y borrarla se llevaria sus tramos sin rastro.
-                 Primero se desactiva —que deja de aplicarse— y entonces se borra. */
-              (c.activo ? '' :
-              '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" ' +
-              'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de ' + lwMarca('%marca') : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '">Borrar</button>') +
-              '</div></td></tr>');
-        }).join('') : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
+              // una cerrada no se edita (sus cifras no cambian: se crea una nueva, lo exige la base)
+              (est === 'cerrada' ? '' : '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+              'data-lw-edita-cond="' + esc(c.id) + '" data-lw-etq="' + esc(etq) + '">Editar</button>') +
+              bCerrar + bBorrar + '</div></td></tr>');
+        };
+        var sep = function (txt) {
+          return '<tr class="bg-surface-container-low"><td colspan="7" class="px-5 py-3 font-label-md text-[11px] uppercase tracking-[0.16em] text-outline font-bold">' + esc(txt) + '</td></tr>';
+        };
+        cuerpo.innerHTML = lista.length
+          ? (enVigor.length ? enVigor.map(fila).join('') : '<tr><td colspan="7" class="px-5 py-6 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Ninguna condición en vigor para este filtro.')) + '</td></tr>') +
+            (cerradas.length ? sep(T('Cerradas: siguen pagando las ventas de su periodo; no se reabren ni se borran')) + cerradas.map(fila).join('') : '')
+          : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
       }
       pinta();
       if (selEquipo) selEquipo.addEventListener('change', pinta);
