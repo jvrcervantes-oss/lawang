@@ -5702,7 +5702,7 @@
       var pon = function (k, v, raiz) { var e = $(k, raiz); if (e) e.textContent = v; };
 
       Promise.all([
-        q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,moneda,publicado,activo,renders_pendientes,alcance,acabados,notas,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
+        q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,precio_construccion_2027,moneda,publicado,activo,renders_pendientes,alcance,acabados,notas,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
         // `modelo` (texto): para avisar de las unidades que NOMBRAN un modelo sin estar
         // enlazadas a él (revisión previa #56: 81 «Dream» de Sumba Hills).
         q(sb.from('unidades').select('modelo_id,modelo,proyecto,proyecto_id'), 'unidades por modelo'),
@@ -5731,8 +5731,9 @@
         // 30-sep-2026: `activo` y `alcance` (+ la lista de proyectos del alcance) para que la ficha
         // dé de alta, retire y limite techos. Aquí llegan TAMBIÉN los retirados: la ficha los enseña
         // apagados para poder reactivarlos. Lo que se ofrece en el contrato lo decide el servidor.
-        q(sb.from('modelo_techos').select('id,modelo_id,clave,nombre,descripcion,precio_ahora,precio_2027,orden,activo,alcance'), 'techos'),
-        q(sb.from('extras').select('id,nombre,orden').eq('activo', true).order('orden', { ascending: true, nullsFirst: false }), 'extras'),
+        q(sb.from('modelo_techos').select('id,modelo_id,clave,nombre,descripcion,suplemento_ahora,suplemento_2027,es_base,orden,activo,alcance'), 'techos'),
+        // 30-sep-2026: TODOS los extras (también los retirados), para poder reactivarlos desde la ficha.
+        q(sb.from('extras').select('id,clave,nombre,descripcion,orden,activo').order('orden', { ascending: true, nullsFirst: false }), 'extras'),
         q(sb.from('modelo_extras').select('id,modelo_id,extra_id,precio,moneda,disponible'), 'extras por modelo'),
         q(sb.from('modelo_techo_proyectos').select('techo_id,proyecto_id'), 'proyectos de cada techo')
       ]).then(function (r) {
@@ -7219,6 +7220,8 @@
         if (!tablaEq) return;
         if (!cd.length) {
           tablaEq.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Nada que repartir todavía — aquí aparecerá cada comisión de closer en cuanto se devengue una.</td></tr>';
+          // F4: con la comisión oculta la base no da filas; «Mis comisiones» explica por qué en vez de este vacío
+          if (opts.soloEquipo && !esAdminSesion && !miEquipoIds.length) pintaMio(cd, eqs, miembros);
           return;
         }
         /* El registro va por ID, nunca por nombre (esc() no basta contra comillas
@@ -7339,58 +7342,83 @@
         });
         var manager = eqHoy && eqHoy.manager_email ? (porEmail[eqHoy.manager_email.toLowerCase()] || {}).nombre || eqHoy.manager_email : '';
 
-        var caja = document.createElement('section');
-        caja.id = 'lw-mis-comisiones';
-        caja.className = 'flex flex-col gap-4';
-        var kpi = function (t, v, pie) {
-          return '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1">' +
-            '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">' + esc(t) + '</span>' +
-            '<span class="font-kpi-number text-[26px] text-volcanic-ash">' + esc(v) + '</span>' +
-            '<span class="font-body-sm text-body-sm text-outline" data-lw-mio-pie>' + esc(pie) + '</span></div>';
-        };
-        caja.innerHTML =
-          '<p class="font-body-md text-body-md text-on-surface-variant">' +
-            (eqHoy ? 'Estás en el equipo <b class="text-on-surface">' + esc(eqHoy.nombre) + '</b>' + (manager ? '. Te paga <b class="text-on-surface">' + esc(manager) + '</b>, tu manager — no ' + lwMarca('%marca') + '.' : '.')
-                   : 'Ahora mismo no estás en ningún equipo de venta.') + '</p>' +
-          '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">' +
-            kpi('Pendiente de cobrar', sumaPorMoneda(pendientes), pendientes.length === 1 ? '1 comisión' : pendientes.length + ' comisiones') +
-            kpi('Cobrado este año', sumaPorMoneda(cobradas), cobradas.length === 1 ? '1 pago' : cobradas.length + ' pagos') +
-            '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1" id="lw-mi-condicion">' +
-              '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Tu condición</span>' +
-              '<span class="font-body-md text-body-md text-outline">Trayendo…</span></div>' +
-          '</div>';
-        var barra = document.getElementById('lw-eq-buscar');
-        var ancla = barra && barra.closest('[data-lw-panel] > div');
-        if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(caja, ancla); else if (tablaEq) tablaEq.closest('section, div').before(caja);
-
-        // columnas «Closer» y «Equipo» y el selector de equipos: sobran
-        var st = document.createElement('style');
-        st.textContent = '#lw-eq-equipo{display:none!important}' +
-          // solo filas de datos: la trazabilidad desplegada es una única celda (colspan) y se ocultaba
-          'table:has(#lw-filas-equipo) th:nth-child(-n+2),#lw-filas-equipo tr[data-eq-fila] td:nth-child(-n+2){display:none}';
-        document.head.appendChild(st);
-
-        // su condición: la base solo le deja leer las que le aplican
+        /* «TU CONDICIÓN» Y COMISIÓN OCULTA (F4 + LAW-461, 30-sep-2026): las dos las decide el SERVIDOR.
+           mi_condicion_comision() devuelve la condición que el motor le aplicaría hoy (misma selección que
+           comisiones_evaluar_contrato: la personal manda, si no la genérica del equipo; sin equipo, la
+           estándar) o `oculta` si su Sales Manager apagó «mis closers ven su comisión». El navegador ya no
+           lee condiciones_comision: tras F4 la RLS no le da la genérica de su equipo y salía «Sin condición». */
+        if (window.LW_V4 && window.LW_V4._mioEnCurso) return;
+        window.LW_V4 = window.LW_V4 || {}; window.LW_V4._mioEnCurso = true;
         Promise.all([
-          sb.from('condiciones_comision').select('proyecto_id,closer_email,pct_comision,importe_fijo,base_calculo,activo,equipo_id,nivel').eq('activo', true).in('nivel', ['closer', 'setter', 'team_lead']),
+          sb.rpc('mi_condicion_comision'),
           sb.from('proyectos').select('id,nombre')
         ]).then(function (rr) {
+          window.LW_V4._mioEnCurso = false;   /* terminada: una recarga de la pestaña vuelve a pedirla */
+          var errCond = rr[0] && rr[0].error;
           var conds = (rr[0] && rr[0].data) || [];
           var nomP = {}; ((rr[1] && rr[1].data) || []).forEach(function (x) { nomP[x.id] = x.nombre; });
-          var el = document.getElementById('lw-mi-condicion');
-          if (!el) return;
-          if (rr[0] && rr[0].error) { el.lastChild.textContent = 'No se ha podido leer tu condición.'; return; }
-          if (!conds.length) { el.lastChild.textContent = 'Sin condición activa: pregunta a tu manager.'; return; }
+          var oculta = conds.some(function (c) { return c.oculta; });
+          var nombreEq = (conds[0] && conds[0].equipo_nombre) || (eqHoy && eqHoy.nombre) || '';
+          pinta(oculta, nombreEq, conds.filter(function (c) { return !c.oculta; }), errCond, nomP);
+        }, function () { window.LW_V4._mioEnCurso = false; pinta(false, eqHoy && eqHoy.nombre, [], true, {}); });
+
+        function pinta(oculta, nombreEq, conds, errCond, nomP) {
+          if (document.getElementById('lw-mis-comisiones')) return;
+          var caja = document.createElement('section');
+          caja.id = 'lw-mis-comisiones';
+          caja.className = 'flex flex-col gap-4';
+          var barra = document.getElementById('lw-eq-buscar');
+          var ancla = barra && barra.closest('[data-lw-panel] > div');
+          function coloca() {
+            if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(caja, ancla); else if (tablaEq) tablaEq.closest('section, div').before(caja);
+          }
+          /* Oculta: la base (comision_visible) no le da ninguna cifra de su parte de equipo; se dice por qué
+             en vez de enseñar ceros. Lo que vende por su cuenta se lo paga Lawang y lo sigue viendo. */
+          if (oculta) {
+            caja.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">' +
+              (nombreEq ? 'Estás en el equipo <b class="text-on-surface">' + esc(nombreEq) + '</b>. ' : '') +
+              'Tu Sales Manager' + (manager ? ' (' + esc(manager) + ')' : '') +
+              ' no comparte las comisiones del equipo: habla con él para saber lo que te corresponde. Lo que vendas por tu cuenta sí lo ves, porque te lo paga ' +
+              lwMarca('%marca') + '.</p>';
+            coloca();
+            if (tablaEq) tablaEq.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Tu Sales Manager no comparte las comisiones del equipo.</td></tr>';
+            return;
+          }
+          var kpi = function (t, v, pie) {
+            return '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1">' +
+              '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">' + esc(t) + '</span>' +
+              '<span class="font-kpi-number text-[26px] text-volcanic-ash">' + esc(v) + '</span>' +
+              '<span class="font-body-sm text-body-sm text-outline" data-lw-mio-pie>' + esc(pie) + '</span></div>';
+          };
           var BASES = { precio_total: 'precio total', precio_suelo: 'precio de suelo', precio_construccion: 'precio de construcción' };
           var txt = function (c) {
             var v = c.importe_fijo != null ? fmt(c.importe_fijo, 'EUR') + ' fijos' : String(c.pct_comision).replace('.', ',') + ' % del ' + (BASES[c.base_calculo] || 'precio');
-            return v + (c.proyecto_id ? ' en ' + (nomP[c.proyecto_id] || 'un proyecto') : ' en todos los proyectos') + (c.closer_email ? ' (solo para ti)' : '');
+            return v + (c.proyecto_id ? ' en ' + (nomP[c.proyecto_id] || 'un proyecto') : ' en todos los proyectos') + (c.personal ? ' (solo para ti)' : '');
           };
-          // primero las personales y las de todos los proyectos
-          conds.sort(function (a, b) { return (b.closer_email ? 1 : 0) - (a.closer_email ? 1 : 0) || (a.proyecto_id ? 1 : 0) - (b.proyecto_id ? 1 : 0); });
-          el.lastChild.outerHTML = '<ul class="font-body-md text-body-md text-on-surface" style="margin:0;padding-left:18px">' +
-            conds.slice(0, 6).map(function (c) { return '<li>' + esc(txt(c)) + '</li>'; }).join('') + '</ul>';
-        });
+          var condHtml = errCond ? '<span class="font-body-md text-body-md text-outline">No se ha podido leer tu condición.</span>'
+            : !conds.length ? '<span class="font-body-md text-body-md text-outline">Sin condición activa: pregunta a tu manager.</span>'
+            : '<ul class="font-body-md text-body-md text-on-surface" style="margin:0;padding-left:18px">' +
+                conds.slice(0, 6).map(function (c) { return '<li>' + esc(txt(c)) + '</li>'; }).join('') + '</ul>';
+          caja.innerHTML =
+            '<p class="font-body-md text-body-md text-on-surface-variant">' +
+              (eqHoy ? 'Estás en el equipo <b class="text-on-surface">' + esc(eqHoy.nombre) + '</b>' + (manager ? '. Te paga <b class="text-on-surface">' + esc(manager) + '</b>, tu manager — no ' + lwMarca('%marca') + '.' : '.')
+                     : 'Ahora mismo no estás en ningún equipo de venta.') + '</p>' +
+            '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">' +
+              kpi('Pendiente de cobrar', sumaPorMoneda(pendientes), pendientes.length === 1 ? '1 comisión' : pendientes.length + ' comisiones') +
+              kpi('Cobrado este año', sumaPorMoneda(cobradas), cobradas.length === 1 ? '1 pago' : cobradas.length + ' pagos') +
+              '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1" id="lw-mi-condicion">' +
+                '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Tu condición</span>' +
+                condHtml + '</div>' +
+            '</div>';
+          coloca();
+
+          // columnas «Closer» y «Equipo» y el selector de equipos: sobran
+          var st = document.createElement('style');
+          st.textContent = '#lw-eq-equipo{display:none!important}' +
+            // solo filas de datos: la trazabilidad desplegada es una única celda (colspan) y se ocultaba
+            'table:has(#lw-filas-equipo) th:nth-child(-n+2),#lw-filas-equipo tr[data-eq-fila] td:nth-child(-n+2){display:none}';
+          document.head.appendChild(st);
+        }
       }
 
       /* ---------- filtro de la pestaña «Reparto de equipo» ----------
@@ -7472,7 +7500,11 @@
               o.liberado && o.liberado.antes !== o.liberado.despues ? (o.liberado.despues ? 'se liberó' : 'se recuperó') : '',
               o.padre && o.padre.antes !== o.padre.despues ? 'cambió de operación' : '',
               o.tipo && o.tipo.antes !== o.tipo.despues ? 'cambió de tipo' : ''
-            ].filter(Boolean).map(esc).join(', ') + (o.quien ? ' · ' + esc(o.quien) : '') : '';
+            ].filter(Boolean).map(esc).join(', ') + (o.quien ? ' · ' + esc(o.quien) : '')
+              /* F4: al beneficiario el servidor le da solo QUÉ campo cambió (origen.cambio), sin contrato ni quién */
+              : (o.cambio && o.cambio.length ? 'Cambió: ' + o.cambio.map(function (k) {
+                  return esc(({ precio_total: 'precio', firmado: 'firma', liberado: 'liberación', padre: 'operación', tipo: 'tipo', moneda: 'moneda' })[k] || k);
+                }).join(', ') : '');
             return '<div style="padding:8px 0;border-bottom:1px dashed #E6E1D6;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between">' +
               '<div style="min-width:0;flex:1"><b style="color:#1b1c19">' + esc(d.numero) + '</b> ' + pill(ETIQUETA_DIF[d.estado] || d.estado, TONO_DIF[d.estado]) +
                 ' <b style="color:' + (d.importe == null ? '#8A5A00' : Number(d.importe) < 0 ? '#ba1a1a' : '#3F5230') + '">' +
