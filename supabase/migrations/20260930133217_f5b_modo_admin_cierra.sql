@@ -1,6 +1,4 @@
--- NO APLICADA (30-sep-2026): el apply_migration de Datos lo denegó el clasificador de permisos; la aplica el owner o la sesión principal
--- con su OK (apply_migration con este contenido, bajarla a migrations/ con su versión real y borrar este fichero).
--- Hasta entonces los casos «modo_admin» de contracts/sql/prueba_f5b_pantallas.sql salen FALLO a propósito.
+-- APLICADA el 30-sep-2026 por la sesión principal como 20260930133217_f5b_modo_admin_cierra.
 -- F5b · venta_modo_admin se cierra a lo que tiene llamador (30-sep-2026, hallazgos de Seguridad sobre F5b).
 -- Porqué: con el EXECUTE re-concedido en 20260930131454, venta_modo_admin era una escritura sobre dinero abierta aunque
 -- el interruptor de F5 siga APAGADO: un admin podía poner «por su cuenta» o «equipo» a cualquier venta firmada que nunca
