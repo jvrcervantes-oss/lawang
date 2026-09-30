@@ -111,26 +111,23 @@ ok(lw_precio_fmt(null) === null, 'sin precio no se formatea nada');
 ok(lw_precio_fmt('') === null, 'cadena vacia no es precio');
 ok(lw_precio_fmt(69000) === '€69,000', 'formato inglés de miles (coma), no español — pivote australiano');
 
-// Techos: todo modelo CON ficha técnica lleva Sirap y Bambú, con precio 'now'/'y2027'
-// numérico, y Sirap siempre por debajo de Bambú (si dejara de serlo, "Desde" tomaría el
-// precio equivocado como protagonista — la asunción que usa lw_modelo_precio_desde()).
-// Loftbung (15-sep-2026) se publicó SIN techos a propósito (ficha técnica incompleta) —
-// es justo el caso real que tiró la web en producción una vez (lw_au_catalogo() ya lo
-// tolera con un try/catch) y este bucle no debe fingir que no existe.
+// Techos (30-sep-2026: ya no son solo Sirap y Bambú — Administración da de alta, retira y
+// limita techos por proyecto): todo modelo CON ficha técnica lleva ≥1 techo, cada uno con
+// precio 'now'/'y2027' numérico que no baja en 2027. Loftbung (15-sep-2026) se publicó SIN
+// techos a propósito — es justo el caso real que tiró la web en producción una vez
+// (lw_au_catalogo() lo omite) y este bucle no debe fingir que no existe.
 foreach ($M as $id => $mm) {
     if (empty($mm['techos'])) {
-        ok($id === 'loftbung', "$id no tiene techos — solo Loftbung debería estar así hoy");
+        ok(in_array($id, ['loftbung', 'tropical'], true), "$id no tiene techos — solo Loftbung (y Tropical, sin ficha aún) deberían estar así hoy");
         continue;
     }
-    foreach (['sirap', 'bambu'] as $tk) {
-        ok(isset($mm['techos'][$tk]), "$id debe tener techo $tk");
-        ok(is_numeric($mm['techos'][$tk]['now']) && is_numeric($mm['techos'][$tk]['y2027']),
+    foreach ($mm['techos'] as $tk => $tt) {
+        ok(preg_match('/^[a-z0-9_]{1,40}$/', (string) $tk) === 1, "$id/$tk: la clave del techo debe tener la forma del CHECK de la base");
+        ok(is_numeric($tt['now']) && is_numeric($tt['y2027']),
             "$id/$tk debe tener precio 'now' y 'y2027' numéricos");
-        ok($mm['techos'][$tk]['y2027'] >= $mm['techos'][$tk]['now'],
+        ok($tt['y2027'] >= $tt['now'],
             "$id/$tk: el precio de 2027 no debería bajar respecto a hoy");
     }
-    ok($mm['techos']['sirap']['now'] <= $mm['techos']['bambu']['now'],
-        "$id: Sirap debe seguir siendo el techo más barato (o lw_modelo_precio_desde apunta al equivocado)");
 }
 ok(!empty($M['loftbung']) && empty($M['loftbung']['techos']), 'Loftbung sigue sin techos (si esto falla, hay que revisar si el bucle de arriba ya puede endurecerse)');
 // La app real no debe reventar con ese hueco — es el mismo camino que index.php recorre.
@@ -255,18 +252,58 @@ foreach (LW_M2_PRESETS as $p) {
 
 // Identidad de techos: es lo que sostiene que la selección se mantenga POR CLAVE al cambiar
 // de modelo. Los nombres visibles SÍ difieren entre modelos (Dali "Sirap Ulin" vs Dune
-// "Sirap") — por eso no se puede keyear por nombre. Loftbung, sin ficha técnica, se salta
-// (mismo caso ya cubierto arriba).
+// "Sirap") — por eso no se puede keyear por nombre. Loftbung, sin ficha técnica, se salta.
+// 30-sep-2026: ya no se exige «exactamente 2, sirap y bambu»; el invariante que queda es que
+// el «From» es el mínimo de los techos que la página ofrece, y que el orden es el de `orden`.
 foreach ($M as $id => $mm) {
     if (empty($mm['techos'])) continue;
-    ok(count($mm['techos']) === 2, "$id debe tener exactamente 2 techos, ni uno más");
-    ok(array_key_exists('sirap', $mm['techos']) && array_key_exists('bambu', $mm['techos']),
-        "$id debe usar las claves 'sirap'/'bambu': la selección del configurador se mantiene por clave");
-    // El invariante que ata el "From" del hero con el precio numérico del panel.
-    ok(lw_modelo_precio_desde($mm) === min(lw_techo_precio_activo($mm['techos']['sirap']),
-                                            lw_techo_precio_activo($mm['techos']['bambu'])),
-        "$id: el 'From' del hero debe ser el mínimo de los dos techos activos");
+    $ofrece = lw_techos_para($mm['techos'], null);
+    if ($ofrece) {
+        ok(lw_modelo_precio_desde($mm) === min(array_map('lw_techo_precio_activo', $ofrece)),
+            "$id: el 'From' del hero debe ser el mínimo de los techos activos que la ficha ofrece");
+    }
+    $ords = array_map(function ($t) { return $t['orden'] ?? PHP_INT_MAX; }, array_values($mm['techos']));
+    $sorted = $ords; sort($sorted);
+    ok($ords === $sorted, "$id: los techos deben llegar ordenados por `orden`");
 }
+
+// ── Techos con fixture (30-sep-2026): orden, clave solo de dígitos, techo limitado a un
+//    proyecto, techo sin `orden` (respaldo viejo) y restricción ilegible. ──────────────────
+$tFake = lw_cat_techos_normaliza([
+    'bambu' => ['nombre' => 'Bamboo', 'now' => '50000', 'y2027' => 56000, 'orden' => 2],
+    'sirap' => ['nombre' => 'Sirap',  'now' => 48000,   'y2027' => 52000, 'orden' => 1],
+    '2'     => ['nombre' => 'Dos',    'now' => 60000,   'y2027' => 61000, 'orden' => 3],
+    'pf'    => ['nombre' => 'Solo PF','now' => 40000,   'y2027' => 41000, 'orden' => 4, 'proyectos' => ['palmfield']],
+    'roto'  => ['nombre' => 'Roto',   'now' => 1,       'y2027' => 1,     'orden' => 5, 'proyectos' => 'palmfield'],
+    'vacio' => ['nombre' => 'Vacio',  'now' => 1,       'y2027' => 1,     'orden' => 6, 'proyectos' => []],
+    'sinpr' => ['nombre' => 'Sin precio', 'orden' => 0],
+]);
+ok(array_map('strval', array_keys($tFake)) === ['sirap', 'bambu', '2', 'pf'],
+    'el orden lo manda `orden`; una restricción ilegible o vacía y un techo sin precio se descartan');
+ok($tFake['bambu']['now'] === 50000, 'los precios se normalizan a número');
+ok(array_map('strval', array_keys(lw_techos_para($tFake, null))) === ['sirap', 'bambu', '2'],
+    'página genérica: el techo limitado a un proyecto no se ofrece');
+ok(array_map('strval', array_keys(lw_techos_para($tFake, 'palmfield'))) === ['sirap', 'bambu', '2', 'pf'],
+    'landing de su proyecto: el techo limitado SÍ se ofrece');
+ok(array_map('strval', array_keys(lw_techos_para($tFake, 'otro'))) === ['sirap', 'bambu', '2'],
+    'landing de otro proyecto: el techo limitado no se ofrece');
+ok(lw_modelo_precio_desde(['techos' => $tFake]) === 48000, 'desde genérico = mínimo sin el techo limitado');
+ok(lw_modelo_precio_desde(['techos' => $tFake], 'palmfield') === 40000, 'desde en su proyecto = mínimo contando el techo limitado');
+ok(lw_modelo_precio_desde(['techos' => []]) === null, 'sin techos no hay desde (nunca un 0)');
+ok(lw_modelo_precio_desde([]) === null, 'un modelo sin clave techos no revienta');
+$e2k = lw_estimacion(['techos' => $tFake], '2', 'bali', 'ricefield', 350);
+ok($e2k['villa'] === 60000, 'una clave solo de dígitos se selecciona por clave como cualquier otra');
+$cfgT = lw_techos_cfg(['2' => ['nombre' => 'Dos', 'eur' => 1], 'sirap' => ['nombre' => 'S', 'eur' => 2]]);
+ok($cfgT[0]['id'] === '2' && $cfgT[1]['id'] === 'sirap', 'al JS la clave va siempre como string y en orden');
+// Respaldo viejo (sin `orden`): por precio 2026, que con los datos reales da sirap, bambu.
+$tViejo = lw_cat_techos_normaliza([
+    'bambu' => ['nombre' => 'Bamboo', 'now' => 50000, 'y2027' => 56000],
+    'sirap' => ['nombre' => 'Sirap',  'now' => 48000, 'y2027' => 52000],
+]);
+ok(array_keys($tViejo) === ['sirap', 'bambu'], 'sin `orden` (respaldo viejo) se ordena por precio: sirap, bambu como hoy');
+ok(lw_techos_frase(2, ': ') === 'Two complete villa prices, not an add-on: the roof you choose is the price of the villa.',
+    'con 2 techos la frase es la de siempre, byte a byte (clave del diccionario i18n)');
+ok(strpos(lw_techos_frase(3), 'Two') === false, 'con 3 techos la frase no dice «Two»');
 ok($M['dali']['techos']['sirap']['nombre'] !== $M['dune']['techos']['sirap']['nombre'],
     'los nombres de techo difieren entre modelos: por eso el configurador keyea por clave y no por nombre');
 

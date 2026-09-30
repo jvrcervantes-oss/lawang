@@ -4547,6 +4547,29 @@
 
   /* ---------- editores por pantalla ---------- */
   var ED = {
+    /* CONTRATOS · la entrada al ASISTENTE de Nuevo contrato (F7, 30-sep-2026,
+       encargo 20260930_lawang_equipos_venta_asistente). El asistente CONVIVE
+       con el formulario de siempre (owner: «no podemos quitar lo que hay»), y
+       mientras el servidor no guarde «equipo / por mi cuenta» (F5) sale detrás
+       de una bandera: solo admin y super admin, o quien abra esta página con
+       `?asistente=1`. Para los demás esta función no toca nada y «+ Nuevo
+       contrato» sigue yendo a /contracts/app.html?nuevo=1 por maqueta.js,
+       exactamente como hoy. Con la bandera hay dos entradas: «Nuevo contrato»
+       (el asistente) y «Formulario clásico» (?nuevo=1 tal cual). Por
+       `data-accion`, nunca por el rótulo (norma 29-sep-2026). */
+    contratos: function (aut) {
+      var rol = aut.ficha && aut.ficha.rol;
+      var bandera = new URLSearchParams(location.search).get('asistente') === '1';
+      if (!(rol === 'admin' || rol === 'super_admin' || bandera)) return;
+      var nuevo = document.querySelector('[data-accion="nuevo-contrato"]');
+      if (!nuevo) { console.error('[v4] no hay botón data-accion="nuevo-contrato" en ' + location.pathname); return; }
+      // El botón vive en el HTML (oculto): con la bandera se enseña. Ocultar por ROL sí vale (regla 23-sep).
+      var clasico = document.querySelector('[data-accion="formulario-clasico"]');
+      if (clasico) clasico.style.display = '';
+      ata('formulario-clasico', function () { location.href = '/contracts/app.html?nuevo=1'; });
+      ata('nuevo-contrato', function () { location.href = '/contracts/app.html?nuevo=1&asistente=1'; });
+    },
+
 
     modelos: function (aut) {
       var sb = aut.sb, admin = esAdmin(aut.ficha);
@@ -6847,6 +6870,37 @@
           if (f) importaCsv(f);
         });
       }
+      /* PLANTILLA CSV del parcelario (30-sep-2026, owner: «necesito una plantilla»).
+         Por proyecto: si ya tiene unidades, salen con sus datos para editar y
+         volver a importar; si no, cabecera y una fila de ejemplo. La cabecera
+         es LW_CSV_PLANTILLA_COLS (proyectos_csv.js, con un test que exige que
+         todas sean columnas que el importador reconoce). El select y el orden
+         de las filas de abajo van a mano y deben seguir ese orden.
+         `estado` y `contrato_id` no van, el importador los ignora. */
+      var bPlantilla = document.getElementById('btn-plantilla-csv');
+      if (bPlantilla) bPlantilla.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var p = proyectoObj();
+        if (!p) return aviso('Abre primero un proyecto: la plantilla es de un proyecto.', '#8A6A34');
+        aviso('Preparando la plantilla de ' + p.nombre + '…');
+        if (typeof LW_CSV_PLANTILLA_COLS === 'undefined') return aviso('El importador no ha cargado (proyectos_csv.js). Recarga la página.', '#ba1a1a');
+        var cols = LW_CSV_PLANTILLA_COLS;
+        sb.from('unidades').select('codigo,tipo,modelo,superficie_m2,precio_suelo,precio_construccion,precio,moneda,notas,fase_masterplan,zona_masterplan')
+          .eq('proyecto_id', p.id).order('codigo_orden').range(0, 999).then(function (r) {
+            if (r.error) return aviso('No se pudo preparar la plantilla: ' + r.error.message, '#ba1a1a');
+            var us = r.data || [];
+            var v = function (x) { return x == null ? '' : x; };
+            var filas = us.length
+              ? us.map(function (u) {
+                  return [u.codigo, p.nombre, v(u.tipo), v(u.modelo), v(u.superficie_m2), v(u.precio_suelo), v(u.precio_construccion), v(u.precio), v(u.moneda), v(u.notas), v(u.fase_masterplan), v(u.zona_masterplan)];
+                })
+              : [['P-01', p.nombre, 'parcela', '', '', '', '', '', 'EUR', '', '', '']];
+            descargaCsv(slugDe(lwMarca('%marca')) + '-' + slugDe(p.nombre) + '-plantilla-parcelario.csv', cols, filas);
+            aviso(us.length
+              ? 'Plantilla con las ' + us.length + ' unidades actuales' + (us.length >= 1000 ? ' (tope de 1.000: si hay más, no salen todas)' : '') + '. Edita y vuelve a importarla.'
+              : 'Este proyecto aún no tiene unidades: plantilla en blanco con una fila de ejemplo (bórrala o cámbiala).');
+          });
+      });
       function importaCsv(file) {
         if (file.size > LW_CSV_MAX_BYTES) {
           return aviso('El fichero pesa ' + (file.size / 1024 / 1024).toFixed(1) + ' MB — el máximo son 5 MB. Pártelo en varios.', '#ba1a1a');
@@ -7665,7 +7719,18 @@
                 (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — tu usuario no tiene ese permiso.' : ''));
             }
             btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
-            setTimeout(function () { cerrar(); location.reload(); }, 750);
+            /* Vuelta al asistente de Nuevo contrato (F7, 30-sep-2026): quien llegó
+               desde su paso «cliente» (`?volver=asistente`) vuelve allí con la
+               ficha recién creada elegida. Solo ese valor fijo y una ruta escrita
+               aquí —nunca una URL que venga en la barra (redirección abierta)—, y
+               en la URL solo viaja el uuid que devuelve cliente_guarda. */
+            var vuelta = new URLSearchParams(location.search).get('volver') === 'asistente'
+              && r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data);
+            setTimeout(function () {
+              cerrar();
+              if (vuelta) location.href = '/contracts/app.html?nuevo=1&asistente=1&asistente_cliente=' + encodeURIComponent(r.data);
+              else location.reload();
+            }, 750);
           }, function (e) {
             btn.classList.remove('las-guardando'); btn.disabled = false;
             error('No se pudo dar de alta: ' + (e && e.message || e));

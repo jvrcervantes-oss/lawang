@@ -1503,6 +1503,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
   // rectangulos medidos a mano, recalibrados el mismo dia por desalineacion
   // frente al PDF original del dosier.
   var ZONAS = null;
+  var CHAPAS = {};   // posicion a mano [x%,y%] de la chapa de estado en las parcelas donde la esquina choca con el texto del plano
 
   // El cartel que se estampa encima. 'reservada' NO se marca SOLD: la leyenda y
   // la lista de al lado las distinguen, y decir SOLD de una reservada
@@ -1545,11 +1546,39 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       wrap.appendChild(el);
       var sello = SELLO[row.estado];
       if(sello){
-        var c = centroide(pts);
+        /* 30-sep-2026: el estado va en una CHAPA (círculo con la inicial, S/R) en la esquina
+           superior derecha de la parcela, dentro del polígono. El sello de texto (centroide,
+           luego borde inferior) tapaba el código o los m² que el propio plano lleva escritos:
+           en ese plano la etiqueta ocupa el centro y la parte baja de cada parcela, y la
+           esquina superior derecha queda libre. El texto completo (SOLD/RESERVED) sigue en
+           el title y en el aria-label del enlace, y la leyenda explica los colores. */
+        var minX = Math.min.apply(null, pts.map(function(p){ return p[0]; }));
+        var maxX = Math.max.apply(null, pts.map(function(p){ return p[0]; }));
+        var minY = Math.min.apply(null, pts.map(function(p){ return p[1]; }));
+        var dentro = function(x, y){
+          var d = false;
+          for(var i = 0, j = pts.length - 1; i < pts.length; j = i++){
+            if(((pts[i][1] > y) !== (pts[j][1] > y)) &&
+               (x < (pts[j][0] - pts[i][0]) * (y - pts[i][1]) / (pts[j][1] - pts[i][1]) + pts[i][0])) d = !d;
+          }
+          return d;
+        };
+        var holgado = function(x, y){ return dentro(x, y) && dentro(x - 1.3, y) && dentro(x + 1.3, y) && dentro(x, y - 1) && dentro(x, y + 1); };
+        var bx = maxX - ((maxX - minX) < 14 ? 2.2 : 2.7), by = minY + 2.4;
+        for(var n = 0; n < 60 && !holgado(bx, by); n++){ bx -= 0.5; by += 0.4; }
+        var mano = CHAPAS[row.codigo];
+        if(mano && mano.length === 2){ bx = mano[0]; by = mano[1]; }
+        if(bx < minX) bx = (minX + maxX) / 2;
         var badge = document.createElement('span');
-        badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold tracking-widest text-[9px] sm:text-[11px] px-2 py-0.5 rounded-sm shadow';
-        badge.style.left = c[0]+'%'; badge.style.top = c[1]+'%'; badge.style.transform = 'translate(-50%,-50%)';
-        badge.textContent = sello[0];
+        badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold rounded-full shadow flex items-center justify-center';
+        /* Tamaño proporcional al ancho del plano (15 px a ~606 px): a 390 px de pantalla el plano
+           mide ~310 px y una chapa fija de 15 cruzaba la línea de las parcelas estrechas. En
+           móvil queda un punto de color (sin letra): el color lo explica la leyenda. */
+        var d = Math.max(8, Math.round((wrap.clientWidth || 606) * 0.0247));
+        badge.style.width = d + 'px'; badge.style.height = d + 'px'; badge.style.fontSize = (d - 6) + 'px'; badge.style.lineHeight = '1';
+        badge.style.overflow = 'hidden';
+        badge.style.left = bx+'%'; badge.style.top = by+'%'; badge.style.transform = 'translate(-50%,-50%)';
+        badge.textContent = d >= 13 ? sello[0].charAt(0) : '';
         wrap.appendChild(badge);
       }
     });
@@ -1600,6 +1629,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       if(!pag) throw new Error('manifiesto_vacio');
       document.getElementById('masterplan-img').src = pag.imagen;
       ZONAS = pag.zonas || null;
+      CHAPAS = pag.chapas || {};
       if(ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS);
     })
     .catch(function(){ ZONAS = null; });

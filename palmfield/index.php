@@ -107,7 +107,17 @@
 require __DIR__ . '/../modelo/datos.php';
 require __DIR__ . '/vivo.php';
 
-$CAT = lw_au_catalogo();
+// 30-sep-2026: landing de UN proyecto. Slug real en `proyectos`: 'palmfield' (Palm Field W5,
+// comprobado en la base). Los techos limitados a otros proyectos no se ofrecen aquí; los
+// limitados a este sí, aunque /modelo/<id> no los enseñe (lw_techos_para, modelo/lib.php).
+// Ojo: LW_PF_PROYECTO (vivo.php) es el NOMBRE ('Palm Field W5') que piden otras RPC; esto es
+// el SLUG, que es lo que guarda `modelo_techos.proyectos`.
+const LW_PF_SLUG = 'palmfield';
+$CAT = lw_au_catalogo(LW_PF_SLUG);
+// Villa por defecto del configurador: Dune, salvo que el filtro por proyecto la haya dejado
+// fuera (todos sus techos limitados a otros proyectos) — entonces la primera que quede, para
+// no arrancar con ningún radio marcado y el configurador vacío.
+$PF_VILLA_DEF = isset($CAT['dune']) ? 'dune' : (string) array_key_first($CAT);
 
 // Tarifa de la parcela: Palm Field está en Balian (costa oeste, no beachfront), así que le
 // aplica el tramo general de 125 €/m². Sale de lib.php, no escrita aquí.
@@ -192,16 +202,17 @@ foreach ($CAT as $id => $v) {
     $cfgJs['modelos'][$id] = [
         'villa'  => $v['villa'],
         'specs'  => $v['specs'],
-        'techos' => [
-            'sirap' => ['nombre' => $v['techos']['sirap']['nombre'], 'eur' => $v['techos']['sirap']['eur']],
-            'bambu' => ['nombre' => $v['techos']['bambu']['nombre'], 'eur' => $v['techos']['bambu']['eur']],
-        ],
+        // Lista ordenada [{id, nombre, eur}] con los techos de ESTE proyecto (lw_techos_cfg).
+        'techos' => lw_techos_cfg($v['techos']),
         // Los extras van POR MODELO porque dos de los siete escalan con la villa. El JS los
         // pinta desde aquí: si un modelo llegara sin ellos, su paso 3 sale vacío en vez de
         // heredar los precios de otro modelo.
         'extras' => $v['extras'],
     ];
 }
+// «Both are …» solo si TODAS las villas tienen exactamente dos techos; si no, frase neutra.
+$NTECHOS = array_unique(array_map(function ($v) { return count($v['techos']); }, $CAT));
+$NTECHOS = count($NTECHOS) === 1 ? reset($NTECHOS) : 0;
 $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 ?><!DOCTYPE html>
 <html lang="en">
@@ -211,7 +222,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260923093252" defer></script>
+<script src="/assets/i18n-landing.js?v=20260930150229" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Palm Field — Villas in Balian Hills, Bali · Freehold (HGB) or Hak Sewa | Lawang Tropical Properties</title>
 <meta name="description" content="Palm Field: villa plots in Balian Hills, West Bali, five minutes from the beach — Freehold (HGB) through a PT PMA, or Hak Sewa without a company. Land ready with power, water and permits. Five villa models, handover <?= lw_e($PF_ENTREGA) ?>. From <?= lw_e(lw_aud_fmt($desdeTotal)) ?>.">
@@ -488,7 +499,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
           <div class="ops">
             <?php foreach ($CAT as $id => $v): ?>
             <label class="op">
-              <input type="radio" name="pf-villa" value="<?= lw_e($id) ?>"<?= $id === 'dune' ? ' checked' : '' ?>>
+              <input type="radio" name="pf-villa" value="<?= lw_e($id) ?>"<?= (string) $id === $PF_VILLA_DEF ? ' checked' : '' ?>>
               <?php if ($v['thumb']): ?>
                 <img class="op__th" src="<?= lw_e($v['thumb']) ?>" alt="" loading="lazy">
               <?php else: ?>
@@ -510,8 +521,13 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <!-- Paso 2: techo. Lo pinta el JS: el precio es el de la villa ya elegida. -->
         <div class="cfg__step" data-paso="2" hidden>
           <p class="cfg__q">Which roof?</p>
+          <?php if ($NTECHOS === 2): ?>
           <p class="cfg__nota">What each finish adds over the base roof. Both are complete villa
             prices, not add-ons — the full figure is on the right.</p>
+          <?php else: ?>
+          <p class="cfg__nota">What each finish adds over the base roof. Each is a complete villa
+            price, not an add-on — the full figure is on the right.</p>
+          <?php endif; ?>
           <div class="ops" id="pf-techos"></div>
         </div>
 
@@ -641,6 +657,9 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
               ];
               foreach ($filas as $f):
                 list($iata,$ciudad,$estado,$vuelo,$aerolineas,$mediana,$vid,$mult,$destaca) = $f;
+                // 30-sep-2026: un modelo sin ningún techo ofrecible en Palm Field sale de $CAT;
+                // la fila se omite en vez de romper la landing con un índice indefinido.
+                if (!isset($CAT[$vid])) continue;
                 $vv    = $CAT[$vid];
                 $vvTot = $vv['desde_eur'] + $PF_TARIFA * $pfMin;
             ?>
@@ -823,7 +842,10 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   // Estado del configurador. `extras` es un objeto id->true (multiseleccion). El precio de
   // cada extra depende del MODELO (Airbnb Kit y Oasis Pool escalan con la villa), asi que se
   // lee siempre de CFG.modelos[S.villa].extras y nunca de una copia guardada al marcarlo.
-  var S = {villa: 'dune', techo: 'sirap', extras: {}, div: 'AUD'};
+  // 30-sep-2026: techos como LISTA ordenada [{id, nombre, eur}]; por defecto el PRIMERO de la
+  // villa elegida, y siempre enganchados por `id` (clave estable), nunca por el nombre.
+  var VILLA_DEF = <?= json_encode($PF_VILLA_DEF, $JSON) ?>;
+  var S = {villa: VILLA_DEF, techo: null, extras: {}, div: 'AUD'};
   var PASOS = 3, paso = 1;
 
   function eur(n) { return '€' + Number(n).toLocaleString('en-US'); }
@@ -835,10 +857,22 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   function txt(id, s) { var e = $(id); if (e) e.textContent = s; }
 
   function modelo() { return CFG.modelos[S.villa] || null; }
+  function techosDe(m) { return (m && m.techos) || []; }
+  function techoPorId(m, id) {
+    var ts = techosDe(m);
+    for (var i = 0; i < ts.length; i++) { if (ts[i].id === id) return ts[i]; }
+    return null;
+  }
+  function techoDefecto(m) { var ts = techosDe(m); return ts.length ? ts[0].id : null; }
+  // La villa nueva puede no tener el techo elegido: vuelve al primero de esa villa.
+  function ajustaTecho() {
+    var m = modelo();
+    if (!techoPorId(m, S.techo)) S.techo = techoDefecto(m);
+  }
   function techoActivo() {
     var m = modelo();
     if (!m) return null;
-    return m.techos[S.techo] || m.techos.sirap || null;
+    return techoPorId(m, S.techo) || techoPorId(m, techoDefecto(m));
   }
   function precioVilla() {
     var t = techoActivo();
@@ -864,23 +898,26 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     // calculada — no "sirap" fijo — para que siga siendo cierto si algun dia se le da la
     // vuelta al precio. El total entero sigue estando en el resumen de la derecha, que es
     // donde la regla de "el techo es el precio de la villa, no un recargo" se sostiene.
-    var base = Math.min.apply(null, ['sirap', 'bambu']
-      .filter(function (k) { return m.techos[k]; })
-      .map(function (k) { return m.techos[k].eur; }));
+    var ts = techosDe(m);
     cont.innerHTML = '';
-    ['sirap', 'bambu'].forEach(function (k) {
-      var t = m.techos[k];
-      if (!t) return;
+    if (!ts.length) return;
+    ajustaTecho();
+    var base = Math.min.apply(null, ts.map(function (t) { return t.eur; }));
+    ts.forEach(function (t) {
       var d = t.eur - base;
       var l = document.createElement('label');
       l.className = 'op';
+      // La clave es un dato de la base: va por propiedad (`.value`), nunca concatenada en HTML.
+      var inp = document.createElement('input');
+      inp.type = 'radio'; inp.name = 'pf-techo'; inp.value = t.id;
+      inp.checked = t.id === S.techo;
+      l.appendChild(inp);
       // Sin `data-eur` cuando no suma nada: asi el repintado por cambio de moneda no lo pisa
       // con un "+ $0 AUD", que es ruido — se queda en "Included".
-      l.innerHTML =
-        '<input type="radio" name="pf-techo" value="' + k + '"' + (k === S.techo ? ' checked' : '') + '>' +
+      l.insertAdjacentHTML('beforeend',
         '<span><span class="op__nb"></span></span>' +
-        (d ? '<span class="op__pr" data-eur="' + d + '"><b></b><i></i></span>'
-           : '<span class="op__pr"><b>Included</b></span>');
+        (d ? '<span class="op__pr" data-eur="' + Number(d) + '"><b></b><i></i></span>'
+           : '<span class="op__pr"><b>Included</b></span>'));
       l.querySelector('.op__nb').textContent = t.nombre;
       if (d) {
         l.querySelector('b').textContent = '+ ' + pinta(d);
@@ -896,10 +933,13 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     (m.extras || []).forEach(function (x) {
       var l = document.createElement('label');
       l.className = 'op';
-      l.innerHTML =
-        '<input type="checkbox" name="pf-extra" value="' + x.id + '"' + (S.extras[x.id] ? ' checked' : '') + '>' +
+      var inp = document.createElement('input');
+      inp.type = 'checkbox'; inp.name = 'pf-extra'; inp.value = x.id;
+      inp.checked = !!S.extras[x.id];
+      l.appendChild(inp);
+      l.insertAdjacentHTML('beforeend',
         '<span><span class="op__nb"></span><span class="op__sp"></span></span>' +
-        '<span class="op__pr" data-eur="' + x.eur + '"><b></b><i></i></span>';
+        '<span class="op__pr" data-eur="' + Number(x.eur) + '"><b></b><i></i></span>');
       l.querySelector('.op__nb').textContent = x.nombre;
       // El price list del owner no trae descripcion para todos (hoy falta la del Airbnb Kit):
       // se deja el hueco vacio en vez de inventarse que incluye un extra de 5.000-8.000 €.
@@ -978,8 +1018,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     // llevaria `utm_*` y `fbclid`, que es de donde sale la atribucion de la campaña.
     var p = new URLSearchParams(location.search);
     ['villa', 'roof', 'extras', 'cur', 'plot'].forEach(function (k) { p.delete(k); });
-    if (S.villa !== 'dune')  p.set('villa', S.villa);
-    if (S.techo !== 'sirap') p.set('roof', S.techo);
+    if (S.villa !== VILLA_DEF) p.set('villa', S.villa);
+    if (S.techo && S.techo !== techoDefecto(m)) p.set('roof', S.techo);
     if (els.length) p.set('extras', els.map(function (x) { return x.id; }).join(','));
     if (S.div !== 'AUD') p.set('cur', S.div);
     var q = p.toString();
@@ -999,7 +1039,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     var t = e.target;
     if (!t) return;
     if (t.type === 'radio') {
-      if (t.name === 'pf-villa') { S.villa = t.value; pintaTechos(); pintaExtras(); }
+      if (t.name === 'pf-villa') { S.villa = t.value; ajustaTecho(); pintaTechos(); pintaExtras(); }
       else if (t.name === 'pf-techo') { S.techo = t.value; }
       else { return; }
       recalcular();
@@ -1086,7 +1126,9 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   // Estado desde la query (enlace compartible)
   var q  = new URLSearchParams(location.search);
   var vq = q.get('villa'); if (vq && CFG.modelos[vq]) S.villa = vq;
-  var tq = q.get('roof');  if (tq === 'sirap' || tq === 'bambu') S.techo = tq;
+  // ?roof= acepta cualquier techo que tenga la villa YA resuelta (no una lista fija).
+  S.techo = techoDefecto(modelo());
+  var tq = q.get('roof');  if (tq && techoPorId(modelo(), tq)) S.techo = tq;
   var cq = q.get('cur');   if (cq === 'EUR' || cq === 'AUD') S.div = cq;
   // Lista blanca contra el catalogo del MODELO ya resuelto: un id que ese modelo no ofrece no
   // entra en el estado, asi que ?extras= no puede meter en la cuenta nada sin precio propio.

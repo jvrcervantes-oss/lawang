@@ -113,12 +113,87 @@ function lw_techo_precio_activo(array $techo, ?DateTime $hoy = null) {
     return lw_antes_del_corte_2027($hoy) ? $techo['now'] : $techo['y2027'];
 }
 
+/**
+ * Los techos que una página PUEDE ofrecer — 30-sep-2026. Un único conjunto por página: de
+ * aquí salen el «desde», las tarjetas, el configurador, lo que acepta `?roof=` y la vista
+ * del hero. Si una de esas cinco cosas usara el array sin filtrar, el «From €X» podría
+ * anunciar un techo que el visitante no puede elegir (precio publicado ≠ precio firmado).
+ *
+ *  · $proyecto = slug de `proyectos` (landing de UN proyecto, p. ej. 'palmfield'): los
+ *    techos sin restricción + los que incluyen ese slug.
+ *  · $proyecto = null (páginas genéricas: /modelo/<id>, /dali, /portfolio): solo los techos
+ *    sin restricción. Una página que no es de ningún proyecto no puede prometer un techo
+ *    que solo se vende en algunos, y no tiene dónde decir en cuáles.
+ *
+ * El orden ya viene resuelto de `lw_cat_techos_normaliza()` (catalogo.php); se conserva.
+ */
+function lw_techos_para($techos, $proyecto = null) {
+    if (empty($techos) || !is_array($techos)) return [];
+    $out = [];
+    foreach ($techos as $clave => $t) {
+        if (!is_array($t)) continue;
+        if (isset($t['proyectos'])) {
+            if ($proyecto === null || !in_array($proyecto, (array) $t['proyectos'], true)) continue;
+        }
+        $out[$clave] = $t;
+    }
+    return $out;
+}
+
 /** El techo más barato de un modelo, ya resuelto al precio activo — es el "Desde X €"
- * del hero y de la tabla de cross-selling. null si el modelo no tiene techos definidos. */
-function lw_modelo_precio_desde(array $m) {
-    if (empty($m['techos'])) return null;
-    $precios = array_map('lw_techo_precio_activo', $m['techos']);
+ * del hero y de la tabla de cross-selling. null si el modelo no tiene techos que esta
+ * página pueda ofrecer (ver lw_techos_para(): sin proyecto, solo los no restringidos). */
+function lw_modelo_precio_desde(array $m, $proyecto = null) {
+    $techos = lw_techos_para($m['techos'] ?? [], $proyecto);
+    if (!$techos) return null;
+    $precios = array_map('lw_techo_precio_activo', $techos);
     return min($precios);
+}
+
+/**
+ * La frase «N precios completos, no un suplemento» de la sección de techos y del paso del
+ * configurador. Con 2 techos devuelve EXACTAMENTE el texto de siempre (i18n-landing.js lo
+ * traduce por su literal); con otro número, una frase que no cuenta — decir «Two» con tres
+ * tarjetas debajo sería mentir en la cara. $sep es el separador de cada plantilla (' — ' en
+ * /modelo, ': ' en /dali, que es la clave literal del diccionario).
+ */
+function lw_techos_frase($n, $sep = ' — ') {
+    if ((int) $n === 2) return 'Two complete villa prices, not an add-on' . $sep . 'the roof you choose is the price of the villa.';
+    return 'Each roof is a complete villa price, not an add-on' . $sep . 'the roof you choose is the price of the villa.';
+}
+
+/**
+ * Foto de un techo para su tarjeta y para el hero — 30-sep-2026.
+ *
+ * 1. La foto que alguien MARCÓ en la intranet con la vista 'techo_<clave>' (manda siempre).
+ * 2. Solo para los dos techos de siempre: el respaldo histórico por pie/posición, idéntico
+ *    al que tenía la plantilla — las fotos de Dali/Dune/… se subieron antes de que existiera
+ *    la vista marcada (24-sep) y sin él las tarjetas de hoy cambiarían de foto.
+ * 3. Un techo nuevo: su fichero en assets/img/roofs/<clave>.* (lw_techo_img) o NADA. Nunca
+ *    la portada ni la foto de otro techo: enseñaría un acabado que no es el que se vende.
+ *    La tarjeta sin foto conserva su fondo y su marco (no es un hueco vacío).
+ */
+function lw_techo_foto($id, $clave, array $g = []) {
+    $clave = (string) $clave;
+    $f = lw_foto_por_vista($id, 'techo_' . $clave);
+    if ($f) return $f;
+    if ($clave === 'sirap') return lw_foto_por_pie($id, ['sirap', 'ulin exterior']) ?? $g[0] ?? null;
+    if ($clave === 'bambu') return lw_foto_por_pie($id, ['bamboo exterior', 'bambu exterior', 'roof bamboo', 'bamboo', 'bambu'], null, ['aerea', 'floor plan', 'top view']) ?? $g[2] ?? $g[1] ?? $g[0] ?? null;
+    return lw_techo_img($clave);
+}
+
+/**
+ * Techos para el JS del configurador: LISTA ordenada [{id, nombre, eur}], no objeto. El
+ * CHECK de la base admite claves solo de dígitos ('2'): en PHP se vuelven claves enteras y
+ * en un objeto JS van delante de las demás, así que un objeto perdería el orden y `'2' ===
+ * 2` fallaría contra `?roof=`. $techos = el `techos` de lw_au_catalogo() ({clave:{nombre,eur}}).
+ */
+function lw_techos_cfg(array $techos) {
+    $out = [];
+    foreach ($techos as $clave => $t) {
+        $out[] = ['id' => (string) $clave, 'nombre' => (string) $t['nombre'], 'eur' => $t['eur']];
+    }
+    return $out;
 }
 
 /**
