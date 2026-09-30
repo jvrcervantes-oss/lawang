@@ -732,3 +732,8 @@ end $$;
 -- P1-P10 ok (10/10). Secuencias SP 84, DIF 110, RP 253 sin cambios; huellas devengos 11:c910c5b5… y solicitudes 10:c4889d99…
 -- iguales antes y después. OJO: este bloque NO tiene casos propios de la reposición (a) ni de «sin roles» (b): P7-P9 son
 -- (d), (c) y (f). Pendiente escribirlos (sin secuencias, nivel closer) antes de dar (a)/(b) por probados.
+-- 30-sep 12:29 UTC, bloque 2 tal cual ca7db3b9 (el bloque 1 no se pasa: da altas con contrato_guarda y gasta series):
+-- P1-P14 ok (15/15, con P12b). (a1)(a2)(a3)(b) probados; la rama «ya descontada» de (a2) solo por lógica (P12b): la
+-- diferencia positiva toma numero = nextval de comisiones_diferencias_seq. Secuencias DIF 110, RP 253, CLI 234 intactas.
+-- SP pasó de 84 a 85 y hay 12 devengos / 11 solicitudes: es un devengo REAL del recálculo (estándar de RP00161, 12:24:40
+-- UTC, solicitud 85), ajeno a la prueba; los 11 devengos y 10 solicitudes de antes dan las mismas huellas (c910c5b5…, c4889d99…).
