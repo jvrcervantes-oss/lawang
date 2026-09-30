@@ -4562,9 +4562,7 @@
     contratos: function (aut) {
       var nuevo = document.querySelector('[data-accion="nuevo-contrato"]');
       if (!nuevo) { console.error('[v4] no hay botón data-accion="nuevo-contrato" en ' + location.pathname); return; }
-      // El botón vive en el HTML (oculto): se enseña a todos. Ocultar por ROL sí vale (regla 23-sep).
-      var clasico = document.querySelector('[data-accion="formulario-clasico"]');
-      if (clasico) clasico.style.display = '';
+      // «Formulario clásico» ya sale visible en el HTML para todos: aquí solo se ata el clic.
       ata('formulario-clasico', function () { location.href = '/contracts/app.html?nuevo=1'; });
       ata('nuevo-contrato', function () { location.href = '/contracts/app.html?nuevo=1&asistente=1'; });
     },
