@@ -8282,7 +8282,9 @@
               });
               d.appendChild(t);
             } },
-          { tipo: 'nota', label: T6('En la simulación: comisiones nuevas %d · solicitudes de pago nuevas %s.', { d: x.devengos_nuevos || 0, s: x.solicitudes_nuevas || 0 }) }
+          /* No se enseña «0 comisiones nuevas»: mover el equipo no dispara el motor, así que la simulación
+             siempre daría 0 y se leería como «no mueve dinero». Lo que pasa de verdad es esto: */
+          { tipo: 'nota', label: T6('La comisión de estas ventas no se calcula ahora: cuando se vuelvan a evaluar (el próximo cobro, factura o cambio del contrato) aplicarán las condiciones del equipo nuevo, bote del manager incluido.') }
         ], n ? T6('Confirmar (%n ventas)', { n: n }) : T6('Confirmar'), function () {
           return sb.rpc('equipo_miembro_guarda_confirmada', Object.assign({}, p, { p_confirmar: n }));
         });

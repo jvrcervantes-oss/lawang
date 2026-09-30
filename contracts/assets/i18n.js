@@ -3941,7 +3941,7 @@
     'Elige un equipo': 'Choose a team',
     'Elige un equipo en el filtro de «Miembros» para gestionar sus miembros, roles, plantilla y lo que ven sus closers.': 'Choose a team in the “Members” filter to manage its members, roles, split template and what its closers see.',
     'Empieza el %f': 'Starts on %f',
-    'En la simulación: comisiones nuevas %d · solicitudes de pago nuevas %s.': 'In the simulation: new commissions %d · new payment requests %s.',
+    'La comisión de estas ventas no se calcula ahora: cuando se vuelvan a evaluar (el próximo cobro, factura o cambio del contrato) aplicarán las condiciones del equipo nuevo, bote del manager incluido.': 'The commission on these sales is not calculated now: when they are next evaluated (the next payment, invoice or contract change) they will use the new team\'s conditions, including the manager\'s pot.',
     'Encender': 'Turn on',
     'Encendido: cada closer ve SOLO su propia parte de las ventas del equipo, nunca el bote ni lo de sus compañeros. Lo que vende por su cuenta lo ve siempre.': 'On: each closer sees ONLY their own share of the team sales, never the pot or their colleagues\' share. What they sell on their own they always see.',
     'Equipo antes → después': 'Team before → after',
