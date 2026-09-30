@@ -437,7 +437,7 @@
   /* TECHOS (30-sep-2026, owner: «poder añadir nuevos techos, que salgan solos en el contrato y en todo;
      decidir qué casa + techo va en cada proyecto — si no digo nada, en todos»). Revisión previa #163
      (Datos + Seguridad + Administración). Esta pantalla solo recoge: valida y escribe el servidor
-     (modelo_techo_crea, modelo_techo_edita, modelo_techos_guarda — migración 20260930023239).
+     (modelo_techo_crea y modelo_techos_guarda_lote — migraciones 20260930023239 y 20260930031223).
      - Un techo nunca se borra: se RETIRA. Su clave vive en contratos congelados, en el techo de cada
        documento (bloque Documentos) y en las fotos de la web. Retirado = no se ofrece en contratos nuevos
        ni en la web; los contratos que ya lo llevan conservan su precio.
@@ -486,19 +486,20 @@
     if (a.length !== b.length) return false;
     return a.every(function (x) { return b.indexOf(x) !== -1; });
   }
-  /* modelo_techo_edita falla con LW409 si el cambio deja fuera contratos sin firmar que llevan ese techo:
-     se pregunta y se repite con p_confirmado. */
-  function editaTecho(ctx, e, confirmado) {
-    return rpc(ctx.sb, 'modelo_techo_edita', { p_id: e.id, p_cambios: e.c, p_confirmado: !!confirmado })
+  /* Precios + ediciones van en UNA transacción (modelo_techos_guarda_lote, revisor-codigo 30-sep: la cadena
+     de llamadas dejaba el catálogo a medias si una fallaba). Si el cambio deja fuera contratos sin firmar, el
+     servidor lo deshace todo y responde LW409: se pregunta una vez y se repite confirmado. */
+  function guardaLote(ctx, m, precios, edits, confirmado) {
+    return rpc(ctx.sb, 'modelo_techos_guarda_lote', { p_id: m.id, p_precios: precios, p_ediciones: edits, p_confirmado: !!confirmado })
       .catch(function (err) {
         if (!err || err.code !== 'LW409' || confirmado) throw err;
         var sigue = typeof window.lwConfirmar === 'function'
-          ? window.lwConfirmar({ titulo: 'Cambiar «' + e.nombre + '»', confirmar: 'Cambiar igualmente',
-              cuerpo: '<p>' + esc(err.message) + '</p><p>Si lo cambias, esos contratos ya no podrán volver a elegir este techo; el que tienen se queda como está.</p>' })
+          ? window.lwConfirmar({ titulo: 'Cambiar los techos de «' + m.nombre + '»', confirmar: 'Cambiar igualmente',
+              cuerpo: '<p>' + esc(err.message) + '</p><p>No se ha guardado nada todavía.</p>' })
           : Promise.resolve(window.confirm(err.message));
         return Promise.resolve(sigue).then(function (ok) {
-          if (!ok) throw new Error('«' + e.nombre + '» no se ha cambiado. Lo anterior de la lista sí se guardó.');
-          return editaTecho(ctx, e, true);
+          if (!ok) return false;   // abreEdicion deja el bloque abierto, sin guardar nada
+          return guardaLote(ctx, m, precios, edits, true);
         });
       });
   }
@@ -539,12 +540,10 @@
             if (!sel.length) throw new Error('«' + nombre + '»: marca al menos un proyecto, o deja «Todos los proyectos».');
             if (r.x.alcance !== 'lista' || !mismoConjunto(sel, r.al.antes)) { c.alcance = 'lista'; c.proyectos = sel; }
           }
-          if (Object.keys(c).length) edits.push({ id: r.x.id, nombre: nombre, c: c });
+          if (Object.keys(c).length) edits.push({ id: r.x.id, cambios: c });
         });
-        // Precios primero (una transacción): reactivar un techo mira el precio ya guardado contra la base.
-        var p = precios.length ? rpc(ctx.sb, 'modelo_techos_guarda', { p_id: m.id, p_techos: precios }) : Promise.resolve();
-        edits.forEach(function (e) { p = p.then(function () { return editaTecho(ctx, e, false); }); });
-        return p;
+        if (!precios.length && !edits.length) return Promise.resolve();
+        return guardaLote(ctx, m, precios, edits, false);
       };
     } : null });
 
