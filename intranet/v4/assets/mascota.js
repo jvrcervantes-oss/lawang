@@ -101,9 +101,15 @@
   var CSS =
     '#lw-masc{position:fixed;right:24px;bottom:22px;z-index:var(--z-mascota,150);font-family:"Neue Kabel",system-ui,sans-serif;pointer-events:none}' +
     '#lw-masc *{box-sizing:border-box}' +
-    '#lw-masc .lwm-yo{pointer-events:auto;display:block;width:52px;height:52px;padding:2px;border:0;border-radius:999px;background:transparent;cursor:pointer;transform-origin:50% 100%;-webkit-tap-highlight-color:transparent}' +
-    '#lw-masc .lwm-yo:focus-visible{outline:2px solid #104C4F;outline-offset:2px}' +
-    '#lw-masc svg{display:block;width:48px;height:48px;overflow:visible}' +
+    '#lw-masc .lwm-yo{pointer-events:auto;display:block;width:88px;height:88px;padding:0;border:0;border-radius:999px;background:#104C4F;box-shadow:0 14px 30px -10px rgba(16,76,79,.7);cursor:pointer;transform-origin:50% 100%;-webkit-tap-highlight-color:transparent}' +
+    '#lw-masc .lwm-yo:focus-visible{outline:2px solid #104C4F;outline-offset:4px}' +
+    /* Opción A (owner, 30-sep-2026): disco de laguna con la mascota en un círculo crema y un halo que late. */
+    '#lw-masc .lwm-yo::before{content:"";position:absolute;inset:9px;border-radius:999px;background:#FBF9F4}' +
+    '#lw-masc .lwm-yo::after{content:"";position:absolute;inset:-8px;border-radius:999px;border:2px solid #104C4F;opacity:0;pointer-events:none;animation:lwmHalo 3.2s ease-out 4}' +
+    '#lw-masc .lwm-yo:has(.lwm-punto)::after{animation-iteration-count:infinite}' +
+    '@keyframes lwmHalo{0%{transform:scale(.92);opacity:.55}70%,100%{transform:scale(1.28);opacity:0}}' +
+    '@media (prefers-reduced-motion:reduce){#lw-masc .lwm-yo::after{animation:none}}' +
+    '#lw-masc svg{position:absolute;left:50%;top:50%;z-index:1;display:block;width:60px;height:60px;margin:-30px 0 0 -30px;overflow:visible}' +
     '#lw-masc .lwm-ojos{transform-origin:24px 27.4px;transition:transform .18s ease}' +
     '#lw-masc .lwm-ojos.parpadea{animation:lwmParpadeo .16s ease-in-out}' +
     '#lw-masc .lwm-ojos.mira{transform:translate(-1.6px,-1.2px)}' +
@@ -115,9 +121,9 @@
     '@keyframes lwmBrote{0%,100%{transform:rotate(0)}30%{transform:rotate(-14deg)}60%{transform:rotate(10deg)}80%{transform:rotate(-4deg)}}' +
     '#lw-masc .lwm-brote.baila{animation:lwmBrote .9s ease-in-out}' +
     /* bocadillo: la piel de dialogo.js */
-    '#lw-masc .lwm-bur{pointer-events:auto;position:absolute;right:0;bottom:64px;width:min(340px,calc(100vw - 32px));background:#fff;border:1px solid #E4DCCB;border-radius:12px;box-shadow:0 18px 50px -20px rgba(27,28,25,.35);color:#44483f;transform-origin:calc(100% - 26px) 100%}' +
+    '#lw-masc .lwm-bur{pointer-events:auto;position:absolute;right:0;bottom:104px;width:min(340px,calc(100vw - 32px));background:#fff;border:1px solid #E4DCCB;border-radius:12px;box-shadow:0 18px 50px -20px rgba(27,28,25,.35);color:#44483f;transform-origin:calc(100% - 44px) 100%}' +
     '#lw-masc .lwm-bur[hidden]{display:none}' +
-    '#lw-masc .lwm-bur::after{content:"";position:absolute;right:20px;bottom:-7px;width:12px;height:12px;background:#fff;border-right:1px solid #E4DCCB;border-bottom:1px solid #E4DCCB;transform:rotate(45deg)}' +
+    '#lw-masc .lwm-bur::after{content:"";position:absolute;right:38px;bottom:-7px;width:12px;height:12px;background:#fff;border-right:1px solid #E4DCCB;border-bottom:1px solid #E4DCCB;transform:rotate(45deg)}' +
     '#lw-masc .lwm-cab{display:flex;gap:12px;padding:18px 44px 0 20px}' +
     '#lw-masc .lwm-marca{flex:0 0 3px;align-self:stretch;border-radius:2px;background:#104C4F;margin:2px 0}' +
     '#lw-masc .lwm-tit{margin:0;font-size:15.5px;line-height:1.3;font-weight:600;color:#2E3437}' +
@@ -138,7 +144,7 @@
     '#lw-masc .lwm-campo:focus{outline:none;border-color:#104C4F;background:#fff}' +
     '#lw-masc .lwm-yo{position:relative}' +
     '#lw-masc .lwm-bur > .lwm-cab:last-child{padding-bottom:20px}' +
-    '#lw-masc .lwm-punto{position:absolute;top:5px;right:5px;width:12px;height:12px;border-radius:999px;background:#9E2F26;border:2px solid #fbf9f4;pointer-events:none}' +
+    '#lw-masc .lwm-punto{position:absolute;top:4px;right:4px;z-index:2;width:18px;height:18px;border-radius:999px;background:#9E2F26;border:3px solid #104C4F;pointer-events:none}' +
     '#lw-masc .lwm-err{margin:8px 20px 0 35px;font-size:13px;color:#9E2F26}' +
     '#lw-masc .lwm-err[hidden]{display:none}' +
     '#lw-masc .lwm-lista{margin:8px 20px 0 35px;padding:0;list-style:none;display:grid;gap:4px;font-size:13.5px;font-variant-numeric:tabular-nums}' +
@@ -148,7 +154,7 @@
     /* se esconde con cualquier cajón/diálogo/menú móvil (mismos selectores que el bloqueo de scroll de shell.css) */
     'html:has(#lw-cajon) #lw-masc,html:has(#lw-editor) #lw-masc,html:has(#cajon-detalle:not(.translate-x-full)) #lw-masc,' +
     'html:has(#lw-com-previa-caja:not([hidden])) #lw-masc,html:has(.lw-dlg-fondo.abierto) #lw-masc,html:has(#lw-novedades) #lw-masc,html:has(body.v4-nav-abierta) #lw-masc{visibility:hidden}' +
-    '@media (max-width:767px){#lw-masc{right:14px;bottom:14px}#lw-masc .lwm-bur{right:-2px}}' +
+    '@media (max-width:767px){#lw-masc{right:14px;bottom:14px}#lw-masc .lwm-yo{width:72px;height:72px}#lw-masc .lwm-yo::before{inset:7px}#lw-masc svg{width:50px;height:50px;margin:-25px 0 0 -25px}#lw-masc .lwm-bur{right:-2px;bottom:88px}#lw-masc .lwm-bur::after{right:28px}}' +
     '@media print{#lw-masc{display:none}}';
 
   function el(tag, cls, txt) {
