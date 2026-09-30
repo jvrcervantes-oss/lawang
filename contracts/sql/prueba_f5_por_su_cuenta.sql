@@ -466,5 +466,83 @@ begin
       v_n);
   exception when others then r := r || 'P6 sin pagar=' || sqlerrm || case when sqlerrm = 'anulada/anulada/1/0/t/t/0' then ' ok; ' else ' FALLO; ' end; end;
 
+  -- ── LAW-474 (migración 20260930120030_law474_restos_f5). Base con cobros: RP00141 (closer T en el equipo de S, firmada,
+  --    cobrada en parte, 0 devengos). Sin secuencias: el devengo se crea en el nivel `closer` (lo paga el SM, sin solicitud)
+  --    con una condición de prueba, y las de manager del equipo se apagan dentro de la prueba.
+  declare
+    v_rp uuid := (select cc.id from public.contratos cc where cc.numero = 'RP00141' and cc.contrato_padre_id is null);
+    kk public.contrato_closer; v_f date; v_c uuid; v_d public.comisiones_devengadas;
+  begin
+    select * into kk from public.contrato_closer where contrato_id = v_rp;
+    if v_rp is null or lower(kk.closer_email) <> T.e or lower(kk.manager_email) <> S.e or kk.modo is not null
+       or exists (select 1 from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp) then
+      raise exception 'RES2: RP00141 ya no sirve de base para LAW-474 (%)', r;
+    end if;
+    v_f := coalesce(kk.fecha_venta, (select (cc.created_at at time zone 'Asia/Makassar')::date from public.contratos cc where cc.id = v_rp));
+
+    -- P7 · (d) + marca de (a): admin pasa a «propia» una venta con devengo de closer vivo → devengo anulado Y marcado
+    --      anulado_por_modo; ventana de 7 días, cruces anotados, aviso al SM sin cifras, y el motor no devenga en la ventana
+    begin
+      update public.condiciones_comision set activo = false, vigente_hasta = null
+       where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+      insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+      select kk.equipo_id, cc.proyecto_id, 'closer', T.e, 5, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+      returning id into v_c;
+      insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100);
+      v_n := public.comisiones_evaluar_contrato(v_rp);
+      select * into v_d from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp;
+      perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+      v_t := v_n || '/' || public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 (d)');
+      select * into k from public.contrato_closer where contrato_id = v_rp;
+      raise exception '%', v_t || format('/%s/%s/%s/%s/%s',
+        (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id),
+        k.modo = 'propia' and k.modo_fijado_admin
+          and k.modo_espera_hasta between now() + interval '7 days' - interval '1 minute' and now() + interval '7 days' + interval '1 minute',
+        k.modo_cruces ? 'bloqueo',
+        (select count(*) from public.notificaciones n where n.contrato_id = v_rp and n.tipo = 'venta_por_su_cuenta'
+            and lower(n.destinatario) = S.e and n.detalle like 'Un administrador marca%' and n.detalle !~ '[0-9]{4,}\.[0-9]{2}'),
+        (select count(*) from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp and d.estado <> 'anulada'));
+    exception when others then r := r || 'P7 admin a propia=' || sqlerrm || case when sqlerrm = '1/0/anulada:true/t/t/1/0' then ' ok; ' else ' FALLO; ' end; end;
+
+    -- P8 · (c) cola del fin de espera: una ventana vencida hace 10 días entra (antes solo miraba 3 días); con objeción
+    --      viva o con devengo vivo de «propia» no entra. Se mira la cola, no se corre el cron (crearía una solicitud real).
+    begin
+      perform set_config('app.via_modo_admin', 'on', true);
+      update public.contrato_closer set modo = 'propia', modo_espera_hasta = now() - interval '10 days' where contrato_id = v_rp;
+      perform set_config('app.via_modo_admin', 'off', true);
+      v_t := (v_rp in (select x from public._ventas_propia_fin_espera_cola() x))::text;
+      insert into public.reclamaciones_venta_propia (contrato_raiz_id, solicitante_email, equipo_id, manager_email, motivo, tipo)
+      values (v_rp, S.e, kk.equipo_id, S.e, 'prueba LAW-474 (c)', 'objecion') returning id into v_obj;
+      v_t := v_t || '/' || (v_rp in (select x from public._ventas_propia_fin_espera_cola() x))::text;
+      raise exception '%', v_t;
+    exception when others then r := r || 'P8 cola fin espera=' || sqlerrm || case when sqlerrm = 'true/false' then ' ok; ' else ' FALLO; ' end; end;
+
+    -- P9 · (f) cambio de closer con devengo vivo → 22023 (también por update directo); tras anularlo un admin con motivo,
+    --      el cambio pasa y el motor no le genera al nuevo closer lo del anterior (el tramo del anterior queda anulado)
+    begin
+      update public.condiciones_comision set activo = false, vigente_hasta = null
+       where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+      insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+      select kk.equipo_id, cc.proyecto_id, 'closer', null, 5, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+      returning id into v_c;
+      insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100);
+      v_n := public.comisiones_evaluar_contrato(v_rp);
+      select * into v_d from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp;
+      begin
+        update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
+        v_t := 'cambio-sin-error';
+      exception when others then get stacked diagnostics v_state = returned_sqlstate;
+        v_t := v_state || case when sqlerrm like 'Esta venta ya tiene comisiones vivas%' then '' else '(' || sqlerrm || ')' end; end;
+      perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+      perform public.comision_devengo_anular(v_d.id, 'prueba LAW-474 (f): cambia el closer');
+      update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
+      raise exception '%', v_n || '/' || v_t || format('/%s/%s', lower((select closer_email from public.contrato_closer where contrato_id = v_rp)) = M.e,
+        (select d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id));
+    exception when others then r := r || 'P9 cambio closer con devengos=' || sqlerrm || case when sqlerrm = '1/22023/t/f' then ' ok; ' else ' FALLO; ' end; end;
+  end;
+
   raise exception 'RES2: %', r;
 end $$;
+-- 30-sep 12:0x UTC tras 20260930120030: P1-P9 ok (9/9). Secuencias SP 84, DIF 110, RP 253 sin cambios por la prueba.
+-- La reposición de LAW-474 (a) y (b) no están aplicadas (supabase/pendientes/PENDIENTE_law474_a_b_reposicion_y_roles.sql):
+-- sus casos se escriben y se pasan al aplicarla.
