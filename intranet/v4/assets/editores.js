@@ -4547,6 +4547,29 @@
 
   /* ---------- editores por pantalla ---------- */
   var ED = {
+    /* CONTRATOS · la entrada al ASISTENTE de Nuevo contrato (F7, 30-sep-2026,
+       encargo 20260930_lawang_equipos_venta_asistente). El asistente CONVIVE
+       con el formulario de siempre (owner: «no podemos quitar lo que hay»), y
+       mientras el servidor no guarde «equipo / por mi cuenta» (F5) sale detrás
+       de una bandera: solo admin y super admin, o quien abra esta página con
+       `?asistente=1`. Para los demás esta función no toca nada y «+ Nuevo
+       contrato» sigue yendo a /contracts/app.html?nuevo=1 por maqueta.js,
+       exactamente como hoy. Con la bandera hay dos entradas: «Nuevo contrato»
+       (el asistente) y «Formulario clásico» (?nuevo=1 tal cual). Por
+       `data-accion`, nunca por el rótulo (norma 29-sep-2026). */
+    contratos: function (aut) {
+      var rol = aut.ficha && aut.ficha.rol;
+      var bandera = new URLSearchParams(location.search).get('asistente') === '1';
+      if (!(rol === 'admin' || rol === 'super_admin' || bandera)) return;
+      var nuevo = document.querySelector('[data-accion="nuevo-contrato"]');
+      if (!nuevo) { console.error('[v4] no hay botón data-accion="nuevo-contrato" en ' + location.pathname); return; }
+      // El botón vive en el HTML (oculto): con la bandera se enseña. Ocultar por ROL sí vale (regla 23-sep).
+      var clasico = document.querySelector('[data-accion="formulario-clasico"]');
+      if (clasico) clasico.style.display = '';
+      ata('formulario-clasico', function () { location.href = '/contracts/app.html?nuevo=1'; });
+      ata('nuevo-contrato', function () { location.href = '/contracts/app.html?nuevo=1&asistente=1'; });
+    },
+
 
     modelos: function (aut) {
       var sb = aut.sb, admin = esAdmin(aut.ficha);
@@ -7700,7 +7723,18 @@
                 (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — tu usuario no tiene ese permiso.' : ''));
             }
             btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
-            setTimeout(function () { cerrar(); location.reload(); }, 750);
+            /* Vuelta al asistente de Nuevo contrato (F7, 30-sep-2026): quien llegó
+               desde su paso «cliente» (`?volver=asistente`) vuelve allí con la
+               ficha recién creada elegida. Solo ese valor fijo y una ruta escrita
+               aquí —nunca una URL que venga en la barra (redirección abierta)—, y
+               en la URL solo viaja el uuid que devuelve cliente_guarda. */
+            var vuelta = new URLSearchParams(location.search).get('volver') === 'asistente'
+              && r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data);
+            setTimeout(function () {
+              cerrar();
+              if (vuelta) location.href = '/contracts/app.html?nuevo=1&asistente=1&asistente_cliente=' + encodeURIComponent(r.data);
+              else location.reload();
+            }, 750);
           }, function (e) {
             btn.classList.remove('las-guardando'); btn.disabled = false;
             error('No se pudo dar de alta: ' + (e && e.message || e));
