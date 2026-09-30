@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="es"><head>
-<meta name="lw-version" content="38138babe362"><title data-lw-titulo>Equipos de venta</title>
+<meta name="lw-version" content="f2a3dbdb63cc"><title data-lw-titulo>Equipos de venta</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-rol="admin sales_manager" data-herramienta="comisiones_equipos"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=d9fcf678" defer></script>
@@ -120,6 +120,39 @@
 </div>
 </div>
 </div>
+</div>
+</section>
+
+<!-- «Ventas por su cuenta» (F5b, 30-sep-2026): lo que los closers del equipo marcan como suyo al crear el contrato.
+     El SM ve su equipo y objeta dentro de los 7 días; administración ve todos (o el del filtro de «Miembros»),
+     resuelve las objeciones y cambia el modo. Lo pinta datos.js (pintaVentasPorSuCuenta) con
+     ventas_por_su_cuenta_equipo + ventas_por_su_cuenta_cuota; las acciones son de editores.js por data-accion
+     (vpc-objetar, vpc-resolver, vpc-modo), siempre por RPC. Sin cifras de dinero. -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-vpc>
+<div class="px-8 pt-8 pb-4 flex flex-col gap-1 border-b border-outline-variant/40">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Ventas por su cuenta</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Lo que tus closers marcan como suyo</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-2xl" data-lw="vpc-sub">—</p>
+</div>
+<div class="px-8 py-5 flex flex-col gap-3 border-b border-outline-variant/40">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Cuota por su cuenta, por closer</span>
+<div class="flex flex-wrap gap-2" id="lw-vpc-cuota"><span class="font-body-sm text-body-sm text-outline" data-lwt>Trayendo la cuota…</span></div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant/60 bg-surface-container-low">
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Venta</th>
+<th class="hidden sm:table-cell px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Origen</th>
+<th class="hidden sm:table-cell px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Plazo para objetar</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Estado</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Acciones</th>
+</tr>
+</thead>
+<tbody id="lw-vpc-filas">
+<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo las ventas por su cuenta…</td></tr>
+</tbody>
+</table>
 </div>
 </section>
 
