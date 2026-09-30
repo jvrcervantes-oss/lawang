@@ -599,6 +599,8 @@
       '<span>' + e(T('Lo que contestes se guarda si cierras y vuelves.')) + '</span></div></nav>' +
       '<div class="asi-main"><div class="asi-top"><span class="asi-ctx">' + e(T('Paso')) + ' ' + (S.paso + 1) + ' ' + e(T('de')) + ' ' + ps.length +
       (S.paso > 0 && modoTxt() ? ' · ' + e(modoTxt()) : '') + '</span>' +
+      // la misma salida en el móvil, donde el riel de pasos no se ve (suite-v4-generador.css)
+      (!S.montado ? '<button type="button" class="asi-link asi-saltar-movil" data-asi="saltar">' + e(T('Saltar el asistente')) + '</button>' : '') +
       '<button type="button" class="asi-x" data-asi="cierra" aria-label="' + e(T('Cerrar')) + '"><span data-ico="close" aria-hidden="true"></span></button></div>' +
       '<div class="asi-cuerpo">' + P[k]() + '</div>' +
       '<div class="asi-pie"><button type="button" class="asi-btn fantasma" data-asi="atras"' + (S.paso === 0 ? ' disabled' : '') + '><span data-ico="arrow_back" aria-hidden="true"></span>' + e(T('Atrás')) + '</button>' +

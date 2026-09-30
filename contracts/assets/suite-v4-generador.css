@@ -349,6 +349,8 @@ html.v4 .asi-paso.on .asi-d{ background:var(--v4-lagoon); color:#fff; }
 html.v4 .asi-paso.hecho .asi-d{ background:var(--v4-laguna-bg); color:var(--v4-lagoon); }
 html.v4 .asi-d [data-ico]::before{ font-size:15px; }
 html.v4 .asi-pie-lado{ margin-top:auto; padding:12px 10px 0; display:flex; flex-direction:column; gap:8px; font-size:12px; line-height:1.4; color:var(--v4-ink-2); }
+/* «Saltar el asistente» en el móvil: el riel de pasos (donde vive en escritorio) se oculta a <=720px */
+html.v4 .asi-saltar-movil{ display:none; margin-left:auto; }
 html.v4 .asi-link{ border:0; background:none; padding:0; font:inherit; font-size:13px; color:var(--v4-lagoon); text-decoration:underline; text-underline-offset:3px; cursor:pointer; text-align:left; }
 html.v4 .asi-main{ display:flex; flex-direction:column; min-width:0; min-height:0; }
 html.v4 .asi-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px 0 28px; }
@@ -477,6 +479,7 @@ html.v4 .asi-venta .asi-op:focus-visible{ outline:2px solid var(--v4-lagoon); ou
   html.v4 .asi-velo{ padding:0; place-items:stretch; }
   html.v4 .asi-caja{ grid-template-columns:1fr; height:100%; border-radius:0; }
   html.v4 .asi-pasos{ display:none; }
+  html.v4 .asi-saltar-movil{ display:inline-flex; align-items:center; min-height:44px; }
   html.v4 .asi-top{ padding:12px 8px 0 16px; }
   html.v4 .asi-x{ width:44px; height:44px; }
   html.v4 .asi-btn{ min-height:44px; }
