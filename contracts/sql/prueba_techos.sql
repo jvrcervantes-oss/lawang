@@ -1,6 +1,7 @@
 -- Prueba de los techos (30-sep-2026): fórmula de precio 2026/2027, alta, alcance, retirar, invariantes y el candado
 -- del trigger de Construcción. Se pega en mcp__supabase-lawang__execute_sql (o el SQL Editor). NO deja rastro: todo
 -- corre en un bloque que termina en raise y se deshace. Los triggers diferidos se fuerzan con `set constraints`.
+-- Lleva `-- destructivo-ok:` en la 1ª línea al pegarlo: prueba un delete de modelos_villa dentro del ensayo.
 -- Resultado: la excepción final lista cada caso con «ok» o «FALLO». Cualquier «FALLO» = no se publica.
 -- Supuestos de datos (30-sep): Dali base 48.000 · Sirap 48/52k · Bamboo 50/56k; Sumba Hills con Dali a 52.000,
 -- Palm Field W5 con Dali a 48.000; CC00118 = Construcción Dali Sirap con extra. Si cambian, se ajustan aquí.
@@ -79,6 +80,18 @@ begin
   exception when others then r := r || 'ok sin techo: ' || sqlerrm || E'\n'; end;
   begin execute sqlq using jsonb_set(base, '{proyecto_id}', to_jsonb(sumba::text)), 'ZZPRUEBA5'; r := r || 'FALLO precio de otro proyecto pasó' || E'\n';
   exception when others then r := r || 'ok precio de otro proyecto: ' || sqlerrm || E'\n'; end;
+
+  -- 3ª vuelta (20260930032134): techo activo sin 2027 y alcance que se va con la casa
+  begin perform public.modelo_techos_guarda_lote(dali, jsonb_build_array(jsonb_build_object('id', bambu, 'precio_ahora', 50000, 'precio_2027', null)), '[]', false);
+    r := r || 'FALLO activo sin 2027 pasó' || E'
+';
+  exception when others then r := r || 'ok activo sin 2027: ' || sqlerrm || E'
+'; end;
+  t := public.modelo_techo_crea(dali, jsonb_build_object('nombre','Prueba Dos','precio_ahora',49000,'precio_2027',53000,'alcance','lista','proyectos',jsonb_build_array(sumba, palm)));
+  delete from public.modelos_villa where modelo_id = dali and proyecto_id = palm;   -- destructivo-ok: dentro del ensayo que se deshace
+  select count(*) into n from public.modelo_techo_proyectos where techo_id = t;
+  r := r || case when n = 1 then 'ok' else 'FALLO' end || ' quitar la casa de Palm borra su alcance' || E'
+';
 
   -- permisos
   perform set_config('request.jwt.claims', json_build_object('sub', ag, 'role', 'authenticated')::text, true);

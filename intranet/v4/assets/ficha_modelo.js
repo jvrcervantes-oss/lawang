@@ -508,6 +508,8 @@
     var base = m.precio_construccion != null ? Number(m.precio_construccion) : null;
     var b = bloque(col, 'techos', 'Techos', { editar: h.techos.length ? function (host) {
       nota(host, 'Precios completos de la villa con ese techo. Ninguno puede quedar por debajo de la base' + (base != null ? ' (' + ctx.fmt(base, m.moneda) + ')' : '') + '.');
+      // Administración (consulta 30-sep): el más barato es el ancla del precio en los proyectos con precio propio.
+      nota(host, 'Ojo: retirar el techo más barato cambia el precio de los demás en los proyectos con precio propio (el más barato que quede pasa a costar ese precio).');
       var ins = h.techos.map(function (x) {
         var tarjeta = document.createElement('div');
         tarjeta.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;background:' + C.crema;
