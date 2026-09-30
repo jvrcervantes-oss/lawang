@@ -824,7 +824,7 @@ begin
           v_t := v_t || '/' || v_state || case when sqlerrm like 'El closer anterior ya tiene comisiones de esta venta pagadas%Lo regulariza Administración' then '' else '(' || sqlerrm || ')' end; end;
         raise exception '%', v_t || '/' || (lower((select closer_email from public.contrato_closer where contrato_id = v_rp)) = T.e);
       exception when others then r := r || 'P17 (2) closer anterior pagado=' || sqlerrm
-        || case when sqlerrm = '22023/22023/t' then ' ok; ' else ' FALLO; ' end; end;
+        || case when sqlerrm = '22023/22023/true' then ' ok; ' else ' FALLO; ' end; end;
 
       -- P18 · (2) vía nueva comision_devengo_anular_lawang: comisión «por su cuenta» del closer anterior PENDIENTE con su
       --       solicitud pendiente (número de prueba 999999007) → cambiar el closer se bloquea; el SM no puede usar la vía
