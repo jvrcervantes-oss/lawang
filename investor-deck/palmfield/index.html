@@ -1571,10 +1571,14 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
         if(bx < minX) bx = (minX + maxX) / 2;
         var badge = document.createElement('span');
         badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold rounded-full shadow flex items-center justify-center';
-        var d = window.innerWidth >= 640 ? 15 : 12;
+        /* Tamaño proporcional al ancho del plano (15 px a ~606 px): a 390 px de pantalla el plano
+           mide ~310 px y una chapa fija de 15 cruzaba la línea de las parcelas estrechas. En
+           móvil queda un punto de color (sin letra): el color lo explica la leyenda. */
+        var d = Math.max(8, Math.round((wrap.clientWidth || 606) * 0.0247));
         badge.style.width = d + 'px'; badge.style.height = d + 'px'; badge.style.fontSize = (d - 6) + 'px'; badge.style.lineHeight = '1';
+        badge.style.overflow = 'hidden';
         badge.style.left = bx+'%'; badge.style.top = by+'%'; badge.style.transform = 'translate(-50%,-50%)';
-        badge.textContent = sello[0].charAt(0);
+        badge.textContent = d >= 13 ? sello[0].charAt(0) : '';
         wrap.appendChild(badge);
       }
     });
