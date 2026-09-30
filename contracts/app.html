@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="21bd1b9356fd">
+<meta name="lw-version" content="0644f743be67">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=d69987f5"></script>
+<script src="/contracts/assets/i18n.js?v=6dbfc157"></script>
 <script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=705d408d" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -81,12 +81,12 @@
 <script src="assets/documento_diseno.js?v=a6230c91"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
 <script src="assets/documento_anexos.js?v=0abc554b"></script>
-<script src="assets/parcela_inventario.js?v=14d7045b"></script>
+<script src="assets/parcela_inventario.js?v=0408d753"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
-<script src="assets/techo_extras.js?v=d93ea66c"></script>
+<script src="assets/techo_extras.js?v=d86e607e"></script>
 <script src="assets/hitos_fechas.js?v=0cf46b67"></script>
 <script src="assets/entidades_pago.js?v=9237aa1c"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -105,9 +105,13 @@
      las otras cuatro son plantillas JS que arman la ventana de impresión del
      contrato — meter aquí la capa la habría colado en el PDF del cliente. -->
 <link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=032139e5">
-<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=b4e1c36f">
+<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=ecaa739d">
 <script src="/intranet/v4/assets/nav-montaje.js?v=2c463182" defer></script>
 <script src="/contracts/assets/generador-v4.js?v=78e32fd1" defer></script>
+<!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
+     inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
+     puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
+<script src="/contracts/assets/asistente-contrato.js?v=aba1faf8"></script>
 <script src="/intranet/v4/assets/nav.js?v=6f6ec4c4" defer></script>
 </head>
 <body>
@@ -1556,7 +1560,9 @@ function wireClienteBuscadorEn(input, res, onPick){
 async function buscarClientes(q, res, onPick, input){
   if(!res) return;
   if(!sb){ res.hidden=true; return; }
-  const like=`%${q.replace(/[%_]/g,'')}%`;
+  // Fuera también `,()`: dentro de `.or()` de PostgREST una coma parte el filtro
+  // y la búsqueda devolvía error — que aquí se pinta como «nada» (30-sep-2026).
+  const like=`%${q.replace(/[%_,()*]/g,'')}%`;
   // `id` incluido desde el 18-ago-2026: el contrato ya no copia los datos del
   // cliente, se ENLAZA a su ficha, y para eso hace falta el id.
   /* POR LA RPC DEL DIRECTORIO, NO POR `clients` — 22-sep-2026, decisión del owner.
@@ -3623,7 +3629,20 @@ function buildPicker(){
     ? TEMPLATES.find(t => t.slug === CURRENT.slug) : null;
   const lista = abierta ? [abierta].concat(ofrecidas) : ofrecidas;
   sel.innerHTML = lista.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}${t===abierta?' '+lwT('(archivado)'):''}${t.ready?'':' ·⚠'}</option>`).join('');
+  /* UN SOLO oyente (30-sep-2026). buildPicker() se llama otra vez en cada
+     cambio de idioma (buildLangToggle) para re-rotular las opciones, y cada
+     llamada colgaba OTRO `change`: tras tocar ES/EN dos veces, cambiar de tipo
+     corría resetBorrador + loadTemplate tres veces seguidas, en carrera. Las
+     opciones se rehacen; el oyente se ata una vez y se queda. */
+  if(sel._cambioAtado) return;
+  sel._cambioAtado = true;
   sel.addEventListener('change', async ()=>{
+    /* Editor montado por el asistente de Nuevo contrato (F7, 30-sep-2026):
+       cambiar de tipo NO vacía el borrador — vuelve al paso «tipo» del
+       asistente con el cliente y la parcela conservados. El asistente decide
+       si le toca (solo mientras el borrador no está guardado) y, si no, el
+       cambio sigue por el camino de siempre. */
+    if(window.lwAsistente && window.lwAsistente.interceptaCambioTipo(sel.value)) return;
     // cambiar de tipo arranca un documento nuevo: nada del anterior viaja con
     // él (ver resetBorrador — ediciones de texto, adquirientes, anexos, cláusulas)
     resetBorrador(sel.value);
@@ -4997,6 +5016,13 @@ async function guardarContrato(){
       btn.disabled=false; updateSaveButton();
       return;
     }
+    /* F5 · PUNTO DE ENGANCHE ÚNICO de «venta con mi equipo / por mi cuenta»
+       (encargo 20260930_lawang_equipos_venta_asistente). El asistente ya lo
+       pregunta y lo tiene en `window.lwAsistente.ventaDeclarada()` →
+       { modo:'equipo'|'propia', origen, frase } o null. HOY NO SE ENVÍA, ni aquí
+       ni dentro de `datos`: su dueño será `contrato_closer.modo`, que valida
+       contrato_guarda en F5. Cuando exista, este es el único sitio donde se añade
+       (un parámetro nuevo de la RPC, solo en contratos raíz). */
     const { data: fila, error } = await sb.rpc('contrato_guarda',
       { p_id: eraNuevo ? null : SAVED_CONTRACT.id, p_contrato: envio });
     if(error) throw error;
@@ -6919,6 +6945,15 @@ async function init(){
        CRM resuelve antes la ficha del comprador (sin ella este editor no deja guardar).
        Si alguien llega aquí con `?lead=` a pelo, esto solo apunta el origen. */
     LEAD_ID = par.get('lead') || null;
+    /* ASISTENTE DE NUEVO CONTRATO (F7, 30-sep-2026) — `?nuevo=1&asistente=1`.
+       Una capa encima de ESTE editor (assets/asistente-contrato.js), no otra
+       página: pregunta lo mínimo y rellena el mismo formulario. Sin el
+       parámetro no existe: ?nuevo=1 a pelo es el formulario de siempre.
+       `asistente_cliente` es la vuelta del alta de /v4/compradores/ (solo el
+       uuid de la ficha recién creada). */
+    if(par.get('asistente') === '1' && window.lwAsistente){
+      await window.lwAsistente.abrir({ clienteNuevo: par.get('asistente_cliente') || null });
+    }
     // «Borrador en blanco» de /v4/contratos/ (25-sep-2026): se elige el tipo y se descarga
     if(par.get('borrador') === 'blanco'){
       const bb = $('#btnBorrador'); if(bb) bb.classList.add('primary');

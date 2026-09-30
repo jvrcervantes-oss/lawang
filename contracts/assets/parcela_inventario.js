@@ -88,9 +88,16 @@ function estadoTraspaso(u){
   return mios.some(v => suyos.includes(v)) ? 'ok' : 'otro';
 }
 function puedeTraspasarParcela(u){ return estadoTraspaso(u) === 'ok'; }
-async function cargarUnidadesDelProyecto(proyecto){
-  if(!sb || !proyecto || UNIDADES_PROY.proyecto === proyecto) return;
-  UNIDADES_PROY = { proyecto, lista:[], fallo:null };
+/* LA LECTURA del inventario de un proyecto, sin tocar el formulario (30-sep-2026,
+   F7). La usan el selector de parcela del editor (cargarUnidadesDelProyecto, aquí
+   debajo) y el asistente de Nuevo contrato (asistente-contrato.js), que elige la
+   parcela ANTES de que exista el formulario. Una sola consulta para los dos: si el
+   asistente leyera por su cuenta, las dos listas acabarían ofreciendo parcelas
+   distintas. Devuelve { lista, fallo } y nunca lanza: `fallo` es «no se ha podido
+   leer», que no es lo mismo que una lista vacía (ver la nota del 21-ago de abajo). */
+async function leerInventarioProyecto(proyecto){
+  const r = { lista:[], fallo:null };
+  if(!sb || !proyecto) return r;
   try{
     const { data, error } = await sb.from('unidades')
       .select('codigo, modelo, superficie_m2, precio_suelo, precio, moneda, estado, contrato_id')
@@ -100,12 +107,12 @@ async function cargarUnidadesDelProyecto(proyecto){
        lista a cero — y una lista a cero significa «este proyecto no tiene
        inventario», que es lo que hace caer el campo a texto libre. Las dos
        situaciones se veían igual en pantalla y solo una es segura. */
-    if(error) UNIDADES_PROY.fallo = error.message || 'no se ha podido leer';
+    if(error) r.fallo = error.message || 'no se ha podido leer';
     // `codigo_orden` (16-sep-2026) ya viene en orden natural desde la base: es
     // una columna generada de `unidades`. Se reordena igualmente aquí con el mismo
     // criterio (suiComparar, contracts/assets/suite.js): cinturón y tirantes, y
     // cubre a app.html cuando no carga suite.js.
-    else UNIDADES_PROY.lista = (typeof suiOrdenarPorCodigo === 'function')
+    else r.lista = (typeof suiOrdenarPorCodigo === 'function')
       ? suiOrdenarPorCodigo(data || [])
       : (data || []).slice()   /* app.html no carga suite.js; ver la nota de arriba */
         .sort((a,b) => String(a.codigo).localeCompare(String(b.codigo), 'es', { numeric:true, sensitivity:'base' }));
@@ -121,7 +128,7 @@ async function cargarUnidadesDelProyecto(proyecto){
        en el campo que decide qué parcela se vende.
        Si esta segunda consulta falla, se pierde el traspaso pero no el
        inventario: las parcelas ocupadas salen bloqueadas, como hasta hoy. */
-    const ids = [...new Set(UNIDADES_PROY.lista.map(u=>u.contrato_id).filter(Boolean))];
+    const ids = [...new Set(r.lista.map(u=>u.contrato_id).filter(Boolean))];
     if(ids.length){
       // pasaporte/email del ocupante: hacen falta para saber si el traspaso es
       // al MISMO comprador (estadoTraspaso). Sin esto el selector ofrecería
@@ -133,14 +140,21 @@ async function cargarUnidadesDelProyecto(proyecto){
       // Si la consulta de ocupantes FALLA no se sabe cuáles son ilegibles:
       // todas quedan bloqueadas, como hasta hoy (no se abre nada a ciegas).
       const cs_fallo = !!csError;
-      UNIDADES_PROY.lista.forEach(u=>{
+      r.lista.forEach(u=>{
         u.ocupante = u.contrato_id ? porId[u.contrato_id] || null : null;
         // Ocupada por un contrato que la RLS no deja leer (de otro agente):
         // se pregunta a la base al elegirla (comprobarTraspasoRemoto).
         u.ocupanteOculto = !!u.contrato_id && !porId[u.contrato_id] && !cs_fallo;
       });
     }
-  }catch(e){ UNIDADES_PROY.fallo = UNIDADES_PROY.fallo || (e && e.message) || 'no se ha podido leer'; }
+  }catch(e){ r.fallo = r.fallo || (e && e.message) || 'no se ha podido leer'; }
+  return r;
+}
+async function cargarUnidadesDelProyecto(proyecto){
+  if(!sb || !proyecto || UNIDADES_PROY.proyecto === proyecto) return;
+  UNIDADES_PROY = { proyecto, lista:[], fallo:null };
+  const leido = await leerInventarioProyecto(proyecto);
+  UNIDADES_PROY.lista = leido.lista; UNIDADES_PROY.fallo = leido.fallo;
   pintarSelectorParcela();
   /* El inventario llega tarde (async): lo que depende del suelo de la parcela
      —el campo de descuento comercial del Bloqueo, que solo se enseña con
