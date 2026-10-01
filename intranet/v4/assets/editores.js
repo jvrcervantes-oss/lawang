@@ -100,6 +100,10 @@
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
   function esAdmin(f) { return !!f && (f.rol === 'admin' || f.rol === 'super_admin'); }
+  /* Editar proyectos, parcelas, documentos y obra: admin y, solo en lo que supervisa, el project_manager. Agente y sales_manager
+     leen (1-oct-2026, owner). Es un ESPEJO de _puede_editar_proyectos() para no ofrecer lo que el servidor va a rechazar:
+     manda la base (unidad_guarda, unidades_importa, documento_proyecto_*, modelo_documento*, obra_*). */
+  function puedeEditarCatalogo(f) { return esAdmin(f) || (!!f && f.rol === 'project_manager'); }
   /* ¿Las unidades de este proyecto llevan fase/zona de masterplan? Lo dice la ficha de la
      instancia (`proyectos_con_fases`, ERP F3 lote 3, 27-sep-2026); antes era el nombre de un
      proyecto de Lawang escrito aquí. Sin ficha o sin entrada: no, nunca lo de otro cliente. */
@@ -4607,7 +4611,13 @@
          (Dosier / Otro documento) → Tipo (si es otro) → Techo → «Se incluye
          automáticamente en el contrato» (solo admin, desmarcada) → Fichero.
          Los tipos salen de window.lwDocsContrato (docs_contrato.js): una lista. */
+      // Los documentos de un modelo los sube y cambia solo administración (1-oct-2026, owner): el servidor lo exige; aquí no se ofrece.
+      if (!admin) {
+        var bAnadirDoc = document.querySelector('[data-accion="anadir-documento"]');
+        if (bAnadirDoc) bAnadirDoc.hidden = true;
+      }
       ata('anadir-documento', function () {
+        if (!admin) return soloAdmin();
         var m = window.LW_V4 && window.LW_V4.modelo;
         if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
         var R = window.lwDocsContrato;
@@ -5070,6 +5080,19 @@
       var ficha = aut.ficha;
       var esAdminP = esAdmin(ficha);
       var esSuper = !!(ficha && ficha.rol === 'super_admin');
+      /* Proyecto, parcelas, documentos y obra en SOLO LECTURA para agente y sales_manager (1-oct-2026, owner). El servidor es
+         quien lo exige (unidad_guarda, unidades_importa, documento_proyecto_*, obra_*); aquí solo se esconde lo que fallaría
+         al pulsarlo. La ficha de una parcela sí se abre —con su contrato y su cobrado—, pero sin poder guardar. */
+      var puedeEditarCat = puedeEditarCatalogo(ficha);
+      if (!puedeEditarCat) {
+        var stLectura = document.createElement('style');
+        stLectura.textContent = '#btn-nueva-unidad,#btn-importar-csv,[data-doc-editar],[data-doc-borrar]{display:none!important}';
+        document.head.appendChild(stLectura);
+      }
+      if (!esAdminP) {
+        var bEstadoObra = document.querySelector('[data-accion="estado-obra"]');
+        if (bEstadoObra) bEstadoObra.hidden = true;
+      }
       /* Dar de alta un proyecto es de dirección (LAW-177, 11-sep-2026): la RLS
          de INSERT en `proyectos` exige es_admin(). Se esconde el botón aquí, en
          cuanto se sabe el rol y ANTES de que nadie pueda pulsarlo — mismo patrón
@@ -5321,7 +5344,7 @@
 
       // enlaces/FAQ exigen 'documentacion': gate LOCAL, ya no aborta toda la
       // pantalla — editar/borrar proyecto son otro permiso y siguen abajo.
-      if (puedeH(ficha, 'documentacion')) {
+      if (puedeH(ficha, 'documentacion') && puedeEditarCat) {
         ['btn-enlace', 'btn-faq', 'btn-doc-subir'].forEach(function (id) {
           var b = document.getElementById(id); if (b) b.classList.remove('hidden');
         });
@@ -6707,6 +6730,16 @@
              la clásica — más estrecho, pero cubre el caso real (dos parcelas
              del MISMO proyecto compartiendo contrato por error), que es lo
              que este aviso existe para cazar. */
+          if (!puedeEditarCat) {
+            var edSoloU = document.getElementById('lw-editor');
+            if (edSoloU) {
+              Array.prototype.forEach.call(edSoloU.querySelectorAll('input,textarea,select'), function (el) {
+                if (el.type === 'checkbox' || el.tagName === 'SELECT') el.disabled = true; else el.readOnly = true;
+              });
+              var gSoloU = edSoloU.querySelector('[data-e="guardar"]');
+              if (gSoloU) gSoloU.remove();
+            }
+          }
           var estSel = document.querySelector('#lw-editor [data-k="estado"]');
           var conSel = document.querySelector('#lw-editor [data-k="contrato_id"]');
           var avisoEstadoDiv = document.getElementById('aviso-estado-u');
@@ -7122,6 +7155,7 @@
         // 'unidades', pero obra_actualizar y las policies de obra_fotos/bucket
         // obra exigen puede('obra') — con el gate viejo, un agente con
         // Unidades pero sin Obra veía el flujo entero y fallaba al guardar.
+        if (!puedeEditarCatalogo(aut.ficha)) return aviso('El avance de obra lo registra administración o el encargado del proyecto; tú puedes consultarlo.', '#8A6A34');
         if (!puedeH(aut.ficha, 'obra')) return aviso('El avance de obra exige la herramienta Obra (policy puede(\'obra\')).', '#8A6A34');
         Promise.all([
           sb.from('unidades_estado').select('id,codigo,proyecto,obra_fase,obra_fecha_entrega').order('codigo_orden').limit(500),
@@ -7156,6 +7190,8 @@
          los MISMOS ids que se enseñaron (candado optimista: si la lista cambió
          mientras tanto, la base rechaza en vez de escribir sobre datos viejos). */
       ata('nuevo-parte', function () {
+        if (!puedeEditarCatalogo(aut.ficha))
+          return aviso('Los partes de trabajo los registra administración o el encargado del proyecto; tú puedes consultarlos.', '#8A6A34');
         if (!puedeH(aut.ficha, 'obra'))
           return aviso('Los partes de trabajo exigen la herramienta Obra (policy puede(\'obra\')).', '#8A6A34');
 
