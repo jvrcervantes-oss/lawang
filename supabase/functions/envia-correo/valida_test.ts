@@ -92,6 +92,22 @@ Deno.test('deduceCta: mismo orden que el PHP', () => {
   ok(!esFallo(i) && i.texto === 'Abrir en la intranet', 'intranet a interno');
   const e = deduceCta(base({ message: 'Responder desde: https://erp.ejemplo.com/intranet/compradores/?id=9' }), D, portal, false);
   ok(!esFallo(e) && e.url === portal, 'intranet a externo → portal (los clientes nunca a /intranet/)');
+  // URLs limpias (AXW-140): enlace nuevo a la raíz de la instancia
+  const I = 'https://erp.ejemplo.com/';
+  const n = deduceCta(base({ message: 'Responder desde: https://erp.ejemplo.com/compradores/?id=9' }), D, portal, true, I);
+  ok(!esFallo(n) && n.texto === 'Abrir en la intranet' && n.url === 'https://erp.ejemplo.com/compradores/?id=9', 'enlace limpio a interno');
+  const ne = deduceCta(base({ message: 'Responder desde: https://erp.ejemplo.com/compradores/?id=9' }), D, portal, false, I);
+  ok(!esFallo(ne) && ne.url === portal, 'enlace limpio a externo → portal');
+  const np = deduceCta(base({ message: 'Mira https://erp.ejemplo.com/portal/ y luego https://erp.ejemplo.com/home/' }), D, portal, true, I);
+  ok(!esFallo(np) && np.url === 'https://erp.ejemplo.com/home/', 'el /portal/ no es la intranet: se salta');
+  const nf = deduceCta(base({ message: 'https://fraude.ru/home/' }), D, portal, true, I);
+  ok(!esFallo(nf) && nf.url === portal, 'enlace limpio de otro origen → portal');
+  const ns = deduceCta(base({ message: 'https://erp.ejemplo.com/home/' }), D, portal, true, '');
+  ok(!esFallo(ns) && ns.url === portal, 'sin url_intranet válida no hay enlace nuevo');
+  const nlw = deduceCta(base({ message: 'Web: https://erp.ejemplo.com/propiedades/' }), D, portal, true, 'https://erp.ejemplo.com/intranet/');
+  ok(!esFallo(nlw) && nlw.url === portal, 'url_intranet con /intranet/ (Lawang): la rama nueva no existe, cero cambio');
+  const nl = deduceCta(base({ message: 'https://erp.ejemplo.com/intranet/v4/home/' }), D, portal, true, I);
+  ok(!esFallo(nl) && nl.url === 'https://erp.ejemplo.com/intranet/v4/home/', 'el enlace viejo sigue valiendo (legado)');
 });
 
 Deno.test('TEXTO_PAUSA: el texto exacto que buscan los crons', () => {
