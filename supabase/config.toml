@@ -393,6 +393,11 @@ deno_version = 2
 [functions.envia-correo]
 verify_jwt = false
 
+# copias-firmadas-envio (AXW-127, 1-oct-2026): la invoca pg_cron/pg_net con X-Cron-Secret (secreto propio en Vault), sin JWT.
+# Vive solo en contracts/edge y se despliega con --no-verify-jwt en el lote del owner; esta entrada fija el valor.
+[functions.copias-firmadas-envio]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
