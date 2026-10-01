@@ -50,6 +50,16 @@ as $function$
 $function$;
 revoke all on function public._condicion_a_su_favor(text[], text, uuid) from public, anon, authenticated;
 
+-- Casilla `comisiones_reparto` (decisión del owner, 1-oct-2026: «sí, dentro de esta tanda»): como en el maestro (b3), un admin solo toca condiciones de
+-- comisión si además tiene la casilla «Reparto a closers». Antes de esto bastaba con ser admin (20260926234500). El manager de equipo no cambia.
+-- ROLLBACK: volver al cuerpo de 20260926234500_frontera_comisiones_rpc.sql (`public.es_admin() or (...)`).
+create or replace function public._condicion_es_mia(p_nivel text, p_equipo uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select (public.es_admin() and public.puede('comisiones_reparto'))
+      or (p_nivel in ('closer', 'setter', 'team_lead') and p_equipo is not null and public.es_manager_de_equipo(p_equipo))
+$$;
+revoke all on function public._condicion_es_mia(text, uuid) from public, anon, authenticated;
+
 create or replace function public.condicion_comision_borra(p_id uuid)
  returns void
  language plpgsql
