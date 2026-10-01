@@ -180,6 +180,8 @@ const CLASES: Record<string, Clase> = {
     exts: ['.pdf', '.jpg', '.jpeg', '.png', '.webp'],
     bytesOk: (ext, b) => ext === '.pdf' ? bytesCuadran('.pdf', b) : IMAGENES.some((e) => bytesCuadran(e, b)),
     carpeta: async (u, body) => {
+      // Los documentos de un modelo los sube solo administración (owner, 1-oct-2026): la base también lo exige al registrar.
+      if (!(await esAdmin(u))) return { error: 'solo_admin', status: 403 };
       const modelo = String(body.modelo_id ?? '');
       if (!esUuid(modelo)) return { error: 'modelo_invalido', status: 400 };
       const tipo = String(body.tipo ?? 'otro');
