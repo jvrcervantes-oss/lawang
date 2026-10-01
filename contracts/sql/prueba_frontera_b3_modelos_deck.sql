@@ -43,7 +43,7 @@ begin
   end if;
   if d.id is not null then
     begin perform modelo_documentos_guarda(d.modelo_id, jsonb_build_array(jsonb_build_object('id', d.id, 'cambios', '{"tipo":"plano"}'::jsonb))); r := r || '10 FALLO agente convierte en plano; '; exception when others then r := r || '10 ok; '; end;
-    begin perform modelo_documentos_guarda(d.modelo_id, jsonb_build_array(jsonb_build_object('id', d.id, 'cambios', jsonb_build_object('tipo', d.tipo)))); r := r || '11 agente retipa no-plano ok; '; exception when others then r := r || '11 FALLO agente no puede retipar (' || sqlerrm || '); '; end;
+    begin perform modelo_documentos_guarda(d.modelo_id, jsonb_build_array(jsonb_build_object('id', d.id, 'cambios', jsonb_build_object('tipo', d.tipo)))); r := r || '11 FALLO agente retipa un documento de modelo (desde el 1-oct-2026 es solo admin); '; exception when others then r := r || '11 ok; '; end;
   end if;
   begin perform modelo_documento_registra('1cd031f2-c7da-455e-975f-c4e8708e36fb', m, m::text || '/' || gen_random_uuid() || '.pdf', 'x', 'otro'); r := r || '12 FALLO el navegador registra un documento; '; exception when others then r := r || '12 ok; '; end;
   begin perform deck_foto_borra('1cd031f2-c7da-455e-975f-c4e8708e36fb', (select id from deck_fotos limit 1)); r := r || '13 FALLO el navegador borra una foto; '; exception when others then r := r || '13 ok; '; end;

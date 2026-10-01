@@ -906,7 +906,7 @@
 
   function bDocs(col, m, h, ctx) {
     var R = reglaDocs();
-    var b = bloque(col, 'docs', 'Documentos', { puede: true, editar: (h.docs.length && R) ? function (host) { return editorDocs(host, m, h, ctx); } : null });
+    var b = bloque(col, 'docs', 'Documentos', { puede: EST.admin, editar: (h.docs.length && R) ? function (host) { return editorDocs(host, m, h, ctx); } : null });
     var caja = contenedorFijo('d-docs');
     caja.style.gap = '8px';
     b.cuerpo.appendChild(caja);
@@ -1255,7 +1255,7 @@
     bIdentidad(der, m, ctx);
     if (!EST.admin) {
       var p = document.createElement('p'); p.className = 'fm-nota'; p.style.gridColumn = '1 / -1';
-      p.textContent = 'Los datos del modelo, y qué documentos van en el contrato, los edita administración. Tú puedes subir documentos y cambiar el tipo o el techo de los que no van en el contrato.';
+      p.textContent = 'Los datos del modelo y sus documentos los edita administración. Tú puedes consultarlos y descargarlos.';
       raiz.insertBefore(p, raiz.firstChild);
     }
   }

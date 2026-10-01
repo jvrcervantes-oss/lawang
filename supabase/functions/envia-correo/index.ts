@@ -281,7 +281,7 @@ export async function manejador(req: Request): Promise<Response> {
       + 'Solo los avisos internos de texto a los buzones de aviso de la instancia van sin credencial.', status: 401 }, via, p.to);
   }
 
-  const cta = deduceCta(p, cfg.dominio, portal, destinoInterno);
+  const cta = deduceCta(p, cfg.dominio, portal, destinoInterno, cfg.urlIntranet);
   if (esFallo(cta)) return fail(cta, via, p.to);
 
   let pdf: Uint8Array | null = null;

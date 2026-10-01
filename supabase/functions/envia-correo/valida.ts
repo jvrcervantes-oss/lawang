@@ -158,7 +158,7 @@ export function validaEnvio(p: Peticion): Fallo | null {
 
 /** Botón del correo, mismo orden que el PHP: impuesto por quien llama (contra lista blanca) →
  *  enlace de firma en el mensaje → enlace a la intranet si va a alguien de casa → portal. */
-export function deduceCta(p: Peticion, dominio: string, urlPortal: string, destinoInterno: boolean):
+export function deduceCta(p: Peticion, dominio: string, urlPortal: string, destinoInterno: boolean, urlIntranet = ''):
   { url: string; texto: string } | Fallo {
   const d = normalizaDominio(dominio);
   if (p.ctaUrl !== '') {
@@ -170,7 +170,31 @@ export function deduceCta(p: Peticion, dominio: string, urlPortal: string, desti
   if (firma && ctaPermitida(firma[0], d)) return { url: firma[0], texto: 'Firmar el documento' };
   const intra = /https:\/\/[A-Za-z0-9.-]+\/intranet\/[A-Za-z0-9._/?=-]*/.exec(p.message);
   if (destinoInterno && intra && ctaPermitida(intra[0], d)) return { url: intra[0], texto: 'Abrir en la intranet' };
+  // URLs limpias (AXW-103/AXW-140): el ERP de la instancia cuelga de la raíz de su `url_intranet`, sin /intranet/. Un
+  // enlace del mensaje a ESE origen (y no a /portal/, que es del cliente) es también «Abrir en la intranet».
+  const nueva = destinoInterno ? enlaceDeLaInstancia(p.message, urlIntranet) : '';
+  if (nueva !== '' && ctaPermitida(nueva, d)) return { url: nueva, texto: 'Abrir en la intranet' };
   return { url: urlPortal, texto: 'Entrar · Sign in' };
+}
+
+/** Primer enlace del mensaje cuyo ORIGEN es exactamente el de `url_intranet` y que no cae en /portal/ ni en
+ *  /contracts/ (assets y firma: otras vías). '' si no hay `url_intranet` válida o ningún enlace así. */
+function enlaceDeLaInstancia(mensaje: string, urlIntranet: string): string {
+  let origen: string;
+  try {
+    const b = new URL(urlIntranet);
+    // Solo una instancia con el ERP en la RAÍZ (url_intranet = https://host/). Con /intranet/ en la ruta (Lawang) la rama
+    // no existe: cualquier enlace a su web pública pasaría a ser el botón de la intranet.
+    if (b.pathname !== '/') return '';
+    origen = b.origin;
+  } catch { return ''; }
+  if (!origen.startsWith('https://')) return '';
+  for (const m of mensaje.matchAll(/https:\/\/[A-Za-z0-9.-]+(?::\d+)?\/[A-Za-z0-9._\/?=&%#-]*/g)) {
+    let u: URL;
+    try { u = new URL(m[0]); } catch { continue; }
+    if (u.origin === origen && !/^\/(portal|contracts)(\/|$)/.test(u.pathname)) return m[0];
+  }
+  return '';
 }
 
 export function esFallo(x: unknown): x is Fallo {

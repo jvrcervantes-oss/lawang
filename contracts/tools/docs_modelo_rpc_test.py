@@ -160,11 +160,11 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
     p.append(caso('C02 agente cambia el tipo de uno marcado (plano): 42501', cambia(2, '{"tipo": "otro"}'), '42501'))
     p.append(caso('C03 agente desmarca uno marcado: 42501', cambia(2, '{"en_contrato": false}'), '42501'))
     p.append(caso('C04 agente cambia el orden: 42501', cambia(1, '{"orden": 7}'), '42501'))
-    p.append(caso('C05 agente retipa uno NO marcado (otro -> dosier): ok', cambia(1, '{"tipo": "dosier"}'), 'ok',
-                  "%s = 'dosier' and not %s" % (doc(1, 'tipo'), doc(1, 'en_contrato'))))
+    # 1-oct-2026 (owner): los documentos de un modelo son de administración; antes un agente retipaba los no marcados.
+    p.append(caso('C05 agente retipa uno NO marcado (otro -> dosier): 42501', cambia(1, '{"tipo": "dosier"}'), '42501'))
     p.append(caso('C06 agente convierte algo en plano (regla del 25-sep, se conserva): 42501', cambia(1, '{"tipo": "plano"}'), '42501'))
-    p.append(caso('C07 agente cambia el techo de uno NO marcado: ok', guarda((4, "jsonb_build_object('techo_clave', current_setting('t.t1'))")),
-                  'ok', "%s = current_setting('t.t1')" % doc(4, 'techo_clave')))
+    p.append(caso('C07 agente cambia el techo de uno NO marcado: 42501', guarda((4, "jsonb_build_object('techo_clave', current_setting('t.t1'))")),
+                  '42501'))
     p.append(caso('C08 documento de OTRO modelo: 22023',
                   "public.modelo_documentos_guarda(current_setting('t.m')::uuid, jsonb_build_array(jsonb_build_object('id', "
                   "(select d.id from public.modelo_documentos d where d.modelo_id <> current_setting('t.m')::uuid limit 1), 'cambios', '{\"tipo\": \"otro\"}'::jsonb)))",
@@ -237,10 +237,8 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
              "set_config('request.jwt.claims', '', true);")
     p.append('set local role service_role;')
     p.append(caso('R02 agente sube marcado: 42501', registra('agente', 1, 'dosier', en='true'), '42501'))
-    p.append(caso('R03 agente sube un dosier sin marcar: ok', registra('agente', 2, 'dosier'), 'ok',
-                  "exists (select 1 from public.modelo_documentos where path like '%%/b0000000-0000-4000-8000-000000000002.pdf' and tipo = 'dosier' "
-                  "and not en_contrato and subido_por = current_setting('t.agente_sub')::uuid)"))
-    p.append(caso('R04 llamada vieja de 6 argumentos (edge sin redesplegar) sigue resolviendo: ok', registra('agente', 3, 'otro'), 'ok'))
+    p.append(caso('R03 agente sube un dosier sin marcar: 42501 (1-oct-2026: solo administración)', registra('agente', 2, 'dosier'), '42501'))
+    p.append(caso('R04 llamada vieja de 6 argumentos (edge sin redesplegar) sigue resolviendo y la guarda manda: 42501', registra('agente', 3, 'otro'), '42501'))
     p.append(caso('R08 agente sube un plano (regla del 25-sep, se conserva): 42501', registra('agente', 5, 'plano'), '42501'))
     p.append(caso('R05 admin sube marcado: entra el ultimo', registra('admin', 4, 'calidades', en='true'), 'ok',
                   "(select orden from public.modelo_documentos where path like '%%/b0000000-0000-4000-8000-000000000004.pdf') = "
