@@ -19,6 +19,21 @@ const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
 const SITIO = (Deno.env.get('SITIO_URL') || 'https://lawangproperties.com').replace(/\/$/, '');
 const RENDER_SECRET = Deno.env.get('RENDER_SECRET') || '';
 
+// AXW-124 (S5.0 F4, 30-sep-2026): a dónde se manda el correo lo decide config_instancia.url_envio_correo (interruptor único:
+// la edge envia-correo o, de vuelta atrás, el PHP). Solo se aceptan esas dos URL: una clave manipulada no puede sacar
+// el secreto a otro host. Si la clave falta, no es texto o no es una de las dos, cae al PHP (comportamiento de siempre).
+// La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET.
+const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
+const ENVIO_EDGE = Deno.env.get('SUPABASE_URL')! + '/functions/v1/envia-correo';
+async function destinoEnvio(): Promise<{ url: string; secreto: string }> {
+  try {
+    const { data } = await sb.from('config_instancia').select('valor').eq('clave', 'url_envio_correo').maybeSingle();
+    const u = typeof data?.valor === 'string' ? data.valor.trim() : '';
+    if (u === ENVIO_EDGE) return { url: u, secreto: Deno.env.get('ENVIO_CORREO_SECRET') || RENDER_SECRET };
+  } catch (_) { /* cae al PHP */ }
+  return { url: ENVIO_PHP, secreto: RENDER_SECRET };
+}
+
 // Tope por ejecución (misma cautela que facturacion_automatica): si algo se
 // tuerce y se acumulan avisos, esto no manda 3.000 correos de golpe.
 //
@@ -46,9 +61,10 @@ function asuntoPara(titulo: string, nombre: string | null): string {
 }
 
 async function enviarEmail(p: { to: string; subject: string; message: string }) {
-  const r = await fetch(SITIO + '/contracts/api/send_email.php', {
+  const dest = await destinoEnvio();
+  const r = await fetch(dest.url, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': dest.secreto, 'X-Llamante': 'avisos-manager' },
     body: JSON.stringify({ to: p.to, subject: p.subject, message: p.message, attach: false }),
   });
   const t = await r.text();

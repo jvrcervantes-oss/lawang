@@ -42,16 +42,17 @@ const CAMPOS_COMPRADOR = new Set(
 
 /* ── el motor, tal cual está en app.html ───────────────────────────────────── */
 const RE_OPT = /<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g;
-const RE_IF = /<!--if:([a-z0-9_]+)=([a-z0-9_]+)-->[\s\S]*?<!--\/if:\1-->/g;
+// Valor vacío = «el campo no está» (28-sep-2026, Art. 5 por forma de pago — calendario_pagos.test.js)
+const RE_IF = /<!--if:([a-z0-9_]+)=([a-z0-9_]*)-->[\s\S]*?<!--\/if:\1-->/g;
 afirma('el motor de app.html sigue siendo el que este test copia',
   app.includes("html=html.replace(/<!--opt:([a-z0-9_]+)-->[\\s\\S]*?<!--\\/opt:\\1-->/g")
-  && app.includes("html=html.replace(/<!--if:([a-z0-9_]+)=([a-z0-9_]+)-->[\\s\\S]*?<!--\\/if:\\1-->/g"),
+  && app.includes("html=html.replace(/<!--if:([a-z0-9_]+)=([a-z0-9_]*)-->[\\s\\S]*?<!--\\/if:\\1-->/g,(m,k,v)=> (v === '' ? (data[k] == null || data[k] === '') : data[k]===v) ? m : '');"),
   'si cambian esas dos líneas, hay que traer el cambio aquí antes de fiarse del resto');
 
 function renderBloques(html, data) {
   return html
     .replace(RE_OPT, (m, k) => (k in data && data[k] !== '') ? m : '')
-    .replace(RE_IF, (m, k, v) => (data[k] === v) ? m : '');
+    .replace(RE_IF, (m, k, v) => (v === '' ? (data[k] == null || data[k] === '') : data[k] === v) ? m : '');
 }
 
 /* ── 1) las dos redacciones, en cada plantilla que las necesita ────────────── */

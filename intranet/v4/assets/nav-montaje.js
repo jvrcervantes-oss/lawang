@@ -11,22 +11,35 @@
  * ninguna ruta ni ninguna regla de permiso se escribe aquí.
  *
  * Diferencias a propósito con las 22 páginas de Stitch:
- * · Clases propias (`lw4-sb…`), no Tailwind: app.html no carga Tailwind. Su
- *   preflight reescribiría la cara clásica, que tiene que seguir intacta. El
- *   aspecto vive en `contracts/assets/suite-v4-generador.css`, entero bajo
- *   `html.v4`.
- * · Plegado por defecto y se abre por encima con ☰: es la vista de trabajo a
- *   ancho completo que decidió el owner (23-sep). El editor no cabe junto a
- *   una barra fija de 288 px.
+ * · Clases propias (`lw4-sb…`), no Tailwind: ni app.html ni el CRM cargan
+ *   Tailwind. Su preflight reescribiría la piel propia de cada una. El aspecto
+ *   vive en `intranet/v4/assets/nav-montaje.css`, entero bajo `html.v4`.
+ * · DOS MODOS, según la página:
+ *   - el generador (contracts/app.html): menú plegado por defecto que se abre
+ *     por encima con ☰ — la vista de trabajo a ancho completo que decidió el
+ *     owner (23-sep): el editor no cabe junto a una barra fija de 288 px;
+ *   - el CRM (/intranet/leads/, 27-sep-2026, owner: «que el menú y top bar sean
+ *     los de la v4 y nada más») y, el mismo día, Obra, el editor de piezas
+ *     (creatividades/redes/) y el de dossiers: `html.lw4-fijo`, menú FIJO de 288 px y
+ *     CABECERA fija de 64 px (buscador, campana y usuario), como las pantallas
+ *     nativas de la v4; por debajo de 1024 px el menú vuelve a ser el cajón y
+ *     lo abre la hamburguesa de la cabecera. La cabecera la monta este fichero;
+ *     la lupa la cablea nav.js, y la campana y el usuario, cabecera.js.
  *
- * Inerte sin `html.v4` (lo pone `contracts/assets/piel.js`). Se carga con
- * `defer` ANTES que nav.js: los `defer` corren en orden, y nav.js recablea en
- * cuanto corre. */
+ * Inerte sin `html.v4` (en el generador lo pone `contracts/assets/piel.js`; el
+ * CRM lo lleva escrito en su <html>). Se carga con `defer` ANTES que nav.js:
+ * los `defer` corren en orden, y nav.js recablea en cuanto corre. */
 (function () {
   'use strict';
   var html = document.documentElement;
   if (!html.classList.contains('v4')) return;
   if (document.querySelector('aside.lw4-sb')) return;       // idempotente
+  var fijo = html.classList.contains('lw4-fijo');
+  // mismo corte que maqueta.js + shell.css en las pantallas nativas
+  var ancho = window.matchMedia ? window.matchMedia('(min-width:1024px)') : { matches: false };
+  // Plegada en escritorio (28-sep-2026): mismo gesto que las pantallas nativas (maqueta.js).
+  function plegada() { return html.classList.contains('lw4-sb-plegado'); }
+  function aLaVista() { return fijo && ancho.matches && !plegada(); }
 
   // Lo que Stitch dibujó en las 22 sidebars (grupos, iconos y data-path). El
   // resto (Modelos, CRM, Asistente, Comisiones, Reservas, Panel de control) lo
@@ -69,7 +82,8 @@
 
   /* La herramienta activa: nav.js la marca por la RUTA (/intranet/v4/<x>/), y
      esta página vive fuera de la v4. La declara la propia página en el <html>
-     (`data-lw4-herramienta="contratos"` en app.html). */
+     (`data-lw4-herramienta="contratos"` en app.html). El CRM no se resuelve
+     aquí: su entrada la injerta nav.js después, y la marca nav.js (injerta). */
   var activa = html.getAttribute('data-lw4-herramienta');
   var enlaceActivo = activa && aside.querySelector('[data-path="' + activa + '"]');
   if (enlaceActivo) enlaceActivo.setAttribute('aria-current', 'page');
@@ -78,9 +92,34 @@
   velo.className = 'lw4-velo';
   velo.setAttribute('data-lw4-cerrar', '');
 
-  // Primero del <body>: nav.js y su buscador toman `document.querySelector('aside')`
-  // y el panel de usuario de topbar.js también es un <aside> (llega después).
+  /* LA CABECERA (solo modo fijo). Misma estructura que la que dibujó Stitch en
+     las pantallas v4, que es la que leen los demás: nav.js cablea el botón cuyo
+     icono es `search` y traduce los `title` de `header button`; cabecera.js
+     pinta `[data-lw="k-avisos"]` (dentro de su botón), `[data-lw-user]` y
+     `[data-lw-rol]`. Ningún nombre de persona en el HTML: lo pone la sesión. */
+  var cab = null;
+  if (fijo) {
+    cab = document.createElement('header');
+    cab.className = 'lw4-cab';
+    cab.innerHTML =
+      '<div class="lw4-cab-izq">' +
+        '<button type="button" class="lw4-cab-btn lw4-cab-menu" data-lw4-menu aria-controls="lw4-sb" aria-label="Menú">' +
+          '<span class="material-symbols-outlined">menu</span></button>' +
+      '</div>' +
+      '<div class="lw4-cab-der">' +
+        '<button type="button" class="lw4-cab-btn" title="Buscar"><span class="material-symbols-outlined">search</span></button>' +
+        '<button type="button" class="lw4-cab-btn" title="Notificaciones"><span class="material-symbols-outlined">notifications</span>' +
+          '<span class="lw4-cab-n" data-lw="k-avisos">—</span></button>' +
+        '<div class="lw4-cab-yo"><div class="lw4-cab-quien">' +
+          '<span class="lw4-cab-nom" data-lw-user></span><span class="lw4-cab-rol" data-lw-rol>—</span></div>' +
+          '<div class="lw4-cab-ava" aria-hidden="true"><span class="material-symbols-outlined">person</span></div></div>' +
+      '</div>';
+  }
+
+  // Primero del <body>: nav.js y su buscador toman `document.querySelector('aside')`,
+  // y la página puede traer los suyos (el CRM: la ficha del bot, `#waFicha`).
   function monta() {
+    if (cab) document.body.insertBefore(cab, document.body.firstChild);
     document.body.insertBefore(velo, document.body.firstChild);
     document.body.insertBefore(aside, document.body.firstChild);
   }
@@ -94,13 +133,26 @@
 
   var volverA = null;
   function abre() {
+    if (aLaVista()) return;                                  // ya está a la vista
+    if (fijo && ancho.matches) {                             // escritorio plegado: se despliega en su sitio
+      html.classList.remove('lw4-sb-plegado');
+      aside.setAttribute('aria-hidden', 'false');
+      return;
+    }
     volverA = document.activeElement;
     html.classList.add('lw4-sb-abierto');
     aside.setAttribute('aria-hidden', 'false');
     var primero = aside.querySelector('a[href]:not([href="#"]), button');
     if (primero) primero.focus();
   }
-  function cierra() {
+  function cierra(pliega) {
+    if (pliega && aLaVista()) {                              // botón de la barra en escritorio: pliega
+      html.classList.add('lw4-sb-plegado');
+      aside.setAttribute('aria-hidden', 'true');
+      var menu = document.querySelector('[data-lw4-menu]');
+      if (menu) menu.focus();
+      return;
+    }
     if (!html.classList.contains('lw4-sb-abierto')) return;
     html.classList.remove('lw4-sb-abierto');
     aside.setAttribute('aria-hidden', 'true');
@@ -112,9 +164,33 @@
     var t = e.target.closest ? e.target : e.target.parentElement;
     if (!t) return;
     if (t.closest('[data-lw4-menu]')) { e.preventDefault(); abre(); }
+    else if (t.closest('.lw4-sb-cerrar')) { e.preventDefault(); cierra(true); }
     else if (t.closest('[data-lw4-cerrar]')) { e.preventDefault(); cierra(); }
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cierra(); });
+
+  /* Modo fijo: a partir de 1024 px el menú está a la vista (ni velo ni
+     aria-hidden, que ocultaría a un lector de pantalla un menú visible); por
+     debajo es el cajón de siempre. Al cruzar el corte con el cajón abierto se
+     cierra, para no dejar el velo encima de la página. */
+  function ajustaFijo() {
+    html.classList.remove('lw4-sb-abierto');
+    aside.setAttribute('aria-hidden', aLaVista() ? 'false' : 'true');
+  }
+  if (fijo) {
+    ajustaFijo();
+    if (ancho.addEventListener) ancho.addEventListener('change', ajustaFijo);
+    else if (ancho.addListener) ancho.addListener(ajustaFijo);
+    /* Usuario y campana, cuando se sabe quién es (guard.js). */
+    if (window.LW_AUTH && typeof window.LW_AUTH.then === 'function') {
+      window.LW_AUTH.then(function (aut) {
+        if (!aut) return;
+        if (!window.LW_CABECERA) { console.error('[nav-montaje] falta intranet/v4/assets/cabecera.js: sin campana ni usuario'); return; }
+        window.LW_CABECERA.pintaUsuario(aut);
+        window.LW_CABECERA.campana(aut, (aut.ficha && aut.ficha.rol) || '');
+      });
+    }
+  }
 
   /* ☰ PROVISIONAL (fase 2): mientras la cabecera v4 no exista, se cuelga al
      principio de la barra clásica. La fase 3 la sustituye por la cabecera de

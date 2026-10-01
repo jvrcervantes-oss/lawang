@@ -95,6 +95,36 @@ function auditPage(d: { nombre: string; email: string; fechaISO: string; ip: str
 /* Envío de correo por el endpoint del sitio (PHP con SMTP autenticado). No se
    monta un segundo emisor aquí: el remitente, el SMTP y el formato MIME ya
    están resueltos y probados en `contracts/api/send_email.php`. */
+// AXW-124 (S5.0 F4, 30-sep-2026): a dónde se manda el correo lo decide config_instancia.url_envio_correo (interruptor único:
+// la edge envia-correo o, de vuelta atrás, el PHP). Solo se aceptan esas dos URL exactas: una clave manipulada no puede sacar
+// el secreto a otro host. Si la clave falta, no es texto o no es una de las dos, cae al PHP (comportamiento de siempre).
+// La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET.
+// Sin rama por tamaño: el adjunto máximo aquí es MAX_ADJUNTO (15 MB → ~20 MB de base64), por debajo del tope de 34 MB de la edge
+// (lo fija red_envio.test.js); por encima de MAX_ADJUNTO/MAX_TANDA repartirFirmado manda enlace, no adjunto.
+const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
+const ENVIO_EDGE = Deno.env.get('SUPABASE_URL')! + '/functions/v1/envia-correo';
+// LA RED (revisión previa Seguridad+Datos, 30-sep-2026): si la edge responde EXACTAMENTE 401 o 404 —antes del SMTP: secreto mal
+// puesto o edge sin desplegar— se reintenta UNA vez por el PHP. Nunca ante excepción de red, timeout, 400/413/429, 500 ni 503
+// (pausa): una excepción de fetch no distingue «no conectó» de «se cortó tras enviar» y duplicaría el correo de una firma.
+// Solo se mira r.status, nunca el cuerpo, y no se generaliza a «4xx». Cada uso deja `red_envio_usada` en el log (medible con
+// query_logs por esa cadena): sin ese contador no se puede saber cuándo retirarla (AXW-124, criterio de retirada en pendientes).
+const RED_ESTADOS = [401, 404];
+async function urlEnvio(): Promise<string> {
+  try {
+    const { data } = await sb.from('config_instancia').select('valor').eq('clave', 'url_envio_correo').maybeSingle();
+    const u = typeof data?.valor === 'string' ? data.valor.trim() : '';
+    if (u === ENVIO_EDGE) return u;
+  } catch (_) { /* cae al PHP */ }
+  return ENVIO_PHP;
+}
+function postCorreo(url: string, secreto: string, cuerpo: string) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': secreto, 'X-Llamante': 'firma-submit' },
+    body: cuerpo,
+  });
+}
+
 async function enviarEmail(p: {
   to: string; subject: string; message: string; filename?: string; pdfB64?: string;
   // registro de envíos (correos_enviados): quién llama dice de qué contrato /
@@ -102,21 +132,23 @@ async function enviarEmail(p: {
   // ningún llamador así, pero el envío nunca depende del log).
   log?: { contrato_id?: string | null; factura_id?: string | null; via: string };
 }) {
-  const r = await fetch(SITIO + '/contracts/api/send_email.php', {
-    method: 'POST',
-    /* `X-Render-Secret` autentica esta función ante send_email.php desde el
-       6-ago-2026: ese endpoint ya no admite peticiones sin credencial (antes le
-       bastaba `Origin`, que un curl se salta). Se reusa el secreto del servicio
-       de render a propósito — esta función no tiene sesión de usuario, y crear un
-       secreto nuevo habría dejado el arreglo pendiente de que el owner lo pusiera
-       en dos sitios. Es el mismo valor que `private/mail.php.pdf_service_secret`.
-       ponytail: si se rota, se rota en los dos lados. */
-    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
-    body: JSON.stringify({
-      to: p.to, subject: p.subject, message: p.message,
-      ...(p.pdfB64 ? { filename: p.filename || 'documento.pdf', pdf_base64: p.pdfB64 } : { attach: false }),
-    }),
+  const cuerpo = JSON.stringify({
+    to: p.to, subject: p.subject, message: p.message,
+    ...(p.pdfB64 ? { filename: p.filename || 'documento.pdf', pdf_base64: p.pdfB64 } : { attach: false }),
   });
+  /* `X-Render-Secret` autentica esta función ante el endpoint de correo. Hacia el PHP se reusa el secreto del servicio de
+     render (send_email.php ya no admite peticiones sin credencial desde el 6-ago-2026; esta función no tiene sesión de
+     usuario). Hacia la edge va ENVIO_CORREO_SECRET, que no es el compartido con otros ERP.
+     ponytail: RENDER_SECRET, si se rota, se rota en los dos lados (PHP y función). */
+  const url = await urlEnvio();
+  let r = url === ENVIO_EDGE
+    ? await postCorreo(url, Deno.env.get('ENVIO_CORREO_SECRET') || RENDER_SECRET, cuerpo)
+    : await postCorreo(ENVIO_PHP, RENDER_SECRET, cuerpo);
+  if (url === ENVIO_EDGE && RED_ESTADOS.includes(r.status)) {
+    console.error('red_envio_usada fn=firma-submit status=' + r.status);
+    await r.text().catch(() => '');
+    r = await postCorreo(ENVIO_PHP, RENDER_SECRET, cuerpo);
+  }
   const t = await r.text();
   if (!r.ok || !t.includes('"ok":true')) throw new Error('email a ' + p.to + ': ' + t.slice(0, 200));
   if (p.log) {
@@ -358,7 +390,7 @@ async function repartirFirmado(o: {
         (o.proyecto ? '\nProyecto: ' + o.proyecto : '') +
         '\nFirmantes: ' + (nombresFirmantes || '—') +
         '\n\nCopia para archivo.' +
-        '\n\nVer en la intranet: ' + SITIO + '/intranet/operaciones/' + pie
+        '\n\nVer en la intranet: ' + SITIO + '/intranet/v4/operaciones/' + pie
       : 'Hola' + ((d as any).nombre ? ' ' + String((d as any).nombre).split(' ')[0] : '') + ',' +
         '\n\nHemos recibido tu firma. Aquí tienes tu copia del contrato ' + o.numero +
         (o.proyecto ? ' (' + o.proyecto + ')' : '') + ', ya firmado.' +
@@ -493,6 +525,12 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
    que `crearProformaAutomatica` en contracts/app.html, que hace este mismo
    corte al GUARDAR; este es el corte gemelo al FIRMAR). */
 const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
+/* PARADA (30-sep-2026, owner; pendiente LAW-471): el comentario de arriba describe el flujo activo.
+   Motivo: la proforma automática no descuenta el descuento
+   comercial y sale con importe equivocado. Se corta aquí (al firmar) y en
+   contracts/app.html (al guardar) hasta que use el precio NETO. Para reactivarla:
+   poner a false, y comprobar antes que la proforma resta `descuento_comercial`. */
+const PROFORMA_AUTO_PARADA = true;
 async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: any })
     : Promise<{ emitida: boolean; mensaje: string }> {
   if (!TIPOS_CON_PROFORMA_AUTO.includes(o.ct.tipo)) {
@@ -933,7 +971,7 @@ Deno.serve(async (req) => {
     // no calificar aquí (en vez de dejar que enviarProformaTotal() lo rechace
     // por dentro) evita que su "no toca" salga como si fuera un fallo en
     // `avisos` — no generar la proforma es lo correcto, no una incidencia.
-    if (TIPOS_CON_PROFORMA_AUTO.includes((ct as any).tipo)) {
+    if (!PROFORMA_AUTO_PARADA && TIPOS_CON_PROFORMA_AUTO.includes((ct as any).tipo)) {
       try {
         const r = await enviarProformaTotal({ contratoId: claimed.contrato_id, numero, ct });
         console.log('firma', claimed.id, '·', r.mensaje);

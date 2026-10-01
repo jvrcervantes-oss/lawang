@@ -1,3 +1,7 @@
+-- ⚠️ DESFASADA EN LA PARTE DE TECHOS desde el 30-sep-2026 (migraciones 20260930044032/044332): los techos son un
+-- SUPLEMENTO sobre la casa (suplemento_ahora/suplemento_2027) y precio_ahora/precio_2027 se renombraron a *_antiguo;
+-- la base ya no «mueve los techos». Los casos de techos de este fichero fallarán: la prueba vigente de techos es
+-- contracts/sql/prueba_techos.sql. Pendiente de rehacer: LAW-466 (contexto/pendientes.md de la agencia, owner Desarrollo).
 -- PRUEBA POR ROL, COMO ATAQUE — frontera bloque 3: modelos, precios y deck (27-sep-2026, LAW-336 / LAW-331).
 -- Se ejecuta con execute_sql (MCP) o psql como postgres, UN BLOQUE POR LLAMADA (cada uno acaba en
 -- `raise exception 'RES: …'`, que revierte la transacción entera y enseña el resultado: NO ESCRIBE NADA).
@@ -5,6 +9,8 @@
 -- (dortegag@gmail.com) y un admin (p@pabloglobal.es); cámbialos si ya no están activos. Modelo de prueba: el
 -- que tenga más techos y precios por proyecto (Dream el 27-sep).
 -- Tras el cierre (revoke + quitar policies) añade el bloque 8.
+-- 28-sep-2026: modelo_documento_cambia se retiró (20260927230000); sus casos 9-11 y el 4 del camino bueno pasan a
+-- modelo_documentos_guarda (misma comprobación, en una transacción). Los cubre también docs_modelo_rpc_test.py (C02/C05/C06).
 -- Ejecutada el 27-sep-2026 contra producción tras aplicar 20260927120000: bloques 1-5 todo «ok» (1: 14/14;
 -- 2: 19/19, techos 206000→214000 en 4 tramos al subir la base 2000, historial +5; 3: 8/8 y los 3 diseños
 -- actuales pasan; 4: 19/19; 5: 10/10; 6: camino bueno — alcance/acabados normalizados, techo explícito con
@@ -33,11 +39,11 @@ begin
   begin perform modelos_proyecto_fija(py, '{}'); r := r || '7 FALLO agente retira modelos de un proyecto; '; exception when others then r := r || '7 ok; '; end;
   begin perform deck_foto_fijar_vista((select id from deck_fotos where ambito = 'modelo' limit 1), null); r := r || '8 FALLO agente fija vista; '; exception when others then r := r || '8 ok; '; end;
   if dp.id is not null then
-    begin perform modelo_documento_cambia(dp.id, '{"tipo":"otro"}'); r := r || '9 FALLO agente quita el plano; '; exception when others then r := r || '9 ok; '; end;
+    begin perform modelo_documentos_guarda(dp.modelo_id, jsonb_build_array(jsonb_build_object('id', dp.id, 'cambios', '{"tipo":"otro"}'::jsonb))); r := r || '9 FALLO agente quita el plano; '; exception when others then r := r || '9 ok; '; end;
   end if;
   if d.id is not null then
-    begin perform modelo_documento_cambia(d.id, '{"tipo":"plano"}'); r := r || '10 FALLO agente convierte en plano; '; exception when others then r := r || '10 ok; '; end;
-    begin perform modelo_documento_cambia(d.id, jsonb_build_object('tipo', d.tipo)); r := r || '11 agente retipa no-plano ok; '; exception when others then r := r || '11 FALLO agente no puede retipar (' || sqlerrm || '); '; end;
+    begin perform modelo_documentos_guarda(d.modelo_id, jsonb_build_array(jsonb_build_object('id', d.id, 'cambios', '{"tipo":"plano"}'::jsonb))); r := r || '10 FALLO agente convierte en plano; '; exception when others then r := r || '10 ok; '; end;
+    begin perform modelo_documentos_guarda(d.modelo_id, jsonb_build_array(jsonb_build_object('id', d.id, 'cambios', jsonb_build_object('tipo', d.tipo)))); r := r || '11 agente retipa no-plano ok; '; exception when others then r := r || '11 FALLO agente no puede retipar (' || sqlerrm || '); '; end;
   end if;
   begin perform modelo_documento_registra('1cd031f2-c7da-455e-975f-c4e8708e36fb', m, m::text || '/' || gen_random_uuid() || '.pdf', 'x', 'otro'); r := r || '12 FALLO el navegador registra un documento; '; exception when others then r := r || '12 ok; '; end;
   begin perform deck_foto_borra('1cd031f2-c7da-455e-975f-c4e8708e36fb', (select id from deck_fotos limit 1)); r := r || '13 FALLO el navegador borra una foto; '; exception when others then r := r || '13 ok; '; end;
@@ -221,12 +227,14 @@ begin
   r := r || '3 extra=' || (select precio || ' ' || moneda || ' disp=' || disponible from modelo_extras where modelo_id = m.id and extra_id = ex) || '; ';
   select * into dd from modelo_documentos where modelo_id = m.id and tipo <> 'plano' limit 1;
   if dd.id is not null then
-    perform modelo_documento_cambia(dd.id, jsonb_build_object('techo_clave', tt.clave, 'tipo', 'ficha'));
+    perform modelo_documentos_guarda(dd.modelo_id, jsonb_build_array(jsonb_build_object('id', dd.id, 'cambios', jsonb_build_object('techo_clave', tt.clave, 'tipo', 'ficha'))));
     r := r || '4 doc=' || (select tipo || '/' || techo_clave from modelo_documentos where id = dd.id) || '; ';
   end if;
   -- la clásica: ficha + base (+1000 mueve los techos) + un techo tocado a mano (manda) en UNA llamada
-  rm := modelo_ficha_guarda(m.id, '{"notas":"prueba b3"}', jsonb_build_object('base', m.precio_construccion + 1000),
-         jsonb_build_array(jsonb_build_object('id', tt.id, 'precio_ahora', 88888)), '[]');
+  -- (modelo_ficha_guarda se retiro el 30-sep-2026: solo encadenaba estas tres llamadas, en este orden)
+  perform modelo_guarda(m.id, '{"notas":"prueba b3"}');
+  rm := modelo_precios_guarda(m.id, jsonb_build_object('base', m.precio_construccion + 1000));
+  perform modelo_techos_guarda(m.id, jsonb_build_array(jsonb_build_object('id', tt.id, 'precio_ahora', 88888)));
   r := r || '5 clásica: base ' || m.precio_construccion || '→' || (select precio_construccion from modelos where id = m.id)
         || '; techo tocado=' || (select precio_ahora from modelo_techos where id = tt.id)
         || '; otro techo ' || ot.precio_ahora || '→' || (select precio_ahora from modelo_techos where id = ot.id)

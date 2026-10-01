@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="leads">
 <head>
+<meta name="lw-version" content="30fd7257cafb">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -16,7 +17,17 @@
      panel. El estudio conserva el suyo: son dos pantallas sobre la MISMA base.
 
      CÁSCARA COPIADA de intranet/solicitudes/ (Regla 0 de contexto/suite_lawang.md):
-     guard.js + lw-topbar + LW_AUTH + suite-comun. No es un HTML en blanco.
+     guard.js + LW_AUTH + suite-comun. No es un HTML en blanco.
+
+     CROMO DE LA v4 (27-sep-2026, owner: «Migra el CRM a la v4: que el menú y top
+     bar sean los de la v4 y nada más»). La barra clásica (lw-topbar + topbar.js)
+     se fue; el menú lateral y la cabecera son los de /intranet/v4/*, MONTADOS por
+     intranet/v4/assets/nav-montaje.js (modo fijo, `html.lw4-fijo`) y recableados
+     por nav.js — rutas, permisos (MENU_V4), idioma, cerrar sesión y CRM marcado
+     como activo salen de allí; aquí no se escribe ni una ruta. Campana y usuario:
+     intranet/v4/assets/cabecera.js, la misma que usan las pantallas v4. Sin
+     Tailwind ni shell.css: reescribirían la piel de abajo. La piel y todo el
+     contenido del CRM (pestañas, vistas, fichas, modales) se quedan como estaban.
 
      PIEL. Ésta es la excepción de la suite: el owner eligió la del mockup de Stitch
      que él mismo trajo (esmeralda/ochre/Plus Jakarta Sans) frente a la de las otras
@@ -59,32 +70,39 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=3a0d1366">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=86b07abf">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=29ba07be"></script>
-<script src="/contracts/assets/herramientas.js?v=c95db503"></script>
-<script src="/contracts/assets/avisos.js?v=389df6b9" defer></script><script src="/contracts/assets/topbar.js?v=74e03361" defer></script>
+<script src="/contracts/assets/i18n.js?v=4ab27bbc"></script>
+<script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
+<script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script>
+<!-- Cromo v4 (27-sep-2026): fuentes de la v4 solo para el menú y la cabecera, su
+     hoja, y los tres scripts EN ESTE ORDEN (defer respeta el orden): cabecera.js
+     antes de nav-montaje.js, que la llama; nav-montaje.js antes de nav.js, que
+     recablea el menú que el otro monta. nav.test.js lo comprueba. -->
+<link rel="stylesheet" href="/intranet/v4/assets/fonts/fonts.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+<link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=032139e5">
+<script src="/intranet/v4/assets/cabecera.js?v=dc1e969e" defer></script>
+<script src="/intranet/v4/assets/nav-montaje.js?v=2c463182" defer></script>
+<script src="/intranet/v4/assets/nav.js?v=c76dd0b9" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/guard.js?v=f4db6ad5" data-herramienta="leads"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
-<link rel="stylesheet" href="/intranet/leads/leads.css?v=9">
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=12">
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
 </style>
 </head>
 <body class="crm">
-  <!-- La barra superior es CÁSCARA DE LA SUITE y va exactamente igual que en las
-       otras once: mismos elementos, mismas clases. La piel del mockup empieza
-       por debajo de ella. Mezclar las dos cosas convertiría la barra en una
-       versión más de un bloque del que ya hay demasiadas. -->
-  <header class="lw-topbar" data-titulo="CRM de leads">
-    <div class="lw-spacer"></div>
-    <button type="button" class="lw-btn" id="btnRefrescar"><i class="ph ph-arrows-clockwise"></i><span data-lwt>Refrescar</span></button>
-  </header>
+  <!-- El menú lateral y la cabecera NO están en este HTML: son los de la v4 y los
+       monta intranet/v4/assets/nav-montaje.js (ver la cabecera de este fichero).
+       La piel del mockup empieza por debajo de ellos; mezclar las dos cosas
+       convertiría el cromo en una versión más de un bloque del que ya hay
+       demasiadas. -->
 
   <!-- El alcance, dicho en voz alta (11-sep-2026). Desde que la campaña define qué leads ve
        cada uno, una persona sin campaña asignada abre esto y no ve NADA — y una pantalla
@@ -92,6 +110,10 @@
        Este aviso es la diferencia entre las dos cosas. -->
   <div id="avisoAlcance" class="aviso" hidden style="margin:12px 16px 0"></div>
 
+  <!-- «Refrescar» vivía en la barra clásica; con la cabecera v4 pasa junto a las
+       pestañas (27-sep-2026), FUERA del tablist (un botón que no es pestaña no va
+       dentro de role=tablist). Mismo id: leads.js lo ata al cargar. -->
+  <div class="crm-nav-fila">
   <nav class="crm-nav" id="nav" role="tablist">
     <!-- «Hoy» va la PRIMERA (11-sep-2026). El tablero dice en qué punto está cada lead;
          la pregunta con la que se abre esta pantalla por la mañana es otra: a quién hay
@@ -129,6 +151,8 @@
          otros aparecen sus clientes (revisión previa #49, Seguridad). -->
     <button role="tab" data-v="trazabilidad" aria-selected="false" id="tabTrazabilidad" hidden><i class="ph ph-git-merge"></i><span data-lwt>Trazabilidad</span></button>
   </nav>
+  <button type="button" class="lw-btn" id="btnRefrescar" aria-label="Refrescar" data-lwt-aria><i class="ph ph-arrows-clockwise"></i><span data-lwt>Refrescar</span></button>
+  </div>
 
   <!-- ========================= HOY ========================= -->
   <section class="crm-vista" id="v-hoy">
@@ -152,7 +176,7 @@
     <div class="aviso rojo" id="avisoTipos" hidden></div>
     <div class="aviso oro" id="avisoEstados" hidden></div>
     <div class="filtros">
-      <input type="search" id="q" data-lwt-ph placeholder="Buscar por nombre, email o teléfono…" autocomplete="off">
+      <input type="search" id="q" name="buscar-lead" data-lwt-ph placeholder="Buscar por nombre…" autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other">
       <!-- «Sin dueño» tiene filtro propio y no es un capricho: hoy son 104 de 107, y son
            justo los que cualquiera puede coger sin pedirle permiso a nadie. Es la bandeja
            de entrada real del equipo. -->
@@ -174,7 +198,7 @@
   <!-- ===================== BANDEJA ====================== -->
   <section class="crm-vista" id="v-bandeja" hidden>
     <div class="filtros">
-      <input type="search" id="qb" data-lwt-ph placeholder="Buscar en la bandeja…" autocomplete="off">
+      <input type="search" id="qb" name="buscar-bandeja" data-lwt-ph placeholder="Buscar en la bandeja…" autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other">
       <div class="seg" id="filtroBandeja">
         <button data-fb="todos"    aria-pressed="true" data-lwt="Todos">Todos</button>
         <button data-fb="sintocar" aria-pressed="false" data-lwt="Sin tocar">Sin tocar</button>
@@ -372,7 +396,7 @@
             <div class="campo"><label for="tzLocation" data-lwt="Location ID">Location ID</label><input type="text" id="tzLocation" autocomplete="off"></div>
             <div class="campo"><label for="tzEtiqueta" data-lwt="Etiqueta de contactos %marca">Etiqueta de contactos %marca</label><input type="text" id="tzEtiqueta" autocomplete="off"></div>
           </div>
-          <div class="campo"><label for="tzToken" data-lwt="Token (pit-…) con permiso solo de lectura de contactos">Token (pit-…) con permiso solo de lectura de contactos</label><input type="password" id="tzToken" autocomplete="off"></div>
+          <div class="campo"><label for="tzToken" data-lwt="Token (pit-…) con permiso solo de lectura de contactos">Token (pit-…) con permiso solo de lectura de contactos</label><input type="password" id="tzToken" autocomplete="new-password"></div>
           <button type="button" class="btn pri" id="btnTrazaAlta"><i class="ph ph-plug"></i><span data-lwt>Conectar cuenta</span></button>
         </div>
       </details>
@@ -383,6 +407,7 @@
 
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=17c1b0e9"></script>
-<script src="/intranet/leads/leads.js?v=18"></script>
+<script src="/intranet/leads/buscador.js?v=1"></script>
+<script src="/intranet/leads/leads.js?v=20"></script>
 </body>
 </html>

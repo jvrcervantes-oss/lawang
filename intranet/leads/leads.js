@@ -525,6 +525,8 @@ function visibles(){
 
 function kpisPipeline(){
   const f = visibles();
+  // Total del canal elegido: el aviso de filtro compara contra esto, no contra todos los canales.
+  const delCanal = CANAL ? LEADS.filter(l => l.source === CANAL).length : LEADS.length;
   const sin = f.filter(l => l.estado === 'nuevo').length;
   const parados = f.filter(l => l.estado === 'nuevo' && dias(l.estado_desde) >= DIAS_VIEJO).length;
   const cerrados = f.filter(l => l.estado === 'reserva' || l.estado === 'contrato').length;
@@ -532,7 +534,12 @@ function kpisPipeline(){
   const sug = f.filter(l => l.sugerencia && l.sugerencia !== l.estado).length;
   $('#kpis-pipeline').innerHTML = `
     <div class="kpi"><div class="rot">${lwT('Leads')}<i class="ph ph-users"></i></div>
-      <p class="cifra">${f.length}</p><p class="pie">${CANAL ? esc(canal(CANAL)) : lwT('todos los canales')}</p></div>
+      <p class="cifra">${f.length}</p><p class="pie">${
+        /* Un filtro que deja el tablero vacío tiene que verse distinto de una base vacía
+           (incidente 27-sep: un buscador relleno por el navegador se leía como «no hay leads»). */
+        (BUSCA.trim() || FILTRO_DUENO !== 'todos') && f.length !== delCanal
+          ? (CANAL ? esc(canal(CANAL)) + ' · ' : '') + esc(lwT('de %n · hay un filtro puesto', { n: delCanal }))
+          : CANAL ? esc(canal(CANAL)) : lwT('todos los canales')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Sin contactar')}<i class="ph ph-envelope-simple"></i></div>
       <p class="cifra">${sin}</p><p class="pie">${lwT('%n llevan más de %d días parados', { n: parados, d: DIAS_VIEJO })}</p></div>
     <div class="kpi"><div class="rot">${lwT('Reserva o contrato')}<i class="ph ph-signature"></i></div>
@@ -998,8 +1005,6 @@ function abrirFicha(l){
       <textarea id="nota" placeholder="${lwT('Qué ha pasado con este lead…')}"></textarea>
       <div style="margin-top:8px"><button class="btn" id="guardarNota"><i class="ph ph-plus"></i>${lwT('Añadir nota')}</button></div>
       <div id="hilo" style="margin-top:16px"><p class="vacio">${lwT('Cargando actividad…')}</p></div>
-      ${FICHA && (FICHA.rol === 'super_admin' || (FICHA.herramientas || []).includes('closers'))
-        ? '<p class="lb">' + lwT('Llamada de venta (Fathom.ai)') + '</p><div id="fathom"><p class="vacio">' + lwT('Cargando…') + '</p></div>' : ''}
     </div>`;
   document.body.append(velo, c);
   c.querySelector('.cerrar').onclick = cerrarFicha;
@@ -1011,7 +1016,6 @@ function abrirFicha(l){
   pintarProximoPaso(l);
   pintarHaciaContrato(l);
   pintarHilo(l);
-  if(c.querySelector('#fathom')) pintarFathom(l);
 }
 
 /* ---------- quién lleva el lead ----------
@@ -1260,24 +1264,6 @@ async function dialogoHaciaContrato(l){
     location.href = '/contracts/app.html?cliente=' + encodeURIComponent(ficha.client_id)
       + '&lead=' + encodeURIComponent(l.id);
   };
-}
-
-/* El owner todavía no tiene cuenta de Fathom.ai (10-sep-2026): esto siempre
-   enseña "sin llamadas registradas todavía" en producción hasta que exista el
-   primer webhook real — nunca se inventa una fila de ejemplo aquí. */
-async function pintarFathom(l){
-  const caja = document.querySelector('#fathom'); if(!caja) return;
-  const { data, error } = await SB.rpc('crm_lead_fathom', { p_lead: l.id });
-  if(error){ caja.innerHTML = '<p class="vacio">' + lwT('No se pudo leer.') + '</p>'; return; }
-  if(!data || !data.length){ caja.innerHTML = '<p class="vacio">' + lwT('Sin llamadas registradas todavía.') + '</p>'; return; }
-  caja.innerHTML = data.map(f => `
-    <div class="dato" style="display:block;padding:10px 0">
-      <div style="font-size:11.5px;color:var(--mist);margin-bottom:4px">${esc(fechaHora(f.procesado_en))}</div>
-      ${f.resumen ? `<p style="margin:0 0 6px">${esc(f.resumen)}</p>` : ''}
-      ${(f.objeciones || []).length ? '<p class="lb" style="margin:10px 0 4px">' + lwT('Objeciones') + '</p>' +
-        f.objeciones.map(o => `<span class="chip rojo" style="margin:2px">${esc(typeof o === 'string' ? o : (o.text || JSON.stringify(o)))}</span>`).join('') : ''}
-      ${f.recording_url ? `<div style="margin-top:8px"><a class="btn mini" target="_blank" rel="noopener" href="${esc(f.recording_url)}"><i class="ph ph-play"></i>${lwT('Ver grabación')}</a></div>` : ''}
-    </div>`).join('');
 }
 
 /* El contacto se pide de uno en uno y la petición queda registrada en la base
@@ -1792,6 +1778,10 @@ async function verConversacion(phone){
   CHAT_ABIERTO = phone;
   const lead = CONVERSACIONES.find(x => x.phone === phone) || { phone };
   $('#wa').dataset.abierto = '1';
+  /* En móvil (un panel cada vez, ver leads.css ≤760) el hilo mide la pantalla menos
+     la cabecera: se sube hasta quedar justo debajo de ella, o el pie con la caja de
+     respuesta se queda bajo el borde (LAW-389, 28-sep-2026). */
+  if(matchMedia('(max-width: 760px)').matches) $('#wa').scrollIntoView({ block: 'start' });
   $('#tSetter').querySelectorAll('.wa-fila').forEach(f =>
     f.setAttribute('aria-current', String(f.dataset.phone === phone)));
 
@@ -2364,7 +2354,7 @@ async function trazaAccion(e){
       // del propio diálogo y se lee al cerrarse; se vacía después para no dejar el token en el DOM.
       const ok = await lwConfirmar({ titulo: lwT('Cambiar token de %n', { n: cuenta.nombre }), confirmar: lwT('Guardar'),
         cuerpo: esc(lwT('Pega el token nuevo (pit-…). Se comprueba contra GoHighLevel antes de guardarlo.')) +
-          '<div class="campo" style="margin:12px 0 0"><input type="password" id="tzTokenNuevo" autocomplete="off" aria-label="Token"></div>' });
+          '<div class="campo" style="margin:12px 0 0"><input type="password" id="tzTokenNuevo" autocomplete="new-password" aria-label="Token"></div>' });
       const campo = document.querySelector('#tzTokenNuevo');
       const nuevo = campo ? campo.value.trim() : ''; if(campo) campo.value = '';
       if(!ok || !nuevo) return;
@@ -2427,8 +2417,17 @@ $('#canales').addEventListener('click', e => {
   const b = e.target.closest('[data-c]'); if(!b) return;
   CANAL = b.dataset.c; pintarPipeline();
 });
-$('#q').addEventListener('input', e => { BUSCA = e.target.value; pintarPipeline(); });
-$('#qb').addEventListener('input', e => { BUSCA_B = e.target.value; pintarBandeja(); });
+/* Los dos buscadores van blindados contra el autocompletado del navegador (buscador.js):
+   el 27-sep el gestor de contraseñas de Chrome escribió el email de una comercial en #q y
+   su tablero salió vacío con 132 leads en la base. Solo se filtra por lo que se teclea. */
+const BUSCADORES = [
+  lwBlindarBuscador($('#q'), { email: yoSoy, alCambiar: v => {
+    if(v === BUSCA) return; BUSCA = v; pintarPipeline(); } }),
+  lwBlindarBuscador($('#qb'), { email: yoSoy, alCambiar: v => {
+    if(v === BUSCA_B) return; BUSCA_B = v; pintarBandeja(); } }),
+];
+// «Atrás» desde otra página puede devolver los campos con el valor que tenían.
+window.addEventListener('pageshow', () => BUSCADORES.forEach(b => b.barrer()));
 $('#filtroBandeja').addEventListener('click', e => {
   const b = e.target.closest('[data-fb]'); if(!b) return;
   FILTRO_B = b.dataset.fb;
@@ -2497,6 +2496,8 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   /* Trazabilidad: solo super_admin, ni por casilla (revisión previa #49). Candado de
      comodidad: el de verdad es es_super_admin() dentro de cada traza_* de la base. */
   $('#tabTrazabilidad').hidden = !PUEDE_ESTRUCTURA;
+  // Con la sesión ya conocida, fuera lo que el navegador haya dejado en los buscadores.
+  BUSCADORES.forEach(b => b.barrer());
   await pintarAlcance();
   await cargar();
   $('#c-pipeline').textContent = LEADS.length;

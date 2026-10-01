@@ -33,6 +33,19 @@
    solo disparadores, pero un `javascript:` en `notificaciones.enlace` se
    ejecutaría al pulsar el aviso — se cambia por `#` antes de llegar a nadie.
 */
+/* Puente al diccionario (28-sep-2026, LAW-407). Los títulos y detalles que
+   COMPONE este fichero (facturas por vencer, firmas por caducar) se traducen
+   aquí; los de `notificaciones` son datos escritos por disparadores y salen
+   tal cual. Puente propio y no `lwT` a pelo: en node (avisos.test.js) no hay
+   i18n.js, y un `function lwT(){}` suelto pisaría el global. Sin i18n.js
+   rellena los huecos `%x` igual que lwT, así la frase española es la misma. */
+function avT(s, h) {
+  if (typeof window !== 'undefined' && window.lwT) return window.lwT(s, h);
+  var t = String(s);
+  if (h) for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) t = t.split('%' + k).join(h[k]);
+  return t;
+}
+
 var LW_AVISOS_VENC_DIAS = 15;      // se avisa desde 15 días antes
 var LW_AVISOS_LIMITE = 40;       // avisos que se enseñan
 var LW_AVISOS_FILAS = 400;       // filas crudas que se piden antes de agrupar
@@ -182,10 +195,10 @@ function lwAvisosArmar(r, opts) {
     var d = dias(f.venc);
     if (d === null || d > LW_AVISOS_VENC_DIAS) return;
     avisos.push({
-      titulo: 'Factura ' + (f.numero || 'sin nº') + (d < 0 ? ' vencida hace ' + (-d) + ' d'
-              : d === 0 ? ' vence hoy' : ' vence en ' + d + ' d'),
+      titulo: avT(d < 0 ? 'Factura %factura vencida hace %dias d' : d === 0 ? 'Factura %factura vence hoy' : 'Factura %factura vence en %dias d',
+                  { factura: f.numero || avT('sin nº'), dias: String(Math.abs(d)) }),
       // lo que QUEDA, no el total: con un pago a cuenta el total exageraba la deuda
-      detalle: lwAvisoImporte(queda, f.moneda) + ' sin cobrar',
+      detalle: avT('%importe sin cobrar', { importe: lwAvisoImporte(queda, f.moneda) }),
       enlace: f.contrato_id ? '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(f.contrato_id) : '/intranet/v4/facturas/',
       cuando: f.venc, nuevo: d <= 5,
       clase: 'alerta', nivel: d < 0 ? 'mal' : 'atencion', etiqueta: d < 0 ? 'Vencida' : (d === 0 ? 'Vence hoy' : 'Por vencer'),
@@ -197,8 +210,8 @@ function lwAvisosArmar(r, opts) {
     var d = dias(s.expira_en);
     if (d === null || d > LW_AVISOS_VENC_DIAS) return;
     avisos.push({
-      titulo: 'Enlace de firma de ' + (c.numero || 'un contrato') +
-              (d < 0 ? ' caducado' : d === 0 ? ' caduca hoy' : ' caduca en ' + d + ' d'),
+      titulo: avT(d < 0 ? 'Enlace de firma de %contrato caducado' : d === 0 ? 'Enlace de firma de %contrato caduca hoy'
+                  : 'Enlace de firma de %contrato caduca en %dias d', { contrato: c.numero || avT('un contrato'), dias: String(Math.abs(d)) }),
       detalle: s.firmante_nombre || '',
       enlace: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(s.contrato_id),
       cuando: s.expira_en, nuevo: d <= 5,

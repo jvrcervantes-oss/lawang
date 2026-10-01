@@ -6,9 +6,9 @@
    /investor-deck/v1/<slug> (regla 3e-v1 del .htaccess), noindex, sin enlazar desde
    ningún sitio. Cambios frente al original: solo las @font-face pasan a rutas
    absolutas (/assets/fonts/...), porque desde /investor-deck/v1/<slug> las
-   relativas ../assets/ darían 404. Ojo: sigue cargando el Play CDN de Tailwind,
-   que es justo lo que la v3 retira — no restaurar tal cual a producción sin
-   compilarlo. Tiene además el fallo de urlSegura() fuera de ámbito (el botón
+   relativas ../assets/ darían 404. Desde el 27-sep-2026 (ERP F3 lote 4a) ya no
+   carga el Play CDN de Tailwind: su config en línea pasó a tailwind/tailwind.json
+   (tema «deck») y pinta con /assets/tw-deck.css compilado. Tiene además el fallo de urlSegura() fuera de ámbito (el botón
    de dosier de cabecera nunca se encendía), corregido en la v3. */
 /* Investor Deck genérico — 15-sep-2026.
    Generaliza el piloto de investor-deck/palmfield/ (que sigue existiendo, sin
@@ -79,40 +79,7 @@ if ($slug === '') { http_response_code(404); exit; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
 <script src="/investor-deck/i18n.js?v=20260915"></script>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          "territorial-green": "#485B37", "deep-lagoon": "#104C4F", "burnt-earth": "#42210B",
-          "soft-canopy": "#8F9B7A", "volcanic-ash": "#2E3437", "stone-sand": "#BEB3A5",
-          "raw-linen": "#F5F0E6", "surface": "#fbf9f4", "surface-alt": "#F1EBDD",
-          "surface-container-low": "#f5f4ee", "surface-container": "#efeee8",
-          "surface-container-lowest": "#ffffff", "on-surface": "#1b1c19",
-          "on-surface-variant": "#44483f", "control-border": "#8A8474"
-        },
-        borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
-        spacing: { "margin-mobile": "16px", "element-gap": "16px", "gutter": "24px", "margin-desktop": "48px" },
-        fontFamily: {
-          "label-md": ["Jost", "sans-serif"], "kpi-number": ["Instrument Sans", "sans-serif"],
-          "body-sm": ["Jost", "sans-serif"], "headline-md": ["Neue Kabel", "Jost", "sans-serif"],
-          "body-md": ["Jost", "sans-serif"], "body-lg": ["Jost", "sans-serif"],
-          "headline-lg": ["Neue Kabel", "Jost", "sans-serif"], "headline-sm": ["Neue Kabel", "Jost", "sans-serif"]
-        },
-        fontSize: {
-          "label-md": ["14px", { lineHeight: "20px", fontWeight: "600" }],
-          "kpi-number": ["36px", { lineHeight: "40px", fontWeight: "600" }],
-          "body-sm": ["13px", { lineHeight: "20px", fontWeight: "500" }],
-          "body-md": ["15px", { lineHeight: "24px", fontWeight: "500" }],
-          "body-lg": ["18px", { lineHeight: "28px", fontWeight: "500" }],
-          "headline-lg": ["40px", { lineHeight: "48px", fontWeight: "600" }],
-          "headline-sm": ["24px", { lineHeight: "32px", fontWeight: "600" }]
-        }
-      }
-    }
-  };
-</script>
+<link href="/assets/tw-deck.css?v=46c98f99" rel="stylesheet">
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface-container-lowest">
 
@@ -672,7 +639,7 @@ if ($slug === '') { http_response_code(404); exit; }
     filas.forEach(function(q, i){
       var d = document.createElement('details');
       d.className = 'group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest';
-      if(i === 0) d.open = true;
+      // todas cerradas al entrar (owner, 28-sep-2026): antes se abria la primera
       var sum = document.createElement('summary');
       sum.className = 'flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold';
       var txt = document.createElement('span'); txt.textContent = lwTxt(q.pregunta);

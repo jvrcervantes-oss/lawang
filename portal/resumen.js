@@ -12,10 +12,10 @@
    es una reclamación.
 
    Medido sobre producción el 14-sep-2026, compradores con acceso activo:
-     · dprabante@gmail.com        327.065 € enseñados · 163.565 € reales
-     · bemyguest.holdings@gmail.com  222.000 € · 76.500 €
-     · ptnusalifeventures@gmail.com  148.400 € · 41.200 €
-     · ruben.carrasco@nettaro.com     36.000 € · 18.000 €
+     · comprador A                327.065 € enseñados · 163.565 € reales
+     · comprador B                   222.000 € · 76.500 €
+     · comprador C                   148.400 € · 41.200 €
+     · comprador D                    36.000 € · 18.000 €
 
    LAS REGLAS NO SE INVENTAN AQUÍ. Son, literalmente, las de
    `intranet/compradores/index.html` (la ficha que abre el agente cuando el

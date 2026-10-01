@@ -64,6 +64,9 @@ RedirectMatch 404 (?i)\.sql$
 # doble barra incluidos) y el `Require all denied` de supabase/.htaccess y contracts/edge/.htaccess;
 # estos RedirectMatch solo dan el 404 limpio en la ruta normal (revisor de codigo, 27-sep).
 RedirectMatch 404 (?i)/(supabase|contracts/edge)/
+# La fuente del Tailwind compilado (tailwind/tailwind.json, 27-sep-2026) tampoco la pide ninguna
+# pagina: la lee tools/empaqueta_css.py al compilar. Cierre de verdad: tailwind/.htaccess.
+RedirectMatch 404 (?i)^/tailwind/
 RedirectMatch 404 (?i)\.(ts|mjs|toml)$
 RedirectMatch 404 (?i)\.test\.js$
 <FilesMatch "(?i)(\.(ts|mjs|toml)|\.test\.js)$">
@@ -77,6 +80,16 @@ RedirectMatch 404 (?i)\.test\.js$
 # El cierre de verdad es el <FilesMatch> de abajo, que casa el fichero resuelto y por tanto
 # tambien el PATH_INFO; estos RedirectMatch solo dan el 404 bonito en la ruta normal.
 RedirectMatch 404 (?i)/modelo/(lib|modelos|datos)\.php$
+
+# Catalogo de modelos: `catalogo.php` y sus respaldos `catalogo*_respaldo.json` los lee PHP
+# (require_once / file_get_contents), nunca el navegador: caian con 200 (auditoria 30-sep-2026;
+# el .php con cuerpo vacio, los .json con el respaldo del catalogo entero). Por PATH_INFO se saltan
+# el RedirectMatch, asi que el cierre de verdad es el <FilesMatch>; un include de PHP no pasa por Apache.
+RedirectMatch 404 (?i)/modelo/catalogo[^/]*\.(php|json)$
+<FilesMatch "(?i)^catalogo(_[^/]*)?\.(php|json)$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
 
 # Arneses de prueba, en cualquier carpeta y por patron. Antes iban por nombre en la linea
 # de arriba y el que llego despues (api/test_ghl.php) respondio 200 en produccion desde el
@@ -140,6 +153,12 @@ RedirectMatch 404 (?i)/_diag_
   # no portado), obra/ (la ficha por unidad y sus fotos solo existen ahi: la v4
   # enlaza a /intranet/obra/?id=), creatividades/redes/, dossier/, contrasena/.
   # (documentacion/ salio de esta lista el 27-sep-2026: retirada, ver su 302 mas abajo.)
+  # ARCHIVADAS (27-sep-2026, tarde, decision del owner): los index.html de operaciones,
+  # compradores, proyectos, usuarios, vencimientos, creatividades, modelos, cuentas,
+  # sociedades, soporte y solicitudes SALIERON del arbol (git rm; el historial es el
+  # archivo). Estos 302 se quedan A PROPOSITO: los enlaces de correos ya enviados siguen
+  # llegando a la v4. Ninguna regla depende de que el fichero exista (no hay -f/-d).
+  # Lo que la v4 carga de esas carpetas (vencimientos/logica.js) sigue en su sitio.
   #
   # Facturas se bifurca por la query (cada RewriteCond ata solo a la regla siguiente):
   #   ?vista=  -> se sirve la clasica (modo solo-documento del visor compartido)
@@ -338,12 +357,12 @@ RedirectMatch 404 (?i)/_diag_
   #   assets.calendly.com / calendly.com  widget de reserva incrustado en
   #                        /modelo/<id> (1-sep) — script+hoja de estilos del CDN de
   #                        Calendly, y el propio iframe del widget (frame-src).
-  #   cdn.tailwindcss.com  la intranet v4 (intranet/v4/*/index.html) compila sus
-  #                        utilidades con el play CDN de Tailwind (22-sep, la
-  #                        consola lo cantaba en cada pantalla). El propio CDN
-  #                        avisa de que no es para produccion: sustituirlo por
-  #                        una hoja compilada es EST-38, no una linea aqui.
-  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://connect.facebook.net https://*.leadconnectorhq.com https://assets.calendly.com https://cdn.tailwindcss.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://assets.calendly.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://www.facebook.com; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co https://contracts-pdf-service-production.up.railway.app https://*.leadconnectorhq.com https://open.er-api.com https://connect.facebook.net https://www.facebook.com; frame-src 'self' https://drive.google.com https://*.supabase.co https://calendly.com https://*.calendly.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://*.leadconnectorhq.com; object-src 'none'"
+  #   (el Play CDN de Tailwind SALIO el 27-sep-2026, ERP F3 lote 4a / LAW-73: la v4 y
+  #                        los decks cargan su Tailwind COMPILADO desde el propio
+  #                        sitio — tools/empaqueta_css.py + tailwind/tailwind.json.
+  #                        No volver a meterlo: un script externo sin version fija
+  #                        en pantallas con PII.)
+  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://connect.facebook.net https://*.leadconnectorhq.com https://assets.calendly.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://assets.calendly.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://www.facebook.com; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co https://contracts-pdf-service-production.up.railway.app https://*.leadconnectorhq.com https://open.er-api.com https://connect.facebook.net https://www.facebook.com; frame-src 'self' https://drive.google.com https://*.supabase.co https://calendly.com https://*.calendly.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://*.leadconnectorhq.com; object-src 'none'"
 
   # Piezas COMPARTIDAS de la suite interna: el servidor las servia con
   # max-age=604800 (7 dias). El 29-jul eso dejo a los agentes con un guard.js
@@ -379,6 +398,9 @@ RedirectMatch 404 (?i)/_diag_
   # (guard.js, consent.js, entities.js). Toda carpeta nueva de la suite entra
   # aqui EN LA MISMA TAREA que la crea, o su HTML se cachea 7 dias y el sellado
   # ?v= de dentro no sirve de nada.
+  # LAW-386 (27-sep-2026): de esto depende tambien contracts/assets/version.js, que vuelve a
+  # pedir la pagina para comparar su huella <meta name="lw-version">. Cubre leads y v4
+  # (/intranet/), generador y firma (/contracts/), /portal/ y /entrar/.
   SetEnvIf Request_URI "^/(intranet|operaciones|vencimientos|facturas|compradores|proyectos|documentacion|obra|usuarios|creatividades|dossier|contracts|entrar|portal)/" LW_SUITE
   Header set Cache-Control "no-cache, must-revalidate" env=LW_SUITE
   Header unset Expires env=LW_SUITE

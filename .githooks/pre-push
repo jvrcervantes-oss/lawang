@@ -48,7 +48,7 @@ if [ -z "$check" ] || [ -z "$py" ]; then
   exit 0
 fi
 if ! "$py" "$check" --gate --repo "$raiz" >&2; then
-  echo "[pre-push] ⛔ push parado: hay escrituras NUEVAS a la base desde el navegador." >&2
+  echo "[pre-push] ⛔ push parado: escrituras NUEVAS a la base desde el navegador, o enganches por texto visible (ver el detalle de arriba)." >&2
   exit 1
 fi
 exit 0

@@ -32,7 +32,7 @@
 --   Ensayo en seco del cierre (20260927153000, revertido): 0 privilegios de tabla, 0 por columna, 0 policies de escritura.
 -- Nota: el bloque 4 consume un número de la secuencia de solicitudes_cambio (SC-27 el 27-sep) aunque se revierta.
 
--- 1. DOCUMENTACIÓN (agente acotado a UN proyecto; super admin para borrar)
+-- 1. DOCUMENTACIÓN (agente acotado a UN proyecto; borrar: admin con la herramienta Documentación, desde 28-sep)
 do $$
 declare r text := ''; p1 uuid; p1n text; p2 uuid; p2n text; d uuid; dajeno uuid; pth text; v uuid;
   A text := '{"sub":"1cd031f2-c7da-455e-975f-c4e8708e36fb","email":"dortegag@gmail.com","role":"authenticated"}';
@@ -71,6 +71,23 @@ begin
   begin perform documento_proyecto_borra('1cd031f2-c7da-455e-975f-c4e8708e36fb', v); r := r || '18 FALLO agente borra; '; exception when others then r := r || '18 ok; '; end;
   r := r || '19 super admin comprueba sin borrar: ' || (documento_proyecto_borra('45d014eb-46f2-4770-87a7-69bbd08a44ae', v, true) = pth)::text
         || ', fila sigue=' || exists (select 1 from documentos_proyecto where id = v)::text || '; ';
+  -- 20-21: un ADMIN (rol admin, no super) sin la herramienta no borra; con ella, sí (owner 28-sep-2026)
+  reset role;
+  update usuarios set herramientas = array_remove(herramientas, 'documentacion') where user_id = 'da378aad-9477-42ce-b349-c2d7ced8f65a';
+  set local role service_role;
+  begin perform documento_proyecto_borra('da378aad-9477-42ce-b349-c2d7ced8f65a', v); r := r || '20 FALLO admin sin Documentación borra; '; exception when others then r := r || '20 ok; '; end;
+  reset role;
+  update usuarios set herramientas = array_append(herramientas, 'documentacion') where user_id = 'da378aad-9477-42ce-b349-c2d7ced8f65a' and not ('documentacion' = any(herramientas));
+  set local role service_role;
+  perform documento_proyecto_borra('da378aad-9477-42ce-b349-c2d7ced8f65a', v);
+  r := r || (case when exists (select 1 from documentos_proyecto where id = v) then '21 FALLO admin con Documentación no borra; ' else '21 ok; ' end);
+  -- 22: el borrado deja traza (una fila, con quién); la comprobación del caso 19 no deja ninguna
+  r := r || (case when (select count(*) from documentos_proyecto_borrados_log l where l.documento_id = v
+                          and l.quien_uid = 'da378aad-9477-42ce-b349-c2d7ced8f65a' and l.ficha->>'path' = pth) = 1
+                   and (select count(*) from documentos_proyecto_borrados_log l where l.documento_id = v) = 1
+              then '22 ok; ' else '22 FALLO traza del borrado; ' end);
+  r := r || '23 anon/authenticated sin acceso al log=' || (case when not has_table_privilege('authenticated', 'public.documentos_proyecto_borrados_log', 'select')
+        and not has_table_privilege('anon', 'public.documentos_proyecto_borrados_log', 'select') then 'ok; ' else 'FALLO; ' end);
   raise exception 'RES: %', r;
 end $$;
 

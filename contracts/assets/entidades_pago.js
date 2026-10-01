@@ -274,6 +274,9 @@ function datosBancariosHTML(opts){ return tablaCuentaHTML(collect().cuenta_banca
    Se salta lo que no identifica —firmas, ficheros— y se recorta: es una pista
    para reconocer la sección, no su contenido. */
 function resumenSeccion(sec){
+  // Forma de pago (28-sep-2026): sus radios no son un valor tecleado; plegada dice cuál está elegida
+  const fp = sec.querySelector('input[name="formaPago"]:checked');
+  if(fp){ const t = fp.closest('.fp-op') && fp.closest('.fp-op').querySelector('.fp-tit'); if(t) return t.textContent.trim(); }
   const vals = [...sec.querySelectorAll('.body input, .body select, .body textarea')]
     .filter(el => el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file'
                   && !el.closest('[hidden]') && !el.classList.contains('dato-fijo'))
@@ -331,6 +334,6 @@ function applyLang(){
     });
   });
   document.querySelectorAll('#langToggle button').forEach(b=> b.classList.toggle('on', b.dataset.l===LANG));
-  refreshHitos();   // re-etiqueta la UI de hitos (los valores viven en HITOS, no se pierden)
+  refreshHitos();   // re-etiqueta la UI de hitos y las tarjetas de forma de pago (los valores viven en HITOS, no se pierden)
   render();
 }

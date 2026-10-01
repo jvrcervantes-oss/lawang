@@ -54,10 +54,7 @@ html.v3[data-herr="contracts"] .dbtn{ border-radius:10px; transition-timing-func
 html.v3[data-herr="contracts"] .dbtn:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
 html.v3[data-herr="contracts"] .fab{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); transition-timing-function:cubic-bezier(.22,1,.36,1); }
 html.v3[data-herr="contracts"] .fab:hover{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3[data-herr="contracts"] body.modo-listado #cpOverlay .cp-modal{ border-radius:14px; box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
 html.v3[data-herr="contracts"] .cp-modal{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3[data-herr="contracts"] .cp-row{ border-radius:14px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3[data-herr="contracts"] .cp-del{ border-radius:10px; }
 html.v3[data-herr="contracts"] .reg-tabla th{ padding:13px 16px; }
 html.v3[data-herr="contracts"] .reg-tabla td{ padding:13px 16px; }
 

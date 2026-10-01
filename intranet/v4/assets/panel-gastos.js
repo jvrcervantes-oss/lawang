@@ -62,19 +62,37 @@
   var VISTA = 'gastos', PAG = null;
 
   /* ── CARGA ─────────────────────────────────────────────────────────────── */
+  /* Por el servidor (LAW-338 L2, 28-sep-2026): `gastos_panel_datos` trae la carga entera (gastos por páginas con
+     cursor fecha+id, y en la primera los catálogos: proveedores, categorías, proyectos, cuentas y nombres del equipo).
+     Sin permiso de Gastos contesta 42501 en voz alta: la pantalla no lo confunde con «no hay gastos». Antes el tope
+     de 5000 gastos cortaba en silencio; ahora se recorren todas las páginas. */
+  function pagina(sig) {
+    if (typeof window.lwDatos !== 'function') return Promise.reject(new Error(T('Falta guard.js actualizado: recarga la página')));
+    return window.lwDatos('gastos_panel_datos', { p_limit: 2000, p_despues_fecha: sig ? sig.fecha : null, p_despues: sig ? sig.id : null })
+      .then(function (r) {
+        if (r.error) { console.error('[gastos] carga', r.error); throw new Error((r.error && r.error.message) || String(r.error)); }
+        if (!r.data) throw new Error(T('No se pudieron leer los gastos'));
+        return r.data;
+      });
+  }
   function cargar() {
-    var q = function (p, que) { return p.then(function (r) { if (r.error) { console.error('[gastos] ' + que, r.error); throw new Error(que); } return r.data || []; }); };
     return Promise.all([
-      q(sb.from('gastos').select('id,sociedad,proyecto_id,proveedor_id,categoria,concepto,referencia,fecha,vence_el,base,impuesto,total,pph_retenido,pph_tipo,pph_ingresado_el,moneda,estado,pagado_el,cuenta_pago,justificantes,anulado_motivo,notas,creado_por,creado_en,actualizado_en').order('fecha', { ascending: false }).limit(5000), 'gastos'),
-      q(sb.from('proveedores').select('id,nombre,tipo,npwp,contacto,email,telefono,notas,activo').order('nombre'), 'proveedores'),
-      q(sb.from('gasto_categorias').select('clave,nombre,grupo,orden,activa').order('orden'), 'categorías'),
-      q(sb.from('proyectos').select('id,nombre,activo').order('nombre'), 'proyectos'),
-      q(sb.from('cuentas_bancarias').select('clave,label,banco,titular,es_escrow,es_propia,activa').order('orden'), 'cuentas'),
-      (typeof cargarSociedades === 'function' ? cargarSociedades(sb).catch(function () { return null; }) : Promise.resolve(null)),
-      sb.from('usuarios').select('user_id,nombre,email').then(function (r) { return r.error ? [] : (r.data || []); }, function () { return []; })
+      pagina(null).then(function (d) {
+        var gastos = d.gastos || [], vueltas = 0;
+        var sigue = function (sig) {
+          if (!sig) return d;
+          if (++vueltas > 50) throw new Error(T('Demasiados gastos para cargarlos de una vez'));
+          return pagina(sig).then(function (p) { gastos = gastos.concat(p.gastos || []); d.gastos = gastos; return sigue(p.siguiente); });
+        };
+        d.gastos = gastos;
+        return sigue(d.siguiente);
+      }),
+      (typeof cargarSociedades === 'function' ? cargarSociedades(sb).catch(function () { return null; }) : Promise.resolve(null))
     ]).then(function (r) {
-      D.gastos = r[0]; D.proveedores = r[1]; D.categorias = r[2]; D.proyectos = r[3]; D.cuentas = r[4];
-      D.usuarios = {}; r[6].forEach(function (u) { D.usuarios[u.user_id] = u.nombre || u.email; });
+      var d = r[0];
+      if (d.recortado && d.recortado.length) aviso(T('Alguna lista de apoyo viene recortada por el servidor: ') + d.recortado.join(', '), 'mal');
+      D.gastos = d.gastos || []; D.proveedores = d.proveedores || []; D.categorias = d.categorias || []; D.proyectos = d.proyectos || []; D.cuentas = d.cuentas || [];
+      D.usuarios = {}; (d.usuarios || []).forEach(function (u) { D.usuarios[u.user_id] = u.nombre || u.email; });
       catPorClave = {}; D.categorias.forEach(function (c) { catPorClave[c.clave] = c; });
       provPorId = {}; D.proveedores.forEach(function (p) { provPorId[p.id] = p; });
       proyPorId = {}; D.proyectos.forEach(function (p) { proyPorId[p.id] = p; });
@@ -356,10 +374,12 @@
         window.open(u.data.signedUrl, '_blank', 'noopener');
       });
     });
-    sb.from('gastos_log').select('accion,quien,cuando,antes,despues').eq('gasto_id', g.id).order('cuando', { ascending: false }).limit(8).then(function (r) {
+    // Historial por el servidor (LAW-338 L2): gasto_historial_datos, mismo permiso que el panel, en voz alta
+    (typeof window.lwDatos === 'function' ? window.lwDatos('gasto_historial_datos', { p_gasto: g.id, p_limit: 8 })
+      : Promise.resolve({ error: new Error('guard.js') })).then(function (r) {
       var cont = caja.querySelector('[data-gas-log]'); if (!cont) return;
-      if (r.error) { cont.innerHTML = '<p style="margin:0;font-size:13px;color:#93000a">' + esc(T('No se pudo leer el historial.')) + '</p>'; return; }
-      cont.innerHTML = (r.data || []).map(function (x) {
+      if (r.error || !r.data) { cont.innerHTML = '<p style="margin:0;font-size:13px;color:#93000a">' + esc(T('No se pudo leer el historial.')) + '</p>'; return; }
+      cont.innerHTML = (r.data.historial || []).map(function (x) {
         var que = x.accion === 'insert' ? T('Alta') : (x.antes && x.despues && x.antes.estado !== x.despues.estado ? T('Estado') + ': ' + T((ESTADO[x.despues.estado] || [x.despues.estado])[0]) : T('Cambio de datos'));
         return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:4px 0;border-bottom:1px solid rgba(228,220,203,.7)"><span>' + esc(que) + '</span><span style="color:#75786e">' +
           esc((D.usuarios[x.quien] || '—') + ' · ' + new Date(x.cuando).toLocaleString(typeof lwLocale === 'function' ? lwLocale() : 'es-ES')) + '</span></div>';
@@ -425,7 +445,8 @@
     try { var pend = sessionStorage.getItem('lw_gas_aviso'); if (pend) { sessionStorage.removeItem('lw_gas_aviso'); aviso(pend, 'mal'); } } catch (_) { /* MUDO: sin sessionStorage */ }
     cargar().then(function () {
       pintaTodo();
-      if (!D.categorias.length) aviso(T('Tu usuario no ve el catálogo de categorías: hace falta ser admin y tener «Gastos y proveedores» marcado en Usuarios. La base no enseña nada sin ese permiso.'), 'mal');
+      // Sin permiso, gastos_panel_datos ya contesta 42501 (cae en el aviso de error): aquí vacío = no hay categorías dadas de alta
+      if (!D.categorias.length) aviso(T('No hay categorías de gasto dadas de alta: sin ellas no se puede registrar un gasto. Pídelo a administración.'), 'mal');
     }, function (e) {
       aviso(T('No se pudieron leer los gastos') + ' (' + e.message + '). ' + T('Si eres admin, pide que te marquen «Gastos y proveedores» en Usuarios.'), 'mal');
       $('lw-gas-lista').innerHTML = '';

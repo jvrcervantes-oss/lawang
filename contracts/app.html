@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
+<meta name="lw-version" content="7eec017fcd7b">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lawang · Generador de Contratos</title>
-<!-- Interruptor de la cara v4 (23-sep-2026). SÍNCRONO y antes de cualquier
-     hoja: pone `html.v4` antes del primer pintado. Sin `?v4=1` en la pestaña
-     no hace nada y esta página es la clásica de siempre. Ver assets/piel.js. -->
-<script src="/contracts/assets/piel.js?v=6c4fc591"></script>
+<!-- Cara v4 (23-sep-2026; INCONDICIONAL desde el 27-sep, la clásica se retiró).
+     SÍNCRONO y antes de cualquier hoja: pone `html.v4` antes del primer pintado
+     y, sin puerta de editor (?contrato= ?nuevo= ?cliente= ?lead=), manda al
+     listado de la v4. Ver assets/piel.js. -->
+<script src="/contracts/assets/piel.js?v=0a8da579"></script>
 <!-- preconnect: lo tenian las demas herramientas y esta no. Sin el, la
      primera peticion a la fuente abre conexion desde cero y el texto salta
      de la fuente del sistema a Jost a mitad de carga. -->
@@ -24,7 +26,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="assets/lawang.css?v=3a0d1366">
+<link rel="stylesheet" href="assets/lawang.css?v=86b07abf">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -38,9 +40,9 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=29ba07be"></script>
-<script src="/contracts/assets/herramientas.js?v=c95db503"></script>
-<script src="assets/avisos.js?v=389df6b9" defer></script><script src="assets/topbar.js?v=74e03361" defer></script>
+<script src="/contracts/assets/i18n.js?v=4ab27bbc"></script>
+<script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
+<script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=705d408d" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -54,18 +56,14 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/guard.js?v=f4db6ad5"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=f7b084b6"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=e015c66a"></script>
+<script src="assets/entities.js?v=1cde0d66"></script>
 <script src="assets/geo.js?v=cc6b09b2"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
-<!-- reasignar el autor de un documento (solo super_admin) — compartido con
-     /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
-     puede editar su propio documento. -->
-<script src="assets/autoria.js?v=62b3ec41"></script>
 <script src="assets/vocabulario.js?v=fd814f9b"></script>
 <script src="assets/dinero.js?v=30e26c17"></script>
 <script src="assets/dialogo.js?v=cefc9e4e"></script>
@@ -80,46 +78,41 @@
      Van aqui y no con `defer` a proposito: `defer` los ejecutaria DESPUES del
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
-<script src="assets/documento_diseno.js?v=a2cd3b48"></script>
-<script src="assets/documento_anexos.js?v=fd7ceaeb"></script>
-<script src="assets/parcela_inventario.js?v=f70c3cac"></script>
+<script src="assets/documento_diseno.js?v=a6230c91"></script>
+<script src="assets/docs_contrato.js?v=73e7152b"></script>
+<script src="assets/documento_anexos.js?v=0abc554b"></script>
+<script src="assets/parcela_inventario.js?v=c101c6e2"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
-<script src="assets/techo_extras.js?v=d93ea66c"></script>
-<script src="assets/hitos_fechas.js?v=83507a5f"></script>
-<script src="assets/entidades_pago.js?v=72c8d06a"></script>
+<script src="assets/techo_extras.js?v=d86e607e"></script>
+<script src="assets/hitos_fechas.js?v=0cf46b67"></script>
+<script src="assets/entidades_pago.js?v=9237aa1c"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
 
-<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
-     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
-     y la pisaban las once herramientas — cada una trae su propio <style> (y esta,
-     además, `app.css` con 36 KB) que en el CSS van DESPUÉS y por tanto ganan a
-     igualdad de especificidad. Se desplegó así y el owner lo dijo en una línea:
-     «no veo ninguna diferencia con la versión live».
-     ⚠️ En la PRIMERA cabecera, no en la última: este fichero cierra cinco, y las
-     otras cuatro están dentro de plantillas JS que arman la ventana de impresión
-     del contrato. Meter ahí la capa v3 la habría colado en el PDF del cliente.
-     Sin `?v3=1` no hace nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=18c17264">
-<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<!-- La capa v3 (suite-v3*.css, saldos-v3.js, movimiento-v3.js) SALIÓ de aquí el
+     27-sep-2026 con la retirada de la cara clásica: el generador es siempre v4 y
+     dos capas de override apiladas eran el bug (la llave `lw3-on` de otra
+     herramienta de la pestaña la encendía encima). operaciones-cuentas.js se
+     queda: es la regla del dinero, no de la piel. -->
 <script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc"></script>
-<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=c88bae43"></script>
-<!-- CARA v4 (23-sep-2026, owner: el generador en la v4 sin dejar obsoleta la
-     clásica). Una sola página, dos caras: todo lo de aquí abajo pinta SOLO con
-     `html.v4` (assets/piel.js). Las fuentes de la v4 (Material Symbols y Neue
-     Kabel) NO van aquí: las cuelga piel.js solo con la v4 encendida, porque una
-     hoja de Google en la <head> bloquea el pintado de la clásica aunque no la
-     use (consulta de deploy, 23-sep). Va AL FINAL de la PRIMERA cabecera, por
-     lo mismo que la v3: las otras cuatro son plantillas del documento impreso. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=c4e4f9ea">
-<script src="/intranet/v4/assets/nav-montaje.js?v=ee405ac8" defer></script>
-<script src="/contracts/assets/generador-v4.js?v=55abc3f7" defer></script>
-<script src="/intranet/v4/assets/nav.js?v=993de78d" defer></script>
+<!-- CARA v4 (23-sep-2026; la única desde el 27-sep). Todo lo de aquí abajo pinta
+     bajo `html.v4` (assets/piel.js), que también cuelga las fuentes de la v4.
+     Va AL FINAL de la PRIMERA cabecera a propósito: este fichero cierra cinco, y
+     las otras cuatro son plantillas JS que arman la ventana de impresión del
+     contrato — meter aquí la capa la habría colado en el PDF del cliente. -->
+<link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=032139e5">
+<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=5cb8e75f">
+<script src="/intranet/v4/assets/nav-montaje.js?v=2c463182" defer></script>
+<script src="/contracts/assets/generador-v4.js?v=78e32fd1" defer></script>
+<!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
+     inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
+     puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
+<script src="/contracts/assets/asistente-contrato.js?v=315e5fb9"></script>
+<script src="/intranet/v4/assets/nav.js?v=c76dd0b9" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -144,9 +137,6 @@
     <div class="lw-spacer"></div>
     <button type="button" class="lw-btn" id="btnContracts">← Listado</button>
     <button type="button" class="lw-btn" id="btnReset">↺ Limpiar</button>
-    <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
-         esta en assets/topbar.css junto a `.lw-btn.primary`. -->
-    <button type="button" class="lw-btn primary" id="btnNuevoC" hidden><i class="ph ph-plus"></i>Nuevo contrato</button>
   </div>
 
   <!-- Datalists globales de nacionalidad/prefijo (12-ago): ÚNICOS en la página,
@@ -267,24 +257,6 @@
   <button type="button" class="fab" id="fab">Vista previa ⤢</button>
   <div class="toast" id="toast"></div>
 
-  <!-- Panel "Contratos guardados" — lista lo que hay en Supabase (solo Parcela/Construcción,
-       que son los 2 tipos con numeración). Click en una fila reabre ese contrato en el form. -->
-  <div class="cp-overlay" id="cpOverlay">
-    <div class="cp-modal">
-      <div class="cp-head">
-        <b data-lwt="Contratos guardados">Contratos guardados</b>
-        <button type="button" class="tb-link" id="cpClose" data-lwt="Cerrar">Cerrar</button>
-      </div>
-      <input type="search" class="sui-buscar" id="cpSearch" data-lwt-ph placeholder="Buscar por número, comprador, proyecto o autor…">
-      <div class="cp-filtros" id="cpFiltrosTipo"></div>
-      <div class="cp-filtros" id="cpFiltrosEstado"></div>
-      <div class="cp-cols">
-        <span>Nº</span><span data-lwt="Tipo">Tipo</span><span data-lwt="Comprador">Comprador</span><span data-lwt="Proyecto">Proyecto</span><span data-lwt="Precio">Precio</span><span data-lwt="Fecha">Fecha</span><span data-lwt="Creado por">Creado por</span>
-      </div>
-      <div class="cp-list" id="cpList"></div>
-    </div>
-  </div>
-
   <!-- Modal "Enviar a firma" — genera un enlace único (firmar.html?t=…) para que
        el comprador firme a distancia. Al firmar, la Edge Function firma-submit
        renderiza el PDF con contract-pdf (Puppeteer) y lo mete bloqueado en la BD. -->
@@ -308,7 +280,7 @@
           <!-- Editable: el mensaje se genera con un texto por defecto, pero cada
                comprador tiene su tono y su idioma. Email usa lo que haya AQUÍ en
                el momento del clic, no el texto original. -->
-          <label>Mensaje<textarea id="fmMsg" rows="5"></textarea></label>
+          <label>Mensaje<textarea id="fmMsg" rows="4"></textarea></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
             <button class="btn ghost" id="fmCopy" type="button" data-lwt="Copiar enlace">Copiar enlace</button>
             <!-- Era un <a href="mailto:">: en un equipo sin cliente de correo de
@@ -594,6 +566,9 @@ let CURRENT = TEMPLATES[0];       // Carta de Reserva por defecto: es el primer 
 let templateHTML = '';
 let COVER_HTML = '';
 let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se inicializa por plantilla
+/* Forma de pago del Contrato de Construcción (28-sep-2026): estandar | unico_firma | unico_obra, o heredado
+   manual | libre — ver CALENDARIO DE PAGOS ELEGIBLE en assets/hitos_fechas.js. null fuera de Construcción. */
+let CALENDARIO = null;
 const FIELDTYPE = {};  // marcador → tipo (money/number/date/select/text) para dimensionar el hueco
 const pads = {};
 
@@ -692,7 +667,6 @@ let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrado
    el CRM al servidor por `crm_lead_*`, que además dejan rastro de quién los consultó.
    Se limpia en resetBorrador(): ver la nota de allí. */
 let LEAD_ID = null;
-let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
 /* Contratos a los que una Construcción puede vincularse: el campo
    num_reserva_vinculada deja de ser texto libre y pasa a desplegable con los
@@ -716,7 +690,10 @@ async function cargarVinculables(){
   // la OBRA (villa - suelo) cuando la Construccion se vincula. Ver
   // syncPrecioObraVinculada.
   const { data, error } = await sb.from('contratos')
-    // columnas, no ramas del jsonb: mismo motivo que en openContractsPanel
+    /* Columnas, no ramas del jsonb: `datos` pesa decenas de MB por los anexos en
+       base64 (TOAST) y Postgres lo descomprime entero aunque solo se pidan unos
+       bytes de dentro — medido el 24-ago-2026: 4.249 ms leyendo del jsonb frente a
+       0,31 ms de la columna. Ver contracts/sql/columnas_baratas_de_contratos.sql. */
     .select('id,numero,tipo,comprador_nombre,proyecto_nombre,nombre_contrato,parcela_codigo')
     .in('tipo', TIPOS_VINCULABLES).order('created_at',{ascending:false}).limit(300);
   if(!error) VINCULABLES = data || [];
@@ -747,7 +724,7 @@ async function cargarVinculablesPoa(){
   if(VINCULABLES_POA || !sb) return;
   const { data, error } = await sb.from('contratos')
     /* Ni `adq1_nombre` ni `adq1_pasaporte`: los dos salían de `datos` y
-       costaban ~4 s (ver openContractsPanel). El pasaporte además NO se usaba en
+       costaban ~4 s (ver cargarVinculables). El pasaporte además NO se usaba en
        ninguna parte de este selector — se pedía y se tiraba. Y para el rótulo,
        `comprador_nombre` dice más que `adq1_nombre`: trae a TODOS los
        compradores, que es lo que hay que ver al enganchar un poder. */
@@ -1068,6 +1045,9 @@ function humanize(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCas
    El quitar/reflujo/poner reinicia la barra cuando cae un segundo aviso con el
    primero todavía visible (ver el mismo comentario en suite-comun.js). */
 function toast(msg){
+  /* Con el asistente de Nuevo contrato abierto encima, el aviso espera a que se vea el editor
+     (assets/asistente-contrato.js → retiene). Sin `?asistente=1` devuelve false: nada cambia. */
+  if(window.lwAsistente && window.lwAsistente.retiene('ok', msg)) return;
   const t=$('#toast'); t.textContent=msg;
   /* Mismos atributos que pone `nodoToast()` en suite-comun.js, y por el mismo
      motivo: este aviso es la única confirmación de que un contrato se guardó, y
@@ -1092,6 +1072,7 @@ function toast(msg){
    `documento_anexos.js` y `documento_diseno.js` tambien lo llaman: los carga
    SOLO esta pagina, y esta funcion es global — igual que `toast()`. */
 function toastMal(msg){
+  if(window.lwAsistente && window.lwAsistente.retiene('mal', msg)) return;   // ver toast()
   let t=document.getElementById('toastMal');
   if(!t){ t=document.createElement('div'); t.id='toastMal'; document.body.appendChild(t); }
   t.className='toast mal'; t.textContent=msg;
@@ -1583,7 +1564,9 @@ function wireClienteBuscadorEn(input, res, onPick){
 async function buscarClientes(q, res, onPick, input){
   if(!res) return;
   if(!sb){ res.hidden=true; return; }
-  const like=`%${q.replace(/[%_]/g,'')}%`;
+  // Fuera también `,()`: dentro de `.or()` de PostgREST una coma parte el filtro
+  // y la búsqueda devolvía error — que aquí se pinta como «nada» (30-sep-2026).
+  const like=`%${q.replace(/[%_,()*]/g,'')}%`;
   // `id` incluido desde el 18-ago-2026: el contrato ya no copia los datos del
   // cliente, se ENLAZA a su ficha, y para eso hace falta el id.
   /* POR LA RPC DEL DIRECTORIO, NO POR `clients` — 22-sep-2026, decisión del owner.
@@ -1795,7 +1778,6 @@ function limpiarOverrides(slug){
 function resetBorrador(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = ''; PDF_SALIO = false;
   OBRA_ES_GUARDADA = false; OBRA_VINCULO_HECHO = null;   // borrador nuevo: su obra sí se precarga
-  ANEXO_MANUAL_RETIRADO = false;
   TECHO_LEGADO_SIN = false;
   /* HITOS también se reinicia (auditoría 19-ago): faltaba en esta lista y «+
      Nuevo contrato» heredaba el calendario de pagos del contrato ABIERTO — la
@@ -1806,6 +1788,7 @@ function resetBorrador(slug){
     [{pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''},
      {pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''}])
     .map(h=>({...h, fecha: h.fecha || fechaVencimiento(new Date(), h)}));
+  CALENDARIO = CONTRACT_TIPO[slug] === 'construccion' ? 'estandar' : null;   // misma familia que HITOS: no se hereda del contrato abierto
   ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
   /* LEAD_ID se limpia AQUÍ, con ADQ1_CLIENT y por el mismo motivo (11-sep-2026). Si se
      quedara fuera de esta lista sobreviviría a «+ Nuevo contrato» y sellaría el lead del
@@ -2276,7 +2259,9 @@ const puedeHitosFijos = () => ROLES_HITOS_FIJOS.includes(MI_ROL);
    de arriba (quien negocia puede rebajar su precio): lo acotan el tope del
    15%, el motivo obligatorio y el trigger `descuento_comercial_rol` de la
    base, que rechaza el cambio a cualquier otro rol. precio_total y los hitos
-   de fábrica siguen en admin/super_admin. */
+   de fábrica siguen en admin/super_admin.
+   29-sep-2026, owner: el super_admin no tiene tope del 15% (pantalla y
+   triggers *_valido); para admin y sales_manager el tope sigue. */
 const CAMPOS_DESCUENTO_COMERCIAL = ['descuento_comercial', 'descuento_comercial_motivo'];
 /* Mínimo pactado por el estudio para la reserva (11-sep-2026). Va junto a lo
    anterior para que nadie cambie el default sin ver el mínimo. */
@@ -2838,6 +2823,12 @@ function collect(){
   // reabrir un contrato el input readonly se recrea vacío → tomarlo de aquí para
   // que el documento imprima el número en vez de un hueco en blanco.
   if(SAVED_CONTRACT && SAVED_CONTRACT.numero) data.contrato_num = SAVED_CONTRACT.numero;
+  // Cláusula de pago del Art. 5 según la forma de pago (28-sep-2026). Vacía = la de hitos de siempre. El
+  // servidor la reescribe al guardar desde el calendario que valida: esto es solo la vista previa. Se pone
+  // SIEMPRE en Construcción, también vacía: si faltara la clave, el merge de CAMPOS_HEREDADOS de abajo traería
+  // la del contrato tal como se abrió, y cambiar de pago único a hitos seguiría imprimiendo el pago único.
+  if(CONTRACT_TIPO[CURRENT.slug] === 'construccion')
+    data.clausula_pago = (CALENDARIO === 'unico_firma' || CALENDARIO === 'unico_obra') ? CALENDARIO : '';
 
   /* La parcela de ESTA Construcción (28-ago-2026, aviso del owner: no se
      imprimía en el documento). No es un campo de formulario — nunca se
@@ -2893,7 +2884,11 @@ function collect(){
      `precio_lista_construccion`: la cifra antes del descuento, congelada en
      datos.fields para que el contrato guardado la siga imprimiendo aunque el
      inventario cambie, y la que usa el trigger de la base para comprobar el
-     15% y que el precio cuadre. */
+     15% y que el precio cuadre.
+     29-sep-2026 (LAW-437): lo que se manda aquí es solo para la vista previa
+     y el aviso de pantalla. El valor guardado lo pone el servidor
+     (trigger trg_contrato_lista_suelo: inventario, congelado mientras no
+     cambie la parcela) y pisa este. */
   if(CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela' && typeof listaSueloVigente === 'function'){
     const lista = listaSueloVigente();
     data.descuento_comercial_aplica = (lista && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
@@ -3127,6 +3122,15 @@ function buildDoc(){
     if(String(data[nuevo] || '').trim()) data[viejo] = '';
   });
   applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sun Gai)
+  /* CC00014 (texto fijo, 28-sep-2026): el KTP del firmante del BUILDER no va
+     escrito en la plantilla, que se sirve sin sesion. Sale de firmantes_cred
+     (RLS authenticated). Es el de esta persona y no el de {{prom_rep}} porque
+     asi esta en el documento firmado: no se «corrige» aqui (ver pendientes). */
+  if(CURRENT && CURRENT.slug === 'cc00014_timon'){
+    const c = FIRMANTES_CRED['I Made Monjong Adhi Nugruah'];
+    if(!c && !BORRADOR_BLANCO) toastMal('No se ha podido cargar el KTP del firmante de CC00014 (firmantes_cred): el documento saldria con ese hueco en blanco.');
+    data.cc00014_ktp = BORRADOR_BLANCO ? '' : ((((c && c.cred.en) || '').match(/ID (\d+)/) || [])[1] || '');
+  }
   applyApoderado(data);   // rellena hsn_apoderado_ktp con la signed URL ya resuelta (POA)
   applyRepresentanteComprador(data);   // adq2_firmante_nombre: apoderado del comprador si lo hay, si no el propio comprador
   /* En blanco circula sin contrato detrás (Legal, capa 1, 25-sep-2026): fuera
@@ -3182,7 +3186,11 @@ function buildDoc(){
   // bloque que solo imprime si un campo vale EXACTAMENTE X (a diferencia de
   // opt:, que solo mira si el campo está relleno) — usado para el régimen
   // de tenencia según nacionalidad del comprador (ver regimen_tenencia).
-  html=html.replace(/<!--if:([a-z0-9_]+)=([a-z0-9_]+)-->[\s\S]*?<!--\/if:\1-->/g,(m,k,v)=> (data[k]===v) ? m : '');
+  // `<!--if:k=-->` (valor vacío, 28-sep-2026) = el campo no está o está vacío: es el «si no» del motor, que no
+  // tiene else. Lo usa el Art. 5 de Construcción: el texto de hitos de siempre sale cuando no hay
+  // `clausula_pago`, así que un contrato viejo o la plantilla en blanco imprimen exactamente lo de antes. El
+  // motor del bot (bot/plantilla_texto.js) ya lo entendía así.
+  html=html.replace(/<!--if:([a-z0-9_]+)=([a-z0-9_]*)-->[\s\S]*?<!--\/if:\1-->/g,(m,k,v)=> (v === '' ? (data[k] == null || data[k] === '') : data[k]===v) ? m : '');
   // Cada campo con valor va envuelto en .campo-fijo: contenteditable="false" es
   // lo que, dentro de un párrafo editable (ver applyEditsAndTag), impide tocar
   // el dato aunque se reescriba el texto de alrededor — y data-campo es lo que
@@ -3367,6 +3375,11 @@ function deriveSections(){
   inDoc.delete('adq_representacion');   // derivado: nombre+fecha del poder a la vez, no un campo del form
   inDoc.delete('unidad_construccion_codigo');   // derivado (collect(), arriba): lo fija el selector de parcela, nunca se teclea
   inDoc.delete('techo_nombre');   // derivado (collect(), arriba): lo fija el selector de la sección "Techo y extras", nunca se teclea
+  inDoc.delete('cc00014_ktp');   // derivado (buildDoc, de firmantes_cred): nunca un campo del form — se escribiria y se pisaria en silencio
+  /* Bonian C2 (C200003), owner 28-sep-2026: sus datos personales salieron de la plantilla
+     publica y NO se rellenan al reabrir (el contrato esta firmado y bloqueado; lo que vale es el
+     PDF firmado). Los c2_* quedan en blanco a proposito — nunca campos del form. */
+  [...inDoc].forEach(k=>{ if(k.startsWith('c2_')) inDoc.delete(k); });
   /* carta_cobrado_importe/numeros (17-sep-2026): los escribe SOLO el trigger
      de la base (carta_cobrado_al_bloquear, BEFORE INSERT) — regla 2 del
      encargo, "el cliente nunca manda este cálculo". Sin este delete caían en
@@ -3408,6 +3421,7 @@ function deriveSections(){
      adq1_tipo justo arriba: sin este delete caería en el cajón automático
      de "Otros campos" con su nombre en crudo. */
   inDoc.delete('descuento_comercial_aplica');
+  inDoc.delete('clausula_pago');   // derivado (collect(), de la forma de pago) y reescrito por la base — nunca un campo del form (28-sep-2026)
   inDoc.delete('precio_lista_construccion');   // idem: lo calcula collect() (22-sep-2026)
   inDoc.delete('precio_lista_suelo');          // idem, su gemelo del Bloqueo de Parcela (25-sep-2026)
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
@@ -3507,6 +3521,7 @@ function deriveSections(){
       [{pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''},
        {pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''}])
       .map(h=>({...h, fecha: h.fecha || fechaVencimiento(new Date(), h)}));
+    CALENDARIO = CONTRACT_TIPO[CURRENT.slug] === 'construccion' ? 'estandar' : null;
   }
   // cuenta bancaria de destino: si la plantilla trae <!--datos-bancarios-->, un
   // único select (mismo patrón [valor,etiqueta] que regimen_tenencia) justo
@@ -3618,7 +3633,20 @@ function buildPicker(){
     ? TEMPLATES.find(t => t.slug === CURRENT.slug) : null;
   const lista = abierta ? [abierta].concat(ofrecidas) : ofrecidas;
   sel.innerHTML = lista.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}${t===abierta?' '+lwT('(archivado)'):''}${t.ready?'':' ·⚠'}</option>`).join('');
+  /* UN SOLO oyente (30-sep-2026). buildPicker() se llama otra vez en cada
+     cambio de idioma (buildLangToggle) para re-rotular las opciones, y cada
+     llamada colgaba OTRO `change`: tras tocar ES/EN dos veces, cambiar de tipo
+     corría resetBorrador + loadTemplate tres veces seguidas, en carrera. Las
+     opciones se rehacen; el oyente se ata una vez y se queda. */
+  if(sel._cambioAtado) return;
+  sel._cambioAtado = true;
   sel.addEventListener('change', async ()=>{
+    /* Editor montado por el asistente de Nuevo contrato (F7, 30-sep-2026):
+       cambiar de tipo NO vacía el borrador — vuelve al paso «tipo» del
+       asistente con el cliente y la parcela conservados. El asistente decide
+       si le toca (solo mientras el borrador no está guardado) y, si no, el
+       cambio sigue por el camino de siempre. */
+    if(window.lwAsistente && window.lwAsistente.interceptaCambioTipo(sel.value)) return;
     // cambiar de tipo arranca un documento nuevo: nada del anterior viaja con
     // él (ver resetBorrador — ediciones de texto, adquirientes, anexos, cláusulas)
     resetBorrador(sel.value);
@@ -3750,6 +3778,9 @@ async function downloadPdf(){
   // `datos`, que no tiene la firma, y saldría un PDF sin firmar con aspecto de
   // definitivo. Se entrega el firmado real.
   if(sb && LOCKED && LOCKED_PDF_PATH){ return abrirPdfFirmado(); }
+  /* Anexos subidos a mano (LAW-78): el PDF que sale de aquí tiene aspecto de definitivo;
+     con una página que falta saldría con el hueco rojo dentro. El borrador sí lo enseña. */
+  if(!anexosListos('descargar el PDF')) return;
   /* SIN GUARDAR NO SE DESCARGA (9-sep-2026, misma orden del owner que cerró el
      mismo agujero en Facturas). Un contrato sin guardar imprimía un PDF con el
      membrete, las partes, el precio y la cuenta de cobro, sin número —la
@@ -3912,6 +3943,10 @@ function aplicarEstadoFirma(){
   // LOCKED manda: un contrato ya cerrado no es «en firma», es definitivo
   const activo = n > 0 && !LOCKED;
   const form = $('#form'); if(form) form.classList.toggle('enfirma', activo);
+  // Tarjetas de forma de pago (28-sep-2026): el estado de firma llega después de pintar —cargarEstadoFirma() es
+  // asíncrona—; aquí, que corre cada vez que cambia, las tarjetas se cierran y sale su aviso. Sin esto, con
+  // #form.enfirma el ratón no podía pero el teclado sí cambiaba la forma de pago de un contrato ya enviado.
+  if(typeof refreshFormaPago === 'function') refreshFormaPago();
   const badge = $('#firmaBadge');
   if(badge){
     badge.style.display = activo ? 'inline-flex' : 'none';
@@ -4249,6 +4284,10 @@ function ocultarGruposVacios(){
 }
 
 function updateSaveButton(){
+  // «Cambiar tipo» de la banda del asistente: se apaga al guardar (corre tras cada guardado)
+  if(window.lwAsistente) window.lwAsistente.refrescaBanda();
+  // campo «Venta» (F5b): se apaga al guardar y se vuelve a mirar al cambiar de plantilla o de borrador
+  if(window.lwVenta) window.lwVenta.pinta();
   /* Abre los campos fijados si el rol de quien mira los puede tocar. Va aquí
      porque esta función es la que ya corre cada vez que cambian el rol, la
      plantilla o el bloqueo — ver la nota junto a FIJOS_ESTUDIO. */
@@ -4307,8 +4346,8 @@ function updateSaveButton(){
       el.readOnly = !abreDescuento;
       el.classList.toggle('dato-fijo', !abreDescuento);
       el.title = abreDescuento
-        ? (esBloqueo ? 'Descuento comercial sobre el precio del suelo — máx. 15%. Necesita motivo.'
-                     : 'Descuento comercial sobre el precio de techo+extras — máx. 15%. Necesita motivo.')
+        ? (esBloqueo ? 'Descuento comercial sobre el precio del suelo' + (ES_SUPER ? '' : ' — máx. 15%') + '. Necesita motivo.'
+                     : 'Descuento comercial sobre el precio de techo+extras' + (ES_SUPER ? '' : ' — máx. 15%') + '. Necesita motivo.')
         : 'Solo lo cambian dirección y los sales managers.';
     });
   }
@@ -4324,6 +4363,12 @@ function updateSaveButton(){
     });
     document.querySelectorAll('[data-hito-admin]').forEach(el=>{
       el.style.display = abreHitos ? '' : 'none';
+    });
+    // Forma de pago (28-sep-2026): cerrada si el contrato está en firma o firmado (el repintado con su
+    // aviso lo hace aplicarEstadoFirma) y, en un calendario a medida, abierta solo a admin
+    const fpCerrada = typeof formaPagoCerrada === 'function' && formaPagoCerrada();
+    document.querySelectorAll('input[name="formaPago"]').forEach(el=>{
+      el.disabled = fpCerrada || (el.hasAttribute('data-cal-manual') && !abreHitos);
     });
     // El aviso es lo INVERSO de los botones: se ve cuando NO se puede tocar
     // el candado, para explicar por qué no está — hallazgo MEDIA de Legal.
@@ -4414,6 +4459,7 @@ async function subirPdfFirmado(file){
     await cargarEstadoFirma();
     LOCKED = true; LOCKED_PDF_PATH = path;
     toast(lwT('Contrato bloqueado · PDF firmado guardado'));
+    if(typeof refreshFormaPago === 'function') refreshFormaPago();   // tarjetas cerradas y con su aviso de firmado
     updateSaveButton();
     cerrado = true;
   }catch(err){ toastMal(lwT('No se pudo bloquear: ') + (err.message || err)); }
@@ -4461,7 +4507,7 @@ function contractPayload(){
     // listado hacía que ese nombre saliera como título de la operación y como
     // cliente facturado en TODAS las demás herramientas — justo lo que reportó
     // el cliente. `nombre_contrato` sigue viajando en `datos.fields` (más abajo)
-    // y el listado de ESTA app lo antepone solo (ver renderCpList/cargarVinculables),
+    // y el selector de ESTA app lo antepone solo (ver cargarVinculables),
     // sin tocar la identidad compartida.
     /* TODOS los que compran, no solo el primero — 19-ago-2026, encargo del owner:
        «en facturas si hay más de un adquiriente sale como cliente pero en
@@ -4519,7 +4565,11 @@ function contractPayload(){
        Al omitir la clave, el update de PostgREST deja la columna como estaba. */
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
-    datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
+    // Anexos (LAW-78): del subido a mano, solo su ficha si sus páginas están en el archivo
+    // de ESTE contrato; los viejos siguen con sus páginas hasta que pasan (fichaDatos).
+    datos: { fields: data, hitos: HITOS, design: DESIGN,
+              ...(CALENDARIO ? { calendario: CALENDARIO } : {}),
+              annexes: ANNEXES.map(a => fichaDatos(a, SAVED_CONTRACT && SAVED_CONTRACT.id)), clauses: CLAUSES,
               compradores: COMPRADORES,
               /* Techo y extras CONGELADOS (16-sep-2026) — nunca FK viva a
                  modelo_techos/modelo_extras: precio_2027 cambia con el reloj
@@ -4566,7 +4616,11 @@ function contractPayload(){
    CC00020, 76.500 € contados dos veces). Corte gemelo al de firma-submit
    (enviarProformaTotal), que hace lo mismo al FIRMAR. */
 const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
+/* PARADA (30-sep-2026, owner; pendiente LAW-471): el comentario de arriba describe el flujo activo. No descuenta el descuento comercial. Gemelo de
+   PROFORMA_AUTO_PARADA en firma-submit; reactivar solo cuando reste el neto. */
+const PROFORMA_AUTO_PARADA = true;
 async function crearProformaAutomatica(contratoId, numero, payload){
+  if(PROFORMA_AUTO_PARADA) return;
   if(!TIPOS_CON_PROFORMA_AUTO.includes(payload.tipo)) return;
   const precio = payload.precio_total;
   if(!precio || precio <= 0) return;
@@ -4687,6 +4741,24 @@ async function guardarContrato(){
       return;
     }
   }
+  /* Pago único a la firma (28-sep-2026): sin fecha la cláusula remitiría a un vencimiento que no existe, y
+     fuera de [firma, firma + 90] el servidor lo rechaza. Se dice aquí, con el campo delante, en vez de dejar que
+     vuelva como error de la base. El tope lo aplica la base (admin pasa); esto solo avisa. */
+  if(tipo === 'construccion' && CALENDARIO === 'unico_firma'){
+    const f = (HITOS[0] && HITOS[0].fecha) || '';
+    const base = fechaFirmaISO();
+    const tope = sumaDiasISO(base, PLAZO_PAGO_UNICO_DIAS);
+    const msg = !f ? lwT('Pon la fecha de vencimiento del pago único.')
+      : f < base ? lwT('El pago único no puede vencer antes de la fecha de firma.')
+      : (f > tope && !puedeHitosFijos()) ? lwT('El pago único vence como muy tarde') + ' ' + PLAZO_PAGO_UNICO_DIAS + ' ' + lwT('días después de la firma. Más allá lo decide un admin.')
+      : '';
+    if(msg){
+      avisoNoGuardado(msg);
+      const el = document.getElementById(hid(0,'fecha'));
+      if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+      return;
+    }
+  }
   /* Bloqueo de Parcela SIN hitos (22-sep-2026): el Artículo 3 nuevo remite «al
      calendario de pagos que figura a continuación» y buildDoc no imprime la
      tabla cuando no hay filas (<!--seccion-hitos-->) — el contrato citaría una
@@ -4744,7 +4816,8 @@ async function guardarContrato(){
       if(elDC){ elDC.focus(); elDC.scrollIntoView({behavior:'smooth', block:'center'}); }
       return;
     }
-    if(base > 0 && dc > base * 0.15){
+    // Super admin sin tope (29-sep-2026, owner); el trigger repite la regla.
+    if(!ES_SUPER && base > 0 && dc > base * 0.15){
       avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio de techo + extras.'));
       if(elDC){ elDC.focus(); elDC.scrollIntoView({behavior:'smooth', block:'center'}); }
       return;
@@ -4782,7 +4855,9 @@ async function guardarContrato(){
     const elPT = document.querySelector('[name="precio_total"]');
     const foco = el => { if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); } };
     if(dc < 0){ avisoNoGuardado(lwT('El descuento comercial no puede ser negativo.')); foco(elDC); return; }
-    if(dc > base * 0.15){ avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio del suelo.')); foco(elDC); return; }
+    if(dc > 0 && dc >= base){ avisoNoGuardado(lwT('El descuento comercial no puede igualar ni superar el precio del suelo.')); foco(elDC); return; }
+    // Super admin sin tope (29-sep-2026, owner); el trigger repite la regla.
+    if(!ES_SUPER && dc > base * 0.15){ avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio del suelo.')); foco(elDC); return; }
     if(dc > 0 && !motivo){ avisoNoGuardado(lwT('Un descuento comercial necesita su motivo.')); foco(elDCMotivo); return; }
     if(dc > 0 && elPT && Math.abs((parseImporte(elPT.value) || 0) - (base - dc)) > 0.01){
       avisoNoGuardado(lwT('Con descuento comercial, el precio total tiene que ser el precio del suelo menos el descuento.'));
@@ -4872,8 +4947,49 @@ async function guardarContrato(){
     return;
   }
 
+  /* ANEXOS SUBIDOS A MANO (LAW-78, 27-sep-2026). Antes de guardar: ninguno a medias
+     (cargando, subiendo), sin páginas, con una página que falta o cuya huella no cuadra
+     con la de la tabla. Se para y se dice cuál y qué página: guardar encima de un anexo
+     roto es firmarlo roto después. Detalle en documento_anexos.js. */
+  const problemasAnx = problemasAnexos(ANNEXES);
+  if(problemasAnx.length){
+    avisoNoGuardado('No se guarda: ' + problemasAnx.join('; ') + '.');
+    return;
+  }
+
+  /* true solo si el contrato quedó guardado de verdad (LAW-410, 28-sep-2026): «Enviar a firma»
+     guarda primero y no envía si esto no es true. Cualquier `return` de arriba (un freno) da
+     undefined, que para quien pregunta es «no se guardó». */
+  let guardadoOk = false;
   const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
   try{
+    /* MIGRACIÓN PEREZOSA (LAW-78): los anexos viejos —páginas en base64 dentro de
+       `datos`— pasan al archivo en este guardado. Primero se suben y registran TODAS
+       sus páginas y se compara la huella que calcula el servidor; SOLO los que llegan
+       enteros se guardan ya sin páginas (con id nuevo). El que falla se queda
+       exactamente como estaba, dentro de `datos`, y se avisa: el guardado sigue (con
+       el tope de peso de siempre) — un fallo del archivo no puede impedir guardar un
+       campo. Un contrato nuevo aún no tiene fila: pasan en el siguiente guardado. */
+    let avisoMigracion = '';
+    if(SAVED_CONTRACT && SAVED_CONTRACT.id){
+      const cid = SAVED_CONTRACT.id;
+      const migrar = anexosAMigrar(ANNEXES, cid);
+      const hechos = {}, fallidos = [];
+      for(const a of migrar){
+        const nuevoId = idAnexoNuevo();
+        btn.textContent = 'Pasando «' + a.title + '» al archivo…';
+        try{ hechos[a.id] = { id:nuevoId, filas: await subePaginasAnexo(cid, nuevoId, a.pages) }; }
+        catch(eM){ fallidos.push('«' + a.title + '» (página ' + (eM.pagina || '?') + ': ' + (eM.message || 'error') + ')'); }
+      }
+      if(migrar.length){
+        ANNEXES = aplicaMigracion(ANNEXES, hechos, cid);
+        rebuildAnnex();
+        btn.textContent = 'Guardando…';
+      }
+      // se dice con el aviso del guardado, no en otro toast: dos seguidos se pisan (ver populateForm)
+      if(fallidos.length)
+        avisoMigracion = ' · OJO: no se ha podido pasar al archivo ' + fallidos.join(', ') + '; se ha guardado como antes, dentro del contrato, y se reintentará al volver a guardar.';
+    }
     const payload = contractPayload();
     // `,datos` (17-sep-2026, no solo `id,numero`): el trigger de la base
     // (carta_cobrado_al_bloquear, BEFORE INSERT) puede estampar
@@ -4896,6 +5012,39 @@ async function guardarContrato(){
        que quedó guardado, que es el que usa la proforma de abajo. */
     const envio = { tipo: payload.tipo, datos: payload.datos };
     if('unidad_id' in payload) envio.unidad_id = payload.unidad_id;
+    /* Tope de peso ANTES de mandar (27-sep-2026): por encima de ~4 MB contrato_guarda no
+       termina en sus 8 s y la base lo corta (57014) — hoy mismo, dos veces, con 6,5 MB, y
+       lo que vio el comercial fue «canceling statement due to statement timeout». Casi
+       todo el peso son los anexos subidos a mano (JPEG en base64 dentro de `datos`).
+       Medida y tope: TOPE_DATOS_BYTES en documento_anexos.js — una sola cifra. */
+    const pesoEnvio = JSON.stringify(envio).length;
+    if(pesoEnvio > TOPE_DATOS_BYTES){
+      // solo pesan los que aún viajan con páginas: los del archivo van como ficha (LAW-78)
+      const lista = ANNEXES.filter(a => !a.auto && fichaDatos(a, SAVED_CONTRACT && SAVED_CONTRACT.id).pages)
+        .map(a => '«' + a.title + '» ' + mbAnexo(pesoPaginas(a))).join(', ');
+      avisoNoGuardado((eraNuevo ? 'No se puede guardar: el contrato pesa ' : 'Este contrato ya no se puede volver a guardar tal cual: pesa ')
+        + mbAnexo(pesoEnvio) + ' y el servidor no guarda más de ' + mbAnexo(TOPE_DATOS_BYTES) + '.'
+        + (lista ? ' Lo que pesa son los anexos subidos a mano: ' + lista + '. Quita alguno (Anexos → Quitar) o súbelo con menos páginas.' : ''));
+      btn.disabled=false; updateSaveButton();
+      return;
+    }
+    /* F5b · PUNTO DE ENGANCHE ÚNICO de «venta con mi equipo / por mi cuenta»
+       (encargo 20260930_lawang_equipos_venta_asistente). El campo «Venta» de
+       encima del formulario (assets/asistente-contrato.js → lwVenta; el asistente
+       lo siembra al montar) da la clave `venta` = {modo, origen, origen_texto},
+       SOLO en el alta de un contrato raíz (el mismo contrato_padre_id de este
+       payload) y solo si quien guarda está en un equipo. Nunca dentro de `datos`:
+       su dueño es contrato_closer.modo y lo valida contrato_guarda (con el
+       interruptor modo_obligatorio apagado, el servidor la ignora). */
+    const ventaDecl = window.lwVenta ? window.lwVenta.paraGuardar(eraNuevo, payload.contrato_padre_id) : {};
+    if(ventaDecl.error){
+      avisoNoGuardado(ventaDecl.error);
+      const bloque = document.querySelector('[data-venta-bloque]');
+      if(bloque) bloque.scrollIntoView({behavior:'smooth', block:'center'});
+      btn.disabled=false; updateSaveButton();
+      return;
+    }
+    if(ventaDecl.venta) envio.venta = ventaDecl.venta;
     const { data: fila, error } = await sb.rpc('contrato_guarda',
       { p_id: eraNuevo ? null : SAVED_CONTRACT.id, p_contrato: envio });
     if(error) throw error;
@@ -4904,7 +5053,13 @@ async function guardarContrato(){
     if(fila.moneda) payload.moneda = fila.moneda;
     const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.fields, hitos:fila.hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
-    ANEXO_MANUAL_RETIRADO = false;   // lo retirado ya está fuera de la fila
+    /* Construcción (28-sep-2026): el calendario lo monta el servidor —importes incluidos— y puede diferir de lo
+       que había en pantalla (una pestaña vieja, un % tocado). Se enseña lo que quedó guardado, no lo que se mandó. */
+    if(tipo === 'construccion' && Array.isArray(fila.hitos)){
+      HITOS = fila.hitos.map(h=>({...h}));
+      if(fila.calendario) CALENDARIO = fila.calendario;
+      refreshHitos();
+    }
     if(eraNuevo) PDF_SALIO = false;   // un contrato recién creado no ha salido nunca
     const numEl = document.querySelector('[name="contrato_num"]');
     if(numEl){ numEl.value = data.numero; }
@@ -4939,7 +5094,8 @@ async function guardarContrato(){
           + (collect().moneda || '') + ' ' + lwT('cobrados en la Carta que este Bloqueo no puede absorber');
       }
     }
-    toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero + avisoCobrado);
+    const avisoVenta = window.lwVenta ? window.lwVenta.trasGuardar(ventaDecl.venta) : '';
+    (avisoMigracion ? toastMal : toast)((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero + avisoCobrado + avisoVenta + avisoMigracion);
     render();
     // LAW-71: el salto se registra DESPUÉS, que es cuando existe el contrato al
     // que colgarlo. La RPC comprueba `es_super_admin()` por su cuenta: que este
@@ -4973,6 +5129,7 @@ async function guardarContrato(){
     informarCompradores(data.id);   // el alta ya la hizo el disparador: esto solo la cuenta
     if(esNuevo) crearProformaAutomatica(data.id, data.numero, payload);
     if(tipo === 'poa') cubrirConEstePoder(data.id, data.numero);
+    guardadoOk = true;
   }catch(err){
     // Los triggers de guardado (sincroniza_unidad_contrato, valida_poder_id,
     // contrato_no_editable_en_firma, contratos_tipo_permitido,
@@ -4983,15 +5140,33 @@ async function guardarContrato(){
     // patrón: un freno nuevo que no empiece por una de estas frases cae en el
     // detalle genérico de abajo.
     const m = String(err.message || err);
-    const esFrenoConocido = /^(Rellena:|La parcela |El traspaso de la parcela |El poder |Un contrato no puede ser su propio|El documento |Falta el pasaporte|No tienes (ningún|permiso)|Contrato enviado a firma|Esta parcela no pertenece|solo un admin puede)/.test(m);
+    const esFrenoConocido = /^(Rellena:|La parcela |El traspaso de la parcela |El poder |Un contrato no puede ser su propio|El documento |Falta el pasaporte|No tienes (ningún|permiso)|Contrato enviado a firma|Esta parcela no pertenece|solo un admin puede|El anexo |La venta |El modo de esta venta|Indica si la venta|Por tu cuenta:|No estás en ningún equipo|Eres el manager|Este cliente es un lead|Venta: |Origen no válido|El origen admite)/.test(m);
     // RLS cruda (policy sin su propio raise, p.ej. un rol sin permiso que
     // ningún trigger llegó a explicar): Postgres la manda en inglés y con
     // el nombre de la tabla — no se enseña así.
-    const esRLS = /row-level security|permission denied/i.test(m);
-    const detalle = esFrenoConocido ? m : esRLS ? 'No tienes permiso para guardar este contrato.' : m;
+    const esRLS = /row-level security|permission denied/i.test(m) || (err && err.code === '42501');
+    // LAW-386 (27-sep-2026): un «permission denied» también es lo que ve una pestaña abierta
+    // desde antes de un despliegue que cerró una escritura directa (26-sep: PATCH a `contratos`
+    // ya revocado). Solo se dice «versión anterior» si la huella de la página NO cuadra con la
+    // del servidor (version.js); si cuadra, o no se ha podido mirar, el permiso falta de verdad.
+    // 57014 = la base cortó por tiempo (8 s). Con contratos normales no pasa: es el peso
+    // (ver TOPE_DATOS_BYTES en documento_anexos.js). Cinturón bajo el tope de antes de enviar.
+    const esTiempo = (err && err.code === '57014') || /statement timeout/i.test(m);
+    let pantallaVieja = false;
+    if(!esFrenoConocido && esRLS && window.lwVersion){
+      try { pantallaVieja = (await window.lwVersion.comprueba(5000)) === 'vieja'; }
+      catch(eV){ console.info('[version] no se pudo comprobar la versión tras el error de permiso', eV); }
+    }
+    const detalle = esFrenoConocido ? m
+      : pantallaVieja ? lwT('Esta pantalla es de una versión anterior: recárgala (Ctrl/Cmd+Shift+R). Antes, copia lo que tengas sin guardar.')
+      : esRLS ? 'No tienes permiso para guardar este contrato.'
+      : esTiempo ? 'El servidor no ha llegado a guardarlo a tiempo. Si lleva anexos subidos a mano ('
+          + mbAnexo(pesoAnexosEnDatos()) + '), es su peso: quita alguno o súbelo con menos páginas y vuelve a guardar.'
+      : m;
     avisoNoGuardado(detalle);
   }
   btn.disabled=false; updateSaveButton();
+  return guardadoOk;
 }
 
 /* ---------- alta automática del comprador ----------
@@ -5111,121 +5286,10 @@ async function informarCompradores(contratoId){
 }
 $('#btnSave').addEventListener('click', guardarContrato);
 
-/* ---------- panel "Contratos guardados" ---------- */
-async function openContractsPanel(){
-  $('#cpOverlay').classList.add('open');
-  $('#cpSearch').value = '';
-  const list=$('#cpList'); list.innerHTML = 'Cargando…';
-  if(!sb){ list.innerHTML='Supabase no disponible.'; return; }
-  await cargarEquipo();   // para mostrar el nombre del autor en vez del email
-  const { data, error } = await sb.from('contratos')
-    /* `nombre_contrato` es COLUMNA (reflejo generado), no `datos->fields->>…`.
-       Medido el 24-ago-2026: leerlo del jsonb dejaba este panel en 4.249 ms y
-       leerlo de la columna lo deja en 0,31 ms. La causa es TOAST — `datos` pesa
-       70 MB repartidos en 112 filas por los anexos en base64, y Postgres
-       descomprime ese valor entero aunque solo se pidan 30 bytes de dentro.
-       Remate del caso: el campo está vacío en los 112 contratos, así que se
-       pagaban cuatro segundos por leer algo que nadie ha rellenado nunca.
-       Ver contracts/sql/columnas_baratas_de_contratos.sql. */
-    .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at,bloqueado,creado_por,nombre_contrato')
-    .in('tipo', Object.values(CONTRACT_TIPO)).order('created_at', { ascending:false }).limit(300);
-  if(error){ list.innerHTML='No se pudo cargar la lista.'; return; }
-  CP_ROWS = data || [];
-  // cuáles contradicen a la ficha de su comprador (19-ago): una consulta para
-  // todo el panel, y si falla la lista se pinta igual
-  CP_TIPO = ''; CP_ESTADO = '';
-  pintarCpFiltros(); aplicarCpFiltros();
-    /* Cuáles dicen algo distinto de la ficha de su cliente (19-ago-2026). Se
-       pide UNA vez con el listado, no una consulta por fila.
-
-       Y NO SE ESPERA (24-ago-2026). La vista `documentos_desactualizados`
-       compara seis campos que viven dentro de `datos`, así que descomprime el
-       jsonb de cada documento: **2.565 ms** medidos contra la base real. Bloquear
-       el listado por un DISTINTIVO es pagar dos segundos y medio de pantalla en
-       blanco por una insignia. Ahora la lista se pinta al momento y las insignias
-       aparecen cuando llegan.
-
-       Se descartó la alternativa —reflejar esos seis campos en columnas
-       generadas, como se hizo con `nombre_contrato`— a propósito: son nombre,
-       pasaporte, email, teléfono, domicilio y nacionalidad, y esparcir datos de
-       identidad por columnas nuevas para ahorrar dos segundos no compensa.
-       Si falla, la lista se queda sin insignias: es un aviso, no un requisito. */
-  lwDivergencias(sb, 'contrato').then(m => { DIVERGEN_CONTRATOS = m; aplicarCpFiltros(); });
-}
-function cpTipoLabel(t){ return TIPO_LABEL[t] || t; }
-
-/* ---------- filtros del panel ----------
-   Dos ejes, porque son las dos preguntas que se hacen de verdad delante de esta
-   lista: "¿de qué tipo?" y "¿en qué estado está?". Se combinan entre sí y con
-   el buscador. Los contadores salen de las filas cargadas, así que un filtro
-   sin nada se atenúa en vez de desaparecer: que no haya ninguno HOY no
-   significa que ese tipo no exista. */
-let CP_TIPO = '', CP_ESTADO = '', MI_EMAIL = '', MI_FICHA = null;   // los fija init() con la sesión
-const CP_ESTADOS = [
-  ['',         'Todos',      () => true],
-  ['abierto',  'Editables',  r => !r.bloqueado],
-  ['firmado',  'Firmados',   r => !!r.bloqueado],
-  ['mios',     'Míos',       r => r.creado_por && r.creado_por === (MI_EMAIL || '')],
-];
-/* Cuántos tipos se enseñan sueltos antes de plegar el resto. Cuatro, medido:
-   Bloqueo (20), Carta (19) y Construcción (16) son el 82% de los contratos, y los
-   otros siete vivos suman 12. Antes salían los TRECE en dos filas, tres de ellos
-   permanentemente a cero — ocupando sitio para no filtrar nada. */
-const CP_TIPOS_VISIBLES = 4;
-let CP_MAS_ABIERTO = false;
-function pintarCpFiltros(){
-  const nT = t => CP_ROWS.filter(r => r.tipo === t).length;
-  /* Se ordenan por CANTIDAD, no por el orden de CONTRACT_TIPO. El tipo que más
-     usas queda el primero, que es donde va la mano. Contrapartida asumida: si la
-     cartera cambia mucho, un chip puede moverse de sitio — pero los tres de
-     cabeza son el flujo de una venta (se reserva, se bloquea, se construye) y no
-     se reordenan solos de un día para otro.
-     Los que están a cero van SIEMPRE dentro de «Más», tengan el orden que tengan:
-     un filtro que no filtra nada no merece un hueco en la primera fila. */
-  const ordenados = Object.values(CONTRACT_TIPO)
-    .map(t => ({ t, n: nT(t) }))
-    .sort((a, b) => b.n - a.n || cpTipoLabel(a.t).localeCompare(cpTipoLabel(b.t)));
-  const conUso = ordenados.filter(x => x.n > 0);
-  const fuera  = ordenados.filter(x => x.n === 0);
-  const arriba = conUso.slice(0, CP_TIPOS_VISIBLES);
-  const dentro = conUso.slice(CP_TIPOS_VISIBLES).concat(fuera);
-  // Si el tipo elegido está plegado, el desplegable se abre solo: si no, el
-  // agente ve la lista filtrada y ningún chip encendido, y parece un fallo.
-  if(CP_TIPO && dentro.some(x => x.t === CP_TIPO)) CP_MAS_ABIERTO = true;
-  const chip = x => `<button class="cp-f ${CP_TIPO===x.t?'on':''} ${x.n?'':'vacio'}" data-t="${x.t}">${cpTipoLabel(x.t)} ${x.n}</button>`;
-  $('#cpFiltrosTipo').innerHTML =
-    `<span class="sui-eje">${lwT('Tipo')}</span>` +
-    `<button class="cp-f ${CP_TIPO===''?'on':''}" data-t="">Todos ${CP_ROWS.length}</button>` +
-    arriba.map(chip).join('') +
-    (dentro.length
-      ? `<button class="cp-f cp-mas" data-mas="1" aria-expanded="${CP_MAS_ABIERTO}">${
-           CP_MAS_ABIERTO ? 'Menos ▴' : 'Más ' + dentro.length + ' ▾'}</button>`
-        + (CP_MAS_ABIERTO ? dentro.map(chip).join('') : '')
-      : '');
-  $('#cpFiltrosEstado').innerHTML = `<span class="sui-eje">${lwT('Estado')}</span>` + CP_ESTADOS.map(([k,l,prueba]) => {
-    const n = CP_ROWS.filter(prueba).length;
-    return `<button class="cp-f ${CP_ESTADO===k?'on':''} ${n?'':'vacio'}" data-e="${k}">${l} ${n}</button>`;
-  }).join('');
-}
-function aplicarCpFiltros(){
-  const q = $('#cpSearch').value.trim().toLowerCase();
-  const pruebaEstado = (CP_ESTADOS.find(e => e[0] === CP_ESTADO) || CP_ESTADOS[0])[2];
-  renderCpList(CP_ROWS
-    .filter(r => !CP_TIPO || r.tipo === CP_TIPO)
-    .filter(pruebaEstado)
-    .filter(r => lwBuscaEn([r.numero,r.nombre_contrato,r.comprador_nombre,r.proyecto_nombre,r.creado_por,autorVisible(r.creado_por)], q)));
-}
-$('#cpFiltrosTipo').addEventListener('click', e => {
-  // «Más/Menos» solo despliega: no cambia el filtro ni la lista de abajo.
-  const mas = e.target.closest('[data-mas]');
-  if(mas){ CP_MAS_ABIERTO = !CP_MAS_ABIERTO; pintarCpFiltros(); return; }
-  const b = e.target.closest('[data-t]'); if(!b) return;
-  CP_TIPO = b.dataset.t; pintarCpFiltros(); aplicarCpFiltros();
-});
-$('#cpFiltrosEstado').addEventListener('click', e => {
-  const b = e.target.closest('[data-e]'); if(!b) return;
-  CP_ESTADO = b.dataset.e; pintarCpFiltros(); aplicarCpFiltros();
-});
+/* Quién está trabajando: lo fija init() con la sesión y lo usan el editor y sus
+   avisos. Vivía junto al listado clásico «Contratos guardados», retirado el
+   28-sep-2026 (LAW-391): el listado es /intranet/v4/contratos/. */
+let MI_EMAIL = '', MI_FICHA = null, MI_ROL = null;
 
 /* `contratos.creado_por` guarda el EMAIL, y así se queda: es la identidad con
    la que la RLS decide quién puede editar su propio documento (`es_suyo()`
@@ -5240,148 +5304,17 @@ async function cargarEquipo(){
   (data || []).forEach(u => { if(u.nombre) EQUIPO[u.email] = u.nombre; });
 }
 const autorVisible = e => (EQUIPO && EQUIPO[e]) || e || '—';
-/* Qué contratos contradicen a la ficha de su comprador. Se pide UNA vez al
-   cargar el panel, no una consulta por fila, y si falla la lista se pinta igual:
-   es un aviso, no un requisito (19-ago-2026). */
-let DIVERGEN_CONTRATOS = new Map();
-function renderCpList(rows){
-  const list=$('#cpList');
-  if(!rows.length){
-    // distinguir "no hay nada guardado" de "los filtros lo esconden todo": lo
-    // segundo con el mensaje de lo primero manda a buscar un dato que sí existe
-    const filtrando = CP_TIPO || CP_ESTADO || $('#cpSearch').value.trim();
-    list.innerHTML = '<p class="cp-empty">' + (filtrando
-      ? 'Ningún contrato coincide con el filtro.' : 'Sin contratos guardados.') + '</p>';
-    return;
-  }
-  list.innerHTML = rows.map(r=>`
-    <div class="cp-row" data-id="${r.id}">
-      <span class="cp-num" data-l="Nº" title="${r.bloqueado?'Bloqueado — PDF firmado ya subido':''}">${r.bloqueado?'🔒 Bloqueado · ':''}${r.numero||'—'}</span>
-      <span data-l="Tipo">${cpTipoLabel(r.tipo)}</span>
-      <span data-l="Comprador">${escAttr(r.nombre_contrato||r.comprador_nombre||'—')}${
-        DIVERGEN_CONTRATOS.has(r.id)
-          ? ' <span class="sui-tag alerta" title="Dice algo distinto de la ficha de su comprador — ábrelo para traer los datos">Ficha ≠</span>'
-          : ''}</span>
-      <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
-      <span data-l="Precio">${r.precio_total ? esc(lwFormatoImporte(Number(r.precio_total), r.moneda)) : '—'}</span>
-      <span data-l="Fecha">${r.fecha_firma||''}</span>
-      <span data-l="Creado por" title="${escAttr(r.creado_por||'')}">${escAttr(autorVisible(r.creado_por))}<span class="cp-autoria"></span></span>
-      <span>${puedeBorrar(r) ? `<button type="button" class="cp-del" data-del="${r.id}" title="Borrar contrato">✕</button>` : ''}</span>
-    </div>`).join('');
-  montarAutoria(rows);
-}
 
-/* Reasignar autor: solo lo ve el super_admin (assets/autoria.js decide). Un
-   contrato bloqueado no se puede reatribuir porque la policy de UPDATE exige
-   `bloqueado = false`; se dice ahí mismo en vez de fallar al pulsar. */
-function montarAutoria(rows){
-  if(!window.LW_AUTORIA || !LW_AUTORIA.puede(MI_FICHA)) return;
-  rows.forEach(r => {
-    const slot = $('#cpList').querySelector(`.cp-row[data-id="${r.id}"] .cp-autoria`);
-    LW_AUTORIA.montar(slot, { sb, ficha:MI_FICHA, tabla:'contratos', filaId:r.id,
-      actual:r.creado_por, editable:!r.bloqueado,
-      motivoNoEditable:'Contrato bloqueado: el PDF firmado ya está subido y la base de datos no admite cambios sobre él.',
-      onCambio:(nuevo) => { r.creado_por = nuevo; aplicarCpFiltros(); toast(lwT('Autor reasignado a ') + autorVisible(nuevo)); } });
-  });
-}
-/* ---------- borrar un contrato (31-jul-2026) ----------
-   Regla del owner: el super admin borra cualquiera; cada operador, LOS SUYOS y
-   solo si no están bloqueados. Bloqueado = firmado y sellado, y ahí ya no es un
-   borrador que alguien se equivocó al crear: es un documento con un PDF firmado
-   y su registro de firma.
-   Esto decide qué botón se PINTA. Quien manda de verdad es la policy de DELETE
-   de la RLS (contracts/sql/borrado_y_enlaces.sql), que repite la misma condición
-   en la base — esconder un botón no impide nada a quien abra la consola. */
-let MI_ROL = null;   // MI_EMAIL ya lo declara el panel de guardados (línea ~2410)
-function puedeBorrar(r){
-  if(MI_ROL === 'super_admin') return true;
-  return !r.bloqueado && !!r.creado_por && r.creado_por === MI_EMAIL;
-}
-/* 23-sep-2026: el DELETE a pelo rompía en cuanto el contrato tenía una factura
-   viva posterior al 12-ago (el SET NULL de la FK choca con el CHECK
-   facturas_contrato_obligatorio), dejaba huérfanos sus anexos y fallaba con
-   comisiones devengadas (FK sin ON DELETE). Se borra por borrar_operacion(), la
-   misma RPC de /intranet/operaciones/: anula las facturas antes de soltarlas,
-   se lleva los anexos, purga comisiones y repite en la base la regla de quién
-   puede borrar. */
-async function borrarContrato(id){
-  const r = (CP_ROWS || []).find(x => x.id === id) || {};
-  const [anx, fac] = await Promise.all([
-    sb.from('contratos').select('id', { count:'exact', head:true }).eq('contrato_padre_id', id),
-    sb.from('facturas').select('id', { count:'exact', head:true }).eq('contrato_id', id).eq('anulada', false),
-  ]);
-  const nAnx = anx.count || 0, nFac = fac.count || 0;
-  const ok = await lwConfirmar({
-    titulo: 'Borrar el contrato ' + (r.numero || 'sin nº'),
-    cuerpo: '<p>' + lwT('Se van con él') + ' <b>' + lwT('sus firmas y sus compradores enlazados') + '</b>'
-          + (nAnx ? ', ' + lwT('y sus anexos') + ' (<b>' + nAnx + '</b>)' : '') + '.</p>'
-          + (nFac ? '<p>' + lwT('Sus facturas') + ' (<b>' + nFac + '</b>) ' + lwT('no se borran: quedan') + ' <b>' + lwT('anuladas') + '</b>, ' + lwT('para no dejar huecos en la serie.') + '</p>' : '')
-          + '<p>' + lwT('Las unidades') + ' <b>no</b> ' + lwT('se borran: se quedan sin el vínculo.') + '</p>'
-          + '<p>' + lwT('No hay papelera.') + '</p>',
-    confirmar: 'Borrar ' + (r.numero || 'el contrato'),
-    tono: 'peligro',
-  });
-  if(!ok) return;
-  try{
-    const { data, error } = await sb.rpc('borrar_operacion', { p_contrato_id: id });
-    if(error) throw error;
-    if(!data || !data.contratos_borrados) throw new Error('no tienes permiso para borrar este contrato');
-    if(SAVED_CONTRACT && SAVED_CONTRACT.id === id){ SAVED_CONTRACT = null; PDF_SALIO = false; updateSaveButton(); }
-    toast(lwT('Contrato ') + (r.numero || '') + ' borrado');
-    await openContractsPanel();
-  }catch(e){ toastMal(lwT('No se pudo borrar: ') + (e.message || e)); }
-}
-
-// el buscador se combina con los chips (no los pisa): ver aplicarCpFiltros
-$('#cpSearch').addEventListener('input', aplicarCpFiltros);
-$('#cpList').addEventListener('click', async e=>{
-  const del = e.target.closest('[data-del]');
-  if(del){ e.stopPropagation(); await borrarContrato(del.dataset.del); return; }
-  const row=e.target.closest('.cp-row'); if(!row) return;
-  $('#cpOverlay').classList.remove('open');
-  pantallaC('editor', 'contrato=' + encodeURIComponent(row.dataset.id));
-  await openSavedContract(row.dataset.id);
-});
-
-/* ── pantalla: listado o editor (2a, 6-ago-2026) ─────────────────────────
-   Cada vista con su URL, la norma del estudio:
-     /contracts/            el listado (la entrada)
-     /contracts/?nuevo=1    el editor en blanco (lo que era la entrada)
-     /contracts/?contrato=<uuid>  ese contrato abierto (el nombre ya
-                                    existia: lo usa el enlace de Operaciones)
-   `replaceState`: dentro de la herramienta se salta mucho entre lista y editor,
-   y llenar el historial dejaria el boton atras inutil. */
-function pantallaC(cual, params){
-  document.body.classList.toggle('modo-listado', cual === 'listado');
-  // el modal viejo de "Contratos guardados" se abre via openContractsPanel() y
-  // solo se cerraba con #cpClose: si no se sincroniza aqui, se queda .open al
-  // saltar a "+ Nuevo contrato" y tapa el editor entero (bug 6-ago).
-  $('#cpOverlay').classList.toggle('open', cual === 'listado');
-  $('#btnContracts').hidden = cual !== 'editor';
-  $('#btnNuevoC').hidden = cual !== 'listado';
-  if(params !== undefined){
-    try{ history.replaceState(null, '', location.pathname + (params ? '?' + params : '')); }catch(_){}
-  }
-  if(cual === 'listado') openContractsPanel();
-}
+/* Cada vista con su URL, la norma del estudio: /contracts/?nuevo=1 es el editor en
+   blanco y /contracts/?contrato=<uuid> ese contrato abierto (lo usa Operaciones).
+   El listado no vive aquí: es /intranet/v4/contratos/ (el clásico se retiró el
+   28-sep-2026 con su cambio de pantalla, LAW-391). */
 $('#btnContracts').addEventListener('click', () => {
-  // Con la cara v4 el listado es el de la v4, no el de aquí: dos listados es
-  // la duplicación que prohíbe el stub v4/generador-contratos/ (assets/piel.js).
-  if(window.LW_PIEL === 'v4'){ location.href = '/intranet/v4/contratos/'; return; }
-  pantallaC('listado', '');
+  // El listado es el de la v4, no el de aquí: dos listados es la duplicación
+  // que prohíbe el stub v4/generador-contratos/ (assets/piel.js). Desde el
+  // 27-sep-2026 sin condición: la cara clásica se retiró.
+  location.href = '/intranet/v4/contratos/';
 });
-// "+ Nuevo contrato" solo cambiaba de pantalla, sin reconstruir nada: si antes
-// se había abierto otro contrato, su formulario (adquirientes, anexos,
-// cláusulas, campos ya rellenados) se quedaba tal cual en pantalla, solo que
-// ahora parecía un borrador en blanco. resetBorrador() + buildForm() lo dejan
-// realmente en blanco — mismo tipo de plantilla que hubiera puesto (CURRENT
-// no cambia), pero sin nada del contrato anterior.
-$('#btnNuevoC').addEventListener('click', () => {
-  resetBorrador(CURRENT.slug);
-  buildForm();
-  pantallaC('editor', 'nuevo=1');
-});
-$('#cpClose').addEventListener('click', ()=> $('#cpOverlay').classList.remove('open'));
 
 /* Marca visual persistente en un campo (hallazgo Legal, 12-ago): borde/fondo
    de aviso + una nota debajo, que sobrevive aunque el toast ya se haya
@@ -5513,7 +5446,9 @@ async function openSavedContract(id){
      Es la lección que este mismo bloque ya aprendió doce líneas más abajo, donde
      AUTO_ANX y AUTO_MASTER se ponen a cero SIN condición y el comentario explica
      por qué. No había llegado a sus vecinas. */
-  ANNEXES = (d.annexes || []).map(sinPaginas); saveAnnexes(); rebuildAnnex();
+  // LAW-78: los subidos a mano del archivo llegan como ficha y quedan «cargando» hasta que
+  // cargaAnexosAlmacen() baja sus páginas (se lanza abajo, con SAVED_CONTRACT ya puesto).
+  ANNEXES = normalizaAnexos(d.annexes); saveAnnexes(); rebuildAnnex();
   // 23-sep-2026: sin rebuildClause() el artículo añadido (CC00105 «Art. 17»)
   // salía en el documento pero no en el panel para editarlo; y sin resincronizar
   // clauseSeq, el siguiente «+ Añadir artículo» repetía id (cl1) y editaba los dos.
@@ -5562,6 +5497,8 @@ async function openSavedContract(id){
      es lo correcto para una fila antigua sin la clave. */
   const plantillaConHitos = SECTIONS.some(s => s.special === 'hitos');
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : (plantillaConHitos ? HITOS : []);
+  // Forma de pago: la guardada, o —contratos de antes del 28-sep— la que dicen sus hitos, con la misma regla que la base
+  CALENDARIO = CONTRACT_TIPO[CURRENT.slug] === 'construccion' ? (d.calendario || calendarioDeduce(HITOS)) : null;
   // Techo/extras: mismo caso que HITOS, SIN `if` delante (17-ago, ver arriba) —
   // una fila vieja sin la clave no se queda con la elección del contrato
   // anterior. `TECHO_MODELO_HECHO = null` fuerza a refrescar TECHOS_OPCIONES/
@@ -5610,6 +5547,9 @@ async function openSavedContract(id){
   UNIDAD_ID_CONSTRUCCION = data.unidad_id || null;
   await syncUnidadConstruccion();
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
+  // sin await: el contrato se enseña ya y los anexos se pintan al llegar. Lo que falle dentro
+  // ya queda en el panel; esto es para lo imprevisto, que tampoco puede pasar callado.
+  CARGA_ANEXOS = cargaAnexosAlmacen(data.id).catch(e => toastMal('No se han podido cargar los anexos: ' + ((e && e.message) || 'error')));
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   PDF_SALIO = false;   // lo relee cargarEstadoFirma(); nunca se hereda del contrato anterior
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
@@ -5936,6 +5876,14 @@ async function derivarContrato(slug){
      explícitamente). Encontrado al verificar en producción, 24-ago-2026. */
   await syncUnidadConstruccion();
   if(hitos) HITOS = hitos;   // mismo tipo: su calendario, con fechas de hoy. Distinto: el plan del tipo destino, que loadTemplate ya puso.
+  /* Construcción derivada (28-sep-2026): la forma de pago viaja, pero un contrato nuevo no puede nacer «a mano»
+     (libre) ni —si no eres admin— «a medida»: esos arrancan con el estándar. El pago único a la firma arranca
+     otra vez a firma + 14: su fecha era de la operación vieja. */
+  if(hitos && CONTRACT_TIPO[slug] === 'construccion'){
+    CALENDARIO = calendarioDeduce(HITOS);
+    if(CALENDARIO === 'libre' || (CALENDARIO === 'manual' && !puedeHitosFijos())){ CALENDARIO = 'estandar'; HITOS = presetCalendario('estandar'); }
+    if(CALENDARIO === 'unico_firma' && HITOS[0]) HITOS[0].fecha = sumaDiasISO(fechaFirmaISO(), 14);
+  }
   // Cuentas del proyecto, parcela máster, resort, ubicación, apoderado
   // Hak Sewa/POA, moneda-vs-techo… todo lo que openSavedContract() ya
   // reaplica al reabrir un contrato guardado y que aquí no corría desde
@@ -6094,6 +6042,8 @@ $('#emClose').addEventListener('click', ()=> $('#emOverlay').classList.remove('o
 
 async function enviarEmail(){
   if(!SAVED_CONTRACT){ toastMal(lwT('Guarda el contrato antes de enviarlo')); return; }
+  // al comprador no sale un documento con una página de anexo que falta (LAW-78)
+  if(!anexosListos('enviarlo')) return;
   const to=$('#emTo').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toastMal(lwT('Email de destinatario no válido')); return; }
   const file=$('#emFile').files[0];
@@ -6300,22 +6250,60 @@ $('#fmGen').addEventListener('click', async ()=>{
      dentro. Bloquea mientras carga; si la tipología no trajo pack, avisa y deja
      decidir (Dream/Dune/Trinity/Temple se suben a mano y eso es legítimo). */
   if(AUTO_CARGA){ toastMal(lwT('Espera: se está preparando el anexo de ')+AUTO_CARGA); return; }
+  /* Anexos subidos a mano (LAW-78): el documento firmado EMBEBE sus imágenes, así que una
+     página que falta o cuya huella no cuadra no puede salir a firma con un hueco. */
+  const anxMal = problemasAnexos(ANNEXES, { soloIncluidos:true });
+  if(anxMal.length){ toastMal('No se puede enviar a firma: ' + anxMal.join('; ')); return; }
+  /* SE GUARDA ANTES DE ENVIAR (LAW-410, revisión de código 28-sep-2026). El documento que se firma lo monta
+     esta pantalla, pero la constancia «sin anexo» la deduce la base del contrato GUARDADO: con cambios sin
+     guardar (un anexo apagado, otro techo) las dos dirían cosas distintas. Al ARRANCAR la cadena (nadie ha
+     firmado y no hay enlace vivo) se guarda por el camino normal —con todos sus frenos— y si no queda
+     guardado, no se envía. Con un enlace vivo el contrato está en solo lectura (semibloqueo) y guardar lo
+     rechazaría; con firmas ya recogidas el documento es el de firma-submit: en los dos casos no hay nada que
+     guardar. El estado se relee del servidor, no se decide con lo que creía la pantalla. */
+  if(FIRMA_NEXT.firmados===0){
+    await cargarEstadoFirma();
+    if(EN_FIRMA.vivas + EN_FIRMA.firmadas === 0){
+      const guardado = await guardarContrato();
+      // sin toast propio: guardarContrato() ya ha dicho por qué no guarda, y un segundo toast lo pisaría
+      if(guardado !== true) return;
+    }
+  }
   const tipSel = (document.querySelector('[name="tipologia_construccion"]')||{}).value;
-  /* En Construcción el Anexo Maestro es el ÚNICO anexo y la plantilla remite a él
+  /* HISTORIA: en Construcción el Anexo Maestro era el ÚNICO anexo y la plantilla remite a él
      («Anexo Especificaciones Técnicas»). El 25-sep-2026 (revisión previa #86) sin
      él no salía a firma; el 27-sep-2026 el owner lo revierte: «si no hay anexo,
      que deje mandar igual» — hay modelos que aún no tienen plano subido y la venta
      no puede esperar. Queda un aviso que obliga a decidirlo, no un bloqueo.
-     Lo de un anexo manual retirado sí sigue bloqueando: es otra cosa (que lo
-     firmado y lo guardado digan lo mismo). */
-  if(tipSel && ANEXO_MANUAL_RETIRADO){ toastMal(lwT('Guarda el contrato antes de enviarlo a firma: se ha retirado un anexo subido a mano')); return; }
-  if(tipSel && !ANNEXES.some(a=>a.auto && a.on && a.pages && a.pages.length)){
+     Los anexos subidos a mano vuelven a valer en Construcción (owner, 27-sep). */
+  /* Desde el 27-sep-2026 van TODOS los documentos del modelo marcados «Se incluye
+     automáticamente en el contrato» (documento_anexos.js). Dos casos piden decidirlo:
+     no sale ninguno, o uno marcado no se ha podido adjuntar (AUTO_AVISO rojo): con
+     varios, que otro sí cargara no puede tapar el que falta. */
+  const autoMal = AUTO_AVISO && AUTO_AVISO.mal && AUTO_AVISO.clave === AUTO_ANX;
+  /* «Enviar igualmente» deja CONSTANCIA (owner, 28-sep-2026): quién, cuándo y qué faltaba, en el historial
+     del contrato. La apunta la base en la MISMA transacción que el envío (ficheros-contrato →
+     contrato_envia_firma, LAW-406): si no se puede apuntar, no sale el enlace y llega el error.
+     Desde LAW-410 la base DEDUCE ella qué falta en un contrato de obra (con el contrato guardado) y apunta la
+     constancia aunque esta pantalla no mande nada: lo de aquí solo SUMA lo que ella no ve (un PDF marcado que el
+     navegador no pudo descargar o convertir). */
+  let sinAnexo = null;
+  /* El contrato de Construcción CITA el Apéndice A – Planos (Legal, 28-sep-2026: es el único apéndice
+     vinculante). Sin él se puede enviar igualmente (owner, 28-sep), pero se dice en llano y queda constancia. */
+  const conAutos = ANNEXES.some(a=>a.auto && a.on && a.pages && a.pages.length);
+  const sinApendiceA = !ANNEXES.some(a=>a.auto && a.on && a.tipo === 'plano' && a.pages && a.pages.length);
+  if(tipSel && (autoMal || sinApendiceA)){
     const seguir = await lwConfirmar({
-      titulo: 'Sin Anexo Maestro',
-      cuerpo: '<p>' + lwT('Este contrato de Construcción sale sin el Anexo Maestro (planos y especificaciones), y la plantilla remite a él.') + '</p>'
-            + '<p class="em-note">' + lwT('Si lo tienes, pídeselo a administración (Modelos → Documentos, tipo Plano) o actívalo en Anexos.') + '</p>',
-      confirmar: 'Enviar igualmente', cancelar: 'Cancelar' });
+      titulo: lwT(autoMal ? 'Falta un documento del contrato' : 'Sin Apéndice A (planos)'),
+      cuerpo: autoMal
+        ? '<p>' + escAttr(AUTO_AVISO.texto) + '</p>'
+        : '<p>' + lwT('Este contrato cita el Apéndice A – Planos Arquitectónicos y no lo lleva.') + '</p>'
+          + '<p class="em-note">' + lwT('Si el modelo tiene plano, pídele a administración que lo marque (Modelos → Documentos → Editar, casilla «Se incluye automáticamente en el contrato», con su techo), o actívalo en Anexos si está apagado.') + '</p>',
+      confirmar: lwT('Enviar igualmente'), cancelar: lwT('Cancelar') });
     if(!seguir) return;
+    sinAnexo = autoMal ? { motivo:'fallo', faltan:(AUTO_AVISO.faltan || [AUTO_AVISO.texto]).slice(0, 20) }
+             : conAutos ? { motivo:'sin_apendice_a', faltan:['Apéndice A – Planos Arquitectónicos'] }
+             : { motivo:'ninguno', faltan:[] };
   }
   const btn=$('#fmGen'); btn.disabled=true; btn.textContent='Generando…';
   const ROL = FIRMA_NEXT.rol;
@@ -6342,26 +6330,42 @@ $('#fmGen').addEventListener('click', async ()=>{
        y crea el nuevo en UNA transacción, con el token generado allí (antes lo generaba esta
        pantalla y eran dos llamadas sueltas). firma-submit se niega a firmar si el documento ya
        no es el que se envió. */
+    /* LAW-411 (28-sep-2026): la subida va a una ruta de ESPERA con su propio nonce, y la edge la pasa a la
+       fija solo si el enlace se crea; aquí se le devuelve esa ruta (`subida`) para que firme ESTE documento y
+       no el de otro agente que esté enviando el mismo contrato a la vez. */
+    let subida = null;
     if(FIRMA_NEXT.firmados===0){
       const u = await ficheros('snapshot_url', { contrato_id: SAVED_CONTRACT.id });
       const up = await sb.storage.from('contratos-firmados').uploadToSignedUrl(u.path, u.token,
         new Blob([buildSnapshot()],{type:'text/html'}), { contentType:'text/html' });
       if(up.error) throw up.error;
+      subida = u.path;
     }
     /* enlace_firma (1-sep-2026, decisión del owner): se guarda el enlace CON
        el token en claro para que /portal/ lo enseñe al comprador — ahora lo
        guarda la base. portal_situacion() solo lo expone mientras estado='pendiente'. */
-    const env = await ficheros('envia_firma', { contrato_id: SAVED_CONTRACT.id,
-      nombre, email, rol: ROL, orden: FIRMA_NEXT.orden });
+    const env = await ficheros('envia_firma', Object.assign({ contrato_id: SAVED_CONTRACT.id,
+      nombre, email, rol: ROL, orden: FIRMA_NEXT.orden }, sinAnexo ? { sin_anexo: sinAnexo } : {},
+      subida ? { subida } : {}));
     const link = env.link;
     const anulados = env.anulados || 0;
     if(anulados) toast(anulados === 1 ? 'El enlace anterior queda anulado'
                                       : anulados + ' enlaces anteriores quedan anulados');
+    /* Tolerancia de despliegue (LAW-406): la edge anterior a la constancia atómica aún puede responder ok
+       con este aviso si no pudo apuntarla. La actual nunca lo manda; se puede quitar cuando la edge nueva
+       lleve un día en producción. Otro aviso que llegue se enseña tal cual, no se confunde con este. */
+    if(env.aviso === 'constancia_sin_anexo_no_apuntada')
+      toastMal(lwT('Enlace generado, pero no se ha podido apuntar en el historial que sale sin anexo: avisa a administración'));
+    else if(env.aviso) toastMal(String(env.aviso));
     $('#fmLink').value=link;
     $('#fmMsg').value='Hola'+(nombre?' '+nombre:'')+', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: '+link
       +'\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties';
     FIRMA_ENVIO = { to:email, link:link };   // lo consumen WhatsApp y "Enviar por email"
     $('#fmResult').style.display='';
+    // owner 28-sep: tras generar había que hacer scroll para llegar a «Enviar por email»; el
+    // modal ya crece hasta casi la pantalla (suite-v4-generador.css) y, si aun así no cabe,
+    // se baja solo hasta los botones.
+    try{ $('#fmMail').scrollIntoView({block:'nearest'}); }catch(e){}
     // generar el enlace deja el contrato en solo lectura EN EL ACTO: a partir de
     // aquí el comprador puede firmar en cualquier momento, así que editar sin
     // anular sería la carrera que este semibloqueo existe para cerrar
@@ -6429,7 +6433,8 @@ const REG_EVT = { creado:['Creado',''], editado:['Editado',''],
   firma_abierta:['Enlace abierto por el firmante','activo'], firma_recogida:['Firma recogida','firmado'],
   firma_anulada:['Firma anulada','malo'], firmado_del_todo:['Contrato cerrado (firmado)','firmado'],
   desbloqueado:['Contrato reabierto','malo'], traspaso:['Colgado de su Bloqueo',''],
-  pdf_descargado:['PDF descargado',''] };
+  pdf_descargado:['PDF descargado',''],
+  envio_sin_anexo_confirmado:['Enviado a firma sin un anexo del modelo (confirmado)','malo'] };
 function regDetalleEvt(d){
   d = d || {}; const t = [];
   if(Array.isArray(d.campos) && d.campos.length)
@@ -6439,6 +6444,16 @@ function regDetalleEvt(d){
   if(d.de) t.push(esc(d.de) + ' → ' + esc(d.a || ''));
   if(d.colgado_de) t.push('de ' + esc(d.colgado_de));
   if(d.via) t.push(esc(d.via));
+  /* Constancia «sin anexo» (LAW-406/LAW-410): desde el 28-sep la deduce la base con el contrato guardado
+     (`declarado_por`: servidor | pantalla | ambos) y `faltan` es la lista real con cualquier motivo, así que se
+     pinta siempre que venga; `nota` dice cuándo el modelo ni se pudo resolver (no es «no tenía nada»). */
+  if(d.motivo === 'ninguno') t.push(d.nota === 'modelo_no_encontrado' ? 'el modelo del contrato no está en el catálogo de Modelos'
+    : d.nota === 'modelo_repetido' ? 'hay varios modelos con ese nombre y no se pudo comprobar'
+    : 'el modelo no tenía nada marcado para el contrato');
+  if(d.motivo === 'sin_apendice_a') t.push('salió sin el Apéndice A (planos), que el contrato cita');
+  const faltan = Array.isArray(d.faltan) && d.faltan.length ? d.faltan : null;
+  if(d.motivo === 'fallo' || (d.motivo && faltan)) t.push('faltaba: ' + (faltan ? faltan.map(esc).join('; ') : '—'));
+  if(d.motivo && d.declarado_por === 'servidor') t.push('lo detectó el sistema');
   return t.join(' · ');
 }
 const regFecha = iso => iso ? new Date(iso).toLocaleString('es-ES',
@@ -6815,7 +6830,7 @@ async function init(){
   if(MI_FICHA && MI_FICHA.rol === 'agente' && !plantillasOfrecidas().some(t => CONTRACT_TIPO[t.slug])){
     toastMal(lwT('No tienes ningún tipo de contrato asignado. Pídeselo a un administrador antes de empezar.'));
   }
-  MI_EMAIL = session.user.email || '';   // lo usa el filtro "Míos" del panel de guardados
+  MI_EMAIL = session.user.email || '';
   // El rol sale de la ficha que se acaba de leer tres líneas arriba: no hace
   // falta una segunda consulta para lo mismo. Decide si se PINTA el botón de
   // borrar; quien manda es la policy de DELETE de la RLS.
@@ -6915,7 +6930,6 @@ async function init(){
   const par = new URLSearchParams(location.search);
   const pedido = par.get('contrato');
   if(pedido){
-    pantallaC('editor');
     await openSavedContract(pedido);
     /* ?borrador=1 — «Descargar borrador» de la ficha de la v4 (25-sep-2026):
        abre el contrato y saca el diálogo de impresión del borrador. Se quita
@@ -6923,7 +6937,8 @@ async function init(){
     if(par.get('borrador') === '1'){
       par.delete('borrador');
       try{ history.replaceState(null, '', location.pathname + '?' + par.toString()); }catch(_){ /* MUDO A PROPOSITO: sin historial (iframe, file:) solo queda el parametro en la barra; el borrador sale igual */ }
-      if(SAVED_CONTRACT) imprimirBorrador();
+      // los anexos del archivo llegan después de abrir: sin esperar, el borrador salía con huecos (LAW-78)
+      if(SAVED_CONTRACT){ await CARGA_ANEXOS; imprimirBorrador(); }
     }
   } else if(par.has('nuevo') || par.has('cliente') || par.has('lead')){
     // recargar esta URL directamente (F5, o entrar por ella a pelo) es una
@@ -6953,14 +6968,25 @@ async function init(){
        CRM resuelve antes la ficha del comprador (sin ella este editor no deja guardar).
        Si alguien llega aquí con `?lead=` a pelo, esto solo apunta el origen. */
     LEAD_ID = par.get('lead') || null;
-    pantallaC('editor');
+    /* ASISTENTE DE NUEVO CONTRATO (F7, 30-sep-2026) — `?nuevo=1&asistente=1`.
+       Una capa encima de ESTE editor (assets/asistente-contrato.js), no otra
+       página: pregunta lo mínimo y rellena el mismo formulario. Sin el
+       parámetro no existe: ?nuevo=1 a pelo es el formulario de siempre.
+       `asistente_cliente` es la vuelta del alta de /v4/compradores/ (solo el
+       uuid de la ficha recién creada). */
+    if(par.get('asistente') === '1' && window.lwAsistente){
+      await window.lwAsistente.abrir({ clienteNuevo: par.get('asistente_cliente') || null });
+    }
     // «Borrador en blanco» de /v4/contratos/ (25-sep-2026): se elige el tipo y se descarga
     if(par.get('borrador') === 'blanco'){
       const bb = $('#btnBorrador'); if(bb) bb.classList.add('primary');
       toast(lwT('Elige el tipo de contrato arriba y pulsa «Descargar borrador»'));
     }
   } else {
-    pantallaC('listado');
+    // Sin puerta de editor piel.js ya redirigió antes de pintar; esto es la red
+    // por si algún día se carga sin él. El listado es el de la v4 (el clásico
+    // se retiró el 28-sep-2026, LAW-391).
+    location.replace('/intranet/v4/contratos/');
   }
   } finally {
     // recién decidido listado/editor arriba (o reventado a medio decidir):

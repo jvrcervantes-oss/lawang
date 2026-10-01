@@ -27,13 +27,20 @@ function saveDesign(){ try{ localStorage.setItem('lawang_contract_design_'+CURRE
    "Guardar como diseño de esta plantilla" lo sube (solo administración desde el
    27-sep-2026); cualquier agente que abra ese tipo de contrato lo recibe como
    punto de partida. */
+const DISENO_SIN_LEER = {};
 async function loadSharedDesign(slug){
   if(!sb) return null;
-  const { data } = await sb.from('contratos_diseno').select('design').eq('slug', slug).maybeSingle();
-  return data ? data.design : null;
+  // por el servidor (LAW-338 L2, 28-sep-2026). Si no contesta se DICE: sin aviso, el documento saldría con el
+  // diseño de este navegador creyendo que es el de la plantilla.
+  const { data, error } = await window.lwDatos('contrato_diseno_datos', { p_slug: slug });
+  // se recuerda por plantilla: guardar como diseño de la plantilla un diseño que no se pudo leer PISARÍA el bueno
+  DISENO_SIN_LEER[slug] = !!error;
+  if(error){ toastMal('No se pudo leer el diseño guardado de esta plantilla: se usa el de este navegador. Recarga antes de enviar el documento.'); return null; }
+  return data && data.design ? data.design : null;
 }
 async function saveSharedDesign(){
   if(!sb) return;
+  if(DISENO_SIN_LEER[CURRENT.slug]){ toastMal('No se guarda: el diseño de esta plantilla no se pudo leer al abrirla y se pisaría. Recarga la página y vuelve a intentarlo.'); return; }
   const btn=$('#btnSaveDesign'); const t0=btn?btn.textContent:'';
   if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
   try{
@@ -324,6 +331,29 @@ function readImg(file, cb){ const r=new FileReader(); r.onload=()=>cb(r.result);
    ANEXOS — se definen (PDF o imágenes → imágenes de página), se marcan
    "incluir" y se añaden al final del contrato como páginas NO editables.
    ============================================================ */
+/* El borrador local solo trae las FICHAS de los anexos automáticos (LAW-78, 27-sep-2026):
+   un anexo subido a mano es del contrato guardado y sale de la base al abrirlo. Hasta ese
+   día la clave llevaba también las páginas en base64 (hasta 5 MB): si queda una así en
+   este navegador se reescribe UNA vez sin ellas, y los manuales se descartan — no hay
+   contrato al que pertenezcan. Ya no hay `annexSeq`: los ids nuevos son `ax-<uuid>`
+   (idAnexoNuevo en documento_anexos.js), porque un id recalculado desde el máximo se
+   reutilizaba al quitar el último anexo. */
 let ANNEXES = loadAnnexes();
-let annexSeq = 1 + ANNEXES.reduce((m,a)=>Math.max(m, parseInt(String(a.id||'').replace('ax',''))||0), 0);
-function loadAnnexes(){ try{ return JSON.parse(localStorage.getItem('lawang_contract_annexes'))||[]; }catch(_){ return []; } }
+function loadAnnexes(){
+  let lista;
+  try{ lista = JSON.parse(localStorage.getItem('lawang_contract_annexes')) || []; }catch(_){ return []; }
+  if(!Array.isArray(lista)) return [];
+  const autos = lista.filter(a => a && a.auto).map(a => ({ ...a, pages:[] }));
+  /* Una vez, al primer arranque tras el cambio: si el borrador sin guardar llevaba anexos subidos a mano,
+     se dice (no desaparecen callados). Tras reescribir la clave ya no vuelve a salir. Espera a `load`:
+     toastMal lo define app.html, que se carga después de este fichero. */
+  const manuales = lista.filter(a => a && !a.auto).length;
+  if(manuales && typeof window !== 'undefined' && window.addEventListener)
+    window.addEventListener('load', () => { if(typeof toastMal === 'function')
+      toastMal('Había ' + (manuales === 1 ? 'un anexo subido a mano' : manuales + ' anexos subidos a mano') + ' en un borrador sin guardar de este navegador: ya no se guardan en el borrador. Si los necesitas, guarda el contrato y vuelve a subirlos.'); }, { once:true });
+  if(autos.length !== lista.length || lista.some(a => a && Array.isArray(a.pages) && a.pages.length)){
+    try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(autos)); }
+    catch(_){ try{ localStorage.removeItem('lawang_contract_annexes'); }catch(_e){ /* MUDO A PROPOSITO: sin localStorage no queda borrador viejo que limpiar */ } }
+  }
+  return autos;
+}

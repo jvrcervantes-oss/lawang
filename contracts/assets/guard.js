@@ -62,11 +62,36 @@
      en el HTML no se puede llamar ni pisa estas propiedades. try: si la página cargara guard.js dos veces, la segunda
      no revienta (la primera ya fijó los mismos valores). */
   function fija(k, v) { try { Object.defineProperty(window, k, { value: v, writable: false, configurable: false, enumerable: true }); } catch (e) {} }
+  /* ¿Pantalla vieja? (LAW-386, 27-sep-2026): un 401/403/404 de Supabase puede ser un permiso que falta
+     o una pestaña con el código de antes de un despliegue. No se decide aquí: se avisa a version.js, que
+     compara la huella de la página con la del servidor. Un evento y no una llamada: guard.js no depende
+     de que version.js haya cargado. */
+  function sospechaVersion(st) {
+    if (st !== 401 && st !== 403 && st !== 404) return;
+    try { window.dispatchEvent(new CustomEvent('lw:version-vieja', { detail: { status: st } })); }
+    catch (e) { /* MUDO A PROPOSITO: sin CustomEvent (navegador viejo) solo se pierde el aviso de versión; la petición sigue su curso */ }
+  }
   fija('LW_SB_URL', URL_SB);
   fija('LW_SB_KEY', KEY_SB);
   fija('lwEdge', function (nombre) {
     if (!/^[a-z0-9-]+$/.test(String(nombre))) throw new Error('lwEdge: nombre de edge no válido');
     return URL_SB + '/functions/v1/' + nombre;
+  });
+  /* Lecturas por el servidor: window.lwDatos(nombre, args) (B10a, 28-sep-2026, revisión previa #136 Desarrollo 2;
+     encargos/20260927_erp_b10_lecturas_a_la_par.md). ÚNICO punto por el que una pantalla pide una RPC `*_datos`:
+     hoy va por PostgREST (`sb.rpc`), y en B10b la ficha (instancia.js) podrá mandarla por otro transporte (la puerta
+     del maestro) cambiando SOLO esta función. Por eso:
+       · solo nombres que acaben en `_datos` — un nombre que no, lanza ANTES de construir la petición, como lwEdge;
+       · devuelve `{data, error}` tal cual, nunca filtros PostgREST encadenados (la puerta no los sabría reproducir);
+       · el cliente es el único de la página (window.LW_SB); si aún no existe, espera a que la puerta lo cree. */
+  fija('lwDatos', function (nombre, args) {
+    if (!/^[a-z][a-z0-9_]*_datos$/.test(String(nombre))) throw new Error('lwDatos: solo RPC *_datos (' + nombre + ')');
+    var cli = window.LW_SB ? Promise.resolve(window.LW_SB)
+      : window.LW_AUTH ? window.LW_AUTH.then(function (a) { return a.sb; })
+      : Promise.reject(new Error('lwDatos: sin cliente de Supabase en esta página'));
+    return cli.then(function (sb) { return sb.rpc(nombre, args || {}); })
+      .then(function (r) { return { data: r.data, error: r.error }; },
+            function (e) { return { data: null, error: e }; });
   });
   /* Ficheros de contratos y cobros por la edge ficheros-contrato (26-sep-2026, LAW-336 pieza 5): la ruta
      la decide el servidor y la subida va por URL firmada; borrar borradores de firma, también el servidor.
@@ -78,6 +103,7 @@
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
         body: JSON.stringify(Object.assign({ accion: accion }, datos || {})) });
     }).then(function (r) {
+      sospechaVersion(r.status);
       return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
     }).then(function (d) {
       if (!d.ok) throw new Error(d.error || 'error del servidor');
@@ -110,6 +136,7 @@
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
         body: JSON.stringify(Object.assign({ accion: accion }, datos || {})) });
     }).then(function (r) {
+      sospechaVersion(r.status);
       return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
     }).then(function (d) {
       if (!d.ok) { var e = new Error(KYC_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; throw e; }
@@ -140,7 +167,9 @@
     tipo_de_fichero_no_admitido: 'Ese tipo de fichero no se admite aquí',
     modelo_invalido: 'Ese modelo no es válido: recarga la página', modelo_no_visible: 'No encuentro ese modelo: recarga la página',
     tipo_de_documento_invalido: 'Tipo de documento no válido',
-    plano_solo_admin: 'El plano (Anexo Maestro del contrato) solo lo sube administración',
+    plano_solo_admin: 'El plano solo lo sube administración',
+    en_contrato_solo_admin: 'Solo administración decide qué va en el contrato: súbelo sin marcar',
+    dosier_no_va_en_el_contrato: 'El dosier es comercial: no va en el contrato',
     destino_invalido: 'Destino de la foto no válido: recarga la página', destino_no_visible: 'No encuentro ese proyecto o modelo: recarga la página',
     solo_admin: 'Esto solo lo hace un administrador',
     fila_no_borrada: 'El fichero se ha quitado, pero su ficha no: vuelve a pulsar «Borrar»',
@@ -158,7 +187,23 @@
     sin_permiso_dossier: 'No tienes permiso para hacer dossiers (te falta la herramienta «Dossier»): pídeselo a administración',
     creatividad_no_borrador: 'Esta creatividad ya no es un borrador: guárdala como copia para seguir cambiándola',
     rol_invalido: 'Ese fichero no va en este tipo de creatividad', falta_el_estado: 'Falta el contenido de la creatividad: vuelve a guardar',
-    estado_no_valido: 'El contenido de la creatividad no se ha podido leer: no se ha guardado, prueba otra vez'
+    estado_no_valido: 'El contenido de la creatividad no se ha podido leer: no se ha guardado, prueba otra vez',
+    // LAW-78 (27-sep-2026): páginas de anexos de contrato
+    contrato_invalido: 'Ese contrato no es válido: recarga la página',
+    contrato_no_guardado: 'No encuentro ese contrato: guárdalo primero (o no es de los tuyos)',
+    contrato_bloqueado: 'Este contrato está enviado a firma o bloqueado: no admite anexos nuevos',
+    sin_permiso_contrato: 'No tienes permiso para añadir anexos a este contrato',
+    anexo_invalido: 'Ese anexo no es válido: recarga la página', pagina_invalida: 'Página de anexo no válida: recarga la página',
+    pagina_demasiado_grande: 'Una página del anexo pesa más de 3 MB: súbelo con menos resolución',
+    // AXW-66 (28-sep-2026): fotos del deck en bucket público solo si el deck está abierto
+    foto_ids_invalidos: 'Petición de fotos no válida: recarga la página',
+    no_se_pudieron_firmar: 'El servidor no ha podido dar las direcciones de las fotos: prueba otra vez',
+    peticion_invalida: 'Petición no válida: recarga la página',
+    cambio_en_curso: 'Ya hay un cambio en curso en el deck de este proyecto: espera un minuto y vuelve a mirar',
+    fotos_sin_mover: 'No se han podido pasar las fotos al público: el deck sigue cerrado. Prueba otra vez',
+    deck_a_medias: 'El cambio del deck ha quedado A MEDIAS (alguna foto no está donde toca). Vuelve a pulsar el botón: repetirlo es seguro',
+    el_deck_cambio_durante_la_subida: 'El deck de este proyecto se ha abierto o cerrado mientras subías: vuelve a subir la foto',
+    sincroniza_apagada_hasta_s4: 'El barrido de fotos del deck todavía no está encendido'
   });
   fija('lwFichero', function (sb, clase, accion, datos) {
     return sb.auth.getSession().then(function (s) {
@@ -167,10 +212,47 @@
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
         body: JSON.stringify(Object.assign({}, datos || {}, { accion: accion, clase: clase })) });
     }).then(function (r) {
+      sospechaVersion(r.status);
       return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
     }).then(function (d) {
-      if (!d.ok) { var e = new Error(FICH_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; throw e; }
+      // `.clave` = el código crudo del servidor: la pantalla decide por él, nunca por el texto traducido
+      if (!d.ok) { var e = new Error(FICH_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; e.clave = d.error; e.aplicado = d.aplicado; e.quedan = d.quedan; throw e; }
       return d;
+    });
+  });
+  /* URL de cada foto del deck, por id (AXW-66, 28-sep-2026; revisión previa #139, DES1/DES2/SEG3). Desde AXW-66 las
+     fotos de proyectos SIN deck abierto viven en el bucket privado `deck-privado`: su URL es firmada (1 h) y la da el
+     servidor (edge `ficheros`, acción `urls`), que saca la ruta de `deck_fotos` y el bucket de `storage.objects` —
+     aquí solo viajan ids. La URL firmada NO se guarda nunca (ni en un estado, ni en localStorage): se pide al pintar.
+     `fotos`: ids, o filas {id, ambito, path}. Una fila de MODELO sigue siendo pública (bucket `deck`) y se resuelve
+     aquí mismo, sin ir al servidor. Lotes de 200 (el tope de la edge) en paralelo.
+     Resuelve {urls: {id: url|null}, caduca_seg}; `null` = la fila existe pero su fichero no. Si el servidor falla,
+     RECHAZA con `.clave = 'urls_fallan'`: la pantalla tiene que decir «no he podido pedirlas», que no es lo mismo
+     que «no hay fotos». */
+  fija('lwFotoUrls', function (sb, fotos) {
+    var urls = {}, pedir = [];
+    (fotos || []).forEach(function (f) {
+      var id = typeof f === 'string' ? f : f && f.id;
+      if (!id || Object.prototype.hasOwnProperty.call(urls, id)) return;
+      if (f && f.ambito === 'modelo' && f.path) { urls[id] = sb.storage.from('deck').getPublicUrl(f.path).data.publicUrl; return; }
+      urls[id] = null;
+      pedir.push(id);
+    });
+    var lotes = [];
+    for (var i = 0; i < pedir.length; i += 200) lotes.push(pedir.slice(i, i + 200));
+    return Promise.all(lotes.map(function (l) {
+      return window.lwFichero(sb, 'deck_foto', 'urls', { foto_ids: l });
+    })).then(function (rs) {
+      var caduca = 3600;
+      rs.forEach(function (r) {
+        Object.keys(r.urls || {}).forEach(function (k) { urls[k] = r.urls[k] || null; });
+        if (r.caduca_seg) caduca = Math.min(caduca, Number(r.caduca_seg) || caduca);
+      });
+      return { urls: urls, caduca_seg: caduca };
+    }, function (e) {
+      var err = new Error('No se han podido pedir las direcciones de las fotos: ' + ((e && e.message) || e));
+      err.clave = 'urls_fallan'; err.causa = e && e.clave;
+      throw err;
     });
   });
   /* Subir un fichero de una clase: pedir la ruta → subir con el content-type que dice el servidor → registrarlo.
@@ -287,6 +369,7 @@
     var p;
     try { p = window.fetch(input, init); } catch (e) { baja(); throw e; }
     return p.then(function (res) {
+      sospechaVersion(res.status);
       // sin cuerpo que leer (los recuentos van por HEAD; 204/304): termina con las cabeceras
       var metodo = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
       if (metodo === 'HEAD' || res.status === 204 || res.status === 205 || res.status === 304) { baja(); return res; }

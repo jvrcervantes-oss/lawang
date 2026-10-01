@@ -55,6 +55,15 @@
       { path: 'reservas', texto: 'Reservas', clave: 'reservas' }] },
     { seccion: 'Documentación', entradas: [
       { path: 'contratos', texto: 'Contratos', clave: 'contratos' },
+      /* Plantillas (AxisWorks ERP, 28-sep-2026, subtarea 6b): solo con AXW_NUCLEO_OPERACION, como Productos.
+         Junto a Contratos y no en el Panel de control: la usa quien hace contratos (es su materia prima), no
+         es un ajuste de la intranet. Escribir exige además admin, y lo decide la base. */
+      { path: 'plantillas', texto: 'Plantillas', clave: 'plantillas', nucleo: true },
+      /* Emitir contrato (AxisWorks ERP, 30-sep-2026, plantillas MVP subtarea M5): emitir desde una versión
+         ACTIVA. Solo con AXW_NUCLEO_OPERACION. Abre con la MISMA casilla que Contratos (la base exige
+         es_agente() y puede('contratos') en contrato_desde_plantilla): `mismaCasilla` le dice a nav.test.js
+         que no es una casilla repetida, y permisosPorMenu (editores.js) ya no pinta dos veces una clave. */
+      { path: 'emitir', texto: 'Emitir contrato', clave: 'contratos', nucleo: true, mismaCasilla: true },
       { path: 'asistente', texto: 'Asistente', clave: 'asistente' },
       { path: 'creatividades', texto: 'Creatividades', claves: [
         { clave: 'dossier', texto: 'crear dossiers' },
@@ -92,9 +101,11 @@
   if (typeof window !== 'undefined') window.LW_MENU_V4 = MENU_V4;
 
   /* Fuera de /intranet/v4/ solo corre si la página lleva la cara v4 puesta
-     (`html.v4`, contracts/assets/piel.js). Hoy es el caso del generador de
-     contratos, que carga este fichero y en su cara clásica no puede tocarle
-     nada: ni rutas, ni idioma, ni el `preventDefault` de los href="#" (23-sep). */
+     (`html.v4`). Hoy son dos: el generador de contratos (la pone
+     contracts/assets/piel.js; en su cara clásica no se le puede tocar nada: ni
+     rutas, ni idioma, ni el `preventDefault` de los href="#", 23-sep) y el CRM
+     (/intranet/leads/, la lleva escrita en su <html> desde el 27-sep-2026). A
+     las dos les monta el menú assets/nav-montaje.js. */
   if (location.pathname.indexOf('/intranet/v4/') === -1 && !document.documentElement.classList.contains('v4')) return;
 
   /* FALLOS QUE VE LA PERSONA (25-sep-2026, owner: «¿puede detectar si ha habido un
@@ -163,7 +174,9 @@
   var CORTINA = { 'comision-admin': 60 };   // 26-sep-2026, owner: de 15 s a 1 minuto
   var CORTINA_V = '20260926a';
   /* mascota.js (el Asistente acoplado) tampoco lo sella sella_assets: sube MASCOTA_V al cambiarlo. */
-  var MASCOTA_V = '20260925d';
+  var MASCOTA_V = '20260930b';
+  /* novedades.js (el pop-up de novedades, 30-sep-2026) tampoco lo sella sella_assets: sube NOVEDADES_V al cambiarlo. */
+  var NOVEDADES_V = '20260930b';
   /* MOVIMIENTO (26-sep-2026, owner: mezcla A+B+D). La entrada de cada pantalla
      vive en assets/motion.js; aquí solo se MARCA `html.lw-mov`, ya, antes de que
      vuelva ninguna consulta, para que shell.css retenga el contenido hasta que
@@ -175,6 +188,12 @@
   var MOTION_V = '114a104b';
   (function () {
     try {
+      /* Solo en /intranet/v4/ (27-sep-2026): la entrada anima `main` cuando datos.js
+         marca `body.lw-listo`, y ni el generador ni el CRM (fuera de la v4, con el
+         menú montado) lo marcan nunca — el observer de motion.js se quedaba
+         esperando para nada. El CRM queda fuera también por decisión (cabecera
+         de motion.js: «es una vertical con diseño propio»). */
+      if (location.pathname.indexOf('/intranet/v4/') === -1) return;
       if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       if (!(document.body && document.body.classList.contains('lw-listo'))) document.documentElement.classList.add('lw-mov');
       var sm = document.createElement('script');
@@ -219,9 +238,10 @@
     ['Usuarios', 'usuarios/'],
     /* Las tres que Stitch no dibujo nunca: nacieron despues de la descarga.
        Se enlazan aqui igual que las demas y se INJERTAN abajo (INJERTOS).
-       CRM sale de la v4 a proposito: conserva su vista propia en /intranet/leads/
-       (owner, 14-sep). Ruta ABSOLUTA, no relativa a ROOT: lo que hay en
-       v4/leads/ es solo una redireccion para los enlaces viejos. */
+       CRM vive fuera de /intranet/v4/ a proposito: conserva su vista propia en
+       /intranet/leads/ (owner, 14-sep), con el menu y la cabecera de la v4 desde
+       el 27-sep-2026 (nav-montaje.js). Ruta ABSOLUTA, no relativa a ROOT: lo que
+       hay en v4/leads/ es solo una redireccion para los enlaces viejos. */
     ['CRM', '/intranet/leads/'],
     ['Comisiones', 'comisiones/'],
     ['Cuentas', 'cuentas/'],
@@ -341,7 +361,7 @@
      el propio catalogo la marca `soloAdmin:true`. */
   var INJERTOS = [
     { path: 'leads',      tras: 'home',     icono: 'person_search',  texto: 'CRM',
-      href: '/intranet/leads/' },   // vista propia: sale de la v4
+      href: '/intranet/leads/' },   // vista propia fuera de /intranet/v4/ (con el cromo v4)
     /* Asistente de respuestas (22-sep-2026, S5 de
        encargos/20260922_lawang_bot_apoyo_agentes.md): tras Contratos, en
        Documentación, como en herramientas.js. OJO: este fichero NO lee el
@@ -364,7 +384,13 @@
     /* Productos (AxisWorks ERP, 26-sep-2026): catálogo de lo que se factura por líneas. `nucleo`: SOLO con
        `window.AXW_NUCLEO_OPERACION` (la enciende el build de las instancias del ERP) — la base de Lawang no
        tiene la tabla y el enlace llevaría a una pantalla vacía. Tras Recibos; es pestaña de «Cobros» (MENU_V4). */
-    { path: 'productos',  tras: 'recibos',  icono: 'inventory_2',    texto: 'Productos', nucleo: true }
+    { path: 'productos',  tras: 'recibos',  icono: 'inventory_2',    texto: 'Productos', nucleo: true },
+    /* Plantillas (AxisWorks ERP, 28-sep-2026): tras Contratos. Va DESPUÉS del Asistente en esta lista a
+       propósito: los dos se cuelgan tras Contratos, y el último en colgarse queda pegado a él. */
+    { path: 'plantillas', tras: 'contratos', icono: 'description',   texto: 'Plantillas', nucleo: true },
+    /* Emitir contrato (30-sep-2026): último de la lista para quedar pegado a Contratos (Contratos · Emitir ·
+       Plantillas · Asistente). Misma bandera que Plantillas: sin núcleo no hay motor de plantillas en la base. */
+    { path: 'emitir',     tras: 'contratos', icono: 'edit_document', texto: 'Emitir contrato', nucleo: true }
   ];
 
   /* "Panel de control" (15-sep-2026, encargo del owner): seccion nueva del
@@ -456,7 +482,7 @@
     contratos: 'contratos', asistente: 'asistente', 'asistente-correos': 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
     facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
-    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos',
+    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos', plantillas: 'plantillas', emitir: 'contratos',
     /* Comunicados y Ajustes llevan clave desde el 27-sep-2026 (la exige también la base:
        migración 20260927040933). Documentación ya NO: vive dentro de Proyectos. */
     comunicacion: 'comunicacion', ajustes: 'ajustes'
@@ -502,6 +528,75 @@
     if (!k || !ficha || ficha.rol === 'super_admin') return true;
     return [].concat(k).some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; });
   }
+  /* SUBMENÚ (30-sep-2026, owner: «al clicar en Cobros que se abra Vencimientos, Facturas y
+     Recibos; si no, es un coñazo»). Bajo cada entrada con pestañas cuelgan SUS pestañas —
+     las mismas `mias` que la barra, ya filtradas por casilla y rol—, así que no nace ningún
+     permiso nuevo. Pulsar la entrada abre/cierra; no navega (su href sigue apuntando a la
+     primera pestaña para clic central o sin JS). Abierta de salida en la que se está, con la
+     pestaña actual en píldora. Los hijos se enganchan por `data-lw-pestana` (el path), no
+     por el rótulo, y NO llevan `data-path`: la poda de podaMenu es solo de la entrada. */
+  var SUBS = 0;
+  function submenu(entrada, g, mias, aquiG, ficha) {
+    var previo = entrada.parentNode && entrada.parentNode.querySelector('[data-lw-sub="' + g + '"]');
+    if (previo) previo.parentNode.removeChild(previo);
+    var rol = (ficha && ficha.rol) || '';
+    var aqui = aquiG && aquiG.grupo === g;
+    var sub = document.createElement('div');
+    sub.setAttribute('data-lw-sub', g);
+    sub.id = 'lw-sub-' + g + '-' + (++SUBS);   // puede haber más de un aside en la página
+    sub.style.cssText = 'display:flex;flex-direction:column;gap:2px;margin:2px 0 4px';
+    mias.forEach(function (t) {
+      var a = entrada.cloneNode(true);          // clon: mismas clases que el resto del menú
+      a.removeAttribute('data-path');
+      a.removeAttribute('aria-expanded');
+      a.removeAttribute('aria-controls');
+      a.setAttribute('data-lw-pestana', t.path);
+      desmarca(a);
+      a.href = ROOT + t.path + '/';
+      a.style.paddingLeft = '44px';
+      var spans = a.querySelectorAll('span');
+      for (var i = spans.length - 1; i >= 0; i--) {
+        if (spans[i].hasAttribute('data-lw-flecha') || i === 0) spans[i].parentNode.removeChild(spans[i]);
+      }
+      var txt = a.querySelector('span');
+      if (txt) txt.textContent = T((t.rotulo && t.rotulo[rol]) || t.texto);
+      if (aqui && t === aquiG.pestana) marcaActiva(a);
+      sub.appendChild(a);
+    });
+    entrada.insertAdjacentElement('afterend', sub);
+
+    desmarca(entrada);                          // la píldora la lleva la pestaña, no el grupo
+    entrada.setAttribute('aria-controls', sub.id);
+    var flecha = entrada.querySelector('[data-lw-flecha]');
+    if (!flecha) {
+      flecha = document.createElement('span');
+      flecha.className = 'material-symbols-outlined text-[18px] nav-text-item';
+      flecha.setAttribute('data-lw-flecha', '');
+      flecha.setAttribute('aria-hidden', 'true');
+      flecha.style.cssText = 'margin-left:auto;transition:transform .2s';
+      flecha.textContent = 'expand_more';
+      entrada.appendChild(flecha);
+    }
+    function pon(abierto) {
+      sub.style.display = abierto ? 'flex' : 'none';
+      entrada.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+      flecha.style.transform = abierto ? 'rotate(180deg)' : '';
+      if (aqui) entrada.classList.toggle('font-bold', !abierto);   // cerrada, que se sepa dónde se está
+    }
+    pon(aqui);
+    entrada._lwSub = { sub: sub, pon: pon };   // si se rehace, el clic usa el submenú nuevo
+    if (!entrada.hasAttribute('data-lw-plegable')) {
+      entrada.setAttribute('data-lw-plegable', '');
+      entrada.addEventListener('click', function (ev) {
+        if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;   // abrir en pestaña nueva sigue valiendo
+        var s = entrada._lwSub;
+        if (!s) return;
+        ev.preventDefault();
+        s.pon(s.sub.style.display === 'none');
+      });
+    }
+  }
+
   /* Cada entrada con pestañas lleva a la PRIMERA pestaña que la ficha tiene (un closer
      solo tiene «Mis comisiones») y se marca activa en todas sus páginas. La barra se
      pinta una vez, justo bajo la cabecera, solo con las pestañas que la ficha abre. */
@@ -511,7 +606,8 @@
       var entrada = aside.querySelector('a[data-path="' + g + '"]');
       var mias = pestanasDe(g, ficha);
       if (entrada && mias.length) entrada.href = ROOT + mias[0].path + '/';
-      if (entrada && aquiG && aquiG.grupo === g) marcaActiva(entrada);
+      if (entrada && mias.length) submenu(entrada, g, mias, aquiG, ficha);
+      else if (entrada && aquiG && aquiG.grupo === g) marcaActiva(entrada);
     });
     if (!aquiG) return;
     var idBarra = 'lw-pestanas-' + aquiG.grupo;
@@ -592,8 +688,12 @@
     spans[1].textContent = spec.texto;
     /* Con href propio deja de ser href="#", y recablea() ya no lo mira: solo
        recorre `a[href="#"]`. Es el enganche para una herramienta que vive
-       fuera de la v4, como el CRM. */
-    if (spec.href) a.href = spec.href;
+       fuera de la v4, como el CRM — y por eso la marca de activa va aquí: desde
+       el 27-sep-2026 el CRM lleva este menú y tiene que salir marcado en él. */
+    if (spec.href) {
+      a.href = spec.href;
+      if (location.pathname.indexOf(spec.href) === 0) marcaActiva(a);
+    }
     ancla.insertAdjacentElement('afterend', a);
   }
 
@@ -930,6 +1030,13 @@
         var sm = document.createElement('script');
         sm.src = ROOT + 'assets/mascota.js?v=' + MASCOTA_V;
         document.head.appendChild(sm);
+      }
+      /* El pop-up de novedades: una vez por persona y versión; decide dentro qué noticias
+         le tocan según sus herramientas. Solo con ficha (sin ficha guard.js rebota). */
+      if (aut && aut.ficha && location.pathname.indexOf('/intranet/v4/') !== -1) {
+        var sn = document.createElement('script');
+        sn.src = ROOT + 'assets/novedades.js?v=' + NOVEDADES_V;
+        document.head.appendChild(sn);
       }
     });
   }

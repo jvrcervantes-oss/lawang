@@ -1,12 +1,13 @@
 <!DOCTYPE html><html lang="es" style=""><head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/guard.js?v=f4db6ad5" data-herramienta="unidades"></script>
+<meta name="lw-version" content="7b701e5c9ad5">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=29ba07be" defer></script>
-<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=1358ced5" defer></script><script src="/contracts/assets/avisos.js?v=389df6b9" defer></script><script src="../assets/datos.js?v=bb6b3ef0" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/i18n.js?v=4ab27bbc" defer></script>
+<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=6a1e784c" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=dc1e969e" defer></script><script src="/contracts/assets/docs_contrato.js?v=73e7152b" defer></script><script src="../assets/datos.js?v=98c96fb0" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
-<script src="../assets/nav.js?v=993de78d" defer></script>
-<link href="../assets/shell.css?v=0d404d60" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=716f48dc" defer></script><script src="../assets/maqueta.js?v=6473c5d8" defer></script>
+<script src="../assets/nav.js?v=c76dd0b9" defer></script>
+<link href="../assets/shell.css?v=449197c1" rel="stylesheet">
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=c8c691dd" defer></script><script src="../assets/maqueta.js?v=ffb0fbf1" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, aquí solo se engancha, nunca se reescribe. Depende de
@@ -16,7 +17,7 @@
      no ha llegado todavía. Su cajón/CSS (.sui-*, .campo, .mini) no existen en
      esta piel Tailwind: shell.css trae un bloque autocontenido para sus
      clases, mismo patrón que ya usó S6 con las de dialogo.js. -->
-<script src="/contracts/assets/deck_fotos.js?v=45d4eb93"></script>
+<script src="/contracts/assets/deck_fotos.js?v=1ea07d17"></script>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title data-lw-titulo>Inventario de Proyectos &amp; Suelo</title>
@@ -163,98 +164,7 @@
     @keyframes lw-parcela-entra { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { #cajon-vista-parcela { animation: none; } }
   </style>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "error": "#ba1a1a",
-            "secondary-fixed-dim": "#9ad0d3",
-            "inverse-on-surface": "#f2f1eb",
-            "outline-variant": "#c5c8bc",
-            "control-border": "#8A8474",
-            "tertiary": "#563349",
-            "tertiary-fixed": "#ffd8ed",
-            "deep-lagoon": "#104C4F",
-            "inverse-primary": "#b8cea1",
-            "inverse-surface": "#30312d",
-            "surface-container-low": "#f5f4ee",
-            "on-secondary-container": "#356b6e",
-            "surface": "#fbf9f4",
-            "on-tertiary-fixed": "#2e1125",
-            "surface-alt": "#F1EBDD",
-            "on-surface-variant": "#44483f",
-            "on-primary-fixed-variant": "#3a4c2a",
-            "surface-bright": "#fbf9f4",
-            "surface-dim": "#dbdad5",
-            "on-secondary-fixed": "#002021",
-            "tertiary-container": "#6f4a61",
-            "on-error": "#ffffff",
-            "on-secondary-fixed-variant": "#144e51",
-            "surface-variant": "#e4e2dd",
-            "on-primary": "#ffffff",
-            "primary": "#314322",
-            "soft-canopy": "#8F9B7A",
-            "surface-container-lowest": "#ffffff",
-            "background": "#fbf9f4",
-            "on-primary-container": "#bcd2a5",
-            "outline": "#75786e",
-            "territorial-green": "#485B37",
-            "fiduciary-green": "#3F5230",
-            "raw-linen": "#F5F0E6",
-            "surface-tint": "#51643f",
-            "on-tertiary": "#ffffff",
-            "primary-fixed-dim": "#b8cea1",
-            "surface-container-highest": "#e4e2dd",
-            "stone-sand": "#BEB3A5",
-            "secondary-container": "#b3e9ed",
-            "on-secondary": "#ffffff",
-            "tertiary-fixed-dim": "#e9b9d4",
-            "primary-container": "#485b37",
-            "on-surface": "#1b1c19",
-            "on-tertiary-container": "#edbdd8",
-            "on-background": "#1b1c19",
-            "volcanic-ash": "#2E3437",
-            "burnt-earth": "#42210B",
-            "surface-container": "#efeee8",
-            "secondary-fixed": "#b6ecef",
-            "on-tertiary-fixed-variant": "#5f3c52",
-            "on-primary-fixed": "#0f2003",
-            "surface-container-high": "#e9e8e3",
-            "secondary": "#316669",
-            "primary-fixed": "#d3eabb",
-            "warm-border": "#E4DCCB"
-          },
-          fontFamily: {
-            "body-md": ["Neue Kabel", "sans-serif"],
-            "headline-sm": ["Neue Kabel", "sans-serif"],
-            "headline-lg": ["Neue Kabel", "sans-serif"],
-            "body-sm": ["Neue Kabel", "sans-serif"],
-            "kpi-number": ["Neue Kabel", "sans-serif"],
-            "body-lg": ["Neue Kabel", "sans-serif"],
-            "headline-md": ["Neue Kabel", "sans-serif"],
-            "label-md": ["Neue Kabel", "sans-serif"]
-          },
-          /* fontSize y spacing: los mismos de las otras 22 pantallas. Faltaban
-             aquí (23-sep-2026) y la sidebar y la topbar —mismo marcado que en
-             el resto— caían a 16px/400 y sin margen: "otro menú" en Proyectos. */
-          fontSize: {
-            "kpi-number": ["36px", {lineHeight: "40px", fontWeight: "600"}],
-            "label-md": ["14px", {lineHeight: "20px", fontWeight: "600"}],
-            "headline-lg": ["40px", {lineHeight: "48px", fontWeight: "600"}],
-            "headline-sm": ["24px", {lineHeight: "32px", fontWeight: "600"}],
-            "body-lg": ["18px", {lineHeight: "28px", fontWeight: "500"}],
-            "body-md": ["15px", {lineHeight: "24px", fontWeight: "500"}],
-            "headline-md": ["32px", {lineHeight: "40px", fontWeight: "600"}],
-            "body-sm": ["13px", {lineHeight: "20px", fontWeight: "500"}]
-          },
-          spacing: {"gutter": "24px", "margin-desktop": "48px", "margin-mobile": "16px", "element-gap": "16px"}
-        }
-      }
-    }
-  </script>
+<link href="../assets/tw-proyectos.css?v=63f92e87" rel="stylesheet">
 </head>
 <body class="bg-surface-alt font-body-md text-on-surface antialiased overflow-x-hidden">
 <!-- SIDEBAR -->
@@ -286,6 +196,10 @@
 <button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-lowest text-deep-lagoon border border-warm-border hover:bg-surface-container-high transition-all font-label-md text-[14px] font-semibold shadow-sm" id="btn-importar-csv" type="button">
 <span class="material-symbols-outlined text-[18px]">upload_file</span>
 <span class="">Importar CSV</span>
+</button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-lowest text-deep-lagoon border border-warm-border hover:bg-surface-container-high transition-all font-label-md text-[14px] font-semibold shadow-sm" id="btn-plantilla-csv" type="button" title="Descarga el CSV de este proyecto, listo para editar y volver a importar">
+<span class="material-symbols-outlined text-[18px]">table_view</span>
+<span class="">Plantilla CSV</span>
 </button>
 <button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-lowest text-deep-lagoon border border-warm-border hover:bg-surface-container-high transition-all font-label-md text-[14px] font-semibold shadow-sm" id="btn-nueva-unidad" type="button">
 <span class="material-symbols-outlined text-[18px]">domain_add</span>
@@ -806,16 +720,18 @@
      Abrir un documento pide su URL firmada al vuelo (createSignedUrl, TTL
      corto) — nunca el bucket hecho público. -->
 <div class="flex flex-col gap-1.5" id="d-documentos"><div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer" data-doc-fila data-doc-abrir><span class="material-symbols-outlined text-[16px] text-outline shrink-0">description</span><div class="flex-1 min-w-0 flex items-center justify-between gap-3"><span class="font-body-sm text-body-sm text-on-surface truncate" data-lw="dc-titulo">—</span><span class="font-body-sm text-[11px] text-outline shrink-0" data-lw="dc-meta">—</span></div><div class="flex items-center gap-0.5 shrink-0"><button type="button" class="p-1 rounded text-outline hover:text-deep-lagoon hover:bg-surface-container-lowest hidden" data-doc-editar aria-label="Editar documento" title="Editar"><span class="material-symbols-outlined text-[15px]">edit</span></button><button type="button" class="p-1 rounded text-outline hover:text-error hover:bg-error-container hidden" data-doc-borrar aria-label="Borrar documento" title="Borrar"><span class="material-symbols-outlined text-[15px]">delete</span></button></div></div></div>
-<!-- Anexos Maestros (25-sep-2026, owner): planos y especificaciones de cada
-     modelo que se construye en este proyecto. SOLO LECTURA y sin copia: se leen
-     de Modelos (`modelos_villa` → `modelo_documentos` tipo plano → bucket
-     privado `modelos`, URL firmada al pulsar). Son el único anexo del contrato
-     de Construcción; se suben y cambian en Modelos, y solo administración. -->
+<!-- Documentos del contrato (25-sep-2026, owner; desde el 27-sep-2026 los
+     marcados «Se incluye automáticamente en el contrato», no los de tipo plano):
+     los de cada modelo que se construye en este proyecto. SOLO LECTURA y sin
+     copia: se leen de Modelos (`modelos_villa` → `modelo_documentos` con
+     en_contrato → bucket privado `modelos`, URL firmada al pulsar). Son lo que el
+     contrato de Construcción lleva automáticamente (además de los que se suban a
+     mano); se marcan en Modelos, y solo administración. -->
 <div style="margin-top:14px">
 <div class="flex items-baseline justify-between gap-3 mb-1.5">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Anexos Maestros</span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Documentos del contrato</span>
 </div>
-<p class="font-body-sm text-[11px] text-outline mb-1.5">Planos y especificaciones de cada modelo de este proyecto. Es el único anexo del contrato de Construcción; se cambia en Modelos.</p>
+<p class="font-body-sm text-[11px] text-outline mb-1.5">Los documentos de cada modelo de este proyecto marcados «Se incluye automáticamente en el contrato». Van en el contrato de Construcción de ese modelo; se cambian en Modelos → Documentos.</p>
 <div class="flex flex-col gap-1.5" id="d-anexos-maestros"></div>
 </div>
 </div>
@@ -863,7 +779,7 @@
 <div class="flex items-center gap-2 flex-wrap">
 <div class="relative flex-1 min-w-[180px]">
 <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px]">search</span>
-<input class="w-full pl-8 pr-3 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:ring-1 focus:ring-territorial-green" id="d-unidades-buscar" placeholder="Buscar código, modelo, cliente o contrato…" type="text">
+<input data-lw="buscador" class="w-full pl-8 pr-3 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:ring-1 focus:ring-territorial-green" id="d-unidades-buscar" placeholder="Buscar código, modelo, cliente o contrato…" type="text">
 </div>
 <select class="pl-2.5 pr-8 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] border border-warm-border/60 focus:outline-none" id="d-unidades-orden">
 <option value="codigo">Orden: código</option>
@@ -878,6 +794,13 @@
 <button type="button" class="lw-vista-btn" data-lw-vista="plano" aria-pressed="false" hidden>Plano</button>
 </div>
 </div>
+<!-- Estado de las parcelas DE ESTE proyecto (27-sep-2026, owner: «los filtros
+     están fuera y necesito tenerlos dentro de los proyectos para ver las
+     disponibles o reservadas»). Los chips «Unidades» de la página cuentan la
+     cartera entera; estos solo las filas del cajón. Los pinta datos.js
+     (wireFiltroUnidadesCajon) a partir de las filas ya cargadas: un chip por
+     estado presente, con su recuento y el color de ESTADO_COLOR. -->
+<div class="flex items-center gap-1.5 flex-wrap" id="d-unidades-estados" role="group" aria-label="Filtrar parcelas por estado"></div>
 <!-- Rejilla, no pila (14-sep-2026, encargo del owner). Desde el 23-sep el
      cajón es de pantalla completa y la rejilla se auto-rellena; tarjeta mínima
      de 320 px (owner: «el parcelario ha quedado muy pequeño»). La cabecera de
@@ -901,6 +824,7 @@
 <div class="lw-u-quien">
 <a class="lw-u-comp hover:underline" data-lw="u-comprador-link" href="#" rel="noopener">—</a>
 <span class="lw-u-meta"><span data-lw="u-tipo">—</span> · <span data-lw="u-agente">—</span></span>
+<span class="lw-u-meta hidden" data-lw="u-socio"></span>
 </div>
 <div class="lw-u-cifras">
 <div class="lw-u-caja"><span class="lw-u-lbl">Pactado</span><span class="lw-u-num tabular-nums" data-lw="u-total">—</span></div>
@@ -970,13 +894,14 @@
    NO hace ninguna consulta: lee las tarjetas que datos.js ya ha pintado en #d-unidades
    (código, estado, color de la banda e id), así el plano nunca dice otra cosa que el
    parcelario — y respeta el buscador: lo que el buscador oculta, el plano lo atenúa.
-   Qué proyectos tienen plano: la lista de abajo, que apunta a los MISMOS ficheros que
-   usan los decks. Proyecto nuevo con masterplan = una línea aquí + su .json. */
+   Qué proyectos tienen plano: `masterplans` de la ficha de la instancia
+   — contracts/assets/instancia.js, ERP F3 lote 3 —, que apunta a los MISMOS ficheros que
+   usan los decks. Proyecto nuevo con masterplan = una línea en la ficha + su .json; sin
+   ficha o sin entrada, el botón «Plano» no sale (nunca el plano de otro cliente). */
 (function () {
-  var MASTERPLANES = {
-    'Palm Field W5': '/investor-deck/masterplan/palmfield.json',
-    'Sumba Hills': '/investor-deck/masterplan/sumbahills.json'
-  };
+  var MASTERPLANES = (window.LW_INSTANCIA && window.LW_INSTANCIA.masterplans) || {};
+  // hasOwnProperty: un proyecto llamado «constructor» no debe encontrar un plano en el prototipo
+  var planoDe = function (n) { return Object.prototype.hasOwnProperty.call(MASTERPLANES, n) ? MASTERPLANES[n] : null; };
   var CACHE = {}, lamina = 0, proyectoPintado = null, pintando = false;
   var btn = document.querySelector('[data-lw-vista="plano"]');
   var caja = document.getElementById('d-plano');
@@ -1000,7 +925,7 @@
     return m;
   }
   function pinta() {
-    var url = MASTERPLANES[proyecto()];
+    var url = planoDe(proyecto());
     if (!url) return;
     var d = CACHE[url];
     if (!d) {
@@ -1090,7 +1015,7 @@
     else enfoca(null);
   }
   function sincroniza() {
-    var tiene = !!MASTERPLANES[proyecto()];
+    var tiene = !!planoDe(proyecto());
     btn.hidden = !tiene;
     // style y no `hidden`: la clase `flex` del grupo le ganaría al atributo.
     var grupo = document.getElementById('d-vistas'); if (grupo) grupo.style.display = tiene ? '' : 'none';
@@ -1171,27 +1096,27 @@
 <span class="material-symbols-outlined text-[16px]">description</span>
 <span class="">Ver contratos</span>
 </button>
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
+<button data-accion="editar-proyecto" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
 <span class="material-symbols-outlined text-[16px]">settings</span>
 <span class="">Editar proyecto</span>
 </button>
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" id="btn-estado-obra" data-real="1" type="button">
+<button data-accion="estado-obra" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" id="btn-estado-obra" data-real="1" type="button">
 <span class="material-symbols-outlined text-[16px]">construction</span>
 <span class="">Estado y obra</span>
 </button>
 <!-- S10.2/S10.3 (22-sep-2026): fotos del deck (pieza compartida, deck_fotos.js)
-     y activar/desactivar el Investor Deck (RPC investor_deck_activar, ya en
-     producción desde el 15-sep en Palm Field) — cableados en editores.js por
+     y activar/desactivar el Investor Deck (edge ficheros, acción deck_activa
+     desde AXW-66, 28-sep: mueve sus fotos entre deck-privado y deck) — cableados en editores.js por
      texto, mismo patrón `ata()` que el resto de botones de este pie. -->
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
+<button data-accion="fotos-deck" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
 <span class="material-symbols-outlined text-[16px]">photo_library</span>
 <span class="">Fotos del deck</span>
 </button>
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
+<button data-accion="investor-deck" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
 <span class="material-symbols-outlined text-[16px]">public</span>
 <span class="">Investor Deck</span>
 </button>
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-error-container text-error border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button" title="Solo super admin, y solo si el proyecto no tiene unidades, modelos ni documentos">
+<button data-accion="borrar-proyecto" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-error-container text-error border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button" title="Solo super admin, y solo si el proyecto no tiene unidades, modelos ni documentos">
 <span class="material-symbols-outlined text-[16px]">delete</span>
 <span class="">Borrar proyecto</span>
 </button>

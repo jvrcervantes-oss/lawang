@@ -29,6 +29,9 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
+  /* Puente al diccionario (28-sep-2026, LAW-407): el marco del cajón («Cerrar») pasa por lwT.
+     Dentro del IIFE: un `lwT` propio pisaría el global de i18n.js. */
+  function edT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
   /* Filas SIN casilla dentro de un `multicheck` (27-sep-2026, permisos de Usuarios por
      secciones del menú): `{seccion}` es una cabecera y `{info, nota}` una herramienta que
      se abre por ROL y no por casilla («solo super admin», «según rol»). Ninguna lleva
@@ -97,6 +100,13 @@
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
   function esAdmin(f) { return !!f && (f.rol === 'admin' || f.rol === 'super_admin'); }
+  /* ¿Las unidades de este proyecto llevan fase/zona de masterplan? Lo dice la ficha de la
+     instancia (`proyectos_con_fases`, ERP F3 lote 3, 27-sep-2026); antes era el nombre de un
+     proyecto de Lawang escrito aquí. Sin ficha o sin entrada: no, nunca lo de otro cliente. */
+  function usaFasesMasterplan(nombre) {
+    var l = (window.LW_INSTANCIA && window.LW_INSTANCIA.proyectos_con_fases) || [];
+    return !!nombre && l.indexOf(nombre) !== -1;
+  }
   function puedeH(f, h) {
     if (!f) return false;
     if (f.rol === 'super_admin') return true;
@@ -484,6 +494,11 @@
       '.lwp-mas:hover{background:#fafaf9}.lwp-mas:active{transform:scale(.97)}',
       '.lwp-tramo{display:grid;grid-template-columns:minmax(0,1fr) 100px 92px 26px;gap:8px;align-items:center}',
       '@media (max-width:640px){.lwp-tramo{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 26px}.lwp-tramo > select{grid-column:1/-1}}',
+      /* Fila de un campo de plantilla (Plantillas, 28-sep-2026): clave · etiqueta · tipo · obligatorio · quitar.
+         En móvil, la etiqueta ocupa su línea y la cabecera de columnas se esconde (a 390 px las cinco columnas
+         dejaban la clave y la etiqueta sin ancho). */
+      '.lwp-cfila{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr) 130px auto 26px;gap:8px;align-items:center}',
+      '@media (max-width:640px){.lwp-cfila{grid-template-columns:minmax(0,1fr) auto 26px;padding-bottom:8px;border-bottom:1px solid #E7E4DC}.lwp-cfila > :nth-child(2){grid-column:1/-1;order:-1}.lwp-cfila > :nth-child(1){grid-column:1/-1}.lwp-cfila-cab{display:none}}',
       '.lwp-quita{border:0;background:none;color:#9E2F26;font-size:20px;line-height:1;cursor:pointer;border-radius:9999px;width:26px;height:26px;display:grid;place-items:center}',
       '.lwp-quita:hover{background:#FFF4F2}',
       '.lwp-subir{padding:14px 12px;border:1px dashed #d6cfc2;border-radius:12px;background:rgba(250,250,249,.5);color:#104C4F;font:500 13px Jost,system-ui,sans-serif;cursor:pointer;text-align:center;transition:border-color .16s,background-color .16s}',
@@ -1309,7 +1324,7 @@
         (tEst ? (o.sub ? '<span class="las-sep">/</span>' : '') + '<span class="las-estado" style="background:' + tEst.fondo + ';color:' + tEst.tinta + '">' + esc(o.estado[0]) + '</span>' : '') + '</div>' : '') +
       '<h1 class="las-h1">' + esc(o.titulo || '') + '</h1>' +
       (o.bajoTitulo ? '<p class="lwc-bajo">' + esc(o.bajoTitulo) + '</p>' : '') +
-      '</div></div><button type="button" data-c="cerrar" class="las-cerrar" title="Cerrar" aria-label="Cerrar">' + icoBase(ICO_BASE.x) + '</button></header>' +
+      '</div></div><button type="button" data-c="cerrar" class="las-cerrar" title="' + esc(edT('Cerrar')) + '" aria-label="' + esc(edT('Cerrar')) + '">' + icoBase(ICO_BASE.x) + '</button></header>' +
       '<div data-c="cuerpo" class="lwc-cuerpo' + (o.lado ? ' lwc-split' : '') + '">' + (o.cuerpo || '') + '</div>' +
       '<footer data-c="pie" class="las-pie"></footer></aside>';
     /* `lado` (lista de ids de `seccion()`): esas secciones pasan a la columna
@@ -1355,7 +1370,7 @@
     // en movil, donde el pulgar vive abajo. `pieExtra` (HTML crudo, para el
     // shim de suiAbrirCajon/deck_fotos.js) ya trae el suyo — no se duplica.
     if (!o.pieExtra && !(o.acciones || []).some(function (a) { return a.cerrar; })) {
-      var bc = document.createElement('button'); bc.type = 'button'; bc.textContent = 'Cerrar';
+      var bc = document.createElement('button'); bc.type = 'button'; bc.textContent = edT('Cerrar');
       bc.className = 'las-btn2 lwc-cerrar'; bc.addEventListener('click', cierraCajon); pie.appendChild(bc);
     }
     /* `pieExtra` — puente para código que compone su PROPIO pie como HTML
@@ -1594,24 +1609,21 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
   }
 
-  /* ---------- captura de botones por texto, en directo ---------- */
-  function textoDe(btn) {
-    var c = btn.cloneNode(true);
-    c.querySelectorAll('.material-symbols-outlined').forEach(function (x) { x.remove(); });
-    return (c.textContent || '').replace(/\s+/g, ' ').trim();
-  }
-  function ata(rx, fn) {
-    var botones = document.querySelectorAll('button, a');
-    for (var i = 0; i < botones.length; i++) {
-      var b = botones[i];
-      if (b.getAttribute('data-e-nativo')) continue;
-      if (rx.test(textoDe(b))) {
-        b.setAttribute('data-e-nativo', '1');
-        b.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); fn(this); });
-        return b;
-      }
-    }
-    return null;
+  /* ---------- captura de botones por IDENTIFICADOR, nunca por texto ----------
+     Norma del estudio (owner, 29-sep-2026): el código engancha por un atributo
+     que no cambia (`data-accion="alta-cliente"`), nunca por el rótulo visible.
+     Porqué: esto buscaba el botón por su texto, el 26-sep el rótulo pasó de
+     «Alta de comprador» a «Alta de cliente» (a8bb55b4) y el alta de clientes
+     estuvo tres días muerta sin un solo error; además en inglés el rótulo
+     traducido tampoco casaba. Si falta el botón se dice en consola: el gate
+     (tools/escrituras_front.py --gate, en la agencia) ya exige que cada acción exista en el repo. */
+  function ata(accion, fn) {
+    var b = document.querySelector('[data-accion="' + accion + '"]');
+    if (!b) { console.error('[v4] no hay botón data-accion="' + accion + '" en ' + location.pathname); return null; }
+    if (b.getAttribute('data-e-nativo')) return b;
+    b.setAttribute('data-e-nativo', '1');
+    b.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); fn(this); });
+    return b;
   }
 
   /* ---------- Tramos de pago (Condiciones de comisión, 14-sep-2026) ----------
@@ -2274,7 +2286,7 @@
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
-    deckFotos: { src: '/contracts/assets/deck_fotos.js?v=45d4eb93', listo: function () { return !!window.lwDeckFotos; } }
+    deckFotos: { src: '/contracts/assets/deck_fotos.js?v=0deaf654', listo: function () { return !!window.lwDeckFotos; } }
   };
   var modPromesasDoc = {};
   function cargaModuloDoc(nombre) {
@@ -3853,7 +3865,7 @@
           campoSimpleDoc(secCliente, { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', valor: f0.cliente_documento || '' });
           if (regla.domicilio) campoSimpleDoc(secCliente, { k: 'cliente_domicilio', label: 'Domicilio', tipo: 'textarea', req: 1, valor: f0.cliente_domicilio || '' });
           campoSimpleDoc(secCliente, { k: 'cliente_email', label: 'Email', tipo: 'email', valor: f0.cliente_email || '' });
-          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: f0.proyecto_nombre || '', placeholder: 'Ej. Palm Field — Cabana 2BR S2' });
+          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: f0.proyecto_nombre || '', placeholder: 'Ej. Proyecto — Villa 2BR S2' });
 
           var secConceptos = seccionFijaDoc(host, 'Conceptos');
           getLineas = montaLineasDoc(secConceptos, lineas0, repintaPreview);
@@ -4368,7 +4380,7 @@
           campoSimpleDoc(secCliente, { k: 'cliente_nombre', label: 'Nombre o razón social', valor: estadoContrato.clienteNombre });
           campoSimpleDoc(secCliente, { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', valor: estadoContrato.clienteDocumento });
           campoSimpleDoc(secCliente, { k: 'cliente_email', label: 'Email', tipo: 'email', valor: estadoContrato.clienteEmail });
-          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: estadoContrato.proyectoNombre, placeholder: 'Ej. Palm Field — Cabana 2BR S2' });
+          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: estadoContrato.proyectoNombre, placeholder: 'Ej. Proyecto — Villa 2BR S2' });
 
           var secAplic = seccionFijaDoc(host, 'Lo que se ha cobrado');
           /* Una TARJETA por factura y el total en una franja (22-sep-2026,
@@ -4535,12 +4547,32 @@
 
   /* ---------- editores por pantalla ---------- */
   var ED = {
+    /* CONTRATOS · la entrada al ASISTENTE de Nuevo contrato (F7, 30-sep-2026,
+       encargo 20260930_lawang_equipos_venta_asistente). El asistente CONVIVE
+       con el formulario de siempre (owner: «no podemos quitar lo que hay»).
+       Desde el 30-sep-2026 (noche, owner: «muéstralo ya a todo el mundo, quiero
+       que lo testeen») SALE PARA TODOS los roles, sin bandera: la bandera de
+       admin / `?asistente=1` se retiró. OJO, sigue abierto lo que la bandera
+       tapaba: el servidor aún no guarda «equipo / por mi cuenta» (F5b:
+       `comisiones_interruptor.modo_obligatorio` apagado, `contrato_guarda`
+       ignora `venta`) — la pregunta del paso 1 se hace pero no se guarda hasta
+       encenderlo (fila LAW-479 en pendientes). Hay dos entradas: «Nuevo
+       contrato» (el asistente) y «Formulario clásico» (?nuevo=1 tal cual). Por
+       `data-accion`, nunca por el rótulo (norma 29-sep-2026). */
+    contratos: function (aut) {
+      var nuevo = document.querySelector('[data-accion="nuevo-contrato"]');
+      if (!nuevo) { console.error('[v4] no hay botón data-accion="nuevo-contrato" en ' + location.pathname); return; }
+      // «Formulario clásico» ya sale visible en el HTML para todos: aquí solo se ata el clic.
+      ata('formulario-clasico', function () { location.href = '/contracts/app.html?nuevo=1'; });
+      ata('nuevo-contrato', function () { location.href = '/contracts/app.html?nuevo=1&asistente=1'; });
+    },
+
 
     modelos: function (aut) {
       var sb = aut.sb, admin = esAdmin(aut.ficha);
       var soloAdmin = function () { aviso('La familia de modelos la escribe solo administración (policy es_admin) — tu sesión es de ' + ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34'); };
       var SLUG_VALIDO = /^[a-z0-9-]+$/;
-      ata(/^\+? ?Nuevo modelo$/i, function () {
+      ata('nuevo-modelo', function () {
         if (!admin) return soloAdmin();
         modal('Nuevo modelo', [
           { k: 'nombre', label: 'Nombre', req: 1 },
@@ -4568,26 +4600,42 @@
       });
       /* Subir documento (27-sep-2026, LAW-336 bloque 3): por la edge `ficheros`
          (clase modelo_documento) — la ruta la decide el servidor, el plano
-         (Anexo Maestro) se comprueba de admin ANTES de subir, se leen los
-         primeros bytes al registrar y, si el registro falla, el servidor
-         retira el fichero (antes un agente no podía limpiar su huérfano). */
-      ata(/^Añadir documento$/i, function () {
+         y la casilla del contrato se comprueban de admin ANTES de subir, se leen
+         los primeros bytes al registrar y, si el registro falla, el servidor
+         retira el fichero (antes un agente no podía limpiar su huérfano).
+         Desde el 27-sep-2026 (owner, «sección Dosier» + casilla): Sección
+         (Dosier / Otro documento) → Tipo (si es otro) → Techo → «Se incluye
+         automáticamente en el contrato» (solo admin, desmarcada) → Fichero.
+         Los tipos salen de window.lwDocsContrato (docs_contrato.js): una lista. */
+      ata('anadir-documento', function () {
         var m = window.LW_V4 && window.LW_V4.modelo;
         if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
-        modal('Añadir documento · ' + m.nombre, [
-          // «Plano» = el Anexo Maestro, único anexo del contrato de Construcción:
-          // solo lo sube administración (policy `modelo_docs: escribir`, 25-sep-2026).
-          { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: (admin ? [['plano', 'Plano · anexo del contrato']] : []).concat([
-              ['calidades', 'Memoria de calidades'], ['ficha', 'Ficha'], ['render', 'Render'], ['otro', 'Otro']
-            ]), valor: 'otro' },
-          { k: 'file', label: 'Fichero', tipo: 'file', req: 1, accept: 'application/pdf,image/jpeg,image/png,image/webp',
-            ayuda: 'PDF o imagen, hasta 50 MB. Nace privado. El de tipo «plano» es el Anexo Maestro: el único anexo que lleva el contrato de Construcción de este modelo' + (admin ? '.' : ', y solo lo sube administración.') }
-        ], 'Subir', function (v) {
+        var R = window.lwDocsContrato;
+        if (!R) return aviso('No se ha podido cargar la lista de tipos de documento: recarga la página.', '#ba1a1a');
+        var techos = (window.LW_V4.modeloTechos || []).filter(function (t) { return t.modelo_id === m.id; });
+        var campos = [
+          { k: 'seccion', label: 'Sección', tipo: 'select', opciones: [['dosier', 'Dosier'], ['otro', 'Otro documento']], valor: 'otro' },
+          // el plano sigue siendo de administración (el servidor lo vuelve a mirar)
+          { k: 'tipo', label: 'Tipo', tipo: 'select', visibleSi: { k: 'seccion', valores: ['otro'] },
+            opciones: R.TIPOS.filter(function (t) { return t[0] !== 'dosier' && (admin || t[0] !== 'plano'); }), valor: 'otro' }
+        ];
+        if (techos.length) campos.push({ k: 'techo', label: 'Techo', tipo: 'select', valor: '',
+          opciones: [['', 'Todos los techos']].concat(techos.map(function (t) { return [t.clave, t.nombre]; })),
+          ayuda: 'Si va en el contrato, entra solo en los contratos con este techo; «Todos los techos» entra siempre.' });
+        // el dosier nunca va en el contrato (owner, 28-sep-2026): la casilla solo sale para «Otro documento»
+        if (admin) campos.push({ k: 'en_contrato', label: 'Se incluye automáticamente en el contrato', tipo: 'check', valor: false,
+          visibleSi: { k: 'seccion', valores: ['otro'] },
+          ayuda: 'El plano sale como Apéndice A (el que cita el contrato); el resto, como apéndice informativo detrás. Dentro de su tipo entra el último; el orden se cambia en Documentos → Editar.' });
+        campos.push({ k: 'file', label: 'Fichero', tipo: 'file', req: 1, accept: 'application/pdf,image/jpeg,image/png,image/webp',
+          ayuda: 'PDF o imagen, hasta 50 MB. Nace privado.' + (admin ? '' : ' Qué documentos van en el contrato lo decide administración.') });
+        modal('Añadir documento · ' + m.nombre, campos, 'Subir', function (v) {
           var file = v.file;
           if (!file) return { error: { message: 'elige un fichero' } };
           if (file.size > 52428800) return { error: { message: 'el fichero pasa de 50 MB' } };
           if (typeof window.lwFicheroSube !== 'function') return { error: { message: 'Falta guard.js actualizado: recarga la página' } };
-          return window.lwFicheroSube(sb, 'modelo_documento', file, { modelo_id: m.id, tipo: v.tipo || 'otro' })
+          var datos = { modelo_id: m.id, tipo: v.seccion === 'dosier' ? 'dosier' : (v.tipo || 'otro'), techo_clave: v.techo || null };
+          if (admin && v.en_contrato === true && datos.tipo !== 'dosier') datos.en_contrato = true;
+          return window.lwFicheroSube(sb, 'modelo_documento', file, datos)
             .then(function () { return { error: null }; }, function (e) { return { error: { message: (e && e.message) || String(e) } }; });
         });
       });
@@ -4596,7 +4644,7 @@
          suite (contracts/assets/deck_fotos.js, Regla 0) — ya la usan
          /proyectos/ y /modelos/ clásicos, y v4/proyectos/ desde S10.2; se
          engancha TAL CUAL para v4/modelos/, nunca se reescribe. */
-      ata(/^Fotos del deck$/i, function () {
+      ata('fotos-deck', function () {
         var m = window.LW_V4 && window.LW_V4.modelo;
         if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
         aseguraModulosDoc(['dialogo', 'deckFotos']).then(function () {
@@ -4617,6 +4665,13 @@
       (function wireDocumentosAbrirModelo() {
         var caja = document.getElementById('d-docs');
         if (!caja) return;
+        // Las filas son role=button (27-sep-2026): Intro y Espacio abren igual que el clic.
+        caja.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Enter' && ev.key !== ' ') return;
+          var f = ev.target.closest && ev.target.closest('[data-doc-abrir]');
+          if (!f || f !== ev.target) return;
+          ev.preventDefault(); f.click();
+        });
         caja.addEventListener('click', function (ev) {
           var bBorrar = ev.target.closest && ev.target.closest('[data-doc-borrar]');
           if (bBorrar) { ev.preventDefault(); ev.stopPropagation(); return borraDocModelo(bBorrar.getAttribute('data-doc-id')); }
@@ -4637,16 +4692,17 @@
         /* Borrar (25-sep-2026, SC-21): la fila se relee de la base (nombre y
            tipo no se fían del DOM) para el aviso. Borra la edge `ficheros`
            (27-sep-2026, LAW-336 bloque 3): permiso de admin en la base, luego
-           el objeto y después la fila, en el mismo flujo. El
-           anexo lo trae documento_anexos.js al abrir el contrato en el
-           generador: borrar el plano cambia el anexo de lo que se genere o reabra
-           desde ahora (cae al genérico o al PDF del repo; con techo, a
-           ninguno), no el de los PDF ya emitidos — Legal, consulta de deploy
-           25-sep-2026. */
+           el objeto y después la fila, en el mismo flujo. Los documentos
+           del contrato los trae documento_anexos.js al abrir el contrato en el
+           generador: borrar uno marcado «Se incluye automáticamente en el
+           contrato» lo quita de lo que se genere o reabra desde ahora, no de
+           los PDF ya emitidos — Legal, consulta de deploy 25-sep-2026.
+           Desde el 27-sep-2026 el botón vive en Documentos → Editar
+           (ficha_modelo.js), que lo llama por window.lwBorraDocModelo. */
         function borraDocModelo(id) {
           if (!id) return;
           var doc = null;
-          sb.from('modelo_documentos').select('id,nombre,tipo,path').eq('id', id).maybeSingle().then(function (r) {
+          sb.from('modelo_documentos').select('id,nombre,tipo,path,en_contrato').eq('id', id).maybeSingle().then(function (r) {
             if (r.error || !r.data) throw new Error((r.error && r.error.message) || 'el documento ya no existe — recarga la página');
             doc = r.data;
             return aseguraModulosDoc(['dialogo']);
@@ -4654,8 +4710,9 @@
             return lwConfirmar({
               titulo: 'Borrar documento',
               cuerpo: '<p>«' + esc(doc.nombre || 'Documento') + '» se borra del modelo. No se puede deshacer.</p>' +
-                (doc.tipo === 'plano' ? '<p>Es el <b>plano</b>: los contratos de Construcción que se generen o se reabran a partir de ahora llevarán otro anexo (el plano general del modelo o el PDF de siempre), o ninguno si tienen techo elegido. Los PDF ya emitidos no cambian.</p>' +
-                 '<p>Revisa el anexo de los contratos en curso antes de enviarlos a firma.</p>' : ''),
+                (doc.en_contrato === true ? '<p>Está marcado <b>«Se incluye automáticamente en el contrato»</b>: los contratos de Construcción que se generen o se reabran a partir de ahora ya no lo llevarán. Los PDF ya emitidos no cambian.</p>' +
+                 '<p>Revisa el anexo de los contratos en curso antes de enviarlos a firma.</p>' : '') +
+                '<p>Si estás editando otros documentos, lo que no hayas guardado se pierde al borrar.</p>',
               confirmar: 'Borrar', tono: 'peligro'
             });
           }).then(function (ok) {
@@ -4665,6 +4722,7 @@
             });
           }).catch(function (e) { aviso('No se pudo borrar: ' + (e && e.message || e), '#ba1a1a'); });
         }
+        window.lwBorraDocModelo = borraDocModelo;
       })();
 
       /* Previsión del deck (S12, 22-sep-2026): editor de `deck_forecast`
@@ -4972,6 +5030,26 @@
           return sb.rpc('comision_devengo_anular', { p_id: id, p_motivo: v.motivo.trim() });
         });
       };
+      /* Diferencias por cambio de contrato (28-sep-2026, owner: «si hay cambio en el
+         contrato hay cambio en las comisiones»). Las crea la base sola
+         (comisiones_reconciliar); aquí solo se resuelven. El gate real es la RPC
+         comision_diferencia_resolver: quién (admin para lo de Lawang, manager o admin
+         para lo del equipo), nunca a tu nombre ni si el cambio lo provocaste tú. */
+      var DIF_ACCION = {
+        aplicar: { titulo: 'Aplicar diferencia', nota: 'Pasa a pendiente con este importe. Si la paga Lawang y es a favor, se crea su solicitud de pago.', boton: 'Aplicar' },
+        pagada: { titulo: 'Marcar pagada la diferencia', nota: 'Registra que ya se ha pagado esta diferencia al closer.', boton: 'Confirmar: pagada' },
+        compensada: { titulo: 'Marcar compensada', nota: 'Registra que esta diferencia a descontar ya se ha descontado de un pago (anota de cuál en el motivo). Se descuenta del BRUTO, antes de la retención.', boton: 'Confirmar: compensada' },
+        anular: { titulo: 'Anular diferencia', nota: 'Queda sin efecto. Si tenía una solicitud de pago pendiente, se anula también.', boton: 'Anular' }
+      };
+      window.LW_V4.resolverDiferencia = function (id, numero, accion) {
+        var a = DIF_ACCION[accion]; if (!a) return;
+        modal(a.titulo + ' — ' + (numero || ''), [
+          { tipo: 'nota', label: a.nota },
+          { k: 'motivo', label: 'Motivo — queda registrado', tipo: 'textarea', req: 1 }
+        ], a.boton, function (v) {
+          return sb.rpc('comision_diferencia_resolver', { p_id: id, p_accion: accion, p_motivo: v.motivo.trim() });
+        });
+      };
       window.LW_V4.pagarSolicitud = function (x) {
         modal('Marcar pagada SP-' + x.numero, [
           // opcional en la base (`solicitud_pagada_con_sello` solo exige
@@ -4984,7 +5062,7 @@
 
       /* «+ Nueva solicitud» de la cabecera: mismo patron `ata()` que el resto
          de altas nativas de la v4 — reclama el boton por TEXTO, en directo. */
-      ata(/^\+? ?Nueva solicitud$/i, function () { window.LW_V4.abreAltaSolicitud(null); });
+      ata('nueva-solicitud', function () { window.LW_V4.abreAltaSolicitud(null); });
     },
 
     proyectos: function (aut) {
@@ -5049,6 +5127,8 @@
               return lwConfirmar({
                 titulo: 'Publicar en el dosier de inversores',
                 cuerpo: '<p>«' + esc(v.titulo) + '» quedará descargable por CUALQUIERA que abra el dosier público de ' + esc(nombreProyecto) + ', sin contraseña y sin contrato.</p>' +
+                  // las traducciones también salen al público: se leen antes de publicar (Seguridad, 28-sep)
+                  ((v.titulo_en || v.titulo_id) ? '<p>En inglés: «' + esc(v.titulo_en || '—') + '» · En indonesio: «' + esc(v.titulo_id || '—') + '»</p>' : '') +
                   '<p>Si el enlace es de Drive, ábrelo antes en una ventana de incógnito: si no está compartido en abierto, el inversor se choca con una pantalla de permisos.</p>',
                 confirmar: 'Publicar', tono: 'peligro'
               });
@@ -5066,9 +5146,11 @@
          solo), mismo RPC `renombrar_proyecto` (SECURITY DEFINER, gate
          es_admin() dentro). Nunca un UPDATE directo a `proyectos.nombre`. */
       function confirmaYRenombraProyecto(p, nuevo) {
-        var cuenta = function (tabla, columna) { return sb.from(tabla).select('id', { count: 'exact', head: true }).eq(columna, p.nombre); };
+        // unidades/modelos/documentos: proyecto_vinculos_datos (B10a, 28-sep). Cuenta con el criterio de borrar_proyecto
+        // (nombre O proyecto_id); renombrar_proyecto solo reescribe las filas que llevan el nombre, así que el texto
+        // dice «vinculado», no «se actualizará» (code-review 28-sep: una fila con solo el id contaría sin cambiarse).
         return Promise.all([
-          cuenta('unidades', 'proyecto'),
+          window.lwDatos('proyecto_vinculos_datos', { p_nombre: p.nombre }),
           // contratos/facturas: RPC "equipo", NUNCA `.from()` a pelo (hallazgo
           // de code-review, 22-sep-2026) — la RLS de esas dos tablas escala
           // por `es_suyo()` (ver la cabecera de este fichero, líneas 5-7: "aun
@@ -5078,20 +5160,26 @@
           // — mismo patrón que ya usa el resto de esta pantalla más abajo
           // (`facturas_equipo` en el `Promise.all` principal).
           sb.rpc('contratos_equipo').select('id,proyecto_nombre'),
-          sb.rpc('facturas_equipo').select('id,proyecto_nombre'),
-          cuenta('documentos_proyecto', 'proyecto'),
-          cuenta('modelos_villa', 'proyecto')
+          sb.rpc('facturas_equipo').select('id,proyecto_nombre')
         ]).then(function (rs) {
-          var uds = (rs[0] && rs[0].count) || 0;
-          var con = ((rs[1] && rs[1].data) || []).filter(function (c) { return c.proyecto_nombre === p.nombre; }).length;
-          var fac = ((rs[2] && rs[2].data) || []).filter(function (f) { return f.proyecto_nombre === p.nombre; }).length;
-          var doc = (rs[3] && rs[3].count) || 0, mod = (rs[4] && rs[4].count) || 0;
+          /* Sin el radio de impacto NO se pide confirmar (B10a): antes un conteo que fallaba daba 0 y el diálogo
+             decía «No hay nada vinculado» sobre un proyecto lleno. Falla en voz alta y no renombra. */
+          var malo = [rs[0], rs[1], rs[2]].filter(function (x) { return !x || x.error; })[0];
+          if (malo) {
+            var e = new Error('No se ha podido calcular qué se actualizaría (' + ((malo && malo.error && malo.error.message) || 'sin respuesta') + '): no se renombra. Recarga y prueba otra vez.');
+            e.sinRadio = true; throw e;
+          }
+          var v = rs[0].data || {};
+          var uds = v.unidades || 0;
+          var con = (rs[1].data || []).filter(function (c) { return c.proyecto_nombre === p.nombre; }).length;
+          var fac = (rs[2].data || []).filter(function (f) { return f.proyecto_nombre === p.nombre; }).length;
+          var doc = v.documentos || 0, mod = v.modelos_villa || 0;
           var radio = [
             uds ? uds + ' unidad(es)' : '', con ? con + ' contrato(s)' : '',
             fac ? fac + ' factura(s)' : '', doc ? doc + ' documento(s)' : '',
             mod ? mod + ' modelo(s) de villa' : ''
           ].filter(Boolean).join(', ');
-          var avisoRadio = radio ? 'Se actualizará en: ' + radio + '.' : 'No hay nada vinculado a este nombre todavía.';
+          var avisoRadio = radio ? 'Vinculado a este proyecto: ' + radio + '. El nombre se actualiza en todo lo que lo lleva escrito.' : 'No hay nada vinculado a este proyecto todavía.';
           return aseguraModulosDoc(['dialogo']).then(function () {
             return lwConfirmar({
               titulo: 'Renombrar «' + p.nombre + '» a «' + nuevo + '»',
@@ -5102,6 +5190,10 @@
         }).then(function (ok) {
           if (!ok) return { error: { message: 'Cancelado: el proyecto conserva su nombre.' } };
           return sb.rpc('renombrar_proyecto', { p_antiguo: p.nombre, p_nuevo: nuevo });
+        }, function (e) {
+          // sin radio de impacto: el guardado se para con el motivo a la vista (el que llama pinta `error.message`)
+          if (e && e.sinRadio) return { error: { message: e.message } };
+          throw e;
         });
       }
 
@@ -5239,7 +5331,8 @@
           ev.stopPropagation();
           var p = proyecto(); if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
           modal('Nuevo enlace · ' + p, [
-            { k: 'titulo', label: 'Título', req: 1 },
+            { k: 'titulo', label: 'Título', req: 1 }
+          ].concat(camposTituloDeck(null), [
             { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: CATS_ENLACE, valor: 'comercial' },
             // S11.3 (22-sep-2026): la columna ya existía (la consulta de
@@ -5248,15 +5341,15 @@
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 }  // nace MARCADA: la tabla se diseño con default true y el formulario mandaba false explicito, asi que todo documento nuevo nacia no-confidencial y el 'cinturon y tirantes' del RPC no protegia nada
-          ].concat(campoDeck(false)), 'Guardar enlace', function (v) {
+          ]).concat(campoDeck(false)), 'Guardar enlace', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
             return confirmaPublicacionDoc(v, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              return guardaDoc(null, conDeck({
+              return guardaDoc(null, conDeck(conTitulos({
                 proyecto: p, titulo: v.titulo, url: v.url, categoria: v.categoria,
                 carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
                 visible_portal: v.visible_portal, confidencial: v.confidencial
-              }, v));
+              }, v), v));
             });
           });
         });
@@ -5381,8 +5474,29 @@
            `documento_proyecto_guarda` (herramienta, proyecto de origen y de destino, y el dosier de inversores
            solo lo cambia administración); borrar por la edge `ficheros`. La casilla del dosier solo se le
            enseña a un admin: a los demás la base se la rechazaría, así que no se la ofrecemos. */
+        /* Título traducido para el investor deck (28-sep-2026, owner: «el título se pueda traducir para que se
+           visualice en el idioma correspondiente dentro del investor deck»). El español es `titulo` (referencia);
+           inglés e indonesio van en `titulo_i18n`. Vacío = el deck cae al inglés y luego al español. El servidor
+           rehace el objeto (solo en/id, recortado), así que aquí solo se recoge. */
+        function camposTituloDeck(d2) {
+          // un documento de la EMPRESA (general) nunca sale en el deck: sin campos que confundan
+          if (d2 && typeof lwEsDocGeneral === 'function' && lwEsDocGeneral(d2)) return [];
+          var t = (d2 && d2.titulo_i18n) || {};
+          return [
+            { k: 'titulo_en', label: 'Título en inglés (investor deck)', medio: 1, valor: t.en || '', ayuda: 'En blanco = sale el español' },
+            { k: 'titulo_id', label: 'Título en indonesio (investor deck)', medio: 1, valor: t.id || '', ayuda: 'En blanco = sale el inglés' }
+          ];
+        }
+        function tituloI18n(v) {
+          return { en: String(v.titulo_en || '').trim(), id: String(v.titulo_id || '').trim() };
+        }
+        // sin campos (documento general), la clave no viaja: el servidor conserva lo que hubiera
+        function conTitulos(fila, v) {
+          if ('titulo_en' in v || 'titulo_id' in v) fila.titulo_i18n = tituloI18n(v);
+          return fila;
+        }
         function campoDeck(valor) {
-          return esAdminP ? [{ k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!valor, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }] : [];
+          return esAdminP ? [{ k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!valor, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato. Con la categoría «comercial» es el botón «Download dossier» del deck. Un fichero subido sale si es PDF, imagen, Word, Excel o PowerPoint (docx/xlsx/pptx); los demás, como enlace' }] : [];
         }
         // Confidencial MANDA sobre publicado (también en la RPC y en `investor_deck_documentos`): una casilla del
         // navegador no es un permiso. Sin casilla (no admin) la clave no viaja: el servidor deja el valor que había.
@@ -5418,7 +5532,7 @@
           var nuevoPortal = v.visible_portal && !anterior.visible_portal;
           var nuevoDeck = v.publicado_investor_deck && !anterior.publicado_investor_deck;
           if (!nuevoPortal && !nuevoDeck) return Promise.resolve({ ok: true });
-          return confirmaPublicacionDoc({ titulo: v.titulo, confidencial: v.confidencial, visible_portal: nuevoPortal, publicado_investor_deck: nuevoDeck }, nombreProyecto);
+          return confirmaPublicacionDoc({ titulo: v.titulo, titulo_en: v.titulo_en, titulo_id: v.titulo_id, confidencial: v.confidencial, visible_portal: nuevoPortal, publicado_investor_deck: nuevoDeck }, nombreProyecto);
         }
 
         function abreEditarEnlace(d2) {
@@ -5431,23 +5545,24 @@
           // opción extra ya seleccionada, en vez de forzar una de las 4.
           var catsAquí = CATS_ENLACE.indexOf(d2.categoria) !== -1 ? CATS_ENLACE : CATS_ENLACE.concat([d2.categoria]);
           modal('Editar enlace', [
-            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' },
+            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' }
+          ].concat(camposTituloDeck(d2), [
             { k: 'url', label: 'URL', req: 1, valor: d2.url || '', ayuda: 'https://…' },
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || CATS_ENLACE[0] },
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial }
-          ].concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
+          ]).concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
             if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              return guardaDoc(d2.id, conDeck({
+              return guardaDoc(d2.id, conDeck(conTitulos({
                 titulo: v.titulo, url: v.url, categoria: v.categoria,
                 carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
                 visible_portal: v.visible_portal, confidencial: v.confidencial
-              }, v));
+              }, v), v));
             });
           });
         }
@@ -5461,9 +5576,9 @@
           });
         }
 
-        /* Borrar (S11.1): la policy DELETE de `documentos_proyecto` exige
-           `es_super_admin()` — más estricta que editar (`puede('documentacion')`
-           a secas). datos.js ya esconde el botón para quien no lo es
+        /* Borrar (S11.1): lo decide `documento_proyecto_borra` — admin o super
+           admin CON la herramienta Documentación (hasta el 28-sep-2026 solo super
+           admin): la llave de editar más el rol. datos.js ya esconde el botón para quien no lo es
            (pintaAccionesDoc); este chequeo es el cinturón, no el gate real —
            si RLS deniega, `unaFila` lo dice, nunca un "borrado" mentiroso. */
         function borraDocumento(d2, etiquetaTipo) {
@@ -5475,7 +5590,7 @@
             });
           }).then(function (ok) {
             if (!ok) return;
-            // Por el servidor (27-sep): la edge comprueba el permiso (super admin) y quita fichero y ficha juntos.
+            // Por el servidor (27-sep): la edge comprueba el permiso (admin, desde el 28-sep) y quita fichero y ficha juntos.
             window.lwFichero(sb, 'documento_proyecto', 'borra', { id: d2.id }).then(function () {
               aviso('Borrado'); location.reload();
             }, function (e) { aviso('No se pudo borrar: ' + ((e && e.message) || e), '#ba1a1a'); });
@@ -5489,21 +5604,22 @@
           var p = proyectoDelDoc(d2);
           var catsAquí = CATS_FICHERO.indexOf(d2.categoria) !== -1 ? CATS_FICHERO : CATS_FICHERO.concat([d2.categoria]);
           modal('Editar documento', [
-            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' },
+            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' }
+          ].concat(camposTituloDeck(d2), [
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || 'otros' },
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial }
-          ].concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
+          ]).concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
             if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              return guardaDoc(d2.id, conDeck({
+              return guardaDoc(d2.id, conDeck(conTitulos({
                 titulo: v.titulo, categoria: v.categoria,
                 carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
                 visible_portal: v.visible_portal, confidencial: v.confidencial
-              }, v));
+              }, v), v));
             });
           });
         }
@@ -5535,7 +5651,7 @@
          exige motivo escrito para saltárselo y deja rastro en `proyecto_eventos`.
          Meterlo en el formulario general lo convertiría en un campo cualquiera y
          se perdería todo eso. Mismo criterio que el avance de obra por RPC. */
-      ata(/^Estado y obra$/i, function () {
+      ata('estado-obra', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         if (!esAdminP)
@@ -5655,16 +5771,20 @@
          única del original. Tres escrituras independientes al guardar
          (proyectos, modelos_villa, un RPC por manager que cambió); que falle
          una no deshace las otras, mismo criterio que allí. */
-      ata(/^Editar proyecto$/i, function () {
+      ata('editar-proyecto', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         Promise.all([
           sb.from('modelos').select('id,nombre,precio_construccion,moneda').eq('activo', true),
-          sb.from('modelos_villa').select('id,proyecto,modelo,modelo_id').eq('proyecto', p.nombre),
-          sb.from('unidades').select('modelo').eq('proyecto', p.nombre),
+          sb.from('modelos_villa').select('id,proyecto,modelo,modelo_id').eq('proyecto_id', p.id),
+          sb.from('unidades').select('modelo').eq('proyecto_id', p.id),
+          // Solo project_manager (F3, 30-sep-2026, LAW-468): desde F3 el sales_manager ve
+          // por su EQUIPO, no por proyecto, y el servidor rechaza asignarle uno (22023 en
+          // usuario_supervisa_proyecto). Ofrecerlo aquí era un dato muerto que parecía dar
+          // visibilidad.
           puedeUsuarios
             ? sb.from('usuarios').select('user_id,email,nombre,rol,proyectos_supervisados,activo')
-                .in('rol', ['sales_manager', 'project_manager']).order('nombre')
+                .eq('rol', 'project_manager').order('nombre')
             : Promise.resolve({ data: [] })
         ]).then(function (rs) {
           var catalogo = (rs[0] && rs[0].data) || [];
@@ -5745,9 +5865,9 @@
           if (puedeUsuarios && managers.length) {
             campos.push({
               k: 'managers', tipo: 'multicheck',
-              label: 'Sales manager / Project manager de este proyecto',
+              label: 'Project manager de este proyecto',
               opciones: managers.map(function (m) {
-                return [m.user_id, (m.nombre || m.email) + ' · ' + (m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager') + (m.activo ? '' : ' (desactivado)')];
+                return [m.user_id, (m.nombre || m.email) + (m.activo ? '' : ' (desactivado)')];
               }),
               valor: managers.filter(function (m) { return (m.proyectos_supervisados || []).indexOf(p.id) !== -1; })
                              .map(function (m) { return m.user_id; })
@@ -5870,15 +5990,19 @@
          consulta en vivo). El recuento de aquí es solo UX, para no pedir
          confirmar a ciegas: NUNCA sustituye la llamada al RPC, aunque dé
          cero — puede desincronizarse entre el cálculo y el clic. */
-      ata(/^Borrar proyecto$/i, function () {
+      ata('borrar-proyecto', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         if (!esSuper) return aviso('Borrar un proyecto es solo para super_admin.', '#8A6A34');
-        var cuenta = function (tabla, columna) { return sb.from(tabla).select('id', { count: 'exact', head: true }).eq(columna, p.nombre); };
-        Promise.all([
-          cuenta('unidades', 'proyecto'), cuenta('modelos_villa', 'proyecto'), cuenta('documentos_proyecto', 'proyecto')
-        ]).then(function (rs) {
-          var uds = (rs[0] && rs[0].count) || 0, mods = (rs[1] && rs[1].count) || 0, docs = (rs[2] && rs[2].count) || 0;
+        /* Recuento previo por proyecto_vinculos_datos (B10a, 28-sep): mismo criterio que borrar_proyecto (nombre O id).
+           Si NO contesta, se para y se dice: antes un conteo fallido daba 0 y el diálogo invitaba a borrar «sin nada
+           colgando» (el RPC lo habría rechazado igual, pero la pantalla mentía). */
+        window.lwDatos('proyecto_vinculos_datos', { p_nombre: p.nombre }).then(function (rv) {
+          if (!rv || rv.error || !rv.data) {
+            aviso('No se ha podido comprobar qué cuelga del proyecto (' + ((rv && rv.error && rv.error.message) || 'sin respuesta') + '): no se borra. Recarga y prueba otra vez.', '#ba1a1a');
+            return false;
+          }
+          var uds = rv.data.unidades || 0, mods = rv.data.modelos_villa || 0, docs = rv.data.documentos || 0;
           var bloquea = [
             uds ? uds + ' unidad(es)' : '', mods ? mods + ' modelo(s) de villa' : '', docs ? docs + ' documento(s)' : ''
           ].filter(Boolean).join(', ');
@@ -5909,7 +6033,7 @@
          sin estado intermedio "sin publicar": el propio deck_fotos.js lo
          avisa en pantalla antes de dejar subir nada. dialogo.js hace falta
          para que su confirmación de "Quitar esta foto" no se salte sola. */
-      ata(/^Fotos del deck$/i, function () {
+      ata('fotos-deck', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         aseguraModulosDoc(['dialogo', 'deckFotos']).then(function () {
@@ -5923,32 +6047,65 @@
 
       /* Investor Deck (S10.3, 22-sep-2026, revisión previa #40 Seguridad+
          Legal+Datos): porta `abrirInvestorDeck()` de
-         /intranet/proyectos/index.html:904-983 TAL CUAL — mismo RPC
-         (`investor_deck_activar`, SECURITY DEFINER con `es_admin()` propio,
-         nunca un UPDATE en bloque a `unidades` desde aquí), misma
+         /intranet/proyectos/index.html:904-983. Activar/desactivar va desde
+         AXW-66 (28-sep-2026, revisión previa #139) por la edge `ficheros`
+         (clase deck_foto, acción `deck_activa`): un solo camino que mueve las
+         fotos del proyecto entre `deck-privado` y el `deck` público EN ORDEN
+         con el flag (abrir: fotos y después flag; cerrar: flag y después
+         fotos), serializado por proyecto; la vieja RPC `investor_deck_activar`
+         ya no se llama desde el navegador. Misma
          confirmación "Incluidas las vendidas y reservadas", mismo botón
          "Activar" deshabilitado sin título guardado. El mecanismo YA EXISTE
          en producción (Palm Field, 15-sep) — esto solo lo engancha a la v4,
          con el cajón NATIVO de este fichero (`cajon()`) en vez de
          `suiAbrirCajon`: Guardar y Activar/Desactivar son SIEMPRE dos clics
          distintos, nunca el mismo, igual que la clásica. */
-      ata(/^Investor Deck$/i, function () {
+      ata('investor-deck', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         Promise.all([
           sb.from('deck_config_proyecto').select('titulo,meta_desc,modelo_destacado_id').eq('proyecto_id', p.id).maybeSingle(),
-          sb.from('unidades').select('id', { count: 'exact', head: true }).eq('proyecto', p.nombre).eq('publicado_investor_deck', true),
-          sb.from('modelos_villa').select('modelo_id,modelo').eq('proyecto', p.nombre).not('modelo_id', 'is', null)
+          sb.from('unidades').select('id', { count: 'exact', head: true }).eq('proyecto_id', p.id).eq('publicado_investor_deck', true),
+          sb.from('modelos_villa').select('modelo_id,modelo').eq('proyecto_id', p.id).not('modelo_id', 'is', null)
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudo abrir el Investor Deck: ' + rs[0].error.message, '#ba1a1a');
           var cfg = (rs[0] && rs[0].data) || {};
           var activo = !!((rs[1] && rs[1].count) || 0);
           var modelosDelProyecto = (rs[2] && rs[2].data) || [];
-          pintaInvestorDeck(p, cfg, activo, modelosDelProyecto);
+          return fotosDelDeck(p, activo).then(function (fotos) {
+            pintaInvestorDeck(p, cfg, activo, modelosDelProyecto, fotos);
+          });
         }, function (e) { aviso('No se pudo abrir el Investor Deck: ' + (e && e.message || e), '#ba1a1a'); });
       });
 
-      function pintaInvestorDeck(p, cfg, activo, modelosDelProyecto) {
+      /* ¿Están las fotos donde manda el flag? (AXW-66, 28-sep-2026). Lo mide el SERVIDOR: la acción `urls` devuelve
+         URL pública si la foto está en `deck` y firmada si está en `deck-privado`. Deck activo con alguna firmada, o
+         inactivo con alguna pública = «a medias» (un cambio que no terminó): se ve al abrir, también tras recargar.
+         Si no se puede mirar, se dice — nunca se pinta como «todo en su sitio». */
+      /* INTERRUPTOR — encender en S5, AXW-66 (decisión del CEO, 28-sep-2026). Hasta que S5 mueva al privado las
+         fotos de los proyectos cerrados (tras S3e y el respaldo previo), TODO proyecto cerrado tiene sus fotos aún en
+         `deck`: avisar «a medias» ahí marcaría ~27 proyectos y su «Reintentar» adelantaría S5 sin respaldo. Mientras
+         esté en false solo se avisa del caso que rompe el deck público: ACTIVO con fotos privadas. */
+      var DECK_AVISA_CERRADO_CON_PUBLICAS = false;   // encender en S5, AXW-66
+      function fotosDelDeck(p, activo) {
+        if (!activo && !DECK_AVISA_CERRADO_CON_PUBLICAS) return Promise.resolve(null);   // no se mira: ver interruptor
+        if (typeof window.lwFotoUrls !== 'function') return Promise.resolve({ error: 'falta guard.js actualizado: recarga la página' });
+        return sb.from('deck_fotos').select('id').eq('proyecto_id', p.id).then(function (r) {
+          if (r.error) throw r.error;
+          var ids = (r.data || []).map(function (f) { return f.id; });
+          if (!ids.length) return { mal: 0, total: 0 };
+          return window.lwFotoUrls(sb, ids).then(function (u) {
+            var mal = ids.filter(function (id) {
+              var url = u.urls[id];
+              if (!url) return false;                              // sin fichero: es otro problema, no de bucket
+              return /\/object\/public\//.test(url) !== activo;
+            }).length;
+            return { mal: mal, total: ids.length };
+          });
+        }).then(null, function (e) { return { error: (e && e.message) || String(e) }; });
+      }
+
+      function pintaInvestorDeck(p, cfg, activo, modelosDelProyecto, fotos) {
         var tituloEn = (cfg.titulo && cfg.titulo.en) || '';
         var metaEn = (cfg.meta_desc && cfg.meta_desc.en) || '';
         var destacadoId = cfg.modelo_destacado_id || '';
@@ -5960,20 +6117,19 @@
         var cuerpo =
           '<p style="margin:0 0 4px;font-size:13px;color:' + CAJ.apagado + ';line-height:1.5">Página pública de due diligence para inversores, sin login. Se sirve en <code>/investor-deck/' + esc(p.slug || '<slug>') + '/</code>.</p>' +
           (!esAdminP ? '<p style="margin:0 0 4px;font-size:12.5px;color:#8A6A34">Solo un administrador puede editar o activar el Investor Deck.</p>' : '') +
-          campoDeck('Slug de la URL', '<input id="id-slug" value="' + esc(p.slug || '') + '" placeholder="ej. sumba-hills" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>', 'Se escribe una sola vez. Cambiarlo tras activar el deck rompe cualquier enlace ya compartido.') +
-          campoDeck('Título (inglés)', '<input id="id-titulo" value="' + esc(tituloEn) + '" placeholder="ej. Sumba Hills — Investor Deck" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
+          campoDeck('Slug de la URL', '<input id="id-slug" value="' + esc(p.slug || '') + '" style="' + estiloDeck + '" disabled>', 'Es la dirección pública del proyecto y no se cambia: la base lo impide desde el 29-sep (cambiarlo rompería los enlaces ya compartidos).') +
+          campoDeck('Título (inglés)', '<input id="id-titulo" value="' + esc(tituloEn) + '" placeholder="ej. My Project — Investor Deck" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
           campoDeck('Meta description (inglés)', '<input id="id-meta" value="' + esc(metaEn) + '" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
           campoDeck('Modelo "Most requested" (opcional)',
             '<select id="id-destacado" style="' + estiloDeck + flechaSelect + '"' + (esAdminP ? '' : ' disabled') + '><option value="">— ninguno —</option>' +
             modelosDelProyecto.map(function (m) { return '<option value="' + esc(m.modelo_id) + '"' + (destacadoId === m.modelo_id ? ' selected' : '') + '>' + esc(m.modelo) + '</option>'; }).join('') +
             '</select>') +
           '<p style="margin:0;font-size:12px;color:' + CAJ.apagado + '">KPIs de cabecera y plano interactivo de parcelas no se editan aquí todavía — sin ellos, esas secciones simplemente no aparecen en la página pública (nunca placeholders).</p>' +
-          '<div style="background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-size:13px;color:' + CAJ.tinta + '">' +
-            '<b>Estado: </b>' + (activo
-              ? 'el deck está <b style="color:#3F5230">ACTIVO</b> — todas las unidades de este proyecto son visibles en la página pública.'
-              : 'el deck está <b style="color:#9E2F26">INACTIVO</b> — nada de este proyecto es visible en la página pública.') +
+          '<div id="id-estado-deck" style="background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-size:13px;color:' + CAJ.tinta + '">' +
+            estadoDeckHtml(activo, fotos) +
           '</div>';
 
+        var enMedias = !!(fotos && fotos.mal > 0);
         var puedeActivar = esAdminP && (activo || !!tituloEn);
 
         var c = cajon({
@@ -5981,7 +6137,8 @@
           cuerpo: cuerpo,
           acciones: [
             { texto: 'Guardar', tono: 'primario', disabled: !esAdminP, onClick: guardarDeckConfig },
-            { texto: activo ? 'Desactivar deck' : 'Activar deck', tono: activo ? '' : 'primario',
+            { texto: enMedias ? textoReintento(activo) : (activo ? 'Desactivar deck' : 'Activar deck'),
+              tono: enMedias ? 'peligro' : (activo ? '' : 'primario'),
               disabled: !puedeActivar, title: (!activo && !tituloEn) ? 'Guarda un título primero' : '',
               onClick: toggleInvestorDeck },
             { texto: 'Cerrar', cerrar: true }
@@ -5989,15 +6146,13 @@
         });
 
         function guardarDeckConfig() {
-          var slug = document.getElementById('id-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
           var tEn = document.getElementById('id-titulo').value.trim();
           var mEn = document.getElementById('id-meta').value.trim();
           if (!tEn || !mEn) return aviso('Título y meta description son obligatorios.', '#8A6A34');
           var destId = document.getElementById('id-destacado').value || null;
           var tareas = [];
-          if (slug && slug !== (p.slug || '')) {
-            tareas.push(sb.rpc('proyecto_guarda', { p_id: p.id, p_cambios: { slug: slug } }));   // valida formato y unicidad (LAW-336 pieza 8)
-          }
+          // El slug ya no se guarda desde aquí: lo genera la base al dar de alta el proyecto y no cambia nunca
+          // (trg_proyecto_slug, LAW-428, 29-sep-2026). El campo de arriba solo lo enseña.
           // por el servidor (LAW-336 bloque 3): deck_config_guarda exige admin, LANZA si no guarda y
           // MEZCLA el título por idioma (el upsert de antes pisaba el español y el indonesio)
           tareas.push(sb.rpc('deck_config_guarda', { p_proyecto_id: p.id, p_cambios: {
@@ -6011,26 +6166,80 @@
           });
         }
 
-        function toggleInvestorDeck() {
-          var nuevoEstado = !activo;
+        /* El botón se desactiva mientras trabaja (mover las fotos lleva unos
+           segundos) y NO se da por hecho nada que el servidor no confirme: si
+           el cambio queda a medias se dice con esas palabras (repetir es
+           seguro: todo el camino es idempotente) y la página no se recarga
+           como si hubiera salido bien. */
+        /* `aplicado` (edge v6): dice si el flag del deck YA cambió. Si cambió
+           pero alguna foto quedó mal puesta (deck_a_medias), pulsar otra vez
+           NO debe invertirlo: el botón pasa a «Reintentar» y repite el MISMO
+           sentido (la acción es idempotente). Sin `aplicado` = no aplicado. */
+        // Si al abrir ya está a medias, el botón repite el sentido del flag actual (no lo invierte).
+        var reintento = enMedias ? activo : null;
+        function toggleInvestorDeck(ev) {
+          var nuevoEstado = reintento !== null ? reintento : !activo;
+          var btn = ev && ev.currentTarget;
+          if (btn && btn.disabled) return;
           aseguraModulosDoc(['dialogo']).then(function () {
             return lwConfirmar({
               titulo: nuevoEstado ? 'Activar el Investor Deck' : 'Desactivar el Investor Deck',
               cuerpo: nuevoEstado
-                ? '<p>Todas las unidades de ' + esc(p.nombre) + ' pasarán a ser visibles, sin login, en /investor-deck/. <b>Incluidas las vendidas y reservadas.</b></p>'
-                : '<p>' + esc(p.nombre) + ' deja de ser visible en el Investor Deck público.</p>',
-              confirmar: nuevoEstado ? 'Activar' : 'Desactivar'
+                ? '<p>Todas las unidades de ' + esc(p.nombre) + ' pasarán a ser visibles, sin login, en /investor-deck/. <b>Incluidas las vendidas y reservadas.</b></p>' +
+                  '<p><b>Sus fotos del deck pasan a ser públicas:</b> cualquiera con la dirección podrá verlas.</p>'
+                : '<p>' + esc(p.nombre) + ' deja de ser visible en el Investor Deck público.</p>' +
+                  '<p>Sus fotos del deck dejan de ser públicas y pasan al archivo privado. Quien ya las descargó conserva su copia.</p>',
+              confirmar: reintento !== null ? 'Reintentar' : (nuevoEstado ? 'Activar' : 'Desactivar')
             });
           }).then(function (ok) {
             if (!ok) return;
-            return sb.rpc('investor_deck_activar', { p_proyecto: p.nombre, p_activo: nuevoEstado }).then(function (r) {
-              if (r.error) return aviso('No se pudo cambiar el estado: ' + r.error.message, '#ba1a1a');
+            if (typeof window.lwFichero !== 'function') return aviso('Falta guard.js actualizado: recarga la página.', '#ba1a1a');
+            if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
+            aviso(nuevoEstado ? 'Activando el deck y pasando sus fotos al público…' : 'Desactivando el deck y retirando sus fotos del público…');
+            return window.lwFichero(sb, 'deck_foto', 'deck_activa', { proyecto_id: p.id, activo: nuevoEstado }).then(function (d) {
+              var n = d && d.en_ambos;
+              if (d && d.aviso === 'aplicado_con_duplicadas') {
+                // hecho entero; quedan copias repetidas en los dos archivos, y eso lo decide una persona
+                aviso((nuevoEstado ? 'Deck activado' : 'Deck desactivado') + '. Ojo: ' + (n || 'algunas') + ' foto(s) tienen copia en el archivo público y en el privado; avisa a administración.', '#8A6A34');
+                setTimeout(function () { c.cierra(); location.reload(); }, 5000);
+                return;
+              }
               aviso(nuevoEstado ? 'Deck activado' : 'Deck desactivado');
               c.cierra();
               location.reload();
+            }, function (e) {
+              if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); }
+              var clave = e && e.clave;
+              if (e && e.aplicado === true) {
+                // el flag YA cambió: el recuadro y el botón pasan a «a medias», no al estado de antes
+                reintento = nuevoEstado; activo = nuevoEstado;
+                var est = document.getElementById('id-estado-deck');
+                if (est) est.innerHTML = estadoDeckHtml(nuevoEstado, { mal: e.quedan || null });
+                if (btn) { btn.className = 'las-btn2 lwc-peligro'; btn.textContent = textoReintento(nuevoEstado); }
+                return aviso('El deck YA está ' + (nuevoEstado ? 'activado' : 'desactivado') + ', pero el cambio ha quedado A MEDIAS: alguna foto no está donde toca. Pulsa «Reintentar»: repite lo mismo y es seguro.', '#ba1a1a');
+              }
+              if (clave === 'cambio_en_curso') return aviso('Ya hay un cambio en curso en el deck de este proyecto: espera un minuto y vuelve a abrirlo.', '#8A6A34');
+              aviso('No se ha cambiado nada: ' + ((e && e.message) || e), '#ba1a1a');
             });
           });
         }
+      }
+
+      function textoReintento(activo) { return activo ? 'Reintentar: activar deck' : 'Reintentar: desactivar deck'; }
+      // Recuadro de estado del Investor Deck: el flag y, aparte, si sus fotos están donde el flag manda.
+      function estadoDeckHtml(activo, fotos) {
+        var base = '<b>Estado: </b>' + (activo
+          ? 'el deck está <b style="color:#3F5230">ACTIVO</b> — todas las unidades de este proyecto son visibles en la página pública.'
+          : 'el deck está <b style="color:#9E2F26">INACTIVO</b> — nada de este proyecto es visible en la página pública.');
+        if (fotos && fotos.error) {
+          return base + '<br><span style="color:#8A6A34">No he podido comprobar dónde están sus fotos (' + esc(fotos.error) + ').</span>';
+        }
+        if (fotos && fotos.mal !== 0) {
+          return base + '<br><b style="color:#ba1a1a">A MEDIAS:</b> ' + (fotos.mal ? fotos.mal + ' foto(s)' : 'alguna foto') +
+            (activo ? ' siguen en el archivo privado y no se ven en el deck.' : ' siguen siendo públicas.') +
+            ' Pulsa «' + textoReintento(activo) + '»: repite el cambio y es seguro.';
+        }
+        return base;
       }
 
       /* Nuevo proyecto (11-sep-2026): mismo alcance que altaProyecto() en
@@ -6045,7 +6254,7 @@
         ev.stopPropagation();
         if (!esAdminP) return aviso('Dar de alta un proyecto es cosa de un administrador. Pídeselo a dirección.', '#8A6A34');
         modal('Nuevo proyecto', [
-          { k: 'nombre', label: 'Nombre', req: 1, ayuda: 'Con cuidado: un "Palm Field" y un "Palm Field " con espacio conviven como dos proyectos distintos.' }
+          { k: 'nombre', label: 'Nombre', req: 1, ayuda: 'Con cuidado: un "Proyecto A" y un "Proyecto A " con espacio conviven como dos proyectos distintos.' }
         ], 'Crear proyecto', function (v) {
           var nombre = v.nombre.trim();
           if (!nombre) return { error: { message: 'el nombre no puede quedar vacío' } };
@@ -6099,10 +6308,11 @@
           } else {
             camposU.push({ k: 'modelo', label: 'Modelo de villa', medio: 1, ayuda: 'Dune, Dream… (opcional)' });
           }
-          // fase/zona de masterplan solo existen para Sumba Hills — se ofrecen
-          // ya con el proyecto por defecto marcado; si al final se elige otro
-          // proyecto desde el desplegable, van vacías y no se mandan.
-          if (proyectoDefecto === 'Sumba Hills') {
+          // fase/zona de masterplan solo existen en los proyectos que la ficha
+          // de la instancia declara (usaFasesMasterplan) — se ofrecen ya con el
+          // proyecto por defecto marcado; si al final se elige otro proyecto
+          // desde el desplegable, van vacías y no se mandan.
+          if (usaFasesMasterplan(proyectoDefecto)) {
             camposU.push({ k: 'fase_masterplan', label: 'Fase (masterplan)', medio: 1, ayuda: 'I, II…' });
             camposU.push({ k: 'zona_masterplan', label: 'Zona', medio: 1, ayuda: '1, 2, 3…' });
           }
@@ -6177,8 +6387,8 @@
              corregirle el precio a una parcela reservada, la desvinculaba y la
              devolvia a «disponible»: esos dos campos tienen un dueño, y es el
              contrato (trigger sincroniza_unidad_contrato).
-           · fase/zona de masterplan solo existen para Sumba Hills, y solo se
-             mandan si el campo se pinto.
+           · fase/zona de masterplan solo existen en los proyectos que declara
+             la ficha (usaFasesMasterplan), y solo se mandan si el campo se pinto.
            · La RLS no da error al denegar: devuelve CERO filas. Por eso se pide
              .select('id') y se trata el vacio como falta de permiso.
 
@@ -6255,7 +6465,7 @@
             campos.push({ k: 'modelo', label: 'Modelo de villa', valor: n0(u.modelo), ayuda: 'Dune, Dream…' });
           }
           campos.push({ k: 'superficie_m2', label: 'Superficie (m²)', tipo: 'number', medio: 1, valor: n0(u.superficie_m2) });
-          if (u.proyecto === 'Sumba Hills') {
+          if (usaFasesMasterplan(u.proyecto)) {
             campos.push({ k: 'fase_masterplan', label: 'Fase (masterplan)', medio: 1, valor: n0(u.fase_masterplan), ayuda: 'I, II…' });
             campos.push({ k: 'zona_masterplan', label: 'Zona', medio: 1, valor: n0(u.zona_masterplan), ayuda: '1, 2, 3…' });
           }
@@ -6312,6 +6522,28 @@
               // <select> de estado/contrato ya existen en el DOM.
               { tipo: 'custom', render: function (d) { d.style.cssText = 'display:none;grid-column:1/-1'; d.id = 'aviso-estado-u'; } }
             );
+          }
+          /* Socio de la parcela (28-sep-2026, owner): solo admin y solo si el cajón ya trajo los socios de ESTE
+             proyecto (datos.js, socios_parcelas). Es otro dato con otro dueño: no viaja en unidad_guarda, va
+             por unidad_socio_asigna al guardar y solo si cambió. La base lo exige admin igual. */
+          var SOC = window.LW_V4 && window.LW_V4.socios;
+          var socioInicial = '';
+          if (SOC && window.LW_V4.esAdmin && window.LW_V4.proyecto && SOC.proyectoId === window.LW_V4.proyecto.id &&
+              u.proyecto === window.LW_V4.proyecto.nombre) {
+            socioInicial = (SOC.porUnidad[u.id] && SOC.porUnidad[u.id].socio_id) || '';
+            campos.push({ k: 'socio_id', label: 'Socio', tipo: 'select', valor: socioInicial,
+              /* Un socio de baja solo se ofrece si ES el de esta parcela: sin su opción, el <select> caería en
+                 «— sin socio —» y guardar cualquier otro campo borraría la asignación (revisor, 28-sep). Asignarlo
+                 a otra parcela no se puede: unidad_socio_asigna exige socio activo. */
+              opciones: [['', '— sin socio —']].concat(SOC.lista.filter(function (s) {
+                return s.activo !== false || s.id === socioInicial;
+              }).map(function (s) {
+                return [s.id, s.nombre + (s.tipo === 'arquitecto' ? ' · arquitecto' : '') + ' · ' + s.numero +
+                  (s.activo === false ? ' · de baja' : '')];
+              })),
+              ayuda: 'A qué socio corresponde esta parcela en el reparto interno. Solo lo ven los administradores; no es el propietario legal del suelo.' });
+          } else {
+            SOC = null;
           }
           campos.push({ k: 'notas', label: 'Notas', tipo: 'textarea', valor: n0(u.notas) });
 
@@ -6402,6 +6634,14 @@
               }
               if (!r.data || !r.data.length) {
                 return { error: { message: 'tu usuario no puede guardar esta parcela. La policy de unidades pide la herramienta «unidades» y que el proyecto esté entre los tuyos.' } };
+              }
+              // Socio: después de guardar la parcela y solo si cambió. Si falla, la parcela ya está guardada: se dice.
+              if (SOC && 'socio_id' in v && (v.socio_id || '') !== socioInicial) {
+                return sb.rpc('unidad_socio_asigna', { p_unidad: u.id, p_socio: v.socio_id || null, p_nota: null }).then(function (r2) {
+                  return r2.error
+                    ? { error: { message: 'la parcela se guardó, pero el socio no: ' + (r2.error.message || r2.error) } }
+                    : r;
+                });
               }
               return r;
             });
@@ -6584,7 +6824,7 @@
         // en EUR e IDR a la vez (Riverfront) exportaba un "Precio" desnudo,
         // que Excel puede sumar como si fuera una sola divisa.
         sb.from('unidades_estado').select('codigo,modelo,estado,precio,moneda,contrato_numero,comprador_nombre')
-          .eq('proyecto', p.nombre).order('codigo_orden').then(function (r) {
+          .eq('proyecto_id', p.id).order('codigo_orden').then(function (r) {
             if (r.error) return aviso('No se pudo exportar: ' + r.error.message, '#ba1a1a');
             var filas = (r.data || []).map(function (u) {
               return [u.codigo, u.modelo || '', u.estado || '', u.precio != null ? u.precio : '', u.moneda || '', u.contrato_numero || '', u.comprador_nombre || ''];
@@ -6631,6 +6871,37 @@
           if (f) importaCsv(f);
         });
       }
+      /* PLANTILLA CSV del parcelario (30-sep-2026, owner: «necesito una plantilla»).
+         Por proyecto: si ya tiene unidades, salen con sus datos para editar y
+         volver a importar; si no, cabecera y una fila de ejemplo. La cabecera
+         es LW_CSV_PLANTILLA_COLS (proyectos_csv.js, con un test que exige que
+         todas sean columnas que el importador reconoce). El select y el orden
+         de las filas de abajo van a mano y deben seguir ese orden.
+         `estado` y `contrato_id` no van, el importador los ignora. */
+      var bPlantilla = document.getElementById('btn-plantilla-csv');
+      if (bPlantilla) bPlantilla.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var p = proyectoObj();
+        if (!p) return aviso('Abre primero un proyecto: la plantilla es de un proyecto.', '#8A6A34');
+        aviso('Preparando la plantilla de ' + p.nombre + '…');
+        if (typeof LW_CSV_PLANTILLA_COLS === 'undefined') return aviso('El importador no ha cargado (proyectos_csv.js). Recarga la página.', '#ba1a1a');
+        var cols = LW_CSV_PLANTILLA_COLS;
+        sb.from('unidades').select('codigo,tipo,modelo,superficie_m2,precio_suelo,precio_construccion,precio,moneda,notas,fase_masterplan,zona_masterplan')
+          .eq('proyecto_id', p.id).order('codigo_orden').range(0, 999).then(function (r) {
+            if (r.error) return aviso('No se pudo preparar la plantilla: ' + r.error.message, '#ba1a1a');
+            var us = r.data || [];
+            var v = function (x) { return x == null ? '' : x; };
+            var filas = us.length
+              ? us.map(function (u) {
+                  return [u.codigo, p.nombre, v(u.tipo), v(u.modelo), v(u.superficie_m2), v(u.precio_suelo), v(u.precio_construccion), v(u.precio), v(u.moneda), v(u.notas), v(u.fase_masterplan), v(u.zona_masterplan)];
+                })
+              : [['P-01', p.nombre, 'parcela', '', '', '', '', '', 'EUR', '', '', '']];
+            descargaCsv(slugDe(lwMarca('%marca')) + '-' + slugDe(p.nombre) + '-plantilla-parcelario.csv', cols, filas);
+            aviso(us.length
+              ? 'Plantilla con las ' + us.length + ' unidades actuales' + (us.length >= 1000 ? ' (tope de 1.000: si hay más, no salen todas)' : '') + '. Edita y vuelve a importarla.'
+              : 'Este proyecto aún no tiene unidades: plantilla en blanco con una fila de ejemplo (bórrala o cámbiala).');
+          });
+      });
       function importaCsv(file) {
         if (file.size > LW_CSV_MAX_BYTES) {
           return aviso('El fichero pesa ' + (file.size / 1024 / 1024).toFixed(1) + ' MB — el máximo son 5 MB. Pártelo en varios.', '#ba1a1a');
@@ -6763,7 +7034,7 @@
 
     vencimientos: function (aut) {
       var sb = aut.sb;
-      ata(/Registrar hito/i, function () {
+      ata('registrar-hito', function () {
         if (!puedeH(aut.ficha, 'vencimientos')) return aviso('Ajustar hitos exige la herramienta Vencimientos (policy puede(\'vencimientos\')).', '#8A6A34');
         /* Un hito NUEVO no se crea aqui a proposito: nacen del calendario del
            contrato (sincroniza_vencimientos) y la tabla no tiene policy de
@@ -6808,7 +7079,7 @@
       var sb = aut.sb;
       // por el servidor (27-sep-2026, frontera bloque 5), igual que toggleEstado() en /intranet/soporte/: estado
       // de una lista cerrada y solo quien ve a ese comprador
-      ata(/^(Marcar resuelto|Reabrir)$/i, function () {
+      ata('estado-hilo', function () {
         var hilo = window.LW_V4 && window.LW_V4.hilo;
         if (!hilo) return aviso('El hilo aún no ha cargado.', '#8A6A34');
         var nuevo = hilo.estado === 'abierto' ? 'resuelto' : 'abierto';
@@ -6817,7 +7088,7 @@
           location.reload();
         });
       });
-      ata(/^Enviar respuesta$/i, function (btn) {
+      ata('enviar-respuesta', function (btn) {
         var ta = document.querySelector('textarea');
         var hilo = window.LW_V4 && window.LW_V4.hilo;
         var quien = window.LW_V4 && window.LW_V4.hiloCliente;
@@ -6846,7 +7117,7 @@
 
     obra: function (aut) {
       var sb = aut.sb;
-      ata(/Registrar avance/i, function () {
+      ata('registrar-avance', function () {
         // hallazgo de Desarrollo (deploy 15-sep): el gate de la UI decía
         // 'unidades', pero obra_actualizar y las policies de obra_fotos/bucket
         // obra exigen puede('obra') — con el gate viejo, un agente con
@@ -6884,7 +7155,7 @@
          obra_contratos_afectados() para la previa → obra_confirmar_avance() con
          los MISMOS ids que se enseñaron (candado optimista: si la lista cambió
          mientras tanto, la base rechaza en vez de escribir sobre datos viejos). */
-      ata(/Nuevo parte de trabajo/i, function () {
+      ata('nuevo-parte', function () {
         if (!puedeH(aut.ficha, 'obra'))
           return aviso('Los partes de trabajo exigen la herramienta Obra (policy puede(\'obra\')).', '#8A6A34');
 
@@ -6995,7 +7266,10 @@
           var elegibles = filas.filter(function (f) { return f.elegible; });
           var fuera = filas.filter(function (f) { return !f.elegible; });
           var ordenPago = filas.length ? filas[0].orden_pago : null;
-          var diasPorDefecto = ordenPago != null && plazos[ordenPago] != null ? plazos[ordenPago] : '';
+          // Sin plazo configurado en el proyecto, los 14 días del Art. 5 del contrato (28-sep-2026): no es un
+          // plazo inventado, es el que firmó el comprador. La base aplica la misma regla si no le llega ninguno.
+          var configurado = ordenPago != null && plazos[ordenPago] != null;
+          var diasPorDefecto = configurado ? plazos[ordenPago] : 14;
 
           var diasCalc = diasPorDefecto === '' ? 0 : Number(diasPorDefecto);
           var fechaNueva = new Date(Date.now() + diasCalc * 864e5).toISOString().slice(0, 10);
@@ -7009,6 +7283,8 @@
             var MOTIVO = {
               anterior_al_mecanismo: 'contrato anterior a este mecanismo — se cobra a mano, como hasta ahora',
               calendario_manual: 'calendario a medida, no el de fábrica',
+              pago_unico_firma: 'pago único a la firma — su vencimiento lo fija el contrato, no la obra',
+              pago_unico_ya_al_inicio: 'pago único — ya se cobró al empezar la obra',
               ajustado_a_mano: 'su fecha ya se tocó a mano',
               ya_facturado: 'ese pago ya está facturado',
               sin_vencimiento_en_ese_orden: 'no tiene ese pago en su calendario'
@@ -7097,8 +7373,8 @@
                 } },
               { k: 'dias', tipo: 'number', paso: '1', req: 1, valor: diasPorDefecto,
                 label: 'Días hasta que venza el cobro',
-                ayuda: diasPorDefecto === ''
-                  ? 'Este proyecto no tiene plazo configurado para este pago. Escríbelo aquí, o configúralo en Proyectos → Estado y obra. Si lo cambias, las fechas e importes de arriba se recalculan al confirmar.'
+                ayuda: !configurado
+                  ? 'Los 14 días que da el contrato (Art. 5) desde el aviso de inicio de fase. Este proyecto no tiene otro plazo configurado para este pago (Proyectos → Estado y obra). Si lo cambias, las fechas de arriba se recalculan al confirmar.'
                   : 'Viene del plazo configurado en la ficha del proyecto. Puedes cambiarlo solo para este avance; si lo haces, la fecha de arriba cambia igual.' },
               { k: 'nota', tipo: 'textarea', label: 'Qué se ha hecho (queda en el histórico del parte)' }
             ];
@@ -7205,8 +7481,10 @@
       var sb = aut.sb;
       /* `btnAlta` se guarda para poder disparar el alta sola con `?nuevo=1`
          (paridad 21-sep-2026): la pantalla llega desde otro sitio de la suite
-         que ya sabe que quiere dar de alta, sin obligar a buscar el botón. */
-      var btnAlta = ata(/Alta de comprador/i, function () { abreAltaComprador(); });
+         que ya sabe que quiere dar de alta, sin obligar a buscar el botón.
+         Va por `data-accion`: cuando iba por el rótulo, el paso a «Alta de
+         cliente» (a8bb55b4, 26-sep) lo dejó sin acción hasta el 29-sep. */
+      var btnAlta = ata('alta-cliente', function () { abreAltaComprador(); });
 
       /* GUARDAR EL ALTA — la lógica de siempre, sacada a su función para que la
          use el cajón nuevo (24-sep-2026). Los SEIS datos que exige un alta
@@ -7442,7 +7720,18 @@
                 (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — tu usuario no tiene ese permiso.' : ''));
             }
             btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
-            setTimeout(function () { cerrar(); location.reload(); }, 750);
+            /* Vuelta al asistente de Nuevo contrato (F7, 30-sep-2026): quien llegó
+               desde su paso «cliente» (`?volver=asistente`) vuelve allí con la
+               ficha recién creada elegida. Solo ese valor fijo y una ruta escrita
+               aquí —nunca una URL que venga en la barra (redirección abierta)—, y
+               en la URL solo viaja el uuid que devuelve cliente_guarda. */
+            var vuelta = new URLSearchParams(location.search).get('volver') === 'asistente'
+              && r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data);
+            setTimeout(function () {
+              cerrar();
+              if (vuelta) location.href = '/contracts/app.html?nuevo=1&asistente=1&asistente_cliente=' + encodeURIComponent(r.data);
+              else location.reload();
+            }, 750);
           }, function (e) {
             btn.classList.remove('las-guardando'); btn.disabled = false;
             error('No se pudo dar de alta: ' + (e && e.message || e));
@@ -7674,8 +7963,24 @@
       herrRestoAlta = permisosPorMenu(function (k) { return puedoDarAlta(k) && !esCrmAlta([k]); });
       var tiposCatAlta = (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO)
         ? Object.keys(LW_TIPO_CONTRATO).map(function (k) { return [k, LW_TIPO_CONTRATO[k]]; }) : [];
+      /* AxisWorks ERP (28-sep-2026, subtarea 6b): con `window.AXW_NUCLEO_OPERACION` los tipos de contrato ya no son la
+         lista fija de Lawang (LW_TIPO_CONTRATO) sino el catálogo `tipos_contrato` de la base, que el admin amplía en
+         /v4/plantillas/. Se leen por el servidor cada vez que se abre un formulario (un tipo recién dado de alta sale
+         sin recargar). null = no se pudieron leer. Sin la bandera no se llama: Lawang sigue con su lista. */
+      var tiposErp = function () {
+        return window.lwDatos('plantillas_contrato_datos').then(function (r) {
+          if (r.error || !r.data || !Array.isArray(r.data.tipos)) { console.error('[v4 usuarios] tipos de contrato no leídos', r.error); return null; }
+          /* Sin ningún tipo ACTIVO la lista de casillas sale vacía, y vacío = TODOS: se trata como no leído
+             (code-review 28-sep-2026). */
+          if (!r.data.tipos.some(function (t) { return t.activo; })) { console.error('[v4 usuarios] el catálogo no tiene ningún tipo de contrato activo'); return null; }
+          return r.data.tipos;
+        });
+      };
+      var opcionesTipos = function (tipos) {
+        return tipos.filter(function (t) { return t.activo; }).map(function (t) { return [t.clave, t.nombre]; });
+      };
 
-      var btnAlta = ata(/Invitar miembro/i, function () {
+      var abreAlta = function (tiposCatAlta) {
         if (!(esAdmin(aut.ficha) && puedeH(aut.ficha, 'usuarios'))) {
           return aviso('Dar de alta exige administración con la herramienta Usuarios.', '#8A6A34');
         }
@@ -7783,6 +8088,15 @@
           var cajaTipos = document.querySelector('#lw-editor [data-k="tipos_contrato"]');
           if (cajaTipos) cajaTipos.querySelectorAll('input').forEach(function (i) { i.checked = tipos.indexOf(i.value) !== -1; });
         });
+      };
+      var btnAlta = ata('invitar-miembro', function () {
+        if (!window.AXW_NUCLEO_OPERACION) return abreAlta(tiposCatAlta);
+        /* ERP: si el catálogo no se lee, el alta NO se abre. «Contratos que puede hacer» vacío significa TODOS:
+           un formulario sin opciones daría acceso a todo sin que nadie lo decidiera. */
+        tiposErp().then(function (t) {
+          if (!t) return aviso('No se ha podido leer el catálogo de tipos de contrato, o no tiene ninguno activo: recarga la pantalla (o activa un tipo en Plantillas) antes de dar de alta a nadie.', '#9E2F26');
+          abreAlta(opcionesTipos(t));
+        });
       });
       /* `?nuevo=1` abre el alta sola (paridad 21-sep-2026, mismo patrón que
          Compradores/Facturas/Proyectos): quien llega desde otro sitio de la
@@ -7813,7 +8127,8 @@
            Si la página no cargó herramientas.js se cae a la unión, y se nota. */
         Promise.all([
           (typeof LW_PERMISOS !== 'undefined') ? Promise.resolve({ data: null }) : sb.from('usuarios').select('herramientas'),
-          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
+          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'),
+          window.AXW_NUCLEO_OPERACION ? tiposErp() : Promise.resolve(undefined)
         ]).then(function (rs) {
           var ops;
           if (typeof LW_PERMISOS !== 'undefined') {
@@ -7833,6 +8148,21 @@
           var proyectos = (rs[1].data) || [];
           var tiposCat = (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO)
             ? Object.keys(LW_TIPO_CONTRATO).map(function (k) { return [k, LW_TIPO_CONTRATO[k]]; }) : [];
+          /* ERP (6b): del catálogo de la base. Si no se pudo leer, el campo no se ofrece y NO viaja (vacío = todos:
+             mandarlo le abriría todo). Lo que la persona ya tiene y hoy está desactivado se sigue enseñando marcado:
+             si no, guardar se lo quitaría en silencio (la base solo valida lo que se AÑADE). */
+          var tiposOk = true;
+          if (window.AXW_NUCLEO_OPERACION) {
+            tiposOk = !!rs[2];
+            if (tiposOk) {
+              tiposCat = opcionesTipos(rs[2]);
+              (u.tipos_contrato || []).forEach(function (k) {
+                if (tiposCat.some(function (o) { return o[0] === k; })) return;
+                var t = rs[2].filter(function (x) { return x.clave === k; })[0];
+                tiposCat.push([k, (t ? t.nombre : k) + ' — desactivado']);
+              });
+            }
+          }
           /* El ROL solo lo cambia un super_admin (viva: `fRol` disabled salvo
              soySuper). Un admin lo ve, no lo toca — y no viaja en el patch. */
           var rolEditable = soySuper && !yoMismo;
@@ -7859,7 +8189,8 @@
           } else {
             campos.push({ tipo: 'nota', label: 'No se pudo cargar el catálogo de proyectos: los suyos se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
           }
-          campos.push(
+          if (!tiposOk) campos.push({ tipo: 'nota', label: 'No se pudo leer el catálogo de tipos de contrato, o no tiene ninguno activo: los que tiene se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
+          else campos.push(
             { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck',
               opciones: tiposCat, valor: u.tipos_contrato || [],
               /* SIN "Ninguno" aquí, a propósito (revisión previa Seguridad,
@@ -7878,6 +8209,7 @@
               tipos_contrato: v.tipos_contrato
             };
             if (proyectosOk) patch.proyectos = v.proyectos;
+            if (!tiposOk) delete patch.tipos_contrato;
             if (!yoMismo) { patch.activo = v.activo; }
             if (rolEditable) { patch.rol = v.rol; }
             /* la proteccion real vive en la policy (super_admin intocable salvo
@@ -7941,7 +8273,7 @@
           ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
       };
 
-      ata(/^\+? ?Nuevo equipo$/i, function () {
+      ata('nuevo-equipo', function () {
         if (!admin) return soloAdmin();
         if (!(window.LW_V4.usuariosLista || []).length) return aviso('La lista de usuarios aún no ha cargado — espera un momento y vuelve a pulsar.', '#8A6A34');
         modal('Nuevo equipo de venta', [
@@ -7954,21 +8286,76 @@
         });
       });
 
+      /* F6 (30-sep-2026, owner: «alta con fecha retroactiva solo admin, con vista previa de las ventas que
+         se moverían y confirmación»). Un alta con fecha pasada o cualquier cambio de una fila puede pasar
+         ventas ya hechas a otro equipo, y con el recálculo de comisiones encendido eso es dinero. Así que
+         primero se SIMULA en la base (equipo_miembro_vista_previa hace la escritura de verdad y la deshace),
+         se enseña la lista, y el alta confirmada lleva el recuento visto: si al guardar ya no coincide, la
+         base la rechaza. La lista de la vista previa y la del alta salen del mismo código del servidor. */
+      var T6 = function (x, h) { return window.lwT ? window.lwT(x, h) : x; };
+      var hoyBali = function () { return new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); };
+      function abreConfirmaMovimiento(p, x) {
+        var n = x.n || 0, ventas = x.ventas || [];
+        modal(T6('Confirmar el cambio de equipo'), [
+          { tipo: 'nota', label: n
+              ? T6('Este cambio pasa %n venta(s) ya hechas a otro equipo. Ninguna tiene comisión devengada: las que ya la tienen no se mueven nunca. Cuando devenguen, lo harán con las condiciones de su equipo nuevo.', { n: n })
+              : T6('Este cambio no mueve ninguna venta ya hecha.') },
+          { tipo: 'custom', render: function (d) {
+              if (!ventas.length) return;
+              var t = document.createElement('table'); t.className = 'w-full text-left border-collapse';
+              var cab = document.createElement('tr');
+              [T6('Venta'), T6('Fecha'), T6('Proyecto'), T6('Cliente'), T6('Equipo antes → después')].forEach(function (h) {
+                var th = document.createElement('th'); th.className = 'py-2 pr-3 font-label-md text-[11px] uppercase tracking-wider text-outline'; th.textContent = h; cab.appendChild(th);
+              });
+              t.appendChild(cab);
+              ventas.forEach(function (vt) {
+                var tr = document.createElement('tr'); tr.className = 'border-t border-outline-variant/30';
+                [vt.numero, vt.fecha, vt.proyecto, vt.comprador, (vt.equipo_antes || T6('sin equipo')) + ' → ' + (vt.equipo_despues || T6('sin equipo'))].forEach(function (c) {
+                  var td = document.createElement('td'); td.className = 'py-2 pr-3 font-body-sm text-body-sm text-on-surface'; td.textContent = c == null ? '—' : String(c); tr.appendChild(td);
+                });
+                t.appendChild(tr);
+              });
+              d.appendChild(t);
+            } },
+          /* No se enseña «0 comisiones nuevas»: mover el equipo no dispara el motor, así que la simulación
+             siempre daría 0 y se leería como «no mueve dinero». Lo que pasa de verdad es esto: */
+          { tipo: 'nota', label: T6('La comisión de estas ventas no se calcula ahora: cuando se vuelvan a evaluar (el próximo cobro, factura o cambio del contrato) aplicarán las condiciones del equipo nuevo, bote del manager incluido.') }
+        ], n ? T6('Confirmar (%n ventas)', { n: n }) : T6('Confirmar'), function () {
+          return sb.rpc('equipo_miembro_guarda_confirmada', Object.assign({}, p, { p_confirmar: n }));
+        });
+      }
+      // `siempre`: fecha pasada o edición de una fila → confirmación aunque no mueva nada
+      function guardaConVistaPrevia(p, siempre) {
+        return sb.rpc('equipo_miembro_vista_previa', p).then(function (r) {
+          if (r.error) return r;
+          var x = r.data || {};
+          if (!siempre && !(x.n > 0)) {
+            return sb.rpc('equipo_miembro_guarda', p).then(function (g) {
+              if (!g.error) setTimeout(function () { location.reload(); }, 450);
+              return g;
+            });
+          }
+          abreConfirmaMovimiento(p, x);
+          return {};
+        });
+      }
+
       window.LW_V4.abreAnadirMiembro = function (equipoId, equipoNombre) {
         if (!admin) return soloAdmin();
         if (!(window.LW_V4.usuariosLista || []).length) return aviso('La lista de usuarios aún no ha cargado — espera un momento y vuelve a pulsar.', '#8A6A34');
         modal('Añadir miembro — ' + (equipoNombre || ''), [
           { k: 'closer_email', label: 'Closer', tipo: 'select', req: 1, opciones: opsUsuarios('', '— elige un usuario —'),
             ayuda: 'solo usuarios dados de alta en la intranet: el email es la clave con la que se le atribuyen ventas y comisiones' },
-          { k: 'desde', label: 'Desde', tipo: 'date', req: 1, medio: 1, valor: new Date().toISOString().slice(0, 10) },
+          { k: 'desde', label: 'Desde', tipo: 'date', req: 1, medio: 1, valor: hoyBali(),
+            ayuda: T6('con una fecha pasada verás antes qué ventas cambiarían de equipo') },
           { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, ayuda: 'vacío = sigue activo' }
         ], 'Añadir al equipo', function (v) {
           if (v.hasta && v.hasta < v.desde) return { error: { message: '«Hasta» no puede ser anterior a «Desde».' } };
-          // por el servidor (LAW-336 pieza 7): congela antes las ventas afectadas (owner, 26-sep: el equipo
-          // de una venta no cambia después), impide estar en dos equipos a la vez, added_by de la sesión
-          return sb.rpc('equipo_miembro_guarda', { p_id: null, p_equipo: equipoId,
-            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null });
-        });
+          // por el servidor (LAW-336 pieza 7 + F6): congela antes, impide estar en dos equipos, y con fecha
+          // pasada exige el recuento de la vista previa
+          return guardaConVistaPrevia({ p_id: null, p_equipo: equipoId,
+            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null }, v.desde < hoyBali());
+        }, { sinRecarga: true });
       };
 
       window.LW_V4.abreDarBaja = function (miembroId, closerEmail) {
@@ -8013,10 +8400,207 @@
           { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, valor: b.getAttribute('data-lw-hasta') || '', ayuda: 'vacío = sigue activo' }
         ], 'Guardar miembro', function (v) {
           if (v.hasta && v.hasta < v.desde) return { error: { message: '«Hasta» no puede ser anterior a «Desde».' } };
-          return sb.rpc('equipo_miembro_guarda', { p_id: id, p_equipo: v.equipo_id,   // por el servidor (LAW-336 pieza 7)
-            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null });
-        });
+          // F6: cambiar una fila (fechas, equipo, persona) puede mover ventas → siempre con vista previa
+          return guardaConVistaPrevia({ p_id: id, p_equipo: v.equipo_id,
+            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null }, true);
+        }, { sinRecarga: true });
       };
+
+      /* ---- «Mi equipo» (F6): el SM sobre SU equipo, admin sobre el que eligió ----
+         Todo por RPC; la base decide quién puede entrar (nadie de otro equipo, ni él mismo, ni un
+         SM o admin), fuerza la fecha de hoy al SM, y deja log + aviso a administración. */
+      var eqMe = function () { return window.LW_V4.miEquipo; };
+      var sinEquipo = function () { return aviso(T6('Primero elige un equipo.'), '#8A6A34'); };
+
+      ata('me-anadir', function () {
+        var eq = eqMe(); if (!eq) return sinEquipo();
+        if (admin) return window.LW_V4.abreAnadirMiembro(eq.id, eq.nombre);   // admin: con fecha y vista previa
+        // el servidor da solo nombre y email enmascarado (j***@dominio) y el id con el que se pide el alta
+        sb.rpc('equipo_candidatos_sm', { p_equipo: eq.id }).then(function (r) {
+          if (r.error) return aviso(T6('No he podido traer la gente disponible: %e', { e: r.error.message }), '#93000a');
+          var ops = (r.data || []).map(function (u) { return [u.usuario, (u.nombre && u.nombre !== u.email ? u.nombre + ' · ' : '') + u.email]; });
+          if (!ops.length) {
+            return modal(T6('Añadir miembro — %e', { e: eq.nombre }), [
+              { tipo: 'nota', label: T6('Ahora mismo no hay nadie disponible: todos los usuarios activos están ya en un equipo o son managers o administración. Para traer a alguien de otro equipo, pídeselo a administración.') }
+            ], T6('Entendido'), function () { return Promise.resolve({}); }, { sinRecarga: true });
+          }
+          modal(T6('Añadir miembro — %e', { e: eq.nombre }), [
+            { k: 'usuario', label: T6('Persona'), tipo: 'select', req: 1, opciones: [['', T6('— elige a alguien sin equipo —')]].concat(ops),
+              ayuda: T6('solo sale quien no está en ningún equipo; entra con fecha de hoy y administración recibe un aviso') }
+          ], T6('Añadir al equipo'), function (v) {
+            // el email y la fecha (hoy en Bali) los pone el servidor
+            return sb.rpc('equipo_miembro_anade', { p_equipo: eq.id, p_usuario: v.usuario });
+          });
+        });
+      });
+
+      var cuerpoMe = document.getElementById('lw-me-miembros');
+      if (cuerpoMe) cuerpoMe.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-accion="me-rol"], [data-accion="me-baja"]');
+        if (!b || b.disabled) return;
+        ev.preventDefault(); ev.stopPropagation();
+        var eq = eqMe(); if (!eq) return sinEquipo();
+        var id = b.getAttribute('data-id');
+        var m = (eq.miembros || []).filter(function (x) { return x.id === id; })[0];
+        if (!m) return aviso(T6('No encuentro a esa persona en el equipo: recarga la página.'), '#8A6A34');
+        var quien = m.closer_email;
+        if (b.getAttribute('data-accion') === 'me-rol') {
+          return modal(T6('Rol — %e', { e: quien }), [
+            { k: 'rol', label: T6('Tipo de rol'), tipo: 'select', req: 1, medio: 1, valor: m.rol || 'closer',
+              opciones: [['closer', T6('Closer')], ['setter', T6('Setter')], ['otro', T6('Otro')]],
+              ayuda: T6('el tipo es fijo para que el ranking sepa quién cerró') },
+            { k: 'rol_nombre', label: T6('Nombre del rol (opcional)'), medio: 1, valor: m.rol_nombre || '',
+              ayuda: T6('como lo llamas tú en tu equipo, p. ej. «Setter de Sumba»') }
+          ], T6('Guardar rol'), function (v) {
+            return sb.rpc('equipo_miembro_rol', { p_id: id, p_rol: v.rol, p_rol_nombre: v.rol_nombre || null });
+          });
+        }
+        modal(T6('Dar de baja — %e', { e: quien }), [
+          { tipo: 'nota', label: admin
+              ? T6('Sale del equipo con fecha de hoy. Sus ventas ya hechas se quedan con el equipo con el que se hicieron.')
+              : T6('Sale de tu equipo con fecha de hoy. Sus ventas ya hechas se quedan con el equipo con el que se hicieron. Administración recibe un aviso.') }
+        ], T6('Dar de baja'), function () {
+          return sb.rpc('equipo_miembro_baja', { p_id: id, p_hasta: hoyBali() });   // el SM, siempre hoy (lo fuerza la base)
+        });
+      });
+
+      ata('me-interruptor', function () {
+        var eq = eqMe(); if (!eq) return sinEquipo();
+        var pasaA = !eq.ven;
+        modal(pasaA ? T6('Tus closers verán su comisión') : T6('Tus closers dejarán de ver su comisión'), [
+          { tipo: 'nota', label: pasaA
+              ? T6('Desde ya, cada closer de %e ve SOLO su propia parte de las ventas del equipo: nunca el bote ni lo de sus compañeros.', { e: eq.nombre })
+              : T6('Desde ya, los closers de %e no ven ninguna cifra de su parte del equipo: ni en «Mis comisiones», ni en avisos, correos, exportaciones o el asistente. Lo que venden por su cuenta lo siguen viendo.', { e: eq.nombre }) }
+        ], pasaA ? T6('Encender') : T6('Apagar'), function () {
+          return sb.rpc('equipo_closers_ven_comision', { p_equipo: eq.id, p_valor: pasaA });
+        });
+      });
+
+      /* ---- «Ventas por su cuenta» (F5b, 30-sep-2026) ----
+         Tres acciones, todas por RPC y con la regla en la base: objetar (el SM de ESE equipo, dentro de los 7 días,
+         nunca su propia venta), resolver la objeción y cambiar el modo (administración con «Reparto a closers»).
+         Resolver o cambiar el modo reevalúa la comisión de la venta: el diálogo lo dice y pide el motivo. */
+      var cuerpoVpc = document.getElementById('lw-vpc-filas');
+      if (cuerpoVpc) cuerpoVpc.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-accion="vpc-objetar"], [data-accion="vpc-resolver"], [data-accion="vpc-modo"]');
+        if (!b || b.disabled) return;
+        ev.preventDefault(); ev.stopPropagation();
+        var acc = b.getAttribute('data-accion'), id = b.getAttribute('data-id');
+        var filas = window.LW_V4.vpcFilas || [];
+        var f = filas.filter(function (x) { return acc === 'vpc-resolver' ? x.objecion_id === id : x.raiz_id === id; })[0];
+        if (!f) return aviso(T6('No encuentro esa venta: recarga la página.'), '#8A6A34');
+        var quien = f.numero + ' · ' + f.closer_email;
+        if (acc === 'vpc-objetar') {
+          return modal(T6('Objetar — %e', { e: quien }), [
+            { tipo: 'nota', label: T6('Dices que esta venta es del equipo, no por su cuenta. La comisión queda en espera hasta que administración lo decida; el closer y administración reciben el aviso.') },
+            { k: 'motivo', label: T6('Por qué es del equipo'), tipo: 'textarea', req: 1,
+              ayuda: T6('p. ej. «el lead se lo pasé yo el 12-sep» — lo lee administración para decidir') }
+          ], T6('Objetar'), function (v) {
+            return sb.rpc('venta_objecion_crear', { p_raiz: f.raiz_id, p_motivo: String(v.motivo || '').trim() });
+          });
+        }
+        if (acc === 'vpc-resolver') {
+          return modal(T6('Resolver la objeción — %e', { e: quien }), [
+            { tipo: 'nota', label: T6('Objeción del Sales Manager: «%m»', { m: f.objecion_motivo || '—' }) },
+            { k: 'decision', label: T6('Decisión'), tipo: 'select', req: 1, valor: '',
+              opciones: [['', T6('— elige —')], ['mantener_propia', T6('Se queda por su cuenta')], ['pasar_equipo', T6('Pasa a ser del equipo')]],
+              ayuda: T6('cualquiera de las dos reevalúa la comisión de la venta en ese momento') },
+            { k: 'motivo', label: T6('Motivo'), tipo: 'textarea', req: 1, ayuda: T6('queda escrito y lo reciben el Sales Manager y el closer') }
+          ], T6('Resolver'), function (v) {
+            return sb.rpc('venta_objecion_resolver', { p_id: f.objecion_id, p_decision: v.decision, p_motivo: String(v.motivo || '').trim() });
+          });
+        }
+        modal(T6('Pasar al equipo — %e', { e: quien }), [
+          { tipo: 'nota', label: T6('La venta deja de ser por su cuenta y pasa a ser del equipo, y el closer ya no puede cambiarlo. Las comisiones de «por su cuenta» sin pagar se anulan; las ya pagadas se descuentan de un pago siguiente con una diferencia negativa; y se reevalúa con las condiciones del equipo. Si alguna está aprobada sin pagar o en disputa, la base lo para y lo dice.') },
+          { k: 'motivo', label: T6('Motivo'), tipo: 'textarea', req: 1, ayuda: T6('queda en el registro de la venta') }
+        ], T6('Pasar al equipo'), function (v) {
+          return sb.rpc('venta_modo_admin', { p_raiz: f.raiz_id, p_modo: 'equipo', p_motivo: String(v.motivo || '').trim() });
+        });
+      });
+
+      /* Plantilla de reparto: filas editables; la suma se ve en vivo y se valida aquí solo como ayuda
+         (manda plantilla_reparto_guarda, que ya existe en la base: sin llamada de sondeo). */
+      var cajaPl = document.getElementById('lw-me-plantilla');
+      function sumaPl() {
+        var s = 0, filas = cajaPl ? cajaPl.querySelectorAll('[data-lw-fila]') : [];
+        Array.prototype.forEach.call(filas, function (f) { s += Number(f.querySelector('[data-k="pct"]').value) || 0; });
+        s = Math.round(s * 100) / 100;
+        var el = document.querySelector('[data-lw="me-suma"]');
+        if (el) {
+          el.textContent = filas.length ? T6('Suma %s%', { s: s }) : T6('Sin plantilla');
+          el.className = 'shrink-0 inline-flex items-center px-3 py-1 rounded-full font-label-md text-[12px] ' +
+            (!filas.length ? 'bg-surface-container-high text-on-surface-variant' : s === 100 ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-error-container text-on-error-container');
+        }
+        return { suma: s, n: filas.length };
+      }
+      function filaPl(f) {
+        var d = document.createElement('div');
+        d.className = 'flex flex-wrap sm:flex-nowrap items-center gap-2';
+        d.setAttribute('data-lw-fila', '1');
+        var sel = document.createElement('select');
+        sel.setAttribute('data-k', 'rol_tipo'); sel.setAttribute('aria-label', T6('Tipo de rol'));
+        sel.className = 'pl-3 pr-8 py-2 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px]';
+        [['closer', 'Closer'], ['setter', 'Setter'], ['otro', 'Otro']].forEach(function (o) {
+          var op = document.createElement('option'); op.value = o[0]; op.textContent = T6(o[1]); if ((f.rol_tipo || 'closer') === o[0]) op.selected = true; sel.appendChild(op);
+        });
+        var nom = document.createElement('input');
+        nom.type = 'text'; nom.maxLength = 60; nom.value = f.rol_nombre || ''; nom.setAttribute('data-k', 'rol_nombre');
+        nom.placeholder = T6('Nombre del rol'); nom.setAttribute('aria-label', T6('Nombre del rol'));
+        nom.className = 'flex-1 min-w-[8rem] px-3 py-2 rounded-full bg-surface-container-low border border-control-border/40 font-body-sm text-body-sm';
+        var pct = document.createElement('input');
+        pct.type = 'number'; pct.min = '0'; pct.max = '100'; pct.step = '0.01'; pct.value = f.pct == null ? '' : f.pct; pct.setAttribute('data-k', 'pct');
+        pct.setAttribute('aria-label', T6('Porcentaje'));
+        pct.className = 'w-24 px-3 py-2 rounded-full bg-surface-container-low border border-control-border/40 font-body-sm text-body-sm text-right';
+        pct.addEventListener('input', sumaPl);
+        var quita = document.createElement('button');
+        quita.type = 'button'; quita.setAttribute('data-accion', 'me-plantilla-quita'); quita.setAttribute('data-real', '1');   // que maqueta.js no lo tome por «cerrar»
+        quita.setAttribute('aria-label', T6('Quitar este rol'));
+        quita.className = 'w-8 h-8 rounded-full text-error hover:bg-error-container/40 flex items-center justify-center';
+        quita.innerHTML = '<span class="material-symbols-outlined text-[18px]">close</span>';
+        quita.addEventListener('click', function () { d.remove(); sumaPl(); });
+        var pc = document.createElement('span'); pc.className = 'font-body-sm text-body-sm text-outline'; pc.textContent = '%';
+        d.appendChild(sel); d.appendChild(nom); d.appendChild(pct); d.appendChild(pc); d.appendChild(quita);
+        return d;
+      }
+      window.LW_V4.pintaPlantilla = function (filas) {
+        if (!cajaPl) return;
+        cajaPl.innerHTML = '';
+        (filas || []).forEach(function (f) { cajaPl.appendChild(filaPl(f)); });
+        sumaPl();
+        var bG = document.querySelector('main [data-accion="me-plantilla-guarda"]');
+        var bF = document.querySelector('main [data-accion="me-plantilla-fila"]');
+        if (bF) { bF.disabled = false; bF.title = ''; }
+        if (bG) { bG.disabled = false; bG.title = ''; }
+      };
+      if (cajaPl && cajaPl.getAttribute('data-lw-pendiente')) {   // datos.js llegó antes que este fichero
+        try { window.LW_V4.pintaPlantilla(JSON.parse(cajaPl.getAttribute('data-lw-pendiente'))); } catch (e) {
+          var notaPl = document.querySelector('[data-lw="me-plantilla-nota"]');   // que se vea, no solo en consola
+          if (notaPl) notaPl.textContent = T6('No he podido leer la plantilla: %e', { e: e.message });
+        }
+        cajaPl.removeAttribute('data-lw-pendiente');
+      }
+      ata('me-plantilla-fila', function () {
+        if (!eqMe()) return sinEquipo();
+        if (cajaPl) cajaPl.appendChild(filaPl({ rol_tipo: 'closer', rol_nombre: '', pct: '' }));
+        sumaPl();
+      });
+      ata('me-plantilla-guarda', function (b) {
+        var eq = eqMe(); if (!eq) return sinEquipo();
+        var filas = Array.prototype.map.call(cajaPl ? cajaPl.querySelectorAll('[data-lw-fila]') : [], function (f) {
+          return { rol_tipo: f.querySelector('[data-k="rol_tipo"]').value,
+                   rol_nombre: f.querySelector('[data-k="rol_nombre"]').value.trim(),
+                   pct: Number(f.querySelector('[data-k="pct"]').value) };
+        });
+        var s = sumaPl();
+        if (filas.some(function (f) { return !f.rol_nombre; })) return aviso(T6('Cada rol necesita un nombre.'), '#8A6A34');
+        if (s.n && s.suma !== 100) return aviso(T6('La plantilla suma %s% y tiene que sumar 100%.', { s: s.suma }), '#8A6A34');
+        b.disabled = true;
+        sb.rpc('plantilla_reparto_guarda', { p_equipo: eq.id, p_filas: filas }).then(function (r) {
+          b.disabled = false;
+          if (r.error) return aviso(T6('No se pudo guardar: %e', { e: r.error.message }), '#93000a');
+          aviso(T6('Plantilla guardada'));
+        });
+      });
 
       window.LW_V4.abreToggleEquipo = function (equipoId, nombre, activoActual) {
         if (!admin) return soloAdmin();
@@ -8108,7 +8692,7 @@
         });
       }
 
-      ata(/^\+? ?Nueva condici[oó]n$/i, function () {
+      ata('nueva-condicion', function () {
         cargaMisEquipos.then(function () {
         if (!admin && !misEquipos.length) return soloAdmin();
         Promise.all([
@@ -8141,8 +8725,9 @@
                   ayuda: 'es lo que TÚ pagas a tu equipo en cada venta; tu comisión la fija administración' },
             { k: 'vigente_desde', label: 'Vigente desde', tipo: 'date', req: 1, medio: 1,
               valor: hoyC,
-              ayuda: admin ? 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha: lo anterior no devenga'
-                : 'desde hoy en adelante: solo cuentan las ventas creadas desde esta fecha' },
+              ayuda: (admin ? 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha: lo anterior no devenga'
+                : 'desde hoy en adelante: solo cuentan las ventas creadas desde esta fecha') +
+                '. Si ya hay una condición para ese mismo alcance, se cierra sola el día antes' },
             { k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
               opciones: opsCloser,
               visibleSi: admin ? { k: 'nivel', valores: ROLES_EQUIPO_C } : undefined,
@@ -8174,7 +8759,7 @@
             /* Condición y tramos por el servidor, en UNA transacción (26-sep-2026, LAW-336 pieza 6):
                antes eran un insert, otro insert y un delete de compensación si fallaba el segundo.
                El id, el autor y el permiso los decide la base (condicion_comision_guarda). */
-            return sb.rpc('condicion_comision_guarda', {
+            return guardaCondicionConfirmada({
               p_id: null,
               p_cond: {
                 equipo_id: v.equipo_id, proyecto_id: v.proyecto_id, nivel: v.nivel,
@@ -8185,10 +8770,34 @@
               },
               p_tramos: tramosParaServidor(tramos)
             });
-          });
+          }, { sinRecarga: true });   // recarga guardaCondicionConfirmada, que puede abrir antes la confirmación
         });
         });
       });
+
+      /* F6, regla 3b de Administración (30-sep-2026): una fecha de inicio en el pasado cambia de condición
+         a ventas ya hechas sin comisión devengada. La base las cuenta y rechaza con el hint
+         «lw-confirmar-ventas:N»; aquí se enseña ese número y, si se confirma, se reenvía con él. Si entretanto
+         cambia, la base vuelve a rechazar: el número que se aplica es el que se vio. */
+      function guardaCondicionConfirmada(params) {
+        return sb.rpc('condicion_comision_guarda', params).then(function (r) {
+          var m = r.error && /^lw-confirmar-ventas:(\d+)$/.exec(r.error.hint || '');
+          if (!m) {
+            if (!r.error) setTimeout(function () { location.reload(); }, 450);
+            return r;
+          }
+          var n = Number(m[1]);
+          modal('Confirmar ventas que cambian de condición', [
+            { tipo: 'nota', label: r.error.message },
+            { tipo: 'nota', label: 'Son ventas que todavía no han cobrado toda su comisión: lo que les quede por cobrar se calculará con lo que confirmes ahora. Lo que ya se generó no cambia.' }
+          ], 'Confirmar (' + n + (n === 1 ? ' venta)' : ' ventas)'), function () {
+            return sb.rpc('condicion_comision_guarda', Object.assign({}, params, {
+              p_cond: Object.assign({}, params.p_cond, { confirmar_ventas: n })
+            }));
+          });
+          return {};
+        });
+      }
 
       /* BORRAR (18-sep-2026, owner: «permíteme borrar condiciones que no
          quiera»). Los tramos caen en cascada (FK). Las comisiones YA devengadas
@@ -8200,7 +8809,9 @@
         // el boton solo sale en filas desactivadas; esto es por si alguien lo llama a mano
         var cond = ((window.LW_V4.condicionesLista || {})[id]);
         if (!admin && !esMiCondicion(cond)) return soloAdmin();
-        if (cond && cond.activo) return aviso('Desactiva la condición antes de borrarla: una activa puede estar aplicándose a contratos firmados.', '#8A6A34');
+        // F6: solo se borra la que aún no ha empezado (la base lo exige igual); las demás se cierran
+        var hoyBC = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+        if (cond && !(cond.vigente_desde > hoyBC)) return aviso('Solo se borra una condición que aún no ha empezado; esta se cierra en su lugar.', '#8A6A34');
         sb.from('comisiones_devengadas').select('id', { count: 'exact', head: true }).eq('condicion_id', id).then(function (r) {
           var n = r.error ? 0 : (r.count || 0);
           if (n) {
@@ -8219,11 +8830,14 @@
       window.LW_V4.abreToggleCondicion = function (condId, etiqueta, activoActual) {
         if (!admin && !esMiCondicion((window.LW_V4.condicionesLista || {})[condId])) return soloAdmin();
         var pasaA = !activoActual;
-        modal((pasaA ? 'Reactivar' : 'Desactivar') + ' condición — ' + (etiqueta || ''), [
+        var TC = function (x) { return window.lwT ? window.lwT(x) : x; };
+        /* F6 (reglas de Administración): desactivar = CERRAR con fecha de hoy. Sin fecha de fin la
+           condición dejaría de aplicarse también hacia atrás y, con el recálculo encendido, movería dinero. */
+        modal((pasaA ? TC('Reactivar condición') : TC('Cerrar condición')) + ' — ' + (etiqueta || ''), [
           { tipo: 'nota', label: pasaA
-              ? 'Vuelve a aplicarse a las comisiones que se disparen desde ahora.'
-              : 'Deja de aplicarse a comisiones nuevas. Lo ya devengado no cambia.' }
-        ], pasaA ? 'Reactivar' : 'Desactivar', function () {
+              ? TC('Vuelve a aplicarse a las comisiones que se disparen desde ahora.')
+              : TC('Se cierra con fecha de hoy: las ventas hasta hoy siguen cobrando con ella y las de mañana en adelante ya no. Una condición cerrada no se reabre; si quieres otras cifras, crea una nueva (cierra sola la anterior).') }
+        ], pasaA ? TC('Reactivar') : TC('Cerrar condición'), function () {
           return sb.rpc('condicion_comision_activa', { p_id: condId, p_activo: pasaA });   // por el servidor (LAW-336 pieza 6)
         });
       };
@@ -8249,10 +8863,23 @@
             { tipo: 'lectura', label: 'Equipo · proyecto', valor: etq },
             { tipo: 'lectura', label: 'Nivel', valor: !cond.equipo_id ? lwMarca('Estándar (quien cierra, paga %marca)') : (NOMBRE_NIVEL[cond.nivel] || cond.nivel), medio: 1 }
           ];
-          if (ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1) {
+          /* A quién se aplica (todo el equipo o una persona) es la identidad de la condición, como equipo,
+             proyecto y nivel (30-sep-2026, f6_f): cambiarlo en una empezada o cerrada movería ventas ya hechas
+             sin recuento. Solo se cambia en una FUTURA sin devengos que no sustituye ni es sustituida; la regla
+             la aplica condicion_comision_guarda, aquí solo se enseña apagado con el motivo. */
+          var hoyB = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+          var lista = window.LW_V4.condicionesLista || {};
+          var esSustituida = Object.keys(lista).some(function (k) { return lista[k] && lista[k].sustituye_a === id; });
+          var alcanceLibre = !n && cond.vigente_desde > hoyB && !cond.sustituye_a && !cond.vigente_hasta && !esSustituida;
+          var esPersonal = ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1;
+          if (esPersonal && alcanceLibre) {
             campos.push({ k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
               valor: cond.closer_email || '', opciones: opsUsuarios(cond.closer_email || '', '— todo el equipo —'),
-              ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso' });
+              ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso. Solo se cambia mientras la condición no ha empezado' });
+          } else if (esPersonal) {
+            campos.push({ tipo: 'lectura', label: 'Override individual', medio: 1,
+              valor: cond.closer_email || '— todo el equipo —',
+              ayuda: 'Para cambiar a quién se aplica, crea una condición nueva desde hoy' });
           }
           campos.push(
             { k: 'vigente_desde', label: 'Vigente desde', tipo: 'date', req: 1, medio: 1,
@@ -8291,18 +8918,18 @@
             /* Cabecera y tramos por el servidor en UNA transacción (26-sep-2026, LAW-336 pieza 6):
                condicion_comision_guarda decide con la fila guardada (equipo, nivel), no toca los tramos
                si hay devengos y exige el motivo en ese caso. */
-            return sb.rpc('condicion_comision_guarda', {
+            return guardaCondicionConfirmada({
               p_id: id,
               p_cond: {
                 pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
                 importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
                 vigente_desde: v.vigente_desde,
-                closer_email: ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1 ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : cond.closer_email
+                closer_email: esPersonal && alcanceLibre ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : cond.closer_email
               },
               p_tramos: tramosParaServidor(tramos),
               p_motivo: (v.motivo || '').trim() || null
             });
-          });
+          }, { sinRecarga: true });   // recarga guardaCondicionConfirmada
         });
       };
     },
@@ -8359,7 +8986,7 @@
       };
 
       // ── Nueva tarifa ────────────────────────────────────────────────────────
-      ata(/^\+? ?Nueva tarifa$/i, function () {
+      ata('nueva-tarifa', function () {
         if (!superAdmin) return soloSuper();
         var cache = window.LW_V4 && window.LW_V4.tarifas;
         if (cache) return abreNuevaTarifa(cache);
@@ -8431,7 +9058,7 @@
          la regex de «Nueva tarifa». Las sociedades se leen de la base en el
          momento: el importe se factura a una de ellas y no puede elegirse de una
          lista que no ha cargado. */
-      ata(/^\+? ?Fee fijo$/i, function () {
+      ata('fee-fijo', function () {
         if (!superAdmin) return soloSuper();
         sb.from('sociedades').select('clave,label').eq('activa', true).order('label').then(function (r) {
           if (r.error || !(r.data || []).length) {
@@ -8917,7 +9544,7 @@
          jamas; la cuenta nace DESACTIVADA y sin ningun contrato asignado, a
          proposito: no puede aparecer en el desplegable de un contrato antes de
          que alguien haya comprobado el numero con el justificante delante. */
-      var btn = ata(/^\+? ?Nueva cuenta$/i, function () {
+      var btn = ata('nueva-cuenta', function () {
         if (!superAdmin) return soloSuper();
         // claves existentes: para avisar de una repetida antes de mandar (el
         // servidor lo vuelve a comprobar; el `orden` lo pone él).
@@ -8990,7 +9617,7 @@
     /* ═══ IMPUESTOS — formulario de Ajustes (AxisWorks ERP, 26-sep-2026) ═══════════════════════════════
        La lista la pinta datos.js (impuestosAjustes), SOLO con window.AXW_NUCLEO_OPERACION; aquí solo se
        definen el alta/edición y el desactivar. La bandera se mira otra vez: sin ella no se expone nada que
-       escriba en una tabla que la instancia no tiene. Escribir: super_admin (RLS es_super_admin()).
+       escriba en una tabla que la instancia no tiene. Escribir: super_admin, por la RPC impuesto_guarda (27-sep).
        Las reglas del formulario son las CHECK de la tabla (erp/migraciones/20260926170000 + 181000), dichas
        antes de mandar para que el error no llegue de la base; si llega igual, se traduce por su causa. */
     ajustes: function (aut) {
@@ -9084,8 +9711,14 @@
           // Desactivado deja de ser el por defecto, igual que el botón «Desactivar»: si no, al reactivarlo
           // chocaría con el que lo sustituya (impuestos_un_defecto cuenta solo los activos) — code-review, 26-sep.
           if (!fila.activo) fila.por_defecto = false;
-          var p = nuevo ? sb.from('impuestos').insert(fila).select('id,numero_impuesto').single()
-                        : sb.from('impuestos').update(fila).eq('id', x.id).select('id').single();
+          // Guarda el servidor (impuesto_guarda: super_admin, lista blanca y decimales en la base,
+          // migración erp/migraciones/20260928060000). Devuelve el id; el número del alta se LEE después.
+          var p = sb.rpc('impuesto_guarda', { p_id: nuevo ? null : x.id, p_datos: fila }).then(function (r) {
+            if (!r || r.error || !nuevo || !r.data) return r;
+            return sb.from('impuestos').select('numero_impuesto').eq('id', r.data).maybeSingle().then(function (s) {
+              return { data: { id: r.data, numero_impuesto: s && s.data ? s.data.numero_impuesto : null }, error: null };
+            });
+          });
           return Promise.resolve(p).then(function (r) {
             if (r && r.error) return { error: { message: errorCatalogo(r.error, 'No se ha guardado: cambiar impuestos exige super_admin, y lo comprueba la base.') } };
             aviso(nuevo ? 'Impuesto dado de alta' + (r && r.data && r.data.numero_impuesto ? ': ' + r.data.numero_impuesto : '') + '.' : 'Impuesto guardado.');
@@ -9140,7 +9773,7 @@
           if (!ok) return;
           // Al desactivar se quita también «por defecto»: si no, al reactivarlo chocaría con el que lo sustituya.
           var fila = activar ? { activo: true } : { activo: false, por_defecto: false };
-          return Promise.resolve(sb.from('impuestos').update(fila).eq('id', x.id).select('id').single()).then(function (r) {
+          return Promise.resolve(sb.rpc('impuesto_guarda', { p_id: x.id, p_datos: fila })).then(function (r) {
             if (r && r.error) return aviso(errorCatalogo(r.error, 'No se ha cambiado: exige super_admin, y lo comprueba la base.'), '#9E2F26');
             aviso(activar ? 'Impuesto reactivado.' : 'Impuesto desactivado.');
             repinta();
@@ -9150,8 +9783,8 @@
     },
 
     /* ═══ PRODUCTOS — formulario (AxisWorks ERP, 26-sep-2026) ═══════════════════════════════════════════
-       La lista la pinta datos.js (REG.productos). Sin la bandera no se define nada. Escribir: admin (RLS
-       es_admin()). El precio es el par (precio, moneda) y se lee con lwParseImporte, como cualquier importe
+       La lista la pinta datos.js (REG.productos). Sin la bandera no se define nada. Escribir: admin, por la
+       RPC producto_guarda (27-sep). El precio es el par (precio, moneda) y se lee con lwParseImporte, como cualquier importe
        de la suite; admite los decimales de SU moneda (EUR 2, IDR 0), ni uno más. */
     productos: function (aut) {
       if (!window.AXW_NUCLEO_OPERACION) return;
@@ -9218,8 +9851,14 @@
           };
           if (imps) fila.impuesto_id = v.impuesto_id || null;
           fila.activo = nuevo ? true : !!v.activo;   // explícito: nace activo (el default de la base, dicho aquí)
-          var q = nuevo ? sb.from('productos').insert(fila).select('id,numero_producto').single()
-                        : sb.from('productos').update(fila).eq('id', p.id).select('id').single();
+          // Guarda el servidor (producto_guarda: admin, lista blanca y decimales de la moneda en la base,
+          // migración erp/migraciones/20260928060000). Devuelve el id; el número del alta se LEE después.
+          var q = sb.rpc('producto_guarda', { p_id: nuevo ? null : p.id, p_datos: fila }).then(function (r) {
+            if (!r || r.error || !nuevo || !r.data) return r;
+            return sb.from('productos').select('numero_producto').eq('id', r.data).maybeSingle().then(function (s) {
+              return { data: { id: r.data, numero_producto: s && s.data ? s.data.numero_producto : null }, error: null };
+            });
+          });
           return Promise.resolve(q).then(function (r) {
             if (r && r.error) return { error: { message: errorCatalogo(r.error, 'No se ha guardado: el catálogo de productos lo cambia un admin, y lo comprueba la base.') } };
             aviso(nuevo ? 'Producto dado de alta' + (r && r.data && r.data.numero_producto ? ': ' + r.data.numero_producto : '') + '.' : 'Producto guardado.');
@@ -9250,9 +9889,1228 @@
           confirmar: activar ? 'Reactivar' : 'Desactivar', tono: activar ? undefined : 'peligro'
         }).then(function (ok) {
           if (!ok) return;
-          return Promise.resolve(sb.from('productos').update({ activo: activar }).eq('id', p.id).select('id').single()).then(function (r) {
+          return Promise.resolve(sb.rpc('producto_guarda', { p_id: p.id, p_datos: { activo: activar } })).then(function (r) {
             if (r && r.error) return aviso(errorCatalogo(r.error, 'No se ha cambiado: el catálogo lo cambia un admin, y lo comprueba la base.'), '#9E2F26');
             aviso(activar ? 'Producto reactivado.' : 'Producto desactivado.');
+            repinta();
+          });
+        });
+      };
+    },
+
+    /* ═══ PLANTILLAS — formularios (AxisWorks ERP, 28-sep-2026, subtarea 6b) ════════════════════════════
+       La lista la pinta datos.js (REG.plantillas). Sin la bandera no se define nada. TODO lo que escribe va por
+       las RPC de la base (erp/migraciones/20260928190000), que comprueban admin + permiso «plantillas» en su
+       primera línea y validan el cuerpo contra su lista blanca: esta pantalla no decide nada que la base no
+       vuelva a comprobar. Lo que se lee, por lwDatos (plantillas_contrato_datos / plantilla_version_datos).
+       Pintar, comparar y detectar campos: contracts/assets/plantilla-html.js (lo reutiliza el generador, 6c). */
+    plantillas: function (aut) {
+      if (!window.AXW_NUCLEO_OPERACION) return;
+      var sb = aut.sb;
+      window.LW_V4 = window.LW_V4 || {};
+      var repinta = function () { if (window.LW_V4.repintaPlantillas) window.LW_V4.repintaPlantillas(); };
+      var datos = function () { return window.LW_V4.plantillasDatos || null; };
+      var puede = function () { var d = datos(); return !!(d && d.puede_editar); };
+      var sinPermiso = function () { return aviso('Las plantillas las cambia un admin con el permiso «Plantillas».', '#8A6A34'); };
+      var sinDatos = function () { return aviso('No se han podido leer las plantillas: recarga la pantalla.', '#9E2F26'); };
+      var hayPuras = function () { return typeof window.lwPlantillaVistaPrevia === 'function' && typeof window.lwPlantillaDiff === 'function'; };
+      var RE_CLAVE = /^[a-z][a-z0-9_]{1,47}$/, RE_CAMPO = /^[a-z][a-z0-9_]{0,47}$/;
+      /* Textos de Legal (consulta del revisor, 28-sep-2026), anclados a los Términos SaaS 9.1, 9.3 y 13
+         (legal/erp/terminos_saas_axisworks_erp.md): la casilla va en PRIMERA persona —quien activa asume la revisión—,
+         y el aviso de IA sale solo si el texto viene del Asistente. No se reescriben sin Legal. */
+      var DESCARGO = 'He revisado el texto completo y asumo su contenido. AxisWorks no revisa ni valida las plantillas que se dan de alta aquí.';
+      var AVISO_IA = 'Texto transcrito por IA: puede no coincidir con tu original. Revisa las diferencias antes de activar.';
+      var TIPOS_CAMPO = window.LW_PLANTILLA_TIPOS_CAMPO || [['texto', 'Texto corto']];
+
+      /* Error de la base → la causa en palabras. Se lee el `hint` (estable) antes que el código; el mensaje de
+         `plantilla_no_valida` se ENSEÑA entero: es la lista de lo que la base no admite del texto. */
+      function errorPlantillas(e, ctx) {
+        var h = (e && e.hint) || '', c = (e && e.code) || '', m = (e && e.message) || String(e || '');
+        if (h === 'plantilla_no_valida') return 'La base no acepta el texto. Corrige esto y vuelve a guardar: ' + m.replace(/^La plantilla no se puede guardar:\s*/, '');
+        if (h === 'campo_no_admitido') return 'La pantalla ha mandado un dato que la base no admite (' + m + '). Recarga la pantalla; si vuelve a pasar, avisa al estudio.';
+        if (h === 'prefijo_usado') return 'Ese prefijo ya lo usa otra serie de contratos, o empieza igual que uno que ya existe (CC y CC1 se confundirían al leer el número). Elige otro.';
+        if (h === 'prefijo_fijo') return 'El prefijo de un tipo no se cambia una vez puesto: partiría la numeración de sus contratos.';
+        if (h === 'tipo_fijo') return 'El tipo de contrato de una plantilla ya activada no se cambia: da de alta otra plantilla con el tipo nuevo.';
+        if (h === 'falta_descargo') return 'Para activar hay que marcar la casilla que confirma que un responsable ha revisado el texto.';
+        if (h === 'plantilla_de_fichero') return ctx && ctx.alta ? 'Ese identificador ya lo usa una plantilla que viene con la intranet: elige otro.'
+          : 'Esa plantilla viene con la intranet (vive en el código) y no se edita desde aquí.';
+        if (h === 'tipo_desconocido') return 'Ese tipo de contrato no existe o está desactivado. Recarga la pantalla y elige otro.';
+        if (h === 'no_es_borrador') return 'Esa versión ya no es un borrador: otra persona la ha activado o descartado. Recarga la pantalla.';
+        if (h === 'sin_tipo') return 'La plantilla no tiene tipo de contrato: ponle uno en el borrador antes de activarla.';
+        if (h === 'version_inmutable') return 'Una versión activa no se cambia: los cambios van a un borrador nuevo.';
+        /* Activar esquema 1 con huella (contrato M0 §7.6, 20260930170000). */
+        if (h === 'huella_distinta') return 'La versión cambió desde que la simulaste: vuelve a simular.';
+        if (h === 'usa_huella') return 'Esta versión se activa con la huella de su simulación y la pantalla no la ha mandado. Recarga la pantalla y vuelve a simular; si vuelve a pasar, avisa al estudio.';
+        /* Freno de cotitulares (M0 §3.3): simular y emitir admiten un solo firmante. */
+        if (h === 'cotitular_no_soportado') return 'Por ahora un contrato de plantilla admite un solo firmante; los cotitulares llegarán más adelante.';
+        if (c === '42501') return /sesi[oó]n/i.test(m) ? 'Tu sesión ha caducado: vuelve a entrar.'
+          : 'No tienes permiso: las plantillas las cambia un admin con el permiso «Plantillas», y lo comprueba la base.';
+        if (c === 'P0002') return m || 'Eso ya no existe: otra persona lo ha cambiado. Recarga la pantalla.';
+        return m;   // 22023 / 23514 sin hint: la base ya lo dice en palabras («Falta el nombre», «La clave va en minúsculas…»)
+      }
+      var leeVersion = function (id) { return window.lwDatos('plantilla_version_datos', { p_id: id }); };
+      /* Una o dos versiones a la vez; si alguna falla, el error de la primera que falle. */
+      function leeVersiones(ids) {
+        return Promise.all(ids.map(function (id) { return id ? leeVersion(id) : Promise.resolve({ data: null, error: null }); }))
+          .then(function (rs) {
+            var mal = rs.filter(function (r) { return r.error; })[0];
+            return mal ? { error: mal.error } : { data: rs.map(function (r) { return r.data; }) };
+          });
+      }
+      function nodo(tag, clase, texto) {
+        var n = document.createElement(tag);
+        if (clase) n.className = clase;
+        if (texto != null) n.textContent = texto;
+        return n;
+      }
+      /* Vista previa: iframe sin permisos (`sandbox=""`: ni scripts, ni formularios, ni mismo origen) y con CSP
+         `default-src 'none'` dentro del documento. Segunda barrera: la primera es la lista blanca de la base. */
+      function iframePrevia(alto) {
+        var f = document.createElement('iframe');
+        f.setAttribute('sandbox', '');
+        f.setAttribute('referrerpolicy', 'no-referrer');
+        f.title = 'Vista previa de la plantilla';
+        f.style.cssText = 'width:100%;height:' + (alto || 460) + 'px;border:1px solid #E7E4DC;border-radius:12px;background:#fff';
+        return f;
+      }
+      function pintaPrevia(f, cuerpo, campos) { f.srcdoc = window.lwPlantillaVistaPrevia(cuerpo || '', campos || []); }
+      /* Diff por líneas: quitado en rojo, añadido en verde, cada línea con textContent (nunca HTML). */
+      function pintaDiff(host, antes, ahora) {
+        host.textContent = '';
+        var d = window.lwPlantillaDiff(antes || '', ahora || '');
+        if (d.iguales) { host.appendChild(nodo('p', 'lwp-nota', 'El texto es igual que el de la versión activa.')); return d; }
+        if (d.aproximado) host.appendChild(nodo('p', 'lwp-nota', 'El cambio es muy grande: se enseña lo de en medio entero, quitado y añadido, sin emparejar línea a línea.'));
+        var caja = nodo('div');
+        caja.style.cssText = 'max-height:420px;overflow:auto;border:1px solid #E7E4DC;border-radius:12px;background:#fff;font:12.5px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace';
+        var TOPE = 3000;
+        d.lineas.slice(0, TOPE).forEach(function (l) {
+          var r = nodo('div', null, (l.op === ' ' ? '  ' : l.op + ' ') + l.t);
+          r.style.cssText = 'padding:1px 10px;white-space:pre-wrap;overflow-wrap:anywhere;' +
+            (l.op === '-' ? 'background:#FFF1EF;color:#93000a' : l.op === '+' ? 'background:#ECF6EF;color:#1F5130' : 'color:#57534e');
+          caja.appendChild(r);
+        });
+        host.appendChild(caja);
+        if (d.lineas.length > TOPE) host.appendChild(nodo('p', 'lwp-nota', 'Se enseñan las primeras ' + TOPE + ' líneas de ' + d.lineas.length + '.'));
+        return d;
+      }
+      /* Qué cambia en los campos (por clave): añadidos, quitados y los que cambian de etiqueta, tipo u obligatorio. */
+      function resumenCampos(antes, ahora) {
+        var a = {}, b = {}, out = [];
+        (antes || []).forEach(function (c) { a[c.clave] = c; });
+        (ahora || []).forEach(function (c) { b[c.clave] = c; });
+        var nuevos = Object.keys(b).filter(function (k) { return !a[k]; });
+        var fuera = Object.keys(a).filter(function (k) { return !b[k]; });
+        var cambian = Object.keys(b).filter(function (k) {
+          return a[k] && (a[k].etiqueta !== b[k].etiqueta || a[k].tipo !== b[k].tipo || !!a[k].obligatorio !== !!b[k].obligatorio);
+        });
+        if (nuevos.length) out.push('Campos nuevos: ' + nuevos.join(', '));
+        if (fuera.length) out.push('Campos que se quitan: ' + fuera.join(', '));
+        if (cambian.length) out.push('Campos que cambian: ' + cambian.join(', '));
+        return out;
+      }
+      function seccionCajon(titulo) {
+        var s = nodo('section', 'lwc-sec las-card');
+        s.appendChild(nodo('h4', null, titulo));
+        var d = nodo('div');
+        s.appendChild(d);
+        return d;
+      }
+      function marcaIA(host, texto) {
+        var a = nodo('div', 'las-aviso');
+        a.appendChild(nodo('div', 'las-min0', texto));
+        host.appendChild(a);
+      }
+
+      /* ── Tipos de contrato ───────────────────────────────────────────────────────────────────────── */
+      window.LW_V4.abreTipoContrato = function (btn) {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        var clave = btn && btn.getAttribute ? btn.getAttribute('data-lw-tpc-editar') : null;
+        var tipos = (datos() || {}).tipos || [];
+        var t = clave ? tipos.filter(function (x) { return x.clave === clave; })[0] : null;
+        if (clave && !t) return aviso('No se ha podido leer este tipo — recarga la pantalla.', '#9E2F26');
+        var nuevo = !t;
+        var campos = [];
+        if (nuevo) campos.push({ k: 'clave', label: 'Clave', req: 1, medio: 1, ayuda: 'En minúsculas y sin espacios ni tildes: arrendamiento_local. No se cambia después.' });
+        else campos.push({ tipo: 'lectura', label: 'Clave', medio: 1, valor: t.clave });
+        campos.push({ k: 'nombre', label: 'Nombre', req: 1, medio: 1, valor: t ? t.nombre : '', ayuda: 'Como se lee en las listas y en los contratos.' });
+        var prefijoEditable = nuevo || !t.prefijo;
+        if (prefijoEditable) {
+          campos.push({ k: 'prefijo', label: 'Prefijo de numeración', req: nuevo ? 1 : 0, medio: 1,
+            ayuda: 'De 2 a 4 mayúsculas o cifras, empezando por letra: AL numera AL00001, AL00002… Se pone una vez y NO se cambia: partiría la serie.' });
+        } else {
+          campos.push({ tipo: 'lectura', label: 'Prefijo de numeración', medio: 1, valor: t.prefijo, ayuda: 'No se cambia: partiría la numeración de sus contratos.' });
+        }
+        campos.push({ k: 'orden', label: 'Orden', tipo: 'number', medio: 1, paso: '1', valor: t ? t.orden : 100, ayuda: 'Posición en las listas: el número más bajo sale primero.' });
+        if (!nuevo) campos.push({ k: 'activo', label: 'Activo — se ofrece para contratos nuevos', tipo: 'check', valor: t.activo !== false,
+          ayuda: 'Desactivarlo no toca los contratos que ya existen: solo deja de ofrecerse.' });
+        if (!nuevo && !t.prefijo) campos.push({ tipo: 'nota', label: 'Este tipo no tiene prefijo: hasta que lo tenga, sus contratos no se pueden numerar. Una vez puesto, no se cambia.' });
+
+        modal(nuevo ? 'Nuevo tipo de contrato' : 'Editar tipo — ' + t.nombre, campos, nuevo ? 'Dar de alta' : 'Guardar cambios', function (v) {
+          var k = nuevo ? (v.clave || '').trim() : t.clave;
+          if (nuevo && !RE_CLAVE.test(k)) return { error: { message: 'La clave va en minúsculas, sin espacios ni tildes, y empieza por letra (p. ej. arrendamiento_local).' } };
+          if (nuevo && tipos.some(function (x) { return x.clave === k; })) return { error: { message: 'Ya hay un tipo con esa clave: edítalo desde la lista.' } };
+          if (!(v.nombre || '').trim()) return { error: { message: 'Falta el nombre.' } };
+          var orden = Number(v.orden);
+          if (v.orden === '' || !isFinite(orden) || Math.floor(orden) !== orden || Math.abs(orden) > 100000) return { error: { message: 'El orden va en número entero (10, 20, 100…).' } };
+          var d = { nombre: v.nombre.trim(), orden: orden };
+          if (!nuevo) d.activo = !!v.activo;
+          if (prefijoEditable) {
+            var pfx = (v.prefijo || '').trim().toUpperCase();
+            if (pfx) {
+              if (!/^[A-Z][A-Z0-9]{1,3}$/.test(pfx)) return { error: { message: 'El prefijo va en 2 a 4 mayúsculas o cifras, empezando por letra (p. ej. AL).' } };
+              d.prefijo = pfx;
+            } else if (nuevo) return { error: { message: 'Falta el prefijo de numeración.' } };
+          }
+          return Promise.resolve(sb.rpc('tipo_contrato_guarda', { p_clave: k, p_datos: d })).then(function (r) {
+            if (r && r.error) return { error: { message: errorPlantillas(r.error) } };
+            aviso(nuevo ? 'Tipo de contrato dado de alta' + (d.prefijo ? ' (numera ' + d.prefijo + '00001…).' : '.') : 'Tipo de contrato guardado.');
+            setTimeout(repinta, 480);
+            return r;
+          });
+        }, { sub: 'Plantillas', sinRecarga: true });
+        var iPfx = document.querySelector('#lw-editor [data-k="prefijo"]');
+        if (iPfx) {
+          iPfx.setAttribute('maxlength', '4'); iPfx.setAttribute('autocapitalize', 'characters');
+          iPfx.addEventListener('input', function () { var p = iPfx.selectionStart; iPfx.value = iPfx.value.toUpperCase(); try { iPfx.setSelectionRange(p, p); } catch (e) { /* MUDO A PROPOSITO: un input que no admite selección (tipo raro) solo pierde la posición del cursor, no el dato */ } });
+        }
+      };
+
+      /* ── Editor de plantilla (alta o borrador) ───────────────────────────────────────────────────── */
+      window.LW_V4.abrePlantilla = function (btn) {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        if (!hayPuras()) return aviso('Falta una pieza de la pantalla (plantilla-html.js): recarga la página.', '#9E2F26');
+        var slug = btn && btn.getAttribute ? btn.getAttribute('data-lw-plt-editar') : null;
+        var p = slug ? (window.LW_V4.plantillasPorSlug || {})[slug] : null;
+        if (slug && !p) return aviso('No se ha podido leer esta plantilla — recarga la pantalla.', '#9E2F26');
+        leeVersiones(p ? [p.borrador && p.borrador.id, p.activa && p.activa.id] : []).then(function (r) {
+          if (r.error) return aviso('No se ha podido leer el texto de la plantilla: ' + errorPlantillas(r.error), '#9E2F26');
+          var borr = (r.data || [])[0] || null, act = (r.data || [])[1] || null;
+          // Esquema 1 (texto plano, MVP 30-sep): su propio editor. Esquema 0 (HTML de 6a) sigue igual que antes.
+          if ((borr || act) && (borr || act).esquema === 1) return abreEditor1(p, borr, act);
+          abreEditor(p, borr, act);
+        });
+      };
+
+      function abreEditor(p, borr, act) {
+        var nuevo = !p;
+        var base = borr || act || { cuerpo: '', campos: [], notas: '' };
+        var tipos = ((datos() || {}).tipos || []);
+        var tipoFijo = !!(p && p.activa);
+        var hecho = false;   // ya se ha guardado (el editor se cierra)
+        var campos = [];
+        if (nuevo) {
+          campos.push({ k: 'slug', label: 'Identificador', req: 1, medio: 1,
+            ayuda: 'En minúsculas y sin espacios ni tildes: arrendamiento_local. No se cambia después.' });
+        } else {
+          campos.push({ tipo: 'lectura', label: 'Número', medio: 1, valor: p.numero });
+          campos.push({ tipo: 'lectura', label: 'Identificador', medio: 1, valor: p.slug });
+        }
+        campos.push({ k: 'nombre', label: 'Nombre', req: 1, medio: 1, valor: p ? p.nombre : '', ayuda: 'Como se ve al elegir plantilla para un contrato.' });
+        if (tipoFijo) {
+          var tAct = tipos.filter(function (x) { return x.clave === p.tipo_contrato; })[0];
+          campos.push({ tipo: 'lectura', label: 'Tipo de contrato', medio: 1, valor: tAct ? tAct.nombre : p.tipo_contrato,
+            ayuda: 'Ya tiene una versión activada: el tipo no se cambia. Para otro tipo, da de alta otra plantilla.' });
+        } else {
+          var opc = tipos.filter(function (x) { return x.activo; }).map(function (x) { return [x.clave, x.nombre]; });
+          if (p && p.tipo_contrato && !opc.some(function (o) { return o[0] === p.tipo_contrato; })) {
+            var tv = tipos.filter(function (x) { return x.clave === p.tipo_contrato; })[0];
+            opc.push([p.tipo_contrato, (tv ? tv.nombre : p.tipo_contrato) + ' — desactivado']);
+          }
+          campos.push({ k: 'tipo_contrato', label: 'Tipo de contrato', tipo: 'select', req: 1, medio: 1, valor: p ? p.tipo_contrato || '' : '',
+            opciones: [['', '— elige el tipo —']].concat(opc), ayuda: 'Se puede cambiar mientras no se haya activado ninguna versión.' });
+        }
+        if (borr && borr.generado_ia) campos.push({ tipo: 'nota', label: edT('Generado por IA') + ' · ' + edT(AVISO_IA) });
+        else if (!borr && act && act.generado_ia) campos.push({ tipo: 'nota', label: 'La versión activa se generó por IA. Lo que guardes aquí será un borrador nuevo hecho a partir de ella.' });
+
+        // Cuerpo, campos y vista previa: piezas a mano (custom); se recogen en onGuardar, no por data-k.
+        var ta, lista, notaCampos, filas = [], previa, diffHost, pestPrev, pestDiff, temporizador;
+        function refresca() {
+          clearTimeout(temporizador);
+          temporizador = setTimeout(function () {
+            if (previa && previa.style.display !== 'none') pintaPrevia(previa, ta.value, leeCampos().campos);
+            if (diffHost && diffHost.style.display !== 'none') pintaDiff(diffHost, act && act.cuerpo, ta.value);
+          }, 350);
+        }
+        function nuevaFila(c) {
+          c = c || {};
+          var el = nodo('div', 'lwp-cfila');
+          var iK = nodo('input', 'lwp-in lwp-comp'); iK.placeholder = 'clave'; iK.value = c.clave || ''; iK.setAttribute('aria-label', 'Clave del campo');
+          iK.style.fontFamily = 'ui-monospace,SFMono-Regular,Consolas,monospace';
+          var iE = nodo('input', 'lwp-in lwp-comp'); iE.placeholder = 'Etiqueta: lo que se pregunta'; iE.value = c.etiqueta || ''; iE.setAttribute('aria-label', 'Etiqueta del campo');
+          var sT = nodo('select', 'lwp-in lwp-comp'); sT.setAttribute('aria-label', 'Tipo de dato');
+          TIPOS_CAMPO.forEach(function (o) { var op = nodo('option', null, o[1]); op.value = o[0]; sT.appendChild(op); });
+          sT.value = c.tipo || 'texto';
+          if (sT.value !== (c.tipo || 'texto')) { var raro = nodo('option', null, c.tipo); raro.value = c.tipo; sT.appendChild(raro); sT.value = c.tipo; }
+          var lO = nodo('label'); lO.style.cssText = 'display:flex;align-items:center;gap:6px;font:500 12.5px Jost,system-ui,sans-serif;color:#44403c;white-space:nowrap';
+          var cO = nodo('input'); cO.type = 'checkbox'; cO.checked = c.obligatorio !== false;
+          lO.appendChild(cO); lO.appendChild(document.createTextNode('Obligatorio'));
+          var bQ = nodo('button', 'lwp-quita', '×'); bQ.type = 'button'; bQ.title = 'Quitar campo'; bQ.setAttribute('aria-label', 'Quitar campo');
+          var f = { el: el, k: iK, e: iE, t: sT, o: cO };
+          bQ.addEventListener('click', function () { lista.removeChild(el); filas = filas.filter(function (x) { return x !== f; }); refresca(); });
+          [iK, iE].forEach(function (i) { i.addEventListener('input', refresca); });
+          el.appendChild(iK); el.appendChild(iE); el.appendChild(sT); el.appendChild(lO); el.appendChild(bQ);
+          lista.appendChild(el);
+          filas.push(f);
+          return f;
+        }
+        /* Lo que viaja: EXACTAMENTE {clave, etiqueta, tipo, obligatorio} — la base rechaza cualquier otra clave. */
+        function leeCampos() {
+          var out = [], problemas = [], vistos = {};
+          filas.forEach(function (f, i) {
+            var k = f.k.value.trim(), e = f.e.value.trim();
+            if (!k && !e) return;   // fila vacía: no cuenta
+            if (!RE_CAMPO.test(k)) problemas.push('Campo ' + (i + 1) + ': la clave va en minúsculas, sin espacios ni tildes (' + (k || 'vacía') + ').');
+            else if (vistos[k]) problemas.push('El campo «' + k + '» está repetido.');
+            vistos[k] = 1;
+            if (!e) problemas.push('Falta la etiqueta del campo «' + k + '».');
+            else if (e.length > 200) problemas.push('La etiqueta del campo «' + k + '» pasa de 200 caracteres.');
+            out.push({ clave: k, etiqueta: e, tipo: f.t.value, obligatorio: !!f.o.checked });
+          });
+          return { campos: out, problemas: problemas };
+        }
+        campos.push({ tipo: 'custom', render: function (d) {
+          var id = 'lw-plt-cuerpo';
+          var etq = nodo('label', 'lwp-etq', 'Texto de la plantilla (HTML) *'); etq.htmlFor = id;
+          ta = nodo('textarea', 'lwp-in'); ta.id = id; ta.rows = 18; ta.value = base.cuerpo || '';
+          ta.spellcheck = false;
+          ta.style.cssText = 'font:12.5px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical;min-height:260px';
+          ta.addEventListener('input', refresca);
+          var ayuda = nodo('p', 'lwp-nota', 'Solo texto y tablas: ' + (window.LW_PLANTILLA_ETIQUETAS || []).map(function (x) { return '<' + x + '>'; }).join(' ') +
+            '. Atributos: class, colspan y rowspan. Un dato que se rellena en cada contrato va como {{nombre_en_minusculas}}, y tiene que estar en la lista de campos de abajo. La base rechaza el resto al guardar y te dice qué.');
+          d.appendChild(etq); d.appendChild(ta); d.appendChild(ayuda);
+          d.style.cssText = 'display:grid;gap:8px';
+        } });
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          var cab = nodo('div'); cab.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap';
+          cab.appendChild(nodo('span', 'lwp-etq', 'Campos que se rellenan en cada contrato'));
+          var bD = nodo('button', 'lwp-mas', 'Detectar campos del texto'); bD.type = 'button';
+          cab.appendChild(bD);
+          d.appendChild(cab);
+          var enc = nodo('div', 'lwp-cfila lwp-cfila-cab');
+          ['Clave', 'Etiqueta', 'Tipo', '', ''].forEach(function (t) { enc.appendChild(nodo('span', 'lwp-col', t)); });
+          d.appendChild(enc);
+          lista = nodo('div'); lista.style.cssText = 'display:grid;gap:6px';
+          d.appendChild(lista);
+          notaCampos = nodo('p', 'lwp-nota', 'La clave es la que va entre llaves en el texto; la etiqueta, lo que se le pregunta a quien hace el contrato.');
+          d.appendChild(notaCampos);
+          var bA = nodo('button', 'lwp-mas', '+ Añadir campo'); bA.type = 'button';
+          bA.addEventListener('click', function () { nuevaFila().k.focus(); });
+          d.appendChild(bA);
+          (Array.isArray(base.campos) ? base.campos : []).forEach(function (c) { nuevaFila(c); });
+          bD.addEventListener('click', function () {
+            var ya = {};
+            filas.forEach(function (f) { ya[f.k.value.trim()] = 1; });
+            var usados = window.lwPlantillaCamposUsados(ta.value);
+            var nuevos = usados.filter(function (k) { return !ya[k]; });
+            nuevos.forEach(function (k) { nuevaFila({ clave: k, etiqueta: window.lwPlantillaEtiquetaDe(k), tipo: 'texto', obligatorio: true }); });
+            var sobran = Object.keys(ya).filter(function (k) { return k && usados.indexOf(k) === -1; });
+            notaCampos.textContent = (nuevos.length ? 'Añadidos ' + nuevos.length + ': ' + nuevos.join(', ') + '. Revisa su etiqueta y su tipo.' : 'No hay campos nuevos en el texto.') +
+              (sobran.length ? ' En la lista pero no en el texto: ' + sobran.join(', ') + '.' : '');
+            refresca();
+          });
+        } });
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          var cab = nodo('div'); cab.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center';
+          pestPrev = nodo('button', 'lwp-mas', 'Vista previa'); pestPrev.type = 'button';
+          cab.appendChild(pestPrev);
+          if (act) { pestDiff = nodo('button', 'lwp-mas', 'Cambios frente a la activa (v' + act.version + ')'); pestDiff.type = 'button'; cab.appendChild(pestDiff); }
+          d.appendChild(cab);
+          previa = iframePrevia(460);
+          d.appendChild(previa);
+          diffHost = nodo('div'); diffHost.style.display = 'none';
+          d.appendChild(diffHost);
+          var marca = function (b, on) { if (b) { b.style.background = on ? '#104C4F' : '#fff'; b.style.color = on ? '#fff' : '#104C4F'; b.setAttribute('aria-pressed', String(on)); } };
+          var ver = function (cual) {
+            previa.style.display = cual === 'previa' ? '' : 'none';
+            diffHost.style.display = cual === 'diff' ? '' : 'none';
+            marca(pestPrev, cual === 'previa'); marca(pestDiff, cual === 'diff');
+            if (cual === 'previa') pintaPrevia(previa, ta.value, leeCampos().campos);
+            else pintaDiff(diffHost, act && act.cuerpo, ta.value);
+          };
+          pestPrev.addEventListener('click', function () { ver('previa'); });
+          if (pestDiff) pestDiff.addEventListener('click', function () { ver('diff'); });
+          setTimeout(function () { ver('previa'); }, 0);   // cuando ya existen el texto y los campos
+        } });
+        campos.push({ k: 'notas', label: 'Notas internas', tipo: 'textarea', valor: base === borr ? (borr.notas || '') : '',
+          ayuda: 'Para el equipo: qué cambia en esta versión. No sale en el contrato.' });
+
+        var enc = borr ? 'Borrador v' + borr.version + ': al guardar se sobrescribe este borrador.'
+          : act ? 'Nueva versión a partir de la activa (v' + act.version + '). La activa no cambia hasta que actives esta.'
+          : nuevo ? 'Se guarda como borrador. No se usa en ningún contrato hasta que un responsable lo active.'
+          : 'Esta plantilla no tiene texto guardado: lo que guardes será su primer borrador.';
+        modal(nuevo ? 'Nueva plantilla' : 'Editar plantilla — ' + p.nombre, campos, 'Guardar borrador', function (v) {
+          if (hecho) return {};
+          var s = nuevo ? (v.slug || '').trim() : p.slug;
+          if (nuevo && !RE_CLAVE.test(s)) return { error: { message: 'El identificador va en minúsculas, sin espacios ni tildes, y empieza por letra (p. ej. arrendamiento_local).' } };
+          // La base NO distingue alta de edición (plantilla_borrador_guarda con un slug que ya existe edita ESA
+          // plantilla): el alta se para aquí si el identificador ya está en la lista.
+          if (nuevo && (window.LW_V4.plantillasPorSlug || {})[s]) return { error: { message: 'Ya hay una plantilla con ese identificador: edítala desde la lista, o elige otro.' } };
+          if (!(v.nombre || '').trim()) return { error: { message: 'Falta el nombre.' } };
+          if (!tipoFijo && !v.tipo_contrato) return { error: { message: 'Falta el tipo de contrato.' } };
+          if (!ta.value.trim()) return { error: { message: 'Falta el texto de la plantilla.' } };
+          var lc = leeCampos();
+          if (lc.problemas.length) return { error: { message: lc.problemas.join(' ') } };
+          var d = { cuerpo: ta.value, campos: lc.campos, notas: (v.notas || '').trim() || null };
+          if (nuevo || v.nombre.trim() !== p.nombre) d.nombre = v.nombre.trim();
+          // El tipo solo viaja si CAMBIA: la base exige que el que llegue esté activo, y reenviar uno ya
+          // desactivado bloquearía guardar el texto.
+          if (!tipoFijo && (nuevo || v.tipo_contrato !== p.tipo_contrato)) d.tipo_contrato = v.tipo_contrato;
+          return Promise.resolve(sb.rpc('plantilla_borrador_guarda', { p_slug: s, p_datos: d })).then(function (r) {
+            if (r && r.error) return { error: { message: errorPlantillas(r.error, { alta: nuevo }) } };
+            hecho = true;
+            aviso(nuevo ? 'Plantilla dada de alta como borrador. Para que se use, revísala y actívala.' : 'Borrador guardado. Para que se use, revísalo y actívalo.');
+            setTimeout(repinta, 480);
+            return r;
+          });
+        }, { sub: 'Plantillas', sinRecarga: true, ancho: '1040px',
+          encabezado: '<p class="lwp-nota" style="margin:0 0 12px">' + esc(enc) + '</p>' });
+      }
+
+      /* ── Ver la versión activa (solo lectura) ─────────────────────────────────────────────────────── */
+      window.LW_V4.verPlantilla = function (btn) {
+        var p = (window.LW_V4.plantillasPorSlug || {})[btn.getAttribute('data-lw-plt-ver')];
+        if (!p || !p.activa) return aviso('No se ha podido leer esta plantilla — recarga la pantalla.', '#9E2F26');
+        if (!hayPuras()) return aviso('Falta una pieza de la pantalla (plantilla-html.js): recarga la página.', '#9E2F26');
+        leeVersion(p.activa.id).then(function (r) {
+          if (r.error || !r.data) return aviso('No se ha podido leer el texto: ' + errorPlantillas(r.error || {}), '#9E2F26');
+          var v = r.data;
+          if (v.esquema === 1) return verVersion1(p, v);   // texto plano: nunca por la vista previa HTML
+          var c = cajon({ titulo: p.nombre, sub: 'Plantillas', estado: ['Activa v' + v.version, 'ok'], ancho: 'min(900px,96vw)',
+            bajoTitulo: p.numero + ' · activada ' + (v.activada_en ? new Date(v.activada_en).toLocaleString('es-ES') : '—') + (v.activada_por ? ' por ' + v.activada_por : '') });
+          if (v.generado_ia) marcaIA(c.cuerpo, 'Generado por IA: el texto lo preparó el asistente a partir de vuestro modelo.');
+          var sP = seccionCajon('Cómo se ve');
+          var f = iframePrevia(520); sP.appendChild(f); pintaPrevia(f, v.cuerpo, v.campos);
+          c.cuerpo.appendChild(sP.parentNode);
+          var sC = seccionCajon('Campos');
+          var cs = Array.isArray(v.campos) ? v.campos : [];
+          if (!cs.length) sC.appendChild(nodo('p', 'lwp-nota', 'No tiene campos: el texto es fijo.'));
+          cs.forEach(function (x) {
+            sC.appendChild(nodo('p', 'lwp-nom', '{{' + x.clave + '}} · ' + x.etiqueta + ' · ' +
+              ((TIPOS_CAMPO.filter(function (o) { return o[0] === x.tipo; })[0] || [0, x.tipo])[1]) + (x.obligatorio ? ' · obligatorio' : '')));
+          });
+          c.cuerpo.appendChild(sC.parentNode);
+          if (v.notas) { var sN = seccionCajon('Notas'); sN.appendChild(nodo('p', 'lwp-nom', v.notas)); c.cuerpo.appendChild(sN.parentNode); }
+        });
+      };
+
+      /* ── Revisar y activar un borrador ───────────────────────────────────────────────────────────── */
+      window.LW_V4.activaPlantilla = function (btn) {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        if (!hayPuras()) return aviso('Falta una pieza de la pantalla (plantilla-html.js): recarga la página.', '#9E2F26');
+        var p = (window.LW_V4.plantillasPorSlug || {})[btn.getAttribute('data-lw-plt-activar')];
+        if (!p || !p.borrador) return aviso('No hay borrador que activar — recarga la pantalla.', '#9E2F26');
+        leeVersiones([p.borrador.id, p.activa && p.activa.id]).then(function (r) {
+          if (r.error) return aviso('No se ha podido leer el texto: ' + errorPlantillas(r.error), '#9E2F26');
+          var borr = r.data[0], act = r.data[1];
+          // Esquema 1: simular es obligatorio antes de activar (activaVersion1). Esquema 0: como antes.
+          if (borr && borr.esquema === 1) return activaVersion1(p, borr, act);
+          var chk, enviando = false;
+          var c = cajon({ titulo: 'Activar — ' + p.nombre, sub: 'Plantillas', estado: ['Borrador v' + borr.version, 'espera'], ancho: 'min(960px,96vw)',
+            bajoTitulo: act ? 'Sustituye a la activa v' + act.version + ': los contratos ya hechos siguen con la suya.' : 'Es su primera versión.',
+            acciones: [{ texto: 'Activar esta versión', tono: 'primario', disabled: true, title: 'Marca antes la casilla de revisión', onClick: function (ev) {
+              var b = ev.currentTarget;
+              if (enviando || !chk || !chk.checked) return;
+              enviando = true; b.disabled = true;
+              /* Lo que se activa tiene que ser lo que se ha revisado: si el borrador ha cambiado desde que se abrió
+                 este cajón (otro admin, otra pestaña), no se activa. Reduce la ventana a milisegundos; cerrarla del
+                 todo exige que la RPC reciba la huella esperada (pendiente de la base, ver informe 6b). */
+              leeVersion(borr.id).then(function (rv) {
+                if (rv.error || !rv.data) throw rv.error || new Error('Ese borrador ya no existe: recarga la pantalla.');
+                if (rv.data.estado !== 'borrador' || rv.data.hash !== borr.hash) {
+                  var e = new Error('El borrador ha cambiado desde que abriste esta revisión (lo ha guardado alguien, o tú en otra pestaña). Vuelve a abrir «Revisar y activar» para ver el texto actual.');
+                  e.recarga = true; throw e;
+                }
+                return sb.rpc('plantilla_version_activa', { p_version_id: borr.id, p_acepto: chk.checked === true });
+              }).then(function (rr) {
+                enviando = false;
+                if (rr && rr.error) { b.disabled = !chk.checked; return aviso(errorPlantillas(rr.error), '#9E2F26'); }
+                aviso('Plantilla activada: v' + borr.version + ' de «' + p.nombre + '».');
+                c.cierra();
+                repinta();
+              }, function (e) {
+                enviando = false; b.disabled = !chk.checked;
+                aviso(e && e.recarga ? e.message : errorPlantillas(e), '#9E2F26');
+                if (e && e.recarga) { c.cierra(); repinta(); }
+              });
+            } }] });
+          if (borr.generado_ia) marcaIA(c.cuerpo, edT('Generado por IA') + ' · ' + edT(AVISO_IA));
+          var sD = seccionCajon(act ? 'Qué cambia frente a la activa (v' + act.version + ')' : 'Qué cambia');
+          if (act) {
+            var rc = resumenCampos(act.campos, borr.campos);
+            rc.forEach(function (t) { sD.appendChild(nodo('p', 'lwp-nom', t)); });
+            var hd = nodo('div'); sD.appendChild(hd);
+            pintaDiff(hd, act.cuerpo, borr.cuerpo);
+          } else sD.appendChild(nodo('p', 'lwp-nota', 'No hay versión activa con la que comparar: esta será la primera.'));
+          c.cuerpo.appendChild(sD.parentNode);
+          var sP = seccionCajon('Cómo se ve');
+          var f = iframePrevia(480); sP.appendChild(f); pintaPrevia(f, borr.cuerpo, borr.campos);
+          c.cuerpo.appendChild(sP.parentNode);
+          var sR = seccionCajon('Revisión');
+          var lab = nodo('label', 'las-check');
+          chk = nodo('input'); chk.type = 'checkbox'; chk.checked = false;   // DESMARCADA siempre: la base también lo exige
+          var txt = nodo('span'); txt.appendChild(nodo('span', 'las-check-t', edT(DESCARGO)));
+          lab.appendChild(chk); lab.appendChild(txt);
+          sR.appendChild(lab);
+          c.cuerpo.appendChild(sR.parentNode);
+          var bAct = c.pie.querySelector('.las-btn1');
+          chk.addEventListener('change', function () { if (bAct && !enviando) { bAct.disabled = !chk.checked; bAct.title = chk.checked ? '' : 'Marca antes la casilla de revisión'; } });
+        });
+      };
+
+      /* ═══ MVP esquema 1 — texto plano (30-sep-2026, encargos/20260930_estudio_contratos_tipos_mvp.md) ═════════════
+         Contrato: erp/plantillas_mvp_interfaz.md (M0). Una versión `esquema = 1` es TEXTO PLANO con {{campos}}, hitos y
+         firmantes; la valida la base (trigger de M1) y la calcula el servidor (plantilla_simula, M2). Esta pantalla:
+           · edita el cuerpo en un <textarea>, y TODO lo que viene del cuerpo, de los valores o del texto simulado se pinta
+             con textContent: ni iframe ni vista previa HTML (el saneador de 6a interpretaría <p>/<b> de un texto plano);
+           · solo crea el botón Activar tras una simulación correcta de ESA versión (id + huella que devuelve el servidor;
+             la huella de esquema 1 cubre esquema, idioma, cuerpo, campos, hitos y firmantes, M1), y con la casilla marcada;
+             antes de activar relee la versión y no activa si la huella ha cambiado;
+           · «Crear desde PDF» sube el PDF a la edge plantilla-desde-pdf con el JWT de la sesión (la edge no usa service
+             role: el permiso y la cuota los decide la base). Si la edge no responde, se dice y la pantalla sigue.
+         Nada de esto escribe tablas: guardar y activar van por las RPC de siempre. Enganche por data-accion (norma del
+         owner, 29-sep-2026): crear-desde-pdf (index.html), subir-pdf, simular, revisar, activar. */
+      var MARCA_IA1 = 'Propuesta del asistente: revísala';
+      var AVISO_PDF = 'Sube el modelo EN BLANCO, sin datos de clientes. El texto del PDF se envía al asistente de IA para preparar un borrador, y el PDF no se guarda.';
+      var CONFIRMA_PDF = 'Confirmo que el PDF es el modelo en blanco: no lleva nombres, documentos ni datos de ningún cliente.';
+      var TOPE_PDF = 10485760;   // 10 MB, el mismo tope que aplica la edge (M0 §7.3)
+      var IDIOMAS1 = [['es', 'Español'], ['en', 'Inglés'], ['id', 'Indonesio']];
+      var RESERVADOS1 = ['nombre_contrato', 'parcela_codigo', 'precio_total', 'moneda', 'calendario_pagos'];
+      var DATOS_FIRM1 = ['nombre', 'pasaporte', 'email', 'telefono', 'nacionalidad', 'domicilio'];
+      var RE_PCT1 = /^[0-9]{1,3}(\.[0-9]{1,2})?$/, RE_MONTO1 = /^[0-9]{1,12}(\.[0-9]{1,2})?$/, RE_NUM1 = /^-?[0-9]{1,12}(\.[0-9]{1,6})?$/;
+      var ERR_PDF = {
+        sin_sesion: 'Tu sesión ha caducado: vuelve a entrar.',
+        sin_permiso: 'No tienes permiso: crear plantillas lo hace un admin con el permiso «Plantillas».',
+        origen_no_permitido: 'El servidor no acepta peticiones desde esta dirección. Avisa al estudio.',
+        no_pdf: 'Eso no es un PDF.',
+        pdf_grande: 'El PDF pasa de 10 MB.',
+        pdf_paginas: 'El PDF pasa de 30 páginas.',
+        pdf_cifrado: 'El PDF está protegido o cifrado: súbelo sin contraseña ni protección.',
+        pdf_ilegible: 'El PDF no se puede leer (¿está dañado?).',
+        pdf_sin_texto: 'El PDF es escaneado (una imagen): súbelo con texto seleccionable.',
+        cuota: 'Has llegado al tope de borradores con el asistente por hoy. Prueba mañana, o crea la plantilla a mano.',
+        modelo_error: 'El asistente no ha respondido. Prueba de nuevo en unos minutos (el intento cuenta para el tope diario).',
+        salida_invalida: 'El asistente ha devuelto un borrador que la base no acepta: no se ha guardado nada. Prueba de nuevo o crea la plantilla a mano.',
+        tipo_desconocido: 'Ese tipo de contrato no existe o está desactivado. Recarga la pantalla y elige otro.'
+      };
+      /* Un control con su acción estable. Se engancha con addEventListener sobre la referencia, nunca buscándolo. */
+      function btnAccion(accion, texto, clase) {
+        var b = nodo('button', clase || 'lwp-mas', texto);
+        b.type = 'button';
+        b.setAttribute('data-accion', accion);
+        return b;
+      }
+      function pre1(texto) {
+        var x = nodo('pre', null, texto == null ? '' : String(texto));
+        x.style.cssText = 'margin:0;max-height:520px;overflow:auto;padding:14px 16px;border:1px solid #E7E4DC;border-radius:12px;background:#fff;' +
+          'white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 Georgia,\'Times New Roman\',serif;color:#1c1b17';
+        return x;
+      }
+      function marcaIA1(host, v) { if (v && v.generado_ia) marcaIA(host, edT(MARCA_IA1) + ' · ' + edT(AVISO_IA)); }
+      function tipoCampoNombre(t) { return (TIPOS_CAMPO.filter(function (o) { return o[0] === t; })[0] || [0, t])[1]; }
+      function hitoLinea(h, modo, i) {
+        var val = modo === 'monto' ? (h.monto || '—') : (h.pct != null ? h.pct + ' %' : '—');
+        return (i + 1) + '. ' + (h.es || '—') + ' · ' + val +
+          (h.dias != null ? ' · ' + h.dias + ' días desde ' + (h.desde === 'emision' ? 'la emisión' : '{{' + h.desde + '}}') : ' · sin fecha');
+      }
+      function firmanteLinea(f) { return f.rol + ' · ' + (f.etiqueta || '—') + (f.obligatorio ? ' · obligatorio' : ' · opcional'); }
+
+      /* ── Crear desde PDF ─────────────────────────────────────────────────────────────────────────── */
+      function subePdf(file, slug, nombre, tipo) {
+        return sb.auth.getSession().then(function (s) {
+          var t = s && s.data && s.data.session && s.data.session.access_token;
+          if (!t) throw new Error(ERR_PDF.sin_sesion);
+          var fd = new FormData();
+          fd.append('pdf', file, file.name || 'modelo.pdf');
+          fd.append('slug', slug); fd.append('nombre', nombre); fd.append('tipo_contrato', tipo);
+          // Sin content-type a mano: el navegador pone el multipart con su frontera.
+          return fetch(window.lwEdge('plantilla-desde-pdf'), { method: 'POST', headers: { authorization: 'Bearer ' + t }, body: fd })
+            .then(null, function () { throw new Error('No se ha podido llegar a la función que lee el PDF (red, o aún no está instalada en esta instancia). No se ha creado nada.'); });
+        }).then(function (r) {
+          return r.text().then(function (txt) {
+            var j = null;
+            try { j = JSON.parse(txt); } catch (e) { /* MUDO A PROPOSITO: una respuesta que no es JSON se dice justo debajo, con su código HTTP */ }
+            // 404 del gateway (función aún sin desplegar) llega a menudo CON cuerpo JSON: se dice antes de mirar `ok`.
+            if (r.status === 404 && !(j && j.codigo)) throw new Error('La función que lee el PDF aún no está instalada en esta instancia. No se ha creado nada.');
+            if (r.status === 401 && !(j && j.codigo)) throw new Error(ERR_PDF.sin_sesion);
+            if (!j || typeof j !== 'object') {
+              throw new Error('La función que lee el PDF no ha contestado bien (HTTP ' + r.status + '). ' +
+                (r.status === 404 ? 'Aún no está instalada en esta instancia.' : 'Prueba de nuevo; si sigue, avisa al estudio.') + ' No se ha creado nada.');
+            }
+            if (j.ok !== true) throw new Error(ERR_PDF[j.codigo] || (typeof j.mensaje === 'string' && j.mensaje) || ('Error ' + r.status + ' al leer el PDF.'));
+            if (!j.version_id) throw new Error('La función que lee el PDF no ha devuelto el borrador. Recarga la pantalla por si se ha creado.');
+            return j;
+          });
+        });
+      }
+      window.LW_V4.creaDesdePdf = function () {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        if (typeof window.lwEdge !== 'function' || typeof FormData !== 'function') return aviso('Falta una pieza de la pantalla (guard.js): recarga la página.', '#9E2F26');
+        var tipos = ((datos() || {}).tipos || []).filter(function (x) { return x.activo; });
+        if (!tipos.length) return aviso('No hay ningún tipo de contrato activo: da de alta o activa uno antes.', '#8A6A34');
+        var fich, chk, enviando = false, hecho = false;
+        var campos = [
+          { tipo: 'custom', render: function (d) {
+            var a = nodo('div', 'las-aviso');
+            var t = nodo('div', 'las-min0', edT(AVISO_PDF)); t.style.fontWeight = '600';
+            a.appendChild(t); d.appendChild(a);
+          } },
+          { k: 'slug', label: 'Identificador', req: 1, medio: 1, ayuda: 'En minúsculas y sin espacios ni tildes: arrendamiento_local. No se cambia después.' },
+          { k: 'nombre', label: 'Nombre', req: 1, medio: 1, ayuda: 'Como se ve al elegir plantilla para un contrato.' },
+          { k: 'tipo_contrato', label: 'Tipo de contrato', tipo: 'select', req: 1, medio: 1, valor: '',
+            opciones: [['', '— elige el tipo —']].concat(tipos.map(function (x) { return [x.clave, x.nombre]; })) },
+          { tipo: 'custom', render: function (d) {
+            d.style.cssText = 'display:grid;gap:10px';
+            var etq = nodo('label', 'lwp-etq', 'Modelo en PDF *'); etq.htmlFor = 'lw-plt-pdf';
+            fich = nodo('input', 'lwp-in'); fich.type = 'file'; fich.id = 'lw-plt-pdf'; fich.accept = 'application/pdf,.pdf';
+            d.appendChild(etq); d.appendChild(fich);
+            d.appendChild(nodo('p', 'lwp-nota', 'PDF con texto seleccionable (no escaneado), sin contraseña, hasta 10 MB y 30 páginas. Sale un BORRADOR: nada se usa hasta que lo revises, lo simules y lo actives.'));
+            var lab = nodo('label', 'las-check');
+            chk = nodo('input'); chk.type = 'checkbox'; chk.checked = false;
+            var tx = nodo('span'); tx.appendChild(nodo('span', 'las-check-t', edT(CONFIRMA_PDF)));
+            lab.appendChild(chk); lab.appendChild(tx);
+            d.appendChild(lab);
+          } }
+        ];
+        modal('Nueva plantilla desde PDF', campos, 'Subir y crear borrador', function (v) {
+          if (hecho) return {};
+          if (enviando) return { error: { message: 'Ya se está subiendo: espera a que termine.' } };
+          if (!chk || chk.checked !== true) return { error: { message: 'Marca antes la casilla: el PDF tiene que ser el modelo en blanco.' } };
+          var s = (v.slug || '').trim(), nom = (v.nombre || '').trim(), tp = v.tipo_contrato || '';
+          if (!RE_CLAVE.test(s)) return { error: { message: 'El identificador va en minúsculas, sin espacios ni tildes, y empieza por letra (p. ej. arrendamiento_local).' } };
+          // La edge guarda el borrador de ESE identificador: uno que ya existe se editaría, así que se para aquí.
+          if ((window.LW_V4.plantillasPorSlug || {})[s]) return { error: { message: 'Ya hay una plantilla con ese identificador: elige otro.' } };
+          if (!nom || nom.length > 120) return { error: { message: 'El nombre va de 1 a 120 caracteres.' } };
+          if (!tp) return { error: { message: 'Falta el tipo de contrato.' } };
+          var f = fich && fich.files && fich.files[0];
+          if (!f) return { error: { message: 'Falta el PDF.' } };
+          if (!/\.pdf$/i.test(f.name || '') && f.type !== 'application/pdf') return { error: { message: 'Eso no es un PDF.' } };
+          if (f.size > TOPE_PDF) return { error: { message: ERR_PDF.pdf_grande } };
+          enviando = true;
+          return subePdf(f, s, nom, tp).then(function (j) {
+            enviando = false; hecho = true;
+            aviso('Borrador creado a partir del PDF' + (j.paginas ? ' (' + j.paginas + ' páginas)' : '') + '. Revísalo, simúlalo y actívalo.' +
+              (Array.isArray(j.avisos) && j.avisos.length ? ' Avisos: ' + j.avisos.filter(function (x) { return typeof x === 'string'; }).join(' · ') : ''));
+            setTimeout(function () {
+              Promise.resolve(window.LW_V4.repintaPlantillas && window.LW_V4.repintaPlantillas()).then(function () {
+                var p = (window.LW_V4.plantillasPorSlug || {})[s];
+                if (!p) return aviso('El borrador se ha creado, pero la lista no lo trae aún: recarga la pantalla.', '#8A6A34');
+                leeVersion(j.version_id).then(function (rv) {
+                  if (rv.error || !rv.data) return aviso('No se ha podido abrir el borrador: ' + errorPlantillas(rv.error || {}), '#9E2F26');
+                  if (rv.data.esquema !== 1) return aviso('El borrador no es de texto plano: ábrelo desde la lista.', '#8A6A34');
+                  abreEditor1(p, rv.data, null);
+                });
+              });
+            }, 520);
+            return {};
+          }, function (e) {
+            enviando = false;
+            return { error: { message: (e && e.message) || String(e) } };
+          });
+        }, { sub: 'Plantillas', sinRecarga: true, ancho: '760px' });
+        // La casilla antes de subir: el botón no se puede pulsar sin ella (y onGuardar lo vuelve a mirar).
+        var ed = document.getElementById('lw-editor');
+        var bG = ed && ed.querySelector('[data-e="guardar"]');
+        if (bG && chk) {
+          bG.setAttribute('data-accion', 'subir-pdf');
+          var sinc = function () { if (!enviando) bG.disabled = !chk.checked; };
+          chk.addEventListener('change', sinc);
+          sinc();
+        }
+      };
+
+      /* ── Editor de una versión esquema 1 ─────────────────────────────────────────────────────────── */
+      function abreEditor1(p, borr, act) {
+        var base = borr || act;
+        var tipos = ((datos() || {}).tipos || []);
+        var tipoFijo = !!(p && p.activa);
+        var hecho = false;
+        var campos = [];
+        campos.push({ tipo: 'lectura', label: 'Número', medio: 1, valor: p.numero });
+        campos.push({ tipo: 'lectura', label: 'Identificador', medio: 1, valor: p.slug });
+        campos.push({ k: 'nombre', label: 'Nombre', req: 1, medio: 1, valor: p.nombre, ayuda: 'Como se ve al elegir plantilla para un contrato.' });
+        if (tipoFijo) {
+          var tAct = tipos.filter(function (x) { return x.clave === p.tipo_contrato; })[0];
+          campos.push({ tipo: 'lectura', label: 'Tipo de contrato', medio: 1, valor: tAct ? tAct.nombre : p.tipo_contrato,
+            ayuda: 'Ya tiene una versión activada: el tipo no se cambia. Para otro tipo, da de alta otra plantilla.' });
+        } else {
+          var opc = tipos.filter(function (x) { return x.activo; }).map(function (x) { return [x.clave, x.nombre]; });
+          if (p.tipo_contrato && !opc.some(function (o) { return o[0] === p.tipo_contrato; })) {
+            var tv = tipos.filter(function (x) { return x.clave === p.tipo_contrato; })[0];
+            opc.push([p.tipo_contrato, (tv ? tv.nombre : p.tipo_contrato) + ' — desactivado']);
+          }
+          campos.push({ k: 'tipo_contrato', label: 'Tipo de contrato', tipo: 'select', req: 1, medio: 1, valor: p.tipo_contrato || '',
+            opciones: [['', '— elige el tipo —']].concat(opc), ayuda: 'Se puede cambiar mientras no se haya activado ninguna versión.' });
+        }
+        campos.push({ k: 'idioma', label: 'Idioma del contrato', tipo: 'select', req: 1, medio: 1, valor: base.idioma || 'es', opciones: IDIOMAS1,
+          ayuda: 'Cómo se escriben importes y fechas (36.000,50 · 1 de octubre de 2026).' });
+        if (base.generado_ia) campos.push({ tipo: 'nota', label: edT(MARCA_IA1) + ' · ' + edT(AVISO_IA) });
+
+        var ta, listaC, filasC = [], notaC, hOn, hModo, listaH, filasH = [], sumaH, listaF, filasF = [], bMasF;
+        /* ── Cuerpo ── */
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          var etq = nodo('label', 'lwp-etq', 'Texto del contrato (texto plano) *'); etq.htmlFor = 'lw-plt-cuerpo1';
+          ta = nodo('textarea', 'lwp-in'); ta.id = 'lw-plt-cuerpo1'; ta.rows = 20; ta.value = base.cuerpo || ''; ta.spellcheck = false;
+          ta.style.cssText = 'font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical;min-height:300px;white-space:pre-wrap';
+          d.appendChild(etq); d.appendChild(ta);
+          d.appendChild(nodo('p', 'lwp-nota', 'Texto plano: no lleva HTML (un «<» se queda como «<»). Un dato que se rellena en cada contrato va como {{clave}} y tiene que estar en la lista de campos. ' +
+            'Existen siempre, sin declararlos: {{nombre_contrato}}, {{parcela_codigo}}, {{precio_total}}, {{moneda}}, {{calendario_pagos}} y, por cada firmante, ' +
+            '{{adquiriente_1_nombre}}, _pasaporte, _email, _telefono, _nacionalidad y _domicilio. La base rechaza al guardar un {{…}} que no exista y te dice cuál.'));
+        } });
+        /* ── Campos ── */
+        function extrasDe(f) {
+          var t = f.t.value;
+          f.iLen.style.display = (t === 'texto' || t === 'texto_largo' || t === 'email') ? '' : 'none';
+          f.iMin.style.display = f.iMax.style.display = (t === 'numero' || t === 'importe') ? '' : 'none';
+          f.iOpc.style.display = t === 'texto' ? '' : 'none';
+        }
+        function nuevaFilaC(c) {
+          c = c || {};
+          var caja = nodo('div'); caja.style.cssText = 'display:grid;gap:6px;padding-bottom:8px;border-bottom:1px solid #F0EEE9';
+          var el = nodo('div', 'lwp-cfila');
+          var iK = nodo('input', 'lwp-in lwp-comp'); iK.placeholder = 'clave'; iK.value = c.clave || ''; iK.setAttribute('aria-label', 'Clave del campo');
+          iK.style.fontFamily = 'ui-monospace,SFMono-Regular,Consolas,monospace';
+          var iE = nodo('input', 'lwp-in lwp-comp'); iE.placeholder = 'Etiqueta: lo que se pregunta'; iE.value = c.etiqueta || ''; iE.setAttribute('aria-label', 'Etiqueta del campo');
+          var sT = nodo('select', 'lwp-in lwp-comp'); sT.setAttribute('aria-label', 'Tipo de dato');
+          TIPOS_CAMPO.forEach(function (o) { var op = nodo('option', null, o[1]); op.value = o[0]; sT.appendChild(op); });
+          sT.value = c.tipo || 'texto';
+          if (sT.value !== (c.tipo || 'texto')) { var raro = nodo('option', null, c.tipo); raro.value = c.tipo; sT.appendChild(raro); sT.value = c.tipo; }
+          var lO = nodo('label'); lO.style.cssText = 'display:flex;align-items:center;gap:6px;font:500 12.5px Jost,system-ui,sans-serif;color:#44403c;white-space:nowrap';
+          var cO = nodo('input'); cO.type = 'checkbox'; cO.checked = c.obligatorio === true;
+          lO.appendChild(cO); lO.appendChild(document.createTextNode('Obligatorio'));
+          var bQ = nodo('button', 'lwp-quita', '×'); bQ.type = 'button'; bQ.title = 'Quitar campo'; bQ.setAttribute('aria-label', 'Quitar campo');
+          el.appendChild(iK); el.appendChild(iE); el.appendChild(sT); el.appendChild(lO); el.appendChild(bQ);
+          var ex = nodo('div'); ex.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px';
+          var mk = function (ph, val, w) { var i = nodo('input', 'lwp-in lwp-comp'); i.placeholder = ph; i.setAttribute('aria-label', ph); i.value = val == null ? '' : String(val); i.style.maxWidth = w; ex.appendChild(i); return i; };
+          var f = { caja: caja, k: iK, e: iE, t: sT, o: cO,
+            iLen: mk('Máx. caracteres (opcional)', c.max_len, '200px'),
+            iMin: mk('Mínimo (opcional)', c.min, '170px'),
+            iMax: mk('Máximo (opcional)', c.max, '170px'),
+            iOpc: mk('Opciones fijas separadas por | (opcional)', Array.isArray(c.opciones) ? c.opciones.join(' | ') : '', '420px') };
+          sT.addEventListener('change', function () { extrasDe(f); });
+          bQ.addEventListener('click', function () { listaC.removeChild(caja); filasC = filasC.filter(function (x) { return x !== f; }); });
+          caja.appendChild(el); caja.appendChild(ex);
+          listaC.appendChild(caja);
+          filasC.push(f);
+          extrasDe(f);
+          return f;
+        }
+        /* Lo que viaja: {clave, etiqueta, tipo, obligatorio} y SOLO los extras que admite su tipo (la base rechaza los
+           demás, no los ignora: M0 §1 regla 7). Los extras de otro tipo que queden escritos no se mandan. */
+        function leeCampos1() {
+          var out = [], problemas = [], vistos = {};
+          filasC.forEach(function (f, i) {
+            var k = f.k.value.trim(), e = f.e.value.trim(), t = f.t.value;
+            if (!k && !e) return;
+            if (!RE_CAMPO.test(k)) problemas.push('Campo ' + (i + 1) + ': la clave va en minúsculas, sin espacios ni tildes (' + (k || 'vacía') + ').');
+            else if (vistos[k]) problemas.push('El campo «' + k + '» está repetido.');
+            else if (RESERVADOS1.indexOf(k) !== -1 || /^adq(uiriente_|[0-9]+_)/.test(k)) problemas.push('«' + k + '» ya existe siempre (o es de un firmante): no se declara como campo.');
+            vistos[k] = 1;
+            if (!e) problemas.push('Falta la etiqueta del campo «' + k + '».');
+            else if (e.length > 200) problemas.push('La etiqueta del campo «' + k + '» pasa de 200 caracteres.');
+            var c = { clave: k, etiqueta: e, tipo: t, obligatorio: !!f.o.checked };
+            var len = f.iLen.value.trim(), mn = f.iMin.value.trim(), mx = f.iMax.value.trim(), op = f.iOpc.value.trim();
+            if ((t === 'texto' || t === 'texto_largo' || t === 'email') && len) {
+              if (!/^[0-9]{1,5}$/.test(len) || Number(len) < 1) problemas.push('Campo «' + k + '»: el máximo de caracteres va en número entero.');
+              else c.max_len = Number(len);
+            }
+            if (t === 'numero' || t === 'importe') {
+              if (mn) { if (!RE_NUM1.test(mn)) problemas.push('Campo «' + k + '»: el mínimo va con punto decimal y sin separador de miles.'); else c.min = mn; }
+              if (mx) { if (!RE_NUM1.test(mx)) problemas.push('Campo «' + k + '»: el máximo va con punto decimal y sin separador de miles.'); else c.max = mx; }
+            }
+            if (t === 'texto' && op) {
+              var ops = op.split('|').map(function (x) { return x.trim(); }).filter(Boolean);
+              if (ops.length < 2) problemas.push('Campo «' + k + '»: con opciones fijas hacen falta al menos dos.');
+              else c.opciones = ops;
+            }
+            out.push(c);
+          });
+          return { campos: out, problemas: problemas };
+        }
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          var cab = nodo('div'); cab.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap';
+          cab.appendChild(nodo('span', 'lwp-etq', 'Campos que se rellenan en cada contrato'));
+          var bD = nodo('button', 'lwp-mas', 'Detectar campos del texto'); bD.type = 'button';
+          cab.appendChild(bD); d.appendChild(cab);
+          listaC = nodo('div'); listaC.style.cssText = 'display:grid;gap:8px';
+          d.appendChild(listaC);
+          notaC = nodo('p', 'lwp-nota', 'La clave es la que va entre llaves en el texto; la etiqueta, lo que se le pregunta a quien hace el contrato.');
+          d.appendChild(notaC);
+          var bA = nodo('button', 'lwp-mas', '+ Añadir campo'); bA.type = 'button';
+          bA.addEventListener('click', function () { nuevaFilaC().k.focus(); });
+          d.appendChild(bA);
+          (Array.isArray(base.campos) ? base.campos : []).forEach(function (c) { nuevaFilaC(c); });
+          bD.addEventListener('click', function () {
+            var ya = {};
+            filasC.forEach(function (f) { ya[f.k.value.trim()] = 1; });
+            var usados = window.lwPlantillaCamposUsados(ta.value).filter(function (k) { return RESERVADOS1.indexOf(k) === -1 && !/^adquiriente_[0-9]+_/.test(k); });
+            var nuevos = usados.filter(function (k) { return !ya[k]; });
+            nuevos.forEach(function (k) { nuevaFilaC({ clave: k, etiqueta: window.lwPlantillaEtiquetaDe(k), tipo: 'texto', obligatorio: true }); });
+            var sobran = Object.keys(ya).filter(function (k) { return k && usados.indexOf(k) === -1; });
+            notaC.textContent = (nuevos.length ? 'Añadidos ' + nuevos.length + ': ' + nuevos.join(', ') + '. Revisa su etiqueta y su tipo.' : 'No hay campos nuevos en el texto.') +
+              (sobran.length ? ' En la lista pero no en el texto: ' + sobran.join(', ') + '.' : '');
+          });
+        } });
+        /* ── Hitos (calendario de pagos) ── */
+        function opcionesDesde(sel, actual) {
+          var ops = [['emision', 'la emisión del contrato']];
+          leeCampos1().campos.forEach(function (c) { if (c.tipo === 'fecha' && c.obligatorio) ops.push([c.clave, '{{' + c.clave + '}} · ' + c.etiqueta]); });
+          if (actual && !ops.some(function (o) { return o[0] === actual; })) ops.push([actual, '{{' + actual + '}} · no es un campo fecha obligatorio']);
+          sel.textContent = '';
+          ops.forEach(function (o) { var op = nodo('option', null, o[1]); op.value = o[0]; sel.appendChild(op); });
+          sel.value = actual || 'emision';
+        }
+        function recuentaH() {
+          if (!sumaH) return;
+          if (!hOn.checked) { sumaH.textContent = 'Sin calendario de pagos: el contrato no lleva hitos.'; return; }
+          var cent = 0, malos = 0;
+          filasH.forEach(function (f) {
+            var x = f.val.value.trim();
+            if (!(hModo.value === 'pct' ? RE_PCT1 : RE_MONTO1).test(x)) { malos++; return; }
+            var ps = x.split('.'); cent += Number(ps[0]) * 100 + Number(((ps[1] || '') + '00').slice(0, 2));
+          });
+          var s = Math.floor(cent / 100) + '.' + ('0' + (cent % 100)).slice(-2);
+          sumaH.textContent = hModo.value === 'pct'
+            ? 'Suma de porcentajes: ' + s + ' % (tiene que ser 100).' + (malos ? ' Hay ' + malos + ' sin valor válido.' : '')
+            : 'Suma de importes: ' + s + ' (tiene que ser el precio total del contrato; se comprueba al simular).' + (malos ? ' Hay ' + malos + ' sin valor válido.' : '');
+        }
+        function nuevaFilaH(h) {
+          h = h || {};
+          var caja = nodo('div'); caja.style.cssText = 'display:grid;gap:6px;padding-bottom:8px;border-bottom:1px solid #F0EEE9';
+          var l1 = nodo('div'); l1.style.cssText = 'display:grid;grid-template-columns:minmax(0,1.6fr) 120px 110px minmax(0,1.2fr) 26px;gap:8px;align-items:center';
+          var mk = function (host, ph, val) { var i = nodo('input', 'lwp-in lwp-comp'); i.placeholder = ph; i.setAttribute('aria-label', ph); i.value = val == null ? '' : String(val); host.appendChild(i); return i; };
+          var f = { caja: caja };
+          f.es = mk(l1, 'Descripción (es) *', h.es);
+          f.val = mk(l1, hModo.value === 'pct' ? '% (p. ej. 30)' : 'Importe', hModo.value === 'pct' ? h.pct : h.monto);
+          f.dias = mk(l1, 'Días (opc.)', h.dias);
+          f.desde = nodo('select', 'lwp-in lwp-comp'); f.desde.setAttribute('aria-label', 'Plazo contado desde');
+          l1.appendChild(f.desde);
+          opcionesDesde(f.desde, h.desde);
+          f.desde.addEventListener('focus', function () { opcionesDesde(f.desde, f.desde.value); });
+          var bQ = nodo('button', 'lwp-quita', '×'); bQ.type = 'button'; bQ.title = 'Quitar hito'; bQ.setAttribute('aria-label', 'Quitar hito');
+          l1.appendChild(bQ);
+          var l2 = nodo('div'); l2.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px';
+          f.en = mk(l2, 'Descripción en inglés (opcional)', h.en);
+          f.id = mk(l2, 'Descripción en indonesio (opcional)', h.id);
+          f.val.addEventListener('input', recuentaH);
+          bQ.addEventListener('click', function () { listaH.removeChild(caja); filasH = filasH.filter(function (x) { return x !== f; }); recuentaH(); });
+          caja.appendChild(l1); caja.appendChild(l2);
+          listaH.appendChild(caja);
+          filasH.push(f);
+          recuentaH();
+          return f;
+        }
+        /* Lo que viaja: null (sin calendario) o {modo, lista}; cada hito lleva `pct` O `monto` (nunca los dos, M0 §1.2
+           caso C), en CADENA; `dias` entero y `desde` solo con `dias`. El orden es la posición en la lista. */
+        function leeHitos() {
+          if (!hOn.checked) return { hitos: null, problemas: [] };
+          var modo = hModo.value === 'monto' ? 'monto' : 'pct', lista = [], problemas = [];
+          filasH.forEach(function (f, i) {
+            var n = i + 1, es = f.es.value.trim(), val = f.val.value.trim(), dias = f.dias.value.trim();
+            var h = { es: es };
+            if (!es) problemas.push('Hito ' + n + ': falta la descripción.');
+            else if (es.length > 200) problemas.push('Hito ' + n + ': la descripción pasa de 200 caracteres.');
+            if (f.en.value.trim()) h.en = f.en.value.trim();
+            if (f.id.value.trim()) h.id = f.id.value.trim();
+            if (modo === 'pct') { if (!RE_PCT1.test(val) || Number(val) <= 0 || Number(val) > 100) problemas.push('Hito ' + n + ': el porcentaje va de 0,01 a 100, con punto y hasta 2 decimales.'); else h.pct = val; }
+            else { if (!RE_MONTO1.test(val) || Number(val) <= 0) problemas.push('Hito ' + n + ': el importe va con punto decimal (hasta 2), sin separador de miles, y mayor que 0.'); else h.monto = val; }
+            if (dias) {
+              if (!/^[0-9]{1,4}$/.test(dias) || Number(dias) > 3650) problemas.push('Hito ' + n + ': los días van en número entero de 0 a 3650.');
+              else { h.dias = Number(dias); h.desde = f.desde.value || 'emision'; }
+            }
+            lista.push(h);
+          });
+          if (!lista.length) problemas.push('El calendario está activado pero no tiene hitos: añade uno o desactívalo.');
+          if (lista.length > 24) problemas.push('Como mucho 24 hitos.');
+          return { hitos: { modo: modo, lista: lista }, problemas: problemas };
+        }
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          d.appendChild(nodo('span', 'lwp-etq', 'Calendario de pagos (hitos)'));
+          var h0 = base.hitos && typeof base.hitos === 'object' ? base.hitos : null;
+          var fila = nodo('div'); fila.style.cssText = 'display:flex;gap:14px;align-items:center;flex-wrap:wrap';
+          var lOn = nodo('label'); lOn.style.cssText = 'display:flex;align-items:center;gap:6px;font:500 13px Jost,system-ui,sans-serif;color:#44403c';
+          hOn = nodo('input'); hOn.type = 'checkbox'; hOn.checked = !!h0;
+          lOn.appendChild(hOn); lOn.appendChild(document.createTextNode('Lleva calendario de pagos'));
+          hModo = nodo('select', 'lwp-in lwp-comp'); hModo.setAttribute('aria-label', 'Cómo se reparte'); hModo.style.maxWidth = '260px';
+          [['pct', 'En porcentajes del precio'], ['monto', 'En importes fijos']].forEach(function (o) { var op = nodo('option', null, o[1]); op.value = o[0]; hModo.appendChild(op); });
+          hModo.value = h0 && h0.modo === 'monto' ? 'monto' : 'pct';
+          fila.appendChild(lOn); fila.appendChild(hModo);
+          d.appendChild(fila);
+          var cuerpoH = nodo('div'); cuerpoH.style.cssText = 'display:grid;gap:8px';
+          var enc = nodo('div'); enc.style.cssText = 'display:grid;grid-template-columns:minmax(0,1.6fr) 120px 110px minmax(0,1.2fr) 26px;gap:8px';
+          ['Descripción', 'Valor', 'Días', 'Contados desde', ''].forEach(function (t) { enc.appendChild(nodo('span', 'lwp-col', t)); });
+          cuerpoH.appendChild(enc);
+          listaH = nodo('div'); listaH.style.cssText = 'display:grid;gap:8px';
+          cuerpoH.appendChild(listaH);
+          var bA = nodo('button', 'lwp-mas', '+ Añadir hito'); bA.type = 'button';
+          bA.addEventListener('click', function () { nuevaFilaH().es.focus(); });
+          cuerpoH.appendChild(bA);
+          d.appendChild(cuerpoH);
+          sumaH = nodo('p', 'lwp-nota'); d.appendChild(sumaH);
+          d.appendChild(nodo('p', 'lwp-nota', 'El orden de la lista es el orden de pago. Sin días, el hito no lleva fecha. En porcentajes, el último hito absorbe el redondeo para que la suma sea el precio exacto.'));
+          var vis = function () { cuerpoH.style.display = hModo.style.display = hOn.checked ? '' : 'none'; recuentaH(); };
+          hOn.addEventListener('change', vis);
+          hModo.addEventListener('change', function () {
+            filasH.forEach(function (f) { f.val.value = ''; f.val.placeholder = hModo.value === 'pct' ? '% (p. ej. 30)' : 'Importe'; });
+            recuentaH();
+          });
+          (h0 && Array.isArray(h0.lista) ? h0.lista : []).forEach(function (h) { nuevaFilaH(h); });
+          vis();
+        } });
+        /* ── Firmantes ── */
+        function renumeraF() {
+          filasF.forEach(function (f, i) {
+            f.rol.textContent = 'adquiriente_' + (i + 1);
+            if (i === 0) { f.o.checked = true; f.o.disabled = true; f.bQ.style.visibility = 'hidden'; }
+            else { f.o.disabled = false; f.bQ.style.visibility = ''; }
+          });
+          if (bMasF) bMasF.disabled = filasF.length >= 9;
+        }
+        function nuevaFilaF(fm) {
+          fm = fm || {};
+          var el = nodo('div'); el.style.cssText = 'display:grid;grid-template-columns:140px minmax(0,1fr) auto 26px;gap:8px;align-items:center';
+          var rol = nodo('span', 'lwp-nom'); rol.style.fontFamily = 'ui-monospace,SFMono-Regular,Consolas,monospace';
+          var iE = nodo('input', 'lwp-in lwp-comp'); iE.placeholder = 'Cómo se le llama: Cliente, Cotitular…'; iE.setAttribute('aria-label', 'Etiqueta del firmante'); iE.value = fm.etiqueta || '';
+          var lO = nodo('label'); lO.style.cssText = 'display:flex;align-items:center;gap:6px;font:500 12.5px Jost,system-ui,sans-serif;color:#44403c;white-space:nowrap';
+          var cO = nodo('input'); cO.type = 'checkbox'; cO.checked = fm.obligatorio === true;
+          lO.appendChild(cO); lO.appendChild(document.createTextNode('Obligatorio'));
+          var bQ = nodo('button', 'lwp-quita', '×'); bQ.type = 'button'; bQ.title = 'Quitar firmante'; bQ.setAttribute('aria-label', 'Quitar firmante');
+          var f = { el: el, rol: rol, e: iE, o: cO, bQ: bQ };
+          bQ.addEventListener('click', function () { listaF.removeChild(el); filasF = filasF.filter(function (x) { return x !== f; }); renumeraF(); });
+          el.appendChild(rol); el.appendChild(iE); el.appendChild(lO); el.appendChild(bQ);
+          listaF.appendChild(el);
+          filasF.push(f);
+          renumeraF();
+          return f;
+        }
+        /* Lo que viaja: el ROL sale de la posición (adquiriente_1..N seguidos, M0 §1 regla 5); el 1 siempre obligatorio. */
+        function leeFirmantes() {
+          var out = [], problemas = [];
+          filasF.forEach(function (f, i) {
+            var e = f.e.value.trim();
+            if (!e) problemas.push('Firmante ' + (i + 1) + ': falta cómo se le llama.');
+            else if (e.length > 200) problemas.push('Firmante ' + (i + 1) + ': la etiqueta pasa de 200 caracteres.');
+            out.push({ rol: 'adquiriente_' + (i + 1), etiqueta: e, obligatorio: i === 0 ? true : !!f.o.checked });
+          });
+          if (!out.length) problemas.push('Hace falta al menos un firmante (adquiriente_1).');
+          if (out.length > 9) problemas.push('Como mucho 9 firmantes.');
+          return { firmantes: out, problemas: problemas };
+        }
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          d.appendChild(nodo('span', 'lwp-etq', 'Firmantes'));
+          listaF = nodo('div'); listaF.style.cssText = 'display:grid;gap:6px';
+          d.appendChild(listaF);
+          bMasF = nodo('button', 'lwp-mas', '+ Añadir firmante'); bMasF.type = 'button';
+          bMasF.addEventListener('click', function () { if (filasF.length < 9) nuevaFilaF().e.focus(); });
+          d.appendChild(bMasF);
+          d.appendChild(nodo('p', 'lwp-nota', 'Van seguidos: adquiriente_1, adquiriente_2… (hasta 9). El primero es siempre obligatorio: es el cliente al que queda unido el contrato. Sus datos salen de la ficha del cliente al hacer el contrato, no de aquí.'));
+          var fs = Array.isArray(base.firmantes) && base.firmantes.length ? base.firmantes : [{ rol: 'adquiriente_1', etiqueta: 'Cliente', obligatorio: true }];
+          fs.slice().sort(function (a, b) { return Number(String(a.rol).slice(12)) - Number(String(b.rol).slice(12)); }).forEach(function (x) { nuevaFilaF(x); });
+        } });
+        campos.push({ k: 'notas', label: 'Notas internas', tipo: 'textarea', valor: base === borr ? (borr.notas || '') : '',
+          ayuda: 'Para el equipo: qué cambia en esta versión. No sale en el contrato.' });
+
+        var enc = borr ? 'Borrador v' + borr.version + ' (texto plano): al guardar se sobrescribe este borrador. Después, «Revisar y activar» para simularlo y activarlo.'
+          : 'Nueva versión a partir de la activa (v' + act.version + '). La activa no cambia hasta que actives esta.';
+        modal('Editar plantilla — ' + p.nombre, campos, 'Guardar borrador', function (v) {
+          if (hecho) return {};
+          if (!(v.nombre || '').trim()) return { error: { message: 'Falta el nombre.' } };
+          if (!tipoFijo && !v.tipo_contrato) return { error: { message: 'Falta el tipo de contrato.' } };
+          if (!ta.value.trim()) return { error: { message: 'Falta el texto del contrato.' } };
+          var lc = leeCampos1(), lh = leeHitos(), lf = leeFirmantes();
+          var probs = lc.problemas.concat(lh.problemas, lf.problemas);
+          if (probs.length) return { error: { message: probs.join(' ') } };
+          // `esquema: 1` SIEMPRE (número): sin él, una versión nueva hecha desde la activa nacería esquema 0 y la base
+          // rechazaría idioma/hitos/firmantes. En un borrador que ya es 1 no cambia nada (la base solo impide cambiarlo).
+          var d = { esquema: 1, idioma: IDIOMAS1.some(function (o) { return o[0] === v.idioma; }) ? v.idioma : 'es',
+            cuerpo: ta.value, campos: lc.campos, hitos: lh.hitos, firmantes: lf.firmantes, notas: (v.notas || '').trim() || null };
+          if (v.nombre.trim() !== p.nombre) d.nombre = v.nombre.trim();
+          if (!tipoFijo && v.tipo_contrato !== p.tipo_contrato) d.tipo_contrato = v.tipo_contrato;
+          return Promise.resolve(sb.rpc('plantilla_borrador_guarda', { p_slug: p.slug, p_datos: d })).then(function (r) {
+            if (r && r.error) return { error: { message: errorPlantillas(r.error) } };
+            hecho = true;
+            aviso('Borrador guardado. Para que se use: «Revisar y activar», simularlo y activarlo.');
+            setTimeout(repinta, 480);
+            return r;
+          });
+        }, { sub: 'Plantillas', sinRecarga: true, ancho: '1040px',
+          encabezado: '<p class="lwp-nota" style="margin:0 0 12px">' + esc(enc) + '</p>' });
+      }
+
+      /* ── Ver una versión esquema 1 (solo lectura) ────────────────────────────────────────────────── */
+      function verVersion1(p, v) {
+        var c = cajon({ titulo: p.nombre, sub: 'Plantillas', estado: ['Activa v' + v.version, 'ok'], ancho: 'min(900px,96vw)',
+          bajoTitulo: p.numero + ' · texto plano · ' + (v.idioma || 'es') + ' · activada ' + (v.activada_en ? new Date(v.activada_en).toLocaleString('es-ES') : '—') + (v.activada_por ? ' por ' + v.activada_por : '') });
+        marcaIA1(c.cuerpo, v);
+        var sT = seccionCajon('Texto'); sT.appendChild(pre1(v.cuerpo)); c.cuerpo.appendChild(sT.parentNode);
+        pintaEstructura1(c.cuerpo, v);
+        if (v.notas) { var sN = seccionCajon('Notas'); sN.appendChild(nodo('p', 'lwp-nom', v.notas)); c.cuerpo.appendChild(sN.parentNode); }
+      }
+      function pintaEstructura1(host, v) {
+        var sC = seccionCajon('Campos');
+        var cs = Array.isArray(v.campos) ? v.campos : [];
+        if (!cs.length) sC.appendChild(nodo('p', 'lwp-nota', 'No tiene campos propios: solo los que existen siempre.'));
+        cs.forEach(function (x) {
+          sC.appendChild(nodo('p', 'lwp-nom', '{{' + x.clave + '}} · ' + x.etiqueta + ' · ' + tipoCampoNombre(x.tipo) + (x.obligatorio ? ' · obligatorio' : '') +
+            (Array.isArray(x.opciones) ? ' · opciones: ' + x.opciones.join(' | ') : '')));
+        });
+        host.appendChild(sC.parentNode);
+        var sH = seccionCajon('Calendario de pagos');
+        var h = v.hitos && typeof v.hitos === 'object' ? v.hitos : null;
+        if (!h || !Array.isArray(h.lista) || !h.lista.length) sH.appendChild(nodo('p', 'lwp-nota', 'Sin calendario de pagos.'));
+        else {
+          sH.appendChild(nodo('p', 'lwp-nota', h.modo === 'monto' ? 'En importes fijos.' : 'En porcentajes del precio.'));
+          h.lista.forEach(function (x, i) { sH.appendChild(nodo('p', 'lwp-nom', hitoLinea(x, h.modo, i))); });
+        }
+        host.appendChild(sH.parentNode);
+        var sF = seccionCajon('Firmantes');
+        (Array.isArray(v.firmantes) ? v.firmantes : []).forEach(function (f) { sF.appendChild(nodo('p', 'lwp-nom', firmanteLinea(f))); });
+        host.appendChild(sF.parentNode);
+      }
+
+      /* ── Revisar, simular y activar un borrador esquema 1 ────────────────────────────────────────── */
+      /* Caso de ejemplo VÁLIDO por construcción (todo cadenas, M0 §3.1): no se guarda en ningún sitio. */
+      function hoyISO() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+      function ejemploCampo(c) {
+        var t = c.tipo;
+        if (t === 'fecha') return hoyISO();
+        if (t === 'email') return 'ejemplo@ejemplo.com';
+        if (t === 'numero' || t === 'importe') {
+          var def = t === 'importe' ? 1000 : 1;
+          if (c.min != null && c.min !== '') return String(c.min);
+          if (c.max != null && c.max !== '' && Number(c.max) < def) return String(c.max);
+          return String(def);
+        }
+        if (t === 'texto' && Array.isArray(c.opciones) && c.opciones.length) return String(c.opciones[0]);
+        var s = 'Ejemplo de ' + (c.etiqueta || c.clave);
+        var lim = Number(c.max_len) || (t === 'texto_largo' ? 4000 : 200);
+        return s.slice(0, Math.max(1, lim));
+      }
+      function precioEjemplo(v) {
+        var h = v.hitos && typeof v.hitos === 'object' ? v.hitos : null;
+        if (!h || h.modo !== 'monto' || !Array.isArray(h.lista)) return '120000';
+        var cent = 0;
+        h.lista.forEach(function (x) {
+          var m = String(x.monto || '0'); if (!RE_MONTO1.test(m)) return;
+          var ps = m.split('.'); cent += Number(ps[0]) * 100 + Number(((ps[1] || '') + '00').slice(0, 2));
+        });
+        return cent > 0 ? Math.floor(cent / 100) + (cent % 100 ? '.' + ('0' + (cent % 100)).slice(-2) : '') : '120000';
+      }
+      function activaVersion1(p, borr, act) {
+        var simOk = null;       // {id, hash} de la última simulación CORRECTA de este borrador
+        var enviando = false, simulando = false;
+        var c = cajon({ titulo: 'Revisar y activar — ' + p.nombre, sub: 'Plantillas', estado: ['Borrador v' + borr.version, 'espera'], ancho: 'min(980px,96vw)',
+          bajoTitulo: (act ? 'Sustituye a la activa v' + act.version + ': los contratos ya hechos siguen con la suya.' : 'Es su primera versión.') +
+            ' Para activarla: simúlala con un caso de ejemplo, revisa hitos y firmantes, y confirma.' });
+        marcaIA1(c.cuerpo, borr);
+        /* 1. Qué cambia */
+        var sD = seccionCajon(act ? 'Qué cambia frente a la activa (v' + act.version + ')' : 'Texto de esta versión');
+        if (act) {
+          resumenCampos(act.campos, borr.campos).forEach(function (t) { sD.appendChild(nodo('p', 'lwp-nom', t)); });
+          var hd = nodo('div'); sD.appendChild(hd);
+          pintaDiff(hd, act.cuerpo, borr.cuerpo);
+        } else sD.appendChild(pre1(borr.cuerpo));
+        c.cuerpo.appendChild(sD.parentNode);
+        pintaEstructura1(c.cuerpo, borr);
+        /* 2. Caso de ejemplo */
+        var sE = seccionCajon('Simular con un caso de ejemplo');
+        sE.appendChild(nodo('p', 'lwp-nota', 'Datos de ejemplo: no se guardan en ningún sitio y no crean ningún contrato. Cámbialos si quieres ver otro caso. El texto, el calendario y los totales los calcula el servidor, igual que al hacer el contrato.'));
+        var rejilla = nodo('div'); rejilla.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px';
+        sE.appendChild(rejilla);
+        var entrada = function (etq, val, largo) {
+          var w = nodo('label'); w.style.cssText = 'display:grid;gap:4px';
+          w.appendChild(nodo('span', 'lwp-col', etq));
+          var i = nodo(largo ? 'textarea' : 'input', 'lwp-in lwp-comp'); i.value = val; if (largo) i.rows = 2;
+          w.appendChild(i); rejilla.appendChild(w);
+          return i;
+        };
+        var eRes = {
+          nombre_contrato: entrada('{{nombre_contrato}}', 'Contrato de ejemplo'),
+          precio_total: entrada('{{precio_total}} (punto decimal)', precioEjemplo(borr)),
+          moneda: entrada('{{moneda}}', 'EUR'),
+          parcela_codigo: entrada('{{parcela_codigo}}', 'EJ-01')
+        };
+        var eCampos = {};
+        (Array.isArray(borr.campos) ? borr.campos : []).forEach(function (x) {
+          eCampos[x.clave] = entrada('{{' + x.clave + '}} · ' + x.etiqueta, ejemploCampo(x), x.tipo === 'texto_largo');
+        });
+        /* Freno de cotitulares (M0 §3.3, 20260930170000): simular admite UN firmante; con dos o más la base responde
+           cotitular_no_soportado. Se simula con el primero; los demás declarados salen vacíos en el texto. */
+        var eFirm = [];
+        var firmDecl = Array.isArray(borr.firmantes) ? borr.firmantes : [];
+        // el titular es SIEMPRE adquiriente_1, no el primero de la lista (un borrador de IA puede venir desordenado)
+        firmDecl.filter(function (f) { return f && f.rol === 'adquiriente_1'; }).slice(0, 1).forEach(function (f, i) {
+          eFirm.push({ rol: f.rol, i: entrada('{{' + f.rol + '_nombre}} · ' + (f.etiqueta || ''), 'Firmante de ejemplo ' + (i + 1)) });
+        });
+        if (firmDecl.length > 1) sE.appendChild(nodo('p', 'lwp-nota', 'Por ahora un contrato de plantilla admite un solo firmante; los cotitulares llegarán más adelante. La simulación usa solo el primero y deja vacíos los datos de los demás.'));
+        var bSim = btnAccion('simular', 'Simular', 'las-btn1');   // data-accion="simular"
+        bSim.style.justifySelf = 'start';
+        sE.appendChild(bSim);
+        var resHost = nodo('div'); resHost.style.cssText = 'display:grid;gap:10px';
+        sE.appendChild(resHost);
+        c.cuerpo.appendChild(sE.parentNode);
+        /* 3. Revisión (solo existe tras una simulación correcta) */
+        var revHost = nodo('div');
+        c.cuerpo.appendChild(revHost);
+
+        function quitaRevision() { simOk = null; revHost.textContent = ''; }
+        function valores() {
+          var r = {}, cm = {}, fm = [];
+          Object.keys(eRes).forEach(function (k) { r[k] = eRes[k].value.trim(); });
+          Object.keys(eCampos).forEach(function (k) { var x = eCampos[k].value; if (x.trim() !== '') cm[k] = x; });
+          eFirm.forEach(function (f) { var n = f.i.value.trim(); if (n) fm.push({ rol: f.rol, nombre: n }); });
+          return { reservados: r, campos: cm, firmantes: fm };
+        }
+        function pintaResultado(d) {
+          resHost.textContent = '';
+          var errores = Array.isArray(d.errores) ? d.errores : [];
+          if (d.ok !== true) {
+            var caja = nodo('div'); caja.style.cssText = 'padding:12px 14px;border-radius:12px;background:#FFF1EF;color:#93000a;display:grid;gap:4px';
+            caja.appendChild(nodo('strong', null, 'La simulación no sale: corrige esto (en el caso de ejemplo o en el borrador) y vuelve a simular.'));
+            if (!errores.length) caja.appendChild(nodo('span', null, 'El servidor no ha dicho por qué.'));
+            errores.forEach(function (e) { caja.appendChild(nodo('span', null, '· ' + (e.campo ? e.campo + ': ' : '') + (e.mensaje || e.codigo || ''))); });
+            resHost.appendChild(caja);
+            return;
+          }
+          (Array.isArray(d.advertencias) ? d.advertencias : []).forEach(function (a) { resHost.appendChild(nodo('p', 'lwp-nota', 'Aviso: ' + a)); });
+          resHost.appendChild(nodo('span', 'lwp-etq', 'Así queda el texto'));
+          resHost.appendChild(pre1(d.texto));
+          var hs = Array.isArray(d.hitos) ? d.hitos : [];
+          resHost.appendChild(nodo('span', 'lwp-etq', 'Calendario de pagos'));
+          if (!hs.length) resHost.appendChild(nodo('p', 'lwp-nota', 'Sin calendario de pagos.'));
+          else {
+            var tb = nodo('table'); tb.style.cssText = 'width:100%;border-collapse:collapse;font:13.5px/1.45 Jost,system-ui,sans-serif';
+            var trh = nodo('tr');
+            ['Nº', 'Hito', '%', 'Importe', 'Fecha'].forEach(function (t) { var th = nodo('th', null, t); th.style.cssText = 'text-align:left;padding:6px 8px;border-bottom:1px solid #E7E4DC;color:#736B5E'; trh.appendChild(th); });
+            tb.appendChild(trh);
+            hs.forEach(function (h) {
+              var tr = nodo('tr');
+              [h.orden, h.descripcion, h.pct != null ? h.pct + ' %' : '—', h.monto, h.fecha || 'sin fecha'].forEach(function (x) {
+                var td = nodo('td', null, x == null ? '—' : String(x)); td.style.cssText = 'padding:6px 8px;border-bottom:1px solid #F0EEE9'; tr.appendChild(td);
+              });
+              tb.appendChild(tr);
+            });
+            resHost.appendChild(tb);
+          }
+          var t = d.totales || {};
+          resHost.appendChild(nodo('p', 'lwp-nom', 'Precio total: ' + (t.precio_total || '—') + ' ' + (t.moneda || '') +
+            (t.suma_monto != null ? ' · suma de hitos: ' + t.suma_monto : '') + (t.suma_pct != null ? ' · suma de porcentajes: ' + t.suma_pct + ' %' : '')));
+        }
+        function pintaRevision(d) {
+          revHost.textContent = '';
+          var bRev = btnAccion('revisar', 'Revisar hitos y firmantes para activar', 'las-btn1');   // data-accion="revisar"
+          bRev.style.justifySelf = 'start';
+          var sR = seccionCajon('Revisión antes de activar');
+          sR.appendChild(bRev);
+          revHost.appendChild(sR.parentNode);
+          bRev.addEventListener('click', function () {
+            if (!simOk || simOk.id !== borr.id) return aviso('Simula antes esta versión.', '#8A6A34');
+            sR.textContent = '';
+            marcaIA1(sR, borr);
+            sR.appendChild(nodo('p', 'lwp-nota', 'Comprueba uno a uno. Los importes son los del caso de ejemplo; en cada contrato se calculan con su precio.'));
+            sR.appendChild(nodo('span', 'lwp-etq', 'Hitos'));
+            var hs = Array.isArray(d.hitos) ? d.hitos : [];
+            if (!hs.length) sR.appendChild(nodo('p', 'lwp-nom', 'Sin calendario de pagos: el contrato no lleva hitos.'));
+            hs.forEach(function (h) {
+              sR.appendChild(nodo('p', 'lwp-nom', h.orden + '. ' + h.descripcion + ' — ' + (h.pct != null ? h.pct + ' % — ' : '') +
+                h.monto + ' ' + ((d.totales || {}).moneda || '') + ' (ejemplo) — ' + (h.fecha || 'sin fecha')));
+            });
+            sR.appendChild(nodo('span', 'lwp-etq', 'Firmantes'));
+            (Array.isArray(borr.firmantes) ? borr.firmantes : []).forEach(function (f) { sR.appendChild(nodo('p', 'lwp-nom', firmanteLinea(f))); });
+            var lab = nodo('label', 'las-check');
+            var chk = nodo('input'); chk.type = 'checkbox'; chk.checked = false;   // DESMARCADA siempre: la base también exige p_acepto
+            var tx = nodo('span'); tx.appendChild(nodo('span', 'las-check-t', edT(DESCARGO)));
+            lab.appendChild(chk); lab.appendChild(tx);
+            sR.appendChild(lab);
+            var bAct = btnAccion('activar', 'Activar esta versión', 'las-btn1');   // data-accion="activar"
+            bAct.style.justifySelf = 'start';
+            bAct.disabled = true; bAct.title = 'Marca antes la casilla de revisión';
+            sR.appendChild(bAct);
+            chk.addEventListener('change', function () { if (!enviando) { bAct.disabled = !chk.checked; bAct.title = chk.checked ? '' : 'Marca antes la casilla de revisión'; } });
+            bAct.addEventListener('click', function () {
+              if (enviando || chk.checked !== true) return;
+              if (!simOk || simOk.id !== borr.id || simOk.hash !== borr.hash) return aviso('Simula antes esta versión.', '#8A6A34');
+              var huella = simOk.hash;
+              enviando = true; bAct.disabled = true;
+              /* Lo que se activa es lo que se ha simulado y revisado: se relee y, si la huella (que en esquema 1 cubre
+                 cuerpo, campos, hitos, firmantes e idioma) no es la simulada, no se activa. */
+              leeVersion(borr.id).then(function (rv) {
+                if (rv.error || !rv.data) throw rv.error || new Error('Ese borrador ya no existe: recarga la pantalla.');
+                if (rv.data.estado !== 'borrador' || rv.data.hash !== huella) {
+                  var e = new Error('El borrador ha cambiado desde que lo simulaste (lo ha guardado alguien, o tú en otra pestaña). Vuelve a abrir «Revisar y activar».');
+                  e.recarga = true; throw e;
+                }
+                /* Esquema 1: la base compara la huella (M0 §7.6) bajo bloqueo de fila; la relectura de arriba solo da un
+                   aviso temprano. Quien decide es `p_hash` → 23514 huella_distinta; sin él, 22023 usa_huella. */
+                return sb.rpc('plantilla_version_activa', { p_version_id: borr.id, p_acepto: chk.checked === true, p_hash: huella });
+              }).then(function (rr) {
+                enviando = false;
+                if (rr && rr.error) {
+                  aviso(errorPlantillas(rr.error), '#9E2F26');
+                  // Huella distinta: lo revisado ya no es lo guardado. Se cierra para volver a abrir y simular lo actual.
+                  if (rr.error.hint === 'huella_distinta') { quitaRevision(); c.cierra(); repinta(); return; }
+                  bAct.disabled = !chk.checked; return;
+                }
+                aviso('Plantilla activada: v' + borr.version + ' de «' + p.nombre + '».');
+                c.cierra();
+                repinta();
+              }, function (e) {
+                enviando = false; bAct.disabled = !chk.checked;
+                aviso(e && e.recarga ? e.message : errorPlantillas(e), '#9E2F26');
+                if (e && e.recarga) { c.cierra(); repinta(); }
+              });
+            });
+            chk.focus();
+          });
+        }
+        bSim.addEventListener('click', function () {
+          if (simulando || enviando) return;
+          simulando = true; bSim.disabled = true;
+          quitaRevision();
+          resHost.textContent = '';
+          resHost.appendChild(nodo('p', 'lwp-nota', 'Simulando…'));
+          Promise.resolve(sb.rpc('plantilla_simula', { p_version_id: borr.id, p_valores: valores() })).then(function (r) {
+            simulando = false; bSim.disabled = false;
+            if (r && r.error) { resHost.textContent = ''; resHost.appendChild(nodo('p', 'lwp-nota', 'No se ha podido simular: ' + errorPlantillas(r.error))); return; }
+            var d = (r && r.data) || {};
+            pintaResultado(d);
+            if (d.ok !== true) return;
+            // Correcta Y de ESTA versión: la huella que devuelve el servidor tiene que ser la del borrador que se revisa.
+            if (!d.hash_version || d.hash_version !== borr.hash) {
+              resHost.appendChild(nodo('p', 'lwp-nota', 'El borrador ha cambiado desde que abriste esta revisión: vuelve a abrir «Revisar y activar» para simular el texto actual.'));
+              return;
+            }
+            simOk = { id: borr.id, hash: d.hash_version };
+            pintaRevision(d);
+          }, function (e) {
+            simulando = false; bSim.disabled = false;
+            resHost.textContent = '';
+            resHost.appendChild(nodo('p', 'lwp-nota', 'No se ha podido simular: ' + errorPlantillas(e)));
+          });
+        });
+      }
+
+      /* ── Descartar un borrador ───────────────────────────────────────────────────────────────────── */
+      window.LW_V4.descartaPlantilla = function (btn) {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        var p = (window.LW_V4.plantillasPorSlug || {})[btn.getAttribute('data-lw-plt-descartar')];
+        if (!p || !p.borrador) return aviso('No hay borrador que descartar — recarga la pantalla.', '#9E2F26');
+        if (typeof window.lwConfirmar !== 'function') return aviso('El diálogo aún no ha cargado — prueba de nuevo en un segundo.', '#8A6A34');
+        window.lwConfirmar({
+          titulo: 'Descartar el borrador de ' + p.nombre,
+          cuerpo: 'Se borra el borrador v' + p.borrador.version + ' con todos sus cambios. ' +
+            (p.activa ? 'La versión activa (v' + p.activa.version + ') sigue igual.' : 'La plantilla se queda sin texto hasta que guardes otro borrador.'),
+          confirmar: 'Descartar', tono: 'peligro'
+        }).then(function (ok) {
+          if (!ok) return;
+          return Promise.resolve(sb.rpc('plantilla_borrador_descarta', { p_version_id: p.borrador.id })).then(function (r) {
+            if (r && r.error) return aviso(errorPlantillas(r.error), '#9E2F26');
+            aviso('Borrador descartado.');
             repinta();
           });
         });
@@ -9487,7 +11345,7 @@
        proforma — ver el bloque «EMISIÓN DE FACTURAS…» más arriba. Nunca
        navega a /intranet/facturas/. */
     facturas: function () {
-      ata(/^\+? ?Nuevo documento$/i, function () { abrirEditorFacturaDoc({}); });
+      ata('nuevo-documento', function () { abrirEditorFacturaDoc({}); });
       /* Proforma desde contrato (S14, 21-sep-2026, revisión previa #34): la
          ficha de contrato v4 enlaza aquí con ?contrato=<uuid>&tipo=proforma en
          vez de abrir el editor ella misma -- cargar editores.js en
@@ -9511,7 +11369,7 @@
        leía aquella — ?contrato=<uuid> abre el recibí de ESE contrato y
        ?nueva=1 el alta en blanco. Una sola vez, al cargar. */
     recibos: function () {
-      ata(/emitir recib.*de cobro/i, function () { abrirEditorRecibiDoc({}); });
+      ata('emitir-recibi', function () { abrirEditorRecibiDoc({}); });
       var qs = new URLSearchParams(location.search);
       if (qs.get('contrato')) abrirEditorRecibiDoc({ contrato_id: qs.get('contrato') });
       else if (pideAlta(qs)) abrirEditorRecibiDoc({});

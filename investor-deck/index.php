@@ -111,7 +111,19 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 .wrap{max-width:var(--cmx);margin:0 auto;padding-inline:var(--cpd);width:100%;box-sizing:border-box}
 a.enlace{color:inherit;text-decoration:underline}
 
-/* ── Estado "deck no disponible" (decision 4): nace visible, el JS lo apaga ── */
+/* ── Estado "deck no disponible" (decision 4): nace OCULTO y el JS solo lo enciende si no
+   hay config. Mientras la RPC responde se ve #deck-cargando (29-sep-2026: nacia visible y
+   cada deck activo enseñaba "no disponible" 1-2 s antes de pintarse). ── */
+#deck-cargando{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--ob);
+  transition:opacity .8s cubic-bezier(.22,1,.36,1),visibility 0s linear .8s}
+/* Salida: el deck ya esta pintado debajo y la carga se funde encima de el (29-sep-2026, owner:
+   que el cambio se vea natural). El logo entra con fundido y respira despacio mientras espera. */
+#deck-cargando.fuera{opacity:0;visibility:hidden;pointer-events:none}
+#deck-cargando img{height:30px;width:auto;opacity:.7;animation:deck-entra .9s ease-out both,deck-late 2.4s ease-in-out .9s infinite}
+#deck-cargando.fuera img{transform:scale(1.04);transition:transform .8s cubic-bezier(.22,1,.36,1)}
+@keyframes deck-entra{from{opacity:0}to{opacity:.7}}
+@keyframes deck-late{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){#deck-cargando img{animation:none}#deck-cargando,#deck-cargando.fuera img{transition:none}}
 #deck-no-disponible{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--ob);color:var(--rl)}
 #deck-no-disponible > div{max-width:28rem;display:flex;flex-direction:column;align-items:center;gap:16px}
 #deck-no-disponible img{height:30px;width:auto}
@@ -339,7 +351,12 @@ a.enlace{color:inherit;text-decoration:underline}
 .villa.reveal{transition:transform .5s var(--ease),opacity .85s var(--ease),filter .85s var(--ease)}
 a.villa:hover{transform:translateY(-6px)}
 .villa [data-foto]{position:absolute;inset:0}
-.villa [data-foto] img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+/* Foto alejada un 30% (owner 28-sep): la tarjeta es vertical y la foto horizontal, asi que a
+   alto completo con cover solo se veia una franja central de la villa. Al 70% de alto se ve
+   ~43% mas de ancho; el pie se funde con el fondo, que ya queda bajo el degradado y el texto. */
+.villa [data-foto] img{position:absolute;top:0;left:0;width:100%;height:70%;object-fit:cover;transform-origin:50% 0;
+  -webkit-mask-image:linear-gradient(to bottom,#000 72%,transparent);mask-image:linear-gradient(to bottom,#000 72%,transparent);
+  transition:transform 1.2s var(--ease)}
 a.villa:hover [data-foto] img{transform:scale(1.05)}
 .villa::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
   background:linear-gradient(to top,rgba(14,17,12,.92) 0%,rgba(14,17,12,.55) 36%,rgba(14,17,12,0) 60%)}
@@ -497,8 +514,14 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 </head>
 <body>
 
-<!-- Estado "deck no disponible": nace visible, el JS lo apaga si hay config. -->
-<div id="deck-no-disponible">
+<!-- Carga: lo unico visible hasta que deck_config_publico responde; el JS lo apaga
+     en los dos desenlaces (deck o "no disponible"). -->
+<div id="deck-cargando" aria-busy="true"><img src="/assets/img/lawang-logo-v3.webp" alt="Loading"></div>
+<!-- Sin JS el deck no puede pintarse: se cae al aviso en vez de a la carga eterna. -->
+<noscript><style>#deck-cargando{display:none!important}#deck-no-disponible[hidden]{display:flex!important}</style></noscript>
+
+<!-- Estado "deck no disponible": nace oculto, el JS lo enciende solo si NO hay config. -->
+<div id="deck-no-disponible" hidden>
   <div>
     <img src="/assets/img/lawang-logo-v3.webp" alt="Lawang">
     <p class="grande">This project does not have its Investor Deck available yet.</p>
@@ -738,7 +761,22 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   // Saneado en PHP (preg_replace [^A-Za-z0-9-]) y de nuevo aqui: defensa en
   // profundidad, aunque el .htaccess ya restringe el patron de la URL.
   var SLUG = <?= json_encode($slug) ?>;
-  if(!/^[a-z0-9-]+$/i.test(SLUG)) return;   // #deck-no-disponible ya esta visible
+  // Red colgada o error antes de la RPC: la carga no se queda eterna. A los 15 s sin
+  // desenlace se cae al aviso, que al menos da el contacto de ventas.
+  // La carga no se apaga de golpe: se funde (.fuera) sobre lo que ya esta pintado debajo
+  // y se retira del arbol al acabar el fundido.
+  function quitaCarga(){
+    var c = document.getElementById('deck-cargando');
+    if(!c || c.classList.contains('fuera')) return;
+    c.classList.add('fuera');
+    c.removeAttribute('aria-busy');
+    setTimeout(function(){ c.hidden = true; }, 850);
+  }
+  setTimeout(function(){
+    var c = document.getElementById('deck-cargando');
+    if(c && !c.classList.contains('fuera')){ document.getElementById('deck-no-disponible').hidden = false; quitaCarga(); }
+  }, 15000);
+  if(!/^[a-z0-9-]+$/i.test(SLUG)){ document.getElementById('deck-no-disponible').hidden = false; quitaCarga(); return; }
 
   var PROYECTO = null;   // se fija tras resolver deck_config_publico
   var WA_NUM = '6281138319862';
@@ -755,6 +793,14 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     if(!campo) return '';
     var lang = window.lwLang ? lwLang() : 'en';
     return String(campo[lang] || campo.en || '');
+  }
+  // Titulo de un documento publicado: `titulo` es el espanol (referencia) y `titulo_i18n` trae en/id.
+  // Cae al ingles y, si tampoco lo hay, al espanol (28-sep-2026).
+  function tituloDoc(d){
+    var lang = window.lwLang ? lwLang() : 'en';
+    if(lang === 'es') return String(d.titulo || '');
+    var t = d.titulo_i18n || {};
+    return String(t[lang] || t.en || d.titulo || '');
   }
   // Frase fija en ingles → idioma del visitante via el diccionario/patrones de i18n.js
   // (para textos que se arman en JS con un dato dentro, p.ej. el mensaje de WhatsApp).
@@ -911,7 +957,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       var cab = document.createElement('div'); cab.className = 'doc-cab';
       var ico = document.createElement('span'); ico.className = 'material-symbols-outlined'; ico.textContent = DOC_ICONO[d.categoria] || DOC_ICONO.otros;
       var texto = document.createElement('div'); texto.className = 'doc-txt';
-      var tit = document.createElement('span'); tit.className = 'doc-tit'; tit.setAttribute('data-no-i18n', ''); tit.textContent = d.titulo || '';
+      var tit = document.createElement('span'); tit.className = 'doc-tit'; tit.setAttribute('data-no-i18n', ''); tit.textContent = tituloDoc(d);
       var sub = document.createElement('span'); sub.className = 'doc-sub'; sub.textContent = DOC_ETIQUETA[d.categoria] || DOC_ETIQUETA.otros;
       texto.appendChild(tit); texto.appendChild(sub);
       if(d.descripcion){
@@ -1081,7 +1127,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     filas.forEach(function(q, i){
       var d = document.createElement('details');
       d.className = 'faq-item';
-      if(i === 0) d.open = true;
+      // todas cerradas al entrar (owner, 28-sep-2026): antes se abria la primera
       var sum = document.createElement('summary');
       var txt = document.createElement('span'); txt.textContent = lwTxt(q.pregunta);
       var ico = document.createElement('span'); ico.className = 'mi'; ico.setAttribute('aria-hidden', 'true');
@@ -1302,6 +1348,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 
       $('deck-no-disponible').hidden = true;
       $('deck-contenido').hidden = false;
+      quitaCarga();
 
       var titulo = lwTxt(cfg.titulo);
       document.title = titulo + ' | Lawang Properties';
@@ -1423,7 +1470,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
           if(!d) return;
           var cta = $('cta-dosier');
           cta.href = urlSegura(d.url);
-          if(d.titulo) cta.setAttribute('title', d.titulo);
+          if(tituloDoc(d)) cta.setAttribute('title', tituloDoc(d));
           cta.hidden = false;
         })
         .catch(function(){ /* MUDO A PROPOSITO: el estado de reposo de las dos piezas ya es
@@ -1480,6 +1527,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     .catch(function(){
       $('deck-contenido').hidden = true;
       $('deck-no-disponible').hidden = false;
+      quitaCarga();
       traduce($('deck-no-disponible'));
     });
 })();

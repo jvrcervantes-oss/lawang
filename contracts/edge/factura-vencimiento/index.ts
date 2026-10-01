@@ -26,6 +26,25 @@ import { FUENTES, EXPORTA } from './compartidos.generated.ts';
 const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const RENDER_URL = Deno.env.get('RENDER_URL') || 'https://contracts-pdf-service-production.up.railway.app';
 const RENDER_SECRET = Deno.env.get('RENDER_SECRET') || '';
+
+// AXW-124 (S5.0 F4, 30-sep-2026): a dónde se manda el correo lo decide config_instancia.url_envio_correo (interruptor único:
+// la edge envia-correo o, de vuelta atrás, el PHP). Solo se aceptan esas dos URL: una clave manipulada no puede sacar
+// el secreto a otro host. Si la clave falta, no es texto o no es una de las dos, cae al PHP (comportamiento de siempre).
+// La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET. Un PDF de más de
+// 34 MB de base64 (tope de la edge) sigue por el PHP; una factura pesa cientos de KB, pero el criterio es el mismo que en send-contract-email.
+const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
+const ENVIO_EDGE = Deno.env.get('SUPABASE_URL')! + '/functions/v1/envia-correo';
+const TOPE_PDF_EDGE = 34 * 1024 * 1024;
+async function destinoEnvio(pdfLen: number): Promise<{ url: string; secreto: string }> {
+  try {
+    if (pdfLen <= TOPE_PDF_EDGE) {
+      const { data } = await sb.from('config_instancia').select('valor').eq('clave', 'url_envio_correo').maybeSingle();
+      const u = typeof data?.valor === 'string' ? data.valor.trim() : '';
+      if (u === ENVIO_EDGE) return { url: u, secreto: Deno.env.get('ENVIO_CORREO_SECRET') || RENDER_SECRET };
+    }
+  } catch (_) { /* cae al PHP */ }
+  return { url: ENVIO_PHP, secreto: RENDER_SECRET };
+}
 const SITIO = (Deno.env.get('SITIO_URL') || 'https://lawangproperties.com').replace(/\/$/, '');
 const ESTUDIO_EMAIL = Deno.env.get('ESTUDIO_EMAIL') || 'jcervantes@lawangproperties.com';
 const TOPE_POR_EJECUCION = 8;
@@ -112,9 +131,10 @@ async function enviarEmail(p: { to: string; subject: string; message: string; fi
   // registro de envíos (correos_enviados) — mismo contrato que en firma-submit:
   // se inserta tras el ok y un fallo del log nunca revienta el envío
   log?: { contrato_id?: string | null; factura_id?: string | null; via: string } }) {
-  const r = await fetch(SITIO + '/contracts/api/send_email.php', {
+  const dest = await destinoEnvio((p.pdfB64 || '').length);
+  const r = await fetch(dest.url, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': dest.secreto, 'X-Llamante': 'factura-vencimiento' },
     body: JSON.stringify({
       to: p.to, subject: p.subject, message: p.message,
       ...(p.pdfB64 ? { filename: p.filename || 'documento.pdf', pdf_base64: p.pdfB64 } : { attach: false }),

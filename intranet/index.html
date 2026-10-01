@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<meta name="lw-version" content="f75b28185d87">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -14,7 +15,7 @@
      sin avisar (mismo aviso que ya llevaba Cormorant Garamond antes). -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Instrument+Sans:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- MODO QA (28-ago-2026) — mismo gate que contracts/assets/guard.js, aquí
      duplicado porque este hub NO carga guard.js (control de sesión propio,
      ver contexto/suite_lawang.md). Solo localhost+?qa=1; fuera de eso, nunca
@@ -32,7 +33,7 @@
      `data-lw-usuario` de la cabecera. -->
 <!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026). La genera
      `tools/empaqueta_css.py`; ver la nota larga en cualquier herramienta. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=3a0d1366">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=86b07abf">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -41,9 +42,9 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=29ba07be"></script>
+<script src="/contracts/assets/i18n.js?v=4ab27bbc"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script>
-<script src="/contracts/assets/avisos.js?v=389df6b9" defer></script><script src="/contracts/assets/topbar.js?v=74e03361" defer></script>
+<script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/topbar.js?v=705d408d" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -301,6 +302,29 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
   border-radius:9px; padding:10px 13px; margin-bottom:20px; text-align:center; }
 .lw-login .pie{ margin:22px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-3); text-align:center; }
 .lw-login .pie a{ color:var(--dl); }
+
+/* ── paso de la puerta a dentro (1-oct-2026, owner) ──────────────────────────
+   Lo que se ve entre pulsar «Entrar» (o abrir /intranet/ con la sesión ya hecha)
+   y que cargue la v4. Dentro de la v4 la espera es `#lw-cargando` y no se toca.
+   Mismo fondo que ese velo (#F5F0E6, opaco) para que el relevo entre las dos
+   páginas no salte; sin sombra (ley de la suite) y con un anillo fino, que es la
+   excepción puntual del owner a «sin carrete»: solo aquí, nunca dentro de la v4. */
+.lw-entra{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+  padding:24px; background:#F5F0E6; opacity:0; transition:opacity .18s ease-out; }
+.lw-entra[hidden]{ display:none; }
+.lw-entra.on{ opacity:1; }
+.lw-entra:focus{ outline:none; }
+.lw-entra .tarjeta{ display:flex; align-items:center; gap:16px; width:100%; max-width:340px;
+  background:var(--sup); border:1px solid var(--line); border-radius:var(--r); padding:24px 26px; }
+.lw-entra .anillo{ width:40px; height:40px; flex:none; animation:lwEntraGira 1s linear infinite; }
+.lw-entra .anillo circle{ fill:none; stroke-width:2; }
+.lw-entra .anillo .pista{ stroke:var(--line); }
+.lw-entra .anillo .arco{ stroke:var(--tg); stroke-linecap:round; stroke-dasharray:34 100; }
+@keyframes lwEntraGira{ to{ transform:rotate(360deg); } }
+.lw-entra .t{ margin:0; font-size:15px; font-weight:500; color:var(--ink); }
+.lw-entra .d{ margin:2px 0 0; font-size:12.5px; line-height:1.45; color:var(--ink-2); }
+.lw-entra .reint{ margin-top:10px; font:inherit; font-size:12.5px; font-weight:600; color:var(--dl); background:transparent;
+  border:1px solid var(--dl); border-radius:999px; padding:6px 14px; cursor:pointer; }
 </style>
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
@@ -311,7 +335,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=18c17264">
-<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=0ddc7da1">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
      cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
@@ -418,6 +442,19 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
     <span id="pie-datos"></span>
   </div></footer>
 
+  <!-- Paso de la puerta a dentro (1-oct-2026). Nace oculto; lo enseña `lwEntra`, más abajo,
+       solo cuando la sesión ya está confirmada y se va a redirigir. Hijo directo de <body>. -->
+  <div class="lw-entra" id="lwEntra" role="dialog" aria-modal="true" aria-labelledby="lwEntraT" aria-describedby="lwEntraD" aria-busy="true" tabindex="-1" hidden>
+    <div class="tarjeta">
+      <svg class="anillo" viewBox="0 0 44 44" aria-hidden="true"><circle class="pista" cx="22" cy="22" r="19"/><circle class="arco" cx="22" cy="22" r="19" pathLength="100"/></svg>
+      <div>
+        <p class="t" id="lwEntraT" data-lwt="Preparando tu panel">Preparando tu panel</p>
+        <p class="d" id="lwEntraD" data-lwt="Comprobando tu acceso…">Comprobando tu acceso…</p>
+        <button type="button" class="reint" id="lwEntraR" data-lwt="Reintentar" hidden>Reintentar</button>
+      </div>
+    </div>
+  </div>
+
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
@@ -427,7 +464,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=30e26c17"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
-<script src="/contracts/assets/herramientas.js?v=c95db503"></script>
+<script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=17c1b0e9"></script>
 <script>
@@ -532,74 +569,31 @@ document.addEventListener('mousemove', e => {
   if(f) marcar(+f.dataset.i);
 }, { passive:true });
 
-/* ── cifras: una ronda de `count` en paralelo ──────────────────────
-   `head:true` no trae filas, solo el número: son ocho contadores, no ocho
-   listados. Cada uno se resuelve por separado a propósito — si la RLS tapa
-   una tabla para este usuario, esa fila se queda sin cifra y las demás
-   siguen. Un `Promise.all` que revienta dejaría el panel entero sin datos. */
+/* ── cifras: UNA llamada al servidor (B10a, 28-sep-2026) ──────────────
+   Antes eran ~18 `count` en paralelo con la tabla en una variable (`n(tabla)`):
+   tras cerrar la lectura directa de una tabla, ese conteo daba 0 o 42501 sin
+   que nada lo avisara. Ahora las cuenta hub_cifras_datos() con la RLS de quien
+   mira (dueño lector). Cambio asumido: si la llamada falla, TODAS las cifras
+   quedan en null («—», «la base no contestó»), nunca en cero.
+   Este hub NO carga guard.js (control de sesión propio), así que no tiene
+   `lwDatos`: llama a la RPC directamente y sin filtros encadenados. Pasa a
+   `lwDatos` en su bloque de LAW-338, junto con su createClient propio. */
 async function contar(sb){
-  // `select('*')` con head:true sirve igual en `usuarios`, cuya clave no se llama
-  // `id` — pero NO sale gratis: PostgREST mete `contratos.*` en la subconsulta y
-  // descomprime `datos` (anexos en base64, 156 MB). En contratos eran 3,2 s por
-  // conteo (pg_stat_statements, 25-sep-2026): ahí se cuenta por `id`.
-  // `cols` opcional (18-ago-2026): el conteo de vencimientos necesita un embed
-  // `contratos!inner(id)` para filtrar por firmados, y eso va en las COLUMNAS
-  // del select — no en el filtro. Un `.select()` dentro del filtro pisaría el
-  // `count:'exact'` de este (la 2ª llamada no admite opciones) y devolvería
-  // filas en vez de un número: por eso las columnas entran por parámetro.
-  const n = async (tabla, filtro, cols) => {
-    let q = sb.from(tabla).select(cols || '*', { count:'exact', head:true });
-    if(filtro) q = filtro(q);
-    const { count, error } = await q;
-    return error ? null : (count || 0);
-  };
-  const [contratos, contratosEditables, facturas, facturasAnuladas,
-         recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
-         documentos, vencSinFecha, hilosAbiertos,
-         modelos, modelosPublicados, modelosSinPrecio, solicitudesVivas] = await Promise.all([
-    n('contratos', null, 'id'),
-    n('contratos', q => q.eq('bloqueado', false), 'id'),
-    n('facturas', q => q.eq('anulada', false)),
-    n('facturas', q => q.eq('anulada', true)),
-    n('facturas', q => q.eq('tipo', 'recibi').eq('anulada', false)),
-    n('unidades'),
-    n('unidades', q => q.eq('estado', 'disponible')),
-    n('unidades', q => q.not('obra_fase', 'is', null).neq('obra_fase', 'entregada')),
-    n('clients'),
-    n('usuarios', q => q.eq('activo', true)),
-    n('usuarios', q => q.eq('activo', false)),
-    n('documentos_proyecto'),
-    // Vencimientos sin fecha: la cifra de la tarjeta de /intranet/vencimientos/. Se
-    // cuenta "sin fecha" y no "vencidos" a propósito — el porqué está junto a
-    // la tarjeta, en assets/herramientas.js. RLS de equipo (es_agente), así
-    // que el count vale para cualquiera que vea la tarjeta.
-    // `contratos!inner` + eq sobre la tabla embebida: solo contratos FIRMADOS
-    // (cliente, 18-ago — un borrador no marca dinero como esperado, y su
-    // calendario a medio poner inflaría esta cifra con trabajo que no toca aún).
-    n('contrato_vencimientos', q => q.is('fecha', null).eq('contratos.bloqueado', true),
-      '*, contratos!inner(id)'),
-    n('hilo_soporte', q => q.eq('estado', 'abierto')),
-    // Catálogo de modelos (7-sep-2026). El tercero es el que importa: un modelo
-    // ACTIVO sin precio de catálogo hace que cada proyecto que lo ofrezca herede
-    // un hueco, y ese hueco solo se ve al abrir el desplegable de una parcela.
-    // Los no activos no cuentan: retirar un modelo es una decisión, no una deuda.
-    n('modelos'),
-    n('modelos', q => q.eq('publicado', true)),
-    n('modelos', q => q.eq('activo', true).is('precio_construccion', null)),
-    // Solicitudes de pago (9-sep-2026): pendientes + aprobadas sin pagar —
-    // las dos esperan acción del admin (resolver la una, pagar la otra). El
-    // count hereda la RLS a propósito: el admin las cuenta todas (su
-    // bandeja), cada agente las suyas (lo que él tiene en vuelo).
-    n('solicitudes_pago', q => q.in('estado', ['pendiente','aprobada'])),
-  ]);
-  // Cuántos PROYECTOS tienen documentación, no solo cuántas filas: "12
-  // documentos" no dice si son de un proyecto o de seis. Va aparte porque es un
-  // distinct y el contador de arriba solo sabe contar filas.
-  let proyectosConDocs = null;
-  if(documentos){
-    const { data, error } = await sb.from('documentos_proyecto').select('proyecto');
-    proyectosConDocs = error ? null : new Set((data || []).map(x => x.proyecto)).size;
-  }
+  const { data: c, error } = await sb.rpc('hub_cifras_datos');
+  if(error) console.error('[hub] cifras no cargaron:', error.code || '', error.message);
+  const k = x => (error || !c || c[x] == null) ? null : Number(c[x]);
+  const contratos = k('contratos'), contratosEditables = k('contratos_editables'),
+        facturas = k('facturas'), facturasAnuladas = k('facturas_anuladas'), recibis = k('recibis'),
+        unidades = k('unidades'), unidadesLibres = k('unidades_libres'), obraActivas = k('obra_activas'),
+        compradores = k('compradores'), usuarios = k('usuarios'), usuariosInactivos = k('usuarios_inactivos'),
+        documentos = k('documentos'), proyectosConDocs = k('proyectos_con_docs'),
+        // Vencimientos sin fecha (solo contratos FIRMADOS): la cifra de la tarjeta de /intranet/vencimientos/.
+        // Se cuenta "sin fecha" y no "vencidos" a propósito — el porqué está junto a la tarjeta, en assets/herramientas.js.
+        vencSinFecha = k('venc_sin_fecha'), hilosAbiertos = k('hilos_abiertos'),
+        // Catálogo de modelos (7-sep-2026): un modelo ACTIVO sin precio hace que cada proyecto que lo ofrezca herede un hueco.
+        modelos = k('modelos'), modelosPublicados = k('modelos_publicados'), modelosSinPrecio = k('modelos_sin_precio'),
+        // Solicitudes de pago: pendientes + aprobadas sin pagar (el admin las cuenta todas; cada agente, las suyas: RLS)
+        solicitudesVivas = k('solicitudes_vivas');
   // 11-ago: "Firmas esperando" NO puede salir de `sb.from('contrato_firmas')`
   // — esa tabla tiene RLS por agente ("lo mío") desde el 7-ago, así que ese
   // conteo solo veía las firmas de ESTE agente, no las del equipo, y encima
@@ -884,7 +878,12 @@ window.LW_SB = sb;   // el panel de usuario de topbar.js reusa este cliente
 // mismo criterio contra open-redirect que ya llevaba /entrar/index.html (la
 // puerta vieja): una ruta que empiece por UNA sola barra, nunca `//host`
 // (protocol-relative) ni un esquema `http(s):` colado en el valor de `next`.
-function rutaValida(r){ return /^\/[^/\\]/.test(r || ''); }
+// 1-oct-2026: la regex sola dejaba pasar `/<TAB>/host` (el navegador borra tabuladores y
+// saltos de línea al parsear la URL y queda `//host`). Se comprueba además el origen resuelto.
+function rutaValida(r){
+  if(!/^\/[^/\\]/.test(r || '')) return false;
+  try{ return new URL(r, location.origin).origin === location.origin; }catch(e){ return false; }
+}
 /* Dónde se entra (AxisWorks ERP, 26-sep-2026): la ficha de la instancia puede
    fijar `inicio` (el estándar del producto es la Home de la v4). Sin `inicio`,
    este panel clásico sigue siendo la portada, como hasta hoy. */
@@ -905,6 +904,52 @@ function mostrarApp(mostrar){
   document.getElementById('mainApp').hidden = !mostrar;
   document.getElementById('footApp').hidden = !mostrar;
 }
+/* Paso de la puerta a dentro (1-oct-2026, owner: «solo cuando pasas de /intranet/ a dentro»).
+   Se enseña ENSEGUIDA y no al final: la primera versión esperaba a getSession(), a la ficha y a
+   la puerta de mantenimiento —tres viajes a la red— y con Supabase lento la página estaba en
+   blanco todo ese tiempo (<body hidden>). Ahora sale a los 250 ms de abrirse si hay una sesión
+   guardada en el navegador (mirar el almacenamiento no usa la red) y al pulsar «Entrar».
+   El texto del principio es neutro («Comprobando tu acceso…»): solo pasa a «Entrando…» cuando
+   ya se ha decidido ir a la v4. Las salidas que no entran (sin sesión, mantenimiento, error de
+   credenciales) lo quitan. Si la espera pasa de 8 s no se quita: avisa y ofrece «Reintentar»,
+   porque quitarlo dejaba la página en blanco.
+   Espera de 250 ms: si la navegación es inmediata, el modal ni llega a pintarse.
+   En la rama de sesión abierta el <body> sigue `hidden` (nada del hub debe verse antes de validar):
+   solo se destapa el body, y login/panel/pie conservan cada uno su `hidden`. */
+const lwEntra = (function(){
+  const el = document.getElementById('lwEntra'), d = document.getElementById('lwEntraD'),
+        r = document.getElementById('lwEntraR');
+  let espera = 0, lento = 0, destape = false;
+  function tardando(){ d.textContent = lwT('Esto tarda más de lo normal. Puedes esperar o reintentar.'); r.hidden = false; }
+  function quita(){
+    clearTimeout(espera); clearTimeout(lento); espera = 0; lento = 0;
+    el.classList.remove('on'); el.hidden = true; r.hidden = true;
+    d.textContent = lwT('Comprobando tu acceso…');
+    if(destape){ document.body.hidden = true; destape = false; }
+  }
+  function muestra(){
+    if(document.body.hidden){ document.body.hidden = false; destape = true; }
+    el.hidden = false;
+    requestAnimationFrame(() => el.classList.add('on'));
+    el.focus();
+    lento = setTimeout(tardando, 8000);
+  }
+  r.addEventListener('click', () => location.reload());
+  return {
+    pronto(){ if(!espera) espera = setTimeout(muestra, 250); },
+    entrando(){ d.textContent = lwT('Sesión iniciada. Entrando…'); },
+    quita
+  };
+})();
+// volver con «atrás» desde la v4 no debe dejar el modal pintado en la copia en caché de la página
+window.addEventListener('pageshow', e => { if(e.persisted) lwEntra.quita(); });
+// ¿hay una sesión guardada? Es una lectura local, sin red: se enseña el modal ya y no tras la red
+function haySesionGuardada(){
+  try{ return Object.keys(localStorage).some(k => /^sb-.+-auth-token$/.test(k)); }
+  catch(e){ return false; }   // MUDO A PROPOSITO: sin almacenamiento no hay sesión guardada que esperar; sigue por getSession()
+}
+if(haySesionGuardada()) lwEntra.pronto();
+
 function mostrarLogin(){
   mostrarApp(false);
   document.getElementById('loginGate').hidden = false;
@@ -917,7 +962,7 @@ function mostrarLogin(){
 }
 
 sb.auth.getSession().then(async ({ data:{ session } }) => {
-  if(!session){ mostrarLogin(); return; }
+  if(!session){ lwEntra.quita(); mostrarLogin(); return; }
   // Un comprador del portal (app_metadata.portal) NO es del equipo: a su casa.
   // Mismo chequeo que guard.js — sin ficha en `usuarios`, la compatibilidad
   // "sin ficha se permite" de abajo le habría abierto el hub interno (vacío
@@ -931,13 +976,16 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
     return;
   }
   // Modo mantenimiento (23-sep-2026): la misma puerta que guard.js, desde cierre.js
-  if(window.lwCierre && !(await window.lwCierre.puerta(sb, ficha).catch(() => true))) return;
+  if(window.lwCierre && !(await window.lwCierre.puerta(sb, ficha).catch(() => true))){ lwEntra.quita(); return; }
   // Con `inicio` en la ficha, el panel clásico no es la portada: se va a ella
   // (salvo que traiga un aviso de «sin permiso», que se enseña aquí).
   if(inicioInstancia() && !new URLSearchParams(location.search).get('sin_permiso')){
+    lwEntra.pronto();
+    lwEntra.entrando();
     location.replace(siguiente());
     return;
   }
+  lwEntra.quita();
   document.getElementById('loginGate').hidden = true;
   mostrarApp(true);
   FICHA = ficha || null;
@@ -1000,12 +1048,17 @@ document.getElementById('fLogin').addEventListener('submit', async (e) => {
   const btn = document.getElementById('loginBtn');
   const err = document.getElementById('loginErr');
   btn.disabled = true; err.textContent = '';
+  lwEntra.pronto();
   const { error } = await sb.auth.signInWithPassword({
     email: document.getElementById('loginEmail').value,
     password: document.getElementById('loginPass').value
   });
-  if(!error){ location.href = siguiente(); }
+  if(!error){
+    lwEntra.entrando();
+    location.href = siguiente();
+  }
   else{
+    lwEntra.quita();
     err.textContent = error.message === 'Invalid login credentials' ? lwT('Credenciales incorrectas') : error.message;
     btn.disabled = false;
   }

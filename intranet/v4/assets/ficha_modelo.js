@@ -14,13 +14,9 @@
    que editores.js delega en esos contenedores — no se reescriben aquí.
 
    Revisión previa #56 (Datos + Administración), plegada:
-   - PRECIO BASE Y TECHOS VAN JUNTOS. `modelo_techos_opciones()` resuelve el
-     techo de un proyecto como precio_techo + (precio_proyecto − base). Subir la
-     base sin mover los techos ABARATA el techo precargado en los proyectos con
-     precio propio (Administración, ROJO). Por eso, en un modelo con techos,
-     cambiar la base mueve todos los techos (ahora y 2027) la misma cantidad, y
-     el bloque lo enseña antes de guardar. La diferencia la calcula el
-     SERVIDOR (base nueva − base de la fila bloqueada), no esta pantalla.
+   - TECHOS = SUPLEMENTO (30-sep-2026, owner): la base del modelo (ahora y 2027) es la casa CON su techo base;
+     los demás techos suman un suplemento. Cambiar la base ya no mueve los techos. Fórmula única en el servidor
+     (`_modelo_techos_opciones`); con precio propio del proyecto no hay doble subida en 2027.
    - NULL en `modelos_villa.precio_construccion` = HEREDA la base (resolución
      única en contracts/assets/modelos_catalogo.js). Se distingue «hereda» de
      «fijado a mano, hoy igual a la base»: el segundo NO se mueve con la base.
@@ -38,12 +34,14 @@
    - La web cachea el catálogo 5 min (LW_CAT_TTL): tras guardar se dice.
    - Con el modelo publicado, la dirección web (slug) no se edita: rompe
      /modelo/<slug> y cualquier anuncio que apunte ahí.
-   - `modelo_documentos.tipo`: CHECK con exactamente estos 5 valores.
+   - `modelo_documentos.tipo`: CHECK con exactamente los valores de
+     window.lwDocsContrato.TIPOS (contracts/assets/docs_contrato.js; lo vigila
+     docs_contrato.test.js contra la migración, las RPC y la edge).
    - `modelo_documentos.techo_clave` (23-sep-2026): a qué techo pertenece el
-     documento; NULL = todos. El contrato de Construcción adjunta el plano del
-     techo elegido. */
+     documento; NULL = todos.
+   - `modelo_documentos.en_contrato` + `orden` (27-sep-2026): qué documentos
+     adjunta el contrato de Construcción y en qué orden. Ver bDocs. */
 (function () {
-  var TIPOS_DOC = [['plano', 'Plano · anexo del contrato'], ['calidades', 'Memoria de calidades'], ['ficha', 'Ficha'], ['render', 'Render'], ['otro', 'Otro']];
   var C = { lagoon: '#104C4F', tinta: '#1b1c19', gris: '#2E3437', apagado: '#5E625A', borde: '#E4DCCB', crema: '#FBF9F4', lino: '#F5F0E6',
             rojo: '#93000a', rojoBg: '#ffdad6', ambar: '#634A00', ambarBg: '#FBEFBE', verde: '#485B37' };
 
@@ -196,7 +194,9 @@
     while (api.cuerpo.firstChild) vista.appendChild(api.cuerpo.firstChild);
     api.s.classList.add('fm-edit');
     api.h.textContent = api.titulo + ' · editando';
-    if (api.btn) api.btn.style.display = 'none';
+    // Un bloque puede tener más de un botón (Techos: «Editar» y «Añadir techo», 30-sep-2026): se ocultan todos.
+    var botones = Array.prototype.slice.call(api.cab.querySelectorAll('.fm-ed'));
+    botones.forEach(function (x) { x.style.display = 'none'; });
     var host = document.createElement('div'); host.style.cssText = 'display:flex;flex-direction:column;gap:10px;min-width:0';
     api.cuerpo.appendChild(host);
     var guardar = editar(host);
@@ -211,7 +211,7 @@
       api.cuerpo.innerHTML = '';
       while (vista.firstChild) api.cuerpo.appendChild(vista.firstChild);
       api.s.classList.remove('fm-edit'); api.h.textContent = api.titulo;
-      if (api.btn) api.btn.style.display = '';
+      botones.forEach(function (x) { x.style.display = ''; });
     });
     bG.addEventListener('click', function (ev) {
       ev.stopPropagation();
@@ -285,12 +285,15 @@
 
   function estadoFila(v, m, ctx) {
     var base = m.precio_construccion != null ? Number(m.precio_construccion) : null;
+    var b27 = m.precio_construccion_2027 != null ? Number(m.precio_construccion_2027) : null;
     if (v.precio_construccion == null) {
-      return base != null ? { cls: '', txt: 'hereda la base · ' + ctx.fmt(base, m.moneda) } : { cls: 'fm-mal', txt: 'sin precio: hereda la base y no hay base' };
+      return base != null ? { cls: '', txt: 'hereda la base · ' + ctx.fmt(base, m.moneda) + (b27 != null ? ' (2027: ' + ctx.fmt(b27, m.moneda) + ')' : '') }
+                          : { cls: 'fm-mal', txt: 'sin precio: hereda la base y no hay base' };
     }
     var p = Number(v.precio_construccion);
-    if (base != null && p === base && (v.moneda || m.moneda) === m.moneda) return { cls: '', txt: 'fijado a mano · ' + ctx.fmt(p, v.moneda || m.moneda) + ' (igual a la base, no la sigue)' };
-    return { cls: '', txt: 'precio propio · ' + ctx.fmt(p, v.moneda || m.moneda) };
+    // Con precio propio no hay doble subida en 2027 (owner, 30-sep-2026): el mismo precio los dos años.
+    if (base != null && p === base && (v.moneda || m.moneda) === m.moneda) return { cls: '', txt: 'fijado a mano · ' + ctx.fmt(p, v.moneda || m.moneda) + ' (igual a la base, no la sigue; también en 2027)' };
+    return { cls: '', txt: 'precio propio · ' + ctx.fmt(p, v.moneda || m.moneda) + ' (también en 2027)' };
   }
 
   function bPrecios(col, m, h, ctx) {
@@ -300,9 +303,11 @@
       // (techos, extras, precio por proyecto, previsión del deck) fija la moneda.
       var conCifras = h.filas.length > 0 || h.techos.length > 0 || h.mex.length > 0 ||
         (ctx.FC || []).some(function (x) { return x.modelo_id === m.id; });
-      var fila1 = document.createElement('div'); fila1.style.cssText = 'display:grid;grid-template-columns:170px 110px minmax(0,1fr);gap:10px;align-items:end';
+      var fila1 = document.createElement('div'); fila1.style.cssText = 'display:grid;grid-template-columns:150px 150px 100px minmax(0,1fr);gap:10px;align-items:end';
       host.appendChild(fila1);
       var iBase = campo(fila1, 'Precio base', base, { num: 1, ph: 'sin precio' });
+      // 30-sep-2026: la base es la casa CON su techo base; los demás techos suman un suplemento (bloque Techos).
+      var iBase27 = campo(fila1, 'Base 2027', m.precio_construccion_2027, { num: 1, ph: 'sin precio' });
       var lm = document.createElement('label'); lm.className = 'fm-campo'; lm.appendChild(document.createTextNode('Moneda'));
       var sel = document.createElement('select'); sel.className = 'fm-in';
       ['EUR', 'IDR'].forEach(function (x) { var o = document.createElement('option'); o.value = x; o.textContent = x; if ((m.moneda || 'EUR') === x) o.selected = true; sel.appendChild(o); });
@@ -312,28 +317,10 @@
       ex.textContent = conCifras ? 'La moneda no se cambia: el modelo ya tiene techos, extras, precios por proyecto o previsión en ' + (m.moneda || 'EUR') + ' y no se convierten.' : 'La base la heredan los proyectos que no tienen precio propio.';
       fila1.appendChild(ex);
 
-      var prev = document.createElement('div'); host.appendChild(prev);
-      function pintaPrevia() {
-        prev.innerHTML = '';
-        var nb = num(iBase.value);
-        if (!h.techos.length) return;
-        if (base == null || nb == null) {
-          if (nb !== base) nota(prev, 'Este modelo tiene techos y la base estaba vacía: los techos no se mueven solos. Revisa el bloque Techos después.', 'ambar');
-          return;
-        }
-        var d = nb - base;
-        if (!d) return;
-        nota(prev, 'Los techos se mueven con la base (' + (d > 0 ? '+' : '') + ctx.fmt(d, m.moneda) + '), si no el techo precargado en los proyectos con precio propio cambiaría al revés:', 'ambar');
-        var ul = document.createElement('ul'); ul.className = 'fm-lista';
-        h.techos.forEach(function (t) {
-          var li = document.createElement('li');
-          li.textContent = t.nombre + ': ' + ctx.fmt(t.precio_ahora, m.moneda) + ' → ' + ctx.fmt(Number(t.precio_ahora) + d, m.moneda) +
-            (t.precio_2027 != null ? ' · 2027: ' + ctx.fmt(t.precio_2027, m.moneda) + ' → ' + ctx.fmt(Number(t.precio_2027) + d, m.moneda) : '');
-          ul.appendChild(li);
-        });
-        prev.appendChild(ul);
-      }
-      iBase.addEventListener('input', pintaPrevia);
+      // Ya no hay que «mover los techos» con la base (30-sep-2026): son suplementos sobre ella.
+      if (h.techos.length) nota(host, 'La base es el precio de la casa con su techo base. Los otros techos suman su suplemento encima (bloque Techos).');
+      // Administración (consulta 30-sep): son dos cifras independientes; subir la de ahora no arrastra la de 2027.
+      nota(host, 'La base de ahora y la de 2027 son independientes: si cambias una, revisa la otra.');
 
       var ins = [];
       if (h.filas.length) {
@@ -367,7 +354,7 @@
 
       return function () {
         var sb = ctx.sb;
-        var nb = num(iBase.value);
+        var nb = num(iBase.value), nb27 = chk(num(iBase27.value), 'El precio base 2027');
         var monedaNueva = sel.value || m.moneda || 'EUR';
         if (nb != null && !(nb >= 0)) throw new Error('el precio base no es un número');
         var cambiosFila = ins.filter(function (x) {
@@ -386,10 +373,10 @@
           if (!h.idProy[x.proyecto]) throw new Error('«' + x.proyecto + '» no tiene ficha de proyecto enlazada: no se puede declarar desde aquí');
         });
 
-        /* UNA llamada, UNA transacción: la diferencia de los techos la calcula
-           el servidor (base nueva − base de la fila bloqueada), nunca aquí. */
+        /* UNA llamada, UNA transacción (modelo_precios_guarda). */
         var cambios = {};
         if (nb !== base) cambios.base = nb;
+        if (nb27 !== (m.precio_construccion_2027 == null ? null : Number(m.precio_construccion_2027))) cambios.base_2027 = nb27;
         if (monedaNueva !== (m.moneda || 'EUR')) cambios.moneda = monedaNueva;
         if (cambiosFila.length) cambios.villas = cambiosFila.map(function (x) { return { id: x.v.id, precio: num(x.i.value) }; });
         if (altas.length) cambios.altas = altas.map(function (x) { return { proyecto_id: h.idProy[x.proyecto], precio: num(x.i.value) }; });
@@ -409,7 +396,8 @@
 
     var cab = document.createElement('div'); cab.style.cssText = 'display:flex;align-items:baseline;gap:10px;flex-wrap:wrap';
     cab.innerHTML = base != null
-      ? '<span class="fm-lbl">Base</span><span style="font-size:22px;font-weight:600">' + esc(ctx.fmt(base, m.moneda)) + '</span>'
+      ? '<span class="fm-lbl">Base</span><span style="font-size:22px;font-weight:600">' + esc(ctx.fmt(base, m.moneda)) + '</span>' +
+        (m.precio_construccion_2027 != null ? '<span class="fm-lbl" style="margin-left:8px">2027</span><span style="font-size:16px;font-weight:600">' + esc(ctx.fmt(m.precio_construccion_2027, m.moneda)) + '</span>' : '')
       : '<span class="fm-lbl">Base</span><span style="font-size:16px;font-weight:600;color:' + C.rojo + '">sin precio de catálogo</span>';
     b.cuerpo.appendChild(cab);
     if (!h.filas.length && !h.sinFila.length) { vacio(b.cuerpo, 'No está declarado en ningún proyecto.'); return; }
@@ -430,46 +418,222 @@
     if (mano) nota(b.cuerpo, mano + (mano === 1 ? ' proyecto tiene' : ' proyectos tienen') + ' la base escrita a mano: si cambias la base, esos no se mueven.');
   }
 
+  /* TECHOS = SUPLEMENTO SOBRE LA CASA (30-sep-2026, owner: «el modelo tiene un precio base con un techo base;
+     la diferencia de los demás techos se suma, casi como un extra»). Migración 20260930044032; antes, esa misma
+     mañana, los techos llevaban el precio completo (20260930023239).
+     - La casa (bloque «Precio de construcción», base ahora y 2027) incluye su TECHO BASE (suplemento 0). Cada
+       otro techo suma «+X ahora / +Y desde 2027» sobre la base, o sobre el precio propio del proyecto.
+     - Esta pantalla solo recoge: valida, calcula y escribe el servidor (modelo_techo_crea, modelo_techos_guarda_lote).
+     - Un techo nunca se borra: se RETIRA (su clave vive en contratos congelados, documentos y fotos de la web).
+       El techo base no se retira ni se limita: para cambiarlo, se marca otro como base (con suplemento 0).
+     - Alcance: «Todos los proyectos» (por defecto) o solo los marcados, entre los que venden la casa.
+     - No es automático al añadir uno: su Anexo Maestro (Documentos, tipo plano) y su foto en la web. */
+  function proyectosDeLaCasa(h) {
+    return h.filas.filter(function (v) { return v.proyecto_id; })
+      .map(function (v) { return { id: v.proyecto_id, nombre: v.proyecto }; });
+  }
+  function proyectosDelTecho(t, ctx) {
+    return (ctx.D.techoProy || []).filter(function (x) { return x.techo_id === t.id; })
+      .map(function (x) { return x.proyecto_id; });
+  }
+  function dondeTecho(t, h, ctx) {
+    if (t.alcance !== 'lista') return { txt: 'Todos los proyectos', mal: false };
+    var ids = proyectosDelTecho(t, ctx);
+    var nombres = proyectosDeLaCasa(h).filter(function (p) { return ids.indexOf(p.id) !== -1; })
+      .map(function (p) { return p.nombre; });
+    return nombres.length ? { txt: nombres.join(' · '), mal: false }
+                          : { txt: 'En ningún proyecto (la casa ya no está en los marcados)', mal: true };
+  }
+  /* «Todos los proyectos» + una casilla por proyecto donde se vende la casa. */
+  function campoAlcance(host, h, ctx, t) {
+    var proys = proyectosDeLaCasa(h);
+    var antes = t ? proyectosDelTecho(t, ctx) : [];
+    var todos = casilla(host, 'Todos los proyectos', !t || t.alcance !== 'lista',
+      'Por defecto. Desmárcalo para elegir en qué proyectos se ofrece.');
+    var caja = document.createElement('div'); caja.className = 'fm-chips'; caja.style.paddingLeft = '26px';
+    host.appendChild(caja);
+    var cs = proys.map(function (p) {
+      return { id: p.id, i: casilla(caja, p.nombre, antes.indexOf(p.id) !== -1) };
+    });
+    if (!proys.length) nota(caja, 'Esta casa todavía no está en ningún proyecto: se añade en «Precio de construcción».');
+    function sync() { caja.style.display = todos.checked ? 'none' : ''; }
+    todos.addEventListener('change', sync); sync();
+    return {
+      todos: todos, antes: antes,
+      sel: function () { return cs.filter(function (c) { return c.i.checked; }).map(function (c) { return c.id; }); }
+    };
+  }
+  function mismoConjunto(a, b) {
+    if (a.length !== b.length) return false;
+    return a.every(function (x) { return b.indexOf(x) !== -1; });
+  }
+  function textoSuplemento(x, m, ctx) {
+    if (x.es_base) return 'techo base · incluido';
+    var a = Number(x.suplemento_ahora) || 0, z = Number(x.suplemento_2027) || 0;
+    return '+' + ctx.fmt(a, m.moneda) + (z !== a ? ' · 2027: +' + ctx.fmt(z, m.moneda) : '');
+  }
+  /* Todo en UNA transacción (modelo_techos_guarda_lote). Si el cambio deja fuera contratos sin firmar, el servidor
+     lo deshace todo y responde LW409: se pregunta una vez y se repite confirmado. */
+  function guardaLote(ctx, m, precios, edits, confirmado) {
+    return rpc(ctx.sb, 'modelo_techos_guarda_lote', { p_id: m.id, p_precios: precios, p_ediciones: edits, p_confirmado: !!confirmado })
+      .catch(function (err) {
+        if (!err || err.code !== 'LW409' || confirmado) throw err;
+        var sigue = typeof window.lwConfirmar === 'function'
+          ? window.lwConfirmar({ titulo: 'Cambiar los techos de «' + m.nombre + '»', confirmar: 'Cambiar igualmente',
+              cuerpo: '<p>' + esc(err.message) + '</p><p>No se ha guardado nada todavía.</p>' })
+          : Promise.resolve(window.confirm(err.message));
+        return Promise.resolve(sigue).then(function (ok) {
+          if (!ok) return false;   // abreEdicion deja el bloque abierto, sin guardar nada
+          return guardaLote(ctx, m, precios, edits, true);
+        });
+      });
+  }
+
   function bTechos(col, m, h, ctx) {
     var base = m.precio_construccion != null ? Number(m.precio_construccion) : null;
+    var base27 = m.precio_construccion_2027 != null ? Number(m.precio_construccion_2027) : null;
+    var sinBase = base == null || base27 == null;
     var b = bloque(col, 'techos', 'Techos', { editar: h.techos.length ? function (host) {
-      var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) 140px 140px'; host.appendChild(t);
-      t.innerHTML = '<span class="fm-lbl">Acabado</span><span class="fm-lbl">Ahora</span><span class="fm-lbl">2027</span>';
+      nota(host, 'El techo base va incluido en el precio de la casa. Los demás suman su suplemento: ahora y desde 2027.');
+      var grupo = 'fm-base-' + m.id;
       var ins = h.techos.map(function (x) {
-        var n = document.createElement('span'); n.textContent = x.nombre; n.style.fontWeight = '600'; t.appendChild(n);
-        var a = document.createElement('input'); a.className = 'fm-in'; a.type = 'text'; a.inputMode = 'decimal'; a.value = x.precio_ahora == null ? '' : x.precio_ahora; t.appendChild(a);
-        var z = document.createElement('input'); z.className = 'fm-in'; z.type = 'text'; z.inputMode = 'decimal'; z.value = x.precio_2027 == null ? '' : x.precio_2027; t.appendChild(z);
-        return { x: x, a: a, z: z };
+        var tarjeta = document.createElement('div');
+        tarjeta.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;background:' + C.crema;
+        host.appendChild(tarjeta);
+        var fila = document.createElement('div'); fila.className = 'fm-tabla'; fila.style.cssText = 'grid-template-columns:minmax(0,1fr) 130px 130px;align-items:start';
+        tarjeta.appendChild(fila);
+        var n = campo(fila, 'Nombre', x.nombre);
+        var a = campo(fila, '+ Ahora', x.es_base ? 0 : x.suplemento_ahora, { num: 1 });
+        var z = campo(fila, '+ 2027', x.es_base ? 0 : x.suplemento_2027, { num: 1 });
+        var lb = document.createElement('label'); lb.className = 'fm-check';
+        var rb = document.createElement('input'); rb.type = 'radio'; rb.name = grupo; rb.checked = !!x.es_base;
+        var tb = document.createElement('span'); tb.textContent = 'Techo base (incluido en el precio de la casa)';
+        lb.appendChild(rb); lb.appendChild(tb); tarjeta.appendChild(lb);
+        var act = casilla(tarjeta, 'Se ofrece', x.activo !== false, 'Desmárcalo para retirarlo: deja de salir en contratos nuevos y en la web. Nunca se borra.');
+        var al = campoAlcance(tarjeta, h, ctx, x);
+        function sync() {
+          // el base no lleva suplemento, no se retira ni se limita
+          a.disabled = z.disabled = rb.checked;
+          if (rb.checked) { a.value = 0; z.value = 0; act.checked = true; al.todos.checked = true; al.todos.dispatchEvent(new Event('change')); }
+          act.disabled = al.todos.disabled = rb.checked;
+        }
+        rb.addEventListener('change', function () { ins.forEach(function (r) { r.sync(); }); });
+        return { x: x, n: n, a: a, z: z, rb: rb, act: act, al: al, sync: sync };
       });
-      nota(host, 'Son precios completos de la villa con ese techo. El más barato debería coincidir con el precio base' + (base != null ? ' (' + ctx.fmt(base, m.moneda) + ')' : '') + '.');
+      ins.forEach(function (r) { r.sync(); });
       return function () {
-        var lista = [];
+        var precios = [], edits = [];
         ins.forEach(function (r) {
-          var na = chk(num(r.a.value), 'El precio de «' + r.x.nombre + '»'), nz = chk(num(r.z.value), 'El precio 2027 de «' + r.x.nombre + '»');
-          if (na === (r.x.precio_ahora == null ? null : Number(r.x.precio_ahora)) && nz === (r.x.precio_2027 == null ? null : Number(r.x.precio_2027))) return;
-          if (na == null) throw new Error('«' + r.x.nombre + '» necesita precio ahora');
-          lista.push({ id: r.x.id, precio_ahora: na, precio_2027: nz });
+          var nombre = r.n.value.trim() || r.x.nombre;
+          var na = chk(num(r.a.value), 'El suplemento de «' + nombre + '»'), nz = chk(num(r.z.value), 'El suplemento 2027 de «' + nombre + '»');
+          if (na == null || nz == null) throw new Error('«' + nombre + '» necesita sus dos suplementos (0 si no suma nada)');
+          if (na < 0 || nz < 0) throw new Error('El suplemento de «' + nombre + '» no puede ser negativo: si quieres un techo más barato, hazlo base y ajusta el precio de la casa');
+          if (na !== Number(r.x.suplemento_ahora) || nz !== Number(r.x.suplemento_2027)) precios.push({ id: r.x.id, suplemento_ahora: na, suplemento_2027: nz });
+          var c = {};
+          if (r.rb.checked && !r.x.es_base) c.es_base = true;
+          if (r.n.value.trim() !== r.x.nombre) c.nombre = r.n.value.trim();
+          if (r.act.checked !== (r.x.activo !== false)) c.activo = r.act.checked;
+          if (r.al.todos.checked) {
+            if (r.x.alcance === 'lista') c.alcance = 'todos';
+          } else {
+            var sel = r.al.sel();
+            if (!sel.length) throw new Error('«' + nombre + '»: marca al menos un proyecto, o deja «Todos los proyectos».');
+            if (r.x.alcance !== 'lista' || !mismoConjunto(sel, r.al.antes)) { c.alcance = 'lista'; c.proyectos = sel; }
+          }
+          if (Object.keys(c).length) edits.push({ id: r.x.id, cambios: c });
         });
-        if (!lista.length) return Promise.resolve();
-        return rpc(ctx.sb, 'modelo_techos_guarda', { p_id: m.id, p_techos: lista });
+        if (!precios.length && !edits.length) return Promise.resolve();
+        return guardaLote(ctx, m, precios, edits, false);
       };
     } : null });
-    if (!h.techos.length) { vacio(b.cuerpo, 'Sin techos: el contrato de Construcción no ofrece elegir acabado de techo.'); return; }
-    var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) 120px 120px';
-    t.innerHTML = '<span class="fm-lbl">Acabado</span><span class="fm-lbl">Ahora</span><span class="fm-lbl">2027</span>' +
-      h.techos.map(function (x) { return '<span>' + esc(x.nombre) + '</span><span style="font-weight:600">' + esc(ctx.fmt(x.precio_ahora, m.moneda)) + '</span><span>' + esc(x.precio_2027 != null ? ctx.fmt(x.precio_2027, m.moneda) : '—') + '</span>'; }).join('');
+
+    if (EST.admin) {
+      var bA = document.createElement('button'); bA.type = 'button'; bA.className = 'fm-ed'; bA.textContent = 'Añadir techo';
+      bA.setAttribute('data-real', ''); bA.setAttribute('data-accion', 'anadir-techo');
+      bA.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        abreEdicion(b, function (host) {
+          var primero = !h.techos.length;
+          if (sinBase) nota(host, 'Pon antes el precio de la casa, ahora y 2027, en «Precio de construcción»: es el precio con el techo base.', 'rojo');
+          if (primero) nota(host, 'Es el primer techo de este modelo: será su techo base, incluido en el precio de la casa (sin suplemento).');
+          var n = campo(host, 'Nombre del techo', '', { ph: 'p. ej. Alang-alang' });
+          var d = campo(host, 'Descripción (web y ficha)', '', { area: 1, filas: 3 });
+          var a = null, z = null;
+          if (!primero) {
+            var g = document.createElement('div'); g.className = 'fm-tabla'; g.style.cssText = 'grid-template-columns:1fr 1fr;align-items:start'; host.appendChild(g);
+            a = campo(g, 'Suplemento ahora', '', { num: 1, ayuda: 'Lo que suma sobre la casa con el techo base' });
+            z = campo(g, 'Suplemento 2027', '', { num: 1, ayuda: 'Lo que suma desde el 1-ene-2027' });
+          }
+          var al = campoAlcance(host, h, ctx, null);
+          nota(host, 'Después: sube su Anexo Maestro en «Documentos» (tipo plano, con este techo). Mientras no esté, el contrato avisa y deja enviar igualmente. La foto de este techo en la web tampoco es automática.');
+          return function () {
+            var nombre = n.value.trim();
+            if (!nombre) throw new Error('Pon el nombre del techo');
+            var datos = { nombre: nombre, descripcion: d.value.trim(), alcance: al.todos.checked ? 'todos' : 'lista' };
+            if (a) {
+              datos.suplemento_ahora = chk(num(a.value), 'El suplemento de ahora');
+              datos.suplemento_2027 = chk(num(z.value), 'El suplemento de 2027');
+              if (datos.suplemento_ahora == null || datos.suplemento_2027 == null) throw new Error('Pon los dos suplementos (0 si no suma nada)');
+            }
+            if (!al.todos.checked) {
+              datos.proyectos = al.sel();
+              if (!datos.proyectos.length) throw new Error('Marca al menos un proyecto, o deja «Todos los proyectos».');
+            }
+            return rpc(ctx.sb, 'modelo_techo_crea', { p_modelo_id: m.id, p_datos: datos });
+          };
+        });
+      });
+      b.cab.appendChild(bA);
+      b.h.style.flex = '1';   // dos botones: juntos a la derecha, no uno en medio
+    }
+
+    if (!h.techos.length) { vacio(b.cuerpo, 'Sin techos: el contrato de Construcción ofrece solo «Ulin» al precio de la casa.'); return; }
+    // Dos columnas (cabe a 390 px): el techo con «suplemento · dónde» debajo, y su precio de catálogo.
+    var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) auto';
+    t.innerHTML = '<span class="fm-lbl">Acabado</span><span class="fm-lbl">Precio catálogo</span>';
+    h.techos.slice().sort(function (p, q) { return (q.es_base ? 1 : 0) - (p.es_base ? 1 : 0) || (p.orden || 0) - (q.orden || 0); }).forEach(function (x) {
+      var retirado = x.activo === false, donde = dondeTecho(x, h, ctx);
+      var tachado = retirado ? 'color:' + C.apagado + ';text-decoration:line-through;' : '';
+      var total = base != null ? base + (Number(x.suplemento_ahora) || 0) : null;
+      t.insertAdjacentHTML('beforeend',
+        '<span style="min-width:0"><span style="' + tachado + 'font-weight:600">' + esc(x.nombre) + '</span>' +
+          '<small style="display:block;font-size:12px;color:' + (x.es_base && !retirado ? C.verde : C.apagado) + '">' + esc(textoSuplemento(x, m, ctx)) + '</small>' +
+          '<small style="display:block;font-size:12px;color:' + (retirado ? C.apagado : donde.mal ? C.rojo : C.apagado) + '">' +
+          esc(retirado ? 'Retirado' : donde.txt) + '</small></span>' +
+        '<span style="' + tachado + 'font-weight:600;white-space:nowrap">' + esc(total != null ? ctx.fmt(total, m.moneda) : '—') + '</span>');
+    });
     b.cuerpo.appendChild(t);
-    var min = Math.min.apply(null, h.techos.map(function (x) { return Number(x.precio_ahora); }));
-    if (base != null && min !== base) nota(b.cuerpo, 'El techo más barato (' + ctx.fmt(min, m.moneda) + ') no coincide con la base (' + ctx.fmt(base, m.moneda) + '): el precio de techo en cada proyecto sale desplazado.', 'ambar');
+    nota(b.cuerpo, 'En los proyectos con precio propio, el techo base cuesta ese precio y los demás le suman su suplemento.');
+    if (sinBase) nota(b.cuerpo, 'Falta el precio de la casa (ahora o 2027) en «Precio de construcción»: sin él no se puede ofrecer ningún techo.', 'rojo');
+  }
+
+  /* EXTRAS (30-sep-2026, owner: «necesito poder añadir o retirar extras»). Tres acciones, cada una UNA llamada:
+     - «Editar»: precio y «se ofrece» de cada extra ACTIVO en este modelo (modelo_extras_guarda, como antes).
+     - «Añadir extra»: alta en el catálogo con su precio en este modelo; en los demás modelos queda «no se ofrece»
+       hasta que se le ponga precio allí (extra_crea).
+     - «Catálogo»: retirar o reactivar extras para TODOS los modelos (extras_catalogo_guarda, una transacción).
+       Retirado = no sale en contratos nuevos ni en la web; nunca se borra (los contratos congelan el extra). */
+  function guardaCatalogoExtras(ctx, cambios, confirmado) {
+    return rpc(ctx.sb, 'extras_catalogo_guarda', { p_cambios: cambios, p_confirmado: !!confirmado })
+      .catch(function (err) {
+        if (!err || err.code !== 'LW409' || confirmado) throw err;
+        var sigue = typeof window.lwConfirmar === 'function'
+          ? window.lwConfirmar({ titulo: 'Retirar extras del catálogo', confirmar: 'Retirar igualmente',
+              cuerpo: '<p>' + esc(err.message) + '</p><p>No se ha guardado nada todavía.</p>' })
+          : Promise.resolve(window.confirm(err.message));
+        return Promise.resolve(sigue).then(function (ok) { return ok ? guardaCatalogoExtras(ctx, cambios, true) : false; });
+      });
   }
 
   function bExtras(col, m, h, ctx) {
     var D = ctx.D;
+    var activos = D.extras.filter(function (e) { return e.activo !== false; });
+    var retirados = D.extras.filter(function (e) { return e.activo === false; });
     var porExtra = {}; h.mex.forEach(function (x) { porExtra[x.extra_id] = x; });
-    var b = bloque(col, 'extras', 'Extras', { editar: D.extras.length ? function (host) {
+    var b = bloque(col, 'extras', 'Extras', { editar: activos.length ? function (host) {
       var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) 140px auto'; host.appendChild(t);
       t.innerHTML = '<span class="fm-lbl">Extra</span><span class="fm-lbl">Precio (' + esc(m.moneda || 'EUR') + ')</span><span class="fm-lbl">Se ofrece</span>';
-      var ins = D.extras.map(function (e) {
+      var ins = activos.map(function (e) {
         var ex = porExtra[e.id] || null;
         var n = document.createElement('span'); n.textContent = e.nombre; n.style.fontWeight = '600'; t.appendChild(n);
         var p = document.createElement('input'); p.className = 'fm-in'; p.type = 'text'; p.inputMode = 'decimal'; p.value = ex && ex.precio != null ? ex.precio : ''; p.placeholder = 'sin precio'; t.appendChild(p);
@@ -495,15 +659,61 @@
         return rpc(ctx.sb, 'modelo_extras_guarda', { p_id: m.id, p_extras: lista });
       };
     } : null });
+
+    if (EST.admin) {
+      var bA = document.createElement('button'); bA.type = 'button'; bA.className = 'fm-ed'; bA.textContent = 'Añadir extra';
+      bA.setAttribute('data-real', ''); bA.setAttribute('data-accion', 'anadir-extra');
+      bA.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        abreEdicion(b, function (host) {
+          var n = campo(host, 'Nombre del extra', '', { ph: 'p. ej. Piscina infinita' });
+          var d = campo(host, 'Descripción (web y contrato)', '', { area: 1, filas: 3 });
+          var p = campo(host, 'Precio en ' + m.nombre + ' (' + (m.moneda || 'EUR') + ')', '', { num: 1 });
+          nota(host, 'Se ofrece solo en ' + m.nombre + '. En los demás modelos aparece como «no se ofrece» hasta que le pongas precio en su ficha.');
+          return function () {
+            var nombre = n.value.trim();
+            if (!nombre) throw new Error('Pon el nombre del extra');
+            var precio = chk(num(p.value), 'El precio');
+            if (precio == null) throw new Error('Pon el precio del extra en este modelo');
+            return rpc(ctx.sb, 'extra_crea', { p_modelo_id: m.id, p_datos: { nombre: nombre, descripcion: d.value.trim(), precio: precio } });
+          };
+        });
+      });
+      b.cab.appendChild(bA);
+
+      if (D.extras.length) {
+        var bC = document.createElement('button'); bC.type = 'button'; bC.className = 'fm-ed'; bC.textContent = 'Catálogo';
+        bC.setAttribute('data-real', ''); bC.setAttribute('data-accion', 'catalogo-extras');
+        bC.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          abreEdicion(b, function (host) {
+            nota(host, 'Retirar un extra lo quita de TODOS los modelos: deja de salir en contratos nuevos y en la web. Nunca se borra y se puede reactivar.');
+            var ins = D.extras.map(function (e) {
+              return { e: e, c: casilla(host, e.nombre, e.activo !== false, e.activo === false ? 'Retirado del catálogo' : 'En el catálogo') };
+            });
+            return function () {
+              var cambios = ins.filter(function (r) { return r.c.checked !== (r.e.activo !== false); })
+                .map(function (r) { return { id: r.e.id, cambios: { activo: r.c.checked } }; });
+              if (!cambios.length) return Promise.resolve();
+              return guardaCatalogoExtras(ctx, cambios, false);
+            };
+          });
+        });
+        b.cab.appendChild(bC);
+      }
+      b.h.style.flex = '1';
+    }
+
     if (!D.extras.length) { vacio(b.cuerpo, 'No hay extras en el catálogo.'); return; }
-    var ofrecidos = D.extras.filter(function (e) { var x = porExtra[e.id]; return !x || x.disponible !== false; }).length;
-    b.h.textContent = b.titulo = 'Extras · ' + ofrecidos + ' de ' + D.extras.length + ' se ofrecen';
+    var ofrecidos = activos.filter(function (e) { var x = porExtra[e.id]; return !x || x.disponible !== false; }).length;
+    b.h.textContent = b.titulo = 'Extras · ' + ofrecidos + ' de ' + activos.length + ' se ofrecen';
     var ch = document.createElement('div'); ch.className = 'fm-chips';
-    ch.innerHTML = D.extras.map(function (e) {
+    ch.innerHTML = activos.map(function (e) {
       var x = porExtra[e.id]; var no = x && x.disponible === false;
       return '<span class="fm-chip' + (no ? ' fm-no' : '') + '">' + esc(e.nombre) + (x && x.precio != null ? ' · ' + esc(ctx.fmt(x.precio, x.moneda || m.moneda)) : '') + '</span>';
     }).join('');
     b.cuerpo.appendChild(ch);
+    if (retirados.length) nota(b.cuerpo, 'Retirados del catálogo: ' + retirados.map(function (e) { return e.nombre; }).join(', ') + '.');
   }
 
   function bAcabados(col, m, ctx) {
@@ -543,7 +753,8 @@
     var tieneFicha = !ctx.sinFicha(m) && m.dormitorios != null && m.banos != null && m.villa_m2 != null && m.terraza_m2 != null;
     var tienePrecio = m.precio_construccion != null;
     var incl = (m.alcance && m.alcance.incluido) || [];
-    var plano = h.docs.some(function (d) { return d.tipo === 'plano'; });
+    // lo que va en el contrato lo dice la casilla (27-sep-2026), no el tipo
+    var nMarcados = h.docs.filter(function (d) { return d.en_contrato === true; }).length;
     // Condición REAL de la web: publicado AND activo AND (fotos OR renders_pendientes)
     var seVe = m.publicado && m.activo && (h.fotos > 0 || m.renders_pendientes);
     var b = bloque(col, 'web', 'En la web', { suave: 1, editar: function (host) {
@@ -564,7 +775,7 @@
      [!!(m.descripcion && m.descripcion.trim()), 'Texto para la web', 'Sin texto para la web'],
      [h.fotos > 0, h.fotos + (h.fotos === 1 ? ' foto' : ' fotos') + ' del deck', 'Sin fotos'],
      [incl.length > 0, 'Qué incluye la obra', 'Falta «la obra incluye»'],
-     [plano, 'Plano (anexo del contrato)', 'Sin plano: el contrato de Construcción no tendrá anexo']
+     [nMarcados > 0, nMarcados + (nMarcados === 1 ? ' documento marcado' : ' documentos marcados') + ' para el contrato', 'Nada marcado para el contrato: el contrato de Construcción no tendrá anexo']
     ].forEach(function (x) {
       var li = document.createElement('li');
       li.style.color = x[0] ? C.gris : C.ambar; if (!x[0]) li.style.fontWeight = '600';
@@ -601,77 +812,318 @@
     if (noi.length) nota(b.cuerpo, 'No incluye: ' + noi.join(' · '));
   }
 
-  function bDocs(col, m, h, ctx) {
-    // Policy `modelo_docs: escribir` (25-sep-2026): cualquiera del equipo sube y
-    // retipa documentos, SALVO el plano (Anexo Maestro), que es solo de admin.
-    var b = bloque(col, 'docs', 'Documentos', { puede: true, textoEditar: h.techos.length ? 'Cambiar tipo o techo' : 'Cambiar tipo', editar: h.docs.length ? function (host) {
-      var ins = h.docs.map(function (d) {
-        var f = document.createElement('div'); f.style.cssText = 'display:grid;grid-template-columns:minmax(0,1fr) 210px' + (h.techos.length ? ' 150px' : '') + ';gap:10px;align-items:center';
-        var n = document.createElement('span'); n.textContent = d.nombre || 'Documento'; n.style.cssText = 'font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-        var s = document.createElement('select'); s.className = 'fm-in';
-        /* El plano (Anexo Maestro) solo lo decide administración (25-sep-2026,
-           policy `modelo_docs: escribir`): un agente no convierte otro documento
-           en plano ni toca el que ya lo es. */
-        var bloqueado = !EST.admin && d.tipo === 'plano';
-        TIPOS_DOC.forEach(function (t) {
-          if (t[0] === 'plano' && !EST.admin && !bloqueado) return;
-          var o = document.createElement('option'); o.value = t[0]; o.textContent = t[1]; if (d.tipo === t[0]) o.selected = true; s.appendChild(o);
-        });
-        if (bloqueado) { s.disabled = true; s.title = 'El Anexo Maestro solo lo cambia administración'; }
-        f.appendChild(n); f.appendChild(s);
-        // Techo del documento (23-sep-2026): el Anexo Maestro viene uno por
-        // techo y el contrato adjunta el del techo elegido. «Todos» = NULL.
-        var t = null;
-        if (h.techos.length) {
-          t = document.createElement('select'); t.className = 'fm-in'; t.setAttribute('aria-label', 'Techo del documento');
-          [['', 'Todos los techos']].concat(h.techos.map(function (x) { return [x.clave, x.nombre]; })).forEach(function (o) {
-            var e = document.createElement('option'); e.value = o[0]; e.textContent = o[1]; if ((d.techo_clave || '') === o[0]) e.selected = true; t.appendChild(e);
-          });
-          if (bloqueado) t.disabled = true;
-          f.appendChild(t);
-        }
-        host.appendChild(f);
-        return { d: d, s: s, t: t };
-      });
-      nota(host, 'El de tipo «Plano» es el que el contrato de Construcción adjunta al elegir este modelo' + (h.techos.length ? ': primero el del techo elegido y, si no hay, el de «Todos los techos».' : '.'));
-      return function () {
-        var p = Promise.resolve();
-        ins.forEach(function (r) {
-          var cambio = {};
-          if (r.s.disabled) return;
-          if (r.s.value !== r.d.tipo) cambio.tipo = r.s.value;
-          if (r.t && r.t.value !== (r.d.techo_clave || '')) cambio.techo_clave = r.t.value || null;
-          if (!Object.keys(cambio).length) return;
-          // el plano (Anexo Maestro) lo vuelve a comprobar el servidor: solo administración
-          p = p.then(function () { return rpc(ctx.sb, 'modelo_documento_cambia', { p_id: r.d.id, p_cambios: cambio }); });
-        });
-        return p;
-      };
-    } : null });
-    var caja = contenedorFijo('d-docs');
-    b.cuerpo.appendChild(caja);
-    if (!h.docs.length) { vacio(caja, 'Ningún documento. Súbelos con «Añadir documento», abajo.'); return; }
-    h.docs.forEach(function (d) {
-      var f = document.createElement('div');
-      f.style.cssText = 'display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:' + C.crema + ';cursor:pointer';
-      if (d.path) { f.setAttribute('data-doc-abrir', ''); f.setAttribute('data-doc-path', d.path); }
-      var tipo = (TIPOS_DOC.filter(function (t) { return t[0] === d.tipo; })[0] || [d.tipo, d.tipo || '—'])[1];
-      var techo = d.techo_clave ? (h.techos.filter(function (t) { return t.clave === d.techo_clave; })[0] || { nombre: d.techo_clave }).nombre : '';
-      f.innerHTML = '<span data-lw="doc-titulo" style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(d.nombre || 'Documento') + '</span>' +
-        '<span data-lw="doc-meta" style="font-size:12px;color:' + C.apagado + ';white-space:nowrap">' + esc(tipo + (techo ? ' · ' + techo : '') + ' · ' + ctx.fFecha(d.subido_en) + (d.visible_portal ? ' · visible al cliente' : '')) + '</span>';
-      // Borrar (25-sep-2026, SC-21: «no me deja borrar documentos dados de alta»):
-      // no existía ni aquí ni en la clásica. Solo admin porque «modelos bucket:
-      // borrar» es es_admin() — a un agente se le borraría la fila y el fichero
-      // quedaría huérfano. El click lo delega editores.js en #d-docs.
-      if (EST.admin) {
-        var bb = document.createElement('button'); bb.type = 'button'; bb.setAttribute('data-real', '');
-        bb.setAttribute('data-doc-borrar', ''); bb.setAttribute('data-doc-id', d.id);
-        bb.style.cssText = 'flex:none;border:0;background:none;padding:0;font-weight:600;font-size:11.5px;font-family:inherit;color:' + C.rojo + ';text-decoration:underline;cursor:pointer';
-        bb.textContent = 'Borrar';
-        f.appendChild(bb);
-      }
-      caja.appendChild(f);
+  /* DOCUMENTOS — un bloque, tres secciones (27-sep-2026, owner: «crea una sección
+     Dosier, necesito poder marcar si ese documento se carga automáticamente en el
+     contrato o no, y mejora "Documentos" porque no queda entendible»; propuesta de
+     Diseño en la revisión previa).
+       · VAN EN EL CONTRATO — los marcados (casilla `en_contrato`), numerados en el
+         orden en que se adjuntan, con el resumen POR TECHO de lo que se adjuntará.
+         Manda la casilla: un dosier marcado sale aquí, no en «Dosier».
+       · DOSIER — el PDF comercial del modelo (tipo nuevo), sin marcar.
+       · OTROS DOCUMENTOS — el resto sin marcar, agrupados por tipo.
+     La regla de qué entra la da window.lwDocsContrato (contracts/assets/docs_contrato.js),
+     LA MISMA que usa el generador: el resumen por techo es lo que el contrato adjunta.
+     Quién puede qué lo decide el servidor (modelo_documentos_guarda): la casilla, el
+     orden y el tipo o el techo de lo marcado, solo administración; aquí solo se
+     desactiva lo que el servidor va a rechazar, para no dejar pedirlo. */
+  var SOLO_ADMIN = 'Solo administración decide qué va en el contrato';
+  var DOSIER_NO = 'El dosier es comercial: no va en el contrato';
+  /* Letras (owner y Legal, 28-sep-2026; las calcula docs_contrato.js): el plano es el único apéndice que el
+     contrato cita y obliga (Apéndice A); lo demás va detrás, B, C, D… por tipo, como informativo. */
+  var TXT_CONTRATO = 'Estos documentos se adjuntan al contrato de Construcción. El plano es el Apéndice A: el único que el '
+    + 'contrato cita y que obliga. Todo lo demás va detrás como informativo (Apéndice B, C, D…), en este orden de tipo: '
+    + 'memoria de calidades, ficha, render, otros. El orden de esta lista solo decide el orden dentro de un mismo tipo. '
+    + 'Cada uno entra solo si su techo coincide con el del contrato; los de «Todos los techos» entran siempre. '
+    + 'El dosier nunca va en el contrato.';
+  // clave de grupo (ordenable): el tipo en el orden del contrato. Las flechas solo mueven dentro del mismo.
+  function letraDe(tipo) { var R = reglaDocs(); return R ? ('0' + R.grupo(tipo)).slice(-2) : '99'; }
+  function rotuloDe(tipo) { return tipo === 'plano' ? 'Apéndice A' : 'Informativo'; }
+  /* Marcados en el orden en que salen en el contrato: por tipo y, dentro, por el orden de Modelos. */
+  function porLetra(lista, tipoDe) {
+    return lista.map(function (x, i) { return { x: x, i: i }; }).sort(function (a, b) {
+      var la = letraDe(tipoDe(a.x)), lb = letraDe(tipoDe(b.x));
+      return la < lb ? -1 : la > lb ? 1 : a.i - b.i;
+    }).map(function (o) { return o.x; });
+  }
+  function reglaDocs() { return window.lwDocsContrato; }
+  function tipoLbl(t) { var R = reglaDocs(); return R ? R.etiqueta(t) : t; }
+  function nomTecho(h, clave) {
+    if (!clave) return 'Todos los techos';
+    return (h.techos.filter(function (t) { return t.clave === clave; })[0] || { nombre: clave }).nombre;
+  }
+  function subtitulo(host, texto) {
+    var t = document.createElement('h4'); t.className = 'fm-lbl'; t.style.margin = '6px 0 0'; t.textContent = texto; host.appendChild(t); return t;
+  }
+  /* Resumen por techo de lo que adjuntará el contrato. `docs` = estado (el de la base o
+     el que se está editando). Devuelve true si algún techo (o el modelo) sale sin anexo. */
+  function resumenContrato(host, h, docs) {
+    var R = reglaDocs(); if (!R) return;
+    // Solo los techos que se ofrecen (30-sep-2026): un retirado no sale en contratos nuevos, no le falta anexo.
+    var vivos = h.techos.filter(function (t) { return t.activo !== false; });
+    var techos = vivos.length ? vivos.map(function (t) { return [t.clave, t.nombre]; }) : [['', '']];
+    techos.forEach(function (t) {
+      var entran = R.apendices(docs, t[0]);
+      var p = document.createElement('p'); p.className = 'fm-nota' + (entran.length ? '' : ' fm-ambar');
+      var pre = t[1] ? t[1] + ': ' : '';
+      p.textContent = entran.length
+        ? pre + entran.map(function (ap) { return ap.letra + '. ' + (ap.doc.nombre || 'Documento'); }).join(' · ')
+        : (t[1] ? pre + 'nada marcado. El contrato saldrá sin anexo.' : 'Nada marcado: el contrato saldrá sin anexo.');
+      host.appendChild(p);
     });
+  }
+  /* Fila de un documento en la VISTA: dos líneas (nombre; tipo · techo · fecha · cliente),
+     abre el fichero al pulsarla (lo delega editores.js en #d-docs). */
+  function filaDoc(h, d, ctx, letra) {
+    var f = document.createElement('div');
+    f.style.cssText = 'display:flex;flex-direction:column;gap:2px;min-height:40px;box-sizing:border-box;justify-content:center;padding:7px 10px;border-radius:10px;background:' + C.crema + ';cursor:pointer;min-width:0';
+    if (d.path) { f.setAttribute('data-doc-abrir', ''); f.setAttribute('data-doc-path', d.path); f.setAttribute('role', 'button'); f.tabIndex = 0; }
+    var a = document.createElement('span'); a.setAttribute('data-lw', 'doc-titulo');
+    a.style.cssText = 'font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    a.textContent = d.nombre || 'Documento';
+    a.title = d.nombre || '';
+    var z = document.createElement('span'); z.setAttribute('data-lw', 'doc-meta');
+    z.style.cssText = 'font-size:12px;color:' + C.apagado;
+    var partes = [];
+    if (letra) partes.push(letra + ' · ' + tipoLbl(d.tipo));
+    if (h.techos.length) partes.push('Techo: ' + nomTecho(h, d.techo_clave));
+    partes.push('subido ' + ctx.fFecha(d.subido_en));
+    if (d.visible_portal) partes.push('Lo ve el cliente');
+    z.textContent = partes.join(' · ');
+    f.appendChild(a); f.appendChild(z);
+    return f;
+  }
+  /* Reparto en las tres secciones. `docs` son filas {…, en_contrato, tipo}. */
+  function reparte(docs) {
+    var R = reglaDocs();
+    var marcados = R ? R.ordena(docs.filter(function (d) { return d.en_contrato === true; })) : [];
+    var resto = docs.filter(function (d) { return d.en_contrato !== true; });
+    return {
+      marcados: marcados,
+      dosier: resto.filter(function (d) { return d.tipo === 'dosier'; }),
+      otros: resto.filter(function (d) { return d.tipo !== 'dosier'; })
+    };
+  }
+
+  function bDocs(col, m, h, ctx) {
+    var R = reglaDocs();
+    var b = bloque(col, 'docs', 'Documentos', { puede: true, editar: (h.docs.length && R) ? function (host) { return editorDocs(host, m, h, ctx); } : null });
+    var caja = contenedorFijo('d-docs');
+    caja.style.gap = '8px';
+    b.cuerpo.appendChild(caja);
+    // Sin la regla no se puede decir qué va en el contrato: «no he podido mirar» se ve distinto de «no hay».
+    if (!R) { nota(caja, 'No se ha podido cargar qué documentos van en el contrato (docs_contrato.js). Recarga la página.', 'rojo'); return; }
+    if (!h.docs.length) { vacio(caja, 'Ningún documento. Súbelos con «Añadir documento».'); return; }
+    var s = reparte(h.docs);
+
+    subtitulo(caja, 'Van en el contrato');
+    nota(caja, TXT_CONTRATO);
+    if (!s.marcados.length) nota(caja, 'Este modelo no tiene nada marcado para el contrato: el contrato de Construcción saldrá sin anexo.', 'ambar');
+    else {
+      if (h.techos.length) resumenContrato(caja, h, h.docs);
+      porLetra(s.marcados, function (d) { return d.tipo; }).forEach(function (d) { caja.appendChild(filaDoc(h, d, ctx, rotuloDe(d.tipo))); });
+    }
+
+    subtitulo(caja, 'Dosier');
+    if (!s.dosier.length) vacio(caja, 'Sin dosier. Súbelo con «Añadir documento».');
+    s.dosier.forEach(function (d) { caja.appendChild(filaDoc(h, d, ctx)); });
+
+    subtitulo(caja, 'Otros documentos');
+    if (!s.otros.length) vacio(caja, 'Ninguno.');
+    R.TIPOS.forEach(function (t) {
+      if (t[0] === 'dosier') return;
+      var grupo = s.otros.filter(function (d) { return d.tipo === t[0]; });
+      if (!grupo.length) return;   // los grupos vacíos no se pintan
+      var g = document.createElement('p'); g.className = 'fm-nota'; g.style.fontWeight = '600'; g.textContent = t[1];
+      caja.appendChild(g);
+      grupo.forEach(function (d) { caja.appendChild(filaDoc(h, d, ctx)); });
+    });
+  }
+
+  /* EDITAR. Cada fila: casilla, tipo, techo, ↑/↓ (solo en «Van en el contrato») y Borrar
+     (solo admin). Al marcar o desmarcar, la fila cambia de sección EN VIVO y el resumen por
+     techo se recalcula antes de guardar. Guardar manda TODOS los cambios en una llamada
+     (modelo_documentos_guarda): el servidor los aplica en una transacción y en el orden que
+     no choca con su regla de «un plano marcado por techo»; si algo falla, no queda nada
+     aplicado. */
+  function editorDocs(host, m, h, ctx) {
+    var R = reglaDocs();
+    var filas = h.docs.map(function (d) {
+      return { d: d, en: d.en_contrato === true, tipo: d.tipo, techo: d.techo_clave || '', el: null };
+    });
+    // orden de partida: los marcados en su orden, luego el resto
+    var orden = R.ordena(h.docs.filter(function (d) { return d.en_contrato === true; })).map(function (d) { return d.id; });
+    var marcadas = function () {
+      return orden.map(function (id) { return filas.filter(function (r) { return r.d.id === id; })[0]; }).filter(function (r) { return r && r.en; });
+    };
+    // en el orden en que salen en el contrato: por letra y, dentro, por el orden de la lista
+    var marcadasLetra = function () { return porLetra(marcadas(), function (r) { return r.tipo; }); };
+    var estado = function () {
+      var pos = {}; marcadasLetra().forEach(function (r, i) { pos[r.d.id] = i + 1; });
+      return filas.map(function (r) {
+        return { id: r.d.id, nombre: r.d.nombre, tipo: r.tipo, techo_clave: r.techo || null, en_contrato: r.en, orden: pos[r.d.id] || 0, subido_en: r.d.subido_en };
+      });
+    };
+
+    var resumen = document.createElement('div'); resumen.style.cssText = 'display:flex;flex-direction:column;gap:4px';
+    var secC = document.createElement('div'), secD = document.createElement('div'), secO = document.createElement('div');
+    [secC, secD, secO].forEach(function (s) { s.style.cssText = 'display:flex;flex-direction:column;gap:8px;min-width:0'; });
+    subtitulo(host, 'Van en el contrato');
+    nota(host, TXT_CONTRATO);
+    host.appendChild(resumen); host.appendChild(secC);
+    subtitulo(host, 'Dosier'); host.appendChild(secD);
+    subtitulo(host, 'Otros documentos'); host.appendChild(secO);
+    if (!EST.admin) nota(host, SOLO_ADMIN + ': la casilla, el orden y el tipo o el techo de lo que va en el contrato los cambia administración.');
+
+    function montaFila(r) {
+      var f = document.createElement('div');
+      f.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border-radius:10px;background:' + C.crema + ';min-width:0';
+      var n = document.createElement('span');
+      n.style.cssText = 'flex:1 1 100%;min-width:0;font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      n.title = r.d.nombre || '';
+      f.appendChild(n);
+      var cas = casilla(f, 'Se incluye automáticamente en el contrato', r.en);
+      cas.parentNode.style.flex = '1 1 100%';
+      cas.parentNode.style.minHeight = '40px'; cas.parentNode.style.alignItems = 'center';
+      var s = document.createElement('select'); s.className = 'fm-in'; s.setAttribute('aria-label', 'Tipo de documento');
+      s.style.flex = '1 1 180px';
+      var esPlano = r.d.tipo === 'plano';
+      R.TIPOS.forEach(function (t) {
+        // el plano sigue siendo de administración (regla del 25-sep que conserva el servidor)
+        if (t[0] === 'plano' && !EST.admin && !esPlano) return;
+        var o = document.createElement('option'); o.value = t[0]; o.textContent = t[1]; if (r.tipo === t[0]) o.selected = true; s.appendChild(o);
+      });
+      f.appendChild(s);
+      var t = null;
+      if (h.techos.length) {
+        t = document.createElement('select'); t.className = 'fm-in'; t.setAttribute('aria-label', 'Techo del documento');
+        t.style.flex = '1 1 150px';
+        [['', 'Todos los techos']].concat(h.techos.map(function (x) { return [x.clave, x.nombre]; })).forEach(function (o) {
+          var e = document.createElement('option'); e.value = o[0]; e.textContent = o[1]; if (r.techo === o[0]) e.selected = true; t.appendChild(e);
+        });
+        f.appendChild(t);
+      }
+      var sube = document.createElement('button'), baja = document.createElement('button');
+      [[sube, '↑', 'Subir en el orden del contrato'], [baja, '↓', 'Bajar en el orden del contrato']].forEach(function (x) {
+        x[0].type = 'button'; x[0].className = 'sui-btn'; x[0].textContent = x[1]; x[0].setAttribute('aria-label', x[2]); x[0].setAttribute('data-real', '');
+        x[0].style.cssText = 'min-width:40px;min-height:40px;padding:0 12px';
+        f.appendChild(x[0]);
+      });
+      var borra = null;
+      if (EST.admin) {
+        borra = document.createElement('button'); borra.type = 'button'; borra.setAttribute('data-real', '');
+        borra.style.cssText = 'margin-left:auto;min-height:40px;border:0;background:none;padding:0 4px;font-weight:600;font-size:12.5px;font-family:inherit;color:' + C.rojo + ';text-decoration:underline;cursor:pointer';
+        borra.textContent = 'Borrar';
+        borra.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          if (typeof window.lwBorraDocModelo === 'function') window.lwBorraDocModelo(r.d.id);
+        });
+        f.appendChild(borra);
+      }
+      r.el = f; r.n = n; r.cas = cas; r.s = s; r.t = t; r.sube = sube; r.baja = baja;
+      cas.addEventListener('change', function () {
+        r.en = cas.checked;
+        orden = orden.filter(function (id) { return id !== r.d.id; });
+        if (r.en) orden.push(r.d.id);          // al marcar, entra el último
+        repinta();
+      });
+      s.addEventListener('change', function () {
+        r.tipo = s.value;
+        // el dosier nunca va en el contrato: si se retipa a dosier, sale de «Van en el contrato»
+        if (r.tipo === 'dosier' && r.en) { r.en = false; cas.checked = false; orden = orden.filter(function (id) { return id !== r.d.id; }); }
+        repinta();
+      });
+      if (t) t.addEventListener('change', function () { r.techo = t.value; repinta(); });
+      sube.addEventListener('click', function (ev) { ev.stopPropagation(); mueve(r, -1); });
+      baja.addEventListener('click', function (ev) { ev.stopPropagation(); mueve(r, 1); });
+    }
+    // ↑/↓ solo dentro de la misma letra: el orden nunca cambia la letra
+    function mueve(r, paso) {
+      var ms = marcadasLetra().map(function (x) { return x.d.id; });
+      var i = ms.indexOf(r.d.id), j = i + paso;
+      if (i < 0 || j < 0 || j >= ms.length) return;
+      var vecino = filas.filter(function (x) { return x.d.id === ms[j]; })[0];
+      if (!vecino || letraDe(vecino.tipo) !== letraDe(r.tipo)) return;
+      var tmp = ms[i]; ms[i] = ms[j]; ms[j] = tmp;
+      orden = ms.concat(orden.filter(function (id) { return ms.indexOf(id) === -1; }));
+      repinta();
+      try { r.el.querySelector(paso < 0 ? '[aria-label^="Subir"]' : '[aria-label^="Bajar"]').focus(); } catch (e) {}
+    }
+    function repinta() {
+      var ms = marcadasLetra();
+      [secC, secD, secO].forEach(function (s) { while (s.firstChild) s.removeChild(s.firstChild); });
+      resumen.innerHTML = '';
+      var st = estado();
+      if (!ms.length) nota(resumen, 'Este modelo no tiene nada marcado para el contrato: el contrato de Construcción saldrá sin anexo.', 'ambar');
+      else resumenContrato(resumen, h, st);
+      var dup = planosRepetidos(st);
+      if (dup) nota(resumen, dup, 'rojo');
+      ms.forEach(function (r, i) {
+        r.n.textContent = rotuloDe(r.tipo) + ' · ' + (r.d.nombre || 'Documento');
+        secC.appendChild(r.el);
+      });
+      filas.forEach(function (r) {
+        var bloqueada = !EST.admin && (r.d.en_contrato === true || r.d.tipo === 'plano');
+        var esDosier = r.tipo === 'dosier';
+        r.cas.disabled = !EST.admin || esDosier;
+        r.s.disabled = bloqueada; if (r.t) r.t.disabled = bloqueada;
+        [r.s, r.t].forEach(function (x) { if (x) x.title = x.disabled ? SOLO_ADMIN : ''; });
+        r.cas.title = esDosier ? DOSIER_NO : (r.cas.disabled ? SOLO_ADMIN : '');
+        r.cas.parentNode.title = r.cas.title;
+        var i = ms.indexOf(r);
+        var mismaLetra = function (k) { return k >= 0 && k < ms.length && letraDe(ms[k].tipo) === letraDe(r.tipo); };
+        r.sube.style.display = r.baja.style.display = r.en ? '' : 'none';
+        r.sube.disabled = !EST.admin || !mismaLetra(i - 1);
+        r.baja.disabled = !EST.admin || i < 0 || !mismaLetra(i + 1);
+        [r.sube, r.baja].forEach(function (x) { x.style.opacity = x.disabled ? '.45' : ''; x.title = !EST.admin ? SOLO_ADMIN : ''; });
+        if (r.en) return;
+        r.n.textContent = r.d.nombre || 'Documento';
+        (r.tipo === 'dosier' ? secD : secO).appendChild(r.el);
+      });
+      if (!secC.firstChild) vacio(secC, 'Nada marcado.');
+      if (!secD.firstChild) vacio(secD, 'Sin dosier. Súbelo con «Añadir documento».');
+      if (!secO.firstChild) vacio(secO, 'Ninguno.');
+    }
+    // Dos planos marcados del mismo techo: el servidor lo rechaza (un plano por techo). Se dice antes.
+    function planosRepetidos(st) {
+      var vistos = {}, malos = [];
+      st.forEach(function (d) {
+        if (!d.en_contrato || d.tipo !== 'plano') return;
+        var k = d.techo_clave || '';
+        if (vistos[k] && malos.indexOf(k) === -1) malos.push(k);
+        vistos[k] = 1;
+      });
+      if (!malos.length) return '';
+      return 'Hay más de un plano marcado para ' + malos.map(function (k) { return k ? nomTecho(h, k) : '«Todos los techos»'; }).join(' y ')
+        + ': el contrato solo admite uno por techo. Desmarca uno.';
+    }
+    filas.forEach(montaFila);
+    repinta();
+
+    return function () {
+      var st = estado();
+      var dup = planosRepetidos(st);
+      if (dup) throw new Error(dup);
+      var porId = {}; st.forEach(function (x) { porId[x.id] = x; });
+      var cambios = [];
+      filas.forEach(function (r) {
+        var ahora = porId[r.d.id], antes = r.d, c = {};
+        if (ahora.tipo !== antes.tipo) c.tipo = ahora.tipo;
+        if ((ahora.techo_clave || '') !== (antes.techo_clave || '')) c.techo_clave = ahora.techo_clave;
+        // casilla y orden: solo administración (quien no lo es ni puede tocarlos, y un orden con huecos
+        // —1, 3 tras desmarcar el 2— no puede colarse en su guardado como «cambio de orden»)
+        if (EST.admin && ahora.en_contrato !== (antes.en_contrato === true)) c.en_contrato = ahora.en_contrato;
+        if (EST.admin && ahora.en_contrato && ahora.orden !== antes.orden) c.orden = ahora.orden;
+        // un marcado que se retoca (tipo o techo) el servidor lo desmarca y lo vuelve a marcar: lleva su
+        // orden explícito, o volvería el último
+        if (EST.admin && ahora.en_contrato && antes.en_contrato === true && (c.tipo !== undefined || c.techo_clave !== undefined)) c.orden = ahora.orden;
+        if (Object.keys(c).length) cambios.push({ id: r.d.id, cambios: c });
+      });
+      if (!cambios.length) return Promise.resolve();
+      /* UNA llamada, UNA transacción (revisor de código, 28-sep-2026): antes eran N llamadas sueltas y
+         un fallo a medias dejaba el modelo entre el estado viejo y el nuevo. El ORDEN de aplicación
+         (desmarcar, retipar, reordenar, marcar) lo decide el servidor, y cualquier error lo deshace todo. */
+      return rpc(ctx.sb, 'modelo_documentos_guarda', { p_modelo: m.id, p_cambios: cambios });
+    };
   }
 
   function bUnidades(col, m, h, ctx) {
@@ -803,7 +1255,7 @@
     bIdentidad(der, m, ctx);
     if (!EST.admin) {
       var p = document.createElement('p'); p.className = 'fm-nota'; p.style.gridColumn = '1 / -1';
-      p.textContent = 'Los datos del modelo y su Anexo Maestro los edita administración. Tú puedes subir los demás documentos y cambiar su tipo.';
+      p.textContent = 'Los datos del modelo, y qué documentos van en el contrato, los edita administración. Tú puedes subir documentos y cambiar el tipo o el techo de los que no van en el contrato.';
       raiz.insertBefore(p, raiz.firstChild);
     }
   }

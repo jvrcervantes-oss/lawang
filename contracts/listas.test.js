@@ -168,14 +168,19 @@ comprueba('el catálogo y la edge de usuarios no conocen las mismas herramientas
   CAT_PERMISOS, 'LW_HERRAMIENTAS (herramientas.js)', EDGE_HERR, 'admin-usuarios/index.ts');
 
 // El panel de permisos ya NO tiene lista propia (17-ago): la deriva del catálogo.
-// Si alguien le vuelve a escribir una, esto lo dice.
-const PANEL = fs.readFileSync(aqui('..', 'intranet', 'usuarios', 'index.html'), 'utf8');
-if (/const HERRAMIENTAS = \[/.test(PANEL)) {
-  fallos++;
-  console.error('\n  FALLA  /intranet/usuarios/ ha vuelto a tener su propia lista de herramientas.');
-  console.error('         Tiene que ser `const HERRAMIENTAS = LW_PERMISOS`. Con lista propia, sus');
-  console.error('         etiquetas divergen del hub — ya pasó con «Unidades» vs «Proyectos».');
-}
+// Si alguien le vuelve a escribir una, esto lo dice. Desde el 27-sep-2026 el panel
+// es el de la v4 (la clásica /intranet/usuarios/ se archivó): su página y el
+// editor que pinta las casillas (editores.js). El cruce MENU_V4 ↔ LW_PERMISOS ya
+// lo hace intranet/v4/assets/nav.test.js; aquí solo se vigila la lista a mano.
+[['intranet', 'v4', 'usuarios', 'index.html'], ['intranet', 'v4', 'assets', 'editores.js']].forEach(r => {
+  const PANEL = fs.readFileSync(aqui('..', ...r), 'utf8');
+  if (/const HERRAMIENTAS = \[/.test(PANEL)) {
+    fallos++;
+    console.error('\n  FALLA  ' + r.join('/') + ' ha vuelto a tener su propia lista de herramientas.');
+    console.error('         Tiene que derivarse de LW_PERMISOS. Con lista propia, sus');
+    console.error('         etiquetas divergen del hub — ya pasó con «Unidades» vs «Proyectos».');
+  }
+});
 
 /* ── LA PROFORMA AUTOMÁTICA ──────────────────────────────────────────────
    Está por duplicado a propósito (son dos caminos: al guardar y al firmar), y

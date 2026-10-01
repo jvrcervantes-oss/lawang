@@ -180,27 +180,50 @@ afirma('el panel nace escondido y lo abre el botón',
     /fraccionClara\(cv\) >= CLARO_PLANO\) cv = await pintarPagina\(page, Math\.min\(ANCHO_PLANO\/base\.width, 4\)\)/.test(anexos)
     && (anexos.match(/toDataURL\('image\/jpeg'/g) || []).length === 2);
 
-  /* 25-sep-2026, decisión del owner: en Construcción el Anexo Maestro (Modelos,
-     tipo plano) es el ÚNICO anexo. Revisión previa #86 (Legal): sin él no sale a
-     firma, y lo retirado se quita de los datos, no solo de la vista. */
+  /* El Anexo Maestro sale de Modelos, nunca del PDF viejo del repo (25-sep-2026). */
   afirma('el anexo automático ya no cae al PDF del repo (assets/anexos/)',
     !/fetch\(\s*'assets\/anexos\//.test(anexos),
     'Dali.pdf y Tropical.pdf son fichas comerciales de julio: volverían a entrar en contratos de Construcción');
-  afirma('en Construcción no se ofrece subir anexos a mano',
-    /const subir = esContratoConstruccion\(\)\s*\?[\s\S]{0,200}?único anexo es el Anexo Maestro/.test(anexos)
-    && /if\(inp\) inp\.addEventListener\('change'/.test(anexos),
-    'el botón «+ Añadir anexo» tiene que desaparecer solo en esta plantilla');
-  afirma('un anexo manual se retira de ANNEXES (los datos), y nunca en un contrato bloqueado o en firma',
-    /function retiraAnexosManualesConstruccion\(\)\{[\s\S]{0,400}?LOCKED[\s\S]{0,200}?EN_FIRMA[\s\S]{0,300}?ANNEXES = ANNEXES\.filter\(a => a\.auto\)/.test(anexos),
-    'filtrarlo solo al pintar haría que lo guardado y lo firmado dijeran cosas distintas');
+  /* 27-sep-2026, el owner revierte la regla del anexo único de Construcción: «debo poder
+     subir el PDF que quiera, como antes». La subida se ofrece en todas las plantillas y
+     nada retira los anexos subidos a mano. */
+  afirma('se pueden subir anexos a mano en cualquier contrato, también en Construcción',
+    // LAW-78 (27-sep-2026): la subida pide el contrato GUARDADO (las páginas van al archivo
+    // con su id) y no se ofrece con él bloqueado o en firma; sigue en todas las plantillas.
+    /<div class="dz"[^>]*><label class="up" id="anxUpLabel">/.test(anexos)
+    && !/tipologia_construccion[^\n]*anxUpLabel|anxUpLabel[^\n]*tipologia_construccion/.test(anexos)
+    && /if\(inp\) inp\.addEventListener\('change'/.test(anexos)
+    && !/retiraAnexosManuales|ANEXO_MANUAL_RETIRADO/.test(anexos + app),
+    'el owner quiere adjuntar el PDF que quiera; quitarlo otra vez es una decisión suya, no un refactor');
+  /* 30-sep-2026, owner: «que te deje seleccionar desde los archivos que hay en la intranet ya
+     subidos». Junto a la subida del ordenador, y por el MISMO camino (anadeAnexosDeFicheros). */
+  afirma('se puede elegir como anexo un documento ya subido a la intranet, junto a la subida desde el ordenador',
+    /<button type="button" class="up" data-accion="anexo-intranet">/.test(anexos)
+    && /anadeAnexosDeFicheros\(\[\{ file, titulo/.test(anexos)
+    && /files\.map\(f => \(\{ file:f/.test(anexos),
+    'el owner lo pidió: quitarlo es una decisión suya, y las dos vías tienen que compartir la subida');
   /* 27-sep-2026, el owner revierte el bloqueo: «si no hay anexo, que deje mandar
-     igual». Sin Anexo Maestro se avisa y se decide; no se bloquea. */
-  afirma('sin Anexo Maestro el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
-    /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: 'Enviar igualmente'[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app)
-    && /if\(tipSel && ANEXO_MANUAL_RETIRADO\)\{ toastMal\([^;]+\); return; \}/.test(app),
+     igual». Sin anexo del modelo se avisa y se decide; no se bloquea. Desde el 27-sep
+     (varios documentos marcados) también avisa si uno marcado no se pudo adjuntar. */
+  afirma('sin anexo del modelo (o con uno marcado que falla) el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
+    /if\(tipSel && \(autoMal \|\| sinApendiceA\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;[\s\S]{0,240}?\}/.test(app)
+    // y deja constancia (owner, 28-sep): lo que confirmó viaja a la edge y la base lo apunta con el envío (LAW-406)
+    && /sin_anexo: sinAnexo/.test(app),
     'el owner quiere poder enviar sin anexo; el aviso es para que sea una decisión, no un descuido');
-  afirma('guardar limpia la marca de anexo retirado',
-    /SAVED_CONTRACT = \{ id:data\.id, numero:data\.numero \};\s*ANEXO_MANUAL_RETIRADO = false;/.test(app));
+  /* LAW-406 (28-sep-2026): la constancia de «sin anexo» va en la MISMA transacción que el envío. Eran dos
+     llamadas (envío y luego constancia) y un fallo de la segunda dejaba un envío sin constancia. Lo que no
+     puede volver: la segunda llamada, su aviso de «no apuntada», o una constancia fuera de contrato_envia_firma. */
+  const edgeFich = require('fs').readFileSync(path.join(__dirname, '..', 'supabase', 'functions', 'ficheros-contrato', 'index.ts'), 'utf8');
+  const migEnvio = require('fs').readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', '20260928120000_law406_envia_firma_con_constancia.sql'), 'utf8');
+  const cuerpoEnvia = (migEnvio.split('create or replace function public.contrato_envia_firma(')[1] || '').split('end $$;')[0];
+  afirma('la constancia de «sin anexo» se apunta dentro de contrato_envia_firma, en la misma transacción que el envío',
+    /usuario\.rpc\('contrato_envia_firma', \{[\s\S]{0,400}?p_sin_anexo: body\.sin_anexo/.test(edgeFich)
+    && !/contrato_envio_sin_anexo|constancia_sin_anexo_no_apuntada/.test(edgeFich)
+    && !/no_se_pudo_apuntar_el_envio_sin_anexo/.test(app)
+    && /insert into public\.contrato_firmas[\s\S]*insert into public\.contrato_eventos[\s\S]*'envio_sin_anexo_confirmado'/.test(cuerpoEnvia)
+    && !/drop function if exists public\.contrato_envio_sin_anexo\(/.test(migEnvio)   // se retira en el paso 3, tras la edge
+    && /drop function if exists public\.contrato_envio_sin_anexo\(/.test(require('fs').readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', '20260928024744_law406_retira_envio_sin_anexo.sql'), 'utf8')),
+    'dos llamadas sueltas vuelven a permitir un envío a firma sin su constancia');
 
   const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');
   afirma('la firma del comprador se guarda en PNG, nunca en JPEG',
@@ -208,6 +231,31 @@ afirma('el panel nace escondido y lo abre el botón',
     'JPEG pierde informacion: en una firma manuscrita eso es alterar la prueba');
   afirma('la firma del formulario también va en PNG',
     /pad\.cv\.toDataURL\('image\/png'\)/.test(app));
+}
+
+/* UNA SOLA CARA: la v4 (27-sep-2026, owner: «Archivar lo muerto + v4 en todo
+   lo vivo»). El generador tuvo dos caras y piel.js decidía cuál; la clásica se
+   retiró. Lo que no puede volver sin que nadie lo decida: la salida `?v4=0`, la
+   piel que depende de por dónde se llegó (referrer / sessionStorage), el
+   listado clásico alcanzable, y la capa v3 apilada encima de la v4. */
+{
+  const piel = fs.readFileSync(path.join(__dirname, 'assets', 'piel.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+  afirma('piel.js enciende la v4 sin condición',
+    /window\.LW_PIEL = 'v4';/.test(piel) && /classList\.add\('v4'\)/.test(piel)
+    && !/v4=0|get\('v4'\)|document\.referrer|sessionStorage/.test(piel),
+    'la cara v4 volvió a depender de un parámetro, del referrer o de la pestaña');
+  afirma('sin puerta de editor, piel.js manda al listado de la v4',
+    /location\.replace\('\/intranet\/v4\/contratos\/'\)/.test(piel));
+  /* El listado clásico era el panel #cpOverlay a pantalla completa (openContractsPanel, body.modo-listado).
+     Se retiró el 27-sep; lo que no puede volver es un listado PROPIO de app.html, se llame como se llame
+     su función de entrada (28-sep-2026: la regla anterior vigilaba `pantallaC('listado'`, que ya no existía). */
+  afirma('app.html no tiene listado propio de contratos',
+    !/id="cpOverlay"|openContractsPanel|modo-listado/.test(html) && !/LW_PIEL/.test(html),
+    'el listado de contratos es /intranet/v4/contratos/: dos listados es la duplicación prohibida');
+  afirma('app.html no carga la capa v3 encima de la v4',
+    !/(src|href)=\"[^\"]*(movimiento-v3\.js|saldos-v3\.js|suite-v3(-herramientas)?\.css)/.test(html));
 }
 
 console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nLas reglas de la pantalla de contratos se sostienen.');

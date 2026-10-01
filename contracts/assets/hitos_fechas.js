@@ -88,6 +88,186 @@ function fechaHitoImpresa(iso, lang){
      `total - repartido` podía salir negativo en un documento firmable.
    Vencimiento no cambia para nadie: sigue siendo el desfase de fábrica
    (vence_dias) convertido a fecha editable, "por ahora como está" (owner). */
+
+/* CALENDARIO DE PAGOS ELEGIBLE — 28-sep-2026 (owner; revisión previa #148,
+   Legal + Seguridad + Administración). El agente elige UNO de tres
+   calendarios cerrados en el Contrato de Construcción; los % no se tocan:
+   · estandar     los 5 de fábrica. A la firma NO hay vencimientos: cada uno lo
+                  fija el parte de obra de su fase (+14 días, Art. 5).
+   · unico_firma  1 × 100 %, vence en la fecha que pone el agente
+                  (≥ firma, ≤ firma + 90 días; admin pasa del tope).
+   · unico_obra   1 × 100 %, lo fija el parte de preparación. La fecha que
+                  escriba el agente es ESTIMADA y va en `fecha_estimada`, nunca
+                  en `fecha`: `fecha` crea el vencimiento y la factura
+                  automática lo cobraría antes de empezar la obra.
+   Y dos que no se eligen, se heredan: `manual` (lo montó un admin: el resto
+   solo mueve fechas) y `libre` (contratos de antes del 16-sep, a mano como
+   siempre). QUIEN MANDA ES EL SERVIDOR: contrato_guarda rehace la tabla
+   entera —importes incluidos— desde el preset y el precio total, y devuelve
+   la que guardó; lo de aquí es solo lo que el agente ve mientras edita. */
+const CALENDARIOS_ELEGIBLES = ['estandar', 'unico_firma', 'unico_obra'];
+/* Tope del pago único a la firma, en días. Manda parametros.construccion.pago_unico_max_dias (Ajustes), que es lo
+   que aplica el servidor; 90 es solo el valor mientras llega la lectura, para que pantalla y base no digan cosas
+   distintas si un admin lo cambia (revisor de código, 28-sep). */
+let PLAZO_PAGO_UNICO_DIAS = 90;
+let PLAZO_PAGO_UNICO_LEIDO = false;
+function leePlazoPagoUnico(){
+  if(PLAZO_PAGO_UNICO_LEIDO || typeof sb === 'undefined' || !sb) return;
+  PLAZO_PAGO_UNICO_LEIDO = true;
+  Promise.resolve(sb.from('parametros').select('valor').eq('clave', 'construccion.pago_unico_max_dias').maybeSingle())
+    .then(r => {
+      const v = r && r.data ? Number(r.data.valor) : NaN;
+      if(isFinite(v) && v >= 0 && v !== PLAZO_PAGO_UNICO_DIAS){ PLAZO_PAGO_UNICO_DIAS = v; if(typeof refreshHitos === 'function') refreshHitos(); if(typeof updateSaveButton === 'function') updateSaveButton(); }
+    }).catch(() => { PLAZO_PAGO_UNICO_LEIDO = false; });
+}
+function presetCalendario(cal){
+  const t = (typeof TOKENS !== 'undefined' && TOKENS) || {};
+  const lista = cal === 'estandar'
+    ? ((t.hitosDefaults || {}).ppjb_construccion)
+    : ((t.hitosCalendarios || {})[cal]);
+  return Array.isArray(lista) ? lista.map(h => ({...h})) : null;
+}
+/* Qué calendario es una tabla YA GUARDADA sin la marca `calendario` (todo lo
+   anterior al 28-sep). Misma regla que contrato_calendario_deduce en la base:
+   % y concepto en los tres idiomas, en orden, y todos de fábrica. */
+function calendarioDeduce(hitos){
+  if(!Array.isArray(hitos) || !hitos.length || !hitos.some(h => h && h.fijo)) return 'libre';
+  for(const cal of CALENDARIOS_ELEGIBLES){
+    const pre = presetCalendario(cal);
+    if(pre && pre.length === hitos.length && pre.every((p,i) => {
+      const h = hitos[i] || {};
+      return parseFloat(h.pct) === parseFloat(p.pct) && (h.es||'') === p.es && (h.en||'') === p.en
+          && (h.id||'') === p.id && !!h.fijo;
+    })) return cal;
+  }
+  return 'manual';
+}
+function fechaFirmaISO(){
+  const v = ((document.querySelector('[name="fecha_firma"]') || {}).value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : hoyLocalISO();
+}
+function sumaDiasISO(iso, dias){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso); if(!m) return '';
+  return fechaVencimiento(new Date(+m[1], +m[2]-1, +m[3]), { vence_dias: dias });
+}
+/* Cambiar de calendario sustituye la tabla entera por el preset. El pago
+   único a la firma arranca a firma + 14 días, el mismo plazo que el Art. 5 da
+   a los hitos: el agente lo mueve si pactó otra cosa. */
+function cambiaCalendario(cal){
+  if(!CALENDARIOS_ELEGIBLES.includes(cal) || cal === CALENDARIO) return;
+  const pre = presetCalendario(cal); if(!pre) return;
+  if(cal === 'unico_firma') pre[0].fecha = sumaDiasISO(fechaFirmaISO(), 14);
+  HITOS = pre; CALENDARIO = cal;
+  // Quien cambia con las flechas sigue en el grupo: el repintado rehace los radios y se llevaba el foco
+  const conFoco = document.activeElement && document.activeElement.name === 'formaPago';
+  refreshHitos();   // repinta también las tarjetas
+  if(conFoco){ const r = document.querySelector('input[name="formaPago"]:checked'); if(r) r.focus(); }
+  if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
+  if(typeof updateSaveButton === 'function') updateSaveButton();
+  if(typeof render === 'function') render();
+}
+/* Un admin que toca un % o un concepto de fábrica, o añade/quita un hito,
+   deja de estar en un calendario de fábrica: pasa a «a medida», y el
+   documento deja de imprimir la cláusula de pago único si la tenía. */
+function calendarioPasaAManual(){
+  if(!CALENDARIOS_ELEGIBLES.includes(CALENDARIO)) return;
+  CALENDARIO = 'manual';
+  refreshFormaPago();
+}
+
+/* FORMA DE PAGO: LO PRIMERO DEL BLOQUE «CALENDARIO DE PAGOS» (28-sep-2026, owner:
+   «que quede claro que está ahí»; esa misma tarde, «es lo primero en su bloque,
+   antes de los hitos, pero no arriba»). Tres tarjetas que dicen cómo se reparte
+   el pago y cuándo vence cada uno, justo encima de la tabla que deciden, en vez
+   de un desplegable. Radios de verdad (teclado y lector de pantalla), pintados
+   como tarjetas. */
+function formaPagoCerrada(){
+  return (typeof LOCKED !== 'undefined' && LOCKED)
+    || (typeof EN_FIRMA !== 'undefined' && (EN_FIRMA.vivas + EN_FIRMA.firmadas) > 0);
+}
+const FORMAS_PAGO = [
+  { cal:'estandar', ico:'stacked_bar_chart',
+    tit:{es:'Estándar',en:'Standard',id:'Standar'},
+    rep:{es:'5 pagos · 25/25/25/20/5 %',en:'5 payments · 25/25/25/20/5 %',id:'5 pembayaran · 25/25/25/20/5 %'},
+    cuando:()=>({es:'Cada pago vence 14 días después de que la obra entre en su fase.',en:'Each payment falls due 14 days after the works enter its phase.',id:'Setiap pembayaran jatuh tempo 14 hari setelah pekerjaan memasuki fasenya.'}) },
+  { cal:'unico_firma', ico:'event',
+    tit:{es:'Pago único a la firma',en:'Single payment on signing',id:'Pembayaran tunggal saat tanda tangan'},
+    rep:{es:'1 pago · 100 %',en:'1 payment · 100 %',id:'1 pembayaran · 100 %'},
+    cuando:()=>({es:`Vence en la fecha que pongas, como muy tarde ${PLAZO_PAGO_UNICO_DIAS} días después de la firma.`,en:`Falls due on the date you set, at most ${PLAZO_PAGO_UNICO_DIAS} days after signing.`,id:`Jatuh tempo pada tanggal yang Anda tetapkan, paling lambat ${PLAZO_PAGO_UNICO_DIAS} hari setelah penandatanganan.`}) },
+  { cal:'unico_obra', ico:'construction',
+    tit:{es:'Pago único al inicio de obra',en:'Single payment when works start',id:'Pembayaran tunggal saat pekerjaan dimulai'},
+    rep:{es:'1 pago · 100 %',en:'1 payment · 100 %',id:'1 pembayaran · 100 %'},
+    cuando:()=>({es:'Vence 14 días después de que empiece la obra. La fecha que pongas es solo estimada.',en:'Falls due 14 days after works start. Any date you set is only an estimate.',id:'Jatuh tempo 14 hari setelah pekerjaan dimulai. Tanggal yang Anda isi hanya perkiraan.'}) }
+];
+function formaPagoBodyHTML(){
+  leePlazoPagoUnico();
+  const cal = CALENDARIO || 'estandar';
+  const cerrado = formaPagoCerrada();
+  // Un calendario a medida lo cambia solo un admin (la base lo rechaza a los demás): las tarjetas se pintan
+  // cerradas y updateSaveButton() las abre si el rol resulta ser admin — mismo patrón que los hitos de fábrica.
+  const soloAdmin = !cerrado && cal === 'manual';
+  const abreAdmin = soloAdmin && typeof puedeHitosFijos === 'function' && puedeHitosFijos();
+  const tarjetas = FORMAS_PAGO.map(f => {
+    const sel = f.cal === cal;
+    return `<label class="fp-op${sel ? ' sel' : ''}">
+      <input type="radio" name="formaPago" value="${f.cal}"${sel ? ' checked' : ''}${(cerrado || (soloAdmin && !abreAdmin)) ? ' disabled' : ''}${soloAdmin ? ' data-cal-manual' : ''}>
+      <span class="fp-ico" data-ico="${f.ico}" aria-hidden="true"></span>
+      <span class="fp-tit">${esc(L(f.tit))}</span>
+      <span class="fp-rep">${esc(L(f.rep))}</span>
+      <span class="fp-cuando">${esc(L(f.cuando()))}</span>
+    </label>`;
+  }).join('');
+  const aviso = cerrado
+    ? L({es:'El contrato está enviado a firma o firmado: la forma de pago ya no se cambia.',en:'The contract has been sent for signature or signed: the payment method can no longer change.',id:'Kontrak sudah dikirim untuk ditandatangani atau sudah ditandatangani: cara pembayaran tidak bisa diubah.'})
+    : cal === 'manual'
+    ? L({es:'Este contrato tiene un calendario a medida, montado por administración. Solo un administrador puede cambiar la forma de pago.',en:'This contract has a custom schedule set up by admin. Only an admin can change the payment method.',id:'Kontrak ini memakai jadwal khusus dari admin. Hanya admin yang dapat mengubah cara pembayaran.'})
+    : cal === 'libre'
+    ? L({es:'Este contrato es anterior a las formas de pago y su calendario se editó a mano. Si eliges una, la tabla de pagos se sustituye.',en:'This contract predates payment methods and its schedule was edited by hand. Choosing one replaces the payment table.',id:'Kontrak ini dibuat sebelum ada cara pembayaran dan jadwalnya diedit manual. Memilih salah satu akan mengganti tabel pembayaran.'})
+    : '';
+  return `<p class="fp-intro">${esc(L({es:'Elige primero cómo pagará el comprador la obra. Decide la tabla de pagos y lo que dice el Art. 5 del contrato.',en:'First choose how the buyer will pay for the works. It sets the payment table and what Article 5 of the contract says.',id:'Pilih dulu bagaimana pembeli membayar pekerjaan. Ini menentukan tabel pembayaran dan isi Pasal 5 kontrak.'}))}</p>
+    <div class="fp-opciones" role="radiogroup" aria-label="${escAttr(L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'}))}">${tarjetas}</div>
+    ${aviso ? `<p class="fp-aviso">${esc(aviso)}</p>` : ''}
+    ${cal === 'unico_firma' || cal === 'estandar' || cal === 'unico_obra' ? `<p class="fp-descuento">${esc(L({es:'¿Hay descuento por pagar al contado? Va en «Descuento comercial».',en:'Cash discount? It goes in «Commercial discount».',id:'Ada diskon tunai? Masukkan di «Diskon komersial».'}))}</p>` : ''}`;
+}
+/* Solo repinta si cambia algo de lo que enseña. No es una optimización: se llama desde aplicarEstadoFirma(),
+   que corre en cada `input` del formulario vía updateSaveButton(), y el `input` de un radio llega ANTES que su
+   `change`. Repintar ahí destruía el radio recién pulsado, el `change` salía de un nodo suelto y la forma de pago
+   no cambiaba nunca (revisor de código, 28-sep, reproducido en Edge). Con la firma, repintar solo cuando algo
+   cambia es seguro desde cualquier sitio. */
+function firmaFormaPago(){
+  return [CALENDARIO || 'estandar', formaPagoCerrada() ? 1 : 0,
+          (typeof puedeHitosFijos === 'function' && puedeHitosFijos()) ? 1 : 0,
+          (typeof LANG !== 'undefined' ? LANG : ''), PLAZO_PAGO_UNICO_DIAS].join('|');
+}
+function refreshFormaPago(){
+  const b = document.getElementById('formaPagoBox'); if(!b) return;
+  const f = firmaFormaPago();
+  if(b.getAttribute('data-firma') === f) return;
+  b.innerHTML = formaPagoBodyHTML();
+  b.setAttribute('data-firma', f);
+}
+
+/* La celda de vencimiento de cada hito, según el calendario (28-sep-2026):
+   en el estándar no hay fecha que poner —la pone la obra—, en el pago único
+   al inicio de obra la fecha es una estimación con su propia clave, y en el
+   pago único a la firma es la fecha real, acotada. El resto, como siempre. */
+function celdaFecha(h, i, esConstruccion, notaTiming){
+  const etiqueta = escAttr(L({es:'Vencimiento, hito',en:'Due date, milestone',id:'Jatuh tempo, tahap'})) + ' ' + (i+1);
+  if(esConstruccion && CALENDARIO === 'estandar'){
+    return `<span class="mini">${esc(L({es:'Al iniciar su fase de obra (+14 días)',en:'When its construction phase starts (+14 days)',id:'Saat fase konstruksinya dimulai (+14 hari)'}))}</span>`;
+  }
+  if(esConstruccion && CALENDARIO === 'unico_obra'){
+    return `<div class="field"><input id="${hid(i,'fecha_estimada')}" type="date" data-hi="${i}" data-hkey="fecha_estimada" value="${escAttr(h.fecha_estimada||'')}"
+        min="${escAttr(fechaFirmaISO())}" aria-label="${escAttr(L({es:'Fecha estimada, hito',en:'Estimated date, milestone',id:'Tanggal perkiraan, tahap'}))} ${i+1}"></div>
+      <span class="hito-nota">${esc(L({es:'Estimada — la real la fija el inicio de obra',en:'Estimated — the real one is set when works start',id:'Perkiraan — tanggal sebenarnya ditetapkan saat pekerjaan dimulai'}))}</span>`;
+  }
+  const acota = esConstruccion && CALENDARIO === 'unico_firma';
+  const topes = acota
+    ? ` min="${escAttr(fechaFirmaISO())}"` + ((typeof puedeHitosFijos === 'function' && puedeHitosFijos()) ? '' : ` max="${escAttr(sumaDiasISO(fechaFirmaISO(), PLAZO_PAGO_UNICO_DIAS))}"`)
+    : '';
+  return `<div class="field"><input id="${hid(i,'fecha')}" type="date" data-hi="${i}" data-hkey="fecha" value="${escAttr(h.fecha||'')}"${topes}
+        aria-label="${etiqueta}"></div>${notaTiming}`;
+}
 function hitosBodyHTML(){
   const esConstruccion = typeof CONTRACT_TIPO !== 'undefined' && CONTRACT_TIPO[CURRENT.slug] === 'construccion';
   // Moneda del documento junto a la Cantidad de cada hito (17-sep-2026,
@@ -150,8 +330,7 @@ function hitosBodyHTML(){
         aria-label="% ${L({es:'del hito',en:'of milestone',id:'tahap'})} ${i+1}"></div></td>
       <td class="monto"><div class="field hito-monto-grupo"><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"${lockMonto}
         aria-label="${escAttr(L({es:'Cantidad, hito',en:'Amount, milestone',id:'Jumlah, tahap'}))} ${i+1}"><span class="hito-moneda">${esc(monedaDoc)}</span></div></td>
-      <td class="fecha"><div class="field"><input id="${hid(i,'fecha')}" type="date" data-hi="${i}" data-hkey="fecha" value="${escAttr(h.fecha||'')}"
-        aria-label="${escAttr(L({es:'Vencimiento, hito',en:'Due date, milestone',id:'Jatuh tempo, tahap'}))} ${i+1}"></div>${notaTiming}</td>
+      <td class="fecha">${celdaFecha(h, i, esConstruccion, notaTiming)}</td>
       <td class="acciones">${btnDel}</td>
     </tr>
     <tr class="hito-mas" id="hito-mas-${i}" data-hito-mas="${i}" hidden>
@@ -173,7 +352,7 @@ function hitosBodyHTML(){
   // asumen lo contrario) y updateSaveButton() lo esconde en cuanto el rol
   // resulta ser admin/super_admin.
   const avisoAdmin = haiFijo
-    ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar hitos, y editar el % y el concepto de los cinco de fábrica, es de administración (admin o super administrador) desde el 16-sep-2026.',en:'Adding or removing milestones, and editing the % and wording of the five factory ones, has been an admin/super-admin action since 16-Sep-2026.',id:'Menambah/menghapus tahap serta mengubah % dan teks lima tahap standar, sejak 16-Sep-2026 hanya untuk admin/super admin.'})}</p>`
+    ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar pagos, o cambiar su % o su concepto, es cosa de administración (admin o super administrador). Para otro reparto, elige otra forma de pago arriba.',en:'Adding or removing payments, or changing their % or wording, is an admin/super-admin action. For a different split, choose another payment method above.',id:'Menambah/menghapus pembayaran atau mengubah % dan teksnya hanya untuk admin/super admin. Untuk pembagian lain, pilih cara pembayaran lain di atas.'})}</p>`
     : '';
   /* Abono de la Carta de Reserva — se enseña aquí, y no solo en el toast del
      guardado, porque un toast se desvanece en segundos y esto tiene que
@@ -213,7 +392,10 @@ function hitosBodyHTML(){
     <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${total}%</span>
   </div>${avisoAdmin}${avisoCartaCobrado}`;
 }
-function refreshHitos(){ const b=$('[data-sec="pagos"] .body'); if(b) b.innerHTML=hitosBodyHTML(); }
+/* Repinta también las tarjetas de forma de pago (solo si cambia lo que enseñan): abrir un contrato guardado, derivarlo, guardarlo o cambiar de
+   idioma cambian CALENDARIO/LOCKED y todos pasan por aquí. Sin esto las tarjetas se quedaban con la forma de
+   pago del borrador por defecto (revisor de código, 28-sep). */
+function refreshHitos(){ const b=$('[data-sec="pagos"] .hitos-body'); if(b) b.innerHTML=hitosBodyHTML(); refreshFormaPago(); }
 
 /* Cantidad de cada hito "calculado" — ver la nota grande de arriba. Se
    recalcula en dos momentos: cuando `precio_total` cambia (enganchado en
@@ -327,8 +509,14 @@ function hitosRowsHTML(){
        mes/día: allí va "9 Mar 2026". Los contratos de ANTES del cambio no llevan
        fecha y conservan su texto de timing tal cual — reabrirlos no les cambia ni
        una letra del documento. */
+    /* Pago único al inicio de obra (28-sep-2026): su fecha es una ESTIMACIÓN
+       y sale como tal — la cláusula del Art. 5 dice que no determina cuándo
+       se debe el pago; imprimirla a secas daría dos vencimientos distintos en
+       el mismo documento (Legal, revisión previa #148). */
     const cuando = h.fecha
       ? `<span data-lang="es">${esc(fechaHitoImpresa(h.fecha,'es'))}</span><span data-lang="en">${esc(fechaHitoImpresa(h.fecha,'en'))}</span><span data-lang="id">${esc(fechaHitoImpresa(h.fecha,'id'))}</span>`
+      : h.fecha_estimada
+      ? `<span data-lang="es">Estimada: ${esc(fechaHitoImpresa(h.fecha_estimada,'es'))}</span><span data-lang="en">Estimated: ${esc(fechaHitoImpresa(h.fecha_estimada,'en'))}</span><span data-lang="id">Perkiraan: ${esc(fechaHitoImpresa(h.fecha_estimada,'id'))}</span>`
       : esc(String(h.timing||''));
     return `<tr><td class="n">${i+1}</td><td>`
     + `<span data-lang="es">${esc(String(h.es||''))}</span><span data-lang="en">${esc(String(h.en||''))}</span><span data-lang="id">${esc(String(h.id||''))}</span>`

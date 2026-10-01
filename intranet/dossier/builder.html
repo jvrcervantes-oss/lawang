@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="v4 lw4-fijo lw4-sb-plegado" data-lw4-herramienta="creatividades">
 <head>
+<meta name="lw-version" content="7492a60b0840">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
@@ -11,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap" rel="stylesheet">
 <!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026). La genera
      `tools/empaqueta_css.py`; ver la nota larga en cualquier herramienta. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=3a0d1366">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=86b07abf">
 <!-- Iconos Phosphor para el menu lateral de topbar.js, igual que las demas. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
@@ -21,20 +22,37 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <!-- ninguna herramienta interna sin sesion: ver assets/guard.js -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Versión fijada + integrity (27-sep-2026): era `@2` a secas y sin `integrity`, la única
+     de la suite; misma etiqueta que el resto de herramientas (contexto/seguridad_2026.md). -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=29ba07be"></script>
+<script src="/contracts/assets/i18n.js?v=4ab27bbc"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/guard.js?v=f4db6ad5" data-herramienta="dossier,creatividades_ver"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-herramienta="dossier,creatividades_ver"></script>
 <!-- Creatividades v4 (24-sep-2026): DOMPurify limpia TODO dossier que no hizo esta
      pestaña (biblioteca, fichero) antes de pintarlo — revisión previa #68, Seguridad #3. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js" integrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla+3" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/frases_vetadas.js?v=7dbfcf0a"></script>
-<script src="/contracts/assets/creatividades.js?v=d83fc0d9"></script>
+<script src="/contracts/assets/creatividades.js?v=519c7942"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/herramientas.js?v=c95db503"></script>
-<script src="/contracts/assets/avisos.js?v=389df6b9" defer></script><script src="/contracts/assets/topbar.js?v=74e03361" defer></script>
+<script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
+<script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script>
+<!-- Cromo v4 (27-sep-2026, owner: «archivar lo muerto + v4 en todo lo vivo»): menú
+     lateral y cabecera de /intranet/v4/*, como el CRM (intranet/leads/index.html,
+     donde está el porqué). Fuera topbar.js; «Creatividades» sale marcada por
+     `data-lw4-herramienta`. La barra propia del editor (#topbar, con Insertar,
+     Guardar, Exportar PDF…) se queda ENTERA, mismos ids y onclick, justo debajo
+     de la cabecera v4 — ver «Cromo v4» en el <style>. Sus <details> los cierra
+     desplegables.js, que antes iba dentro de topbar.js.
+     Fuentes v4, su hoja y los tres scripts EN ESTE ORDEN (nav.test.js lo exige). -->
+<script src="/contracts/assets/desplegables.js?v=14cfebd2" defer></script>
+<link rel="stylesheet" href="/intranet/v4/assets/fonts/fonts.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+<link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=032139e5">
+<script src="/intranet/v4/assets/cabecera.js?v=dc1e969e" defer></script>
+<script src="/intranet/v4/assets/nav-montaje.js?v=2c463182" defer></script>
+<script src="/intranet/v4/assets/nav.js?v=c76dd0b9" defer></script>
 <style>
 /* ============ tokens de marca (mismos que contracts/assets/brand.css) ============ */
 :root{
@@ -53,6 +71,36 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
    contenido (antes 54px a pelo). */
 :root{ --tbh:64px; }
 #topbar{position:fixed;top:0;left:0;right:0;z-index:50}
+/* Cromo v4 (27-sep-2026): la cabecera v4 (64 px, fija) va encima de todo y el menú
+   (288 px, fijo desde 1024 px) a la izquierda — nav-montaje.css. La barra del editor
+   baja a y=64 y los paneles fijos a y=128 (--tbh = cabecera + barra). #stage va en
+   el flujo: el body ya trae padding-top 64 y padding-left 288 (nav-montaje.css), así
+   que su margen solo suma la barra del editor. Por debajo de 1024 px el menú es un
+   cajón y solo aplica el desplazamiento vertical. */
+@media screen{   /* solo pantalla: al imprimir manda el @media print de abajo */
+  html.lw4-fijo{ --tbh:128px; }
+  html.lw4-fijo #topbar{ top:64px; height:64px; }   /* su alto es var(--tbh) en topbar.css */
+  html.lw4-fijo #stage{ margin-top:64px; }
+}
+/* Menú PLEGADO por defecto (LAW-392, owner 28-sep-2026: «menú plegable ahí»): el mismo
+   gesto que el generador de contratos — la mesa de trabajo a lo ancho y el menú a un ☰ de
+   distancia. Lo pone la clase `lw4-sb-plegado` del <html>, que nav-montaje.js quita al
+   abrirlo (en su sitio) y vuelve a poner con su botón de plegar. Los paneles fijos del editor
+   solo se apartan 288 px mientras el menú está a la vista. */
+@media screen and (min-width:1024px){
+  html.lw4-fijo:not(.lw4-sb-plegado) #topbar, html.lw4-fijo:not(.lw4-sb-plegado) #sidebar{ left:288px; }
+  html.lw4-fijo:not(.lw4-sb-plegado) #seltools{ left:calc(288px + 250px); }
+  html.lw4-fijo #topbar, html.lw4-fijo #sidebar, html.lw4-fijo #seltools{ transition:left .25s; }
+}
+/* La barra del editor no se puede partir en dos filas (--tbh) ni desplazar (recortaría los
+   desplegables de Insertar/Página/Archivo): para que «Exportar PDF» no se salga por la
+   derecha (LAW-392: a 1366 con el menú abierto le faltaban ~50 px), menos hueco entre
+   botones y el nombre del dossier cede ancho antes que nada. */
+html.lw4-fijo #topbar{ gap:10px; }
+html.lw4-fijo #topbar #ptitle{ flex:0 1 180px; min-width:90px; width:auto; }
+/* Con el menú fijo, la hoja tiene 288 px menos. El --zoom de arranque ya no es una
+   cifra por tramo de ancho: lo calcula ajustaZoom() (abajo) con el ancho REAL de la
+   mesa (LAW-392, 28-sep-2026). */
 #sizesel{font:600 12.5px var(--sans);background:#ffffff14;color:#fff;border:1px solid #ffffff33;border-radius:999px;padding:6px 10px;cursor:pointer;max-width:170px}
 #sizesel option{color:#222}
 #zoomctl{display:flex;align-items:center;gap:4px;font-size:11px;color:#ffffffaa;margin-left:auto}
@@ -352,7 +400,11 @@ body{background:#eceae3}
 <!-- Barra unificada de la suite (../contracts/assets/topbar.css). Los 11 botones
      que había en fila pasan a tres desplegables por sección; fuera queda solo la
      acción final, Exportar PDF. -->
-<div id="topbar" class="lw-topbar" data-titulo="Dossier">
+<!-- Menú lateral y cabecera: los monta intranet/v4/assets/nav-montaje.js (cromo v4).
+     Esta es la barra del EDITOR, no la de la suite: conserva la piel de
+     topbar.css (`lw-topbar`) pero ya no la rellena topbar.js (ni «← Intranet»,
+     ni logo, ni rótulo: eso lo da la cabecera v4). -->
+<div id="topbar" class="lw-topbar">
   <a class="lw-btn" href="/intranet/v4/creatividades/" data-lwt="Biblioteca">Biblioteca</a>
   <span class="lw-sep"></span>
   <input id="ptitle" class="lw-input" value="Dossier" spellcheck="false" data-lwt-title title="Nombre del dossier (también nombra el PDF)">
@@ -635,11 +687,19 @@ const LS_KEY='lawang_dossier_builder';
    Este motor pinta sus textos con innerHTML, así que todo HTML pasa por la lista blanca
    de `lwCreatividades.limpia` (DOMPurify) y toda imagen tiene que ser de un origen
    conocido: una URL libre en un estado ajeno es un píxel espía o algo peor. */
+/* Fotos de la intranet (AXW-66, 28-sep-2026; revisión previa #139, SEG3/DES2): el estado guarda `deck:<foto_id>`,
+   NUNCA una URL. Las de proyectos sin deck abierto viven en el bucket privado `deck-privado` y su URL es firmada
+   (1 h): se pide al servidor por id al pintar (`lwFotoUrls`) y otra vez justo antes de imprimir. Una URL firmada que
+   llegue en un estado se descarta (caducaría, o filtraría el acceso a quien reciba el fichero).
+   `DECK_PUBLICO+ruta` es el formato de antes: solo se admite para que `migrate()` lo traduzca a `deck:<id>`. */
 const DECK_PUBLICO=window.LW_SB_URL+'/storage/v1/object/public/deck/';
+const RE_DECK=/^deck:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 function imgSegura(v){
   if(!v)return true; v=String(v);
+  if(RE_DECK.test(v))return true;
+  if(/\/storage\/v1\/object\/sign\//.test(v))return false;   // firmada: nunca se guarda ni se acepta
   return /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)
-    || v.indexOf(DECK_PUBLICO)===0
+    || v.indexOf(DECK_PUBLICO)===0                                  // formato viejo: migrate() lo traduce
     || /^\/contracts\/assets\/brand\/[\w.-]+$/.test(v)
     || /^[a-z0-9_-]+\/[\w.-]+\.(jpe?g|png|webp)$/i.test(v);   // rutas de los dossiers del repo (hasta D3)
 }
@@ -671,7 +731,87 @@ function migrate(s){
     // dossiers de la v1: el logo pasó a ser slot — precargar solo si nunca existió ('' = quitado a propósito)
     if((p.type==='cover'||p.type==='back')&&p.img.logo===undefined)p.img.logo=LOGO_LIGHT;
   });
+  // AXW-66: `DECK_PUBLICO+ruta` (dossiers de antes, 20 archivados) → `deck:<id>`. La ruta→id sale de deck_fotos,
+  // así que va aparte y asíncrono; mientras tanto esa imagen no se pinta (su URL pública puede haber dejado de valer).
+  if(rutasDeckViejas(s).length)traduceDeck(s);
   return s;
+}
+function cadaImg(s,fn){
+  (s.pages||[]).forEach(p=>{
+    Object.keys(p.img||{}).forEach(k=>fn(p.img[k],v=>{p.img[k]=v;}));
+    (p.free||[]).forEach(f=>{ if(f.src)fn(f.src,v=>{f.src=v;}); });
+  });
+}
+// Solo `proyecto/` y `modelo/` (lo que vive en deck_fotos y puede pasar a privado); `formacion/` y demás siguen
+// siendo públicos fijos y se pintan como siempre.
+function rutaDeckVieja(v){
+  if(typeof v!=='string'||v.indexOf(DECK_PUBLICO)!==0)return null;
+  try{ const r=decodeURIComponent(v.slice(DECK_PUBLICO.length).split(/[?#]/)[0]); return /^(proyecto|modelo)\//.test(r)?r:null; }
+  catch(_){ return null; /* MUDO A PROPOSITO: una ruta mal codificada no es de deck_fotos; imgSegura/traduceDeck la tratan como imagen desconocida */ }
+}
+function rutasDeckViejas(s){ const o=[]; cadaImg(s,v=>{ const r=rutaDeckVieja(v); if(r&&o.indexOf(r)<0)o.push(r); }); return o; }
+async function traduceDeck(s){
+  const rutas=rutasDeckViejas(s);
+  if(!rutas.length||!window.LW_AUTH)return;
+  try{
+    const { sb } = await window.LW_AUTH;
+    const porRuta={};
+    for(let i=0;i<rutas.length;i+=100){
+      const r=await sb.from('deck_fotos').select('id, path').in('path',rutas.slice(i,i+100));
+      if(r.error)throw r.error;
+      (r.data||[]).forEach(f=>{porRuta[f.path]=f.id;});
+    }
+    let sinFila=0;
+    cadaImg(s,(v,pon)=>{ const ru=rutaDeckVieja(v); if(!ru)return; if(porRuta[ru])pon('deck:'+porRuta[ru]); else{ pon(''); sinFila++; } });
+    if(s===state){ render(); persist(); }
+    if(sinFila)toastMal(sinFila+lwT(' imagen(es) del dossier ya no están en las fotos del deck: se han quitado.'));
+  }catch(e){
+    // no se toca el estado: la próxima vez que se abra se vuelve a intentar
+    toastMal(lwT('No se han podido actualizar las fotos de este dossier antiguo: ')+((e&&e.message)||e));
+  }
+}
+
+/* URL de las fotos `deck:<id>`: caché en memoria (nunca en el estado ni en localStorage), por id y con caducidad.
+   render() se llama a menudo: solo se piden las que faltan o van a caducar. */
+const FOTO_URL={};            // id → {u: url|null, hasta: ms}
+let _fotosEnVuelo=null, _fotosFalloEn=0;
+function urlDeck(id){ const e=FOTO_URL[id]; return e&&e.hasta>Date.now()?e.u:null; }
+function idsDeck(s){ const o=[]; cadaImg(s||state,v=>{ const m=RE_DECK.exec(v||''); if(m&&o.indexOf(m[1])<0)o.push(m[1]); }); return o; }
+/* Pinta una imagen de plantilla o libre. Las `deck:` se marcan con data-deck para que pintaFotos() las rellene
+   (también en las miniaturas, que son clones de la página). */
+function pintaImg(el,src){
+  const m=RE_DECK.exec(src||'');
+  if(m){ el.dataset.deck=m[1]; const u=urlDeck(m[1]); el.style.backgroundImage=u?'url("'+u+'")':''; return; }
+  delete el.dataset.deck;
+  el.style.backgroundImage=src&&!rutaDeckVieja(src)?`url(${src})`:'';
+}
+function pintaFotos(){
+  document.querySelectorAll('[data-deck]').forEach(el=>{ const u=urlDeck(el.dataset.deck); el.style.backgroundImage=u?'url("'+u+'")':''; });
+}
+let _idsEnVuelo=[];
+function resuelveFotos(forzar){
+  const ids=idsDeck().filter(id=>forzar||!FOTO_URL[id]||FOTO_URL[id].hasta<=Date.now());
+  if(_fotosEnVuelo&&!forzar){
+    // lo que está en vuelo no trae las que se han añadido desde entonces: se piden al terminar
+    if(ids.every(id=>_idsEnVuelo.indexOf(id)>=0))return _fotosEnVuelo;
+    return _fotosEnVuelo.catch(()=>{}).then(()=>resuelveFotos(true));
+  }
+  if(!ids.length)return Promise.resolve();
+  if(!forzar&&Date.now()-_fotosFalloEn<30000)return Promise.resolve();   // tras un fallo, no reintentar en cada render
+  if(!window.LW_AUTH||typeof window.lwFotoUrls!=='function')return Promise.reject(new Error(lwT('Falta guard.js actualizado: recarga la página')));
+  const vuelo=window.LW_AUTH.then(a=>window.lwFotoUrls(a.sb,ids)).then(r=>{
+    const hasta=Date.now()+Math.max(60,(r.caduca_seg||3600)-300)*1000;   // 5 min de margen antes de que caduque
+    ids.forEach(id=>{ FOTO_URL[id]={u:r.urls[id]||null, hasta:hasta}; });
+    pintaFotos();
+    const faltan=ids.filter(id=>!r.urls[id]).length;
+    if(faltan)toastMal(faltan+lwT(' foto(s) del dossier no tienen fichero en el archivo: sustitúyelas.'));
+  },e=>{ _fotosFalloEn=Date.now(); throw e; }).finally(()=>{ if(_fotosEnVuelo===vuelo)_fotosEnVuelo=null; });
+  _fotosEnVuelo=vuelo; _idsEnVuelo=ids;
+  return vuelo;
+}
+// Tras render(): lo que falte, sin bloquear. Un fallo se dice (no es lo mismo que «no hay fotos»).
+function resuelveFotosPronto(){
+  resuelveFotos().catch(e=>toastMal((e&&e.message)||String(e)));   // lwFotoUrls ya dice «no se han podido pedir…»
 }
 function maxUid(s){
   let m=0;
@@ -688,6 +828,35 @@ function applySize(){
   document.documentElement.style.setProperty('--pw',w+'mm');
   document.documentElement.style.setProperty('--ph',h+'mm');
   document.getElementById('pagesize').textContent=`@page{size:${w}mm ${h}mm;margin:0}`;
+  ajustaZoom();
+}
+/* Zoom de arranque = el que hace caber la hoja en la mesa (LAW-392, 28-sep-2026).
+   Con el menú v4 fijo la mesa pierde 288 px y un --zoom fijo por tramo de ancho
+   metía la A4 apaisada bajo la columna «Revisión» a 1366 (a 1440 cabía justo).
+   Se mide #stage de verdad —menú, paneles y padding incluidos— y se recalcula al
+   cambiar el tamaño de página, al girarla y al redimensionar la ventana. Tope .55,
+   el de siempre: donde ya cabía, nada cambia. Suelo .25, el mismo del −/+.
+   En cuanto alguien toca el −/+ de «Página», manda su zoom y esto deja de moverlo. */
+let ZOOM_A_MANO=false;
+function ajustaZoom(){
+  if(ZOOM_A_MANO) return;
+  const st=document.getElementById('stage'); if(!st) return;
+  const cs=getComputedStyle(st);
+  const util=st.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+  const hoja=state.size.w*96/25.4;                    // ancho de la hoja en px CSS, sin zoom
+  if(!(util>0) || !(hoja>0)) return;
+  const z=Math.min(.55,Math.max(.25,Math.floor(util/hoja*100)/100));
+  document.documentElement.style.setProperty('--zoom',z.toFixed(2));
+}
+let ZOOM_T=0;
+addEventListener('resize',()=>{ clearTimeout(ZOOM_T); ZOOM_T=setTimeout(ajustaZoom,120); });
+/* Plegar o desplegar el menú cambia el ancho de la mesa sin cambiar la ventana (LAW-392):
+   se recalcula cuando #stage cambia de ANCHO (el alto cambia con el propio zoom). */
+if(window.ResizeObserver){
+  let anchoMesa=0;
+  new ResizeObserver(es=>{ const w=Math.round(es[0].contentRect.width);
+    if(w===anchoMesa) return; anchoMesa=w; clearTimeout(ZOOM_T); ZOOM_T=setTimeout(ajustaZoom,120); })
+    .observe(document.getElementById('stage'));
 }
 function pickSize(key){
   if(key==='custom'){
@@ -739,7 +908,7 @@ function render(){
     page.querySelectorAll('[data-i]').forEach(el=>{
       const src=p.img[el.dataset.i];
       el.classList.toggle('empty',!src);
-      el.style.backgroundImage=src?`url(${src})`:'';
+      pintaImg(el,src);
       const rm=document.createElement('button');rm.className='rm';rm.textContent='✕';rm.title='Quitar imagen';
       rm.onclick=e=>{e.stopPropagation();p.img[el.dataset.i]='';render();persist();};
       const up=document.createElement('button');up.className='up';up.textContent='✥';
@@ -787,6 +956,7 @@ function render(){
   markCur();
   fitTables();
   if(selKeep)selectById(selKeep.pid,selKeep.fid);
+  resuelveFotosPronto();
 }
 
 /* ================= PÁGINA DE TABLA =================
@@ -970,7 +1140,7 @@ function freeNode(p,f){
   if(f.h!=null)d.style.height=f.h+'mm';
   applyFreeStyle(d,f);
   if(f.kind==='text'){d.innerHTML=f.html||'';d.spellcheck=false;}
-  if(f.kind==='img')d.style.backgroundImage=`url(${f.src})`;
+  if(f.kind==='img')pintaImg(d,f.src);
   d.appendChild(makeRs());
   return d;
 }
@@ -1316,11 +1486,32 @@ async function exportPDF(){
   document.getElementById('pmodal').classList.add('on');
 }
 function closePrint(){document.getElementById('pmodal').classList.remove('on');}
-function doPrint(){
+/* Antes de imprimir (AXW-66): URL recién pedidas para TODAS las fotos `deck:` (una firmada dura 1 h y el dossier
+   puede llevar horas abierto) y esperar a que carguen. Sin esto, el PDF sale con huecos en blanco sin avisar. */
+function cargaUna(u){
+  return new Promise(res=>{
+    const im=new Image(); const t=setTimeout(()=>res(false),20000);
+    im.onload=()=>{clearTimeout(t);res(true);}; im.onerror=()=>{clearTimeout(t);res(false);};
+    im.src=u;
+  });
+}
+async function doPrint(){
   if(document.getElementById('pnoask').checked){
     try{localStorage.setItem(PRINT_TIP_KEY,'off');}catch(_){}
   }
   closePrint();
+  const ids=idsDeck();
+  const viejas=rutasDeckViejas(state).length;   // formato de antes sin traducir: saldrían en blanco
+  if(ids.length||viejas){
+    toast(lwT('Preparando las fotos para imprimir…'));
+    try{ await resuelveFotos(true); }
+    catch(e){ toastMal(lwT('No se imprime: no se han podido pedir las fotos. ')+((e&&e.message)||e)); return; }
+    const oks=await Promise.all(ids.map(id=>{ const u=urlDeck(id); return u?cargaUna(u):Promise.resolve(false); }));
+    const mal=oks.filter(x=>!x).length+viejas;
+    if(mal&&!(await lwConfirmar({titulo:lwT('Faltan fotos'),
+        cuerpo:'<p>'+mal+lwT(' foto(s) no han cargado y saldrían en blanco en el PDF. ¿Imprimir igualmente?')+'</p>',
+        confirmar:lwT('Imprimir igualmente'),tono:'peligro'})))return;
+  }
   const prev=document.title;
   document.title=snapshot().title;           // nombre sugerido del PDF
   window.print();
@@ -1415,6 +1606,7 @@ async function cargarBibliotecas(){
   }
 }
 function setZoom(dz){
+  ZOOM_A_MANO=true;
   const z=Math.min(1.2,Math.max(.25,parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zoom'))+dz));
   document.documentElement.style.setProperty('--zoom',z.toFixed(2));
 }
@@ -1532,12 +1724,12 @@ async function montarDesdeBase(){
       confirmar: lwT('Sustituir'), tono: 'peligro' }))) return;
   const btn = document.getElementById('bmIr'); btn.disabled = true;
   try {
-    const { sb } = await window.LW_AUTH;
-    const r = await sb.rpc('dossier_datos', { p_proyecto: proy, p_modelos: mods });
+    // por el transporte de lecturas (LAW-338 L2, 28-sep-2026); dossier_datos ya es de lw_lector: mismas filas que la RLS
+    const r = await window.lwDatos('dossier_datos', { p_proyecto: proy, p_modelos: mods });
     if (r.error) throw r.error;
     const D = r.data, ES = idi === 'es';
     const fechaTxt = new Date(D.precios_a + 'T00:00:00').toLocaleDateString(ES ? 'es-ES' : 'en-GB', { day:'numeric', month:'long', year:'numeric' });
-    const url = f => DECK_PUBLICO + f.path;
+    const url = f => 'deck:' + f.id;   // AXW-66: el estado guarda el id; la URL se pide al pintar
     const etR = lwFrases.etiqueta('render', idi);
     const fotosP = D.fotos.filter(f => f.ambito === 'proyecto');
     const heroe = fotosP.find(f => f.uso === 'hero') || fotosP.find(f => f.tipo === 'foto') || fotosP[0];
@@ -1656,7 +1848,11 @@ async function portadaDossier(){
   try {
     const p = (state.pages || []).find(x => x.img && x.img.bg);
     if (!p) return null;
-    const r = await fetch(p.img.bg); if (!r.ok) return null;
+    let src = p.img.bg;
+    const m = RE_DECK.exec(src);
+    if (m){ await resuelveFotos(true); src = urlDeck(m[1]); if (!src) return null; }
+    else if (rutaDeckVieja(src)) return null;
+    const r = await fetch(src); if (!r.ok) return null;
     const bmp = await createImageBitmap(await r.blob());
     const W = 640, H = 452, c = document.createElement('canvas'); c.width = W; c.height = H;
     const k = Math.max(W / bmp.width, H / bmp.height), dw = bmp.width * k, dh = bmp.height * k;

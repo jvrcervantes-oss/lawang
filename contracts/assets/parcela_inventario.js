@@ -72,25 +72,61 @@ function identificadoresDelFormulario(){
 /* Cuatro respuestas y no un sí/no: el desplegable tiene que poder decir POR QUÉ
    una parcela no se puede coger. 'otro' y 'sin_datos' salían antes como
    traspasables y reventaban al guardar, que es justo lo que este selector
-   existe para evitar (LAW-51, 14-ago-2026). */
-function estadoTraspaso(u){
-  if(CONTRACT_TIPO[CURRENT.slug] !== 'reserva_parcela') return 'no';
+   existe para evitar (LAW-51, 14-ago-2026).
+   `ctx` (30-sep-2026, F7) — { tipo, ids } — es para quien pregunta ANTES de que
+   exista el formulario: el asistente de Nuevo contrato elige la parcela con el
+   tipo y el cliente que ha contestado, mientras detrás sigue la plantilla por
+   defecto. Sin `ctx` es exactamente lo de siempre (tipo y compradores del
+   formulario). Es la MISMA regla: el asistente no lleva copia propia (revisión
+   de código, 30-sep: la suya daba por buenas Cartas de otro comprador). */
+function estadoTraspaso(u, ctx){
+  const tipo = ctx ? ctx.tipo : CONTRACT_TIPO[CURRENT.slug];
+  if(tipo !== 'reserva_parcela') return 'no';
+  const idsMios = () => ctx ? unicos((ctx.ids || []).map(normId)) : identificadoresDelFormulario();
   /* Ocupante que este usuario NO puede leer (la Carta la hizo otro agente,
      25-sep-2026): lo que dijo la base al elegirla, si fue con los mismos
      compradores que hay ahora en el formulario; si no, aún no se sabe. */
   if(u.ocupanteOculto){
     const r = u.traspasoRemoto;
-    return (r && r.clave === identificadoresDelFormulario().join('|')) ? r.estado : 'por_comprobar';
+    return (r && r.clave === idsMios().join('|')) ? r.estado : 'por_comprobar';
   }
   if(!u.ocupante || !TIPOS_CEDEN_PARCELA.includes(u.ocupante.tipo)) return 'no';
-  const mios = identificadoresDelFormulario(), suyos = identificadoresOcupante(u.ocupante);
+  const mios = idsMios(), suyos = identificadoresOcupante(u.ocupante);
   if(!mios.length || !suyos.length) return 'sin_datos';
   return mios.some(v => suyos.includes(v)) ? 'ok' : 'otro';
 }
 function puedeTraspasarParcela(u){ return estadoTraspaso(u) === 'ok'; }
-async function cargarUnidadesDelProyecto(proyecto){
-  if(!sb || !proyecto || UNIDADES_PROY.proyecto === proyecto) return;
-  UNIDADES_PROY = { proyecto, lista:[], fallo:null };
+/* Los identificadores de una FICHA de `clients` (el asistente elige la ficha
+   antes de que exista el formulario): pasaporte y email, en el orden y con la
+   misma limpieza con que enlazarFicha() los vuelca en adq1_pasaporte/adq1_email
+   (CAMPOS_FICHA), así que la clave es la misma que la del editor. */
+function identificadoresDeFicha(f){
+  return unicos([normId(f && f.passport_number), normId(f && f.email)]);
+}
+/* ¿Se puede elegir esta unidad para el contrato? Una sola respuesta para el
+   selector del editor (pintarSelectorParcela) y el asistente (F7, 30-sep-2026).
+   `tomada`: la tiene otro contrato. `modo`: estadoTraspaso. `bloqueada`: no se
+   ofrece. 'por_comprobar' NO bloquea: se pregunta a la base al elegirla.
+   Una parcela marcada a mano como no disponible sin contrato detrás también se
+   bloquea (24-ago, aviso del cliente — ver la nota en pintarSelectorParcela). */
+function eleccionParcela(u, ctx){
+  // Con `ctx` (el asistente) el contrato aún no existe: ninguna unidad es «suya».
+  const mio = ctx ? null : (SAVED_CONTRACT && SAVED_CONTRACT.id);
+  const tomada = !!u.contrato_id && u.contrato_id !== mio;
+  const modo = tomada ? estadoTraspaso(u, ctx) : 'no';
+  const bloqueada = tomada ? !(modo === 'ok' || modo === 'por_comprobar') : u.estado !== 'disponible';
+  return { tomada, modo, bloqueada };
+}
+/* LA LECTURA del inventario de un proyecto, sin tocar el formulario (30-sep-2026,
+   F7). La usan el selector de parcela del editor (cargarUnidadesDelProyecto, aquí
+   debajo) y el asistente de Nuevo contrato (asistente-contrato.js), que elige la
+   parcela ANTES de que exista el formulario. Una sola consulta para los dos: si el
+   asistente leyera por su cuenta, las dos listas acabarían ofreciendo parcelas
+   distintas. Devuelve { lista, fallo } y nunca lanza: `fallo` es «no se ha podido
+   leer», que no es lo mismo que una lista vacía (ver la nota del 21-ago de abajo). */
+async function leerInventarioProyecto(proyecto){
+  const r = { lista:[], fallo:null };
+  if(!sb || !proyecto) return r;
   try{
     const { data, error } = await sb.from('unidades')
       .select('codigo, modelo, superficie_m2, precio_suelo, precio, moneda, estado, contrato_id')
@@ -100,12 +136,12 @@ async function cargarUnidadesDelProyecto(proyecto){
        lista a cero — y una lista a cero significa «este proyecto no tiene
        inventario», que es lo que hace caer el campo a texto libre. Las dos
        situaciones se veían igual en pantalla y solo una es segura. */
-    if(error) UNIDADES_PROY.fallo = error.message || 'no se ha podido leer';
+    if(error) r.fallo = error.message || 'no se ha podido leer';
     // `codigo_orden` (16-sep-2026) ya viene en orden natural desde la base: es
     // una columna generada de `unidades`. Se reordena igualmente aquí con el mismo
     // criterio (suiComparar, contracts/assets/suite.js): cinturón y tirantes, y
     // cubre a app.html cuando no carga suite.js.
-    else UNIDADES_PROY.lista = (typeof suiOrdenarPorCodigo === 'function')
+    else r.lista = (typeof suiOrdenarPorCodigo === 'function')
       ? suiOrdenarPorCodigo(data || [])
       : (data || []).slice()   /* app.html no carga suite.js; ver la nota de arriba */
         .sort((a,b) => String(a.codigo).localeCompare(String(b.codigo), 'es', { numeric:true, sensitivity:'base' }));
@@ -121,7 +157,7 @@ async function cargarUnidadesDelProyecto(proyecto){
        en el campo que decide qué parcela se vende.
        Si esta segunda consulta falla, se pierde el traspaso pero no el
        inventario: las parcelas ocupadas salen bloqueadas, como hasta hoy. */
-    const ids = [...new Set(UNIDADES_PROY.lista.map(u=>u.contrato_id).filter(Boolean))];
+    const ids = [...new Set(r.lista.map(u=>u.contrato_id).filter(Boolean))];
     if(ids.length){
       // pasaporte/email del ocupante: hacen falta para saber si el traspaso es
       // al MISMO comprador (estadoTraspaso). Sin esto el selector ofrecería
@@ -133,14 +169,21 @@ async function cargarUnidadesDelProyecto(proyecto){
       // Si la consulta de ocupantes FALLA no se sabe cuáles son ilegibles:
       // todas quedan bloqueadas, como hasta hoy (no se abre nada a ciegas).
       const cs_fallo = !!csError;
-      UNIDADES_PROY.lista.forEach(u=>{
+      r.lista.forEach(u=>{
         u.ocupante = u.contrato_id ? porId[u.contrato_id] || null : null;
         // Ocupada por un contrato que la RLS no deja leer (de otro agente):
         // se pregunta a la base al elegirla (comprobarTraspasoRemoto).
         u.ocupanteOculto = !!u.contrato_id && !porId[u.contrato_id] && !cs_fallo;
       });
     }
-  }catch(e){ UNIDADES_PROY.fallo = UNIDADES_PROY.fallo || (e && e.message) || 'no se ha podido leer'; }
+  }catch(e){ r.fallo = r.fallo || (e && e.message) || 'no se ha podido leer'; }
+  return r;
+}
+async function cargarUnidadesDelProyecto(proyecto){
+  if(!sb || !proyecto || UNIDADES_PROY.proyecto === proyecto) return;
+  UNIDADES_PROY = { proyecto, lista:[], fallo:null };
+  const leido = await leerInventarioProyecto(proyecto);
+  UNIDADES_PROY.lista = leido.lista; UNIDADES_PROY.fallo = leido.fallo;
   pintarSelectorParcela();
   /* El inventario llega tarde (async): lo que depende del suelo de la parcela
      —el campo de descuento comercial del Bloqueo, que solo se enseña con
@@ -220,8 +263,7 @@ function pintarSelectorParcela(){
   }
   const mio = SAVED_CONTRACT && SAVED_CONTRACT.id;
   const ops = libres.filter(u => !elegidas.includes(u.codigo)).map(u => {
-    const tomada = u.contrato_id && u.contrato_id !== mio;
-    const modo = tomada ? estadoTraspaso(u) : 'no';
+    const { tomada, modo, bloqueada: bloqueadaOpcion } = eleccionParcela(u);
     const traspaso = modo === 'ok';
     const suNum = (u.ocupante && u.ocupante.numero)
       || (u.traspasoRemoto && u.traspasoRemoto.numero) || 'una Carta de Reserva';
@@ -238,7 +280,6 @@ function pintarSelectorParcela(){
        Proyectos como bloqueada/no disponible sin contrato detrás se ofrecía
        igual, con la nota puesta pero seleccionable — la nota se veía, el freno
        no estaba. */
-    const bloqueadaOpcion = tomada ? !(traspaso || modo === 'por_comprobar') : u.estado !== 'disponible';
     return `<option value="${escAttr(u.codigo)}" ${bloqueadaOpcion?'disabled':''}>${
       escAttr(partes.filter(Boolean).join(' · '))}</option>`;
   }).join('');
@@ -294,26 +335,39 @@ function pintarSelectorParcela(){
    de la Carta. Responde número + estado, ningún dato personal, y usa la misma
    regla que el trigger al guardar (traspaso_carta_estado): lo que aquí se deja
    elegir es lo que la base va a aceptar. Devuelve true si se puede traspasar. */
+/* El núcleo, sin avisos (30-sep-2026, F7): pregunta a la base y deja la
+   respuesta EN la unidad, que es donde la lee estadoTraspaso(). Lo usan
+   comprobarTraspasoRemoto (el editor, que avisa con toasts) y el asistente de
+   Nuevo contrato, que pinta el motivo en la propia parcela. Lanza si la base no
+   contesta: «no se ha podido comprobar» no es «de otro comprador».
+   Devuelve el estado ('ok' | 'otro' | 'sin_datos') o 'no' si no la ocupa una Carta. */
+async function consultarTraspasoRemoto(u, proyecto, ids){
+  const clave = ids.join('|');
+  const { data: d, error } = await sb.rpc('parcela_traspaso_estado',
+    { p_proyecto: proyecto, p_codigo: u.codigo, p_ids: ids });
+  if(error) throw error;
+  if(!d){
+    // No la ocupa una Carta: es de otro Bloqueo/Construcción — no se traspasa.
+    u.ocupanteOculto = false; u.ocupante = null;
+    return 'no';
+  }
+  u.traspasoRemoto = { numero: d.numero, estado: d.estado, clave };
+  return d.estado;
+}
 async function comprobarTraspasoRemoto(u){
   const ids = identificadoresDelFormulario();
-  const clave = ids.join('|');
-  let d = null;
+  let estado;
   try{
-    const { data, error } = await sb.rpc('parcela_traspaso_estado',
-      { p_proyecto: UNIDADES_PROY.proyecto, p_codigo: u.codigo, p_ids: ids });
-    if(error) throw error;
-    d = data;
+    estado = await consultarTraspasoRemoto(u, UNIDADES_PROY.proyecto, ids);
   }catch(err){
     toastMal(lwT('No se ha podido comprobar la parcela: ') + ((err && err.message) || ''));
     return false;
   }
-  if(!d){
-    // No la ocupa una Carta: es de otro Bloqueo/Construcción — no se traspasa.
-    u.ocupanteOculto = false; u.ocupante = null;
+  if(estado === 'no'){
     toastMal(lwT('La parcela ') + u.codigo + lwT(' ya está asignada a otro contrato.'));
     return false;
   }
-  u.traspasoRemoto = { numero: d.numero, estado: d.estado, clave };
+  const d = u.traspasoRemoto;
   if(d.estado === 'ok'){
     toast(lwT('Reservada en ') + d.numero + lwT(' para este comprador: se traspasa a este Bloqueo al guardar.'));
     return true;
@@ -738,9 +792,15 @@ function buildForm(){
     idx++;
     if(!seenTiers.has(s.tier)){ html += `<div class="tier-label ${seenTiers.size?'':'first'}">${L(TIERS[s.tier]||{es:s.tier})}</div>`; seenTiers.add(s.tier); }
     if(s.special==='hitos'){
+      /* Forma de pago (28-sep-2026, owner): lo PRIMERO del bloque «Calendario de pagos», antes de la tabla —
+         decide la tabla y la cláusula del Art. 5 (hitos_fechas.js → formaPagoBodyHTML). Va en su propio
+         contenedor, hermano del de la tabla: refreshHitos() repinta solo `.hitos-body`, y las tarjetas se
+         repintan aparte y solo si cambia lo que enseñan (refreshFormaPago). */
+      const formaPago = CONTRACT_TIPO[CURRENT.slug] === 'construccion'
+        ? `<div class="fp-bloque" id="formaPagoBox" data-firma="${escAttr(firmaFormaPago())}">${formaPagoBodyHTML()}</div>` : '';
       html += `<section class="section" data-sec="pagos" data-tier="${s.tier}">
         <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2><span class="chev">▾</span></header>
-        <div class="body">${hitosBodyHTML()}</div></section>`;
+        <div class="body">${formaPago}<div class="hitos-body">${hitosBodyHTML()}</div></div></section>`;
       return;
     }
     const optional = s.optional ? `<div class="opt-toggle">${L({es:'añadir',en:'add',id:'tambah'})}<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
@@ -774,6 +834,8 @@ function buildForm(){
   if(!form._hitosWired){ form._hitosWired = true;
     form.addEventListener('input', e=>{ const el=e.target.closest('[data-hkey]'); if(!el) return;
       const h=HITOS[+el.dataset.hi]; if(h){ h[el.dataset.hkey]=el.value;
+        // Un % o concepto de fábrica tocado por un admin saca el contrato de su calendario de fábrica (28-sep)
+        if(el.hasAttribute('data-fijo-hito') && typeof calendarioPasaAManual === 'function') calendarioPasaAManual();
         // Un % de fábrica editado a mano (admin/super_admin) recalcula su
         // propia Cantidad al momento, sin esperar a que cambie precio_total.
         if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
@@ -788,6 +850,10 @@ function buildForm(){
       el.style.outline = mala ? '2px solid var(--be, #b3261e)' : '';
       el.setAttribute('aria-invalid', String(mala));
       if(mala) toastMal(lwT('Esa fecha no existe (¿31 de un mes de 30 días?): el hito se queda sin vencimiento hasta que la corrijas') + ' · ' + (+el.dataset.hi + 1));
+    });
+    // Forma de pago del Contrato de Construcción (28-sep-2026): sustituye la tabla por el preset elegido
+    form.addEventListener('change', e=>{
+      if(e.target && e.target.name === 'formaPago' && typeof cambiaCalendario === 'function') cambiaCalendario(e.target.value);
     });
     form.addEventListener('click', e=>{
       // ▸ EN·ID (17-sep-2026): abre/cierra la fila hermana con el concepto en
@@ -816,8 +882,10 @@ function buildForm(){
       // ambos botones y a bloquear % y concepto hasta que tocara, por
       // casualidad, algún campo con `name` (el único wiring que ya llama a
       // updateSaveButton()).
-      if(del){ HITOS.splice(+del.dataset.hdel,1); refreshHitos(); updateSaveButton(); render(); return; }
+      if(del){ if(typeof calendarioPasaAManual === 'function') calendarioPasaAManual();
+        HITOS.splice(+del.dataset.hdel,1); refreshHitos(); updateSaveButton(); render(); return; }
       if(e.target.closest('#hitoAdd')){
+        if(typeof calendarioPasaAManual === 'function') calendarioPasaAManual();
         // Hereda `calculado` si ESTE contrato ya usa un calendario de
         // importes calculados — no por tipo de contrato (misma corrección
         // MEDIA de Administración que el candado de los botones,
