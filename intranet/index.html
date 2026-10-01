@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="40575158e5a6">
+<meta name="lw-version" content="f91fe3f9a7d8">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -42,7 +42,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=d9fcf678"></script>
+<script src="/contracts/assets/i18n.js?v=74fe0e8f"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script>
 <script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/topbar.js?v=705d408d" defer></script>
 <style>
@@ -302,6 +302,27 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
   border-radius:9px; padding:10px 13px; margin-bottom:20px; text-align:center; }
 .lw-login .pie{ margin:22px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-3); text-align:center; }
 .lw-login .pie a{ color:var(--dl); }
+
+/* ── paso de la puerta a dentro (1-oct-2026, owner) ──────────────────────────
+   Lo que se ve entre pulsar «Entrar» (o abrir /intranet/ con la sesión ya hecha)
+   y que cargue la v4. Dentro de la v4 la espera es `#lw-cargando` y no se toca.
+   Mismo fondo que ese velo (#F5F0E6, opaco) para que el relevo entre las dos
+   páginas no salte; sin sombra (ley de la suite) y con un anillo fino, que es la
+   excepción puntual del owner a «sin carrete»: solo aquí, nunca dentro de la v4. */
+.lw-entra{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+  padding:24px; background:#F5F0E6; opacity:0; transition:opacity .18s ease-out; }
+.lw-entra[hidden]{ display:none; }
+.lw-entra.on{ opacity:1; }
+.lw-entra:focus{ outline:none; }
+.lw-entra .tarjeta{ display:flex; align-items:center; gap:16px; width:100%; max-width:340px;
+  background:var(--sup); border:1px solid var(--line); border-radius:var(--r); padding:24px 26px; }
+.lw-entra .anillo{ width:40px; height:40px; flex:none; animation:lwEntraGira 1s linear infinite; }
+.lw-entra .anillo circle{ fill:none; stroke-width:2; }
+.lw-entra .anillo .pista{ stroke:var(--line); }
+.lw-entra .anillo .arco{ stroke:var(--tg); stroke-linecap:round; stroke-dasharray:34 100; }
+@keyframes lwEntraGira{ to{ transform:rotate(360deg); } }
+.lw-entra .t{ margin:0; font-size:15px; font-weight:500; color:var(--ink); }
+.lw-entra .d{ margin:2px 0 0; font-size:12.5px; line-height:1.45; color:var(--ink-2); }
 </style>
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
@@ -418,6 +439,18 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
     <span data-lwt="Acceso restringido: cada herramienta exige esta misma sesión.">Acceso restringido: cada herramienta exige esta misma sesión.</span>
     <span id="pie-datos"></span>
   </div></footer>
+
+  <!-- Paso de la puerta a dentro (1-oct-2026). Nace oculto; lo enseña `lwEntra`, más abajo,
+       solo cuando la sesión ya está confirmada y se va a redirigir. Hijo directo de <body>. -->
+  <div class="lw-entra" id="lwEntra" role="dialog" aria-modal="true" aria-labelledby="lwEntraT" aria-describedby="lwEntraD" aria-busy="true" tabindex="-1" hidden>
+    <div class="tarjeta">
+      <svg class="anillo" viewBox="0 0 44 44" aria-hidden="true"><circle class="pista" cx="22" cy="22" r="19"/><circle class="arco" cx="22" cy="22" r="19" pathLength="100"/></svg>
+      <div>
+        <p class="t" id="lwEntraT" data-lwt="Preparando tu panel">Preparando tu panel</p>
+        <p class="d" id="lwEntraD" data-lwt="Sesión iniciada. Entrando…">Sesión iniciada. Entrando…</p>
+      </div>
+    </div>
+  </div>
 
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
@@ -863,6 +896,33 @@ function mostrarApp(mostrar){
   document.getElementById('mainApp').hidden = !mostrar;
   document.getElementById('footApp').hidden = !mostrar;
 }
+/* Paso de la puerta a dentro (1-oct-2026, owner: «solo cuando pasas de /intranet/ a dentro»).
+   `pronto()` se llama DESPUÉS de todas las salidas que rebotan (portal, cuenta desactivada,
+   modo mantenimiento) y justo antes de navegar: así nadie ve «Entrando» y acaba en otra parte.
+   Espera 250 ms: si la navegación es inmediata, el modal ni llega a pintarse (sin parpadeo).
+   Tope de 10 s desde que se enseña, por si la navegación se cuelga; un solo temporizador por fase.
+   En la rama de sesión abierta el <body> sigue `hidden` (nada del hub debe verse antes de validar):
+   solo se destapa el body, y login/panel/pie conservan cada uno su `hidden`. */
+const lwEntra = (function(){
+  const el = document.getElementById('lwEntra');
+  let espera = 0, tope = 0, destape = false;
+  function quita(){
+    clearTimeout(espera); clearTimeout(tope); espera = 0; tope = 0;
+    el.classList.remove('on'); el.hidden = true;
+    if(destape){ document.body.hidden = true; destape = false; }
+  }
+  function muestra(){
+    if(document.body.hidden){ document.body.hidden = false; destape = true; }
+    el.hidden = false;
+    requestAnimationFrame(() => el.classList.add('on'));
+    el.focus();
+    tope = setTimeout(quita, 10000);
+  }
+  return { pronto(){ if(!espera) espera = setTimeout(muestra, 250); }, quita };
+})();
+// volver con «atrás» desde la v4 no debe dejar el modal pintado en la copia en caché de la página
+window.addEventListener('pageshow', e => { if(e.persisted) lwEntra.quita(); });
+
 function mostrarLogin(){
   mostrarApp(false);
   document.getElementById('loginGate').hidden = false;
@@ -893,6 +953,7 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
   // Con `inicio` en la ficha, el panel clásico no es la portada: se va a ella
   // (salvo que traiga un aviso de «sin permiso», que se enseña aquí).
   if(inicioInstancia() && !new URLSearchParams(location.search).get('sin_permiso')){
+    lwEntra.pronto();
     location.replace(siguiente());
     return;
   }
@@ -962,7 +1023,12 @@ document.getElementById('fLogin').addEventListener('submit', async (e) => {
     email: document.getElementById('loginEmail').value,
     password: document.getElementById('loginPass').value
   });
-  if(!error){ location.href = siguiente(); }
+  if(!error){
+    const destino = siguiente();
+    // si el destino es esta misma página, la sesión abierta ya redirige y enseña el modal ella: uno solo
+    if(destino.split(/[?#]/)[0] !== '/intranet/') lwEntra.pronto();
+    location.href = destino;
+  }
   else{
     err.textContent = error.message === 'Invalid login credentials' ? lwT('Credenciales incorrectas') : error.message;
     btn.disabled = false;

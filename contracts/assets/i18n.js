@@ -1736,6 +1736,8 @@
     'Entrar': 'Log in',
     'Salir': 'Log out',
     'Credenciales incorrectas': 'Wrong email or password',
+    'Preparando tu panel': 'Getting your dashboard ready',
+    'Sesión iniciada. Entrando…': 'Signed in. Entering…',
     'Entra por el área de clientes →': 'Go to the client area →',
     /* cifras del hub */
     'Firmas esperando': 'Signatures waiting',
