@@ -17,6 +17,8 @@
 //    el sha del PDF descargado. Un sha distinto no se envía nunca.
 //  · Entrega «al menos una vez»: si el isolate muere con el correo ya aceptado y
 //    antes de cerrar, el reintento lo duplica. Máximo 3 intentos y aviso al admin.
+//    ACEPTADO: un duplicado raro de un contrato firmado es preferible a perder una copia; decidido por el estudio en la
+//    revisión previa #186 (punto 8, Datos). Se mide en el ciclo de 10 firmas reales (log `copia_firmada_enviada_sin_cerrar`).
 //    El control de duplicados es solo el estado de la propia cola (la tabla
 //    `correos_enviados` la puede escribir un agente: no es una fuente de verdad).
 //  · 20 s entre correos (el filtro de spam de Hostinger ya bloqueó una ráfaga) y
@@ -87,6 +89,8 @@ export function plantilla(f: { numero: string; proyecto: string | null; nombre: 
 async function enviar(f: Fila, pdf: Uint8Array, asunto: string, mensaje: string) {
   const r = await fetch(ENVIO_EDGE, {
     method: 'POST',
+    // Un timeout es AMBIGUO (el SMTP pudo aceptarlo): cuenta como fallo del intento y puede acabar en duplicado.
+    signal: AbortSignal.timeout(60_000),
     headers: { 'content-type': 'application/json', 'X-Render-Secret': SECRETO_ENVIO, 'X-Llamante': 'copias-firmadas-envio' },
     body: JSON.stringify({ to: f.email, subject: asunto, message: mensaje, filename: f.numero + '_firmado.pdf', pdf_base64: b64(pdf) }),
   });
@@ -96,13 +100,14 @@ async function enviar(f: Fila, pdf: Uint8Array, asunto: string, mensaje: string)
 
 // Aviso al admin cuando una copia queda en 'error': nunca silencio. Solo el número
 // del contrato y el motivo, sin direcciones.
-async function avisaAdmin(numero: string, motivo: string) {
+async function avisaAdmin(numero: string, motivo: string): Promise<boolean> {
   try {
     const { data } = await sb.from('config_instancia').select('valor').eq('clave', 'email_avisos_sistema').maybeSingle();
     const to = typeof data?.valor === 'string' ? data.valor.trim() : '';
-    if (!to) return;
-    await fetch(ENVIO_EDGE, {
+    if (!to) return false;
+    const r = await fetch(ENVIO_EDGE, {
       method: 'POST',
+      signal: AbortSignal.timeout(60_000),
       headers: { 'content-type': 'application/json', 'X-Render-Secret': SECRETO_ENVIO, 'X-Llamante': 'copias-firmadas-envio' },
       body: JSON.stringify({
         to, subject: 'Copia firmada sin entregar · ' + numero, attach: false,
@@ -110,11 +115,25 @@ async function avisaAdmin(numero: string, motivo: string) {
           '). Revisa la tabla copias_firmadas_envios (estado «error»): hay que resolverla a mano.',
       }),
     });
-  } catch (e) { console.error('copia_firmada_aviso_admin_fallo', String((e as Error)?.message ?? e).slice(0, 120)); }
+    return r.ok;
+  } catch (e) { console.error('copia_firmada_aviso_admin_fallo', String((e as Error)?.message ?? e).slice(0, 120)); return false; }
 }
 
 // El motivo que se guarda/avisa: sin direcciones y recortado. La RPC lo vuelve a limpiar.
 const limpio = (m: string) => m.replace(/\S+@\S+/g, '<correo>').slice(0, 300);
+
+// Al final de CADA pasada: toda fila que haya acabado en 'error' (agotado, PDF no encontrado, comprador fuera del
+// portal con un PDF demasiado grande, tres fallos…) se avisa al admin una vez y se marca. Nunca silencio.
+async function avisaPendientes() {
+  try {
+    const { data } = await sb.rpc('copias_firmadas_sin_avisar');
+    const hechas: string[] = [];
+    for (const r of (data ?? []) as { id: string; numero: string; error: string | null }[]) {
+      if (await avisaAdmin(r.numero, r.error ?? 'error')) hechas.push(r.id);
+    }
+    if (hechas.length) await sb.rpc('copias_firmadas_marca_avisadas', { p_ids: hechas });
+  } catch (e) { console.error('copia_firmada_avisos_fallo', String((e as Error)?.message ?? e).slice(0, 120)); }
+}
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
@@ -124,6 +143,12 @@ Deno.serve(async (req) => {
   if (eSec || !esperado) return json({ error: 'sin_secreto_configurado' }, 500);
   if (!igual(req.headers.get('x-cron-secret') || '', String(esperado))) return json({ error: 'no_autorizado' }, 401);
 
+  const r = await pasada();
+  await avisaPendientes();
+  return r;
+});
+
+async function pasada(): Promise<Response> {
   const inicio = Date.now();
   const { data: mant } = await sb.from('mantenimiento').select('envios_pausados').eq('id', 1).maybeSingle();
   if (mant?.envios_pausados) return json({ ok: true, pausado: true, enviadas: 0, fallidas: 0 });
@@ -147,9 +172,8 @@ Deno.serve(async (req) => {
     if (i > 0) await new Promise((r) => setTimeout(r, ESPERA_MS));
     try {
       if (f.pdf_bytes > MAX_ADJUNTO) {
-        const est = await sb.rpc('copia_firmada_fallo', { p_id: f.id, p_error: 'pdf_demasiado_grande_para_adjuntar', p_terminal: true });
+        await sb.rpc('copia_firmada_fallo', { p_id: f.id, p_error: 'pdf_demasiado_grande_para_adjuntar', p_terminal: true });
         console.error('copia_firmada_error contrato', f.numero, 'pdf_demasiado_grande_para_adjuntar');
-        if (est.data === 'error') await avisaAdmin(f.numero, 'el PDF pesa demasiado para ir adjunto');
         fallidas++; continue;
       }
       const dl = await sb.storage.from('contratos-firmados').download(f.pdf_path);
@@ -164,11 +188,14 @@ Deno.serve(async (req) => {
       const { asunto, mensaje } = plantilla(f);
       await enviar(f, pdf, asunto, mensaje);
       pdf = null;
-      // el correo YA salió: si cerrar falla, se reintenta el cierre, nunca el envío
+      // El correo YA salió: se reintenta el CIERRE (3 veces). Si no cierra, la fila queda en 'enviando' y a los 15 min la
+      // pasada siguiente la reenvía: duplicado posible, ver «al menos una vez» arriba. Queda en el log para medirlo.
       let cerrado = false;
       for (let k = 0; k < 3 && !cerrado; k++) {
         const ok = await sb.rpc('copia_firmada_ok', { p_id: f.id, p_asunto: asunto, p_mensaje: mensaje });
-        if (!ok.error) cerrado = true; else await new Promise((r) => setTimeout(r, 1500));
+        if (!ok.error && ok.data === true) cerrado = true;
+        else if (!ok.error) break;                       // false: la fila ya no estaba 'enviando', reintentar no cambia nada
+        else await new Promise((r) => setTimeout(r, 1500));
       }
       if (!cerrado) console.error('copia_firmada_enviada_sin_cerrar contrato', f.numero, 'fila', f.id);
       enviadas++;
@@ -186,11 +213,10 @@ Deno.serve(async (req) => {
         }).eq('id', 1);
         return json({ ok: false, enviadas, fallidas: fallidas + 1, pausado: true });
       }
-      const est = await sb.rpc('copia_firmada_fallo', { p_id: f.id, p_error: msg, p_terminal: terminal });
+      await sb.rpc('copia_firmada_fallo', { p_id: f.id, p_error: msg, p_terminal: terminal });
       console.error('copia_firmada_fallo contrato', f.numero, 'intento', f.intentos, msg.slice(0, 100));
-      if (est.data === 'error') await avisaAdmin(f.numero, msg);
       fallidas++;
     }
   }
   return json({ ok: true, enviadas, fallidas });
-});
+}

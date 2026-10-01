@@ -37,9 +37,10 @@ const SITIO = (Deno.env.get('SITIO_URL') || 'https://lawangproperties.com').repl
 // la edge envia-correo o, de vuelta atrás, el PHP). Solo se aceptan esas dos URL: una clave manipulada no puede sacar
 // el secreto a otro host. Si la clave falta, no es texto o no es una de las dos, cae al PHP (comportamiento de siempre).
 // La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET.
-// EXCEPCIÓN de tamaño: la edge rechaza un PDF de más de 34 MB de base64 (no se puede subir: el runtime tiene 256 MB) y
-// hay contratos firmados de hasta 33 MB reales. Esos siguen por el PHP mientras exista; retirarlo pide antes una política
-// para ellos (enlace en vez de adjunto). Es un rechazo previo al SMTP en la edge, así que nunca habría duplicado.
+// Tamaño (AXW-127, 1-oct-2026): la edge rechaza un PDF de más de 34 MB de base64 (no se puede subir: el runtime tiene 256 MB) y
+// hay contratos firmados de hasta 33 MB reales. Antes esos caían al PHP; ahora este envío responde 413 con un texto que la
+// pantalla enseña tal cual: un PDF tan grande no cabe en el buzón de casi nadie (Gmail corta en 25 MB) y se entrega por el
+// portal del comprador o, para el estudio, desde la intranet. Es un rechazo previo al SMTP, así que nunca habría duplicado.
 const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
 const ENVIO_EDGE = URL_SB + '/functions/v1/envia-correo';
 const TOPE_PDF_EDGE = 34 * 1024 * 1024;
@@ -218,6 +219,10 @@ Deno.serve(async (req) => {
       } catch (e) { console.error('copia del PDF enviado: ' + String((e as Error)?.message ?? e)); }
     }
 
+    if (pdfB64.length > TOPE_PDF_EDGE) {
+      return json({ ok: false, codigo: 'pdf_demasiado_grande',
+        error: 'Este PDF pesa más de 25 MB y no se puede mandar por correo. Se entrega por el portal del comprador (o desde la intranet, si es para el estudio).' }, 413);
+    }
     const dest = await destinoEnvio(pdfB64.length);
     const r = await fetch(dest.url, {
       method: 'POST',

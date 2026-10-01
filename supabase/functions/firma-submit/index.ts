@@ -130,7 +130,9 @@ async function enviarEmail(p: {
   // registro de envíos (correos_enviados): quién llama dice de qué contrato /
   // factura sale el correo y por qué vía. Sin `log` no se registra (no queda
   // ningún llamador así, pero el envío nunca depende del log).
-  log?: { contrato_id?: string | null; factura_id?: string | null; via: string };
+  // `mensaje` solo lo pasan los correos de la cola de copias firmadas (AXW-127): plantilla fija sin token ni URL firmada.
+  // Nunca se registra el mensaje de un correo que lleve credencial (LAW-343).
+  log?: { contrato_id?: string | null; factura_id?: string | null; via: string; mensaje?: string };
 }) {
   const cuerpo = JSON.stringify({
     to: p.to, subject: p.subject, message: p.message,
@@ -157,6 +159,7 @@ async function enviarEmail(p: {
     const { error } = await sb.from('correos_enviados').insert({
       contrato_id: p.log.contrato_id ?? null, factura_id: p.log.factura_id ?? null,
       para: p.to, asunto: p.subject, via: p.log.via, enviado_por: null,
+      ...(p.log.mensaje ? { mensaje: p.log.mensaje } : {}),
     });
     if (error) console.error('correos_enviados: ' + error.message);
   }
@@ -321,6 +324,54 @@ export function destinosFirmado(
   return out;
 }
 
+/* ── AXW-127: reparto por portal + cola (solo con copias_firmadas_modo = «cola») ───────────────────────────────────────── */
+async function modoCola(): Promise<boolean> {
+  try {
+    const { data } = await sb.from('config_instancia').select('valor').eq('clave', 'copias_firmadas_modo').maybeSingle();
+    return data?.valor === 'cola';
+  } catch (_) { return false; }
+}
+
+type DestinoCola = { email: string; nombre: string | null; estudio: boolean; equipo: boolean; modo: 'portal' | 'cola' | 'intranet' | 'error'; estado: string | null };
+
+async function encolarCopias(contratoId: string, numero: string): Promise<{ destinos: DestinoCola[] } | null> {
+  try {
+    const { data, error } = await sb.rpc('copia_firmada_encolar', { p_contrato: contratoId });
+    if (error || !data || !Array.isArray((data as any).destinos)) throw new Error(error?.message ?? 'respuesta sin destinos');
+    return data as { destinos: DestinoCola[] };
+  } catch (e) {
+    console.error('copias_firmadas_encolar_fallo contrato', numero, String((e as Error)?.message ?? e).slice(0, 200), '— se usa el enlace');
+    return null;
+  }
+}
+
+async function avisarSegunPlan(o: { numero: string; proyecto: string; contratoId: string }, plan: { destinos: DestinoCola[] }) {
+  const proy = o.proyecto ? ' (' + o.proyecto + ')' : '';
+  const cola = '\n\nLawang Tropical Properties';
+  const errores: string[] = [];
+  let sinEntregar = 0;
+  for (const d of plan.destinos) {
+    if (d.modo === 'cola') { if (d.estado === 'error') sinEntregar++; continue; }   // el adjunto lo manda la edge de la cola
+    if (d.modo === 'error') { sinEntregar++; continue; }
+    // Plantillas fijas: URL genérica del portal / de la intranet, sin contrato_id, token ni query.
+    const asunto = d.modo === 'portal' ? 'Tu contrato firmado · ' + o.numero : 'Contrato firmado · ' + o.numero;
+    const cuerpo = d.modo === 'portal'
+      ? 'Hola' + (d.nombre ? ' ' + String(d.nombre).split(' ')[0] : '') + ',\n\nHemos recibido tu firma. Tu copia del contrato ' + o.numero + proy +
+        ', ya firmado, está en tu portal de cliente: ' + SITIO + '/portal/' +
+        '\n\nEntra con este mismo correo: te enviaremos un enlace de acceso.' +
+        '\n\nGuárdalo: es el documento con el registro de firma electrónica que acredita la operación.' + cola
+      : 'Se ha completado la firma del contrato ' + o.numero + proy + '.' +
+        '\n\nEl PDF firmado pesa demasiado para ir adjunto. Lo tienes en la intranet: ' + SITIO + '/intranet/v4/operaciones/' + cola;
+    try { await enviarEmail({ to: d.email, subject: asunto, message: cuerpo, log: { contrato_id: o.contratoId, via: 'copia_firmada', mensaje: cuerpo } }); }
+    catch (e) { errores.push(String((e as Error).message)); }
+  }
+  if (sinEntregar) {
+    errores.push(sinEntregar + ' copia(s) del contrato ' + o.numero + ' sin entregar: el PDF pesa demasiado para ir adjunto y el destinatario no entra al portal ' +
+                 '(queda una fila en estado «error» en copias_firmadas_envios; resolver a mano)');
+  }
+  if (errores.length) throw new Error(errores.join(' | '));
+}
+
 /* El contrato firmado, al estudio y a cada comprador o firmante con email. El
    estudio siempre; los demás, los que tengan dirección — a quien no la dio no
    se le inventa una. */
@@ -351,6 +402,16 @@ async function repartirFirmado(o: {
   const destinos = destinosFirmado(ESTUDIO_EMAIL, o.compradores ?? [], o.firmantes ?? []);
   const tanda = o.pdf.length * Math.max(1, destinos.length);
   const grande = o.pdf.length > MAX_ADJUNTO || tanda > MAX_TANDA;
+  /* AXW-127 (1-oct-2026): con el interruptor `copias_firmadas_modo` = «cola», lo «grande» ya no se reparte con un enlace
+     firmado de 30 días: quien puede entrar al portal recibe un correo de texto con el enlace al portal y el resto recibe el
+     PDF adjunto desde una cola, fuera de esta petición (edge copias-firmadas-envio). Los destinos y su clasificación los
+     calcula la base (`copia_firmada_encolar`, solo con el contrato). Si el encolado falla, ANTES de mandar nada, se cae al
+     camino antiguo de abajo (el enlace) para no dejar al comprador sin copia. `MAX_TANDA` se queda: sigue acotando lo que
+     viaja adjunto DENTRO de esta petición (la causa del fallo del 17-ago). */
+  if (grande && await modoCola()) {
+    const plan = await encolarCopias(o.contratoId, o.numero);
+    if (plan) return await avisarSegunPlan(o, plan);
+  }
   let enlace = '';
   if (grande) {
     // 30 días: el comprador tiene que poder volver a descargarlo sin pedirlo.
