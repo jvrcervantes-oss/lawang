@@ -505,13 +505,23 @@
     veloEl.id = 'lw-cargando';
     veloEl.setAttribute('role', 'status');
     veloEl.setAttribute('aria-live', 'polite');
+    /* Rediseño A «esqueleto» (1-oct-2026, owner: «cogemos la A»): el velo toma la forma de una
+       pantalla de la v4 —cabecera en tarjeta, cuatro tarjetas, tabla— en bloques que laten. Sigue
+       TAPANDO el contenido (los guiones se leían como «no hay datos») y sigue sin carrete: la
+       regla de shell.css es que el estudio no usa el genérico. La forma es la misma para todas las
+       pantallas, no un dibujo por pantalla: es una pista de dónde va a aparecer lo que llega. */
     veloEl.innerHTML =
-      '<p class="lw-c-marca">' + esc((window.LW_INSTANCIA || {}).cabecera) + '</p>' +   // la ficha de la instancia (F3 2b)
-      '<div class="lw-c-frases">' +
-        '<p class="lw-c-dice">Trayendo los datos de la pantalla</p>' +
-        '<p class="lw-c-tarda">Sigue viniendo — la consulta esta tardando mas de lo normal</p>' +
-      '</div>' +
-      '<div class="lw-c-barra"><i></i></div>';
+      '<div class="lw-c-cuerpo">' +
+        '<div class="lw-c-frases">' +
+          '<p class="lw-c-dice"><i></i>Trayendo los datos de la pantalla</p>' +
+          '<p class="lw-c-tarda"><i></i>Sigue viniendo — la consulta esta tardando mas de lo normal</p>' +
+        '</div>' +
+        '<div class="lw-c-card lw-c-hd"><span class="lw-c-hu lw-c-t"></span><span class="lw-c-hu lw-c-s"></span></div>' +
+        '<div class="lw-c-kk">' +
+          '<div class="lw-c-card"><span class="lw-c-hu lw-c-k1"></span><span class="lw-c-hu lw-c-k2"></span></div>'.repeat(4) +
+        '</div>' +
+        '<div class="lw-c-card lw-c-tabla">' + '<span class="lw-c-hu lw-c-f"></span>'.repeat(5) + '</div>' +
+      '</div>';
     document.body.appendChild(veloEl);
     var m = document.querySelector('main');
     if (m) m.setAttribute('aria-busy', 'true');

@@ -1738,6 +1738,8 @@
     'Credenciales incorrectas': 'Wrong email or password',
     'Preparando tu panel': 'Getting your dashboard ready',
     'Sesión iniciada. Entrando…': 'Signed in. Entering…',
+    'Comprobando tu acceso…': 'Checking your access…',
+    'Esto tarda más de lo normal. Puedes esperar o reintentar.': 'This is taking longer than usual. You can wait or try again.',
     'Entra por el área de clientes →': 'Go to the client area →',
     /* cifras del hub */
     'Firmas esperando': 'Signatures waiting',
