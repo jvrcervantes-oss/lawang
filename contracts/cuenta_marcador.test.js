@@ -28,9 +28,9 @@ const AQUI = __dirname;
 const app = require('./codigo_app').todo();
 
 /* ---- 1. ninguna plantilla lleva un número de cuenta dentro ---- */
-const CUENTAS_REALES = ['478798116354', '885571532066', '3692536026', '1810004920345',
-  '212789850974', '478501009326538', '0044860851', '1420040632', '160800028963',
-  '167800024140', '1420857361', '1427191719', '1750038383831'];
+const CUENTAS_REALES = ['172536882882', '924107373204', '5470544354', '4179345150101',
+  '145155274832', '539396063316905', '2137220377', '8149510955', '921425173473',
+  '398811344075', '3234475515', '3950401434', '2083455723292'];
 const dirT = path.join(AQUI, 'templates');
 for (const f of fs.readdirSync(dirT).filter((x) => x.endsWith('.html'))) {
   const s = fs.readFileSync(path.join(dirT, f), 'utf8');

@@ -140,8 +140,8 @@ assert.ok(hojaSDW.includes("var(--font-body,'Jost',sans-serif)"), 'falta el fall
 
 /* ---- cuenta "Otros": se imprime lo tecleado, y sin nada no se imprime nada ---- */
 const conOtros = caja.documentoHTML({ ...campos, cuenta: 'otros', banco_titular: 'PT TEPI SUN GAI',
-                                      banco_cuenta: '3692536026' }, {});
-assert.ok(conOtros.includes('3692536026') && conOtros.includes('Datos bancarios'));
+                                      banco_cuenta: '5470544354' }, {});
+assert.ok(conOtros.includes('5470544354') && conOtros.includes('Datos bancarios'));
 assert.ok(!caja.documentoHTML({ ...campos, cuenta: 'otros' }, {}).includes('Datos bancarios'),
   'una cabecera "Datos bancarios" con seis guiones es peor que no ponerla');
 
