@@ -278,52 +278,6 @@ function sociedadEmisora(C: Record<string, any>, elegida: string | null | undefi
 }
 
 
-/* A QUIÉN SE LE MANDA EL FIRMADO — la unión de las DOS listas, no una de ellas.
-   14-sep-2026, tras encontrarlo en producción: CR00056 se firmó el 11-sep y la
-   copia salió SOLO al estudio. La compradora había recibido sus cuatro enlaces
-   de firma sin problema y firmó; lo que no tenía era `adq1_email` relleno en el
-   contrato — el operador tecleó su dirección al generar el enlace, que es donde
-   de verdad vive (`contrato_firmas.firmante_email`). El reparto miraba
-   únicamente los campos del contrato, así que la lista de compradores con email
-   salía vacía y no hubo a quien mandarle nada. Mismo caso en PA00006 (17-ago).
-
-   Es la familia de fallo de la Regla 0 de la suite: DOS listas escritas a mano
-   del mismo hecho («quién es el destinatario»), que divergen. Aquí no se elige
-   cuál manda —ninguna de las dos es completa por sí sola: el comprador que no
-   firma electrónicamente solo está en el contrato, y el firmante cuyo email se
-   tecleó al generar el enlace solo está en la firma— se UNEN y se deduplican
-   por dirección. Una dirección que recibió el enlace es, además, la única que
-   está PROBADA como válida: por ahí llegó el documento que acaba de firmar.
-
-   ⚠️ DUPLICADO a propósito de copiaFirmantes()/copiaCompradoresDelContrato() en
-   contracts/app.html (panel «Copias del contrato firmado»): esta función no
-   comparte runtime con esa página. Si cambia allí el criterio de quién recibe
-   copia, replicarlo aquí — y al revés. */
-const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export function destinosFirmado(
-  estudioEmail: string,
-  compradores: { nombre?: string; email?: string }[],
-  firmantes: { nombre?: string; email?: string }[],
-): { to: string; nombre?: string; estudio: boolean }[] {
-  const vistos = new Set<string>();
-  const out: { to: string; nombre?: string; estudio: boolean }[] = [];
-  const add = (email: unknown, nombre: unknown, estudio: boolean) => {
-    const em = String(email ?? '').trim();
-    if (!EMAIL_OK.test(em)) return;
-    const k = em.toLowerCase();
-    if (vistos.has(k)) return;
-    vistos.add(k);
-    out.push(estudio ? { to: em, estudio: true } : { to: em, nombre: String(nombre ?? '').trim(), estudio: false });
-  };
-  // El estudio primero y siempre: si su dirección coincidiera con la de un
-  // comprador, el dedup la deja como copia del estudio y no se manda dos veces.
-  add(estudioEmail, '', true);
-  (compradores ?? []).forEach((c) => add(c?.email, c?.nombre, false));
-  (firmantes ?? []).forEach((f) => add(f?.email, f?.nombre, false));
-  return out;
-}
-
 /* ── AXW-127: reparto por portal + cola (solo con copias_firmadas_modo = «cola») ───────────────────────────────────────── */
 async function modoCola(): Promise<boolean> {
   try {
@@ -370,6 +324,52 @@ async function avisarSegunPlan(o: { numero: string; proyecto: string; contratoId
                  '(queda una fila en estado «error» en copias_firmadas_envios; resolver a mano)');
   }
   if (errores.length) throw new Error(errores.join(' | '));
+}
+
+/* A QUIÉN SE LE MANDA EL FIRMADO — la unión de las DOS listas, no una de ellas.
+   14-sep-2026, tras encontrarlo en producción: CR00056 se firmó el 11-sep y la
+   copia salió SOLO al estudio. La compradora había recibido sus cuatro enlaces
+   de firma sin problema y firmó; lo que no tenía era `adq1_email` relleno en el
+   contrato — el operador tecleó su dirección al generar el enlace, que es donde
+   de verdad vive (`contrato_firmas.firmante_email`). El reparto miraba
+   únicamente los campos del contrato, así que la lista de compradores con email
+   salía vacía y no hubo a quien mandarle nada. Mismo caso en PA00006 (17-ago).
+
+   Es la familia de fallo de la Regla 0 de la suite: DOS listas escritas a mano
+   del mismo hecho («quién es el destinatario»), que divergen. Aquí no se elige
+   cuál manda —ninguna de las dos es completa por sí sola: el comprador que no
+   firma electrónicamente solo está en el contrato, y el firmante cuyo email se
+   tecleó al generar el enlace solo está en la firma— se UNEN y se deduplican
+   por dirección. Una dirección que recibió el enlace es, además, la única que
+   está PROBADA como válida: por ahí llegó el documento que acaba de firmar.
+
+   ⚠️ DUPLICADO a propósito de copiaFirmantes()/copiaCompradoresDelContrato() en
+   contracts/app.html (panel «Copias del contrato firmado»): esta función no
+   comparte runtime con esa página. Si cambia allí el criterio de quién recibe
+   copia, replicarlo aquí — y al revés. */
+const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function destinosFirmado(
+  estudioEmail: string,
+  compradores: { nombre?: string; email?: string }[],
+  firmantes: { nombre?: string; email?: string }[],
+): { to: string; nombre?: string; estudio: boolean }[] {
+  const vistos = new Set<string>();
+  const out: { to: string; nombre?: string; estudio: boolean }[] = [];
+  const add = (email: unknown, nombre: unknown, estudio: boolean) => {
+    const em = String(email ?? '').trim();
+    if (!EMAIL_OK.test(em)) return;
+    const k = em.toLowerCase();
+    if (vistos.has(k)) return;
+    vistos.add(k);
+    out.push(estudio ? { to: em, estudio: true } : { to: em, nombre: String(nombre ?? '').trim(), estudio: false });
+  };
+  // El estudio primero y siempre: si su dirección coincidiera con la de un
+  // comprador, el dedup la deja como copia del estudio y no se manda dos veces.
+  add(estudioEmail, '', true);
+  (compradores ?? []).forEach((c) => add(c?.email, c?.nombre, false));
+  (firmantes ?? []).forEach((f) => add(f?.email, f?.nombre, false));
+  return out;
 }
 
 /* El contrato firmado, al estudio y a cada comprador o firmante con email. El
