@@ -189,4 +189,15 @@ const exp = caja.documentoHTML({ ...campos, sociedad: 'soc_es', impuestos_sel: [
   motivo_legal: 'Exenta por exportación, art. 21 LIVA' }] }, {});
 assert.ok(exp.includes('Exenta por exportación, art. 21 LIVA'), 'la mención de un 0 % se imprime');
 
+/* ---- banco del PAPEL (ERP maestro, B1): con `banco_de_servidor` se imprime lo que dejó el
+   servidor al emitir, no el catálogo vivo; sin la marca (Lawang), el catálogo, como siempre ---- */
+const papelBanco = { ...campos, cuenta: 'cuenta_de_prueba', banco_de_servidor: true, banco_titular: 'PT TEPI SUN GAI',
+  banco_nombre: 'Banco Y', banco_cuenta: '1111222233', banco_codigo: 'YYYYIDJA', banco_direccion: 'Jl. Congelada 2', banco_extra: '' };
+const conMarca = caja.documentoHTML(papelBanco, {});
+assert.ok(conMarca.includes('1111222233') && conMarca.includes('Banco Y'), 'con la marca, la cuenta que dejó el servidor en el papel');
+assert.ok(!conMarca.includes('9999888877'), 'y no la del catálogo de hoy');
+const sinMarca = caja.documentoHTML({ ...papelBanco, banco_de_servidor: undefined }, {});
+assert.ok(sinMarca.includes('9999888877') && !sinMarca.includes('1111222233'), 'sin la marca (Lawang), el catálogo vivo');
+assert.ok(caja.documentoHTML({ ...papelBanco, banco_de_servidor: 'true' }, {}).includes('9999888877'), 'solo el booleano true activa el papel');
+
 console.log('documento.test.js OK');
