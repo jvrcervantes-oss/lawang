@@ -139,7 +139,13 @@ const sb = window.supabase.createClient(
 // ir a cualquier otra. Con `next` (lo pone el guard al rebotar) se respeta el
 // destino que se pedía, que es lo que espera quien pincha un enlace directo.
 const _n = new URLSearchParams(location.search).get('next') || '';
-const DEST = /^\/[^/\\]/.test(_n) ? _n : '/intranet/';
+// 1-oct-2026: además de la regex, se comprueba el origen resuelto (`/<TAB>/host` pasaba la regex y
+// el navegador, al borrar el tabulador, lo convertía en `//host`).
+function _rutaPropia(r){
+  if(!/^\/[^/\\]/.test(r)) return false;
+  try{ return new URL(r, location.origin).origin === location.origin; }catch(e){ return false; }
+}
+const DEST = _rutaPropia(_n) ? _n : '/intranet/';
 
 // si ya hay sesión válida, ir directo a la app sin pasar por el selector
 sb.auth.getSession().then(({data:{session}})=>{ if(session) location.href=DEST; });

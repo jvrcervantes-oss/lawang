@@ -875,7 +875,12 @@ window.LW_SB = sb;   // el panel de usuario de topbar.js reusa este cliente
 // mismo criterio contra open-redirect que ya llevaba /entrar/index.html (la
 // puerta vieja): una ruta que empiece por UNA sola barra, nunca `//host`
 // (protocol-relative) ni un esquema `http(s):` colado en el valor de `next`.
-function rutaValida(r){ return /^\/[^/\\]/.test(r || ''); }
+// 1-oct-2026: la regex sola dejaba pasar `/<TAB>/host` (el navegador borra tabuladores y
+// saltos de línea al parsear la URL y queda `//host`). Se comprueba además el origen resuelto.
+function rutaValida(r){
+  if(!/^\/[^/\\]/.test(r || '')) return false;
+  try{ return new URL(r, location.origin).origin === location.origin; }catch(e){ return false; }
+}
 /* Dónde se entra (AxisWorks ERP, 26-sep-2026): la ficha de la instancia puede
    fijar `inicio` (el estándar del producto es la Home de la v4). Sin `inicio`,
    este panel clásico sigue siendo la portada, como hasta hoy. */
