@@ -16,6 +16,13 @@ begin
   if position('array[v_closer_nuevo, v_old.closer_email]' in pg_get_functiondef('public.condicion_comision_guarda(uuid,jsonb,jsonb,text)'::regprocedure)) = 0 then
     raise exception 'FALLA: la edicion no comprueba v_closer_nuevo';
   end if;
+  -- la casilla comisiones_reparto (LAW-483, decisión del owner 1-oct): la exige _condicion_es_mia y el v_admin de guarda
+  if position('comisiones_reparto' in pg_get_functiondef('public._condicion_es_mia(text,uuid)'::regprocedure)) = 0 then
+    raise exception 'FALLA: _condicion_es_mia no exige la casilla';
+  end if;
+  if position('v_admin  boolean := public.es_admin() and public.puede' in pg_get_functiondef('public.condicion_comision_guarda(uuid,jsonb,jsonb,text)'::regprocedure)) = 0 then
+    raise exception 'FALLA: v_admin de guarda no esta ligado a la casilla';
+  end if;
   -- el helper no es llamable desde fuera
   if has_function_privilege('authenticated', 'public._condicion_a_su_favor(text[],text,uuid)', 'execute') then raise exception 'FALLA: helper expuesto a authenticated'; end if;
   if has_function_privilege('anon', 'public._condicion_a_su_favor(text[],text,uuid)', 'execute') then raise exception 'FALLA: helper expuesto a anon'; end if;

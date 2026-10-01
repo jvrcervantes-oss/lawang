@@ -9,8 +9,8 @@
 -- Revisión previa #179 (Administración + Datos, 1-oct-2026). Cambios frente al maestro:
 --  · el ancla usa `v_lawang`, no `v_empresa` (nombre de la variable en Lawang);
 --  · NO anula las filas de comisiones_diferencias de esos niveles que el bug ya haya abierto: es tocar datos de dinero de producción y espera
---    el OK del owner tras ver las filas reales (ver pendiente LAW-482). Mientras queden vivas, `v_vig` las suma: el informativo afectado se
---    corrige solo en cuanto se anulen y haya un recálculo de esa venta.
+--    el OK del owner tras ver las filas reales (ver pendiente LAW-482). Mientras queden vivas, `v_vig` las suma y el informativo afectado volvería a dar delta: si
+--    algún día las hay, se anulan ANTES de aplicar esto (hoy no hay ninguna, comprobado el 1-oct).
 -- Parche por `replace` sobre la versión VIVA (no se copia su cuerpo): ancla única comprobada (si no aparece exactamente una vez, aborta) e
 -- idempotente (marca F9M5-informativo). ROLLBACK: volver a `create or replace` con el cuerpo de 20260930233000_f8_b_reconciliar_pct_congelado.sql.
 -- destructivo-ok: no borra ni actualiza datos; solo redefine la función.

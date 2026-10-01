@@ -6,8 +6,11 @@
 --  · El helper NO copia `public.config('zona_horaria')`: esa función no existe en Lawang. Usa 'Asia/Makassar' fijo, como el resto de Lawang.
 --  · En la rama de edición la guarda va DESPUÉS de calcular v_closer_nuevo y comprueba array[v_closer_nuevo, v_old.closer_email]: la edición
 --    de una condición futura puede cambiar a quién se aplica, y no debe poder reasignarse a su favor una condición ajena.
---  · OJO: esta guarda es hoy la ÚNICA barrera. `_condicion_es_mia` de Lawang no exige la casilla `comisiones_reparto` (el maestro sí): cualquier
---    admin que no sea super admin pasa esa puerta. Cambiarlo es un permiso aparte (pendiente con owner), no se mete aquí.
+--  · La barrera son DOS: la casilla `comisiones_reparto` (decisión del owner, 1-oct: «sí, dentro de esta tanda»; `_condicion_es_mia` la exige a un admin
+--    como el maestro, y `v_admin` de condicion_comision_guarda también, para que un admin sin casilla que además dirija un equipo no conserve los
+--    privilegios de admin: fechas pasadas, confirmar ventas afectadas, cifras de condiciones ya devengadas) y la guarda «a su favor». Hoy los 3 admins
+--    no super NO tienen la casilla: pierden el acceso a las condiciones (verán «No encuentro esa condición entre las tuyas»); ninguno las editaba
+--    (registro de condiciones del 1-oct: 6 cambios, todos de migraciones). Se la da el owner desde Usuarios a quien la necesite.
 --  · Efecto en vivo (avisado): un admin no super que sea closer_email de una condición, miembro vigente de un equipo con condición genérica,
 --    manager de hoy de un equipo con condición de manager o manager congelado de una venta viva deja de poder crear/editar/cerrar esa
 --    condición; lo hace un super admin.
@@ -165,7 +168,7 @@ declare
   v_base   text := p_cond->>'base_calculo';
   v_fijo   numeric;
   v_desde  date;
-  v_admin  boolean := public.es_admin();
+  v_admin  boolean := public.es_admin() and public.puede('comisiones_reparto');   -- LAW-483: el privilegio de admin lo da la casilla
   v_n      int := 0;
   v_motivo text := nullif(btrim(coalesce(p_motivo, '')), '');
   v_hoy    date := (now() at time zone 'Asia/Makassar')::date;
@@ -201,10 +204,6 @@ begin
     if not public._condicion_es_mia(v_nivel, v_equipo) then
       raise exception 'Solo puedes crear condiciones para los closers, setters o team leads de tu equipo' using errcode = '42501';
     end if;
-    -- LAW-483: nadie se pone ni toca una condición a su propio favor (salvo super admin); ver _condicion_a_su_favor
-    if not public.es_super_admin() and public._condicion_a_su_favor(array[v_closer], v_nivel, v_equipo) then
-      raise exception 'Nadie se pone ni cambia una condición de comisión a su propio favor' using errcode = '42501';
-    end if;
     if not v_admin then
       if v_desde < v_hoy then raise exception 'La fecha no puede ser anterior a hoy.' using errcode = '22023'; end if;
       if v_closer is not null and not public._closer_del_equipo(v_equipo, v_closer) then
@@ -212,6 +211,10 @@ begin
       end if;
     end if;
     if v_nivel not in ('closer', 'setter', 'team_lead') then v_closer := null; end if;
+    -- LAW-483 (tras anular v_closer en niveles que no lo usan): nadie se pone ni toca una condición a su propio favor (salvo super admin); ver _condicion_a_su_favor
+    if not public.es_super_admin() and public._condicion_a_su_favor(array[v_closer], v_nivel, v_equipo) then
+      raise exception 'Nadie se pone ni cambia una condición de comisión a su propio favor' using errcode = '42501';
+    end if;
 
     -- 3b: con inicio hoy o en el pasado (hoy cuenta como pasado), cuántas ventas ya hechas (sin devengar o a medio
     -- devengar) pueden pasar a esta condición. El SM no las mueve (ni confirmando); administración confirma el número.
@@ -436,4 +439,10 @@ begin
       raise exception 'LAW-483: % no lleva la guarda', f using errcode = '55000';
     end if;
   end loop;
+  if position('comisiones_reparto' in pg_get_functiondef('public._condicion_es_mia(text,uuid)'::regprocedure)) = 0 then
+    raise exception 'LAW-483: _condicion_es_mia no exige la casilla comisiones_reparto' using errcode = '55000';
+  end if;
+  if position('v_admin  boolean := public.es_admin() and public.puede' in pg_get_functiondef('public.condicion_comision_guarda(uuid,jsonb,jsonb,text)'::regprocedure)) = 0 then
+    raise exception 'LAW-483: condicion_comision_guarda no liga v_admin a la casilla' using errcode = '55000';
+  end if;
 end $post$;
