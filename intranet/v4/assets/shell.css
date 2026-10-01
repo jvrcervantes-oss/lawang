@@ -280,48 +280,57 @@ html.lw-mov body.lw-listo main{animation:lw-mov-rescate .6s step-end forwards}
    la subida de los bloques pasaba debajo y solo se veía un fundido cruzado. */
 html.lw-mov-entra #lw-cargando{display:none}
 
+/* ESQUELETO (rediseño A, 1-oct-2026, owner). El velo ya no es una pantalla en blanco con una
+   marca y una barra: pinta la forma de una pantalla de la v4 —cabecera en tarjeta, cuatro tarjetas
+   y tabla— en bloques que laten, con la frase de siempre arriba. Mismos márgenes que `main`
+   (96px arriba y 48 a los lados desde 1024), para que el contenido real caiga donde estaba el bloque.
+   Sin carrete, sin sombra, un solo acento (el punto verde). */
 #lw-cargando{position:fixed;inset:0 0 0 288px;z-index:var(--z-velo);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-  background:#F5F0E6;text-align:center;padding:24px;
+  background:#fbf9f4;overflow:hidden;
   animation:lw-rendirse 12s step-end forwards}
 /* La sidebar sigue accesible mientras carga: si una pantalla se atasca, se
    puede uno ir a otra sin esperar al rescate de los 12 s. */
 @media (max-width:1023px){ #lw-cargando{inset:0} }
 body.v4-nav-plegada #lw-cargando{left:0}
 
-#lw-cargando .lw-c-marca{margin:0;font:600 22px/1 'Neue Kabel',system-ui,sans-serif;
-  letter-spacing:.28em;color:#104C4F}
-#lw-cargando .lw-c-dice,#lw-cargando .lw-c-tarda{margin:0;
-  font:400 13px/1.5 'Neue Kabel',system-ui,sans-serif;color:#8A8474;max-width:36ch}
+#lw-cargando .lw-c-cuerpo{max-width:1440px;margin:0 auto;padding:96px 48px 32px;
+  display:flex;flex-direction:column;gap:22px;height:100%;box-sizing:border-box}
+@media (max-width:1023px){ #lw-cargando .lw-c-cuerpo{padding:88px 16px 24px} }
 /* Un velo mudo de ocho segundos se lee como «se ha colgado». A los 5 s la
    frase cambia — y tambien en CSS, para que siga diciendo la verdad aunque el
-   JS ya no este para cambiarla. */
-/* Las dos frases ocupan LA MISMA celda y se cruzan con opacidad. La primera
-   version animaba `display`, que en un navegador viejo no se anima: alli la
-   segunda frase no habria aparecido nunca y nadie se habria enterado. La
-   opacidad se interpola en todos. */
+   JS ya no este para cambiarla. Las dos frases ocupan LA MISMA celda y se cruzan con
+   opacidad (animar `display` no funciona en un navegador viejo). */
 #lw-cargando .lw-c-frases{display:grid}
-#lw-cargando .lw-c-dice,#lw-cargando .lw-c-tarda{grid-area:1/1}
+#lw-cargando .lw-c-dice,#lw-cargando .lw-c-tarda{grid-area:1/1;margin:0;display:flex;align-items:center;gap:10px;
+  font:500 13px/20px 'Neue Kabel',system-ui,sans-serif;color:#44483f}
+#lw-cargando .lw-c-dice i,#lw-cargando .lw-c-tarda i{display:block;width:6px;height:6px;border-radius:50%;
+  background:#485B37;animation:lw-latir 1.1s ease-in-out infinite}
 #lw-cargando .lw-c-dice{animation:lw-calla .4s 5s forwards}
 #lw-cargando .lw-c-tarda{opacity:0;animation:lw-habla .4s 5s forwards}
 @keyframes lw-calla{to{opacity:0}}
 @keyframes lw-habla{to{opacity:1}}
 
-/* Barra indeterminada en vez de un carrete: el carrete generico es la marca de
-   plantilla que el estudio tiene prohibida, y ademas no dice nada que el texto
-   no diga ya. Sin sombra, un solo acento. */
-#lw-cargando .lw-c-barra{width:min(220px,60vw);height:2px;background:#e4e2dd;overflow:hidden}
-#lw-cargando .lw-c-barra i{display:block;width:40%;height:100%;background:#485B37;
-  animation:lw-vaiven 1.15s ease-in-out infinite}
-@keyframes lw-vaiven{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+#lw-cargando .lw-c-card{background:#fff;border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:12px}
+#lw-cargando .lw-c-hd{padding:32px}
+#lw-cargando .lw-c-kk{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+@media (max-width:1279px){ #lw-cargando .lw-c-kk{grid-template-columns:repeat(2,1fr)} }
+#lw-cargando .lw-c-kk .lw-c-card{gap:14px}
+#lw-cargando .lw-c-tabla{flex:1;min-height:0;gap:16px;overflow:hidden}
+#lw-cargando .lw-c-hu{display:block;background:#e9e8e3;border-radius:8px;animation:lw-latir 1.5s ease-in-out infinite}
+#lw-cargando .lw-c-t{height:34px;width:46%}
+#lw-cargando .lw-c-s{height:14px;width:62%}
+#lw-cargando .lw-c-k1{height:10px;width:60%}
+#lw-cargando .lw-c-k2{height:28px;width:48%}
+#lw-cargando .lw-c-f{height:14px}
+@keyframes lw-latir{50%{opacity:.5}}
 
 #lw-cargando.lw-c-fuera{opacity:0;transition:opacity .18s ease-out;pointer-events:none}
 @keyframes lw-rendirse{to{opacity:0;visibility:hidden;pointer-events:none}}
 
-/* Quien ha pedido menos movimiento no necesita el vaiven para saber que espera:
-   el texto ya lo dice. El velo sigue tapando igual. */
+/* Quien ha pedido menos movimiento no necesita que los bloques latan para saber que espera:
+   la frase ya lo dice. El velo sigue tapando igual. */
 @media (prefers-reduced-motion:reduce){
-  #lw-cargando .lw-c-barra i{animation:none;width:100%;opacity:.45}
+  #lw-cargando .lw-c-hu,#lw-cargando .lw-c-dice i,#lw-cargando .lw-c-tarda i{animation:none}
 }
 
 /* ══ DIÁLOGO DE dialogo.js (lwConfirmar/lwElegir/lwPicker) EN LA v4 — 21-sep ══

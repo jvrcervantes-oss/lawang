@@ -140,8 +140,8 @@ assert.ok(hojaSDW.includes("var(--font-body,'Jost',sans-serif)"), 'falta el fall
 
 /* ---- cuenta "Otros": se imprime lo tecleado, y sin nada no se imprime nada ---- */
 const conOtros = caja.documentoHTML({ ...campos, cuenta: 'otros', banco_titular: 'PT TEPI SUN GAI',
-                                      banco_cuenta: '3692536026' }, {});
-assert.ok(conOtros.includes('3692536026') && conOtros.includes('Datos bancarios'));
+                                      banco_cuenta: '5470544354' }, {});
+assert.ok(conOtros.includes('5470544354') && conOtros.includes('Datos bancarios'));
 assert.ok(!caja.documentoHTML({ ...campos, cuenta: 'otros' }, {}).includes('Datos bancarios'),
   'una cabecera "Datos bancarios" con seis guiones es peor que no ponerla');
 
@@ -188,5 +188,16 @@ assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_id' }, {}).includes('NP
 const exp = caja.documentoHTML({ ...campos, sociedad: 'soc_es', impuestos_sel: [{ id: 'x0', nombre: 'IVA 0 % exportación', clase: 'suma', porcentaje: 0, coef_base: 1,
   motivo_legal: 'Exenta por exportación, art. 21 LIVA' }] }, {});
 assert.ok(exp.includes('Exenta por exportación, art. 21 LIVA'), 'la mención de un 0 % se imprime');
+
+/* ---- banco del PAPEL (ERP maestro, B1): con `banco_de_servidor` se imprime lo que dejó el
+   servidor al emitir, no el catálogo vivo; sin la marca (Lawang), el catálogo, como siempre ---- */
+const papelBanco = { ...campos, cuenta: 'cuenta_de_prueba', banco_de_servidor: true, banco_titular: 'PT TEPI SUN GAI',
+  banco_nombre: 'Banco Y', banco_cuenta: '1111222233', banco_codigo: 'YYYYIDJA', banco_direccion: 'Jl. Congelada 2', banco_extra: '' };
+const conMarca = caja.documentoHTML(papelBanco, {});
+assert.ok(conMarca.includes('1111222233') && conMarca.includes('Banco Y'), 'con la marca, la cuenta que dejó el servidor en el papel');
+assert.ok(!conMarca.includes('9999888877'), 'y no la del catálogo de hoy');
+const sinMarca = caja.documentoHTML({ ...papelBanco, banco_de_servidor: undefined }, {});
+assert.ok(sinMarca.includes('9999888877') && !sinMarca.includes('1111222233'), 'sin la marca (Lawang), el catálogo vivo');
+assert.ok(caja.documentoHTML({ ...papelBanco, banco_de_servidor: 'true' }, {}).includes('9999888877'), 'solo el booleano true activa el papel');
 
 console.log('documento.test.js OK');
