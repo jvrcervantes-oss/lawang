@@ -111,13 +111,15 @@
 
     <!-- Cláusulas negociadas REV03 (2-oct-2026): va FUERA del bloque leasehold a propósito. El motor
          (app.html buildDoc y bot/plantilla_texto.js) evalúa los bloques if en UNA pasada y no entra en
-         uno anidado: dentro de leasehold saldría impreso siempre, también sin REV03. Mismo motivo por el
-         que el DNI del comprador usa rev03_dni (lo deriva collect()) partiendo el bloque de persona. -->
-    <!--if:clausulas_negociadas=si-->
+         uno anidado: dentro de leasehold saldría impreso siempre, también sin REV03. Por eso va con
+         rev03_hgb = REV03 Y leasehold (y el DNI del comprador con rev03_dni = REV03 Y persona, partiendo
+         el bloque de persona): las dos las estampa la base (trigger clausulas_negociadas_rol) y collect()
+         las calcula igual para la vista previa. -->
+    <!--if:rev03_hgb=si-->
     <p data-lang="es"><b>Hak Guna Bangunan (HGB):</b> si el ADQUIRIENTE constituye o cede su posición a una sociedad indonesia de capital extranjero (PT PMA), podrá titular el terreno bajo el régimen de Hak Guna Bangunan (HGB), inscribible en el registro de la propiedad a nombre de dicha sociedad.</p>
     <p data-lang="en"><b>Hak Guna Bangunan (HGB):</b> if the BUYER incorporates, or assigns its position to, an Indonesian foreign-investment company (PT PMA), the land may be held under the Hak Guna Bangunan (HGB) regime, registrable at the land office in the name of said company.</p>
     <p data-lang="id"><b>Hak Guna Bangunan (HGB):</b> apabila PEMBELI mendirikan atau mengalihkan kedudukannya kepada perseroan terbatas penanaman modal asing (PT PMA), tanah dapat dimiliki dengan status Hak Guna Bangunan (HGB), yang dapat didaftarkan di kantor pertanahan atas nama perseroan tersebut.</p>
-    <!--/if:clausulas_negociadas-->
+    <!--/if:rev03_hgb-->
 
     <!--if:regimen_tenencia=hak_milik-->
     <p data-lang="es"><b>SHM (Sertifikat Hak Milik):</b> contrato vitalicio. Régimen reservado por ley a ciudadanos indonesios (art. 21 de la Ley Agraria — UUPA); no aplicable a adquirientes extranjeros ni a sociedades de inversión extranjera (PT PMA), ni directa ni indirectamente.</p>

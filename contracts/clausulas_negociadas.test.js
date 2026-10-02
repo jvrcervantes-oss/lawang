@@ -13,7 +13,8 @@
      3. Ningún bloque REV03 está anidado dentro de otro <!--if-->: el motor
         evalúa en UNA pasada y uno anidado se imprimiría siempre (así salía el
         «o DNI» en todos los contratos de persona hasta que este test lo cazó).
-        El DNI va con `rev03_dni` (persona Y REV03, lo deriva collect()).
+        El DNI va con `rev03_dni` (persona Y REV03) y el HGB con `rev03_hgb`
+        (leasehold Y REV03): las estampa la base y collect() las calcula igual.
    node clausulas_negociadas.test.js */
 const fs = require('fs');
 const path = require('path');
@@ -58,9 +59,14 @@ const ESTANDAR = {
 };
 const DNI = [' o DNI', 'or national ID card (DNI)', 'atau Kartu Identitas (DNI)', 'DNI/', 'National ID (DNI)/'];
 // Igual que collect() en app.html: rev03_dni = persona Y REV03.
-const conRev03 = d => ({ ...d, clausulas_negociadas: 'si', rev03_dni: d.adq1_tipo === 'persona' ? 'si' : '' });
-assert(app.includes("data.rev03_dni = (data.clausulas_negociadas === 'si' && data.adq1_tipo === 'persona') ? 'si' : '';"),
-  'app.html: collect() ya no deriva rev03_dni como espera este test');
+const conRev03 = d => ({ ...d, clausulas_negociadas: 'si', rev03_dni: d.adq1_tipo === 'persona' ? 'si' : '',
+  rev03_hgb: d.regimen_tenencia === 'leasehold' ? 'si' : '' });
+// El párrafo HGB-vía-PT PMA solo con leasehold: con hgb repetiría su párrafo y con hak_milik contradiría el de SHM.
+const HGB = ['podrá titular el terreno bajo el régimen de Hak Guna Bangunan (HGB)',
+  'the land may be held under the Hak Guna Bangunan (HGB) regime', 'tanah dapat dimiliki dengan status Hak Guna Bangunan (HGB)'];
+assert(app.includes("data.rev03_dni = (data.clausulas_negociadas === 'si' && data.adq1_tipo === 'persona') ? 'si' : '';")
+  && app.includes("data.rev03_hgb = (data.clausulas_negociadas === 'si' && data.regimen_tenencia === 'leasehold') ? 'si' : '';"),
+  'app.html: collect() ya no deriva rev03_dni/rev03_hgb como espera este test (y como los estampa la base)');
 const limpia = h => h.replace(/<!--[\s\S]*?-->/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ');
 
 let n = 0;
@@ -77,7 +83,9 @@ for (const [f, html] of [['ppjb_parcela.html', PARCELA], ['ppjb_construccion.htm
     assert.strictEqual(sin, vacio, f + ': sin el campo y con el campo vacío deben imprimir lo mismo');
     for (const fr of FRASES[f]) {
       assert(!sin.includes(fr), f + ' (' + regimen + '): sin REV03 se imprime «' + fr + '»');
-      assert(con.includes(fr), f + ' (' + regimen + '): con REV03 falta «' + fr + '»');
+      if (HGB.includes(fr) && regimen !== 'leasehold')
+        assert(!con.includes(fr), f + ' (' + regimen + '): con REV03 sale el HGB-vía-PT PMA fuera de leasehold');
+      else assert(con.includes(fr), f + ' (' + regimen + '): con REV03 falta «' + fr + '»');
       n += 2;
     }
     for (const fr of ESTANDAR[f]) {
@@ -101,7 +109,7 @@ for (const [f, html] of [['ppjb_parcela.html', PARCELA], ['ppjb_construccion.htm
   const re = /<!--if:([a-z0-9_]+)=[a-z0-9_]*-->([\s\S]*?)<!--\/if:\1-->/g;
   let m;
   while ((m = re.exec(html))) {
-    for (const k of ['clausulas_negociadas', 'rev03_dni']) if (m[1] !== k) assert(!m[2].includes('<!--if:' + k + '='),
+    for (const k of ['clausulas_negociadas', 'rev03_dni', 'rev03_hgb']) if (m[1] !== k) assert(!m[2].includes('<!--if:' + k + '='),
       f + ': un bloque ' + k + ' está anidado dentro de <!--if:' + m[1] + '--> y saldría siempre');
     n++;
   }
