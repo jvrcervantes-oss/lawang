@@ -45,6 +45,12 @@ RedirectMatch 404 (?i)/\.git
 # por cualquiera. No hay secretos dentro, pero regala los endpoints internos y la logica.
 RedirectMatch 404 (?i)\.py$
 
+# coleccion/ es la lectura de servidor de The Collection (2-oct-2026, F5a): ni su lib.php, ni el
+# contrato, ni el respaldo, ni sus tests se sirven por URL. Se consumen por require, nunca por
+# peticion. Cuando F5b anada un endpoint publico (coleccion/estado.php) se excluira aqui A
+# PROPOSITO, por nombre: lo nuevo nace cerrado (contexto/seguridad_2026.md §1.ter).
+RedirectMatch 404 (?i)^/coleccion/
+
 # Igual con los .sql, y por el mismo motivo — 24-ago-2026, verificado en produccion:
 # https://lawangproperties.com/supabase/migrations/<fichero>.sql respondia 200 y
 # servia el esquema entero de la base. `contracts/sql/` ya daba 403 por otra regla,
