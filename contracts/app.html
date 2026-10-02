@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="43b2890e47ee">
+<meta name="lw-version" content="8219cade8cda">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -80,7 +80,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=a6230c91"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
-<script src="assets/documento_anexos.js?v=81799500"></script>
+<script src="assets/documento_anexos.js?v=fe20aca6"></script>
 <script src="assets/parcela_inventario.js?v=c101c6e2"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
@@ -3961,8 +3961,9 @@ function aplicarEstadoFirma(){
   // `datos` por detrás; «Subir firmado» con un enlace vivo pisaba la firma en
   // curso (auditoría 19-ago). El panel de diseño abierto sí se cierra.
   if(activo){ const pd=$('#designPanel'); if(pd) pd.hidden = true; }
-  // a firma o anulado: el panel de anexos ofrece o retira «+ Subir…» según el estado de AHORA (2-oct-2026)
-  rebuildAnnex();
+  // a firma o anulado: el panel de anexos ofrece o retira «+ Subir…» según el estado de AHORA. Solo si
+  // ese estado cambió: esto corre con cada tecla del formulario (2-oct-2026, ver firmaPanelAnexos)
+  repintaAnexosSiCambia();
   pintaAcciones();
   ocultarGruposVacios();
 }

@@ -281,12 +281,13 @@ afirma('el panel nace escondido y lo abre el botón',
   afirma('al guardar, el panel de anexos se repinta con el contrato ya guardado',
     repintaTras(guardar, 'SAVED_CONTRACT = {'),
     'un contrato recién creado seguía sin botón de subir anexos hasta recargar');
-  afirma('el estado de firma repinta el panel de anexos', /rebuildAnnex\(\)/.test(firma),
-    'enviado a firma o anulado, el panel seguía ofreciendo (o negando) la subida de antes');
-  const anx = leerAsset('documento_anexos.js');
-  const rebuild = (anx.match(/function rebuildAnnex\(\)\{[^\n]*\n?[^\n]*/) || [''])[0];
-  afirma('repintar el panel de anexos no pliega el que está abierto', /collapsed/.test(rebuild),
-    'rebuildAnnex() tiene que conservar si el panel estaba abierto: ahora se repinta más a menudo');
+  // aplicarEstadoFirma corre con CADA tecla (updateSaveButton): repintar ahí sin guarda cambia el panel
+  // bajo los dedos. Tiene que ir por la guarda, nunca por rebuildAnnex() a pelo (revisor, 2-oct-2026).
+  afirma('el estado de firma repinta el panel de anexos solo si cambia lo que decide la subida',
+    /repintaAnexosSiCambia\(\)/.test(firma) && !/rebuildAnnex\(\)/.test(firma),
+    'rebuildAnnex() a pelo en aplicarEstadoFirma repinta con cada tecla: se pierde el título del anexo y el «Incluir»');
+  // El comportamiento (la guarda no repinta si nada cambió; repintar conserva el panel abierto) lo
+  // ejecuta documento_anexos.test.js sobre el código real.
 }
 
 console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nLas reglas de la pantalla de contratos se sostienen.');
