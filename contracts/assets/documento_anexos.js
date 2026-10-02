@@ -221,6 +221,50 @@ function confirmaSoltarPendientes(){
   ANNEXES = ANNEXES.filter(a => !(a && a.pendiente)); rebuildAnnex();
   return true;
 }
+/* FASE 2 del guardado: el contrato `cid` acaba de nacer y quedan pendientes. Solo esto —subir y
+   guardar sus fichas—, nunca guardarContrato() otra vez: repetía sus frenos interactivos (ficha del
+   comprador, salto de freno de LAW-71), sus efectos (compradores, poder, lead) y su aviso de alta
+   (revisor, 2-oct-2026). Cada pendiente sube con id NUEVO (registra rechaza un id que ya esté en
+   `datos`); si todo un anexo llega, pasa a forma archivo y un contrato_guarda con las fichas lo deja
+   en el contrato. Devuelve true solo si no queda ninguno pendiente. Si contrato_guarda falla, los ya
+   subidos tienen sus filas: el siguiente «Guardar» guarda sus fichas sin volver a subir nada. */
+async function guardaAnexosPendientes(cid){
+  const marca = MARCA_ANX;
+  const sigue = () => MARCA_ANX === marca && typeof SAVED_CONTRACT !== 'undefined' && SAVED_CONTRACT && SAVED_CONTRACT.id === cid;
+  const pend = ANNEXES.filter(a => a && a.pendiente && Array.isArray(a.pages) && a.pages.length && a.pages.every(Boolean));
+  if(!pend.length) return !hayPendientes();
+  const avisa = t => { SUBIDA_ANEXO = t; const l = $('#anxUpLabel'); if(l) l.textContent = t; };
+  const hechos = {}, fallidos = [];
+  avisa('Guardando los anexos…'); rebuildAnnex();
+  for(const a of pend){
+    const nuevoId = idAnexoNuevo();
+    try{
+      const filas = await subePaginasAnexo(cid, nuevoId, a.pages, (k, n) => avisa('Guardando el anexo «' + a.title + '»: ' + k + ' de ' + n + '…'));
+      hechos[a.id] = { id:nuevoId, filas };
+    }catch(e){ fallidos.push('«' + a.title + '» (página ' + (e.pagina || '?') + ': ' + (e.message || 'error') + ')'); }
+    if(!sigue()) break;
+  }
+  SUBIDA_ANEXO = '';
+  // Mientras subía se abrió otro contrato (eso ya preguntó y soltó los pendientes): nada se cuelga de él.
+  if(!sigue()){ rebuildAnnex(); toastMal('Se ha cambiado de contrato mientras se guardaban los anexos del anterior: ábrelo y comprueba sus anexos.'); return false; }
+  ANNEXES = aplicaMigracion(ANNEXES, hechos, cid);
+  rebuildAnnex(); render();
+  if(Object.keys(hechos).length){
+    const payload = contractPayload();
+    const envio = { tipo: payload.tipo, datos: payload.datos };
+    if('unidad_id' in payload) envio.unidad_id = payload.unidad_id;
+    const { error } = await sb.rpc('contrato_guarda', { p_id: cid, p_contrato: envio });
+    if(error){
+      toastMal('El contrato está guardado, pero no la lista de sus anexos (' + (error.message || 'error') + '). Pulsa Guardar otra vez: sus páginas ya están subidas.');
+      return false;
+    }
+  }
+  if(fallidos.length){
+    toastMal('El contrato está guardado, pero NO el anexo ' + fallidos.join(', ') + '. Sigue solo en esta pestaña: pulsa Guardar otra vez antes de cerrarla.');
+    return false;
+  }
+  return !hayPendientes();
+}
 if(typeof window !== 'undefined' && typeof window.addEventListener === 'function')
   window.addEventListener('beforeunload', e => { if(hayPendientes()){ e.preventDefault(); e.returnValue = ''; } });
 async function cargaAnexosAlmacen(contratoId){

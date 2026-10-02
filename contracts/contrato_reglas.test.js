@@ -307,11 +307,14 @@ afirma('el panel nace escondido y lo abre el botón',
     /annexes: ANNEXES\.filter\(a => !a\.pendiente\)\.map\(a => fichaDatos\(/.test(html),
     'un pendiente en `datos` sin páginas en el archivo hace saltar el trigger y el contrato no se guarda');
   const guardar = cuerpo('guardarContrato');
-  afirma('tras el alta, el guardado se repite solo para subir los pendientes (fase 2)',
-    /reguardarPendientes = eraNuevo && hayPendientes\(\)/.test(guardar)
-    && /if\(guardadoOk && reguardarPendientes\) return await guardarContrato\(\);/.test(guardar));
-  afirma('con un pendiente sin subir, guardar no se da por bueno («Enviar a firma» no sale)',
-    /guardadoOk = reguardarPendientes \|\| !hayPendientes\(\);/.test(guardar) && !/\n\s*guardadoOk = true;/.test(guardar));
+  // La fase 2 es SOLO subir + guardar fichas (guardaAnexosPendientes, ejecutada en documento_anexos.test.js
+  // caso 26), dentro del try y con el botón apagado; nunca guardarContrato() otra vez (revisor, 2-oct-2026:
+  // repetía frenos interactivos, LAW-71 y efectos).
+  afirma('tras el alta, la fase 2 sube los pendientes sin repetir el guardado entero',
+    /guardadoOk = eraNuevo \? await guardaAnexosPendientes\(data\.id\) : !hayPendientes\(\);/.test(guardar)
+    && !/return await guardarContrato\(\)/.test(guardar) && !/\n\s*guardadoOk = true;/.test(guardar),
+    'con un pendiente sin guardar, guardar no puede darse por bueno («Enviar a firma» no sale)');
+  afirma('no se guarda con un anexo aún convirtiéndose', /if\(SUBIDA_ANEXO\)\{ avisoNoGuardado\(/.test(guardar));
   const sustituciones = html.match(/ANNEXES = (\[\]|normalizaAnexos\([^)]*\));[^\n]*/g) || [];
   afirma('cada vez que la lista de anexos se sustituye entera, cambia MARCA_ANX',
     sustituciones.length >= 3 && sustituciones.every(l => /MARCA_ANX\+\+/.test(l)), sustituciones.join(' | '));

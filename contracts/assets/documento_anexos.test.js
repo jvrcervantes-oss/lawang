@@ -572,5 +572,59 @@ function montar(o) {
     assert.ok(m.males.some(t => /cambiado de contrato/.test(t)), JSON.stringify(m.males));
   }
 
+  // 26. FASE 2 (guardaAnexosPendientes): con el contrato recién creado sube cada pendiente con id NUEVO
+  //     contra ESE contrato y guarda sus fichas con un contrato_guarda; devuelve false si alguno no llega
+  //     o si contrato_guarda falla, y nada se cuelga de otro contrato abierto mientras tanto.
+  {
+    const fase2 = async (o) => {
+      const rpcs = [], subidas = [];
+      const mm = montar({ contrato: C1, lwFichero: (sbx, clase, accion, d) => {
+        subidas.push([accion, d.contrato_id, d.anexo_id, d.n]);
+        if (accion === 'subida_url') return Promise.resolve({ ok: true, path: C1 + '/u/' + d.n + '.jpg', token: 't', bucket: 'contratos-anexos' });
+        if (o.edgeFalla) return Promise.reject(new Error('red caída'));
+        return Promise.resolve({ ok: true, sha256: sha(Buffer.from('AAA', 'base64')), bytes: 2 });
+      } });
+      mm.ctx.sb.rpc = (fn, args) => { rpcs.push([fn, args]); if (o.trasRpc) o.trasRpc(mm); return Promise.resolve(o.rpcFalla ? { error: { message: 'tiempo' } } : { error: null, data: {} }); };
+      mm.lee("contractPayload = () => ({ tipo:'construccion', datos:{ annexes: ANNEXES.filter(a => !a.pendiente).map(a => fichaDatos(a, SAVED_CONTRACT && SAVED_CONTRACT.id)) } })");
+      mm.lee("ANNEXES.push({ id:'ax-viejo', title:'Planos', pages:['data:image/jpeg;base64,AAA'], on:true, pendiente:true })");
+      const ok = await mm.lee(`guardaAnexosPendientes('${C1}')`);
+      return { mm, ok, rpcs, subidas };
+    };
+    let f = await fase2({});
+    assert.strictEqual(f.ok, true, 'todo subido y guardado: true ' + JSON.stringify(f.mm.males));
+    assert.ok(f.subidas.length && f.subidas.every(s => s[1] === C1), 'sube contra el contrato recién creado');
+    assert.ok(f.subidas.filter(s => s[0] === 'registra').every(s => s[2] && s[2] !== 'ax-viejo'), 'con id NUEVO');
+    assert.strictEqual(f.rpcs.length, 1); assert.strictEqual(f.rpcs[0][0], 'contrato_guarda');
+    assert.strictEqual(f.rpcs[0][1].p_id, C1, 'es un update de ESE contrato, no otra alta');
+    const fichas = f.rpcs[0][1].p_contrato.datos.annexes;
+    assert.strictEqual(fichas.length, 1); assert.strictEqual(fichas[0].pages, undefined, 'la ficha va sin páginas');
+    assert.strictEqual(fichas[0].id, f.mm.lee('ANNEXES[0].id'), 'la ficha guardada es la del anexo ya subido');
+    assert.strictEqual(f.mm.lee('hayPendientes()'), false);
+    assert.strictEqual(f.mm.lee('SUBIDA_ANEXO'), '');
+    // la subida falla: false, sigue pendiente con sus páginas, aviso rojo, sin contrato_guarda
+    f = await fase2({ edgeFalla: true });
+    assert.strictEqual(f.ok, false);
+    assert.strictEqual(f.mm.lee('ANNEXES[0].pendiente'), true, 'sigue pendiente para el siguiente Guardar');
+    assert.strictEqual(f.rpcs.length, 0, 'nada que guardar si no llegó');
+    assert.ok(f.mm.males.some(t => /NO el anexo «Planos»/.test(t)), JSON.stringify(f.mm.males));
+    // contrato_guarda falla: false y se dice; las páginas ya están (el anexo deja de estar pendiente)
+    f = await fase2({ rpcFalla: true });
+    assert.strictEqual(f.ok, false);
+    assert.ok(f.mm.males.some(t => /no la lista de sus anexos/.test(t)), JSON.stringify(f.mm.males));
+    assert.strictEqual(f.mm.lee('ES_ALMACEN(ANNEXES[0]) && ANNEXES[0].contrato'), C1, 'el siguiente Guardar lo lleva como ficha');
+    // se abrió otro contrato mientras subía: false y la lista nueva no se toca
+    const mm2 = montar({ contrato: C1, lwFichero: (sbx, clase, accion, d) => {
+      if (accion === 'subida_url') return Promise.resolve({ ok: true, path: 'p/' + d.n + '.jpg', token: 't', bucket: 'b' });
+      mm2.ctx.SAVED_CONTRACT = { id: C2 }; mm2.lee("ANNEXES = []; MARCA_ANX++");
+      return Promise.resolve({ ok: true, sha256: sha(Buffer.from('AAA', 'base64')), bytes: 2 });
+    } });
+    let rpcs2 = 0; mm2.ctx.sb.rpc = () => { rpcs2++; return Promise.resolve({ error: null }); };
+    mm2.lee("contractPayload = () => ({ tipo:'x', datos:{} })");
+    mm2.lee("ANNEXES.push({ id:'ax-v', title:'P', pages:['data:image/jpeg;base64,AAA'], on:true, pendiente:true })");
+    assert.strictEqual(await mm2.lee(`guardaAnexosPendientes('${C1}')`), false);
+    assert.strictEqual(mm2.lee('ANNEXES.length'), 0, 'no se cuelga nada del contrato abierto después');
+    assert.strictEqual(rpcs2, 0, 'ni se guarda otro contrato con su formulario');
+  }
+
   console.log('documento_anexos.test.js OK');
 })().catch(e => { console.error(e); process.exit(1); });
