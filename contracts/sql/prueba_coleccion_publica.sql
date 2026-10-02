@@ -1,5 +1,5 @@
--- destructivo-ok: prueba con rollback seguro (raise exception final): modifica filas y añade una columna de prueba, nada persiste.
 -- destructivo-ok: modifica filas y añade una columna de prueba (alter table … add column) en fichas_publicas y escribe en config_instancia dentro de una transacción que SIEMPRE acaba en rollback por `raise exception`; no queda nada.
+-- PRUEBA — coleccion_publica() (The Collection v2 · F5b, 2-oct-2026). Cubre 20261002150000_thecollection_coleccion_publica.sql. Ejecutada en vivo el 2-oct tras aplicar: todos los casos ok.
 -- Se ejecuta DESPUÉS de aplicar la migración, con execute_sql (MCP) o psql como postgres, UN BLOQUE: acaba en
 -- `raise exception 'RES: …'`, que revierte la transacción entera y enseña el resultado: NO ESCRIBE NADA.
 -- Cada punto debe decir «ok»; «FALLO» es un agujero o una regresión; «omitido» = el caso no se pudo montar (se explica), no es un ok.
