@@ -18,7 +18,7 @@ assert.ok(/if \(url === ENVIO_EDGE && RED_ESTADOS\.includes\(r\.status\)\)/.test
 // 3. exactamente UN reintento por el PHP y ningún try/catch que reenvíe ante excepción
 assert.strictEqual((src.match(/r = await postCorreo\(ENVIO_PHP/g) || []).length, 1, 'un solo reintento por el PHP');
 const cuerpoEnviar = src.slice(src.indexOf('async function enviarEmail'), src.indexOf('const b64 = '));
-assert.ok(!/catch\s*\(/.test(cuerpoEnviar.replace(/\.catch\(\(\) => ''\)/g, '')), 'enviarEmail no debe capturar excepciones de fetch para reenviar');
+assert.ok(!/catch\s*\(/.test(cuerpoEnviar.replace(/\.catch\(\(\) => ''\)/, '')), 'enviarEmail no debe capturar excepciones de fetch para reenviar');
 // 4. cada uso de la red deja huella medible
 assert.ok(/console\.error\('red_envio_usada fn=firma-submit status='/.test(src), 'falta el log red_envio_usada');
 // 5. el interruptor solo acepta la URL exacta de la edge (sin startsWith) y el secreto nuevo solo va a ella

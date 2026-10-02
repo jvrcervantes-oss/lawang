@@ -125,13 +125,6 @@ function postCorreo(url: string, secreto: string, cuerpo: string) {
   });
 }
 
-// {plantilla, version} del cuerpo de la edge, o null. /* MUDO A PROPOSITO: el correo ya salió; sin versión devuelta se registra como camino libre */
-function plantillaDevuelta(t: string): { plantilla: string; version: string } | null {
-  let j: any = null;
-  try { j = JSON.parse(t); } catch (_) { return null; }
-  return typeof j?.plantilla === 'string' && typeof j?.version === 'string' ? { plantilla: j.plantilla, version: j.version } : null;
-}
-
 async function enviarEmail(p: {
   to: string; subject: string; message: string; filename?: string; pdfB64?: string;
   // registro de envíos (correos_enviados): quién llama dice de qué contrato /
@@ -140,48 +133,26 @@ async function enviarEmail(p: {
   // `mensaje` solo lo pasan los correos de la cola de copias firmadas (AXW-127): plantilla fija sin token ni URL firmada.
   // Nunca se registra el mensaje de un correo que lleve credencial (LAW-343).
   log?: { contrato_id?: string | null; factura_id?: string | null; via: string; mensaje?: string };
-  // S5.3 (2-oct-2026): si viene, la edge compone el texto desde `correo_plantillas` (o su fábrica) con los datos que lee ella de la
-  // base; `subject`/`message` quedan como camino libre de respaldo y para el registro del asunto. Solo sin adjunto (attach:false).
-  plantilla?: { clave: string; contrato_id: string; firma_id: string; vars?: Record<string, string> };
 }) {
   const cuerpo = JSON.stringify({
     to: p.to, subject: p.subject, message: p.message,
     ...(p.pdfB64 ? { filename: p.filename || 'documento.pdf', pdf_base64: p.pdfB64 } : { attach: false }),
   });
-  const cuerpoPlantilla = p.plantilla && !p.pdfB64 ? JSON.stringify({
-    to: p.to, plantilla: p.plantilla.clave, contrato_id: p.plantilla.contrato_id, firma_id: p.plantilla.firma_id,
-    ...(p.plantilla.vars ? { vars: p.plantilla.vars } : {}), attach: false,
-  }) : null;
   /* `X-Render-Secret` autentica esta función ante el endpoint de correo. Hacia el PHP se reusa el secreto del servicio de
      render (send_email.php ya no admite peticiones sin credencial desde el 6-ago-2026; esta función no tiene sesión de
      usuario). Hacia la edge va ENVIO_CORREO_SECRET, que no es el compartido con otros ERP.
      ponytail: RENDER_SECRET, si se rota, se rota en los dos lados (PHP y función). */
   const url = await urlEnvio();
-  // Con plantilla solo se intenta contra la edge (el PHP no la conoce). La caída al camino libre es UNA vez y solo si la edge
-  // contesta EXACTAMENTE 400 (validó y no envió) o 502 (el SMTP no aceptó el correo): ahí no salió nada. Nunca tras excepción de
-  // fetch ni timeout (no distingue «no conectó» de «se cortó tras enviar»), ni tras 2xx, ni tras 401/404 (esos van por la red de
-  // abajo, que ya manda el camino libre al PHP). Antes que dejar a un comprador sin su enlace de firma, el texto de siempre.
-  const PLANTILLA_CAE = [400, 502];
   let r = url === ENVIO_EDGE
-    ? await postCorreo(url, Deno.env.get('ENVIO_CORREO_SECRET') || RENDER_SECRET, cuerpoPlantilla ?? cuerpo)
+    ? await postCorreo(url, Deno.env.get('ENVIO_CORREO_SECRET') || RENDER_SECRET, cuerpo)
     : await postCorreo(ENVIO_PHP, RENDER_SECRET, cuerpo);
-  let porPlantilla = url === ENVIO_EDGE && cuerpoPlantilla !== null;
-  if (porPlantilla && PLANTILLA_CAE.includes(r.status)) {
-    console.error('plantilla_caida fn=firma-submit plantilla=' + p.plantilla!.clave + ' status=' + r.status);
-    await r.text().catch(() => '');
-    porPlantilla = false;
-    r = await postCorreo(url, Deno.env.get('ENVIO_CORREO_SECRET') || RENDER_SECRET, cuerpo);
-  }
   if (url === ENVIO_EDGE && RED_ESTADOS.includes(r.status)) {
     console.error('red_envio_usada fn=firma-submit status=' + r.status);
     await r.text().catch(() => '');
-    porPlantilla = false;
     r = await postCorreo(ENVIO_PHP, RENDER_SECRET, cuerpo);
   }
   const t = await r.text();
   if (!r.ok || !t.includes('"ok":true')) throw new Error('email a ' + p.to + ': ' + t.slice(0, 200));
-  // qué plantilla y versión salieron, tal como las devuelve la edge (nunca el texto: lleva token, LAW-343)
-  const plantillaUsada = porPlantilla ? plantillaDevuelta(t) : null;
   if (p.log) {
     // el correo YA salió: un fallo del log se anota y no revienta el flujo
     // (perder una fila de registro < repetir un envío al cliente)
@@ -189,7 +160,6 @@ async function enviarEmail(p: {
       contrato_id: p.log.contrato_id ?? null, factura_id: p.log.factura_id ?? null,
       para: p.to, asunto: p.subject, via: p.log.via, enviado_por: null,
       ...(p.log.mensaje ? { mensaje: p.log.mensaje } : {}),
-      ...(plantillaUsada ? { plantilla: plantillaUsada.plantilla, plantilla_version: plantillaUsada.version } : {}),
     });
     if (error) console.error('correos_enviados: ' + error.message);
   }
@@ -924,7 +894,7 @@ Deno.serve(async (req) => {
             // el siguiente firma el documento CON las firmas anteriores: su hash es el de lo
             // que se acaba de guardar en el bucket (misma comprobación de arriba en su turno)
             snapshot_hash: await sha256hex(html),
-          }).select('id').single();
+          });
           if (insSig.error) throw new Error(insSig.error.message);
           // sin pdfB64: enviarEmail() ya manda `attach:false` cuando no se le da
           // un PDF — va solo el enlace, mismo criterio que "Generar enlace de
@@ -937,7 +907,6 @@ Deno.serve(async (req) => {
               ', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: ' + link +
               '\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties',
             log: { contrato_id: claimed.contrato_id, via: 'enlace_firma' },
-            plantilla: { clave: 'enlace_firma_cadena', contrato_id: claimed.contrato_id, firma_id: insSig.data.id }, // sin vars: enlace_firma_cadena no admite ninguna; el nombre lo lee la edge de la fila de la firma
           });
         }
       } catch (e) {
