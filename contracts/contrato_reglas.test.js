@@ -258,5 +258,73 @@ afirma('el panel nace escondido y lo abre el botón',
     !/(src|href)=\"[^\"]*(movimiento-v3\.js|saldos-v3\.js|suite-v3(-herramientas)?\.css)/.test(html));
 }
 
+/* EL PANEL DE ANEXOS SE PINTA CON EL CONTRATO YA PUESTO — 2-oct-2026 (owner: «no me deja anexar
+   documentos»). buildAnnexPanel() decide en el momento de pintarse si ofrece «+ Subir…» (hay
+   SAVED_CONTRACT y no está bloqueado ni a firma). Desde LAW-78 (27-sep) se pintaba al abrir ANTES
+   de poner SAVED_CONTRACT y LOCKED, y al guardar uno nuevo no se repintaba: el panel se quedaba en
+   «Guarda el contrato para poder añadirle anexos» con el contrato ya guardado. Lo que se afirma:
+   después de poner SAVED_CONTRACT (y LOCKED al abrir) hay un rebuildAnnex(); el cambio de estado de
+   firma también repinta; y repintar no pliega el panel que el usuario tiene abierto. */
+{
+  const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+  const cuerpo = nombre => {
+    const i = html.search(new RegExp('\\n(async )?function ' + nombre + '\\('));
+    if (i < 0) return '';
+    const j = html.slice(i + 1).search(/\n(async )?function \w+\(/);
+    return j < 0 ? html.slice(i) : html.slice(i, i + 1 + j);
+  };
+  const repintaTras = (c, marca) => c.indexOf(marca) >= 0 && c.lastIndexOf('rebuildAnnex()') > c.indexOf(marca);
+  const abrir = cuerpo('openSavedContract'), guardar = cuerpo('guardarContrato'), firma = cuerpo('aplicarEstadoFirma');
+  afirma('al abrir un contrato, el panel de anexos se repinta con SAVED_CONTRACT y LOCKED ya puestos',
+    repintaTras(abrir, 'SAVED_CONTRACT = {') && repintaTras(abrir, 'LOCKED = !!data.bloqueado'),
+    'sin esto el panel dice «Guarda el contrato…» en un contrato guardado y no ofrece subir anexos');
+  afirma('al guardar, el panel de anexos se repinta con el contrato ya guardado',
+    repintaTras(guardar, 'SAVED_CONTRACT = {'),
+    'un contrato recién creado seguía sin botón de subir anexos hasta recargar');
+  // aplicarEstadoFirma corre con CADA tecla (updateSaveButton): repintar ahí sin guarda cambia el panel
+  // bajo los dedos. Tiene que ir por la guarda, nunca por rebuildAnnex() a pelo (revisor, 2-oct-2026).
+  afirma('el estado de firma repinta el panel de anexos solo si cambia lo que decide la subida',
+    /repintaAnexosSiCambia\(\)/.test(firma) && !/rebuildAnnex\(\)/.test(firma),
+    'rebuildAnnex() a pelo en aplicarEstadoFirma repinta con cada tecla: se pierde el título del anexo y el «Incluir»');
+  // El comportamiento (la guarda no repinta si nada cambió; repintar conserva el panel abierto) lo
+  // ejecuta documento_anexos.test.js sobre el código real.
+}
+
+/* ANEXAR SIN GUARDAR — 2-oct-2026 (owner: «Guardar el anexo al guardar»; revisión previa #197). Un anexo
+   pendiente vive solo en memoria y el servidor no admite su ficha sin páginas (trigger de LAW-78), así que:
+   no viaja en el alta, el guardado se repite solo una vez para subirlo, un pendiente que no llega no da el
+   guardado por bueno, y nada lo tira sin preguntar ni lo cuelga del borrador siguiente. */
+{
+  const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+  const asis = leerAsset('asistente-contrato.js');
+  const cuerpo = nombre => {
+    const i = html.search(new RegExp('\\n(async )?function ' + nombre + '\\('));
+    if (i < 0) return '';
+    const j = html.slice(i + 1).search(/\n(async )?function \w+\(/);
+    return j < 0 ? html.slice(i) : html.slice(i, i + 1 + j);
+  };
+  afirma('el guardado deja fuera de `datos` los anexos pendientes',
+    /annexes: ANNEXES\.filter\(a => !a\.pendiente\)\.map\(a => fichaDatos\(/.test(html),
+    'un pendiente en `datos` sin páginas en el archivo hace saltar el trigger y el contrato no se guarda');
+  const guardar = cuerpo('guardarContrato');
+  // La fase 2 es SOLO subir + guardar fichas (guardaAnexosPendientes, ejecutada en documento_anexos.test.js
+  // caso 26), dentro del try y con el botón apagado; nunca guardarContrato() otra vez (revisor, 2-oct-2026:
+  // repetía frenos interactivos, LAW-71 y efectos).
+  afirma('tras el alta, la fase 2 sube los pendientes sin repetir el guardado entero',
+    /try\{ guardadoOk = await guardaAnexosPendientes\(data\.id\); \}/.test(guardar) && /\}else guardadoOk = !hayPendientes\(\);/.test(guardar)
+    && !/return await guardarContrato\(\)/.test(guardar) && !/\n\s*guardadoOk = true;/.test(guardar),
+    'con un pendiente sin guardar, guardar no puede darse por bueno («Enviar a firma» no sale)');
+  afirma('no se guarda con un anexo aún convirtiéndose', /if\(SUBIDA_ANEXO\)\{ avisoNoGuardado\(/.test(guardar));
+  const sustituciones = html.match(/ANNEXES = (\[\]|normalizaAnexos\([^)]*\));[^\n]*/g) || [];
+  afirma('cada vez que la lista de anexos se sustituye entera, cambia MARCA_ANX',
+    sustituciones.length >= 3 && sustituciones.every(l => /MARCA_ANX\+\+/.test(l)), sustituciones.join(' | '));
+  afirma('abrir otro contrato y derivar preguntan antes de tirar los pendientes',
+    /confirmaSoltarPendientes\(\)/.test(cuerpo('openSavedContract')) && /confirmaSoltarPendientes\(\)/.test(cuerpo('derivarContrato')));
+  afirma('cambiar de tipo pregunta antes de tirar los pendientes (y antes de que el asistente lo intercepte)',
+    /if\(!confirmaSoltarPendientes\(\)\)\{ sel\.value = CURRENT\.slug; return; \}\s*\n\s*if\(window\.lwAsistente && window\.lwAsistente\.interceptaCambioTipo/.test(html));
+  afirma('el asistente pregunta antes de montar encima de un borrador con pendientes',
+    /async function monta\(\) \{\s*\n[^\n]*\n\s*if \(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes\(\)\) return;/.test(asis));
+}
+
 console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nLas reglas de la pantalla de contratos se sostienen.');
 process.exit(fallos ? 1 : 0);

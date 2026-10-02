@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="7eec017fcd7b">
+<meta name="lw-version" content="2080ba54a253">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=4ab27bbc"></script>
+<script src="/contracts/assets/i18n.js?v=2c405748"></script>
 <script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=705d408d" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -80,7 +80,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=a6230c91"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
-<script src="assets/documento_anexos.js?v=0abc554b"></script>
+<script src="assets/documento_anexos.js?v=7d79edb0"></script>
 <script src="assets/parcela_inventario.js?v=c101c6e2"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
@@ -111,7 +111,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=315e5fb9"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=82317891"></script>
 <script src="/intranet/v4/assets/nav.js?v=c76dd0b9" defer></script>
 </head>
 <body>
@@ -1802,7 +1802,7 @@ function resetBorrador(slug){
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   limpiarOverrides(slug);
   COMPRADORES = []; saveCompradores();
-  ANNEXES = []; saveAnnexes();
+  ANNEXES = []; MARCA_ANX++; saveAnnexes();
   CLAUSES = []; saveClauses();
   AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; AUTO_UBICACION = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
   /* Y los de la tipologia: al cambiar de contrato o de plantilla, lo pintado y
@@ -2935,6 +2935,19 @@ function collect(){
   Object.entries(CAMPOS_HEREDADOS).forEach(([k,v])=>{
     if(!Object.prototype.hasOwnProperty.call(data, k)) data[k] = v;
   });
+  /* `rev03_dni` (2-oct-2026): «o DNI» en la identificación del comprador de
+     Parcela/Construcción con cláusulas negociadas REV03. Esa frase vive DENTRO
+     del párrafo de persona, y el motor de <!--if--> (buildDoc) no evalúa un
+     bloque anidado en otro — lo imprimiría siempre. Por eso la plantilla parte
+     el bloque de persona alrededor de la frase y la condiciona a esta clave,
+     que es «persona Y REV03» a la vez. Igual `rev03_hgb` (REV03 Y leasehold):
+     el párrafo HGB-vía-PT PMA no puede ir dentro del bloque leasehold, y con
+     hgb o hak_milik contradiría su propio párrafo. Aquí se calculan SIEMPRE
+     para la vista previa; al guardar las estampa la base (trigger
+     trg_rev03_estampa), que es lo que lee el bot — lo que mande el
+     navegador no manda. */
+  data.rev03_dni = (data.clausulas_negociadas === 'si' && data.adq1_tipo === 'persona') ? 'si' : '';
+  data.rev03_hgb = (data.clausulas_negociadas === 'si' && data.regimen_tenencia === 'leasehold') ? 'si' : '';
   return data;
 }
 
@@ -3416,6 +3429,8 @@ function deriveSections(){
      plantillas lo usan como <!--if:adq1_tipo=empresa--> y esa forma tambien
      cuenta como «el campo aparece en la plantilla» (unas lineas mas arriba). */
   inDoc.delete('adq1_tipo');
+  inDoc.delete('rev03_dni');   // derivado (collect() y la base: persona + cláusulas negociadas) — nunca un campo del form
+  inDoc.delete('rev03_hgb');   // derivado (collect() y la base: leasehold + cláusulas negociadas) — nunca un campo del form
   /* `descuento_comercial_aplica` tampoco es un campo del formulario (lo
      calcula collect(), ver la nota junto a ese bloque) — mismo motivo que
      adq1_tipo justo arriba: sin este delete caería en el cajón automático
@@ -3646,6 +3661,8 @@ function buildPicker(){
        asistente con el cliente y la parcela conservados. El asistente decide
        si le toca (solo mientras el borrador no está guardado) y, si no, el
        cambio sigue por el camino de siempre. */
+    // anexos sin guardar (2-oct-2026): cambiar de tipo los tira; se pregunta antes, y si no, el tipo vuelve
+    if(!confirmaSoltarPendientes()){ sel.value = CURRENT.slug; return; }
     if(window.lwAsistente && window.lwAsistente.interceptaCambioTipo(sel.value)) return;
     // cambiar de tipo arranca un documento nuevo: nada del anterior viaja con
     // él (ver resetBorrador — ediciones de texto, adquirientes, anexos, cláusulas)
@@ -3961,6 +3978,9 @@ function aplicarEstadoFirma(){
   // `datos` por detrás; «Subir firmado» con un enlace vivo pisaba la firma en
   // curso (auditoría 19-ago). El panel de diseño abierto sí se cierra.
   if(activo){ const pd=$('#designPanel'); if(pd) pd.hidden = true; }
+  // a firma o anulado: el panel de anexos ofrece o retira «+ Subir…» según el estado de AHORA. Solo si
+  // ese estado cambió: esto corre con cada tecla del formulario (2-oct-2026, ver firmaPanelAnexos)
+  repintaAnexosSiCambia();
   pintaAcciones();
   ocultarGruposVacios();
 }
@@ -4351,6 +4371,27 @@ function updateSaveButton(){
         : 'Solo lo cambian dirección y los sales managers.';
     });
   }
+  /* Cláusulas negociadas REV03 (2-oct-2026, owner): un selector de Parcela y
+     Construcción que SOLO ven y cambian admin/super_admin — el resto ni lo ve.
+     El candado de verdad es el trigger clausulas_negociadas_rol de la base;
+     esto solo evita enseñar un campo que el servidor le rechazaría. Mismo
+     cuidado que el descuento: una copia SIN guardar en manos de un agente se
+     suelta (si no, no podría guardarla); una ya guardada conserva su valor,
+     oculto, y el trigger deja guardarla sin tocarlo. Solo con MI_ROL resuelto. */
+  {
+    const caja = document.querySelector('.field[data-key="clausulas_negociadas"]');
+    if(caja){
+      const abre = ['super_admin','admin'].includes(MI_ROL);
+      const sel = caja.querySelector('select');
+      if(MI_ROL && !abre && !(SAVED_CONTRACT && SAVED_CONTRACT.id) && sel && sel.value){
+        sel.value = ''; sel.dispatchEvent(new Event('change', { bubbles:true }));
+        // Que no se pierda en silencio (p. ej. una Construcción derivada de una Parcela REV03).
+        toastMal(lwT('Este contrato venía con cláusulas negociadas (REV03) y solo dirección puede ponerlas: pide a un admin que las active antes de enviarlo.'));
+      }
+      caja.style.display = abre ? '' : 'none';
+      if(sel) sel.disabled = !abre;
+    }
+  }
   // Hitos de fábrica del Contrato de Construcción (16-sep-2026): mismo
   // mecanismo que FIJOS_ESTUDIO — hitosBodyHTML() (hitos_fechas.js) los pinta
   // bloqueados y ocultos siempre, y esta función los abre/enseña cuando el
@@ -4569,7 +4610,7 @@ function contractPayload(){
     // de ESTE contrato; los viejos siguen con sus páginas hasta que pasan (fichaDatos).
     datos: { fields: data, hitos: HITOS, design: DESIGN,
               ...(CALENDARIO ? { calendario: CALENDARIO } : {}),
-              annexes: ANNEXES.map(a => fichaDatos(a, SAVED_CONTRACT && SAVED_CONTRACT.id)), clauses: CLAUSES,
+              annexes: ANNEXES.filter(a => !a.pendiente).map(a => fichaDatos(a, SAVED_CONTRACT && SAVED_CONTRACT.id)), clauses: CLAUSES,
               compradores: COMPRADORES,
               /* Techo y extras CONGELADOS (16-sep-2026) — nunca FK viva a
                  modelo_techos/modelo_extras: precio_2027 cambia con el reloj
@@ -4951,6 +4992,8 @@ async function guardarContrato(){
      (cargando, subiendo), sin páginas, con una página que falta o cuya huella no cuadra
      con la de la tabla. Se para y se dice cuál y qué página: guardar encima de un anexo
      roto es firmarlo roto después. Detalle en documento_anexos.js. */
+  // Un fichero aún convirtiéndose entraría DESPUÉS de un guardado ya dado por bueno (revisor, 2-oct-2026)
+  if(SUBIDA_ANEXO){ avisoNoGuardado('Espera a que termine el anexo (' + SUBIDA_ANEXO + ') y vuelve a guardar.'); return; }
   const problemasAnx = problemasAnexos(ANNEXES);
   if(problemasAnx.length){
     avisoNoGuardado('No se guarda: ' + problemasAnx.join('; ') + '.');
@@ -4974,12 +5017,12 @@ async function guardarContrato(){
     if(SAVED_CONTRACT && SAVED_CONTRACT.id){
       const cid = SAVED_CONTRACT.id;
       const migrar = anexosAMigrar(ANNEXES, cid);
-      const hechos = {}, fallidos = [];
+      const hechos = {}, fallidos = [], fallidosPend = [];
       for(const a of migrar){
         const nuevoId = idAnexoNuevo();
-        btn.textContent = 'Pasando «' + a.title + '» al archivo…';
+        btn.textContent = (a.pendiente ? 'Guardando el anexo «' : 'Pasando «') + a.title + (a.pendiente ? '»…' : '» al archivo…');
         try{ hechos[a.id] = { id:nuevoId, filas: await subePaginasAnexo(cid, nuevoId, a.pages) }; }
-        catch(eM){ fallidos.push('«' + a.title + '» (página ' + (eM.pagina || '?') + ': ' + (eM.message || 'error') + ')'); }
+        catch(eM){ (a.pendiente ? fallidosPend : fallidos).push('«' + a.title + '» (página ' + (eM.pagina || '?') + ': ' + (eM.message || 'error') + ')'); }
       }
       if(migrar.length){
         ANNEXES = aplicaMigracion(ANNEXES, hechos, cid);
@@ -4989,6 +5032,11 @@ async function guardarContrato(){
       // se dice con el aviso del guardado, no en otro toast: dos seguidos se pisan (ver populateForm)
       if(fallidos.length)
         avisoMigracion = ' · OJO: no se ha podido pasar al archivo ' + fallidos.join(', ') + '; se ha guardado como antes, dentro del contrato, y se reintentará al volver a guardar.';
+      /* Un pendiente (anexado sin guardar, 2-oct-2026) NO tiene copia en `datos`: si no llega, solo vive
+         en esta pestaña. El guardado sigue con lo demás pero devuelve false —«Enviar a firma» no sale—
+         y se dice en rojo (revisión previa #197). */
+      if(fallidosPend.length)
+        avisoMigracion += ' · OJO: NO se ha guardado el anexo ' + fallidosPend.join(', ') + '. Sigue solo en esta pestaña: vuelve a pulsar Guardar antes de cerrarla.';
     }
     const payload = contractPayload();
     // `,datos` (17-sep-2026, no solo `id,numero`): el trigger de la base
@@ -5053,6 +5101,7 @@ async function guardarContrato(){
     if(fila.moneda) payload.moneda = fila.moneda;
     const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.fields, hitos:fila.hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
+    rebuildAnnex();   // un contrato recién creado ya admite anexos: el panel se pintó cuando aún no tenía fila (2-oct-2026)
     /* Construcción (28-sep-2026): el calendario lo monta el servidor —importes incluidos— y puede diferir de lo
        que había en pantalla (una pestaña vieja, un % tocado). Se enseña lo que quedó guardado, no lo que se mandó. */
     if(tipo === 'construccion' && Array.isArray(fila.hitos)){
@@ -5129,7 +5178,16 @@ async function guardarContrato(){
     informarCompradores(data.id);   // el alta ya la hizo el disparador: esto solo la cuenta
     if(esNuevo) crearProformaAutomatica(data.id, data.numero, payload);
     if(tipo === 'poa') cubrirConEstePoder(data.id, data.numero);
-    guardadoOk = true;
+    /* Anexos pendientes (anexar sin guardar, 2-oct-2026). En un alta, la FASE 2 los sube y guarda sus
+       fichas (guardaAnexosPendientes, documento_anexos.js), con el botón aún apagado. En un contrato ya
+       existente los subió la migración de arriba; si alguno no llegó, sigue pendiente. En los dos casos,
+       con un pendiente sin guardar el guardado no se da por bueno: «Enviar a firma» no sale. */
+    if(eraNuevo){
+      // el contrato YA está creado: un fallo imprevisto aquí no puede acabar en el «No se pudo guardar» de abajo
+      try{ guardadoOk = await guardaAnexosPendientes(data.id); }
+      catch(eF){ SUBIDA_ANEXO = ''; rebuildAnnex(); guardadoOk = false;
+        toastMal('El contrato está guardado, pero sus anexos no (' + ((eF && eF.message) || 'error') + '). Pulsa Guardar otra vez antes de cerrar la pestaña.'); }
+    }else guardadoOk = !hayPendientes();
   }catch(err){
     // Los triggers de guardado (sincroniza_unidad_contrato, valida_poder_id,
     // contrato_no_editable_en_firma, contratos_tipo_permitido,
@@ -5387,6 +5445,7 @@ function populateForm(fields){
 
 async function openSavedContract(id){
   if(!sb) return;
+  if(!confirmaSoltarPendientes()) return;   // abrir otro contrato tira los anexos sin guardar (2-oct-2026)
   /* Placeholder de carga (31-ago-2026, aviso del owner): entre pulsar un
      contrato y que populateForm() lo rellene hay DOS awaits en serie (traer
      la fila, cargar la plantilla) — mientras tanto el formulario y la vista
@@ -5448,7 +5507,7 @@ async function openSavedContract(id){
      por qué. No había llegado a sus vecinas. */
   // LAW-78: los subidos a mano del archivo llegan como ficha y quedan «cargando» hasta que
   // cargaAnexosAlmacen() baja sus páginas (se lanza abajo, con SAVED_CONTRACT ya puesto).
-  ANNEXES = normalizaAnexos(d.annexes); saveAnnexes(); rebuildAnnex();
+  ANNEXES = normalizaAnexos(d.annexes); MARCA_ANX++; saveAnnexes(); rebuildAnnex();
   // 23-sep-2026: sin rebuildClause() el artículo añadido (CC00105 «Art. 17»)
   // salía en el documento pero no en el panel para editarlo; y sin resincronizar
   // clauseSeq, el siguiente «+ Añadir artículo» repetía id (cl1) y editaba los dos.
@@ -5555,6 +5614,9 @@ async function openSavedContract(id){
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
   // a firma le pintaría a B el candado de A hasta que respondiera la lectura
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] };
+  // El panel de anexos se pintó en populateForm() con el contrato ANTERIOR (o ninguno): sin esto
+  // decía «Guarda el contrato…» en uno guardado y no ofrecía subir (owner, 2-oct-2026).
+  rebuildAnnex();
   // tras poblar: reaplica los campos condicionados y vuelve a derivar el anexo
   // automático de la tipología guardada (solo viaja su ficha, no las páginas).
   // AUTO_ANX a cero o el anexo del contrato ANTERIOR daría por bueno el nuevo.
@@ -5722,6 +5784,7 @@ function abrirDerivar(){
 }
 $('#dvTpl').addEventListener('change', actualizarAvisoDerivar);
 async function derivarContrato(slug){
+  if(!confirmaSoltarPendientes()) return;   // derivar empieza otro documento sin sus anexos (2-oct-2026)
   const origen = (SAVED_CONTRACT && SAVED_CONTRACT.numero) || 'el borrador actual';
   const f = collect();
   // Fuera lo que pertenece SOLO al documento de origen: el número lo pone la BD
@@ -5814,7 +5877,7 @@ async function derivarContrato(slug){
   // que se capturan arriba y se reaplican abajo; Anexos/Cláusulas no tienen
   // ese mismo motivo y se limpian.
   limpiarOverrides(slug);
-  ANNEXES = []; saveAnnexes(); CLAUSES = []; saveClauses();
+  ANNEXES = []; MARCA_ANX++; saveAnnexes(); CLAUSES = []; saveClauses();
   // Techo/extras: mismo motivo que Anexos/Cláusulas — propios de CADA
   // documento, no "el objetivo de derivar" como Compradores/Hitos.
   TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = []; TECHO_MODELO_HECHO = null; TECHOS_OPCIONES = []; EXTRAS_OPCIONES = [];

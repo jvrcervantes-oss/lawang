@@ -66,6 +66,9 @@ const numPaginas = a => ES_ALMACEN(a) ? a.almacen.length : (a.pages || []).lengt
    siguiente guardado. */
 function fichaDatos(a, contratoId){
   if(a.auto) return { ...limpiaMemoria(a), pages:[] };
+  // un pendiente (contrato sin guardar) no viaja a `datos`: contractPayload() lo deja fuera. Si
+  // alguien lo cuela, que sea sin páginas y que el trigger lo diga, nunca 5 MB de base64 dentro.
+  if(a.pendiente) return { id:a.id, title:a.title, on:a.on };
   if(ES_ALMACEN(a) && contratoId && a.contrato === contratoId) return { id:a.id, title:a.title, on:a.on };
   if(Array.isArray(a.pages) && a.pages.length && a.pages.every(Boolean)) return { id:a.id, title:a.title, on:a.on, pages:a.pages };
   return { id:a.id, title:a.title, on:a.on };
@@ -93,6 +96,8 @@ function problemasAnexos(lista, opciones){
     if(a.estado === 'cargando'){ out.push('el anexo ' + nom + ' aún se está cargando'); return; }
     if(a.estado === 'subiendo'){ out.push('el anexo ' + nom + ' aún se está subiendo'); return; }
     if(a.estado === 'error'){ out.push('no se ha podido comprobar el anexo ' + nom + (a.error ? ' (' + a.error + ')' : '')); return; }
+    // Guardar SÍ puede con un pendiente (es lo que lo sube); lo definitivo (PDF, firma) no.
+    if(a.pendiente && soloIncluidos){ out.push('el anexo ' + nom + ' aún no está guardado: pulsa Guardar'); return; }
     if(ES_ALMACEN(a)){
       if(!a.almacen.length){ out.push('el anexo ' + nom + ' no tiene páginas en el archivo: vuelve a subirlo o quítalo'); return; }
       const ns = a.almacen.map(r => r.n).sort((x, y) => x - y);
@@ -188,6 +193,80 @@ let CARGA_ANEXOS = Promise.resolve();
 /* Texto de la subida en curso: mientras hay una, el panel no ofrece otra (se repinta
    entero y un input vivo dejaría arrancar una segunda en paralelo; code-review, 27-sep). */
 let SUBIDA_ANEXO = '';
+
+/* ANEXAR SIN GUARDAR — 2-oct-2026, owner («Guardar el anexo al guardar»).
+   ═══════════════════════════════════════════════════════════════════════════
+   En un contrato que aún no tiene fila, un anexo entra PENDIENTE: sus páginas en
+   memoria (forma «viejo»: `pages`, sin `almacen`) y `pendiente:true`. No viaja a
+   `datos` —el trigger trg_contrato_anexos_con_paginas rechaza una ficha sin filas, y
+   contrato_anexo_registra rechaza páginas de un id que ya esté en `datos` (LAW-78)—,
+   así que el guardado va en DOS FASES: (1) el alta, sin los pendientes; (2) en cuanto
+   existe la fila, guardarContrato() se vuelve a llamar sola y la migración perezosa
+   de siempre (anexosAMigrar → subePaginasAnexo → aplicaMigracion) los sube con id
+   nuevo y guarda sus fichas. Mientras quede uno pendiente, guardar devuelve false
+   («Enviar a firma» no sale) y el PDF definitivo no se descarga.
+   Solo viven en ESTA pestaña: el navegador avisa antes de recargar o cerrar, y abrir
+   otro contrato, cambiar de tipo, derivar o empezar otro borrador piden confirmación.
+   MARCA_ANX cambia cada vez que la lista se sustituye entera (otro contrato, otro
+   borrador): lo que estaba convirtiéndose o bajando para la anterior no se cuelga de
+   la nueva —con el contrato sin guardar no hay id que comparar (revisión previa #197). */
+let MARCA_ANX = 0;
+const hayPendientes = () => ANNEXES.some(a => a && a.pendiente);
+function confirmaSoltarPendientes(){
+  const p = ANNEXES.filter(a => a && a.pendiente);
+  if(!p.length) return true;
+  if(!window.confirm((p.length === 1 ? 'El anexo «' + p[0].title + '» aún no está guardado' : p.length + ' anexos aún no están guardados')
+    + ' (se guardan con el contrato al pulsar Guardar). Si sigues, se pierden. ¿Seguir?')) return false;
+  // aceptado: se sueltan YA, para que el siguiente paso del mismo gesto no vuelva a preguntar
+  ANNEXES = ANNEXES.filter(a => !(a && a.pendiente)); rebuildAnnex();
+  return true;
+}
+/* FASE 2 del guardado: el contrato `cid` acaba de nacer y quedan pendientes. Solo esto —subir y
+   guardar sus fichas—, nunca guardarContrato() otra vez: repetía sus frenos interactivos (ficha del
+   comprador, salto de freno de LAW-71), sus efectos (compradores, poder, lead) y su aviso de alta
+   (revisor, 2-oct-2026). Cada pendiente sube con id NUEVO (registra rechaza un id que ya esté en
+   `datos`); si todo un anexo llega, pasa a forma archivo y un contrato_guarda con las fichas lo deja
+   en el contrato. Devuelve true solo si no queda ninguno pendiente. Si contrato_guarda falla, los ya
+   subidos tienen sus filas: el siguiente «Guardar» guarda sus fichas sin volver a subir nada. */
+async function guardaAnexosPendientes(cid){
+  const marca = MARCA_ANX;
+  const sigue = () => MARCA_ANX === marca && typeof SAVED_CONTRACT !== 'undefined' && SAVED_CONTRACT && SAVED_CONTRACT.id === cid;
+  const pend = ANNEXES.filter(a => a && a.pendiente && Array.isArray(a.pages) && a.pages.length && a.pages.every(Boolean));
+  if(!pend.length) return !hayPendientes();
+  const avisa = t => { SUBIDA_ANEXO = t; const l = $('#anxUpLabel'); if(l) l.textContent = t; };
+  const hechos = {}, fallidos = [];
+  avisa('Guardando los anexos…'); rebuildAnnex();
+  for(const a of pend){
+    const nuevoId = idAnexoNuevo();
+    try{
+      const filas = await subePaginasAnexo(cid, nuevoId, a.pages, (k, n) => avisa('Guardando el anexo «' + a.title + '»: ' + k + ' de ' + n + '…'));
+      hechos[a.id] = { id:nuevoId, filas };
+    }catch(e){ fallidos.push('«' + a.title + '» (página ' + (e.pagina || '?') + ': ' + (e.message || 'error') + ')'); }
+    if(!sigue()) break;
+  }
+  SUBIDA_ANEXO = '';
+  // Mientras subía se abrió otro contrato (eso ya preguntó y soltó los pendientes): nada se cuelga de él.
+  if(!sigue()){ rebuildAnnex(); toastMal('Se ha cambiado de contrato mientras se guardaban los anexos del anterior: ábrelo y comprueba sus anexos.'); return false; }
+  ANNEXES = aplicaMigracion(ANNEXES, hechos, cid);
+  rebuildAnnex(); render();
+  if(Object.keys(hechos).length){
+    const payload = contractPayload();
+    const envio = { tipo: payload.tipo, datos: payload.datos };
+    if('unidad_id' in payload) envio.unidad_id = payload.unidad_id;
+    const { error } = await sb.rpc('contrato_guarda', { p_id: cid, p_contrato: envio });
+    if(error){
+      toastMal('El contrato está guardado, pero no la lista de sus anexos (' + (error.message || 'error') + '). Pulsa Guardar otra vez: sus páginas ya están subidas.');
+      return false;
+    }
+  }
+  if(fallidos.length){
+    toastMal('El contrato está guardado, pero NO el anexo ' + fallidos.join(', ') + '. Sigue solo en esta pestaña: pulsa Guardar otra vez antes de cerrarla.');
+    return false;
+  }
+  return !hayPendientes();
+}
+if(typeof window !== 'undefined' && typeof window.addEventListener === 'function')
+  window.addEventListener('beforeunload', e => { if(hayPendientes()){ e.preventDefault(); e.returnValue = ''; } });
 async function cargaAnexosAlmacen(contratoId){
   const actual = () => (typeof SAVED_CONTRACT !== 'undefined' && SAVED_CONTRACT && SAVED_CONTRACT.id) === contratoId;
   const pendientes = ANNEXES.filter(a => ES_ALMACEN(a) && a.estado === 'cargando');
@@ -725,6 +804,7 @@ function estadoAnexoManual(a){
   const n = numPaginas(a);
   if(a.estado === 'cargando') return { txt:'cargando…', mal:false };
   if(a.estado === 'subiendo') return { txt:'subiendo…', mal:false };
+  if(a.pendiente) return { txt:n + ' pág. · se guarda al guardar el contrato (si recargas antes, se pierde)', mal:false };
   if(a.estado === 'error') return { txt:'no se ha podido comprobar' + (a.error ? ': ' + a.error : ''), mal:true };
   if(ES_ALMACEN(a)){
     const p = problemasAnexos([a]);
@@ -774,15 +854,15 @@ function buildAnnexPanel(){
   const c = contratoParaAnexos();
   const subir = SUBIDA_ANEXO
     ? `<div class="dz" style="color:var(--muted);font-size:12.5px" id="anxUpLabel" role="status">${escAttr(SUBIDA_ANEXO)}</div>`
-    : !c.id
-    ? `<div class="dz" style="color:var(--muted);font-size:12.5px">Guarda el contrato para poder añadirle anexos: las páginas se guardan con él.</div>`
     : c.bloqueado ? ''
     : `<div class="dz" style="display:flex;flex-wrap:wrap;gap:8px"><label class="up" id="anxUpLabel">+ Subir desde el ordenador (PDF o imágenes)<input type="file" id="anxFile" accept="application/pdf,image/*" multiple></label>`
-      + `<button type="button" class="up" data-accion="anexo-intranet">+ Elegir de la intranet</button></div>`;
+      + `<button type="button" class="up" data-accion="anexo-intranet">+ Elegir de la intranet</button></div>`
+      // sin guardar se puede anexar (owner, 2-oct-2026): se dice cuándo queda guardado de verdad
+      + (!c.id ? `<div class="dz" style="color:var(--muted);font-size:12px">El contrato aún no está guardado: los anexos se guardan con él al pulsar Guardar.</div>` : '');
   // Seguridad (revisión previa LAW-78): un pasaporte subido aquí acaba impreso en el
   // contrato y en cada copia que se manda. La identidad va a la ficha del comprador.
   const kyc = `<div class="dz" style="color:var(--muted);font-size:12px">Los documentos de identidad (pasaporte, KTP, NPWP) van a la ficha del comprador (KYC), no aquí.</div>`;
-  return `<section class="section design collapsed" id="annexPanel">
+  return `<section class="section design collapsed" id="annexPanel" data-firma="${escAttr(firmaPanelAnexos())}">
     <header data-acc><span class="num">📎</span><h2>Anexos</h2><span class="chev">▾</span></header>
     <div class="body">
       ${rows}
@@ -814,15 +894,15 @@ function wireAnnexPanel(){
    por la edge y entran solo si TODAS llegaron con su huella. Un documento de la intranet
    se COPIA al anexo (sus páginas quedan en el contrato): si luego cambia en Proyectos o en
    Modelos, lo que se firmó no cambia con él. `items` = [{file, titulo}]. */
-async function anadeAnexosDeFicheros(items, contratoEsperado){
+async function anadeAnexosDeFicheros(items, contratoEsperado, marcaEsperada){
   const c = contratoParaAnexos();
+  const marca = MARCA_ANX;
   /* Las salidas tempranas limpian SUBIDA_ANEXO: quien viene de «Elegir de la intranet» ya lo
      puso en «Descargando…» y sin esto el panel se quedaba así hasta recargar (revisor, 30-sep). */
   const corta = m => { SUBIDA_ANEXO = ''; rebuildAnnex(); toastMal(m); };
-  if(!c.id){ corta('Guarda el contrato antes de añadirle anexos: las páginas se guardan con él.'); return; }
   if(c.bloqueado){ corta('Este contrato está enviado a firma o bloqueado: no admite anexos nuevos.'); return; }
   // Se eligió en un contrato y mientras bajaba se abrió otro: el anexo no se cuelga del que no era.
-  if(contratoEsperado && c.id !== contratoEsperado){ corta('Se ha cambiado de contrato mientras se descargaba el documento: no se ha añadido. Vuelve a elegirlo.'); return; }
+  if((contratoEsperado && c.id !== contratoEsperado) || (marcaEsperada !== undefined && marcaEsperada !== marca)){ corta('Se ha cambiado de contrato mientras se descargaba el documento: no se ha añadido. Vuelve a elegirlo.'); return; }
   // El panel se repinta durante la subida: el progreso se escribe en SUBIDA_ANEXO y en el
   // #anxUpLabel que haya EN ESE MOMENTO, nunca en una referencia vieja que ya no está en la página.
   const avisa = t => { SUBIDA_ANEXO = t; const l = $('#anxUpLabel'); if(l) l.textContent = t; };
@@ -838,6 +918,14 @@ async function anadeAnexosDeFicheros(items, contratoEsperado){
         if(libre <= 0) throw Object.assign(new Error('sin sitio'), { tope:{ paginas:0, total:0, bytes:0 } });
         const pages = await fileToAnnexPages(f, libre);
         if(pages.length > MAX_PAGINAS_FICHERO) throw new Error('tiene ' + pages.length + ' páginas y el máximo por fichero son ' + MAX_PAGINAS_FICHERO);
+        // Mientras se convertía se abrió otro contrato o se empezó otro borrador: no se cuelga del nuevo.
+        if(MARCA_ANX !== marca) throw Object.assign(new Error('cambio'), { cambio:true });
+        // Sin contrato guardado: entra pendiente, en memoria; lo sube el guardado (ver MARCA_ANX arriba).
+        if(!c.id){
+          ANNEXES.push({ id:idAnexoNuevo(), title:titulo || f.name.replace(/\.[^.]+$/,''), pages, on:true, pendiente:true });
+          toast('Anexo «' + (titulo || f.name) + '» añadido (' + pages.length + ' pág.). Se guarda con el contrato al pulsar Guardar.');
+          continue;
+        }
         nuevo = { id:idAnexoNuevo(), title:titulo || f.name.replace(/\.[^.]+$/,''), pages, on:true, estado:'subiendo' };
         ANNEXES.push(nuevo); rebuildAnnex();
         avisa('Subiendo «' + nuevo.title + '»…');
@@ -846,6 +934,7 @@ async function anadeAnexosDeFicheros(items, contratoEsperado){
         toast('Anexo «' + nuevo.title + '» subido (' + filas.length + ' pág.). Guarda el contrato para que quede en él.');
       }catch(err){
         if(nuevo) ANNEXES = ANNEXES.filter(x => x !== nuevo);
+        if(err && err.cambio){ toastMal('Se ha cambiado de contrato mientras se preparaba «' + f.name + '»: no se ha añadido.'); break; }
         if(err && err.tope){
           const t = err.tope;
           toastMal('«' + f.name + '» es demasiado grande para convertirlo en este navegador'
@@ -918,7 +1007,7 @@ function opcionesAnexoIntranet(docs, mods, ctx){
 async function eligeAnexoDeIntranet(){
   if(SUBIDA_ANEXO) return;                       // una a la vez: el panel ya lo dice
   const c = contratoParaAnexos();
-  if(!c.id){ toastMal('Guarda el contrato antes de añadirle anexos: las páginas se guardan con él.'); return; }
+  const marca = MARCA_ANX;   // sin guardar no hay id que comparar al volver: se compara la marca del borrador
   if(c.bloqueado){ toastMal('Este contrato está enviado a firma o bloqueado: no admite anexos nuevos.'); return; }
   if(typeof window.lwElegir !== 'function'){ toastMal('No ha cargado el selector (dialogo.js): recarga la página.'); return; }
   const campo = n => { const el = document.querySelector('[name="' + n + '"]'); return el ? String(el.value || '').trim() : ''; };
@@ -963,9 +1052,20 @@ async function eligeAnexoDeIntranet(){
     toastMal('No se ha podido descargar «' + op.texto + '»: ' + ((e && e.message) || 'error') + '. No se ha añadido.');
     return;
   }
-  await anadeAnexosDeFicheros([{ file, titulo: op.titulo || op.texto }], c.id);
+  await anadeAnexosDeFicheros([{ file, titulo: op.titulo || op.texto }], c.id, marca);
 }
-function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ old.outerHTML=buildAnnexPanel(); wireAnnexPanel(); wireAccordions(); } }
+/* Lo que decide el bloque de subir del panel: contrato, candado y si hay una subida en curso
+   (2-oct-2026). aplicarEstadoFirma() corre con CADA tecla del formulario (updateSaveButton): repintar
+   ahí sin mirar esto cambiaba el panel bajo los dedos —el título del anexo perdía la letra y el foco,
+   y el interruptor «Incluir» enseñaba un estado e imprimía otro (revisor, 2-oct; misma familia que
+   firmaFormaPago en hitos_fechas.js). Solo se repinta si esto cambia. */
+function firmaPanelAnexos(){ const c = contratoParaAnexos(); return (c.id || '') + '|' + (c.bloqueado ? 1 : 0) + '|' + (SUBIDA_ANEXO ? 1 : 0); }
+function repintaAnexosSiCambia(){ const p=$('#annexPanel'); if(p && p.dataset.firma !== firmaPanelAnexos()) rebuildAnnex(); }
+/* Repintar conserva si el panel estaba abierto (2-oct-2026): buildAnnexPanel() lo saca plegado, y
+   desde que se repinta también al abrir/guardar el contrato y al cambiar el estado de firma, se
+   plegaba en la cara de quien lo estaba mirando. */
+function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ const abierto=!old.classList.contains('collapsed');
+  old.outerHTML=buildAnnexPanel(); if(abierto){ const p=$('#annexPanel'); if(p) p.classList.remove('collapsed'); } wireAnnexPanel(); wireAccordions(); } }
 
 /* páginas de anexos incluidos, al final del contrato (portada de anexo + imágenes de página).
    Una página que falta: en la vista previa se ve un hueco MARCADO; en el documento que se
