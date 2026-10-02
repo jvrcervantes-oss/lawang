@@ -1,4 +1,4 @@
--- THE COLLECTION v2 · F5b — coleccion_publica(): la lectura pública de The Collection. 2-oct-2026. NO APLICADA (paso 1: diseño + prueba).
+-- THE COLLECTION v2 · F5b — coleccion_publica(): la lectura pública de The Collection. 2-oct-2026. APLICADA en Supabase Lawang (paso 2, tras sello de Seguridad).
 -- Encargo: encargos/20261002_lawang_thecollection_v2.md (F5b) y _F1.md (§3 llamadores, §5 estado en tiempo real).
 -- Contrato de claves: coleccion/contrato_publico.json (F0). Prueba: contracts/sql/prueba_coleccion_publica.sql.
 -- Sin pareja en erp/migraciones/: Lawang es independiente del maestro (28-sep).
@@ -56,7 +56,7 @@
 --      el que la SPA preguntaba a Supabase (F7 lo quita); el estado ya viene resuelto en `parcelas`.
 --   9. Superficie mínima: STABLE, SECURITY DEFINER, search_path = '' (todo calificado), sin parámetros libres, `revoke all` de
 --      public/anon/authenticated/service_role y grant explícito SOLO a anon. Llamador con nombre: el PHP coleccion/lib.php
---      (fuente 'intranet', clave publicable en servidor, caché 60 s); ningún navegador. NO se amplía catalogo_publico (contrato de
+--      (fuente 'intranet', clave publicable en servidor, caché 60 s); sin llamador de navegador previsto. NO se amplía catalogo_publico (contrato de
 --      /modelo). El auxiliar _coleccion_a_eur no tiene llamador externo: sin permisos para nadie.
 --
 -- ROLLBACK: drop function public.coleccion_publica(); drop function public._coleccion_a_eur(numeric, text); (nada depende de ellas hasta
@@ -90,6 +90,7 @@ create or replace function public.coleccion_publica()
   language sql stable security definer set search_path to ''
   as $cp$
 with
+tramo as (select public.catalogo_tramo_activo() as t),
 fichas as (
   select f.id, f.slug, f.linea, f.region_key, f.region, f.en_coleccion, f.destacada, f.destacada_home, f.orden,
          f.proyecto_id, f.modelo_id, f.unidad_id, f.precio_modo, f.precio_eur, f.tenure, f.lease_years, f.estado_obra,
@@ -118,12 +119,13 @@ parcelas as (
 mods as (
   select distinct on (f.id, m.id)
          f.id as ficha_id, m.id as modelo_id, m.nombre, m.dormitorios, m.villa_m2, m.orden,
-         case when public.catalogo_tramo_activo() = '2026' then m.precio_construccion
+         case when tr.t = '2026' then m.precio_construccion
               else coalesce(m.precio_construccion_2027, m.precio_construccion) end as precio_raw,
-         public._coleccion_a_eur(case when public.catalogo_tramo_activo() = '2026' then m.precio_construccion
+         public._coleccion_a_eur(case when tr.t = '2026' then m.precio_construccion
                                       else coalesce(m.precio_construccion_2027, m.precio_construccion) end, m.moneda) as eur,
          (select d.path from public.deck_fotos d where d.modelo_id = m.id order by d.orden, d.creado_en limit 1) as foto
     from fichas f
+    cross join tramo tr
     join public.modelos_villa mv on mv.proyecto_id = f.proyecto_id and mv.modelo_id is not null
     join public.modelos m on m.id = mv.modelo_id and m.publicado and m.activo
    where f.linea = 'villa' and (f.modelo_id is null or m.id = f.modelo_id)
@@ -248,4 +250,4 @@ $cp$;
 revoke all on function public.coleccion_publica() from public, anon, authenticated, service_role;
 grant execute on function public.coleccion_publica() to anon;
 comment on function public.coleccion_publica() is
-  'The Collection v2 (F5b, 2-oct-2026). Lectura pública de las fichas publicadas (publicada_web y proyecto vinculado) en la forma de data.json. SECURITY DEFINER, sin parámetros, campos escritos a mano. LLAMADOR CON NOMBRE: el PHP coleccion/lib.php (fuente intranet, clave publicable en servidor, caché 60 s); ningún navegador. Devuelve {properties, generated_at}; cada ficha: id, line, region, regionKey, featured, status, tenure, leaseYears, handover, visible, inCollection, homeFeatured, title, sub, desc, metaText, splitTitle, splitSub, highlights, tabs, techSpecs, beds, baths, built, land, pool, poolType, garage, garageDesc, furnished, style, view, priceEUR, priceMode (fixed|from|consultar), paymentPlan, unitsAvailable, unitsTotal, parcelas [{codigo, superficie_m2, estado: disponible|reservada|vendida}], images (rutas del bucket deck o URLs del servidor), videos, aerial, logo, isotype, landColor, splitImage, bleedImage, plan3dImage, mapImage, masterplanImage, masterplanPlots, downloads, landOptions [{size, pricePerM2, priceEUR}], homeModels [{name, beds, built, priceEUR, image}]. Sin extras ni masterplanProject (ver cabecera de la migración).';
+  'The Collection v2 (F5b, 2-oct-2026). Lectura pública de las fichas publicadas (publicada_web y proyecto vinculado) en la forma de data.json. SECURITY DEFINER, sin parámetros, campos escritos a mano. Llamador con nombre: coleccion/lib.php (fuente intranet, clave publicable en servidor, caché 60 s); sin llamador de navegador previsto. Devuelve {properties, generated_at}; cada ficha: id, line, region, regionKey, featured, status, tenure, leaseYears, handover, visible, inCollection, homeFeatured, title, sub, desc, metaText, splitTitle, splitSub, highlights, tabs, techSpecs, beds, baths, built, land, pool, poolType, garage, garageDesc, furnished, style, view, priceEUR, priceMode (fixed|from|consultar), paymentPlan, unitsAvailable, unitsTotal, parcelas [{codigo, superficie_m2, estado: disponible|reservada|vendida}], images (rutas del bucket deck o URLs del servidor), videos, aerial, logo, isotype, landColor, splitImage, bleedImage, plan3dImage, mapImage, masterplanImage, masterplanPlots, downloads, landOptions [{size, pricePerM2, priceEUR}], homeModels [{name, beds, built, priceEUR, image}]. Sin extras ni masterplanProject (ver cabecera de la migración).';

@@ -1,5 +1,5 @@
+-- destructivo-ok: prueba con rollback seguro (raise exception final): modifica filas y añade una columna de prueba, nada persiste.
 -- destructivo-ok: modifica filas y añade una columna de prueba (alter table … add column) en fichas_publicas y escribe en config_instancia dentro de una transacción que SIEMPRE acaba en rollback por `raise exception`; no queda nada.
--- PRUEBA — coleccion_publica() (The Collection v2 · F5b, 2-oct-2026). Cubre 20261002150000_thecollection_coleccion_publica.sql.
 -- Se ejecuta DESPUÉS de aplicar la migración, con execute_sql (MCP) o psql como postgres, UN BLOQUE: acaba en
 -- `raise exception 'RES: …'`, que revierte la transacción entera y enseña el resultado: NO ESCRIBE NADA.
 -- Cada punto debe decir «ok»; «FALLO» es un agujero o una regresión; «omitido» = el caso no se pudo montar (se explica), no es un ok.
@@ -72,6 +72,17 @@ begin
   select count(*) into n2 from public.unidades u join public.proyectos p on p.id = u.proyecto_id
    where char_length(coalesce(u.notas, '')) >= 12 and res::text like '%' || replace(u.notas, '"', '') || '%';
   r := r || case when n = 0 and n2 = 0 then 'f2 ok (ni contrato_id ni notas de unidades); ' else 'f2 FALLO contrato_id ' || n || ', notas ' || n2 || '; ' end;
+
+  -- (d3) los códigos de unidades de proyectos NO publicados no aparecen en el resultado (solo se miran códigos que ningún proyecto publicado usa)
+  with pub as (select f.proyecto_id from public.fichas_publicas f join public.proyectos p on p.id = f.proyecto_id where f.publicada_web and coalesce(p.activo, true))
+  select count(*) into n from public.unidades u
+   where not exists (select 1 from pub where pub.proyecto_id = u.proyecto_id)
+     and u.codigo not in (select u2.codigo from public.unidades u2 where u2.proyecto_id in (select proyecto_id from pub))
+     and exists (select 1 from jsonb_array_elements(res->'properties') p, jsonb_array_elements(p->'parcelas') q where q->>'codigo' = u.codigo);
+  select count(*) into n2 from public.unidades u
+   where u.proyecto_id not in (select f.proyecto_id from public.fichas_publicas f where f.publicada_web and f.proyecto_id is not null)
+     and u.codigo not in (select u2.codigo from public.unidades u2 where u2.proyecto_id in (select f.proyecto_id from public.fichas_publicas f where f.publicada_web and f.proyecto_id is not null));
+  r := r || case when n = 0 and n2 > 0 then 'd3 ok (' || n2 || ' códigos de proyectos no publicados, ninguno sale); ' when n = 0 then 'd3 omitido (no hay códigos exclusivos de no publicados); ' else 'd3 FALLO ' || n || ' unidades de proyectos no publicados; ' end;
 
   -- (g) estado de parcela: mapeo del owner, comparado con unidades
   select count(*) into n from jsonb_array_elements(res->'properties') p
