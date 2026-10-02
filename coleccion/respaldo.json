@@ -1,0 +1,1102 @@
+{
+    "_aviso": "FOTO GENERADA — no editar a mano. Solo fichas visibles y solo claves del contrato publico (coleccion/contrato_publico.json). Se regenera con `php coleccion/lib.php --respaldo <data.json>`. Un cambio hecho aqui vive hasta que la fuente responda y luego desaparece sin avisar.",
+    "properties": [
+        {
+            "aerial": null,
+            "masterplanImage": "",
+            "masterplanProject": "",
+            "masterplanPlots": [],
+            "id": "tirta-hikari",
+            "visible": true,
+            "line": "signature",
+            "region": "South Buwit, Tabanan",
+            "regionKey": "bali",
+            "view": "",
+            "featured": true,
+            "inCollection": true,
+            "homeFeatured": false,
+            "isotype": "",
+            "highlights": [],
+            "priceEUR": 930000,
+            "beds": 3,
+            "baths": 4,
+            "built": 345,
+            "land": 965,
+            "pool": true,
+            "poolType": "Private infinity pool",
+            "landColor": "",
+            "techSpecs": [
+                {
+                    "l": "DELIVERY",
+                    "v": "SEP 2027"
+                },
+                {
+                    "l": "STATUS",
+                    "v": "BUILT"
+                },
+                {
+                    "l": "UNITS",
+                    "v": "3"
+                }
+            ],
+            "splitImage": "/assets/img/properties/20260724_d71922942e944ba38b9e1989240328df.png",
+            "splitTitle": {
+                "en": "",
+                "es": ""
+            },
+            "splitSub": {
+                "en": "",
+                "es": ""
+            },
+            "bleedImage": "/assets/img/properties/20260730_8d016078bb05031689260a8bed4cff03.png",
+            "plan3dImage": "",
+            "tabs": [],
+            "garage": true,
+            "garageDesc": "Carport 2–3 cars",
+            "furnished": "Fully furnished",
+            "style": "Contemporary Joglo",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "https://maps.app.goo.gl/Kr58ScZDDwvtaSp39",
+            "landOptions": [],
+            "homeModels": [],
+            "extras": [],
+            "tenure": "tenure.freehold",
+            "leaseYears": null,
+            "status": "status.offplan",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/tirta-hikari-20260730-1.jpg",
+                "/assets/img/properties/tirta-hikari-20260730-2.jpg",
+                "/assets/img/properties/tirta-hikari-20260730-3.jpg",
+                "/assets/img/properties/tirta-hikari-20260730-4.jpg",
+                "/assets/img/properties/tirta-hikari-20260730-5.jpg",
+                "/assets/img/properties/tirta-hikari-20260730-6.jpg",
+                "/assets/img/properties/tirta-hikari-20260730-7.jpg",
+                "/assets/img/properties/tirta-hikari-20260730-8.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Tirta Hikari",
+                "es": "Tirta Hikari"
+            },
+            "sub": {
+                "en": "TROPICAL VILLAS IMMERSED IN THE BALINESE JUNGLE",
+                "es": "Colección boutique de solo tres villas freehold"
+            },
+            "metaText": null,
+            "desc": {
+                "en": "Lawang's flagship: only three freehold villas in South Buwit, minutes from Seseh and Canggu. Joglo-inspired contemporary architecture with a wellness focus — sauna and ice bath — an infinity pool and jungle-and-river views.",
+                "es": "El buque insignia de Lawang: solo tres villas freehold en South Buwit, a minutos de Seseh y Canggu. Arquitectura contemporánea inspirada en el Joglo, enfoque wellness (sauna e ice bath), piscina infinita y vistas a jungla y río."
+            },
+            "downloads": [],
+            "paymentPlan": []
+        },
+        {
+            "id": "riverfront-i",
+            "visible": true,
+            "line": "signature",
+            "region": "Kaba-Kaba, Tabanan",
+            "regionKey": "bali",
+            "view": "",
+            "featured": false,
+            "inCollection": true,
+            "homeFeatured": false,
+            "logo": "",
+            "highlights": [],
+            "priceEUR": 320000,
+            "beds": 2,
+            "baths": 3,
+            "built": 180,
+            "land": 300,
+            "pool": true,
+            "poolType": "Private infinity pool",
+            "garage": true,
+            "garageDesc": "Carport",
+            "furnished": "Fully furnished",
+            "style": "Contemporary Balinese",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "",
+            "showLandOptions": false,
+            "landOptions": [],
+            "showHomeModels": false,
+            "homeModels": [],
+            "showExtras": false,
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 30,
+            "status": "status.offplan",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/riverfront-i-20260730-1.jpg",
+                "/assets/img/properties/riverfront-i-20260730-2.jpg",
+                "/assets/img/properties/riverfront-i-20260730-3.jpg",
+                "/assets/img/properties/riverfront-i-20260730-4.jpg",
+                "/assets/img/properties/riverfront-i-20260730-5.jpg",
+                "/assets/img/properties/riverfront-i-20260730-6.jpg",
+                "/assets/img/properties/riverfront-i-20260730-7.jpg",
+                "/assets/img/properties/riverfront-i-20260730-8.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Riverfront I",
+                "es": "Riverfront I"
+            },
+            "sub": {
+                "en": "A boutique of four riverside villas near Canggu",
+                "es": "Boutique de cuatro villas privadas junto al río, cerca de Canggu"
+            },
+            "metaText": null,
+            "desc": {
+                "en": "A boutique of four private riverside villas in Kaba-Kaba, near Canggu. Double-height living and a private infinity pool, with river and garden views.",
+                "es": "Boutique de cuatro villas privadas junto al río en Kaba-Kaba, cerca de Canggu. Doble altura y piscina infinita privada, con vistas a río y jardín."
+            },
+            "downloads": [],
+            "paymentPlan": []
+        },
+        {
+            "aerial": null,
+            "id": "riverfront-ii-big",
+            "visible": true,
+            "line": "signature",
+            "region": "Kaba-Kaba, Tabanan",
+            "regionKey": "bali",
+            "view": "",
+            "featured": false,
+            "inCollection": true,
+            "homeFeatured": false,
+            "isotype": "",
+            "highlights": [],
+            "priceEUR": 280000,
+            "beds": 3,
+            "baths": 3,
+            "built": 125,
+            "land": 450,
+            "pool": true,
+            "poolType": "Private pool",
+            "landColor": "",
+            "techSpecs": [],
+            "splitImage": "",
+            "splitTitle": {
+                "en": "",
+                "es": ""
+            },
+            "splitSub": {
+                "en": "",
+                "es": ""
+            },
+            "bleedImage": "",
+            "plan3dImage": "",
+            "tabs": [],
+            "garage": false,
+            "garageDesc": "",
+            "furnished": "Fully furnished",
+            "style": "Contemporary Balinese",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "",
+            "landOptions": [],
+            "homeModels": [],
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 30,
+            "status": "status.offplan",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/riverfront-ii-big-20260730-1.jpg",
+                "/assets/img/properties/riverfront-ii-big-20260730-2.jpg",
+                "/assets/img/properties/riverfront-ii-big-20260730-3.jpg",
+                "/assets/img/properties/riverfront-ii-big-20260730-4.jpg",
+                "/assets/img/properties/riverfront-ii-big-20260730-5.jpg",
+                "/assets/img/properties/riverfront-ii-big-20260730-6.jpg",
+                "/assets/img/properties/riverfront-ii-big-20260730-7.jpg",
+                "/assets/img/properties/riverfront-ii-big-20260730-8.jpg",
+                "/assets/img/properties/riverfront-ii-big-20260730-9.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Riverfront II — Big House",
+                "es": "Riverfront II — Big House"
+            },
+            "sub": {
+                "en": "The large unit of the Riverfront II compound, with private pool",
+                "es": "La unidad grande del compound Riverfront II, con piscina privada"
+            },
+            "metaText": null,
+            "desc": {
+                "en": "The large 'Big House' unit within the Riverfront II compound in Kaba-Kaba, with a private pool and extra privacy. River, jungle and pool views.",
+                "es": "Unidad grande 'Big House' dentro del compound de Riverfront II en Kaba-Kaba, con piscina privada y mayor privacidad. Vistas a río, jungla y piscina."
+            },
+            "downloads": [],
+            "paymentPlan": []
+        },
+        {
+            "aerial": null,
+            "id": "tangkuban-village",
+            "visible": true,
+            "line": "signature",
+            "region": "Seminyak, Denpasar",
+            "regionKey": "bali",
+            "view": "",
+            "featured": false,
+            "inCollection": true,
+            "homeFeatured": false,
+            "isotype": "",
+            "highlights": [],
+            "priceEUR": 250000,
+            "beds": 3,
+            "baths": 3,
+            "built": 160,
+            "land": 300,
+            "pool": true,
+            "poolType": "Private pool",
+            "landColor": "",
+            "techSpecs": [],
+            "splitImage": "",
+            "splitTitle": {
+                "en": "",
+                "es": ""
+            },
+            "splitSub": {
+                "en": "",
+                "es": ""
+            },
+            "bleedImage": "",
+            "plan3dImage": "",
+            "tabs": [],
+            "garage": false,
+            "garageDesc": "",
+            "furnished": "Semi-furnished",
+            "style": "Contemporary Balinese",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "",
+            "landOptions": [],
+            "homeModels": [],
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 25,
+            "status": "status.offplan",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/20260730_9b5d78f91c16e6bfa7890b41b1a8ee84.png",
+                "/assets/img/properties/20260730_81194dac2651c4bdc16f8d8c4222c4b0.png",
+                "/assets/img/properties/20260730_542c723bbb96e363a20a0d534871d0bc.png",
+                "/assets/img/properties/20260730_d9b4f17d244950e4083ea426ab99a517.png",
+                "/assets/img/properties/20260730_8da57c37d59ad3dbc7aa1f170a5569e6.png",
+                "/assets/img/properties/20260730_157d6fbe46f8c8d969269af90be125bd.png",
+                "/assets/img/properties/20260730_87284dcb45fb40bae57cda1c4a050c64.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Tangkuban Village",
+                "es": "Tangkuban Village"
+            },
+            "sub": {
+                "en": "A modern villa in high-demand Seminyak",
+                "es": "Villa moderna en Seminyak, zona de alta demanda"
+            },
+            "metaText": null,
+            "desc": {
+                "en": "A modern villa in Seminyak (Padangsambian, Denpasar), a high-demand area close to the beach and restaurants. Rice-field and pool views.",
+                "es": "Villa moderna en Seminyak (Padangsambian, Denpasar), zona de alta demanda cerca de playa y restaurantes. Vistas a arrozales y piscina."
+            },
+            "downloads": [],
+            "paymentPlan": []
+        },
+        {
+            "id": "riverfront-iii",
+            "visible": true,
+            "line": "signature",
+            "region": "Kaba-Kaba, Tabanan",
+            "regionKey": "bali",
+            "view": "",
+            "featured": false,
+            "inCollection": true,
+            "homeFeatured": false,
+            "logo": "",
+            "highlights": [],
+            "priceEUR": 250000,
+            "beds": 3,
+            "baths": 3,
+            "built": 106,
+            "land": 230,
+            "pool": true,
+            "poolType": "Private pool",
+            "garage": true,
+            "garageDesc": "Carport",
+            "furnished": "Fully furnished",
+            "style": "Contemporary Balinese",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "",
+            "showLandOptions": false,
+            "landOptions": [],
+            "showHomeModels": false,
+            "homeModels": [],
+            "showExtras": false,
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 30,
+            "status": "status.offplan",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/riverfront-iii-20260730-1.jpg",
+                "/assets/img/properties/riverfront-iii-20260730-2.jpg",
+                "/assets/img/properties/riverfront-iii-20260730-3.jpg",
+                "/assets/img/properties/riverfront-iii-20260730-4.jpg",
+                "/assets/img/properties/riverfront-iii-20260730-5.jpg",
+                "/assets/img/properties/riverfront-iii-20260730-6.jpg",
+                "/assets/img/properties/riverfront-iii-20260730-7.jpg",
+                "/assets/img/properties/riverfront-iii-20260730-8.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Riverfront III",
+                "es": "Riverfront III"
+            },
+            "sub": {
+                "en": "Four exclusive three-bedroom villas by the river and jungle",
+                "es": "Cuatro villas exclusivas de tres dormitorios entre río y jungla"
+            },
+            "metaText": null,
+            "desc": {
+                "en": "Four exclusive three-bedroom villas (plus study) in Kaba-Kaba, in a river-and-jungle setting. Fully furnished, carport, with river, jungle and pool views.",
+                "es": "Cuatro villas exclusivas de tres dormitorios (más estudio) en Kaba-Kaba, entorno de río y jungla. Totalmente amuebladas, carport, con vistas a río, jungla y piscina."
+            },
+            "downloads": [],
+            "paymentPlan": []
+        },
+        {
+            "id": "pura-dalem",
+            "visible": true,
+            "line": "signature",
+            "region": "Kaba-Kaba, Tabanan",
+            "regionKey": "bali",
+            "view": "",
+            "featured": false,
+            "inCollection": true,
+            "homeFeatured": false,
+            "logo": "",
+            "highlights": [],
+            "priceEUR": 240000,
+            "beds": 3,
+            "baths": 3,
+            "built": 130,
+            "land": 180,
+            "pool": true,
+            "poolType": "Private pool",
+            "garage": true,
+            "garageDesc": "Carport",
+            "furnished": "",
+            "style": "Contemporary Balinese",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "",
+            "showLandOptions": false,
+            "landOptions": [],
+            "showHomeModels": false,
+            "homeModels": [],
+            "showExtras": false,
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 29,
+            "status": "status.offplan",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/pura-dalem-20260730-6.jpg",
+                "/assets/img/properties/pura-dalem-20260730-1.jpg",
+                "/assets/img/properties/pura-dalem-20260730-2.jpg",
+                "/assets/img/properties/pura-dalem-20260730-3.jpg",
+                "/assets/img/properties/pura-dalem-20260730-4.jpg",
+                "/assets/img/properties/pura-dalem-20260730-5.jpg",
+                "/assets/img/properties/pura-dalem-20260730-7.jpg",
+                "/assets/img/properties/pura-dalem-20260730-8.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Pura Dalem",
+                "es": "Pura Dalem"
+            },
+            "sub": {
+                "en": "Contemporary villas in a quiet setting near Canggu",
+                "es": "Villas contemporáneas en un entorno tranquilo cerca de Canggu"
+            },
+            "metaText": null,
+            "desc": {
+                "en": "Contemporary villas in Kaba-Kaba (Kediri, Tabanan), a quiet setting near Canggu. Carport, with pool and garden views.",
+                "es": "Villas contemporáneas en Kaba-Kaba (Kediri, Tabanan), entorno tranquilo cerca de Canggu. Carport, con vistas a piscina y jardín."
+            },
+            "downloads": [],
+            "paymentPlan": []
+        },
+        {
+            "id": "riverfront-ii-small",
+            "visible": true,
+            "line": "signature",
+            "region": "Kaba-Kaba, Tabanan",
+            "regionKey": "bali",
+            "view": "",
+            "featured": false,
+            "inCollection": true,
+            "homeFeatured": false,
+            "logo": "",
+            "highlights": [],
+            "priceEUR": 210000,
+            "beds": 2,
+            "baths": 2,
+            "built": 106,
+            "land": 200,
+            "pool": true,
+            "poolType": "Shared infinity pool",
+            "garage": true,
+            "garageDesc": "Carport",
+            "furnished": "Fully furnished",
+            "style": "Contemporary Balinese",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": 6,
+            "mapImage": "",
+            "showLandOptions": false,
+            "landOptions": [],
+            "showHomeModels": false,
+            "homeModels": [],
+            "showExtras": false,
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 30,
+            "status": "status.offplan",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/riverfront-ii-small-20260730-1.jpg",
+                "/assets/img/properties/riverfront-ii-small-20260730-2.jpg",
+                "/assets/img/properties/riverfront-ii-small-20260730-3.jpg",
+                "/assets/img/properties/riverfront-ii-small-20260730-4.jpg",
+                "/assets/img/properties/riverfront-ii-small-20260730-5.jpg",
+                "/assets/img/properties/riverfront-ii-small-20260730-6.jpg",
+                "/assets/img/properties/riverfront-ii-small-20260730-7.jpg",
+                "/assets/img/properties/riverfront-ii-small-20260730-8.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Riverfront II",
+                "es": "Riverfront II"
+            },
+            "sub": {
+                "en": "Six two-bedroom villas sharing an infinity pool over the river",
+                "es": "Seis villas de dos dormitorios que comparten piscina infinita sobre el río"
+            },
+            "metaText": null,
+            "desc": {
+                "en": "Six contemporary two-bedroom villas that share a communal infinity pool over the river, in Kaba-Kaba. Fully furnished, carport, with river, pool and garden views.",
+                "es": "Seis villas contemporáneas de dos dormitorios que comparten una piscina infinita comunal sobre el río, en Kaba-Kaba. Totalmente amuebladas, carport, con vistas a río, piscina y jardín."
+            },
+            "downloads": [],
+            "paymentPlan": []
+        },
+        {
+            "id": "rurung-anyar",
+            "visible": true,
+            "line": "signature",
+            "region": "Kaba-Kaba, Tabanan",
+            "regionKey": "bali",
+            "featured": false,
+            "priceEUR": 200000,
+            "beds": 2,
+            "baths": 3,
+            "built": 117,
+            "land": 208,
+            "pool": true,
+            "poolType": "Private pool",
+            "garage": true,
+            "garageDesc": "Carport",
+            "furnished": "",
+            "style": "Contemporary Balinese",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "",
+            "showLandOptions": false,
+            "landOptions": [],
+            "showHomeModels": false,
+            "homeModels": [],
+            "showExtras": false,
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 30,
+            "status": "",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/rurung-anyar-20260730-6.jpg",
+                "/assets/img/properties/rurung-anyar-20260730-1.jpg",
+                "/assets/img/properties/rurung-anyar-20260730-2.jpg",
+                "/assets/img/properties/rurung-anyar-20260730-3.jpg",
+                "/assets/img/properties/rurung-anyar-20260730-4.jpg",
+                "/assets/img/properties/rurung-anyar-20260730-5.jpg",
+                "/assets/img/properties/rurung-anyar-20260730-7.jpg",
+                "/assets/img/properties/rurung-anyar-20260730-8.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Rurung Anyar",
+                "es": "Rurung Anyar"
+            },
+            "sub": {
+                "en": "Contemporary tropical villas in a quiet Kaba-Kaba setting",
+                "es": "Villas tropicales contemporáneas en un entorno tranquilo de Kaba-Kaba"
+            },
+            "desc": {
+                "en": "Contemporary tropical villas in Kaba-Kaba (Tabanan), a quiet setting. Carport, with pool and garden views.",
+                "es": "Villas tropicales contemporáneas en Kaba-Kaba (Tabanan), entorno tranquilo. Carport, con vistas a piscina y jardín."
+            },
+            "downloads": [],
+            "paymentPlan": [],
+            "homeFeatured": false
+        },
+        {
+            "aerial": null,
+            "id": "cube",
+            "visible": true,
+            "line": "signature",
+            "region": "Uluwatu / Balangan",
+            "regionKey": "bali",
+            "view": "",
+            "featured": false,
+            "inCollection": false,
+            "homeFeatured": false,
+            "isotype": "",
+            "highlights": [],
+            "priceEUR": 199000,
+            "beds": 3,
+            "baths": 2,
+            "built": 184,
+            "land": 250,
+            "pool": true,
+            "poolType": "Private pool",
+            "landColor": "",
+            "techSpecs": [],
+            "splitImage": "",
+            "splitTitle": {
+                "en": "",
+                "es": ""
+            },
+            "splitSub": {
+                "en": "",
+                "es": ""
+            },
+            "bleedImage": "",
+            "plan3dImage": "",
+            "tabs": [],
+            "garage": false,
+            "garageDesc": "",
+            "furnished": "Fully furnished",
+            "style": "Contemporary Balinese",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "",
+            "landOptions": [],
+            "homeModels": [],
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 23,
+            "status": "status.offplan",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/cube-20260730-7.jpg",
+                "/assets/img/properties/cube-20260730-1.jpg",
+                "/assets/img/properties/cube-20260730-2.jpg",
+                "/assets/img/properties/cube-20260730-3.jpg",
+                "/assets/img/properties/cube-20260730-4.jpg",
+                "/assets/img/properties/cube-20260730-5.jpg",
+                "/assets/img/properties/cube-20260730-6.jpg",
+                "/assets/img/properties/cube-20260730-8.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Cube",
+                "es": "Cube"
+            },
+            "sub": {
+                "en": "A spacious three-bedroom villa in Uluwatu / Balangan",
+                "es": "Villa espaciosa de tres dormitorios en Uluwatu / Balangan"
+            },
+            "metaText": null,
+            "desc": {
+                "en": "A spacious three-bedroom villa in Uluwatu/Balangan, geared to families or groups. Fully furnished, with pool and garden views.",
+                "es": "Villa espaciosa de tres dormitorios en Uluwatu/Balangan, orientada a familias o grupos. Totalmente amueblada, con vistas a piscina y jardín."
+            },
+            "downloads": [],
+            "paymentPlan": []
+        },
+        {
+            "aerial": null,
+            "id": "river",
+            "visible": true,
+            "line": "signature",
+            "region": "Uluwatu / Balangan",
+            "regionKey": "bali",
+            "view": "",
+            "featured": false,
+            "inCollection": false,
+            "homeFeatured": false,
+            "isotype": "",
+            "highlights": [],
+            "priceEUR": 167000,
+            "beds": 1,
+            "baths": 1,
+            "built": 84,
+            "land": 150,
+            "pool": true,
+            "poolType": "Private pool",
+            "landColor": "",
+            "techSpecs": [],
+            "splitImage": "",
+            "splitTitle": {
+                "en": "",
+                "es": ""
+            },
+            "splitSub": {
+                "en": "",
+                "es": ""
+            },
+            "bleedImage": "",
+            "plan3dImage": "",
+            "tabs": [],
+            "garage": false,
+            "garageDesc": "",
+            "furnished": "Fully furnished",
+            "style": "Contemporary loft",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "",
+            "landOptions": [],
+            "homeModels": [],
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 23,
+            "status": "status.offplan",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/river-20260730-3.jpg",
+                "/assets/img/properties/river-7.jpg",
+                "/assets/img/properties/river-20260730-1.jpg",
+                "/assets/img/properties/river-20260730-2.jpg",
+                "/assets/img/properties/river-1.jpg",
+                "/assets/img/properties/river-2.jpg",
+                "/assets/img/properties/river-3.jpg",
+                "/assets/img/properties/river-5.jpg",
+                "/assets/img/properties/river-8.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "River",
+                "es": "River"
+            },
+            "sub": {
+                "en": "A modern loft villa near beaches and the airport",
+                "es": "Villa loft moderna cerca de playas y aeropuerto"
+            },
+            "metaText": null,
+            "desc": {
+                "en": "A modern loft villa in Uluwatu/Balangan, near beaches and the airport — ideal for couples or digital nomads. Fully furnished, with pool, garden and river views.",
+                "es": "Villa loft moderna en Uluwatu/Balangan, cerca de playas y aeropuerto, ideal para parejas o nómadas digitales. Totalmente amueblada, con vistas a piscina, jardín y río."
+            },
+            "downloads": [],
+            "paymentPlan": []
+        },
+        {
+            "id": "aqua",
+            "visible": true,
+            "line": "signature",
+            "region": "Uluwatu, Jimbaran",
+            "regionKey": "bali",
+            "featured": false,
+            "priceEUR": 155000,
+            "beds": 1,
+            "baths": 1,
+            "built": 84,
+            "land": 150,
+            "pool": true,
+            "poolType": "Private pool",
+            "garage": false,
+            "garageDesc": "",
+            "furnished": "Fully furnished",
+            "style": "Contemporary loft",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "",
+            "showLandOptions": false,
+            "landOptions": [],
+            "showHomeModels": false,
+            "homeModels": [],
+            "showExtras": false,
+            "extras": [],
+            "tenure": "tenure.leasehold",
+            "leaseYears": 23,
+            "status": "",
+            "handover": "—",
+            "images": [
+                "/assets/img/properties/aqua-20260730-8.jpg",
+                "/assets/img/properties/aqua-20260730-1.jpg",
+                "/assets/img/properties/aqua-20260730-2.jpg",
+                "/assets/img/properties/aqua-20260730-3.jpg",
+                "/assets/img/properties/aqua-20260730-4.jpg",
+                "/assets/img/properties/aqua-20260730-5.jpg",
+                "/assets/img/properties/aqua-20260730-6.jpg",
+                "/assets/img/properties/aqua-20260730-7.jpg"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Aqua",
+                "es": "Aqua"
+            },
+            "sub": {
+                "en": "An accessible-entry loft villa in high-demand Uluwatu",
+                "es": "Villa loft de entrada accesible en Uluwatu, alta demanda"
+            },
+            "desc": {
+                "en": "A modern loft villa in Uluwatu (Jimbaran) with an accessible entry price in a high-demand tourist area. Fully furnished, with pool and garden views.",
+                "es": "Villa loft moderna en Uluwatu (Jimbaran), precio de entrada accesible en zona turística de alta demanda. Totalmente amueblada, con vistas a piscina y jardín."
+            },
+            "downloads": [],
+            "paymentPlan": [],
+            "homeFeatured": false
+        },
+        {
+            "aerial": null,
+            "masterplanImage": "/assets/img/properties/20260724_f89f17eb72818157a15433bf87d771a7.jpg",
+            "masterplanProject": "",
+            "masterplanPlots": [],
+            "id": "palm-field-bali",
+            "visible": true,
+            "line": "villa",
+            "region": "Balian Hills, Bali",
+            "regionKey": "bali",
+            "view": "jungle",
+            "featured": true,
+            "inCollection": true,
+            "homeFeatured": true,
+            "isotype": "",
+            "highlights": [
+                "Freehold (Hak Milik) / HGB",
+                "5 min from the beach"
+            ],
+            "priceEUR": 31250,
+            "beds": 0,
+            "baths": 0,
+            "built": 0,
+            "land": 0,
+            "pool": false,
+            "poolType": "",
+            "landColor": "",
+            "techSpecs": [
+                {
+                    "l": "TENURE",
+                    "v": "Freehold HGB"
+                },
+                {
+                    "l": "LOCATION",
+                    "v": "5 min from beach"
+                },
+                {
+                    "l": "AVAILABLE",
+                    "v": "26 units"
+                },
+                {
+                    "l": "FROM",
+                    "v": "250 m2"
+                }
+            ],
+            "splitImage": "/assets/img/properties/20260724_f89f17eb72818157a15433bf87d771a7.jpg",
+            "splitTitle": {
+                "en": "MASTERPLAN",
+                "es": ""
+            },
+            "splitSub": {
+                "en": "",
+                "es": ""
+            },
+            "bleedImage": "",
+            "plan3dImage": "",
+            "tabs": [
+                {
+                    "title": {
+                        "en": "Dali",
+                        "es": ""
+                    },
+                    "sub": {
+                        "en": "1 bedroom",
+                        "es": ""
+                    },
+                    "body": {
+                        "en": "",
+                        "es": ""
+                    },
+                    "beds": 0,
+                    "baths": 0,
+                    "built": 0,
+                    "land": 0,
+                    "images": [
+                        "/assets/img/properties/20260730_5a70edba2494c6f7b9db32a0478c2c6c.png",
+                        "/assets/img/properties/20260730_72eb11064258be8b6c5f474d61f62f57.png",
+                        "/assets/img/properties/20260730_19b23e8f7acc08167353cf72be65d41a.png",
+                        "/assets/img/properties/20260730_f1621ff4d92bda2225e826ce65b0ae1f.png",
+                        "/assets/img/properties/20260730_e5927ebeabfb41443a9d8943ec84734b.png",
+                        "/assets/img/properties/20260730_6b32ae820ab4f23eb884d78720ada434.png"
+                    ]
+                },
+                {
+                    "title": {
+                        "en": "Dream",
+                        "es": ""
+                    },
+                    "sub": {
+                        "en": "2 bedroom",
+                        "es": ""
+                    },
+                    "body": {
+                        "en": "",
+                        "es": ""
+                    },
+                    "beds": 0,
+                    "baths": 0,
+                    "built": 0,
+                    "land": 0,
+                    "images": [
+                        "/assets/img/properties/20260730_6f81091e0d70a4ef819351d4267fcc8c.png",
+                        "/assets/img/properties/20260730_ac9553d5ea834cf1c44ff6f4ab5c4eaa.png",
+                        "/assets/img/properties/20260730_64445e49008f4bd53ce5e61cecd36fae.png",
+                        "/assets/img/properties/20260730_7833234e98ec2b372dc95baf18b5ec42.png",
+                        "/assets/img/properties/20260730_93e182288527a09dd24b376c4529cef6.png",
+                        "/assets/img/properties/20260730_fbab27e6e8aa66ebe7ad7b7414d05f62.png",
+                        "/assets/img/properties/20260730_188a6c7f3ef5d62c1d5a87c54d3e09a8.png"
+                    ]
+                }
+            ],
+            "garage": false,
+            "garageDesc": "",
+            "furnished": "",
+            "style": "",
+            "nightlyRate": 0,
+            "unitsAvailable": null,
+            "unitsTotal": null,
+            "mapImage": "https://www.google.com/maps?q=-8.4862792,114.9606773",
+            "landOptions": [
+                {
+                    "size": 250,
+                    "pricePerM2": 130,
+                    "priceEUR": 32500
+                },
+                {
+                    "size": 255,
+                    "pricePerM2": 130,
+                    "priceEUR": 33150
+                },
+                {
+                    "size": 295,
+                    "pricePerM2": 130,
+                    "priceEUR": 38350
+                },
+                {
+                    "size": 305,
+                    "pricePerM2": 130,
+                    "priceEUR": 39650
+                },
+                {
+                    "size": 310,
+                    "pricePerM2": 130,
+                    "priceEUR": 40300
+                },
+                {
+                    "size": 330,
+                    "pricePerM2": 130,
+                    "priceEUR": 42900
+                },
+                {
+                    "size": 355,
+                    "pricePerM2": 130,
+                    "priceEUR": 46150
+                },
+                {
+                    "size": 375,
+                    "pricePerM2": 130,
+                    "priceEUR": 48750
+                }
+            ],
+            "homeModels": [
+                {
+                    "name": "Dune",
+                    "beds": 1,
+                    "built": 47,
+                    "priceEUR": 64000,
+                    "image": "/assets/img/properties/20260724_8dae46f8da67b6dbabb5285f246b3f00.jpg",
+                    "kitchen": 0,
+                    "living": 0,
+                    "poolTerrace": 0
+                },
+                {
+                    "name": "Dream",
+                    "beds": 2,
+                    "built": 77,
+                    "priceEUR": 94000,
+                    "image": "/assets/img/properties/20260724_0ca3b531ecf83adf096e073aec1278c1.jpg",
+                    "kitchen": 0,
+                    "living": 0,
+                    "poolTerrace": 0
+                }
+            ],
+            "extras": [
+                {
+                    "name": "Airbnb kit",
+                    "priceEUR": 5000
+                }
+            ],
+            "tenure": "tenure.freehold",
+            "leaseYears": 90,
+            "status": "status.offplan",
+            "handover": "Q1 2027",
+            "images": [
+                "/assets/img/properties/20260730_8d016078bb05031689260a8bed4cff03.png",
+                "/assets/img/properties/20260730_934476c370beb0e553957f95eea6d8dd.png",
+                "/assets/img/properties/20260730_a0832774cc816eaf1d384014fd871f78.png",
+                "/assets/img/properties/20260730_5216f0fb98fb79b9f650b1067a43d1d8.png",
+                "/assets/img/properties/20260730_76da7e267bc88f7d0f771d32ee465049.png",
+                "/assets/img/properties/20260730_f11567b295a614114996cd06b7cf650a.png"
+            ],
+            "videos": [],
+            "title": {
+                "en": "Palm Field",
+                "es": "Palm Field"
+            },
+            "sub": {
+                "en": "Tropical villas in the Bali jungle",
+                "es": "Villas tropicales en la jungla de Bali"
+            },
+            "metaText": {
+                "en": "Ready Q1 2027",
+                "es": "Listo Q1 2027"
+            },
+            "desc": {
+                "en": "",
+                "es": ""
+            },
+            "downloads": [
+                {
+                    "name": "Dossier Palm Field",
+                    "ext": "PDF",
+                    "size": "3.1 MB",
+                    "url": "/docs/20260724_Dossier_Palm_Field.pdf"
+                }
+            ],
+            "paymentPlan": []
+        }
+    ],
+    "settings": {
+        "whatsapp": "6281138319862",
+        "email": "sales@lawangproperties.com",
+        "rates": {
+            "EUR": 1,
+            "USD": 1.160629,
+            "AUD": 1.625473,
+            "updatedAt": "04 Jun 2026, 17:03"
+        }
+    },
+    "downloads": {
+        "signature": [
+            {
+                "name": "Property Brochure",
+                "ext": "PDF",
+                "size": "2.4 MB",
+                "url": ""
+            },
+            {
+                "name": "Floor Plans",
+                "ext": "PDF",
+                "size": "1.1 MB",
+                "url": ""
+            },
+            {
+                "name": "Legal Framework",
+                "ext": "PDF",
+                "size": "0.8 MB",
+                "url": ""
+            },
+            {
+                "name": "Investment Overview",
+                "ext": "PDF",
+                "size": "1.6 MB",
+                "url": ""
+            }
+        ],
+        "land": [
+            {
+                "name": "Land Brochure",
+                "ext": "PDF",
+                "size": "1.8 MB",
+                "url": ""
+            },
+            {
+                "name": "Parcel Survey",
+                "ext": "PDF",
+                "size": "2.1 MB",
+                "url": ""
+            },
+            {
+                "name": "Legal Framework",
+                "ext": "PDF",
+                "size": "0.8 MB",
+                "url": ""
+            }
+        ],
+        "villa": [
+            {
+                "name": "Typology Brochure",
+                "ext": "PDF",
+                "size": "2.2 MB",
+                "url": ""
+            },
+            {
+                "name": "Construction Specs",
+                "ext": "PDF",
+                "size": "1.4 MB",
+                "url": ""
+            },
+            {
+                "name": "Floor Plans",
+                "ext": "PDF",
+                "size": "0.9 MB",
+                "url": ""
+            }
+        ],
+        "resorts": [
+            {
+                "name": "Resort Brochure",
+                "ext": "PDF",
+                "size": "3.1 MB",
+                "url": ""
+            },
+            {
+                "name": "Unit Specifications",
+                "ext": "PDF",
+                "size": "1.2 MB",
+                "url": ""
+            },
+            {
+                "name": "Investment Prospectus",
+                "ext": "PDF",
+                "size": "2.0 MB",
+                "url": ""
+            }
+        ]
+    }
+}

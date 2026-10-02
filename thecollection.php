@@ -21,6 +21,7 @@
  *  - Escapado con lw_e() (modelo/lib.php) en HTML y JSON_HEX_* en el JSON-LD.
  */
 require __DIR__ . '/modelo/lib.php'; // lw_e()
+require __DIR__ . '/coleccion/lib.php'; // lw_coleccion_ficha(): UNICA lectura de las fichas publicas (F5a, 2-oct-2026)
 
 $SITE = 'https://lawangproperties.com';
 $prop = null;
@@ -28,14 +29,9 @@ $prop = null;
 if (isset($_GET['property']) && $_GET['property'] !== '') {
     $slug = (string) $_GET['property'];
     if (preg_match('/^[A-Za-z0-9-]+$/', $slug)) {
-        $json = json_decode((string) file_get_contents(__DIR__ . '/data.json'), true);
-        $all  = (is_array($json) && isset($json['properties'])) ? $json['properties'] : [];
-        foreach ($all as $p) {
-            if (($p['id'] ?? '') === $slug && ($p['visible'] ?? null) === true) {
-                $prop = $p;
-                break;
-            }
-        }
+        // El filtro visible===true vive en lw_coleccion() y SOLO alli: un id oculto no
+        // llega a esta pagina, asi que cae en el mismo 404 que un id inexistente.
+        $prop = lw_coleccion_ficha($slug);
     }
     if (!$prop) {
         http_response_code(404);
