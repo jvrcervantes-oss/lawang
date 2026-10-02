@@ -121,4 +121,17 @@ const campo = tokens.sections.flatMap(s => s.fields).find(x => x[0] === 'clausul
 assert(campo && campo[2] === 'select' && campo[3].length === 1 && campo[3][0][0] === 'si', 'tokens.json: clausulas_negociadas debe ser select con la única opción «si»');
 n++;
 
+// 5. Dónde se elige y dónde se ve (2-oct-2026, owner: «desde el listado o desde el asistente»).
+const asi = fs.readFileSync(path.join(__dirname, 'assets', 'asistente-contrato.js'), 'utf8');
+assert(/var SLUGS_REV03 = \['ppjb_parcela', 'ppjb_construccion'\];/.test(asi), 'asistente: el paso REV03 es solo de Parcela y Construcción');
+assert(asi.includes("['super_admin', 'admin'].indexOf(MI_ROL) !== -1"), 'asistente: el paso REV03 es solo para admin/super_admin');
+assert((asi.match(/if \(pideClausulas\(\)\) p\.push\(\['clausulas'/g) || []).length === 2, 'asistente: el paso REV03 tiene que estar en «venta nueva» y en «seguir una venta»');
+assert(asi.includes("if (k === 'clausulas') return S.clausulas === 'estandar' || S.clausulas === 'rev03';"), 'asistente: el paso REV03 obliga a elegir');
+// «Estándar» tiene que QUITAR el 'si' heredado: populateForm se salta los vacíos, así que se escribe a mano.
+assert(asi.includes("cn.value = S.clausulas === 'rev03' ? 'si' : '';"), 'asistente: montaCondiciones no escribe el selector a mano');
+const dv4 = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'assets', 'datos.js'), 'utf8');
+assert(dv4.includes("select(CAMPOS_CONTRATO + ',rev03:datos_fields->>clausulas_negociadas')"), 'listado: no lee clausulas_negociadas');
+assert(dv4.includes("(c.rev03 === 'si' ? ' <span title=\"Cláusulas negociadas (REV03)\">' + pill('REV03', 'curso')"), 'listado: no pinta la pastilla REV03');
+n += 7;
+
 console.log('clausulas_negociadas.test.js: ' + n + ' comprobaciones en verde');

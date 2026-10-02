@@ -2003,7 +2003,9 @@
       var t = tablaPor('tabla-contratos');
       var miEmail = (window.LW_V4 && window.LW_V4.miEmail) || '';
       Promise.all([
-        q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).order('created_at', { ascending: false }).limit(1000), 'contratos', t),
+        // `rev03`: cláusulas negociadas REV03 (2-oct-2026) — una clave de datos_fields, como `soc` en Finanzas;
+        // solo aquí y no en CAMPOS_CONTRATO, que comparten la ficha y otras lecturas que no la pintan.
+        q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO + ',rev03:datos_fields->>clausulas_negociadas').order('created_at', { ascending: false }).limit(1000), 'contratos', t),
         q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente'), 'firmas pendientes'),
         autores(sb)
       ]).then(function (rr) {
@@ -2065,10 +2067,12 @@
             tr.setAttribute('data-lw-tipo', c.tipo || '');
             tr.setAttribute('data-lw-estado', estadoC(c));
             tr.setAttribute('data-lw-mio', miEmail && c.creado_por === miEmail ? '1' : '0');
-            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, nombreAutor(AUT, c.creado_por), c.parcela_codigo, tipoC(c.tipo)].join(' ').toLowerCase());
+            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, nombreAutor(AUT, c.creado_por), c.parcela_codigo, tipoC(c.tipo), c.rev03 === 'si' ? 'rev03' : ''].join(' ').toLowerCase());
             var tds = tr.querySelectorAll('td');
             if (tds[6]) tds[6].innerHTML = htmlAutor(AUT, c.creado_por);
-            if (tds[7]) tds[7].innerHTML = pill(ETQ_C[estadoC(c)][0], ETQ_C[estadoC(c)][1]) + FD.tag(c.id);
+            if (tds[7]) tds[7].innerHTML = pill(ETQ_C[estadoC(c)][0], ETQ_C[estadoC(c)][1]) + FD.tag(c.id) +
+              // Cláusulas negociadas REV03: se ve en el listado y se busca escribiendo «rev03»; se activa en el editor o el asistente (solo admin)
+              (c.rev03 === 'si' ? ' <span title="Cláusulas negociadas (REV03)">' + pill('REV03', 'curso') + '</span>' : '');
             if (tds[8]) tds[8].innerHTML = ABRIR;
             tr.style.cursor = 'pointer';
           });

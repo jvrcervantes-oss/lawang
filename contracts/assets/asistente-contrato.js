@@ -107,7 +107,7 @@
     return { v: 1, quien: (typeof MI_EMAIL !== 'undefined' ? MI_EMAIL : ''), camino: null, paso: 0,
       modo: null, origen: '', frase: '', slug: null, cliente: null, proyecto: '', parcelas: [],
       carta: { importe: '', fecha: '', validez: '' }, bloqueo: { pct: '', motivo: '' },
-      obra: { modelo: '', techoId: '', fpago: 'estandar' }, venta: null, montado: false };
+      obra: { modelo: '', techoId: '', fpago: 'estandar' }, clausulas: '', venta: null, montado: false };
   }
   function guarda() {
     /* Con el borrador ya montado no se guarda nada más: el siguiente «Nuevo contrato» no puede
@@ -198,6 +198,18 @@
   var MOTIVO_SM = 'Eres el Sales Manager de este equipo: tu venta cobra la fee de manager, no es por tu cuenta.';
   function smVisible() { return RT.equipo && RT.equipo.sm ? autorVisible(RT.equipo.sm) : ''; }
 
+  /* ── cláusulas negociadas (REV03, 2-oct-2026, owner) ─────────────────────── */
+  /* Paso SOLO para admin/super_admin y solo en las dos plantillas que llevan el selector
+     `clausulas_negociadas` (Bloqueo de Parcela y Construcción). Pide elegir a conciencia:
+     «Estándar» o «Negociadas (REV03)», sin valor por defecto, porque una Construcción que
+     sigue a una Parcela REV03 llega con el valor heredado y «estándar» tiene que poder
+     quitarlo. Un agente no ve el paso; el candado real es el trigger
+     clausulas_negociadas_rol de la base. */
+  var SLUGS_REV03 = ['ppjb_parcela', 'ppjb_construccion'];
+  function pideClausulas() {
+    return SLUGS_REV03.indexOf(S.slug) !== -1 && typeof MI_ROL !== 'undefined' && ['super_admin', 'admin'].indexOf(MI_ROL) !== -1;
+  }
+
   /* ── los pasos ─────────────────────────────────────────────────────────── */
   function pasos() {
     var p = [['inicio', T('Nuevo o existente')]];
@@ -206,6 +218,7 @@
     if (S.camino === 'existente') {
       p.push(['venta', T('La venta')], ['tipo', T('Qué contrato sigue')]);
       if (!S.slug || pideCondiciones()) p.push(['cond', T('Lo que falta')]);
+      if (pideClausulas()) p.push(['clausulas', T('Cláusulas')]);
       p.push(['rev', T('Revisión')]);
       return p;
     }
@@ -214,6 +227,7 @@
     if (!m || m.cliente) p.push(['cliente', T('Cliente')]);
     if (!m || m.proyecto || m.parcela) p.push(['parcela', T('Proyecto y parcela')]);
     if (!S.slug || pideCondiciones()) p.push(['cond', T('Condiciones')]);
+    if (pideClausulas()) p.push(['clausulas', T('Cláusulas')]);
     p.push(['rev', T('Revisión')]);
     return p;
   }
@@ -240,6 +254,7 @@
       ? !!opcionExistente(S.slug) && !opcionExistente(S.slug).off
       : ofrecida(S.slug) && SIGUE_A_VENTA.indexOf(tipoDe(S.slug)) === -1);
     if (k === 'cliente') return !!S.cliente;
+    if (k === 'clausulas') return S.clausulas === 'estandar' || S.clausulas === 'rev03';
     if (k === 'parcela') {
       var m = RT.marcas[S.slug] || {};
       if (!S.proyecto) return false;
@@ -490,6 +505,14 @@
       h += '<p class="asi-q asi-nota">' + e(T('Solo salen las ventas que puedes ver. Cliente y parcela se heredan.')) + '</p>';
       return h;
     },
+    clausulas: function () {
+      return '<h2 id="asi-h">' + e(T('¿Qué cláusulas lleva este contrato?')) + '</h2><div class="asi-ops">' +
+        opcion('clausulas', 'estandar', S.clausulas === 'estandar', 'check', T('Estándar'),
+          T('El texto de siempre, el que firman todos los compradores.')) +
+        opcion('clausulas', 'rev03', S.clausulas === 'rev03', 'gavel', T('Negociadas (REV03)'),
+          T('Pasaporte o DNI, HGB vía PT PMA (Hak Sewa), zonas comunes incluidas y gastos desde la entrega, aviso escrito de prórroga y garantía desde el acta de entrega.')) +
+        '</div><p class="asi-q asi-nota">' + e(T('Solo lo ves tú como administración. Se puede cambiar después en el editor, en «Gestión del contrato».')) + '</p>';
+    },
     rev: function () {
       var m = RT.marcas[S.slug] || {}, t = tipoDe(S.slug);
       var cli = S.camino === 'existente' ? (S.venta.comprador_nombre || '—') + ' · ' + T('heredado') : (S.cliente ? S.cliente.full_name : '—');
@@ -512,6 +535,7 @@
       if (S.camino === 'existente' || m.cliente) filas.push([T('Cliente'), cli]);
       if (S.camino === 'existente' || m.proyecto || m.parcela) filas.push([T('Parcela'), par]);
       if (pideCondiciones()) filas.push([T('Condiciones'), cond]);
+      if (pideClausulas()) filas.push([T('Cláusulas'), S.clausulas === 'rev03' ? T('Negociadas (REV03)') : T('Estándar')]);
       var prueba = S.camino === 'nueva' && S.modo;
       var h = '<h2 id="asi-h">' + e(T('Revisa y crea el borrador')) + '</h2><dl class="asi-sum">' +
         filas.map(function (f) { return '<dt>' + e(f[0]) + '</dt><dd>' + e(f[1]) + '</dd>'; }).join('') + '</dl>' +
@@ -786,6 +810,7 @@
     }
     else if (a === 'techo') { S.obra.techoId = v; }
     else if (a === 'fpago') { S.obra.fpago = v; }
+    else if (a === 'clausulas') { S.clausulas = v; }
     else return;
     guarda(); pinta();
   }
@@ -911,6 +936,13 @@
       }
     }
     if (t === 'construccion' && S.obra.fpago) cambiaCalendario(S.obra.fpago);
+    /* REV03: se escribe a mano y no con populateForm, que se salta los vacíos — «Estándar»
+       tiene que poder QUITAR el 'si' que trae una Construcción derivada de una Parcela REV03. */
+    if (pideClausulas() && (S.clausulas === 'estandar' || S.clausulas === 'rev03')) {
+      var cn = document.querySelector('[name="clausulas_negociadas"]');
+      if (cn) { cn.value = S.clausulas === 'rev03' ? 'si' : ''; cn.dispatchEvent(new Event('change', { bubbles: true })); }
+      else if (S.clausulas === 'rev03') avisaMal(T('No se han podido poner las cláusulas negociadas: actívalas en el editor, en «Gestión del contrato».'));
+    }
   }
   async function montaNueva() {
     var slug = S.slug;
