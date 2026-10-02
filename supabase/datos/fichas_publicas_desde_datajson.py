@@ -60,6 +60,10 @@ MAPEO = {
     "palm-field-bali":     ("palmfield",        None, False),
 }
 
+# Fichas visibles en data.json que la intranet decidió NO publicar (el encargo, 2-oct-2026): se migran con publicada_web = false y
+# ninguna re-ejecución las republica. riverfront-ii-big: comparte proyecto con -small y la intranet no tiene unidades de 450 m2 (Q3).
+FORZAR_NO_PUBLICADA = {"riverfront-ii-big"}
+
 # Claves de data.json que NO se migran, y por qué (el diff exige que, si traen valor en una ficha visible, esté aquí).
 NO_MIGRADAS = {
     "images": "galería = deck_fotos (dueño intranet); solo las 4 casas sin proyecto la llevan en ficha.imagenes",
@@ -128,7 +132,7 @@ def normaliza(p, orden):
         ficha["imagenes"] = p["images"]
     return {
         "slug": slug, "linea": p["line"], "region_key": p["regionKey"], "region": p.get("region") or None,
-        "publicada_web": bool(p.get("visible")), "en_coleccion": bool(p.get("inCollection")),
+        "publicada_web": bool(p.get("visible")) and slug not in FORZAR_NO_PUBLICADA, "en_coleccion": bool(p.get("inCollection")),
         "destacada": bool(p.get("featured")), "destacada_home": bool(p.get("homeFeatured")), "orden": orden,
         "proyecto_slug": proy, "unidad_codigo": unidad,
         "precio_modo": modo, "precio_eur": precio if precio else None,
@@ -224,7 +228,7 @@ def lectura():
             "    from public.fichas_publicas f\n"
             "    left join public.proyectos p on p.id = f.proyecto_id\n"
             "    left join public.unidades u on u.id = f.unidad_id\n"
-            "   where f.publicada_web) x;\n" % cols)
+            "   ) x;\n" % cols)
 
 
 def carga_lectura(ruta):
@@ -263,7 +267,7 @@ def diff(ruta, origen):
 
         t, f = r["textos"], r["ficha"]
         igual("id", slug, r["slug"]); igual("line", p["line"], r["linea"]); igual("regionKey", p["regionKey"], r["region_key"])
-        igual("region", p.get("region"), r["region"]); igual("visible", bool(p.get("visible")), r["publicada_web"])
+        igual("region", p.get("region"), r["region"]); igual("visible", bool(p.get("visible")) and slug not in FORZAR_NO_PUBLICADA, r["publicada_web"])
         igual("inCollection", bool(p.get("inCollection")), r["en_coleccion"]); igual("featured", bool(p.get("featured")), r["destacada"])
         igual("homeFeatured", bool(p.get("homeFeatured")), r["destacada_home"])
         igual("priceEUR", p.get("priceEUR") or 0, float(r["precio_eur"] or 0))
