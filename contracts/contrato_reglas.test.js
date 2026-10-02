@@ -311,7 +311,7 @@ afirma('el panel nace escondido y lo abre el botón',
   // caso 26), dentro del try y con el botón apagado; nunca guardarContrato() otra vez (revisor, 2-oct-2026:
   // repetía frenos interactivos, LAW-71 y efectos).
   afirma('tras el alta, la fase 2 sube los pendientes sin repetir el guardado entero',
-    /guardadoOk = eraNuevo \? await guardaAnexosPendientes\(data\.id\) : !hayPendientes\(\);/.test(guardar)
+    /try\{ guardadoOk = await guardaAnexosPendientes\(data\.id\); \}/.test(guardar) && /\}else guardadoOk = !hayPendientes\(\);/.test(guardar)
     && !/return await guardarContrato\(\)/.test(guardar) && !/\n\s*guardadoOk = true;/.test(guardar),
     'con un pendiente sin guardar, guardar no puede darse por bueno («Enviar a firma» no sale)');
   afirma('no se guarda con un anexo aún convirtiéndose', /if\(SUBIDA_ANEXO\)\{ avisoNoGuardado\(/.test(guardar));
