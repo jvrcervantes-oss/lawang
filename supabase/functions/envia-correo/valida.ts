@@ -105,6 +105,8 @@ export type Peticion = {
   pdfBase64: string; html: string; attach: boolean;
   encabezado: string; etiqueta: string; contacto: 'sales' | null;
   ctaUrl: string; ctaTexto: string; preview: boolean;
+  // plantillas de correo (S5.2): clave + ids + variables del llamante. `vars` es null si no vino o no era un objeto.
+  plantilla: string; contratoId: string; facturaId: string; firmaId: string; vars: Record<string, unknown> | null;
 };
 
 /** `extra` viaja en la respuesta JSON junto a `error` (hoy: los campos estructurados del fallo de SMTP). */
@@ -129,6 +131,11 @@ export function leePeticion(entrada: unknown): Peticion | Fallo {
     ctaUrl: txt(i.cta_url).trim(),
     ctaTexto: txt(i.cta_texto).trim(),
     preview: i.preview === true,
+    plantilla: txt(i.plantilla).trim(),
+    contratoId: txt(i.contrato_id).trim(),
+    facturaId: txt(i.factura_id).trim(),
+    firmaId: txt(i.firma_id).trim(),
+    vars: i.vars && typeof i.vars === 'object' && !Array.isArray(i.vars) ? i.vars as Record<string, unknown> : null,
   };
 }
 
@@ -156,6 +163,10 @@ export function validaEnvio(p: Peticion): Fallo | null {
   return null;
 }
 
+/** Textos de los botones que la edge pone por su cuenta (los usa también la ruta de plantillas, que lleva el botón explícito). */
+export const CTA_FIRMA_TEXTO = 'Firmar el documento';
+export const CTA_PORTAL_TEXTO = 'Entrar · Sign in';
+
 /** Botón del correo, mismo orden que el PHP: impuesto por quien llama (contra lista blanca) →
  *  enlace de firma en el mensaje → enlace a la intranet si va a alguien de casa → portal. */
 export function deduceCta(p: Peticion, dominio: string, urlPortal: string, destinoInterno: boolean, urlIntranet = ''):
@@ -167,14 +178,14 @@ export function deduceCta(p: Peticion, dominio: string, urlPortal: string, desti
     return { url: p.ctaUrl, texto: p.ctaTexto };
   }
   const firma = /https:\/\/[A-Za-z0-9.-]+\/contracts\/firmar[.]html[?]t=[A-Za-z0-9._-]+/.exec(p.message);
-  if (firma && ctaPermitida(firma[0], d)) return { url: firma[0], texto: 'Firmar el documento' };
+  if (firma && ctaPermitida(firma[0], d)) return { url: firma[0], texto: CTA_FIRMA_TEXTO };
   const intra = /https:\/\/[A-Za-z0-9.-]+\/intranet\/[A-Za-z0-9._/?=-]*/.exec(p.message);
   if (destinoInterno && intra && ctaPermitida(intra[0], d)) return { url: intra[0], texto: 'Abrir en la intranet' };
   // URLs limpias (AXW-103/AXW-140): el ERP de la instancia cuelga de la raíz de su `url_intranet`, sin /intranet/. Un
   // enlace del mensaje a ESE origen (y no a /portal/, que es del cliente) es también «Abrir en la intranet».
   const nueva = destinoInterno ? enlaceDeLaInstancia(p.message, urlIntranet) : '';
   if (nueva !== '' && ctaPermitida(nueva, d)) return { url: nueva, texto: 'Abrir en la intranet' };
-  return { url: urlPortal, texto: 'Entrar · Sign in' };
+  return { url: urlPortal, texto: CTA_PORTAL_TEXTO };
 }
 
 /** Primer enlace del mensaje cuyo ORIGEN es exactamente el de `url_intranet` y que no cae en /portal/ ni en
@@ -255,4 +266,117 @@ export function describeFalloSmtp(e: unknown): FalloSmtp {
     texto: 'No se pudo enviar por SMTP (' + dentro + ')' + (frase ? ': ' + frase : ''),
     smtp_code: code, smtp_response_code: num, log: dentro,
   };
+}
+
+// ── plantillas de correo (S5.2, 2-oct-2026; encargos/20260930_erp_ajustes_pantalla.md → «Plan de S5») ──────────────────────
+// La edge COMPONE el correo de 8 claves cerradas. El llamante manda la clave y los ids (`contrato_id`, `factura_id`, `firma_id`);
+// los importes, fechas, números y enlaces los lee la edge de la base con la clave de servicio (plantillas_fabrica.ts → `resuelve`).
+// Del llamante solo se admiten las variables de texto declaradas en `editables` (hoy: el nombre con el que saludar). Lo editable
+// por el cliente es el TEXTO (tabla `correo_plantillas`, escrita solo por la edge `plantillas-guardar`): texto plano con
+// `{{variable}}`, sin HTML ni URLs, y las variables obligatorias de cada clave —catálogo sellado en la propia fila— no se pueden quitar.
+export type SpecPlantilla = { adjunto: boolean; ids: string[]; editables: string[] };
+export const PLANTILLAS: Record<string, SpecPlantilla> = {
+  enlace_firma_cadena:     { adjunto: false, ids: ['contrato_id', 'firma_id'], editables: [] },
+  copia_firmada_comprador: { adjunto: true,  ids: ['contrato_id'], editables: ['nombre'] },
+  copia_firmada_portal:    { adjunto: false, ids: ['contrato_id'], editables: ['nombre'] },
+  copia_firmada_manual:    { adjunto: true,  ids: ['contrato_id'], editables: ['nombre'] },
+  aviso_anulacion:         { adjunto: false, ids: ['contrato_id'], editables: [] },
+  factura_primer_hito:     { adjunto: true,  ids: ['factura_id'], editables: ['nombre'] },
+  proforma_total:          { adjunto: true,  ids: ['factura_id'], editables: ['nombre'] },
+  factura_vencimiento:     { adjunto: true,  ids: ['factura_id'], editables: ['nombre'] },
+};
+export const LIMITES_PLANTILLA = { asunto: 200, cuerpo: 5000, valor: 300 };
+/** Vías que pueden usar una plantilla: la de aviso interno (sin sesión) y cualquier otra no. */
+export const VIAS_PLANTILLA = ['servicio', 'servicio-render', 'sesion'];
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MARCADOR = /\{\{([a-z][a-z0-9_]*)\}\}/g;
+
+export function esClavePlantilla(x: unknown): boolean {
+  return typeof x === 'string' && Object.prototype.hasOwnProperty.call(PLANTILLAS, x);
+}
+
+/** Valor de una variable que viene de fuera: una línea, sin caracteres de control, con tope. null si no vale. */
+export function limpiaValor(v: unknown, max = LIMITES_PLANTILLA.valor): string | null {
+  if (typeof v !== 'string') return null;
+  const s = v.replace(/\s+/g, ' ').trim();
+  return tieneControl(s) || [...s].length > max ? null : s;
+}
+
+/** Forma de la petición con `plantilla`: clave de la lista cerrada (otra → 400), los ids que ESA clave pide y solo esos, vars
+ *  dentro de las editables, y adjunto coherente con el texto (una plantilla que dice «va adjunto» no sale sin PDF; la vista previa no lo exige). Si la
+ *  petición pasa, sus `subject`/`message`/botón se IGNORAN: manda el texto de la plantilla. */
+export function validaPlantillaPeticion(p: Peticion): Fallo | null {
+  if (!esClavePlantilla(p.plantilla)) return { error: 'Plantilla no reconocida', status: 400 };
+  const s = PLANTILLAS[p.plantilla];
+  const dados: Record<string, string> = { contrato_id: p.contratoId, factura_id: p.facturaId, firma_id: p.firmaId };
+  for (const k of Object.keys(dados)) {
+    const pide = s.ids.includes(k);
+    if (pide ? !UUID.test(dados[k]) : dados[k] !== '') {
+      return { error: pide ? 'Falta ' + k + ' (uuid) para la plantilla ' + p.plantilla : k + ' no se admite con la plantilla ' + p.plantilla, status: 400 };
+    }
+  }
+  if (!p.preview && p.attach !== s.adjunto) return { error: 'La plantilla ' + p.plantilla + (s.adjunto ? ' va con PDF adjunto' : ' va sin adjunto'), status: 400 };
+  for (const [k, v] of Object.entries(p.vars ?? {})) {
+    if (!s.editables.includes(k)) return { error: 'Variable no admitida para ' + p.plantilla + ': ' + k.slice(0, 40), status: 400 };
+    if (limpiaValor(v) === null) return { error: 'Valor no válido en la variable ' + k, status: 400 };
+  }
+  return null;
+}
+
+/** Catálogo SELLADO de una clave (columna `variables` de correo_plantillas): variables permitidas y obligatorias por campo. */
+export type Catalogo = { permitidas: string[]; obligatorias: { asunto: string[]; cuerpo: string[]; cuerpo_alt: string[] }; variantes: number };
+export type TextoPlantilla = { asunto: string; cuerpo: string; cuerpo_alt: string | null };
+export type CampoPlantilla = 'asunto' | 'cuerpo' | 'cuerpo_alt';
+
+export function catalogoDe(v: unknown): Catalogo | null {
+  const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+  const lista = (x: unknown) => Array.isArray(x) && x.every((y) => typeof y === 'string') ? x as string[] : null;
+  const ob = (o.obligatorias && typeof o.obligatorias === 'object' ? o.obligatorias : {}) as Record<string, unknown>;
+  const permitidas = lista(o.permitidas), a = lista(ob.asunto), c = lista(ob.cuerpo), alt = lista(ob.cuerpo_alt);
+  if (!permitidas || !a || !c || !alt || (o.variantes !== 1 && o.variantes !== 2)) return null;
+  return { permitidas, obligatorias: { asunto: a, cuerpo: c, cuerpo_alt: alt }, variantes: o.variantes };
+}
+
+/** Errores de UN texto de plantilla (vacío = válido). Es la misma regla al guardar (plantillas-guardar, y la RPC SQL que la
+ *  repite) y al componer: texto plano (sin HTML, sin URLs ni correos sueltos, sin llaves que no sean `{{variable}}`), solo
+ *  variables permitidas, todas las obligatorias del campo, topes, y el asunto en una sola línea. */
+export function validaTextoPlantilla(texto: unknown, campo: CampoPlantilla, cat: Catalogo): string[] {
+  if (typeof texto !== 'string') return ['El texto de «' + campo + '» no es válido'];
+  const errs: string[] = [];
+  const max = campo === 'asunto' ? LIMITES_PLANTILLA.asunto : LIMITES_PLANTILLA.cuerpo;
+  if (texto.trim() === '') errs.push('«' + campo + '» está vacío');
+  if ([...texto].length > max) errs.push('«' + campo + '» admite ' + max + ' caracteres como máximo');
+  if (tieneControl(campo === 'asunto' ? texto : texto.replace(/\n/g, ''))) errs.push('«' + campo + '» no admite caracteres de control' + (campo === 'asunto' ? ' ni saltos de línea' : ''));
+  if (/[<>]/.test(texto)) errs.push('«' + campo + '» es texto plano: sin < ni >');
+  if (/:\/\/|\bwww\.|\bmailto:|\bjavascript:|\bdata:/i.test(texto) || /\S+@\S+\.\S+/.test(texto)) errs.push('«' + campo + '» no admite enlaces ni correos: los enlaces los pone el sistema con una variable');
+  const usadas = [...texto.matchAll(MARCADOR)].map((m) => m[1]);
+  if (/[{}]/.test(texto.replace(MARCADOR, ''))) errs.push('«' + campo + '»: las llaves solo se usan en {{variable}}');
+  for (const v of new Set(usadas)) if (!cat.permitidas.includes(v)) errs.push('«' + campo + '»: la variable {{' + v + '}} no existe para este correo');
+  for (const v of cat.obligatorias[campo]) if (!usadas.includes(v)) errs.push('«' + campo + '» tiene que llevar {{' + v + '}}');
+  return errs;
+}
+
+/** Sustituye `{{variable}}` en UNA pasada (un valor que lleve `{{x}}` no se vuelve a expandir). null si falta alguna variable. */
+export function sustituye(texto: string, vars: Record<string, string>): string | null {
+  let falta = false;
+  const out = texto.replace(MARCADOR, (_m, k: string) => {
+    if (!Object.prototype.hasOwnProperty.call(vars, k)) { falta = true; return ''; }
+    return vars[k];
+  });
+  return falta ? null : out;
+}
+
+/** Asunto + mensaje de un texto de plantilla con sus variables. null si no compone algo enviable (variable sin valor, asunto con
+ *  control o demasiado largo, mensaje vacío o largo): el que llama cae al texto de fábrica. El mensaje sigue siendo texto plano: lo
+ *  escapa la plantilla HTML al pintarlo, y el asunto va tal cual al SMTP (nodemailer lo codifica), sin escapar. */
+export function componeCorreo(t: TextoPlantilla, variante: 'principal' | 'alt', vars: Record<string, string>): { subject: string; message: string } | null {
+  const cuerpo = variante === 'alt' ? t.cuerpo_alt : t.cuerpo;
+  if (typeof t.asunto !== 'string' || typeof cuerpo !== 'string') return null;
+  const subject = sustituye(t.asunto, vars), message = sustituye(cuerpo, vars);
+  if (subject === null || message === null) return null;
+  const s = subject.trim(), m = message.trim();
+  if (s === '' || tieneControl(s) || [...s].length > LIMITES.asunto) return null;
+  if (m === '' || [...m].length > LIMITES.mensaje) return null;
+  return { subject: s, message: m };
 }

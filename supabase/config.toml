@@ -398,6 +398,12 @@ verify_jwt = false
 [functions.copias-firmadas-envio]
 verify_jwt = false
 
+# plantillas-guardar (S5.1 de Ajustes, 2-oct-2026): la llama la pantalla de Ajustes con la sesion del super admin. verify_jwt=false SOLO para que
+# el preflight CORS (OPTIONS, sin Authorization) llegue a la funcion; la autorizacion se hace dentro (Auth + fila activa super_admin en usuarios).
+# Se despliega con --no-verify-jwt en el lote del owner; esta entrada fija el valor.
+[functions.plantillas-guardar]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

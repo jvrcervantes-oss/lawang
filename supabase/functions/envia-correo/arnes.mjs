@@ -27,9 +27,9 @@ export const estado = {};
 const denoTests = [];
 let n = 0;
 
-/** Deja el arnés como nuevo. `env` se suma a BASE_ENV; `config` sustituye a CONFIG_BASE ([clave, valor]). */
-export function reinicia({ env = {}, config = CONFIG_BASE, pausado = false, sesion = false, pdf = true } = {}) {
-  Object.assign(estado, { env: { ...BASE_ENV, ...env }, config, pausado, sesion, pdf, llamadas: [], logs: [] });
+/** Deja el arnés como nuevo. `env` se suma a BASE_ENV; `config` sustituye a CONFIG_BASE ([clave, valor]); `extra(url, init)` contesta lo que el arnés no conoce. */
+export function reinicia({ env = {}, config = CONFIG_BASE, pausado = false, sesion = false, pdf = true, extra = null } = {}) {
+  Object.assign(estado, { env: { ...BASE_ENV, ...env }, config, pausado, sesion, pdf, extra, llamadas: [], logs: [] });
   globalThis.__arnesCorreo = { correos: [], transportes: [], falloSmtp: null };
   estado.correo = globalThis.__arnesCorreo;
 }
@@ -46,6 +46,8 @@ globalThis.fetch = async (url, init = {}) => {
   const u = String(url);
   estado.llamadas.push({ url: u, cabeceras: init.headers ?? {} });
   const json = (o, status = 200) => new Response(JSON.stringify(o), { status });
+  // rutas que una prueba concreta contesta ella misma (plantillas: datos de contratos/facturas, correo_plantillas, RPC…); manda sobre las de abajo
+  if (estado.extra) { const r = await estado.extra(u, init); if (r) return r; }
   if (u.includes('/rest/v1/config_instancia')) return json(estado.config.map(([clave, valor]) => ({ clave, valor })));
   if (u.includes('/auth/v1/user')) return estado.sesion ? json({ id: UID }) : json({}, 401);
   if (u.includes('/rest/v1/usuarios')) return estado.sesion ? json([{ user_id: UID }]) : json([]);

@@ -44,8 +44,11 @@ import {
   LIMITES, type Peticion, type Fallo, esFallo, leePeticion, validaTextos, validaEnvio, deduceCta,
   esDominioPropio, normalizaDominio, decodificaBase64, esPdf, esEmail, ctaPermitida, tieneControl,
   TEXTO_PAUSA, saneaLlamante, viaServicio, viaAviso, describeFalloSmtp,
+  VIAS_PLANTILLA, validaPlantillaPeticion, limpiaValor, catalogoDe, validaTextoPlantilla, componeCorreo, CTA_PORTAL_TEXTO,
+  type TextoPlantilla,
 } from './valida.ts';
 import { plantillaHtml, plantillaTexto, type Marca } from './plantilla.ts';
+import { resuelve, textoFabrica } from './plantillas_fabrica.ts';
 
 const env = (k: string) => (Deno.env.get(k) ?? '').trim();
 const SUPA_URL = env('SUPABASE_URL').replace(/\/$/, '');
@@ -101,11 +104,11 @@ function cabeceras(origen: string | null): Headers {
   return h;
 }
 
-function log(via: string, estado: number, to = '', llamante = '') {
+function log(via: string, estado: number, to = '', llamante = '', plantilla?: { plantilla: string; version: string }) {
   const i = to.lastIndexOf('@');
   console.log(JSON.stringify({
     fn: 'envia-correo', via: via || 'ninguna', estado, dominio_destino: i > 0 ? to.slice(i + 1).toLowerCase() : '',
-    ...(llamante ? { llamante } : {}),
+    ...(llamante ? { llamante } : {}), ...(plantilla ?? {}),
   }));
 }
 
@@ -205,6 +208,77 @@ function frenoAvisoInterno(): boolean {
   return true;
 }
 
+// ── plantillas de correo (S5.2, encargos/20260930_erp_ajustes_pantalla.md → «Plan de S5») ─────────────────────────────────────
+// La petición trae `plantilla` + ids (+ `vars` de texto). Los datos los lee esta edge de la base (plantillas_fabrica.ts → resuelve);
+// el texto es el de la fila ACTIVA y válida de `correo_plantillas`, y si no (inactiva, inválida, tabla ausente o ilegible) el de
+// fábrica, que es el que componían los llamantes. Nunca un 500 por la plantilla. La respuesta lleva {plantilla, version}: el
+// llamante (único escritor de correos_enviados) guarda ESO y nunca el texto renderizado, que puede llevar un enlace con token.
+const SERVICIO = () => ({ apikey: SUPA_SERVICE, Authorization: 'Bearer ' + SUPA_SERVICE });
+type Fila = { activa: unknown; asunto: unknown; cuerpo: unknown; cuerpo_alt: unknown; variables: unknown; version: unknown };
+
+async function filaPlantilla(clave: string): Promise<Fila | null> {
+  if (!SUPA_URL || !SUPA_SERVICE) return null;
+  try {
+    const r = await fetch(SUPA_URL + '/rest/v1/correo_plantillas?select=activa,asunto,cuerpo,cuerpo_alt,variables,version&clave=eq.' + encodeURIComponent(clave),
+      { headers: SERVICIO(), signal: AbortSignal.timeout(6000) });
+    if (!r.ok) { await r.text().catch(() => ''); console.error('envia-correo: correo_plantillas HTTP ' + r.status + ' (texto de fábrica)'); return null; }
+    const filas = await r.json();
+    return Array.isArray(filas) && filas.length === 1 ? filas[0] as Fila : null;
+  } catch { return null; }
+}
+
+/** Lectura de datos para `resuelve`: GET a PostgREST con la clave de servicio. Si no es 200 lanza (la edge responde 502). */
+async function leeDato(ruta: string): Promise<unknown> {
+  const r = await fetch(SUPA_URL + '/rest/v1/' + ruta, { headers: SERVICIO(), signal: AbortSignal.timeout(8000) });
+  if (r.status !== 200) { await r.text().catch(() => ''); throw new Error('HTTP ' + r.status); }
+  return await r.json();
+}
+
+/** Identifica la versión del texto de FÁBRICA que salió (8 hex de su SHA-256): si cambia el texto de fábrica, cambia la versión. */
+async function huellaFabrica(t: TextoPlantilla): Promise<string> {
+  const b = new TextEncoder().encode([t.asunto, t.cuerpo, t.cuerpo_alt ?? ''].join('\u0000'));
+  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', b))].map((x) => x.toString(16).padStart(2, '0')).join('');
+  return 'f:' + h.slice(0, 8);
+}
+
+type Compuesta = { subject: string; message: string; cta: { url: string; texto: string }; plantilla: string; version: string };
+
+async function componePlantilla(p: Peticion, cfg: Config, portal: string): Promise<Compuesta | Fallo> {
+  const vars: Record<string, string> = {};
+  for (const [k, v] of Object.entries(p.vars ?? {})) vars[k] = limpiaValor(v) ?? '';
+  let res: Awaited<ReturnType<typeof resuelve>>;
+  try {
+    res = await resuelve(p.plantilla, { contrato_id: p.contratoId, factura_id: p.facturaId, firma_id: p.firmaId }, p.to, vars, leeDato,
+      { marca: cfg.marca, portal, dominio: cfg.dominio });
+  } catch (e) {
+    console.error('envia-correo: no se pudieron leer los datos de ' + p.plantilla + ' (' + String((e as Error)?.message ?? e).slice(0, 40) + ')');
+    return { error: 'No se pudieron leer los datos del correo', status: 502 };
+  }
+  if (esFallo(res)) return res;
+
+  let c: { subject: string; message: string } | null = null, version = '';
+  const fila = await filaPlantilla(p.plantilla);
+  if (fila && fila.activa === true) {
+    const cat = catalogoDe(fila.variables);
+    const t: TextoPlantilla = { asunto: fila.asunto as string, cuerpo: fila.cuerpo as string, cuerpo_alt: (fila.cuerpo_alt ?? null) as string | null };
+    const errs = !cat ? ['catálogo ilegible']
+      : [...validaTextoPlantilla(t.asunto, 'asunto', cat), ...validaTextoPlantilla(t.cuerpo, 'cuerpo', cat),
+         ...(cat.variantes === 2 ? validaTextoPlantilla(t.cuerpo_alt, 'cuerpo_alt', cat) : [])];
+    c = errs.length === 0 && typeof fila.version === 'number' ? componeCorreo(t, res.variante, res.vars) : null;
+    if (c) version = 'v' + fila.version;
+    else console.error('envia-correo: plantilla ' + p.plantilla + ' activa pero no válida (' + (errs[0] ?? 'no compone').slice(0, 80) + '): texto de fábrica');
+  }
+  if (!c) {
+    const f = textoFabrica(p.plantilla);
+    c = f ? componeCorreo(f, res.variante, res.vars) : null;
+    if (!f || !c) return { error: 'La plantilla de fábrica no compone un correo válido', status: 500 };
+    version = await huellaFabrica(f);
+  }
+  const cta = res.cta ?? { url: portal, texto: CTA_PORTAL_TEXTO };
+  if (!ctaPermitida(cta.url, cfg.dominio)) return { error: 'El botón de la plantilla no está permitido', status: 500 };
+  return { ...c, cta, plantilla: p.plantilla, version };
+}
+
 // ── manejador ────────────────────────────────────────────────────────────────────────────────
 export async function manejador(req: Request): Promise<Response> {
   const cfg = await config();
@@ -244,9 +318,23 @@ export async function manejador(req: Request): Promise<Response> {
   const marca: Marca = { marca: cfg.marca, dominio: cfg.dominio, remitente: env('SMTP_FROM') || ('no-reply@' + cfg.dominio), logoUrl: cfg.logoUrl, contacto: p.contacto };
   const portal = new URL('/portal/', cfg.urlIntranet).href;
 
+  // plantilla: solo con credencial de servicio o sesión (la vía de aviso interno no admite plantillas). Compone el texto y deja
+  // subject/message/botón en `p` para que sigan las mismas validaciones y el mismo envío que el camino libre, que se conserva.
+  let comp = null as Compuesta | null;   // se asigna dentro de aplicaPlantilla: la aserción evita que TS lo estreche a `null`
+  const aplicaPlantilla = async (): Promise<Fallo | null> => {
+    if (!VIAS_PLANTILLA.includes(via)) return { error: 'No autorizado: una plantilla exige sesión de la suite o el secreto del servicio.', status: 401 };
+    const e = validaPlantillaPeticion(p); if (e) return e;
+    const r = await componePlantilla(p, cfg, portal);
+    if (esFallo(r)) return r;
+    comp = r;
+    p.subject = r.subject; p.message = r.message; p.encabezado = ''; p.etiqueta = ''; p.ctaUrl = r.cta.url; p.ctaTexto = r.cta.texto;
+    return null;
+  };
+
   // vista previa: solo con sesión de la suite; no toca SMTP
   if (p.preview) {
     if (via !== 'sesion') return fail({ error: 'La vista previa exige sesión de la suite', status: 401 }, via);
+    if (p.plantilla !== '') { const e = await aplicaPlantilla(); if (e) return fail(e, via); }
     const t = validaTextos(p); if (t) return fail(t, via);
     if (p.message === '') return fail({ error: 'El mensaje está vacío o es demasiado largo', status: 400 }, via);
     // Como el PHP: una URL fuera de lista es error; media pareja no pinta botón (no es error).
@@ -254,11 +342,12 @@ export async function manejador(req: Request): Promise<Response> {
       return fail({ error: 'cta_url no permitida: solo https hacia ' + cfg.dominio + ' (o sus subdominios), mailto: y https://wa.me/', status: 400 }, via);
     }
     const cta = p.ctaUrl !== '' && p.ctaTexto !== '' ? { url: p.ctaUrl, texto: p.ctaTexto } : null;
-    log(via, 200, '', llamante);
-    return resp({ ok: true, html: plantillaHtml(p.message, p.encabezado, cta, p.etiqueta, marca) });
+    log(via, 200, '', llamante, comp ? { plantilla: comp.plantilla, version: comp.version } : undefined);
+    return resp({ ok: true, html: plantillaHtml(p.message, p.encabezado, cta, p.etiqueta, marca), ...(comp ? { plantilla: comp.plantilla, version: comp.version } : {}) });
   }
 
   if (await enviosPausados()) return fail({ error: TEXTO_PAUSA, status: 503 }, via);
+  if (p.plantilla !== '') { const e = await aplicaPlantilla(); if (e) return fail(e, via, p.to); }
 
   const v = validaEnvio(p); if (v) return fail(v, via, p.to);
 
@@ -281,7 +370,7 @@ export async function manejador(req: Request): Promise<Response> {
       + 'Solo los avisos internos de texto a los buzones de aviso de la instancia van sin credencial.', status: 401 }, via, p.to);
   }
 
-  const cta = deduceCta(p, cfg.dominio, portal, destinoInterno, cfg.urlIntranet);
+  const cta = comp ? { url: p.ctaUrl, texto: p.ctaTexto } : deduceCta(p, cfg.dominio, portal, destinoInterno, cfg.urlIntranet);
   if (esFallo(cta)) return fail(cta, via, p.to);
 
   let pdf: Uint8Array | null = null;
@@ -303,8 +392,8 @@ export async function manejador(req: Request): Promise<Response> {
     console.error('envia-correo: SMTP falló (' + f.log + ')');
     return fail({ error: f.texto, status: 500, extra: { smtp_code: f.smtp_code, smtp_response_code: f.smtp_response_code } }, via, p.to);
   }
-  log(via, 200, p.to, llamante);
-  return resp({ ok: true });
+  log(via, 200, p.to, llamante, comp ? { plantilla: comp.plantilla, version: comp.version } : undefined);
+  return resp({ ok: true, ...(comp ? { plantilla: comp.plantilla, version: comp.version } : {}) });
 }
 
 Deno.serve(manejador);
