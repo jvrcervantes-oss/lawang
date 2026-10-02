@@ -206,6 +206,10 @@
      quitarlo. Un agente no ve el paso; el candado real es el trigger
      clausulas_negociadas_rol de la base. */
   var SLUGS_REV03 = ['ppjb_parcela', 'ppjb_construccion'];
+  /* Lo que se preselecciona: lo que ya lleva la venta que se continúa (derivarContrato lo copia),
+     para que QUITARLO sea una elección visible y no un clic sin saberlo (revisor, 2-oct-2026).
+     Venta nueva: nada, se elige. Se recalcula al cambiar de venta o de tipo. */
+  function clausulasDeSalida() { return (S.camino === 'existente' && S.venta && S.venta.rev03) ? 'rev03' : ''; }
   function pideClausulas() {
     return SLUGS_REV03.indexOf(S.slug) !== -1 && typeof MI_ROL !== 'undefined' && ['super_admin', 'admin'].indexOf(MI_ROL) !== -1;
   }
@@ -510,8 +514,9 @@
         opcion('clausulas', 'estandar', S.clausulas === 'estandar', 'check', T('Estándar'),
           T('El texto de siempre, el que firman todos los compradores.')) +
         opcion('clausulas', 'rev03', S.clausulas === 'rev03', 'gavel', T('Negociadas (REV03)'),
-          T('Pasaporte o DNI, HGB vía PT PMA (Hak Sewa), zonas comunes incluidas y gastos desde la entrega, aviso escrito de prórroga y garantía desde el acta de entrega.')) +
-        '</div><p class="asi-q asi-nota">' + e(T('Solo lo ves tú como administración. Se puede cambiar después en el editor, en «Gestión del contrato».')) + '</p>';
+          T('Las cláusulas pactadas por escrito con este comprador (ver «Cláusulas negociadas» en el editor).')) +
+        '</div>' + (S.venta && S.venta.rev03 ? aviso('aviso', 'info', e(T('La venta que continúas lleva cláusulas negociadas (REV03). Si eliges «Estándar», este contrato sale sin ellas.'))) : '') +
+        '<p class="asi-q asi-nota">' + e(T('Solo lo ves tú como administración. Se puede cambiar después en el editor, en «Gestión del contrato».')) + '</p>';
     },
     rev: function () {
       var m = RT.marcas[S.slug] || {}, t = tipoDe(S.slug);
@@ -535,7 +540,8 @@
       if (S.camino === 'existente' || m.cliente) filas.push([T('Cliente'), cli]);
       if (S.camino === 'existente' || m.proyecto || m.parcela) filas.push([T('Parcela'), par]);
       if (pideCondiciones()) filas.push([T('Condiciones'), cond]);
-      if (pideClausulas()) filas.push([T('Cláusulas'), S.clausulas === 'rev03' ? T('Negociadas (REV03)') : T('Estándar')]);
+      if (pideClausulas()) filas.push([T('Cláusulas'), S.clausulas === 'rev03' ? T('Negociadas (REV03)')
+        : T('Estándar') + (S.venta && S.venta.rev03 ? ' · ' + T('quita las negociadas de la venta') : '')]);
       var prueba = S.camino === 'nueva' && S.modo;
       var h = '<h2 id="asi-h">' + e(T('Revisa y crea el borrador')) + '</h2><dl class="asi-sum">' +
         filas.map(function (f) { return '<dt>' + e(f[0]) + '</dt><dd>' + e(f[1]) + '</dd>'; }).join('') + '</dl>' +
@@ -729,7 +735,7 @@
     RT.qVenta = texto;
     var limpio = String(texto || '').replace(/[%_,()*\\]/g, '').trim();
     var consulta = sb.rpc('contratos_equipo')
-      .select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,bloqueado,liberado_en,fecha_firma,created_at');
+      .select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,bloqueado,liberado_en,fecha_firma,created_at,rev03:datos_fields->>clausulas_negociadas');
     if (limpio.length >= 2) consulta = consulta.or('numero.ilike.%' + limpio + '%,comprador_nombre.ilike.%' + limpio + '%');
     var yo = texto;
     Promise.resolve(consulta.not('numero', 'is', null).order('created_at', { ascending: false }).limit(10)).then(function (r) {
@@ -748,8 +754,10 @@
   }
   function eligeVenta(v) {
     S.venta = { id: v.id, numero: v.numero, tipo: v.tipo, comprador_nombre: v.comprador_nombre, proyecto_nombre: v.proyecto_nombre,
-      parcela_codigo: v.parcela_codigo, bloqueado: !!v.bloqueado, fecha_firma: v.fecha_firma, liberado_en: v.liberado_en };
+      parcela_codigo: v.parcela_codigo, bloqueado: !!v.bloqueado, fecha_firma: v.fecha_firma, liberado_en: v.liberado_en,
+      rev03: v.rev03 === 'si' };
     S.slug = null; RT.construcciones = null; RT.modelos = null; RT.techos = null;
+    S.clausulas = clausulasDeSalida();
     S.obra = { modelo: '', techoId: '', fpago: 'estandar' };
     if (v.tipo === 'reserva_parcela') cuentaConstrucciones(v, preseleccionaExistente);
     else preseleccionaExistente();
@@ -792,7 +800,7 @@
     if (a === 'salta') { S.paso = +v; guarda(); pinta(); preparaPaso(); return; }
     if (a === 'camino') { if (S.camino !== v) { var viejo = S; S = nuevoEstado(); S.camino = v; S.cliente = viejo.cliente; } }
     else if (a === 'modo') { S.modo = v; if (v !== 'propia') { S.origen = ''; S.frase = ''; } }
-    else if (a === 'tipo' || a === 'carta') { if (S.slug !== v) { S.slug = v; S.parcelas = S.parcelas || []; } marcas(v).then(function () { pinta(); }); }
+    else if (a === 'tipo' || a === 'carta') { if (S.slug !== v) { S.slug = v; S.parcelas = S.parcelas || []; S.clausulas = clausulasDeSalida(); } marcas(v).then(function () { pinta(); }); }
     else if (a === 'venta') { var r = RT.ventas && RT.ventas.lista && RT.ventas.lista[+v]; if (r) eligeVenta(r); }
     else if (a === 'cambia-cliente') { S.cliente = null; }
     else if (a === 'alta-cliente') return altaCliente();
@@ -818,7 +826,7 @@
     var c = ev.target.getAttribute && ev.target.getAttribute('data-asi-campo'); if (!c) return;
     var val = ev.target.value;
     if (c === 'origen') { S.origen = val; guarda(); pinta(); return; }
-    if (c === 'variante') { S.slug = val; marcas(val).then(function () { guarda(); pinta(); }); return; }
+    if (c === 'variante') { S.slug = val; S.clausulas = clausulasDeSalida(); marcas(val).then(function () { guarda(); pinta(); }); return; }
     if (c === 'proyecto') { S.proyecto = val; S.parcelas = []; RT.inv = null; guarda(); pinta(); preparaPaso(); return; }
     if (c === 'modelo') { S.obra.modelo = val; S.obra.techoId = ''; RT.techos = null; guarda(); pinta(); if (val) cargaTechos(); return; }
   }

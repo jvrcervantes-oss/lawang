@@ -134,4 +134,30 @@ assert(dv4.includes("select(CAMPOS_CONTRATO + ',rev03:datos_fields->>clausulas_n
 assert(dv4.includes("(c.rev03 === 'si' ? ' <span title=\"Cláusulas negociadas (REV03)\">' + pill('REV03', 'curso')"), 'listado: no pinta la pastilla REV03');
 n += 7;
 
+// 6. Comportamiento (revisor, 2-oct): se EJECUTAN las funciones reales del asistente sobre un
+//    selector simulado. «Estándar» quita el 'si' heredado, REV03 lo pone, y una venta REV03
+//    llega preseleccionada (quitarla tiene que ser una elección visible, no un clic a ciegas).
+{
+  const trozo = (desde, hasta) => { const i = asi.indexOf(desde); const j = asi.indexOf(hasta, i); assert(i >= 0 && j > i, 'asistente: no encuentro ' + desde); return asi.slice(i, j); };
+  const funciones = trozo('  var SLUGS_REV03', '  /* ── los pasos');
+  const bloque = trozo('    /* REV03: se escribe a mano', '  async function montaNueva');
+  const cuerpo = bloque.slice(0, bloque.lastIndexOf('}'));   // sin la llave que cierra montaCondiciones
+  const corre = (estado, valorInicial, rol) => {
+    const sel = { value: valorInicial, eventos: 0, dispatchEvent() { this.eventos++; } };
+    const avisos = [];
+    const f = new Function('S', 'MI_ROL', 'document', 'T', 'avisaMal', 'Event',
+      funciones + String.fromCharCode(10) + cuerpo + String.fromCharCode(10) + 'return { clausulasDeSalida: clausulasDeSalida };');
+    const r = f(estado, rol, { querySelector: q => (q === '[name="clausulas_negociadas"]' ? sel : null) }, x => x, m => avisos.push(m), function () {});
+    return { sel, avisos, r };
+  };
+  const base = { slug: 'ppjb_construccion', camino: 'existente', venta: { rev03: true } };
+  assert.strictEqual(corre({ ...base, clausulas: 'estandar' }, 'si', 'admin').sel.value, '', 'Estándar no quita el «si» heredado');
+  assert.strictEqual(corre({ ...base, clausulas: 'rev03' }, '', 'super_admin').sel.value, 'si', 'REV03 no pone el «si»');
+  assert.strictEqual(corre({ ...base, clausulas: 'rev03' }, '', 'agente').sel.value, '', 'un agente no puede poner REV03 desde el asistente');
+  assert.strictEqual(corre({ ...base, slug: 'ppjb_reserva', clausulas: 'rev03' }, '', 'admin').sel.value, '', 'REV03 fuera de Parcela/Construcción');
+  assert.strictEqual(corre({ ...base, clausulas: '' }, 'si', 'admin').r.clausulasDeSalida(), 'rev03', 'una venta REV03 no llega preseleccionada');
+  assert.strictEqual(corre({ ...base, camino: 'nueva', venta: null, clausulas: '' }, '', 'admin').r.clausulasDeSalida(), '', 'venta nueva: no debe preseleccionar');
+  n += 6;
+}
+
 console.log('clausulas_negociadas.test.js: ' + n + ' comprobaciones en verde');
