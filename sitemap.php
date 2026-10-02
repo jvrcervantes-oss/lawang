@@ -1,11 +1,12 @@
 <?php
 /**
  * sitemap.php — genera /sitemap.xml (rewrite interno en .htaccess) desde las fuentes reales:
- * data.json para las propiedades visibles y modelo/modelos.php para las landings de modelo
+ * coleccion/lib.php (lw_coleccion) para las propiedades visibles y modelo/modelos.php para las landings de modelo
  * con renders. Antes era un XML estatico con 5 URLs fijas que nunca listaba una sola
  * propiedad — hallazgo de la auditoria SEO del 31-ago-2026.
  */
 require __DIR__ . '/modelo/lib.php'; // lw_modelo_imgs()
+require __DIR__ . '/coleccion/lib.php'; // lw_coleccion_ids()
 
 header('Content-Type: application/xml; charset=UTF-8');
 
@@ -21,12 +22,9 @@ $urls = [
 
 $today = date('Y-m-d');
 
-$json = json_decode((string) file_get_contents(__DIR__ . '/data.json'), true);
-$props = (is_array($json) && isset($json['properties'])) ? $json['properties'] : [];
-foreach ($props as $p) {
-    if (($p['visible'] ?? null) !== true) continue;
-    $id = $p['id'] ?? '';
-    if ($id === '') continue;
+// Mismas fichas que acepta thecollection.php: las dos salen de lw_coleccion() (el filtro
+// visible vive alli, una sola vez).
+foreach (lw_coleccion_ids() as $id) {
     $urls[] = ['loc' => $SITE . '/property/' . rawurlencode($id), 'lastmod' => $today, 'freq' => 'weekly', 'pri' => '0.7'];
 }
 
