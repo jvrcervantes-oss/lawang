@@ -474,6 +474,7 @@ function montar(o) {
   //     DOM falso mínimo: un #annexPanel cuyo outerHTML se reemplaza y cuenta los repintados.
   {
     m = montar({});
+    m.ctx.pdfjsLib = {};
     const repintes = [];
     let panel = null;
     const panelDe = html => {
@@ -487,7 +488,9 @@ function montar(o) {
     m.ctx.$ = s => (s === '#annexPanel' ? panel : null);
     m.ctx.wireAccordions = () => {};
     panel = panelDe(m.lee('buildAnnexPanel()'));
-    assert.match(m.lee('buildAnnexPanel()'), /Guarda el contrato para poder añadirle anexos/, 'sin contrato no se ofrece subir');
+    // sin contrato SÍ se ofrece subir (owner, 2-oct-2026: «Guardar el anexo al guardar»), con su aviso
+    assert.match(m.lee('buildAnnexPanel()'), /id="anxFile"/, 'sin contrato también se ofrece subir');
+    assert.match(m.lee('buildAnnexPanel()'), /se guardan con él al pulsar Guardar/);
     m.lee('repintaAnexosSiCambia(); repintaAnexosSiCambia(); repintaAnexosSiCambia()');
     assert.strictEqual(repintes.length, 0, 'sin cambio de estado (cada tecla) el panel NO se repinta');
     // se abre/guarda un contrato: ahora sí, y ofrece subir
@@ -495,6 +498,7 @@ function montar(o) {
     m.lee('repintaAnexosSiCambia()');
     assert.strictEqual(repintes.length, 1, 'con contrato nuevo el panel se repinta');
     assert.match(repintes[0], /id="anxFile"/, 'y ofrece «+ Subir desde el ordenador»');
+    assert.doesNotMatch(repintes[0], /se guardan con él al pulsar Guardar/, 'ya guardado, sin el aviso de «sin guardar»');
     m.lee('repintaAnexosSiCambia()');
     assert.strictEqual(repintes.length, 1, 'el mismo contrato no vuelve a repintar');
     // a firma: se retira la subida
@@ -509,6 +513,63 @@ function montar(o) {
     panel.classList.add('collapsed');
     m.lee('rebuildAnnex()');
     assert.strictEqual(panel.classList.contains('collapsed'), true, 'el plegado sigue plegado');
+  }
+
+  // 24. ANEXAR SIN GUARDAR (owner, 2-oct-2026). Sin contrato el anexo entra PENDIENTE: páginas en
+  //     memoria, nada sube por la edge, y no viaja a `datos` (el trigger de LAW-78 rechaza una ficha sin
+  //     páginas en el archivo; lo sube la fase 2 del guardado, en app.html).
+  {
+    let llamadasEdge = 0;
+    m = montar({ lwFichero: () => { llamadasEdge++; return Promise.reject(new Error('no debía llamarse')); } });
+    m.ctx.pdfjsLib = {};
+    await m.lee(`anadeAnexosDeFicheros([{ file: { name: 'Planos.pdf', type: 'application/pdf' }, titulo: 'Planos' }])`);
+    const a = m.ctx.ANNEXES[0];
+    assert.ok(a && a.pendiente === true, 'sin contrato el anexo entra pendiente: ' + JSON.stringify({ a, males: m.males }));
+    assert.strictEqual(a.pages.length, 2);
+    assert.strictEqual(llamadasEdge, 0, 'sin contrato no se llama a la edge');
+    assert.strictEqual(m.males.length, 0, JSON.stringify(m.males));
+    assert.ok(m.toasts.some(t => /Se guarda con el contrato al pulsar Guardar/.test(t)), JSON.stringify(m.toasts));
+    assert.strictEqual(m.lee('SUBIDA_ANEXO'), '');
+    assert.strictEqual(m.lee('hayPendientes()'), true);
+    // a `datos` viaja sin páginas (y contractPayload lo deja fuera: contrato_reglas.test.js)
+    assert.strictEqual(m.lee('JSON.stringify(Object.keys(fichaDatos(ANNEXES[0], null)).sort())'), '["id","on","title"]');
+    // guardar SÍ puede (es lo que lo sube); lo definitivo (PDF, firma) no
+    assert.strictEqual(m.lee('problemasAnexos(ANNEXES).length'), 0);
+    assert.match(m.lee('problemasAnexos(ANNEXES, { soloIncluidos:true })').join(' '), /aún no está guardado: pulsa Guardar/);
+    assert.match(m.lee("estadoAnexoManual(ANNEXES[0]).txt"), /se guarda al guardar el contrato/);
+    // la migración perezosa de siempre lo recoge en cuanto hay contrato (fase 2)
+    assert.strictEqual(m.lee(`anexosAMigrar(ANNEXES, '${C1}').length`), 1, 'la fase 2 sube el pendiente por anexosAMigrar');
+    const mig = m.lee(`aplicaMigracion(ANNEXES, { [ANNEXES[0].id]: { id:'ax-nuevo', filas:[{n:1},{n:2}] } }, '${C1}')`);
+    assert.strictEqual(mig[0].pendiente, undefined, 'subido, deja de estar pendiente');
+    assert.strictEqual(mig[0].id, 'ax-nuevo', 'con id nuevo: registra rechaza un id que ya esté en datos');
+
+    // confirmar al tirarlos: «no» los conserva; «sí» los suelta YA (no se vuelve a preguntar)
+    let preguntas = 0;
+    m.ctx.confirm = () => { preguntas++; return false; };
+    assert.strictEqual(m.lee('confirmaSoltarPendientes()'), false);
+    assert.strictEqual(m.lee('ANNEXES.length'), 1, 'cancelar conserva el pendiente');
+    m.ctx.confirm = () => { preguntas++; return true; };
+    assert.strictEqual(m.lee('confirmaSoltarPendientes()'), true);
+    assert.strictEqual(m.lee('ANNEXES.length'), 0, 'aceptar suelta el pendiente');
+    assert.strictEqual(m.lee('confirmaSoltarPendientes()'), true);
+    assert.strictEqual(preguntas, 2, 'sin pendientes no se pregunta');
+  }
+
+  // 25. Mientras se convertía, se abrió otro contrato / otro borrador (MARCA_ANX cambia): no se cuelga.
+  {
+    m = montar({});
+    m.ctx.pdfjsLib = {};
+    m.lee('pdfToImages = async () => { MARCA_ANX++; return ["data:image/jpeg;base64,AAA"]; }');
+    await m.lee(`anadeAnexosDeFicheros([{ file: { name: 'x.pdf', type: 'application/pdf' }, titulo: 'x' }])`);
+    assert.strictEqual(m.lee('ANNEXES.length'), 0, 'no entra en el borrador que no era');
+    assert.ok(m.males.some(t => /cambiado de contrato mientras se preparaba/.test(t)), JSON.stringify(m.males));
+    assert.strictEqual(m.lee('SUBIDA_ANEXO'), '');
+    // «Elegir de la intranet» sin contrato: no hay id que comparar, compara la marca
+    m = montar({});
+    m.ctx.pdfjsLib = {};
+    await m.lee(`anadeAnexosDeFicheros([{ file: { name: 'x.pdf', type: 'application/pdf' }, titulo: 'x' }], null, MARCA_ANX - 1)`);
+    assert.strictEqual(m.lee('ANNEXES.length'), 0);
+    assert.ok(m.males.some(t => /cambiado de contrato/.test(t)), JSON.stringify(m.males));
   }
 
   console.log('documento_anexos.test.js OK');

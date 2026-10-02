@@ -970,6 +970,8 @@
     return true;
   }
   async function monta() {
+    // montar sustituye el borrador del editor: los anexos aún sin guardar se perderían (2-oct-2026)
+    if (typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes()) return;
     montando = true; pintaPie();
     sueltaAvisosDePlantilla();   // hablaban de la plantilla por defecto, que se va a sustituir; los fallos de carga se quedan
     var ok = false;

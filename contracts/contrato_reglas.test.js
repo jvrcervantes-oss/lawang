@@ -290,5 +290,38 @@ afirma('el panel nace escondido y lo abre el botón',
   // ejecuta documento_anexos.test.js sobre el código real.
 }
 
+/* ANEXAR SIN GUARDAR — 2-oct-2026 (owner: «Guardar el anexo al guardar»; revisión previa #197). Un anexo
+   pendiente vive solo en memoria y el servidor no admite su ficha sin páginas (trigger de LAW-78), así que:
+   no viaja en el alta, el guardado se repite solo una vez para subirlo, un pendiente que no llega no da el
+   guardado por bueno, y nada lo tira sin preguntar ni lo cuelga del borrador siguiente. */
+{
+  const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+  const asis = leerAsset('asistente-contrato.js');
+  const cuerpo = nombre => {
+    const i = html.search(new RegExp('\\n(async )?function ' + nombre + '\\('));
+    if (i < 0) return '';
+    const j = html.slice(i + 1).search(/\n(async )?function \w+\(/);
+    return j < 0 ? html.slice(i) : html.slice(i, i + 1 + j);
+  };
+  afirma('el guardado deja fuera de `datos` los anexos pendientes',
+    /annexes: ANNEXES\.filter\(a => !a\.pendiente\)\.map\(a => fichaDatos\(/.test(html),
+    'un pendiente en `datos` sin páginas en el archivo hace saltar el trigger y el contrato no se guarda');
+  const guardar = cuerpo('guardarContrato');
+  afirma('tras el alta, el guardado se repite solo para subir los pendientes (fase 2)',
+    /reguardarPendientes = eraNuevo && hayPendientes\(\)/.test(guardar)
+    && /if\(guardadoOk && reguardarPendientes\) return await guardarContrato\(\);/.test(guardar));
+  afirma('con un pendiente sin subir, guardar no se da por bueno («Enviar a firma» no sale)',
+    /guardadoOk = reguardarPendientes \|\| !hayPendientes\(\);/.test(guardar) && !/\n\s*guardadoOk = true;/.test(guardar));
+  const sustituciones = html.match(/ANNEXES = (\[\]|normalizaAnexos\([^)]*\));[^\n]*/g) || [];
+  afirma('cada vez que la lista de anexos se sustituye entera, cambia MARCA_ANX',
+    sustituciones.length >= 3 && sustituciones.every(l => /MARCA_ANX\+\+/.test(l)), sustituciones.join(' | '));
+  afirma('abrir otro contrato y derivar preguntan antes de tirar los pendientes',
+    /confirmaSoltarPendientes\(\)/.test(cuerpo('openSavedContract')) && /confirmaSoltarPendientes\(\)/.test(cuerpo('derivarContrato')));
+  afirma('cambiar de tipo pregunta antes de tirar los pendientes (y antes de que el asistente lo intercepte)',
+    /if\(!confirmaSoltarPendientes\(\)\)\{ sel\.value = CURRENT\.slug; return; \}\s*\n\s*if\(window\.lwAsistente && window\.lwAsistente\.interceptaCambioTipo/.test(html));
+  afirma('el asistente pregunta antes de montar encima de un borrador con pendientes',
+    /async function monta\(\) \{\s*\n[^\n]*\n\s*if \(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes\(\)\) return;/.test(asis));
+}
+
 console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nLas reglas de la pantalla de contratos se sostienen.');
 process.exit(fallos ? 1 : 0);
