@@ -96,5 +96,19 @@ begin
   begin perform public.lead_publico_alta('auth.' || e); r := r || '12 FALLO; ';
   exception when others then r := r || '12 ok; '; end;
 
+  -- 13 alta SIN fecha (huella con el now() de la base) y reintento con la marca del CSV un segundo antes: es el
+  --    mismo alta, no un duplicado (revisor-codigo 2-oct; daba n=2 antes de 20261002054801)
+  reset role;
+  perform set_config('request.headers', '{"x-lead-secreto":"prueba"}', true);
+  set local role anon;
+  perform public.lead_publico_alta('s1.' || e, null, null, 'sumbahills-web');
+  reset role;
+  select created_at into d_alta from public.leads where email = 's1.' || e;
+  set local role anon;
+  perform public.lead_publico_alta('s1.' || e, null, null, 'sumbahills-web', null, null, d_alta - interval '1 second');
+  reset role;
+  select count(*) into n from public.leads where email = 's1.' || e;
+  r := r || '13 ' || case when n = 1 then 'ok' else 'FALLO n=' || n end || '; ';
+
   raise exception 'RES: %', r;
 end $$;
