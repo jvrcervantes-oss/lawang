@@ -468,5 +468,48 @@ function montar(o) {
   assert.ok(m.males.some(t => /cambiado de contrato/.test(t)), JSON.stringify(m.males));
   assert.strictEqual(m.lee('ANNEXES.length'), 0);
 
+  // 23. El panel se repinta cuando cambia lo que decide la subida, y SOLO entonces (2-oct-2026).
+  //     aplicarEstadoFirma() llama a repintaAnexosSiCambia() con cada tecla del formulario: si
+  //     repintara siempre, el título del anexo perdería la letra y el «Incluir» su estado.
+  //     DOM falso mínimo: un #annexPanel cuyo outerHTML se reemplaza y cuenta los repintados.
+  {
+    m = montar({});
+    const repintes = [];
+    let panel = null;
+    const panelDe = html => {
+      const cls = new Set(/class="[^"]*\bcollapsed\b/.test(html) ? ['collapsed'] : []);
+      const p = { dataset: { firma: (html.match(/data-firma="([^"]*)"/) || [])[1] },
+        classList: { contains: c => cls.has(c), remove: c => cls.delete(c), add: c => cls.add(c), toggle() {} },
+        addEventListener() {} };
+      Object.defineProperty(p, 'outerHTML', { set(h) { repintes.push(h); panel = panelDe(h); } });
+      return p;
+    };
+    m.ctx.$ = s => (s === '#annexPanel' ? panel : null);
+    m.ctx.wireAccordions = () => {};
+    panel = panelDe(m.lee('buildAnnexPanel()'));
+    assert.match(m.lee('buildAnnexPanel()'), /Guarda el contrato para poder añadirle anexos/, 'sin contrato no se ofrece subir');
+    m.lee('repintaAnexosSiCambia(); repintaAnexosSiCambia(); repintaAnexosSiCambia()');
+    assert.strictEqual(repintes.length, 0, 'sin cambio de estado (cada tecla) el panel NO se repinta');
+    // se abre/guarda un contrato: ahora sí, y ofrece subir
+    m.ctx.SAVED_CONTRACT = { id: C1 };
+    m.lee('repintaAnexosSiCambia()');
+    assert.strictEqual(repintes.length, 1, 'con contrato nuevo el panel se repinta');
+    assert.match(repintes[0], /id="anxFile"/, 'y ofrece «+ Subir desde el ordenador»');
+    m.lee('repintaAnexosSiCambia()');
+    assert.strictEqual(repintes.length, 1, 'el mismo contrato no vuelve a repintar');
+    // a firma: se retira la subida
+    m.ctx.EN_FIRMA = { vivas: 1, firmadas: 0 };
+    m.lee('repintaAnexosSiCambia()');
+    assert.strictEqual(repintes.length, 2);
+    assert.doesNotMatch(repintes[1], /id="anxFile"/, 'enviado a firma no ofrece subir');
+    // repintar conserva el panel abierto (y el plegado, plegado)
+    panel.classList.remove('collapsed');
+    m.lee('rebuildAnnex()');
+    assert.strictEqual(panel.classList.contains('collapsed'), false, 'el panel abierto sigue abierto tras repintar');
+    panel.classList.add('collapsed');
+    m.lee('rebuildAnnex()');
+    assert.strictEqual(panel.classList.contains('collapsed'), true, 'el plegado sigue plegado');
+  }
+
   console.log('documento_anexos.test.js OK');
 })().catch(e => { console.error(e); process.exit(1); });

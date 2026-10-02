@@ -782,7 +782,7 @@ function buildAnnexPanel(){
   // Seguridad (revisión previa LAW-78): un pasaporte subido aquí acaba impreso en el
   // contrato y en cada copia que se manda. La identidad va a la ficha del comprador.
   const kyc = `<div class="dz" style="color:var(--muted);font-size:12px">Los documentos de identidad (pasaporte, KTP, NPWP) van a la ficha del comprador (KYC), no aquí.</div>`;
-  return `<section class="section design collapsed" id="annexPanel">
+  return `<section class="section design collapsed" id="annexPanel" data-firma="${escAttr(firmaPanelAnexos())}">
     <header data-acc><span class="num">📎</span><h2>Anexos</h2><span class="chev">▾</span></header>
     <div class="body">
       ${rows}
@@ -965,7 +965,18 @@ async function eligeAnexoDeIntranet(){
   }
   await anadeAnexosDeFicheros([{ file, titulo: op.titulo || op.texto }], c.id);
 }
-function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ old.outerHTML=buildAnnexPanel(); wireAnnexPanel(); wireAccordions(); } }
+/* Lo que decide el bloque de subir del panel: contrato, candado y si hay una subida en curso
+   (2-oct-2026). aplicarEstadoFirma() corre con CADA tecla del formulario (updateSaveButton): repintar
+   ahí sin mirar esto cambiaba el panel bajo los dedos —el título del anexo perdía la letra y el foco,
+   y el interruptor «Incluir» enseñaba un estado e imprimía otro (revisor, 2-oct; misma familia que
+   firmaFormaPago en hitos_fechas.js). Solo se repinta si esto cambia. */
+function firmaPanelAnexos(){ const c = contratoParaAnexos(); return (c.id || '') + '|' + (c.bloqueado ? 1 : 0) + '|' + (SUBIDA_ANEXO ? 1 : 0); }
+function repintaAnexosSiCambia(){ const p=$('#annexPanel'); if(p && p.dataset.firma !== firmaPanelAnexos()) rebuildAnnex(); }
+/* Repintar conserva si el panel estaba abierto (2-oct-2026): buildAnnexPanel() lo saca plegado, y
+   desde que se repinta también al abrir/guardar el contrato y al cambiar el estado de firma, se
+   plegaba en la cara de quien lo estaba mirando. */
+function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ const abierto=!old.classList.contains('collapsed');
+  old.outerHTML=buildAnnexPanel(); if(abierto){ const p=$('#annexPanel'); if(p) p.classList.remove('collapsed'); } wireAnnexPanel(); wireAccordions(); } }
 
 /* páginas de anexos incluidos, al final del contrato (portada de anexo + imágenes de página).
    Una página que falta: en la vista previa se ve un hueco MARCADO; en el documento que se

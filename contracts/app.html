@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="7eec017fcd7b">
+<meta name="lw-version" content="8219cade8cda">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -80,7 +80,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=a6230c91"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
-<script src="assets/documento_anexos.js?v=0abc554b"></script>
+<script src="assets/documento_anexos.js?v=fe20aca6"></script>
 <script src="assets/parcela_inventario.js?v=c101c6e2"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
@@ -3961,6 +3961,9 @@ function aplicarEstadoFirma(){
   // `datos` por detrás; «Subir firmado» con un enlace vivo pisaba la firma en
   // curso (auditoría 19-ago). El panel de diseño abierto sí se cierra.
   if(activo){ const pd=$('#designPanel'); if(pd) pd.hidden = true; }
+  // a firma o anulado: el panel de anexos ofrece o retira «+ Subir…» según el estado de AHORA. Solo si
+  // ese estado cambió: esto corre con cada tecla del formulario (2-oct-2026, ver firmaPanelAnexos)
+  repintaAnexosSiCambia();
   pintaAcciones();
   ocultarGruposVacios();
 }
@@ -5053,6 +5056,7 @@ async function guardarContrato(){
     if(fila.moneda) payload.moneda = fila.moneda;
     const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.fields, hitos:fila.hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
+    rebuildAnnex();   // un contrato recién creado ya admite anexos: el panel se pintó cuando aún no tenía fila (2-oct-2026)
     /* Construcción (28-sep-2026): el calendario lo monta el servidor —importes incluidos— y puede diferir de lo
        que había en pantalla (una pestaña vieja, un % tocado). Se enseña lo que quedó guardado, no lo que se mandó. */
     if(tipo === 'construccion' && Array.isArray(fila.hitos)){
@@ -5555,6 +5559,9 @@ async function openSavedContract(id){
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
   // a firma le pintaría a B el candado de A hasta que respondiera la lectura
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] };
+  // El panel de anexos se pintó en populateForm() con el contrato ANTERIOR (o ninguno): sin esto
+  // decía «Guarda el contrato…» en uno guardado y no ofrecía subir (owner, 2-oct-2026).
+  rebuildAnnex();
   // tras poblar: reaplica los campos condicionados y vuelve a derivar el anexo
   // automático de la tipología guardada (solo viaja su ficha, no las páginas).
   // AUTO_ANX a cero o el anexo del contrato ANTERIOR daría por bueno el nuevo.
