@@ -965,7 +965,11 @@ async function eligeAnexoDeIntranet(){
   }
   await anadeAnexosDeFicheros([{ file, titulo: op.titulo || op.texto }], c.id);
 }
-function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ old.outerHTML=buildAnnexPanel(); wireAnnexPanel(); wireAccordions(); } }
+/* Repintar conserva si el panel estaba abierto (2-oct-2026): buildAnnexPanel() lo saca plegado, y
+   desde que se repinta también al abrir/guardar el contrato y al cambiar el estado de firma, se
+   plegaba en la cara de quien lo estaba mirando. */
+function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ const abierto=!old.classList.contains('collapsed');
+  old.outerHTML=buildAnnexPanel(); if(abierto){ const p=$('#annexPanel'); if(p) p.classList.remove('collapsed'); } wireAnnexPanel(); wireAccordions(); } }
 
 /* páginas de anexos incluidos, al final del contrato (portada de anexo + imágenes de página).
    Una página que falta: en la vista previa se ve un hueco MARCADO; en el documento que se

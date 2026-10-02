@@ -258,5 +258,36 @@ afirma('el panel nace escondido y lo abre el botón',
     !/(src|href)=\"[^\"]*(movimiento-v3\.js|saldos-v3\.js|suite-v3(-herramientas)?\.css)/.test(html));
 }
 
+/* EL PANEL DE ANEXOS SE PINTA CON EL CONTRATO YA PUESTO — 2-oct-2026 (owner: «no me deja anexar
+   documentos»). buildAnnexPanel() decide en el momento de pintarse si ofrece «+ Subir…» (hay
+   SAVED_CONTRACT y no está bloqueado ni a firma). Desde LAW-78 (27-sep) se pintaba al abrir ANTES
+   de poner SAVED_CONTRACT y LOCKED, y al guardar uno nuevo no se repintaba: el panel se quedaba en
+   «Guarda el contrato para poder añadirle anexos» con el contrato ya guardado. Lo que se afirma:
+   después de poner SAVED_CONTRACT (y LOCKED al abrir) hay un rebuildAnnex(); el cambio de estado de
+   firma también repinta; y repintar no pliega el panel que el usuario tiene abierto. */
+{
+  const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+  const cuerpo = nombre => {
+    const i = html.search(new RegExp('\\n(async )?function ' + nombre + '\\('));
+    if (i < 0) return '';
+    const j = html.slice(i + 1).search(/\n(async )?function \w+\(/);
+    return j < 0 ? html.slice(i) : html.slice(i, i + 1 + j);
+  };
+  const repintaTras = (c, marca) => c.indexOf(marca) >= 0 && c.lastIndexOf('rebuildAnnex()') > c.indexOf(marca);
+  const abrir = cuerpo('openSavedContract'), guardar = cuerpo('guardarContrato'), firma = cuerpo('aplicarEstadoFirma');
+  afirma('al abrir un contrato, el panel de anexos se repinta con SAVED_CONTRACT y LOCKED ya puestos',
+    repintaTras(abrir, 'SAVED_CONTRACT = {') && repintaTras(abrir, 'LOCKED = !!data.bloqueado'),
+    'sin esto el panel dice «Guarda el contrato…» en un contrato guardado y no ofrece subir anexos');
+  afirma('al guardar, el panel de anexos se repinta con el contrato ya guardado',
+    repintaTras(guardar, 'SAVED_CONTRACT = {'),
+    'un contrato recién creado seguía sin botón de subir anexos hasta recargar');
+  afirma('el estado de firma repinta el panel de anexos', /rebuildAnnex\(\)/.test(firma),
+    'enviado a firma o anulado, el panel seguía ofreciendo (o negando) la subida de antes');
+  const anx = leerAsset('documento_anexos.js');
+  const rebuild = (anx.match(/function rebuildAnnex\(\)\{[^\n]*\n?[^\n]*/) || [''])[0];
+  afirma('repintar el panel de anexos no pliega el que está abierto', /collapsed/.test(rebuild),
+    'rebuildAnnex() tiene que conservar si el panel estaba abierto: ahora se repinta más a menudo');
+}
+
 console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nLas reglas de la pantalla de contratos se sostienen.');
 process.exit(fallos ? 1 : 0);
