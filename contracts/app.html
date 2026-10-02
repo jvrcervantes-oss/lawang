@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="aa53c3f8dbc7">
+<meta name="lw-version" content="0b9477cc5c45">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -2935,6 +2935,14 @@ function collect(){
   Object.entries(CAMPOS_HEREDADOS).forEach(([k,v])=>{
     if(!Object.prototype.hasOwnProperty.call(data, k)) data[k] = v;
   });
+  /* `rev03_dni` (2-oct-2026): «o DNI» en la identificación del comprador de
+     Parcela/Construcción con cláusulas negociadas REV03. Esa frase vive DENTRO
+     del párrafo de persona, y el motor de <!--if--> (buildDoc) no evalúa un
+     bloque anidado en otro — lo imprimiría siempre. Por eso la plantilla parte
+     el bloque de persona alrededor de la frase y la condiciona a esta clave,
+     que es «persona Y REV03» a la vez. Se recalcula SIEMPRE aquí: lo que traiga
+     guardado no manda. */
+  data.rev03_dni = (data.clausulas_negociadas === 'si' && data.adq1_tipo === 'persona') ? 'si' : '';
   return data;
 }
 
@@ -3416,6 +3424,7 @@ function deriveSections(){
      plantillas lo usan como <!--if:adq1_tipo=empresa--> y esa forma tambien
      cuenta como «el campo aparece en la plantilla» (unas lineas mas arriba). */
   inDoc.delete('adq1_tipo');
+  inDoc.delete('rev03_dni');   // derivado (collect(): persona + cláusulas negociadas) — nunca un campo del form
   /* `descuento_comercial_aplica` tampoco es un campo del formulario (lo
      calcula collect(), ver la nota junto a ese bloque) — mismo motivo que
      adq1_tipo justo arriba: sin este delete caería en el cajón automático
@@ -4355,6 +4364,25 @@ function updateSaveButton(){
                      : 'Descuento comercial sobre el precio de techo+extras' + (ES_SUPER ? '' : ' — máx. 15%') + '. Necesita motivo.')
         : 'Solo lo cambian dirección y los sales managers.';
     });
+  }
+  /* Cláusulas negociadas REV03 (2-oct-2026, owner): un selector de Parcela y
+     Construcción que SOLO ven y cambian admin/super_admin — el resto ni lo ve.
+     El candado de verdad es el trigger clausulas_negociadas_rol de la base;
+     esto solo evita enseñar un campo que el servidor le rechazaría. Mismo
+     cuidado que el descuento: una copia SIN guardar en manos de un agente se
+     suelta (si no, no podría guardarla); una ya guardada conserva su valor,
+     oculto, y el trigger deja guardarla sin tocarlo. Solo con MI_ROL resuelto. */
+  {
+    const caja = document.querySelector('.field[data-key="clausulas_negociadas"]');
+    if(caja){
+      const abre = ['super_admin','admin'].includes(MI_ROL);
+      const sel = caja.querySelector('select');
+      if(MI_ROL && !abre && !(SAVED_CONTRACT && SAVED_CONTRACT.id) && sel && sel.value){
+        sel.value = ''; sel.dispatchEvent(new Event('change', { bubbles:true }));
+      }
+      caja.style.display = abre ? '' : 'none';
+      if(sel) sel.disabled = !abre;
+    }
   }
   // Hitos de fábrica del Contrato de Construcción (16-sep-2026): mismo
   // mecanismo que FIJOS_ESTUDIO — hitosBodyHTML() (hitos_fechas.js) los pinta
