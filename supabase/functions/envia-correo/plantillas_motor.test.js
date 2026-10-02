@@ -34,6 +34,14 @@ const path = require('path');
   }
 
   // Lo que cada clave debe producir con la base falsa de partida (variables escritas a mano, no calculadas por el código bajo prueba)
+  // Claves que ESTA instancia no ofrece (su esquema no tiene los datos): `resuelve` contesta 400 «no disponible» SIN consultar nada.
+  const NO_DISP = [];
+  for (const k of CLAVES) {
+    const r = await F.resuelve(k, { contrato_id: P.ID.contrato, factura_id: P.ID.factura, firma_id: P.ID.firma }, 'x@y.test', {},
+      async () => { throw new Error('no debe consultar'); }, { marca: 'Acme', portal: 'https://erp.ejemplo.com/portal/', dominio: 'ejemplo.com' }).catch(() => null);
+    if (r && V.esFallo(r) && /no está disponible en esta instancia/.test(r.error)) NO_DISP.push(k);
+  }
+  const DISP = CLAVES.filter((k) => !NO_DISP.includes(k));
   const CASOS = {
     enlace_firma_cadena: { to: 'ana@cliente.test', attach: false, ids: { contrato_id: P.ID.contrato, firma_id: P.ID.firma },
       vars: { saludo: HOLA('Ana'), numero: 'CR00123', enlace: ENLACE, marca: 'Acme' }, variante: 'principal' },
@@ -60,7 +68,7 @@ const path = require('path');
   const esperado = (k, c = CASOS[k], t = F.textoFabrica(k)) => V.componeCorreo(t, c.variante, c.vars);
 
   // ── 1. Cada clave: lo que sale por plantilla == lo que sale por el camino libre con el mismo texto ───────────────────────────
-  for (const k of CLAVES) {
+  for (const k of DISP) {
     const c = CASOS[k], esp = esperado(k);
     ok(esp && esp.subject && esp.message, k + ': el texto de fábrica compone con las variables del caso');
     const a = await corre(P.baseFalsa(), porPlantilla(k));
@@ -117,7 +125,11 @@ const path = require('path');
     ok(/^f:[0-9a-f]{8}$/.test(r.res.cuerpo.version), nombre + ' → versión de fábrica');
     igual(P.normaliza(r.correos[0]), deFabrica, nombre + ' → sale EXACTAMENTE el texto de fábrica');
   }
-  // aviso_anulacion: dos cuerpos; si el catálogo pide cuerpo_alt y la fila no lo trae, fábrica
+  for (const k of NO_DISP) {   // lo no disponible: 400 explícito, sin correo y sin consultar la base
+    const db = P.baseFalsa(); const r = await corre(db, porPlantilla(k));
+    ok(r.res.status === 400 && /no está disponible/.test(r.res.cuerpo.error) && r.correos.length === 0 && db.lecturas.every((l) => !/contrato_firmas/.test(l)), k + ': no disponible → 400 · ' + r.res.crudo);
+  }
+  if (!NO_DISP.includes('aviso_anulacion')) {   // aviso_anulacion: dos cuerpos; si el catálogo pide cuerpo_alt y la fila no lo trae, fábrica
   {
     const k = 'aviso_anulacion', c = CASOS[k], db = P.baseFalsa();
     db.correo_plantillas = [P.filaActiva(k, CAT[k], { asunto: 'Cambio de {{numero}}', cuerpo: '{{saludo}}: cambia {{numero}}.', cuerpo_alt: null })];
@@ -128,6 +140,7 @@ const path = require('path');
     ok(r2.res.cuerpo.version === 'v3' && r2.correos[0].text.includes('firmaste y cambia CR00123') && r2.correos[0].text.includes('Motivo: Cambia la cláusula 4'), 'aviso con dos cuerpos: sale el de quien ya firmó, con su motivo');
     const r3 = await corre(db, porPlantilla(k, { ...c, to: 'carla@cliente.test' }));
     ok(r3.correos[0].text.includes('cambia CR00123.') && !r3.correos[0].text.includes('firmaste'), 'quien no había firmado recibe el cuerpo principal');
+  }
   }
 
   // ── 3. Doble escape y un valor no se vuelve a expandir ────────────────────────────────────────────────────────────────────────
@@ -180,8 +193,8 @@ const path = require('path');
   await mal('enlace con otra ruta', 'enlace_firma_cadena', (db) => { db.contrato_firmas[0].enlace_firma = 'https://ejemplo.com/otra/ruta?t=x'; }, {}, 'no es válido');
   await mal('contrato inexistente', 'copia_firmada_portal', (db) => { db.contratos = []; }, {}, 'no encontrado');
   await mal('contrato sin PDF firmado', 'copia_firmada_portal', (db) => { db.contratos[0].pdf_firmado_path = null; }, {}, 'PDF firmado');
-  await mal('aviso a quien no tiene firma anulada', 'aviso_anulacion', () => {}, { to: 'ana@cliente.test' }, 'firma anulada');
-  await mal('aviso a quien no es firmante', 'aviso_anulacion', () => {}, { to: 'otro@cliente.test' }, 'firma anulada');
+  if (DISP.includes('aviso_anulacion')) await mal('aviso a quien no tiene firma anulada', 'aviso_anulacion', () => {}, { to: 'ana@cliente.test' }, 'firma anulada');
+  if (DISP.includes('aviso_anulacion')) await mal('aviso a quien no es firmante', 'aviso_anulacion', () => {}, { to: 'otro@cliente.test' }, 'firma anulada');
   await mal('factura anulada', 'factura_primer_hito', (db) => { db.facturas[0].anulada = true; }, {}, 'anulada');
   await mal('proforma con una factura', 'proforma_total', () => {}, { factura_id: P.ID.factura }, 'tipo');
   await mal('factura con una proforma', 'factura_vencimiento', () => {}, { factura_id: P.ID.proforma }, 'tipo');

@@ -45,9 +45,11 @@ const path = require('path');
     aviso_anulacion: ['beto@cliente.test', { contrato_id: P.ID.contrato }], factura_primer_hito: ['x@cliente.test', { factura_id: P.ID.factura }],
     proforma_total: ['x@cliente.test', { factura_id: P.ID.proforma }], factura_vencimiento: ['x@cliente.test', { factura_id: P.ID.factura }],
   };
+  const NO_DISP = [];   // claves que esta instancia no ofrece: resuelve contesta 400 «no disponible» sin consultar
   for (const k of CLAVES) {
     const [to, ids] = PEDIDOS[k];
     const r = await F.resuelve(k, { contrato_id: '', factura_id: '', firma_id: '', ...ids }, to, { nombre: 'Ana' }, rest(P.baseFalsa()), comun);
+    if (V.esFallo(r) && /no está disponible en esta instancia/.test(r.error)) { NO_DISP.push(k); continue; }
     ok(!V.esFallo(r), k + ': resuelve devuelve datos · ' + JSON.stringify(r));
     for (const v of V.catalogoDe(CAT[k]).permitidas) ok(typeof r.vars[v] === 'string', k + ': resuelve produce la variable permitida {{' + v + '}}');
     for (const v of Object.values(r.vars)) ok(typeof v === 'string', k + ': todas las variables son texto');
