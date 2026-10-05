@@ -36,7 +36,15 @@ def url(u):
 
 
 def vacio(x):
-    return x in (None, '', [], {}, False, 0, '—', '-') or (isinstance(x, dict) and all(vacio(v) for v in x.values()))
+    # Vacio ESTRICTO: ausente, texto vacio, lista o dict vacios (o con todo vacio). 0 y False NO lo son:
+    # un precio 0 frente a ausente o un `false` frente a null son un dato distinto y se cuentan aparte.
+    if x is None or x == '' or x == '—' or x == '-' or x == [] or x == {}:
+        return True
+    return isinstance(x, dict) and all(vacio(v) for v in x.values())
+
+
+def cero_o_falso(x):
+    return x is False or (x == 0 and x is not False and not isinstance(x, bool))
 
 
 def corto(x):
@@ -45,12 +53,20 @@ def corto(x):
 
 
 def compara(a, b):
-    v1 = {p['id']: p for p in a['properties'] if p.get('visible') is True}
-    v2 = {p['id']: p for p in b['properties']}
+    v1l = [p for p in a['properties'] if p.get('visible') is True]
+    v2l = list(b['properties'])
+    for lado, lista in (('v1', v1l), ('v2', v2l)):
+        ids = [p['id'] for p in lista]
+        dup = sorted({i for i in ids if ids.count(i) > 1})
+        if dup:
+            raise SystemExit(f'ids duplicados en {lado}: {dup} (el diff colapsaria uno en silencio)')
+    v1 = {p['id']: p for p in v1l}
+    v2 = {p['id']: p for p in v2l}
     real, forma = collections.defaultdict(list), collections.Counter()
+    ceros = collections.defaultdict(list)
     for i in sorted(set(v1) & set(v2)):
         p, q = v1[i], dict(v2[i])
-        q['images'] = [url(x) for x in q.get('images', [])]
+        q['images'] = [url(x) for x in (q.get('images') or [])]
         if 'masterplanImage' in q:
             q['masterplanImage'] = url(q['masterplanImage'])
         for k in sorted(set(p) | set(q)):
@@ -58,9 +74,11 @@ def compara(a, b):
                 continue
             if vacio(p.get(k)) and vacio(q.get(k)):
                 forma[k] += 1
+            elif (cero_o_falso(p.get(k)) and vacio(q.get(k))) or (vacio(p.get(k)) and cero_o_falso(q.get(k))):
+                ceros[k].append((i, p.get(k), q.get(k)))  # 0/false frente a ausente: se enseña, no se esconde
             else:
                 real[k].append((i, p.get(k), q.get(k)))
-    return v1, v2, real, forma
+    return v1, v2, real, forma, ceros
 
 
 def main():
@@ -68,13 +86,14 @@ def main():
     ap.add_argument('--v1'); ap.add_argument('--v2'); ap.add_argument('--detalle', nargs='*', default=[])
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding='utf-8')
-    v1, v2, real, forma = compara(carga(a.v1), carga(a.v2, rpc=True))
+    v1, v2, real, forma, ceros = compara(carga(a.v1), carga(a.v2, rpc=True))
     print(f'v1 visibles: {len(v1)} · v2: {len(v2)}')
     print('solo en v1:', sorted(set(v1) - set(v2)) or '—')
     print('solo en v2:', sorted(set(v2) - set(v1)) or '—')
     print(f'diferencias de forma (sin efecto): {sum(forma.values())}')
+    print('0/false frente a ausente (revisar, no es forma pura):', {k: len(v) for k, v in ceros.items()} or 'ninguna')
     print('diferencias REALES por clave:', {k: len(v) for k, v in real.items()} or 'ninguna')
-    for k, v in real.items():
+    for k, v in list(real.items()) + [('(0/false) ' + k, v) for k, v in ceros.items()]:
         if 'all' in a.detalle or k in a.detalle:
             print('\n##', k)
             for i, x, y in v:
