@@ -1552,8 +1552,12 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
         badge.textContent = sello[0];
         wrap.appendChild(badge);
         /* Si la palabra entera se sale de su parcela (C6, parcelas estrechas, plano pequeno en movil),
-           se queda solo la inicial (R / S); el texto completo sigue en el title y el aria-label. */
-        if(!selloCabe(badge, wrap, pts)) badge.textContent = sello[0].charAt(0);
+           se queda solo la inicial de la palabra YA TRADUCIDA (EN R/S, ES R/V, ID D/T: "Dipesan"
+           empieza por D, no por R); el texto completo sigue en el title y el aria-label. */
+        if(!selloCabe(badge, wrap, pts)){
+          var palabra = (window.lwT && window.lwLang && window.lwT(sello[0], window.lwLang())) || sello[0];
+          badge.textContent = palabra.charAt(0);
+        }
       }
     });
   }
