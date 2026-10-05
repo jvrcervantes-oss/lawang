@@ -9,7 +9,7 @@
 --      enteros: guardar solo «equipamiento» borraba imagenes/downloads/diseno. Ahora `textos`/`ficha` en p_cambios son PARCHES que el
 --      SERVIDOR mezcla por clave de primer nivel (y `textos` además por idioma): editar `es` no pisa `en`; un null borra la clave.
 --      p_version (= actualizado_en que devolvió `lee`) da concurrencia optimista: si la fila cambió desde que se leyó → 40001 «recárgala».
---      p_version null = sin control (alta, o scripts de servidor): la pantalla DEBE mandarlo siempre al editar.
+--      p_version null = sin control (solo el alta): la pantalla DEBE mandarlo siempre al editar. service_role NO ejecuta estas RPC (es_admin() mira auth.uid(), que con service_role es NULL): sin llamador, sin permiso (Seguridad, 6-oct).
 --   2. `_ficha_valida(textos, ficha)`: lista blanca EXACTA de claves, tipos con jsonb_typeof, topes de tamaño y rechazo de `<`/`>` y de
 --      URLs que no sean https:// o /ruta. El navegador no es de fiar (máxima del owner 26-sep): la SPA ya escapa, pero el servidor no
 --      depende de eso. La lógica vive en `_ficha_error` (SQL puro, devuelve el primer problema o null) para poder probarla sin escribir.
@@ -22,8 +22,8 @@
 --   5. ficha_publica_lee(p_proyecto_id): TODAS las fichas del proyecto (también las no publicadas) + `publico` (el trozo de
 --      coleccion_publica() para esa ficha, o null si hoy no se sirve: un solo dueño del cálculo, aquí NO se reimplementa precio/«desde»),
 --      + unidades y modelos para vincular. No hay `lista` (sin llamador: reducir la exposición).
---   Seguridad de ambas RPC: SECURITY DEFINER, search_path vacío, es_admin() dentro (42501), revoke de public/anon, grant a
---   authenticated y service_role. `_ficha_valida` y `_ficha_error` sin grants a nadie (las llama guarda, que corre como dueño).
+--   Seguridad de ambas RPC: SECURITY DEFINER, search_path vacío, es_admin() dentro (42501), revoke de public/anon, grant solo a
+--   authenticated (service_role no: sin llamador). `_ficha_valida` y `_ficha_error` sin grants a nadie (las llama guarda, que corre como dueño).
 --
 -- Llamadores con nombre: ficha_publica_guarda y ficha_publica_lee → pestaña «Ficha pública» de intranet/v4/proyectos (F3b).
 -- ROLLBACK (en este orden):
@@ -154,8 +154,9 @@ select c.msg from (
   union all select 'Diseño «' || k || '» debe ser una dirección https:// o una ruta del servidor (hasta 300 caracteres)' from dz
             where k in ('logo', 'isotype', 'splitImage', 'bleedImage', 'plan3dImage')
               and (jsonb_typeof(v) <> 'string' or char_length(v #>> '{}') > 300 or (v #>> '{}') !~ '^(https://[^\s"''\\]+|/[^/\s"''\\][^\s"''\\]*|)$')
-  union all select 'Diseño «landColor» debe ser texto de hasta 30 caracteres' from dz
-            where k = 'landColor' and (jsonb_typeof(v) <> 'string' or char_length(v #>> '{}') > 30)
+  union all select 'Diseño «landColor» debe ser un color hexadecimal (#rgb) o una palabra de hasta 30 letras' from dz
+            where k = 'landColor' and (jsonb_typeof(v) <> 'string' or char_length(v #>> '{}') > 30
+                                       or (v #>> '{}') !~ '^(#[0-9a-fA-F]{3,8}|[A-Za-z ]{1,30})$')
   union all select 'Cada pestaña del diseño debe ser un objeto' from tb where jsonb_typeof(v) <> 'object'
   union all select 'Pestaña del diseño: dato no permitido «' || kk || '»'
               from tb, jsonb_object_keys(case when jsonb_typeof(tb.v) = 'object' then tb.v else '{}'::jsonb end) kk
@@ -357,6 +358,10 @@ begin
   v_new.textos := v_textos;
   v_new.ficha  := v_ficha;
   v_new.region := nullif(btrim(v_new.region), '');
+  -- `region` es una columna escalar y no pasa por _ficha_valida: texto plano también aquí (el servidor no depende del escape del cliente)
+  if v_new.region ~ '[<>]' then
+    raise exception 'La región es texto plano: no admite < ni >' using errcode = '22023';
+  end if;
   -- un solo dueño del «desde»: con 'desde' o 'consultar' no se guarda importe (coleccion_publica() lo deriva de las unidades)
   if v_new.precio_modo in ('desde', 'consultar') then v_new.precio_eur := null; end if;
 
@@ -425,8 +430,8 @@ begin
 end $$;
 comment on function public.ficha_publica_guarda(text, jsonb, timestamptz) is
   'Alta/edición de una ficha pública (The Collection v2, F3a). Solo admin/super_admin (comprobado dentro). Lista blanca de claves; el slug no se cambia. textos y ficha son PARCHES mezclados en el servidor por clave (null borra). p_version = actualizado_en leído: si no coincide, 40001. Valida forma (_ficha_valida), vínculos y publicación. Devuelve {id, slug, version}. Llamador: pestaña Ficha pública de intranet/v4/proyectos (F3b).';
-revoke all on function public.ficha_publica_guarda(text, jsonb, timestamptz) from public, anon;
-grant execute on function public.ficha_publica_guarda(text, jsonb, timestamptz) to authenticated, service_role;
+revoke all on function public.ficha_publica_guarda(text, jsonb, timestamptz) from public, anon, service_role;
+grant execute on function public.ficha_publica_guarda(text, jsonb, timestamptz) to authenticated;
 
 -- ── 5. ficha_publica_lee ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 create or replace function public.ficha_publica_lee(p_proyecto_id uuid)
@@ -461,5 +466,5 @@ begin
 end $$;
 comment on function public.ficha_publica_lee(uuid) is
   'Lectura para la pestaña Ficha pública (The Collection v2, F3a): todas las fichas del proyecto (también no publicadas) con su version y su `publico` (trozo de coleccion_publica(), null si hoy no se sirve), más las unidades y modelos vinculables. Solo admin/super_admin (comprobado dentro). Llamador: intranet/v4/proyectos (F3b).';
-revoke all on function public.ficha_publica_lee(uuid) from public, anon;
-grant execute on function public.ficha_publica_lee(uuid) to authenticated, service_role;
+revoke all on function public.ficha_publica_lee(uuid) from public, anon, service_role;
+grant execute on function public.ficha_publica_lee(uuid) to authenticated;

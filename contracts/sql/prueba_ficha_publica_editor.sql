@@ -39,6 +39,8 @@ begin
                   and not has_function_privilege('anon', 'public.ficha_publica_lee(uuid)', 'execute')
                   and has_function_privilege('authenticated', 'public.ficha_publica_guarda(text,jsonb,timestamptz)', 'execute')
                   and has_function_privilege('authenticated', 'public.ficha_publica_lee(uuid)', 'execute')
+                  and not has_function_privilege('service_role', 'public.ficha_publica_guarda(text,jsonb,timestamptz)', 'execute')
+                  and not has_function_privilege('service_role', 'public.ficha_publica_lee(uuid)', 'execute')
                   and not has_function_privilege('authenticated', 'public._ficha_valida(jsonb,jsonb)', 'execute')
                   and not has_function_privilege('authenticated', 'public._ficha_error(jsonb,jsonb)', 'execute')
                   and not exists (select 1 from pg_proc where proname = 'ficha_publica_guarda' and pronargs = 2)
@@ -115,6 +117,10 @@ begin
   exception when others then r := r || case when sqlstate = '22023' then 'd4 ok; ' else 'd4 FALLO (' || sqlstate || ' ' || sqlerrm || '); ' end; end;
   begin perform public.ficha_publica_guarda('zz-ed', '{"textos":{"title":{"en":"a<b"}}}'::jsonb); r := r || 'd5 FALLO < aceptado; ';
   exception when others then r := r || case when sqlstate = '22023' then 'd5 ok; ' else 'd5 FALLO (' || sqlstate || ' ' || sqlerrm || '); ' end; end;
+  begin perform public.ficha_publica_guarda('zz-ed', '{"region":"Bali <b>x</b>"}'::jsonb); r := r || 'd5b FALLO < en region aceptado; ';
+  exception when others then r := r || case when sqlstate = '22023' then 'd5b ok; ' else 'd5b FALLO (' || sqlstate || ' ' || sqlerrm || '); ' end; end;
+  begin perform public.ficha_publica_guarda('zz-ed', '{"ficha":{"diseno":{"landColor":"red;background:url(x)"}}}'::jsonb); r := r || 'd5c FALLO landColor con CSS aceptado; ';
+  exception when others then r := r || case when sqlstate = '22023' then 'd5c ok; ' else 'd5c FALLO (' || sqlstate || ' ' || sqlerrm || '); ' end; end;
   begin perform public.ficha_publica_guarda('zz-ed', '{"ficha":{"imagenes":["javascript:alert(1)"]}}'::jsonb); r := r || 'd6 FALLO url javascript:; ';
   exception when others then r := r || case when sqlstate = '22023' then 'd6 ok; ' else 'd6 FALLO (' || sqlstate || ' ' || sqlerrm || '); ' end; end;
   begin perform public.ficha_publica_guarda('zz-ed', ('{"textos":{"title":{"en":"' || repeat('x', 121) || '"}}}')::jsonb); r := r || 'd7 FALLO titulo de 121; ';
