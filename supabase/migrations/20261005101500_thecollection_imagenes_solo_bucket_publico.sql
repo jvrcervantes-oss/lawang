@@ -1,8 +1,11 @@
--- THE COLLECTION v2 · F5b/F9a — coleccion_publica(): las fotos de un proyecto con el deck CERRADO no se anuncian. 5-oct-2026.
--- Decision del owner (5-oct): usar las del servidor para las 4 casas cuyas fotos estan en `deck-privado`.
+-- THE COLLECTION v2 · F5b/F9a — coleccion_publica(): solo se anuncian las fotos que EXISTEN en el bucket publico `deck`. 5-oct-2026.
+-- Decision del owner (5-oct): usar las del servidor para las casas cuyas fotos estan en `deck-privado`.
 -- Hallazgo: el diff F9a comparaba el NUMERO de fotos pero no si su URL respondia; tirta-hikari (8), cube (8), river (9) y aqua (8)
--- devolvian 400 en el bucket publico `deck` (33 imagenes). Solo cambia el CTE `imgs`; el resto de la funcion es la de la migracion
--- 20261002150000 sin tocar (mismos grants: solo anon, SECURITY DEFINER, search_path vacio, sin parametros).
+-- devolvian 400 en el bucket publico `deck` (33 imagenes). Su fichero esta fisicamente en `deck-privado`.
+-- Revision de Seguridad (5-oct): el primer intento filtraba por deck_bucket_debido() (estado LOGICO) y dejaba sin galeria a 6 fichas
+-- (pura-dalem, riverfront-i/ii-small/iii, rurung-anyar, tangkuban-village: 54 fotos) cuyo deck esta «cerrado» pero cuyos ficheros siguen
+-- en `deck`. Por eso el filtro mira el bucket FISICO: la foto se anuncia si y solo si existe en storage.objects con bucket_id = 'deck'.
+-- Solo cambia el CTE `imgs`; el resto es la funcion de 20261002150000 sin tocar (mismos grants: solo anon, DEFINER, search_path vacio).
 -- ROLLBACK: volver a aplicar la funcion de 20261002150000.
 
 create or replace function public.coleccion_publica()
@@ -98,14 +101,13 @@ land_json as (
     from tamanos t where t.eur is not null group by t.ficha_id
 ),
 imgs as (
-  -- Solo las fotos de proyectos cuyo deck esta ABIERTO: ahi viven en el bucket publico `deck`. Las de un proyecto con el deck
-  -- cerrado estan en `deck-privado` (AXW-66, 28-sep) y su URL publica da 400: anunciarlas dejaba la ficha sin fotos (tirta-hikari,
-  -- cube, river y aqua, 5-oct-2026). Esas fichas caen a ficha->'imagenes' (las rutas del servidor que la web ya publica hoy): cero
-  -- exposicion nueva. Para publicar su galeria desde la intranet, el owner abre su deck (deck_activa) y esta rama las recoge sola.
+  -- Solo las fotos que existen FISICAMENTE en el bucket publico `deck`. Las de un proyecto con el deck cerrado pueden estar en `deck-privado`
+  -- (AXW-66, 28-sep) y su URL publica da 400; el estado logico (deck_bucket_debido) no sirve de filtro porque diverge de donde estan los
+  -- ficheros. Una ficha sin ninguna foto publica cae a ficha->'imagenes' (rutas del servidor que la web ya publica hoy): cero exposicion nueva.
   select f.id as ficha_id, jsonb_agg(d.path order by d.orden, d.creado_en) as j
     from fichas f
     join public.deck_fotos d on d.ambito = 'proyecto' and d.proyecto_id = f.proyecto_id and d.uso in ('galeria', 'hero')
-   where public.deck_bucket_debido('proyecto', f.proyecto_id) = 'deck'
+    join storage.objects o on o.bucket_id = 'deck' and o.name = d.path
    group by f.id
 )
 select jsonb_build_object(

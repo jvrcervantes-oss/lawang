@@ -183,17 +183,21 @@ begin
   exception when others then r := r || 'h5-h8 omitido (' || sqlstate || ' ' || left(sqlerrm, 70) || '); '; reset role;
   end;
 
-  -- (i) 5-oct-2026: una foto del bucket `deck` solo se anuncia si el deck de su proyecto esta abierto. Con el deck cerrado las fotos viven
-  -- en `deck-privado` y su URL publica da 400 (cuatro casas se quedaron sin galeria): esa ficha sirve ficha->'imagenes' (rutas del servidor,
-  -- que empiezan por «/» o «http») y NUNCA un path `proyecto/<uuid>/…` del bucket.
+  -- (i) 5-oct-2026: solo se anuncian fotos que EXISTEN en el bucket publico `deck` (las de `deck-privado` dan 400: cuatro casas se quedaron
+  -- sin galeria) y NO se pierde ninguna que si exista. El filtro es el bucket FISICO, no deck_bucket_debido(): seis fichas tienen el deck
+  -- «cerrado» con sus ficheros aun en `deck` y deben conservarlas.
   select count(*) into n from jsonb_array_elements(public.coleccion_publica()->'properties') p
-    join public.fichas_publicas f on f.slug = p->>'id'
     cross join lateral jsonb_array_elements_text(coalesce(p->'images', '[]'::jsonb)) im(path)
-   where public.deck_bucket_debido('proyecto', f.proyecto_id) <> 'deck' and im.path like 'proyecto/%';
+   where im.path !~ '^(/|https?://)'
+     and not exists (select 1 from storage.objects o where o.bucket_id = 'deck' and o.name = im.path);
   select count(*) into n2 from public.fichas_publicas f
-   where f.publicada_web and public.deck_bucket_debido('proyecto', f.proyecto_id) <> 'deck';
-  r := r || case when n = 0 and n2 > 0 then 'i ok (' || n2 || ' fichas con deck cerrado, ninguna anuncia un path del bucket); '
-                 when n = 0 then 'i omitido (no hay fichas con deck cerrado); ' else 'i FALLO ' || n || ' imagenes de deck cerrado anunciadas; ' end;
+   where f.publicada_web
+     and (select count(*) from public.deck_fotos d join storage.objects o on o.bucket_id = 'deck' and o.name = d.path
+           where d.ambito = 'proyecto' and d.proyecto_id = f.proyecto_id and d.uso in ('galeria', 'hero'))
+       > (select count(*) from jsonb_array_elements(public.coleccion_publica()->'properties') p, jsonb_array_elements_text(p->'images') im(path)
+           where p->>'id' = f.slug and im.path !~ '^(/|https?://)');
+  r := r || case when n = 0 and n2 = 0 then 'i ok (ninguna imagen anunciada fuera del bucket deck y ninguna foto de deck perdida); '
+                 else 'i FALLO ' || n || ' imagenes fuera de `deck`, ' || n2 || ' fichas que pierden fotos de `deck`; ' end;
 
   raise exception 'RES: %', r;
 end $t$;
