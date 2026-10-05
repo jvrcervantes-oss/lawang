@@ -1551,7 +1551,29 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
         badge.style.left = c[0]+'%'; badge.style.top = c[1]+'%'; badge.style.transform = 'translate(-50%,-50%)';
         badge.textContent = sello[0];
         wrap.appendChild(badge);
+        /* Si la palabra entera se sale de su parcela (C6, parcelas estrechas, plano pequeno en movil),
+           se queda solo la inicial (R / S); el texto completo sigue en el title y el aria-label. */
+        if(!selloCabe(badge, wrap, pts)) badge.textContent = sello[0].charAt(0);
       }
+    });
+  }
+
+  // ¿Caben las 4 esquinas y los 4 puntos medios del sello dentro del poligono de su parcela?
+  function selloCabe(badge, wrap, pts){
+    var W = wrap.clientWidth, H = wrap.clientHeight;
+    if(!W || !H) return true;   // plano aun sin medir: se deja la palabra entera
+    var hw = badge.offsetWidth / 2 / W * 100, hh = badge.offsetHeight / 2 / H * 100;
+    var cx = parseFloat(badge.style.left), cy = parseFloat(badge.style.top);
+    var dentro = function(x, y){
+      var d = false;
+      for(var i = 0, j = pts.length - 1; i < pts.length; j = i++){
+        if(((pts[i][1] > y) !== (pts[j][1] > y)) &&
+           (x < (pts[j][0] - pts[i][0]) * (y - pts[i][1]) / (pts[j][1] - pts[i][1]) + pts[i][0])) d = !d;
+      }
+      return d;
+    };
+    return [-1, 0, 1].every(function(a){
+      return [-1, 0, 1].every(function(b){ return (a === 0 && b === 0) || dentro(cx + a * hw, cy + b * hh); });
     });
   }
 
@@ -1603,6 +1625,14 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       if(ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS);
     })
     .catch(function(){ ZONAS = null; });
+  // El plano mide distinto al cargar la imagen (lazy) y al girar/redimensionar: se repinta
+  // para que cada sello se vuelva a medir contra su parcela.
+  (function(){
+    var img = document.getElementById('masterplan-img'), t = null;
+    var repinta = function(){ if(ZONAS && ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS); };
+    if(img) img.addEventListener('load', repinta);
+    window.addEventListener('resize', function(){ clearTimeout(t); t = setTimeout(repinta, 150); });
+  })();
 
   // ── masterplan / inventario en vivo ───────────────────────────────────────
   var plotsWrap = document.getElementById('plots-wrap');
