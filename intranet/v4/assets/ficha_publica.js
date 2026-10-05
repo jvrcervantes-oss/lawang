@@ -348,7 +348,7 @@
         pinta();
       }).then(null, function (e) {
         // No poder leer NO es «no hay fichas»: se dice y se ofrece reintentar.
-        estado = null;
+        estado = null; pendienteAbrir = null;
         var c = cuerpo(); if (!c) return;
         c.innerHTML = H.nota('No se han podido leer las fichas de este proyecto: ' + errorLegible(e) + ' Esto no significa que no existan.') +
           '<p style="margin:12px 0 0"><button type="button" class="las-btn2" data-fp="reintentar">Reintentar</button></p>';
@@ -429,6 +429,10 @@
         return sb.rpc('ficha_publica_guarda', p).then(function (r) {
           if (r.error) { avisoMal(errorLegible(r.error, 'No se pudo ' + (publicar ? 'publicar' : 'despublicar'))); return leer(); }
           aviso(publicar ? 'Ficha publicada' : 'Ficha despublicada');
+          return leer();
+        }, function (e) {
+          // red caída o fallo del cliente: se dice y se relee, para no dejar en pantalla un estado que puede ser falso
+          avisoMal(errorLegible(e, 'No se pudo ' + (publicar ? 'publicar' : 'despublicar') + ' (no sé si llegó a aplicarse)'));
           return leer();
         });
       });
