@@ -11,14 +11,13 @@
 //       genérica sin cargar → se DICE, no se cae a la contractual (saldría vacía y se leería «no hay operaciones»);
 //       pantalla móvil (sin `lw-ops-caja`) → la contractual.
 //     Y se MUTA la guarda: cada mutación tiene que romper al menos una de estas comprobaciones, o el test no vale.
-//     Además el bloque `operaciones:` de datos.js no se ha tocado respecto al commit previo del corte 3 (si git no lo da, se avisa).
 //
 //  B) LA PANTALLA GENÉRICA (operaciones_generica.js): listado (5a) y ficha (5b) contra una base de mentira.
 //       solo RPC de lectura, ninguna lectura directa de tabla, ninguna escritura, nada de contratos;
 //       los importes salen TAL CUAL de la base (se prueba con cifras que NO cuadran con las facturas: nada se suma aquí);
 //       «no he podido leer» y «no hay» se ven distintos; cifras vacías = «no visible» y no se piden facturas;
 //       todo dato entra escapado.
-const fs = require('fs'), assert = require('assert'), vm = require('vm'), cp = require('child_process');
+const fs = require('fs'), assert = require('assert'), vm = require('vm');
 const src = fs.readFileSync(__dirname + '/datos.js', 'utf8');
 const generica = fs.readFileSync(__dirname + '/operaciones_generica.js', 'utf8');
 const espera = (ms) => new Promise((r) => setTimeout(r, ms || 15));
@@ -101,12 +100,6 @@ async function escenariosA(fuenteApoyo, fuenteEnvoltorio) {
   w.REG.operaciones(w.sb); await espera();
   comprueba(w.llamadas.indexOf('contractual') > -1 && w.llamadas.indexOf('generica') === -1, 'pantalla sin lw-ops-caja: la contractual');
   return fallos;
-}
-
-// el bloque `operaciones:` contractual no cambia respecto al commit anterior del corte 3 (la guarda es aditiva)
-function bloqueOperaciones(t) {
-  const a = t.indexOf('    operaciones: function (sb) {'), b = t.indexOf('\n    },\n', a);
-  return a > -1 && b > a ? t.slice(a, b) : null;
 }
 
 // ═══════════════════ B) la pantalla genérica ═══════════════════
@@ -223,12 +216,8 @@ function clic(w, selectorBuscado, atributos) {
     const f = await escenariosA(a2, e2);
     assert.ok(f.length > 0, 'la mutación «' + nombre + '» NO rompe ninguna comprobación: el test no protege esa guarda');
   }
-  // el bloque contractual intacto
-  let previo = null;
-  try { previo = cp.execSync('git show 9e3d1e00:intranet/v4/assets/datos.js', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }).toString('utf8'); } catch (e) { /* MUDO A PROPOSITO: sin git o sin ese commit (otro clon) el test no falla, solo avisa abajo */ }
-  if (previo) {
-    assert.strictEqual(bloqueOperaciones(src), bloqueOperaciones(previo), 'el bloque `operaciones:` contractual de datos.js ha cambiado: Lawang no puede cambiar en este corte');
-  } else console.log('AVISO: no he podido comparar el bloque `operaciones:` con el commit 9e3d1e00 (git/commit no disponible en este clon)');
+  // (El bloque `operaciones:` contractual se comparó UNA vez, byte a byte, con el de 9e3d1e00: idéntico. No se deja como test fijo:
+  // tras aterrizar, el primer cambio legítimo de esa pantalla lo pondría en rojo. Lo que se queda es la elección y sus mutaciones.)
 
   // ── B1) listado
   let w = mundoB();

@@ -27,7 +27,7 @@
 (function () {
   'use strict';
 
-  var TOPE = 2000;                       // filas que se piden; si se alcanza, se DICE (unos totales parciales mienten)
+  var TOPE = 1000;                       // el límite por defecto de la API de Supabase es 1000: pedir más no trae más y el aviso no saltaría nunca. Si se alcanza, se DICE (una lista parcial que no avisa miente)
   var TROZO_CLIENTES = 80;               // ids por petición al resolver nombres (la URL de PostgREST no es infinita)
   var CAMPOS = 'id,referencia,client_id,tipo,estado,importe_total,moneda,creado_por,created_at';
   var ESTADOS = [['borrador', 'Borrador', 'espera'], ['abierta', 'Abierta', 'neutro'], ['cerrada', 'Cerrada', 'ok'], ['cancelada', 'Cancelada', 'mal']];
