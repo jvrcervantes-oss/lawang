@@ -2288,7 +2288,7 @@
     // listado y del clásico — para «cuánto lleva cobrado» del recibí.
     facturasContratos: { src: '/contracts/assets/facturas_contratos.js', listo: function () { return typeof lwAgrupaPorContrato === 'function'; } },
     // Saldo del contrato (5-oct-2026): las cifras las da la base (contrato_saldo), aquí solo se pintan.
-    saldoContrato: { src: '/contracts/assets/saldo_contrato.js?v=00000000', listo: function () { return typeof lwSaldoHTML === 'function'; } },
+    saldoContrato: { src: '/contracts/assets/saldo_contrato.js?v=6b29d965', listo: function () { return typeof lwSaldoHTML === 'function'; } },
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
