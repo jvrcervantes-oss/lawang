@@ -136,11 +136,14 @@ export async function resuelve(clave: string, ids: Ids, to: string, vars: Vars, 
   if (clave === 'aviso_anulacion') {
     const ct = await uno('contratos?select=numero&id=eq.' + ids.contrato_id);
     if (!ct || !ct.numero) return mal('Contrato no encontrado');
-    const filas = await rest('contrato_firmas?select=firmante_nombre,firmante_email,firmado_en,anulado_en,anulado_justificacion&limit=100&contrato_id=eq.' + ids.contrato_id);
+    const filas = await rest('contrato_firmas?select=firmante_nombre,firmante_email,firmado_en,anulado_en,anulado_motivo,anulado_justificacion&order=anulado_en.desc.nullslast&limit=100&contrato_id=eq.' + ids.contrato_id);
     const mias = (Array.isArray(filas) ? filas as Record<string, unknown>[] : [])
       .filter((f) => String(f.firmante_email ?? '').trim().toLowerCase() === to.toLowerCase());
-    const anuladas = mias.filter((f) => f.anulado_en);
-    if (!anuladas.length) return mal('Ese firmante no tiene una firma anulada en el contrato');
+    const todas = mias.filter((f) => f.anulado_en);
+    if (!todas.length) return mal('Ese firmante no tiene una firma anulada en el contrato');
+    // El aviso es el de la edición del texto (motivo «editar»): una anulación posterior por «nuevo_enlace»/«cierre_manual» no lo cambia.
+    const deEditar = todas.filter((f) => f.anulado_motivo === 'editar');
+    const anuladas = deEditar.length ? deEditar : todas;
     // SOLO la anulación más reciente (AXW-202 C3): todas las filas de una misma anulación comparten el instante. Sin esto, quien firmó
     // en una ronda anterior —ya anulada— recibiría el texto de «ya firmaste» con el motivo de entonces aunque en esta ronda no hubiera firmado.
     const t = (f: Record<string, unknown>) => Date.parse(String(f.anulado_en));
