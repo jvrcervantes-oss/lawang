@@ -171,10 +171,12 @@ function mundoB(opts) {
   function escB(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   const win = { AXW_NUCLEO_OPERACION: true, axwModuloActivo: opts.activo || (() => true), lwCajonHtml: H,
     lwCajon: (o) => { abierto = true; const c = { cabecera: o, cuerpo: elemento('cuerpo', reg), pie: elemento('pie', reg) }; cajones.push(c); return c; } };
+  let estilosInyectados = 0;
   const doc = {
     getElementById: (id) => (id === 'lw-ops-caja' ? caja : id === 'lw-opsg' ? (opts.sinSeccion ? null : sec) : id === 'lw-cajon' ? (abierto ? {} : null) : null),
     querySelector: (s) => (s === 'main .lw-cabecera p' ? reg('cabecera-p') : reg('doc:' + s)),
-    createElement: () => sec
+    createElement: () => sec,
+    head: { appendChild: () => { estilosInyectados++; } }
   };
   doc.querySelector = (s) => {
     if (s === '[data-lw="k-ops"]' || s === '[data-lw="buscador"]') return { closest: () => reg('seccion-vieja:' + s) };
@@ -317,5 +319,11 @@ function clic(w, selectorBuscado, atributos) {
   w.win.lwOperacionesGenerica(w.sb, w.ayudas); await espera(60);
   assert.ok(w.cajones.length === 1 && w.calls.indexOf('rpc:operacion_cifras') > -1, '?operacion= propia: abre su ficha');
 
+  // C) los estilos propios (opsg-) los pone esta pantalla; el JS no usa utilidades Tailwind que los tw*.css compartidos aún no traen
+  // (compilarlas allí cambiaría el aspecto de otras pantallas ya publicadas: revisor, 5-oct-2026)
+  const fuente = fs.readFileSync(__dirname + '/operaciones_generica.js', 'utf8');
+  ['lg:w-80', 'lg:w-auto', 'py-3.5', 'placeholder:text-stone-sand', 'surface-container-low/40', 'surface-container-high/40', 'lg:flex-row', 'lg:items-center', 'hover:text-volcanic-ash', 'focus:outline-none', 'pl-4']
+    .forEach((c) => assert.ok(fuente.indexOf(c) === -1, 'operaciones_generica.js usa «' + c + '», que obligaría a tocar los tw*.css compartidos'));
+  assert.ok(/inyectaEstilos\(\)/.test(fuente) && /lw-opsg-css/.test(fuente), 'faltan los estilos propios opsg-');
   console.log('OK guarda_operaciones.test.js');
 })().catch((e) => { console.error(e); process.exit(1); });

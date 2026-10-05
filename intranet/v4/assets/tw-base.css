@@ -1879,10 +1879,6 @@ video {
   padding-left: 0.75rem;
 }
 
-.pl-4 {
-  padding-left: 1rem;
-}
-
 .pl-6 {
   padding-left: 1.5rem;
 }
@@ -2830,10 +2826,6 @@ video {
 
   .lg\:col-span-8 {
     grid-column: span 8 / span 8;
-  }
-
-  .lg\:w-80 {
-    width: 20rem;
   }
 
   .lg\:w-96 {

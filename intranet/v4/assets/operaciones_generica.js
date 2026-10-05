@@ -88,13 +88,30 @@
     return sec;
   }
 
+  /* Estilos PROPIOS de esta pantalla (prefijo opsg-), inyectados aquí y no en tw*.css: esos CSS los comparten todas las
+     páginas de Lawang y una regla nueva allí cambiaría el aspecto de pantallas ya publicadas. Mismos valores que las
+     utilidades que sustituyen (ancho del buscador, placeholder, divisores y pie con superficie al 40 %, hover, foco, cabecera en fila). */
+  function inyectaEstilos() {
+    if (document.getElementById('lw-opsg-css')) return;
+    var st = document.createElement('style'); st.id = 'lw-opsg-css';
+    st.textContent =
+      '.opsg-buscar::placeholder{color:rgb(190 179 165)}' +
+      '.opsg-filas>:not([hidden])~:not([hidden]){border-color:rgb(233 232 227/.4)}' +
+      '.opsg-pie{padding-top:.875rem;padding-bottom:.875rem;background-color:rgb(245 244 238/.4)}' +
+      '.opsg-buscar:focus{outline:2px solid transparent;outline-offset:2px}' +
+      '.opsg-act:hover{color:rgb(46 52 55)}' +
+      '@media (min-width:1024px){.opsg-cab{flex-direction:row;align-items:center}.opsg-buscabox{width:auto}.opsg-buscar{width:20rem}}';
+    document.head.appendChild(st);
+  }
+
   function pintaEsqueleto(sec) {
+    inyectaEstilos();
     sec.innerHTML =
-      '<div class="px-6 py-4 bg-surface-container-low/60 flex flex-col lg:flex-row lg:items-center justify-between gap-4">' +
+      '<div class="px-6 py-4 bg-surface-container-low/60 opsg-cab flex flex-col justify-between gap-4">' +
         '<div class="flex items-center gap-3"><span class="font-label-md text-volcanic-ash text-body-sm uppercase tracking-wider font-bold">' + esc(T('Operaciones')) + '</span>' +
         '<span class="px-2 py-0.5 rounded-full bg-surface-container text-stone-sand text-[11px] font-label-md" data-opsg-cuenta>…</span></div>' +
-        '<div class="flex items-center gap-2 w-full lg:w-auto"><input data-opsg-buscar type="text" class="w-full lg:w-80 pl-4 pr-4 py-2 bg-surface-container-low rounded-full font-body-sm text-volcanic-ash placeholder:text-stone-sand focus:outline-none shadow-sm" placeholder="' + esc(T('Buscar referencia, cliente, tipo o autor…')) + '">' +
-        '<button type="button" data-real data-accion="opsg-actualizar" class="hover:text-volcanic-ash flex items-center gap-1 text-stone-sand text-body-sm font-label-md shrink-0"><span class="material-symbols-outlined text-[16px]">refresh</span><span>' + esc(T('Actualizar')) + '</span></button></div>' +
+        '<div class="opsg-buscabox flex items-center gap-2 w-full"><input data-opsg-buscar type="text" class="opsg-buscar w-full px-4 py-2 bg-surface-container-low rounded-full font-body-sm text-volcanic-ash shadow-sm" placeholder="' + esc(T('Buscar referencia, cliente, tipo o autor…')) + '">' +
+        '<button type="button" data-real data-accion="opsg-actualizar" class="opsg-act flex items-center gap-1 text-stone-sand text-body-sm font-label-md shrink-0"><span class="material-symbols-outlined text-[16px]">refresh</span><span>' + esc(T('Actualizar')) + '</span></button></div>' +
       '</div>' +
       '<div class="px-6 py-3 flex items-center gap-1.5 overflow-x-auto" data-opsg-chips></div>' +
       '<div data-opsg-aviso></div>' +
@@ -102,8 +119,8 @@
         '<th class="py-3 px-4 font-bold">' + esc(T('Referencia')) + '</th><th class="py-3 px-4 font-bold">' + esc(T('Cliente')) + '</th><th class="py-3 px-4 font-bold">' + esc(T('Tipo')) + '</th>' +
         '<th class="py-3 px-4 font-bold">' + esc(T('Situación')) + '</th><th class="py-3 px-4 font-bold text-right">' + esc(T('Importe pactado')) + '</th>' +
         '<th class="py-3 px-4 font-bold">' + esc(T('Creada')) + '</th><th class="py-3 px-4 font-bold">' + esc(T('Autor')) + '</th></tr></thead>' +
-        '<tbody class="divide-y divide-surface-container-high/40 text-body-sm font-body-sm" data-opsg-lista><tr><td class="py-8 px-6 text-center text-stone-sand" colspan="7">' + esc(T('Trayendo las operaciones…')) + '</td></tr></tbody></table></div>' +
-      '<div class="px-6 py-3.5 bg-surface-container-low/40 text-body-sm text-stone-sand" data-opsg-pie></div>';
+        '<tbody class="opsg-filas divide-y text-body-sm font-body-sm" data-opsg-lista><tr><td class="py-8 px-6 text-center text-stone-sand" colspan="7">' + esc(T('Trayendo las operaciones…')) + '</td></tr></tbody></table></div>' +
+      '<div class="opsg-pie px-6 text-body-sm text-stone-sand" data-opsg-pie></div>';
   }
 
   function nombreDe(o) {
