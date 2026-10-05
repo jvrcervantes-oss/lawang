@@ -28,7 +28,7 @@
  * escribe igualmente (como red de seguridad por si el fichero desaparece o llega corrupto).
  * FUENTE 'intranet' (F5b, 2-oct-2026): POST {} a la RPC `coleccion_publica()` de Supabase Lawang con la
  * clave PUBLICABLE (la misma de modelo/catalogo.php; el navegador nunca llama a la RPC). Una sola
- * llamada devuelve contenido y estado de unidades, y la caché fresca dura 60 s para TODO: la regla es
+ * llamada devuelve contenido y estado de unidades, y la caché fresca dura 60 s para todo; la regla es
  * «estado casi en tiempo real» y partir en dos TTL (60/300) exigiría dos llamadas o dos RPC para ahorrar
  * una petición por minuto. Si la RPC falla: caché vieja (stale) -> respaldo (stale). Un fallo reciente se
  * recuerda 30 s (marcador `.fallo` junto a la caché) para que, con Supabase caído, ningún visitante pague
