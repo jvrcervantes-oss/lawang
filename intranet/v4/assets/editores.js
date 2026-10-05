@@ -2288,7 +2288,7 @@
     // listado y del clásico — para «cuánto lleva cobrado» del recibí.
     facturasContratos: { src: '/contracts/assets/facturas_contratos.js', listo: function () { return typeof lwAgrupaPorContrato === 'function'; } },
     // Saldo del contrato (5-oct-2026): las cifras las da la base (contrato_saldo), aquí solo se pintan.
-    saldoContrato: { src: '/contracts/assets/saldo_contrato.js?v=6b29d965', listo: function () { return typeof lwSaldoHTML === 'function'; } },
+    saldoContrato: { src: '/contracts/assets/saldo_contrato.js?v=577fa3e6', listo: function () { return typeof lwSaldoHTML === 'function'; } },
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
@@ -2618,13 +2618,14 @@
         b.insertAdjacentHTML('beforeend', lwSaldoMarcaHTML(marcas[+b.getAttribute('data-h')], SALDO.moneda, f));
       });
     }
+    /* La barra de saldo enseña en vivo lo que suman los conceptos del documento (5-oct-2026). Se repinta entera
+       con el borrador; el aviso de «se pasa» sale del propio módulo. Solo en factura: una proforma no factura. */
     function avisaTope() {
-      var viejo = caja.querySelector('[data-lw="aviso-tope"]'); if (viejo) viejo.remove();
-      if (!SALDO || ctx.esRecibi || ctx.tipoActual() !== 'factura' || typeof lwSaldoAviso !== 'function') return;
+      if (!SALDO || ctx.esRecibi || typeof lwSaldoHTML !== 'function') return;
+      var s = caja.querySelector('[data-lw="saldo-contrato"]'); if (!s) return;
+      var esFactura = ctx.tipoActual() === 'factura';
       var total = filas().reduce(function (a, l) { return a + (parseImporte(l.importe) || 0); }, 0);
-      var txt = lwSaldoAviso(SALDO, total, ctx.propioId, function (n, m) { return fmtMoneda(n, m); });
-      var s = caja.querySelector('[data-lw="saldo-contrato"]');
-      if (txt && s) s.insertAdjacentHTML('beforeend', '<p class="lw-s-av" data-lw="aviso-tope">' + esc(txt) + '</p>');
+      s.outerHTML = lwSaldoHTML(SALDO, function (n, m) { return fmtMoneda(n, m); }, ctx.propioId, esFactura ? total : null);
     }
     function marca() {
       avisaTope();

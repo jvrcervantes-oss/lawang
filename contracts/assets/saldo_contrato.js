@@ -81,6 +81,15 @@
       '.lw-saldo .lw-s-v.lw-l{color:#104C4F}' +
       '.lw-saldo .lw-s-b{display:flex;height:10px;border-radius:99px;overflow:hidden;background:#EFEEE8;margin:10px 0 4px}' +
       '.lw-saldo .lw-s-b i{display:block;height:100%}' +
+      '.lw-saldo .lw-s-c6{grid-template-columns:repeat(6,minmax(0,1fr))}' +
+      '@media (max-width:760px){.lw-saldo .lw-s-c6{grid-template-columns:repeat(2,minmax(0,1fr))}}' +
+      '.lw-saldo .lw-s-v.lw-n{color:#104C4F}.lw-saldo .lw-s-v.lw-r{color:#9E2F26}' +
+      '.lw-saldo .lw-s-p{background:repeating-linear-gradient(45deg,#7FB3B5,#7FB3B5 4px,#A9CDCE 4px,#A9CDCE 8px);transition:width .15s ease-out}' +
+      '.lw-saldo .lw-s-p.lw-r{background:repeating-linear-gradient(45deg,#9E2F26,#9E2F26 4px,#C46A62 4px,#C46A62 8px)}' +
+      '.lw-saldo .lw-s-l{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:11px;color:#75786E}' +
+      '.lw-saldo .lw-s-l b{display:inline-block;width:9px;height:9px;border-radius:99px;margin-right:4px;vertical-align:-1px}' +
+      '.lw-saldo .lw-s-pb{background:#7FB3B5!important}.lw-saldo .lw-s-pb.lw-r{background:#9E2F26!important}' +
+      '@media (prefers-reduced-motion:reduce){.lw-saldo .lw-s-p{transition:none}}' +
       '.lw-saldo .lw-s-n{font-size:12px;color:#75786E;margin:6px 0 0;line-height:1.45}' +
       '.lw-saldo .lw-s-av{font-size:12.5px;margin:8px 0 0;padding:8px 10px;border-radius:8px;background:#FBF3E4;color:#8A6A34}' +
       '.lw-mk{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}' +
@@ -89,26 +98,44 @@
     document.head.appendChild(s);
   }
 
-  /* fmt(n, moneda) → texto: lo pone la pantalla (fmtMoneda), para que el formato sea el de siempre. */
-  function lwSaldoHTML(saldo, fmt, propioId) {
+  /* fmt(n, moneda) → texto: lo pone la pantalla (fmtMoneda), para que el formato sea el de siempre.
+     borrador (solo el editor): lo que suman los conceptos del documento que se está escribiendo. La barra
+     enseña ese tramo en vivo y lo que quedaría por facturar; si se pasa, el tramo sale en rojo y el aviso
+     lo dice. El documento ya guardado se cuenta una vez: su importe entra como borrador, no como facturado. */
+  function lwSaldoHTML(saldo, fmt, propioId, borrador) {
     if (!saldo) return '';
     var mon = saldo.moneda, pr = saldo.precio == null ? null : Number(saldo.precio);
     var fa = Number(saldo.facturado) || 0, co = Number(saldo.cobrado) || 0, pc = Number(saldo.por_cobrar) || 0;
     var pf = saldo.por_facturar == null ? null : Number(saldo.por_facturar);
     var base = pr && pr > 0 ? pr : null;
+    var prev = borrador == null ? null : r2(Math.max(Number(borrador) || 0, 0));
+    var pfAdj = lwSaldoPorFacturar(saldo, propioId);
+    var pasa = false;
+    if (prev != null) {
+      var propio = (saldo.facturas || []).filter(function (f) { return f.id === propioId; })[0];
+      if (propio) fa = r2(fa - (Number(propio.subtotal != null ? propio.subtotal : propio.total) || 0));
+      pasa = pfAdj != null && prev > pfAdj + 0.005;
+    }
     var w = function (x) { return base ? Math.max(0, Math.min(100, x / base * 100)).toFixed(2) : '0'; };
     var nota = saldo.sin_precio
       ? 'Algún contrato de esta venta no tiene precio fijado: sin precio no hay tope, y «por facturar» no se puede calcular.'
       : 'Venta ' + esc(saldo.cadena) + ': precio de todos sus contratos (sin la Carta de Reserva), sin impuestos.';
-    return '<div class="lw-saldo" data-lw="saldo-contrato"><p class="lw-s-t">Saldo del contrato</p><div class="lw-s-c">' +
-      '<div><div class="lw-s-k">Precio</div><div class="lw-s-v">' + (pr == null ? '—' : esc(fmt(pr, mon))) + '</div></div>' +
-      '<div><div class="lw-s-k">Facturado</div><div class="lw-s-v">' + esc(fmt(fa, mon)) + '</div></div>' +
-      '<div><div class="lw-s-k">Cobrado</div><div class="lw-s-v lw-l">' + esc(fmt(co, mon)) + '</div></div>' +
-      '<div><div class="lw-s-k">Por cobrar</div><div class="lw-s-v">' + esc(fmt(pc, mon)) + '</div></div>' +
-      '<div><div class="lw-s-k">Por facturar</div><div class="lw-s-v">' + (pf == null ? '—' : esc(fmt(pf, mon))) + '</div></div></div>' +
-      (base ? '<div class="lw-s-b" role="img" aria-label="Cobrado ' + esc(fmt(co, mon)) + ', por cobrar ' + esc(fmt(pc, mon)) + ', por facturar ' +
-        (pf == null ? '—' : esc(fmt(pf, mon))) + '"><i style="width:' + w(co) + '%;background:#104C4F"></i><i style="width:' + w(fa - co) + '%;background:#C9892B"></i></div>' : '') +
-      '<p class="lw-s-n">' + nota + '</p></div>';
+    var quedara = pfAdj == null || prev == null ? null : Math.max(r2(pfAdj - prev), 0);
+    var cif = function (k, v, cls) { return '<div><div class="lw-s-k">' + k + '</div><div class="lw-s-v' + (cls ? ' ' + cls : '') + '">' + v + '</div></div>'; };
+    var cifras = cif('Precio', pr == null ? '—' : esc(fmt(pr, mon))) + cif('Facturado', esc(fmt(fa, mon))) +
+      cif('Cobrado', esc(fmt(co, mon)), 'lw-l') + cif('Por cobrar', esc(fmt(pc, mon)));
+    if (prev != null) cifras += cif('Este documento', esc(fmt(prev, mon)), pasa ? 'lw-r' : 'lw-n') +
+      cif('Quedará por facturar', quedara == null ? '—' : esc(fmt(quedara, mon)), pasa ? 'lw-r' : '');
+    else cifras += cif('Por facturar', pf == null ? '—' : esc(fmt(pf, mon)));
+    var restoBarra = base ? Math.max(base - fa, 0) : 0;
+    var seg = prev == null ? '' : '<i class="lw-s-p' + (pasa ? ' lw-r' : '') + '" style="width:' + w(Math.min(prev, restoBarra || prev)) + '%"></i>';
+    var aviso = pasa ? lwSaldoAviso(saldo, prev, propioId, fmt) : '';
+    return '<div class="lw-saldo" data-lw="saldo-contrato"><p class="lw-s-t">Saldo del contrato</p><div class="lw-s-c' + (prev != null ? ' lw-s-c6' : '') + '">' +
+      cifras + '</div>' +
+      (base ? '<div class="lw-s-b" role="img" aria-label="Cobrado ' + esc(fmt(co, mon)) + ', facturado sin cobrar ' + esc(fmt(Math.max(fa - co, 0), mon)) +
+        (prev != null ? ', este documento ' + esc(fmt(prev, mon)) : '') + '"><i style="width:' + w(co) + '%;background:#104C4F"></i><i style="width:' + w(Math.max(fa - co, 0)) + '%;background:#C9892B"></i>' + seg + '</div>' +
+        (prev != null ? '<div class="lw-s-l"><span><b style="background:#104C4F"></b>Cobrado</span><span><b style="background:#C9892B"></b>Facturado sin cobrar</span><span><b class="lw-s-pb' + (pasa ? ' lw-r' : '') + '"></b>Este documento</span></div>' : '') : '') +
+      '<p class="lw-s-n">' + nota + '</p>' + (aviso ? '<p class="lw-s-av" data-lw="aviso-tope">' + esc(aviso) + '</p>' : '') + '</div>';
   }
 
   function lwSaldoMarcaHTML(m, moneda, fmt) {

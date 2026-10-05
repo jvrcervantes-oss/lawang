@@ -60,4 +60,20 @@ assert.ok(h.includes('no tiene precio fijado') && !h.includes('lw-s-b'));
 const conIva = { moneda: 'EUR', precio: 10000, por_facturar: 2000, facturas: [{ id: 'z', total: 1110, subtotal: 1000 }] };
 assert.strictEqual(S.lwSaldoPorFacturar(conIva, 'z'), 3000);
 
+// Barra en vivo del editor: el documento que se escribe es un tramo propio y lo que quedaría por facturar.
+const sv = { moneda: 'EUR', cadena: 'RP00211', precio: 59000, sin_precio: false, facturado: 35000, cobrado: 35000, por_cobrar: 0, por_facturar: 24000, facturas: [] };
+let v = S.lwSaldoHTML(sv, fmt, null, 9750);
+assert.ok(v.includes('Este documento') && v.includes('Quedará por facturar') && v.includes('14250'), 'queda 24000-9750');
+assert.ok(!v.includes('lw-s-av'), 'cabe: sin aviso');
+v = S.lwSaldoHTML(sv, fmt, null, 30000);
+assert.ok(v.includes('lw-s-av') && v.includes('lw-s-p lw-r'), 'se pasa: aviso y tramo en rojo');
+assert.ok(v.includes('Quedará por facturar</div><div class="lw-s-v lw-r">0'), 'nunca negativo');
+v = S.lwSaldoHTML(sv, fmt, null, null);
+assert.ok(v.includes('Por facturar') && !v.includes('Este documento'), 'sin borrador (ficha): como antes');
+// Documento ya guardado: se cuenta una vez (su importe sale de «facturado» y entra como borrador).
+const sg = { ...sv, facturado: 35000, por_facturar: 24000, facturas: [{ id: 'a', total: 15000, subtotal: 15000 }] };
+v = S.lwSaldoHTML(sg, fmt, 'a', 15000);
+assert.ok(v.includes('24000'), 'quedan 24000+15000-15000 = 24000');
+assert.ok(v.includes('<div class="lw-s-k">Facturado</div><div class="lw-s-v">20000'), 'facturado sin el propio');
+
 console.log('saldo_contrato.test.js: ok');
