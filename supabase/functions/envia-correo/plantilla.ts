@@ -57,7 +57,7 @@ function cuerpoHtmlDe(mensaje: string): string {
     let parrafo: string[] = [];
     const vuelca = () => {
       if (!parrafo.length) return;
-      cuerpoHtml += '<p style="margin:0 0 18px;font-family:' + SANS + ';font-size:15px;line-height:26px;color:' + C.texto + ';">'
+      cuerpoHtml += '<p style="margin:0 0 18px;font-family:' + SANS + ';font-size:15px;line-height:26px;word-break:break-word;overflow-wrap:anywhere;color:' + C.texto + ';">'
         + parrafo.map(esc).join('<br>') + '</p>';
       parrafo = [];
     };
@@ -71,7 +71,7 @@ function cuerpoHtmlDe(mensaje: string): string {
         vuelca();
         cuerpoHtml += '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px;"><tr>'
           + '<td valign="top" style="width:18px;padding-top:10px;"><div style="width:6px;height:6px;border-radius:3px;background:' + C.acento + ';font-size:0;line-height:0;">&nbsp;</div></td>'
-          + '<td style="font-family:' + SANS + ';font-size:15px;line-height:25px;color:' + C.texto + ';">' + esc(v[1]) + '</td></tr></table>';
+          + '<td style="font-family:' + SANS + ';font-size:15px;line-height:25px;word-break:break-word;overflow-wrap:anywhere;color:' + C.texto + ';">' + esc(v[1]) + '</td></tr></table>';
       } else if (r && r[1].toUpperCase() === r[1] && /\p{Lu}{3}/u.test(r[1])) {
         vuelca();
         cuerpoHtml += '<div style="margin:30px 0 14px;padding-bottom:8px;border-bottom:1px solid ' + C.linea + ';font-family:' + SERIF + ';font-size:12px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:' + C.acento + ';">'
@@ -100,7 +100,7 @@ export function plantillaHtml(mensaje: string, encabezado: string, cta: Cta, eti
   if (ctaUrl !== '' && ctaTexto !== '') {
     const u = esc(ctaUrl), t = esc(ctaTexto);
     accionHtml = `        <tr>
-          <td style="padding:8px 40px 0;">
+          <td class="lw-px" style="padding:8px 40px 0;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.caja};border:1px solid ${C.linea};border-radius:16px;">
               <tr>
                 <td align="center" style="padding:28px 24px;">
@@ -143,6 +143,7 @@ export function plantillaHtml(mensaje: string, encabezado: string, cta: Cta, eti
 <meta name="supported-color-schemes" content="light only">
 <style>
 :root{color-scheme:light only;supported-color-schemes:light only;}
+@media only screen and (max-width:480px){.lw-px{padding-left:20px!important;padding-right:20px!important;}}
 @font-face{font-family:'Neue Kabel';src:url('https://lawangproperties.com/assets/fonts/correo/NeueKabel-Regular.woff') format('woff');font-weight:400;font-style:normal;}
 @font-face{font-family:'Neue Kabel';src:url('https://lawangproperties.com/assets/fonts/correo/NeueKabel-Medium.woff') format('woff');font-weight:500;font-style:normal;}
 @font-face{font-family:'Neue Kabel';src:url('https://lawangproperties.com/assets/fonts/correo/NeueKabel-Bold.woff') format('woff');font-weight:600 700;font-style:normal;}
@@ -158,7 +159,7 @@ export function plantillaHtml(mensaje: string, encabezado: string, cta: Cta, eti
 
         <!-- barra superior -->
         <tr>
-          <td style="padding:18px 40px 16px;background:${C.barra_fondo};border-bottom:1px solid ${C.barra_linea};font-family:${SANS};font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:${C.barra_texto};">
+          <td class="lw-px" style="padding:18px 40px 16px;background:${C.barra_fondo};border-bottom:1px solid ${C.barra_linea};font-family:${SANS};font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:${C.barra_texto};">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
               <td style="font-family:${SANS};font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:${C.barra_texto};"><span style="display:inline-block;width:6px;height:6px;border-radius:3px;background:${C.barra_punto};vertical-align:middle;margin-right:8px;"></span>${rotulo}</td>
               <td align="right" style="font-family:${SANS};font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:${C.barra_texto};">${hoyTxt}</td>
@@ -189,7 +190,7 @@ export function plantillaHtml(mensaje: string, encabezado: string, cta: Cta, eti
 
         <!-- cuerpo -->
         <tr>
-          <td style="padding:28px 40px 8px;">
+          <td class="lw-px" style="padding:28px 40px 8px;">
             ${encabezadoHtml}
             ${cuerpoHtml}
           </td>
@@ -204,7 +205,7 @@ ${accionHtml}
           <td style="padding:32px 0 0;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.pie_fondo};border-top:1px solid ${C.pie_linea};">
               <tr>
-                <td style="padding:26px 40px 28px;font-family:${SANS};font-size:11.5px;line-height:18px;color:${C.pie_texto};">
+                <td class="lw-px" style="padding:26px 40px 28px;font-family:${SANS};font-size:11.5px;line-height:18px;color:${C.pie_texto};">
                   ${enClaroHtml}
                   <p style="margin:0 0 6px;font-family:${SERIF};font-size:12px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:${C.pie_marca};">Lawang Tropical Properties</p>
                   <p style="margin:0;"><a href="mailto:${mail}" style="color:${C.pie_enlace};text-decoration:none;">${mail}</a> &middot; <a href="https://${dominio}" style="color:${C.pie_enlace};text-decoration:none;">${dominio}</a></p>
