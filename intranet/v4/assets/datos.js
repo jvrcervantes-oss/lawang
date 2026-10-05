@@ -9065,6 +9065,30 @@
      asi que "contratos.html" (movil) apunta al mismo handler que "contratos".
      proyectos-cuentas movil no tiene las anclas data-lw del escritorio: lleva
      un panel en vivo propio, que es el trato honesto para una maqueta movil. */
+  /* Desacople del núcleo comercial (corte C, subtareas 5a/5b, 5-oct-2026): ELEGIR la pantalla de Operaciones. La de arriba
+     (`operaciones:`) es contractual (lwOperacionesCargar → contratos_equipo, contrato_firmas_equipo…) y no se toca. SOLO en
+     el ERP maestro con `contratos` apagado se usa la genérica (operaciones_generica.js: `operaciones_equipo` → listado y
+     ficha con `operacion_cifras` y `facturas_equipo`). Sin `window.AXW_NUCLEO_OPERACION` (Lawang) esto llama a la de siempre
+     con los mismos argumentos: ni una consulta más ni menos (guarda_operaciones.test.js lo mide). Falla ABIERTO: en el
+     maestro espera a que la base diga qué módulos hay (envuelto en `vig()` para no destapar el mockup mientras tanto) y, si no
+     pudo saberlo, `axwModuloActivo` devuelve true y se queda la de siempre. La función está FUERA de la tabla REG a
+     propósito: erp/modulos.py solo lee los bloques de dentro, así que el registro no cambia por esto. */
+  var operacionesContractual = REG['operaciones'];
+  REG['operaciones'] = function (sb) {
+    var yo = this, args = arguments;
+    if (!window.AXW_NUCLEO_OPERACION) return operacionesContractual.apply(yo, args);
+    var elige = function () {
+      var caja = document.getElementById('lw-ops-caja');     // la pantalla de escritorio; la móvil no la tiene y sigue como siempre
+      if (contratosActivo() || !caja) return operacionesContractual.apply(yo, args);
+      if (typeof window.lwOperacionesGenerica !== 'function') {
+        fallo('operaciones', 'operaciones_generica.js no cargó: no se cae a la pantalla contractual (saldría vacía y se leería «no hay operaciones»)', caja);
+        return;
+      }
+      return window.lwOperacionesGenerica(sb, { vig: vig, esc: esc, fmt: fmt, fallo: fallo });
+    };
+    var espera = esperaModulos();
+    return espera ? vig(espera).then(elige, elige) : elige();
+  };
   REG['contratos.html'] = REG['contratos'];
   REG['seguimiento.html'] = REG['operaciones'];
   REG['proyectos-cuentas.html'] = function (sb) {
