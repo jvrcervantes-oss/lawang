@@ -1770,6 +1770,9 @@
     'Sin email': 'No email',
     'Enlace caducado': 'Link expired',
     'Sin documento': 'No document',
+    'Enlace sin enviar': 'Link not sent',
+    'El enlace de firma existe pero su correo no ha salido. Para mandarlo ya: «Enviar a firma» → Enviar por email.':
+      'The signing link exists but its email has not gone out. To send it now: "Send for signature" → Send by email.',
     'aviso más': 'more alert',
     'avisos más': 'more alerts',
     'Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.':
