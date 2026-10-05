@@ -285,6 +285,10 @@ begin
       raise exception 'Ese dato de la ficha no se edita desde aquí: %', k using errcode = '22023';
     end if;
   end loop;
+  for k in select e.key from jsonb_each(p_cambios) e where jsonb_typeof(e.value) = 'null'
+                                                       and e.key in ('linea', 'region_key', 'publicada_web', 'en_coleccion', 'destacada', 'destacada_home', 'orden', 'precio_modo', 'textos', 'ficha') loop
+    raise exception 'Ese dato de la ficha no puede quedar vacío: %', k using errcode = '22023';
+  end loop;
   if p_cambios ? 'textos' and jsonb_typeof(p_cambios->'textos') <> 'object' then
     raise exception 'Los textos se envían como un objeto con las claves a cambiar' using errcode = '22023';
   end if;
@@ -299,6 +303,9 @@ begin
     end if;
     if not (p_cambios ? 'linea' and p_cambios ? 'region_key') then
       raise exception 'Una ficha nueva necesita línea y región (bali o sumba)' using errcode = '22023';
+    end if;
+    if p_cambios ? 'publicada_web' and (p_cambios->>'publicada_web') is distinct from 'false' then
+      raise exception 'Una ficha nueva nace sin publicar: créala y publícala después' using errcode = '22023';
     end if;
     begin
       insert into public.fichas_publicas (slug, linea, region_key)
@@ -405,6 +412,8 @@ begin
       textos = v_new.textos, ficha = v_new.ficha
     where f.id = v_old.id;
   exception
+    when unique_violation then
+      raise exception 'Otra persona cambió esta ficha a la vez; recárgala' using errcode = '40001';
     when check_violation then
       get stacked diagnostics v_c = constraint_name;
       raise exception 'Algún dato está fuera de rango o falta para guardar la ficha (regla %)', v_c using errcode = '23514';
@@ -447,8 +456,8 @@ begin
           from public.unidades u where u.proyecto_id = p_proyecto_id), '[]'::jsonb),
     'modelos', coalesce((
         select jsonb_agg(jsonb_build_object('id', m.id, 'nombre', m.nombre) order by m.nombre)
-          from public.modelos_villa mv join public.modelos m on m.id = mv.modelo_id
-         where mv.proyecto_id = p_proyecto_id and mv.modelo_id is not null), '[]'::jsonb));
+          from public.modelos m
+         where m.id in (select mv.modelo_id from public.modelos_villa mv where mv.proyecto_id = p_proyecto_id and mv.modelo_id is not null)), '[]'::jsonb));
 end $$;
 comment on function public.ficha_publica_lee(uuid) is
   'Lectura para la pestaña Ficha pública (The Collection v2, F3a): todas las fichas del proyecto (también no publicadas) con su version y su `publico` (trozo de coleccion_publica(), null si hoy no se sirve), más las unidades y modelos vinculables. Solo admin/super_admin (comprobado dentro). Llamador: intranet/v4/proyectos (F3b).';

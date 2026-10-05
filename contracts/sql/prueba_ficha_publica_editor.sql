@@ -126,6 +126,13 @@ begin
   begin perform public.ficha_publica_guarda('zz-ed', '{"dormitorios":99}'::jsonb); r := r || 'd10 FALLO dormitorios fuera de rango; ';
   exception when others then r := r || case when sqlstate = '23514' then 'd10 ok (23514 legible: ' || left(sqlerrm, 40) || '); ' else 'd10 FALLO (' || sqlstate || ' ' || sqlerrm || '); ' end; end;
 
+  begin perform public.ficha_publica_guarda('zz-ed-pub', jsonb_build_object('linea', 'villa', 'region_key', 'bali', 'proyecto_id', v_rf2, 'publicada_web', true,
+                                              'textos', jsonb_build_object('title', jsonb_build_object('en', 'A', 'es', 'B'))));
+    r := r || 'd11 FALLO alta ya publicada; ';
+  exception when others then r := r || case when sqlstate = '22023' then 'd11 ok; ' else 'd11 FALLO (' || sqlstate || ' ' || sqlerrm || '); ' end; end;
+  begin perform public.ficha_publica_guarda('zz-ed', '{"publicada_web":null}'::jsonb); r := r || 'd12 FALLO null en columna obligatoria; ';
+  exception when others then r := r || case when sqlstate = '22023' then 'd12 ok; ' else 'd12 FALLO (' || sqlstate || ' ' || sqlerrm || '); ' end; end;
+
   -- (e) vínculos
   begin perform public.ficha_publica_guarda('zz-ed', jsonb_build_object('unidad_id', v_u_otra)); r := r || 'e1 FALLO unidad de otro proyecto; ';
   exception when others then r := r || case when sqlstate = '22023' then 'e1 ok; ' else 'e1 FALLO (' || sqlstate || ' ' || sqlerrm || '); ' end; end;
