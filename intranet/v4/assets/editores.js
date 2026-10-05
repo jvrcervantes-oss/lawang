@@ -5092,6 +5092,10 @@
       if (!esAdminP) {
         var bEstadoObra = document.querySelector('[data-accion="estado-obra"]');
         if (bEstadoObra) bEstadoObra.hidden = true;
+        /* Ficha pública (F3b): solo admin. Es cosmético; el permiso real es es_admin() en la RPC. `.flex` del botón gana
+           a `[hidden]`, así que también se esconde con display (medido en el arnés). */
+        var bFichaPub = document.querySelector('[data-accion="ficha-publica"]');
+        if (bFichaPub) { bFichaPub.hidden = true; bFichaPub.style.display = 'none'; }
       }
       /* Dar de alta un proyecto es de dirección (LAW-177, 11-sep-2026): la RLS
          de INSERT en `proyectos` exige es_admin(). Se esconde el botón aquí, en
@@ -6099,6 +6103,15 @@
             pintaInvestorDeck(p, cfg, activo, modelosDelProyecto, fotos);
           });
         }, function (e) { aviso('No se pudo abrir el Investor Deck: ' + (e && e.message || e), '#ba1a1a'); });
+      });
+
+      /* Ficha pública de The Collection (F3b, 5-oct-2026): TODO vive en ficha_publica.js (cargado por la página). Aquí solo
+         se engancha el botón por su identificador y se le pasa el proyecto por id. */
+      ata('ficha-publica', function () {
+        var p = proyectoObj();
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        if (!window.lwFichaPublica) return aviso('La pantalla de ficha pública aún no ha cargado: prueba otra vez.', '#8A6A34');
+        window.lwFichaPublica.abre({ sb: sb, esAdmin: esAdminP, proyecto: { id: p.id, nombre: p.nombre, slug: p.slug } });
       });
 
       /* ¿Están las fotos donde manda el flag? (AXW-66, 28-sep-2026). Lo mide el SERVIDOR: la acción `urls` devuelve

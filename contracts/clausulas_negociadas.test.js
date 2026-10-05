@@ -120,6 +120,9 @@ const tokens = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens.json'), '
 const campo = tokens.sections.flatMap(s => s.fields).find(x => x[0] === 'clausulas_negociadas');
 assert(campo && campo[2] === 'select' && campo[3].length === 1 && campo[3][0][0] === 'si', 'tokens.json: clausulas_negociadas debe ser select con la única opción «si»');
 n++;
+// 4b. Es OPCIONAL: el candado «Faltan por rellenar» no puede exigirlo (5-oct-2026: a un agente le salía).
+assert(/const CAMPOS_OPCIONALES = new Set\(\[[^\]]*'clausulas_negociadas'/.test(app), 'app.html: clausulas_negociadas tiene que estar en CAMPOS_OPCIONALES (vacío = estándar, no «falta»)');
+n++;
 
 // 5. Dónde se elige y dónde se ve (2-oct-2026, owner: «desde el listado o desde el asistente»).
 const asi = fs.readFileSync(path.join(__dirname, 'assets', 'asistente-contrato.js'), 'utf8');

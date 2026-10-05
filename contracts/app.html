@@ -6028,7 +6028,7 @@ function blobToBase64(blob){
    el guardado sigue exigiendo su motivo y el tope del 15% (ver
    CAMPOS_DESCUENTO_COMERCIAL); lo que se quita es exigirlo vacío. */
 const CAMPOS_OPCIONALES = new Set(['nombre_contrato', 'precio_total_letras', 'precio_reserva_letras', 'adq1_registro',
-  'descuento_comercial', 'descuento_comercial_motivo']);
+  'descuento_comercial', 'descuento_comercial_motivo', 'clausulas_negociadas']);   // clausulas_negociadas: vacío = texto estándar (owner, 5-oct-2026)
 const SECCIONES_OPCIONALES = new Set(['hs_segunda_parte']);
 const valorCampo = key => { const el = document.querySelector(`[name="${key}"]`); return el ? String(el.value||'').trim() : ''; };
 function camposSinRellenar(){
