@@ -669,6 +669,15 @@
     }
     return { tag: tag, carga: carga, clic: clic };
   }
+  /* Desacople del núcleo comercial (corte A, 5-oct-2026): ¿está encendido el módulo `contratos`? La ficha de contrato
+     (cajón con firmas, closer, prórroga y borrado de operación) solo se ofrece desde una factura si lo está. SOLO el
+     ERP maestro apaga módulos: sin `window.AXW_NUCLEO_OPERACION` (Lawang) devuelve siempre true y nada cambia. Falla
+     abierto: `axwModuloActivo` (apagados_instancia.js) devuelve true mientras carga o si no pudo leer lo activo. Es
+     cosmético: el cierre real es el REVOKE de las RPC del módulo apagado. Las guardas OCULTAN; el marcado y el selector
+     `data-lw-ficha-contrato` no cambian. */
+  function contratosActivo() {
+    return !(window.AXW_NUCLEO_OPERACION && !(window.axwModuloActivo ? window.axwModuloActivo('contratos') : true));
+  }
   function enlaceFichaContrato(x) {
     return '<a href="#" data-lw-ficha-contrato="' + esc(x.id) + '" style="color:#104C4F;font-weight:600;text-decoration:underline">' + esc(x.numero) + '</a>' +
       (x.tipo ? ' <span style="color:#8A8474">· ' + esc(tipoC(x.tipo)) + '</span>' : '');
@@ -1019,7 +1028,7 @@
     // Borrar operación (S13, 22-sep-2026): mismo botón que la clásica
     // (intranet/operaciones/index.html:967, id="btnBorrarOp") — nunca oculto
     // por rol, el gate de verdad es el propio RPC (es_agente / es_super_admin).
-    acciones.push({ texto: 'Borrar operación', tono: 'peligro', onClick: function () { borrarOperacionV4(sb, c0); } });
+    if (contratosActivo()) acciones.push({ texto: 'Borrar operación', tono: 'peligro', onClick: function () { borrarOperacionV4(sb, c0); } });
     acciones.push({ texto: 'Cerrar', cerrar: true });
     /* Trazabilidad en la barra (22-sep-2026, owner): en /v4/contratos/ la ficha
        abierta se refleja como `?contrato=NUM` — lo mismo que el listado ya sabe
@@ -1804,7 +1813,7 @@
       cuerpo += H.seccion('Cliente y contrato',
         H.dato('Cliente', f.client_id ? H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(f.client_id), f.cliente_nombre || 'Ficha de cliente') : f.cliente_nombre, { html: !!f.client_id }) +
         H.dato('Proyecto', f.proyecto_nombre) +
-        H.dato('Contrato', c ? enlaceFichaContrato(c) : (f.contrato_numero || null), { html: !!c }) +
+        H.dato('Contrato', c ? (contratosActivo() ? enlaceFichaContrato(c) : esc(c.numero || '')) : (f.contrato_numero || null), { html: !!c }) +
         (c && c.precio_total != null ? H.dato('Precio del contrato', fmt(c.precio_total, c.moneda)) : ''));
       if (f.tipo === 'recibi') {
         var js = Array.isArray(f.justificantes) ? f.justificantes.slice() : [];
@@ -1824,7 +1833,7 @@
       }
       caj.cuerpo.addEventListener('click', function (ev) {
         var a = ev.target.closest && ev.target.closest('[data-lw-ficha-contrato]');
-        if (a && c) { ev.preventDefault(); fichaContrato(sb, c); return; }
+        if (a && c && contratosActivo()) { ev.preventDefault(); fichaContrato(sb, c); return; }
         var b = ev.target.closest && ev.target.closest('[data-lw-just]');
         if (b) {
           ev.preventDefault(); b.disabled = true;
