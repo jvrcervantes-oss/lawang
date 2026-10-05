@@ -1549,15 +1549,15 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
         var badge = document.createElement('span');
         badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold tracking-widest text-[9px] sm:text-[11px] px-2 py-0.5 rounded-sm shadow';
         badge.style.left = c[0]+'%'; badge.style.top = c[1]+'%'; badge.style.transform = 'translate(-50%,-50%)';
-        badge.textContent = sello[0];
+        // Palabra ya traducida desde el principio: asi se mide con su ancho real (DIPESAN != RESERVED)
+        // y los repintados (resize, carga tardia) no dejan el sello en ingles.
+        var palabra = (window.lwT && window.lwLang && window.lwT(sello[0], window.lwLang())) || sello[0];
+        badge.textContent = palabra;
         wrap.appendChild(badge);
         /* Si la palabra entera se sale de su parcela (C6, parcelas estrechas, plano pequeno en movil),
            se queda solo la inicial de la palabra YA TRADUCIDA (EN R/S, ES R/V, ID D/T: "Dipesan"
            empieza por D, no por R); el texto completo sigue en el title y el aria-label. */
-        if(!selloCabe(badge, wrap, pts)){
-          var palabra = (window.lwT && window.lwLang && window.lwT(sello[0], window.lwLang())) || sello[0];
-          badge.textContent = palabra.charAt(0);
-        }
+        if(!selloCabe(badge, wrap, pts)) badge.textContent = palabra.charAt(0);
       }
     });
   }
