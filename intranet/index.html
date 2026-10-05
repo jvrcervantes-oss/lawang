@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="d36f8c8ec5ab">
+<meta name="lw-version" content="946ad667a3a6">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -42,7 +42,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=f7093e47"></script>
+<script src="/contracts/assets/i18n.js?v=ef0f8b6c"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script>
 <script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/topbar.js?v=705d408d" defer></script>
 <style>
@@ -778,6 +778,7 @@ async function pintarRail(sb, ficha){
           : a.tipo === 'firmante_sin_email' ? lwT('Sin email')
           : a.tipo === 'enlace_caducado' ? lwT('Enlace caducado')
           : a.tipo === 'enlace_sin_enviar' ? lwT('Enlace sin enviar')
+          : a.tipo === 'aviso_anulacion_sin_enviar' ? lwT('Aviso de anulación sin enviar')
           : a.tipo === 'cerrado_sin_documento' ? lwT('Sin documento') : esc(a.tipo)}</span></div>`;
       /* Las CRÍTICAS van siempre enteras y sin recortar: son las que dejan un
          contrato firmado a medias y editable. Los AVISOS se pliegan detrás de una
