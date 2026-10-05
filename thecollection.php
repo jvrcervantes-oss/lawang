@@ -25,6 +25,9 @@ require __DIR__ . '/coleccion/lib.php'; // lw_coleccion_ficha(): UNICA lectura d
 
 $SITE = 'https://lawangproperties.com';
 $prop = null;
+// Ruta de prueba /thecollection-v2 (thecollection-v2.php): mismas fichas desde la fuente 'intranet'.
+$V2 = defined('LW_COLECCION_V2');
+$v2Doc = $V2 ? lw_coleccion('intranet') : null;
 
 if (isset($_GET['property']) && $_GET['property'] !== '') {
     $slug = (string) $_GET['property'];
@@ -65,7 +68,8 @@ if ($prop) {
     $desc     = trim((string) ($prop['desc']['en'] ?? ''));
     $priceEUR = $prop['priceEUR'] ?? null;
     $images   = $prop['images'] ?? [];
-    $ogImage  = $images ? $SITE . $images[0] : $SITE . '/assets/img/aerial-1.jpg';
+    // Una imagen puede ser ruta del servidor (/assets/...) o URL absoluta (bucket de la intranet).
+    $ogImage  = $images ? (preg_match('#^https?://#', (string) $images[0]) ? $images[0] : $SITE . $images[0]) : $SITE . '/assets/img/aerial-1.jpg';
     $canonical = $SITE . '/property/' . $prop['id'];
 
     $metaDesc = $sub !== '' ? $sub : $desc;
@@ -125,6 +129,10 @@ if ($prop) {
 <script type="application/ld+json">
 <?= json_encode($jsonLd, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
 </script>
+<?php elseif ($V2): ?>
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="https://lawangproperties.com/thecollection">
+<meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
 <?php else: ?>
 <meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
 <link rel="canonical" href="https://lawangproperties.com/thecollection">
@@ -1335,6 +1343,14 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
+<?php if ($V2): ?>
+<script>
+/* Ruta de prueba: la SPA (assets/portfolio-app.js, intacto) pide 'data.json' por una unica costura; aqui esa
+   peticion se contesta con las fichas que el servidor leyo de la intranet. Solo existe en /thecollection-v2. */
+(function(){var DOC=<?= json_encode($v2Doc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,f=window.fetch;
+window.fetch=function(u){if(typeof u==='string'&&u.indexOf('data.json')===0)return Promise.resolve(new Response(JSON.stringify(DOC),{status:200,headers:{'Content-Type':'application/json'}}));return f.apply(this,arguments);};})();
+</script>
+<?php endif; ?>
 <script src="assets/lawang-card.js?v=20260916113721"></script>
 <script src="assets/portfolio-app.js?v=20260923162355"></script>
 

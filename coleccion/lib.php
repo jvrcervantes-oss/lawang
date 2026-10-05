@@ -26,8 +26,22 @@
  * TTL aquí haría que un cambio hecho en admin.html tardase en verse en el <head> y el sitemap
  * respecto a la SPA, que sí lee data.json en vivo: cambiaría lo que ve el público. La caché se
  * escribe igualmente (como red de seguridad por si el fichero desaparece o llega corrupto).
- * FUENTE 'intranet' (reservada para F5b): fetch de la RPC con TTL 60 s para estado / 300 s para
- * contenido. Hoy no hace nada: cae a caché/respaldo y lo dice en el log.
+ * FUENTE 'intranet' (F5b, 2-oct-2026): POST {} a la RPC `coleccion_publica()` de Supabase Lawang con la
+ * clave PUBLICABLE (la misma de modelo/catalogo.php; el navegador nunca llama a la RPC). Una sola
+ * llamada devuelve contenido y estado de unidades, y la caché fresca dura 60 s para todo; la regla es
+ * «estado casi en tiempo real» y partir en dos TTL (60/300) exigiría dos llamadas o dos RPC para ahorrar
+ * una petición por minuto. Si la RPC falla: caché vieja (stale) -> respaldo (stale). Un fallo reciente se
+ * recuerda 30 s (marcador `.fallo` junto a la caché) para que, con Supabase caído, ningún visitante pague
+ * el timeout de 4 s. «0 fichas» de la RPC se trata como FALLO (igual que catalogo.php): es mucho más probable
+ * un despiste o una RPC rota que la intención de vaciar la web, y caer a caché vieja marca stale (la SPA pinta
+ * «sin dato», nunca «disponible»). Vaciar a propósito = devolver LW_COLECCION_FUENTE a datajson.
+ * settings (whatsapp/email/rates) y downloads globales SIGUEN viniendo de data.json: TRANSITORIO hasta que
+ * tengan dueño en la intranet (la RPC no los emite; decisión de F5b). Si data.json no se lee, salen vacíos y
+ * la SPA conserva sus valores por defecto.
+ * Las rutas de imagen del bucket público `deck` (`proyecto/<uuid>.webp`, `modelo/<uuid>.webp`) se vuelven URL
+ * aquí (la base es infraestructura); una ruta con «/» inicial o http(s) ya es URL y no se toca.
+ * La fuente se elige EN SERVIDOR (LW_COLECCION_FUENTE o el argumento de lw_coleccion(), que solo pasa
+ * código del servidor, nunca la petición); cada fuente tiene SU caché: no se mezclan.
  *
  * LA LISTA BLANCA (coleccion/contrato_publico.json) se aplica A LA SALIDA DE CADA NIVEL, también
  * al leer la caché y el respaldo: lo que está en disco pudo escribirse con un contrato más
@@ -40,14 +54,17 @@
  *   php coleccion/lib.php --respaldo <ruta a un data.json (el de produccion)>
  */
 
-const LW_COLECCION_TTL_INTRANET = 300; // s — contenido (el estado de unidades, 60 s, es de F5b)
+const LW_COLECCION_TTL_INTRANET = 60;  // s — contenido Y estado de unidades en una sola llamada (ver cabecera)
+const LW_COLECCION_FALLO_TTL    = 30;  // s — tras un fallo de la RPC no se reintenta (no hacer esperar a cada visita)
+const LW_COLECCION_SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
+const LW_COLECCION_SB_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'; // PUBLICABLE (igual que modelo/catalogo.php)
 const LW_COLECCION_ESCRIBE_CADA = 300; // s — cada cuánto se refresca la caché con la fuente 'datajson'
 
 /** Configuración efectiva. Las variables de entorno existen para el test y para el corte de F5b
  *  (se fijan en el servidor, nunca vienen de la petición). */
-function lw_coleccion_cfg() {
+function lw_coleccion_cfg($forzada = null) {
     $raiz = dirname(__DIR__);
-    $fuente = getenv('LW_COLECCION_FUENTE');
+    $fuente = $forzada ?: getenv('LW_COLECCION_FUENTE');
     if (!in_array($fuente, ['datajson', 'intranet'], true)) {
         if ($fuente !== false && $fuente !== '') {
             error_log('lw_coleccion: LW_COLECCION_FUENTE desconocida (' . $fuente . '), se usa datajson');
@@ -57,9 +74,10 @@ function lw_coleccion_cfg() {
     $cache = getenv('LW_COLECCION_CACHE');
     if (!$cache) {
         $priv = $raiz . '/private';
+        $nombre = $fuente === 'intranet' ? 'coleccion_intranet' : 'coleccion'; // una caché por fuente
         $cache = (is_dir($priv) && is_writable($priv))
-            ? $priv . '/coleccion.json'
-            : sys_get_temp_dir() . '/lw_coleccion.json';
+            ? $priv . '/' . $nombre . '.json'
+            : sys_get_temp_dir() . '/lw_' . $nombre . '.json';
     }
     return [
         'fuente'   => $fuente,
@@ -67,6 +85,8 @@ function lw_coleccion_cfg() {
         'cache'    => $cache,
         'respaldo' => getenv('LW_COLECCION_RESPALDO') ?: __DIR__ . '/respaldo.json',
         'contrato' => __DIR__ . '/contrato_publico.json',
+        'rpc'      => getenv('LW_COLECCION_RPC_URL') ?: LW_COLECCION_SB_URL . '/rest/v1/rpc/coleccion_publica', // env: solo test
+        'bucket'   => rtrim(getenv('LW_COLECCION_BUCKET_URL') ?: LW_COLECCION_SB_URL . '/storage/v1/object/public/deck', '/'),
         'ttl'      => $fuente === 'intranet' ? LW_COLECCION_TTL_INTRANET : 0,
     ];
 }
@@ -156,14 +176,81 @@ function lw_coleccion_escribe($ruta, array $doc) {
     }
 }
 
-/** La fuente. Devuelve el documento ya filtrado, o null si no pudo. */
-function lw_coleccion_fuente(array $cfg) {
-    if ($cfg['fuente'] === 'intranet') {
-        // Reservada para F5b: fetch de la RPC coleccion_publica() (clave publicable, TTL en
-        // cfg['ttl']). Hasta entonces no hay nada que leer: se cae a caché/respaldo.
-        error_log('lw_coleccion: fuente intranet aun no implementada (F5b)');
+/** Ruta de bucket -> URL pública. Solo se compone una ruta con la forma `carpeta/fichero.ext` sin «/»
+ *  inicial, sin «..» ni esquema; cualquier otra cosa (URL del servidor, http, texto raro) pasa tal cual. */
+function lw_coleccion_url_bucket($v, $base) {
+    if (!is_string($v) || !preg_match('#^[A-Za-z0-9_-]+(/[A-Za-z0-9._-]+)+\.(webp|jpe?g|png|avif|svg)$#i', $v) || strpos($v, '..') !== false) return $v;
+    return $base . '/' . implode('/', array_map('rawurlencode', explode('/', $v)));
+}
+
+/** Compone las URLs del bucket en las claves de imagen de una ficha de la RPC. */
+function lw_coleccion_compone_imagenes(array $p, $base) {
+    if (isset($p['images']) && is_array($p['images'])) {
+        $p['images'] = array_map(function ($u) use ($base) { return lw_coleccion_url_bucket($u, $base); }, $p['images']);
+    }
+    if (isset($p['masterplanImage'])) $p['masterplanImage'] = lw_coleccion_url_bucket($p['masterplanImage'], $base);
+    if (isset($p['homeModels']) && is_array($p['homeModels'])) {
+        foreach ($p['homeModels'] as $i => $m) {
+            if (is_array($m) && isset($m['image'])) $p['homeModels'][$i]['image'] = lw_coleccion_url_bucket($m['image'], $base);
+        }
+    }
+    return $p;
+}
+
+/** POST {} a la RPC. Devuelve el array decodificado o null. Timeouts cortos: está en el camino de una página
+ *  pública (mejor la caché vieja que hacer esperar a alguien que llegó por un anuncio). */
+function lw_coleccion_rpc_fetch(array $cfg) {
+    if (!function_exists('curl_init')) return null;
+    $ch = curl_init($cfg['rpc']);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true, CURLOPT_POSTFIELDS => '{}', CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 4, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_HTTPHEADER => ['apikey: ' . LW_COLECCION_SB_KEY, 'Content-Type: application/json'],
+    ]);
+    $body = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+    if ($code !== 200 || !is_string($body) || $body === '') return null;
+    $d = json_decode($body, true);
+    return (is_array($d) && isset($d['properties']) && is_array($d['properties'])) ? $d : null;
+}
+
+/** Fuente 'intranet': RPC + settings/downloads de data.json (transitorio) + lista blanca. */
+function lw_coleccion_fuente_intranet(array $cfg) {
+    $fallo = $cfg['cache'] . '.fallo';
+    if (is_file($fallo) && time() - (int) filemtime($fallo) < LW_COLECCION_FALLO_TTL) return null;
+    $rpc = lw_coleccion_rpc_fetch($cfg);
+    if ($rpc === null) {
+        error_log('lw_coleccion: la RPC coleccion_publica no responde o devuelve basura; se sirve cache vieja/respaldo');
+        @touch($fallo);
         return null;
     }
+    $legacy = is_file($cfg['datajson']) ? json_decode((string) @file_get_contents($cfg['datajson']), true) : null;
+    $legacy = is_array($legacy) ? $legacy : [];
+    $props = [];
+    foreach ($rpc['properties'] as $p) {
+        $props[] = is_array($p) ? lw_coleccion_compone_imagenes($p, $cfg['bucket']) : $p;
+    }
+    $doc = ['properties' => $props, 'settings' => $legacy['settings'] ?? [], 'downloads' => $legacy['downloads'] ?? []];
+    try {
+        $r = lw_coleccion_aplica_contrato($doc, $cfg['contrato']);
+    } catch (RuntimeException $e) {
+        error_log('lw_coleccion: RPC RECHAZADA por el contrato publico: ' . $e->getMessage());
+        @touch($fallo);
+        return null;
+    }
+    if (!$r['properties']) {
+        error_log('lw_coleccion: la RPC devolvio 0 fichas visibles, se trata como fallo (ver cabecera)');
+        @touch($fallo);
+        return null;
+    }
+    @unlink($fallo);
+    return $r;
+}
+
+/** La fuente. Devuelve el documento ya filtrado, o null si no pudo. */
+function lw_coleccion_fuente(array $cfg) {
+    if ($cfg['fuente'] === 'intranet') return lw_coleccion_fuente_intranet($cfg);
     return lw_coleccion_lee($cfg['datajson'], 'data.json', $cfg);
 }
 
@@ -194,13 +281,14 @@ function lw_coleccion_carga(array $cfg) {
 
 /** El documento publico de The Collection: {properties, settings, downloads, fuente, stale}.
  *  Misma forma que data.json (menos lo no publicable) para que la SPA solo cambie de fuente. */
-function lw_coleccion() {
-    static $memo = null;
-    if ($memo !== null) return $memo;
-    return $memo = lw_coleccion_carga(lw_coleccion_cfg());
+function lw_coleccion($fuente = null) {
+    static $memo = [];
+    $k = $fuente ?: 'env';
+    if (!isset($memo[$k])) $memo[$k] = lw_coleccion_carga(lw_coleccion_cfg($fuente));
+    return $memo[$k];
 }
 
-function lw_coleccion_props() { return lw_coleccion()['properties']; }
+function lw_coleccion_props($fuente = null) { return lw_coleccion($fuente)['properties']; }
 
 function lw_coleccion_ids() {
     return array_map(function ($p) { return $p['id']; }, lw_coleccion_props());
@@ -208,8 +296,8 @@ function lw_coleccion_ids() {
 
 /** La ficha pública de un id, o null. «No existe» y «no es visible» son indistinguibles a
  *  propósito (un 404 distinto permitiría enumerar los ids ocultos): aquí lo oculto no llega. */
-function lw_coleccion_ficha($id) {
-    foreach (lw_coleccion_props() as $p) {
+function lw_coleccion_ficha($id, $fuente = null) {
+    foreach (lw_coleccion_props($fuente) as $p) {
         if ($p['id'] === $id) return $p;
     }
     return null;
