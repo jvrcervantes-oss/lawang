@@ -56,4 +56,8 @@ assert.strictEqual(S.lwSaldoAviso({ ...saldo, por_facturar: null }, 99999, null,
 const h = S.lwSaldoHTML({ moneda: 'EUR', cadena: 'RP1', precio: null, sin_precio: true, facturado: 69000, cobrado: 0, por_cobrar: 69000, por_facturar: null }, fmt);
 assert.ok(h.includes('no tiene precio fijado') && !h.includes('lw-s-b'));
 
+// Con impuesto: el servidor cuenta el SUBTOTAL; el documento guardado (total 1.110, subtotal 1.000) devuelve 1.000, no 1.110.
+const conIva = { moneda: 'EUR', precio: 10000, por_facturar: 2000, facturas: [{ id: 'z', total: 1110, subtotal: 1000 }] };
+assert.strictEqual(S.lwSaldoPorFacturar(conIva, 'z'), 3000);
+
 console.log('saldo_contrato.test.js: ok');

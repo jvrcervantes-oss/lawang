@@ -1822,7 +1822,7 @@
         new Promise(function (ok) {
           if (typeof window.lwSaldoCarga === 'function') return ok(true);
           var sc = document.createElement('script');
-          sc.src = '/contracts/assets/saldo_contrato.js';
+          sc.src = '/contracts/assets/saldo_contrato.js?v=00000000';
           sc.onload = function () { ok(true); }; sc.onerror = function () { ok(false); };
           document.head.appendChild(sc);
         }).then(function (hay) {

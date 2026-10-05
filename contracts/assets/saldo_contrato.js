@@ -1,8 +1,9 @@
 /* Saldo del contrato — qué se ha facturado, qué se ha cobrado, qué queda (5-oct-2026, owner).
    ════════════════════════════════════════════════════════════════════════════
    Capa compartida (Regla 0 de contexto/suite_lawang.md): la usan la ficha de la factura y el editor de
-   documentos de v4, y el editor clásico de /intranet/facturas/. Una copia por pantalla sería la forma
-   de que dos pantallas den dos cifras.
+   documentos de v4. El editor clásico de /intranet/facturas/ NO la pinta todavía: el tope lo hace valer
+   igualmente el servidor, solo falta el aviso previo. Una copia por pantalla sería la forma de que dos
+   pantallas den dos cifras.
 
    LAS CIFRAS NO SE CALCULAN AQUÍ. Salen de la función `contrato_saldo` de la base, que usa la MISMA
    cuenta (`_cadena_saldo`) con la que `factura_guarda` hace valer el tope: lo que se ve y lo que se
@@ -54,7 +55,7 @@
   function lwSaldoPorFacturar(saldo, propioId) {
     if (!saldo || saldo.por_facturar == null) return null;
     var propio = (saldo.facturas || []).filter(function (f) { return f.id === propioId; })[0];
-    var suyo = propio ? (Number(propio.total) || 0) : 0;
+    var suyo = propio ? (Number(propio.subtotal != null ? propio.subtotal : propio.total) || 0) : 0; // sin impuesto: la cuenta del servidor es sobre el subtotal
     return r2(Number(saldo.por_facturar) + suyo);
   }
 
