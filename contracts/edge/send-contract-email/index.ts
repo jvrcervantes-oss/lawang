@@ -78,6 +78,25 @@ const b64 = (u8: Uint8Array) => {
   return btoa(s);
 };
 
+/* AXW-202 C3 (5-oct-2026): el aviso de anulación de firma puede ir por la cola de correos. Solo cuando
+   config_instancia.correo_cola_aviso_anulacion = «cola» (nace «directo»): la RPC correo_aviso_anulacion_encolar lee el
+   interruptor UNA vez y, si está en cola, anota «hay que mandar el aviso de ESTA firma anulada» (la firma la elige la base,
+   no el navegador; destinatario y motivo salen de contrato_firmas). El texto que compone el navegador se IGNORA en esa ruta:
+   lo compone la edge de la cola con la plantilla `aviso_anulacion`. Devuelve null (= se manda directo, como siempre) con el
+   interruptor apagado, sin anulación reciente que anclar, o ante cualquier fallo. Un correo nunca se pierde por esto. */
+async function encolaAvisoAnulacion(contratoId: string, to: string): Promise<{ duplicado: boolean } | null> {
+  try {
+    const { data, error } = await admin.rpc('correo_aviso_anulacion_encolar', { p_contrato: contratoId, p_email: to });
+    if (error) throw new Error(error.message);
+    const d = data as { modo?: string; id?: string; nuevo?: boolean; reabierto?: boolean } | null;
+    if (!d || d.modo !== 'cola' || typeof d.id !== 'string') return null;
+    return { duplicado: d.nuevo === false && d.reabierto !== true };
+  } catch (e) {
+    console.error('cola_correos_aviso_anulacion_fallo', String((e as Error)?.message ?? e).slice(0, 200), '— se envía directo');
+    return null;
+  }
+}
+
 // ponytail: cooldown en memoria del propio isolate, no una tabla — el botón
 // lo usa un puñado de personas del equipo con sesión válida, esto solo acota
 // un doble-click o un bucle accidental. Se resetea en cada cold start; si
@@ -167,6 +186,12 @@ Deno.serve(async (req) => {
     if (contratoId) {
       const { data: cv, error: eC } = await usuario.from('contratos').select('id').eq('id', contratoId).maybeSingle();
       if (eC || !cv) return json({ ok: false, error: 'contrato_no_visible' }, 403);
+    }
+
+    // AXW-202 C3: con el interruptor en «cola», el aviso de anulación lo manda la cola (ver encolaAvisoAnulacion).
+    if (via === 'aviso_anulacion' && soloTexto && contratoId) {
+      const enc = await encolaAvisoAnulacion(contratoId, to);
+      if (enc) return json({ ok: true, encolado: true, duplicado: enc.duplicado });
     }
 
     let pdfB64 = '';
