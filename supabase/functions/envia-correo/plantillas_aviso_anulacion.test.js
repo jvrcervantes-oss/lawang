@@ -46,9 +46,7 @@ const assert = require('assert');
     fila({ firmado_en: '2026-10-04T10:00:00+00:00', anulado_en: '2026-10-05T09:00:00+00:00', anulado_motivo: 'editar', anulado_justificacion: 'motivo real' }),
     fila({ anulado_en: '2026-10-05T11:00:00+00:00', anulado_motivo: 'nuevo_enlace' }),
   ]);
-  ok(!V.esFallo(r) && r.variante === 'alt' && r.vars.bloque_motivo === 'Motivo: motivo real
-
-', 'una anulación posterior por nuevo_enlace no pisa el aviso de «editar»');
+  ok(!V.esFallo(r) && r.variante === 'alt' && r.vars.bloque_motivo === 'Motivo: motivo real\n\n', 'una anulación posterior por nuevo_enlace no pisa el aviso de «editar»');
   // 4. una firma viva (no anulada) del mismo correo no cuenta; sin ninguna anulada → 400
   r = await pide([fila({ firmado_en: '2026-10-01T10:00:00+00:00' })]);
   ok(V.esFallo(r) && r.status === 400, 'sin firma anulada: 400');
