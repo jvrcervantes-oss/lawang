@@ -3,7 +3,7 @@
 // 2) las guardas de la ficha de factura y del botón «Borrar operación» están puestas y el selector no cambió.
 const fs = require('fs'), vm = require('vm'), assert = require('assert');
 const src = fs.readFileSync(__dirname + '/datos.js', 'utf8');
-const m = src.match(/function contratosActivo\(\) \{[\s\S]*?\n  \}/);
+const m = src.match(/function moduloEncendido\(m\) \{[\s\S]*?\n  \}\n  function contratosActivo\(\) \{[^\n]*\}/);   // contratosActivo delega en moduloEncendido (corte 3)
 assert.ok(m, 'no encuentro contratosActivo en datos.js');
 const corre = (win) => vm.runInNewContext('var window = W;' + m[0] + ';contratosActivo()', { W: win });
 assert.strictEqual(corre({}), true, 'Lawang (sin bandera): siempre activo');

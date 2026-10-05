@@ -675,8 +675,34 @@
      abierto: `axwModuloActivo` (apagados_instancia.js) devuelve true mientras carga o si no pudo leer lo activo. Es
      cosmético: el cierre real es el REVOKE de las RPC del módulo apagado. Las guardas OCULTAN; el marcado y el selector
      `data-lw-ficha-contrato` no cambian. */
-  function contratosActivo() {
-    return !(window.AXW_NUCLEO_OPERACION && !(window.axwModuloActivo ? window.axwModuloActivo('contratos') : true));
+  function moduloEncendido(m) {
+    return !(window.AXW_NUCLEO_OPERACION && !(window.axwModuloActivo ? window.axwModuloActivo(m) : true));
+  }
+  function contratosActivo() { return moduloEncendido('contratos'); }
+  function soporteActivo() { return moduloEncendido('soporte'); }
+  /* Desacople (corte 3, 5-oct-2026): en el maestro, `axwModuloActivo` devuelve true («no sé») mientras carga lo
+     encendido. Una pantalla que DECIDE qué pedir (no solo qué enseñar) espera aquí a que la base conteste, o pediría
+     lo contractual a un módulo apagado. Sin bandera (Lawang) devuelve null y la pantalla arranca en el acto, como siempre. */
+  function esperaModulos() {
+    return (window.AXW_NUCLEO_OPERACION && window.AXW_MODULOS_LISTOS && window.AXW_MODULOS_LISTOS.then) ? window.AXW_MODULOS_LISTOS : null;
+  }
+  /* Lo CONTRACTUAL de la pantalla Clientes (cargar y ficha) vive en estas dos funciones a propósito: erp/modulos.py las
+     declara puente opcional de `compradores` (PUENTES_FRONT), así que no arrastran `contratos` ni `soporte` al registro.
+     Con el módulo apagado no se pide NADA (ni siquiera para recibir un vacío: un `200 []` leería «0 pendientes»). */
+  function clientesContratosCarga(sb, conContratos) {
+    if (!conContratos) return Promise.resolve([[], [], [], []]);
+    return Promise.all([
+      q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,parcela_codigo,fecha_firma,precio_total,moneda,bloqueado,contrato_padre_id,liberado_en,created_at'), 'contratos'),
+      q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
+      vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
+      q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas')
+    ]);
+  }
+  function clientesSoporteResumen(sb, clientId) {
+    return Promise.all([
+      sb.from('mensajes_comprador').select('de,texto,creado_en').eq('client_id', clientId).order('creado_en', { ascending: false }).limit(1),
+      sb.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', clientId)
+    ]);
   }
   function enlaceFichaContrato(x) {
     return '<a href="#" data-lw-ficha-contrato="' + esc(x.id) + '" style="color:#104C4F;font-weight:600;text-decoration:underline">' + esc(x.numero) + '</a>' +
@@ -2449,7 +2475,10 @@
          y su aviso «Ficha ≠» aparece cuando llega. La vista en si no se toca
          aqui: queda como pendiente de Datos (una columna materializada). */
       var t = tablaPor('tabla-clientes');
-      Promise.all([
+      var conContratos = true;   // se decide al arrancar la carga (abajo): en el maestro espera a saber qué módulos hay
+      var cargaClientes = function () {
+        conContratos = contratosActivo();
+        return Promise.all([
         /* Solo lo que el LISTADO enseña. Pasaporte, registro, representante,
            notas y propietario se piden al abrir UNA ficha (abreFicha): traer
            500 pasaportes de golpe para pintar una tabla que no los enseña era
@@ -2463,18 +2492,19 @@
            lo del negocio de cada uno sigue filtrado por autor. Se piden solo las
            columnas que el LISTADO enseña (minimización, Seguridad 18-sep). */
         q(sb.rpc('compradores_directorio').select('id,full_name,email,phone,nationality,tipo,kyc_status,propietario,created_at').order('created_at', { ascending: false }), 'compradores', t),
-        q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,parcela_codigo,fecha_firma,precio_total,moneda,bloqueado,contrato_padre_id,liberado_en,created_at'), 'contratos'),
-        q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
-        vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
-        q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas'),
+        clientesContratosCarga(sb, conContratos),
         // nombre del agente que dio de alta cada ficha (`clients.propietario` es un email)
         q(sb.from('usuarios').select('email,nombre'), 'equipo'),
         /* Nº de cliente (CLI-00042, 26-sep-2026, owner). Lo pone la base al dar de alta y no cambia nunca
            (trg_clients_numero_cliente). Sale de su propia RPC porque `compradores_directorio()` no se toca
            (cambiar lo que devuelve exige borrarla). Si falla, la lista se pinta igual, sin número. */
         vig(sb.rpc('compradores_numeros')).then(function (r) { return r.error ? (fallo('números de cliente', r.error), []) : (r.data || []); })
-      ]).then(function (r) {
-        var cs = r[0], cts = r[1] || [], vin = r[2] || [], cob = r[3] || [], fir = r[4] || [], eq = r[5] || [], nums = r[6] || [];
+        ]);
+      };
+      var espera = esperaModulos();
+      (espera ? espera.then(cargaClientes, cargaClientes) : cargaClientes()).then(function (r) {
+        var rc = r[1] || [], cts = rc[0] || [], vin = rc[1] || [], cob = rc[2] || [], fir = rc[3] || [], eq = r[2] || [], nums = r[3] || [];
+        var cs = r[0];
         if (!cs) return;
         var numDe = {}; nums.forEach(function (x) { numDe[x.id] = x.numero_cliente; });
         cs.forEach(function (c2) { if (numDe[c2.id]) c2.numero_cliente = numDe[c2.id]; });
@@ -2506,9 +2536,16 @@
         pon2('k-nuevos', '+' + nuevos + ' este trimestre');
         var capital = 0, pagado = 0, fueraEur = 0;
         Object.keys(deCliente).forEach(function (k) { capital += deCliente[k].inv; pagado += deCliente[k].pag; fueraEur += deCliente[k].otras; });
-        pon2('k-capital', fmt(capital, 'EUR'));
-        pon2('k-capital-chip', capital ? Math.round(pagado / capital * 100) + '% cobrado' : 'sin contratos EUR');
-        if (fueraEur) bandaNota('El capital es SOLO en euros: ' + fueraEur + ' contrato(s) en otra moneda quedan fuera de la suma.', '#8A6A34');
+        if (conContratos) {
+          pon2('k-capital', fmt(capital, 'EUR'));
+          pon2('k-capital-chip', capital ? Math.round(pagado / capital * 100) + '% cobrado' : 'sin contratos EUR');
+          if (fueraEur) bandaNota('El capital es SOLO en euros: ' + fueraEur + ' contrato(s) en otra moneda quedan fuera de la suma.', '#8A6A34');
+        } else {
+          /* Sin el módulo de contratos no hay capital ni cobrado: se OCULTA la tarjeta. Un «0 €» o un «—» leería
+             «no han pagado nada» cuando lo cierto es «aquí no se mide». */
+          var kCap = document.querySelector('[data-lw="k-capital"]'), tarjetaCap = kCap && kCap.closest('.shadow-sm');
+          if (tarjetaCap) tarjetaCap.style.display = 'none';
+        }
 
         // nacionalidades reales, no las cuatro del diseno
         var nacs = {}; cs.forEach(function (c2) { if (c2.nationality) nacs[c2.nationality] = (nacs[c2.nationality] || 0) + 1; });
@@ -2524,9 +2561,17 @@
         var conContrato = cs.filter(function (c2) { return deCliente[c2.id]; });
         var enFirma = cs.filter(function (c2) { return deCliente[c2.id] && deCliente[c2.id].firma; });
         pon2('cc-todos', 'Todos (' + cs.length + ')');
-        pon2('cc-contrato', 'Con contrato (' + conContrato.length + ')');
-        pon2('cc-firma', 'En firma (' + enFirma.length + ')');
-        pon2('cc-prospectos', 'Sin contrato (' + (cs.length - conContrato.length) + ')');
+        if (conContratos) {
+          pon2('cc-contrato', 'Con contrato (' + conContrato.length + ')');
+          pon2('cc-firma', 'En firma (' + enFirma.length + ')');
+          pon2('cc-prospectos', 'Sin contrato (' + (cs.length - conContrato.length) + ')');
+        } else {
+          // sin contratos no hay «con contrato», «en firma» ni «sin contrato»: los tres filtros se ocultan, no se dejan en 0
+          ['cc-contrato', 'cc-firma', 'cc-prospectos'].forEach(function (k) {
+            var sp = document.querySelector('[data-lw="' + k + '"]'), b = sp && sp.closest('button');
+            if (b) b.style.display = 'none';
+          });
+        }
         pon2('k-lista-pie', cs.length + (cs.length === 1 ? ' cliente' : ' clientes') + ' · pulsa uno para abrir su ficha');
 
         /* ================= LA FICHA (cajon compartido de editores.js) ================= */
@@ -2644,6 +2689,7 @@
           window.LW_V4 = window.LW_V4 || {}; window.LW_V4.comprador = c2;
           var esEmpresa = c2.tipo === 'empresa';
           var vins = vin.filter(function (v) { return v.client_id === c2.id && porC[v.contrato_id]; });
+          var conC = conContratos, conS = soporteActivo();   // contratos: lo que decidió la carga; soporte: solo oculta, se mira al abrir
           var kyc = KYC[c2.kyc_status || 'pending'] || [c2.kyc_status, 'neutro'];
           var identidad =
             H.dato('Nº de cliente', c2.numero_cliente) +
@@ -2746,14 +2792,16 @@
           var cuerpo =
             H.seccion('Identidad', identidad) +
             H.seccion('Responsable de la ficha', seccionResponsable(), 'responsable') +
-            H.seccion(ops.length === nPiezas
+            /* Con contratos o soporte apagados la sección NO se pinta (ni «Ninguno enlazado», que mentiría: no es que no
+               haya, es que aquí no se mide). Las facturas y los envíos de la ficha cuelgan de los contratos del cliente. */
+            (conC ? H.seccion(ops.length === nPiezas
               ? 'Contratos (' + nPiezas + ')'
-              : 'Operaciones (' + ops.length + ') · ' + nPiezas + ' contratos', contratos, 'contratos') +
-            H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H), 'cuentas') +
-            H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'facturas') +
+              : 'Operaciones (' + ops.length + ') · ' + nPiezas + ' contratos', contratos, 'contratos') : '') +
+            (conC ? H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H), 'cuentas') : '') +
+            (conC ? H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'facturas') : '') +
             H.seccion('Documentación KYC', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'docs') +
-            H.seccion('Registro de envíos', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'envios') +
-            H.seccion('Soporte', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'soporte') +
+            (conC ? H.seccion('Registro de envíos', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'envios') : '') +
+            (conS ? H.seccion('Soporte', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'soporte') : '') +
             H.seccion('Portal del comprador', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'portal');
           var acciones = [
             { texto: 'Editar datos', tono: 'primario', onClick: function () {
@@ -2762,7 +2810,7 @@
             } },
             // pestaña nueva a proposito: quien repasa fichas no quiere perder la lista
             { texto: 'Crear contrato', href: '/contracts/?cliente=' + encodeURIComponent(c2.id), nuevaPestana: true }
-          ];
+          ].filter(function (a) { return conC || a.texto !== 'Crear contrato'; });
           /* Borrar: SOLO super_admin, calcado de la clásica — la puerta real es
              `borrar_comprador()` en la base (es_super_admin() + bloqueos por
              contrato/portal), esto solo evita ofrecer lo que fallaría. */
@@ -2796,7 +2844,7 @@
           }
           acciones.push({ texto: 'Cerrar', cerrar: true });
           var cj = window.lwCajon({ sub: esEmpresa ? 'Ficha de empresa cliente' : 'Ficha de cliente', titulo: c2.full_name || 'Sin nombre',
-            estado: ['KYC · ' + kyc[0], kyc[1]], lado: ['cuentas'],
+            estado: ['KYC · ' + kyc[0], kyc[1]], lado: conC ? ['cuentas'] : undefined,
             bajoTitulo: [c2.numero_cliente, c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || 'sin identificación',
             cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
           if (window.lwMejoraSelects && cj.cuerpo) window.lwMejoraSelects(cj.cuerpo);   // «Pasar la ficha a»
@@ -2810,7 +2858,7 @@
              TODOS sus contratos (tipo, proyecto, autor, firmado; sin importes ni
              número) y marca cuáles ves. Se pide DESPUÉS de abrir: es una nota,
              no un requisito. Calcado de /intranet/compradores/. */
-          sb.rpc('comprador_contratos_resumen', { p_client_id: c2.id }).then(function (r) {
+          if (conC) sb.rpc('comprador_contratos_resumen', { p_client_id: c2.id }).then(function (r) {
             if (r.error) { console.warn('[v4 datos] comprador_contratos_resumen', r.error); return; }
             var todos = r.data || [];
             var ajenos = todos.filter(function (x) { return !x.visible; });
@@ -2964,10 +3012,7 @@
           /* Soporte: un RESUMEN (cuántos abiertos, el último mensaje) y el
              enlace a su bandeja en Soporte v4 — el hilo completo vive allí; repetirlo
              aquí sería la duplicación que ya se cerró el 1-sep en la clásica. */
-          Promise.all([
-            sb.from('mensajes_comprador').select('de,texto,creado_en').eq('client_id', c2.id).order('creado_en', { ascending: false }).limit(1),
-            sb.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', c2.id)
-          ]).then(function (rs) {
+          if (conS) clientesSoporteResumen(sb, c2.id).then(function (rs) {
             if (rs[0].error || rs[1].error) return pinta('soporte', H.nota('No se pudo leer Soporte: ' + (rs[0].error || rs[1].error).message));
             var ultimo = (rs[0].data || [])[0], hilos = rs[1].data || [];
             if (!ultimo && !hilos.length) return pinta('soporte', H.nota('Sin mensajes desde el área de clientes.'));
@@ -3334,6 +3379,14 @@
           var c2 = porId[tr.getAttribute('data-id')];
           if (c2) abreFicha(c2);
         });
+        /* Sin el módulo de contratos se OCULTAN las columnas que salen de contratos y recibís (Proyecto(s), Inversión,
+           Pagado a la fecha: posiciones 3, 4 y 5, las mismas con las que se pintan las celdas arriba). No se pintan
+           ceros ni «—»: «no se mide aquí» y «no se pudo leer» no deben verse igual que «no ha pagado nada». */
+        if (!conContratos) {
+          Array.prototype.forEach.call(t.rows, function (fl) {
+            [3, 4, 5].forEach(function (i) { if (fl.cells[i]) fl.cells[i].style.display = 'none'; });
+          });
+        }
 
         var chipsCompradores = ['todos', 'contrato', 'firma', 'prospectos'].map(function (k) {
           var sp = document.querySelector('[data-lw="cc-' + k + '"]'); var b = sp && sp.closest('button');
