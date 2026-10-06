@@ -135,13 +135,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
 .pf-grid .lw-prop-sub{min-height:0;-webkit-line-clamp:3}
 .pf-grid .lw-prop-foot{justify-content:space-between;gap:12px}
 /* ── Gracia (23-sep, owner: «dale algo de gracia») ──
-   · numero de cada modelo en The Seasons, grande y tenue, en la esquina de los datos;
+   · numero de cada modelo en Neue Kabel Light (6-oct, owner; antes The Seasons), grande y tenue, en la esquina de los datos;
    · filete verde que crece en el borde izquierdo de los datos al pasar el raton;
    · la foto se oscurece un poco menos y el «View model» se convierte en pildora al hover;
    · entrada suave al hacer scroll SOLO donde el navegador soporta animation-timeline (sin JS, y
      sin tarjetas escondidas esperando a un observer: en el resto se ven quietas desde el inicio). */
 .pf-grid .lw-prop-body{position:relative}
-.pf-num{position:absolute;top:18px;right:28px;font-family:var(--serif);font-weight:300;font-size:clamp(46px,5vw,72px);line-height:1;color:rgba(72,91,55,.14);
+.pf-num{position:absolute;top:18px;right:28px;font-family:var(--sans);font-weight:300;font-size:clamp(46px,5vw,72px);line-height:1;color:rgba(72,91,55,.14);
   letter-spacing:.02em;pointer-events:none;transition:color .4s var(--ease)}
 .lw-prop:hover .pf-num{color:rgba(72,91,55,.3)}
 .pf-grid .lw-prop-body::before{content:"";position:absolute;left:0;top:28px;bottom:28px;width:2px;background:var(--tg);transform:scaleY(0);
