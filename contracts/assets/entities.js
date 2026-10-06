@@ -47,9 +47,10 @@ let CUENTAS_PROMESA = null;
 function cargarCuentasBancarias(sb){
   if(CUENTAS_PROMESA) return CUENTAS_PROMESA;
   CUENTAS_PROMESA = (async () => {
-    const { data, error } = await sb.from('cuentas_bancarias')
-      .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,es_escrow')
-      .eq('activa', true).order('orden');
+    /* Por la RPC y no por la tabla (Lote 3 F3, 7-oct-2026, Seguridad): el equipo recibe
+       todas las cuentas activas, y el comprador del portal solo las que citan SUS facturas.
+       Antes la tabla se leía con `using (true)` y cualquier sesión veía las 18. */
+    const { data, error } = await sb.rpc('cuentas_cobro_visibles').order('orden');
     if(error){ CUENTAS_PROMESA = null; throw error; }
     (data || []).forEach(r => {
       CUENTAS_BANCARIAS[r.clave] = { label:r.label, titular:r.titular, banco:r.banco,
@@ -262,9 +263,8 @@ let SOCIEDADES_PROMESA = null;
 function cargarSociedades(sb){
   if(SOCIEDADES_PROMESA) return SOCIEDADES_PROMESA;
   SOCIEDADES_PROMESA = (async () => {
-    const { data, error } = await sb.from('sociedades')
-      .select('clave,label,razon,marca,npwp,npwp_label,nib,domicilio,rep,logo,logo_alto,emisor_debajo,folio,tinta,es_indonesia')
-      .eq('activa', true).order('orden');
+    // Por la RPC (Lote 3 F3, 7-oct-2026): equipo = todas las activas; portal = las de sus facturas.
+    const { data, error } = await sb.rpc('sociedades_visibles').order('orden');
     if(error){ SOCIEDADES_PROMESA = null; throw error; }
     (data || []).forEach(r => {
       SOCIEDADES[r.clave] = {
