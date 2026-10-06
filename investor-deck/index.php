@@ -260,32 +260,10 @@ a.enlace{color:inherit;text-decoration:underline}
   #vision.sin-cifras .hero-texto{top:calc(100svh - clamp(110px,17vh,140px))}
 }
 
-/* ── 1b · PANEL DE LA HERO: documentos + FAQ. Movil: debajo de la foto, en flujo (leccion
-   de la v2: un panel largo superpuesto en pantalla pequena es un callejon sin salida).
-   Desde 1024px flota a la derecha sobre la foto, en cristal oscuro. ── */
-#faq{position:relative;z-index:6;background:var(--ob);color:var(--rl);padding:40px var(--cpd) 48px}
-#faq .kicker{color:var(--sc)}
-#faq h2{font-family:var(--sa);font-weight:200;font-size:clamp(28px,1.4vw + 16px,40px);line-height:1.05;text-transform:uppercase;margin:12px 0 0;color:var(--rl)}
-.dd-lema{font-family:var(--sa);font-size:14px;line-height:1.7;color:rgba(245,240,230,.75);margin:14px 0 0}
-#faq h3{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--sc);margin:0 0 6px}
-.dd-cab{padding-bottom:22px;border-bottom:1px solid rgba(245,240,230,.16)}
-.dd-cuerpo{display:flex;flex-direction:column;gap:30px;padding-top:24px}
-.dd-cols{display:flex;flex-direction:column;gap:30px}
-.dd-cols > div{min-width:0}
-/* Estructura A (owner, 6-oct-2026; la misma en palmfield/index.html): documentos | FAQ al
-   58/42 desde 1280px, solo si el proyecto publica las dos cosas. con-docs / con-faq los pone
-   el JS al pintar cada bloque: con uno solo, ese bloque ocupa todo el ancho. */
-@media(min-width:1280px){
-  .dd-cols.con-docs.con-faq{display:grid;grid-template-columns:1.38fr 1fr;gap:26px;align-items:start}
-}
+/* ── 1b · PANEL DE LA HERO: sus reglas viven en /investor-deck/panel-dd.css, fuente unica de
+   todos los decks (owner, 6-oct-2026). Aqui solo la geometria de la hero alrededor del panel. ── */
 @media(min-width:1024px){
   #vision{height:100svh;--pw:min(40%,560px)}
-  #faq{position:absolute;top:clamp(78px,11vh,96px);right:var(--cpd);bottom:clamp(22px,4vh,40px);width:var(--pw);min-width:400px;
-    padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:16px;
-    background:rgba(12,14,10,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    border:1px solid rgba(190,179,165,.3);box-shadow:0 30px 70px -30px rgba(0,0,0,.7);box-sizing:border-box}
-  .dd-cab{padding:26px 28px 20px;flex:none}
-  .dd-cuerpo{flex:1;min-height:0;overflow-y:auto;padding:20px 28px 26px;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
   .hero-texto,.hero-pie{right:calc(var(--pw) + var(--cpd) + 40px)}
   #hero-next{right:calc(var(--pw) + var(--cpd) + 20px)}
   #hero-puntos{left:calc((100% - var(--pw) - var(--cpd)) / 2);top:auto;bottom:clamp(8px,1.6vh,14px);transform:translateX(-50%)}
@@ -303,100 +281,6 @@ a.enlace{color:inherit;text-decoration:underline}
 @media(min-width:1024px) and (max-width:1640px){
   .cifras{grid-template-columns:repeat(2,auto);row-gap:14px} .cifra:nth-child(3){padding-left:0;border-left:0}
   #vision:not(.sin-cifras) .hero-texto{bottom:clamp(220px,32vh,280px)}
-}
-/* Documentos: filas con filete, como la v3 */
-#docs-bloque{display:flex;flex-direction:column}
-#docs-lista{display:grid;grid-template-columns:1fr;gap:0}
-.doc{display:flex;flex-direction:column;gap:8px;padding:14px 0;border-top:1px solid rgba(245,240,230,.16)}
-.doc:last-child{border-bottom:1px solid rgba(245,240,230,.16)}
-.doc-cab{display:flex;align-items:flex-start;gap:10px}
-.doc-cab .material-symbols-outlined{font-size:18px;color:var(--sc);flex:none}
-.doc-txt{display:flex;flex-direction:column;min-width:0}
-.doc-tit{font-size:14px;font-weight:500;letter-spacing:.04em;color:var(--rl);overflow-wrap:anywhere}
-.doc-sub{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ss)}
-.doc-des{font-size:12px;line-height:1.6;color:rgba(245,240,230,.7);margin-top:4px}
-.doc-acc{display:flex;flex-wrap:wrap;gap:8px}
-.doc-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:30px;text-decoration:none;
-  font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--rl);border:1px solid rgba(245,240,230,.4);transition:background .25s}
-.doc-btn:hover{background:rgba(245,240,230,.12)}
-.doc-btn .material-symbols-outlined{font-size:15px}
-/* FAQ: acordeon con + / − de la home */
-#faq-lista{display:flex;flex-direction:column}
-.faq-item{border-top:1px solid rgba(245,240,230,.18)}
-.faq-item:last-child{border-bottom:1px solid rgba(245,240,230,.18)}
-.faq-item summary{list-style:none;cursor:pointer;padding:15px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;
-  font-family:var(--sa);font-size:13px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--rl);line-height:1.4}
-.faq-item summary::-webkit-details-marker{display:none}
-.faq-item .mi{width:14px;height:14px;position:relative;flex:none}
-.faq-item .mi::before,.faq-item .mi::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(245,240,230,.8)}
-.faq-item .mi::after{transform:rotate(90deg);transition:transform .3s var(--ease)}
-.faq-item[open] .mi::after{transform:rotate(0)}
-.faq-item__body{padding:0 0 20px;font-family:var(--sa);font-size:14px;line-height:1.75;color:rgba(245,240,230,.72);max-width:64ch}
-.dd-atajos{display:flex;flex-wrap:wrap;gap:8px;padding-top:16px}
-.dd-atajos .btn{padding:10px 16px;font-size:10px}
-/* Atajos del panel en Verde Lawang con flecha (owner, 6-oct-2026, opcion 2 de la maqueta):
-   tinte verde y borde salvia en reposo; relleno verde de la marca al pasar; verde oscuro al
-   pulsar. La flecha baja 2px al pasar: llevan a una seccion mas abajo. */
-.dd-atajos .btn-atajo{gap:6px;padding:10px 14px;border-color:rgba(143,155,122,.7);color:var(--rl);background:rgba(72,91,55,.18)}
-.dd-atajos .btn-atajo .material-symbols-outlined{font-size:15px;transition:transform .3s var(--ease)}
-.dd-atajos .btn-atajo:hover{background:var(--tg);border-color:var(--pg)}
-.dd-atajos .btn-atajo:hover .material-symbols-outlined{transform:translateY(2px)}
-.dd-atajos .btn-atajo:active{background:var(--tg-dark);border-color:var(--tg-dark)}
-.dd-atajos .btn-atajo:focus-visible{outline:2px solid var(--ss);outline-offset:3px}
-@media (prefers-reduced-motion:reduce){.dd-atajos .btn-atajo .material-symbols-outlined{transition:none}.dd-atajos .btn-atajo:hover .material-symbols-outlined{transform:none}}
-/* Panel sin scroll en escritorio (owner, 6-oct-2026): documentos en dos columnas con tarjeta
-   baja (View / Download como texto) y filas de FAQ mas prietas. El cuerpo conserva su
-   overflow-y:auto: al abrir una respuesta larga hace scroll en vez de recortarla. Movil intacto. */
-@media(min-width:1024px){
-  .dd-cuerpo{padding-top:16px;padding-bottom:20px}
-  .dd-cols{gap:22px}
-  #docs-lista{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}
-  #docs-lista.un-doc{grid-template-columns:1fr}
-  .doc{padding:10px 0;gap:5px}
-  /* filete inferior en toda la ultima fila, tenga uno o dos documentos */
-  #docs-lista .doc:nth-child(2n+1):nth-last-child(-n+2),#docs-lista .doc:nth-child(2n+1):nth-last-child(-n+2) ~ .doc{border-bottom:1px solid rgba(245,240,230,.16)}
-  .doc-tit{font-size:13px}
-  .doc-sub{font-size:10px}
-  .doc-acc{padding-left:28px;gap:14px;flex-wrap:nowrap}
-  .doc-btn{padding:0;border:0;border-radius:0;font-size:10px;letter-spacing:.12em;color:var(--ss);transition:color .25s}
-  .doc-btn:hover{background:none;color:var(--rl)}
-  .faq-item summary{padding:11px 0;font-size:12px}
-}
-/* Columna estrecha (1024-1279 y portatiles a 1280): View / Download alineados con el icono,
-   para que quepan en una linea */
-@media(min-width:1024px) and (max-width:1365px){ .doc-acc{padding-left:0;gap:12px} }
-/* Pantallas bajas (1366x768, 1280x720): cabecera y filas mas prietas para que quepa sin scroll.
-   ACEPTADO (owner, 6-oct-2026): entre 1024 y 1279 px de ancho (iPad horizontal, ventanas
-   pequenas) el panel puede hacer scroll; el objetivo sin scroll es desde 1280. */
-@media(min-width:1024px) and (max-height:820px){
-  .dd-cab{padding:20px 26px 16px}
-  #faq h2{font-size:28px}
-  .dd-lema{font-size:13px;line-height:1.6;margin-top:10px}
-  .dd-atajos{padding-top:12px;gap:6px}
-  .dd-atajos .btn-atajo{padding:8px 10px;letter-spacing:.1em}
-  .dd-cuerpo{padding:12px 26px 14px}
-  .dd-cols{gap:16px}
-  .doc{padding:8px 0}
-  .faq-item summary{padding:8px 0}
-}
-/* Pantallas de 760px de alto o menos (1280x720): un escalon mas, porque en espanol e indonesio
-   las preguntas y los botones son mas largos y en ingles ya cabia (medido 6-oct-2026) */
-@media(min-width:1024px) and (max-height:760px){
-  .dd-cab{padding:16px 26px 12px}
-  #faq h2{font-size:26px}
-  .dd-lema{line-height:1.5}
-  .dd-cuerpo{padding:10px 26px 10px}
-  .doc{padding:6px 0}
-  .faq-item summary{padding:6px 0}
-}
-/* ...y a esa altura la FAQ gana ancho: en indonesio sus preguntas pasaban a tres lineas */
-@media(min-width:1280px) and (max-height:760px){ .dd-cols.con-docs.con-faq{grid-template-columns:1.2fr 1fr} }
-/* Sin FAQ, los documentos aprovechan el ancho entero: tres columnas */
-@media(min-width:1280px){
-  .dd-cols.con-docs:not(.con-faq) #docs-lista:not(.un-doc){grid-template-columns:repeat(3,minmax(0,1fr))}
-  .dd-cols.con-docs:not(.con-faq) #docs-lista .doc{border-bottom:0}
-  .dd-cols.con-docs:not(.con-faq) #docs-lista .doc:nth-child(3n+1):nth-last-child(-n+3),
-  .dd-cols.con-docs:not(.con-faq) #docs-lista .doc:nth-child(3n+1):nth-last-child(-n+3) ~ .doc{border-bottom:1px solid rgba(245,240,230,.16)}
 }
 
 /* ── 2 · MODELOS: "FOUR WAYS, ONE LEGACY" — tarjetas altas con marco interior ── */
@@ -577,6 +461,8 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 .ubic-marco iframe{display:block;width:100%;height:min(62vh,520px);border:0}
 .ubic-pie{display:flex;justify-content:center;margin-top:28px}
 </style>
+<!-- Panel de due diligence de la hero: fuente unica compartida con palmfield/index.html (6-oct-2026) -->
+<link rel="stylesheet" href="/investor-deck/panel-dd.css?v=20261006a">
 <script src="/investor-deck/i18n.js?v=20260924u"></script>
 </head>
 <body>
