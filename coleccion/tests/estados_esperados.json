@@ -4,10 +4,10 @@
   "tirta-hikari": "ok",
   "riverfront-i": "ok",
   "tangkuban-village": "ok",
-  "riverfront-iii": "none",
+  "riverfront-iii": "na",
   "pura-dalem": "few",
   "riverfront-ii-small": "ok",
-  "rurung-anyar": "none",
+  "rurung-anyar": "na",
   "cube": "ok",
   "river": "ok",
   "aqua": "ok",
@@ -176,9 +176,9 @@
    "esperado": "few"
   },
   {
-   "nota": "sin parcelas",
+   "nota": "sin parcelas (dato fresco): chip «Ask for availability», decision del owner 6-oct",
    "parcelas": [],
-   "esperado": "none"
+   "esperado": "na"
   },
   {
    "nota": "stale sin parcelas (respaldo): se ve «sin dato», no «nada»",

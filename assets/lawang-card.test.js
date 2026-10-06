@@ -45,7 +45,7 @@ ok(chip(por('tirta-hikari')) === 'ok:Available', 'casa unica libre = Available s
 ok(chip(por('riverfront-i')) === 'ok:2 of 4 available', 'riverfront-i: ' + chip(por('riverfront-i')));
 ok(chip(por('pura-dalem')) === 'few:Last unit', 'pura-dalem: ' + chip(por('pura-dalem')));
 ok(chip(por('palm-field-bali')) === 'ok:25 of 36 plots', 'palm-field: ' + chip(por('palm-field-bali')));
-ok(chip(por('riverfront-iii')) === null, 'sin parcelas y dato fresco: sin chip (no es «sin dato»)');
+ok(chip(por('riverfront-iii')) === 'na:Ask for availability', 'sin parcelas y dato fresco: Ask for availability: ' + chip(por('riverfront-iii')));
 ok(chip(por('palm-field-bali'), { lang: 'es' }) === 'ok:25 de 36 parcelas', 'es: ' + chip(por('palm-field-bali'), { lang: 'es' }));
 ok(chip(por('palm-field-bali'), { lang: 'id' }) === 'ok:25 dari 36 kavling', 'id: ' + chip(por('palm-field-bali'), { lang: 'id' }));
 const fijo = C.render(por('cube'), { lang: 'en', live: true });
@@ -67,6 +67,18 @@ for (const p of rpc.concat([vendida])) {
     ok(/st-na/.test(h), 'stale: chip «sin dato» en ' + p.id + ',' + lang);
     ok(!/st-(ok|few|held|gone)|is-sold|sold-price/.test(h), 'stale: ningun estado afirmado en ' + p.id + ',' + lang);
     ok(!/ of \d+ (available|plots)|>Available</i.test(h), 'stale: ningun «Available» ni «N of M» en ' + p.id);
+  }
+}
+
+// 6. ficha sin unidades cargadas (decision del owner 6-oct-2026): con la intranet y dato fresco dice «Ask for availability»
+//    en los 3 idiomas, sin ningun estado afirmado ni precio tachado; con data.json (v1) NO sale chip alguno.
+const SIN = { 'en': 'Ask for availability', 'es': 'Consultar disponibilidad', 'id': 'Tanyakan ketersediaan' };
+for (const id of ['riverfront-iii', 'rurung-anyar']) {
+  for (const lang of ['en', 'es', 'id']) {
+    const h = C.render(por(id), { lang, live: true, stale: false });
+    ok(h.includes('st-na"><i aria-hidden="true"></i>' + SIN[lang] + '<'), 'sin unidades: chip «' + SIN[lang] + '» en ' + id + ',' + lang);
+    ok(!/st-(ok|few|held|gone)|is-sold|sold-price/.test(h), 'sin unidades: ningun estado afirmado en ' + id);
+    ok(!/lw-prop-state/.test(C.render(por(id), { lang })), 'datajson (v1): sin chip en ' + id);
   }
 }
 

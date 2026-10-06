@@ -85,11 +85,13 @@
   /* ── Estado de unidades (F7, 6-oct-2026) ─────────────────────────────────────────────────────
      UNA regla, derivada SOLO de p.parcelas (la lista del dueño, tiempo casi real). Su gemela en servidor es
      lw_coleccion_estado() (coleccion/lib.php); los dos tests afirman la MISMA tabla (estados_esperados.json).
-       none  sin parcelas (y dato fresco): no se dice nada (no es «no disponible», es «no hay dato que mostrar»)
-       na    no se puede fiar: stale (con o sin parcelas), estado desconocido o unitsAvailable que no cuadra
+       na    no se puede afirmar nada: sin parcelas (la intranet aun no tiene unidades de esa ficha: decision del owner
+             6-oct-2026, chip «Ask for availability»), dato viejo (stale), estado desconocido o unitsAvailable que no cuadra
        ok    queda alguna libre (casa única = «Available» sin contador) · few  queda 1 libre de >=2
        held  ninguna libre y alguna reservada · gone  todo vendido
-     Solo se aplica si la fuente es la intranet (opts.live): con data.json la tarjeta es la de siempre. */
+     Solo se aplica si la fuente es la intranet (opts.live): con data.json la tarjeta es la de siempre.
+     `none` ya NO lo devuelve esta regla: queda solo como centinela de «fuente data.json, sin estado» (estadoOf de
+     portfolio-app y la tarjeta sin live). */
   function estado(p, stale) {
     var d = 0, r = 0, v = 0, x = 0;
     (Array.isArray(p.parcelas) ? p.parcelas : []).forEach(function (u) {
@@ -98,8 +100,7 @@
     });
     var t = d + r + v + x;
     function out(k) { return { k: k, d: d, r: r, v: v, t: t }; }
-    if (stale) return out('na');   // «no he podido mirar» se ve distinto de «no hay nada» (none): incluso sin parcelas
-    if (t === 0) return out('none');
+    if (stale || t === 0) return out('na');   // dato viejo, o ficha sin unidades cargadas: «Ask for availability», nunca un estado inventado
     if (x > 0) return out('na');
     var ua = p.unitsAvailable;
     if (ua != null && ua !== '') { var un = Number(ua); if (!Number.isInteger(un) || un !== d) return out('na'); } // entero estricto, igual que PHP

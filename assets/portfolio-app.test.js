@@ -85,6 +85,14 @@ function arranca(doc, { hash = '' } = {}) {
   r = await arranca({ properties: [conMasterplan], settings: {}, downloads: [], live: true, stale: false }, { hash: '#property/palm-field-bali' });
   ok(/class="avail av-na"/.test(r.html), 'contadores que no cuadran: «no podemos confirmar»');
 
+  // 5. ficha sin unidades cargadas (owner 6-oct): chip «Ask for availability» en el listado y NINGUN bloque Availability
+  //    en la ficha (un «no podemos confirmar ahora» seria falso: no es un fallo, no hay datos); en la ficha, nada de «0/0».
+  r = await arranca(fresco);
+  ok((r.html.match(/lw-prop-state st-na/g) || []).length >= 2, 'sin unidades: chip st-na en el listado (riverfront-iii y rurung-anyar)');
+  r = await arranca(fresco, { hash: '#property/riverfront-iii' });
+  ok(!/class="avail/.test(r.html), 'sin unidades: la ficha no pinta bloque Availability');
+  ok(!/0 ?\/ ?0|0 of 0/.test(r.html), 'sin unidades: ningun «0/0» ni «0 of 0»');
+
   if (fallos) { console.log(fallos + ' FALLO(S)'); process.exit(1); }
   console.log('OK: SPA en vivo (fresco pinta estado; stale y dato viejo nunca afirman disponible; sin llamadas a Supabase).');
 })();

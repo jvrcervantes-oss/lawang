@@ -373,7 +373,7 @@ ok(count($els) === count($rpc6) && $jl['mainEntity']['numberOfItems'] === count(
 $por = []; foreach ($els as $e) { $por[basename($e['item']['url'])] = $e['item']; }
 ok($por['pura-dalem']['offers']['availability'] === 'https://schema.org/LimitedAvailability', 'JSON-LD: queda 1 libre -> LimitedAvailability');
 ok($por['riverfront-i']['offers']['availability'] === 'https://schema.org/InStock', 'JSON-LD: hay libres -> InStock');
-ok(!isset($por['riverfront-iii']['offers']['availability']) && $por['riverfront-iii']['offers']['price'] === '250000', 'JSON-LD: sin parcelas (none) -> sin availability, con precio');
+ok(!isset($por['riverfront-iii']['offers']['availability']) && $por['riverfront-iii']['offers']['price'] === '250000', 'JSON-LD: sin parcelas (na) -> sin availability, con precio');
 $jv = lw_coleccion_jsonld_listado(['properties' => [$vend], 'stale' => false, 'live' => true], $site);
 ok($jv['mainEntity']['itemListElement'][0]['item']['offers']['availability'] === 'https://schema.org/SoldOut', 'JSON-LD: vendida -> SoldOut');
 $js = lw_coleccion_jsonld_listado(['properties' => $rpc6, 'stale' => true, 'live' => true], $site);

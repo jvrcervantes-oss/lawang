@@ -1497,8 +1497,10 @@
   // Solo con datos en vivo. Estado derivado por LawangCard.estado (una regla, la misma que la tarjeta).
   //  · ok/few/held/gone con ≥2 unidades -> contador, barra, leyenda y rejilla (misma gramática que los pines
   //    del masterplan: disponible = relleno y clicable, reservada = borde discontinuo, vendida = tachada);
-  //  · na (dato viejo) -> «no podemos confirmar», sin números, con salida a WhatsApp;
-  //  · none, o una sola unidad -> nada: la tarjeta/chip ya lo dice y no hay rejilla que dibujar.
+  //  · na con dato viejo (stale, o parcelas que no cuadran) -> «no podemos confirmar», sin números, con salida a WhatsApp;
+  //  · na SIN parcelas y dato fresco (ficha sin unidades cargadas), o una sola unidad -> nada: el chip de la tarjeta ya
+  //    dice «Ask for availability» y no hay rejilla que dibujar (el «no podemos confirmar ahora» seria falso: no es un fallo).
+  //  · none (fuente data.json) no llega aqui: availabilityHTML corta antes con !DATA_LIVE.
   var AV_TXT = {
     kick:   {en:"Availability", es:"Disponibilidad", id:"Ketersediaan"},
     avail:  {en:"Available", es:"Disponible", id:"Tersedia"},
@@ -1522,13 +1524,13 @@
   function availabilityHTML(p, cfg){
     if(!DATA_LIVE) return "";
     var st = estadoOf(p);
-    if(st.k==="na"){
+    if(st.k==="na" && (st.t>0 || dataStale())){
       var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
       var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(av("ctaMsg")+pick(p.title)+".");
       return '<section class="avail av-na" aria-labelledby="av-h"><div class="av-head"><div><span class="kick">'+av("kick")+'</span><h2 id="av-h">'+esc(av("naH"))+'</h2></div></div>'
         + '<p class="av-foot">'+esc(av("naFoot"))+'</p><a class="av-cta" href="'+esc(waUrl)+'" target="_blank" rel="noopener">'+esc(av("cta"))+'</a></section>';
     }
-    if(st.k==="none" || st.t<2) return "";
+    if(st.k==="none" || st.t<2) return "";   // na sin parcelas (t=0) cae aqui: sin bloque
     plotsFromDoc(p);   // idempotente: deja S.plotsStatus listo para plotpick
     var byPlot = !!(cfg && cfg.landOptions);   // se configura por parcela: la libre es un enlace al configurador
     var noun = (p.landOptions&&p.landOptions.length) ? av("plots") : av("units");

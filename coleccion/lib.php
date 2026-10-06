@@ -323,16 +323,15 @@ function lw_coleccion_para_navegador(array $doc) {
  * UNA regla para el servidor (JSON-LD, noscript); su gemela en JS es LawangCard.estado (assets/lawang-card.js)
  * y los dos tests (coleccion/tests/coleccion_test.php y assets/lawang-card.test.js) afirman la MISMA tabla
  * (coleccion/tests/estados_esperados.json) contra la RPC real: si una cambia y la otra no, el gate falla.
- *   k: none  sin parcelas (y dato fresco) -> sin dato que decir (no es «no disponible»: no se muestra estado)
- *      na    no se puede fiar: stale (con o sin parcelas), estado desconocido o unitsAvailable que no cuadra
+ *   k: na    no se puede afirmar nada: sin parcelas, dato viejo (stale), estado desconocido o unitsAvailable que no cuadra
  *      ok    queda alguna libre (n>1 de t, o t==1 casa única «Available»)   few  queda 1 libre de >=2
  *      held  ninguna libre y alguna reservada   gone  todo vendido
  * d/r/v/t = libres/reservadas/vendidas/total.
- * CRITERIO de «none» (verificado 6-oct-2026 contra la base): riverfront-iii y rurung-anyar salen SIN chip porque su
- * proyecto no tiene ninguna fila en `unidades` (0 de 0), no por un fallo de la web. No es «no disponible» ni «consultar»:
- * es que el dueño del dato (la intranet) aun no lo tiene cargado. En cuanto el equipo cree sus unidades, el chip aparece
- * solo. Si el owner prefiere que una ficha sin unidades diga «Ask for availability», es cambiar `none` por `na` en las
- * dos reglas gemelas y en estados_esperados.json (decision de producto, no de este fichero).
+ * CRITERIO de «sin parcelas» (decision del owner, 6-oct-2026; antes salia sin chip): riverfront-iii y rurung-anyar no
+ * tienen ninguna fila en `unidades` (0 de 0) porque el dueño del dato (la intranet) aun no las ha cargado, no por un
+ * fallo de la web. Se muestra «Ask for availability» (`na`): no se afirma ni «Available» ni «Sold», se invita a
+ * consultar. En cuanto el equipo cree sus unidades, el chip pasa a su estado real solo. El JSON-LD sigue OMITIENDO
+ * `availability` (no hay dato fiable) y `none` ya no existe en esta regla (solo lo usa el JS como centinela data.json).
  */
 function lw_coleccion_estado(array $p, $stale = false) {
     $d = $r = $v = $x = 0;
@@ -342,8 +341,7 @@ function lw_coleccion_estado(array $p, $stale = false) {
     }
     $t = $d + $r + $v + $x;
     $out = function ($k) use ($d, $r, $v, $t) { return ['k' => $k, 'd' => $d, 'r' => $r, 'v' => $v, 't' => $t]; };
-    if ($stale) return $out('na'); // «no he podido mirar» se ve distinto de «no hay nada» (none): incluso sin parcelas
-    if ($t === 0) return $out('none');
+    if ($stale || $t === 0) return $out('na'); // dato viejo, o ficha sin unidades cargadas: «Ask for availability», nunca un estado inventado
     if ($x > 0) return $out('na');
     $ua = $p['unitsAvailable'] ?? null;
     if ($ua !== null && $ua !== '') { // dos contadores que no cuadran (o que no son un entero): no se afirma ninguno
