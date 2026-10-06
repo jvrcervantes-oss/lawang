@@ -5144,6 +5144,11 @@
       // ella la RLS de `usuarios` rechaza igual, así que no se ofrece el control.
       var puedeUsuarios = esAdminP && puedeH(ficha, 'usuarios');
       var proyectoObj = function () { return window.LW_V4 && window.LW_V4.proyecto; };
+      var nombreEmpresa = function (clave) {
+        var l = (window.LW_V4 && window.LW_V4.empresas) || [];
+        var e = l.filter(function (x) { return x.clave === clave; })[0];
+        return e ? e.nombre : edT('Sin empresa (cerrado)');
+      };
 
       /* Categorías de un ENLACE (S11.1, 22-sep-2026): fuente ÚNICA para el
          alta y la edición — nunca las 9 del CHECK de la tabla (incluye
@@ -5898,6 +5903,12 @@
             { k: 'nombre', label: 'Nombre', req: 1, valor: p.nombre,
               ayuda: 'Cuidado: renombrar aquí toca unidades, contratos, facturas, documentación y modelos de este proyecto — se confirma con el radio de impacto antes de guardar.' },
             { k: 'resort', label: 'Resort', valor: p.resort || '' },
+            /* Empresa que controla el proyecto (F1 empresas, 7-oct-2026, owner): Lawang promotora / Sandal Woods matriz. Es solo
+               etiqueta en esta fase. Editable SOLO por super_admin: aqui se esconde, el que lo hace cumplir es proyecto_empresa_guarda
+               (y el trigger trg_proyecto_empresa) en la base. Las opciones salen de la tabla `empresas`, no de una lista a mano. */
+            { k: 'empresa', label: edT('Empresa'), tipo: esSuper ? 'select' : 'lectura',
+              valor: esSuper ? (p.empresa || '') : nombreEmpresa(p.empresa),
+              opciones: [['', edT('Sin empresa (cerrado)')]].concat(((window.LW_V4 && window.LW_V4.empresas) || []).map(function (e) { return [e.clave, e.nombre]; })) },
             // Ubicación en Google Maps (24-sep-2026, owner). Texto tal cual se pega;
             // lo interpreta mapaProyecto() de datos.js al pintar.
             { k: 'ubicacion_maps', label: 'Ubicación (Google Maps)', valor: p.ubicacion_maps || '',
@@ -6006,6 +6017,10 @@
                 // así que aquí ya no hay «0 filas en silencio» que vigilar (consulta de deploy de Desarrollo)
                 if (r.error) return r;
                 var trabajos = [];
+                if (esSuper && (v.empresa || null) !== (p.empresa || null)) {
+                  trabajos.push(sb.rpc('proyecto_empresa_guarda', { p_id: p.id, p_empresa: v.empresa || null })
+                    .then(function (re) { if (re.error) aviso(edT('La empresa no se pudo guardar: ') + re.error.message, '#ba1a1a'); }));
+                }
                 if (esAdminP && catalogo.length) {
                   trabajos.push(lwDeclaraModelosEnProyecto(sb, nombreEfectivo, v.modelos || [], {
                     catalogo: catalogo, villas: villas, enUso: new Set(Object.keys(enUso)), proyecto_id: p.id

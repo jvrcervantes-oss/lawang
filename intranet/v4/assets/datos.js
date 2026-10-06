@@ -4947,7 +4947,8 @@
             var c = cifrasProyecto(p), d = c.d;
             return '<tr class="border-b border-warm-border/60 last:border-0 hover:bg-surface-container-low cursor-pointer" data-proy="' + esc(p.nombre) + '">' +
               '<td class="px-3 py-2 max-w-[260px]"><div class="font-semibold text-deep-lagoon truncate" title="' + esc(p.nombre) + '">' + esc(p.nombre) + '</div>' +
-                '<div class="text-[11px] text-outline truncate">' + esc(p.parcela_master ? 'Máster ' + p.parcela_master : 'Sin parcela máster') + '</div></td>' +
+                '<div class="text-[11px] text-outline truncate">' + esc(p.parcela_master ? 'Máster ' + p.parcela_master : 'Sin parcela máster') + '</div>' +
+                '<div class="text-[11px] text-outline truncate" data-lw="empresa-proyecto">' + esc(nombreEmpresaP(p) || ((window.lwT ? window.lwT('Sin empresa') : 'Sin empresa'))) + '</div></td>' +
               '<td class="px-3 py-2 text-on-surface-variant max-w-[180px] truncate" title="' + esc(p.resort || '') + '">' + esc(p.resort || '—') + '</td>' +
               '<td class="px-3 py-2"><span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white whitespace-nowrap" style="background:' +
                 colorProyEstado(p.estado) + '">' + esc(etiquetaProyEstado(p.estado)) + '</span></td>' +
@@ -5050,6 +5051,7 @@
           var sub = p.parcela_master ? 'Parcela máster ' + p.parcela_master + (p.parcela_master_m2 ? ' · ' + p.parcela_master_m2 + ' m²' : '') : 'Sin parcela máster registrada';
           pon('nombre', p.nombre, c);
           pon('sitio', p.resort || 'Sin ubicación asignada', c);
+          sub += ' · ' + (nombreEmpresaP(p) || (window.lwT ? window.lwT('Sin empresa') : 'Sin empresa'));   // empresa (F1): etiqueta
           pon('sub', sub, c);
           // title con el texto entero: la tarjeta lo corta con «…» (truncate)
           // para que nada se salga, y así no se pierde al pasar el ratón.
@@ -5480,12 +5482,18 @@
       }
 
       var DS_ACTUAL = [];
+      // Empresa de cada proyecto (F1 empresas): solo etiqueta; lo que se ve no cambia por ella.
+      var EMPRESAS = [];
+      function nombreEmpresaP(p) {
+        var e = p && p.empresa ? EMPRESAS.filter(function (x) { return x.clave === p.empresa; })[0] : null;
+        return e ? e.nombre : (p && p.empresa ? p.empresa : '');
+      }
 
       Promise.all([
         // `slug` (22-sep-2026, S10.3): lo lee y lo escribe el editor nativo del
         // Investor Deck — sin él "Investor Deck" no podría mostrar la URL
         // pública ni ofrecer cambiarlo.
-        q(sb.from('proyectos').select('id,nombre,slug,resort,ubicacion_maps,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en,estado,pct_minimo_inicio').eq('activo', true).order('nombre'), 'proyectos'),
+        q(sb.from('proyectos').select('id,nombre,slug,resort,empresa,ubicacion_maps,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en,estado,pct_minimo_inicio').eq('activo', true).order('nombre'), 'proyectos'),
         q(sb.from('unidades').select('proyecto,estado,moneda,precio,precio_suelo,precio_construccion'), 'unidades'),
         /* La RPC de EQUIPO, nunca `.from('facturas')`. `facturas` tiene RLS por
            agente (`es_suyo`), así que una lectura directa devuelve solo «lo mío»
@@ -5531,7 +5539,9 @@
            a /compradores/ desde cada parcela. `contrato_compradores` no tiene
            RLS por autoría (solo es_agente()), así que se lee entero una vez,
            igual que managers/equipo de arriba. */
-        q(sb.from('contrato_compradores').select('contrato_id,client_id').eq('rol', 'adquiriente_1'), 'compradores por contrato')
+        q(sb.from('contrato_compradores').select('contrato_id,client_id').eq('rol', 'adquiriente_1'), 'compradores por contrato'),
+        // Empresas (F1, 7-oct-2026): nombre de la empresa de cada proyecto. Siempre la ultima: no desplaza ningun r[n].
+        q(sb.from('empresas').select('clave,nombre,orden').eq('activa', true).order('orden'), 'empresas')
       ]).then(function (r) {
         var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [], mgrs = r[4] || [], eq = r[5] || [];
         var cts = r[6] || [], cobPorContrato = r[7] || [], portadas = r[8] || [], adq1 = r[9] || [];
@@ -5552,6 +5562,8 @@
            sobre PS sin reordenar. */
         ps.sort(lwOrdenProyectos());
         PS = ps; MGRS = mgrs; DS_ACTUAL = ds;
+        EMPRESAS = r[10] || [];
+        window.LW_V4.empresas = EMPRESAS;
         EQUIPO_NOMBRE = {};
         eq.forEach(function (e) { if (e.email) EQUIPO_NOMBRE[e.email] = e.nombre || e.email; });
         /* NOMBRE_POR_PROYECTO_ID (18-sep-2026): una factura/recibí que cuelga de
