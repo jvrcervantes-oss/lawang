@@ -1,0 +1,7 @@
+-- REVERSION lote 2b (6-oct-2026)
+-- C: estado previo capturado antes de aplicar (sociedad, datos.fields.sociedad; datos.emisor lo vuelve a congelar el trigger desde public.sociedades):
+--   INV00005 san_dal_woods (emisor previo: ausente) · PRO00110 tepi_sungai (emisor previo: ausente) · PRO00223 tepi_sungai (emisor previo congelado_en 2026-09-28T15:30:50Z, mismos datos de Tepi)
+--   (facturas sin enviar: el cambio de sociedad es posible; si alguna se enviase despues, esta reversion se para sola por factura_enviada_no_cambia_emisor)
+--   update public.facturas set sociedad='san_dal_woods', datos=jsonb_set(datos,'{fields,sociedad}','"san_dal_woods"') where numero='INV00005';
+--   update public.facturas set sociedad='tepi_sungai',  datos=jsonb_set(datos,'{fields,sociedad}','"tepi_sungai"')  where numero in ('PRO00110','PRO00223');
+--   NOTA: el trigger trg_facturas_sociedad_coherente rechazara esta reversion mientras el contrato siga siendo de la otra sociedad: habria que revertir antes el contrato.
