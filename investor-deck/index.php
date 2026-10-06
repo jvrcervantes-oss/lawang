@@ -334,6 +334,16 @@ a.enlace{color:inherit;text-decoration:underline}
 .faq-item__body{padding:0 0 20px;font-family:var(--sa);font-size:14px;line-height:1.75;color:rgba(245,240,230,.72);max-width:64ch}
 .dd-atajos{display:flex;flex-wrap:wrap;gap:8px;padding-top:16px}
 .dd-atajos .btn{padding:10px 16px;font-size:10px}
+/* Atajos del panel en Verde Lawang con flecha (owner, 6-oct-2026, opcion 2 de la maqueta):
+   tinte verde y borde salvia en reposo; relleno verde de la marca al pasar; verde oscuro al
+   pulsar. La flecha baja 2px al pasar: llevan a una seccion mas abajo. */
+.dd-atajos .btn-atajo{gap:6px;padding:10px 14px;border-color:rgba(143,155,122,.7);color:var(--rl);background:rgba(72,91,55,.18)}
+.dd-atajos .btn-atajo .material-symbols-outlined{font-size:15px;transition:transform .3s var(--ease)}
+.dd-atajos .btn-atajo:hover{background:var(--tg);border-color:var(--pg)}
+.dd-atajos .btn-atajo:hover .material-symbols-outlined{transform:translateY(2px)}
+.dd-atajos .btn-atajo:active{background:var(--tg-dark);border-color:var(--tg-dark)}
+.dd-atajos .btn-atajo:focus-visible{outline:2px solid var(--ss);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){.dd-atajos .btn-atajo .material-symbols-outlined{transition:none}.dd-atajos .btn-atajo:hover .material-symbols-outlined{transform:none}}
 /* Panel sin scroll en escritorio (owner, 6-oct-2026): documentos en dos columnas con tarjeta
    baja (View / Download como texto) y filas de FAQ mas prietas. El cuerpo conserva su
    overflow-y:auto: al abrir una respuesta larga hace scroll en vez de recortarla. Movil intacto. */
@@ -362,12 +372,25 @@ a.enlace{color:inherit;text-decoration:underline}
   .dd-cab{padding:20px 26px 16px}
   #faq h2{font-size:28px}
   .dd-lema{font-size:13px;line-height:1.6;margin-top:10px}
-  .dd-atajos{padding-top:12px}
+  .dd-atajos{padding-top:12px;gap:6px}
+  .dd-atajos .btn-atajo{padding:8px 10px;letter-spacing:.1em}
   .dd-cuerpo{padding:12px 26px 14px}
   .dd-cols{gap:16px}
   .doc{padding:8px 0}
   .faq-item summary{padding:8px 0}
 }
+/* Pantallas de 760px de alto o menos (1280x720): un escalon mas, porque en espanol e indonesio
+   las preguntas y los botones son mas largos y en ingles ya cabia (medido 6-oct-2026) */
+@media(min-width:1024px) and (max-height:760px){
+  .dd-cab{padding:16px 26px 12px}
+  #faq h2{font-size:26px}
+  .dd-lema{line-height:1.5}
+  .dd-cuerpo{padding:10px 26px 10px}
+  .doc{padding:6px 0}
+  .faq-item summary{padding:6px 0}
+}
+/* ...y a esa altura la FAQ gana ancho: en indonesio sus preguntas pasaban a tres lineas */
+@media(min-width:1280px) and (max-height:760px){ .dd-cols.con-docs.con-faq{grid-template-columns:1.2fr 1fr} }
 /* Sin FAQ, los documentos aprovechan el ancho entero: tres columnas */
 @media(min-width:1280px){
   .dd-cols.con-docs:not(.con-faq) #docs-lista:not(.un-doc){grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -651,9 +674,9 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       <?php /* Atajos justo tras el lema (owner, 6-oct-2026): antes cerraban el cuerpo y solo
            se veian haciendo scroll. Cada uno se oculta solo si su seccion falta (ocultaSeccion). */ ?>
       <div class="dd-atajos">
-        <a class="btn btn-hueso" href="#modelos">Villa Models</a>
-        <a class="btn btn-hueso" href="#masterplan">Masterplan &amp; Plots</a>
-        <a class="btn btn-hueso" href="#rendimientos">Financial Forecast</a>
+        <a class="btn btn-atajo" href="#modelos"><span>Villa Models</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+        <a class="btn btn-atajo" href="#masterplan"><span>Masterplan &amp; Plots</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+        <a class="btn btn-atajo" href="#rendimientos"><span>Financial Forecast</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
       </div>
     </div>
     <div class="dd-cuerpo">
