@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="9bf95a5e241b">
+<meta name="lw-version" content="d853abf62777">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -111,7 +111,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=82317891"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=8b3828e5"></script>
 <script src="/intranet/v4/assets/nav.js?v=c76dd0b9" defer></script>
 </head>
 <body>
@@ -1555,7 +1555,7 @@ function wireClienteBuscadorEn(input, res, onPick){
   input.addEventListener('input', ()=>{
     clearTimeout(timer);
     const q=input.value.trim();
-    if(q.length<2){ res.hidden=true; res.innerHTML=''; return; }
+    if(q.length<3){ res.hidden=true; res.innerHTML=''; return; }
     timer=setTimeout(()=>buscarClientes(q, res, onPick, input), 280);
   });
   input.addEventListener('blur', ()=> setTimeout(()=>{ res.hidden=true; }, 150));
@@ -1574,8 +1574,8 @@ async function buscarClientes(q, res, onPick, input){
      del 11-sep): un closer no encontraba al comprador de otro closer, veía
      «Sin coincidencias», y como sin ficha no se guarda, la salida era darlo de
      alta OTRA VEZ (la persona partida en dos). La persona es del equipo; lo que
-     sigue siendo de cada uno es su contrato y su dinero. `compradores_directorio()`
-     es la misma RPC que ya usa /intranet/compradores/: identidad sin `notes`.
+     sigue siendo de cada uno es su contrato y su dinero. `comprador_buscar()`
+     (desde el 6-oct-2026; antes `compradores_directorio()`) filtra en servidor: identidad sin `notes`.
      Trae `propietario` para decir de quién es la ficha — corregirla sigue
      siendo cosa de su dueño o de un admin, no de quien la enlaza. */
   await cargarEquipo();
@@ -1583,9 +1583,11 @@ async function buscarClientes(q, res, onPick, input){
      domicilio, nacionalidad y datos de empresa de ocho fichas por cada tecla
      no hacen falta para elegir; la ficha completa se pide UNA vez, al elegirla
      (mismo criterio que el listado de la v4 desde el 18-sep). */
-  const { data, error } = await sb.rpc('compradores_directorio')
-    .select('id,full_name,email,passport_number,tipo,propietario')
-    .or(`full_name.ilike.${like},email.ilike.${like},passport_number.ilike.${like}`).limit(8);
+  /* Lote 3 F2 (6-oct-2026, Seguridad): la búsqueda ya no vuelca el directorio —
+     `comprador_buscar` filtra en el servidor, devuelve 8 como máximo y el pasaporte
+     solo enmascarado (`passport_hint`, «…1234»); por pasaporte se encuentra solo
+     escribiéndolo ENTERO (antes valía un prefijo). */
+  const { data, error } = await sb.rpc('comprador_buscar', { p_q: q.trim() });
   if(error){ res.hidden=true; return; }
   if(!data || !data.length){
     res.innerHTML=`<div class="cli-vacio">${L({es:'Sin coincidencias.',en:'No matches.',id:'Tidak ada hasil.'})}</div>`;
@@ -1595,7 +1597,7 @@ async function buscarClientes(q, res, onPick, input){
   // 19-ago una persona y su sociedad comparten correo, así que dos resultados
   // pueden llegar con el mismo email y solo el tipo los distingue.
   res.innerHTML=data.map((c,i)=>`<div class="cli-r" data-ci="${i}">
-    <b>${esc(c.full_name||'—')}</b>${c.tipo==='empresa' ? ' <span class="cli-ok">'+L({es:'Empresa',en:'Company',id:'Perusahaan'})+'</span>' : ''}<br><span>${esc([c.email,c.passport_number].filter(Boolean).join(' · ')||'—')}${fichaDeQuien(c)}</span>
+    <b>${esc(c.full_name||'—')}</b>${c.tipo==='empresa' ? ' <span class="cli-ok">'+L({es:'Empresa',en:'Company',id:'Perusahaan'})+'</span>' : ''}<br><span>${esc([c.email,c.passport_hint].filter(Boolean).join(' · ')||'—')}${fichaDeQuien(c)}</span>
   </div>`).join('');
   res._data=data;
   res.hidden=false;
@@ -1603,7 +1605,7 @@ async function buscarClientes(q, res, onPick, input){
     e.preventDefault();   // antes del blur del input, si no el blur cierra la lista primero
     const elegido=res._data[+el.dataset.ci];
     // la ficha completa, solo de la elegida (ver el select de arriba)
-    const { data: c, error: eF } = await sb.rpc('compradores_directorio').eq('id', elegido.id).maybeSingle();
+    const { data: c, error: eF } = await sb.rpc('comprador_ficha', { p_id: elegido.id }).maybeSingle();
     if(eF || !c){ toastMal(lwT('No se pudo leer la ficha del comprador: ') + (eF ? eF.message : '')); return; }
     onPick({ nombre:c.full_name||'', nacionalidad:c.nationality||'', pasaporte:c.passport_number||'',
       telefono:c.phone||'', email:c.email||'' }, c);
@@ -5589,7 +5591,7 @@ async function openSavedContract(id){
          estaban así) recibía 0 filas de `clients`, el contrato cargaba «sin
          ficha» y el freno de guardado le impedía volver a guardar lo suyo.
          Ver buscarClientes(). */
-      const { data: fc } = await sb.rpc('compradores_directorio').eq('id', idFicha).maybeSingle();
+      const { data: fc } = await sb.rpc('comprador_ficha', { p_id: idFicha }).maybeSingle();
       if(fc) ADQ1_CLIENT = fc;
     }
   }
@@ -7021,7 +7023,7 @@ async function init(){
     if(idCliente && sb){
       // Por la RPC del directorio (22-sep-2026): desde Compradores se puede
       // arrancar un contrato para una ficha ajena — ver buscarClientes().
-      const { data: fc } = await sb.rpc('compradores_directorio').eq('id', idCliente).maybeSingle();
+      const { data: fc } = await sb.rpc('comprador_ficha', { p_id: idCliente }).maybeSingle();
       if(fc){ enlazarFicha(fc); toast(lwT('Contrato nuevo para ') + (fc.full_name || 'el cliente elegido')); }
       else toastMal(lwT('Esa ficha de cliente ya no existe: empieza el contrato buscándolo'));
     }

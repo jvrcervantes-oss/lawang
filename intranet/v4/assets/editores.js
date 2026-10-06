@@ -7874,7 +7874,7 @@
          sigue: el aviso es una ayuda, no un candado. */
       function telefonoRepetidoSigue(tel, excluirId) {
         if (typeof fichasConMismoTelefono !== 'function' || telefonoDigitos(tel).length < 7) return Promise.resolve(true);
-        return sb.rpc('compradores_directorio').select('id,full_name,phone').then(function (r) {
+        return sb.rpc('compradores_lista').select('id,full_name,phone').then(function (r) {
           if (r.error || !r.data) return true;
           var mismos = fichasConMismoTelefono(r.data, tel, excluirId);
           if (!mismos.length) return true;
