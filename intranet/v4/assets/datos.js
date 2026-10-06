@@ -872,7 +872,8 @@
       suave(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente')),
       suave(sb.rpc('contratos_equipo').select('id,numero,comprador_nombre,bloqueado,liberado_en')),
       // Desde el 18-ago-2026, día en que se activó la factura automática: lo
-      // anterior es alta de histórico y se revisa aparte.
+      // anterior es alta de histórico y se revisa aparte. Misma regla que
+      // public.hitos_sin_factura() (ver su COMMENT): si cambia, cambiar las dos.
       suave(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto,contratos!inner(numero,bloqueado,liberado_en)')
         .eq('contratos.bloqueado', true).is('contratos.liberado_en', null).is('factura_id', null).eq('no_facturar', false)
         .lt('fecha', hoy).gte('fecha', '2026-08-18').order('fecha')),

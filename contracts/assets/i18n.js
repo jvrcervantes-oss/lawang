@@ -648,6 +648,8 @@
     'Lo que este panel no cuenta': 'What this panel does not count',
     'Lo que ha entrado y lo que toca cobrar': 'What has come in and what is due',
     'Lo que ya se debe pagar': 'What is already owed',
+    'No se pudo leer el equipo: en «Quién cerró» se ven correos en vez de nombres. Las cifras son correctas.': 'Could not read the team: "Closed by" shows emails instead of names. The figures are correct.',
+    'No se pudieron leer las sociedades: se ven sus claves en vez de su razón social. Las cifras son correctas.': 'Could not read the companies: their keys are shown instead of their legal names. The figures are correct.',
     'Los bloques que dependen de eso lo dicen; el resto es correcto.': 'The blocks that depend on it say so; the rest is correct.',
     'Los hitos prometen': 'The milestones promise',
     'Los tramos suman el total: son el mismo dinero repartido por fecha de su hito, no importes distintos.': 'The bands add up to the total: the same money split by milestone date, not separate amounts.',
