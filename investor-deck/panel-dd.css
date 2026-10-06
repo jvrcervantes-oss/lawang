@@ -6,7 +6,8 @@
    El marcado que pinta el JS es el mismo en las dos: .doc / .doc-cab / .doc-txt / .doc-tit /
    .doc-sub / .doc-des / .doc-acc / .doc-btn, y .faq-item con summary > span + span.mi.
    Usa las variables de color y tipo del :root de cada pagina (--rl, --sc, --ss, --tg, --pg,
-   --tg-dark, --ob, --sa, --se, --ease, --cpd, --pw). */
+   --tg-dark, --ob, --sa, --se, --ease, --cpd, --pw).
+   Al cambiar este fichero, subir el ?v= de su <link> en LAS DOS paginas. */
 
 /* Movil: debajo de la foto, en flujo (leccion de la v2: un panel largo superpuesto en pantalla
    pequena es un callejon sin salida). Desde 1024px flota a la derecha sobre la foto, en cristal. */
@@ -60,6 +61,8 @@
 /* FAQ: acordeon con + / - de la home (el + lo dibujan ::before/::after de un span.mi vacio) */
 #faq-lista{display:flex;flex-direction:column}
 #faq-lista p{color:rgba(245,240,230,.7)}
+/* enlace del aviso «no se pudieron cargar las preguntas»: claro sobre el cristal oscuro */
+#faq-lista p a{color:var(--rl);text-decoration:underline}
 .faq-item{border:0;border-top:1px solid rgba(245,240,230,.18);border-radius:0;background:transparent}
 .faq-item:last-child{border-bottom:1px solid rgba(245,240,230,.18)}
 .faq-item + .faq-item{margin-top:0}
@@ -141,7 +144,8 @@
 }
 /* El hueco de la barra de scroll va reservado siempre (owner, 6-oct-2026: «cuando abro
    Preguntas frecuentes se mueve hacia la izquierda»). Al abrir una respuesta larga aparece la
-   barra y, sin reserva, le quitaba su ancho al contenido y todo saltaba a la izquierda. El
-   margen derecho baja lo que ocupa la barra fina, para que el contenido no pierda ancho.
-   Va al final: tiene que ganar a los padding de los escalones de altura de arriba. */
-@media(min-width:1024px){ .dd-cuerpo{scrollbar-gutter:stable;padding-right:16px} }
+   barra y, sin reserva, le quitaba su ancho al contenido y todo saltaba a la izquierda.
+   Sin tocar el padding: con barra clasica (Windows) el contenido pierde su ancho (~12px) y
+   sigue cabiendo (medido en es/id a 1280x720); con barra superpuesta (Mac, iPad) no se reserva
+   nada y el panel queda simetrico. Un padding fijo compensado descuadraba ese segundo caso. */
+@media(min-width:1024px){ .dd-cuerpo{scrollbar-gutter:stable} }
