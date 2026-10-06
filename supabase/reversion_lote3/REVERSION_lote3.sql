@@ -7,4 +7,5 @@
 -- F4: policies previas (ambas roles {authenticated,lw_lector}, using es_agente()):
 --   drop policy "modelos: leer" on public.modelos;       create policy "modelos: leer" on public.modelos for select to authenticated, lw_lector using (public.es_agente());
 --   drop policy "techos: leer" on public.modelo_techos;  create policy "techos: leer" on public.modelo_techos for select to authenticated, lw_lector using (public.es_agente());
--- F3 (no aplicada si aparece abajo como PARADA): policies previas using (true) en cuentas_bancarias "cuentas: solo con sesion", plantilla_cuentas "mapeo cuentas: solo con sesion", proyecto_cuentas "cuentas por proyecto: solo con sesion", sociedades "sociedades: leer" (roles {authenticated,lw_lector}).
+-- F3 fase A: drop function public.cuentas_cobro_visibles(); drop function public.sociedades_visibles(); y volver entities.js al select directo (Backups/20261007_0100_lote3_F3_entities.js).
+-- F3 fase B (APLICADA): ver el bloque REVERTIR de la migracion 20261007000500. Policies previas using (true) en cuentas_bancarias "cuentas: solo con sesion", plantilla_cuentas "mapeo cuentas: solo con sesion", proyecto_cuentas "cuentas por proyecto: solo con sesion", sociedades "sociedades: leer" (roles {authenticated,lw_lector}).
