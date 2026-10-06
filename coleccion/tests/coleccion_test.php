@@ -146,6 +146,7 @@ ok($d['properties'] === [] && strpos(json_encode($d), 'LEAK') === false, 'respal
 $sock = stream_socket_server('tcp://127.0.0.1:0', $en, $es); $port = (int) substr(strrchr(stream_socket_get_name($sock, false), ':'), 1); fclose($sock);
 $modoF = $tmp . '/modo.txt'; $fixF = $tmp . '/rpc_fixture.json';
 file_put_contents($tmp . '/router.php', '<?php $m=trim((string)@file_get_contents(' . var_export($modoF, true) . '));'
+  . 'if($m==="una_vez"){$cf=' . var_export($tmp . '/una_vez.cnt', true) . ';$n=(int)@file_get_contents($cf);file_put_contents($cf,$n+1);if($n<1){http_response_code(500);echo "{}";return;}}'
   . 'if($m==="http500"){http_response_code(500);echo "{}";return;}if($m==="basura"){echo "<html>no json";return;}'
   . 'header("Content-Type: application/json");echo file_get_contents(' . var_export($fixF, true) . ');');
 $srv = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", $tmp . '/router.php'], [1 => ['file', $tmp . '/srv.out', 'w'], 2 => ['file', $tmp . '/srv.err', 'w']], $sp);
@@ -207,6 +208,22 @@ $d = lw_coleccion_carga($c2b);
 ok($d['fuente'] === 'respaldo' && $d['stale'] === true, 'con un fallo reciente no se reintenta la RPC (aunque ya responda): sirve respaldo');
 unlink($c2b['cache'] . '.fallo');
 ok(ids(lw_coleccion_carga($c2b)) === ['rpc-a', 'rpc-b'], 'caducado el marcador, la RPC se vuelve a intentar y recupera');
+// Cache FRIA + un fallo aislado de la RPC: se reintenta una vez y NO cae a stale (F7, 6-oct-2026: la primera
+// carga tras desplegar salia con las 9 tarjetas en «Ask for availability» aunque la RPC estaba sana).
+$c6 = $ci(); escribe($c6['respaldo'], doc([ficha('resp-a')]));
+@unlink($tmp . '/una_vez.cnt'); rpc_modo('una_vez'); log_limpia();
+$d = lw_coleccion_carga($c6);
+ok($d['stale'] === false && $d['fuente'] === 'intranet' && ids($d) === ['rpc-a', 'rpc-b'], 'cache fria + 1 fallo aislado: reintenta y sirve la RPC, stale=false');
+ok(!is_file($c6['cache'] . '.fallo') && strpos(log_txt(), 'un reintento') !== false, 'el reintento se dice en el log y no deja marcador de fallo');
+// Con cache vieja NO se reintenta (ya hay con que servir): exactamente 1 peticion
+$c7 = $ci(); escribe($c7['cache'], doc([ficha('vieja')])); touch($c7['cache'], time() - 120);
+@unlink($tmp . '/una_vez.cnt'); rpc_modo('una_vez');
+$d = lw_coleccion_carga($c7);
+ok($d['stale'] === true && ids($d) === ['vieja'] && (int) file_get_contents($tmp . '/una_vez.cnt') === 1, 'con cache vieja no se reintenta: 1 sola peticion y stale=true');
+// Cache fria y RPC caida de verdad: 2 intentos UNA vez, y el marcador cierra la puerta al resto
+$c8 = $ci(['rpc' => 'http://127.0.0.1:1/rpc']); escribe($c8['respaldo'], doc([ficha('resp-a')]));
+$d = lw_coleccion_carga($c8);
+ok($d['stale'] === true && $d['fuente'] === 'respaldo' && is_file($c8['cache'] . '.fallo'), 'cache fria y RPC caida: respaldo stale y marcador de fallo');
 // 0 fichas = fallo (documentado), no web vacia
 $c3 = $ci(); escribe($c3['respaldo'], doc([ficha('resp-a')])); rpc_modo('ok', []); log_limpia();
 $d = lw_coleccion_carga($c3);
@@ -346,6 +363,27 @@ $ld1 = corre(['-r', '$_GET["property"]="tirta-hikari"; require ' . var_export($R
 ok(strpos($ld1, 'schema.org/InStock') !== false, 'JSON-LD con datajson: InStock como siempre');
 $api = json_decode(corre([$RAIZ . '/api/coleccion.php'], $envI, $RAIZ), true);
 ok(is_array($api) && array_keys($api) === ['properties', 'settings', 'downloads', 'live', 'stale'], 'api/coleccion.php devuelve el documento del navegador');
+
+// (e) JSON-LD del LISTADO (F7, 6-oct-2026: la v2 salia sin ningun bloque ld+json): misma regla que lw_coleccion_estado
+$site = 'https://lawangproperties.com';
+$jl = lw_coleccion_jsonld_listado($docFresco, $site);
+ok($jl['@type'] === 'CollectionPage' && $jl['url'] === $site . '/thecollection', 'JSON-LD listado: CollectionPage de /thecollection');
+$els = $jl['mainEntity']['itemListElement'];
+ok(count($els) === count($rpc6) && $jl['mainEntity']['numberOfItems'] === count($rpc6), 'JSON-LD listado: un item por ficha');
+$por = []; foreach ($els as $e) { $por[basename($e['item']['url'])] = $e['item']; }
+ok($por['pura-dalem']['offers']['availability'] === 'https://schema.org/LimitedAvailability', 'JSON-LD: queda 1 libre -> LimitedAvailability');
+ok($por['riverfront-i']['offers']['availability'] === 'https://schema.org/InStock', 'JSON-LD: hay libres -> InStock');
+ok(!isset($por['riverfront-iii']['offers']['availability']) && $por['riverfront-iii']['offers']['price'] === '250000', 'JSON-LD: sin parcelas (none) -> sin availability, con precio');
+$jv = lw_coleccion_jsonld_listado(['properties' => [$vend], 'stale' => false, 'live' => true], $site);
+ok($jv['mainEntity']['itemListElement'][0]['item']['offers']['availability'] === 'https://schema.org/SoldOut', 'JSON-LD: vendida -> SoldOut');
+$js = lw_coleccion_jsonld_listado(['properties' => $rpc6, 'stale' => true, 'live' => true], $site);
+$hay = false; foreach ($js['mainEntity']['itemListElement'] as $e) { if (isset($e['item']['offers']['availability'])) $hay = true; }
+ok(!$hay, 'JSON-LD con dato viejo: ninguna availability afirmada');
+ok(!isset(lw_coleccion_jsonld_listado(['properties' => $rpc6, 'stale' => false, 'live' => false], $site)['mainEntity']), 'JSON-LD con datajson: CollectionPage de siempre, sin ItemList');
+$h2 = corre(['-r', 'require ' . var_export($RAIZ . '/thecollection-v2.php', true) . ';'], $envI, $RAIZ);
+ok(substr_count($h2, 'application/ld+json') === 1 && strpos($h2, '"@type":"CollectionPage"') !== false && strpos($h2, 'schema.org/InStock') === false, 'v2 servida: 1 bloque ld+json (CollectionPage) y con la RPC caida no afirma InStock');
+$h1 = corre(['-r', 'require ' . var_export($RAIZ . '/thecollection.php', true) . ';'], $envS, $RAIZ);
+ok(substr_count($h1, 'application/ld+json') === 1 && strpos($h1, '"@type":"CollectionPage"') !== false && strpos($h1, 'ItemList') === false, 'v1 servida (datajson): 1 bloque ld+json, CollectionPage sin ItemList');
 
 // limpieza
 foreach (array_merge(glob($tmp . '/*') ?: [], glob($tmp . '/.*') ?: []) as $f) if (is_file($f)) @unlink($f);
