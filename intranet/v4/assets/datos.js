@@ -1806,6 +1806,8 @@
         H.dato('Proyecto', f.proyecto_nombre) +
         H.dato('Contrato', c ? enlaceFichaContrato(c) : (f.contrato_numero || null), { html: !!c }) +
         (c && c.precio_total != null ? H.dato('Precio del contrato', fmt(c.precio_total, c.moneda)) : ''));
+      // Saldo del contrato (5-oct-2026): las cifras las da la base (contrato_saldo), se rellena abajo.
+      if (f.contrato_id && f.tipo !== 'recibi') cuerpo += '<div data-lw-saldo-host></div>';
       if (f.tipo === 'recibi') {
         var js = Array.isArray(f.justificantes) ? f.justificantes.slice() : [];
         if (!js.length && f.justificante_path) js.push({ path: f.justificante_path });
@@ -1815,6 +1817,23 @@
           }).join('') : H.nota('Este recibí no tiene justificante adjunto. Se adjunta desde la herramienta viva.'));
       }
       caj.cuerpo.innerHTML = cuerpo;
+      var hostSaldo = caj.cuerpo.querySelector('[data-lw-saldo-host]');
+      if (hostSaldo) {
+        new Promise(function (ok) {
+          if (typeof window.lwSaldoCarga === 'function') return ok(true);
+          var sc = document.createElement('script');
+          sc.src = '/contracts/assets/saldo_contrato.js?v=577fa3e6';
+          sc.onload = function () { ok(true); }; sc.onerror = function () { ok(false); };
+          document.head.appendChild(sc);
+        }).then(function (hay) {
+          if (!hay) return null;
+          return window.lwSaldoCarga(sb, f.contrato_id);
+        }).then(function (s) {
+          if (!s || !hostSaldo.isConnected) return;
+          window.lwSaldoEstilo();
+          hostSaldo.innerHTML = window.lwSaldoHTML(s, fmt);
+        });
+      }
       var hostAutoria = caj.cuerpo.querySelector('[data-lw-autoria-host]');
       if (hostAutoria && window.LW_AUTORIA) {
         window.LW_AUTORIA.montar(hostAutoria, {

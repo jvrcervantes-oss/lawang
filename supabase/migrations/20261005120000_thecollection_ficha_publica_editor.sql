@@ -9,7 +9,7 @@
 --      enteros: guardar solo «equipamiento» borraba imagenes/downloads/diseno. Ahora `textos`/`ficha` en p_cambios son PARCHES que el
 --      SERVIDOR mezcla por clave de primer nivel (y `textos` además por idioma): editar `es` no pisa `en`; un null borra la clave.
 --      p_version (= actualizado_en que devolvió `lee`) da concurrencia optimista: si la fila cambió desde que se leyó → 40001 «recárgala».
---      p_version null = sin control (solo el alta): la pantalla DEBE mandarlo siempre al editar. service_role NO ejecuta estas RPC (es_admin() mira auth.uid(), que con service_role es NULL): sin llamador, sin permiso (Seguridad, 6-oct).
+--      p_version null = sin control (solo el alta): la pantalla DEBE mandarlo siempre al editar. service_role NO ejecuta estas RPC (es_admin() mira auth.uid(), que con service_role es NULL): sin llamador, sin permiso (Seguridad, 5-oct).
 --   2. `_ficha_valida(textos, ficha)`: lista blanca EXACTA de claves, tipos con jsonb_typeof, topes de tamaño y rechazo de `<`/`>` y de
 --      URLs que no sean https:// o /ruta. El navegador no es de fiar (máxima del owner 26-sep): la SPA ya escapa, pero el servidor no
 --      depende de eso. La lógica vive en `_ficha_error` (SQL puro, devuelve el primer problema o null) para poder probarla sin escribir.

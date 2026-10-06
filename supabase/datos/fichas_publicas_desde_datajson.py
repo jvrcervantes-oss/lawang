@@ -80,6 +80,27 @@ NO_MIGRADAS = {
 PLACEHOLDERS_HANDOVER = {"", "-", "–", "—"}  # «—» = «sin dato» en data.json: no se migra («nada con placeholders»)
 
 
+# Claves que NUNCA pueden viajar a una ficha publica (fichas_publicas es lectura anonima). Se busca por SUBCADENA, sin mayusculas y a
+# cualquier profundidad (claves de subobjetos y de listas), porque «agenteNotas» o «contrato_url» tambien son datos internos.
+CLAVES_SENSIBLES = ("notas", "nota", "contrato", "cuota", "iban", "mail", "phone", "telefono", "comision", "coste", "margen",
+                    "password", "token", "dni", "agente", "comprador")
+
+
+def claves_sensibles(o, ruta=""):
+    """Rutas de las claves prohibidas dentro de o (dict/list anidados)."""
+    out = []
+    if isinstance(o, dict):
+        for k, v in o.items():
+            r = "%s.%s" % (ruta, k) if ruta else str(k)
+            if any(s in str(k).lower() for s in CLAVES_SENSIBLES):
+                out.append(r)
+            out += claves_sensibles(v, r)
+    elif isinstance(o, list):
+        for i, v in enumerate(o):
+            out += claves_sensibles(v, "%s[%d]" % (ruta, i))
+    return out
+
+
 def vacio(v):
     return v in (None, "", [], {}, 0, False) or (isinstance(v, dict) and all(vacio(x) for x in v.values()))
 
@@ -130,7 +151,7 @@ def normaliza(p, orden):
         ficha["diseno"] = diseno
     if con_imagenes and p.get("images"):
         ficha["imagenes"] = p["images"]
-    return {
+    fila = {
         "slug": slug, "linea": p["line"], "region_key": p["regionKey"], "region": p.get("region") or None,
         "publicada_web": bool(p.get("visible")) and slug not in FORZAR_NO_PUBLICADA, "en_coleccion": bool(p.get("inCollection")),
         "destacada": bool(p.get("featured")), "destacada_home": bool(p.get("homeFeatured")), "orden": orden,
@@ -143,6 +164,10 @@ def normaliza(p, orden):
         "construido_m2": p.get("built") or None, "parcela_m2": p.get("land") or None,
         "textos": textos, "ficha": ficha,
     }
+    malas = claves_sensibles({"textos": textos, "ficha": ficha})
+    if malas:
+        sys.exit("ERROR: %s trae claves sensibles que no pueden ir a una ficha publica: %s" % (slug, ", ".join(malas)))
+    return fila
 
 
 def visibles(datos):
@@ -163,7 +188,8 @@ COLS = ["slug", "linea", "region_key", "region", "publicada_web", "en_coleccion"
 def sql(modo, origen):
     filas = [normaliza(p, i) for i, p in visibles(lee_origen(origen))]
     carga = json.dumps(filas, ensure_ascii=True, separators=(",", ":"))
-    assert "$f4$" not in carga
+    if "$f4$" in carga:
+        sys.exit("ERROR: la carga contiene el delimitador $f4$ del dollar-quoting: cerraria el literal SQL antes de tiempo")
     proyectos = sorted({f["proyecto_slug"] for f in filas})
     cols_t = ", ".join(
         "%s %s" % (c, t) for c, t in [
@@ -326,7 +352,39 @@ def diff(ruta, origen):
     return 1 if errores else 0
 
 
+def _test():
+    """Autoprueba sin red: python fichas_publicas_desde_datajson.py --test"""
+    base = {"id": "cube", "line": "signature", "regionKey": "r", "visible": True, "priceEUR": 1, "tabs": []}
+    assert normaliza(dict(base), 0)["slug"] == "cube"
+    for mala in ({"downloads": [{"label": "x", "agenteNotas": "y"}]}, {"techSpecs": {"a": {"IBAN": "ES1"}}},
+                 {"highlights": [{"x": {"Comision_pct": 3}}]}):
+        try:
+            normaliza(dict(base, **mala), 0)
+        except SystemExit as e:
+            assert "sensibles" in str(e.code), e.code
+        else:
+            raise AssertionError("no paro con %r" % mala)
+    try:
+        sql("prueba", _tmp_con("x$f4$y"))
+    except SystemExit as e:
+        assert "$f4$" in str(e.code), e.code
+    else:
+        raise AssertionError("no paro con $f4$ en la carga")
+    print("fichas_publicas_desde_datajson: autoprueba OK (clave sensible anidada y $f4$ paran con sys.exit)")
+
+
+def _tmp_con(texto):
+    import os, tempfile
+    fd, ruta = tempfile.mkstemp(suffix=".json")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump({"properties": [{"id": "cube", "line": "signature", "regionKey": "r", "visible": True,
+                                   "title": {"en": texto, "es": ""}}]}, f)
+    return ruta
+
+
 def main():
+    if "--test" in sys.argv:
+        return _test()
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[1], formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("accion", choices=["sql", "lectura", "diff"])
     ap.add_argument("arg", nargs="?", help="sql: prueba|real · diff: fichero con la lectura")

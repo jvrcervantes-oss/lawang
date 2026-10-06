@@ -1771,6 +1771,7 @@
     'Enlace caducado': 'Link expired',
     'Sin documento': 'No document',
     'Enlace sin enviar': 'Link not sent',
+    'Aviso de anulación sin enviar': 'Cancellation notice not sent',
     'El enlace de firma existe pero su correo no ha salido. Para mandarlo ya: «Enviar a firma» → Enviar por email.':
       'The signing link exists but its email has not gone out. To send it now: "Send for signature" → Send by email.',
     'aviso más': 'more alert',
