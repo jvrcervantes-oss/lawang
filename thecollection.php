@@ -1280,8 +1280,8 @@ window.LW_COLECCION_PRELOAD=<?= json_encode(lw_coleccion_para_navegador($doc), J
 <?php if ($V2): ?>window.LW_COLECCION_V2=true; /* ruta de prueba: las fichas se abren con #property/<id> en esta misma URL */<?php endif; ?>
 </script>
 <?php endif; ?>
-<script src="assets/lawang-card.js?v=20261006155431"></script>
-<script src="assets/portfolio-app.js?v=20261006155431"></script>
+<script src="assets/lawang-card.js?v=20261006155911"></script>
+<script src="assets/portfolio-app.js?v=20261006155911"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

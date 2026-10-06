@@ -185,6 +185,51 @@
    "parcelas": [],
    "stale": true,
    "esperado": "na"
+  },
+  {
+   "nota": "unitsAvailable no entero (1.5)",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U1",
+     "estado": "vendida"
+    }
+   ],
+   "unitsAvailable": 1.5,
+   "esperado": "na"
+  },
+  {
+   "nota": "unitsAvailable texto",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U1",
+     "estado": "vendida"
+    }
+   ],
+   "unitsAvailable": "abc",
+   "esperado": "na"
+  },
+  {
+   "nota": "unitsAvailable numero como texto que cuadra",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U1",
+     "estado": "vendida"
+    }
+   ],
+   "unitsAvailable": "1",
+   "esperado": "few"
   }
  ]
 }

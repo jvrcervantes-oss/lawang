@@ -1031,12 +1031,13 @@
   // dato": se bloquea (hallazgo Legal, deploy 6-ago). Lo distingue S.plotsStatusOk: solo pasa a
   // true cuando la respuesta llegó de verdad, nunca en el catch.
   // Estado por parcela desde el documento del SERVIDOR (p.parcelas), sin ninguna llamada: es la fuente de la v2.
-  // Con dato viejo plotsStatusOk queda false -> «sin dato» (clicable por defecto, igual que un fallo de red),
-  // nunca «disponible» afirmado. Idempotente por ficha.
   function plotsFromDoc(p){
-    if(S.plotsStatusFor===p.id) return;
+    // Se recalcula en CADA render (36 filas): la edad del dato cuenta, y una pestaña abierta mas de LIVE_MAX_AGE
+    // debe degradar tambien los pines y el detalle, no solo las tarjetas. Con dato viejo el mapa queda VACIO
+    // (los pines pasan a «unknown», el detalle dice «Ask for availability»): nunca estados afirmados.
     S.plotsStatusFor = p.id;
-    var map={}; (p.parcelas||[]).forEach(function(u){ if(u&&u.codigo!=null) map[u.codigo]={codigo:u.codigo, estado:u.estado, superficie_m2:u.superficie_m2}; });
+    var map={};
+    if(!dataStale()) (p.parcelas||[]).forEach(function(u){ if(u&&u.codigo!=null) map[u.codigo]={codigo:u.codigo, estado:u.estado, superficie_m2:u.superficie_m2}; });
     S.plotsStatus = map;
     S.plotsStatusOk = !dataStale();
   }

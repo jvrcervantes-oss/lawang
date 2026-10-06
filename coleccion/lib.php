@@ -326,7 +326,10 @@ function lw_coleccion_estado(array $p, $stale = false) {
     if ($t === 0) return $out('none');
     if ($x > 0) return $out('na');
     $ua = $p['unitsAvailable'] ?? null;
-    if ($ua !== null && $ua !== '' && (int) $ua !== $d) return $out('na'); // dos contadores que no cuadran: no se afirma ninguno
+    if ($ua !== null && $ua !== '') { // dos contadores que no cuadran (o que no son un entero): no se afirma ninguno
+        $un = is_numeric($ua) ? $ua + 0 : null;
+        if ($un === null || floor((float) $un) != (float) $un || (int) $un !== $d) return $out('na');
+    }
     if ($d > 1 || ($d === 1 && $t === 1)) return $out('ok');
     if ($d === 1) return $out('few');
     return $out($r > 0 ? 'held' : 'gone');

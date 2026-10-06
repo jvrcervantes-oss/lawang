@@ -102,7 +102,7 @@
     if (t === 0) return out('none');
     if (x > 0) return out('na');
     var ua = p.unitsAvailable;
-    if (ua != null && ua !== '' && Number(ua) !== d) return out('na');
+    if (ua != null && ua !== '') { var un = Number(ua); if (!Number.isInteger(un) || un !== d) return out('na'); } // entero estricto, igual que PHP
     if (d > 1 || (d === 1 && t === 1)) return out('ok');
     if (d === 1) return out('few');
     return out(r > 0 ? 'held' : 'gone');
