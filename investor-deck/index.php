@@ -271,9 +271,12 @@ a.enlace{color:inherit;text-decoration:underline}
 .dd-cab{padding-bottom:22px;border-bottom:1px solid rgba(245,240,230,.16)}
 .dd-cuerpo{display:flex;flex-direction:column;gap:30px;padding-top:24px}
 .dd-cols{display:flex;flex-direction:column;gap:30px}
+.dd-cols > div{min-width:0}
+/* Estructura A (owner, 6-oct-2026; la misma en palmfield/index.html): documentos | FAQ al
+   58/42 desde 1280px, solo si el proyecto publica las dos cosas. con-docs / con-faq los pone
+   el JS al pintar cada bloque: con uno solo, ese bloque ocupa todo el ancho. */
 @media(min-width:1280px){
-  .dd-cols{flex-direction:row;align-items:flex-start;gap:28px}
-  .dd-cols > div{flex:1 1 0;min-width:0}
+  .dd-cols.con-docs.con-faq{display:grid;grid-template-columns:1.38fr 1fr;gap:26px;align-items:start}
 }
 @media(min-width:1024px){
   #vision{height:100svh;--pw:min(40%,560px)}
@@ -329,8 +332,47 @@ a.enlace{color:inherit;text-decoration:underline}
 .faq-item .mi::after{transform:rotate(90deg);transition:transform .3s var(--ease)}
 .faq-item[open] .mi::after{transform:rotate(0)}
 .faq-item__body{padding:0 0 20px;font-family:var(--sa);font-size:14px;line-height:1.75;color:rgba(245,240,230,.72);max-width:64ch}
-.dd-atajos{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}
+.dd-atajos{display:flex;flex-wrap:wrap;gap:8px;padding-top:16px}
 .dd-atajos .btn{padding:10px 16px;font-size:10px}
+/* Panel sin scroll en escritorio (owner, 6-oct-2026): documentos en dos columnas con tarjeta
+   baja (View / Download como texto) y filas de FAQ mas prietas. El cuerpo conserva su
+   overflow-y:auto: al abrir una respuesta larga hace scroll en vez de recortarla. Movil intacto. */
+@media(min-width:1024px){
+  .dd-cuerpo{padding-top:16px;padding-bottom:20px}
+  .dd-cols{gap:22px}
+  #docs-lista{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}
+  #docs-lista.un-doc{grid-template-columns:1fr}
+  .doc{padding:10px 0;gap:5px}
+  /* filete inferior en toda la ultima fila, tenga uno o dos documentos */
+  #docs-lista .doc:nth-child(2n+1):nth-last-child(-n+2),#docs-lista .doc:nth-child(2n+1):nth-last-child(-n+2) ~ .doc{border-bottom:1px solid rgba(245,240,230,.16)}
+  .doc-tit{font-size:13px}
+  .doc-sub{font-size:10px}
+  .doc-acc{padding-left:28px;gap:14px;flex-wrap:nowrap}
+  .doc-btn{padding:0;border:0;border-radius:0;font-size:10px;letter-spacing:.12em;color:var(--ss);transition:color .25s}
+  .doc-btn:hover{background:none;color:var(--rl)}
+  .faq-item summary{padding:11px 0;font-size:12px}
+}
+/* Columna estrecha (1024-1279 y portatiles a 1280): View / Download alineados con el icono,
+   para que quepan en una linea */
+@media(min-width:1024px) and (max-width:1365px){ .doc-acc{padding-left:0;gap:12px} }
+/* Pantallas bajas (1366x768, 1280x720): cabecera y filas mas prietas para que quepa sin scroll */
+@media(min-width:1024px) and (max-height:820px){
+  .dd-cab{padding:20px 26px 16px}
+  #faq h2{font-size:28px}
+  .dd-lema{font-size:13px;line-height:1.6;margin-top:10px}
+  .dd-atajos{padding-top:12px}
+  .dd-cuerpo{padding:12px 26px 14px}
+  .dd-cols{gap:16px}
+  .doc{padding:8px 0}
+  .faq-item summary{padding:8px 0}
+}
+/* Sin FAQ, los documentos aprovechan el ancho entero: tres columnas */
+@media(min-width:1280px){
+  .dd-cols.con-docs:not(.con-faq) #docs-lista:not(.un-doc){grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dd-cols.con-docs:not(.con-faq) #docs-lista .doc{border-bottom:0}
+  .dd-cols.con-docs:not(.con-faq) #docs-lista .doc:nth-child(3n+1):nth-last-child(-n+3),
+  .dd-cols.con-docs:not(.con-faq) #docs-lista .doc:nth-child(3n+1):nth-last-child(-n+3) ~ .doc{border-bottom:1px solid rgba(245,240,230,.16)}
+}
 
 /* ── 2 · MODELOS: "FOUR WAYS, ONE LEGACY" — tarjetas altas con marco interior ── */
 .sec{position:relative;padding:clamp(4.5rem,11vh,8rem) 0}
@@ -604,6 +646,13 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       <p class="kicker">Investor Deck · Due Diligence</p>
       <h2>Documentation &amp; FAQ</h2>
       <p class="dd-lema">Not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence — the land tenure structure for this specific project is confirmed by your Lawang contact.</p>
+      <?php /* Atajos justo tras el lema (owner, 6-oct-2026): antes cerraban el cuerpo y solo
+           se veian haciendo scroll. Cada uno se oculta solo si su seccion falta (ocultaSeccion). */ ?>
+      <div class="dd-atajos">
+        <a class="btn btn-hueso" href="#modelos">Villa Models</a>
+        <a class="btn btn-hueso" href="#masterplan">Masterplan &amp; Plots</a>
+        <a class="btn btn-hueso" href="#rendimientos">Financial Forecast</a>
+      </div>
     </div>
     <div class="dd-cuerpo">
       <div class="dd-cols">
@@ -615,11 +664,6 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
           <h3>Frequently Asked Questions</h3>
           <div id="faq-lista"><!-- lo llena el JS --></div>
         </div>
-      </div>
-      <div class="dd-atajos">
-        <a class="btn btn-hueso" href="#modelos">Villa Models</a>
-        <a class="btn btn-hueso" href="#masterplan">Masterplan &amp; Plots</a>
-        <a class="btn btn-hueso" href="#rendimientos">Financial Forecast</a>
       </div>
     </div>
   </aside>
@@ -939,8 +983,10 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   }
 
   // ── documentos del proyecto: salen de la intranet, o no sale nada ──────────
-  var DOC_ICONO = { comercial:'description', legal:'gavel', tecnico:'architecture', precios:'payments', portada:'image', otros:'draft' };
-  var DOC_ETIQUETA = { comercial:'Commercial', legal:'Legal', tecnico:'Technical', precios:'Plots & pricing', portada:'Image', otros:'Document' };
+  // fotos y planos: categorias que la intranet ya usa (carpetas de renders, Master Plan) y que
+  // aqui faltaban: salian como «Document» con el icono generico (6-oct-2026).
+  var DOC_ICONO = { comercial:'description', legal:'gavel', tecnico:'architecture', precios:'payments', portada:'image', fotos:'photo_library', planos:'map', otros:'draft' };
+  var DOC_ETIQUETA = { comercial:'Commercial', legal:'Legal', tecnico:'Technical', precios:'Plots & pricing', portada:'Image', fotos:'Photos', planos:'Plans', otros:'Document' };
   // Drive: /file/d/<id>/view ABRE el visor; uc?export=download descarga. Si el enlace no
   // es de Drive no se inventa una ruta de descarga: la tarjeta se queda con "View".
   function enlaceDescarga(href){
@@ -984,6 +1030,8 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       pintados++;
     });
     if(!pintados) return;                       // nada publicable: el bloque sigue oculto
+    cont.classList.toggle('un-doc', pintados === 1);
+    bloque.parentNode.classList.add('con-docs');
     bloque.hidden = false;
     traduce(bloque);
   }
@@ -1146,10 +1194,12 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       d.appendChild(sum); d.appendChild(cuerpo);
       cont.appendChild(d);
     });
+    $('faq-bloque').parentNode.classList.add('con-faq');
   }
   function faqCaida(){
     var cont = $('faq-lista');
     if(!cont) return;
+    $('faq-bloque').parentNode.classList.add('con-faq');   // el aviso se ve: cuenta como bloque
     cont.innerHTML = aviso('the questions');
     traduce(cont);
   }
