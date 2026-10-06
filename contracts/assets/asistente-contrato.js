@@ -959,7 +959,7 @@
     $('#tplPick').value = slug;
     buildForm();
     if (S.cliente) {
-      var r = await sb.rpc('compradores_directorio').eq('id', S.cliente.id).maybeSingle();
+      var r = await sb.rpc('comprador_ficha', { p_id: S.cliente.id }).maybeSingle();
       if (r.data) enlazarFicha(r.data);
       else avisaMal(T('No se ha podido leer la ficha del cliente: búscalo en el editor.'));
     }
@@ -1225,7 +1225,7 @@
       if (RT.equipo.en || RT.equipo.fallo) await obligatorio();
       if (S.slug) await marcas(S.slug);
       if (o.clienteNuevo && UUID.test(o.clienteNuevo)) {
-        var r = await sb.rpc('compradores_directorio').eq('id', o.clienteNuevo).maybeSingle();
+        var r = await sb.rpc('comprador_ficha', { p_id: o.clienteNuevo }).maybeSingle();
         if (r.data) {
           S.cliente = { id: r.data.id, full_name: r.data.full_name, email: r.data.email, passport_number: r.data.passport_number, tipo: r.data.tipo };
           if (!S.camino) S.camino = 'nueva';

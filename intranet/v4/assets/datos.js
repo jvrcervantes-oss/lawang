@@ -2473,7 +2473,7 @@
            `compradores_directorio()` devuelve la IDENTIDAD de todas, sin `notes`;
            lo del negocio de cada uno sigue filtrado por autor. Se piden solo las
            columnas que el LISTADO enseña (minimización, Seguridad 18-sep). */
-        q(sb.rpc('compradores_directorio').select('id,full_name,email,phone,nationality,tipo,kyc_status,propietario,created_at').order('created_at', { ascending: false }), 'compradores', t),
+        q(sb.rpc('compradores_lista').select('id,full_name,email,phone,nationality,tipo,kyc_status,propietario,created_at').order('created_at', { ascending: false }), 'compradores', t),
         q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,parcela_codigo,fecha_firma,precio_total,moneda,bloqueado,contrato_padre_id,liberado_en,created_at'), 'contratos'),
         q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
