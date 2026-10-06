@@ -2287,6 +2287,8 @@
     // Reglas de dinero por contrato (facturado/cobrado/%), las mismas del
     // listado y del clásico — para «cuánto lleva cobrado» del recibí.
     facturasContratos: { src: '/contracts/assets/facturas_contratos.js', listo: function () { return typeof lwAgrupaPorContrato === 'function'; } },
+    // Saldo del contrato (5-oct-2026): las cifras las da la base (contrato_saldo), aquí solo se pintan.
+    saldoContrato: { src: '/contracts/assets/saldo_contrato.js?v=577fa3e6', listo: function () { return typeof lwSaldoHTML === 'function'; } },
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
@@ -2552,7 +2554,7 @@
     var caja = document.createElement('div'); caja.className = 'lw-dc';
     var cajaV = document.createElement('div'); cajaV.className = 'lw-dc lw-dc-vinc';
     host.appendChild(caja); host.appendChild(cajaV);
-    var C = null, DESC_TOTAL = '', DESC_UNIDAD = '', otraFactura = {}, huella = null, numPorId = {}, venc = {};
+    var C = null, DESC_TOTAL = '', DESC_UNIDAD = '', otraFactura = {}, huella = null, numPorId = {}, venc = {}, SALDO = null;
     /* Calendario de pagos del contrato (contrato_vencimientos, una fila por
        hito con su fecha y, si ya se facturó, su factura_id). Dos usos
        (22-sep-2026, owner): al pulsar un hito se rellena el vencimiento de
@@ -2596,7 +2598,37 @@
           });
         });
     }
+    /* Saldo del contrato y marcas por hito (5-oct-2026). Se pide una vez por contrato; pinta() se llama
+       muchas veces y repinta desde la copia. Una consulta caída deja SALDO en null y no se pinta nada. */
+    function cargaSaldo() {
+      SALDO = null;
+      if (!C || ctx.esRecibi || typeof lwSaldoCarga !== 'function') return Promise.resolve();
+      return lwSaldoCarga(ctx.sb, C.id).then(function (s) { SALDO = s; });
+    }
+    function pintaSaldo() {
+      var viejo = caja.querySelector('[data-lw="saldo-contrato"]'); if (viejo) viejo.remove();
+      Array.prototype.forEach.call(caja.querySelectorAll('[data-lw="marca-hito"]'), function (e) { e.remove(); });
+      if (!SALDO || !C || ctx.esRecibi || typeof lwSaldoHTML !== 'function') return;
+      lwSaldoEstilo();
+      var t = caja.querySelector('.t');
+      var f = function (n, m) { return fmtMoneda(n, m); };
+      if (t) t.insertAdjacentHTML('afterend', lwSaldoHTML(SALDO, f, ctx.propioId));
+      var marcas = lwSaldoMarcasHitos(C.hitos, SALDO.facturas, descHitoDoc);
+      Array.prototype.forEach.call(caja.querySelectorAll('[data-h]'), function (b) {
+        b.insertAdjacentHTML('beforeend', lwSaldoMarcaHTML(marcas[+b.getAttribute('data-h')], SALDO.moneda, f));
+      });
+    }
+    /* La barra de saldo enseña en vivo lo que suman los conceptos del documento (5-oct-2026). Se repinta entera
+       con el borrador; el aviso de «se pasa» sale del propio módulo. Solo en factura: una proforma no factura. */
+    function avisaTope() {
+      if (!SALDO || ctx.esRecibi || typeof lwSaldoHTML !== 'function') return;
+      var s = caja.querySelector('[data-lw="saldo-contrato"]'); if (!s) return;
+      var esFactura = ctx.tipoActual() === 'factura';
+      var total = filas().reduce(function (a, l) { return a + (parseImporte(l.importe) || 0); }, 0);
+      s.outerHTML = lwSaldoHTML(SALDO, function (n, m) { return fmtMoneda(n, m); }, ctx.propioId, esFactura ? total : null);
+    }
     function marca() {
+      avisaTope();
       var L = filas();
       var hayTotal = !!DESC_TOTAL && L.some(function (l) { return txt(l) === DESC_TOTAL; });
       var hayHito = L.some(function (l) { var d = txt(l); return d && d !== DESC_TOTAL; });
@@ -2675,6 +2707,7 @@
             (conFecha ? ' · vence el ' + v.fecha.split('-').reverse().join('/') + ' según el calendario del contrato' : ''));
         });
       });
+      pintaSaldo();
       marca();
     }
     function traeVinculado(c) {
@@ -2796,7 +2829,7 @@
               nCompradores: res.nCompradores || 0, precio: precio, moneda: moneda, hitos: hitosDeDoc(res.hitos, precio, moneda) };
         caja.innerHTML = '<div class="t">Cargando contrato…</div>';
         if (ctx.esRecibi) return pintaRecibi();
-        return cargaOtraFactura(res.id).then(cargaVencimientos).then(pinta).then(pintaVinculados).then(precarga);
+        return cargaOtraFactura(res.id).then(cargaVencimientos).then(cargaSaldo).then(pinta).then(pintaVinculados).then(precarga);
       },
       repinta: function () { if (!C) return; if (ctx.esRecibi) pintaRecibi(); else pinta(); },
       marca: function () { if (!ctx.esRecibi) marca(); },
@@ -4019,7 +4052,7 @@
       }
       var esEdicion = !!pre.id;
       var regla = { sinContrato: false, nota: '' };
-      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento', 'facturasContratos']).then(function () {
+      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento', 'facturasContratos', 'saldoContrato']).then(function () {
         return Promise.all([
           cargarSociedades(sb).then(function () { return true; }, function () { return false; }),
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
@@ -5092,6 +5125,10 @@
       if (!esAdminP) {
         var bEstadoObra = document.querySelector('[data-accion="estado-obra"]');
         if (bEstadoObra) bEstadoObra.hidden = true;
+        /* Ficha pública (F3b): solo admin. Es cosmético; el permiso real es es_admin() en la RPC. `.flex` del botón gana
+           a `[hidden]`, así que también se esconde con display (medido en el arnés). */
+        var bFichaPub = document.querySelector('[data-accion="ficha-publica"]');
+        if (bFichaPub) { bFichaPub.hidden = true; bFichaPub.style.display = 'none'; }
       }
       /* Dar de alta un proyecto es de dirección (LAW-177, 11-sep-2026): la RLS
          de INSERT en `proyectos` exige es_admin(). Se esconde el botón aquí, en
@@ -6099,6 +6136,15 @@
             pintaInvestorDeck(p, cfg, activo, modelosDelProyecto, fotos);
           });
         }, function (e) { aviso('No se pudo abrir el Investor Deck: ' + (e && e.message || e), '#ba1a1a'); });
+      });
+
+      /* Ficha pública de The Collection (F3b, 5-oct-2026): TODO vive en ficha_publica.js (cargado por la página). Aquí solo
+         se engancha el botón por su identificador y se le pasa el proyecto por id. */
+      ata('ficha-publica', function () {
+        var p = proyectoObj();
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        if (!window.lwFichaPublica) return aviso('La pantalla de ficha pública aún no ha cargado: prueba otra vez.', '#8A6A34');
+        window.lwFichaPublica.abre({ sb: sb, esAdmin: esAdminP, proyecto: { id: p.id, nombre: p.nombre, slug: p.slug } });
       });
 
       /* ¿Están las fotos donde manda el flag? (AXW-66, 28-sep-2026). Lo mide el SERVIDOR: la acción `urls` devuelve

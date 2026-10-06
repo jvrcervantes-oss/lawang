@@ -753,7 +753,7 @@
         if (n) n.textContent = filas.length ? '· ' + nPub + ' publicada' + (nPub === 1 ? '' : 's') + (filas.length > nPub ? ' de ' + filas.length : '') : '';
         if (!filas.length) {
           var vacio = document.createElement('p');
-          vacio.style.cssText = 'font:500 13px/1.5 sans-serif;color:#75786e;margin:0';
+          vacio.style.cssText = 'font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0';
           vacio.textContent = 'El deck de este proyecto no tiene preguntas frecuentes.';
           caja.appendChild(vacio); return;
         }
@@ -1806,6 +1806,8 @@
         H.dato('Proyecto', f.proyecto_nombre) +
         H.dato('Contrato', c ? enlaceFichaContrato(c) : (f.contrato_numero || null), { html: !!c }) +
         (c && c.precio_total != null ? H.dato('Precio del contrato', fmt(c.precio_total, c.moneda)) : ''));
+      // Saldo del contrato (5-oct-2026): las cifras las da la base (contrato_saldo), se rellena abajo.
+      if (f.contrato_id && f.tipo !== 'recibi') cuerpo += '<div data-lw-saldo-host></div>';
       if (f.tipo === 'recibi') {
         var js = Array.isArray(f.justificantes) ? f.justificantes.slice() : [];
         if (!js.length && f.justificante_path) js.push({ path: f.justificante_path });
@@ -1815,6 +1817,23 @@
           }).join('') : H.nota('Este recibí no tiene justificante adjunto. Se adjunta desde la herramienta viva.'));
       }
       caj.cuerpo.innerHTML = cuerpo;
+      var hostSaldo = caj.cuerpo.querySelector('[data-lw-saldo-host]');
+      if (hostSaldo) {
+        new Promise(function (ok) {
+          if (typeof window.lwSaldoCarga === 'function') return ok(true);
+          var sc = document.createElement('script');
+          sc.src = '/contracts/assets/saldo_contrato.js?v=577fa3e6';
+          sc.onload = function () { ok(true); }; sc.onerror = function () { ok(false); };
+          document.head.appendChild(sc);
+        }).then(function (hay) {
+          if (!hay) return null;
+          return window.lwSaldoCarga(sb, f.contrato_id);
+        }).then(function (s) {
+          if (!s || !hostSaldo.isConnected) return;
+          window.lwSaldoEstilo();
+          hostSaldo.innerHTML = window.lwSaldoHTML(s, fmt);
+        });
+      }
       var hostAutoria = caj.cuerpo.querySelector('[data-lw-autoria-host]');
       if (hostAutoria && window.LW_AUTORIA) {
         window.LW_AUTORIA.montar(hostAutoria, {
@@ -4183,7 +4202,7 @@
         window.LW_V4.documentosGenerales = DOCUMENTOS_GENERALES;
         var puedeBorrar = !!window.LW_V4.esSuperAdmin;
         caja.innerHTML = '';
-        if (!gen.length) caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin documentos de la empresa todavía.</p>';
+        if (!gen.length) caja.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Sin documentos de la empresa todavía.</p>';
         gen.forEach(function (d2) {
           DOCUMENTOS_GENERALES[d2.id] = d2;
           var f = MOLDE_ENLACE.cloneNode(true);
@@ -4341,7 +4360,7 @@
             cajaResumen.innerHTML = Object.keys(ESTADO_ETIQUETA).map(function (clave) {
               var n = porEstado[clave] || 0;
               if (!n) return '';
-              return '<span style="display:inline-flex;align-items:center;gap:5px;font:600 11px sans-serif;color:#44483f">' +
+              return '<span style="display:inline-flex;align-items:center;gap:5px;font:600 11px \'Neue Kabel\',sans-serif;color:#44483f">' +
                 '<span style="width:7px;height:7px;border-radius:999px;flex:0 0 auto;background:' + colorEstado(clave) + '"></span>' +
                 n + ' ' + etiquetaEstado(clave).toLowerCase() + '</span>';
             }).join('');
@@ -4442,11 +4461,11 @@
           cajaM.innerHTML = supervisan.length
             ? supervisan.map(function (m) {
                 return '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;' +
-                  'background:#efeee8;border:1px solid #E4DCCB;font:600 11px sans-serif;color:#1b1c19' + (m.activo ? '' : ';opacity:.55') + '">' +
+                  'background:#efeee8;border:1px solid #E4DCCB;font:600 11px \'Neue Kabel\',sans-serif;color:#1b1c19' + (m.activo ? '' : ';opacity:.55') + '">' +
                   esc(m.nombre || m.email) + '<span style="font-weight:500;color:#75786e">· Project manager' +
                   (m.activo ? '' : ' · desactivado') + '</span></span>';
               }).join('')
-            : '<span style="font:500 13px sans-serif;color:#75786e">Sin encargado asignado.</span>';
+            : '<span style="font:500 13px \'Neue Kabel\',sans-serif;color:#75786e">Sin encargado asignado.</span>';
         }
 
         /* Documentacion FUSIONADA aqui (decision owner 8-sep): la boveda son
@@ -4505,7 +4524,7 @@
         if (cajaE && MOLDE_ENLACE) {
           var mE = MOLDE_ENLACE.cloneNode(true);
           cajaE.innerHTML = '';
-          if (!enl.length) cajaE.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene enlaces guardados.</p>';
+          if (!enl.length) cajaE.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Este proyecto no tiene enlaces guardados.</p>';
           enl.forEach(function (d2) {
             var f = mE.cloneNode(true);
             f.setAttribute('data-doc-id', d2.id);
@@ -4529,7 +4548,7 @@
         if (cajaD && MOLDE_DOC) {
           var mD = MOLDE_DOC.cloneNode(true);
           cajaD.innerHTML = '';
-          if (!docs.length) cajaD.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene documentos subidos.</p>';
+          if (!docs.length) cajaD.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Este proyecto no tiene documentos subidos.</p>';
           docs.forEach(function (d2) {
             var f = mD.cloneNode(true);
             f.setAttribute('data-doc-id', d2.id);
@@ -4546,7 +4565,7 @@
         if (cajaF && MOLDE_FAQ) {
           var mF = MOLDE_FAQ.cloneNode(true);
           cajaF.innerHTML = '';
-          if (!faq.length) cajaF.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin preguntas frecuentes para este proyecto.</p>';
+          if (!faq.length) cajaF.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Sin preguntas frecuentes para este proyecto.</p>';
           faq.forEach(function (d2) {
             var f = mF.cloneNode(true);
             f.setAttribute('data-doc-id', d2.id);
@@ -4595,7 +4614,7 @@
             if (!uu.length) {
               // grid-column entera: dentro de una rejilla, un aviso suelto se
               // quedaria encogido en la primera columna como si fuera una tarjeta.
-              caja.innerHTML = '<p style="grid-column:1/-1;font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
+              caja.innerHTML = '<p style="grid-column:1/-1;font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">' +
                 'Este proyecto no tiene unidades dadas de alta.</p>';
               // Sin filas no hay chips: vacía los del proyecto anterior.
               if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS(elegido.nombre);
@@ -5293,7 +5312,7 @@
         var caja = document.getElementById('d-anexos-maestros');
         if (!caja || !elegido) return;
         var turno = ++TURNO_ANEXOS;
-        var nota = function (t) { caja.innerHTML = ''; var p = document.createElement('p'); p.style.cssText = 'font:500 13px/1.5 sans-serif;color:#75786e;margin:0'; p.textContent = t; caja.appendChild(p); };
+        var nota = function (t) { caja.innerHTML = ''; var p = document.createElement('p'); p.style.cssText = 'font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0'; p.textContent = t; caja.appendChild(p); };
         nota('Cargando…');
         sb.from('modelos_villa').select('modelo_id,proyecto,proyecto_id').then(function (rv) {
           if (turno !== TURNO_ANEXOS) return;
@@ -5358,7 +5377,7 @@
               caja.appendChild(f);
             });
             if (sinAnexo.length) {
-              var p = document.createElement('p'); p.style.cssText = 'font:500 12px/1.5 sans-serif;color:#8A6A34;margin:' + (docs.length ? '4px 0 0' : '0');
+              var p = document.createElement('p'); p.style.cssText = 'font:500 12px/1.5 \'Neue Kabel\',sans-serif;color:#8A6A34;margin:' + (docs.length ? '4px 0 0' : '0');
               p.textContent = 'Sin documentos marcados para el contrato: ' + sinAnexo.map(function (id) { return nombreModelo[id] || 'modelo'; }).join(', ')
                 + '. Sus contratos de Construcción saldrán sin anexo hasta que administración marque alguno en Modelos → Documentos.';
               caja.appendChild(p);
@@ -5881,7 +5900,7 @@
         var molde = grid.firstElementChild.cloneNode(true);
         grid.innerHTML = '';
         if (!ms.length) {
-          grid.innerHTML = '<p style="font:500 14px/1.5 sans-serif;color:#75786e;margin:0">El catalogo no tiene ningun modelo dado de alta.</p>';
+          grid.innerHTML = '<p style="font:500 14px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">El catalogo no tiene ningun modelo dado de alta.</p>';
           return;
         }
         ms.forEach(function (m) {
@@ -5920,7 +5939,7 @@
             cab.appendChild(im);
             var nf = document.createElement('span');
             nf.textContent = fs.length + (fs.length === 1 ? ' foto' : ' fotos');
-            nf.style.cssText = 'position:absolute;right:10px;bottom:10px;padding:2px 10px;border-radius:999px;background:rgba(27,28,25,.62);color:#fff;font:600 11px/18px sans-serif';
+            nf.style.cssText = 'position:absolute;right:10px;bottom:10px;padding:2px 10px;border-radius:999px;background:rgba(27,28,25,.62);color:#fff;font:600 11px/18px \'Neue Kabel\',sans-serif';
             cab.appendChild(nf);
           }
           /* «Sin fotos» se SOLAPA con los estados (un modelo puede estar
@@ -5929,7 +5948,7 @@
             cab.style.position = 'relative';
             var sr = document.createElement('span');
             sr.textContent = 'Sin fotos';
-            sr.style.cssText = 'position:absolute;left:10px;top:10px;padding:2px 10px;border-radius:999px;background:#BEB3A5;color:#2E3437;font:600 11px/18px sans-serif';
+            sr.style.cssText = 'position:absolute;left:10px;top:10px;padding:2px 10px;border-radius:999px;background:#BEB3A5;color:#2E3437;font:600 11px/18px \'Neue Kabel\',sans-serif';
             cab.appendChild(sr);
           }
           if (!m.activo) c.style.opacity = '.6';   // fuera del catálogo: se ve, pero apagado
@@ -6074,7 +6093,7 @@
           gal.innerHTML = '';
           var fs = fotosModelo[el.id] || [];
           if (!fs.length) {
-            gal.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este modelo no tiene fotos en el deck. Súbelas con «Fotos del deck».</p>';
+            gal.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Este modelo no tiene fotos en el deck. Súbelas con «Fotos del deck».</p>';
             return;
           }
           fs.forEach(function (f) {
@@ -6610,7 +6629,7 @@
         var molde = lista.firstElementChild.cloneNode(true);
         lista.innerHTML = '';
         if (!hs.length) {
-          lista.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0;padding:6px 2px">Ningún hilo de soporte todavía.</p>';
+          lista.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0;padding:6px 2px">Ningún hilo de soporte todavía.</p>';
         }
         hs.forEach(function (h) {
           var f = molde.cloneNode(true);
@@ -6636,7 +6655,7 @@
         var vacioF = null;
         if (hs.length) {
           vacioF = document.createElement('p');
-          vacioF.style.cssText = 'font:500 13px/1.5 sans-serif;color:#75786e;margin:0;padding:6px 2px;display:none';
+          vacioF.style.cssText = 'font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0;padding:6px 2px;display:none';
           vacioF.textContent = 'Nada que enseñar con este filtro.';
           lista.appendChild(vacioF);
         }
@@ -6734,7 +6753,7 @@
         });
         convo.innerHTML = '';
         if (!msgs.length) {
-          convo.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0;text-align:center">Este hilo no tiene mensajes.</p>';
+          convo.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0;text-align:center">Este hilo no tiene mensajes.</p>';
           return;
         }
         var iniciales = (c.full_name || 'C').split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ''; }).join('').toUpperCase();
