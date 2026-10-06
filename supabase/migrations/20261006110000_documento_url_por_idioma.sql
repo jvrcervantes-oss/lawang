@@ -15,8 +15,12 @@
 
 alter table public.documentos_proyecto
   add column if not exists url_i18n jsonb not null default '{}'::jsonb;
-alter table public.documentos_proyecto add constraint documentos_proyecto_url_i18n_objeto
-  check (jsonb_typeof(url_i18n) = 'object' and url_i18n - array['en', 'id'] = '{}'::jsonb);
+do $c$ begin
+  if not exists (select 1 from pg_constraint where conname = 'documentos_proyecto_url_i18n_objeto') then
+    alter table public.documentos_proyecto add constraint documentos_proyecto_url_i18n_objeto
+      check (jsonb_typeof(url_i18n) = 'object' and url_i18n - array['en', 'id'] = '{}'::jsonb);
+  end if;
+end $c$;
 comment on column public.documentos_proyecto.url_i18n is
   'Enlaces por idioma para el investor deck: {"en","id"}. El español (y el de reserva) es `url`. Lo escribe documento_proyecto_guarda.';
 
