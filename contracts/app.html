@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="6b2ce9fee10c">
+<meta name="lw-version" content="d853abf62777">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -1555,7 +1555,7 @@ function wireClienteBuscadorEn(input, res, onPick){
   input.addEventListener('input', ()=>{
     clearTimeout(timer);
     const q=input.value.trim();
-    if(q.length<2){ res.hidden=true; res.innerHTML=''; return; }
+    if(q.length<3){ res.hidden=true; res.innerHTML=''; return; }
     timer=setTimeout(()=>buscarClientes(q, res, onPick, input), 280);
   });
   input.addEventListener('blur', ()=> setTimeout(()=>{ res.hidden=true; }, 150));
