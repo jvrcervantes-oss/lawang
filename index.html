@@ -508,8 +508,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260807170527">
-<script src="assets/lawang-card.js?v=20260916113721" defer></script>
+<link rel="stylesheet" href="assets/lawang-card.css?v=20261006155431">
+<script src="assets/lawang-card.js?v=20261006155431" defer></script>
 <style>
 /* ════ Ajustes de maquetacion por idioma (8-sep-2026) ════════════════════════
    Va al final del <head> a proposito: mismas especificidades que las reglas que
@@ -805,33 +805,35 @@ onScroll();
   });
 })();
 
-// ── Curated Portfolio: tarjetas desde data.json (fuente ÚNICA, compartida con thecollection.html) ─
+// ── Curated Portfolio: tarjetas desde api/coleccion.php (lw_coleccion(): la ÚNICA lectura, la misma que thecollection.php) ─
 //   Las tarjetas estáticas del HTML son sólo fallback (SEO / sin-JS / local file://).
-//   En producción, data.json manda y re-renderiza la rejilla -> editar data.json actualiza ambas webs.
+//   F7 (6-oct-2026): antes leía data.json, que es un fichero público con las 44 fichas. Ahora la fuente la fija el
+//   servidor; el documento trae `live` y `stale` para que la tarjeta pinte «sin dato» si el origen está caído.
 (function(){
   const grid = document.getElementById('lwGrid');
   if(!grid) return;
   // Render con el MÓDULO COMPARTIDO (assets/lawang-card.js) — misma card que thecollection.html.
-  // Cargador resiliente: el CDN de Hostinger sirve a veces un data.json truncado para el
-  // patrón ?_=. Probamos varias formas de query (no-store) y validamos antes de re-render.
+  // Cargador resiliente (heredado de data.json, donde el CDN servía a veces un fichero truncado): varias formas
+  // de query (no-store) y se valida la forma antes de re-render. El endpoint es dinámico y sin caché.
   function rnd(){ return Date.now().toString(36) + Math.random().toString(36).slice(2); }
   var shapes = ['?cb=' + rnd() + '&r=' + rnd(), '?nocache=' + rnd() + '&v=' + rnd(), '?_=' + rnd()];
   var i = 0;
   (function attempt(){
-    fetch('data.json' + shapes[i], { cache:'no-store' })
+    fetch('api/coleccion.php' + shapes[i], { cache:'no-store' })
       .then(function(res){ return res.text(); })
       .then(function(txt){
         var d = JSON.parse(txt);
         if(!d || !Array.isArray(d.properties)) throw new Error('truncado/invalido (' + txt.length + ' bytes)');
+        var live = d.live === true, stale = d.stale === true;
         var ps = d.properties.filter(function(p){ return p.visible !== false; });
         // The Collection = grid 3×3: los marcados "inCollection" en el admin (máx 9); si no hay ninguno, las 9 primeras visibles
         var coll = ps.filter(function(p){ return p.inCollection; });
         var pick = (coll.length ? coll : ps).slice(0, 9);
         if(pick.length && window.LawangCard){ grid.innerHTML = pick.map(function(p){
-          return window.LawangCard.render(p, { lang:(window.LW_LANG||'en'), cur:'EUR', hrefBase:'/thecollection' });
+          return window.LawangCard.render(p, { lang:(window.LW_LANG||'en'), cur:'EUR', hrefBase:'/thecollection', live:live, stale:stale });
         }).join(''); if(window.lwColSync) window.lwColSync(); }
         var hf = ps.filter(function(p){ return p.homeFeatured; })[0];
-        if(hf && typeof applyHomeFeatured === 'function') applyHomeFeatured(hf);  // Featured de la home desde admin
+        if(hf && typeof applyHomeFeatured === 'function') applyHomeFeatured(hf, live, stale);  // Featured de la home desde admin
       })
       .catch(function(){ i++; if(i < shapes.length) return attempt(); /* mantiene el fallback estático */ });
   })();
@@ -885,7 +887,7 @@ function initFeatGallery(){
 
 // ── Featured de la home desde data.json (propiedad marcada homeFeatured en el admin) ──
 // Sin propiedad marcada -> el bloque se queda oculto (display:none del HTML). No hay datos de relleno.
-function applyHomeFeatured(p){
+function applyHomeFeatured(p, live, stale){
   if(!p) return;
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   var block = document.getElementById('featuredBlock');
@@ -906,7 +908,9 @@ function applyHomeFeatured(p){
   var investEl = document.querySelector('.lw-feat-invest');
   var amt = document.querySelector('.lw-feat-invest-amt');
   if(investEl && amt){
-    if(p.priceEUR){ amt.textContent = 'FROM €' + Number(p.priceEUR).toLocaleString('en-US') + '.'; investEl.style.display = ''; }
+    // Con la intranet como fuente (live): «FROM» solo si el precio es «desde», y una ficha vendida no anuncia precio.
+    var sold = live && window.LawangCard && window.LawangCard.estado(p, stale).k === 'gone';
+    if(p.priceEUR && !sold){ amt.textContent = ((live && p.priceMode === 'fixed') ? '€' : 'FROM €') + Number(p.priceEUR).toLocaleString('en-US') + '.'; investEl.style.display = ''; }
     else { investEl.style.display = 'none'; }
   }
   var dossier = (p.downloads||[]).filter(function(d){ return d && d.url; })[0];

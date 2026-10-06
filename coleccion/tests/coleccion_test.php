@@ -304,6 +304,49 @@ if (is_file($real)) {
     echo "(sin data.json local: se salta la comprobacion contra datos reales)\n";
 }
 
+// ── 8. F7: estado de unidades, v2 sin credenciales de base, noscript y JSON-LD desde lw_coleccion ──────────
+// (a) la regla de estado: la MISMA tabla que assets/lawang-card.test.js (una regla, dos implementaciones)
+$tabla = json_decode((string) file_get_contents(__DIR__ . '/estados_esperados.json'), true);
+$rpc6 = json_decode((string) file_get_contents(__DIR__ . '/rpc_real_20261006.json'), true)['properties'];
+foreach ($rpc6 as $p) {
+    ok(lw_coleccion_estado($p)['k'] === ($tabla['rpc_6oct'][$p['id']] ?? '?'), 'estado PHP de ' . $p['id']);
+}
+foreach ($tabla['sinteticos'] as $c) {
+    $f = ['parcelas' => $c['parcelas']] + (isset($c['unitsAvailable']) ? ['unitsAvailable' => $c['unitsAvailable']] : []);
+    ok(lw_coleccion_estado($f, !empty($c['stale']))['k'] === $c['esperado'], 'estado PHP sintetico: ' . $c['nota']);
+}
+// (b) lo que sale al navegador: solo estas claves, y `live`/`stale` siempre
+$nav = lw_coleccion_para_navegador(['properties' => [], 'settings' => [], 'downloads' => [], 'fuente' => 'cache', 'stale' => true, 'live' => true, 'otra' => 1]);
+ok(array_keys($nav) === ['properties', 'settings', 'downloads', 'live', 'stale'] && $nav['live'] === true && $nav['stale'] === true, 'lw_coleccion_para_navegador: claves exactas, sin `fuente`');
+// (c) noscript desde el mismo documento: fijo sin «From», «desde» con From, vendida «Sold out», stale no afirma vendida
+$docFresco = ['properties' => $rpc6, 'stale' => false, 'live' => true];
+$ns = lw_coleccion_noscript($docFresco);
+ok(substr_count($ns, 'class="seo-prop"') === count($rpc6), 'noscript: una ficha por ficha del documento');
+ok(strpos($ns, '<p class="seo-price">€930,000</p>') !== false && strpos($ns, 'From €930,000') === false, 'noscript: precio fijo sin From');
+ok(strpos($ns, 'From €63,875') !== false, 'noscript: precio «desde» con From');
+ok(strpos($ns, 'riverfront-ii-big') === false, 'noscript: no lista la ficha no publicada');
+$vend = $rpc6[0]; $vend['parcelas'] = [['codigo' => 'U0', 'estado' => 'vendida']];
+ok(strpos(lw_coleccion_noscript(['properties' => [$vend], 'stale' => false, 'live' => true]), 'Sold out') !== false, 'noscript: vendida -> Sold out');
+ok(strpos(lw_coleccion_noscript(['properties' => [$vend], 'stale' => true, 'live' => true]), 'Sold out') === false, 'noscript: con dato viejo no se afirma vendida');
+// (d) las paginas, ejecutadas de verdad, con la RPC inaccesible (cae a respaldo = stale)
+escribe($tmp . '/s_data.json', doc([ficha('tirta-hikari'), ficha('otra')]));
+escribe($tmp . '/s_resp.json', doc([ficha('tirta-hikari'), ficha('otra')]));
+$envS = array_merge($env, ['LW_COLECCION_DATAJSON' => $tmp . '/s_data.json', 'LW_COLECCION_RESPALDO' => $tmp . '/s_resp.json', 'LW_COLECCION_CACHE' => $tmp . '/s_cache.json']);
+$envI = array_merge($envS, ['LW_COLECCION_FUENTE' => 'intranet', 'LW_COLECCION_RPC_URL' => 'http://127.0.0.1:1/rpc', 'LW_COLECCION_CACHE' => $tmp . '/intranet_cache.json']);
+$v2 = corre(['-r', 'require ' . var_export($RAIZ . '/thecollection-v2.php', true) . ';'], $envI, $RAIZ);
+ok(preg_match('~(sb_publishable|sb_secret|/rest/v1|supabaseKey|supabaseUrl|apikey)~i', $v2) === 0, 'la v2 no lleva ninguna credencial ni llamada a la base en la pagina');
+ok(strpos($v2, 'window.LW_COLECCION_PRELOAD=') !== false && strpos($v2, '"live":true') !== false && strpos($v2, '"stale":true') !== false, 'v2: precarga con live=true y stale=true cuando la RPC cae');
+ok(strpos($v2, 'noindex') !== false && strpos($v2, 'rel="canonical" href="https://lawangproperties.com/thecollection"') !== false, 'v2: noindex y canonical a /thecollection');
+ok(strpos($v2, 'SEO_FALLBACK_START') === false && substr_count($v2, '<noscript>') >= 1 && substr_count($v2, 'class="seo-prop"') === 2, 'v2: noscript generado de lw_coleccion (una ficha por ficha del documento)');
+$v1 = corre(['-r', 'require ' . var_export($RAIZ . '/thecollection.php', true) . ';'], $envS, $RAIZ);
+ok(strpos($v1, 'LW_COLECCION_PRELOAD') === false && strpos($v1, 'supabaseUrl') !== false, 'v1 (datajson): sin precarga y con su configuracion de siempre');
+$ld = corre(['-r', '$_GET["property"]="tirta-hikari"; require ' . var_export($RAIZ . '/thecollection.php', true) . ';'], $envI, $RAIZ);
+ok(strpos($ld, 'RealEstateListing') !== false && strpos($ld, 'schema.org/InStock') === false, 'JSON-LD con dato viejo: no afirma InStock');
+$ld1 = corre(['-r', '$_GET["property"]="tirta-hikari"; require ' . var_export($RAIZ . '/thecollection.php', true) . ';'], $envS, $RAIZ);
+ok(strpos($ld1, 'schema.org/InStock') !== false, 'JSON-LD con datajson: InStock como siempre');
+$api = json_decode(corre([$RAIZ . '/api/coleccion.php'], $envI, $RAIZ), true);
+ok(is_array($api) && array_keys($api) === ['properties', 'settings', 'downloads', 'live', 'stale'], 'api/coleccion.php devuelve el documento del navegador');
+
 // limpieza
 foreach (array_merge(glob($tmp . '/*') ?: [], glob($tmp . '/.*') ?: []) as $f) if (is_file($f)) @unlink($f);
 @rmdir($tmp);

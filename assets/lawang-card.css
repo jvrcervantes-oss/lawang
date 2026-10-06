@@ -60,12 +60,30 @@
 /* gap y margen del punto ajustados 7-ago: a 264px de ancho útil (tarjeta mínima 240px del grid),
    los 3 valores (m²·rooms·m² land) con los 10px de antes sumaban 278px — el texto del último se
    recortaba contra el overflow:hidden de arriba. Repaso móvil de la ficha de producto lo cazó. */
-.lw-prop-meta { font-family:'Neue Kabel','Jost',sans-serif; font-size:13.5px; color:#7B7B7B; display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden; white-space:nowrap; margin-top:4px; flex-shrink:0; }
+.lw-prop-meta { font-family:'Neue Kabel','Jost',sans-serif; font-size:13.5px; color:#666666; display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden; white-space:nowrap; margin-top:4px; flex-shrink:0; }
 .lw-prop-meta .lw-m { display:inline-flex; align-items:center; gap:5px; font-weight:500; }
 .lw-prop-meta .lw-m b { font-weight:700; }
-.lw-prop-meta .lw-m .lw-mi { width:16px; height:16px; flex-shrink:0; color:#7B7B7B; }
+.lw-prop-meta .lw-m .lw-mi { width:16px; height:16px; flex-shrink:0; color:#666666; }
 .lw-prop-meta .lw-m + .lw-m::before { content:"·"; margin-right:6px; color:#B8B2A6; }
-.lw-prop-meta .lw-m-txt { color:#7B7B7B; }
+.lw-prop-meta .lw-m-txt { color:#666666; }
 .lw-prop-foot { display:flex; align-items:center; margin-top:auto; padding-top:14px; border-top:1px solid #D4CCBA; }
 .lw-prop-price { font-family:'Neue Kabel','Jost',sans-serif; font-weight:600; font-size:28px; color:#324820; }
 .lw-prop-price .from { font-size:.5em; font-weight:500; letter-spacing:.08em; text-transform:uppercase; opacity:.6; margin-right:8px; }
+
+/* ── Estado de la unidad sobre la foto (F7, 6-oct-2026; lámina F6 aprobada por el owner) ─────────────────
+   Esquina sup. izq. (la dcha es la vista); no toca los 577 px de la tarjeta. Solo existe con la intranet como
+   fuente (LawangCard.render con opts.live). Cada estado se distingue también sin color: punto lleno / aro / aro
+   punteado y el propio texto. El fondo va algo más opaco que el de la vista (.54 en la lámina): medido sobre las
+   fotos reales, .54 da 4,17-4,34:1 en River, Tangkuban y Riverfront III (<4,5); .72 da >=7,4:1 en las 11. max-width: el chip
+   de vista ocupa hasta ~135 px; si el estado no cabe a su lado (tarjeta de 311 px) pasa a dos líneas en vez de pisarlo. */
+.lw-prop-state { position:absolute; left:12px; top:12px; z-index:3; display:inline-flex; align-items:center; gap:8px; max-width:calc(100% - 24px - 160px);
+  font-family:'Neue Kabel','Jost',sans-serif; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; line-height:1.25; color:rgba(244,239,228,.98);
+  background:rgba(20,16,11,.72); border:1px solid rgba(245,240,230,.7); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); padding:6px 13px 6px 10px; border-radius:14px; }
+.lw-prop-state i { width:8px; height:8px; border-radius:50%; flex:none; background:#B9CE9C; }
+.lw-prop-state.st-few i { background:#F5F0E6; box-shadow:0 0 0 3px rgba(245,240,230,.28); }
+.lw-prop-state.st-held i { background:transparent; border:2px solid #BEB3A5; }
+.lw-prop-state.st-gone i { background:#8d877b; }
+.lw-prop-state.st-na { border-style:dashed; }
+.lw-prop-state.st-na i { background:transparent; border:2px dotted #BEB3A5; }
+.lw-prop.is-sold .lw-prop-img { filter:grayscale(.85) brightness(.92); }
+.lw-prop-price.sold-price { font-size:22px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:#625d54; }

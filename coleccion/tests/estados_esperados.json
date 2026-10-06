@@ -1,0 +1,190 @@
+{
+ "_aviso": "Tabla UNICA de estados esperados (F7, 6-oct-2026). La leen coleccion_test.php (lw_coleccion_estado) y lawang-card.test.js (LawangCard.estado): una regla, dos implementaciones, la misma tabla.",
+ "rpc_6oct": {
+  "tirta-hikari": "ok",
+  "riverfront-i": "ok",
+  "tangkuban-village": "ok",
+  "riverfront-iii": "none",
+  "pura-dalem": "few",
+  "riverfront-ii-small": "ok",
+  "rurung-anyar": "none",
+  "cube": "ok",
+  "river": "ok",
+  "aqua": "ok",
+  "palm-field-bali": "ok"
+ },
+ "sinteticos": [
+  {
+   "nota": "todo vendido",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "vendida"
+    },
+    {
+     "codigo": "U1",
+     "estado": "vendida"
+    },
+    {
+     "codigo": "U2",
+     "estado": "vendida"
+    }
+   ],
+   "esperado": "gone"
+  },
+  {
+   "nota": "casa unica vendida",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "vendida"
+    }
+   ],
+   "esperado": "gone"
+  },
+  {
+   "nota": "todo reservado",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "reservada"
+    },
+    {
+     "codigo": "U1",
+     "estado": "reservada"
+    }
+   ],
+   "esperado": "held"
+  },
+  {
+   "nota": "reservada y vendida, ninguna libre",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "reservada"
+    },
+    {
+     "codigo": "U1",
+     "estado": "vendida"
+    }
+   ],
+   "esperado": "held"
+  },
+  {
+   "nota": "1 libre de 2 (ultima unidad)",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U1",
+     "estado": "vendida"
+    }
+   ],
+   "esperado": "few"
+  },
+  {
+   "nota": "casa unica libre: Available sin contador",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    }
+   ],
+   "esperado": "ok"
+  },
+  {
+   "nota": "2 libres de 3",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U1",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U2",
+     "estado": "reservada"
+    }
+   ],
+   "esperado": "ok"
+  },
+  {
+   "nota": "datos viejos (stale): nunca disponible",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U1",
+     "estado": "disponible"
+    }
+   ],
+   "stale": true,
+   "esperado": "na"
+  },
+  {
+   "nota": "estado desconocido: no se afirma nada",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U1",
+     "estado": "raro"
+    }
+   ],
+   "esperado": "na"
+  },
+  {
+   "nota": "unitsAvailable no cuadra con parcelas",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U1",
+     "estado": "vendida"
+    }
+   ],
+   "unitsAvailable": 3,
+   "esperado": "na"
+  },
+  {
+   "nota": "unitsAvailable cuadra",
+   "parcelas": [
+    {
+     "codigo": "U0",
+     "estado": "disponible"
+    },
+    {
+     "codigo": "U1",
+     "estado": "vendida"
+    },
+    {
+     "codigo": "U2",
+     "estado": "vendida"
+    }
+   ],
+   "unitsAvailable": 1,
+   "esperado": "few"
+  },
+  {
+   "nota": "sin parcelas",
+   "parcelas": [],
+   "esperado": "none"
+  },
+  {
+   "nota": "stale sin parcelas (respaldo): se ve «sin dato», no «nada»",
+   "parcelas": [],
+   "stale": true,
+   "esperado": "na"
+  }
+ ]
+}

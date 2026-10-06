@@ -74,6 +74,20 @@
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0,
     plotCode:null, plotFocusCode:null, plotsStatus:{}, plotsStatusFor:null, plotsStatusOk:false
   };
+  // ── Datos en vivo (F7, 6-oct-2026) ─────────────────────────────────────────────────────────
+  // Solo con la intranet como fuente: el servidor precarga el documento con `live` y `stale`. Sin `live`
+  // (data.json) NADA de lo de abajo se activa y la web es la de siempre. `stale` = el origen estaba caído y el
+  // servidor sirvió caché vieja o respaldo: el estado de las unidades NO se afirma (se pinta «sin dato»,
+  // nunca «disponible»). La edad también cuenta en el navegador: una pestaña abierta horas no puede seguir
+  // diciendo «disponible», así que pasados LIVE_MAX_AGE el dato se trata como viejo.
+  var DATA_LIVE = false, DATA_STALE = false, DATA_AT = 0, LIVE_MAX_AGE = 30*60*1000;
+  function dataStale(){ return DATA_STALE || (DATA_AT>0 && Date.now()-DATA_AT>LIVE_MAX_AGE); }
+  function estadoOf(p){ return DATA_LIVE ? window.LawangCard.estado(p, dataStale()) : {k:"none",d:0,r:0,v:0,t:0}; }
+  function cardOpts(extra){
+    var o = {lang:S.lang, cur:S.cur, rates:L.RATES, live:DATA_LIVE, stale:dataStale()};
+    for(var k in (extra||{})) o[k]=extra[k];
+    return o;
+  }
   /* The Collection se repinta sola: se lo dice al modulo de idioma para que NO
      recargue la pagina al cambiar de idioma (perderia filtros, pagina y scroll). */
   window.LW_AL_CAMBIAR_IDIOMA = function(lang){ S.lang = lang; render(); };
@@ -145,6 +159,24 @@
   function themeFor(p){ if(p.regionKey==="sumba") return p.line==="land"?"ocean":"sand"; if(p.line==="resorts") return "dusk"; if(p.line==="land") return "jungle"; return "sunset"; }
   // "FROM" en versalitas pequeñas — misma regla que la card (.lw-prop-price .from)
   function priceHTML(eur, from){ if(!eur) return '<span style="opacity:.7">'+t("mk.onrequest")+'</span>'; return (from?'<span style="font-size:.5em;font-weight:500;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin-right:8px">'+t("mk.from")+'</span>':'') + money(eur); }
+  // Precio de cabecera y de la ficha técnica. Con datos en vivo: vendida -> «Sold out» (el precio sobre algo
+  // vendido atrae consultas que no se pueden atender; decisión del owner, F6 6-oct) y «From» solo si priceMode
+  // es «from». Con data.json (priceMode ausente) se conserva lo de siempre.
+  function priceBlockHTML(p){
+    if(DATA_LIVE && estadoOf(p).k==="gone") return '<span style="text-transform:uppercase;letter-spacing:.08em;color:#625d54">'+esc(window.LawangCard.stTxt("soldout",S.lang))+'</span>';
+    return priceHTML(p.priceEUR, !DATA_LIVE || window.LawangCard.showFrom(p));
+  }
+  // «Units a/b»: con datos en vivo sale del recuento de parcelas; si el dato es viejo solo se dice el total
+  // (unitsAvailable escrito a mano en el respaldo no se afirma).
+  function unitsValue(p, sep){
+    if(!p.unitsTotal) return null;
+    if(DATA_LIVE){
+      var st = estadoOf(p);
+      if(st.k==="na") return String(p.unitsTotal);
+      if(st.k!=="none") return st.d+sep+st.t;
+    }
+    return (p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+sep:"")+p.unitsTotal;
+  }
   function statusPillStyle(s){
     if(s==="status.ready")        return "background:var(--clay);color:var(--bone);border-color:var(--clay)";
     if(s==="status.construction") return "background:var(--be);color:var(--bone);border-color:var(--be)";
@@ -213,8 +245,8 @@
   function featuredHTML(p, list){
     if(!p || !((p.imgKeys&&p.imgKeys.length)||(p.images&&p.images.length))) return "";
     var key = (p.imgKeys&&p.imgKeys[0]) || (p.images&&p.images[0]);
-    var dots = (list&&list.length>1) ? '<div style="position:absolute;right:clamp(20px,3vw,38px);bottom:clamp(18px,2.6vw,30px);z-index:4;display:flex;gap:8px">'
-      + list.map(function(x,i){ return '<button data-act="feat:'+i+'" aria-label="Featured '+(i+1)+'" style="width:9px;height:9px;border-radius:999px;border:1px solid rgba(245,240,230,.85);background:'+(x.id===p.id?'var(--bone)':'transparent')+';cursor:pointer;padding:0"></button>'; }).join("")
+    var dots = (list&&list.length>1) ? '<div style="position:absolute;right:clamp(20px,3vw,38px);bottom:clamp(18px,2.6vw,30px);z-index:4;display:flex;gap:0">'
+      + list.map(function(x,i){ return '<button data-act="feat:'+i+'" aria-label="Featured '+(i+1)+'" style="width:24px;height:24px;border:0;border-radius:999px;background:radial-gradient(circle,'+(x.id===p.id?'#F5F0E6':'transparent')+' 0 3.5px,rgba(245,240,230,.85) 3.5px 4.5px,transparent 5px);cursor:pointer;padding:0"></button>'; }).join("")
       + '</div>' : "";
     return '<div class="lw-featured" data-go="'+esc(p.id)+'" style="cursor:pointer;position:relative;border-radius:12px;overflow:hidden;margin-bottom:26px">'
       + ph({key:key, w:2000, theme:themeFor(p), kb:true, ratio:"21/6", tint:0, style:"min-height:200px"})
@@ -278,7 +310,7 @@
     if(S.page < 1) S.page = 1;
     var pageStart = (S.page - 1) * PER_PAGE;
     var pageItems = filtered.slice(pageStart, pageStart + PER_PAGE);
-    var cards = pageItems.map(function(p){ return window.LawangCard.render(p, { lang:S.lang, cur:S.cur, rates:L.RATES, hrefBase:"" }); }).join("");
+    var cards = pageItems.map(function(p){ return window.LawangCard.render(p, cardOpts({ hrefBase:"" })); }).join("");
     var emptyState = '<div style="grid-column:1/-1;padding:60px 24px;text-align:center;color:var(--ink-2)">'
       + (L.PROPERTIES.length===0
           ? '<p style="font-size:15px;margin:0 0 6px">'+(S.lang==="es"?"No se pudieron cargar las propiedades.":"Properties could not be loaded.")+'</p>'
@@ -667,10 +699,11 @@
       var addI = function(l,v){ if(v!=null&&v!=="") info.push({l:l,v:v}); };
       addI(tl("Delivery","Entrega"), p.handover);
       addI(tl("Status","Estado"), p.status?t(p.status):null);
-      addI(tl("Units","Unidades"), p.unitsTotal?((p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+"/":"")+p.unitsTotal):null);
+      addI(tl("Units","Unidades"), unitsValue(p,"/"));
       var sizes = (cfg&&cfg.landOptions&&cfg.landOptions.length) ? cfg.landOptions.map(function(o){return Number(o.size)||0;}).filter(Boolean) : [];
       var minSize = sizes.length ? Math.min.apply(null,sizes) : (p.land>0?p.land:null);
-      addI(tl("Available","Disponible"), minSize ? tl("From ","Desde ")+minSize+" m²" : null);
+      // «Available · From N m²»: con dato viejo se omite, no se puede decir «disponible» (F7).
+      addI(tl("Available","Disponible"), (minSize && !(DATA_LIVE && dataStale())) ? tl("From ","Desde ")+minSize+" m²" : null);
     }
     var infoHTML = info.length ? '<div class="pdp-gi-info">'+info.map(function(r){
       return '<div class="pdp-gi-info-cell"><span class="pdp-gi-info-l">'+esc(r.l)+'</span><b>'+esc(r.v)+'</b></div>';
@@ -721,7 +754,7 @@
     if(p.tenure)  add("tenure", tl("Tenure","Régimen"), p.tenure==="tenure.freehold"?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+" yr"));
     if(p.status)  add("status", tl("Status","Estado"), t(p.status));
     if(p.handover && p.handover!=="—") add("delivery", tl("Delivery","Entrega"), p.handover);
-    if(p.unitsTotal) add("units", tl("Units","Unidades"), (p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+" / ":"")+p.unitsTotal);
+    if(p.unitsTotal) add("units", tl("Units","Unidades"), unitsValue(p," / "));
     return rows;
   }
   function techSheetHTML(rows){
@@ -951,7 +984,7 @@
     // que infoCardHTML — un solo generador, dos sitios donde el cliente la pide.
     var sheetRows = techSheetRows(p, cfg);
     var techCard = '<aside class="pp-techcard">'
-      + '<div class="pp-techcard-from">'+priceHTML(p.priceEUR,true)+'</div>'
+      + '<div class="pp-techcard-from">'+priceBlockHTML(p)+'</div>'
       + techSheetHTML(sheetRows)
       + '<div class="pdp-spec-dossier">'+downloadsHTML((p.downloads&&p.downloads.length)?p.downloads:[],p)+'</div>'
       + '</aside>';
@@ -997,7 +1030,18 @@
   // admin coloco antes de que el equipo diera de alta esa parcela -- ya no se trata como "sin
   // dato": se bloquea (hallazgo Legal, deploy 6-ago). Lo distingue S.plotsStatusOk: solo pasa a
   // true cuando la respuesta llegó de verdad, nunca en el catch.
+  // Estado por parcela desde el documento del SERVIDOR (p.parcelas), sin ninguna llamada: es la fuente de la v2.
+  // Con dato viejo plotsStatusOk queda false -> «sin dato» (clicable por defecto, igual que un fallo de red),
+  // nunca «disponible» afirmado. Idempotente por ficha.
+  function plotsFromDoc(p){
+    if(S.plotsStatusFor===p.id) return;
+    S.plotsStatusFor = p.id;
+    var map={}; (p.parcelas||[]).forEach(function(u){ if(u&&u.codigo!=null) map[u.codigo]={codigo:u.codigo, estado:u.estado, superficie_m2:u.superficie_m2}; });
+    S.plotsStatus = map;
+    S.plotsStatusOk = !dataStale();
+  }
   function fetchPlotsStatus(p){
+    if(DATA_LIVE){ plotsFromDoc(p); return; }   // v2: jamas se pregunta a Supabase desde el navegador
     var base = L.SETTINGS && L.SETTINGS.supabaseUrl, key = L.SETTINGS && L.SETTINGS.supabaseKey;
     if(!base || !key || !p.masterplanProject || !p.masterplanPlots || !p.masterplanPlots.length) return;
     if(S.plotsStatusFor===p.id) return;  // ya pedido (con éxito o fallo) para esta ficha
@@ -1049,7 +1093,9 @@
     } else {
       var sizeTxt = focusStatus && focusStatus.superficie_m2 ? focusStatus.superficie_m2+' m²' : "—";
       var priceTxt = focusIdx>=0 ? priceHTML(cfg.landOptions[focusIdx].priceEUR,true) : '<span style="opacity:.7">'+t("mk.onrequest")+'</span>';
-      var statusTxt = focusEstado==="reservada" ? tl("Reserved","Reservada") : (focusEstado&&focusEstado!=="disponible" ? tl("Not available","No disponible") : tl("Available","Disponible"));
+      // Sin estado (la petición falló o el dato es viejo) NO se dice «Available»: se dice que se consulte.
+      var statusTxt = !focusEstado ? window.LawangCard.stTxt("na",S.lang)
+        : (focusEstado==="reservada" ? tl("Reserved","Reservada") : (focusEstado!=="disponible" ? tl("Not available","No disponible") : tl("Available","Disponible")));
       detail = '<div class="mp-detail">'
         + '<div class="mp-detail-code">'+esc(focus)+'</div>'
         + '<div class="mp-detail-row"><span>'+sizeTxt+'</span><span>'+priceTxt+'</span></div>'
@@ -1377,14 +1423,14 @@
     var subHTML = (subText||tenureTag) ? '<p style="font-family:var(--sans);font-size:clamp(22px,2.6vw,38px);font-weight:300;letter-spacing:.02em;text-transform:uppercase;color:var(--ink);line-height:1.25;margin-top:clamp(14px,1.6vw,22px);max-width:100%">'+esc(subText)+(tenureTag?(subText?" ":"")+'<b style="font-weight:700">'+esc(tenureTag)+'</b>':'')+'</p>' : "";
     // "More in this line": mismas cards del marketplace/index (LawangCard) — revisión cliente 23-jul.
     var alsoHTML = also.length>0 ? '<div style="margin-top:clamp(38px,5vh,72px)"><div class="kicker" style="margin-bottom:clamp(22px,2.6vw,32px)">'+(alsoIsFallback?t("pd.also.any"):t("pd.also"))+'</div><div class="pdp-also-grid">'
-      + also.map(function(x){ return (window.LawangCard&&LawangCard.render) ? LawangCard.render(x,{lang:S.lang,cur:S.cur,rates:L.RATES}) : ''; }).join("")
+      + also.map(function(x){ return (window.LawangCard&&LawangCard.render) ? LawangCard.render(x,cardOpts()) : ''; }).join("")
       + '</div></div>' : "";
     // Cabecera: migas + subtítulo a la izquierda; a la derecha SOLO el precio (revisión cliente
     // 23-jul: fuera "LÍNEA › ESTADO" de encima del precio).
     var headerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:clamp(26px,3vw,38px)"><div style="flex:1 1 380px;min-width:0">'
       + breadcrumbsHTML(p,false)+subHTML+'</div>'
       + '<div style="flex-shrink:0;text-align:right">'
-      + '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>';
+      + '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceBlockHTML(p)+'</div></div></div>';
     // territoryHTML (mapa "Location" + planta 3D) se oculta desde 6-ago: quedaba redundante con
     // el masterplan y la imagen a sangre con puntos, que ya cubren mapa/ubicación. Función intacta
     // por si se reactiva; solo se deja de llamar aquí (mismo patrón que Designed-to-last, 24-jul).
@@ -1408,6 +1454,7 @@
     // ROI: bloque aparte, ya no colgado dentro del configurador (revisión 7-ago) — solo si la
     // propiedad trae tarifa/noche, sea cual sea el estado del configurador.
     var roi = (!isDeliveredNotForSale && p.nightlyRate>0) ? investmentCalcHTML(p, cfg.configuredEUR>0?cfg.configuredEUR:p.priceEUR) : "";
+    var availHTML = availabilityHTML(p, cfg);   // solo con datos en vivo (F7)
     var split  = splitSectionHTML(p);
     var bleed  = bleedSectionHTML(p);
     var gallerySide = gallerySidebarHTML(p, cfg);   // calco PDF p.2, 6-ago
@@ -1429,6 +1476,7 @@
       // El plan de pagos a sangre (calco EXACTO PDF p.4, 10-ago) — sin configurador es lo primero
       // que se ve tras la ficha técnica; con configurador solo aparece en el step "Plan", donde
       // reemplaza a la tarjeta del wizard (leftMain es "" en ese estado, ver arriba).
+      + (availHTML ? sec('<div class="wrap pdp-wrap">'+availHTML+'</div>') : "")
       + (payBleed ? sec(payBleed, "pdp-sec-flush") : "")
       + (roi ? sec('<div class="wrap pdp-wrap"><div class="cfg-card"><div class="cfg-step">'+roi+'</div></div></div>') : "")
       + (split ? sec(split, "pdp-sec-flush") : "")
@@ -1441,6 +1489,62 @@
       + waFloatHTML(p)
       + lightboxHTML(p)
       + '</div>';
+  }
+
+
+  // ── BLOQUE «AVAILABILITY» de la ficha (F7; lámina F6 aprobada 6-oct) ─────────────────────────
+  // Solo con datos en vivo. Estado derivado por LawangCard.estado (una regla, la misma que la tarjeta).
+  //  · ok/few/held/gone con ≥2 unidades -> contador, barra, leyenda y rejilla (misma gramática que los pines
+  //    del masterplan: disponible = relleno y clicable, reservada = borde discontinuo, vendida = tachada);
+  //  · na (dato viejo) -> «no podemos confirmar», sin números, con salida a WhatsApp;
+  //  · none, o una sola unidad -> nada: la tarjeta/chip ya lo dice y no hay rejilla que dibujar.
+  var AV_TXT = {
+    kick:   {en:"Availability", es:"Disponibilidad", id:"Ketersediaan"},
+    avail:  {en:"Available", es:"Disponible", id:"Tersedia"},
+    held:   {en:"Reserved", es:"Reservada", id:"Dipesan"},
+    gone:   {en:"Sold", es:"Vendida", id:"Terjual"},
+    plots:  {en:"plots", es:"parcelas", id:"kavling"},
+    units:  {en:"units", es:"unidades", id:"unit"},
+    of:     {en:"of", es:"de", id:"dari"},
+    availW: {en:"available", es:"disponibles", id:"tersedia"},
+    foot:   {en:"Status is live from Lawang's own records. A reserved plot can return to the market, so ask us before planning around one.",
+             es:"El estado sale en directo de los registros de Lawang. Una parcela reservada puede volver al mercado: consúltanos antes de planificar sobre una.",
+             id:"Status diambil langsung dari catatan Lawang. Kavling yang dipesan bisa kembali ke pasar, jadi tanyakan dulu kepada kami sebelum merencanakannya."},
+    naH:    {en:"We can't confirm availability right now", es:"Ahora mismo no podemos confirmar la disponibilidad", id:"Saat ini kami belum dapat memastikan ketersediaan"},
+    naFoot: {en:"Ask us for today's availability and prices and we'll answer within the day.",
+             es:"Pídenos la disponibilidad y los precios de hoy y te respondemos en el día.",
+             id:"Tanyakan ketersediaan dan harga hari ini kepada kami, dan kami akan menjawab di hari yang sama."},
+    cta:    {en:"Ask about availability", es:"Consultar disponibilidad", id:"Tanyakan ketersediaan"},
+    ctaMsg: {en:"Hello LAWANG, could you confirm today's availability and prices for ", es:"Hola LAWANG, ¿podéis confirmarme la disponibilidad y los precios de hoy de ", id:"Halo LAWANG, bisakah Anda memastikan ketersediaan dan harga hari ini untuk "}
+  };
+  function av(k){ var e=AV_TXT[k]; return e[S.lang]!=null ? e[S.lang] : e.en; }
+  function availabilityHTML(p, cfg){
+    if(!DATA_LIVE) return "";
+    var st = estadoOf(p);
+    if(st.k==="na"){
+      var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
+      var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(av("ctaMsg")+pick(p.title)+".");
+      return '<section class="avail av-na" aria-labelledby="av-h"><div class="av-head"><div><span class="kick">'+av("kick")+'</span><h2 id="av-h">'+esc(av("naH"))+'</h2></div></div>'
+        + '<p class="av-foot">'+esc(av("naFoot"))+'</p><a class="av-cta" href="'+esc(waUrl)+'" target="_blank" rel="noopener">'+esc(av("cta"))+'</a></section>';
+    }
+    if(st.k==="none" || st.t<2) return "";
+    plotsFromDoc(p);   // idempotente: deja S.plotsStatus listo para plotpick
+    var byPlot = !!(cfg && cfg.landOptions);   // se configura por parcela: la libre es un enlace al configurador
+    var noun = (p.landOptions&&p.landOptions.length) ? av("plots") : av("units");
+    var head = '<b>'+st.d+'</b> '+av("of")+' '+st.t+' '+noun+' '+av("availW");
+    var tiles = (p.parcelas||[]).map(function(u){
+      var e = u.estado, m2 = u.superficie_m2 ? '<em>'+esc(u.superficie_m2)+' m²</em>' : '';
+      var label = e==="disponible" ? av("avail") : (e==="reservada" ? av("held") : av("gone"));
+      var inner = '<b>'+esc(u.codigo)+'</b>'+m2+'<u>'+esc(label)+'</u>';
+      if(e==="disponible") return byPlot
+        ? '<button type="button" class="pl pl-ok pl-link" data-act="plotpick:'+esc(u.codigo)+'">'+inner+'</button>'
+        : '<span class="pl pl-ok">'+inner+'</span>';
+      return '<span class="pl '+(e==="reservada"?"pl-held":"pl-gone")+'">'+inner+'</span>';
+    }).join("");
+    return '<section class="avail" aria-labelledby="av-h"><div class="av-head"><div><span class="kick">'+av("kick")+'</span><h2 id="av-h">'+head+'</h2></div>'
+      + '<ul class="av-legend"><li><i class="sg-ok"></i>'+av("avail")+' '+st.d+'</li><li><i class="sg-held"></i>'+av("held")+' '+st.r+'</li><li><i class="sg-gone"></i>'+av("gone")+' '+st.v+'</li></ul></div>'
+      + '<div class="av-bar" role="img" aria-label="'+esc(st.d+" "+av("avail")+", "+st.r+" "+av("held")+", "+st.v+" "+av("gone"))+'"><i class="sg-ok" style="flex:'+st.d+'"></i><i class="sg-held" style="flex:'+st.r+'"></i><i class="sg-gone" style="flex:'+st.v+'"></i></div>'
+      + '<div class="av-grid">'+tiles+'</div><p class="av-foot">'+esc(av("foot"))+'</p></section>';
   }
 
   function sec(inner, extra){ return '<section class="pdp-sec'+(extra?" "+extra:"")+'">'+inner+'</section>'; }
@@ -1556,13 +1660,15 @@
   // hashchange/popstate por sí mismo, así que el cambio de estado va aquí mismo (antes
   // vivía solo en onHash, disparado por la mutación directa de location.hash).
   function openProperty(id){
-    if(history.pushState) history.pushState({lwProperty:id},"","/property/"+id);
+    // Ruta de prueba /thecollection-v2: la ficha se abre con #property/<id> en esta misma URL; /property/<id> sigue
+    // sirviendo la fuente de v1 y un F5 aquí mezclaría las dos.
+    if(history.pushState) history.pushState({lwProperty:id},"",window.LW_COLECCION_V2 ? location.pathname+location.search+"#property/"+id : "/property/"+id);
     if(id!==S.overlay){ S.overlay=id; resetDetail(); render(); trackView(id); }
   }
   // Cerrar vuelve a /thecollection si se entró por una URL /property/<slug> real (directo o
   // desde "more in this line"); si el filtro de línea seguía en el hash, lo respeta.
   function closeProperty(){
-    var back = /^\/property\//.test(location.pathname) ? "/thecollection" : location.pathname;
+    var back = /^\/property\//.test(location.pathname) ? (window.LW_COLECCION_V2 ? "/thecollection-v2" : "/thecollection") : location.pathname;
     if(history.pushState) history.pushState(null,"",back+location.search);
     S.overlay=null; render();
   }
@@ -1621,6 +1727,12 @@
       var st = S.plotsStatus[val];
       var idx = (cfgNow && st) ? landIdxForSize(cfgNow, st.superficie_m2) : -1;
       S.plotCode = val; S.parcelIdx = idx; S.plotFocusCode = val; S.step=S.step+1; render();
+      // Desde el bloque Availability el configurador queda en otra sección: sin llevar la vista hasta él, el clic
+      // parecería no hacer nada.
+      if(el && el.classList && el.classList.contains("pl")){
+        var lm = document.querySelector("#pf-overlay .pdp-leftmain");
+        if(lm) lm.scrollIntoView({behavior:"smooth",block:"center"});
+      }
     }
     else if(cmd==="model"){ S.modelIdx=parseInt(val,10); S.step=S.step+1; render(); }
     else if(cmd==="extra"){ var i=parseInt(val,10); S.extrasSel[i]=!S.extrasSel[i]; render(); }
@@ -1742,6 +1854,9 @@
   // El CDN de Hostinger puede servir un data.json truncado para el patron ?_=.
   // Probamos varias formas de query (no-store) y validamos antes de aceptar.
   function fetchDataResilient(){
+    // El servidor ya leyó la intranet (lw_coleccion) y la inyectó: aquí no hay petición alguna, ni a Supabase ni a data.json.
+    var pre = window.LW_COLECCION_PRELOAD;
+    if(pre && Array.isArray(pre.properties)) return Promise.resolve(pre);
     var rnd=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2);};
     var shapes=['?cb='+rnd()+'&r='+rnd(),'?nocache='+rnd()+'&v='+rnd(),'?_='+rnd()];
     var i=0;
@@ -1758,6 +1873,7 @@
     return attempt();
   }
   fetchDataResilient().then(function(data){
+    DATA_LIVE = data.live===true; DATA_STALE = data.stale===true; DATA_AT = Date.now();
     if(data.properties) L.PROPERTIES = data.properties;
     if(data.downloads)  L.DOWNLOADS  = data.downloads;
     // merge sobre los defaults: si data.json trae solo USD/AUD, IDR conserva su tasa por defecto

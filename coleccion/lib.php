@@ -256,9 +256,14 @@ function lw_coleccion_fuente(array $cfg) {
 
 /** Carga completa por los niveles, sin memo. `$cfg` inyectable (test). */
 function lw_coleccion_carga(array $cfg) {
-    $con = function (array $r, $fuente, $stale) {
+    // `live` = esta lectura es de la fuente en vivo (intranet): es la señal que activa en la SPA y en la
+    // tarjeta TODO lo nuevo de F7 (estado de unidad, «Sold out», bloque Availability). Sin ella (datajson,
+    // que no sabe de unidades) la web pinta exactamente lo de siempre.
+    $live = $cfg['fuente'] === 'intranet';
+    $con = function (array $r, $fuente, $stale) use ($live) {
         $r['fuente'] = $fuente;
         $r['stale']  = $stale;
+        $r['live']   = $live;
         return $r;
     };
     $cache = $cfg['cache'];
@@ -276,7 +281,7 @@ function lw_coleccion_carga(array $cfg) {
     if ($r = lw_coleccion_lee($cache, 'cache vieja', $cfg)) return $con($r, 'cache', true);
     if ($r = lw_coleccion_lee($cfg['respaldo'], 'respaldo', $cfg)) return $con($r, 'respaldo', true);
     error_log('lw_coleccion: ni fuente, ni cache, ni respaldo — The Collection sale vacia');
-    return ['properties' => [], 'settings' => [], 'downloads' => [], 'fuente' => 'ninguna', 'stale' => true];
+    return ['properties' => [], 'settings' => [], 'downloads' => [], 'fuente' => 'ninguna', 'stale' => true, 'live' => $live];
 }
 
 /** El documento publico de The Collection: {properties, settings, downloads, fuente, stale}.
@@ -286,6 +291,102 @@ function lw_coleccion($fuente = null) {
     $k = $fuente ?: 'env';
     if (!isset($memo[$k])) $memo[$k] = lw_coleccion_carga(lw_coleccion_cfg($fuente));
     return $memo[$k];
+}
+
+/** El documento tal como sale al NAVEGADOR (endpoint de la home y precarga de la SPA): una sola función,
+ *  para que nadie añada una clave por un lado y no por el otro. Sin `fuente` (infraestructura). `stale`
+ *  y `live` van siempre: sin ellos la SPA no puede distinguir «no hay dato» de «hay dato fresco». */
+function lw_coleccion_para_navegador(array $doc) {
+    return [
+        'properties' => $doc['properties'], 'settings' => $doc['settings'], 'downloads' => $doc['downloads'],
+        'live' => !empty($doc['live']), 'stale' => !empty($doc['stale']),
+    ];
+}
+
+/**
+ * Estado de disponibilidad de una ficha, derivado SOLO de `parcelas` (la lista del dueño, en tiempo real).
+ * UNA regla para el servidor (JSON-LD, noscript); su gemela en JS es LawangCard.estado (assets/lawang-card.js)
+ * y los dos tests (coleccion/tests/coleccion_test.php y assets/lawang-card.test.js) afirman la MISMA tabla
+ * (coleccion/tests/estados_esperados.json) contra la RPC real: si una cambia y la otra no, el gate falla.
+ *   k: none  sin parcelas (y dato fresco) -> sin dato que decir (no es «no disponible»: no se muestra estado)
+ *      na    no se puede fiar: stale (con o sin parcelas), estado desconocido o unitsAvailable que no cuadra
+ *      ok    queda alguna libre (n>1 de t, o t==1 casa única «Available»)   few  queda 1 libre de >=2
+ *      held  ninguna libre y alguna reservada   gone  todo vendido
+ * d/r/v/t = libres/reservadas/vendidas/total.
+ */
+function lw_coleccion_estado(array $p, $stale = false) {
+    $d = $r = $v = $x = 0;
+    foreach ((isset($p['parcelas']) && is_array($p['parcelas']) ? $p['parcelas'] : []) as $u) {
+        $e = is_array($u) ? ($u['estado'] ?? '') : '';
+        if ($e === 'disponible') $d++; elseif ($e === 'reservada') $r++; elseif ($e === 'vendida') $v++; else $x++;
+    }
+    $t = $d + $r + $v + $x;
+    $out = function ($k) use ($d, $r, $v, $t) { return ['k' => $k, 'd' => $d, 'r' => $r, 'v' => $v, 't' => $t]; };
+    if ($stale) return $out('na'); // «no he podido mirar» se ve distinto de «no hay nada» (none): incluso sin parcelas
+    if ($t === 0) return $out('none');
+    if ($x > 0) return $out('na');
+    $ua = $p['unitsAvailable'] ?? null;
+    if ($ua !== null && $ua !== '' && (int) $ua !== $d) return $out('na'); // dos contadores que no cuadran: no se afirma ninguno
+    if ($d > 1 || ($d === 1 && $t === 1)) return $out('ok');
+    if ($d === 1) return $out('few');
+    return $out($r > 0 ? 'held' : 'gone');
+}
+
+/** Texto de precio para quien no ejecuta JS (noscript) y para el JSON-LD: misma regla que la tarjeta.
+ *  Vendida (y dato fresco) -> «Sold out»; priceMode fixed -> «€X»; from o ausente (data.json no lo tiene) -> «From €X». */
+function lw_coleccion_precio_txt(array $p, $stale = false) {
+    $eur = $p['priceEUR'] ?? null;
+    if (lw_coleccion_estado($p, $stale)['k'] === 'gone') return 'Sold out';
+    if (!is_numeric($eur) || $eur <= 0) return '';
+    $n = '€' . number_format((int) $eur, 0, '.', ',');
+    return (($p['priceMode'] ?? 'from') === 'fixed') ? $n : 'From ' . $n;
+}
+
+/** El <noscript> de The Collection para crawlers sin JS, generado del MISMO documento que la página (antes lo
+ *  horneaba build_seo.py a mano: incluía fichas ocultas y «From» en precios fijos, y envejecía en silencio). */
+function lw_coleccion_noscript(array $doc) {
+    $e = function ($v) { return htmlspecialchars((string) $v, ENT_QUOTES | ENT_HTML5, 'UTF-8'); };
+    $tenure = ['tenure.freehold' => 'Freehold (HGB)', 'tenure.leasehold' => 'Leasehold — 30 yrs'];
+    $status = ['status.ready' => 'Built', 'status.construction' => 'Under construction', 'status.offplan' => 'Off-plan', 'status.land' => 'Titled land'];
+    $stale = !empty($doc['stale']);
+    $cards = [];
+    foreach ($doc['properties'] as $p) {
+        $id = (string) ($p['id'] ?? '');
+        $title = (string) ($p['title']['en'] ?? $id);
+        $region = (string) ($p['region'] ?? '');
+        $img = isset($p['images'][0]) ? (string) $p['images'][0] : '';
+        $sp = [];
+        if (!empty($p['beds']))  $sp[] = $p['beds'] . ' bed';
+        if (!empty($p['baths'])) $sp[] = $p['baths'] . ' bath';
+        if (!empty($p['built'])) $sp[] = $p['built'] . ' m² built';
+        if (!empty($p['land']))  $sp[] = $p['land'] . ' m² land';
+        $ho = trim((string) ($p['handover'] ?? ''));
+        if (in_array($ho, ['—', '–', '-', '', 'N/A', 'n/a'], true)) $ho = '';
+        $meta = array_filter([$status[$p['status'] ?? ''] ?? '', $tenure[$p['tenure'] ?? ''] ?? '', $ho !== '' ? 'Handover ' . $ho : '']);
+        $price = lw_coleccion_precio_txt($p, $stale);
+        $line = function ($cls, $txt) use ($e) { return $txt === '' ? '' : "
+      <p class=\"$cls\">" . $e($txt) . '</p>'; };
+        $cards[] = "    <article class=\"seo-prop\">
+      "
+            . ($img !== '' ? '<img src="' . $e($img) . '" alt="' . $e($title) . ' — ' . $e($region) . '" loading="lazy" width="800" height="600">' : '')
+            . "
+      <h3><a href=\"/property/" . $e($id) . '">' . $e($title) . '</a></h3>'
+            . $line('seo-region', $region) . $line('seo-price', $price) . $line('seo-specs', implode(' · ', $sp))
+            . $line('seo-meta', implode(' · ', $meta)) . $line('seo-sub', (string) ($p['sub']['en'] ?? ''))
+            . $line('seo-desc', (string) ($p['desc']['en'] ?? '')) . "
+    </article>";
+    }
+    return "<noscript>
+  <section class=\"seo-fallback\" aria-label=\"Lawang property portfolio\">
+"
+        . "    <h1>Lawang — Property Portfolio in Bali &amp; Sumba</h1>
+"
+        . "    <p>Signature homes, land parcels, villas and resort units across Bali and Sumba, Indonesia. Freehold and leasehold opportunities with managed rental income.</p>
+"
+        . implode("
+", $cards) . "
+  </section>
+</noscript>";
 }
 
 function lw_coleccion_props($fuente = null) { return lw_coleccion($fuente)['properties']; }
