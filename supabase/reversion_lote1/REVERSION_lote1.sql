@@ -18,6 +18,10 @@ create policy obra_progreso_fase_zona_select on public.obra_progreso_fase_zona f
 -- G5-A (el COMMENT previo era NULL, medido)
 comment on function public.hitos_sin_factura(date) is null;
 -- G1 v2: tras revertir las policies (arriba): drop function public.agente_ve_proyecto_obra(uuid);
--- NOTA: las definiciones previas exactas (pg_get_functiondef antes de aplicar) se capturaron en la sesion y se comprobo, tras aplicar,
--- que replace(<def actual>, <bloque insertado>, '') las reproduce byte a byte; por eso la reversion es ese mismo replace.
+-- NOTA (corregida 6-oct-2026, lote 2): las definiciones previas exactas NO se guardaron ni se comprobó con un hash que
+-- `replace(<def actual>, <bloque insertado>, '')` las reproduzca byte a byte; la versión anterior de esta nota lo afirmaba sin esa prueba.
+-- Lo que sí es cierto: cada reversión de arriba QUITA el bloque que el lote 1 insertó y deja el resto del cuerpo como esté hoy; si otra
+-- migración posterior toca el mismo cuerpo, hay que revisar el resultado antes de ejecutarla. Para una reversión exacta de verdad:
+-- antes de aplicar, guardar md5(pg_get_functiondef(...)) y comprobar tras revertir que vuelve al mismo md5 (así se hizo en el lote 2,
+-- ver reversion_lote2/REVERSION_lote2.sql).
 -- Versiones remotas: 20261006115604, 115717, 115808 (G1 v1, revertida), 120130 (G1 v2), 120148.
