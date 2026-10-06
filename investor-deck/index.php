@@ -355,7 +355,9 @@ a.enlace{color:inherit;text-decoration:underline}
 /* Columna estrecha (1024-1279 y portatiles a 1280): View / Download alineados con el icono,
    para que quepan en una linea */
 @media(min-width:1024px) and (max-width:1365px){ .doc-acc{padding-left:0;gap:12px} }
-/* Pantallas bajas (1366x768, 1280x720): cabecera y filas mas prietas para que quepa sin scroll */
+/* Pantallas bajas (1366x768, 1280x720): cabecera y filas mas prietas para que quepa sin scroll.
+   ACEPTADO (owner, 6-oct-2026): entre 1024 y 1279 px de ancho (iPad horizontal, ventanas
+   pequenas) el panel puede hacer scroll; el objetivo sin scroll es desde 1280. */
 @media(min-width:1024px) and (max-height:820px){
   .dd-cab{padding:20px 26px 16px}
   #faq h2{font-size:28px}
