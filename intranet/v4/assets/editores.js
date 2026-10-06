@@ -5189,6 +5189,7 @@
                 cuerpo: '<p>«' + esc(v.titulo) + '» quedará descargable por CUALQUIERA que abra el dosier público de ' + esc(nombreProyecto) + ', sin contraseña y sin contrato.</p>' +
                   // las traducciones también salen al público: se leen antes de publicar (Seguridad, 28-sep)
                   ((v.titulo_en || v.titulo_id) ? '<p>En inglés: «' + esc(v.titulo_en || '—') + '» · En indonesio: «' + esc(v.titulo_id || '—') + '»</p>' : '') +
+                  ((v.url_en || v.url_id) ? '<p>Enlace en inglés: ' + esc(v.url_en || '—') + '<br>Enlace en indonesio: ' + esc(v.url_id || '—') + '</p>' : '') +
                   '<p>Si el enlace es de Drive, ábrelo antes en una ventana de incógnito: si no está compartido en abierto, el inversor se choca con una pantalla de permisos.</p>',
                 confirmar: 'Publicar', tono: 'peligro'
               });
@@ -5393,7 +5394,8 @@
           modal('Nuevo enlace · ' + p, [
             { k: 'titulo', label: 'Título', req: 1 }
           ].concat(camposTituloDeck(null), [
-            { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
+            { k: 'url', label: 'URL (español y por defecto)', req: 1, ayuda: 'https://…' }
+          ].concat(camposUrlDeck(null), [
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: CATS_ENLACE, valor: 'comercial' },
             // S11.3 (22-sep-2026): la columna ya existía (la consulta de
             // datos.js ya la traía) — solo faltaba el wiring del formulario.
@@ -5401,8 +5403,9 @@
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 }  // nace MARCADA: la tabla se diseño con default true y el formulario mandaba false explicito, asi que todo documento nuevo nacia no-confidencial y el 'cinturon y tirantes' del RPC no protegia nada
-          ]).concat(campoDeck(false)), 'Guardar enlace', function (v) {
+          ])).concat(campoDeck(false)), 'Guardar enlace', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
+            var malaUrl = urlIdiomaMala(v); if (malaUrl) return { error: { message: malaUrl } };
             return confirmaPublicacionDoc(v, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
               return guardaDoc(null, conDeck(conTitulos({
@@ -5547,12 +5550,36 @@
             { k: 'titulo_id', label: 'Título en indonesio (investor deck)', medio: 1, valor: t.id || '', ayuda: 'En blanco = sale el inglés' }
           ];
         }
+        /* Enlace por idioma para el investor deck (6-oct-2026, owner: «en los botones de download dossier, que en
+           español pueda poner un enlace, en inglés otro y en bahasa otro»). `url` es el español y el de reserva;
+           inglés e indonesio van en `url_i18n`. En blanco = el deck usa el de reserva. Solo en enlaces (un fichero
+           subido es uno solo). El servidor rehace el objeto y valida http(s). */
+        function camposUrlDeck(d2) {
+          var u = (d2 && d2.url_i18n) || {};
+          return [
+            { k: 'url_en', label: 'URL en inglés (investor deck)', valor: u.en || '', ayuda: 'https://… · En blanco = sale la URL de arriba' },
+            { k: 'url_id', label: 'URL en indonesio (investor deck)', valor: u.id || '', ayuda: 'https://… · En blanco = sale la de inglés, y si no la de arriba' }
+          ];
+        }
+        function urlI18n(v) {
+          return { en: String(v.url_en || '').trim(), id: String(v.url_id || '').trim() };
+        }
+        // un enlace por idioma, si se rellena, tiene que ser http(s): se avisa aquí antes de ir al servidor
+        function urlIdiomaMala(v) {
+          var malo = null;
+          [['url_en', 'inglés'], ['url_id', 'indonesio']].forEach(function (p) {
+            var t = String(v[p[0]] || '').trim();
+            if (t && !/^https?:\/\//.test(t)) malo = 'la URL en ' + p[1] + ' tiene que empezar por http:// o https://';
+          });
+          return malo;
+        }
         function tituloI18n(v) {
           return { en: String(v.titulo_en || '').trim(), id: String(v.titulo_id || '').trim() };
         }
         // sin campos (documento general), la clave no viaja: el servidor conserva lo que hubiera
         function conTitulos(fila, v) {
           if ('titulo_en' in v || 'titulo_id' in v) fila.titulo_i18n = tituloI18n(v);
+          if ('url_en' in v || 'url_id' in v) fila.url_i18n = urlI18n(v);
           return fila;
         }
         function campoDeck(valor) {
@@ -5592,7 +5619,7 @@
           var nuevoPortal = v.visible_portal && !anterior.visible_portal;
           var nuevoDeck = v.publicado_investor_deck && !anterior.publicado_investor_deck;
           if (!nuevoPortal && !nuevoDeck) return Promise.resolve({ ok: true });
-          return confirmaPublicacionDoc({ titulo: v.titulo, titulo_en: v.titulo_en, titulo_id: v.titulo_id, confidencial: v.confidencial, visible_portal: nuevoPortal, publicado_investor_deck: nuevoDeck }, nombreProyecto);
+          return confirmaPublicacionDoc({ titulo: v.titulo, titulo_en: v.titulo_en, titulo_id: v.titulo_id, url_en: v.url_en, url_id: v.url_id, confidencial: v.confidencial, visible_portal: nuevoPortal, publicado_investor_deck: nuevoDeck }, nombreProyecto);
         }
 
         function abreEditarEnlace(d2) {
@@ -5607,14 +5634,16 @@
           modal('Editar enlace', [
             { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' }
           ].concat(camposTituloDeck(d2), [
-            { k: 'url', label: 'URL', req: 1, valor: d2.url || '', ayuda: 'https://…' },
+            { k: 'url', label: 'URL (español y por defecto)', req: 1, valor: d2.url || '', ayuda: 'https://…' }
+          ].concat(camposUrlDeck(d2), [
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || CATS_ENLACE[0] },
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial }
-          ]).concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
+          ])).concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
+            var malaUrl = urlIdiomaMala(v); if (malaUrl) return { error: { message: malaUrl } };
             if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };

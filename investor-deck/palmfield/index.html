@@ -1073,6 +1073,16 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
     var t = d.titulo_i18n || {};
     return String(t[lang] || t.en || d.titulo || '');
   }
+  // Enlace de un documento publicado segun el idioma del visitante (6-oct-2026, owner): `url` es el espanol y
+  // el de reserva; `url_i18n` trae en/id. es -> url · en -> url_i18n.en o url · id -> url_i18n.id, .en o url.
+  // Cada candidato pasa por urlSegura(): uno invalido no tumba el boton, cae al siguiente.
+  function urlDoc(d){
+    var lang = window.lwLang ? lwLang() : 'en';
+    var u = d.url_i18n || {};
+    var orden = lang === 'es' ? [d.url] : lang === 'id' ? [u.id, u.en, d.url] : [u.en, d.url];
+    for(var i = 0; i < orden.length; i++){ var s = urlSegura(orden[i]); if(s) return s; }
+    return '';
+  }
   function pintaDocs(docs){
     var bloque = document.getElementById('docs-bloque');
     var cont   = document.getElementById('docs-lista');
@@ -1080,7 +1090,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
     cont.innerHTML = '';
     var pintados = 0;
     docs.forEach(function(d){
-      var href = urlSegura(d.url);
+      var href = urlDoc(d);
       if(!href) return;
       // La tarjeta ya NO es un enlace: lleva dos acciones distintas dentro, y un <a>
       // con dos <a> dentro no es HTML valido -- ademas de dejar al inversor sin saber
@@ -1143,11 +1153,11 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       // hay mas de un documento publicado, el boton pasa a bajar el ultimo que alguien
       // subio -- un plano topografico bajo la promesa de un dosier. Se ata a la
       // categoria, que es lo que de verdad significa "dosier".
-      var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlSegura(x.url); })[0];
+      var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlDoc(x); })[0];
       if(!d) return;
       var cta = document.getElementById('cta-dosier');
       if(!cta) return;
-      cta.href = urlSegura(d.url);
+      cta.href = urlDoc(d);
       cta.classList.remove('hidden');
       cta.classList.add('inline-flex');
       if(tituloDoc(d)) cta.setAttribute('title', tituloDoc(d));

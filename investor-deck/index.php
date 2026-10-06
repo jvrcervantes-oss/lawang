@@ -823,6 +823,16 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     if(!u) return '';
     try{ var p = new URL(String(u), location.href); return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : ''; }catch(_){ return ''; }
   }
+  // Enlace de un documento publicado segun el idioma del visitante (6-oct-2026, owner): `url` es el espanol y
+  // el de reserva; `url_i18n` trae en/id. es -> url · en -> url_i18n.en o url · id -> url_i18n.id, .en o url.
+  // Cada candidato pasa por urlSegura(): uno invalido no tumba el boton, cae al siguiente.
+  function urlDoc(d){
+    var lang = window.lwLang ? lwLang() : 'en';
+    var u = d.url_i18n || {};
+    var orden = lang === 'es' ? [d.url] : lang === 'id' ? [u.id, u.en, d.url] : [u.en, d.url];
+    for(var i = 0; i < orden.length; i++){ var s = urlSegura(orden[i]); if(s) return s; }
+    return '';
+  }
   function aviso(queFallo){
     return '<div class="aviso">We could not load ' + queFallo + ' right now. Please contact ' +
       '<a class="enlace" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
@@ -950,7 +960,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     cont.innerHTML = '';
     var pintados = 0;
     docs.forEach(function(d){
-      var href = urlSegura(d.url);
+      var href = urlDoc(d);
       if(!href) return;
       // La tarjeta NO es un enlace: lleva dos acciones, y un <a> dentro de otro no es HTML valido.
       var card = document.createElement('div'); card.className = 'doc';
@@ -1466,10 +1476,10 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
           if(!docs || !docs.length) return;          // sin nada publicado, ni boton ni bloque
           pintaDocs(docs);
           // "Download dossier" solo puede apuntar al dosier: se ata a la categoria.
-          var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlSegura(x.url); })[0];
+          var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlDoc(x); })[0];
           if(!d) return;
           var cta = $('cta-dosier');
-          cta.href = urlSegura(d.url);
+          cta.href = urlDoc(d);
           if(tituloDoc(d)) cta.setAttribute('title', tituloDoc(d));
           cta.hidden = false;
         })
