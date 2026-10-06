@@ -5908,7 +5908,8 @@
                (y el trigger trg_proyecto_empresa) en la base. Las opciones salen de la tabla `empresas`, no de una lista a mano. */
             { k: 'empresa', label: edT('Empresa'), tipo: esSuper ? 'select' : 'lectura',
               valor: esSuper ? (p.empresa || '') : nombreEmpresa(p.empresa),
-              opciones: [['', edT('Sin empresa (cerrado)')]].concat(((window.LW_V4 && window.LW_V4.empresas) || []).map(function (e) { return [e.clave, e.nombre]; })) },
+              opciones: [['', edT('Sin empresa (cerrado)')]].concat(((window.LW_V4 && window.LW_V4.empresas) || []).map(function (e) { return [e.clave, e.nombre]; }))
+                .concat(p.empresa && !(((window.LW_V4 && window.LW_V4.empresas) || []).some(function (e) { return e.clave === p.empresa; })) ? [[p.empresa, p.empresa]] : []) },
             // Ubicación en Google Maps (24-sep-2026, owner). Texto tal cual se pega;
             // lo interpreta mapaProyecto() de datos.js al pintar.
             { k: 'ubicacion_maps', label: 'Ubicación (Google Maps)', valor: p.ubicacion_maps || '',
