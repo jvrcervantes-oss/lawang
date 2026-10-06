@@ -18,3 +18,6 @@ create policy obra_progreso_fase_zona_select on public.obra_progreso_fase_zona f
 -- G5-A (el COMMENT previo era NULL, medido)
 comment on function public.hitos_sin_factura(date) is null;
 -- G1 v2: tras revertir las policies (arriba): drop function public.agente_ve_proyecto_obra(uuid);
+-- NOTA: las definiciones previas exactas (pg_get_functiondef antes de aplicar) se capturaron en la sesion y se comprobo, tras aplicar,
+-- que replace(<def actual>, <bloque insertado>, '') las reproduce byte a byte; por eso la reversion es ese mismo replace.
+-- Versiones remotas: 20261006115604, 115717, 115808 (G1 v1, revertida), 120130 (G1 v2), 120148.
