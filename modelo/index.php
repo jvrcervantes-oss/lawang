@@ -620,8 +620,9 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 /* Extras (6-oct-2026, owner): lino continuo con filete arriba (separa de Roof finishes) y
    opción 4 del artifact — panel verde con la villa y el total + lista de extras con glifo
    tallado. El panel NO suma nada: copia lo que pinta el configurador (#lw-r-villa-*, las
-   casillas de #lw-extras, #lw-total), así nunca enseña otra cifra que el total configurado. */
-#section-extras::before{content:"";position:absolute;top:0;left:var(--cpd);right:var(--cpd);height:1px;background:rgba(46,52,55,.18);pointer-events:none}
+   casillas de #lw-extras, #lw-total), así nunca enseña otra cifra que el total configurado.
+   El filete va en ::after: ::before es el velo crema de .sec-lino y no se pisa. */
+#section-extras::after{content:"";position:absolute;top:0;left:var(--cpd);right:var(--cpd);height:1px;background:rgba(46,52,55,.18);pointer-events:none}
 .x-titulo{font-family:var(--sa);font-weight:200;text-transform:uppercase;line-height:1.04;letter-spacing:.02em;color:var(--ci);font-size:var(--fs-h-xl);margin:0;text-wrap:balance}
 .x-titulo b{font-weight:500}
 .x-sub{font-family:var(--sa);font-weight:300;font-size:clamp(13px,1.25vw,16px);letter-spacing:.16em;text-transform:uppercase;color:var(--ci2);margin:0}
@@ -1055,12 +1056,12 @@ foreach ($incluido as $it) {
 <p class="x-sub">Extras priced for the <?= lw_e($villa) ?></p>
 </div>
 <div class="x-lay">
-<aside class="x-panel" aria-live="polite">
+<aside class="x-panel">
 <p class="x-k">Your villa</p>
-<h3 class="x-villa">Villa <b><?= lw_e($nombre) ?></b></h3>
-<p class="x-estado" id="lw-x-estado">No extras yet</p>
+<h3 class="x-villa" id="lw-x-villa">Villa <b><?= lw_e($nombre) ?></b></h3>
+<p class="x-estado" id="lw-x-estado" aria-live="polite">No extras yet</p>
 <ul class="x-lineas" id="lw-x-lineas"><li class="vacio"><span>Add an extra and it appears here</span></li></ul>
-<div class="x-tot"><span>Configured total</span><b id="lw-x-total"><?= lw_e($precioTxt) ?></b></div>
+<div class="x-tot"><span>Configured total</span><b id="lw-x-total" aria-live="polite"><?= lw_e($precioTxt) ?></b></div>
 <p class="x-nt">Plot priced separately. Roof can be changed in the configurator.</p>
 <div class="x-cta">
 <a class="x-pill" href="#hero-configurator" id="lw-x-ver">Review in configurator</a>
@@ -1295,6 +1296,9 @@ foreach ($incluido as $it) {
       return null;
     }
     function texto(id) { var e = document.getElementById(id); return e ? e.textContent : ''; }
+    // Si el motor cambia su marcado y no se encuentra algo, se dice en consola: un «+ Add»
+    // muerto sin error es el fallo que dejó tres días sin alta de clientes (patrones_tecnicos.md).
+    function falta(que) { console.error('[extras] no encuentro ' + que + ' del configurador'); }
     function linea(a, b, cls) {
       var li = document.createElement('li'), s1 = document.createElement('span');
       if (cls) li.className = cls;
@@ -1303,9 +1307,17 @@ foreach ($incluido as $it) {
       return li;
     }
     function pinta() {
-      var n = 0, techo = texto('lw-r-villa-sub').split(' · ')[0];
+      var n = 0, rt = document.querySelector('#lw-techos input[name="lw-techo"]:checked');
+      var tl = rt && rt.closest('label'), tn = tl && tl.querySelector('.op__nb');
       lineas.textContent = '';
-      lineas.appendChild(linea((techo || 'Villa') + ' · turnkey', texto('lw-r-villa-pr')));
+      lineas.appendChild(linea((tn ? tn.textContent + ' roof' : 'Villa') + ' · turnkey', texto('lw-r-villa-pr')));
+      // Nombre de la villa también del motor: con ?villa= el configurador puede llevar otra.
+      var vn = texto('lw-r-villa'), h = document.getElementById('lw-x-villa');
+      if (vn && h) {
+        var pv = vn.split(' '), b = document.createElement('b');
+        b.textContent = pv.slice(1).join(' ');
+        h.textContent = pv[0] + ' '; h.appendChild(b);
+      }
       items.forEach(function (it) {
         var c = caja(it.getAttribute('data-extra')), on = !!(c && c.checked);
         it.classList.toggle('on', on);
@@ -1322,7 +1334,7 @@ foreach ($incluido as $it) {
     items.forEach(function (it) {
       it.addEventListener('click', function () {
         var c = caja(it.getAttribute('data-extra'));
-        if (!c) return;
+        if (!c) { falta('la casilla del extra «' + it.getAttribute('data-extra') + '»'); return; }
         c.checked = !c.checked;
         c.dispatchEvent(new Event('change', { bubbles: true }));
       });
@@ -1331,12 +1343,14 @@ foreach ($incluido as $it) {
     // muestraPaso: se avanza con su propio botón «Next», como hace el bloque de parcela).
     document.getElementById('lw-x-ver').addEventListener('click', function () {
       var paso = document.querySelector('.cfg__step[data-paso="5"]'), sig = document.getElementById('lw-siguiente');
-      for (var i = 0; paso && sig && paso.hidden && i < 5; i++) sig.click();
+      if (!paso || !sig) { falta('el paso de extras o el botón Next'); return; }
+      for (var i = 0; paso.hidden && i < 5; i++) sig.click();
     });
     document.addEventListener('change', function (e) { if (e.target && e.target.name === 'lw-extra') pinta(); });
     // Techo y divisa repintan el total sin pasar por una casilla de extra.
     var tot = document.getElementById('lw-total');
-    if (tot && 'MutationObserver' in window) new MutationObserver(pinta).observe(tot, { childList: true, characterData: true, subtree: true });
+    if (!tot) falta('#lw-total');
+    else if ('MutationObserver' in window) new MutationObserver(pinta).observe(tot, { childList: true, characterData: true, subtree: true });
     pinta();
   }());
 
