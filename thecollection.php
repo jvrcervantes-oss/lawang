@@ -73,7 +73,6 @@ if ($prop) {
     $region   = (string) ($prop['region'] ?? '');
     $sub      = trim((string) ($prop['sub']['en'] ?? ''));
     $desc     = trim((string) ($prop['desc']['en'] ?? ''));
-    $priceEUR = $prop['priceEUR'] ?? null;
     $images   = $prop['images'] ?? [];
     // Una imagen puede ser ruta del servidor (/assets/...) o URL absoluta (bucket de la intranet).
     $ogImage  = $images ? (preg_match('#^https?://#', (string) $images[0]) ? $images[0] : $SITE . $images[0]) : $SITE . '/assets/img/aerial-1.jpg';
@@ -97,24 +96,9 @@ if ($prop) {
             'addressCountry' => 'ID',
         ],
     ];
-    if ($priceEUR) {
-        $jsonLd['offers'] = [
-            '@type'        => 'Offer',
-            'price'        => (string) $priceEUR,
-            'priceCurrency' => 'EUR',
-            'availability' => 'https://schema.org/InStock',
-        ];
-        // Con la intranet como fuente la disponibilidad ya no se supone: se deriva de las parcelas con la
-        // misma regla que la tarjeta (lw_coleccion_estado). Vendida -> SoldOut; sin dato fiable (stale, sin
-        // parcelas, contadores que no cuadran) -> se OMITE la clave en vez de afirmar InStock. Con datajson
-        // (que no sabe de unidades) queda InStock como siempre.
-        if ($LIVE) {
-            $k = lw_coleccion_estado($prop, !empty($doc['stale']))['k'];
-            if ($k === 'gone') $jsonLd['offers']['availability'] = 'https://schema.org/SoldOut';
-            elseif ($k === 'few') $jsonLd['offers']['availability'] = 'https://schema.org/LimitedAvailability';
-            elseif ($k !== 'ok') unset($jsonLd['offers']['availability']);
-        }
-    }
+    // Disponibilidad: lw_coleccion_jsonld_oferta (UNA regla para la ficha y para el listado; ver lib.php).
+    $oferta = lw_coleccion_jsonld_oferta($prop, $LIVE, !empty($doc['stale']));
+    if ($oferta) $jsonLd['offers'] = $oferta;
 }
 ?><!DOCTYPE html>
 <html lang="en">
@@ -150,6 +134,9 @@ if ($prop) {
 <meta name="robots" content="noindex, nofollow">
 <link rel="canonical" href="https://lawangproperties.com/thecollection">
 <meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
+<script type="application/ld+json">
+<?= json_encode(lw_coleccion_jsonld_listado($doc, $SITE), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
+</script>
 <?php else: ?>
 <meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
 <link rel="canonical" href="https://lawangproperties.com/thecollection">
@@ -161,14 +148,7 @@ if ($prop) {
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://lawangproperties.com/assets/img/aerial-1.jpg">
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "CollectionPage",
-  "name": "The Collection · Lawang Tropical Properties",
-  "url": "https://lawangproperties.com/thecollection",
-  "description": "Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.",
-  "isPartOf": { "@type": "WebSite", "name": "Lawang Tropical Properties", "url": "https://lawangproperties.com/" }
-}
+<?= json_encode(lw_coleccion_jsonld_listado($doc, $SITE), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
 </script>
 <?php endif; ?>
 <!-- Fonts: The Seasons + Neue Kabel (marca, locales) · Cormorant Garamond + Jost de fallback -->
