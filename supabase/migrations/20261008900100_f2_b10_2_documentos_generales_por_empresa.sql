@@ -2,7 +2,7 @@
 -- BLOQUE 10 · 2/2 (Fase 2, prueba final de aislamiento, 7-oct-2026). Los documentos «generales» (general = true: NIB, NPWP, Akta y Sertifikat de PT Tepi Sungai, con su carpeta de Drive)
 --   los leia CUALQUIER agente, tambien el admin de la otra empresa. Se les da dueno: columna `empresa` (nula = sin dueno = solo los no acotados) y el reparto de hoy: los 4 son de Lawang
 --   (proyecto «Lawang (general)», carpeta «PT TEPI SUN GAI»). Un rol de empresa ve los generales de SUS empresas; los 34 usuarios de hoy siguen viendo todos.
---   `agente_ve_documento_proyecto` (storage) aplica lo mismo. Pendiente con dueno: una pantalla/RPC para fijar la empresa de un general nuevo (hoy solo lo crea un admin global y nace sin dueno = cerrado a los roles de empresa).
+--   `agente_ve_documento_proyecto` (storage) aplica lo mismo. Pendiente con dueno (fila LAW-E14 de contexto/pendientes.md): una pantalla/RPC para fijar la empresa de un general nuevo (hoy solo lo crea un admin global y nace sin dueno = cerrado a los roles de empresa).
 -- destructivo-ok: anade una columna nullable y la rellena en 4 filas; no borra nada
 -- REVERTIR: supabase/reversion_f2/REVERSION_f2_b10.sql
 alter table public.documentos_proyecto add column if not exists empresa text references public.empresas (clave);
