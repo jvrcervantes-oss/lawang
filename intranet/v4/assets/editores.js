@@ -8351,7 +8351,7 @@
               /* Vacio SI revoca aqui (correcto, como la clasica): "Proyectos"
                  no tiene el sentido invertido de tipos_contrato de abajo. */
               atajos: [{ texto: 'Marcar todos', valor: true }, { texto: 'Ninguno', valor: false }],
-              ayuda: 'Limita en qué proyectos puede crear y editar contratos. Sin ninguno marcado, no puede crear en ninguno.' });
+              ayuda: 'Limita en qué proyectos puede crear y editar contratos. Sin ninguno marcado, no puede crear en ninguno. Solo se pueden marcar los proyectos de las empresas marcadas arriba.' });
           } else {
             campos.push({ tipo: 'nota', label: 'No se pudo cargar el catálogo de proyectos: los suyos se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
           }
@@ -8416,6 +8416,32 @@
               });
             });
           });
+          /* «Proyectos en los que trabaja» va atado a las EMPRESAS (owner, 7-oct-2026: «si marco Lawang se habiliten los
+             proyectos de Lawang»): solo se pueden marcar los proyectos de las empresas marcadas; los de otra empresa (y los
+             sin empresa, como Karana) quedan deshabilitados y desmarcados. Sin ninguna empresa marcada = sin límite, como
+             hasta ahora. Es comodidad de pantalla: la base lo vuelve a exigir al guardar (usuario_guarda_permisos). */
+          var cajaEmpresas = document.querySelector('#lw-editor [data-k="empresas"]');
+          var cajaProyectos = document.querySelector('#lw-editor [data-k="proyectos"]');
+          if (cajaProyectos && proyectosOk) {
+            var empresaDe = {};
+            proyectos.forEach(function (p) { empresaDe[p.id] = p.empresa; });
+            var aplicaEmpresas = function () {
+              var sel = cajaEmpresas
+                ? [].slice.call(cajaEmpresas.querySelectorAll('input:checked')).map(function (i) { return i.value; })
+                : (u.empresas || []);
+              cajaProyectos.querySelectorAll('input[type="checkbox"]').forEach(function (i) {
+                var ok = !sel.length || sel.indexOf(empresaDe[i.value]) !== -1;
+                i.disabled = !ok;
+                if (!ok) i.checked = false;
+                if (i.parentNode) i.parentNode.style.opacity = ok ? '' : '.4';
+              });
+            };
+            aplicaEmpresas();
+            if (cajaEmpresas) cajaEmpresas.addEventListener('change', aplicaEmpresas);
+            // «Marcar todos» marca también las casillas deshabilitadas: se vuelve a aplicar justo después
+            var campoProy = cajaProyectos.parentNode;
+            if (campoProy) campoProy.querySelectorAll('[data-atajo]').forEach(function (b) { b.addEventListener('click', aplicaEmpresas); });
+          }
         });
       };
 
