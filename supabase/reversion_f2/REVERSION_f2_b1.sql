@@ -18,6 +18,13 @@ begin
   execute replace(v, p_old, p_new);
 end $f$;
 
+-- ===================== PARTE 5: renombrar_proyecto con validacion (migracion 20261008100400) =====================
+select pg_temp.parchea('public.renombrar_proyecto(text,text)'::regprocedure,
+  $q$if length(btrim(p_nuevo)) > 120 then raise exception 'El nombre no puede pasar de 120 caracteres' using errcode = '22023'; end if;
+  if btrim(p_nuevo) ~ '^[=+\-@]' then raise exception 'El nombre no puede empezar por = + - @' using errcode = '22023'; end if;
+  if exists (select 1 from public.proyectos where nombre = p_nuevo) then$q$,
+  $q$if exists (select 1 from public.proyectos where nombre = p_nuevo) then$q$);
+
 -- ===================== PARTE 4: socios con global con empresas (migracion 20261008100300; se revierte ANTES que la parte 1) =====================
 select pg_temp.parchea('public.unidad_socio_asigna(uuid,uuid,text)'::regprocedure,
   $q$if p_socio is not null and not public.es_admin() and public.alcance_restringido() and not exists ($q$,
