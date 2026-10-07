@@ -1,0 +1,1 @@
+Bloque 6, 8-oct-2026, antes y despues de cada migracion (34 fichas, via CLI): MD5=41323d702bd56b9e3a4bad6ff643ed14 (identico tras las 5 migraciones)
