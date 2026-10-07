@@ -82,8 +82,9 @@ begin
   r := r || pg_temp.l(n = 3, 'A2 RLS activa en las 3 tablas');
   select count(*) into n from unnest(fn) x where has_function_privilege('anon', 'public.' || x, 'execute') or has_function_privilege('service_role', 'public.' || x, 'execute');
   r := r || pg_temp.l(n = 0, format('A3 ninguna de las 8 RPC es ejecutable por anon ni service_role (%s)', n));
-  select count(*) into n from unnest(fn) x where not has_function_privilege('authenticated', 'public.' || x, 'execute');
-  r := r || pg_temp.l(n = 0, 'A4 las 8 RPC son ejecutables por authenticated (cada una tiene su llamador)');
+  select count(*) into n from unnest(fn) x where has_function_privilege('authenticated', 'public.' || x, 'execute');
+  r := r || pg_temp.l(n = 0, 'A4 (migracion 990100, reducir la exposicion) las 8 RPC NO son ejecutables por authenticated hasta que S5/S7 las llamen; a partir de aqui se les da el GRANT temporal dentro del rollback');
+  foreach s in array fn loop execute 'grant execute on function public.' || s || ' to authenticated'; end loop;
   select count(*) into n from pg_proc where pronamespace = 'public'::regnamespace and proname like 'plantilla_contrato_%' and prosecdef and not (proconfig @> array['search_path=""']);
   r := r || pg_temp.l(n = 0, 'A5 todas SECURITY DEFINER con search_path vacio');
   select count(*) into n from pg_proc where pronamespace = 'public'::regnamespace and proname in ('_plantilla_hash', '_trg_plantilla_version_ins', '_trg_plantilla_version_upd', '_trg_plantilla_sin_borrado', '_trg_plantilla_cuerpo_iu', '_trg_contrato_plantilla_version', '_plantilla_esqueleto', '_plantilla_exige_valido')
