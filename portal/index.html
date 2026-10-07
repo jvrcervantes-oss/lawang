@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="cce896aca0be">
+<meta name="lw-version" content="23d812f335be">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -651,6 +651,18 @@
     .proy-card:hover, .proy-card:active, .proy-card:hover .proy-portada img, .btn-borde:active, .btn-oscuro:active, .btn-primario:active{ transform:none; }
     .docfila:hover{ padding-left:18px; }
     .tl-paso.actual.pulso::after{ animation:none; }
+  }
+
+  /* el item activo del menú no pierde su verde ni su texto blanco al pasar el ratón (ya fallaba antes: el hover del
+     menú ganaba por orden y dejaba texto blanco sobre fondo claro) */
+  .navrow.on, .navrow.on:hover{ background:#485B37; color:#fff; }
+  @media (max-width:640px){
+    /* resumen en móvil: tres filas etiqueta-importe; en columnas de 100 px una cifra de 9 dígitos se partía */
+    .kpis{ grid-template-columns:1fr; }
+    .kpis .tarjeta{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:12px 16px; }
+    .kpis .tarjeta + .tarjeta{ border-left:0; border-top:1px solid var(--pg-hi); }
+    .kpi .lbl{ margin:0; }
+    .kpi .val{ font-size:20px; white-space:nowrap; overflow-wrap:normal; }
   }
 </style>
 </head>

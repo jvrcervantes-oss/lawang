@@ -33,6 +33,12 @@
     if (k >= 1) return fin;
     return fin * (1 - Math.pow(1 - k, 3));
   }
+  /* El FLIP solo vale si origen y destino tienen la MISMA forma (±5 %): con distinta proporción (la tarjeta horizontal
+     del móvil frente a la cabecera 4:3) un escalado x/y distinto estiraría la imagen a mitad de vuelo. */
+  function mismaForma(w1, h1, w2, h2) {
+    if (!(w1 > 0 && h1 > 0 && w2 > 0 && h2 > 0)) return false;
+    return Math.abs((w1 / h1) / (w2 / h2) - 1) <= 0.05;
+  }
   function claveVista(seccion, carpeta) { return seccion + '|' + (seccion === 'documentos' ? (carpeta || '') : ''); }
 
   var PERF = {
@@ -86,7 +92,7 @@
     var flip = null, r = M._portada; M._portada = null;
     if (grande && r && (Date.now() - r.t) < 2500 && r.w > 0 && r.h > 0) {
       var g = grande.getBoundingClientRect();
-      if (g.width > 0 && g.height > 0) flip = { dx: r.x - g.left, dy: r.y - g.top, sx: r.w / g.width, sy: r.h / g.height, el: grande };
+      if (mismaForma(r.w, r.h, g.width, g.height)) flip = { dx: r.x - g.left, dy: r.y - g.top, sx: r.w / g.width, sy: r.h / g.height, el: grande };
     }
     var piezas = [];
     Array.prototype.forEach.call(c.children, function (el) {
@@ -166,6 +172,6 @@
     if (a) a.onfinish = function () { if (fin) fin(); }; else if (fin) fin();
   };
 
-  M.perfil = perfil; M.valorCuenta = valorCuenta; M.claveVista = claveVista; M.puede = puede;
+  M.perfil = perfil; M.mismaForma = mismaForma; M.valorCuenta = valorCuenta; M.claveVista = claveVista; M.puede = puede;
   if (typeof module !== 'undefined' && module.exports) module.exports = M; else root.LW_MOV = M;
 })(typeof window !== 'undefined' ? window : this);
