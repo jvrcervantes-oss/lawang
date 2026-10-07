@@ -961,6 +961,7 @@
     'Te deben este mes': 'Owed to you this month',
     'Previsión si cambio la tarifa': 'Forecast if I change the rate',
     'Registrar cobro': 'Record a payment',
+    'Tarifas y fees': 'Rates and fees',
     'Calendario': 'Calendar',
     'Lo devengado cada día del mes': 'What accrued each day of the month',
     'Cada línea está en el día en que se apuntó. Pulsa una para cambiar su estado de cobro. Gris = pendiente, azul = facturada, verde = cobrada; el borde discontinuo es un fee fijo. Un abono resta en el día en que se emitió, no en el del recibí que deshace.': 'Each line sits on the day it was booked. Click one to change its collection status. Grey = pending, blue = invoiced, green = collected; a dashed border is a fixed fee. A credit note subtracts on the day it was issued, not on that of the receipt it undoes.',
