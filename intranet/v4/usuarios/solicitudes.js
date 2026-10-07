@@ -1,6 +1,6 @@
 /* Solicitudes de alta y contactos de referidos (24-sep-2026).
  *
- * Llegan desde la guía /formacion/ por la edge pública `alta-colaborador`:
+ * Llegan desde la guía /partners/ por la edge pública `alta-colaborador`:
  *   · COMERCIAL (5 %) → `solicitudes_colaborador`. Nadie entra a la intranet sin
  *     el clic «Activar» de aquí (revisión previa #61): la cuenta la crea la edge
  *     admin-usuarios, accion 'activar_solicitud', y el comercial recibe un correo

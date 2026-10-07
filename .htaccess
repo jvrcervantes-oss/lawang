@@ -1,5 +1,8 @@
 # 28-jul-2026: /panel/ renombrado a /intranet/. 301 para los marcadores del equipo.
 RedirectMatch 301 ^/panel(/.*)?$ /intranet$1
+# 7-oct-2026: la guía de comerciales /formacion/ pasa a /partners/ (owner). 301 para los
+# enlaces ya enviados y los correos de alta-colaborador anteriores al cambio.
+RedirectMatch 301 ^/formacion(/.*)?$ /partners$1
 # ═══════════════════════════════════════════════════════════════════════════
 # 26-ago-2026 · LA INTRANET ENTERA BAJO /intranet/
 # ═══════════════════════════════════════════════════════════════════════════
