@@ -1,9 +1,9 @@
 <!DOCTYPE html><html lang="es"><head>
-<meta name="lw-version" content="32a1beb367a6"><title data-lw-titulo>Comisión de administración</title>
+<meta name="lw-version" content="a7355c775370"><title data-lw-titulo>Comisión de administración</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-rol="super_admin"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=0bc51c14" defer></script>
-<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/entities.js?v=65021341" defer></script><script src="/contracts/assets/paginacion.js?v=2ac67b84" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=dc1e969e" defer></script><script src="../assets/comision-neto.js?v=128e2efb" defer></script><script src="../assets/datos.js?v=aa566304" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/entities.js?v=65021341" defer></script><script src="/contracts/assets/paginacion.js?v=2ac67b84" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=dc1e969e" defer></script><script src="../assets/comision-neto.js?v=128e2efb" defer></script><script src="../assets/datos.js?v=81152121" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c76dd0b9" defer></script>
 <link href="../assets/shell.css?v=449197c1" rel="stylesheet">
@@ -134,14 +134,14 @@
 .lw-pest button[aria-selected="true"]{background:#1b4332;border-color:#1b4332;color:#fff}
 </style>
 <nav class="lw-pest" role="tablist" aria-label="Secciones de la comisión de administración">
-<button type="button" role="tab" data-lw-pestana="calendario" aria-selected="true" data-lwt>Calendario</button>
-<button type="button" role="tab" data-lw-pestana="libro" aria-selected="false" data-lwt>Libro</button>
-<button type="button" role="tab" data-lw-pestana="cobros" aria-selected="false" data-lwt>Cobros</button>
-<button type="button" role="tab" data-lw-pestana="sociedades" aria-selected="false" data-lwt>Por sociedad</button>
-<button type="button" role="tab" data-lw-pestana="tarifas" aria-selected="false" data-lwt>Tarifas y fees</button>
+<button type="button" role="tab" data-lw-ca-pestana="calendario" aria-selected="true" data-lwt>Calendario</button>
+<button type="button" role="tab" data-lw-ca-pestana="libro" aria-selected="false" data-lwt>Libro</button>
+<button type="button" role="tab" data-lw-ca-pestana="cobros" aria-selected="false" data-lwt>Cobros</button>
+<button type="button" role="tab" data-lw-ca-pestana="sociedades" aria-selected="false" data-lwt>Por sociedad</button>
+<button type="button" role="tab" data-lw-ca-pestana="tarifas" aria-selected="false" data-lwt>Tarifas y fees</button>
 </nav>
 
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-panel="tarifas" hidden>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-ca-panel="tarifas" hidden>
 <div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
 <div class="flex flex-col gap-1">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Tarifas</span>
@@ -168,7 +168,7 @@
 </div>
 </section>
 
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-panel="tarifas" hidden>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-ca-panel="tarifas" hidden>
 <div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
 <div class="flex flex-col gap-1">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Fee fijo</span>
@@ -218,7 +218,7 @@
 </div>
 </section>
 
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-panel="sociedades" hidden>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-ca-panel="sociedades" hidden>
 <div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
 <div class="flex flex-col gap-1">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Por sociedad</span>
@@ -244,7 +244,7 @@
 </div>
 </section>
 
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" id="lw-ca-cal-sec" data-lw-panel="calendario">
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" id="lw-ca-cal-sec" data-lw-ca-panel="calendario">
 <div class="px-8 pt-8 pb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-outline-variant/40">
 <div class="flex flex-col gap-1">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Calendario</span>
@@ -279,7 +279,7 @@
 </style>
 </section>
 
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-panel="cobros" hidden>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-ca-panel="cobros" hidden>
 <div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
 <div class="flex flex-col gap-1">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Cobros registrados</span>
@@ -307,7 +307,7 @@
 </div>
 </section>
 
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-panel="libro" hidden>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" data-lw-ca-panel="libro" hidden>
 <div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
 <div class="flex flex-col gap-1">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Libro</span>

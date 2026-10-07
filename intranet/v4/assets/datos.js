@@ -7455,7 +7455,7 @@
           caja.id = 'lw-mis-comisiones';
           caja.className = 'flex flex-col gap-4';
           var barra = document.getElementById('lw-eq-buscar');
-          var ancla = barra && barra.closest('[data-lw-panel] > div');
+          var ancla = barra && barra.closest('[data-lw-ca-panel] > div');
           function coloca() {
             if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(caja, ancla); else if (tablaEq) tablaEq.closest('section, div').before(caja);
           }
@@ -8555,20 +8555,22 @@
     if (!(window.LW_V4 && window.LW_V4.esSuperAdmin)) { notaSoloAdmin(); return; }
 
     /* Pestañas (7-oct-2026, owner: la pantalla era muy larga). Arriba se queda lo que se mira siempre (tarifa,
-       lo que te deben, previsiones); debajo, UNA sección cada vez. Cada sección lleva data-lw-panel y cada botón
-       data-lw-pestana (identificadores estables: el rótulo puede cambiar sin romper nada). Recuerda la última
+       lo que te deben, previsiones); debajo, UNA sección cada vez. Cada sección lleva data-lw-ca-panel y cada botón
+       data-lw-ca-pestana (identificadores estables: el rótulo puede cambiar sin romper nada). Recuerda la última
        pestaña en el navegador, como comodidad: si no hay almacenamiento, abre en el Calendario. */
     (function pestanas() {
-      var botones = document.querySelectorAll('[data-lw-pestana]');
+      var barra = document.querySelector('nav.lw-pest');   // acotado: nav.js ya usa data-lw-pestana en el menú lateral
+      if (!barra) return;
+      var botones = barra.querySelectorAll('[data-lw-ca-pestana]');
       if (!botones.length) return;
       var KEY = 'lw-ca-pestana';
-      var valida = function (n) { return !!document.querySelector('[data-lw-pestana="' + n + '"]'); };
+      var valida = function (n) { return !!barra.querySelector('[data-lw-ca-pestana="' + n + '"]') && !!document.querySelector('[data-lw-ca-panel="' + n + '"]'); };
       function abre(n) {
-        botones.forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-lw-pestana') === n ? 'true' : 'false'); });
-        document.querySelectorAll('[data-lw-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-lw-panel') !== n; });
+        botones.forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-lw-ca-pestana') === n ? 'true' : 'false'); });
+        document.querySelectorAll('[data-lw-ca-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-lw-ca-panel') !== n; });
         try { localStorage.setItem(KEY, n); } catch (e) { /* sin almacenamiento: no pasa nada */ }
       }
-      botones.forEach(function (b) { b.addEventListener('click', function () { abre(b.getAttribute('data-lw-pestana')); }); });
+      botones.forEach(function (b) { b.addEventListener('click', function () { abre(b.getAttribute('data-lw-ca-pestana')); }); });
       var guardada = null;
       try { guardada = localStorage.getItem(KEY); } catch (e) { guardada = null; }
       abre(guardada && valida(guardada) ? guardada : 'calendario');
