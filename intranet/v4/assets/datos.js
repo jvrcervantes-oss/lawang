@@ -8652,11 +8652,7 @@
          contar también su abono lo restaba DOS veces. Solo cuenta un abono cuyo
          devengo ya estaba facturado o cobrado: ese sí es un crédito real. */
       var porIdLinea = {}; lineas.forEach(function (l) { porIdLinea[l.id] = l; });
-      var abonoSinEfecto = function (l) {
-        if (l.tipo_linea !== 'abono') return false;
-        var o = porIdLinea[l.linea_origen_id];
-        return !!(o && o.anulada && (o.estado === 'pendiente' || o.estado === 'exenta'));
-      };
+      var abonoSinEfecto = function (l) { return lwAbonoSinEfecto(l, porIdLinea); };
       var vivas = lineas.filter(function (l) { return !l.anulada && l.estado !== 'exenta' && !abonoSinEfecto(l); });
       var esFee = function (l) { return l.tipo_linea === 'fee' || (l.tipo_linea === 'abono' && l.fee_id); };
       var delMesTodo = vivas.filter(function (l) { return (l.devengado_el || '').slice(0, 7) === mesActual; });
