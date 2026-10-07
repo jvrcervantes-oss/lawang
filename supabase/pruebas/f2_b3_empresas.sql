@@ -202,3 +202,112 @@ begin
   fallos := (length(r) - length(replace(r, 'FALLO', ''))) / 5;
   raise exception E'\n%FALLOS=%', r, fallos;
 end $t$;
+
+-- ===== SECCION 3: CRM / LEADS ===== (mismo setup de personas; herramientas leads, ranking y reparto; ctl con las mismas)
+create function pg_temp.t(p_uid uuid, p_email text, p_sql text, p_esp text, p_et text, p_rol text default 'authenticated') returns text language plpgsql as $f$
+declare got text; r text;
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub',p_uid,'role',p_rol,'email',p_email)::text, true);
+  execute format('set local role %I', p_rol);
+  begin execute p_sql into r; got := coalesce(r,'null'); exception when others then got := sqlstate; end;
+  reset role;
+  return case when got = p_esp then 'OK   ' else 'FALLO' end || ' ' || p_et || ' [' || got || ' esp ' || p_esp || ']';
+end $f$;
+create function pg_temp.q(p_uid uuid, p_email text, p_sql text) returns text language plpgsql as $f$
+declare got text; r text;
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub',p_uid,'role','authenticated','email',p_email)::text, true);
+  set local role authenticated;
+  begin execute p_sql into r; got := coalesce(r,'null'); exception when others then got := sqlstate; end;
+  reset role;
+  return got;
+end $f$;
+do $t$
+declare
+  jv uuid; ya uuid; cr uuid; ad4 uuid; p4 uuid; ctl uuid;
+  e_ya text; e_cr text; e_ad4 text; e_p4 text; e_ctl text;
+  ll uuid; ls uuid; kl uuid; ks uuid; prev text; prevk text;
+  nl bigint; ns bigint; nt bigint; kl_n bigint; ranl bigint; r text := ''; fallos int; a text; b text; c text;
+  hs text := '{comisiones,leads,ranking,reparto,comunicacion,compradores,usuarios}';
+begin
+  select user_id into jv from public.usuarios where email='jvr.cervantes@gmail.com';
+  select user_id, email into ya, e_ya from public.usuarios where email='yanayjefferson@gmail.com';
+  select user_id, email into cr, e_cr from public.usuarios where email='cris.blueiestates@gmail.com';
+  select user_id, email into ad4, e_ad4 from public.usuarios where email='adenovit.b@gmail.com';
+  select user_id, email into p4, e_p4 from public.usuarios
+   where activo and ambito='global' and cardinality(coalesce(empresas,'{}'))=0 and rol not in ('admin','super_admin') and user_id not in (ya,cr,ad4) order by email limit 1;
+  select user_id, email into ctl, e_ctl from public.usuarios
+   where activo and ambito='global' and cardinality(coalesce(empresas,'{}'))=0 and rol not in ('admin','super_admin') and user_id not in (ya,cr,ad4,p4) order by email limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub',jv,'role','authenticated','email','jvr.cervantes@gmail.com')::text, true);
+  update public.usuarios set rol='admin_empresa', ambito='empresa', empresas='{lawang}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=ya;
+  update public.usuarios set rol='super_admin_empresa', ambito='empresa', empresas='{sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=cr;
+  update public.usuarios set rol='admin_empresa', ambito='empresa', empresas='{lawang,sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=ad4;
+  update public.usuarios set rol='super_admin_empresa', ambito='empresa', empresas='{lawang}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=p4;
+  update public.usuarios set herramientas = hs::text[] where user_id=ctl;
+  select l.id into ll from public.leads l where public.empresa_de_lead(l.id)='lawang' order by l.id limit 1;
+  select l.id into ls from public.leads l where public.empresa_de_lead(l.id)='sandal_woods' order by l.id limit 1;
+  select c.id into kl from public.contratos c join public.proyectos p on p.id=c.proyecto_id where p.empresa='lawang' order by c.id limit 1;
+  select c.id into ks from public.contratos c join public.proyectos p on p.id=c.proyecto_id where p.empresa='sandal_woods' order by c.id limit 1;
+  select count(*) into nl from public.leads l where public.empresa_de_lead(l.id)='lawang';
+  select count(*) into ns from public.leads l where public.empresa_de_lead(l.id)='sandal_woods';
+  select count(*) into nt from public.leads;
+  r := r || format('INFO leads: lawang=%s sandal=%s total=%s (sin empresa=%s)', nl, ns, nt, nt-nl-ns) || E'\n';
+
+  -- visibilidad
+  r := r || pg_temp.t(ya, e_ya, 'select count(*)::text from public.crm_leads()', nl::text, 'ya (Lawang) ve solo los leads de Lawang') || E'\n';
+  r := r || pg_temp.t(cr, e_cr, 'select count(*)::text from public.crm_leads()', ns::text, 'cr (Sandal Woods) ve solo los de Sandal Woods') || E'\n';
+  r := r || pg_temp.t(ad4, e_ad4, 'select count(*)::text from public.crm_leads()', (nl+ns)::text, 'ad4 ve los de las dos') || E'\n';
+  r := r || pg_temp.t(ctl, e_ctl, 'select count(*)::text from public.crm_leads()', nt::text, 'agente sin restriccion sigue viendo todos') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, 'select leads_visibles::text from public.crm_mi_alcance()', nl::text, 'crm_mi_alcance cuenta los de su empresa') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, 'select total::text from public.crm_leads_resumen()', nl::text, 'resumen de leads de ya = los de Lawang') || E'\n';
+  r := r || pg_temp.t(ctl, e_ctl, 'select total::text from public.crm_leads_resumen()', nt::text, 'resumen sin restriccion = todos') || E'\n';
+  -- asignar
+  select responsable into prev from public.lead_estado where lead_id = ll;
+  r := r || pg_temp.t(ya, e_ya, format('select responsable from public.crm_lead_asignar(%L, %L, %L)', ll, e_ctl, prev), e_ctl, 'ya asigna un lead de Lawang a alguien sin restriccion') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select responsable from public.crm_lead_asignar(%L, %L, %L)', ls, e_ctl, null::text), 'PT403', 'ya NO toca un lead de Sandal Woods') || E'\n';
+  select responsable into prev from public.lead_estado where lead_id = ll;
+  r := r || pg_temp.t(ya, e_ya, format('select responsable from public.crm_lead_asignar(%L, %L, %L)', ll, e_cr, prev), 'PT400', 'ya NO asigna un lead de Lawang a alguien solo de Sandal Woods') || E'\n';
+  r := r || pg_temp.t(cr, e_cr, format('select responsable from public.crm_lead_asignar(%L, %L, %L)', ll, e_cr, prev), 'PT403', 'cr NO se apunta un lead de Lawang') || E'\n';
+  r := r || pg_temp.t(cr, e_cr, format('select que from public.crm_lead_accion_poner(%L, ''llamar'', current_date + 1, %L)', ll, e_cr), 'PT403', 'cr NO pone acciones en un lead de Lawang') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select que from public.crm_lead_accion_poner(%L, ''llamar'', current_date + 1, %L)', ll, e_cr), 'PT400', 'ya NO pone la accion a alguien solo de Sandal Woods') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select que from public.crm_lead_accion_poner(%L, ''llamar'', current_date + 1, %L)', ll, e_ctl), 'llamar', 'ya pone una accion a alguien de su empresa') || E'\n';
+  -- reparto
+  r := r || pg_temp.t(ya, e_ya, format('select (count(*) > 0)::text from public.crm_reparto_closer_set(%L, %L, true)', 'meta-lawang-bali', e_ctl), 'true', 'ya apunta un closer al origen de Lawang') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select (count(*) > 0)::text from public.crm_reparto_closer_set(%L, %L, true)', 'meta-sumbahills', e_ctl), 'PT403', 'ya NO toca el reparto de Sumba Hills') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select (count(*) > 0)::text from public.crm_reparto_closer_set(%L, %L, true)', 'meta-lawang-bali', e_ya), 'PT403', 'ya (admin, no super) NO se apunta a si mismo') || E'\n';
+  r := r || pg_temp.t(p4, e_p4, format('select (count(*) > 0)::text from public.crm_reparto_closer_set(%L, %L, true)', 'meta-lawang-bali', e_p4), 'true', 'p4 (super de Lawang) si puede apuntarse') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select (count(*) > 0)::text from public.crm_reparto_closer_set(%L, %L, true)', 'meta-lawang-bali', e_cr), 'PT400', 'ya NO apunta a alguien solo de Sandal Woods al origen de Lawang') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, 'select (count(*) > 0)::text from public.crm_reparto_origen_set(''meta-lawang-bali'', true, 4, 7)', 'true', 'ya configura el reparto de un origen de Lawang') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, 'select (count(*) > 0)::text from public.crm_reparto_origen_set(''meta-sumbahills'', true, 4, 7)', 'PT403', 'ya NO configura el reparto de Sumba Hills') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, 'select count(*)::text from public.crm_reparto_config() where source in (''meta-sumbahills'',''sumba-hills-qr'',''sumbahills-web'')', '0', 'ya no ve la configuracion de reparto de Sumba Hills') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, 'select (count(*) > 0)::text from public.crm_reparto_config() where source = ''meta-lawang-bali''', 'true', 'ya ve la de Lawang') || E'\n';
+  r := r || pg_temp.t(ctl, e_ctl, 'select count(*)::text from public.crm_reparto_config()', (select count(distinct source) from public.leads)::text, 'sin restriccion ve todos los origenes') || E'\n';
+  -- campanas y serie
+  r := r || pg_temp.t(ya, e_ya, 'select count(*)::text from public.crm_campanas() where cliente like ''%Sumba%''', '0', 'ya no ve la campana de Sumba Hills') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, 'select (count(*) > 0)::text from public.crm_campanas() where cliente like ''%Bali%''', 'true', 'ya ve la campana de Bali') || E'\n';
+  r := r || pg_temp.t(cr, e_cr, 'select count(*)::text from public.crm_campanas() where cliente not like ''%Sumba%''', '0', 'cr solo ve la campana de Sumba Hills') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, 'select count(*)::text from public.crm_campanas_conjuntos() where cliente like ''%Sumba%''', '0', 'ya no ve conjuntos de anuncios de Sumba Hills') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, 'select count(*)::text from public.crm_automatismos(500) where campana like ''%Sumba%''', '0', 'ya no ve automatismos de Sumba Hills') || E'\n';
+  a := pg_temp.q(ya, e_ya, 'select coalesce(sum(leads),0)::text from public.crm_serie_semanal(8)');
+  b := pg_temp.q(cr, e_cr, 'select coalesce(sum(leads),0)::text from public.crm_serie_semanal(8)');
+  c := pg_temp.q(ctl, e_ctl, 'select coalesce(sum(leads),0)::text from public.crm_serie_semanal(8)');
+  r := r || case when a::bigint + b::bigint = c::bigint then 'OK   ' else 'FALLO' end || format(' serie semanal: ya %s + cr %s = todos %s', a, b, c) || E'\n';
+  -- contratos y ranking
+  select count(*) into kl_n from public.contratos c where coalesce(c.bloqueado,false) and c.precio_total is not null and public.empresa_de_contrato(c.id)='lawang';
+  r := r || pg_temp.t(ya, e_ya, 'select count(*)::text from public.crm_contratos_para_atribuir(false)', kl_n::text, 'contratos por atribuir de ya = los bloqueados de Lawang') || E'\n';
+  select count(*) into ranl from public.contratos c where coalesce(c.bloqueado,false) and c.precio_total is not null and not (c.contrato_padre_id is not null and c.tipo like 'carta_reserva%') and public.empresa_de_contrato(c.id)='lawang';
+  r := r || pg_temp.t(ya, e_ya, 'select coalesce(sum(contratos),0)::text from public.crm_ranking_closers(false)', ranl::text, 'ranking de ya cuenta solo contratos de Lawang') || E'\n';
+  select closer_email into prevk from public.contrato_closer where contrato_id = kl;
+  r := r || pg_temp.t(ya, e_ya, format('select closer_email from public.crm_contrato_closer_set(%L, %L, %L)', kl, e_ctl, prevk), e_ctl, 'ya atribuye una venta de Lawang a alguien de su empresa') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select closer_email from public.crm_contrato_closer_set(%L, %L, %L)', ks, e_ctl, null::text), 'PT404', 'ya NO atribuye una venta de Sandal Woods') || E'\n';
+  select closer_email into prevk from public.contrato_closer where contrato_id = kl;
+  r := r || pg_temp.t(ya, e_ya, format('select closer_email from public.crm_contrato_closer_set(%L, %L, %L)', kl, e_cr, prevk), 'PT400', 'ya NO atribuye una venta de Lawang a alguien solo de Sandal Woods') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select closer_email from public.crm_contrato_closer_set(%L, %L, %L)', kl, e_ya, prevk), 'PT403', 'ya NO se atribuye una venta a si mismo (admin, no super)') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select count(*)::text from public.crm_lead_contrato_sellar(%L, %L)', ll, kl), '1', 'ya sella un lead con un contrato de Lawang') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select count(*)::text from public.crm_lead_contrato_sellar(%L, %L)', ll, ks), 'PT404', 'ya NO sella un lead con un contrato de Sandal Woods') || E'\n';
+  -- el catalogo del tablero sigue cerrado
+  r := r || pg_temp.t(ya, e_ya, 'select clave from public.crm_estado_crear(''b3_prueba'',''B3'',''x'',''#000000'',''nuevo'')', 'PT403', 'ya no edita el tablero (catalogo compartido)') || E'\n';
+  r := r || pg_temp.t(p4, e_p4, 'select clave from public.crm_estado_crear(''b3_prueba'',''B3'',''x'',''#000000'',''nuevo'')', 'PT403', 'ni siquiera un super de empresa') || E'\n';
+  fallos := (length(r) - length(replace(r, 'FALLO', ''))) / 5;
+  raise exception E'\n%FALLOS=%', r, fallos;
+end $t$;

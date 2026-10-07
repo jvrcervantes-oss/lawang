@@ -24,6 +24,9 @@ begin
   execute d;
 end $f$;
 
+-- comunicacion_datos y comunicado_datos pertenecen a lw_lector (G1): lo que llaman directamente debe poder ejecutarlo lw_lector
+grant execute on function public.es_admin_en_alguna_empresa(), public.comparte_empresa_con(text) to lw_lector;
+
 -- comunicacion_datos: la pagina de comunicados y la lista de destinatarios, acotadas a la empresa
 select pg_temp.f2_edita('public.comunicacion_datos(integer,uuid)',
   $v$if not (public.es_admin() and public.puede('comunicacion')) then$v$,
