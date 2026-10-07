@@ -162,13 +162,17 @@ function facturaDelHito(facturas, contrato, hito, moneda){
    «sin unidad» de su proyecto; el que no trae proyecto, a la de su nombre — mismo criterio que `carpetasProyecto`.
    Dentro de cada villa, la Carta ya sustituida va al final: es un documento suyo, pero no le pide nada. La regla de
    «sustituida» es la de siempre (`estaSustituido` sobre TODOS los contratos del comprador), no una por villa: si
-   una Carta no trae la misma unidad que su Bloqueo, mirarlo por villa la haría reclamar otra vez su cuota. */
+   una Carta no trae la misma unidad que su Bloqueo, mirarlo por villa la haría reclamar otra vez su cuota. Que una
+   Carta de OTRA villa salga como recogida es el coste conocido de esa regla: decisión del owner pendiente, LAW-499. */
+/* Qué es «la misma villa»: una sola definición para agrupar y para enlazar una Carta con sus definitivos. */
+function claveVilla(x){
+  return (x.proyecto_id || ('n:' + (x.proyecto || ''))) + '|' + (x.parcela || '');
+}
 function villasPortal(contratos){
   const cts = (contratos || []).filter(Boolean);
   const mapa = {}, orden = [];
   cts.forEach(x => {
-    const pk = x.proyecto_id || ('n:' + (x.proyecto || ''));
-    const key = pk + '|' + (x.parcela || '');
+    const key = claveVilla(x);
     if (!mapa[key]){ mapa[key] = { key: key, proyecto_id: x.proyecto_id || null, proyecto: x.proyecto || '', parcela: x.parcela || '', contratos: [] }; orden.push(key); }
     mapa[key].contratos.push(x);
   });
@@ -188,8 +192,8 @@ function villasPortal(contratos){
 function sustitutosDe(x, contratos){
   const prelim = t => (typeof lwEsPreliminar === 'function') ? lwEsPreliminar(t) : false;
   if (!x || !prelim(x.tipo)) return [];
-  const misma = y => (y.proyecto_id || y.proyecto) === (x.proyecto_id || x.proyecto) && (y.parcela || '') === (x.parcela || '');
-  return (contratos || []).filter(y => y && y !== x && !prelim(y.tipo) && misma(y));
+  const k = claveVilla(x);
+  return (contratos || []).filter(y => y && y !== x && !prelim(y.tipo) && claveVilla(y) === k);
 }
 
 if (typeof module !== 'undefined' && module.exports)

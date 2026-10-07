@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="47aba9d7417e">
+<meta name="lw-version" content="4ba1449028a6">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261007d"></script>
+<script src="/portal/resumen.js?v=20261007e"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -835,6 +835,7 @@
 
   .ct-mini{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:20px; }
   .ct-mini > div{ background:var(--pg-low); border-radius:14px; padding:14px; min-width:0; }
+  .ct-mini.dos{ grid-template-columns:repeat(2,minmax(0,1fr)); max-width:520px; }
   .ct-mini > div.clave{ background:#E8EFEC; }
   .ct-mini b{ display:block; font-size:17px; font-weight:500; margin-top:4px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
   .ct-mini .clave .ct-lbl, .ct-mini .clave b{ color:var(--dl); font-weight:600; }
@@ -1076,8 +1077,7 @@
          pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
          firmado:'Firmado', pendiente_firma:'Pendiente de firma', ver_contrato:'Ver contrato firmado', descargar:'Descargar',
-         firma_pendiente_desc:'Tienes este contrato pendiente de firma, enviado el', firma_pendiente_caduca:'El enlace caduca el',
-         ver_borrador:'Ver borrador', cargando:'Cargando…',
+                  ver_borrador:'Ver borrador', cargando:'Cargando…',
          firmar_ahora:'Firmar ahora',
          imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
          f_numero:'Nº', f_tipo:'Tipo', f_proyecto:'Proyecto', f_fecha:'Fecha', f_total:'Importe', ir:'Ver →',
@@ -1127,7 +1127,7 @@
          todos_proyectos:'Todos los proyectos', n_docs_1:'1 documento', n_docs_n:'{n} documentos', sin_docs_proyecto:'Sin documentos todavía',
          entrega_proyecto:'Entrega estimada', pagado_de:'{a} de {b} pagado', descargar_carpeta:'Descargar carpeta', fase_obra:'Obra',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Técnico', doc_cat_comercial:'Comercial', doc_cat_fotos:'Fotos', doc_cat_planos:'Planos', doc_cat_precios:'Precios', doc_cat_faq:'Preguntas frecuentes', ver_facturas:'Ver mis facturas',
-         tl_pagos:'Pagos', tl_obra:'Obra', obra_ultimo:'Lo último de tu obra',
+         obra_ultimo:'Lo último de tu obra',
          doc_buscar:'Buscar un documento…', doc_todo:'Descargar todo', doc_zip_prep:'Preparando…',
          doc_zip_err:'No hemos podido preparar la descarga. Inténtalo de nuevo o abre los documentos de uno en uno.',
          doc_zip_vacio:'No hay documentos descargables en esta lista.', doc_zip_tope:'Son demasiados documentos para un solo archivo. Descárgalos de uno en uno.',
@@ -1169,8 +1169,7 @@
          pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
          firmado:'Signed', pendiente_firma:'Awaiting signature', ver_contrato:'View signed contract', descargar:'Download',
-         firma_pendiente_desc:'This contract is awaiting your signature, sent on', firma_pendiente_caduca:'Link expires on',
-         ver_borrador:'View draft', cargando:'Loading…',
+                  ver_borrador:'View draft', cargando:'Loading…',
          firmar_ahora:'Sign now',
          imprimir:'Print or save as PDF', cerrar:'Close',
          f_numero:'No.', f_tipo:'Type', f_proyecto:'Project', f_fecha:'Date', f_total:'Amount', ir:'View →',
@@ -1212,7 +1211,7 @@
          todos_proyectos:'All projects', n_docs_1:'1 document', n_docs_n:'{n} documents', sin_docs_proyecto:'No documents yet',
          entrega_proyecto:'Estimated handover', pagado_de:'{a} of {b} paid', descargar_carpeta:'Download folder', fase_obra:'Construction',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Technical', doc_cat_comercial:'Commercial', doc_cat_fotos:'Photos', doc_cat_planos:'Plans', doc_cat_precios:'Prices', doc_cat_faq:'FAQ', ver_facturas:'View my invoices',
-         tl_pagos:'Payments', tl_obra:'Construction', obra_ultimo:'Latest from your build',
+         obra_ultimo:'Latest from your build',
          doc_buscar:'Search a document…', doc_todo:'Download all', doc_zip_prep:'Preparing…',
          doc_zip_err:'We could not prepare the download. Try again or open the documents one by one.',
          doc_zip_vacio:'There are no downloadable documents in this list.', doc_zip_tope:'There are too many documents for a single file. Download them one by one.',
@@ -1258,8 +1257,7 @@
          pagado:'Lunas', pendiente:'Belum dibayar', parcial:'Sebagian', de:'dari',
          plan_pagos:'Jadwal pembayaran', concepto:'Keterangan', cuando:'Jatuh tempo', importe:'Jumlah', estado:'Status',
          firmado:'Sudah ditandatangani', pendiente_firma:'Menunggu tanda tangan', ver_contrato:'Lihat kontrak yang ditandatangani', descargar:'Unduh',
-         firma_pendiente_desc:'Kontrak ini menunggu tanda tangan Anda, dikirim pada', firma_pendiente_caduca:'Tautan berlaku sampai',
-         ver_borrador:'Lihat draf', cargando:'Memuat…',
+                  ver_borrador:'Lihat draf', cargando:'Memuat…',
          firmar_ahora:'Tanda tangani sekarang',
          imprimir:'Cetak atau simpan sebagai PDF', cerrar:'Tutup',
          f_numero:'No.', f_tipo:'Jenis', f_proyecto:'Proyek', f_fecha:'Tanggal', f_total:'Jumlah', ir:'Lihat →',
@@ -1301,7 +1299,7 @@
          todos_proyectos:'Semua proyek', n_docs_1:'1 dokumen', n_docs_n:'{n} dokumen', sin_docs_proyecto:'Belum ada dokumen',
          entrega_proyecto:'Perkiraan serah terima', pagado_de:'{a} dari {b} lunas', descargar_carpeta:'Unduh folder', fase_obra:'Pembangunan',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Teknis', doc_cat_comercial:'Komersial', doc_cat_fotos:'Foto', doc_cat_planos:'Denah', doc_cat_precios:'Harga', doc_cat_faq:'Pertanyaan umum', ver_facturas:'Lihat faktur saya',
-         tl_pagos:'Pembayaran', tl_obra:'Pembangunan', obra_ultimo:'Terbaru dari pembangunan Anda',
+         obra_ultimo:'Terbaru dari pembangunan Anda',
          doc_buscar:'Cari dokumen…', doc_todo:'Unduh semua', doc_zip_prep:'Menyiapkan…',
          doc_zip_err:'Kami tidak dapat menyiapkan unduhan. Coba lagi atau buka dokumen satu per satu.',
          doc_zip_vacio:'Tidak ada dokumen yang dapat diunduh dalam daftar ini.', doc_zip_tope:'Dokumennya terlalu banyak untuk satu berkas. Unduh satu per satu.',
@@ -1766,7 +1764,8 @@
   /* El próximo pago de UN contrato: su primer hito sin pagar, por lo que le FALTA. Si está 'parcial' ya se cobró
      una parte (Administración, 31-ago-2026 — antes enseñaba el monto completo del hito aunque ya llevara pago, y no
      cuadraba con el «Pendiente» de al lado, que sí resta lo cobrado). Lo usan Inicio (el del comprador) y cada
-     tarjeta de Contratos: las dos tienen que decir la misma cifra. */
+     tarjeta de Contratos, las dos con los hitos repartidos contra el precio: para un mismo contrato dan la misma
+     cifra. (Inicio lo busca también en un contrato sin firmar; Contratos solo lo marca en los firmados.) */
   function proximoDe(x, hs){
     var i = -1;
     hs.some(function(y, k){ if (y.estado !== 'pagado'){ i = k; return true; } return false; });
@@ -2064,7 +2063,10 @@
       // Contra qué se mide el avance: `baseAvance` en resumen.js, probado.
       var base = baseAvance(x);
       var pct = (base > 0) ? Math.min(100, Math.floor(cobrado / base * 100)) : null;   // floor: nunca «100 %» si queda algo
-      var hs = estadosHitos(x.hitos, cobrado, base);
+      /* Los hitos se reparten contra el PRECIO, igual que en Inicio: un hito por porcentaje es «% del precio
+         acordado» (descHito), y así el próximo pago dice la misma cifra en las dos pantallas. La barra sí se mide
+         contra `base` (la cuota, en una Carta suelta). */
+      var hs = estadosHitos(x.hitos, cobrado, precio);
       var prox = (x.firmado && !sustituido) ? proximoDe(x, hs) : null;
       var pagado = base > 0 && cobrado >= base;
       // «Pendiente de firma» en naranja (1-sep-2026, pedido del cliente: «es algo grave, dale urgencia»).
@@ -2089,6 +2091,14 @@
           : '') + '</div>';
 
       var cuerpo = '';
+      /* Precio y pagado se ven SIEMPRE, como en la tarjeta anterior (Regla 0 bis): en una Carta sustituida o un
+         contrato sin precio legible no hay barra, pero lo que el cliente pagó con él no puede desaparecer de esta
+         pantalla mientras Inicio lo sigue sumando (revisor, 7-oct-2026). */
+      if (sustituido || (!soloCuota && !(base > 0))){
+        cuerpo += '<div class="ct-mini dos">' +
+          '<div><div class="ct-lbl">' + esc(t('precio')) + '</div><b>' + (precio != null && !isNaN(precio) ? esc(dinero(precio, x.moneda)) : esc(x.precio_txt || '—')) + '</b></div>' +
+          '<div><div class="ct-lbl">' + esc(t('cobrado')) + '</div><b>' + esc(dinero(cobrado, x.moneda)) + '</b></div></div>';
+      }
       if (sustituido){
         /* Sin barra ni calendario: el mismo dinero ya lo reparten sus contratos definitivos (14-sep-2026: hasta
            entonces el mismo pago salía reclamado en tres tarjetas). Enlaza a los que la recogen, si comparten unidad. */
