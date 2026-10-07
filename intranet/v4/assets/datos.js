@@ -9024,7 +9024,7 @@
           '<option value="__sin">(sin proyecto)</option>';
       }
       if (selMes) {
-        var meses = {}; lineas.forEach(function (l) { if (l.devengado_el) meses[l.devengado_el.slice(0, 7)] = 1; });
+        var meses = {}; lineas.forEach(function (l) { if (l.devengado_el && !l.fee_id) meses[l.devengado_el.slice(0, 7)] = 1; });
         selMes.innerHTML = '<option value="">Todos los meses</option>' +
           Object.keys(meses).sort().reverse().map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
       }
@@ -9108,7 +9108,7 @@
                  : '')) +
             '</div></td></tr>';
         }).join('') : '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' +
-          (lineas.length ? 'Ninguna línea para este filtro.' : 'Todavía no hay ninguna entrada de dinero en el libro.') + '</td></tr>';
+          (lineas.some(function (l) { return !l.fee_id; }) ? 'Ninguna línea para este filtro.' : 'Todavía no hay ninguna entrada de dinero en el libro.') + '</td></tr>';
       }
       pinta();
       if (PAG) PAG.alCambiar(pinta);
