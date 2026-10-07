@@ -136,14 +136,23 @@ function descHito(h){
   return [h.es || h.en || '', pct ? '(' + pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
        + (h.timing ? ' — ' + h.timing : '');
 }
-function facturaDelHito(facturas, contratoNumero, hito, moneda){
+/* De qué contrato es una línea: la que trajo un hito del contrato VINCULADO lleva `origen_contrato_id` (y la
+   descripción con «[Etiqueta] » delante) aunque la factura sea del otro — en una villa, los hitos de la
+   Construcción se cobran en facturas del Bloqueo (intranet/facturas, traerVinculado). La que no lo lleva es del
+   contrato de su factura. Solo así un hito del Bloqueo y otro de la Construcción escritos igual no se confunden. */
+function facturaDelHito(facturas, contrato, hito, moneda){
   const d = descHito(hito).trim();
-  if (!d || !contratoNumero) return null;
+  if (!d || !contrato || !(contrato.id || contrato.numero)) return null;
   const sinPrefijo = s => String(s || '').trim().replace(/^\[[^\]]*\]\s*/, '');
+  const esDelHito = (f, l) => {
+    if (!l) return false;
+    if (l.origen_contrato_id) return l.origen_contrato_id === contrato.id && sinPrefijo(l.descripcion) === d;
+    return f.contrato_numero === contrato.numero && String(l.descripcion || '').trim() === d;
+  };
   return (facturas || []).filter(f =>
-    f && f.tipo === 'factura' && f.contrato_numero === contratoNumero &&
+    f && f.tipo === 'factura' &&
     (!moneda || !f.moneda || f.moneda === moneda) &&
-    (f.lineas || []).some(l => sinPrefijo(l && l.descripcion) === d)
+    (f.lineas || []).some(l => esDelHito(f, l))
   )[0] || null;
 }
 

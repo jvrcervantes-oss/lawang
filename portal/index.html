@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="a914bdc94c67">
+<meta name="lw-version" content="c5ab988e0732">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261007b"></script>
+<script src="/portal/resumen.js?v=20261007c"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -1587,7 +1587,7 @@
         // la tarjeta "Pendiente" de al lado, que si resta lo cobrado)
         var pagadoAcum = hs.reduce(function(s,y){ return s + (y.estado === 'pagado' && !isNaN(y.monto) ? y.monto : 0); }, 0);
         var restante = isNaN(h.monto) ? NaN : Math.max(0, h.monto - Math.max(0, (Number(x.cobrado)||0) - pagadoAcum));
-        proximo = { hito:h.hito, monto:restante, moneda:x.moneda, contrato:x.numero, proyecto:x.proyecto, parcela:x.parcela };
+        proximo = { hito:h.hito, monto:restante, moneda:x.moneda, contrato:x.numero, contratoId:x.id, proyecto:x.proyecto, parcela:x.parcela };
       }
     });
 
@@ -1648,7 +1648,7 @@
     /* La factura del próximo pago: la que tiene una línea con la descripción exacta del hito (facturaDelHito, en
        resumen.js y probada en resumen.test.js). Sin ella, el bloque dice el plazo del contrato y el botón lleva a
        la lista: nunca se adivina una factura ni una fecha. */
-    var factProx = (proximo && typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, proximo.contrato, proximo.hito, proximo.moneda) : null;
+    var factProx = (proximo && typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, { id:proximo.contratoId, numero:proximo.contrato }, proximo.hito, proximo.moneda) : null;
     var vence = factProx && factProx.fields && factProx.fields.fecha_vencimiento;
 
     var hayResumen = tot != null && tot > 0;

@@ -116,21 +116,29 @@ const fac = (numero, contrato, desc, extra) => Object.assign({ numero, tipo:'fac
 es('descripción del hito igual que la intranet',
    R.descHito(hAnt), 'Anticipo (25% del precio acordado) — A la firma');
 es('sin porcentaje, sin paréntesis', R.descHito(hCim), 'Cimentación — Mes 3');
+const C1 = { id:'id-c1', numero:'C-1' }, C2 = { id:'id-c2', numero:'C-2' };
+const BP = { id:'id-bp', numero:'P-07-BP' }, CO = { id:'id-co', numero:'P-07-CO' };
 const fs1 = [fac('F2', 'C-1', 'Anticipo (25% del precio acordado) — A la firma')];
 es('dos hitos del mismo importe: la factura del anticipo NO es la de la entrega',
-   R.facturaDelHito(fs1, 'C-1', hFin, 'USD'), null);
+   R.facturaDelHito(fs1, C1, hFin, 'USD'), null);
 es('la factura de su hito sí se encuentra',
-   R.facturaDelHito(fs1, 'C-1', hAnt, 'USD').numero, 'F2');
-es('con el prefijo de contrato vinculado también',
-   R.facturaDelHito([fac('F3', 'C-1', '[Construcción] Cimentación — Mes 3')], 'C-1', hCim, 'USD').numero, 'F3');
+   R.facturaDelHito(fs1, C1, hAnt, 'USD').numero, 'F2');
 es('otro contrato no cuenta',
-   R.facturaDelHito(fs1, 'C-2', hAnt, 'USD'), null);
+   R.facturaDelHito(fs1, C2, hAnt, 'USD'), null);
+/* villa: el hito de la Construcción se cobra en una factura del Bloqueo, con prefijo y origen_contrato_id */
+const fVinc = [fac('F3', 'P-07-BP', '[Construcción] Cimentación — Mes 3', { lineas:[{ descripcion:'[Construcción] Cimentación — Mes 3', importe:30000, origen_contrato_id:'id-co' }] })];
+es('línea del contrato vinculado en factura del Bloqueo: es la del hito de la Construcción',
+   R.facturaDelHito(fVinc, CO, hCim, 'USD').numero, 'F3');
+es('esa misma línea NO es de un hito del Bloqueo escrito igual',
+   R.facturaDelHito(fVinc, BP, hCim, 'USD'), null);
+es('una línea con prefijo pero sin origen no se le atribuye a nadie por quitarle el prefijo',
+   R.facturaDelHito([fac('F6', 'P-07-CO', '[Construcción] Cimentación — Mes 3')], CO, hCim, 'USD'), null);
 es('otra moneda no cuenta',
-   R.facturaDelHito([fac('F4', 'C-1', 'Anticipo (25% del precio acordado) — A la firma', { moneda:'EUR' })], 'C-1', hAnt, 'USD'), null);
+   R.facturaDelHito([fac('F4', 'C-1', 'Anticipo (25% del precio acordado) — A la firma', { moneda:'EUR' })], C1, hAnt, 'USD'), null);
 es('un recibí o una proforma no son la factura',
-   R.facturaDelHito([fac('R1', 'C-1', 'Anticipo (25% del precio acordado) — A la firma', { tipo:'recibi' })], 'C-1', hAnt, 'USD'), null);
+   R.facturaDelHito([fac('R1', 'C-1', 'Anticipo (25% del precio acordado) — A la firma', { tipo:'recibi' })], C1, hAnt, 'USD'), null);
 es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)',
-   R.facturaDelHito([fac('F5', 'C-1', 'Cimentación — Mes 3', { fields:{} })], 'C-1', hCim, 'USD').numero, 'F5');
+   R.facturaDelHito([fac('F5', 'C-1', 'Cimentación — Mes 3', { fields:{} })], C1, hCim, 'USD').numero, 'F5');
 
 if(fallos){ console.error(`\n${fallos} fallo(s) en las cuentas del portal.`); process.exit(1); }
 console.log('resumen.test.js — OK');
