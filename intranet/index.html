@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="91a2e6f04c95">
+<meta name="lw-version" content="01d66c024d07">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -971,13 +971,15 @@ function mostrarLogin(){
 
 sb.auth.getSession().then(async ({ data:{ session } }) => {
   if(!session){ lwEntra.quita(); mostrarLogin(); return; }
-  // Un comprador del portal (app_metadata.portal) NO es del equipo: a su casa.
-  // Mismo chequeo que guard.js — sin ficha en `usuarios`, la compatibilidad
-  // "sin ficha se permite" de abajo le habría abierto el hub interno (vacío
-  // por RLS, pero visible: nombres de herramienta, KPIs, estructura).
-  if((session.user.app_metadata || {}).portal){ location.replace('/portal/'); return; }
   const { data: ficha } = await sb.from('usuarios')
     .select('rol, herramientas, activo, nombre').eq('user_id', session.user.id).maybeSingle();
+  // Un comprador del portal (app_metadata.portal) SIN ficha de equipo NO es del equipo: a su casa.
+  // Manda la FICHA, como en guard.js desde el 14-sep-2026: una persona del equipo que además es compradora (o a la que
+  // se le quedó una marca de portal en una sesión vieja) entra igual; la marca solo decide a dónde va quien NO tiene ficha.
+  // Antes esta página miraba la marca ANTES de leer la ficha y echaba al portal a un admin (7-oct-2026: Andrea, con una
+  // sesión guardada de antes de limpiar su marca, rebotaba entre /intranet/ y /portal/). Sin ficha y sin marca sigue la
+  // compatibilidad «sin ficha se permite» de abajo (vacío por RLS), como siempre.
+  if(!ficha && (session.user.app_metadata || {}).portal){ location.replace('/portal/'); return; }
   if(ficha && !ficha.activo){          // desactivado: se le cierra la sesión, no se le enseña un hub vacío
     await sb.auth.signOut();
     location.replace('/intranet/?desactivado=1');
