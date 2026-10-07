@@ -487,6 +487,37 @@ function recalcularMontosHitos(){
     });
   }
 }
+/* Concepto del hito en tres idiomas (REV03, 7-oct-2026). El editor enseña el español y esconde el
+   inglés y el indonesio tras «EN·ID ▸»: quien cambiaba «Preparación del terreno» por «Estructura»
+   dejaba el indonesio con el texto de fábrica, y el contrato decía dos fases distintas según el idioma
+   (CC00124, Hito 1 al 50 %; el indonesio es el que prevalece, Art. 3). Al cambiar el español de un hito
+   que ya traía inglés o indonesio, se abre su fila EN·ID y no se guarda hasta que se hayan revisado.
+   Es estado de pantalla (WeakMap), nunca un campo del hito: no viaja al documento ni a la base. */
+const HITO_TRAD_PENDIENTE = new WeakMap();
+function hitoAbreEnId(i){
+  const fila = document.getElementById('hito-mas-' + i), btn = document.querySelector('[data-hmas="' + i + '"]');
+  if(fila) fila.hidden = false;
+  if(btn){ btn.setAttribute('aria-expanded', 'true'); btn.textContent = 'EN·ID ▾'; }
+}
+function hitoCambioConcepto(h, i, clave){
+  if(!h) return;
+  if(clave === 'es'){
+    const pend = {};
+    if(String(h.en||'').trim()) pend.en = true;
+    if(String(h.id||'').trim()) pend.id = true;
+    if(pend.en || pend.id){
+      const nuevo = !HITO_TRAD_PENDIENTE.has(h);
+      HITO_TRAD_PENDIENTE.set(h, Object.assign({}, HITO_TRAD_PENDIENTE.get(h) || {}, pend));
+      hitoAbreEnId(i);
+      if(nuevo && typeof toastMal === 'function') toastMal(lwT('Has cambiado el concepto en español: revisa también el inglés y el indonesio de este hito (el indonesio es el que prevalece).'));
+    }
+  } else if(clave === 'en' || clave === 'id'){
+    const p = HITO_TRAD_PENDIENTE.get(h);
+    if(p){ delete p[clave]; if(!p.en && !p.id) HITO_TRAD_PENDIENTE.delete(h); }
+  }
+}
+// Primer hito con la traducción sin revisar, o -1.
+function hitoTraduccionPendiente(){ return HITOS.findIndex(h => HITO_TRAD_PENDIENTE.has(h)); }
 function hitosRowsHTML(){
   // {{moneda}} literal: se resuelve en el pase genérico de marcadores que buildDoc()
   // corre justo después de insertar estas filas (ver buildDoc: hitos → luego {{...}}).

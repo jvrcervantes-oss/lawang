@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="fd1f75b990fe">
+<meta name="lw-version" content="cf58a9a3c54a">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -70,6 +70,7 @@
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
      la operación tiene que decir lo mismo en las dos herramientas (19-ago-2026). -->
 <script src="assets/compradores.js?v=be8f79e8"></script>
+<script src="assets/traduce_campos.js?v=29154b79"></script>
 <!-- ¿el documento sigue diciendo lo que dice la ficha? Compara la vista
      `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
 <script src="assets/ficha_divergencia.js?v=08e41022"></script>
@@ -81,13 +82,13 @@
 <script src="assets/documento_diseno.js?v=a6230c91"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
 <script src="assets/documento_anexos.js?v=7d79edb0"></script>
-<script src="assets/parcela_inventario.js?v=c101c6e2"></script>
+<script src="assets/parcela_inventario.js?v=2413c162"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d86e607e"></script>
-<script src="assets/hitos_fechas.js?v=0cf46b67"></script>
+<script src="assets/hitos_fechas.js?v=2eb6d789"></script>
 <script src="assets/entidades_pago.js?v=9237aa1c"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -111,7 +112,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=8b3828e5"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=1e00b086"></script>
 <script src="/intranet/v4/assets/nav.js?v=c76dd0b9" defer></script>
 </head>
 <body>
@@ -1638,30 +1639,30 @@ function emailsConocidos(){
 const COMPRADOR_FRASE = {
   ppjb_reserva: {
     es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> Identificado con nombre y apellidos <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, pasaporte <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> Identified with full name <span class="f">${f.nom}</span>, of nationality <span class="f">${f.nac}</span>, passport <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> Diidentifikasi dengan nama lengkap <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, paspor <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> Identified with full name <span class="f">${f.nom}</span>, of nationality <span class="f">${f.nac_en}</span>, passport <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> Diidentifikasi dengan nama lengkap <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac_id}</span>, paspor <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>.`,
   },
   ppjb_parcela: {
-    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con pasaporte nº <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span> a efecto de notificaciones.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, national of <span class="f">${f.nac}</span>, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span> for notification purposes.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span> untuk keperluan pemberitahuan.`,
+    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con pasaporte${f.dni?' o DNI':''} nº <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span> a efecto de notificaciones.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, national of <span class="f">${f.nac_en}</span>, holder of passport${f.dni?' or national ID card (DNI)':''} no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span> for notification purposes.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac_id}</span>, pemegang paspor${f.dni?' atau Kartu Identitas (DNI)':''} no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span> untuk keperluan pemberitahuan.`,
   },
   ppjb_construccion: {
-    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> D./Dña. <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con Pasaporte/Nº de identificación fiscal <span class="f">${f.pas}</span>. Teléfono <span class="f">${f.tel}</span> y email a efecto de notificaciones: <span class="f">${f.email}</span>.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> Mr./Ms. <span class="f">${f.nom}</span>, national of <span class="f">${f.nac}</span>, with Passport/Tax ID no. <span class="f">${f.pas}</span>. Telephone <span class="f">${f.tel}</span> and notification email: <span class="f">${f.email}</span>.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> Tn./Ny. <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, dengan Paspor/Nomor Identifikasi Pajak no. <span class="f">${f.pas}</span>. Telepon <span class="f">${f.tel}</span> dan email pemberitahuan: <span class="f">${f.email}</span>.`,
+    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> D./Dña. <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con Pasaporte/${f.dni?'DNI/':''}Nº de identificación fiscal <span class="f">${f.pas}</span>. Teléfono <span class="f">${f.tel}</span> y email a efecto de notificaciones: <span class="f">${f.email}</span>.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> Mr./Ms. <span class="f">${f.nom}</span>, national of <span class="f">${f.nac_en}</span>, with Passport/${f.dni?'National ID (DNI)/':''}Tax ID no. <span class="f">${f.pas}</span>. Telephone <span class="f">${f.tel}</span> and notification email: <span class="f">${f.email}</span>.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> Tn./Ny. <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac_id}</span>, dengan Paspor/${f.dni?'Kartu Identitas (DNI)/':''}Nomor Identifikasi Pajak no. <span class="f">${f.pas}</span>. Telepon <span class="f">${f.tel}</span> dan email pemberitahuan: <span class="f">${f.email}</span>.`,
   },
   // La ampliada usa la misma redacción que la Carta corta: mismo papel, mismo texto
   // ya aprobado por el cliente para el adquiriente N.
   carta_reserva_ampliada: {
     es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac_en}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac_id}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
   },
   carta_reserva: {
     es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac_en}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac_id}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
   },
   // Hak Sewa - Notario (24-sep-2026, owner: «no deja añadir más de un
   // adquiriente»): la plantilla no traía los marcadores. Misma redacción que la
@@ -1670,23 +1671,28 @@ const COMPRADOR_FRASE = {
   hak_sewa_notario: {
     rol:{es:'Arrendatario', en:'Lessee', id:'Penyewa'},
     es:(n,f)=>`<b>ARRENDATARIO ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la SEGUNDA PARTE (ARRENDATARIO).`,
-    en:(n,f)=>`<b>LESSEE ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the SECOND PARTY (LESSEE).`,
-    id:(n,f)=>`<b>PENYEWA ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama PIHAK KEDUA (PENYEWA).`,
+    en:(n,f)=>`<b>LESSEE ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac_en}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the SECOND PARTY (LESSEE).`,
+    id:(n,f)=>`<b>PENYEWA ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac_id}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama PIHAK KEDUA (PENYEWA).`,
   },
 };
 const ROL_COMPRADOR_EXTRA = {es:'Adquiriente', en:'Buyer', id:'Pembeli'};
 const rolCompradorExtra = () => (COMPRADOR_FRASE[CURRENT.slug] || {}).rol || ROL_COMPRADOR_EXTRA;
 /* lwT:fin */
-function compradorFields(c){ return { nom:esc(c.nombre||''), nac:esc(c.nacionalidad||''), pas:esc(c.pasaporte||''),
-  tel:esc(c.telefono||''), email:esc(c.email||'') }; }
+/* `dni`: REV03 (cláusulas negociadas) — «o DNI» también en el Adquiriente II+, no solo en el I.
+   `nac_en`/`nac_id`: la nacionalidad se escribe una vez y cada idioma imprime la suya
+   (assets/traduce_campos.js); sin traducción sale el valor tal cual. */
+function compradorFields(c, rev03){ const nac=c.nacionalidad||'';
+  return { nom:esc(c.nombre||''), nac:esc(nac),
+  nac_en:esc(trNacionalidad(nac,'en')||nac), nac_id:esc(trNacionalidad(nac,'id')||nac),
+  pas:esc(c.pasaporte||''), tel:esc(c.telefono||''), email:esc(c.email||''), dni:!!rev03 }; }
 function compradorTieneDatos(c){ return !!(c.nombre||c.nacionalidad||c.pasaporte||c.telefono||c.email); }
-function compradoresExtraHTML(){
+function compradoresExtraHTML(rev03){
   const frase = COMPRADOR_FRASE[CURRENT.slug]; if(!frase) return '';
   let h='';
   const rol = rolCompradorExtra();
   COMPRADORES.forEach((c,i)=>{
     if(!compradorTieneDatos(c)) return;   // vacío = no imprime, igual que el resto de opcionales
-    const num=romano(i+2), f=compradorFields(c);
+    const num=romano(i+2), f=compradorFields(c, rev03);
     h+=`<div class="party">
       <div class="role"><span data-lang="es">${rol.es} ${num}</span><span data-lang="en">${rol.en} ${num}</span><span data-lang="id">${rol.id} ${num}</span></div>
       <p data-lang="es">${frase.es(num,f)}</p>
@@ -3164,7 +3170,7 @@ function buildDoc(){
   html=html.replace(/<!--seccion-extras-construccion-->([\s\S]*?)<!--\/seccion-extras-construccion-->/g,
     (m,dentro)=> (EXTRAS_ELEGIDOS && EXTRAS_ELEGIDOS.length && !BORRADOR_BLANCO) ? dentro : '');
   html=html.replace('<!--extras-construccion-->', extrasConstruccionRowsHTML());
-  html=html.replace('<!--compradores-extra-->', nada(compradoresExtraHTML));   // Adquiriente II, III, IV… sin tope
+  html=html.replace('<!--compradores-extra-->', nada(()=>compradoresExtraHTML(data.clausulas_negociadas==='si')));   // Adquiriente II, III, IV… sin tope
   html=html.replace('<!--firmas-adquirientes-->', nada(compradoresFirmasHTML));   // firmas de esos adquirientes extra
   /* Borrador: SIN cuentas (Legal, 25-sep-2026). Quien paga sobre un borrador
      se cree reservado sin contrato, y un PDF que corre por WhatsApp se retoca
@@ -3212,6 +3218,27 @@ function buildDoc(){
   // usa saltarACampo() para encontrarlo en la vista previa. Las firmas quedan
   // fuera a propósito: firma-submit busca el centinela %%FIRMA_ADQUIRIENTE%%
   // como texto literal, y envolverlo es una complicación que no hace falta.
+  /* Datos de UN solo valor que salen en tres idiomas (REV03, 7-oct-2026: «España» y
+     «(promoción)» dentro de la columna indonesia). En los párrafos en/id se imprime la
+     traducción de assets/traduce_campos.js. Sin traducción: la nacionalidad sale como
+     está (no se inventa un país) y el motivo del descuento se omite en en/id — solo
+     el párrafo en español lo lleva. */
+  html=html.replace(/<(p|li)\b[^>]*\bdata-lang="(en|id)"[^>]*>[\s\S]*?<\/\1>/g,(bloque,_t,lang)=>{
+    const motivo=()=>trMotivoDescuento(data.descuento_comercial_motivo,lang);
+    // Construcción: «… {{moneda}} ({{motivo}}),»  ·  Parcela: «…; reason: {{motivo}})» / «…; alasan: {{motivo}})»
+    bloque=bloque.replace(/\s*\(\{\{descuento_comercial_motivo\}\}\)/g,()=>{
+      const t=motivo();
+      return t ? ' ('+campoFijo('descuento_comercial_motivo', esc(t))+')' : '';
+    });
+    bloque=bloque.replace(/;\s*(reason|alasan):\s*\{\{descuento_comercial_motivo\}\}/g,(m,rotulo)=>{
+      const t=motivo();
+      return t ? '; '+rotulo+': '+campoFijo('descuento_comercial_motivo', esc(t)) : '';
+    });
+    return bloque.replace(/\{\{adq1_nacionalidad\}\}/g,m=>{
+      const t=trNacionalidad(data.adq1_nacionalidad,lang);
+      return t ? campoFijo('adq1_nacionalidad', esc(t)) : m;
+    });
+  });
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(CAMPOS_IMAGEN_CRUDA.has(k)) return (SIGN_MODE && k==='firma_adquiriente') ? '%%FIRMA_ADQUIRIENTE%%' : (filled ? data[k] : '');
     if(!filled) return '';   // vacío = en blanco (writable a mano), sin "—"
@@ -4774,6 +4801,15 @@ async function guardarContrato(){
      que puede estar mal. Un calendario enteramente sin % (Σ=0) se sigue
      guardando igual que siempre — no es que "esté bien", es que la norma no
      aplica a un calendario que nunca quiso ser un reparto porcentual. */
+  if(SECTIONS.some(s => s.special === 'hitos') && HITOS.length && typeof hitoTraduccionPendiente === 'function'){
+    const pend = hitoTraduccionPendiente();
+    if(pend >= 0){
+      avisoNoGuardado(lwT('Cambiaste el concepto en español del hito') + ' ' + (pend + 1) + ': ' + lwT('revisa su inglés y su indonesio antes de guardar (entra en cada campo y corrígelo si hace falta).'));
+      hitoAbreEnId(pend);
+      const el = document.getElementById(hid(pend,'id')); if(el) el.focus();
+      return;
+    }
+  }
   if(SECTIONS.some(s => s.special === 'hitos') && HITOS.length){
     const haySuma = HITOS.some(h => parseFloat(h.pct) > 0);
     const suma = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0), 0);
