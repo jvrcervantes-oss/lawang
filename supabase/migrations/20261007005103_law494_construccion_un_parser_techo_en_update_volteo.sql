@@ -27,6 +27,11 @@
 --      Por qué no usar SIEMPRE la base viva de Modelos (lección del maestro, 1-oct): un techo o extra RETIRADO es
 --      operación normal; en un contrato congelado el catálogo no devolvería fila, la base saldría NULL y se saltarían
 --      el cuadre y el tope. Y «hay techo pero no se resuelve» levanta, nunca se sigue sin comprobar.
+--      Y lo comprobado es lo que se GUARDA (revisor-codigo, 7-oct): tras el contraste, `datos.techo.precio` y cada
+--      `datos.extras[i].precio` se reescriben con el número de Modelos. Si no, un "48.000" (o el número JSON 48.000,
+--      que jsonb guarda con su escala) entraba, y al reabrir el contrato la pantalla lo lee con Number() = 48, calcula
+--      un total de 48 y el contrato queda atascado; el bot de agentes y el anexo verían la misma cifra ambigua. En el
+--      flujo normal no cambia nada: la pantalla ya manda ese número.
 --      Sin función auxiliar nueva (el maestro creó `_construccion_base_modelos`): la suma se acumula en el bucle que
 --      ya resolvía cada pieza. Una RPC menos expuesta.
 --   2. En UPDATE con sesión, si el contrato YA traía techo, quitarlo se rechaza. Se mira el techo que traía la fila,
@@ -34,6 +39,12 @@
 --      medido el 7-oct) se siguen pudiendo editar.
 --   3. «Alta» = INSERT **o** cambio de `tipo`. Un contrato que se vuelve de Construcción pasa contraste, techo
 --      obligatorio, tope y cuadre como si se diera de alta.
+--   Cuando el contraste corre (alta, o cambian techo, extras o proyecto) también se revisan siempre el tope del 15 % y el
+--   cuadre: los precios acaban de reescribirse y «no ha cambiado» ya no se puede deducir comparando datos.
+--
+-- PRUEBAS: supabase/pruebas/law494_construccion.sql — 15/15 ok el 7-oct con la función creada dentro de la transacción
+-- deshecha (0 rastro, hashes de los contratos tocados iguales antes y después). Contra la versión anterior los casos de
+-- ataque T5/T5b/T6/T6b/T7 PASABAN: los tres agujeros eran reales.
 --
 -- SE CONSERVA DE LAWANG (no se porta del maestro): la exención de super_admin al tope del 15 % (20260929154600,
 -- decisión del owner del 29-sep) y la regla «un contrato de Construcción lleva SIEMPRE techo» en el alta, sin el
@@ -66,6 +77,7 @@ declare
   v_ok          numeric;
   v_nombre      text;
   v_x           jsonb;
+  v_extras      jsonb;
 begin
   if new.tipo <> 'construccion' then
     return new;
@@ -118,8 +130,11 @@ begin
         raise exception 'El precio del techo «%» es % en Modelos, no %: vuelve a elegir el techo para refrescarlo.',
           v_nombre, v_ok, new.datos->'techo'->>'precio' using errcode = '22023';
       end if;
-      -- LAW-494 #1: la base del cuadre es lo que Modelos acaba de dar, no la cadena del navegador
+      -- LAW-494 #1: la base del cuadre es lo que Modelos acaba de dar, no la cadena del navegador, y eso mismo es lo
+      -- que se guarda en el contrato (más abajo)
       v_base := v_ok;
+      new.datos := jsonb_set(new.datos, '{techo,precio}', to_jsonb(v_ok));
+      v_extras := '[]'::jsonb;
       for v_x in select * from jsonb_array_elements(coalesce(new.datos->'extras', '[]'::jsonb)) loop
         v_ok := null;
         if coalesce(v_x->>'extra_id', '') ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' then
@@ -136,7 +151,11 @@ begin
             coalesce(v_x->>'nombre', '?'), v_ok, v_x->>'precio' using errcode = '22023';
         end if;
         v_base := v_base + v_ok;
+        v_extras := v_extras || jsonb_build_array(jsonb_set(v_x, '{precio}', to_jsonb(v_ok)));
       end loop;
+      if jsonb_typeof(new.datos->'extras') = 'array' then
+        new.datos := jsonb_set(new.datos, '{extras}', v_extras);
+      end if;
     end if;
   elsif nullif(btrim(coalesce(new.datos->'techo'->>'techo_id', '')), '') is not null then
     -- Contrato congelado (o escritura sin sesión): las cifras del propio contrato, con el MISMO parser del contraste.
@@ -151,7 +170,7 @@ begin
     raise exception 'El descuento comercial no puede ser negativo.';
   end if;
   if v_descuento > 0 then
-    v_dc_cambia := v_alta
+    v_dc_cambia := v_alta or v_contrastado
       or (new.datos->'fields'->>'descuento_comercial') is distinct from (old.datos->'fields'->>'descuento_comercial')
       or new.datos->'techo' is distinct from old.datos->'techo'
       or new.datos->'extras' is distinct from old.datos->'extras';
@@ -170,7 +189,7 @@ begin
     end if;
   end if;
   if v_base is not null and v_base > 0 then
-    v_cambia := v_alta
+    v_cambia := v_alta or v_contrastado
       or new.precio_total is distinct from old.precio_total
       or new.datos->'techo' is distinct from old.datos->'techo'
       or new.datos->'extras' is distinct from old.datos->'extras'

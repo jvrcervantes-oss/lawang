@@ -60,4 +60,8 @@
 --   supabase/migrations/20260921124646_descuento_comercial_construccion_valido_fix_precio_total_incondicional.sql
 --   supabase/migrations/20260922013705_precio_construccion_cuadra_con_techo.sql
 --   supabase/migrations/20260929154600_descuento_comercial_super_admin_sin_tope.sql
+--   supabase/migrations/20260930023239_techos_alta_y_alcance_por_proyecto.sql  (bloque 5: techo y extras contra Modelos)
+--   supabase/migrations/20261007005103_law494_construccion_un_parser_techo_en_update_volteo.sql  (LAW-494: un solo
+--     parser, techo exigido en UPDATE si ya lo traia, cambio de tipo = alta, precio de Modelos guardado en datos)
+--   Prueba: supabase/pruebas/law494_construccion.sql
 -- ============================================================================
