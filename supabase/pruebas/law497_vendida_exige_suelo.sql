@@ -7,7 +7,8 @@
 -- Esperado (cualquier «MAL» es fallo):
 --   1:alta_vendida_rechazada 2:paso_a_vendida_rechazado 3:cambio_apuntado 4:excepcion_apuntada
 --   5:alta_con_excepcion_apuntada 6:cambio_por_trigger_apuntado 7:C5_sube_con_duplicado_vivo
---   8:C5_no_baja_al_anular(la escalera no baja: decision del owner) 9:funciones_sin_permiso_anon
+--   8:C5_sigue_vendida_al_anular (desde el 7-oct REC00158 cubre el suelo: anular el duplicado no lo rompe;
+--   la bajada cuando SI lo rompe se prueba en law497c_bajada_por_anulacion.sql) 9:funciones_sin_permiso_anon
 
 do $$
 declare
@@ -62,7 +63,8 @@ begin
   v_res := v_res || case when v_n = 1 then '6:cambio_por_trigger_apuntado ' else '6:MAL(' || v_n || ') ' end;
   set constraints all deferred;
 
-  -- 7 y 8: el camino real de C5 (6-oct): sube con REC00156 viva, no baja al anularla
+  -- 7 y 8: el camino real de C5 (6-oct): sube con REC00156 viva; al anularla sigue en vendida porque
+  -- REC00158 (7-oct) ya cubre el suelo
   select id into v_c5 from public.unidades where proyecto = 'Bonian Village' and codigo = 'C5';
   select id into v_rec from public.facturas where numero = 'REC00156';
   update public.unidades set estado = 'bloqueada' where id = v_c5;
@@ -71,7 +73,7 @@ begin
   v_res := v_res || case when v_est = 'vendida' then '7:C5_sube_con_duplicado_vivo ' else '7:MAL(' || v_est || ') ' end;
   update public.facturas set anulada = true where id = v_rec;
   select estado into v_est from public.unidades where id = v_c5;
-  v_res := v_res || case when v_est = 'vendida' then '8:C5_no_baja_al_anular ' else '8:CAMBIO(' || v_est || ') ' end;
+  v_res := v_res || case when v_est = 'vendida' then '8:C5_sigue_vendida_al_anular ' else '8:CAMBIO(' || v_est || ') ' end;
 
   -- 9: ninguna de las funciones nuevas es ejecutable por anon/authenticated
   v_res := v_res || case when has_function_privilege('anon', 'public.unidad_cumple_estado(uuid,text,numeric,numeric)', 'execute')
