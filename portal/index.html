@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="234e4e2d8924">
+<meta name="lw-version" content="0e443326dcb2">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
 <title>Lawang · Área de clientes</title>
-<!-- Diseño nuevo instalado tal cual (31-ago-2026, encargo del owner) desde
-     Claude Design ("Área de Clientes.dc.html") — decisión consciente de
-     volver a un sistema visual PROPIO del portal, distinto de `lawang.css`
-     que usa el resto de la suite desde el 27-ago. No es un olvido de aquella
-     unificación: es un cambio de idea, y va dicho aquí para que quien lo lea
-     en seis meses no lo confunda con uno. -->
+<!-- PIEL v4 (7-oct-2026, owner: "restyla el portal basándote en la intranet v4").
+     Desde el 31-ago el portal tenía un sistema visual PROPIO (menú lagoon,
+     Cormorant + Instrument Sans). Cambio de idea del owner: ahora lleva la piel
+     de la intranet v4 — menú claro con pastilla verde, tarjetas con filete y sin
+     sombra, una sola letra (Neue Kabel), etiquetas y botones en pastilla. Solo
+     cambia lo que se ve: el marcado y los identificadores (data-nav, ids) son
+     los de siempre, y el documento de factura sigue siendo el de documento.css.
+     El bloque "PIEL v4" va al final del <style>; el de arriba es el anterior. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&family=Instrument+Sans:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/neue-kabel.css">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Iconos de "Mi perfil" y del login: SVG inline en el propio HTML/JS, NO la
      fuente de icono Phosphor que usa la intranet (1-sep-2026, tarde). Un
      bloqueador/antivirus del cliente frenaba la descarga del .woff2 sin
@@ -324,6 +327,126 @@
     .hoja-scroll{ display:block; overflow:visible; }
   }
   @page{ size:A4; margin:0; }
+
+  /* ═══ PIEL v4 (7-oct-2026) ═══════════════════════════════════════════════
+     Valores de la intranet v4 (nav-montaje.css / shell.css): superficie #fbf9f4,
+     menú #f5f4ee con activa en verde #485B37, filete #e9e8e3, radio 12, sin
+     sombras, 600 como peso dominante, pastilla en lo pulsable y en las etiquetas.
+     Los colores de significado (#3F5230 / #9E2F26 / ámbar) no cambian. */
+  :root{ --rl:#fbf9f4; --va:#1b1c19; --pg-low:#f5f4ee; --pg-hi:#e9e8e3; --ink2:#44483f; --out:#66695f; --linea:#d9d8d0;
+         --fv:'Neue Kabel','Jost',system-ui,sans-serif; }
+  body{ font-family:var(--fv); background:var(--rl); color:var(--va); }
+  button, input, select, textarea{ font-family:inherit; }
+  .cargando{ font-weight:500; }
+
+  /* entrada */
+  .entrada .caja{ background:var(--pg-low); border:1px solid var(--pg-hi); border-radius:12px; box-shadow:none; padding:40px 32px 34px; }
+  .entrada .marca{ font-family:var(--fv); font-size:28px; font-weight:600; letter-spacing:.05em; }
+  .entrada .rot{ font-size:12px; font-weight:500; letter-spacing:.1em; color:var(--out); }
+  .entrada p{ font-size:14px; color:var(--ink2); }
+  .entrada input{ border:1px solid var(--linea); border-radius:999px; background:var(--rl); padding:11px 16px; font-size:14px; }
+  .entrada input:focus{ box-shadow:none; outline:2px solid var(--dl); outline-offset:1px; }
+  .campo-icono input{ padding-left:40px; }
+  .btn-primario{ font-weight:600; }
+
+  /* menú lateral claro */
+  .sidebar{ background:var(--pg-low); color:var(--va); width:256px; padding:24px 16px; }
+  .sidebar .cab{ margin-bottom:26px; padding:0 8px; }
+  .marca-menu{ display:flex; flex-direction:column; }
+  .marca-menu b{ font-size:24px; font-weight:600; letter-spacing:.05em; line-height:1; color:var(--dl); }
+  .marca-menu span{ margin-top:5px; font-size:12px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--out); }
+  .sidebar .cab button{ color:var(--ink2); }
+  .navrow{ padding:8px 12px; border-radius:12px; font-size:15px; font-weight:500; color:var(--ink2); transition:background .15s,color .15s; }
+  .navrow:hover{ background:var(--pg-hi); color:var(--va); }
+  .navrow:focus-visible{ outline:2px solid var(--dl); outline-offset:-2px; }
+  .navrow.on{ background:#485B37; color:#fff; font-weight:600; }
+  .navrow-i svg{ opacity:1; }
+  .sidebar .pie{ border-top:1px solid var(--pg-hi); }
+  .avatar{ background:var(--dl); color:#fff; }
+  .pie .nombre{ color:var(--va); font-weight:600; }
+  .pie a{ color:var(--out); }
+  .overlay-sidebar{ background:rgba(27,28,25,.28); }
+
+  /* cabecera de 64 px */
+  .topbar2{ background:var(--rl); border-bottom:1px solid var(--pg-hi); height:64px; padding:0 28px; }
+  .topbar2 h1{ font-size:22px; font-weight:500; color:var(--va); }
+  .campana button{ border:1px solid var(--linea); background:transparent; }
+  .notif-drop{ border:1px solid var(--pg-hi); background:var(--rl); border-radius:12px; box-shadow:none; }
+  .notif-fila{ border-top:1px solid var(--pg-hi); }
+  .content{ max-width:1040px; padding:26px 28px 56px; }
+
+  /* títulos y bloques */
+  .titulo-sec h2{ font-size:22px; font-weight:500; }
+  .titulo-sec p{ font-size:13.5px; color:var(--ink2); }
+  .tarjeta, .acceso, .tabla-caja, .doclista, .op{ background:var(--rl); border:1px solid var(--pg-hi); border-radius:12px; box-shadow:none; }
+  .tarjeta{ padding:17px 19px; }
+  .kpis{ gap:14px; }
+  .kpi .lbl{ font-size:11px; font-weight:500; letter-spacing:.1em; color:var(--ink2); }
+  .kpi .val{ font-family:var(--fv); font-size:30px; font-weight:600; color:var(--dl); line-height:1; letter-spacing:.01em; }
+  .kpi .val.ok{ color:var(--ok); }
+  .kpi-nota{ font-size:12px; color:var(--ink2); }
+  .rot-bloque, .campo label, .campo-lbl{ font-size:11px; font-weight:600; letter-spacing:.1em; color:var(--out); }
+  .acceso:hover{ background:var(--pg-low); }
+  .acceso .t{ font-weight:600; } .acceso .s{ color:var(--ink2); }
+
+  /* operación */
+  .op{ padding:22px 24px 24px; }
+  .op-cab h3 b{ font-size:16px; font-weight:600; letter-spacing:.02em; color:var(--va); }
+  .op-cab h3 span.sub{ color:var(--ink2); font-size:13px; }
+  .op-datos .d .lbl{ font-size:11px; font-weight:500; letter-spacing:.1em; color:var(--out); }
+  .barra{ height:6px; border-radius:999px; background:var(--pg-hi); }
+  .barra i{ background:#485B37; border-radius:999px; }
+  .barra-leg{ color:var(--ink2); }
+  .op-nota{ background:var(--pg-low); border-left:0; border-radius:12px; color:var(--ink2); }
+  .fase{ font-size:10px; font-weight:600; letter-spacing:.06em; background:var(--pg-low); border:0; color:var(--out); }
+  .fase.hecha{ background:#e3eadb; color:#3F5230; border:0; }
+  .fase.actual{ background:#485B37; color:#fff; }
+
+  /* etiquetas en pastilla */
+  .tag, .tag.chico{ font-size:10px; letter-spacing:.06em; padding:3px 9px; }
+
+  /* tablas */
+  table.docs th, .tabla-caja th{ font-size:10.5px; letter-spacing:.1em; color:var(--ink2); background:var(--pg-low); border-bottom:1px solid var(--pg-hi); padding:10px 16px; }
+  table.docs td, .tabla-caja td{ font-size:13px; padding:11px 16px; border-bottom:1px solid var(--pg-hi); }
+  table.docs td.flojo{ color:var(--ink2); }
+  .clave{ font-weight:600; color:var(--dl); }
+  .docfila{ border-bottom:1px solid var(--pg-hi); }
+  .docfila .t{ font-weight:600; } .docfila .s{ color:var(--out); }
+  .docfila .der{ color:var(--ink2); }
+
+  /* botones y campos */
+  .btn-borde{ font-weight:500; color:var(--va); background:transparent; border:1px solid var(--linea); padding:8px 16px; }
+  .btn-oscuro{ font-weight:600; padding:9px 18px; }
+  .campo input, .campo select, .campo textarea, .campo-input{ background:var(--rl); border:1px solid var(--linea); border-radius:12px; }
+  .campo-input:focus, .campo input:focus, .campo select:focus, .campo textarea:focus{ box-shadow:none; outline:2px solid var(--dl); outline-offset:1px; }
+  .chat form input{ border:1px solid var(--linea); background:var(--rl); }
+  .burbuja.suya{ background:var(--pg-low); }
+  .toggle{ background:var(--pg-hi); }
+  .vacio{ color:var(--out); }
+
+  /* cajón: filete en vez de sombra */
+  .drawer-velo{ background:rgba(27,28,25,.28); }
+  .drawer{ background:var(--rl); box-shadow:none; border-left:1px solid var(--pg-hi); }
+  .lupa{ background:rgba(27,28,25,.72); }
+
+  /* avisos: los de la v4 (tinta oscura con filo de oro; el de fallo se queda en rojo) */
+  .toast{ background:#1B1C19; color:#F5F0E6; border:1px solid #C89B5C; border-radius:6px; font-weight:500; }
+  .toast.mal{ background:#9E2F26; border:0; border-radius:12px; }
+
+  @media (max-width:880px){
+    .sidebar{ width:min(calc(100vw - 48px),288px); }
+    .topbar2{ padding:0 16px; }
+    .content{ padding:20px 16px 60px; }
+  }
+
+  /* tablas en móvil: scroll dentro de su caja, nunca del body (medido a 390 px:
+     la de hitos llegaba a 454 y la de facturas a 479 dentro de 390) */
+  .tabla-caja{ overflow-x:auto; }
+  .op table.docs{ display:block; overflow-x:auto; }
+  @media (max-width:880px){
+    table.docs th, table.docs td, .tabla-caja th, .tabla-caja td{ padding-left:10px; padding-right:10px; }
+    .tabla-caja table{ min-width:520px; }
+  }
 </style>
 </head>
 <body>
@@ -367,10 +490,9 @@
 
   <div id="sidebar" class="sidebar">
     <div class="cab">
-      <img src="/contracts/assets/brand/lawang-logo-v3.png" alt="Lawang" onerror="this.remove()">
+      <div class="marca-menu"><b>LAWANG</b><span data-t="area">Área de clientes</span></div>
       <button type="button" id="btnCerrarSidebar" hidden>✕</button>
     </div>
-    <div class="rot" data-t="area">Área de clientes</div>
     <div id="nav"></div>
     <div class="pie">
       <div class="avatar" id="avatarIniciales"></div>
@@ -1017,7 +1139,7 @@
           (proximo ?
             '<div style="font-size:16px;font-weight:500;margin-bottom:4px">' + esc((proximo.hito[LANG] || proximo.hito.es || proximo.hito.en || '')) + '</div>' +
             '<div style="font-size:13px;color:#6b6c66;margin-bottom:14px">' + esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato) + '</div>' +
-            '<div style="font-family:\'Instrument Sans\',sans-serif;font-size:22px;font-weight:700;margin-bottom:14px">' + (isNaN(proximo.monto)?'—':esc(dinero(proximo.monto, proximo.moneda))) + '</div>' +
+            '<div style="font-size:24px;font-weight:600;color:var(--dl);margin-bottom:14px">' + (isNaN(proximo.monto)?'—':esc(dinero(proximo.monto, proximo.moneda))) + '</div>' +
             '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('ver_plan')) + '</button>'
             : '<p style="font-size:13.5px;color:#6b6c66">' + esc(t('sin_proximo')) + '</p>') +
         '</div>' +
@@ -1056,7 +1178,7 @@
       // que cualquier otro estado sin marcar, y no destacaba entre el resto
       // de la ficha.
       var tagBg = x.firmado ? 'rgba(63,82,48,.12)' : 'rgba(184,99,29,.14)';
-      var tagColor = x.firmado ? 'var(--ok)' : '#B8631D';
+      var tagColor = x.firmado ? 'var(--ok)' : '#8F4A12';
       var fp = firmaPend[x.id];
       /* Una Carta de Reserva ya relevada por su Bloqueo y su Construcción sigue
          viéndose entera —es un documento suyo, firmado, con su PDF— pero su
@@ -1220,7 +1342,7 @@
       // "Abierto" en sólido (1-sep-2026, pedido del cliente: se perdía contra
       // el crema de fondo con el tinte tan suave que llevaba antes).
       var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
-      var extracto = ultimo ? (ultimo.de === 'equipo' ? t('tu') + ': ' : '') + ultimo.texto : '';
+      var extracto = ultimo ? (ultimo.de === 'cliente' ? t('tu') + ': ' : '') + ultimo.texto : '';
       if (extracto.length > 80) extracto = extracto.slice(0, 80) + '…';
       return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.categoria) + '</div>' +
         (extracto ? '<div class="s">' + esc(extracto) + '</div>' : '') + '</div>' +
