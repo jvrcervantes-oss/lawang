@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="4f98b0bf4aba">
+<meta name="lw-version" content="49403e5ab48c">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -979,7 +979,12 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
   // Antes esta página miraba la marca ANTES de leer la ficha y echaba al portal a un admin (7-oct-2026: Andrea, con una
   // sesión guardada de antes de limpiar su marca, rebotaba entre /intranet/ y /portal/). Sin ficha y sin marca sigue la
   // compatibilidad «sin ficha se permite» de abajo (vacío por RLS), como siempre.
-  if(!ficha && (session.user.app_metadata || {}).portal){ location.replace('/portal/'); return; }
+  /* Sin ficha y con marca de portal en la sesión de la INTRANET = una sesión de cliente que se quedó guardada en la clave de
+     la intranet (de antes de separarlas el 1-sep-2026, o de una prueba). /portal/ guarda la suya en OTRA clave
+     (lw-portal-auth) y no puede cerrarla: mandarla allí dejaba a la persona rebotando entre /intranet/ y /portal/ sin poder
+     ni ver el formulario de entrada (7-oct-2026, Andrea). Se cierra ESA sesión y se enseña el formulario; el enlace
+     «¿Eres cliente?» del formulario lleva al portal. */
+  if(!ficha && (session.user.app_metadata || {}).portal){ await sb.auth.signOut(); lwEntra.quita(); mostrarLogin(); return; }
   if(ficha && !ficha.activo){          // desactivado: se le cierra la sesión, no se le enseña un hub vacío
     await sb.auth.signOut();
     location.replace('/intranet/?desactivado=1');
