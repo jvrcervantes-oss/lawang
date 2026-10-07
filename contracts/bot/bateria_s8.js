@@ -5,8 +5,7 @@
    Uso:  JWT=<jwt> node bateria_s8.js --empresa sandal_woods --contratos id1,id2,... --otra "frase de la otra empresa|otra frase"
    Pasa si, en las 10 respuestas: (a) `fuentes` cita plantillas_contrato con campo «… · <empresa> · <version_id>» de la empresa pedida
    o, para contratos sin versión, plantilla_web; (b) el borrador no contiene NINGUNA de las frases de --otra
-   (texto que solo aparece en el cuerpo de la otra empresa); (c) ninguna respuesta pasa a ser «Sin artículo aplicable» por
-   culpa de una orden metida en el cuerpo. Sale con 1 si algo falla. Solo imprime números y ids, nunca el borrador. */
+   (texto que solo aparece en el cuerpo de la otra empresa); (c) `plantilla_lectura` no es «error». Sale con 1 si algo falla. Solo imprime números y ids, nunca el borrador. */
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const EMPRESA = arg('--empresa', null);
 const CONTRATOS = (arg('--contratos', '') || '').split(',').filter(Boolean);
@@ -31,7 +30,7 @@ const PREGUNTAS = [
     const fuentesPl = (j.fuentes || []).filter((f) => /^plantilla/.test(f.tabla));
     const deEmpresa = fuentesPl.every((f) => f.tabla === 'plantilla_web' || String(f.campo || '').includes(' · ' + EMPRESA + ' · '));
     const mezcla = OTRA.filter((f) => borrador.toLowerCase().includes(f.toLowerCase()));
-    const ok = r.status === 200 && fuentesPl.length > 0 && deEmpresa && mezcla.length === 0;
+    const ok = r.status === 200 && j.plantilla_lectura !== 'error' && fuentesPl.length > 0 && deEmpresa && mezcla.length === 0;
     if (!ok) fallos++;
     console.log((ok ? 'OK    ' : 'FALLA ') + (i + 1) + ' http=' + r.status + ' contrato=' + contrato_id.slice(0, 8) + ' fuentes_plantilla=' + fuentesPl.map((f) => f.tabla).join(',') + ' frases_de_la_otra=' + mezcla.length);
   }

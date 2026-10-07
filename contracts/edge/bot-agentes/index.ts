@@ -47,12 +47,13 @@
 // `.maybeSingle()`). El texto sale, por orden:
 //   1. el contrato tiene su versión fijada → RPC plantilla_contrato_cuerpo_de_contrato:
 //      el texto exacto con el que se redactó, de SU empresa, nunca «el último»;
-//   2. sin vínculo y SIN firmar, con proyecto → RPC plantilla_contrato_cuerpo: la
-//      versión activa de la empresa del proyecto (si no hay, su semilla v1);
-//   3. sin vínculo y firmado, o sin empresa deducible → el fichero publicado
-//      (contracts/templates/*.html, lo que se firmó), como hasta ahora.
-// Las dos RPC se llaman con el JWT del agente (cliente `sb`): la empresa la decide
-// la base, esta edge no la elige. Si una RPC FALLA no se cae al fichero: un contrato
+//   2. sin vínculo (firmados, con ronda de firma, sin proyecto/empresa) → el fichero
+//      publicado (contracts/templates/*.html, lo que se firmó), como hasta ahora.
+// Es la MISMA regla que openSavedContract() de contracts/app.html: el bot cita lo que
+// el contrato tiene en pantalla y en el PDF, nunca «el texto activo de la empresa»
+// (el 7-oct los 47 contratos con empresa sin vínculo tenían ronda de firma).
+// La RPC se llama con el JWT del agente (cliente `sb`): la empresa la decide
+// la base, esta edge no la elige. Si la RPC FALLA no se cae al fichero: un contrato
 // ligado a una versión editada citaría un texto que no es el suyo; se responde sin
 // texto de plantilla y se dice. Se deja en el idioma del contrato y se sustituyen
 // los campos (vacío → «(en blanco)», reservado → «(dato reservado)»). Sin eso el
@@ -618,7 +619,7 @@ Deno.serve(async (req) => {
     const abort = new AbortController();
     const temporizador = setTimeout(() => abort.abort(), 8000);
     // Texto de la plantilla (ver cabecera): por RPC con la sesión del agente y, solo si la base
-    // dice «no hay versión para este contrato» (null), el fichero publicado. Un error de RPC NO cae al fichero.
+    // dice «este contrato no tiene versión fijada» (null), el fichero publicado. Un error de RPC NO cae al fichero.
     const lecturaPlantilla = async (): Promise<{ html: string; lastModified: string | null; ver: { version_id: string; empresa: string; version: number; origen: string; hash: string } | null } | { error: string } | null> => {
       if (!slugPlantilla) return null;
       const deBase = (d: unknown) => {
@@ -628,13 +629,8 @@ Deno.serve(async (req) => {
         return { html: o.cuerpo_html, lastModified: null, ver: { version_id: String(o.version_id), empresa: String(o.empresa), version: Number(o.version), origen: String(o.origen), hash: String(o.hash) } };
       };
       const vinculo = await sb.rpc('plantilla_contrato_cuerpo_de_contrato', { p_contrato: contrato.id });
-      if (vinculo.error) return { error: 'rpc_vinculo' };
+      if (vinculo.error) return { error: 'rpc_vinculo' };   // NO al fichero: el contrato puede estar ligado a un texto editado
       if (vinculo.data) return deBase(vinculo.data);
-      if (!contrato.bloqueado && typeof contrato.proyecto_id === 'string' && UUID.test(contrato.proyecto_id)) {
-        const activa = await sb.rpc('plantilla_contrato_cuerpo', { p_slug: slugPlantilla, p_proyecto: contrato.proyecto_id });
-        if (activa.error) return { error: 'rpc_empresa' };
-        if (activa.data) return deBase(activa.data);
-      }
       return await fetch(ORIGEN_PLANTILLAS + encodeURIComponent(slugPlantilla) + '.html', { signal: abort.signal })
         .then(async (r) => (r.ok ? { html: await r.text(), lastModified: r.headers.get('last-modified'), ver: null } : null))
         .catch(() => null);
@@ -926,6 +922,7 @@ Deno.serve(async (req) => {
       plantilla_cambio_tras_firma: plantillaCambioTrasFirma,
       plantilla_texto_disponible: !!textoPlantilla,
       plantilla_texto_en_base: !!verPlantilla,
+      plantilla_lectura: verPlantilla ? 'version' : textoPlantilla ? 'fichero' : web && 'error' in web ? 'error' : 'sin_texto',
     });
   } catch (e) {
     // Solo el mensaje de la excepción: nunca el body, la pregunta ni el borrador.
