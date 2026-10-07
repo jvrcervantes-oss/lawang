@@ -2,7 +2,9 @@
 -- Devuelve cada funcion a la definicion viva de ANTES (parches inversos con el mismo contador de apariciones; las que se reescribieron enteras, con su texto anterior).
 -- Valida mientras nadie tenga rol de empresa. Se puede ejecutar entera o por partes (PARTE 1 = migracion 20261008100000; PARTE 2 = migracion 20261008100100, mas abajo).
 -- Ensayada: migracion + reversion + comparacion del md5 de cada definicion con el de antes (ver bitacora del encargo).
--- destructivo-ok: reversion de funciones; drop de proyecto_alta(text,text) para volver a proyecto_alta(text); sin tocar datos
+-- destructivo-ok: reversion de funciones; drop de proyecto_alta(text,text), super_de_contrato, _empresa_fila_contrato y _puede_herr_o_super_empresa para volver al estado anterior; sin tocar datos
+-- ORDEN: las partes van de la mas reciente a la mas antigua (4, 3, 2, 1). No se pasa por apply_migration (lleva su propio begin/commit): execute_sql o psql.
+-- Aviso: es_manager_de, socios_parcelas y proyecto_alta se restauran ENTERAS; si otro bloque las toca despues con create or replace, esa parte se pierde.
 begin;
 
 create or replace function pg_temp.parchea(p_f regprocedure, p_old text, p_new text, p_n int default 1) returns void language plpgsql as $f$
@@ -15,6 +17,91 @@ begin
   end if;
   execute replace(v, p_old, p_new);
 end $f$;
+
+-- ===================== PARTE 4: socios con global con empresas (migracion 20261008100300; se revierte ANTES que la parte 1) =====================
+select pg_temp.parchea('public.unidad_socio_asigna(uuid,uuid,text)'::regprocedure,
+  $q$if p_socio is not null and not public.es_admin() and public.alcance_restringido() and not exists ($q$,
+  $q$if p_socio is not null and public.alcance_restringido() and not exists ($q$);
+select pg_temp.parchea('public.socios_parcelas(uuid)'::regprocedure,
+  $q$and (public.es_admin() or not public.alcance_restringido()$q$, $q$and (not public.alcance_restringido()$q$);
+
+-- ===================== PARTE 3: super de empresa sin casillas (migracion 20261008100200) =====================
+select pg_temp.parchea('public.unidades_importa(jsonb)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('unidades')$q$, $q$public.puede('unidades')$q$);
+select pg_temp.parchea('public.unidad_guarda(uuid,jsonb,text)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('unidades')$q$, $q$public.puede('unidades')$q$);
+select pg_temp.parchea('public._contrato_anexo_check(uuid)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('contratos')$q$, $q$public.puede('contratos')$q$);
+select pg_temp.parchea('public.contrato_poder_vincula(uuid)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('contratos')$q$, $q$public.puede('contratos')$q$);
+select pg_temp.parchea('public.contrato_guarda(uuid,jsonb)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('contratos')$q$, $q$public.puede('contratos')$q$);
+drop function public._puede_herr_o_super_empresa(text);
+
+-- ===================== PARTE 2: contratos y reservas (migracion 20261008100100) =====================
+alter policy "super_admin ve todo, el resto solo eventos normales de sus cont" on public.contrato_eventos
+  using (
+    ((select es_super_admin() as es_super_admin)
+     or ((select es_agente() as es_agente)
+         and (evento <> all (array['editado_estando_firmado'::text, 'desbloqueado_estando_firmado'::text, 'factura_sin_bloquear'::text,
+                                   'cobro_a_factura_huerfana'::text, 'cobro_a_otro_comprador'::text, 'comprador_sin_ficha'::text]))
+         and (contrato_id is not null)
+         and ((select es_admin() as es_admin) or (contrato_id = any ((select mis_contratos_visibles() as mis_contratos_visibles)::uuid[]))))));
+select pg_temp.parchea('public.descuento_comercial_construccion_valido()'::regprocedure,
+  $q$if not (coalesce(v_super, false) or public.es_super_admin_de(public._empresa_fila_contrato(new.proyecto_id, new.proyecto_nombre))) then$q$,
+  $q$if not coalesce(v_super, false) then$q$);
+select pg_temp.parchea('public.descuento_comercial_suelo_valido()'::regprocedure,
+  $q$if not (coalesce(v_super, false) or public.es_super_admin_de(public._empresa_fila_contrato(new.proyecto_id, new.proyecto_nombre))) then$q$,
+  $q$if not coalesce(v_super, false) then$q$);
+select pg_temp.parchea('public.descuento_comercial_rol()'::regprocedure,
+  $q$if v_rol in ('super_admin', 'admin', 'sales_manager') or public.es_admin_de(public._empresa_fila_contrato(new.proyecto_id, new.proyecto_nombre)) then return new; end if;$q$,
+  $q$if v_rol in ('super_admin', 'admin', 'sales_manager') then return new; end if;$q$);
+select pg_temp.parchea('public.clausulas_negociadas_rol()'::regprocedure,
+  $q$if v_rol in ('super_admin', 'admin') or public.es_admin_de(public._empresa_fila_contrato(new.proyecto_id, new.proyecto_nombre)) then return new; end if;$q$,
+  $q$if v_rol in ('super_admin', 'admin') then return new; end if;$q$);
+select pg_temp.parchea('public._contrato_pdf_firmado_fijo()'::regprocedure,
+  $q$or public.es_super_admin_de((select pr.empresa from public.proyectos pr where pr.id = new.proyecto_id or pr.nombre = new.proyecto_nombre order by (pr.id = new.proyecto_id) desc limit 1)) then return new;$q$,
+  $q$or public.es_super_admin() then return new;$q$);
+select pg_temp.parchea('public.borrar_operacion(uuid)'::regprocedure,
+  $q$if not (public.es_super_admin() or not exists (
+       select 1 from public.contratos c2 left join public.proyectos p2 on p2.id = c2.proyecto_id
+        where c2.id = any (ids) and not public.es_super_admin_de(p2.empresa))) then$q$,
+  $q$if not public.es_super_admin() then$q$);
+select pg_temp.parchea('public._contrato_anexo_check(uuid)'::regprocedure,
+  $q$public.es_super_admin_de(public.empresa_de_contrato(p_contrato))$q$,
+  $q$public.es_super_admin()$q$, 2);
+select pg_temp.parchea('public.contrato_saldo(uuid)'::regprocedure,
+  $q$if not (public.es_super_admin_de(public.empresa_de_contrato(p_contrato)) or$q$,
+  $q$if not (public.es_super_admin() or$q$);
+select pg_temp.parchea('public.contrato_poder_vincula(uuid)'::regprocedure,
+  $q$(public.es_super_admin_de(public.empresa_de_contrato(c.id))$q$,
+  $q$(public.es_super_admin()$q$);
+select pg_temp.parchea('public.contrato_firmas_anula(uuid,text,boolean,text)'::regprocedure,
+  $q$if not public.es_super_admin_de(public.empresa_de_contrato(p_contrato)) then$q$,
+  $q$if not public.es_super_admin() then$q$);
+select pg_temp.parchea('public.contrato_desbloquea(uuid)'::regprocedure,
+  $q$if not public.es_super_admin_de(public.empresa_de_contrato(p_id)) then$q$,
+  $q$if not public.es_super_admin() then$q$);
+select pg_temp.parchea('public.contrato_guarda(uuid,jsonb)'::regprocedure,
+  $q$public.es_super_admin_de(public.empresa_de_contrato(coalesce(v_row.id, v_old.id)))$q$,
+  $q$public.es_super_admin()$q$, 3);
+select pg_temp.parchea('public.contrato_calendario_aplica(jsonb,jsonb,numeric,date,uuid)'::regprocedure,
+  $q$v_admin   boolean := public.es_admin_de(coalesce(public.empresa_de_contrato(p_contrato_id), (select pr.empresa from public.proyectos pr where pr.nombre = p_datos->'fields'->>'proyecto_nombre' limit 1)));$q$,
+  $q$v_admin   boolean := public.es_admin();$q$);
+select pg_temp.parchea('public.carta_cobrado_recalcula(uuid)'::regprocedure,
+  $q$if not public.es_admin_de(public.empresa_de_contrato(p_contrato_id)) then$q$,
+  $q$if not public.es_admin() then$q$);
+select pg_temp.parchea('public.deshace_liberacion(uuid,text,integer,boolean)'::regprocedure,
+  $q$if not public.es_admin_de(public.empresa_de_contrato(p_contrato_id)) then$q$,
+  $q$if not public.es_admin() then$q$);
+select pg_temp.parchea('public.prorroga_reserva(uuid,integer,text,boolean)'::regprocedure,
+  $q$v_es_admin := public.es_admin_de(public.empresa_de_contrato(p_contrato_id));$q$,
+  $q$v_es_admin := public.es_admin();$q$);
+select pg_temp.parchea('public.libera_reserva(uuid,uuid,text,text)'::regprocedure,
+  $q$public.es_admin_de(public.empresa_de_contrato(p_contrato_id))$q$,
+  $q$public.es_admin()$q$);
+drop function public.super_de_contrato(uuid);
+drop function public._empresa_fila_contrato(uuid, text);
 
 -- ===================== PARTE 1: proyectos y parcelas =====================
 create or replace function public.es_manager_de(p_proyecto_id uuid)
@@ -109,83 +196,5 @@ select pg_temp.parchea('public.borrar_proyecto(text)'::regprocedure,
   $q$if not public.es_super_admin_de((select pr.empresa from public.proyectos pr where pr.nombre = p_nombre)) then$q$, $q$if not public.es_super_admin() then$q$);
 select pg_temp.parchea('public.borrar_unidad(uuid)'::regprocedure,
   $q$if not public.es_super_admin_de(public.empresa_de_unidad(p_id)) then$q$, $q$if not public.es_super_admin() then$q$);
-
--- ===================== PARTE 2: contratos y reservas (migracion 20261008100100) =====================
-alter policy "super_admin ve todo, el resto solo eventos normales de sus cont" on public.contrato_eventos
-  using (
-    ((select es_super_admin() as es_super_admin)
-     or ((select es_agente() as es_agente)
-         and (evento <> all (array['editado_estando_firmado'::text, 'desbloqueado_estando_firmado'::text, 'factura_sin_bloquear'::text,
-                                   'cobro_a_factura_huerfana'::text, 'cobro_a_otro_comprador'::text, 'comprador_sin_ficha'::text]))
-         and (contrato_id is not null)
-         and ((select es_admin() as es_admin) or (contrato_id = any ((select mis_contratos_visibles() as mis_contratos_visibles)::uuid[]))))));
-select pg_temp.parchea('public.descuento_comercial_construccion_valido()'::regprocedure,
-  $q$if not (coalesce(v_super, false) or public.es_super_admin_de(public._empresa_fila_contrato(new.proyecto_id, new.proyecto_nombre))) then$q$,
-  $q$if not coalesce(v_super, false) then$q$);
-select pg_temp.parchea('public.descuento_comercial_suelo_valido()'::regprocedure,
-  $q$if not (coalesce(v_super, false) or public.es_super_admin_de(public._empresa_fila_contrato(new.proyecto_id, new.proyecto_nombre))) then$q$,
-  $q$if not coalesce(v_super, false) then$q$);
-select pg_temp.parchea('public.descuento_comercial_rol()'::regprocedure,
-  $q$if v_rol in ('super_admin', 'admin', 'sales_manager') or public.es_admin_de(public._empresa_fila_contrato(new.proyecto_id, new.proyecto_nombre)) then return new; end if;$q$,
-  $q$if v_rol in ('super_admin', 'admin', 'sales_manager') then return new; end if;$q$);
-select pg_temp.parchea('public.clausulas_negociadas_rol()'::regprocedure,
-  $q$if v_rol in ('super_admin', 'admin') or public.es_admin_de(public._empresa_fila_contrato(new.proyecto_id, new.proyecto_nombre)) then return new; end if;$q$,
-  $q$if v_rol in ('super_admin', 'admin') then return new; end if;$q$);
-select pg_temp.parchea('public._contrato_pdf_firmado_fijo()'::regprocedure,
-  $q$or public.es_super_admin_de((select pr.empresa from public.proyectos pr where pr.id = new.proyecto_id or pr.nombre = new.proyecto_nombre order by (pr.id = new.proyecto_id) desc limit 1)) then return new;$q$,
-  $q$or public.es_super_admin() then return new;$q$);
-select pg_temp.parchea('public.borrar_operacion(uuid)'::regprocedure,
-  $q$if not (public.es_super_admin() or not exists (
-       select 1 from public.contratos c2 left join public.proyectos p2 on p2.id = c2.proyecto_id
-        where c2.id = any (ids) and not public.es_super_admin_de(p2.empresa))) then$q$,
-  $q$if not public.es_super_admin() then$q$);
-select pg_temp.parchea('public._contrato_anexo_check(uuid)'::regprocedure,
-  $q$public.es_super_admin_de(public.empresa_de_contrato(p_contrato))$q$,
-  $q$public.es_super_admin()$q$, 2);
-select pg_temp.parchea('public.contrato_saldo(uuid)'::regprocedure,
-  $q$if not (public.es_super_admin_de(public.empresa_de_contrato(p_contrato)) or$q$,
-  $q$if not (public.es_super_admin() or$q$);
-select pg_temp.parchea('public.contrato_poder_vincula(uuid)'::regprocedure,
-  $q$(public.es_super_admin_de(public.empresa_de_contrato(c.id))$q$,
-  $q$(public.es_super_admin()$q$);
-select pg_temp.parchea('public.contrato_firmas_anula(uuid,text,boolean,text)'::regprocedure,
-  $q$if not public.es_super_admin_de(public.empresa_de_contrato(p_contrato)) then$q$,
-  $q$if not public.es_super_admin() then$q$);
-select pg_temp.parchea('public.contrato_desbloquea(uuid)'::regprocedure,
-  $q$if not public.es_super_admin_de(public.empresa_de_contrato(p_id)) then$q$,
-  $q$if not public.es_super_admin() then$q$);
-select pg_temp.parchea('public.contrato_guarda(uuid,jsonb)'::regprocedure,
-  $q$public.es_super_admin_de(public.empresa_de_contrato(coalesce(v_row.id, v_old.id)))$q$,
-  $q$public.es_super_admin()$q$, 3);
-select pg_temp.parchea('public.contrato_calendario_aplica(jsonb,jsonb,numeric,date,uuid)'::regprocedure,
-  $q$v_admin   boolean := public.es_admin_de(coalesce(public.empresa_de_contrato(p_contrato_id), (select pr.empresa from public.proyectos pr where pr.nombre = p_datos->'fields'->>'proyecto_nombre' limit 1)));$q$,
-  $q$v_admin   boolean := public.es_admin();$q$);
-select pg_temp.parchea('public.carta_cobrado_recalcula(uuid)'::regprocedure,
-  $q$if not public.es_admin_de(public.empresa_de_contrato(p_contrato_id)) then$q$,
-  $q$if not public.es_admin() then$q$);
-select pg_temp.parchea('public.deshace_liberacion(uuid,text,integer,boolean)'::regprocedure,
-  $q$if not public.es_admin_de(public.empresa_de_contrato(p_contrato_id)) then$q$,
-  $q$if not public.es_admin() then$q$);
-select pg_temp.parchea('public.prorroga_reserva(uuid,integer,text,boolean)'::regprocedure,
-  $q$v_es_admin := public.es_admin_de(public.empresa_de_contrato(p_contrato_id));$q$,
-  $q$v_es_admin := public.es_admin();$q$);
-select pg_temp.parchea('public.libera_reserva(uuid,uuid,text,text)'::regprocedure,
-  $q$public.es_admin_de(public.empresa_de_contrato(p_contrato_id))$q$,
-  $q$public.es_admin()$q$);
-drop function public.super_de_contrato(uuid);
-drop function public._empresa_fila_contrato(uuid, text);
-
--- ===================== PARTE 3: super de empresa sin casillas (migracion 20261008100200) =====================
-select pg_temp.parchea('public.unidades_importa(jsonb)'::regprocedure,
-  $q$public._puede_herr_o_super_empresa('unidades')$q$, $q$public.puede('unidades')$q$);
-select pg_temp.parchea('public.unidad_guarda(uuid,jsonb,text)'::regprocedure,
-  $q$public._puede_herr_o_super_empresa('unidades')$q$, $q$public.puede('unidades')$q$);
-select pg_temp.parchea('public._contrato_anexo_check(uuid)'::regprocedure,
-  $q$public._puede_herr_o_super_empresa('contratos')$q$, $q$public.puede('contratos')$q$);
-select pg_temp.parchea('public.contrato_poder_vincula(uuid)'::regprocedure,
-  $q$public._puede_herr_o_super_empresa('contratos')$q$, $q$public.puede('contratos')$q$);
-select pg_temp.parchea('public.contrato_guarda(uuid,jsonb)'::regprocedure,
-  $q$public._puede_herr_o_super_empresa('contratos')$q$, $q$public.puede('contratos')$q$);
-drop function public._puede_herr_o_super_empresa(text);
 
 commit;
