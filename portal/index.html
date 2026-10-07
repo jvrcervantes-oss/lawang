@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="6bbe3eded817">
+<meta name="lw-version" content="506a0b5bdb4f">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -731,6 +731,52 @@
     .proy-grid.ini .proy-portada, .proy-grid.ini.uno .proy-portada{ width:96px; aspect-ratio:auto; min-height:0; }
     .ini-bajo{ grid-template-columns:1fr; }
   }
+  /* ═══ INICIO IGUAL QUE EL ARTIFACT (7-oct-2026, owner: «igual que el artifact») ═══
+     Lo que la primera pasada dejó fuera: escala del saludo y del importe, tareas con su fecha, cabecera de
+     propiedades, etiquetas de firma y pagada, isotipo sin portada, novedades con fecha y destino, caja de soporte. */
+  .titulo-sec.ini h2{ font-size:40px; font-weight:400; line-height:1.05; letter-spacing:-.015em; }
+  .titulo-sec.ini p{ font-size:14px; }
+  .ini-tarea-tx{ font-weight:400; }
+  .ini-tarea-tx b{ font-weight:600; }
+  .ini-tarea-tx span{ color:var(--ink2); }
+  .hero-pago:not(.vacio) .hp-concepto{ font-size:22px; font-weight:500; }
+  .hero-pago:not(.vacio) .hp-sub{ font-size:13.5px; margin-top:6px; }
+  .hero-pago:not(.vacio) .hp-importe{ font-size:clamp(40px,11vw,62px); font-weight:400; letter-spacing:-.02em; line-height:.95; }
+  .hero-pago:not(.vacio) .hp-importe.largo{ font-size:clamp(30px,8.5vw,44px); }
+  .hero-pago:not(.vacio) .hp-acciones{ margin-top:20px; }
+
+  .ini-secc{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:6px 0 12px; }
+  .ini-secc h3{ margin:0; font-size:20px; font-weight:500; }
+  .ini-link{ background:none; border:0; padding:0; font:inherit; font-size:13px; font-weight:600; color:var(--dl); cursor:pointer; }
+  .ini-link:hover{ text-decoration:underline; }
+  .ini-link:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; border-radius:4px; }
+  .proy-grid.ini .proy-nombre{ font-size:17px; }
+  .proy-chip.firma{ background:#f6e8cc; color:#8C5E10; }
+
+  /* portada sin foto: el isotipo sobre el tono del menú (M4), en Inicio y en Documentos */
+  .proy-portada, .proy-portada-grande{ background:var(--menu); }
+  .proy-inicial{ display:none; }
+  .proy-portada::before, .proy-portada-grande::before{ content:""; position:absolute; left:50%; top:50%; width:34%; max-width:120px; aspect-ratio:261/280;
+    transform:translate(-50%,-50%); background:var(--dl); opacity:.22;
+    -webkit-mask:url('/assets/img/isotipo.png') center/contain no-repeat; mask:url('/assets/img/isotipo.png') center/contain no-repeat; }
+  .proy-sinfoto{ position:absolute; left:0; right:0; bottom:10px; text-align:center; font-size:11px; font-weight:500; color:var(--menu-txt); }
+
+  .ini-nov .nov{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:baseline; padding:11px 0; border-bottom:1px solid var(--pg-hi); font-size:13.5px; line-height:1.45; }
+  .ini-nov .nov:last-child{ border-bottom:0; padding-bottom:0; }
+  .ini-nov .nov small{ font-size:12px; color:var(--out); white-space:nowrap; }
+  .ini-nov .ini-link{ font-size:12.5px; }
+  .ini-sop{ background:var(--pg-low); border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .ini-sop h4{ margin:4px 0 0; font-size:17px; font-weight:500; line-height:1.3; }
+  .ini-sop p{ margin:0; font-size:13px; color:var(--ink2); }
+  .ini-sop .btn-oscuro{ margin-top:auto; }
+
+  @media (max-width:880px){ .titulo-sec.ini h2{ font-size:30px; } }
+  @media (max-width:640px){
+    .proy-sinfoto{ display:none; }
+    .proy-grid.ini .proy-nombre{ font-size:15px; }
+    .hero-pago:not(.vacio) .hp-concepto{ font-size:19px; }
+  }
+
 </style>
 </head>
 <body>
@@ -865,7 +911,7 @@
          nav_documentos:'Documentos', nav_soporte:'Soporte', nav_perfil:'Mi perfil',
          tit_inicio:'Inicio', tit_contratos:'Contratos', tit_facturas:'Facturas', tit_obra:'Obra',
          tit_documentos:'Documentos', tit_soporte:'Soporte', tit_perfil:'Mi perfil',
-         hola:'Hola', hola_manana:'Buenos días', hola_tarde:'Buenas tardes', hola_noche:'Buenas noches', pendiente_ti:'Pendiente de ti', ver_perfil:'Ver mi perfil', escribir:'Escribir', saludo_sub:'Estado de tu operación con Lawang Estate',
+         hola:'Hola', n_props_1:'1 propiedad con Lawang Estate', n_props_n:'{n} propiedades con Lawang Estate', firma_tarea:'Firma el contrato {n}', firma_caduca:'el enlace caduca el {f}', firmar:'Firmar', kyc_caduca_el:'Tu {doc} caduca el {f}', vence_el:'vence el {f}', ver_factura_n:'Ver factura {n}', de_total:'de', tus_propiedades:'Tus propiedades', portada_prep:'Portada en preparación', pagada:'Pagada', firma_pend_chip:'Firma pendiente', nov_obra_foto:'Nuevas fotos de obra en {u}: «{t}»', ver_factura:'Ver factura', ver_fotos:'Ver fotos', sop_titulo:'¿Una duda sobre un pago o un documento?', sop_texto:'Te responde el equipo de gestión de Lawang.', sop_abiertas_1:'Tienes una conversación abierta.', sop_abiertas_n:'Tienes {n} conversaciones abiertas.', escribir_equipo:'Escribir al equipo', hola_manana:'Buenos días', hola_tarde:'Buenas tardes', hola_noche:'Buenas noches', pendiente_ti:'Pendiente de ti', ver_perfil:'Ver mi perfil', escribir:'Escribir', saludo_sub:'Estado de tu operación con Lawang Estate',
          r_inversion:'Tu inversión', r_pagado:'Pagado', r_pendiente:'Pendiente',
          r_cuota:'Cuota de reserva', cuota_reserva:'Cuota de reserva',
          nota_solo_reserva:'De momento solo tienes Carta(s) de Reserva, sin contrato definitivo firmado: el importe de arriba es la cuota de reserva, no el precio final de tu unidad.',
@@ -952,7 +998,7 @@
          nav_documentos:'Documents', nav_soporte:'Support', nav_perfil:'My profile',
          tit_inicio:'Home', tit_contratos:'Contracts', tit_facturas:'Invoices', tit_obra:'Construction',
          tit_documentos:'Documents', tit_soporte:'Support', tit_perfil:'My profile',
-         hola:'Hello', hola_manana:'Good morning', hola_tarde:'Good afternoon', hola_noche:'Good evening', pendiente_ti:'Waiting on you', ver_perfil:'View my profile', escribir:'Write to us', saludo_sub:'Status of your operation with Lawang Estate',
+         hola:'Hello', n_props_1:'1 property with Lawang Estate', n_props_n:'{n} properties with Lawang Estate', firma_tarea:'Sign contract {n}', firma_caduca:'the link expires on {f}', firmar:'Sign', kyc_caduca_el:'Your {doc} expires on {f}', vence_el:'due {f}', ver_factura_n:'View invoice {n}', de_total:'of', tus_propiedades:'Your properties', portada_prep:'Cover photo coming soon', pagada:'Paid in full', firma_pend_chip:'Awaiting signature', nov_obra_foto:'New construction photos for {u}: “{t}”', ver_factura:'View invoice', ver_fotos:'View photos', sop_titulo:'A question about a payment or a document?', sop_texto:'The Lawang account team will reply.', sop_abiertas_1:'You have one open conversation.', sop_abiertas_n:'You have {n} open conversations.', escribir_equipo:'Write to the team', hola_manana:'Good morning', hola_tarde:'Good afternoon', hola_noche:'Good evening', pendiente_ti:'Waiting on you', ver_perfil:'View my profile', escribir:'Write to us', saludo_sub:'Status of your operation with Lawang Estate',
          r_inversion:'Your investment', r_pagado:'Paid', r_pendiente:'Outstanding',
          r_cuota:'Reservation fee', cuota_reserva:'Reservation fee',
          nota_solo_reserva:'For now you only hold Reservation Letter(s), with no definitive contract signed yet: the figure above is the reservation fee, not the final price of your unit.',
@@ -1031,7 +1077,7 @@
          nav_documentos:'Dokumen', nav_soporte:'Bantuan', nav_perfil:'Profil saya',
          tit_inicio:'Beranda', tit_contratos:'Kontrak', tit_facturas:'Faktur', tit_obra:'Pembangunan',
          tit_documentos:'Dokumen', tit_soporte:'Bantuan', tit_perfil:'Profil saya',
-         hola:'Halo', hola_manana:'Selamat pagi', hola_tarde:'Selamat siang', hola_noche:'Selamat malam', pendiente_ti:'Menunggu Anda', ver_perfil:'Lihat profil saya', escribir:'Tulis pesan', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
+         hola:'Halo', n_props_1:'1 properti bersama Lawang Estate', n_props_n:'{n} properti bersama Lawang Estate', firma_tarea:'Tandatangani kontrak {n}', firma_caduca:'tautan berakhir pada {f}', firmar:'Tanda tangani', kyc_caduca_el:'{Doc} Anda berakhir pada {f}', vence_el:'jatuh tempo {f}', ver_factura_n:'Lihat faktur {n}', de_total:'dari', tus_propiedades:'Properti Anda', portada_prep:'Foto sampul segera hadir', pagada:'Lunas', firma_pend_chip:'Menunggu tanda tangan', nov_obra_foto:'Foto pembangunan baru di {u}: “{t}”', ver_factura:'Lihat faktur', ver_fotos:'Lihat foto', sop_titulo:'Ada pertanyaan tentang pembayaran atau dokumen?', sop_texto:'Tim pengelola Lawang akan membalas.', sop_abiertas_1:'Anda punya satu percakapan terbuka.', sop_abiertas_n:'Anda punya {n} percakapan terbuka.', escribir_equipo:'Tulis ke tim', hola_manana:'Selamat pagi', hola_tarde:'Selamat siang', hola_noche:'Selamat malam', pendiente_ti:'Menunggu Anda', ver_perfil:'Lihat profil saya', escribir:'Tulis pesan', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
          r_inversion:'Investasi Anda', r_pagado:'Sudah dibayar', r_pendiente:'Belum dibayar',
          r_cuota:'Biaya reservasi', cuota_reserva:'Biaya reservasi',
          nota_solo_reserva:'Saat ini Anda hanya memiliki Surat Reservasi, tanpa kontrak definitif yang ditandatangani: jumlah di atas adalah biaya reservasi, bukan harga akhir unit Anda.',
@@ -1146,6 +1192,15 @@
     var h = new Date().getHours();
     return t(h < 12 ? 'hola_manana' : h < 20 ? 'hola_tarde' : 'hola_noche');
   }
+  /* «hace 3 días», «ayer», «en 13 días», en el idioma del portal */
+  function relativa(f){
+    var d = new Date(f); if (!f || isNaN(d)) return '';
+    var hoy = new Date(); hoy.setHours(0,0,0,0); var x = new Date(d); x.setHours(0,0,0,0);
+    var n = Math.round((x - hoy) / 86400000);
+    try { return new Intl.RelativeTimeFormat(LOC(), { numeric:'auto' }).format(n, 'day'); } catch(e){ return fecha(f); }
+  }
+  function fechaCorta(f){ var d = new Date(f); return isNaN(d) ? '' : d.toLocaleDateString(LOC(), { day:'numeric', month:'short' }); }
+  function fechaLargaDe(f){ var d = new Date(f); return isNaN(d) ? '' : d.toLocaleDateString(LOC(), { day:'numeric', month:'long' }); }
   function fechaHora(f){
     if (!f) return '';
     var d = new Date(f); if (isNaN(d)) return esc(f);
@@ -1439,11 +1494,12 @@
     var d = DATOS; if (!d) return [];
     var lista = [];
     (d.facturas || []).slice(0, 3).forEach(function(f){
-      lista.push({ texto: (f.tipo === 'factura' ? t('nov_factura') : '') + f.numero,
+      lista.push({ tipo:'factura', numero:f.numero, texto: (f.tipo === 'factura' ? t('nov_factura') : '') + f.numero,
                    fecha: f.fecha, cuando: new Date(f.fecha || 0) });
     });
     (d.obra || []).forEach(function(o){
-      if (o.actualizado) lista.push({ texto: t('nov_obra') + o.unidad,
+      var ult = (o.fotos || [])[0];   // portal_situacion las da de la más nueva a la más vieja
+      if (o.actualizado) lista.push({ tipo:'obra', texto: (ult && ult.titulo) ? t('nov_obra_foto').replace('{u}', o.unidad).replace('{t}', ult.titulo) : t('nov_obra') + o.unidad,
                                        fecha: o.actualizado, cuando: new Date(o.actualizado) });
     });
     (d.kyc || []).forEach(function(k){
@@ -1540,68 +1596,104 @@
         // la tarjeta "Pendiente" de al lado, que si resta lo cobrado)
         var pagadoAcum = hs.reduce(function(s,y){ return s + (y.estado === 'pagado' && !isNaN(y.monto) ? y.monto : 0); }, 0);
         var restante = isNaN(h.monto) ? NaN : Math.max(0, h.monto - Math.max(0, (Number(x.cobrado)||0) - pagadoAcum));
-        proximo = { hito:h.hito, monto:restante, moneda:x.moneda, contrato:x.numero };
+        proximo = { hito:h.hito, monto:restante, montoHito:h.monto, moneda:x.moneda, contrato:x.numero, proyecto:x.proyecto, parcela:x.parcela };
       }
     });
 
-    /* Dirección A del artifact «Inicio del portal Lawang» (7-oct-2026, owner: A + M1 + M5 + M8). Un solo momento fuerte:
-       el próximo pago, que lleva dentro lo pagado y lo pendiente. Lo que espera al comprador (firma, documento que
-       caduca) va en una lista tranquila encima, y no en una banda ámbar que compite con él. */
+    /* Inicio = la dirección A del artifact «Inicio del portal Lawang», igual que se aprobó (7-oct-2026, owner: «igual que
+       el artifact»). Un solo momento fuerte: el próximo pago, con lo pagado y lo pendiente en su pie. Lo que espera al
+       comprador (firma, documento que caduca) va en una lista tranquila encima, cada cosa con su fecha y su botón. */
     var todas = novedadesDerivadas();
-    var caducan = todas.filter(function(x){ return x.tipo === 'kyc'; });
+    var caducan = (d.kyc || []).filter(function(k){
+      if (!k.caduca) return false;
+      var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
+      return dias >= 0 && dias <= 30;
+    });
     var novedades = todas.filter(function(x){ return x.tipo !== 'kyc'; }).slice(0,3);
-    var nFirmas = (d.firma_pendiente || []).length;
+    var contratoPorId = {};
+    (d.contratos || []).forEach(function(x){ contratoPorId[x.id] = x; });
     var tareas = [];
-    if (nFirmas) tareas.push('<div class="ini-tarea"><span class="ini-tarea-pt"></span><div class="ini-tarea-tx">' +
-        esc(nFirmas === 1 ? t('firma_banner_1') : t('firma_banner_n').replace('{n}', nFirmas)) + '</div>' +
-        '<button type="button" class="btn-oscuro" data-ir="contratos">' + esc(t('firma_banner_btn')) + '</button></div>');
-    caducan.forEach(function(x){
-      tareas.push('<div class="ini-tarea"><span class="ini-tarea-pt"></span><div class="ini-tarea-tx">' + esc(x.texto) + '</div>' +
+    (d.firma_pendiente || []).forEach(function(fp){
+      var k = contratoPorId[fp.contrato_id] || {};
+      tareas.push('<div class="ini-tarea"><span class="ini-tarea-pt"></span><div class="ini-tarea-tx"><b>' + esc(t('firma_tarea').replace('{n}', k.numero || '')) + '</b>' +
+        '<span>' + (k.proyecto ? ' · ' + esc(k.proyecto) : '') + (fp.expira_en ? ' · ' + esc(t('firma_caduca').replace('{f}', fechaCorta(fp.expira_en))) : '') + '</span></div>' +
+        '<button type="button" class="btn-oscuro" data-ir="contratos">' + esc(t('firmar')) + '</button></div>');
+    });
+    caducan.forEach(function(k){
+      var nom = t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo);
+      tareas.push('<div class="ini-tarea"><span class="ini-tarea-pt"></span><div class="ini-tarea-tx"><b>' +
+        esc(t('kyc_caduca_el').replace('{doc}', String(nom).toLowerCase()).replace('{Doc}', nom).replace('{f}', fechaCorta(k.caduca))) + '</b></div>' +
         '<button type="button" class="btn-borde" data-ir="perfil">' + esc(t('ver_perfil')) + '</button></div>');
     });
     var tareasHTML = tareas.length ? '<div class="ini-tareas" role="status" aria-label="' + esc(t('pendiente_ti')) + '">' + tareas.join('') + '</div>' : '';
 
     var carpetas = carpetasProyecto();
     var carpetasInicio = carpetas.filter(function(f){ return (f.contratos || []).length; });
+    var conFirma = {};
+    (d.firma_pendiente || []).forEach(function(fp){ conFirma[fp.contrato_id] = true; });
     var proyectosHTML = carpetasInicio.length
-      ? '<div class="rot-bloque">' + esc(t('proyectos_titulo')) + '</div><div class="proy-grid ini' + (carpetasInicio.length === 1 ? ' uno' : '') + (carpetasInicio.length > 3 ? ' muchos' : '') + '">' + carpetasInicio.map(function(f){
+      ? '<div class="ini-secc"><h3>' + esc(t('tus_propiedades')) + '</h3><button type="button" class="ini-link" data-ir="documentos">' + esc(t('ver_documentos')) + ' →</button></div>' +
+        '<div class="proy-grid ini' + (carpetasInicio.length === 1 ? ' uno' : '') + (carpetasInicio.length > 3 ? ' muchos' : '') + '">' + carpetasInicio.map(function(f){
           var rs = resumenPortal(f.contratos || []);
           var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(function(u, i, a){ return u && a.indexOf(u) === i; });
           var obraU = (d.obra || []).filter(function(o){ return (f.contratos || []).some(function(x){ return x.numero === o.contrato_numero; }); })[0];
           var fase = obraU ? (d.fases || []).filter(function(ff){ return ff.clave === obraU.fase; })[0] : null;
           var pct = (rs.total != null && rs.total > 0) ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : null;   // floor: nunca «100 %» si queda algo
+          var firma = (f.contratos || []).some(function(x){ return conFirma[x.id]; });
+          var pagada = rs.total != null && rs.total > 0 && rs.cobrado >= rs.total;
+          var chips = unidades.map(function(u){ return '<span class="proy-chip">' + esc(u) + '</span>'; }).join('') +
+            (fase ? '<span class="proy-chip obra">' + esc(t('fase_obra')) + ' · ' + esc(Lx(fase)) + '</span>' : '') +
+            (firma ? '<span class="proy-chip firma">' + esc(t('firma_pend_chip')) + '</span>' : '') +
+            (pagada ? '<span class="proy-chip obra">' + esc(t('pagada')) + '</span>' : '');
           return '<button type="button" class="proy-card" data-carpeta="' + esc(f.key) + '">' + portadaHTML(f, 'proy-portada') +
             '<div class="proy-cuerpo"><div class="proy-nombre">' + esc(f.nombre) + '</div>' +
             (f.resort ? '<div class="proy-meta">' + esc(f.resort) + '</div>' : '') +
-            ((unidades.length || fase) ? '<div class="proy-chips">' +
-              (unidades.length ? '<span class="proy-chip">' + esc(t('unidad')) + ' ' + esc(unidades.join(' · ')) + '</span>' : '') +
-              (fase ? '<span class="proy-chip obra">' + esc(t('fase_obra')) + ' · ' + esc(Lx(fase)) + '</span>' : '') + '</div>' : '') +
+            (chips ? '<div class="proy-chips">' + chips + '</div>' : '') +
             (pct != null
               ? '<div class="proy-pag"><span>' + esc(t('pagado_de').replace('{a}', dinero(rs.cobrado, rs.moneda)).replace('{b}', dinero(rs.total, rs.moneda))) + '</span><span>' + pct + ' %</span></div>' +
                 '<div class="barra"><i style="width:' + pct + '%"></i></div>' : '') +
-            (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' · ' + esc(t('ver_documentos')) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></button>';
+            (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></button>';
         }).join('') + '</div>' +
         // con más de 3 proyectos solo se ven los primeros (3 en móvil, 6 en escritorio) y un enlace a todos
         (carpetasInicio.length > 3 ? '<button type="button" class="btn-borde ver-todos' + (carpetasInicio.length <= 6 ? ' solo-movil' : '') + '" data-ir="documentos">' + esc(t('ver_todos').replace('{n}', carpetasInicio.length)) + '</button>' : '')
       : '';
 
-    /* El resumen (inversión, pagado, pendiente) vive en el pie del bloque del pago, con su barra. Las cuentas siguen
-       siendo las de resumen.js y el rótulo de la inversión sigue diciendo lo que suma (cuota de reserva o inversión). */
+    /* La factura del próximo pago: las facturas no dicen a qué hito pertenecen, así que se busca la del MISMO contrato y
+       el MISMO importe (el del hito o lo que queda de él), emitida y sin vencer hace más de 30 días (una vieja del mismo
+       importe, p. ej. un anticipo igual a la entrega, ya pasó de largo). Sin coincidencia, el bloque dice lo de siempre
+       («Vencimiento: Mes 3») y el botón lleva a la lista: nunca se inventa una fecha. */
+    var factProx = null;
+    if (proximo){
+      var limite = Date.now() - 30 * 86400000;
+      factProx = (d.facturas || []).filter(function(f){
+        if (f.tipo !== 'factura' || f.contrato_numero !== proximo.contrato) return false;
+        var tot = Number(f.total);
+        if (!(Math.abs(tot - proximo.monto) < 1 || Math.abs(tot - proximo.montoHito) < 1)) return false;
+        var v = f.fields && f.fields.fecha_vencimiento;
+        return !v || new Date(v).getTime() >= limite;
+      })[0] || null;
+    }
+    var vence = factProx && factProx.fields && factProx.fields.fecha_vencimiento;
+
     var hayResumen = tot != null && tot > 0;
     var pctTot = hayResumen ? Math.min(100, Math.floor((cob || 0) / tot * 100)) : 0;
     var pieResumen = hayResumen
       ? '<div class="hp-pie"><span>' + esc(t('r_pagado')) + ' <b>' + esc(dinero(cob,mon)) + '</b></span>' +
           '<div class="barra"><i style="width:' + pctTot + '%"></i></div>' +
-          '<span>' + esc(t('r_pendiente')) + ' <b>' + esc(dinero(res.pendiente,mon)) + '</b> · ' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + ' <b>' + esc(dinero(tot,mon)) + '</b></span></div>'
+          '<span>' + esc(t('r_pendiente')) + ' <b>' + esc(dinero(res.pendiente,mon)) + '</b> ' + esc(t('de_total')) + ' ' + esc(dinero(tot,mon)) + '</span></div>'
       : '';
     var impTxt = (proximo && !isNaN(proximo.monto)) ? dinero(proximo.monto, proximo.moneda) : '—';
+    var subPago = proximo ? [proximo.proyecto, proximo.parcela].filter(Boolean).map(esc).join(' · ') : '';
+    var cuandoPago = proximo ? (vence ? esc(t('vence_el').replace('{f}', fechaLargaDe(vence))) : esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato)) : '';
     var heroPago = '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
       (proximo ?
         '<div class="hp-fila"><div class="hp-info"><div class="hp-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
-          '<div class="hp-sub">' + esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato) + '</div></div>' +
+          '<div class="hp-sub">' + (subPago ? subPago + ' · ' : '') + cuandoPago + '</div></div>' +
           '<div class="hp-importe' + (impTxt.length > 11 ? ' largo' : '') + '"' + (isNaN(proximo.monto) ? '' : ' data-cuenta="' + proximo.monto + '" data-moneda="' + esc(proximo.moneda || '') + '"') + '>' + esc(impTxt) + '</div></div>' +
-        '<div class="hp-acciones"><button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>' +
-          '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('ver_plan')) + '</button></div>'
+        '<div class="hp-acciones">' +
+          (factProx ? '<button type="button" class="btn-oscuro" data-ir-fac="' + esc(factProx.numero) + '">' + esc(t('ver_factura_n').replace('{n}', factProx.numero)) + '</button>'
+                    : '<button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>') +
+          '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('plan_pagos')) + '</button></div>'
         : '<p class="hp-vacio">' + esc(t('sin_proximo')) + '</p>') +
       pieResumen + '</div>';
     /* Una cifra que no cuadra con su propio rótulo es una cifra en la que se deja de confiar (la lección de
@@ -1612,22 +1704,30 @@
             ? '<p class="kpi-nota">' + esc(t('nota_sin_carta') + ' ' + res.excluidos.map(function(x){ return x.numero || '—'; }).join(', ') + '.') + '</p>'
             : ''));
 
+    var abiertas = (d.tickets || []).filter(function(x){ return x.estado === 'abierto'; }).length;
+    var subSaludo = carpetasInicio.length ? (carpetasInicio.length === 1 ? t('n_props_1') : t('n_props_n').replace('{n}', carpetasInicio.length)) : t('saludo_sub');
+
     c.innerHTML =
-      '<div class="titulo-sec"><h2>' + esc(saludo()) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
-        '<p>' + esc(t('saludo_sub')) + '</p></div>' +
+      '<div class="titulo-sec ini"><h2>' + esc(saludo()) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
+        '<p>' + esc(subSaludo) + '</p></div>' +
       tareasHTML +
       heroPago +
       notaResumen +
       proyectosHTML +
       '<div class="ini-bajo">' +
-        '<div class="tarjeta"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
+        '<div class="tarjeta ini-nov"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
           (novedades.length ? novedades.map(function(x){
-            return '<div class="novedad"><span class="novedad-punto"></span><div>' + esc(x.texto) + '</div></div>';
+            var ir = x.tipo === 'factura' && x.numero ? '<button type="button" class="ini-link" data-ir-fac="' + esc(x.numero) + '">' + esc(t('ver_factura')) + ' →</button>'
+                   : x.tipo === 'obra' ? '<button type="button" class="ini-link" data-ir="obra">' + esc(t('ver_fotos')) + ' →</button>' : '';
+            return '<div class="nov"><div>' + esc(x.texto) + (ir ? '<br>' + ir : '') + '</div><small>' + esc(relativa(x.fecha)) + '</small></div>';
           }).join('') : '<p style="font-size:13px;color:var(--out);margin:0">—</p>') +
         '</div>' +
-        '<button type="button" class="acceso" data-ir="soporte"><div class="rot-bloque">' + esc(t('acc_soporte')) + '</div><div class="t">' + esc(t('acc_soporte_sub')) + '</div><span class="btn-oscuro">' + esc(t('escribir')) + ' →</span></button>' +
+        '<div class="ini-sop"><div class="rot-bloque">' + esc(t('acc_soporte')) + '</div><h4>' + esc(t('sop_titulo')) + '</h4>' +
+          '<p>' + esc(t('sop_texto')) + (abiertas ? ' ' + esc(abiertas === 1 ? t('sop_abiertas_1') : t('sop_abiertas_n').replace('{n}', abiertas)) : '') + '</p>' +
+          '<button type="button" class="btn-oscuro" data-ir="soporte">' + esc(t('escribir_equipo')) + '</button></div>' +
       '</div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+    c.querySelectorAll('[data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
     c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
     cargaPortadas(c);
   }
@@ -1658,7 +1758,7 @@
   function inicialDe(n){ return esc(String(n || '?').replace(/[^A-Za-z0-9]/, '').charAt(0).toUpperCase() || '·'); }
   function portadaHTML(f, clase){
     return '<div class="' + clase + '"><span class="proy-inicial" aria-hidden="true">' + inicialDe(f.nombre) + '</span>' +
-      (f.portada ? '<img alt="" data-portada="' + esc(f.portada) + '" hidden>' : '') + '</div>';
+      (f.portada ? '<img alt="" data-portada="' + esc(f.portada) + '" hidden>' : '<span class="proy-sinfoto">' + esc(t('portada_prep')) + '</span>') + '</div>';
   }
   /* Las portadas son URLs firmadas de 10 min: se piden TODAS juntas (una llamada) y se recuerdan 8 min para no
      firmar de nuevo en cada repintado de Inicio. */
