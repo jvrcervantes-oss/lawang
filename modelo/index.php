@@ -166,6 +166,24 @@ foreach (lw_techos_para($m['techos'] ?? [], null) as $tk => $tt) {
 // Al motor (assets/au-landing-cfg.js): sustituye al `=== 'bambu' ? 'roof'` que tenía escrito.
 $cfgJs['vistaTecho'] = (object) $vistaTecho;
 
+// ── Sección Extras (6-oct-2026, owner): los extras del paso 5 del configurador enseñados
+//    en la página, debajo de Roof finishes. Es LA MISMA lista que recibe el motor
+//    ($CAT → lw_extras_resueltos(), catalogo_publico()), así tarjeta y configurador no
+//    pueden divergir: un precio cambiado en /intranet/modelos/ sale en los dos sitios.
+//    Sin foto de ningún extra: glifo macizo «tallado» por id, de la familia de los
+//    icon-services-* de la home; un extra nuevo sin glifo lleva el genérico, nunca un hueco. Sin extras, no hay sección.
+$extrasSec = $CAT[$m['id']]['extras'] ?? [];
+$EXTRA_ICO = [
+    'airbnb'   => '<path class="f" fill-rule="evenodd" d="M5 23 24 7l19 16h-5.5v19h-27V23z M20.5 42V30.5h7V42z M14.5 25h5v5h-5z M28.5 25h5v5h-5z"/>',
+    'zero'     => '<circle class="f" cx="24" cy="10" r="5.2"/><path class="s" d="M5 24c3.2-3 6.3-3 9.5 0s6.3 3 9.5 0 6.3-3 9.5 0 6.3 3 9.5 0M5 32c3.2-3 6.3-3 9.5 0s6.3 3 9.5 0 6.3-3 9.5 0 6.3 3 9.5 0M5 40c3.2-3 6.3-3 9.5 0s6.3 3 9.5 0 6.3-3 9.5 0 6.3 3 9.5 0"/>',
+    'recovery' => '<path class="f" d="M14.5 42c-7-1.4-9.4-8.6-5-14.6.7 2.8 2.2 4.1 3.9 4.1-.4-6.6 2.2-12 7.3-15.8-1.1 6.2 3.4 9.6 3.4 16 0 6-3.9 10.2-9.6 10.3z"/><path class="s" d="M35 13v26M26.5 18l17 16M26.5 34l17-16"/>',
+    'sauna'    => '<path class="f" fill-rule="evenodd" d="M9 25h30l-3.6 17H12.6z M10.9 30h26.2v2.8H10.9z"/><path class="s" d="M32 25 40 13"/><circle class="f" cx="41.6" cy="10.4" r="3.6"/><path class="s2" d="M16 20c-2.4-2.8 2.4-4.6 0-7.8M23.5 20c-2.4-2.8 2.4-4.6 0-7.8"/>',
+    'rooftop'  => '<path class="f" d="M4 21C7.2 11.6 14.8 6.5 24 6.5S40.8 11.6 44 21z"/><path class="s" d="M24 21v21"/><path class="f" d="M4 32h14v10H4zM30 32h14v10H30z"/>',
+    'oasis'    => '<path class="s" d="M20 37c.6-8.6 2.4-15.4 6-21.6"/><path class="f" d="M26 15.5C21 9.6 13.2 9.4 7.6 14c5.6.6 11.6 1 18.4 1.5zM26 15.5c5-6 12.8-6.4 17.6-2.2-5.6.4-11.4 1-17.6 2.2zM26 15.5c-4.4 3.4-6.8 8.6-6.6 13.4 3.6-3.2 5.6-7.8 6.6-13.4zM26 15.5c4.6 2.6 7.4 7.4 7.4 12.4-3.4-2.8-5.6-7.2-7.4-12.4z"/><path class="s" d="M5 42c3.2-3 6.3-3 9.5 0s6.3 3 9.5 0 6.3-3 9.5 0 6.3 3 9.5 0"/>',
+    'gym'      => '<path class="f" d="M4 18h5.5v12H4zM10.5 12.5H17v23h-6.5zM31 12.5h6.5v23H31zM38.5 18H44v12h-5.5z"/><path class="s" d="M17 24h14"/>',
+    '_'        => '<path class="f" fill-rule="evenodd" d="M24 6a18 18 0 1 1 0 36 18 18 0 0 1 0-36z M21.8 14.5h4.4v7.3h7.3v4.4h-7.3v7.3h-4.4v-7.3h-7.3v-4.4h7.3z"/>',
+];
+
 // ── Snapshot financiero ───────────────────────────────────────────────────────────
 // 22-sep-2026: Dali, Dune (1 dormitorio) y Dream (2 dormitorios) pasan del ejemplo de
 // UNA parcela real (Palm Field W5) al forecast de MERCADO que calcula la propia
@@ -599,6 +617,58 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .tcard-pr{font-family:var(--sa);font-weight:500;font-size:18px;letter-spacing:.06em;text-transform:uppercase;color:var(--rl);padding:8px 20px;border-radius:30px;border:1px solid rgba(190,179,165,.5)}
 .tcard-cuerpo p{font-family:var(--sa);font-size:13.5px;line-height:1.65;color:rgba(245,240,230,.82);margin:0;max-width:46ch}
 .tcard-cuerpo p.y27{font-size:11.5px;color:rgba(245,240,230,.6)}
+/* Extras (6-oct-2026, owner): lino continuo con filete arriba (separa de Roof finishes) y
+   opción 4 del artifact — panel verde con la villa y el total + lista de extras con glifo
+   tallado. El panel NO suma nada: copia lo que pinta el configurador (#lw-r-villa-*, las
+   casillas de #lw-extras, #lw-total), así nunca enseña otra cifra que el total configurado.
+   El filete va en ::after: ::before es el velo crema de .sec-lino y no se pisa. */
+#section-extras::after{content:"";position:absolute;top:0;left:var(--cpd);right:var(--cpd);height:1px;background:rgba(46,52,55,.18);pointer-events:none}
+.x-titulo{font-family:var(--sa);font-weight:200;text-transform:uppercase;line-height:1.04;letter-spacing:.02em;color:var(--ci);font-size:var(--fs-h-xl);margin:0;text-wrap:balance}
+.x-titulo b{font-weight:500}
+.x-sub{font-family:var(--sa);font-weight:300;font-size:clamp(13px,1.25vw,16px);letter-spacing:.16em;text-transform:uppercase;color:var(--ci2);margin:0}
+.x-lay{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(24px,3vw,44px);align-items:start;margin-top:clamp(2.5rem,5vh,3.5rem)}
+@media(min-width:960px){.x-lay{grid-template-columns:360px minmax(0,1fr)}}
+.x-gl{display:block}
+.x-gl .f{fill:currentColor}
+.x-gl .s{fill:none;stroke:currentColor;stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round}
+.x-gl .s2{fill:none;stroke:currentColor;stroke-width:2.8;stroke-linecap:round}
+.x-panel{position:relative;border-radius:14px;padding:30px 28px 26px;color:var(--rl);font-family:var(--sa);background:radial-gradient(120% 60% at 30% 0%,#587040 0%,var(--tg) 40%,var(--tg-dark) 100%);box-shadow:0 34px 60px -36px rgba(20,26,17,.8);overflow:hidden}
+@media(min-width:960px){.x-panel{position:sticky;top:96px}}
+.x-panel::after{content:"";position:absolute;inset:10px;border:1px solid rgba(245,240,230,.28);border-radius:8px;pointer-events:none}
+.x-k{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:#C9D4B4;margin:0}
+.x-villa{margin:10px 0 4px;font-weight:200;font-size:30px;line-height:1.05;text-transform:uppercase;letter-spacing:.02em;color:var(--rl)}
+.x-villa b{font-weight:500}
+.x-estado{margin:0 0 18px;font-size:12.5px;font-weight:300;color:rgba(245,240,230,.72)}
+.x-lineas{list-style:none;margin:0;padding:0;border-top:1px solid rgba(245,240,230,.22)}
+.x-lineas li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;font-size:13px;font-weight:300;border-bottom:1px solid rgba(245,240,230,.12)}
+.x-lineas li span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.x-lineas li.vacio{justify-content:center;font-style:italic;color:rgba(245,240,230,.6);border-bottom:0;padding:16px 0}
+.x-tot{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:16px}
+.x-tot span{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#C9D4B4}
+.x-tot b{font-weight:300;font-size:30px;font-variant-numeric:tabular-nums}
+.x-nt{margin:4px 0 18px;font-size:11px;font-weight:300;color:rgba(245,240,230,.6)}
+.x-cta{position:relative;z-index:1;display:grid;gap:8px}
+.x-pill{display:flex;align-items:center;justify-content:center;border-radius:40px;padding:11px 18px;font-family:var(--sa);font-size:10.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;background:var(--rl);border:1px solid var(--rl);color:var(--tg-dark);transition:transform .25s var(--ease)}
+.x-pill:hover{transform:translateY(-1px)}
+.x-pill-2{background:none;color:var(--rl);border-color:rgba(245,240,230,.55)}
+.x-lista{list-style:none;margin:0;padding:0;border-top:1px solid rgba(46,52,55,.18)}
+.x-item{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:4px 20px;align-items:center;padding:20px 4px;border-bottom:1px solid rgba(46,52,55,.18);cursor:pointer;font-family:var(--sa);transition:background .3s}
+.x-item:hover{background:rgba(251,248,241,.5)}
+.x-item .x-gl{width:40px;height:40px;color:var(--tg);grid-column:1;grid-row:1/span 2}
+.x-nb{grid-column:2;font-size:15px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--ci)}
+.x-nb b{font-weight:700}
+.x-d{grid-column:2;margin:0;font-size:13px;font-weight:300;line-height:1.6;color:var(--ci2)}
+.x-d:empty{display:none}
+.x-item.sin-d .x-nb{grid-row:1/span 2;align-self:center}
+.x-der{grid-column:3;grid-row:1/span 2;display:grid;justify-items:end;gap:8px}
+.x-pr{font-size:19px;font-weight:300;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ci)}
+.x-add{appearance:none;background:none;border:1px solid currentColor;border-radius:40px;padding:8px 14px;font-family:var(--sa);font-size:10px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;color:var(--ci);white-space:nowrap;transition:background .3s,color .3s,border-color .3s}
+.x-add .xa-on,.x-add[aria-pressed="true"] .xa-off{display:none}
+.x-add[aria-pressed="true"] .xa-on{display:inline}
+.x-add[aria-pressed="true"]{background:var(--tg);border-color:var(--tg);color:var(--rl)}
+.x-add:focus-visible,.x-pill:focus-visible{outline:2px solid var(--tg);outline-offset:3px}
+.x-item.on .x-nb{color:var(--tg)}
+@media(max-width:520px){.x-item{grid-template-columns:40px minmax(0,1fr)}.x-item .x-gl{width:32px;height:32px;grid-row:1}.x-der{grid-column:2;grid-row:auto;justify-items:start;grid-auto-flow:column;align-items:center}}
 
 /* ── 03 · INVERSION + FAQ: foto a sangre con tarjetas de cristal oscuro (forecast del deck) ── */
 .sec-foto{color:var(--rl);background:var(--ob) url('<?= lw_e($heroDay ?: '/assets/img/lugar/costa.webp') ?>') center/cover}
@@ -662,6 +732,8 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <nav aria-label="Sections">
 <a class="nav-link" href="#section-layout"><?= lw_i18n('Distribución', 'Layout') ?></a>
 <a class="nav-link" href="#section-cubiertas"><?= lw_i18n('Cubiertas', 'Roofs') ?></a>
+<?php if ($extrasSec): ?><a class="nav-link" href="#section-extras">Extras</a>
+<?php endif; ?>
 <a class="nav-link" href="#section-financial"><?= lw_i18n('Rentabilidad', 'Returns & FAQ') ?></a>
 <a class="nav-link" href="#section-collection"><?= lw_i18n('Colección', 'Collection') ?></a>
 </nav>
@@ -971,6 +1043,46 @@ foreach ($incluido as $it) {
 </section>
 <?php endif; ?>
 
+<?php if ($extrasSec): ?>
+<!-- ═══ EXTRAS (6-oct-2026) — los del paso 5 del configurador, con el precio de esta villa:
+     panel verde con la villa y el total (copiado del configurador) + lista. Todo engancha por
+     data-extra (id del extra) e ids lw-x-*, nunca por el nombre visible. ═══ -->
+<section class="sec sec-lino" id="section-extras">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="lw-tallado" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="1.8" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
+<div class="wrap">
+<div class="cab center reveal">
+<p class="kicker">Optional upgrades</p>
+<h2 class="x-titulo"><b>Make it</b> yours</h2>
+<p class="x-sub">Extras priced for the <?= lw_e($villa) ?></p>
+</div>
+<div class="x-lay">
+<aside class="x-panel">
+<p class="x-k">Your villa</p>
+<h3 class="x-villa" id="lw-x-villa">Villa <b><?= lw_e($nombre) ?></b></h3>
+<p class="x-estado" id="lw-x-estado" aria-live="polite">No extras yet</p>
+<ul class="x-lineas" id="lw-x-lineas"><li class="vacio"><span>Add an extra and it appears here</span></li></ul>
+<div class="x-tot"><span>Configured total</span><b id="lw-x-total" aria-live="polite"><?= lw_e($precioTxt) ?></b></div>
+<p class="x-nt">Plot priced separately. Roof can be changed in the configurator.</p>
+<div class="x-cta">
+<a class="x-pill" href="#hero-configurator" id="lw-x-ver">Review in configurator</a>
+<a class="x-pill x-pill-2" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">Send on WhatsApp</a>
+</div>
+</aside>
+<ul class="x-lista">
+<?php foreach ($extrasSec as $x): $xid = (string) $x['id']; $xn = explode(' ', (string) $x['nombre'], 2); $xd = (string) ($x['desc'] ?? ''); ?>
+<li class="x-item<?= $xd === '' ? ' sin-d' : '' ?>" data-extra="<?= lw_e($xid) ?>">
+<svg class="x-gl" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><g filter="url(#lw-tallado)"><?= $EXTRA_ICO[$xid] ?? $EXTRA_ICO['_'] ?></g></svg>
+<span class="x-nb"><b><?= lw_e($xn[0]) ?></b><?= isset($xn[1]) ? ' ' . lw_e($xn[1]) : '' ?></span>
+<p class="x-d"><?= lw_e($xd) ?></p>
+<div class="x-der"><span class="x-pr" data-eur-fijo="<?= (int) $x['eur'] ?>"><?= lw_e(lw_precio_fmt($x['eur'])) ?></span><button type="button" class="x-add" data-extra="<?= lw_e($xid) ?>" aria-pressed="false"><span class="xa-off">+ Add</span><span class="xa-on">✓ Added</span></button></div>
+</li>
+<?php endforeach; ?>
+</ul>
+</div>
+</div>
+</section>
+<?php endif; ?>
+
 <!-- ═══ 03 · INVERSION + FAQ — foto a sangre y tarjetas de cristal (forecast del deck v3) ═══ -->
 <section class="sec sec-foto" id="section-financial">
 <div class="wrap">
@@ -1168,6 +1280,79 @@ foreach ($incluido as $it) {
     waIntro: "Hi, I'm interested in the ",
     ocultarVilla: true
   });
+
+  // ── Sección Extras (6-oct-2026): pulsar un extra marca la MISMA casilla del paso 5 y
+  //    dispara `change`, que es lo que el motor ya escucha — el motor no se toca. El panel
+  //    verde no suma nada: copia lo que el motor ya pintó (línea de la villa, cada casilla
+  //    marcada con su precio, #lw-total), en la divisa elegida. Una sola cifra en la página. ──
+  (function () {
+    var sec = document.getElementById('section-extras');
+    var lineas = document.getElementById('lw-x-lineas');
+    if (!sec || !lineas) return;
+    var items = sec.querySelectorAll('.x-item[data-extra]');
+    function caja(id) {
+      var cs = document.querySelectorAll('#lw-extras input[name="lw-extra"]');
+      for (var i = 0; i < cs.length; i++) { if (cs[i].value === id) return cs[i]; }
+      return null;
+    }
+    function texto(id) { var e = document.getElementById(id); return e ? e.textContent : ''; }
+    // Si el motor cambia su marcado y no se encuentra algo, se dice en consola: un «+ Add»
+    // muerto sin error es el fallo que dejó tres días sin alta de clientes (patrones_tecnicos.md).
+    function falta(que) { console.error('[extras] no encuentro ' + que + ' del configurador'); }
+    function linea(a, b, cls) {
+      var li = document.createElement('li'), s1 = document.createElement('span');
+      if (cls) li.className = cls;
+      s1.textContent = a; li.appendChild(s1);
+      if (b !== null) { var s2 = document.createElement('span'); s2.textContent = b; li.appendChild(s2); }
+      return li;
+    }
+    function pinta() {
+      var n = 0, rt = document.querySelector('#lw-techos input[name="lw-techo"]:checked');
+      var tl = rt && rt.closest('label'), tn = tl && tl.querySelector('.op__nb');
+      lineas.textContent = '';
+      lineas.appendChild(linea((tn ? tn.textContent + ' roof' : 'Villa') + ' · turnkey', texto('lw-r-villa-pr')));
+      // Nombre de la villa también del motor: con ?villa= el configurador puede llevar otra.
+      var vn = texto('lw-r-villa'), h = document.getElementById('lw-x-villa');
+      if (vn && h) {
+        var pv = vn.split(' '), b = document.createElement('b');
+        b.textContent = pv.slice(1).join(' ');
+        h.textContent = pv[0] + ' '; h.appendChild(b);
+      }
+      items.forEach(function (it) {
+        var c = caja(it.getAttribute('data-extra')), on = !!(c && c.checked);
+        it.classList.toggle('on', on);
+        var b = it.querySelector('.x-add'); if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (!on) return;
+        n++;
+        var lb = c.closest('label'), nb = lb && lb.querySelector('.op__nb'), pr = lb && lb.querySelector('.op__pr b');
+        lineas.appendChild(linea('+ ' + (nb ? nb.textContent : ''), pr ? pr.textContent.replace(/^\+\s*/, '') : ''));
+      });
+      if (!n) lineas.appendChild(linea('Add an extra and it appears here', null, 'vacio'));
+      document.getElementById('lw-x-estado').textContent = n ? n + (n === 1 ? ' extra added' : ' extras added') : 'No extras yet';
+      document.getElementById('lw-x-total').textContent = texto('lw-total');
+    }
+    items.forEach(function (it) {
+      it.addEventListener('click', function () {
+        var c = caja(it.getAttribute('data-extra'));
+        if (!c) { falta('la casilla del extra «' + it.getAttribute('data-extra') + '»'); return; }
+        c.checked = !c.checked;
+        c.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+    // «Review in configurator»: abrirlo ya en el paso de extras (el motor no expone su
+    // muestraPaso: se avanza con su propio botón «Next», como hace el bloque de parcela).
+    document.getElementById('lw-x-ver').addEventListener('click', function () {
+      var paso = document.querySelector('.cfg__step[data-paso="5"]'), sig = document.getElementById('lw-siguiente');
+      if (!paso || !sig) { falta('el paso de extras o el botón Next'); return; }
+      for (var i = 0; paso.hidden && i < 5; i++) sig.click();
+    });
+    document.addEventListener('change', function (e) { if (e.target && e.target.name === 'lw-extra') pinta(); });
+    // Techo y divisa repintan el total sin pasar por una casilla de extra.
+    var tot = document.getElementById('lw-total');
+    if (!tot) falta('#lw-total');
+    else if ('MutationObserver' in window) new MutationObserver(pinta).observe(tot, { childList: true, characterData: true, subtree: true });
+    pinta();
+  }());
 
   // ── Parcela: isla + ubicación → tarifa real por m² (lw_parcela_tarifa_m2(), modelo/
   //    lib.php — misma fuente que /palmfield, nunca un número copiado a mano). Solo

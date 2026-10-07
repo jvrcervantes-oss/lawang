@@ -29,8 +29,9 @@
         "precio": 8000
       },
       "airbnb": {
+        "desc": "Everything you need for effortless living",
         "orden": 1,
-        "nombre": "Airbnb Kit",
+        "nombre": "Fully Furnished",
         "precio": 5000
       },
       "recovery": {
@@ -111,8 +112,9 @@
         "precio": 8000
       },
       "airbnb": {
+        "desc": "Everything you need for effortless living",
         "orden": 1,
-        "nombre": "Airbnb Kit",
+        "nombre": "Fully Furnished",
         "precio": 5000
       },
       "recovery": {
@@ -170,8 +172,9 @@
         "precio": 8000
       },
       "airbnb": {
+        "desc": "Everything you need for effortless living",
         "orden": 1,
-        "nombre": "Airbnb Kit",
+        "nombre": "Fully Furnished",
         "precio": 6000
       },
       "recovery": {
@@ -229,8 +232,9 @@
         "precio": 8000
       },
       "airbnb": {
+        "desc": "Everything you need for effortless living",
         "orden": 1,
-        "nombre": "Airbnb Kit",
+        "nombre": "Fully Furnished",
         "precio": 8000
       },
       "rooftop": {
@@ -294,8 +298,9 @@
         "precio": 8000
       },
       "airbnb": {
+        "desc": "Everything you need for effortless living",
         "orden": 1,
-        "nombre": "Airbnb Kit",
+        "nombre": "Fully Furnished",
         "precio": 7000
       },
       "rooftop": {

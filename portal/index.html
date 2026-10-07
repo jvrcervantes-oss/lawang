@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="53fabf1c80bc">
+<meta name="lw-version" content="23d812f335be">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
 <title>Lawang · Área de clientes</title>
-<!-- Diseño nuevo instalado tal cual (31-ago-2026, encargo del owner) desde
-     Claude Design ("Área de Clientes.dc.html") — decisión consciente de
-     volver a un sistema visual PROPIO del portal, distinto de `lawang.css`
-     que usa el resto de la suite desde el 27-ago. No es un olvido de aquella
-     unificación: es un cambio de idea, y va dicho aquí para que quien lo lea
-     en seis meses no lo confunda con uno. -->
+<!-- PIEL v4 (7-oct-2026, owner: "restyla el portal basándote en la intranet v4").
+     Desde el 31-ago el portal tenía un sistema visual PROPIO (menú lagoon,
+     Cormorant + Instrument Sans). Cambio de idea del owner: ahora lleva la piel
+     de la intranet v4 — menú claro con pastilla verde, tarjetas con filete y sin
+     sombra, una sola letra (Neue Kabel), etiquetas y botones en pastilla. Solo
+     cambia lo que se ve: el marcado y los identificadores (data-nav, ids) son
+     los de siempre, y el documento de factura sigue siendo el de documento.css.
+     El bloque "PIEL v4" va al final del <style>; el de arriba es el anterior. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&family=Instrument+Sans:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/neue-kabel.css">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Iconos de "Mi perfil" y del login: SVG inline en el propio HTML/JS, NO la
      fuente de icono Phosphor que usa la intranet (1-sep-2026, tarde). Un
      bloqueador/antivirus del cliente frenaba la descarga del .woff2 sin
@@ -32,7 +35,7 @@
      emitió el equipo, no una reconstrucción parecida. `entities.js` trae los
      datos bancarios dentro de la propia factura. -->
 <link rel="stylesheet" href="/intranet/facturas/documento.css?v=5337c601">
-<script src="/contracts/assets/entities.js?v=1cde0d66"></script>
+<script src="/contracts/assets/entities.js?v=65021341"></script>
 <script src="/contracts/assets/dinero.js?v=30e26c17"></script>
 <!-- `vocabulario.js` trae `lwEsPreliminar`: QUÉ contratos no suman precio. Se
      carga el fichero compartido y no se copia la lista aquí a propósito — esa
@@ -44,6 +47,8 @@
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/portal/resumen.js?v=20260914"></script>
+<script src="/portal/zip.js?v=20261007"></script>
+<script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
 <script src="/intranet/facturas/documento.js?v=638be339"></script>
 <style>
@@ -66,7 +71,7 @@
   .entrada{ min-height:100vh; display:grid; place-items:center; background:var(--rl); padding:24px; }
   .entrada .caja{ width:100%; max-width:400px; background:#fff; border:1px solid #E4DCCB; border-radius:16px;
                   padding:44px 34px 38px; box-shadow:0 18px 48px -22px rgba(34,40,42,.35); text-align:center; }
-  .entrada .marca{ font-family:'Cormorant Garamond',Georgia,serif; font-size:30px; font-weight:600;
+  .entrada .marca{ font-size:30px; font-weight:600;
                     letter-spacing:.12em; color:var(--dl); line-height:1; }
   .entrada .rot{ font-size:10.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--sc); margin:8px 0 28px; }
   .entrada p{ font-size:13.5px; color:#6b6c66; margin:0 0 20px; line-height:1.55; }
@@ -152,7 +157,7 @@
   .campo-lbl{ font-size:11px; color:#8a8570; text-transform:uppercase; letter-spacing:.02em;
     display:flex; align-items:center; gap:6px; }
   .campo-lbl svg{ width:13px; height:13px; color:var(--sc); flex:none; }
-  .kpi .val{ font-family:'Instrument Sans',sans-serif; font-size:26px; font-weight:700; color:var(--va); }
+  .kpi .val{ font-size:26px; font-weight:700; color:var(--va); }
   .kpi .val.ok{ color:var(--ok); }
   /* El pie de las tres cifras: qué contratos suman y cuáles no. Va justo debajo
      y en gris, no como aviso: es una aclaración, no un problema. El margen
@@ -324,6 +329,341 @@
     .hoja-scroll{ display:block; overflow:visible; }
   }
   @page{ size:A4; margin:0; }
+
+  /* ═══ PIEL v4 (7-oct-2026) ═══════════════════════════════════════════════
+     Valores de la intranet v4 (nav-montaje.css / shell.css): superficie #fbf9f4,
+     menú #f5f4ee con activa en verde #485B37, filete #e9e8e3, radio 12, sin
+     sombras, 600 como peso dominante, pastilla en lo pulsable y en las etiquetas.
+     Los colores de significado (#3F5230 / #9E2F26 / ámbar) no cambian. */
+  :root{ --rl:#fbf9f4; --va:#1b1c19; --pg-low:#f5f4ee; --pg-hi:#e9e8e3; --ink2:#44483f; --out:#66695f; --linea:#d9d8d0;
+         --fv:'Neue Kabel','Jost',system-ui,sans-serif; }
+  body{ font-family:var(--fv); background:var(--rl); color:var(--va); }
+  button, input, select, textarea{ font-family:inherit; }
+  .cargando{ font-weight:500; }
+
+  /* entrada */
+  .entrada .caja{ background:var(--pg-low); border:1px solid var(--pg-hi); border-radius:12px; box-shadow:none; padding:40px 32px 34px; }
+  .entrada .marca{ font-family:var(--fv); font-size:28px; font-weight:600; letter-spacing:.05em; }
+  .entrada .rot{ font-size:12px; font-weight:500; letter-spacing:.1em; color:var(--out); }
+  .entrada p{ font-size:14px; color:var(--ink2); }
+  .entrada input{ border:1px solid var(--linea); border-radius:999px; background:var(--rl); padding:11px 16px; font-size:14px; }
+  .entrada input:focus{ box-shadow:none; outline:2px solid var(--dl); outline-offset:1px; }
+  .campo-icono input{ padding-left:40px; }
+  .btn-primario{ font-weight:600; }
+
+  /* menú lateral claro */
+  .sidebar{ background:var(--pg-low); color:var(--va); width:256px; padding:24px 16px; }
+  .sidebar .cab{ margin-bottom:26px; padding:0 8px; }
+  .marca-menu{ display:flex; flex-direction:column; }
+  .marca-menu b{ font-size:24px; font-weight:600; letter-spacing:.05em; line-height:1; color:var(--dl); }
+  .marca-menu span{ margin-top:5px; font-size:12px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--out); }
+  .sidebar .cab button{ color:var(--ink2); }
+  .navrow{ padding:8px 12px; border-radius:12px; font-size:15px; font-weight:500; color:var(--ink2); transition:background .15s,color .15s; }
+  .navrow:hover{ background:var(--pg-hi); color:var(--va); }
+  .navrow:focus-visible{ outline:2px solid var(--dl); outline-offset:-2px; }
+  .navrow.on{ background:#485B37; color:#fff; font-weight:600; }
+  .navrow-i svg{ opacity:1; }
+  .sidebar .pie{ border-top:1px solid var(--pg-hi); }
+  .avatar{ background:var(--dl); color:#fff; }
+  .pie .nombre{ color:var(--va); font-weight:600; }
+  .pie a{ color:var(--out); }
+  .overlay-sidebar{ background:rgba(27,28,25,.28); }
+
+  /* cabecera de 64 px */
+  .topbar2{ background:var(--rl); border-bottom:1px solid var(--pg-hi); height:64px; padding:0 28px; }
+  .topbar2 h1{ font-size:22px; font-weight:500; color:var(--va); }
+  .campana button{ border:1px solid var(--linea); background:transparent; }
+  .notif-drop{ border:1px solid var(--pg-hi); background:var(--rl); border-radius:12px; box-shadow:none; }
+  .notif-fila{ border-top:1px solid var(--pg-hi); }
+  .content{ max-width:1040px; padding:26px 28px 56px; }
+
+  /* títulos y bloques */
+  .titulo-sec h2{ font-size:22px; font-weight:500; }
+  .titulo-sec p{ font-size:13.5px; color:var(--ink2); }
+  .tarjeta, .acceso, .tabla-caja, .doclista, .op{ background:var(--rl); border:1px solid var(--pg-hi); border-radius:12px; box-shadow:none; }
+  .tarjeta{ padding:17px 19px; }
+  .kpis{ gap:14px; }
+  .kpi .lbl{ font-size:11px; font-weight:500; letter-spacing:.1em; color:var(--ink2); }
+  .kpi .val{ font-family:var(--fv); font-size:30px; font-weight:600; color:var(--dl); line-height:1; letter-spacing:.01em; }
+  .kpi .val.ok{ color:var(--ok); }
+  .kpi-nota{ font-size:12px; color:var(--ink2); }
+  .rot-bloque, .campo label, .campo-lbl{ font-size:11px; font-weight:600; letter-spacing:.1em; color:var(--out); }
+  .acceso:hover{ background:var(--pg-low); }
+  .acceso .t{ font-weight:600; } .acceso .s{ color:var(--ink2); }
+
+  /* operación */
+  .op{ padding:22px 24px 24px; }
+  .op-cab h3 b{ font-size:16px; font-weight:600; letter-spacing:.02em; color:var(--va); }
+  .op-cab h3 span.sub{ color:var(--ink2); font-size:13px; }
+  .op-datos .d .lbl{ font-size:11px; font-weight:500; letter-spacing:.1em; color:var(--out); }
+  .barra{ height:6px; border-radius:999px; background:var(--pg-hi); }
+  .barra i{ background:#485B37; border-radius:999px; }
+  .barra-leg{ color:var(--ink2); }
+  .op-nota{ background:var(--pg-low); border-left:0; border-radius:12px; color:var(--ink2); }
+  .fase{ font-size:10px; font-weight:600; letter-spacing:.06em; background:var(--pg-low); border:0; color:var(--out); }
+  .fase.hecha{ background:#e3eadb; color:#3F5230; border:0; }
+  .fase.actual{ background:#485B37; color:#fff; }
+
+  /* etiquetas en pastilla */
+  .tag, .tag.chico{ font-size:10px; letter-spacing:.06em; padding:3px 9px; }
+
+  /* tablas */
+  table.docs th, .tabla-caja th{ font-size:10.5px; letter-spacing:.1em; color:var(--ink2); background:var(--pg-low); border-bottom:1px solid var(--pg-hi); padding:10px 16px; }
+  table.docs td, .tabla-caja td{ font-size:13px; padding:11px 16px; border-bottom:1px solid var(--pg-hi); }
+  table.docs td.flojo{ color:var(--ink2); }
+  .clave{ font-weight:600; color:var(--dl); }
+  .docfila{ border-bottom:1px solid var(--pg-hi); }
+  .docfila .t{ font-weight:600; } .docfila .s{ color:var(--out); }
+  .docfila .der{ color:var(--ink2); }
+
+  /* botones y campos */
+  .btn-borde{ font-weight:500; color:var(--va); background:transparent; border:1px solid var(--linea); padding:8px 16px; }
+  .btn-oscuro{ font-weight:600; padding:9px 18px; }
+  .campo input, .campo select, .campo textarea, .campo-input{ background:var(--rl); border:1px solid var(--linea); border-radius:12px; }
+  .campo-input:focus, .campo input:focus, .campo select:focus, .campo textarea:focus{ box-shadow:none; outline:2px solid var(--dl); outline-offset:1px; }
+  .chat form input{ border:1px solid var(--linea); background:var(--rl); }
+  .burbuja.suya{ background:var(--pg-low); }
+  .toggle{ background:var(--pg-hi); }
+  .vacio{ color:var(--out); }
+
+  /* cajón: filete en vez de sombra */
+  .drawer-velo{ background:rgba(27,28,25,.28); }
+  .drawer{ background:var(--rl); box-shadow:none; border-left:1px solid var(--pg-hi); }
+  .lupa{ background:rgba(27,28,25,.72); }
+
+  /* avisos: los de la v4 (tinta oscura con filo de oro; el de fallo se queda en rojo) */
+  .toast{ background:#1B1C19; color:#F5F0E6; border:1px solid #C89B5C; border-radius:6px; font-weight:500; }
+  .toast.mal{ background:#9E2F26; border:0; border-radius:12px; }
+
+  @media (max-width:880px){
+    .sidebar{ width:min(calc(100vw - 48px),288px); }
+    .topbar2{ padding:0 16px; }
+    .content{ padding:20px 16px 60px; }
+  }
+
+  /* tablas en móvil: scroll dentro de su caja, nunca del body (medido a 390 px:
+     la de hitos llegaba a 454 y la de facturas a 479 dentro de 390) */
+  .tabla-caja{ overflow-x:auto; }
+  @media (min-width:641px){ .op table.docs{ display:table; } }
+  @media (min-width:641px) and (max-width:880px){
+    .op{ overflow-x:auto; }
+    table.docs th, table.docs td, .tabla-caja th, .tabla-caja td{ padding-left:10px; padding-right:10px; }
+    .tabla-caja table{ min-width:520px; }
+  }
+
+  /* ═══ MEJORAS DEL PORTAL (7-oct-2026) ═══ */
+  /* escala de la intranet v4: cuerpo 15/24, tablas 13 */
+  body{ font-size:15px; line-height:1.6; }
+  .titulo-sec p, .campo-input{ line-height:1.5; }
+
+  /* selector de idioma ES · EN · ID: segmentado, como el de la v4 */
+  .lang-sel{ display:flex; background:var(--pg-low); border-radius:999px; padding:3px; gap:2px; }
+  .lang-sel button{ border:0; background:transparent; color:var(--ink2); font-size:12px; font-weight:600; letter-spacing:.04em;
+                    padding:6px 11px; border-radius:999px; cursor:pointer; }
+  .lang-sel button[aria-pressed="true"]{ background:var(--dl); color:#fff; }
+  .lang-sel button:focus-visible{ outline:2px solid var(--dl); outline-offset:1px; }
+
+  /* aviso de firma pendiente: arriba del todo de Inicio */
+  .banner-firma{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+                 background:#f6e8cc; border-radius:12px; padding:14px 18px; margin-bottom:16px; color:#5a3b08; }
+  .banner-firma b{ font-weight:600; font-size:15px; }
+
+  /* próximo pago: la acción principal de Inicio */
+  .hero-pago{ margin-bottom:16px; padding:22px 24px; }
+  .hp-fila{ display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap; }
+  .hp-info{ min-width:0; flex:1 1 260px; }
+  .hp-concepto{ font-size:18px; font-weight:600; }
+  .hp-sub{ font-size:13px; color:var(--ink2); margin-top:4px; }
+  .hp-importe{ font-size:40px; font-weight:600; color:var(--dl); line-height:1; letter-spacing:.01em; font-variant-numeric:tabular-nums; }
+  .hp-acciones{ display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+  .novedad{ display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--pg-hi); font-size:13px; line-height:1.45; }
+  .novedad:last-child{ border-bottom:0; }
+  .novedad-punto{ width:7px; height:7px; border-radius:50%; flex:none; margin-top:6px; background:#485B37; }
+
+  /* línea de tiempo: pagos y obra en una sola línea */
+  .tl{ list-style:none; margin:18px 0 6px; padding:0; display:flex; flex-wrap:wrap; gap:8px 6px; align-items:flex-start; }
+  .tl-grupo{ flex-basis:100%; font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); margin-top:4px; }
+  .tl-grupo:first-child{ margin-top:0; }
+  .tl-paso{ display:flex; flex-direction:column; gap:2px; min-width:0; max-width:150px; padding:8px 12px; border-radius:12px;
+            background:var(--pg-low); font-size:12px; line-height:1.3; color:var(--out); position:relative; }
+  .tl-punto{ width:8px; height:8px; border-radius:50%; background:var(--linea); margin-bottom:4px; }
+  .tl-txt{ font-weight:600; overflow-wrap:anywhere; }
+  .tl-sub{ font-variant-numeric:tabular-nums; }
+  .tl-paso.hecho{ background:#e3eadb; color:#3F5230; }
+  .tl-paso.hecho .tl-punto{ background:#485B37; }
+  .tl-paso.actual{ background:#485B37; color:#fff; }
+  .tl-paso.actual .tl-punto{ background:#fff; }
+
+  /* obra: lo último, con fecha */
+  .feed-obra{ margin-bottom:26px; }
+  .feed-obra figcaption b{ color:var(--va); font-weight:600; }
+
+  /* documentos: buscador y descargar todo */
+  .doc-barra{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .doc-barra .campo-input{ flex:1 1 220px; border-radius:999px; padding:9px 16px; }
+  .doc-proy{ margin:0 0 6px; font-size:16px; font-weight:600; }
+  .doc-tipo{ margin:14px 0 8px; }
+
+  /* móvil: las tablas pasan a tarjetas (concepto, fecha, importe y estado se ven sin deslizar) */
+  @media (max-width:640px){
+    table.docs, .tabla-caja table{ display:block; min-width:0; }
+    table.docs thead, .tabla-caja thead{ display:none; }
+    table.docs tbody, .tabla-caja tbody{ display:block; }
+    table.docs tr, .tabla-caja tr{ display:block; padding:12px 14px; border-bottom:1px solid var(--pg-hi); }
+    table.docs tr:last-child, .tabla-caja tr:last-child{ border-bottom:0; }
+    table.docs td, .tabla-caja td{ display:flex; justify-content:space-between; align-items:center; gap:14px; padding:3px 0; border:0; text-align:right; }
+    table.docs td::before, .tabla-caja td::before{ content:attr(data-l); font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); text-align:left; }
+    table.docs td.num, .tabla-caja td.num{ text-align:right; }
+    .tabla-caja td.ir{ justify-content:flex-end; }
+    .tabla-caja td.ir::before{ content:none; }
+    .hp-importe{ font-size:34px; }
+    .tl-paso{ max-width:none; flex:1 1 130px; }
+  }
+
+  /* ═══ PROYECTOS, MENÚ MÁS MARCADO, CAMPANA DE LA INTRANET (7-oct-2026) ═══ */
+  /* menú lateral: un tono de laguna pálido, sobre el fondo crema, para que se distinga (owner: «necesita un
+     color de fondo que lo destaque»). Texto inactivo ≥7:1 y activo blanco sobre verde. */
+  :root{ --menu:#dde6e2; --menu-hi:#cfdcd7; --menu-linea:#c3d2cd; --menu-txt:#4a5651; }
+  .sidebar{ background:var(--menu); border-right:1px solid var(--menu-linea); }
+  .navrow:hover{ background:var(--menu-hi); }
+  .sidebar .pie{ border-top:1px solid var(--menu-linea); }
+  .marca-menu span, .pie a{ color:var(--menu-txt); }
+  .sidebar .cab button{ color:var(--menu-txt); }
+
+  .navrow-i svg{ width:20px; height:20px; }
+  /* campana: el mismo icono que la intranet */
+  .campana button{ display:grid; place-items:center; color:var(--ink2); padding:0; }
+  .campana button:hover{ background:var(--pg-low); }
+  .campana button:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .ico-campana{ width:20px; height:20px; display:block; }
+
+  /* proyectos: tarjetas con portada (Inicio y Documentos) */
+  .proy-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin:0 0 28px; }
+  .proy-card{ background:var(--rl); border:1px solid var(--pg-hi); border-radius:12px; overflow:hidden; text-align:left;
+              font:inherit; color:inherit; cursor:pointer; padding:0; display:flex; flex-direction:column; min-width:0; }
+  .proy-card:hover{ background:var(--pg-low); }
+  .proy-card:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .proy-portada, .proy-portada-grande{ position:relative; overflow:hidden; background:var(--pg-hi); }
+  .proy-portada{ aspect-ratio:16/9; }
+  .proy-portada-grande{ aspect-ratio:16/9; width:100%; border-radius:12px; }
+  .proy-portada img, .proy-portada-grande img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .proy-inicial{ position:absolute; inset:0; display:grid; place-items:center; font-size:44px; font-weight:600; color:var(--dl); }
+  .proy-cuerpo{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .proy-nombre{ font-size:16px; font-weight:600; overflow-wrap:anywhere; }
+  .proy-meta{ font-size:12.5px; color:var(--ink2); }
+  .proy-enlace{ color:var(--dl); font-weight:600; margin-top:4px; }
+  .proy-cuerpo .barra{ margin:6px 0 2px; }
+  .proy-cab{ display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:20px; align-items:center; margin:16px 0 24px; }
+  .proy-cab-info h2{ margin:0 0 6px; font-size:22px; font-weight:500; overflow-wrap:anywhere; }
+  .proy-cab-info .proy-meta{ font-size:13.5px; margin-top:2px; }
+  @media (max-width:760px){ .proy-cab{ grid-template-columns:1fr; } }
+
+  @media (max-width:640px){
+    .proy-grid{ grid-template-columns:1fr; gap:10px; }
+    .proy-card{ flex-direction:row; align-items:stretch; }
+    .proy-card .proy-portada{ aspect-ratio:auto; width:96px; flex:none; }
+    .proy-card .proy-inicial{ font-size:30px; }
+    .proy-card .proy-cuerpo{ padding:10px 12px; }
+  }
+
+  /* móvil: el resumen en una fila compacta (apilado ocupaba 300 px y empujaba los proyectos bajo el pliegue) */
+  @media (max-width:640px){
+    .kpis{ grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:8px; }
+    .kpis .tarjeta{ padding:12px 12px; }
+    .kpi .lbl{ font-size:10.5px; letter-spacing:.06em; }
+    .kpi .val{ font-size:19px; overflow-wrap:anywhere; }
+  }
+
+  /* ═══ MOVIMIENTO Y ESTILO (7-oct-2026, owner: «gran mejora, impleméntalo todo») ═══
+     Prototipo aprobado: artifact «Portal del cliente: movimiento y estilo». El movimiento lo pone motion.js; aquí solo
+     el estilo y los estados de reposo. Un único momento fuerte por pantalla: el próximo pago. */
+  :root{ --lw-ease:cubic-bezier(.23,1,.32,1); }
+
+  /* próximo pago: bloque lagoon con el importe grande (neutro si no hay pago pendiente) */
+  .hero-pago:not(.vacio){ background:var(--dl); border-color:var(--dl); color:#fff; padding:28px 32px; }
+  .hero-pago:not(.vacio) .rot-bloque{ color:rgba(255,255,255,.85); }
+  .hero-pago:not(.vacio) .hp-concepto{ font-size:20px; }
+  .hero-pago:not(.vacio) .hp-sub{ color:rgba(255,255,255,.85); font-size:13px; }
+  .hero-pago:not(.vacio) .hp-importe{ color:#fff; font-size:clamp(34px,11vw,60px); font-weight:500; letter-spacing:-.01em; white-space:nowrap; }
+  .hero-pago:not(.vacio) .hp-importe.largo{ font-size:clamp(30px,8.5vw,44px); }
+  .hero-pago:not(.vacio) .btn-oscuro{ background:#fff; color:var(--dl); border-color:#fff; }
+  .hero-pago:not(.vacio) .btn-oscuro:hover{ background:#e8f0ee; }
+  .hero-pago:not(.vacio) .btn-borde{ background:transparent; color:#fff; border-color:rgba(255,255,255,.45); }
+  .hero-pago:not(.vacio) .btn-borde:hover{ background:rgba(255,255,255,.1); }
+  .hero-pago:not(.vacio) :focus-visible{ outline-color:#fff; }
+
+  /* resumen en un solo panel con filetes */
+  .kpis{ gap:0; border:1px solid var(--pg-hi); border-radius:12px; background:var(--rl); overflow:hidden; }
+  .kpis .tarjeta{ border:0; border-radius:0; background:transparent; padding:20px 24px; }
+  .kpis .tarjeta + .tarjeta{ border-left:1px solid var(--pg-hi); }
+  .kpi .val{ font-size:38px; font-weight:500; }
+
+  /* títulos con salto de escala; más aire en escritorio */
+  .titulo-sec h2{ font-size:34px; font-weight:500; line-height:1.15; letter-spacing:-.005em; }
+  .titulo-sec p{ font-size:14.5px; margin-top:6px; }
+  @media (min-width:881px){ .content{ padding:30px 32px 56px; } }
+
+  /* portadas 4:3 y tarjetas con vida */
+  .proy-portada, .proy-portada-grande{ aspect-ratio:4/3; }
+  .proy-card{ transition:transform .35s var(--lw-ease), border-color .2s, background .2s; }
+  .proy-card:hover{ transform:translateY(-3px); border-color:var(--linea); }
+  .proy-card:active{ transform:translateY(-1px) scale(.995); }
+  .proy-portada img, .proy-portada-grande img{ transition:transform .8s var(--lw-ease); }
+  .proy-card:hover .proy-portada img{ transform:scale(1.045); }
+  .docfila{ transition:background .15s, padding-left .25s var(--lw-ease); }
+  .docfila:hover{ background:var(--pg-low); padding-left:22px; }
+  .btn-borde, .btn-oscuro, .btn-primario{ transition:background .15s, border-color .15s, transform .2s var(--lw-ease); }
+  .btn-borde:active, .btn-oscuro:active, .btn-primario:active{ transform:scale(.97); }
+  .ver-todos{ margin:-12px 0 26px; }
+  @media (min-width:641px){
+    .proy-grid.muchos .proy-card:nth-child(n+7){ display:none; }
+    .ver-todos.solo-movil{ display:none; }
+  }
+
+  /* menú: el indicador del item activo se desliza (lo crea motion.js; sin él, el activo conserva su fondo) */
+  #nav{ position:relative; }
+  .nav-ind{ position:absolute; left:0; right:0; top:0; background:#485B37; border-radius:12px; z-index:0; pointer-events:none; }
+  html.lw-mov .navrow{ position:relative; z-index:1; }
+  html.lw-mov .navrow.on, html.lw-mov .navrow.on:hover{ background:transparent; }
+
+  /* campana y paso actual de la línea de tiempo */
+  .ico-campana{ transform-origin:50% 8%; }
+  .tl-paso.actual{ position:relative; }
+  .tl-paso.actual::after{ content:""; position:absolute; inset:-2px; border-radius:14px; border:2px solid #485B37; opacity:0; pointer-events:none; }
+  .tl-paso.actual.pulso::after{ animation:lw-pulso 1.4s var(--lw-ease) 1; }
+  @keyframes lw-pulso{ 0%{ transform:scale(1); opacity:.55; } 100%{ transform:scale(1.18); opacity:0; } }
+
+  /* móvil */
+  @media (max-width:880px){
+    .titulo-sec h2{ font-size:28px; }
+    .hero-pago:not(.vacio){ padding:22px 20px; }
+  }
+  @media (max-width:640px){
+    .proy-grid.muchos .proy-card:nth-child(n+4){ display:none; }
+    .kpis{ gap:0; }
+    .kpis .tarjeta{ padding:12px; }
+    .kpi .val{ font-size:19px; }
+  }
+
+  /* quien pide menos movimiento: todo quieto; solo se conserva el cambio de color al pasar el ratón */
+  @media (prefers-reduced-motion:reduce){
+    .proy-card, .proy-portada img, .proy-portada-grande img, .docfila, .btn-borde, .btn-oscuro, .btn-primario{ transition:none; }
+    .proy-card:hover, .proy-card:active, .proy-card:hover .proy-portada img, .btn-borde:active, .btn-oscuro:active, .btn-primario:active{ transform:none; }
+    .docfila:hover{ padding-left:18px; }
+    .tl-paso.actual.pulso::after{ animation:none; }
+  }
+
+  /* el item activo del menú no pierde su verde ni su texto blanco al pasar el ratón (ya fallaba antes: el hover del
+     menú ganaba por orden y dejaba texto blanco sobre fondo claro) */
+  .navrow.on, .navrow.on:hover{ background:#485B37; color:#fff; }
+  @media (max-width:640px){
+    /* resumen en móvil: tres filas etiqueta-importe; en columnas de 100 px una cifra de 9 dígitos se partía */
+    .kpis{ grid-template-columns:1fr; }
+    .kpis .tarjeta{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:12px 16px; }
+    .kpis .tarjeta + .tarjeta{ border-left:0; border-top:1px solid var(--pg-hi); }
+    .kpi .lbl{ margin:0; }
+    .kpi .val{ font-size:20px; white-space:nowrap; overflow-wrap:normal; }
+  }
 </style>
 </head>
 <body>
@@ -337,12 +677,12 @@
     <div class="rot" data-t="area">Área de clientes</div>
     <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.</p>
     <form id="fLogin">
-      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com"></div>
+      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required data-ph="ph_correo" placeholder="tu@correo.com"></div>
       <button class="btn-primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
     </form>
     <p data-t="login_intro_pass" id="loginIntroPass" hidden>Introduce tu correo y tu contraseña.</p>
     <form id="fLoginPass" hidden>
-      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmailPass" autocomplete="email" required placeholder="tu@correo.com"></div>
+      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmailPass" autocomplete="email" required data-ph="ph_correo" placeholder="tu@correo.com"></div>
       <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z"></path></svg><input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••"></div>
       <button class="btn-primario" type="submit" data-t="pass_btn">Entrar</button>
     </form>
@@ -367,10 +707,9 @@
 
   <div id="sidebar" class="sidebar">
     <div class="cab">
-      <img src="/contracts/assets/brand/lawang-logo-v3.png" alt="Lawang" onerror="this.remove()">
+      <div class="marca-menu"><b>LAWANG</b><span data-t="area">Área de clientes</span></div>
       <button type="button" id="btnCerrarSidebar" hidden>✕</button>
     </div>
-    <div class="rot" data-t="area">Área de clientes</div>
     <div id="nav"></div>
     <div class="pie">
       <div class="avatar" id="avatarIniciales"></div>
@@ -385,9 +724,9 @@
     <div class="topbar2">
       <button type="button" class="hamb" id="btnAbrirSidebar" hidden>☰</button>
       <h1 id="tituloSeccion"></h1>
-      <button type="button" class="lw-btn" id="btnLang" style="border:1px solid rgba(138,132,116,.4);border-radius:999px;background:none;padding:6px 12px;cursor:pointer;font-size:12px">EN</button>
+      <div id="selLang" class="lang-sel" role="group" aria-label="Idioma · Language · Bahasa"><button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button><button type="button" data-lang="id">ID</button></div>
       <div class="campana">
-        <button type="button" id="btnNotif">🔔<span class="n" id="notifN" hidden></span></button>
+        <button type="button" id="btnNotif" data-aria="novedades"><svg class="ico-campana" viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true"><path d="M192 -216V-288H240V-528Q240 -615 293.5 -681.0Q347 -747 432 -763V-816Q432 -836 446.0 -850.0Q460 -864 480.0 -864.0Q500 -864 514.0 -850.0Q528 -836 528 -816V-763Q613 -747 666.5 -681.0Q720 -615 720 -528V-288H768V-216ZM480 -492Q480 -492 480.0 -492.0Q480 -492 480.0 -492.0Q480 -492 480.0 -492.0Q480 -492 480 -492ZM480 -96Q450 -96 429.0 -117.0Q408 -138 408 -168H552Q552 -138 531.0 -117.0Q510 -96 480 -96ZM312 -288H648V-528Q648 -598 599.0 -647.0Q550 -696 480.0 -696.0Q410 -696 361.0 -647.0Q312 -598 312 -528Z"/></svg><span class="n" id="notifN" hidden></span></button>
         <div id="notifDrop" class="notif-drop" hidden></div>
       </div>
     </div>
@@ -515,7 +854,23 @@
          prefs:'Preferencias de notificación', pref_email:'Avisos por correo', pref_sms:'Avisos por SMS',
          err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.',
          err_catalogo:'Falta parte de los datos de la empresa: un documento que abras ahora puede salir incompleto. Recarga la página.',
-         no_ficha:'Tu acceso no está ligado todavía a ninguna ficha. Escríbenos y lo revisamos.' },
+         no_ficha:'Tu acceso no está ligado todavía a ninguna ficha. Escríbenos y lo revisamos.',
+         nov_factura:'Nueva factura disponible: ', nov_obra:'Novedades de obra en ', nov_doc_caduca:'Tu {doc} caduca en {n} días',
+         cat_pagos:'Pagos', cat_documentacion:'Documentación', cat_obra:'Obra', cat_otro:'Otro', cat_general:'General', ph_correo:'tu@correo.com',
+         doc_zip_externos:'Los documentos que son un enlace externo no se incluyen en el archivo.',
+         ver_todos:'Ver todos ({n})',
+         proyectos_titulo:'Tus proyectos', ver_documentos:'Ver documentos', ver_ubicacion:'Ver ubicación',
+         todos_proyectos:'Todos los proyectos', n_docs_1:'1 documento', n_docs_n:'{n} documentos', sin_docs_proyecto:'Sin documentos todavía',
+         entrega_proyecto:'Entrega estimada', pagado_de:'{a} de {b} pagado', descargar_carpeta:'Descargar carpeta', fase_obra:'Obra',
+         doc_cat_legal:'Legal', doc_cat_tecnico:'Técnico', doc_cat_comercial:'Comercial', doc_cat_fotos:'Fotos', doc_cat_planos:'Planos', doc_cat_precios:'Precios', doc_cat_faq:'Preguntas frecuentes',
+         firma_banner_1:'Tienes 1 documento pendiente de firma', firma_banner_n:'Tienes {n} documentos pendientes de firma',
+         firma_banner_btn:'Ir a firmar', ver_facturas:'Ver mis facturas',
+         tl_pagos:'Pagos', tl_obra:'Obra', obra_ultimo:'Lo último de tu obra',
+         doc_buscar:'Buscar un documento…', doc_todo:'Descargar todo', doc_zip_prep:'Preparando…',
+         doc_zip_err:'No hemos podido preparar la descarga. Inténtalo de nuevo o abre los documentos de uno en uno.',
+         doc_zip_vacio:'No hay documentos descargables en esta lista.', doc_zip_tope:'Son demasiados documentos para un solo archivo. Descárgalos de uno en uno.',
+         doc_sin_resultados:'Ningún documento coincide con tu búsqueda.', doc_otros:'Otros',
+         sobre:'Sobre', sobre_nada:'Nada en concreto', preguntar_factura:'Preguntar sobre esta factura', preguntar_contrato:'Preguntar sobre este contrato', },
     en:{ area:'Client area',
          login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
          login_btn:'Send me the link',
@@ -578,15 +933,115 @@
          prefs:'Notification preferences', pref_email:'Email alerts', pref_sms:'SMS alerts',
          err_carga:'We could not load your information. Reload the page or try again later.',
          err_catalogo:'Some company details are missing: a document opened now may be incomplete. Please reload the page.',
-         no_ficha:'Your access is not linked to a record yet. Write to us and we will check it.' }
+         no_ficha:'Your access is not linked to a record yet. Write to us and we will check it.',
+         nov_factura:'New invoice available: ', nov_obra:'Construction update on ', nov_doc_caduca:'Your {doc} expires in {n} days',
+         cat_pagos:'Payments', cat_documentacion:'Documents', cat_obra:'Construction', cat_otro:'Other', cat_general:'General', ph_correo:'you@email.com',
+         doc_zip_externos:'Documents that are external links are not included in the file.',
+         ver_todos:'View all ({n})',
+         proyectos_titulo:'Your projects', ver_documentos:'View documents', ver_ubicacion:'View location',
+         todos_proyectos:'All projects', n_docs_1:'1 document', n_docs_n:'{n} documents', sin_docs_proyecto:'No documents yet',
+         entrega_proyecto:'Estimated handover', pagado_de:'{a} of {b} paid', descargar_carpeta:'Download folder', fase_obra:'Construction',
+         doc_cat_legal:'Legal', doc_cat_tecnico:'Technical', doc_cat_comercial:'Commercial', doc_cat_fotos:'Photos', doc_cat_planos:'Plans', doc_cat_precios:'Prices', doc_cat_faq:'FAQ',
+         firma_banner_1:'You have 1 document waiting for your signature', firma_banner_n:'You have {n} documents waiting for your signature',
+         firma_banner_btn:'Go to signing', ver_facturas:'View my invoices',
+         tl_pagos:'Payments', tl_obra:'Construction', obra_ultimo:'Latest from your build',
+         doc_buscar:'Search a document…', doc_todo:'Download all', doc_zip_prep:'Preparing…',
+         doc_zip_err:'We could not prepare the download. Try again or open the documents one by one.',
+         doc_zip_vacio:'There are no downloadable documents in this list.', doc_zip_tope:'There are too many documents for a single file. Download them one by one.',
+         doc_sin_resultados:'No document matches your search.', doc_otros:'Other',
+         sobre:'About', sobre_nada:'Nothing in particular', preguntar_factura:'Ask about this invoice', preguntar_contrato:'Ask about this contract', },
+    id:{ area:'Area klien',
+         login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, tautan masuk akan segera dikirim.',
+         login_btn:'Kirim tautan ke saya',
+         enviado:'Jika email tersebut memiliki akses, kami baru saja mengirimkan tautan. Periksa kotak masuk Anda (cek juga folder spam).',
+         error_envio:'Kami belum bisa mengirim email saat ini. Coba lagi sebentar lagi atau tulis ke sales@lawangproperties.com.',
+         sin_activar:'Akun Anda belum mengaktifkan area klien. Minta tautan akses dengan email Anda di bawah ini dan akan aktif otomatis; jika tidak datang, tulis ke sales@lawangproperties.com.',
+         login_intro_pass:'Masukkan email dan kata sandi Anda.', pass_btn:'Masuk',
+         pass_toggle:'Punya kata sandi? Masuk dengan itu', pass_toggle_back:'Saya lebih suka dikirimi tautan',
+         pass_mal:'Email atau kata sandi salah.', pie:'Ada pertanyaan? Tulis ke',
+         team_intro:'Anda bagian dari tim?', team_link:'Masuk di sini', salir:'Keluar',
+         nav_inicio:'Beranda', nav_contratos:'Kontrak', nav_facturas:'Faktur', nav_obra:'Pembangunan',
+         nav_documentos:'Dokumen', nav_soporte:'Bantuan', nav_perfil:'Profil saya',
+         tit_inicio:'Beranda', tit_contratos:'Kontrak', tit_facturas:'Faktur', tit_obra:'Pembangunan',
+         tit_documentos:'Dokumen', tit_soporte:'Bantuan', tit_perfil:'Profil saya',
+         hola:'Halo', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
+         r_inversion:'Investasi Anda', r_pagado:'Sudah dibayar', r_pendiente:'Belum dibayar',
+         r_cuota:'Biaya reservasi', cuota_reserva:'Biaya reservasi',
+         nota_solo_reserva:'Saat ini Anda hanya memiliki Surat Reservasi, tanpa kontrak definitif yang ditandatangani: jumlah di atas adalah biaya reservasi, bukan harga akhir unit Anda.',
+         nota_sin_carta:'Investasi dihitung dari kontrak definitif Anda. Surat Reservasi tidak dihitung karena menyatakan jumlah yang sama sebelum dibagi antara Pemblokiran Lahan dan Konstruksi:',
+         nota_carta_sustituida:'Surat Reservasi ini sudah termasuk dalam kontrak definitif Anda: jumlah dan jadwalnya mengikuti kontrak tersebut, bukan pembayaran terpisah. Dokumen tetap disimpan di sini jika Anda membutuhkannya.',
+         proximo_pago:'Pembayaran berikutnya', sin_proximo:'Saat ini Anda tidak memiliki pembayaran yang tertunda.',
+         ver_plan:'Lihat jadwal pembayaran', novedades:'Kabar terbaru',
+         acc_documentos:'Dokumen', acc_documentos_sub:'Dossier, denah, dan KYC',
+         acc_soporte:'Bantuan', acc_soporte_sub:'Tulis ke tim pengelola Anda',
+         precio:'Harga', unidad:'Unit', fecha_firma:'Tanggal tanda tangan', cobrado:'Dibayar sampai hari ini',
+         pagado:'Lunas', pendiente:'Belum dibayar', parcial:'Sebagian', de:'dari',
+         plan_pagos:'Jadwal pembayaran', concepto:'Keterangan', cuando:'Jatuh tempo', importe:'Jumlah', estado:'Status',
+         firmado:'Sudah ditandatangani', pendiente_firma:'Menunggu tanda tangan', ver_contrato:'Lihat kontrak yang ditandatangani', descargar:'Unduh',
+         firma_pendiente_desc:'Kontrak ini menunggu tanda tangan Anda, dikirim pada', firma_pendiente_caduca:'Tautan berlaku sampai',
+         ver_borrador:'Lihat draf', cargando:'Memuat…',
+         firmar_ahora:'Tanda tangani sekarang',
+         imprimir:'Cetak atau simpan sebagai PDF', cerrar:'Tutup',
+         f_numero:'No.', f_tipo:'Jenis', f_proyecto:'Proyek', f_fecha:'Tanggal', f_total:'Jumlah', ir:'Lihat →',
+         factura:'Faktur', recibi:'Kwitansi', proforma:'Proforma',
+         sin_facturas_t:'Belum ada dokumen', sin_facturas:'Saat kami menerbitkan faktur atau kwitansi, dokumennya akan muncul di sini, siap diunduh.',
+         sin_obra_t:'Belum ada kabar pembangunan', sin_obra:'Begitu pembangunan unit Anda dimulai, kami akan menampilkan kemajuan dan foto-fotonya di sini.',
+         sin_contratos_t:'Kami tidak melihat kontrak atas nama Anda', sin_contratos:'Mungkin akses Anda terhubung ke data yang belum memiliki kontrak. Tulis ke kami dan kami akan memeriksanya.',
+         entrega_est:'Perkiraan serah terima', actualizado:'Pembaruan terakhir',
+         sin_proyecto:'Dokumen lainnya', d_entregado:'Yang telah Anda serahkan',
+         d_entregado_nota:'Ini adalah dokumen yang Anda berikan untuk berkas Anda. Jika ada yang hampir kedaluwarsa, tulis ke kami dan kami akan memperbaruinya.',
+         doc_passport:'Paspor', doc_id:'Dokumen identitas', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'berlaku sampai',
+         sin_docs_t:'Belum ada dokumen yang dibagikan', sin_docs:'Denah, dossier, dan dokumen proyek Anda akan muncul di sini saat kami menerbitkannya, beserta yang telah Anda serahkan.',
+         err_fichero:'Kami tidak dapat membuka dokumen. Coba lagi sebentar lagi.',
+         err_mensaje:'Kami tidak dapat mengirim pesan Anda. Coba lagi sebentar lagi; jika masih gagal, hubungi kami lewat WhatsApp.',
+         err_ticket:'Kami tidak dapat membuka pertanyaan Anda. Coba lagi sebentar lagi; jika masih gagal, hubungi kami lewat WhatsApp.',
+         err_prefs:'Kami tidak dapat menyimpan preferensi notifikasi Anda. Coba lagi sebentar lagi.',
+         categoria:'Kategori', enviar:'Kirim', cancelar:'Batal', abierto:'Terbuka', resuelto:'Selesai',
+         responder:'Balas…', tu:'Anda', equipo:'Tim Lawang',
+         nuevo_ticket:'Tiket baru', elige_categoria:'Pilih topiknya…', mensaje:'Pesan',
+         abrir_ticket:'Buka tiket', completa_campos:'Pilih kategori dan tulis pesan Anda.',
+         ticket_abierto:'Tiket dibuka. Kami akan membalas di sini.',
+         sin_tickets_t:'Anda belum memiliki tiket', sin_tickets:'Buka tiket saat Anda membutuhkan sesuatu — pembayaran, dokumen, pembangunan, atau pertanyaan lain.',
+         aviso_no_vinculante:'Ini adalah saluran layanan, bukan dokumen kontrak: harga, jangka waktu, atau ketentuan apa pun tidak berubah sampai tercantum dalam kontrak Anda atau lampiran yang ditandatangani.',
+         datos_personales:'Data pribadi', nombre:'Nama', correo:'Email', telefono:'Telepon', pais:'Negara',
+         seguridad:'Keamanan', cambiar_pass_btn:'Ganti kata sandi',
+         cambiar_pass_nueva:'Kata sandi baru (minimal 10 karakter)', cambiar_pass_repite:'Ulangi kata sandi',
+         cambiar_pass_nota:'Anda akan memakainya bersama email saat masuk berikutnya — tautan lewat email tetap berfungsi seperti biasa.',
+         cambiar_pass_corta:'Minimal 10 karakter.', cambiar_pass_no_coincide:'Kata sandi tidak sama.',
+         cambiar_pass_error:'Tidak dapat disimpan', cambiar_pass_ok:'Kata sandi diperbarui.', guardar:'Simpan',
+         prefs:'Preferensi notifikasi', pref_email:'Notifikasi lewat email', pref_sms:'Notifikasi lewat SMS',
+         err_carga:'Kami tidak dapat memuat informasi Anda. Muat ulang halaman atau coba lagi nanti.',
+         err_catalogo:'Sebagian data perusahaan belum lengkap: dokumen yang Anda buka sekarang mungkin tidak lengkap. Muat ulang halaman.',
+         no_ficha:'Akses Anda belum terhubung ke data mana pun. Tulis ke kami dan kami akan memeriksanya.',
+         nov_factura:'Faktur baru tersedia: ', nov_obra:'Kabar pembangunan di ', nov_doc_caduca:'{doc} Anda berakhir dalam {n} hari',
+         cat_pagos:'Pembayaran', cat_documentacion:'Dokumen', cat_obra:'Pembangunan', cat_otro:'Lainnya', cat_general:'Umum', ph_correo:'anda@email.com',
+         doc_zip_externos:'Dokumen berupa tautan eksternal tidak disertakan dalam berkas.',
+         ver_todos:'Lihat semua ({n})',
+         proyectos_titulo:'Proyek Anda', ver_documentos:'Lihat dokumen', ver_ubicacion:'Lihat lokasi',
+         todos_proyectos:'Semua proyek', n_docs_1:'1 dokumen', n_docs_n:'{n} dokumen', sin_docs_proyecto:'Belum ada dokumen',
+         entrega_proyecto:'Perkiraan serah terima', pagado_de:'{a} dari {b} lunas', descargar_carpeta:'Unduh folder', fase_obra:'Pembangunan',
+         doc_cat_legal:'Legal', doc_cat_tecnico:'Teknis', doc_cat_comercial:'Komersial', doc_cat_fotos:'Foto', doc_cat_planos:'Denah', doc_cat_precios:'Harga', doc_cat_faq:'Pertanyaan umum',
+         firma_banner_1:'Anda memiliki 1 dokumen yang menunggu tanda tangan', firma_banner_n:'Anda memiliki {n} dokumen yang menunggu tanda tangan',
+         firma_banner_btn:'Pergi menandatangani', ver_facturas:'Lihat faktur saya',
+         tl_pagos:'Pembayaran', tl_obra:'Pembangunan', obra_ultimo:'Terbaru dari pembangunan Anda',
+         doc_buscar:'Cari dokumen…', doc_todo:'Unduh semua', doc_zip_prep:'Menyiapkan…',
+         doc_zip_err:'Kami tidak dapat menyiapkan unduhan. Coba lagi atau buka dokumen satu per satu.',
+         doc_zip_vacio:'Tidak ada dokumen yang dapat diunduh dalam daftar ini.', doc_zip_tope:'Dokumennya terlalu banyak untuk satu berkas. Unduh satu per satu.',
+         doc_sin_resultados:'Tidak ada dokumen yang cocok dengan pencarian Anda.', doc_otros:'Lainnya',
+         sobre:'Tentang', sobre_nada:'Tidak ada yang khusus', preguntar_factura:'Tanya tentang faktur ini', preguntar_contrato:'Tanya tentang kontrak ini' }
   };
-  var LANG = localStorage.getItem('lw_portal_lang') ||
-             ((navigator.language || 'es').slice(0,2) === 'es' ? 'es' : 'en');
-  function t(k){ return (T[LANG] && T[LANG][k]) || T.es[k] || k; }
+  var LANG = localStorage.getItem('lw_portal_lang');
+  if (!LANG || !(LANG in T)) { var nl = (navigator.language || 'es').slice(0,2); LANG = (nl === 'es' || nl === 'id') ? nl : 'en'; }
+  function t(k){ return (T[LANG] && T[LANG][k]) || (LANG === 'id' && T.en[k]) || T.es[k] || k; }
+  /* Texto bilingüe que viene de la base ({es,en}): para indonesio se cae a inglés, no a español. */
+  function Lx(o){ if (!o) return ''; return o[LANG] || (LANG === 'id' ? (o.en || o.es) : (o.es || o.en)) || ''; }
+  function LOC(){ return { es:'es-ES', en:'en-GB', id:'id-ID' }[LANG] || 'en-GB'; }
   function aplicaLangEstatico(){
     document.documentElement.lang = LANG;
     document.querySelectorAll('[data-t]').forEach(function(el){ el.textContent = t(el.getAttribute('data-t')); });
-    document.getElementById('btnLang').textContent = LANG === 'es' ? 'EN' : 'ES';
+    document.querySelectorAll('[data-ph]').forEach(function(el){ el.placeholder = t(el.getAttribute('data-ph')); });
+    document.querySelectorAll('[data-aria]').forEach(function(el){ el.setAttribute('aria-label', t(el.getAttribute('data-aria'))); });
+    document.querySelectorAll('#selLang [data-lang]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-lang') === LANG ? 'true' : 'false'); });
   }
   aplicaLangEstatico();
 
@@ -603,20 +1058,21 @@
   // COMPRADOR, no una columna de contabilidad.
   function dinero(n, moneda){
     if (n == null || isNaN(n)) return '—';
-    try { return new Intl.NumberFormat(LANG === 'es' ? 'es-ES' : 'en-GB',
+    try { return new Intl.NumberFormat(LOC(),
             { style:'currency', currency:(moneda || 'EUR'), maximumFractionDigits:0, useGrouping:'always' }).format(n); }
     catch(e){ return n.toLocaleString() + ' ' + (moneda || ''); }
   }
+  if (window.LW_MOV) LW_MOV.formatoDinero = function(n, m){ return dinero(n, m); };
   function fecha(f){
     if (!f) return '';
     var d = new Date(f); if (isNaN(d)) return esc(f);
-    return d.toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day:'numeric', month:'short', year:'numeric' });
+    return d.toLocaleDateString(LOC(), { day:'numeric', month:'short', year:'numeric' });
   }
   function fechaHora(f){
     if (!f) return '';
     var d = new Date(f); if (isNaN(d)) return esc(f);
-    return d.toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day:'2-digit', month:'short' }) + ' · ' +
-           d.toLocaleTimeString(LANG === 'es' ? 'es-ES' : 'en-GB', { hour:'2-digit', minute:'2-digit' });
+    return d.toLocaleDateString(LOC(), { day:'2-digit', month:'short' }) + ' · ' +
+           d.toLocaleTimeString(LOC(), { hour:'2-digit', minute:'2-digit' });
   }
 
   /* ── reparto de cobro entre hitos — igual que antes de este rediseño ── */
@@ -783,9 +1239,10 @@
     e.preventDefault();
     sb.auth.signOut().then(function(){ location.replace('/portal/'); });
   });
-  document.getElementById('btnLang').addEventListener('click', function(){
-    LANG = LANG === 'es' ? 'en' : 'es';
-    localStorage.setItem('lw_portal_lang', LANG);
+  document.getElementById('selLang').addEventListener('click', function(ev){
+    var b = ev.target.closest('[data-lang]'); if (!b) return;
+    LANG = b.getAttribute('data-lang');
+    try { localStorage.setItem('lw_portal_lang', LANG); } catch(e){}
     aplicaLangEstatico();
     if (DATOS) render();
   });
@@ -805,6 +1262,7 @@
     // nada, ni bloquea nada más de la pantalla.
     if (ESTADO.notifOpen) sb.rpc('portal_marcar_notificaciones_leidas').then(function(){}).catch(function(){});
     pintaCampana();
+    if (ESTADO.notifOpen && window.LW_MOV) LW_MOV.abrePanel(document.getElementById('notifDrop'));
   });
   document.addEventListener('click', function(e){
     if (ESTADO.notifOpen && !e.target.closest('.campana')){ ESTADO.notifOpen = false; pintaCampana(); }
@@ -867,21 +1325,24 @@
      inline, no en la fuente Phosphor: es la misma lección de esta tarde,
      un icono de fuente bloqueada en silencio no es aceptable en la cara
      del cliente. */
+  /* Los iconos son los de la intranet (Material Symbols Outlined), extraídos de la propia fuente como
+     contornos SVG: misma forma, pero marcado y no un recurso aparte, así que ningún bloqueador de fuentes
+     puede dejarlos en blanco (el motivo de que el portal no cargue una fuente de iconos). viewBox 0 -960 960 960. */
   var NAV_ICONOS = {
-    inicio: '<path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z"></path>',
-    contratos: '<path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z"></path>',
-    facturas: '<path d="M72,104a8,8,0,0,1,8-8h96a8,8,0,0,1,0,16H80A8,8,0,0,1,72,104Zm8,40h96a8,8,0,0,0,0-16H80a8,8,0,0,0,0,16ZM232,56V208a8,8,0,0,1-11.58,7.15L192,200.94l-28.42,14.21a8,8,0,0,1-7.16,0L128,200.94,99.58,215.15a8,8,0,0,1-7.16,0L64,200.94,35.58,215.15A8,8,0,0,1,24,208V56A16,16,0,0,1,40,40H216A16,16,0,0,1,232,56Zm-16,0H40V195.06l20.42-10.22a8,8,0,0,1,7.16,0L96,199.06l28.42-14.22a8,8,0,0,1,7.16,0L160,199.06l28.42-14.22a8,8,0,0,1,7.16,0L216,195.06Z"></path>',
-    obra: '<path d="M240,80H108.94L87.16,36.42A8,8,0,0,0,80,32H48a8,8,0,0,0-8,8V80H24a8,8,0,0,0,0,16H40V208H24a8,8,0,0,0,0,16H128a8,8,0,0,0,0-16H112V96h96v88H192v-8a8,8,0,0,0-16,0v8a16,16,0,0,0,16,16h16a16,16,0,0,0,16-16V96h16a8,8,0,0,0,0-16ZM56,48H75.06l16,32H56Zm0,160V160H96v48Zm40-64H56V96H96Z"></path>',
-    documentos: '<path d="M224,64H154.67L126.93,43.2a16.12,16.12,0,0,0-9.6-3.2H72A16,16,0,0,0,56,56V72H40A16,16,0,0,0,24,88V200a16,16,0,0,0,16,16H192.89A15.13,15.13,0,0,0,208,200.89V184h16.89A15.13,15.13,0,0,0,240,168.89V80A16,16,0,0,0,224,64ZM192,200H40V88H85.33l29.87,22.4A8,8,0,0,0,120,112h72Zm32-32H208V112a16,16,0,0,0-16-16H122.67L94.93,75.2a16.12,16.12,0,0,0-9.6-3.2H72V56h45.33L147.2,78.4A8,8,0,0,0,152,80h72Z"></path>',
-    soporte: '<path d="M201.89,54.66A103.43,103.43,0,0,0,128.79,24H128A104,104,0,0,0,24,128v56a24,24,0,0,0,24,24H64a24,24,0,0,0,24-24V144a24,24,0,0,0-24-24H40.36A88.12,88.12,0,0,1,190.54,65.93,87.39,87.39,0,0,1,215.65,120H192a24,24,0,0,0-24,24v40a24,24,0,0,0,24,24h24a24,24,0,0,1-24,24H136a8,8,0,0,0,0,16h56a40,40,0,0,0,40-40V128A103.41,103.41,0,0,0,201.89,54.66ZM64,136a8,8,0,0,1,8,8v40a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V136Zm128,56a8,8,0,0,1-8-8V144a8,8,0,0,1,8-8h24v56Z"></path>',
-    perfil: '<path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"></path>'
+    inicio: '<path d="M528 -624V-816H816V-624ZM144 -432V-816H432V-432ZM528 -144V-528H816V-144ZM144 -144V-336H432V-144ZM216 -504H360V-744H216ZM600 -216H744V-456H600ZM600 -695H744V-744H600ZM216 -216H360V-264H216ZM360 -504ZM600 -695ZM600 -456ZM360 -264Z"/>',
+    contratos: '<path d="M384 -192Q344 -192 315.5 -220.0Q287 -248 288 -288V-360H384V-426Q355 -427 331.5 -436.5Q308 -446 288 -464V-528H224L72 -672Q110 -710 161.0 -730.0Q212 -750 266 -750Q297 -750 326.5 -742.0Q356 -734 384 -720V-768H816V-288Q816 -248 788.0 -220.0Q760 -192 720 -192ZM456 -360H672V-300Q672 -285 682.5 -274.5Q693 -264 708.0 -264.0Q723 -264 733.5 -274.5Q744 -285 744 -300V-696H456V-669L672 -453V-402H621L521 -503L487 -468Q480 -461 472.5 -456.0Q465 -451 456 -446ZM253 -600H360V-503Q366 -501 372.0 -500.0Q378 -499 385 -499Q399 -499 412.0 -504.0Q425 -509 436 -520L469 -553L402 -621Q375 -648 339.5 -662.5Q304 -677 266 -677Q246 -677 227.5 -673.5Q209 -670 191 -662ZM600 -288H360Q360 -280 364.5 -272.0Q369 -264 383 -264H606Q604 -270 602.5 -276.0Q601 -282 600 -288ZM360 -288Q360 -282 360.0 -276.0Q360 -270 360 -264Q360 -264 360.0 -272.0Q360 -280 360 -288Z"/>',
+    facturas: '<path d="M240 -96Q194 -96 169.0 -120.5Q144 -145 144 -192V-336H240V-864L298 -806L355 -864L413 -806L470 -864L528 -806L586 -864L643 -806L701 -864L758 -806L816 -864V-204Q816 -157 785.0 -126.5Q754 -96 708 -96ZM708 -168Q724 -168 734.0 -177.5Q744 -187 744 -204V-744H312V-336H672V-204Q672 -187 682.0 -177.5Q692 -168 708 -168ZM360 -600V-672H576V-600ZM360 -480V-552H576V-480ZM660 -600Q646 -600 635.0 -610.5Q624 -621 624.0 -636.0Q624 -651 635.0 -661.5Q646 -672 661 -672Q675 -672 685.5 -661.5Q696 -651 696.0 -636.0Q696 -621 685.5 -610.5Q675 -600 660 -600ZM660 -480Q646 -480 635.0 -490.5Q624 -501 624.0 -516.0Q624 -531 635.0 -541.5Q646 -552 661 -552Q675 -552 685.5 -541.5Q696 -531 696.0 -516.0Q696 -501 685.5 -490.5Q675 -480 660 -480ZM240 -168H600V-264H216V-192Q216 -175 219.5 -171.5Q223 -168 240 -168ZM216 -168Q216 -168 216.0 -171.5Q216 -175 216 -192V-264V-168Z"/>',
+    obra: '<path d="M216 -144V-264H120V-336H216V-524L128 -456L84 -514L480 -816L876 -514L832 -456L744 -524V-336H840V-264H744V-144H672V-264H516V-144H444V-264H288V-144ZM288 -336H444V-698L288 -579ZM516 -336H672V-579L516 -698Z"/>',
+    documentos: '<path d="M168 -192Q139 -192 117.5 -213.5Q96 -235 96 -264V-696Q96 -726 117.5 -747.0Q139 -768 168 -768H384L480 -672H792Q822 -672 843.0 -651.0Q864 -630 864 -600V-264Q864 -235 843.0 -213.5Q822 -192 792 -192ZM168 -264H792Q792 -264 792.0 -264.0Q792 -264 792 -264V-600Q792 -600 792.0 -600.0Q792 -600 792 -600H450L354 -696H168Q168 -696 168.0 -696.0Q168 -696 168 -696V-264Q168 -264 168.0 -264.0Q168 -264 168 -264ZM168 -264Q168 -264 168.0 -264.0Q168 -264 168 -264V-696Q168 -696 168.0 -696.0Q168 -696 168 -696V-600Q168 -600 168.0 -600.0Q168 -600 168 -600V-264Q168 -264 168.0 -264.0Q168 -264 168 -264Z"/>',
+    soporte: '<path d="M432 -144V-216H744Q744 -216 744.0 -216.0Q744 -216 744 -216V-483Q744 -593 667.0 -670.5Q590 -748 480 -748Q370 -748 293.0 -670.5Q216 -593 216 -483V-256H168Q138 -256 117.0 -277.5Q96 -299 96 -330V-404Q96 -427 109.0 -445.0Q122 -463 144 -468L147 -519Q156 -582 185.0 -636.5Q214 -691 258.5 -731.0Q303 -771 360.0 -793.5Q417 -816 480 -816Q543 -816 600.0 -793.5Q657 -771 701.5 -731.0Q746 -691 775.0 -637.0Q804 -583 813 -520L816 -468Q837 -463 850.5 -446.5Q864 -430 864 -408V-324Q864 -302 850.5 -285.5Q837 -269 816 -264V-216Q816 -186 795.0 -165.0Q774 -144 744 -144ZM372.0 -408.0Q357 -408 346.5 -418.5Q336 -429 336.0 -444.0Q336 -459 346.5 -469.5Q357 -480 372.0 -480.0Q387 -480 397.5 -469.5Q408 -459 408.0 -444.0Q408 -429 397.5 -418.5Q387 -408 372.0 -408.0ZM588.0 -408.0Q573 -408 562.5 -418.5Q552 -429 552.0 -444.0Q552 -459 562.5 -469.5Q573 -480 588.0 -480.0Q603 -480 613.5 -469.5Q624 -459 624.0 -444.0Q624 -429 613.5 -418.5Q603 -408 588.0 -408.0ZM265 -458Q256 -555 320.5 -625.5Q385 -696 482 -696Q564 -696 624.5 -641.0Q685 -586 694 -504Q609 -504 539.5 -550.5Q470 -597 432 -672Q418 -601 374.5 -544.5Q331 -488 265 -458Z"/>',
+    perfil: '<path d="M480.0 -480.0Q420 -480 378.0 -522.0Q336 -564 336.0 -624.0Q336 -684 378.0 -726.0Q420 -768 480.0 -768.0Q540 -768 582.0 -726.0Q624 -684 624.0 -624.0Q624 -564 582.0 -522.0Q540 -480 480.0 -480.0ZM192 -192V-288Q192 -311 204.5 -331.5Q217 -352 239 -366Q294 -398 355.5 -415.0Q417 -432 480 -432Q543 -432 604.5 -415.0Q666 -398 721 -366Q743 -353 755.5 -332.0Q768 -311 768 -288V-192ZM264 -264H696V-288Q696 -293 693.0 -297.5Q690 -302 685 -304Q639 -332 587.0 -346.0Q535 -360 480 -360Q425 -360 373.0 -346.0Q321 -332 275 -304Q270 -300 267.0 -296.5Q264 -293 264 -288ZM480.0 -552.0Q510 -552 531.0 -573.0Q552 -594 552.0 -624.0Q552 -654 531.0 -675.0Q510 -696 480.0 -696.0Q450 -696 429.0 -675.0Q408 -654 408.0 -624.0Q408 -594 429.0 -573.0Q450 -552 480.0 -552.0ZM480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0ZM480 -264Q480 -264 480.0 -264.0Q480 -264 480 -264Q480 -264 480.0 -264.0Q480 -264 480 -264Q480 -264 480.0 -264.0Q480 -264 480 -264Q480 -264 480.0 -264.0Q480 -264 480 -264Z"/>'
   };
   function pintaNav(){
     // Cuenta tickets abiertos de verdad (1-sep-2026: vuelven a ser varios).
     var abiertos = DATOS ? (DATOS.tickets||[]).filter(function(x){ return x.estado === 'abierto'; }).length : 0;
     document.getElementById('nav').innerHTML = NAV_DEFS.map(function(k){
       var badge = k === 'soporte' && abiertos ? '<span class="badge">' + abiertos + '</span>' : '';
-      var icono = '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' + NAV_ICONOS[k] + '</svg>';
+      var icono = '<svg viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true">' + NAV_ICONOS[k] + '</svg>';
       return '<button type="button" class="navrow' + (k === ESTADO.section ? ' on' : '') + '" data-nav="' + k + '">' +
              '<span class="navrow-i">' + icono + '<span>' + esc(t('nav_' + k)) + '</span></span>' + badge + '</button>';
     }).join('');
@@ -900,19 +1361,18 @@
     var d = DATOS; if (!d) return [];
     var lista = [];
     (d.facturas || []).slice(0, 3).forEach(function(f){
-      lista.push({ texto: (f.tipo === 'factura' ? (LANG==='es'?'Nueva factura disponible: ':'New invoice available: ') : '') + f.numero,
+      lista.push({ texto: (f.tipo === 'factura' ? t('nov_factura') : '') + f.numero,
                    fecha: f.fecha, cuando: new Date(f.fecha || 0) });
     });
     (d.obra || []).forEach(function(o){
-      if (o.actualizado) lista.push({ texto: (LANG==='es'?'Novedades de obra en ':'Construction update on ') + o.unidad,
+      if (o.actualizado) lista.push({ texto: t('nov_obra') + o.unidad,
                                        fecha: o.actualizado, cuando: new Date(o.actualizado) });
     });
     (d.kyc || []).forEach(function(k){
       if (!k.caduca) return;
       var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
       if (dias >= 0 && dias <= 30) lista.push({
-        texto: (LANG==='es' ? ('Tu ' + (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo)) + ' caduca en ' + dias + ' días')
-                             : ('Your ' + (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo)) + ' expires in ' + dias + ' days')),
+        texto: t('nov_doc_caduca').replace('{doc}', (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo))).replace('{n}', dias),
         fecha: k.caduca, cuando: new Date()
       });
     });
@@ -926,6 +1386,7 @@
     var novedades = novedadesDerivadas();
     var sinLeer = visto ? novedades.filter(function(x){ return x.cuando > visto; }).length : novedades.length;
     n.hidden = !sinLeer; n.textContent = sinLeer;
+    if (window.LW_MOV) LW_MOV.campana(document.getElementById('btnNotif'), sinLeer);
     drop.hidden = !ESTADO.notifOpen;
     if (ESTADO.notifOpen){
       drop.innerHTML = '<div class="cab"><span>' + esc(t('novedades')) + '</span></div>' +
@@ -949,7 +1410,18 @@
                 documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
     c.innerHTML = '';
     (fns[ESTADO.section] || pintaInicio)(c);
+    /* Movimiento (motion.js). Se anima solo si cambia la clave «sección|carpeta»: un repintado por idioma, por recarga
+       de datos, al abrir o cerrar un documento o un cajón NO la cambia y no mueve nada. */
+    try {
+      if (window.LW_MOV){
+        var clave = LW_MOV.claveVista(ESTADO.section, leeHash().doc);
+        var cambia = clave !== ULTIMA_VISTA; ULTIMA_VISTA = clave;
+        LW_MOV.menu(document.getElementById('nav'), cambia);
+        if (cambia) LW_MOV.pantalla(c, ESTADO.section);
+      }
+    } catch (e){ console.error('movimiento', e); /* MUDO A PROPOSITO: el movimiento es un adorno; si falla, la pantalla ya está pintada y funciona igual, y el detalle va a la consola */ }
   }
+  var ULTIMA_VISTA = '';
 
   function vacio(titulo, texto){
     return '<div class="tabla-caja"><div class="vacio"><b>' + esc(titulo) + '</b>' + esc(texto) + '</div></div>';
@@ -991,14 +1463,52 @@
     });
 
     var novedades = novedadesDerivadas().slice(0,3);
+    var nFirmas = (d.firma_pendiente || []).length;
+    var bannerFirma = nFirmas
+      ? '<div class="banner-firma" role="status"><div><b>' + esc(nFirmas === 1 ? t('firma_banner_1') : t('firma_banner_n').replace('{n}', nFirmas)) + '</b></div>' +
+        '<button type="button" class="btn-oscuro" data-ir="contratos">' + esc(t('firma_banner_btn')) + '</button></div>'
+      : '';
+    var carpetas = carpetasProyecto();
+    var carpetasInicio = carpetas.filter(function(f){ return (f.contratos || []).length; });
+    var proyectosHTML = carpetasInicio.length
+      ? '<div class="rot-bloque">' + esc(t('proyectos_titulo')) + '</div><div class="proy-grid' + (carpetasInicio.length > 3 ? ' muchos' : '') + '">' + carpetasInicio.map(function(f){
+          var rs = resumenPortal(f.contratos || []);
+          var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(function(u, i, a){ return u && a.indexOf(u) === i; });
+          var obraU = (d.obra || []).filter(function(o){ return (f.contratos || []).some(function(x){ return x.numero === o.contrato_numero; }); })[0];
+          var fase = obraU ? (d.fases || []).filter(function(ff){ return ff.clave === obraU.fase; })[0] : null;
+          return '<button type="button" class="proy-card" data-carpeta="' + esc(f.key) + '">' + portadaHTML(f, 'proy-portada') +
+            '<div class="proy-cuerpo"><div class="proy-nombre">' + esc(f.nombre) + '</div>' +
+            (f.resort ? '<div class="proy-meta">' + esc(f.resort) + '</div>' : '') +
+            (unidades.length ? '<div class="proy-meta">' + esc(t('unidad')) + ' ' + esc(unidades.join(' · ')) + '</div>' : '') +
+            (rs.total != null && rs.total > 0
+              ? '<div class="proy-meta">' + esc(t('pagado_de').replace('{a}', dinero(rs.cobrado, rs.moneda)).replace('{b}', dinero(rs.total, rs.moneda))) + '</div>' +
+                '<div class="barra"><i style="width:' + Math.min(100, Math.round(rs.cobrado / rs.total * 100)) + '%"></i></div>' : '') +
+            (fase ? '<div class="proy-meta">' + esc(t('fase_obra')) + ': <b>' + esc(Lx(fase)) + '</b></div>' : '') +
+            (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' · ' + esc(t('ver_documentos')) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></button>';
+        }).join('') + '</div>' +
+        // con más de 3 proyectos solo se ven los primeros (3 en móvil, 6 en escritorio) y un enlace a todos
+        (carpetasInicio.length > 3 ? '<button type="button" class="btn-borde ver-todos' + (carpetasInicio.length <= 6 ? ' solo-movil' : '') + '" data-ir="documentos">' + esc(t('ver_todos').replace('{n}', carpetasInicio.length)) + '</button>' : '')
+      : '';
+    var impTxt = (proximo && !isNaN(proximo.monto)) ? dinero(proximo.monto, proximo.moneda) : '—';
+    var heroPago = '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
+      (proximo ?
+        '<div class="hp-fila"><div class="hp-info"><div class="hp-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
+          '<div class="hp-sub">' + esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato) + '</div></div>' +
+          '<div class="hp-importe' + (impTxt.length > 11 ? ' largo' : '') + '"' + (isNaN(proximo.monto) ? '' : ' data-cuenta="' + proximo.monto + '" data-moneda="' + esc(proximo.moneda || '') + '"') + '>' + esc(impTxt) + '</div></div>' +
+        '<div class="hp-acciones"><button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>' +
+          '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('ver_plan')) + '</button></div>'
+        : '<p style="font-size:13.5px;color:var(--ink2);margin:0">' + esc(t('sin_proximo')) + '</p>') +
+      '</div>';
 
     c.innerHTML =
       '<div class="titulo-sec"><h2>' + esc(t('hola')) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
         '<p>' + esc(t('saludo_sub')) + '</p></div>' +
+      bannerFirma +
+      heroPago +
       (tot != null && tot > 0 ? '<div class="kpis">' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</div><div class="val">' + esc(dinero(tot,mon)) + '</div></div>' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pagado')) + '</div><div class="val ok">' + esc(dinero(cob,mon)) + '</div></div>' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pendiente')) + '</div><div class="val">' + esc(dinero(res.pendiente,mon)) + '</div></div>' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</div><div class="val" data-cuenta="' + tot + '" data-moneda="' + esc(mon || '') + '">' + esc(dinero(tot,mon)) + '</div></div>' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pagado')) + '</div><div class="val ok" data-cuenta="' + cob + '" data-moneda="' + esc(mon || '') + '">' + esc(dinero(cob,mon)) + '</div></div>' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pendiente')) + '</div><div class="val" data-cuenta="' + res.pendiente + '" data-moneda="' + esc(mon || '') + '">' + esc(dinero(res.pendiente,mon)) + '</div></div>' +
       '</div>' +
       /* El rótulo tiene que nombrar lo que de verdad suma. Una cifra que no
          cuadra con su propio rótulo es una cifra en la que se deja de confiar
@@ -1012,28 +1522,103 @@
                 res.excluidos.map(function(x){ return x.numero || '—'; }).join(', ') + '.') + '</p>'
             : ''))
       : '') +
-      '<div class="grid2col">' +
-        '<div class="tarjeta"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
-          (proximo ?
-            '<div style="font-size:16px;font-weight:500;margin-bottom:4px">' + esc((proximo.hito[LANG] || proximo.hito.es || proximo.hito.en || '')) + '</div>' +
-            '<div style="font-size:13px;color:#6b6c66;margin-bottom:14px">' + esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato) + '</div>' +
-            '<div style="font-family:\'Instrument Sans\',sans-serif;font-size:22px;font-weight:700;margin-bottom:14px">' + (isNaN(proximo.monto)?'—':esc(dinero(proximo.monto, proximo.moneda))) + '</div>' +
-            '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('ver_plan')) + '</button>'
-            : '<p style="font-size:13.5px;color:#6b6c66">' + esc(t('sin_proximo')) + '</p>') +
-        '</div>' +
-        '<div class="tarjeta"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
-          (novedades.length ? novedades.map(function(x){
-            return '<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(138,132,116,.15)">' +
-                   '<span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;background:var(--tg)"></span>' +
-                   '<div style="font-size:12.5px;line-height:1.4">' + esc(x.texto) + '</div></div>';
-          }).join('') : '<p style="font-size:13px;color:#8a8570">—</p>') +
-        '</div>' +
+      proyectosHTML +
+      '<div class="tarjeta" style="margin-bottom:28px"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
+        (novedades.length ? novedades.map(function(x){
+          return '<div class="novedad"><span class="novedad-punto"></span><div>' + esc(x.texto) + '</div></div>';
+        }).join('') : '<p style="font-size:13px;color:var(--out);margin:0">—</p>') +
       '</div>' +
       '<div class="accesos">' +
-        '<button type="button" class="acceso" data-ir="documentos"><div class="t">' + esc(t('acc_documentos')) + '</div><div class="s">' + esc(t('acc_documentos_sub')) + '</div></button>' +
         '<button type="button" class="acceso" data-ir="soporte"><div class="t">' + esc(t('acc_soporte')) + '</div><div class="s">' + esc(t('acc_soporte_sub')) + '</div></button>' +
       '</div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
+    cargaPortadas(c);
+  }
+
+  /* ── Proyectos del comprador: carpeta de documentos + contratos + portada ──
+     Todo viene de `portal_situacion` (proyectos, contratos con proyecto_id, documentos con proyecto_id): aquí
+     solo se agrupa. Un documento va a la carpeta de SU proyecto por id; el que no trae id (o cuyo proyecto no
+     está entre los del comprador) cae a una carpeta por nombre, sin mezclarse con otra. La información global
+     de la empresa no llega al portal: el servidor la excluye. */
+  function carpetasProyecto(){
+    var d = DATOS || {}, mapa = {}, orden = [];
+    function pon(key, base){ if (!mapa[key]){ mapa[key] = Object.assign({ key:key, docs:[], contratos:[] }, base); orden.push(key); } return mapa[key]; }
+    (d.proyectos || []).forEach(function(p){ pon(p.id, { nombre:p.nombre, resort:p.resort, entrega:p.entrega, mapa:p.mapa, portada:p.portada }); });
+    (d.contratos || []).forEach(function(x){
+      var f = x.proyecto_id ? mapa[x.proyecto_id] : null;
+      if (!f) f = pon('n:' + (x.proyecto || ''), { nombre:x.proyecto || '—' });
+      f.contratos.push(x);
+    });
+    (d.documentos || []).forEach(function(x){
+      var f = x.proyecto_id ? mapa[x.proyecto_id] : null;
+      if (!f) f = pon('n:' + (x.proyecto || ''), { nombre:x.proyecto || t('sin_proyecto') });
+      f.docs.push(x);
+    });
+    return orden.map(function(k){ return mapa[k]; });
+  }
+  function nDocsTxt(n){ return n === 1 ? t('n_docs_1') : t('n_docs_n').replace('{n}', n); }
+  function catDoc(c){ var k = 'doc_cat_' + String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); var v = t(k); return v === k ? (c || t('doc_otros')) : v; }
+  function inicialDe(n){ return esc(String(n || '?').replace(/[^A-Za-z0-9]/, '').charAt(0).toUpperCase() || '·'); }
+  function portadaHTML(f, clase){
+    return '<div class="' + clase + '"><span class="proy-inicial" aria-hidden="true">' + inicialDe(f.nombre) + '</span>' +
+      (f.portada ? '<img alt="" data-portada="' + esc(f.portada) + '" hidden>' : '') + '</div>';
+  }
+  /* Las portadas son URLs firmadas de 10 min: se piden TODAS juntas (una llamada) y se recuerdan 8 min para no
+     firmar de nuevo en cada repintado de Inicio. */
+  var PORTADA_URL = {};
+  function cargaPortadas(raiz){
+    var imgs = Array.prototype.slice.call((raiz || document).querySelectorAll('img[data-portada]'));
+    if (!imgs.length) return;
+    var ahora = Date.now(), faltan = [];
+    imgs.forEach(function(img){
+      var p = img.getAttribute('data-portada'), c = PORTADA_URL[p];
+      if (!c || c.hasta < ahora) { if (faltan.indexOf(p) < 0) faltan.push(p); }
+    });
+    function pinta(){
+      imgs.forEach(function(img){
+        var c = PORTADA_URL[img.getAttribute('data-portada')];
+        if (!c || !c.url) return;
+        img.onload = function(){ img.hidden = false; };
+        img.src = c.url;
+      });
+    }
+    if (!faltan.length){ pinta(); return; }
+    sb.storage.from('documentacion').createSignedUrls(faltan, 600).then(function(r){
+      (r.data || []).forEach(function(u){ if (u.signedUrl) PORTADA_URL[u.path] = { url:u.signedUrl, hasta:Date.now() + 8 * 60 * 1000 }; });
+      pinta();
+    }).catch(function(e){ console.error('portadas', e); /* MUDO A PROPOSITO: la portada es decorativa; sin ella queda la inicial del proyecto y no es un fallo que el comprador deba ver (el detalle va a la consola para diagnosticar) */ });
+  }
+  function entregaTxt(f){ return f.entrega ? esc(t('entrega_proyecto')) + ': ' + esc(fecha(f.entrega)) : ''; }
+
+  /* ── Línea de tiempo de una operación: pagos y obra en una sola línea ──
+     Es presentación pura: los pasos salen de los hitos ya repartidos (estadosHitos)
+     y de las fases de obra de la unidad de ESE contrato (mismo contrato_numero).
+     Sin datos de obra, solo pagos. El navegador no decide nada: solo ordena lo que
+     la RPC ya dijo. */
+  function lineaTiempo(x, hs){
+    var d = DATOS, fases = d.fases || [];
+    var u = (d.obra || []).filter(function(o){ return o.contrato_numero === x.numero; })[0];
+    var pasos = [], marcado = false;
+    hs.forEach(function(y){
+      var est = y.estado === 'pagado' ? 'hecho' : 'espera';
+      if (est !== 'hecho' && !marcado){ est = 'actual'; marcado = true; }
+      pasos.push({ g:'pagos', txt:Lx(y.hito) || '—', sub:(isNaN(y.monto) ? '' : dinero(y.monto, x.moneda)), est:est });
+    });
+    if (u && fases.length){
+      var idx = fases.map(function(f){ return f.clave; }).indexOf(u.fase);
+      fases.forEach(function(f, i){
+        pasos.push({ g:'obra', txt:Lx(f), sub:'', est: i < idx ? 'hecho' : (i === idx ? 'actual' : 'espera') });
+      });
+    }
+    if (pasos.length < 2) return '';
+    var grupo = '';
+    return '<ol class="tl" aria-label="' + esc(t('plan_pagos')) + '">' + pasos.map(function(p){
+      var cab = '';
+      if (p.g !== grupo){ grupo = p.g; cab = '<li class="tl-grupo" aria-hidden="true">' + esc(t(p.g === 'pagos' ? 'tl_pagos' : 'tl_obra')) + '</li>'; }
+      return cab + '<li class="tl-paso ' + p.est + '"><span class="tl-punto"></span><span class="tl-txt">' + esc(p.txt) + '</span>' +
+        (p.sub ? '<span class="tl-sub">' + esc(p.sub) + '</span>' : '') + '</li>';
+    }).join('') + '</ol>';
   }
 
   /* ── Contratos ────────────────────────────────────────────────────── */
@@ -1056,7 +1641,7 @@
       // que cualquier otro estado sin marcar, y no destacaba entre el resto
       // de la ficha.
       var tagBg = x.firmado ? 'rgba(63,82,48,.12)' : 'rgba(184,99,29,.14)';
-      var tagColor = x.firmado ? 'var(--ok)' : '#B8631D';
+      var tagColor = x.firmado ? 'var(--ok)' : '#8F4A12';
       var fp = firmaPend[x.id];
       /* Una Carta de Reserva ya relevada por su Bloqueo y su Construcción sigue
          viéndose entera —es un documento suyo, firmado, con su PDF— pero su
@@ -1085,18 +1670,21 @@
           : (base > 0 ? '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
           '<div class="barra-leg"><span>' + pct + '% ' + esc(t('de')) + ' ' + esc(dinero(base,x.moneda)) + '</span>' +
           '<span>' + esc(dinero(Math.max(0,base-cobrado),x.moneda)) + ' ' + esc(t('pendiente')).toLowerCase() + '</span></div>' : '')) +
+        (!sustituido ? lineaTiempo(x, hs) : '') +
         // Los hitos de una Carta sustituida son los mismos que ya trae su Bloqueo:
         // enseñarlos aquí reclamaría dos veces el mismo calendario de pagos.
         (hs.length && !sustituido ? '<table class="docs"><thead><tr><th>' + esc(t('concepto')) + '</th><th>' + esc(t('cuando')) + '</th>' +
           '<th class="num">' + esc(t('importe')) + '</th><th>' + esc(t('estado')) + '</th></tr></thead><tbody>' +
           hs.map(function(y){
-            var descr = y.hito[LANG] || y.hito.es || y.hito.en || '';
+            var descr = Lx(y.hito);
             var col = TAGCOLOR[y.estado];
-            return '<tr><td>' + esc(descr||'—') + '</td><td class="flojo">' + esc(y.hito.timing||'') + '</td>' +
-              '<td class="num">' + (isNaN(y.monto)?'—':esc(dinero(y.monto,x.moneda))) + '</td>' +
-              '<td><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(t(y.estado)) + '</span></td></tr>';
+            return '<tr><td data-l="' + esc(t('concepto')) + '">' + esc(descr||'—') + '</td><td class="flojo" data-l="' + esc(t('cuando')) + '">' + esc(y.hito.timing||'') + '</td>' +
+              '<td class="num" data-l="' + esc(t('importe')) + '">' + (isNaN(y.monto)?'—':esc(dinero(y.monto,x.moneda))) + '</td>' +
+              '<td data-l="' + esc(t('estado')) + '"><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(t(y.estado)) + '</span></td></tr>';
           }).join('') + '</tbody></table>' : '') +
-        (x.pdf ? '<div class="op-pie"><button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button></div>' : '') +
+        '<div class="op-pie" style="display:flex;gap:10px;flex-wrap:wrap">' +
+          (x.pdf ? '<button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button>' : '') +
+          '<button type="button" class="btn-borde" data-pregunta-contrato="' + esc(x.id) + '">' + esc(t('preguntar_contrato')) + '</button></div>' +
         (fp ? '<div class="op-pie" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
           '<span style="font-size:12px;color:#8a8570">' + esc(t('firma_pendiente_desc') + ' ' + fecha(fp.enviado_en) + ' · ' + t('firma_pendiente_caduca') + ' ' + fecha(fp.expira_en)) + '</span>' +
           '<button type="button" class="btn-borde" data-borrador="' + esc(fp.enlace) + '">' + esc(t('ver_borrador')) + '</button>' +
@@ -1106,6 +1694,7 @@
     }).join('');
     c.querySelectorAll('[data-contrato]').forEach(function(b){ b.addEventListener('click', function(){ vasA('contratos', b.getAttribute('data-contrato')); }); });
     c.querySelectorAll('[data-borrador]').forEach(function(b){ b.addEventListener('click', function(){ abreBorrador(b.getAttribute('data-borrador')); }); });
+    c.querySelectorAll('[data-pregunta-contrato]').forEach(function(b){ b.addEventListener('click', function(){ abrirNuevoTicket({ tipo:'contrato', id:b.getAttribute('data-pregunta-contrato') }); }); });
   }
 
   /* ── Facturas ─────────────────────────────────────────────────────── */
@@ -1118,10 +1707,10 @@
       '<th class="num">' + esc(t('f_total')) + '</th><th></th></tr></thead><tbody>' +
       d.facturas.map(function(f){
         return '<tr data-fila data-fac="' + esc(f.numero) + '">' +
-          '<td class="clave">' + esc(f.numero) + '</td><td>' + esc(t(TIPO_DOC[f.tipo]||f.tipo)) + '</td>' +
-          '<td class="flojo">' + esc(f.proyecto||'—') + '</td>' +
-          '<td class="flojo">' + esc(fecha(f.fecha)) + '</td>' +
-          '<td class="num">' + esc(dinero(Number(f.total),f.moneda)) + '</td>' +
+          '<td class="clave" data-l="' + esc(t('f_numero')) + '">' + esc(f.numero) + '</td><td data-l="' + esc(t('f_tipo')) + '">' + esc(t(TIPO_DOC[f.tipo]||f.tipo)) + '</td>' +
+          '<td class="flojo" data-l="' + esc(t('f_proyecto')) + '">' + esc(f.proyecto||'—') + '</td>' +
+          '<td class="flojo" data-l="' + esc(t('f_fecha')) + '">' + esc(fecha(f.fecha)) + '</td>' +
+          '<td class="num" data-l="' + esc(t('f_total')) + '">' + esc(dinero(Number(f.total),f.moneda)) + '</td>' +
           '<td class="ir">' + esc(t('ir')) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     c.querySelectorAll('[data-fac]').forEach(function(tr){ tr.addEventListener('click', function(){ vasA('facturas', tr.getAttribute('data-fac')); }); });
@@ -1131,18 +1720,29 @@
   function pintaObra(c){
     var d = DATOS, fases = d.fases || [];
     if (!(d.obra||[]).length){ c.innerHTML = vacio(t('sin_obra_t'), t('sin_obra')); return; }
-    c.innerHTML = d.obra.map(function(u){
+    var todasFotos = [];
+    d.obra.forEach(function(u){ (u.fotos || []).forEach(function(ft){ todasFotos.push({ unidad:u.unidad, ft:ft }); }); });
+    todasFotos.sort(function(a, b){ return String(b.ft.fecha || '').localeCompare(String(a.ft.fecha || '')); });
+    var recientes = todasFotos.slice(0, 4), recSet = {};
+    recientes.forEach(function(r){ recSet[r.ft.path] = true; });
+    var feedObra = recientes.length
+      ? '<div class="rot-bloque">' + esc(t('obra_ultimo')) + '</div><div class="fotos feed-obra">' + recientes.map(function(r){
+          return '<figure><img loading="lazy" data-foto="' + esc(r.ft.path) + '" alt="' + esc(r.ft.titulo || '') + '">' +
+                 '<figcaption><b>' + esc(r.ft.fecha ? fecha(r.ft.fecha) : '') + '</b> · ' + esc(r.unidad) + (r.ft.titulo ? ' · ' + esc(r.ft.titulo) : '') + '</figcaption></figure>';
+        }).join('') + '</div>'
+      : '';
+    c.innerHTML = feedObra + d.obra.map(function(u){
       var idx = fases.map(function(f){ return f.clave; }).indexOf(u.fase);
       return '<div class="op"><div class="op-cab"><div class="info"><h3><b>' + esc(u.unidad) + '</b>' +
           '<span class="sub">' + esc(u.proyecto||'') + (u.contrato_numero ? ' · ' + esc(u.contrato_numero) : '') + '</span></h3></div></div>' +
         (fases.length ? '<div class="fases">' + fases.map(function(f,i){
-          return '<span class="fase ' + (i<idx?'hecha':(i===idx?'actual':'')) + '">' + esc(f[LANG]||f.es) + '</span>';
+          return '<span class="fase ' + (i<idx?'hecha':(i===idx?'actual':'')) + '">' + esc(Lx(f)) + '</span>';
         }).join('') + '</div>' : '') +
         '<div class="op-datos" style="margin-top:14px">' +
           (u.fecha_entrega ? '<div class="d"><div class="lbl">' + esc(t('entrega_est')) + '</div><div class="val">' + esc(fecha(u.fecha_entrega)) + '</div></div>' : '') +
           (u.actualizado ? '<div class="d"><div class="lbl">' + esc(t('actualizado')) + '</div><div class="val">' + esc(fecha(u.actualizado)) + '</div></div>' : '') +
         '</div>' +
-        ((u.fotos||[]).length ? '<div class="fotos" style="margin-top:16px">' + u.fotos.map(function(ft){
+        ((u.fotos||[]).filter(function(ft){ return !recSet[ft.path]; }).length ? '<div class="fotos" style="margin-top:16px">' + u.fotos.filter(function(ft){ return !recSet[ft.path]; }).map(function(ft){
           return '<figure><img loading="lazy" data-foto="' + esc(ft.path) + '" alt="' + esc(ft.titulo||'') + '">' +
                  '<figcaption>' + esc(ft.titulo||'') + (ft.fecha?' · '+esc(fecha(ft.fecha)):'') + '</figcaption></figure>';
         }).join('') + '</div>' : '') +
@@ -1171,29 +1771,122 @@
      pintaPerfil(). Aquí solo queda la documentación de la promoción,
      agrupada por proyecto (pedido del cliente, 1-sep: un comprador con
      varios contratos veía todo mezclado). */
+  /* Documentos = una carpeta por proyecto del comprador (con su portada); dentro, los documentos de ESE proyecto
+     por tipo. Cada proyecto se ve aparte y nada de lo global de la empresa se mezcla. La carpeta abierta vive en la
+     dirección (#/documentos/<proyecto>), así que atrás y recargar funcionan. */
+  var ORDEN_CAT = ['comercial', 'legal', 'tecnico', 'planos', 'fotos', 'precios'];
   function pintaDocumentos(c){
-    var d = DATOS, docs = d.documentos||[];
-    if (!docs.length){ c.innerHTML = vacio(t('sin_docs_t'), t('sin_docs')); return; }
-    var grupos = {}, orden = [];
-    docs.forEach(function(x){
-      var p = x.proyecto || t('sin_proyecto');
-      if (!grupos[p]){ grupos[p] = []; orden.push(p); }
-      grupos[p].push(x);
-    });
-    c.innerHTML = orden.map(function(p){
-      return '<h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(p) + '</h3>' +
-        '<div class="doclista" style="margin-bottom:28px">' + grupos[p].map(function(x){
-          return '<div class="docfila" data-doc="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.titulo) + '</div>' +
-            '<div class="s">' + esc(x.categoria||'') + '</div></div></div>';
-        }).join('') + '</div>';
-    }).join('');
-    c.querySelectorAll('[data-doc]').forEach(function(el){
-      el.addEventListener('click', function(){
-        var doc = (DATOS.documentos||[]).filter(function(x){ return String(x.id) === el.getAttribute('data-doc'); })[0];
-        if (!doc) return;
-        if (doc.url) window.open(doc.url, '_blank', 'noopener'); else abreFichero('documentacion', doc.path);
+    var carpetas = carpetasProyecto();
+    if (!carpetas.length){ c.innerHTML = vacio(t('sin_docs_t'), t('sin_docs')); return; }
+    var sel = leeHash().doc;
+    var f = sel ? carpetas.filter(function(x){ return x.key === sel; })[0] : null;
+    if (sel && !f){ vasA('documentos', null, true); sel = null; }
+    if (f){ pintaCarpeta(c, f); return; }
+    c.innerHTML = '<div class="proy-grid">' + carpetas.map(function(x){
+      return '<button type="button" class="proy-card" data-carpeta="' + esc(x.key) + '">' + portadaHTML(x, 'proy-portada') +
+        '<div class="proy-cuerpo"><div class="proy-nombre">' + esc(x.nombre) + '</div>' +
+        (x.resort ? '<div class="proy-meta">' + esc(x.resort) + '</div>' : '') +
+        '<div class="proy-meta proy-enlace">' + esc(x.docs.length ? nDocsTxt(x.docs.length) : t('sin_docs_proyecto')) + ' →</div></div></button>';
+    }).join('') + '</div>';
+    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
+    cargaPortadas(c);
+  }
+  function pintaCarpeta(c, f){
+    var docs = f.docs;
+    var mapaOk = f.mapa && /^https:\/\//i.test(f.mapa);
+    c.innerHTML =
+      '<button type="button" class="btn-borde" id="btnVolverCarpetas">← ' + esc(t('todos_proyectos')) + '</button>' +
+      '<div class="proy-cab">' + portadaHTML(f, 'proy-portada-grande') +
+        '<div class="proy-cab-info"><h2>' + esc(f.nombre) + '</h2>' +
+          (f.resort ? '<div class="proy-meta">' + esc(f.resort) + '</div>' : '') +
+          (f.entrega ? '<div class="proy-meta">' + entregaTxt(f) + '</div>' : '') +
+          '<div class="proy-meta">' + esc(docs.length ? nDocsTxt(docs.length) : t('sin_docs_proyecto')) + '</div>' +
+          (mapaOk ? '<div style="margin-top:10px"><a class="btn-borde" style="text-decoration:none;display:inline-block" href="' + esc(f.mapa) + '" target="_blank" rel="noopener">' + esc(t('ver_ubicacion')) + '</a></div>' : '') +
+        '</div></div>' +
+      (docs.length
+        ? '<div class="doc-barra"><input id="docBuscar" class="campo-input" type="search" autocomplete="off" placeholder="' + esc(t('doc_buscar')) + '" aria-label="' + esc(t('doc_buscar')) + '">' +
+          // «Descargar carpeta» solo si hay ficheros subidos que empaquetar: hoy casi todos los documentos son enlaces
+          // externos y un botón que siempre dice «no hay nada descargable» es un botón roto.
+          (docs.some(function(x){ return !x.url && x.path; }) ? '<button type="button" class="btn-borde" id="btnZipDocs">' + esc(t('descargar_carpeta')) + '</button>' : '') +
+          '</div><div id="docLista"></div>'
+        : '');
+    document.getElementById('btnVolverCarpetas').addEventListener('click', function(){ vasA('documentos', null); });
+    cargaPortadas(c);
+    if (!docs.length) return;
+    var cajaLista = document.getElementById('docLista'), visibles = docs;
+    function pintaLista(q){
+      q = (q || '').trim().toLowerCase();
+      visibles = !q ? docs : docs.filter(function(x){ return [x.titulo, x.descripcion, x.categoria].join(' ').toLowerCase().indexOf(q) >= 0; });
+      if (!visibles.length){ cajaLista.innerHTML = '<p class="vacio">' + esc(t('doc_sin_resultados')) + '</p>'; return; }
+      var cats = {}, orden = [];
+      visibles.forEach(function(x){ var k = x.categoria || ''; if (!cats[k]){ cats[k] = []; orden.push(k); } cats[k].push(x); });
+      orden.sort(function(a, b){
+        var ia = ORDEN_CAT.indexOf(String(a).toLowerCase()), ib = ORDEN_CAT.indexOf(String(b).toLowerCase());
+        return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
       });
+      cajaLista.innerHTML = orden.map(function(k){
+        return '<div class="rot-bloque doc-tipo">' + esc(catDoc(k)) + '</div><div class="doclista" style="margin-bottom:20px">' +
+          cats[k].map(function(x){
+            return '<div class="docfila" data-doc="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.titulo) + '</div>' +
+              (x.descripcion ? '<div class="s">' + esc(x.descripcion) + '</div>' : '') + '</div></div>';
+          }).join('') + '</div>';
+      }).join('');
+    }
+    pintaLista('');
+    document.getElementById('docBuscar').addEventListener('input', function(ev){ pintaLista(ev.target.value); });
+    cajaLista.addEventListener('click', function(ev){
+      var el = ev.target.closest('[data-doc]'); if (!el) return;
+      var doc = docs.filter(function(x){ return String(x.id) === el.getAttribute('data-doc'); })[0];
+      if (!doc) return;
+      if (doc.url) window.open(doc.url, '_blank', 'noopener'); else abreFichero('documentacion', doc.path);
     });
+    var btnZip = document.getElementById('btnZipDocs');
+    if (btnZip) btnZip.addEventListener('click', function(){ zipDeDocs(visibles, f.nombre, this); });
+  }
+  /* «Descargar carpeta»: un solo .zip con lo que se ve en la lista. Sin función en el servidor: se piden las URLs
+     firmadas de las rutas que la RPC ya devolvió (600 s, firmadas AHORA) y el zip se arma aquí. Solo ficheros del
+     almacén; los que son un enlace externo no se pueden empaquetar. Topes: 60 ficheros y 120 MB. */
+  function zipDeDocs(lista, nombreProyecto, btn){
+    var rutas = lista.filter(function(x){ return !x.url && x.path; });
+    if (!rutas.length){ toastMal(t('doc_zip_vacio')); return; }
+    if (rutas.length > 60){ toastMal(t('doc_zip_tope')); return; }
+    var etq = btn.textContent; btn.disabled = true; btn.textContent = t('doc_zip_prep');
+    sb.storage.from('documentacion').createSignedUrls(rutas.map(function(x){ return x.path; }), 600).then(function(r){
+      if (r.error || !r.data) throw new Error('firmas');
+      var porRuta = {}; r.data.forEach(function(u){ if (u.signedUrl) porRuta[u.path] = u.signedUrl; });
+      var total = 0, usados = {}, ficheros = [];
+      return rutas.reduce(function(prev, x){
+        return prev.then(function(){
+          var url = porRuta[x.path]; if (!url) return;
+          return fetch(url).then(function(resp){
+            if (!resp.ok) throw new Error('descarga');
+            var cl = Number(resp.headers.get('content-length')) || 0;
+            if (total + cl > 120 * 1024 * 1024) throw new Error('tope');
+            return resp.arrayBuffer();
+          }).then(function(buf){
+            total += buf.byteLength; if (total > 120 * 1024 * 1024) throw new Error('tope');
+            var ext = (/\.[A-Za-z0-9]{1,5}$/.exec(x.path) || [''])[0];
+            var base = String(x.titulo || 'documento').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').trim().slice(0, 80);
+            if (!base || /^\.+$/.test(base)) base = 'documento';
+            var nombre = base + ext, k = 2;
+            while (usados[nombre.toLowerCase()]) nombre = base + ' (' + (k++) + ')' + ext;
+            usados[nombre.toLowerCase()] = true;
+            ficheros.push({ name:nombre, data:new Uint8Array(buf) });
+          });
+        });
+      }, Promise.resolve()).then(function(){ return ficheros; });
+    }).then(function(ficheros){
+      if (!ficheros.length) throw new Error('vacio');
+      var blob = new Blob([lwZip(ficheros)], { type:'application/zip' });
+      var nom = String(nombreProyecto || 'documentos').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').trim().slice(0, 60) || 'documentos';
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Lawang - ' + nom + '.zip';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      if (rutas.length < lista.length) toast(t('doc_zip_externos'));
+    }).catch(function(e){
+      console.error('zip documentos', e);
+      toastMal(t(e && e.message === 'tope' ? 'doc_zip_tope' : 'doc_zip_err'));
+    }).then(function(){ btn.disabled = false; btn.textContent = etq; });
   }
   function abreFichero(bucket, path){
     if (!path) return;
@@ -1210,6 +1903,8 @@
      categoría. Las conversaciones de antes de este cambio viven ya como un
      ticket "General" abierto (migración, no se perdió nada). */
   var CATEGORIAS = ['Pagos','Documentación','Obra','Otro'];
+  /* El valor que se guarda es el español de siempre (la base y el equipo lo leen así); solo cambia lo que se lee. */
+  function catTxt(c){ var k = 'cat_' + String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); var v = t(k); return v === k ? c : v; }
   function pintaSoporte(c){
     var d = DATOS, tickets = d.tickets || [];
     var html = '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
@@ -1220,9 +1915,10 @@
       // "Abierto" en sólido (1-sep-2026, pedido del cliente: se perdía contra
       // el crema de fondo con el tinte tan suave que llevaba antes).
       var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
-      var extracto = ultimo ? (ultimo.de === 'equipo' ? t('tu') + ': ' : '') + ultimo.texto : '';
+      var extracto = ultimo ? (ultimo.de === 'cliente' ? t('tu') + ': ' : '') + ultimo.texto : '';
       if (extracto.length > 80) extracto = extracto.slice(0, 80) + '…';
-      return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.categoria) + '</div>' +
+      return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(catTxt(x.categoria)) + '</div>' +
+        (x.ref_numero ? '<div class="s">' + esc(t('sobre')) + ' ' + esc(x.ref_numero) + '</div>' : '') +
         (extracto ? '<div class="s">' + esc(extracto) + '</div>' : '') + '</div>' +
         '<div class="der"><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' +
           esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
@@ -1242,7 +1938,7 @@
     var abierto = x.estado === 'abierto';
     var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
     abreDrawer(
-      '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(x.categoria) + '</h3>' +
+      '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(catTxt(x.categoria)) + '</h3>' +
       '<span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
       '<div id="ticketHilo" style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;margin:14px 0;padding:2px"></div>' +
       '<form id="fTicket">' +
@@ -1277,13 +1973,24 @@
     });
   }
 
-  function abrirNuevoTicket(){
+  function abrirNuevoTicket(ref){
+    // el listener de «Nuevo ticket» le pasa el evento: solo vale un {tipo,id} nuestro
+    ref = (ref && ref.tipo && ref.id) ? ref : null;
+    var refOpts = '<option value="">' + esc(t('sobre_nada')) + '</option>' +
+      (DATOS.facturas || []).map(function(f){
+        return '<option value="factura:' + esc(f.id) + '"' + (ref && ref.tipo === 'factura' && ref.id === f.id ? ' selected' : '') + '>' + esc(t('factura')) + ' ' + esc(f.numero) + '</option>';
+      }).join('') +
+      (DATOS.contratos || []).map(function(x){
+        return '<option value="contrato:' + esc(x.id) + '"' + (ref && ref.tipo === 'contrato' && ref.id === x.id ? ' selected' : '') + '>' + esc(t('nav_contratos')) + ' ' + esc(x.numero) + '</option>';
+      }).join('');
+    var catPre = ref ? (ref.tipo === 'factura' ? 'Pagos' : 'Documentación') : '';
     abreDrawer(
       '<div class="hoja"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600">' + esc(t('nuevo_ticket')) + '</h3>' +
       '<div class="campo"><label>' + esc(t('categoria')) + '</label>' +
         '<select id="nCategoria" required><option value="">' + esc(t('elige_categoria')) + '</option>' +
-        CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '">' + esc(cat) + '</option>'; }).join('') +
+        CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '"' + (cat === catPre ? ' selected' : '') + '>' + esc(catTxt(cat)) + '</option>'; }).join('') +
         '</select></div>' +
+      '<div class="campo"><label>' + esc(t('sobre')) + '</label><select id="nSobre">' + refOpts + '</select></div>' +
       '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="nTexto" required style="min-height:100px"></textarea></div>' +
       '<div style="display:flex;gap:10px;margin-top:6px"><button type="button" class="btn-oscuro" id="btnAbrirTicket">' + esc(t('abrir_ticket')) + '</button>' +
       '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cancelar')) + '</button></div></div>'
@@ -1294,10 +2001,15 @@
       var texto = document.getElementById('nTexto').value.trim();
       if (!cat || !texto){ toastMal(t('completa_campos')); return; }
       var btn = document.getElementById('btnAbrirTicket'); btn.disabled = true;
-      sb.rpc('portal_abrir_ticket', { p_client_id: DATOS.client_id, p_categoria: cat, p_texto: texto }).then(function(r){
+      // La referencia viaja como id; el servidor comprueba que es del comprador (no se fía de esto).
+      var sobre = (document.getElementById('nSobre').value || '').split(':');
+      var args = { p_client_id: DATOS.client_id, p_categoria: cat, p_texto: texto,
+                   p_factura_id: sobre[0] === 'factura' ? sobre[1] : null,
+                   p_contrato_id: sobre[0] === 'contrato' ? sobre[1] : null };
+      sb.rpc('portal_abrir_ticket', args).then(function(r){
         btn.disabled = false;
         if (r.error){ console.error('portal_abrir_ticket', r.error); toastMal(t('err_ticket')); return; }
-        recargaSituacion(function(){ cierraDrawer(); render(); toast(t('ticket_abierto')); });
+        recargaSituacion(function(){ cierraDrawer(); vasA('soporte', null); render(); toast(t('ticket_abierto')); });
       });
     });
   }
@@ -1370,7 +2082,9 @@
   }
 
   /* ══ DRAWER genérico ═════════════════════════════════════════════════ */
+  var CAJON_TK = 0, CAJON_CERRANDO = false;
   function abreDrawer(html, clase){
+    CAJON_TK++; CAJON_CERRANDO = false;
     document.getElementById('drawerVelo').hidden = false;
     var dr = document.getElementById('drawer');
     dr.className = 'drawer' + (clase ? ' ' + clase : '');
@@ -1378,10 +2092,16 @@
     dr.innerHTML = '<div class="drawer-cerrar"><button type="button" id="btnCerrarDrawer">✕</button></div>' + html;
     document.getElementById('btnCerrarDrawer').addEventListener('click', cierraDrawer);
     document.getElementById('drawerVelo').onclick = cierraDrawer;
+    if (window.LW_MOV) LW_MOV.cajon(dr, document.getElementById('drawerVelo'), true);
   }
   function cierraDrawer(){
-    document.getElementById('drawerVelo').hidden = true;
-    document.getElementById('drawer').hidden = true;
+    var velo = document.getElementById('drawerVelo'), dr = document.getElementById('drawer');
+    if (!CAJON_CERRANDO){
+      var tk = ++CAJON_TK;
+      var fin = function(){ if (tk === CAJON_TK){ velo.hidden = true; dr.hidden = true; CAJON_CERRANDO = false; } };
+      if (dr.hidden || !window.LW_MOV) fin();
+      else { CAJON_CERRANDO = true; LW_MOV.cajon(dr, velo, false, fin); }
+    }
     var r = leeHash();
     if (r.doc) vasA(r.sec, null);
   }
@@ -1404,14 +2124,16 @@
     var v = documentoVars(soc);
     var estilo = function(k){ return Object.keys(v[k]).filter(function(p){ return v[k][p]; }).map(function(p){ return p+':'+v[k][p]; }).join(';'); };
     abreDrawer(
-      '<div style="display:flex;gap:10px;margin-bottom:14px">' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
         '<button type="button" class="btn-oscuro" id="btnImprimirDoc">' + esc(t('imprimir')) + '</button>' +
+        '<button type="button" class="btn-borde" id="btnPreguntaFac">' + esc(t('preguntar_factura')) + '</button>' +
         '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>' +
       '<div class="hoja-scroll"><div class="sheet" style="' + estilo('hoja') + '"><div class="doc" style="' + estilo('doc') + '">' +
         documentoHTML(campos, { numero: f.numero }) + '</div></div></div>',
       'ancho'
     );
     document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
+    document.getElementById('btnPreguntaFac').addEventListener('click', function(){ abrirNuevoTicket({ tipo:'factura', id:f.id }); });
     document.getElementById('btnImprimirDoc').addEventListener('click', function(){
       document.body.classList.add('imprimiendo'); window.print(); document.body.classList.remove('imprimiendo');
     });

@@ -333,70 +333,20 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 .clave strong{display:block;font-family:var(--sa);font-weight:500;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ci);margin-bottom:6px}
 .clave p{margin:0;font-family:var(--sa);font-size:14px;line-height:1.7;color:var(--ci2)}
 
-/* ── 1b · PANEL DE LA HERO (24-sep, owner: "A land-plot development… con el FAQ en la
-   hero"). Movil: debajo de la foto, en flujo, a todo el ancho (leccion de v2: un panel
-   largo superpuesto en pantalla pequeña es un callejon sin salida). Desde 1024px flota
-   a la derecha sobre la foto, en cristal oscuro como el desplegable de idioma de la home. */
-#faq{position:relative;z-index:6;background:var(--ob);color:var(--rl);padding:40px var(--cpd) 48px}
-#faq .kicker{color:var(--sc)}
-#faq .kicker::before{background:var(--sc)}
-#faq h2{font-family:var(--sa);font-weight:200;font-size:clamp(28px,1.4vw + 16px,40px);line-height:1.05;text-transform:uppercase;margin:12px 0 0;color:var(--rl)}
-#faq h2 em{font-family:var(--se);font-weight:400;font-style:normal;color:var(--ss)}
-.dd-lema{font-family:var(--sa);font-size:14px;line-height:1.7;color:rgba(245,240,230,.75);margin:14px 0 0}
-.dd-lema b{color:var(--rl);font-weight:500}
-#faq h3{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--sc);margin:0 0 6px}
-.dd-cab{padding-bottom:22px;border-bottom:1px solid rgba(245,240,230,.16)}
-.dd-cuerpo{display:flex;flex-direction:column;gap:30px;padding-top:24px}
-/* Documentos | FAQ lado a lado desde 1280px (v2, owner 23-sep: las dos columnas a la
-   vista). Sin documentos publicados, la FAQ ocupa todo el ancho. */
-.dd-cols{display:flex;flex-direction:column;gap:30px}
-@media(min-width:1280px){
-  #vision{--pw:min(52%,760px)!important}
-  .dd-cols{flex-direction:row;align-items:flex-start;gap:28px}
-  .dd-cols > div{flex:1 1 0;min-width:0}
-  #docs-lista a{padding:6px 10px!important}
-}
+/* ── 1b · PANEL DE LA HERO (24-sep, owner: "A land-plot development… con el FAQ en la hero").
+   Sus reglas viven en /investor-deck/panel-dd.css, fuente unica de todos los decks (owner,
+   6-oct-2026). Aqui solo la geometria de la hero alrededor del panel. ── */
 @media(min-width:1024px){
   #vision{height:100svh}
   #vision{--pw:min(40%,560px)}
-  #faq{position:absolute;top:clamp(78px,11vh,96px);right:var(--cpd);bottom:clamp(22px,4vh,40px);width:var(--pw);min-width:400px;
-    padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:16px;
-    background:rgba(12,14,10,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    border:1px solid rgba(190,179,165,.3);box-shadow:0 30px 70px -30px rgba(0,0,0,.7)}
-  .dd-cab{padding:26px 28px 20px;flex:none}
-  .dd-cuerpo{flex:1;min-height:0;overflow-y:auto;padding:20px 28px 26px;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
   .hero-texto,.hero-pie{right:calc(var(--pw) + var(--cpd) + 40px)}
   #hero-next{right:calc(var(--pw) + var(--cpd) + 20px)}
   #hero-puntos{left:calc((100% - var(--pw) - var(--cpd)) / 2)}
   .hero-pie{flex-direction:column;align-items:flex-start;gap:22px}
   .hero-texto{bottom:clamp(170px,26vh,230px)}
 }
+@media(min-width:1280px){ #vision{--pw:min(52%,760px)!important} }
 @media(min-width:1024px) and (max-width:1640px){ .cifras{grid-template-columns:repeat(2,auto);row-gap:14px} .cifra:nth-child(3){padding-left:0;border-left:0} .hero-texto{bottom:clamp(220px,32vh,280px)} }
-#docs-bloque{flex-direction:column}
-#docs-lista{display:grid;grid-template-columns:1fr;gap:0}
-#docs-lista > div{background:transparent!important;border:0!important;border-top:1px solid rgba(245,240,230,.16)!important;border-radius:0!important;padding:14px 0!important}
-#docs-lista > div:last-child{border-bottom:1px solid rgba(245,240,230,.16)!important}
-#docs-lista .text-deep-lagoon,#docs-lista .font-bold{color:var(--rl)!important;font-family:var(--sa)!important;font-weight:500!important;letter-spacing:.04em}
-#docs-lista .text-territorial-green{color:var(--sc)!important}
-#docs-lista .uppercase{color:var(--ss)!important;font-family:var(--sa)!important;letter-spacing:.2em}
-#docs-lista a{font-family:var(--sa)!important;font-size:10.5px!important;letter-spacing:.16em;text-transform:uppercase;border:1px solid rgba(245,240,230,.4)!important;
-  background:transparent!important;color:var(--rl)!important}
-#docs-lista a:hover{background:rgba(245,240,230,.12)!important}
-.faq-item{border:0;border-top:1px solid rgba(245,240,230,.18);border-radius:0;background:transparent}
-.faq-item:last-child{border-bottom:1px solid rgba(245,240,230,.18)}
-.faq-item + .faq-item{margin-top:0}
-.faq-item summary{list-style:none;cursor:pointer;padding:15px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;
-  font-family:var(--sa);font-size:13px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--rl);line-height:1.4}
-.faq-item summary::-webkit-details-marker{display:none}
-.faq-item summary .mi{font-size:0!important;width:14px;height:14px;position:relative;flex:none;transition:transform .3s var(--ease)}
-.faq-item summary .mi::before,.faq-item summary .mi::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(245,240,230,.8)}
-.faq-item summary .mi::after{transform:rotate(90deg);transition:transform .3s var(--ease)}
-.faq-item[open] summary .mi::after{transform:rotate(0)}
-.faq-item__body{padding:0 0 20px;font-family:var(--sa);font-size:14px;line-height:1.75;color:rgba(245,240,230,.72);max-width:64ch}
-#faq-lista{display:flex;flex-direction:column}
-#faq-lista p{color:rgba(245,240,230,.7)}
-.dd-atajos{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}
-.dd-atajos .btn{padding:10px 16px;font-size:10px}
 
 /* ── 7 · GALERIA ── */
 #gallery{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding-bottom:6px;scrollbar-width:none;margin-top:clamp(2rem,4.5vh,3rem)}
@@ -478,6 +428,8 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 .ubic-marco iframe{display:block;width:100%;height:min(62vh,520px);border:0}
 .ubic-pie{display:flex;justify-content:center;margin-top:28px}
 </style>
+<!-- Panel de due diligence de la hero: fuente unica compartida con investor-deck/index.php (6-oct-2026) -->
+<link rel="stylesheet" href="/investor-deck/panel-dd.css?v=20261006a">
 
 <script src="i18n.js?v=20260924dosrutas"></script>
 </head>
@@ -560,10 +512,18 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       <p class="kicker">Investor Deck · Due Diligence</p>
       <h2>A land-plot development in the <em>Balian river valley.</em></h2>
       <p class="dd-lema">Held as <b>Freehold (HGB)</b> through a PT PMA, or <b>Hak Sewa</b> without a company, with a notarial escrow account — not a security or investment product.</p>
+      <!-- Atajos justo tras el lema (owner, 6-oct-2026): antes cerraban el cuerpo y solo se
+           veian haciendo scroll. Misma estructura que investor-deck/index.php. -->
+      <div class="dd-atajos">
+        <a class="btn btn-atajo" href="#modelos"><span>Villa Models</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+        <a class="btn btn-atajo" href="#masterplan"><span>Masterplan &amp; Plots</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+        <a class="btn btn-atajo" href="#rendimientos"><span>Financial Forecast</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+        <a class="btn btn-atajo" href="#seguridad-notarial"><span>Legal Security</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+      </div>
     </div>
     <div class="dd-cuerpo">
       <div class="dd-cols">
-        <div id="docs-bloque" class="hidden">
+        <div id="docs-bloque" hidden>
           <h3>Project documents</h3>
           <div id="docs-lista"><!-- lo llena el JS --></div>
         </div>
@@ -571,12 +531,6 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
           <h3>Frequently Asked Questions</h3>
           <div id="faq-lista"><!-- lo llena el JS --></div>
         </div>
-      </div>
-      <div class="dd-atajos">
-        <a class="btn btn-hueso" href="#modelos">Villa Models</a>
-        <a class="btn btn-hueso" href="#masterplan">Masterplan &amp; Plots</a>
-        <a class="btn btn-hueso" href="#rendimientos">Financial Forecast</a>
-        <a class="btn btn-hueso" href="#seguridad-notarial">Legal Security</a>
       </div>
     </div>
   </aside>
@@ -1015,14 +969,18 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
   // Ligaduras de Material Symbols, no texto: i18n.js ya se las salta sola.
   var DOC_ICONO = {
     comercial:'description', legal:'gavel', tecnico:'architecture',
-    precios:'payments', portada:'image', otros:'draft'
+    precios:'payments', portada:'image', otros:'draft',
+    // fotos y planos: categorias que la intranet ya usa (carpetas de renders) y que aqui
+    // faltaban: salian como «Document» con el icono generico (6-oct-2026)
+    fotos:'photo_library', planos:'map'
   };
   // Etiqueta de la categoria. En ingles a proposito: SI pasa por i18n.js (es un
   // valor cerrado que escribe el estudio), al reves que el titulo del documento,
   // que lo teclea una persona en la intranet y va marcado data-no-i18n.
   var DOC_ETIQUETA = {
     comercial:'Commercial', legal:'Legal', tecnico:'Technical',
-    precios:'Plots & pricing', portada:'Image', otros:'Document'
+    precios:'Plots & pricing', portada:'Image', otros:'Document',
+    fotos:'Photos', planos:'Plans'
   };
 
   // El `url` lo teclea una persona en la intranet y esto es una pagina publica sin
@@ -1048,16 +1006,13 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
     return m ? 'https://drive.google.com/uc?export=download&id=' + m[1] : '';
   }
 
-  // Boton pequeño de accion dentro de una tarjeta de documento.
-  function accionDoc(href, icono, etiqueta, primaria){
+  // Boton pequeño de accion dentro de una tarjeta de documento. Mismo marcado que el deck
+  // generico (.doc-btn): el estilo vive en /investor-deck/panel-dd.css, comun a los dos.
+  function accionDoc(href, icono, etiqueta){
     var a = document.createElement('a');
-    a.href = href; a.target = '_blank'; a.rel = 'noopener';
-    a.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full no-underline ' +
-      'font-label-md text-[12px] transition-all ' +
-      (primaria ? 'bg-deep-lagoon text-white hover:bg-territorial-green'
-                : 'border border-[#D8D2C5] text-deep-lagoon hover:border-territorial-green hover:bg-[#E4DFD5]/60');
+    a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.className = 'doc-btn';
     var i = document.createElement('span');
-    i.className = 'material-symbols-outlined text-[16px]';
+    i.className = 'material-symbols-outlined';
     i.textContent = icono;
     var t = document.createElement('span');
     t.textContent = etiqueta;
@@ -1073,6 +1028,16 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
     var t = d.titulo_i18n || {};
     return String(t[lang] || t.en || d.titulo || '');
   }
+  // Enlace de un documento publicado segun el idioma del visitante (6-oct-2026, owner): `url` es el espanol y
+  // el de reserva; `url_i18n` trae en/id. es -> url · en -> url_i18n.en o url · id -> url_i18n.id, .en o url.
+  // Cada candidato pasa por urlSegura(): uno invalido no tumba el boton, cae al siguiente.
+  function urlDoc(d){
+    var lang = window.lwLang ? lwLang() : 'en';
+    var u = d.url_i18n || {};
+    var orden = lang === 'es' ? [d.url] : lang === 'id' ? [u.id, u.en, d.url] : [u.en, d.url];
+    for(var i = 0; i < orden.length; i++){ var s = urlSegura(orden[i]); if(s) return s; }
+    return '';
+  }
   function pintaDocs(docs){
     var bloque = document.getElementById('docs-bloque');
     var cont   = document.getElementById('docs-lista');
@@ -1080,54 +1045,53 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
     cont.innerHTML = '';
     var pintados = 0;
     docs.forEach(function(d){
-      var href = urlSegura(d.url);
+      var href = urlDoc(d);
       if(!href) return;
       // La tarjeta ya NO es un enlace: lleva dos acciones distintas dentro, y un <a>
       // con dos <a> dentro no es HTML valido -- ademas de dejar al inversor sin saber
       // cual de las dos cosas pasa al hacer clic en el hueco entre botones.
-      var card = document.createElement('div');
-      card.className = 'flex flex-col gap-2 bg-[#fffdf8] border border-stone-sand ' +
-                       'rounded-xl px-4 py-3 hover:border-territorial-green transition-colors';
-      var cab = document.createElement('div');
-      cab.className = 'flex items-start gap-2 text-deep-lagoon';
+      // Clases .doc*: las mismas que el deck generico, con su estilo en panel-dd.css.
+      var card = document.createElement('div'); card.className = 'doc';
+      var cab = document.createElement('div'); cab.className = 'doc-cab';
       var ico = document.createElement('span');
-      ico.className = 'material-symbols-outlined text-[18px] shrink-0 text-territorial-green';
+      ico.className = 'material-symbols-outlined';
       ico.textContent = DOC_ICONO[d.categoria] || DOC_ICONO.otros;
       var texto = document.createElement('div');
-      texto.className = 'flex flex-col min-w-0 grow';
+      texto.className = 'doc-txt';
       var tit = document.createElement('span');
       // textContent y data-no-i18n: es un nombre propio escrito por el equipo. Traducirlo
       // por coincidencia de palabras convertiria "ITR" o "SITE PLAN" en otra cosa.
       // Sin `truncate`: a dos columnas el panel es estrecho y cortar el nombre de un
       // documento oficial a mitad es peor que dejarlo envolver en dos lineas.
-      tit.className = 'font-body-md text-body-sm font-bold text-deep-lagoon break-words';
+      tit.className = 'doc-tit';
       tit.setAttribute('data-no-i18n', '');
       tit.textContent = tituloDoc(d);
       texto.appendChild(tit);
       var sub = document.createElement('span');
-      sub.className = 'font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]';
+      sub.className = 'doc-sub';
       sub.textContent = DOC_ETIQUETA[d.categoria] || DOC_ETIQUETA.otros;
       texto.appendChild(sub);
       if(d.descripcion){
         var des = document.createElement('span');
-        des.className = 'font-body-sm text-xs text-[#44483f] leading-relaxed mt-1';
+        des.className = 'doc-des';
         des.setAttribute('data-no-i18n', '');
         des.textContent = d.descripcion;
         texto.appendChild(des);
       }
       cab.appendChild(ico); cab.appendChild(texto);
       var acciones = document.createElement('div');
-      acciones.className = 'flex flex-wrap items-center gap-2 mt-auto pt-1';
-      acciones.appendChild(accionDoc(href, 'visibility', 'View', true));
+      acciones.className = 'doc-acc';
+      acciones.appendChild(accionDoc(href, 'visibility', 'View'));
       var bajar = enlaceDescarga(href);
-      if(bajar) acciones.appendChild(accionDoc(bajar, 'download', 'Download', false));
+      if(bajar) acciones.appendChild(accionDoc(bajar, 'download', 'Download'));
       card.appendChild(cab); card.appendChild(acciones);
       cont.appendChild(card);
       pintados++;
     });
     if(!pintados) return;                       // nada publicable: el bloque sigue oculto
-    bloque.classList.remove('hidden');
-    bloque.classList.add('flex');
+    cont.classList.toggle('un-doc', pintados === 1);
+    bloque.parentNode.classList.add('con-docs');
+    bloque.hidden = false;
     if(window.lwDeck) lwDeck.traduce(bloque);
   }
 
@@ -1143,11 +1107,11 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       // hay mas de un documento publicado, el boton pasa a bajar el ultimo que alguien
       // subio -- un plano topografico bajo la promesa de un dosier. Se ata a la
       // categoria, que es lo que de verdad significa "dosier".
-      var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlSegura(x.url); })[0];
+      var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlDoc(x); })[0];
       if(!d) return;
       var cta = document.getElementById('cta-dosier');
       if(!cta) return;
-      cta.href = urlSegura(d.url);
+      cta.href = urlDoc(d);
       cta.classList.remove('hidden');
       cta.classList.add('inline-flex');
       if(tituloDoc(d)) cta.setAttribute('title', tituloDoc(d));
@@ -1459,9 +1423,8 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       var sum = document.createElement('summary');
       var txt = document.createElement('span');
       txt.textContent = lwTxt(q.pregunta);
-      var ico = document.createElement('span');
-      ico.className = 'material-symbols-outlined mi';
-      ico.textContent = 'expand_more';
+      // + / - dibujado en CSS (panel-dd.css), como en el deck generico: span vacio
+      var ico = document.createElement('span'); ico.className = 'mi'; ico.setAttribute('aria-hidden', 'true');
       sum.appendChild(txt); sum.appendChild(ico);
       var cuerpo = document.createElement('div');
       cuerpo.className = 'faq-item__body';
@@ -1469,11 +1432,13 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       d.appendChild(sum); d.appendChild(cuerpo);
       cont.appendChild(d);
     });
+    document.getElementById('faq-bloque').parentNode.classList.add('con-faq');
   }
 
   function faqCaida(){
     var cont = document.getElementById('faq-lista');
     if(!cont) return;
+    document.getElementById('faq-bloque').parentNode.classList.add('con-faq');   // el aviso se ve: cuenta como bloque
     cont.innerHTML = '<p class="font-body-sm text-body-sm text-on-surface-variant m-0">' +
       'We could not load the questions right now. Please contact ' +
       '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</p>';
@@ -1503,7 +1468,6 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
   // rectangulos medidos a mano, recalibrados el mismo dia por desalineacion
   // frente al PDF original del dosier.
   var ZONAS = null;
-  var CHAPAS = {};   // posicion a mano [x%,y%] de la chapa de estado en las parcelas donde la esquina choca con el texto del plano
 
   // El cartel que se estampa encima. 'reservada' NO se marca SOLD: la leyenda y
   // la lista de al lado las distinguen, y decir SOLD de una reservada
@@ -1546,41 +1510,39 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       wrap.appendChild(el);
       var sello = SELLO[row.estado];
       if(sello){
-        /* 30-sep-2026: el estado va en una CHAPA (círculo con la inicial, S/R) en la esquina
-           superior derecha de la parcela, dentro del polígono. El sello de texto (centroide,
-           luego borde inferior) tapaba el código o los m² que el propio plano lleva escritos:
-           en ese plano la etiqueta ocupa el centro y la parte baja de cada parcela, y la
-           esquina superior derecha queda libre. El texto completo (SOLD/RESERVED) sigue en
-           el title y en el aria-label del enlace, y la leyenda explica los colores. */
-        var minX = Math.min.apply(null, pts.map(function(p){ return p[0]; }));
-        var maxX = Math.max.apply(null, pts.map(function(p){ return p[0]; }));
-        var minY = Math.min.apply(null, pts.map(function(p){ return p[1]; }));
-        var dentro = function(x, y){
-          var d = false;
-          for(var i = 0, j = pts.length - 1; i < pts.length; j = i++){
-            if(((pts[i][1] > y) !== (pts[j][1] > y)) &&
-               (x < (pts[j][0] - pts[i][0]) * (y - pts[i][1]) / (pts[j][1] - pts[i][1]) + pts[i][0])) d = !d;
-          }
-          return d;
-        };
-        var holgado = function(x, y){ return dentro(x, y) && dentro(x - 1.3, y) && dentro(x + 1.3, y) && dentro(x, y - 1) && dentro(x, y + 1); };
-        var bx = maxX - ((maxX - minX) < 14 ? 2.2 : 2.7), by = minY + 2.4;
-        for(var n = 0; n < 60 && !holgado(bx, by); n++){ bx -= 0.5; by += 0.4; }
-        var mano = CHAPAS[row.codigo];
-        if(mano && mano.length === 2){ bx = mano[0]; by = mano[1]; }
-        if(bx < minX) bx = (minX + maxX) / 2;
+        var c = centroide(pts);
         var badge = document.createElement('span');
-        badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold rounded-full shadow flex items-center justify-center';
-        /* Tamaño proporcional al ancho del plano (15 px a ~606 px): a 390 px de pantalla el plano
-           mide ~310 px y una chapa fija de 15 cruzaba la línea de las parcelas estrechas. En
-           móvil queda un punto de color (sin letra): el color lo explica la leyenda. */
-        var d = Math.max(8, Math.round((wrap.clientWidth || 606) * 0.0247));
-        badge.style.width = d + 'px'; badge.style.height = d + 'px'; badge.style.fontSize = (d - 6) + 'px'; badge.style.lineHeight = '1';
-        badge.style.overflow = 'hidden';
-        badge.style.left = bx+'%'; badge.style.top = by+'%'; badge.style.transform = 'translate(-50%,-50%)';
-        badge.textContent = d >= 13 ? sello[0].charAt(0) : '';
+        badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold tracking-widest text-[9px] sm:text-[11px] px-2 py-0.5 rounded-sm shadow';
+        badge.style.left = c[0]+'%'; badge.style.top = c[1]+'%'; badge.style.transform = 'translate(-50%,-50%)';
+        // Palabra ya traducida desde el principio: asi se mide con su ancho real (DIPESAN != RESERVED)
+        // y los repintados (resize, carga tardia) no dejan el sello en ingles.
+        var palabra = (window.lwT && window.lwLang && window.lwT(sello[0], window.lwLang())) || sello[0];
+        badge.textContent = palabra;
         wrap.appendChild(badge);
+        /* Si la palabra entera se sale de su parcela (C6, parcelas estrechas, plano pequeno en movil),
+           se queda solo la inicial de la palabra YA TRADUCIDA (EN R/S, ES R/V, ID D/T: "Dipesan"
+           empieza por D, no por R); el texto completo sigue en el title y el aria-label. */
+        if(!selloCabe(badge, wrap, pts)) badge.textContent = palabra.charAt(0);
       }
+    });
+  }
+
+  // ¿Caben las 4 esquinas y los 4 puntos medios del sello dentro del poligono de su parcela?
+  function selloCabe(badge, wrap, pts){
+    var W = wrap.clientWidth, H = wrap.clientHeight;
+    if(!W || !H) return true;   // plano aun sin medir: se deja la palabra entera
+    var hw = badge.offsetWidth / 2 / W * 100, hh = badge.offsetHeight / 2 / H * 100;
+    var cx = parseFloat(badge.style.left), cy = parseFloat(badge.style.top);
+    var dentro = function(x, y){
+      var d = false;
+      for(var i = 0, j = pts.length - 1; i < pts.length; j = i++){
+        if(((pts[i][1] > y) !== (pts[j][1] > y)) &&
+           (x < (pts[j][0] - pts[i][0]) * (y - pts[i][1]) / (pts[j][1] - pts[i][1]) + pts[i][0])) d = !d;
+      }
+      return d;
+    };
+    return [-1, 0, 1].every(function(a){
+      return [-1, 0, 1].every(function(b){ return (a === 0 && b === 0) || dentro(cx + a * hw, cy + b * hh); });
     });
   }
 
@@ -1629,10 +1591,17 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       if(!pag) throw new Error('manifiesto_vacio');
       document.getElementById('masterplan-img').src = pag.imagen;
       ZONAS = pag.zonas || null;
-      CHAPAS = pag.chapas || {};
       if(ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS);
     })
     .catch(function(){ ZONAS = null; });
+  // El plano mide distinto al cargar la imagen (lazy) y al girar/redimensionar: se repinta
+  // para que cada sello se vuelva a medir contra su parcela.
+  (function(){
+    var img = document.getElementById('masterplan-img'), t = null;
+    var repinta = function(){ if(ZONAS && ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS); };
+    if(img) img.addEventListener('load', repinta);
+    window.addEventListener('resize', function(){ clearTimeout(t); t = setTimeout(repinta, 150); });
+  })();
 
   // ── masterplan / inventario en vivo ───────────────────────────────────────
   var plotsWrap = document.getElementById('plots-wrap');

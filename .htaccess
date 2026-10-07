@@ -47,8 +47,8 @@ RedirectMatch 404 (?i)\.py$
 
 # coleccion/ es la lectura de servidor de The Collection (2-oct-2026, F5a): ni su lib.php, ni el
 # contrato, ni el respaldo, ni sus tests se sirven por URL. Se consumen por require, nunca por
-# peticion. Cuando F5b anada un endpoint publico (coleccion/estado.php) se excluira aqui A
-# PROPOSITO, por nombre: lo nuevo nace cerrado (contexto/seguridad_2026.md §1.ter).
+# peticion. El unico endpoint publico que la sirve vive FUERA de esta carpeta: api/coleccion.php
+# (F7, 6-oct-2026; llamador: la home). Lo nuevo nace cerrado (contexto/seguridad_2026.md §1.ter).
 RedirectMatch 404 (?i)^/coleccion/
 
 # Igual con los .sql, y por el mismo motivo — 24-ago-2026, verificado en produccion:

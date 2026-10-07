@@ -112,8 +112,8 @@
       gastos: verGas ? todas(function () { return sb.from('gastos').select('id,estado,moneda,total,base,pph_retenido,pph_ingresado_el,fecha,vence_el,pagado_el,sociedad,proyectos(nombre),gasto_categorias(grupo)'); }, 'gastos') : Promise.resolve(null),
       closer: verCloser ? todas(function () { return sb.rpc('crm_contratos_para_atribuir', { p_solo_pendientes: false }).select('contrato_id,closer_email'); }, 'closers', 'contrato_id') : Promise.resolve(null),
       bancos: sb.rpc('bancos_resumen', { p_anio: new Date().getFullYear() }).then(function (r) { if (r.error) { console.error('[finanzas] bancos:', r.error); throw new Error('bancos'); } return r.data; }),
-      equipo: sb.from('usuarios').select('email,nombre').then(function (r) { return r.error ? [] : (r.data || []); }, function () { return []; }),
-      sociedades: (typeof cargarSociedades === 'function') ? cargarSociedades(sb).catch(function (e) { console.error('[finanzas] sociedades:', e); return null; }) : Promise.resolve(null)
+      equipo: sb.from('usuarios').select('email,nombre').then(function (r) { if (r.error) { console.error('[finanzas] equipo:', r.error); throw new Error('equipo'); } return r.data || []; }),
+      sociedades: (typeof cargarSociedades === 'function') ? cargarSociedades(sb).catch(function (e) { console.error('[finanzas] sociedades:', e); throw e; }) : Promise.reject(new Error('cargarSociedades no cargó'))
     };
     var claves = Object.keys(fuentes);
     return Promise.all(claves.map(function (k) {
@@ -696,6 +696,8 @@
       var nombres = { contratos: 'contratos', cobrado: 'cobrado por contrato', vencimientos: 'calendario de pagos', facturas: 'facturas y recibís', pendiente: 'pendiente por factura', unidades: 'unidades', solicitudes: 'solicitudes de pago', comisiones: 'comisiones', gastos: 'gastos' };
       var fallidas = Object.keys(d.fallos).filter(function (k) { return nombres[k]; }).map(function (k) { return T(nombres[k]); });
       if (fallidas.length) aviso(T('No se pudieron leer') + ': ' + fallidas.join(', ') + '. ' + T('Los bloques que dependen de eso lo dicen; el resto es correcto.'), 'mal');
+      if (d.fallos.equipo) aviso(T('No se pudo leer el equipo: en «Quién cerró» se ven correos en vez de nombres. Las cifras son correctas.'), 'mal');
+      if (d.fallos.sociedades) aviso(T('No se pudieron leer las sociedades: se ven sus claves en vez de su razón social. Las cifras son correctas.'), 'mal');
       /* Preferencias de VISTA (no datos): moneda, sociedad y «sin firmar».
          En localStorage con try/catch mudo: sin él, valores por defecto. */
       var lee = function (k, def) { try { var v = localStorage.getItem(k); return v == null ? def : v; } catch (_) { /* MUDO: preferencia de vista */ return def; } };

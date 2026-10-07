@@ -25,13 +25,23 @@ require __DIR__ . '/coleccion/lib.php'; // lw_coleccion_ficha(): UNICA lectura d
 
 $SITE = 'https://lawangproperties.com';
 $prop = null;
+// Ruta de prueba /thecollection-v2 (thecollection-v2.php): mismas fichas desde la fuente 'intranet'.
+$V2 = defined('LW_COLECCION_V2');
+// UN documento para toda la página (head, JSON-LD, noscript y precarga de la SPA): la fuente la fija el
+// servidor. /thecollection-v2 fuerza 'intranet'; /thecollection usa LW_COLECCION_FUENTE (datajson hasta el
+// corte de F10a). `live` = el documento viene de la intranet: activa estado de unidad, «Sold out» y el
+// bloque Availability en la SPA, y quita de la página toda credencial de Supabase (la SPA no habla con la base).
+$FUENTE = $V2 ? 'intranet' : null;
+$doc = lw_coleccion($FUENTE);
+$LIVE = !empty($doc['live']);
+if ($LIVE) header('Cache-Control: no-store'); // lleva estado de unidades inline: ningun cache (CDN incluido) puede congelarlo
 
 if (isset($_GET['property']) && $_GET['property'] !== '') {
     $slug = (string) $_GET['property'];
     if (preg_match('/^[A-Za-z0-9-]+$/', $slug)) {
         // El filtro visible===true vive en lw_coleccion() y SOLO alli: un id oculto no
         // llega a esta pagina, asi que cae en el mismo 404 que un id inexistente.
-        $prop = lw_coleccion_ficha($slug);
+        $prop = lw_coleccion_ficha($slug, $FUENTE);
     }
     if (!$prop) {
         http_response_code(404);
@@ -63,9 +73,9 @@ if ($prop) {
     $region   = (string) ($prop['region'] ?? '');
     $sub      = trim((string) ($prop['sub']['en'] ?? ''));
     $desc     = trim((string) ($prop['desc']['en'] ?? ''));
-    $priceEUR = $prop['priceEUR'] ?? null;
     $images   = $prop['images'] ?? [];
-    $ogImage  = $images ? $SITE . $images[0] : $SITE . '/assets/img/aerial-1.jpg';
+    // Una imagen puede ser ruta del servidor (/assets/...) o URL absoluta (bucket de la intranet).
+    $ogImage  = $images ? (preg_match('#^https?://#', (string) $images[0]) ? $images[0] : $SITE . $images[0]) : $SITE . '/assets/img/aerial-1.jpg';
     $canonical = $SITE . '/property/' . $prop['id'];
 
     $metaDesc = $sub !== '' ? $sub : $desc;
@@ -86,14 +96,9 @@ if ($prop) {
             'addressCountry' => 'ID',
         ],
     ];
-    if ($priceEUR) {
-        $jsonLd['offers'] = [
-            '@type'        => 'Offer',
-            'price'        => (string) $priceEUR,
-            'priceCurrency' => 'EUR',
-            'availability' => 'https://schema.org/InStock',
-        ];
-    }
+    // Disponibilidad: lw_coleccion_jsonld_oferta (UNA regla para la ficha y para el listado; ver lib.php).
+    $oferta = lw_coleccion_jsonld_oferta($prop, $LIVE, !empty($doc['stale']));
+    if ($oferta) $jsonLd['offers'] = $oferta;
 }
 ?><!DOCTYPE html>
 <html lang="en">
@@ -125,6 +130,13 @@ if ($prop) {
 <script type="application/ld+json">
 <?= json_encode($jsonLd, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
 </script>
+<?php elseif ($V2): ?>
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="https://lawangproperties.com/thecollection">
+<meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
+<script type="application/ld+json">
+<?= json_encode(lw_coleccion_jsonld_listado($doc, $SITE), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
+</script>
 <?php else: ?>
 <meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
 <link rel="canonical" href="https://lawangproperties.com/thecollection">
@@ -136,21 +148,14 @@ if ($prop) {
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://lawangproperties.com/assets/img/aerial-1.jpg">
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "CollectionPage",
-  "name": "The Collection · Lawang Tropical Properties",
-  "url": "https://lawangproperties.com/thecollection",
-  "description": "Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.",
-  "isPartOf": { "@type": "WebSite", "name": "Lawang Tropical Properties", "url": "https://lawangproperties.com/" }
-}
+<?= json_encode(lw_coleccion_jsonld_listado($doc, $SITE), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
 </script>
 <?php endif; ?>
 <!-- Fonts: The Seasons + Neue Kabel (marca, locales) · Cormorant Garamond + Jost de fallback -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260807170527">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20261007105049">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -951,19 +956,19 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 .pf-footer .lw-ft { max-width:var(--wrap); margin:0 auto; padding:clamp(2.6rem,5vh,3.6rem) var(--gut) 2rem; }
 .lw-ft-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:2.4rem; }
 .lw-ft-logo-img { height:34px; width:auto; display:block; }
-.lw-ft-sub { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); letter-spacing:.3em; text-transform:uppercase; color:#BEB3A5; }
-.lw-ft-tag { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); opacity:.5; line-height:1.7; max-width:34ch; margin-top:14px; }
-.lw-ft-col h5 { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#BEB3A5; margin-bottom:14px; }
-.lw-ft-col a { display:block; font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:rgba(245,240,230,.72); margin-bottom:10px; transition:color .2s; text-decoration:none; }
+.lw-ft-sub { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); letter-spacing:.3em; text-transform:uppercase; color:#E2DCCF; }
+.lw-ft-tag { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:#DDE0D2; line-height:1.7; max-width:34ch; margin-top:14px; }
+.lw-ft-col h5 { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#E2DCCF; margin-bottom:14px; }
+.lw-ft-col a { display:block; font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:#E4E2D6; padding:5px 0; margin-bottom:2px; transition:color .2s; text-decoration:none; }
 .lw-ft-col a:hover { color:#fff; }
 .pf-footer .lw-ft-bottom { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; max-width:var(--wrap); margin:0 auto; padding:1.5rem var(--gut); border-top:1px solid rgba(245,240,230,.1); }
-.lw-ft-copy { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:rgba(245,240,230,.4); letter-spacing:.04em; }
+.lw-ft-copy { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:#DDE0D2; letter-spacing:.04em; }
 .lw-ft-contact { display:flex; gap:1.6rem; flex-wrap:wrap; align-items:center; }
 .lw-ft-cti { display:inline-flex; align-items:center; gap:8px; font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:rgba(245,240,230,.82); text-decoration:none; letter-spacing:.04em; transition:color .2s; }
 .lw-ft-cti:hover { color:#fff; }
 .lw-ft-cti svg { width:15px; height:15px; flex:none; opacity:.9; }
 .lw-ft-legal { display:flex; gap:1.4rem; flex-wrap:wrap; }
-.lw-ft-tc { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(245,240,230,.72); text-decoration:none; cursor:pointer; padding:9px 18px; border:1px solid rgba(245,240,230,.22); border-radius:999px; transition:all .25s; }
+.lw-ft-tc { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#E4E2D6; text-decoration:none; cursor:pointer; padding:9px 18px; border:1px solid rgba(245,240,230,.22); border-radius:999px; transition:all .25s; }
 .lw-ft-tc:hover { color:#0A0C09; background:var(--rl); border-color:var(--rl); }
 @media(max-width:900px){ .lw-ft-grid { grid-template-columns:1fr 1fr; } }
 @media(max-width:560px){
@@ -976,6 +981,44 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
   .pf-footer .lw-ft-bottom { padding-top:1rem; gap:.7rem; }
 }
 
+/* ═══ Bloque «Availability» de la ficha (F7, 6-oct-2026; lámina F6 aprobada). Solo existe con datos en vivo
+   (portfolio-app.js availabilityHTML). Misma gramática que los pines del masterplan; cada estado se distingue
+   también sin color (borde, tachado, texto). ═══ */
+.avail{background:#FDFAF5;border:1px solid rgba(72,91,55,.11);border-radius:11px;padding:28px clamp(18px,3vw,36px) 30px;max-width:980px;font-family:'Neue Kabel','Jost',system-ui,sans-serif;color:#2E3437}
+.avail .kick{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#5d6b52}
+.avail .av-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.avail h2{margin:6px 0 0;font-weight:500;font-size:clamp(24px,3vw,34px);letter-spacing:.04em;text-transform:uppercase;color:#42210B;line-height:1.1}
+.avail h2 b{font-weight:500;color:#364429}
+.avail .av-legend{display:flex;gap:18px;flex-wrap:wrap;list-style:none;margin:0;padding:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:500;color:#5a6062}
+.avail .av-legend li{display:flex;align-items:center;gap:8px}
+.avail .av-legend i{display:inline-block;width:10px;height:10px;border-radius:50%}
+.avail .sg-ok{background:#485B37}
+.avail .sg-held{background:#8F9B7A}
+.avail .sg-gone{background:#EBE4D6;box-shadow:inset 0 0 0 1px #D4CCBA}
+.avail .av-bar{display:flex;height:10px;border-radius:999px;overflow:hidden;margin:20px 0 22px;gap:2px}
+.avail .av-bar i{display:block;height:100%}
+.avail .av-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.avail .pl{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;padding:10px 12px;border-radius:8px;text-decoration:none;min-height:64px;border:1px solid #D4CCBA;background:#fff;color:#2E3437;font:inherit;transition:transform .2s cubic-bezier(.16,1,.3,1),border-color .2s}
+.avail .pl b{font-size:15px;font-weight:600;letter-spacing:.04em}
+.avail .pl em{font-style:normal;font-size:12px;color:#5a6062}
+.avail .pl u{text-decoration:none;font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+.avail .pl-ok{background:#EDF1E8;border-color:rgba(72,91,55,.28)}
+.avail .pl-ok u{color:#364429}
+.avail .pl-link{cursor:pointer}
+.avail .pl-link:hover{transform:translateY(-3px);border-color:#485B37}
+.avail .pl-link:focus-visible{outline:2px solid #485B37;outline-offset:2px}
+.avail .pl-held{background:#fff;border-style:dashed;border-color:#8F9B7A}
+.avail .pl-held u{color:#5d6b52}
+.avail .pl-gone{background:#EBE4D6;border-color:#EBE4D6;color:#625d54}
+.avail .pl-gone b{text-decoration:line-through;text-decoration-thickness:1px}
+.avail .pl-gone em,.avail .pl-gone u{color:#625d54}
+.avail .av-foot{font-size:13px;line-height:1.6;color:#5a6062;margin:20px 0 0;max-width:62ch}
+.avail.av-na{border-style:dashed}
+.avail .av-cta{display:inline-block;margin-top:18px;padding:12px 24px;border-radius:999px;background:#485B37;color:#F5F0E6;text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.avail .av-cta:hover{background:#364429}
+.avail .av-cta:focus-visible{outline:2px solid #485B37;outline-offset:3px}
+@media(max-width:560px){.avail .av-grid{grid-template-columns:repeat(3,1fr)}.avail .av-legend{gap:12px}}
+@media(prefers-reduced-motion:reduce){.avail .pl{transition:none}}
 </style>
 </head>
 <body>
@@ -984,134 +1027,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 <!-- ═══ PORTFOLIO ROOT (React mounts here) ══════════════════ -->
 <div id="portfolio-root"></div>
 
-<!-- SEO_FALLBACK_START (auto-generado por build_seo.py — NO editar a mano) -->
-<noscript>
-  <section class="seo-fallback" aria-label="Lawang property portfolio">
-    <h1>Lawang — Property Portfolio in Bali & Sumba</h1>
-    <p>Signature homes, land parcels, villas and resort units across Bali and Sumba, Indonesia. Freehold and leasehold opportunities with managed rental income.</p>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/tirta-hikari-20260730-1.jpg" alt="Tirta Hikari — South Buwit, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="/property/tirta-hikari">Tirta Hikari</a></h3>
-      <p class="seo-region">South Buwit, Tabanan</p>
-      <p class="seo-price">From €930,000</p>
-      <p class="seo-specs">3 bed · 4 bath · 345 m² built · 965 m² land</p>
-      <p class="seo-meta">Off-plan · Freehold (HGB)</p>
-      <p class="seo-sub">A boutique collection of just three freehold villas</p>
-      <p class="seo-desc">Lawang&#x27;s flagship: only three freehold villas in South Buwit, minutes from Seseh and Canggu. Joglo-inspired contemporary architecture with a wellness focus — sauna and ice bath — an infinity pool and jungle-and-river views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/riverfront-i-20260730-1.jpg" alt="Riverfront I — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="/property/riverfront-i">Riverfront I</a></h3>
-      <p class="seo-region">Kaba-Kaba, Tabanan</p>
-      <p class="seo-price">From €320,000</p>
-      <p class="seo-specs">2 bed · 3 bath · 180 m² built · 300 m² land</p>
-      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
-      <p class="seo-sub">A boutique of four riverside villas near Canggu</p>
-      <p class="seo-desc">A boutique of four private riverside villas in Kaba-Kaba, near Canggu. Double-height living and a private infinity pool, with river and garden views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/riverfront-ii-big-20260730-1.jpg" alt="Riverfront II — Big House — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="/property/riverfront-ii-big">Riverfront II — Big House</a></h3>
-      <p class="seo-region">Kaba-Kaba, Tabanan</p>
-      <p class="seo-price">From €280,000</p>
-      <p class="seo-specs">3 bed · 3 bath · 125 m² built · 450 m² land</p>
-      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
-      <p class="seo-sub">The large unit of the Riverfront II compound, with private pool</p>
-      <p class="seo-desc">The large &#x27;Big House&#x27; unit within the Riverfront II compound in Kaba-Kaba, with a private pool and extra privacy. River, jungle and pool views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/tangkuban-village-1.jpg" alt="Tangkuban Village — Seminyak, Denpasar" loading="lazy" width="800" height="600">
-      <h3><a href="/property/tangkuban-village">Tangkuban Village</a></h3>
-      <p class="seo-region">Seminyak, Denpasar</p>
-      <p class="seo-price">From €250,000</p>
-      <p class="seo-specs">3 bed · 3 bath · 160 m² built · 300 m² land</p>
-      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
-      <p class="seo-sub">A modern villa in high-demand Seminyak</p>
-      <p class="seo-desc">A modern villa in Seminyak (Padangsambian, Denpasar), a high-demand area close to the beach and restaurants. Rice-field and pool views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/riverfront-iii-20260730-1.jpg" alt="Riverfront III — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="/property/riverfront-iii">Riverfront III</a></h3>
-      <p class="seo-region">Kaba-Kaba, Tabanan</p>
-      <p class="seo-price">From €250,000</p>
-      <p class="seo-specs">3 bed · 3 bath · 106 m² built · 230 m² land</p>
-      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
-      <p class="seo-sub">Four exclusive three-bedroom villas by the river and jungle</p>
-      <p class="seo-desc">Four exclusive three-bedroom villas (plus study) in Kaba-Kaba, in a river-and-jungle setting. Fully furnished, carport, with river, jungle and pool views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/pura-dalem-20260730-6.jpg" alt="Pura Dalem — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="/property/pura-dalem">Pura Dalem</a></h3>
-      <p class="seo-region">Kaba-Kaba, Tabanan</p>
-      <p class="seo-price">From €240,000</p>
-      <p class="seo-specs">3 bed · 3 bath · 130 m² built · 180 m² land</p>
-      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
-      <p class="seo-sub">Contemporary villas in a quiet setting near Canggu</p>
-      <p class="seo-desc">Contemporary villas in Kaba-Kaba (Kediri, Tabanan), a quiet setting near Canggu. Carport, with pool and garden views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/riverfront-ii-small-20260730-1.jpg" alt="Riverfront II — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="/property/riverfront-ii-small">Riverfront II</a></h3>
-      <p class="seo-region">Kaba-Kaba, Tabanan</p>
-      <p class="seo-price">From €210,000</p>
-      <p class="seo-specs">2 bed · 2 bath · 106 m² built · 200 m² land</p>
-      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
-      <p class="seo-sub">Six two-bedroom villas sharing an infinity pool over the river</p>
-      <p class="seo-desc">Six contemporary two-bedroom villas that share a communal infinity pool over the river, in Kaba-Kaba. Fully furnished, carport, with river, pool and garden views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/rurung-anyar-20260730-6.jpg" alt="Rurung Anyar — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="/property/rurung-anyar">Rurung Anyar</a></h3>
-      <p class="seo-region">Kaba-Kaba, Tabanan</p>
-      <p class="seo-price">From €200,000</p>
-      <p class="seo-specs">2 bed · 3 bath · 117 m² built · 208 m² land</p>
-      <p class="seo-meta">Leasehold — 30 yrs</p>
-      <p class="seo-sub">Contemporary tropical villas in a quiet Kaba-Kaba setting</p>
-      <p class="seo-desc">Contemporary tropical villas in Kaba-Kaba (Tabanan), a quiet setting. Carport, with pool and garden views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/cube-20260730-1.jpg" alt="Cube — Uluwatu / Balangan" loading="lazy" width="800" height="600">
-      <h3><a href="/property/cube">Cube</a></h3>
-      <p class="seo-region">Uluwatu / Balangan</p>
-      <p class="seo-price">From €199,000</p>
-      <p class="seo-specs">3 bed · 2 bath · 184 m² built · 250 m² land</p>
-      <p class="seo-meta">Leasehold — 30 yrs</p>
-      <p class="seo-sub">A spacious three-bedroom villa in Uluwatu / Balangan</p>
-      <p class="seo-desc">A spacious three-bedroom villa in Uluwatu/Balangan, geared to families or groups. Fully furnished, with pool and garden views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/river-20260730-2.jpg" alt="River — Uluwatu / Balangan" loading="lazy" width="800" height="600">
-      <h3><a href="/property/river">River</a></h3>
-      <p class="seo-region">Uluwatu / Balangan</p>
-      <p class="seo-price">From €167,000</p>
-      <p class="seo-specs">1 bed · 1 bath · 84 m² built · 150 m² land</p>
-      <p class="seo-meta">Leasehold — 30 yrs</p>
-      <p class="seo-sub">A modern loft villa near beaches and the airport</p>
-      <p class="seo-desc">A modern loft villa in Uluwatu/Balangan, near beaches and the airport — ideal for couples or digital nomads. Fully furnished, with pool, garden and river views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/aqua-20260730-8.jpg" alt="Aqua — Uluwatu, Jimbaran" loading="lazy" width="800" height="600">
-      <h3><a href="/property/aqua">Aqua</a></h3>
-      <p class="seo-region">Uluwatu, Jimbaran</p>
-      <p class="seo-price">From €155,000</p>
-      <p class="seo-specs">1 bed · 1 bath · 84 m² built · 150 m² land</p>
-      <p class="seo-meta">Leasehold — 30 yrs</p>
-      <p class="seo-sub">An accessible-entry loft villa in high-demand Uluwatu</p>
-      <p class="seo-desc">A modern loft villa in Uluwatu (Jimbaran) with an accessible entry price in a high-demand tourist area. Fully furnished, with pool and garden views.</p>
-    </article>
-    <article class="seo-prop">
-      <img src="/assets/img/properties/20260710_fcf0f11a4340.png" alt="Palm Field — Balian Hills, Bali" loading="lazy" width="800" height="600">
-      <h3><a href="/property/palm-field-bali">Palm Field</a></h3>
-      <p class="seo-region">Balian Hills, Bali</p>
-      <p class="seo-price">From €31,250</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (HGB) · Handover Q1 2027</p>
-      <p class="seo-sub">Tropical villas in the Bali jungle</p>
-      
-    </article>
-  </section>
-</noscript>
-<!-- SEO_FALLBACK_END -->
+<?= lw_coleccion_noscript($doc) /* mismo documento que la pagina; build_seo.py ya no escribe aqui */ ?>
 
 
 <!-- ═══ DATA ════════════════════════════════════════════════ -->
@@ -1330,13 +1246,22 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
   var img = function(key,w){ if(!key) return null; if(typeof key==='string'&&(key.startsWith('http')||key.startsWith('/')||key.startsWith('.'))) return key; var id=IMG[key]; return id?U(id,w):null; };
   // Publishable key: protegida por el propio grant de la funcion (solo codigo/estado/m2,
   // nunca precio/contrato_id/notas) — ver operaciones/sql/unidades_estado_publico_rpc.sql.
-  window.LAWANG = { DICT, PROPERTIES, LINES, money, RATES, SYMS, EUR_TO_USD, IMG, img, getPaymentPlan, DOWNLOADS, SETTINGS:{whatsapp:'6281138319862',email:'sales@lawangproperties.com',supabaseUrl:'https://vtulllundrfennhjddhc.supabase.co',supabaseKey:'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'} };
+  window.LAWANG = { DICT, PROPERTIES, LINES, money, RATES, SYMS, EUR_TO_USD, IMG, img, getPaymentPlan, DOWNLOADS, SETTINGS:{whatsapp:'6281138319862',email:'sales@lawangproperties.com'<?php if (!$LIVE): ?>,supabaseUrl:'https://vtulllundrfennhjddhc.supabase.co',supabaseKey:'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'<?php endif; ?>} };
 })();
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260916113721"></script>
-<script src="assets/portfolio-app.js?v=20260923162355"></script>
+<?php if ($LIVE): ?>
+<script>
+/* Documento de la intranet leido por el SERVIDOR (lw_coleccion): la SPA lo toma de aqui (window.LW_COLECCION_PRELOAD,
+   ver fetchDataResilient en portfolio-app.js) y no pide nada a Supabase. Trae `stale` y `live`: sin dato fresco
+   la SPA pinta «sin dato», nunca «disponible». Solo se emite cuando la fuente es la intranet. */
+window.LW_COLECCION_PRELOAD=<?= json_encode(lw_coleccion_para_navegador($doc), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+<?php if ($V2): ?>window.LW_COLECCION_V2=true; /* ruta de prueba: las fichas se abren con #property/<id> en esta misma URL */<?php endif; ?>
+</script>
+<?php endif; ?>
+<script src="assets/lawang-card.js?v=20261007105049"></script>
+<script src="assets/portfolio-app.js?v=20261007105049"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

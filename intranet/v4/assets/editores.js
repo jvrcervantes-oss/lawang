@@ -2287,6 +2287,8 @@
     // Reglas de dinero por contrato (facturado/cobrado/%), las mismas del
     // listado y del clásico — para «cuánto lleva cobrado» del recibí.
     facturasContratos: { src: '/contracts/assets/facturas_contratos.js', listo: function () { return typeof lwAgrupaPorContrato === 'function'; } },
+    // Saldo del contrato (5-oct-2026): las cifras las da la base (contrato_saldo), aquí solo se pintan.
+    saldoContrato: { src: '/contracts/assets/saldo_contrato.js?v=577fa3e6', listo: function () { return typeof lwSaldoHTML === 'function'; } },
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
@@ -2552,7 +2554,7 @@
     var caja = document.createElement('div'); caja.className = 'lw-dc';
     var cajaV = document.createElement('div'); cajaV.className = 'lw-dc lw-dc-vinc';
     host.appendChild(caja); host.appendChild(cajaV);
-    var C = null, DESC_TOTAL = '', DESC_UNIDAD = '', otraFactura = {}, huella = null, numPorId = {}, venc = {};
+    var C = null, DESC_TOTAL = '', DESC_UNIDAD = '', otraFactura = {}, huella = null, numPorId = {}, venc = {}, SALDO = null;
     /* Calendario de pagos del contrato (contrato_vencimientos, una fila por
        hito con su fecha y, si ya se facturó, su factura_id). Dos usos
        (22-sep-2026, owner): al pulsar un hito se rellena el vencimiento de
@@ -2596,7 +2598,37 @@
           });
         });
     }
+    /* Saldo del contrato y marcas por hito (5-oct-2026). Se pide una vez por contrato; pinta() se llama
+       muchas veces y repinta desde la copia. Una consulta caída deja SALDO en null y no se pinta nada. */
+    function cargaSaldo() {
+      SALDO = null;
+      if (!C || ctx.esRecibi || typeof lwSaldoCarga !== 'function') return Promise.resolve();
+      return lwSaldoCarga(ctx.sb, C.id).then(function (s) { SALDO = s; });
+    }
+    function pintaSaldo() {
+      var viejo = caja.querySelector('[data-lw="saldo-contrato"]'); if (viejo) viejo.remove();
+      Array.prototype.forEach.call(caja.querySelectorAll('[data-lw="marca-hito"]'), function (e) { e.remove(); });
+      if (!SALDO || !C || ctx.esRecibi || typeof lwSaldoHTML !== 'function') return;
+      lwSaldoEstilo();
+      var t = caja.querySelector('.t');
+      var f = function (n, m) { return fmtMoneda(n, m); };
+      if (t) t.insertAdjacentHTML('afterend', lwSaldoHTML(SALDO, f, ctx.propioId));
+      var marcas = lwSaldoMarcasHitos(C.hitos, SALDO.facturas, descHitoDoc);
+      Array.prototype.forEach.call(caja.querySelectorAll('[data-h]'), function (b) {
+        b.insertAdjacentHTML('beforeend', lwSaldoMarcaHTML(marcas[+b.getAttribute('data-h')], SALDO.moneda, f));
+      });
+    }
+    /* La barra de saldo enseña en vivo lo que suman los conceptos del documento (5-oct-2026). Se repinta entera
+       con el borrador; el aviso de «se pasa» sale del propio módulo. Solo en factura: una proforma no factura. */
+    function avisaTope() {
+      if (!SALDO || ctx.esRecibi || typeof lwSaldoHTML !== 'function') return;
+      var s = caja.querySelector('[data-lw="saldo-contrato"]'); if (!s) return;
+      var esFactura = ctx.tipoActual() === 'factura';
+      var total = filas().reduce(function (a, l) { return a + (parseImporte(l.importe) || 0); }, 0);
+      s.outerHTML = lwSaldoHTML(SALDO, function (n, m) { return fmtMoneda(n, m); }, ctx.propioId, esFactura ? total : null);
+    }
     function marca() {
+      avisaTope();
       var L = filas();
       var hayTotal = !!DESC_TOTAL && L.some(function (l) { return txt(l) === DESC_TOTAL; });
       var hayHito = L.some(function (l) { var d = txt(l); return d && d !== DESC_TOTAL; });
@@ -2675,6 +2707,7 @@
             (conFecha ? ' · vence el ' + v.fecha.split('-').reverse().join('/') + ' según el calendario del contrato' : ''));
         });
       });
+      pintaSaldo();
       marca();
     }
     function traeVinculado(c) {
@@ -2796,7 +2829,7 @@
               nCompradores: res.nCompradores || 0, precio: precio, moneda: moneda, hitos: hitosDeDoc(res.hitos, precio, moneda) };
         caja.innerHTML = '<div class="t">Cargando contrato…</div>';
         if (ctx.esRecibi) return pintaRecibi();
-        return cargaOtraFactura(res.id).then(cargaVencimientos).then(pinta).then(pintaVinculados).then(precarga);
+        return cargaOtraFactura(res.id).then(cargaVencimientos).then(cargaSaldo).then(pinta).then(pintaVinculados).then(precarga);
       },
       repinta: function () { if (!C) return; if (ctx.esRecibi) pintaRecibi(); else pinta(); },
       marca: function () { if (!ctx.esRecibi) marca(); },
@@ -4019,7 +4052,7 @@
       }
       var esEdicion = !!pre.id;
       var regla = { sinContrato: false, nota: '' };
-      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento', 'facturasContratos']).then(function () {
+      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento', 'facturasContratos', 'saldoContrato']).then(function () {
         return Promise.all([
           cargarSociedades(sb).then(function () { return true; }, function () { return false; }),
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
@@ -5092,6 +5125,10 @@
       if (!esAdminP) {
         var bEstadoObra = document.querySelector('[data-accion="estado-obra"]');
         if (bEstadoObra) bEstadoObra.hidden = true;
+        /* Ficha pública (F3b): solo admin. Es cosmético; el permiso real es es_admin() en la RPC. `.flex` del botón gana
+           a `[hidden]`, así que también se esconde con display (medido en el arnés). */
+        var bFichaPub = document.querySelector('[data-accion="ficha-publica"]');
+        if (bFichaPub) { bFichaPub.hidden = true; bFichaPub.style.display = 'none'; }
       }
       /* Dar de alta un proyecto es de dirección (LAW-177, 11-sep-2026): la RLS
          de INSERT en `proyectos` exige es_admin(). Se esconde el botón aquí, en
@@ -5107,6 +5144,11 @@
       // ella la RLS de `usuarios` rechaza igual, así que no se ofrece el control.
       var puedeUsuarios = esAdminP && puedeH(ficha, 'usuarios');
       var proyectoObj = function () { return window.LW_V4 && window.LW_V4.proyecto; };
+      var nombreEmpresa = function (clave) {
+        var l = (window.LW_V4 && window.LW_V4.empresas) || [];
+        var e = l.filter(function (x) { return x.clave === clave; })[0];
+        return e ? e.nombre : edT('Sin empresa (cerrado)');
+      };
 
       /* Categorías de un ENLACE (S11.1, 22-sep-2026): fuente ÚNICA para el
          alta y la edición — nunca las 9 del CHECK de la tabla (incluye
@@ -5152,6 +5194,7 @@
                 cuerpo: '<p>«' + esc(v.titulo) + '» quedará descargable por CUALQUIERA que abra el dosier público de ' + esc(nombreProyecto) + ', sin contraseña y sin contrato.</p>' +
                   // las traducciones también salen al público: se leen antes de publicar (Seguridad, 28-sep)
                   ((v.titulo_en || v.titulo_id) ? '<p>En inglés: «' + esc(v.titulo_en || '—') + '» · En indonesio: «' + esc(v.titulo_id || '—') + '»</p>' : '') +
+                  ((v.url_en || v.url_id) ? '<p>Enlace en inglés: ' + esc(v.url_en || '—') + '<br>Enlace en indonesio: ' + esc(v.url_id || '—') + '</p>' : '') +
                   '<p>Si el enlace es de Drive, ábrelo antes en una ventana de incógnito: si no está compartido en abierto, el inversor se choca con una pantalla de permisos.</p>',
                 confirmar: 'Publicar', tono: 'peligro'
               });
@@ -5356,7 +5399,8 @@
           modal('Nuevo enlace · ' + p, [
             { k: 'titulo', label: 'Título', req: 1 }
           ].concat(camposTituloDeck(null), [
-            { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
+            { k: 'url', label: 'URL (español y por defecto)', req: 1, ayuda: 'https://…' }
+          ].concat(camposUrlDeck(null), [
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: CATS_ENLACE, valor: 'comercial' },
             // S11.3 (22-sep-2026): la columna ya existía (la consulta de
             // datos.js ya la traía) — solo faltaba el wiring del formulario.
@@ -5364,8 +5408,9 @@
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 }  // nace MARCADA: la tabla se diseño con default true y el formulario mandaba false explicito, asi que todo documento nuevo nacia no-confidencial y el 'cinturon y tirantes' del RPC no protegia nada
-          ]).concat(campoDeck(false)), 'Guardar enlace', function (v) {
+          ])).concat(campoDeck(false)), 'Guardar enlace', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
+            var malaUrl = urlIdiomaMala(v); if (malaUrl) return { error: { message: malaUrl } };
             return confirmaPublicacionDoc(v, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
               return guardaDoc(null, conDeck(conTitulos({
@@ -5510,12 +5555,36 @@
             { k: 'titulo_id', label: 'Título en indonesio (investor deck)', medio: 1, valor: t.id || '', ayuda: 'En blanco = sale el inglés' }
           ];
         }
+        /* Enlace por idioma para el investor deck (6-oct-2026, owner: «en los botones de download dossier, que en
+           español pueda poner un enlace, en inglés otro y en bahasa otro»). `url` es el español y el de reserva;
+           inglés e indonesio van en `url_i18n`. En blanco = el deck usa el de reserva. Solo en enlaces (un fichero
+           subido es uno solo). El servidor rehace el objeto y valida http(s). */
+        function camposUrlDeck(d2) {
+          var u = (d2 && d2.url_i18n) || {};
+          return [
+            { k: 'url_en', label: 'URL en inglés (investor deck)', valor: u.en || '', ayuda: 'https://… · En blanco = sale la URL de arriba' },
+            { k: 'url_id', label: 'URL en indonesio (investor deck)', valor: u.id || '', ayuda: 'https://… · En blanco = sale la de inglés, y si no la de arriba' }
+          ];
+        }
+        function urlI18n(v) {
+          return { en: String(v.url_en || '').trim(), id: String(v.url_id || '').trim() };
+        }
+        // un enlace por idioma, si se rellena, tiene que ser http(s): se avisa aquí antes de ir al servidor
+        function urlIdiomaMala(v) {
+          var malo = null;
+          [['url_en', 'inglés'], ['url_id', 'indonesio']].forEach(function (p) {
+            var t = String(v[p[0]] || '').trim();
+            if (t && !/^https?:\/\//.test(t)) malo = 'la URL en ' + p[1] + ' tiene que empezar por http:// o https://';
+          });
+          return malo;
+        }
         function tituloI18n(v) {
           return { en: String(v.titulo_en || '').trim(), id: String(v.titulo_id || '').trim() };
         }
         // sin campos (documento general), la clave no viaja: el servidor conserva lo que hubiera
         function conTitulos(fila, v) {
           if ('titulo_en' in v || 'titulo_id' in v) fila.titulo_i18n = tituloI18n(v);
+          if ('url_en' in v || 'url_id' in v) fila.url_i18n = urlI18n(v);
           return fila;
         }
         function campoDeck(valor) {
@@ -5555,7 +5624,7 @@
           var nuevoPortal = v.visible_portal && !anterior.visible_portal;
           var nuevoDeck = v.publicado_investor_deck && !anterior.publicado_investor_deck;
           if (!nuevoPortal && !nuevoDeck) return Promise.resolve({ ok: true });
-          return confirmaPublicacionDoc({ titulo: v.titulo, titulo_en: v.titulo_en, titulo_id: v.titulo_id, confidencial: v.confidencial, visible_portal: nuevoPortal, publicado_investor_deck: nuevoDeck }, nombreProyecto);
+          return confirmaPublicacionDoc({ titulo: v.titulo, titulo_en: v.titulo_en, titulo_id: v.titulo_id, url_en: v.url_en, url_id: v.url_id, confidencial: v.confidencial, visible_portal: nuevoPortal, publicado_investor_deck: nuevoDeck }, nombreProyecto);
         }
 
         function abreEditarEnlace(d2) {
@@ -5570,14 +5639,16 @@
           modal('Editar enlace', [
             { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' }
           ].concat(camposTituloDeck(d2), [
-            { k: 'url', label: 'URL', req: 1, valor: d2.url || '', ayuda: 'https://…' },
+            { k: 'url', label: 'URL (español y por defecto)', req: 1, valor: d2.url || '', ayuda: 'https://…' }
+          ].concat(camposUrlDeck(d2), [
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || CATS_ENLACE[0] },
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial }
-          ]).concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
+          ])).concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
+            var malaUrl = urlIdiomaMala(v); if (malaUrl) return { error: { message: malaUrl } };
             if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
@@ -5832,6 +5903,13 @@
             { k: 'nombre', label: 'Nombre', req: 1, valor: p.nombre,
               ayuda: 'Cuidado: renombrar aquí toca unidades, contratos, facturas, documentación y modelos de este proyecto — se confirma con el radio de impacto antes de guardar.' },
             { k: 'resort', label: 'Resort', valor: p.resort || '' },
+            /* Empresa que controla el proyecto (F1 empresas, 7-oct-2026, owner): Lawang promotora / Sandal Woods matriz. Es solo
+               etiqueta en esta fase. Editable SOLO por super_admin: aqui se esconde, el que lo hace cumplir es proyecto_empresa_guarda
+               (y el trigger trg_proyecto_empresa) en la base. Las opciones salen de la tabla `empresas`, no de una lista a mano. */
+            { k: 'empresa', label: edT('Empresa'), tipo: esSuper ? 'select' : 'lectura',
+              valor: esSuper ? (p.empresa || '') : nombreEmpresa(p.empresa),
+              opciones: [['', edT('Sin empresa (cerrado)')]].concat(((window.LW_V4 && window.LW_V4.empresas) || []).map(function (e) { return [e.clave, e.nombre]; }))
+                .concat(p.empresa && !(((window.LW_V4 && window.LW_V4.empresas) || []).some(function (e) { return e.clave === p.empresa; })) ? [[p.empresa, p.empresa]] : []) },
             // Ubicación en Google Maps (24-sep-2026, owner). Texto tal cual se pega;
             // lo interpreta mapaProyecto() de datos.js al pintar.
             { k: 'ubicacion_maps', label: 'Ubicación (Google Maps)', valor: p.ubicacion_maps || '',
@@ -5940,6 +6018,10 @@
                 // así que aquí ya no hay «0 filas en silencio» que vigilar (consulta de deploy de Desarrollo)
                 if (r.error) return r;
                 var trabajos = [];
+                if (esSuper && (v.empresa || null) !== (p.empresa || null)) {
+                  trabajos.push(sb.rpc('proyecto_empresa_guarda', { p_id: p.id, p_empresa: v.empresa || null })
+                    .then(function (re) { if (re.error) aviso(edT('La empresa no se pudo guardar: ') + re.error.message, '#ba1a1a'); }));
+                }
                 if (esAdminP && catalogo.length) {
                   trabajos.push(lwDeclaraModelosEnProyecto(sb, nombreEfectivo, v.modelos || [], {
                     catalogo: catalogo, villas: villas, enUso: new Set(Object.keys(enUso)), proyecto_id: p.id
@@ -6099,6 +6181,15 @@
             pintaInvestorDeck(p, cfg, activo, modelosDelProyecto, fotos);
           });
         }, function (e) { aviso('No se pudo abrir el Investor Deck: ' + (e && e.message || e), '#ba1a1a'); });
+      });
+
+      /* Ficha pública de The Collection (F3b, 5-oct-2026): TODO vive en ficha_publica.js (cargado por la página). Aquí solo
+         se engancha el botón por su identificador y se le pasa el proyecto por id. */
+      ata('ficha-publica', function () {
+        var p = proyectoObj();
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        if (!window.lwFichaPublica) return aviso('La pantalla de ficha pública aún no ha cargado: prueba otra vez.', '#8A6A34');
+        window.lwFichaPublica.abre({ sb: sb, esAdmin: esAdminP, proyecto: { id: p.id, nombre: p.nombre, slug: p.slug } });
       });
 
       /* ¿Están las fotos donde manda el flag? (AXW-66, 28-sep-2026). Lo mide el SERVIDOR: la acción `urls` devuelve
@@ -7799,7 +7890,7 @@
          sigue: el aviso es una ayuda, no un candado. */
       function telefonoRepetidoSigue(tel, excluirId) {
         if (typeof fichasConMismoTelefono !== 'function' || telefonoDigitos(tel).length < 7) return Promise.resolve(true);
-        return sb.rpc('compradores_directorio').select('id,full_name,phone').then(function (r) {
+        return sb.rpc('compradores_lista').select('id,full_name,phone').then(function (r) {
           if (r.error || !r.data) return true;
           var mismos = fichasConMismoTelefono(r.data, tel, excluirId);
           if (!mismos.length) return true;
@@ -7971,7 +8062,7 @@
       var sb = aut.sb;
       // mismos 5 roles que /intranet/usuarios/ (ROLES) — antes solo llevaba
       // agente/admin/super_admin y sales_manager/project_manager no aparecían.
-      var ETIQ_ROL = { agente: 'Agente', sales_manager: 'Sales manager', project_manager: 'Project manager', admin: 'Administrador', super_admin: 'Super admin' };
+      var ETIQ_ROL = { agente: 'Agente', sales_manager: 'Sales manager', project_manager: 'Project manager', admin: 'Administrador', super_admin: 'Super admin', admin_empresa: 'Admin de empresa', super_admin_empresa: 'Super admin de empresa' };
       var ROLES_ED = ['agente', 'sales_manager', 'project_manager', 'admin'].concat(aut.ficha.rol === 'super_admin' ? ['super_admin'] : []);
       var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       window.LW_V4 = window.LW_V4 || {};
@@ -8163,8 +8254,12 @@
            Si la página no cargó herramientas.js se cae a la unión, y se nota. */
         Promise.all([
           (typeof LW_PERMISOS !== 'undefined') ? Promise.resolve({ data: null }) : sb.from('usuarios').select('herramientas'),
-          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'),
-          window.AXW_NUCLEO_OPERACION ? tiposErp() : Promise.resolve(undefined)
+          sb.from('proyectos').select('id,nombre,empresa').eq('activo', true).order('nombre'),
+          window.AXW_NUCLEO_OPERACION ? tiposErp() : Promise.resolve(undefined),
+          /* Paso 3 de «dos empresas» (7-oct-2026): solo el PROPIETARIO da nivel de empresa y empresas (la base lo exige
+             en usuario_da_alcance y en los triggers de usuarios; esto solo decide si se ofrece el campo). */
+          Promise.resolve(sb.rpc('mi_alcance')).then(function (r) { return (r && r.data) || null; }, function () { return null; }),
+          Promise.resolve(sb.from('empresas').select('clave,nombre').eq('activa', true).order('orden')).then(function (r) { return (r && r.data) || []; }, function () { return []; })
         ]).then(function (rs) {
           var ops;
           if (typeof LW_PERMISOS !== 'undefined') {
@@ -8201,13 +8296,28 @@
           }
           /* El ROL solo lo cambia un super_admin (viva: `fRol` disabled salvo
              soySuper). Un admin lo ve, no lo toca — y no viaja en el patch. */
-          var rolEditable = soySuper && !yoMismo;
+          var miAlc = rs[3], empresasCat = rs[4] || [];
+          var soyProp = !!(miAlc && miAlc.es_propietario);
+          var esRolEmpresa = function (r) { return r === 'admin_empresa' || r === 'super_admin_empresa'; };
+          /* El propietario ve ademas los dos niveles de empresa y el campo Empresas (a una persona de la intranet con
+             empresas marcadas solo se le dan proyectos de esas empresas). Un super admin que NO es propietario conserva
+             la lista de siempre; si la persona ya tiene un nivel de empresa, lo ve pero no lo toca. */
+          var rolesEd = ROLES_ED.concat(soyProp && u.rol !== 'super_admin' ? ['admin_empresa', 'super_admin_empresa'] : []);
+          var rolEditable = soySuper && !yoMismo && !(esRolEmpresa(u.rol) && !soyProp) && !u.es_propietario;
           var campos = [
             { k: 'nombre', label: 'Nombre', medio: 1, valor: u.nombre || '' },
             rolEditable
-              ? { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, opciones: ROLES_ED.map(function (r) { return [r, ETIQ_ROL[r] || r]; }), valor: u.rol }
+              ? { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, opciones: rolesEd.map(function (r) { return [r, ETIQ_ROL[r] || r]; }), valor: u.rol }
               : { tipo: 'lectura', label: 'Rol', medio: 1, valor: ETIQ_ROL[u.rol] || u.rol || '—' }
           ];
+          var empresasEditables = soyProp && !yoMismo && rolEditable && u.rol !== 'super_admin' && empresasCat.length > 0;
+          if (empresasEditables) {
+            campos.push({ k: 'empresas', label: 'Empresas', tipo: 'multicheck', opciones: empresasCat.map(function (e) { return [e.clave, e.nombre]; }),
+              valor: u.empresas || [],
+              ayuda: 'Un admin o super admin de empresa necesita al menos una. En un agente o manager, marcar empresas lo limita a ellas; sin marcar ninguna no tiene límite por empresa (como hasta ahora).' });
+          } else if ((u.empresas || []).length) {
+            campos.push({ tipo: 'lectura', label: 'Empresas', medio: 1, valor: (u.empresas || []).map(function (c) { var e = empresasCat.filter(function (x) { return x.clave === c; })[0]; return e ? e.nombre : c; }).join(', ') });
+          }
           if (yoMismo) {
             campos.push({ tipo: 'nota', label: 'Es tu propia cuenta: para no dejarte fuera por accidente, el rol y el estado activo no se tocan desde aquí.' });
           } else {
@@ -8248,6 +8358,22 @@
             if (!tiposOk) delete patch.tipos_contrato;
             if (!yoMismo) { patch.activo = v.activo; }
             if (rolEditable) { patch.rol = v.rol; }
+            /* Nivel de empresa y empresas: por usuario_da_alcance (rol + ambito + empresas de un golpe; la base solo deja al
+               propietario). Si cambia algo de eso, va PRIMERO y sale de `patch`: usuario_guarda_permisos no mueve el alcance. */
+            var empNuevas = empresasEditables ? (v.empresas || []) : (u.empresas || []);
+            var igualEmp = empNuevas.slice().sort().join(',') === (u.empresas || []).slice().sort().join(',');
+            var descartadosFront = 0;
+            var alcanceCambia = soyProp && rolEditable && v.rol !== 'super_admin' &&
+              (v.rol !== u.rol || !igualEmp) && (esRolEmpresa(v.rol) || esRolEmpresa(u.rol) || !igualEmp);
+            if (alcanceCambia) {
+              delete patch.rol;
+              var okEmp = empNuevas.length ? proyectos.filter(function (p) { return empNuevas.indexOf(p.empresa) !== -1; }).map(function (p) { return p.id; }) : null;
+              if (patch.proyectos && okEmp) {
+                var antes = patch.proyectos.length;
+                patch.proyectos = patch.proyectos.filter(function (id) { return okEmp.indexOf(id) !== -1; });
+                descartadosFront = antes - patch.proyectos.length;
+              }
+            }
             /* la proteccion real vive en la policy (super_admin intocable salvo
                super_admin, es_admin AND puede) — si esto falla por RLS, ese ES
                el mensaje, no un fallo del editor */
@@ -8255,7 +8381,20 @@
             // filas SIN error, y el editor diria «guardado» sobre nada.
             // por el servidor (LAW-336 pieza 7), siempre por user_id; sobre uno mismo solo el nombre (salvo super admin)
             if (yoMismo && !soySuper) patch = { nombre: patch.nombre };
-            return sb.rpc('usuario_guarda_permisos', { p_user_id: u.user_id, p_cambios: patch });
+            var pasoAlcance = alcanceCambia
+              ? Promise.resolve(sb.rpc('usuario_da_alcance', { p_user_id: u.user_id, p_rol: v.rol, p_empresas: empNuevas })).then(function (r) {
+                  var quitados = ((r.data && r.data.proyectos_quitados) || 0) + descartadosFront;
+                  if (!r.error && quitados) aviso('Se han quitado ' + quitados + ' proyecto(s) que no son de las empresas elegidas.', '#8A6A34');
+                  return r;
+                })
+              : Promise.resolve({});
+            return pasoAlcance.then(function (r) {
+              if (r && r.error) return r;
+              return Promise.resolve(sb.rpc('usuario_guarda_permisos', { p_user_id: u.user_id, p_cambios: patch })).then(function (r2) {
+                if (alcanceCambia && r2 && r2.error) r2.error.message = 'El nivel y las empresas SÍ se han guardado, pero el resto no: ' + (r2.error.message || '');
+                return r2;
+              });
+            });
           });
         });
       };
@@ -9086,6 +9225,74 @@
         });
       }
 
+      // ── Registrar cobro por importe (7-oct-2026, owner) ─────────────────────
+      /* «PT Tepi Sungai me liquida 1.940 €»: se teclea el importe y la BASE decide
+         qué líneas salda (las pendientes más antiguas, hasta cubrirlo EXACTO) —
+         no esta pantalla: el navegador no calcula qué se da por cobrado. Dos pasos
+         con la misma RPC: primero enseña las líneas, y solo al confirmar las marca.
+         Si ningún tramo suma justo, no marca nada y la base dice qué queda a cada
+         lado. */
+      ata('registrar-cobro', function () {
+        if (!superAdmin) return soloSuper();
+        var hoyBali = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
+        var fmtI = function (n, m) { return typeof lwFormatoImporte === 'function' ? lwFormatoImporte(n, m) : (n + ' ' + m); };
+        sb.from('sociedades').select('clave,label').eq('activa', true).order('label').then(function (r) {
+          if (r.error || !(r.data || []).length) {
+            return aviso('No se han podido leer las sociedades. Recarga la pantalla y prueba otra vez.', '#9E2F26');
+          }
+          modal('Registrar cobro', [
+            { k: 'sociedad', label: 'Sociedad que paga', tipo: 'select', req: 1, valor: '',
+              opciones: [['', '— elige —']].concat(r.data.map(function (x) { return [x.clave, x.label]; })) },
+            { k: 'moneda', label: 'Moneda', tipo: 'select', req: 1, valor: 'EUR', medio: 1,
+              opciones: [['EUR', 'EUR'], ['IDR', 'IDR']] },
+            { k: 'importe', label: 'Importe que te liquidan', req: 1, medio: 1,
+              ayuda: 'lo que ha entrado de verdad, p. ej. 1.940,00 (con coma para los decimales)' },
+            { k: 'fecha', label: 'Fecha en que entró el cobro', tipo: 'date', req: 1, medio: 1, valor: hoyBali,
+              ayuda: 'la del banco, no la de hoy si lo registras tarde: es la que cuenta para fiscalidad' },
+            { k: 'referencia', label: 'Referencia bancaria', medio: 1, ayuda: 'opcional' },
+            { k: 'fee', label: 'Incluir el fee fijo', tipo: 'check',
+              ayuda: 'por defecto solo cuentan comisiones; marca esto si el pago incluye también el fee' },
+            { k: 'nota', label: 'Nota', ayuda: 'opcional: queda escrita en el rastro de cada línea (p. ej. referencia de la transferencia)' },
+            { tipo: 'nota', label: 'El pago es una bolsa: se saldan las líneas pendientes más antiguas de esa sociedad mientras quepan, y lo que sobra queda como saldo para el siguiente cobro. Aún no se marca nada: primero te enseño cuáles son.' }
+          ], 'Ver qué salda', function (v) {
+            var imp = typeof lwParseImporte === 'function' ? lwParseImporte(v.importe) : Number(String(v.importe).replace(',', '.'));
+            if (!(imp > 0)) return { error: { message: 'El importe no se entiende: escribe, por ejemplo, 1.940,00.' } };
+            var args = { p_sociedad: v.sociedad, p_moneda: v.moneda, p_importe: imp, p_fecha: v.fecha, p_referencia: (v.referencia || '').trim() || null, p_incluir_fee: !!v.fee, p_nota: (v.nota || '').trim() || null };
+            return rpc('comision_admin_registrar_cobro', Object.assign({ p_confirmar: false }, args)).then(function (res) {
+              if (res.error) return res;
+              var d = res.data, ls = d.lineas || [];
+              var etqSoc = (r.data.filter(function (x) { return x.clave === v.sociedad; })[0] || {}).label || v.sociedad;
+              var fila = function (l) {
+                var f = l.fecha ? l.fecha.split('-').reverse().join('/') : '—';
+                return '<tr><td style="padding:3px 8px 3px 0">' + esc(f) + '</td><td style="padding:3px 8px">' + esc(l.recibi || '') +
+                  (l.tipo === 'devengo' ? '' : ' <span style="opacity:.6">' + esc(l.tipo) + '</span>') + (l.revisar ? ' <span style="color:#9E2F26">revisar</span>' : '') + '</td><td style="padding:3px 8px;opacity:.7">' + esc(l.estado) +
+                  '</td><td style="padding:3px 0 3px 8px;text-align:right">' + esc(fmtI(l.importe, d.moneda)) + '</td></tr>';
+              };
+              modal('Confirmar cobro — ' + etqSoc, [
+                { tipo: 'lectura', label: 'Importe que entra', medio: 1, valor: fmtI(d.importe, d.moneda) },
+                { tipo: 'lectura', label: 'Saldo que ya había', medio: 1, valor: fmtI(d.saldo_previo, d.moneda) },
+                { tipo: 'lectura', label: 'Se salda (' + d.n + ' líneas)', medio: 1, valor: fmtI(d.aplicado_importe, d.moneda) },
+                { tipo: 'lectura', label: 'Queda como saldo', medio: 1, valor: fmtI(d.resto, d.moneda) },
+                d.siguiente ? { tipo: 'nota', label: 'La siguiente línea (' + (d.siguiente.recibi || '') + ', ' + fmtI(d.siguiente.importe, d.moneda) +
+                  ') ya no cabe en la bolsa: se queda pendiente y el saldo pasa al próximo cobro.' } :
+                  { tipo: 'nota', label: 'La bolsa cubre todo lo pendiente de esa sociedad.' },
+                { tipo: 'lectura', label: 'Fecha del cobro', medio: 1, valor: d.fecha.split('-').reverse().join('/') },
+                (d.sin_facturar || d.revisar) ? { tipo: 'nota', label:
+                  (d.sin_facturar ? d.sin_facturar + ' de estas líneas están PENDIENTES: se darían por cobradas sin haberse marcado como facturadas (' + fmtI(d.sin_facturar_importe, d.moneda) + '). ' : '') +
+                  (d.revisar ? d.revisar + ' llevan la marca «revisar»: mira por qué antes de darlas por saldadas.' : '') } : { tipo: 'nota', label: 'Todas estaban ya facturadas.' },
+                { tipo: 'custom', render: function (el) {
+                    el.innerHTML = '<div style="max-height:46vh;overflow:auto;font-size:13px"><table style="width:100%;border-collapse:collapse"><tbody>' +
+                      ls.map(fila).join('') + '</tbody></table></div>';
+                  } },
+                { tipo: 'nota', label: 'Al confirmar, estas líneas pasan a «Cobrada» y cada una deja su rastro (quién, cuándo y el motivo). Si algo no es lo que esperabas, cancela: no se ha marcado nada.' }
+              ], d.n ? 'Marcar como cobradas' : 'Guardar como saldo', function () {
+                return rpc('comision_admin_registrar_cobro', Object.assign({ p_confirmar: true, p_ids: d.ids }, args));
+              });
+            });
+          }, { sinRecarga: true });
+        });
+      });
+
       // ── Fee fijo mensual (26-sep-2026, owner) ───────────────────────────────
       /* Append-only, como manda la tabla: no hay «editar». Cambiar el fee = uno
          nuevo con su fecha; dejar de cobrarlo = importe 0. La linea de cada mes
@@ -9269,6 +9476,19 @@
           { tipo: 'nota', label: 'Vuelve a contar en los totales y queda marcada para revisar. Si el recibi sigue anulado o ya no existe, la base lo rechaza: reponerla dejaria el libro cobrando sobre dinero que no entro.' }
         ], 'Reponer', function () {
           return rpc('comision_admin_repone_devengo', { p_linea_id: id });
+        });
+      };
+
+      // ── Anular un cobro registrado (7-oct-2026) ─────────────────────────────
+      window.LW_V4.abreAnulaCobroComisionAdmin = function (btn) {
+        if (!superAdmin) return soloSuper();
+        var id = btn.getAttribute('data-lw-ca-anula-cobro');
+        var etiqueta = btn.getAttribute('data-lw-etq');
+        modal('Anular el cobro — ' + (etiqueta || ''), [
+          { k: 'motivo', label: 'Motivo', req: 1, ayuda: 'queda escrito en el cobro y en cada línea que suelta' },
+          { tipo: 'nota', label: 'Las líneas que este cobro saldó vuelven al estado que tenían antes (pendiente o facturada) y el importe deja de contar como saldo. El cobro no se borra: queda anulado, con quién, cuándo y por qué.' }
+        ], 'Anular cobro', function (v) {
+          return rpc('comision_admin_anular_cobro', { p_cobro_id: id, p_motivo: (v.motivo || '').trim() });
         });
       };
     },

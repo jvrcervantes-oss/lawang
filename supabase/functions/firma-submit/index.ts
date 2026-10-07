@@ -286,6 +286,29 @@ async function modoCola(): Promise<boolean> {
   } catch (_) { return false; }
 }
 
+/* ── AXW-202 C2: el enlace de la cadena por la COLA DE CORREOS (solo con correo_cola_firma_submit = «cola») ────────────────
+   Interruptor POR LLAMANTE, en config_instancia, leído UNA vez por firma (aquí, al encolar) y que solo decide si hay fila:
+   esta firma toma una ruta y nunca las dos. Apagado (o la clave ausente, o ilegible) = el envío directo de siempre (v63).
+   La función NO conoce SMTP ni texto en esta ruta: pasa la clave y el id de la firma; el destinatario, el enlace y el texto
+   los resuelve la cola desde el dueño del dato (contrato_firmas) cuando drena. Nada del cuerpo de la petición llega a la cola. */
+async function colaCorreoActiva(): Promise<boolean> {
+  try {
+    const { data } = await sb.from('config_instancia').select('valor').eq('clave', 'correo_cola_firma_submit').maybeSingle();
+    return data?.valor === 'cola';
+  } catch (_) { /* MUDO A PROPOSITO: sin poder leer el interruptor se envía directo (la ruta de siempre); la firma ya está guardada y el correo sale igual */ return false; }
+}
+/** true = hay fila viva en la cola para ESTA firma (la edge de la cola la manda). false = encolar falló: el llamante envía directo. */
+async function encolarEnlaceCadena(firmaId: string, numero: string): Promise<boolean> {
+  try {
+    const { data, error } = await sb.rpc('correo_encolar', { p_clave: 'enlace_firma_cadena', p_firma: firmaId });
+    if (error || !data || typeof (data as any).id !== 'string') throw new Error(error?.message ?? 'respuesta sin id');
+    return true;
+  } catch (e) {
+    console.error('cola_correos_encolar_fallo contrato', numero, String((e as Error)?.message ?? e).slice(0, 200), '— se envía directo');
+    return false;
+  }
+}
+
 type DestinoCola = { email: string; nombre: string | null; estudio: boolean; equipo: boolean; modo: 'portal' | 'cola' | 'intranet' | 'error'; estado: string | null };
 
 async function encolarCopias(contratoId: string, numero: string): Promise<{ destinos: DestinoCola[] } | null> {
@@ -894,13 +917,16 @@ Deno.serve(async (req) => {
             // el siguiente firma el documento CON las firmas anteriores: su hash es el de lo
             // que se acaba de guardar en el bucket (misma comprobación de arriba en su turno)
             snapshot_hash: await sha256hex(html),
-          });
-          if (insSig.error) throw new Error(insSig.error.message);
+          }).select('id').single();
+          if (insSig.error || !insSig.data) throw new Error(insSig.error?.message ?? 'no se obtuvo el id de la firma nueva');
           // sin pdfB64: enviarEmail() ya manda `attach:false` cuando no se le da
           // un PDF — va solo el enlace, mismo criterio que "Generar enlace de
           // firma" en app.html (adjuntar aquí sería un documento sin firmar
           // con aspecto de definitivo).
-          await enviarEmail({
+          // AXW-202 C2: con el interruptor encendido el correo lo manda la cola (aparte, con reintentos); si encolar falla, o
+          // el interruptor está apagado, sale aquí mismo como siempre (rama directa de la v63, intacta).
+          const encolado = (await colaCorreoActiva()) ? await encolarEnlaceCadena(insSig.data.id, numero) : false;
+          if (!encolado) await enviarEmail({
             to: siguiente.email,
             subject: 'Documento para firmar · ' + numero,
             message: 'Hola' + (siguiente.nombre ? ' ' + siguiente.nombre.split(' ')[0] : '') +

@@ -82,6 +82,59 @@
   }
   function pick(obj, lang) { return obj ? (obj[lang] || obj.en) : ''; }
 
+  /* ── Estado de unidades (F7, 6-oct-2026) ─────────────────────────────────────────────────────
+     UNA regla, derivada SOLO de p.parcelas (la lista del dueño, tiempo casi real). Su gemela en servidor es
+     lw_coleccion_estado() (coleccion/lib.php); los dos tests afirman la MISMA tabla (estados_esperados.json).
+       na    no se puede afirmar nada: sin parcelas (la intranet aun no tiene unidades de esa ficha: decision del owner
+             6-oct-2026, chip «Ask for availability»), dato viejo (stale), estado desconocido o unitsAvailable que no cuadra
+       ok    queda alguna libre (casa única = «Available» sin contador) · few  queda 1 libre de >=2
+       held  ninguna libre y alguna reservada · gone  todo vendido
+     Solo se aplica si la fuente es la intranet (opts.live): con data.json la tarjeta es la de siempre.
+     `none` ya NO lo devuelve esta regla: queda solo como centinela de «fuente data.json, sin estado» (estadoOf de
+     portfolio-app y la tarjeta sin live). */
+  function estado(p, stale) {
+    var d = 0, r = 0, v = 0, x = 0;
+    (Array.isArray(p.parcelas) ? p.parcelas : []).forEach(function (u) {
+      var e = u && u.estado;
+      if (e === 'disponible') d++; else if (e === 'reservada') r++; else if (e === 'vendida') v++; else x++;
+    });
+    var t = d + r + v + x;
+    function out(k) { return { k: k, d: d, r: r, v: v, t: t }; }
+    if (stale || t === 0) return out('na');   // dato viejo, o ficha sin unidades cargadas: «Ask for availability», nunca un estado inventado
+    if (x > 0) return out('na');
+    var ua = p.unitsAvailable;
+    if (ua != null && ua !== '') { var un = Number(ua); if (!Number.isInteger(un) || un !== d) return out('na'); } // entero estricto, igual que PHP
+    if (d > 1 || (d === 1 && t === 1)) return out('ok');
+    if (d === 1) return out('few');
+    return out(r > 0 ? 'held' : 'gone');
+  }
+  var ST_TXT = {
+    avail:   { en:'Available',            es:'Disponible',            id:'Tersedia' },
+    last:    { en:'Last unit',            es:'Última unidad',         id:'Unit terakhir' },
+    held:    { en:'Reserved',             es:'Reservada',             id:'Dipesan' },
+    gone:    { en:'Sold',                 es:'Vendida',               id:'Terjual' },
+    na:      { en:'Ask for availability', es:'Consultar disponibilidad', id:'Tanyakan ketersediaan' },
+    soldout: { en:'Sold out',             es:'Agotada',               id:'Habis terjual' }
+  };
+  function stTxt(key, lang) { return ST_TXT[key][lang] || ST_TXT[key].en; }
+  /* «N of M …»: plots si la ficha se configura por parcela (landOptions), available si son unidades. */
+  function contadorTxt(st, p, lang) {
+    var plots = Array.isArray(p.landOptions) && p.landOptions.length > 0;
+    if (lang === 'es') return st.d + ' de ' + st.t + (plots ? ' parcelas' : ' disponibles');
+    if (lang === 'id') return st.d + ' dari ' + st.t + (plots ? ' kavling' : ' tersedia');
+    return st.d + ' of ' + st.t + (plots ? ' plots' : ' available');
+  }
+  function chipInfo(st, p, lang) {
+    if (st.k === 'ok')   return { cls: 'st-ok',   txt: st.t === 1 ? stTxt('avail', lang) : contadorTxt(st, p, lang) };
+    if (st.k === 'few')  return { cls: 'st-few',  txt: stTxt('last', lang) };
+    if (st.k === 'held') return { cls: 'st-held', txt: stTxt('held', lang) };
+    if (st.k === 'gone') return { cls: 'st-gone', txt: stTxt('gone', lang) };
+    if (st.k === 'na')   return { cls: 'st-na',   txt: stTxt('na', lang) };
+    return null;
+  }
+  /* «From» solo si el precio es «desde». priceMode ausente = data.json (v1): se conserva el «From» de siempre. */
+  function showFrom(p) { return p.priceMode == null ? true : p.priceMode === 'from'; }
+
   function render(p, opts) {
     opts = opts || {};
     var lang = opts.lang || 'en';
@@ -107,15 +160,24 @@
 
     var fromTxt = lang === 'es' ? 'Desde' : lang === 'id' ? 'Mulai' : 'From';
 
+    // Estado en vivo (solo con la intranet como fuente: opts.live). Sin él, la tarjeta es exactamente la de siempre.
+    var est = opts.live ? estado(p, !!opts.stale) : { k: 'none' };
+    var chip = opts.live ? chipInfo(est, p, lang) : null;
+    var sold = est.k === 'gone';
+    var priceHtml = sold
+      ? '<span class="lw-prop-price sold-price">' + esc(stTxt('soldout', lang)) + '</span>'
+      : '<span class="lw-prop-price">' + (p.priceEUR > 0 ? (!opts.live || showFrom(p) ? '<span class="from">' + fromTxt + '</span>' : '') + money(p.priceEUR, cur, rates) : (lang === 'es' ? 'Consultar precio' : lang === 'id' ? 'Harga atas permintaan' : 'Price on request')) + '</span>';
+
     // Ubicación en dos tonos (guía): "SOUTH BUWIT," bold + "TABANAN" ligero
     var region = String(p.region || '');
     var ci = region.indexOf(',');
     var locHTML = ci >= 0 ? '<b>' + esc(region.slice(0, ci + 1)) + '</b> ' + esc(region.slice(ci + 1).trim())
                           : '<b>' + esc(region) + '</b>';
 
-    return '<article class="lw-prop"><a href="' + href + '">'
+    return '<article class="lw-prop' + (sold ? ' is-sold' : '') + '"><a href="' + href + '">'
       + '<div class="lw-prop-media ph-' + themeFor(p) + '">'
       + (img0 ? '<img class="lw-prop-img" src="' + esc(img0) + '" alt="" loading="lazy" onerror="this.remove()">' : '')
+      + (chip ? '<span class="lw-prop-state ' + chip.cls + '"><i aria-hidden="true"></i>' + esc(chip.txt) + '</span>' : '')
       + '<span class="lw-prop-view"><img src="assets/img/' + view + '-ico.png" alt="" loading="lazy">' + esc(pick(VIEW_LABEL[view], lang)) + '</span>'
       + '<span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/' + creamIco + '.png" alt="" loading="lazy">' + esc(lineLabel) + '</span></div>'
       + '<div class="lw-prop-body">'
@@ -125,8 +187,9 @@
       + '<h3 class="lw-prop-title">' + esc(pick(p.title, lang)) + '</h3>'
       + '<p class="lw-prop-sub">' + esc(pick(p.sub, lang)) + '</p>'
       + '<div class="lw-prop-meta">' + meta + '</div>'
-      + '<div class="lw-prop-foot"><span class="lw-prop-price">' + (p.priceEUR > 0 ? '<span class="from">' + fromTxt + '</span>' + money(p.priceEUR, cur, rates) : (lang === 'es' ? 'Consultar precio' : lang === 'id' ? 'Harga atas permintaan' : 'Price on request')) + '</span></div></div></a></article>';
+      + '<div class="lw-prop-foot">' + priceHtml + '</div></div></a></article>';
   }
 
-  window.LawangCard = { render: render, themeFor: themeFor, money: money, viewFor: viewFor, VIEW_LABEL: VIEW_LABEL };
+  window.LawangCard = { render: render, themeFor: themeFor, money: money, viewFor: viewFor, VIEW_LABEL: VIEW_LABEL,
+    estado: estado, chipInfo: chipInfo, stTxt: stTxt, showFrom: showFrom };
 })();

@@ -260,29 +260,10 @@ a.enlace{color:inherit;text-decoration:underline}
   #vision.sin-cifras .hero-texto{top:calc(100svh - clamp(110px,17vh,140px))}
 }
 
-/* ── 1b · PANEL DE LA HERO: documentos + FAQ. Movil: debajo de la foto, en flujo (leccion
-   de la v2: un panel largo superpuesto en pantalla pequena es un callejon sin salida).
-   Desde 1024px flota a la derecha sobre la foto, en cristal oscuro. ── */
-#faq{position:relative;z-index:6;background:var(--ob);color:var(--rl);padding:40px var(--cpd) 48px}
-#faq .kicker{color:var(--sc)}
-#faq h2{font-family:var(--sa);font-weight:200;font-size:clamp(28px,1.4vw + 16px,40px);line-height:1.05;text-transform:uppercase;margin:12px 0 0;color:var(--rl)}
-.dd-lema{font-family:var(--sa);font-size:14px;line-height:1.7;color:rgba(245,240,230,.75);margin:14px 0 0}
-#faq h3{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--sc);margin:0 0 6px}
-.dd-cab{padding-bottom:22px;border-bottom:1px solid rgba(245,240,230,.16)}
-.dd-cuerpo{display:flex;flex-direction:column;gap:30px;padding-top:24px}
-.dd-cols{display:flex;flex-direction:column;gap:30px}
-@media(min-width:1280px){
-  .dd-cols{flex-direction:row;align-items:flex-start;gap:28px}
-  .dd-cols > div{flex:1 1 0;min-width:0}
-}
+/* ── 1b · PANEL DE LA HERO: sus reglas viven en /investor-deck/panel-dd.css, fuente unica de
+   todos los decks (owner, 6-oct-2026). Aqui solo la geometria de la hero alrededor del panel. ── */
 @media(min-width:1024px){
   #vision{height:100svh;--pw:min(40%,560px)}
-  #faq{position:absolute;top:clamp(78px,11vh,96px);right:var(--cpd);bottom:clamp(22px,4vh,40px);width:var(--pw);min-width:400px;
-    padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:16px;
-    background:rgba(12,14,10,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    border:1px solid rgba(190,179,165,.3);box-shadow:0 30px 70px -30px rgba(0,0,0,.7);box-sizing:border-box}
-  .dd-cab{padding:26px 28px 20px;flex:none}
-  .dd-cuerpo{flex:1;min-height:0;overflow-y:auto;padding:20px 28px 26px;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
   .hero-texto,.hero-pie{right:calc(var(--pw) + var(--cpd) + 40px)}
   #hero-next{right:calc(var(--pw) + var(--cpd) + 20px)}
   #hero-puntos{left:calc((100% - var(--pw) - var(--cpd)) / 2);top:auto;bottom:clamp(8px,1.6vh,14px);transform:translateX(-50%)}
@@ -301,36 +282,6 @@ a.enlace{color:inherit;text-decoration:underline}
   .cifras{grid-template-columns:repeat(2,auto);row-gap:14px} .cifra:nth-child(3){padding-left:0;border-left:0}
   #vision:not(.sin-cifras) .hero-texto{bottom:clamp(220px,32vh,280px)}
 }
-/* Documentos: filas con filete, como la v3 */
-#docs-bloque{display:flex;flex-direction:column}
-#docs-lista{display:grid;grid-template-columns:1fr;gap:0}
-.doc{display:flex;flex-direction:column;gap:8px;padding:14px 0;border-top:1px solid rgba(245,240,230,.16)}
-.doc:last-child{border-bottom:1px solid rgba(245,240,230,.16)}
-.doc-cab{display:flex;align-items:flex-start;gap:10px}
-.doc-cab .material-symbols-outlined{font-size:18px;color:var(--sc);flex:none}
-.doc-txt{display:flex;flex-direction:column;min-width:0}
-.doc-tit{font-size:14px;font-weight:500;letter-spacing:.04em;color:var(--rl);overflow-wrap:anywhere}
-.doc-sub{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ss)}
-.doc-des{font-size:12px;line-height:1.6;color:rgba(245,240,230,.7);margin-top:4px}
-.doc-acc{display:flex;flex-wrap:wrap;gap:8px}
-.doc-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:30px;text-decoration:none;
-  font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--rl);border:1px solid rgba(245,240,230,.4);transition:background .25s}
-.doc-btn:hover{background:rgba(245,240,230,.12)}
-.doc-btn .material-symbols-outlined{font-size:15px}
-/* FAQ: acordeon con + / − de la home */
-#faq-lista{display:flex;flex-direction:column}
-.faq-item{border-top:1px solid rgba(245,240,230,.18)}
-.faq-item:last-child{border-bottom:1px solid rgba(245,240,230,.18)}
-.faq-item summary{list-style:none;cursor:pointer;padding:15px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;
-  font-family:var(--sa);font-size:13px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--rl);line-height:1.4}
-.faq-item summary::-webkit-details-marker{display:none}
-.faq-item .mi{width:14px;height:14px;position:relative;flex:none}
-.faq-item .mi::before,.faq-item .mi::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(245,240,230,.8)}
-.faq-item .mi::after{transform:rotate(90deg);transition:transform .3s var(--ease)}
-.faq-item[open] .mi::after{transform:rotate(0)}
-.faq-item__body{padding:0 0 20px;font-family:var(--sa);font-size:14px;line-height:1.75;color:rgba(245,240,230,.72);max-width:64ch}
-.dd-atajos{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}
-.dd-atajos .btn{padding:10px 16px;font-size:10px}
 
 /* ── 2 · MODELOS: "FOUR WAYS, ONE LEGACY" — tarjetas altas con marco interior ── */
 .sec{position:relative;padding:clamp(4.5rem,11vh,8rem) 0}
@@ -510,6 +461,8 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 .ubic-marco iframe{display:block;width:100%;height:min(62vh,520px);border:0}
 .ubic-pie{display:flex;justify-content:center;margin-top:28px}
 </style>
+<!-- Panel de due diligence de la hero: fuente unica compartida con palmfield/index.html (6-oct-2026) -->
+<link rel="stylesheet" href="/investor-deck/panel-dd.css?v=20261006a">
 <script src="/investor-deck/i18n.js?v=20260924u"></script>
 </head>
 <body>
@@ -604,6 +557,13 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       <p class="kicker">Investor Deck · Due Diligence</p>
       <h2>Documentation &amp; FAQ</h2>
       <p class="dd-lema">Not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence — the land tenure structure for this specific project is confirmed by your Lawang contact.</p>
+      <?php /* Atajos justo tras el lema (owner, 6-oct-2026): antes cerraban el cuerpo y solo
+           se veian haciendo scroll. Cada uno se oculta solo si su seccion falta (ocultaSeccion). */ ?>
+      <div class="dd-atajos">
+        <a class="btn btn-atajo" href="#modelos"><span>Villa Models</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+        <a class="btn btn-atajo" href="#masterplan"><span>Masterplan &amp; Plots</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+        <a class="btn btn-atajo" href="#rendimientos"><span>Financial Forecast</span><span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+      </div>
     </div>
     <div class="dd-cuerpo">
       <div class="dd-cols">
@@ -615,11 +575,6 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
           <h3>Frequently Asked Questions</h3>
           <div id="faq-lista"><!-- lo llena el JS --></div>
         </div>
-      </div>
-      <div class="dd-atajos">
-        <a class="btn btn-hueso" href="#modelos">Villa Models</a>
-        <a class="btn btn-hueso" href="#masterplan">Masterplan &amp; Plots</a>
-        <a class="btn btn-hueso" href="#rendimientos">Financial Forecast</a>
       </div>
     </div>
   </aside>
@@ -823,6 +778,16 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     if(!u) return '';
     try{ var p = new URL(String(u), location.href); return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : ''; }catch(_){ return ''; }
   }
+  // Enlace de un documento publicado segun el idioma del visitante (6-oct-2026, owner): `url` es el espanol y
+  // el de reserva; `url_i18n` trae en/id. es -> url · en -> url_i18n.en o url · id -> url_i18n.id, .en o url.
+  // Cada candidato pasa por urlSegura(): uno invalido no tumba el boton, cae al siguiente.
+  function urlDoc(d){
+    var lang = window.lwLang ? lwLang() : 'en';
+    var u = d.url_i18n || {};
+    var orden = lang === 'es' ? [d.url] : lang === 'id' ? [u.id, u.en, d.url] : [u.en, d.url];
+    for(var i = 0; i < orden.length; i++){ var s = urlSegura(orden[i]); if(s) return s; }
+    return '';
+  }
   function aviso(queFallo){
     return '<div class="aviso">We could not load ' + queFallo + ' right now. Please contact ' +
       '<a class="enlace" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
@@ -929,8 +894,10 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   }
 
   // ── documentos del proyecto: salen de la intranet, o no sale nada ──────────
-  var DOC_ICONO = { comercial:'description', legal:'gavel', tecnico:'architecture', precios:'payments', portada:'image', otros:'draft' };
-  var DOC_ETIQUETA = { comercial:'Commercial', legal:'Legal', tecnico:'Technical', precios:'Plots & pricing', portada:'Image', otros:'Document' };
+  // fotos y planos: categorias que la intranet ya usa (carpetas de renders, Master Plan) y que
+  // aqui faltaban: salian como «Document» con el icono generico (6-oct-2026).
+  var DOC_ICONO = { comercial:'description', legal:'gavel', tecnico:'architecture', precios:'payments', portada:'image', fotos:'photo_library', planos:'map', otros:'draft' };
+  var DOC_ETIQUETA = { comercial:'Commercial', legal:'Legal', tecnico:'Technical', precios:'Plots & pricing', portada:'Image', fotos:'Photos', planos:'Plans', otros:'Document' };
   // Drive: /file/d/<id>/view ABRE el visor; uc?export=download descarga. Si el enlace no
   // es de Drive no se inventa una ruta de descarga: la tarjeta se queda con "View".
   function enlaceDescarga(href){
@@ -950,7 +917,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     cont.innerHTML = '';
     var pintados = 0;
     docs.forEach(function(d){
-      var href = urlSegura(d.url);
+      var href = urlDoc(d);
       if(!href) return;
       // La tarjeta NO es un enlace: lleva dos acciones, y un <a> dentro de otro no es HTML valido.
       var card = document.createElement('div'); card.className = 'doc';
@@ -974,6 +941,8 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       pintados++;
     });
     if(!pintados) return;                       // nada publicable: el bloque sigue oculto
+    cont.classList.toggle('un-doc', pintados === 1);
+    bloque.parentNode.classList.add('con-docs');
     bloque.hidden = false;
     traduce(bloque);
   }
@@ -1136,10 +1105,12 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       d.appendChild(sum); d.appendChild(cuerpo);
       cont.appendChild(d);
     });
+    $('faq-bloque').parentNode.classList.add('con-faq');
   }
   function faqCaida(){
     var cont = $('faq-lista');
     if(!cont) return;
+    $('faq-bloque').parentNode.classList.add('con-faq');   // el aviso se ve: cuenta como bloque
     cont.innerHTML = aviso('the questions');
     traduce(cont);
   }
@@ -1466,10 +1437,10 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
           if(!docs || !docs.length) return;          // sin nada publicado, ni boton ni bloque
           pintaDocs(docs);
           // "Download dossier" solo puede apuntar al dosier: se ata a la categoria.
-          var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlSegura(x.url); })[0];
+          var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlDoc(x); })[0];
           if(!d) return;
           var cta = $('cta-dosier');
-          cta.href = urlSegura(d.url);
+          cta.href = urlDoc(d);
           if(tituloDoc(d)) cta.setAttribute('title', tituloDoc(d));
           cta.hidden = false;
         })

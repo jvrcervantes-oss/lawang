@@ -26,8 +26,22 @@
  * TTL aquí haría que un cambio hecho en admin.html tardase en verse en el <head> y el sitemap
  * respecto a la SPA, que sí lee data.json en vivo: cambiaría lo que ve el público. La caché se
  * escribe igualmente (como red de seguridad por si el fichero desaparece o llega corrupto).
- * FUENTE 'intranet' (reservada para F5b): fetch de la RPC con TTL 60 s para estado / 300 s para
- * contenido. Hoy no hace nada: cae a caché/respaldo y lo dice en el log.
+ * FUENTE 'intranet' (F5b, 2-oct-2026): POST {} a la RPC `coleccion_publica()` de Supabase Lawang con la
+ * clave PUBLICABLE (la misma de modelo/catalogo.php; el navegador nunca llama a la RPC). Una sola
+ * llamada devuelve contenido y estado de unidades, y la caché fresca dura 60 s para todo; la regla es
+ * «estado casi en tiempo real» y partir en dos TTL (60/300) exigiría dos llamadas o dos RPC para ahorrar
+ * una petición por minuto. Si la RPC falla: caché vieja (stale) -> respaldo (stale). Un fallo reciente se
+ * recuerda 30 s (marcador `.fallo` junto a la caché) para que, con Supabase caído, ningún visitante pague
+ * el timeout de 4 s. «0 fichas» de la RPC se trata como FALLO (igual que catalogo.php): es mucho más probable
+ * un despiste o una RPC rota que la intención de vaciar la web, y caer a caché vieja marca stale (la SPA pinta
+ * «sin dato», nunca «disponible»). Vaciar a propósito = devolver LW_COLECCION_FUENTE a datajson.
+ * settings (whatsapp/email/rates) y downloads globales SIGUEN viniendo de data.json: TRANSITORIO hasta que
+ * tengan dueño en la intranet (la RPC no los emite; decisión de F5b). Si data.json no se lee, salen vacíos y
+ * la SPA conserva sus valores por defecto.
+ * Las rutas de imagen del bucket público `deck` (`proyecto/<uuid>.webp`, `modelo/<uuid>.webp`) se vuelven URL
+ * aquí (la base es infraestructura); una ruta con «/» inicial o http(s) ya es URL y no se toca.
+ * La fuente se elige EN SERVIDOR (LW_COLECCION_FUENTE o el argumento de lw_coleccion(), que solo pasa
+ * código del servidor, nunca la petición); cada fuente tiene SU caché: no se mezclan.
  *
  * LA LISTA BLANCA (coleccion/contrato_publico.json) se aplica A LA SALIDA DE CADA NIVEL, también
  * al leer la caché y el respaldo: lo que está en disco pudo escribirse con un contrato más
@@ -40,14 +54,17 @@
  *   php coleccion/lib.php --respaldo <ruta a un data.json (el de produccion)>
  */
 
-const LW_COLECCION_TTL_INTRANET = 300; // s — contenido (el estado de unidades, 60 s, es de F5b)
+const LW_COLECCION_TTL_INTRANET = 60;  // s — contenido Y estado de unidades en una sola llamada (ver cabecera)
+const LW_COLECCION_FALLO_TTL    = 30;  // s — tras un fallo de la RPC no se reintenta (no hacer esperar a cada visita)
+const LW_COLECCION_SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
+const LW_COLECCION_SB_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'; // PUBLICABLE (igual que modelo/catalogo.php)
 const LW_COLECCION_ESCRIBE_CADA = 300; // s — cada cuánto se refresca la caché con la fuente 'datajson'
 
 /** Configuración efectiva. Las variables de entorno existen para el test y para el corte de F5b
  *  (se fijan en el servidor, nunca vienen de la petición). */
-function lw_coleccion_cfg() {
+function lw_coleccion_cfg($forzada = null) {
     $raiz = dirname(__DIR__);
-    $fuente = getenv('LW_COLECCION_FUENTE');
+    $fuente = $forzada ?: getenv('LW_COLECCION_FUENTE');
     if (!in_array($fuente, ['datajson', 'intranet'], true)) {
         if ($fuente !== false && $fuente !== '') {
             error_log('lw_coleccion: LW_COLECCION_FUENTE desconocida (' . $fuente . '), se usa datajson');
@@ -57,9 +74,10 @@ function lw_coleccion_cfg() {
     $cache = getenv('LW_COLECCION_CACHE');
     if (!$cache) {
         $priv = $raiz . '/private';
+        $nombre = $fuente === 'intranet' ? 'coleccion_intranet' : 'coleccion'; // una caché por fuente
         $cache = (is_dir($priv) && is_writable($priv))
-            ? $priv . '/coleccion.json'
-            : sys_get_temp_dir() . '/lw_coleccion.json';
+            ? $priv . '/' . $nombre . '.json'
+            : sys_get_temp_dir() . '/lw_' . $nombre . '.json';
     }
     return [
         'fuente'   => $fuente,
@@ -67,6 +85,8 @@ function lw_coleccion_cfg() {
         'cache'    => $cache,
         'respaldo' => getenv('LW_COLECCION_RESPALDO') ?: __DIR__ . '/respaldo.json',
         'contrato' => __DIR__ . '/contrato_publico.json',
+        'rpc'      => getenv('LW_COLECCION_RPC_URL') ?: LW_COLECCION_SB_URL . '/rest/v1/rpc/coleccion_publica', // env: solo test
+        'bucket'   => rtrim(getenv('LW_COLECCION_BUCKET_URL') ?: LW_COLECCION_SB_URL . '/storage/v1/object/public/deck', '/'),
         'ttl'      => $fuente === 'intranet' ? LW_COLECCION_TTL_INTRANET : 0,
     ];
 }
@@ -156,22 +176,109 @@ function lw_coleccion_escribe($ruta, array $doc) {
     }
 }
 
-/** La fuente. Devuelve el documento ya filtrado, o null si no pudo. */
-function lw_coleccion_fuente(array $cfg) {
-    if ($cfg['fuente'] === 'intranet') {
-        // Reservada para F5b: fetch de la RPC coleccion_publica() (clave publicable, TTL en
-        // cfg['ttl']). Hasta entonces no hay nada que leer: se cae a caché/respaldo.
-        error_log('lw_coleccion: fuente intranet aun no implementada (F5b)');
+/** Ruta de bucket -> URL pública. Solo se compone una ruta con la forma `carpeta/fichero.ext` sin «/»
+ *  inicial, sin «..» ni esquema; cualquier otra cosa (URL del servidor, http, texto raro) pasa tal cual. */
+function lw_coleccion_url_bucket($v, $base) {
+    if (!is_string($v) || !preg_match('#^[A-Za-z0-9_-]+(/[A-Za-z0-9._-]+)+\.(webp|jpe?g|png|avif|svg)$#i', $v) || strpos($v, '..') !== false) return $v;
+    return $base . '/' . implode('/', array_map('rawurlencode', explode('/', $v)));
+}
+
+/** Compone las URLs del bucket en las claves de imagen de una ficha de la RPC. */
+function lw_coleccion_compone_imagenes(array $p, $base) {
+    if (isset($p['images']) && is_array($p['images'])) {
+        $p['images'] = array_map(function ($u) use ($base) { return lw_coleccion_url_bucket($u, $base); }, $p['images']);
+    }
+    if (isset($p['masterplanImage'])) $p['masterplanImage'] = lw_coleccion_url_bucket($p['masterplanImage'], $base);
+    if (isset($p['homeModels']) && is_array($p['homeModels'])) {
+        foreach ($p['homeModels'] as $i => $m) {
+            if (is_array($m) && isset($m['image'])) $p['homeModels'][$i]['image'] = lw_coleccion_url_bucket($m['image'], $base);
+        }
+    }
+    return $p;
+}
+
+/** POST {} a la RPC. Devuelve el array decodificado o null; `$diag` recibe por qué falló (para el log: sin
+ *  él, «no responde» no distingue un timeout de una conexión rechazada de un 401). Timeouts cortos: está en el
+ *  camino de una página pública (mejor la caché vieja que hacer esperar a alguien que llegó por un anuncio). */
+function lw_coleccion_rpc_fetch(array $cfg, &$diag = null) {
+    if (!function_exists('curl_init')) { $diag = 'sin extension curl'; return null; }
+    $ch = curl_init($cfg['rpc']);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true, CURLOPT_POSTFIELDS => '{}', CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 4, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_HTTPHEADER => ['apikey: ' . LW_COLECCION_SB_KEY, 'Content-Type: application/json'],
+    ]);
+    $body = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $t = round((float) curl_getinfo($ch, CURLINFO_TOTAL_TIME), 2);
+    $err = curl_error($ch);
+    curl_close($ch);
+    $diag = "http=$code t={$t}s" . ($err !== '' ? " curl=\"$err\"" : '');
+    if ($code !== 200 || !is_string($body) || $body === '') return null;
+    $d = json_decode($body, true);
+    if (!(is_array($d) && isset($d['properties']) && is_array($d['properties']))) { $diag .= ' cuerpo no valido'; return null; }
+    return $d;
+}
+
+/** Fuente 'intranet': RPC + settings/downloads de data.json (transitorio) + lista blanca. */
+function lw_coleccion_fuente_intranet(array $cfg) {
+    $fallo = $cfg['cache'] . '.fallo';
+    if (is_file($fallo) && time() - (int) filemtime($fallo) < LW_COLECCION_FALLO_TTL) return null;
+    $rpc = lw_coleccion_rpc_fetch($cfg, $diag);
+    // CACHE FRIA (nada en disco que servir como «vieja»): un solo fallo aislado —handshake lento del primer
+    // contacto tras un despliegue, un reinicio de PHP— dejaba la primera pagina en `stale` (todas las tarjetas
+    // en «Ask for availability») aunque la RPC estuviera sana. Con cache vieja NO se reintenta: ya hay con que
+    // servir sin hacer esperar. El peor caso (cache fria y Supabase caido de verdad) son 2 intentos UNA vez
+    // cada LW_COLECCION_FALLO_TTL, porque el marcador de fallo cierra la puerta al resto.
+    if ($rpc === null && !(is_file($cfg['cache']) && filesize($cfg['cache']) > 0)) {
+        error_log('lw_coleccion: RPC coleccion_publica fallo con la cache fria (' . $diag . '); un reintento');
+        usleep(300000);
+        $rpc = lw_coleccion_rpc_fetch($cfg, $diag);
+    }
+    if ($rpc === null) {
+        error_log('lw_coleccion: la RPC coleccion_publica no responde o devuelve basura (' . $diag . '); se sirve cache vieja/respaldo');
+        @touch($fallo);
         return null;
     }
+    $legacy = is_file($cfg['datajson']) ? json_decode((string) @file_get_contents($cfg['datajson']), true) : null;
+    $legacy = is_array($legacy) ? $legacy : [];
+    $props = [];
+    foreach ($rpc['properties'] as $p) {
+        $props[] = is_array($p) ? lw_coleccion_compone_imagenes($p, $cfg['bucket']) : $p;
+    }
+    $doc = ['properties' => $props, 'settings' => $legacy['settings'] ?? [], 'downloads' => $legacy['downloads'] ?? []];
+    try {
+        $r = lw_coleccion_aplica_contrato($doc, $cfg['contrato']);
+    } catch (RuntimeException $e) {
+        error_log('lw_coleccion: RPC RECHAZADA por el contrato publico: ' . $e->getMessage());
+        @touch($fallo);
+        return null;
+    }
+    if (!$r['properties']) {
+        error_log('lw_coleccion: la RPC devolvio 0 fichas visibles, se trata como fallo (ver cabecera)');
+        @touch($fallo);
+        return null;
+    }
+    @unlink($fallo);
+    return $r;
+}
+
+/** La fuente. Devuelve el documento ya filtrado, o null si no pudo. */
+function lw_coleccion_fuente(array $cfg) {
+    if ($cfg['fuente'] === 'intranet') return lw_coleccion_fuente_intranet($cfg);
     return lw_coleccion_lee($cfg['datajson'], 'data.json', $cfg);
 }
 
 /** Carga completa por los niveles, sin memo. `$cfg` inyectable (test). */
 function lw_coleccion_carga(array $cfg) {
-    $con = function (array $r, $fuente, $stale) {
+    // `live` = esta lectura es de la fuente en vivo (intranet): es la señal que activa en la SPA y en la
+    // tarjeta TODO lo nuevo de F7 (estado de unidad, «Sold out», bloque Availability). Sin ella (datajson,
+    // que no sabe de unidades) la web pinta exactamente lo de siempre.
+    $live = $cfg['fuente'] === 'intranet';
+    $con = function (array $r, $fuente, $stale) use ($live) {
         $r['fuente'] = $fuente;
         $r['stale']  = $stale;
+        $r['live']   = $live;
         return $r;
     };
     $cache = $cfg['cache'];
@@ -189,18 +296,166 @@ function lw_coleccion_carga(array $cfg) {
     if ($r = lw_coleccion_lee($cache, 'cache vieja', $cfg)) return $con($r, 'cache', true);
     if ($r = lw_coleccion_lee($cfg['respaldo'], 'respaldo', $cfg)) return $con($r, 'respaldo', true);
     error_log('lw_coleccion: ni fuente, ni cache, ni respaldo — The Collection sale vacia');
-    return ['properties' => [], 'settings' => [], 'downloads' => [], 'fuente' => 'ninguna', 'stale' => true];
+    return ['properties' => [], 'settings' => [], 'downloads' => [], 'fuente' => 'ninguna', 'stale' => true, 'live' => $live];
 }
 
 /** El documento publico de The Collection: {properties, settings, downloads, fuente, stale}.
  *  Misma forma que data.json (menos lo no publicable) para que la SPA solo cambie de fuente. */
-function lw_coleccion() {
-    static $memo = null;
-    if ($memo !== null) return $memo;
-    return $memo = lw_coleccion_carga(lw_coleccion_cfg());
+function lw_coleccion($fuente = null) {
+    static $memo = [];
+    $k = $fuente ?: 'env';
+    if (!isset($memo[$k])) $memo[$k] = lw_coleccion_carga(lw_coleccion_cfg($fuente));
+    return $memo[$k];
 }
 
-function lw_coleccion_props() { return lw_coleccion()['properties']; }
+/** El documento tal como sale al NAVEGADOR (endpoint de la home y precarga de la SPA): una sola función,
+ *  para que nadie añada una clave por un lado y no por el otro. Sin `fuente` (infraestructura). `stale`
+ *  y `live` van siempre: sin ellos la SPA no puede distinguir «no hay dato» de «hay dato fresco». */
+function lw_coleccion_para_navegador(array $doc) {
+    return [
+        'properties' => $doc['properties'], 'settings' => $doc['settings'], 'downloads' => $doc['downloads'],
+        'live' => !empty($doc['live']), 'stale' => !empty($doc['stale']),
+    ];
+}
+
+/**
+ * Estado de disponibilidad de una ficha, derivado SOLO de `parcelas` (la lista del dueño, en tiempo real).
+ * UNA regla para el servidor (JSON-LD, noscript); su gemela en JS es LawangCard.estado (assets/lawang-card.js)
+ * y los dos tests (coleccion/tests/coleccion_test.php y assets/lawang-card.test.js) afirman la MISMA tabla
+ * (coleccion/tests/estados_esperados.json) contra la RPC real: si una cambia y la otra no, el gate falla.
+ *   k: na    no se puede afirmar nada: sin parcelas, dato viejo (stale), estado desconocido o unitsAvailable que no cuadra
+ *      ok    queda alguna libre (n>1 de t, o t==1 casa única «Available»)   few  queda 1 libre de >=2
+ *      held  ninguna libre y alguna reservada   gone  todo vendido
+ * d/r/v/t = libres/reservadas/vendidas/total.
+ * CRITERIO de «sin parcelas» (decision del owner, 6-oct-2026; antes salia sin chip): riverfront-iii y rurung-anyar no
+ * tienen ninguna fila en `unidades` (0 de 0) porque el dueño del dato (la intranet) aun no las ha cargado, no por un
+ * fallo de la web. Se muestra «Ask for availability» (`na`): no se afirma ni «Available» ni «Sold», se invita a
+ * consultar. En cuanto el equipo cree sus unidades, el chip pasa a su estado real solo. El JSON-LD sigue OMITIENDO
+ * `availability` (no hay dato fiable) y `none` ya no existe en esta regla (solo lo usa el JS como centinela data.json).
+ */
+function lw_coleccion_estado(array $p, $stale = false) {
+    $d = $r = $v = $x = 0;
+    foreach ((isset($p['parcelas']) && is_array($p['parcelas']) ? $p['parcelas'] : []) as $u) {
+        $e = is_array($u) ? ($u['estado'] ?? '') : '';
+        if ($e === 'disponible') $d++; elseif ($e === 'reservada') $r++; elseif ($e === 'vendida') $v++; else $x++;
+    }
+    $t = $d + $r + $v + $x;
+    $out = function ($k) use ($d, $r, $v, $t) { return ['k' => $k, 'd' => $d, 'r' => $r, 'v' => $v, 't' => $t]; };
+    if ($stale || $t === 0) return $out('na'); // dato viejo, o ficha sin unidades cargadas: «Ask for availability», nunca un estado inventado
+    if ($x > 0) return $out('na');
+    $ua = $p['unitsAvailable'] ?? null;
+    if ($ua !== null && $ua !== '') { // dos contadores que no cuadran (o que no son un entero): no se afirma ninguno
+        $un = is_numeric($ua) ? $ua + 0 : null;
+        if ($un === null || floor((float) $un) != (float) $un || (int) $un !== $d) return $out('na');
+    }
+    if ($d > 1 || ($d === 1 && $t === 1)) return $out('ok');
+    if ($d === 1) return $out('few');
+    return $out($r > 0 ? 'held' : 'gone');
+}
+
+/** Texto de precio para quien no ejecuta JS (noscript) y para el JSON-LD: misma regla que la tarjeta.
+ *  Vendida (y dato fresco) -> «Sold out»; priceMode fixed -> «€X»; from o ausente (data.json no lo tiene) -> «From €X». */
+function lw_coleccion_precio_txt(array $p, $stale = false) {
+    $eur = $p['priceEUR'] ?? null;
+    if (lw_coleccion_estado($p, $stale)['k'] === 'gone') return 'Sold out';
+    if (!is_numeric($eur) || $eur <= 0) return '';
+    $n = '€' . number_format((int) $eur, 0, '.', ',');
+    return (($p['priceMode'] ?? 'from') === 'fixed') ? $n : 'From ' . $n;
+}
+
+/** `offers` del JSON-LD de una ficha, o null si no hay precio. UNA función para la ficha (/property/<id>) y para
+ *  el listado (ItemList de The Collection): la regla de disponibilidad no puede vivir en dos sitios.
+ *  Con datajson (`$live` false: no sabe de unidades) queda InStock como siempre. Con la intranet la disponibilidad
+ *  se DERIVA (lw_coleccion_estado): vendida -> SoldOut, queda 1 -> LimitedAvailability, hay libres -> InStock, y
+ *  sin dato fiable (stale, sin parcelas, contadores que no cuadran) o todo reservado se OMITE la clave:
+ *  nunca se afirma InStock sin base. */
+function lw_coleccion_jsonld_oferta(array $p, $live, $stale) {
+    $eur = $p['priceEUR'] ?? null;
+    if (!$eur) return null;
+    $o = ['@type' => 'Offer', 'price' => (string) $eur, 'priceCurrency' => 'EUR', 'availability' => 'https://schema.org/InStock'];
+    if ($live) {
+        $k = lw_coleccion_estado($p, $stale)['k'];
+        if ($k === 'gone') $o['availability'] = 'https://schema.org/SoldOut';
+        elseif ($k === 'few') $o['availability'] = 'https://schema.org/LimitedAvailability';
+        elseif ($k !== 'ok') unset($o['availability']);
+    }
+    return $o;
+}
+
+/** JSON-LD de la página de listado (The Collection): CollectionPage de siempre; con datos en vivo, además un
+ *  ItemList con una RealEstateListing por ficha publicada (enlace canónico /property/<id>, no la ruta de prueba). */
+function lw_coleccion_jsonld_listado(array $doc, $site) {
+    $ld = [
+        '@context' => 'https://schema.org', '@type' => 'CollectionPage',
+        'name' => 'The Collection · Lawang Tropical Properties', 'url' => $site . '/thecollection',
+        'description' => 'Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.',
+        'isPartOf' => ['@type' => 'WebSite', 'name' => 'Lawang Tropical Properties', 'url' => $site . '/'],
+    ];
+    if (empty($doc['live'])) return $ld;
+    $items = [];
+    foreach ($doc['properties'] as $p) {
+        $id = (string) ($p['id'] ?? '');
+        if ($id === '') continue;
+        $it = ['@type' => 'RealEstateListing', 'name' => (string) ($p['title']['en'] ?? $id), 'url' => $site . '/property/' . $id];
+        if (($p['region'] ?? '') !== '') {
+            $it['address'] = ['@type' => 'PostalAddress', 'addressLocality' => (string) $p['region'], 'addressCountry' => 'ID'];
+        }
+        $of = lw_coleccion_jsonld_oferta($p, true, !empty($doc['stale']));
+        if ($of) $it['offers'] = $of;
+        $items[] = ['@type' => 'ListItem', 'position' => count($items) + 1, 'item' => $it];
+    }
+    if ($items) $ld['mainEntity'] = ['@type' => 'ItemList', 'numberOfItems' => count($items), 'itemListElement' => $items];
+    return $ld;
+}
+
+/** El <noscript> de The Collection para crawlers sin JS, generado del MISMO documento que la página (antes lo
+ *  horneaba build_seo.py a mano: incluía fichas ocultas y «From» en precios fijos, y envejecía en silencio). */
+function lw_coleccion_noscript(array $doc) {
+    $e = function ($v) { return htmlspecialchars((string) $v, ENT_QUOTES | ENT_HTML5, 'UTF-8'); };
+    $tenure = ['tenure.freehold' => 'Freehold (HGB)', 'tenure.leasehold' => 'Leasehold — 30 yrs'];
+    $status = ['status.ready' => 'Built', 'status.construction' => 'Under construction', 'status.offplan' => 'Off-plan', 'status.land' => 'Titled land'];
+    $stale = !empty($doc['stale']);
+    $cards = [];
+    foreach ($doc['properties'] as $p) {
+        $id = (string) ($p['id'] ?? '');
+        $title = (string) ($p['title']['en'] ?? $id);
+        $region = (string) ($p['region'] ?? '');
+        $img = isset($p['images'][0]) ? (string) $p['images'][0] : '';
+        $sp = [];
+        if (!empty($p['beds']))  $sp[] = $p['beds'] . ' bed';
+        if (!empty($p['baths'])) $sp[] = $p['baths'] . ' bath';
+        if (!empty($p['built'])) $sp[] = $p['built'] . ' m² built';
+        if (!empty($p['land']))  $sp[] = $p['land'] . ' m² land';
+        $ho = trim((string) ($p['handover'] ?? ''));
+        if (in_array($ho, ['—', '–', '-', '', 'N/A', 'n/a'], true)) $ho = '';
+        $meta = array_filter([$status[$p['status'] ?? ''] ?? '', $tenure[$p['tenure'] ?? ''] ?? '', $ho !== '' ? 'Handover ' . $ho : '']);
+        $price = lw_coleccion_precio_txt($p, $stale);
+        $line = function ($cls, $txt) use ($e) { return $txt === '' ? '' : "
+      <p class=\"$cls\">" . $e($txt) . '</p>'; };
+        $cards[] = "    <article class=\"seo-prop\">
+      "
+            . ($img !== '' ? '<img src="' . $e($img) . '" alt="' . $e($title) . ' — ' . $e($region) . '" loading="lazy" width="800" height="600">' : '')
+            . "
+      <h3><a href=\"/property/" . $e($id) . '">' . $e($title) . '</a></h3>'
+            . $line('seo-region', $region) . $line('seo-price', $price) . $line('seo-specs', implode(' · ', $sp))
+            . $line('seo-meta', implode(' · ', $meta)) . $line('seo-sub', (string) ($p['sub']['en'] ?? ''))
+            . $line('seo-desc', (string) ($p['desc']['en'] ?? '')) . "
+    </article>";
+    }
+    return "<noscript>
+  <section class=\"seo-fallback\" aria-label=\"Lawang property portfolio\">
+"
+        . "    <h1>Lawang — Property Portfolio in Bali &amp; Sumba</h1>
+"
+        . "    <p>Signature homes, land parcels, villas and resort units across Bali and Sumba, Indonesia. Freehold and leasehold opportunities with managed rental income.</p>
+"
+        . implode("
+", $cards) . "
+  </section>
+</noscript>";
+}
+
+function lw_coleccion_props($fuente = null) { return lw_coleccion($fuente)['properties']; }
 
 function lw_coleccion_ids() {
     return array_map(function ($p) { return $p['id']; }, lw_coleccion_props());
@@ -208,8 +463,8 @@ function lw_coleccion_ids() {
 
 /** La ficha pública de un id, o null. «No existe» y «no es visible» son indistinguibles a
  *  propósito (un 404 distinto permitiría enumerar los ids ocultos): aquí lo oculto no llega. */
-function lw_coleccion_ficha($id) {
-    foreach (lw_coleccion_props() as $p) {
+function lw_coleccion_ficha($id, $fuente = null) {
+    foreach (lw_coleccion_props($fuente) as $p) {
         if ($p['id'] === $id) return $p;
     }
     return null;

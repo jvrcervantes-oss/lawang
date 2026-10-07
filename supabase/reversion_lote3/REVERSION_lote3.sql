@@ -1,0 +1,11 @@
+-- REVERSION lote 3 (6-oct-2026) — estado previo capturado ANTES de aplicar.
+-- F2 (i): drop function public.comprador_ficha(uuid); drop function public.comprador_buscar(text); drop function public.compradores_lista(); drop table public.comprador_ficha_accesos;
+-- F2 (iii) (si se hizo el drop de compradores_directorio): recrear con
+--   create or replace function public.compradores_directorio() returns table(id uuid, full_name text, tipo text, email text, phone text, nationality text, passport_number text, date_of_birth date, address text, forma_juridica text, registro_num text, rep_nombre text, rep_cargo text, kyc_status text, propietario text, created_at timestamptz)
+--   language sql stable security definer set search_path to '' as $f$ select c.id, c.full_name, c.tipo, c.email, c.phone, c.nationality, c.passport_number, c.date_of_birth, c.address, c.forma_juridica, c.registro_num, c.rep_nombre, c.rep_cargo, c.kyc_status, c.propietario, c.created_at from public.clients c where public.es_agente() $f$;
+--   revoke all on function public.compradores_directorio() from public, anon; grant execute on function public.compradores_directorio() to authenticated, service_role;   -- ACL previa: postgres, authenticated, service_role (X)
+-- F4: policies previas (ambas roles {authenticated,lw_lector}, using es_agente()):
+--   drop policy "modelos: leer" on public.modelos;       create policy "modelos: leer" on public.modelos for select to authenticated, lw_lector using (public.es_agente());
+--   drop policy "techos: leer" on public.modelo_techos;  create policy "techos: leer" on public.modelo_techos for select to authenticated, lw_lector using (public.es_agente());
+-- F3 fase A: drop function public.cuentas_cobro_visibles(); drop function public.sociedades_visibles(); y volver entities.js al select directo (Backups/20261007_0100_lote3_F3_entities.js).
+-- F3 fase B (APLICADA): ver el bloque REVERTIR de la migracion 20261007000500. Policies previas using (true) en cuentas_bancarias "cuentas: solo con sesion", plantilla_cuentas "mapeo cuentas: solo con sesion", proyecto_cuentas "cuentas por proyecto: solo con sesion", sociedades "sociedades: leer" (roles {authenticated,lw_lector}).

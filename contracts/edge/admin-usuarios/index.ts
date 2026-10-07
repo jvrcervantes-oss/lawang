@@ -444,7 +444,8 @@ Deno.serve(async (req) => {
       // `usuarios` (un comprador del portal) no se toca desde aquí — antes `destino` nulo
       // pasaba. Y un admin solo con las de rango inferior: ni super_admin ni otro admin
       // (sí la suya propia). El super_admin puede con cualquiera del equipo.
-      const { data: destino } = await admin.from('usuarios').select('rol, herramientas').eq('user_id', user_id).maybeSingle();
+      const { data: destino } = await admin.from('usuarios')
+        .select('rol, herramientas, proyectos, proyectos_supervisados, tipos_contrato').eq('user_id', user_id).maybeSingle();
       if (!destino) return json({ error: 'no_es_cuenta_del_equipo' }, 403);
       if (!soySuper && user_id !== quien.user.id && ['super_admin', 'admin'].includes(destino.rol))
         return json({ error: 'no_autorizado' }, 403);
@@ -455,6 +456,21 @@ Deno.serve(async (req) => {
         const ajenas = ((destino.herramientas ?? []) as string[]).map(String).filter((h) => !mias.has(h));
         if (ajenas.length) return json({ error: 'cuenta_con_herramientas_que_no_tienes', detalle: ajenas,
                                          ayuda: 'Esta contraseña la cambia un super admin.' }, 403);
+        // Lote 2 (6-oct-2026, owner): lo mismo con el ALCANCE. Poner la contraseña de una cuenta con proyectos, proyectos
+        // supervisados o tipos de contrato que tú no tienes es entrar a ellos. El destino debe caer dentro del tuyo.
+        const { data: yo } = await admin.from('usuarios')
+          .select('proyectos, tipos_contrato').eq('user_id', quien.user.id).maybeSingle();
+        const fueraDe = (a: unknown, b: unknown) => {
+          const B = new Set(((b ?? []) as string[]).map(String));
+          return ((a ?? []) as string[]).map(String).filter((x) => !B.has(x));
+        };
+        const fuera = [
+          ...fueraDe(destino.proyectos, yo?.proyectos).map((x) => 'proyecto:' + x),
+          ...fueraDe(destino.proyectos_supervisados, yo?.proyectos).map((x) => 'supervisa:' + x),
+          ...fueraDe(destino.tipos_contrato, yo?.tipos_contrato).map((x) => 'tipo:' + x),
+        ];
+        if (fuera.length) return json({ error: 'cuenta_con_alcance_que_no_tienes', detalle: fuera.slice(0, 10),
+                                        ayuda: 'Esta contraseña la cambia un super admin.' }, 403);
       }
       const { error } = await admin.auth.admin.updateUserById(user_id, { password });
       if (error) return json({ error: error.message }, 400);

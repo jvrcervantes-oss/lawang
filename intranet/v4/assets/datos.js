@@ -788,7 +788,7 @@
         if (n) n.textContent = filas.length ? '· ' + nPub + ' publicada' + (nPub === 1 ? '' : 's') + (filas.length > nPub ? ' de ' + filas.length : '') : '';
         if (!filas.length) {
           var vacio = document.createElement('p');
-          vacio.style.cssText = 'font:500 13px/1.5 sans-serif;color:#75786e;margin:0';
+          vacio.style.cssText = 'font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0';
           vacio.textContent = 'El deck de este proyecto no tiene preguntas frecuentes.';
           caja.appendChild(vacio); return;
         }
@@ -907,7 +907,8 @@
       suave(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente')),
       suave(sb.rpc('contratos_equipo').select('id,numero,comprador_nombre,bloqueado,liberado_en')),
       // Desde el 18-ago-2026, día en que se activó la factura automática: lo
-      // anterior es alta de histórico y se revisa aparte.
+      // anterior es alta de histórico y se revisa aparte. Misma regla que
+      // public.hitos_sin_factura() (ver su COMMENT): si cambia, cambiar las dos.
       suave(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto,contratos!inner(numero,bloqueado,liberado_en)')
         .eq('contratos.bloqueado', true).is('contratos.liberado_en', null).is('factura_id', null).eq('no_facturar', false)
         .lt('fecha', hoy).gte('fecha', '2026-08-18').order('fecha')),
@@ -1841,6 +1842,8 @@
         H.dato('Proyecto', f.proyecto_nombre) +
         H.dato('Contrato', c ? (contratosActivo() ? enlaceFichaContrato(c) : esc(c.numero || '')) : (f.contrato_numero || null), { html: !!c }) +
         (c && c.precio_total != null ? H.dato('Precio del contrato', fmt(c.precio_total, c.moneda)) : ''));
+      // Saldo del contrato (5-oct-2026): las cifras las da la base (contrato_saldo), se rellena abajo.
+      if (f.contrato_id && f.tipo !== 'recibi') cuerpo += '<div data-lw-saldo-host></div>';
       if (f.tipo === 'recibi') {
         var js = Array.isArray(f.justificantes) ? f.justificantes.slice() : [];
         if (!js.length && f.justificante_path) js.push({ path: f.justificante_path });
@@ -1850,6 +1853,23 @@
           }).join('') : H.nota('Este recibí no tiene justificante adjunto. Se adjunta desde la herramienta viva.'));
       }
       caj.cuerpo.innerHTML = cuerpo;
+      var hostSaldo = caj.cuerpo.querySelector('[data-lw-saldo-host]');
+      if (hostSaldo) {
+        new Promise(function (ok) {
+          if (typeof window.lwSaldoCarga === 'function') return ok(true);
+          var sc = document.createElement('script');
+          sc.src = '/contracts/assets/saldo_contrato.js?v=577fa3e6';
+          sc.onload = function () { ok(true); }; sc.onerror = function () { ok(false); };
+          document.head.appendChild(sc);
+        }).then(function (hay) {
+          if (!hay) return null;
+          return window.lwSaldoCarga(sb, f.contrato_id);
+        }).then(function (s) {
+          if (!s || !hostSaldo.isConnected) return;
+          window.lwSaldoEstilo();
+          hostSaldo.innerHTML = window.lwSaldoHTML(s, fmt);
+        });
+      }
       var hostAutoria = caj.cuerpo.querySelector('[data-lw-autoria-host]');
       if (hostAutoria && window.LW_AUTORIA) {
         window.LW_AUTORIA.montar(hostAutoria, {
@@ -2491,7 +2511,7 @@
            `compradores_directorio()` devuelve la IDENTIDAD de todas, sin `notes`;
            lo del negocio de cada uno sigue filtrado por autor. Se piden solo las
            columnas que el LISTADO enseña (minimización, Seguridad 18-sep). */
-        q(sb.rpc('compradores_directorio').select('id,full_name,email,phone,nationality,tipo,kyc_status,propietario,created_at').order('created_at', { ascending: false }), 'compradores', t),
+        q(sb.rpc('compradores_lista').select('id,full_name,email,phone,nationality,tipo,kyc_status,propietario,created_at').order('created_at', { ascending: false }), 'compradores', t),
         clientesContratosCarga(sb, conContratos),
         // nombre del agente que dio de alta cada ficha (`clients.propietario` es un email)
         q(sb.from('usuarios').select('email,nombre'), 'equipo'),
@@ -4245,7 +4265,7 @@
         window.LW_V4.documentosGenerales = DOCUMENTOS_GENERALES;
         var puedeBorrar = !!window.LW_V4.esSuperAdmin;
         caja.innerHTML = '';
-        if (!gen.length) caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin documentos de la empresa todavía.</p>';
+        if (!gen.length) caja.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Sin documentos de la empresa todavía.</p>';
         gen.forEach(function (d2) {
           DOCUMENTOS_GENERALES[d2.id] = d2;
           var f = MOLDE_ENLACE.cloneNode(true);
@@ -4403,7 +4423,7 @@
             cajaResumen.innerHTML = Object.keys(ESTADO_ETIQUETA).map(function (clave) {
               var n = porEstado[clave] || 0;
               if (!n) return '';
-              return '<span style="display:inline-flex;align-items:center;gap:5px;font:600 11px sans-serif;color:#44483f">' +
+              return '<span style="display:inline-flex;align-items:center;gap:5px;font:600 11px \'Neue Kabel\',sans-serif;color:#44483f">' +
                 '<span style="width:7px;height:7px;border-radius:999px;flex:0 0 auto;background:' + colorEstado(clave) + '"></span>' +
                 n + ' ' + etiquetaEstado(clave).toLowerCase() + '</span>';
             }).join('');
@@ -4504,11 +4524,11 @@
           cajaM.innerHTML = supervisan.length
             ? supervisan.map(function (m) {
                 return '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;' +
-                  'background:#efeee8;border:1px solid #E4DCCB;font:600 11px sans-serif;color:#1b1c19' + (m.activo ? '' : ';opacity:.55') + '">' +
+                  'background:#efeee8;border:1px solid #E4DCCB;font:600 11px \'Neue Kabel\',sans-serif;color:#1b1c19' + (m.activo ? '' : ';opacity:.55') + '">' +
                   esc(m.nombre || m.email) + '<span style="font-weight:500;color:#75786e">· Project manager' +
                   (m.activo ? '' : ' · desactivado') + '</span></span>';
               }).join('')
-            : '<span style="font:500 13px sans-serif;color:#75786e">Sin encargado asignado.</span>';
+            : '<span style="font:500 13px \'Neue Kabel\',sans-serif;color:#75786e">Sin encargado asignado.</span>';
         }
 
         /* Documentacion FUSIONADA aqui (decision owner 8-sep): la boveda son
@@ -4567,7 +4587,7 @@
         if (cajaE && MOLDE_ENLACE) {
           var mE = MOLDE_ENLACE.cloneNode(true);
           cajaE.innerHTML = '';
-          if (!enl.length) cajaE.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene enlaces guardados.</p>';
+          if (!enl.length) cajaE.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Este proyecto no tiene enlaces guardados.</p>';
           enl.forEach(function (d2) {
             var f = mE.cloneNode(true);
             f.setAttribute('data-doc-id', d2.id);
@@ -4591,7 +4611,7 @@
         if (cajaD && MOLDE_DOC) {
           var mD = MOLDE_DOC.cloneNode(true);
           cajaD.innerHTML = '';
-          if (!docs.length) cajaD.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene documentos subidos.</p>';
+          if (!docs.length) cajaD.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Este proyecto no tiene documentos subidos.</p>';
           docs.forEach(function (d2) {
             var f = mD.cloneNode(true);
             f.setAttribute('data-doc-id', d2.id);
@@ -4608,7 +4628,7 @@
         if (cajaF && MOLDE_FAQ) {
           var mF = MOLDE_FAQ.cloneNode(true);
           cajaF.innerHTML = '';
-          if (!faq.length) cajaF.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin preguntas frecuentes para este proyecto.</p>';
+          if (!faq.length) cajaF.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Sin preguntas frecuentes para este proyecto.</p>';
           faq.forEach(function (d2) {
             var f = mF.cloneNode(true);
             f.setAttribute('data-doc-id', d2.id);
@@ -4657,7 +4677,7 @@
             if (!uu.length) {
               // grid-column entera: dentro de una rejilla, un aviso suelto se
               // quedaria encogido en la primera columna como si fuera una tarjeta.
-              caja.innerHTML = '<p style="grid-column:1/-1;font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
+              caja.innerHTML = '<p style="grid-column:1/-1;font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">' +
                 'Este proyecto no tiene unidades dadas de alta.</p>';
               // Sin filas no hay chips: vacía los del proyecto anterior.
               if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS(elegido.nombre);
@@ -4989,7 +5009,8 @@
             var c = cifrasProyecto(p), d = c.d;
             return '<tr class="border-b border-warm-border/60 last:border-0 hover:bg-surface-container-low cursor-pointer" data-proy="' + esc(p.nombre) + '">' +
               '<td class="px-3 py-2 max-w-[260px]"><div class="font-semibold text-deep-lagoon truncate" title="' + esc(p.nombre) + '">' + esc(p.nombre) + '</div>' +
-                '<div class="text-[11px] text-outline truncate">' + esc(p.parcela_master ? 'Máster ' + p.parcela_master : 'Sin parcela máster') + '</div></td>' +
+                '<div class="text-[11px] text-outline truncate">' + esc(p.parcela_master ? 'Máster ' + p.parcela_master : 'Sin parcela máster') + '</div>' +
+                '<div class="text-[11px] text-outline truncate" data-lw="empresa-proyecto">' + esc(nombreEmpresaP(p) || ((window.lwT ? window.lwT('Sin empresa') : 'Sin empresa'))) + '</div></td>' +
               '<td class="px-3 py-2 text-on-surface-variant max-w-[180px] truncate" title="' + esc(p.resort || '') + '">' + esc(p.resort || '—') + '</td>' +
               '<td class="px-3 py-2"><span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white whitespace-nowrap" style="background:' +
                 colorProyEstado(p.estado) + '">' + esc(etiquetaProyEstado(p.estado)) + '</span></td>' +
@@ -5092,6 +5113,7 @@
           var sub = p.parcela_master ? 'Parcela máster ' + p.parcela_master + (p.parcela_master_m2 ? ' · ' + p.parcela_master_m2 + ' m²' : '') : 'Sin parcela máster registrada';
           pon('nombre', p.nombre, c);
           pon('sitio', p.resort || 'Sin ubicación asignada', c);
+          sub += ' · ' + (nombreEmpresaP(p) || (window.lwT ? window.lwT('Sin empresa') : 'Sin empresa'));   // empresa (F1): etiqueta
           pon('sub', sub, c);
           // title con el texto entero: la tarjeta lo corta con «…» (truncate)
           // para que nada se salga, y así no se pierde al pasar el ratón.
@@ -5355,7 +5377,7 @@
         var caja = document.getElementById('d-anexos-maestros');
         if (!caja || !elegido) return;
         var turno = ++TURNO_ANEXOS;
-        var nota = function (t) { caja.innerHTML = ''; var p = document.createElement('p'); p.style.cssText = 'font:500 13px/1.5 sans-serif;color:#75786e;margin:0'; p.textContent = t; caja.appendChild(p); };
+        var nota = function (t) { caja.innerHTML = ''; var p = document.createElement('p'); p.style.cssText = 'font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0'; p.textContent = t; caja.appendChild(p); };
         nota('Cargando…');
         sb.from('modelos_villa').select('modelo_id,proyecto,proyecto_id').then(function (rv) {
           if (turno !== TURNO_ANEXOS) return;
@@ -5420,7 +5442,7 @@
               caja.appendChild(f);
             });
             if (sinAnexo.length) {
-              var p = document.createElement('p'); p.style.cssText = 'font:500 12px/1.5 sans-serif;color:#8A6A34;margin:' + (docs.length ? '4px 0 0' : '0');
+              var p = document.createElement('p'); p.style.cssText = 'font:500 12px/1.5 \'Neue Kabel\',sans-serif;color:#8A6A34;margin:' + (docs.length ? '4px 0 0' : '0');
               p.textContent = 'Sin documentos marcados para el contrato: ' + sinAnexo.map(function (id) { return nombreModelo[id] || 'modelo'; }).join(', ')
                 + '. Sus contratos de Construcción saldrán sin anexo hasta que administración marque alguno en Modelos → Documentos.';
               caja.appendChild(p);
@@ -5522,12 +5544,18 @@
       }
 
       var DS_ACTUAL = [];
+      // Empresa de cada proyecto (F1 empresas): solo etiqueta; lo que se ve no cambia por ella.
+      var EMPRESAS = [];
+      function nombreEmpresaP(p) {
+        var e = p && p.empresa ? EMPRESAS.filter(function (x) { return x.clave === p.empresa; })[0] : null;
+        return e ? e.nombre : (p && p.empresa ? p.empresa : '');
+      }
 
       Promise.all([
         // `slug` (22-sep-2026, S10.3): lo lee y lo escribe el editor nativo del
         // Investor Deck — sin él "Investor Deck" no podría mostrar la URL
         // pública ni ofrecer cambiarlo.
-        q(sb.from('proyectos').select('id,nombre,slug,resort,ubicacion_maps,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en,estado,pct_minimo_inicio').eq('activo', true).order('nombre'), 'proyectos'),
+        q(sb.from('proyectos').select('id,nombre,slug,resort,empresa,ubicacion_maps,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en,estado,pct_minimo_inicio').eq('activo', true).order('nombre'), 'proyectos'),
         q(sb.from('unidades').select('proyecto,estado,moneda,precio,precio_suelo,precio_construccion'), 'unidades'),
         /* La RPC de EQUIPO, nunca `.from('facturas')`. `facturas` tiene RLS por
            agente (`es_suyo`), así que una lectura directa devuelve solo «lo mío»
@@ -5542,7 +5570,7 @@
         // `general` (18-sep-2026): documentos de la EMPRESA sin proyecto real
         // detrás (NPWP, Akta…) — sin este campo `d2.proyecto === elegido.nombre`
         // los deja fuera siempre, invisibles en TODOS los proyectos.
-        q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,titulo_i18n,descripcion,url,path,mime,bytes,carpeta,visible_portal,confidencial,publicado_investor_deck,general,creado_en'), 'documentación'),
+        q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,titulo_i18n,descripcion,url,url_i18n,path,mime,bytes,carpeta,visible_portal,confidencial,publicado_investor_deck,general,creado_en'), 'documentación'),
         /* Managers de cada proyecto (11-sep-2026, encargo del owner: sincronizar
            v4 con lo nuevo de Proyectos). Sin permiso esto vuelve vacío por RLS
            ("el equipo se ve entre sí" ya deja leer la fila; quien no es admin
@@ -5573,7 +5601,9 @@
            a /compradores/ desde cada parcela. `contrato_compradores` no tiene
            RLS por autoría (solo es_agente()), así que se lee entero una vez,
            igual que managers/equipo de arriba. */
-        q(sb.from('contrato_compradores').select('contrato_id,client_id').eq('rol', 'adquiriente_1'), 'compradores por contrato')
+        q(sb.from('contrato_compradores').select('contrato_id,client_id').eq('rol', 'adquiriente_1'), 'compradores por contrato'),
+        // Empresas (F1, 7-oct-2026): nombre de la empresa de cada proyecto. Siempre la ultima: no desplaza ningun r[n].
+        q(sb.from('empresas').select('clave,nombre,orden').eq('activa', true).order('orden'), 'empresas')
       ]).then(function (r) {
         var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [], mgrs = r[4] || [], eq = r[5] || [];
         var cts = r[6] || [], cobPorContrato = r[7] || [], portadas = r[8] || [], adq1 = r[9] || [];
@@ -5594,6 +5624,8 @@
            sobre PS sin reordenar. */
         ps.sort(lwOrdenProyectos());
         PS = ps; MGRS = mgrs; DS_ACTUAL = ds;
+        EMPRESAS = r[10] || [];
+        window.LW_V4.empresas = EMPRESAS;
         EQUIPO_NOMBRE = {};
         eq.forEach(function (e) { if (e.email) EQUIPO_NOMBRE[e.email] = e.nombre || e.email; });
         /* NOMBRE_POR_PROYECTO_ID (18-sep-2026): una factura/recibí que cuelga de
@@ -5943,7 +5975,7 @@
         var molde = grid.firstElementChild.cloneNode(true);
         grid.innerHTML = '';
         if (!ms.length) {
-          grid.innerHTML = '<p style="font:500 14px/1.5 sans-serif;color:#75786e;margin:0">El catalogo no tiene ningun modelo dado de alta.</p>';
+          grid.innerHTML = '<p style="font:500 14px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">El catalogo no tiene ningun modelo dado de alta.</p>';
           return;
         }
         ms.forEach(function (m) {
@@ -5982,7 +6014,7 @@
             cab.appendChild(im);
             var nf = document.createElement('span');
             nf.textContent = fs.length + (fs.length === 1 ? ' foto' : ' fotos');
-            nf.style.cssText = 'position:absolute;right:10px;bottom:10px;padding:2px 10px;border-radius:999px;background:rgba(27,28,25,.62);color:#fff;font:600 11px/18px sans-serif';
+            nf.style.cssText = 'position:absolute;right:10px;bottom:10px;padding:2px 10px;border-radius:999px;background:rgba(27,28,25,.62);color:#fff;font:600 11px/18px \'Neue Kabel\',sans-serif';
             cab.appendChild(nf);
           }
           /* «Sin fotos» se SOLAPA con los estados (un modelo puede estar
@@ -5991,7 +6023,7 @@
             cab.style.position = 'relative';
             var sr = document.createElement('span');
             sr.textContent = 'Sin fotos';
-            sr.style.cssText = 'position:absolute;left:10px;top:10px;padding:2px 10px;border-radius:999px;background:#BEB3A5;color:#2E3437;font:600 11px/18px sans-serif';
+            sr.style.cssText = 'position:absolute;left:10px;top:10px;padding:2px 10px;border-radius:999px;background:#BEB3A5;color:#2E3437;font:600 11px/18px \'Neue Kabel\',sans-serif';
             cab.appendChild(sr);
           }
           if (!m.activo) c.style.opacity = '.6';   // fuera del catálogo: se ve, pero apagado
@@ -6136,7 +6168,7 @@
           gal.innerHTML = '';
           var fs = fotosModelo[el.id] || [];
           if (!fs.length) {
-            gal.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este modelo no tiene fotos en el deck. Súbelas con «Fotos del deck».</p>';
+            gal.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">Este modelo no tiene fotos en el deck. Súbelas con «Fotos del deck».</p>';
             return;
           }
           fs.forEach(function (f) {
@@ -6276,7 +6308,7 @@
       Promise.all([
         /* numero_usuario (USR-00001, 26-sep-2026, owner): lo pone la base al dar de alta y no cambia nunca
            (trg_usuarios_numero_usuario). */
-        q(sb.from('usuarios').select('user_id,numero_usuario,nombre,email,rol,activo,herramientas,proyectos,proyectos_supervisados,tipos_contrato,creado_en,creado_por').order('nombre'), 'usuarios', t),
+        q(sb.from('usuarios').select('user_id,numero_usuario,nombre,email,rol,activo,herramientas,proyectos,proyectos_supervisados,tipos_contrato,creado_en,creado_por,ambito,empresas,es_propietario').order('nombre'), 'usuarios', t),
         /* `enlace` es lo que hace que la auditoria sea navegable (owner: «que
            tenga enlaces vivos linkables»): la campana viva ya lo usa, aqui
            se leia solo el titulo. 30 y no 8: los que sobran de 6 se pliegan
@@ -6601,10 +6633,37 @@
         // tickets fuera sin decirlo (auditoría 19-sep-2026)
         q(sb.from('hilo_soporte').select('id,client_id,categoria,estado,actualizado_en').order('actualizado_en', { ascending: false }), 'hilos'),
         q(sb.from('clients').select('id,full_name,email,phone,tipo'), 'clientes de soporte'),
-        q(sb.from('mensajes_comprador').select('hilo_id,client_id,de,autor,texto,creado_en').order('creado_en', { ascending: false }).limit(600), 'mensajes')
+        q(sb.from('mensajes_comprador').select('hilo_id,client_id,de,autor,texto,creado_en').order('creado_en', { ascending: false }).limit(600), 'mensajes'),
+        /* A qué factura o contrato se refiere un ticket (7-oct-2026, portal con «Preguntar sobre…»).
+           Consulta APARTE a propósito: si algo fallara, la bandeja de arriba sigue entera y solo falta
+           la línea «Sobre». Los números salen de las RPC de equipo (`facturas_equipo` / `contratos_equipo`),
+           NUNCA de un embed sobre `facturas`/`contratos`: esas tablas tienen RLS por agente y el embed
+           devolvería null sin error para lo ajeno (la línea desaparecería sin aviso). El número es el de
+           la factura o el contrato vivos, no una copia guardada en el hilo. */
+        q(sb.from('hilo_soporte').select('id,factura_id,contrato_id').or('factura_id.not.is.null,contrato_id.not.is.null'), 'referencias de tickets').then(function (rs) {
+          rs = rs || [];
+          var fi = rs.map(function (x) { return x.factura_id; }).filter(Boolean);
+          var ci = rs.map(function (x) { return x.contrato_id; }).filter(Boolean);
+          if (!fi.length && !ci.length) return { rs: rs, f: {}, c: {} };
+          return Promise.all([
+            fi.length ? q(sb.rpc('facturas_equipo').select('id,numero').in('id', fi), 'facturas de tickets') : [],
+            ci.length ? q(sb.rpc('contratos_equipo').select('id,numero').in('id', ci), 'contratos de tickets') : []
+          ]).then(function (x) {
+            var f = {}, c = {};
+            (x[0] || []).forEach(function (y) { f[y.id] = y.numero; });
+            (x[1] || []).forEach(function (y) { c[y.id] = y.numero; });
+            return { rs: rs, f: f, c: c };
+          });
+        })
       ]).then(function (r) {
         var hs = r[0], cs = r[1] || [], ms = r[2] || [];
         if (hs == null) return;
+        var refDe = {};
+        var rr = r[3] || { rs: [], f: {}, c: {} };
+        rr.rs.forEach(function (h) {
+          var f = h.factura_id && rr.f[h.factura_id], c = h.contrato_id && rr.c[h.contrato_id];
+          if (f) refDe[h.id] = 'factura ' + f; else if (c) refDe[h.id] = 'contrato ' + c;
+        });
         var cli = {}; cs.forEach(function (c) { cli[c.id] = c; });
         var ultimo = {}, deHilo = {};
         ms.forEach(function (x) {
@@ -6672,7 +6731,7 @@
         var molde = lista.firstElementChild.cloneNode(true);
         lista.innerHTML = '';
         if (!hs.length) {
-          lista.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0;padding:6px 2px">Ningún hilo de soporte todavía.</p>';
+          lista.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0;padding:6px 2px">Ningún hilo de soporte todavía.</p>';
         }
         hs.forEach(function (h) {
           var f = molde.cloneNode(true);
@@ -6698,7 +6757,7 @@
         var vacioF = null;
         if (hs.length) {
           vacioF = document.createElement('p');
-          vacioF.style.cssText = 'font:500 13px/1.5 sans-serif;color:#75786e;margin:0;padding:6px 2px;display:none';
+          vacioF.style.cssText = 'font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0;padding:6px 2px;display:none';
           vacioF.textContent = 'Nada que enseñar con este filtro.';
           lista.appendChild(vacioF);
         }
@@ -6767,11 +6826,11 @@
         var msgs = (deHilo[el.id] || deHilo[el.client_id] || []).slice().reverse();
         pon2('h-num', 'Hilo #' + String(el.id).slice(0, 6));
         pon2('h-nombre', c.full_name || 'Cliente');
-        pon2('h-sub', (el.categoria || 'general') + ' · ' + msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') + ' · ' + (el.estado || '—'));
+        pon2('h-sub', (el.categoria || 'general') + (refDe[el.id] ? ' · sobre ' + refDe[el.id] : '') + ' · ' + msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') + ' · ' + (el.estado || '—'));
         pon2('h-chip', c.tipo === 'empresa' ? 'Empresa' : 'Persona física');
         pon2('cv-tel', c.phone || 'sin teléfono en ficha');
         pon2('cv-email', c.email || 'sin email en ficha');
-        pon2('cv-cat', 'Categoría: ' + (el.categoria || 'general'));
+        pon2('cv-cat', 'Categoría: ' + (el.categoria || 'general') + (refDe[el.id] ? ' · Sobre ' + refDe[el.id] : ''));
         pon2('h-toggle-estado', el.estado === 'abierto' ? 'Marcar resuelto' : 'Reabrir');
         var ta = document.querySelector('textarea');
         if (ta) ta.placeholder = 'Escribe la respuesta para ' + (c.full_name || 'el cliente') + '… (se envía desde la herramienta: cada mensaje manda un email real)';
@@ -6796,7 +6855,7 @@
         });
         convo.innerHTML = '';
         if (!msgs.length) {
-          convo.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0;text-align:center">Este hilo no tiene mensajes.</p>';
+          convo.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0;text-align:center">Este hilo no tiene mensajes.</p>';
           return;
         }
         var iniciales = (c.full_name || 'C').split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ''; }).join('').toUpperCase();
@@ -8557,6 +8616,28 @@
        devolver vacio — que se lee como «no hay nada» y no como «no es para ti». */
     if (!(window.LW_V4 && window.LW_V4.esSuperAdmin)) { notaSoloAdmin(); return; }
 
+    /* Pestañas (7-oct-2026, owner: la pantalla era muy larga). Arriba se queda lo que se mira siempre (tarifa,
+       lo que te deben, previsiones); debajo, UNA sección cada vez. Cada sección lleva data-lw-ca-panel y cada botón
+       data-lw-ca-pestana (identificadores estables: el rótulo puede cambiar sin romper nada). Recuerda la última
+       pestaña en el navegador, como comodidad: si no hay almacenamiento, abre en el Calendario. */
+    (function pestanas() {
+      var barra = document.querySelector('nav.lw-pest');   // acotado: nav.js ya usa data-lw-pestana en el menú lateral
+      if (!barra) return;
+      var botones = barra.querySelectorAll('[data-lw-ca-pestana]');
+      if (!botones.length) return;
+      var KEY = 'lw-ca-pestana';
+      var valida = function (n) { return !!barra.querySelector('[data-lw-ca-pestana="' + n + '"]') && !!document.querySelector('[data-lw-ca-panel="' + n + '"]'); };
+      function abre(n) {
+        botones.forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-lw-ca-pestana') === n ? 'true' : 'false'); });
+        document.querySelectorAll('[data-lw-ca-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-lw-ca-panel') !== n; });
+        try { localStorage.setItem(KEY, n); } catch (e) { /* sin almacenamiento: no pasa nada */ }
+      }
+      botones.forEach(function (b) { b.addEventListener('click', function () { abre(b.getAttribute('data-lw-ca-pestana')); }); });
+      var guardada = null;
+      try { guardada = localStorage.getItem(KEY); } catch (e) { guardada = null; }
+      abre(guardada && valida(guardada) ? guardada : 'calendario');
+    })();
+
     var cuerpoTar = document.getElementById('lw-ca-tarifas');
     var cuerpoLin = document.getElementById('lw-ca-lineas');
     var cuerpoSoc = document.getElementById('lw-ca-sociedades');
@@ -8676,7 +8757,14 @@
         ? ('rige desde el ' + fFecha(vigente.efectivo_desde))
         : 'todavía no hay ninguna tarifa: no se está devengando nada');
 
-      var vivas = lineas.filter(function (l) { return !l.anulada && l.estado !== 'exenta'; });
+      /* Abono sin efecto (7-oct-2026): al anular un recibí, la base emite un abono
+         aunque el devengo siguiera «pendiente» (nunca se facturó, no hay nada que
+         devolver). La pantalla ya saca el devengo anulado de las sumas, así que
+         contar también su abono lo restaba DOS veces. Solo cuenta un abono cuyo
+         devengo ya estaba facturado o cobrado: ese sí es un crédito real. */
+      var porIdLinea = {}; lineas.forEach(function (l) { porIdLinea[l.id] = l; });
+      var abonoSinEfecto = function (l) { return lwAbonoSinEfecto(l, porIdLinea); };
+      var vivas = lineas.filter(function (l) { return !l.anulada && l.estado !== 'exenta' && !abonoSinEfecto(l); });
       var esFee = function (l) { return l.tipo_linea === 'fee' || (l.tipo_linea === 'abono' && l.fee_id); };
       var delMesTodo = vivas.filter(function (l) { return (l.devengado_el || '').slice(0, 7) === mesActual; });
       /* «Devengado este mes» sigue siendo SOLO la comision: el fee va en su
@@ -8906,6 +8994,30 @@
         }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna tarifa dada de alta: no se está devengando comisión.</td></tr>';
       }
 
+      /* Fees devengados (7-oct-2026): cada línea de fee con su estado de cobro, fuera del libro. */
+      var cuerpoFeeLin = document.getElementById('lw-ca-fee-lineas');
+      if (cuerpoFeeLin) {
+        var lf = lineas.filter(function (l) { return !!l.fee_id; });
+        cuerpoFeeLin.innerHTML = lf.length ? lf.map(function (l) {
+          var est = ESTADOS[l.estado] || [l.estado, 'bg-surface-container-high text-on-surface-variant'];
+          var f = (fees || []).filter(function (x) { return x.id === l.fee_id; })[0];
+          var abono = l.tipo_linea === 'abono';
+          return '<tr class="border-b border-outline-variant/30' + (l.anulada ? ' opacity-60' : '') + '">' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(l.devengado_el)) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(f ? f.concepto + (f.beneficiario ? ' · ' + f.beneficiario : '') : l.recibi_numero) +
+              (abono ? '<br><span class="text-outline text-[11px] uppercase tracking-wider">Abono</span>' : '') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(nombreSociedad(l.sociedad)) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-right ' + (Number(l.importe) < 0 ? 'text-error' : 'text-on-surface') + '">' + esc(fmt(l.importe, l.moneda)) + '</td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' + est[1] + '">' + esc(est[0]) + '</span>' +
+              (l.anulada ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">anulada</span>' : '') + '</td>' +
+            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-1">' + (l.anulada ? '' :
+              '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-ca-estado="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-actual="' + esc(l.estado) + '">Estado</button>' +
+              (l.tipo_linea === 'fee' ? '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" data-lw-ca-anula="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-estado="' + esc(l.estado) + '">Anular</button>' : '')) +
+            '</div></td></tr>';
+        }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Todavía no se ha devengado ningún fee.</td></tr>';
+        delega(cuerpoFeeLin, [['data-lw-ca-estado', 'abreEstadoComisionAdmin'], ['data-lw-ca-anula', 'abreAnulaComisionAdmin']]);
+      }
+
       // ── Filtros del libro ─────────────────────────────────────────────────
       /* Una fila por sociedad: cada una es un deudor distinto y se le factura
          por separado, asi que nunca se suman entre si. Y dentro de cada una,
@@ -8915,7 +9027,7 @@
       function pintaSociedades() {
         if (!cuerpoSoc) return;
         var porSoc = {};
-        lineas.filter(function (l) { return !l.anulada; }).forEach(function (l) {
+        lineas.filter(function (l) { return !l.anulada && !abonoSinEfecto(l); }).forEach(function (l) {
           var k = l.sociedad || '';
           var e = porSoc[k] || (porSoc[k] = { n: 0, base: {}, com: {}, pend: {} });
           if (l.tipo_linea === 'devengo') e.n++;
@@ -8945,6 +9057,74 @@
       }
       pintaSociedades();
 
+      /* Calendario (7-oct-2026, owner: lo devengado por mes, en un calendario con las líneas dentro).
+         Cada línea viva en el día en que se apuntó (devengado_el), con su estado de cobro; pulsar una
+         abre el mismo cajón de «Estado» que el libro. Fees y comisiones juntos pero distinguidos (borde
+         discontinuo): aquí sí se ve todo lo devengado, el libro de abajo sigue siendo solo comisiones.
+         Misma regla de líneas que el resto de la pantalla: ni anuladas ni abonos sin efecto. */
+      (function pintaCalendario() {
+        var cal = document.getElementById('lw-ca-cal');
+        if (!cal) return;
+        var selM = document.getElementById('lw-ca-cal-mes'), selS = document.getElementById('lw-ca-cal-soc');
+        var resumen = document.getElementById('lw-ca-cal-resumen');
+        var viva = lineas.filter(function (l) { return !l.anulada && l.devengado_el && !abonoSinEfecto(l); });
+        var meses = {}; viva.forEach(function (l) { meses[l.devengado_el.slice(0, 7)] = 1; });
+        meses[mesActual] = 1;
+        var listaMeses = Object.keys(meses).sort();
+        var mes = mesActual;
+        var feeDe = {}; (fees || []).forEach(function (f) { feeDe[f.id] = f; });
+        var socs = {}; viva.forEach(function (l) { socs[l.sociedad || ''] = 1; });
+        selS.innerHTML = '<option value="">Todas las sociedades</option>' + Object.keys(socs).sort().map(function (k) {
+          return '<option value="' + esc(k) + '">' + esc(nombreSociedad(k)) + '</option>';
+        }).join('');
+        selM.innerHTML = listaMeses.slice().reverse().map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
+        var sumaM = function (arr) { return arr.length ? sumaPorMoneda(arr) : '—'; };
+
+        function dibuja() {
+          selM.value = mes;
+          var fs = selS.value;
+          var delMesL = viva.filter(function (l) { return l.devengado_el.slice(0, 7) === mes && (!fs || (l.sociedad || '') === fs); });
+          var com = delMesL.filter(function (l) { return !l.fee_id; }), fe = delMesL.filter(function (l) { return !!l.fee_id; });
+          var cob = delMesL.filter(function (l) { return l.estado === 'cobrada'; });
+          var pen = delMesL.filter(function (l) { return l.estado === 'pendiente' || l.estado === 'facturada'; });
+          resumen.innerHTML = '<span class="lw-cal-res">Comisión neta <b>' + esc(sumaM(com)) + '</b> · Fee fijo <b>' + esc(sumaM(fe)) +
+            '</b> · Cobrado <b>' + esc(sumaM(cob)) + '</b> · Pendiente <b>' + esc(sumaM(pen)) + '</b></span>';
+          var p = mes.split('-'), anio = +p[0], m0 = +p[1] - 1;
+          var primero = new Date(Date.UTC(anio, m0, 1)), nDias = new Date(Date.UTC(anio, m0 + 1, 0)).getUTCDate();
+          var lead = (primero.getUTCDay() + 6) % 7;            // lunes = 0
+          var porDia = {}; delMesL.forEach(function (l) { var d = +l.devengado_el.slice(8, 10); (porDia[d] = porDia[d] || []).push(l); });
+          var h = ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(function (d) { return '<div class="lw-cal-cab">' + d + '</div>'; }).join('');
+          var celdas = Math.ceil((lead + nDias) / 7) * 7;
+          for (var i = 0; i < celdas; i++) {
+            var d = i - lead + 1;
+            if (d < 1 || d > nDias) { h += '<div class="lw-cal-dia fuera"></div>'; continue; }
+            var ls = (porDia[d] || []).slice().sort(function (a, b) { return (a.fee_id ? 1 : 0) - (b.fee_id ? 1 : 0); });
+            var iso = mes + '-' + String(d).padStart(2, '0');
+            h += '<div class="lw-cal-dia' + (iso === hoy ? ' hoy' : '') + '"><span class="lw-cal-n">' + d + '</span>' +
+              (ls.length ? '<div class="lw-cal-tot">' + esc(sumaPorMoneda(ls)) + '</div>' : '') +
+              ls.map(function (l) {
+                var f = l.fee_id && feeDe[l.fee_id];
+                var nom = l.fee_id ? (f ? f.concepto : 'Fee') : l.recibi_numero;
+                var neg = Number(l.importe) < 0;
+                var txt = (l.tipo_linea === 'abono' ? 'Abono ' : '') + nom + ' · ' + fmt(l.importe, l.moneda);
+                return '<button type="button" class="lw-cal-chip ' + esc(l.estado) + (l.fee_id ? ' lw-cal-fee' : '') + (neg ? ' neg' : '') + '" title="' + esc(txt + ' — ' + (ESTADOS[l.estado] || [l.estado])[0]) +
+                  '" data-lw-ca-estado="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-actual="' + esc(l.estado) + '">' + esc(txt) + '</button>';
+              }).join('') + '</div>';
+          }
+          cal.innerHTML = h;
+        }
+        var salta = function (n) {
+          var i = listaMeses.indexOf(mes) + n;
+          if (i >= 0 && i < listaMeses.length) { mes = listaMeses[i]; dibuja(); }
+        };
+        document.getElementById('lw-ca-cal-ant').addEventListener('click', function () { salta(-1); });
+        document.getElementById('lw-ca-cal-sig').addEventListener('click', function () { salta(1); });
+        selM.addEventListener('change', function () { mes = selM.value; dibuja(); });
+        selS.addEventListener('change', dibuja);
+        delega(cal, [['data-lw-ca-estado', 'abreEstadoComisionAdmin']]);
+        dibuja();
+      })();
+
       if (selSoc) {
         var socs = {};
         lineas.forEach(function (l) { socs[l.sociedad || ''] = 1; });
@@ -8961,7 +9141,7 @@
           '<option value="__sin">(sin proyecto)</option>';
       }
       if (selMes) {
-        var meses = {}; lineas.forEach(function (l) { if (l.devengado_el) meses[l.devengado_el.slice(0, 7)] = 1; });
+        var meses = {}; lineas.forEach(function (l) { if (l.devengado_el && !l.fee_id) meses[l.devengado_el.slice(0, 7)] = 1; });
         selMes.innerHTML = '<option value="">Todos los meses</option>' +
           Object.keys(meses).sort().reverse().map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
       }
@@ -8970,7 +9150,10 @@
         if (!cuerpoLin) return;
         var fp = selProy ? selProy.value : '', fe = selEstado ? selEstado.value : '',
             fm = selMes ? selMes.value : '', fs = selSoc ? selSoc.value : '';
+        /* Los fees (salarios) NO son dinero que entra por la intranet: no van en el libro (owner, 7-oct-2026);
+           viven en su tabla de «Fees devengados». */
         var lista = lineas.filter(function (l) {
+          if (l.fee_id) return false;
           if (fp === '__sin') { if (l.proyecto_id) return false; }
           else if (fp && l.proyecto_id !== fp) return false;
           if (fs && (l.sociedad || '') !== fs) return false;
@@ -8988,7 +9171,8 @@
           var negativa = Number(l.importe) < 0;
           var etqTipo = l.tipo_linea === 'devengo' ? '' :
             '<br><span class="text-outline text-[11px] uppercase tracking-wider">' + esc(TIPO_LINEA[l.tipo_linea] || l.tipo_linea) + '</span>';
-          var banderas = (l.anulada ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">anulada</span>' : '') +
+          var banderas = (abonoSinEfecto(l) ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">sin efecto</span>' : '') +
+                         (l.anulada ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">anulada</span>' : '') +
                          (l.revisar ? '<span class="ml-2 text-error text-[11px] uppercase tracking-wider">revisar</span>' : '');
           /* El recibí borrado deja la línea huérfana a propósito (on delete set
              null): se enseña el número que tuvo, que es lo único que queda. */
@@ -9013,7 +9197,7 @@
             ? '<a class="text-deep-lagoon hover:underline" href="#" data-lw-ver-recibi="' + esc(l.recibi_id) + '">' + esc(l.recibi_numero) + '</a>'
             : esc(l.recibi_numero) + ' <span class="text-error text-[11px] uppercase tracking-wider">borrado</span>';
 
-          return '<tr class="border-b border-outline-variant/30' + (l.anulada ? ' opacity-60' : '') + '">' +
+          return '<tr class="border-b border-outline-variant/30' + (l.anulada || abonoSinEfecto(l) ? ' opacity-60' : '') + '">' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(l.devengado_el)) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + recibi + etqTipo + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' +
@@ -9041,13 +9225,40 @@
                  : '')) +
             '</div></td></tr>';
         }).join('') : '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' +
-          (lineas.length ? 'Ninguna línea para este filtro.' : 'Todavía no hay ninguna entrada de dinero en el libro.') + '</td></tr>';
+          (lineas.some(function (l) { return !l.fee_id; }) ? 'Ninguna línea para este filtro.' : 'Todavía no hay ninguna entrada de dinero en el libro.') + '</td></tr>';
       }
       pinta();
       if (PAG) PAG.alCambiar(pinta);
       [selProy, selSoc, selEstado, selMes].forEach(function (s) {
         if (s) s.addEventListener('change', function () { pinta(); pintaSociedades(); });
       });
+
+      /* Cobros registrados (7-oct-2026): cada pago por bolsa, con su fecha real, y el botón para anularlo
+         si se tecleó mal. Lectura aparte: un fallo aquí no tumba el libro. */
+      var cuerpoCob = document.getElementById('lw-ca-cobros');
+      if (cuerpoCob) {
+        sb.from('comision_admin_cobros').select('id,sociedad,moneda,importe,fecha_cobro,referencia,nota,n_lineas,anulado,anulado_motivo')
+          .order('fecha_cobro', { ascending: false }).order('en', { ascending: false })
+          .then(function (x) {
+            if (x.error) { cuerpoCob.innerHTML = '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-error">No se han podido leer los cobros. Recarga la página.</td></tr>'; return; }
+            var cs = x.data || [];
+            window.LW_V4.caCobros = {}; cs.forEach(function (c) { window.LW_V4.caCobros[c.id] = c; });
+            cuerpoCob.innerHTML = cs.length ? cs.map(function (c) {
+              return '<tr class="border-b border-outline-variant/30' + (c.anulado ? ' opacity-60' : '') + '">' +
+                '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(fFecha(c.fecha_cobro)) + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(nombreSociedad(c.sociedad)) + '</td>' +
+                '<td class="px-5 py-4 font-label-md text-label-md text-on-surface text-right">' + esc(fmt(c.importe, c.moneda)) + '</td>' +
+                '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + esc(c.n_lineas) + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(c.referencia || '—') + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm ' + (c.anulado ? 'text-error' : 'text-on-surface-variant') + '">' +
+                  (c.anulado ? 'Anulado: ' + esc(c.anulado_motivo || '') : 'Vigente') + '</td>' +
+                '<td class="px-5 py-4 text-right">' + (c.anulado ? '' :
+                  '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" data-lw-ca-anula-cobro="' + esc(c.id) + '" data-lw-etq="' +
+                  esc(fmt(c.importe, c.moneda) + ' · ' + fFecha(c.fecha_cobro)) + '">Anular</button>') + '</td></tr>';
+            }).join('') : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Todavía no se ha registrado ningún cobro.</td></tr>';
+            delega(cuerpoCob, [['data-lw-ca-anula-cobro', 'abreAnulaCobroComisionAdmin']]);
+          });
+      }
 
       // acción delegada, con stopPropagation para ganar a maqueta.js (Regla 0)
       /* Una sola delegacion para todas las acciones de fila, de las dos tablas.

@@ -245,6 +245,8 @@
     'Plots & pricing': { es: 'Parcelas y precios', id: 'Kavling & harga' },
     'Image': { es: 'Imagen', id: 'Gambar' },
     'Document': { es: 'Documento', id: 'Dokumen' },
+    'Photos': { es: 'Fotos', id: 'Foto' },
+    'Plans': { es: 'Planos', id: 'Denah' },
     'View': { es: 'Ver', id: 'Lihat' },
     'Download': { es: 'Descargar', id: 'Unduh' },
 

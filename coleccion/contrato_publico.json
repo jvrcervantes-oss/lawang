@@ -1,5 +1,5 @@
 {
-  "_aviso": "Contrato F0 de The Collection (2-oct-2026): lo UNICO que lw_coleccion() deja salir de la fuente. Fuente unica de la lista blanca; la lee coleccion/lib.php y el test coleccion/test_coleccion.php. Una clave nueva en la ficha publica NO sale hasta que se anade aqui a proposito (decision de Seguridad, no de quien edita el dato). Las claves de 'prohibidas' hacen FALLAR la fuente entera (error_log + cae a cache vieja/respaldo): nunca se descartan en silencio.",
+  "_aviso": "Contrato F0 de The Collection (2-oct-2026): lo UNICO que lw_coleccion() deja salir de la fuente. Fuente unica de la lista blanca; la lee coleccion/lib.php y el test coleccion/tests/coleccion_test.php. Una clave nueva en la ficha publica NO sale hasta que se anade aqui a proposito (decision de Seguridad, no de quien edita el dato). Las claves de prohibidas_exactas y prohibidas_prefijo hacen FALLAR la fuente entera (error_log + cae a cache vieja/respaldo): nunca se descartan en silencio.",
   "version": 1,
   "raiz": ["properties", "settings", "downloads"],
   "settings": ["rates", "whatsapp", "email"],

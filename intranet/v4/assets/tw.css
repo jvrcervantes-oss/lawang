@@ -2649,10 +2649,6 @@ select {
   .lg\:border-r {
     border-right-width: 1px;
   }
-
-  .lg\:text-right {
-    text-align: right;
-  }
 }
 
 @media (min-width: 1280px) {
