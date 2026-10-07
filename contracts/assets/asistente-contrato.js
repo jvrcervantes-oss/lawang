@@ -177,9 +177,28 @@
          para el servidor: antes se le preguntaba igual y «Con mi equipo» acababa en «No estás en ningún equipo».
          Si es miembro Y manager de su equipo, «por su cuenta» sale apagado: cobra la fee de manager. */
       var eq = mia ? eqs.find(function (x) { return x.id === mia.equipo_id; }) : null;
+      /* Con equipos por empresa una persona puede estar en uno por empresa: se guardan todos los suyos y, al elegir proyecto,
+         se toma el de la empresa de ese proyecto (lo que hace el servidor al congelar la venta). Con uno solo, como siempre. */
+      RT.equipos = (r[0].data || []).filter(function (m) {
+        return String(m.closer_email || '').toLowerCase() === yo && (!m.desde || m.desde <= hoy) && (!m.hasta || m.hasta >= hoy);
+      }).map(function (m) { return eqs.find(function (x) { return x.id === m.equipo_id; }); }).filter(Boolean)
+        .map(function (x) { return { id: x.id, en: true, nombre: x.nombre, sm: x.manager_email, soySM: String(x.manager_email || '').toLowerCase() === yo }; });
       return (RT.equipo = eq ? { en: true, nombre: eq.nombre, sm: eq.manager_email,
         soySM: String(eq.manager_email || '').toLowerCase() === yo } : { en: false });
     }, function () { return (RT.equipo = { fallo: true }); });
+  }
+  /* Equipo que aplica a un proyecto (solo si la persona está en equipos de más de una empresa). Sin equipo en la empresa del
+     proyecto = «sin equipo», igual que el servidor. Un fallo al leer deja el equipo por defecto. */
+  function ajustaEquipoAlProyecto(nombreProyecto) {
+    if (!nombreProyecto || !RT.equipos || RT.equipos.length < 2) return Promise.resolve();
+    return Promise.all([sb.from('equipos_venta').select('id,empresa'), sb.from('proyectos').select('nombre,empresa')]).then(function (r) {
+      if (r[0].error || r[1].error) return;
+      var p = (r[1].data || []).find(function (x) { return x.nombre === nombreProyecto; });
+      var emp = p && p.empresa;
+      var eqEmp = {}; (r[0].data || []).forEach(function (x) { eqEmp[x.id] = x.empresa; });
+      var el = RT.equipos.find(function (x) { return emp && eqEmp[x.id] === emp; });
+      RT.equipo = el || { en: false };
+    }, function () { /* MUDO A PROPOSITO: sin poder leer las empresas se queda el equipo por defecto y el servidor decide al guardar */ });
   }
   /* ¿Exige ya el servidor declarar la venta? (interruptor comisiones_interruptor.modo_obligatorio, solo el
      booleano por modo_obligatorio_activo). true / false, o null si no se ha podido mirar: entonces se dice
@@ -211,7 +230,7 @@
      Venta nueva: nada, se elige. Se recalcula al cambiar de venta o de tipo. */
   function clausulasDeSalida() { return (S.camino === 'existente' && S.venta && S.venta.rev03) ? 'rev03' : ''; }
   function pideClausulas() {
-    return SLUGS_REV03.indexOf(S.slug) !== -1 && typeof MI_ROL !== 'undefined' && ['super_admin', 'admin'].indexOf(MI_ROL) !== -1;
+    return SLUGS_REV03.indexOf(S.slug) !== -1 && typeof MI_ROL !== 'undefined' && ['super_admin', 'admin'].indexOf(MI_ROL) !== -1;   // MI_ROL ya viene como rol efectivo (app.html)
   }
 
   /* ── los pasos ─────────────────────────────────────────────────────────── */
@@ -764,6 +783,7 @@
       parcela_codigo: v.parcela_codigo, bloqueado: !!v.bloqueado, fecha_firma: v.fecha_firma, liberado_en: v.liberado_en,
       rev03: v.rev03 === 'si' };
     S.slug = null; RT.construcciones = null; RT.modelos = null; RT.techos = null;
+    ajustaEquipoAlProyecto(v.proyecto_nombre).then(pinta);
     S.clausulas = clausulasDeSalida();
     S.obra = { modelo: '', techoId: '', fpago: 'estandar' };
     if (v.tipo === 'reserva_parcela') cuentaConstrucciones(v, preseleccionaExistente);
@@ -834,7 +854,7 @@
     var val = ev.target.value;
     if (c === 'origen') { S.origen = val; guarda(); pinta(); return; }
     if (c === 'variante') { S.slug = val; S.clausulas = clausulasDeSalida(); marcas(val).then(function () { guarda(); pinta(); }); return; }
-    if (c === 'proyecto') { S.proyecto = val; S.parcelas = []; RT.inv = null; guarda(); pinta(); preparaPaso(); return; }
+    if (c === 'proyecto') { S.proyecto = val; S.parcelas = []; RT.inv = null; guarda(); pinta(); preparaPaso(); ajustaEquipoAlProyecto(val).then(pinta); return; }
     if (c === 'modelo') { S.obra.modelo = val; S.obra.techoId = ''; RT.techos = null; guarda(); pinta(); if (val) cargaTechos(); return; }
   }
   function alTeclear(ev) {

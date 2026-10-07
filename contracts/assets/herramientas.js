@@ -375,8 +375,9 @@ if (typeof window !== 'undefined' && window.AXW_NUCLEO_OPERACION) {
    herramienta en la ficha. Un admin lo ve todo, y una herramienta sin `herr`
    declarado es de todos. Se acepta la ficha por parámetro (y no una global)
    para que el hub y la barra la usen sin depender de cómo se llame su variable. */
-const lwEsAdmin = f => !!f && (f.rol === 'super_admin' || f.rol === 'admin');
-const lwEsSuper = f => !!f && f.rol === 'super_admin';
+/* El rol sale de LW_ROL (guard.js), el único sitio que sabe que un rol de empresa cuenta como admin / super admin. */
+const lwEsAdmin = f => window.LW_ROL.esAdmin(f);
+const lwEsSuper = f => window.LW_ROL.esSuperAdmin(f);
 /* LOS ADMIN TAMBIÉN PASAN POR SU LISTA — 18-ago-2026, owner: «son gente del
    equipo interno pero no todos deben tener acceso a todo».
    Antes el que se saltaba la comprobación era `lwEsAdmin`, y como ocho de los
@@ -396,7 +397,7 @@ const lwPermitida = (t, ficha) =>
      Hizo falta para la Comision de administracion, que abre lo que el estudio le
      cobra al cliente — un dato que los cuatro admin no tienen por que ver. */
   (!t.soloSuper || lwEsSuper(ficha)) &&
-  (!ficha || lwEsSuper(ficha) || !t.herr ||
+  (!ficha || window.LW_ROL.esSuperGlobal(ficha) || !t.herr ||
    [].concat(t.herr).some(h => (ficha.herramientas || []).includes(h)));
 
 /* ═══════════════════════════════════════════════════════════════════════════

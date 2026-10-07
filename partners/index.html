@@ -29,7 +29,9 @@
    Neue Kabel) la aplica el script «seasons-kabel» del final, también al texto que pinta el JS. */
 @font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Regular.otf') format('opentype');font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+20,U+2C,U+2E,U+30-33,U+35-39,U+3A-3B,U+3F,U+41-5A,U+61-7A}
 @font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Regular.otf') format('opentype');font-weight:100 900;font-style:italic;font-display:swap;unicode-range:U+20,U+2C,U+2E,U+30-33,U+35-39,U+3A-3B,U+3F,U+41-5A,U+61-7A}
-@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/neue-kabel/NeueKabel.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/neue-kabel/NeueKabel-Light.woff2') format('woff2');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/neue-kabel/NeueKabel.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/neue-kabel/NeueKabel-Medium.woff2') format('woff2');font-weight:500 900;font-style:normal;font-display:swap}
 @font-face{font-family:'Neue Kabel';src:url('/assets/fonts/neue-kabel/NeueKabel.woff2') format('woff2');font-weight:100 900;font-style:italic;font-display:swap}
 h1,h2,h3,.shead .num,.formula .op,.tenencia h4,.formula-venta,.frase::before,.frase blockquote,.pago__n,.gestion__datos b,.derivar q,ol.llamada li::before,.preguntas li::before,.tc [role=cell]:first-child b,.tc .pct b,.glosario dt,#guia .g-num,.camino__pct,.falta h4{font-synthesis:none}
 .nk{font-family:'Neue Kabel',var(--ff-b);font-weight:400;font-style:normal;font-size:.86em;letter-spacing:0}
@@ -699,6 +701,20 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 .idiomas a:hover{background:var(--paper)}
 .idiomas a[aria-current]{background:var(--dl);color:var(--linen)}
 @media (max-width:520px){#top .btn .t{display:none}#top .btn{padding:11px 13px}}
+</style>
+<style>
+/* Fuente por tipo de titular (owner 7-oct-2026, elegido en el afinador de titulares): Neue Kabel en
+   h1/h2/h3, numeros de seccion, cifras y glosario; The Seasons se queda en los nombres de proyecto y en
+   el resto de piezas serif (formula, tenencia, pagos, citas, contadores). Va al final del <head> para
+   ganar por orden a las reglas de cada componente; los pesos llevan !important porque varios
+   componentes fijan 600/700 con mas especificidad (.cierre h2, #hero .cap h1). */
+h1,h2,h3,.shead .num,.gestion__datos b,.glosario dt,.camino__pct,.tc .pct b{font-family:'Neue Kabel',var(--ff-b)}
+h2,h3,.shead .num{font-weight:300!important}
+h1,.gestion__datos b,.camino__pct,.tc .pct b{font-weight:500!important}
+.glosario dt{font-weight:400}
+#hero .cap h1{font-size:clamp(30px,3.35vw,46px)}
+#hero .cap h1 em,.cierre h2 em{font-style:normal;font-weight:inherit} /* la pagina solo declara la cursiva Regular de Neue Kabel: el realce va por color, en el peso del titular (como se eligio en el afinador) */
+.proys .villa .b h3{font-family:var(--ff-h);font-weight:400!important}
 </style>
 </head>
 <body>

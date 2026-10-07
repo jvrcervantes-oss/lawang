@@ -183,7 +183,7 @@ function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
     // la intranet, que tiene cabecera propia y no la barra compartida
     var barra = document.querySelector('.lw-topbar') || document.querySelector('[data-lw-usuario]');
     if (!barra) return;
-    var esAdmin = ficha.rol === 'admin' || ficha.rol === 'super_admin';
+    var esAdmin = window.LW_ROL.esAdmin(ficha);
     var email = (ctx.session && ctx.session.user && ctx.session.user.email) || '';
     var vistoHasta = ficha.notif_visto_hasta ? new Date(ficha.notif_visto_hasta) : null;
 

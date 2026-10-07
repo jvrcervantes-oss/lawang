@@ -136,7 +136,7 @@
     if (!email || !aut.ficha) return;            // sin usuario o sin ficha no hay a quién recordar ni qué herramientas tiene
     var K = Q + email;
     var herr = ficha.herramientas || [];
-    var lista = NOTICIAS.filter(function (n) { return ficha.rol === 'super_admin' || herr.indexOf(n.herr) !== -1; });
+    var lista = NOTICIAS.filter(function (n) { return LW_ROL.esSuperGlobal(ficha) || herr.indexOf(n.herr) !== -1; });
     if (!lista.length) return;
     var yaVisto = lee(K) === NOV_ID;
 

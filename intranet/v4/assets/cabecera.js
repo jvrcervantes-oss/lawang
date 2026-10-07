@@ -156,7 +156,7 @@
       if (typeof lwAvisos !== 'function') { console.error('[v4 cabecera] falta contracts/assets/avisos.js'); pintaContador(null); return Promise.resolve(null); }
       var ficha = aut.ficha || {};
       var email = (aut.session && aut.session.user && aut.session.user.email) || '';
-      return lwAvisos(aut.sb, { esAdmin: rol === 'admin' || rol === 'super_admin', email: email, vistoHasta: ficha.notif_visto_hasta || null })
+      return lwAvisos(aut.sb, { esAdmin: LW_ROL.esAdmin(ficha), email: email, vistoHasta: ficha.notif_visto_hasta || null })
         .then(function (out) { ULTIMO = out; pintaContador(out.sinLeer, out.avisos); return out; },
               function (e) { console.error('[v4 cabecera] avisos:', e); pintaContador(null); return null; });
     }

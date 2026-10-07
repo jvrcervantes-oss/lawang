@@ -1027,7 +1027,7 @@ function abrirFicha(l){
    a alguien que no lo ve es apagarlo en silencio. */
 async function pintarDuenoFicha(l){
   const caja = document.querySelector('#duenoFicha'); if(!caja) return;
-  const soyAdmin = !!FICHA && (FICHA.rol === 'super_admin' || FICHA.rol === 'admin');
+  const soyAdmin = LW_ROL.esAdmin(FICHA);   // un admin de empresa asigna dentro de su empresa (la base lo comprueba)
   const mio = esMio(l);
 
   if(!l.dueno){
@@ -2467,7 +2467,7 @@ $('#btnTrazaSync').addEventListener('click', trazaSync);
 
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb; YO = session && session.user; FICHA = ficha;
-  const puedeClosers = !ficha || ficha.rol === 'super_admin' || (ficha.herramientas || []).includes('closers');
+  const puedeClosers = !ficha || LW_ROL.esSuperGlobal(ficha) || (ficha.herramientas || []).includes('closers');
   $('#tabAgenda').hidden = !puedeClosers;
   PUEDE_CLOSERS = puedeClosers;   // el boton «Agendar llamada» de la ficha del chat va detras de este permiso
   /* SOLO POR CASILLA, no por rol (decisión del owner, 11-sep-2026). La primera versión de
@@ -2476,9 +2476,9 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
      operadora de marketing, que no tiene por qué ver cuánto factura cada comercial. Al
      revés, los sales managers (que sí gestionan ventas) se quedaban fuera.
      El super_admin sigue pasando porque pasa por todo, igual que en el resto de la suite. */
-  const puedeRanking = !!ficha && (ficha.rol === 'super_admin' ||
+  const puedeRanking = !!ficha && (LW_ROL.esSuperGlobal(ficha) ||
     (ficha.herramientas || []).includes('ranking'));
-  const puedeReparto = !!ficha && (ficha.rol === 'super_admin' ||
+  const puedeReparto = !!ficha && (LW_ROL.esSuperGlobal(ficha) ||
     (ficha.herramientas || []).includes('reparto'));
   /* «Gestor del CRM» = cualquiera de las dos llaves de dirección. Campañas (gasto en
      publicidad, coste por lead) y Automatismos (lo que hace el vigilante del estudio) no son
@@ -2491,7 +2491,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   /* Solo super_admin ve el botón. Es un candado de comodidad, no de seguridad —
      el real lo pone `es_super_admin()` dentro de las tres funciones de la base;
      esto solo evita ofrecer un control que el resto del equipo no puede usar. */
-  PUEDE_ESTRUCTURA = !!ficha && ficha.rol === 'super_admin';
+  PUEDE_ESTRUCTURA = LW_ROL.esSuperGlobal(ficha);   // tablero y trazabilidad: de toda la instancia (un super de empresa no)
   $('#btnEstructura').hidden = !PUEDE_ESTRUCTURA;
   /* Trazabilidad: solo super_admin, ni por casilla (revisión previa #49). Candado de
      comodidad: el de verdad es es_super_admin() dentro de cada traza_* de la base. */

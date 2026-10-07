@@ -45,7 +45,9 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  function esAdmin(ficha) { return !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'); }
+  /* Quien entra con la intranet cerrada: un admin o super de TODA la instancia. Un rol de empresa no (el mantenimiento es de la
+     instancia, no de una empresa). LW_ROL lo publica guard.js, que se carga después pero antes de cualquier llamada de aquí. */
+  function esAdmin(ficha) { return !!window.LW_ROL && window.LW_ROL.esAdmin(ficha) && window.LW_ROL.esGlobal(ficha); }
 
   // { cerrada, motivo } · o null si no se ha podido saber (y entonces se pasa)
   function leer(sb) {

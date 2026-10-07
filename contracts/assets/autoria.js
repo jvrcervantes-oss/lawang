@@ -51,7 +51,7 @@
      ofrece un botón que la RLS va a rechazar. */
   async function montar(slot, { sb, ficha, tabla, filaId, actual, editable, motivoNoEditable, onCambio }) {
     if (!slot || !sb) return;
-    if (!ficha || ficha.rol !== 'super_admin') return;   // el resto no ve nada
+    if (!window.LW_ROL.esSuperAdmin(ficha)) return;   // el resto no ve nada (la base decide a quién deja reasignar: el de empresa, solo lo suyo)
 
     slot.classList.add('lw-autoria');
     slot.innerHTML = '<button type="button" class="lw-autoria-abrir">Reasignar autor</button>';
@@ -153,5 +153,5 @@
   document.head.appendChild(hoja);
 
   window.LW_AUTORIA = { montar, reasignar,
-    puede: ficha => !!ficha && ficha.rol === 'super_admin' };
+    puede: ficha => window.LW_ROL.esSuperAdmin(ficha) };
 })();

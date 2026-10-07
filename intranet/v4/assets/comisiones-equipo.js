@@ -40,7 +40,7 @@
     var sb = aut.sb;
     var yo = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
     var rol = (aut.ficha && aut.ficha.rol) || '';
-    var esAdmin = rol === 'admin' || rol === 'super_admin';
+    var esAdmin = LW_ROL.esAdmin(aut.ficha);
 
     Promise.all([
       sb.rpc('comisiones_ventas_equipo'),

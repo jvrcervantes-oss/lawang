@@ -77,6 +77,9 @@
     if (!/^[a-z0-9-]+$/.test(String(nombre))) throw new Error('lwEdge: nombre de edge no válido');
     return URL_SB + '/functions/v1/' + nombre;
   });
+  /* LW_ROL (quién es quién para la pantalla) vive en roles.js, que se carga antes que guard.js: un solo sitio para todas las páginas. */
+  var LW_ROL = window.LW_ROL;
+  if (!LW_ROL) throw new Error('[guard] falta /contracts/assets/roles.js antes de guard.js');
   /* Lecturas por el servidor: window.lwDatos(nombre, args) (B10a, 28-sep-2026, revisión previa #136 Desarrollo 2;
      encargos/20260927_erp_b10_lecturas_a_la_par.md). ÚNICO punto por el que una pantalla pide una RPC `*_datos`:
      hoy va por PostgREST (`sb.rpc`), y en B10b la ficha (instancia.js) podrá mandarla por otro transporte (la puerta
@@ -314,14 +317,19 @@
      rol listado entra solo si es el suyo. Un `data-rol` sin ningún rol conocido
      se trata como `admin` (lo de siempre): nunca se abre por un typo. */
   var ROLES_REQ = (ROL_REQ || '').split(/\s+/).filter(function (x) { return x; });
+  var AMBITO_REQ = (propia && propia.getAttribute('data-ambito')) || '';
   function rolBasta(ficha) {
     if (!ROL_REQ) return true;
     if (!ficha) return false;
-    if (ficha.rol === 'super_admin') return true;
+    /* data-ambito="global" (7-oct-2026): pantallas de la INSTANCIA (Ajustes, mantenimiento…): un rol de empresa no entra
+       aunque cuente como admin. Es la puerta de la cáscara; el candado de los datos es la base. */
+    if (AMBITO_REQ === 'global' && !LW_ROL.esGlobal(ficha)) return false;
+    var rol = LW_ROL.efectivo(ficha);   // admin_empresa cuenta como admin, super_admin_empresa como super_admin
+    if (rol === 'super_admin') return true;
     if (ROLES_REQ.length === 1 && ROLES_REQ[0] === 'super_admin') return false;
     var otros = ROLES_REQ.filter(function (x) { return x !== 'admin' && x !== 'super_admin'; });
-    if (ficha.rol === 'admin') return ROLES_REQ.indexOf('admin') !== -1 || !otros.length;
-    return otros.indexOf(ficha.rol) !== -1;
+    if (rol === 'admin') return ROLES_REQ.indexOf('admin') !== -1 || !otros.length;
+    return otros.indexOf(rol) !== -1;
   }
 
   var raiz = document.documentElement;
@@ -403,6 +411,17 @@
         if (!cierre) console.error('[guard] falta /contracts/assets/cierre.js antes de guard.js: el modo mantenimiento no se aplica en esta página');
         var pEstado = cierre ? cierre.leer(sb) : Promise.resolve(null);
         function entrar(ficha) {
+          /* Ámbito en el <html> (empresas, 7-oct-2026): lo que lleve `data-solo-global` (un botón, una fila, una tarjeta que es de TODA
+             la instancia: tarifa del 0,5 %, tablero del CRM, alta de sociedades…) se esconde a un rol de empresa con una sola regla de CSS,
+             también si se pinta después. Es cosmético: la base sigue negando. */
+          try {
+            raiz.setAttribute('data-lw-ambito', LW_ROL.esEmpresa(ficha) ? 'empresa' : 'global');
+            if (LW_ROL.esEmpresa(ficha)) {
+              var hoja = document.createElement('style');
+              hoja.textContent = '[data-lw-ambito="empresa"] [data-solo-global]{display:none!important}';
+              (document.head || raiz).appendChild(hoja);
+            }
+          } catch (e) { /* MUDO A PROPOSITO: sin DOM completo (arnés de pruebas) solo se pierde el escondido cosmético; la base sigue negando */ }
           var sigue = cierre ? cierre.puerta(sb, ficha, pEstado).catch(function () { return true; }) : Promise.resolve(true);
           sigue.then(function (ok) {
             quitarCarga();
@@ -428,8 +447,16 @@
            el claim o no. El claim solo decide a donde va quien NO es del equipo,
            y eso se decide abajo, ya con la ficha leida. La regla de fondo del
            8-sep no se toca: sin ficha de equipo no se entra a /intranet/. */
-        sb.from('usuarios').select('rol, herramientas, activo, nombre, notif_visto_hasta')
+        /* `ambito` y `empresas` (empresas de Lawang, 7-oct-2026) viajan con la ficha. Una instancia que aún no tiene esas
+           columnas (el ERP maestro hasta que se porte) contestaría con error: se repite la lectura sin ellas y la ficha
+           queda como siempre (todo global). Es la única lectura de la ficha de toda la suite. */
+        var COLS = 'rol, herramientas, activo, nombre, notif_visto_hasta';
+        sb.from('usuarios').select(COLS + ', ambito, empresas')
           .eq('user_id', sesion.user.id).maybeSingle()
+          .then(function (f) {
+            if (f && f.error && !f.data) return sb.from('usuarios').select(COLS).eq('user_id', sesion.user.id).maybeSingle();
+            return f;
+          })
           .then(function (f) {
             var ficha = (f && f.data) || null;
             if (ficha && !ficha.activo) { alLogin(); return; }   // desactivado = fuera
@@ -460,7 +487,7 @@
                admin normal pasa por su lista de herramientas como cualquiera.
                Ver la nota de lwPermitida en assets/herramientas.js — y `puede()`
                en la base, que es quien lo impide de verdad. */
-            var sinLimite = ficha && ficha.rol === 'super_admin';
+            var sinLimite = LW_ROL.esSuperGlobal(ficha);   // un super de EMPRESA sí pasa por su lista, como `puede()` en la base
             if (HERRAMIENTAS_REQ && ficha && !sinLimite &&
                 !HERRAMIENTAS_REQ.some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; })) {
               location.replace(HUB + '?sin_permiso=' + encodeURIComponent(HERRAMIENTA));

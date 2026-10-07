@@ -80,7 +80,7 @@
     return pag(0);
   }
   function puede(ficha, casilla) {
-    return !!ficha && (ficha.rol === 'super_admin' || (ficha.herramientas || []).indexOf(casilla) !== -1);
+    return LW_ROL.puedeHerr(ficha, casilla);
   }
 
   function cargar(sb, ficha) {
@@ -846,7 +846,7 @@
          inferior le daría SOLO lo suyo, y un panel de empresa con la cartera
          de un comercial se leería como la de la empresa. */
       var rol = aut.ficha && aut.ficha.rol;
-      if (rol !== 'admin' && rol !== 'super_admin') { aviso(T('Esta pantalla es de dirección (admin).'), 'mal'); return; }
+      if (!LW_ROL.esAdmin(aut.ficha)) { aviso(T('Esta pantalla es de dirección (admin).'), 'mal'); return; }
       monta(aut);
     });
   }

@@ -10,6 +10,8 @@ const vm = require('vm');
 const CODIGO = fs.readFileSync(path.join(__dirname, 'guard.js'), 'utf8');
 // La ficha de la instancia va antes de guard.js en cada página (ERP F3): el test hace lo mismo, con la real.
 const INSTANCIA = fs.readFileSync(path.join(__dirname, 'instancia.js'), 'utf8');
+// roles.js (LW_ROL) también va antes de guard.js en cada página
+const ROLES = fs.readFileSync(path.join(__dirname, 'roles.js'), 'utf8');
 
 function puerta(attrs, ficha, opts) {
   opts = opts || {};
@@ -36,11 +38,25 @@ function puerta(attrs, ficha, opts) {
   };
   ctx.supabase = { createClient: () => sb };
   vm.createContext(ctx);
-  if (!opts.sinFicha) vm.runInContext(INSTANCIA, ctx);
+  if (!opts.sinFicha) { vm.runInContext(INSTANCIA, ctx); vm.runInContext(ROLES, ctx); }
   try { vm.runInContext(CODIGO, ctx); } catch (e) { if (!opts.sinFicha) throw e; return Promise.resolve({ entra: false, salidas, error: e.message }); }
   let entra = false;
   ctx.LW_AUTH.then(() => { entra = true; });
   return new Promise(r => setTimeout(() => r({ entra, salidas }), 30));
+}
+
+
+// el helper LW_ROL tal como lo publica guard.js (sin sesión: solo se evalúa el script)
+function puertaRol() {
+  const ctx = { console, location: { hostname: 'x', search: '', pathname: '/', replace() {} },
+    document: { readyState: 'complete', currentScript: { getAttribute: () => null }, documentElement: { style: {}, appendChild() {} },
+      createElement: () => ({ style: {}, appendChild() {}, set innerHTML(v) {} }), addEventListener() {} },
+    URLSearchParams, Promise };
+  ctx.window = ctx;
+  ctx.supabase = { createClient: () => ({ auth: { getSession: () => new Promise(() => {}) } }) };
+  vm.createContext(ctx);
+  vm.runInContext(INSTANCIA, ctx); vm.runInContext(ROLES, ctx); vm.runInContext(CODIGO, ctx);
+  return ctx.LW_ROL;
 }
 
 const AGENTE = { rol: 'agente', activo: true, herramientas: ['cuentas', 'usuarios'] };
@@ -99,6 +115,42 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
     r = await puerta({ 'data-rol': 'admin', 'data-herramienta': k }, { rol: 'agente', activo: true, herramientas: [k] });
     assert.ok(!r.entra, 'un agente con la casilla ' + k + ' no entra: falta el rol');
   }
+
+  // Roles de EMPRESA (7-oct-2026): para la puerta cuentan como admin / super admin, salvo en lo que es de toda la instancia
+  const ADMIN_E = { rol: 'admin_empresa', ambito: 'empresa', empresas: ['lawang'], activo: true, herramientas: ['cuentas', 'ajustes'] };
+  const SUPER_E = { rol: 'super_admin_empresa', ambito: 'empresa', empresas: ['lawang', 'sandal_woods'], activo: true, herramientas: ['cuentas'] };
+  r = await puerta({ 'data-rol': 'admin' }, ADMIN_E);
+  assert.ok(r.entra, 'un admin de empresa entra donde entra un admin');
+  r = await puerta({ 'data-rol': 'super_admin' }, ADMIN_E);
+  assert.ok(!r.entra, 'un admin de empresa NO entra donde pide super admin');
+  r = await puerta({ 'data-rol': 'super_admin' }, SUPER_E);
+  assert.ok(r.entra, 'un super de empresa entra donde entra un super (la base filtra por empresa)');
+  r = await puerta({ 'data-rol': 'admin sales_manager' }, ADMIN_E);
+  assert.ok(r.entra, 'el admin de empresa entra con la lista admin + sales_manager');
+  r = await puerta({ 'data-rol': 'admin', 'data-ambito': 'global' }, ADMIN_E);
+  assert.ok(!r.entra && r.salidas.length, 'una pantalla de la instancia (data-ambito=global) cierra a un rol de empresa');
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'global' }, SUPER_E);
+  assert.ok(!r.entra, 'ni siquiera al super de empresa');
+  r = await puerta({ 'data-rol': 'admin', 'data-ambito': 'global' }, ADMIN);
+  assert.ok(r.entra, 'el admin global entra como siempre en la pantalla de la instancia');
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'global' }, SUPER);
+  assert.ok(r.entra, 'el super global también');
+  // las casillas: solo el super GLOBAL se las salta (igual que puede() en la base); el de empresa pasa por su lista
+  r = await puerta({ 'data-herramienta': 'obra' }, SUPER_E);
+  assert.ok(!r.entra, 'un super de empresa sin la casilla no entra: la lista manda');
+  r = await puerta({ 'data-rol': 'admin', 'data-herramienta': 'ajustes' }, ADMIN_E);
+  assert.ok(r.entra, 'admin de empresa con rol y casilla entra');
+  // el helper público que usan todas las pantallas
+  const ROL = puertaRol();
+  assert.strictEqual(ROL.esAdmin(ADMIN_E), true); assert.strictEqual(ROL.esSuperAdmin(ADMIN_E), false);
+  assert.strictEqual(ROL.esSuperAdmin(SUPER_E), true); assert.strictEqual(ROL.esSuperGlobal(SUPER_E), false);
+  assert.strictEqual(ROL.esGlobal(SUPER_E), false); assert.strictEqual(ROL.esGlobal(ADMIN), true);
+  assert.strictEqual(ROL.esAdmin(AGENTE), false); assert.strictEqual(ROL.esAdmin(null), false);
+  assert.strictEqual(ROL.esGlobal(null), false, 'sin ficha no se enseña nada de la instancia');
+  assert.strictEqual(ROL.esEmpresa({ rol: 'agente', ambito: 'empresa' }), true);
+  assert.strictEqual(JSON.stringify(ROL.empresas(SUPER_E)), '["lawang","sandal_woods"]'); assert.strictEqual(JSON.stringify(ROL.empresas(ADMIN)), '[]');
+  assert.strictEqual(ROL.puedeHerr(SUPER, 'x'), true); assert.strictEqual(ROL.puedeHerr(SUPER_E, 'x'), false);
+  assert.strictEqual(ROL.puedeHerr(SUPER_E, 'cuentas'), true);
 
   // sin ficha legible: la regla general deja entrar (RLS protege); una de dirección, no
   r = await puerta({}, null, { fichaFalla: true });
