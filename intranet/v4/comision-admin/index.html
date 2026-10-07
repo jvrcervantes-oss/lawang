@@ -1,9 +1,9 @@
 <!DOCTYPE html><html lang="es"><head>
-<meta name="lw-version" content="35edea7a73fd"><title data-lw-titulo>Comisión de administración</title>
+<meta name="lw-version" content="6911500d9e81"><title data-lw-titulo>Comisión de administración</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-rol="super_admin"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=c2bd3e94" defer></script>
-<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/entities.js?v=65021341" defer></script><script src="/contracts/assets/paginacion.js?v=2ac67b84" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=dc1e969e" defer></script><script src="../assets/comision-neto.js?v=128e2efb" defer></script><script src="../assets/datos.js?v=e86ee0eb" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/i18n.js?v=f1ae08e9" defer></script>
+<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/entities.js?v=65021341" defer></script><script src="/contracts/assets/paginacion.js?v=2ac67b84" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=dc1e969e" defer></script><script src="../assets/comision-neto.js?v=128e2efb" defer></script><script src="../assets/datos.js?v=acb7dc3a" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c76dd0b9" defer></script>
 <link href="../assets/shell.css?v=449197c1" rel="stylesheet">
@@ -179,6 +179,27 @@
 </thead>
 <tbody id="lw-ca-fees">
 <tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo los fees…</td></tr>
+</tbody>
+</table>
+</div>
+<div class="px-8 pt-6 pb-2 border-t border-outline-variant/40">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Fees devengados</span>
+<p class="font-body-sm text-body-sm text-outline mt-1" data-lwt>Un fee no es dinero que entra por la intranet: por eso no sale en el libro de abajo. Aquí está cada mes con su estado de cobro.</p>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant/60 bg-surface-container-low">
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Fecha</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Concepto</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Sociedad</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Importe</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Estado</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Acción</th>
+</tr>
+</thead>
+<tbody id="lw-ca-fee-lineas">
+<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo los fees devengados…</td></tr>
 </tbody>
 </table>
 </div>

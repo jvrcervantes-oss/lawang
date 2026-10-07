@@ -8910,6 +8910,30 @@
         }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna tarifa dada de alta: no se está devengando comisión.</td></tr>';
       }
 
+      /* Fees devengados (7-oct-2026): cada línea de fee con su estado de cobro, fuera del libro. */
+      var cuerpoFeeLin = document.getElementById('lw-ca-fee-lineas');
+      if (cuerpoFeeLin) {
+        var lf = lineas.filter(function (l) { return !!l.fee_id; });
+        cuerpoFeeLin.innerHTML = lf.length ? lf.map(function (l) {
+          var est = ESTADOS[l.estado] || [l.estado, 'bg-surface-container-high text-on-surface-variant'];
+          var f = (fees || []).filter(function (x) { return x.id === l.fee_id; })[0];
+          var abono = l.tipo_linea === 'abono';
+          return '<tr class="border-b border-outline-variant/30' + (l.anulada ? ' opacity-60' : '') + '">' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(l.devengado_el)) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(f ? f.concepto + (f.beneficiario ? ' · ' + f.beneficiario : '') : l.recibi_numero) +
+              (abono ? '<br><span class="text-outline text-[11px] uppercase tracking-wider">Abono</span>' : '') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(nombreSociedad(l.sociedad)) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-right ' + (Number(l.importe) < 0 ? 'text-error' : 'text-on-surface') + '">' + esc(fmt(l.importe, l.moneda)) + '</td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' + est[1] + '">' + esc(est[0]) + '</span>' +
+              (l.anulada ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">anulada</span>' : '') + '</td>' +
+            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-1">' + (l.anulada ? '' :
+              '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-ca-estado="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-actual="' + esc(l.estado) + '">Estado</button>' +
+              (l.tipo_linea === 'fee' ? '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" data-lw-ca-anula="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-estado="' + esc(l.estado) + '">Anular</button>' : '')) +
+            '</div></td></tr>';
+        }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Todavía no se ha devengado ningún fee.</td></tr>';
+        delega(cuerpoFeeLin, [['data-lw-ca-estado', 'abreEstadoComisionAdmin'], ['data-lw-ca-anula', 'abreAnulaComisionAdmin']]);
+      }
+
       // ── Filtros del libro ─────────────────────────────────────────────────
       /* Una fila por sociedad: cada una es un deudor distinto y se le factura
          por separado, asi que nunca se suman entre si. Y dentro de cada una,
@@ -9009,7 +9033,10 @@
         if (!cuerpoLin) return;
         var fp = selProy ? selProy.value : '', fe = selEstado ? selEstado.value : '',
             fm = selMes ? selMes.value : '', fs = selSoc ? selSoc.value : '';
+        /* Los fees (salarios) NO son dinero que entra por la intranet: no van en el libro (owner, 7-oct-2026);
+           viven en su tabla de «Fees devengados». */
         var lista = lineas.filter(function (l) {
+          if (l.fee_id) return false;
           if (fp === '__sin') { if (l.proyecto_id) return false; }
           else if (fp && l.proyecto_id !== fp) return false;
           if (fs && (l.sociedad || '') !== fs) return false;
