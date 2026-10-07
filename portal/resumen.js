@@ -156,5 +156,45 @@ function facturaDelHito(facturas, contrato, hito, moneda){
   )[0] || null;
 }
 
+/* ── Contratos agrupados por villa (7-oct-2026, artifact «Lawang · Contratos (propuesta)») ──
+   Una villa = proyecto + unidad. Es solo cómo se enseñan: ningún contrato se pierde por el camino (lección de la
+   v3 de Proyectos, 26-ago: agrupar por una columna borra lo que no la tiene). El que no trae unidad va a la villa
+   «sin unidad» de su proyecto; el que no trae proyecto, a la de su nombre — mismo criterio que `carpetasProyecto`.
+   Dentro de cada villa, la Carta ya sustituida va al final: es un documento suyo, pero no le pide nada. La regla de
+   «sustituida» es la de siempre (`estaSustituido` sobre TODOS los contratos del comprador), no una por villa: si
+   una Carta no trae la misma unidad que su Bloqueo, mirarlo por villa la haría reclamar otra vez su cuota. Que una
+   Carta de OTRA villa salga como recogida es el coste conocido de esa regla: decisión del owner pendiente, LAW-499. */
+/* Qué es «la misma villa»: una sola definición para agrupar y para enlazar una Carta con sus definitivos. */
+function claveVilla(x){
+  return (x.proyecto_id || ('n:' + (x.proyecto || ''))) + '|' + (x.parcela || '');
+}
+function villasPortal(contratos){
+  const cts = (contratos || []).filter(Boolean);
+  const mapa = {}, orden = [];
+  cts.forEach(x => {
+    const key = claveVilla(x);
+    if (!mapa[key]){ mapa[key] = { key: key, proyecto_id: x.proyecto_id || null, proyecto: x.proyecto || '', parcela: x.parcela || '', contratos: [] }; orden.push(key); }
+    mapa[key].contratos.push(x);
+  });
+  return orden.map(k => {
+    const v = mapa[k];
+    const vivos = v.contratos.filter(x => !estaSustituido(x, cts));
+    const sust = v.contratos.filter(x => estaSustituido(x, cts));
+    v.contratos = vivos.concat(sust);
+    // Una villa que solo tiene Cartas ya sustituidas no tiene cifra propia: su dinero lo cuentan los definitivos.
+    v.soloSustituidos = vivos.length === 0;
+    return v;
+  });
+}
+
+/* Los contratos que recogen una Carta sustituida, para enlazarlos desde ella: los definitivos de su misma villa.
+   Si la Carta no comparte unidad con ninguno, no se enlaza nada (la frase ya lo explica) — nunca se adivina. */
+function sustitutosDe(x, contratos){
+  const prelim = t => (typeof lwEsPreliminar === 'function') ? lwEsPreliminar(t) : false;
+  if (!x || !prelim(x.tipo)) return [];
+  const k = claveVilla(x);
+  return (contratos || []).filter(y => y && y !== x && !prelim(y.tipo) && claveVilla(y) === k);
+}
+
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito };
+  module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe };

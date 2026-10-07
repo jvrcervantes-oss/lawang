@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="553b9bd96802">
+<meta name="lw-version" content="20481053b48f">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- MODO DEMO (7-oct-2026): con `?demo` en la dirección se carga demo.js, que sustituye el cliente de Supabase por uno falso con datos
      ficticios. document.write y no un script creado a mano: tiene que ejecutarse ANTES del script del portal, en orden. Falla CERRADO: si demo.js
      no carga, createClient se anula y el portal real nunca se crea con `?demo` puesto. Sin `?demo` esto no hace nada. -->
-<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261007b"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261007c"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261007c"></script>
+<script src="/portal/resumen.js?v=20261007e"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -198,12 +198,6 @@
   .op-datos .d .val{ font-size:14px; margin-top:2px; }
   .barra{ height:7px; border-radius:4px; background:#E7E1D2; overflow:hidden; margin:16px 0 6px; }
   .barra i{ display:block; height:100%; background:var(--ok); }
-  .barra-leg{ display:flex; justify-content:space-between; font-size:12px; color:#6b6c66; margin-bottom:16px; }
-  /* Ocupa el hueco de la barra de avance en una Carta ya relevada por sus
-     contratos definitivos: mismo sitio, misma altura aproximada, pero dice con
-     palabras lo que la barra diría mal. */
-  .op-nota{ font-size:12.5px; line-height:1.5; color:#6b6c66; background:rgba(138,132,116,.07);
-            border-left:2px solid rgba(138,132,116,.35); padding:9px 12px; margin:16px 0 4px; }
 
   table.docs{ width:100%; border-collapse:collapse; margin-top:6px; }
   table.docs th{ text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#8a8570;
@@ -212,7 +206,6 @@
   table.docs td{ padding:11px 6px; font-size:13.5px; border-bottom:1px solid rgba(138,132,116,.18); }
   table.docs td.num{ text-align:right; }
   table.docs td.flojo{ font-size:13px; color:#6b6c66; }
-  .op-pie{ margin-top:16px; }
 
   .tabla-caja{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:16px; overflow:hidden; }
   .tabla-caja table{ width:100%; border-collapse:collapse; }
@@ -401,8 +394,6 @@
   .op-datos .d .lbl{ font-size:11px; font-weight:500; letter-spacing:.1em; color:var(--out); }
   .barra{ height:6px; border-radius:999px; background:var(--pg-hi); }
   .barra i{ background:#485B37; border-radius:999px; }
-  .barra-leg{ color:var(--ink2); }
-  .op-nota{ background:var(--pg-low); border-left:0; border-radius:12px; color:var(--ink2); }
   .fase{ font-size:10px; font-weight:600; letter-spacing:.06em; background:var(--pg-low); border:0; color:var(--out); }
   .fase.hecha{ background:#e3eadb; color:#3F5230; border:0; }
   .fase.actual{ background:#485B37; color:#fff; }
@@ -479,20 +470,6 @@
   .novedad:last-child{ border-bottom:0; }
   .novedad-punto{ width:7px; height:7px; border-radius:50%; flex:none; margin-top:6px; background:#485B37; }
 
-  /* línea de tiempo: pagos y obra en una sola línea */
-  .tl{ list-style:none; margin:18px 0 6px; padding:0; display:flex; flex-wrap:wrap; gap:8px 6px; align-items:flex-start; }
-  .tl-grupo{ flex-basis:100%; font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); margin-top:4px; }
-  .tl-grupo:first-child{ margin-top:0; }
-  .tl-paso{ display:flex; flex-direction:column; gap:2px; min-width:0; max-width:150px; padding:8px 12px; border-radius:12px;
-            background:var(--pg-low); font-size:12px; line-height:1.3; color:var(--out); position:relative; }
-  .tl-punto{ width:8px; height:8px; border-radius:50%; background:var(--linea); margin-bottom:4px; }
-  .tl-txt{ font-weight:600; overflow-wrap:anywhere; }
-  .tl-sub{ font-variant-numeric:tabular-nums; }
-  .tl-paso.hecho{ background:#e3eadb; color:#3F5230; }
-  .tl-paso.hecho .tl-punto{ background:#485B37; }
-  .tl-paso.actual{ background:#485B37; color:#fff; }
-  .tl-paso.actual .tl-punto{ background:#fff; }
-
   /* obra: lo último, con fecha */
   .feed-obra{ margin-bottom:26px; }
   .feed-obra figcaption b{ color:var(--va); font-weight:600; }
@@ -516,7 +493,6 @@
     .tabla-caja td.ir{ justify-content:flex-end; }
     .tabla-caja td.ir::before{ content:none; }
     .hp-importe{ font-size:34px; }
-    .tl-paso{ max-width:none; flex:1 1 130px; }
   }
 
   /* ═══ PROYECTOS, MENÚ MÁS MARCADO, CAMPANA DE LA INTRANET (7-oct-2026) ═══ */
@@ -795,6 +771,172 @@
     .hero-pago:not(.vacio) .hp-concepto{ font-size:19px; }
   }
 
+  /* ══ CONTRATOS POR VILLA — artifact «Lawang · Contratos (propuesta)», 7-oct-2026 ══
+     Con los tonos que el portal ya usa: verde de pagado (#485B37 / --ok), teal de acción (--dl) y el ámbar de la
+     firma pendiente, que es el de su etiqueta de siempre. Sin sombras; un solo momento fuerte: la firma, si la hay. */
+  .ct-resumen{ margin:0 0 20px; font-size:14px; color:var(--ink2); }
+  .ct-firma{ display:flex; flex-wrap:wrap; align-items:center; gap:20px 28px; background:#F4E3D0; border:1px solid #E6C7A5; border-radius:20px; padding:24px 28px; margin:0 0 20px; }
+  .ct-firma-dias{ flex:none; min-width:88px; text-align:center; color:#8F4A12; }
+  .ct-firma-dias b{ display:block; font-size:56px; line-height:1; font-weight:500; font-variant-numeric:tabular-nums; }
+  .ct-firma-dias span{ display:block; margin-top:6px; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+  .ct-firma-tx{ flex:1 1 320px; min-width:0; }
+  .ct-firma-dias + .ct-firma-tx{ border-left:1px solid #E6C7A5; padding-left:28px; }
+  .ct-firma-tx h2{ margin:10px 0 6px; font-size:21px; font-weight:500; line-height:1.25; color:#42210B; overflow-wrap:anywhere; }
+  .ct-firma-tx p{ margin:0; font-size:13.5px; line-height:1.5; color:#5C4632; }
+  .ct-firma-acc, .ct-acciones{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .ct-firma-acc .btn-borde, .ct-firma-acc .btn-oscuro, .ct-acciones .btn-borde, .ct-acciones .btn-oscuro{ min-height:44px; box-sizing:border-box; display:inline-flex; align-items:center; text-decoration:none; }
+  /* «Ver borrador» y «Firmar ahora» en el MISMO rojo que los avisos de Inicio (owner, 7-oct-2026): firmar es lo
+     urgente de las dos pantallas y tiene que leerse igual en las dos. Valores de `.ini-tarea .btn-*`. */
+  .btn-oscuro.ct-firmar{ background:var(--bad); border-color:var(--bad); color:#fff; }
+  .btn-oscuro.ct-firmar:hover{ background:#86271f; border-color:#86271f; }
+  .btn-borde.ct-borrador{ gap:8px; background:#fff; color:var(--bad); border:1.5px solid var(--bad); font-weight:600; }
+  .btn-borde.ct-borrador:hover{ background:#fdf6f4; }
+  .btn-oscuro.ct-firmar:focus-visible, .btn-borde.ct-borrador:focus-visible{ outline:2px solid var(--bad); outline-offset:2px; }
+  .ct-etq{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
+  .ct-etq.firma{ background:rgba(184,99,29,.16); color:#8F4A12; }
+
+  .ct-filtro{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 20px; }
+  .ct-pill{ font:inherit; font-size:13px; font-weight:600; min-height:44px; padding:10px 16px; border-radius:999px; background:#fff; color:var(--va); border:1px solid var(--linea); cursor:pointer; }
+  .ct-pill:hover{ background:var(--pg-low); }
+  .ct-pill[aria-pressed="true"]{ background:var(--dl); border-color:var(--dl); color:#fff; }
+  .ct-pill:focus-visible, .ct-enlace:focus-visible, .ct-detalle summary:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+
+  .ct-villa{ background:#fff; border:1px solid var(--pg-hi); border-radius:20px; overflow:hidden; margin:0 0 20px; }
+  .ct-villa-cab{ display:grid; grid-template-columns:auto minmax(0,1fr) minmax(220px,280px); gap:24px; align-items:center; padding:24px; }
+  .ct-villa-cab.sin-unidad{ grid-template-columns:minmax(0,1fr) minmax(220px,280px); }
+  .ct-villa-cab.sin-cifra{ grid-template-columns:auto minmax(0,1fr); }
+  .ct-villa-cab.sin-unidad.sin-cifra{ grid-template-columns:minmax(0,1fr); }
+  .ct-tile{ width:112px; height:112px; border-radius:16px; background:#485B37; color:#fff; box-sizing:border-box; padding:14px; display:flex; flex-direction:column; justify-content:flex-end; }
+  .ct-tile span{ font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; opacity:.85; }
+  .ct-tile b{ font-size:24px; font-weight:500; line-height:1.05; overflow-wrap:anywhere; }
+  .ct-sobre{ font-size:11.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); }
+  .ct-villa-info h2{ margin:4px 0 10px; font-size:24px; font-weight:500; line-height:1.15; color:var(--dl); overflow-wrap:anywhere; }
+  .ct-chips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .ct-chip{ font-size:12.5px; padding:5px 11px; border-radius:999px; background:var(--pg-low); color:var(--ink2); }
+  .ct-chip.obra{ background:#e3eadb; color:#3F5230; }
+  .ct-chip.firma{ background:#f6e8cc; color:#8C5E10; }
+  .ct-lbl{ font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); }
+  .ct-cifra{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-top:4px; color:var(--ink2); font-variant-numeric:tabular-nums; }
+  .ct-cifra b{ font-size:26px; font-weight:500; line-height:1.05; color:var(--dl); }
+  .ct-villa-pag .barra{ height:8px; margin:12px 0 6px; }
+  .ct-pie{ font-size:12px; color:var(--ink2); }
+
+  .ct-card{ padding:24px; border-top:1px solid var(--pg-hi); }
+  .ct-card:focus{ outline:none; }
+  .ct-card:focus-visible{ outline:2px solid var(--dl); outline-offset:-2px; }
+  .ct-card.pend{ background:#FCF5EC; }
+  .ct-card-cab{ display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+  .ct-ico{ width:40px; height:40px; border-radius:12px; flex:none; display:inline-flex; align-items:center; justify-content:center; background:var(--pg-low); color:var(--dl); }
+  .ct-card.pend .ct-ico{ background:rgba(184,99,29,.16); color:#8F4A12; }
+  .ct-card.sust .ct-ico{ color:var(--out); }
+  .ct-card-tit{ flex:1 1 260px; min-width:0; }
+  .ct-card-fila{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .ct-card-fila h3{ margin:0; font-size:18px; font-weight:500; color:var(--va); overflow-wrap:anywhere; }
+  .ct-card-fila .tag{ margin-left:0; }
+  .ct-num{ font-size:13px; font-weight:600; letter-spacing:.04em; color:var(--dl); }
+  .ct-card-sub{ font-size:13px; color:var(--ink2); margin-top:3px; }
+  .ct-card-cifra{ flex:0 1 240px; min-width:200px; text-align:right; }
+  .ct-card-cifra .ct-cifra{ justify-content:flex-end; font-size:13px; }
+  .ct-card-cifra .ct-cifra b{ font-size:17px; color:var(--va); }
+  .ct-card-cifra .barra{ margin:8px 0 5px; }
+
+  .ct-mini{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:20px; }
+  .ct-mini > div{ background:var(--pg-low); border-radius:14px; padding:14px; min-width:0; }
+  .ct-mini.dos{ grid-template-columns:repeat(2,minmax(0,1fr)); max-width:520px; }
+  .ct-mini > div.clave{ background:#E8EFEC; }
+  .ct-mini b{ display:block; font-size:17px; font-weight:500; margin-top:4px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .ct-mini .clave .ct-lbl, .ct-mini .clave b{ color:var(--dl); font-weight:600; }
+  .ct-mini + .barra{ margin:16px 0 6px; }
+  .ct-leyenda{ display:flex; justify-content:space-between; gap:12px; font-size:12px; color:var(--ink2); }
+  .ct-texto{ margin:16px 0 0; font-size:13px; line-height:1.5; color:var(--ink2); }
+  .ct-texto.firma{ color:#5C4632; }
+  .ct-nota{ margin-top:18px; display:flex; gap:12px; align-items:flex-start; background:var(--pg-low); border-radius:14px; padding:14px 16px; color:var(--ink2); }
+  .ct-nota svg{ flex:none; margin-top:2px; }
+  .ct-nota p{ margin:0; font-size:13.5px; line-height:1.5; }
+  .ct-enlaces{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .ct-enlace{ font:inherit; font-size:12.5px; font-weight:600; color:var(--dl); background:#fff; border:1px solid var(--linea); border-radius:999px; padding:6px 12px; min-height:32px; cursor:pointer; }
+
+  /* el plan de pagos: una fila de hitos con su punto (pagado, próximo, pendiente) — en móvil, en vertical */
+  .ct-plan-bloque{ margin-top:22px; }
+  .ct-plan{ list-style:none; margin:12px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); column-gap:8px; row-gap:20px; }
+  .ct-plan .tl-paso{ position:relative; display:flex; flex-direction:column; gap:1px; min-width:0; padding:26px 12px 0 0; font-size:12px; line-height:1.35; color:var(--ink2); }
+  .ct-plan .tl-paso::before{ content:""; position:absolute; top:8px; left:24px; right:4px; height:2px; border-radius:1px; background:var(--pg-hi); }
+  .ct-plan .tl-paso:last-child::before{ content:none; }
+  .ct-plan .tl-paso.hecho::before{ background:#485B37; }
+  .ct-punto{ position:absolute; top:0; left:0; width:18px; height:18px; border-radius:50%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; background:#fff; border:2px solid #C9C1B1; color:#fff; }
+  .tl-paso.hecho .ct-punto{ background:#485B37; border-color:#485B37; }
+  .tl-paso.parcial .ct-punto{ border-color:#485B37; background:linear-gradient(90deg,#485B37 50%,#fff 50%); }
+  .tl-paso.actual .ct-punto{ border:5px solid var(--dl); }
+  .ct-prox{ font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--dl); margin-bottom:2px; }
+  .ct-h{ font-size:14px; font-weight:500; color:var(--va); overflow-wrap:anywhere; }
+  .tl-paso.actual .ct-h{ font-weight:600; color:var(--dl); }
+  .tl-paso.espera .ct-h{ color:var(--ink2); }
+  .ct-m{ font-size:14px; color:var(--va); font-variant-numeric:tabular-nums; }
+  .ct-t{ font-size:12px; color:var(--out); }
+  /* el pulso del paso actual (motion.js) rodea el punto, no la columna entera */
+  .ct-plan .tl-paso.actual::after{ inset:auto; left:-4px; top:-4px; width:26px; height:26px; border-radius:50%; border-color:var(--dl); }
+
+  .ct-prox-caja{ margin-top:18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:#EEF3F1; border-radius:14px; padding:12px 16px; color:#1F3B3D; font-size:13.5px; }
+  .ct-prox-caja svg{ flex:none; color:var(--dl); }
+  .ct-prox-caja > span{ flex:1 1 260px; min-width:0; }
+  .ct-prox-caja.vencida{ background:#F7E4E1; color:#5E1F19; }
+  .ct-prox-caja.vencida svg{ color:var(--bad); }
+
+  .ct-obra{ margin-top:22px; }
+  .ct-obra-cab{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; font-size:12px; color:var(--ink2); }
+  .ct-fases{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+  .ct-fases i{ display:block; height:6px; border-radius:3px; background:var(--pg-hi); }
+  .ct-fases .hecho i{ background:#485B37; }
+  .ct-fases .actual i{ background:var(--dl); }
+  .ct-fases span{ display:block; margin-top:6px; font-size:12px; color:var(--out); overflow-wrap:anywhere; hyphens:auto; }
+  .ct-fases .actual span{ color:var(--dl); font-weight:600; }
+
+  .ct-detalle{ margin-top:16px; }
+  .ct-detalle summary{ display:inline-flex; align-items:center; min-height:44px; cursor:pointer; list-style:none; font-size:13px; font-weight:600; color:var(--dl); text-decoration:underline; text-underline-offset:3px; }
+  .ct-detalle summary::-webkit-details-marker{ display:none; }
+  .ct-detalle .cierra, .ct-detalle[open] .abre{ display:none; }
+  .ct-detalle[open] .cierra{ display:inline; }
+  .ct-detalle table.docs{ margin-top:4px; }
+  .ct-acciones{ margin-top:18px; }
+  .ct-pie-pagina{ margin:4px 0 0; text-align:center; font-size:12.5px; color:var(--ink2); }
+  .ct-vacio-acc{ margin-top:14px; }
+
+  @media (max-width:880px){
+    .ct-villa-cab, .ct-villa-cab.sin-unidad, .ct-villa-cab.sin-cifra{ grid-template-columns:auto minmax(0,1fr); }
+    .ct-villa-pag{ grid-column:1 / -1; }
+    .ct-villa-cab.sin-unidad .ct-villa-pag{ grid-column:auto; }
+    .ct-villa-cab.sin-unidad{ grid-template-columns:1fr; }
+  }
+  @media (max-width:640px){
+    .ct-firma{ padding:20px; gap:14px; }
+    .ct-firma-dias{ min-width:64px; }
+    .ct-firma-dias b{ font-size:44px; }
+    .ct-firma-dias + .ct-firma-tx{ padding-left:14px; flex-basis:200px; }
+    .ct-firma-tx h2{ font-size:18px; }
+    .ct-firma-acc{ display:grid; grid-template-columns:1fr 1fr; width:100%; }
+    .ct-firma-acc > *{ justify-content:center; }
+    .ct-filtro{ flex-wrap:nowrap; overflow-x:auto; margin:0 -16px 20px; padding:0 16px; scrollbar-width:none; }
+    .ct-pill{ flex:none; }
+    .ct-villa-cab{ padding:18px; gap:14px; }
+    .ct-tile{ width:72px; height:72px; padding:10px; border-radius:14px; }
+    .ct-tile b{ font-size:18px; }
+    .ct-villa-info h2{ font-size:21px; margin-bottom:8px; }
+    .ct-cifra b{ font-size:22px; }
+    .ct-card{ padding:18px; }
+    .ct-card-cifra{ flex-basis:100%; min-width:0; text-align:left; }
+    .ct-card-cifra .ct-cifra{ justify-content:flex-start; }
+    .ct-mini{ grid-template-columns:1fr; gap:8px; }
+    .ct-plan{ grid-template-columns:1fr; row-gap:0; }
+    .ct-plan .tl-paso{ padding:0 0 18px 32px; }
+    .ct-plan .tl-paso::before{ top:20px; bottom:0; left:8px; right:auto; width:2px; height:auto; }
+    .ct-prox{ margin-bottom:0; }
+    .ct-plan .tl-paso > .ct-m{ position:absolute; right:0; top:0; }
+    .ct-plan .tl-paso.actual > .ct-m{ top:16px; }
+    .ct-plan .tl-paso > .ct-h{ padding-right:96px; }
+    .ct-acciones{ display:grid; grid-template-columns:1fr; }
+    .ct-acciones > *{ justify-content:center; }
+  }
+
 </style>
 </head>
 <body>
@@ -942,8 +1084,7 @@
          pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
          firmado:'Firmado', pendiente_firma:'Pendiente de firma', ver_contrato:'Ver contrato firmado', descargar:'Descargar',
-         firma_pendiente_desc:'Tienes este contrato pendiente de firma, enviado el', firma_pendiente_caduca:'El enlace caduca el',
-         ver_borrador:'Ver borrador', cargando:'Cargando…',
+                  ver_borrador:'Ver borrador', cargando:'Cargando…',
          firmar_ahora:'Firmar ahora',
          imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
          f_numero:'Nº', f_tipo:'Tipo', f_proyecto:'Proyecto', f_fecha:'Fecha', f_total:'Importe', ir:'Ver →',
@@ -993,11 +1134,20 @@
          todos_proyectos:'Todos los proyectos', n_docs_1:'1 documento', n_docs_n:'{n} documentos', sin_docs_proyecto:'Sin documentos todavía',
          entrega_proyecto:'Entrega estimada', pagado_de:'{a} de {b} pagado', descargar_carpeta:'Descargar carpeta', fase_obra:'Obra',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Técnico', doc_cat_comercial:'Comercial', doc_cat_fotos:'Fotos', doc_cat_planos:'Planos', doc_cat_precios:'Precios', doc_cat_faq:'Preguntas frecuentes', ver_facturas:'Ver mis facturas',
-         tl_pagos:'Pagos', tl_obra:'Obra', obra_ultimo:'Lo último de tu obra',
+         obra_ultimo:'Lo último de tu obra',
          doc_buscar:'Buscar un documento…', doc_todo:'Descargar todo', doc_zip_prep:'Preparando…',
          doc_zip_err:'No hemos podido preparar la descarga. Inténtalo de nuevo o abre los documentos de uno en uno.',
          doc_zip_vacio:'No hay documentos descargables en esta lista.', doc_zip_tope:'Son demasiados documentos para un solo archivo. Descárgalos de uno en uno.',
          doc_sin_resultados:'Ningún documento coincide con tu búsqueda.', doc_otros:'Otros',
+         ct_enviado:'enviado el {f}', ct_firma_titulo:'Tu contrato de {t} de {p} espera tu firma', ct_firma_titulo_n:'Tu contrato {n} espera tu firma',
+         ct_dias_firmar:'Días para firmar', ct_dia_firmar:'Día para firmar', ct_filtrar:'Filtrar por villa', ct_todas:'Todas las villas',
+         ct_pagado_todo:'Pagado por completo', ct_precio_villa:'Precio de la villa', ct_pct_cuota:'{n} % de la cuota de reserva',
+         ct_prox:'Próximo pago: {h}, {m}.', ct_prox_vence:'Vence el {f}.', ct_prox_vencio:'Venció el {f}.', ct_prox_plazo:'Plazo: {p}.',
+         ct_firma_cal:'El calendario de pagos empieza a contar cuando firmes.', ct_obra_villa:'Obra de tu villa',
+         ct_ver_detalle:'Ver el detalle de pagos', ct_ocultar_detalle:'Ocultar el detalle', ct_obra_chip:'Obra: {f} ({i} de {n})',
+         ct_n_1:'1 contrato', ct_n_n:'{n} contratos', ct_por_firmar:'{n} por firmar', ct_v_1:'1 villa', ct_v_n:'{n} villas', ct_f_1:'1 firmado', ct_f_n:'{n} firmados',
+         ct_pagado_cuota:'Pagado de la cuota de reserva', ct_pagado_villa:'Pagado en esta villa', ct_pct_pagado:'{n} % pagado',
+         ct_no_cuadra:'¿Algo no cuadra con tus documentos?', ct_escribenos:'Escríbenos desde Soporte y lo revisamos',
          sobre:'Sobre', sobre_nada:'Nada en concreto', preguntar_factura:'Preguntar sobre esta factura', preguntar_contrato:'Preguntar sobre este contrato', },
     en:{ area:'Client area',
          login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
@@ -1026,8 +1176,7 @@
          pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
          firmado:'Signed', pendiente_firma:'Awaiting signature', ver_contrato:'View signed contract', descargar:'Download',
-         firma_pendiente_desc:'This contract is awaiting your signature, sent on', firma_pendiente_caduca:'Link expires on',
-         ver_borrador:'View draft', cargando:'Loading…',
+                  ver_borrador:'View draft', cargando:'Loading…',
          firmar_ahora:'Sign now',
          imprimir:'Print or save as PDF', cerrar:'Close',
          f_numero:'No.', f_tipo:'Type', f_proyecto:'Project', f_fecha:'Date', f_total:'Amount', ir:'View →',
@@ -1069,11 +1218,24 @@
          todos_proyectos:'All projects', n_docs_1:'1 document', n_docs_n:'{n} documents', sin_docs_proyecto:'No documents yet',
          entrega_proyecto:'Estimated handover', pagado_de:'{a} of {b} paid', descargar_carpeta:'Download folder', fase_obra:'Construction',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Technical', doc_cat_comercial:'Commercial', doc_cat_fotos:'Photos', doc_cat_planos:'Plans', doc_cat_precios:'Prices', doc_cat_faq:'FAQ', ver_facturas:'View my invoices',
-         tl_pagos:'Payments', tl_obra:'Construction', obra_ultimo:'Latest from your build',
+         obra_ultimo:'Latest from your build',
          doc_buscar:'Search a document…', doc_todo:'Download all', doc_zip_prep:'Preparing…',
          doc_zip_err:'We could not prepare the download. Try again or open the documents one by one.',
          doc_zip_vacio:'There are no downloadable documents in this list.', doc_zip_tope:'There are too many documents for a single file. Download them one by one.',
          doc_sin_resultados:'No document matches your search.', doc_otros:'Other',
+         ct_enviado:'sent on {f}', ct_firma_titulo:'Your {t} contract for {p} is waiting for your signature', ct_firma_titulo_n:'Your contract {n} is waiting for your signature',
+         ct_dias_firmar:'Days left to sign', ct_dia_firmar:'Day left to sign', ct_filtrar:'Filter by villa', ct_todas:'All villas',
+         ct_pagado_todo:'Paid in full', ct_precio_villa:'Villa price', ct_pct_cuota:'{n} % of the reservation fee',
+         ct_prox:'Next payment: {h}, {m}.', ct_prox_vence:'Due on {f}.', ct_prox_vencio:'Was due on {f}.', ct_prox_plazo:'Due: {p}.',
+         ct_firma_cal:'The payment schedule starts once you sign.', ct_obra_villa:'Your villa\'s construction',
+         ct_ver_detalle:'See payment details', ct_ocultar_detalle:'Hide details', ct_obra_chip:'Construction: {f} ({i} of {n})',
+         ct_n_1:'1 contract', ct_n_n:'{n} contracts', ct_por_firmar:'{n} to sign', ct_v_1:'1 villa', ct_v_n:'{n} villas', ct_f_1:'1 signed', ct_f_n:'{n} signed',
+         ct_pagado_cuota:'Paid of the reservation fee', ct_pagado_villa:'Paid on this villa', ct_pct_pagado:'{n} % paid',
+         ct_no_cuadra:'Something doesn\'t match your documents?', ct_escribenos:'Write to us from Support and we will check it',
+         tipo_carta_reserva:'Reservation Letter', tipo_carta_reserva_ampliada:'Extended Reservation Letter', tipo_carta_reserva_hak_sewa:'Reservation Letter (Hak Sewa)',
+         tipo_carta_reserva_pma:'Conditional Reservation Letter (PT PMA)', tipo_carta_reserva_investor_deck:'Reservation Letter (Investor Deck)',
+         tipo_reserva_parcela:'Plot Hold', tipo_construccion:'Construction', tipo_hak_sewa_notario:'Hak Sewa - Notary', tipo_poa:'Power of Attorney',
+         tipo_adenda:'Contract addendum', tipo_contrato_general:'General Contract',
          sobre:'About', sobre_nada:'Nothing in particular', preguntar_factura:'Ask about this invoice', preguntar_contrato:'Ask about this contract', },
     id:{ area:'Area klien',
          login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, tautan masuk akan segera dikirim.',
@@ -1102,8 +1264,7 @@
          pagado:'Lunas', pendiente:'Belum dibayar', parcial:'Sebagian', de:'dari',
          plan_pagos:'Jadwal pembayaran', concepto:'Keterangan', cuando:'Jatuh tempo', importe:'Jumlah', estado:'Status',
          firmado:'Sudah ditandatangani', pendiente_firma:'Menunggu tanda tangan', ver_contrato:'Lihat kontrak yang ditandatangani', descargar:'Unduh',
-         firma_pendiente_desc:'Kontrak ini menunggu tanda tangan Anda, dikirim pada', firma_pendiente_caduca:'Tautan berlaku sampai',
-         ver_borrador:'Lihat draf', cargando:'Memuat…',
+                  ver_borrador:'Lihat draf', cargando:'Memuat…',
          firmar_ahora:'Tanda tangani sekarang',
          imprimir:'Cetak atau simpan sebagai PDF', cerrar:'Tutup',
          f_numero:'No.', f_tipo:'Jenis', f_proyecto:'Proyek', f_fecha:'Tanggal', f_total:'Jumlah', ir:'Lihat →',
@@ -1145,11 +1306,21 @@
          todos_proyectos:'Semua proyek', n_docs_1:'1 dokumen', n_docs_n:'{n} dokumen', sin_docs_proyecto:'Belum ada dokumen',
          entrega_proyecto:'Perkiraan serah terima', pagado_de:'{a} dari {b} lunas', descargar_carpeta:'Unduh folder', fase_obra:'Pembangunan',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Teknis', doc_cat_comercial:'Komersial', doc_cat_fotos:'Foto', doc_cat_planos:'Denah', doc_cat_precios:'Harga', doc_cat_faq:'Pertanyaan umum', ver_facturas:'Lihat faktur saya',
-         tl_pagos:'Pembayaran', tl_obra:'Pembangunan', obra_ultimo:'Terbaru dari pembangunan Anda',
+         obra_ultimo:'Terbaru dari pembangunan Anda',
          doc_buscar:'Cari dokumen…', doc_todo:'Unduh semua', doc_zip_prep:'Menyiapkan…',
          doc_zip_err:'Kami tidak dapat menyiapkan unduhan. Coba lagi atau buka dokumen satu per satu.',
          doc_zip_vacio:'Tidak ada dokumen yang dapat diunduh dalam daftar ini.', doc_zip_tope:'Dokumennya terlalu banyak untuk satu berkas. Unduh satu per satu.',
          doc_sin_resultados:'Tidak ada dokumen yang cocok dengan pencarian Anda.', doc_otros:'Lainnya',
+         ct_enviado:'dikirim pada {f}', ct_firma_titulo:'Kontrak {t} Anda untuk {p} menunggu tanda tangan Anda', ct_firma_titulo_n:'Kontrak {n} Anda menunggu tanda tangan Anda',
+         ct_dias_firmar:'Hari tersisa untuk menandatangani', ct_dia_firmar:'Hari tersisa untuk menandatangani', ct_filtrar:'Saring per vila', ct_todas:'Semua vila',
+         ct_pagado_todo:'Lunas', ct_precio_villa:'Harga vila', ct_pct_cuota:'{n} % dari biaya reservasi',
+         ct_prox:'Pembayaran berikutnya: {h}, {m}.', ct_prox_vence:'Jatuh tempo {f}.', ct_prox_vencio:'Jatuh tempo pada {f}.', ct_prox_plazo:'Jatuh tempo: {p}.',
+         ct_firma_cal:'Jadwal pembayaran dimulai setelah Anda menandatangani.', ct_obra_villa:'Pembangunan vila Anda',
+         ct_ver_detalle:'Lihat rincian pembayaran', ct_ocultar_detalle:'Sembunyikan rincian', ct_obra_chip:'Pembangunan: {f} ({i} dari {n})',
+         ct_n_1:'1 kontrak', ct_n_n:'{n} kontrak', ct_por_firmar:'{n} belum ditandatangani', ct_v_1:'1 vila', ct_v_n:'{n} vila', ct_f_1:'1 ditandatangani', ct_f_n:'{n} ditandatangani',
+         ct_pagado_cuota:'Terbayar dari biaya reservasi', ct_pagado_villa:'Terbayar untuk vila ini', ct_pct_pagado:'{n} % terbayar',
+         ct_no_cuadra:'Ada yang tidak sesuai dengan dokumen Anda?', ct_escribenos:'Tulis ke kami lewat Dukungan dan kami akan memeriksanya',
+         tipo_carta_reserva:'Surat Pemesanan', tipo_reserva_parcela:'Pengikatan Kavling', tipo_construccion:'Konstruksi', tipo_poa:'Surat Kuasa', tipo_adenda:'Adendum kontrak',
          sobre:'Tentang', sobre_nada:'Tidak ada yang khusus', preguntar_factura:'Tanya tentang faktur ini', preguntar_contrato:'Tanya tentang kontrak ini' }
   };
   var LANG = localStorage.getItem('lw_portal_lang');
@@ -1581,6 +1752,37 @@
     return '<div class="tabla-caja"><div class="vacio"><b>' + esc(titulo) + '</b>' + esc(texto) + '</div></div>';
   }
 
+  /* Días de calendario (no de 24 h) hasta una fecha; null si no la hay o ya pasó. Avisos en rojo con cuenta atrás
+     (owner, 7-oct-2026, opción A del artifact «Avisos del Inicio Lawang»): el «!» y la pastilla de días hacen que la
+     urgencia no dependa solo del color. Lo comparten Inicio y la firma pendiente de Contratos: la misma cuenta. */
+  function diasHasta(f){
+    if (!f) return null;
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var dia = new Date(f); if (isNaN(dia)) return null; dia.setHours(0,0,0,0);
+    var n = Math.round((dia - hoy) / 86400000);
+    return n < 0 ? null : n;
+  }
+  function cuentaAtras(f){
+    var n = diasHasta(f);
+    if (n == null) return '';
+    return '<span class="ini-tarea-cuenta">' + esc(n === 0 ? t('caduca_hoy') : n === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', n)) + '</span>';
+  }
+
+  /* El próximo pago de UN contrato: su primer hito sin pagar, por lo que le FALTA. Si está 'parcial' ya se cobró
+     una parte (Administración, 31-ago-2026 — antes enseñaba el monto completo del hito aunque ya llevara pago, y no
+     cuadraba con el «Pendiente» de al lado, que sí resta lo cobrado). Lo usan Inicio (el del comprador) y cada
+     tarjeta de Contratos, las dos con los hitos repartidos contra el precio: para un mismo contrato dan la misma
+     cifra. (Inicio lo busca también en un contrato sin firmar; Contratos solo lo marca en los firmados.) */
+  function proximoDe(x, hs){
+    var i = -1;
+    hs.some(function(y, k){ if (y.estado !== 'pagado'){ i = k; return true; } return false; });
+    if (i < 0) return null;
+    var h = hs[i], cob = Number(x.cobrado) || 0;
+    var pagadoAcum = hs.reduce(function(s,y){ return s + (y.estado === 'pagado' && !isNaN(y.monto) ? y.monto : 0); }, 0);
+    var restante = isNaN(h.monto) ? NaN : Math.max(0, h.monto - Math.max(0, cob - pagadoAcum));
+    return { hito:h.hito, idx:i, monto:restante, moneda:x.moneda, contrato:x.numero, contratoId:x.id, proyecto:x.proyecto, parcela:x.parcela };
+  }
+
   /* ── Inicio ───────────────────────────────────────────────────────── */
   function pintaInicio(c){
     var d = DATOS;
@@ -1603,17 +1805,7 @@
     res.base.forEach(function(x){
       if (proximo) return;
       var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
-      var hs = estadosHitos(x.hitos, Number(x.cobrado)||0, precio);
-      var h = hs.filter(function(y){ return y.estado !== 'pagado'; })[0];
-      if (h){
-        // restante del hito, no su importe integro: si esta 'parcial' ya se
-        // cobro una parte (Administracion, 31-ago-2026 — antes ensenaba el
-        // monto completo del hito aunque ya llevara pago, y no cuadraba con
-        // la tarjeta "Pendiente" de al lado, que si resta lo cobrado)
-        var pagadoAcum = hs.reduce(function(s,y){ return s + (y.estado === 'pagado' && !isNaN(y.monto) ? y.monto : 0); }, 0);
-        var restante = isNaN(h.monto) ? NaN : Math.max(0, h.monto - Math.max(0, (Number(x.cobrado)||0) - pagadoAcum));
-        proximo = { hito:h.hito, monto:restante, moneda:x.moneda, contrato:x.numero, contratoId:x.id, proyecto:x.proyecto, parcela:x.parcela };
-      }
+      proximo = proximoDe(x, estadosHitos(x.hitos, Number(x.cobrado)||0, precio));
     });
 
     /* Inicio = la dirección A del artifact «Inicio del portal Lawang», igual que se aprobó (7-oct-2026, owner: «igual que
@@ -1624,16 +1816,6 @@
     var novedades = todas.filter(function(x){ return x.tipo !== 'kyc'; }).slice(0,3);
     var contratoPorId = {};
     (d.contratos || []).forEach(function(x){ contratoPorId[x.id] = x; });
-    /* Avisos en rojo con cuenta atrás (owner, 7-oct-2026, opción A del artifact «Avisos del Inicio Lawang»):
-       el «!» y la pastilla de días hacen que la urgencia no dependa solo del color. Días de calendario, no de 24 h. */
-    function cuentaAtras(f){
-      if (!f) return '';
-      var hoy = new Date(); hoy.setHours(0,0,0,0);
-      var dia = new Date(f); if (isNaN(dia)) return ''; dia.setHours(0,0,0,0);
-      var n = Math.round((dia - hoy) / 86400000);
-      if (n < 0) return '';
-      return '<span class="ini-tarea-cuenta">' + esc(n === 0 ? t('caduca_hoy') : n === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', n)) + '</span>';
-    }
     var icoTarea = '<span class="ini-tarea-pt" aria-hidden="true">!</span>';
     var tareas = [];
     (d.firma_pendiente || []).forEach(function(fp){
@@ -1801,110 +1983,255 @@
   }
   function entregaTxt(f){ return f.entrega ? esc(t('entrega_proyecto')) + ': ' + esc(fecha(f.entrega)) : ''; }
 
-  /* ── Línea de tiempo de una operación: pagos y obra en una sola línea ──
-     Es presentación pura: los pasos salen de los hitos ya repartidos (estadosHitos)
-     y de las fases de obra de la unidad de ESE contrato (mismo contrato_numero).
-     Sin datos de obra, solo pagos. El navegador no decide nada: solo ordena lo que
-     la RPC ya dijo. */
-  function lineaTiempo(x, hs){
-    var d = DATOS, fases = d.fases || [];
-    var u = (d.obra || []).filter(function(o){ return o.contrato_numero === x.numero; })[0];
-    var pasos = [], marcado = false;
-    hs.forEach(function(y){
-      var est = y.estado === 'pagado' ? 'hecho' : 'espera';
-      if (est !== 'hecho' && !marcado){ est = 'actual'; marcado = true; }
-      pasos.push({ g:'pagos', txt:Lx(y.hito) || '—', sub:(isNaN(y.monto) ? '' : dinero(y.monto, x.moneda)), est:est });
-    });
-    if (u && fases.length){
-      var idx = fases.map(function(f){ return f.clave; }).indexOf(u.fase);
-      fases.forEach(function(f, i){
-        pasos.push({ g:'obra', txt:Lx(f), sub:'', est: i < idx ? 'hecho' : (i === idx ? 'actual' : 'espera') });
-      });
-    }
-    if (pasos.length < 2) return '';
-    var grupo = '';
-    return '<ol class="tl" aria-label="' + esc(t('plan_pagos')) + '">' + pasos.map(function(p){
-      var cab = '';
-      if (p.g !== grupo){ grupo = p.g; cab = '<li class="tl-grupo" aria-hidden="true">' + esc(t(p.g === 'pagos' ? 'tl_pagos' : 'tl_obra')) + '</li>'; }
-      return cab + '<li class="tl-paso ' + p.est + '"><span class="tl-punto"></span><span class="tl-txt">' + esc(p.txt) + '</span>' +
-        (p.sub ? '<span class="tl-sub">' + esc(p.sub) + '</span>' : '') + '</li>';
-    }).join('') + '</ol>';
-  }
+  /* ── Contratos ──────────────────────────────────────────────────────
+     Diseño aprobado: artifact «Lawang · Contratos (propuesta)», 7-oct-2026. Hereda TODO lo que hacía la pantalla
+     anterior (Regla 0 bis de contexto/suite_lawang.md): ver el PDF firmado, ver el borrador y firmar, preguntar por
+     el contrato, la Carta sustituida sin barra ni calendario, la cuota de una Carta suelta, el estado de cada hito
+     (pagado, parcial, pendiente) y la ruta #/contratos/<numero>. Lo nuevo es la forma: por villa, la firma pendiente
+     arriba, el próximo pago de cada contrato con su factura y la obra de su unidad.
+     Aquí no se inventa ninguna cifra ni fecha: las cuentas salen de resumen.js y de estadosHitos, la factura de
+     facturaDelHito y la fecha de firma NO se enseña (`fecha_firma` se rellena al crear el contrato y el alta de
+     histórico la dejó con el día de carga; firmado = `bloqueado`, suite_lawang.md). */
+  var ICO_DOC = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path><path d="M9 13h6M9 17h4"></path></svg>';
+  var ICO_RELOJ = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
+  var ICO_FLECHA = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h12"></path><path d="M12 6l6 6-6 6"></path></svg>';
+  var ICO_OJO = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+  var ICO_OK = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
 
-  /* ── Contratos ────────────────────────────────────────────────────── */
+  /* Nombre visible del tipo de contrato. En español, el de la suite (`lwTipoContrato`, vocabulario.js: una sola
+     lista); en inglés e indonesio, el del diccionario del portal si lo tiene — la suite solo traduce al inglés y
+     el portal habla tres idiomas. Si no lo tiene, cae al español de la suite, nunca a una clave cruda inventada. */
+  function tipoContrato(tipo){
+    var k = 'tipo_' + tipo;
+    var v = LANG !== 'es' && ((T[LANG] && T[LANG][k]) || (LANG === 'id' && T.en[k]));
+    return v || ((typeof lwTipoContrato === 'function') ? lwTipoContrato(tipo) : (tipo || '—'));
+  }
+  function plural(n, k1, kn){ return n === 1 ? t(k1) : t(kn).replace('{n}', n); }
+
   function pintaContratos(c){
     var d = DATOS;
-    if (!(d.contratos||[]).length){ c.innerHTML = vacio(t('sin_contratos_t'), t('sin_contratos')); return; }
+    var todos = d.contratos || [];
+    if (!todos.length){
+      c.innerHTML = '<div class="tabla-caja"><div class="vacio"><b>' + esc(t('sin_contratos_t')) + '</b>' + esc(t('sin_contratos')) +
+        '<div class="ct-vacio-acc"><button type="button" class="btn-oscuro" data-ir="soporte">' + esc(t('escribir_equipo')) + '</button></div></div></div>';
+      c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+      return;
+    }
     var firmaPend = {};
-    (d.firma_pendiente||[]).forEach(function(f){ firmaPend[f.contrato_id] = f; });
-    c.innerHTML = d.contratos.map(function(x){
-      var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
+    (d.firma_pendiente || []).forEach(function(f){ firmaPend[f.contrato_id] = f; });
+    var proyPorId = {};
+    (d.proyectos || []).forEach(function(p){ proyPorId[p.id] = p; });
+    var fases = (d.fases || []).slice().sort(function(a, b){ return (a.orden || 0) - (b.orden || 0); });
+    function obraDe(numeros){ return (d.obra || []).filter(function(o){ return numeros.indexOf(o.contrato_numero) !== -1; })[0] || null; }
+    function idxFase(o){ return o ? fases.map(function(f){ return f.clave; }).indexOf(o.fase) : -1; }
+
+    var villas = villasPortal(todos);
+    if (ESTADO.villa && !villas.some(function(v){ return v.key === ESTADO.villa; })) ESTADO.villa = null;
+    var nFirmados = todos.filter(function(x){ return x.firmado; }).length;
+
+    /* La firma pendiente va arriba, una por cada enlace vivo: es lo único de esta pantalla que caduca. */
+    var porId = {};
+    todos.forEach(function(x){ porId[x.id] = x; });
+    var firmasHTML = (d.firma_pendiente || []).map(function(fp, i){
+      var k = porId[fp.contrato_id] || {};
+      var n = diasHasta(fp.expira_en);
+      var precio = precioContrato(k);
+      var meta = [k.numero ? esc(k.numero) : '', k.parcela ? esc(t('unidad')) + ' ' + esc(k.parcela) : '',
+                  (precio != null && !isNaN(precio)) ? esc(dinero(precio, k.moneda)) : '',
+                  fp.enviado_en ? esc(t('ct_enviado').replace('{f}', fecha(fp.enviado_en))) : '',
+                  fp.expira_en ? esc(t('firma_caduca').replace('{f}', fecha(fp.expira_en))) : ''].filter(Boolean).join(' · ');
+      var titulo = k.proyecto ? t('ct_firma_titulo').replace('{t}', tipoContrato(k.tipo)).replace('{p}', k.proyecto)
+                              : t('ct_firma_titulo_n').replace('{n}', k.numero || '');
+      return '<section class="ct-firma" aria-labelledby="ct-firma-' + i + '">' +
+        (n != null ? '<div class="ct-firma-dias"><b>' + n + '</b><span>' + esc(n === 0 ? t('caduca_hoy') : n === 1 ? t('ct_dia_firmar') : t('ct_dias_firmar')) + '</span></div>' : '') +
+        '<div class="ct-firma-tx"><span class="ct-etq firma">' + esc(t('pendiente_firma')) + '</span>' +
+          '<h2 id="ct-firma-' + i + '">' + esc(titulo) + '</h2>' + (meta ? '<p>' + meta + '</p>' : '') + '</div>' +
+        '<div class="ct-firma-acc">' +
+          (fp.enlace ? '<button type="button" class="btn-borde ct-borrador" data-borrador="' + esc(fp.enlace) + '">' + ICO_OJO + esc(t('ver_borrador')) + '</button>' +
+            '<a class="btn-oscuro ct-firmar" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' : '') +
+        '</div></section>';
+    }).join('');
+
+    var filtroHTML = villas.length > 1
+      ? '<div class="ct-filtro" role="group" aria-label="' + esc(t('ct_filtrar')) + '">' +
+          [{ key:'', txt:t('ct_todas') }].concat(villas.map(function(v){ return { key:v.key, txt:[v.proyecto || '—', v.parcela].filter(Boolean).join(' · ') }; }))
+            .map(function(p){
+              var on = (ESTADO.villa || '') === p.key;
+              return '<button type="button" class="ct-pill" data-villa="' + esc(p.key) + '" aria-pressed="' + on + '">' + esc(p.txt) + '</button>';
+            }).join('') + '</div>'
+      : '';
+
+    function tarjeta(x){
+      var fp = firmaPend[x.id];
+      var precio = precioContrato(x);
       var cobrado = Number(x.cobrado) || 0;
       var cuota = cuotaReserva(x);
       var esPrelim = (typeof lwEsPreliminar === 'function') && lwEsPreliminar(x.tipo);
+      var sustituido = estaSustituido(x, todos);
       // Contra qué se mide el avance: `baseAvance` en resumen.js, probado.
       var base = baseAvance(x);
-      var pct = (base > 0) ? Math.min(100, Math.round(cobrado/base*100)) : null;
-      var hs = estadosHitos(x.hitos, cobrado, base);
-      // "Pendiente de firma" en naranja (1-sep-2026, pedido del cliente: "es
-      // algo grave, dale urgencia") — antes compartía el mismo gris neutro
-      // que cualquier otro estado sin marcar, y no destacaba entre el resto
-      // de la ficha.
-      var tagBg = x.firmado ? 'rgba(63,82,48,.12)' : 'rgba(184,99,29,.14)';
+      var pct = (base > 0) ? Math.min(100, Math.floor(cobrado / base * 100)) : null;   // floor: nunca «100 %» si queda algo
+      /* Los hitos se reparten contra el PRECIO, igual que en Inicio: un hito por porcentaje es «% del precio
+         acordado» (descHito), y así el próximo pago dice la misma cifra en las dos pantallas. La barra sí se mide
+         contra `base` (la cuota, en una Carta suelta). */
+      var hs = estadosHitos(x.hitos, cobrado, precio);
+      var prox = (x.firmado && !sustituido) ? proximoDe(x, hs) : null;
+      var pagado = base > 0 && cobrado >= base;
+      // «Pendiente de firma» en naranja (1-sep-2026, pedido del cliente: «es algo grave, dale urgencia»).
+      var tagBg = x.firmado ? 'rgba(63,82,48,.12)' : 'rgba(184,99,29,.16)';
       var tagColor = x.firmado ? 'var(--ok)' : '#8F4A12';
-      var fp = firmaPend[x.id];
-      /* Una Carta de Reserva ya relevada por su Bloqueo y su Construcción sigue
-         viéndose entera —es un documento suyo, firmado, con su PDF— pero su
-         barra de avance mentiría: ese importe no es un cargo aparte, lo reparten
-         los contratos definitivos. Se cambia la barra por una frase que lo dice
-         (14-sep-2026: hasta hoy el mismo dinero salía reclamado en tres
-         tarjetas). */
-      var sustituido = estaSustituido(x, d.contratos);
-      return '<div class="op"><div class="op-cab">' +
-        '<div class="info"><h3><b>' + esc(x.numero) + '</b><span class="sub">' + esc(x.proyecto||'') +
-          (x.parcela ? ' · ' + esc(t('unidad')) + ' ' + esc(x.parcela) : '') + '</span>' +
-          '<span class="tag" style="background:' + tagBg + ';color:' + tagColor + '">' + esc(x.firmado?t('firmado'):t('pendiente_firma')) + '</span></h3>' +
-          '<div class="op-datos">' +
-            '<div class="d"><div class="lbl">' + esc(t('precio')) + '</div><div class="val">' + (precio ? esc(dinero(precio,x.moneda)) : esc(x.precio_txt||'—')) + '</div></div>' +
-            /* En una Carta todavía sin contrato definitivo, lo exigible hoy es la
-               CUOTA, no el precio de la villa (5 días hábiles desde la firma, con
-               retención si el reservante desiste). Se enseña al lado del precio
-               para que la cifra del resumen de Inicio se pueda cuadrar con este
-               documento en vez de parecer que falta dinero. */
-            (!sustituido && esPrelim && cuota != null && cuota !== precio
-              ? '<div class="d"><div class="lbl">' + esc(t('cuota_reserva')) + '</div><div class="val">' + esc(dinero(cuota,x.moneda)) + '</div></div>' : '') +
-            '<div class="d"><div class="lbl">' + esc(t('cobrado')) + '</div><div class="val">' + esc(dinero(cobrado,x.moneda)) + '</div></div>' +
-          '</div></div></div>' +
-        (sustituido
-          ? '<p class="op-nota">' + esc(t('nota_carta_sustituida')) + '</p>'
-          : (base > 0 ? '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
-          '<div class="barra-leg"><span>' + pct + '% ' + esc(t('de')) + ' ' + esc(dinero(base,x.moneda)) + '</span>' +
-          '<span>' + esc(dinero(Math.max(0,base-cobrado),x.moneda)) + ' ' + esc(t('pendiente')).toLowerCase() + '</span></div>' : '')) +
-        (!sustituido ? lineaTiempo(x, hs) : '') +
-        // Los hitos de una Carta sustituida son los mismos que ya trae su Bloqueo:
-        // enseñarlos aquí reclamaría dos veces el mismo calendario de pagos.
-        (hs.length && !sustituido ? '<table class="docs"><thead><tr><th>' + esc(t('concepto')) + '</th><th>' + esc(t('cuando')) + '</th>' +
+      var sub = !x.firmado
+        ? (fp ? [fp.enviado_en ? t('ct_enviado').replace('{f}', fecha(fp.enviado_en)) : '', fp.expira_en ? t('firma_caduca').replace('{f}', fecha(fp.expira_en)) : ''].filter(Boolean).join(' · ') : '')
+        : (!sustituido && pagado ? t('ct_pagado_todo') : '');
+      sub = sub ? sub.charAt(0).toUpperCase() + sub.slice(1) : '';
+      /* Una Carta todavía sin contrato definitivo: lo exigible hoy es la CUOTA, no el precio de la villa. Se enseñan
+         las dos, con la cuota marcada, para que la cifra cuadre con Inicio en vez de parecer que falta dinero. */
+      var soloCuota = !sustituido && esPrelim && cuota != null && cuota !== precio;
+
+      var cab = '<div class="ct-card-cab"><span class="ct-ico">' + ICO_DOC + '</span>' +
+        '<div class="ct-card-tit"><div class="ct-card-fila"><h3>' + esc(tipoContrato(x.tipo)) + '</h3><span class="ct-num">' + esc(x.numero) + '</span>' +
+          '<span class="tag" style="background:' + tagBg + ';color:' + tagColor + '">' + esc(x.firmado ? t('firmado') : t('pendiente_firma')) + '</span></div>' +
+          (sub ? '<div class="ct-card-sub">' + esc(sub) + '</div>' : '') + '</div>' +
+        (!sustituido && !soloCuota && base > 0
+          ? '<div class="ct-card-cifra"><div class="ct-cifra"><b>' + esc(dinero(cobrado, x.moneda)) + '</b><span>' + esc(t('de')) + ' ' + esc(dinero(base, x.moneda)) + '</span></div>' +
+              '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
+              '<div class="ct-pie">' + (pagado ? esc(t('ct_pagado_todo')) : esc(dinero(Math.max(0, base - cobrado), x.moneda)) + ' ' + esc(t('pendiente')).toLowerCase()) + '</div></div>'
+          : '') + '</div>';
+
+      var cuerpo = '';
+      /* Precio y pagado se ven SIEMPRE, como en la tarjeta anterior (Regla 0 bis): en una Carta sustituida o un
+         contrato sin precio legible no hay barra, pero lo que el cliente pagó con él no puede desaparecer de esta
+         pantalla mientras Inicio lo sigue sumando (revisor, 7-oct-2026). */
+      if (sustituido || (!soloCuota && !(base > 0))){
+        cuerpo += '<div class="ct-mini dos">' +
+          '<div><div class="ct-lbl">' + esc(t('precio')) + '</div><b>' + (precio != null && !isNaN(precio) ? esc(dinero(precio, x.moneda)) : esc(x.precio_txt || '—')) + '</b></div>' +
+          '<div><div class="ct-lbl">' + esc(t('cobrado')) + '</div><b>' + esc(dinero(cobrado, x.moneda)) + '</b></div></div>';
+      }
+      if (sustituido){
+        /* Sin barra ni calendario: el mismo dinero ya lo reparten sus contratos definitivos (14-sep-2026: hasta
+           entonces el mismo pago salía reclamado en tres tarjetas). Enlaza a los que la recogen, si comparten unidad. */
+        var sust = sustitutosDe(x, todos);
+        cuerpo += '<div class="ct-nota">' + ICO_FLECHA + '<p>' + esc(t('nota_carta_sustituida')) + '</p></div>' +
+          (sust.length ? '<div class="ct-enlaces">' + sust.map(function(y){
+            return '<button type="button" class="ct-enlace" data-ir-ct="' + esc(y.id) + '">' + esc(y.numero) + ' · ' + esc(tipoContrato(y.tipo)) + '</button>';
+          }).join('') + '</div>' : '');
+      } else if (soloCuota){
+        cuerpo += '<div class="ct-mini">' +
+            '<div><div class="ct-lbl">' + esc(t('ct_precio_villa')) + '</div><b>' + (precio != null ? esc(dinero(precio, x.moneda)) : esc(x.precio_txt || '—')) + '</b></div>' +
+            '<div class="clave"><div class="ct-lbl">' + esc(t('cuota_reserva')) + '</div><b>' + esc(dinero(cuota, x.moneda)) + '</b></div>' +
+            '<div><div class="ct-lbl">' + esc(t('cobrado')) + '</div><b>' + esc(dinero(cobrado, x.moneda)) + '</b></div></div>' +
+          (base > 0 ? '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
+            '<div class="ct-leyenda"><span>' + esc(t('ct_pct_cuota').replace('{n}', pct)) + '</span><span>' + esc(dinero(Math.max(0, base - cobrado), x.moneda)) + ' ' + esc(t('pendiente')).toLowerCase() + '</span></div>' : '') +
+          '<p class="ct-texto">' + esc(t('nota_solo_reserva')) + '</p>';
+      }
+
+      if (!sustituido && hs.length){
+        // El paso «actual» (y su pulso, motion.js) es el próximo pago; sin firmar no hay ninguno: no corre el calendario.
+        cuerpo += '<div class="ct-plan-bloque"><div class="ct-lbl">' + esc(t('plan_pagos')) + '</div>' +
+          '<ol class="ct-plan" aria-label="' + esc(t('plan_pagos')) + '">' + hs.map(function(y, i){
+            var actual = prox && prox.idx === i;
+            var est = actual ? 'actual' : (y.estado === 'pagado' ? 'hecho' : (y.estado === 'parcial' ? 'parcial' : 'espera'));
+            return '<li class="tl-paso ' + est + '"><span class="ct-punto">' + (y.estado === 'pagado' ? ICO_OK : '') + '</span>' +
+              (actual ? '<span class="ct-prox">' + esc(t('proximo_pago')) + '</span>' : '') +
+              '<span class="ct-h">' + esc(Lx(y.hito) || '—') + '</span>' +
+              '<span class="ct-m">' + (isNaN(y.monto) ? '—' : esc(dinero(y.monto, x.moneda))) + '</span>' +
+              '<span class="ct-t">' + esc(y.hito.timing || '') + (y.estado === 'parcial' ? ' · ' + esc(t('parcial')).toLowerCase() : '') + '</span></li>';
+          }).join('') + '</ol></div>';
+      }
+
+      if (prox){
+        /* La factura del hito, por su línea (facturaDelHito: la misma regla que la intranet). Sin ella, el plazo del
+           contrato: nunca se adivina una factura ni una fecha. */
+        var fac = (typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, x, prox.hito, x.moneda) : null;
+        var vence = fac && fac.fields && fac.fields.fecha_vencimiento;
+        var vencida = vence && new Date(vence).setHours(23,59,59,999) < Date.now();
+        var txt = t('ct_prox').replace('{h}', Lx(prox.hito) || '—').replace('{m}', isNaN(prox.monto) ? '—' : dinero(prox.monto, x.moneda)) + ' ' +
+          (vence ? t(vencida ? 'ct_prox_vencio' : 'ct_prox_vence').replace('{f}', fecha(vence))
+                 : (prox.hito.timing ? t('ct_prox_plazo').replace('{p}', prox.hito.timing) : ''));
+        cuerpo += '<div class="ct-prox-caja' + (vencida ? ' vencida' : '') + '">' + ICO_RELOJ + '<span>' + esc(txt.trim()) + '</span>' +
+          (fac ? '<button type="button" class="ini-link" data-ir-fac="' + esc(fac.numero) + '">' + esc(t('ver_factura_n').replace('{n}', fac.numero)) + '</button>' : '') + '</div>';
+      }
+      if (!x.firmado && !sustituido && hs.length) cuerpo += '<p class="ct-texto firma">' + esc(t('ct_firma_cal')) + '</p>';
+
+      // La obra de la unidad de ESTE contrato (mismo contrato_numero), como hasta ahora.
+      var o = obraDe([x.numero]), io = idxFase(o);
+      if (o && fases.length && io !== -1){
+        cuerpo += '<div class="ct-obra"><div class="ct-obra-cab"><span class="ct-lbl">' + esc(t('ct_obra_villa')) + '</span>' +
+            (o.actualizado ? '<span>' + esc(t('actualizado')) + ': ' + esc(fecha(o.actualizado)) + '</span>' : '') + '</div>' +
+          '<ol class="ct-fases" style="grid-template-columns:repeat(' + fases.length + ',minmax(0,1fr))" aria-label="' + esc(t('ct_obra_villa')) + '">' + fases.map(function(f, i){
+            var est = i < io ? 'hecho' : (i === io ? 'actual' : 'espera');
+            return '<li class="' + est + '"' + (i === io ? ' aria-current="step"' : '') + '><i></i><span>' + esc(Lx(f)) + '</span></li>';
+          }).join('') + '</ol></div>';
+      }
+
+      // El detalle de pagos sigue entero (con «parcial»), plegado: el calendario de arriba ya cuenta lo principal.
+      if (hs.length && !sustituido){
+        cuerpo += '<details class="ct-detalle"><summary><span class="abre">' + esc(t('ct_ver_detalle')) + '</span><span class="cierra">' + esc(t('ct_ocultar_detalle')) + '</span></summary>' +
+          '<table class="docs"><thead><tr><th>' + esc(t('concepto')) + '</th><th>' + esc(t('cuando')) + '</th>' +
           '<th class="num">' + esc(t('importe')) + '</th><th>' + esc(t('estado')) + '</th></tr></thead><tbody>' +
           hs.map(function(y){
-            var descr = Lx(y.hito);
             var col = TAGCOLOR[y.estado];
-            return '<tr><td data-l="' + esc(t('concepto')) + '">' + esc(descr||'—') + '</td><td class="flojo" data-l="' + esc(t('cuando')) + '">' + esc(y.hito.timing||'') + '</td>' +
-              '<td class="num" data-l="' + esc(t('importe')) + '">' + (isNaN(y.monto)?'—':esc(dinero(y.monto,x.moneda))) + '</td>' +
+            return '<tr><td data-l="' + esc(t('concepto')) + '">' + esc(Lx(y.hito) || '—') + '</td><td class="flojo" data-l="' + esc(t('cuando')) + '">' + esc(y.hito.timing || '') + '</td>' +
+              '<td class="num" data-l="' + esc(t('importe')) + '">' + (isNaN(y.monto) ? '—' : esc(dinero(y.monto, x.moneda))) + '</td>' +
               '<td data-l="' + esc(t('estado')) + '"><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(t(y.estado)) + '</span></td></tr>';
-          }).join('') + '</tbody></table>' : '') +
-        '<div class="op-pie" style="display:flex;gap:10px;flex-wrap:wrap">' +
-          (x.pdf ? '<button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button>' : '') +
-          '<button type="button" class="btn-borde" data-pregunta-contrato="' + esc(x.id) + '">' + esc(t('preguntar_contrato')) + '</button></div>' +
-        (fp ? '<div class="op-pie" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
-          '<span style="font-size:12px;color:#8a8570">' + esc(t('firma_pendiente_desc') + ' ' + fecha(fp.enviado_en) + ' · ' + t('firma_pendiente_caduca') + ' ' + fecha(fp.expira_en)) + '</span>' +
-          '<button type="button" class="btn-borde" data-borrador="' + esc(fp.enlace) + '">' + esc(t('ver_borrador')) + '</button>' +
-          '<a class="btn-oscuro" style="text-decoration:none;display:inline-block" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' +
-        '</div>' : '') +
-      '</div>';
+          }).join('') + '</tbody></table></details>';
+      }
+
+      var acciones = '<div class="ct-acciones">' +
+        (x.pdf ? '<button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button>' : '') +
+        (fp && fp.enlace ? '<button type="button" class="btn-borde ct-borrador" data-borrador="' + esc(fp.enlace) + '">' + ICO_OJO + esc(t('ver_borrador')) + '</button>' +
+          '<a class="btn-oscuro ct-firmar" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' : '') +
+        '<button type="button" class="btn-borde" data-pregunta-contrato="' + esc(x.id) + '">' + esc(t('preguntar_contrato')) + '</button></div>';
+
+      return '<section class="ct-card' + (!x.firmado ? ' pend' : '') + (sustituido ? ' sust' : '') + '" id="ct-' + esc(x.id) + '">' + cab + cuerpo + acciones + '</section>';
+    }
+
+    var villasHTML = villas.filter(function(v){ return !ESTADO.villa || v.key === ESTADO.villa; }).map(function(v){
+      var p = proyPorId[v.proyecto_id] || {};
+      var nums = v.contratos.map(function(x){ return x.numero; });
+      var o = obraDe(nums), io = idxFase(o);
+      var nPend = v.contratos.filter(function(x){ return !x.firmado; }).length;
+      var rs = resumenPortal(v.contratos);
+      var hayCifra = !v.soloSustituidos && rs.total != null && rs.total > 0;
+      var pct = hayCifra ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : 0;
+      var pagada = hayCifra && !rs.soloReserva && rs.cobrado >= rs.total;   // con solo la Carta, el total es la cuota
+      var chips = (p.entrega ? '<span class="ct-chip">' + entregaTxt(p) + '</span>' : '') +
+        (o && io !== -1 ? '<span class="ct-chip obra">' + esc(t('ct_obra_chip').replace('{f}', Lx(fases[io])).replace('{i}', io + 1).replace('{n}', fases.length)) + '</span>' : '') +
+        '<span class="ct-chip' + (nPend ? ' firma' : '') + '">' + esc(plural(v.contratos.length, 'ct_n_1', 'ct_n_n') + (nPend ? ' · ' + t('ct_por_firmar').replace('{n}', nPend) : '')) + '</span>';
+      return '<article class="ct-villa"><div class="ct-villa-cab' + (v.parcela ? '' : ' sin-unidad') + (hayCifra ? '' : ' sin-cifra') + '">' +
+          (v.parcela ? '<div class="ct-tile"><span>' + esc(t('unidad')) + '</span><b>' + esc(v.parcela) + '</b></div>' : '') +
+          '<div class="ct-villa-info">' + (p.resort ? '<div class="ct-sobre">' + esc(p.resort) + '</div>' : '') +
+            '<h2>' + esc(p.nombre || v.proyecto || '—') + '</h2><div class="ct-chips">' + chips + '</div></div>' +
+          (hayCifra ? '<div class="ct-villa-pag"><div class="ct-lbl">' + esc(t(rs.soloReserva ? 'ct_pagado_cuota' : 'ct_pagado_villa')) + '</div>' +
+              '<div class="ct-cifra"><b>' + esc(dinero(rs.cobrado, rs.moneda)) + '</b><span>' + esc(t('de')) + ' ' + esc(dinero(rs.total, rs.moneda)) + '</span></div>' +
+              '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
+              '<div class="ct-pie">' + esc(pagada ? t('ct_pagado_todo') : t('ct_pct_pagado').replace('{n}', pct)) + '</div></div>' : '') +
+        '</div>' + v.contratos.map(tarjeta).join('') + '</article>';
     }).join('');
+
+    c.innerHTML =
+      '<p class="ct-resumen">' + esc([plural(villas.length, 'ct_v_1', 'ct_v_n'), plural(todos.length, 'ct_n_1', 'ct_n_n'), plural(nFirmados, 'ct_f_1', 'ct_f_n')].join(' · ')) + '</p>' +
+      firmasHTML + filtroHTML + villasHTML +
+      '<p class="ct-pie-pagina">' + esc(t('ct_no_cuadra')) + ' <button type="button" class="ini-link" data-ir="soporte">' + esc(t('ct_escribenos')) + '</button></p>';
+
     c.querySelectorAll('[data-contrato]').forEach(function(b){ b.addEventListener('click', function(){ vasA('contratos', b.getAttribute('data-contrato')); }); });
     c.querySelectorAll('[data-borrador]').forEach(function(b){ b.addEventListener('click', function(){ abreBorrador(b.getAttribute('data-borrador')); }); });
     c.querySelectorAll('[data-pregunta-contrato]').forEach(function(b){ b.addEventListener('click', function(){ abrirNuevoTicket({ tipo:'contrato', id:b.getAttribute('data-pregunta-contrato') }); }); });
+    c.querySelectorAll('[data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
+    c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+    c.querySelectorAll('[data-ir-ct]').forEach(function(b){ b.addEventListener('click', function(){
+      var el = document.getElementById('ct-' + b.getAttribute('data-ir-ct'));
+      if (el){ el.setAttribute('tabindex', '-1'); el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start' }); el.focus({ preventScroll:true }); }
+    }); });
+    /* El filtro solo repinta esta pantalla (la ruta no cambia: el hueco del hash es del PDF) y devuelve el foco al
+       botón pulsado, que el repintado ha sustituido. Vive en ESTADO para que un cambio de idioma no lo pierda. */
+    c.querySelectorAll('[data-villa]').forEach(function(b){ b.addEventListener('click', function(){
+      var k = b.getAttribute('data-villa') || null;
+      ESTADO.villa = k;
+      pintaContratos(c);
+      var nuevo = c.querySelector('[data-villa="' + (window.CSS && CSS.escape ? CSS.escape(k || '') : (k || '')) + '"]');
+      if (nuevo) nuevo.focus();
+    }); });
   }
 
   /* ── Facturas ─────────────────────────────────────────────────────── */

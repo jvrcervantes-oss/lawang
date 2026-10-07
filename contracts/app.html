@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="6b72a56c07e3">
+<meta name="lw-version" content="52c26b72f166">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=13ce852c"></script>
+<script src="/contracts/assets/i18n.js?v=2a043047"></script>
 <script src="/contracts/assets/herramientas.js?v=e627e560"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -88,7 +88,7 @@
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d86e607e"></script>
-<script src="assets/hitos_fechas.js?v=2eb6d789"></script>
+<script src="assets/hitos_fechas.js?v=b3debfd2"></script>
 <script src="assets/entidades_pago.js?v=9237aa1c"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -112,7 +112,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=1a655900"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=19fa85d7"></script>
 <script src="/intranet/v4/assets/nav.js?v=646b2ce6" defer></script>
 </head>
 <body>
@@ -1607,7 +1607,9 @@ async function buscarClientes(q, res, onPick, input){
     const elegido=res._data[+el.dataset.ci];
     // la ficha completa, solo de la elegida (ver el select de arriba)
     const { data: c, error: eF } = await sb.rpc('comprador_ficha', { p_id: elegido.id }).maybeSingle();
-    if(eF || !c){ toastMal(lwT('No se pudo leer la ficha del comprador: ') + (eF ? eF.message : '')); return; }
+    if(eF){ toastMal(lwT('No se pudo leer la ficha del comprador: ') + eF.message); return; }
+    /* Sin error y sin fila: el directorio lista a todo el equipo (7-oct-2026) pero la ficha ENTERA (pasaporte, direccion) solo la da la base a quien ve sus contratos. */
+    if(!c){ toastMal(lwT('Esa ficha es de otra empresa o de otro comercial: no puedes usarla en un contrato desde tu cuenta. Pídele a un administrador que lo haga.')); return; }
     onPick({ nombre:c.full_name||'', nacionalidad:c.nationality||'', pasaporte:c.passport_number||'',
       telefono:c.phone||'', email:c.email||'' }, c);
     if(input) input.value='';
@@ -4312,6 +4314,9 @@ let CAN_EDIT_TEXT = false;                    // rol admin (ver init()) — inde
    comprueba `es_super_admin()` por su cuenta — si esto se quedara a true por un
    fallo, la base seguiría diciendo que no. */
 let ES_SUPER = false;
+/* Tope del descuento comercial en %: super_admin sin tope (29-sep-2026), admin 50 % (7-oct-2026, owner), el resto 15 %.
+   Solo decide qué se avisa en pantalla; el trigger de la base repite la regla con el rol real. */
+const topeDescuentoPct = () => ES_SUPER ? Infinity : (MI_ROL === 'admin' ? 50 : 15);
 let SALTO_FICHA = false;   // el super admin decidió guardar sin ficha: se registra tras guardar
 
 /* El cierre de los menús ⋯ (barra superior y barra de preview) lo lleva
@@ -4395,8 +4400,8 @@ function updateSaveButton(){
       el.readOnly = !abreDescuento;
       el.classList.toggle('dato-fijo', !abreDescuento);
       el.title = abreDescuento
-        ? (esBloqueo ? 'Descuento comercial sobre el precio del suelo' + (ES_SUPER ? '' : ' — máx. 15%') + '. Necesita motivo.'
-                     : 'Descuento comercial sobre el precio de techo+extras' + (ES_SUPER ? '' : ' — máx. 15%') + '. Necesita motivo.')
+        ? (esBloqueo ? 'Descuento comercial sobre el precio del suelo' + (ES_SUPER ? '' : ' — máx. ' + topeDescuentoPct() + '%') + '. Necesita motivo.'
+                     : 'Descuento comercial sobre el precio de techo+extras' + (ES_SUPER ? '' : ' — máx. ' + topeDescuentoPct() + '%') + '. Necesita motivo.')
         : 'Solo lo cambian dirección y los sales managers.';
     });
   }
@@ -4419,6 +4424,17 @@ function updateSaveButton(){
       }
       caja.style.display = abre ? '' : 'none';
       if(sel) sel.disabled = !abre;
+      /* Los tres campos del poder de venta y la finca solo existen para REV04
+         (owner, 7-oct-2026: «el estándar es el que debe salir siempre»). Con el
+         estándar o REV03 se esconden —misma clase que los de empresa— y no se
+         vacían: el texto del contrato ya los ignora y así no se pierde lo
+         tecleado si se cambia de opinión. Se mira el valor, no el rol: una copia
+         REV04 guardada los enseña aunque quien la abre no pueda cambiar el selector. */
+      const esRev04 = !!(sel && sel.value === 'rev04');
+      CAMPOS_REV04.forEach(k => {
+        const c = document.querySelector(`.field[data-key="${k}"]`);
+        if(c) c.classList.toggle('sin-ficha', !esRev04);
+      });
     }
   }
   // Hitos de fábrica del Contrato de Construcción (16-sep-2026): mismo
@@ -4801,15 +4817,8 @@ async function guardarContrato(){
      que puede estar mal. Un calendario enteramente sin % (Σ=0) se sigue
      guardando igual que siempre — no es que "esté bien", es que la norma no
      aplica a un calendario que nunca quiso ser un reparto porcentual. */
-  if(SECTIONS.some(s => s.special === 'hitos') && HITOS.length && typeof hitoTraduccionPendiente === 'function'){
-    const pend = hitoTraduccionPendiente();
-    if(pend >= 0){
-      avisoNoGuardado(lwT('Cambiaste el concepto en español del hito') + ' ' + (pend + 1) + ': ' + lwT('revisa su inglés y su indonesio antes de guardar (entra en cada campo y corrígelo si hace falta).'));
-      hitoAbreEnId(pend);
-      const el = document.getElementById(hid(pend,'id')); if(el) el.focus();
-      return;
-    }
-  }
+  /* Concepto de un hito cambiado en español: ya no frena el guardado (owner, 7-oct-2026: «quitar el bloqueo y dejar solo el aviso»).
+     El aviso lo da hitoCambioConcepto() al editar; el guardado sigue libre. */
   if(SECTIONS.some(s => s.special === 'hitos') && HITOS.length){
     const haySuma = HITOS.some(h => parseFloat(h.pct) > 0);
     const suma = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0), 0);
@@ -4896,8 +4905,8 @@ async function guardarContrato(){
       return;
     }
     // Super admin sin tope (29-sep-2026, owner); el trigger repite la regla.
-    if(!ES_SUPER && base > 0 && dc > base * 0.15){
-      avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio de techo + extras.'));
+    if(base > 0 && dc > base * topeDescuentoPct() / 100){
+      avisoNoGuardado(lwT(topeDescuentoPct() === 50 ? 'El descuento comercial no puede superar el 50% del precio de techo + extras.' : 'El descuento comercial no puede superar el 15% del precio de techo + extras.'));
       if(elDC){ elDC.focus(); elDC.scrollIntoView({behavior:'smooth', block:'center'}); }
       return;
     }
@@ -4936,7 +4945,7 @@ async function guardarContrato(){
     if(dc < 0){ avisoNoGuardado(lwT('El descuento comercial no puede ser negativo.')); foco(elDC); return; }
     if(dc > 0 && dc >= base){ avisoNoGuardado(lwT('El descuento comercial no puede igualar ni superar el precio del suelo.')); foco(elDC); return; }
     // Super admin sin tope (29-sep-2026, owner); el trigger repite la regla.
-    if(!ES_SUPER && dc > base * 0.15){ avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio del suelo.')); foco(elDC); return; }
+    if(dc > base * topeDescuentoPct() / 100){ avisoNoGuardado(lwT(topeDescuentoPct() === 50 ? 'El descuento comercial no puede superar el 50% del precio del suelo.' : 'El descuento comercial no puede superar el 15% del precio del suelo.')); foco(elDC); return; }
     if(dc > 0 && !motivo){ avisoNoGuardado(lwT('Un descuento comercial necesita su motivo.')); foco(elDCMotivo); return; }
     if(dc > 0 && elPT && Math.abs((parseImporte(elPT.value) || 0) - (base - dc)) > 0.01){
       avisoNoGuardado(lwT('Con descuento comercial, el precio total tiene que ser el precio del suelo menos el descuento.'));
@@ -5746,6 +5755,7 @@ const CAMPOS_FICHA = [
 ];
 /* Los cuatro de arriba solo existen para una empresa: con una persona enlazada
    se esconden y se vacían. Una sola lista y no dos, por lo mismo de siempre. */
+const CAMPOS_REV04 = ['poder_titular','poder_apoderado','finca_shm_nib'];   // solo con clausulas_negociadas=rev04
 const CAMPOS_EMPRESA = ['adq1_forma_juridica','adq1_registro','adq1_rep_nombre','adq1_rep_cargo'];
 /* Lo que cambia de nombre cuando el comprador es una sociedad. El campo de
    pasaporte NO entra: su etiqueta ya dice «Nº pasaporte / identificación
@@ -7062,7 +7072,7 @@ async function init(){
       // arrancar un contrato para una ficha ajena — ver buscarClientes().
       const { data: fc } = await sb.rpc('comprador_ficha', { p_id: idCliente }).maybeSingle();
       if(fc){ enlazarFicha(fc); toast(lwT('Contrato nuevo para ') + (fc.full_name || 'el cliente elegido')); }
-      else toastMal(lwT('Esa ficha de cliente ya no existe: empieza el contrato buscándolo'));
+      else toastMal(lwT('Esa ficha ya no existe o no está a tu alcance (es de otra empresa o de otro comercial): empieza el contrato buscando a otro cliente'));
     }
     /* `?lead=` — entrada desde el CRM de leads (11-sep-2026). Va DESPUÉS de resetBorrador,
        que es quien lo pone a null: al revés se borraría justo después de asignarlo.

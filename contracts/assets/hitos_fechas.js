@@ -395,7 +395,10 @@ function hitosBodyHTML(){
 /* Repinta también las tarjetas de forma de pago (solo si cambia lo que enseñan): abrir un contrato guardado, derivarlo, guardarlo o cambiar de
    idioma cambian CALENDARIO/LOCKED y todos pasan por aquí. Sin esto las tarjetas se quedaban con la forma de
    pago del borrador por defecto (revisor de código, 28-sep). */
-function refreshHitos(){ const b=$('[data-sec="pagos"] .hitos-body'); if(b) b.innerHTML=hitosBodyHTML(); refreshFormaPago(); }
+/* Al repintar se vuelve a aplicar el rol (7-oct-2026): hitosBodyHTML() pinta los botones de admin ocultos y el aviso
+   «es cosa de administración» visible, y solo updateSaveButton() lo corrige según el rol. Sin esta llamada, tras guardar o
+   cambiar de idioma un admin veía el aviso y no los botones. updateSaveButton() no llama a refreshHitos(): no hay bucle. */
+function refreshHitos(){ const b=$('[data-sec="pagos"] .hitos-body'); if(b) b.innerHTML=hitosBodyHTML(); refreshFormaPago(); if(typeof updateSaveButton === 'function') updateSaveButton(); }
 
 /* Cantidad de cada hito "calculado" — ver la nota grande de arriba. Se
    recalcula en dos momentos: cuando `precio_total` cambia (enganchado en
@@ -491,7 +494,7 @@ function recalcularMontosHitos(){
    inglés y el indonesio tras «EN·ID ▸»: quien cambiaba «Preparación del terreno» por «Estructura»
    dejaba el indonesio con el texto de fábrica, y el contrato decía dos fases distintas según el idioma
    (CC00124, Hito 1 al 50 %; el indonesio es el que prevalece, Art. 3). Al cambiar el español de un hito
-   que ya traía inglés o indonesio, se abre su fila EN·ID y no se guarda hasta que se hayan revisado.
+   que ya traía inglés o indonesio, se abre su fila EN·ID y sale un aviso. Desde el 7-oct-2026 NO bloquea el guardado (owner).
    Es estado de pantalla (WeakMap), nunca un campo del hito: no viaja al documento ni a la base. */
 const HITO_TRAD_PENDIENTE = new WeakMap();
 function hitoAbreEnId(i){
