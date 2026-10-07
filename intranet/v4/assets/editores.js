@@ -8471,13 +8471,28 @@
       ata('nuevo-equipo', function () {
         if (!admin) return soloAdmin();
         if (!(window.LW_V4.usuariosLista || []).length) return aviso('La lista de usuarios aún no ha cargado — espera un momento y vuelve a pulsar.', '#8A6A34');
-        modal('Nuevo equipo de venta', [
-          { k: 'nombre', label: 'Nombre del equipo', req: 1 },
-          { k: 'manager_email', label: 'Manager', tipo: 'select', req: 1, opciones: opsUsuarios('', '— elige un usuario —'),
-            ayuda: 'la persona que gestiona el reparto del equipo; tiene que estar dada de alta en Usuarios' }
-        ], 'Crear equipo', function (v) {
-          // por el servidor (LAW-336 pieza 7): el manager tiene que ser un usuario activo y no uno mismo
-          return sb.rpc('equipo_venta_guarda', { p_id: null, p_nombre: v.nombre.trim(), p_manager_email: v.manager_email.trim().toLowerCase() });
+        /* Empresa del equipo nuevo (empresas de Lawang, 7-oct-2026): quien gestiona UNA empresa no elige (nace en la suya);
+           un global o quien gestiona varias la elige aquí. Es solo una petición: equipo_venta_guarda la valida contra las
+           empresas de quien llama y contra donde vende el manager. Sin selector (una sola empresa), no se manda nada: igual que antes. */
+        LW_ROL.misEmpresas(aut.ficha).then(function (lista) {
+          var pideEmpresa = lista.length > 1;
+          var camposEq = [
+            { k: 'nombre', label: 'Nombre del equipo', req: 1 },
+            { k: 'manager_email', label: 'Manager', tipo: 'select', req: 1, opciones: opsUsuarios('', '— elige un usuario —'),
+              ayuda: 'la persona que gestiona el reparto del equipo; tiene que estar dada de alta en Usuarios' }
+          ];
+          if (pideEmpresa) {
+            var porDefecto = lista.some(function (e) { return e.clave === 'lawang'; }) ? 'lawang' : lista[0].clave;
+            camposEq.push({ k: 'empresa', label: 'Empresa', tipo: 'select', req: 1, valor: porDefecto,
+              ayuda: 'el equipo es de una sola empresa y su manager tiene que vender en ella',
+              opciones: lista.map(function (e) { return [e.clave, e.nombre]; }) });
+          }
+          modal('Nuevo equipo de venta', camposEq, 'Crear equipo', function (v) {
+            // por el servidor (LAW-336 pieza 7): el manager tiene que ser un usuario activo y no uno mismo
+            var args = { p_id: null, p_nombre: v.nombre.trim(), p_manager_email: v.manager_email.trim().toLowerCase() };
+            if (pideEmpresa && v.empresa) args.p_empresa = v.empresa;
+            return sb.rpc('equipo_venta_guarda', args);
+          });
         });
       });
 
