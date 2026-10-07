@@ -45,7 +45,7 @@ function mundo(opts) {
   const cabecera = { cells: Array.from({ length: 9 }, () => ({ style: {} })) };
   const tabla = { rows: [cabecera], tBodies: [{}] };
   const fx = Object.assign({
-    'rpc:compradores_directorio': [{ id: 'c1', full_name: 'Ana', email: 'a@x.es', nationality: 'ES', tipo: 'persona', kyc_status: 'verified', propietario: 'a@x.es', created_at: '2026-01-01' }],
+    'rpc:compradores_lista': [{ id: 'c1', full_name: 'Ana', email: 'a@x.es', nationality: 'ES', tipo: 'persona', kyc_status: 'verified', propietario: 'a@x.es', created_at: '2026-01-01' }],
     'rpc:contratos_equipo': [{ id: 'k1', numero: 'N1', tipo: 'compraventa', proyecto_nombre: 'P', precio_total: 100, moneda: 'EUR', bloqueado: true }],
     'from:contrato_compradores': [{ contrato_id: 'k1', client_id: 'c1', rol: 'adquiriente_1' }],
     'rpc:contratos_cobrado_equipo': [{ contrato_id: 'k1', cobrado: 50 }],
@@ -102,7 +102,7 @@ function mundo(opts) {
 }
 const espera = (ms) => new Promise((r) => setTimeout(r, ms || 15));
 const CONTRACTUALES = ['rpc:contratos_equipo', 'from:contrato_compradores', 'rpc:contratos_cobrado_equipo', 'rpc:contrato_firmas_equipo'];
-const ORDEN_LAWANG = ['rpc:compradores_directorio'].concat(CONTRACTUALES, ['from:usuarios', 'rpc:compradores_numeros']);
+const ORDEN_LAWANG = ['rpc:compradores_lista'].concat(CONTRACTUALES, ['from:usuarios', 'rpc:compradores_numeros']);
 const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none');
 
 (async function () {
@@ -131,7 +131,7 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   // 3) Maestro con contratos y soporte APAGADOS
   w = mundo({ win: { AXW_NUCLEO_OPERACION: true, axwModuloActivo: (m) => m !== 'contratos' && m !== 'soporte', AXW_MODULOS_LISTOS: Promise.resolve(true) } });
   w.reg.compradores(w.sb); await espera();
-  assert.deepStrictEqual(w.calls.slice(0, 3), ['rpc:compradores_directorio', 'from:usuarios', 'rpc:compradores_numeros'], 'apagado: solo la carga propia de Clientes');
+  assert.deepStrictEqual(w.calls.slice(0, 3), ['rpc:compradores_lista', 'from:usuarios', 'rpc:compradores_numeros'], 'apagado: solo la carga propia de Clientes');
   CONTRACTUALES.forEach((c) => assert.ok(w.calls.indexOf(c) === -1, 'apagado: NO se pide ' + c));
   assert.ok(w.calls.indexOf('rpc:contrato_firmas_equipo') === -1, 'apagado: contrato_firmas_equipo no se llama');
   assert.strictEqual(w.tabla.rows.length, 2);
@@ -161,7 +161,7 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   assert.deepStrictEqual(w.calls, [], 'cargando lo encendido: no se pide nada todavía');
   sabe = true; listo(true); await espera();
   CONTRACTUALES.forEach((c) => assert.ok(w.calls.indexOf(c) === -1, 'tras saberlo (contratos apagado): NO se pide ' + c));
-  assert.ok(w.calls.indexOf('rpc:compradores_directorio') > -1, 'tras saberlo: carga Clientes');
+  assert.ok(w.calls.indexOf('rpc:compradores_lista') > -1, 'tras saberlo: carga Clientes');
 
   // 4b) la comprobación de lo encendido falla: la promesa resuelve false y el helper cae a «encendido» (falla abierto)
   w = mundo({ win: { AXW_NUCLEO_OPERACION: true, axwModuloActivo: () => true, AXW_MODULOS_LISTOS: Promise.resolve(false) } });
