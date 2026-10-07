@@ -8646,7 +8646,18 @@
         ? ('rige desde el ' + fFecha(vigente.efectivo_desde))
         : 'todavía no hay ninguna tarifa: no se está devengando nada');
 
-      var vivas = lineas.filter(function (l) { return !l.anulada && l.estado !== 'exenta'; });
+      /* Abono sin efecto (7-oct-2026): al anular un recibí, la base emite un abono
+         aunque el devengo siguiera «pendiente» (nunca se facturó, no hay nada que
+         devolver). La pantalla ya saca el devengo anulado de las sumas, así que
+         contar también su abono lo restaba DOS veces. Solo cuenta un abono cuyo
+         devengo ya estaba facturado o cobrado: ese sí es un crédito real. */
+      var porIdLinea = {}; lineas.forEach(function (l) { porIdLinea[l.id] = l; });
+      var abonoSinEfecto = function (l) {
+        if (l.tipo_linea !== 'abono') return false;
+        var o = porIdLinea[l.linea_origen_id];
+        return !!(o && o.anulada && (o.estado === 'pendiente' || o.estado === 'exenta'));
+      };
+      var vivas = lineas.filter(function (l) { return !l.anulada && l.estado !== 'exenta' && !abonoSinEfecto(l); });
       var esFee = function (l) { return l.tipo_linea === 'fee' || (l.tipo_linea === 'abono' && l.fee_id); };
       var delMesTodo = vivas.filter(function (l) { return (l.devengado_el || '').slice(0, 7) === mesActual; });
       /* «Devengado este mes» sigue siendo SOLO la comision: el fee va en su
@@ -8885,7 +8896,7 @@
       function pintaSociedades() {
         if (!cuerpoSoc) return;
         var porSoc = {};
-        lineas.filter(function (l) { return !l.anulada; }).forEach(function (l) {
+        lineas.filter(function (l) { return !l.anulada && !abonoSinEfecto(l); }).forEach(function (l) {
           var k = l.sociedad || '';
           var e = porSoc[k] || (porSoc[k] = { n: 0, base: {}, com: {}, pend: {} });
           if (l.tipo_linea === 'devengo') e.n++;
@@ -8958,7 +8969,8 @@
           var negativa = Number(l.importe) < 0;
           var etqTipo = l.tipo_linea === 'devengo' ? '' :
             '<br><span class="text-outline text-[11px] uppercase tracking-wider">' + esc(TIPO_LINEA[l.tipo_linea] || l.tipo_linea) + '</span>';
-          var banderas = (l.anulada ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">anulada</span>' : '') +
+          var banderas = (abonoSinEfecto(l) ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">sin efecto</span>' : '') +
+                         (l.anulada ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">anulada</span>' : '') +
                          (l.revisar ? '<span class="ml-2 text-error text-[11px] uppercase tracking-wider">revisar</span>' : '');
           /* El recibí borrado deja la línea huérfana a propósito (on delete set
              null): se enseña el número que tuvo, que es lo único que queda. */
@@ -8983,7 +8995,7 @@
             ? '<a class="text-deep-lagoon hover:underline" href="#" data-lw-ver-recibi="' + esc(l.recibi_id) + '">' + esc(l.recibi_numero) + '</a>'
             : esc(l.recibi_numero) + ' <span class="text-error text-[11px] uppercase tracking-wider">borrado</span>';
 
-          return '<tr class="border-b border-outline-variant/30' + (l.anulada ? ' opacity-60' : '') + '">' +
+          return '<tr class="border-b border-outline-variant/30' + (l.anulada || abonoSinEfecto(l) ? ' opacity-60' : '') + '">' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(l.devengado_el)) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + recibi + etqTipo + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' +

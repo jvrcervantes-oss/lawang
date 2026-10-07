@@ -2642,16 +2642,8 @@ select {
     align-items: center;
   }
 
-  .lg\:justify-between {
-    justify-content: space-between;
-  }
-
   .lg\:border-r {
     border-right-width: 1px;
-  }
-
-  .lg\:text-right {
-    text-align: right;
   }
 }
 
