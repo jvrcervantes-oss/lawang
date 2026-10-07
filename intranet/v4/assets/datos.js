@@ -2169,12 +2169,13 @@
             tr.setAttribute('data-lw-tipo', c.tipo || '');
             tr.setAttribute('data-lw-estado', estadoC(c));
             tr.setAttribute('data-lw-mio', miEmail && c.creado_por === miEmail ? '1' : '0');
-            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, nombreAutor(AUT, c.creado_por), c.parcela_codigo, tipoC(c.tipo), c.rev03 === 'si' ? 'rev03' : ''].join(' ').toLowerCase());
+            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, nombreAutor(AUT, c.creado_por), c.parcela_codigo, tipoC(c.tipo), c.rev03 === 'si' ? 'rev03' : c.rev03 === 'rev04' ? 'rev04' : ''].join(' ').toLowerCase());
             var tds = tr.querySelectorAll('td');
             if (tds[6]) tds[6].innerHTML = htmlAutor(AUT, c.creado_por);
             if (tds[7]) tds[7].innerHTML = pill(ETQ_C[estadoC(c)][0], ETQ_C[estadoC(c)][1]) + FD.tag(c.id) +
               // Cláusulas negociadas REV03: se ve en el listado y se busca escribiendo «rev03»; se activa en el editor o el asistente (solo admin)
-              (c.rev03 === 'si' ? ' <span title="Cláusulas negociadas (REV03)">' + pill('REV03', 'curso') + '</span>' : '');
+              (c.rev03 === 'si' ? ' <span title="Cláusulas negociadas (REV03)">' + pill('REV03', 'curso') + '</span>' : '') +
+              (c.rev03 === 'rev04' ? ' <span title="Cláusulas negociadas (REV04)">' + pill('REV04', 'curso') + '</span>' : '');
             if (tds[8]) tds[8].innerHTML = ABRIR;
             tr.style.cursor = 'pointer';
           });
