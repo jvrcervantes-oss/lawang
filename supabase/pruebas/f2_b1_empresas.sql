@@ -298,3 +298,41 @@ begin
   select count(*) into n from regexp_split_to_table(r, E'\n') l where l like 'FALLO%';
   raise exception E'\n%FALLOS=%', r, n;
 end $t$;
+
+-- ============================== PARTE C: super_admin_empresa sin casillas (migracion 20261008100200) ==============================
+-- Resultado medido en produccion con rollback tras la migracion 3 (8-oct): super sin casillas guarda contrato/parcela/importa en SU empresa = ok; en la OTRA = 42501; admin_empresa sin casillas = 42501 en los tres.
+do $t$
+declare jv uuid; ya uuid; e_ya text; cr uuid; e_cr text; psw uuid; nsw text; pl uuid; npl text; cs uuid; cl uuid; pays jsonb; payl jsonb; r text := ''; usw uuid; ul uuid; codsw text; codl text; n int;
+begin
+  select user_id into jv from public.usuarios where email='jvr.cervantes@gmail.com';
+  select user_id, email into ya, e_ya from public.usuarios where email='yanayjefferson@gmail.com';
+  select user_id, email into cr, e_cr from public.usuarios where email='cris.blueiestates@gmail.com';
+  perform set_config('request.jwt.claims', json_build_object('sub',jv,'role','authenticated','email','jvr.cervantes@gmail.com')::text, true);
+  update public.usuarios set rol='admin_empresa', ambito='empresa', empresas='{sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas='{}', tipos_contrato='{}' where user_id=ya;
+  update public.usuarios set rol='super_admin_empresa', ambito='empresa', empresas='{sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas='{}', tipos_contrato='{}' where user_id=cr;
+  select pr.id, pr.nombre into psw, nsw from public.proyectos pr where empresa='sandal_woods' and exists (select 1 from public.unidades u where u.proyecto_id=pr.id) order by nombre limit 1;
+  select pr.id, pr.nombre into pl, npl from public.proyectos pr where empresa='lawang' and exists (select 1 from public.unidades u where u.proyecto_id=pr.id) order by nombre limit 1;
+  select u.id, u.codigo into usw, codsw from public.unidades u where proyecto_id=psw limit 1;
+  select u.id, u.codigo into ul, codl from public.unidades u where proyecto_id=pl limit 1;
+  select c.id into cs from public.contratos c join public.proyectos p on p.id=c.proyecto_id where p.empresa='sandal_woods' and c.tipo='reserva_parcela' and not coalesce(c.bloqueado,false) limit 1;
+  select c.id into cl from public.contratos c join public.proyectos p on p.id=c.proyecto_id where p.empresa='lawang' and c.tipo='reserva_parcela' and not coalesce(c.bloqueado,false) limit 1;
+  pays := (select jsonb_build_object('tipo', tipo, 'datos', datos) from public.contratos where id=cs);
+  payl := (select jsonb_build_object('tipo', tipo, 'datos', datos) from public.contratos where id=cl);
+  create or replace function pg_temp.c(p_uid uuid, p_email text, p_sql text) returns text language plpgsql as $f$
+  declare s text; begin
+    perform set_config('request.jwt.claims', json_build_object('sub',p_uid,'role','authenticated','email',p_email)::text, true);
+    set local role authenticated;
+    begin execute p_sql; s := 'ok'; exception when others then s := sqlstate; end;
+    reset role; return s; end $f$;
+  r := r || case when pg_temp.c(cr,e_cr,format('select public.contrato_guarda(%L,%L::jsonb)',cs,pays)) = 'ok' then 'OK   ' else 'FALLO' end || ' super sin casillas guarda contrato propio' || E'\n';
+  r := r || case when pg_temp.c(cr,e_cr,format('select public.contrato_guarda(%L,%L::jsonb)',cl,payl)) = '42501' then 'OK   ' else 'FALLO' end || ' super sin casillas guarda contrato AJENO' || E'\n';
+  r := r || case when pg_temp.c(cr,e_cr,format('select public.unidad_guarda(%L,%L::jsonb,''motivo de prueba b1 largo'')',usw,jsonb_build_object('codigo',codsw,'proyecto',nsw))) = 'ok' then 'OK   ' else 'FALLO' end || ' super sin casillas unidad_guarda propia' || E'\n';
+  r := r || case when pg_temp.c(cr,e_cr,format('select public.unidad_guarda(%L,%L::jsonb,''motivo de prueba b1 largo'')',ul,jsonb_build_object('codigo',codl,'proyecto',npl))) = '42501' then 'OK   ' else 'FALLO' end || ' super sin casillas unidad_guarda AJENA' || E'\n';
+  r := r || case when pg_temp.c(cr,e_cr,format('select public.unidades_importa(%L::jsonb)',jsonb_build_array(jsonb_build_object('fila',1,'codigo','ZZ-B1-7','proyecto',nsw)))) = 'ok' then 'OK   ' else 'FALLO' end || ' super sin casillas importa en proyecto propio' || E'\n';
+  r := r || case when pg_temp.c(cr,e_cr,format('select public.unidades_importa(%L::jsonb)',jsonb_build_array(jsonb_build_object('fila',1,'codigo','ZZ-B1-6','proyecto',npl)))) = '42501' then 'OK   ' else 'FALLO' end || ' super sin casillas importa en proyecto AJENO' || E'\n';
+  r := r || case when pg_temp.c(ya,e_ya,format('select public.contrato_guarda(%L,%L::jsonb)',cs,pays)) = '42501' then 'OK   ' else 'FALLO' end || ' admin sin casillas NO guarda contrato' || E'\n';
+  r := r || case when pg_temp.c(ya,e_ya,format('select public.unidad_guarda(%L,%L::jsonb,''motivo de prueba b1 largo'')',usw,jsonb_build_object('codigo',codsw,'proyecto',nsw))) = '42501' then 'OK   ' else 'FALLO' end || ' admin sin casillas NO guarda parcela' || E'\n';
+  r := r || case when pg_temp.c(ya,e_ya,format('select public.unidades_importa(%L::jsonb)',jsonb_build_array(jsonb_build_object('fila',1,'codigo','ZZ-B1-5','proyecto',nsw)))) = '42501' then 'OK   ' else 'FALLO' end || ' admin sin casillas NO importa' || E'\n';
+  select count(*) into n from regexp_split_to_table(r, E'\n') l where l like 'FALLO%';
+  raise exception E'\n%FALLOS=%', r, n;
+end $t$;
