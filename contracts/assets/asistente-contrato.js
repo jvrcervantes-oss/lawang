@@ -106,7 +106,7 @@
   function nuevoEstado() {
     return { v: 1, quien: (typeof MI_EMAIL !== 'undefined' ? MI_EMAIL : ''), camino: null, paso: 0,
       modo: null, origen: '', frase: '', slug: null, cliente: null, proyecto: '', parcelas: [],
-      carta: { importe: '', fecha: '', validez: '' }, bloqueo: { pct: '', motivo: '' },
+      carta: { importe: '', fecha: '', validez: '' }, bloqueo: { pct: '', imp: '', ult: 'pct', motivo: '' },
       obra: { modelo: '', techoId: '', fpago: 'estandar' }, clausulas: '', venta: null, montado: false };
   }
   function guarda() {
@@ -266,8 +266,15 @@
      lwParseImporte: «7,5» y «7.5» valen 7,5). app.html no tiene función de tope en %: lo
      comprueba en guardarContrato() contra el importe (dc > base × tope del rol: 15 %, 50 % admin, sin tope super
      admin) y el trigger lo repite. Esto solo evita llegar al editor con algo que va a rechazar. */
-  function pctDescuento() { return num(S.bloqueo.pct); }
-  function descuentoFueraDeTope(pct) { return pct > topeDescuentoPct(); }
+  /* % e importe del descuento del Bloqueo son la MISMA cifra vista de dos maneras (owner, 7-oct-2026:
+     «si mueve uno que se mueva el otro»). La cuenta vive en lwDescuentoBloqueo (assets/dinero.js, con
+     test): `ult` dice cuál tecleó la persona y el otro se deriva de la lista de suelo. Sin lista el
+     importe no se puede derivar: el campo se deshabilita y manda el %. */
+  function listaDelBloqueo() { var l = (typeof listaSueloVigente === 'function') ? listaSueloVigente() : null; return l > 0 ? l : null; }
+  function descBloqueo() { return lwDescuentoBloqueo(listaDelBloqueo(), topeDescuentoPct(), S.bloqueo); }
+  function importeDescuento() { return descBloqueo().imp; }
+  function pctDescuento() { return descBloqueo().pct; }
+  function descuentoFueraDeTope() { return descBloqueo().fuera; }
   function listo(k) {
     if (k === 'inicio') return !!S.camino;
     if (k === 'modo') return !!S.modo && !(S.modo === 'propia' && (RT.equipo.soySM || !S.origen || (S.origen === 'otro' && !S.frase.trim())));
@@ -299,7 +306,7 @@
       }
       if (t === 'reserva_parcela') {
         var pct = pctDescuento();
-        if (pct < 0 || descuentoFueraDeTope(pct) || pct >= 100) return false;
+        if (pct < 0 || descuentoFueraDeTope() || pct >= 100) return false;
         return !(pct > 0 && !S.bloqueo.motivo.trim());
       }
       if (t === 'construccion') {
@@ -492,12 +499,14 @@
         var puede = typeof puedeFijosEstudio === 'function' && puedeFijosEstudio();
         var tope = ES_SUPER ? '' : ' · ' + T('máximo') + ' ' + topeDescuentoPct();
         h2 += '<div class="asi-dos"><div class="asi-fld"><label for="asi-pct">' + e(T('Descuento (%)')) + e(tope) + '</label><input id="asi-pct" inputmode="decimal" data-asi-campo="pct" value="' + e(S.bloqueo.pct) + '"' +
-          (puede ? '' : ' disabled title="' + e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>';
+          (puede ? '' : ' disabled title="' + e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>' +
+          '<div class="asi-fld"><label for="asi-imp">' + e(T('Descuento (importe)')) + '</label><input id="asi-imp" inputmode="decimal" data-asi-campo="imp" value="' + e(S.bloqueo.ult === 'pct' ? (listaDelBloqueo() && importeDescuento() > 0 ? fmtImporte(importeDescuento()) : '') : S.bloqueo.imp) + '"' +
+          (puede && listaDelBloqueo() ? '' : ' disabled title="' + e(T(puede ? 'Falta el precio del suelo de la parcela en el inventario: pon el descuento en %.' : 'El descuento comercial solo lo ponen un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>';
         var pct = pctDescuento();
         if (pct > 0) h2 += '<div class="asi-fld"><label for="asi-motivo">' + e(T('Motivo del descuento')) + '</label><select id="asi-motivo" data-asi-campo="motivo">' + opcionesMotivo(S.bloqueo.motivo) + '</select></div>';
         h2 += '</div>';
         if (!puede) h2 += aviso('info', 'info', e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')));
-        if (descuentoFueraDeTope(pct)) h2 += aviso('mal', 'block', e(T(topeDescuentoPct() === 50 ? 'El descuento comercial no puede superar el 50% del precio del suelo.' : 'El descuento comercial no puede superar el 15% del precio del suelo.')));
+        if (descuentoFueraDeTope()) h2 += aviso('mal', 'block', e(T(topeDescuentoPct() === 50 ? 'El descuento comercial no puede superar el 50% del precio del suelo.' : 'El descuento comercial no puede superar el 15% del precio del suelo.')));
         return h2;
       }
       if (t === 'construccion') {
@@ -868,7 +877,16 @@
     else if (c === 'fecha') S.carta.fecha = val;
     else if (c === 'validez') S.carta.validez = val;
     else if (c === 'motivo') S.bloqueo.motivo = val;
-    else if (c === 'pct') { S.bloqueo.pct = val; guarda(); pinta(); return; }   // repinta: el motivo y el tope aparecen según la cifra
+    else if (c === 'pct') {
+      S.bloqueo.pct = val; S.bloqueo.ult = 'pct';
+      S.bloqueo.imp = '';
+      guarda(); pinta(); return;
+    }
+    else if (c === 'imp') {
+      var l2 = listaDelBloqueo(); S.bloqueo.imp = val; S.bloqueo.ult = 'imp';
+      S.bloqueo.pct = (l2 && num(val) > 0) ? (Math.round(num(val) / l2 * 1e4) / 100).toFixed(2).replace('.', ',') : '';
+      guarda(); pinta(); return;
+    }   // repinta: el motivo y el tope aparecen según la cifra
     else if (c === 'buscar-venta') { clearTimeout(tVenta); tVenta = setTimeout(function () { buscaVentas(val); }, 280); return; }
     else return;
     guarda(); pintaPie();
@@ -951,7 +969,7 @@
         if (lista == null) avisaMal(T('No se ha podido aplicar el descuento: falta el precio del suelo de la parcela en el inventario. Ponlo en el editor.'));
         else {
           // hacia abajo al céntimo: redondear podía dejar un 15 % un céntimo por ENCIMA del tope y el editor lo rechazaba al guardar
-          populateForm({ descuento_comercial: fmtImporte(Math.floor(lista * pct) / 100), descuento_comercial_motivo: S.bloqueo.motivo.trim() });
+          populateForm({ descuento_comercial: fmtImporte(importeDescuento()), descuento_comercial_motivo: S.bloqueo.motivo.trim() });
           aplicarDescuentoSuelo();
         }
       }
