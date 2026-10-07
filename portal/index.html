@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="b5f7d11aaf9f">
+<meta name="lw-version" content="703aa55b840e">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1569,10 +1569,17 @@
         return rutas.reduce(function(prev, x){
           return prev.then(function(){
             var url = porRuta[x.path]; if (!url) return;
-            return fetch(url).then(function(resp){ if (!resp.ok) throw new Error('descarga'); return resp.arrayBuffer(); }).then(function(buf){
+            return fetch(url).then(function(resp){
+              if (!resp.ok) throw new Error('descarga');
+              // el tope se mira ANTES de bajar el fichero entero a memoria
+              var cl = Number(resp.headers.get('content-length')) || 0;
+              if (total + cl > 120 * 1024 * 1024) throw new Error('tope');
+              return resp.arrayBuffer();
+            }).then(function(buf){
               total += buf.byteLength; if (total > 120 * 1024 * 1024) throw new Error('tope');
               var ext = (/\.[A-Za-z0-9]{1,5}$/.exec(x.path) || [''])[0];
-              var base = String(x.titulo || 'documento').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80) || 'documento';
+              var base = String(x.titulo || 'documento').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').trim().slice(0, 80);
+              if (!base || /^\.+$/.test(base)) base = 'documento';
               var nombre = base + ext, k = 2;
               while (usados[nombre.toLowerCase()]) nombre = base + ' (' + (k++) + ')' + ext;
               usados[nombre.toLowerCase()] = true;
