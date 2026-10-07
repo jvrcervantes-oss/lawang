@@ -485,7 +485,10 @@
                  a volver a pedir el enlace de entrada por nada). Sin el claim no
                  es de ninguno de los dos mundos: fuera, y cerrando la sesion
                  para no dejarla rebotando entre las dos puertas. */
-              if ((sesion.user.app_metadata || {}).portal) { location.replace('/portal/'); return; }
+              /* 7-oct-2026: ya NO se manda al portal con la sesion viva. /portal/ guarda la suya en otra clave de
+                 localStorage (lw-portal-auth) y no puede cerrar esta: una sesion de cliente guardada aqui (de antes de
+                 separarlas, o de una prueba) dejaba a la persona rebotando entre /intranet/ y /portal/ sin ver nunca el
+                 formulario de entrada. Se cierra y se va al login, que enlaza al area de clientes. */
               sb.auth.signOut().then(alLogin, alLogin); return;
             }
             /* Solo el SUPER admin se salta la comprobación (18-ago-2026): un

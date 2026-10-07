@@ -32,7 +32,8 @@ function puerta(attrs, ficha, opts) {
   };
   ctx.window = ctx;
   const sb = {
-    auth: { getSession: () => Promise.resolve({ data: { session: { user: { id: 'u1', app_metadata: {} } } } }) },
+    auth: { getSession: () => Promise.resolve({ data: { session: { user: { id: 'u1', app_metadata: opts.portal ? { portal: true } : {} } } } }),
+      signOut: () => { salidas.push('SIGNOUT'); return Promise.resolve(); } },
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () =>
       opts.fichaFalla ? Promise.reject(new Error('red')) : Promise.resolve({ data: ficha }) }) }) }),
   };
@@ -187,5 +188,14 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
   r = await puerta({ 'data-herramienta': 'cuentas' }, SUPER, { sinFicha: true });
   assert.ok(!r.entra && /instancia\.js/.test(r.error || ''), 'sin instancia.js, guard.js para y no deja entrar');
 
+  // 7-oct-2026 (Andrea): una sesion de CLIENTE (marca portal, sin ficha) guardada en la clave de la intranet ya no rebota a /portal/
+  // (el portal guarda la suya en otra clave y no puede cerrarla): se cierra y se va al login
+  r = await puerta({}, null, { portal: true });
+  assert.ok(!r.entra, 'sin ficha y con marca de portal no se entra');
+  assert.ok(r.salidas.indexOf('SIGNOUT') !== -1, 'se cierra la sesion vieja: ' + JSON.stringify(r.salidas));
+  assert.ok(!r.salidas.some(u => /^\/portal\//.test(u)), 'no se manda a /portal/ con la sesion viva: ' + JSON.stringify(r.salidas));
+  // y quien tiene ficha de equipo entra aunque lleve la marca de portal (manda la ficha)
+  r = await puerta({}, AGENTE, { portal: true });
+  assert.ok(r.entra && !r.salidas.length, 'con ficha de equipo entra aunque lleve la marca de portal: ' + JSON.stringify(r));
   console.log('guard.test.js OK');
 })().catch(e => { console.error(e); process.exit(1); });
