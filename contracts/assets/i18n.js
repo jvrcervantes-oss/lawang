@@ -4340,6 +4340,8 @@
     'Dar de alta un cliente nuevo': 'Register a new client',
     'Descuento': 'Discount',
     'Descuento (%)': 'Discount (%)',
+    'Descuento (importe)': 'Discount (amount)',
+    'Falta el precio del suelo de la parcela en el inventario: pon el descuento en %.': 'The plot land price is missing from the inventory: enter the discount as a %.',
     'El cliente paga una reserva y aparta la parcela unos días.': 'The client pays a deposit and holds the plot for a few days.',
     'El descuento comercial no puede superar el 15% del precio del suelo.': 'The commercial discount cannot exceed 15% of the land price.',
     'El descuento comercial no puede superar el 50% del precio del suelo.': 'The commercial discount cannot exceed 50% of the land price.',
