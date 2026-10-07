@@ -169,7 +169,13 @@
     }
     if (velo) anima(velo, [{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: 'ease-in' });
     var a = anima(dr, [{ transform: 'none' }, { transform: 'translateX(100%)' }], { duration: 220, easing: 'cubic-bezier(.4,0,1,1)' });
-    if (a) a.onfinish = function () { if (fin) fin(); }; else if (fin) fin();
+    /* `fin` se ejecuta UNA vez y siempre: si el aviso de fin de la animación no llegara (pestaña en segundo plano,
+       animación cancelada), un temporizador de seguridad lo dispara igualmente; un cajón y un velo que no se ocultan
+       taparían el portal entero. */
+    var hecho = false;
+    function acaba() { if (hecho) return; hecho = true; if (fin) fin(); }
+    if (a) a.onfinish = acaba;
+    root.setTimeout(acaba, a ? 450 : 0);
   };
 
   M.perfil = perfil; M.mismaForma = mismaForma; M.valorCuenta = valorCuenta; M.claveVista = claveVista; M.puede = puede;
