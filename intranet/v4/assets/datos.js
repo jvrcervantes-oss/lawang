@@ -8973,39 +8973,72 @@
       }
       pintaSociedades();
 
-      /* Desglose por mes (7-oct-2026, owner): lo devengado cada mes por sociedad y
-         moneda, y cuánto de eso está ya cobrado. Misma regla de líneas que el resto
-         de la pantalla (ni anuladas ni abonos sin efecto); la comisión neta lleva
-         devengos + ajustes + abonos, y el fee va aparte. */
-      (function pintaMeses() {
-        var cuerpoMes = document.getElementById('lw-ca-meses');
-        if (!cuerpoMes) return;
-        var g = {};
-        lineas.filter(function (l) { return !l.anulada && !abonoSinEfecto(l); }).forEach(function (l) {
-          var mes = (l.devengado_el || '').slice(0, 7), k = mes + '|' + (l.sociedad || '');
-          var e = g[k] || (g[k] = { mes: mes, soc: l.sociedad || '', n: 0, base: {}, com: {}, fee: {}, cob: {}, pend: {} });
-          var m = l.moneda, imp = Number(l.importe || 0);
-          var suma = function (o, v) { o[m] = (o[m] || 0) + v; };
-          if (l.fee_id) suma(e.fee, imp);
-          else { if (l.tipo_linea === 'devengo') e.n++; suma(e.base, Number(l.base_total || 0)); suma(e.com, imp); }
-          if (l.estado === 'cobrada') suma(e.cob, imp);
-          else if (l.estado === 'pendiente' || l.estado === 'facturada') suma(e.pend, imp);
-        });
-        var cel = function (o, cls) {
-          var ks = Object.keys(o);
-          return '<td class="px-5 py-4 ' + (cls || 'font-body-md text-body-md text-on-surface-variant') + ' text-right">' +
-            (ks.length ? ks.sort().map(function (x) { return esc(fmt(o[x], x)); }).join('<br>') : '—') + '</td>';
+      /* Calendario (7-oct-2026, owner: lo devengado por mes, en un calendario con las líneas dentro).
+         Cada línea viva en el día en que se apuntó (devengado_el), con su estado de cobro; pulsar una
+         abre el mismo cajón de «Estado» que el libro. Fees y comisiones juntos pero distinguidos (borde
+         discontinuo): aquí sí se ve todo lo devengado, el libro de abajo sigue siendo solo comisiones.
+         Misma regla de líneas que el resto de la pantalla: ni anuladas ni abonos sin efecto. */
+      (function pintaCalendario() {
+        var cal = document.getElementById('lw-ca-cal');
+        if (!cal) return;
+        var selM = document.getElementById('lw-ca-cal-mes'), selS = document.getElementById('lw-ca-cal-soc');
+        var resumen = document.getElementById('lw-ca-cal-resumen');
+        var viva = lineas.filter(function (l) { return !l.anulada && l.devengado_el && !abonoSinEfecto(l); });
+        var meses = {}; viva.forEach(function (l) { meses[l.devengado_el.slice(0, 7)] = 1; });
+        meses[mesActual] = 1;
+        var listaMeses = Object.keys(meses).sort();
+        var mes = mesActual;
+        var feeDe = {}; (fees || []).forEach(function (f) { feeDe[f.id] = f; });
+        var socs = {}; viva.forEach(function (l) { socs[l.sociedad || ''] = 1; });
+        selS.innerHTML = '<option value="">Todas las sociedades</option>' + Object.keys(socs).sort().map(function (k) {
+          return '<option value="' + esc(k) + '">' + esc(nombreSociedad(k)) + '</option>';
+        }).join('');
+        selM.innerHTML = listaMeses.slice().reverse().map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
+        var sumaM = function (arr) { return arr.length ? sumaPorMoneda(arr) : '—'; };
+
+        function dibuja() {
+          selM.value = mes;
+          var fs = selS.value;
+          var delMesL = viva.filter(function (l) { return l.devengado_el.slice(0, 7) === mes && (!fs || (l.sociedad || '') === fs); });
+          var com = delMesL.filter(function (l) { return !l.fee_id; }), fe = delMesL.filter(function (l) { return !!l.fee_id; });
+          var cob = delMesL.filter(function (l) { return l.estado === 'cobrada'; });
+          var pen = delMesL.filter(function (l) { return l.estado === 'pendiente' || l.estado === 'facturada'; });
+          resumen.innerHTML = '<span class="lw-cal-res">Comisión neta <b>' + esc(sumaM(com)) + '</b> · Fee fijo <b>' + esc(sumaM(fe)) +
+            '</b> · Cobrado <b>' + esc(sumaM(cob)) + '</b> · Pendiente <b>' + esc(sumaM(pen)) + '</b></span>';
+          var p = mes.split('-'), anio = +p[0], m0 = +p[1] - 1;
+          var primero = new Date(Date.UTC(anio, m0, 1)), nDias = new Date(Date.UTC(anio, m0 + 1, 0)).getUTCDate();
+          var lead = (primero.getUTCDay() + 6) % 7;            // lunes = 0
+          var porDia = {}; delMesL.forEach(function (l) { var d = +l.devengado_el.slice(8, 10); (porDia[d] = porDia[d] || []).push(l); });
+          var h = ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(function (d) { return '<div class="lw-cal-cab">' + d + '</div>'; }).join('');
+          var celdas = Math.ceil((lead + nDias) / 7) * 7;
+          for (var i = 0; i < celdas; i++) {
+            var d = i - lead + 1;
+            if (d < 1 || d > nDias) { h += '<div class="lw-cal-dia fuera"></div>'; continue; }
+            var ls = (porDia[d] || []).slice().sort(function (a, b) { return (a.fee_id ? 1 : 0) - (b.fee_id ? 1 : 0); });
+            var iso = mes + '-' + String(d).padStart(2, '0');
+            h += '<div class="lw-cal-dia' + (iso === hoy ? ' hoy' : '') + '"><span class="lw-cal-n">' + d + '</span>' +
+              (ls.length ? '<div class="lw-cal-tot">' + esc(sumaPorMoneda(ls)) + '</div>' : '') +
+              ls.map(function (l) {
+                var f = l.fee_id && feeDe[l.fee_id];
+                var nom = l.fee_id ? (f ? f.concepto : 'Fee') : l.recibi_numero;
+                var neg = Number(l.importe) < 0;
+                var txt = (l.tipo_linea === 'abono' ? 'Abono ' : '') + nom + ' · ' + fmt(l.importe, l.moneda);
+                return '<button type="button" class="lw-cal-chip ' + esc(l.estado) + (l.fee_id ? ' lw-cal-fee' : '') + (neg ? ' neg' : '') + '" title="' + esc(txt + ' — ' + (ESTADOS[l.estado] || [l.estado])[0]) +
+                  '" data-lw-ca-estado="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-actual="' + esc(l.estado) + '">' + esc(txt) + '</button>';
+              }).join('') + '</div>';
+          }
+          cal.innerHTML = h;
+        }
+        var salta = function (n) {
+          var i = listaMeses.indexOf(mes) + n;
+          if (i >= 0 && i < listaMeses.length) { mes = listaMeses[i]; dibuja(); }
         };
-        var filas = Object.keys(g).map(function (k) { return g[k]; })
-          .sort(function (a, b) { return a.mes < b.mes ? 1 : a.mes > b.mes ? -1 : (a.soc < b.soc ? -1 : 1); });
-        cuerpoMes.innerHTML = filas.length ? filas.map(function (e) {
-          return '<tr class="border-b border-outline-variant/30">' +
-            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(e.mes || '—') + '</td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(nombreSociedad(e.soc)) + '</td>' +
-            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + e.n + '</td>' +
-            cel(e.base) + cel(e.com, 'font-label-md text-label-md text-on-surface') + cel(e.fee) +
-            cel(e.cob, 'font-body-md text-body-md text-territorial-green') + cel(e.pend, 'font-body-md text-body-md text-burnt-earth') + '</tr>';
-        }).join('') : '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Todavía no hay nada devengado.</td></tr>';
+        document.getElementById('lw-ca-cal-ant').addEventListener('click', function () { salta(-1); });
+        document.getElementById('lw-ca-cal-sig').addEventListener('click', function () { salta(1); });
+        selM.addEventListener('change', function () { mes = selM.value; dibuja(); });
+        selS.addEventListener('change', dibuja);
+        delega(cal, [['data-lw-ca-estado', 'abreEstadoComisionAdmin']]);
+        dibuja();
       })();
 
       if (selSoc) {
