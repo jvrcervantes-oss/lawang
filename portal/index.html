@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="78a5af5038fc">
+<meta name="lw-version" content="6bbe3eded817">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -699,6 +699,11 @@
   .proy-grid.ini .proy-card{ flex-direction:row; align-items:stretch; }
   .proy-grid.ini .proy-portada{ aspect-ratio:auto; width:42%; flex:none; min-height:190px; }
   .proy-grid.ini.uno{ grid-template-columns:1fr; }
+  /* con 3 o 5 propiedades la última ocupa la fila entera, en vez de quedar sola en media fila */
+  @media (min-width:641px){
+    .proy-grid.ini > .proy-card:last-child:nth-child(odd){ grid-column:1 / -1; }
+    .proy-grid.ini > .proy-card:last-child:nth-child(odd) .proy-portada{ width:56%; aspect-ratio:16/9; min-height:0; }
+  }
   .proy-grid.ini.uno .proy-portada{ width:56%; aspect-ratio:16/9; min-height:0; }
   .proy-grid.ini .proy-cuerpo{ flex:1; gap:4px; }
   .proy-chips{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; }
@@ -1481,6 +1486,7 @@
     var tit = document.getElementById('tituloSeccion'), enInicio = ESTADO.section === 'inicio';
     tit.textContent = enInicio ? fechaLarga(new Date()) : t('tit_' + ESTADO.section);
     tit.classList.toggle('es-fecha', enInicio);
+    if (enInicio) tit.setAttribute('aria-label', t('tit_inicio') + ' · ' + tit.textContent); else tit.removeAttribute('aria-label');
     var c = document.getElementById('content');
     var fns = { inicio:pintaInicio, contratos:pintaContratos, facturas:pintaFacturas, obra:pintaObra,
                 documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
@@ -1563,7 +1569,7 @@
           var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(function(u, i, a){ return u && a.indexOf(u) === i; });
           var obraU = (d.obra || []).filter(function(o){ return (f.contratos || []).some(function(x){ return x.numero === o.contrato_numero; }); })[0];
           var fase = obraU ? (d.fases || []).filter(function(ff){ return ff.clave === obraU.fase; })[0] : null;
-          var pct = (rs.total != null && rs.total > 0) ? Math.min(100, Math.round(rs.cobrado / rs.total * 100)) : null;
+          var pct = (rs.total != null && rs.total > 0) ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : null;   // floor: nunca «100 %» si queda algo
           return '<button type="button" class="proy-card" data-carpeta="' + esc(f.key) + '">' + portadaHTML(f, 'proy-portada') +
             '<div class="proy-cuerpo"><div class="proy-nombre">' + esc(f.nombre) + '</div>' +
             (f.resort ? '<div class="proy-meta">' + esc(f.resort) + '</div>' : '') +
@@ -1582,7 +1588,7 @@
     /* El resumen (inversión, pagado, pendiente) vive en el pie del bloque del pago, con su barra. Las cuentas siguen
        siendo las de resumen.js y el rótulo de la inversión sigue diciendo lo que suma (cuota de reserva o inversión). */
     var hayResumen = tot != null && tot > 0;
-    var pctTot = hayResumen ? Math.min(100, Math.round((cob || 0) / tot * 100)) : 0;
+    var pctTot = hayResumen ? Math.min(100, Math.floor((cob || 0) / tot * 100)) : 0;
     var pieResumen = hayResumen
       ? '<div class="hp-pie"><span>' + esc(t('r_pagado')) + ' <b>' + esc(dinero(cob,mon)) + '</b></span>' +
           '<div class="barra"><i style="width:' + pctTot + '%"></i></div>' +
