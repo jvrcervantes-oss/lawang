@@ -327,6 +327,13 @@
       (off ? '<small class="asi-motivo">' + e(extra.off) + '</small>' : '') +
       (extra.tag ? '<span class="asi-tag">' + e(extra.tag) + '</span>' : '') + '</button>';
   }
+  /* Motivo del descuento: lista cerrada con su texto en los tres idiomas (assets/traduce_campos.js,
+     REV03 7-oct-2026). Un motivo antiguo escrito a mano se conserva como opción para no perderlo al reabrir. */
+  function opcionesMotivo(actual) {
+    var lista = (typeof motivosDescuentoOpciones === 'function' ? motivosDescuentoOpciones() : []).slice();
+    if (actual && lista.indexOf(actual) < 0) lista.push(actual);
+    return '<option value=""></option>' + lista.map(function (m) { return '<option value="' + e(m) + '"' + (m === actual ? ' selected' : '') + '>' + e(m) + '</option>'; }).join('');
+  }
   function aviso(tono, ico, html) {
     return '<div class="asi-aviso ' + tono + '" role="status"><span data-ico="' + ico + '" aria-hidden="true"></span><span>' + html + '</span></div>';
   }
@@ -469,7 +476,7 @@
         h2 += '<div class="asi-dos"><div class="asi-fld"><label for="asi-pct">' + e(T('Descuento (%)')) + e(tope) + '</label><input id="asi-pct" inputmode="decimal" data-asi-campo="pct" value="' + e(S.bloqueo.pct) + '"' +
           (puede ? '' : ' disabled title="' + e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>';
         var pct = pctDescuento();
-        if (pct > 0) h2 += '<div class="asi-fld"><label for="asi-motivo">' + e(T('Motivo del descuento')) + '</label><input id="asi-motivo" data-asi-campo="motivo" maxlength="200" value="' + e(S.bloqueo.motivo) + '"></div>';
+        if (pct > 0) h2 += '<div class="asi-fld"><label for="asi-motivo">' + e(T('Motivo del descuento')) + '</label><select id="asi-motivo" data-asi-campo="motivo">' + opcionesMotivo(S.bloqueo.motivo) + '</select></div>';
         h2 += '</div>';
         if (!puede) h2 += aviso('info', 'info', e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')));
         if (descuentoFueraDeTope(pct)) h2 += aviso('mal', 'block', e(T('El descuento comercial no puede superar el 15% del precio del suelo.')));

@@ -1,4 +1,4 @@
-// alta-colaborador — la puerta pública de la guía /formacion/ (24-sep-2026).
+// alta-colaborador — la puerta pública de la guía /partners/ (antes /formacion/) (24-sep-2026).
 //
 // Tres acciones, todas SIN sesión:
 //   · codigo    → manda un código de 6 dígitos al email (demuestra que el buzón es suyo)
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       await enviar(email, 'Tu código de verificación — Lawang',
         'Tu código de verificación es ' + codigo + '. Caduca en 10 minutos.\n\n' +
         'Your verification code is ' + codigo + '. It expires in 10 minutes.\n\n' +
-        'Si no lo has pedido tú, ignora este correo. / If you did not request it, ignore this email.', SITIO + '/formacion/', 'Volver a la guía');
+        'Si no lo has pedido tú, ignora este correo. / If you did not request it, ignore this email.', SITIO + '/partners/', 'Volver a la guía');
       return json({ ok: true });
     }
 
@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
       if (!yaUsuario) await enviar(email, 'Hemos recibido tu solicitud — Lawang',
         'Hola ' + nombre.split(' ')[0] + ',\n\nHemos recibido tu solicitud para trabajar como comercial con Lawang. ' +
         'La revisamos y, cuando la activemos, te llegará un correo para crear tu contraseña y entrar en la intranet.\n\n' +
-        'We have received your request to work with Lawang as a sales associate. Once it is approved you will get an email to set your password.', SITIO + '/formacion/', 'Volver a la guía');
+        'We have received your request to work with Lawang as a sales associate. Once it is approved you will get an email to set your password.', SITIO + '/partners/', 'Volver a la guía');
       return json({ ok: true });
     }
 
@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
     await enviar(email, 'Contacto registrado — Lawang',
       'Hola ' + nombre.split(' ')[0] + ',\n\nHemos registrado a ' + clienteNombre + ' a tu nombre. ' +
       'Nuestro equipo se pondrá en contacto con él. Si compra, te escribiremos para tu comisión de referido.\n\n' +
-      'We have registered ' + clienteNombre + ' under your name. Our team will get in touch with them.', SITIO + '/formacion/', 'Volver a la guía');
+      'We have registered ' + clienteNombre + ' under your name. Our team will get in touch with them.', SITIO + '/partners/', 'Volver a la guía');
     return json({ ok: true });
   } catch (e) {
     console.error('alta-colaborador excepcion <' + email + '>: ' + String((e as Error)?.message ?? e));

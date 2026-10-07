@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, user_id: creado.user.id, email, email_enviado: emailEnviado, email_error: emailError });
     }
 
-    // ── solicitudes de alta desde /formacion/ (24-sep-2026) ──────────────
+    // ── solicitudes de alta desde /partners/ (24-sep-2026) ──────────────
     // La edge pública `alta-colaborador` solo deja una fila en
     // `solicitudes_colaborador`; la cuenta nace AQUÍ, con el clic de un admin.
     // Revisión previa #61: cualquier fila activa de `usuarios` pasa es_agente()

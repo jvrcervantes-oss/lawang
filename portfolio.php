@@ -243,7 +243,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
 </main>
 
 <footer data-lw-pie data-cookies data-wa="<?= lw_e($WA_LINK) ?>"></footer>
-<script src="/assets/lawang-pie.js?v=20260925145309"></script>
+<script src="/assets/lawang-pie.js?v=20261007114054"></script>
 <script>
 (function () {
   'use strict';
