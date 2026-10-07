@@ -139,3 +139,33 @@ begin
 
   raise exception E'\n%FALLOS: %', v_out, v_fallos;
 end $$;
+
+-- TERCER BLOQUE (aparte, termina en RAISE): anular un cobro no puede dejar líneas cobradas sin dinero.
+--   A=100 salda 80 y deja 20; B=30 usa esos 20 y salda 50. T18 anular A se rechaza · T19 anulando B primero, A se anula.
+do $$
+declare
+  u uuid; v_out text := ''; v_fallos int := 0; r jsonb; ca uuid; cb uuid; la uuid; lb uuid;
+begin
+  select user_id into u from public.usuarios where rol = 'super_admin' and activo limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub', u, 'role', 'authenticated')::text, true);
+  insert into public.comision_admin_lineas (tipo_linea, recibi_numero, sociedad, devengado_el, base_total, moneda, pct_aplicado, importe, estado)
+    values ('devengo', 'ZX1', 'zz_prueba3', '2026-01-01', 16000, 'EUR', 0.5, 80, 'pendiente') returning id into la;
+  insert into public.comision_admin_lineas (tipo_linea, recibi_numero, sociedad, devengado_el, base_total, moneda, pct_aplicado, importe, estado)
+    values ('devengo', 'ZX2', 'zz_prueba3', '2026-01-02', 10000, 'EUR', 0.5, 50, 'pendiente') returning id into lb;
+  r := public.comision_admin_registrar_cobro('zz_prueba3', 'EUR', 100, current_date, 'A', false, true, null, array[la]);
+  select id into ca from public.comision_admin_cobros where sociedad = 'zz_prueba3' and referencia = 'A';
+  r := public.comision_admin_registrar_cobro('zz_prueba3', 'EUR', 30, current_date, 'B', false, true, null, array[lb]);
+  select id into cb from public.comision_admin_cobros where sociedad = 'zz_prueba3' and referencia = 'B';
+  begin
+    perform public.comision_admin_anular_cobro(ca, 'error al teclear A');
+    v_out := v_out || E'T18 FALLO\n'; v_fallos := v_fallos + 1;
+  exception when others then
+    if sqlerrm like 'No se puede anular%' and not (select anulado from public.comision_admin_cobros where id = ca)
+    then v_out := v_out || E'T18 ok\n'; else v_out := v_out || E'T18 FALLO ' || sqlerrm || E'\n'; v_fallos := v_fallos + 1; end if;
+  end;
+  r := public.comision_admin_anular_cobro(cb, 'error al teclear B');
+  r := public.comision_admin_anular_cobro(ca, 'error al teclear A');
+  if (r->>'ok')::boolean and (select count(*) from public.comision_admin_lineas where sociedad = 'zz_prueba3' and estado = 'pendiente') = 2
+  then v_out := v_out || E'T19 ok\n'; else v_out := v_out || E'T19 FALLO ' || r::text || E'\n'; v_fallos := v_fallos + 1; end if;
+  raise exception E'\n%FALLOS: %', v_out, v_fallos;
+end $$;
