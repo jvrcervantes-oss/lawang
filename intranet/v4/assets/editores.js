@@ -8302,7 +8302,7 @@
           /* El propietario ve ademas los dos niveles de empresa y el campo Empresas (a una persona de la intranet con
              empresas marcadas solo se le dan proyectos de esas empresas). Un super admin que NO es propietario conserva
              la lista de siempre; si la persona ya tiene un nivel de empresa, lo ve pero no lo toca. */
-          var rolesEd = ROLES_ED.concat(soyProp ? ['admin_empresa', 'super_admin_empresa'] : []);
+          var rolesEd = ROLES_ED.concat(soyProp && u.rol !== 'super_admin' ? ['admin_empresa', 'super_admin_empresa'] : []);
           var rolEditable = soySuper && !yoMismo && !(esRolEmpresa(u.rol) && !soyProp) && !u.es_propietario;
           var campos = [
             { k: 'nombre', label: 'Nombre', medio: 1, valor: u.nombre || '' },
@@ -8310,7 +8310,7 @@
               ? { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, opciones: rolesEd.map(function (r) { return [r, ETIQ_ROL[r] || r]; }), valor: u.rol }
               : { tipo: 'lectura', label: 'Rol', medio: 1, valor: ETIQ_ROL[u.rol] || u.rol || '—' }
           ];
-          var empresasEditables = soyProp && !yoMismo && rolEditable && empresasCat.length > 0;
+          var empresasEditables = soyProp && !yoMismo && rolEditable && u.rol !== 'super_admin' && empresasCat.length > 0;
           if (empresasEditables) {
             campos.push({ k: 'empresas', label: 'Empresas', tipo: 'multicheck', opciones: empresasCat.map(function (e) { return [e.clave, e.nombre]; }),
               valor: u.empresas || [],
@@ -8362,12 +8362,17 @@
                propietario). Si cambia algo de eso, va PRIMERO y sale de `patch`: usuario_guarda_permisos no mueve el alcance. */
             var empNuevas = empresasEditables ? (v.empresas || []) : (u.empresas || []);
             var igualEmp = empNuevas.slice().sort().join(',') === (u.empresas || []).slice().sort().join(',');
+            var descartadosFront = 0;
             var alcanceCambia = soyProp && rolEditable && v.rol !== 'super_admin' &&
               (v.rol !== u.rol || !igualEmp) && (esRolEmpresa(v.rol) || esRolEmpresa(u.rol) || !igualEmp);
             if (alcanceCambia) {
               delete patch.rol;
               var okEmp = empNuevas.length ? proyectos.filter(function (p) { return empNuevas.indexOf(p.empresa) !== -1; }).map(function (p) { return p.id; }) : null;
-              if (patch.proyectos && okEmp) patch.proyectos = patch.proyectos.filter(function (id) { return okEmp.indexOf(id) !== -1; });
+              if (patch.proyectos && okEmp) {
+                var antes = patch.proyectos.length;
+                patch.proyectos = patch.proyectos.filter(function (id) { return okEmp.indexOf(id) !== -1; });
+                descartadosFront = antes - patch.proyectos.length;
+              }
             }
             /* la proteccion real vive en la policy (super_admin intocable salvo
                super_admin, es_admin AND puede) — si esto falla por RLS, ese ES
@@ -8378,13 +8383,17 @@
             if (yoMismo && !soySuper) patch = { nombre: patch.nombre };
             var pasoAlcance = alcanceCambia
               ? Promise.resolve(sb.rpc('usuario_da_alcance', { p_user_id: u.user_id, p_rol: v.rol, p_empresas: empNuevas })).then(function (r) {
-                  if (!r.error && r.data && r.data.proyectos_quitados) aviso('Se han quitado ' + r.data.proyectos_quitados + ' proyecto(s) que no son de las empresas elegidas.', '#8A6A34');
+                  var quitados = ((r.data && r.data.proyectos_quitados) || 0) + descartadosFront;
+                  if (!r.error && quitados) aviso('Se han quitado ' + quitados + ' proyecto(s) que no son de las empresas elegidas.', '#8A6A34');
                   return r;
                 })
               : Promise.resolve({});
             return pasoAlcance.then(function (r) {
               if (r && r.error) return r;
-              return sb.rpc('usuario_guarda_permisos', { p_user_id: u.user_id, p_cambios: patch });
+              return Promise.resolve(sb.rpc('usuario_guarda_permisos', { p_user_id: u.user_id, p_cambios: patch })).then(function (r2) {
+                if (alcanceCambia && r2 && r2.error) r2.error.message = 'El nivel y las empresas SÍ se han guardado, pero el resto no: ' + (r2.error.message || '');
+                return r2;
+              });
             });
           });
         });
