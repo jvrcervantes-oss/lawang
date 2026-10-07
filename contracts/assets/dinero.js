@@ -236,6 +236,23 @@ function lwFacturaCuentaEnSuFecha(f){
   return !!f && (f.emitida_en ? true : !f.anulada);
 }
 
+/* Descuento comercial del Bloqueo de Parcela, en % e importe a la vez (7-oct-2026, owner: «si mueve
+   uno que se mueva el otro»). `st` = { pct, imp, ult }: `ult` es el que tecleó la persona y ese manda;
+   el otro se deriva de la lista de suelo. Con importe tecleado el tope se compara EN IMPORTE contra
+   floor(lista × tope)/100 (no contra un % redondeado: en rupias, 1 IDR por encima del tope es un
+   0,00000007 % y el redondeo lo dejaba pasar). Con % tecleado el importe baja al céntimo, igual que
+   hacía el asistente: redondear podía dejar un 15 % un céntimo por encima del tope. Sin lista (>0) el
+   importe no se puede derivar y manda el %. `tope` puede ser Infinity (super admin). */
+function lwDescuentoBloqueo(lista, tope, st){
+  const l = lista > 0 ? lista : 0;
+  if(st && st.ult === 'imp' && l){
+    const imp = lwParseImporte(st.imp) || 0;
+    return { imp, pct: Math.round(imp / l * 1e8) / 1e6, fuera: imp > Math.floor(l * tope) / 100 };
+  }
+  const pct = lwParseImporte(st && st.pct) || 0;
+  return { imp: l ? Math.floor(l * pct) / 100 : 0, pct, fuera: pct > tope };
+}
+
 /* Node lo necesita para el test; el navegador lo ignora. Sin `module.exports`
    las constantes quedan globales, que es como las usan las nueve herramientas.
 
@@ -249,4 +266,4 @@ function lwFacturaCuentaEnSuFecha(f){
 if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwParseImporte, lwFormatoImporte, lwImporteCanonico, LW_DECIMALES,
                      lwSumaPorMoneda, lwSumaTexto, lwMonedaPrincipal, lwDescuentoCascada,
-                     lwFacturaQueCuenta, lwFacturaCuentaEnSuFecha };
+                     lwFacturaQueCuenta, lwFacturaCuentaEnSuFecha, lwDescuentoBloqueo };
