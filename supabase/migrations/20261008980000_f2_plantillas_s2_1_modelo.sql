@@ -168,7 +168,10 @@ begin
   if tg_op = 'UPDATE' and new.contrato_id <> old.contrato_id then
     raise exception 'El vinculo no cambia de contrato' using errcode = '55000';
   end if;
-  -- contrato firmado o con alguna ronda de firma: el vinculo es historia (en un DELETE en cascada el contrato ya no existe y no entra aqui)
+  -- borrado en CASCADA del contrato: el contrato ya no existe cuando dispara la cascada, pero contrato_firmas tambien se borra en cascada y el orden entre las dos
+  -- cascadas depende del nombre RI_ConstraintTrigger_a_<oid> (no determinista): sin esta salida, borrar un contrato en ronda de firma podria fallar con 55000 (revision Seguridad 7-oct)
+  if tg_op = 'DELETE' and not exists (select 1 from public.contratos c where c.id = v_cid) then return old; end if;
+  -- contrato firmado o con alguna ronda de firma: el vinculo es historia (un DELETE directo sobre el vinculo tambien se rechaza)
   if exists (select 1 from public.contratos c where c.id = v_cid and c.bloqueado)
      or exists (select 1 from public.contrato_firmas f where f.contrato_id = v_cid) then
     raise exception 'Contrato firmado o en firma: su version de plantilla ya no cambia' using errcode = '55000';

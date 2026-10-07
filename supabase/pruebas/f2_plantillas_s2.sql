@@ -86,7 +86,7 @@ begin
   r := r || pg_temp.l(n = 0, 'A4 las 8 RPC son ejecutables por authenticated (cada una tiene su llamador)');
   select count(*) into n from pg_proc where pronamespace = 'public'::regnamespace and proname like 'plantilla_contrato_%' and prosecdef and not (proconfig @> array['search_path=""']);
   r := r || pg_temp.l(n = 0, 'A5 todas SECURITY DEFINER con search_path vacio');
-  select count(*) into n from pg_proc where pronamespace = 'public'::regnamespace and proname in ('_plantilla_hash', '_trg_plantilla_version_ins', '_trg_plantilla_version_upd', '_trg_plantilla_sin_borrado', '_trg_plantilla_cuerpo_iu', '_trg_contrato_plantilla_version', '_plantilla_esqueleto', '_plantilla_valida')
+  select count(*) into n from pg_proc where pronamespace = 'public'::regnamespace and proname in ('_plantilla_hash', '_trg_plantilla_version_ins', '_trg_plantilla_version_upd', '_trg_plantilla_sin_borrado', '_trg_plantilla_cuerpo_iu', '_trg_contrato_plantilla_version', '_plantilla_esqueleto', '_plantilla_exige_valido')
          and (has_function_privilege('anon', oid, 'execute') or has_function_privilege('authenticated', oid, 'execute'));
   r := r || pg_temp.l(n = 0, 'A6 las funciones internas y los triggers no son ejecutables por nadie del API');
   v := pg_temp.val(ctl_G.uid, ctl_G.em, 'select count(*) from public.plantilla_contrato_versiones');

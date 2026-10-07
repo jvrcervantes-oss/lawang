@@ -16,8 +16,10 @@ drop function if exists public.plantilla_contrato_cuerpo(text, uuid, text);
 drop function if exists public.plantilla_contrato_descarta_borrador(uuid);
 drop function if exists public.plantilla_contrato_activa(uuid, text, boolean);
 drop function if exists public.plantilla_contrato_guarda_borrador(text, text, text, text);
-drop function if exists public._plantilla_valida(text, text, text);
+drop function if exists public._plantilla_exige_valido(text, text, text);
 drop function if exists public._plantilla_esqueleto(text, text);
+-- la policy de versiones consulta contrato_plantilla_version: hay que quitarla ANTES o el DROP TABLE falla con 2BP01 (hallado en el ensayo de Seguridad, 7-oct)
+drop policy if exists "versiones: lectura por empresa" on public.plantilla_contrato_versiones;
 drop table if exists public.contrato_plantilla_version;
 drop table if exists public.plantilla_contrato_cuerpos;
 drop table if exists public.plantilla_contrato_versiones;

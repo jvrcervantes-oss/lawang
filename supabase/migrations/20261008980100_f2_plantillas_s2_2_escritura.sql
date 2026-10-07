@@ -20,7 +20,7 @@ $$;
 revoke all on function public._plantilla_esqueleto(text, text) from public, anon, authenticated, service_role;
 
 -- el validador de servidor (S3) manda; aqui solo se exige que exista y que diga ok
-create or replace function public._plantilla_valida(p_cuerpo text, p_empresa text, p_slug text) returns void
+create or replace function public._plantilla_exige_valido(p_cuerpo text, p_empresa text, p_slug text) returns void
 language plpgsql security definer set search_path = '' as $$
 declare r jsonb;
 begin
@@ -32,7 +32,7 @@ begin
     raise exception 'El texto no pasa la validacion: %', coalesce(left((select string_agg(e, ' | ') from (select jsonb_array_elements_text(r -> 'errores') e limit 5) q), 600), 'sin detalle') using errcode = '22023';
   end if;
 end $$;
-revoke all on function public._plantilla_valida(text, text, text) from public, anon, authenticated, service_role;
+revoke all on function public._plantilla_exige_valido(text, text, text) from public, anon, authenticated, service_role;
 
 create or replace function public.plantilla_contrato_guarda_borrador(p_empresa text, p_slug text, p_cuerpo text, p_motivo text)
  returns uuid language plpgsql security definer set search_path = '' as $$
@@ -52,7 +52,7 @@ begin
   v_bytes := pg_catalog.octet_length(p_cuerpo);
   if v_bytes > 1000000 then raise exception 'El texto supera el tope de 1 MB' using errcode = '22023'; end if;
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('plantilla/' || p_empresa || '/' || p_slug, 0));
-  perform public._plantilla_valida(p_cuerpo, p_empresa, p_slug);
+  perform public._plantilla_exige_valido(p_cuerpo, p_empresa, p_slug);
   v_hash := public._plantilla_hash(p_cuerpo);
   v_idiomas := array_remove(array[
     case when p_cuerpo like '%data-lang="es"%' then 'es' end,
@@ -98,7 +98,7 @@ begin
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('plantilla/' || v.empresa || '/' || v.slug, 0));
   select c.cuerpo_html into v_body from public.plantilla_contrato_cuerpos c where c.version_id = v.id;
   if v_body is null then raise exception 'La version no tiene cuerpo' using errcode = '55000'; end if;
-  perform public._plantilla_valida(v_body, v.empresa, v.slug);
+  perform public._plantilla_exige_valido(v_body, v.empresa, v.slug);
   update public.plantilla_contrato_versiones set estado = 'retirada', retirada_por = v_email, retirada_en = now()
    where empresa = v.empresa and slug = v.slug and estado = 'activa';
   update public.plantilla_contrato_versiones
