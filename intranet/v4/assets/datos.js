@@ -7455,7 +7455,7 @@
           caja.id = 'lw-mis-comisiones';
           caja.className = 'flex flex-col gap-4';
           var barra = document.getElementById('lw-eq-buscar');
-          var ancla = barra && barra.closest('[data-lw-ca-panel] > div');
+          var ancla = barra && barra.closest('[data-lw-panel] > div');
           function coloca() {
             if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(caja, ancla); else if (tablaEq) tablaEq.closest('section, div').before(caja);
           }
