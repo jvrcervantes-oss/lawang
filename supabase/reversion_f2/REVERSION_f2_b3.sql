@@ -169,6 +169,14 @@ select pg_temp.f2_edita('public.comunicacion_datos(integer,uuid)',
 revoke execute on function public.es_admin_en_alguna_empresa(), public.comparte_empresa_con(text) from lw_lector;
 
 -- (2) clientes: primero la rama en linea de cliente_visible vuelve a ser la llamada (migracion 6), luego se quita (migracion 2)
+select pg_temp.f2_edita('public.cliente_guarda(uuid,jsonb)',
+  $v$v_kyc_antes := coalesce(v_old.kyc_status, 'pending');
+    if public.es_admin_en_alguna_empresa() and not public.es_admin() and not public.admin_de_cliente(p_id, true)
+       and exists (select 1 from jsonb_object_keys(p_datos) k where k not in ('notes', 'idioma_comunicacion')) then
+      raise exception 'Este comprador tiene contratos o pagos en otra empresa: aqui solo puedes cambiar las notas y el idioma; su identidad y su KYC los toca un administrador de las dos empresas'
+        using errcode = '42501';
+    end if;$v$,
+  $n$v_kyc_antes := coalesce(v_old.kyc_status, 'pending');$n$);
 select pg_temp.f2_edita('public.comprador_buscar(text)',
   $v$where (not (select public.alcance_restringido()) or public.cliente_visible(c.propietario, c.id))
        and (c.full_name ilike '%'||btrim(p_q)||'%'$v$,

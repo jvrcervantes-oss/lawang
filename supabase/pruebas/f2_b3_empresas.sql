@@ -81,6 +81,8 @@ begin
   -- editar fichas
   r := r || pg_temp.t(ya, e_ya, format('select (public.cliente_guarda(%L, %L::jsonb) is not null)::text', cl, '{"notes":"prueba b3"}'), 'true', 'ya edita la ficha de su cliente') || E'\n';
   r := r || pg_temp.t(ya, e_ya, format('select (public.cliente_guarda(%L, %L::jsonb) is not null)::text', cb, '{"notes":"prueba b3"}'), 'true', 'ya edita la ficha del cliente compartido (la ficha es una; los contratos no)') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select (public.cliente_guarda(%L, %L::jsonb) is not null)::text', cb, '{"full_name":"CAMBIO B3"}'), '42501', 'ya NO cambia la identidad del cliente compartido (solo notas e idioma)') || E'
+';
   r := r || pg_temp.t(ya, e_ya, format('select (public.cliente_guarda(%L, %L::jsonb) is not null)::text', cs, '{"notes":"prueba b3"}'), '42501', 'ya NO edita la ficha del cliente de Sandal Woods') || E'\n';
   r := r || pg_temp.t(cr, e_cr, format('select (public.cliente_guarda(%L, %L::jsonb) is not null)::text', cl, '{"notes":"prueba b3"}'), '42501', 'cr NO edita la ficha del cliente de Lawang') || E'\n';
   r := r || pg_temp.t(ctl, e_ctl, format('select (public.cliente_guarda(%L, %L::jsonb) is not null)::text', cs, '{"kyc_status":"verified"}'), '42501', 'agente de control sigue sin aprobar KYC (o sin ver la ficha)') || E'\n';
