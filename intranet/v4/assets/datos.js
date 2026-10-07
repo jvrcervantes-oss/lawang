@@ -8922,6 +8922,41 @@
       }
       pintaSociedades();
 
+      /* Desglose por mes (7-oct-2026, owner): lo devengado cada mes por sociedad y
+         moneda, y cuánto de eso está ya cobrado. Misma regla de líneas que el resto
+         de la pantalla (ni anuladas ni abonos sin efecto); la comisión neta lleva
+         devengos + ajustes + abonos, y el fee va aparte. */
+      (function pintaMeses() {
+        var cuerpoMes = document.getElementById('lw-ca-meses');
+        if (!cuerpoMes) return;
+        var g = {};
+        lineas.filter(function (l) { return !l.anulada && !abonoSinEfecto(l); }).forEach(function (l) {
+          var mes = (l.devengado_el || '').slice(0, 7), k = mes + '|' + (l.sociedad || '');
+          var e = g[k] || (g[k] = { mes: mes, soc: l.sociedad || '', n: 0, base: {}, com: {}, fee: {}, cob: {}, pend: {} });
+          var m = l.moneda, imp = Number(l.importe || 0);
+          var suma = function (o, v) { o[m] = (o[m] || 0) + v; };
+          if (l.fee_id) suma(e.fee, imp);
+          else { if (l.tipo_linea === 'devengo') e.n++; suma(e.base, Number(l.base_total || 0)); suma(e.com, imp); }
+          if (l.estado === 'cobrada') suma(e.cob, imp);
+          else if (l.estado === 'pendiente' || l.estado === 'facturada') suma(e.pend, imp);
+        });
+        var cel = function (o, cls) {
+          var ks = Object.keys(o);
+          return '<td class="px-5 py-4 ' + (cls || 'font-body-md text-body-md text-on-surface-variant') + ' text-right">' +
+            (ks.length ? ks.sort().map(function (x) { return esc(fmt(o[x], x)); }).join('<br>') : '—') + '</td>';
+        };
+        var filas = Object.keys(g).map(function (k) { return g[k]; })
+          .sort(function (a, b) { return a.mes < b.mes ? 1 : a.mes > b.mes ? -1 : (a.soc < b.soc ? -1 : 1); });
+        cuerpoMes.innerHTML = filas.length ? filas.map(function (e) {
+          return '<tr class="border-b border-outline-variant/30">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(e.mes || '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(nombreSociedad(e.soc)) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + e.n + '</td>' +
+            cel(e.base) + cel(e.com, 'font-label-md text-label-md text-on-surface') + cel(e.fee) +
+            cel(e.cob, 'font-body-md text-body-md text-territorial-green') + cel(e.pend, 'font-body-md text-body-md text-burnt-earth') + '</tr>';
+        }).join('') : '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Todavía no hay nada devengado.</td></tr>';
+      })();
+
       if (selSoc) {
         var socs = {};
         lineas.forEach(function (l) { socs[l.sociedad || ''] = 1; });

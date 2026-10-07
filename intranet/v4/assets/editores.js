@@ -9177,6 +9177,69 @@
         });
       }
 
+      // ── Registrar cobro por importe (7-oct-2026, owner) ─────────────────────
+      /* «PT Tepi Sungai me liquida 1.940 €»: se teclea el importe y la BASE decide
+         qué líneas salda (las pendientes más antiguas, hasta cubrirlo EXACTO) —
+         no esta pantalla: el navegador no calcula qué se da por cobrado. Dos pasos
+         con la misma RPC: primero enseña las líneas, y solo al confirmar las marca.
+         Si ningún tramo suma justo, no marca nada y la base dice qué queda a cada
+         lado. */
+      ata('registrar-cobro', function () {
+        if (!superAdmin) return soloSuper();
+        var hoyBali = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
+        var fmtI = function (n, m) { return typeof lwFormatoImporte === 'function' ? lwFormatoImporte(n, m) : (n + ' ' + m); };
+        sb.from('sociedades').select('clave,label').eq('activa', true).order('label').then(function (r) {
+          if (r.error || !(r.data || []).length) {
+            return aviso('No se han podido leer las sociedades. Recarga la pantalla y prueba otra vez.', '#9E2F26');
+          }
+          modal('Registrar cobro', [
+            { k: 'sociedad', label: 'Sociedad que paga', tipo: 'select', req: 1, valor: '',
+              opciones: [['', '— elige —']].concat(r.data.map(function (x) { return [x.clave, x.label]; })) },
+            { k: 'moneda', label: 'Moneda', tipo: 'select', req: 1, valor: 'EUR', medio: 1,
+              opciones: [['EUR', 'EUR'], ['IDR', 'IDR']] },
+            { k: 'importe', label: 'Importe que te liquidan', req: 1, medio: 1,
+              ayuda: 'lo que ha entrado de verdad, p. ej. 1.940,00 (con coma para los decimales)' },
+            { k: 'fecha', label: 'Fecha en que entró el cobro', tipo: 'date', req: 1, medio: 1, valor: hoyBali,
+              ayuda: 'la del banco, no la de hoy si lo registras tarde: es la que cuenta para fiscalidad' },
+            { k: 'referencia', label: 'Referencia bancaria', medio: 1, ayuda: 'opcional' },
+            { k: 'fee', label: 'Incluir el fee fijo', tipo: 'check',
+              ayuda: 'por defecto solo cuentan comisiones; marca esto si el pago incluye también el fee' },
+            { k: 'nota', label: 'Nota', ayuda: 'opcional: queda escrita en el rastro de cada línea (p. ej. referencia de la transferencia)' },
+            { tipo: 'nota', label: 'Se saldan las líneas pendientes más antiguas de esa sociedad hasta cubrir el importe exacto. Aún no se marca nada: primero te enseño cuáles son.' }
+          ], 'Ver qué salda', function (v) {
+            var imp = typeof lwParseImporte === 'function' ? lwParseImporte(v.importe) : Number(String(v.importe).replace(',', '.'));
+            if (!(imp > 0)) return { error: { message: 'El importe no se entiende: escribe, por ejemplo, 1.940,00.' } };
+            var args = { p_sociedad: v.sociedad, p_moneda: v.moneda, p_importe: imp, p_fecha: v.fecha, p_referencia: (v.referencia || '').trim() || null, p_incluir_fee: !!v.fee, p_nota: (v.nota || '').trim() || null };
+            return rpc('comision_admin_registrar_cobro', Object.assign({ p_confirmar: false }, args)).then(function (res) {
+              if (res.error) return res;
+              var d = res.data, ls = d.lineas || [];
+              var etqSoc = (r.data.filter(function (x) { return x.clave === v.sociedad; })[0] || {}).label || v.sociedad;
+              var fila = function (l) {
+                var f = l.fecha ? l.fecha.split('-').reverse().join('/') : '—';
+                return '<tr><td style="padding:3px 8px 3px 0">' + esc(f) + '</td><td style="padding:3px 8px">' + esc(l.recibi || '') +
+                  (l.tipo === 'devengo' ? '' : ' <span style="opacity:.6">' + esc(l.tipo) + '</span>') + (l.revisar ? ' <span style="color:#9E2F26">revisar</span>' : '') + '</td><td style="padding:3px 8px;opacity:.7">' + esc(l.estado) +
+                  '</td><td style="padding:3px 0 3px 8px;text-align:right">' + esc(fmtI(l.importe, d.moneda)) + '</td></tr>';
+              };
+              modal('Confirmar cobro — ' + etqSoc, [
+                { tipo: 'lectura', label: 'Importe cobrado', medio: 1, valor: fmtI(d.importe, d.moneda) },
+                { tipo: 'lectura', label: 'Líneas que se marcan como cobradas', medio: 1, valor: String(d.n) },
+                { tipo: 'lectura', label: 'Fecha del cobro', medio: 1, valor: d.fecha.split('-').reverse().join('/') },
+                (d.sin_facturar || d.revisar) ? { tipo: 'nota', label:
+                  (d.sin_facturar ? d.sin_facturar + ' de estas líneas están PENDIENTES: se darían por cobradas sin haberse marcado como facturadas (' + fmtI(d.sin_facturar_importe, d.moneda) + '). ' : '') +
+                  (d.revisar ? d.revisar + ' llevan la marca «revisar»: mira por qué antes de darlas por saldadas.' : '') } : { tipo: 'nota', label: 'Todas estaban ya facturadas.' },
+                { tipo: 'custom', render: function (el) {
+                    el.innerHTML = '<div style="max-height:46vh;overflow:auto;font-size:13px"><table style="width:100%;border-collapse:collapse"><tbody>' +
+                      ls.map(fila).join('') + '</tbody></table></div>';
+                  } },
+                { tipo: 'nota', label: 'Al confirmar, estas líneas pasan a «Cobrada» y cada una deja su rastro (quién, cuándo y el motivo). Si algo no es lo que esperabas, cancela: no se ha marcado nada.' }
+              ], 'Marcar como cobradas', function () {
+                return rpc('comision_admin_registrar_cobro', Object.assign({ p_confirmar: true, p_ids: d.ids }, args));
+              });
+            });
+          }, { sinRecarga: true });
+        });
+      });
+
       // ── Fee fijo mensual (26-sep-2026, owner) ───────────────────────────────
       /* Append-only, como manda la tabla: no hay «editar». Cambiar el fee = uno
          nuevo con su fecha; dejar de cobrarlo = importe 0. La linea de cada mes
