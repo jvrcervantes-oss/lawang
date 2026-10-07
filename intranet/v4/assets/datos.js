@@ -6246,7 +6246,7 @@
       Promise.all([
         /* numero_usuario (USR-00001, 26-sep-2026, owner): lo pone la base al dar de alta y no cambia nunca
            (trg_usuarios_numero_usuario). */
-        q(sb.from('usuarios').select('user_id,numero_usuario,nombre,email,rol,activo,herramientas,proyectos,proyectos_supervisados,tipos_contrato,creado_en,creado_por').order('nombre'), 'usuarios', t),
+        q(sb.from('usuarios').select('user_id,numero_usuario,nombre,email,rol,activo,herramientas,proyectos,proyectos_supervisados,tipos_contrato,creado_en,creado_por,ambito,empresas,es_propietario').order('nombre'), 'usuarios', t),
         /* `enlace` es lo que hace que la auditoria sea navegable (owner: «que
            tenga enlaces vivos linkables»): la campana viva ya lo usa, aqui
            se leia solo el titulo. 30 y no 8: los que sobran de 6 se pliegan

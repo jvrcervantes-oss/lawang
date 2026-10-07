@@ -8062,7 +8062,7 @@
       var sb = aut.sb;
       // mismos 5 roles que /intranet/usuarios/ (ROLES) — antes solo llevaba
       // agente/admin/super_admin y sales_manager/project_manager no aparecían.
-      var ETIQ_ROL = { agente: 'Agente', sales_manager: 'Sales manager', project_manager: 'Project manager', admin: 'Administrador', super_admin: 'Super admin' };
+      var ETIQ_ROL = { agente: 'Agente', sales_manager: 'Sales manager', project_manager: 'Project manager', admin: 'Administrador', super_admin: 'Super admin', admin_empresa: 'Admin de empresa', super_admin_empresa: 'Super admin de empresa' };
       var ROLES_ED = ['agente', 'sales_manager', 'project_manager', 'admin'].concat(aut.ficha.rol === 'super_admin' ? ['super_admin'] : []);
       var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       window.LW_V4 = window.LW_V4 || {};
@@ -8254,8 +8254,12 @@
            Si la página no cargó herramientas.js se cae a la unión, y se nota. */
         Promise.all([
           (typeof LW_PERMISOS !== 'undefined') ? Promise.resolve({ data: null }) : sb.from('usuarios').select('herramientas'),
-          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'),
-          window.AXW_NUCLEO_OPERACION ? tiposErp() : Promise.resolve(undefined)
+          sb.from('proyectos').select('id,nombre,empresa').eq('activo', true).order('nombre'),
+          window.AXW_NUCLEO_OPERACION ? tiposErp() : Promise.resolve(undefined),
+          /* Paso 3 de «dos empresas» (7-oct-2026): solo el PROPIETARIO da nivel de empresa y empresas (la base lo exige
+             en usuario_da_alcance y en los triggers de usuarios; esto solo decide si se ofrece el campo). */
+          Promise.resolve(sb.rpc('mi_alcance')).then(function (r) { return (r && r.data) || null; }, function () { return null; }),
+          Promise.resolve(sb.from('empresas').select('clave,nombre').eq('activa', true).order('orden')).then(function (r) { return (r && r.data) || []; }, function () { return []; })
         ]).then(function (rs) {
           var ops;
           if (typeof LW_PERMISOS !== 'undefined') {
@@ -8292,13 +8296,28 @@
           }
           /* El ROL solo lo cambia un super_admin (viva: `fRol` disabled salvo
              soySuper). Un admin lo ve, no lo toca — y no viaja en el patch. */
-          var rolEditable = soySuper && !yoMismo;
+          var miAlc = rs[3], empresasCat = rs[4] || [];
+          var soyProp = !!(miAlc && miAlc.es_propietario);
+          var esRolEmpresa = function (r) { return r === 'admin_empresa' || r === 'super_admin_empresa'; };
+          /* El propietario ve ademas los dos niveles de empresa y el campo Empresas (a una persona de la intranet con
+             empresas marcadas solo se le dan proyectos de esas empresas). Un super admin que NO es propietario conserva
+             la lista de siempre; si la persona ya tiene un nivel de empresa, lo ve pero no lo toca. */
+          var rolesEd = ROLES_ED.concat(soyProp ? ['admin_empresa', 'super_admin_empresa'] : []);
+          var rolEditable = soySuper && !yoMismo && !(esRolEmpresa(u.rol) && !soyProp) && !u.es_propietario;
           var campos = [
             { k: 'nombre', label: 'Nombre', medio: 1, valor: u.nombre || '' },
             rolEditable
-              ? { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, opciones: ROLES_ED.map(function (r) { return [r, ETIQ_ROL[r] || r]; }), valor: u.rol }
+              ? { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, opciones: rolesEd.map(function (r) { return [r, ETIQ_ROL[r] || r]; }), valor: u.rol }
               : { tipo: 'lectura', label: 'Rol', medio: 1, valor: ETIQ_ROL[u.rol] || u.rol || '—' }
           ];
+          var empresasEditables = soyProp && !yoMismo && rolEditable && empresasCat.length > 0;
+          if (empresasEditables) {
+            campos.push({ k: 'empresas', label: 'Empresas', tipo: 'multicheck', opciones: empresasCat.map(function (e) { return [e.clave, e.nombre]; }),
+              valor: u.empresas || [],
+              ayuda: 'Un admin o super admin de empresa necesita al menos una. En un agente o manager, marcar empresas lo limita a ellas; sin marcar ninguna no tiene límite por empresa (como hasta ahora).' });
+          } else if ((u.empresas || []).length) {
+            campos.push({ tipo: 'lectura', label: 'Empresas', medio: 1, valor: (u.empresas || []).map(function (c) { var e = empresasCat.filter(function (x) { return x.clave === c; })[0]; return e ? e.nombre : c; }).join(', ') });
+          }
           if (yoMismo) {
             campos.push({ tipo: 'nota', label: 'Es tu propia cuenta: para no dejarte fuera por accidente, el rol y el estado activo no se tocan desde aquí.' });
           } else {
@@ -8339,6 +8358,17 @@
             if (!tiposOk) delete patch.tipos_contrato;
             if (!yoMismo) { patch.activo = v.activo; }
             if (rolEditable) { patch.rol = v.rol; }
+            /* Nivel de empresa y empresas: por usuario_da_alcance (rol + ambito + empresas de un golpe; la base solo deja al
+               propietario). Si cambia algo de eso, va PRIMERO y sale de `patch`: usuario_guarda_permisos no mueve el alcance. */
+            var empNuevas = empresasEditables ? (v.empresas || []) : (u.empresas || []);
+            var igualEmp = empNuevas.slice().sort().join(',') === (u.empresas || []).slice().sort().join(',');
+            var alcanceCambia = soyProp && rolEditable && v.rol !== 'super_admin' &&
+              (v.rol !== u.rol || !igualEmp) && (esRolEmpresa(v.rol) || esRolEmpresa(u.rol) || !igualEmp);
+            if (alcanceCambia) {
+              delete patch.rol;
+              var okEmp = empNuevas.length ? proyectos.filter(function (p) { return empNuevas.indexOf(p.empresa) !== -1; }).map(function (p) { return p.id; }) : null;
+              if (patch.proyectos && okEmp) patch.proyectos = patch.proyectos.filter(function (id) { return okEmp.indexOf(id) !== -1; });
+            }
             /* la proteccion real vive en la policy (super_admin intocable salvo
                super_admin, es_admin AND puede) — si esto falla por RLS, ese ES
                el mensaje, no un fallo del editor */
@@ -8346,7 +8376,16 @@
             // filas SIN error, y el editor diria «guardado» sobre nada.
             // por el servidor (LAW-336 pieza 7), siempre por user_id; sobre uno mismo solo el nombre (salvo super admin)
             if (yoMismo && !soySuper) patch = { nombre: patch.nombre };
-            return sb.rpc('usuario_guarda_permisos', { p_user_id: u.user_id, p_cambios: patch });
+            var pasoAlcance = alcanceCambia
+              ? Promise.resolve(sb.rpc('usuario_da_alcance', { p_user_id: u.user_id, p_rol: v.rol, p_empresas: empNuevas })).then(function (r) {
+                  if (!r.error && r.data && r.data.proyectos_quitados) aviso('Se han quitado ' + r.data.proyectos_quitados + ' proyecto(s) que no son de las empresas elegidas.', '#8A6A34');
+                  return r;
+                })
+              : Promise.resolve({});
+            return pasoAlcance.then(function (r) {
+              if (r && r.error) return r;
+              return sb.rpc('usuario_guarda_permisos', { p_user_id: u.user_id, p_cambios: patch });
+            });
           });
         });
       };
