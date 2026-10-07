@@ -1,3 +1,6 @@
+-- AVISO 7-oct-2026: el bloque 5 (descuento_comercial_construccion_valido) YA NO ES EL VIGENTE. Lo sustituye
+-- supabase/migrations/20261007005103_law494_construccion_un_parser_techo_en_update_volteo.sql (LAW-494: dos parsers,
+-- techo quitable en UPDATE y volteo de tipo). Indice de versiones: contracts/sql/descuento_comercial_construccion_valido.sql.
 -- destructivo-ok: no borra ni cambia ninguna fila. Endurece dos columnas sin nulos (0 de 38, medido), cambia la FK
 -- modelo_techos→modelos de CASCADE a RESTRICT (nadie borra modelos: 0 funciones lo hacen) y sustituye funciones.
 --
