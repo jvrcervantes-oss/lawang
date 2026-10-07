@@ -113,7 +113,7 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   assert.deepStrictEqual(w.calls.slice(7), ['from:documentos_desactualizados'], 'Lawang: nada más al cargar');
   assert.strictEqual(w.tabla.rows.length, 2, 'cabecera + 1 fila');
   w.tabla.rows.forEach((fl) => assert.deepStrictEqual(ocultas(fl), [false, false, false], 'Lawang: columnas visibles'));
-  assert.ok(!w.elementos['closest:[data-lw="k-capital"]:.shadow-sm'] || w.elementos['closest:[data-lw="k-capital"]:.shadow-sm'].style.display !== 'none', 'Lawang: la tarjeta de capital se ve');
+  assert.ok(!w.elementos['[data-lw-tarjeta="capital"]'] || w.elementos['[data-lw-tarjeta="capital"]'].style.display !== 'none', 'Lawang: la tarjeta de capital se ve');
   // ficha
   w.win.LW_V4.abreFichaComprador('c1'); await espera();
   let cuerpo = w.cajones[0].cuerpo;
@@ -136,7 +136,7 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   assert.ok(w.calls.indexOf('rpc:contrato_firmas_equipo') === -1, 'apagado: contrato_firmas_equipo no se llama');
   assert.strictEqual(w.tabla.rows.length, 2);
   w.tabla.rows.forEach((fl) => assert.deepStrictEqual(ocultas(fl), [true, true, true], 'apagado: columnas Proyecto(s), Inversión y Pagado OCULTAS (cabecera y filas)'));
-  assert.strictEqual(w.elementos['closest:[data-lw="k-capital"]:.shadow-sm'].style.display, 'none', 'apagado: tarjeta de capital oculta');
+  assert.strictEqual(w.elementos['[data-lw-tarjeta="capital"]'].style.display, 'none', 'apagado: tarjeta de capital oculta');
   ['cc-contrato', 'cc-firma', 'cc-prospectos'].forEach((k) => assert.strictEqual(w.elementos['closest:[data-lw="' + k + '"]:button'].style.display, 'none', 'apagado: filtro ' + k + ' oculto'));
   w.win.LW_V4.abreFichaComprador('c1'); await espera();
   cuerpo = w.cajones[0].cuerpo;

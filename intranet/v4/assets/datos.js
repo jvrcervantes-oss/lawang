@@ -2563,8 +2563,9 @@
         } else {
           /* Sin el módulo de contratos no hay capital ni cobrado: se OCULTA la tarjeta. Un «0 €» o un «—» leería
              «no han pagado nada» cuando lo cierto es «aquí no se mide». */
-          var kCap = document.querySelector('[data-lw="k-capital"]'), tarjetaCap = kCap && kCap.closest('.shadow-sm');
+          var tarjetaCap = document.querySelector('[data-lw-tarjeta="capital"]');   // ancla estable, nunca una clase de estilo
           if (tarjetaCap) tarjetaCap.style.display = 'none';
+          else console.error('[v4 datos] Clientes sin contratos: no encuentro [data-lw-tarjeta="capital"]; la tarjeta de capital queda a la vista');
         }
 
         // nacionalidades reales, no las cuatro del diseno
@@ -2590,6 +2591,7 @@
           ['cc-contrato', 'cc-firma', 'cc-prospectos'].forEach(function (k) {
             var sp = document.querySelector('[data-lw="' + k + '"]'), b = sp && sp.closest('button');
             if (b) b.style.display = 'none';
+            else console.error('[v4 datos] Clientes sin contratos: no encuentro el filtro [data-lw="' + k + '"]; queda a la vista');
           });
         }
         pon2('k-lista-pie', cs.length + (cs.length === 1 ? ' cliente' : ' clientes') + ' · pulsa uno para abrir su ficha');
@@ -2827,10 +2829,10 @@
             { texto: 'Editar datos', tono: 'primario', onClick: function () {
               if (window.LW_V4.abreEditaComprador) window.LW_V4.abreEditaComprador(c2);
               else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
-            } },
-            // pestaña nueva a proposito: quien repasa fichas no quiere perder la lista
-            { texto: 'Crear contrato', href: '/contracts/?cliente=' + encodeURIComponent(c2.id), nuevaPestana: true }
-          ].filter(function (a) { return conC || a.texto !== 'Crear contrato'; });
+            } }
+          ];
+          // pestaña nueva a proposito: quien repasa fichas no quiere perder la lista. Sin contratos no se ofrece (se decide por el módulo, nunca por el rótulo)
+          if (conC) acciones.push({ texto: 'Crear contrato', href: '/contracts/?cliente=' + encodeURIComponent(c2.id), nuevaPestana: true });
           /* Borrar: SOLO super_admin, calcado de la clásica — la puerta real es
              `borrar_comprador()` en la base (es_super_admin() + bloqueos por
              contrato/portal), esto solo evita ofrecer lo que fallaría. */
