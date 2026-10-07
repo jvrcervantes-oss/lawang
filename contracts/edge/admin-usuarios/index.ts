@@ -9,6 +9,14 @@
 // campo del body: un body es texto que escribe el cliente. Desplegar con
 // verify_jwt=false (la validación se hace dentro, para poder devolver errores
 // legibles en vez de un 401 opaco del gateway).
+//
+// 8-oct-2026 (Fase 2, bloque 5, «Lawang con dos empresas»): un admin_empresa / super_admin_empresa
+// puede ALTA (`crear`) y CLAVE (`password`) SOLO de personas de sus empresas. No lo decide esta edge ni el
+// body: lo decide la base con el JWT de quien llama (`usuario_alta_empresa`, `usuario_puede_poner_clave`).
+// La cuenta nueva nace de una sola vez con ambito global y empresas = las del que da el alta (o un subconjunto),
+// nunca con el marcador legacy app_metadata.agente (saltaría el filtro de empresa si algún día se borra su ficha).
+// El resto de acciones (solicitudes de alta, referidos, reenvío de enlace) NO tienen empresa de la que deducirlas
+// y quedan cerradas a los roles de empresa. No hay acción de borrar usuarios en esta edge.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
@@ -165,14 +173,25 @@ Deno.serve(async (req) => {
     const { data: ficha, error: eFicha } = await admin
       .from('usuarios').select('rol, activo, herramientas').eq('user_id', quien.user.id).maybeSingle();
     if (eFicha) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
-    if (!ficha || !ficha.activo || !['super_admin', 'admin'].includes(ficha.rol))
+    if (!ficha || !ficha.activo || !['super_admin', 'admin', 'admin_empresa', 'super_admin_empresa'].includes(ficha.rol))
       return json({ error: 'no_autorizado' }, 403);
     const soySuper = ficha.rol === 'super_admin';
-    if (!soySuper && !(ficha.herramientas ?? []).includes('usuarios'))
+    const esEmpresa = ficha.rol === 'admin_empresa' || ficha.rol === 'super_admin_empresa';
+    // un admin (global o de empresa) necesita la casilla «usuarios»; un super de empresa no (como el super global:
+    // la base lo decide con _gestor_empresas)
+    if (!soySuper && ficha.rol !== 'super_admin_empresa' && !(ficha.herramientas ?? []).includes('usuarios'))
       return json({ error: 'no_autorizado: te falta la herramienta «usuarios»' }, 403);
 
     const body = await req.json().catch(() => ({}));
     const accion = String(body.accion ?? '');
+    // Un rol de empresa solo da altas y pone claves (de su gente); lo demás es de toda la instancia: cerrado.
+    if (esEmpresa && !['crear', 'password'].includes(accion))
+      return json({ error: 'no_autorizado: esa acción es de un administrador global' }, 403);
+    // Cliente CON LA SESIÓN de quien llama: las puertas de empresa las decide la base con SU identidad.
+    const usuario = createClient(URL_SB, ANON, {
+      global: { headers: { Authorization: 'Bearer ' + jwt } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
     // ── crear usuario ────────────────────────────────────────────────────
     if (accion === 'crear') {
@@ -205,26 +224,45 @@ Deno.serve(async (req) => {
       if (!ROLES.includes(rol)) return json({ error: 'rol_invalido' }, 400);
       // Un admin no puede fabricar admins: sería una escalada de privilegio en
       // un clic. Solo el super_admin reparte poder.
-      if (rol !== 'agente' && !soySuper) return json({ error: 'solo_super_admin_crea_admins' }, 403);
+      if (rol !== 'agente' && !soySuper && !esEmpresa) return json({ error: 'solo_super_admin_crea_admins' }, 403);
+      // Un rol de empresa tampoco: solo agente (y, un super de empresa, sales_manager / project_manager); la base lo repite.
+      if (esEmpresa && !['agente', 'sales_manager', 'project_manager'].includes(rol))
+        return json({ error: 'solo_super_admin_crea_admins' }, 403);
+      // Empresas pedidas (opcional, solo un subconjunto de las suyas); la base las fija y rechaza las ajenas.
+      const empresasPedidas: string[] = Array.isArray(body.empresas) ? body.empresas.map(String) : [];
 
       const { data: creado, error: eCrear } = await admin.auth.admin.createUser({
         email, password, email_confirm: true,
         // el flag legacy se mantiene por compatibilidad con es_agente(): si un
         // día se borrara su ficha de `usuarios`, no queda una cuenta huérfana
         // sin poder entrar ni evidencia de qué era.
-        app_metadata: { agente: true },
+        // Las cuentas que da de alta un rol de empresa NO lo llevan: ese flag salta el filtro de empresa.
+        ...(esEmpresa ? {} : { app_metadata: { agente: true } }),
       });
       if (eCrear || !creado?.user) return json({ error: eCrear?.message ?? 'no_se_pudo_crear' }, 400);
 
-      const { error: eFila } = await admin.from('usuarios').insert({
-        user_id: creado.user.id, email, nombre, rol, herramientas, tipos_contrato, activo: true,
-        creado_por: quien.user.email ?? null,
-      });
-      if (eFila) {
-        // sin ficha, la cuenta existiría en auth pero sin permisos ni rastro en
-        // el panel: se deshace para no dejar usuarios fantasma
-        await admin.auth.admin.deleteUser(creado.user.id);
-        return json({ error: 'no_se_pudo_registrar: ' + eFila.message }, 500);
+      if (esEmpresa) {
+        // La ficha nace entera de una vez, con la sesión de quien da el alta: la base decide empresas, nivel y herramientas.
+        const { error: eAlta } = await usuario.rpc('usuario_alta_empresa', {
+          p_user_id: creado.user.id, p_email: email, p_nombre: nombre, p_rol: rol,
+          p_herramientas: herramientas, p_tipos_contrato: tipos_contrato, p_empresas: empresasPedidas,
+        });
+        if (eAlta) {
+          await admin.auth.admin.deleteUser(creado.user.id);   // sin ficha no queda una cuenta huérfana
+          const st = eAlta.code === '42501' ? 403 : eAlta.code === '22023' ? 400 : 500;
+          return json({ error: eAlta.code === '42501' ? 'no_autorizado: ' + eAlta.message : 'no_se_pudo_registrar: ' + eAlta.message }, st);
+        }
+      } else {
+        const { error: eFila } = await admin.from('usuarios').insert({
+          user_id: creado.user.id, email, nombre, rol, herramientas, tipos_contrato, activo: true,
+          creado_por: quien.user.email ?? null,
+        });
+        if (eFila) {
+          // sin ficha, la cuenta existiría en auth pero sin permisos ni rastro en
+          // el panel: se deshace para no dejar usuarios fantasma
+          await admin.auth.admin.deleteUser(creado.user.id);
+          return json({ error: 'no_se_pudo_registrar: ' + eFila.message }, 500);
+        }
       }
 
       // Correo de bienvenida (17-sep-2026, encargo del owner: avisar al alta).
@@ -445,13 +483,22 @@ Deno.serve(async (req) => {
       // pasaba. Y un admin solo con las de rango inferior: ni super_admin ni otro admin
       // (sí la suya propia). El super_admin puede con cualquiera del equipo.
       const { data: destino } = await admin.from('usuarios')
-        .select('rol, herramientas, proyectos, proyectos_supervisados, tipos_contrato').eq('user_id', user_id).maybeSingle();
+        .select('rol, herramientas, proyectos, proyectos_supervisados, tipos_contrato, es_propietario').eq('user_id', user_id).maybeSingle();
       if (!destino) return json({ error: 'no_es_cuenta_del_equipo' }, 403);
-      if (!soySuper && user_id !== quien.user.id && ['super_admin', 'admin'].includes(destino.rol))
+      // 8-oct-2026: la cuenta del propietario solo la toca él (hasta hoy un super admin global podía ponerle la clave y quedarse con ella).
+      if (destino.es_propietario && user_id !== quien.user.id)
+        return json({ error: 'no_autorizado: la cuenta del propietario solo la cambia él', ayuda: 'El propietario cambia su propia contraseña desde su perfil.' }, 403);
+      // Un rol de empresa solo con personas de sus empresas y herramientas suyas: lo decide la base con SU sesión.
+      if (esEmpresa && user_id !== quien.user.id) {
+        const { data: puedeClave, error: eClave } = await usuario.rpc('usuario_puede_poner_clave', { p_user_id: user_id });
+        if (eClave || puedeClave !== true)
+          return json({ error: 'no_autorizado: esa cuenta no es de tu equipo', ayuda: 'Solo la contraseña de personas de tus empresas con herramientas que tú tienes; el resto, un super admin.' }, 403);
+      }
+      if (!soySuper && !esEmpresa && user_id !== quien.user.id && ['super_admin', 'admin', 'admin_empresa', 'super_admin_empresa'].includes(destino.rol))
         return json({ error: 'no_autorizado' }, 403);
       // LAW-343 (27-sep-2026, Seguridad): poner la contraseña de una cuenta con herramientas que tú no tienes
       // es usarlas entrando con ella. Un admin no-super solo la cambia si todas las de esa cuenta son suyas.
-      if (!soySuper && user_id !== quien.user.id) {
+      if (!soySuper && !esEmpresa && user_id !== quien.user.id) {
         const mias = new Set((ficha.herramientas ?? []).map(String));
         const ajenas = ((destino.herramientas ?? []) as string[]).map(String).filter((h) => !mias.has(h));
         if (ajenas.length) return json({ error: 'cuenta_con_herramientas_que_no_tienes', detalle: ajenas,

@@ -76,9 +76,15 @@ Deno.serve(async (req) => {
     if (eUser || !quien?.user) return json({ error: 'sesion_invalida' }, 401);
 
     const { data: ficha, error: eFicha } = await admin
-      .from('usuarios').select('rol, activo, herramientas, email').eq('user_id', quien.user.id).maybeSingle();
+      .from('usuarios').select('rol, activo, herramientas, email, ambito, empresas').eq('user_id', quien.user.id).maybeSingle();
     if (eFicha) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
     if (!ficha || !ficha.activo) return json({ error: 'no_autorizado' }, 403);
+    // 8-oct-2026 (Fase 2, «Lawang con dos empresas»): el bot de WhatsApp es UNO y mezcla las conversaciones y las citas de
+    // las dos empresas, y su API no sabe de empresas. Quien tiene el alcance acotado (un rol de empresa, o una persona con
+    // empresas marcadas) NO pasa por aquí: dejarlo pasar le enseñaría las conversaciones de la otra empresa con solo tener
+    // la casilla «leads». Nace cerrado hasta que el bot filtre por empresa (LAW-E13, departamento Bots). Hoy nadie está acotado.
+    if (ficha.ambito === 'empresa' || (ficha.empresas ?? []).length > 0)
+      return json({ error: 'sin_permiso: el bot de WhatsApp atiende a las dos empresas; esta pantalla no está disponible con el alcance acotado a una empresa' }, 403);
     const esSuper = ficha.rol === 'super_admin';
     const puedeLeads = esSuper || (ficha.herramientas ?? []).includes('leads');
     const puedeClosers = esSuper || (ficha.herramientas ?? []).includes('closers');
