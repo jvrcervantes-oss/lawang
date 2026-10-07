@@ -119,7 +119,7 @@ for (const [f, html] of [['ppjb_parcela.html', PARCELA], ['ppjb_construccion.htm
 const tokens = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens.json'), 'utf8'));
 const campo = tokens.sections.flatMap(s => s.fields).find(x => x[0] === 'clausulas_negociadas');
 assert(campo && campo[2] === 'select' && campo[3].length === 2 && campo[3][0][0] === 'si' && campo[3][1][0] === 'rev04'
-  && ['poder_titular', 'finca_shm_nib'].every(k => tokens.sections.flatMap(x => x.fields).some(x => x[0] === k && x[2] === 'text')), 'tokens.json: clausulas_negociadas debe ser select con las opciones «si» (REV03) y «rev04»');
+  && ['poder_titular', 'poder_apoderado', 'finca_shm_nib'].every(k => tokens.sections.flatMap(x => x.fields).some(x => x[0] === k && x[2] === 'text')), 'tokens.json: clausulas_negociadas debe ser select con las opciones «si» (REV03) y «rev04»');
 n++;
 // 4b. Es OPCIONAL: el candado «Faltan por rellenar» no puede exigirlo (5-oct-2026: a un agente le salía).
 assert(/const CAMPOS_OPCIONALES = new Set\(\[[^\]]*'clausulas_negociadas'/.test(app), 'app.html: clausulas_negociadas tiene que estar en CAMPOS_OPCIONALES (vacío = estándar, no «falta»)');
@@ -182,7 +182,7 @@ const TABANAN = ['Juzgado de Distrito de Tabanan (Pengadilan Negeri Tabanan)', '
 const REV04 = {
   'ppjb_parcela.html': [
     'Surat Kuasa (poder de venta) de fecha 16 de septiembre de 2025', 'by virtue of the Surat Kuasa (power of sale) dated 16 September 2025',
-    'berdasarkan Surat Kuasa tertanggal 16 September 2025', 'a favor de D. PABLO CANTERO GAMBÍN', 'in favour of Mr. PABLO CANTERO GAMBÍN', 'kepada Tn. PABLO CANTERO GAMBÍN',
+    'berdasarkan Surat Kuasa tertanggal 16 September 2025', 'a favor de D. {{poder_apoderado}}', 'in favour of Mr. {{poder_apoderado}}', 'kepada Tn. {{poder_apoderado}}',
     'correspondiente a la finca con certificado ' + FINCA, 'corresponding to the land under certificate ' + FINCA, 'sesuai dengan tanah bersertifikat ' + FINCA,
     'procedente de la finca con certificado ' + FINCA, 'originating from the land under certificate ' + FINCA, 'berasal dari tanah bersertifikat ' + FINCA,
     'El PROMOTOR asumirá el PPh correspondiente al arrendamiento', 'The DEVELOPER shall bear the PPh corresponding to the lease', 'PENGEMBANG menanggung PPh atas sewa',
