@@ -395,7 +395,10 @@ function hitosBodyHTML(){
 /* Repinta también las tarjetas de forma de pago (solo si cambia lo que enseñan): abrir un contrato guardado, derivarlo, guardarlo o cambiar de
    idioma cambian CALENDARIO/LOCKED y todos pasan por aquí. Sin esto las tarjetas se quedaban con la forma de
    pago del borrador por defecto (revisor de código, 28-sep). */
-function refreshHitos(){ const b=$('[data-sec="pagos"] .hitos-body'); if(b) b.innerHTML=hitosBodyHTML(); refreshFormaPago(); }
+/* Al repintar se vuelve a aplicar el rol (7-oct-2026): hitosBodyHTML() pinta los botones de admin ocultos y el aviso
+   «es cosa de administración» visible, y solo updateSaveButton() lo corrige según el rol. Sin esta llamada, tras guardar o
+   cambiar de idioma un admin veía el aviso y no los botones. updateSaveButton() no llama a refreshHitos(): no hay bucle. */
+function refreshHitos(){ const b=$('[data-sec="pagos"] .hitos-body'); if(b) b.innerHTML=hitosBodyHTML(); refreshFormaPago(); if(typeof updateSaveButton === 'function') updateSaveButton(); }
 
 /* Cantidad de cada hito "calculado" — ver la nota grande de arriba. Se
    recalcula en dos momentos: cuando `precio_total` cambia (enganchado en
