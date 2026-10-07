@@ -1,10 +1,10 @@
 -- Reversion del bloque 2 (DINERO) de la Fase 2 (8-oct-2026): facturas, recibis, proformas, solicitudes de pago y retenciones, gastos, proveedores, bancos, cuentas de cobro y sociedades por empresa.
--- Deja la base como estaba justo antes de las migraciones 20261008200000..20261008206000 (+ las dos correcciones 4b y 5b aplicadas en vivo, ver mas abajo):
+-- Deja la base como estaba justo antes de las migraciones 20261008200000..20261008206000 (incluida la correccion 4b):
 --   1. reaplica, desde public._f2_b2_originales (instantanea tomada por la migracion 0 con pg_get_functiondef / pg_policies en vivo), las 34 funciones y las 12 policies que el bloque cambio;
 --   2. borra las funciones nuevas del bloque (todas con su llamador: ayudas privadas y envoltorios de policies);
 --   3. quita proveedores.empresa SOLO si ninguna fila la usa (si la usa, la deja y avisa: es dato del cliente, no se destruye).
 -- Valida mientras nadie use un rol de empresa en dinero; si alguien ya emitio/gasto/concilio con un rol de empresa, esas filas se quedan (la reversion no toca datos).
--- Las tablas auxiliares public._f2_b2_originales y public._f2_b2_prueba NO se borran aqui (la instantanea es la fuente de esta reversion): se retiran cuando el bloque lleve una semana estable (ultimas lineas).
+-- La tabla auxiliar public._f2_b2_originales NO se borra aqui (la instantanea es la fuente de esta reversion): se retira cuando el bloque lleve una semana estable (ultima linea). La tabla temporal de la prueba ya se borro.
 -- destructivo-ok: reaplica definiciones, borra funciones propias del bloque (no datos) y, solo si esta vacia, una columna nueva del bloque
 begin;
 
@@ -60,4 +60,3 @@ commit;
 
 -- Cuando el bloque lleve una semana estable (y ya no haga falta poder volver atras):
 --   drop table public._f2_b2_originales;
---   drop table public._f2_b2_prueba;

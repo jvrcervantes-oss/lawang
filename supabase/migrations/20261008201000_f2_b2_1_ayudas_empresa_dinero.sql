@@ -82,8 +82,8 @@ language sql stable security definer set search_path = '' as $$
 
 create or replace function public.gasto_ruta_visible(p_ruta text) returns boolean
 language sql stable security definer set search_path = '' as $$
-  select split_part(p_ruta, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-     and public.gasto_id_visible(split_part(p_ruta, '/', 1)::uuid) $$;
+  select case when split_part(p_ruta, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+              then public.gasto_id_visible(split_part(p_ruta, '/', 1)::uuid) else false end $$;
 
 create or replace function public.proveedor_visible(p_empresa text) returns boolean
 language sql stable security definer set search_path = '' as $$
