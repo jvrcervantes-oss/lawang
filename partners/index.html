@@ -21,7 +21,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300..500,0..1&display=swap" rel="stylesheet">
 <style>
 /* The Seasons (owner 7-oct-2026): hoy solo en los nombres de proyecto y en las piezas serif sueltas;
-   los titulares h1/h2/h3 van en Neue Kabel Bold (bloque del final del <head>). Regular para 100-600 y
+   los titulares h1/h2/h3 van en Neue Kabel Medium (bloque del final del <head>). Regular para 100-600 y
    Bold para 700-900, sin cursiva propia: la cursiva usa el fichero Regular, y font-synthesis:none impide que el navegador la
    engorde o la incline. Es la versión DEMO: no trae tildes, ñ, ¿, € ni «», y pinta un sello «DEMO»
    en ! " # $ % & ' ( ) * + - / 4 < = > @ [ \ ] ^ _ { | } ~ (fontTools, 7-oct). El unicode-range solo
@@ -712,14 +712,14 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
    ganar por orden a las reglas de cada componente; los pesos llevan !important porque varios
    componentes fijan 600/700 con mas especificidad (.cierre h2, #hero .cap h1). */
 h1,h2,h3,.shead .num,.gestion__datos b,.glosario dt,.camino__pct,.tc .pct b{font-family:'Neue Kabel',var(--ff-b)}
-h1,h2,h3{font-weight:700!important} /* negrita en los tres niveles (owner 7-oct-2026) */
+h1,h2,h3{font-weight:500!important} /* Neue Kabel Medium en los tres niveles (owner 7-oct-2026, elegido sobre la pagina real) */
 h1 .nk,h2 .nk,h3 .nk{font-weight:inherit} /* la palabra pasada a Neue Kabel va en el peso de su titular */
 .shead .num{font-weight:300!important}
 .gestion__datos b,.camino__pct,.tc .pct b{font-weight:500!important}
 .glosario dt{font-weight:400}
 #hero .cap h1{font-size:clamp(30px,3.35vw,46px)}
 #hero .cap h1 em,.cierre h2 em{font-style:normal;font-weight:inherit} /* la pagina solo declara la cursiva Regular de Neue Kabel: el realce va por color, en el peso del titular (como se eligio en el afinador) */
-.proys .villa .b h3{font-family:var(--ff-h)}
+.proys .villa .b h3{font-family:var(--ff-h);font-weight:400!important} /* nombres de proyecto: The Seasons Regular */
 </style>
 </head>
 <body>
