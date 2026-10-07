@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="40997caa1c1b">
+<meta name="lw-version" content="20481053b48f">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -785,10 +785,13 @@
   .ct-firma-tx p{ margin:0; font-size:13.5px; line-height:1.5; color:#5C4632; }
   .ct-firma-acc, .ct-acciones{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   .ct-firma-acc .btn-borde, .ct-firma-acc .btn-oscuro, .ct-acciones .btn-borde, .ct-acciones .btn-oscuro{ min-height:44px; box-sizing:border-box; display:inline-flex; align-items:center; text-decoration:none; }
-  /* «Ver borrador» se ve más (owner, 7-oct-2026): fondo blanco, borde y texto en teal y un ojo; sigue por debajo de «Firmar ahora». */
-  .btn-borde.ct-borrador{ gap:8px; background:#fff; color:var(--dl); border:1.5px solid var(--dl); font-weight:600; }
-  .btn-borde.ct-borrador:hover{ background:#EEF3F1; }
-  .btn-borde.ct-borrador:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  /* «Ver borrador» y «Firmar ahora» en el MISMO rojo que los avisos de Inicio (owner, 7-oct-2026): firmar es lo
+     urgente de las dos pantallas y tiene que leerse igual en las dos. Valores de `.ini-tarea .btn-*`. */
+  .btn-oscuro.ct-firmar{ background:var(--bad); border-color:var(--bad); color:#fff; }
+  .btn-oscuro.ct-firmar:hover{ background:#86271f; border-color:#86271f; }
+  .btn-borde.ct-borrador{ gap:8px; background:#fff; color:var(--bad); border:1.5px solid var(--bad); font-weight:600; }
+  .btn-borde.ct-borrador:hover{ background:#fdf6f4; }
+  .btn-oscuro.ct-firmar:focus-visible, .btn-borde.ct-borrador:focus-visible{ outline:2px solid var(--bad); outline-offset:2px; }
   .ct-etq{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
   .ct-etq.firma{ background:rgba(184,99,29,.16); color:#8F4A12; }
 
@@ -2045,7 +2048,7 @@
           '<h2 id="ct-firma-' + i + '">' + esc(titulo) + '</h2>' + (meta ? '<p>' + meta + '</p>' : '') + '</div>' +
         '<div class="ct-firma-acc">' +
           (fp.enlace ? '<button type="button" class="btn-borde ct-borrador" data-borrador="' + esc(fp.enlace) + '">' + ICO_OJO + esc(t('ver_borrador')) + '</button>' +
-            '<a class="btn-oscuro" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' : '') +
+            '<a class="btn-oscuro ct-firmar" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' : '') +
         '</div></section>';
     }).join('');
 
@@ -2177,7 +2180,7 @@
       var acciones = '<div class="ct-acciones">' +
         (x.pdf ? '<button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button>' : '') +
         (fp && fp.enlace ? '<button type="button" class="btn-borde ct-borrador" data-borrador="' + esc(fp.enlace) + '">' + ICO_OJO + esc(t('ver_borrador')) + '</button>' +
-          '<a class="btn-oscuro" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' : '') +
+          '<a class="btn-oscuro ct-firmar" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' : '') +
         '<button type="button" class="btn-borde" data-pregunta-contrato="' + esc(x.id) + '">' + esc(t('preguntar_contrato')) + '</button></div>';
 
       return '<section class="ct-card' + (!x.firmado ? ' pend' : '') + (sustituido ? ' sust' : '') + '" id="ct-' + esc(x.id) + '">' + cab + cuerpo + acciones + '</section>';
