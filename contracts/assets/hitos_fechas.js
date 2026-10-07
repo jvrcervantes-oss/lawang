@@ -491,7 +491,7 @@ function recalcularMontosHitos(){
    inglés y el indonesio tras «EN·ID ▸»: quien cambiaba «Preparación del terreno» por «Estructura»
    dejaba el indonesio con el texto de fábrica, y el contrato decía dos fases distintas según el idioma
    (CC00124, Hito 1 al 50 %; el indonesio es el que prevalece, Art. 3). Al cambiar el español de un hito
-   que ya traía inglés o indonesio, se abre su fila EN·ID y no se guarda hasta que se hayan revisado.
+   que ya traía inglés o indonesio, se abre su fila EN·ID y sale un aviso. Desde el 7-oct-2026 NO bloquea el guardado (owner).
    Es estado de pantalla (WeakMap), nunca un campo del hito: no viaja al documento ni a la base. */
 const HITO_TRAD_PENDIENTE = new WeakMap();
 function hitoAbreEnId(i){

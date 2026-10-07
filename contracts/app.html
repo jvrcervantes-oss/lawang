@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="f74268970fe6">
+<meta name="lw-version" content="dd8ce72531e4">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -88,7 +88,7 @@
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d86e607e"></script>
-<script src="assets/hitos_fechas.js?v=2eb6d789"></script>
+<script src="assets/hitos_fechas.js?v=86d66d4c"></script>
 <script src="assets/entidades_pago.js?v=9237aa1c"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -4814,15 +4814,8 @@ async function guardarContrato(){
      que puede estar mal. Un calendario enteramente sin % (Σ=0) se sigue
      guardando igual que siempre — no es que "esté bien", es que la norma no
      aplica a un calendario que nunca quiso ser un reparto porcentual. */
-  if(SECTIONS.some(s => s.special === 'hitos') && HITOS.length && typeof hitoTraduccionPendiente === 'function'){
-    const pend = hitoTraduccionPendiente();
-    if(pend >= 0){
-      avisoNoGuardado(lwT('Cambiaste el concepto en español del hito') + ' ' + (pend + 1) + ': ' + lwT('revisa su inglés y su indonesio antes de guardar (entra en cada campo y corrígelo si hace falta).'));
-      hitoAbreEnId(pend);
-      const el = document.getElementById(hid(pend,'id')); if(el) el.focus();
-      return;
-    }
-  }
+  /* Concepto de un hito cambiado en español: ya no frena el guardado (owner, 7-oct-2026: «quitar el bloqueo y dejar solo el aviso»).
+     El aviso lo da hitoCambioConcepto() al editar; el guardado sigue libre. */
   if(SECTIONS.some(s => s.special === 'hitos') && HITOS.length){
     const haySuma = HITOS.some(h => parseFloat(h.pct) > 0);
     const suma = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0), 0);
