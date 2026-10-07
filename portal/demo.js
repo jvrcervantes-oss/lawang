@@ -16,7 +16,6 @@
 (function () {
   'use strict';
   var EMAIL = 'demo@example.invalid', PASS = 'Lawang-demo-2026', CLAVE = 'lw-demo-sesion';
-  window.LW_DEMO = { email: EMAIL, password: PASS };
 
   var DIA = 86400000, HOY = Date.now();
   function iso(n) { return new Date(HOY + n * DIA).toISOString(); }
@@ -243,7 +242,8 @@
     var caja = document.querySelector('#vLogin .caja'); if (!caja) return;
     var ayuda = document.createElement('div'); ayuda.className = 'lw-demo-ayuda';
     ayuda.innerHTML = '<b>Portal de demostración con datos ficticios.</b><br>Usuario <code>' + EMAIL + '</code><br>Contraseña <code>' + PASS + '</code><br><button type="button" id="lwDemoEntrar">Entrar con el usuario de demo</button>';
-    caja.insertBefore(ayuda, caja.firstChild.nextSibling ? caja.children[2] || null : null);
+    var rot = caja.querySelector('.rot');   // la ayuda va justo debajo de «Área de clientes»
+    caja.insertBefore(ayuda, rot ? rot.nextSibling : caja.firstChild);
     document.getElementById('lwDemoEntrar').addEventListener('click', function () {
       var f = document.getElementById('fLoginPass'), toggle = document.getElementById('togglePass');
       if (f && f.hidden && toggle) toggle.click();
@@ -252,4 +252,8 @@
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca); else arranca();
+
+  /* LA MARCA VA LA ÚLTIMA: index.html la usa para saber que el demo cargó ENTERO (cliente falso puesto y red cerrada). Si algo
+     de lo de arriba lanza, no queda puesta y el portal falla cerrado en vez de crear el cliente real con `?demo`. */
+  window.LW_DEMO = { email: EMAIL, password: PASS };
 })();
