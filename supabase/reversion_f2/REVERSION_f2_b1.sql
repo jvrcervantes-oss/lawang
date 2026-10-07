@@ -175,4 +175,17 @@ select pg_temp.parchea('public.libera_reserva(uuid,uuid,text,text)'::regprocedur
 drop function public.super_de_contrato(uuid);
 drop function public._empresa_fila_contrato(uuid, text);
 
+-- ===================== PARTE 3: super de empresa sin casillas (migracion 20261008100200) =====================
+select pg_temp.parchea('public.unidades_importa(jsonb)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('unidades')$q$, $q$public.puede('unidades')$q$);
+select pg_temp.parchea('public.unidad_guarda(uuid,jsonb,text)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('unidades')$q$, $q$public.puede('unidades')$q$);
+select pg_temp.parchea('public._contrato_anexo_check(uuid)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('contratos')$q$, $q$public.puede('contratos')$q$);
+select pg_temp.parchea('public.contrato_poder_vincula(uuid)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('contratos')$q$, $q$public.puede('contratos')$q$);
+select pg_temp.parchea('public.contrato_guarda(uuid,jsonb)'::regprocedure,
+  $q$public._puede_herr_o_super_empresa('contratos')$q$, $q$public.puede('contratos')$q$);
+drop function public._puede_herr_o_super_empresa(text);
+
 commit;
