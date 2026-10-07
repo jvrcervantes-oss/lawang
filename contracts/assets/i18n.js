@@ -4342,6 +4342,8 @@
     'Descuento (%)': 'Discount (%)',
     'El cliente paga una reserva y aparta la parcela unos días.': 'The client pays a deposit and holds the plot for a few days.',
     'El descuento comercial no puede superar el 15% del precio del suelo.': 'The commercial discount cannot exceed 15% of the land price.',
+    'El descuento comercial no puede superar el 50% del precio del suelo.': 'The commercial discount cannot exceed 50% of the land price.',
+    'El descuento comercial no puede superar el 50% del precio de techo + extras.': 'The commercial discount cannot exceed 50% of the roof + extras price.',
     'El descuento comercial solo lo ponen un Sales Manager o administración.': 'Only a Sales Manager or admin can set a commercial discount.',
     'El precio es el del suelo en el inventario. Un descuento comercial resta de él.': 'The price is the land price in the inventory. A commercial discount is taken off it.',
     'Empezar una venta nueva': 'Start a new sale',
