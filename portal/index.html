@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="2def57df5cc7">
+<meta name="lw-version" content="694a659213ae">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -556,6 +556,14 @@
   .proy-cab-info h2{ margin:0 0 6px; font-size:22px; font-weight:500; overflow-wrap:anywhere; }
   .proy-cab-info .proy-meta{ font-size:13.5px; margin-top:2px; }
   @media (max-width:760px){ .proy-cab{ grid-template-columns:1fr; } }
+
+  @media (max-width:640px){
+    .proy-grid{ grid-template-columns:1fr; gap:10px; }
+    .proy-card{ flex-direction:row; align-items:stretch; }
+    .proy-card .proy-portada{ aspect-ratio:auto; width:96px; flex:none; }
+    .proy-card .proy-inicial{ font-size:30px; }
+    .proy-card .proy-cuerpo{ padding:10px 12px; }
+  }
 </style>
 </head>
 <body>
@@ -749,6 +757,7 @@
          no_ficha:'Tu acceso no está ligado todavía a ninguna ficha. Escríbenos y lo revisamos.',
          nov_factura:'Nueva factura disponible: ', nov_obra:'Novedades de obra en ', nov_doc_caduca:'Tu {doc} caduca en {n} días',
          cat_pagos:'Pagos', cat_documentacion:'Documentación', cat_obra:'Obra', cat_otro:'Otro', cat_general:'General', ph_correo:'tu@correo.com',
+         doc_zip_externos:'Los documentos que son un enlace externo no se incluyen en el archivo.',
          proyectos_titulo:'Tus proyectos', ver_documentos:'Ver documentos', ver_ubicacion:'Ver ubicación',
          todos_proyectos:'Todos los proyectos', n_docs_1:'1 documento', n_docs_n:'{n} documentos', sin_docs_proyecto:'Sin documentos todavía',
          entrega_proyecto:'Entrega estimada', pagado_de:'{a} de {b} pagado', descargar_carpeta:'Descargar carpeta', fase_obra:'Obra',
@@ -826,6 +835,7 @@
          no_ficha:'Your access is not linked to a record yet. Write to us and we will check it.',
          nov_factura:'New invoice available: ', nov_obra:'Construction update on ', nov_doc_caduca:'Your {doc} expires in {n} days',
          cat_pagos:'Payments', cat_documentacion:'Documents', cat_obra:'Construction', cat_otro:'Other', cat_general:'General', ph_correo:'you@email.com',
+         doc_zip_externos:'Documents that are external links are not included in the file.',
          proyectos_titulo:'Your projects', ver_documentos:'View documents', ver_ubicacion:'View location',
          todos_proyectos:'All projects', n_docs_1:'1 document', n_docs_n:'{n} documents', sin_docs_proyecto:'No documents yet',
          entrega_proyecto:'Estimated handover', pagado_de:'{a} of {b} paid', descargar_carpeta:'Download folder', fase_obra:'Construction',
@@ -903,6 +913,7 @@
          no_ficha:'Akses Anda belum terhubung ke data mana pun. Tulis ke kami dan kami akan memeriksanya.',
          nov_factura:'Faktur baru tersedia: ', nov_obra:'Kabar pembangunan di ', nov_doc_caduca:'{doc} Anda berakhir dalam {n} hari',
          cat_pagos:'Pembayaran', cat_documentacion:'Dokumen', cat_obra:'Pembangunan', cat_otro:'Lainnya', cat_general:'Umum', ph_correo:'anda@email.com',
+         doc_zip_externos:'Dokumen berupa tautan eksternal tidak disertakan dalam berkas.',
          proyectos_titulo:'Proyek Anda', ver_documentos:'Lihat dokumen', ver_ubicacion:'Lihat lokasi',
          todos_proyectos:'Semua proyek', n_docs_1:'1 dokumen', n_docs_n:'{n} dokumen', sin_docs_proyecto:'Belum ada dokumen',
          entrega_proyecto:'Perkiraan serah terima', pagado_de:'{a} dari {b} lunas', descargar_carpeta:'Unduh folder', fase_obra:'Pembangunan',
@@ -1341,10 +1352,11 @@
         '<button type="button" class="btn-oscuro" data-ir="contratos">' + esc(t('firma_banner_btn')) + '</button></div>'
       : '';
     var carpetas = carpetasProyecto();
-    var proyectosHTML = carpetas.length
-      ? '<div class="rot-bloque">' + esc(t('proyectos_titulo')) + '</div><div class="proy-grid">' + carpetas.map(function(f){
+    var carpetasInicio = carpetas.filter(function(f){ return (f.contratos || []).length; });
+    var proyectosHTML = carpetasInicio.length
+      ? '<div class="rot-bloque">' + esc(t('proyectos_titulo')) + '</div><div class="proy-grid">' + carpetasInicio.map(function(f){
           var rs = resumenPortal(f.contratos || []);
-          var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(Boolean);
+          var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(function(u, i, a){ return u && a.indexOf(u) === i; });
           var obraU = (d.obra || []).filter(function(o){ return (f.contratos || []).some(function(x){ return x.numero === o.contrato_numero; }); })[0];
           var fase = obraU ? (d.fases || []).filter(function(ff){ return ff.clave === obraU.fase; })[0] : null;
           return '<button type="button" class="proy-card" data-carpeta="' + esc(f.key) + '">' + portadaHTML(f, 'proy-portada') +
@@ -1355,7 +1367,7 @@
               ? '<div class="proy-meta">' + esc(t('pagado_de').replace('{a}', dinero(rs.cobrado, rs.moneda)).replace('{b}', dinero(rs.total, rs.moneda))) + '</div>' +
                 '<div class="barra"><i style="width:' + Math.min(100, Math.round(rs.cobrado / rs.total * 100)) + '%"></i></div>' : '') +
             (fase ? '<div class="proy-meta">' + esc(t('fase_obra')) + ': <b>' + esc(Lx(fase)) + '</b></div>' : '') +
-            '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' · ' + esc(t('ver_documentos')) + ' →</div></div></button>';
+            (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' · ' + esc(t('ver_documentos')) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></button>';
         }).join('') + '</div>'
       : '';
     var heroPago = '<div class="tarjeta hero-pago"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
@@ -1373,7 +1385,6 @@
         '<p>' + esc(t('saludo_sub')) + '</p></div>' +
       bannerFirma +
       heroPago +
-      proyectosHTML +
       (tot != null && tot > 0 ? '<div class="kpis">' +
         '<div class="tarjeta kpi"><div class="lbl">' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</div><div class="val">' + esc(dinero(tot,mon)) + '</div></div>' +
         '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pagado')) + '</div><div class="val ok">' + esc(dinero(cob,mon)) + '</div></div>' +
@@ -1391,13 +1402,13 @@
                 res.excluidos.map(function(x){ return x.numero || '—'; }).join(', ') + '.') + '</p>'
             : ''))
       : '') +
+      proyectosHTML +
       '<div class="tarjeta" style="margin-bottom:28px"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
         (novedades.length ? novedades.map(function(x){
           return '<div class="novedad"><span class="novedad-punto"></span><div>' + esc(x.texto) + '</div></div>';
         }).join('') : '<p style="font-size:13px;color:var(--out);margin:0">—</p>') +
       '</div>' +
       '<div class="accesos">' +
-        '<button type="button" class="acceso" data-ir="documentos"><div class="t">' + esc(t('acc_documentos')) + '</div><div class="s">' + esc(t('acc_documentos_sub')) + '</div></button>' +
         '<button type="button" class="acceso" data-ir="soporte"><div class="t">' + esc(t('acc_soporte')) + '</div><div class="s">' + esc(t('acc_soporte_sub')) + '</div></button>' +
       '</div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
@@ -1747,6 +1758,7 @@
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Lawang - ' + nom + '.zip';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      if (rutas.length < lista.length) toast(t('doc_zip_externos'));
     }).catch(function(e){
       console.error('zip documentos', e);
       toastMal(t(e && e.message === 'tope' ? 'doc_zip_tope' : 'doc_zip_err'));
