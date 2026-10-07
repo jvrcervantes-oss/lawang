@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="9b8d039fea67">
+<meta name="lw-version" content="cce896aca0be">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -48,6 +48,7 @@
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/portal/resumen.js?v=20260914"></script>
 <script src="/portal/zip.js?v=20261007"></script>
+<script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
 <script src="/intranet/facturas/documento.js?v=638be339"></script>
 <style>
@@ -572,6 +573,85 @@
     .kpi .lbl{ font-size:10.5px; letter-spacing:.06em; }
     .kpi .val{ font-size:19px; overflow-wrap:anywhere; }
   }
+
+  /* ═══ MOVIMIENTO Y ESTILO (7-oct-2026, owner: «gran mejora, impleméntalo todo») ═══
+     Prototipo aprobado: artifact «Portal del cliente: movimiento y estilo». El movimiento lo pone motion.js; aquí solo
+     el estilo y los estados de reposo. Un único momento fuerte por pantalla: el próximo pago. */
+  :root{ --lw-ease:cubic-bezier(.23,1,.32,1); }
+
+  /* próximo pago: bloque lagoon con el importe grande (neutro si no hay pago pendiente) */
+  .hero-pago:not(.vacio){ background:var(--dl); border-color:var(--dl); color:#fff; padding:28px 32px; }
+  .hero-pago:not(.vacio) .rot-bloque{ color:rgba(255,255,255,.85); }
+  .hero-pago:not(.vacio) .hp-concepto{ font-size:20px; }
+  .hero-pago:not(.vacio) .hp-sub{ color:rgba(255,255,255,.85); font-size:13px; }
+  .hero-pago:not(.vacio) .hp-importe{ color:#fff; font-size:clamp(34px,11vw,60px); font-weight:500; letter-spacing:-.01em; white-space:nowrap; }
+  .hero-pago:not(.vacio) .hp-importe.largo{ font-size:clamp(30px,8.5vw,44px); }
+  .hero-pago:not(.vacio) .btn-oscuro{ background:#fff; color:var(--dl); border-color:#fff; }
+  .hero-pago:not(.vacio) .btn-oscuro:hover{ background:#e8f0ee; }
+  .hero-pago:not(.vacio) .btn-borde{ background:transparent; color:#fff; border-color:rgba(255,255,255,.45); }
+  .hero-pago:not(.vacio) .btn-borde:hover{ background:rgba(255,255,255,.1); }
+  .hero-pago:not(.vacio) :focus-visible{ outline-color:#fff; }
+
+  /* resumen en un solo panel con filetes */
+  .kpis{ gap:0; border:1px solid var(--pg-hi); border-radius:12px; background:var(--rl); overflow:hidden; }
+  .kpis .tarjeta{ border:0; border-radius:0; background:transparent; padding:20px 24px; }
+  .kpis .tarjeta + .tarjeta{ border-left:1px solid var(--pg-hi); }
+  .kpi .val{ font-size:38px; font-weight:500; }
+
+  /* títulos con salto de escala; más aire en escritorio */
+  .titulo-sec h2{ font-size:34px; font-weight:500; line-height:1.15; letter-spacing:-.005em; }
+  .titulo-sec p{ font-size:14.5px; margin-top:6px; }
+  @media (min-width:881px){ .content{ padding:30px 32px 56px; } }
+
+  /* portadas 4:3 y tarjetas con vida */
+  .proy-portada, .proy-portada-grande{ aspect-ratio:4/3; }
+  .proy-card{ transition:transform .35s var(--lw-ease), border-color .2s, background .2s; }
+  .proy-card:hover{ transform:translateY(-3px); border-color:var(--linea); }
+  .proy-card:active{ transform:translateY(-1px) scale(.995); }
+  .proy-portada img, .proy-portada-grande img{ transition:transform .8s var(--lw-ease); }
+  .proy-card:hover .proy-portada img{ transform:scale(1.045); }
+  .docfila{ transition:background .15s, padding-left .25s var(--lw-ease); }
+  .docfila:hover{ background:var(--pg-low); padding-left:22px; }
+  .btn-borde, .btn-oscuro, .btn-primario{ transition:background .15s, border-color .15s, transform .2s var(--lw-ease); }
+  .btn-borde:active, .btn-oscuro:active, .btn-primario:active{ transform:scale(.97); }
+  .ver-todos{ margin:-12px 0 26px; }
+  @media (min-width:641px){
+    .proy-grid.muchos .proy-card:nth-child(n+7){ display:none; }
+    .ver-todos.solo-movil{ display:none; }
+  }
+
+  /* menú: el indicador del item activo se desliza (lo crea motion.js; sin él, el activo conserva su fondo) */
+  #nav{ position:relative; }
+  .nav-ind{ position:absolute; left:0; right:0; top:0; background:#485B37; border-radius:12px; z-index:0; pointer-events:none; }
+  html.lw-mov .navrow{ position:relative; z-index:1; }
+  html.lw-mov .navrow.on, html.lw-mov .navrow.on:hover{ background:transparent; }
+
+  /* campana y paso actual de la línea de tiempo */
+  .ico-campana{ transform-origin:50% 8%; }
+  .tl-paso.actual{ position:relative; }
+  .tl-paso.actual::after{ content:""; position:absolute; inset:-2px; border-radius:14px; border:2px solid #485B37; opacity:0; pointer-events:none; }
+  .tl-paso.actual.pulso::after{ animation:lw-pulso 1.4s var(--lw-ease) 1; }
+  @keyframes lw-pulso{ 0%{ transform:scale(1); opacity:.55; } 100%{ transform:scale(1.18); opacity:0; } }
+
+  /* móvil */
+  @media (max-width:880px){
+    .titulo-sec h2{ font-size:28px; }
+    .hero-pago:not(.vacio){ padding:22px 20px; }
+  }
+  @media (max-width:640px){
+    .proy-grid.muchos .proy-card:nth-child(n+4){ display:none; }
+    .kpis{ gap:0; }
+    .kpis .tarjeta{ padding:12px; }
+    .kpi .val{ font-size:19px; }
+  }
+
+  /* quien pide menos movimiento: todo quieto; solo se conserva el cambio de color al pasar el ratón */
+  @media (prefers-reduced-motion:reduce){
+    .proy-card, .proy-portada img, .proy-portada-grande img, .docfila, .btn-borde, .btn-oscuro, .btn-primario{ transition:none; }
+    .proy-card:hover, .proy-card:active, .proy-card:hover .proy-portada img, .btn-borde:active, .btn-oscuro:active, .btn-primario:active{ transform:none; }
+    .docfila:hover{ padding-left:18px; }
+    .tl-paso.actual.pulso::after{ animation:none; }
+  }
 </style>
 </head>
 <body>
@@ -766,6 +846,7 @@
          nov_factura:'Nueva factura disponible: ', nov_obra:'Novedades de obra en ', nov_doc_caduca:'Tu {doc} caduca en {n} días',
          cat_pagos:'Pagos', cat_documentacion:'Documentación', cat_obra:'Obra', cat_otro:'Otro', cat_general:'General', ph_correo:'tu@correo.com',
          doc_zip_externos:'Los documentos que son un enlace externo no se incluyen en el archivo.',
+         ver_todos:'Ver todos ({n})',
          proyectos_titulo:'Tus proyectos', ver_documentos:'Ver documentos', ver_ubicacion:'Ver ubicación',
          todos_proyectos:'Todos los proyectos', n_docs_1:'1 documento', n_docs_n:'{n} documentos', sin_docs_proyecto:'Sin documentos todavía',
          entrega_proyecto:'Entrega estimada', pagado_de:'{a} de {b} pagado', descargar_carpeta:'Descargar carpeta', fase_obra:'Obra',
@@ -844,6 +925,7 @@
          nov_factura:'New invoice available: ', nov_obra:'Construction update on ', nov_doc_caduca:'Your {doc} expires in {n} days',
          cat_pagos:'Payments', cat_documentacion:'Documents', cat_obra:'Construction', cat_otro:'Other', cat_general:'General', ph_correo:'you@email.com',
          doc_zip_externos:'Documents that are external links are not included in the file.',
+         ver_todos:'View all ({n})',
          proyectos_titulo:'Your projects', ver_documentos:'View documents', ver_ubicacion:'View location',
          todos_proyectos:'All projects', n_docs_1:'1 document', n_docs_n:'{n} documents', sin_docs_proyecto:'No documents yet',
          entrega_proyecto:'Estimated handover', pagado_de:'{a} of {b} paid', descargar_carpeta:'Download folder', fase_obra:'Construction',
@@ -922,6 +1004,7 @@
          nov_factura:'Faktur baru tersedia: ', nov_obra:'Kabar pembangunan di ', nov_doc_caduca:'{doc} Anda berakhir dalam {n} hari',
          cat_pagos:'Pembayaran', cat_documentacion:'Dokumen', cat_obra:'Pembangunan', cat_otro:'Lainnya', cat_general:'Umum', ph_correo:'anda@email.com',
          doc_zip_externos:'Dokumen berupa tautan eksternal tidak disertakan dalam berkas.',
+         ver_todos:'Lihat semua ({n})',
          proyectos_titulo:'Proyek Anda', ver_documentos:'Lihat dokumen', ver_ubicacion:'Lihat lokasi',
          todos_proyectos:'Semua proyek', n_docs_1:'1 dokumen', n_docs_n:'{n} dokumen', sin_docs_proyecto:'Belum ada dokumen',
          entrega_proyecto:'Perkiraan serah terima', pagado_de:'{a} dari {b} lunas', descargar_carpeta:'Unduh folder', fase_obra:'Pembangunan',
@@ -967,6 +1050,7 @@
             { style:'currency', currency:(moneda || 'EUR'), maximumFractionDigits:0, useGrouping:'always' }).format(n); }
     catch(e){ return n.toLocaleString() + ' ' + (moneda || ''); }
   }
+  if (window.LW_MOV) LW_MOV.formatoDinero = function(n, m){ return dinero(n, m); };
   function fecha(f){
     if (!f) return '';
     var d = new Date(f); if (isNaN(d)) return esc(f);
@@ -1166,6 +1250,7 @@
     // nada, ni bloquea nada más de la pantalla.
     if (ESTADO.notifOpen) sb.rpc('portal_marcar_notificaciones_leidas').then(function(){}).catch(function(){});
     pintaCampana();
+    if (ESTADO.notifOpen && window.LW_MOV) LW_MOV.abrePanel(document.getElementById('notifDrop'));
   });
   document.addEventListener('click', function(e){
     if (ESTADO.notifOpen && !e.target.closest('.campana')){ ESTADO.notifOpen = false; pintaCampana(); }
@@ -1289,6 +1374,7 @@
     var novedades = novedadesDerivadas();
     var sinLeer = visto ? novedades.filter(function(x){ return x.cuando > visto; }).length : novedades.length;
     n.hidden = !sinLeer; n.textContent = sinLeer;
+    if (window.LW_MOV) LW_MOV.campana(document.getElementById('btnNotif'), sinLeer);
     drop.hidden = !ESTADO.notifOpen;
     if (ESTADO.notifOpen){
       drop.innerHTML = '<div class="cab"><span>' + esc(t('novedades')) + '</span></div>' +
@@ -1312,7 +1398,18 @@
                 documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
     c.innerHTML = '';
     (fns[ESTADO.section] || pintaInicio)(c);
+    /* Movimiento (motion.js). Se anima solo si cambia la clave «sección|carpeta»: un repintado por idioma, por recarga
+       de datos, al abrir o cerrar un documento o un cajón NO la cambia y no mueve nada. */
+    try {
+      if (window.LW_MOV){
+        var clave = LW_MOV.claveVista(ESTADO.section, leeHash().doc);
+        var cambia = clave !== ULTIMA_VISTA; ULTIMA_VISTA = clave;
+        LW_MOV.menu(document.getElementById('nav'), cambia);
+        if (cambia) LW_MOV.pantalla(c, ESTADO.section);
+      }
+    } catch (e){ console.error('movimiento', e); /* MUDO A PROPOSITO: el movimiento es un adorno; si falla, la pantalla ya está pintada y funciona igual, y el detalle va a la consola */ }
   }
+  var ULTIMA_VISTA = '';
 
   function vacio(titulo, texto){
     return '<div class="tabla-caja"><div class="vacio"><b>' + esc(titulo) + '</b>' + esc(texto) + '</div></div>';
@@ -1362,7 +1459,7 @@
     var carpetas = carpetasProyecto();
     var carpetasInicio = carpetas.filter(function(f){ return (f.contratos || []).length; });
     var proyectosHTML = carpetasInicio.length
-      ? '<div class="rot-bloque">' + esc(t('proyectos_titulo')) + '</div><div class="proy-grid">' + carpetasInicio.map(function(f){
+      ? '<div class="rot-bloque">' + esc(t('proyectos_titulo')) + '</div><div class="proy-grid' + (carpetasInicio.length > 3 ? ' muchos' : '') + '">' + carpetasInicio.map(function(f){
           var rs = resumenPortal(f.contratos || []);
           var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(function(u, i, a){ return u && a.indexOf(u) === i; });
           var obraU = (d.obra || []).filter(function(o){ return (f.contratos || []).some(function(x){ return x.numero === o.contrato_numero; }); })[0];
@@ -1376,13 +1473,16 @@
                 '<div class="barra"><i style="width:' + Math.min(100, Math.round(rs.cobrado / rs.total * 100)) + '%"></i></div>' : '') +
             (fase ? '<div class="proy-meta">' + esc(t('fase_obra')) + ': <b>' + esc(Lx(fase)) + '</b></div>' : '') +
             (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' · ' + esc(t('ver_documentos')) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></button>';
-        }).join('') + '</div>'
+        }).join('') + '</div>' +
+        // con más de 3 proyectos solo se ven los primeros (3 en móvil, 6 en escritorio) y un enlace a todos
+        (carpetasInicio.length > 3 ? '<button type="button" class="btn-borde ver-todos' + (carpetasInicio.length <= 6 ? ' solo-movil' : '') + '" data-ir="documentos">' + esc(t('ver_todos').replace('{n}', carpetasInicio.length)) + '</button>' : '')
       : '';
-    var heroPago = '<div class="tarjeta hero-pago"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
+    var impTxt = (proximo && !isNaN(proximo.monto)) ? dinero(proximo.monto, proximo.moneda) : '—';
+    var heroPago = '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
       (proximo ?
         '<div class="hp-fila"><div class="hp-info"><div class="hp-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
           '<div class="hp-sub">' + esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato) + '</div></div>' +
-          '<div class="hp-importe">' + (isNaN(proximo.monto) ? '—' : esc(dinero(proximo.monto, proximo.moneda))) + '</div></div>' +
+          '<div class="hp-importe' + (impTxt.length > 11 ? ' largo' : '') + '"' + (isNaN(proximo.monto) ? '' : ' data-cuenta="' + proximo.monto + '" data-moneda="' + esc(proximo.moneda || '') + '"') + '>' + esc(impTxt) + '</div></div>' +
         '<div class="hp-acciones"><button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>' +
           '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('ver_plan')) + '</button></div>'
         : '<p style="font-size:13.5px;color:var(--ink2);margin:0">' + esc(t('sin_proximo')) + '</p>') +
@@ -1394,9 +1494,9 @@
       bannerFirma +
       heroPago +
       (tot != null && tot > 0 ? '<div class="kpis">' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</div><div class="val">' + esc(dinero(tot,mon)) + '</div></div>' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pagado')) + '</div><div class="val ok">' + esc(dinero(cob,mon)) + '</div></div>' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pendiente')) + '</div><div class="val">' + esc(dinero(res.pendiente,mon)) + '</div></div>' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</div><div class="val" data-cuenta="' + tot + '" data-moneda="' + esc(mon || '') + '">' + esc(dinero(tot,mon)) + '</div></div>' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pagado')) + '</div><div class="val ok" data-cuenta="' + cob + '" data-moneda="' + esc(mon || '') + '">' + esc(dinero(cob,mon)) + '</div></div>' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pendiente')) + '</div><div class="val" data-cuenta="' + res.pendiente + '" data-moneda="' + esc(mon || '') + '">' + esc(dinero(res.pendiente,mon)) + '</div></div>' +
       '</div>' +
       /* El rótulo tiene que nombrar lo que de verdad suma. Una cifra que no
          cuadra con su propio rótulo es una cifra en la que se deja de confiar
@@ -1420,7 +1520,7 @@
         '<button type="button" class="acceso" data-ir="soporte"><div class="t">' + esc(t('acc_soporte')) + '</div><div class="s">' + esc(t('acc_soporte_sub')) + '</div></button>' +
       '</div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
-    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ vasA('documentos', b.getAttribute('data-carpeta')); }); });
+    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
     cargaPortadas(c);
   }
 
@@ -1676,7 +1776,7 @@
         (x.resort ? '<div class="proy-meta">' + esc(x.resort) + '</div>' : '') +
         '<div class="proy-meta proy-enlace">' + esc(x.docs.length ? nDocsTxt(x.docs.length) : t('sin_docs_proyecto')) + ' →</div></div></button>';
     }).join('') + '</div>';
-    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ vasA('documentos', b.getAttribute('data-carpeta')); }); });
+    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
     cargaPortadas(c);
   }
   function pintaCarpeta(c, f){
@@ -1970,7 +2070,9 @@
   }
 
   /* ══ DRAWER genérico ═════════════════════════════════════════════════ */
+  var CAJON_TK = 0, CAJON_CERRANDO = false;
   function abreDrawer(html, clase){
+    CAJON_TK++; CAJON_CERRANDO = false;
     document.getElementById('drawerVelo').hidden = false;
     var dr = document.getElementById('drawer');
     dr.className = 'drawer' + (clase ? ' ' + clase : '');
@@ -1978,10 +2080,16 @@
     dr.innerHTML = '<div class="drawer-cerrar"><button type="button" id="btnCerrarDrawer">✕</button></div>' + html;
     document.getElementById('btnCerrarDrawer').addEventListener('click', cierraDrawer);
     document.getElementById('drawerVelo').onclick = cierraDrawer;
+    if (window.LW_MOV) LW_MOV.cajon(dr, document.getElementById('drawerVelo'), true);
   }
   function cierraDrawer(){
-    document.getElementById('drawerVelo').hidden = true;
-    document.getElementById('drawer').hidden = true;
+    var velo = document.getElementById('drawerVelo'), dr = document.getElementById('drawer');
+    if (!CAJON_CERRANDO){
+      var tk = ++CAJON_TK;
+      var fin = function(){ if (tk === CAJON_TK){ velo.hidden = true; dr.hidden = true; CAJON_CERRANDO = false; } };
+      if (dr.hidden || !window.LW_MOV) fin();
+      else { CAJON_CERRANDO = true; LW_MOV.cajon(dr, velo, false, fin); }
+    }
     var r = leeHash();
     if (r.doc) vasA(r.sec, null);
   }
