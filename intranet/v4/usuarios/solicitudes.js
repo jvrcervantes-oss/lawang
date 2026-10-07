@@ -1,11 +1,11 @@
 /* Solicitudes de alta y contactos de referidos (24-sep-2026).
  *
  * Llegan desde la guía /partners/ por la edge pública `alta-colaborador`:
- *   · COMERCIAL (5 %) → `solicitudes_colaborador`. Nadie entra a la intranet sin
+ *   · COMERCIAL (5-7 % + 3 % por objetivos) → `solicitudes_colaborador`. Nadie entra a la intranet sin
  *     el clic «Activar» de aquí (revisión previa #61): la cuenta la crea la edge
  *     admin-usuarios, accion 'activar_solicitud', y el comercial recibe un correo
  *     para crear su contraseña.
- *   · REFERIDO (1 %) → `referidos_contactos`, sin cuenta. Aquí solo se marca si
+ *   · REFERIDO (2 %) → `referidos_contactos`, sin cuenta. Aquí solo se marca si
  *     ya está en el CRM o se descarta; `referido_email` es la atribución.
  *
  * Fichero propio de la página (no datos.js/editores.js): lo pinta todo con
@@ -176,7 +176,7 @@
     function pintaReferidos() {
       window.lwDatos('referidos_datos', { p_limit: 100 }).then(function (r) {
         cabecera(sec2, 'Contactos de referidos',
-          'Clientes que te pasan los referidos (1 %) desde la guía, sin cuenta en la intranet. El referido queda anotado como quien lo trajo: dalo de alta en el CRM y márcalo aquí.');
+          'Clientes que te pasan los referidos (2 %) desde la guía, sin cuenta en la intranet. El referido queda anotado como quien lo trajo: dalo de alta en el CRM y márcalo aquí.');
         if (r.error) { sec2.appendChild(el('p', 'text-error', 'No se han podido cargar: ' + (r.error.message || 'sin respuesta'))); return; }
         var filas = r.data.referidos || [];
         if (r.data.siguiente) sec2.appendChild(el('p', 'font-body-sm text-body-sm text-outline mb-3', 'Se enseñan los 100 más recientes.'));
