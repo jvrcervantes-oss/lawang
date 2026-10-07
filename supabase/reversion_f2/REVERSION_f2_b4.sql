@@ -1,7 +1,7 @@
 -- Reversion del BLOQUE 4 (Fase 2 empresas · comisiones, equipos de venta y condiciones), migraciones 20261008400100..400500 (8-oct-2026).
 -- Devuelve funciones y policies a la version viva de antes del bloque (parches inversos, con la misma comprobacion de marcas) y retira las copias de sandal_woods.
 -- VALE MIENTRAS NADIE TENGA ROL DE EMPRESA y mientras nada cuelgue de las copias (el propio script lo comprueba y se niega si una venta, un devengo o una linea del libro ya usa una copia).
--- No se ensayo sobre produccion: es la receta inversa de las migraciones; si hay que usarla, ensayarla antes en una transaccion con rollback.
+-- Ensayada el 8-oct-2026 en una transaccion con rollback sobre produccion: devuelve identicas las dos fotos de los 34 usuarios. Antes de usarla de verdad, repetir ese ensayo.
 -- destructivo-ok: borra las filas copiadas para sandal_woods (equipos, miembros, plantillas, condiciones, tramos, tarifa) y las columnas empresa creadas en el bloque
 begin;
 
