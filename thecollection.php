@@ -155,7 +155,7 @@ if ($prop) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20261007105049">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20261006155431">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -1260,8 +1260,8 @@ window.LW_COLECCION_PRELOAD=<?= json_encode(lw_coleccion_para_navegador($doc), J
 <?php if ($V2): ?>window.LW_COLECCION_V2=true; /* ruta de prueba: las fichas se abren con #property/<id> en esta misma URL */<?php endif; ?>
 </script>
 <?php endif; ?>
-<script src="assets/lawang-card.js?v=20261007105049"></script>
-<script src="assets/portfolio-app.js?v=20261007105049"></script>
+<script src="assets/lawang-card.js?v=20261006171014"></script>
+<script src="assets/portfolio-app.js?v=20261006171014"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
