@@ -324,6 +324,11 @@
     /* data-ambito="global" (7-oct-2026): pantallas de la INSTANCIA (Ajustes, mantenimiento…): un rol de empresa no entra
        aunque cuente como admin. Es la puerta de la cáscara; el candado de los datos es la base. */
     if (AMBITO_REQ === 'global' && !LW_ROL.esGlobal(ficha)) return false;
+    /* data-ambito="super-global" (Comisión de administración, 7-oct-2026, owner: «como Ajustes, solo acceso yo, no un super admin de empresa»):
+       solo los super admins GLOBALES (propietario, Andrea, Pepito); un super de empresa no entra. data-ambito="propietario" (Sociedades
+       emisoras): solo el propietario. Es la puerta de la cáscara; el candado de los datos es la base (es_super_admin() / es_propietario()). */
+    if (AMBITO_REQ === 'super-global' && !LW_ROL.esSuperGlobal(ficha)) return false;
+    if (AMBITO_REQ === 'propietario' && !LW_ROL.esPropietario(ficha)) return false;
     var rol = LW_ROL.efectivo(ficha);   // admin_empresa cuenta como admin, super_admin_empresa como super_admin
     if (rol === 'super_admin') return true;
     if (ROLES_REQ.length === 1 && ROLES_REQ[0] === 'super_admin') return false;
@@ -451,7 +456,7 @@
            columnas (el ERP maestro hasta que se porte) contestaría con error: se repite la lectura sin ellas y la ficha
            queda como siempre (todo global). Es la única lectura de la ficha de toda la suite. */
         var COLS = 'rol, herramientas, activo, nombre, notif_visto_hasta';
-        sb.from('usuarios').select(COLS + ', ambito, empresas')
+        sb.from('usuarios').select(COLS + ', ambito, empresas, es_propietario')
           .eq('user_id', sesion.user.id).maybeSingle()
           .then(function (f) {
             if (f && f.error && !f.data) return sb.from('usuarios').select(COLS).eq('user_id', sesion.user.id).maybeSingle();

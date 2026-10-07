@@ -8742,10 +8742,10 @@
      escribir una columna: una emite el abono si ya estaba facturada, y la otra
      guarda la versión anterior de la tarifa antes de pisarla. */
   REG['comision-admin'] = function (sb) {
-    /* Super admin, no admin: la RLS de las dos tablas exige `es_super_admin()`,
-       asi que un admin normal veria la pantalla montarse y todas las consultas
+    /* Super admin GLOBAL, no admin ni super de empresa (7-oct-2026, owner): la RLS de las tablas exige `es_super_admin()`,
+       asi que otro rol veria la pantalla montarse y todas las consultas
        devolver vacio — que se lee como «no hay nada» y no como «no es para ti». */
-    if (!(window.LW_V4 && window.LW_V4.esSuperAdmin)) { notaSoloAdmin(); return; }
+    if (!(window.LW_V4 && window.LW_V4.esSuperGlobal)) { notaSoloAdmin(); return; }
 
     /* Pestañas (7-oct-2026, owner: la pantalla era muy larga). Arriba se queda lo que se mira siempre (tarifa,
        lo que te deben, previsiones); debajo, UNA sección cada vez. Cada sección lleva data-lw-ca-panel y cada botón
@@ -9882,7 +9882,7 @@
   }
 
   REG['sociedades'] = function (sb) {
-    if (!(window.LW_V4 && window.LW_V4.esSuperAdmin)) { notaSoloAdmin(); return; }
+    if (!(window.LW_V4 && window.LW_V4.esPropietario)) { notaSoloAdmin(); return; }   // solo el propietario (7-oct-2026, owner); la base: es_propietario()
 
     var cuerpoLista = document.getElementById('lw-soc-lista');
     var cuerpoLog = document.getElementById('lw-soc-log');
@@ -10234,6 +10234,7 @@
       // lo que es de TODA la instancia (Ajustes, mantenimiento, tarifa, tablero CRM…): solo quien no es de empresa
       window.LW_V4.esGlobal = LW_ROL.esGlobal(aut.ficha);
       window.LW_V4.esSuperGlobal = LW_ROL.esSuperGlobal(aut.ficha);
+      window.LW_V4.esPropietario = LW_ROL.esPropietario(aut.ficha);
       window.LW_V4.empresasMias = LW_ROL.empresas(aut.ficha);
       // la ficha de sesion entera (herramientas incluidas), para quien decida por ella
       window.LW_V4.ficha = aut.ficha || null;

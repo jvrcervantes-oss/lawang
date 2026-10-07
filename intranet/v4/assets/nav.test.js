@@ -95,6 +95,13 @@ const casaAmbito = (e, donde) => {
   if (e.global && (!q || q.ambito !== 'global')) errores.push(`MENU_V4 ${donde}: es de la instancia (global: true) y la puerta de ${e.path}/ no lleva data-ambito="global"`);
   if (!e.global && q && q.ambito === 'global') errores.push(`MENU_V4 ${donde}: la puerta de ${e.path}/ es global (data-ambito) y el menú no lo marca global: true`);
 };
+/* `solo` (7-oct-2026, owner): Comisión de administración = «super-global», Sociedades emisoras = «propietario». La puerta de la página lleva
+   el mismo data-ambito, o el menú la esconde y la URL directa la abre. */
+const casaSolo = (e, donde) => {
+  const q = e.path && puerta(e.path);
+  if (e.solo && (!q || q.ambito !== e.solo)) errores.push(`MENU_V4 ${donde}: es solo «${e.solo}» y la puerta de ${e.path}/ lleva data-ambito «${(q && q.ambito) || '—'}»`);
+  if (!e.solo && q && (q.ambito === 'super-global' || q.ambito === 'propietario')) errores.push(`MENU_V4 ${donde}: la puerta de ${e.path}/ es «${q.ambito}» y el menú no lo marca solo: '${q.ambito}'`);
+};
 MENU.forEach(s => s.entradas.forEach(e => {
   const donde = `${s.seccion} › ${e.texto}`;
   // `mismaCasilla` (30-sep-2026, Emitir contrato): la entrada abre con la casilla de OTRA entrada a propósito;
@@ -102,9 +109,18 @@ MENU.forEach(s => s.entradas.forEach(e => {
   if (e.clave && !e.mismaCasilla) enMenu.push(e.clave);
   (e.claves || []).forEach(c => enMenu.push(c.clave));
   (e.extra || []).forEach(c => enMenu.push(c.clave));
-  if (e.path) { casaPuerta(e.path, e.clave || (e.claves || []).map(c => c.clave).join(','), e.rol, donde); casaAmbito(e, donde); }
+  if (e.path) { casaPuerta(e.path, e.clave || (e.claves || []).map(c => c.clave).join(','), e.rol, donde); casaAmbito(e, donde); casaSolo(e, donde); }
   (e.pestanas || []).forEach(t => { enMenu.push(t.clave); casaPuerta(t.path, t.clave, t.rol, donde + ' › ' + t.texto); });
 }));
+/* El menú lateral injertado (PANEL_CONTROL_SUPER) tiene que decir lo mismo que MENU_V4 y que la puerta: cada entrada con su `solo` (7-oct-2026). */
+{
+  const bloque = (nav.match(/var PANEL_CONTROL_SUPER = \[([\s\S]*?)\];/) || [])[1] || '';
+  const dePanel = {};
+  (bloque.match(/\{[^}]*\}/g) || []).forEach(o => { dePanel[(o.match(/path: '([^']+)'/) || [])[1]] = (o.match(/solo: '([^']+)'/) || [])[1]; });
+  MENU.forEach(s => s.entradas.forEach(e => { if (e.solo && dePanel[e.path] !== e.solo) errores.push(`PANEL_CONTROL_SUPER: «${e.path}» debería llevar solo: '${e.solo}' y lleva '${dePanel[e.path] || '—'}'`); }));
+  Object.keys(dePanel).forEach(k => { if (!dePanel[k]) errores.push(`PANEL_CONTROL_SUPER: «${k}» no lleva solo: la vería un super de empresa`); });
+  if (!/function veSolo\(solo, ficha\)[\s\S]*esPropietario[\s\S]*esSuperGlobal/.test(nav)) errores.push('nav.js: falta veSolo con esPropietario y esSuperGlobal');
+}
 const dup = enMenu.filter((k, i) => enMenu.indexOf(k) !== i);
 if (dup.length) errores.push('MENU_V4: casillas en dos sitios del menú: ' + dup.join(', '));
 PERMISOS.filter(k => enMenu.indexOf(k) === -1).forEach(k => errores.push(`«${k}» existe en LW_PERMISOS y MENU_V4 no la sitúa: en Usuarios saldría en «Otras»`));

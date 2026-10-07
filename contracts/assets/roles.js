@@ -10,6 +10,7 @@
      esAdmin(f)        admin, super_admin o un rol de empresa            (¿enseño las pantallas de administración?)
      esSuperAdmin(f)   super_admin o super_admin_empresa                 (¿enseño lo de un super?)
      esSuperGlobal(f)  SOLO el super_admin global                        (herramientas sin casilla, ajustes de la instancia)
+     esPropietario(f)  SOLO el propietario (super global con es_propietario) (Sociedades emisoras; la base lo decide con es_propietario())
      esEmpresa(f)      rol de empresa o ámbito 'empresa'
      esGlobal(f)       lo contrario: lo que es de toda la instancia (Ajustes, mantenimiento, tarifa 0,5 %, tablero CRM…)
      rolReal(f)        el rol tal cual está en la ficha (para pintar una etiqueta o la pantalla de Usuarios)
@@ -24,6 +25,7 @@ var LW_ROL = {
   esAdmin: function (f) { var r = LW_ROL.efectivo(f); return r === 'admin' || r === 'super_admin'; },
   esSuperAdmin: function (f) { return LW_ROL.efectivo(f) === 'super_admin'; },
   esSuperGlobal: function (f) { return !!f && f.rol === 'super_admin'; },
+  esPropietario: function (f) { return !!f && f.rol === 'super_admin' && f.es_propietario === true && f.ambito !== 'empresa'; },
   esEmpresa: function (f) { return !!f && (!!ROL_EMPRESA[f.rol] || f.ambito === 'empresa'); },
   esGlobal: function (f) { return !!f && !LW_ROL.esEmpresa(f); },
   empresas: function (f) { return (f && Array.isArray(f.empresas)) ? f.empresas : []; },
