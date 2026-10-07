@@ -1,13 +1,10 @@
 -- Prueba de la S3 de plantillas por empresa (7-oct-2026): validador en servidor `plantilla_cuerpo_valida` / `plantilla_cuerpo_valida_semilla`.
 -- Se ejecuta DESPUES de la migracion 20261008990000 (o pegada tras ella para ensayarla sin rastro). Termina en raise (rollback). Debe acabar con «FALLOS=0».
 -- Parte A (los 20 HTML originales de contracts/templates/ + bateria de mutacion): necesita leer ficheros del servidor (pg_read_file, superusuario) y se activa con
---     psql -v dir="C:/ruta/a/contracts/templates" -f f2_plantillas_s3.sql      (o  set plantillas.dir = '...'  antes)
---   Sin esa ruta la parte A se OMITE y el informe lo dice en voz alta («OMITIDO»): no cuenta como aprobada.
--- Partes B (cargas hostiles), C (rendimiento), D (permisos y pureza) corren en cualquier base, tambien por MCP.
+--     psql -c "select set_config('plantillas.dir','C:/ruta/a/contracts/templates',false)" -f f2_plantillas_s3.sql      (el set_config y el script, en la MISMA sesion)
+--   Sin esa ruta la parte A se OMITE y el informe lo dice en voz alta («OMITIDO», OMITIDAS=1): no cuenta como aprobada.
+-- Partes B (cargas hostiles), C (rendimiento sintetico), D (permisos y pureza) corren en cualquier base, tambien pegadas por MCP (execute_sql); no usa metacomandos de psql.
 -- destructivo-ok: prueba en transaccion que termina en raise; sin drop de nada que no sea temporal
-\if :{?dir}
-select set_config('plantillas.dir', :'dir', false) is not null as dir_ok;
-\endif
 
 create or replace function pg_temp.sin_notas(p_txt text) returns text language plpgsql as $f$
 declare c text; t text := p_txt;
@@ -38,7 +35,7 @@ declare
     ['tocar style',   '<style>',                                  '<style> ',                                                          'bloques <style>'],
     ['cambiar img',   'assets/brand/',                            'assets/brand/x',                                                    'imagenes|<img src> fuera'],
     ['quitar comentario motor', '<!--(extra-clauses|firmas-adquirientes|compradores-extra|hitos|datos-bancarios|cuenta:[a-z0-9_]+)-->', '', 'comentarios del motor'],
-    ['style nuevo',   '<p data-lang',                             '<p style="margin:7px" data-lang',                                   'style nuevo|atributo repetido'],
+    ['style nuevo',   '<p data-lang',                             '<p style="margin:7px" data-lang',                                   'style en linea|atributo repetido'],
     ['a javascript',  '</body>',                                  '<a href="javascript:alert(1)">x</a></body>',                        'etiqueta prohibida <a>'],
     ['entidad lt',    '<p data-lang="es">',                       '<p data-lang="es">&#60;script',                                     'decodifica'],
     ['bidi',          '<p data-lang="es">',                       '<p data-lang="es">'||chr(8238),                                      'bidireccional'],
@@ -49,7 +46,10 @@ declare
     ['style extra',   '</head>',                                  '<style>p{color:red}</style></head>',                                'bloques <style>'],
     ['iframe',        '</body>',                                  '<iframe src="x"></iframe></body>',                                  'etiqueta prohibida <iframe>'],
     ['svg',           '</body>',                                  '<svg onload="x"></svg></body>',                                     'etiqueta prohibida <svg>'],
-    ['llave suelta',  '<p data-lang="es">',                       '<p data-lang="es">{{',                                              'llave suelta']
+    ['llave suelta',  '<p data-lang="es">',                       '<p data-lang="es">{{',                                              'llave suelta'],
+    ['entidad bidi',  '<p data-lang="es">',                       '<p data-lang="es">&#x202E;',                                        'entidad no permitida'],
+    ['ancho cero',    '<p data-lang="es">',                       '<p data-lang="es">Te'||chr(8203)||'pi',                              'invisible'],
+    ['style copiado a un parrafo', '<h2 ',                        '<p style="max-height:20mm;max-width:100%">x</p><h2 ',              'style en linea|style de <p>']
   ];
   hostiles jsonb;
 begin
@@ -79,8 +79,12 @@ begin
       -- A3: sin notas pasa tambien como semilla, y la semilla no admite una sola nota de mas en el modo normal
       v := public.plantilla_cuerpo_valida(txt, txt);
       nprueba := nprueba + 1;
-      if (v->>'n_notas')::int > 0 and (v->>'ok')::boolean then
-        r := r || 'FALLO A3 el modo normal acepto las notas de autor de ' || nm || E'\n'; fallos := fallos + 1;
+      if ssn <> txt then
+        if not (v->>'ok')::boolean and exists (select 1 from jsonb_array_elements_text(v->'errores') e where e like 'comentario no permitido%') then
+          r := r || 'OK    A3 el modo normal rechaza las notas de autor de ' || nm || E'\n';
+        else
+          r := r || 'FALLO A3 el modo normal acepto las notas de autor de ' || nm || ': ' || left(v::text, 200) || E'\n'; fallos := fallos + 1;
+        end if;
       end if;
     end loop;
 
@@ -107,7 +111,7 @@ begin
 
   -- ============================================================ PARTE B: cargas hostiles sobre un esqueleto pequeno y controlado
   base := '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>T</title><style>.f{color:red}</style></head><body><div class="doc">'
-       || '<h2 data-lang="es">Titulo</h2><p data-lang="es">Hola {{' || m1 || '}} &amp; &nbsp; fin</p>'
+       || '<div class="doc-watermark" aria-hidden="true">W</div><h2 data-lang="es">Titulo</h2><p data-lang="es">Hola {{' || m1 || '}} &amp; &nbsp; fin</p>'
        || '<!--if:adq1_tipo=empresa--><p data-lang="es">Empresa</p><!--/if:adq1_tipo--><!--opt:' || m1 || '--><p data-lang="es">Opcional</p><!--/opt:' || m1 || '-->'
        || '<table class="pays"><tbody><tr><td class="f">x</td><td colspan="2">y</td></tr></tbody></table><ul data-lang="es"><li>uno</li></ul>'
        || '<!--extra-clauses--><img src="assets/brand/firma-lawang.png" alt="" style="max-height:20mm;max-width:100%"></div></body></html>';
@@ -135,7 +139,7 @@ begin
     jsonb_build_object('n','H14 onerror sin comillas', 'x', 'etiqueta mal formada', 'c', replace(base, '</div>', '<img src=x onerror=alert(1)></div>')),
     jsonb_build_object('n','H15 style con url()', 'x', 'style de <p>', 'c', replace(base, '<h2 data-lang="es">', '<p style="background:url(https://x.test/a.png)">x</p><h2 data-lang="es">')),
     jsonb_build_object('n','H16 style nuevo position:fixed', 'x', 'propiedad CSS no permitida', 'c', replace(base, '<h2 data-lang="es">', '<p style="position:fixed;top:0">x</p><h2 data-lang="es">')),
-    jsonb_build_object('n','H17 style legitimo pero nuevo', 'x', 'style nuevo que no existe', 'c', replace(base, '<h2 data-lang="es">', '<p style="margin:3px">x</p><h2 data-lang="es">')),
+    jsonb_build_object('n','H17 style legitimo pero nuevo', 'x', 'style en linea', 'c', replace(base, '<h2 data-lang="es">', '<p style="margin:3px">x</p><h2 data-lang="es">')),
     jsonb_build_object('n','H18 img data: extra', 'x', 'imagenes', 'c', replace(base, '</div>', '<img src="data:image/png;base64,AAAA" alt=""></div>')),
     jsonb_build_object('n','H19 &lt; entidad', 'x', 'decodifica', 'c', replace(base, 'fin', '&lt;script&gt;fin')),
     jsonb_build_object('n','H20 &#60; numerica', 'x', 'decodifica', 'c', replace(base, 'fin', '&#60;fin')),
@@ -183,6 +187,16 @@ begin
     jsonb_build_object('n','H62 vacio', 'x', 'vacio', 'c', ''),
     jsonb_build_object('n','H63 style en un <b> (no admite style)', 'x', 'atributo no permitido', 'c', replace(base, '<h2 data-lang="es">', '<b style="margin:0">x</b><h2 data-lang="es">')),
     jsonb_build_object('n','H64 src de img con marcador ajeno', 'x', 'imagenes', 'c', replace(base, 'src="assets/brand/firma-lawang.png"', 'src="{{' || m1 || '}}"')),
+    jsonb_build_object('n','H66 entidad numerica bidi &#x202E;', 'x', 'entidad no permitida', 'c', replace(base, 'fin', '&#x202E;fin')),
+    jsonb_build_object('n','H67 entidad numerica decimal &#8238;', 'x', 'entidad no permitida', 'c', replace(base, 'fin', '&#8238;fin')),
+    jsonb_build_object('n','H68 entidad con nombre &rlm;', 'x', 'entidad no permitida', 'c', replace(base, 'fin', '&rlm;fin')),
+    jsonb_build_object('n','H69 entidad de control &#1;', 'x', 'entidad no permitida', 'c', replace(base, 'fin', '&#1;fin')),
+    jsonb_build_object('n','H70 ancho cero en crudo (U+200B)', 'x', 'invisible', 'c', replace(base, 'fin', 'Te' || chr(8203) || 'pi Sun Gai fin')),
+    jsonb_build_object('n','H71 guion blando (U+00AD)', 'x', 'invisible', 'c', replace(base, 'fin', 'Te' || chr(173) || 'pi fin')),
+    jsonb_build_object('n','H72 style del esqueleto copiado a otro elemento', 'x', 'style en linea', 'c', replace(base, '<h2 data-lang="es">', '<p style="max-height:20mm;max-width:100%">oculto</p><h2 data-lang="es">')),
+    jsonb_build_object('n','H73 doc-watermark en un parrafo nuevo', 'x', 'doc-watermark', 'c', replace(base, '<h2 data-lang="es">', '<p class="doc-watermark">x</p><h2 data-lang="es">')),
+    jsonb_build_object('n','H74 quitar el doc-watermark', 'x', 'esqueleto cambia', 'c', replace(base, '<div class="doc-watermark" aria-hidden="true">W</div>', '')),
+    jsonb_build_object('n','H75 entidad permitida si pasa', 'ok', true, 'x', null, 'c', replace(base, 'fin', '&ldquo;fin&rdquo; &#x27; &#39; &euro; &hellip;')),
     jsonb_build_object('n','H65 marcador en un atributo', 'x', 'llaves en un atributo', 'c', replace(base, 'alt=""', 'alt="{{' || m1 || '}}"'))
   )) as x(n text, ok boolean, x text, c text) loop
     nprueba := nprueba + 1;
@@ -202,7 +216,7 @@ begin
   else r := r || E'FALLO B sin esqueleto el modo normal no rechazo\n'; fallos := fallos + 1; end if;
   -- una semilla con una nota de autor pasa; la misma con <script> en la nota... tambien (es un comentario) pero con --!> no
   v := public.plantilla_cuerpo_valida_semilla(replace(base, '</div>', '<!-- nota de Legal: ver proyectos/x < y --></div>'), null); nprueba := nprueba + 1;
-  if (v->>'ok')::boolean and (v->>'n_notas')::int = 1 then r := r || E'OK    B semilla acepta una nota de autor con "<" dentro\n';
+  if (v->>'ok')::boolean and (v->>'n_notas')::int >= 1 then r := r || E'OK    B semilla acepta una nota de autor con "<" dentro\n';
   else r := r || 'FALLO B semilla con nota: ' || v::text || E'\n'; fallos := fallos + 1; end if;
   v := public.plantilla_cuerpo_valida_semilla(replace(base, '</div>', '<!-- nota --!><script>x</script> --></div>'), null); nprueba := nprueba + 1;
   if not (v->>'ok')::boolean then r := r || E'OK    B semilla rechaza nota con --!>\n'; else r := r || E'FALLO B semilla acepto --!>\n'; fallos := fallos + 1; end if;

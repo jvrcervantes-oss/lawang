@@ -9,25 +9,35 @@
 --     1. Trocea el cuerpo por '<' y reconoce solo tres cosas: comentario, etiqueta con gramatica estricta (atributos siempre entre comillas dobles, sin '/' ni espacios raros)
 --        y texto. Cualquier '<' que no sea una de las tres, o una etiqueta sin cerrar, es un error: no hay dos lecturas posibles del mismo texto (anti mutation-XSS).
 --     2. Lista blanca de etiquetas (p br b strong i em u span sub sup ol ul li table thead tbody tfoot tr td th h1-h4 div + img/style solo los del esqueleto + el envoltorio
---        html head body title meta) y de atributos (data-lang es|en|id, class de lista fija, colspan/rowspan, data-campo, aria-hidden, y style SOLO si su valor ya existe en el
---        esqueleto y ademas pasa una gramatica de CSS minima sin url()/expression/import). Todo lo demas (script iframe object embed svg math link base form input button a,
+--        html head body title meta) y de atributos (data-lang es|en|id, class de lista fija, colspan/rowspan, data-campo, aria-hidden; y style SOLO si es el MISMO style, en el mismo tipo de
+--        elemento y en el mismo orden que en el esqueleto, y ademas pasa una gramatica de CSS minima sin url()/expression/import: no se anade ni se mueve ninguno). Todo lo demas (script iframe object embed svg math link base form input button a,
 --        on*=, javascript:, data: fuera de img...) falla por no estar en la lista, con el nombre concreto en el error.
 --     3. Comentarios: solo los del motor (`if:campo=valor`, `opt:campo`, sus cierres, seccion-hitos, seccion-extras-construccion, hitos, extras-construccion, compradores-extra,
 --        firmas-adquirientes, extra-clauses, datos-bancarios[-sin-titulo], cuenta:CLAVE). if/opt balanceados con disciplina de pila y SIN anidar el mismo campo (el motor de
 --        buildDoc cierra en el primer cierre: anidar el mismo campo rompe el documento). Comentarios degenerados (`<!-->`, `--!>`) rechazados.
 --     4. Marcadores {{x}}: solo `{{[a-z0-9_]+}}` con x en la lista cerrada (campos de contracts/tokens.json + los derivados del motor y los prom_* que pone applyPromotor);
 --        llave suelta, `{{{x}}}`, `{{ x }}`, marcadores dentro de atributos (salvo `src="{{firma_adquiriente}}"` de la firma remota) = error. Tope de marcadores.
---     5. Entidades: ninguna que decodifique a '<' (&lt, &#60, &#x3c, con o sin ';'); todo '&' debe ser una entidad bien formada. Controles C0 y caracteres bidireccionales
---        (Trojan Source, U+202A-202E, U+2066-2069, LRM/RLM) rechazados. Tope de tamano (600000 bytes) y de etiquetas (80000).
+--     5. Entidades: lista blanca (&nbsp; &quot; &amp; &gt; &apos; &ldquo; &rdquo; &lsquo; &rsquo; &ndash; &mdash; &hellip; &laquo; &raquo; &middot; &euro; &#x27; &#39;); cualquier
+--        otra, y en particular las que decodifican a '<' (&lt, &#60, &#x3c, con o sin ';') o a un caracter invisible/bidireccional (&#x202E;, &rlm;), se rechaza. Controles C0,
+--        bidireccionales (Trojan Source, U+202A-202E, U+2066-2069, LRM/RLM), de ancho cero (U+200B-200D, U+2060), guion blando U+00AD y BOM, rechazados en crudo. Tope de tamano
+--        (600000 bytes) y de etiquetas (80000).
 --     6. Esqueleto: la version nueva debe tener los MISMOS bloques <style> (por md5), los MISMOS <img>, la MISMA secuencia de comentarios del motor y la MISMA estructura
---        de tablas/div/listas/titulos (con sus atributos, salvo style) que la version de la que parte. Un admin de empresa que llame a la RPC a mano no puede cambiar nada
+--        de tablas/div/listas/titulos (con sus atributos), los MISMOS style en linea y la MISMA posicion de las clases doc-foot y doc-watermark (las que en el CSS ocultan o
+--        desplazan texto) que la version de la que parte. Un admin de empresa que llame a la RPC a mano no puede cambiar nada
 --        de eso: solo el texto de parrafos y celdas.
---     MODO SEMILLA (`plantilla_cuerpo_valida_semilla`): para cargar la v1 (copia EXACTA de los 20 ficheros de contracts/templates/). Acepta ademas las notas de autor (119 en
---        los 20 ficheros; se retiran al activar) y valida <style>/<img> por gramatica en vez de por comparacion (no hay esqueleto del que partir).
+--     MODO SEMILLA (`plantilla_cuerpo_valida_semilla`): para cargar la v1 (copia EXACTA de los 20 ficheros de contracts/templates/). Acepta ademas las notas de autor (116 medidas en
+--        los 20 ficheros con este mismo criterio; el inventario de S1 conto 119; se retiran al activar) y valida <style>/<img> por gramatica en vez de por comparacion (no hay esqueleto del que partir).
+--   REQUISITOS PARA S2 Y S4 (el validador no los puede imponer solo; quedan escritos aqui y en el encargo):
+--     a) El esqueleto lo busca la RPC EN EL SERVIDOR (cuerpo de la version de la que deriva: misma empresa, mismo slug); nunca se acepta de quien llama. Si lo mandara el navegador
+--        la comparacion no probaria nada.
+--     b) `plantilla_cuerpo_valida_semilla` solo la llama el cargador de la v1 (S4, con rol de servicio). Relaja <img>/<style> (los valida por gramatica, no por comparacion) y admite
+--        notas de autor: ninguna RPC alcanzable por un usuario puede invocarla.
+--     c) Quien busque texto de OTRA sociedad (bloqueo de activacion de S2) debe normalizar antes (NFKC, quitar ancho cero y guiones blandos, minusculas, espacios colapsados): este
+--        validador rechaza esos caracteres, pero la busqueda no puede depender de ello.
 --   LO QUE NO HACE (queda explicito): no valida el CONTENIDO juridico (decision 4 del owner, 7-oct); no detecta texto de otra sociedad (eso es el bloqueo de activacion de S2);
 --   los mensajes de error repiten un fragmento del texto recibido: la pantalla debe pintarlos con textContent, nunca como HTML.
 --   Cambiar la lista de marcadores o de clases exige una migracion nueva (a proposito: lo nuevo nace cerrado). Fuente de los marcadores: tokens.json (151) + 39 derivados.
--- destructivo-ok: solo crea 7 funciones puras; no toca tablas, filas ni policies
+-- destructivo-ok: solo crea 9 funciones puras; no toca tablas, filas ni policies
 -- REVERTIR: supabase/reversion_f2/REVERSION_f2_plantillas_s3.sql
 
 -- ======================================================================= listas cerradas
@@ -88,8 +98,8 @@ declare
   e text[] := '{}'; m int := 0; mk text; r text;
 begin
   if p_txt ~ '[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]' then e := e || 'caracter de control en el texto'::text; end if;
-  if p_txt ~ '[\u202a-\u202e\u2066-\u2069\u200e\u200f\u061c\ufeff\u2028\u2029]' then
-    e := e || 'caracter bidireccional o separador invisible (U+202A-202E, U+2066-2069, LRM/RLM, BOM, U+2028/9): puede hacer que el texto firmado no sea el que se lee'::text;
+  if p_txt ~ '[\u202a-\u202e\u2066-\u2069\u200e\u200f\u061c\ufeff\u2028\u2029\u200b-\u200d\u2060\u00ad\u180e]' then
+    e := e || 'caracter bidireccional o invisible (U+202A-202E, U+2066-2069, LRM/RLM, ancho cero U+200B-200D/2060, guion blando U+00AD, BOM, U+2028/9): puede hacer que el texto firmado no sea el que se lee'::text;
   end if;
   if p_txt ~ '[{}]' then
     if p_attr then
@@ -111,8 +121,10 @@ begin
     if p_txt ~* '&(lt|#0*60(?![0-9])|#x0*3c(?![0-9a-f]))' then
       e := e || 'entidad que decodifica a "<" (&lt, &#60, &#x3c): se usa para colar etiquetas'::text;
     end if;
-    r := regexp_replace(p_txt, '&([a-zA-Z][a-zA-Z0-9]{1,31}|#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6});', '', 'g');
-    if r ~ '&([^ \t\r\n]|$)' then e := e || ('"&" sin entidad bien formada (&nombre; &#123; &#x7b;): ' || left(substring(r from '&[^ \t\r\n]{0,20}'), 30)); end if;
+    -- lista blanca de entidades (las que usan los 20 textos y las tipograficas habituales): una entidad numerica o con nombre fuera de la lista
+    -- (&#x202E;, &rlm;, &#1;...) colaria por la puerta de atras los caracteres que arriba se rechazan en crudo
+    r := regexp_replace(p_txt, '&(nbsp|quot|amp|gt|apos|ldquo|rdquo|lsquo|rsquo|ndash|mdash|hellip|laquo|raquo|middot|euro|#x27|#39);', '', 'g');
+    if r ~ '&([^ \t\r\n]|$)' then e := e || ('entidad no permitida o "&" mal formado (solo &nbsp; &quot; &amp; &gt; &apos; &ldquo; &rdquo; &lsquo; &rsquo; &ndash; &mdash; &hellip; &laquo; &raquo; &middot; &euro; &#x27; &#39;): ' || left(substring(r from '&[^ \t\r\n&<]{0,20}'), 30)); end if;
   end if;
   return jsonb_build_object('e', to_jsonb(e), 'm', m);
 end $f$;
@@ -158,26 +170,27 @@ declare
   c_estruct constant text[] := array['html','head','body','title','meta','table','thead','tbody','tfoot','tr','td','th','div','ol','ul','h1','h2','h3','h4'];
   c_otras constant text[] := array['br'];
   c_vacias constant text[] := array['br','img','meta'];
+  c_pin constant text[] := array['doc-foot','doc-watermark'];   -- clases que en el CSS de los textos ocultan o desplazan: no se pueden mover
   c_simple constant text[] := array['extra-clauses','firmas-adquirientes','compradores-extra','datos-bancarios','datos-bancarios-sin-titulo','hitos','extras-construccion'];
   errs text[] := '{}';
   chunks text[]; n int; i int; ch text; rest text; body text; p int; k int;
   in_style boolean := false; sbuf text := ''; in_com boolean := false; cbuf text := '';
   stack text[] := '{}'; cstack text[] := '{}';
-  estilos text[] := '{}'; imgs text[] := '{}'; coms text[] := '{}'; estr text[] := '{}'; styv text[] := '{}';
+  estilos text[] := '{}'; imgs text[] := '{}'; coms text[] := '{}'; estr text[] := '{}'; stys text[] := '{}'; pins text[] := '{}';
   n_marc int := 0; n_com int := 0; n_notas int := 0; marc_img boolean;
   closing boolean; selfc boolean; tname text; attrstr text; a record; anames text[]; av text; chk text; tok text; tj jsonb;
   s_src text; s_alt text; s_cls text; s_sty text; sig text; top text; cm text; campo text; sc text; tmp text;
 begin
   if p_cuerpo is null or p_cuerpo = '' then
-    return jsonb_build_object('errores', jsonb_build_array('el cuerpo esta vacio'), 'estilos','[]'::jsonb,'imgs','[]'::jsonb,'coms','[]'::jsonb,'estr','[]'::jsonb,'styv','[]'::jsonb,'n_marc',0,'n_notas',0);
+    return jsonb_build_object('errores', jsonb_build_array('el cuerpo esta vacio'), 'estilos','[]'::jsonb,'imgs','[]'::jsonb,'coms','[]'::jsonb,'estr','[]'::jsonb,'stys','[]'::jsonb,'pins','[]'::jsonb,'n_marc',0,'n_notas',0);
   end if;
   if octet_length(p_cuerpo) > c_max_bytes then
-    return jsonb_build_object('errores', jsonb_build_array('cuerpo demasiado grande: ' || octet_length(p_cuerpo) || ' bytes (tope ' || c_max_bytes || ')'), 'estilos','[]'::jsonb,'imgs','[]'::jsonb,'coms','[]'::jsonb,'estr','[]'::jsonb,'styv','[]'::jsonb,'n_marc',0,'n_notas',0);
+    return jsonb_build_object('errores', jsonb_build_array('cuerpo demasiado grande: ' || octet_length(p_cuerpo) || ' bytes (tope ' || c_max_bytes || ')'), 'estilos','[]'::jsonb,'imgs','[]'::jsonb,'coms','[]'::jsonb,'estr','[]'::jsonb,'stys','[]'::jsonb,'pins','[]'::jsonb,'n_marc',0,'n_notas',0);
   end if;
   chunks := string_to_array(p_cuerpo, '<');
   n := cardinality(chunks);
   if n > c_max_chunks then
-    return jsonb_build_object('errores', jsonb_build_array('demasiadas etiquetas y comentarios: ' || (n - 1) || ' (tope ' || c_max_chunks || ')'), 'estilos','[]'::jsonb,'imgs','[]'::jsonb,'coms','[]'::jsonb,'estr','[]'::jsonb,'styv','[]'::jsonb,'n_marc',0,'n_notas',0);
+    return jsonb_build_object('errores', jsonb_build_array('demasiadas etiquetas y comentarios: ' || (n - 1) || ' (tope ' || c_max_chunks || ')'), 'estilos','[]'::jsonb,'imgs','[]'::jsonb,'coms','[]'::jsonb,'estr','[]'::jsonb,'stys','[]'::jsonb,'pins','[]'::jsonb,'n_marc',0,'n_notas',0);
   end if;
 
   i := 0;
@@ -340,13 +353,14 @@ begin
             elsif tok = 'style' and tname in ('img','p','div','table','td','th','h2','h3','h4','h1','span','li','ul','ol','tr') then
               s_sty := av; chk := public._plantilla_style_valido(av);
               if chk is not null then errs := errs || ('style de <' || tname || '>: ' || chk); end if;
-              if not (av = any (styv)) then styv := styv || av; end if;
+              if tname <> 'img' then stys := stys || (tname || '|' || av); end if;
             elsif tok = 'class' and tname not in ('html','head','body','title','meta','br') then
               s_cls := av;
               if av !~ '^[a-z0-9-]+( [a-z0-9-]+)*$' then errs := errs || ('class con forma no permitida: ' || left(av, 40));
               else
                 foreach tok in array string_to_array(av, ' ') loop
                   if not (tok = any (public._plantilla_clases())) then errs := errs || ('class fuera de la lista fija: ' || tok); end if;
+                  if tok = any (c_pin) then pins := pins || (tname || '|' || tok); end if;
                 end loop;
                 tok := 'class';
               end if;
@@ -394,7 +408,7 @@ begin
     end if;
 
     -- texto que sigue al elemento reconocido
-    if rest is not null and rest <> '' and rest ~ '[&{}\x01-\x08\x0b\x0c\x0e-\x1f\x7f\u202a-\u202e\u2066-\u2069\u200e\u200f\u061c\ufeff\u2028\u2029]' then
+    if rest is not null and rest <> '' and rest ~ '[&{}\x01-\x08\x0b\x0c\x0e-\x1f\x7f\u202a-\u202e\u2066-\u2069\u200e\u200f\u061c\ufeff\u2028\u2029\u200b-\u200d\u2060\u00ad\u180e]' then
       tj := public._plantilla_texto(rest, false);
       n_marc := n_marc + (tj->>'m')::int;
       for tmp in select jsonb_array_elements_text(tj->'e') loop errs := errs || tmp; end loop;
@@ -410,7 +424,7 @@ begin
   end if;
 
   return jsonb_build_object('errores', to_jsonb(errs[1:c_max_err]), 'estilos', to_jsonb(estilos), 'imgs', to_jsonb(imgs), 'coms', to_jsonb(coms),
-                            'estr', to_jsonb(estr), 'styv', to_jsonb(styv), 'n_marc', n_marc, 'n_notas', n_notas);
+                            'estr', to_jsonb(estr), 'stys', to_jsonb(stys), 'pins', to_jsonb(pins), 'n_marc', n_marc, 'n_notas', n_notas);
 end $f$;
 
 -- ======================================================================= validador (comparacion con el esqueleto)
@@ -418,7 +432,7 @@ create or replace function public._plantilla_valida(p_cuerpo text, p_esqueleto t
 returns jsonb language plpgsql immutable parallel safe set search_path = ''
 as $f$
 declare
-  a jsonb; b jsonb; errs text[] := '{}'; x text; clave text; rotulo text; la jsonb; lb jsonb; j int; m int;
+  a jsonb; b jsonb; errs text[] := '{}'; clave text; rotulo text; la jsonb; lb jsonb; j int; m int;
 begin
   a := public._plantilla_analiza(p_cuerpo, p_semilla);
   errs := array(select jsonb_array_elements_text(a->'errores'));
@@ -429,19 +443,18 @@ begin
     if jsonb_array_length(b->'errores') > 0 then
       errs := errs || ('el esqueleto no es analizable: ' || (b->'errores'->>0));
     elsif jsonb_array_length(a->'errores') = 0 then
-      foreach clave in array array['estilos','imgs','coms','estr'] loop
+      foreach clave in array array['estilos','imgs','coms','estr','stys','pins'] loop
         la := a->clave; lb := b->clave;
         if la <> lb then
           rotulo := case clave when 'estilos' then 'bloques <style> (por md5)' when 'imgs' then 'imagenes <img>' when 'coms' then 'comentarios del motor if/opt/marcadores'
+                               when 'stys' then 'style en linea de cada elemento (los estilos no son editables ni se pueden anadir o mover)'
+                               when 'pins' then 'posicion de las clases doc-foot y doc-watermark (ocultan o desplazan texto)'
                                else 'estructura de tablas, divisiones, listas y titulos' end;
           m := least(jsonb_array_length(la), jsonb_array_length(lb)); j := 0;
           while j < m and la->j = lb->j loop j := j + 1; end loop;
           errs := errs || ('el esqueleto cambia: ' || rotulo || ' difiere desde el elemento n.' || (j + 1) || ' (esperado ' || coalesce(left(lb->>j, 70), '<fin>')
                            || ', recibido ' || coalesce(left(la->>j, 70), '<fin>') || '; ' || jsonb_array_length(lb) || ' esperados, ' || jsonb_array_length(la) || ' recibidos)');
         end if;
-      end loop;
-      for x in select jsonb_array_elements_text(a->'styv') loop
-        if not jsonb_exists(b->'styv', x) then errs := errs || ('style nuevo que no existe en el esqueleto (los estilos no son editables): ' || left(x, 60)); end if;
       end loop;
     end if;
   end if;
