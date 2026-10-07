@@ -9,13 +9,19 @@
 -- Cada cambio es una EDICION CON ASERCION del texto vivo de la funcion (pg_temp.f2_edita): si el fragmento no aparece exactamente una vez, la migracion aborta; nada se reescribe a ojo.
 -- destructivo-ok: create or replace de 9 funciones (solo anade condiciones); sin tocar datos
 -- REVERTIR: supabase/reversion_f2/REVERSION_f2_b3.sql
-create or replace function pg_temp.f2_edita(p_fn text, p_viejo text, p_nuevo text) returns void language plpgsql as $f$
+create or replace function pg_temp.f2_edita(p_fn text, p_viejo text, p_nuevo text, p_viejo2 text default null, p_nuevo2 text default null) returns void language plpgsql as $f$
 declare d text; n int;
 begin
   d := pg_get_functiondef(p_fn::regprocedure);
   n := (length(d) - length(replace(d, p_viejo, ''))) / length(p_viejo);
   if n <> 1 then raise exception 'f2_edita %: el fragmento aparece % veces (esperaba 1): %', p_fn, n, left(p_viejo, 70); end if;
-  execute replace(d, p_viejo, p_nuevo);
+  d := replace(d, p_viejo, p_nuevo);
+  if p_viejo2 is not null then
+    n := (length(d) - length(replace(d, p_viejo2, ''))) / length(p_viejo2);
+    if n <> 1 then raise exception 'f2_edita %: el 2o fragmento aparece % veces (esperaba 1): %', p_fn, n, left(p_viejo2, 70); end if;
+    d := replace(d, p_viejo2, p_nuevo2);
+  end if;
+  execute d;
 end $f$;
 
 -- cliente_visible: el propietario de la ficha es de alguna de mis empresas
@@ -90,7 +96,6 @@ select pg_temp.f2_edita('public.comprador_ficha(uuid)',
 select pg_temp.f2_edita('public.comprador_buscar(text)',
   $v$where c.full_name ilike '%'||btrim(p_q)||'%'$v$,
   $n$where (not (select public.alcance_restringido()) or public.cliente_visible(c.propietario, c.id))
-       and (c.full_name ilike '%'||btrim(p_q)||'%'$n$);
-select pg_temp.f2_edita('public.comprador_buscar(text)',
+       and (c.full_name ilike '%'||btrim(p_q)||'%'$n$,
   $v$= lower(btrim(p_q))$v$,
   $n$= lower(btrim(p_q)))$n$);
