@@ -123,5 +123,29 @@ function estaSustituido(x, contratos){
   return (contratos || []).some(y => y && !prelim(y.tipo));
 }
 
+/* La factura de un hito (7-oct-2026, revisor: emparejar por importe enseñaba la factura YA PAGADA del hito
+   anterior cuando dos hitos valen lo mismo). Las facturas no guardan su hito, pero cada línea lleva la
+   descripción que la intranet le puso al traerlo: `descHito()` de intranet/facturas — texto, «(N% del precio
+   acordado)» si tiene porcentaje y « — plazo» —, con el prefijo «[Etiqueta] » si vino de un contrato
+   vinculado. Es la MISMA regla con la que la intranet decide que un hito ya está facturado
+   (HITOS_OTRA_FACTURA), así que las dos pantallas no pueden discrepar. Sin línea idéntica no hay factura:
+   el portal enseña el plazo del contrato y no una fecha adivinada. */
+function descHito(h){
+  if (!h) return '';
+  const pct = _imp(h.pct);
+  return [h.es || h.en || '', pct ? '(' + pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
+       + (h.timing ? ' — ' + h.timing : '');
+}
+function facturaDelHito(facturas, contratoNumero, hito, moneda){
+  const d = descHito(hito).trim();
+  if (!d || !contratoNumero) return null;
+  const sinPrefijo = s => String(s || '').trim().replace(/^\[[^\]]*\]\s*/, '');
+  return (facturas || []).filter(f =>
+    f && f.tipo === 'factura' && f.contrato_numero === contratoNumero &&
+    (!moneda || !f.moneda || f.moneda === moneda) &&
+    (f.lineas || []).some(l => sinPrefijo(l && l.descripcion) === d)
+  )[0] || null;
+}
+
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance };
+  module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito };

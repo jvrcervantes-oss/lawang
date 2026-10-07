@@ -108,5 +108,29 @@ es('el Bloqueo NO está sustituido (no es preliminar)',
 es('una Carta suelta, sin contrato real todavía, NO está sustituida',
    R.estaSustituido(malogus[0], malogus), false);
 
+/* ── la factura del próximo pago (7-oct-2026) ───────────────────────────── */
+const hAnt = { es:'Anticipo', pct:'25', timing:'A la firma', monto:25000 };
+const hFin = { es:'Entrega', pct:'25', timing:'Mes 12', monto:25000 };
+const hCim = { es:'Cimentación', timing:'Mes 3', monto:30000 };
+const fac = (numero, contrato, desc, extra) => Object.assign({ numero, tipo:'factura', contrato_numero:contrato, moneda:'USD', total:25000, lineas:[{ descripcion:desc, importe:25000 }] }, extra);
+es('descripción del hito igual que la intranet',
+   R.descHito(hAnt), 'Anticipo (25% del precio acordado) — A la firma');
+es('sin porcentaje, sin paréntesis', R.descHito(hCim), 'Cimentación — Mes 3');
+const fs1 = [fac('F2', 'C-1', 'Anticipo (25% del precio acordado) — A la firma')];
+es('dos hitos del mismo importe: la factura del anticipo NO es la de la entrega',
+   R.facturaDelHito(fs1, 'C-1', hFin, 'USD'), null);
+es('la factura de su hito sí se encuentra',
+   R.facturaDelHito(fs1, 'C-1', hAnt, 'USD').numero, 'F2');
+es('con el prefijo de contrato vinculado también',
+   R.facturaDelHito([fac('F3', 'C-1', '[Construcción] Cimentación — Mes 3')], 'C-1', hCim, 'USD').numero, 'F3');
+es('otro contrato no cuenta',
+   R.facturaDelHito(fs1, 'C-2', hAnt, 'USD'), null);
+es('otra moneda no cuenta',
+   R.facturaDelHito([fac('F4', 'C-1', 'Anticipo (25% del precio acordado) — A la firma', { moneda:'EUR' })], 'C-1', hAnt, 'USD'), null);
+es('un recibí o una proforma no son la factura',
+   R.facturaDelHito([fac('R1', 'C-1', 'Anticipo (25% del precio acordado) — A la firma', { tipo:'recibi' })], 'C-1', hAnt, 'USD'), null);
+es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)',
+   R.facturaDelHito([fac('F5', 'C-1', 'Cimentación — Mes 3', { fields:{} })], 'C-1', hCim, 'USD').numero, 'F5');
+
 if(fallos){ console.error(`\n${fallos} fallo(s) en las cuentas del portal.`); process.exit(1); }
 console.log('resumen.test.js — OK');

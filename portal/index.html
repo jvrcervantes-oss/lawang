@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="506a0b5bdb4f">
+<meta name="lw-version" content="a914bdc94c67">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- MODO DEMO (7-oct-2026): con `?demo` en la dirección se carga demo.js, que sustituye el cliente de Supabase por uno falso con datos
      ficticios. document.write y no un script creado a mano: tiene que ejecutarse ANTES del script del portal, en orden. Falla CERRADO: si demo.js
      no carga, createClient se anula y el portal real nunca se crea con `?demo` puesto. Sin `?demo` esto no hace nada. -->
-<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261007"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261007b"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20260914"></script>
+<script src="/portal/resumen.js?v=20261007b"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -466,10 +466,6 @@
   .lang-sel button[aria-pressed="true"]{ background:var(--dl); color:#fff; }
   .lang-sel button:focus-visible{ outline:2px solid var(--dl); outline-offset:1px; }
 
-  /* aviso de firma pendiente: arriba del todo de Inicio */
-  .banner-firma{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-                 background:#f6e8cc; border-radius:12px; padding:14px 18px; margin-bottom:16px; color:#5a3b08; }
-  .banner-firma b{ font-weight:600; font-size:15px; }
 
   /* próximo pago: la acción principal de Inicio */
   .hero-pago{ margin-bottom:16px; padding:22px 24px; }
@@ -550,7 +546,6 @@
   .proy-portada{ aspect-ratio:16/9; }
   .proy-portada-grande{ aspect-ratio:16/9; width:100%; border-radius:12px; }
   .proy-portada img, .proy-portada-grande img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
-  .proy-inicial{ position:absolute; inset:0; display:grid; place-items:center; font-size:44px; font-weight:600; color:var(--dl); }
   .proy-cuerpo{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:5px; min-width:0; }
   .proy-nombre{ font-size:16px; font-weight:600; overflow-wrap:anywhere; }
   .proy-meta{ font-size:12.5px; color:var(--ink2); }
@@ -565,7 +560,6 @@
     .proy-grid{ grid-template-columns:1fr; gap:10px; }
     .proy-card{ flex-direction:row; align-items:stretch; }
     .proy-card .proy-portada{ aspect-ratio:auto; width:96px; flex:none; }
-    .proy-card .proy-inicial{ font-size:30px; }
     .proy-card .proy-cuerpo{ padding:10px 12px; }
   }
 
@@ -755,7 +749,6 @@
 
   /* portada sin foto: el isotipo sobre el tono del menú (M4), en Inicio y en Documentos */
   .proy-portada, .proy-portada-grande{ background:var(--menu); }
-  .proy-inicial{ display:none; }
   .proy-portada::before, .proy-portada-grande::before{ content:""; position:absolute; left:50%; top:50%; width:34%; max-width:120px; aspect-ratio:261/280;
     transform:translate(-50%,-50%); background:var(--dl); opacity:.22;
     -webkit-mask:url('/assets/img/isotipo.png') center/contain no-repeat; mask:url('/assets/img/isotipo.png') center/contain no-repeat; }
@@ -911,16 +904,15 @@
          nav_documentos:'Documentos', nav_soporte:'Soporte', nav_perfil:'Mi perfil',
          tit_inicio:'Inicio', tit_contratos:'Contratos', tit_facturas:'Facturas', tit_obra:'Obra',
          tit_documentos:'Documentos', tit_soporte:'Soporte', tit_perfil:'Mi perfil',
-         hola:'Hola', n_props_1:'1 propiedad con Lawang Estate', n_props_n:'{n} propiedades con Lawang Estate', firma_tarea:'Firma el contrato {n}', firma_caduca:'el enlace caduca el {f}', firmar:'Firmar', kyc_caduca_el:'Tu {doc} caduca el {f}', vence_el:'vence el {f}', ver_factura_n:'Ver factura {n}', de_total:'de', tus_propiedades:'Tus propiedades', portada_prep:'Portada en preparación', pagada:'Pagada', firma_pend_chip:'Firma pendiente', nov_obra_foto:'Nuevas fotos de obra en {u}: «{t}»', ver_factura:'Ver factura', ver_fotos:'Ver fotos', sop_titulo:'¿Una duda sobre un pago o un documento?', sop_texto:'Te responde el equipo de gestión de Lawang.', sop_abiertas_1:'Tienes una conversación abierta.', sop_abiertas_n:'Tienes {n} conversaciones abiertas.', escribir_equipo:'Escribir al equipo', hola_manana:'Buenos días', hola_tarde:'Buenas tardes', hola_noche:'Buenas noches', pendiente_ti:'Pendiente de ti', ver_perfil:'Ver mi perfil', escribir:'Escribir', saludo_sub:'Estado de tu operación con Lawang Estate',
+         hola:'Hola', n_props_1:'1 propiedad con Lawang Estate', n_props_n:'{n} propiedades con Lawang Estate', firma_tarea:'Firma el contrato {n}', firma_caduca:'el enlace caduca el {f}', firmar:'Firmar', kyc_caduca_el:'Tu {doc} caduca el {f}', vence_el:'vence el {f}', vencio_el:'venció el {f}', ver_factura_n:'Ver factura {n}', tus_propiedades:'Tus propiedades', portada_prep:'Portada en preparación', pagada:'Pagada', firma_pend_chip:'Firma pendiente', nov_obra_foto:'Nuevas fotos de obra en {u}: «{t}»', ver_factura:'Ver factura', ver_fotos:'Ver fotos', sop_titulo:'¿Una duda sobre un pago o un documento?', sop_texto:'Te responde el equipo de gestión de Lawang.', sop_abiertas_1:'Tienes una conversación abierta.', sop_abiertas_n:'Tienes {n} conversaciones abiertas.', escribir_equipo:'Escribir al equipo', hola_manana:'Buenos días', hola_tarde:'Buenas tardes', hola_noche:'Buenas noches', pendiente_ti:'Pendiente de ti', ver_perfil:'Ver mi perfil', escribir:'Escribir', saludo_sub:'Estado de tu operación con Lawang Estate',
          r_inversion:'Tu inversión', r_pagado:'Pagado', r_pendiente:'Pendiente',
          r_cuota:'Cuota de reserva', cuota_reserva:'Cuota de reserva',
          nota_solo_reserva:'De momento solo tienes Carta(s) de Reserva, sin contrato definitivo firmado: el importe de arriba es la cuota de reserva, no el precio final de tu unidad.',
          nota_sin_carta:'La inversión suma tus contratos definitivos. No cuenta tu Carta de Reserva, que declara ese mismo importe antes de repartirse entre el Bloqueo de Parcela y la Construcción:',
          nota_carta_sustituida:'Esta Carta de Reserva ya está recogida en tus contratos definitivos: su importe y su calendario son los de ellos, no un pago aparte. El documento se queda aquí por si lo necesitas.',
-         proximo_pago:'Próximo pago', sin_proximo:'No tienes pagos pendientes ahora mismo.',
-         ver_plan:'Ver plan de pagos', novedades:'Últimas novedades',
+         proximo_pago:'Próximo pago', sin_proximo:'No tienes pagos pendientes ahora mismo.', novedades:'Últimas novedades',
          acc_documentos:'Documentos', acc_documentos_sub:'Dossier, planos y KYC',
-         acc_soporte:'Soporte', acc_soporte_sub:'Escribe a tu equipo de gestión',
+         acc_soporte:'Soporte',
          precio:'Precio', unidad:'Unidad', fecha_firma:'Fecha de firma', cobrado:'Pagado hasta hoy',
          pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
@@ -975,9 +967,7 @@
          proyectos_titulo:'Tus proyectos', ver_documentos:'Ver documentos', ver_ubicacion:'Ver ubicación',
          todos_proyectos:'Todos los proyectos', n_docs_1:'1 documento', n_docs_n:'{n} documentos', sin_docs_proyecto:'Sin documentos todavía',
          entrega_proyecto:'Entrega estimada', pagado_de:'{a} de {b} pagado', descargar_carpeta:'Descargar carpeta', fase_obra:'Obra',
-         doc_cat_legal:'Legal', doc_cat_tecnico:'Técnico', doc_cat_comercial:'Comercial', doc_cat_fotos:'Fotos', doc_cat_planos:'Planos', doc_cat_precios:'Precios', doc_cat_faq:'Preguntas frecuentes',
-         firma_banner_1:'Tienes 1 documento pendiente de firma', firma_banner_n:'Tienes {n} documentos pendientes de firma',
-         firma_banner_btn:'Ir a firmar', ver_facturas:'Ver mis facturas',
+         doc_cat_legal:'Legal', doc_cat_tecnico:'Técnico', doc_cat_comercial:'Comercial', doc_cat_fotos:'Fotos', doc_cat_planos:'Planos', doc_cat_precios:'Precios', doc_cat_faq:'Preguntas frecuentes', ver_facturas:'Ver mis facturas',
          tl_pagos:'Pagos', tl_obra:'Obra', obra_ultimo:'Lo último de tu obra',
          doc_buscar:'Buscar un documento…', doc_todo:'Descargar todo', doc_zip_prep:'Preparando…',
          doc_zip_err:'No hemos podido preparar la descarga. Inténtalo de nuevo o abre los documentos de uno en uno.',
@@ -998,16 +988,15 @@
          nav_documentos:'Documents', nav_soporte:'Support', nav_perfil:'My profile',
          tit_inicio:'Home', tit_contratos:'Contracts', tit_facturas:'Invoices', tit_obra:'Construction',
          tit_documentos:'Documents', tit_soporte:'Support', tit_perfil:'My profile',
-         hola:'Hello', n_props_1:'1 property with Lawang Estate', n_props_n:'{n} properties with Lawang Estate', firma_tarea:'Sign contract {n}', firma_caduca:'the link expires on {f}', firmar:'Sign', kyc_caduca_el:'Your {doc} expires on {f}', vence_el:'due {f}', ver_factura_n:'View invoice {n}', de_total:'of', tus_propiedades:'Your properties', portada_prep:'Cover photo coming soon', pagada:'Paid in full', firma_pend_chip:'Awaiting signature', nov_obra_foto:'New construction photos for {u}: “{t}”', ver_factura:'View invoice', ver_fotos:'View photos', sop_titulo:'A question about a payment or a document?', sop_texto:'The Lawang account team will reply.', sop_abiertas_1:'You have one open conversation.', sop_abiertas_n:'You have {n} open conversations.', escribir_equipo:'Write to the team', hola_manana:'Good morning', hola_tarde:'Good afternoon', hola_noche:'Good evening', pendiente_ti:'Waiting on you', ver_perfil:'View my profile', escribir:'Write to us', saludo_sub:'Status of your operation with Lawang Estate',
+         hola:'Hello', n_props_1:'1 property with Lawang Estate', n_props_n:'{n} properties with Lawang Estate', firma_tarea:'Sign contract {n}', firma_caduca:'the link expires on {f}', firmar:'Sign', kyc_caduca_el:'Your {doc} expires on {f}', vence_el:'due {f}', vencio_el:'was due {f}', ver_factura_n:'View invoice {n}', tus_propiedades:'Your properties', portada_prep:'Cover photo coming soon', pagada:'Paid in full', firma_pend_chip:'Awaiting signature', nov_obra_foto:'New construction photos for {u}: “{t}”', ver_factura:'View invoice', ver_fotos:'View photos', sop_titulo:'A question about a payment or a document?', sop_texto:'The Lawang account team will reply.', sop_abiertas_1:'You have one open conversation.', sop_abiertas_n:'You have {n} open conversations.', escribir_equipo:'Write to the team', hola_manana:'Good morning', hola_tarde:'Good afternoon', hola_noche:'Good evening', pendiente_ti:'Waiting on you', ver_perfil:'View my profile', escribir:'Write to us', saludo_sub:'Status of your operation with Lawang Estate',
          r_inversion:'Your investment', r_pagado:'Paid', r_pendiente:'Outstanding',
          r_cuota:'Reservation fee', cuota_reserva:'Reservation fee',
          nota_solo_reserva:'For now you only hold Reservation Letter(s), with no definitive contract signed yet: the figure above is the reservation fee, not the final price of your unit.',
          nota_sin_carta:'Your investment adds up your definitive contracts. It does not count your Reservation Letter, which states that same amount before it is split between the Plot Block and the Construction contract:',
          nota_carta_sustituida:'This Reservation Letter is already covered by your definitive contracts: its amount and its schedule are theirs, not a separate payment. The document stays here in case you need it.',
-         proximo_pago:'Next payment', sin_proximo:'You have no pending payments right now.',
-         ver_plan:'View payment plan', novedades:'Latest updates',
+         proximo_pago:'Next payment', sin_proximo:'You have no pending payments right now.', novedades:'Latest updates',
          acc_documentos:'Documents', acc_documentos_sub:'Brochure, plans and KYC',
-         acc_soporte:'Support', acc_soporte_sub:'Write to your account team',
+         acc_soporte:'Support',
          precio:'Price', unidad:'Unit', fecha_firma:'Signing date', cobrado:'Paid to date',
          pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
@@ -1054,9 +1043,7 @@
          proyectos_titulo:'Your projects', ver_documentos:'View documents', ver_ubicacion:'View location',
          todos_proyectos:'All projects', n_docs_1:'1 document', n_docs_n:'{n} documents', sin_docs_proyecto:'No documents yet',
          entrega_proyecto:'Estimated handover', pagado_de:'{a} of {b} paid', descargar_carpeta:'Download folder', fase_obra:'Construction',
-         doc_cat_legal:'Legal', doc_cat_tecnico:'Technical', doc_cat_comercial:'Commercial', doc_cat_fotos:'Photos', doc_cat_planos:'Plans', doc_cat_precios:'Prices', doc_cat_faq:'FAQ',
-         firma_banner_1:'You have 1 document waiting for your signature', firma_banner_n:'You have {n} documents waiting for your signature',
-         firma_banner_btn:'Go to signing', ver_facturas:'View my invoices',
+         doc_cat_legal:'Legal', doc_cat_tecnico:'Technical', doc_cat_comercial:'Commercial', doc_cat_fotos:'Photos', doc_cat_planos:'Plans', doc_cat_precios:'Prices', doc_cat_faq:'FAQ', ver_facturas:'View my invoices',
          tl_pagos:'Payments', tl_obra:'Construction', obra_ultimo:'Latest from your build',
          doc_buscar:'Search a document…', doc_todo:'Download all', doc_zip_prep:'Preparing…',
          doc_zip_err:'We could not prepare the download. Try again or open the documents one by one.',
@@ -1077,16 +1064,15 @@
          nav_documentos:'Dokumen', nav_soporte:'Bantuan', nav_perfil:'Profil saya',
          tit_inicio:'Beranda', tit_contratos:'Kontrak', tit_facturas:'Faktur', tit_obra:'Pembangunan',
          tit_documentos:'Dokumen', tit_soporte:'Bantuan', tit_perfil:'Profil saya',
-         hola:'Halo', n_props_1:'1 properti bersama Lawang Estate', n_props_n:'{n} properti bersama Lawang Estate', firma_tarea:'Tandatangani kontrak {n}', firma_caduca:'tautan berakhir pada {f}', firmar:'Tanda tangani', kyc_caduca_el:'{Doc} Anda berakhir pada {f}', vence_el:'jatuh tempo {f}', ver_factura_n:'Lihat faktur {n}', de_total:'dari', tus_propiedades:'Properti Anda', portada_prep:'Foto sampul segera hadir', pagada:'Lunas', firma_pend_chip:'Menunggu tanda tangan', nov_obra_foto:'Foto pembangunan baru di {u}: “{t}”', ver_factura:'Lihat faktur', ver_fotos:'Lihat foto', sop_titulo:'Ada pertanyaan tentang pembayaran atau dokumen?', sop_texto:'Tim pengelola Lawang akan membalas.', sop_abiertas_1:'Anda punya satu percakapan terbuka.', sop_abiertas_n:'Anda punya {n} percakapan terbuka.', escribir_equipo:'Tulis ke tim', hola_manana:'Selamat pagi', hola_tarde:'Selamat siang', hola_noche:'Selamat malam', pendiente_ti:'Menunggu Anda', ver_perfil:'Lihat profil saya', escribir:'Tulis pesan', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
+         hola:'Halo', n_props_1:'1 properti bersama Lawang Estate', n_props_n:'{n} properti bersama Lawang Estate', firma_tarea:'Tandatangani kontrak {n}', firma_caduca:'tautan berakhir pada {f}', firmar:'Tanda tangani', kyc_caduca_el:'{Doc} Anda berakhir pada {f}', vence_el:'jatuh tempo {f}', vencio_el:'lewat jatuh tempo {f}', ver_factura_n:'Lihat faktur {n}', tus_propiedades:'Properti Anda', portada_prep:'Foto sampul segera hadir', pagada:'Lunas', firma_pend_chip:'Menunggu tanda tangan', nov_obra_foto:'Foto pembangunan baru di {u}: “{t}”', ver_factura:'Lihat faktur', ver_fotos:'Lihat foto', sop_titulo:'Ada pertanyaan tentang pembayaran atau dokumen?', sop_texto:'Tim pengelola Lawang akan membalas.', sop_abiertas_1:'Anda punya satu percakapan terbuka.', sop_abiertas_n:'Anda punya {n} percakapan terbuka.', escribir_equipo:'Tulis ke tim', hola_manana:'Selamat pagi', hola_tarde:'Selamat siang', hola_noche:'Selamat malam', pendiente_ti:'Menunggu Anda', ver_perfil:'Lihat profil saya', escribir:'Tulis pesan', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
          r_inversion:'Investasi Anda', r_pagado:'Sudah dibayar', r_pendiente:'Belum dibayar',
          r_cuota:'Biaya reservasi', cuota_reserva:'Biaya reservasi',
          nota_solo_reserva:'Saat ini Anda hanya memiliki Surat Reservasi, tanpa kontrak definitif yang ditandatangani: jumlah di atas adalah biaya reservasi, bukan harga akhir unit Anda.',
          nota_sin_carta:'Investasi dihitung dari kontrak definitif Anda. Surat Reservasi tidak dihitung karena menyatakan jumlah yang sama sebelum dibagi antara Pemblokiran Lahan dan Konstruksi:',
          nota_carta_sustituida:'Surat Reservasi ini sudah termasuk dalam kontrak definitif Anda: jumlah dan jadwalnya mengikuti kontrak tersebut, bukan pembayaran terpisah. Dokumen tetap disimpan di sini jika Anda membutuhkannya.',
-         proximo_pago:'Pembayaran berikutnya', sin_proximo:'Saat ini Anda tidak memiliki pembayaran yang tertunda.',
-         ver_plan:'Lihat jadwal pembayaran', novedades:'Kabar terbaru',
+         proximo_pago:'Pembayaran berikutnya', sin_proximo:'Saat ini Anda tidak memiliki pembayaran yang tertunda.', novedades:'Kabar terbaru',
          acc_documentos:'Dokumen', acc_documentos_sub:'Dossier, denah, dan KYC',
-         acc_soporte:'Bantuan', acc_soporte_sub:'Tulis ke tim pengelola Anda',
+         acc_soporte:'Bantuan',
          precio:'Harga', unidad:'Unit', fecha_firma:'Tanggal tanda tangan', cobrado:'Dibayar sampai hari ini',
          pagado:'Lunas', pendiente:'Belum dibayar', parcial:'Sebagian', de:'dari',
          plan_pagos:'Jadwal pembayaran', concepto:'Keterangan', cuando:'Jatuh tempo', importe:'Jumlah', estado:'Status',
@@ -1133,9 +1119,7 @@
          proyectos_titulo:'Proyek Anda', ver_documentos:'Lihat dokumen', ver_ubicacion:'Lihat lokasi',
          todos_proyectos:'Semua proyek', n_docs_1:'1 dokumen', n_docs_n:'{n} dokumen', sin_docs_proyecto:'Belum ada dokumen',
          entrega_proyecto:'Perkiraan serah terima', pagado_de:'{a} dari {b} lunas', descargar_carpeta:'Unduh folder', fase_obra:'Pembangunan',
-         doc_cat_legal:'Legal', doc_cat_tecnico:'Teknis', doc_cat_comercial:'Komersial', doc_cat_fotos:'Foto', doc_cat_planos:'Denah', doc_cat_precios:'Harga', doc_cat_faq:'Pertanyaan umum',
-         firma_banner_1:'Anda memiliki 1 dokumen yang menunggu tanda tangan', firma_banner_n:'Anda memiliki {n} dokumen yang menunggu tanda tangan',
-         firma_banner_btn:'Pergi menandatangani', ver_facturas:'Lihat faktur saya',
+         doc_cat_legal:'Legal', doc_cat_tecnico:'Teknis', doc_cat_comercial:'Komersial', doc_cat_fotos:'Foto', doc_cat_planos:'Denah', doc_cat_precios:'Harga', doc_cat_faq:'Pertanyaan umum', ver_facturas:'Lihat faktur saya',
          tl_pagos:'Pembayaran', tl_obra:'Pembangunan', obra_ultimo:'Terbaru dari pembangunan Anda',
          doc_buscar:'Cari dokumen…', doc_todo:'Unduh semua', doc_zip_prep:'Menyiapkan…',
          doc_zip_err:'Kami tidak dapat menyiapkan unduhan. Coba lagi atau buka dokumen satu per satu.',
@@ -1502,16 +1486,23 @@
       if (o.actualizado) lista.push({ tipo:'obra', texto: (ult && ult.titulo) ? t('nov_obra_foto').replace('{u}', o.unidad).replace('{t}', ult.titulo) : t('nov_obra') + o.unidad,
                                        fecha: o.actualizado, cuando: new Date(o.actualizado) });
     });
-    (d.kyc || []).forEach(function(k){
-      if (!k.caduca) return;
+    kycCaducan(d).forEach(function(k){
       var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
-      if (dias >= 0 && dias <= 30) lista.push({ tipo:'kyc',
+      lista.push({ tipo:'kyc',
         texto: t('nov_doc_caduca').replace('{doc}', (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo))).replace('{n}', dias),
         fecha: k.caduca, cuando: new Date()
       });
     });
     lista.sort(function(a,b){ return b.cuando - a.cuando; });
     return lista.slice(0, 8);
+  }
+  /* Documento de identidad que caduca en los próximos 30 días: lo usan la campana y la lista de Inicio. */
+  function kycCaducan(d){
+    return ((d && d.kyc) || []).filter(function(k){
+      if (!k.caduca) return false;
+      var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
+      return dias >= 0 && dias <= 30;
+    });
   }
   function pintaCampana(){
     var drop = document.getElementById('notifDrop');
@@ -1596,7 +1587,7 @@
         // la tarjeta "Pendiente" de al lado, que si resta lo cobrado)
         var pagadoAcum = hs.reduce(function(s,y){ return s + (y.estado === 'pagado' && !isNaN(y.monto) ? y.monto : 0); }, 0);
         var restante = isNaN(h.monto) ? NaN : Math.max(0, h.monto - Math.max(0, (Number(x.cobrado)||0) - pagadoAcum));
-        proximo = { hito:h.hito, monto:restante, montoHito:h.monto, moneda:x.moneda, contrato:x.numero, proyecto:x.proyecto, parcela:x.parcela };
+        proximo = { hito:h.hito, monto:restante, moneda:x.moneda, contrato:x.numero, proyecto:x.proyecto, parcela:x.parcela };
       }
     });
 
@@ -1604,11 +1595,7 @@
        el artifact»). Un solo momento fuerte: el próximo pago, con lo pagado y lo pendiente en su pie. Lo que espera al
        comprador (firma, documento que caduca) va en una lista tranquila encima, cada cosa con su fecha y su botón. */
     var todas = novedadesDerivadas();
-    var caducan = (d.kyc || []).filter(function(k){
-      if (!k.caduca) return false;
-      var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
-      return dias >= 0 && dias <= 30;
-    });
+    var caducan = kycCaducan(d);
     var novedades = todas.filter(function(x){ return x.tipo !== 'kyc'; }).slice(0,3);
     var contratoPorId = {};
     (d.contratos || []).forEach(function(x){ contratoPorId[x.id] = x; });
@@ -1622,7 +1609,7 @@
     caducan.forEach(function(k){
       var nom = t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo);
       tareas.push('<div class="ini-tarea"><span class="ini-tarea-pt"></span><div class="ini-tarea-tx"><b>' +
-        esc(t('kyc_caduca_el').replace('{doc}', String(nom).toLowerCase()).replace('{Doc}', nom).replace('{f}', fechaCorta(k.caduca))) + '</b></div>' +
+        esc(t('kyc_caduca_el').replace('{doc}', nom === String(nom).toUpperCase() ? nom : String(nom).charAt(0).toLowerCase() + String(nom).slice(1)).replace('{Doc}', nom).replace('{f}', fechaCorta(k.caduca))) + '</b></div>' +
         '<button type="button" class="btn-borde" data-ir="perfil">' + esc(t('ver_perfil')) + '</button></div>');
     });
     var tareasHTML = tareas.length ? '<div class="ini-tareas" role="status" aria-label="' + esc(t('pendiente_ti')) + '">' + tareas.join('') + '</div>' : '';
@@ -1640,7 +1627,7 @@
           var fase = obraU ? (d.fases || []).filter(function(ff){ return ff.clave === obraU.fase; })[0] : null;
           var pct = (rs.total != null && rs.total > 0) ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : null;   // floor: nunca «100 %» si queda algo
           var firma = (f.contratos || []).some(function(x){ return conFirma[x.id]; });
-          var pagada = rs.total != null && rs.total > 0 && rs.cobrado >= rs.total;
+          var pagada = !rs.soloReserva && rs.total != null && rs.total > 0 && rs.cobrado >= rs.total;   // con solo la Carta, el total es la cuota de reserva
           var chips = unidades.map(function(u){ return '<span class="proy-chip">' + esc(u) + '</span>'; }).join('') +
             (fase ? '<span class="proy-chip obra">' + esc(t('fase_obra')) + ' · ' + esc(Lx(fase)) + '</span>' : '') +
             (firma ? '<span class="proy-chip firma">' + esc(t('firma_pend_chip')) + '</span>' : '') +
@@ -1658,21 +1645,10 @@
         (carpetasInicio.length > 3 ? '<button type="button" class="btn-borde ver-todos' + (carpetasInicio.length <= 6 ? ' solo-movil' : '') + '" data-ir="documentos">' + esc(t('ver_todos').replace('{n}', carpetasInicio.length)) + '</button>' : '')
       : '';
 
-    /* La factura del próximo pago: las facturas no dicen a qué hito pertenecen, así que se busca la del MISMO contrato y
-       el MISMO importe (el del hito o lo que queda de él), emitida y sin vencer hace más de 30 días (una vieja del mismo
-       importe, p. ej. un anticipo igual a la entrega, ya pasó de largo). Sin coincidencia, el bloque dice lo de siempre
-       («Vencimiento: Mes 3») y el botón lleva a la lista: nunca se inventa una fecha. */
-    var factProx = null;
-    if (proximo){
-      var limite = Date.now() - 30 * 86400000;
-      factProx = (d.facturas || []).filter(function(f){
-        if (f.tipo !== 'factura' || f.contrato_numero !== proximo.contrato) return false;
-        var tot = Number(f.total);
-        if (!(Math.abs(tot - proximo.monto) < 1 || Math.abs(tot - proximo.montoHito) < 1)) return false;
-        var v = f.fields && f.fields.fecha_vencimiento;
-        return !v || new Date(v).getTime() >= limite;
-      })[0] || null;
-    }
+    /* La factura del próximo pago: la que tiene una línea con la descripción exacta del hito (facturaDelHito, en
+       resumen.js y probada en resumen.test.js). Sin ella, el bloque dice el plazo del contrato y el botón lleva a
+       la lista: nunca se adivina una factura ni una fecha. */
+    var factProx = (proximo && typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, proximo.contrato, proximo.hito, proximo.moneda) : null;
     var vence = factProx && factProx.fields && factProx.fields.fecha_vencimiento;
 
     var hayResumen = tot != null && tot > 0;
@@ -1680,11 +1656,12 @@
     var pieResumen = hayResumen
       ? '<div class="hp-pie"><span>' + esc(t('r_pagado')) + ' <b>' + esc(dinero(cob,mon)) + '</b></span>' +
           '<div class="barra"><i style="width:' + pctTot + '%"></i></div>' +
-          '<span>' + esc(t('r_pendiente')) + ' <b>' + esc(dinero(res.pendiente,mon)) + '</b> ' + esc(t('de_total')) + ' ' + esc(dinero(tot,mon)) + '</span></div>'
+          '<span>' + esc(t('r_pendiente')) + ' <b>' + esc(dinero(res.pendiente,mon)) + '</b> · ' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + ' ' + esc(dinero(tot,mon)) + '</span></div>'
       : '';
     var impTxt = (proximo && !isNaN(proximo.monto)) ? dinero(proximo.monto, proximo.moneda) : '—';
     var subPago = proximo ? [proximo.proyecto, proximo.parcela].filter(Boolean).map(esc).join(' · ') : '';
-    var cuandoPago = proximo ? (vence ? esc(t('vence_el').replace('{f}', fechaLargaDe(vence))) : esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato)) : '';
+    var vencida = vence && new Date(vence).setHours(23,59,59,999) < Date.now();
+    var cuandoPago = proximo ? (vence ? esc(t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(vence))) : esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato)) : '';
     var heroPago = '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
       (proximo ?
         '<div class="hp-fila"><div class="hp-info"><div class="hp-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
@@ -1755,9 +1732,8 @@
   }
   function nDocsTxt(n){ return n === 1 ? t('n_docs_1') : t('n_docs_n').replace('{n}', n); }
   function catDoc(c){ var k = 'doc_cat_' + String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); var v = t(k); return v === k ? (c || t('doc_otros')) : v; }
-  function inicialDe(n){ return esc(String(n || '?').replace(/[^A-Za-z0-9]/, '').charAt(0).toUpperCase() || '·'); }
   function portadaHTML(f, clase){
-    return '<div class="' + clase + '"><span class="proy-inicial" aria-hidden="true">' + inicialDe(f.nombre) + '</span>' +
+    return '<div class="' + clase + '">' +
       (f.portada ? '<img alt="" data-portada="' + esc(f.portada) + '" hidden>' : '<span class="proy-sinfoto">' + esc(t('portada_prep')) + '</span>') + '</div>';
   }
   /* Las portadas son URLs firmadas de 10 min: se piden TODAS juntas (una llamada) y se recuerdan 8 min para no

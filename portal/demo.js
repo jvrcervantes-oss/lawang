@@ -97,17 +97,17 @@
     ];
     var emisor = { label: 'Lawang Demo', razon: 'PT Demo Estate', domicilio: 'Jl. Demostración 1, Bali', npwp: '00.000.000.0-000.000' };
     function fac(id, numero, tipo, proy, fecha, total, contrato, concepto, extra) {
-      return Object.assign({ id: id, numero: numero, tipo: tipo, proyecto: proy, fecha: fecha, total: total, moneda: 'USD', contrato_numero: contrato, emisor: emisor,
+      return Object.assign({ id: id, numero: numero, tipo: tipo, proyecto: proy, fecha: fecha, total: total, moneda: 'USD', contrato_numero: contrato, emisor: emisor, lineas: [{ descripcion: concepto, importe: total }],
         fields: { sociedad: 'demo', tipo: tipo, moneda: 'USD', cliente_nombre: 'Marta Keller', cliente_email: EMAIL, fecha_emision: fecha, fecha_vencimiento: dia(6), proyecto_nombre: proy,
           contrato_numero: contrato, lineas: [{ descripcion: concepto, importe: total }] } }, extra);
     }
     var facturas = [
-      fac('f1', 'LW-0142', 'factura', 'Palm Field W5', dia(-3), 37950, 'P-07-CO', 'Hito 2 · Cimentación · P-07-CO'),
+      fac('f1', 'LW-0142', 'factura', 'Palm Field W5', dia(-3), 37950, 'P-07-CO', 'Cimentación — Mes 3'),
       fac('f2', 'REC-2026-0057', 'recibi', 'Palm Field W5', dia(-70), 25300, 'P-07-CO', 'Pago recibido · Anticipo 20 %'),
-      fac('f3', 'LW-0131', 'factura', 'Palm Field W5', dia(-75), 25300, 'P-07-CO', 'Hito 1 · Anticipo 20 % · P-07-CO'),
+      fac('f3', 'LW-0131', 'factura', 'Palm Field W5', dia(-75), 25300, 'P-07-CO', 'Anticipo 20 % — A la firma'),
       fac('f4', 'REC-2026-0031', 'recibi', 'Sumba Hills', dia(-125), 52000, 'SH-03-BP', 'Pago recibido · Reserva'),
-      fac('f5', 'LW-0118', 'factura', 'Bonian Village', dia(-30), 3000, 'BV-01-BP', 'Reserva · BV-01-BP'),
-      fac('f6', 'PRO-2026-0007', 'proforma', 'Sumba Hills', dia(-2), 19600, 'SH-03-CO', 'Anticipo 20 % · SH-03-CO (a la firma)')
+      fac('f5', 'LW-0118', 'factura', 'Bonian Village', dia(-30), 3000, 'BV-01-BP', 'Reserva — A la firma'),
+      fac('f6', 'PRO-2026-0007', 'proforma', 'Sumba Hills', dia(-2), 19600, 'SH-03-CO', 'Anticipo 20 % — A la firma')
     ];
     var fotosP07 = [[0, 'Estructura norte', -4], [1, 'Armado de pilares', -11], [2, 'Encofrado de losa', -18], [3, 'Cimentación terminada', -39], [4, 'Excavación', -62], [5, 'Replanteo de la parcela', -80]]
       .map(function (a) { return { path: img('obra/p07/' + a[0], foto(a[0], a[0] < 4 ? 'est' : 'cim')), titulo: a[1], fecha: dia(a[2]) }; });
