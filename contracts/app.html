@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="6b72a56c07e3">
+<meta name="lw-version" content="e70861dc35e4">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -4419,6 +4419,17 @@ function updateSaveButton(){
       }
       caja.style.display = abre ? '' : 'none';
       if(sel) sel.disabled = !abre;
+      /* Los tres campos del poder de venta y la finca solo existen para REV04
+         (owner, 7-oct-2026: «el estándar es el que debe salir siempre»). Con el
+         estándar o REV03 se esconden —misma clase que los de empresa— y no se
+         vacían: el texto del contrato ya los ignora y así no se pierde lo
+         tecleado si se cambia de opinión. Se mira el valor, no el rol: una copia
+         REV04 guardada los enseña aunque quien la abre no pueda cambiar el selector. */
+      const esRev04 = !!(sel && sel.value === 'rev04');
+      CAMPOS_REV04.forEach(k => {
+        const c = document.querySelector(`.field[data-key="${k}"]`);
+        if(c) c.classList.toggle('sin-ficha', !esRev04);
+      });
     }
   }
   // Hitos de fábrica del Contrato de Construcción (16-sep-2026): mismo
@@ -5746,6 +5757,7 @@ const CAMPOS_FICHA = [
 ];
 /* Los cuatro de arriba solo existen para una empresa: con una persona enlazada
    se esconden y se vacían. Una sola lista y no dos, por lo mismo de siempre. */
+const CAMPOS_REV04 = ['poder_titular','poder_apoderado','finca_shm_nib'];   // solo con clausulas_negociadas=rev04
 const CAMPOS_EMPRESA = ['adq1_forma_juridica','adq1_registro','adq1_rep_nombre','adq1_rep_cargo'];
 /* Lo que cambia de nombre cuando el comprador es una sociedad. El campo de
    pasaporte NO entra: su etiqueta ya dice «Nº pasaporte / identificación
