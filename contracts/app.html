@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="442f159332d6">
+<meta name="lw-version" content="f74268970fe6">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=bbdeef94"></script>
+<script src="/contracts/assets/i18n.js?v=00d6cc5a"></script>
 <script src="/contracts/assets/herramientas.js?v=e627e560"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -56,7 +56,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/roles.js?v=a1050d4d"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=64185809"></script>
+<script src="/contracts/assets/roles.js?v=11bd025d"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=56bb3760"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -112,8 +112,8 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=8cfd9306"></script>
-<script src="/intranet/v4/assets/nav.js?v=268436a5" defer></script>
+<script src="/contracts/assets/asistente-contrato.js?v=1a655900"></script>
+<script src="/intranet/v4/assets/nav.js?v=646b2ce6" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -4417,10 +4417,21 @@ function updateSaveButton(){
       if(MI_ROL && !abre && !(SAVED_CONTRACT && SAVED_CONTRACT.id) && sel && sel.value){
         sel.value = ''; sel.dispatchEvent(new Event('change', { bubbles:true }));
         // Que no se pierda en silencio (p. ej. una Construcción derivada de una Parcela REV03).
-        toastMal(lwT('Este contrato venía con cláusulas negociadas (REV03) y solo dirección puede ponerlas: pide a un admin que las active antes de enviarlo.'));
+        toastMal(lwT('Este contrato venía con cláusulas negociadas y solo dirección puede ponerlas: pide a un admin que las active antes de enviarlo.'));
       }
       caja.style.display = abre ? '' : 'none';
       if(sel) sel.disabled = !abre;
+      /* Los tres campos del poder de venta y la finca solo existen para REV04
+         (owner, 7-oct-2026: «el estándar es el que debe salir siempre»). Con el
+         estándar o REV03 se esconden —misma clase que los de empresa— y no se
+         vacían: el texto del contrato ya los ignora y así no se pierde lo
+         tecleado si se cambia de opinión. Se mira el valor, no el rol: una copia
+         REV04 guardada los enseña aunque quien la abre no pueda cambiar el selector. */
+      const esRev04 = !!(sel && sel.value === 'rev04');
+      CAMPOS_REV04.forEach(k => {
+        const c = document.querySelector(`.field[data-key="${k}"]`);
+        if(c) c.classList.toggle('sin-ficha', !esRev04);
+      });
     }
   }
   // Hitos de fábrica del Contrato de Construcción (16-sep-2026): mismo
@@ -5748,6 +5759,7 @@ const CAMPOS_FICHA = [
 ];
 /* Los cuatro de arriba solo existen para una empresa: con una persona enlazada
    se esconden y se vacían. Una sola lista y no dos, por lo mismo de siempre. */
+const CAMPOS_REV04 = ['poder_titular','poder_apoderado','finca_shm_nib'];   // solo con clausulas_negociadas=rev04
 const CAMPOS_EMPRESA = ['adq1_forma_juridica','adq1_registro','adq1_rep_nombre','adq1_rep_cargo'];
 /* Lo que cambia de nombre cuando el comprador es una sociedad. El campo de
    pasaporte NO entra: su etiqueta ya dice «Nº pasaporte / identificación
@@ -6068,7 +6080,7 @@ function blobToBase64(blob){
    el guardado sigue exigiendo su motivo y el tope del 15% (ver
    CAMPOS_DESCUENTO_COMERCIAL); lo que se quita es exigirlo vacío. */
 const CAMPOS_OPCIONALES = new Set(['nombre_contrato', 'precio_total_letras', 'precio_reserva_letras', 'adq1_registro',
-  'descuento_comercial', 'descuento_comercial_motivo', 'clausulas_negociadas']);   // clausulas_negociadas: vacío = texto estándar (owner, 5-oct-2026)
+  'descuento_comercial', 'descuento_comercial_motivo', 'clausulas_negociadas', 'poder_titular', 'poder_apoderado', 'finca_shm_nib']);   // clausulas_negociadas: vacío = texto estándar (owner, 5-oct-2026)
 const SECCIONES_OPCIONALES = new Set(['hs_segunda_parte']);
 const valorCampo = key => { const el = document.querySelector(`[name="${key}"]`); return el ? String(el.value||'').trim() : ''; };
 function camposSinRellenar(){

@@ -32,7 +32,8 @@ function puerta(attrs, ficha, opts) {
   };
   ctx.window = ctx;
   const sb = {
-    auth: { getSession: () => Promise.resolve({ data: { session: { user: { id: 'u1', app_metadata: {} } } } }) },
+    auth: { getSession: () => Promise.resolve({ data: { session: { user: { id: 'u1', app_metadata: opts.portal ? { portal: true } : {} } } } }),
+      signOut: () => { salidas.push('SIGNOUT'); return Promise.resolve(); } },
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () =>
       opts.fichaFalla ? Promise.reject(new Error('red')) : Promise.resolve({ data: ficha }) }) }) }),
   };
@@ -135,6 +136,25 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
   assert.ok(r.entra, 'el admin global entra como siempre en la pantalla de la instancia');
   r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'global' }, SUPER);
   assert.ok(r.entra, 'el super global también');
+  // Comisión de administración (data-ambito="super-global", 7-oct-2026, owner): solo los super admins GLOBALES; ni el super de empresa ni un admin
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'super-global' }, SUPER);
+  assert.ok(r.entra, 'el super global entra en la Comisión de administración');
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'super-global' }, SUPER_E);
+  assert.ok(!r.entra && r.salidas.length, 'un super de empresa NO entra en la Comisión de administración');
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'super-global' }, ADMIN_E);
+  assert.ok(!r.entra, 'un admin de empresa tampoco');
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'super-global' }, ADMIN);
+  assert.ok(!r.entra, 'un admin global tampoco');
+  // Sociedades emisoras (data-ambito="propietario"): solo el propietario (super global con es_propietario)
+  const PROP = { rol: 'super_admin', ambito: 'global', es_propietario: true, activo: true, herramientas: [] };
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'propietario' }, PROP);
+  assert.ok(r.entra, 'el propietario entra en Sociedades emisoras');
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'propietario' }, SUPER);
+  assert.ok(!r.entra && r.salidas.length, 'un super global que no es el propietario NO entra en Sociedades emisoras');
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'propietario' }, SUPER_E);
+  assert.ok(!r.entra, 'un super de empresa tampoco');
+  r = await puerta({ 'data-rol': 'super_admin', 'data-ambito': 'propietario' }, Object.assign({}, SUPER_E, { es_propietario: true }));
+  assert.ok(!r.entra, 'es_propietario en una ficha de empresa no vale: lo exige el rol super_admin global');
   // las casillas: solo el super GLOBAL se las salta (igual que puede() en la base); el de empresa pasa por su lista
   r = await puerta({ 'data-herramienta': 'obra' }, SUPER_E);
   assert.ok(!r.entra, 'un super de empresa sin la casilla no entra: la lista manda');
@@ -168,5 +188,14 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
   r = await puerta({ 'data-herramienta': 'cuentas' }, SUPER, { sinFicha: true });
   assert.ok(!r.entra && /instancia\.js/.test(r.error || ''), 'sin instancia.js, guard.js para y no deja entrar');
 
+  // 7-oct-2026 (Andrea): una sesion de CLIENTE (marca portal, sin ficha) guardada en la clave de la intranet ya no rebota a /portal/
+  // (el portal guarda la suya en otra clave y no puede cerrarla): se cierra y se va al login
+  r = await puerta({}, null, { portal: true });
+  assert.ok(!r.entra, 'sin ficha y con marca de portal no se entra');
+  assert.ok(r.salidas.indexOf('SIGNOUT') !== -1, 'se cierra la sesion vieja: ' + JSON.stringify(r.salidas));
+  assert.ok(!r.salidas.some(u => /^\/portal\//.test(u)), 'no se manda a /portal/ con la sesion viva: ' + JSON.stringify(r.salidas));
+  // y quien tiene ficha de equipo entra aunque lleve la marca de portal (manda la ficha)
+  r = await puerta({}, AGENTE, { portal: true });
+  assert.ok(r.entra && !r.salidas.length, 'con ficha de equipo entra aunque lleve la marca de portal: ' + JSON.stringify(r));
   console.log('guard.test.js OK');
 })().catch(e => { console.error(e); process.exit(1); });

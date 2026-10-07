@@ -118,7 +118,8 @@ for (const [f, html] of [['ppjb_parcela.html', PARCELA], ['ppjb_construccion.htm
 // 4. El campo existe en tokens.json y solo con la opción 'si' (vacío = estándar).
 const tokens = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens.json'), 'utf8'));
 const campo = tokens.sections.flatMap(s => s.fields).find(x => x[0] === 'clausulas_negociadas');
-assert(campo && campo[2] === 'select' && campo[3].length === 1 && campo[3][0][0] === 'si', 'tokens.json: clausulas_negociadas debe ser select con la única opción «si»');
+assert(campo && campo[2] === 'select' && campo[3].length === 2 && campo[3][0][0] === 'si' && campo[3][1][0] === 'rev04'
+  && ['poder_titular', 'poder_apoderado', 'finca_shm_nib'].every(k => tokens.sections.flatMap(x => x.fields).some(x => x[0] === k && x[2] === 'text')), 'tokens.json: clausulas_negociadas debe ser select con las opciones «si» (REV03) y «rev04»');
 n++;
 // 4b. Es OPCIONAL: el candado «Faltan por rellenar» no puede exigirlo (5-oct-2026: a un agente le salía).
 assert(/const CAMPOS_OPCIONALES = new Set\(\[[^\]]*'clausulas_negociadas'/.test(app), 'app.html: clausulas_negociadas tiene que estar en CAMPOS_OPCIONALES (vacío = estándar, no «falta»)');
@@ -129,9 +130,9 @@ const asi = fs.readFileSync(path.join(__dirname, 'assets', 'asistente-contrato.j
 assert(/var SLUGS_REV03 = \['ppjb_parcela', 'ppjb_construccion'\];/.test(asi), 'asistente: el paso REV03 es solo de Parcela y Construcción');
 assert(asi.includes("['super_admin', 'admin'].indexOf(MI_ROL) !== -1"), 'asistente: el paso REV03 es solo para admin/super_admin');
 assert((asi.match(/if \(pideClausulas\(\)\) p\.push\(\['clausulas'/g) || []).length === 2, 'asistente: el paso REV03 tiene que estar en «venta nueva» y en «seguir una venta»');
-assert(asi.includes("if (k === 'clausulas') return S.clausulas === 'estandar' || S.clausulas === 'rev03';"), 'asistente: el paso REV03 obliga a elegir');
+assert(asi.includes("if (k === 'clausulas') return S.clausulas === 'estandar' || S.clausulas === 'rev03' || S.clausulas === 'rev04';"), 'asistente: el paso REV03 obliga a elegir');
 // «Estándar» tiene que QUITAR el 'si' heredado: populateForm se salta los vacíos, así que se escribe a mano.
-assert(asi.includes("cn.value = S.clausulas === 'rev03' ? 'si' : '';"), 'asistente: montaCondiciones no escribe el selector a mano');
+assert(asi.includes("cn.value = S.clausulas === 'rev04' ? 'rev04' : S.clausulas === 'rev03' ? 'si' : '';"), 'asistente: montaCondiciones no escribe el selector a mano');
 const dv4 = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'assets', 'datos.js'), 'utf8');
 assert(dv4.includes("select(CAMPOS_CONTRATO + ',rev03:datos_fields->>clausulas_negociadas')"), 'listado: no lee clausulas_negociadas');
 assert(dv4.includes("(c.rev03 === 'si' ? ' <span title=\"Cláusulas negociadas (REV03)\">' + pill('REV03', 'curso')"), 'listado: no pinta la pastilla REV03');
@@ -161,6 +162,85 @@ n += 7;
   assert.strictEqual(corre({ ...base, clausulas: '' }, 'si', 'admin').r.clausulasDeSalida(), 'rev03', 'una venta REV03 no llega preseleccionada');
   assert.strictEqual(corre({ ...base, camino: 'nueva', venta: null, clausulas: '' }, '', 'admin').r.clausulasDeSalida(), '', 'venta nueva: no debe preseleccionar');
   n += 6;
+  // REV04 (7-oct-2026): su valor es 'rev04' (no 'si'), y una venta REV04 llega preseleccionada.
+  assert.strictEqual(corre({ ...base, venta: { rev04: true }, clausulas: 'rev04' }, '', 'admin').sel.value, 'rev04', 'REV04 no pone «rev04»');
+  assert.strictEqual(corre({ ...base, venta: { rev04: true }, clausulas: 'estandar' }, 'rev04', 'admin').sel.value, '', 'Estándar no quita el «rev04» heredado');
+  assert.strictEqual(corre({ ...base, venta: { rev04: true }, clausulas: 'rev03' }, 'rev04', 'admin').sel.value, 'si', 'REV03 no sustituye a REV04');
+  assert.strictEqual(corre({ ...base, clausulas: 'rev04' }, '', 'agente').sel.value, '', 'un agente no puede poner REV04 desde el asistente');
+  assert.strictEqual(corre({ ...base, venta: { rev04: true }, clausulas: '' }, 'rev04', 'admin').r.clausulasDeSalida(), 'rev04', 'una venta REV04 no llega preseleccionada');
+  n += 5;
 }
+
+// 7. REV04 (7-oct-2026, owner: revisión legal «Horizon Francisco», opción solo admin como REV03).
+//    Valor 'rev04' del MISMO selector. (a) con 'rev04' salen las frases nuevas en ES/EN/ID y desaparece lo
+//    que sustituyen (impuestos, arbitraje SIAC, permisos); (b) con '' y con 'si' (REV03) el texto estándar
+//    sale IGUAL que antes y no se cuela ni una frase REV04; y REV04 no arrastra frases REV03.
+// La finca y la titular van como campos ({{finca_shm_nib}}, {{poder_titular}}): el repo es PÚBLICO y no puede llevar el nombre de un tercero ni su NIB (Legal, 7-oct-2026).
+const FINCA = 'SHM/NIB {{finca_shm_nib}}';
+for (const t of [PARCELA, CONSTRUCCION]) assert(!/SHM\/NIB \d|(Dña\.|Mrs\.|Ny\.) [A-ZÑ]{4,} [A-ZÑ]{4,}/.test(t), 'una plantilla lleva datos personales de la titular o su NIB fijos');
+const TABANAN = ['Juzgado de Distrito de Tabanan (Pengadilan Negeri Tabanan)', 'Tabanan District Court (Pengadilan Negeri Tabanan)', 'yurisdiksi eksklusif Pengadilan Negeri Tabanan'];
+const REV04 = {
+  'ppjb_parcela.html': [
+    'Surat Kuasa (poder de venta) de fecha 16 de septiembre de 2025', 'by virtue of the Surat Kuasa (power of sale) dated 16 September 2025',
+    'berdasarkan Surat Kuasa tertanggal 16 September 2025', 'a favor de D. {{poder_apoderado}}', 'in favour of Mr. {{poder_apoderado}}', 'kepada Tn. {{poder_apoderado}}',
+    'correspondiente a la finca con certificado ' + FINCA, 'corresponding to the land under certificate ' + FINCA, 'sesuai dengan tanah bersertifikat ' + FINCA,
+    'procedente de la finca con certificado ' + FINCA, 'originating from the land under certificate ' + FINCA, 'berasal dari tanah bersertifikat ' + FINCA,
+    'El PROMOTOR asumirá el PPh correspondiente al arrendamiento', 'The DEVELOPER shall bear the PPh corresponding to the lease', 'PENGEMBANG menanggung PPh atas sewa',
+    ...TABANAN,
+  ],
+  'ppjb_construccion.html': [
+    'incluido el PBG y el SLF (Sertifikat Laik Fungsi) a la finalización de las obras', 'including the PBG and the SLF (Sertifikat Laik Fungsi) upon completion of the works', 'termasuk PBG dan SLF (Sertifikat Laik Fungsi) pada saat selesainya pekerjaan',
+    'salvo en caso de dolo o negligencia grave del CONSTRUCTOR', 'except in case of wilful misconduct or gross negligence of the BUILDER', 'kecuali dalam hal kesengajaan atau kelalaian berat KONTRAKTOR',
+    'se obtendrán conforme a lo previsto en el Artículo 2', 'shall be obtained as provided in Article 2', 'diperoleh sesuai dengan ketentuan Pasal 2',
+    ...TABANAN,
+  ],
+};
+// Lo que REV04 SUSTITUYE: con REV04 no sale; con '' y con 'si' sí, UNA vez.
+const SUSTITUIDO = {
+  'ppjb_parcela.html': ['De los impuestos de la transmisión', 'Regarding transfer taxes', 'Mengenai pajak transaksi', 'Singapore International Arbitration Centre (SIAC)'],
+  'ppjb_construccion.html': ['es responsabilidad exclusiva y a cargo del CONSTRUCTOR', 'is the sole responsibility of, and at the cost of, the BUILDER',
+    'merupakan tanggung jawab tunggal dan atas biaya KONTRAKTOR', 'Singapore International Arbitration Centre (SIAC)'],
+};
+const cuenta = (h, fr) => h.split(fr).length - 1;
+for (const [f, html] of [['ppjb_parcela.html', PARCELA], ['ppjb_construccion.html', CONSTRUCCION]]) {
+  for (const regimen of ['leasehold', 'hgb', 'hak_milik']) {
+    const base = { adq1_tipo: 'persona', regimen_tenencia: regimen };
+    const sin = limpia(motor(html, { ...base }));
+    const r03 = limpia(motor(html, conRev03(base)));
+    const r04 = limpia(motor(html, { ...base, clausulas_negociadas: 'rev04' }));
+    for (const fr of REV04[f]) {
+      assert(r04.includes(fr), f + ' (' + regimen + '): con REV04 falta «' + fr + '»');
+      assert(!sin.includes(fr), f + ' (' + regimen + '): sin REV04 se imprime «' + fr + '»');
+      assert(!r03.includes(fr), f + ' (' + regimen + '): con REV03 se cuela la frase REV04 «' + fr + '»');
+      n += 3;
+    }
+    for (const fr of SUSTITUIDO[f]) {
+      assert(cuenta(sin, fr) >= 1, f + ' (' + regimen + '): el texto estándar perdió «' + fr + '»');
+      assert.strictEqual(cuenta(r03, fr), cuenta(sin, fr), f + ' (' + regimen + '): REV03 cambia o duplica el estándar «' + fr + '»');
+      assert(!r04.includes(fr), f + ' (' + regimen + '): con REV04 sigue lo sustituido «' + fr + '»');
+      n += 3;
+    }
+    for (const fr of [...FRASES[f], ...DNI]) { assert(!r04.includes(fr), f + ' (' + regimen + '): con REV04 sale una frase REV03 «' + fr + '»'); n++; }
+    for (const fr of ESTANDAR[f]) { assert(r04.includes(fr), f + ' (' + regimen + '): con REV04 se perdió el estándar «' + fr + '»'); n++; }
+  }
+  // El motor del bot (edge bot-agentes) da lo mismo.
+  for (const lang of ['es', 'en', 'id']) {
+    const d = { adq1_tipo: 'persona', regimen_tenencia: 'leasehold' };
+    const plano = h => h.replace(/\s+/g, ' ');
+    const sinBot = plano(plantillaTexto(html, lang, d));
+    const r04Bot = plano(plantillaTexto(html, lang, { ...d, clausulas_negociadas: 'rev04' }));
+    const r03Bot = plano(plantillaTexto(html, lang, conRev03(d)));
+    const deLang = REV04[f].filter(fr => r04Bot.includes(fr));
+    assert(deLang.length >= 3, f + ' bot ' + lang + ': con REV04 salen solo ' + deLang.length + ' frases');
+    for (const fr of REV04[f]) { assert(!sinBot.includes(fr) && !r03Bot.includes(fr), f + ' bot ' + lang + ': sin REV04 sale «' + fr + '»'); n++; }
+    for (const fr of SUSTITUIDO[f]) { if (sinBot.includes(fr)) assert(!r04Bot.includes(fr) && r03Bot.includes(fr), f + ' bot ' + lang + ': lo sustituido no cuadra «' + fr + '»'); n++; }
+  }
+}
+
+// 7-oct-2026: los campos del poder de venta y la finca solo se enseñan con REV04 (el estándar sale siempre limpio).
+const appSrc = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+assert(/const CAMPOS_REV04 = \['poder_titular','poder_apoderado','finca_shm_nib'\]/.test(appSrc)
+  && /CAMPOS_REV04\.forEach\(k => \{[\s\S]*?toggle\('sin-ficha', !esRev04\)/.test(appSrc), 'app.html: los campos REV04 deben esconderse salvo con clausulas_negociadas=rev04');
+n++;
 
 console.log('clausulas_negociadas.test.js: ' + n + ' comprobaciones en verde');
