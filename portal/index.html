@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="155bda729bf3">
+<meta name="lw-version" content="9b8d039fea67">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1693,7 +1693,10 @@
         '</div></div>' +
       (docs.length
         ? '<div class="doc-barra"><input id="docBuscar" class="campo-input" type="search" autocomplete="off" placeholder="' + esc(t('doc_buscar')) + '" aria-label="' + esc(t('doc_buscar')) + '">' +
-          '<button type="button" class="btn-borde" id="btnZipDocs">' + esc(t('descargar_carpeta')) + '</button></div><div id="docLista"></div>'
+          // «Descargar carpeta» solo si hay ficheros subidos que empaquetar: hoy casi todos los documentos son enlaces
+          // externos y un botón que siempre dice «no hay nada descargable» es un botón roto.
+          (docs.some(function(x){ return !x.url && x.path; }) ? '<button type="button" class="btn-borde" id="btnZipDocs">' + esc(t('descargar_carpeta')) + '</button>' : '') +
+          '</div><div id="docLista"></div>'
         : '');
     document.getElementById('btnVolverCarpetas').addEventListener('click', function(){ vasA('documentos', null); });
     cargaPortadas(c);
@@ -1725,7 +1728,8 @@
       if (!doc) return;
       if (doc.url) window.open(doc.url, '_blank', 'noopener'); else abreFichero('documentacion', doc.path);
     });
-    document.getElementById('btnZipDocs').addEventListener('click', function(){ zipDeDocs(visibles, f.nombre, this); });
+    var btnZip = document.getElementById('btnZipDocs');
+    if (btnZip) btnZip.addEventListener('click', function(){ zipDeDocs(visibles, f.nombre, this); });
   }
   /* «Descargar carpeta»: un solo .zip con lo que se ve en la lista. Sin función en el servidor: se piden las URLs
      firmadas de las rutas que la RPC ya devolvió (600 s, firmadas AHORA) y el zip se arma aquí. Solo ficheros del
