@@ -9,37 +9,7 @@
 </style>
 </head>
 <body>
-  <!-- ADENDA GENÉRICA — 8-sep-2026, encargo del owner.
-       ==========================================================================
-       POR QUÉ EXISTE. Cuando un contrato YA FIRMADO necesita un cambio, hasta hoy
-       había dos salidas y las dos malas: anular la firma y reeditar el documento
-       (el comprador vuelve a firmarlo entero y se pierde la traza de qué cambió) o
-       duplicarlo en uno nuevo (dos documentos vivos sobre la misma operación). La
-       adenda es el instrumento correcto para un cambio puntual: el contrato madre
-       se queda intacto y firmado, y esto es una página que dice qué se modifica.
-       El owner lo pidió con el caso de CC00014 delante: «el cliente firmó y
-       requiere una modificación, es un coñazo estar así».
-
-       CÓMO SE ESCRIBE EL CAMBIO. El formulario solo pide QUÉ contrato se modifica
-       y de qué fecha. El texto de la modificación se escribe con «Editar texto»
-       (admin), directamente sobre la cláusula 2 — no hay un campo de formulario
-       para eso a propósito: el cambio de un contrato es prosa jurídica, no cabe
-       en un <input>, y el editor de documento ya existe y ya deja rastro.
-       Las cláusulas adicionales van por el marcador extra-clauses, como en el resto.
-
-       ⚠️ Estado de revisión legal: ver `contracts/sql/adenda.sql` y el libro de
-       pendientes del estudio. NO se detalla aquí a propósito — este fichero se
-       sirve con 200 SIN login (ver memoria `reference_lawang_templates_publicas`),
-       así que cualquiera puede leer su código fuente, y un comentario del estudio
-       sobre el estado de revisión de su propio contrato no es algo que deba poder
-       leer el comprador que lo va a firmar.
-
-       TEXTO TRILINGÜE. ES/EN/ID con la misma estructura que carta_reserva.html.
-       Las cláusulas de ley aplicable, arbitraje e idioma se copian de ella
-       DELIBERADAMENTE palabra por palabra: una adenda que se rigiera por otro
-       foro que su contrato madre es exactamente el fallo que este documento
-       viene a evitar. Si allí cambian, aquí también.
-  -->
+  
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
@@ -89,11 +59,7 @@
         <span data-lang="id"><b>Maksud.</b> Adendum ini mengubah Kontrak hanya pada hal-hal yang diuraikan dalam Pasal 2. Segala sesuatu yang tidak diubah secara tegas di dalamnya tetap berlaku tanpa perubahan.</span>
       </li>
       <li>
-        <!-- ESTA es la cláusula que se escribe con «Editar texto» en cada adenda.
-             El texto de abajo es la INSTRUCCIÓN para quien la redacta y NO debe
-             salir a un comprador: se sustituye entero por la modificación real,
-             citando la cláusula del Contrato que se modifica y su redacción
-             nueva. Si sale tal cual, el documento no está terminado. -->
+        
         <span data-lang="es"><b>Modificaciones acordadas.</b> [Redactar aquí, con «Editar texto», qué cláusula del Contrato se modifica y cuál pasa a ser su redacción. Ejemplo de forma: «La cláusula 4.2 del Contrato queda sustituida por la siguiente: “…”».]</span>
         <span data-lang="en"><b>Agreed amendments.</b> [Draft here, using "Edit text", which clause of the Contract is amended and its new wording. Form example: "Clause 4.2 of the Contract is replaced by the following: '…'".]</span>
         <span data-lang="id"><b>Perubahan yang disepakati.</b> [Tuliskan di sini, melalui "Edit teks", pasal Kontrak mana yang diubah dan bagaimana bunyinya yang baru. Contoh bentuk: "Pasal 4.2 Kontrak diganti menjadi sebagai berikut: '…'".]</span>

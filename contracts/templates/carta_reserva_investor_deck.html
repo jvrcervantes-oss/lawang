@@ -6,25 +6,7 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- 10-sep-2026. Tipo propio `carta_reserva_investor_deck` (serie CD), nacido para el
-       flujo AUTOSERVICIO del data room público de inversores (revisión previa con
-       Seguridad+Legal+Desarrollo, CEO/flujos/revision_previa.md). No comparte tipo con
-       `carta_reserva` / `carta_reserva_ampliada`: TIPO_SLUG mapea tipo→plantilla 1:1 y
-       compartirlo rompería la reapertura de cualquiera de las dos familias.
-
-       Por qué es DISTINTA de las otras Cartas y no una simple copia:
-       - No hay agente delante para explicar nada, así que esta plantilla dice EXPRESAMENTE
-         lo que en las otras se da por hablado: que esto NO es el AJB ni transfiere título
-         (hallazgo Legal #1 de la revisión previa), y la causal de nulidad si otra reserva
-         sobre la misma parcela ya existía (hallazgo Legal #5).
-       - Los tres parámetros legales (validez, plazo de devolución, jurisdicción) son
-         tokens que SOLO rellena `investor_deck_config` — si esa tabla está vacía, la
-         función `investor_deck_reservar()` ni siquiera emite el contrato. Nunca un plazo
-         inventado en la plantilla.
-       - Precio, superficie y parcela salen de `unidades` en el momento de la reserva
-         (server-side), nunca de lo que teclea el visitante.
-       - Solo personas físicas en v1 (adq1_tipo siempre 'persona') — una sociedad exige
-         más verificación de la que da un código por email; queda para una fase futura. -->
+  
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 

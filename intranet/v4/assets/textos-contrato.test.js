@@ -29,6 +29,20 @@ const sinNotas = (doc) => doc.replace(new RegExp(reSql[1].replace('.*?-->', '[\\
 const dir = path.join(RAIZ, 'contracts', 'templates');
 const ficheros = fs.readdirSync(dir).filter((f) => f.endsWith('.html') && f !== '_portada.html');
 igual(ficheros.length, 20, 'plantillas en contracts/templates');
+/* 8-oct-2026 (decisión del owner): lo que se sirve SIN login no lleva notas de autor. El original con notas vive en el repo privado de la
+   agencia (contexto/legal/plantillas_lawang/) y `tools/plantillas_publica.py` escribe aquí la copia limpia: una nota nueva en un fichero
+   publicado (alguien edita aquí a mano) rompe este test antes de llegar a producción. Vale también para _portada.html. */
+const publicados = fs.readdirSync(dir).filter((f) => f.endsWith('.html'));
+publicados.forEach((f) => {
+  const doc = fs.readFileSync(path.join(dir, f), 'utf8');
+  igual(sinNotas(doc), doc, f + ': el fichero publicado no lleva notas de autor (solo comentarios del motor)');
+});
+const cambiado = JSON.parse(leer('contracts', 'templates', 'texto_cambiado.json'));
+ficheros.forEach((f) => {
+  const d = cambiado[f.replace(/\.html$/, '')];
+  if (typeof d !== 'string' || isNaN(Date.parse(d))) falla(f + ': sin fecha válida en texto_cambiado.json (la lee el bot para «la plantilla cambió tras la firma»)');
+});
+igual(Object.keys(cambiado).length, ficheros.length, 'texto_cambiado.json: una fecha por plantilla, ni una más');
 const etiquetas = (d) => d.match(/<\/?[A-Za-z][^<>]*>|<!--[\s\S]*?-->/g) || [];
 let nTrozos = 0;
 ficheros.forEach((f) => {

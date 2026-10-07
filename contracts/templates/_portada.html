@@ -1,10 +1,4 @@
-<!-- PORTADA (partial) — el motor la inyecta al inicio de cualquier contrato.
-     Diseño según la referencia real del cliente (ContratoSumba.pdf):
-     fondo del color del tipo de contrato, moanito (tiki) tono-sobre-tono
-     anclado abajo, emblema botánico en la esquina, título abajo-izquierda
-     (fino + bold) + regla + proyecto en serif espaciada.
-     Color de fondo = var(--brand-deep) (app.html lo fija por tipo).
-     Assets en assets/brand/. Clases .lwcov* namespaced. Marcadores {{...}}. -->
+
 <style>
   .lwcov{ position:relative; width:210mm; height:297mm; margin:0 auto; overflow:hidden;
     color:var(--brand-paper,#F5F0E6); background:var(--brand-deep,#42210B);
@@ -88,13 +82,8 @@
   <div class="in">
     <div class="tline tline-base">{{cov_t}}</div>
     <div class="rule"></div>
-    <!-- El nombre del proyecto NO va en la portada (petición del cliente, 22-jul).
-         Sigue imprimiéndose dentro del contrato en las plantillas que lo llevan y
-         se guarda en la ficha de Supabase. -->
-    <!-- "Nombre del contrato" (12-ago, petición del owner): línea SECUNDARIA bajo
-         el tipo de documento, nunca lo sustituye (hallazgo Legal ALTA el mismo
-         día — ver injectBrandAndCover en app.html). Reutiliza la regla .sub que
-         ya existía para el nombre de proyecto. Solo imprime si se rellenó. -->
+    
+    
     <!--opt:nombre_contrato--><div class="sub">{{nombre_contrato}}</div><!--/opt:nombre_contrato-->
   </div>
 </div>

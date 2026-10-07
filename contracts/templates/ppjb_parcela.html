@@ -6,9 +6,7 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- Texto trilingüe: el motor muestra el idioma activo (data-lang) y oculta el resto.
-       ES = texto EXACTO del cliente (versión 17-jul-2026, sustituye a ContratoReservaParcela.pdf).
-       EN/ID = traducción de trabajo pendiente de revisión legal oficial. Marcadores {{...}} = campos del form. -->
+  
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
@@ -18,7 +16,7 @@
     </div>
     <div class="doc-date"><span data-lang="es">En Indonesia, a fecha <span class="f f-sm">{{fecha_firma}}</span> · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">In Indonesia, dated <span class="f f-sm">{{fecha_firma}}</span> · Contract No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Di Indonesia, tertanggal <span class="f f-sm">{{fecha_firma}}</span> · No. Kontrak: <span class="f f-md">{{contrato_num}}</span></span></div>
 
-    <!-- ============ REUNIDOS / EXPONEN ============ -->
+    
     <h2><span data-lang="es">Reunidos</span><span data-lang="en">Appearing parties</span><span data-lang="id">Para Pihak yang Hadir</span></h2>
 
     <div class="party">
@@ -30,12 +28,7 @@
 
     <div class="party">
       <div class="role"><span data-lang="es">ADQUIRIENTE I</span><span data-lang="en">BUYER I</span><span data-lang="id">PEMBELI I</span></div>
-      <!-- PERSONA o EMPRESA (19-ago-2026, encargo del owner) — el comprador puede ser
-           una sociedad, y no solo una PT PMA: una S.L. española o una LLC americana
-           compran igual. `adq1_tipo` sale de la ficha de /intranet/compradores/ (ver collect()
-           en app.html) y vale 'persona' por defecto, que es lo que eran todos los
-           contratos anteriores. Las dos redacciones dicen lo mismo con los datos que
-           tiene cada tipo; no hay documento sin párrafo de Segunda Parte. -->
+      
       <!--if:adq1_tipo=persona-->
       <p data-lang="es"><b>ADQUIRIENTE I:</b> <span class="f">{{adq1_nombre}}</span>, nacional de <span class="f">{{adq1_nacionalidad}}</span>, con pasaporte<!--/if:adq1_tipo--><!--if:rev03_dni=si--> o DNI<!--/if:rev03_dni--><!--if:adq1_tipo=persona--> nº <span class="f">{{adq1_pasaporte}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span> a efecto de notificaciones.</p>
       <p data-lang="en"><b>BUYER I:</b> <span class="f">{{adq1_nombre}}</span>, national of <span class="f">{{adq1_nacionalidad}}</span>, holder of passport<!--/if:adq1_tipo--><!--if:rev03_dni=si--> or national ID card (DNI)<!--/if:rev03_dni--><!--if:adq1_tipo=persona--> no. <span class="f">{{adq1_pasaporte}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span> for notification purposes.</p>
@@ -46,14 +39,7 @@
       <p data-lang="en"><b>BUYER I:</b> <span class="f">{{adq1_nombre}}</span>, a company of legal form <span class="f">{{adq1_forma_juridica}}</span> incorporated under the laws of <span class="f">{{adq1_nacionalidad}}</span><!--opt:adq1_registro-->, register no. <span class="f">{{adq1_registro}}</span><!--/opt:adq1_registro--> and tax identification <span class="f">{{adq1_pasaporte}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span> for notification purposes. Represented herein by <span class="f">{{adq1_rep_nombre}}</span>, acting as <span class="f">{{adq1_rep_cargo}}</span>.</p>
       <p data-lang="id"><b>PEMBELI I:</b> <span class="f">{{adq1_nombre}}</span>, perusahaan berbentuk <span class="f">{{adq1_forma_juridica}}</span> yang didirikan berdasarkan hukum <span class="f">{{adq1_nacionalidad}}</span><!--opt:adq1_registro-->, no. registrasi <span class="f">{{adq1_registro}}</span><!--/opt:adq1_registro--> dan identifikasi pajak <span class="f">{{adq1_pasaporte}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span> untuk keperluan pemberitahuan. Dalam hal ini diwakili oleh <span class="f">{{adq1_rep_nombre}}</span>, bertindak sebagai <span class="f">{{adq1_rep_cargo}}</span>.</p>
       <!--/if:adq1_tipo-->
-      <!-- HISTÓRICO, no se rellena ya: la sección «El adquiriente firma como
-           sociedad (PT PMA)» se retiró del formulario el 19-ago-2026 (el
-           comprador que es una sociedad ahora se ficha como tal en
-           /intranet/compradores/ y sale arriba). El bloque se queda porque CR00018,
-           CC00020 y RP00046 son contratos REALES con estos campos rellenos:
-           borrarlo cambiaría lo que imprimen tres documentos ya entregados.
-           `opt:` solo lo pinta si el contrato trae el dato, así que en todo lo
-           que se emita desde hoy no aparece. -->
+      
       <!--opt:comp_razon-->
       <p data-lang="es"><b>Actuando como sociedad:</b> el ADQUIRIENTE firma en nombre y representación de la sociedad <span class="f f-lg">{{comp_razon}}</span> (PT PMA), con domicilio social en <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> y NPWP <span class="f f-md">{{comp_npwp}}</span>. La adquisición se formaliza a nombre de dicha sociedad.</p>
       <p data-lang="en"><b>Acting as a company:</b> the BUYER signs in the name and on behalf of the company <span class="f f-lg">{{comp_razon}}</span> (PT PMA), with registered office at <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> and NPWP <span class="f f-md">{{comp_npwp}}</span>. The acquisition is formalised in the name of said company.</p>
@@ -64,12 +50,7 @@
     <!--compradores-extra-->
 
     <h2><span data-lang="es">Exponen</span><span data-lang="en">Recitals</span><span data-lang="id">Pertimbangan</span></h2>
-    <!-- 31-jul-2026: el PROMOTOR pasa de ser TITULAR a tener PODER DE VENTA.
-         No es un matiz de redacción: cambia quién es el dueño del suelo. Se
-         cambian los considerandos I y II a la vez porque los dos lo afirmaban;
-         dejar el II diciendo "es titular" habría puesto una contradicción entre
-         dos párrafos consecutivos del mismo documento. En bahasa, "kuasa jual"
-         es el término del instrumento real (surat kuasa menjual). -->
+    
     <p data-lang="es"><b>I.-</b> Que el PROMOTOR tiene el poder general de venta sobre la parcela sobre la que se está promoviendo el proyecto<!--if:clausulas_negociadas=rev04-->, en virtud del Surat Kuasa (poder de venta) de fecha 16 de septiembre de 2025, otorgado por Dña. <span class="f">{{poder_titular}}</span>, titular registral de la finca con certificado SHM/NIB <span class="f">{{finca_shm_nib}}</span>, a favor de D. <span class="f">{{poder_apoderado}}</span><!--/if:clausulas_negociadas-->.</p>
     <p data-lang="en"><b>I.-</b> That the DEVELOPER holds a general power of sale over the plot on which the project is being developed<!--if:clausulas_negociadas=rev04-->, by virtue of the Surat Kuasa (power of sale) dated 16 September 2025, granted by Mrs. <span class="f">{{poder_titular}}</span>, registered holder of the land under certificate SHM/NIB <span class="f">{{finca_shm_nib}}</span>, in favour of Mr. <span class="f">{{poder_apoderado}}</span><!--/if:clausulas_negociadas-->.</p>
     <p data-lang="id"><b>I.-</b> Bahwa PENGEMBANG memegang kuasa jual umum atas kavling tempat proyek dikembangkan<!--if:clausulas_negociadas=rev04-->, berdasarkan Surat Kuasa tertanggal 16 September 2025, yang diberikan oleh Ny. <span class="f">{{poder_titular}}</span>, pemegang hak atas tanah dengan sertifikat SHM/NIB <span class="f">{{finca_shm_nib}}</span>, kepada Tn. <span class="f">{{poder_apoderado}}</span><!--/if:clausulas_negociadas-->.</p>
@@ -86,7 +67,7 @@
     <p data-lang="en"><b>IV.-</b> That the BUYER has expressed to the DEVELOPER its interest in acquiring the aforementioned plot, and to that effect the Parties enter into this Plot Hold Agreement in accordance with the following:</p>
     <p data-lang="id"><b>IV.-</b> Bahwa PEMBELI telah menyatakan kepada PENGEMBANG minatnya untuk memperoleh kavling tersebut, dan untuk itu Para Pihak membuat Perjanjian Penahanan Kavling ini berdasarkan hal-hal berikut:</p>
 
-    <!-- ============ ARTÍCULOS ============ -->
+    
     <h2><span data-lang="es">Artículo 1 — Objeto</span><span data-lang="en">Article 1 — Object</span><span data-lang="id">Pasal 1 — Objek</span></h2>
     <p data-lang="es">El PROMOTOR se compromete a ceder los derechos sobre la(s) parcela(s) nº <span class="f">{{parcela_codigo}}</span><!--if:clausulas_negociadas=rev04-->, procedente de la finca con certificado SHM/NIB <span class="f">{{finca_shm_nib}}</span><!--/if:clausulas_negociadas-->, objeto del Contrato y descrita(s) anteriormente, libre(s) de cargas y gravámenes.</p>
     <p data-lang="en">The DEVELOPER undertakes to transfer the rights over plot(s) no. <span class="f">{{parcela_codigo}}</span><!--if:clausulas_negociadas=rev04-->, originating from the land under certificate SHM/NIB <span class="f">{{finca_shm_nib}}</span><!--/if:clausulas_negociadas-->, subject to the Agreement and described above, free of liens and encumbrances.</p>
@@ -109,12 +90,7 @@
     <p data-lang="id"><b>Hak Sewa (Leasehold):</b> perjanjian 30+30+30 tahun, melalui sewa. Hak pribadi terhadap PENGEMBANG, tidak dapat didaftarkan sebagai hak kebendaan.</p>
     <!--/if:regimen_tenencia-->
 
-    <!-- Cláusulas negociadas REV03 (2-oct-2026): va FUERA del bloque leasehold a propósito. El motor
-         (app.html buildDoc y bot/plantilla_texto.js) evalúa los bloques if en UNA pasada y no entra en
-         uno anidado: dentro de leasehold saldría impreso siempre, también sin REV03. Por eso va con
-         rev03_hgb = REV03 Y leasehold (y el DNI del comprador con rev03_dni = REV03 Y persona, partiendo
-         el bloque de persona): las dos las estampa la base (trigger trg_rev03_estampa) y collect()
-         las calcula igual para la vista previa. -->
+    
     <!--if:rev03_hgb=si-->
     <p data-lang="es"><b>Hak Guna Bangunan (HGB):</b> si el ADQUIRIENTE constituye o cede su posición a una sociedad indonesia de capital extranjero (PT PMA), podrá titular el terreno bajo el régimen de Hak Guna Bangunan (HGB), inscribible en el registro de la propiedad a nombre de dicha sociedad.</p>
     <p data-lang="en"><b>Hak Guna Bangunan (HGB):</b> if the BUYER incorporates, or assigns its position to, an Indonesian foreign-investment company (PT PMA), the land may be held under the Hak Guna Bangunan (HGB) regime, registrable at the land office in the name of said company.</p>
@@ -135,24 +111,11 @@
     <p data-lang="es">La superficie total de la parcela es de <span class="f f-num6">{{tipologia_villa}}</span> m², con un precio por metro cuadrado de <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, resultando un precio total de compra de <span class="f f-num6">{{precio_total}}</span> {{moneda}}<!--if:descuento_comercial_aplica=si--> (precio de lista de <span class="f f-num6">{{precio_lista_suelo}}</span> {{moneda}}, menos un descuento comercial de <span class="f f-num6">{{descuento_comercial}}</span> {{moneda}}; motivo: {{descuento_comercial_motivo}})<!--/if:descuento_comercial_aplica-->.</p>
     <p data-lang="en">The total area of the plot is <span class="f f-num6">{{tipologia_villa}}</span> m², with a price per square meter of <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, resulting in a total purchase price of <span class="f f-num6">{{precio_total}}</span> {{moneda}}<!--if:descuento_comercial_aplica=si--> (list price of <span class="f f-num6">{{precio_lista_suelo}}</span> {{moneda}}, less a commercial discount of <span class="f f-num6">{{descuento_comercial}}</span> {{moneda}}; reason: {{descuento_comercial_motivo}})<!--/if:descuento_comercial_aplica-->.</p>
     <p data-lang="id">Luas total kavling adalah <span class="f f-num6">{{tipologia_villa}}</span> m², dengan harga per meter persegi <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, menghasilkan harga beli total <span class="f f-num6">{{precio_total}}</span> {{moneda}}<!--if:descuento_comercial_aplica=si--> (harga daftar sebesar <span class="f f-num6">{{precio_lista_suelo}}</span> {{moneda}}, dikurangi diskon komersial sebesar <span class="f f-num6">{{descuento_comercial}}</span> {{moneda}}; alasan: {{descuento_comercial_motivo}})<!--/if:descuento_comercial_aplica-->.</p>
-    <!-- Artículo 3 generado del CALENDARIO DE PAGOS (22-sep-2026, revisión previa #41,
-         texto de Legal). Antes salía de tres campos sueltos (modalidad_pago, precio_reserva,
-         plazo_pago_final_*) que cada agente rellenaba a su manera y que contradecían la
-         tabla de hitos del mismo documento (RP00171-RP00197: plazo 15/30/45/100 días con
-         hitos a +3 meses; precio_reserva unas veces la cuota de la Carta y otras el 50%).
-         Los hitos son la ÚNICA fuente: el párrafo remite a la tabla y no la duplica
-         (precedente: ppjb_construccion.html, «conforme al calendario de pagos»). Sin
-         «ante notario (PPAT)»: el 50/50 es pago privado; la escritura la rige el Art. 4.
-         Los campos viejos siguen como `legacy` en tokens.json para los Bloqueos ya emitidos. -->
+    
     <p data-lang="es">El precio total, deducidas en su caso las cantidades ya abonadas conforme a la Carta de Reserva indicada, se abonará según el calendario de pagos que figura a continuación, que forma parte integrante de este Artículo. En caso de discrepancia entre el porcentaje y el importe de un hito, prevalece el importe. La formalización ante PPAT y la entrega se rigen por el Artículo 4.</p>
     <p data-lang="en">The total price, less any amounts already paid under the Reservation Letter referred to above, shall be paid in accordance with the payment schedule set out below, which forms an integral part of this Article. In the event of any discrepancy between the percentage and the amount of an instalment, the amount shall prevail. Execution before the PPAT and handover are governed by Article 4.</p>
     <p data-lang="id">Harga total, setelah dikurangi jumlah yang telah dibayarkan berdasarkan Surat Reservasi tersebut di atas (jika ada), dibayar sesuai jadwal pembayaran yang tercantum di bawah ini, yang merupakan bagian tidak terpisahkan dari Pasal ini. Apabila terdapat perbedaan antara persentase dan jumlah suatu tahapan, jumlah yang berlaku. Penandatanganan di hadapan PPAT dan serah terima diatur dalam Pasal 4.</p>
-    <!-- Cuenta de cobro (22-sep-2026): la cláusula de ESCROW solo si la cuenta elegida lo ES
-         (`cuentas_bancarias.es_escrow`). `cuenta_es_escrow` lo estampa la BASE en
-         datos.fields al guardar (trigger contrato_cuenta_es_escrow) y la app lo espeja en la
-         vista previa — nunca lo teclea nadie. Sin cuenta → 'no' (nunca sale un Bloqueo sin
-         decir dónde se paga; hallazgo Legal). Antes salía siempre: RP00197 cobra en la cuenta
-         del constructor y prometía escrow de notario. -->
+    
 <!--if:cuenta_es_escrow=si-->
     <p data-lang="es">Los pagos previstos en este Artículo se efectuarán exclusivamente mediante transferencia a la cuenta ESCROW del notario de Indonesia designado por el PROMOTOR, indicada en el presente Contrato.</p>
     <p data-lang="en">All payments under this Article shall be made exclusively by transfer to the ESCROW account of the Indonesian notary appointed by the DEVELOPER, as indicated in this Agreement.</p>
@@ -168,14 +131,7 @@
     <p data-lang="en"><b>Price terms:</b> The Contract Price is fixed, except in the event of regulatory changes directly affecting the works, or modifications requested by the Client and expressly agreed in writing. The Contract Price is expressed in <span class="f f-xs">{{moneda}}</span>. Pursuant to the Indonesian Currency Law (UU 7/2011), payments to be made within Indonesian territory shall be settled in Indonesian Rupiah (IDR) at the exchange rate agreed by the Parties of 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR. The IDR equivalents shown next to each amount are calculated at that same rate and are for information purposes only.</p>
     <p data-lang="id"><b>Ketentuan harga:</b> Harga Kontrak bersifat tetap, kecuali dalam hal perubahan peraturan yang berdampak langsung pada pekerjaan, atau perubahan yang diminta Klien dan disepakati secara tertulis. Harga Kontrak dinyatakan dalam <span class="f f-xs">{{moneda}}</span>. Sesuai Undang-Undang Mata Uang Indonesia (UU 7/2011), pembayaran yang dilakukan di wilayah Indonesia diselesaikan dalam Rupiah (IDR) dengan kurs yang disepakati Para Pihak sebesar 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR. Nilai setara IDR yang tercantum di samping setiap jumlah dihitung dengan kurs yang sama dan bersifat informatif.</p>
 
-    <!-- Abono ya cobrado en la Carta de Reserva de origen (17-sep-2026,
-         revision previa #24). Solo imprime si el trigger de la base
-         (carta_cobrado_al_bloquear, contracts/sql/carta_cobrado_al_bloquear.sql)
-         estampo datos.fields.carta_cobrado_importe al crear este Bloqueo, con
-         el mismo mecanismo opt de marcador opcional que ya usa el resto de la
-         plantilla para secciones opcionales. Ante discrepancia entre idiomas
-         prevalece el Bahasa (norma ya asentada de la serie CA, ver
-         reference_lawang_carta_reserva_ampliada). -->
+    
     <!--opt:carta_cobrado_importe-->
     <p data-lang="es">De los cuales ya se han abonado <span class="f f-num6">{{carta_cobrado_importe}}</span> {{moneda}}, conforme a la Carta de Reserva <span class="f">{{carta_cobrado_numeros}}</span> cuya parcela se traspasa a este Contrato.</p>
     <!--/opt:carta_cobrado_importe-->
@@ -201,9 +157,7 @@
         <!--hitos-->
       </tbody>
     </table>
-    <!-- Nota del hito descontado (22-sep-2026, Legal): la fila lleva (*) y la celda % en
-         blanco porque su importe ya no es el 50% del precio; sin esta nota un tercero
-         pregunta por qué la primera fila no es 50% y la segunda sí. -->
+    
     <!--opt:carta_cobrado_importe-->
     <p class="nota-hitos" data-lang="es">(*) Importe neto tras deducir los <span class="f f-num6">{{carta_cobrado_importe}}</span> {{moneda}} ya abonados conforme a la Carta de Reserva <span class="f">{{carta_cobrado_numeros}}</span>.</p>
     <!--/opt:carta_cobrado_importe-->
@@ -219,10 +173,7 @@
     <p data-lang="es">La entrega de la posesión material del terreno se realizará en el acto de firma ante notario (PPAT), siempre que el ADQUIRIENTE hubiera cumplido las obligaciones de pago que le son exigibles.</p>
     <p data-lang="en">Delivery of material possession of the land shall take place at the act of signing before a notary (PPAT), provided the BUYER has fulfilled the payment obligations required of it.</p>
     <p data-lang="id">Serah terima penguasaan fisik tanah dilakukan pada saat penandatanganan di hadapan notaris (PPAT), dengan ketentuan PEMBELI telah memenuhi kewajiban pembayaran yang menjadi tanggungannya.</p>
-    <!-- 22-sep-2026 (owner: «cuando el comprador paga el 100% escrituramos en los
-         próximos 3 meses»; texto de Legal, revisión previa #41). Con el Art. 3 por
-         calendario el comprador paga todo antes de la escritura: aquí queda escrito
-         cuándo la convoca el PROMOTOR. Bahasa prevalece. -->
+    
     <p data-lang="es">El PROMOTOR convocará al ADQUIRIENTE al otorgamiento de la escritura ante PPAT en un plazo máximo de 3 (tres) meses desde el pago del último hito del Artículo 3, conforme al preaviso del Artículo 8.</p>
     <p data-lang="en">The DEVELOPER shall summon the BUYER to the execution of the deed before the PPAT within a maximum of 3 (three) months from payment of the last instalment under Article 3, subject to the notice period in Article 8.</p>
     <p data-lang="id">PENGEMBANG akan memanggil PEMBELI untuk penandatanganan akta di hadapan PPAT paling lambat 3 (tiga) bulan sejak pembayaran tahapan terakhir menurut Pasal 3, dengan memperhatikan pemberitahuan sebagaimana Pasal 8.</p>
@@ -346,7 +297,7 @@
 
     <!--extra-clauses-->
 
-    <!-- ============ FIRMAS ============ -->
+    
     <h2><span data-lang="es">Firmas</span><span data-lang="en">Signatures</span><span data-lang="id">Tanda tangan</span></h2>
     <p data-lang="es">Y en prueba de conformidad con cuanto antecede, las Partes firman el presente Contrato en el lugar y fecha indicados en el encabezado.</p>
     <p data-lang="en">And in witness of agreement with all the foregoing, the Parties sign this Agreement at the place and date indicated in the heading.</p>

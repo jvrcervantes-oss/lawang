@@ -48,7 +48,8 @@
 //   1. el contrato tiene su versión fijada → RPC plantilla_contrato_cuerpo_de_contrato:
 //      el texto exacto con el que se redactó, de SU empresa, nunca «el último»;
 //   2. sin vínculo (firmados, con ronda de firma, sin proyecto/empresa) → el fichero
-//      publicado (contracts/templates/*.html, lo que se firmó), como hasta ahora.
+//      publicado (contracts/templates/*.html, lo que se firmó), como hasta ahora; desde el 8-oct
+//      sin notas de autor, y con la fecha de último cambio de texto de texto_cambiado.json.
 // Es la MISMA regla que openSavedContract() de contracts/app.html: el bot cita lo que
 // el contrato tiene en pantalla y en el PDF, nunca «el texto activo de la empresa»
 // (el 7-oct los 47 contratos con empresa sin vínculo tenían ronda de firma).
@@ -632,7 +633,21 @@ Deno.serve(async (req) => {
       if (vinculo.error) return { error: 'rpc_vinculo' };   // NO al fichero: el contrato puede estar ligado a un texto editado
       if (vinculo.data) return deBase(vinculo.data);
       return await fetch(ORIGEN_PLANTILLAS + encodeURIComponent(slugPlantilla) + '.html', { signal: abort.signal })
-        .then(async (r) => (r.ok ? { html: await r.text(), lastModified: r.headers.get('last-modified'), ver: null } : null))
+        .then(async (r) => {
+          if (!r.ok) return null;
+          const html = await r.text();
+          // El fichero se publica SIN notas de autor (8-oct-2026): al limpiarlo, su Last-Modified se movió y
+          // habría avisado «la plantilla cambió tras la firma» de todos los firmados. La fecha buena es la del
+          // último cambio de TEXTO, que publica tools/plantillas_publica.py en texto_cambiado.json. Si no llega
+          // o no trae la plantilla, se vuelve al Last-Modified (más flojo, como hasta ahora).
+          let lastModified = r.headers.get('last-modified');
+          try {
+            const m = await fetch(ORIGEN_PLANTILLAS + 'texto_cambiado.json', { signal: abort.signal }).then((x) => (x.ok ? x.json() : null));
+            const d = m && typeof m === 'object' ? (m as Record<string, unknown>)[slugPlantilla] : null;
+            if (typeof d === 'string' && !isNaN(Date.parse(d))) lastModified = d;
+          } catch { /* MUDO A PROPOSITO: sin el manifiesto se usa el Last-Modified del fichero, que solo puede sobreavisar */ }
+          return { html, lastModified, ver: null };
+        })
         .catch(() => null);
     };
     const descarga = lecturaPlantilla();

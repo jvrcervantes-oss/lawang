@@ -6,49 +6,7 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- ══════════════════════════════════════════════════════════════════════════
-       CARTA DE RESERVA CONDICIONADA VÍA PT PMA — serie CP · 7-sep-2026
-       ══════════════════════════════════════════════════════════════════════════
-       CUARTA carta de reserva de la suite, y aparte de las tres anteriores porque
-       ninguna sirve para esta operación:
-         · CR (carta_reserva)          — 52 emitidas, sin condiciones ni devolución.
-         · CA (carta_reserva_ampliada) — arrendamiento CON obra: plazo de Hak Sewa,
-                                         escrow y garantías de construcción.
-         · CH (carta_reserva_hak_sewa) — tiene las condiciones y la devolución, pero
-                                         su eje es Hak Sewa y su comprador es persona
-                                         física con pasaporte.
-       Tipo propio (TIPO_SLUG mapea tipo→plantilla 1:1: compartirlo haría que reabrir
-       un contrato guardado cargara la plantilla equivocada) y serie propia CP, para
-       que por el número se sepa con qué texto se firmó una operación.
-
-       DE DÓNDE SALE CADA PIEZA — esto NO se redactó de cero:
-         · Esqueleto, §§5/6/7 y los Anexos A/B/C → `carta_reserva_hak_sewa.html`.
-         · Tenencia HGB corporativo vía participación societaria y prohibición
-           expresa de nominee (§§2.2/2.3) → copiada VERBATIM de `ppjb_reserva.html`
-           §§2.2/2.3, que es la redacción que Legal validó el 14-jul-2026 tras
-           encontrar la estructura nominee ilegal en `ppjb_parcela.html`.
-         · Párrafo de comprador-EMPRESA con su condicional `if:adq1_tipo=empresa`
-           → `carta_reserva.html`. Escrito SIN los delimitadores a propósito: una
-           secuencia de cierre de comentario, tecleada dentro de un comentario, lo
-           cierra ahí mismo — y el resto de esta nota se imprimiría como texto
-           dentro del contrato. Pasó al escribir esta plantilla, lo cazó el conteo
-           de directivas (6 aperturas, 5 cierres) y por eso queda anotado.
-
-       SOLO ES + ID, y el documento lo dice de sí mismo (§9.2). No es pereza: la CH
-       de la que hereda es bilingüe y no hay columna inglesa que calcar. Es además
-       lo que evita el defecto fichado como LAW-127 el mismo día — la CR declara
-       tres lenguas y se emite en dos, y su versión prevalente (bahasa) no llegaba
-       a identificar el objeto reservado. La regla: las columnas que hay son las
-       que la cláusula de idioma declara. Si algún día se añade EN, se añade en las
-       dos cosas a la vez.
-
-       ⚠️ DOS HUECOS DECLARADOS, a propósito. Vacíos pintan su línea (no un marcador
-       crudo) y el documento se ve incompleto, que es lo que tiene que pasar:
-         · §4.3 `crp_titular_cuenta` / `crp_titulo_perceptor` — quién cobra y con
-           qué título, cuando NO es la propia Vendedora. Es LAW-124: el estudio no
-           tiene esos hechos y no se inventan.
-         · §3.2 y Anexo A — superficie de cada parcela por separado. Es LAW-126.
-       ══════════════════════════════════════════════════════════════════════════ -->
+  
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
@@ -60,7 +18,7 @@
     <p data-lang="es" style="text-align:center;font-size:10.5pt;margin-top:-4mm">Proyecto: <span class="f">{{proyecto_nombre}}</span> · Parcelas: <span class="f">{{parcela_codigo}}</span></p>
     <p data-lang="id" style="text-align:center;font-size:10.5pt;margin-top:-4mm">Proyek: <span class="f">{{proyecto_nombre}}</span> · Kavling: <span class="f">{{parcela_codigo}}</span></p>
 
-    <!-- ============ 1. LAS PARTES ============ -->
+    
     <h2><span data-lang="es">1. Las Partes</span><span data-lang="id">1. Para Pihak</span></h2>
     <div class="party">
       <div class="role"><span data-lang="es">La Vendedora</span><span data-lang="id">Penjual</span></div>
@@ -69,10 +27,7 @@
     </div>
     <div class="party">
       <div class="role"><span data-lang="es">El Reservante</span><span data-lang="id">Pemesan</span></div>
-      <!-- Dos redacciones según `adq1_tipo`, mismo patrón que carta_reserva.html: el
-           valor lo pone el selector del formulario y vale 'persona' por defecto. La
-           CH solo traía la de persona física, y esta serie nace justo para quien
-           reserva como sociedad. -->
+      
       <!--if:adq1_tipo=persona-->
       <p data-lang="es">1.2. EL RESERVANTE: D. <span class="f f-lg">{{adq1_nombre}}</span>, nacionalidad <span class="f">{{adq1_nacionalidad}}</span>, pasaporte nº <span class="f">{{adq1_pasaporte}}</span>, tel. <span class="f">{{adq1_telefono}}</span>, <span class="f">{{adq1_email}}</span>. Actúa en nombre propio.</p>
       <p data-lang="id">1.2. PEMESAN: Tn. <span class="f f-lg">{{adq1_nombre}}</span>, warga negara <span class="f">{{adq1_nacionalidad}}</span>, paspor No. <span class="f">{{adq1_pasaporte}}</span>, tel. <span class="f">{{adq1_telefono}}</span>, <span class="f">{{adq1_email}}</span>. Bertindak untuk diri sendiri.</p>
@@ -83,7 +38,7 @@
       <!--/if:adq1_tipo-->
     </div>
 
-    <!-- ============ 2. QUÉ SE RESERVA ============ -->
+    
     <h2><span data-lang="es">2. Qué se reserva y bajo qué régimen</span><span data-lang="id">2. Objek yang Dipesan dan Rezimnya</span></h2>
     <p data-lang="es">2.1. La VENDEDORA reserva al RESERVANTE, en exclusiva, las parcelas <span class="f f-lg">{{parcela_codigo}}</span> del proyecto <span class="f">{{proyecto_nombre}}</span> (las «Parcelas»). Esta Carta no transmite derecho real alguno: otorga preferencia exclusiva para firmar el contrato definitivo.</p>
     <p data-lang="id">2.1. PENJUAL memesankan kepada PEMESAN, secara eksklusif, kavling <span class="f f-lg">{{parcela_codigo}}</span> dalam proyek <span class="f">{{proyecto_nombre}}</span> ("Kavling"). Surat ini tidak mengalihkan hak kebendaan apa pun, melainkan memberikan hak utama secara eksklusif untuk menandatangani perjanjian definitif.</p>
@@ -113,14 +68,14 @@
     <p data-lang="es">2.4. Se adjunta como Anexo A el plano de las Parcelas con sus linderos, las líneas de retranqueo aplicables (sempadan sungai, jurang y jalan) y <b>la superficie de cada parcela por separado</b>.</p>
     <p data-lang="id">2.4. Terlampir sebagai Lampiran A adalah gambar Kavling dengan batas-batasnya, garis sempadan yang berlaku (sempadan sungai, jurang dan jalan) dan <b>luas masing-masing kavling secara terpisah</b>.</p>
 
-    <!-- ============ 3. PRECIO ============ -->
+    
     <h2><span data-lang="es">3. Precio y desglose</span><span data-lang="id">3. Harga dan Rincian</span></h2>
     <p data-lang="es">3.1. El Precio Total queda fijado en <span class="f f-lg">{{precio_total}}</span> {{moneda}} y es firme y no revisable hasta la firma del contrato definitivo, cualquiera que sea la evolución del mercado, la inflación o el tipo de cambio.</p>
     <p data-lang="id">3.1. Harga Total ditetapkan sebesar <span class="f f-lg">{{precio_total}}</span> {{moneda}} dan bersifat pasti serta tidak dapat diubah sampai penandatanganan perjanjian definitif, terlepas dari perkembangan pasar, inflasi maupun nilai tukar.</p>
     <p data-lang="es">3.2. El Precio Total resulta de aplicar <span class="f f-md">{{crp_precio_m2}}</span> {{moneda}}/m² sobre una superficie total de <span class="f f-md">{{crp_superficie_total}}</span> m². La superficie de cada parcela por separado, y el precio que le corresponde aplicando ese mismo importe por m², constan en el Anexo A y forman parte de esta Carta.</p>
     <p data-lang="id">3.2. Harga Total diperoleh dengan menerapkan <span class="f f-md">{{crp_precio_m2}}</span> {{moneda}}/m² atas luas total <span class="f f-md">{{crp_superficie_total}}</span> m². Luas masing-masing kavling secara terpisah, dan harga yang berlaku untuknya dengan menerapkan nilai per m² yang sama, tercantum dalam Lampiran A dan merupakan bagian dari Surat ini.</p>
 
-    <!-- ============ 4. CUOTA DE RESERVA Y FORMA DE PAGO ============ -->
+    
     <h2><span data-lang="es">4. Cuota de Reserva y forma de pago</span><span data-lang="id">4. Biaya Reservasi dan Cara Pembayaran</span></h2>
     <p data-lang="es">4.1. El RESERVANTE abonará la Cuota de Reserva de <span class="f f-lg">{{precio_reserva}}</span> {{moneda}} dentro de los cinco (5) días hábiles siguientes a la firma de esta Carta y a la recepción de la documentación del Anexo B. La Cuota se imputa íntegramente al Precio Total.</p>
     <p data-lang="id">4.1. PEMESAN membayar Biaya Reservasi sebesar <span class="f f-lg">{{precio_reserva}}</span> {{moneda}} dalam lima (5) hari kerja setelah penandatanganan Surat ini dan setelah menerima dokumen dalam Lampiran B. Biaya tersebut diperhitungkan seluruhnya ke dalam Harga Total.</p>
@@ -129,7 +84,7 @@
     <p data-lang="es">4.3. <b>Perceptor del pago.</b> La cuenta del Anexo C está a nombre de <span class="f f-lg">{{crp_titular_cuenta}}</span>, que interviene en la operación en calidad de <span class="f f-lg">{{crp_titulo_perceptor}}</span>. La VENDEDORA declara que dicho perceptor está facultado para recibir la Cuota de Reserva por cuenta de la operación, y garantiza que el pago así efectuado <b>libera plenamente al RESERVANTE</b> frente a la VENDEDORA, frente al titular registral de las Parcelas y frente a cualquier otra parte interviniente, imputándose íntegramente al Precio Total. La VENDEDORA responde frente al RESERVANTE de cualquier reclamación de un tercero fundada en este pago.</p>
     <p data-lang="id">4.3. <b>Penerima pembayaran.</b> Rekening dalam Lampiran C atas nama <span class="f f-lg">{{crp_titular_cuenta}}</span>, yang bertindak dalam transaksi ini sebagai <span class="f f-lg">{{crp_titulo_perceptor}}</span>. PENJUAL menyatakan bahwa penerima tersebut berwenang menerima Biaya Reservasi untuk kepentingan transaksi ini, dan menjamin bahwa pembayaran yang dilakukan demikian <b>membebaskan sepenuhnya PEMESAN</b> terhadap PENJUAL, terhadap pemegang hak terdaftar atas Kavling dan terhadap pihak lain mana pun yang terlibat, serta diperhitungkan seluruhnya ke dalam Harga Total. PENJUAL bertanggung jawab kepada PEMESAN atas setiap tuntutan pihak ketiga yang didasarkan pada pembayaran ini.</p>
 
-    <!-- ============ 5. PLAZO DE RESERVA Y EXCLUSIVIDAD ============ -->
+    
     <h2><span data-lang="es">5. Plazo de reserva y exclusividad</span><span data-lang="id">5. Jangka Waktu Pemesanan dan Eksklusivitas</span></h2>
     <p data-lang="es">5.1. Las Parcelas quedan reservadas durante <span class="f f-sm">{{crp_plazo_dias}}</span> días naturales desde el pago de la Cuota. Durante ese plazo la VENDEDORA no podrá ofrecer, reservar, vender, arrendar ni gravar ninguna de las Parcelas a favor de tercero.</p>
     <p data-lang="id">5.1. Kavling dipesan selama <span class="f f-sm">{{crp_plazo_dias}}</span> hari kalender sejak pembayaran Biaya Reservasi. Selama jangka waktu tersebut PENJUAL dilarang menawarkan, memesankan, menjual, menyewakan atau membebani Kavling mana pun kepada pihak ketiga.</p>
@@ -138,7 +93,7 @@
     <p data-lang="es">5.3. El plazo no empezará a correr hasta que la VENDEDORA haya entregado la documentación del Anexo B, y se prorrogará automáticamente por el tiempo que se retrase dicha entrega.</p>
     <p data-lang="id">5.3. Jangka waktu tersebut tidak mulai berjalan sebelum PENJUAL menyerahkan dokumen dalam Lampiran B, dan diperpanjang secara otomatis selama keterlambatan penyerahan tersebut.</p>
 
-    <!-- ============ 6. CONDICIONES ============ -->
+    
     <h2><span data-lang="es">6. Condiciones de las que depende la reserva</span><span data-lang="id">6. Syarat yang Menjadi Dasar Pemesanan</span></h2>
     <p data-lang="es">6.1. La obligación del RESERVANTE de firmar el contrato definitivo queda condicionada a que se acredite lo siguiente respecto de <b>cada una</b> de las Parcelas:</p>
     <p data-lang="id">6.1. Kewajiban PEMESAN untuk menandatangani perjanjian definitif tunduk pada terbuktinya hal-hal berikut atas <b>masing-masing</b> Kavling:</p>
@@ -165,7 +120,7 @@
     <p data-lang="es">6.2. El RESERVANTE podrá renunciar por escrito a cualquiera de estas condiciones sin renunciar a las demás, y podrá hacerlo respecto de una Parcela sin hacerlo respecto de las otras.</p>
     <p data-lang="id">6.2. PEMESAN dapat mengesampingkan secara tertulis salah satu syarat tersebut tanpa mengesampingkan syarat lainnya, dan dapat melakukannya atas satu Kavling tanpa melakukannya atas Kavling lain.</p>
 
-    <!-- ============ 7. DEVOLUCIÓN ============ -->
+    
     <h2><span data-lang="es">7. Devolución de la Cuota de Reserva</span><span data-lang="id">7. Pengembalian Biaya Reservasi</span></h2>
     <p data-lang="es">7.1. La VENDEDORA reintegrará la Cuota de Reserva íntegramente, sin deducción, en el plazo de quince (15) días hábiles desde la notificación escrita del RESERVANTE, cuando: (a) alguna de las condiciones de la cláusula 6 no se cumpla; (b) la información facilitada sobre las Parcelas resulte inexacta; o (c) la VENDEDORA no firme el contrato definitivo en plazo o disponga de alguna de las Parcelas a favor de tercero. En este último supuesto abonará además una penalidad de <span class="f f-md">{{crp_penalidad_incumplimiento}}</span> IDR.</p>
     <p data-lang="id">7.1. PENJUAL mengembalikan Biaya Reservasi secara penuh, tanpa potongan, dalam lima belas (15) hari kerja sejak pemberitahuan tertulis PEMESAN, apabila: (a) salah satu syarat dalam Pasal 6 tidak terpenuhi; (b) informasi mengenai Kavling terbukti tidak benar; atau (c) PENJUAL tidak menandatangani perjanjian definitif tepat waktu atau mengalihkan salah satu Kavling kepada pihak ketiga. Dalam hal terakhir, PENJUAL juga membayar denda sebesar Rp<span class="f f-md">{{crp_penalidad_incumplimiento}}</span>.</p>
@@ -174,7 +129,7 @@
     <p data-lang="es">7.3. Las cantidades no devueltas en plazo devengarán un interés del uno por ciento (1%) mensual.</p>
     <p data-lang="id">7.3. Jumlah yang tidak dikembalikan tepat waktu dikenakan bunga sebesar satu persen (1%) per bulan.</p>
 
-    <!-- ============ 8. ADQUIRENTE DEFINITIVO Y TRANSMISIÓN ============ -->
+    
     <h2><span data-lang="es">8. Adquirente definitivo y transmisión posterior</span><span data-lang="id">8. Pembeli Definitif dan Pengalihan Selanjutnya</span></h2>
     <p data-lang="es">8.1. El RESERVANTE podrá designar como adquirente definitivo a una PT PMA en la que participe mayoritariamente, mediante simple notificación escrita a la VENDEDORA y sin coste ni recargo alguno. La designación podrá hacerse en cualquier momento anterior a la firma del contrato definitivo, aunque la PT PMA no estuviera constituida a la fecha de esta Carta.</p>
     <p data-lang="id">8.1. PEMESAN dapat menunjuk sebagai pembeli definitif suatu PT PMA di mana ia memiliki saham mayoritas, cukup dengan pemberitahuan tertulis kepada PENJUAL dan tanpa biaya maupun tambahan apa pun. Penunjukan dapat dilakukan kapan saja sebelum penandatanganan perjanjian definitif, meskipun PT PMA tersebut belum didirikan pada tanggal Surat ini.</p>
@@ -185,7 +140,7 @@
 
     <!--extra-clauses-->
 
-    <!-- ============ 9. LEY APLICABLE ============ -->
+    
     <h2><span data-lang="es">9. Ley aplicable, disputas e idioma</span><span data-lang="id">9. Hukum yang Berlaku, Sengketa dan Bahasa</span></h2>
     <p data-lang="es">9.1. Esta Carta se rige por las leyes de la República de Indonesia. Toda controversia se negociará de buena fe durante treinta (30) días naturales desde su notificación escrita; de no haber acuerdo, se resolverá por arbitraje administrado bajo las reglas del Singapore International Arbitration Centre (SIAC), con sede en Singapur, ante árbitro único, en español e inglés, siendo el laudo definitivo y vinculante, con renuncia expresa a cualquier otro fuero.</p>
     <p data-lang="id">9.1. Surat ini tunduk pada hukum Republik Indonesia. Setiap sengketa dimusyawarahkan dengan itikad baik selama tiga puluh (30) hari kalender sejak pemberitahuan tertulis; apabila tidak tercapai kesepakatan, diselesaikan melalui arbitrase berdasarkan aturan Singapore International Arbitration Centre (SIAC), berkedudukan di Singapura, di hadapan arbiter tunggal, dalam bahasa Spanyol dan Inggris, dengan putusan yang bersifat final dan mengikat, disertai pelepasan tegas atas yurisdiksi lain.</p>
@@ -224,8 +179,7 @@
     <h2><span data-lang="es">Firmas</span><span data-lang="id">Tanda Tangan</span></h2>
     <p data-lang="es">Las Partes firman esta Carta de Reserva por duplicado, en sus dos versiones lingüísticas, rubricando cada página y sus Anexos.</p>
     <p data-lang="id">Para Pihak menandatangani Surat Pemesanan ini dalam rangkap dua, dalam kedua versi bahasa, dengan memaraf setiap halaman dan Lampirannya.</p>
-    <!-- `page-break-inside:avoid` heredado de la CA: este documento es largo y el
-         bloque de firmas se partía a la mitad entre dos páginas. -->
+    
     <table class="pays sigs" style="margin-top:14px;page-break-inside:avoid">
       <tbody>
         <tr>

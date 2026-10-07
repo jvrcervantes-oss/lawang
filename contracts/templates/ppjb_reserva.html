@@ -6,9 +6,7 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- Texto trilingüe: el motor muestra el idioma activo (data-lang) y oculta el resto.
-       ES = texto EXACTO del cliente (ContratoReservaProyecto.pdf). EN/ID = traducción de
-       trabajo pendiente de revisión legal oficial. Marcadores {{...}} = campos del form. -->
+  
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
@@ -18,7 +16,7 @@
     </div>
     <div class="doc-date"><span data-lang="es">En Indonesia, a fecha <span class="f f-sm">{{fecha_firma}}</span> · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">In Indonesia, dated <span class="f f-sm">{{fecha_firma}}</span> · Contract No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Di Indonesia, tertanggal <span class="f f-sm">{{fecha_firma}}</span> · No. Kontrak: <span class="f f-md">{{contrato_num}}</span></span></div>
 
-    <!-- ============ EXPONEN ============ -->
+    
     <h2><span data-lang="es">Exponen</span><span data-lang="en">Recitals</span><span data-lang="id">Pertimbangan</span></h2>
 
     <div class="party">
@@ -30,12 +28,7 @@
 
     <div class="party">
       <div class="role"><span data-lang="es">ADQUIRIENTE I</span><span data-lang="en">BUYER I</span><span data-lang="id">PEMBELI I</span></div>
-      <!-- PERSONA o EMPRESA (19-ago-2026, encargo del owner) — el comprador puede ser
-           una sociedad, y no solo una PT PMA: una S.L. española o una LLC americana
-           compran igual. `adq1_tipo` sale de la ficha de /intranet/compradores/ (ver collect()
-           en app.html) y vale 'persona' por defecto, que es lo que eran todos los
-           contratos anteriores. Las dos redacciones dicen lo mismo con los datos que
-           tiene cada tipo; no hay documento sin párrafo de Segunda Parte. -->
+      
       <!--if:adq1_tipo=persona-->
       <p data-lang="es"><b>ADQUIRIENTE I:</b> Identificado con nombre y apellidos <span class="f">{{adq1_nombre}}</span>, de nacionalidad <span class="f">{{adq1_nacionalidad}}</span> y pasaporte <span class="f">{{adq1_pasaporte}}</span>.</p>
       <p data-lang="en"><b>BUYER I:</b> Identified with full name <span class="f">{{adq1_nombre}}</span>, of nationality <span class="f">{{adq1_nacionalidad}}</span> and passport <span class="f">{{adq1_pasaporte}}</span>.</p>
@@ -50,12 +43,7 @@
 
     <!--compradores-extra-->
 
-    <!-- HISTÓRICO, no se rellena ya: la sección «El adquiriente firma como
-         sociedad (PT PMA)» se retiró del formulario el 19-ago-2026 — un comprador
-         que es una sociedad se ficha como tal en /intranet/compradores/ y sale en el
-         bloque de arriba, con su forma jurídica y su país. Este bloque se queda
-         porque hay contratos REALES con estos campos rellenos y borrarlo
-         cambiaría lo que imprimen documentos ya entregados. -->
+    
     <!--opt:comp_npwp-->
     <div class="party">
       <div class="role"><span data-lang="es">Comprador — Entidad jurídica (PT PMA)</span><span data-lang="en">BUYER — Legal entity (PT PMA)</span><span data-lang="id">PEMBELI — Badan hukum (PT PMA)</span></div>
@@ -69,7 +57,7 @@
     <p data-lang="en"><b>Note:</b> If at the date of signing the PT PMA is not yet incorporated or does not have NIB/NPWP, the Investor signs this PPJB in their own name, undertaking to "cause the acquisition of" the right by the BUYER PT PMA at the time of the AJB, in accordance with Article 6. Seller and Investor/BUYER, jointly, the "Parties".</p>
     <p data-lang="id"><b>Catatan:</b> Jika pada tanggal penandatanganan PT PMA belum didirikan atau belum memiliki NIB/NPWP, Investor menandatangani PPJB ini atas namanya sendiri, dengan kewajiban "mengupayakan perolehan" hak oleh PT PMA PEMBELI pada saat AJB, sesuai Pasal 6. Penjual dan Investor/PEMBELI, bersama-sama, disebut "Para Pihak".</p>
 
-    <!-- ============ ANTECEDENTES ============ -->
+    
     <h2><span data-lang="es">I. Titularidad del terreno y descripción del proyecto</span><span data-lang="en">I. Land ownership and project description</span><span data-lang="id">I. Kepemilikan tanah dan deskripsi proyek</span></h2>
     <p data-lang="es">Que el PROMOTOR es titular legítimo del terreno donde se desarrolla el Proyecto <span class="f">{{proyecto_nombre}}</span>, complejo privado con infraestructura común, accesos, servicios y planificación urbanística definida.</p>
     <p data-lang="en">That the DEVELOPER is the legitimate owner of the land on which the Project <span class="f">{{proyecto_nombre}}</span> is developed, a private complex with common infrastructure, accesses, services and defined urban planning.</p>
@@ -123,7 +111,7 @@
       <li><span class="term">IDR:</span> Rupiah Indonesia.</li>
     </ul>
 
-    <!-- ============ ARTÍCULOS ============ -->
+    
     <h2><span data-lang="es">Artículo 1 — Objeto</span><span data-lang="en">Article 1 — Object</span><span data-lang="id">Pasal 1 — Objek</span></h2>
     <p data-lang="es">1.1 El Vendedor se obliga a vender y transferir, y el Comprador se obliga a comprar y adquirir, el derecho sobre la parcela/proyecto descrita a continuación. Nombre del proyecto: <span class="f">{{proyecto_nombre}}</span> y número de parcela: <span class="f">{{parcela_codigo}}</span>.</p>
     <p data-lang="en">1.1 The Seller undertakes to sell and transfer, and the BUYER undertakes to buy and acquire, the right over the plot/project described below. Project name: <span class="f">{{proyecto_nombre}}</span> and plot number: <span class="f">{{parcela_codigo}}</span>.</p>
@@ -347,9 +335,7 @@
     <p data-lang="id">PEMBELI dapat menangguhkan pekerjaan atas kebijakannya sendiri melalui pemberitahuan tertulis, dan dalam hal itu Para Pihak menyepakati dengan itikad baik akibatnya terhadap jangka waktu dan biaya. Jika salah satu Pihak melanggar Kontrak ini secara material dan tidak memperbaikinya dalam 30 hari kalender setelah pemberitahuan tertulis, Pihak yang tidak melanggar dapat mengakhiri Kontrak.</p>
 
 
-    <!-- 31-jul-2026: este PPJB era trilingüe y NO decía qué versión manda. El silencio
-         no es neutral: cada parte alega la suya. Se añade con la misma redacción que
-         el resto de plantillas — prevalece bahasa (UU 24/2009). -->
+    
     <h2><span data-lang="es">Artículo 26 — Idioma del contrato</span><span data-lang="en">Article 26 — Language of the contract</span><span data-lang="id">Pasal 26 — Bahasa perjanjian</span></h2>
     <p data-lang="es">Este documento se otorga en español, inglés y bahasa indonesia. Conforme a la Ley nº 24/2009 sobre uso obligatorio del idioma indonesio, <b>prevalecerá la versión en bahasa indonesia</b> en caso de discrepancia entre versiones, y será la presentada ante autoridades y registros indonesios. Las versiones en español e inglés son traducciones fieles de aquélla y se otorgan para la comprensión de las Partes.</p>
     <p data-lang="en">This document is executed in Spanish, English and Indonesian (bahasa). Pursuant to Law no. 24/2009 on the mandatory use of the Indonesian language, <b>the Indonesian version shall prevail</b> in the event of any discrepancy between versions, and shall be the one filed with Indonesian authorities and registries. The Spanish and English versions are faithful translations thereof and are executed for the Parties' understanding.</p>
@@ -371,7 +357,7 @@
 
     <!--extra-clauses-->
 
-    <!-- ============ FIRMAS ============ -->
+    
     <h2><span data-lang="es">Firmas</span><span data-lang="en">Signatures</span><span data-lang="id">Tanda tangan</span></h2>
     <table class="pays sigs" style="margin-top:14px">
       <tbody>

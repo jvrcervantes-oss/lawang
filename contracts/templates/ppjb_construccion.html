@@ -6,8 +6,7 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- Texto trilingüe (data-lang). ES = texto EXACTO del cliente
-       (ContratoReservaConstruccion.pdf). EN/ID = traducción de trabajo. -->
+  
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
@@ -17,7 +16,7 @@
     </div>
     <div class="doc-date"><span data-lang="es">En Indonesia, a fecha <span class="f f-sm">{{fecha_firma}}</span> · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">In Indonesia, dated <span class="f f-sm">{{fecha_firma}}</span> · Contract No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Di Indonesia, tertanggal <span class="f f-sm">{{fecha_firma}}</span> · No. Kontrak: <span class="f f-md">{{contrato_num}}</span></span></div>
 
-    <!-- ============ PARTES ============ -->
+    
     <h2><span data-lang="es">Partes</span><span data-lang="en">Parties</span><span data-lang="id">Para Pihak</span></h2>
     <div class="party">
       <div class="role"><span data-lang="es">CONSTRUCTOR</span><span data-lang="en">BUILDER</span><span data-lang="id">KONTRAKTOR</span></div>
@@ -28,12 +27,7 @@
 
     <div class="party">
       <div class="role"><span data-lang="es">ADQUIRIENTE I</span><span data-lang="en">BUYER I</span><span data-lang="id">PEMBELI I</span></div>
-      <!-- PERSONA o EMPRESA (19-ago-2026, encargo del owner) — el comprador puede ser
-           una sociedad, y no solo una PT PMA: una S.L. española o una LLC americana
-           compran igual. `adq1_tipo` sale de la ficha de /intranet/compradores/ (ver collect()
-           en app.html) y vale 'persona' por defecto, que es lo que eran todos los
-           contratos anteriores. Las dos redacciones dicen lo mismo con los datos que
-           tiene cada tipo; no hay documento sin párrafo de Segunda Parte. -->
+      
       <!--if:adq1_tipo=persona-->
       <p data-lang="es"><b>ADQUIRIENTE I:</b> D./Dña. <span class="f">{{adq1_nombre}}</span>, nacional de <span class="f">{{adq1_nacionalidad}}</span>, con Pasaporte/<!--/if:adq1_tipo--><!--if:rev03_dni=si-->DNI/<!--/if:rev03_dni--><!--if:adq1_tipo=persona-->Nº de identificación fiscal <span class="f">{{adq1_pasaporte}}</span>. Teléfono <span class="f">{{adq1_telefono}}</span> y email a efecto de notificaciones: <span class="f">{{adq1_email}}</span>.</p>
       <p data-lang="en"><b>BUYER I:</b> Mr./Ms. <span class="f">{{adq1_nombre}}</span>, national of <span class="f">{{adq1_nacionalidad}}</span>, with Passport/<!--/if:adq1_tipo--><!--if:rev03_dni=si-->National ID (DNI)/<!--/if:rev03_dni--><!--if:adq1_tipo=persona-->Tax ID no. <span class="f">{{adq1_pasaporte}}</span>. Telephone <span class="f">{{adq1_telefono}}</span> and notification email: <span class="f">{{adq1_email}}</span>.</p>
@@ -44,14 +38,7 @@
       <p data-lang="en"><b>BUYER I:</b> <span class="f">{{adq1_nombre}}</span>, a company of legal form <span class="f">{{adq1_forma_juridica}}</span> incorporated under the laws of <span class="f">{{adq1_nacionalidad}}</span><!--opt:adq1_registro-->, register no. <span class="f">{{adq1_registro}}</span><!--/opt:adq1_registro--> and tax identification <span class="f">{{adq1_pasaporte}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span> for notification purposes. Represented herein by <span class="f">{{adq1_rep_nombre}}</span>, acting as <span class="f">{{adq1_rep_cargo}}</span>.</p>
       <p data-lang="id"><b>PEMBELI I:</b> <span class="f">{{adq1_nombre}}</span>, perusahaan berbentuk <span class="f">{{adq1_forma_juridica}}</span> yang didirikan berdasarkan hukum <span class="f">{{adq1_nacionalidad}}</span><!--opt:adq1_registro-->, no. registrasi <span class="f">{{adq1_registro}}</span><!--/opt:adq1_registro--> dan identifikasi pajak <span class="f">{{adq1_pasaporte}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span> untuk keperluan pemberitahuan. Dalam hal ini diwakili oleh <span class="f">{{adq1_rep_nombre}}</span>, bertindak sebagai <span class="f">{{adq1_rep_cargo}}</span>.</p>
       <!--/if:adq1_tipo-->
-      <!-- HISTÓRICO, no se rellena ya: la sección «El adquiriente firma como
-           sociedad (PT PMA)» se retiró del formulario el 19-ago-2026 (el
-           comprador que es una sociedad ahora se ficha como tal en
-           /intranet/compradores/ y sale arriba). El bloque se queda porque CR00018,
-           CC00020 y RP00046 son contratos REALES con estos campos rellenos:
-           borrarlo cambiaría lo que imprimen tres documentos ya entregados.
-           `opt:` solo lo pinta si el contrato trae el dato, así que en todo lo
-           que se emita desde hoy no aparece. -->
+      
       <!--opt:comp_razon-->
       <p data-lang="es"><b>Actuando como sociedad:</b> el ADQUIRIENTE firma en nombre y representación de la sociedad <span class="f f-lg">{{comp_razon}}</span> (PT PMA), con domicilio social en <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> y NPWP <span class="f f-md">{{comp_npwp}}</span>. La adquisición se formaliza a nombre de dicha sociedad.</p>
       <p data-lang="en"><b>Acting as a company:</b> the BUYER signs in the name and on behalf of the company <span class="f f-lg">{{comp_razon}}</span> (PT PMA), with registered office at <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> and NPWP <span class="f f-md">{{comp_npwp}}</span>. The acquisition is formalised in the name of said company.</p>
@@ -65,7 +52,7 @@
     <p data-lang="en">The buyers acknowledge that the Project is a private villa construction development and wish to regulate the commercial, technical and legal terms of the construction works under this Agreement and its Appendices.</p>
     <p data-lang="id">Para pembeli mengakui bahwa Proyek merupakan pengembangan konstruksi vila privat dan bermaksud mengatur syarat komersial, teknis, dan hukum pekerjaan konstruksi berdasarkan Perjanjian ini beserta Lampirannya.</p>
 
-    <!-- ============ IDENTIFICACIÓN DEL PROYECTO ============ -->
+    
     <h2><span data-lang="es">Identificación del proyecto</span><span data-lang="en">Project identification</span><span data-lang="id">Identifikasi proyek</span></h2>
         <table class="pays id-proyecto">
       <thead><tr><th><span data-lang="es">Concepto</span><span data-lang="en">Item</span><span data-lang="id">Item</span></th><th><span data-lang="es">Detalle</span><span data-lang="en">Detail</span><span data-lang="id">Rincian</span></th></tr></thead>
@@ -73,25 +60,13 @@
         <tr><td><span data-lang="es">Nombre del Proyecto</span><span data-lang="en">Project Name</span><span data-lang="id">Nama Proyek</span></td><td><span class="f f-lg">{{proyecto_nombre}}</span></td></tr>
         <tr><td><span data-lang="es">Tipología de Vivienda</span><span data-lang="en">Housing Typology</span><span data-lang="id">Tipologi Hunian</span></td><td><span class="f f-lg">{{tipologia_construccion}}</span></td></tr>
         <!--opt:techo_nombre--><tr><td><span data-lang="es">Techo</span><span data-lang="en">Roof</span><span data-lang="id">Atap</span></td><td><span class="f f-lg">{{techo_nombre}}</span></td></tr><!--/opt:techo_nombre-->
-        <!-- 🔴 FALTABA (28-ago-2026, aviso del owner: "el campo ¿Qué parcela es esta
-             construcción? no se imprime"). El dato lleva desde el 24-ago en la base
-             (contratos.unidad_id, construccion_por_parcela.sql) y desde hoy siempre
-             visible en el editor (syncUnidadConstruccion), pero esta plantilla nunca
-             tuvo dónde imprimirlo — puede haber más de una Construcción sobre la
-             misma parcela, así que dejarlo sin imprimir es justo el caso en que más
-             hace falta verlo en el papel. `opt` (marcador opcional) porque una reserva con una
-             sola parcela ya en el inventario se asigna sola iguel, pero un contrato
-             de construcción sin ninguna parcela en el inventario (proyecto sin dar
-             de alta en Unidades) no tiene nada que imprimir aquí. -->
+        
         <!--opt:unidad_construccion_codigo--><tr><td><span data-lang="es">Parcela</span><span data-lang="en">Plot</span><span data-lang="id">Kavling</span></td><td><span class="f f-lg">{{unidad_construccion_codigo}}</span></td></tr><!--/opt:unidad_construccion_codigo-->
         <tr><td><span data-lang="es">Ubicación</span><span data-lang="en">Location</span><span data-lang="id">Lokasi</span></td><td><span class="f f-lg">{{ubicacion_proyecto}}</span></td></tr>
       </tbody>
     </table>
 
-    <!-- Extras/opcionales elegidos (16-sep-2026): solo si hay al menos uno.
-         El precio de cada uno ya está SUMADO dentro de {{precio_total}} del
-         Artículo 4 (ver syncPrecioTechoExtras, assets/techo_extras.js) — esta
-         tabla es el desglose, no una segunda cifra a reconciliar a mano. -->
+    
     <!--seccion-extras-construccion-->
     <h2><span data-lang="es">Extras / opcionales incluidos</span><span data-lang="en">Included extras / options</span><span data-lang="id">Ekstra / opsi yang termasuk</span></h2>
     <table class="pays">
@@ -100,7 +75,7 @@
     </table>
     <!--/seccion-extras-construccion-->
 
-    <!-- ============ ARTÍCULOS ============ -->
+    
     <h2><span data-lang="es">Artículo 1 — Definiciones</span><span data-lang="en">Article 1 — Definitions</span><span data-lang="id">Pasal 1 — Definisi</span></h2>
     <ul data-lang="es">
       <li><span class="term">«Proyecto»</span> designa la villa, piscina, terraza, instalaciones y demás obras correspondientes a la Tipología de Vivienda, con el techo y los extras detallados en el presente Contrato, tal como se representan en el Apéndice A – Planos Arquitectónicos.</li>
@@ -117,7 +92,7 @@
       <li>For the purposes of this Agreement, the BUILDER may also be referred to as the "First Party" and the BUYER as the "Second Party"; both expressions are understood as equivalent to the defined terms "BUILDER" and "BUYER" wherever they appear in the Agreement.</li>
     </ul>
     <ul data-lang="id">
-      <!-- ID pendiente de traductor (28-sep-2026) -->
+      
       <li><span class="term">"Proyek"</span> berarti vila, kolam renang, teras, fasilitas, dan pekerjaan lain yang sesuai dengan Tipologi Hunian, beserta atap dan ekstra yang dirinci dalam Perjanjian ini, sebagaimana digambarkan dalam Lampiran A – Gambar Arsitektur.</li>
       <li><span class="term">"Tipologi Hunian"</span> berarti model hunian yang diidentifikasi dalam lembar Proyek Perjanjian ini, beserta atap dan ekstra yang dirinci di dalamnya.</li>
       <li><span class="term">"Harga Kontrak"</span> berarti harga yang disepakati sebagaimana tercantum dalam Pasal 4, sudah termasuk pajak.</li>
@@ -139,9 +114,9 @@
       <!--if:clausulas_negociadas=rev04--><li>The BUILDER shall obtain, at its own cost, the construction licenses and permits necessary for the execution of the Project, including the PBG and the SLF (Sertifikat Laik Fungsi) upon completion of the works.</li><!--/if:clausulas_negociadas-->
     </ul>
     <ul data-lang="id">
-      <!-- ID pendiente de traductor (28-sep-2026) -->
+      
       <li>KONTRAKTOR wajib mengatur, mengelola, dan melaksanakan konstruksi Proyek secara ketat sesuai dengan Perjanjian ini, gambar dalam Lampiran A, dan jadwal dalam Pasal 5.</li>
-      <!-- ID pendiente de traductor (28-sep-2026) -->
+      
       <li>Hanya Tipologi Hunian, atap, dan ekstra yang secara tegas dirinci dalam Perjanjian ini, sebagaimana digambarkan dalam Lampiran A, yang menjadi bagian Harga Kontrak. Setiap item yang tidak termasuk di dalamnya dianggap dikecualikan, kecuali disepakati kemudian secara tertulis.</li>
       <li>Tidak ada komunikasi lisan, pesan WhatsApp, gambar contoh, atau percakapan di lapangan yang dapat mengubah lingkup, kecuali diformalkan melalui Perintah Variasi yang ditandatangani kedua pihak.</li>
       <!--if:clausulas_negociadas=rev04--><li>KONTRAKTOR, atas biayanya sendiri, wajib memperoleh lisensi dan izin konstruksi yang diperlukan untuk pelaksanaan Proyek, termasuk PBG dan SLF (Sertifikat Laik Fungsi) pada saat selesainya pekerjaan.</li><!--/if:clausulas_negociadas-->
@@ -165,7 +140,7 @@
       <li>Perjanjian ini</li>
       <li>Lampiran A – Gambar Arsitektur</li>
     </ol>
-    <!-- ID pendiente de traductor (28-sep-2026) -->
+    
     <p data-lang="id">Setiap dokumen lain yang dilampirkan pada Perjanjian ini (lembar data, gambar render, spesifikasi mutu atau spesifikasi teknis, atau lainnya) hanya bersifat informatif, terlepas dari judulnya dan terlepas dari apakah judulnya menyatakan demikian atau tidak, dan tidak memperluas maupun mengubah lingkup pekerjaan ataupun Harga Kontrak. Materi komersial atau promosi (dosir penjualan, brosur, iklan) tidak merupakan bagian dari Perjanjian ini.</p>
     <p data-lang="es">Este documento se otorga en español, inglés y bahasa indonesia. Conforme a la Ley nº 24/2009 sobre uso obligatorio del idioma indonesio, <b>prevalecerá la versión en bahasa indonesia</b> en caso de discrepancia entre versiones, y será la presentada ante autoridades y registros indonesios. Las versiones en español e inglés son traducciones fieles de aquélla y se otorgan para la comprensión de las Partes.</p>
     <p data-lang="en">This document is executed in Spanish, English and Indonesian (bahasa). Pursuant to Law no. 24/2009 on the mandatory use of the Indonesian language, <b>the Indonesian version shall prevail</b> in the event of any discrepancy between versions, and shall be the one filed with Indonesian authorities and registries. The Spanish and English versions are faithful translations thereof and are executed for the Parties' understanding.</p>
@@ -196,10 +171,7 @@
       </tbody>
     </table>
 <!--/seccion-hitos-->
-<!-- Art. 5 por forma de pago (28-sep-2026, owner; textos de Legal, revisión previa #148). `clausula_pago` la
-     escribe el servidor (contrato_guarda) desde el calendario: vacía = hitos por fase (el texto de siempre, byte a
-     byte), unico_obra = el primer punto de siempre + exigibilidad al inicio de la preparación, unico_firma = pago en
-     la fecha de la tabla y la obra no arranca hasta cobrar. Sin cláusula de restitución: decisión del owner. -->
+
     <ul data-lang="es">
 <!--if:clausula_pago=-->
       <li>Los pagos deberán realizarse en la etapa establecida para garantizar la continuidad de la obra. Si el ADQUIRIENTE incumple sus obligaciones de pago, el CONSTRUCTOR se reserva el derecho de suspender el proyecto y evaluar los posibles incrementos de coste derivados de la reanudación.</li>
@@ -250,7 +222,7 @@
       <li>Pembayaran harus dilakukan pada tahap yang ditetapkan untuk menjamin kelangsungan pekerjaan. Jika PEMBELI tidak memenuhi kewajiban pembayaran, KONTRAKTOR berhak menangguhkan proyek dan menilai kemungkinan kenaikan biaya akibat pengaktifan kembali.</li>
 <!--/if:clausula_pago-->
 <!--if:clausula_pago=unico_firma-->
-      <!-- ID pendiente de traductor (28-sep-2026) -->
+      
       <li>Harga Kontrak dibayar dalam satu kali pembayaran sebesar jumlah penuhnya pada tanggal yang tercantum dalam tabel di atas. KONTRAKTOR tidak berkewajiban memulai pekerjaan, dan dapat menangguhkannya apabila telah dimulai, sampai pembayaran tersebut diterima, dan Jangka Waktu Pelaksanaan sebagaimana dimaksud dalam Pasal 6 tidak mulai berjalan sebelum pembayaran tersebut diterima.</li>
 <!--/if:clausula_pago-->
       <li>KONTRAKTOR wajib secara berkala menyediakan laporan dan foto kemajuan, serta laporan pada penyelesaian setiap tahap.</li>
@@ -258,11 +230,11 @@
       <li>Setiap tahapan menjadi jatuh tempo pada saat dimulainya fase konstruksi yang ditunjuknya dan, untuk tahapan terakhir, pada saat permintaan inspeksi sebagaimana diatur dalam Pasal 11. KONTRAKTOR memberitahukannya secara tertulis kepada PEMBELI dengan melampirkan laporan kemajuan sebagaimana diatur dalam Pasal ini, dan pembayaran wajib dilakukan dalam empat belas (14) hari kalender sejak diterimanya pemberitahuan tersebut. Setelah jangka waktu tersebut terlampaui tanpa pembayaran, PEMBELI dinyatakan lalai (wanprestasi) tanpa memerlukan teguran lebih lanjut.</li>
 <!--/if:clausula_pago-->
 <!--if:clausula_pago=unico_obra-->
-      <!-- ID pendiente de traductor (28-sep-2026) -->
+      
       <li>Harga Kontrak dibayar dalam satu kali pembayaran sebesar jumlah penuhnya, yang menjadi jatuh tempo pada saat dimulainya fase persiapan lahan. KONTRAKTOR memberitahukan dimulainya fase tersebut secara tertulis kepada PEMBELI dengan melampirkan laporan kemajuan sebagaimana diatur dalam Pasal ini, dan pembayaran wajib dilakukan dalam empat belas (14) hari kalender sejak diterimanya pemberitahuan tersebut. Tanggal yang tercantum dalam tabel di atas, apabila ada, hanya bersifat perkiraan dan tidak menentukan saat jatuh tempo pembayaran. Setelah jangka waktu tersebut terlampaui tanpa pembayaran, PEMBELI dinyatakan lalai (wanprestasi) tanpa memerlukan teguran lebih lanjut.</li>
 <!--/if:clausula_pago-->
 <!--if:clausula_pago=unico_firma-->
-      <!-- ID pendiente de traductor (28-sep-2026) -->
+      
       <li>Pembayaran tunggal menjadi jatuh tempo pada tanggal yang tercantum dalam tabel, tanpa memerlukan pemberitahuan terlebih dahulu dari KONTRAKTOR. Setelah tanggal tersebut terlampaui tanpa pembayaran, PEMBELI dinyatakan lalai (wanprestasi) tanpa memerlukan teguran lebih lanjut, tanpa mengesampingkan hak pengakhiran sebagaimana diatur dalam Pasal 13.</li>
 <!--/if:clausula_pago-->
     </ul>
@@ -285,7 +257,7 @@
     <h2><span data-lang="es">Artículo 8 — Calidad y materiales</span><span data-lang="en">Article 8 — Quality and materials</span><span data-lang="id">Pasal 8 — Kualitas dan material</span></h2>
     <p data-lang="es">El Proyecto deberá ejecutarse de manera adecuada y con buena práctica constructiva, conforme al Apéndice A, utilizando materiales nuevos, de calidad adecuada a su uso y conformes con las normas técnicas indonesias aplicables (SNI). El CONSTRUCTOR es responsable de la seguridad en obra, el uso de EPP por los trabajadores, el orden y la limpieza, y el cumplimiento de los requisitos aplicables durante los trabajos.</p>
     <p data-lang="en">The Project shall be executed properly and with good construction practice, in accordance with Appendix A, using new materials of a quality suitable for their purpose and compliant with the applicable Indonesian national standards (SNI). The BUILDER is responsible for site safety, the use of PPE by workers, order and cleanliness, and compliance with the applicable requirements during the works.</p>
-    <!-- ID pendiente de traductor (28-sep-2026) -->
+    
     <p data-lang="id">Proyek harus dilaksanakan dengan baik dan sesuai praktik konstruksi yang benar, sesuai dengan Lampiran A, menggunakan material baru dengan mutu yang sesuai dengan peruntukannya dan memenuhi Standar Nasional Indonesia (SNI) yang berlaku. KONTRAKTOR bertanggung jawab atas keselamatan di lokasi, penggunaan APD oleh pekerja, ketertiban dan kebersihan, serta kepatuhan terhadap persyaratan yang berlaku selama pekerjaan.</p>
 
     <h2><span data-lang="es">Artículo 9 — Seguros y riesgos</span><span data-lang="en">Article 9 — Insurance and risks</span><span data-lang="id">Pasal 9 — Asuransi dan risiko</span></h2>
@@ -328,7 +300,7 @@
 
     <p data-lang="es"><b>1. Integridad del Contrato.</b> Las Partes reconocen y aceptan que el presente Contrato, junto con su Apéndice A – Planos Arquitectónicos, constituye el acuerdo íntegro y definitivo alcanzado entre ellas en relación con su objeto, dejando sin efecto cualquier negociación, propuesta, comunicación, manifestación, entendimiento, oferta o acuerdo previo, ya sea verbal o escrito, relativo a la materia regulada en el presente Contrato. Los documentos adjuntos con carácter informativo conforme al Artículo 3 no forman parte del acuerdo vinculante.</p>
     <p data-lang="en"><b>1. Entire Agreement.</b> The Parties acknowledge and accept that this Agreement, together with its Appendix A – Architectural Drawings, constitutes the entire and final agreement reached between them in relation to its subject matter, superseding any prior negotiation, proposal, communication, representation, understanding, offer or agreement, whether verbal or written, relating to the matter regulated herein. Documents attached for information purposes under Article 3 do not form part of the binding agreement.</p>
-    <!-- ID pendiente de traductor (28-sep-2026) -->
+    
     <p data-lang="id"><b>1. Keutuhan Perjanjian.</b> Para Pihak mengakui dan menerima bahwa Perjanjian ini, beserta Lampiran A – Gambar Arsitektur, merupakan kesepakatan yang utuh dan final di antara mereka terkait objeknya, serta membatalkan setiap negosiasi, usulan, komunikasi, pernyataan, pemahaman, penawaran, atau kesepakatan sebelumnya, baik lisan maupun tertulis, yang berkaitan dengan hal yang diatur dalam Perjanjian ini. Dokumen yang dilampirkan sebagai informasi berdasarkan Pasal 3 tidak merupakan bagian dari kesepakatan yang mengikat.</p>
 
     <p data-lang="es"><b>2. Modificaciones.</b> Ninguna modificación, ampliación o adición al presente Contrato será válida ni producirá efectos si no consta por escrito y está debidamente firmada por ambas Partes.</p>
@@ -383,7 +355,7 @@
 
     <!--extra-clauses-->
 
-    <!-- ============ FIRMAS ============ -->
+    
     <h2><span data-lang="es">Firmas</span><span data-lang="en">Signatures</span><span data-lang="id">Tanda tangan</span></h2>
     <p data-lang="es">Y en prueba de conformidad con cuanto antecede, las Partes firman el presente Contrato en el lugar y fecha indicados en el encabezado.</p>
     <p data-lang="en">And in witness of agreement with all the foregoing, the Parties sign this Agreement at the place and date indicated in the heading.</p>

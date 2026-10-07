@@ -6,27 +6,7 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- Hak Sewa ante notario (Tabanan, Bali) — serie HS.
-       ES = texto EXACTO del cliente (5-ago-2026), transcrito literal con sus erratas
-       Las tres erratas del original («Baca la PRIMERA PARTE», «Testafierro»,
-       apellido «MESEQUER») se corrigieron el 5-ago-2026 a petición del cliente.
-       EN/ID = texto EXACTO del cliente (6-ago-2026), frase a frase — ya no es una
-       traducción de trabajo nuestra. La única excepción deliberada: se mantiene
-       «Testaferro» (ES) donde el envío del 6-ago volvía a traer la errata
-       «Testafierro», porque esa ya se había corregido a petición expresa del
-       cliente el 5-ago y nadie pidió revertirlo. El Art. 10 hace prevalecer la
-       versión indonesia.
-       LAWANG NO ES PARTE de este contrato: firman apoderado del arrendador (línea en
-       blanco, firma en papel/notario), arrendatario (pad estándar firma_adquiriente)
-       y testigos (líneas en blanco). Sin marca de agua por el mismo motivo.
-       Marcadores {{...}} = campos del form (tokens.json, secciones hs_*).
-       Segunda Parte por apoderado (11-ago-2026, opcional): mismo catálogo
-       APODERADOS_HAK_SEWA de la Primera Parte (opciones en tokens.json →
-       hs_segunda_parte, campos adq_apoderado_*; datos personales en Supabase
-       desde el 12-ago). Si se elige alguien, se imprime un párrafo extra
-       en la comparecencia y la firma pasa a llevar su nombre + "(Como Apoderado
-       de / As Attorney-in-fact for) {{adq1_nombre}}" — ver applyRepresentanteComprador
-       en app.html. Vacío = comportamiento de siempre, el comprador firma él mismo. -->
+  
   <div class="doc">
 
     <div class="doc-title">
@@ -35,7 +15,7 @@
     </div>
     <div class="doc-date"><span data-lang="es">Tabanan, Bali · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">Tabanan, Bali · Contract No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Tabanan, Bali · No. Kontrak: <span class="f f-md">{{contrato_num}}</span></span></div>
 
-    <!-- ============ COMPARECENCIA ============ -->
+    
     <p data-lang="es">En el día de hoy, <span class="f">{{hsn_dia_semana}}</span>, fecha <span class="f f-xs">{{hsn_dia}}</span> del mes de <span class="f">{{hsn_mes}}</span> del año Dos Mil Veintiséis (2026), en Tabanan, Bali, los abajo firmantes:</p>
     <p data-lang="en">On this day, <span class="f">{{hsn_dia_semana}}</span>, date <span class="f f-xs">{{hsn_dia}}</span> month <span class="f">{{hsn_mes}}</span> of the year Two Thousand Twenty-Six (2026), located in Tabanan, Bali, the undersigned below:</p>
     <p data-lang="id">Pada hari ini, <span class="f">{{hsn_dia_semana}}</span>, tanggal <span class="f f-xs">{{hsn_dia}}</span> bulan <span class="f">{{hsn_mes}}</span> tahun Dua Ribu Dua Puluh Enam (2026), bertempat di Tabanan, Bali, yang bertanda tangan di bawah ini:</p>
@@ -70,12 +50,10 @@
       <p data-lang="en">Hereinafter referred to as the SECOND PARTY (LESSEE).</p>
       <p data-lang="id">Selanjutnya disebut PIHAK KEDUA (PENYEWA).</p>
     </div>
-    <!-- Arrendatarios II, III… (24-sep-2026, owner: «no deja añadir más de un
-         adquiriente»). Mismo marcador que el resto de la serie; la redacción
-         vive en COMPRADOR_FRASE.hak_sewa_notario (app.html). Vacío = no imprime. -->
+    
     <!--compradores-extra-->
 
-    <!-- ============ DECLARACIONES PREVIAS ============ -->
+    
     <p data-lang="es">Las Partes declaran en primer lugar lo siguiente:</p>
     <p data-lang="en">The Parties first declare the following matters:</p>
     <p data-lang="id">Para Pihak terlebih dahulu menerangkan hal-hal sebagai berikut:</p>
@@ -92,7 +70,7 @@
     <p data-lang="en">Therefore, the Parties agree to bind themselves in this Lease Agreement under the following terms and conditions:</p>
     <p data-lang="id">Maka oleh karena itu, Para Pihak sepakat untuk mengikatkan diri dalam Perjanjian Sewa Menyewa ini dengan ketentuan dan syarat-syarat sebagai berikut:</p>
 
-    <!-- ============ ARTÍCULOS ============ -->
+    
     <h2><span data-lang="es">Artículo 1: Contrato de Arrendamiento</span><span data-lang="en">Article 1: Lease Agreement</span><span data-lang="id">Pasal 1: Perjanjian Sewa Menyewa</span></h2>
     <p data-lang="es">La PRIMERA PARTE acuerda por el presente arrendar el Objeto del Arrendamiento a la SEGUNDA PARTE, y la SEGUNDA PARTE acuerda por el presente aceptar el arrendamiento del Objeto del Arrendamiento de la PRIMERA PARTE libre de todo litigio, embargo, gravamen, garantía de deuda o cualquier interferencia legal por parte de terceros.</p>
     <p data-lang="en">The FIRST PARTY hereby agrees to lease the Leased Object to the SECOND PARTY, and the SECOND PARTY hereby agrees to accept the lease of the Leased Object from the FIRST PARTY free from all disputes, confiscations, encumbrances, debt collateral, or any legal interference from other parties.</p>
@@ -102,9 +80,7 @@
     <p data-lang="es">La duración de este arrendamiento se estipula y es válida por <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) años, comenzando a partir del año <span class="f f-xs">{{hsn_anio_inicio}}</span> y finalizando en el año <span class="f f-xs">{{hsn_anio_fin}}</span>.</p>
     <p data-lang="en">The duration of this lease is made and valid for <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) years, starting from the year <span class="f f-xs">{{hsn_anio_inicio}}</span> and ending in the year <span class="f f-xs">{{hsn_anio_fin}}</span>.</p>
     <p data-lang="id">Jangka waktu sewa menyewa ini dibuat dan berlaku untuk <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) tahun lamanya, terhitung mulai tahun <span class="f f-xs">{{hsn_anio_inicio}}</span> sehingga berakhir pada tahun <span class="f f-xs">{{hsn_anio_fin}}</span>.</p>
-    <!-- El original decía «Baca la PRIMERA PARTE…» (resto de otra versión); corregido
-         a petición del cliente el 5-ago-2026, igual que «Testafierro» y «MESEQUER».
-         EN/ID traducen el sentido: la PRIMERA PARTE otorga la opción. -->
+    
     <p data-lang="es">La PRIMERA PARTE otorga una Opción de Prórroga absoluta a la SEGUNDA PARTE para extender el arrendamiento por un período adicional de otros <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) años. Esta prórroga podrá ser ejecutada por la SEGUNDA PARTE en cualquier momento durante la vigencia del arrendamiento, sin necesidad de esperar a que finalice el período de arrendamiento actual.</p>
     <p data-lang="en">The FIRST PARTY grants an absolute Extension Option to the SECOND PARTY to extend the lease for an additional period of another <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) years. This extension can be executed by the SECOND PARTY at any time during the lease term, without having to wait until the end of the current lease period.</p>
     <p data-lang="id">PIHAK PERTAMA memberikan Hak Opsi Perpanjangan mutlak kepada PIHAK KEDUA untuk memperpanjang sewa untuk jangka waktu tambahan selama <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) tahun lagi. Perpanjangan ini dapat dieksekusi oleh PIHAK KEDUA kapan saja selama masa sewa berjalan, tanpa harus menunggu sampai akhir masa sewa berakhir.</p>
@@ -179,7 +155,7 @@
     <p data-lang="en">Thus, this lease agreement is truthfully made to be used as appropriate. This Agreement is signed in Indonesian and English versions; in the event of any discrepancy in meaning, the Indonesian version shall prevail.</p>
     <p data-lang="id">Demikian perjanjian sewa menyewa ini dibuat dengan sebenarnya untuk dapat digunakan sebagaimana mestinya. Perjanjian ini ditandatangani dalam versi bahasa Indonesia dan bahasa Inggris, dalam hal terdapat pertentangan arti, maka versi bahasa Indonesia yang berlaku.</p>
 
-    <!-- ============ FIRMAS — SOLO las dos partes y testigos; Lawang NO firma ============ -->
+    
     <p data-lang="es" style="margin-top:16px">Tabanan, <span class="f">{{hsn_fecha_tabanan}}</span> 2026</p>
     <p data-lang="en" style="margin-top:16px">Tabanan, <span class="f">{{hsn_fecha_tabanan}}</span> 2026</p>
     <p data-lang="id" style="margin-top:16px">Tabanan, <span class="f">{{hsn_fecha_tabanan}}</span> 2026</p>
@@ -189,7 +165,7 @@
         <tr>
           <td>
             <div class="role"><span data-lang="es">LA PRIMERA PARTE (ARRENDADOR)</span><span data-lang="en">THE FIRST PARTY (LESSOR)</span><span data-lang="id">PIHAK PERTAMA (YANG MENYEWAKAN)</span></div>
-            <!-- línea en blanco a propósito: se firma en papel, ante notario -->
+            
             <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5)"></div>
             <p style="margin-top:4px;font-size:9pt"><span class="f">{{hsn_apoderado_nombre}}</span><br><span data-lang="es">(Como Apoderado de <span class="f">{{hsn_propietario_nombre}}</span>)</span><span data-lang="en">(As Attorney-in-fact for <span class="f">{{hsn_propietario_nombre}}</span>)</span><span data-lang="id">(Selaku Kuasa dari <span class="f">{{hsn_propietario_nombre}}</span>)</span></p>
           </td>
@@ -206,7 +182,7 @@
           </td>
         </tr>
         <tr>
-          <!-- líneas en blanco a propósito: los testigos firman en papel, ante notario -->
+          
           <td>
             <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5)"></div>
             <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Testigo 1</span><span data-lang="en">Witness 1</span><span data-lang="id">Saksi 1</span></p>

@@ -12,31 +12,7 @@
   .doc table.sigs td > div{ page-break-inside:avoid; break-inside:avoid; }</style>
 </head>
 <body>
-  <!-- Carta de Reserva AMPLIADA (31-jul-2026). Documento NUEVO y aparte: la
-       `carta_reserva.html` original sigue viva y sin tocar, porque hay contratos
-       emitidos con ella. Esta versión responde punto por punto al memorándum legal
-       002/LPH-LM/AGP/VII/2026 del despacho A.G. Pramudya Wardani & Partners, que
-       revisó CR00003 por cuenta del comprador (informe de contraste en
-       proyectos/Lawang/legal/Respuesta_Legal_Memo_CR00003_2026-07-31.pdf).
-
-       Todo lo que el memo pedía y no existía entra aquí COMO HUECO, no como dato
-       inventado: acta de constitución y RUPS del firmante, propietario registral
-       del suelo como arrendador, SHM y superficies, plazo del arrendamiento y
-       carácter de las prórrogas, desglose suelo/intranet/obra/mobiliario, condiciones de
-       liberación del escrow, impuestos, plazo de escritura, entrega, garantías,
-       incumplimiento con devolución, fuerza mayor, cesión y foro. Un hueco vacío
-       imprime su línea para rellenar a mano; ninguno se rellena con un valor
-       plausible (regla de agencia: nada con placeholders sale del estudio).
-
-       Identidad de la Primera Parte: la sirve el selector de sociedad firmante
-       (assets/entities.js), igual que el resto de la suite — por eso los datos
-       de sociedad no se teclean aquí y no pueden divergir entre idiomas, que fue
-       justo lo que el memo detectó en CR00003 (venía de tres párrafos editados
-       a mano sobre el documento, no de la plantilla).
-
-       Foro e idioma prevalente son un SELECT a propósito: nuestro criterio es
-       bahasa prevalente + BANI (Yakarta), pero es decisión del cliente validada
-       por abogado colegiado indonesio, y la plantilla no la da por hecha. -->
+  
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
@@ -46,7 +22,7 @@
     </div>
     <div class="doc-date"><span data-lang="es">En Indonesia, a fecha <span class="f f-sm">{{fecha_firma}}</span> · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">In Indonesia, dated <span class="f f-sm">{{fecha_firma}}</span> · Contract No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Di Indonesia, tertanggal <span class="f f-sm">{{fecha_firma}}</span> · No. Kontrak: <span class="f f-md">{{contrato_num}}</span></span></div>
 
-    <!-- ============ 1. PARTES ============ -->
+    
     <h2><span data-lang="es">Las Partes</span><span data-lang="en">The Parties</span><span data-lang="id">Para Pihak</span></h2>
     <div class="party">
       <div class="role"><span data-lang="es">Primera Parte — Promotor</span><span data-lang="en">First Party — Developer</span><span data-lang="id">Pihak Pertama — Pengembang</span></div>
@@ -66,12 +42,7 @@
 
     <div class="party">
       <div class="role"><span data-lang="es">Segunda Parte — Adquiriente</span><span data-lang="en">Second Party — Buyer</span><span data-lang="id">Pihak Kedua — Pembeli</span></div>
-      <!-- PERSONA o EMPRESA (19-ago-2026, encargo del owner) — el comprador puede ser
-           una sociedad, y no solo una PT PMA: una S.L. española o una LLC americana
-           compran igual. `adq1_tipo` sale de la ficha de /intranet/compradores/ (ver collect()
-           en app.html) y vale 'persona' por defecto, que es lo que eran todos los
-           contratos anteriores. Las dos redacciones dicen lo mismo con los datos que
-           tiene cada tipo; no hay documento sin párrafo de Segunda Parte. -->
+      
       <!--if:adq1_tipo=persona-->
       <p data-lang="es">3. <span class="f">{{adq1_nombre}}</span>, de nacionalidad <span class="f">{{adq1_nacionalidad}}</span>, titular del pasaporte n.º <span class="f">{{adq1_pasaporte}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span>, en régimen de tenencia <span class="f">{{regimen_tenencia}}</span>. En este acto actuando en nombre propio (en adelante, la «Segunda Parte»).</p>
       <p data-lang="en">3. <span class="f">{{adq1_nombre}}</span>, of <span class="f">{{adq1_nacionalidad}}</span> nationality, holder of passport no. <span class="f">{{adq1_pasaporte}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span>, under tenure regime <span class="f">{{regimen_tenencia}}</span>. Acting herein in their own name (hereinafter, the "Second Party").</p>
@@ -82,14 +53,7 @@
       <p data-lang="en">3. <span class="f">{{adq1_nombre}}</span>, a company of legal form <span class="f">{{adq1_forma_juridica}}</span> incorporated under the laws of <span class="f">{{adq1_nacionalidad}}</span><!--opt:adq1_registro-->, register no. <span class="f">{{adq1_registro}}</span><!--/opt:adq1_registro--> and tax identification <span class="f">{{adq1_pasaporte}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span> for notification purposes, under tenure regime <span class="f">{{regimen_tenencia}}</span>. Represented herein by <span class="f">{{adq1_rep_nombre}}</span>, acting as <span class="f">{{adq1_rep_cargo}}</span> (hereinafter, the "Second Party").</p>
       <p data-lang="id">3. <span class="f">{{adq1_nombre}}</span>, perusahaan berbentuk <span class="f">{{adq1_forma_juridica}}</span> yang didirikan berdasarkan hukum <span class="f">{{adq1_nacionalidad}}</span><!--opt:adq1_registro-->, no. registrasi <span class="f">{{adq1_registro}}</span><!--/opt:adq1_registro--> dan identifikasi pajak <span class="f">{{adq1_pasaporte}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span> untuk keperluan pemberitahuan, dengan rezim kepemilikan <span class="f">{{regimen_tenencia}}</span>. Dalam hal ini diwakili oleh <span class="f">{{adq1_rep_nombre}}</span>, bertindak sebagai <span class="f">{{adq1_rep_cargo}}</span> (selanjutnya disebut "Pihak Kedua").</p>
       <!--/if:adq1_tipo-->
-      <!-- HISTÓRICO, no se rellena ya: la sección «El adquiriente firma como
-           sociedad (PT PMA)» se retiró del formulario el 19-ago-2026 (el
-           comprador que es una sociedad ahora se ficha como tal en
-           /intranet/compradores/ y sale arriba). El bloque se queda porque CR00018,
-           CC00020 y RP00046 son contratos REALES con estos campos rellenos:
-           borrarlo cambiaría lo que imprimen tres documentos ya entregados.
-           `opt:` solo lo pinta si el contrato trae el dato, así que en todo lo
-           que se emita desde hoy no aparece. -->
+      
       <!--opt:comp_razon-->
       <p data-lang="es"><b>Actuando como sociedad:</b> no obstante lo anterior, la Segunda Parte firma en nombre y representación de la sociedad <span class="f f-lg">{{comp_razon}}</span> (PT PMA), con domicilio social en <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> y NPWP <span class="f f-md">{{comp_npwp}}</span>. La adquisición se formaliza a nombre de dicha sociedad.</p>
       <p data-lang="en"><b>Acting as a company:</b> notwithstanding the foregoing, the Second Party signs in the name and on behalf of the company <span class="f f-lg">{{comp_razon}}</span> (PT PMA), with registered office at <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> and NPWP <span class="f f-md">{{comp_npwp}}</span>. The acquisition is formalised in the name of said company.</p>
@@ -102,14 +66,14 @@
     <p data-lang="en">The buyers identified above together constitute the Second Party and are jointly and severally liable for its obligations. The First Party and the Second Party are jointly referred to as the "Parties".</p>
     <p data-lang="id">Para pembeli yang diidentifikasi di atas secara bersama-sama merupakan Pihak Kedua dan bertanggung jawab secara tanggung renteng atas kewajibannya. Pihak Pertama dan Pihak Kedua secara bersama-sama disebut "Para Pihak".</p>
 
-    <!-- ============ ARTÍCULO 1 — NATURALEZA ============ -->
+    
     <h2><span data-lang="es">Artículo 1 — Naturaleza de este documento</span><span data-lang="en">Article 1 — Nature of this document</span><span data-lang="id">Pasal 1 — Sifat dokumen ini</span></h2>
 
     <p data-lang="es">Esta Carta de Reserva es un acuerdo vinculante entre las Partes, con efectos propios y anteriores al contrato principal. Su objeto es reservar la Unidad descrita en el Artículo 2 en favor de la Segunda Parte, fijar su precio y fijar las condiciones bajo las cuales se otorgará el Contrato de Arrendamiento (Akta Sewa) ante notario. No sustituye a dicho Contrato de Arrendamiento ni transmite por sí sola derecho real alguno sobre el suelo.</p>
     <p data-lang="en">This Reservation Letter is a binding agreement between the Parties, producing its own legal effects prior to the principal agreement. Its purpose is to reserve the Unit described in Article 2 in favour of the Second Party, to fix its price, and to set out the conditions under which the Lease Agreement (Akta Sewa) shall be executed before a notary. It does not replace such Lease Agreement, nor does it by itself transfer any real right over the land.</p>
     <p data-lang="id">Surat Pemesanan ini merupakan perjanjian yang mengikat Para Pihak, yang menimbulkan akibat hukum tersendiri sebelum perjanjian pokok. Tujuannya adalah memesan Unit yang diuraikan dalam Pasal 2 untuk Pihak Kedua, menetapkan harganya, dan menetapkan syarat-syarat penandatanganan Akta Sewa di hadapan notaris. Surat ini tidak menggantikan Akta Sewa tersebut dan dengan sendirinya tidak mengalihkan hak kebendaan apa pun atas tanah.</p>
 
-    <!-- ============ ARTÍCULO 2 — OBJETO ============ -->
+    
     <h2><span data-lang="es">Artículo 2 — Unidad reservada y suelo</span><span data-lang="en">Article 2 — Reserved Unit and land</span><span data-lang="id">Pasal 2 — Unit yang dipesan dan tanah</span></h2>
 
     <p data-lang="es">La(s) Unidad(es) reservada(s) es/son la(s) número <span class="f">{{parcela_codigo}}</span> del proyecto <span class="f">{{proyecto_nombre}}</span>, identificada en el plano maestro como <span class="f f-md">{{unidad_masterplan}}</span> del plano <span class="f f-md">{{masterplan_ref}}</span>. El plano maestro y el plano de situación de la Unidad se incorporan como <b>Anexo I</b> y forman parte inseparable de esta Carta de Reserva. En caso de discrepancia entre la numeración comercial y la del Anexo I, prevalece el Anexo I.</p>
@@ -124,7 +88,7 @@
     <p data-lang="en">The Unit is delivered with the furniture, equipment and installations detailed in <b>Annex II</b> (inventory) and with the technical specifications of <b>Annex III</b>. The Unit shall have water and electricity supply up to the plot boundary and vehicular access <span class="f f-xs">{{acceso_via_m}}</span> metres wide. Services and installations included: <span class="f f-lg">{{servicios_incluidos}}</span>. The furniture listed in Annex II is delivered in ownership to the Second Party unless the Annex itself states otherwise.</p>
     <p data-lang="id">Unit diserahkan beserta perabot, perlengkapan, dan instalasi yang dirinci dalam <b>Lampiran II</b> (inventaris) serta spesifikasi teknis <b>Lampiran III</b>. Unit akan dilengkapi pasokan air dan listrik sampai batas kavling serta akses jalan selebar <span class="f f-xs">{{acceso_via_m}}</span> meter. Layanan dan instalasi yang termasuk: <span class="f f-lg">{{servicios_incluidos}}</span>. Perabot dalam Lampiran II diserahkan menjadi milik Pihak Kedua kecuali Lampiran menyatakan lain.</p>
 
-    <!-- ============ ARTÍCULO 3 — DURACIÓN ============ -->
+    
     <h2><span data-lang="es">Artículo 3 — Duración del arrendamiento y prórrogas</span><span data-lang="en">Article 3 — Lease term and extensions</span><span data-lang="id">Pasal 3 — Jangka waktu sewa dan perpanjangan</span></h2>
 
     <p data-lang="es">El arrendamiento se pacta por <span class="f f-xs">{{plazo_sewa_anios}}</span> años.</p>
@@ -155,7 +119,7 @@
     <p data-lang="id">Jangka waktu sewa mulai berjalan sejak penyerahan efektif Unit yang telah selesai kepada Pihak Kedua sebagaimana dituangkan dalam berita acara serah terima, bukan sejak penandatanganan Surat Pemesanan ini maupun Akta Sewa.</p>
     <!--/if:inicio_sewa-->
 
-    <!-- ============ ARTÍCULO 4 — PRECIO ============ -->
+    
     <h2><span data-lang="es">Artículo 4 — Precio, desglose y moneda</span><span data-lang="en">Article 4 — Price, breakdown and currency</span><span data-lang="id">Pasal 4 — Harga, rincian, dan mata uang</span></h2>
 
     <p data-lang="es">El precio total acordado de la Unidad queda fijado en <span class="f f-lg">{{precio_total}}</span> {{moneda}}, y no se revisará durante la vigencia de esta Carta de Reserva. Se desglosa así: arrendamiento del suelo, <span class="f f-sm">{{precio_suelo}}</span> {{moneda}}, pagadero al Propietario del Suelo; construcción de la Unidad, <span class="f f-sm">{{precio_construccion}}</span> {{moneda}}, pagadera al Promotor; mobiliario y equipamiento del Anexo II, <span class="f f-sm">{{precio_mobiliario}}</span> {{moneda}}, pagadero al Promotor.</p>
@@ -166,7 +130,7 @@
     <p data-lang="en">Pursuant to the Indonesian Currency Law (UU 7/2011), payments to be made within Indonesian territory shall be settled in Indonesian Rupiah (IDR) at the exchange rate agreed by the Parties of 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR. The IDR equivalents shown next to each amount are calculated at that same rate and are for information purposes only.</p>
     <p data-lang="id">Sesuai Undang-Undang Mata Uang Indonesia (UU 7/2011), pembayaran yang dilakukan di wilayah Indonesia diselesaikan dalam Rupiah (IDR) dengan kurs yang disepakati Para Pihak sebesar 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR. Nilai setara IDR di samping setiap jumlah dihitung dengan kurs yang sama dan bersifat informatif.</p>
 
-    <!-- ============ ARTÍCULO 5 — RESERVA Y CALENDARIO ============ -->
+    
     <h2><span data-lang="es">Artículo 5 — Cuota de reserva y calendario de pagos</span><span data-lang="en">Article 5 — Reservation fee and payment schedule</span><span data-lang="id">Pasal 5 — Biaya reservasi dan jadwal pembayaran</span></h2>
 
     <p data-lang="es">La Segunda Parte abona una Cuota de Reserva de <span class="f">{{precio_reserva}}</span> {{moneda}} con fecha <span class="f">{{fecha_pago_reserva}}</span>. La Cuota de Reserva se imputa como pago a cuenta del precio total y mantiene la Unidad reservada en exclusiva a favor de la Segunda Parte durante <!--opt:validez_dias--><span class="f f-xs">{{validez_dias}}</span> día(s)<!--/opt:validez_dias--><!--opt:validez_meses--><span class="f f-xs">{{validez_meses}}</span> mes(es)<!--/opt:validez_meses-->. Durante ese periodo la Primera Parte no podrá ofrecer, reservar ni vender la Unidad a un tercero.</p>
@@ -192,7 +156,7 @@
     <p data-lang="en">The Second Party has a grace period of <span class="f f-xs">{{gracia_pago_dias}}</span> calendar days on each due date of the schedule. Once that period elapses without payment, default interest of <span class="f f-xs">{{interes_demora_pct}}</span> % per month shall accrue on the overdue amount. The schedule may be readjusted by mutual written agreement once this Reservation Letter is signed, without altering the total price.</p>
     <p data-lang="id">Pihak Kedua memiliki masa tenggang <span class="f f-xs">{{gracia_pago_dias}}</span> hari kalender atas setiap jatuh tempo dalam jadwal. Apabila masa tersebut lewat tanpa pembayaran, bunga keterlambatan sebesar <span class="f f-xs">{{interes_demora_pct}}</span> % per bulan dikenakan atas jumlah yang tertunggak. Jadwal dapat disesuaikan atas kesepakatan tertulis Para Pihak setelah Surat Pemesanan ini ditandatangani, tanpa mengubah harga total.</p>
 
-    <!-- ============ ARTÍCULO 6 — ESCROW ============ -->
+    
     <h2><span data-lang="es">Artículo 6 — Depósito en garantía y liberación de fondos</span><span data-lang="en">Article 6 — Escrow and release of funds</span><span data-lang="id">Pasal 6 — Escrow dan pencairan dana</span></h2>
 
     <p data-lang="es">Todos los pagos se realizarán exclusivamente por transferencia bancaria a la cuenta indicada más abajo. Los fondos quedan depositados en garantía y no se liberarán a la Primera Parte hasta que se acredite documentalmente el cumplimiento de las tres condiciones siguientes: (i) inscripción de la escritura de compraventa del suelo (Akta Jual Beli) a favor del titular que arrienda; (ii) obtención de la aprobación de edificación (Persetujuan Bangunan Gedung) y de las demás licencias exigidas para la obra; y (iii) otorgamiento de la Escritura de Arrendamiento entre las Partes ante notario. Acreditadas las tres, la liberación se produce en un plazo máximo de <span class="f f-xs">{{plazo_liberacion_dias}}</span> días naturales.</p>
@@ -205,14 +169,14 @@
 
     <!--datos-bancarios-->
 
-    <!-- ============ ARTÍCULO 7 — IMPUESTOS ============ -->
+    
     <h2><span data-lang="es">Artículo 7 — Impuestos y gastos</span><span data-lang="en">Article 7 — Taxes and costs</span><span data-lang="id">Pasal 7 — Pajak dan biaya</span></h2>
 
     <p data-lang="es">El impuesto final sobre la renta del arrendamiento de tierra y edificación (PPh final) que grava esta operación será soportado por <span class="f f-md">{{pph_a_cargo}}</span>. Los honorarios de notario y PPAT, los derechos de registro y los demás gastos de formalización serán soportados por <span class="f f-md">{{gastos_notariales_a_cargo}}</span>. Cada Parte soporta los impuestos que la ley indonesia le atribuya de forma imperativa, sin que este artículo pueda alterar esa atribución legal.</p>
     <p data-lang="en">The final income tax on the lease of land and buildings (final PPh) levied on this transaction shall be borne by <span class="f f-md">{{pph_a_cargo}}</span>. Notary and PPAT fees, registration duties and other formalisation costs shall be borne by <span class="f f-md">{{gastos_notariales_a_cargo}}</span>. Each Party bears the taxes mandatorily attributed to it by Indonesian law, and this article may not alter that statutory attribution.</p>
     <p data-lang="id">Pajak Penghasilan final atas sewa tanah dan bangunan (PPh final) yang dikenakan atas transaksi ini ditanggung oleh <span class="f f-md">{{pph_a_cargo}}</span>. Honorarium notaris dan PPAT, bea pendaftaran, serta biaya formalisasi lainnya ditanggung oleh <span class="f f-md">{{gastos_notariales_a_cargo}}</span>. Masing-masing Pihak menanggung pajak yang secara imperatif dibebankan kepadanya oleh hukum Indonesia, dan pasal ini tidak dapat mengubah pembebanan menurut undang-undang tersebut.</p>
 
-    <!-- ============ ARTÍCULO 8 — ESCRITURA Y ENTREGA ============ -->
+    
     <h2><span data-lang="es">Artículo 8 — Escritura de Arrendamiento y entrega de la Unidad</span><span data-lang="en">Article 8 — Lease Deed and handover of the Unit</span><span data-lang="id">Pasal 8 — Akta Sewa dan serah terima Unit</span></h2>
 
     <p data-lang="es">Las Partes otorgarán la Escritura de Arrendamiento y los demás documentos de la operación ante notario/PPAT en un plazo máximo de <span class="f f-xs">{{plazo_akta_meses}}</span> meses desde la firma de esta Carta de Reserva. Notario o PPAT designado: <span class="f f-lg">{{notario_ppat}}</span>. La Primera Parte convocará el otorgamiento con un preaviso mínimo de treinta (30) días naturales, indicando fecha, hora y lugar.</p>
@@ -223,7 +187,7 @@
     <p data-lang="en">Construction of the Unit has an execution term of <span class="f f-xs">{{plazo_meses}}</span> months and its handover is scheduled for <span class="f f-md">{{fecha_entrega_estimada}}</span>. The handover shall be documented in a certificate signed by both Parties, listing any outstanding items to be remedied and the period for doing so.</p>
     <p data-lang="id">Pembangunan Unit memiliki jangka waktu pelaksanaan <span class="f f-xs">{{plazo_meses}}</span> bulan dan serah terimanya dijadwalkan pada <span class="f f-md">{{fecha_entrega_estimada}}</span>. Serah terima dituangkan dalam berita acara yang ditandatangani kedua Pihak, memuat daftar perbaikan yang tertunda beserta jangka waktu penyelesaiannya.</p>
 
-    <!-- ============ ARTÍCULO 9 — GARANTÍAS ============ -->
+    
     <h2><span data-lang="es">Artículo 9 — Garantías de obra y declaraciones de la Primera Parte</span><span data-lang="en">Article 9 — Construction warranties and First Party representations</span><span data-lang="id">Pasal 9 — Jaminan pekerjaan dan pernyataan Pihak Pertama</span></h2>
 
     <p data-lang="es">Tras la entrega, la Primera Parte garantiza la Unidad en los siguientes términos: estructura, <span class="f f-xs">{{garantia_estructural_anios}}</span> años; instalaciones mecánicas, eléctricas, de fontanería e impermeabilización, <span class="f f-xs">{{garantia_mep_meses}}</span> meses; elementos no estructurales y acabados, <span class="f f-xs">{{garantia_acabados_meses}}</span> meses. La garantía cubre la reparación a cargo de la Primera Parte y no ampara el desgaste normal ni los daños por uso indebido o por obras de terceros.</p>
@@ -234,7 +198,7 @@
     <p data-lang="en">The First Party represents and warrants that: the land described in Article 2 is free from litigation, attachment, mortgage, security interest and any other encumbrance; it holds sufficient title and authority to develop the project and to grant the Second Party the lease right over the Unit; the permits and approvals required for the works and for this transaction have been obtained or will be obtained in accordance with applicable regulations; and the Unit is not reserved or committed to any third party. These representations are deemed repeated on the date of execution of the Lease Deed.</p>
     <p data-lang="id">Pihak Pertama menyatakan dan menjamin bahwa: tanah yang diuraikan dalam Pasal 2 bebas dari sengketa, sita, hipotek, hak tanggungan, dan beban lainnya; memiliki alas hak dan kewenangan yang cukup untuk mengembangkan proyek dan memberikan hak sewa atas Unit kepada Pihak Kedua; perizinan dan persetujuan yang diperlukan untuk pembangunan dan transaksi ini telah atau akan diperoleh sesuai peraturan yang berlaku; dan Unit tidak sedang dipesan atau diikat oleh pihak ketiga mana pun. Pernyataan ini dianggap diulang pada tanggal penandatanganan Akta Sewa.</p>
 
-    <!-- ============ ARTÍCULO 10 — INCUMPLIMIENTO ============ -->
+    
     <h2><span data-lang="es">Artículo 10 — Incumplimiento, penalizaciones y cancelación</span><span data-lang="en">Article 10 — Default, penalties and cancellation</span><span data-lang="id">Pasal 10 — Wanprestasi, denda, dan pembatalan</span></h2>
 
     <p data-lang="es"><b>Retraso de la obra.</b> La Primera Parte dispone de un periodo de gracia de <span class="f f-xs">{{gracia_obra_meses}}</span> meses sobre la fecha de entrega prevista. Superado ese periodo, abonará a la Segunda Parte una penalización del <span class="f f-xs">{{penalizacion_mensual_pct}}</span> % del precio total por cada mes completo de retraso. Si el retraso superara <span class="f f-xs">{{resolucion_meses}}</span> meses, la Segunda Parte podrá resolver esta Carta de Reserva y exigir la devolución íntegra de todas las cantidades entregadas más las penalizaciones devengadas.</p>
@@ -245,7 +209,7 @@
     <p data-lang="en"><b>Cancellation by the First Party.</b> If the First Party cancels the project or this transaction for reasons not attributable to the Second Party, it shall refund all amounts paid plus compensation of <span class="f f-xs">{{compensacion_cancelacion_pct}}</span> % of such amounts. <b>Withdrawal by the Second Party.</b> If the Second Party withdraws for reasons not attributable to the First Party, the Reservation Fee is not refunded and the remaining amounts paid shall be returned. <b>Refund period.</b> Any refund provided for in this Letter shall be paid within <span class="f f-xs">{{plazo_devolucion_dias}}</span> calendar days, by the same means of payment and without any deduction other than those expressly agreed herein.</p>
     <p data-lang="id"><b>Pembatalan oleh Pihak Pertama.</b> Apabila Pihak Pertama membatalkan proyek atau transaksi ini karena sebab yang tidak dapat dipersalahkan kepada Pihak Kedua, Pihak Pertama mengembalikan seluruh jumlah yang telah dibayarkan ditambah kompensasi sebesar <span class="f f-xs">{{compensacion_cancelacion_pct}}</span> % dari jumlah tersebut. <b>Pengunduran diri Pihak Kedua.</b> Apabila Pihak Kedua mengundurkan diri tanpa sebab yang dapat dipersalahkan kepada Pihak Pertama, Biaya Reservasi tidak dikembalikan dan sisa jumlah yang telah dibayarkan dikembalikan. <b>Jangka waktu pengembalian.</b> Setiap pengembalian dalam Surat ini dilakukan dalam <span class="f f-xs">{{plazo_devolucion_dias}}</span> hari kalender, melalui sarana pembayaran yang sama dan tanpa potongan selain yang secara tegas disepakati di sini.</p>
 
-    <!-- ============ ARTÍCULO 11 — FUERZA MAYOR ============ -->
+    
     <h2><span data-lang="es">Artículo 11 — Fuerza mayor</span><span data-lang="en">Article 11 — Force majeure</span><span data-lang="id">Pasal 11 — Keadaan kahar</span></h2>
 
     <p data-lang="es">Se entiende por Fuerza Mayor toda circunstancia extraordinaria ajena al control razonable de la Parte afectada, imprevisible e inevitable, que no pueda superarse pese al empleo de una diligencia razonable, incluyendo entre otras: desastres naturales (terremotos, inundaciones, tsunamis, incendios), pandemias o epidemias y los confinamientos decretados, guerra u operaciones militares, disturbios civiles, huelgas y bloqueos, y actos o decisiones gubernamentales que limiten o prohíban directamente el cumplimiento de esta Carta de Reserva.</p>
@@ -258,14 +222,14 @@
     <p data-lang="en">Force Majeure does not include: (a) the financial difficulties of either Party or its inability to obtain profits or avoid losses; nor (b) changes in prices or market conditions.</p>
     <p data-lang="id">Yang tidak termasuk Keadaan Kahar: (a) kesulitan keuangan salah satu Pihak atau ketidakmampuannya memperoleh keuntungan atau menghindari kerugian; dan (b) perubahan harga atau kondisi pasar.</p>
 
-    <!-- ============ ARTÍCULO 12 — CESIÓN ============ -->
+    
     <h2><span data-lang="es">Artículo 12 — Cesión del derecho de arrendamiento</span><span data-lang="en">Article 12 — Assignment of the lease right</span><span data-lang="id">Pasal 12 — Pengalihan hak sewa</span></h2>
 
     <p data-lang="es">La Segunda Parte podrá ceder a un tercero su posición en esta Carta de Reserva y el derecho de arrendamiento resultante, previa autorización escrita de la Primera Parte, que no podrá denegarse sin causa justificada. La cesión exige que el cesionario cumpla los requisitos legales de tenencia aplicables a su nacionalidad, que asuma por escrito todas las obligaciones pendientes y que se documente ante el mismo notario. La Primera Parte podrá repercutir una tasa de gestión del <span class="f f-xs">{{cesion_tasa_pct}}</span> % del precio total. No se considera cesión la transmisión por herencia ni la realizada a favor de una sociedad participada mayoritariamente por la Segunda Parte.</p>
     <p data-lang="en">The Second Party may assign to a third party its position under this Reservation Letter and the resulting lease right, subject to the prior written authorisation of the First Party, which may not be withheld without justified cause. The assignment requires the assignee to meet the tenure requirements applicable to its nationality, to assume in writing all outstanding obligations, and to be documented before the same notary. The First Party may charge a handling fee of <span class="f f-xs">{{cesion_tasa_pct}}</span> % of the total price. Transfer by inheritance and transfer to a company majority-owned by the Second Party are not deemed assignments.</p>
     <p data-lang="id">Pihak Kedua dapat mengalihkan kedudukannya dalam Surat Pemesanan ini beserta hak sewa yang timbul kepada pihak ketiga, dengan persetujuan tertulis Pihak Pertama, yang tidak dapat ditolak tanpa alasan yang sah. Pengalihan mensyaratkan penerima pengalihan memenuhi persyaratan kepemilikan sesuai kewarganegaraannya, menerima secara tertulis seluruh kewajiban yang tersisa, dan dituangkan di hadapan notaris yang sama. Pihak Pertama dapat mengenakan biaya administrasi sebesar <span class="f f-xs">{{cesion_tasa_pct}}</span> % dari harga total. Pengalihan karena pewarisan dan pengalihan kepada perusahaan yang mayoritas sahamnya dimiliki Pihak Kedua tidak dianggap sebagai pengalihan.</p>
 
-    <!-- ============ ARTÍCULO 13 — LEY, FORO E IDIOMA ============ -->
+    
     <h2><span data-lang="es">Artículo 13 — Ley aplicable, resolución de controversias e idioma</span><span data-lang="en">Article 13 — Governing law, dispute resolution and language</span><span data-lang="id">Pasal 13 — Hukum yang berlaku, penyelesaian sengketa, dan bahasa</span></h2>
 
     <p data-lang="es">Esta Carta de Reserva se rige por las leyes de la República de Indonesia. Cualquier controversia se resolverá, en primer lugar, mediante negociación amistosa entre las Partes durante 30 (treinta) días naturales desde su notificación escrita.</p>
@@ -295,7 +259,7 @@
     <p data-lang="id">Dokumen ini dibuat dalam bahasa Spanyol, Inggris, dan Indonesia. Sesuai Undang-Undang No. 24/2009 tentang kewajiban penggunaan bahasa Indonesia, <b>versi bahasa Indonesia yang berlaku</b> apabila terdapat perbedaan antar versi, dan versi tersebut yang diajukan kepada otoritas dan pendaftaran di Indonesia. Versi bahasa Spanyol dan Inggris merupakan terjemahan yang setia dan dibuat untuk pemahaman Para Pihak.</p>
 
 
-    <!-- ============ ARTÍCULO 14 — ANEXOS Y CIERRE ============ -->
+    
     <h2><span data-lang="es">Artículo 14 — Anexos e integridad</span><span data-lang="en">Article 14 — Annexes and entire agreement</span><span data-lang="id">Pasal 14 — Lampiran dan keutuhan perjanjian</span></h2>
 
     <p data-lang="es">Forman parte inseparable de esta Carta de Reserva el Anexo I (plano maestro y plano de situación de la Unidad), el Anexo II (inventario de mobiliario y equipamiento) y el Anexo III (especificaciones técnicas y de servicios). Esta Carta, con sus anexos, sustituye a cualquier acuerdo, oferta o comunicación anterior sobre la misma Unidad, y solo podrá modificarse por escrito firmado por ambas Partes. Si alguna cláusula resultara nula, las demás mantendrán su vigencia.</p>
@@ -304,7 +268,7 @@
 
     <!--extra-clauses-->
 
-    <!-- ============ FIRMAS ============ -->
+    
     <h2><span data-lang="es">Suscrito como acuerdo</span><span data-lang="en">Agreed and signed</span><span data-lang="id">Disepakati dan ditandatangani</span></h2>
     <table class="pays sigs" style="margin-top:14px">
       <tbody>

@@ -6,24 +6,7 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- Carta de Reserva — variante Hak Sewa (6-ago-2026). Documento NUEVO y aparte:
-       ni carta_reserva.html ni carta_reserva_ampliada.html se tocan, porque las dos
-       tienen contratos ya emitidos (7 CR sin firmar de otros clientes a fecha de
-       hoy) y esta plantilla reescribe cosas de fondo que ninguna de las dos tiene:
-       condiciones de due-diligence ANTES de firmar el contrato definitivo (título,
-       zonificación, superficie, acceso, segregación, edificabilidad), arbitraje BANI
-       en Denpasar (no SIAC Singapur), penalización del 50% si el reservante desiste
-       sin causa, y un Anexo B con checklist de 10 documentos a entregar.
-       Texto EXACTO del cliente (6-ago-2026), en español y bahasa — el propio
-       documento (art. 8.2) declara que se otorga SOLO en esas dos lenguas; no hay
-       versión inglesa que calcar, así que no se inventa una.
-       Serie propia CH (contratos_ch_seq): el cliente pidió "CR00005" pero ese
-       número ya es de otro contrato (creado 28-jul, sin firmar) — no se puede
-       reutilizar a mano, lo asigna el trigger de numeración.
-       Identidad de la Primera Parte: mismo patrón que el resto de la suite,
-       vía selector de sociedad firmante (assets/entities.js) — {{prom_razon}},
-       {{prom_domicilio}}, {{prom_npwp}}, {{prom_rep}}; el KTP del representante es
-       opcional ({{prom_ktp}}) porque no todas las sociedades lo tienen tokenizado. -->
+  
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
@@ -35,7 +18,7 @@
     <p data-lang="es" style="text-align:center;font-size:10.5pt;margin-top:-4mm">Proyecto: <span class="f">{{proyecto_nombre}}</span> · Parcela: <span class="f">{{parcela_codigo}}</span></p>
     <p data-lang="id" style="text-align:center;font-size:10.5pt;margin-top:-4mm">Proyek: <span class="f">{{proyecto_nombre}}</span> · Kavling: <span class="f">{{parcela_codigo}}</span></p>
 
-    <!-- ============ 1. LAS PARTES ============ -->
+    
     <h2><span data-lang="es">1. Las Partes</span><span data-lang="id">1. Para Pihak</span></h2>
     <div class="party">
       <div class="role"><span data-lang="es">La Vendedora</span><span data-lang="id">Penjual</span></div>
@@ -48,7 +31,7 @@
       <p data-lang="id">1.2. PEMESAN: Tn. <span class="f f-lg">{{adq1_nombre}}</span>, warga negara <span class="f">{{adq1_nacionalidad}}</span>, paspor No. <span class="f">{{adq1_pasaporte}}</span>, tel. <span class="f">{{adq1_telefono}}</span>, <span class="f">{{adq1_email}}</span>. Bertindak untuk diri sendiri.</p>
     </div>
 
-    <!-- ============ 2. QUÉ SE RESERVA ============ -->
+    
     <h2><span data-lang="es">2. Qué se reserva</span><span data-lang="id">2. Objek yang Dipesan</span></h2>
     <p data-lang="es">2.1. La VENDEDORA reserva al RESERVANTE, en exclusiva, el derecho de arrendamiento a largo plazo (Hak Sewa) sobre la parcela descrita a continuación (la «Parcela»). Esta Carta no transmite derecho real alguno: otorga preferencia exclusiva para firmar el contrato definitivo.</p>
     <p data-lang="id">2.1. PENJUAL memesankan kepada PEMESAN, secara eksklusif, hak sewa jangka panjang (Hak Sewa) atas bidang tanah yang diuraikan di bawah ini ("Kavling"). Surat ini tidak mengalihkan hak kebendaan apa pun, melainkan memberikan hak utama secara eksklusif untuk menandatangani perjanjian definitif.</p>
@@ -75,21 +58,21 @@
     <p data-lang="es">2.2. Se adjunta como Anexo A el plano de la Parcela con sus linderos y las líneas de retranqueo aplicables (sempadan sungai, jurang y jalan).</p>
     <p data-lang="id">2.2. Terlampir sebagai Lampiran A adalah gambar Kavling dengan batas-batasnya dan garis sempadan yang berlaku (sempadan sungai, jurang dan jalan).</p>
 
-    <!-- ============ 3. PRECIO ============ -->
+    
     <h2><span data-lang="es">3. Precio</span><span data-lang="id">3. Harga</span></h2>
     <p data-lang="es">3.1. El Precio Total queda fijado en <span class="f f-lg">{{precio_total}}</span> {{moneda}} y es firme y no revisable hasta la firma del contrato definitivo, cualquiera que sea la evolución del mercado, la inflación o el tipo de cambio.</p>
     <p data-lang="id">3.1. Harga Total ditetapkan sebesar Rp<span class="f f-lg">{{precio_total}}</span> dan bersifat pasti serta tidak dapat diubah sampai penandatanganan perjanjian definitif, terlepas dari perkembangan pasar, inflasi maupun nilai tukar.</p>
     <p data-lang="es">3.2. La rupia (IDR) es la única moneda de pago, conforme a la Ley nº 7/2011. Las cifras en euros son meramente informativas.</p>
     <p data-lang="id">3.2. Rupiah (IDR) adalah satu-satunya mata uang pembayaran, sesuai Undang-Undang No. 7/2011. Angka dalam euro hanya bersifat informatif.</p>
 
-    <!-- ============ 4. CUOTA DE RESERVA Y FORMA DE PAGO ============ -->
+    
     <h2><span data-lang="es">4. Cuota de Reserva y forma de pago</span><span data-lang="id">4. Biaya Reservasi dan Cara Pembayaran</span></h2>
     <p data-lang="es">4.1. El RESERVANTE abonará la Cuota de Reserva dentro de los cinco (5) días hábiles siguientes a la firma de esta Carta y a la recepción de la documentación del Anexo B. La Cuota se imputa íntegramente al Precio Total.</p>
     <p data-lang="id">4.1. PEMESAN membayar Biaya Reservasi dalam lima (5) hari kerja setelah penandatanganan Surat ini dan setelah menerima dokumen dalam Lampiran B. Biaya tersebut diperhitungkan seluruhnya ke dalam Harga Total.</p>
     <p data-lang="es">4.2. El pago se hará únicamente por transferencia a la cuenta de {{prom_razon}} indicada en el Anexo C. Cualquier cambio de cuenta requerirá adenda escrita firmada por ambas Partes; las instrucciones de cambio recibidas por correo electrónico se tendrán por no puestas.</p>
     <p data-lang="id">4.2. Pembayaran hanya dilakukan melalui transfer ke rekening {{prom_razon}} dalam Lampiran C. Setiap perubahan rekening memerlukan adendum tertulis yang ditandatangani kedua belah Pihak; instruksi perubahan melalui surel dianggap tidak pernah ada.</p>
 
-    <!-- ============ 5. PLAZO DE RESERVA Y EXCLUSIVIDAD ============ -->
+    
     <h2><span data-lang="es">5. Plazo de reserva y exclusividad</span><span data-lang="id">5. Jangka Waktu Pemesanan dan Eksklusivitas</span></h2>
     <p data-lang="es">5.1. La Parcela queda reservada durante sesenta (60) días naturales desde el pago de la Cuota. Durante ese plazo la VENDEDORA no podrá ofrecer, reservar, vender, arrendar ni gravar la Parcela a favor de tercero.</p>
     <p data-lang="id">5.1. Kavling dipesan selama enam puluh (60) hari kalender sejak pembayaran Biaya Reservasi. Selama jangka waktu tersebut PENJUAL dilarang menawarkan, memesankan, menjual, menyewakan atau membebani Kavling kepada pihak ketiga.</p>
@@ -98,7 +81,7 @@
     <p data-lang="es">5.3. El plazo no empezará a correr hasta que la VENDEDORA haya entregado la documentación del Anexo B, y se prorrogará automáticamente por el tiempo que se retrase dicha entrega.</p>
     <p data-lang="id">5.3. Jangka waktu tersebut tidak mulai berjalan sebelum PENJUAL menyerahkan dokumen dalam Lampiran B, dan diperpanjang secara otomatis selama keterlambatan penyerahan tersebut.</p>
 
-    <!-- ============ 6. CONDICIONES ============ -->
+    
     <h2><span data-lang="es">6. Condiciones de las que depende la reserva</span><span data-lang="id">6. Syarat yang Menjadi Dasar Pemesanan</span></h2>
     <p data-lang="es">6.1. La obligación del RESERVANTE de firmar el contrato definitivo queda condicionada a que se acredite lo siguiente:</p>
     <p data-lang="id">6.1. Kewajiban PEMESAN untuk menandatangani perjanjian definitif tunduk pada terbuktinya hal-hal berikut:</p>
@@ -121,7 +104,7 @@
     <p data-lang="es">6.2. El RESERVANTE podrá renunciar por escrito a cualquiera de estas condiciones sin renunciar a las demás.</p>
     <p data-lang="id">6.2. PEMESAN dapat mengesampingkan secara tertulis salah satu syarat tersebut tanpa mengesampingkan syarat lainnya.</p>
 
-    <!-- ============ 7. DEVOLUCIÓN ============ -->
+    
     <h2><span data-lang="es">7. Devolución de la Cuota de Reserva</span><span data-lang="id">7. Pengembalian Biaya Reservasi</span></h2>
     <p data-lang="es">7.1. La VENDEDORA reintegrará la Cuota de Reserva íntegramente, sin deducción, en el plazo de quince (15) días hábiles desde la notificación escrita del RESERVANTE, cuando: (a) alguna de las condiciones de la cláusula 6 no se cumpla; (b) la información facilitada sobre la Parcela resulte inexacta; o (c) la VENDEDORA no firme el contrato definitivo en plazo o disponga de la Parcela a favor de tercero. En este último supuesto abonará además una penalidad de <span class="f f-md">{{crh_penalidad_incumplimiento}}</span> IDR.</p>
     <p data-lang="id">7.1. PENJUAL mengembalikan Biaya Reservasi secara penuh, tanpa potongan, dalam lima belas (15) hari kerja sejak pemberitahuan tertulis PEMESAN, apabila: (a) salah satu syarat dalam Pasal 6 tidak terpenuhi; (b) informasi mengenai Kavling terbukti tidak benar; atau (c) PENJUAL tidak menandatangani perjanjian definitif tepat waktu atau mengalihkan Kavling kepada pihak ketiga. Dalam hal terakhir, PENJUAL juga membayar denda sebesar Rp<span class="f f-md">{{crh_penalidad_incumplimiento}}</span>.</p>
@@ -130,7 +113,7 @@
     <p data-lang="es">7.3. Las cantidades no devueltas en plazo devengarán un interés del uno por ciento (1%) mensual.</p>
     <p data-lang="id">7.3. Jumlah yang tidak dikembalikan tepat waktu dikenakan bunga sebesar satu persen (1%) per bulan.</p>
 
-    <!-- ============ 8. LEY APLICABLE ============ -->
+    
     <h2><span data-lang="es">8. Ley aplicable, disputas e idioma</span><span data-lang="id">8. Hukum yang Berlaku, Sengketa dan Bahasa</span></h2>
     <p data-lang="es">8.1. Esta Carta se rige por las leyes de la República de Indonesia. Toda controversia se negociará de buena fe durante treinta (30) días; de no haber acuerdo, se resolverá por arbitraje BANI ante árbitro único, sede en Denpasar, en indonesio e inglés.</p>
     <p data-lang="id">8.1. Surat ini tunduk pada hukum Republik Indonesia. Setiap sengketa dimusyawarahkan dengan itikad baik selama tiga puluh (30) hari; apabila tidak tercapai kesepakatan, diselesaikan melalui arbitrase BANI di hadapan arbiter tunggal, berkedudukan di Denpasar, dalam bahasa Indonesia dan Inggris.</p>

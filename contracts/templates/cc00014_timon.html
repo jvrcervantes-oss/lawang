@@ -6,27 +6,7 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- Texto fijo, un solo ejemplar (28-ago-2026, peticion del owner: "configurarlo
-       como una nueva plantilla, sin inyectar datos, debe ir asi"). Contrato de
-       construccion YA NEGOCIADO y firmado a mano con clausulas propias (CC00014,
-       el comprador, Tamarind Rise / Dali) -- reproducido tal cual del
-       documento .docx entregado, sin pasar por el sistema generico de campos.
-       Mismo patron que ppjb_bonian_c2.html (serie C2: "un solo ejemplar, texto
-       fijo") -- ver CONTRACT_TIPO en app.html. SOLO EN/ID: el documento original
-       no tiene version en espanol, y anadir una se inventaria una traduccion que
-       nunca se le presento al comprador.
-       pii-ok: los datos personales YA NO van escritos aqui (28-sep-2026). Este
-       fichero lo pide el navegador con fetch() y Apache lo sirve SIN sesion, y el
-       repo es publico: pasaporte, domicilio, telefono y email del comprador y el
-       KTP del firmante del BUILDER estaban a la vista de cualquiera. Ahora salen
-       de la base al abrir el contrato con sesion: los adq1_* de los datos
-       guardados del contrato (CC00088) y cc00014_ktp de firmantes_cred
-       (RLS authenticated) en buildDoc. La nacionalidad se queda escrita
-       ("Netherlands"): la base la guarda en espanol. El texto sigue siendo el
-       firmado; lo que no cambia es el documento, solo de donde sale el dato.
-       El nombre del comprador sigue en app.html, assets/i18n.js,
-       assets/vocabulario.js y contracts/sql/*.sql (LAW-135), y todo lo de antes
-       en el historial git (LAW-404). -->
+  
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 

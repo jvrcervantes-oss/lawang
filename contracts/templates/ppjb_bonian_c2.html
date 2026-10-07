@@ -1,7 +1,5 @@
 <!DOCTYPE html>
-<!-- pii-ok: este documento es el ejemplar real de la parcela C2 de Bonian Beach,
-     no una maqueta en blanco — los nombres son el dato del contrato, confirmado por el
-     owner el 15-sep-2026. Ver tools/pii_maqueta.py → check(). -->
+
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -49,63 +47,9 @@
 </style>
 </head>
 <body>
-  <!-- ==========================================================================
-       PPJB BONIAN BEACH · PARCELA C2 — texto del cliente del 31-jul-2026
-       --------------------------------------------------------------------------
-       QUE ES. Documento ESTATICO de solo-estilo, como los Estatutos: texto fijo,
-       sin campos de formulario, sin marcadores de campo, sin numeracion y sin
-       guardado. El encargo del owner (4-ago-2026) fue literal: «lo unico que
-       queremos es tener la plantilla y su traduccion a bahasa; no queremos ni
-       poder meter los datos manualmente, solo el diseño». Por eso los datos de la
-       operacion —comprador, parcela, precio, fechas— van escritos DENTRO del
-       documento y no como huecos: aqui no es una plantilla reutilizable, es un
-       ejemplar concreto maquetado con la marca del estudio.
-       Para emitir PPJB de Bonian nuevos esta `ppjb_bonian.html` (serie PB), que
-       si lleva los 31 marcadores y numeracion.
-
-       SUSTITUYE al texto del 21-jul que habia aqui. Cambia lo sustancial, no solo
-       la fecha: precio 107.200 € (antes 114.000), parcela 206 m² (antes 240), sin
-       importe de reserva a cuenta escrow, arbitraje BANI en Bali (antes SIAC en
-       Singapur), tipo de cambio de referencia del BCE, Hak Sewa 30+30+30 para el
-       comprador que no constituya PT PMA, clausula 11.5 (limite de 30 dias a los
-       tramites de PPAT/BPN) y el Anexo Y —cuentas y cronograma— incorporado al
-       final del propio documento.
-
-       🔴 LA VERSION QUE MANDA ES LA BAHASA. Desde el 31-jul todos los contratos
-       del estudio declaran que, en caso de discrepancia, prevalece el bahasa y no
-       el español — es la que se presenta ante notario y registro. O sea que esta
-       traduccion no es un apoyo de lectura: es el texto que gobierna. Se hizo asi
-       por decision expresa del owner, avisado de ello, y NO la ha revisado ningun
-       abogado.
-
-       Terminologia usada, para que quien la revise sepa el criterio:
-       Contrato->Perjanjian · Partes->Pihak Pertama/Kedua · Parcela->Kavling
-       Villa->Vila · Clausula->Pasal · Anexo->Lampiran · Fuerza Mayor->Keadaan
-       Kahar · Acta de Entrega->Berita Acara Serah Terima · dias naturales->
-       hari kalender · dias habiles->hari kerja. Lo que ya era indonesio en el
-       original (PPJB, AJB, PPAT, BPN, HGB, NIB, NPWP, BPHTB, PPh, PBG/SLF, K3,
-       BPJS) se deja tal cual: son los nombres oficiales.
-
-       ⚠️ ESTE FICHERO SE SIRVE EN ABIERTO. Los .html de `templates/` los pide el
-       navegador con fetch() desde app.html, asi que Apache los entrega sin login
-       (comprobado con curl el 4-ago-2026: 200). El resto de plantillas no tiene
-       ese problema porque sus datos personales son marcadores; esta, por el
-       encargo de arriba, llevaba escritos dos pasaportes, dos correos y dos
-       telefonos reales (decidido el 4-ago). Owner, 28-sep-2026: fuera. Pasaporte,
-       domicilio, telefono y email de los dos compradores y el NPWP personal
-       del representante se TACHAN: los c2_* no se rellenan y salen en blanco al
-       reabrir (C200003 esta firmado y bloqueado; vale el PDF firmado, que no
-       cambia). Los datos estan en las fichas de los compradores (clients) y en
-       firmantes_cred, que no mandan sobre este documento. Los nombres
-       siguen escritos (LAW-135). -->
+  
   <div class="doc">
-    <!-- Campos invisibles SOLO para la firma a distancia (7-ago-2026, a petición
-         del cliente): el texto del contrato sigue 100% fijo, como pedía el
-         encargo del 4-ago de arriba — esto no imprime nada, solo le da a la app
-         un nombre/email de Adquiriente I con los que armar el enlace de firma y
-         un hueco para que "Adquirientes adicionales" pueda dar de alta a la
-         Adquiriente II. Los nombres/datos que YA están escritos en el cuerpo
-         (líneas 105-106 y 214) no se tocan. -->
+    
     <div style="display:none">{{adq1_nombre}} {{adq1_email}}<!--compradores-extra--></div>
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
     <div class="doc-foot">PT TEPI SUN GAI — Contrato de Reserva de Parcela — BORRADOR</div>
@@ -253,11 +197,7 @@
 
 <p style="margin-top:18px" data-lang="es">Otorgado en Bali, República de Indonesia, a 31 de julio de 2026.</p><p style="margin-top:18px" data-lang="id">Dibuat di Bali, Republik Indonesia, pada tanggal 31 Juli 2026.</p>
 
-<!-- El sello usa una copia CONGELADA (firma-lawang-archivo-bonian-c2.png), no el
-     asset compartido `firma-lawang.png`: este documento ya está otorgado y
-     firmado (31-jul-2026) y una auditoría audita el EJEMPLAR emitido, no la
-     plantilla — si el sello compartido cambia (11-ago-2026), este contrato
-     debe seguir mostrando el que tenía el día de la firma. -->
+
 <div class="sig-grid"><div><div class="role" style="font-weight:600">LA PRIMERA PARTE</div><p style="margin:2px 0 0">PT TEPI SUN GAI</p><div class="sig-line" style="display:flex;align-items:flex-end"><img src="assets/brand/firma-lawang-archivo-bonian-c2.png" alt="Firma Lawang" style="max-height:20mm;max-width:100%"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: Pablo Cantero Gambín<br>Cargo: Director</p><p style="margin:0;font-size:9pt" data-lang="id">Nama: Pablo Cantero Gambín<br>Jabatan: Direktur</p></div><div><div class="role" style="font-weight:600">LA SEGUNDA PARTE</div><p style="margin:2px 0 0" data-lang="es">Adquiriente I:</p><p style="margin:2px 0 0" data-lang="id">Pembeli I:</p><div class="sig-line" style="display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:20mm;max-width:100%"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: Xavier Roman Eufemia</p><p style="margin:0;font-size:9pt" data-lang="id">Nama: Xavier Roman Eufemia</p><!--firmas-adquirientes--></div></div>
 
 <h2 style="page-break-before:always"><span data-lang="es">Anexo Y — Cronograma de Pagos y Cuentas Bancarias</span><span data-lang="id">Lampiran Y — Jadwal Pembayaran dan Rekening Bank</span></h2>

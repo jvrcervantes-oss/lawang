@@ -6,78 +6,8 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- Poder Notarial (Power of Attorney / Surat Kuasa) — serie PA. Exhibit que
-       acompaña al Hak Sewa ante notario (templates/hak_sewa_notario.html): es
-       el "Poder Especial de fecha {{adq_poder_fecha}}, otorgado ante Notario y
-       adjunto al presente Contrato" que ese contrato menciona en su
-       comparecencia. Comparte la fecha del poder con ese contrato — son el
-       mismo hecho legal en dos documentos.
-       ⚠️ 14-ago-2026, petición del owner — TRES cambios que rompen la simetría
-       que este documento tenía con el Hak Sewa:
-       1. OTORGANTE = el COMPRADOR del contrato vinculado (adq1_nombre /
-          adq1_pasaporte), no el propietario del suelo. Antes imprimía
-          hsn_propietario_*, que es la Primera Parte del Hak Sewa; el poder lo
-          da quien compra/arrienda, que es a quien corresponde la cláusula
-          KHUSUS de más abajo (comprar y arrendar en Bali y Sumba) y el único
-          que aporta pasaporte. Los dos campos los PRECARGA el desplegable
-          "Contrato vinculado" del formulario (obligatorio, ver deriveSections
-          y syncPoaVinculado en app.html) — no se teclean sueltos, y quedan
-          bloqueados cuando el contrato de origen trae el dato.
-          El vínculo admite CUALQUIER tipo de contrato desde el 14-ago (el
-          cliente corrigió ese mismo día el "solo Hak Sewa" con el que nació:
-          el poder se da para todos). Ojo con lo que eso implica aquí: hay
-          tipos sin pasaporte —Acuerdo Comercial, Protocolo Operativo— y en
-          esos el hueco de Pasaporte queda editable para rellenarlo a mano.
-       2. APODERADO = NI LUH GEDE DIAH SURASTRI. I WAYAN EKA ARYAWAN sale del
-          desplegable de ESTE documento (OPCIONES_POR_PLANTILLA en app.html);
-          sigue siendo el apoderado de la Primera Parte en el Hak Sewa, que no
-          se toca. Un POA ya guardado con su nombre lo conserva.
-       3. Sin anexo de KTP: la página 2 era la fotocopia del DNI indonesio del
-          apoderado, y no hay KTP de la apoderada nueva. El documento queda de
-          una sola página. Si el cliente la trae, se recupera devolviendo el
-          marcador adq_apoderado_ktp a un <img> (la maquinaria de signed URL
-          sigue en app.html, applyApoderado/APODERADO_KTP_URL, y solo se activa
-          si esta plantilla vuelve a traer ese marcador — escrito sin llaves
-          aquí a propósito: deriveSections lee los {{…}} del fichero ENTERO,
-          comentarios incluidos, y con llaves este párrafo reactivaría el
-          fetch de la KTP él solo).
-       ID = texto EXACTO del cliente (10-ago-2026, Google Doc "1. POA Jaime GC"),
-       transcrito literal. ES/EN (11-ago-2026) SON TRADUCCIÓN DE TRABAJO DE
-       AXISWORKS, no texto del cliente — el cliente solo dio el bahasa, que es
-       el idioma en que se otorga ante notario indonesio. Mismo caso que vivió
-       hak_sewa_notario.html antes del 6-ago (su propio comentario: "EN/ID =
-       texto EXACTO del cliente... ya no es una traducción de trabajo
-       nuestra"). Si el cliente trae su propio texto ES/EN de este documento
-       en algún momento, sustituye a esta traducción — no al revés.
-       ✅ CORREGIDA (14-ago-2026) la errata que este comentario venía avisando
-       desde el 10-ago: el original del cliente llamaba "Pemberi Kuasa"
-       (Otorgante) a AMBAS partes, de modo que el poder decía que la apoderada
-       era también quien lo otorgaba. La segunda es "Penerima Kuasa"
-       (Apoderado/Attorney-in-fact), como ya hacía bien la cláusula KHUSUS —el
-       mismo texto del cliente— un párrafo más abajo. Se mantuvo literal
-       mientras nadie la pidiera (criterio de no enmendar el original ajeno,
-       igual que «Testafierro» y «MESEQUER» en hak_sewa_notario.html, que
-       SIGUEN sin tocar); el owner autorizó corregir ESTA el 14-ago tras
-       preguntarlo él mismo. Cambiada en las tres lenguas.
-       Firma: hasta el 17-ago-2026 la línea iba en blanco a propósito, «se firma
-       en papel, ante notario». El owner pidió ese día que TODOS los contratos se
-       puedan firmar a distancia, así que lleva el campo de firma como el
-       resto. NO se pierde la vía en papel: sin firma el campo se imprime vacío y
-       queda exactamente el mismo renglón de antes para firmar a mano.
-       LAWANG sigue sin ser parte de este poder, y por eso el formulario tampoco
-       pregunta el "Firmante" (campo de gestión que sí sale en el resto de
-       contratos; retirado aquí el 14-ago). -->
-  <!-- LOS CAMPOS SON DE LA FAMILIA `adq_` Y NO `hsn_` — renombrados 17-ago-2026.
-       En un Hak Sewa comparecen DOS apoderados, uno por parte, y la suite los
-       separa por prefijo: `hsn_apoderado_*` es el del ARRENDADOR (el dueño de la
-       tierra) y `adq_apoderado_*` el del ARRENDATARIO (el comprador).
-
-       Este documento es el comprador apoderando a alguien, o sea el lado `adq_`
-       — pero escribia en `hsn_`. Misma clave, dos significados segun el
-       documento, y la app lo tapaba dando a cada plantilla un catalogo distinto
-       para el mismo campo. Con el enlace `poder_id` eso se convertia en un fallo
-       de verdad: derivar «el apoderado del comprador» leyendo el poder habria
-       traido la clave del vendedor. Ahora una clave significa una cosa. -->
+  
+  
   <div class="doc">
 
     <div class="doc-title">
@@ -107,17 +37,7 @@
       <p data-lang="es"><b>Nombre</b>: <span class="f">{{adq_apoderado_nombre}}</span><br><b>NIK</b>: <span class="f">{{adq_apoderado_nik}}</span></p>
       <p data-lang="en"><b>Name</b>: <span class="f">{{adq_apoderado_nombre}}</span><br><b>NIK</b>: <span class="f">{{adq_apoderado_nik}}</span></p>
       <p data-lang="id"><b>Nama</b> : <span class="f">{{adq_apoderado_nombre}}</span><br><b>NIK</b> : <span class="f">{{adq_apoderado_nik}}</span></p>
-      <!-- CORREGIDO 14-ago-2026, autorizado por el owner. El original del
-           cliente llamaba "Pemberi Kuasa" (Otorgante) también a esta segunda
-           parte, con lo que el documento decía que la apoderada era además la
-           otorgante del poder que se le estaba dando. Es una errata del propio
-           original, no de la traducción: la cláusula KHUSUS de aquí abajo —el
-           mismo texto del cliente— ya usa "Penerima Kuasa" para esta misma
-           persona. Se corrige en las tres lenguas.
-           Masculino genérico "el Apoderado" (no "la Apoderada", aunque hoy el
-           cargo lo ocupe una mujer): es el nombre del PAPEL, lo dice así la
-           cláusula KHUSUS de este mismo documento, y el catálogo de apoderados
-           puede cambiar de persona sin que haya que reescribir el contrato. -->
+      
       <p data-lang="es">En lo sucesivo denominado el &ldquo;<b>Apoderado</b>&rdquo;</p>
       <p data-lang="en">Hereinafter referred to as the &ldquo;<b>Attorney-in-fact</b>&rdquo;</p>
       <p data-lang="id">Selanjutnya cukup disebut &ldquo;<b>Penerima Kuasa</b>&rdquo;</p>
@@ -139,20 +59,7 @@
     <p data-lang="en">Grantor</p>
     <p data-lang="id">Pemberi Kuasa</p>
 
-    <!-- El renglón de firma. Admite firma a distancia desde el 17-ago-2026 y
-         sigue sirviendo para firmar a mano: sin
-         firma el campo se imprime vacío y queda el renglón tal cual.
-         `clear:both` NO es decorativo (14-ago-2026): los párrafos [data-lang] se
-         maquetan como columnas FLOTADAS (langCSS en app.html, 47% idioma / 47%
-         bahasa), y un bloque normal que no corte ese flotado se coloca AL LADO
-         de las columnas y pinta su borde inferior de lado a lado del documento
-         — una raya cruzando la cláusula KHUSUS, a la altura de "facilitar
-         información, a firmar documentos". Es el mismo motivo por el que
-         contract.css da clear:both a h2/h3/.party/table.pays/.pending; aquí no
-         se hereda porque el bloque de firma es un <div> suelto, sin clase (en
-         hak_sewa_notario.html no pasa: allí las firmas van dentro de una tabla).
-         break-inside:avoid para que el renglón y el nombre no se partan entre
-         dos páginas, mismo criterio que los títulos de cláusula. -->
+    
     <div style="clear:both;break-inside:avoid;padding-top:6mm">
       <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);max-width:70mm;display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:22mm;max-width:100%"></div>
       <p style="margin-top:4px;font-size:9pt"><span class="f">{{adq1_nombre}}</span></p>
