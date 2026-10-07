@@ -24,6 +24,23 @@ const corsFor = (req: Request) => {
   };
 };
 
+// CSP del documento que se le enseña al firmante (S5 de «plantillas por empresa», 7-oct-2026). El texto del contrato lo puede editar cada
+// empresa: aunque el validador de servidor ya rechaza script/iframe/a/on*=, esta es la segunda capa. Va DENTRO del HTML (un <meta> antepuesto)
+// y se aplica a TODO snapshot, también a los generados antes de que el generador la pusiera (idempotente: si ya la lleva, no se duplica).
+// Origen del sitio y de Google Fonts: los mismos que contracts/app.html (cspDocumento) y que la lista del servicio de PDF. firmar.html lo
+// enseña en un iframe sandbox="allow-same-origin" (sin scripts).
+const CSP_DOCUMENTO =
+  "default-src 'none'; script-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; " +
+  "base-uri https://lawangproperties.com https://www.lawangproperties.com; " +
+  "style-src 'unsafe-inline' https://lawangproperties.com https://www.lawangproperties.com https://fonts.googleapis.com; " +
+  "font-src data: https://lawangproperties.com https://www.lawangproperties.com https://fonts.gstatic.com; " +
+  "img-src data: blob: https://lawangproperties.com https://www.lawangproperties.com " + (Deno.env.get('SUPABASE_URL') ?? '');
+const conCsp = (html: string): string => {
+  if (/<meta http-equiv="Content-Security-Policy"/i.test(html)) return html;
+  const meta = `<meta http-equiv="Content-Security-Policy" content="${CSP_DOCUMENTO}">`;
+  return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (h) => h + meta) : meta + html;
+};
+
 async function sha256hex(s: string): Promise<string> {
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -58,6 +75,7 @@ Deno.serve(async (req) => {
     // (%%FIRMA_ADQUIRIENTE%% del I, %%FIRMA_ADQ_n%% de los demás — firma en
     // cadena) solo los rellena firma-submit con la firma real de cada turno.
     html = html.replace(/%%FIRMA_ADQ(?:UIRIENTE|_\d+)%%/g, '');
+    html = conCsp(html);
 
     const c = (row as any).contratos;
     return json({ html, numero: c?.numero ?? null, tipo: c?.tipo ?? null, firmante_nombre: row.firmante_nombre ?? null });

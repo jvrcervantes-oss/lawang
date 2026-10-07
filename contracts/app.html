@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="52c26b72f166">
+<meta name="lw-version" content="3274a3031f5c">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -251,7 +251,7 @@
         <input type="file" id="lockFileInput" accept="application/pdf" style="display:none">
         <button class="btn ghost pv-close" id="btnClose" data-lwt="Cerrar">Cerrar</button>
       </div>
-      <div class="pv-scroll"><iframe id="pvFrame" data-lwt-title title="Vista previa del contrato"></iframe></div>
+      <div class="pv-scroll"><iframe id="pvFrame" data-lwt-title title="Vista previa del contrato" sandbox="allow-same-origin allow-modals"></iframe></div>
     </div>
   </div>
 
@@ -1001,7 +1001,7 @@ let MIS_PROYECTOS = null, PROYECTO_ABIERTO = '';
 async function cargarProyectos(){
   if(PROYECTOS_DB || !sb) return;
   const { data, error } = await sb.from('proyectos')
-    .select('id,nombre,resort,parcela_master').eq('activo', true).order('nombre');
+    .select('id,nombre,resort,parcela_master,empresa').eq('activo', true).order('nombre');
   // Si la consulta no llega (sin red) se cae a la lista de tokens.json: es
   // vieja, pero peor es un desplegable vacio que no deja hacer el contrato.
   if(!error) PROYECTOS_DB = data || [];
@@ -3253,7 +3253,29 @@ function buildDoc(){
   const ax=nada(annexHTML);
   if(ax) html = html.includes('</body>') ? html.replace('</body>', ax+'</body>') : html+ax;
   if(BORRADOR_MODE) html=marcaBorrador(html);
-  return html;
+  return anteponeCSP(html);
+}
+/* ── CSP DEL DOCUMENTO — S5 de «plantillas por empresa», 7-oct-2026 ───────────────────────────────────────
+   El texto de un contrato lo puede editar cada empresa, así que el HTML que sale de buildDoc() deja de ser
+   «de la casa» y se trata como no fiable: aunque el validador de servidor (S3) ya rechaza script, iframe, a, on*=,
+   url() externos… esta es la segunda capa. La política VA DENTRO del documento (un <meta> antepuesto, como primer
+   hijo de <head>) porque el mismo HTML viaja a tres sitios —el visor, el servicio de PDF y el snapshot de firma— y
+   así la lleva siempre. Lo que el documento necesita de verdad se enumera, y solo eso: sus dos CSS y las imágenes
+   del sitio (assets/brand*.png), Google Fonts (Jost, la misma lista que el servicio de PDF, S1c), las fotos del
+   bucket propio y lo que viaja dentro (data:, blob:). Sin script, sin conexiones, sin formularios, sin marcos. */
+function cspDocumento(){
+  const o = location.origin;
+  let b = '';
+  try{ b = new URL(SUPABASE_URL).origin; }
+  catch(_){ /* MUDO A PROPOSITO: sin URL de la base no se permiten las imágenes del bucket; el documento sale igual con las del sitio y las incrustadas */ }
+  return "default-src 'none'; script-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri " + o
+    + "; style-src 'unsafe-inline' " + o + " https://fonts.googleapis.com; font-src data: " + o + " https://fonts.gstatic.com; img-src data: blob: " + o + (b ? ' ' + b : '');
+}
+const META_CSP_RE = /<meta http-equiv="Content-Security-Policy"[^>]*>/;
+function anteponeCSP(html){
+  if(META_CSP_RE.test(html)) return html;
+  const meta = '<meta http-equiv="Content-Security-Policy" content="' + cspDocumento() + '">';
+  return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, h => h + meta) : meta + html;
 }
 /* re-render de la preview viva (siempre visible). En modo edición NO se
    re-renderiza: reconstruir el srcdoc borraría lo que el usuario escribe.
@@ -3644,10 +3666,101 @@ function deriveSections(){
 }
 
 /* ---------- selector de plantilla ---------- */
-async function loadTemplate(slug){
+/* ── EL TEXTO DE CADA CONTRATO SALE DE LA BASE, POR EMPRESA — S5 de «plantillas por empresa», 7-oct-2026 ──
+   Cada empresa tiene su propia copia del texto de cada plantilla (tablas plantilla_contrato_*; encargo
+   encargos/20261007_lawang_plantillas_por_empresa.md). Quien manda aquí es el SERVIDOR: este fichero no elige
+   empresa ni versión, pide y la base contesta con lo que le toca a quien llama (el navegador no se cree nada).
+     · Contrato YA guardado → `plantilla_contrato_cuerpo_de_contrato`: el texto de la versión que ESE contrato fijó.
+       Sin vínculo (firmados, con ronda de firma, sin proyecto/empresa) devuelve null y se sigue con el FICHERO,
+       que es el texto con el que se hicieron. Nunca se le pone «el último texto de la empresa» a un contrato viejo.
+     · Contrato NUEVO → `plantilla_contrato_cuerpo`: la versión activa de la empresa del proyecto (o de la única
+       empresa de quien llama); mientras no haya ninguna activa, su semilla v1 = copia exacta del fichero.
+     · Sin empresa deducible, sin red o con un error → el fichero, y si fue un error SE DICE (toastMal): el texto de
+       la pantalla no puede cambiar sin que se note.
+   `PLANTILLA_VER` guarda de qué versión salió el texto en pantalla (null = fichero); al GUARDAR un contrato nuevo se
+   fija esa versión (`plantilla_contrato_fija`), y desde ahí no cambia sola. */
+let PLANTILLA_VER = null, PLANTILLA_FIJADA = false, PLANTILLA_AVISO = false, PLANTILLA_TOCADO = false;
+const PLANTILLA_CACHE = {};   // clave RPC|argumento → {hash, cuerpo}: el etag evita reenviar 300 KB que ya tenemos
+async function textoPlantillaBase(slug, contratoId, proyectoId){
+  if(!sb) return null;
+  const esContrato = !!contratoId;
+  const rpc = esContrato ? 'plantilla_contrato_cuerpo_de_contrato' : 'plantilla_contrato_cuerpo';
+  const clave = rpc + '|' + (esContrato ? contratoId : slug + '|' + (proyectoId || ''));
+  const previa = PLANTILLA_CACHE[clave];
+  const args = esContrato ? { p_contrato: contratoId, p_etag: previa ? previa.hash : null }
+                          : { p_slug: slug, p_proyecto: proyectoId || null, p_etag: previa ? previa.hash : null };
+  const { data, error } = await sb.rpc(rpc, args);
+  if(error) throw error;
+  if(!data || typeof data !== 'object' || data.slug !== slug) return null;
+  let cuerpo = data.cuerpo_html;
+  if(data.sin_cambios && previa && previa.hash === data.hash) cuerpo = previa.cuerpo;
+  if(typeof cuerpo !== 'string' || !cuerpo.trim()) return null;
+  PLANTILLA_CACHE[clave] = { hash: data.hash, cuerpo };
+  return { html: cuerpo, ver: { version_id: data.version_id, empresa: data.empresa, hash: data.hash, version: data.version, origen: data.origen } };
+}
+/* Texto de una plantilla: de la base si hay (arriba) y, si no, del fichero. Devuelve {html, ver}. */
+async function textoPlantilla(t, o){
+  let r = null;
+  try{ r = await textoPlantillaBase(t.slug, o && o.contratoId, o && o.proyectoId); }
+  catch(e){
+    if(!PLANTILLA_AVISO){ PLANTILLA_AVISO = true;
+      toastMal(lwT('No se pudo leer el texto de contrato de tu empresa (') + ((e && e.message) || e) + lwT('): se usa el texto base. Recarga antes de guardar un contrato nuevo.')); }
+  }
+  if(r) return r;
+  let html;
+  try{ html = await fetch(t.file+'?v='+Date.now()).then(r=>r.text()); }
+  catch(_){ html='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; /* MUDO A PROPOSITO: la propia pagina dice «Plantilla no encontrada» en el contrato */ }
+  return { html, ver: null };
+}
+/* Al guardar un contrato NUEVO se fija la versión del texto con el que se redactó. La empresa la decide el
+   proyecto GUARDADO: se le vuelve a pedir su texto al servidor y solo se fija si es el mismo que hay en pantalla
+   (si el proyecto cambió de empresa por otro camino y los textos difieren, no se fija nada y se avisa). Sin
+   proyecto no hay empresa y el contrato sigue con el fichero. Devuelve el aviso (texto) para el toast final: dos
+   toast seguidos se pisan. */
+async function fijaVersionPlantilla(contratoId, eraNuevo){
+  if(!eraNuevo || !PLANTILLA_VER || !sb) return '';
+  const pid = proyectoIdActual();
+  if(!pid) return '';
+  try{
+    const r = await textoPlantillaBase(CURRENT.slug, null, pid);
+    if(!r || r.ver.hash !== PLANTILLA_VER.hash)
+      return ' · OJO: el texto del contrato en pantalla no es el de la empresa de este proyecto; se guardó SIN fijar la versión del texto. Revísalo.';
+    const { error } = await sb.rpc('plantilla_contrato_fija', { p_contrato: contratoId, p_version: r.ver.version_id });
+    if(error) throw error;
+    PLANTILLA_VER = r.ver; PLANTILLA_FIJADA = true;
+    return '';
+  }catch(e){ return ' · OJO: se guardó, pero no se pudo fijar la versión del texto (' + ((e && e.message) || 'error') + ').'; }
+}
+/* Cambiar el proyecto de un contrato SIN guardar puede cambiar de empresa y, con ella, el texto. Si el texto de la
+   empresa nueva es idéntico al de pantalla (hoy: las dos tienen la semilla v1, copia del mismo fichero) solo se
+   anota de qué versión sale, sin tocar nada. Si difiere hay que rehacer el formulario, que pierde lo escrito: con
+   algo escrito se pregunta antes y, si se dice que no, el proyecto vuelve al anterior. Un contrato ya guardado no
+   se toca: su texto es el que fijó. */
+async function cambioDeProyectoYTexto(sel){
+  if(SAVED_CONTRACT && SAVED_CONTRACT.id) return;
+  const pid = proyectoIdActual(); if(!pid || !CURRENT) return;
+  const previo = sel.dataset.previo || '';
+  const nombre = sel.value, slug = CURRENT.slug;
+  const r = await textoPlantilla(CURRENT, { proyectoId: pid });
+  if(r.html === templateHTML){ PLANTILLA_VER = r.ver; sel.dataset.previo = nombre; return; }
+  if(PLANTILLA_TOCADO && !window.confirm(lwT('Ese proyecto es de otra empresa y su contrato usa otro texto. Cambiarlo borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?'))){
+    sel.value = previo; return;
+  }
+  if(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes()){ sel.value = previo; return; }
+  resetBorrador(slug);
+  await loadTemplate(slug, { proyectoId: pid });
+  buildForm(); updateSaveButton(); editBtnIdle();
+  const s2 = document.querySelector('[name="proyecto_nombre"]');
+  if(s2){ s2.value = nombre; s2.dataset.previo = nombre; s2.dispatchEvent(new Event('change', { bubbles:true })); }
+}
+async function loadTemplate(slug, opts){
   CURRENT = TEMPLATES.find(t=>t.slug===slug) || TEMPLATES[0];
-  try{ templateHTML = await fetch(CURRENT.file+'?v='+Date.now()).then(r=>r.text()); }
-  catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
+  // el proyecto elegido solo cuenta en un contrato NUEVO; uno ya guardado lee el texto que fijó
+  const o = Object.assign({ proyectoId: (typeof proyectoIdActual === 'function' ? proyectoIdActual() : '') || null }, opts || {});
+  const base = await textoPlantilla(CURRENT, o);
+  templateHTML = base.html; PLANTILLA_VER = base.ver;
+  PLANTILLA_FIJADA = !!(opts && opts.contratoId && base.ver);
+  PLANTILLA_TOCADO = false;
   if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
   // Los proyectos vivos, antes de deriveSections(), que es quien monta el select.
   if(templateHTML.includes('{{proyecto_nombre}}')) await cargarProyectos();
@@ -3928,6 +4041,7 @@ function imprimirBorrador(o){
   const viejo = document.getElementById('lwBorradorFrame'); if(viejo) viejo.remove();
   const fr = document.createElement('iframe');
   fr.id = 'lwBorradorFrame'; fr.setAttribute('aria-hidden', 'true'); fr.tabIndex = -1;
+  fr.setAttribute('sandbox', 'allow-same-origin allow-modals');   // igual que #pvFrame: sin scripts; same-origin para leer fuentes/imágenes y modals para imprimir
   fr.style.cssText = 'position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0';
   fr.addEventListener('load', () => {
     const w = fr.contentWindow, d = fr.contentDocument;
@@ -5148,6 +5262,7 @@ async function guardarContrato(){
     if(fila.moneda) payload.moneda = fila.moneda;
     const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.fields, hitos:fila.hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
+    avisoMigracion += await fijaVersionPlantilla(data.id, eraNuevo);   // S5: la versión del texto queda escrita con el contrato
     rebuildAnnex();   // un contrato recién creado ya admite anexos: el panel se pintó cuando aún no tenía fila (2-oct-2026)
     /* Construcción (28-sep-2026): el calendario lo monta el servidor —importes incluidos— y puede diferir de lo
        que había en pantalla (una pestaña vieja, un % tocado). Se enseña lo que quedó guardado, no lo que se mandó. */
@@ -5512,7 +5627,7 @@ async function openSavedContract(id){
   // antes de loadTemplate: deriveSections() monta el desplegable ahí dentro
   PROYECTO_ABIERTO = String((data.datos && data.datos.fields && data.datos.fields.proyecto_nombre)
                             || data.proyecto_nombre || '').trim();
-  await loadTemplate(slug);
+  await loadTemplate(slug, { contratoId: id });   // el texto que ESE contrato fijó (o el fichero, si no tiene vínculo)
   $('#tplPick').value = slug;
   // ANTES de buildForm: pintarFichaComprador() corre dentro y, con la ficha del
   // contrato ANTERIOR aún en memoria, pintaba SU chip sobre el que se abre —
@@ -7028,6 +7143,11 @@ async function init(){
   // cambio no se reemplaza nunca, así que capta el evento aunque el campo de
   // dentro se haya vuelto a pintar.
   $('#form').addEventListener('input', updateSaveButton);
+  /* S5 (plantillas por empresa): lo escrito sin guardar y el proyecto elegido deciden si cambiar de proyecto obliga a
+     cambiar el texto (otra empresa con otra versión). Ver cambioDeProyectoYTexto(). */
+  $('#form').addEventListener('input', () => { PLANTILLA_TOCADO = true; });
+  $('#form').addEventListener('focusin', e => { if(e.target && e.target.name === 'proyecto_nombre') e.target.dataset.previo = e.target.value; });
+  $('#form').addEventListener('change', e => { if(e.target && e.target.name === 'proyecto_nombre') cambioDeProyectoYTexto(e.target); });
   $('#form').addEventListener('change', updateSaveButton);
 
   // ── que pantalla se abre (6-ago-2026) ──────────────────────────────────
