@@ -2,6 +2,8 @@
 -- Devuelve las funciones y policies a su texto de antes (cada edicion se deshace con la misma aserción: si el texto vivo ya no es el que esta migracion dejo, aborta en vez de pisar nada).
 -- Valida mientras nadie tenga rol de empresa ni comunicados de empresa. Orden inverso al de aplicar. Las tablas/columnas nuevas se quitan al final (con guarda).
 -- destructivo-ok: reversion de este mismo encargo; solo quita objetos creados por el (crm_origen_empresa, comunicados.empresa y funciones nuevas), con guarda si ya tienen datos
+-- ⚠️ ORDEN: la edge `portal-invitar` desplegada (v13+) llama a portal_puede_gestionar(); este fichero la borra. ANTES de aplicarlo hay que redesplegar la edge anterior
+--   (la de `git show <commit anterior>:contracts/edge/portal-invitar/index.ts`) o aplicar ambas cosas a la vez; si no, todas las invitaciones/reenvios/revocaciones/contrasenas del portal dan 403, tambien a los globales.
 -- REVERTIR: es la reversion
 begin;
 create or replace function pg_temp.f2_edita(p_fn text, p_viejo text, p_nuevo text, p_viejo2 text default null, p_nuevo2 text default null, p_viejo3 text default null, p_nuevo3 text default null) returns void language plpgsql as $f$
@@ -255,5 +257,10 @@ drop function if exists public.comparte_empresa_con(text);
 drop function if exists public.usuario_en_empresa(text, text);
 drop function if exists public.empresa_de_lead(uuid);
 drop function if exists public.empresa_de_origen(text);
+do $$ begin
+  if exists (select 1 from public.crm_origen_empresa where clave not in ('meta-sumbahills','sumba-hills-qr','sumbahills-web','meta-lawang-bali','meta-lawang-australia','Lawang · Sumba Hills','Lawang · Bali','Lawang · Australia')) then
+    raise exception 'crm_origen_empresa tiene origenes anadidos despues de los 8 iniciales: decide antes que hacer con ellos';
+  end if;
+end $$;
 drop table if exists public.crm_origen_empresa;
 commit;

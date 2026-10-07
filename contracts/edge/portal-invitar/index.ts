@@ -144,6 +144,14 @@ Deno.serve(async (req) => {
       if (!(await veTodas(fichas))) return json({ error: 'ficha_no_visible' }, 403);
     }
 
+    // 7-oct-2026 (revision de codigo): las fichas de una invitacion se comprueban ANTES de crear o
+    // marcar la cuenta de Auth; un 403 ya no deja una cuenta de portal a medias.
+    const idsInvitar: string[] = accion === 'invitar' && Array.isArray(body.client_ids) ? body.client_ids.map(String) : [];
+    if (accion === 'invitar') {
+      if (!idsInvitar.length) return json({ error: 'sin_fichas' }, 400);
+      if (!(await veTodas(idsInvitar))) return json({ error: 'ficha_no_visible' }, 403);
+    }
+
     // ¿existe ya el usuario de Auth?
     // ponytail: listUsers pagina de 1000 — sobra con los volúmenes de la
     // promotora; si algún día hay miles de compradores, cambiar a una búsqueda.
@@ -167,10 +175,7 @@ Deno.serve(async (req) => {
 
     // ── vincular fichas (solo en invitar) ────────────────────────────────
     if (accion === 'invitar') {
-      const ids: string[] = Array.isArray(body.client_ids) ? body.client_ids.map(String) : [];
-      if (!ids.length) return json({ error: 'sin_fichas' }, 400);
-      if (!(await veTodas(ids))) return json({ error: 'ficha_no_visible' }, 403);
-      const filas = ids.map((client_id) => ({
+      const filas = idsInvitar.map((client_id) => ({
         email, client_id, activo: true, creado_por: quien.user.email ?? null,
       }));
       const { error: eAcc } = await admin.from('portal_accesos')
