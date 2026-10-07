@@ -76,7 +76,8 @@ const puerta = carpeta => {
   if (!fs.existsSync(f)) return null;
   const g = fs.readFileSync(f, 'utf8').match(/<script[^>]+guard\.js[^>]*>/);
   if (!g) return { herr: '', rol: '' };
-  return { herr: ((g[0].match(/data-herramienta="([^"]*)"/) || [])[1] || ''), rol: ((g[0].match(/data-rol="([^"]*)"/) || [])[1] || '') };
+  return { herr: ((g[0].match(/data-herramienta="([^"]*)"/) || [])[1] || ''), rol: ((g[0].match(/data-rol="([^"]*)"/) || [])[1] || ''),
+    ambito: ((g[0].match(/data-ambito="([^"]*)"/) || [])[1] || '') };
 };
 // leads y creatividades de la v4 son redirecciones (sin guard): su puerta vive en la herramienta viva
 const SIN_PUERTA_V4 = ['leads'];
@@ -87,6 +88,13 @@ const casaPuerta = (p, clave, rol, donde) => {
   if (clave && norma(q.herr.split(',')) !== norma(clave.split(','))) errores.push(`MENU_V4 ${donde}: la puerta de ${p}/ pide «${q.herr || '—'}» y el menú «${clave}»`);
   if (rol && q.rol !== rol) errores.push(`MENU_V4 ${donde}: la puerta de ${p}/ pide rol «${q.rol || '—'}» y el menú «${rol}»`);
 };
+/* Empresas (7-oct-2026): una entrada del menú marcada global: true es de TODA la instancia (Ajustes): su puerta tiene que cerrarse
+   igual a un rol de empresa (data-ambito="global"), o el menú la esconde y la URL directa la abre. */
+const casaAmbito = (e, donde) => {
+  const q = e.path && puerta(e.path);
+  if (e.global && (!q || q.ambito !== 'global')) errores.push(`MENU_V4 ${donde}: es de la instancia (global: true) y la puerta de ${e.path}/ no lleva data-ambito="global"`);
+  if (!e.global && q && q.ambito === 'global') errores.push(`MENU_V4 ${donde}: la puerta de ${e.path}/ es global (data-ambito) y el menú no lo marca global: true`);
+};
 MENU.forEach(s => s.entradas.forEach(e => {
   const donde = `${s.seccion} › ${e.texto}`;
   // `mismaCasilla` (30-sep-2026, Emitir contrato): la entrada abre con la casilla de OTRA entrada a propósito;
@@ -94,7 +102,7 @@ MENU.forEach(s => s.entradas.forEach(e => {
   if (e.clave && !e.mismaCasilla) enMenu.push(e.clave);
   (e.claves || []).forEach(c => enMenu.push(c.clave));
   (e.extra || []).forEach(c => enMenu.push(c.clave));
-  if (e.path) casaPuerta(e.path, e.clave || (e.claves || []).map(c => c.clave).join(','), e.rol, donde);
+  if (e.path) { casaPuerta(e.path, e.clave || (e.claves || []).map(c => c.clave).join(','), e.rol, donde); casaAmbito(e, donde); }
   (e.pestanas || []).forEach(t => { enMenu.push(t.clave); casaPuerta(t.path, t.clave, t.rol, donde + ' › ' + t.texto); });
 }));
 const dup = enMenu.filter((k, i) => enMenu.indexOf(k) !== i);

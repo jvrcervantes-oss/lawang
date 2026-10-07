@@ -77,6 +77,85 @@
     if (!/^[a-z0-9-]+$/.test(String(nombre))) throw new Error('lwEdge: nombre de edge no válido');
     return URL_SB + '/functions/v1/' + nombre;
   });
+  /* UN SOLO PUNTO DE VERDAD DE «QUIÉN ES QUIÉN» PARA LA PANTALLA (empresas de Lawang, 7-oct-2026, cierre bloque 7).
+     Hay dos roles que solo valen dentro de su empresa: `admin_empresa` (hace lo de un admin) y `super_admin_empresa` (lo de
+     un super admin). Para MOSTRAR cuentan como admin / super admin; la cerradura sigue siendo la base (`es_admin_de(empresa)`,
+     RLS): nada de lo que decide la pantalla se cree el servidor. Antes cada pantalla comparaba `ficha.rol === 'admin'` a mano
+     (unas 100 veces) y un rol de empresa caía en la vista de agente. Ahora se pregunta aquí:
+       esAdmin(f)        admin, super_admin o un rol de empresa            (¿enseño las pantallas de administración?)
+       esSuperAdmin(f)   super_admin o super_admin_empresa                 (¿enseño lo de un super?)
+       esSuperGlobal(f)  SOLO el super_admin global                        (herramientas sin casilla, ajustes de la instancia)
+       esEmpresa(f)      rol de empresa o ámbito 'empresa'
+       esGlobal(f)       lo contrario: lo que es de toda la instancia (Ajustes, mantenimiento, tarifa 0,5 %, tablero CRM…)
+       rolReal(f)        el rol tal cual está en la ficha (para pintar una etiqueta o la pantalla de Usuarios)
+       empresas(f)       las empresas marcadas en la ficha ([] = sin acotar)
+       puedeHerr(f,h)    ¿tiene la casilla `h`? Solo el super global se salta las casillas (igual que `puede()` en la base)
+     Cada ficha trae `ambito` y `empresas` si la base los tiene; si no, se deducen del rol (una instancia sin esas columnas
+     se comporta como siempre: todo global). */
+  var ROL_EMPRESA = { admin_empresa: 'admin', super_admin_empresa: 'super_admin' };
+  var LW_ROL = {
+    rolReal: function (f) { return (f && f.rol) || ''; },
+    efectivo: function (f) { var r = (f && f.rol) || ''; return ROL_EMPRESA[r] || r; },
+    esAdmin: function (f) { var r = LW_ROL.efectivo(f); return r === 'admin' || r === 'super_admin'; },
+    esSuperAdmin: function (f) { return LW_ROL.efectivo(f) === 'super_admin'; },
+    esSuperGlobal: function (f) { return !!f && f.rol === 'super_admin'; },
+    esEmpresa: function (f) { return !!f && (!!ROL_EMPRESA[f.rol] || f.ambito === 'empresa'); },
+    esGlobal: function (f) { return !!f && !LW_ROL.esEmpresa(f); },
+    empresas: function (f) { return (f && Array.isArray(f.empresas)) ? f.empresas : []; },
+    puedeHerr: function (f, h) { return !!f && (f.rol === 'super_admin' || (f.herramientas || []).indexOf(h) !== -1); },
+    /* ── Empresas para ELEGIR (selectores de las pantallas) ─────────────────────────────────────────────────────────
+       catalogo()          las empresas activas [{clave, nombre}], leídas una vez por página
+       misEmpresas(f)      las que puede elegir esta persona: las de su ficha, o todas si no está acotada (Promise)
+       elegirEmpresa(f,o)  Promise<{ok, empresa}>: con UNA (o ninguna) no pregunta; con varias abre el selector de la suite
+                           (lwElegir). `o.titulo`, `o.sinEmpresa` (ofrece «Sin empresa» y devuelve empresa:null).
+                           ok:false = cerró el selector sin elegir.
+       reintentaConEmpresa(f, llamar, o)   llama `llamar(null)`; si la base contesta 22023 «Elige/indica la empresa»,
+                           pregunta y repite con `llamar(clave)`. La empresa la valida SIEMPRE el servidor: lo elegido aquí
+                           solo dice cuál de las suyas quiere. */
+    catalogo: function () {
+      if (!catalogoP) {
+        catalogoP = (window.LW_SB ? Promise.resolve(window.LW_SB.from('empresas').select('clave,nombre,orden,activa'))
+                                  : Promise.reject(new Error('sin cliente')))
+          .then(function (r) {
+            return (r && !r.error && r.data) ? r.data.filter(function (e) { return e.activa !== false; })
+              .sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); }) : [];
+          }, function () { return []; })
+          .then(function (l) { if (!l.length) catalogoP = null; return l; });   // sin lista (red) no se memoriza
+      }
+      return catalogoP;
+    },
+    misEmpresas: function (f) {
+      var mias = LW_ROL.empresas(f);
+      return LW_ROL.catalogo().then(function (cat) {
+        return mias.length ? cat.filter(function (e) { return mias.indexOf(e.clave) !== -1; }) : cat;
+      });
+    },
+    elegirEmpresa: function (f, o) {
+      o = o || {};
+      return LW_ROL.misEmpresas(f).then(function (lista) {
+        if (!o.sinEmpresa && lista.length <= 1) return { ok: true, empresa: lista.length ? lista[0].clave : null };
+        if (typeof window.lwElegir !== 'function') return { ok: false };
+        var ops = lista.map(function (e) { return { valor: e.clave, texto: e.nombre }; });
+        if (o.sinEmpresa) ops.push({ valor: '__ninguna', texto: (window.lwT || function (x) { return x; })('Sin empresa (solo la ve la dirección)') });
+        return window.lwElegir({ titulo: o.titulo || (window.lwT || function (x) { return x; })('¿De qué empresa?'), opciones: ops }).then(function (v) {
+          if (v == null) return { ok: false };
+          return { ok: true, empresa: v === '__ninguna' ? null : v };
+        });
+      });
+    },
+    reintentaConEmpresa: function (f, llamar, o) {
+      return Promise.resolve(llamar(null)).then(function (r) {
+        var e = r && r.error;
+        if (!e || e.code !== '22023' || !/empresa/i.test(e.message || '')) return r;
+        return LW_ROL.elegirEmpresa(f, o).then(function (el) {
+          if (!el.ok || !el.empresa) return { error: { code: 'cancelado', message: 'No has elegido empresa' }, cancelado: true };
+          return llamar(el.empresa);
+        });
+      });
+    }
+  };
+  var catalogoP = null;
+  fija('LW_ROL', Object.freeze(LW_ROL));
   /* Lecturas por el servidor: window.lwDatos(nombre, args) (B10a, 28-sep-2026, revisión previa #136 Desarrollo 2;
      encargos/20260927_erp_b10_lecturas_a_la_par.md). ÚNICO punto por el que una pantalla pide una RPC `*_datos`:
      hoy va por PostgREST (`sb.rpc`), y en B10b la ficha (instancia.js) podrá mandarla por otro transporte (la puerta
@@ -314,14 +393,19 @@
      rol listado entra solo si es el suyo. Un `data-rol` sin ningún rol conocido
      se trata como `admin` (lo de siempre): nunca se abre por un typo. */
   var ROLES_REQ = (ROL_REQ || '').split(/\s+/).filter(function (x) { return x; });
+  var AMBITO_REQ = (propia && propia.getAttribute('data-ambito')) || '';
   function rolBasta(ficha) {
     if (!ROL_REQ) return true;
     if (!ficha) return false;
-    if (ficha.rol === 'super_admin') return true;
+    /* data-ambito="global" (7-oct-2026): pantallas de la INSTANCIA (Ajustes, mantenimiento…): un rol de empresa no entra
+       aunque cuente como admin. Es la puerta de la cáscara; el candado de los datos es la base. */
+    if (AMBITO_REQ === 'global' && !LW_ROL.esGlobal(ficha)) return false;
+    var rol = LW_ROL.efectivo(ficha);   // admin_empresa cuenta como admin, super_admin_empresa como super_admin
+    if (rol === 'super_admin') return true;
     if (ROLES_REQ.length === 1 && ROLES_REQ[0] === 'super_admin') return false;
     var otros = ROLES_REQ.filter(function (x) { return x !== 'admin' && x !== 'super_admin'; });
-    if (ficha.rol === 'admin') return ROLES_REQ.indexOf('admin') !== -1 || !otros.length;
-    return otros.indexOf(ficha.rol) !== -1;
+    if (rol === 'admin') return ROLES_REQ.indexOf('admin') !== -1 || !otros.length;
+    return otros.indexOf(rol) !== -1;
   }
 
   var raiz = document.documentElement;
@@ -403,6 +487,17 @@
         if (!cierre) console.error('[guard] falta /contracts/assets/cierre.js antes de guard.js: el modo mantenimiento no se aplica en esta página');
         var pEstado = cierre ? cierre.leer(sb) : Promise.resolve(null);
         function entrar(ficha) {
+          /* Ámbito en el <html> (empresas, 7-oct-2026): lo que lleve `data-solo-global` (un botón, una fila, una tarjeta que es de TODA
+             la instancia: tarifa del 0,5 %, tablero del CRM, alta de sociedades…) se esconde a un rol de empresa con una sola regla de CSS,
+             también si se pinta después. Es cosmético: la base sigue negando. */
+          try {
+            raiz.setAttribute('data-lw-ambito', LW_ROL.esEmpresa(ficha) ? 'empresa' : 'global');
+            if (LW_ROL.esEmpresa(ficha)) {
+              var hoja = document.createElement('style');
+              hoja.textContent = '[data-lw-ambito="empresa"] [data-solo-global]{display:none!important}';
+              (document.head || raiz).appendChild(hoja);
+            }
+          } catch (e) { /* MUDO A PROPOSITO: sin DOM completo (arnés de pruebas) solo se pierde el escondido cosmético; la base sigue negando */ }
           var sigue = cierre ? cierre.puerta(sb, ficha, pEstado).catch(function () { return true; }) : Promise.resolve(true);
           sigue.then(function (ok) {
             quitarCarga();
@@ -428,8 +523,16 @@
            el claim o no. El claim solo decide a donde va quien NO es del equipo,
            y eso se decide abajo, ya con la ficha leida. La regla de fondo del
            8-sep no se toca: sin ficha de equipo no se entra a /intranet/. */
-        sb.from('usuarios').select('rol, herramientas, activo, nombre, notif_visto_hasta')
+        /* `ambito` y `empresas` (empresas de Lawang, 7-oct-2026) viajan con la ficha. Una instancia que aún no tiene esas
+           columnas (el ERP maestro hasta que se porte) contestaría con error: se repite la lectura sin ellas y la ficha
+           queda como siempre (todo global). Es la única lectura de la ficha de toda la suite. */
+        var COLS = 'rol, herramientas, activo, nombre, notif_visto_hasta';
+        sb.from('usuarios').select(COLS + ', ambito, empresas')
           .eq('user_id', sesion.user.id).maybeSingle()
+          .then(function (f) {
+            if (f && f.error && !f.data) return sb.from('usuarios').select(COLS).eq('user_id', sesion.user.id).maybeSingle();
+            return f;
+          })
           .then(function (f) {
             var ficha = (f && f.data) || null;
             if (ficha && !ficha.activo) { alLogin(); return; }   // desactivado = fuera
@@ -460,7 +563,7 @@
                admin normal pasa por su lista de herramientas como cualquiera.
                Ver la nota de lwPermitida en assets/herramientas.js — y `puede()`
                en la base, que es quien lo impide de verdad. */
-            var sinLimite = ficha && ficha.rol === 'super_admin';
+            var sinLimite = LW_ROL.esSuperGlobal(ficha);   // un super de EMPRESA sí pasa por su lista, como `puede()` en la base
             if (HERRAMIENTAS_REQ && ficha && !sinLimite &&
                 !HERRAMIENTAS_REQ.some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; })) {
               location.replace(HUB + '?sin_permiso=' + encodeURIComponent(HERRAMIENTA));

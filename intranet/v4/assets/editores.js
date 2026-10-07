@@ -99,7 +99,7 @@
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
-  function esAdmin(f) { return !!f && (f.rol === 'admin' || f.rol === 'super_admin'); }
+  function esAdmin(f) { return LW_ROL.esAdmin(f); }   // un rol de empresa cuenta como admin para MOSTRAR; la cerradura es es_admin_de(empresa) en la base
   /* Editar proyectos, parcelas, documentos y obra: admin y, solo en lo que supervisa, el project_manager. Agente y sales_manager
      leen (1-oct-2026, owner). Es un ESPEJO de _puede_editar_proyectos() para no ofrecer lo que el servidor va a rechazar:
      manda la base (unidad_guarda, unidades_importa, documento_proyecto_*, modelo_documento*, obra_*). */
@@ -113,7 +113,7 @@
   }
   function puedeH(f, h) {
     if (!f) return false;
-    if (f.rol === 'super_admin') return true;
+    if (LW_ROL.esSuperGlobal(f)) return true;
     return (f.herramientas || []).indexOf(h) !== -1;
   }
 
@@ -5112,7 +5112,8 @@
       var sb = aut.sb;
       var ficha = aut.ficha;
       var esAdminP = esAdmin(ficha);
-      var esSuper = !!(ficha && ficha.rol === 'super_admin');
+      var esSuper = LW_ROL.esSuperAdmin(ficha);        // borrar proyecto: el super de la empresa del proyecto (borrar_proyecto)
+      var esSuperG = LW_ROL.esSuperGlobal(ficha);      // cambiar la empresa de un proyecto: solo un super global
       /* Proyecto, parcelas, documentos y obra en SOLO LECTURA para agente y sales_manager (1-oct-2026, owner). El servidor es
          quien lo exige (unidad_guarda, unidades_importa, documento_proyecto_*, obra_*); aquí solo se esconde lo que fallaría
          al pulsarlo. La ficha de una parcela sí se abre —con su contrato y su cobrado—, pero sin poder guardar. */
@@ -5276,7 +5277,7 @@
            que confirmarlo: pueden quedar contradiciéndola.
          · Seguridad: el jsonb se construye solo con es/en/id, recortado y sin
            claves vacías (el deck cae a `es` si falta un idioma). */
-      var esAdminDeck = !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin');
+      var esAdminDeck = LW_ROL.esAdmin(ficha);
       var LEG_JURIDICO = /hak\s*sewa|freehold|hak\s*milik|\bhgb\b|hak\s*guna|escrow|nominee|garantiz|guarante|dijamin|rentabilidad|\breturn|\byield|imbal\s*hasil|impuest|\btax|pajak|fiscal|inversi[oó]n|investment|investasi/i;
       var LEG_PROHIBIDO = [
         [/nominee/i, '«nominee»'],
@@ -5906,8 +5907,8 @@
             /* Empresa que controla el proyecto (F1 empresas, 7-oct-2026, owner): Lawang promotora / Sandal Woods matriz. Es solo
                etiqueta en esta fase. Editable SOLO por super_admin: aqui se esconde, el que lo hace cumplir es proyecto_empresa_guarda
                (y el trigger trg_proyecto_empresa) en la base. Las opciones salen de la tabla `empresas`, no de una lista a mano. */
-            { k: 'empresa', label: edT('Empresa'), tipo: esSuper ? 'select' : 'lectura',
-              valor: esSuper ? (p.empresa || '') : nombreEmpresa(p.empresa),
+            { k: 'empresa', label: edT('Empresa'), tipo: esSuperG ? 'select' : 'lectura',
+              valor: esSuperG ? (p.empresa || '') : nombreEmpresa(p.empresa),
               opciones: [['', edT('Sin empresa (cerrado)')]].concat(((window.LW_V4 && window.LW_V4.empresas) || []).map(function (e) { return [e.clave, e.nombre]; }))
                 .concat(p.empresa && !(((window.LW_V4 && window.LW_V4.empresas) || []).some(function (e) { return e.clave === p.empresa; })) ? [[p.empresa, p.empresa]] : []) },
             // Ubicación en Google Maps (24-sep-2026, owner). Texto tal cual se pega;
@@ -6018,7 +6019,7 @@
                 // así que aquí ya no hay «0 filas en silencio» que vigilar (consulta de deploy de Desarrollo)
                 if (r.error) return r;
                 var trabajos = [];
-                if (esSuper && (v.empresa || null) !== (p.empresa || null)) {
+                if (esSuperG && (v.empresa || null) !== (p.empresa || null)) {
                   trabajos.push(sb.rpc('proyecto_empresa_guarda', { p_id: p.id, p_empresa: v.empresa || null })
                     .then(function (re) { if (re.error) aviso(edT('La empresa no se pudo guardar: ') + re.error.message, '#ba1a1a'); }));
                 }
@@ -6367,16 +6368,35 @@
       if (bNuevoP) bNuevoP.addEventListener('click', function (ev) {
         ev.stopPropagation();
         if (!esAdminP) return aviso('Dar de alta un proyecto es cosa de un administrador. Pídeselo a dirección.', '#8A6A34');
-        modal('Nuevo proyecto', [
-          { k: 'nombre', label: 'Nombre', req: 1, ayuda: 'Con cuidado: un "Proyecto A" y un "Proyecto A " con espacio conviven como dos proyectos distintos.' }
-        ], 'Crear proyecto', function (v) {
-          var nombre = v.nombre.trim();
-          if (!nombre) return { error: { message: 'el nombre no puede quedar vacío' } };
-          return sb.rpc('proyecto_alta', { p_nombre: nombre }).then(function (r) {   // por el servidor (LAW-336 pieza 8)
-            if (r.error && /duplicate key|proyectos_nombre_key/.test(r.error.message || '')) {
-              return { error: { message: 'ya existe un proyecto con ese nombre' } };
-            }
-            return r;
+        /* Empresa del proyecto nuevo (empresas de Lawang, 7-oct-2026): quien gestiona UNA empresa no elige (nace en la suya);
+           quien gestiona varias la elige aquí; un super global puede fijarla o dejarla sin empresa (como hasta hoy). Lo que se manda
+           es solo una petición: proyecto_alta la valida contra las empresas de quien llama. */
+        LW_ROL.misEmpresas(ficha).then(function (lista) {
+          var pideEmpresa = esSuperG || (LW_ROL.esEmpresa(ficha) && lista.length > 1);
+          var camposNuevo = [
+            { k: 'nombre', label: 'Nombre', req: 1, ayuda: 'Con cuidado: un "Proyecto A" y un "Proyecto A " con espacio conviven como dos proyectos distintos.' }
+          ];
+          if (pideEmpresa) {
+            camposNuevo.push({ k: 'empresa', label: 'Empresa', tipo: 'select', req: esSuperG ? 0 : 1,
+              ayuda: esSuperG ? 'Sin empresa, el proyecto solo lo ve la dirección general hasta que se le ponga una.' : 'Gestionas varias empresas: elige de cuál es el proyecto.',
+              valor: esSuperG ? '' : lista[0].clave,
+              opciones: (esSuperG ? [['', 'Sin empresa (cerrado)']] : []).concat(lista.map(function (e) { return [e.clave, e.nombre]; })) });
+          }
+          modal('Nuevo proyecto', camposNuevo, 'Crear proyecto', function (v) {
+            var nombre = v.nombre.trim();
+            if (!nombre) return { error: { message: 'el nombre no puede quedar vacío' } };
+            var llama = function (emp) {
+              var args = { p_nombre: nombre };
+              var elegida = pideEmpresa ? (v.empresa || null) : emp;
+              if (elegida) args.p_empresa = elegida;
+              return sb.rpc('proyecto_alta', args);   // por el servidor (LAW-336 pieza 8)
+            };
+            return LW_ROL.reintentaConEmpresa(ficha, llama, { titulo: 'Elige la empresa del proyecto' }).then(function (r) {
+              if (r.error && /duplicate key|proyectos_nombre_key/.test(r.error.message || '')) {
+                return { error: { message: 'ya existe un proyecto con ese nombre' } };
+              }
+              return r;
+            });
           });
         });
       });
@@ -9138,7 +9158,8 @@
        Solo «cambiar estado» es un UPDATE, porque no arrastra nada detras. */
     'comision-admin': function (aut) {
       var sb = aut.sb;
-      var superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
+      var superAdmin = LW_ROL.esSuperAdmin(aut.ficha);   // libro de SU empresa: el super de empresa opera lo suyo (la base filtra por sociedad)
+      var superGlobal = LW_ROL.esSuperGlobal(aut.ficha); // la TARIFA (el 0,5 %) la fija solo un super global
       window.LW_V4 = window.LW_V4 || {};
       var hoy = new Date().toISOString().slice(0, 10);
 
@@ -9162,7 +9183,7 @@
 
       // ── Nueva tarifa ────────────────────────────────────────────────────────
       ata('nueva-tarifa', function () {
-        if (!superAdmin) return soloSuper();
+        if (!superGlobal) return soloSuper();
         var cache = window.LW_V4 && window.LW_V4.tarifas;
         if (cache) return abreNuevaTarifa(cache);
         /* Si datos.js no ha resuelto todavia, se pregunta a la base en vez de
@@ -9372,7 +9393,7 @@
 
       // ── Editar una tarifa que ya existe ─────────────────────────────────────
       window.LW_V4.abreEditaTarifaComisionAdmin = function (btn) {
-        if (!superAdmin) return soloSuper();
+        if (!superGlobal) return soloSuper();
         var id = btn.getAttribute('data-lw-ca-tarifa');
         var t = (window.LW_V4.tarifaPorId && window.LW_V4.tarifaPorId[id]) || {};
         var lineas = (window.LW_V4.caLineas && Object.keys(window.LW_V4.caLineas).map(function (k) { return window.LW_V4.caLineas[k]; })) || [];
@@ -9520,7 +9541,7 @@
        viva (aqui las tres tablas son cortas y se ven enteras) y el `orden` de una
        cuenta, que alli tampoco se edita — nace al final de la lista. */
     cuentas: function (aut) {
-      var sb = aut.sb, superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
+      var sb = aut.sb, superAdmin = LW_ROL.esSuperAdmin(aut.ficha);   // el super de empresa crea y edita las cuentas de cobro de SU empresa (cuenta_bancaria_guarda)
       var soloSuper = function () {
         return aviso('Cambiar una cuenta de cobro o su reparto es solo para super_admin (policy es_super_admin) — tu sesión es de ' +
           ((aut.ficha && aut.ficha.rol) || 'agente') + '. Puedes verlo en las tablas.', '#8A6A34');
@@ -9879,7 +9900,7 @@
     ajustes: function (aut) {
       if (!window.AXW_NUCLEO_OPERACION) return;
       var sb = aut.sb;
-      var superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
+      var superAdmin = LW_ROL.esSuperGlobal(aut.ficha);   // impuestos y ajustes: de toda la instancia, no de una empresa
       window.LW_V4 = window.LW_V4 || {};
       var SIN_CUOTA = ['exenta', 'no_sujeta', 'isp'];
       var num = function (v) { var n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) ? n : null; };
@@ -11375,7 +11396,8 @@
 
     'sociedades': function (aut) {
       var sb = aut.sb;
-      var superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
+      var superAdmin = LW_ROL.esSuperAdmin(aut.ficha);       // editar la sociedad ligada a su empresa: el super de empresa (la base comprueba cuál)
+      var superGlobal = LW_ROL.esSuperGlobal(aut.ficha);     // una sociedad NUEVA aún no tiene empresa: solo un super global
       window.LW_V4 = window.LW_V4 || {};
 
       var soloSuper = function () {
@@ -11534,9 +11556,9 @@
       // ── Nueva sociedad ───────────────────────────────────────────────────
       var btnNueva = document.getElementById('btn-nueva-sociedad');
       if (btnNueva) {
-        if (superAdmin) btnNueva.hidden = false;
+        if (superGlobal) btnNueva.hidden = false;
         btnNueva.addEventListener('click', function () {
-          if (!superAdmin) return soloSuper();
+          if (!superGlobal) return soloSuper();
           var socs = window.LW_V4.sociedadesPorClave || {};
           var maxOrden = Object.keys(socs).reduce(function (m, k) { return Math.max(m, socs[k].orden || 0); }, 0);
 

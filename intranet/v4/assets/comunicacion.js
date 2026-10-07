@@ -38,7 +38,9 @@
     { k: 'sales_manager', t: 'Sales managers' },
     { k: 'project_manager', t: 'Project managers' },
     { k: 'admin', t: 'Admins' },
-    { k: 'super_admin', t: 'Super admins' }
+    { k: 'super_admin', t: 'Super admins' },
+    { k: 'admin_empresa', t: 'Admins de empresa' },
+    { k: 'super_admin_empresa', t: 'Super admins de empresa' }
   ];
   var ROL_DEFECTO = { agente: true, sales_manager: true };
   var ESTADO_TXT = { pendiente: 'En cola', enviando: 'Enviando', ok: 'Enviado', error: 'Falló' };
@@ -53,7 +55,7 @@
   }
   function bien(t) { if (typeof toast === 'function') toast(t); }
 
-  var sb = null;
+  var sb = null, FICHA = null;
   var actual = null;           // fila de `comunicados` abierta, o null = nuevo
   var sucio = false;           // hay cambios sin guardar en el formulario
   var usuarios = [];
@@ -279,7 +281,12 @@
     if (e) { toastMal(e); return Promise.resolve(null); }
     var b = $('lw-com-guardar'); b.disabled = true;
     // por el servidor (27-sep-2026, frontera bloque 5): la RPC exige admin y devuelve la fila guardada
-    var p = sb.rpc('comunicado_guarda', { p_id: actual && actual.id ? actual.id : null, p_datos: f });
+    /* Un comunicado NUEVO de quien gestiona dos empresas necesita saber de cuál (empresas de Lawang, 7-oct-2026): la base lo pide con
+       un 22023 y aquí se pregunta y se repite. Quien tiene una sola no pregunta nada; un admin global lo deja sin empresa (para todos). */
+    var llama = function (emp) {
+      return sb.rpc('comunicado_guarda', { p_id: actual && actual.id ? actual.id : null, p_datos: emp ? Object.assign({}, f, { empresa: emp }) : f });
+    };
+    var p = (actual && actual.id) ? llama(null) : LW_ROL.reintentaConEmpresa(FICHA, llama, { titulo: 'Elige la empresa del comunicado' });
     return p.then(function (r) {
       b.disabled = false;
       if (r.error) { mal(r.error, 'No se guardó'); return null; }
@@ -375,7 +382,7 @@
     var c = sucio ? leeForm() : actual, e = sucio ? valida(c) : null;
     if (e) { toastMal(e); return; }
     sb.rpc('comunicado_guarda', { p_id: null, p_datos: {
-      asunto: c.asunto, encabezado: c.encabezado, cuerpo: c.cuerpo, cta_url: c.cta_url, cta_texto: c.cta_texto
+      asunto: c.asunto, encabezado: c.encabezado, cuerpo: c.cuerpo, cta_url: c.cta_url, cta_texto: c.cta_texto, empresa: (actual && actual.empresa) || null
     } }).then(function (r) {
       if (r.error) { mal(r.error, 'No se duplicó'); return; }
       bien('Copia creada como borrador: cámbiala y envíala cuando quieras.');
@@ -451,9 +458,8 @@
   function arranca() {
     if (!window.LW_AUTH) { console.error('[comunicacion] sin guard'); return; }
     window.LW_AUTH.then(function (aut) {
-      var rol = aut && aut.ficha && aut.ficha.rol;
-      if (rol !== 'admin' && rol !== 'super_admin') { soloAdmin(); return; }
-      sb = aut.sb;
+      if (!LW_ROL.esAdmin(aut && aut.ficha)) { soloAdmin(); return; }
+      sb = aut.sb; FICHA = aut.ficha;
       cablea();
       // lista + destinatarios (activos con email, lo filtra el servidor) en una llamada; sin «Comunicación» la base
       // contesta 42501 y cargaLista lo dice

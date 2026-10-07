@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="cf5d95814517">
+<meta name="lw-version" content="32234ffc1b8f">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -41,8 +41,8 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/i18n.js?v=37dd9489"></script>
-<script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
-<script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=705d408d" defer></script>
+<script src="/contracts/assets/herramientas.js?v=e627e560"></script>
+<script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -56,7 +56,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=f7b084b6"></script>
+<script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=fd753568"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -112,8 +112,8 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=1e00b086"></script>
-<script src="/intranet/v4/assets/nav.js?v=c76dd0b9" defer></script>
+<script src="/contracts/assets/asistente-contrato.js?v=8cfd9306"></script>
+<script src="/intranet/v4/assets/nav.js?v=268436a5" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -6909,7 +6909,7 @@ async function init(){
   if(ficha && !ficha.activo){ await sb.auth.signOut(); location.href='/intranet/?desactivado=1'; return; }
   // solo el super admin se salta la lista (18-ago-2026); un admin sin
   // «contratos» marcado ya no entra, igual que un agente
-  if(ficha && ficha.rol !== 'super_admin' && !(ficha.herramientas||[]).includes('contratos')){
+  if(ficha && !LW_ROL.esSuperGlobal(ficha) && !(ficha.herramientas||[]).includes('contratos')){
     location.replace('/intranet/?sin_permiso=contratos'); return;
   }
   MI_FICHA = ficha || null;   // el panel de guardados lo usa para el botón de reasignar autor
@@ -6935,13 +6935,14 @@ async function init(){
   // El rol sale de la ficha que se acaba de leer tres líneas arriba: no hace
   // falta una segunda consulta para lo mismo. Decide si se PINTA el botón de
   // borrar; quien manda es la policy de DELETE de la RLS.
-  MI_ROL = ficha ? ficha.rol : null;
+  /* Rol EFECTIVO para pintar (admin_empresa = admin, super_admin_empresa = super admin; ver LW_ROL en guard.js). La base decide de verdad. */
+  MI_ROL = ficha ? LW_ROL.efectivo(ficha) : null;
   /* Los proyectos asignados, del mismo `ficha` que ya se leyó — sin segunda
      consulta. null = sin límite, y ese es el caso de admin, super_admin y de
      las cuentas sin ficha (las de antes del panel), exactamente el mismo corte
      que hace `puede_proyecto()` en la base. Si aquí y allí dejaran de coincidir,
      el desplegable ofrecería proyectos en los que el guardado rebota. */
-  MIS_PROYECTOS = (ficha && !['super_admin','admin'].includes(ficha.rol))
+  MIS_PROYECTOS = (ficha && !LW_ROL.esAdmin(ficha))
     ? (ficha.proyectos || []) : null;
 
   // "Editar texto" vuelve a ser solo de admin/super_admin (7-ago, pedido

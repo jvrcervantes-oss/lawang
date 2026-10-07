@@ -89,7 +89,7 @@
      da por libre una parcela cuyo contrato está liberado; esa se libera primero en su ficha. */
   var NO_DISPONIBLE = { reservada: 1, vendida: 1, cobrada: 1, no_disponible: 1, bloqueada: 1 };
   /* Mismo criterio que esAdminSesion de nav.js y que es_admin() en la base (rol admin o super_admin). */
-  function esAdminFicha(ficha) { return !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'); }
+  function esAdminFicha(ficha) { return LW_ROL.esAdmin(ficha); }
 
   /* ── Errores de la base → palabras. Se lee el `hint` (código estable de M0 §7.4) antes que el código. ─────── */
   var POR_HINT = {

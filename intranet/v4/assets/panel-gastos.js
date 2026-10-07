@@ -469,7 +469,7 @@
     if (!window.LW_AUTH) { aviso(T('Sin sesión: no se carga nada.'), 'mal'); return; }
     window.LW_AUTH.then(function (aut) {
       var rol = aut.ficha && aut.ficha.rol;
-      if (rol !== 'admin' && rol !== 'super_admin') { aviso(T('Esta pantalla es de dirección (admin).'), 'mal'); return; }
+      if (!LW_ROL.esAdmin(aut.ficha)) { aviso(T('Esta pantalla es de dirección (admin).'), 'mal'); return; }
       monta(aut);
     });
   }

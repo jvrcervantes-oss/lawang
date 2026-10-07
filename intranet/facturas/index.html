@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="280612ca96b4">
+<meta name="lw-version" content="7c83f097b32e">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -34,8 +34,8 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/i18n.js?v=37dd9489"></script>
-<script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
-<script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/topbar.js?v=705d408d" defer></script>
+<script src="/contracts/assets/herramientas.js?v=e627e560"></script>
+<script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/topbar.js?v=0906fb5b" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- La MISMA puerta que las otras (4-ago-2026), pero SIN `data-herramienta`:
      el permiso lo comprueba el script de esta pagina, que sabe un matiz que
@@ -43,7 +43,7 @@
      consultarla) NO se exige el permiso de emitir. Guard aporta lo otro:
      sesion, cuenta activa y UN SOLO cliente publicado en `LW_SB`. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6"></script>
+<script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=fd753568"></script>
 <!-- Los dialogos de esta herramienta usan `lwConfirmar` (assets/dialogo.js),
      el unico de la suite desde el 15-ago-2026. Antes convivian dos: este
      fichero llamaba a `suiConfirmar` de suite.js en dos sitios y a lwConfirmar
@@ -69,7 +69,7 @@
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /contracts. `creado_por` es con lo que la RLS decide quién puede editar
      su propio documento, no un adorno. -->
-<script src="/contracts/assets/autoria.js?v=3b88aaeb"></script>
+<script src="/contracts/assets/autoria.js?v=b9e3cc0b"></script>
 <style>
   /* --folio = color del papel del documento. Vive aquí y en un solo sitio a
      propósito: los logos de las sociedades vienen sin canal alfa (el de San
@@ -1005,7 +1005,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   // Operaciones lo embebe para consultar un documento ya emitido) no se exige:
   // consultar lo emitido está abierto a todo el equipo, igual que en la RLS,
   // donde el filtro por herramienta está en la escritura y no en la lectura.
-  const PUEDE_FACTURAS = !ficha || ficha.rol === 'super_admin'
+  const PUEDE_FACTURAS = !ficha || LW_ROL.esSuperGlobal(ficha)
      || (ficha.herramientas||[]).includes('facturas');
   if(!modoVista && !PUEDE_FACTURAS){
     location.replace('/intranet/?sin_permiso=facturas'); return;
@@ -1018,7 +1018,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   // Solo administradores y super admin borran facturas (petición del owner).
   // Sale de la ficha que se acaba de leer, sin una segunda consulta. Decide
   // qué botón se pinta; el candado es la policy de DELETE de la RLS.
-  ES_ADMIN = !!(ficha && ['super_admin','admin'].includes(ficha.rol));
+  ES_ADMIN = LW_ROL.esAdmin(ficha);   // admin_empresa cuenta como admin; la policy de DELETE decide de verdad
   /* Las cuentas de cobro vienen de la base (6-ago-2026, ya no de entities.js:
      ese fichero es público por web y por el repo de GitHub). Va DENTRO de la
      sesión restaurada, o la consulta saldría como anon y la RLS la niega.

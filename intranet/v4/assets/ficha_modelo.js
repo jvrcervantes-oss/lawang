@@ -126,8 +126,7 @@
   var EST = { admin: false, ctx: null, m: null };
   if (window.LW_AUTH && window.LW_AUTH.then) {
     window.LW_AUTH.then(function (aut) {
-      var r = aut && aut.ficha && aut.ficha.rol;
-      EST.admin = r === 'admin' || r === 'super_admin';
+      EST.admin = LW_ROL.esAdmin(aut && aut.ficha);
       if (EST.m) pintar(EST.m, EST.ctx);   // el rol llega después del primer pintado
     });
   }

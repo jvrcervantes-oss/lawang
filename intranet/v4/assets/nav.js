@@ -94,7 +94,7 @@
       { path: 'compradores', texto: 'Clientes', clave: 'compradores' }] },
     { seccion: 'Panel de control', entradas: [
       { path: 'usuarios', texto: 'Usuarios', clave: 'usuarios', rol: 'admin' },
-      { path: 'ajustes', texto: 'Ajustes', clave: 'ajustes', rol: 'admin' },
+      { path: 'ajustes', texto: 'Ajustes', clave: 'ajustes', rol: 'admin', global: true },
       { path: 'comision-admin', texto: 'Comisión de administración', rol: 'super_admin' },
       { path: 'sociedades', texto: 'Sociedades emisoras', rol: 'super_admin' }] }
   ];
@@ -435,7 +435,7 @@
        la tabla `parametros`. Admin + casilla `ajustes` desde el 27-sep-2026 (la
        exige también mantenimiento_intranet/_envios); escribir un parámetro exige
        super admin en la base (parametro_set), como Cuentas. */
-    { path: 'ajustes',       icono: 'tune',             texto: 'Ajustes' },
+    { path: 'ajustes',       icono: 'tune',             texto: 'Ajustes', global: true },
     /* Comunicación (23-sep-2026, owner: «algo como "Comunicación" para
        escribir yo las plantillas y que se manden a los agentes»): comunicados
        por email al equipo. Admin + casilla `comunicacion` (27-sep-2026; la puerta
@@ -501,13 +501,14 @@
   function rolPasa(rol, ficha) {
     if (!rol) return true;
     if (!ficha) return true;                          // sin ficha no se poda (como puedeVer)
-    if (ficha.rol === 'super_admin') return true;
+    var efectivo = LW_ROL.efectivo(ficha);              // admin_empresa = admin, super_admin_empresa = super (guard.js)
+    if (efectivo === 'super_admin') return true;
     var lista = rol.split(/\s+/);
-    return lista.indexOf(ficha.rol) !== -1;
+    return lista.indexOf(efectivo) !== -1;
   }
   function pestanaVisible(t, ficha) {
     if (t.nucleo && !window.AXW_NUCLEO_OPERACION) return false;
-    if (!ficha || ficha.rol === 'super_admin') return true;
+    if (!ficha || LW_ROL.esSuperGlobal(ficha)) return true;   // las casillas solo se las salta el super global (como puede() en la base)
     return rolPasa(t.rol, ficha) && (ficha.herramientas || []).indexOf(t.clave) !== -1;
   }
   function pestanasDe(grupo, ficha) {
@@ -525,7 +526,7 @@
   function puedeVer(path, ficha) {
     if (GRUPOS[path]) return !ficha || pestanasDe(path, ficha).length > 0;
     var k = CLAVE_MENU[path];
-    if (!k || !ficha || ficha.rol === 'super_admin') return true;
+    if (!k || !ficha || LW_ROL.esSuperGlobal(ficha)) return true;
     return [].concat(k).some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; });
   }
   /* SUBMENÚ (30-sep-2026, owner: «al clicar en Cobros que se abra Vencimientos, Facturas y
@@ -539,7 +540,7 @@
   function submenu(entrada, g, mias, aquiG, ficha) {
     var previo = entrada.parentNode && entrada.parentNode.querySelector('[data-lw-sub="' + g + '"]');
     if (previo) previo.parentNode.removeChild(previo);
-    var rol = (ficha && ficha.rol) || '';
+    var rol = (ficha && LW_ROL.efectivo(ficha)) || '';
     var aqui = aquiG && aquiG.grupo === g;
     var sub = document.createElement('div');
     sub.setAttribute('data-lw-sub', g);
@@ -615,7 +616,7 @@
     var mias = pestanasDe(aquiG.grupo, ficha);
     var main = document.querySelector('main');
     if (!main || !mias.length) return;
-    var rol = (ficha && ficha.rol) || '';
+    var rol = (ficha && LW_ROL.efectivo(ficha)) || '';
     var barra = document.createElement('nav');
     barra.id = idBarra;
     barra.setAttribute('aria-label', T(GRUPOS[aquiG.grupo].texto));
@@ -793,8 +794,8 @@
      quita `visibility:hidden` justo despues de resolver la promesa), asi que no
      hay parpadeo: el usuario nunca llega a ver el menu sin estos dos items y
      luego perderlos. */
-  function esAdminSesion(ficha) { return !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'); }
-  function esSuperSesion(ficha) { return !!ficha && ficha.rol === 'super_admin'; }
+  function esAdminSesion(ficha) { return LW_ROL.esAdmin(ficha); }         // un rol de empresa cuenta como admin para MOSTRAR
+  function esSuperSesion(ficha) { return LW_ROL.esSuperAdmin(ficha); }
 
   /* Construye la seccion "Panel de control" entera (cabecera + 3 enlaces) y
      la cuelga justo detras del grupo que contiene "Usuarios" ("Base de
@@ -818,6 +819,7 @@
     nuevoGrupo.appendChild(ancla);                // appendChild MUEVE Usuarios: sale de "Base de Datos"
 
     PANEL_CONTROL.concat(esSuperSesion(ficha) ? PANEL_CONTROL_SUPER : []).forEach(function (spec) {
+      if (spec.global && !LW_ROL.esGlobal(ficha)) return;   // Ajustes: de toda la instancia, un rol de empresa no la ve
       var a = ancla.cloneNode(true);              // clon de "Usuarios": hereda las clases exactas
       a.setAttribute('data-path', spec.path);
       desmarca(a);
@@ -931,7 +933,7 @@
         var g = a.parentElement; if (g && g.style.display === 'none') return;
         var dp = a.getAttribute('data-path');
         if (GRUPOS[dp]) {
-          var rol = (FICHA_SESION && FICHA_SESION.rol) || '';
+          var rol = (FICHA_SESION && LW_ROL.efectivo(FICHA_SESION)) || '';
           pestanasDe(dp, FICHA_SESION).forEach(function (t) {
             out.push({ nombre: T((t.rotulo && t.rotulo[rol]) || t.texto), href: ROOT + t.path + '/' });
           });

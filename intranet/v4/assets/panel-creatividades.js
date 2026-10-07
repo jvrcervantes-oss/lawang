@@ -44,9 +44,9 @@
 
   var FICHA = null, SB = null, PROY = {}, TODAS = [];
   var FILTRO = { estado: 'todo', tipo: '', proyecto_id: '' };
-  function tiene(h) { return !!FICHA && (FICHA.rol === 'super_admin' || (FICHA.herramientas || []).indexOf(h) >= 0); }
+  function tiene(h) { return LW_ROL.puedeHerr(FICHA, h); }
   function haceTipo(t) { return t === 'pieza' ? tiene('creatividades') : tiene('dossier'); }
-  function esAdmin() { return !!FICHA && (FICHA.rol === 'admin' || FICHA.rol === 'super_admin'); }
+  function esAdmin() { return LW_ROL.esAdmin(FICHA); }
   function soloVe() { return !tiene('creatividades') && !tiene('dossier'); }
   function mia(c) { return !!FICHA && !!c.enviada_por && c.enviada_por === FICHA.user_id; }
 

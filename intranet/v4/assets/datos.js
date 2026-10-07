@@ -83,7 +83,7 @@
      (comisiones_evaluar_contrato_fn.sql) solo lee `contrato_closer` de ahí. */
   function closerPuede() {
     var f = window.LW_V4 && window.LW_V4.ficha;
-    return !!f && (f.rol === 'super_admin' || (f.herramientas || []).indexOf('ranking') !== -1);
+    return !!f && (LW_ROL.esSuperGlobal(f) || (f.herramientas || []).indexOf('ranking') !== -1);
   }
   var CLOSER_CACHE = null; // promesa -> { map: {contrato_id: email|''}, equipo: [{email,nombre}] }
   /* Única vía de LECTURA: `contrato_closer` no admite SELECT directo ni para
@@ -1274,7 +1274,7 @@
       var tiposReserva = (r[7].data || []).map(function (x) { return x.tipo; });
       var unidadesLigadas = r[8].data || [];
       var unidadesReservadas = unidadesLigadas.filter(function (u) { return u.estado === 'reservada'; });
-      var rolSesion = (window.LW_V4 && window.LW_V4.ficha && window.LW_V4.ficha.rol) || '';
+      var rolSesion = LW_ROL.efectivo(window.LW_V4 && window.LW_V4.ficha);   // efectivo: admin_empresa = admin
       var puedeVerBoton = rolSesion === 'admin' || rolSesion === 'super_admin' || rolSesion === 'sales_manager';
       var esCartaReserva = tiposReserva.indexOf(c.tipo) !== -1;
       /* Liberar y Prorrogar van JUNTAS en una sección «Reserva», a dos columnas
@@ -1918,6 +1918,52 @@
       cont.appendChild(b);
     });
   }
+  /* ── EMPRESAS EN LAS LISTAS (cierre del encargo «dos empresas», 7-oct-2026) ─────────────────────────────────────────────
+     Quien trabaja con más de una empresa (el propietario, un super global, un rol con dos) ve un filtro «Todas · Lawang ·
+     Sandal Woods» en las listas principales, y las listas rotulan de qué empresa es cada equipo. Quien tiene UNA no ve nada
+     nuevo. Por defecto el filtro está en «Todas»: nadie ve distinto de lo que la base ya le da. Es una ayuda para mirar, no un
+     permiso: la base decide qué filas llegan. La empresa de una fila sale de SU PROYECTO (un dato, un dueño). */
+  var EMP_VISTA = null;
+  function empresasVista() {
+    if (EMP_VISTA) return EMP_VISTA;
+    var sbv = window.LW_SB, ficha = window.LW_V4 && window.LW_V4.ficha;
+    EMP_VISTA = Promise.all([
+      LW_ROL.misEmpresas(ficha),
+      sbv ? Promise.resolve(sbv.from('proyectos').select('nombre,empresa')).then(function (r) { return (r && !r.error && r.data) || []; }, function () { return []; }) : Promise.resolve([])
+    ]).then(function (r) {
+      var nombre = {}, deProy = {};
+      r[0].forEach(function (e) { nombre[e.clave] = e.nombre; });
+      r[1].forEach(function (p) { deProy[p.nombre] = p.empresa || ''; });
+      return {
+        multi: r[0].length > 1, mias: r[0],
+        nombre: function (clave) { return clave ? (nombre[clave] || clave) : ''; },
+        deProyecto: function (nom) { return deProy[nom] || ''; }
+      };
+    });
+    return EMP_VISTA;
+  }
+  /* Filtro por empresa de una lista con filas `tr[data-lw-fila]` que llevan `data-lw-proyecto`. `ref` es un contenedor de chips
+     de la misma pantalla (de él se copian clases y colores); el nuestro se cuelga justo encima. */
+  function filtroEmpresaListado(tbody, estado, aplicar, ref) {
+    if (!tbody || !ref) return;
+    empresasVista().then(function (ev) {
+      if (!ev.multi || ref.parentNode.querySelector('[data-lw-chips="emp"]')) return;
+      Array.prototype.forEach.call(tbody.querySelectorAll('tr[data-lw-fila]'), function (tr) {
+        tr.setAttribute('data-lw-emp', ev.deProyecto(tr.getAttribute('data-lw-proyecto') || ''));
+      });
+      var cont = document.createElement('div');
+      cont.className = ref.className;
+      ['data-lw-on', 'data-lw-off', 'data-lw-base'].forEach(function (a) { if (ref.hasAttribute(a)) cont.setAttribute(a, ref.getAttribute(a)); });
+      cont.setAttribute('data-lw-chips', 'emp');
+      var lab = document.createElement('span');
+      lab.className = (ref.firstElementChild && ref.firstElementChild.className) || '';
+      var Tt = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+      lab.textContent = Tt('Empresa');
+      cont.appendChild(lab);
+      ref.parentNode.insertBefore(cont, ref);
+      chipsReales(cont, 'emp', [{ clave: '*', texto: Tt('Todas') }].concat(ev.mias.map(function (e) { return { clave: e.clave, texto: e.nombre }; })), estado, aplicar);
+    });
+  }
   function aplicaFiltros(tbody, estado, grupos, texto, alTerminar) {
     var n = 0;
     Array.prototype.forEach.call(tbody.querySelectorAll('tr[data-lw-fila]'), function (tr) {
@@ -2119,6 +2165,7 @@
               fFecha(c.created_at), c.creado_por || '—', '', '']);
             var tr = pl.tbody.lastElementChild;
             tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', c.id);
+            tr.setAttribute('data-lw-proyecto', c.proyecto_nombre || '');
             tr.setAttribute('data-lw-tipo', c.tipo || '');
             tr.setAttribute('data-lw-estado', estadoC(c));
             tr.setAttribute('data-lw-mio', miEmail && c.creado_por === miEmail ? '1' : '0');
@@ -2155,8 +2202,9 @@
           ];
           if (miEmail) opsEstado.push({ clave: '1', atributo: 'mio', texto: 'Míos', n: mios });
           var aplicar = function () {
-            aplicaFiltros(pl.tbody, estado, ['tipo', 'estado'], texto, function (n) { pon2('p-desde', String(n)); });
+            aplicaFiltros(pl.tbody, estado, ['tipo', 'estado', 'emp'], texto, function (n) { pon2('p-desde', String(n)); });
           };
+          filtroEmpresaListado(pl.tbody, estado, aplicar, document.querySelector('[data-lw-chips="tipo"]'));
           chipsReales(document.querySelector('[data-lw-chips="tipo"]'), 'tipo', opsTipo, estado, aplicar);
           chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', opsEstado, estado, aplicar);
           buscadorDe(aplicar, function (v) { texto = v; });
@@ -2250,6 +2298,7 @@
                 fmt(f.total, f.moneda), '', fFecha(f.fecha_emision || f.created_at), '', '', '']);
               var tr = pl.tbody.lastElementChild;
               tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', f.id);
+              tr.setAttribute('data-lw-proyecto', f.proyecto_nombre || '');
               tr.setAttribute('data-lw-tipo', f.tipo === 'proforma' ? 'proforma' : 'factura');
               tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.enviada ? 'enviada' : 'emitida'));
               var cobro = cobroDe(f); tr.setAttribute('data-lw-cobro', cobro);
@@ -2338,9 +2387,10 @@
             // siguen a un clic.
             var estado = { tipo: { attr: 'tipo', valor: 'factura' } }, texto = '', vista = 'lista';
             var aplicar = function () {
-              aplicaFiltros(pl.tbody, estado, ['tipo', 'estado', 'cobro'], texto, function (n) { pon2('p-desde', String(n)); });
+              aplicaFiltros(pl.tbody, estado, ['tipo', 'estado', 'cobro', 'emp'], texto, function (n) { pon2('p-desde', String(n)); });
               sincronizaCabecerasGrupo();
             };
+            filtroEmpresaListado(pl.tbody, estado, aplicar, document.querySelector('[data-lw-chips="tipo"]'));
             var cuenta = function (f) { return fs.filter(f).length; };
             chipsReales(document.querySelector('[data-lw-chips="tipo"]'), 'tipo', [
               { clave: 'factura', texto: 'Facturas', n: nFac },
@@ -2429,6 +2479,7 @@
                 nj ? nj + ' adjunto' + (nj === 1 ? '' : 's') : 'sin justificante', fFecha(r.fecha_emision || r.created_at), '', '', '']);
               var tr = pl.tbody.lastElementChild;
               tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', r.id);
+              tr.setAttribute('data-lw-proyecto', r.proyecto_nombre || '');
               tr.setAttribute('data-lw-moneda', m);
               tr.setAttribute('data-lw-estado', r.anulada ? 'anulado' : 'emitido');
               tr.setAttribute('data-lw-just', nj ? '1' : '0');
@@ -2459,7 +2510,8 @@
               ev.stopPropagation(); var r = porId[tr.getAttribute('data-lw-id')]; if (r) fichaFactura(sb, r);
             });
             var estado = {}, texto = '';
-            var aplicar = function () { aplicaFiltros(pl.tbody, estado, ['moneda', 'estado'], texto, function (n) { pon2('p-desde', String(n)); }); };
+            var aplicar = function () { aplicaFiltros(pl.tbody, estado, ['moneda', 'estado', 'emp'], texto, function (n) { pon2('p-desde', String(n)); }); };
+            filtroEmpresaListado(pl.tbody, estado, aplicar, document.querySelector('[data-lw-chips="moneda"]'));
             chipsReales(document.querySelector('[data-lw-chips="moneda"]'), 'moneda',
               [{ clave: '*', texto: 'Todas', n: rs.length }].concat(Object.keys(porMon).sort().map(function (m) { return { clave: m, texto: 'Divisa ' + m, n: porMon[m] }; })), estado, aplicar);
             chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', [
@@ -3643,7 +3695,7 @@
           pon2('k-pendiente-pie', T('Lo que falta por cobrar de las operaciones con contrato firmado.'));
         }
         var aplicar = function () {
-          aplicaFiltros(tbody, estado, ['estado', 'proyecto'], texto, function () { pintaTotales(); });
+          aplicaFiltros(tbody, estado, ['estado', 'proyecto', 'emp'], texto, function () { pintaTotales(); });
         };
         var nDe = function (fn) { return raices.filter(fn).length; };
         var ops = [
@@ -3666,6 +3718,7 @@
           aplicar();
         });
         buscadorDe(aplicar, function (v) { texto = v; });
+        filtroEmpresaListado(tbody, estado, aplicar, contChips);
         var sel = document.querySelector('main select');
         if (sel) {
           var proys = {}; raices.forEach(function (o) { if (o.proyecto_nombre) proys[o.proyecto_nombre] = (proys[o.proyecto_nombre] || 0) + 1; });
@@ -4122,7 +4175,7 @@
       var VISTAS = ['rejilla', 'tabla', 'carpetas'];
       var vistaGuardada = null;
       try { vistaGuardada = sessionStorage.getItem(CLAVE_VISTA); } catch (_) {}
-      var EST = { q: '', chipP: 'todos', chipU: 'todas', pag: 1, vista: VISTAS.indexOf(vistaGuardada) !== -1 ? vistaGuardada : 'rejilla' };
+      var EST = { q: '', emp: '*', chipP: 'todos', chipU: 'todas', pag: 1, vista: VISTAS.indexOf(vistaGuardada) !== -1 ? vistaGuardada : 'rejilla' };
       var PS = [], POR_P = {}, COB_P = {}, DOC_P = {}, EQUIPO_NOMBRE = {}, MGRS = [];
       // FAM_P: firmado/cobrado por proyecto y familia (parcela/obra). FIRM_P:
       // firmado combinado por proyecto (para la barra sencilla de la tarjeta).
@@ -4256,7 +4309,7 @@
         var sec = document.getElementById('empresa-general');
         var caja = document.getElementById('d-generales');
         var fichaG = window.LW_V4 && window.LW_V4.ficha;
-        var puedeDoc = !!fichaG && (fichaG.rol === 'super_admin' || (fichaG.herramientas || []).indexOf('documentacion') !== -1);
+        var puedeDoc = !!fichaG && (LW_ROL.esSuperGlobal(fichaG) || (fichaG.herramientas || []).indexOf('documentacion') !== -1);
         if (!sec || !caja || !puedeDoc || typeof lwEsDocGeneral !== 'function') return;
         var cajaE = document.getElementById('d-enlaces');
         if (!MOLDE_ENLACE && cajaE && cajaE.firstElementChild) MOLDE_ENLACE = cajaE.firstElementChild.cloneNode(true);
@@ -4291,6 +4344,7 @@
       function proyectosFiltrados() {
         return PS.filter(function (p) {
           var d = POR_P[p.nombre] || { t: 0, disp: 0, porEstado: {} };
+          if (EST.emp !== '*' && (p.empresa || '') !== EST.emp) return false;   // filtro por empresa (solo quien tiene varias lo ve)
           if (EST.chipP === 'comercializacion' && !(d.t && d.disp)) return false;
           if (EST.chipP === 'completados' && !(d.t && !d.disp)) return false;
           if (EST.chipP === 'estudio' && d.t) return false;
@@ -4570,9 +4624,9 @@
            es peor que no pintarlo: parece un fallo del sistema, no un límite
            de rol. */
         var fichaDoc = window.LW_V4.ficha;
-        var puedeEditarDoc = !!fichaDoc && (fichaDoc.rol === 'super_admin' || (fichaDoc.herramientas || []).indexOf('documentacion') !== -1);
+        var puedeEditarDoc = !!fichaDoc && (LW_ROL.esSuperGlobal(fichaDoc) || (fichaDoc.herramientas || []).indexOf('documentacion') !== -1);
         // borrar: super admin, o admin CON la herramienta (owner 28-sep-2026); lo decide documento_proyecto_borra
-        var puedeBorrarDoc = !!window.LW_V4.esSuperAdmin || (!!fichaDoc && fichaDoc.rol === 'admin' && (fichaDoc.herramientas || []).indexOf('documentacion') !== -1);
+        var puedeBorrarDoc = !!window.LW_V4.esSuperAdmin || (!!fichaDoc && LW_ROL.efectivo(fichaDoc) === 'admin' && (fichaDoc.herramientas || []).indexOf('documentacion') !== -1);
         var pintaAccionesDoc = function (f) {
           var be = f.querySelector('[data-doc-editar]'), bb = f.querySelector('[data-doc-borrar]');
           if (be) be.classList.toggle('hidden', !puedeEditarDoc);
@@ -5481,6 +5535,26 @@
         var contU = document.getElementById('chips-estado');
         var clasesP = chipClases(contP), clasesU = chipClases(contU);
         pintaPuntosChips();
+        /* «Todas · Lawang · Sandal Woods»: solo para quien trabaja con más de una empresa. Misma botonera que «Todos / En comercialización…». */
+        empresasVista().then(function (ev) {
+          if (!ev.multi || !contP || document.getElementById('chips-empresa')) return;
+          var cE = document.createElement('div');
+          cE.className = contP.className; cE.id = 'chips-empresa';
+          var Tt = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+          [{ c: '*', t: Tt('Todas') }].concat(ev.mias.map(function (e) { return { c: e.clave, t: e.nombre }; })).forEach(function (o, i) {
+            var b = document.createElement('button');
+            b.type = 'button'; b.setAttribute('data-real', ''); b.setAttribute('data-chip-e', o.c);
+            b.className = clasesP ? (i === 0 ? clasesP.activo : clasesP.inactivo) : '';
+            b.textContent = o.t;
+            b.addEventListener('click', function () {
+              EST.emp = o.c; EST.pag = 1;
+              marcaChip(cE, 'data-chip-e', EST.emp, clasesP);
+              renderizar();
+            });
+            cE.appendChild(b);
+          });
+          contP.parentNode.insertBefore(cE, contP);
+        });
         if (contP) contP.querySelectorAll('[data-chip-p]').forEach(function (b) {
           b.addEventListener('click', function () {
             EST.chipP = b.getAttribute('data-chip-p'); EST.pag = 1;
@@ -7500,10 +7574,13 @@
            lee condiciones_comision: tras F4 la RLS no le da la genérica de su equipo y salía «Sin condición». */
         if (window.LW_V4 && window.LW_V4._mioEnCurso) return;
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4._mioEnCurso = true;
+        var evMi = null;   // empresas de las condiciones (mi_condicion_comision devuelve la empresa de cada fila)
         Promise.all([
           sb.rpc('mi_condicion_comision'),
-          sb.from('proyectos').select('id,nombre')
+          sb.from('proyectos').select('id,nombre'),
+          empresasVista()
         ]).then(function (rr) {
+          evMi = rr[2];
           window.LW_V4._mioEnCurso = false;   /* terminada: una recarga de la pestaña vuelve a pedirla */
           var errCond = rr[0] && rr[0].error;
           var conds = (rr[0] && rr[0].data) || [];
@@ -7544,7 +7621,10 @@
           var BASES = { precio_total: 'precio total', precio_suelo: 'precio de suelo', precio_construccion: 'precio de construcción' };
           var txt = function (c) {
             var v = c.importe_fijo != null ? fmt(c.importe_fijo, 'EUR') + ' fijos' : String(c.pct_comision).replace('.', ',') + ' % del ' + (BASES[c.base_calculo] || 'precio');
-            return v + (c.proyecto_id ? ' en ' + (nomP[c.proyecto_id] || 'un proyecto') : ' en todos los proyectos') + (c.personal ? ' (solo para ti)' : '');
+            // con condiciones en dos empresas se dice de cuál es cada una; con una sola, como siempre
+            var distintas = {}; conds.forEach(function (x) { if (x.empresa) distintas[x.empresa] = 1; });
+            var deEmp = evMi && c.empresa && Object.keys(distintas).length > 1 ? ' · ' + evMi.nombre(c.empresa) : '';
+            return v + (c.proyecto_id ? ' en ' + (nomP[c.proyecto_id] || 'un proyecto') : ' en todos los proyectos') + (c.personal ? ' (solo para ti)' : '') + deEmp;
           };
           var condHtml = errCond ? '<span class="font-body-md text-body-md text-outline">No se ha podido leer tu condición.</span>'
             : !conds.length ? '<span class="font-body-md text-body-md text-outline">Sin condición activa: pregunta a tu manager.</span>'
@@ -8158,7 +8238,7 @@
     }
     if (VPC === 'cargando') return;
     var ficha = (window.LW_V4 && window.LW_V4.ficha) || {};
-    var puedeResolver = ctx.esAdm && (ficha.rol === 'super_admin' || (ficha.herramientas || []).indexOf('comisiones_reparto') !== -1);
+    var puedeResolver = ctx.esAdm && (LW_ROL.esSuperAdmin(ficha) || (ficha.herramientas || []).indexOf('comisiones_reparto') !== -1);
     var motivoAdm = ctx.esAdm && !puedeResolver ? T('Hace falta la casilla «Reparto a closers» en tus permisos') : '';
     // filtro de equipo: cuota y filas traen el equipo CONGELADO de la venta (equipo_id, 20260930131454)
     var eqId = ctx.filtroId;
@@ -8272,12 +8352,18 @@
     var hoy = new Date().toISOString().slice(0, 10);
 
     Promise.all([
-      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,created_at,closers_ven_comision').order('nombre'), 'equipos de venta', cuerpoEq),
+      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,created_at,closers_ven_comision,empresa').order('nombre'), 'equipos de venta', cuerpoEq),
       q(sb.from('equipo_miembros').select('id,equipo_id,closer_email,desde,hasta,rol,rol_nombre').order('desde', { ascending: false }), 'miembros de equipo', cuerpoMi),
-      q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios')
+      q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios'),
+      empresasVista()
     ]).then(function (r) {
-      var equipos = r[0], miembros = r[1] || [], usuarios = r[2] || [];
+      var equipos = r[0], miembros = r[1] || [], usuarios = r[2] || [], ev = r[3];
       if (!equipos) return;
+      /* Cada empresa tiene sus equipos y los gemelos se llaman igual (decisión del owner, 7-oct-2026): quien trabaja con varias
+         empresas ve la empresa junto al nombre y puede filtrar por ella. Quien tiene una sola no ve nada distinto. */
+      var etqE = function (e) { return e ? e.nombre + (ev.multi && e.empresa ? ' · ' + ev.nombre(e.empresa) : '') : '—'; };
+      var empFiltro = '';
+      var equipoVisible = function (e) { return !empFiltro || e.empresa === empFiltro; };
       if (!esAdmEq) {
         equipos = equipos.filter(function (e) { return (e.manager_email || '').toLowerCase() === miEmailEq; });
         var misIds = equipos.map(function (e) { return e.id; });
@@ -8288,7 +8374,7 @@
           : 'Todavía no diriges ningún equipo de venta. Cuando administración te asigne uno, aparecerá aquí con sus closers.';
       }
       // el editor de miembro ofrece el equipo en un select: la lista es esta, no otra consulta
-      window.LW_V4.equiposLista = equipos.map(function (e) { return [e.id, e.nombre + (e.activo ? '' : ' (de baja)')]; });
+      window.LW_V4.equiposLista = equipos.map(function (e) { return [e.id, etqE(e) + (e.activo ? '' : ' (de baja)')]; });
       publicaUsuariosLista(usuarios);
       var nombrePorEmail = {};
       usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });
@@ -8317,15 +8403,18 @@
       if (selEq) {
         var actual = selEq.value;
         selEq.innerHTML = '<option value="">Todos los equipos</option>' +
-          equipos.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.nombre) + (e.activo ? '' : ' (de baja)') + '</option>'; }).join('');
+          equipos.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(etqE(e)) + (e.activo ? '' : ' (de baja)') + '</option>'; }).join('');
         selEq.value = actual;
       }
 
-      if (cuerpoEq) {
-        cuerpoEq.innerHTML = equipos.length ? equipos.map(function (e) {
+      function pintaEquipos() {
+        if (!cuerpoEq) return;
+        var visibles = equipos.filter(equipoVisible);
+        cuerpoEq.innerHTML = visibles.length ? visibles.map(function (e) {
           var activosDelEquipo = (porEquipo[e.id] || []).filter(estaActivo).length;
           return '<tr class="border-b border-outline-variant/30">' +
-            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(e.nombre) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(e.nombre) +
+              (ev.multi && e.empresa ? '<div class="font-body-sm text-[11px] text-outline">' + esc(ev.nombre(e.empresa)) + '</div>' : '') + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(nombreDe(e.manager_email)) + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + activosDelEquipo + '</td>' +
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
@@ -8339,17 +8428,19 @@
             '</div></td></tr>';
         }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ningún equipo dado de alta todavía.</td></tr>';
       }
+      pintaEquipos();
 
       function pintaMiembros() {
         if (!cuerpoMi) return;
         var filtro = selEq ? selEq.value : '';
-        var lista = filtro ? miembros.filter(function (m) { return m.equipo_id === filtro; }) : miembros;
+        var idsVis = {}; equipos.filter(equipoVisible).forEach(function (e) { idsVis[e.id] = 1; });
+        var lista = miembros.filter(function (m) { return (!filtro || m.equipo_id === filtro) && idsVis[m.equipo_id]; });
         cuerpoMi.innerHTML = lista.length ? lista.map(function (m) {
           var eq = equipos.filter(function (e) { return e.id === m.equipo_id; })[0];
           var activo = estaActivo(m);
           return '<tr class="border-b border-outline-variant/30">' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(nombreDe(m.closer_email)) + '</td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(eq ? eq.nombre : '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(etqE(eq)) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(m.desde)) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + (m.hasta ? esc(fFecha(m.hasta)) : '—') + '</td>' +
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
@@ -8363,6 +8454,15 @@
         }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Sin miembros para este filtro.</td></tr>';
       }
       pintaMiembros();
+      if (ev.multi && selEq && selEq.parentNode) {
+        var selEmpEq = document.createElement('select');
+        selEmpEq.className = selEq.className; selEmpEq.id = 'lw-eq-empresa'; selEmpEq.setAttribute('data-real', '');
+        selEmpEq.setAttribute('aria-label', (typeof lwT === 'function') ? lwT('Empresa') : 'Empresa');
+        selEmpEq.innerHTML = '<option value="">' + esc((typeof lwT === 'function') ? lwT('Todas las empresas') : 'Todas las empresas') + '</option>' +
+          ev.mias.map(function (e) { return '<option value="' + esc(e.clave) + '">' + esc(e.nombre) + '</option>'; }).join('');
+        selEmpEq.addEventListener('change', function () { empFiltro = selEmpEq.value; pintaEquipos(); pintaMiembros(); });
+        selEq.parentNode.insertBefore(selEmpEq, selEq);
+      }
       var ctxMe = { equipos: equipos, miembros: miembros, nombreDe: nombreDe, esAdm: esAdmEq, miEmail: miEmailEq, equipoId: null };
       var repintaMe = function () {
         // el SM, su equipo (o el del filtro si dirige varios); admin, el del filtro
@@ -8444,14 +8544,19 @@
     var selProyecto = document.getElementById('lw-co-proyecto');
 
     Promise.all([
-      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,vigente_desde,vigente_hasta,created_at,sustituye_a').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
-      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
+      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,vigente_desde,vigente_hasta,created_at,sustituye_a,empresa').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
+      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,empresa'), 'equipos de venta'),
       q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
       q(sb.from('condicion_tramos').select('id,condicion_id,orden,disparador_tipo,umbral,pct_tramo').order('orden'), 'tramos de comisión'),
-      q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios')
+      q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios'),
+      empresasVista()
     ]).then(function (r) {
-      var conds = r[0], equipos = r[1] || [], proyectos = r[2] || [], tramos = r[3] || [], usuarios = r[4] || [];
+      var conds = r[0], equipos = r[1] || [], proyectos = r[2] || [], tramos = r[3] || [], usuarios = r[4] || [], ev = r[5];
       if (!conds) return;
+      /* Equipos y condiciones son de cada empresa y los gemelos se llaman igual: con varias empresas se rotula la empresa y se
+         puede filtrar (empresas de Lawang, 7-oct-2026). Con una sola, todo como antes. */
+      var sufEmp = function (clave) { return ev.multi && clave ? ' · ' + ev.nombre(clave) : ''; };
+      var empFiltroC = '';
       if (!esAdmC) {
         var mios = equipos.filter(function (e) { return e.activo && (e.manager_email || '').toLowerCase() === miEmailC; });
         if (!mios.length) { notaSoloAdmin(); if (cuerpo) cuerpo.innerHTML = ''; return; }
@@ -8464,7 +8569,7 @@
         });
       }
       publicaUsuariosLista(usuarios);
-      var equipoDe = {}; equipos.forEach(function (e) { equipoDe[e.id] = e.nombre; });
+      var equipoDe = {}; equipos.forEach(function (e) { equipoDe[e.id] = e.nombre + sufEmp(e.empresa); });
       var proyectoDe = {}; proyectos.forEach(function (p) { proyectoDe[p.id] = p.nombre; });
       var nombrePorEmail = {}; usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });
       var tramosDe = {}; tramos.forEach(function (t) { (tramosDe[t.condicion_id] = tramosDe[t.condicion_id] || []).push(t); });
@@ -8492,7 +8597,7 @@
 
       if (selEquipo) selEquipo.innerHTML = '<option value="">Todos los equipos</option>' +
         (esAdmC ? '<option value="__estandar__">Estándar de ' + esc(lwMarca('%marca')) + ' (sin equipo)</option>' : '') +
-        equipos.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.nombre) + '</option>'; }).join('');
+        equipos.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.nombre + sufEmp(e.empresa)) + '</option>'; }).join('');
       if (selProyecto) selProyecto.innerHTML = '<option value="">Todos los proyectos</option>' +
         proyectos.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>'; }).join('');
 
@@ -8503,7 +8608,8 @@
           var okEquipo = !fe || (fe === '__estandar__' ? !c.equipo_id : c.equipo_id === fe);
           // una condición «todos los proyectos» aplica también al proyecto filtrado
           var okProyecto = !fp || c.proyecto_id === fp || !c.proyecto_id;
-          return okEquipo && okProyecto;
+          var okEmpresa = !empFiltroC || c.empresa === empFiltroC;
+          return okEquipo && okProyecto && okEmpresa;
         });
         var enVigor = lista.filter(function (c) { return estadoCond(c) !== 'cerrada'; });
         var cerradas = lista.filter(function (c) { return estadoCond(c) === 'cerrada'; })
@@ -8518,7 +8624,7 @@
              quien cierra sin equipo, la paga Lawang; proyecto NULL = todos. */
           var estandar = !c.equipo_id;
           var quien = estandar
-            ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'quien cierre sin equipo · paga ' + esc(lwMarca('%marca')))
+            ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'quien cierre sin equipo · paga ' + esc(lwMarca('%marca'))) + esc(sufEmp(c.empresa))
             : c.nivel !== 'manager'
               ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override) · ' + esc(ROL_EQ[c.nivel] || c.nivel)
                                : 'todo el equipo · ' + esc(ROL_EQ[c.nivel] || c.nivel))
@@ -8576,6 +8682,15 @@
       pinta();
       if (selEquipo) selEquipo.addEventListener('change', pinta);
       if (selProyecto) selProyecto.addEventListener('change', pinta);
+      if (ev.multi && selEquipo && selEquipo.parentNode) {
+        var selEmpC = document.createElement('select');
+        selEmpC.className = selEquipo.className; selEmpC.id = 'lw-co-empresa'; selEmpC.setAttribute('data-real', '');
+        selEmpC.setAttribute('aria-label', T('Empresa'));
+        selEmpC.innerHTML = '<option value="">' + esc(T('Todas las empresas')) + '</option>' +
+          ev.mias.map(function (e) { return '<option value="' + esc(e.clave) + '">' + esc(e.nombre) + '</option>'; }).join('');
+        selEmpC.addEventListener('change', function () { empFiltroC = selEmpC.value; pinta(); });
+        selEquipo.parentNode.insertBefore(selEmpC, selEquipo);
+      }
 
       if (cuerpo) cuerpo.addEventListener('click', function (ev) {
         var bE = ev.target.closest && ev.target.closest('[data-lw-edita-cond]');
@@ -8992,7 +9107,7 @@
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(t.creado_por || '—') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline max-w-md">' + esc(t.nota || '—') + '</td>' +
             '<td class="px-5 py-4 text-right"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
-              'data-lw-ca-tarifa="' + esc(t.id) + '">Editar</button></td></tr>';
+              'data-solo-global data-lw-ca-tarifa="' + esc(t.id) + '">Editar</button></td></tr>';   // la tarifa es de la instancia (B4)
         }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna tarifa dada de alta: no se está devengando comisión.</td></tr>';
       }
 
@@ -10096,11 +10211,16 @@
       // compare contra `creado_por` u otra columna de autoria, que es un uuid
       // y no un email (S8, Comisiones/Solicitudes).
       window.LW_V4.miId = (aut.session && aut.session.user && aut.session.user.id) || '';
-      window.LW_V4.esAdmin = rol === 'admin' || rol === 'super_admin';
+      /* Para MOSTRAR: un rol de empresa cuenta como admin / super admin (LW_ROL, guard.js). La cerradura es la base. */
+      window.LW_V4.esAdmin = LW_ROL.esAdmin(aut.ficha);
       /* Un peldano por encima: hay pantallas que ni los admin ven — hoy la
          Comision de administracion, que abre lo que el estudio le cobra al
          cliente. Se guarda aparte y no se deduce de `esAdmin`. */
-      window.LW_V4.esSuperAdmin = rol === 'super_admin';
+      window.LW_V4.esSuperAdmin = LW_ROL.esSuperAdmin(aut.ficha);
+      // lo que es de TODA la instancia (Ajustes, mantenimiento, tarifa, tablero CRM…): solo quien no es de empresa
+      window.LW_V4.esGlobal = LW_ROL.esGlobal(aut.ficha);
+      window.LW_V4.esSuperGlobal = LW_ROL.esSuperGlobal(aut.ficha);
+      window.LW_V4.empresasMias = LW_ROL.empresas(aut.ficha);
       // la ficha de sesion entera (herramientas incluidas), para quien decida por ella
       window.LW_V4.ficha = aut.ficha || null;
       window.LW_V4.fichaContrato = function (c, opts) { fichaContrato(aut.sb, c, opts); };
