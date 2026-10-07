@@ -9205,7 +9205,7 @@
             { k: 'fee', label: 'Incluir el fee fijo', tipo: 'check',
               ayuda: 'por defecto solo cuentan comisiones; marca esto si el pago incluye también el fee' },
             { k: 'nota', label: 'Nota', ayuda: 'opcional: queda escrita en el rastro de cada línea (p. ej. referencia de la transferencia)' },
-            { tipo: 'nota', label: 'Se saldan las líneas pendientes más antiguas de esa sociedad hasta cubrir el importe exacto. Aún no se marca nada: primero te enseño cuáles son.' }
+            { tipo: 'nota', label: 'El pago es una bolsa: se saldan las líneas pendientes más antiguas de esa sociedad mientras quepan, y lo que sobra queda como saldo para el siguiente cobro. Aún no se marca nada: primero te enseño cuáles son.' }
           ], 'Ver qué salda', function (v) {
             var imp = typeof lwParseImporte === 'function' ? lwParseImporte(v.importe) : Number(String(v.importe).replace(',', '.'));
             if (!(imp > 0)) return { error: { message: 'El importe no se entiende: escribe, por ejemplo, 1.940,00.' } };
@@ -9221,8 +9221,13 @@
                   '</td><td style="padding:3px 0 3px 8px;text-align:right">' + esc(fmtI(l.importe, d.moneda)) + '</td></tr>';
               };
               modal('Confirmar cobro — ' + etqSoc, [
-                { tipo: 'lectura', label: 'Importe cobrado', medio: 1, valor: fmtI(d.importe, d.moneda) },
-                { tipo: 'lectura', label: 'Líneas que se marcan como cobradas', medio: 1, valor: String(d.n) },
+                { tipo: 'lectura', label: 'Importe que entra', medio: 1, valor: fmtI(d.importe, d.moneda) },
+                { tipo: 'lectura', label: 'Saldo que ya había', medio: 1, valor: fmtI(d.saldo_previo, d.moneda) },
+                { tipo: 'lectura', label: 'Se salda (' + d.n + ' líneas)', medio: 1, valor: fmtI(d.aplicado_importe, d.moneda) },
+                { tipo: 'lectura', label: 'Queda como saldo', medio: 1, valor: fmtI(d.resto, d.moneda) },
+                d.siguiente ? { tipo: 'nota', label: 'La siguiente línea (' + (d.siguiente.recibi || '') + ', ' + fmtI(d.siguiente.importe, d.moneda) +
+                  ') ya no cabe en la bolsa: se queda pendiente y el saldo pasa al próximo cobro.' } :
+                  { tipo: 'nota', label: 'La bolsa cubre todo lo pendiente de esa sociedad.' },
                 { tipo: 'lectura', label: 'Fecha del cobro', medio: 1, valor: d.fecha.split('-').reverse().join('/') },
                 (d.sin_facturar || d.revisar) ? { tipo: 'nota', label:
                   (d.sin_facturar ? d.sin_facturar + ' de estas líneas están PENDIENTES: se darían por cobradas sin haberse marcado como facturadas (' + fmtI(d.sin_facturar_importe, d.moneda) + '). ' : '') +
@@ -9232,7 +9237,7 @@
                       ls.map(fila).join('') + '</tbody></table></div>';
                   } },
                 { tipo: 'nota', label: 'Al confirmar, estas líneas pasan a «Cobrada» y cada una deja su rastro (quién, cuándo y el motivo). Si algo no es lo que esperabas, cancela: no se ha marcado nada.' }
-              ], 'Marcar como cobradas', function () {
+              ], d.n ? 'Marcar como cobradas' : 'Guardar como saldo', function () {
                 return rpc('comision_admin_registrar_cobro', Object.assign({ p_confirmar: true, p_ids: d.ids }, args));
               });
             });
