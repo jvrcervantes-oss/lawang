@@ -17,15 +17,30 @@
 <!-- Misma tipografía que /modelo/: Cormorant Garamond (titulares), Instrument Sans
      (rótulos), Jost (texto). CSS propio y plano en vez del Tailwind congelado de
      /modelo/ (dali-tesla-tw.min.css): ese build no trae compiladas clases nuevas. -->
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Instrument+Sans:wght@500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400&family=Instrument+Sans:wght@500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300..500,0..1&display=swap" rel="stylesheet">
+<style>
+/* Titulares en The Seasons Regular (owner 7-oct-2026), sin negrita ni cursiva: el mismo fichero
+   sirve todos los pesos y también la cursiva, y font-synthesis:none impide que el navegador la
+   engorde o la incline. Es la versión DEMO: no trae tildes, ñ, ¿, € ni «», y pinta un sello «DEMO»
+   en ! " # $ % & ' ( ) * + - / 4 < = > @ [ \ ] ^ _ { | } ~ (fontTools, 7-oct). El unicode-range solo
+   deja usar sus glifos limpios; lo demás cae a la fuente siguiente y nunca sale el sello.
+   La regla del owner (palabras con ñ ¿ € 4 o cualquier carácter tapado → la palabra entera en
+   Neue Kabel) la aplica el script «seasons-kabel» del final, también al texto que pinta el JS. */
+@font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Regular.otf') format('opentype');font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+20,U+2C,U+2E,U+30-33,U+35-39,U+3A-3B,U+3F,U+41-5A,U+61-7A}
+@font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Regular.otf') format('opentype');font-weight:100 900;font-style:italic;font-display:swap;unicode-range:U+20,U+2C,U+2E,U+30-33,U+35-39,U+3A-3B,U+3F,U+41-5A,U+61-7A}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/neue-kabel/NeueKabel.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/neue-kabel/NeueKabel.woff2') format('woff2');font-weight:100 900;font-style:italic;font-display:swap}
+h1,h2,h3,.shead .num,.formula .op,.tenencia h4,.formula-venta,.frase::before,.frase blockquote,.pago__n,.gestion__datos b,.derivar q,ol.llamada li::before,.preguntas li::before,.tc [role=cell]:first-child b,.tc .pct b,.glosario dt,#guia .g-num,.camino__pct,.falta h4{font-synthesis:none}
+.nk{font-family:'Neue Kabel',var(--ff-b);font-weight:400;font-style:normal;font-size:.86em;letter-spacing:0}
+</style>
 <style>
 /* ── Tokens: paleta Lawang tal cual la usa /modelo/ (T3 + bloques H3/Y3/R3/I3/C2) ── */
 :root{
   --linen:#f5f0e6; --paper:#fffdf8; --warm:#fbf9f4; --low:#f5f4ee; --line:#e4e2dd;
   --stone:#beb3a5; --tg:#485b37; --primary:#314322; --dl:#104c4f; --be:#42210b;
   --ash:#2e3437; --ink:#1b1c19; --muted:#44483f; --canopy:#8f9b7a;
-  --ff-h:'Cormorant Garamond',Georgia,serif; --ff-l:'Instrument Sans',system-ui,sans-serif;
+  --ff-h:'The Seasons','Cormorant Garamond',Georgia,serif; --ff-l:'Instrument Sans',system-ui,sans-serif;
   --ff-b:'Jost',system-ui,sans-serif;
 }
 *,*::before,*::after{box-sizing:border-box}
@@ -1798,6 +1813,41 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   } else {
     document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in'); });
   }
+})();
+</script>
+<script id="seasons-kabel">
+/* Regla del owner (7-oct-2026): en los titulares en The Seasons, la palabra que lleve un carácter
+   que la demo no tiene o tapa con «DEMO» va entera en Neue Kabel. Las vocales con tilde se quedan
+   (esa letra la pinta Cormorant). Observa el DOM para cubrir lo que el JS escribe después
+   (nombres de proyecto, contadores). */
+(function () {
+  var LIMPIO = /^[\s,.0-35-9:;?A-Za-záéíóúüÁÉÍÓÚÜ]*$/;
+  var seasons = function (el) { return /^["']?The Seasons/.test(getComputedStyle(el).fontFamily); };
+  function trata(nodo) {
+    var el = nodo.parentNode;
+    if (!el || el.nodeType !== 1 || el.classList.contains('nk') || LIMPIO.test(nodo.data) || !seasons(el)) return;
+    var trozos = nodo.data.split(/(\s+)/), frag = document.createDocumentFragment();
+    trozos.forEach(function (t) {
+      if (!t) return;
+      if (/^\s+$/.test(t) || LIMPIO.test(t)) { frag.appendChild(document.createTextNode(t)); return; }
+      var s = document.createElement('span'); s.className = 'nk'; s.textContent = t; frag.appendChild(s);
+    });
+    el.replaceChild(frag, nodo);
+  }
+  function barre(raiz) {
+    if (raiz.nodeType === 3) { trata(raiz); return; }
+    if (raiz.nodeType !== 1 || /^(SCRIPT|STYLE|NOSCRIPT)$/.test(raiz.tagName)) return;
+    var w = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT), lista = [], n;
+    while ((n = w.nextNode())) if (n.data.trim()) lista.push(n);
+    lista.forEach(trata);
+  }
+  barre(document.body);
+  new MutationObserver(function (ms) {
+    ms.forEach(function (m) {
+      if (m.type === 'characterData') trata(m.target);
+      else m.addedNodes.forEach(barre);
+    });
+  }).observe(document.body, { childList: true, subtree: true, characterData: true });
 })();
 </script>
 </body>
