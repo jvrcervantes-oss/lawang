@@ -4447,6 +4447,18 @@
     'Mis redes propias': 'My own social channels',
     'Sin coincidencias.': 'No matches.',
 
+    /* empresas de Lawang (7-oct-2026) */
+    'Sin empresa (solo la ve la dirección)': 'No company (management only)',
+    '¿De qué empresa?': 'Which company?',
+    'Elige la empresa del proyecto': 'Choose the project\'s company',
+    'Elige la empresa del comunicado': 'Choose the announcement\'s company',
+    'Elige la empresa del proveedor': 'Choose the supplier\'s company',
+    'Elige la empresa de la cuenta': 'Choose the account\'s company',
+    'Todas las empresas': 'All companies',
+    'Admins de empresa': 'Company admins',
+    'Super admins de empresa': 'Company super admins',
+    'Gestionas varias empresas: elige de cuál es el proyecto.': 'You manage several companies: choose which one the project belongs to.',
+    'Sin empresa, el proyecto solo lo ve la dirección general hasta que se le ponga una.': 'Without a company, only general management sees the project until one is set.',
   };
 
   window.LW_EN = EN;

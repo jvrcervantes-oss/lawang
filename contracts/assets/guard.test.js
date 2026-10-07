@@ -10,6 +10,8 @@ const vm = require('vm');
 const CODIGO = fs.readFileSync(path.join(__dirname, 'guard.js'), 'utf8');
 // La ficha de la instancia va antes de guard.js en cada página (ERP F3): el test hace lo mismo, con la real.
 const INSTANCIA = fs.readFileSync(path.join(__dirname, 'instancia.js'), 'utf8');
+// roles.js (LW_ROL) también va antes de guard.js en cada página
+const ROLES = fs.readFileSync(path.join(__dirname, 'roles.js'), 'utf8');
 
 function puerta(attrs, ficha, opts) {
   opts = opts || {};
@@ -36,7 +38,7 @@ function puerta(attrs, ficha, opts) {
   };
   ctx.supabase = { createClient: () => sb };
   vm.createContext(ctx);
-  if (!opts.sinFicha) vm.runInContext(INSTANCIA, ctx);
+  if (!opts.sinFicha) { vm.runInContext(INSTANCIA, ctx); vm.runInContext(ROLES, ctx); }
   try { vm.runInContext(CODIGO, ctx); } catch (e) { if (!opts.sinFicha) throw e; return Promise.resolve({ entra: false, salidas, error: e.message }); }
   let entra = false;
   ctx.LW_AUTH.then(() => { entra = true; });
@@ -53,7 +55,7 @@ function puertaRol() {
   ctx.window = ctx;
   ctx.supabase = { createClient: () => ({ auth: { getSession: () => new Promise(() => {}) } }) };
   vm.createContext(ctx);
-  vm.runInContext(INSTANCIA, ctx); vm.runInContext(CODIGO, ctx);
+  vm.runInContext(INSTANCIA, ctx); vm.runInContext(ROLES, ctx); vm.runInContext(CODIGO, ctx);
   return ctx.LW_ROL;
 }
 

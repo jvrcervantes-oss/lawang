@@ -74,6 +74,7 @@ function mundo(opts) {
     lwCajon(o) { cajones.push(o); return { cuerpo: el('cuerpo', reg), cierra() {} }; }
   }, opts.win || {});
   const S = {
+    LW_ROL: { esEmpresa: () => false, esAdmin: () => false, esGlobal: () => true, esSuperGlobal: () => false, esSuperAdmin: () => false, efectivo: (f) => (f && f.rol) || '', empresas: () => [] },   // guard.js lo publica en la página real
     window: win, document: { querySelector: (s) => (s === 'table[data-lw="tabla-clientes"]' ? tabla : reg(s)), getElementById: (i) => reg('#' + i), createElement: (n) => reg('new:' + n) },
     location: { href: 'https://x.test/intranet/v4/compradores/', search: '', pathname: '/intranet/v4/compradores/' }, history: { replaceState() {} },
     tablaPor: () => tabla,

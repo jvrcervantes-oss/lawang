@@ -9851,15 +9851,17 @@
             /* Por el servidor (`cuenta_bancaria_guarda`): él vuelve a validar la
                clave, la hace nacer DESACTIVADA y le pone el `orden` al final —
                lo que diga esta pantalla de eso no cuenta. */
-            return Promise.resolve(sb.rpc('cuenta_bancaria_guarda', {
-              p_clave: clave, p_nueva: true,
-              p_datos: {
-                label: v.label.trim(), titular: v.titular.trim(), banco: v.banco.trim(), cuenta: v.cuenta.trim(),
-                codigo: v.codigo.trim(), direccion: v.direccion.trim(), extra: '',
-                es_escrow: !!v.es_escrow,
-                es_propia: v.es_propia === 'si' ? true : v.es_propia === 'no' ? false : null
-              }
-            })).then(function (rr) {
+            var datosCuenta = {
+              label: v.label.trim(), titular: v.titular.trim(), banco: v.banco.trim(), cuenta: v.cuenta.trim(),
+              codigo: v.codigo.trim(), direccion: v.direccion.trim(), extra: '',
+              es_escrow: !!v.es_escrow,
+              es_propia: v.es_propia === 'si' ? true : v.es_propia === 'no' ? false : null
+            };
+            // con DOS empresas la cuenta nueva necesita saber de cuál (la base lo pide; se pregunta y se repite)
+            return LW_ROL.reintentaConEmpresa(aut.ficha, function (emp) {
+              return Promise.resolve(sb.rpc('cuenta_bancaria_guarda', { p_clave: clave, p_nueva: true,
+                p_datos: emp ? Object.assign({}, datosCuenta, { empresa: emp }) : datosCuenta }));
+            }, { titulo: 'Elige la empresa de la cuenta' }).then(function (rr) {
               if (rr && rr.error) return trasRpc(rr);
               recarga();
               return null;

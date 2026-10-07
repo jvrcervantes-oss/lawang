@@ -404,7 +404,9 @@
       var pl = { nombre: v.nombre, tipo: v.tipo, npwp: v.npwp || null, contacto: v.contacto || null, telefono: v.telefono || null, email: v.email || null, notas: v.notas || null };
       if (!nuevo) pl.activo = !!v.activo;
       // Por el servidor (frontera frontend/backend, 26-sep-2026).
-      return sb.rpc('proveedor_guarda', { p_id: nuevo ? null : p.id, p_datos: pl }).then(function (r) {
+      // con DOS empresas, el proveedor nuevo necesita saber de cuál: la base lo pide y aquí se pregunta (empresas de Lawang, 7-oct-2026)
+      var llama = function (emp) { return sb.rpc('proveedor_guarda', { p_id: nuevo ? null : p.id, p_datos: emp ? Object.assign({}, pl, { empresa: emp }) : pl }); };
+      return LW_ROL.reintentaConEmpresa(FICHA_G, llama, { titulo: T('Elige la empresa del proveedor') }).then(function (r) {
         if (r.error && /duplicate|unique|23505/i.test(r.error.message + ' ' + r.error.code)) return { error: { message: T('Ya existe un proveedor con ese nombre.') } };
         return rpcOk(r, T('No se pudo guardar el proveedor'));
       });
@@ -435,8 +437,9 @@
     $('lw-gas-nuevo-txt').textContent = v === 'gastos' ? T('Nuevo gasto') : T('Nuevo proveedor');
     $('lw-gas-csv').hidden = v !== 'gastos';
   }
+  var FICHA_G = null;
   function monta(aut) {
-    sb = aut.sb;
+    sb = aut.sb; FICHA_G = aut.ficha;
     if (typeof finGastos !== 'function' || typeof window.lwVentana !== 'function' || typeof window.lwCajon !== 'function') {
       aviso(T('No cargaron las piezas de la pantalla (finanzas.js / editores.js). Recarga la página; si sigue, avisa a Desarrollo.'), 'mal'); return;
     }

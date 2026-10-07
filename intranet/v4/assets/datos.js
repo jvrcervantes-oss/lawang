@@ -3269,8 +3269,13 @@
 
           /* Portal del comprador: invitar/reenviar/contraseña/revocar (admin),
              vista previa (cualquiera) y acceso a tickets. */
+          /* Quién ve los controles de invitar/revocar: un admin global, como siempre; un rol de EMPRESA solo si la base dice que puede
+             gestionar a ESTE cliente (todos sus contratos en sus empresas: portal_puede_gestionar), no por el rol a secas. */
+          var puedeGestPortal = !LW_ROL.esEmpresa(window.LW_V4.ficha);
+          var avisoGestPortal = puedeGestPortal ? Promise.resolve() : Promise.resolve(sb.rpc('portal_puede_gestionar', { p_ids: [c2.id] }))
+            .then(function (g) { puedeGestPortal = !g.error && g.data === true; }, function () { puedeGestPortal = false; });
           function cargaPortal() {
-            sb.from('portal_accesos').select('email,activo,ultimo_acceso,accesos').eq('client_id', c2.id).then(function (rp) {
+            avisoGestPortal.then(function () { return sb.from('portal_accesos').select('email,activo,ultimo_acceso,accesos').eq('client_id', c2.id); }).then(function (rp) {
               if (rp.error) return pinta('portal', H.nota('No se pudo leer el acceso al portal: ' + rp.error.message));
               var suyos = rp.data || [], activos = suyos.filter(function (x) { return x.activo; });
               var rastro = function (a) {
@@ -3293,7 +3298,7 @@
                 '<button type="button" data-portal-tickets style="padding:7px 14px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#104C4F;font-weight:600;font-size:12.5px;cursor:pointer">Ver tickets →</button>' +
                 '</div>';
               var controles;
-              if (window.LW_V4.esAdmin) {
+              if (window.LW_V4.esAdmin && puedeGestPortal) {
                 var emailPre = (activos[0] && activos[0].email) || c2.email || '';
                 controles = '<div style="display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(228,220,203,.7)">' +
                   '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">Email de acceso<input type="email" data-portal-email value="' + esc(emailPre) + '" style="padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff"></label>' +
@@ -6395,9 +6400,18 @@
       ]).then(function (r) {
         var us = r[0], ns = r[1] || [], proys = r[2] || [];
         if (!us) return;
+        /* Un rol de EMPRESA ve solo a su equipo: las personas que comparten alguna de sus empresas (la base deja leer todas las
+           fichas; esto es lo que se enseña) y a sí mismo. Un global, a todos, como siempre. */
+        var fichaU = window.LW_V4 && window.LW_V4.ficha;
+        if (LW_ROL.esEmpresa(fichaU)) {
+          var misEmp = LW_ROL.empresas(fichaU), miEmailU = (window.LW_V4.miEmail || '').toLowerCase();
+          us = us.filter(function (u) {
+            return (u.email || '').toLowerCase() === miEmailU || (u.empresas || []).some(function (e) { return misEmp.indexOf(e) !== -1; });
+          });
+        }
         var nombreProy = {}; proys.forEach(function (p) { nombreProy[p.id] = p.nombre; });
         var act = us.filter(function (u) { return u.activo; });
-        var esAdminRol = function (u) { return u.rol === 'admin' || u.rol === 'super_admin'; };
+        var esAdminRol = function (u) { return u.rol === 'admin' || u.rol === 'super_admin' || u.rol === 'admin_empresa' || u.rol === 'super_admin_empresa'; };
         pon2('k-usuarios', String(act.length));
         pon2('k-usuarios-pie', us.length + (us.length === 1 ? ' usuario' : ' usuarios') + ' dados de alta · pulsa uno para abrir su ficha');
         var roles = {}; us.forEach(function (u) { if (u.rol) roles[u.rol] = 1; });
