@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="8440977be066">
+<meta name="lw-version" content="155bda729bf3">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1475,7 +1475,7 @@
     sb.storage.from('documentacion').createSignedUrls(faltan, 600).then(function(r){
       (r.data || []).forEach(function(u){ if (u.signedUrl) PORTADA_URL[u.path] = { url:u.signedUrl, hasta:Date.now() + 8 * 60 * 1000 }; });
       pinta();
-    }).catch(function(){ /* sin portada se queda la inicial: no es un error que el comprador deba ver */ });
+    }).catch(function(e){ console.error('portadas', e); /* MUDO A PROPOSITO: la portada es decorativa; sin ella queda la inicial del proyecto y no es un fallo que el comprador deba ver (el detalle va a la consola para diagnosticar) */ });
   }
   function entregaTxt(f){ return f.entrega ? esc(t('entrega_proyecto')) + ': ' + esc(fecha(f.entrega)) : ''; }
 
