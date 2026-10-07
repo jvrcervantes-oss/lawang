@@ -227,7 +227,7 @@ begin
 
   -- ============================================================ PARTE C: rendimiento
   t0 := clock_timestamp();
-  txt := '<html><body>' || repeat('<p data-lang="es">Texto de una clausula con {{' || m1 || '}} y &amp; entidad. ' || repeat('Lorem ipsum dolor sit amet consectetur. ', 14) || '</p><!--if:adq1_tipo=empresa--><span>a</span><!--/if:adq1_tipo-->', 450) || '</body></html>';
+  txt := '<html><body>' || repeat('<p data-lang="es">Texto de una clausula con {{' || m1 || '}} y &amp; entidad. ' || repeat('Texto de relleno para medir el tamano total. ', 14) || '</p><!--if:adq1_tipo=empresa--><span>a</span><!--/if:adq1_tipo-->', 450) || '</body></html>';
   v := public.plantilla_cuerpo_valida_semilla(txt, null);
   ms := extract(epoch from clock_timestamp() - t0) * 1000; nprueba := nprueba + 1;
   if (v->>'ok')::boolean and ms < 3000 then r := r || 'OK    C1 ' || (octet_length(txt) / 1000) || ' KB sintetico de 450 clausulas en ' || round(ms) || ' ms' || E'\n';
