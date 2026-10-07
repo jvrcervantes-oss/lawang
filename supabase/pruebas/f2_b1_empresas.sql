@@ -13,7 +13,7 @@ declare
   e_ya text; e_cr text; e_ad4 text; e_ctl text; e_adm text;
   pl uuid; psw uuid; npl text; npsw text; ul uuid; usw uuid; pk uuid; cl text; cs text; dl jsonb; ds jsonb; dlsw jsonb;
   so_lw uuid; so_sw uuid;
-  r text := ''; g text; v uuid; n int; x text;
+  r text := ''; g text; v uuid; n int; x text; y text;
 begin
   select user_id into jv from public.usuarios where email='jvr.cervantes@gmail.com';
   select user_id, email into ya, e_ya from public.usuarios where email='yanayjefferson@gmail.com';
@@ -122,8 +122,10 @@ begin
   x := pg_temp.valor(ya, e_ya, format('select (public.es_manager_de(%L) and not public.es_manager_de(%L) and not public.es_manager_de(%L))::text', pl, psw, pk));
   r := r || case when x = 'true' then 'OK   ' else 'FALLO' end || format(' ya es_manager_de (lawang si, sandal no, sin empresa no) [%s]', x) || E'\n';
   -- crear proyecto: solo de sus empresas, la empresa la fija el servidor
-  x := pg_temp.valor(ya, e_ya, $s$select empresa from public.proyectos where id = (select public.proyecto_alta('Zz prueba b1 ya'))$s$);
-  r := r || case when x = 'lawang' then 'OK   ' else 'FALLO' end || format(' ya proyecto_alta nace en su empresa [%s]', x) || E'\n';
+  g := pg_temp.corre(ya, e_ya, $s$select public.proyecto_alta('Zz prueba b1 ya')$s$);
+  x := (select empresa from public.proyectos where nombre = 'Zz prueba b1 ya');
+  r := r || case when g = 'ok' and x = 'lawang' then 'OK   ' else 'FALLO' end || format(' ya proyecto_alta nace en su empresa [%s, %s]', g, x) || E'
+';
   g := pg_temp.corre(ya, e_ya, $s$select public.proyecto_alta('Zz prueba b1 ya2', 'sandal_woods')$s$); r := r || pg_temp.espera('ya proyecto_alta en empresa ajena', g, '42501');
   g := pg_temp.corre(ya, e_ya, $s$select public.proyecto_alta('Zz prueba b1 ya3', 'lawang')$s$);       r := r || pg_temp.espera('ya proyecto_alta con su empresa explicita', g, 'ok');
   g := pg_temp.corre(cr, e_cr, $s$select public.proyecto_alta('Zz prueba b1 cr')$s$);                    r := r || pg_temp.espera('cr proyecto_alta', g, 'ok');
@@ -136,13 +138,11 @@ begin
   end if;
   g := pg_temp.corre(jv, 'jvr.cervantes@gmail.com', $s$select public.proyecto_alta('Zz prueba b1 jv', 'lawang')$s$); r := r || pg_temp.espera('super global fija empresa al crear', g, 'ok');
   -- proyecto_vinculos_datos (duena lw_lector, respeta RLS)
-  x := pg_temp.valor(ya, e_ya, format('select (public.proyecto_vinculos_datos(%L)->>''unidades'')', npsw));
-  r := r || case when x = '0' then 'OK   ' else 'FALLO' end || format(' ya vinculos AJENO cuenta cero [%s]', x) || E'\n';
-  if adm is not null then
-    x := pg_temp.valor(adm, e_adm, format('select (public.proyecto_vinculos_datos(%L)->>''unidades'')', npsw));
-    r := r || case when x ~ '^[0-9]+$' and x::int > 0 then 'OK   ' else 'FALLO' end || format(' admin global vinculos sin cambio (cuenta lo real) [%s]', x) || E'\n';
-  end if;
-  -- lo que NO debe cambiar: control rechazado, admin y super globales pasan
+  -- el proyecto de Sandal Woods con mas parcelas: el admin de Lawang cuenta cero, el super global cuenta lo real
+  x := pg_temp.valor(ya, e_ya, $s$select (public.proyecto_vinculos_datos((select p.nombre from public.proyectos p where p.empresa='sandal_woods' order by (select count(*) from public.unidades u where u.proyecto_id=p.id) desc limit 1))->>'unidades')$s$);
+  y := pg_temp.valor(jv, 'jvr.cervantes@gmail.com', $s$select (public.proyecto_vinculos_datos((select p.nombre from public.proyectos p where p.empresa='sandal_woods' order by (select count(*) from public.unidades u where u.proyecto_id=p.id) desc limit 1))->>'unidades')$s$);
+  r := r || case when x = '0' and y ~ '^[0-9]+$' and y::int > 0 then 'OK   ' else 'FALLO' end || format(' proyecto_vinculos_datos: admin de Lawang cuenta cero [%s], super global cuenta lo real [%s]', x, y) || E'
+';
   g := pg_temp.corre(ctl, e_ctl, format('select public.proyecto_cambiar_estado(%L, (select estado from public.proyectos where id=%L))', pl, pl)); r := r || pg_temp.espera('control cambiar_estado', g, '42501');
   g := pg_temp.corre(ctl, e_ctl, format('select public.proyecto_guarda(%L, ''{}''::jsonb)', pl)); r := r || pg_temp.espera('control proyecto_guarda', g, '42501');
   if adm is not null then
