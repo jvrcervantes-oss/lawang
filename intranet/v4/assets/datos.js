@@ -2798,11 +2798,9 @@
           var cuerpo = '<div data-ficha-basica>' + H.nota(Tx('Ficha básica: los documentos y los contratos de otra empresa no se muestran')) + '</div>' +
             H.seccion(Tx('Identidad'), identidad, 'basica');
           var acciones = [];
-          /* «Crear contrato» solo a quien hoy ya podía: un agente SIN alcance acotado abre cualquier ficha por `comprador_ficha`
-             (el editor de contratos); con empresas marcadas esa ficha no se le da y el botón acabaría en un error. */
-          var fu = window.LW_V4.ficha || {};
-          var acotado = fu.ambito === 'empresa' || (fu.empresas || []).length > 0;
-          if (conContratos && !acotado) acciones.push({ texto: 'Crear contrato', href: '/contracts/?cliente=' + encodeURIComponent(c0.id), nuevaPestana: true });
+          /* Sin «Crear contrato» en la ficha básica (7-oct-2026, LAW-E55): llegar aquí es que la base NO te deja leer esta ficha entera, y el editor de contratos
+             la pide por `comprador_ficha`, que ya no se la da a nadie que no la vea (ni siquiera a quien no tiene alcance acotado). Un botón que acabaría en un aviso
+             no se ofrece; quien ve el contrato de ese cliente lo abre desde el propio contrato. */
           acciones.push({ texto: 'Cerrar', cerrar: true });
           window.lwCajon({ sub: Tx(esEmpresa ? 'Ficha básica de empresa cliente' : 'Ficha básica de cliente'), titulo: c0.full_name || Tx('Sin nombre'),
             estado: ['KYC · ' + kyc[0], kyc[1]],

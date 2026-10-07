@@ -181,10 +181,10 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   assert.ok(cuerpo.indexOf('data-ficha-basica') > -1 && cuerpo.indexOf('[sec:basica]') > -1, 'ficha básica: lleva su aviso y su sección estable');
   ['contratos', 'cuentas', 'facturas', 'envios', 'soporte', 'docs', 'portal', 'responsable'].forEach((s) => assert.ok(cuerpo.indexOf('[sec:' + s + ']') === -1, 'ficha básica: NO pinta ' + s));
   assert.ok(!w.cajones[0].acciones.some((a) => ['Editar datos', 'Pedir borrado', 'Borrar la ficha'].indexOf(a.texto) > -1), 'ficha básica: ningún botón de escribir');
-  assert.ok(w.cajones[0].acciones.some((a) => a.texto === 'Crear contrato'), 'ficha básica, sin alcance acotado: conserva Crear contrato (lo que ya podía)');
+  assert.ok(!w.cajones[0].acciones.some((a) => a.texto === 'Crear contrato'), 'ficha básica, sin alcance acotado: sin Crear contrato (LAW-E55: comprador_ficha ya no le da la ficha entera)');
   ['rpc:comprador_contratos_resumen', 'from:mensajes_comprador', 'from:hilo_soporte', 'rpc:facturas_equipo', 'from:correos_enviados', 'from:documents'].forEach((c) => assert.ok(w.calls.indexOf(c) === -1, 'ficha básica: NO pide ' + c));
   assert.strictEqual(w.win.LW_V4.comprador, null, 'ficha básica: ningún editor hereda una ficha');
-  // con alcance acotado (empresas marcadas) no se ofrece Crear contrato: la ficha entera no se le da y el botón acabaría en error
+  // con alcance acotado (empresas marcadas) tampoco: la ficha entera no se le da y el botón acabaría en error
   w = mundo({ fx: sinFilas, win: { LW_V4: { esSuperAdmin: false, esAdmin: false, miEmail: 'a@x.es', ficha: { ambito: 'empresa', empresas: ['lawang'] } } } });
   w.reg.compradores(w.sb); await espera();
   w.win.LW_V4.abreFichaComprador('c1'); await espera();
