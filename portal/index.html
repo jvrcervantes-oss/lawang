@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="d31006125006">
+<meta name="lw-version" content="b5f7d11aaf9f">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -70,7 +70,7 @@
   .entrada{ min-height:100vh; display:grid; place-items:center; background:var(--rl); padding:24px; }
   .entrada .caja{ width:100%; max-width:400px; background:#fff; border:1px solid #E4DCCB; border-radius:16px;
                   padding:44px 34px 38px; box-shadow:0 18px 48px -22px rgba(34,40,42,.35); text-align:center; }
-  .entrada .marca{ font-family:'Cormorant Garamond',Georgia,serif; font-size:30px; font-weight:600;
+  .entrada .marca{ font-size:30px; font-weight:600;
                     letter-spacing:.12em; color:var(--dl); line-height:1; }
   .entrada .rot{ font-size:10.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--sc); margin:8px 0 28px; }
   .entrada p{ font-size:13.5px; color:#6b6c66; margin:0 0 20px; line-height:1.55; }
@@ -156,7 +156,7 @@
   .campo-lbl{ font-size:11px; color:#8a8570; text-transform:uppercase; letter-spacing:.02em;
     display:flex; align-items:center; gap:6px; }
   .campo-lbl svg{ width:13px; height:13px; color:var(--sc); flex:none; }
-  .kpi .val{ font-family:'Instrument Sans',sans-serif; font-size:26px; font-weight:700; color:var(--va); }
+  .kpi .val{ font-size:26px; font-weight:700; color:var(--va); }
   .kpi .val.ok{ color:var(--ok); }
   /* El pie de las tres cifras: qué contratos suman y cuáles no. Va justo debajo
      y en gris, no como aviso: es una aclaración, no un problema. El margen
@@ -531,12 +531,12 @@
     <div class="rot" data-t="area">Área de clientes</div>
     <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.</p>
     <form id="fLogin">
-      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com"></div>
+      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required data-ph="ph_correo" placeholder="tu@correo.com"></div>
       <button class="btn-primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
     </form>
     <p data-t="login_intro_pass" id="loginIntroPass" hidden>Introduce tu correo y tu contraseña.</p>
     <form id="fLoginPass" hidden>
-      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmailPass" autocomplete="email" required placeholder="tu@correo.com"></div>
+      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmailPass" autocomplete="email" required data-ph="ph_correo" placeholder="tu@correo.com"></div>
       <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z"></path></svg><input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••"></div>
       <button class="btn-primario" type="submit" data-t="pass_btn">Entrar</button>
     </form>
@@ -709,6 +709,8 @@
          err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.',
          err_catalogo:'Falta parte de los datos de la empresa: un documento que abras ahora puede salir incompleto. Recarga la página.',
          no_ficha:'Tu acceso no está ligado todavía a ninguna ficha. Escríbenos y lo revisamos.',
+         nov_factura:'Nueva factura disponible: ', nov_obra:'Novedades de obra en ', nov_doc_caduca:'Tu {doc} caduca en {n} días',
+         cat_pagos:'Pagos', cat_documentacion:'Documentación', cat_obra:'Obra', cat_otro:'Otro', cat_general:'General', ph_correo:'tu@correo.com',
          firma_banner_1:'Tienes 1 documento pendiente de firma', firma_banner_n:'Tienes {n} documentos pendientes de firma',
          firma_banner_btn:'Ir a firmar', ver_facturas:'Ver mis facturas',
          tl_pagos:'Pagos', tl_obra:'Obra', obra_ultimo:'Lo último de tu obra',
@@ -780,6 +782,8 @@
          err_carga:'We could not load your information. Reload the page or try again later.',
          err_catalogo:'Some company details are missing: a document opened now may be incomplete. Please reload the page.',
          no_ficha:'Your access is not linked to a record yet. Write to us and we will check it.',
+         nov_factura:'New invoice available: ', nov_obra:'Construction update on ', nov_doc_caduca:'Your {doc} expires in {n} days',
+         cat_pagos:'Payments', cat_documentacion:'Documents', cat_obra:'Construction', cat_otro:'Other', cat_general:'General', ph_correo:'you@email.com',
          firma_banner_1:'You have 1 document waiting for your signature', firma_banner_n:'You have {n} documents waiting for your signature',
          firma_banner_btn:'Go to signing', ver_facturas:'View my invoices',
          tl_pagos:'Payments', tl_obra:'Construction', obra_ultimo:'Latest from your build',
@@ -851,6 +855,8 @@
          err_carga:'Kami tidak dapat memuat informasi Anda. Muat ulang halaman atau coba lagi nanti.',
          err_catalogo:'Sebagian data perusahaan belum lengkap: dokumen yang Anda buka sekarang mungkin tidak lengkap. Muat ulang halaman.',
          no_ficha:'Akses Anda belum terhubung ke data mana pun. Tulis ke kami dan kami akan memeriksanya.',
+         nov_factura:'Faktur baru tersedia: ', nov_obra:'Kabar pembangunan di ', nov_doc_caduca:'{doc} Anda berakhir dalam {n} hari',
+         cat_pagos:'Pembayaran', cat_documentacion:'Dokumen', cat_obra:'Pembangunan', cat_otro:'Lainnya', cat_general:'Umum', ph_correo:'anda@email.com',
          firma_banner_1:'Anda memiliki 1 dokumen yang menunggu tanda tangan', firma_banner_n:'Anda memiliki {n} dokumen yang menunggu tanda tangan',
          firma_banner_btn:'Pergi menandatangani', ver_facturas:'Lihat faktur saya',
          tl_pagos:'Pembayaran', tl_obra:'Pembangunan', obra_ultimo:'Terbaru dari pembangunan Anda',
@@ -869,6 +875,7 @@
   function aplicaLangEstatico(){
     document.documentElement.lang = LANG;
     document.querySelectorAll('[data-t]').forEach(function(el){ el.textContent = t(el.getAttribute('data-t')); });
+    document.querySelectorAll('[data-ph]').forEach(function(el){ el.placeholder = t(el.getAttribute('data-ph')); });
     document.querySelectorAll('#selLang [data-lang]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-lang') === LANG ? 'true' : 'false'); });
   }
   aplicaLangEstatico();
@@ -1184,19 +1191,18 @@
     var d = DATOS; if (!d) return [];
     var lista = [];
     (d.facturas || []).slice(0, 3).forEach(function(f){
-      lista.push({ texto: (f.tipo === 'factura' ? (LANG==='es'?'Nueva factura disponible: ':'New invoice available: ') : '') + f.numero,
+      lista.push({ texto: (f.tipo === 'factura' ? t('nov_factura') : '') + f.numero,
                    fecha: f.fecha, cuando: new Date(f.fecha || 0) });
     });
     (d.obra || []).forEach(function(o){
-      if (o.actualizado) lista.push({ texto: (LANG==='es'?'Novedades de obra en ':'Construction update on ') + o.unidad,
+      if (o.actualizado) lista.push({ texto: t('nov_obra') + o.unidad,
                                        fecha: o.actualizado, cuando: new Date(o.actualizado) });
     });
     (d.kyc || []).forEach(function(k){
       if (!k.caduca) return;
       var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
       if (dias >= 0 && dias <= 30) lista.push({
-        texto: (LANG==='es' ? ('Tu ' + (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo)) + ' caduca en ' + dias + ' días')
-                             : ('Your ' + (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo)) + ' expires in ' + dias + ' days')),
+        texto: t('nov_doc_caduca').replace('{doc}', (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo))).replace('{n}', dias),
         fecha: k.caduca, cuando: new Date()
       });
     });
@@ -1601,6 +1607,8 @@
      categoría. Las conversaciones de antes de este cambio viven ya como un
      ticket "General" abierto (migración, no se perdió nada). */
   var CATEGORIAS = ['Pagos','Documentación','Obra','Otro'];
+  /* El valor que se guarda es el español de siempre (la base y el equipo lo leen así); solo cambia lo que se lee. */
+  function catTxt(c){ var k = 'cat_' + String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); var v = t(k); return v === k ? c : v; }
   function pintaSoporte(c){
     var d = DATOS, tickets = d.tickets || [];
     var html = '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
@@ -1613,7 +1621,7 @@
       var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
       var extracto = ultimo ? (ultimo.de === 'cliente' ? t('tu') + ': ' : '') + ultimo.texto : '';
       if (extracto.length > 80) extracto = extracto.slice(0, 80) + '…';
-      return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.categoria) + '</div>' +
+      return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(catTxt(x.categoria)) + '</div>' +
         (x.ref_numero ? '<div class="s">' + esc(t('sobre')) + ' ' + esc(x.ref_numero) + '</div>' : '') +
         (extracto ? '<div class="s">' + esc(extracto) + '</div>' : '') + '</div>' +
         '<div class="der"><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' +
@@ -1634,7 +1642,7 @@
     var abierto = x.estado === 'abierto';
     var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
     abreDrawer(
-      '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(x.categoria) + '</h3>' +
+      '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(catTxt(x.categoria)) + '</h3>' +
       '<span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
       '<div id="ticketHilo" style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;margin:14px 0;padding:2px"></div>' +
       '<form id="fTicket">' +
@@ -1684,7 +1692,7 @@
       '<div class="hoja"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600">' + esc(t('nuevo_ticket')) + '</h3>' +
       '<div class="campo"><label>' + esc(t('categoria')) + '</label>' +
         '<select id="nCategoria" required><option value="">' + esc(t('elige_categoria')) + '</option>' +
-        CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '"' + (cat === catPre ? ' selected' : '') + '>' + esc(cat) + '</option>'; }).join('') +
+        CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '"' + (cat === catPre ? ' selected' : '') + '>' + esc(catTxt(cat)) + '</option>'; }).join('') +
         '</select></div>' +
       '<div class="campo"><label>' + esc(t('sobre')) + '</label><select id="nSobre">' + refOpts + '</select></div>' +
       '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="nTexto" required style="min-height:100px"></textarea></div>' +
@@ -1812,7 +1820,7 @@
     var v = documentoVars(soc);
     var estilo = function(k){ return Object.keys(v[k]).filter(function(p){ return v[k][p]; }).map(function(p){ return p+':'+v[k][p]; }).join(';'); };
     abreDrawer(
-      '<div style="display:flex;gap:10px;margin-bottom:14px">' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
         '<button type="button" class="btn-oscuro" id="btnImprimirDoc">' + esc(t('imprimir')) + '</button>' +
         '<button type="button" class="btn-borde" id="btnPreguntaFac">' + esc(t('preguntar_factura')) + '</button>' +
         '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>' +
