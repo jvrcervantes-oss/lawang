@@ -1,0 +1,6 @@
+Fase 2 · 2A, 7-oct-2026, ANTES de aplicar (produccion, 34 usuarios): f2_foto_ids.sql
+MD5_TABLAS=8390a59e351fe672461ed68249c8424e
+MD5_FUNCIONES=038f4db09dbaf532e2cee0b3d862188f
+f2_foto.sql MD5=b2ccde66a58969661c794fa68108f21f (f2_foto_previa.json)
+DESPUES de aplicar el 2A completo (migraciones 1-7): MD5_TABLAS=8390a59e351fe672461ed68249c8424e MD5_FUNCIONES=038f4db09dbaf532e2cee0b3d862188f f2_foto MD5=b2ccde66a58969661c794fa68108f21f -> IDENTICOS.
+(Cazado por la foto: _ve_empresa de la migracion 1 dejaba sin ver 3 facturas propias a una ficha INACTIVA; corregido en la migracion 7.)
