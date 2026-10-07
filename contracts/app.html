@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="f710bb433ea9">
+<meta name="lw-version" content="442f159332d6">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=4ecafa83"></script>
+<script src="/contracts/assets/i18n.js?v=bbdeef94"></script>
 <script src="/contracts/assets/herramientas.js?v=e627e560"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -1607,7 +1607,9 @@ async function buscarClientes(q, res, onPick, input){
     const elegido=res._data[+el.dataset.ci];
     // la ficha completa, solo de la elegida (ver el select de arriba)
     const { data: c, error: eF } = await sb.rpc('comprador_ficha', { p_id: elegido.id }).maybeSingle();
-    if(eF || !c){ toastMal(lwT('No se pudo leer la ficha del comprador: ') + (eF ? eF.message : '')); return; }
+    if(eF){ toastMal(lwT('No se pudo leer la ficha del comprador: ') + eF.message); return; }
+    /* Sin error y sin fila: el directorio lista a todo el equipo (7-oct-2026) pero la ficha ENTERA (pasaporte, direccion) solo la da la base a quien ve sus contratos. */
+    if(!c){ toastMal(lwT('Esa ficha es de otra empresa o de otro comercial: no puedes usarla en un contrato desde tu cuenta. Pídele a un administrador que lo haga.')); return; }
     onPick({ nombre:c.full_name||'', nacionalidad:c.nationality||'', pasaporte:c.passport_number||'',
       telefono:c.phone||'', email:c.email||'' }, c);
     if(input) input.value='';
@@ -7062,7 +7064,7 @@ async function init(){
       // arrancar un contrato para una ficha ajena — ver buscarClientes().
       const { data: fc } = await sb.rpc('comprador_ficha', { p_id: idCliente }).maybeSingle();
       if(fc){ enlazarFicha(fc); toast(lwT('Contrato nuevo para ') + (fc.full_name || 'el cliente elegido')); }
-      else toastMal(lwT('Esa ficha de cliente ya no existe: empieza el contrato buscándolo'));
+      else toastMal(lwT('Esa ficha ya no existe o no está a tu alcance (es de otra empresa o de otro comercial): empieza el contrato buscando a otro cliente'));
     }
     /* `?lead=` — entrada desde el CRM de leads (11-sep-2026). Va DESPUÉS de resetBorrador,
        que es quien lo pone a null: al revés se borraría justo después de asignarlo.
