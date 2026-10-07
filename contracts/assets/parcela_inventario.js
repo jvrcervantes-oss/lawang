@@ -834,6 +834,7 @@ function buildForm(){
   if(!form._hitosWired){ form._hitosWired = true;
     form.addEventListener('input', e=>{ const el=e.target.closest('[data-hkey]'); if(!el) return;
       const h=HITOS[+el.dataset.hi]; if(h){ h[el.dataset.hkey]=el.value;
+        if(typeof hitoCambioConcepto === 'function') hitoCambioConcepto(h, +el.dataset.hi, el.dataset.hkey);
         // Un % o concepto de fábrica tocado por un admin saca el contrato de su calendario de fábrica (28-sep)
         if(el.hasAttribute('data-fijo-hito') && typeof calendarioPasaAManual === 'function') calendarioPasaAManual();
         // Un % de fábrica editado a mano (admin/super_admin) recalcula su
@@ -844,6 +845,11 @@ function buildForm(){
        type="date"> la rechaza SIN avisar: value se queda en '' y el hito sale
        sin vencimiento en el documento. Al salir del campo se dice, y el campo
        queda marcado hasta que se corrija. */
+    // Inglés/indonesio de un hito revisados: basta con pasar por el campo (no obliga a teclear).
+    form.addEventListener('focusout', e=>{
+      const t = e.target.closest && e.target.closest('[data-hkey="en"],[data-hkey="id"]'); if(!t) return;
+      if(typeof hitoCambioConcepto === 'function') hitoCambioConcepto(HITOS[+t.dataset.hi], +t.dataset.hi, t.dataset.hkey);
+    });
     form.addEventListener('focusout', e=>{
       const el = e.target.closest('[data-hkey="fecha"]'); if(!el) return;
       const mala = !!(el.validity && el.validity.badInput);
