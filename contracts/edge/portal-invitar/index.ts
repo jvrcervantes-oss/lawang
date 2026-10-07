@@ -56,7 +56,9 @@ Deno.serve(async (req) => {
     const { data: ficha, error: eFicha } = await admin
       .from('usuarios').select('rol, activo, herramientas').eq('user_id', quien.user.id).maybeSingle();
     if (eFicha) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
-    if (!ficha || !ficha.activo || !['super_admin', 'admin'].includes(ficha.rol))
+    // 7-oct-2026 (empresas): entran tambien los roles de empresa; que fichas puede tocar cada uno
+    // lo decide la base (portal_puede_gestionar), no esta lista.
+    if (!ficha || !ficha.activo || !['super_admin', 'admin', 'admin_empresa', 'super_admin_empresa'].includes(ficha.rol))
       return json({ error: 'no_autorizado' }, 403);
     // 26-sep-2026 (revisión de las edges con service_role): ser admin no basta. El portal
     // se da desde «Compradores», y desde el 18-ago los admin van limitados por sus
@@ -71,11 +73,16 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     // true si quien llama ve TODAS esas fichas; nunca se vincula ni se toca lo que no ve
+    // 7-oct-2026 (empresas): ademas de verlas, un rol de empresa solo gestiona fichas con contratos y TODOS
+    // en sus empresas (un comprador con contratos en las dos empresas daria a su cuenta de portal
+    // los de la otra). Lo decide la base con el JWT de quien llama; un administrador global pasa siempre.
     const veTodas = async (ids: string[]) => {
       const unicos = [...new Set(ids)];
       if (!unicos.length) return true;
       const { data, error } = await usuario.from('clients').select('id').in('id', unicos);
-      return !error && (data ?? []).length === unicos.length;
+      if (error || (data ?? []).length !== unicos.length) return false;
+      const { data: puede, error: eRpc } = await usuario.rpc('portal_puede_gestionar', { p_ids: unicos });
+      return !eRpc && puede === true;
     };
     // Las fichas a las que YA da acceso ese email; null si no se han podido leer.
     const fichasDe = async (em: string) => {
@@ -137,6 +144,14 @@ Deno.serve(async (req) => {
       if (!(await veTodas(fichas))) return json({ error: 'ficha_no_visible' }, 403);
     }
 
+    // 7-oct-2026 (revision de codigo): las fichas de una invitacion se comprueban ANTES de crear o
+    // marcar la cuenta de Auth; un 403 ya no deja una cuenta de portal a medias.
+    const idsInvitar: string[] = accion === 'invitar' && Array.isArray(body.client_ids) ? body.client_ids.map(String) : [];
+    if (accion === 'invitar') {
+      if (!idsInvitar.length) return json({ error: 'sin_fichas' }, 400);
+      if (!(await veTodas(idsInvitar))) return json({ error: 'ficha_no_visible' }, 403);
+    }
+
     // ¿existe ya el usuario de Auth?
     // ponytail: listUsers pagina de 1000 — sobra con los volúmenes de la
     // promotora; si algún día hay miles de compradores, cambiar a una búsqueda.
@@ -160,10 +175,7 @@ Deno.serve(async (req) => {
 
     // ── vincular fichas (solo en invitar) ────────────────────────────────
     if (accion === 'invitar') {
-      const ids: string[] = Array.isArray(body.client_ids) ? body.client_ids.map(String) : [];
-      if (!ids.length) return json({ error: 'sin_fichas' }, 400);
-      if (!(await veTodas(ids))) return json({ error: 'ficha_no_visible' }, 403);
-      const filas = ids.map((client_id) => ({
+      const filas = idsInvitar.map((client_id) => ({
         email, client_id, activo: true, creado_por: quien.user.email ?? null,
       }));
       const { error: eAcc } = await admin.from('portal_accesos')

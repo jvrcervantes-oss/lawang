@@ -138,7 +138,18 @@ p{margin:0}
     box-shadow:0 20px 50px rgba(27,28,25,.28)}
   #hero .chip{left:40px;top:28px}
 }
-@media (min-width:1280px){#hero aside{width:470px}#hero .cap{right:570px}}
+/* Panel más ancho y sin scroll interno (owner 7-oct-2026: en un 13" se cortaba). El hero mide la
+   pantalla (mín. 640) y el panel toma su altura natural: índice en dos columnas que se leen hacia
+   abajo (1-4 y 5-8), así los 8 pasos caben enteros sin scroll a cualquier altura. */
+@media (min-width:1024px){
+  #hero{height:100vh;min-height:640px}
+  #hero aside{bottom:auto;width:clamp(520px,44vw,660px);overflow:hidden}
+  #hero .cap{right:calc(clamp(520px,44vw,660px) + 70px)}
+  .indice{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,auto);grid-auto-flow:column}
+  #hero aside .pie{margin-top:0}
+}
+@media (min-width:1024px) and (max-height:760px){.cab p{display:none}}
+@media (min-width:1024px) and (max-width:1279px){#hero{min-height:720px}}
 
 /* ── Secciones ──────────────────────────────────────────────────────────────────── */
 .sec{padding:88px 0;border-bottom:1px solid rgba(190,179,165,.6)}
