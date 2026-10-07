@@ -219,7 +219,7 @@
   function cargaListaSuave() { /* repinta la marca de fila sin volver a pedir nada */
     var slugs = Object.keys(E.porSlug); if (!slugs.length) return;
     var filas = $('tc-lista').querySelectorAll('tr'); [].forEach.call(filas, function (f) { f.classList.remove('tc-fila-sel'); });
-    var b = $('tc-lista').querySelector('[data-tc-editar="' + E.slug + '"]'); if (b) b.closest('tr').classList.add('tc-fila-sel');
+    var b = $('tc-lista').querySelector('[data-tc-editar="' + ((window.CSS && CSS.escape) ? CSS.escape(E.slug) : E.slug) + '"]'); if (b) b.closest('tr').classList.add('tc-fila-sel');
   }
 
   function cierraEditor() {
