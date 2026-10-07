@@ -1,0 +1,105 @@
+/* textos-contrato.css — estilos propios de la pantalla «Textos de contrato» (/intranet/v4/textos-contrato/), 8-oct-2026.
+   Tailwind va COMPILADO (tw.css): una clase que ninguna pantalla usa antes no existe, así que lo que esta pantalla pinta desde JS lleva su propia clase tc-*.
+   Misma paleta que el resto de la v4: laguna #104C4F, verde #485b37, tierra #8A6A34, texto #1b1c18 / #44483f, apagado #75786e. Sin sombras, radio 0 o pastilla. */
+
+.tc-nota{margin:0;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.45;background:#f3f1ea;color:#44483f}
+.tc-nota[hidden]{display:none}
+.tc-nota-mal{background:#fbeceb;color:#8c1d18}
+.tc-nota-aviso{background:#f6efdc;color:#6b5320}
+.tc-mal{color:#8c1d18}
+.tc-vacio{padding:28px 20px;text-align:center;font-size:14px;color:#44483f;margin:0}
+.tc-vacio.tc-mal{color:#8c1d18}
+.tc-fuerte{font-weight:600;color:#1b1c18;font-size:14px}
+.tc-peq{font-size:12px;color:#75786e;line-height:1.4}
+.tc-aviso-txt{color:#8A6A34;max-width:34ch}
+.tc-hash{font-size:12px;color:#44483f;background:#f3f1ea;padding:2px 6px;border-radius:6px}
+
+.tc-aviso-fijo{display:flex;gap:12px;align-items:flex-start;padding:16px 20px;border:1px solid #8A6A34;border-radius:12px;background:#fbf6e8;color:#44483f;font-size:14px;line-height:1.5}
+.tc-aviso-fijo .material-symbols-outlined{color:#8A6A34;font-size:22px;flex:none}
+.tc-aviso-fijo p{margin:0}
+
+.tc-empresa{display:flex;flex-direction:column;gap:6px;min-width:220px}
+.tc-empresa label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#75786e;font-weight:700}
+.tc-empresa select,.tc-campo input,.tc-busca input{padding:10px 14px;border:1px solid #cfccbf;border-radius:999px;background:#fff;font:inherit;font-size:14px;color:#1b1c18;min-height:40px}
+.tc-empresa[hidden]{display:none}
+
+.tc-tabla{width:100%;border-collapse:collapse;text-align:left}
+.tc-tabla th{padding:12px 20px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#75786e;background:#f7f5ee;border-bottom:1px solid #dedbcf;font-weight:600}
+.tc-tabla td{padding:14px 20px;vertical-align:top;border-bottom:1px solid #ece9df;font-size:14px;color:#44483f}
+.tc-tabla .tc-fila-sel{background:#f3f7ee}
+.tc-acc{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+
+.tc-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#eceae0;color:#44483f}
+.tc-pill.tc-ok{background:#e2eed8;color:#2f5a1e}
+.tc-pill.tc-aviso{background:#f6efdc;color:#6b5320}
+
+.tc-btn{padding:8px 16px;min-height:36px;border-radius:999px;border:1px solid #485b37;background:#485b37;color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.tc-btn:hover:not(:disabled){background:#3a4a2c}
+.tc-btn:disabled{opacity:.45;cursor:not-allowed}
+.tc-btn-suave{background:#fff;color:#104C4F;border-color:#cfccbf}
+.tc-btn-suave:hover:not(:disabled){background:#f3f1ea}
+.tc-peligro{color:#8c1d18;border-color:#e5c3c0}
+.tc-btn:focus-visible,.tc-tab:focus-visible,.tc-trozo textarea:focus-visible,.tc-campo input:focus-visible,.tc-empresa select:focus-visible,.tc-busca input:focus-visible{outline:2px solid #104C4F;outline-offset:2px}
+
+.tc-seccion{background:#fff;border-radius:12px;overflow:hidden}
+.tc-seccion[hidden]{display:none}
+.tc-seccion-cab{padding:24px 28px 16px;border-bottom:1px solid #ece9df;display:flex;flex-direction:column;gap:6px}
+.tc-seccion-cab h2{margin:0;font-size:20px;color:#104C4F;font-weight:600}
+.tc-sobre{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#75786e;font-weight:700}
+.tc-pie{padding:14px 28px;border-top:1px solid #ece9df;font-size:12px;color:#75786e;margin:0}
+.tc-scroll{overflow-x:auto}
+.tc-cuerpo{padding:20px 28px;display:flex;flex-direction:column;gap:14px}
+.tc-cuerpo[hidden],.tc-conf[hidden],.tc-barra-fila[hidden]{display:none}   /* display:flex ganaba a [hidden]: el panel de activar se veia a quien no puede activar */
+
+.tc-herram{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.tc-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tc-tab{padding:8px 16px;min-height:36px;border-radius:999px;border:1px solid #cfccbf;background:#fff;color:#44483f;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.tc-tab[aria-pressed="true"]{background:#104C4F;border-color:#104C4F;color:#fff}
+.tc-busca input{min-width:240px}
+
+.tc-bloque{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px dashed #ece9df}
+.tc-trozo{position:relative;display:flex;flex-direction:column;gap:4px}
+.tc-trozo textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cfccbf;border-radius:10px;font:inherit;font-size:14px;line-height:1.5;color:#1b1c18;background:#fff;resize:vertical;min-height:40px}
+.tc-trozo.tc-tocado textarea{border-color:#485b37;background:#f6faf1}
+.tc-trozo.tc-cand textarea{background:#f3f1ea;color:#75786e;cursor:not-allowed;padding-left:34px}
+.tc-lock{position:absolute;left:10px;top:9px;font-size:14px;line-height:1;pointer-events:none}
+.tc-trozo-av{font-size:12px;min-height:0}
+.tc-trozo-av:empty{display:none}
+
+.tc-barra{display:flex;flex-direction:column;gap:12px;padding:16px 28px;border-top:1px solid #ece9df;background:#f7f5ee}
+.tc-barra-fila{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.tc-campo{display:flex;flex-direction:column;gap:6px;flex:1;min-width:240px}
+.tc-campo label{font-size:12px;color:#44483f;font-weight:600}
+.tc-campo input{border-radius:10px;width:100%;box-sizing:border-box}
+.tc-pager{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+
+.tc-previa{width:100%;height:560px;border:1px solid #cfccbf;border-radius:10px;background:#fff}
+.tc-rev{margin:0;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.45}
+.tc-rev-ok{background:#e9f2e1;color:#2f5a1e}
+.tc-rev-mal{background:#fbeceb;color:#8c1d18}
+.tc-rev-aviso{background:#f6efdc;color:#6b5320}
+
+.tc-conf{padding:16px;border:1px solid #8A6A34;border-radius:12px;background:#fbf6e8;display:flex;flex-direction:column;gap:12px}
+.tc-conf p{margin:0;font-size:14px;line-height:1.5;color:#44483f}
+.tc-conf-txt{font-weight:600;color:#1b1c18}
+.tc-check{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#1b1c18}
+.tc-check input{margin-top:3px;width:18px;height:18px;flex:none}
+
+.tc-difflista{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;border:1px solid #dedbcf;border-radius:10px;overflow:auto;max-height:520px;background:#fff}
+.tc-d{padding:2px 12px;white-space:pre-wrap;word-break:break-word}
+.tc-dmas{background:#e9f2e1;color:#1e4a12}
+.tc-dmenos{background:#fbeceb;color:#8c1d18}
+.tc-digual{color:#75786e}
+.tc-dsalto{padding:2px 12px;color:#9a9c92;background:#f7f5ee}
+
+@media (max-width:640px){
+  .tc-seccion-cab,.tc-cuerpo,.tc-barra,.tc-pie{padding-left:16px;padding-right:16px}
+  .tc-tabla th,.tc-tabla td{padding:12px}
+  .tc-tabla{min-width:640px}
+  .tc-busca input{min-width:0;width:100%}
+  .tc-busca{width:100%}
+  .tc-previa{height:420px}
+  .tc-empresa{min-width:0;width:100%}
+  .tc-barra-fila .tc-btn{flex:1}
+  .tc-acc{justify-content:flex-start}
+}

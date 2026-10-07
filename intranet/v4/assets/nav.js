@@ -94,6 +94,9 @@
       { path: 'compradores', texto: 'Clientes', clave: 'compradores' }] },
     { seccion: 'Panel de control', entradas: [
       { path: 'usuarios', texto: 'Usuarios', clave: 'usuarios', rol: 'admin' },
+      /* Textos de contrato (8-oct-2026, plantillas por empresa S7): el texto con el que cada empresa hace sus contratos. Sin casilla: la abre el rol
+         (admin o rol de empresa, `data-rol="admin"` en la puerta) y la base decide qué empresa ve cada uno (es_admin_de) y quién activa (es_super_admin_de). */
+      { path: 'textos-contrato', texto: 'Textos de contrato', rol: 'admin' },
       { path: 'ajustes', texto: 'Ajustes', clave: 'ajustes', rol: 'admin', global: true },
       /* `solo` (7-oct-2026, owner): la puerta de la página lleva data-ambito igual — comision-admin: «super-global» (solo los super admins
          globales; un super de EMPRESA no la ve ni entra), sociedades: «propietario» (solo el propietario). nav.test.js casa menú y puerta. */
@@ -429,6 +432,8 @@
        extractos y conciliación. Admin + casilla `bancos`; la puerta, la RLS. */
     { path: 'bancos',        icono: 'account_balance_wallet', texto: 'Bancos' },
     { path: 'cuentas',       icono: 'account_balance', texto: 'Cuentas' },
+    /* Textos de contrato (8-oct-2026): admin o rol de empresa; sin casilla (ver MENU_V4). Se queda en el Panel de control. */
+    { path: 'textos-contrato', icono: 'edit_note',      texto: 'Textos de contrato' },
     /* Equipos de venta, Condiciones y Reparto ya NO van aquí (23-sep-2026, plan
        del owner: «agrupar y controlar lo que se ve por permisos»): son pestañas
        de la entrada «Comisiones», ver PESTANAS_COMISIONES más abajo. */
