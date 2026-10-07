@@ -11,7 +11,7 @@
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); borra solo proformas de fixture (numero TESTB2-*) dentro de la prueba
 do $t$
 declare
-  per jsonb := '{}'::jsonb;  -- persona -> {sub,email}
+  per jsonb := '{}'::jsonb;
   pe record; uid uuid;
   jv uuid; ya uuid; cr uuid; ad4 uuid; ad0 uuid; ctl uuid; ar uuid; gad uuid;
   pl uuid; ps uuid; pk uuid; cl uuid; cs uuid; nl text; ns text; ml text; ms text;
@@ -22,9 +22,8 @@ declare
   m_l uuid; m_s uuid; m_n uuid; lin_s bigint;
   cs_ids jsonb := '[]'::jsonb; c jsonb; res text; n bigint; r text := ''; fallos int := 0; ex text; ok boolean; sub text; mail text;
   hoy text := to_char(current_date, 'YYYY-MM-DD');
-  pay_l text; pay_s text; pay_x text;
+  pay_l text; pay_s text;
 begin
-  -- ===== personas =====
   select user_id into jv from public.usuarios where email = 'jvr.cervantes@gmail.com';
   perform set_config('request.jwt.claims', json_build_object('sub', jv, 'role', 'authenticated', 'email', 'jvr.cervantes@gmail.com')::text, true);
   for pe in select * from (values
@@ -45,7 +44,6 @@ begin
                                     'gad', jsonb_build_object('sub', gad, 'email', 'balianhills@gmail.com'),
                                     'jv',  jsonb_build_object('sub', jv,  'email', 'jvr.cervantes@gmail.com'));
 
-  -- ===== datos de referencia =====
   select e2.sociedad_clave into soc_l from public.empresas e2 where e2.clave = 'lawang';
   select e2.sociedad_clave into soc_s from public.empresas e2 where e2.clave = 'sandal_woods';
   select s.clave into soc_ltd from public.sociedades s where s.activa and not exists (select 1 from public.empresas x where x.sociedad_clave = s.clave) limit 1;
@@ -59,7 +57,6 @@ begin
   select g.clave into cat from public.gasto_categorias g order by g.orden limit 1;
   if soc_ltd is null then r := r || 'AVISO sin sociedad sin empresa activa: se omiten los casos de sociedad HK' || E'\n'; end if;
 
-  -- ===== fixtures (como postgres) =====
   reset role;
   insert into public.facturas (numero, tipo, sociedad, proyecto_id, total, moneda, fecha_emision, creado_por, created_at) values
     ('TESTB2-PL', 'proforma', soc_l, pl, 11, 'EUR', current_date, 'ajeno@test.b2', '2026-01-01') returning id into f_pl;
@@ -112,10 +109,8 @@ begin
   pay_l := format('{"tipo":"factura","contrato_id":"%s","moneda":"EUR","total":"1","sociedad":"%s","datos":{"lineas":[{"importe":"1"}]}}', cl, soc_l);
   pay_s := format('{"tipo":"factura","contrato_id":"%s","moneda":"EUR","total":"1","sociedad":"%s","datos":{"lineas":[{"importe":"1"}]}}', cs, soc_s);
 
-  -- ===== casos =====
   create or replace function pg_temp.ce(p text, q text, ex text, l text) returns jsonb language sql as $f$ select jsonb_build_object('p', p, 'q', q, 'ex', ex, 'l', l) $f$;
   cs_ids := cs_ids ||
-    -- A. proformas / facturas
     pg_temp.ce('ya',  format('select public.factura_borra(%L)', f_pl),  'ok',    'A1 admin_empresa borra proforma de su empresa') ||
     pg_temp.ce('ya',  format('select public.factura_borra(%L)', f_ps),  '42501', 'A2 admin_empresa NO borra proforma de la otra empresa') ||
     pg_temp.ce('ya',  format('select public.factura_borra(%L)', f_pk),  '42501', 'A3 admin_empresa NO borra proforma sin proyecto') ||
@@ -141,7 +136,6 @@ begin
     pg_temp.ce('cr',  format('select public.factura_reactiva(%L)', f_as), 'ok',    'A23 super_admin_empresa reactiva la de su empresa') ||
     pg_temp.ce('cr',  format('select public.factura_reactiva(%L)', f_al), '42501', 'A24 super_admin_empresa NO reactiva la de la otra') ||
     pg_temp.ce('jv',  format('select public.factura_reactiva(%L)', f_al), 'ok',    'A25 propietario reactiva') ||
-    -- A. emision (factura_guarda)
     pg_temp.ce('ya',  format('select * from public.factura_guarda(null, %L::jsonb)', pay_l), 'no42501', 'A26 admin_empresa emite sobre contrato de su empresa con su sociedad') ||
     pg_temp.ce('ya',  format('select * from public.factura_guarda(null, %L::jsonb)', pay_s), '42501', 'A27 admin_empresa NO emite sobre contrato de la otra empresa') ||
     pg_temp.ce('ya',  format('select * from public.factura_guarda(null, %L::jsonb)', replace(pay_l, soc_l, soc_s)), '42501', 'A28 admin_empresa NO emite con la sociedad de la otra empresa') ||
@@ -155,14 +149,13 @@ begin
     pg_temp.ce('gad', format('select * from public.factura_guarda(null, %L::jsonb)', replace(pay_s, soc_s, soc_l)), 'no42501', 'A36 admin global sin restriccion (la regla de sociedad no le toca)') ||
     pg_temp.ce('ya',  format('select * from public.factura_guarda(null, %L::jsonb)', jsonb_set(pay_l::jsonb, '{contrato_id}', 'null'::jsonb) #>> '{}'), '42501', 'A37 admin_empresa NO emite sin contrato ni proyecto') ||
     pg_temp.ce('ya',  format('select * from public.factura_guarda(null, %L::jsonb)', (jsonb_set(jsonb_set(pay_l::jsonb, '{contrato_id}', 'null'::jsonb), '{proyecto_nombre}', to_jsonb(ms)))::text), '42501', 'A38 admin_empresa NO emite sobre un proyecto de la otra empresa por nombre') ||
-    pg_temp.ce('ya',  format('select * from public.factura_guarda(%L, %L::jsonb)', f_fl2, (jsonb_set(jsonb_set(pay_l::jsonb, '{contrato_id}', 'null'::jsonb), '{proyecto_nombre}', to_jsonb(ml)))::text), 'no42501', 'A39 admin_empresa edita (puede fallar por enviada, no por empresa) un documento de su empresa que no creo') ||
+    pg_temp.ce('ya',  format('select * from public.factura_guarda(%L, %L::jsonb)', f_fl2, (jsonb_set(jsonb_set(pay_l::jsonb, '{contrato_id}', 'null'::jsonb), '{proyecto_nombre}', to_jsonb(ml)))::text), 'no42501', 'A39 admin_empresa edita un documento de su empresa que no creo') ||
     pg_temp.ce('ya',  format('select * from public.factura_guarda(%L, %L::jsonb)', f_fs2, pay_l), '42501', 'A40 admin_empresa NO edita un documento de la otra empresa') ||
     pg_temp.ce('ctl', format('select * from public.factura_guarda(%L, %L::jsonb)', f_fl2, pay_l), '42501', 'A41 agente de control NO edita un documento ajeno') ||
     pg_temp.ce('ya',  format('select public.guardar_recibi(null, %L::jsonb, %L::jsonb)', format('{"contrato_id":"%s","sociedad":"%s"}', cs, soc_s), '[]'), '42501', 'A42 admin_empresa NO emite recibi sobre contrato de la otra empresa') ||
     pg_temp.ce('ya',  format('select public.guardar_recibi(null, %L::jsonb, %L::jsonb)', format('{"contrato_id":"%s","sociedad":"%s"}', cl, soc_s), '[]'), '42501', 'A43 admin_empresa NO emite recibi con la sociedad de la otra empresa') ||
     pg_temp.ce('ya',  format('select public.guardar_recibi(null, %L::jsonb, %L::jsonb)', format('{"contrato_id":"%s","sociedad":"%s"}', cl, soc_l), '[]'), 'no42501', 'A44 admin_empresa pasa la puerta del recibi de su empresa (despues pide el justificante)') ||
     pg_temp.ce('cr',  format('select public.guardar_recibi(null, %L::jsonb, %L::jsonb)', format('{"contrato_id":"%s","sociedad":"%s"}', cs, soc_s), '[]'), 'no42501', 'A45 super_admin_empresa pasa la puerta del recibi de su empresa sin casillas') ||
-    -- B. solicitudes de pago y retenciones
     pg_temp.ce('ya',  format('select public.solicitud_pago_resuelve(%L, %L)', s_l, 'aprobada'), 'ok',    'B1 admin_empresa con Comisiones aprueba solicitud de su empresa') ||
     pg_temp.ce('ya',  format('select public.solicitud_pago_resuelve(%L, %L)', s_s, 'aprobada'), '42501', 'B2 admin_empresa NO aprueba la de la otra') ||
     pg_temp.ce('ad0', format('select public.solicitud_pago_resuelve(%L, %L)', s_l, 'aprobada'), '42501', 'B3 admin_empresa sin la casilla Comisiones NO aprueba') ||
@@ -176,7 +169,6 @@ begin
     pg_temp.ce('cr!', format('select public._retencion_puerta(%L)', s_s), '22023', 'B11 retencion: super_admin_empresa pasa la puerta sin casillas') ||
     pg_temp.ce('ad0!', format('select public._retencion_puerta(%L)', s_l), '42501', 'B12 retencion: sin la casilla Comisiones NO') ||
     pg_temp.ce('ctl', format('select public.solicitud_pago_retencion_rectifica(%L, %L, %L)', s_l, 'batal', 'x'), '42501', 'B13 retencion: agente NO rectifica') ||
-    -- C. gastos y proveedores
     pg_temp.ce('ya',  format('select public.gasto_anula(%L, %L)', g_l, 'test'), 'ok',    'C1 admin_empresa anula gasto de su empresa') ||
     pg_temp.ce('ya',  format('select public.gasto_anula(%L, %L)', g_s, 'test'), '42501', 'C2 admin_empresa NO anula gasto de la otra') ||
     pg_temp.ce('ya',  format('select public.gasto_anula(%L, %L)', g_pl, 'test'), 'ok',   'C3 el proyecto manda: gasto con sociedad Sandal Woods pero proyecto de Lawang es de Lawang') ||
@@ -206,7 +198,6 @@ begin
     pg_temp.ce('ya',  format('select public.proveedor_guarda(%L, %L::jsonb)', pv_g, '{"nombre":"x"}'), '42501', 'C27 admin_empresa NO edita proveedor global') ||
     pg_temp.ce('ya',  format('select public.proveedor_guarda(%L, %L::jsonb)', pv_l, '{"nombre":"x"}'), 'ok', 'C28 admin_empresa edita proveedor de su empresa') ||
     pg_temp.ce('gad', format('select public.proveedor_guarda(%L, %L::jsonb)', pv_g, '{"nombre":"x"}'), 'ok', 'C29 admin global edita proveedor global') ||
-    -- D. bancos
     pg_temp.ce('ya',  format('select public.bancos_ignorar(%L, %L)', m_l, 'x'), 'ok',    'D1 admin_empresa con Bancos ignora movimiento de su cuenta') ||
     pg_temp.ce('ya',  format('select public.bancos_ignorar(%L, %L)', m_s, 'x'), '42501', 'D2 admin_empresa NO ignora movimiento de la cuenta de la otra') ||
     pg_temp.ce('ya',  format('select public.bancos_ignorar(%L, %L)', m_n, 'x'), '42501', 'D3 admin_empresa NO toca un extracto de cuenta sin empresa') ||
@@ -224,7 +215,6 @@ begin
     pg_temp.ce('ya',  format('select public.bancos_desconciliar(%L)', lin_s), '42501', 'D15 admin_empresa NO deshace una linea de la otra empresa') ||
     pg_temp.ce('cr',  format('select public.bancos_desconciliar(%L)', lin_s), 'ok',    'D16 super_admin_empresa deshace una linea de su empresa') ||
     pg_temp.ce('ya',  format('select public.bancos_designorar(%L)', m_s), '42501', 'D17 admin_empresa NO quita la marca de ignorado de la otra') ||
-    -- E. cuentas y sociedades
     pg_temp.ce('ya',  format('select public.cuenta_bancaria_guarda(%L, %L::jsonb, true)', 'zz_b2_cuenta', '{"label":"x","titular":"x","cuenta":"1"}'), '42501', 'E1 admin_empresa NO crea cuentas (como un admin global)') ||
     pg_temp.ce('cr',  format('select public.cuenta_bancaria_guarda(%L, %L::jsonb, true)', 'zz_b2_cuenta', '{"label":"x","titular":"x","cuenta":"1"}'), 'ok', 'E2 super_admin_empresa crea una cuenta en su empresa') ||
     pg_temp.ce('cr',  format('select public.cuenta_bancaria_guarda(%L, %L::jsonb, false)', 'sandalwoods_danamon_eur', '{"label":"Danamon EUR"}'), 'ok', 'E3 super_admin_empresa edita cuenta de su empresa') ||
@@ -239,9 +229,7 @@ begin
     pg_temp.ce('cr',  format('select public.sociedad_guarda(%L, %L::jsonb, false)', soc_l, '{"label":"x"}'), '42501', 'E12 super_admin_empresa NO edita la sociedad de la otra') ||
     pg_temp.ce('cr',  format('select public.sociedad_guarda(%L, %L::jsonb, true)', 'zz_nueva_b2', '{"label":"x","razon":"x","domicilio":"x"}'), '42501', 'E13 super_admin_empresa NO da de alta sociedades') ||
     pg_temp.ce('ya',  format('select public.sociedad_guarda(%L, %L::jsonb, false)', soc_l, '{"label":"x"}'), '42501', 'E14 admin_empresa NO edita sociedades (solo super)') ||
-    pg_temp.ce('jv',  format('select public.sociedad_guarda(%L, %L::jsonb, false)', soc_l, '{"label":"Tepi Sun Gai"}'), 'ok', 'E15 el propietario edita cualquiera') ||
-    -- contadores de filas visibles (policies y funciones de lectura)
-    '[]'::jsonb;
+    pg_temp.ce('jv',  format('select public.sociedad_guarda(%L, %L::jsonb, false)', soc_l, '{"label":"Tepi Sun Gai"}'), 'ok', 'E15 el propietario edita cualquiera');
   if soc_ltd is not null then
     cs_ids := cs_ids ||
       pg_temp.ce('cr', format('select public.gasto_anula(%L, %L)', g_ltd, 'test'), '42501', 'C30 gasto de sociedad sin empresa: super_admin_empresa NO') ||
@@ -249,7 +237,6 @@ begin
       pg_temp.ce('gad', format('select public.gasto_anula(%L, %L)', g_ltd, 'test'), 'ok', 'C32 admin global anula el gasto sin empresa');
   end if;
 
-  -- cuentas: expected se calcula con SQL plano, independiente de las funciones nuevas
   cs_ids := cs_ids ||
     pg_temp.ce('ya',  'select count(*) from public.gastos', 'n:' || (select count(*) from public.gastos g left join public.proyectos p on p.id = g.proyecto_id left join public.empresas x on x.sociedad_clave = g.sociedad where (case when g.proyecto_id is not null then p.empresa else x.clave end) = 'lawang'), 'F1 gastos que ve admin_empresa Lawang') ||
     pg_temp.ce('cr',  'select count(*) from public.gastos', 'n:' || (select count(*) from public.gastos g left join public.proyectos p on p.id = g.proyecto_id left join public.empresas x on x.sociedad_clave = g.sociedad where (case when g.proyecto_id is not null then p.empresa else x.clave end) = 'sandal_woods'), 'F2 gastos que ve super_admin_empresa Sandal Woods') ||
@@ -275,7 +262,7 @@ begin
     pg_temp.ce('ya',  'select count(*) from jsonb_array_elements(coalesce(public.bancos_resumen(), ''[]''::jsonb)) x where x->>''cuenta'' = ''sandalwoods_danamon_eur''', 'n:0', 'F22 bancos_resumen: sin la cuenta de la otra empresa') ||
     pg_temp.ce('ctl', 'select jsonb_array_length(coalesce(public.bancos_resumen(), ''[]''::jsonb))', 'n:0', 'F23 bancos_resumen: el agente de control no recibe nada') ||
     pg_temp.ce('ctl', 'select jsonb_array_length(public.panel_bancos_datos()->''movimientos'')', '42501', 'F24 panel de bancos: agente de control rechazado') ||
-    pg_temp.ce('cr',  'select count(*) from public.sociedades_log', 'n:' || (select count(*) from public.sociedades_log where clave = (select e.sociedad_clave from public.empresas e where e.clave = 'sandal_woods')), 'F26 sociedades_log: super_admin_empresa ve el de su sociedad') ||
+    pg_temp.ce('cr',  'select count(*) from public.sociedades_log', 'n:' || (select count(*) from public.sociedades_log where clave = (select e3.sociedad_clave from public.empresas e3 where e3.clave = 'sandal_woods')), 'F26 sociedades_log: super_admin_empresa ve el de su sociedad') ||
     pg_temp.ce('ya',  'select count(*) from public.sociedades_log', 'n:0', 'F27 sociedades_log: admin_empresa (no super) no ve ninguno') ||
     pg_temp.ce('jv',  'select count(*) from public.sociedades_log', 'n:' || (select count(*) from public.sociedades_log), 'F28 sociedades_log: el propietario los ve todos') ||
     pg_temp.ce('ya',  'select count(*) from public.cuentas_uso()', 'n:0', 'F29 cuentas_uso: admin_empresa no ve ninguna') ||
@@ -292,7 +279,6 @@ begin
     pg_temp.ce('ya',  'select count(*) from public.recibi_aplicaciones', 'n:' || (select count(*) from public.recibi_aplicaciones ra where exists (select 1 from public.facturas d join public.proyectos p on p.id = d.proyecto_id where d.id in (ra.recibi_id, ra.factura_id) and p.empresa = 'lawang')), 'F40 recibi_aplicaciones: ve las de los documentos de su empresa') ||
     pg_temp.ce('ya',  'select 1', 'ok', 'F41 (control de la propia prueba: una llamada trivial corre como authenticated)');
 
-  -- ===== ejecucion =====
   for c in select * from jsonb_array_elements(cs_ids) loop
     sub := per->rtrim(c->>'p', '!')->>'sub'; mail := per->rtrim(c->>'p', '!')->>'email';
     perform set_config('request.jwt.claims', json_build_object('sub', sub, 'role', 'authenticated', 'email', mail)::text, true);
@@ -315,39 +301,37 @@ begin
                when ex like 'le:%' then res like 'n:%' and substr(res, 3)::bigint <= substr(ex, 4)::bigint
                when ex like 'n:%' then res = ex
                else res = ex end;
-    r := r || case when ok then 'OK   ' else 'FALLO' end || format(' [%s] %s -> %s (esperado %s)', c->>'p', c->>'l', res, ex) || E'\n';
-    if not ok then fallos := fallos + 1; end if;
+    if not ok then
+      r := r || format('FALLO [%s] %s -> %s (esperado %s)', c->>'p', c->>'l', res, ex) || E'\n';
+      fallos := fallos + 1;
+    end if;
   end loop;
+  r := r || format('(%s casos ejecutados)', jsonb_array_length(cs_ids)) || E'\n';
 
-  -- ===== efectos que hay que comprobar como postgres, tras ejecutar de verdad (sin subtransaccion) =====
-  -- (1) un proveedor creado por un rol de empresa queda en SU empresa aunque mande otra
   perform set_config('request.jwt.claims', json_build_object('sub', per->'ya'->>'sub', 'role', 'authenticated', 'email', per->'ya'->>'email')::text, true);
   set local role authenticated;
   perform public.proveedor_guarda(null, '{"nombre":"TESTB2 forzado","empresa":"sandal_woods"}'::jsonb);
   reset role;
   select count(*) into n from public.proveedores where nombre = 'TESTB2 forzado' and empresa = 'lawang';
-  r := r || case when n = 1 then 'OK   ' else 'FALLO' end || format(' [efecto] proveedor de admin_empresa queda en su empresa (%s)', n) || E'\n'; if n <> 1 then fallos := fallos + 1; end if;
-  -- (2) una cuenta creada por un super de empresa queda con SU empresa
+  if n <> 1 then r := r || format('FALLO [efecto] proveedor de admin_empresa queda en su empresa (%s)', n) || E'\n'; fallos := fallos + 1; end if;
   perform set_config('request.jwt.claims', json_build_object('sub', per->'cr'->>'sub', 'role', 'authenticated', 'email', per->'cr'->>'email')::text, true);
   set local role authenticated;
   perform public.cuenta_bancaria_guarda('zz_b2_cuenta2', '{"label":"x","titular":"x","cuenta":"1","empresa":"lawang"}'::jsonb, true);
   reset role;
   select count(*) into n from public.cuentas_bancarias where clave = 'zz_b2_cuenta2' and empresa = 'sandal_woods';
-  r := r || case when n = 1 then 'OK   ' else 'FALLO' end || format(' [efecto] cuenta de super_admin_empresa queda en su empresa aunque mande otra (%s)', n) || E'\n'; if n <> 1 then fallos := fallos + 1; end if;
-  -- (3) la ruta de justificante: true para la de su empresa, false para la otra y para basura
+  if n <> 1 then r := r || format('FALLO [efecto] cuenta de super_admin_empresa queda en su empresa aunque mande otra (%s)', n) || E'\n'; fallos := fallos + 1; end if;
   perform set_config('request.jwt.claims', json_build_object('sub', per->'ya'->>'sub', 'role', 'authenticated', 'email', per->'ya'->>'email')::text, true);
   set local role authenticated;
   ok := public.gasto_ruta_visible(g_l || '/x.pdf') and not public.gasto_ruta_visible(g_s || '/x.pdf') and not public.gasto_ruta_visible('basura/x.pdf');
   reset role;
-  r := r || case when ok then 'OK   ' else 'FALLO' end || ' [efecto] gasto_ruta_visible: suya si, ajena y basura no' || E'\n'; if not ok then fallos := fallos + 1; end if;
-  -- (4) la factura creada con alcance restringido toma el proyecto del contrato (no el nombre que manda la pantalla)
+  if not ok then r := r || 'FALLO [efecto] gasto_ruta_visible: suya si, ajena y basura no' || E'\n'; fallos := fallos + 1; end if;
   perform set_config('request.jwt.claims', json_build_object('sub', per->'ya'->>'sub', 'role', 'authenticated', 'email', per->'ya'->>'email')::text, true);
   begin
     set local role authenticated;
     perform public.factura_guarda(null, jsonb_set(pay_l::jsonb, '{proyecto_nombre}', to_jsonb(ms)));
     reset role;
     select count(*) into n from public.facturas f where f.creado_por = per->'ya'->>'email' and f.contrato_id = cl and f.proyecto_id = (select c2.proyecto_id from public.contratos c2 where c2.id = cl) and f.created_at > now() - interval '5 minutes';
-    r := r || case when n >= 1 then 'OK   ' else 'FALLO' end || format(' [efecto] la factura de un rol restringido cuelga del proyecto del contrato, no del nombre de la pantalla (%s)', n) || E'\n'; if n < 1 then fallos := fallos + 1; end if;
+    if n < 1 then r := r || format('FALLO [efecto] la factura de un rol restringido cuelga del proyecto del contrato (%s)', n) || E'\n'; fallos := fallos + 1; end if;
   exception when others then
     reset role;
     r := r || format('AVISO [efecto] factura_guarda del caso 4 no llego a insertar (%s): normal si el tope de cadena del contrato esta agotado', sqlstate) || E'\n';
