@@ -88,12 +88,14 @@
         firmado: firmado, fecha_firma: firmado ? dia(-140) : null, pdf: firmado ? 'contratos/' + numero + '.pdf' : null, hitos: hitos };
     }
     var contratos = [
-      c('k1', 'P-07-BP', 'bloqueo_parcela', 'pr1', 'P-07', 38000, 38000, true, [h('Reserva', 'Reservation', 'A la firma', 19000), h('Escritura', 'Deed', '+90 días', 19000)]),
+      c('k1', 'P-07-BP', 'reserva_parcela', 'pr1', 'P-07', 38000, 38000, true, [h('Reserva', 'Reservation', 'A la firma', 19000), h('Escritura', 'Deed', '+90 días', 19000)]),
       c('k2', 'P-07-CO', 'construccion', 'pr1', 'P-07', 126500, 25300, true, [h('Anticipo 20 %', 'Advance 20 %', 'A la firma', 25300), h('Cimentación', 'Foundation', 'Mes 3', 37950), h('Estructura', 'Structure', 'Mes 6', 37950), h('Entrega', 'Handover', 'Mes 12', 25300)]),
-      c('k3', 'SH-03-BP', 'bloqueo_parcela', 'pr2', 'SH-03', 52000, 52000, true, [h('Reserva', 'Reservation', 'A la firma', 52000)]),
+      c('k3', 'SH-03-BP', 'reserva_parcela', 'pr2', 'SH-03', 52000, 52000, true, [h('Reserva', 'Reservation', 'A la firma', 52000)]),
       c('k4', 'SH-03-CO', 'construccion', 'pr2', 'SH-03', 98000, 0, false, [h('Anticipo 20 %', 'Advance 20 %', 'A la firma', 19600), h('Cimentación', 'Foundation', 'Mes 3', 29400), h('Estructura', 'Structure', 'Mes 6', 29400), h('Entrega', 'Handover', 'Mes 12', 19600)]),
-      c('k5', 'BV-01-BP', 'bloqueo_parcela', 'pr3', 'BV-01', 30000, 3000, true, [h('Reserva', 'Reservation', 'A la firma', 3000), h('Escritura', 'Deed', '+60 días', 27000)]),
-      c('k6', 'RF-02-BP', 'bloqueo_parcela', 'pr4', 'RF-02', 24000, 24000, true, [h('Reserva', 'Reservation', 'A la firma', 24000)])
+      c('k5', 'BV-01-BP', 'reserva_parcela', 'pr3', 'BV-01', 30000, 3000, true, [h('Reserva', 'Reservation', 'A la firma', 3000), h('Escritura', 'Deed', '+60 días', 27000)]),
+      c('k6', 'RF-02-BP', 'reserva_parcela', 'pr4', 'RF-02', 24000, 24000, true, [h('Reserva', 'Reservation', 'A la firma', 24000)]),
+      // La Carta de Reserva de P-07, ya recogida en su Bloqueo y su Construcción: el caso «sustituida» de Contratos
+      c('k7', 'P-07-CR', 'carta_reserva', 'pr1', 'P-07', 164500, 0, true, [h('Reserva', 'Reservation', 'A la firma', 5000)])
     ];
     var emisor = { label: 'Lawang Demo', razon: 'PT Demo Estate', domicilio: 'Jl. Demostración 1, Bali', npwp: '00.000.000.0-000.000' };
     function fac(id, numero, tipo, proy, fecha, total, contrato, concepto, extra) {

@@ -264,11 +264,10 @@
   function num(v) { return (typeof parseImporte === 'function') ? (parseImporte(v) || 0) : (parseFloat(v) || 0); }
   /* El % de descuento se lee con el MISMO parseo que el importe del editor (parseImporte →
      lwParseImporte: «7,5» y «7.5» valen 7,5). app.html no tiene función de tope en %: lo
-     comprueba en guardarContrato() contra el importe (dc > base × 0,15, sin tope para super
+     comprueba en guardarContrato() contra el importe (dc > base × tope del rol: 15 %, 50 % admin, sin tope super
      admin) y el trigger lo repite. Esto solo evita llegar al editor con algo que va a rechazar. */
-  var TOPE_DESCUENTO_PCT = 15;
   function pctDescuento() { return num(S.bloqueo.pct); }
-  function descuentoFueraDeTope(pct) { return !ES_SUPER && pct > TOPE_DESCUENTO_PCT; }
+  function descuentoFueraDeTope(pct) { return pct > topeDescuentoPct(); }
   function listo(k) {
     if (k === 'inicio') return !!S.camino;
     if (k === 'modo') return !!S.modo && !(S.modo === 'propia' && (RT.equipo.soySM || !S.origen || (S.origen === 'otro' && !S.frase.trim())));
@@ -491,14 +490,14 @@
         if (S.camino === 'existente') h2 += aviso('ok', 'check_circle', e(T('Lo ya cobrado con la Carta se descontará solo al guardar el Bloqueo.')));
         h2 += '<p class="asi-q">' + e(T('El precio es el del suelo en el inventario. Un descuento comercial resta de él.')) + '</p>';
         var puede = typeof puedeFijosEstudio === 'function' && puedeFijosEstudio();
-        var tope = ES_SUPER ? '' : ' · ' + T('máximo') + ' ' + TOPE_DESCUENTO_PCT;
+        var tope = ES_SUPER ? '' : ' · ' + T('máximo') + ' ' + topeDescuentoPct();
         h2 += '<div class="asi-dos"><div class="asi-fld"><label for="asi-pct">' + e(T('Descuento (%)')) + e(tope) + '</label><input id="asi-pct" inputmode="decimal" data-asi-campo="pct" value="' + e(S.bloqueo.pct) + '"' +
           (puede ? '' : ' disabled title="' + e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>';
         var pct = pctDescuento();
         if (pct > 0) h2 += '<div class="asi-fld"><label for="asi-motivo">' + e(T('Motivo del descuento')) + '</label><select id="asi-motivo" data-asi-campo="motivo">' + opcionesMotivo(S.bloqueo.motivo) + '</select></div>';
         h2 += '</div>';
         if (!puede) h2 += aviso('info', 'info', e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')));
-        if (descuentoFueraDeTope(pct)) h2 += aviso('mal', 'block', e(T('El descuento comercial no puede superar el 15% del precio del suelo.')));
+        if (descuentoFueraDeTope(pct)) h2 += aviso('mal', 'block', e(T(topeDescuentoPct() === 50 ? 'El descuento comercial no puede superar el 50% del precio del suelo.' : 'El descuento comercial no puede superar el 15% del precio del suelo.')));
         return h2;
       }
       if (t === 'construccion') {

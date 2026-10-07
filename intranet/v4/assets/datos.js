@@ -2571,7 +2571,13 @@
         /* Nº de cliente (CLI-00042, 26-sep-2026, owner). Lo pone la base al dar de alta y no cambia nunca
            (trg_clients_numero_cliente). Sale de su propia RPC porque `compradores_directorio()` no se toca
            (cambiar lo que devuelve exige borrarla). Si falla, la lista se pinta igual, sin número. */
-        vig(sb.rpc('compradores_numeros')).then(function (r) { return r.error ? (fallo('números de cliente', r.error), []) : (r.data || []); })
+        vig(sb.rpc('compradores_numeros')).then(function (r) { return r.error ? (fallo('números de cliente', r.error), []) : (r.data || []); }),
+        /* QUÉ FICHAS VE ENTERAS ESTA PERSONA (7-oct-2026, decisión del owner: «los clientes deben ser visibles por todo el
+           mundo»). La lista de arriba ya trae a TODOS los clientes (ficha básica); `clients` a pelo sigue filtrado por la
+           regla de los contratos, así que sus ids son justo las fichas que se abren enteras. El resto se abre en SOLO
+           LECTURA y no cuenta como «con contrato» / «sin contrato» (no se ven sus contratos: decir «sin contrato» sería
+           mentir). Si falla, null: no se marca ninguna (nunca se oculta una ficha por un fallo de red). */
+        vig(sb.from('clients').select('id')).then(function (r) { return r.error ? null : (r.data || []); })
         ]);
       };
       var espera = esperaModulos();
@@ -2579,6 +2585,11 @@
         var rc = r[1] || [], cts = rc[0] || [], vin = rc[1] || [], cob = rc[2] || [], fir = rc[3] || [], eq = r[2] || [], nums = r[3] || [];
         var cs = r[0];
         if (!cs) return;
+        // textos nuevos de esta pantalla: pasan por el diccionario (lwT) y, si no lo hay, salen tal cual
+        var Tx = function (x) { var v = (typeof lwT === 'function') ? lwT(x) : x; return v == null ? x : v; };
+        // fichas que la persona NO ve enteras (ficha básica, solo lectura). Sin dato fiable (null) no se marca ninguna.
+        var basicaDe = {};
+        if (r[4]) { var enteras = {}; r[4].forEach(function (x) { enteras[x.id] = 1; }); cs.forEach(function (c2) { if (!enteras[c2.id]) basicaDe[c2.id] = 1; }); }
         var numDe = {}; nums.forEach(function (x) { numDe[x.id] = x.numero_cliente; });
         cs.forEach(function (c2) { if (numDe[c2.id]) c2.numero_cliente = numDe[c2.id]; });
         var esPre = function (tp) { return (typeof lwEsPreliminar === 'function') && lwEsPreliminar(tp); };
@@ -2638,7 +2649,7 @@
         if (conContratos) {
           pon2('cc-contrato', 'Con contrato (' + conContrato.length + ')');
           pon2('cc-firma', 'En firma (' + enFirma.length + ')');
-          pon2('cc-prospectos', 'Sin contrato (' + (cs.length - conContrato.length) + ')');
+          pon2('cc-prospectos', 'Sin contrato (' + cs.filter(function (c2) { return !deCliente[c2.id] && !basicaDe[c2.id]; }).length + ')');
         } else {
           // sin contratos no hay «con contrato», «en firma» ni «sin contrato»: los tres filtros se ocultan, no se dejan en 0
           ['cc-contrato', 'cc-firma', 'cc-prospectos'].forEach(function (k) {
@@ -2752,12 +2763,53 @@
           var H = window.lwCajonHtml;
           if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
           sb.from('clients').select(CAMPOS_FICHA).eq('id', c0.id).maybeSingle().then(function (r) {
-            if (r.error || !r.data) {
+            if (r.error) {
               console.error('[v4 datos] ficha de comprador', r.error);
               toastMal('No se pudo leer la ficha completa: se enseña lo que hay en el listado.');
               pintaFicha(c0);
+            } else if (!r.data) {
+              /* Sin error y sin fila: la base no te deja ver esa ficha entera (la regla de los contratos). El directorio sí
+                 la lista, así que se abre en SOLO LECTURA con lo que el directorio ya trae. Lo decide el servidor, no el rol. */
+              pintaFichaBasica(c0);
             } else pintaFicha(r.data);
           });
+        }
+        /* LA FICHA BÁSICA (7-oct-2026, decisión del owner: «los clientes deben ser visibles por todo el mundo»). Lo que
+           trae la lista del directorio y nada más: nombre, nº, tipo, correo, teléfono, nacionalidad, KYC, quién la dio de
+           alta. SIN pasaporte, nacimiento, dirección, notas, documentos, contratos ni cuentas — no se piden ni se pintan
+           secciones vacías (un «no tiene» diría lo contrario de «no lo ves»). Ningún botón de escribir: la base tampoco deja.
+           Ancla estable: data-cajon-sec="basica"; el aviso lleva data-ficha-basica. */
+        function pintaFichaBasica(c0) {
+          var H = window.lwCajonHtml;
+          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.comprador = null;   // nada que editar: que ningún editor herede otra ficha
+          var esEmpresa = c0.tipo === 'empresa';
+          var kyc = KYC[c0.kyc_status || 'pending'] || [c0.kyc_status, 'neutro'];
+          var autor = c0.propietario
+            ? esc(nombreEquipo[String(c0.propietario).toLowerCase()] || c0.propietario)
+            : '<span class="lwc-apagado">' + esc(Tx('Nadie · ficha antigua')) + '</span>';
+          var identidad =
+            H.dato(Tx('Nº de cliente'), c0.numero_cliente) +
+            H.dato(Tx('Tipo'), esEmpresa ? Tx('Empresa') : Tx('Persona física')) +
+            H.dato(Tx('Email'), c0.email) +
+            H.dato(Tx('Teléfono'), c0.phone ? H.enlace('https://wa.me/' + String(c0.phone).replace(/[^0-9]/g, ''), c0.phone, true) : null, { html: 1 }) +
+            H.dato(esEmpresa ? Tx('País de constitución') : Tx('Nacionalidad'), c0.nationality) +
+            H.dato('KYC', H.tag(kyc[0], kyc[1]), { html: 1 }) +
+            H.dato(Tx('Alta en la suite'), fFecha(c0.created_at)) +
+            H.dato(Tx('Dada de alta por'), autor, { html: 1 });
+          var cuerpo = '<div data-ficha-basica>' + H.nota(Tx('Ficha básica: los documentos y los contratos de otra empresa no se muestran')) + '</div>' +
+            H.seccion(Tx('Identidad'), identidad, 'basica');
+          var acciones = [];
+          /* Sin «Crear contrato» en la ficha básica (7-oct-2026, LAW-E55): llegar aquí es que la base NO te deja leer esta ficha entera, y el editor de contratos
+             la pide por `comprador_ficha`, que ya no se la da a nadie que no la vea (ni siquiera a quien no tiene alcance acotado). Un botón que acabaría en un aviso
+             no se ofrece; quien ve el contrato de ese cliente lo abre desde el propio contrato. */
+          acciones.push({ texto: 'Cerrar', cerrar: true });
+          window.lwCajon({ sub: Tx(esEmpresa ? 'Ficha básica de empresa cliente' : 'Ficha básica de cliente'), titulo: c0.full_name || Tx('Sin nombre'),
+            estado: ['KYC · ' + kyc[0], kyc[1]],
+            bajoTitulo: [c0.numero_cliente, c0.nationality].filter(Boolean).join(' · ') || Tx('sin identificación'),
+            cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
+          var u2 = new URL(location.href);
+          u2.searchParams.set('id', c0.id);
+          history.replaceState(null, '', u2.href);
         }
         function pintaFicha(c2) {
           var H = window.lwCajonHtml;
@@ -3448,6 +3500,8 @@
           if (tdAlta) tdAlta.innerHTML = htmlAutor(nombreEquipo, c2.propietario);
           tr.style.cursor = 'pointer';
           tr.setAttribute('data-id', c2.id);
+          if (basicaDe[c2.id] && td0) td0.insertAdjacentHTML('beforeend', '<div data-ficha-basica-etq style="font-size:11px;color:#75786e">' + esc(Tx('Ficha básica')) + '</div>');
+          if (basicaDe[c2.id]) tr.setAttribute('data-ficha-basica', '1');
           tr.setAttribute('data-tiene-contrato', d ? '1' : '0');
           tr.setAttribute('data-en-firma', d && d.firma ? '1' : '0');
           tr.lastElementChild.innerHTML = '<button type="button" data-real title="Ver ficha" class="p-1 text-on-surface-variant hover:text-deep-lagoon transition-colors"><span class="material-symbols-outlined text-[18px]">visibility</span></button>';
@@ -3479,7 +3533,7 @@
           function (fila2, clave) {
             if (clave === 'contrato') return fila2.getAttribute('data-tiene-contrato') === '1';
             if (clave === 'firma') return fila2.getAttribute('data-en-firma') === '1';
-            if (clave === 'prospectos') return fila2.getAttribute('data-tiene-contrato') === '0';
+            if (clave === 'prospectos') return fila2.getAttribute('data-tiene-contrato') === '0' && fila2.getAttribute('data-ficha-basica') !== '1';
             return true;
           },
           function (btn, on) {

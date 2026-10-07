@@ -140,5 +140,39 @@ es('un recibí o una proforma no son la factura',
 es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)',
    R.facturaDelHito([fac('F5', 'C-1', 'Cimentación — Mes 3', { fields:{} })], C1, hCim, 'USD').numero, 'F5');
 
+/* ── Contratos por villa (7-oct-2026): agrupar no puede perder contratos ── */
+{
+  const cts = [
+    {id:'a', numero:'P-07-CR', tipo:'carta_reserva',   proyecto_id:'pr1', proyecto:'Palm Field', parcela:'P-07'},
+    {id:'b', numero:'P-07-BP', tipo:'reserva_parcela', proyecto_id:'pr1', proyecto:'Palm Field', parcela:'P-07'},
+    {id:'c', numero:'P-07-CO', tipo:'construccion',    proyecto_id:'pr1', proyecto:'Palm Field', parcela:'P-07'},
+    {id:'d', numero:'SH-03-BP', tipo:'reserva_parcela', proyecto_id:'pr2', proyecto:'Sumba Hills', parcela:'SH-03'},
+    {id:'e', numero:'HS00009', tipo:'hak_sewa_notario', proyecto_id:'pr2', proyecto:'Sumba Hills', parcela:''},
+    {id:'f', numero:'X-1', tipo:'construccion', proyecto_id:null, proyecto:'Sin catálogo', parcela:'X-1'},
+  ];
+  const vs = R.villasPortal(cts);
+  es('agrupar por villa no pierde ningún contrato', vs.reduce((n,v)=>n+v.contratos.length,0), cts.length);
+  es('una villa por proyecto + unidad, en el orden en que aparecen', vs.map(v=>v.key), ['pr1|P-07','pr2|SH-03','pr2|','n:Sin catálogo|X-1']);
+  es('la Carta sustituida va al final de su villa', vs[0].contratos.map(x=>x.numero), ['P-07-BP','P-07-CO','P-07-CR']);
+  es('la Carta enlaza a los definitivos de su villa', R.sustitutosDe(cts[0], cts).map(x=>x.numero), ['P-07-BP','P-07-CO']);
+  es('un definitivo no enlaza a nadie', R.sustitutosDe(cts[1], cts), []);
+
+  // La Carta sin unidad sigue sustituida (la regla mira todo el comprador), pero sin definitivos en su villa no
+  // se inventa a quién enlazar, y su villa no tiene cifra propia.
+  const sueltas = [
+    {id:'g', numero:'CR00040', tipo:'carta_reserva',   proyecto_id:'pr3', proyecto:'Bonian', parcela:''},
+    {id:'h', numero:'BV-01-BP', tipo:'reserva_parcela', proyecto_id:'pr3', proyecto:'Bonian', parcela:'BV-01'},
+  ];
+  const vs2 = R.villasPortal(sueltas);
+  es('la Carta sin unidad no se pierde', vs2.map(v=>v.contratos.map(x=>x.numero)), [['CR00040'],['BV-01-BP']]);
+  es('…su villa no tiene cifra propia (solo Cartas sustituidas)', vs2.map(v=>v.soloSustituidos), [true,false]);
+  es('…y no enlaza a un contrato de otra unidad', R.sustitutosDe(sueltas[0], sueltas), []);
+
+  // Solo Carta (estado B del artifact): no está sustituida y su villa sí tiene cifra (la cuota).
+  const soloCarta = [{id:'i', numero:'BV-04-CR', tipo:'carta_reserva', proyecto_id:'pr3', proyecto:'Bonian', parcela:'BV-04'}];
+  es('solo Carta: su villa tiene cifra', R.villasPortal(soloCarta)[0].soloSustituidos, false);
+  es('vacío: sin villas', R.villasPortal([]), []);
+}
+
 if(fallos){ console.error(`\n${fallos} fallo(s) en las cuentas del portal.`); process.exit(1); }
 console.log('resumen.test.js — OK');
