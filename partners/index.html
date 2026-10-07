@@ -17,7 +17,7 @@
 <!-- Misma tipografía que /modelo/: Cormorant Garamond (titulares), Instrument Sans
      (rótulos), Jost (texto). CSS propio y plano en vez del Tailwind congelado de
      /modelo/ (dali-tesla-tw.min.css): ese build no trae compiladas clases nuevas. -->
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400&family=Instrument+Sans:wght@500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;700&family=Instrument+Sans:wght@500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300..500,0..1&display=swap" rel="stylesheet">
 <style>
 /* Titulares en The Seasons Regular (owner 7-oct-2026), sin negrita ni cursiva: el mismo fichero
@@ -712,6 +712,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
    componentes fijan 600/700 con mas especificidad (.cierre h2, #hero .cap h1). */
 h1,h2,h3,.shead .num,.gestion__datos b,.glosario dt,.camino__pct,.tc .pct b{font-family:'Neue Kabel',var(--ff-b)}
 h1,h2,h3{font-weight:700!important} /* negrita en los tres niveles (owner 7-oct-2026) */
+h1 .nk,h2 .nk,h3 .nk{font-weight:inherit} /* la palabra pasada a Neue Kabel va en el peso de su titular */
 .shead .num{font-weight:300!important}
 .gestion__datos b,.camino__pct,.tc .pct b{font-weight:500!important}
 .glosario dt{font-weight:400}
