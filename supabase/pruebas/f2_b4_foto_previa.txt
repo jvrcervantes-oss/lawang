@@ -1,0 +1,3 @@
+Bloque 4, 8-oct-2026, ANTES de aplicar nada (produccion, 34 fichas): f2_b4_foto.sql
+MD5_TABLAS=83243271d95fd51061fdfbdc2b750739
+MD5_FUNCIONES=ea73a17845639d576f5f54400aac192d
