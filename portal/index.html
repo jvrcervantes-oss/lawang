@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="1b34818f2e5d">
+<meta name="lw-version" content="d7af74a21121">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -748,6 +748,9 @@
   .ini-tarea .btn-borde{ background:#fff; border-color:#d9a99e; color:var(--bad); }
   .ini-tarea .btn-oscuro:hover{ background:#86271f; border-color:#86271f; }
   .ini-tarea .btn-borde:hover{ background:#fdf6f4; }
+  /* Pastilla y botón del mismo ancho, y las dos filas en columna (owner, 7-oct-2026). 140px cabe el texto
+     más largo de los tres idiomas («Lihat profil saya»). */
+  .ini-tarea-cuenta, .ini-tarea .btn-oscuro, .ini-tarea .btn-borde{ box-sizing:border-box; min-width:140px; text-align:center; }
   @media (max-width:640px){
     .ini-tarea .btn-oscuro, .ini-tarea .btn-borde{ margin-left:auto; }
   }
