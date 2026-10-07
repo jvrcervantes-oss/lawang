@@ -8554,6 +8554,26 @@
        devolver vacio — que se lee como «no hay nada» y no como «no es para ti». */
     if (!(window.LW_V4 && window.LW_V4.esSuperAdmin)) { notaSoloAdmin(); return; }
 
+    /* Pestañas (7-oct-2026, owner: la pantalla era muy larga). Arriba se queda lo que se mira siempre (tarifa,
+       lo que te deben, previsiones); debajo, UNA sección cada vez. Cada sección lleva data-lw-panel y cada botón
+       data-lw-pestana (identificadores estables: el rótulo puede cambiar sin romper nada). Recuerda la última
+       pestaña en el navegador, como comodidad: si no hay almacenamiento, abre en el Calendario. */
+    (function pestanas() {
+      var botones = document.querySelectorAll('[data-lw-pestana]');
+      if (!botones.length) return;
+      var KEY = 'lw-ca-pestana';
+      var valida = function (n) { return !!document.querySelector('[data-lw-pestana="' + n + '"]'); };
+      function abre(n) {
+        botones.forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-lw-pestana') === n ? 'true' : 'false'); });
+        document.querySelectorAll('[data-lw-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-lw-panel') !== n; });
+        try { localStorage.setItem(KEY, n); } catch (e) { /* sin almacenamiento: no pasa nada */ }
+      }
+      botones.forEach(function (b) { b.addEventListener('click', function () { abre(b.getAttribute('data-lw-pestana')); }); });
+      var guardada = null;
+      try { guardada = localStorage.getItem(KEY); } catch (e) { guardada = null; }
+      abre(guardada && valida(guardada) ? guardada : 'calendario');
+    })();
+
     var cuerpoTar = document.getElementById('lw-ca-tarifas');
     var cuerpoLin = document.getElementById('lw-ca-lineas');
     var cuerpoSoc = document.getElementById('lw-ca-sociedades');
