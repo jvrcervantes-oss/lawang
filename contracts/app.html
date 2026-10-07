@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="9957639cb83a">
+<meta name="lw-version" content="984e47f9768a">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -3688,7 +3688,7 @@ async function textoPlantillaBase(slug, contratoId, proyectoId){
   const clave = rpc + '|' + (esContrato ? contratoId : slug + '|' + (proyectoId || ''));
   const previa = PLANTILLA_CACHE[clave];
   const args = esContrato ? { p_contrato: contratoId, p_etag: previa ? previa.hash : null }
-                          : { p_slug: slug, p_proyecto: proyectoId || null, p_etag: previa ? previa.hash : null }; // predeploy-ok: id de proyecto, no nombre
+                          : { p_slug: slug, p_proyecto: proyectoId || null, p_etag: previa ? previa.hash : null }; // NOMBRE A PROPOSITO: p_proyecto es el id (uuid) del proyecto, no su nombre
   const { data, error } = await sb.rpc(rpc, args);
   if(error) throw error;
   if(!data || typeof data !== 'object' || data.slug !== slug) return null;
