@@ -8673,7 +8673,14 @@
         ? ('rige desde el ' + fFecha(vigente.efectivo_desde))
         : 'todavía no hay ninguna tarifa: no se está devengando nada');
 
-      var vivas = lineas.filter(function (l) { return !l.anulada && l.estado !== 'exenta'; });
+      /* Abono sin efecto (7-oct-2026): al anular un recibí, la base emite un abono
+         aunque el devengo siguiera «pendiente» (nunca se facturó, no hay nada que
+         devolver). La pantalla ya saca el devengo anulado de las sumas, así que
+         contar también su abono lo restaba DOS veces. Solo cuenta un abono cuyo
+         devengo ya estaba facturado o cobrado: ese sí es un crédito real. */
+      var porIdLinea = {}; lineas.forEach(function (l) { porIdLinea[l.id] = l; });
+      var abonoSinEfecto = function (l) { return lwAbonoSinEfecto(l, porIdLinea); };
+      var vivas = lineas.filter(function (l) { return !l.anulada && l.estado !== 'exenta' && !abonoSinEfecto(l); });
       var esFee = function (l) { return l.tipo_linea === 'fee' || (l.tipo_linea === 'abono' && l.fee_id); };
       var delMesTodo = vivas.filter(function (l) { return (l.devengado_el || '').slice(0, 7) === mesActual; });
       /* «Devengado este mes» sigue siendo SOLO la comision: el fee va en su
@@ -8912,7 +8919,7 @@
       function pintaSociedades() {
         if (!cuerpoSoc) return;
         var porSoc = {};
-        lineas.filter(function (l) { return !l.anulada; }).forEach(function (l) {
+        lineas.filter(function (l) { return !l.anulada && !abonoSinEfecto(l); }).forEach(function (l) {
           var k = l.sociedad || '';
           var e = porSoc[k] || (porSoc[k] = { n: 0, base: {}, com: {}, pend: {} });
           if (l.tipo_linea === 'devengo') e.n++;
@@ -8941,6 +8948,41 @@
         }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Todavía no hay ninguna entrada de dinero devengada.</td></tr>';
       }
       pintaSociedades();
+
+      /* Desglose por mes (7-oct-2026, owner): lo devengado cada mes por sociedad y
+         moneda, y cuánto de eso está ya cobrado. Misma regla de líneas que el resto
+         de la pantalla (ni anuladas ni abonos sin efecto); la comisión neta lleva
+         devengos + ajustes + abonos, y el fee va aparte. */
+      (function pintaMeses() {
+        var cuerpoMes = document.getElementById('lw-ca-meses');
+        if (!cuerpoMes) return;
+        var g = {};
+        lineas.filter(function (l) { return !l.anulada && !abonoSinEfecto(l); }).forEach(function (l) {
+          var mes = (l.devengado_el || '').slice(0, 7), k = mes + '|' + (l.sociedad || '');
+          var e = g[k] || (g[k] = { mes: mes, soc: l.sociedad || '', n: 0, base: {}, com: {}, fee: {}, cob: {}, pend: {} });
+          var m = l.moneda, imp = Number(l.importe || 0);
+          var suma = function (o, v) { o[m] = (o[m] || 0) + v; };
+          if (l.fee_id) suma(e.fee, imp);
+          else { if (l.tipo_linea === 'devengo') e.n++; suma(e.base, Number(l.base_total || 0)); suma(e.com, imp); }
+          if (l.estado === 'cobrada') suma(e.cob, imp);
+          else if (l.estado === 'pendiente' || l.estado === 'facturada') suma(e.pend, imp);
+        });
+        var cel = function (o, cls) {
+          var ks = Object.keys(o);
+          return '<td class="px-5 py-4 ' + (cls || 'font-body-md text-body-md text-on-surface-variant') + ' text-right">' +
+            (ks.length ? ks.sort().map(function (x) { return esc(fmt(o[x], x)); }).join('<br>') : '—') + '</td>';
+        };
+        var filas = Object.keys(g).map(function (k) { return g[k]; })
+          .sort(function (a, b) { return a.mes < b.mes ? 1 : a.mes > b.mes ? -1 : (a.soc < b.soc ? -1 : 1); });
+        cuerpoMes.innerHTML = filas.length ? filas.map(function (e) {
+          return '<tr class="border-b border-outline-variant/30">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(e.mes || '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(nombreSociedad(e.soc)) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + e.n + '</td>' +
+            cel(e.base) + cel(e.com, 'font-label-md text-label-md text-on-surface') + cel(e.fee) +
+            cel(e.cob, 'font-body-md text-body-md text-territorial-green') + cel(e.pend, 'font-body-md text-body-md text-burnt-earth') + '</tr>';
+        }).join('') : '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Todavía no hay nada devengado.</td></tr>';
+      })();
 
       if (selSoc) {
         var socs = {};
@@ -8985,7 +9027,8 @@
           var negativa = Number(l.importe) < 0;
           var etqTipo = l.tipo_linea === 'devengo' ? '' :
             '<br><span class="text-outline text-[11px] uppercase tracking-wider">' + esc(TIPO_LINEA[l.tipo_linea] || l.tipo_linea) + '</span>';
-          var banderas = (l.anulada ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">anulada</span>' : '') +
+          var banderas = (abonoSinEfecto(l) ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">sin efecto</span>' : '') +
+                         (l.anulada ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">anulada</span>' : '') +
                          (l.revisar ? '<span class="ml-2 text-error text-[11px] uppercase tracking-wider">revisar</span>' : '');
           /* El recibí borrado deja la línea huérfana a propósito (on delete set
              null): se enseña el número que tuvo, que es lo único que queda. */
@@ -9010,7 +9053,7 @@
             ? '<a class="text-deep-lagoon hover:underline" href="#" data-lw-ver-recibi="' + esc(l.recibi_id) + '">' + esc(l.recibi_numero) + '</a>'
             : esc(l.recibi_numero) + ' <span class="text-error text-[11px] uppercase tracking-wider">borrado</span>';
 
-          return '<tr class="border-b border-outline-variant/30' + (l.anulada ? ' opacity-60' : '') + '">' +
+          return '<tr class="border-b border-outline-variant/30' + (l.anulada || abonoSinEfecto(l) ? ' opacity-60' : '') + '">' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(l.devengado_el)) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + recibi + etqTipo + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' +
