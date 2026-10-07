@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="c5ab988e0732">
+<meta name="lw-version" content="1b34818f2e5d">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -733,6 +733,24 @@
   .ini-tarea-tx{ font-weight:400; }
   .ini-tarea-tx b{ font-weight:600; }
   .ini-tarea-tx span{ color:var(--ink2); }
+  /* ═══ AVISOS EN ROJO (7-oct-2026, owner: opción A del artifact «Avisos del Inicio Lawang») ═══
+     Tinte rojo, «!» en vez del punto dorado, pastilla con los días que quedan y Firmar en rojo. El rojo es el
+     mismo de la campana y del contador de Soporte (--bad); el bloque verde de pago sigue siendo lo más fuerte. */
+  .ini-tareas{ border:1px solid #e4c3ba; border-radius:13px; }
+  .ini-tarea{ background:#f8ebe7; }
+  .ini-tarea + .ini-tarea{ border-top-color:#ecd3cc; }
+  .ini-tarea-pt{ width:24px; height:24px; background:var(--bad); color:#fff; display:grid; place-items:center;
+                 font-size:13px; font-weight:700; line-height:1; }
+  .ini-tarea-tx b{ color:#5c1a14; }
+  .ini-tarea-cuenta{ flex:none; font-size:11.5px; font-weight:700; letter-spacing:.02em; color:var(--bad); background:#fff;
+                     border:1px solid #e4c3ba; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+  .ini-tarea .btn-oscuro{ background:var(--bad); border-color:var(--bad); color:#fff; }
+  .ini-tarea .btn-borde{ background:#fff; border-color:#d9a99e; color:var(--bad); }
+  .ini-tarea .btn-oscuro:hover{ background:#86271f; border-color:#86271f; }
+  .ini-tarea .btn-borde:hover{ background:#fdf6f4; }
+  @media (max-width:640px){
+    .ini-tarea .btn-oscuro, .ini-tarea .btn-borde{ margin-left:auto; }
+  }
   .hero-pago:not(.vacio) .hp-concepto{ font-size:22px; font-weight:500; }
   .hero-pago:not(.vacio) .hp-sub{ font-size:13.5px; margin-top:6px; }
   .hero-pago:not(.vacio) .hp-importe{ font-size:clamp(40px,11vw,62px); font-weight:400; letter-spacing:-.02em; line-height:.95; }
@@ -904,7 +922,7 @@
          nav_documentos:'Documentos', nav_soporte:'Soporte', nav_perfil:'Mi perfil',
          tit_inicio:'Inicio', tit_contratos:'Contratos', tit_facturas:'Facturas', tit_obra:'Obra',
          tit_documentos:'Documentos', tit_soporte:'Soporte', tit_perfil:'Mi perfil',
-         hola:'Hola', n_props_1:'1 propiedad con Lawang Estate', n_props_n:'{n} propiedades con Lawang Estate', firma_tarea:'Firma el contrato {n}', firma_caduca:'el enlace caduca el {f}', firmar:'Firmar', kyc_caduca_el:'Tu {doc} caduca el {f}', vence_el:'vence el {f}', vencio_el:'venció el {f}', ver_factura_n:'Ver factura {n}', tus_propiedades:'Tus propiedades', portada_prep:'Portada en preparación', pagada:'Pagada', firma_pend_chip:'Firma pendiente', nov_obra_foto:'Nuevas fotos de obra en {u}: «{t}»', ver_factura:'Ver factura', ver_fotos:'Ver fotos', sop_titulo:'¿Una duda sobre un pago o un documento?', sop_texto:'Te responde el equipo de gestión de Lawang.', sop_abiertas_1:'Tienes una conversación abierta.', sop_abiertas_n:'Tienes {n} conversaciones abiertas.', escribir_equipo:'Escribir al equipo', hola_manana:'Buenos días', hola_tarde:'Buenas tardes', hola_noche:'Buenas noches', pendiente_ti:'Pendiente de ti', ver_perfil:'Ver mi perfil', escribir:'Escribir', saludo_sub:'Estado de tu operación con Lawang Estate',
+         hola:'Hola', n_props_1:'1 propiedad con Lawang Estate', n_props_n:'{n} propiedades con Lawang Estate', firma_tarea:'Firma el contrato {n}', firma_caduca:'el enlace caduca el {f}', firmar:'Firmar', kyc_caduca_el:'Tu {doc} caduca el {f}', vence_el:'vence el {f}', vencio_el:'venció el {f}', ver_factura_n:'Ver factura {n}', tus_propiedades:'Tus propiedades', portada_prep:'Portada en preparación', pagada:'Pagada', firma_pend_chip:'Firma pendiente', nov_obra_foto:'Nuevas fotos de obra en {u}: «{t}»', ver_factura:'Ver factura', ver_fotos:'Ver fotos', sop_titulo:'¿Una duda sobre un pago o un documento?', sop_texto:'Te responde el equipo de gestión de Lawang.', sop_abiertas_1:'Tienes una conversación abierta.', sop_abiertas_n:'Tienes {n} conversaciones abiertas.', escribir_equipo:'Escribir al equipo', hola_manana:'Buenos días', hola_tarde:'Buenas tardes', hola_noche:'Buenas noches', pendiente_ti:'Pendiente de ti', quedan_dias:'Quedan {n} días', queda_dia:'Queda 1 día', caduca_hoy:'Caduca hoy', ver_perfil:'Ver mi perfil', escribir:'Escribir', saludo_sub:'Estado de tu operación con Lawang Estate',
          r_inversion:'Tu inversión', r_pagado:'Pagado', r_pendiente:'Pendiente',
          r_cuota:'Cuota de reserva', cuota_reserva:'Cuota de reserva',
          nota_solo_reserva:'De momento solo tienes Carta(s) de Reserva, sin contrato definitivo firmado: el importe de arriba es la cuota de reserva, no el precio final de tu unidad.',
@@ -988,7 +1006,7 @@
          nav_documentos:'Documents', nav_soporte:'Support', nav_perfil:'My profile',
          tit_inicio:'Home', tit_contratos:'Contracts', tit_facturas:'Invoices', tit_obra:'Construction',
          tit_documentos:'Documents', tit_soporte:'Support', tit_perfil:'My profile',
-         hola:'Hello', n_props_1:'1 property with Lawang Estate', n_props_n:'{n} properties with Lawang Estate', firma_tarea:'Sign contract {n}', firma_caduca:'the link expires on {f}', firmar:'Sign', kyc_caduca_el:'Your {doc} expires on {f}', vence_el:'due {f}', vencio_el:'was due {f}', ver_factura_n:'View invoice {n}', tus_propiedades:'Your properties', portada_prep:'Cover photo coming soon', pagada:'Paid in full', firma_pend_chip:'Awaiting signature', nov_obra_foto:'New construction photos for {u}: “{t}”', ver_factura:'View invoice', ver_fotos:'View photos', sop_titulo:'A question about a payment or a document?', sop_texto:'The Lawang account team will reply.', sop_abiertas_1:'You have one open conversation.', sop_abiertas_n:'You have {n} open conversations.', escribir_equipo:'Write to the team', hola_manana:'Good morning', hola_tarde:'Good afternoon', hola_noche:'Good evening', pendiente_ti:'Waiting on you', ver_perfil:'View my profile', escribir:'Write to us', saludo_sub:'Status of your operation with Lawang Estate',
+         hola:'Hello', n_props_1:'1 property with Lawang Estate', n_props_n:'{n} properties with Lawang Estate', firma_tarea:'Sign contract {n}', firma_caduca:'the link expires on {f}', firmar:'Sign', kyc_caduca_el:'Your {doc} expires on {f}', vence_el:'due {f}', vencio_el:'was due {f}', ver_factura_n:'View invoice {n}', tus_propiedades:'Your properties', portada_prep:'Cover photo coming soon', pagada:'Paid in full', firma_pend_chip:'Awaiting signature', nov_obra_foto:'New construction photos for {u}: “{t}”', ver_factura:'View invoice', ver_fotos:'View photos', sop_titulo:'A question about a payment or a document?', sop_texto:'The Lawang account team will reply.', sop_abiertas_1:'You have one open conversation.', sop_abiertas_n:'You have {n} open conversations.', escribir_equipo:'Write to the team', hola_manana:'Good morning', hola_tarde:'Good afternoon', hola_noche:'Good evening', pendiente_ti:'Waiting on you', quedan_dias:'{n} days left', queda_dia:'1 day left', caduca_hoy:'Expires today', ver_perfil:'View my profile', escribir:'Write to us', saludo_sub:'Status of your operation with Lawang Estate',
          r_inversion:'Your investment', r_pagado:'Paid', r_pendiente:'Outstanding',
          r_cuota:'Reservation fee', cuota_reserva:'Reservation fee',
          nota_solo_reserva:'For now you only hold Reservation Letter(s), with no definitive contract signed yet: the figure above is the reservation fee, not the final price of your unit.',
@@ -1064,7 +1082,7 @@
          nav_documentos:'Dokumen', nav_soporte:'Bantuan', nav_perfil:'Profil saya',
          tit_inicio:'Beranda', tit_contratos:'Kontrak', tit_facturas:'Faktur', tit_obra:'Pembangunan',
          tit_documentos:'Dokumen', tit_soporte:'Bantuan', tit_perfil:'Profil saya',
-         hola:'Halo', n_props_1:'1 properti bersama Lawang Estate', n_props_n:'{n} properti bersama Lawang Estate', firma_tarea:'Tandatangani kontrak {n}', firma_caduca:'tautan berakhir pada {f}', firmar:'Tanda tangani', kyc_caduca_el:'{Doc} Anda berakhir pada {f}', vence_el:'jatuh tempo {f}', vencio_el:'lewat jatuh tempo {f}', ver_factura_n:'Lihat faktur {n}', tus_propiedades:'Properti Anda', portada_prep:'Foto sampul segera hadir', pagada:'Lunas', firma_pend_chip:'Menunggu tanda tangan', nov_obra_foto:'Foto pembangunan baru di {u}: “{t}”', ver_factura:'Lihat faktur', ver_fotos:'Lihat foto', sop_titulo:'Ada pertanyaan tentang pembayaran atau dokumen?', sop_texto:'Tim pengelola Lawang akan membalas.', sop_abiertas_1:'Anda punya satu percakapan terbuka.', sop_abiertas_n:'Anda punya {n} percakapan terbuka.', escribir_equipo:'Tulis ke tim', hola_manana:'Selamat pagi', hola_tarde:'Selamat siang', hola_noche:'Selamat malam', pendiente_ti:'Menunggu Anda', ver_perfil:'Lihat profil saya', escribir:'Tulis pesan', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
+         hola:'Halo', n_props_1:'1 properti bersama Lawang Estate', n_props_n:'{n} properti bersama Lawang Estate', firma_tarea:'Tandatangani kontrak {n}', firma_caduca:'tautan berakhir pada {f}', firmar:'Tanda tangani', kyc_caduca_el:'{Doc} Anda berakhir pada {f}', vence_el:'jatuh tempo {f}', vencio_el:'lewat jatuh tempo {f}', ver_factura_n:'Lihat faktur {n}', tus_propiedades:'Properti Anda', portada_prep:'Foto sampul segera hadir', pagada:'Lunas', firma_pend_chip:'Menunggu tanda tangan', nov_obra_foto:'Foto pembangunan baru di {u}: “{t}”', ver_factura:'Lihat faktur', ver_fotos:'Lihat foto', sop_titulo:'Ada pertanyaan tentang pembayaran atau dokumen?', sop_texto:'Tim pengelola Lawang akan membalas.', sop_abiertas_1:'Anda punya satu percakapan terbuka.', sop_abiertas_n:'Anda punya {n} percakapan terbuka.', escribir_equipo:'Tulis ke tim', hola_manana:'Selamat pagi', hola_tarde:'Selamat siang', hola_noche:'Selamat malam', pendiente_ti:'Menunggu Anda', quedan_dias:'{n} hari lagi', queda_dia:'1 hari lagi', caduca_hoy:'Berakhir hari ini', ver_perfil:'Lihat profil saya', escribir:'Tulis pesan', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
          r_inversion:'Investasi Anda', r_pagado:'Sudah dibayar', r_pendiente:'Belum dibayar',
          r_cuota:'Biaya reservasi', cuota_reserva:'Biaya reservasi',
          nota_solo_reserva:'Saat ini Anda hanya memiliki Surat Reservasi, tanpa kontrak definitif yang ditandatangani: jumlah di atas adalah biaya reservasi, bukan harga akhir unit Anda.',
@@ -1599,17 +1617,30 @@
     var novedades = todas.filter(function(x){ return x.tipo !== 'kyc'; }).slice(0,3);
     var contratoPorId = {};
     (d.contratos || []).forEach(function(x){ contratoPorId[x.id] = x; });
+    /* Avisos en rojo con cuenta atrás (owner, 7-oct-2026, opción A del artifact «Avisos del Inicio Lawang»):
+       el «!» y la pastilla de días hacen que la urgencia no dependa solo del color. Días de calendario, no de 24 h. */
+    function cuentaAtras(f){
+      if (!f) return '';
+      var hoy = new Date(); hoy.setHours(0,0,0,0);
+      var dia = new Date(f); if (isNaN(dia)) return ''; dia.setHours(0,0,0,0);
+      var n = Math.round((dia - hoy) / 86400000);
+      if (n < 0) return '';
+      return '<span class="ini-tarea-cuenta">' + esc(n === 0 ? t('caduca_hoy') : n === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', n)) + '</span>';
+    }
+    var icoTarea = '<span class="ini-tarea-pt" aria-hidden="true">!</span>';
     var tareas = [];
     (d.firma_pendiente || []).forEach(function(fp){
       var k = contratoPorId[fp.contrato_id] || {};
-      tareas.push('<div class="ini-tarea"><span class="ini-tarea-pt"></span><div class="ini-tarea-tx"><b>' + esc(t('firma_tarea').replace('{n}', k.numero || '')) + '</b>' +
+      tareas.push('<div class="ini-tarea">' + icoTarea + '<div class="ini-tarea-tx"><b>' + esc(t('firma_tarea').replace('{n}', k.numero || '')) + '</b>' +
         '<span>' + (k.proyecto ? ' · ' + esc(k.proyecto) : '') + (fp.expira_en ? ' · ' + esc(t('firma_caduca').replace('{f}', fechaCorta(fp.expira_en))) : '') + '</span></div>' +
+        cuentaAtras(fp.expira_en) +
         '<button type="button" class="btn-oscuro" data-ir="contratos">' + esc(t('firmar')) + '</button></div>');
     });
     caducan.forEach(function(k){
       var nom = t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo);
-      tareas.push('<div class="ini-tarea"><span class="ini-tarea-pt"></span><div class="ini-tarea-tx"><b>' +
+      tareas.push('<div class="ini-tarea">' + icoTarea + '<div class="ini-tarea-tx"><b>' +
         esc(t('kyc_caduca_el').replace('{doc}', nom === String(nom).toUpperCase() ? nom : String(nom).charAt(0).toLowerCase() + String(nom).slice(1)).replace('{Doc}', nom).replace('{f}', fechaCorta(k.caduca))) + '</b></div>' +
+        cuentaAtras(k.caduca) +
         '<button type="button" class="btn-borde" data-ir="perfil">' + esc(t('ver_perfil')) + '</button></div>');
     });
     var tareasHTML = tareas.length ? '<div class="ini-tareas" role="status" aria-label="' + esc(t('pendiente_ti')) + '">' + tareas.join('') + '</div>' : '';
