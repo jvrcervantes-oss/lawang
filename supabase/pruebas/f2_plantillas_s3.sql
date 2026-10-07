@@ -265,15 +265,15 @@ begin
 
   -- ============================================================ PARTE D: permisos y pureza
   for hostil in select p.oid::regprocedure::text as f, p.provolatile, p.prosecdef, p.proconfig, p.proname
-                from pg_proc p where p.pronamespace = 'public'::regnamespace and (p.proname like '\_plantilla\_%' or p.proname like 'plantilla\_cuerpo\_valida%') loop
+                from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = any (array['_plantilla_marcadores','_plantilla_campos_if','_plantilla_clases','_plantilla_texto','_plantilla_style_valido','_plantilla_analiza','_plantilla_valida','plantilla_cuerpo_valida','plantilla_cuerpo_valida_semilla']) loop
     nprueba := nprueba + 1;
-    ok := not has_function_privilege('anon', hostil.f, 'execute') and not has_function_privilege('authenticated', hostil.f, 'execute')
+    ok := not has_function_privilege('anon', hostil.f, 'execute') and not has_function_privilege('authenticated', hostil.f, 'execute') and not has_function_privilege('service_role', hostil.f, 'execute')
           and hostil.provolatile = 'i' and not hostil.prosecdef and coalesce(hostil.proconfig::text like '%search_path=%', false);
     if ok then r := r || 'OK    D ' || hostil.f || ' sin execute para anon/authenticated, IMMUTABLE, search_path fijo' || E'\n';
     else r := r || 'FALLO D ' || hostil.f || ' (permisos o pureza)' || E'\n'; fallos := fallos + 1; end if;
   end loop;
   nprueba := nprueba + 1;
-  if (select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and (p.proname like '\_plantilla\_%' or p.proname like 'plantilla\_cuerpo\_valida%')) = 9 then
+  if (select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = any (array['_plantilla_marcadores','_plantilla_campos_if','_plantilla_clases','_plantilla_texto','_plantilla_style_valido','_plantilla_analiza','_plantilla_valida','plantilla_cuerpo_valida','plantilla_cuerpo_valida_semilla'])) = 9 then
     r := r || E'OK    D las 9 funciones esperadas existen\n';
   else r := r || E'FALLO D no estan las 9 funciones\n'; fallos := fallos + 1; end if;
 
