@@ -11,6 +11,6 @@ alter policy "cada uno ve lo suyo, el admin todo" on public.notificaciones
     (public.es_admin() and (tipo is distinct from 'solicitud_pago' or public.puede('comisiones')))
     or (destinatario is not null and destinatario = (select auth.email()))
     or (contrato_id is not null
-        and contrato_id = any ((select public.mis_contratos_admin_empresa()))
+        and contrato_id = any ((select public.mis_contratos_admin_empresa())::uuid[])
         and (tipo is distinct from 'solicitud_pago' or public.puede('comisiones')))
   );
