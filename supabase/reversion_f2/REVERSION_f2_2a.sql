@@ -11,6 +11,10 @@ alter policy "agentes leen sus facturas" on public.facturas
 alter policy "agentes leen sus contratos" on public.contratos
   using ((( SELECT es_admin() AS es_admin) OR (( SELECT es_agente() AS es_agente) AND (COALESCE((creado_por = ( SELECT auth.email() AS email)), false) OR (id = ANY (( SELECT mis_contratos_visibles() AS mis_contratos_visibles)::uuid[]))))));
 
+-- (migracion 8) las dos funciones nuevas de la policy de facturas: ya revertida arriba, se pueden borrar
+drop function public.mis_proyectos_admin_empresa();
+drop function public.alcance_restringido();
+
 create or replace function public.cliente_visible(p_propietario text, p_client_id uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select public.es_admin()

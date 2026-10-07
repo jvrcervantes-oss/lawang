@@ -1,6 +1,7 @@
 -- Prueba del paso 2A (Fase 2, 7-oct-2026): ¿ve cada rol de empresa EXACTAMENTE lo de sus empresas? Todo dentro de una transaccion que acaba en raise (rollback, sin rastro).
--- No crea usuarios: convierte 3 fichas de agente existentes (con los claims del propietario, como haria la pantalla) en
+-- No crea usuarios: convierte 4 fichas de agente existentes (con los claims del propietario, como haria la pantalla) en
 --   ae = admin_empresa/lawang · se = super_admin_empresa/sandal_woods · pm = project_manager GLOBAL restringido a {lawang} supervisando TODOS los proyectos
+--   a2 = admin_empresa con las DOS empresas {lawang,sandal_woods}: ve las dos (32 proyectos) y nunca Karana (sin empresa)
 -- y mide, con JWT simulado (email) + set local role authenticated, el recuento de lo que ve cada uno contra el esperado calculado como postgres.
 -- Cada linea: OK/FALLO nombre actual esperado. Debe terminar con «FALLOS=0».
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); el unico «drop» no existe
@@ -8,7 +9,7 @@ do $t$
 declare
   jv uuid; ya uuid; cr uuid; bl uuid; ad uuid;
   e_ya text; e_cr text; e_bl text; e_ad text;
-  r text := ''; fallos int := 0; ids uuid[]; ems text[]; i int; emp text[] := array['lawang','sandal_woods','lawang'];
+  r text := ''; fallos int := 0; ids uuid[]; ems text[]; i int; emp text[] := array['lawang','sandal_woods','lawang','lawang,sandal_woods']; ad4 uuid; e_ad4 text;
   n bigint; x bigint; cmp uuid; kyc int;
   nuevo uuid := '8d8fde63-fb66-42d5-80a6-c383f293aab8';
   exp_p bigint; exp_u bigint; exp_c bigint; exp_f bigint; exp_v bigint; exp_cl bigint; exp_s bigint; exp_k bigint; exp_pdf bigint;
@@ -24,24 +25,26 @@ begin
   update public.usuarios set rol='super_admin_empresa', ambito='empresa', empresas='{sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas='{comisiones}', tipos_contrato='{}' where user_id=cr;
   update public.usuarios set rol='project_manager', ambito='global', empresas='{lawang}', herramientas='{}', tipos_contrato='{}',
          proyectos=(select array_agg(id) from public.proyectos), proyectos_supervisados=(select array_agg(id) from public.proyectos) where user_id=bl;
-  ids := array[ya, cr, bl]; ems := array[e_ya, e_cr, e_bl];
+  select user_id, email into ad4, e_ad4 from public.usuarios where email='adenovit.b@gmail.com';
+  update public.usuarios set rol='admin_empresa', ambito='empresa', empresas='{lawang,sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas='{comisiones}', tipos_contrato='{}' where user_id=ad4;
+  ids := array[ya, cr, bl, ad4]; ems := array[e_ya, e_cr, e_bl, e_ad4];
   -- cliente con contratos en las DOS empresas (si existe)
   select cc.client_id into cmp from public.contrato_compradores cc join public.contratos c on c.id=cc.contrato_id join public.proyectos p on p.id=c.proyecto_id
    group by cc.client_id having count(distinct p.empresa) filter (where p.empresa in ('lawang','sandal_woods')) = 2 limit 1;
-  for i in 1..3 loop
+  for i in 1..4 loop
     -- ESPERADOS, como postgres (sin RLS)
-    select count(*) into exp_p from public.proyectos where empresa = emp[i];
-    select count(*) into exp_u from public.unidades un join public.proyectos p on p.id=un.proyecto_id where p.empresa = emp[i];
-    select count(*) into exp_c from public.contratos c join public.proyectos p on p.id=c.proyecto_id where p.empresa = emp[i] and c.id <> nuevo;
-    select count(*) into exp_f from public.facturas f join public.proyectos p on p.id=f.proyecto_id where p.empresa = emp[i];
-    select count(*) into exp_v from public.contrato_vencimientos v join public.contratos c on c.id=v.contrato_id join public.proyectos p on p.id=c.proyecto_id where p.empresa = emp[i] and c.id <> nuevo;
+    select count(*) into exp_p from public.proyectos where empresa = any (string_to_array(emp[i], ','));
+    select count(*) into exp_u from public.unidades un join public.proyectos p on p.id=un.proyecto_id where p.empresa = any (string_to_array(emp[i], ','));
+    select count(*) into exp_c from public.contratos c join public.proyectos p on p.id=c.proyecto_id where p.empresa = any (string_to_array(emp[i], ',')) and c.id <> nuevo;
+    select count(*) into exp_f from public.facturas f join public.proyectos p on p.id=f.proyecto_id where p.empresa = any (string_to_array(emp[i], ','));
+    select count(*) into exp_v from public.contrato_vencimientos v join public.contratos c on c.id=v.contrato_id join public.proyectos p on p.id=c.proyecto_id where p.empresa = any (string_to_array(emp[i], ',')) and c.id <> nuevo;
     select count(*) into exp_cl from public.clients cl where cl.propietario = ems[i]
-        or exists (select 1 from public.contrato_compradores cc join public.contratos c on c.id=cc.contrato_id join public.proyectos p on p.id=c.proyecto_id where cc.client_id=cl.id and p.empresa = emp[i]);
+        or exists (select 1 from public.contrato_compradores cc join public.contratos c on c.id=cc.contrato_id join public.proyectos p on p.id=c.proyecto_id where cc.client_id=cl.id and p.empresa = any (string_to_array(emp[i], ',')));
     select count(*) into exp_k from public.documents d where d.retirado_el is null and exists (select 1 from public.clients cl where cl.id=d.client_id and (cl.propietario = ems[i]
-        or exists (select 1 from public.contrato_compradores cc join public.contratos c on c.id=cc.contrato_id join public.proyectos p on p.id=c.proyecto_id where cc.client_id=cl.id and p.empresa = emp[i])));
-    select count(*) into exp_pdf from public.contratos c join public.proyectos p on p.id=c.proyecto_id where p.empresa = emp[i] and c.id <> nuevo and c.pdf_firmado_path is not null;
-    if i < 3 then
-      select count(*) into exp_s from public.solicitudes_pago s where exists (select 1 from public.contratos c join public.proyectos p on p.id=c.proyecto_id where c.id=s.contrato_id and p.empresa = emp[i])
+        or exists (select 1 from public.contrato_compradores cc join public.contratos c on c.id=cc.contrato_id join public.proyectos p on p.id=c.proyecto_id where cc.client_id=cl.id and p.empresa = any (string_to_array(emp[i], ',')))));
+    select count(*) into exp_pdf from public.contratos c join public.proyectos p on p.id=c.proyecto_id where p.empresa = any (string_to_array(emp[i], ',')) and c.id <> nuevo and c.pdf_firmado_path is not null;
+    if i <> 3 then
+      select count(*) into exp_s from public.solicitudes_pago s where exists (select 1 from public.contratos c join public.proyectos p on p.id=c.proyecto_id where c.id=s.contrato_id and p.empresa = any (string_to_array(emp[i], ',')))
          or (s.creado_por = ids[i] and s.origen is distinct from 'comision_automatica') or s.beneficiario_email = ems[i];
     else exp_s := (select count(*) from public.solicitudes_pago s where (s.creado_por = ids[i] and s.origen is distinct from 'comision_automatica') or s.beneficiario_email = ems[i]); end if;
     -- REAL, con su JWT
@@ -64,14 +67,14 @@ begin
       if not (public.es_admin_de(emp[i]) and not public.es_admin_de(case when i=1 then 'sandal_woods' else 'lawang' end)) then fallos:=fallos+1; end if;
     end if;
     -- proyecto sin empresa (Karana) y proyecto de la otra empresa: ni verlo ni por URL directa
-    select count(*) into n from public.proyectos where empresa is null or empresa <> emp[i]; r := r || case when n=0 then 'OK   ' else 'FALLO' end || format(' %s proyectos ajenos/sin empresa visibles=%s', i, n) || E'\n'; if n<>0 then fallos:=fallos+1; end if;
-    select count(*) into n from public.contratos c where c.proyecto_id is null or c.proyecto_id in (select id from public.proyectos where empresa is distinct from emp[i]); r := r || case when n=0 then 'OK   ' else 'FALLO' end || format(' %s contratos ajenos/sin proyecto visibles=%s', i, n) || E'\n'; if n<>0 then fallos:=fallos+1; end if;
+    select count(*) into n from public.proyectos where empresa is null or not (empresa = any (string_to_array(emp[i], ','))); r := r || case when n=0 then 'OK   ' else 'FALLO' end || format(' %s proyectos ajenos/sin empresa visibles=%s', i, n) || E'\n'; if n<>0 then fallos:=fallos+1; end if;
+    select count(*) into n from public.contratos c where c.proyecto_id is null or c.proyecto_id in (select id from public.proyectos where not coalesce(empresa = any (string_to_array(emp[i], ',')), false)); r := r || case when n=0 then 'OK   ' else 'FALLO' end || format(' %s contratos ajenos/sin proyecto visibles=%s', i, n) || E'\n'; if n<>0 then fallos:=fallos+1; end if;
     -- cliente compartido: ve su ficha pero solo los contratos de su empresa
-    if cmp is not null and i < 3 then
+    if cmp is not null and i <> 3 then
       select count(*) into n from public.clients where id = cmp; r := r || case when n=1 then 'OK   ' else 'FALLO' end || format(' %s ficha del cliente compartido visible=%s', i, n) || E'\n'; if n<>1 then fallos:=fallos+1; end if;
       select count(*) into n from public.contratos c join public.contrato_compradores cc on cc.contrato_id=c.id where cc.client_id = cmp and c.id <> nuevo;
       reset role;
-      select count(*) into x from public.contratos c join public.contrato_compradores cc on cc.contrato_id=c.id join public.proyectos p on p.id=c.proyecto_id where cc.client_id = cmp and p.empresa = emp[i] and c.id <> nuevo;
+      select count(*) into x from public.contratos c join public.contrato_compradores cc on cc.contrato_id=c.id join public.proyectos p on p.id=c.proyecto_id where cc.client_id = cmp and p.empresa = any (string_to_array(emp[i], ',')) and c.id <> nuevo;
       set local role authenticated;
       r := r || case when n=x then 'OK   ' else 'FALLO' end || format(' %s contratos del cliente compartido %s/%s', i, n, x) || E'\n'; if n<>x then fallos:=fallos+1; end if;
     end if;
