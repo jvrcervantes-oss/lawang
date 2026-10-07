@@ -9430,6 +9430,19 @@
           return rpc('comision_admin_repone_devengo', { p_linea_id: id });
         });
       };
+
+      // ── Anular un cobro registrado (7-oct-2026) ─────────────────────────────
+      window.LW_V4.abreAnulaCobroComisionAdmin = function (btn) {
+        if (!superAdmin) return soloSuper();
+        var id = btn.getAttribute('data-lw-ca-anula-cobro');
+        var etiqueta = btn.getAttribute('data-lw-etq');
+        modal('Anular el cobro — ' + (etiqueta || ''), [
+          { k: 'motivo', label: 'Motivo', req: 1, ayuda: 'queda escrito en el cobro y en cada línea que suelta' },
+          { tipo: 'nota', label: 'Las líneas que este cobro saldó vuelven al estado que tenían antes (pendiente o facturada) y el importe deja de contar como saldo. El cobro no se borra: queda anulado, con quién, cuándo y por qué.' }
+        ], 'Anular cobro', function (v) {
+          return rpc('comision_admin_anular_cobro', { p_cobro_id: id, p_motivo: (v.motivo || '').trim() });
+        });
+      };
     },
 
     /* ---------- Cuentas de cobro y su reparto (18-sep-2026) ----------

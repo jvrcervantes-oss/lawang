@@ -91,3 +91,51 @@ begin
 
   raise exception E'\n%FALLOS: %', v_out, v_fallos;
 end $$;
+
+-- SEGUNDO BLOQUE (ejecutar aparte, también termina en RAISE): confirmar con 0 líneas, doble clic, anular cobro.
+--   T12 confirmar con 0 líneas guarda el importe como saldo · T13 el mismo cobro idéntico <10 min se rechaza
+--   T14 el saldo de 5 + un cobro de 95 cubre una línea de 100 · T15 anular el cobro suelta la línea a su estado
+--   anterior (facturada) y el saldo ignora el cobro anulado · T16 anular dos veces no hace nada · T17 motivo corto rechaza
+do $$
+declare
+  u uuid; v_out text := ''; v_fallos int := 0; r jsonb; v_ids jsonb; c uuid; c2 uuid; m1 uuid;
+begin
+  select user_id into u from public.usuarios where rol = 'super_admin' and activo limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub', u, 'role', 'authenticated')::text, true);
+  insert into public.comision_admin_lineas (tipo_linea, recibi_numero, sociedad, devengado_el, base_total, moneda, pct_aplicado, importe, estado)
+    values ('devengo', 'ZY1', 'zz_prueba2', '2026-01-01', 20000, 'EUR', 0.5, 100, 'facturada') returning id into m1;
+
+  r := public.comision_admin_registrar_cobro('zz_prueba2', 'EUR', 5, current_date, null, false, true, null, array[]::uuid[]);
+  select id into c from public.comision_admin_cobros where sociedad = 'zz_prueba2';
+  if (r->>'ok')::boolean and (r->>'n')::int = 0 and (r->>'resto')::numeric = 5 and (select n_lineas from public.comision_admin_cobros where id = c) = 0
+  then v_out := v_out || E'T12 ok\n'; else v_out := v_out || E'T12 FALLO ' || (r-'lineas')::text || E'\n'; v_fallos := v_fallos + 1; end if;
+
+  r := public.comision_admin_registrar_cobro('zz_prueba2', 'EUR', 5, current_date, null, false, true, null, array[]::uuid[]);
+  if not (r->>'ok')::boolean and (select count(*) from public.comision_admin_cobros where sociedad = 'zz_prueba2') = 1
+  then v_out := v_out || E'T13 ok\n'; else v_out := v_out || E'T13 FALLO ' || (r-'lineas')::text || E'\n'; v_fallos := v_fallos + 1; end if;
+
+  r := public.comision_admin_registrar_cobro('zz_prueba2', 'EUR', 95, current_date);
+  if (r->>'saldo_previo')::numeric = 5 and (r->>'bolsa')::numeric = 100 and (r->>'n')::int = 1
+  then v_out := v_out || E'T14 ok\n'; else v_out := v_out || E'T14 FALLO ' || (r-'lineas')::text || E'\n'; v_fallos := v_fallos + 1; end if;
+  v_ids := r->'ids';
+  r := public.comision_admin_registrar_cobro('zz_prueba2', 'EUR', 95, current_date, 'REF-2', false, true, null,
+         array(select (x)::uuid from jsonb_array_elements_text(v_ids) x));
+  select id into c2 from public.comision_admin_cobros where sociedad = 'zz_prueba2' and referencia = 'REF-2';
+  if not (select estado = 'cobrada' and cobro_id = c2 from public.comision_admin_lineas where id = m1)
+  then v_out := v_out || E'T15 FALLO (no cobró)\n'; v_fallos := v_fallos + 1; end if;
+
+  r := public.comision_admin_anular_cobro(c2, 'importe mal tecleado');
+  if (r->>'ok')::boolean and (r->>'lineas_sueltas')::int = 1
+     and (select estado = 'facturada' and cobro_id is null from public.comision_admin_lineas where id = m1)
+     and (public.comision_admin_registrar_cobro('zz_prueba2', 'EUR', 1, current_date)->>'saldo_previo')::numeric = 5
+  then v_out := v_out || E'T15 ok\n'; else v_out := v_out || E'T15 FALLO ' || r::text || E'\n'; v_fallos := v_fallos + 1; end if;
+
+  r := public.comision_admin_anular_cobro(c2, 'otra vez');
+  if not (r->>'ok')::boolean then v_out := v_out || E'T16 ok\n'; else v_out := v_out || E'T16 FALLO\n'; v_fallos := v_fallos + 1; end if;
+  begin
+    perform public.comision_admin_anular_cobro(c, 'no');
+    v_out := v_out || E'T17 FALLO (aceptó motivo corto)\n'; v_fallos := v_fallos + 1;
+  exception when others then v_out := v_out || E'T17 ok\n'; end;
+
+  raise exception E'\n%FALLOS: %', v_out, v_fallos;
+end $$;

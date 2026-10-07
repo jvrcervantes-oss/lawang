@@ -9062,6 +9062,33 @@
         if (s) s.addEventListener('change', function () { pinta(); pintaSociedades(); });
       });
 
+      /* Cobros registrados (7-oct-2026): cada pago por bolsa, con su fecha real, y el botón para anularlo
+         si se tecleó mal. Lectura aparte: un fallo aquí no tumba el libro. */
+      var cuerpoCob = document.getElementById('lw-ca-cobros');
+      if (cuerpoCob) {
+        sb.from('comision_admin_cobros').select('id,sociedad,moneda,importe,fecha_cobro,referencia,nota,n_lineas,anulado,anulado_motivo')
+          .order('fecha_cobro', { ascending: false }).order('en', { ascending: false })
+          .then(function (x) {
+            if (x.error) { cuerpoCob.innerHTML = '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-error">No se han podido leer los cobros. Recarga la página.</td></tr>'; return; }
+            var cs = x.data || [];
+            window.LW_V4.caCobros = {}; cs.forEach(function (c) { window.LW_V4.caCobros[c.id] = c; });
+            cuerpoCob.innerHTML = cs.length ? cs.map(function (c) {
+              return '<tr class="border-b border-outline-variant/30' + (c.anulado ? ' opacity-60' : '') + '">' +
+                '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(fFecha(c.fecha_cobro)) + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(nombreSociedad(c.sociedad)) + '</td>' +
+                '<td class="px-5 py-4 font-label-md text-label-md text-on-surface text-right">' + esc(fmt(c.importe, c.moneda)) + '</td>' +
+                '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + esc(c.n_lineas) + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(c.referencia || '—') + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm ' + (c.anulado ? 'text-error' : 'text-on-surface-variant') + '">' +
+                  (c.anulado ? 'Anulado: ' + esc(c.anulado_motivo || '') : 'Vigente') + '</td>' +
+                '<td class="px-5 py-4 text-right">' + (c.anulado ? '' :
+                  '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" data-lw-ca-anula-cobro="' + esc(c.id) + '" data-lw-etq="' +
+                  esc(fmt(c.importe, c.moneda) + ' · ' + fFecha(c.fecha_cobro)) + '">Anular</button>') + '</td></tr>';
+            }).join('') : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Todavía no se ha registrado ningún cobro.</td></tr>';
+            delega(cuerpoCob, [['data-lw-ca-anula-cobro', 'abreAnulaCobroComisionAdmin']]);
+          });
+      }
+
       // acción delegada, con stopPropagation para ganar a maqueta.js (Regla 0)
       /* Una sola delegacion para todas las acciones de fila, de las dos tablas.
          `stopPropagation` para ganar a maqueta.js, que escucha en burbujeo. */
