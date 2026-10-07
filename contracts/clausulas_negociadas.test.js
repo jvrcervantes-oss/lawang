@@ -237,4 +237,10 @@ for (const [f, html] of [['ppjb_parcela.html', PARCELA], ['ppjb_construccion.htm
   }
 }
 
+// 7-oct-2026: los campos del poder de venta y la finca solo se enseñan con REV04 (el estándar sale siempre limpio).
+const appSrc = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+assert(/const CAMPOS_REV04 = \['poder_titular','poder_apoderado','finca_shm_nib'\]/.test(appSrc)
+  && /CAMPOS_REV04\.forEach\(k => \{[\s\S]*?toggle\('sin-ficha', !esRev04\)/.test(appSrc), 'app.html: los campos REV04 deben esconderse salvo con clausulas_negociadas=rev04');
+n++;
+
 console.log('clausulas_negociadas.test.js: ' + n + ' comprobaciones en verde');

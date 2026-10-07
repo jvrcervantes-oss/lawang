@@ -9199,7 +9199,7 @@
        Solo «cambiar estado» es un UPDATE, porque no arrastra nada detras. */
     'comision-admin': function (aut) {
       var sb = aut.sb;
-      var superAdmin = LW_ROL.esSuperAdmin(aut.ficha);   // libro de SU empresa: el super de empresa opera lo suyo (la base filtra por sociedad)
+      var superAdmin = LW_ROL.esSuperGlobal(aut.ficha);  // el libro es solo de los super admins GLOBALES (7-oct-2026, owner); un super de empresa ni entra (la base: es_super_admin())
       var superGlobal = LW_ROL.esSuperGlobal(aut.ficha); // la TARIFA (el 0,5 %) la fija solo un super global
       window.LW_V4 = window.LW_V4 || {};
       var hoy = new Date().toISOString().slice(0, 10);
@@ -11439,12 +11439,12 @@
 
     'sociedades': function (aut) {
       var sb = aut.sb;
-      var superAdmin = LW_ROL.esSuperAdmin(aut.ficha);       // editar la sociedad ligada a su empresa: el super de empresa (la base comprueba cuál)
-      var superGlobal = LW_ROL.esSuperGlobal(aut.ficha);     // una sociedad NUEVA aún no tiene empresa: solo un super global
+      var superAdmin = LW_ROL.esPropietario(aut.ficha);      // sociedades emisoras: solo el propietario (7-oct-2026, owner); la base: es_propietario()
+      var superGlobal = superAdmin;                          // alta de sociedad nueva: la misma puerta
       window.LW_V4 = window.LW_V4 || {};
 
       var soloSuper = function () {
-        return aviso('Sociedades emisoras es solo para super_admin — tu sesion es de ' +
+        return aviso('Sociedades emisoras es solo para el propietario — tu sesion es de ' +
           ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
       };
 

@@ -95,8 +95,10 @@
     { seccion: 'Panel de control', entradas: [
       { path: 'usuarios', texto: 'Usuarios', clave: 'usuarios', rol: 'admin' },
       { path: 'ajustes', texto: 'Ajustes', clave: 'ajustes', rol: 'admin', global: true },
-      { path: 'comision-admin', texto: 'Comisión de administración', rol: 'super_admin' },
-      { path: 'sociedades', texto: 'Sociedades emisoras', rol: 'super_admin' }] }
+      /* `solo` (7-oct-2026, owner): la puerta de la página lleva data-ambito igual — comision-admin: «super-global» (solo los super admins
+         globales; un super de EMPRESA no la ve ni entra), sociedades: «propietario» (solo el propietario). nav.test.js casa menú y puerta. */
+      { path: 'comision-admin', texto: 'Comisión de administración', rol: 'super_admin', solo: 'super-global' },
+      { path: 'sociedades', texto: 'Sociedades emisoras', rol: 'super_admin', solo: 'propietario' }] }
   ];
   if (typeof window !== 'undefined') window.LW_MENU_V4 = MENU_V4;
 
@@ -456,9 +458,16 @@
      del todo (27-sep-2026). */
 
   var PANEL_CONTROL_SUPER = [
-    { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración' },
-    { path: 'sociedades',     icono: 'domain',             texto: 'Sociedades emisoras' }
+    { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración', solo: 'super-global' },
+    { path: 'sociedades',     icono: 'domain',             texto: 'Sociedades emisoras',        solo: 'propietario' }
   ];
+  /* Quién ve cada entrada de PANEL_CONTROL_SUPER (7-oct-2026): la Comisión de administración, solo un super admin GLOBAL; Sociedades emisoras, solo el
+     propietario. Un super admin de empresa ya no las ve (ni la base le contesta: es_super_admin() / es_propietario()). */
+  function veSolo(solo, ficha) {
+    if (solo === 'propietario') return LW_ROL.esPropietario(ficha);
+    if (solo === 'super-global') return LW_ROL.esSuperGlobal(ficha);
+    return LW_ROL.esSuperAdmin(ficha);
+  }
 
   /* MENÚ POR PERMISO (S17, 23-sep-2026). Hasta hoy la sidebar enseñaba las 17
      herramientas a todo el mundo y la puerta la ponía guard.js al entrar: un
@@ -795,7 +804,6 @@
      hay parpadeo: el usuario nunca llega a ver el menu sin estos dos items y
      luego perderlos. */
   function esAdminSesion(ficha) { return LW_ROL.esAdmin(ficha); }         // un rol de empresa cuenta como admin para MOSTRAR
-  function esSuperSesion(ficha) { return LW_ROL.esSuperAdmin(ficha); }
 
   /* Construye la seccion "Panel de control" entera (cabecera + 3 enlaces) y
      la cuelga justo detras del grupo que contiene "Usuarios" ("Base de
@@ -818,7 +826,7 @@
     nuevoGrupo.appendChild(nuevaCabecera);
     nuevoGrupo.appendChild(ancla);                // appendChild MUEVE Usuarios: sale de "Base de Datos"
 
-    PANEL_CONTROL.concat(esSuperSesion(ficha) ? PANEL_CONTROL_SUPER : []).forEach(function (spec) {
+    PANEL_CONTROL.concat(PANEL_CONTROL_SUPER.filter(function (s) { return veSolo(s.solo, ficha); })).forEach(function (spec) {
       if (spec.global && !LW_ROL.esGlobal(ficha)) return;   // Ajustes: de toda la instancia, un rol de empresa no la ve
       var a = ancla.cloneNode(true);              // clon de "Usuarios": hereda las clases exactas
       a.setAttribute('data-path', spec.path);
