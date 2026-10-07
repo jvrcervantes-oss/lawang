@@ -38,7 +38,7 @@ const CSP_DOCUMENTO =
 const conCsp = (html: string): string => {
   if (/<meta http-equiv="Content-Security-Policy"/i.test(html)) return html;
   const meta = `<meta http-equiv="Content-Security-Policy" content="${CSP_DOCUMENTO}">`;
-  return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (h) => h + meta) : meta + html;
+  return /<head(\s[^>]*)?>/i.test(html) ? html.replace(/<head(\s[^>]*)?>/i, (h) => h + meta) : meta + html;
 };
 
 async function sha256hex(s: string): Promise<string> {

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="421a3459a09a">
+<meta name="lw-version" content="628d0eded036">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -3275,7 +3275,7 @@ const META_CSP_RE = /<meta http-equiv="Content-Security-Policy"[^>]*>/;
 function anteponeCSP(html){
   if(META_CSP_RE.test(html)) return html;
   const meta = '<meta http-equiv="Content-Security-Policy" content="' + cspDocumento() + '">';
-  return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, h => h + meta) : meta + html;
+  return /<head(\s[^>]*)?>/i.test(html) ? html.replace(/<head(\s[^>]*)?>/i, h => h + meta) : meta + html;
 }
 /* re-render de la preview viva (siempre visible). En modo edición NO se
    re-renderiza: reconstruir el srcdoc borraría lo que el usuario escribe.
@@ -3718,12 +3718,13 @@ async function textoPlantilla(t, o){
    proyecto no hay empresa y el contrato sigue con el fichero. Devuelve el aviso (texto) para el toast final: dos
    toast seguidos se pisan. */
 async function fijaVersionPlantilla(contratoId, eraNuevo){
-  if(!eraNuevo || !PLANTILLA_VER || !sb) return '';
+  if(!eraNuevo || !sb) return '';
   const pid = proyectoIdActual();
   if(!pid) return '';
   try{
     const r = await textoPlantillaBase(CURRENT.slug, null, pid);
-    if(!r || r.ver.hash !== PLANTILLA_VER.hash)
+    if(!r) return '';   // la empresa del proyecto no tiene texto en la base: sigue con el fichero
+    if(!PLANTILLA_VER ? r.html !== templateHTML : r.ver.hash !== PLANTILLA_VER.hash)
       return ' · OJO: el texto del contrato en pantalla no es el de la empresa de este proyecto; se guardó SIN fijar la versión del texto. Revísalo.';
     const { error } = await sb.rpc('plantilla_contrato_fija', { p_contrato: contratoId, p_version: r.ver.version_id });
     if(error) throw error;
