@@ -6571,10 +6571,37 @@
         // tickets fuera sin decirlo (auditoría 19-sep-2026)
         q(sb.from('hilo_soporte').select('id,client_id,categoria,estado,actualizado_en').order('actualizado_en', { ascending: false }), 'hilos'),
         q(sb.from('clients').select('id,full_name,email,phone,tipo'), 'clientes de soporte'),
-        q(sb.from('mensajes_comprador').select('hilo_id,client_id,de,autor,texto,creado_en').order('creado_en', { ascending: false }).limit(600), 'mensajes')
+        q(sb.from('mensajes_comprador').select('hilo_id,client_id,de,autor,texto,creado_en').order('creado_en', { ascending: false }).limit(600), 'mensajes'),
+        /* A qué factura o contrato se refiere un ticket (7-oct-2026, portal con «Preguntar sobre…»).
+           Consulta APARTE a propósito: si algo fallara, la bandeja de arriba sigue entera y solo falta
+           la línea «Sobre». Los números salen de las RPC de equipo (`facturas_equipo` / `contratos_equipo`),
+           NUNCA de un embed sobre `facturas`/`contratos`: esas tablas tienen RLS por agente y el embed
+           devolvería null sin error para lo ajeno (la línea desaparecería sin aviso). El número es el de
+           la factura o el contrato vivos, no una copia guardada en el hilo. */
+        q(sb.from('hilo_soporte').select('id,factura_id,contrato_id').or('factura_id.not.is.null,contrato_id.not.is.null'), 'referencias de tickets').then(function (rs) {
+          rs = rs || [];
+          var fi = rs.map(function (x) { return x.factura_id; }).filter(Boolean);
+          var ci = rs.map(function (x) { return x.contrato_id; }).filter(Boolean);
+          if (!fi.length && !ci.length) return { rs: rs, f: {}, c: {} };
+          return Promise.all([
+            fi.length ? q(sb.rpc('facturas_equipo').select('id,numero').in('id', fi), 'facturas de tickets') : [],
+            ci.length ? q(sb.rpc('contratos_equipo').select('id,numero').in('id', ci), 'contratos de tickets') : []
+          ]).then(function (x) {
+            var f = {}, c = {};
+            (x[0] || []).forEach(function (y) { f[y.id] = y.numero; });
+            (x[1] || []).forEach(function (y) { c[y.id] = y.numero; });
+            return { rs: rs, f: f, c: c };
+          });
+        })
       ]).then(function (r) {
         var hs = r[0], cs = r[1] || [], ms = r[2] || [];
         if (hs == null) return;
+        var refDe = {};
+        var rr = r[3] || { rs: [], f: {}, c: {} };
+        rr.rs.forEach(function (h) {
+          var f = h.factura_id && rr.f[h.factura_id], c = h.contrato_id && rr.c[h.contrato_id];
+          if (f) refDe[h.id] = 'factura ' + f; else if (c) refDe[h.id] = 'contrato ' + c;
+        });
         var cli = {}; cs.forEach(function (c) { cli[c.id] = c; });
         var ultimo = {}, deHilo = {};
         ms.forEach(function (x) {
@@ -6737,11 +6764,11 @@
         var msgs = (deHilo[el.id] || deHilo[el.client_id] || []).slice().reverse();
         pon2('h-num', 'Hilo #' + String(el.id).slice(0, 6));
         pon2('h-nombre', c.full_name || 'Cliente');
-        pon2('h-sub', (el.categoria || 'general') + ' · ' + msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') + ' · ' + (el.estado || '—'));
+        pon2('h-sub', (el.categoria || 'general') + (refDe[el.id] ? ' · sobre ' + refDe[el.id] : '') + ' · ' + msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') + ' · ' + (el.estado || '—'));
         pon2('h-chip', c.tipo === 'empresa' ? 'Empresa' : 'Persona física');
         pon2('cv-tel', c.phone || 'sin teléfono en ficha');
         pon2('cv-email', c.email || 'sin email en ficha');
-        pon2('cv-cat', 'Categoría: ' + (el.categoria || 'general'));
+        pon2('cv-cat', 'Categoría: ' + (el.categoria || 'general') + (refDe[el.id] ? ' · Sobre ' + refDe[el.id] : ''));
         pon2('h-toggle-estado', el.estado === 'abierto' ? 'Marcar resuelto' : 'Reabrir');
         var ta = document.querySelector('textarea');
         if (ta) ta.placeholder = 'Escribe la respuesta para ' + (c.full_name || 'el cliente') + '… (se envía desde la herramienta: cada mensaje manda un email real)';

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="0e443326dcb2">
+<meta name="lw-version" content="703aa55b840e">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -47,6 +47,7 @@
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/portal/resumen.js?v=20260914"></script>
+<script src="/portal/zip.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
 <script src="/intranet/facturas/documento.js?v=638be339"></script>
 <style>
@@ -69,7 +70,7 @@
   .entrada{ min-height:100vh; display:grid; place-items:center; background:var(--rl); padding:24px; }
   .entrada .caja{ width:100%; max-width:400px; background:#fff; border:1px solid #E4DCCB; border-radius:16px;
                   padding:44px 34px 38px; box-shadow:0 18px 48px -22px rgba(34,40,42,.35); text-align:center; }
-  .entrada .marca{ font-family:'Cormorant Garamond',Georgia,serif; font-size:30px; font-weight:600;
+  .entrada .marca{ font-size:30px; font-weight:600;
                     letter-spacing:.12em; color:var(--dl); line-height:1; }
   .entrada .rot{ font-size:10.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--sc); margin:8px 0 28px; }
   .entrada p{ font-size:13.5px; color:#6b6c66; margin:0 0 20px; line-height:1.55; }
@@ -155,7 +156,7 @@
   .campo-lbl{ font-size:11px; color:#8a8570; text-transform:uppercase; letter-spacing:.02em;
     display:flex; align-items:center; gap:6px; }
   .campo-lbl svg{ width:13px; height:13px; color:var(--sc); flex:none; }
-  .kpi .val{ font-family:'Instrument Sans',sans-serif; font-size:26px; font-weight:700; color:var(--va); }
+  .kpi .val{ font-size:26px; font-weight:700; color:var(--va); }
   .kpi .val.ok{ color:var(--ok); }
   /* El pie de las tres cifras: qué contratos suman y cuáles no. Va justo debajo
      y en gris, no como aviso: es una aclaración, no un problema. El margen
@@ -442,10 +443,80 @@
   /* tablas en móvil: scroll dentro de su caja, nunca del body (medido a 390 px:
      la de hitos llegaba a 454 y la de facturas a 479 dentro de 390) */
   .tabla-caja{ overflow-x:auto; }
-  .op table.docs{ display:block; overflow-x:auto; }
-  @media (max-width:880px){
+  @media (min-width:641px){ .op table.docs{ display:table; } }
+  @media (min-width:641px) and (max-width:880px){
+    .op{ overflow-x:auto; }
     table.docs th, table.docs td, .tabla-caja th, .tabla-caja td{ padding-left:10px; padding-right:10px; }
     .tabla-caja table{ min-width:520px; }
+  }
+
+  /* ═══ MEJORAS DEL PORTAL (7-oct-2026) ═══ */
+  /* escala de la intranet v4: cuerpo 15/24, tablas 13 */
+  body{ font-size:15px; line-height:1.6; }
+  .titulo-sec p, .campo-input{ line-height:1.5; }
+
+  /* selector de idioma ES · EN · ID: segmentado, como el de la v4 */
+  .lang-sel{ display:flex; background:var(--pg-low); border-radius:999px; padding:3px; gap:2px; }
+  .lang-sel button{ border:0; background:transparent; color:var(--ink2); font-size:12px; font-weight:600; letter-spacing:.04em;
+                    padding:6px 11px; border-radius:999px; cursor:pointer; }
+  .lang-sel button[aria-pressed="true"]{ background:var(--dl); color:#fff; }
+  .lang-sel button:focus-visible{ outline:2px solid var(--dl); outline-offset:1px; }
+
+  /* aviso de firma pendiente: arriba del todo de Inicio */
+  .banner-firma{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+                 background:#f6e8cc; border-radius:12px; padding:14px 18px; margin-bottom:16px; color:#5a3b08; }
+  .banner-firma b{ font-weight:600; font-size:15px; }
+
+  /* próximo pago: la acción principal de Inicio */
+  .hero-pago{ margin-bottom:16px; padding:22px 24px; }
+  .hp-fila{ display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap; }
+  .hp-info{ min-width:0; flex:1 1 260px; }
+  .hp-concepto{ font-size:18px; font-weight:600; }
+  .hp-sub{ font-size:13px; color:var(--ink2); margin-top:4px; }
+  .hp-importe{ font-size:40px; font-weight:600; color:var(--dl); line-height:1; letter-spacing:.01em; font-variant-numeric:tabular-nums; }
+  .hp-acciones{ display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+  .novedad{ display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--pg-hi); font-size:13px; line-height:1.45; }
+  .novedad:last-child{ border-bottom:0; }
+  .novedad-punto{ width:7px; height:7px; border-radius:50%; flex:none; margin-top:6px; background:#485B37; }
+
+  /* línea de tiempo: pagos y obra en una sola línea */
+  .tl{ list-style:none; margin:18px 0 6px; padding:0; display:flex; flex-wrap:wrap; gap:8px 6px; align-items:flex-start; }
+  .tl-grupo{ flex-basis:100%; font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); margin-top:4px; }
+  .tl-grupo:first-child{ margin-top:0; }
+  .tl-paso{ display:flex; flex-direction:column; gap:2px; min-width:0; max-width:150px; padding:8px 12px; border-radius:12px;
+            background:var(--pg-low); font-size:12px; line-height:1.3; color:var(--out); position:relative; }
+  .tl-punto{ width:8px; height:8px; border-radius:50%; background:var(--linea); margin-bottom:4px; }
+  .tl-txt{ font-weight:600; overflow-wrap:anywhere; }
+  .tl-sub{ font-variant-numeric:tabular-nums; }
+  .tl-paso.hecho{ background:#e3eadb; color:#3F5230; }
+  .tl-paso.hecho .tl-punto{ background:#485B37; }
+  .tl-paso.actual{ background:#485B37; color:#fff; }
+  .tl-paso.actual .tl-punto{ background:#fff; }
+
+  /* obra: lo último, con fecha */
+  .feed-obra{ margin-bottom:26px; }
+  .feed-obra figcaption b{ color:var(--va); font-weight:600; }
+
+  /* documentos: buscador y descargar todo */
+  .doc-barra{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .doc-barra .campo-input{ flex:1 1 220px; border-radius:999px; padding:9px 16px; }
+  .doc-proy{ margin:0 0 6px; font-size:16px; font-weight:600; }
+  .doc-tipo{ margin:14px 0 8px; }
+
+  /* móvil: las tablas pasan a tarjetas (concepto, fecha, importe y estado se ven sin deslizar) */
+  @media (max-width:640px){
+    table.docs, .tabla-caja table{ display:block; min-width:0; }
+    table.docs thead, .tabla-caja thead{ display:none; }
+    table.docs tbody, .tabla-caja tbody{ display:block; }
+    table.docs tr, .tabla-caja tr{ display:block; padding:12px 14px; border-bottom:1px solid var(--pg-hi); }
+    table.docs tr:last-child, .tabla-caja tr:last-child{ border-bottom:0; }
+    table.docs td, .tabla-caja td{ display:flex; justify-content:space-between; align-items:center; gap:14px; padding:3px 0; border:0; text-align:right; }
+    table.docs td::before, .tabla-caja td::before{ content:attr(data-l); font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); text-align:left; }
+    table.docs td.num, .tabla-caja td.num{ text-align:right; }
+    .tabla-caja td.ir{ justify-content:flex-end; }
+    .tabla-caja td.ir::before{ content:none; }
+    .hp-importe{ font-size:34px; }
+    .tl-paso{ max-width:none; flex:1 1 130px; }
   }
 </style>
 </head>
@@ -460,12 +531,12 @@
     <div class="rot" data-t="area">Área de clientes</div>
     <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.</p>
     <form id="fLogin">
-      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com"></div>
+      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required data-ph="ph_correo" placeholder="tu@correo.com"></div>
       <button class="btn-primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
     </form>
     <p data-t="login_intro_pass" id="loginIntroPass" hidden>Introduce tu correo y tu contraseña.</p>
     <form id="fLoginPass" hidden>
-      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmailPass" autocomplete="email" required placeholder="tu@correo.com"></div>
+      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmailPass" autocomplete="email" required data-ph="ph_correo" placeholder="tu@correo.com"></div>
       <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z"></path></svg><input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••"></div>
       <button class="btn-primario" type="submit" data-t="pass_btn">Entrar</button>
     </form>
@@ -507,7 +578,7 @@
     <div class="topbar2">
       <button type="button" class="hamb" id="btnAbrirSidebar" hidden>☰</button>
       <h1 id="tituloSeccion"></h1>
-      <button type="button" class="lw-btn" id="btnLang" style="border:1px solid rgba(138,132,116,.4);border-radius:999px;background:none;padding:6px 12px;cursor:pointer;font-size:12px">EN</button>
+      <div id="selLang" class="lang-sel" role="group" aria-label="Idioma · Language · Bahasa"><button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button><button type="button" data-lang="id">ID</button></div>
       <div class="campana">
         <button type="button" id="btnNotif">🔔<span class="n" id="notifN" hidden></span></button>
         <div id="notifDrop" class="notif-drop" hidden></div>
@@ -637,7 +708,17 @@
          prefs:'Preferencias de notificación', pref_email:'Avisos por correo', pref_sms:'Avisos por SMS',
          err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.',
          err_catalogo:'Falta parte de los datos de la empresa: un documento que abras ahora puede salir incompleto. Recarga la página.',
-         no_ficha:'Tu acceso no está ligado todavía a ninguna ficha. Escríbenos y lo revisamos.' },
+         no_ficha:'Tu acceso no está ligado todavía a ninguna ficha. Escríbenos y lo revisamos.',
+         nov_factura:'Nueva factura disponible: ', nov_obra:'Novedades de obra en ', nov_doc_caduca:'Tu {doc} caduca en {n} días',
+         cat_pagos:'Pagos', cat_documentacion:'Documentación', cat_obra:'Obra', cat_otro:'Otro', cat_general:'General', ph_correo:'tu@correo.com',
+         firma_banner_1:'Tienes 1 documento pendiente de firma', firma_banner_n:'Tienes {n} documentos pendientes de firma',
+         firma_banner_btn:'Ir a firmar', ver_facturas:'Ver mis facturas',
+         tl_pagos:'Pagos', tl_obra:'Obra', obra_ultimo:'Lo último de tu obra',
+         doc_buscar:'Buscar un documento…', doc_todo:'Descargar todo', doc_zip_prep:'Preparando…',
+         doc_zip_err:'No hemos podido preparar la descarga. Inténtalo de nuevo o abre los documentos de uno en uno.',
+         doc_zip_vacio:'No hay documentos descargables en esta lista.', doc_zip_tope:'Son demasiados documentos para un solo archivo. Descárgalos de uno en uno.',
+         doc_sin_resultados:'Ningún documento coincide con tu búsqueda.', doc_otros:'Otros',
+         sobre:'Sobre', sobre_nada:'Nada en concreto', preguntar_factura:'Preguntar sobre esta factura', preguntar_contrato:'Preguntar sobre este contrato', },
     en:{ area:'Client area',
          login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
          login_btn:'Send me the link',
@@ -700,15 +781,102 @@
          prefs:'Notification preferences', pref_email:'Email alerts', pref_sms:'SMS alerts',
          err_carga:'We could not load your information. Reload the page or try again later.',
          err_catalogo:'Some company details are missing: a document opened now may be incomplete. Please reload the page.',
-         no_ficha:'Your access is not linked to a record yet. Write to us and we will check it.' }
+         no_ficha:'Your access is not linked to a record yet. Write to us and we will check it.',
+         nov_factura:'New invoice available: ', nov_obra:'Construction update on ', nov_doc_caduca:'Your {doc} expires in {n} days',
+         cat_pagos:'Payments', cat_documentacion:'Documents', cat_obra:'Construction', cat_otro:'Other', cat_general:'General', ph_correo:'you@email.com',
+         firma_banner_1:'You have 1 document waiting for your signature', firma_banner_n:'You have {n} documents waiting for your signature',
+         firma_banner_btn:'Go to signing', ver_facturas:'View my invoices',
+         tl_pagos:'Payments', tl_obra:'Construction', obra_ultimo:'Latest from your build',
+         doc_buscar:'Search a document…', doc_todo:'Download all', doc_zip_prep:'Preparing…',
+         doc_zip_err:'We could not prepare the download. Try again or open the documents one by one.',
+         doc_zip_vacio:'There are no downloadable documents in this list.', doc_zip_tope:'There are too many documents for a single file. Download them one by one.',
+         doc_sin_resultados:'No document matches your search.', doc_otros:'Other',
+         sobre:'About', sobre_nada:'Nothing in particular', preguntar_factura:'Ask about this invoice', preguntar_contrato:'Ask about this contract', },
+    id:{ area:'Area klien',
+         login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, tautan masuk akan segera dikirim.',
+         login_btn:'Kirim tautan ke saya',
+         enviado:'Jika email tersebut memiliki akses, kami baru saja mengirimkan tautan. Periksa kotak masuk Anda (cek juga folder spam).',
+         error_envio:'Kami belum bisa mengirim email saat ini. Coba lagi sebentar lagi atau tulis ke sales@lawangproperties.com.',
+         sin_activar:'Akun Anda belum mengaktifkan area klien. Minta tautan akses dengan email Anda di bawah ini dan akan aktif otomatis; jika tidak datang, tulis ke sales@lawangproperties.com.',
+         login_intro_pass:'Masukkan email dan kata sandi Anda.', pass_btn:'Masuk',
+         pass_toggle:'Punya kata sandi? Masuk dengan itu', pass_toggle_back:'Saya lebih suka dikirimi tautan',
+         pass_mal:'Email atau kata sandi salah.', pie:'Ada pertanyaan? Tulis ke',
+         team_intro:'Anda bagian dari tim?', team_link:'Masuk di sini', salir:'Keluar',
+         nav_inicio:'Beranda', nav_contratos:'Kontrak', nav_facturas:'Faktur', nav_obra:'Pembangunan',
+         nav_documentos:'Dokumen', nav_soporte:'Bantuan', nav_perfil:'Profil saya',
+         tit_inicio:'Beranda', tit_contratos:'Kontrak', tit_facturas:'Faktur', tit_obra:'Pembangunan',
+         tit_documentos:'Dokumen', tit_soporte:'Bantuan', tit_perfil:'Profil saya',
+         hola:'Halo', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
+         r_inversion:'Investasi Anda', r_pagado:'Sudah dibayar', r_pendiente:'Belum dibayar',
+         r_cuota:'Biaya reservasi', cuota_reserva:'Biaya reservasi',
+         nota_solo_reserva:'Saat ini Anda hanya memiliki Surat Reservasi, tanpa kontrak definitif yang ditandatangani: jumlah di atas adalah biaya reservasi, bukan harga akhir unit Anda.',
+         nota_sin_carta:'Investasi dihitung dari kontrak definitif Anda. Surat Reservasi tidak dihitung karena menyatakan jumlah yang sama sebelum dibagi antara Pemblokiran Lahan dan Konstruksi:',
+         nota_carta_sustituida:'Surat Reservasi ini sudah termasuk dalam kontrak definitif Anda: jumlah dan jadwalnya mengikuti kontrak tersebut, bukan pembayaran terpisah. Dokumen tetap disimpan di sini jika Anda membutuhkannya.',
+         proximo_pago:'Pembayaran berikutnya', sin_proximo:'Saat ini Anda tidak memiliki pembayaran yang tertunda.',
+         ver_plan:'Lihat jadwal pembayaran', novedades:'Kabar terbaru',
+         acc_documentos:'Dokumen', acc_documentos_sub:'Dossier, denah, dan KYC',
+         acc_soporte:'Bantuan', acc_soporte_sub:'Tulis ke tim pengelola Anda',
+         precio:'Harga', unidad:'Unit', fecha_firma:'Tanggal tanda tangan', cobrado:'Dibayar sampai hari ini',
+         pagado:'Lunas', pendiente:'Belum dibayar', parcial:'Sebagian', de:'dari',
+         plan_pagos:'Jadwal pembayaran', concepto:'Keterangan', cuando:'Jatuh tempo', importe:'Jumlah', estado:'Status',
+         firmado:'Sudah ditandatangani', pendiente_firma:'Menunggu tanda tangan', ver_contrato:'Lihat kontrak yang ditandatangani', descargar:'Unduh',
+         firma_pendiente_desc:'Kontrak ini menunggu tanda tangan Anda, dikirim pada', firma_pendiente_caduca:'Tautan berlaku sampai',
+         ver_borrador:'Lihat draf', cargando:'Memuat…',
+         firmar_ahora:'Tanda tangani sekarang',
+         imprimir:'Cetak atau simpan sebagai PDF', cerrar:'Tutup',
+         f_numero:'No.', f_tipo:'Jenis', f_proyecto:'Proyek', f_fecha:'Tanggal', f_total:'Jumlah', ir:'Lihat →',
+         factura:'Faktur', recibi:'Kwitansi', proforma:'Proforma',
+         sin_facturas_t:'Belum ada dokumen', sin_facturas:'Saat kami menerbitkan faktur atau kwitansi, dokumennya akan muncul di sini, siap diunduh.',
+         sin_obra_t:'Belum ada kabar pembangunan', sin_obra:'Begitu pembangunan unit Anda dimulai, kami akan menampilkan kemajuan dan foto-fotonya di sini.',
+         sin_contratos_t:'Kami tidak melihat kontrak atas nama Anda', sin_contratos:'Mungkin akses Anda terhubung ke data yang belum memiliki kontrak. Tulis ke kami dan kami akan memeriksanya.',
+         entrega_est:'Perkiraan serah terima', actualizado:'Pembaruan terakhir',
+         sin_proyecto:'Dokumen lainnya', d_entregado:'Yang telah Anda serahkan',
+         d_entregado_nota:'Ini adalah dokumen yang Anda berikan untuk berkas Anda. Jika ada yang hampir kedaluwarsa, tulis ke kami dan kami akan memperbaruinya.',
+         doc_passport:'Paspor', doc_id:'Dokumen identitas', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'berlaku sampai',
+         sin_docs_t:'Belum ada dokumen yang dibagikan', sin_docs:'Denah, dossier, dan dokumen proyek Anda akan muncul di sini saat kami menerbitkannya, beserta yang telah Anda serahkan.',
+         err_fichero:'Kami tidak dapat membuka dokumen. Coba lagi sebentar lagi.',
+         err_mensaje:'Kami tidak dapat mengirim pesan Anda. Coba lagi sebentar lagi; jika masih gagal, hubungi kami lewat WhatsApp.',
+         err_ticket:'Kami tidak dapat membuka pertanyaan Anda. Coba lagi sebentar lagi; jika masih gagal, hubungi kami lewat WhatsApp.',
+         err_prefs:'Kami tidak dapat menyimpan preferensi notifikasi Anda. Coba lagi sebentar lagi.',
+         categoria:'Kategori', enviar:'Kirim', cancelar:'Batal', abierto:'Terbuka', resuelto:'Selesai',
+         responder:'Balas…', tu:'Anda', equipo:'Tim Lawang',
+         nuevo_ticket:'Tiket baru', elige_categoria:'Pilih topiknya…', mensaje:'Pesan',
+         abrir_ticket:'Buka tiket', completa_campos:'Pilih kategori dan tulis pesan Anda.',
+         ticket_abierto:'Tiket dibuka. Kami akan membalas di sini.',
+         sin_tickets_t:'Anda belum memiliki tiket', sin_tickets:'Buka tiket saat Anda membutuhkan sesuatu — pembayaran, dokumen, pembangunan, atau pertanyaan lain.',
+         aviso_no_vinculante:'Ini adalah saluran layanan, bukan dokumen kontrak: harga, jangka waktu, atau ketentuan apa pun tidak berubah sampai tercantum dalam kontrak Anda atau lampiran yang ditandatangani.',
+         datos_personales:'Data pribadi', nombre:'Nama', correo:'Email', telefono:'Telepon', pais:'Negara',
+         seguridad:'Keamanan', cambiar_pass_btn:'Ganti kata sandi',
+         cambiar_pass_nueva:'Kata sandi baru (minimal 10 karakter)', cambiar_pass_repite:'Ulangi kata sandi',
+         cambiar_pass_nota:'Anda akan memakainya bersama email saat masuk berikutnya — tautan lewat email tetap berfungsi seperti biasa.',
+         cambiar_pass_corta:'Minimal 10 karakter.', cambiar_pass_no_coincide:'Kata sandi tidak sama.',
+         cambiar_pass_error:'Tidak dapat disimpan', cambiar_pass_ok:'Kata sandi diperbarui.', guardar:'Simpan',
+         prefs:'Preferensi notifikasi', pref_email:'Notifikasi lewat email', pref_sms:'Notifikasi lewat SMS',
+         err_carga:'Kami tidak dapat memuat informasi Anda. Muat ulang halaman atau coba lagi nanti.',
+         err_catalogo:'Sebagian data perusahaan belum lengkap: dokumen yang Anda buka sekarang mungkin tidak lengkap. Muat ulang halaman.',
+         no_ficha:'Akses Anda belum terhubung ke data mana pun. Tulis ke kami dan kami akan memeriksanya.',
+         nov_factura:'Faktur baru tersedia: ', nov_obra:'Kabar pembangunan di ', nov_doc_caduca:'{doc} Anda berakhir dalam {n} hari',
+         cat_pagos:'Pembayaran', cat_documentacion:'Dokumen', cat_obra:'Pembangunan', cat_otro:'Lainnya', cat_general:'Umum', ph_correo:'anda@email.com',
+         firma_banner_1:'Anda memiliki 1 dokumen yang menunggu tanda tangan', firma_banner_n:'Anda memiliki {n} dokumen yang menunggu tanda tangan',
+         firma_banner_btn:'Pergi menandatangani', ver_facturas:'Lihat faktur saya',
+         tl_pagos:'Pembayaran', tl_obra:'Pembangunan', obra_ultimo:'Terbaru dari pembangunan Anda',
+         doc_buscar:'Cari dokumen…', doc_todo:'Unduh semua', doc_zip_prep:'Menyiapkan…',
+         doc_zip_err:'Kami tidak dapat menyiapkan unduhan. Coba lagi atau buka dokumen satu per satu.',
+         doc_zip_vacio:'Tidak ada dokumen yang dapat diunduh dalam daftar ini.', doc_zip_tope:'Dokumennya terlalu banyak untuk satu berkas. Unduh satu per satu.',
+         doc_sin_resultados:'Tidak ada dokumen yang cocok dengan pencarian Anda.', doc_otros:'Lainnya',
+         sobre:'Tentang', sobre_nada:'Tidak ada yang khusus', preguntar_factura:'Tanya tentang faktur ini', preguntar_contrato:'Tanya tentang kontrak ini' }
   };
-  var LANG = localStorage.getItem('lw_portal_lang') ||
-             ((navigator.language || 'es').slice(0,2) === 'es' ? 'es' : 'en');
-  function t(k){ return (T[LANG] && T[LANG][k]) || T.es[k] || k; }
+  var LANG = localStorage.getItem('lw_portal_lang');
+  if (!LANG || !(LANG in T)) { var nl = (navigator.language || 'es').slice(0,2); LANG = (nl === 'es' || nl === 'id') ? nl : 'en'; }
+  function t(k){ return (T[LANG] && T[LANG][k]) || (LANG === 'id' && T.en[k]) || T.es[k] || k; }
+  /* Texto bilingüe que viene de la base ({es,en}): para indonesio se cae a inglés, no a español. */
+  function Lx(o){ if (!o) return ''; return o[LANG] || (LANG === 'id' ? (o.en || o.es) : (o.es || o.en)) || ''; }
+  function LOC(){ return { es:'es-ES', en:'en-GB', id:'id-ID' }[LANG] || 'en-GB'; }
   function aplicaLangEstatico(){
     document.documentElement.lang = LANG;
     document.querySelectorAll('[data-t]').forEach(function(el){ el.textContent = t(el.getAttribute('data-t')); });
-    document.getElementById('btnLang').textContent = LANG === 'es' ? 'EN' : 'ES';
+    document.querySelectorAll('[data-ph]').forEach(function(el){ el.placeholder = t(el.getAttribute('data-ph')); });
+    document.querySelectorAll('#selLang [data-lang]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-lang') === LANG ? 'true' : 'false'); });
   }
   aplicaLangEstatico();
 
@@ -725,20 +893,20 @@
   // COMPRADOR, no una columna de contabilidad.
   function dinero(n, moneda){
     if (n == null || isNaN(n)) return '—';
-    try { return new Intl.NumberFormat(LANG === 'es' ? 'es-ES' : 'en-GB',
+    try { return new Intl.NumberFormat(LOC(),
             { style:'currency', currency:(moneda || 'EUR'), maximumFractionDigits:0, useGrouping:'always' }).format(n); }
     catch(e){ return n.toLocaleString() + ' ' + (moneda || ''); }
   }
   function fecha(f){
     if (!f) return '';
     var d = new Date(f); if (isNaN(d)) return esc(f);
-    return d.toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day:'numeric', month:'short', year:'numeric' });
+    return d.toLocaleDateString(LOC(), { day:'numeric', month:'short', year:'numeric' });
   }
   function fechaHora(f){
     if (!f) return '';
     var d = new Date(f); if (isNaN(d)) return esc(f);
-    return d.toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day:'2-digit', month:'short' }) + ' · ' +
-           d.toLocaleTimeString(LANG === 'es' ? 'es-ES' : 'en-GB', { hour:'2-digit', minute:'2-digit' });
+    return d.toLocaleDateString(LOC(), { day:'2-digit', month:'short' }) + ' · ' +
+           d.toLocaleTimeString(LOC(), { hour:'2-digit', minute:'2-digit' });
   }
 
   /* ── reparto de cobro entre hitos — igual que antes de este rediseño ── */
@@ -905,9 +1073,10 @@
     e.preventDefault();
     sb.auth.signOut().then(function(){ location.replace('/portal/'); });
   });
-  document.getElementById('btnLang').addEventListener('click', function(){
-    LANG = LANG === 'es' ? 'en' : 'es';
-    localStorage.setItem('lw_portal_lang', LANG);
+  document.getElementById('selLang').addEventListener('click', function(ev){
+    var b = ev.target.closest('[data-lang]'); if (!b) return;
+    LANG = b.getAttribute('data-lang');
+    try { localStorage.setItem('lw_portal_lang', LANG); } catch(e){}
     aplicaLangEstatico();
     if (DATOS) render();
   });
@@ -1022,19 +1191,18 @@
     var d = DATOS; if (!d) return [];
     var lista = [];
     (d.facturas || []).slice(0, 3).forEach(function(f){
-      lista.push({ texto: (f.tipo === 'factura' ? (LANG==='es'?'Nueva factura disponible: ':'New invoice available: ') : '') + f.numero,
+      lista.push({ texto: (f.tipo === 'factura' ? t('nov_factura') : '') + f.numero,
                    fecha: f.fecha, cuando: new Date(f.fecha || 0) });
     });
     (d.obra || []).forEach(function(o){
-      if (o.actualizado) lista.push({ texto: (LANG==='es'?'Novedades de obra en ':'Construction update on ') + o.unidad,
+      if (o.actualizado) lista.push({ texto: t('nov_obra') + o.unidad,
                                        fecha: o.actualizado, cuando: new Date(o.actualizado) });
     });
     (d.kyc || []).forEach(function(k){
       if (!k.caduca) return;
       var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
       if (dias >= 0 && dias <= 30) lista.push({
-        texto: (LANG==='es' ? ('Tu ' + (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo)) + ' caduca en ' + dias + ' días')
-                             : ('Your ' + (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo)) + ' expires in ' + dias + ' days')),
+        texto: t('nov_doc_caduca').replace('{doc}', (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo))).replace('{n}', dias),
         fecha: k.caduca, cuando: new Date()
       });
     });
@@ -1113,10 +1281,26 @@
     });
 
     var novedades = novedadesDerivadas().slice(0,3);
+    var nFirmas = (d.firma_pendiente || []).length;
+    var bannerFirma = nFirmas
+      ? '<div class="banner-firma" role="status"><div><b>' + esc(nFirmas === 1 ? t('firma_banner_1') : t('firma_banner_n').replace('{n}', nFirmas)) + '</b></div>' +
+        '<button type="button" class="btn-oscuro" data-ir="contratos">' + esc(t('firma_banner_btn')) + '</button></div>'
+      : '';
+    var heroPago = '<div class="tarjeta hero-pago"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
+      (proximo ?
+        '<div class="hp-fila"><div class="hp-info"><div class="hp-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
+          '<div class="hp-sub">' + esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato) + '</div></div>' +
+          '<div class="hp-importe">' + (isNaN(proximo.monto) ? '—' : esc(dinero(proximo.monto, proximo.moneda))) + '</div></div>' +
+        '<div class="hp-acciones"><button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>' +
+          '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('ver_plan')) + '</button></div>'
+        : '<p style="font-size:13.5px;color:var(--ink2);margin:0">' + esc(t('sin_proximo')) + '</p>') +
+      '</div>';
 
     c.innerHTML =
       '<div class="titulo-sec"><h2>' + esc(t('hola')) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
         '<p>' + esc(t('saludo_sub')) + '</p></div>' +
+      bannerFirma +
+      heroPago +
       (tot != null && tot > 0 ? '<div class="kpis">' +
         '<div class="tarjeta kpi"><div class="lbl">' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</div><div class="val">' + esc(dinero(tot,mon)) + '</div></div>' +
         '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pagado')) + '</div><div class="val ok">' + esc(dinero(cob,mon)) + '</div></div>' +
@@ -1134,28 +1318,46 @@
                 res.excluidos.map(function(x){ return x.numero || '—'; }).join(', ') + '.') + '</p>'
             : ''))
       : '') +
-      '<div class="grid2col">' +
-        '<div class="tarjeta"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
-          (proximo ?
-            '<div style="font-size:16px;font-weight:500;margin-bottom:4px">' + esc((proximo.hito[LANG] || proximo.hito.es || proximo.hito.en || '')) + '</div>' +
-            '<div style="font-size:13px;color:#6b6c66;margin-bottom:14px">' + esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato) + '</div>' +
-            '<div style="font-size:24px;font-weight:600;color:var(--dl);margin-bottom:14px">' + (isNaN(proximo.monto)?'—':esc(dinero(proximo.monto, proximo.moneda))) + '</div>' +
-            '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('ver_plan')) + '</button>'
-            : '<p style="font-size:13.5px;color:#6b6c66">' + esc(t('sin_proximo')) + '</p>') +
-        '</div>' +
-        '<div class="tarjeta"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
-          (novedades.length ? novedades.map(function(x){
-            return '<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(138,132,116,.15)">' +
-                   '<span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;background:var(--tg)"></span>' +
-                   '<div style="font-size:12.5px;line-height:1.4">' + esc(x.texto) + '</div></div>';
-          }).join('') : '<p style="font-size:13px;color:#8a8570">—</p>') +
-        '</div>' +
+      '<div class="tarjeta" style="margin-bottom:28px"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
+        (novedades.length ? novedades.map(function(x){
+          return '<div class="novedad"><span class="novedad-punto"></span><div>' + esc(x.texto) + '</div></div>';
+        }).join('') : '<p style="font-size:13px;color:var(--out);margin:0">—</p>') +
       '</div>' +
       '<div class="accesos">' +
         '<button type="button" class="acceso" data-ir="documentos"><div class="t">' + esc(t('acc_documentos')) + '</div><div class="s">' + esc(t('acc_documentos_sub')) + '</div></button>' +
         '<button type="button" class="acceso" data-ir="soporte"><div class="t">' + esc(t('acc_soporte')) + '</div><div class="s">' + esc(t('acc_soporte_sub')) + '</div></button>' +
       '</div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+  }
+
+  /* ── Línea de tiempo de una operación: pagos y obra en una sola línea ──
+     Es presentación pura: los pasos salen de los hitos ya repartidos (estadosHitos)
+     y de las fases de obra de la unidad de ESE contrato (mismo contrato_numero).
+     Sin datos de obra, solo pagos. El navegador no decide nada: solo ordena lo que
+     la RPC ya dijo. */
+  function lineaTiempo(x, hs){
+    var d = DATOS, fases = d.fases || [];
+    var u = (d.obra || []).filter(function(o){ return o.contrato_numero === x.numero; })[0];
+    var pasos = [], marcado = false;
+    hs.forEach(function(y){
+      var est = y.estado === 'pagado' ? 'hecho' : 'espera';
+      if (est !== 'hecho' && !marcado){ est = 'actual'; marcado = true; }
+      pasos.push({ g:'pagos', txt:Lx(y.hito) || '—', sub:(isNaN(y.monto) ? '' : dinero(y.monto, x.moneda)), est:est });
+    });
+    if (u && fases.length){
+      var idx = fases.map(function(f){ return f.clave; }).indexOf(u.fase);
+      fases.forEach(function(f, i){
+        pasos.push({ g:'obra', txt:Lx(f), sub:'', est: i < idx ? 'hecho' : (i === idx ? 'actual' : 'espera') });
+      });
+    }
+    if (pasos.length < 2) return '';
+    var grupo = '';
+    return '<ol class="tl" aria-label="' + esc(t('plan_pagos')) + '">' + pasos.map(function(p){
+      var cab = '';
+      if (p.g !== grupo){ grupo = p.g; cab = '<li class="tl-grupo" aria-hidden="true">' + esc(t(p.g === 'pagos' ? 'tl_pagos' : 'tl_obra')) + '</li>'; }
+      return cab + '<li class="tl-paso ' + p.est + '"><span class="tl-punto"></span><span class="tl-txt">' + esc(p.txt) + '</span>' +
+        (p.sub ? '<span class="tl-sub">' + esc(p.sub) + '</span>' : '') + '</li>';
+    }).join('') + '</ol>';
   }
 
   /* ── Contratos ────────────────────────────────────────────────────── */
@@ -1207,18 +1409,21 @@
           : (base > 0 ? '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
           '<div class="barra-leg"><span>' + pct + '% ' + esc(t('de')) + ' ' + esc(dinero(base,x.moneda)) + '</span>' +
           '<span>' + esc(dinero(Math.max(0,base-cobrado),x.moneda)) + ' ' + esc(t('pendiente')).toLowerCase() + '</span></div>' : '')) +
+        (!sustituido ? lineaTiempo(x, hs) : '') +
         // Los hitos de una Carta sustituida son los mismos que ya trae su Bloqueo:
         // enseñarlos aquí reclamaría dos veces el mismo calendario de pagos.
         (hs.length && !sustituido ? '<table class="docs"><thead><tr><th>' + esc(t('concepto')) + '</th><th>' + esc(t('cuando')) + '</th>' +
           '<th class="num">' + esc(t('importe')) + '</th><th>' + esc(t('estado')) + '</th></tr></thead><tbody>' +
           hs.map(function(y){
-            var descr = y.hito[LANG] || y.hito.es || y.hito.en || '';
+            var descr = Lx(y.hito);
             var col = TAGCOLOR[y.estado];
-            return '<tr><td>' + esc(descr||'—') + '</td><td class="flojo">' + esc(y.hito.timing||'') + '</td>' +
-              '<td class="num">' + (isNaN(y.monto)?'—':esc(dinero(y.monto,x.moneda))) + '</td>' +
-              '<td><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(t(y.estado)) + '</span></td></tr>';
+            return '<tr><td data-l="' + esc(t('concepto')) + '">' + esc(descr||'—') + '</td><td class="flojo" data-l="' + esc(t('cuando')) + '">' + esc(y.hito.timing||'') + '</td>' +
+              '<td class="num" data-l="' + esc(t('importe')) + '">' + (isNaN(y.monto)?'—':esc(dinero(y.monto,x.moneda))) + '</td>' +
+              '<td data-l="' + esc(t('estado')) + '"><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(t(y.estado)) + '</span></td></tr>';
           }).join('') + '</tbody></table>' : '') +
-        (x.pdf ? '<div class="op-pie"><button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button></div>' : '') +
+        '<div class="op-pie" style="display:flex;gap:10px;flex-wrap:wrap">' +
+          (x.pdf ? '<button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button>' : '') +
+          '<button type="button" class="btn-borde" data-pregunta-contrato="' + esc(x.id) + '">' + esc(t('preguntar_contrato')) + '</button></div>' +
         (fp ? '<div class="op-pie" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
           '<span style="font-size:12px;color:#8a8570">' + esc(t('firma_pendiente_desc') + ' ' + fecha(fp.enviado_en) + ' · ' + t('firma_pendiente_caduca') + ' ' + fecha(fp.expira_en)) + '</span>' +
           '<button type="button" class="btn-borde" data-borrador="' + esc(fp.enlace) + '">' + esc(t('ver_borrador')) + '</button>' +
@@ -1228,6 +1433,7 @@
     }).join('');
     c.querySelectorAll('[data-contrato]').forEach(function(b){ b.addEventListener('click', function(){ vasA('contratos', b.getAttribute('data-contrato')); }); });
     c.querySelectorAll('[data-borrador]').forEach(function(b){ b.addEventListener('click', function(){ abreBorrador(b.getAttribute('data-borrador')); }); });
+    c.querySelectorAll('[data-pregunta-contrato]').forEach(function(b){ b.addEventListener('click', function(){ abrirNuevoTicket({ tipo:'contrato', id:b.getAttribute('data-pregunta-contrato') }); }); });
   }
 
   /* ── Facturas ─────────────────────────────────────────────────────── */
@@ -1240,10 +1446,10 @@
       '<th class="num">' + esc(t('f_total')) + '</th><th></th></tr></thead><tbody>' +
       d.facturas.map(function(f){
         return '<tr data-fila data-fac="' + esc(f.numero) + '">' +
-          '<td class="clave">' + esc(f.numero) + '</td><td>' + esc(t(TIPO_DOC[f.tipo]||f.tipo)) + '</td>' +
-          '<td class="flojo">' + esc(f.proyecto||'—') + '</td>' +
-          '<td class="flojo">' + esc(fecha(f.fecha)) + '</td>' +
-          '<td class="num">' + esc(dinero(Number(f.total),f.moneda)) + '</td>' +
+          '<td class="clave" data-l="' + esc(t('f_numero')) + '">' + esc(f.numero) + '</td><td data-l="' + esc(t('f_tipo')) + '">' + esc(t(TIPO_DOC[f.tipo]||f.tipo)) + '</td>' +
+          '<td class="flojo" data-l="' + esc(t('f_proyecto')) + '">' + esc(f.proyecto||'—') + '</td>' +
+          '<td class="flojo" data-l="' + esc(t('f_fecha')) + '">' + esc(fecha(f.fecha)) + '</td>' +
+          '<td class="num" data-l="' + esc(t('f_total')) + '">' + esc(dinero(Number(f.total),f.moneda)) + '</td>' +
           '<td class="ir">' + esc(t('ir')) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     c.querySelectorAll('[data-fac]').forEach(function(tr){ tr.addEventListener('click', function(){ vasA('facturas', tr.getAttribute('data-fac')); }); });
@@ -1253,18 +1459,29 @@
   function pintaObra(c){
     var d = DATOS, fases = d.fases || [];
     if (!(d.obra||[]).length){ c.innerHTML = vacio(t('sin_obra_t'), t('sin_obra')); return; }
-    c.innerHTML = d.obra.map(function(u){
+    var todasFotos = [];
+    d.obra.forEach(function(u){ (u.fotos || []).forEach(function(ft){ todasFotos.push({ unidad:u.unidad, ft:ft }); }); });
+    todasFotos.sort(function(a, b){ return String(b.ft.fecha || '').localeCompare(String(a.ft.fecha || '')); });
+    var recientes = todasFotos.slice(0, 4), recSet = {};
+    recientes.forEach(function(r){ recSet[r.ft.path] = true; });
+    var feedObra = recientes.length
+      ? '<div class="rot-bloque">' + esc(t('obra_ultimo')) + '</div><div class="fotos feed-obra">' + recientes.map(function(r){
+          return '<figure><img loading="lazy" data-foto="' + esc(r.ft.path) + '" alt="' + esc(r.ft.titulo || '') + '">' +
+                 '<figcaption><b>' + esc(r.ft.fecha ? fecha(r.ft.fecha) : '') + '</b> · ' + esc(r.unidad) + (r.ft.titulo ? ' · ' + esc(r.ft.titulo) : '') + '</figcaption></figure>';
+        }).join('') + '</div>'
+      : '';
+    c.innerHTML = feedObra + d.obra.map(function(u){
       var idx = fases.map(function(f){ return f.clave; }).indexOf(u.fase);
       return '<div class="op"><div class="op-cab"><div class="info"><h3><b>' + esc(u.unidad) + '</b>' +
           '<span class="sub">' + esc(u.proyecto||'') + (u.contrato_numero ? ' · ' + esc(u.contrato_numero) : '') + '</span></h3></div></div>' +
         (fases.length ? '<div class="fases">' + fases.map(function(f,i){
-          return '<span class="fase ' + (i<idx?'hecha':(i===idx?'actual':'')) + '">' + esc(f[LANG]||f.es) + '</span>';
+          return '<span class="fase ' + (i<idx?'hecha':(i===idx?'actual':'')) + '">' + esc(Lx(f)) + '</span>';
         }).join('') + '</div>' : '') +
         '<div class="op-datos" style="margin-top:14px">' +
           (u.fecha_entrega ? '<div class="d"><div class="lbl">' + esc(t('entrega_est')) + '</div><div class="val">' + esc(fecha(u.fecha_entrega)) + '</div></div>' : '') +
           (u.actualizado ? '<div class="d"><div class="lbl">' + esc(t('actualizado')) + '</div><div class="val">' + esc(fecha(u.actualizado)) + '</div></div>' : '') +
         '</div>' +
-        ((u.fotos||[]).length ? '<div class="fotos" style="margin-top:16px">' + u.fotos.map(function(ft){
+        ((u.fotos||[]).filter(function(ft){ return !recSet[ft.path]; }).length ? '<div class="fotos" style="margin-top:16px">' + u.fotos.filter(function(ft){ return !recSet[ft.path]; }).map(function(ft){
           return '<figure><img loading="lazy" data-foto="' + esc(ft.path) + '" alt="' + esc(ft.titulo||'') + '">' +
                  '<figcaption>' + esc(ft.titulo||'') + (ft.fecha?' · '+esc(fecha(ft.fecha)):'') + '</figcaption></figure>';
         }).join('') + '</div>' : '') +
@@ -1296,25 +1513,90 @@
   function pintaDocumentos(c){
     var d = DATOS, docs = d.documentos||[];
     if (!docs.length){ c.innerHTML = vacio(t('sin_docs_t'), t('sin_docs')); return; }
-    var grupos = {}, orden = [];
-    docs.forEach(function(x){
-      var p = x.proyecto || t('sin_proyecto');
-      if (!grupos[p]){ grupos[p] = []; orden.push(p); }
-      grupos[p].push(x);
-    });
-    c.innerHTML = orden.map(function(p){
-      return '<h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(p) + '</h3>' +
-        '<div class="doclista" style="margin-bottom:28px">' + grupos[p].map(function(x){
-          return '<div class="docfila" data-doc="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.titulo) + '</div>' +
-            '<div class="s">' + esc(x.categoria||'') + '</div></div></div>';
-        }).join('') + '</div>';
-    }).join('');
-    c.querySelectorAll('[data-doc]').forEach(function(el){
-      el.addEventListener('click', function(){
-        var doc = (DATOS.documentos||[]).filter(function(x){ return String(x.id) === el.getAttribute('data-doc'); })[0];
-        if (!doc) return;
-        if (doc.url) window.open(doc.url, '_blank', 'noopener'); else abreFichero('documentacion', doc.path);
+    c.innerHTML =
+      '<div class="doc-barra"><input id="docBuscar" class="campo-input" type="search" autocomplete="off" placeholder="' + esc(t('doc_buscar')) + '" aria-label="' + esc(t('doc_buscar')) + '">' +
+      '<button type="button" class="btn-borde" id="btnZipDocs">' + esc(t('doc_todo')) + '</button></div>' +
+      '<div id="docLista"></div>';
+    var cajaLista = document.getElementById('docLista');
+    var visibles = docs;
+    function pintaLista(q){
+      q = (q || '').trim().toLowerCase();
+      visibles = !q ? docs : docs.filter(function(x){
+        return [x.titulo, x.descripcion, x.categoria, x.proyecto].join(' ').toLowerCase().indexOf(q) >= 0;
       });
+      if (!visibles.length){ cajaLista.innerHTML = '<p class="vacio">' + esc(t('doc_sin_resultados')) + '</p>'; return; }
+      // proyecto → tipo (categoría) → documentos
+      var proy = {}, ordenP = [];
+      visibles.forEach(function(x){
+        var p = x.proyecto || t('sin_proyecto'), cat = x.categoria || t('doc_otros');
+        if (!proy[p]){ proy[p] = { cats:{}, orden:[] }; ordenP.push(p); }
+        if (!proy[p].cats[cat]){ proy[p].cats[cat] = []; proy[p].orden.push(cat); }
+        proy[p].cats[cat].push(x);
+      });
+      cajaLista.innerHTML = ordenP.map(function(p){
+        return '<h3 class="doc-proy">' + esc(p) + '</h3>' + proy[p].orden.map(function(cat){
+          return '<div class="rot-bloque doc-tipo">' + esc(cat) + '</div><div class="doclista" style="margin-bottom:20px">' +
+            proy[p].cats[cat].map(function(x){
+              return '<div class="docfila" data-doc="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.titulo) + '</div>' +
+                (x.descripcion ? '<div class="s">' + esc(x.descripcion) + '</div>' : '') + '</div></div>';
+            }).join('') + '</div>';
+        }).join('');
+      }).join('');
+    }
+    pintaLista('');
+    document.getElementById('docBuscar').addEventListener('input', function(ev){ pintaLista(ev.target.value); });
+    cajaLista.addEventListener('click', function(ev){
+      var el = ev.target.closest('[data-doc]'); if (!el) return;
+      var doc = (DATOS.documentos||[]).filter(function(x){ return String(x.id) === el.getAttribute('data-doc'); })[0];
+      if (!doc) return;
+      if (doc.url) window.open(doc.url, '_blank', 'noopener'); else abreFichero('documentacion', doc.path);
+    });
+    /* «Descargar todo»: un solo .zip con lo que se ve en la lista. Sin función en el
+       servidor: se piden las URLs firmadas de las rutas que la RPC ya devolvió (600 s,
+       firmadas AHORA, no al cargar la página) y el zip se arma aquí. Solo ficheros del
+       almacén; los documentos que son un enlace externo no se pueden empaquetar.
+       Topes: 60 ficheros y 120 MB, para no colgar el navegador del comprador. */
+    document.getElementById('btnZipDocs').addEventListener('click', function(){
+      var btn = this, rutas = visibles.filter(function(x){ return !x.url && x.path; });
+      if (!rutas.length){ toastMal(t('doc_zip_vacio')); return; }
+      if (rutas.length > 60){ toastMal(t('doc_zip_tope')); return; }
+      var etq = btn.textContent; btn.disabled = true; btn.textContent = t('doc_zip_prep');
+      var paths = rutas.map(function(x){ return x.path; });
+      sb.storage.from('documentacion').createSignedUrls(paths, 600).then(function(r){
+        if (r.error || !r.data) throw new Error('firmas');
+        var porRuta = {}; r.data.forEach(function(u){ if (u.signedUrl) porRuta[u.path] = u.signedUrl; });
+        var total = 0, usados = {}, ficheros = [];
+        return rutas.reduce(function(prev, x){
+          return prev.then(function(){
+            var url = porRuta[x.path]; if (!url) return;
+            return fetch(url).then(function(resp){
+              if (!resp.ok) throw new Error('descarga');
+              // el tope se mira ANTES de bajar el fichero entero a memoria
+              var cl = Number(resp.headers.get('content-length')) || 0;
+              if (total + cl > 120 * 1024 * 1024) throw new Error('tope');
+              return resp.arrayBuffer();
+            }).then(function(buf){
+              total += buf.byteLength; if (total > 120 * 1024 * 1024) throw new Error('tope');
+              var ext = (/\.[A-Za-z0-9]{1,5}$/.exec(x.path) || [''])[0];
+              var base = String(x.titulo || 'documento').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').trim().slice(0, 80);
+              if (!base || /^\.+$/.test(base)) base = 'documento';
+              var nombre = base + ext, k = 2;
+              while (usados[nombre.toLowerCase()]) nombre = base + ' (' + (k++) + ')' + ext;
+              usados[nombre.toLowerCase()] = true;
+              ficheros.push({ name: nombre, data: new Uint8Array(buf) });
+            });
+          });
+        }, Promise.resolve()).then(function(){ return ficheros; });
+      }).then(function(ficheros){
+        if (!ficheros.length) throw new Error('vacio');
+        var blob = new Blob([lwZip(ficheros)], { type:'application/zip' });
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Lawang-documentos.zip';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      }).catch(function(e){
+        console.error('zip documentos', e);
+        toastMal(t(e && e.message === 'tope' ? 'doc_zip_tope' : 'doc_zip_err'));
+      }).then(function(){ btn.disabled = false; btn.textContent = etq; });
     });
   }
   function abreFichero(bucket, path){
@@ -1332,6 +1614,8 @@
      categoría. Las conversaciones de antes de este cambio viven ya como un
      ticket "General" abierto (migración, no se perdió nada). */
   var CATEGORIAS = ['Pagos','Documentación','Obra','Otro'];
+  /* El valor que se guarda es el español de siempre (la base y el equipo lo leen así); solo cambia lo que se lee. */
+  function catTxt(c){ var k = 'cat_' + String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); var v = t(k); return v === k ? c : v; }
   function pintaSoporte(c){
     var d = DATOS, tickets = d.tickets || [];
     var html = '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
@@ -1344,7 +1628,8 @@
       var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
       var extracto = ultimo ? (ultimo.de === 'cliente' ? t('tu') + ': ' : '') + ultimo.texto : '';
       if (extracto.length > 80) extracto = extracto.slice(0, 80) + '…';
-      return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.categoria) + '</div>' +
+      return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(catTxt(x.categoria)) + '</div>' +
+        (x.ref_numero ? '<div class="s">' + esc(t('sobre')) + ' ' + esc(x.ref_numero) + '</div>' : '') +
         (extracto ? '<div class="s">' + esc(extracto) + '</div>' : '') + '</div>' +
         '<div class="der"><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' +
           esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
@@ -1364,7 +1649,7 @@
     var abierto = x.estado === 'abierto';
     var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
     abreDrawer(
-      '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(x.categoria) + '</h3>' +
+      '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(catTxt(x.categoria)) + '</h3>' +
       '<span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
       '<div id="ticketHilo" style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;margin:14px 0;padding:2px"></div>' +
       '<form id="fTicket">' +
@@ -1399,13 +1684,24 @@
     });
   }
 
-  function abrirNuevoTicket(){
+  function abrirNuevoTicket(ref){
+    // el listener de «Nuevo ticket» le pasa el evento: solo vale un {tipo,id} nuestro
+    ref = (ref && ref.tipo && ref.id) ? ref : null;
+    var refOpts = '<option value="">' + esc(t('sobre_nada')) + '</option>' +
+      (DATOS.facturas || []).map(function(f){
+        return '<option value="factura:' + esc(f.id) + '"' + (ref && ref.tipo === 'factura' && ref.id === f.id ? ' selected' : '') + '>' + esc(t('factura')) + ' ' + esc(f.numero) + '</option>';
+      }).join('') +
+      (DATOS.contratos || []).map(function(x){
+        return '<option value="contrato:' + esc(x.id) + '"' + (ref && ref.tipo === 'contrato' && ref.id === x.id ? ' selected' : '') + '>' + esc(t('nav_contratos')) + ' ' + esc(x.numero) + '</option>';
+      }).join('');
+    var catPre = ref ? (ref.tipo === 'factura' ? 'Pagos' : 'Documentación') : '';
     abreDrawer(
       '<div class="hoja"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600">' + esc(t('nuevo_ticket')) + '</h3>' +
       '<div class="campo"><label>' + esc(t('categoria')) + '</label>' +
         '<select id="nCategoria" required><option value="">' + esc(t('elige_categoria')) + '</option>' +
-        CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '">' + esc(cat) + '</option>'; }).join('') +
+        CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '"' + (cat === catPre ? ' selected' : '') + '>' + esc(catTxt(cat)) + '</option>'; }).join('') +
         '</select></div>' +
+      '<div class="campo"><label>' + esc(t('sobre')) + '</label><select id="nSobre">' + refOpts + '</select></div>' +
       '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="nTexto" required style="min-height:100px"></textarea></div>' +
       '<div style="display:flex;gap:10px;margin-top:6px"><button type="button" class="btn-oscuro" id="btnAbrirTicket">' + esc(t('abrir_ticket')) + '</button>' +
       '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cancelar')) + '</button></div></div>'
@@ -1416,10 +1712,15 @@
       var texto = document.getElementById('nTexto').value.trim();
       if (!cat || !texto){ toastMal(t('completa_campos')); return; }
       var btn = document.getElementById('btnAbrirTicket'); btn.disabled = true;
-      sb.rpc('portal_abrir_ticket', { p_client_id: DATOS.client_id, p_categoria: cat, p_texto: texto }).then(function(r){
+      // La referencia viaja como id; el servidor comprueba que es del comprador (no se fía de esto).
+      var sobre = (document.getElementById('nSobre').value || '').split(':');
+      var args = { p_client_id: DATOS.client_id, p_categoria: cat, p_texto: texto,
+                   p_factura_id: sobre[0] === 'factura' ? sobre[1] : null,
+                   p_contrato_id: sobre[0] === 'contrato' ? sobre[1] : null };
+      sb.rpc('portal_abrir_ticket', args).then(function(r){
         btn.disabled = false;
         if (r.error){ console.error('portal_abrir_ticket', r.error); toastMal(t('err_ticket')); return; }
-        recargaSituacion(function(){ cierraDrawer(); render(); toast(t('ticket_abierto')); });
+        recargaSituacion(function(){ cierraDrawer(); vasA('soporte', null); render(); toast(t('ticket_abierto')); });
       });
     });
   }
@@ -1526,14 +1827,16 @@
     var v = documentoVars(soc);
     var estilo = function(k){ return Object.keys(v[k]).filter(function(p){ return v[k][p]; }).map(function(p){ return p+':'+v[k][p]; }).join(';'); };
     abreDrawer(
-      '<div style="display:flex;gap:10px;margin-bottom:14px">' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
         '<button type="button" class="btn-oscuro" id="btnImprimirDoc">' + esc(t('imprimir')) + '</button>' +
+        '<button type="button" class="btn-borde" id="btnPreguntaFac">' + esc(t('preguntar_factura')) + '</button>' +
         '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>' +
       '<div class="hoja-scroll"><div class="sheet" style="' + estilo('hoja') + '"><div class="doc" style="' + estilo('doc') + '">' +
         documentoHTML(campos, { numero: f.numero }) + '</div></div></div>',
       'ancho'
     );
     document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
+    document.getElementById('btnPreguntaFac').addEventListener('click', function(){ abrirNuevoTicket({ tipo:'factura', id:f.id }); });
     document.getElementById('btnImprimirDoc').addEventListener('click', function(){
       document.body.classList.add('imprimiendo'); window.print(); document.body.classList.remove('imprimiendo');
     });
