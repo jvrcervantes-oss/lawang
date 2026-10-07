@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="61c2c869b7b1">
+<meta name="lw-version" content="6bbe3eded817">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -667,6 +667,70 @@
     .kpi .lbl{ margin:0; }
     .kpi .val{ font-size:20px; white-space:nowrap; overflow-wrap:normal; }
   }
+
+  /* ═══ INICIO, DIRECCIÓN A (7-oct-2026, owner: «A + M1 + M5 + M8») ═══
+     Prototipo: artifact «Inicio del portal Lawang». Un solo momento fuerte (el pago, con el resumen en su pie);
+     lo pendiente en una lista tranquila; propiedades en dos columnas sin huérfanas; novedades y soporte en una fila. */
+  .topbar2 h1.es-fecha{ font-size:14px; font-weight:500; color:var(--out); letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+
+  .ini-tareas{ display:flex; flex-direction:column; margin-bottom:16px; }
+  .ini-tarea{ display:flex; align-items:center; gap:14px; padding:12px 18px; background:var(--pg-low); font-size:14px; line-height:1.4; }
+  .ini-tarea:first-child{ border-radius:12px 12px 0 0; }
+  .ini-tarea:last-child{ border-radius:0 0 12px 12px; }
+  .ini-tarea:only-child{ border-radius:12px; }
+  .ini-tarea + .ini-tarea{ border-top:1px solid var(--pg-hi); }
+  .ini-tarea-pt{ width:8px; height:8px; border-radius:50%; background:#C89B5C; flex:none; }
+  .ini-tarea-tx{ flex:1; min-width:0; font-weight:600; }
+  .ini-tarea .btn-oscuro, .ini-tarea .btn-borde{ padding:6px 14px; font-size:13px; flex:none; }
+
+  .hero-pago{ margin-bottom:28px; }
+  .hero-pago + .kpi-nota{ margin:-18px 0 26px; }
+  .hp-vacio{ font-size:14px; color:var(--ink2); margin:4px 0 0; }
+  .hp-pie{ display:grid; grid-template-columns:auto minmax(80px,1fr) auto; gap:20px; align-items:center;
+           margin:24px -24px -22px; padding:14px 24px 16px; border-top:1px solid var(--pg-hi); font-size:13px; color:var(--ink2); }
+  .hp-pie b{ font-weight:600; color:var(--va); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .hero-pago:not(.vacio) .hp-pie{ margin:26px -32px -28px; padding:16px 32px 18px; border-top-color:rgba(255,255,255,.16); color:rgba(255,255,255,.85); }
+  .hero-pago:not(.vacio) .hp-pie b{ color:#fff; }
+  .hero-pago:not(.vacio) .hp-pie .barra{ background:rgba(255,255,255,.2); }
+  .hero-pago:not(.vacio) .hp-pie .barra i{ background:#fff; }
+
+  /* propiedades: tarjeta horizontal en dos columnas; con una sola, a todo el ancho */
+  .proy-grid.ini{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .proy-grid.ini .proy-card{ flex-direction:row; align-items:stretch; }
+  .proy-grid.ini .proy-portada{ aspect-ratio:auto; width:42%; flex:none; min-height:190px; }
+  .proy-grid.ini.uno{ grid-template-columns:1fr; }
+  /* con 3 o 5 propiedades la última ocupa la fila entera, en vez de quedar sola en media fila */
+  @media (min-width:641px){
+    .proy-grid.ini > .proy-card:last-child:nth-child(odd){ grid-column:1 / -1; }
+    .proy-grid.ini > .proy-card:last-child:nth-child(odd) .proy-portada{ width:56%; aspect-ratio:16/9; min-height:0; }
+  }
+  .proy-grid.ini.uno .proy-portada{ width:56%; aspect-ratio:16/9; min-height:0; }
+  .proy-grid.ini .proy-cuerpo{ flex:1; gap:4px; }
+  .proy-chips{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; }
+  .proy-chip{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; border-radius:999px; padding:3px 9px; background:var(--pg-low); color:var(--out); white-space:nowrap; }
+  .proy-chip.obra{ background:#e3eadb; color:#3F5230; }
+  .proy-pag{ display:flex; justify-content:space-between; gap:10px; font-size:12px; color:var(--ink2); margin-top:6px; font-variant-numeric:tabular-nums; }
+  .proy-grid.ini .proy-enlace{ margin-top:auto; padding-top:8px; }
+
+  .ini-bajo{ display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:14px; margin-bottom:28px; }
+  .ini-bajo .tarjeta{ margin:0; }
+  .ini-bajo .acceso{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; text-align:left; background:var(--pg-low); border:0; padding:17px 19px; }
+  .ini-bajo .acceso:hover{ background:var(--pg-hi); }
+  .ini-bajo .acceso .t{ font-size:15px; font-weight:500; color:var(--va); }
+  .ini-bajo .acceso .btn-oscuro{ margin-top:auto; padding:7px 16px; font-size:13px; }
+
+  @media (max-width:880px){
+    .hero-pago:not(.vacio) .hp-pie{ margin:22px -20px -22px; padding:14px 20px 16px; }
+  }
+  @media (max-width:640px){
+    .ini-tarea{ flex-wrap:wrap; gap:8px 12px; padding:12px 14px; }
+    .ini-tarea-tx{ flex:1 1 180px; }
+    .hp-pie{ grid-template-columns:1fr; gap:6px; }
+    .hp-pie .barra{ order:-1; margin-bottom:4px; }
+    .proy-grid.ini{ grid-template-columns:1fr; }
+    .proy-grid.ini .proy-portada, .proy-grid.ini.uno .proy-portada{ width:96px; aspect-ratio:auto; min-height:0; }
+    .ini-bajo{ grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
@@ -801,7 +865,7 @@
          nav_documentos:'Documentos', nav_soporte:'Soporte', nav_perfil:'Mi perfil',
          tit_inicio:'Inicio', tit_contratos:'Contratos', tit_facturas:'Facturas', tit_obra:'Obra',
          tit_documentos:'Documentos', tit_soporte:'Soporte', tit_perfil:'Mi perfil',
-         hola:'Hola', saludo_sub:'Estado de tu operación con Lawang Estate',
+         hola:'Hola', hola_manana:'Buenos días', hola_tarde:'Buenas tardes', hola_noche:'Buenas noches', pendiente_ti:'Pendiente de ti', ver_perfil:'Ver mi perfil', escribir:'Escribir', saludo_sub:'Estado de tu operación con Lawang Estate',
          r_inversion:'Tu inversión', r_pagado:'Pagado', r_pendiente:'Pendiente',
          r_cuota:'Cuota de reserva', cuota_reserva:'Cuota de reserva',
          nota_solo_reserva:'De momento solo tienes Carta(s) de Reserva, sin contrato definitivo firmado: el importe de arriba es la cuota de reserva, no el precio final de tu unidad.',
@@ -888,7 +952,7 @@
          nav_documentos:'Documents', nav_soporte:'Support', nav_perfil:'My profile',
          tit_inicio:'Home', tit_contratos:'Contracts', tit_facturas:'Invoices', tit_obra:'Construction',
          tit_documentos:'Documents', tit_soporte:'Support', tit_perfil:'My profile',
-         hola:'Hello', saludo_sub:'Status of your operation with Lawang Estate',
+         hola:'Hello', hola_manana:'Good morning', hola_tarde:'Good afternoon', hola_noche:'Good evening', pendiente_ti:'Waiting on you', ver_perfil:'View my profile', escribir:'Write to us', saludo_sub:'Status of your operation with Lawang Estate',
          r_inversion:'Your investment', r_pagado:'Paid', r_pendiente:'Outstanding',
          r_cuota:'Reservation fee', cuota_reserva:'Reservation fee',
          nota_solo_reserva:'For now you only hold Reservation Letter(s), with no definitive contract signed yet: the figure above is the reservation fee, not the final price of your unit.',
@@ -967,7 +1031,7 @@
          nav_documentos:'Dokumen', nav_soporte:'Bantuan', nav_perfil:'Profil saya',
          tit_inicio:'Beranda', tit_contratos:'Kontrak', tit_facturas:'Faktur', tit_obra:'Pembangunan',
          tit_documentos:'Dokumen', tit_soporte:'Bantuan', tit_perfil:'Profil saya',
-         hola:'Halo', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
+         hola:'Halo', hola_manana:'Selamat pagi', hola_tarde:'Selamat siang', hola_noche:'Selamat malam', pendiente_ti:'Menunggu Anda', ver_perfil:'Lihat profil saya', escribir:'Tulis pesan', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
          r_inversion:'Investasi Anda', r_pagado:'Sudah dibayar', r_pendiente:'Belum dibayar',
          r_cuota:'Biaya reservasi', cuota_reserva:'Biaya reservasi',
          nota_solo_reserva:'Saat ini Anda hanya memiliki Surat Reservasi, tanpa kontrak definitif yang ditandatangani: jumlah di atas adalah biaya reservasi, bukan harga akhir unit Anda.',
@@ -1070,6 +1134,17 @@
     if (!f) return '';
     var d = new Date(f); if (isNaN(d)) return esc(f);
     return d.toLocaleDateString(LOC(), { day:'numeric', month:'short', year:'numeric' });
+  }
+  function fechaLarga(d){
+    // en móvil sin el día de la semana: con el selector de idioma y la campana no cabe en una línea
+    var corta = window.matchMedia && window.matchMedia('(max-width:640px)').matches;
+    var s = d.toLocaleDateString(LOC(), corta ? { day:'numeric', month:'long' } : { weekday:'long', day:'numeric', month:'long' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  /* Saludo según la hora del comprador (M5): mañana hasta las 12, tarde hasta las 20, noche después. */
+  function saludo(){
+    var h = new Date().getHours();
+    return t(h < 12 ? 'hola_manana' : h < 20 ? 'hola_tarde' : 'hola_noche');
   }
   function fechaHora(f){
     if (!f) return '';
@@ -1374,7 +1449,7 @@
     (d.kyc || []).forEach(function(k){
       if (!k.caduca) return;
       var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
-      if (dias >= 0 && dias <= 30) lista.push({
+      if (dias >= 0 && dias <= 30) lista.push({ tipo:'kyc',
         texto: t('nov_doc_caduca').replace('{doc}', (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo))).replace('{n}', dias),
         fecha: k.caduca, cuando: new Date()
       });
@@ -1407,7 +1482,11 @@
   function render(){
     pintaNav();
     pintaCampana();
-    document.getElementById('tituloSeccion').textContent = t('tit_' + ESTADO.section);
+    /* En Inicio la barra lleva la fecha: el saludo de debajo ya dice dónde estás (7-oct-2026, owner: M1). */
+    var tit = document.getElementById('tituloSeccion'), enInicio = ESTADO.section === 'inicio';
+    tit.textContent = enInicio ? fechaLarga(new Date()) : t('tit_' + ESTADO.section);
+    tit.classList.toggle('es-fecha', enInicio);
+    if (enInicio) tit.setAttribute('aria-label', t('tit_inicio') + ' · ' + tit.textContent); else tit.removeAttribute('aria-label');
     var c = document.getElementById('content');
     var fns = { inicio:pintaInicio, contratos:pintaContratos, facturas:pintaFacturas, obra:pintaObra,
                 documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
@@ -1465,32 +1544,55 @@
       }
     });
 
-    var novedades = novedadesDerivadas().slice(0,3);
+    /* Dirección A del artifact «Inicio del portal Lawang» (7-oct-2026, owner: A + M1 + M5 + M8). Un solo momento fuerte:
+       el próximo pago, que lleva dentro lo pagado y lo pendiente. Lo que espera al comprador (firma, documento que
+       caduca) va en una lista tranquila encima, y no en una banda ámbar que compite con él. */
+    var todas = novedadesDerivadas();
+    var caducan = todas.filter(function(x){ return x.tipo === 'kyc'; });
+    var novedades = todas.filter(function(x){ return x.tipo !== 'kyc'; }).slice(0,3);
     var nFirmas = (d.firma_pendiente || []).length;
-    var bannerFirma = nFirmas
-      ? '<div class="banner-firma" role="status"><div><b>' + esc(nFirmas === 1 ? t('firma_banner_1') : t('firma_banner_n').replace('{n}', nFirmas)) + '</b></div>' +
-        '<button type="button" class="btn-oscuro" data-ir="contratos">' + esc(t('firma_banner_btn')) + '</button></div>'
-      : '';
+    var tareas = [];
+    if (nFirmas) tareas.push('<div class="ini-tarea"><span class="ini-tarea-pt"></span><div class="ini-tarea-tx">' +
+        esc(nFirmas === 1 ? t('firma_banner_1') : t('firma_banner_n').replace('{n}', nFirmas)) + '</div>' +
+        '<button type="button" class="btn-oscuro" data-ir="contratos">' + esc(t('firma_banner_btn')) + '</button></div>');
+    caducan.forEach(function(x){
+      tareas.push('<div class="ini-tarea"><span class="ini-tarea-pt"></span><div class="ini-tarea-tx">' + esc(x.texto) + '</div>' +
+        '<button type="button" class="btn-borde" data-ir="perfil">' + esc(t('ver_perfil')) + '</button></div>');
+    });
+    var tareasHTML = tareas.length ? '<div class="ini-tareas" role="status" aria-label="' + esc(t('pendiente_ti')) + '">' + tareas.join('') + '</div>' : '';
+
     var carpetas = carpetasProyecto();
     var carpetasInicio = carpetas.filter(function(f){ return (f.contratos || []).length; });
     var proyectosHTML = carpetasInicio.length
-      ? '<div class="rot-bloque">' + esc(t('proyectos_titulo')) + '</div><div class="proy-grid' + (carpetasInicio.length > 3 ? ' muchos' : '') + '">' + carpetasInicio.map(function(f){
+      ? '<div class="rot-bloque">' + esc(t('proyectos_titulo')) + '</div><div class="proy-grid ini' + (carpetasInicio.length === 1 ? ' uno' : '') + (carpetasInicio.length > 3 ? ' muchos' : '') + '">' + carpetasInicio.map(function(f){
           var rs = resumenPortal(f.contratos || []);
           var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(function(u, i, a){ return u && a.indexOf(u) === i; });
           var obraU = (d.obra || []).filter(function(o){ return (f.contratos || []).some(function(x){ return x.numero === o.contrato_numero; }); })[0];
           var fase = obraU ? (d.fases || []).filter(function(ff){ return ff.clave === obraU.fase; })[0] : null;
+          var pct = (rs.total != null && rs.total > 0) ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : null;   // floor: nunca «100 %» si queda algo
           return '<button type="button" class="proy-card" data-carpeta="' + esc(f.key) + '">' + portadaHTML(f, 'proy-portada') +
             '<div class="proy-cuerpo"><div class="proy-nombre">' + esc(f.nombre) + '</div>' +
             (f.resort ? '<div class="proy-meta">' + esc(f.resort) + '</div>' : '') +
-            (unidades.length ? '<div class="proy-meta">' + esc(t('unidad')) + ' ' + esc(unidades.join(' · ')) + '</div>' : '') +
-            (rs.total != null && rs.total > 0
-              ? '<div class="proy-meta">' + esc(t('pagado_de').replace('{a}', dinero(rs.cobrado, rs.moneda)).replace('{b}', dinero(rs.total, rs.moneda))) + '</div>' +
-                '<div class="barra"><i style="width:' + Math.min(100, Math.round(rs.cobrado / rs.total * 100)) + '%"></i></div>' : '') +
-            (fase ? '<div class="proy-meta">' + esc(t('fase_obra')) + ': <b>' + esc(Lx(fase)) + '</b></div>' : '') +
+            ((unidades.length || fase) ? '<div class="proy-chips">' +
+              (unidades.length ? '<span class="proy-chip">' + esc(t('unidad')) + ' ' + esc(unidades.join(' · ')) + '</span>' : '') +
+              (fase ? '<span class="proy-chip obra">' + esc(t('fase_obra')) + ' · ' + esc(Lx(fase)) + '</span>' : '') + '</div>' : '') +
+            (pct != null
+              ? '<div class="proy-pag"><span>' + esc(t('pagado_de').replace('{a}', dinero(rs.cobrado, rs.moneda)).replace('{b}', dinero(rs.total, rs.moneda))) + '</span><span>' + pct + ' %</span></div>' +
+                '<div class="barra"><i style="width:' + pct + '%"></i></div>' : '') +
             (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' · ' + esc(t('ver_documentos')) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></button>';
         }).join('') + '</div>' +
         // con más de 3 proyectos solo se ven los primeros (3 en móvil, 6 en escritorio) y un enlace a todos
         (carpetasInicio.length > 3 ? '<button type="button" class="btn-borde ver-todos' + (carpetasInicio.length <= 6 ? ' solo-movil' : '') + '" data-ir="documentos">' + esc(t('ver_todos').replace('{n}', carpetasInicio.length)) + '</button>' : '')
+      : '';
+
+    /* El resumen (inversión, pagado, pendiente) vive en el pie del bloque del pago, con su barra. Las cuentas siguen
+       siendo las de resumen.js y el rótulo de la inversión sigue diciendo lo que suma (cuota de reserva o inversión). */
+    var hayResumen = tot != null && tot > 0;
+    var pctTot = hayResumen ? Math.min(100, Math.floor((cob || 0) / tot * 100)) : 0;
+    var pieResumen = hayResumen
+      ? '<div class="hp-pie"><span>' + esc(t('r_pagado')) + ' <b>' + esc(dinero(cob,mon)) + '</b></span>' +
+          '<div class="barra"><i style="width:' + pctTot + '%"></i></div>' +
+          '<span>' + esc(t('r_pendiente')) + ' <b>' + esc(dinero(res.pendiente,mon)) + '</b> · ' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + ' <b>' + esc(dinero(tot,mon)) + '</b></span></div>'
       : '';
     var impTxt = (proximo && !isNaN(proximo.monto)) ? dinero(proximo.monto, proximo.moneda) : '—';
     var heroPago = '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
@@ -1500,39 +1602,30 @@
           '<div class="hp-importe' + (impTxt.length > 11 ? ' largo' : '') + '"' + (isNaN(proximo.monto) ? '' : ' data-cuenta="' + proximo.monto + '" data-moneda="' + esc(proximo.moneda || '') + '"') + '>' + esc(impTxt) + '</div></div>' +
         '<div class="hp-acciones"><button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>' +
           '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('ver_plan')) + '</button></div>'
-        : '<p style="font-size:13.5px;color:var(--ink2);margin:0">' + esc(t('sin_proximo')) + '</p>') +
-      '</div>';
-
-    c.innerHTML =
-      '<div class="titulo-sec"><h2>' + esc(t('hola')) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
-        '<p>' + esc(t('saludo_sub')) + '</p></div>' +
-      bannerFirma +
-      heroPago +
-      (tot != null && tot > 0 ? '<div class="kpis">' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</div><div class="val" data-cuenta="' + tot + '" data-moneda="' + esc(mon || '') + '">' + esc(dinero(tot,mon)) + '</div></div>' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pagado')) + '</div><div class="val ok" data-cuenta="' + cob + '" data-moneda="' + esc(mon || '') + '">' + esc(dinero(cob,mon)) + '</div></div>' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pendiente')) + '</div><div class="val" data-cuenta="' + res.pendiente + '" data-moneda="' + esc(mon || '') + '">' + esc(dinero(res.pendiente,mon)) + '</div></div>' +
-      '</div>' +
-      /* El rótulo tiene que nombrar lo que de verdad suma. Una cifra que no
-         cuadra con su propio rótulo es una cifra en la que se deja de confiar
-         (la lección de /intranet/operaciones/, 14-ago-2026) — y aquí quien
-         desconfía es el cliente, que además tiene el número de cada contrato
-         delante en la pestaña «Contratos». */
-      (res.soloReserva
+        : '<p class="hp-vacio">' + esc(t('sin_proximo')) + '</p>') +
+      pieResumen + '</div>';
+    /* Una cifra que no cuadra con su propio rótulo es una cifra en la que se deja de confiar (la lección de
+       /intranet/operaciones/, 14-ago-2026): las notas del resumen siguen debajo del bloque. */
+    var notaResumen = !hayResumen ? '' : (res.soloReserva
         ? '<p class="kpi-nota">' + esc(t('nota_solo_reserva')) + '</p>'
         : (res.excluidos.length
-            ? '<p class="kpi-nota">' + esc(t('nota_sin_carta') + ' ' +
-                res.excluidos.map(function(x){ return x.numero || '—'; }).join(', ') + '.') + '</p>'
-            : ''))
-      : '') +
+            ? '<p class="kpi-nota">' + esc(t('nota_sin_carta') + ' ' + res.excluidos.map(function(x){ return x.numero || '—'; }).join(', ') + '.') + '</p>'
+            : ''));
+
+    c.innerHTML =
+      '<div class="titulo-sec"><h2>' + esc(saludo()) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
+        '<p>' + esc(t('saludo_sub')) + '</p></div>' +
+      tareasHTML +
+      heroPago +
+      notaResumen +
       proyectosHTML +
-      '<div class="tarjeta" style="margin-bottom:28px"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
-        (novedades.length ? novedades.map(function(x){
-          return '<div class="novedad"><span class="novedad-punto"></span><div>' + esc(x.texto) + '</div></div>';
-        }).join('') : '<p style="font-size:13px;color:var(--out);margin:0">—</p>') +
-      '</div>' +
-      '<div class="accesos">' +
-        '<button type="button" class="acceso" data-ir="soporte"><div class="t">' + esc(t('acc_soporte')) + '</div><div class="s">' + esc(t('acc_soporte_sub')) + '</div></button>' +
+      '<div class="ini-bajo">' +
+        '<div class="tarjeta"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
+          (novedades.length ? novedades.map(function(x){
+            return '<div class="novedad"><span class="novedad-punto"></span><div>' + esc(x.texto) + '</div></div>';
+          }).join('') : '<p style="font-size:13px;color:var(--out);margin:0">—</p>') +
+        '</div>' +
+        '<button type="button" class="acceso" data-ir="soporte"><div class="rot-bloque">' + esc(t('acc_soporte')) + '</div><div class="t">' + esc(t('acc_soporte_sub')) + '</div><span class="btn-oscuro">' + esc(t('escribir')) + ' →</span></button>' +
       '</div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
     c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
