@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="e7889e426218">
+<meta name="lw-version" content="cf58a9a3c54a">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -3224,9 +3224,15 @@ function buildDoc(){
      está (no se inventa un país) y el motivo del descuento se omite en en/id — solo
      el párrafo en español lo lleva. */
   html=html.replace(/<(p|li)\b[^>]*\bdata-lang="(en|id)"[^>]*>[\s\S]*?<\/\1>/g,(bloque,_t,lang)=>{
+    const motivo=()=>trMotivoDescuento(data.descuento_comercial_motivo,lang);
+    // Construcción: «… {{moneda}} ({{motivo}}),»  ·  Parcela: «…; reason: {{motivo}})» / «…; alasan: {{motivo}})»
     bloque=bloque.replace(/\s*\(\{\{descuento_comercial_motivo\}\}\)/g,()=>{
-      const t=trMotivoDescuento(data.descuento_comercial_motivo,lang);
+      const t=motivo();
       return t ? ' ('+campoFijo('descuento_comercial_motivo', esc(t))+')' : '';
+    });
+    bloque=bloque.replace(/;\s*(reason|alasan):\s*\{\{descuento_comercial_motivo\}\}/g,(m,rotulo)=>{
+      const t=motivo();
+      return t ? '; '+rotulo+': '+campoFijo('descuento_comercial_motivo', esc(t)) : '';
     });
     return bloque.replace(/\{\{adq1_nacionalidad\}\}/g,m=>{
       const t=trNacionalidad(data.adq1_nacionalidad,lang);

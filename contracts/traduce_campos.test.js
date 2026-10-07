@@ -78,4 +78,18 @@ out = pase(doc, { adq1_nacionalidad: 'TEST', descuento_comercial_motivo: 'dto es
 assert(out.includes('of {{adq1_nacionalidad}}'), 'sin traducción la nacionalidad se imprime tal cual');
 assert(out.includes('{{descuento_comercial}},</p>') && !/\(\{\{descuento_comercial_motivo\}\}\)[^<]*<\/p><p data-lang="id"/.test(out.split('<p data-lang="id">')[0].split('<p data-lang="en">')[1] || ''), 'sin traducción el motivo se omite en en/id');
 
+// ── 5. Las plantillas REALES (el patrón de ppjb_parcela es distinto al de ppjb_construccion)
+for (const f of ['ppjb_parcela.html', 'ppjb_construccion.html']) {
+  const real = fs.readFileSync(path.join(dir, f), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+  const parrafos = real.match(/<p data-lang="(?:es|en|id)"[^>]*>[\s\S]*?<\/p>/g).filter(x => x.includes('{{descuento_comercial_motivo}}'));
+  assert(parrafos.length === 3, `${f}: esperaba 3 párrafos con el motivo (es/en/id), hay ${parrafos.length}`);
+  const hecho = pase(parrafos.join(''), { descuento_comercial_motivo: 'Promoción', adq1_nacionalidad: 'España' }, T.trNacionalidad, T.trMotivoDescuento, campoFijo, esc2);
+  const [pEs, pEn, pId] = hecho.match(/<p data-lang[\s\S]*?<\/p>/g);
+  assert(pEs.includes('{{descuento_comercial_motivo}}'), `${f} es sin tocar`);
+  assert(pEn.includes('Promotion') && !pEn.includes('{{descuento_comercial_motivo}}') && !pEn.includes('Promoción'), `${f} en: ${pEn}`);
+  assert(pId.includes('Promosi') && !pId.includes('{{descuento_comercial_motivo}}') && !pId.includes('Promoción'), `${f} id: ${pId}`);
+  const sin = pase(parrafos.join(''), { descuento_comercial_motivo: 'dto especial' }, T.trNacionalidad, T.trMotivoDescuento, campoFijo, esc2).match(/<p data-lang[\s\S]*?<\/p>/g);
+  for (const q of [sin[1], sin[2]]) assert(!q.includes('{{descuento_comercial_motivo}}') && !/reason:|alasan:/.test(q), `${f}: sin traducción no debe quedar el motivo ni su rótulo: ${q}`);
+}
+
 console.log('traduce_campos.test.js OK');
