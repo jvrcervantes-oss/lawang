@@ -76,15 +76,25 @@ Deno.serve(async (req) => {
     if (eUser || !quien?.user) return json({ error: 'sesion_invalida' }, 401);
 
     const { data: ficha, error: eFicha } = await admin
-      .from('usuarios').select('rol, activo, herramientas, email').eq('user_id', quien.user.id).maybeSingle();
+      .from('usuarios').select('rol, activo, herramientas, email, ambito, empresas').eq('user_id', quien.user.id).maybeSingle();
     if (eFicha) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
     if (!ficha || !ficha.activo) return json({ error: 'no_autorizado' }, 403);
+    // 8-oct-2026 (Fase 2, «Lawang con dos empresas»): el bot de WhatsApp es UNO y mezcla las conversaciones y las citas de
+    // las dos empresas, y su API no sabe de empresas. Quien tiene el alcance acotado (un rol de empresa, o una persona con
+    // empresas marcadas) NO pasa por aquí: dejarlo pasar le enseñaría las conversaciones de la otra empresa con solo tener
+    // la casilla «leads». Nace cerrado hasta que el bot filtre por empresa (LAW-E13, departamento Bots). Hoy nadie está acotado.
+    if (ficha.ambito === 'empresa' || (ficha.empresas ?? []).length > 0)
+      return json({ error: 'sin_permiso: el bot de WhatsApp atiende a las dos empresas; esta pantalla no está disponible con el alcance acotado a una empresa' }, 403);
     const esSuper = ficha.rol === 'super_admin';
     const puedeLeads = esSuper || (ficha.herramientas ?? []).includes('leads');
     const puedeClosers = esSuper || (ficha.herramientas ?? []).includes('closers');
     // Permiso propio para escribir al lead. Se reparte desde /intranet/usuarios/ como
     // una casilla mas; mientras nadie la marque, solo los super_admin pueden escribir.
     const puedeEscribir = esSuper || (ficha.herramientas ?? []).includes('bot_escribir');
+    // Configurar el bot (instrucciones extra, saludo, horas de pausa) cambia lo que el bot dice a clientes
+    // reales, así que es un permiso APARTE, y también para LEER la configuración (puede traer datos comerciales).
+    // Llamador: la pestaña «Configurar bot» de intranet/leads. Hasta que se reparta como casilla, solo super_admin.
+    const puedeConfigurar = esSuper || (ficha.herramientas ?? []).includes('bot_configurar');
 
     const body = await req.json().catch(() => ({}));
     const accion = String(body.accion ?? '');
@@ -135,6 +145,41 @@ Deno.serve(async (req) => {
       if (text.length > 4000) return json({ error: 'texto_demasiado_largo' }, 400);
       const r = await llamaBot('/admin/api/send', {
         method: 'POST', body: JSON.stringify({ phone, text, byUser: ficha.email }),
+      });
+      return json(r.body, r.status);
+    }
+    // ── Configurar el bot: requiere 'bot_configurar' (lectura incluida) ──────────────────────────
+    // La autoría (`byUser`) la pone ESTE servidor desde la sesión, nunca el navegador. Se copian solo las tres
+    // claves conocidas: el bot las valida otra vez y rechaza cualquier otra.
+    if (accion === 'config_get') {
+      if (!puedeConfigurar) return json({ error: 'sin_permiso: bot_configurar' }, 403);
+      const r = await llamaBot('/admin/api/config');
+      return json(r.body, r.status);
+    }
+    if (accion === 'config_set') {
+      if (!puedeConfigurar) return json({ error: 'sin_permiso: bot_configurar' }, 403);
+      const c = (body.config ?? {}) as Record<string, unknown>;
+      const claves = Object.keys(c);
+      if (claves.some((k) => !['extra', 'bienvenida', 'pausaHoras'].includes(k))) return json({ error: 'clave_desconocida' }, 400);
+      // Faltando una clave el bot la guardaría vacía (la borraría en silencio): se exigen las tres.
+      if (['extra', 'bienvenida', 'pausaHoras'].some((k) => !claves.includes(k))) return json({ error: 'config_incompleta' }, 400);
+      const config = {
+        extra: typeof c.extra === 'string' ? c.extra : '',
+        bienvenida: typeof c.bienvenida === 'string' ? c.bienvenida : '',
+        pausaHoras: typeof c.pausaHoras === 'number' ? c.pausaHoras : 0,
+      };
+      if (config.extra.length > 2000 || config.bienvenida.length > 500) return json({ error: 'texto_demasiado_largo' }, 400);
+      const expectedUpdatedAt = typeof body.expectedUpdatedAt === 'number' ? body.expectedUpdatedAt : undefined;
+      const r = await llamaBot('/admin/api/config', {
+        method: 'POST', body: JSON.stringify({ config, byUser: ficha.email, expectedUpdatedAt }),
+      });
+      return json(r.body, r.status);
+    }
+    if (accion === 'config_revert') {
+      if (!puedeConfigurar) return json({ error: 'sin_permiso: bot_configurar' }, 403);
+      const expectedUpdatedAt = typeof body.expectedUpdatedAt === 'number' ? body.expectedUpdatedAt : undefined;
+      const r = await llamaBot('/admin/api/config/revert', {
+        method: 'POST', body: JSON.stringify({ byUser: ficha.email, expectedUpdatedAt }),
       });
       return json(r.body, r.status);
     }

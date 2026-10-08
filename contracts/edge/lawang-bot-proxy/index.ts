@@ -161,6 +161,8 @@ Deno.serve(async (req) => {
       const c = (body.config ?? {}) as Record<string, unknown>;
       const claves = Object.keys(c);
       if (claves.some((k) => !['extra', 'bienvenida', 'pausaHoras'].includes(k))) return json({ error: 'clave_desconocida' }, 400);
+      // Faltando una clave el bot la guardaría vacía (la borraría en silencio): se exigen las tres.
+      if (['extra', 'bienvenida', 'pausaHoras'].some((k) => !claves.includes(k))) return json({ error: 'config_incompleta' }, 400);
       const config = {
         extra: typeof c.extra === 'string' ? c.extra : '',
         bienvenida: typeof c.bienvenida === 'string' ? c.bienvenida : '',
