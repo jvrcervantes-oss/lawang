@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="d0b625073f31">
+<meta name="lw-version" content="6c5150a20289">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=a0211393"></script>
+<script src="/contracts/assets/i18n.js?v=490d53a4"></script>
 <script src="/contracts/assets/herramientas.js?v=e627e560"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -71,6 +71,7 @@
      la operación tiene que decir lo mismo en las dos herramientas (19-ago-2026). -->
 <script src="assets/compradores.js?v=be8f79e8"></script>
 <script src="assets/traduce_campos.js?v=29154b79"></script>
+<script src="assets/cx_campos.js?v=07ced9f9"></script>
 <!-- ¿el documento sigue diciendo lo que dice la ficha? Compara la vista
      `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
 <script src="assets/ficha_divergencia.js?v=08e41022"></script>
@@ -3240,6 +3241,12 @@ function buildDoc(){
       const t=motivo();
       return t ? '; '+rotulo+': '+campoFijo('descuento_comercial_motivo', esc(t)) : '';
     });
+    /* Un campo propio Sí/No se guarda como «si» / «no» (sin tilde, en minúsculas) y en el documento se lee en el idioma del párrafo. */
+    bloque=bloque.replace(/\{\{(cx_[a-z0-9_]+)\}\}/g,(m,k)=>{
+      const c=cxDe(k);
+      if(!c || c.tipo!=='si_no' || !data[k]) return m;
+      return campoFijo(k, esc(LW_CX.paraDocumento(c, data[k], lang), k));
+    });
     return bloque.replace(/\{\{adq1_nacionalidad\}\}/g,m=>{
       const t=trNacionalidad(data.adq1_nacionalidad,lang);
       return t ? campoFijo('adq1_nacionalidad', esc(t)) : m;
@@ -3250,6 +3257,7 @@ function buildDoc(){
     if(!filled) return '';   // vacío = en blanco (writable a mano), sin "—"
     if(k==='regimen_tenencia') return campoFijo(k, esc(REGIMEN_LABEL[data[k]]||data[k]));   // código → etiqueta legible
     if(k==='proyecto_nombre') return campoFijo(k, nombreConResort(data));   // el nombre de proyecto va SIEMPRE en mayúsculas
+    if(k.startsWith('cx_') && cxDe(k)) return campoFijo(k, esc(LW_CX.paraDocumento(cxDe(k), data[k], 'es'), k));   // campo propio: Sí/No en español si el párrafo no es en/id (los en/id se resolvieron arriba)
     return campoFijo(k, esc(data[k],k));
   });
   html=idrEquiv(html, data);   // "79.000 EUR" → "79.000 EUR (≈ 1.343.000.000 IDR)"
@@ -3560,7 +3568,29 @@ function deriveSections(){
       (f[0]==='tipologia_construccion' && f[2]==='select') ? [f[0], f[1], f[2], MODELOS_DB] : f); });
   }
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
-  const missing = [...inDoc].filter(k=>!known.has(k));
+  const missingTodos = [...inDoc].filter(k=>!known.has(k));
+  /* Los {{cx_…}} del texto (campos propios de la empresa, E8) NO caen en «Otros campos» como texto libre cuando el catálogo se pudo leer: tienen su sección, con
+     el tipo, las opciones y el «obligatorio» del catálogo. Sin catálogo legible (CX_CAT null) se quedan como antes y el aviso lo da cargarCamposCx(). */
+  const cxClaves = CX_CAT ? missingTodos.filter(k=>/^cx_[a-z0-9_]+$/.test(k)) : [];
+  const missing = missingTodos.filter(k=>!cxClaves.includes(k));
+  if(cxClaves.length){
+    const siNo = { si: lwT('Sí'), no: lwT('No') };
+    const campos = cxClaves.map(k=>{
+      const c = cxDe(k);
+      if(!c) return [k, {es:'Campo sin definir ('+k+')', en:'Undefined field ('+k+')', id:'Bidang belum ditentukan ('+k+')'}, 'readonly'];   // el texto lo lleva y el catálogo no: no se puede rellenar, y la base rechazaría un valor
+      const f = LW_CX.tipoForm(c, siNo);
+      FIELDTYPE[k] = f[2];
+      if(c.archivado){   // un campo archivado ya no admite valores nuevos: se enseña el que tenga el contrato, sin dejar escribir
+        ['es','en','id'].forEach(l=>{ f[1][l] = f[1][l] + ' (' + ({es:'archivado',en:'archived',id:'diarsipkan'})[l] + ')'; });
+        return [k, f[1], 'readonly'];
+      }
+      CAMPOS_OPCIONALES[c.obligatorio ? 'delete' : 'add'](k);   // camposSinRellenar() y el asterisco exigen todo lo que no esté en CAMPOS_OPCIONALES
+      return f;
+    });
+    let insCx = SECTIONS.map(s=>s.tier).lastIndexOf('siempre');
+    insCx = insCx<0 ? SECTIONS.length : insCx+1;
+    SECTIONS.splice(insCx, 0, { id:'campos_propios', tier:'siempre', title:{es:'Campos de esta empresa',en:'Company fields',id:'Bidang perusahaan'}, fields:campos });
+  }
   if(missing.length){
     let ins = SECTIONS.map(s=>s.tier).lastIndexOf('siempre');
     ins = ins<0 ? SECTIONS.length : ins+1;
@@ -3688,6 +3718,26 @@ let PLANTILLA_VER = null, PLANTILLA_FIJADA = false, PLANTILLA_AVISO = false, PLA
    Solo cuenta en un contrato NUEVO; se pasa como p_version a `plantilla_contrato_cuerpo` y la valida el servidor.
    REVISION_SLUG: de qué tipo es la elección (cambiar de tipo la suelta). */
 let REVISION_ELEGIDA = '', REVISION_SLUG = '';
+/* ── CAMPOS PROPIOS DE LA EMPRESA ({{cx_algo}}) — E8 de «editor de textos de contrato», 8-oct-2026 ──
+   Cada empresa define en /intranet/v4/textos-contrato/ → Campos los datos que sus contratos piden y el sistema no trae. El texto los lleva como {{cx_x}} y aquí salen
+   como una sección propia del formulario, con el tipo, las opciones y el «obligatorio» del catálogo. El valor se guarda en `datos.fields.cx_x` (la misma columna de
+   siempre: sin tabla ni migración por contrato). Quien manda es la BASE: el catálogo (plantilla_campos_propios), el validador de cada valor (plantilla_campo_propio_valida,
+   que usa este formulario antes de guardar) y un trigger en `contratos` que vuelve a comprobarlo al escribir. El navegador no valida de verdad.
+   CX_CAT = el catálogo de la empresa del texto en pantalla (null = no se pudo leer o no hace falta); CX_ERR = por qué no se pudo leer (distinto de «no hay campos»). */
+let CX_CAT = null, CX_ERR = '';
+async function cargarCamposCx(){
+  CX_CAT = null; CX_ERR = '';
+  if(!/\{\{cx_[a-z0-9_]+\}\}/.test(templateHTML)) return;              // un texto sin campos propios no pregunta nada
+  const emp = PLANTILLA_VER && PLANTILLA_VER.empresa;
+  if(!sb || !emp){ CX_ERR = lwT('Este texto lleva campos propios de la empresa, pero no sé de qué empresa es: elige el proyecto.'); return; }
+  try{
+    const { data, error } = await sb.rpc('plantilla_campo_propio_lista', { p_empresa: emp, p_con_uso: false });   // la lista entera: el formulario necesita también los sensibles
+    if(error) throw error;
+    CX_CAT = Array.isArray(data) ? data : [];
+  }catch(e){ CX_ERR = lwT('No he podido leer los campos propios de la empresa (') + ((e && e.message) || e) + lwT('): se piden como texto libre y la base comprueba cada valor al guardar.'); }
+  if(CX_ERR) toastMal(CX_ERR);
+}
+const cxDe = k => (CX_CAT || []).find(c => c.clave === k);
 const PLANTILLA_CACHE = {};   // clave RPC|argumento → {hash, cuerpo}: el etag evita reenviar 300 KB que ya tenemos
 async function textoPlantillaBase(slug, contratoId, proyectoId, versionId){
   if(!sb) return null;
@@ -3825,6 +3875,7 @@ async function loadTemplate(slug, opts){
   const base = await textoPlantilla(CURRENT, o);
   templateHTML = base.html; PLANTILLA_VER = base.ver;
   if(o.contratoId) ocultaRevisiones(); else await cargaRevisiones(base.ver);
+  await cargarCamposCx();   // el catálogo de campos propios de la empresa de ESTE texto (antes de deriveSections(), que monta su sección)
   PLANTILLA_FIJADA = !!(opts && opts.contratoId && base.ver);
   PLANTILLA_TOCADO = false;
   if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
@@ -5225,6 +5276,34 @@ async function guardarContrato(){
   if(problemasAnx.length){
     avisoNoGuardado('No se guarda: ' + problemasAnx.join('; ') + '.');
     return;
+  }
+
+  /* CAMPOS PROPIOS DE LA EMPRESA (E8, 8-oct-2026). Antes de guardar se le pregunta a la BASE qué diría de los valores escritos (plantilla_campo_propio_valida): si alguno
+     no vale, se para aquí y se dice cuál, en llano. Esto es solo el aviso a tiempo; lo que decide de verdad es el trigger de `contratos`, que comprueba lo mismo al escribir.
+     Si la pregunta no llega (sin red), se sigue: el trigger rechazaría igualmente lo que no vale. */
+  {
+    const cxVals = {}, dCx = collect();
+    Object.keys(dCx).forEach(k=>{ if(/^cx_/.test(k) && String(dCx[k]).trim() !== '') cxVals[k] = dCx[k]; });
+    if(Object.keys(cxVals).length && PLANTILLA_VER && PLANTILLA_VER.empresa){
+      let rv = null;
+      try{
+        const { data, error } = await sb.rpc('plantilla_campo_propio_valida', { p_empresa: PLANTILLA_VER.empresa, p_valores: cxVals });
+        if(error) throw error;
+        rv = data;
+      }catch(_){ rv = null; /* MUDO A PROPOSITO: sin la comprobación previa decide el trigger de la base al guardar, que rechaza lo mismo y lo dice */ }
+      if(rv && rv.ok === false){
+        const claves = Object.keys(rv.errores || {});
+        const lineas = claves.map(k=>{
+          const c = cxDe(k), nombre = c ? L(LW_CX.tipoForm(c, null)[1]) : k;
+          const cl = LW_CX.clasificaValor(rv.errores[k]);
+          return nombre + ': ' + (cl ? lwT(LW_CX.FRASES_VALOR[cl]) : rv.errores[k]);
+        });
+        avisoNoGuardado(lwT('Revisa los campos de la empresa. ') + lineas.join(' · '));
+        const el0 = claves.length ? document.querySelector('[name="' + claves[0] + '"]') : null;
+        if(el0){ el0.focus(); el0.scrollIntoView({behavior:'smooth', block:'center'}); }
+        return;
+      }
+    }
   }
 
   /* true solo si el contrato quedó guardado de verdad (LAW-410, 28-sep-2026): «Enviar a firma»

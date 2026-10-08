@@ -109,11 +109,12 @@
   /* Los bloques que una empresa no cambia sola, localizados en el documento. `lista` = lo que dice la base (plantilla_contrato_edicion.bloques_fijos): textos
      normalizados con el prefijo E| (un elemento), S| (una sección entera desde su <h2>) o M| (una región marcada por Legal). Aquí solo se SITÚAN esos textos en
      el documento para pintarlos en solo lectura; que se respeten lo impone la base al guardar. Devuelve { spans: [[ini,fin],…], sinLocalizar: n }. */
-  TC.situaBloquesFijos = function (doc, lista) {
-    var set = {}, total = 0, spans = [], hallados = {};
-    (lista || []).forEach(function (x) { if (!set[x]) total++; set[x] = true; });
+  /* `motivos` (opcional) = plantilla_contrato_edicion.bloques_fijos_motivos, en el MISMO orden que `lista`: [{ clase, motivo }]. El motivo de cada bloque lo da la base. */
+  TC.situaBloquesFijos = function (doc, lista, motivos) {
+    var set = {}, total = 0, spans = [], hallados = {}, mot = {};
+    (lista || []).forEach(function (x, i) { if (!set[x]) total++; set[x] = true; if (motivos && motivos[i] && motivos[i].motivo) mot[x] = String(motivos[i].motivo); });
     if (!total) return { spans: [], sinLocalizar: 0 };
-    function toca(clave, a, b) { if (set[clave]) { spans.push([a, b, clave.charAt(0) === 'M' ? clave.split('|')[1] : clave.charAt(0)]); hallados[clave] = true; } }
+    function toca(clave, a, b) { if (set[clave]) { spans.push([a, b, clave.charAt(0) === 'M' ? clave.split('|')[1] : clave.charAt(0), mot[clave] || null]); hallados[clave] = true; } }
     ['p', 'li', 'td', 'th', 'h1', 'h2', 'h3', 'h4'].forEach(function (tg) {
       var re = new RegExp('<' + tg + '(?: [^>]*)?>(?:(?!</' + tg + '>)[\\s\\S])*</' + tg + '>', 'g'), m;
       while ((m = re.exec(doc)) !== null) toca('E|' + TC.ws(m[0]), m.index, m.index + m[0].length);
@@ -132,6 +133,7 @@
       t.bloqueado = !!todo || dentro.length > 0;
       /* De qué clase es el candado: el nombre de la región marcada por Legal (M), o E (un elemento) / S (una sección entera). Sirve para decir el motivo. */
       t.fijo = dentro.length ? (dentro.filter(function (s) { return s[2].length > 1; })[0] || dentro[0])[2] : null;
+      t.motivo = dentro.length ? ((dentro.filter(function (s) { return s[3]; })[0] || [])[3] || null) : null;   // el motivo que dio la base (si lo dio)
       if (t.bloqueado && t.editable) n++;
     });
     return n;
@@ -236,11 +238,22 @@
   /* Clasifica un mensaje de la base por su PRINCIPIO (estable: el test lee las migraciones y falla si uno cambia). La pantalla pone la frase en llano
      y deja el mensaje tal cual debajo, como detalle. Devuelve { tipo, detalle }. */
   TC.PREFIJOS_BASE = [
-    ['sesion', /^Sin sesion/i], ['solo_global', /^Este texto no lo cambia una empresa sola/], ['bloque_fijo', /^Tu texto cambia un bloque que una empresa no edita sola/],
+    ['sesion', /^Sin sesion/i], ['solo_global', /^Este texto no lo cambia una empresa sola/], ['sensibles_confirma', /^Has cambiado partes sensibles del contrato/],
     ['marcador_desconocido', /^marcador desconocido \{\{/], ['marcador_forma', /^marcador con forma no permitida/], ['llave', /^llave suelta o marcador mal cerrado/],
     ['esqueleto', /^el esqueleto cambia:/], ['motivo', /^Falta el motivo del cambio/], ['permiso', /^El texto de los contratos de una empresa lo escribe su administracion/],
     ['activar_super', /^Activar un texto de contrato lo hace el super administrador/], ['caracter', /^caracter (de control|bidireccional)/], ['grande', /^(El texto supera el tope|cuerpo demasiado grande)/],
-    ['no_activable', /^Version no activable/]
+    ['no_activable', /^Version no activable/],
+    /* Revisiones (E7, 8-oct-2026): los mensajes de plantilla_contrato_revision_* de la migración 20261010000000; el test los lee de ahí. */
+    ['rev_restaurar_super', /^Volver a poner un texto en uso lo hace el super administrador/], ['rev_borrar_en_uso', /^No se puede borrar: \d+ contrato/],
+    ['rev_borrar_activa', /^Esta revision esta activa/], ['rev_nombre', /^Pon un nombre a la revision/], ['rev_motivo', /^Falta el motivo de la revision/],
+    ['rev_tope', /^Tope de 20 revisiones/], ['rev_origen', /^Ese texto de origen no es de esta empresa/], ['rev_estandar', /^La revision estandar no se (archiva|borra)/],
+    ['rev_no_archivada', /^Esa revision no esta archivada/], ['rev_sin_activa', /^Esa revision no tiene una version activa/], ['rev_ya_activa', /^Esa revision ya tiene otra version activa/],
+    /* Contrato nuevo (E9): los mensajes de plantilla_contrato_nuevo_crea de la migración 20261010030000. */
+    ['nv_nombre', /^Pon un nombre de 3 a 80 letras/], ['nv_partida', /^Elige si partes de una copia/], ['nv_campos_forma', /^La lista de campos no es valida/],
+    ['nv_campos_catalogo', /^Alguno de los campos no esta en el catalogo/], ['nv_tope', /^Una empresa puede tener como mucho 30 contratos propios/],
+    ['nv_duplicado', /^Ya hay un contrato con ese nombre/], ['nv_falta_origen', /^Falta el contrato del que partir/], ['nv_origen', /^Ese contrato de origen no existe/],
+    ['nv_no_copia', /^Ese contrato no se copia/], ['nv_sin_texto', /^Ese contrato no tiene texto para tu empresa/], ['nv_partida_invalida', /^El texto de partida no pasa la validacion/],
+    ['rev_no_existe', /^Esa revision no existe/], ['rev_clave', /^(Clave de revision no valida|Ya hay una revision con esa clave|Revision no valida)/]
   ];
   TC.clasificaError = function (msg) {
     var m = String(msg == null ? '' : msg).trim();
@@ -314,13 +327,15 @@
     [/nombre|razon|titular|representante|cargo|marca/, 'Nombre de muestra'], [/domicilio|direccion|address/, 'Dirección de muestra'],
     [/num|codigo|ref|parcela|unidad|villa/, '0001']
   ];
-  TC.muestra = function (marcador) {
+  /* `extra` = { clave: ejemplo } de los campos propios de la empresa (LW_CX.ejemplo): un {{cx_x}} no está en la tabla de nombres. */
+  TC.muestra = function (marcador, extra) {
+    if (extra && Object.prototype.hasOwnProperty.call(extra, marcador)) return String(extra[marcador]);
     for (var i = 0; i < MUESTRA.length; i++) if (MUESTRA[i][0].test(marcador)) return MUESTRA[i][1];
     return '[' + marcador + ']';
   };
   /* El documento con datos de muestra (todo escapado: son valores de esta tabla, nunca texto de nadie), sin comentarios, y mostrando un solo idioma. */
-  TC.simula = function (doc) {
-    return String(doc).replace(/<!--[\s\S]*?-->/g, '').replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) { return TC.esc(TC.muestra(k)); });
+  TC.simula = function (doc, extra) {
+    return String(doc).replace(/<!--[\s\S]*?-->/g, '').replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) { return TC.esc(TC.muestra(k, extra)); });
   };
 
   /* La CSP del documento: la MISMA que antepone el generador (contracts/app.html → cspDocumento()); textos-contrato.test.js comprueba que no se separen. */
@@ -329,12 +344,12 @@
       + "; style-src 'unsafe-inline' " + origen + " https://fonts.googleapis.com; font-src data: " + origen + " https://fonts.gstatic.com; img-src data: blob: " + origen + (origenBase ? ' ' + origenBase : '');
   };
   /* El documento de la vista previa: CSP como primer hijo de <head>, los dos CSS del contrato, y un solo idioma visible. Va a un iframe con sandbox="" (sin scripts). */
-  TC.docPrevio = function (doc, idioma, origen, origenBase) {
+  TC.docPrevio = function (doc, idioma, origen, origenBase, extra) {
     var meta = '<meta http-equiv="Content-Security-Policy" content="' + TC.esc(TC.csp(origen, origenBase)) + '">'
       + '<base href="' + TC.esc(origen) + '/contracts/">'
       + '<link rel="stylesheet" href="assets/brand.css"><link rel="stylesheet" href="assets/contract.css">'
       + '<style>' + (idioma ? '[data-lang]{display:none!important}[data-lang="' + idioma + '"]{display:revert!important}' : '') + 'body{margin:0;padding:12px;background:#fff}</style>';
-    var html = TC.simula(doc);
+    var html = TC.simula(doc, extra);
     return /<head(\s[^>]*)?>/i.test(html) ? html.replace(/<head(\s[^>]*)?>/i, function (h) { return h + meta; }) : meta + html;
   };
 

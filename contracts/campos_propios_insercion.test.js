@@ -18,9 +18,13 @@ const mSust = src.match(/^ {2}html=html\.replace\(\/\\\{\\\{\(\[a-z0-9_\]\+\)\\\
 ok(mEsc && mCampo && mCruda && mSust, 'no encuentro en app.html esc / campoFijo / CAMPOS_IMAGEN_CRUDA / la sustitucion final de {{campo}}');
 if (!(mEsc && mCampo && mCruda && mSust)) { console.error('abortado'); process.exit(1); }
 
-const fabrica = new Function('data', 'html', 'SIGN_MODE', 'REGIMEN_LABEL', 'nombreConResort',
+/* cxDe / LW_CX: la sustitucion final conoce el catalogo de campos propios (E8) para imprimir un Si/No en su idioma. Aqui, el LW_CX real y un catalogo de prueba. */
+const LW_CX = require(path.join(__dirname, 'assets', 'cx_campos.js'));
+const CAT = [{ clave: 'cx_nota', tipo: 'texto' }, { clave: 'cx_garaje', tipo: 'si_no' }];
+const cxDe = (k) => CAT.find((c) => c.clave === k);
+const fabrica = new Function('data', 'html', 'SIGN_MODE', 'REGIMEN_LABEL', 'nombreConResort', 'cxDe', 'LW_CX',
   mCruda[0] + '\n' + mEsc[0] + '\n' + mCampo[0] + '\nreturn function(){\n' + mSust[0] + '\nreturn html;\n};');
-function rellena(html, data) { return fabrica(data, html, false, {}, () => '')(); }
+function rellena(html, data) { return fabrica(data, html, false, {}, () => '', cxDe, LW_CX)(); }
 
 const doc = '<p>Ref: {{cx_nota}}.</p><p>Otro: {{adq1_nombre}}.</p>';
 const hostiles = [
@@ -43,6 +47,16 @@ const o2 = rellena(doc, { cx_nota: '$& y $1', adq1_nombre: 'X' });
 ok(o2.includes('$&amp; y $1'), 'los patrones $& $1 de replace no se interpretan (el & se escapa): ' + o2);
 const o3 = rellena(doc, { cx_nota: 'A & B "c"', adq1_nombre: 'X' });
 ok(o3.includes('A &amp; B &quot;c&quot;'), 'se escapa & y comillas: ' + o3);
+
+/* Un campo Si/No se guarda como «si» / «no» y se imprime «Sí» / «No»; un campo fuera del catalogo se imprime tal cual (y escapado). */
+const o4 = rellena('<p>{{cx_garaje}}</p>', { cx_garaje: 'si' });
+ok(/>Sí</.test(o4), 'cx_garaje=si se imprime «Sí» (en español): ' + o4);
+const o5 = rellena('<p>{{cx_garaje}}</p>', { cx_garaje: 'no' });
+ok(/>No</.test(o5), 'cx_garaje=no se imprime «No»: ' + o5);
+const o6 = rellena('<p>{{cx_fuera}}</p>', { cx_fuera: '<b>x</b>' });
+ok(o6.includes('&lt;b&gt;x&lt;/b&gt;') && !/<b>/.test(o6), 'un campo propio sin catalogo se imprime escapado: ' + o6);
+ok(LW_CX.paraDocumento(CAT[1], 'si', 'en') === 'Yes' && LW_CX.paraDocumento(CAT[1], 'no', 'id') === 'Tidak' && LW_CX.paraDocumento(CAT[1], 'si', 'id') === 'Ya', 'Si/No se lee en el idioma del parrafo');
+ok(LW_CX.paraDocumento(CAT[0], '<b>', 'es') === '<b>', 'un texto no se transforma aqui (el escape lo hace esc() al imprimir)');
 
 if (fallos) { console.error(fallos + ' fallo(s)'); process.exit(1); }
 console.log('campos_propios_insercion.test.js: OK');

@@ -166,8 +166,16 @@ igual(TC.avisosTrozo('a‮b', 'ab').length, 1, 'un carácter de dirección (Troj
   const grant = /grant execute on function([\s\S]*?) to authenticated;/g;
   const abiertas = new Set(); let g;
   while ((g = grant.exec(migS7)) !== null) [...g[1].matchAll(/public\.([a-z_]+)\(/g)].forEach((m) => abiertas.add(m[1]));
-  igual(JSON.stringify(rpcs), JSON.stringify([...abiertas].sort()), 'las RPC que llama la pantalla son EXACTAMENTE las que la migración abre a authenticated');
-  igual(rpcs.length, 7, 'siete RPC');
+  /* E8 (8-oct-2026): la pantalla lee además el catálogo de campos propios (nombre en llano de las pastillas {{cx_…}} y menú «Insertar campo»): una RPC más, abierta por su propia migración. */
+  const migE8 = leer('supabase', 'migrations', '20261010010000_f2_editor_e8_campos_propios.sql');
+  const abiertasE8 = new Set(); const grantE8 = /grant execute on function([\s\S]*?) to authenticated;/g; let g8;
+  while ((g8 = grantE8.exec(migE8)) !== null) [...g8[1].matchAll(/public\.([a-z_]+)\(/g)].forEach((m) => abiertasE8.add(m[1]));
+  igual(abiertasE8.has('plantilla_campo_propio_lista'), true, 'la migración E8 abre plantilla_campo_propio_lista a authenticated');
+  const migPS = leer('supabase', 'migrations', '20261010020000_f2_editor_partes_sensibles.sql');
+  igual(/grant execute on function public\.plantilla_contrato_cambios_sensibles\(text, text, int\) to authenticated/.test(migPS), true, 'la migración de partes sensibles abre plantilla_contrato_cambios_sensibles a authenticated');
+  igual(JSON.stringify(rpcs), JSON.stringify([...abiertas, 'plantilla_campo_propio_lista', 'plantilla_contrato_cambios_sensibles'].sort()), 'las RPC que llama la pantalla son EXACTAMENTE las que las migraciones abren a authenticated');
+  igual(rpcs.length, 9, 'nueve RPC en la pantalla de textos');
+  igual(/p_confirma_sensibles: confirma/.test(js) && /p_variante: E\.variante \}\)/.test(js), true, 'guardar manda la confirmación del aviso y el ensayo manda la revisión');
   if (/\.(insert|update|upsert|delete)\s*\(/.test(js)) falla('textos-contrato.js escribe en una tabla: la pantalla escribe solo por RPC');
   const froms = [...js.matchAll(/\.from\('([a-z_]+)'\)/g)].map((m) => m[1]);
   igual(JSON.stringify([...new Set(froms)]), JSON.stringify(['plantillas_contrato']), 'la única tabla que lee es el catálogo de nombres de plantilla');
@@ -287,15 +295,25 @@ igual(TC.avisosTrozo('a‮b', 'ab').length, 1, 'un carácter de dirección (Troj
     const dirM = path.join(RAIZ, 'supabase', 'migrations');
     const sql = fs.readdirSync(dirM).map((f) => fs.readFileSync(path.join(dirM, f), 'utf8')).join('\n');
     const literal = {
-      sesion: 'Sin sesion: vuelve a entrar', solo_global: 'Este texto no lo cambia una empresa sola', bloque_fijo: 'Tu texto cambia un bloque que una empresa no edita sola',
+      sesion: 'Sin sesion: vuelve a entrar', solo_global: 'Este texto no lo cambia una empresa sola', sensibles_confirma: 'Has cambiado partes sensibles del contrato',
       marcador_desconocido: 'marcador desconocido {{', marcador_forma: 'marcador con forma no permitida', llave: 'llave suelta o marcador mal cerrado', esqueleto: 'el esqueleto cambia:',
       motivo: 'Falta el motivo del cambio', permiso: 'El texto de los contratos de una empresa lo escribe su administracion', activar_super: 'Activar un texto de contrato lo hace el super administrador',
-      caracter: 'caracter bidireccional o invisible', grande: 'El texto supera el tope', no_activable: 'Version no activable'
+      caracter: 'caracter bidireccional o invisible', grande: 'El texto supera el tope', no_activable: 'Version no activable',
+      /* Revisiones (E7): los mensajes de plantilla_contrato_revision_* */
+      rev_restaurar_super: 'Volver a poner un texto en uso lo hace el super administrador', rev_borrar_en_uso: 'No se puede borrar: % contrato(s) usan esta revision',
+      rev_borrar_activa: 'Esta revision esta activa', rev_nombre: 'Pon un nombre a la revision', rev_motivo: 'Falta el motivo de la revision', rev_tope: 'Tope de 20 revisiones',
+      rev_origen: 'Ese texto de origen no es de esta empresa', rev_estandar: 'La revision estandar no se archiva', rev_no_archivada: 'Esa revision no esta archivada',
+      rev_sin_activa: 'Esa revision no tiene una version activa', rev_ya_activa: 'Esa revision ya tiene otra version activa', rev_no_existe: 'Esa revision no existe',
+      rev_clave: 'Clave de revision no valida',
+      /* Contrato nuevo (E9): los mensajes de plantilla_contrato_nuevo_crea */
+      nv_nombre: 'Pon un nombre de 3 a 80 letras', nv_partida: 'Elige si partes de una copia', nv_campos_forma: 'La lista de campos no es valida', nv_campos_catalogo: 'Alguno de los campos no esta en el catalogo',
+      nv_tope: 'Una empresa puede tener como mucho 30 contratos propios', nv_duplicado: 'Ya hay un contrato con ese nombre', nv_falta_origen: 'Falta el contrato del que partir',
+      nv_origen: 'Ese contrato de origen no existe', nv_no_copia: 'Ese contrato no se copia', nv_sin_texto: 'Ese contrato no tiene texto para tu empresa', nv_partida_invalida: 'El texto de partida no pasa la validacion'
     };
     igual(JSON.stringify(Object.keys(literal).sort()), JSON.stringify(TC.PREFIJOS_BASE.map((x) => x[0]).sort()), 'cada clase de error que la pantalla reconoce tiene su mensaje comprobado contra las migraciones');
     Object.keys(literal).forEach((k) => {
       if (sql.indexOf(literal[k]) === -1) falla('el mensaje de la base «' + literal[k] + '» ya no está en las migraciones: la pantalla dejaría de reconocer el error «' + k + '»');
-      igual(TC.clasificaError(literal[k]).tipo, k, 'clasificaError reconoce «' + literal[k] + '»');
+      igual(TC.clasificaError(literal[k].replace('%', '3')).tipo, k, 'clasificaError reconoce «' + literal[k] + '»');
     });
     igual(TC.clasificaError('algo raro del servidor').tipo, 'otro', 'un mensaje desconocido cae en «otro» y se enseña tal cual');
     igual(TC.clasificaError('marcador desconocido {{zzz}}: no esta en tokens.json').tipo, 'marcador_desconocido', 'el marcador desconocido se reconoce con su cola');
@@ -312,6 +330,13 @@ igual(TC.avisosTrozo('a‮b', 'ab').length, 1, 'un carácter de dirección (Troj
     const sinTraducir = new Set();
     const mira = (s) => { s = s.replace(/\\'/g, "'"); if (/[A-Za-zÁ-ú]{3}/.test(s) && !claves.has(s) && !claves.has(s.trim())) sinTraducir.add(s); };
     [...js.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)].forEach((m) => mira(m[1]));
+    // las pestañas Revisiones y Campos (textos-contrato-config.js): sus T('…'), sus tablas de frases en llano y lo que traducen de LW_CX
+    const cfg = leer('intranet', 'v4', 'assets', 'textos-contrato-config.js'), CXH = require(path.join(RAIZ, 'contracts', 'assets', 'cx_campos.js'));
+    [...cfg.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)].forEach((m) => mira(m[1]));
+    [...cfg.matchAll(/^\s{4}[a-z_]+: '((?:[^'\\]|\\.)*)'[,]?\s*$/gm)].forEach((m) => mira(m[1]));
+    Object.values(CXH.FRASES_VALOR).forEach(mira); CXH.TIPOS.forEach((t) => mira(t[1]));
+    ['Escribe al menos una opción.', 'Una lista admite como mucho 50 opciones.', 'Cada opción puede tener hasta 80 letras.', 'Las opciones no admiten los signos < > { }.'].forEach(mira);
+    CXH.opcionesDeTexto('').errores.forEach(mira);
     [...js.matchAll(/^\s{4}[a-z_]+: '((?:[^'\\]|\\.)*)'[,]?\s*$/gm)].forEach((m) => { if (/^(Tu sesión|Este texto no|Has cambiado una|Un campo|Hay una|El texto cambia|Falta el motivo|Tu usuario|Activar un|Hay un carácter|El texto es|La base dice)/.test(m[1])) mira(m[1]); });
     [...html.matchAll(/<([a-z0-9]+)[^>]*\bdata-lwt\b[^>]*>([^<]+)</g)].forEach((m) => mira(m[2].trim()));
     if (sinTraducir.size) falla('frases de la pantalla sin traducción al inglés en contracts/assets/i18n.js: ' + [...sinTraducir].slice(0, 6).map((x) => '«' + x.slice(0, 50) + '»').join(', ') + (sinTraducir.size > 6 ? ' … (' + sinTraducir.size + ')' : ''));
@@ -331,6 +356,73 @@ igual(TC.avisosTrozo('a‮b', 'ab').length, 1, 'un carácter de dirección (Troj
     // todo botón que crea el script lleva data-real (si no, maqueta.js se lo come)
     if (!/b\.setAttribute\('data-real', '1'\)/.test(js)) falla('los botones creados por el script deben llevar data-real');
   }
+}
+
+/* ── LAS PESTAÑAS REVISIONES Y CAMPOS (textos-contrato-config.js, E7/E8, 8-oct-2026) ──
+   · Solo llama RPC que las migraciones E7/E8 abren a `authenticated`, y ninguna tabla (la base manda; el navegador pide).
+   · Todo id que pide existe en la página; todo botón lleva data-real (si no, maqueta.js se lo come) y se engancha por data-*, no por su rótulo.
+   · «Contrato nuevo» (E9) NO existe todavía: su pestaña está oculta y el script no llama a ninguna RPC de ella.
+   · Lo que viene de la base se pinta con textContent. */
+{
+  const cfg = leer('intranet', 'v4', 'assets', 'textos-contrato-config.js'), html = leer('intranet', 'v4', 'textos-contrato', 'index.html'), core = leer('intranet', 'v4', 'assets', 'textos-contrato.js');
+  const migE7 = leer('supabase', 'migrations', '20261010000000_f2_editor_e7_variantes.sql'), migE8 = leer('supabase', 'migrations', '20261010010000_f2_editor_e8_campos_propios.sql');
+  const abiertas = new Set(); const gr = /grant execute on function([\s\S]*?) to authenticated;/g; let g;
+  const migE9 = leer('supabase', 'migrations', '20261010030000_f2_editor_e9_contrato_nuevo.sql');
+  [migE7, migE8, migE9].forEach((m) => { gr.lastIndex = 0; while ((g = gr.exec(m)) !== null) [...g[1].matchAll(/public\.([a-z_]+)\(/g)].forEach((x) => abiertas.add(x[1])); });
+  const rpcs = [...new Set([...cfg.matchAll(/'(plantilla_[a-z_]+)'/g)].map((m) => m[1]))].sort();   // llamadas directas y las que pasan por accionRev / accionCampo
+  rpcs.forEach((r) => { if (!abiertas.has(r)) falla('textos-contrato-config.js llama a ' + r + ', que ninguna migración E7/E8 abre a authenticated'); });
+  igual(JSON.stringify(rpcs), JSON.stringify(['plantilla_campo_propio_archiva', 'plantilla_campo_propio_borra', 'plantilla_campo_propio_guarda', 'plantilla_campo_propio_lista', 'plantilla_campo_propio_valida',
+    'plantilla_contrato_nuevo_crea', 'plantilla_contrato_revision_archiva', 'plantilla_contrato_revision_borra', 'plantilla_contrato_revision_crea', 'plantilla_contrato_revision_restaura', 'plantilla_contrato_revisiones_lista']), 'las once RPC de las pestañas Revisiones, Campos y Contrato nuevo');
+  // los argumentos con los nombres de las funciones de la migración (PostgREST rechaza un parámetro que no existe)
+  const firma = (sql, f) => { const m = new RegExp('create function public\\.' + f + '\\(([^)]*)\\)').exec(sql); return m ? [...m[1].matchAll(/(?:^|,)\s*(p_[a-z_]+)\s/g)].map((x) => x[1]) : null; };
+  const llamada = (f) => { const m = new RegExp("rpc\\('" + f + "', \\{([^}]*)\\}").exec(cfg); return m ? [...m[1].matchAll(/(p_[a-z_]+)\s*:/g)].map((x) => x[1]) : null; };
+  [[migE7, 'plantilla_contrato_revision_crea'], [migE7, 'plantilla_contrato_revision_archiva'], [migE7, 'plantilla_contrato_revision_restaura'], [migE7, 'plantilla_contrato_revision_borra'],
+   [migE7, 'plantilla_contrato_revisiones_lista']].forEach((x) => {
+    const a = firma(x[0], x[1]), b = llamada(x[1]);
+    if (!a) falla('no encuentro la firma de ' + x[1] + ' en la migración E7');
+    else if (b) a.forEach((n) => { if (b.indexOf(n) === -1 && !/default/.test((new RegExp(n + '\\s+\\w+\\s+default').exec(x[0]) || [''])[0])) falla(x[1] + ': la pantalla no manda ' + n); });
+  });
+  // accionRev manda p_variante (archiva/restaura/borra): se comprueba el uso, no la llamada literal
+  igual(/p_empresa: E\.empresa, p_slug: S\.slug, p_variante: variante/.test(cfg), true, 'archivar, restaurar y borrar mandan empresa, contrato y revisión');
+  igual(/p_clave: k, p_etiqueta_es: nombre/.test(cfg), true, 'guardar un campo manda clave y nombre');
+  // frontera
+  if (/\.(insert|update|upsert|delete)\s*\(/.test(cfg)) falla('textos-contrato-config.js escribe en una tabla: solo RPC');
+  if (/\.from\(/.test(cfg)) falla('textos-contrato-config.js lee una tabla: solo RPC (los datos ya los trae textos-contrato.js)');
+  if (/localStorage|sessionStorage|\beval\(|document\.write|new Function|outerHTML/.test(cfg)) falla('textos-contrato-config.js usa almacenamiento del navegador / eval / outerHTML');
+  // el prototipo calcaba un JSON {datos:{…}}; el dato real vive en datos.fields (lo que lee el trigger de contratos)
+  igual(/datos: \{ fields: fields \}/.test(cfg), true, 'la vista previa enseña datos.fields, que es donde guarda el contrato');
+  // no hay un segundo lector de números en el navegador: la vista previa del JSON sale de la base
+  if (/parseFloat|parseInt|Number\(\s*String\(|lwParseImporte|parseImporte/.test(cfg)) falla('textos-contrato-config.js interpreta números: lo único que lee un importe es el servidor');
+  // ids y enganches
+  const ids = [...new Set([...cfg.matchAll(/\$\('([a-z0-9-]+)'\)/g)].map((m) => m[1]))];
+  ids.forEach((id) => { if (html.indexOf('id="' + id + '"') === -1) falla('textos-contrato-config.js pide #' + id + ' y la página no lo tiene'); });
+  [...core.matchAll(/\$\('([a-z0-9-]+)'\)/g)].forEach((m) => { if (html.indexOf('id="' + m[1] + '"') === -1) falla('textos-contrato.js pide #' + m[1] + ' y la página no lo tiene'); });
+  if (/textContent\s*===|innerText\s*===|\.textContent\.(trim\(\)\.)?(indexOf|includes|match)/.test(cfg)) falla('textos-contrato-config.js engancha por el texto de algo');
+  [...cfg.matchAll(/data-(rv|cx)-[a-z]+/g)].forEach((m) => { if (!/data-(rv|cx)-/.test(m[0])) falla('enganche raro ' + m[0]); });
+  // todo botón del script sale de boton() (lleva data-real); ningún createElement('button') suelto
+  if (/el\('button'/.test(cfg) || /createElement\('button'\)/.test(cfg)) falla('hay un <button> creado sin boton(): le faltaría data-real');
+  if (/innerHTML\s*\+?=/.test(cfg)) falla('textos-contrato-config.js usa innerHTML: se pinta con createElement / textContent');
+  cfg.split('\n').forEach((l) => { if (/insertAdjacentHTML/.test(l) && !/(textoEstado|pill)\(/.test(l)) falla('insertAdjacentHTML con algo que no es una pastilla propia: ' + l.trim().slice(0, 90)); });
+  // los textos que escribe la persona entran escapados en el cuerpo del diálogo
+  igual(/cuerpo: '<p>' \+ TC\.esc\(cuerpoTexto\) \+ '<\/p>'/.test(cfg), true, 'el cuerpo de lwConfirmar escapa el texto de la persona');
+  // «Contrato nuevo» (E9): asistente de cuatro pasos y UNA sola llamada de escritura, con los argumentos de la migración
+  igual(/data-tc-pestana="nuevo"/.test(html) && !/data-tc-pestana="nuevo"[^>]*\shidden/.test(html), true, 'la pestaña «Contrato nuevo» está visible');
+  igual(/PESTANAS = \['textos', 'revisiones', 'campos', 'nuevo'\]/.test(cfg), true, 'el script conoce las cuatro pestañas');
+  igual((cfg.match(/plantilla_contrato_nuevo_crea/g) || []).length >= 1 && /p_punto_partida: n\.partir/.test(cfg) && /p_slug_origen:/.test(cfg) && /p_version_origen: null/.test(cfg) && /p_campos: campos/.test(cfg), true, 'crear manda nombre, punto de partida, origen, versión y campos');
+  const firmaNv = /create function public\.plantilla_contrato_nuevo_crea\(([^)]*)\)/.exec(migE9);
+  igual(firmaNv && [...firmaNv[1].matchAll(/(p_[a-z_]+)\s/g)].map((x) => x[1]).join(), 'p_empresa,p_nombre,p_punto_partida,p_slug_origen,p_version_origen,p_campos', 'los argumentos de plantilla_contrato_nuevo_crea son los que manda la pantalla');
+  igual(/Esqueleto de partida/.test(migE9) && /nace ARCHIVADA/.test(migE9), true, 'el contrato nuevo nace oculto del generador (la pantalla lo dice)');
+  // pestañas en la URL: hash + atrás del navegador
+  igual(/addEventListener\('hashchange'/.test(cfg) && /addEventListener\('popstate'/.test(cfg), true, 'las pestañas viven en el hash y responden al botón atrás');
+  // el editor sabe de revisiones: las dos RPC que escriben/leen el texto llevan p_variante
+  igual(/rpc\('plantilla_contrato_edicion', \{ p_empresa: E\.empresa, p_slug: slug, p_variante: vr \}\)/.test(core), true, 'abrir el editor manda la revisión');
+  igual(/p_motivo: motivo, p_variante: E\.variante/.test(core), true, 'guardar el borrador manda la revisión');
+  // la lista principal es la revisión estándar: las demás van a su pestaña
+  igual(/\(v\.variante \|\| 'estandar'\) === 'estandar'/.test(core), true, 'la lista de plantillas enseña solo la revisión estándar');
+  // la pastilla de un campo propio es una pastilla más (misma función) y entra en el texto como {{clave}}
+  igual(/pastilla\(k, ''\)/.test(core) && /data-tc-cx/.test(core), true, 'insertar un campo propio pone una pastilla normal');
+  // el historial no compara una revisión con el texto de otra
+  igual(/\(x\.variante \|\| 'estandar'\) === vr && x\.version < v\.version/.test(core), true, 'el historial compara dentro de la misma revisión');
 }
 
 if (errores.length) { console.error('textos-contrato.test.js FALLA:\n - ' + errores.join('\n - ')); process.exit(1); }
