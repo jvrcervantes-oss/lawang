@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="ec889af95405">
+<meta name="lw-version" content="8aec81d80cf2">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- MODO DEMO (7-oct-2026): con `?demo` en la dirección se carga demo.js, que sustituye el cliente de Supabase por uno falso con datos
      ficticios. document.write y no un script creado a mano: tiene que ejecutarse ANTES del script del portal, en orden. Falla CERRADO: si demo.js
      no carga, createClient se anula y el portal real nunca se crea con `?demo` puesto. Sin `?demo` esto no hace nada. -->
-<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008b"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008c"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -937,31 +937,104 @@
     .ct-acciones > *{ justify-content:center; }
   }
 
-  /* ══ FACTURAS (8-oct-2026) — el artifact «Lawang Facturas v2», aprobado por el owner ══════════════════════════
-     Un solo momento fuerte (el próximo pago, el mismo bloque de Inicio), luego cómo va cada contrato y el archivo
-     por meses. Sin sombras; el estado de cada documento se lee en su etiqueta, no solo en el color. */
-  .hp-cuenta{ margin-top:10px; }
-  .hp-cuenta .ini-tarea-cuenta{ display:inline-block; }
-  .fa-secc{ display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:4px 20px; margin:36px 0 14px; }
-  .fa-secc h3{ margin:0; font-size:19px; font-weight:500; }
+  /* ══ FACTURAS — 2.ª pasada visual (8-oct-2026, owner: «se ve muy parecido al Inicio… tiene que quedar muy visual») ══
+     Ya no reutiliza el bloque de Inicio: la pantalla habla el idioma de las facturas.
+     · Estado de cuenta (claro): un anillo de lo pagado y las MISMAS tres cifras de Inicio (resumenPortal), sin
+       ningún reparto nuevo del dinero; y cuántas facturas hay en cada estado (recuento, no importe).
+     · El billete del próximo pago: el ÚNICO bloque fuerte (teal) — talón troquelado, hoja de calendario con el día
+       de vencimiento y la cuenta atrás centrada en su propia pastilla (antes heredaba .ini-tarea-cuenta, que está
+       hecha para una fila de Inicio, y el texto quedaba descentrado).
+     · Documentos: fichas de papel sobre una línea de tiempo; miniatura con la SERIE real del documento (INV/REC/PRO,
+       la de documento.js) y el estado como sello de goma — que sigue siendo texto legible, no solo color.
+     Sin sombras (profundidad por superficie y filete de 1px); prefers-reduced-motion apaga todo el movimiento. */
+  .fa-cabeza{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.08fr); gap:16px; align-items:stretch; }
+
+  .fa-estado{ background:#fff; border:1px solid var(--pg-hi); border-radius:20px; padding:26px 28px; display:grid;
+              grid-template-columns:auto minmax(0,1fr); gap:26px; align-items:center; min-width:0; }
+  .fa-anillo{ position:relative; width:148px; height:148px; flex:none; }
+  .fa-anillo svg{ width:100%; height:100%; transform:rotate(-90deg); display:block; }
+  .fa-anillo .pista{ fill:none; stroke:var(--pg-low); stroke-width:13; }
+  .fa-anillo .arco{ fill:none; stroke:var(--tg); stroke-width:13; stroke-linecap:round; animation:fa-arco 1.1s var(--lw-ease) both; }
+  @keyframes fa-arco{ from{ stroke-dasharray:0 400; } }
+  .fa-anillo-cen{ position:absolute; inset:0; display:grid; place-content:center; text-align:center; }
+  .fa-anillo-cen b{ font-size:38px; font-weight:400; line-height:1; letter-spacing:-.02em; color:var(--va); font-variant-numeric:tabular-nums; }
+  .fa-anillo-cen b small{ font-size:16px; margin-left:1px; }
+  .fa-anillo-cen span{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--out); margin-top:6px; }
+  .fa-estado.sin-anillo{ grid-template-columns:1fr; }
+  .fa-estado-tx{ min-width:0; display:grid; gap:14px; }
+  .fa-rot{ font-size:11px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--out); }
+  .fa-cifras{ display:grid; gap:10px; }
+  .fa-cifra{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding-bottom:10px; border-bottom:1px solid var(--pg-low); }
+  .fa-cifra:last-child{ border-bottom:0; padding-bottom:0; }
+  .fa-cifra span{ font-size:13px; color:var(--ink2); display:inline-flex; align-items:center; gap:8px; }
+  .fa-cifra span i{ width:9px; height:9px; border-radius:999px; background:var(--pg-hi); }
+  .fa-cifra span i.pagado{ background:var(--tg); }
+  .fa-cifra b{ font-size:19px; font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .fa-cifra.total b{ font-size:14px; color:var(--ink2); font-weight:400; }
+  .fa-recuento{ display:flex; flex-wrap:wrap; gap:6px; }
+  .fa-recuento span{ display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 11px; border-radius:999px; font-size:12px; background:var(--pg-low); color:var(--ink2); }
+  .fa-recuento span b{ font-weight:600; font-variant-numeric:tabular-nums; }
+  .fa-recuento .vencida{ background:rgba(158,47,38,.10); color:var(--bad); }
+  .fa-recuento .por-pagar{ background:rgba(184,99,29,.13); color:#8F4A12; }
+  .fa-recuento .pagada{ background:rgba(63,82,48,.11); color:var(--ok); }
+
+  /* el billete */
+  .fa-ticket{ position:relative; background:var(--dl); color:#fff; border-radius:20px; display:grid; grid-template-rows:auto auto auto; min-width:0; }
+  .fa-ticket-cuerpo{ padding:24px 28px 22px; display:grid; gap:4px; }
+  .fa-ticket .fa-rot{ color:rgba(255,255,255,.72); margin-bottom:6px; }
+  .fa-ticket-con{ font-size:22px; font-weight:500; line-height:1.2; }
+  .fa-ticket-sub{ font-size:13px; color:rgba(255,255,255,.78); }
+  .fa-ticket-imp{ font-size:clamp(40px, 5.2vw, 60px); font-weight:400; line-height:1; letter-spacing:-.02em; margin-top:16px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .fa-perfo{ position:relative; height:0; margin:0 22px; border-top:2px dashed rgba(255,255,255,.28); }
+  .fa-perfo::before, .fa-perfo::after{ content:""; position:absolute; top:-13px; width:24px; height:24px; border-radius:999px; background:var(--rl); }
+  .fa-perfo::before{ left:-35px; } .fa-perfo::after{ right:-35px; }
+  .fa-ticket-pie{ padding:20px 28px 24px; display:flex; flex-wrap:wrap; align-items:center; gap:14px 18px; }
+  .fa-hoja{ width:60px; flex:none; border-radius:12px; overflow:hidden; background:#fff; color:var(--va); text-align:center; }
+  .fa-hoja span{ display:block; background:#B8631D; color:#fff; font-size:10.5px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; padding:4px 0 3px; }
+  .fa-ticket.vencida .fa-hoja span{ background:var(--bad); }
+  .fa-hoja b{ display:block; font-size:26px; font-weight:400; line-height:1; padding:7px 0 8px; font-variant-numeric:tabular-nums; }
+  .fa-cuando{ display:grid; gap:8px; justify-items:start; min-width:0; flex:1 1 160px; }
+  .fa-cuando > span:first-child{ font-size:14px; }
+  .fa-dias{ display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 12px; border-radius:999px;
+            background:#fff; color:var(--bad); font-size:12px; font-weight:600; line-height:1; letter-spacing:.02em; white-space:nowrap; }
+  .fa-ticket-acc{ display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+  .fa-ticket .btn-oscuro{ background:#fff; color:var(--dl); border-color:#fff; }
+  .fa-ticket .btn-oscuro:hover{ background:#e8f0ee; }
+  .fa-ticket .btn-borde{ background:transparent; color:#fff; border-color:rgba(255,255,255,.45); }
+  .fa-ticket .btn-borde:hover{ background:rgba(255,255,255,.1); }
+  .fa-ticket :focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  .fa-ticket.al-dia{ align-content:center; }
+  .fa-ticket.al-dia .fa-ticket-cuerpo{ padding:30px 28px; }
+  .fa-ok{ width:46px; height:46px; border-radius:999px; background:rgba(255,255,255,.14); display:grid; place-items:center; margin-bottom:12px; }
+  .fa-cabeza + .kpi-nota{ margin:10px 0 0; }
+
+  .fa-secc{ display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:4px 20px; margin:44px 0 16px; }
+  .fa-secc h3{ margin:0; font-size:22px; font-weight:400; letter-spacing:-.005em; }
   .fa-secc p{ margin:0; font-size:13px; color:var(--ink2); }
+
+  /* contratos */
   .fa-ctrs{ display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap:12px; }
-  .fa-ctr{ background:#fff; border:1px solid var(--pg-hi); border-radius:16px; padding:18px 20px; display:grid; gap:12px; min-width:0; align-content:start; }
-  .fa-ctr-cab{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+  .fa-ctr{ background:#fff; border:1px solid var(--pg-hi); border-radius:16px; padding:18px 20px; display:grid; gap:14px; min-width:0; align-content:start; }
+  .fa-ctr-cab{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
   .fa-ctr-cab > div{ min-width:0; }
   .fa-ctr-proy{ font-size:15.5px; font-weight:500; }
   .fa-ctr-tipo{ font-size:12.5px; color:var(--ink2); }
-  .fa-ctr-pct{ font-size:26px; font-weight:500; color:var(--dl); line-height:1; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .fa-ctr-pct small{ font-size:13px; }
+  .fa-mini{ position:relative; width:50px; height:50px; flex:none; }
+  .fa-mini svg{ width:100%; height:100%; transform:rotate(-90deg); display:block; }
+  .fa-mini .pista{ fill:none; stroke:var(--pg-low); stroke-width:5; }
+  .fa-mini .arco{ fill:none; stroke:var(--tg); stroke-width:5; stroke-linecap:round; animation:fa-mini 1s var(--lw-ease) both; }
+  @keyframes fa-mini{ from{ stroke-dasharray:0 200; } }
+  .fa-mini b{ position:absolute; inset:0; display:grid; place-items:center; font-size:12.5px; font-weight:500; color:var(--va); font-variant-numeric:tabular-nums; }
+  .fa-mini.firma .arco{ stroke:#B8631D; }
   .fa-tramos{ display:flex; gap:3px; height:10px; }
-  .fa-tramos i{ display:block; height:100%; min-width:6px; border-radius:2px; background:var(--pg-hi); }
+  .fa-tramos i{ display:block; height:100%; min-width:6px; border-radius:999px; background:var(--pg-hi); }
   .fa-tramos i.pagado{ background:var(--tg); }
   .fa-tramos i.parcial{ background:linear-gradient(90deg, var(--tg) 50%, var(--pg-hi) 50%); }
   .fa-tramos i.facturado{ background:repeating-linear-gradient(135deg, #B8631D 0 3px, transparent 3px 6px); outline:1px solid #B8631D; outline-offset:-1px; }
   .fa-ctr-pie{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:13px; color:var(--ink2); font-variant-numeric:tabular-nums; }
   .fa-ctr-pie b{ font-weight:600; color:var(--va); }
   .fa-ctr details{ border-top:1px solid var(--pg-hi); padding-top:10px; }
-  .fa-ctr summary{ cursor:pointer; list-style:none; display:flex; justify-content:space-between; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); }
+  .fa-ctr summary{ cursor:pointer; list-style:none; display:flex; justify-content:space-between; font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--out); }
   .fa-ctr summary::-webkit-details-marker{ display:none; }
   .fa-ctr summary::after{ content:"+"; font-size:15px; line-height:1; transition:transform .25s var(--lw-ease); }
   .fa-ctr details[open] summary::after{ transform:rotate(45deg); }
@@ -975,57 +1048,110 @@
   .fa-plan small{ color:var(--out); margin-left:6px; }
   .fa-plan .num{ font-variant-numeric:tabular-nums; }
   .fa-plan .ini-link{ font-size:12px; }
-  .fa-leyenda{ display:flex; flex-wrap:wrap; gap:6px 18px; font-size:12px; color:var(--ink2); margin-top:10px; }
+  .fa-leyenda{ display:flex; flex-wrap:wrap; gap:6px 18px; font-size:12px; color:var(--ink2); margin-top:12px; }
   .fa-leyenda span{ display:inline-flex; align-items:center; gap:6px; }
-  .fa-leyenda i{ width:14px; height:8px; border-radius:2px; display:inline-block; background:var(--pg-hi); }
+  .fa-leyenda i{ width:14px; height:8px; border-radius:999px; display:inline-block; background:var(--pg-hi); }
   .fa-leyenda i.pagado{ background:var(--tg); }
   .fa-leyenda i.facturado{ background:repeating-linear-gradient(135deg, #B8631D 0 3px, transparent 3px 6px); outline:1px solid #B8631D; outline-offset:-1px; }
-  .fa-filtros{ display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; justify-content:space-between; margin:0 0 6px; }
+
+  /* filtros */
+  .fa-filtros{ display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; justify-content:space-between; margin:0 0 10px; }
   .fa-filtros .ct-filtro{ margin:0; }
-  .fa-filtros-der{ display:flex; flex-wrap:wrap; gap:10px; margin-left:auto; justify-content:flex-end; }
+  .fa-filtros-der{ display:flex; flex-wrap:nowrap; gap:10px; margin-left:auto; justify-content:flex-end; }
   .fa-campo{ font:inherit; font-size:13px; min-height:44px; padding:10px 16px; border-radius:999px; border:1px solid var(--linea); background:#fff; color:var(--va); }
   .fa-campo:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
   .fa-campo[type="search"]{ width:min(240px, 100%); }
   select.fa-campo{ appearance:none; padding-right:34px; cursor:pointer;
     background-image:linear-gradient(45deg, transparent 50%, var(--ink2) 50%), linear-gradient(135deg, var(--ink2) 50%, transparent 50%);
     background-position:calc(100% - 19px) 50%, calc(100% - 14px) 50%; background-size:5px 5px; background-repeat:no-repeat; }
-  .fa-mes{ display:grid; grid-template-columns:130px minmax(0,1fr); gap:0 24px; border-top:1px solid var(--pg-hi); margin-top:18px; padding-top:6px; }
-  .fa-mes-nom{ font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--out); padding-top:18px; }
-  .fa-docs{ display:grid; min-width:0; }
-  .fa-doc{ font:inherit; color:inherit; display:grid; grid-template-columns:40px minmax(0,1fr) auto; gap:4px 16px; align-items:center; text-align:left;
-           padding:14px 10px; margin:0 -10px; width:calc(100% + 20px); background:none; border:0; border-bottom:1px solid var(--pg-low); border-radius:10px; cursor:pointer;
-           transition:background .2s var(--lw-ease); }
-  .fa-doc:last-child{ border-bottom:0; }
-  .fa-doc:hover{ background:var(--pg-low); }
-  .fa-doc:focus-visible{ outline:2px solid var(--dl); outline-offset:-2px; }
-  .fa-doc-ico{ width:40px; height:40px; border-radius:10px; background:var(--pg-low); color:var(--dl); display:grid; place-items:center; }
-  .fa-doc-tx{ min-width:0; display:grid; gap:3px; }
-  .fa-doc-l1{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }
-  .fa-doc-con{ font-size:15px; font-weight:500; overflow-wrap:anywhere; }
-  .fa-doc-l2{ display:flex; flex-wrap:wrap; gap:2px 12px; font-size:12.5px; color:var(--ink2); }
-  .fa-doc-l2 .ok{ color:var(--ok); }
-  .fa-doc-der{ text-align:right; display:grid; gap:2px; justify-items:end; }
-  .fa-doc-imp{ font-size:16px; font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .fa-doc-falta{ font-size:12px; color:#8F4A12; white-space:nowrap; font-variant-numeric:tabular-nums; }
-  .fa-e{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; white-space:nowrap; }
-  .fa-e.pagada{ background:rgba(63,82,48,.12); color:var(--ok); }
-  .fa-e.parcial{ background:rgba(143,155,122,.25); color:var(--tg); }
-  .fa-e.pendiente{ background:rgba(184,99,29,.16); color:#8F4A12; }
-  .fa-e.vencida{ background:rgba(158,47,38,.12); color:var(--bad); }
-  .fa-e.recibo{ background:rgba(16,76,79,.10); color:var(--dl); }
-  .fa-e.proforma{ border:1px dashed var(--out); color:var(--ink2); padding:2px 8px; }
-  .fa-nada{ padding:36px 0; text-align:center; color:var(--out); border-top:1px solid var(--pg-hi); margin-top:18px; }
+
+  /* archivo: línea de tiempo de fichas */
+  .fa-mes{ display:grid; grid-template-columns:150px minmax(0,1fr); gap:0 28px; margin-top:26px; }
+  .fa-mes-nom{ position:sticky; top:80px; align-self:start; padding-top:14px; display:grid; gap:2px; }
+  .fa-mes-nom b{ font-size:22px; font-weight:400; line-height:1.1; text-transform:capitalize; }
+  .fa-mes-nom span{ font-size:12px; letter-spacing:.14em; color:var(--out); font-variant-numeric:tabular-nums; }
+  .fa-docs{ position:relative; display:grid; gap:10px; padding-left:26px; min-width:0; }
+  .fa-docs::before{ content:""; position:absolute; left:6px; top:8px; bottom:8px; width:2px; border-radius:2px; background:var(--pg-hi); }
+  .fa-slip{ position:relative; font:inherit; color:inherit; text-align:left; width:100%; cursor:pointer;
+            display:grid; grid-template-columns:48px minmax(0,1fr) auto; gap:6px 18px; align-items:center;
+            background:#fff; border:1px solid var(--pg-hi); border-radius:16px; padding:16px 20px 16px 16px;
+            transition:border-color .2s var(--lw-ease), background .2s var(--lw-ease); }
+  .fa-slip::before{ content:""; position:absolute; left:-26px; top:31px; width:14px; height:14px; border-radius:999px; background:var(--pg-hi); border:3px solid var(--rl); }
+  .fa-slip.pagada::before, .fa-slip.recibo::before{ background:var(--tg); }
+  .fa-slip.parcial::before{ background:var(--sc); }
+  .fa-slip.pendiente::before{ background:#B8631D; }
+  .fa-slip.vencida::before{ background:var(--bad); }
+  .fa-slip:hover{ border-color:var(--linea); background:#fffefb; }
+  .fa-slip:hover .fa-papel{ transform:translateY(-2px) rotate(-2deg); }
+  .fa-slip:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .fa-papel{ position:relative; width:48px; height:60px; border-radius:4px; background:var(--pg-low); border:1px solid var(--pg-hi);
+             display:grid; align-content:space-between; padding:9px 7px 8px; transition:transform .3s var(--lw-ease);
+             clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
+  .fa-papel::after{ content:""; position:absolute; top:-1px; right:-1px; width:12px; height:12px; background:var(--pg-hi); border-bottom-left-radius:3px; }
+  .fa-papel b{ font-size:10.5px; font-weight:600; letter-spacing:.08em; color:var(--dl); }
+  .fa-papel i{ display:block; height:2px; border-radius:2px; background:var(--pg-hi); margin-top:3px; }
+  .fa-papel i:nth-child(2){ width:70%; } .fa-papel i:nth-child(3){ width:45%; }
+  .fa-slip.recibo .fa-papel{ background:rgba(16,76,79,.07); }
+  .fa-slip.recibo .fa-papel b{ color:var(--ok); }
+  .fa-slip.proforma .fa-papel{ background:#fff; border-style:dashed; }
+  .fa-slip-tx{ min-width:0; display:grid; gap:4px; }
+  .fa-slip-con{ font-size:16px; font-weight:500; line-height:1.3; overflow-wrap:anywhere; }
+  .fa-slip-meta{ display:flex; flex-wrap:wrap; gap:2px 14px; font-size:12.5px; color:var(--ink2); }
+  .fa-slip-meta .num{ font-variant-numeric:tabular-nums; color:var(--va); }
+  .fa-enlaces{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .fa-enlace{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 10px; border-radius:999px; font-size:12px; background:var(--pg-low); color:var(--ink2); }
+  .fa-enlace.ok{ background:rgba(63,82,48,.10); color:var(--ok); }
+  .fa-enlace.vence{ background:rgba(184,99,29,.12); color:#8F4A12; }
+  .fa-enlace.vencio{ background:rgba(158,47,38,.10); color:var(--bad); }
+  .fa-enlace svg{ flex:none; }
+  .fa-slip-der{ display:grid; gap:8px; justify-items:end; text-align:right; }
+  .fa-slip-imp{ font-size:21px; font-weight:400; letter-spacing:-.01em; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .fa-slip-falta{ font-size:12px; color:#8F4A12; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .fa-sello{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; line-height:1;
+             padding:6px 9px 5px; border:1.5px solid currentColor; outline:1px solid currentColor; outline-offset:2px;
+             transform:rotate(-4deg); opacity:.9; white-space:nowrap; }
+  .fa-sello.pagada, .fa-sello.recibo{ color:var(--ok); }
+  .fa-sello.parcial{ color:var(--tg); }
+  .fa-sello.pendiente{ color:#8F4A12; }
+  .fa-sello.vencida{ color:var(--bad); }
+  .fa-sello.proforma{ color:var(--out); border-style:dashed; outline:0; }
+  .fa-nada{ padding:40px 0; text-align:center; color:var(--out); }
+
+  @media (max-width:980px){
+    .fa-cabeza{ grid-template-columns:1fr; }
+    .fa-ticket{ order:-1; }
+  }
   @media (max-width:640px){
+    .fa-estado{ grid-template-columns:1fr; justify-items:center; padding:22px 20px; gap:18px; }
+    .fa-estado-tx{ width:100%; }
+    .fa-ticket-cuerpo{ padding:22px 22px 20px; }
+    .fa-ticket-pie{ padding:18px 22px 22px; }
+    .fa-perfo{ margin:0 16px; } .fa-perfo::before{ left:-29px; } .fa-perfo::after{ right:-29px; }
+    .fa-ticket-acc > *{ flex:1 1 auto; justify-content:center; }
     .fa-filtros .ct-filtro{ flex-wrap:nowrap; overflow-x:auto; margin:0 -16px; padding:0 16px; scrollbar-width:none; width:calc(100% + 32px); }
+    .fa-filtros-der{ flex-wrap:wrap; }
     .fa-filtros-der, .fa-filtros-der > *{ width:100%; }
     .fa-campo[type="search"]{ width:100%; }
-    .fa-mes{ grid-template-columns:1fr; }
-    .fa-mes-nom{ padding-top:12px; }
-    .fa-doc{ grid-template-columns:36px minmax(0,1fr); }
-    .fa-doc-ico{ width:36px; height:36px; }
-    .fa-doc-der{ grid-column:2; justify-items:start; text-align:left; grid-auto-flow:column; justify-content:start; gap:12px; align-items:baseline; }
+    .fa-mes{ grid-template-columns:1fr; margin-top:22px; }
+    .fa-mes-nom{ position:static; padding:0 0 10px; grid-auto-flow:column; justify-content:start; align-items:baseline; gap:10px; }
+    .fa-docs{ padding-left:20px; }
+    .fa-docs::before{ left:4px; }
+    .fa-slip{ grid-template-columns:40px minmax(0,1fr); padding:14px 14px 14px 12px; gap:6px 12px; }
+    .fa-slip::before{ left:-20px; top:27px; width:12px; height:12px; }
+    .fa-papel{ width:40px; height:50px; padding:7px 6px; }
+    .fa-slip-der{ grid-column:2; display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; text-align:left; }
+    .fa-slip-der .fa-sello{ margin-left:auto; }
+    .fa-ctrs{ grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:84%; overflow-x:auto; scroll-snap-type:x mandatory;
+              margin:0 -16px; padding:0 16px 4px; scroll-padding:0 16px; scrollbar-width:none; }
+    .fa-ctrs::-webkit-scrollbar{ display:none; }
+    .fa-ctr{ scroll-snap-align:start; }
+    .fa-slip-imp{ font-size:18px; }
   }
-  @media (prefers-reduced-motion:reduce){ .fa-doc, .fa-ctr summary::after{ transition:none; } }
+  @media (prefers-reduced-motion:reduce){
+    .fa-slip, .fa-papel, .fa-ctr summary::after{ transition:none; }
+    .fa-slip:hover .fa-papel{ transform:none; }
+    .fa-anillo .arco, .fa-mini .arco{ animation:none; }
+  }
 
 </style>
 </head>
@@ -1189,6 +1315,8 @@
          fa_todos_proy:'Todos los proyectos', fa_buscar:'Buscar número o concepto', fa_sin_resultados:'No hay documentos con este filtro.',
          fa_e_pagada:'Pagada', fa_e_parcial:'Pago parcial', fa_e_pendiente:'Pendiente', fa_e_vencida:'Vencida', fa_e_recibo:'Pago recibido', fa_e_proforma:'Factura proforma',
          fa_salda:'Salda {n}', fa_pagada_con:'Pagada con {n}', fa_faltan:'Faltan {m}',
+         fa_estado:'Estado de cuenta', fa_pct_pagado:'pagado', fa_vence_hoy:'Vence hoy',
+         fa_c_vencida_1:'1 vencida', fa_c_vencida_n:'{n} vencidas', fa_c_pagar_1:'1 por pagar', fa_c_pagar_n:'{n} por pagar', fa_c_pagada_1:'1 pagada', fa_c_pagada_n:'{n} pagadas',
          sin_obra_t:'Aún no hay novedades de obra', sin_obra:'En cuanto empiece la construcción de tu unidad publicaremos aquí su avance y sus fotos.',
          sin_contratos_t:'No vemos contratos a tu nombre', sin_contratos:'Puede que tu acceso esté sobre una ficha que todavía no tiene contratos ligados. Escríbenos y lo revisamos.',
          entrega_est:'Entrega estimada', actualizado:'Última actualización',
@@ -1290,6 +1418,8 @@
          fa_todos_proy:'All projects', fa_buscar:'Search number or description', fa_sin_resultados:'No documents match this filter.',
          fa_e_pagada:'Paid', fa_e_parcial:'Partly paid', fa_e_pendiente:'Unpaid', fa_e_vencida:'Overdue', fa_e_recibo:'Payment received', fa_e_proforma:'Proforma invoice',
          fa_salda:'Settles {n}', fa_pagada_con:'Paid with {n}', fa_faltan:'{m} left',
+         fa_estado:'Account status', fa_pct_pagado:'paid', fa_vence_hoy:'Due today',
+         fa_c_vencida_1:'1 overdue', fa_c_vencida_n:'{n} overdue', fa_c_pagar_1:'1 to pay', fa_c_pagar_n:'{n} to pay', fa_c_pagada_1:'1 paid', fa_c_pagada_n:'{n} paid',
          sin_obra_t:'No construction updates yet', sin_obra:'As soon as your unit breaks ground we will publish its progress and photos here.',
          sin_contratos_t:'We see no contracts under your name', sin_contratos:'Your access may sit on a record with no contracts linked yet. Write to us and we will check it.',
          entrega_est:'Estimated handover', actualizado:'Last update',
@@ -1387,6 +1517,8 @@
          fa_todos_proy:'Semua proyek', fa_buscar:'Cari nomor atau keterangan', fa_sin_resultados:'Tidak ada dokumen yang cocok dengan filter ini.',
          fa_e_pagada:'Lunas', fa_e_parcial:'Dibayar sebagian', fa_e_pendiente:'Belum dibayar', fa_e_vencida:'Lewat jatuh tempo', fa_e_recibo:'Pembayaran diterima', fa_e_proforma:'Faktur proforma',
          fa_salda:'Melunasi {n}', fa_pagada_con:'Dibayar dengan {n}', fa_faltan:'Kurang {m}',
+         fa_estado:'Status akun', fa_pct_pagado:'dibayar', fa_vence_hoy:'Jatuh tempo hari ini',
+         fa_c_vencida_1:'1 lewat jatuh tempo', fa_c_vencida_n:'{n} lewat jatuh tempo', fa_c_pagar_1:'1 harus dibayar', fa_c_pagar_n:'{n} harus dibayar', fa_c_pagada_1:'1 lunas', fa_c_pagada_n:'{n} lunas',
          sin_obra_t:'Belum ada kabar pembangunan', sin_obra:'Begitu pembangunan unit Anda dimulai, kami akan menampilkan kemajuan dan foto-fotonya di sini.',
          sin_contratos_t:'Kami tidak melihat kontrak atas nama Anda', sin_contratos:'Mungkin akses Anda terhubung ke data yang belum memiliki kontrak. Tulis ke kami dan kami akan memeriksanya.',
          entrega_est:'Perkiraan serah terima', actualizado:'Pembaruan terakhir',
@@ -1921,8 +2053,7 @@
     var vence = factProx && factProx.fields && factProx.fields.fecha_vencimiento;
     return { res:res, proximo:proximo, factProx:factProx, vence:vence };
   }
-  /* `opts.cuenta`: Facturas añade la cuenta atrás hasta el vencimiento (la pastilla de días de Inicio, `cuentaAtras`). */
-  function heroPagoHTML(pago, opts){
+  function heroPagoHTML(pago){
     var res = pago.res, proximo = pago.proximo, factProx = pago.factProx, vence = pago.vence;
     var tot = res.total, cob = res.cobrado, mon = res.moneda;
     var hayResumen = tot != null && tot > 0;
@@ -1936,11 +2067,10 @@
     var subPago = proximo ? [proximo.proyecto, proximo.parcela].filter(Boolean).map(esc).join(' · ') : '';
     var vencida = vence && finDelDia(vence) < Date.now();
     var cuandoPago = proximo ? (vence ? esc(t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(vence))) : esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato)) : '';
-    var cuenta = (opts && opts.cuenta && vence && !vencida) ? cuentaAtras(vence) : '';
     return '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
       (proximo ?
         '<div class="hp-fila"><div class="hp-info"><div class="hp-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
-          '<div class="hp-sub">' + (subPago ? subPago + ' · ' : '') + cuandoPago + '</div>' + (cuenta ? '<div class="hp-cuenta">' + cuenta + '</div>' : '') + '</div>' +
+          '<div class="hp-sub">' + (subPago ? subPago + ' · ' : '') + cuandoPago + '</div></div>' +
           '<div class="hp-importe' + (impTxt.length > 11 ? ' largo' : '') + '"' + (isNaN(proximo.monto) ? '' : ' data-cuenta="' + proximo.monto + '" data-moneda="' + esc(proximo.moneda || '') + '"') + '>' + esc(impTxt) + '</div></div>' +
         '<div class="hp-acciones">' +
           (factProx ? '<button type="button" class="btn-oscuro" data-ir-fac="' + esc(factProx.numero) + '">' + esc(t('ver_factura_n').replace('{n}', factProx.numero)) + '</button>'
@@ -2373,9 +2503,81 @@
      tabla anterior (Regla 0 bis): cada documento con su número, tipo, proyecto, fecha e importe, la fila abre el
      documento REAL en el cajón (`#/facturas/NUM` → abreFactura), y el vacío de siempre. Añade el estado de pago
      (`estadoFactura`, resumen.js, con `aplicado` del servidor y el cobrado sin aplicar de su contrato), qué recibí salda qué
-     factura, el próximo pago (el MISMO bloque de Inicio), el avance por contrato y filtros.
+     factura, el próximo pago (el mismo cálculo de Inicio, con su propio billete desde la 2.ª pasada visual), el avance
+     por contrato y filtros.
      Nada se calcula aquí que no salga de resumen.js / estadosHitos / facturaDelHito: esta pantalla solo pinta. */
   var TIPO_DOC = { factura:'factura', proforma:'proforma', recibi:'recibi' };
+  var SERIE_DOC = { factura:'INV', proforma:'PRO', recibi:'REC' };   // las series de documento.js: lo que pone el propio documento
+  var ICO_P_OK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
+  var ICO_P_FLECHA = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>';
+  var ICO_P_RELOJ = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
+  var ICO_G_OK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
+
+  /* Un anillo de avance (SVG). `pct` ya viene con floor de quien llama: nunca «100 %» si queda algo. */
+  function anilloHTML(pct, tam, grosor, cls, centro){
+    var r = (tam - grosor) / 2, c = tam / 2, C = 2 * Math.PI * r, len = Math.max(0, Math.min(1, pct / 100)) * C;
+    return '<div class="' + cls + '"><svg viewBox="0 0 ' + tam + ' ' + tam + '" aria-hidden="true">' +
+      '<circle class="pista" cx="' + c + '" cy="' + c + '" r="' + r + '"></circle>' +
+      (len > 0 ? '<circle class="arco" cx="' + c + '" cy="' + c + '" r="' + r + '" stroke-dasharray="' + len.toFixed(2) + ' ' + C.toFixed(2) + '"></circle>' : '') +
+      '</svg>' + centro + '</div>';
+  }
+  /* «AAAA-MM-DD» como fecha LOCAL (finDelDia, resumen.js): new Date('2026-10-14') es medianoche UTC y al oeste
+     de Greenwich pintaría el 13 en la hoja de calendario. */
+  function fechaLocal(s){ var ms = finDelDia(s); return isNaN(ms) ? null : new Date(ms); }
+
+  /* La cabecera de Facturas: estado de cuenta + billete del próximo pago. Las cifras son las de Inicio
+     (resumenPortal: pagado, pendiente, inversión) y el próximo pago es pagoProximo(): aquí no se suma nada nuevo. Lo
+     único propio es el RECUENTO de facturas por estado, que sale de los mismos estados que pinta la lista. */
+  function cabezaFacturas(pago, est, soloFacturas){
+    var res = pago.res, tot = res.total, cob = res.cobrado || 0, mon = res.moneda;
+    var hay = tot != null && tot > 0;
+    var pct = hay ? Math.min(100, Math.floor(cob / tot * 100)) : null;
+    var n = { vencida:0, porPagar:0, pagada:0 };
+    soloFacturas.forEach(function(f){
+      var e = (est[f.id] || {}).estado;
+      if (e === 'vencida') n.vencida++; else if (e === 'pendiente' || e === 'parcial') n.porPagar++; else if (e === 'pagada') n.pagada++;
+    });
+    var recuento = (n.vencida ? '<span class="vencida">' + esc(plural(n.vencida, 'fa_c_vencida_1', 'fa_c_vencida_n')) + '</span>' : '') +
+      (n.porPagar ? '<span class="por-pagar">' + esc(plural(n.porPagar, 'fa_c_pagar_1', 'fa_c_pagar_n')) + '</span>' : '') +
+      (n.pagada ? '<span class="pagada">' + esc(plural(n.pagada, 'fa_c_pagada_1', 'fa_c_pagada_n')) + '</span>' : '');
+    var estado = '<section class="fa-estado' + (hay ? '' : ' sin-anillo') + '" aria-label="' + esc(t('fa_estado')) + '">' +
+      (hay ? anilloHTML(pct, 148, 13, 'fa-anillo', '<div class="fa-anillo-cen"><b>' + pct + '<small>%</small></b><span>' + esc(t('fa_pct_pagado')) + '</span></div>') : '') +
+      '<div class="fa-estado-tx"><div class="fa-rot">' + esc(t('fa_estado')) + '</div>' +
+        (hay ? '<div class="fa-cifras">' +
+            '<div class="fa-cifra"><span><i class="pagado"></i>' + esc(t('r_pagado')) + '</span><b>' + esc(dinero(cob, mon)) + '</b></div>' +
+            '<div class="fa-cifra"><span><i></i>' + esc(t('r_pendiente')) + '</span><b>' + esc(dinero(res.pendiente, mon)) + '</b></div>' +
+            '<div class="fa-cifra total"><span>' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</span><b>' + esc(dinero(tot, mon)) + '</b></div></div>' : '') +
+        (recuento ? '<div class="fa-recuento">' + recuento + '</div>' : '') +
+      '</div></section>';
+
+    var p = pago.proximo, vence = pago.vence, billete;
+    if (p){
+      var dt = vence ? fechaLocal(vence) : null;
+      var vencida = !!(dt && dt.getTime() < Date.now());
+      var dias = dt ? diasHasta(dt) : null;
+      var imp = isNaN(p.monto) ? '—' : dinero(p.monto, p.moneda);
+      var cuando = dt ? t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(dt)) : t('cuando') + ': ' + (p.hito.timing || '—');
+      cuando = cuando.charAt(0).toUpperCase() + cuando.slice(1);
+      var pastilla = vencida ? t('fa_e_vencida') : dias == null ? '' : dias === 0 ? t('fa_vence_hoy') : dias === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', dias);
+      billete = '<section class="fa-ticket' + (vencida ? ' vencida' : '') + '" aria-label="' + esc(t('proximo_pago')) + '">' +
+        '<div class="fa-ticket-cuerpo"><div class="fa-rot">' + esc(t('proximo_pago')) + '</div>' +
+          '<div class="fa-ticket-con">' + esc(Lx(p.hito) || '—') + '</div>' +
+          '<div class="fa-ticket-sub">' + esc([p.proyecto, p.parcela, p.contrato].filter(Boolean).join(' · ')) + '</div>' +
+          '<div class="fa-ticket-imp"' + (isNaN(p.monto) ? '' : ' data-cuenta="' + p.monto + '" data-moneda="' + esc(p.moneda || '') + '"') + '>' + esc(imp) + '</div></div>' +
+        '<div class="fa-perfo" aria-hidden="true"></div>' +
+        '<div class="fa-ticket-pie">' +
+          (dt ? '<div class="fa-hoja" aria-hidden="true"><span>' + esc(dt.toLocaleDateString(LOC(), { month:'short' }).replace('.', '')) + '</span><b>' + dt.getDate() + '</b></div>' : '') +
+          '<div class="fa-cuando"><span>' + esc(cuando) + '</span>' + (pastilla ? '<span class="fa-dias">' + esc(pastilla) + '</span>' : '') + '</div>' +
+          '<div class="fa-ticket-acc">' +
+            (pago.factProx ? '<button type="button" class="btn-oscuro" data-ir-fac="' + esc(pago.factProx.numero) + '">' + esc(t('ver_factura_n').replace('{n}', pago.factProx.numero)) + '</button>' : '') +
+            '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('plan_pagos')) + '</button></div></div></section>';
+    } else {
+      billete = '<section class="fa-ticket al-dia" aria-label="' + esc(t('proximo_pago')) + '"><div class="fa-ticket-cuerpo">' +
+        '<span class="fa-ok">' + ICO_G_OK + '</span><div class="fa-rot">' + esc(t('proximo_pago')) + '</div>' +
+        '<div class="fa-ticket-con">' + esc(t('sin_proximo')) + '</div></div></section>';
+    }
+    return '<div class="fa-cabeza">' + estado + billete + '</div>';
+  }
   var EST_FAC = { pagada:'fa_e_pagada', parcial:'fa_e_parcial', pendiente:'fa_e_pendiente', vencida:'fa_e_vencida', recibo:'fa_e_recibo', proforma:'fa_e_proforma' };
   function pintaFacturas(c){
     var d = DATOS;
@@ -2413,7 +2615,7 @@
       var titTramo = function(z){ return Lx(z.y.hito) + (isNaN(z.y.monto) ? '' : ' · ' + dinero(z.y.monto, x.moneda)); };
       return '<article class="fa-ctr"><div class="fa-ctr-cab"><div><div class="fa-ctr-proy">' + esc([x.proyecto, x.parcela].filter(Boolean).join(' · ') || '—') + '</div>' +
           '<div class="fa-ctr-tipo">' + esc(tipoContrato(x.tipo)) + ' · ' + esc(x.numero || '') + '</div></div>' +
-          (pct != null ? '<div class="fa-ctr-pct">' + pct + '<small> %</small></div>' : '') + '</div>' +
+          (pct != null ? anilloHTML(pct, 50, 5, 'fa-mini' + (x.firmado ? '' : ' firma'), '<b>' + pct + '%</b>') : '') + '</div>' +
         '<div class="fa-tramos" role="img" aria-label="' + esc(tramos.map(function(z){ return titTramo(z) + ': ' + t(z.cls === 'facturado' ? 'fa_facturado' : z.cls ? z.y.estado : 'fa_por_facturar'); }).join(' · ')) + '">' +
           tramos.map(function(z){ return '<i class="' + z.cls + '" style="flex:' + (isNaN(z.y.monto) || z.y.monto <= 0 ? 1 : z.y.monto) + '" title="' + esc(titTramo(z)) + '"></i>'; }).join('') + '</div>' +
         '<div class="fa-ctr-pie"><span><b>' + esc(dinero(cob, x.moneda)) + '</b> ' + esc(t('pagado')).toLowerCase() + '</span><span>' +
@@ -2435,7 +2637,7 @@
 
     c.innerHTML =
       '<div class="titulo-sec"><h2>' + esc(frase) + '</h2><p>' + esc(plural(facturas.length, 'fa_n_docs_1', 'fa_n_docs_n')) + '</p></div>' +
-      heroPagoHTML(pago, { cuenta:true }) + notaResumenHTML(res) +
+      cabezaFacturas(pago, est, soloFacturas) + notaResumenHTML(res) +
       (ctrs.length ? '<div class="fa-secc"><h3>' + esc(t('fa_contratos')) + '</h3><p>' + esc(t('fa_contratos_sub')) + '</p></div>' +
         '<div class="fa-ctrs">' + ctrs.join('') + '</div>' +
         '<div class="fa-leyenda"><span><i class="pagado"></i>' + esc(t('pagado')) + '</span><span><i class="facturado"></i>' + esc(t('fa_facturado')) + '</span><span><i></i>' + esc(t('fa_por_facturar')) + '</span></div>' : '') +
@@ -2462,28 +2664,31 @@
       var meses = [], porMes = {};
       vis.forEach(function(f){
         var dt = new Date(f.fecha), k = isNaN(dt) ? '' : dt.getFullYear() + '-' + dt.getMonth();
-        if (!porMes[k]){ porMes[k] = []; meses.push({ k:k, nom: isNaN(dt) ? '—' : dt.toLocaleDateString(LOC(), { month:'long', year:'numeric' }) }); }
+        if (!porMes[k]){ porMes[k] = []; meses.push({ k:k, mes: isNaN(dt) ? '—' : dt.toLocaleDateString(LOC(), { month:'long' }), anio: isNaN(dt) ? '' : String(dt.getFullYear()) }); }
         porMes[k].push(f);
       });
       lista.innerHTML = meses.map(function(m){
-        return '<div class="fa-mes"><div class="fa-mes-nom">' + esc(m.nom) + '</div><div class="fa-docs">' + porMes[m.k].map(function(f){
+        return '<section class="fa-mes"><div class="fa-mes-nom"><b>' + esc(m.mes) + '</b><span>' + esc(m.anio) + '</span></div><div class="fa-docs">' + porMes[m.k].map(function(f){
           var e = est[f.id] || {}, lin = f.lineas || [];
           // Un recibí no tiene concepto propio (sus líneas son las facturas que salda, y eso ya va en «Salda …»).
           var concepto = (f.tipo !== 'recibi' && lin[0] && lin[0].descripcion) ? String(lin[0].descripcion) + (lin.length > 1 ? ' +' + (lin.length - 1) : '') : t(TIPO_DOC[f.tipo] || f.tipo);
-          var extra = [];
-          if (f.tipo === 'recibi' && (f.salda || []).length) extra.push('<span class="ok">' + esc(t('fa_salda').replace('{n}', f.salda.map(function(s){ return s.numero; }).join(', '))) + '</span>');
-          if (e.estado === 'pagada' && pagadaCon[f.numero]) extra.push('<span class="ok">' + esc(t('fa_pagada_con').replace('{n}', pagadaCon[f.numero].join(', '))) + '</span>');
-          if ((e.estado === 'pendiente' || e.estado === 'parcial' || e.estado === 'vencida') && e.vence)
-            extra.push('<span>' + esc(t(e.estado === 'vencida' ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(e.vence))) + '</span>');
-          return '<button type="button" class="fa-doc" data-fila data-fac="' + esc(f.numero) + '">' +
-            '<span class="fa-doc-ico">' + ICO_DOC + '</span>' +
-            '<span class="fa-doc-tx"><span class="fa-doc-l1"><span class="fa-doc-con">' + esc(concepto) + '</span>' +
-              (EST_FAC[e.estado] ? '<span class="fa-e ' + e.estado + '">' + esc(t(EST_FAC[e.estado])) + '</span>' : '') + '</span>' +
-              '<span class="fa-doc-l2"><span>' + esc(f.numero) + '</span><span>' + esc(t(TIPO_DOC[f.tipo] || f.tipo)) + '</span>' +
-                (f.proyecto ? '<span>' + esc(f.proyecto) + '</span>' : '') + '<span>' + esc(fecha(f.fecha)) + '</span>' + extra.join('') + '</span></span>' +
-            '<span class="fa-doc-der"><span class="fa-doc-imp">' + esc(dinero(Number(f.total), f.moneda)) + '</span>' +
-              (e.falta != null ? '<span class="fa-doc-falta">' + esc(t('fa_faltan').replace('{m}', dinero(e.falta, f.moneda))) + '</span>' : '') + '</span></button>';
-        }).join('') + '</div></div>';
+          var enl = [];
+          if (f.tipo === 'recibi' && (f.salda || []).length) enl.push('<span class="fa-enlace ok">' + ICO_P_FLECHA + esc(t('fa_salda').replace('{n}', f.salda.map(function(s){ return s.numero; }).join(', '))) + '</span>');
+          if (e.estado === 'pagada' && pagadaCon[f.numero]) enl.push('<span class="fa-enlace ok">' + ICO_P_OK + esc(t('fa_pagada_con').replace('{n}', pagadaCon[f.numero].join(', '))) + '</span>');
+          if ((e.estado === 'pendiente' || e.estado === 'parcial' || e.estado === 'vencida') && e.vence){
+            var fv = fechaLocal(e.vence);
+            if (fv) enl.push('<span class="fa-enlace ' + (e.estado === 'vencida' ? 'vencio' : 'vence') + '">' + ICO_P_RELOJ + esc(t(e.estado === 'vencida' ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(fv))) + '</span>');
+          }
+          return '<button type="button" class="fa-slip ' + esc(e.estado || '') + '" data-fila data-fac="' + esc(f.numero) + '">' +
+            '<span class="fa-papel" aria-hidden="true"><b>' + esc(SERIE_DOC[f.tipo] || '') + '</b><span><i></i><i></i><i></i></span></span>' +
+            '<span class="fa-slip-tx"><span class="fa-slip-con">' + esc(concepto) + '</span>' +
+              '<span class="fa-slip-meta"><span class="num">' + esc(f.numero) + '</span><span>' + esc(t(TIPO_DOC[f.tipo] || f.tipo)) + '</span>' +
+                (f.proyecto ? '<span>' + esc(f.proyecto) + '</span>' : '') + '<span>' + esc(fecha(f.fecha)) + '</span></span>' +
+              (enl.length ? '<span class="fa-enlaces">' + enl.join('') + '</span>' : '') + '</span>' +
+            '<span class="fa-slip-der"><span class="fa-slip-imp">' + esc(dinero(Number(f.total), f.moneda)) + '</span>' +
+              (e.falta != null ? '<span class="fa-slip-falta">' + esc(t('fa_faltan').replace('{m}', dinero(e.falta, f.moneda))) + '</span>' : '') +
+              (EST_FAC[e.estado] ? '<span class="fa-sello ' + e.estado + '">' + esc(t(EST_FAC[e.estado])) + '</span>' : '') + '</span></button>';
+        }).join('') + '</div></section>';
       }).join('');
       lista.querySelectorAll('[data-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-fac')); }); });
     }
@@ -2497,8 +2702,8 @@
     var selP = c.querySelector('#faProy');
     if (selP) selP.addEventListener('change', function(){ ESTADO.faProy = selP.value; pintaLista(); });
     c.querySelector('#faBuscar').addEventListener('input', function(ev){ ESTADO.faTexto = ev.target.value; pintaLista(); });
-    c.querySelectorAll('.hero-pago [data-ir-fac], .fa-ctr [data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
-    c.querySelectorAll('.hero-pago [data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+    c.querySelectorAll('.fa-ticket [data-ir-fac], .fa-ctr [data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
+    c.querySelectorAll('.fa-ticket [data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
   }
 
   /* ── Obra ─────────────────────────────────────────────────────────── */
