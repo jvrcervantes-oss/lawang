@@ -19,8 +19,8 @@ const path = require('path');
   const m0 = { marca: 'L', dominio: 'lawangproperties.com', remitente: 'a@b.co' };
   const c0 = { url: 'https://lawangproperties.com/portal/', texto: 'Portal' };
   const hoy = new Date(Date.UTC(2026, 9, 8));
-  assert.strictEqual(plantillaHtml('Hola\n\n• uno', 'Titulo', c0, '', m0, hoy), gold('golden_sin_sociedad.html'), 'sin sociedad: HTML distinto del de antes');
-  assert.strictEqual(plantillaHtml('Hola\n\n• uno', 'Titulo', c0, '', { ...m0, sociedad: null }, hoy), gold('golden_sin_sociedad.html'), 'sociedad:null debe ser como ausente');
+  assert.strictEqual(plantillaHtml('Hola\n\n• uno', 'Titulo', c0, '', m0, hoy), gold('golden_sin_sociedad.html.golden'), 'sin sociedad: HTML distinto del de antes');
+  assert.strictEqual(plantillaHtml('Hola\n\n• uno', 'Titulo', c0, '', { ...m0, sociedad: null }, hoy), gold('golden_sin_sociedad.html.golden'), 'sociedad:null debe ser como ausente');
   assert.strictEqual(plantillaTexto('Hola\n\n• uno', 'Titulo', c0, m0), gold('golden_sin_sociedad.txt'), 'sin sociedad: texto distinto del de antes');
 
   // 2 · plantilla con sociedad
