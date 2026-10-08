@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="b34a11bfbf98">
+<meta name="lw-version" content="83e2c66788d3">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -3523,7 +3523,8 @@
     var conFirma = contratosConFirma(d);
     var contratoPorId = {};
     (d.contratos || []).forEach(function(x){ contratoPorId[x.id] = x; });
-    var iniciales = (document.getElementById('avatarIniciales') || {}).textContent || '·';
+    var nomFicha = (d.nombre || '').trim();
+    var iniciales = nomFicha ? nomFicha.split(/\s+/).map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase() : '·';
 
     // ficha: datos y cifras (las mismas que el pie del bloque de pago de Inicio)
     // con contratos en dos monedas no se suman: una línea por moneda, igual que Inicio (resumenVista, resumen.js)
@@ -3561,11 +3562,14 @@
       tes.push(tesela('rojo', 'data-ir="contratos"', t('firma_tarea').replace('{n}', k.numero || ''), k.proyecto || '',
         fp.expira_en ? mayus1(t('firma_caduca').replace('{f}', fechaCorta(fp.expira_en))) : '', diasTexto(fp.expira_en)));
     });
-    if (pago.proximo){
-      var px = pago.proximo, vencida = pago.vence && finDelDia(pago.vence) < Date.now();
+    // «Vencida» como en Inicio y Facturas: el estado de la factura (estadoPagoProximo), no solo su fecha; una factura
+    // ya cubierta no es algo pendiente y no sale aquí (revisor, 8-oct-2026).
+    var ef = pago.proximo ? estadoPagoProximo(pago, d) : null;
+    if (pago.proximo && ef !== 'pagada'){
+      var px = pago.proximo, vencida = ef === 'vencida', dv = diasCon(pago.vence);
       tes.push(tesela(vencida ? 'rojo' : 'arena', pago.factProx ? 'data-ir-fac="' + esc(pago.factProx.numero) + '"' : 'data-ir="facturas"',
         Lx(px.hito), [px.proyecto, px.parcela].filter(Boolean).join(' · '),
-        pago.vence ? mayus1(t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(pago.vence))) : t('proximo_pago'),
+        pago.vence ? mayus1(t(dv != null && dv < 0 ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(pago.vence))) : t('proximo_pago'),
         isNaN(px.monto) ? '' : dinero(px.monto, px.moneda)));
     }
     kycCaducan(d).forEach(function(k){
@@ -3596,9 +3600,8 @@
     var entregado = kyc.length ? '<section class="tarjeta" id="pfEntregado"><h3 class="pf-t" style="margin-bottom:6px">' + esc(t('d_entregado')) + '</h3>' +
         '<p class="pf-nota-doc">' + esc(t('d_entregado_nota')) + '</p>' +
         '<div class="doclista">' + kyc.map(function(x){
-          var cad = x.caduca ? new Date(x.caduca) : null;
-          var vencido = cad && cad < new Date();
           var dias = diasHasta(x.caduca);
+          var vencido = !!x.caduca && dias == null;   // días de calendario, como la tesela de arriba (revisor, 8-oct)
           var pill = !x.caduca ? '' : vencido ? '<span class="pf-pill mal">' + esc(t('pf_caducado')) + '</span>'
                    : (dias != null && dias <= 30) ? '<span class="pf-pill mal">' + esc(diasTexto(x.caduca)) + '</span>'
                    : '<span class="pf-pill ok">' + esc(t('pf_vigente')) + '</span>';
