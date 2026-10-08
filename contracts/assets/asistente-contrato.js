@@ -592,7 +592,13 @@
       return h;
     }
   };
-  function iniciales(n) { return String(n || '?').trim().split(/\s+/).slice(0, 2).map(function (x) { return x.charAt(0); }).join('').toUpperCase(); }
+  // Primera y última palabra saltando partículas (Ni, I, de, van…). Misma regla en portal/index.html (inicialesDe), intranet/v4/assets/datos.js, intranet/leads/leads.js y contracts/assets/asistente-contrato.js.
+  function iniciales(n) {
+    var p = String(n || '').trim().split(/\s+/).filter(Boolean);
+    var q = p.filter(function (w) { return ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'].indexOf(w.toLowerCase()) < 0; });
+    if (q.length) p = q;
+    return p.length ? (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() : '?';
+  }
 
   /* ¿Se puede coger esta parcela con el tipo y el cliente contestados? La regla es la del
      editor (eleccionParcela → estadoTraspaso, parcela_inventario.js) con el contexto del

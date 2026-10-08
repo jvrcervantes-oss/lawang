@@ -7032,7 +7032,13 @@
           convo.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0;text-align:center">Este hilo no tiene mensajes.</p>';
           return;
         }
-        var iniciales = (c.full_name || 'C').split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ''; }).join('').toUpperCase();
+        // Primera y última palabra saltando partículas (Ni, I, de, van…). Misma regla en portal/index.html (inicialesDe), intranet/v4/assets/datos.js, intranet/leads/leads.js y contracts/assets/asistente-contrato.js.
+        var iniciales = (function (n) {
+          var p = String(n || '').trim().split(/\s+/).filter(Boolean);
+          var q = p.filter(function (w) { return ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'].indexOf(w.toLowerCase()) < 0; });
+          if (q.length) p = q;
+          return p.length ? (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() : 'C';
+        })(c.full_name);
         msgs.forEach(function (msg) {
           var esEquipo = msg.de === 'equipo';
           var b = (esEquipo ? moldeDer : moldeIzq);

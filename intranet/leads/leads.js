@@ -1680,7 +1680,14 @@ async function cargarSetter(){
   if(CHAT_ABIERTO) verConversacion(CHAT_ABIERTO);
 }
 
-const iniciales = nombre => (nombre || '').trim().split(/\s+/).slice(0, 2).map(p => p[0] || '').join('').toUpperCase() || '?';
+// Primera y última palabra saltando partículas (Ni, I, de, van…). Misma regla en portal/index.html (inicialesDe), intranet/v4/assets/datos.js, intranet/leads/leads.js y contracts/assets/asistente-contrato.js.
+const PARTICULAS_INI = ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'];
+const iniciales = nombre => {
+  let p = (nombre || '').trim().split(/\s+/).filter(Boolean);
+  const q = p.filter(w => !PARTICULAS_INI.includes(w.toLowerCase()));
+  if (q.length) p = q;
+  return p.length ? (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() : '?';
+};
 
 function kpisSetter(){
   const activas = CONVERSACIONES.filter(l => !l.paused).length;
