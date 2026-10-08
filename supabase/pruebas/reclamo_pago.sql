@@ -126,7 +126,7 @@ begin
   -- ═════════ B. REGLAS DE NEGOCIO (admin de empresa propia) ═════════
   -- B1 nota con enlace / www / @ / >300 / controles: rechazada, sin filas
   select count(*) into n1 from public.reclamos_pago;
-  foreach v_nota in array array['mira http://x.test', 'entra en www.x.test', 'escribe a alguien@x.test', repeat('a', 301)] loop
+  foreach v_nota in array array['mira http://x.test', 'entra en www.x.test', 'escribe a alguien@x.test', 'paga en evil.com', 'ver banco.id.', repeat('a', 301)] loop
     r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.reclamo_pago_encolar(%L, array[%L]::uuid[], %L)', u_a, cl_a, v_nota));
     total := total + 1; if r not like 'E22023/nota_invalida' then fallos := fallos + 1; resumen := resumen || ' [B1 nota "' || left(v_nota, 12) || '": ' || r || ']'; end if;
   end loop;
@@ -303,7 +303,7 @@ begin
   total := total + 1; if r not like 'E42501%' then fallos := fallos + 1; resumen := resumen || ' [E7c prueba anon: ' || r || ']'; end if;
   -- E8 nota con enlace / www / correo / >300: rechazada, sin filas
   select count(*) into n1 from public.reclamos_pago;
-  foreach v_nota in array array['mira http://x.test', 'entra en www.x.test', 'escribe a alguien@x.test', repeat('a', 301)] loop
+  foreach v_nota in array array['mira http://x.test', 'entra en www.x.test', 'escribe a alguien@x.test', 'paga en evil.com', 'ver banco.id.', repeat('a', 301)] loop
     r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.reclamo_pago_prueba(%L, %L)', u_a2, v_nota));
     total := total + 1; if r not like 'E22023/nota_invalida' then fallos := fallos + 1; resumen := resumen || ' [E8 nota "' || left(v_nota, 12) || '": ' || r || ']'; end if;
   end loop;

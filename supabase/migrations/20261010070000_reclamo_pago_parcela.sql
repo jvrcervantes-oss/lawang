@@ -344,7 +344,7 @@ begin
 
   -- 3. nota: texto plano, recortado, sin enlaces ni correos
   v_nota := nullif(btrim(regexp_replace(coalesce(p_nota, ''), '[[:space:]]+', ' ', 'g')), '');
-  if v_nota is not null and (char_length(v_nota) > 300 or v_nota ~* 'http|www\.|@' or v_nota ~ '[[:cntrl:]]') then
+  if v_nota is not null and (char_length(v_nota) > 300 or v_nota ~* 'http|www\.|@|[a-z0-9-]\.(com|net|org|info|biz|io|co|id|es|app|xyz|top|link|click|online|site|ru|cn|me)([^a-z]|$)' or v_nota ~ '[[:cntrl:]]') then
     raise exception 'La nota admite hasta 300 caracteres de texto, sin enlaces ni direcciones de correo.'
       using errcode = '22023', hint = 'nota_invalida';
   end if;
@@ -469,7 +469,7 @@ begin
   end if;
 
   v_nota := nullif(btrim(regexp_replace(coalesce(p_nota, ''), '[[:space:]]+', ' ', 'g')), '');
-  if v_nota is not null and (char_length(v_nota) > 300 or v_nota ~* 'http|www\.|@' or v_nota ~ '[[:cntrl:]]') then
+  if v_nota is not null and (char_length(v_nota) > 300 or v_nota ~* 'http|www\.|@|[a-z0-9-]\.(com|net|org|info|biz|io|co|id|es|app|xyz|top|link|click|online|site|ru|cn|me)([^a-z]|$)' or v_nota ~ '[[:cntrl:]]') then
     raise exception 'La nota admite hasta 300 caracteres de texto, sin enlaces ni direcciones de correo.'
       using errcode = '22023', hint = 'nota_invalida';
   end if;
