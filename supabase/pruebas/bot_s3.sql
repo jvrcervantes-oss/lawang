@@ -50,6 +50,11 @@ begin
     exception when insufficient_privilege then null; end;
     reset role;
   end loop;
+  if exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace
+               and (p.proname like 'bot\_%' or p.proname like '\_bot\_%') and p.proname not in ('bot_copia_frena','bot_faq_aprobar','bot_faq_frena','bot_faq_inmutable','bot_faq_retirar','bot_fuentes_versiona','bot_pendientes','bot_respuesta_copiada','bot_temas_resumen','bot_temas_valida_patron')
+               and has_function_privilege('service_role', p.oid, 'execute')) then
+    raise exception 'PRUEBA FALLA: service_role puede ejecutar una funcion del bot (solo bot_lawang)';
+  end if;
   v_ok := v_ok || 'anon/authenticated sin EXECUTE en las 4 funciones ni en el ayudante y sin SELECT en el log; ';
 
   -- ── 2. el rol del bot: ve solo sus funciones ───────────────────────────────
