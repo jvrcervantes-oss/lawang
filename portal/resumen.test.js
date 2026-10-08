@@ -221,5 +221,21 @@ es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)
   es('sin contrato_id no se reparte nada (no se adivina)', R.saldoSinAplicar([fac('S', 100, 0, null, { contrato_id:null })], [contrato]), {});
 }
 
+/* ── qué próximo pago se enseña cuando hay varios contratos (owner, 8-oct-2026: «la vencida primero») ── */
+{
+  const HOY = new Date(2026, 9, 8, 12, 0, 0);
+  const c = (id, vence) => ({ proximo: { contrato: id }, vence });
+  const elige = (lista) => { const e = R.eligeProximo(lista, HOY); return e && e.proximo.contrato; };
+  es('la vencida va antes que la que vence pronto, aunque su contrato vaya después',
+     elige([c('P-07-CO', '2026-10-14'), c('BV-01-BP', '2026-10-03')]), 'BV-01-BP');
+  es('entre dos vencidas, la más antigua', elige([c('A', '2026-10-05'), c('B', '2026-09-20')]), 'B');
+  es('sin vencidas, la que vence antes', elige([c('A', '2026-11-30'), c('B', '2026-10-20')]), 'B');
+  es('con vencimiento antes que sin factura', elige([c('SINFAC', null), c('A', '2026-12-01')]), 'A');
+  es('sin ninguna factura: el orden de los contratos, como antes', elige([c('PRIMERO', null), c('SEGUNDO', null)]), 'PRIMERO');
+  es('vence HOY no es vencida: va con las que vencen', elige([c('HOY', '2026-10-08'), c('ANTES', '2026-10-07')]), 'ANTES');
+  es('contratos sin pago pendiente no cuentan', elige([{ proximo:null, vence:'2026-01-01' }, c('A', null)]), 'A');
+  es('ninguno: null', R.eligeProximo([], HOY), null);
+}
+
 if(fallos){ console.error(`\n${fallos} fallo(s) en las cuentas del portal.`); process.exit(1); }
 console.log('resumen.test.js — OK');

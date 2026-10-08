@@ -257,6 +257,21 @@ function estadoFactura(f, extra, hoy){
   return { estado: cubierto > 0.005 ? 'parcial' : 'pendiente', vence: vence, falta: falta };
 }
 
+/* ── Cuál es «el próximo pago» cuando hay varios contratos (8-oct-2026, owner: «la vencida primero») ──────────
+   Antes se enseñaba el primer hito sin pagar del PRIMER contrato de la lista, aunque otro contrato tuviera ya una
+   factura vencida: el bloque más visible de Inicio y de Facturas mandaba pagar algo que vence en 6 días mientras otra
+   llevaba días vencida. Cada candidato es el próximo pago de UN contrato (proximoDe, sin cambiar su importe) con el
+   vencimiento de su factura si la tiene. Orden: (1) vencidos, el más antiguo primero; (2) con vencimiento, el más
+   cercano primero; (3) sin factura todavía, en el orden de los contratos, como hasta ahora. */
+function eligeProximo(cands, hoy){
+  const ahora = Number(hoy);
+  const clase = c => { const fin = finDelDia(c.vence); return isNaN(fin) ? 2 : (fin < ahora ? 0 : 1); };
+  return (cands || []).filter(c => c && c.proximo)
+    .map((c, i) => ({ c: c, i: i, k: clase(c), fin: finDelDia(c.vence) }))
+    .sort((a, b) => (a.k - b.k) || (a.k < 2 ? a.fin - b.fin : 0) || (a.i - b.i))
+    .map(x => x.c)[0] || null;
+}
+
 if (typeof module !== 'undefined' && module.exports)
   module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe,
-                     saldoSinAplicar, finDelDia, estadoFactura };
+                     saldoSinAplicar, finDelDia, estadoFactura, eligeProximo };

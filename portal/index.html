@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="8aec81d80cf2">
+<meta name="lw-version" content="407e44e4adfd">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261008c"></script>
+<script src="/portal/resumen.js?v=20261008d"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -2037,21 +2037,20 @@
      cambiara la regla dirían dos cifras distintas del mismo pago (la lección de operaciones/, 14-ago). */
   function pagoProximo(d){
     var res = resumenPortal(d.contratos || []);
-    var proximo = null;
     // Solo los contratos que SÍ cuentan: el calendario de una Carta sustituida
     // son los mismos hitos que ya trae su Bloqueo, y reclamarlo aquí pediría dos
     // veces el mismo pago.
-    res.base.forEach(function(x){
-      if (proximo) return;
-      var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
-      proximo = proximoDe(x, estadosHitos(x.hitos, Number(x.cobrado)||0, precio));
-    });
-    /* La factura del próximo pago: la que tiene una línea con la descripción exacta del hito (facturaDelHito, en
+    /* La factura de cada próximo pago: la que tiene una línea con la descripción exacta del hito (facturaDelHito, en
        resumen.js y probada en resumen.test.js). Sin ella, el bloque dice el plazo del contrato y el botón lleva a
-       la lista: nunca se adivina una factura ni una fecha. */
-    var factProx = (proximo && typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, { id:proximo.contratoId, numero:proximo.contrato }, proximo.hito, proximo.moneda) : null;
-    var vence = factProx && factProx.fields && factProx.fields.fecha_vencimiento;
-    return { res:res, proximo:proximo, factProx:factProx, vence:vence };
+       la lista: nunca se adivina una factura ni una fecha. Entre contratos, manda la vencida (eligeProximo). */
+    var cands = res.base.map(function(x){
+      var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
+      var proximo = proximoDe(x, estadosHitos(x.hitos, Number(x.cobrado)||0, precio));
+      var factProx = (proximo && typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, { id:proximo.contratoId, numero:proximo.contrato }, proximo.hito, proximo.moneda) : null;
+      return { proximo:proximo, factProx:factProx, vence:(factProx && factProx.fields && factProx.fields.fecha_vencimiento) || null };
+    });
+    var elegido = eligeProximo(cands, Date.now()) || { proximo:null, factProx:null, vence:null };
+    return { res:res, proximo:elegido.proximo, factProx:elegido.factProx, vence:elegido.vence };
   }
   function heroPagoHTML(pago){
     var res = pago.res, proximo = pago.proximo, factProx = pago.factProx, vence = pago.vence;
@@ -2528,15 +2527,10 @@
   /* La cabecera de Facturas: estado de cuenta + billete del próximo pago. Las cifras son las de Inicio
      (resumenPortal: pagado, pendiente, inversión) y el próximo pago es pagoProximo(): aquí no se suma nada nuevo. Lo
      único propio es el RECUENTO de facturas por estado, que sale de los mismos estados que pinta la lista. */
-  function cabezaFacturas(pago, est, soloFacturas){
+  function cabezaFacturas(pago, n){
     var res = pago.res, tot = res.total, cob = res.cobrado || 0, mon = res.moneda;
     var hay = tot != null && tot > 0;
     var pct = hay ? Math.min(100, Math.floor(cob / tot * 100)) : null;
-    var n = { vencida:0, porPagar:0, pagada:0 };
-    soloFacturas.forEach(function(f){
-      var e = (est[f.id] || {}).estado;
-      if (e === 'vencida') n.vencida++; else if (e === 'pendiente' || e === 'parcial') n.porPagar++; else if (e === 'pagada') n.pagada++;
-    });
     var recuento = (n.vencida ? '<span class="vencida">' + esc(plural(n.vencida, 'fa_c_vencida_1', 'fa_c_vencida_n')) + '</span>' : '') +
       (n.porPagar ? '<span class="por-pagar">' + esc(plural(n.porPagar, 'fa_c_pagar_1', 'fa_c_pagar_n')) + '</span>' : '') +
       (n.pagada ? '<span class="pagada">' + esc(plural(n.pagada, 'fa_c_pagada_1', 'fa_c_pagada_n')) + '</span>' : '');
@@ -2595,8 +2589,13 @@
     facturas.forEach(function(f){ (f.salda || []).forEach(function(s){ (pagadaCon[s.numero] = pagadaCon[s.numero] || []).push(f.numero); }); });
 
     var soloFacturas = facturas.filter(function(f){ return f.tipo === 'factura'; });
-    var nVenc = soloFacturas.filter(function(f){ return est[f.id].estado === 'vencida'; }).length;
-    var nPagar = soloFacturas.filter(function(f){ var e = est[f.id].estado; return e === 'pendiente' || e === 'parcial'; }).length;
+    // Un solo recuento por estado: lo usan la frase de arriba y las pastillas del estado de cuenta (revisor, 8-oct).
+    var n = { vencida:0, porPagar:0, pagada:0 };
+    soloFacturas.forEach(function(f){
+      var e = est[f.id].estado;
+      if (e === 'vencida') n.vencida++; else if (e === 'pendiente' || e === 'parcial') n.porPagar++; else if (e === 'pagada') n.pagada++;
+    });
+    var nVenc = n.vencida, nPagar = n.porPagar;
     var todoSabido = soloFacturas.length > 0 && soloFacturas.every(function(f){ return est[f.id].estado != null; });
     // La frase sale de los estados ya reconciliados; si de alguna factura no se sabe nada, no se dice «al día».
     var frase = nVenc ? plural(nVenc, 'fa_vencidas_1', 'fa_vencidas_n')
@@ -2637,7 +2636,7 @@
 
     c.innerHTML =
       '<div class="titulo-sec"><h2>' + esc(frase) + '</h2><p>' + esc(plural(facturas.length, 'fa_n_docs_1', 'fa_n_docs_n')) + '</p></div>' +
-      cabezaFacturas(pago, est, soloFacturas) + notaResumenHTML(res) +
+      cabezaFacturas(pago, n) + notaResumenHTML(res) +
       (ctrs.length ? '<div class="fa-secc"><h3>' + esc(t('fa_contratos')) + '</h3><p>' + esc(t('fa_contratos_sub')) + '</p></div>' +
         '<div class="fa-ctrs">' + ctrs.join('') + '</div>' +
         '<div class="fa-leyenda"><span><i class="pagado"></i>' + esc(t('pagado')) + '</span><span><i class="facturado"></i>' + esc(t('fa_facturado')) + '</span><span><i></i>' + esc(t('fa_por_facturar')) + '</span></div>' : '') +
@@ -2663,7 +2662,7 @@
       vis = vis.slice().sort(function(a, b){ return String(b.fecha || '').localeCompare(String(a.fecha || '')) || String(b.numero || '').localeCompare(String(a.numero || '')); });
       var meses = [], porMes = {};
       vis.forEach(function(f){
-        var dt = new Date(f.fecha), k = isNaN(dt) ? '' : dt.getFullYear() + '-' + dt.getMonth();
+        var dt = fechaLocal(f.fecha) || new Date(NaN), k = isNaN(dt) ? '' : dt.getFullYear() + '-' + dt.getMonth();
         if (!porMes[k]){ porMes[k] = []; meses.push({ k:k, mes: isNaN(dt) ? '—' : dt.toLocaleDateString(LOC(), { month:'long' }), anio: isNaN(dt) ? '' : String(dt.getFullYear()) }); }
         porMes[k].push(f);
       });
