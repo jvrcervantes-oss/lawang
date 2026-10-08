@@ -121,6 +121,19 @@ function sociedadEmisora(C: Record<string, any>, elegida: string | null | undefi
 }
 
 
+/* Con que nombre firma el correo: la marca de la sociedad DEL CONTRATO (o su razon social si no tiene marca), no «Lawang Tropical
+   Properties» escrito a fuego (encargos/20261008_lawang_reclamo_pago_parcela.md: un contrato de Sandal Woods firmaba como Lawang).
+   La marca de tepi_sungai esta en mayusculas en la base («LAWANG TROPICAL PROPERTIES»): se escribe en titulo, que es como firmaba
+   antes, asi que para Lawang el texto sigue siendo el mismo. */
+function firmaDe(C: Record<string, any>, clave: string): string {
+  const s = C.SOCIEDADES[clave];
+  const marca = String(s?.marca ?? '').trim();
+  if (marca) return marca === marca.toUpperCase() ? marca.toLowerCase().replace(/(^|\s)(\p{L})/gu, (_m, a, b) => a + b.toUpperCase()) : marca;
+  const razon = String(s?.razon ?? '').trim();
+  if (!razon) throw new Error('la sociedad «' + clave + '» no tiene marca ni razon social para firmar el correo');
+  return razon;
+}
+
 const b64 = (u8: Uint8Array) => {
   let s = '';
   for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000));
@@ -128,6 +141,9 @@ const b64 = (u8: Uint8Array) => {
 };
 
 async function enviarEmail(p: { to: string; subject: string; message: string; filename?: string; pdfB64?: string;
+  // clave de la sociedad del contrato: envia-correo la valida contra public.sociedades y pone su marca/razon/logo en el correo.
+  // Solo se manda a la edge (el PHP de respaldo no la entiende y saldria con la marca de Lawang).
+  sociedad?: string;
   // registro de envíos (correos_enviados) — mismo contrato que en firma-submit:
   // se inserta tras el ok y un fallo del log nunca revienta el envío
   log?: { contrato_id?: string | null; factura_id?: string | null; via: string } }) {
@@ -137,6 +153,7 @@ async function enviarEmail(p: { to: string; subject: string; message: string; fi
     headers: { 'content-type': 'application/json', 'X-Render-Secret': dest.secreto, 'X-Llamante': 'factura-vencimiento' },
     body: JSON.stringify({
       to: p.to, subject: p.subject, message: p.message,
+      ...(p.sociedad && dest.url === ENVIO_EDGE ? { sociedad: p.sociedad } : {}),
       ...(p.pdfB64 ? { filename: p.filename || 'documento.pdf', pdf_base64: p.pdfB64 } : { attach: false }),
     }),
   });
@@ -244,6 +261,7 @@ Deno.serve(async (req) => {
                '. Emitida automáticamente ' + DIAS_ANTES + ' días antes del vencimiento.',
       };
       const totales = C.calcTotales(lineas, moneda, { pct: '' });
+      const firma = firmaDe(C, campos.sociedad);   // antes de crear la factura: sin firma no hay factura huerfana
 
       // Factura + marca del vencimiento en UNA transacción (26-sep-2026, migración
       // 20260926160000_factura_vencimiento_atomica): antes eran dos llamadas y, si
@@ -288,7 +306,8 @@ Deno.serve(async (req) => {
           '\n\nConcepto: ' + descripcion +
           '\nImporte: ' + importe +
           '\n\nLos datos para la transferencia están en la propia factura. Si el pago ya está en camino, ignora este aviso.' +
-          '\n\n\nLawang Tropical Properties',
+          '\n\n\n' + firma,
+        sociedad: campos.sociedad,
         filename: ins.data.numero + '.pdf', pdfB64: b64(pdf),
         log: { contrato_id: v.contrato_id, factura_id: ins.data.id, via: 'factura_auto' },
       });
@@ -302,6 +321,7 @@ Deno.serve(async (req) => {
           message: 'Factura ' + ins.data.numero + ' (' + importe + ') emitida automáticamente por el vencimiento del ' +
             v.fecha + ' de ' + (ct.numero || '') + ' y enviada a ' + para + '.\n\n' + descripcion +
             '\n\nVer en la intranet: ' + SITIO + '/intranet/facturas/?id=' + ins.data.id,
+          sociedad: campos.sociedad,
           filename: ins.data.numero + '.pdf', pdfB64: b64(pdf),
           log: { contrato_id: v.contrato_id, factura_id: ins.data.id, via: 'factura_auto' },
         }).catch((e) => console.error('copia al estudio:', (e as Error).message));
