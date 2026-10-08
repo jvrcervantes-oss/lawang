@@ -621,13 +621,14 @@ Deno.serve(async (req) => {
     const temporizador = setTimeout(() => abort.abort(), 8000);
     // Texto de la plantilla (ver cabecera): por RPC con la sesión del agente y, solo si la base
     // dice «este contrato no tiene versión fijada» (null), el fichero publicado. Un error de RPC NO cae al fichero.
-    const lecturaPlantilla = async (): Promise<{ html: string; lastModified: string | null; ver: { version_id: string; empresa: string; version: number; origen: string; hash: string } | null } | { error: string } | null> => {
+    const lecturaPlantilla = async (): Promise<{ html: string; lastModified: string | null; ver: { version_id: string; empresa: string; version: number; origen: string; hash: string; slug: string; variante: string; variante_nombre: string | null } | null } | { error: string } | null> => {
       if (!slugPlantilla) return null;
       const deBase = (d: unknown) => {
-        const o = d as { cuerpo_html?: unknown; slug?: unknown; version_id?: string; empresa?: string; version?: number; origen?: string; hash?: string } | null;
+        const o = d as { cuerpo_html?: unknown; slug?: unknown; version_id?: string; empresa?: string; version?: number; origen?: string; hash?: string; variante?: string; variante_nombre?: string | null } | null;
         if (!o || typeof o !== 'object') return null;
-        if (o.slug !== slugPlantilla || typeof o.cuerpo_html !== 'string' || !o.cuerpo_html.trim()) return { error: 'cuerpo_no_valido' };
-        return { html: o.cuerpo_html, lastModified: null, ver: { version_id: String(o.version_id), empresa: String(o.empresa), version: Number(o.version), origen: String(o.origen), hash: String(o.hash) } };
+        // E7 (revisiones multiples): el slug, la revision y la version salen de la version FIJADA al contrato, no del mapa tipo→slug
+        if (typeof o.slug !== 'string' || !o.slug || typeof o.cuerpo_html !== 'string' || !o.cuerpo_html.trim()) return { error: 'cuerpo_no_valido' };
+        return { html: o.cuerpo_html, lastModified: null, ver: { version_id: String(o.version_id), empresa: String(o.empresa), version: Number(o.version), origen: String(o.origen), hash: String(o.hash), slug: o.slug, variante: String(o.variante ?? 'estandar'), variante_nombre: typeof o.variante_nombre === 'string' ? o.variante_nombre : null } };
       };
       const vinculo = await sb.rpc('plantilla_contrato_cuerpo_de_contrato', { p_contrato: contrato.id });
       if (vinculo.error) return { error: 'rpc_vinculo' };   // NO al fichero: el contrato puede estar ligado a un texto editado
@@ -678,7 +679,7 @@ Deno.serve(async (req) => {
     const fallos = [
       ['contrato_padre', padre.error], ['unidades', unidad.error], ['proyectos', proyecto.error],
       ['cuentas_bancarias', cuenta.error], ['sociedades', sociedad.error],
-      ['documentos_proyecto', docsP.error], ['plantillas_contrato', plantilla.error], ['bot_fuentes', fuente.error],
+      ['documentos_proyecto', docsP.error], ['bot_fuentes', fuente.error],
       ['bot_bloqueos', bloqueosDb.error], ['bot_pendientes', pendientes.error], ['bot_faq', faqDb.error],
     ].filter(([, e]) => e).map(([t]) => t);
     if (fallos.length) return json({ error: 'no_se_pudo_leer_contexto', tablas: fallos }, 500);
@@ -727,6 +728,8 @@ Deno.serve(async (req) => {
     const esReservado = (k: string) => !/^prom_/.test(k) && CAMPO_EXCLUIDO.test(k);
     const webOk = web && 'html' in web ? web : null;
     const verPlantilla = webOk?.ver ?? null;
+    // La fila de `plantillas_contrato` solo da el NOMBRE: si su lectura falla o no casa con el slug de la version fijada, se sigue sin nombre (antes era un 500)
+    const slugEfectivo = verPlantilla?.slug ?? slugPlantilla;
     let textoPlantilla: string | null = null;
     if (webOk?.html) {
       textoPlantilla = plantillaTexto(webOk.html, lang, camposPlantilla, esReservado);
@@ -736,7 +739,8 @@ Deno.serve(async (req) => {
     // ¿Cambió la plantilla después de la firma? Con Last-Modified de la web si
     // lo hay (fecha real del fichero publicado); si no, la fila de
     // plantillas_contrato (creado_en), que es un proxy más flojo.
-    const pl = plantilla.data as { slug: string; nombre: string; creado_en: string; archivada: boolean } | null;
+    const plLeida = plantilla.error ? null : (plantilla.data as { slug: string; nombre: string; creado_en: string; archivada: boolean } | null);
+    const pl = plLeida && plLeida.slug === slugEfectivo ? plLeida : null;
     // Con versión fijada el texto es el de la firma (inmutable): no hay «cambio tras la firma» que avisar.
     const fechaPlantilla = verPlantilla ? null : webOk?.lastModified ? new Date(webOk.lastModified) : (pl?.creado_en ? new Date(pl.creado_en) : null);
     const plantillaCambioTrasFirma = !!(contrato.bloqueado && fechaPlantilla && contrato.fecha_firma
@@ -770,7 +774,7 @@ Deno.serve(async (req) => {
         modelo: ((docsM.data ?? []) as { nombre: string; tipo: string }[]).map((d) => ({ nombre: d.nombre, tipo: d.tipo })),
       },
       plantilla: {
-        slug: slugPlantilla, nombre: pl?.nombre ?? null, idioma: lang,
+        slug: slugEfectivo, nombre: pl?.nombre ?? null, revision: verPlantilla?.variante_nombre ?? (verPlantilla ? verPlantilla.variante : null), nombre_no_leido: !!plantilla.error, idioma: lang,
         texto_disponible: !!textoPlantilla,
         nota: textoPlantilla
           ? 'Texto articulado de la plantilla en el idioma del contrato, con los campos de este ejemplar puestos: «(en blanco)» = campo sin rellenar; «(dato reservado)» = dato que no se te pasa. ' +
@@ -800,7 +804,7 @@ Deno.serve(async (req) => {
     if (soc) fuentes.push({ tabla: 'sociedades', id: claveSociedad, campo: 'razon,marca,npwp,nib,domicilio,rep' });
     for (const d of (docsP.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'documentos_proyecto', id: d.id });
     for (const d of (docsM.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'modelo_documentos', id: d.id });
-    if (textoPlantilla && verPlantilla) fuentes.push({ tabla: 'plantillas_contrato', id: slugPlantilla, campo: 'texto ' + lang + ' · v' + verPlantilla.version + ' · ' + verPlantilla.empresa + ' · ' + verPlantilla.version_id });   // la etiqueta «Plantilla» ya la conoce el panel; la versión y la empresa van en el campo
+    if (textoPlantilla && verPlantilla) fuentes.push({ tabla: 'plantillas_contrato', id: slugEfectivo, campo: 'texto ' + lang + ' · v' + verPlantilla.version + ' · ' + verPlantilla.empresa + ' · ' + verPlantilla.variante + ' · ' + verPlantilla.version_id });   // la etiqueta «Plantilla» ya la conoce el panel; la versión y la empresa van en el campo
     else if (textoPlantilla) fuentes.push({ tabla: 'plantilla_web', id: slugPlantilla + '.html', campo: 'texto ' + lang });
     else if (pl) fuentes.push({ tabla: 'plantillas_contrato', id: pl.slug, campo: 'nombre (sin texto en esta consulta)' });
     type Faq = { id: string; tema_clave: string; pregunta: string; respuesta: string };
