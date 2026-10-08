@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="fd55e47eed09">
+<meta name="lw-version" content="48779e723973">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261008a"></script>
+<script src="/portal/resumen.js?v=20261008b"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -1934,7 +1934,7 @@
       : '';
     var impTxt = (proximo && !isNaN(proximo.monto)) ? dinero(proximo.monto, proximo.moneda) : '—';
     var subPago = proximo ? [proximo.proyecto, proximo.parcela].filter(Boolean).map(esc).join(' · ') : '';
-    var vencida = vence && new Date(vence).setHours(23,59,59,999) < Date.now();
+    var vencida = vence && finDelDia(vence) < Date.now();
     var cuandoPago = proximo ? (vence ? esc(t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(vence))) : esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato)) : '';
     var cuenta = (opts && opts.cuenta && vence && !vencida) ? cuentaAtras(vence) : '';
     return '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
@@ -2278,7 +2278,7 @@
            contrato: nunca se adivina una factura ni una fecha. */
         var fac = (typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, x, prox.hito, x.moneda) : null;
         var vence = fac && fac.fields && fac.fields.fecha_vencimiento;
-        var vencida = vence && new Date(vence).setHours(23,59,59,999) < Date.now();
+        var vencida = vence && finDelDia(vence) < Date.now();
         var txt = t('ct_prox').replace('{h}', Lx(prox.hito) || '—').replace('{m}', isNaN(prox.monto) ? '—' : dinero(prox.monto, x.moneda)) + ' ' +
           (vence ? t(vencida ? 'ct_prox_vencio' : 'ct_prox_vence').replace('{f}', fecha(vence))
                  : (prox.hito.timing ? t('ct_prox_plazo').replace('{p}', prox.hito.timing) : ''));
@@ -2372,7 +2372,7 @@
   /* Rediseño del 8-oct-2026 (artifact «Lawang Facturas v2», owner: «llévalo al portal real»). Hereda todo lo de la
      tabla anterior (Regla 0 bis): cada documento con su número, tipo, proyecto, fecha e importe, la fila abre el
      documento REAL en el cajón (`#/facturas/NUM` → abreFactura), y el vacío de siempre. Añade el estado de pago
-     (`estadoFactura`, resumen.js, con `aplicado` del servidor y la cascada del contrato), qué recibí salda qué
+     (`estadoFactura`, resumen.js, con `aplicado` del servidor y el cobrado sin aplicar de su contrato), qué recibí salda qué
      factura, el próximo pago (el MISMO bloque de Inicio), el avance por contrato y filtros.
      Nada se calcula aquí que no salga de resumen.js / estadosHitos / facturaDelHito: esta pantalla solo pinta. */
   var TIPO_DOC = { factura:'factura', proforma:'proforma', recibi:'recibi' };
@@ -2383,11 +2383,13 @@
     var facturas = d.facturas;
     var pago = pagoProximo(d), res = pago.res;
 
-    // La cascada de cada contrato que cuenta (sin las Cartas sustituidas), la misma de Inicio y Contratos.
+    // La cascada de cada contrato que cuenta (sin las Cartas sustituidas), la misma de Inicio y Contratos: pinta las barras.
     var conEstados = res.base.map(function(x){ return { contrato:x, estados:estadosHitos(x.hitos, Number(x.cobrado)||0, precioContrato(x)) }; });
-    var casc = cascadaPorFactura(facturas, conEstados);
+    /* El estado de cada factura: lo aplicado a ella + su parte del cobrado SIN aplicar de su contrato (de todos los
+       contratos: el dinero de una Carta también entró). Regla y porqués en resumen.js (saldoSinAplicar). */
+    var extra = saldoSinAplicar(facturas, d.contratos || []);
     var ahora = Date.now(), est = {}, pagadaCon = {};
-    facturas.forEach(function(f){ est[f.id] = estadoFactura(f, casc[f.id], ahora); });
+    facturas.forEach(function(f){ est[f.id] = estadoFactura(f, extra[f.id], ahora); });
     facturas.forEach(function(f){ (f.salda || []).forEach(function(s){ (pagadaCon[s.numero] = pagadaCon[s.numero] || []).push(f.numero); }); });
 
     var soloFacturas = facturas.filter(function(f){ return f.tipo === 'factura'; });

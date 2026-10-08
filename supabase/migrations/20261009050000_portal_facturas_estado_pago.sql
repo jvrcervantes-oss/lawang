@@ -10,8 +10,11 @@
 --  · factura_aplicado() era un oráculo: SECURITY DEFINER, ejecutable por `authenticated` y sin mirar de quién
 --    es la factura — un comprador del portal podía preguntar lo cobrado de cualquier uuid. Ningún front la
 --    llama, pero no se puede revocar (la usan facturas_pendiente_equipo y finanzas_resumen_semanal, que corren
---    como quien llama). Se le pone la guarda: para un usuario del portal, solo sus facturas; si no, null. Igual
---    que contrato_cobrado. Para el equipo y el cron no cambia nada.
+--    como quien llama). Se le pone la guarda: para un usuario del portal que NO es del equipo, solo sus
+--    facturas; si no, null. Hay cuentas que son del equipo y también del portal (20260922150315): sin el
+--    `not es_agente()` les devolvería null en facturas ajenas, el pendiente de la intranet saldría null y el
+--    disparador factura_anulada_solo_cambia_autor dejaría reactivar un recibí sin mirar el tope de la factura
+--    (revisor de código, 8-oct). Para el equipo, las cuentas mixtas y el cron no cambia nada.
 --
 -- Parche sobre la definición en vivo, como las migraciones anteriores de portal_situacion (17-sep, 7-oct):
 -- cada sustitución tiene que encontrar su texto o la migración falla — nunca se aplica a medias.
@@ -24,7 +27,7 @@ security definer
 set search_path to ''
 as $function$
 begin
-  if public.es_portal() and not exists (
+  if public.es_portal() and not public.es_agente() and not exists (
        select 1
          from public.facturas f
          join public.contrato_compradores cc on cc.contrato_id = f.contrato_id

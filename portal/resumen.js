@@ -197,54 +197,64 @@ function sustitutosDe(x, contratos){
 }
 
 /* ── El estado de pago de cada documento de la pantalla Facturas (8-oct-2026) ─────────────────────────────────
-   Dos fuentes, y las dos son verdad a su manera (revisión previa, Administración, 8-oct):
+   Dos fuentes, y ninguna basta sola (revisión previa de Administración y revisor de código, 8-oct):
    · `aplicado` (portal_situacion → factura_aplicado()): lo que los recibís APLICADOS a esa factura han saldado.
      Es la misma suma con la que la intranet calcula lo pendiente de una factura (facturas_pendiente_equipo).
-   · la cascada del contrato (`estadosHitos` sobre `cobrado`): cuenta TODO recibí del contrato, también uno sin
-     aplicar o el de la Carta. Es la que pinta el plan de pagos en Inicio y en Contratos.
-   Si solo se mirara `aplicado`, un recibí sin aplicar dejaría el hito «pagado» en Contratos y su factura
-   «Vencida» aquí: lo peor que se le puede enseñar a quien ya pagó. Así que de cara al comprador una factura está
-   PAGADA si lo dice cualquiera de las dos; y el orden es pagada → vencida → parcial → pendiente.
-   `cascadaPorFactura` dice, por factura, cuántos de sus hitos ha dado la cascada por pagados o empezados. El
-   emparejamiento hito → factura es `facturaDelHito`, el mismo de Inicio y Contratos. */
-function cascadaPorFactura(facturas, contratosConEstados){
-  const mapa = {};
-  (contratosConEstados || []).forEach(c => {
-    (c.estados || []).forEach(y => {
-      const f = facturaDelHito(facturas, c.contrato, y.hito, c.contrato && c.contrato.moneda);
-      if (!f) return;
-      const m = mapa[f.id] || (mapa[f.id] = { n: 0, pagados: 0, parciales: 0 });
-      m.n++;
-      if (y.estado === 'pagado') m.pagados++;
-      else if (y.estado === 'parcial') m.parciales++;
-    });
+   · el dinero del contrato que NO está aplicado a ninguna factura. `contrato_cobrado()` es, por construcción,
+     lo aplicado a las facturas del contrato MÁS el resto sin aplicar de sus recibís; así que ese resto es
+     `cobrado − Σ aplicado` de sus facturas, sin inventar nada.
+   Solo con `aplicado`, un recibí sin aplicar dejaba «Vencida» una factura ya pagada (Administración). Con la
+   cascada de hitos entera, una factura salía «Pagada» con dinero que estaba aplicado a OTRA (revisor). Por eso
+   lo que se reparte es solo el resto sin aplicar, sobre las facturas impagadas del contrato, de la más antigua a
+   la más reciente — el mismo orden en que se cobra un plan de pagos. Orden de estados: pagada → vencida →
+   parcial → pendiente. */
+function saldoSinAplicar(facturas, contratos){
+  const extra = {};
+  (contratos || []).forEach(x => {
+    if (!x || !x.numero) return;
+    const suyas = (facturas || []).filter(f => f && f.tipo === 'factura' && f.contrato_numero === x.numero && f.aplicado != null);
+    const aplicado = suyas.reduce((s, f) => s + (Number(f.aplicado) || 0), 0);
+    let resto = Math.max(0, (Number(x.cobrado) || 0) - aplicado);
+    suyas.slice().sort((a, b) => String(a.fecha || '').localeCompare(String(b.fecha || '')) || String(a.numero || '').localeCompare(String(b.numero || '')))
+      .forEach(f => {
+        if (resto <= 0.005) return;
+        const falta = Math.max(0, Number(f.total) - (Number(f.aplicado) || 0));
+        if (!(falta > 0.005)) return;
+        const usa = Math.min(falta, resto);
+        extra[f.id] = (extra[f.id] || 0) + usa;
+        resto -= usa;
+      });
   });
-  return mapa;
+  return extra;
 }
 
-/* `hoy` es un Date (o ms). Vencida = no pagada y pasado el ÚLTIMO instante del día de vencimiento, igual que
-   Inicio y Contratos (`setHours(23,59,59,999)`). Sin `aplicado` ni cascada no se sabe nada: estado null, y la
-   pantalla no pinta etiqueta — «no sabemos» no es «pendiente» (la regla de importeVencimiento). */
-function estadoFactura(f, casc, hoy){
+/* El último instante de un día «AAAA-MM-DD» en la hora LOCAL de quien mira. `new Date('2026-10-14')` es medianoche
+   UTC: al oeste de Greenwich cae el día 13, y la factura salía vencida un día antes (revisor, 8-oct). */
+function finDelDia(s){
+  if (!s) return NaN;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s).slice(0, 10));
+  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+  return isNaN(d) ? NaN : d.setHours(23, 59, 59, 999);
+}
+
+/* `extra`: lo que le toca de `saldoSinAplicar`. `hoy` es un Date (o ms). Sin `aplicado` no se sabe nada: estado
+   null y la pantalla no pinta etiqueta — «no sabemos» no es «pendiente» (la regla de importeVencimiento). */
+function estadoFactura(f, extra, hoy){
   if (!f) return { estado: null };
   if (f.tipo === 'recibi') return { estado: 'recibo' };
   if (f.tipo === 'proforma') return { estado: 'proforma' };
+  if (f.aplicado == null || f.aplicado === '') return { estado: null };
   const total = Number(f.total);
-  const ap = (f.aplicado == null || f.aplicado === '') ? null : Number(f.aplicado);
-  const conCasc = !!(casc && casc.n > 0);
-  if (ap == null && !conCasc) return { estado: null };
+  if (isNaN(total)) return { estado: null };
+  const cubierto = (Number(f.aplicado) || 0) + (Number(extra) || 0);
   const vence = (f.fields && f.fields.fecha_vencimiento) || null;
-  const pagadaAp = ap != null && !isNaN(total) && ap >= total - 0.005;
-  const pagadaCasc = conCasc && casc.pagados === casc.n;
-  if (pagadaAp || pagadaCasc) return { estado: 'pagada', vence: vence };
-  // Lo que falta solo se dice si sale de `aplicado`: la cascada sabe que un hito está empezado, no cuánto de ESTA factura.
-  const falta = (ap != null && ap > 0.005 && !isNaN(total)) ? Math.max(0, total - ap) : null;
-  const finDia = vence ? new Date(vence).setHours(23, 59, 59, 999) : NaN;
-  if (!isNaN(finDia) && finDia < Number(hoy)) return { estado: 'vencida', vence: vence, falta: falta };
-  const empezada = (ap != null && ap > 0.005) || (conCasc && (casc.pagados + casc.parciales) > 0);
-  return { estado: empezada ? 'parcial' : 'pendiente', vence: vence, falta: falta };
+  if (cubierto >= total - 0.005) return { estado: 'pagada', vence: vence };
+  const falta = cubierto > 0.005 ? Math.max(0, total - cubierto) : null;
+  const fin = finDelDia(vence);
+  if (!isNaN(fin) && fin < Number(hoy)) return { estado: 'vencida', vence: vence, falta: falta };
+  return { estado: cubierto > 0.005 ? 'parcial' : 'pendiente', vence: vence, falta: falta };
 }
 
 if (typeof module !== 'undefined' && module.exports)
   module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe,
-                     cascadaPorFactura, estadoFactura };
+                     saldoSinAplicar, finDelDia, estadoFactura };
