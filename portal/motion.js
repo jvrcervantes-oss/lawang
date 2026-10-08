@@ -19,7 +19,7 @@
  * Se prueba en node con motion.test.js (lo puro) y con el arnés de capturas (lo visual). */
 (function (root) {
   'use strict';
-  var EASE = 'cubic-bezier(.23,1,.32,1)';
+  var EASE = 'cubic-bezier(.23,1,.32,1)', EASE_IO = 'cubic-bezier(.77,0,.175,1)';
   var CLAVE_VISTAS = 'lw-mov-vistas', CLAVE_CAMPANA = 'lw-mov-campana';
 
   /* ── lo puro: se prueba sin navegador ── */
@@ -34,6 +34,13 @@
     return fin * (1 - Math.pow(1 - k, 3));
   }
   function claveVista(seccion, carpeta) { return seccion + '|' + (seccion === 'documentos' ? (carpeta || '') : ''); }
+  /* La ventana de `dest` que ocupa `orig` (rectángulos de getBoundingClientRect), como clip-path: así la portada de la
+     carpeta nace en el sitio y del tamaño de la foto de la tarjeta pulsada y crece hasta ocuparlo todo. Nunca negativo:
+     si la tarjeta queda fuera de la portada, el recorte se queda en el borde. */
+  function recorte(orig, dest, radio) {
+    var n = function (v) { return Math.max(0, Math.round(v)); };
+    return 'inset(' + n(orig.top - dest.top) + 'px ' + n(dest.right - orig.right) + 'px ' + n(dest.bottom - orig.bottom) + 'px ' + n(orig.left - dest.left) + 'px round ' + (radio || 0) + 'px)';
+  }
 
   var PERF = {
     A: { dur: 420, paso: 45, ease: EASE, f: function () { return [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }]; } },
@@ -41,7 +48,7 @@
     D: { dur: 190, paso: 0, ease: 'cubic-bezier(0,0,.58,1)', f: function () { return [{ opacity: 0 }, { opacity: 1 }]; } }
   };
 
-  var M = { formatoDinero: null, _menuY: null };
+  var M = { formatoDinero: null, _menuY: null, _sel: {}, _portada: null };
 
   /* ── lo que toca el navegador ── */
   function reducido() {
@@ -82,7 +89,25 @@
     if (seccion === 'inicio' && v.indexOf('inicio') === -1) { v.push('inicio'); sesion(CLAVE_VISTAS, JSON.stringify(v)); }
     if (!puede() || !c) return;
     var P = PERF[p];
-    Array.prototype.forEach.call(c.children, function (el, i) { anima(el, P.f(), { duration: P.dur, delay: i * P.paso, easing: P.ease, fill: 'backwards' }); });
+    /* Desde una tarjeta de proyecto de Inicio o Mi perfil: la portada de la carpeta crece desde la foto pulsada (el
+       resto entra después y por piezas). Solo si el clic fue hace un momento: atrás/adelante o recargar no lo hacen. */
+    var r = M._portada; M._portada = null;
+    var heroe = seccion === 'documentos' ? c.querySelector(':scope > .dc-heroe') : null, crece = false;
+    if (heroe && r && (Date.now() - r.t) < 2500 && r.w > 0 && r.h > 0) {
+      var d = heroe.getBoundingClientRect();
+      if (d.width > 0) {
+        crece = true;
+        anima(heroe, [{ clipPath: recorte(r, d, 12) }, { clipPath: 'inset(0px 0px 0px 0px round 20px)' }], { duration: 440, easing: EASE_IO });
+        Array.prototype.forEach.call(heroe.querySelectorAll('.dc-heroe-tx, .dc-heroe-acc'), function (el, i) {
+          anima(el, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, delay: 300 + i * 60, easing: EASE, fill: 'backwards' });
+        });
+      }
+    }
+    var i = 0;
+    Array.prototype.forEach.call(c.children, function (el) {
+      if (crece && el === heroe) return;
+      anima(el, P.f(), { duration: P.dur, delay: (crece ? 260 : 0) + (i++) * P.paso, easing: P.ease, fill: 'backwards' });
+    });
     if (p !== 'D') {
       Array.prototype.forEach.call(c.querySelectorAll('.barra > i'), function (el) {
         anima(el, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 800, delay: 350, easing: EASE, fill: 'backwards' });
@@ -151,6 +176,76 @@
     root.setTimeout(acaba, a ? 450 : 0);
   };
 
-  M.perfil = perfil; M.valorCuenta = valorCuenta; M.claveVista = claveVista; M.puede = puede;
+  /* La foto de la tarjeta que se pulsa (Inicio, Mi perfil): la carpeta que se abre la hace crecer desde ahí. */
+  M.recuerdaPortada = function (el) {
+    try { var r = el.getBoundingClientRect(); M._portada = { top: r.top, right: r.right, bottom: r.bottom, left: r.left, w: r.width, h: r.height, t: Date.now() }; } catch (e) { M._portada = null; }
+  };
+
+  /* Selectores (.ini-filtro de proyecto o villa, .lang-sel del idioma): el fondo del elegido se desliza hasta el nuevo
+     en vez de saltar, como el indicador del menú. Cada repintado rehace los botones, así que se recuerda dónde estaba
+     por grupo (zona + los data- de sus botones, nunca un rótulo) y la pista nueva arranca desde ahí. Sin movimiento
+     no se crea pista y el botón elegido conserva su fondo propio. */
+  function claveSel(g, zona) {
+    var b = g.querySelector('button'), a = [];
+    if (b) Array.prototype.forEach.call(b.attributes, function (x) { if (/^data-/.test(x.name)) a.push(x.name); });
+    return (zona || '') + '|' + (g.id || '') + '|' + a.sort().join(',');
+  }
+  M.selectores = function (raiz, zona) {
+    if (!raiz) return;
+    Array.prototype.forEach.call(raiz.querySelectorAll('.ini-filtro, .lang-sel'), function (g) {
+      var on = g.querySelector('button[aria-pressed="true"]'), pista = g.querySelector(':scope > .lw-pista');
+      if (!puede() || !on || !on.offsetWidth) { if (pista) pista.parentNode.removeChild(pista); g.classList.remove('con-pista'); return; }
+      if (!pista) { pista = root.document.createElement('span'); pista.className = 'lw-pista'; pista.setAttribute('aria-hidden', 'true'); g.insertBefore(pista, g.firstChild); }
+      g.classList.add('con-pista');
+      var k = claveSel(g, zona), x = on.offsetLeft, w = on.offsetWidth, antes = M._sel[k];
+      pista.style.top = on.offsetTop + 'px'; pista.style.height = on.offsetHeight + 'px';
+      pista.style.width = w + 'px'; pista.style.transform = 'translateX(' + x + 'px)';
+      if (antes && (antes.x !== x || antes.w !== w)) anima(pista, [{ transform: 'translateX(' + antes.x + 'px)', width: antes.w + 'px' }, { transform: 'translateX(' + x + 'px)', width: w + 'px' }], { duration: 280, easing: EASE });
+      M._sel[k] = { x: x, w: w };
+    });
+  };
+
+  /* Filtrar sin saltos: pinta() rehace la lista de `caja`; lo que se queda (mismo valor de `attr`) se recoloca desde
+     donde estaba, lo que sale se desvanece rápido (una copia quieta encima, que se borra sola) y lo que entra aparece
+     en cascada corta. Con muchas piezas, o sin movimiento, solo se pinta. */
+  M.reordena = function (caja, pinta, attr) {
+    if (!puede() || !caja || caja.querySelectorAll('[' + attr + ']').length > 60) { pinta(); return; }
+    var antes = {}, base = caja.getBoundingClientRect();
+    Array.prototype.forEach.call(caja.querySelectorAll('[' + attr + ']'), function (el) { antes[el.getAttribute(attr)] = { r: el.getBoundingClientRect(), el: el }; });
+    pinta();
+    var quedan = {}, n = 0;
+    Array.prototype.forEach.call(caja.querySelectorAll('[' + attr + ']'), function (el) {
+      var k = el.getAttribute(attr), a = antes[k];
+      if (a) {
+        quedan[k] = true;
+        var r = el.getBoundingClientRect(), dx = a.r.left - r.left, dy = a.r.top - r.top;
+        if (dx || dy) anima(el, [{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }], { duration: 300, easing: EASE_IO });
+      } else {
+        anima(el, [{ opacity: 0, transform: 'translateY(8px) scale(.98)' }, { opacity: 1, transform: 'none' }], { duration: 260, delay: 90 + Math.min(n++, 8) * 30, easing: EASE, fill: 'backwards' });
+      }
+    });
+    Object.keys(antes).forEach(function (k) {
+      if (quedan[k]) return;
+      var a = antes[k], f = a.el.cloneNode(true);
+      f.removeAttribute(attr); f.removeAttribute('id'); f.removeAttribute('href'); f.setAttribute('aria-hidden', 'true'); f.setAttribute('tabindex', '-1');
+      f.style.cssText += ';position:absolute;margin:0;pointer-events:none;left:' + (a.r.left - base.left) + 'px;top:' + (a.r.top - base.top) + 'px;width:' + a.r.width + 'px;height:' + a.r.height + 'px';
+      caja.appendChild(f);
+      anima(f, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.96)' }], { duration: 140, easing: 'ease-out', fill: 'forwards' });
+      root.setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 160);
+    });
+  };
+
+  /* Avisos: el de abajo sube y se asienta; el de error (centro) crece un poco. Se van más rápido de lo que llegan.
+     Devuelve false si no hay movimiento, para que el portal siga con su fundido de siempre. */
+  M.aviso = function (el, entra, mal) {
+    if (!puede() || !el) return false;
+    el.classList.add('lw-aviso');   // sin la transición CSS de opacidad, que ganaría a esta animación
+    var base = mal ? 'translate(-50%,-50%)' : 'translateX(-50%)';
+    if (entra) anima(el, [{ opacity: 0, transform: base + (mal ? ' scale(.94)' : ' translateY(18px)') }, { opacity: 1, transform: base }], { duration: mal ? 220 : 260, easing: EASE });
+    else anima(el, [{ opacity: 1, transform: base }, { opacity: 0, transform: base + (mal ? ' scale(.97)' : ' translateY(8px)') }], { duration: 150, easing: 'ease-in' });
+    return true;
+  };
+
+  M.perfil = perfil; M.valorCuenta = valorCuenta; M.claveVista = claveVista; M.recorte = recorte; M.puede = puede;
   if (typeof module !== 'undefined' && module.exports) module.exports = M; else root.LW_MOV = M;
 })(typeof window !== 'undefined' ? window : this);
