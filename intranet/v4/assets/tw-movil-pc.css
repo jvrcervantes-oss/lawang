@@ -1052,6 +1052,10 @@ select {
   width: 1rem;
 }
 
+.w-40 {
+  width: 10rem;
+}
+
 .w-72 {
   width: 18rem;
 }
@@ -1269,6 +1273,10 @@ select {
 
 .divide-warm-border\/60 > :not([hidden]) ~ :not([hidden]) {
   border-color: rgb(228 220 203 / 0.6);
+}
+
+.self-start {
+  align-self: flex-start;
 }
 
 .overflow-hidden {
