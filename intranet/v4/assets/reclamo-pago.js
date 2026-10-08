@@ -220,9 +220,14 @@
   }
 
   /* ---------- el diálogo ---------- */
+  /* Número de contrato: reclamo_pago_destinatarios aún no lo devuelve (solo contrato_id); si la base lo añade como
+     `contrato_numero`, sale solo. Mientras tanto no se muestra nada: nunca se enseña el uuid. */
+  function contratoTxt(f) {
+    return f.contrato_numero ? '<div class="rp-meta" data-lw="rp-contrato">' + esc(rpT('Contrato %n', { n: f.contrato_numero })) + '</div>' : '';
+  }
   function filaDestinatario(f) {
     if (!f.seleccionable) {
-      return '<li class="rp-fila rp-no" data-lw="rp-dest-no"><span class="rp-quien">' + esc(f.nombre || '—') + '</span>' +
+      return '<li class="rp-fila rp-no" data-lw="rp-dest-no"><span class="rp-quien">' + esc(f.nombre || '—') + '</span>' + contratoTxt(f) +
         '<div class="rp-meta">' + esc(rpT('No se le puede escribir: %m', { m: motivoTxt(f.motivo) })) + '</div></li>';
     }
     var idioma = f.idioma ? String(f.idioma).toLowerCase() : '';
@@ -233,7 +238,7 @@
       ? '<div class="rp-meta" data-lw="rp-ultimo">' + esc(rpT('Último recordatorio: %f · %e', { f: fechaTxt(f.ultimo_reclamo_en), e: estadoTxt(f.ultimo_estado) })) + '</div>' : '';
     return '<li class="rp-fila"><label class="rp-sel"><input type="checkbox" data-rp-cliente="' + esc(f.client_id) + '">' +
       '<span class="rp-cuerpo"><span class="rp-quien">' + esc(f.nombre || '—') + '</span>' +
-      '<div class="rp-meta">' + esc(f.email_oculto || '') + '</div>' + otroIdioma + ultimo + '</span></label></li>';
+      '<div class="rp-meta">' + esc(f.email_oculto || '') + '</div>' + contratoTxt(f) + otroIdioma + ultimo + '</span></label></li>';
   }
 
   function abreDialogo(filas) {

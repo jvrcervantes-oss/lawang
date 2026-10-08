@@ -58,10 +58,10 @@ const STUB = `(function(){
   function ok(d, ms){ return new Promise(function(r){ setTimeout(function(){ r({ data: d, error: null }); }, ms || 0); }); }
   function mal(m, hint, code){ return Promise.resolve({ data: null, error: { message: m, hint: hint || null, code: code || '22023' } }); }
   var DEST = [
-    { contrato_id: 'c1', client_id: 'k-ana', nombre: 'Ana Sol <b>X</b>', email_oculto: 'a***@correo.test', idioma: 'es', seleccionable: true, motivo: null, empresa: 'Lawang', sociedad: 'PT Lawang Tropical Properties', parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: '2026-10-01T09:30:00Z', ultimo_estado: 'enviado', ultimo_enviado_en: '2026-10-01T09:31:00Z' },
+    { contrato_id: 'c1', contrato_numero: 'PPJB-1', client_id: 'k-ana', nombre: 'Ana Sol <b>X</b>', email_oculto: 'a***@correo.test', idioma: 'es', seleccionable: true, motivo: null, empresa: 'Lawang', sociedad: 'PT Lawang Tropical Properties', parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: '2026-10-01T09:30:00Z', ultimo_estado: 'enviado', ultimo_enviado_en: '2026-10-01T09:31:00Z' },
     { contrato_id: 'c3', client_id: 'k-ben', nombre: 'Ben Ocean', email_oculto: 'b***@mail.test', idioma: 'en', seleccionable: true, motivo: null, empresa: 'Lawang', sociedad: 'PT Lawang Tropical Properties', parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: null, ultimo_estado: null, ultimo_enviado_en: null },
     { contrato_id: 'c4', client_id: 'k-carla', nombre: 'Carla Mar', email_oculto: 'c***@mail.test', idioma: null, seleccionable: true, motivo: null, empresa: 'Lawang', sociedad: 'PT Lawang Tropical Properties', parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: null, ultimo_estado: null, ultimo_enviado_en: null },
-    { contrato_id: 'c5', client_id: 'k-dani', nombre: 'Dani Sin Correo', email_oculto: null, idioma: 'es', seleccionable: false, motivo: 'sin_email', empresa: 'Lawang', sociedad: 'PT Lawang Tropical Properties', parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: null, ultimo_estado: null, ultimo_enviado_en: null },
+    { contrato_id: 'c5', contrato_numero: 'PPJB-5', client_id: 'k-dani', nombre: 'Dani Sin Correo', email_oculto: null, idioma: 'es', seleccionable: false, motivo: 'sin_email', empresa: 'Lawang', sociedad: 'PT Lawang Tropical Properties', parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: null, ultimo_estado: null, ultimo_enviado_en: null },
     { contrato_id: 'c6', client_id: null, nombre: null, email_oculto: null, idioma: null, seleccionable: false, motivo: 'sin_ficha', empresa: 'Lawang', sociedad: 'PT Lawang Tropical Properties', parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: null, ultimo_estado: null, ultimo_enviado_en: null }
   ];
   var HIST = [
@@ -194,6 +194,8 @@ const esperaPanel = (page) => page.waitForTimeout(500);
         ok(noSel.length === 2 && noSel.some(x => /Dani/.test(x) && /(correo válido|valid email)/.test(x)) && noSel.some(x => /(ficha de cliente|client record)/.test(x)), t + 'los no seleccionables salen sin casilla y con su motivo');
         ok((await page.locator('#lw-editor [data-lw="rp-idioma"]').count()) === 2, t + 'aviso de idioma para en y para sin idioma, no para es');
         ok(/(español|Spanish)/.test(await page.locator('#lw-editor [data-lw="rp-idioma"]').first().textContent()), t + 'el aviso dice que recibirá el correo en español');
+        const ctr = await page.locator('#lw-editor [data-lw="rp-contrato"]').allTextContents();
+        ok(ctr.length === 2 && ctr[0].trim() === T('Contrato PPJB-1', 'Contract PPJB-1', idioma) && ctr[1].trim() === T('Contrato PPJB-5', 'Contract PPJB-5', idioma), t + 'número de contrato en seleccionable y en no seleccionable (' + ctr.join(' | ') + ')');
         ok((await page.locator('#lw-editor [data-lw="rp-ultimo"]').count()) === 1, t + 'último recordatorio solo como dato (una persona)');
         ok(await page.locator('#lw-editor [data-rp-cliente]:checked').count() === 0, t + 'nadie marcado de salida: se marca a mano');
         const cuerpoDlg = await page.locator('#lw-editor').textContent();
