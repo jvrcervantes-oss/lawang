@@ -35,7 +35,7 @@
 // SIN consola: ni teléfonos, ni textos, ni la URL de la base pasan por los logs de Edge (los lee todo el dashboard 7 días).
 // Los fallos se resumen en un código (`db_conexion`, `db_error`) sin mensaje.
 //
-// Desplegar con --no-verify-jwt (y `verify_jwt = false` en supabase/config.toml). Activación: ACTIVACION.md.
+// Desplegar con --no-verify-jwt (y `verify_jwt = false` en supabase/config.toml). Activación: ACTIVACION.txt.
 
 const env = (k: string) => (Deno.env.get(k) ?? '').trim();
 
@@ -135,11 +135,12 @@ export const DB = {
     try {
       if (!conexion) {
         const postgres = (await import('npm:postgres@3.4.5')).default;
-        conexion = postgres(url, { prepare: false, max: 1, connect_timeout: 8, idle_timeout: 20, onnotice: () => {} });
+        conexion = postgres(url, { ssl: 'require', prepare: false, max: 1, connect_timeout: 8, idle_timeout: 20, onnotice: () => {} });
       }
       const consulta = conexion.unsafe(SQL[clave], args as never[]);
-      const tope = new Promise((_, no) => setTimeout(() => no(new Error('timeout')), AJUSTES.dbTimeoutMs));
-      return await Promise.race([consulta, tope]) as Record<string, unknown>[];
+      let reloj: ReturnType<typeof setTimeout> | undefined;
+      const tope = new Promise((_, no) => { reloj = setTimeout(() => no(new Error('timeout')), AJUSTES.dbTimeoutMs); });
+      try { return await Promise.race([consulta, tope]) as Record<string, unknown>[]; } finally { clearTimeout(reloj); }
     } catch {
       // MUDO A PROPOSITO: el mensaje del driver puede llevar la URL (con la clave) o un teléfono; se resume en un código y la
       // respuesta ya dice que falló la base. Se tira la conexión para que la siguiente petición abra una limpia.
@@ -194,7 +195,7 @@ async function rutaCrm(req: Request): Promise<Response> {
     if (typeof origen !== 'string' || !ORIGENES.includes(origen)) return json({ error: 'origen' }, 400);
     clave = 'lead_upsert'; args = [o.tel, nombre, origen, o.msg_id];
   } else if (accion === 'lead_nota') {
-    const t = texto(o.texto, 1000);
+    const t = texto(o.texto, 1000);   // la base recorta a 500; aqui solo se frena lo desmesurado
     if (typeof t !== 'string' || !t.trim()) return json({ error: 'texto' }, 400);
     clave = 'lead_nota'; args = [o.tel, t, o.msg_id];
   } else {

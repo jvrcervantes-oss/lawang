@@ -1,0 +1,25 @@
+# bot-api — activación (SOLO con el OK escrito del owner)
+
+Estado de entrega (9-oct-2026): edge desplegada **sin secretos** → responde 401 a todo. El rol `bot_lawang` sigue NOLOGIN.
+Activar = poner LOGIN y clave al rol en la base de producción y crear 3 secretos. Es una credencial de la BD de producción: hard-stop de `CLAUDE.md`.
+
+## Por qué no `railway_secreto.py genera`
+`genera` solo activa `agente_piloto`/`agente_tesorero`/`padrino_correo` y sella en Railway. Aquí la clave de la BD vive en los secretos de la **edge**
+(la edge se conecta como `bot_lawang`; `service_role` no tiene EXECUTE sobre las funciones del bot desde la migración de S3). `activa.py` reutiliza
+`clave_aleatoria`, `verificador_scram`, `_railway` y `_psql` de esa herramienta.
+
+## Pasos
+1. Simular (no toca nada):
+   `python supabase/functions/bot-api/activa.py --agencia <clon agencia> --servicio <carpeta de lawang-bot>`
+2. Con el OK: el mismo comando con `--aplica`. Orden: Railway → base → secretos de la edge. Si falla a medias, la edge sigue en 401 hasta tener los 3 secretos.
+3. Verificar (los secretos se leen en cada arranque de isolate; si no se ven, redesplegar con `npx supabase functions deploy bot-api --no-verify-jwt --project-ref vtulllundrfennhjddhc --agent no`):
+   - sin cabecera / cabecera mala / secreto de la otra ruta → 401 en las dos rutas;
+   - `POST /functions/v1/bot-api/catalogo` con el secreto → 200 y `unidades: []` (ninguna casilla `bot_publico` encendida);
+   - `POST …/crm` `{accion:'lead_upsert', tel:'<canario>', msg_id:'wamid.CANARIO-1'}` dos veces → `creado` y `creado` (y UN lead). Con dos peticiones
+     simultáneas (la prueba de concurrencia real, pendiente desde S4) → un solo lead y una sola nota; borrar después el lead canario (el log es append-only).
+4. Los secretos de ruta quedan en las variables `BOT_API_SECRET_CATALOGO` / `BOT_API_SECRET_CRM` de `lawang-bot` (S6 las usa).
+
+## Vuelta atrás (cerrar)
+- Base: `alter role bot_lawang nologin;` y `alter role bot_lawang password null;`.
+- Edge: `supabase secrets unset BOT_DB_URL BOT_API_SECRET_CATALOGO BOT_API_SECRET_CRM --project-ref vtulllundrfennhjddhc` → vuelve a 401 a todo.
+- Railway: quitar las dos variables de `lawang-bot`.

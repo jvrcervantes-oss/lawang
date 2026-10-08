@@ -11,7 +11,7 @@ Que hace, en este orden (si falla un paso, los anteriores no rompen nada: la edg
   3. Base: ALTER ROLE bot_lawang LOGIN PASSWORD '<verificador SCRAM>' CONNECTION LIMIT 5 + statement_timeout 5s (psql por stdin, nunca la clave en claro).
   4. Edge: BOT_DB_URL (pooler, puerto 6543, usuario bot_lawang.<ref>), BOT_API_SECRET_CATALOGO y BOT_API_SECRET_CRM con `supabase secrets set --env-file`
      sobre un fichero temporal que se borra siempre.
-Despues: ver ACTIVACION.md (verificacion y vuelta atras).
+Despues: ver ACTIVACION.txt (verificacion y vuelta atras).
 """
 import importlib.util, os, subprocess, sys, tempfile
 from pathlib import Path
@@ -61,7 +61,7 @@ def main():
             os.remove(ruta)
         except OSError:
             pass   # MUDO A PROPOSITO: si ya no existe no hay nada que borrar
-    print("OK · bot_lawang LOGIN, 3 secretos sellados (valores nunca impresos). Verificar con ACTIVACION.md.")
+    print("OK · bot_lawang LOGIN, 3 secretos sellados (valores nunca impresos). Verificar con ACTIVACION.txt.")
 
 
 if __name__ == "__main__":
