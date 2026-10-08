@@ -37,6 +37,8 @@ RedirectMatch 301 ^/unidades(/.*)?$ /intranet/proyectos$1
 # 6-ago-2026: puerta unica /entrar/ (elige equipo o cliente). 301 para lo que
 # tuviera enlazado o guardado /contracts/login.html.
 Redirect 301 /contracts/login.html /entrar/
+# The Soul: la preview oculta se publico como /thesoul (8-oct-2026).
+Redirect 301 /thesoul-r8v3 /thesoul
 
 # private/ guarda estado de servidor (contadores del rate-limit del login y del
 # formulario de leads). Nunca se sirve: son ficheros con IPs y marcas de tiempo.
