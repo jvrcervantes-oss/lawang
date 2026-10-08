@@ -3249,14 +3249,26 @@
        el pie del cajón se esconde — la × de la cabecera cierra. */
     if (ctx.principal) {
       var pie = ctx.principal.parentNode;
-      ctx.principal.style.cssText = 'flex:0 0 auto;padding:6px 16px;border-radius:999px;border:0;background:' + CAJ.lago +
+      var estiloPie = ctx.principal.style.cssText;   // el del pie del modal: el botón vuelve a él en móvil
+      var estiloBarra = 'flex:0 0 auto;padding:6px 16px;border-radius:999px;border:0;background:' + CAJ.lago +
         ';color:#fff;font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap;line-height:1.3;margin-left:6px';
-      barra.insertBefore(ctx.principal, sp);
+      /* ≤860px (misma frontera que la regla de aseguraEstiloSplitDoc) la barra de la previa se
+         esconde y el pie vuelve: si el botón se quedaba en la barra, en el móvil el pie solo
+         tenía «Cancelar» y NO SE PODÍA EMITIR (owner, 8-oct-2026, desde el móvil). Por eso el
+         botón viaja con la pantalla: barra en ancho, pie en estrecho. */
+      var mq = window.matchMedia ? window.matchMedia('(max-width:860px)') : null;
+      var colocaEmitir = function () {
+        var estrecho = !!(mq && mq.matches);
+        ctx.principal.classList.toggle('lw-doc-emitir-barra', !estrecho);   // la clase lo oculta ≤860: solo vale en la barra
+        if (estrecho) { ctx.principal.style.cssText = estiloPie; pie.appendChild(ctx.principal); }
+        else { ctx.principal.style.cssText = estiloBarra; barra.insertBefore(ctx.principal, sp); }
+      };
+      colocaEmitir();
+      if (mq && mq.addEventListener) mq.addEventListener('change', colocaEmitir);
       // El pie se esconde solo en escritorio (regla en aseguraEstiloSplitDoc):
       // ≤860px la previa se apila BAJO el formulario y Emitir quedaría debajo
       // de veinte campos — ahí el pie vuelve y el botón de la barra se oculta.
       if (pie) pie.classList.add('lw-doc-pie-movido');
-      ctx.principal.classList.add('lw-doc-emitir-barra');
     }
     var bPdf = btn('Descargar PDF', function () { imprimeDoc(ctx.getVals(), ctx.saved); });
     var bMail = btn('Enviar por email', function () { enviaDocMail(ctx.sb, ctx.getVals(), ctx.saved, ctx.alEnviado); });
