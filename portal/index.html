@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="ee55cd25064b">
+<meta name="lw-version" content="e0a6c29f973b">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -2734,7 +2734,9 @@
       }); });
       car.addEventListener('scroll', estadoFlechas, { passive:true });
       // Al girar el móvil o cambiar el ancho, el carrusel cambia de tamaño: las flechas se recalculan solas.
-      if (window.ResizeObserver) new ResizeObserver(estadoFlechas).observe(car); else window.addEventListener('resize', estadoFlechas);
+      // Sin alternativa con window.resize: se sumaría un listener en cada repintado (revisor). Sin ResizeObserver
+      // (navegadores de antes de 2020) las flechas se corrigen igual en cuanto se desliza.
+      if (window.ResizeObserver) new ResizeObserver(estadoFlechas).observe(car);
       estadoFlechas();
     }
   }
