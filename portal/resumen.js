@@ -99,6 +99,50 @@ function resumenPortal(contratos){
   };
 }
 
+/* ── el resumen de UNA parte de los contratos (8-oct-2026, Inicio con filtro de propiedad) ──────────────────
+   Qué es preliminar se decide sobre TODOS los contratos del comprador y luego se filtra, nunca al revés:
+   resumenPortal() sobre los contratos de una sola carpeta trataría como «solo reserva» una Carta cuyo Bloqueo
+   cayó en otra carpeta (LAW-499) y sumaría su cuota otra vez. Así la cifra de «Todas» es siempre la suma de las
+   propiedades (revisión previa de Administración, 8-oct). Mismo motivo que `estaSustituido`: la regla mira
+   todo el comprador.
+   Y no se suman monedas distintas (104 compradores, 1 con contratos en dos monedas, medido el 8-oct): con más
+   de una, `mixta` y las cifras por moneda en `porMoneda`; total/cobrado/pendiente quedan en null para que nadie
+   pinte una suma de euros y rupias. Un contrato sin moneda cuenta como EUR, que es lo que `dinero()` le pinta. */
+function resumenVista(contratos, enVista){
+  const cts = (contratos || []).filter(Boolean);
+  const dentro = typeof enVista === 'function' ? enVista : () => true;
+  const r = resumenPortal(cts);
+  const base = r.base.filter(dentro);
+  const vistos = cts.filter(dentro);
+  const mon = x => x.moneda || 'EUR';
+  const grupos = {}, orden = [];
+  const g = m => { if (!grupos[m]){ grupos[m] = { moneda: m, total: 0, hayPrecio: false, cobrado: 0 }; orden.push(m); } return grupos[m]; };
+  base.forEach(x => {
+    const p = r.soloReserva ? cuotaReserva(x) : precioContrato(x);
+    const k = g(mon(x));
+    if (p != null && !isNaN(p)){ k.total += p; k.hayPrecio = true; }
+  });
+  vistos.forEach(x => { g(mon(x)).cobrado += Number(x.cobrado) || 0; });
+  const porMoneda = orden.map(m => {
+    const k = grupos[m];
+    return { moneda: m, total: k.hayPrecio ? k.total : null, cobrado: k.cobrado,
+             pendiente: k.hayPrecio ? Math.max(0, k.total - k.cobrado) : null };
+  });
+  const mixta = porMoneda.length > 1;
+  const una = porMoneda[0] || { moneda: r.moneda, total: null, cobrado: 0, pendiente: null };
+  return {
+    soloReserva: r.soloReserva,
+    base: base,
+    excluidos: r.excluidos.filter(dentro),
+    mixta: mixta,
+    porMoneda: porMoneda,
+    total: mixta ? null : una.total,
+    cobrado: mixta ? null : una.cobrado,
+    pendiente: mixta ? null : una.pendiente,
+    moneda: mixta ? null : una.moneda,
+  };
+}
+
 /* ── contra qué se mide el avance de UN contrato ───────────────────────────
    El de una Carta todavía sin contrato definitivo es su CUOTA, no el precio de
    la villa: lo exigible hoy son los 2.000 € de la reserva, no los 109.000 € que
@@ -273,5 +317,5 @@ function eligeProximo(cands, hoy){
 }
 
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe,
+  module.exports = { resumenPortal, resumenVista, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe,
                      saldoSinAplicar, finDelDia, estadoFactura, eligeProximo };

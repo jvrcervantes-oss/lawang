@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="d3c57614249a">
+<meta name="lw-version" content="b34a11bfbf98">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261008d"></script>
+<script src="/portal/resumen.js?v=20261008e"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -459,13 +459,6 @@
 
 
   /* próximo pago: la acción principal de Inicio */
-  .hero-pago{ margin-bottom:16px; padding:22px 24px; }
-  .hp-fila{ display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap; }
-  .hp-info{ min-width:0; flex:1 1 260px; }
-  .hp-concepto{ font-size:18px; font-weight:600; }
-  .hp-sub{ font-size:13px; color:var(--ink2); margin-top:4px; }
-  .hp-importe{ font-size:40px; font-weight:600; color:var(--dl); line-height:1; letter-spacing:.01em; font-variant-numeric:tabular-nums; }
-  .hp-acciones{ display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
   .novedad{ display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--pg-hi); font-size:13px; line-height:1.45; }
   .novedad:last-child{ border-bottom:0; }
   .novedad-punto{ width:7px; height:7px; border-radius:50%; flex:none; margin-top:6px; background:#485B37; }
@@ -492,7 +485,6 @@
     table.docs td.num, .tabla-caja td.num{ text-align:right; }
     .tabla-caja td.ir{ justify-content:flex-end; }
     .tabla-caja td.ir::before{ content:none; }
-    .hp-importe{ font-size:34px; }
   }
 
   /* ═══ PROYECTOS, MENÚ MÁS MARCADO, CAMPANA DE LA INTRANET (7-oct-2026) ═══ */
@@ -553,17 +545,6 @@
   :root{ --lw-ease:cubic-bezier(.23,1,.32,1); }
 
   /* próximo pago: bloque lagoon con el importe grande (neutro si no hay pago pendiente) */
-  .hero-pago:not(.vacio){ background:var(--dl); border-color:var(--dl); color:#fff; padding:28px 32px; }
-  .hero-pago:not(.vacio) .rot-bloque{ color:rgba(255,255,255,.85); }
-  .hero-pago:not(.vacio) .hp-concepto{ font-size:20px; }
-  .hero-pago:not(.vacio) .hp-sub{ color:rgba(255,255,255,.85); font-size:13px; }
-  .hero-pago:not(.vacio) .hp-importe{ color:#fff; font-size:clamp(34px,11vw,60px); font-weight:500; letter-spacing:-.01em; white-space:nowrap; }
-  .hero-pago:not(.vacio) .hp-importe.largo{ font-size:clamp(30px,8.5vw,44px); }
-  .hero-pago:not(.vacio) .btn-oscuro{ background:#fff; color:var(--dl); border-color:#fff; }
-  .hero-pago:not(.vacio) .btn-oscuro:hover{ background:#e8f0ee; }
-  .hero-pago:not(.vacio) .btn-borde{ background:transparent; color:#fff; border-color:rgba(255,255,255,.45); }
-  .hero-pago:not(.vacio) .btn-borde:hover{ background:rgba(255,255,255,.1); }
-  .hero-pago:not(.vacio) :focus-visible{ outline-color:#fff; }
 
   /* resumen en un solo panel con filetes */
   .kpis{ gap:0; border:1px solid var(--pg-hi); border-radius:12px; background:var(--rl); overflow:hidden; }
@@ -609,7 +590,6 @@
   /* móvil */
   @media (max-width:880px){
     .titulo-sec h2{ font-size:28px; }
-    .hero-pago:not(.vacio){ padding:22px 20px; }
   }
   @media (max-width:640px){
     .proy-grid.muchos .proy-card:nth-child(n+4){ display:none; }
@@ -653,53 +633,22 @@
   .ini-tarea-tx{ flex:1; min-width:0; font-weight:600; }
   .ini-tarea .btn-oscuro, .ini-tarea .btn-borde{ padding:6px 14px; font-size:13px; flex:none; }
 
-  .hero-pago{ margin-bottom:28px; }
-  .hero-pago + .kpi-nota{ margin:-18px 0 26px; }
-  .hp-vacio{ font-size:14px; color:var(--ink2); margin:4px 0 0; }
-  .hp-pie{ display:grid; grid-template-columns:auto minmax(80px,1fr) auto; gap:20px; align-items:center;
-           margin:24px -24px -22px; padding:14px 24px 16px; border-top:1px solid var(--pg-hi); font-size:13px; color:var(--ink2); }
-  .hp-pie b{ font-weight:600; color:var(--va); font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .hero-pago:not(.vacio) .hp-pie{ margin:26px -32px -28px; padding:16px 32px 18px; border-top-color:rgba(255,255,255,.16); color:rgba(255,255,255,.85); }
-  .hero-pago:not(.vacio) .hp-pie b{ color:#fff; }
-  .hero-pago:not(.vacio) .hp-pie .barra{ background:rgba(255,255,255,.2); }
-  .hero-pago:not(.vacio) .hp-pie .barra i{ background:#fff; }
 
   /* propiedades: tarjeta horizontal en dos columnas; con una sola, a todo el ancho */
-  .proy-grid.ini{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .proy-grid.ini .proy-card{ flex-direction:row; align-items:stretch; }
-  .proy-grid.ini .proy-portada{ aspect-ratio:auto; width:42%; flex:none; min-height:190px; }
-  .proy-grid.ini.uno{ grid-template-columns:1fr; }
   /* con 3 o 5 propiedades la última ocupa la fila entera, en vez de quedar sola en media fila */
   @media (min-width:641px){
-    .proy-grid.ini > .proy-card:last-child:nth-child(odd){ grid-column:1 / -1; }
-    .proy-grid.ini > .proy-card:last-child:nth-child(odd) .proy-portada{ width:56%; aspect-ratio:16/9; min-height:0; }
   }
-  .proy-grid.ini.uno .proy-portada{ width:56%; aspect-ratio:16/9; min-height:0; }
-  .proy-grid.ini .proy-cuerpo{ flex:1; gap:4px; }
   .proy-chips{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; }
   .proy-chip{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; border-radius:999px; padding:3px 9px; background:var(--pg-low); color:var(--out); white-space:nowrap; }
   .proy-chip.obra{ background:#e3eadb; color:#3F5230; }
   .proy-pag{ display:flex; justify-content:space-between; gap:10px; font-size:12px; color:var(--ink2); margin-top:6px; font-variant-numeric:tabular-nums; }
-  .proy-grid.ini .proy-enlace{ margin-top:auto; padding-top:8px; }
 
-  .ini-bajo{ display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:14px; margin-bottom:28px; }
-  .ini-bajo .tarjeta{ margin:0; }
-  .ini-bajo .acceso{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; text-align:left; background:var(--pg-low); border:0; padding:17px 19px; }
-  .ini-bajo .acceso:hover{ background:var(--pg-hi); }
-  .ini-bajo .acceso .t{ font-size:15px; font-weight:500; color:var(--va); }
-  .ini-bajo .acceso .btn-oscuro{ margin-top:auto; padding:7px 16px; font-size:13px; }
 
   @media (max-width:880px){
-    .hero-pago:not(.vacio) .hp-pie{ margin:22px -20px -22px; padding:14px 20px 16px; }
   }
   @media (max-width:640px){
     .ini-tarea{ flex-wrap:wrap; gap:8px 12px; padding:12px 14px; }
     .ini-tarea-tx{ flex:1 1 180px; }
-    .hp-pie{ grid-template-columns:1fr; gap:6px; }
-    .hp-pie .barra{ order:-1; margin-bottom:4px; }
-    .proy-grid.ini{ grid-template-columns:1fr; }
-    .proy-grid.ini .proy-portada, .proy-grid.ini.uno .proy-portada{ width:96px; aspect-ratio:auto; min-height:0; }
-    .ini-bajo{ grid-template-columns:1fr; }
   }
   /* ═══ INICIO IGUAL QUE EL ARTIFACT (7-oct-2026, owner: «igual que el artifact») ═══
      Lo que la primera pasada dejó fuera: escala del saludo y del importe, tareas con su fecha, cabecera de
@@ -734,18 +683,12 @@
   @media (max-width:640px){
     .ini-tarea .btn-oscuro, .ini-tarea .btn-borde{ margin-left:auto; }
   }
-  .hero-pago:not(.vacio) .hp-concepto{ font-size:22px; font-weight:500; }
-  .hero-pago:not(.vacio) .hp-sub{ font-size:13.5px; margin-top:6px; }
-  .hero-pago:not(.vacio) .hp-importe{ font-size:clamp(40px,11vw,62px); font-weight:400; letter-spacing:-.02em; line-height:.95; }
-  .hero-pago:not(.vacio) .hp-importe.largo{ font-size:clamp(30px,8.5vw,44px); }
-  .hero-pago:not(.vacio) .hp-acciones{ margin-top:20px; }
 
   .ini-secc{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:6px 0 12px; }
   .ini-secc h3{ margin:0; font-size:20px; font-weight:500; }
   .ini-link{ background:none; border:0; padding:0; font:inherit; font-size:13px; font-weight:600; color:var(--dl); cursor:pointer; }
   .ini-link:hover{ text-decoration:underline; }
   .ini-link:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; border-radius:4px; }
-  .proy-grid.ini .proy-nombre{ font-size:17px; }
   .proy-chip.firma{ background:#f6e8cc; color:#8C5E10; }
 
   /* portada sin foto: el isotipo sobre el tono del menú (M4), en Inicio y en Documentos */
@@ -755,20 +698,10 @@
     -webkit-mask:url('/assets/img/isotipo.png') center/contain no-repeat; mask:url('/assets/img/isotipo.png') center/contain no-repeat; }
   .proy-sinfoto{ position:absolute; left:0; right:0; bottom:10px; text-align:center; font-size:11px; font-weight:500; color:var(--menu-txt); }
 
-  .ini-nov .nov{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:baseline; padding:11px 0; border-bottom:1px solid var(--pg-hi); font-size:13.5px; line-height:1.45; }
-  .ini-nov .nov:last-child{ border-bottom:0; padding-bottom:0; }
-  .ini-nov .nov small{ font-size:12px; color:var(--out); white-space:nowrap; }
-  .ini-nov .ini-link{ font-size:12.5px; }
-  .ini-sop{ background:var(--pg-low); border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
-  .ini-sop h4{ margin:4px 0 0; font-size:17px; font-weight:500; line-height:1.3; }
-  .ini-sop p{ margin:0; font-size:13px; color:var(--ink2); }
-  .ini-sop .btn-oscuro{ margin-top:auto; }
 
   @media (max-width:880px){ .titulo-sec.ini h2{ font-size:30px; } }
   @media (max-width:640px){
     .proy-sinfoto{ display:none; }
-    .proy-grid.ini .proy-nombre{ font-size:15px; }
-    .hero-pago:not(.vacio) .hp-concepto{ font-size:19px; }
   }
 
   /* ═══ MI PERFIL — artifact «Mi perfil Lawang» (8-oct-2026, owner: «pasarlo al portal») ═══
@@ -801,6 +734,8 @@
   .pf-cifra .rot-bloque{ margin:0 0 6px; }
   .pf-cifra b{ display:block; font-size:26px; font-weight:400; letter-spacing:-.01em; line-height:1.1; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .pf-cifra b small{ font-size:13px; color:var(--out); margin-left:3px; letter-spacing:0; }
+  .pf-cifra .pf-m{ display:block; }
+  .pf-cifra .pf-m + .pf-m{ font-size:.72em; margin-top:4px; }
   .pf-cifra i{ display:block; height:4px; margin:16px -24px 0; }
   .pf-teselas{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
   .pf-tes{ border:0; border-radius:13px; padding:15px 16px 14px; text-align:left; font:inherit; cursor:pointer; display:flex; flex-direction:column;
@@ -1253,6 +1188,175 @@
     .fa-anillo .arco, .fa-mini .arco{ animation:none; }
   }
 
+
+  /* ═══ INICIO TIPO PANEL (8-oct-2026, owner: artifact «Inicio del comprador Lawang», con el imago, el arco continuo y
+     los avisos igualados) ═══
+     Fila 1: lo pagado (ancha) + el próximo pago (el bloque laguna, el momento fuerte de siempre). Fila 2: obra, plan de
+     pagos y novedades. Debajo, las propiedades con portada. Mismos valores del portal: tarjeta blanca con filete, radio
+     12, sin sombras, pastilla en lo pulsable. La cifra del pago es la más grande de la pantalla (revisión de Diseño). */
+  .content.ini-ancho{ max-width:1200px; }
+  .ini-cab{ display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap; margin-bottom:18px; }
+  .ini-cab .titulo-sec{ margin:0; min-width:0; }
+  .ini-filtro{ display:flex; gap:2px; background:#fff; border:1px solid var(--pg-hi); border-radius:999px; padding:4px; max-width:100%; overflow-x:auto; scrollbar-width:none; }
+  .ini-filtro button{ font:inherit; border:0; background:transparent; height:34px; padding:0 15px; border-radius:999px; font-size:13.5px; font-weight:600; color:var(--ink2); white-space:nowrap; cursor:pointer; flex:none; transition:background .2s,color .2s; }
+  .ini-filtro button:hover{ background:var(--pg-low); color:var(--va); }
+  .ini-filtro button[aria-pressed="true"]{ background:#485B37; color:#fff; }
+  .ini-filtro button:focus-visible, .ini-seg button:focus-visible, .ini-ojo:focus-visible, .ini-ir:focus-visible, .ini-losa:focus-visible,
+  .ini-pastilla:focus-visible, .ini-nota:focus-visible, .ini-fila:focus-visible, .ini-leer:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .ini-tareas{ margin-bottom:18px; }
+  .ini-f1{ display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:16px; margin-bottom:18px; }
+  .ini-f1 + .kpi-nota{ margin:-8px 0 18px; }
+  .ini-f2{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-bottom:30px; }
+  .ini-f1 > .tarjeta, .ini-f2 > .tarjeta{ margin:0; background:#fff; border:1px solid var(--pg-hi); border-radius:12px; padding:20px 22px; min-width:0; position:relative; overflow:hidden; }
+  .ini-rot{ font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--out); }
+  /* lo pagado */
+  .ini-pg-cab{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+  .ini-seg{ display:inline-flex; background:var(--pg-low); border-radius:999px; padding:3px; }
+  .ini-seg button{ font:inherit; border:0; background:transparent; height:30px; padding:0 13px; border-radius:999px; font-size:12.5px; font-weight:600; color:var(--ink2); cursor:pointer; white-space:nowrap; }
+  .ini-seg button[aria-pressed="true"]{ background:#fff; color:var(--va); box-shadow:0 0 0 1px var(--pg-hi); }
+  .ini-firm{ text-align:right; }
+  .ini-firm b{ display:block; font-size:17px; font-weight:600; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .ini-cifra-fila{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:22px 0 2px; }
+  .ini-cifra{ font-size:clamp(34px,4.6vw,46px); line-height:1; font-weight:500; letter-spacing:-.02em; color:var(--dl); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ini-cifras{ display:flex; flex-direction:column; gap:4px; }
+  .ini-cifra-m{ font-size:26px; line-height:1.15; font-weight:500; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .ini-cifras.peq .ini-cifra-m{ font-size:22px; }
+  .ini-ojo{ width:32px; height:32px; border-radius:99px; border:0; background:var(--pg-low); color:var(--ink2); display:grid; place-items:center; cursor:pointer; flex:none; }
+  .ini-ojo:hover{ background:var(--pg-hi); }
+  .ini-sub{ font-size:13px; color:var(--ink2); }
+  .ini-prog{ margin-top:18px; }
+  .ini-prog-b{ height:8px; border-radius:99px; background:var(--pg-hi); overflow:hidden; }
+  .ini-prog-b i{ display:block; height:100%; background:#485B37; border-radius:99px; }
+  .ini-prog-l{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:12.5px; color:var(--ink2); margin-top:7px; }
+  .ini-prog-l b{ color:var(--va); font-weight:600; font-variant-numeric:tabular-nums; }
+  .ini-pg-pie{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:24px; }
+  .ini-pg-pie .btn-oscuro, .ini-pg-pie .btn-borde{ min-height:40px; display:inline-flex; align-items:center; }
+  .ini-ir{ margin-left:auto; width:60px; height:60px; border-radius:99px; border:0; background:#e3eadb; color:#485B37; display:grid; place-items:center; cursor:pointer; transition:transform .3s var(--lw-ease); }
+  .ini-ir:hover{ transform:rotate(45deg); }
+  /* próximo pago: bloque laguna con el imago de Lawang al 6 % */
+  .ini-f1 > .ini-pago{ background:var(--dl); border-color:var(--dl); color:#fff; display:flex; flex-direction:column; }
+  .ini-deco{ position:absolute; right:-6px; top:10px; width:150px; aspect-ratio:261/280; background:#fff; opacity:.06; pointer-events:none;
+    -webkit-mask:url('/assets/img/isotipo.png') center/contain no-repeat; mask:url('/assets/img/isotipo.png') center/contain no-repeat; }
+  .ini-pago-cab{ position:relative; }
+  .ini-sello{ display:inline-flex; align-items:center; gap:10px; height:34px; padding:0 15px; border-radius:999px; background:rgba(255,255,255,.14); font-size:11.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+  .ini-sello i{ display:none; }
+  .ini-sello.venc{ background:var(--bad); padding-right:6px; }
+  .ini-sello.venc i{ display:grid; place-items:center; width:24px; height:24px; border-radius:99px; background:#fff; color:var(--bad); font-style:normal; font-weight:700; font-size:13px; letter-spacing:0; }
+  .ini-pago-concepto{ margin-top:20px; font-size:19px; font-weight:600; position:relative; }
+  .ini-pago-sub{ font-size:13px; color:rgba(255,255,255,.82); position:relative; }
+  .ini-pago-fila{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:12px; position:relative; }
+  .ini-pago-imp{ font-size:clamp(40px,5.4vw,58px); line-height:1; font-weight:500; letter-spacing:-.02em; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .ini-pago-imp.largo{ font-size:clamp(30px,4vw,44px); }
+  .ini-chip{ display:inline-flex; align-items:center; height:26px; padding:0 11px; border-radius:999px; background:#fff; color:var(--dl); font-size:12px; font-weight:700; white-space:nowrap; }
+  .ini-chip.rojo{ color:var(--bad); }
+  .ini-losas{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:auto; padding-top:20px; position:relative; }
+  .ini-losa{ font:inherit; color:#fff; text-align:left; border:0; cursor:pointer; background:rgba(255,255,255,.1); border-radius:12px; padding:11px 13px; display:flex; flex-direction:column; gap:2px; min-width:0; height:100%; transition:background .15s; }
+  .ini-losa:hover{ background:rgba(255,255,255,.17); }
+  .ini-losa-t{ display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.78); }
+  .ini-losa b{ font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ini-losa small{ font-size:12px; color:rgba(255,255,255,.78); }
+  .ini-pago.al-dia{ display:flex; flex-direction:column; }
+  .ini-al-dia{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin:auto 0; padding-top:16px; }
+  .ini-al-dia-i{ color:#485B37; }
+  .ini-al-dia-i svg{ width:38px; height:38px; }
+  .ini-al-dia b{ font-size:22px; font-weight:500; }
+  .ini-al-dia p{ margin:0; font-size:14px; color:var(--ink2); }
+  /* cabecera de las tarjetas de la fila 2: icono, título y control, todos de 34 px */
+  .ini-th{ display:flex; align-items:center; gap:12px; margin-bottom:16px; min-height:34px; }
+  .ini-th h3{ margin:0; font-size:16px; font-weight:600; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ini-ti{ width:34px; height:34px; border-radius:99px; border:1px solid var(--pg-hi); display:grid; place-items:center; flex:none; color:var(--dl); }
+  .ini-pastilla{ font:inherit; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 13px; border-radius:999px; border:1px solid var(--linea); background:#fff; font-size:12.5px; font-weight:600; white-space:nowrap; color:var(--va); }
+  button.ini-pastilla{ cursor:pointer; }
+  button.ini-pastilla:hover{ background:var(--pg-low); }
+  /* obra: arco continuo */
+  .ini-anillo{ position:relative; width:170px; aspect-ratio:1; max-width:100%; margin:0 auto 12px; }
+  .ini-anillo svg{ width:100%; height:100%; display:block; overflow:visible; }
+  .ini-anillo-mid{ position:absolute; inset:0; display:grid; place-content:center; text-align:center; padding:0 24px; }
+  .ini-anillo-mid b{ font-size:22px; font-weight:500; line-height:1.15; overflow-wrap:anywhere; }
+  .ini-anillo-mid small{ font-size:12px; color:var(--ink2); font-weight:600; }
+  .ini-dib{ animation:ini-dib 1.4s var(--lw-ease) both; }
+  @keyframes ini-dib{ from{ stroke-dashoffset:var(--desde); } }
+  .ini-pop{ animation:ini-pop .5s var(--lw-ease) 1.1s both; transform-box:fill-box; transform-origin:center; }
+  @keyframes ini-pop{ from{ transform:scale(0); opacity:0; } }
+  .ini-quieto .ini-dib, .ini-quieto .ini-pop{ animation:none; }
+  .ini-nota{ font:inherit; display:flex; align-items:center; gap:6px; margin:0 auto 14px; width:fit-content; max-width:100%; border:1px solid var(--pg-hi); background:#fff; border-radius:999px; padding:4px 12px; font-size:12px; line-height:1.4; color:var(--va); cursor:pointer; text-align:left; }
+  .ini-nota svg{ color:#485B37; flex:none; }
+  .ini-nota b{ color:#485B37; font-weight:600; }
+  .ini-nota.sin{ cursor:default; color:var(--out); }
+  .ini-fases{ display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; font-size:12.5px; }
+  .ini-fases div{ display:flex; align-items:center; gap:7px; color:var(--out); min-width:0; }
+  .ini-fases svg{ flex:none; color:#c5c8bc; }
+  .ini-fases .hecha{ color:var(--ink2); }
+  .ini-fases .hecha svg{ color:#485B37; }
+  .ini-fases .actual{ color:var(--va); font-weight:600; }
+  .ini-fases .actual svg{ color:var(--dl); }
+  .ini-vacio{ font-size:13px; color:var(--out); text-align:center; margin:4px 0 8px; }
+  .ini-vacio.izq{ text-align:left; }
+  /* plan de pagos */
+  .ini-meta{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; font-size:12.5px; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .ini-meta u{ display:block; width:96px; height:3px; border-radius:9px; background:var(--pg-hi); overflow:hidden; text-decoration:none; }
+  .ini-meta u i{ display:block; height:100%; background:#42210B; }
+  .ini-grande{ font-size:32px; line-height:1.1; font-weight:500; letter-spacing:-.01em; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .ini-barras{ display:flex; flex-direction:column; gap:15px; margin-top:18px; }
+  .ini-bh{ display:flex; justify-content:space-between; gap:10px; font-size:13px; margin-bottom:6px; color:var(--ink2); }
+  .ini-bh span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ini-bh b{ font-weight:500; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .ini-br.dest .ini-bh{ color:var(--va); font-weight:600; }
+  .ini-br.dest .ini-bh b{ font-weight:600; }
+  .ini-bt{ height:8px; border-radius:99px; background:var(--pg-hi); position:relative; }
+  .ini-bt.sin{ background:repeating-linear-gradient(90deg,var(--pg-hi) 0 6px,transparent 6px 10px); }
+  .ini-bt i{ display:block; height:100%; border-radius:99px; background:#8F9B7A; }
+  .ini-bt i.lleno{ background:#485B37; }
+  .ini-bt em{ position:absolute; top:50%; transform:translate(-50%,-50%); background:#485B37; color:#fff; font-style:normal; font-size:10.5px; font-weight:700; line-height:1; border-radius:99px; padding:5px 9px; white-space:nowrap; }
+  .ini-bt em.rojo{ background:var(--bad); }
+  /* novedades */
+  .ini-resp{ display:flex; align-items:center; gap:12px; border:1px solid var(--pg-hi); border-radius:12px; padding:10px 12px; margin-bottom:4px; }
+  .ini-resp .ini-tx b{ white-space:normal; }
+  .ini-resp .ini-tx small{ color:#485B37; font-weight:600; }
+  .ini-fila{ font:inherit; color:inherit; width:100%; text-align:left; background:none; border:0; border-bottom:1px solid var(--pg-low); display:flex; align-items:center; gap:12px; padding:11px 2px; cursor:pointer; }
+  .ini-fila:last-of-type{ border-bottom:0; }
+  .ini-fila:hover .ini-tx b{ color:var(--dl); }
+  .ini-ic{ width:38px; height:38px; border-radius:99px; border:1px solid var(--pg-hi); display:grid; place-items:center; flex:none; color:var(--dl); }
+  .ini-tx{ flex:1; min-width:0; }
+  .ini-tx b{ display:block; font-size:14px; line-height:1.35; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ini-tx small{ display:block; font-size:12px; line-height:1.35; color:var(--out); }
+  .ini-imp{ font-size:14px; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .ini-imp.ok{ color:var(--ok); }
+  .ini-leer{ font:inherit; height:34px; padding:0 14px; border-radius:999px; border:0; background:#e3eadb; color:var(--ok); font-size:12.5px; font-weight:600; flex:none; cursor:pointer; }
+  .ini-leer:hover{ background:#d3dfc6; }
+  .ini-sop{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:12px; padding-top:12px; border-top:1px solid var(--pg-hi); font-size:13px; color:var(--ink2); }
+  /* propiedades: cuatro columnas; la barra de pagado siempre a la misma altura */
+  .proy-grid.ini4{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .proy-grid.ini4 .proy-cuerpo{ flex:1; }
+  .proy-pie{ margin-top:auto; display:flex; flex-direction:column; gap:4px; padding-top:6px; }
+  /* avisos: la pastilla de días y el botón igual de anchos y altos en todas las filas (owner, 8-oct) */
+  .ini-tarea-cuenta, .ini-tarea .btn-oscuro, .ini-tarea .btn-borde{ height:34px; }
+  @media (min-width:641px){ .proy-grid.ini4.muchos .proy-card:nth-child(n+7){ display:flex; } .proy-grid.ini4.muchos .proy-card:nth-child(n+9){ display:none; } }
+  @media (max-width:1180px){
+    .ini-f2{ grid-template-columns:1fr 1fr; }
+    .ini-f2 > .tarjeta:last-child{ grid-column:1 / -1; }
+    .proy-grid.ini4{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media (max-width:880px){
+    /* táctil: 44 px por debajo del escritorio (revisión de Diseño) */
+    .ini-tarea-cuenta, .ini-tarea .btn-oscuro, .ini-tarea .btn-borde, .ini-filtro button, .ini-pg-pie .btn-oscuro, .ini-pg-pie .btn-borde, .ini-leer{ min-height:44px; height:auto; }
+    .ini-cab{ flex-direction:column; align-items:stretch; }
+  }
+  @media (max-width:760px){
+    .ini-f1, .ini-f2{ grid-template-columns:1fr; }
+    .ini-f2 > .tarjeta:last-child{ grid-column:auto; }
+  }
+  @media (max-width:640px){
+    .proy-grid.ini4{ grid-template-columns:1fr; }
+    .ini-f1 > .tarjeta, .ini-f2 > .tarjeta{ padding:18px 16px; }
+    .ini-losas{ grid-template-columns:1fr; }
+    .ini-ir{ width:48px; height:48px; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .ini-dib, .ini-pop{ animation:none; }
+    .ini-ir, .ini-filtro button, .ini-losa{ transition:none; }
+    .ini-ir:hover{ transform:none; }
+  }
 </style>
 </head>
 <body>
@@ -1462,6 +1566,7 @@
          todos_proyectos:'Todos los proyectos', n_docs_1:'1 documento', n_docs_n:'{n} documentos', sin_docs_proyecto:'Sin documentos todavía',
          entrega_proyecto:'Entrega estimada', pagado_de:'{a} de {b} pagado', descargar_carpeta:'Descargar carpeta', fase_obra:'Obra',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Técnico', doc_cat_comercial:'Comercial', doc_cat_fotos:'Fotos', doc_cat_planos:'Planos', doc_cat_precios:'Precios', doc_cat_faq:'Preguntas frecuentes', ver_facturas:'Ver mis facturas',
+         ini_filtro:'Propiedad', ini_todas:'Todas', ini_mixta:'Tus contratos están en varias monedas: cada una se cuenta por separado.', ini_pct_inv:'{n} % de tu inversión total', ini_nada_pend:'No te queda nada por pagar', ini_sub_pend:'Lo que queda por pagar de tus contratos', ini_sub_total:'La suma de tus contratos', ini_sub_cuota:'La cuota de tu reserva', ini_que_cifra:'Qué cifra ver', ini_firmados:'Contratos firmados', ini_x_de_y:'{a} de {b}', ini_ocultar:'Ocultar importes', ini_mostrar:'Mostrar importes', ini_ir_contratos:'Ir a Contratos', ini_al_dia:'Estás al día', ini_vencido:'Vencido', ini_vencido_m:'vencido', ini_siguiente:'siguiente', ini_hace_dia:'hace 1 día', ini_hace_dias:'hace {n} días', ini_hoy:'vence hoy', ini_en_dia:'en 1 día', ini_en_dias:'en {n} días', ini_factura:'Factura', ini_sin_factura:'Factura aún no emitida', ini_despues:'Después', ini_otro_contrato:'Otro contrato', ini_ultimo_pago:'Es el último pago', ini_sin_importe:'sin importe', ini_obra:'Tu obra', ini_sin_obra:'La obra todavía no ha empezado. Te avisaremos con la primera foto.', ini_cambiar_villa:'Cambiar de villa', ini_fase_n:'Fase {a} de {b}', ini_ultima_fase:'Última fase', ini_sin_fotos:'Aún no hay fotos de la obra', ini_por_prop:'Por propiedad', ini_pend_pagar:'pendiente de pagar', ini_sin_hitos:'Todavía no hay un plan de pagos para esta propiedad.', ini_respondio:'El equipo te ha respondido', ini_leer:'Leer', ini_nada_nuevo:'Nada nuevo por ahora.', ini_nota_carta:'Lo pagado con tu Carta de Reserva cuenta como pagado del total de tus contratos definitivos, en «Todas».',
          obra_ultimo:'Lo último de tu obra',
          doc_buscar:'Buscar un documento…', doc_todo:'Descargar todo', doc_zip_prep:'Preparando…',
          doc_zip_err:'No hemos podido preparar la descarga. Inténtalo de nuevo o abre los documentos de uno en uno.',
@@ -1558,6 +1663,7 @@
          todos_proyectos:'All projects', n_docs_1:'1 document', n_docs_n:'{n} documents', sin_docs_proyecto:'No documents yet',
          entrega_proyecto:'Estimated handover', pagado_de:'{a} of {b} paid', descargar_carpeta:'Download folder', fase_obra:'Construction',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Technical', doc_cat_comercial:'Commercial', doc_cat_fotos:'Photos', doc_cat_planos:'Plans', doc_cat_precios:'Prices', doc_cat_faq:'FAQ', ver_facturas:'View my invoices',
+         ini_filtro:'Property', ini_todas:'All', ini_mixta:'Your contracts are in more than one currency: each is counted separately.', ini_pct_inv:'{n}% of your total investment', ini_nada_pend:'Nothing left to pay', ini_sub_pend:'What is left to pay on your contracts', ini_sub_total:'The total of your contracts', ini_sub_cuota:'Your reservation fee', ini_que_cifra:'Which figure to show', ini_firmados:'Signed contracts', ini_x_de_y:'{a} of {b}', ini_ocultar:'Hide amounts', ini_mostrar:'Show amounts', ini_ir_contratos:'Go to Contracts', ini_al_dia:'You are up to date', ini_vencido:'Overdue', ini_vencido_m:'overdue', ini_siguiente:'next', ini_hace_dia:'1 day ago', ini_hace_dias:'{n} days ago', ini_hoy:'due today', ini_en_dia:'in 1 day', ini_en_dias:'in {n} days', ini_factura:'Invoice', ini_sin_factura:'Invoice not issued yet', ini_despues:'After that', ini_otro_contrato:'Another contract', ini_ultimo_pago:'This is the last payment', ini_sin_importe:'no amount', ini_obra:'Your construction', ini_sin_obra:'Construction has not started yet. We will let you know with the first photo.', ini_cambiar_villa:'Switch villa', ini_fase_n:'Stage {a} of {b}', ini_ultima_fase:'Final stage', ini_sin_fotos:'No construction photos yet', ini_por_prop:'By property', ini_pend_pagar:'left to pay', ini_sin_hitos:'There is no payment plan for this property yet.', ini_respondio:'The team has replied', ini_leer:'Read', ini_nada_nuevo:'Nothing new for now.', ini_nota_carta:'What you paid with your Reservation Letter counts towards the total of your final contracts, under «All».',
          obra_ultimo:'Latest from your build',
          doc_buscar:'Search a document…', doc_todo:'Download all', doc_zip_prep:'Preparing…',
          doc_zip_err:'We could not prepare the download. Try again or open the documents one by one.',
@@ -1658,6 +1764,7 @@
          todos_proyectos:'Semua proyek', n_docs_1:'1 dokumen', n_docs_n:'{n} dokumen', sin_docs_proyecto:'Belum ada dokumen',
          entrega_proyecto:'Perkiraan serah terima', pagado_de:'{a} dari {b} lunas', descargar_carpeta:'Unduh folder', fase_obra:'Pembangunan',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Teknis', doc_cat_comercial:'Komersial', doc_cat_fotos:'Foto', doc_cat_planos:'Denah', doc_cat_precios:'Harga', doc_cat_faq:'Pertanyaan umum', ver_facturas:'Lihat faktur saya',
+         ini_filtro:'Properti', ini_todas:'Semua', ini_mixta:'Kontrak Anda memakai lebih dari satu mata uang: masing-masing dihitung terpisah.', ini_pct_inv:'{n}% dari total investasi Anda', ini_nada_pend:'Tidak ada lagi yang harus dibayar', ini_sub_pend:'Sisa yang harus dibayar dari kontrak Anda', ini_sub_total:'Total kontrak Anda', ini_sub_cuota:'Biaya reservasi Anda', ini_que_cifra:'Angka yang ditampilkan', ini_firmados:'Kontrak ditandatangani', ini_x_de_y:'{a} dari {b}', ini_ocultar:'Sembunyikan jumlah', ini_mostrar:'Tampilkan jumlah', ini_ir_contratos:'Buka Kontrak', ini_al_dia:'Tidak ada tagihan tertunda', ini_vencido:'Lewat jatuh tempo', ini_vencido_m:'lewat tempo', ini_siguiente:'berikutnya', ini_hace_dia:'1 hari lalu', ini_hace_dias:'{n} hari lalu', ini_hoy:'jatuh tempo hari ini', ini_en_dia:'dalam 1 hari', ini_en_dias:'dalam {n} hari', ini_factura:'Faktur', ini_sin_factura:'Faktur belum diterbitkan', ini_despues:'Setelah itu', ini_otro_contrato:'Kontrak lain', ini_ultimo_pago:'Ini pembayaran terakhir', ini_sin_importe:'tanpa jumlah', ini_obra:'Pembangunan Anda', ini_sin_obra:'Pembangunan belum dimulai. Kami akan mengabari Anda dengan foto pertama.', ini_cambiar_villa:'Ganti vila', ini_fase_n:'Tahap {a} dari {b}', ini_ultima_fase:'Tahap terakhir', ini_sin_fotos:'Belum ada foto pembangunan', ini_por_prop:'Per properti', ini_pend_pagar:'belum dibayar', ini_sin_hitos:'Belum ada jadwal pembayaran untuk properti ini.', ini_respondio:'Tim sudah membalas', ini_leer:'Baca', ini_nada_nuevo:'Belum ada kabar baru.', ini_nota_carta:'Pembayaran dengan Surat Reservasi Anda dihitung dari total kontrak final Anda, di «Semua».',
          obra_ultimo:'Terbaru dari pembangunan Anda',
          doc_buscar:'Cari dokumen…', doc_todo:'Unduh semua', doc_zip_prep:'Menyiapkan…',
          doc_zip_err:'Kami tidak dapat menyiapkan unduhan. Coba lagi atau buka dokumen satu per satu.',
@@ -1746,12 +1853,12 @@
     return (hitos || []).map(function(h){
       var m = num(h.monto);
       if (isNaN(m)){ var p = num(h.pct); m = (!isNaN(p) && precio) ? precio * p / 100 : NaN; }
-      var est;
+      var est, cub = 0;   // cub: cuánto de este hito cubre lo cobrado (lo pinta la barra de Inicio; 8-oct-2026)
       if (isNaN(m)) est = 'pendiente';
-      else if (resto >= m - 0.005){ est = 'pagado'; resto -= m; }
-      else if (resto > 0.005){ est = 'parcial'; resto = 0; }
+      else if (resto >= m - 0.005){ est = 'pagado'; cub = m; resto -= m; }
+      else if (resto > 0.005){ est = 'parcial'; cub = resto; resto = 0; }
       else est = 'pendiente';
-      return { hito:h, monto:m, estado:est };
+      return { hito:h, monto:m, estado:est, cubierto:cub };
     });
   }
   var TAGCOLOR = { pagado:['rgba(63,82,48,.12)','var(--ok)'], parcial:['rgba(143,155,122,.25)','var(--tg)'],
@@ -2022,17 +2129,18 @@
      obra actualizada, KYC por caducar), no una tabla de eventos aparte:
      el "visto hasta" real vive en preferencias_comprador y lo devuelve
      portal_situacion() en DATOS.prefs.notif_visto_hasta. ══ */
-  function novedadesDerivadas(){
+  function novedadesDerivadas(filtro){   // filtro (opcional): qué facturas y obras cuentan — el Inicio filtrado por propiedad
     var d = DATOS; if (!d) return [];
-    var lista = [];
-    (d.facturas || []).slice(0, 3).forEach(function(f){
+    var lista = [], vale = typeof filtro === 'function' ? filtro : function(){ return true; };
+    (d.facturas || []).filter(vale).slice(0, 3).forEach(function(f){
       lista.push({ tipo:'factura', numero:f.numero, texto: (f.tipo === 'factura' ? t('nov_factura') : '') + f.numero,
-                   fecha: f.fecha, cuando: new Date(f.fecha || 0) });
+                   fecha: f.fecha, cuando: new Date(f.fecha || 0),
+                   contrato_id: f.contrato_id || null, contrato_numero: f.contrato_numero || null, importe: f.total, moneda: f.moneda, ftipo: f.tipo });
     });
-    (d.obra || []).forEach(function(o){
+    (d.obra || []).filter(vale).forEach(function(o){
       var ult = (o.fotos || [])[0];   // portal_situacion las da de la más nueva a la más vieja
       if (o.actualizado) lista.push({ tipo:'obra', texto: (ult && ult.titulo) ? t('nov_obra_foto').replace('{u}', o.unidad).replace('{t}', ult.titulo) : t('nov_obra') + o.unidad,
-                                       fecha: o.actualizado, cuando: new Date(o.actualizado) });
+                                       fecha: o.actualizado, cuando: new Date(o.actualizado), contrato_numero: o.contrato_numero || null });
     });
     kycCaducan(d).forEach(function(k){
       var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
@@ -2087,6 +2195,8 @@
     var fns = { inicio:pintaInicio, contratos:pintaContratos, facturas:pintaFacturas, obra:pintaObra,
                 documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
     c.innerHTML = '';
+    c.classList.toggle('ini-ancho', ESTADO.section === 'inicio');   // el Inicio tipo panel usa más ancho (8-oct-2026)
+    c.classList.remove('ini-quieto');
     (fns[ESTADO.section] || pintaInicio)(c);
     /* Movimiento (motion.js). Se anima solo si cambia la clave «sección|carpeta»: un repintado por idioma, por recarga
        de datos, al abrir o cerrar un documento o un cajón NO la cambia y no mueve nada. */
@@ -2094,6 +2204,7 @@
       if (window.LW_MOV){
         var clave = LW_MOV.claveVista(ESTADO.section, leeHash().doc);
         var cambia = clave !== ULTIMA_VISTA; ULTIMA_VISTA = clave;
+        c.classList.toggle('ini-quieto', !cambia);   // el arco de obra se dibuja al llegar a Inicio, no al repintar por idioma o datos (revisor, 8-oct)
         LW_MOV.menu(document.getElementById('nav'), cambia);
         if (cambia) LW_MOV.pantalla(c, ESTADO.section);
       }
@@ -2142,9 +2253,12 @@
 
   /* ── El próximo pago del comprador — lo pintan Inicio y Facturas (8-oct-2026) ──
      Salió de pintaInicio cuando Facturas pasó a enseñarlo también: copiado, el día que una de las dos pantallas
-     cambiara la regla dirían dos cifras distintas del mismo pago (la lección de operaciones/, 14-ago). */
-  function pagoProximo(d){
-    var res = resumenPortal(d.contratos || []);
+     cambiara la regla dirían dos cifras distintas del mismo pago (la lección de operaciones/, 14-ago).
+     `enVista` (opcional, Inicio con filtro de propiedad): solo cuentan los contratos de esa vista, y lo que es
+     preliminar se decide sobre todos. Las dos pantallas cuentan con resumenVista (resumen.js): sin filtro da lo mismo
+     que resumenPortal, salvo que no suma monedas distintas (revisor, 8-oct: Inicio y Facturas no pueden discrepar). */
+  function pagoProximo(d, enVista){
+    var res = resumenVista(d.contratos || [], enVista);
     // Solo los contratos que SÍ cuentan: el calendario de una Carta sustituida
     // son los mismos hitos que ya trae su Bloqueo, y reclamarlo aquí pediría dos
     // veces el mismo pago.
@@ -2153,43 +2267,28 @@
        la lista: nunca se adivina una factura ni una fecha. Entre contratos, manda la vencida (eligeProximo). */
     var cands = res.base.map(function(x){
       var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
-      var proximo = proximoDe(x, estadosHitos(x.hitos, Number(x.cobrado)||0, precio));
+      var hs = estadosHitos(x.hitos, Number(x.cobrado)||0, precio);
+      var proximo = proximoDe(x, hs);
       var factProx = (proximo && typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, { id:proximo.contratoId, numero:proximo.contrato }, proximo.hito, proximo.moneda) : null;
-      return { proximo:proximo, factProx:factProx, vence:(factProx && factProx.fields && factProx.fields.fecha_vencimiento) || null };
+      return { proximo:proximo, factProx:factProx, vence:(factProx && factProx.fields && factProx.fields.fecha_vencimiento) || null, contrato:x, hs:hs };
     });
     var elegido = eligeProximo(cands, Date.now()) || { proximo:null, factProx:null, vence:null };
-    return { res:res, proximo:elegido.proximo, factProx:elegido.factProx, vence:elegido.vence };
+    return { res:res, proximo:elegido.proximo, factProx:elegido.factProx, vence:elegido.vence, elegido:elegido, cands:cands };
   }
-  function heroPagoHTML(pago){
-    var res = pago.res, proximo = pago.proximo, factProx = pago.factProx, vence = pago.vence;
-    var tot = res.total, cob = res.cobrado, mon = res.moneda;
-    var hayResumen = tot != null && tot > 0;
-    var pctTot = hayResumen ? Math.min(100, Math.floor((cob || 0) / tot * 100)) : 0;
-    var pieResumen = hayResumen
-      ? '<div class="hp-pie"><span>' + esc(t('r_pagado')) + ' <b>' + esc(dinero(cob,mon)) + '</b></span>' +
-          '<div class="barra"><i style="width:' + pctTot + '%"></i></div>' +
-          '<span>' + esc(t('r_pendiente')) + ' <b>' + esc(dinero(res.pendiente,mon)) + '</b> · ' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + ' ' + esc(dinero(tot,mon)) + '</span></div>'
-      : '';
-    var impTxt = (proximo && !isNaN(proximo.monto)) ? dinero(proximo.monto, proximo.moneda) : '—';
-    var subPago = proximo ? [proximo.proyecto, proximo.parcela].filter(Boolean).map(esc).join(' · ') : '';
-    var vencida = vence && finDelDia(vence) < Date.now();
-    var cuandoPago = proximo ? (vence ? esc(t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(vence))) : esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato)) : '';
-    return '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
-      (proximo ?
-        '<div class="hp-fila"><div class="hp-info"><div class="hp-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
-          '<div class="hp-sub">' + (subPago ? subPago + ' · ' : '') + cuandoPago + '</div></div>' +
-          '<div class="hp-importe' + (impTxt.length > 11 ? ' largo' : '') + '"' + (isNaN(proximo.monto) ? '' : ' data-cuenta="' + proximo.monto + '" data-moneda="' + esc(proximo.moneda || '') + '"') + '>' + esc(impTxt) + '</div></div>' +
-        '<div class="hp-acciones">' +
-          (factProx ? '<button type="button" class="btn-oscuro" data-ir-fac="' + esc(factProx.numero) + '">' + esc(t('ver_factura_n').replace('{n}', factProx.numero)) + '</button>'
-                    : '<button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>') +
-          '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('plan_pagos')) + '</button></div>'
-        : '<p class="hp-vacio">' + esc(t('sin_proximo')) + '</p>') +
-      pieResumen + '</div>';
+  /* El estado de la factura del próximo pago, el MISMO que pinta su fila en Facturas (aplicado + resto sin aplicar,
+     estadoFactura en resumen.js). «Vencida» sale de aquí en Inicio y en Facturas, nunca solo de la fecha: una factura
+     ya cubierta no se anuncia vencida aunque el reparto por hitos la siga viendo pendiente (revisor, 8-oct). */
+  function estadoPagoProximo(pago, d){
+    var f = pago && pago.factProx;
+    if (!f) return null;
+    return estadoFactura(f, saldoSinAplicar(d.facturas, d.contratos || [])[f.id], Date.now()).estado;
   }
   /* Una cifra que no cuadra con su propio rótulo es una cifra en la que se deja de confiar (la lección de
      /intranet/operaciones/, 14-ago-2026): las notas del resumen van debajo del bloque, en las dos pantallas. */
   function notaResumenHTML(res){
-    if (!(res.total != null && res.total > 0)) return '';
+    // Con varias monedas no hay total único, pero la nota sigue haciendo falta si alguna moneda tiene precio (revisor, 8-oct).
+    var hay = res.mixta ? (res.porMoneda || []).some(function(m){ return m.total != null && m.total > 0; }) : (res.total != null && res.total > 0);
+    if (!hay) return '';
     return res.soloReserva
         ? '<p class="kpi-nota">' + esc(t('nota_solo_reserva')) + '</p>'
         : (res.excluidos.length
@@ -2205,14 +2304,15 @@
     (d.firma_pendiente || []).forEach(function(fp){ m[fp.contrato_id] = true; });
     return m;
   }
-  function tarjetaPropiedad(f, d, conFirma){
-    var rs = resumenPortal(f.contratos || []);
+  function tarjetaPropiedad(f, d, conFirma, fmt){
+    fmt = fmt || dinero;   // Inicio pasa dineroIni para que el ojo cerrado oculte también estas cifras
+    var rs = resumenVista(d.contratos || [], function(x){ return (f.contratos || []).indexOf(x) >= 0; });
     var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(function(u, i, a){ return u && a.indexOf(u) === i; });
     var obraU = (d.obra || []).filter(function(o){ return (f.contratos || []).some(function(x){ return x.numero === o.contrato_numero; }); })[0];
     var fase = obraU ? (d.fases || []).filter(function(ff){ return ff.clave === obraU.fase; })[0] : null;
-    var pct = (rs.total != null && rs.total > 0) ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : null;   // floor: nunca «100 %» si queda algo
+    var pc = (!rs.mixta && rs.total != null && rs.total > 0) ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : null;   // floor: nunca «100 %» si queda algo
     var firma = (f.contratos || []).some(function(x){ return conFirma[x.id]; });
-    var pagada = !rs.soloReserva && rs.total != null && rs.total > 0 && rs.cobrado >= rs.total;   // con solo la Carta, el total es la cuota de reserva
+    var pagada = !rs.soloReserva && pc != null && rs.cobrado >= rs.total;   // con solo la Carta, el total es la cuota de reserva
     var chips = unidades.map(function(u){ return '<span class="proy-chip">' + esc(u) + '</span>'; }).join('') +
       (fase ? '<span class="proy-chip obra">' + esc(t('fase_obra')) + ' · ' + esc(Lx(fase)) + '</span>' : '') +
       (firma ? '<span class="proy-chip firma">' + esc(t('firma_pend_chip')) + '</span>' : '') +
@@ -2221,39 +2321,86 @@
       '<div class="proy-cuerpo"><div class="proy-nombre">' + esc(f.nombre) + '</div>' +
       (f.resort ? '<div class="proy-meta">' + esc(f.resort) + '</div>' : '') +
       (chips ? '<div class="proy-chips">' + chips + '</div>' : '') +
-      (pct != null
-        ? '<div class="proy-pag"><span>' + esc(t('pagado_de').replace('{a}', dinero(rs.cobrado, rs.moneda)).replace('{b}', dinero(rs.total, rs.moneda))) + '</span><span>' + pct + ' %</span></div>' +
-          '<div class="barra"><i style="width:' + pct + '%"></i></div>' : '') +
-      (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></button>';
+      '<div class="proy-pie">' +
+      (pc != null
+        ? '<div class="proy-pag"><span>' + esc(t('pagado_de').replace('{a}', fmt(rs.cobrado, rs.moneda)).replace('{b}', fmt(rs.total, rs.moneda))) + '</span><span>' + pc + ' %</span></div>' +
+          '<div class="barra"><i style="width:' + pc + '%"></i></div>' : '') +
+      (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></div></button>';
   }
 
-  /* ── Inicio ───────────────────────────────────────────────────────── */
+  /* ── Inicio ───────────────────────────────────────────────────────────────────────────────────────────────
+     Distribución tipo panel (8-oct-2026, owner: artifact «Inicio del comprador Lawang», versión aprobada con el
+     imago, el arco continuo y los avisos igualados). Hereda TODO lo del Inicio anterior (Regla 0 bis): avisos en
+     rojo con su cuenta atrás, el próximo pago con su factura, lo pagado y lo pendiente con su nota, las
+     propiedades con portada que llevan a Documentos, las novedades y el acceso a Soporte.
+     Lo nuevo es la forma y el filtro de propiedad. Ninguna cifra nueva: resumenVista y pagoProximo (resumen.js)
+     para el dinero, estadosHitos para el reparto por hito (el de Contratos) y estadoFactura para «vencida» (el de
+     Facturas). Revisión previa de Diseño y Administración, 8-oct: cada hallazgo plegado aquí o descartado por
+     escrito en el encargo. */
+  var ICO_INI = {
+    ojo: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+    ojoNo: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.9 8.3 2 12 2 12s3.6 7 10 7c1.7 0 3.2-.5 4.5-1.2"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>',
+    diag: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>',
+    diagP: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>',
+    cal: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path></svg>',
+    obra: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21V9l7-5 7 5v12"></path><path d="M9 21v-6h6v6"></path></svg>',
+    foto: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>',
+    chat: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg>',
+    campana: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6"></path><path d="M4 17h16"></path><path d="M10 20a2 2 0 0 0 4 0"></path></svg>',
+    cambio: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14l-3-3M20 16H6l3 3"></path></svg>',
+    ok: '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"></circle><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+    actual: '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"></circle><circle cx="12" cy="12" r="4.5" fill="currentColor"></circle></svg>',
+    falta: '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"></circle></svg>'
+  };
+  // Días de calendario con signo hasta una fecha (negativo: ya pasó). null si no hay fecha.
+  function diasCon(f){
+    if (!f) return null;
+    var fin = finDelDia(f); if (isNaN(fin)) return null;
+    var hoy = new Date(); hoy.setHours(23,59,59,999);
+    return Math.round((fin - hoy.getTime()) / 86400000);
+  }
+  // Un importe del Inicio: con el ojo cerrado no llega al DOM ni en data-cuenta ni en aria (revisión previa de Administración).
+  function dineroIni(n, moneda){ return ESTADO.iniOculto ? '••••••' : dinero(n, moneda); }
+  function cuentaIni(n, moneda){ return (ESTADO.iniOculto || n == null || isNaN(n)) ? '' : ' data-cuenta="' + n + '" data-moneda="' + esc(moneda || '') + '"'; }
+
   function pintaInicio(c){
     var d = DATOS;
     var nombrePila = (d.nombre || '').trim().split(/\s+/)[0] || '';
-    /* Las cuentas viven en `resumen.js` (probado en `resumen.test.js`), no aquí.
-       Hasta el 14-sep-2026 esta función sumaba TODOS los contratos y la Carta de
-       Reserva contaba aparte, así que el cliente veía el doble: 327.065 € donde
-       debe 163.565 €. Una Carta declara el mismo importe que luego reparten el
-       Bloqueo de Parcela y la Construcción que la sustituyen — la regla es la
-       misma que ve el agente en /intranet/compradores/, y tiene que serlo: si el
-       cliente llama y las dos pantallas dicen cifras distintas, el problema es
-       peor que el original. */
-    var pago = pagoProximo(d);
+    var carpetas = carpetasProyecto();
+    var carpetasInicio = carpetas.filter(function(f){ return (f.contratos || []).length; });
+
+    /* Filtro de propiedad: solo en memoria. Si la carpeta elegida ya no existe (otro idioma, datos recargados con
+       menos contratos), vuelve a Todas. Con una sola propiedad no hay filtro: sobra. */
+    if (ESTADO.iniProp && !carpetasInicio.some(function(f){ return f.key === ESTADO.iniProp; })) ESTADO.iniProp = null;
+    var carpetaSel = ESTADO.iniProp ? carpetasInicio.filter(function(f){ return f.key === ESTADO.iniProp; })[0] : null;
+    var enCarpeta = function(f){ return function(x){ return (f.contratos || []).indexOf(x) >= 0; }; };
+    var enVista = carpetaSel ? enCarpeta(carpetaSel) : function(){ return true; };
+    var vistos = (d.contratos || []).filter(enVista);
+    var numeros = vistos.map(function(x){ return x.numero; });
+    var ids = vistos.map(function(x){ return x.id; });
+    var unaSola = carpetaSel || carpetasInicio.length <= 1;
+
+    var pago = pagoProximo(d, enVista);
     var res = pago.res;
 
-    /* Inicio = la dirección A del artifact «Inicio del portal Lawang», igual que se aprobó (7-oct-2026, owner: «igual que
-       el artifact»). Un solo momento fuerte: el próximo pago, con lo pagado y lo pendiente en su pie. Lo que espera al
-       comprador (firma, documento que caduca) va en una lista tranquila encima, cada cosa con su fecha y su botón. */
-    var todas = novedadesDerivadas();
+    /* 1 · saludo + filtro */
+    var subSaludo = carpetasInicio.length ? (carpetasInicio.length === 1 ? t('n_props_1') : t('n_props_n').replace('{n}', carpetasInicio.length)) : t('saludo_sub');
+    var filtro = carpetasInicio.length > 1
+      ? '<div class="ini-filtro" role="group" aria-label="' + esc(t('ini_filtro')) + '">' +
+          '<button type="button" data-ini-prop="" aria-pressed="' + (!carpetaSel) + '">' + esc(t('ini_todas')) + '</button>' +
+          carpetasInicio.map(function(f){ return '<button type="button" data-ini-prop="' + esc(f.key) + '" aria-pressed="' + (carpetaSel === f) + '">' + esc(f.nombre) + '</button>'; }).join('') +
+        '</div>'
+      : '';
+
+    /* 2 · avisos en rojo (opción A del 7-oct): firma pendiente de los contratos de la vista y documento que caduca */
     var caducan = kycCaducan(d);
-    var novedades = todas.filter(function(x){ return x.tipo !== 'kyc'; }).slice(0,3);
     var contratoPorId = {};
     (d.contratos || []).forEach(function(x){ contratoPorId[x.id] = x; });
     var icoTarea = '<span class="ini-tarea-pt" aria-hidden="true">!</span>';
     var tareas = [];
     (d.firma_pendiente || []).forEach(function(fp){
       var k = contratoPorId[fp.contrato_id] || {};
+      if (carpetaSel && ids.indexOf(fp.contrato_id) < 0) return;
       tareas.push('<div class="ini-tarea">' + icoTarea + '<div class="ini-tarea-tx"><b>' + esc(t('firma_tarea').replace('{n}', k.numero || '')) + '</b>' +
         '<span>' + (k.proyecto ? ' · ' + esc(k.proyecto) : '') + (fp.expira_en ? ' · ' + esc(t('firma_caduca').replace('{f}', fechaCorta(fp.expira_en))) : '') + '</span></div>' +
         cuentaAtras(fp.expira_en) +
@@ -2268,46 +2415,236 @@
     });
     var tareasHTML = tareas.length ? '<div class="ini-tareas" role="status" aria-label="' + esc(t('pendiente_ti')) + '">' + tareas.join('') + '</div>' : '';
 
-    var carpetas = carpetasProyecto();
-    var carpetasInicio = carpetas.filter(function(f){ return (f.contratos || []).length; });
+    /* 3a · lo pagado */
+    var vista = ESTADO.iniVista || 'pagado';
+    var etqTotal = t(res.soloReserva ? 'r_cuota' : 'r_inversion');
+    var hayTotal = res.total != null && res.total > 0;
+    var pct = hayTotal ? Math.min(100, Math.floor((res.cobrado || 0) / res.total * 100)) : 0;   // floor: nunca «100 %» si queda algo
+    var cifraHTML, subHTML, progHTML = '';
+    if (res.mixta){
+      var campo = vista === 'pendiente' ? 'pendiente' : vista === 'total' ? 'total' : 'cobrado';
+      cifraHTML = '<div class="ini-cifras">' + res.porMoneda.map(function(m){
+        return '<span class="ini-cifra-m">' + esc(m[campo] == null ? '—' : dineroIni(m[campo], m.moneda)) + '</span>'; }).join('') + '</div>';
+      subHTML = esc(t('ini_mixta'));
+    } else {
+      var val = vista === 'pendiente' ? res.pendiente : vista === 'total' ? res.total : res.cobrado;
+      cifraHTML = '<span class="ini-cifra"' + cuentaIni(val, res.moneda) + '>' + esc(val == null ? '—' : dineroIni(val, res.moneda)) + '</span>';
+      subHTML = vista === 'pagado' ? (hayTotal ? esc(t('ini_pct_inv').replace('{n}', pct)) : '')
+              : vista === 'pendiente' ? esc(res.pendiente === 0 ? t('ini_nada_pend') : t('ini_sub_pend'))
+              : esc(t(res.soloReserva ? 'ini_sub_cuota' : 'ini_sub_total'));
+      if (hayTotal) progHTML = '<div class="ini-prog"><div class="ini-prog-b"><i style="width:' + pct + '%"></i></div>' +
+        '<div class="ini-prog-l"><span>' + esc(t('r_pagado')) + ' <b>' + esc(dineroIni(res.cobrado, res.moneda)) + '</b></span>' +
+        '<span>' + esc(t('r_pendiente')) + ' <b>' + esc(dineroIni(res.pendiente, res.moneda)) + '</b> · ' + (100 - pct) + ' %</span></div></div>';
+    }
+    // Contratos firmados: todos los papeles de la vista, Carta incluida (es un documento que el cliente firmó).
+    var nFirm = vistos.filter(function(x){ return x.firmado; }).length;
+    var seg = [['pagado', t('r_pagado')], ['pendiente', t('r_pendiente')], ['total', etqTotal]];
+    var pagadoHTML = '<article class="tarjeta ini-pagado">' +
+      '<div class="ini-pg-cab"><div class="ini-seg" role="group" aria-label="' + esc(t('ini_que_cifra')) + '">' +
+        seg.map(function(s){ return '<button type="button" data-ini-vista="' + s[0] + '" aria-pressed="' + (vista === s[0]) + '">' + esc(s[1]) + '</button>'; }).join('') + '</div>' +
+        (vistos.length ? '<div class="ini-firm"><span class="ini-rot">' + esc(t('ini_firmados')) + '</span><b>' + esc(t('ini_x_de_y').replace('{a}', nFirm).replace('{b}', vistos.length)) + '</b></div>' : '') +
+      '</div>' +
+      '<div class="ini-cifra-fila">' + cifraHTML +
+        '<button type="button" class="ini-ojo" data-ini-ojo aria-pressed="' + !!ESTADO.iniOculto + '" aria-label="' + esc(t(ESTADO.iniOculto ? 'ini_mostrar' : 'ini_ocultar')) + '" title="' + esc(t(ESTADO.iniOculto ? 'ini_mostrar' : 'ini_ocultar')) + '">' + (ESTADO.iniOculto ? ICO_INI.ojoNo : ICO_INI.ojo) + '</button></div>' +
+      (subHTML ? '<div class="ini-sub">' + subHTML + '</div>' : '') +
+      progHTML +
+      '<div class="ini-pg-pie">' +
+        '<button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>' +
+        '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('plan_pagos')) + '</button>' +
+        '<button type="button" class="ini-ir" data-ir="contratos" aria-label="' + esc(t('ini_ir_contratos')) + '" title="' + esc(t('ini_ir_contratos')) + '">' + ICO_INI.diag + '</button>' +
+      '</div></article>';
+
+    /* 3b · próximo pago (el momento fuerte, bloque laguna) */
+    var pagoHTML;
+    var proximo = pago.proximo;
+    if (!proximo){
+      pagoHTML = '<article class="tarjeta ini-pago al-dia"><div class="ini-rot">' + esc(t('proximo_pago')) + '</div>' +
+        '<div class="ini-al-dia"><span class="ini-al-dia-i">' + ICO_INI.ok + '</span><b>' + esc(t('ini_al_dia')) + '</b><p>' + esc(t('sin_proximo')) + '</p></div></article>';
+    } else {
+      // «Vencida» = el estado de la factura en Facturas (aplicado + resto sin aplicar), no solo su fecha: una factura
+      // ya cubierta no sale vencida aunque el reparto por hitos la siga viendo pendiente. Sin `aplicado`, sin sello.
+      var fp = pago.factProx;
+      var ef = estadoPagoProximo(pago, d);
+      var vencida = ef === 'vencida';
+      var dv = diasCon(pago.vence);
+      var chip = ef === 'pagada' ? ''
+        : (pago.vence && dv != null)
+        ? (dv < 0 ? '<span class="ini-chip' + (vencida ? ' rojo' : '') + '">' + esc((dv === -1 ? t('ini_hace_dia') : t('ini_hace_dias').replace('{n}', -dv))) + '</span>'
+                  : '<span class="ini-chip">' + esc(dv === 0 ? t('ini_hoy') : dv === 1 ? t('ini_en_dia') : t('ini_en_dias').replace('{n}', dv)) + '</span>')
+        : (proximo.hito.timing ? '<span class="ini-chip">' + esc(proximo.hito.timing) + '</span>' : '');
+      var cuando = pago.vence ? t(dv != null && dv < 0 && ef !== 'pagada' ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(pago.vence)) : t('cuando') + ': ' + (proximo.hito.timing || '—');
+      var subPago = [proximo.proyecto, proximo.parcela].filter(Boolean).join(' · ');
+      var impTxt = isNaN(proximo.monto) ? '—' : dineroIni(proximo.monto, proximo.moneda);
+      // Losa 1: la factura del pago, o la lista si todavía no la hay (nunca se adivina una factura).
+      var losa1 = fp
+        ? '<button type="button" class="ini-losa" data-ir-fac="' + esc(fp.numero) + '"><span class="ini-losa-t">' + esc(t('ini_factura')) + ICO_INI.diagP + '</span><b>' + esc(fp.numero) + '</b><small>' + esc(proximo.contrato || '') + '</small></button>'
+        : '<button type="button" class="ini-losa" data-ir="facturas"><span class="ini-losa-t">' + esc(t('ver_facturas')) + ICO_INI.diagP + '</span><b>' + esc(proximo.contrato || '—') + '</b><small>' + esc(t('ini_sin_factura')) + '</small></button>';
+      // Losa 2: el siguiente pago del MISMO contrato; si no le queda otro, el próximo de otro contrato (y así se llama).
+      var el = pago.elegido, sig = null, otro = null;
+      if (el && el.hs){
+        for (var j = proximo.idx + 1; j < el.hs.length; j++){ if (el.hs[j].estado !== 'pagado'){ sig = el.hs[j]; break; } }
+      }
+      if (!sig){ otro = eligeProximo(pago.cands.filter(function(x){ return x !== el; }), Date.now()); }
+      var losa2;
+      if (sig){
+        var mSig = isNaN(sig.monto) ? NaN : sig.monto - (sig.cubierto || 0);
+        losa2 = '<button type="button" class="ini-losa" data-ir="contratos"><span class="ini-losa-t">' + esc(t('ini_despues')) + ICO_INI.diagP + '</span><b>' + esc(Lx(sig.hito)) + '</b><small>' +
+          esc((isNaN(mSig) ? t('ini_sin_importe') : dineroIni(mSig, proximo.moneda)) + (sig.hito.timing ? ' · ' + sig.hito.timing : '')) + '</small></button>';
+      } else if (otro && otro.proximo){
+        losa2 = '<button type="button" class="ini-losa" data-ir="contratos"><span class="ini-losa-t">' + esc(t('ini_otro_contrato')) + ICO_INI.diagP + '</span><b>' + esc(Lx(otro.proximo.hito)) + (otro.proximo.parcela ? ' · ' + esc(otro.proximo.parcela) : '') + '</b><small>' +
+          esc(isNaN(otro.proximo.monto) ? t('ini_sin_importe') : dineroIni(otro.proximo.monto, otro.proximo.moneda)) + '</small></button>';
+      } else {
+        losa2 = '<button type="button" class="ini-losa" data-ir="contratos"><span class="ini-losa-t">' + esc(t('plan_pagos')) + ICO_INI.diagP + '</span><b>' + esc(t('ini_ultimo_pago')) + '</b><small>' + esc(proximo.contrato || '') + '</small></button>';
+      }
+      pagoHTML = '<article class="tarjeta ini-pago"><span class="ini-deco" aria-hidden="true"></span>' +
+        '<div class="ini-pago-cab"><span class="ini-sello' + (vencida ? ' venc' : '') + '">' + esc(t(vencida ? 'ini_vencido' : 'proximo_pago')) + '<i aria-hidden="true">' + (vencida ? '!' : '') + '</i></span></div>' +
+        '<div class="ini-pago-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
+        '<div class="ini-pago-sub">' + esc((subPago ? subPago + ' · ' : '') + cuando) + '</div>' +
+        '<div class="ini-pago-fila"><span class="ini-pago-imp' + (impTxt.length > 11 ? ' largo' : '') + '"' + (isNaN(proximo.monto) ? '' : cuentaIni(proximo.monto, proximo.moneda)) + '>' + esc(impTxt) + '</span>' + chip + '</div>' +
+        '<div class="ini-losas">' + losa1 + losa2 + '</div></article>';
+    }
+
+    /* 4a · tu obra — arco continuo (opción A del artifact «Anillo de obra Lawang», 8-oct-2026, owner). Lo terminado en
+       verde, la fase en curso en laguna, y un punto donde va. El portal guarda la fase, no cuánto lleva de ella: el
+       arco llega a la mitad de la fase en curso. Diseño propuso tramos o el punto al inicio de la fase; el owner eligió
+       este arco viendo esa explicación en el artifact, así que se queda. */
+    var fases = (d.fases || []).slice().sort(function(a, b){ return (a.orden || 0) - (b.orden || 0); });
+    var obras = (d.obra || []).filter(function(o){ return !carpetaSel || numeros.indexOf(o.contrato_numero) >= 0; });
+    if ((ESTADO.iniObra || 0) >= obras.length) ESTADO.iniObra = 0;
+    var obraHTML = '<article class="tarjeta ini-t"><div class="ini-th"><span class="ini-ti">' + ICO_INI.obra + '</span><h3>' + esc(t('ini_obra')) + '</h3>';
+    var R = 40, C = 2 * Math.PI * R;
+    var pista = '<circle cx="50" cy="50" r="' + R + '" fill="none" stroke="#e9e8e3" stroke-width="9"></circle>';
+    if (!obras.length || !fases.length){
+      obraHTML += '</div><div class="ini-anillo"><svg viewBox="0 0 100 100" aria-hidden="true">' + pista + '</svg><div class="ini-anillo-mid"><b>—</b></div></div>' +
+        '<p class="ini-vacio">' + esc(t('ini_sin_obra')) + '</p></article>';
+    } else {
+      var o = obras[ESTADO.iniObra || 0];
+      var fi = -1; fases.forEach(function(f, i){ if (f.clave === o.fase) fi = i; });
+      var n = fases.length;
+      var arco = function(fr, col){ var L = Math.max(fr * C, 0.01); return '<circle class="ini-dib" cx="50" cy="50" r="' + R + '" fill="none" stroke="' + col + '" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + L.toFixed(2) + ' ' + C.toFixed(2) + '" transform="rotate(-90 50 50)" style="--desde:' + L.toFixed(2) + '"></circle>'; };
+      var svg = pista;
+      if (fi >= 0){
+        var prog = Math.min((fi + 0.5) / n, 1), hecho = fi / n;
+        var ang = prog * 2 * Math.PI - Math.PI / 2, ex = 50 + R * Math.cos(ang), ey = 50 + R * Math.sin(ang);
+        svg += arco(prog, '#104C4F') + (hecho > 0 ? arco(hecho, '#485B37') : '') +
+          '<circle class="ini-pop" cx="' + ex.toFixed(2) + '" cy="' + ey.toFixed(2) + '" r="6.5" fill="#fff" stroke="#104C4F" stroke-width="2.5"></circle>';
+      }
+      var faseTxt = fi >= 0 ? Lx(fases[fi]) : (o.fase || '—');
+      var ult = (o.fotos || [])[0];   // portal_situacion las da de la más nueva a la más vieja
+      obraHTML += (obras.length > 1
+          ? '<button type="button" class="ini-pastilla" data-ini-obra title="' + esc(t('ini_cambiar_villa')) + '">' + esc(o.unidad || '—') + ICO_INI.cambio + '</button>'
+          : '<span class="ini-pastilla">' + esc(o.unidad || '—') + '</span>') + '</div>' +
+        '<div class="ini-anillo" role="img" aria-label="' + esc(t('ini_obra') + ': ' + faseTxt + (fi >= 0 ? ' · ' + t('ini_fase_n').replace('{a}', fi + 1).replace('{b}', n) : '')) + '">' +
+          '<svg viewBox="0 0 100 100" aria-hidden="true">' + svg + '</svg>' +
+          '<div class="ini-anillo-mid"><b>' + esc(faseTxt) + '</b>' + (fi >= 0 ? '<small>' + esc(fi === n - 1 ? t('ini_ultima_fase') : t('ini_fase_n').replace('{a}', fi + 1).replace('{b}', n)) + '</small>' : '') + '</div></div>' +
+        (ult ? '<button type="button" class="ini-nota" data-ir="obra">' + ICO_INI.foto + '<span>' + esc(ult.titulo || t('ver_fotos')) + (ult.fecha ? ' · <b>' + esc(relativa(ult.fecha)) + '</b>' : '') + '</span></button>'
+             : '<p class="ini-nota sin">' + esc(t('ini_sin_fotos')) + '</p>') +
+        '<div class="ini-fases">' + fases.map(function(f, i){
+          var k = fi < 0 ? '' : i < fi ? 'hecha' : i === fi ? 'actual' : '';
+          return '<div class="' + k + '">' + (k === 'hecha' ? ICO_INI.ok : k === 'actual' ? ICO_INI.actual : ICO_INI.falta) + esc(Lx(f)) + '</div>';
+        }).join('') + '</div></article>';
+    }
+
+    /* 4b · plan de pagos. Una propiedad: una barra por hito (estadosHitos, el reparto de Contratos), ancho = lo
+       cubierto, el próximo pago destacado. Todas: una barra por propiedad con resumenVista, así la suma de las
+       barras es la cifra de arriba. */
+    var filas = [];
+    if (!unaSola){
+      filas = carpetasInicio.map(function(f){
+        var rs = resumenVista(d.contratos || [], enCarpeta(f));
+        return { t:f.nombre, monto:rs.mixta ? NaN : rs.total, cubierto:rs.mixta ? 0 : (rs.cobrado || 0), moneda:rs.moneda, mixta:rs.mixta };
+      });
+    } else {
+      var variosCt = res.base.length > 1;
+      pago.cands.forEach(function(cd){
+        (cd.hs || []).forEach(function(h, i){
+          var esProx = pago.elegido === cd && proximo && proximo.idx === i;
+          filas.push({ t:Lx(h.hito) + (variosCt && cd.contrato.numero ? ' · ' + cd.contrato.numero : ''), monto:h.monto, cubierto:h.cubierto || 0,
+                       moneda:cd.contrato.moneda, dest:esProx, venc:esProx && estadoPagoProximo(pago, d) === 'vencida' });
+        });
+      });
+    }
+    var granPlan = res.mixta
+      ? '<div class="ini-cifras peq">' + res.porMoneda.map(function(m){ return '<span class="ini-cifra-m">' + esc(m.pendiente == null ? '—' : dineroIni(m.pendiente, m.moneda)) + '</span>'; }).join('') + '</div>'
+      : '<div class="ini-grande">' + esc(res.pendiente == null ? '—' : dineroIni(res.pendiente, res.moneda)) + '</div>';
+    var planHTML = '<article class="tarjeta ini-t"><div class="ini-th"><span class="ini-ti">' + ICO_INI.cal + '</span><h3>' + esc(t(unaSola ? 'plan_pagos' : 'ini_por_prop')) + '</h3>' +
+        (hayTotal ? '<div class="ini-meta"><span>' + esc(etqTotal + ' ' + dineroIni(res.total, res.moneda)) + '</span><u><i style="width:' + pct + '%"></i></u></div>' : '') + '</div>' +
+      granPlan + '<div class="ini-sub">' + esc(t('ini_pend_pagar')) + '</div>' +
+      (filas.length ? '<div class="ini-barras">' + filas.map(function(f){
+        var sinImp = f.monto == null || isNaN(f.monto) || !(f.monto > 0);
+        var w = sinImp ? 0 : Math.min(100, f.cubierto / f.monto * 100), lleno = !sinImp && f.cubierto >= f.monto - 0.005, pc = Math.floor(w);
+        var pill = f.dest ? '<em class="' + (f.venc ? 'rojo' : '') + '" style="left:' + Math.min(Math.max(w, 14), 86) + '%">' + esc(t(f.venc ? 'ini_vencido_m' : 'ini_siguiente')) + '</em>'
+                 : (!sinImp && w > 0 && !lleno ? '<em style="left:' + Math.max(w - 8, 12) + '%">' + pc + ' %</em>' : '');
+        return '<div class="ini-br' + (f.dest ? ' dest' : '') + '"><div class="ini-bh"><span>' + esc(f.t) + '</span><b>' + (lleno ? '✓ ' : '') +
+          esc(sinImp ? t('ini_sin_importe') : dineroIni(f.monto, f.moneda)) + '</b></div>' +
+          '<div class="ini-bt' + (sinImp ? ' sin' : '') + '"><i class="' + (lleno ? 'lleno' : '') + '" style="width:' + w + '%"></i>' + pill + '</div></div>';
+      }).join('') + '</div>' : '<p class="ini-vacio izq">' + esc(t('ini_sin_hitos')) + '</p>') + '</article>';
+
+    /* 4c · novedades: las de siempre (novedadesDerivadas, sin el KYC que ya va arriba) de los contratos de la vista,
+       y la última respuesta del equipo en una conversación abierta. Debajo, Soporte (era la caja «Escribir al equipo»). */
+    // El filtro va DENTRO de novedadesDerivadas, antes de quedarse con las últimas: filtrar después dejaba una
+    // propiedad con «Nada nuevo» aunque tuviera facturas (revisor, 8-oct).
+    var nov = novedadesDerivadas(carpetaSel ? function(x){
+      return (x.contrato_id && ids.indexOf(x.contrato_id) >= 0) || (x.contrato_numero && numeros.indexOf(x.contrato_numero) >= 0);
+    } : null).filter(function(x){ return x.tipo !== 'kyc'; });
+    var abiertos = (d.tickets || []).filter(function(x){ return x.estado === 'abierto'; });
+    var resp = null;
+    abiertos.forEach(function(tk){
+      var ms = tk.mensajes || [], u = ms[ms.length - 1];
+      if (u && u.de === 'equipo' && (!resp || new Date(u.creado_en) > new Date(resp.m.creado_en))) resp = { tk:tk, m:u };
+    });
+    var novFilas = nov.slice(0, resp ? 3 : 4).map(function(x){
+      var ico = x.tipo === 'obra' ? ICO_INI.foto : ICO_DOC;
+      var ir = x.tipo === 'factura' && x.numero ? ' data-ir-fac="' + esc(x.numero) + '"' : x.tipo === 'obra' ? ' data-ir="obra"' : '';
+      var imp = (x.tipo === 'factura' && x.importe != null && !isNaN(Number(x.importe)))
+        ? '<span class="ini-imp' + (x.ftipo === 'recibi' ? ' ok' : '') + '">' + (x.ftipo === 'recibi' && !ESTADO.iniOculto ? '+' : '') + esc(dineroIni(Number(x.importe), x.moneda)) + '</span>' : '';
+      return '<button type="button" class="ini-fila"' + ir + '><span class="ini-ic">' + ico + '</span><span class="ini-tx"><b>' + esc(x.texto) + '</b><small>' + esc(relativa(x.fecha)) + '</small></span>' + imp + '</button>';
+    }).join('');
+    var novHTML = '<article class="tarjeta ini-t"><div class="ini-th"><span class="ini-ti">' + ICO_INI.campana + '</span><h3>' + esc(t('novedades')) + '</h3></div>' +
+      (resp ? '<div class="ini-resp"><span class="ini-ic">' + ICO_INI.chat + '</span><span class="ini-tx"><b>' + esc(t('ini_respondio')) + '</b><small>' + esc(String(resp.m.texto || '').slice(0, 90)) + '</small></span>' +
+              '<button type="button" class="ini-leer" data-ir="soporte">' + esc(t('ini_leer')) + '</button></div>' : '') +
+      (novFilas || (resp ? '' : '<p class="ini-vacio izq">' + esc(t('ini_nada_nuevo')) + '</p>')) +
+      '<div class="ini-sop"><span>' + esc(abiertos.length ? (abiertos.length === 1 ? t('sop_abiertas_1') : t('sop_abiertas_n').replace('{n}', abiertos.length)) : t('sop_titulo')) + '</span>' +
+        '<button type="button" class="ini-link" data-ir="soporte">' + esc(t('escribir_equipo')) + ' →</button></div></article>';
+
+    /* 5 · tus propiedades — con portada, llevan a su carpeta de Documentos como siempre. El % de cada una sale de
+       resumenVista: la misma cifra que la barra de «Por propiedad». */
     var conFirma = contratosConFirma(d);
     var proyectosHTML = carpetasInicio.length
       ? '<div class="ini-secc"><h3>' + esc(t('tus_propiedades')) + '</h3><button type="button" class="ini-link" data-ir="documentos">' + esc(t('ver_documentos')) + ' →</button></div>' +
-        '<div class="proy-grid ini' + (carpetasInicio.length === 1 ? ' uno' : '') + (carpetasInicio.length > 3 ? ' muchos' : '') + '">' + carpetasInicio.map(function(f){
-          return tarjetaPropiedad(f, d, conFirma);
+        '<div class="proy-grid ini4' + (carpetasInicio.length > 3 ? ' muchos' : '') + '">' + carpetasInicio.map(function(f){
+          return tarjetaPropiedad(f, d, conFirma, dineroIni);
         }).join('') + '</div>' +
-        // con más de 3 proyectos solo se ven los primeros (3 en móvil, 6 en escritorio) y un enlace a todos
-        (carpetasInicio.length > 3 ? '<button type="button" class="btn-borde ver-todos' + (carpetasInicio.length <= 6 ? ' solo-movil' : '') + '" data-ir="documentos">' + esc(t('ver_todos').replace('{n}', carpetasInicio.length)) + '</button>' : '')
+        // con más de 4 proyectos solo se ven los primeros (3 en móvil, 8 en escritorio) y un enlace a todos
+        (carpetasInicio.length > 3 ? '<button type="button" class="btn-borde ver-todos' + (carpetasInicio.length <= 8 ? ' solo-movil' : '') + '" data-ir="documentos">' + esc(t('ver_todos').replace('{n}', carpetasInicio.length)) + '</button>' : '')
       : '';
 
-    var heroPago = heroPagoHTML(pago);
-    var notaResumen = notaResumenHTML(res);
-
-    var abiertas = (d.tickets || []).filter(function(x){ return x.estado === 'abierto'; }).length;
-    var subSaludo = carpetasInicio.length ? (carpetasInicio.length === 1 ? t('n_props_1') : t('n_props_n').replace('{n}', carpetasInicio.length)) : t('saludo_sub');
-
     c.innerHTML =
-      '<div class="titulo-sec ini"><h2>' + esc(saludo()) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
-        '<p>' + esc(subSaludo) + '</p></div>' +
+      '<div class="ini-cab"><div class="titulo-sec ini"><h2>' + esc(saludo()) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
+        '<p>' + esc(subSaludo) + '</p></div>' + filtro + '</div>' +
       tareasHTML +
-      heroPago +
-      notaResumen +
-      proyectosHTML +
-      '<div class="ini-bajo">' +
-        '<div class="tarjeta ini-nov"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
-          (novedades.length ? novedades.map(function(x){
-            var ir = x.tipo === 'factura' && x.numero ? '<button type="button" class="ini-link" data-ir-fac="' + esc(x.numero) + '">' + esc(t('ver_factura')) + ' →</button>'
-                   : x.tipo === 'obra' ? '<button type="button" class="ini-link" data-ir="obra">' + esc(t('ver_fotos')) + ' →</button>' : '';
-            return '<div class="nov"><div>' + esc(x.texto) + (ir ? '<br>' + ir : '') + '</div><small>' + esc(relativa(x.fecha)) + '</small></div>';
-          }).join('') : '<p style="font-size:13px;color:var(--out);margin:0">—</p>') +
-        '</div>' +
-        '<div class="ini-sop"><div class="rot-bloque">' + esc(t('acc_soporte')) + '</div><h4>' + esc(t('sop_titulo')) + '</h4>' +
-          '<p>' + esc(t('sop_texto')) + (abiertas ? ' ' + esc(abiertas === 1 ? t('sop_abiertas_1') : t('sop_abiertas_n').replace('{n}', abiertas)) : '') + '</p>' +
-          '<button type="button" class="btn-oscuro" data-ir="soporte">' + esc(t('escribir_equipo')) + '</button></div>' +
-      '</div>';
+      '<div class="ini-f1">' + pagadoHTML + pagoHTML + '</div>' +
+      (notaResumenHTML(res) || (carpetaSel && res.excluidos.length && !(res.total > 0) && res.cobrado > 0 ? '<p class="kpi-nota">' + esc(t('ini_nota_carta')) + '</p>' : '')) +
+      '<div class="ini-f2">' + obraHTML + planHTML + novHTML + '</div>' +
+      proyectosHTML;
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
     c.querySelectorAll('[data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
     c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
+    /* Repintar por un control del propio Inicio: quieto (el arco no se vuelve a dibujar; render() promete que un
+       repintado no mueve nada) y con el foco de vuelta en el botón pulsado, para quien va con teclado (revisor, 8-oct). */
+    function repinta(selector){
+      pintaInicio(c);
+      c.classList.add('ini-quieto');
+      var b = selector && c.querySelector(selector);
+      if (b) b.focus();
+    }
+    var cssAttr = function(v){ return (window.CSS && CSS.escape) ? CSS.escape(String(v)) : String(v).replace(/["\\]/g, '\\$&'); };
+    c.querySelectorAll('[data-ini-prop]').forEach(function(b){ b.addEventListener('click', function(){ var k = b.getAttribute('data-ini-prop'); ESTADO.iniProp = k || null; ESTADO.iniObra = 0; repinta('[data-ini-prop="' + cssAttr(k) + '"]'); }); });
+    c.querySelectorAll('[data-ini-vista]').forEach(function(b){ b.addEventListener('click', function(){ ESTADO.iniVista = b.getAttribute('data-ini-vista'); repinta('[data-ini-vista="' + cssAttr(ESTADO.iniVista) + '"]'); }); });
+    var ojo = c.querySelector('[data-ini-ojo]');
+    if (ojo) ojo.addEventListener('click', function(){ ESTADO.iniOculto = !ESTADO.iniOculto; repinta('[data-ini-ojo]'); });
+    var bObra = c.querySelector('[data-ini-obra]');
+    if (bObra) bObra.addEventListener('click', function(){ ESTADO.iniObra = (ESTADO.iniObra || 0) + 1; repinta('[data-ini-obra]'); });
     cargaPortadas(c);
   }
 
@@ -2645,11 +2982,17 @@
   function fechaLocal(s){ var ms = finDelDia(s); return isNaN(ms) ? null : new Date(ms); }
 
   /* La cabecera de Facturas: estado de cuenta + billete del próximo pago. Las cifras son las de Inicio
-     (resumenPortal: pagado, pendiente, inversión) y el próximo pago es pagoProximo(): aquí no se suma nada nuevo. Lo
-     único propio es el RECUENTO de facturas por estado, que sale de los mismos estados que pinta la lista. */
+     (resumenVista: pagado, pendiente, inversión) y el próximo pago es pagoProximo(): aquí no se suma nada nuevo. Lo
+     único propio es el RECUENTO de facturas por estado, que sale de los mismos estados que pinta la lista.
+     Con contratos en varias monedas no hay anillo ni suma: una fila de cifras por moneda, como en Inicio. */
   function cabezaFacturas(pago, n){
     var res = pago.res, tot = res.total, cob = res.cobrado || 0, mon = res.moneda;
     var hay = tot != null && tot > 0;
+    var porMoneda = res.mixta ? '<div class="fa-cifras">' + res.porMoneda.map(function(m){
+        return '<div class="fa-cifra"><span><i class="pagado"></i>' + esc(t('r_pagado')) + '</span><b>' + esc(dinero(m.cobrado, m.moneda)) + '</b></div>' +
+          '<div class="fa-cifra"><span><i></i>' + esc(t('r_pendiente')) + '</span><b>' + esc(m.pendiente == null ? '—' : dinero(m.pendiente, m.moneda)) + '</b></div>' +
+          '<div class="fa-cifra total"><span>' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</span><b>' + esc(m.total == null ? '—' : dinero(m.total, m.moneda)) + '</b></div>';
+      }).join('') + '</div>' : '';
     var pct = hay ? Math.min(100, Math.floor(cob / tot * 100)) : null;
     var recuento = (n.vencida ? '<span class="vencida">' + esc(plural(n.vencida, 'fa_c_vencida_1', 'fa_c_vencida_n')) + '</span>' : '') +
       (n.porPagar ? '<span class="por-pagar">' + esc(plural(n.porPagar, 'fa_c_pagar_1', 'fa_c_pagar_n')) + '</span>' : '') +
@@ -2660,19 +3003,20 @@
         (hay ? '<div class="fa-cifras">' +
             '<div class="fa-cifra"><span><i class="pagado"></i>' + esc(t('r_pagado')) + '</span><b>' + esc(dinero(cob, mon)) + '</b></div>' +
             '<div class="fa-cifra"><span><i></i>' + esc(t('r_pendiente')) + '</span><b>' + esc(dinero(res.pendiente, mon)) + '</b></div>' +
-            '<div class="fa-cifra total"><span>' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</span><b>' + esc(dinero(tot, mon)) + '</b></div></div>' : '') +
+            '<div class="fa-cifra total"><span>' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</span><b>' + esc(dinero(tot, mon)) + '</b></div></div>' : porMoneda) +
         (recuento ? '<div class="fa-recuento">' + recuento + '</div>' : '') +
       '</div></section>';
 
     var p = pago.proximo, vence = pago.vence, billete;
     if (p){
       var dt = vence ? fechaLocal(vence) : null;
-      var vencida = !!(dt && dt.getTime() < Date.now());
+      var estP = estadoPagoProximo(pago, DATOS);   // la misma regla que el sello de Inicio y que la fila de la factura
+      var vencida = estP === 'vencida';
       var dias = dt ? diasHasta(dt) : null;
       var imp = isNaN(p.monto) ? '—' : dinero(p.monto, p.moneda);
-      var cuando = dt ? t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(dt)) : t('cuando') + ': ' + (p.hito.timing || '—');
+      var cuando = dt ? t(dt.getTime() < Date.now() && estP !== 'pagada' ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(dt)) : t('cuando') + ': ' + (p.hito.timing || '—');
       cuando = cuando.charAt(0).toUpperCase() + cuando.slice(1);
-      var pastilla = vencida ? t('fa_e_vencida') : dias == null ? '' : dias === 0 ? t('fa_vence_hoy') : dias === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', dias);
+      var pastilla = vencida ? t('fa_e_vencida') : (dias == null || estP === 'pagada') ? '' : dias === 0 ? t('fa_vence_hoy') : dias === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', dias);
       billete = '<section class="fa-ticket' + (vencida ? ' vencida' : '') + '" aria-label="' + esc(t('proximo_pago')) + '">' +
         '<div class="fa-ticket-cuerpo"><div class="fa-rot">' + esc(t('proximo_pago')) + '</div>' +
           '<div class="fa-ticket-con">' + esc(Lx(p.hito) || '—') + '</div>' +
@@ -3182,11 +3526,19 @@
     var iniciales = (document.getElementById('avatarIniciales') || {}).textContent || '·';
 
     // ficha: datos y cifras (las mismas que el pie del bloque de pago de Inicio)
-    var hayResumen = res.total != null && res.total > 0;
+    // con contratos en dos monedas no se suman: una línea por moneda, igual que Inicio (resumenVista, resumen.js)
+    var monedas = res.mixta ? (res.porMoneda || []) : [{ moneda:res.moneda, total:res.total, cobrado:res.cobrado, pendiente:res.pendiente }];
+    var hayResumen = monedas.some(function(m){ return m.total != null && m.total > 0; });
     var cifra = function(rot, val, color){
       return '<div class="pf-cifra"><div class="rot-bloque">' + esc(rot) + '</div><b>' + val + '</b><i style="background:' + color + '"></i></div>';
     };
-    var cifraDinero = function(n){ var s = dinero(n, res.moneda), m = /^(.*?)\s*(\D+)$/.exec(s); return m ? esc(m[1]) + '<small>' + esc(m[2]) + '</small>' : esc(s); };
+    var cifraDinero = function(campo){
+      return monedas.map(function(mo){
+        if (mo[campo] == null) return '<span class="pf-m">—</span>';
+        var s = dinero(mo[campo], mo.moneda), m = /^(.*?)\s*(\D+)$/.exec(s);
+        return '<span class="pf-m">' + (m ? esc(m[1]) + '<small>' + esc(m[2]) + '</small>' : esc(s)) + '</span>';
+      }).join('');
+    };
     var sub = carpetas.length ? (carpetas.length === 1 ? t('n_props_1') : t('n_props_n').replace('{n}', carpetas.length)) : '';
     var dato = function(ico, v){ return v ? '<div class="pf-dato">' + svgPerfil(ico) + '<span>' + esc(v) + '</span></div>' : ''; };
     var ficha = '<section class="tarjeta pf-ficha"><div class="pf-yo"><div class="pf-avatar" aria-hidden="true">' + esc(iniciales) + '</div>' +
@@ -3194,7 +3546,7 @@
           '<div class="pf-datos">' + dato('envelope', d.email) + dato('phone', d.telefono) + dato('pin', d.pais) + '</div></div></div>' +
         '<div class="pf-cifras' + (hayResumen ? '' : ' una') + '">' +
           cifra(t('pf_propiedades'), String(carpetas.length), '#8F9B7A') +
-          (hayResumen ? cifra(t('r_pagado'), cifraDinero(res.cobrado), '#485B37') + cifra(t('r_pendiente'), cifraDinero(res.pendiente), '#BEB3A5') : '') +
+          (hayResumen ? cifra(t('r_pagado'), cifraDinero('cobrado'), '#485B37') + cifra(t('r_pendiente'), cifraDinero('pendiente'), '#BEB3A5') : '') +
         '</div></section>' + notaResumenHTML(res);
 
     // lo pendiente: firmas, el próximo pago y los documentos que caducan — lo mismo que avisa Inicio

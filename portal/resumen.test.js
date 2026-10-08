@@ -237,5 +237,47 @@ es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)
   es('ninguno: null', R.eligeProximo([], HOY), null);
 }
 
+/* ── el resumen por propiedad del Inicio (8-oct-2026): la suma de las partes es el todo ── */
+{
+  // Sin filtro, lo mismo que resumenPortal.
+  const todo = R.resumenVista(prabante);
+  es('sin filtro: el mismo total que resumenPortal', todo.total, R.resumenPortal(prabante).total);
+  es('sin filtro: una sola moneda, no mixta', [todo.mixta, todo.moneda], [false, 'EUR']);
+
+  // LAW-499: la Carta de una villa quedó en OTRA carpeta que su Bloqueo y su Construcción.
+  const dos = [
+    { id:'k1', numero:'CR1', tipo:'carta_reserva',   proyecto_id:'B', precio:150000, precio_reserva:'2000', moneda:'EUR', cobrado:2000 },
+    { id:'k2', numero:'RP1', tipo:'reserva_parcela', proyecto_id:'A', precio:50000,  moneda:'EUR', cobrado:10000 },
+    { id:'k3', numero:'CC1', tipo:'construccion',    proyecto_id:'A', precio:100000, moneda:'EUR', cobrado:0 },
+  ];
+  const deA = R.resumenVista(dos, x => x.proyecto_id === 'A');
+  const deB = R.resumenVista(dos, x => x.proyecto_id === 'B');
+  const total = R.resumenVista(dos);
+  es('la Carta sola en su carpeta NO vuelve a sumar su cuota', deB.total, null);
+  es('…pero lo que pagó con ella sí cuenta en su carpeta', deB.cobrado, 2000);
+  es('la carpeta con los definitivos: su precio', deA.total, 150000);
+  es('la suma de las propiedades es el total de «Todas»', (deA.total || 0) + (deB.total || 0), total.total);
+  es('…y el cobrado también', deA.cobrado + deB.cobrado, total.cobrado);
+  es('resumenPortal por carpeta SÍ la habría sumado (el fallo que esto evita)', R.resumenPortal(dos.filter(x => x.proyecto_id === 'B')).total, 2000);
+  /* COSTE CONOCIDO, decisión del owner pendiente (LAW-499): lo pagado con una Carta que cayó en otra carpeta resta
+     del pendiente de «Todas» pero de ninguna propiedad, porque la regla de hoy no dice a qué villa pertenece. Se
+     fija aquí para que, si alguien lo cambia, sea a propósito y no en silencio. */
+  es('LAW-499: el pendiente de la carpeta A no resta lo pagado con la Carta de B', deA.pendiente, 140000);
+  es('LAW-499: …y el de «Todas» sí (2.000 de diferencia)', total.pendiente, 138000);
+  es('LAW-499: la carpeta B, sin precio propio, no tiene pendiente', deB.pendiente, null);
+
+  // Dos monedas: no se suman.
+  const mix = [
+    { id:'e1', tipo:'construccion', precio:100000, moneda:'EUR', cobrado:20000 },
+    { id:'i1', tipo:'construccion', precio:900000000, moneda:'IDR', cobrado:0 },
+  ];
+  const m = R.resumenVista(mix);
+  es('dos monedas: mixta y sin total sumado', [m.mixta, m.total, m.cobrado, m.pendiente], [true, null, null, null]);
+  es('…con las cifras de cada moneda', m.porMoneda.map(x => [x.moneda, x.total, x.cobrado, x.pendiente]),
+     [['EUR', 100000, 20000, 80000], ['IDR', 900000000, 0, 900000000]]);
+  es('un contrato sin moneda cuenta como EUR (lo que pinta dinero())',
+     R.resumenVista([{ tipo:'construccion', precio:10, cobrado:0 }, { tipo:'construccion', precio:5, moneda:'EUR', cobrado:0 }]).total, 15);
+}
+
 if(fallos){ console.error(`\n${fallos} fallo(s) en las cuentas del portal.`); process.exit(1); }
 console.log('resumen.test.js — OK');
