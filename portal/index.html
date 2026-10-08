@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="407e44e4adfd">
+<meta name="lw-version" content="36e6f6b46381">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1011,6 +1011,14 @@
   .fa-secc{ display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:4px 20px; margin:44px 0 16px; }
   .fa-secc h3{ margin:0; font-size:22px; font-weight:400; letter-spacing:-.005em; }
   .fa-secc p{ margin:0; font-size:13px; color:var(--ink2); }
+  .fa-flechas{ display:none; }
+  .fa-flecha{ width:40px; height:40px; border-radius:999px; border:1px solid var(--linea); background:#fff; color:var(--dl);
+              display:grid; place-items:center; cursor:pointer; padding:0; transition:background .2s var(--lw-ease), opacity .2s var(--lw-ease), transform .15s var(--lw-ease); }
+  .fa-flecha.atras svg{ transform:rotate(180deg); }
+  .fa-flecha:hover:not(:disabled){ background:var(--pg-low); }
+  .fa-flecha:active:not(:disabled){ transform:scale(.94); }
+  .fa-flecha:disabled{ opacity:.35; cursor:default; }
+  .fa-flecha:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
 
   /* contratos */
   .fa-ctrs{ display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap:12px; }
@@ -1145,6 +1153,9 @@
               margin:0 -16px; padding:0 16px 4px; scroll-padding:0 16px; scrollbar-width:none; }
     .fa-ctrs::-webkit-scrollbar{ display:none; }
     .fa-ctr{ scroll-snap-align:start; }
+    .fa-secc-ctr{ align-items:center; }
+    .fa-secc-ctr p{ order:3; width:100%; }
+    .fa-flechas{ display:flex; gap:8px; margin-left:auto; }
     .fa-slip-imp{ font-size:18px; }
   }
   @media (prefers-reduced-motion:reduce){
@@ -1316,7 +1327,7 @@
          fa_e_pagada:'Pagada', fa_e_parcial:'Pago parcial', fa_e_pendiente:'Pendiente', fa_e_vencida:'Vencida', fa_e_recibo:'Pago recibido', fa_e_proforma:'Factura proforma',
          fa_salda:'Salda {n}', fa_pagada_con:'Pagada con {n}', fa_faltan:'Faltan {m}',
          fa_estado:'Estado de cuenta', fa_pct_pagado:'pagado', fa_vence_hoy:'Vence hoy',
-         fa_c_vencida_1:'1 vencida', fa_c_vencida_n:'{n} vencidas', fa_c_pagar_1:'1 por pagar', fa_c_pagar_n:'{n} por pagar', fa_c_pagada_1:'1 pagada', fa_c_pagada_n:'{n} pagadas',
+         fa_c_vencida_1:'1 vencida', fa_c_vencida_n:'{n} vencidas', fa_c_pagar_1:'1 por pagar', fa_c_pagar_n:'{n} por pagar', fa_c_pagada_1:'1 pagada', fa_c_pagada_n:'{n} pagadas', fa_ctr_anterior:'Contrato anterior', fa_ctr_siguiente:'Contrato siguiente',
          sin_obra_t:'Aún no hay novedades de obra', sin_obra:'En cuanto empiece la construcción de tu unidad publicaremos aquí su avance y sus fotos.',
          sin_contratos_t:'No vemos contratos a tu nombre', sin_contratos:'Puede que tu acceso esté sobre una ficha que todavía no tiene contratos ligados. Escríbenos y lo revisamos.',
          entrega_est:'Entrega estimada', actualizado:'Última actualización',
@@ -1419,7 +1430,7 @@
          fa_e_pagada:'Paid', fa_e_parcial:'Partly paid', fa_e_pendiente:'Unpaid', fa_e_vencida:'Overdue', fa_e_recibo:'Payment received', fa_e_proforma:'Proforma invoice',
          fa_salda:'Settles {n}', fa_pagada_con:'Paid with {n}', fa_faltan:'{m} left',
          fa_estado:'Account status', fa_pct_pagado:'paid', fa_vence_hoy:'Due today',
-         fa_c_vencida_1:'1 overdue', fa_c_vencida_n:'{n} overdue', fa_c_pagar_1:'1 to pay', fa_c_pagar_n:'{n} to pay', fa_c_pagada_1:'1 paid', fa_c_pagada_n:'{n} paid',
+         fa_c_vencida_1:'1 overdue', fa_c_vencida_n:'{n} overdue', fa_c_pagar_1:'1 to pay', fa_c_pagar_n:'{n} to pay', fa_c_pagada_1:'1 paid', fa_c_pagada_n:'{n} paid', fa_ctr_anterior:'Previous contract', fa_ctr_siguiente:'Next contract',
          sin_obra_t:'No construction updates yet', sin_obra:'As soon as your unit breaks ground we will publish its progress and photos here.',
          sin_contratos_t:'We see no contracts under your name', sin_contratos:'Your access may sit on a record with no contracts linked yet. Write to us and we will check it.',
          entrega_est:'Estimated handover', actualizado:'Last update',
@@ -1518,7 +1529,7 @@
          fa_e_pagada:'Lunas', fa_e_parcial:'Dibayar sebagian', fa_e_pendiente:'Belum dibayar', fa_e_vencida:'Lewat jatuh tempo', fa_e_recibo:'Pembayaran diterima', fa_e_proforma:'Faktur proforma',
          fa_salda:'Melunasi {n}', fa_pagada_con:'Dibayar dengan {n}', fa_faltan:'Kurang {m}',
          fa_estado:'Status akun', fa_pct_pagado:'dibayar', fa_vence_hoy:'Jatuh tempo hari ini',
-         fa_c_vencida_1:'1 lewat jatuh tempo', fa_c_vencida_n:'{n} lewat jatuh tempo', fa_c_pagar_1:'1 harus dibayar', fa_c_pagar_n:'{n} harus dibayar', fa_c_pagada_1:'1 lunas', fa_c_pagada_n:'{n} lunas',
+         fa_c_vencida_1:'1 lewat jatuh tempo', fa_c_vencida_n:'{n} lewat jatuh tempo', fa_c_pagar_1:'1 harus dibayar', fa_c_pagar_n:'{n} harus dibayar', fa_c_pagada_1:'1 lunas', fa_c_pagada_n:'{n} lunas', fa_ctr_anterior:'Kontrak sebelumnya', fa_ctr_siguiente:'Kontrak berikutnya',
          sin_obra_t:'Belum ada kabar pembangunan', sin_obra:'Begitu pembangunan unit Anda dimulai, kami akan menampilkan kemajuan dan foto-fotonya di sini.',
          sin_contratos_t:'Kami tidak melihat kontrak atas nama Anda', sin_contratos:'Mungkin akses Anda terhubung ke data yang belum memiliki kontrak. Tulis ke kami dan kami akan memeriksanya.',
          entrega_est:'Perkiraan serah terima', actualizado:'Pembaruan terakhir',
@@ -2510,6 +2521,7 @@
   var ICO_P_OK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
   var ICO_P_FLECHA = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>';
   var ICO_P_RELOJ = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
+  var ICO_FLECHA_CAR = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
   var ICO_G_OK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
 
   /* Un anillo de avance (SVG). `pct` ya viene con floor de quien llama: nunca «100 %» si queda algo. */
@@ -2637,7 +2649,10 @@
     c.innerHTML =
       '<div class="titulo-sec"><h2>' + esc(frase) + '</h2><p>' + esc(plural(facturas.length, 'fa_n_docs_1', 'fa_n_docs_n')) + '</p></div>' +
       cabezaFacturas(pago, n) + notaResumenHTML(res) +
-      (ctrs.length ? '<div class="fa-secc"><h3>' + esc(t('fa_contratos')) + '</h3><p>' + esc(t('fa_contratos_sub')) + '</p></div>' +
+      (ctrs.length ? '<div class="fa-secc fa-secc-ctr"><h3>' + esc(t('fa_contratos')) + '</h3><p>' + esc(t('fa_contratos_sub')) + '</p>' +
+          (ctrs.length > 1 ? '<div class="fa-flechas">' +
+            '<button type="button" class="fa-flecha atras" data-fa-desliza="-1" aria-label="' + esc(t('fa_ctr_anterior')) + '">' + ICO_FLECHA_CAR + '</button>' +
+            '<button type="button" class="fa-flecha" data-fa-desliza="1" aria-label="' + esc(t('fa_ctr_siguiente')) + '">' + ICO_FLECHA_CAR + '</button></div>' : '') + '</div>' +
         '<div class="fa-ctrs">' + ctrs.join('') + '</div>' +
         '<div class="fa-leyenda"><span><i class="pagado"></i>' + esc(t('pagado')) + '</span><span><i class="facturado"></i>' + esc(t('fa_facturado')) + '</span><span><i></i>' + esc(t('fa_por_facturar')) + '</span></div>' : '') +
       '<div class="fa-secc"><h3>' + esc(t('fa_documentos')) + '</h3></div>' +
@@ -2703,6 +2718,21 @@
     c.querySelector('#faBuscar').addEventListener('input', function(ev){ ESTADO.faTexto = ev.target.value; pintaLista(); });
     c.querySelectorAll('.fa-ticket [data-ir-fac], .fa-ctr [data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
     c.querySelectorAll('.fa-ticket [data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+    /* Flechas del carrusel de contratos (owner, 8-oct-2026: «una flechita para ir deslizando»). Solo se ven en móvil,
+       donde .fa-ctrs desliza de lado; avanzan una tarjeta (su ancho + el hueco) y se apagan en cada extremo. */
+    var car = c.querySelector('.fa-ctrs'), flechas = c.querySelectorAll('[data-fa-desliza]');
+    if (car && flechas.length){
+      var estadoFlechas = function(){
+        var max = car.scrollWidth - car.clientWidth - 2;
+        flechas.forEach(function(b){ b.disabled = Number(b.getAttribute('data-fa-desliza')) < 0 ? car.scrollLeft <= 2 : car.scrollLeft >= max; });
+      };
+      flechas.forEach(function(b){ b.addEventListener('click', function(){
+        var tarjeta = car.querySelector('.fa-ctr'), paso = tarjeta ? tarjeta.getBoundingClientRect().width + 12 : car.clientWidth;
+        car.scrollBy({ left: Number(b.getAttribute('data-fa-desliza')) * paso, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      }); });
+      car.addEventListener('scroll', estadoFlechas, { passive:true });
+      estadoFlechas();
+    }
   }
 
   /* ── Obra ─────────────────────────────────────────────────────────── */
