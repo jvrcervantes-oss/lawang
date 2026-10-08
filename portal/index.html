@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="a6250cdc99fd">
+<meta name="lw-version" content="7834df46d319">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- MODO DEMO (7-oct-2026): con `?demo` en la dirección se carga demo.js, que sustituye el cliente de Supabase por uno falso con datos
      ficticios. document.write y no un script creado a mano: tiene que ejecutarse ANTES del script del portal, en orden. Falla CERRADO: si demo.js
      no carga, createClient se anula y el portal real nunca se crea con `?demo` puesto. Sin `?demo` esto no hace nada. -->
-<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008e"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008s"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261008f"></script>
+<script src="/portal/resumen.js?v=20261008s"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -720,7 +720,7 @@
   .sop-tema small{ font-size:12px; line-height:1.4; color:var(--out); }
   .sop-cab{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 2px 10px; }
   .sop-rot{ margin:0; }
-  .sop-rot b{ color:var(--va); margin-left:6px; font-variant-numeric:tabular-nums; }
+  .sop-rot b{ color:var(--va); margin-left:2px; font-variant-numeric:tabular-nums; }
   .sop-lista{ display:grid; gap:10px; }
   .sop-nada{ margin:0; padding:16px; text-align:center; font-size:13px; color:var(--out); background:#fff; border:1px solid var(--pg-hi); border-radius:12px; }
   .sop-tk{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:14px; align-items:start; width:100%; text-align:left; cursor:pointer;
@@ -742,7 +742,9 @@
   .sop-estado{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; font-size:11.5px; font-weight:600; border-radius:999px; padding:4px 10px 4px 9px; }
   .sop-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
   .sop-estado.resp{ background:#485B37; color:#fff; }
-  .sop-estado.espera{ background:var(--pg-low); color:var(--ink2); }
+  /* Las dos etiquetas de un ticket abierto van en sólido (1-sep-2026, pedido del cliente: el tinte suave de «Abierto» se
+     perdía contra el crema); la de resuelto, suave, como antes. */
+  .sop-estado.espera{ background:var(--dl); color:#fff; }
   .sop-estado.hecho{ background:#e3eadb; color:var(--ok); }
   .sop-resueltos{ margin-top:6px; }
   .sop-resueltos summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 2px; border-radius:8px; }
@@ -1851,7 +1853,7 @@
          ct_no_cuadra:'¿Algo no cuadra con tus documentos?', ct_escribenos:'Escríbenos desde Soporte y lo revisamos',
          sobre:'Sobre', sobre_nada:'Nada en concreto', preguntar_factura:'Preguntar sobre esta factura', preguntar_contrato:'Preguntar sobre este contrato',
          /* Soporte v2 (8-oct-2026) */
-         sop_h:'¿Sobre qué quieres preguntar?', sop_h_sub:'Elige el tema y escríbenos. Te responde el equipo de gestión de Lawang, aquí mismo.', sop_hint_pagos:'Transferencias, recibos y plazos de un hito', sop_hint_documentacion:'Contratos, planos y papeles de tu compra', sop_hint_obra:'Avance, fotos y fecha de entrega', sop_hint_otro:'Cualquier otra duda', sop_abiertos:'Abiertos', sop_resueltos:'Resueltos', sop_ninguno_abierto:'No tienes ninguna consulta abierta.', sop_respondido:'Te hemos respondido', sop_esperando:'Esperando al equipo', sop_n_msg_1:'1 mensaje', sop_n_msg_n:'{n} mensajes', sop_como:'Cómo funciona', sop_p1_t:'Un ticket por tema', sop_p1:'Si tu duda es sobre una factura o un contrato, elígelo en «Sobre» y el equipo lo verá al momento.', sop_p2_t:'Te contestamos aquí', sop_p2:'La respuesta queda en el ticket. En la lista verás «Te hemos respondido» cuando haya algo nuevo.', sop_p3_t:'¿Vuelve a pasar?', sop_p3:'Escribe en el ticket resuelto y se abre otra vez, con toda la conversación anterior.', sop_aviso_t:'Canal de atención', sop_reabre:'Este ticket está resuelto. Si escribes, se abre otra vez y le llega al equipo.', sop_ph_reabrir:'Escribe para reabrirlo…', sop_ph_resp:'Escribe tu respuesta…', sop_atajo:'Ctrl+Intro para enviar', sop_nuevo_sub:'Te respondemos en este mismo ticket.', sop_tema:'Tema', sop_ph_msg:'Cuéntanos qué necesitas', sop_reabierto:'Ticket abierto otra vez', sop_enviado:'Mensaje enviado', },
+         sop_h:'¿Sobre qué quieres preguntar?', sop_h_sub:'Elige el tema y escríbenos. Te responde el equipo de gestión de Lawang, aquí mismo.', sop_hint_pagos:'Transferencias, recibos y plazos de un hito', sop_hint_documentacion:'Contratos, planos y papeles de tu compra', sop_hint_obra:'Avance, fotos y fecha de entrega', sop_hint_otro:'Cualquier otra duda', sop_abiertos:'Abiertos', sop_resueltos:'Resueltos', sop_ninguno_abierto:'No tienes ninguna consulta abierta.', sop_respondido:'Te hemos respondido', sop_esperando:'Esperando al equipo', sop_n_msg_1:'1 mensaje', sop_n_msg_n:'{n} mensajes', sop_como:'Cómo funciona', sop_p1_t:'Un ticket por tema', sop_p1:'Si tu duda es sobre una factura o un contrato, elígelo en «Sobre» y el equipo lo verá al momento.', sop_p2_t:'Te contestamos aquí', sop_p2:'La respuesta queda en el ticket, y en la lista verás «Te hemos respondido» hasta que contestes.', sop_p3_t:'¿Vuelve a pasar?', sop_p3:'Escribe en el ticket resuelto y se abre otra vez, con toda la conversación anterior.', sop_aviso_t:'Canal de atención', sop_reabre:'Este ticket está resuelto. Si escribes, se abre otra vez y le llega al equipo.', sop_ph_reabrir:'Escribe para reabrirlo…', sop_ph_resp:'Escribe tu respuesta…', sop_atajo:'Ctrl+Intro para enviar', sop_nuevo_sub:'Te respondemos en este mismo ticket.', sop_tema:'Tema', sop_ph_msg:'Cuéntanos qué necesitas', sop_reabierto:'Ticket abierto otra vez', sop_enviado:'Mensaje enviado', },
     en:{ area:'Client area',
          login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
          login_btn:'Send me the link',
@@ -1957,7 +1959,7 @@
          tipo_adenda:'Contract addendum', tipo_contrato_general:'General Contract',
          sobre:'About', sobre_nada:'Nothing in particular', preguntar_factura:'Ask about this invoice', preguntar_contrato:'Ask about this contract',
          /* Soporte v2 (8-oct-2026) */
-         sop_h:'What would you like to ask about?', sop_h_sub:'Pick a topic and write to us. The Lawang account team replies right here.', sop_hint_pagos:'Transfers, receipts and milestone due dates', sop_hint_documentacion:'Contracts, plans and paperwork for your purchase', sop_hint_obra:'Progress, photos and handover date', sop_hint_otro:'Anything else', sop_abiertos:'Open', sop_resueltos:'Resolved', sop_ninguno_abierto:'You have no open enquiries.', sop_respondido:'We have replied', sop_esperando:'Waiting for the team', sop_n_msg_1:'1 message', sop_n_msg_n:'{n} messages', sop_como:'How it works', sop_p1_t:'One ticket per topic', sop_p1:'If your question is about an invoice or a contract, pick it under “About” so the team sees it straight away.', sop_p2_t:'We reply here', sop_p2:'The reply stays in the ticket. The list shows “We have replied” when there is something new.', sop_p3_t:'Happening again?', sop_p3:'Write in the resolved ticket and it reopens, with the whole earlier conversation.', sop_aviso_t:'Support channel', sop_reabre:'This ticket is resolved. If you write, it reopens and reaches the team.', sop_ph_reabrir:'Write to reopen it…', sop_ph_resp:'Write your reply…', sop_atajo:'Ctrl+Enter to send', sop_nuevo_sub:'We will reply in this same ticket.', sop_tema:'Topic', sop_ph_msg:'Tell us what you need', sop_reabierto:'Ticket reopened', sop_enviado:'Message sent', },
+         sop_h:'What would you like to ask about?', sop_h_sub:'Pick a topic and write to us. The Lawang account team replies right here.', sop_hint_pagos:'Transfers, receipts and milestone due dates', sop_hint_documentacion:'Contracts, plans and paperwork for your purchase', sop_hint_obra:'Progress, photos and handover date', sop_hint_otro:'Anything else', sop_abiertos:'Open', sop_resueltos:'Resolved', sop_ninguno_abierto:'You have no open enquiries.', sop_respondido:'We have replied', sop_esperando:'Waiting for the team', sop_n_msg_1:'1 message', sop_n_msg_n:'{n} messages', sop_como:'How it works', sop_p1_t:'One ticket per topic', sop_p1:'If your question is about an invoice or a contract, pick it under “About” so the team sees it straight away.', sop_p2_t:'We reply here', sop_p2:'The reply stays in the ticket, and the list shows “We have replied” until you answer.', sop_p3_t:'Happening again?', sop_p3:'Write in the resolved ticket and it reopens, with the whole earlier conversation.', sop_aviso_t:'Support channel', sop_reabre:'This ticket is resolved. If you write, it reopens and reaches the team.', sop_ph_reabrir:'Write to reopen it…', sop_ph_resp:'Write your reply…', sop_atajo:'Ctrl+Enter to send', sop_nuevo_sub:'We will reply in this same ticket.', sop_tema:'Topic', sop_ph_msg:'Tell us what you need', sop_reabierto:'Ticket reopened', sop_enviado:'Message sent', },
     id:{ area:'Area klien',
          login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, tautan masuk akan segera dikirim.',
          login_btn:'Kirim tautan ke saya',
@@ -2060,7 +2062,7 @@
          tipo_carta_reserva:'Surat Pemesanan', tipo_reserva_parcela:'Pengikatan Kavling', tipo_construccion:'Konstruksi', tipo_poa:'Surat Kuasa', tipo_adenda:'Adendum kontrak',
          sobre:'Tentang', sobre_nada:'Tidak ada yang khusus', preguntar_factura:'Tanya tentang faktur ini', preguntar_contrato:'Tanya tentang kontrak ini',
          /* Soporte v2 (8-oct-2026) */
-         sop_h:'Apa yang ingin Anda tanyakan?', sop_h_sub:'Pilih topik dan tulis pesan Anda. Tim pengelola Lawang akan membalas di sini.', sop_hint_pagos:'Transfer, kuitansi, dan jatuh tempo termin', sop_hint_documentacion:'Kontrak, denah, dan dokumen pembelian Anda', sop_hint_obra:'Progres, foto, dan tanggal serah terima', sop_hint_otro:'Pertanyaan lainnya', sop_abiertos:'Terbuka', sop_resueltos:'Selesai', sop_ninguno_abierto:'Anda tidak punya pertanyaan yang terbuka.', sop_respondido:'Kami sudah membalas', sop_esperando:'Menunggu tim', sop_n_msg_1:'1 pesan', sop_n_msg_n:'{n} pesan', sop_como:'Cara kerjanya', sop_p1_t:'Satu tiket per topik', sop_p1:'Jika pertanyaan Anda tentang faktur atau kontrak, pilih di “Tentang” agar tim langsung melihatnya.', sop_p2_t:'Kami membalas di sini', sop_p2:'Balasan tersimpan di tiket. Daftar akan menampilkan “Kami sudah membalas” saat ada yang baru.', sop_p3_t:'Terjadi lagi?', sop_p3:'Tulis di tiket yang sudah selesai dan tiket akan dibuka lagi, lengkap dengan percakapan sebelumnya.', sop_aviso_t:'Saluran layanan', sop_reabre:'Tiket ini sudah selesai. Jika Anda menulis, tiket dibuka lagi dan sampai ke tim.', sop_ph_reabrir:'Tulis untuk membukanya lagi…', sop_ph_resp:'Tulis balasan Anda…', sop_atajo:'Ctrl+Enter untuk mengirim', sop_nuevo_sub:'Kami akan membalas di tiket ini.', sop_tema:'Topik', sop_ph_msg:'Ceritakan apa yang Anda perlukan', sop_reabierto:'Tiket dibuka lagi', sop_enviado:'Pesan terkirim' }
+         sop_h:'Apa yang ingin Anda tanyakan?', sop_h_sub:'Pilih topik dan tulis pesan Anda. Tim pengelola Lawang akan membalas di sini.', sop_hint_pagos:'Transfer, kuitansi, dan jatuh tempo termin', sop_hint_documentacion:'Kontrak, denah, dan dokumen pembelian Anda', sop_hint_obra:'Progres, foto, dan tanggal serah terima', sop_hint_otro:'Pertanyaan lainnya', sop_abiertos:'Terbuka', sop_resueltos:'Selesai', sop_ninguno_abierto:'Anda tidak punya pertanyaan yang terbuka.', sop_respondido:'Kami sudah membalas', sop_esperando:'Menunggu tim', sop_n_msg_1:'1 pesan', sop_n_msg_n:'{n} pesan', sop_como:'Cara kerjanya', sop_p1_t:'Satu tiket per topik', sop_p1:'Jika pertanyaan Anda tentang faktur atau kontrak, pilih di “Tentang” agar tim langsung melihatnya.', sop_p2_t:'Kami membalas di sini', sop_p2:'Balasan tersimpan di tiket, dan daftar menampilkan “Kami sudah membalas” sampai Anda menjawab.', sop_p3_t:'Terjadi lagi?', sop_p3:'Tulis di tiket yang sudah selesai dan tiket akan dibuka lagi, lengkap dengan percakapan sebelumnya.', sop_aviso_t:'Saluran layanan', sop_reabre:'Tiket ini sudah selesai. Jika Anda menulis, tiket dibuka lagi dan sampai ke tim.', sop_ph_reabrir:'Tulis untuk membukanya lagi…', sop_ph_resp:'Tulis balasan Anda…', sop_atajo:'Ctrl+Enter untuk mengirim', sop_nuevo_sub:'Kami akan membalas di tiket ini.', sop_tema:'Topik', sop_ph_msg:'Ceritakan apa yang Anda perlukan', sop_reabierto:'Tiket dibuka lagi', sop_enviado:'Pesan terkirim' }
   };
   var LANG = localStorage.getItem('lw_portal_lang');
   if (!LANG || !(LANG in T)) { var nl = (navigator.language || 'es').slice(0,2); LANG = (nl === 'es' || nl === 'id') ? nl : 'en'; }
@@ -3837,18 +3839,17 @@
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (ancho || 1.6) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (TRAZOS_SOP[k] || TRAZOS_SOP.otro) + '</svg>';
   }
   function icoCat(c){ return trazoSop(catClave(c)); }   // «General» (los de antes de los tickets) cae en el de «Otro»
-  /* De quién es el turno: el último mensaje. Del equipo → «Te hemos respondido»; del comprador → «Esperando al equipo». */
-  function turnoTicket(x){
-    if (x.estado !== 'abierto') return { cls:'hecho', txt:t('resuelto') };
-    var ms = x.mensajes || [], u = ms[ms.length - 1];
-    return u && u.de === 'equipo' ? { cls:'resp', txt:t('sop_respondido') } : { cls:'espera', txt:t('sop_esperando') };
+  /* De quién es el turno: turnoTicket de resumen.js (probado en resumen.test.js); aquí solo su texto. */
+  function turnoSop(x){
+    var cls = turnoTicket(x);
+    return { cls:cls, txt:t(cls === 'resp' ? 'sop_respondido' : cls === 'espera' ? 'sop_esperando' : 'resuelto') };
   }
   function refTicket(x){
     if (!x.ref_numero) return '';
     return (x.factura_id ? t('factura') : x.contrato_id ? t('ob_contrato') : t('sobre')) + ' ' + x.ref_numero;
   }
   function filaTicket(x){
-    var ms = x.mensajes || [], u = ms[ms.length - 1], tu = turnoTicket(x);
+    var ms = x.mensajes || [], u = ms[ms.length - 1], tu = turnoSop(x);
     var extracto = u ? '<span class="sop-ex"><em>' + esc(u.de === 'cliente' ? t('tu') : t('equipo')) + ':</em> ' + esc(u.texto) + '</span>' : '';
     var ref = refTicket(x);
     return '<button type="button" class="sop-tk ' + tu.cls + '" data-ticket="' + esc(x.id) + '">' +
@@ -3861,12 +3862,7 @@
   }
   function pintaSoporte(c){
     var tickets = DATOS.tickets || [];
-    var reciente = function(a, b){ return new Date(b.actualizado_en) - new Date(a.actualizado_en); };
-    // primero lo que ya tiene respuesta: es lo que el comprador tiene que leer
-    var abiertos = tickets.filter(function(x){ return x.estado === 'abierto'; }).sort(function(a, b){
-      return (turnoTicket(a).cls === 'resp' ? 0 : 1) - (turnoTicket(b).cls === 'resp' ? 0 : 1) || reciente(a, b);
-    });
-    var resueltos = tickets.filter(function(x){ return x.estado !== 'abierto'; }).sort(reciente);
+    var orden = ordenTickets(tickets), abiertos = orden.abiertos, resueltos = orden.resueltos;   // resumen.js: con respuesta primero
 
     var empezar = '<section class="tarjeta sop-tarjeta"><h2 class="sop-h">' + esc(t('sop_h')) + '</h2><p class="sop-sub">' + esc(t('sop_h_sub')) + '</p>' +
       '<div class="sop-temas">' + CATEGORIAS.map(function(cat){
@@ -3874,11 +3870,11 @@
           '<b>' + esc(catTxt(cat)) + '</b><small>' + esc(t('sop_hint_' + catClave(cat))) + '</small></button>';
       }).join('') + '</div></section>';
 
-    var lista = '<section><div class="sop-cab"><span class="rot-bloque sop-rot">' + esc(t('sop_abiertos')) + '<b>' + abiertos.length + '</b></span>' +
+    var lista = '<section><div class="sop-cab"><span class="rot-bloque sop-rot">' + esc(t('sop_abiertos')) + ' <b>' + abiertos.length + '</b></span>' +
         '<button type="button" class="btn-borde" id="btnNuevoTicket">' + esc(t('nuevo_ticket')) + '</button></div>' +
       (abiertos.length ? '<div class="sop-lista">' + abiertos.map(filaTicket).join('') + '</div>'
         : (resueltos.length ? '<p class="sop-nada">' + esc(t('sop_ninguno_abierto')) + '</p>' : vacio(t('sin_tickets_t'), t('sin_tickets')))) +
-      (resueltos.length ? '<details class="sop-resueltos"><summary>' + trazoSop('flecha', 2) + '<span class="rot-bloque sop-rot">' + esc(t('sop_resueltos')) + '<b>' + resueltos.length + '</b></span></summary>' +
+      (resueltos.length ? '<details class="sop-resueltos"><summary>' + trazoSop('flecha', 2) + '<span class="rot-bloque sop-rot">' + esc(t('sop_resueltos')) + ' <b>' + resueltos.length + '</b></span></summary>' +
         '<div class="sop-lista">' + resueltos.map(filaTicket).join('') + '</div></details>' : '') + '</section>';
 
     var paso = function(n){ return '<li><span class="sop-n">' + n + '</span><div><b>' + esc(t('sop_p' + n + '_t')) + '</b><span>' + esc(t('sop_p' + n)) + '</span></div></li>'; };
@@ -3906,7 +3902,7 @@
     var r = relativa(f); return r.charAt(0).toUpperCase() + r.slice(1);
   }
   function abreTicket(x){
-    var tu = turnoTicket(x), resuelto = x.estado !== 'abierto', ref = refTicket(x);
+    var tu = turnoSop(x), resuelto = x.estado !== 'abierto', ref = refTicket(x);
     var hilo = '', dia = '';
     (x.mensajes || []).forEach(function(m){
       var dm = diaHilo(m.creado_en);
@@ -3916,7 +3912,12 @@
         '<div class="sop-burbuja">' + esc(m.texto) + '</div>' +
         '<span class="sop-hora">' + esc(isNaN(d) ? '' : d.toLocaleTimeString(LOC(), { hour:'2-digit', minute:'2-digit' })) + '</span></div>';
     });
-    var irRef = !ref ? '' : x.factura_id ? ' data-ir-fac="' + esc(x.ref_numero) + '"' : x.contrato_id ? ' data-ir-con="' + esc(x.ref_numero) + '"' : '';
+    /* La referencia enlaza solo si ese documento se abre aquí: la factura está entre las que ve el comprador (sin anuladas
+       ni proformas sin enviar) o el contrato tiene PDF, como el botón de Contratos. Si no, aplicaRuta cambiaba la sección
+       de debajo sin que se viera y al cerrar el cajón el comprador ya no estaba en Soporte (revisor, 8-oct-2026). */
+    var abrible = x.factura_id ? (DATOS.facturas || []).some(function(f){ return f.numero === x.ref_numero; })
+                : x.contrato_id ? (DATOS.contratos || []).some(function(k){ return k.numero === x.ref_numero && k.pdf; }) : false;
+    var irRef = !ref || !abrible ? '' : x.factura_id ? ' data-ir-fac="' + esc(x.ref_numero) + '"' : ' data-ir-con="' + esc(x.ref_numero) + '"';
     abreDrawer(
       '<div class="sop-dr-cab"><span class="sop-ico">' + icoCat(x.categoria) + '</span><div><h3>' + esc(catTxt(x.categoria)) + '</h3>' +
         '<div class="sop-meta"><span class="sop-estado ' + tu.cls + '"><i></i>' + esc(tu.txt) + '</span>' +
@@ -3946,8 +3947,10 @@
       var val = ta.value.trim(); if (!val || enviando) return;
       enviando = true; btn.disabled = true;
       sb.rpc('portal_enviar_mensaje', { p_hilo_id: x.id, p_texto: val }).then(function(r){
-        enviando = false;
-        if (r.error){ console.error('portal_enviar_mensaje', r.error); btn.disabled = !ta.value.trim(); toastMal(t('err_mensaje')); return; }
+        // Bien: `enviando` se queda en true y el cajón se repinta con uno nuevo al recargar. Si volviera a false aquí,
+        // Ctrl+Intro (requestSubmit no mira el botón desactivado) mandaba el mismo texto otra vez durante la recarga, y
+        // cada copia avisa por correo al equipo (revisor, 8-oct-2026).
+        if (r.error){ enviando = false; console.error('portal_enviar_mensaje', r.error); btn.disabled = !ta.value.trim(); toastMal(t('err_mensaje')); return; }
         recargaSituacion(function(){
           var actual = (DATOS.tickets||[]).filter(function(t2){ return t2.id === x.id; })[0];
           if (actual) abreTicket(actual); else cierraDrawer();

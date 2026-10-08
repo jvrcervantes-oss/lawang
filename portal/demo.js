@@ -195,7 +195,7 @@
       }
       if (n === 'portal_enviar_mensaje') {
         var t = D.tickets.filter(function (x) { return x.id === a.p_hilo_id; })[0];
-        if (t) { t.mensajes.push({ id: 'm' + Date.now(), de: 'cliente', autor: null, texto: a.p_texto, creado_en: new Date().toISOString() }); t.actualizado_en = new Date().toISOString(); }
+        if (t) { t.mensajes.push({ id: 'm' + Date.now(), de: 'cliente', autor: null, texto: a.p_texto, creado_en: new Date().toISOString() }); t.actualizado_en = new Date().toISOString(); t.estado = 'abierto'; }   // como _trg_hilo_soporte_actividad: el comprador lo reabre
         return ok(null);
       }
       return ok(null);

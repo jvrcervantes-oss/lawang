@@ -337,6 +337,24 @@ function estadoDocumento(caduca, hoy){
   return { estado: dias < 0 ? 'vencido' : dias <= KYC_AVISO_DIAS ? 'pronto' : 'ok', dias: dias };
 }
 
+/* Soporte: de quién es el turno en un ticket y en qué orden salen (Soporte v2, 8-oct-2026). El turno lo dice el último
+   mensaje —portal_situacion los devuelve por creado_en—: del equipo → 'resp' («Te hemos respondido»), del comprador →
+   'espera'. Un ticket resuelto es 'hecho'. No hay marca de leído en la base: 'resp' dura hasta que el comprador contesta
+   o el equipo lo cierra. Abiertos con respuesta primero (es lo que hay que leer), luego por última actividad. */
+function turnoTicket(x){
+  if (!x || x.estado !== 'abierto') return 'hecho';
+  const ms = x.mensajes || [], u = ms[ms.length - 1];
+  return u && u.de === 'equipo' ? 'resp' : 'espera';
+}
+function ordenTickets(tickets){
+  const t = (tickets || []).slice();
+  const ms = x => { const v = new Date(x.actualizado_en).getTime(); return isNaN(v) ? 0 : v; };
+  const reciente = (a, b) => ms(b) - ms(a);
+  const abiertos = t.filter(x => x.estado === 'abierto').sort((a, b) =>
+    (turnoTicket(a) === 'resp' ? 0 : 1) - (turnoTicket(b) === 'resp' ? 0 : 1) || reciente(a, b));
+  return { abiertos: abiertos, resueltos: t.filter(x => x.estado !== 'abierto').sort(reciente) };
+}
+
 if (typeof module !== 'undefined' && module.exports)
   module.exports = { resumenPortal, resumenVista, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe,
-                     saldoSinAplicar, finDelDia, estadoFactura, eligeProximo, diaLocal, estadoDocumento, KYC_AVISO_DIAS };
+                     saldoSinAplicar, finDelDia, estadoFactura, eligeProximo, diaLocal, estadoDocumento, KYC_AVISO_DIAS, turnoTicket, ordenTickets };
