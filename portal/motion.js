@@ -201,13 +201,18 @@
     Array.prototype.forEach.call(raiz.querySelectorAll('.ini-filtro, .lang-sel'), function (g) {
       var on = g.querySelector('button[aria-pressed="true"]');
       if (!on || !on.offsetWidth) { quitaPista(g); return; }
-      var k = claveSel(g, zona), x = on.offsetLeft, w = on.offsetWidth, antes = M._sel[k];
+      /* Posición respecto al GRUPO medida con rectángulos, no con offsetLeft: el grupo solo es `position:relative` mientras
+         lleva `con-pista`, y sin esa clase offsetLeft cuenta desde la página (el verde viajaba a otro sitio y el botón
+         pulsado se quedaba con el texto blanco sobre blanco; 8-oct-2026, owner). */
+      var gr = g.getBoundingClientRect(), br = on.getBoundingClientRect();
+      var k = claveSel(g, zona), x = Math.round(br.left - gr.left - g.clientLeft + g.scrollLeft), w = on.offsetWidth, antes = M._sel[k];
+      var y = Math.round(br.top - gr.top - g.clientTop + g.scrollTop);
       M._sel[k] = { x: x, w: w };
       if (!puede() || !antes || (antes.x === x && antes.w === w)) { quitaPista(g); return; }
       var pista = g.querySelector(':scope > .lw-pista');
       if (!pista) { pista = root.document.createElement('span'); pista.className = 'lw-pista'; pista.setAttribute('aria-hidden', 'true'); g.insertBefore(pista, g.firstChild); }
       g.classList.add('con-pista');
-      pista.style.top = on.offsetTop + 'px'; pista.style.height = on.offsetHeight + 'px';
+      pista.style.top = y + 'px'; pista.style.height = on.offsetHeight + 'px';
       pista.style.width = w + 'px'; pista.style.transform = 'translateX(' + x + 'px)';
       anima(pista, [{ transform: 'translateX(' + antes.x + 'px)', width: antes.w + 'px' }, { transform: 'translateX(' + x + 'px)', width: w + 'px' }], { duration: 280, easing: EASE });
       root.clearTimeout(g._lwPista);

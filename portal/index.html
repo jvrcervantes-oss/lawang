@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="0dc786ba4331">
+<meta name="lw-version" content="e47a98215314">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -740,7 +740,8 @@
   .sop-resueltos summary::-webkit-details-marker{ display:none; }
   .sop-resueltos summary svg{ width:14px; height:14px; color:var(--out); transition:transform .2s; }
   .sop-resueltos[open] summary svg{ transform:rotate(90deg); }
-  .sop-resueltos .sop-tk{ background:var(--rl); }
+  /* Resueltos: blanco menos opaco que el sólido de los abiertos (antes --rl, igual que el fondo de la página y no se veía la caja). */
+  .sop-resueltos .sop-tk{ background:rgba(255,255,255,.55); }
   .sop-resueltos .sop-tk-t b{ color:var(--ink2); }
   .sop-pasos{ list-style:none; margin:14px 0 0; padding:0; display:grid; gap:14px; }
   .sop-pasos li{ display:grid; grid-template-columns:26px minmax(0,1fr); gap:12px; align-items:start; }
