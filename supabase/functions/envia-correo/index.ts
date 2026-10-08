@@ -306,16 +306,19 @@ async function leeSociedad(clave: string, dominio: string): Promise<SociedadMarc
   if (!CLAVE_SOCIEDAD.test(clave)) return { error: 'sociedad no válida', status: 400 };
   let filas: unknown;
   try {
-    filas = await leeDato('sociedades?select=razon,marca,logo&activa=is.true&clave=eq.' + encodeURIComponent(clave));
+    filas = await leeDato('sociedades?select=razon,marca,logo,tinta,folio&activa=is.true&clave=eq.' + encodeURIComponent(clave));
   } catch (e) {
     console.error('envia-correo: no se pudo leer la sociedad (' + String((e as Error)?.message ?? e).slice(0, 40) + ')');
     return { error: 'No se pudo leer la sociedad del correo', status: 502 };
   }
-  const f = Array.isArray(filas) && filas.length === 1 ? filas[0] as { razon?: unknown; marca?: unknown; logo?: unknown } : null;
+  const f = Array.isArray(filas) && filas.length === 1 ? filas[0] as { razon?: unknown; marca?: unknown; logo?: unknown; tinta?: unknown; folio?: unknown } : null;
   const razon = typeof f?.razon === 'string' ? f.razon.trim() : '';
   if (!f || razon === '' || tieneControl(razon)) return { error: 'sociedad desconocida o inactiva', status: 400 };
   const marcaTxt = typeof f.marca === 'string' ? f.marca.trim() : '';
-  return { razon, marca: marcaTxt !== '' && !tieneControl(marcaTxt) ? marcaTxt : razon, logoUrl: logoDeSociedad(f.logo, dominio, SUPA_URL) };
+  return { razon, marca: marcaTxt !== '' && !tieneControl(marcaTxt) ? marcaTxt : razon, logoUrl: logoDeSociedad(f.logo, dominio, SUPA_URL),
+           // los colores se validan (#rrggbb) en paletaDe; aquí solo se pasa lo que tenga la forma de objeto / texto
+           tinta: f.tinta && typeof f.tinta === 'object' && !Array.isArray(f.tinta) ? f.tinta as { deep?: unknown; primary?: unknown } : null,
+           folio: typeof f.folio === 'string' ? f.folio : null };
 }
 
 // ── manejador ────────────────────────────────────────────────────────────────────────────────

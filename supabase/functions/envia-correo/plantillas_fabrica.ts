@@ -117,6 +117,12 @@ export async function resuelve(clave: string, ids: Ids, to: string, vars: Vars, 
   };
   const primero = (n: unknown) => String(n ?? '').trim().split(/\s+/)[0];
   const saludo = (n: unknown) => 'Hola' + (primero(n) ? ' ' + primero(n) : '');
+  // Solo reclamo_pago (owner, 8-oct-2026): el nombre de la ficha viene a veces en MAYÚSCULAS («VICTOR»). Primer nombre, inicial en
+  // mayúscula y el resto en minúscula (tildes y ñ incluidas); vacío = «Hola». Las otras plantillas siguen con `saludo` tal cual.
+  const saludoNombre = (n: unknown) => {
+    const p = primero(n).toLocaleLowerCase('es');
+    return 'Hola' + (p ? ' ' + p.charAt(0).toLocaleUpperCase('es') + p.slice(1) : '');
+  };
   const marca = comun.marca;
 
   if (clave === 'enlace_firma_cadena') {
@@ -196,7 +202,7 @@ export async function resuelve(clave: string, ids: Ids, to: string, vars: Vars, 
     // plantillaHtml la escapa entera al pintarla (comillas dobles y simples incluidas)
     const nota = String(d.nota ?? '').replace(/\s+/g, ' ').trim();
     if ([...nota].length > 300 || tieneControl(nota)) return mal('La nota del reclamo no es válida');
-    return { vars: { saludo: saludo(d.nombre), parcela, proyecto, empresa, nota: nota ? nota + '\n\n' : '', enlace: comun.portal,
+    return { vars: { saludo: saludoNombre(d.nombre), parcela, proyecto, empresa, nota: nota ? nota + '\n\n' : '', enlace: comun.portal,
                      marca, firma: 'El equipo de ' + empresa }, variante: 'principal', cta: null };
   }
 
