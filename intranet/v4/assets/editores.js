@@ -6236,7 +6236,7 @@
       ata('bot-publico', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
-        sb.rpc('proyecto_bot_publico_lee', { p_proyecto: p.id }).then(function (r) {
+        sb.rpc('proyecto_bot_publico_lee', { p_proyecto_id: p.id }).then(function (r) {
           if (r.error) return aviso('No se pudo leer el estado del bot: ' + r.error.message, '#ba1a1a');
           pintaBotPublico(p, r.data || {});
         }, function (e) { aviso('No se pudo leer el estado del bot: ' + ((e && e.message) || e), '#ba1a1a'); });
@@ -6288,7 +6288,7 @@
           pregunta.then(function (ok) {
             if (!ok) { document.getElementById('bp-check').checked = !!actual.bot_publico; return; }
             if (btn) btn.disabled = true;
-            return sb.rpc('proyecto_bot_publico_poner', { p_proyecto: p.id, p_valor: marcado }).then(function (r) {
+            return sb.rpc('proyecto_bot_publico_poner', { p_proyecto_id: p.id, p_valor: marcado }).then(function (r) {
               if (btn) btn.disabled = false;
               if (r.error) {
                 document.getElementById('bp-check').checked = !!actual.bot_publico;   // la pantalla vuelve a lo que de verdad hay
