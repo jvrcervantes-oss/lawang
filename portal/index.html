@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="160d2c3eccaa">
+<meta name="lw-version" content="3efb339f2c9d">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261008e"></script>
+<script src="/portal/resumen.js?v=20261008f"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -732,9 +732,7 @@
   .ent-res.bien{ background:#e3eadb; color:var(--ok); }
   .ent-intro{ margin:6px 0 16px; font-size:13px; line-height:1.5; color:var(--ink2); max-width:56ch; }
   .ent-docs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(236px,1fr)); gap:12px; }
-  .ent-doc{ border:1px solid var(--pg-hi); border-radius:14px; background:#fff; padding:14px 14px 12px; display:flex; flex-direction:column; gap:12px; min-width:0;
-            transition:border-color .2s, transform .3s var(--lw-ease); }
-  .ent-doc:hover{ border-color:var(--ss); transform:translateY(-1px); }
+  .ent-doc{ border:1px solid var(--pg-hi); border-radius:14px; background:#fff; padding:14px 14px 12px; display:flex; flex-direction:column; gap:12px; min-width:0; }
   .ent-doc.pronto{ background:#fdf6f3; border-color:#e4c3ba; }
   .ent-doc.vencido{ background:var(--pg-low); }
   .ent-top{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:center; }
@@ -790,7 +788,6 @@
   .ent-kit::before{ content:""; position:absolute; left:0; right:0; top:0; height:8px; border-radius:3px 3px 0 0; background:var(--tg); }
   .ent-kit b{ left:5px; background:var(--pg-hi); }
   .ent-kit b:nth-child(1){ top:13px; right:5px; } .ent-kit b:nth-child(2){ top:18px; right:9px; } .ent-kit b:nth-child(3){ top:23px; right:6px; } .ent-kit b:nth-child(4){ top:28px; right:12px; }
-  @media (prefers-reduced-motion:reduce){ .ent-doc{ transition:none; } .ent-doc:hover{ transform:none; } }
   /* ajustes: un icono por fila */
   .pf .pref-fila{ gap:12px; padding:11px 0; border-bottom-color:var(--pg-hi); }
   .pf .pref-fila span{ font-size:13.5px; }
@@ -1702,7 +1699,7 @@
          datos_personales:'Datos personales', nombre:'Nombre', correo:'Correo', telefono:'Teléfono', pais:'País',
          pf_caducado:'Caducado', pf_vigente:'Vigente', pf_contrasena:'Contraseña', pf_dato_mal:'¿Algún dato no es correcto?', pf_dato_mal_txt:'Tus datos los lleva el equipo de gestión de Lawang. Escríbenos y los corregimos.',
          seguridad_avisos:'Seguridad y avisos',
-         ent_intro:'Los documentos de tu expediente. Si uno va a caducar, avísanos y lo actualizamos.', ent_res_1:'1 caduca pronto', ent_res_n:'{n} necesitan renovarse', ent_todo:'Todo vigente',
+         ent_intro:'Los documentos de tu expediente. Si uno va a caducar, avísanos y lo actualizamos.', ent_res_1:'1 necesita renovarse', ent_res_n:'{n} necesitan renovarse', ent_todo:'Todo vigente',
          ent_dia:'día', ent_dias:'días', ent_para_caducar:'para que caduque · el {f}', ent_hasta:'hasta el {f}', ent_desde:'desde el {f}', ent_no_caduca:'No caduca', ent_sin_fecha:'sin fecha de caducidad',
          ent_entregado:'Entregado {f}', ent_caduca:'Caduca {f}', ent_caduco:'Caducó {f}', ent_ver:'Ver', ent_avisar:'Avisar al equipo', ent_en_exp:'En tu expediente',
          cambiar_pass_btn:'Cambiar contraseña',
@@ -1802,7 +1799,7 @@
          datos_personales:'Personal details', nombre:'Name', correo:'Email', telefono:'Phone', pais:'Country',
          pf_caducado:'Expired', pf_vigente:'Valid', pf_contrasena:'Password', pf_dato_mal:'Is any of your details wrong?', pf_dato_mal_txt:'Your details are kept by the Lawang management team. Write to us and we will correct them.',
          seguridad_avisos:'Security and notifications',
-         ent_intro:'The documents in your file. If one is about to expire, let us know and we will update it.', ent_res_1:'1 expiring soon', ent_res_n:'{n} need renewing', ent_todo:'All valid',
+         ent_intro:'The documents in your file. If one is about to expire, let us know and we will update it.', ent_res_1:'1 needs renewing', ent_res_n:'{n} need renewing', ent_todo:'All valid',
          ent_dia:'day', ent_dias:'days', ent_para_caducar:'left · expires {f}', ent_hasta:'until {f}', ent_desde:'since {f}', ent_no_caduca:'No expiry', ent_sin_fecha:'no expiry date',
          ent_entregado:'Provided {f}', ent_caduca:'Expires {f}', ent_caduco:'Expired {f}', ent_ver:'View', ent_avisar:'Tell the team', ent_en_exp:'In your file',
          cambiar_pass_btn:'Change password',
@@ -1906,9 +1903,9 @@
          datos_personales:'Data pribadi', nombre:'Nama', correo:'Email', telefono:'Telepon', pais:'Negara',
          pf_caducado:'Kedaluwarsa', pf_vigente:'Berlaku', pf_contrasena:'Kata sandi', pf_dato_mal:'Ada data yang tidak benar?', pf_dato_mal_txt:'Data Anda dikelola oleh tim manajemen Lawang. Tulis kepada kami dan kami akan memperbaikinya.',
          seguridad_avisos:'Keamanan dan notifikasi',
-         ent_intro:'Dokumen di berkas Anda. Jika ada yang akan berakhir, beri tahu kami dan kami akan memperbaruinya.', ent_res_1:'1 segera berakhir', ent_res_n:'{n} perlu diperbarui', ent_todo:'Semua berlaku',
+         ent_intro:'Dokumen di berkas Anda. Jika ada yang akan berakhir, beri tahu kami dan kami akan memperbaruinya.', ent_res_1:'1 perlu diperbarui', ent_res_n:'{n} perlu diperbarui', ent_todo:'Semua berlaku',
          ent_dia:'hari', ent_dias:'hari', ent_para_caducar:'lagi · berakhir {f}', ent_hasta:'sampai {f}', ent_desde:'sejak {f}', ent_no_caduca:'Tidak berakhir', ent_sin_fecha:'tanpa tanggal kedaluwarsa',
-         ent_entregado:'Diserahkan {f}', ent_caduca:'Berakhir {f}', ent_caduco:'Berakhir {f}', ent_ver:'Lihat', ent_avisar:'Beri tahu tim', ent_en_exp:'Di berkas Anda',
+         ent_entregado:'Diserahkan {f}', ent_caduca:'Berakhir {f}', ent_caduco:'Telah berakhir {f}', ent_ver:'Lihat', ent_avisar:'Beri tahu tim', ent_en_exp:'Di berkas Anda',
          cambiar_pass_btn:'Ganti kata sandi',
          cambiar_pass_nueva:'Kata sandi baru (minimal 10 karakter)', cambiar_pass_repite:'Ulangi kata sandi',
          cambiar_pass_nota:'Anda akan memakainya bersama email saat masuk berikutnya — tautan lewat email tetap berfungsi seperti biasa.',
@@ -2313,22 +2310,19 @@
                                        fecha: o.actualizado, cuando: new Date(o.actualizado), contrato_numero: o.contrato_numero || null });
     });
     kycCaducan(d).forEach(function(k){
-      var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
+      var dias = estadoDocumento(k.caduca).dias;   // el mismo plazo que Inicio y Mi perfil (resumen.js)
       lista.push({ tipo:'kyc',
         texto: t('nov_doc_caduca').replace('{doc}', (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo))).replace('{n}', dias),
-        fecha: k.caduca, cuando: new Date()
+        fecha: diaLocal(k.caduca), cuando: new Date()
       });
     });
     lista.sort(function(a,b){ return b.cuando - a.cuando; });
     return lista.slice(0, 8);
   }
-  /* Documento de identidad que caduca en los próximos 30 días: lo usan la campana y la lista de Inicio. */
+  /* Documento de identidad que caduca en los próximos 30 días: lo usan la campana y la lista de Inicio. El estado sale
+     de estadoDocumento (resumen.js), el mismo que pinta «Lo que nos entregaste» en Mi perfil (revisor, 8-oct-2026). */
   function kycCaducan(d){
-    return ((d && d.kyc) || []).filter(function(k){
-      if (!k.caduca) return false;
-      var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
-      return dias >= 0 && dias <= 30;
-    });
+    return ((d && d.kyc) || []).filter(function(k){ return estadoDocumento(k.caduca).estado === 'pronto'; });
   }
   function pintaCampana(){
     var drop = document.getElementById('notifDrop');
@@ -2581,7 +2575,7 @@
       var nom = t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo);
       tareas.push('<div class="ini-tarea">' + icoTarea + '<div class="ini-tarea-tx"><b>' +
         esc(t('kyc_caduca_el').replace('{doc}', nom === String(nom).toUpperCase() ? nom : String(nom).charAt(0).toLowerCase() + String(nom).slice(1)).replace('{Doc}', nom).replace('{f}', fechaCorta(k.caduca))) + '</b></div>' +
-        cuentaAtras(k.caduca) +
+        cuentaAtras(diaLocal(k.caduca)) +
         '<button type="button" class="btn-borde" data-ir="perfil">' + esc(t('ver_perfil')) + '</button></div>');
     });
     var tareasHTML = tareas.length ? '<div class="ini-tareas" role="status" aria-label="' + esc(t('pendiente_ti')) + '">' + tareas.join('') + '</div>' : '';
@@ -3867,28 +3861,24 @@
 
     // lo entregado (artifact «Documentos entregados Lawang», 8-oct-2026): cada documento con su dibujo, su estado en
     // grande y la vida que le queda (de cuando nos lo dio a cuando caduca, con hoy marcado). Los que piden algo, primero.
-    var estadoKyc = function(x){
-      if (!x.caduca) return 'sin';
-      var n = diasHasta(x.caduca);   // días de calendario, como el aviso de Inicio (revisor, 8-oct); null si ya pasó
-      return n == null ? 'vencido' : n <= 30 ? 'pronto' : 'ok';
-    };
+    var estadoKyc = function(x){ return estadoDocumento(x.caduca).estado; };   // el mismo que el aviso de Inicio (resumen.js)
     var ORDEN_KYC = { pronto:0, vencido:1, ok:2, sin:3 };
     var kycOrden = kyc.slice().sort(function(a, b){ return ORDEN_KYC[estadoKyc(a)] - ORDEN_KYC[estadoKyc(b)]; });
     var piden = kyc.filter(function(x){ var e = estadoKyc(x); return e === 'pronto' || e === 'vencido'; }).length;
     var piezaKyc = function(x){
-      var e = estadoKyc(x), n = diasHasta(x.caduca);
+      var ed = estadoDocumento(x.caduca), e = ed.estado, n = ed.dias, dCad = diaLocal(x.caduca);
       var grande = e === 'pronto' ? (n === 0 ? '<b class="txt">' + esc(t('caduca_hoy')) + '</b>'
-                                             : '<b>' + n + '<small>' + esc(t(n === 1 ? 'ent_dia' : 'ent_dias')) + '</small></b><span>' + esc(t('ent_para_caducar').replace('{f}', fechaLargaDe(x.caduca))) + '</span>')
-                 : e === 'ok' ? '<b>' + esc(t('pf_vigente')) + '</b><span>' + esc(t('ent_hasta').replace('{f}', fecha(x.caduca))) + '</span>'
-                 : e === 'vencido' ? '<b>' + esc(t('pf_caducado')) + '</b><span>' + esc(t('ent_desde').replace('{f}', fecha(x.caduca))) + '</span>'
+                                             : '<b>' + n + '<small>' + esc(t(n === 1 ? 'ent_dia' : 'ent_dias')) + '</small></b><span>' + esc(t('ent_para_caducar').replace('{f}', fechaLargaDe(dCad))) + '</span>')
+                 : e === 'ok' ? '<b>' + esc(t('pf_vigente')) + '</b><span>' + esc(t('ent_hasta').replace('{f}', fecha(dCad))) + '</span>'
+                 : e === 'vencido' ? '<b>' + esc(t('pf_caducado')) + '</b><span>' + esc(t('ent_desde').replace('{f}', fecha(dCad))) + '</span>'
                  : '<b>' + esc(t('ent_no_caduca')) + '</b><span>' + esc(t('ent_sin_fecha')) + '</span>';
-      var sub = new Date(x.subido), cad = new Date(x.caduca), haySub = !!x.subido && !isNaN(sub);
+      var sub = new Date(x.subido), cad = dCad, haySub = !!x.subido && !isNaN(sub);
       var entregadoEl = haySub ? '<span>' + esc(t('ent_entregado').replace('{f}', fecha(x.subido))) + '</span>' : '';
       var vida;
-      if (x.caduca && haySub && cad > sub){
+      if (cad && haySub && cad > sub){
         var pct = Math.max(0, Math.min(100, Math.round((Date.now() - sub) / (cad - sub) * 100)));
         vida = '<div class="ent-vida"><div class="ent-barra"><i style="width:' + pct + '%"></i>' + (e !== 'vencido' ? '<em style="left:' + pct + '%"></em>' : '') + '</div>' +
-          '<div class="ent-pie">' + entregadoEl + '<span>' + esc(t(e === 'vencido' ? 'ent_caduco' : 'ent_caduca').replace('{f}', fecha(x.caduca))) + '</span></div></div>';
+          '<div class="ent-pie">' + entregadoEl + '<span>' + esc(t(e === 'vencido' ? 'ent_caduco' : 'ent_caduca').replace('{f}', fecha(dCad))) + '</span></div></div>';
       } else {
         vida = entregadoEl ? '<div class="ent-pie">' + entregadoEl + '</div>' : '';
       }

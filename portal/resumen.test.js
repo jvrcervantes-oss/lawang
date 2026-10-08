@@ -279,5 +279,18 @@ es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)
      R.resumenVista([{ tipo:'construccion', precio:10, cobrado:0 }, { tipo:'construccion', precio:5, moneda:'EUR', cobrado:0 }]).total, 15);
 }
 
+/* ── documentos entregados: un solo estado para Inicio, la campana y Mi perfil (revisor, 8-oct-2026) ── */
+{
+  const ED = R.estadoDocumento;
+  const noche = new Date(2026, 9, 8, 23, 0);   // 8-oct a las 23:00, hora local
+  es('a las 23:00, el que caduca dentro de 31 días sigue vigente para todos', ED('2026-11-08', noche), { estado: 'ok', dias: 31 });
+  es('…y el que caduca dentro de 30 ya es «pronto»', ED('2026-11-07', noche), { estado: 'pronto', dias: 30 });
+  es('el mismo día de la caducidad, a cualquier hora, es «pronto» con 0 días', ED('2026-10-08', new Date(2026, 9, 8, 21, 0)), { estado: 'pronto', dias: 0 });
+  es('el día siguiente ya está vencido', ED('2026-10-08', new Date(2026, 9, 9, 0, 5)), { estado: 'vencido', dias: -1 });
+  es('sin fecha de caducidad', ED(null, noche), { estado: 'sin', dias: null });
+  es('la fecha sin hora se lee como día local, no como medianoche UTC', [R.diaLocal('2026-10-21').getFullYear(), R.diaLocal('2026-10-21').getMonth(), R.diaLocal('2026-10-21').getDate()], [2026, 9, 21]);
+  es('el umbral es el que avisa Inicio', R.KYC_AVISO_DIAS, 30);
+}
+
 if(fallos){ console.error(`\n${fallos} fallo(s) en las cuentas del portal.`); process.exit(1); }
 console.log('resumen.test.js — OK');
