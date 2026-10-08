@@ -196,5 +196,55 @@ function sustitutosDe(x, contratos){
   return (contratos || []).filter(y => y && y !== x && !prelim(y.tipo) && claveVilla(y) === k);
 }
 
+/* ── El estado de pago de cada documento de la pantalla Facturas (8-oct-2026) ─────────────────────────────────
+   Dos fuentes, y las dos son verdad a su manera (revisión previa, Administración, 8-oct):
+   · `aplicado` (portal_situacion → factura_aplicado()): lo que los recibís APLICADOS a esa factura han saldado.
+     Es la misma suma con la que la intranet calcula lo pendiente de una factura (facturas_pendiente_equipo).
+   · la cascada del contrato (`estadosHitos` sobre `cobrado`): cuenta TODO recibí del contrato, también uno sin
+     aplicar o el de la Carta. Es la que pinta el plan de pagos en Inicio y en Contratos.
+   Si solo se mirara `aplicado`, un recibí sin aplicar dejaría el hito «pagado» en Contratos y su factura
+   «Vencida» aquí: lo peor que se le puede enseñar a quien ya pagó. Así que de cara al comprador una factura está
+   PAGADA si lo dice cualquiera de las dos; y el orden es pagada → vencida → parcial → pendiente.
+   `cascadaPorFactura` dice, por factura, cuántos de sus hitos ha dado la cascada por pagados o empezados. El
+   emparejamiento hito → factura es `facturaDelHito`, el mismo de Inicio y Contratos. */
+function cascadaPorFactura(facturas, contratosConEstados){
+  const mapa = {};
+  (contratosConEstados || []).forEach(c => {
+    (c.estados || []).forEach(y => {
+      const f = facturaDelHito(facturas, c.contrato, y.hito, c.contrato && c.contrato.moneda);
+      if (!f) return;
+      const m = mapa[f.id] || (mapa[f.id] = { n: 0, pagados: 0, parciales: 0 });
+      m.n++;
+      if (y.estado === 'pagado') m.pagados++;
+      else if (y.estado === 'parcial') m.parciales++;
+    });
+  });
+  return mapa;
+}
+
+/* `hoy` es un Date (o ms). Vencida = no pagada y pasado el ÚLTIMO instante del día de vencimiento, igual que
+   Inicio y Contratos (`setHours(23,59,59,999)`). Sin `aplicado` ni cascada no se sabe nada: estado null, y la
+   pantalla no pinta etiqueta — «no sabemos» no es «pendiente» (la regla de importeVencimiento). */
+function estadoFactura(f, casc, hoy){
+  if (!f) return { estado: null };
+  if (f.tipo === 'recibi') return { estado: 'recibo' };
+  if (f.tipo === 'proforma') return { estado: 'proforma' };
+  const total = Number(f.total);
+  const ap = (f.aplicado == null || f.aplicado === '') ? null : Number(f.aplicado);
+  const conCasc = !!(casc && casc.n > 0);
+  if (ap == null && !conCasc) return { estado: null };
+  const vence = (f.fields && f.fields.fecha_vencimiento) || null;
+  const pagadaAp = ap != null && !isNaN(total) && ap >= total - 0.005;
+  const pagadaCasc = conCasc && casc.pagados === casc.n;
+  if (pagadaAp || pagadaCasc) return { estado: 'pagada', vence: vence };
+  // Lo que falta solo se dice si sale de `aplicado`: la cascada sabe que un hito está empezado, no cuánto de ESTA factura.
+  const falta = (ap != null && ap > 0.005 && !isNaN(total)) ? Math.max(0, total - ap) : null;
+  const finDia = vence ? new Date(vence).setHours(23, 59, 59, 999) : NaN;
+  if (!isNaN(finDia) && finDia < Number(hoy)) return { estado: 'vencida', vence: vence, falta: falta };
+  const empezada = (ap != null && ap > 0.005) || (conCasc && (casc.pagados + casc.parciales) > 0);
+  return { estado: empezada ? 'parcial' : 'pendiente', vence: vence, falta: falta };
+}
+
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe };
+  module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe,
+                     cascadaPorFactura, estadoFactura };

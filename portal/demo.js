@@ -103,13 +103,15 @@
         fields: { sociedad: 'demo', tipo: tipo, moneda: 'USD', cliente_nombre: 'Marta Keller', cliente_email: EMAIL, fecha_emision: fecha, fecha_vencimiento: dia(6), proyecto_nombre: proy,
           contrato_numero: contrato, lineas: [{ descripcion: concepto, importe: total }] } }, extra);
     }
+    // `aplicado` (facturas) y `salda` (recibís), como los devuelve portal_situacion desde el 8-oct-2026. LW-0118 lleva
+    // 0 aplicado a propósito: su recibí no se aplicó, pero el contrato ya lo cobró — sale «Pagada» por la cascada.
     var facturas = [
-      fac('f1', 'LW-0142', 'factura', 'Palm Field W5', dia(-3), 37950, 'P-07-CO', 'Cimentación — Mes 3'),
-      fac('f2', 'REC-2026-0057', 'recibi', 'Palm Field W5', dia(-70), 25300, 'P-07-CO', 'Pago recibido · Anticipo 20 %'),
-      fac('f3', 'LW-0131', 'factura', 'Palm Field W5', dia(-75), 25300, 'P-07-CO', 'Anticipo 20 % — A la firma'),
-      fac('f4', 'REC-2026-0031', 'recibi', 'Sumba Hills', dia(-125), 52000, 'SH-03-BP', 'Pago recibido · Reserva'),
-      fac('f5', 'LW-0118', 'factura', 'Bonian Village', dia(-30), 3000, 'BV-01-BP', 'Reserva — A la firma'),
-      fac('f6', 'PRO-2026-0007', 'proforma', 'Sumba Hills', dia(-2), 19600, 'SH-03-CO', 'Anticipo 20 % — A la firma')
+      fac('f1', 'LW-0142', 'factura', 'Palm Field W5', dia(-3), 37950, 'P-07-CO', 'Cimentación — Mes 3', { aplicado: 0 }),
+      fac('f2', 'REC-2026-0057', 'recibi', 'Palm Field W5', dia(-70), 25300, 'P-07-CO', 'Pago recibido · Anticipo 20 %', { salda: [{ numero: 'LW-0131', importe: 25300 }] }),
+      fac('f3', 'LW-0131', 'factura', 'Palm Field W5', dia(-75), 25300, 'P-07-CO', 'Anticipo 20 % — A la firma', { aplicado: 25300 }),
+      fac('f4', 'REC-2026-0031', 'recibi', 'Sumba Hills', dia(-125), 52000, 'SH-03-BP', 'Pago recibido · Reserva', { salda: [] }),
+      fac('f5', 'LW-0118', 'factura', 'Bonian Village', dia(-30), 3000, 'BV-01-BP', 'Reserva — A la firma', { aplicado: 0 }),
+      fac('f6', 'PRO-2026-0007', 'proforma', 'Sumba Hills', dia(-2), 19600, 'SH-03-CO', 'Anticipo 20 % — A la firma', { aplicado: null })
     ];
     var fotosP07 = [[0, 'Estructura norte', -4], [1, 'Armado de pilares', -11], [2, 'Encofrado de losa', -18], [3, 'Cimentación terminada', -39], [4, 'Excavación', -62], [5, 'Replanteo de la parcela', -80]]
       .map(function (a) { return { path: img('obra/p07/' + a[0], foto(a[0], a[0] < 4 ? 'est' : 'cim')), titulo: a[1], fecha: dia(a[2]) }; });
