@@ -32,6 +32,12 @@ const sqlMapa = Object.fromEntries([...bloque.matchAll(/\('([a-z0-9_]+)', '([a-z
 assert.deepStrictEqual(sqlMapa, jsMapa, 'tipo->plantilla: el SQL y vocabulario.js difieren');
 n++;
 ok(Object.keys(sqlMapa).length === 17, 'los 17 tipos');
+// E9 (8-oct-2026): la migracion que abre el mapa a los contratos propios lleva LOS MISMOS 17 pares (no una copia que se separe)
+const sqlPropio = leer('supabase', 'migrations', '20261010040000_f2_editor_e9_tipo_propio.sql');
+const bloquePropio = sqlPropio.slice(sqlPropio.indexOf('create or replace function public._plantilla_slug_de_tipo'), sqlPropio.indexOf('revoke all on function public._plantilla_slug_de_tipo'));
+const sqlMapaPropio = Object.fromEntries([...bloquePropio.matchAll(/\('([a-z0-9_]+)', '([a-z0-9_]+)'\)/g)].map(m => [m[1], m[2]]));
+assert.deepStrictEqual(sqlMapaPropio, sqlMapa, 'tipo->plantilla: la migracion E9 difiere de la de S5');
+n++;
 // estatutos_sw y los dos anexos no tienen tipo (no se guardan como contrato): no pueden aparecer en el mapa
 ['estatutos_sw', 'anexo_x_bonian_c2', 'anexo_y_bonian_c2'].forEach(s => ok(!Object.values(sqlMapa).includes(s), s + ' no tiene tipo'));
 // la migracion de vinculos usa la MISMA funcion (no una lista aparte)
