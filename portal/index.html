@@ -3782,7 +3782,7 @@
         '<button type="button" class="btn-oscuro" data-ob-ticket>' + esc(t('escribir_equipo')) + '</button></article></div>';
 
     c.innerHTML = cab + heroe + ruta + '<section class="ob-f2">' + diario + ficha + '</section>';
-    c.querySelectorAll('[data-ob-villa]').forEach(function(b){ b.addEventListener('click', function(){ ESTADO.obraSel = b.getAttribute('data-ob-villa'); render(); }); });
+    c.querySelectorAll('[data-ob-villa]').forEach(function(b){ b.addEventListener('click', function(){ ESTADO.obraSel = b.getAttribute('data-ob-villa'); render(); try { if (window.LW_MOV) LW_MOV.recambio(c); } catch (e){ console.error('movimiento', e); } }); });
     c.querySelectorAll('[data-ob-foto]').forEach(function(b){ b.addEventListener('click', function(){ visorObra(o, +b.getAttribute('data-ob-foto'), b); }); });
     var bt = c.querySelector('[data-ob-ticket]');
     if (bt) bt.addEventListener('click', function(){ abrirNuevoTicket(rel.contrato ? { tipo:'contrato', id:rel.contrato.id, cat:'Obra' } : { cat:'Obra' }); });
