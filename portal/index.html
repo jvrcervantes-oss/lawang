@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="2f96394544f8">
+<meta name="lw-version" content="421738987df0">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -498,19 +498,14 @@
               font:inherit; color:inherit; cursor:pointer; padding:0; display:flex; flex-direction:column; min-width:0; }
   .proy-card:hover{ background:var(--pg-low); }
   .proy-card:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
-  .proy-portada, .proy-portada-grande{ position:relative; overflow:hidden; background:var(--pg-hi); }
+  .proy-portada{ position:relative; overflow:hidden; background:var(--pg-hi); }
   .proy-portada{ aspect-ratio:16/9; }
-  .proy-portada-grande{ aspect-ratio:16/9; width:100%; border-radius:12px; }
-  .proy-portada img, .proy-portada-grande img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .proy-portada img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
   .proy-cuerpo{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:5px; min-width:0; }
   .proy-nombre{ font-size:16px; font-weight:600; overflow-wrap:anywhere; }
   .proy-meta{ font-size:12.5px; color:var(--ink2); }
   .proy-enlace{ color:var(--dl); font-weight:600; margin-top:4px; }
   .proy-cuerpo .barra{ margin:6px 0 2px; }
-  .proy-cab{ display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:20px; align-items:center; margin:16px 0 24px; }
-  .proy-cab-info h2{ margin:0 0 6px; font-size:22px; font-weight:500; overflow-wrap:anywhere; }
-  .proy-cab-info .proy-meta{ font-size:13.5px; margin-top:2px; }
-  @media (max-width:760px){ .proy-cab{ grid-template-columns:1fr; } }
 
   @media (max-width:640px){
     .proy-grid{ grid-template-columns:1fr; gap:10px; }
@@ -546,11 +541,11 @@
   @media (min-width:881px){ .content{ padding:30px 32px 56px; } }
 
   /* portadas 4:3 y tarjetas con vida */
-  .proy-portada, .proy-portada-grande{ aspect-ratio:4/3; }
+  .proy-portada{ aspect-ratio:4/3; }
   .proy-card{ transition:transform .35s var(--lw-ease), border-color .2s, background .2s; }
   .proy-card:hover{ transform:translateY(-3px); border-color:var(--linea); }
   .proy-card:active{ transform:translateY(-1px) scale(.995); }
-  .proy-portada img, .proy-portada-grande img{ transition:transform .8s var(--lw-ease); }
+  .proy-portada img{ transition:transform .8s var(--lw-ease); }
   .proy-card:hover .proy-portada img{ transform:scale(1.045); }
   .docfila{ transition:background .15s, padding-left .25s var(--lw-ease); }
   .docfila:hover{ background:var(--pg-low); padding-left:22px; }
@@ -588,7 +583,7 @@
 
   /* quien pide menos movimiento: todo quieto; solo se conserva el cambio de color al pasar el ratón */
   @media (prefers-reduced-motion:reduce){
-    .proy-card, .proy-portada img, .proy-portada-grande img, .docfila, .btn-borde, .btn-oscuro, .btn-primario{ transition:none; }
+    .proy-card, .proy-portada img, .docfila, .btn-borde, .btn-oscuro, .btn-primario{ transition:none; }
     .proy-card:hover, .proy-card:active, .proy-card:hover .proy-portada img, .btn-borde:active, .btn-oscuro:active, .btn-primario:active{ transform:none; }
     .docfila:hover{ padding-left:18px; }
     .tl-paso.actual.pulso::after{ animation:none; }
@@ -680,8 +675,8 @@
   .proy-chip.firma{ background:#f6e8cc; color:#8C5E10; }
 
   /* portada sin foto: el isotipo sobre el tono del menú (M4), en Inicio y en Documentos */
-  .proy-portada, .proy-portada-grande{ background:var(--menu); }
-  .proy-portada::before, .proy-portada-grande::before{ content:""; position:absolute; left:50%; top:50%; width:34%; max-width:120px; aspect-ratio:261/280;
+  .proy-portada{ background:var(--menu); }
+  .proy-portada::before{ content:""; position:absolute; left:50%; top:50%; width:34%; max-width:120px; aspect-ratio:261/280;
     transform:translate(-50%,-50%); background:var(--dl); opacity:.22;
     -webkit-mask:url('/assets/img/isotipo.png') center/contain no-repeat; mask:url('/assets/img/isotipo.png') center/contain no-repeat; }
   .proy-sinfoto{ position:absolute; left:0; right:0; bottom:10px; text-align:center; font-size:11px; font-weight:500; color:var(--menu-txt); }
@@ -1494,7 +1489,7 @@
   .dc-c-tecnico{ background:#e3eadb; color:#3F5230; }
   .dc-c-planos{ background:#e1e9e3; color:#2C5A43; }
   .dc-c-fotos{ background:#f6e8cc; color:#8C5E10; }
-  .dc-c-precios, .dc-c-otros{ background:#ecebe4; color:#4f524a; }
+  .dc-c-precios, .dc-c-faq, .dc-c-otros{ background:#ecebe4; color:#4f524a; }
 
   .dc-vacia{ background:#fff; border:1px solid var(--pg-hi); border-radius:12px; padding:34px 24px; margin-bottom:18px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; }
   .dc-vacia .ini-ti{ width:52px; height:52px; margin-bottom:6px; background:#ecebe4; border:0; color:#4f524a; }
@@ -1738,8 +1733,8 @@
          cat_pagos:'Pagos', cat_documentacion:'Documentación', cat_obra:'Obra', cat_otro:'Otro', cat_general:'General', ph_correo:'tu@correo.com',
          doc_zip_externos:'Los documentos que son un enlace externo no se incluyen en el archivo.',
          ver_todos:'Ver todos ({n})',
-         proyectos_titulo:'Tus proyectos', ver_documentos:'Ver documentos', ver_ubicacion:'Ver ubicación',
-         todos_proyectos:'Todos los proyectos', n_docs_1:'1 documento', n_docs_n:'{n} documentos', sin_docs_proyecto:'Sin documentos todavía',
+         proyectos_titulo:'Tus proyectos', ver_documentos:'Ver documentos',
+         n_docs_1:'1 documento', n_docs_n:'{n} documentos', sin_docs_proyecto:'Sin documentos todavía',
          entrega_proyecto:'Entrega estimada', pagado_de:'{a} de {b} pagado', descargar_carpeta:'Descargar carpeta', fase_obra:'Obra',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Técnico', doc_cat_comercial:'Comercial', doc_cat_fotos:'Fotos', doc_cat_planos:'Planos', doc_cat_precios:'Precios', doc_cat_faq:'Preguntas frecuentes', ver_facturas:'Ver mis facturas',
          ini_filtro:'Propiedad', ini_todas:'Todas', ini_mixta:'Tus contratos están en varias monedas: cada una se cuenta por separado.', ini_pct_inv:'{n} % de tu inversión total', ini_nada_pend:'No te queda nada por pagar', ini_sub_pend:'Lo que queda por pagar de tus contratos', ini_sub_total:'La suma de tus contratos', ini_sub_cuota:'La cuota de tu reserva', ini_que_cifra:'Qué cifra ver', ini_firmados:'Contratos firmados', ini_x_de_y:'{a} de {b}', ini_ocultar:'Ocultar importes', ini_mostrar:'Mostrar importes', ini_ir_contratos:'Ir a Contratos', ini_al_dia:'Estás al día', ini_vencido:'Vencido', ini_vencido_m:'vencido', ini_siguiente:'siguiente', ini_hace_dia:'hace 1 día', ini_hace_dias:'hace {n} días', ini_hoy:'vence hoy', ini_en_dia:'en 1 día', ini_en_dias:'en {n} días', ini_factura:'Factura', ini_sin_factura:'Factura aún no emitida', ini_despues:'Después', ini_otro_contrato:'Otro contrato', ini_ultimo_pago:'Es el último pago', ini_sin_importe:'sin importe', ini_obra:'Tu obra', ini_sin_obra:'La obra todavía no ha empezado. Te avisaremos con la primera foto.', ini_cambiar_villa:'Cambiar de villa', ini_fase_n:'Fase {a} de {b}', ini_ultima_fase:'Última fase', ini_sin_fotos:'Aún no hay fotos de la obra', ini_por_prop:'Por propiedad', ini_pend_pagar:'pendiente de pagar', ini_sin_hitos:'Todavía no hay un plan de pagos para esta propiedad.', ini_respondio:'El equipo te ha respondido', ini_leer:'Leer', ini_nada_nuevo:'Nada nuevo por ahora.', ini_nota_carta:'Lo pagado con tu Carta de Reserva cuenta como pagado del total de tus contratos definitivos, en «Todas».',
@@ -1843,8 +1838,8 @@
          cat_pagos:'Payments', cat_documentacion:'Documents', cat_obra:'Construction', cat_otro:'Other', cat_general:'General', ph_correo:'you@email.com',
          doc_zip_externos:'Documents that are external links are not included in the file.',
          ver_todos:'View all ({n})',
-         proyectos_titulo:'Your projects', ver_documentos:'View documents', ver_ubicacion:'View location',
-         todos_proyectos:'All projects', n_docs_1:'1 document', n_docs_n:'{n} documents', sin_docs_proyecto:'No documents yet',
+         proyectos_titulo:'Your projects', ver_documentos:'View documents',
+         n_docs_1:'1 document', n_docs_n:'{n} documents', sin_docs_proyecto:'No documents yet',
          entrega_proyecto:'Estimated handover', pagado_de:'{a} of {b} paid', descargar_carpeta:'Download folder', fase_obra:'Construction',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Technical', doc_cat_comercial:'Commercial', doc_cat_fotos:'Photos', doc_cat_planos:'Plans', doc_cat_precios:'Prices', doc_cat_faq:'FAQ', ver_facturas:'View my invoices',
          ini_filtro:'Property', ini_todas:'All', ini_mixta:'Your contracts are in more than one currency: each is counted separately.', ini_pct_inv:'{n}% of your total investment', ini_nada_pend:'Nothing left to pay', ini_sub_pend:'What is left to pay on your contracts', ini_sub_total:'The total of your contracts', ini_sub_cuota:'Your reservation fee', ini_que_cifra:'Which figure to show', ini_firmados:'Signed contracts', ini_x_de_y:'{a} of {b}', ini_ocultar:'Hide amounts', ini_mostrar:'Show amounts', ini_ir_contratos:'Go to Contracts', ini_al_dia:'You are up to date', ini_vencido:'Overdue', ini_vencido_m:'overdue', ini_siguiente:'next', ini_hace_dia:'1 day ago', ini_hace_dias:'{n} days ago', ini_hoy:'due today', ini_en_dia:'in 1 day', ini_en_dias:'in {n} days', ini_factura:'Invoice', ini_sin_factura:'Invoice not issued yet', ini_despues:'After that', ini_otro_contrato:'Another contract', ini_ultimo_pago:'This is the last payment', ini_sin_importe:'no amount', ini_obra:'Your construction', ini_sin_obra:'Construction has not started yet. We will let you know with the first photo.', ini_cambiar_villa:'Switch villa', ini_fase_n:'Stage {a} of {b}', ini_ultima_fase:'Final stage', ini_sin_fotos:'No construction photos yet', ini_por_prop:'By property', ini_pend_pagar:'left to pay', ini_sin_hitos:'There is no payment plan for this property yet.', ini_respondio:'The team has replied', ini_leer:'Read', ini_nada_nuevo:'Nothing new for now.', ini_nota_carta:'What you paid with your Reservation Letter counts towards the total of your final contracts, under «All».',
@@ -1952,8 +1947,8 @@
          cat_pagos:'Pembayaran', cat_documentacion:'Dokumen', cat_obra:'Pembangunan', cat_otro:'Lainnya', cat_general:'Umum', ph_correo:'anda@email.com',
          doc_zip_externos:'Dokumen berupa tautan eksternal tidak disertakan dalam berkas.',
          ver_todos:'Lihat semua ({n})',
-         proyectos_titulo:'Proyek Anda', ver_documentos:'Lihat dokumen', ver_ubicacion:'Lihat lokasi',
-         todos_proyectos:'Semua proyek', n_docs_1:'1 dokumen', n_docs_n:'{n} dokumen', sin_docs_proyecto:'Belum ada dokumen',
+         proyectos_titulo:'Proyek Anda', ver_documentos:'Lihat dokumen',
+         n_docs_1:'1 dokumen', n_docs_n:'{n} dokumen', sin_docs_proyecto:'Belum ada dokumen',
          entrega_proyecto:'Perkiraan serah terima', pagado_de:'{a} dari {b} lunas', descargar_carpeta:'Unduh folder', fase_obra:'Pembangunan',
          doc_cat_legal:'Legal', doc_cat_tecnico:'Teknis', doc_cat_comercial:'Komersial', doc_cat_fotos:'Foto', doc_cat_planos:'Denah', doc_cat_precios:'Harga', doc_cat_faq:'Pertanyaan umum', ver_facturas:'Lihat faktur saya',
          ini_filtro:'Properti', ini_todas:'Semua', ini_mixta:'Kontrak Anda memakai lebih dari satu mata uang: masing-masing dihitung terpisah.', ini_pct_inv:'{n}% dari total investasi Anda', ini_nada_pend:'Tidak ada lagi yang harus dibayar', ini_sub_pend:'Sisa yang harus dibayar dari kontrak Anda', ini_sub_total:'Total kontrak Anda', ini_sub_cuota:'Biaya reservasi Anda', ini_que_cifra:'Angka yang ditampilkan', ini_firmados:'Kontrak ditandatangani', ini_x_de_y:'{a} dari {b}', ini_ocultar:'Sembunyikan jumlah', ini_mostrar:'Tampilkan jumlah', ini_ir_contratos:'Buka Kontrak', ini_al_dia:'Tidak ada tagihan tertunda', ini_vencido:'Lewat jatuh tempo', ini_vencido_m:'lewat tempo', ini_siguiente:'berikutnya', ini_hace_dia:'1 hari lalu', ini_hace_dias:'{n} hari lalu', ini_hoy:'jatuh tempo hari ini', ini_en_dia:'dalam 1 hari', ini_en_dias:'dalam {n} hari', ini_factura:'Faktur', ini_sin_factura:'Faktur belum diterbitkan', ini_despues:'Setelah itu', ini_otro_contrato:'Kontrak lain', ini_ultimo_pago:'Ini pembayaran terakhir', ini_sin_importe:'tanpa jumlah', ini_obra:'Pembangunan Anda', ini_sin_obra:'Pembangunan belum dimulai. Kami akan mengabari Anda dengan foto pertama.', ini_cambiar_villa:'Ganti vila', ini_fase_n:'Tahap {a} dari {b}', ini_ultima_fase:'Tahap terakhir', ini_sin_fotos:'Belum ada foto pembangunan', ini_por_prop:'Per properti', ini_pend_pagar:'belum dibayar', ini_sin_hitos:'Belum ada jadwal pembayaran untuk properti ini.', ini_respondio:'Tim sudah membalas', ini_leer:'Baca', ini_nada_nuevo:'Belum ada kabar baru.', ini_nota_carta:'Pembayaran dengan Surat Reservasi Anda dihitung dari total kontrak final Anda, di «Semua».',
@@ -2116,6 +2111,8 @@
       } else if (r.sec === 'facturas'){
         var f = (DATOS && DATOS.facturas || []).filter(function(x){ return x.numero === r.doc; })[0];
         if (f) abreFactura(f); else if (desdeHash) vasA('facturas', null, true);
+      } else if (r.sec === 'documentos' && !document.getElementById('drawer').hidden){
+        cierraDrawer();   // en Documentos la segunda parte es la carpeta, no un documento: cambiar de carpeta (o Atrás) cierra el cajón
       }
     } else if (!document.getElementById('drawer').hidden) {
       // Navegar a una sección sin documento (ej. clic en el sidebar) tiene
@@ -2839,7 +2836,7 @@
       proyectosHTML;
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
     c.querySelectorAll('[data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
-    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
+    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ vasA('documentos', b.getAttribute('data-carpeta')); }); });
     /* Repintar por un control del propio Inicio: quieto (el arco no se vuelve a dibujar; render() promete que un
        repintado no mueve nada) y con el foco de vuelta en el botón pulsado, para quien va con teclado (revisor, 8-oct). */
     function repinta(selector){
@@ -3610,7 +3607,7 @@
      sigue viviendo en la dirección (#/documentos/<proyecto>), así que atrás, recargar y los enlaces de Inicio funcionan.
      Lo que hacía la pantalla vieja sigue: buscador (con más de 8 documentos), «Descargar carpeta» (solo con ficheros
      del almacén), ver ubicación, abrir enlace o fichero. Los ganchos son data-carpeta y data-doc, nunca un rótulo. */
-  var ORDEN_CAT = ['comercial', 'legal', 'tecnico', 'planos', 'fotos', 'precios', 'otros'];
+  var ORDEN_CAT = ['comercial', 'legal', 'tecnico', 'planos', 'fotos', 'precios', 'faq', 'otros'];   // faq: el CHECK de la tabla la admite
   var DOC_FILTRO = { key:null, cat:'', q:'' };   // apartado y búsqueda de la carpeta abierta; se limpian al cambiar de carpeta
   /* Iconos de trazo de la sección (dibujados para ella, mismo grosor que los de Inicio). */
   var ICO_DC = (function(){
@@ -3628,6 +3625,7 @@
       buscar:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.3-4.3"/>',
       pedir:'<path d="M4.5 5.5h15v10h-8l-4 3.5v-3.5h-3z"/><path d="M12 8.5v4M10 10.5h4"/>',
       pin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+      faq:'<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.7"/><path d="M12 16.9v.1"/>',
       vacia:'<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5v8.8A1.5 1.5 0 0 1 19 19.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9.5 13.5h5"/>'
     };
     p.otros = p.documento;
@@ -3642,7 +3640,7 @@
   function docTipo(x){
     if (!x.url && x.path){ var ext = (/\.([A-Za-z0-9]{1,5})$/.exec(x.path) || [])[1]; return { k:'documento', txt:ext ? ext.toUpperCase() : t('dc_t_fichero'), donde:'' }; }
     var u = String(x.url || '');
-    if (/\/folders\//.test(u)) return { k:'carpeta', txt:t('dc_t_carpeta'), donde:'Google Drive' };
+    if (/^https?:\/\/(drive|docs)\.google\.com\/.*\/folders\//i.test(u)) return { k:'carpeta', txt:t('dc_t_carpeta'), donde:'Google Drive' };
     if (/photos\.google\.com|photos\.app\.goo\.gl/i.test(u)) return { k:'album', txt:t('dc_t_album'), donde:'Google Fotos' };
     if (/(drive|docs)\.google\.com/i.test(u)) return { k:'documento', txt:t('dc_t_documento'), donde:'Google Drive' };
     var h = (/^https?:\/\/([^/?#]+)/i.exec(u) || [])[1] || '';
@@ -3666,6 +3664,10 @@
   }
   function pintaCarpeta(c, f, carpetas){
     var docs = f.docs, grupos = docsPorCat(docs);
+    // un filtro que ya no se ve no puede seguir filtrando: sin buscador (8 o menos) no hay búsqueda, y un apartado que
+    // ya no está en la carpeta deja de estar elegido
+    if (docs.length <= 8) DOC_FILTRO.q = '';
+    if (DOC_FILTRO.cat && !grupos.some(function(g){ return g.k === DOC_FILTRO.cat; })) DOC_FILTRO.cat = '';
     var mapaOk = f.mapa && /^https:\/\//i.test(f.mapa);
     var cab = '<div class="ob-cab"><div class="titulo-sec"><h2>' + esc(t('dc_titulo')) + '</h2><p>' + esc(t('dc_sub')) + '</p></div>' +
       (carpetas.length > 1 ? '<div class="ini-filtro" role="group" aria-label="' + esc(t('dc_proyecto')) + '">' + carpetas.map(function(x){
@@ -3685,7 +3687,7 @@
           : '<p class="dc-vacio-panel">' + esc(t('dc_vacio_panel')) + '</p>') +
         '<div class="ob-losas"><div class="ob-losa"><span class="ob-losa-t">' + esc(t('entrega_est')) + '</span><b>' + esc(f.entrega ? mesAno(f.entrega) : t('ob_por_confirmar')) + '</b></div>' +
           (mapaOk
-            ? '<a class="ob-losa" href="' + esc(f.mapa) + '" target="_blank" rel="noopener noreferrer"><span class="ob-losa-t">' + esc(t('dc_ubicacion')) + ICO_INI.diagP + '</span><b>' + esc(t('dc_ver_mapa')) + '</b></a>'
+            ? '<a class="ob-losa" href="' + esc(f.mapa) + '" target="_blank" rel="noopener noreferrer"><span class="ob-losa-t">' + esc(t('dc_ubicacion')) + ICO_INI.diagP + '</span><b>' + esc(t('dc_ver_mapa')) + '</b>' + (!f.portada && f.resort ? '<small>' + esc(f.resort) + '</small>' : '') + '</a>'
             : '<div class="ob-losa"><span class="ob-losa-t">' + esc(t('dc_ubicacion')) + '</span><b>' + esc(f.resort || '—') + '</b></div>') +
         '</div></div></section>';
     var hayFicheros = docs.some(function(x){ return !x.url && x.path; });
@@ -3753,6 +3755,7 @@
       if (doc) abreFichero('documentacion', doc.path);
     });
     var btnZip = document.getElementById('btnZipDocs');
+    // empaqueta lo que se ve (filtro y búsqueda incluidos), como hacía la pantalla vieja con su búsqueda
     if (btnZip) btnZip.addEventListener('click', function(){ zipDeDocs(visibles, f.nombre, this); });
   }
   /* «Descargar carpeta»: un solo .zip con lo que se ve en la lista. Sin función en el servidor: se piden las URLs
@@ -4054,7 +4057,9 @@
       else { CAJON_CERRANDO = true; LW_MOV.cajon(dr, velo, false, fin); }
     }
     var r = leeHash();
-    if (r.doc) vasA(r.sec, null);
+    // en Contratos y Facturas la segunda parte de la dirección es el documento del cajón; en Documentos es la carpeta
+    // abierta, que sigue abierta al cerrar el cajón (el ticket de «Pedir un documento»)
+    if (r.doc && r.sec !== 'documentos') vasA(r.sec, null);
   }
 
   /* ── el documento REAL de una factura, en el drawer ──────────────────

@@ -14,7 +14,7 @@
  *  · Que repinte lo que no cambió. `pantalla()` solo se llama cuando cambia la sección o la carpeta; un repintado por
  *    idioma o por recarga de datos no anima (lo decide index.html con la clave «sección|carpeta»).
  *  · Molestar a quien pidió menos movimiento: con `prefers-reduced-motion` o sin la API `animate`, no se hace nada.
- *  · Enganchar a un texto. Todo cuelga de clases e ids que no cambian (.proy-cab, .barra, .tl-paso, #nav…), nunca de
+ *  · Enganchar a un texto. Todo cuelga de clases e ids que no cambian (.barra, .tl-paso, #nav…), nunca de
  *    un rótulo ni de una cabecera (norma del owner, 29-sep-2026).
  * Se prueba en node con motion.test.js (lo puro) y con el arnés de capturas (lo visual). */
 (function (root) {
@@ -33,12 +33,6 @@
     if (k >= 1) return fin;
     return fin * (1 - Math.pow(1 - k, 3));
   }
-  /* El FLIP solo vale si origen y destino tienen la MISMA forma (±5 %): con distinta proporción (la tarjeta horizontal
-     del móvil frente a la cabecera 4:3) un escalado x/y distinto estiraría la imagen a mitad de vuelo. */
-  function mismaForma(w1, h1, w2, h2) {
-    if (!(w1 > 0 && h1 > 0 && w2 > 0 && h2 > 0)) return false;
-    return Math.abs((w1 / h1) / (w2 / h2) - 1) <= 0.05;
-  }
   function claveVista(seccion, carpeta) { return seccion + '|' + (seccion === 'documentos' ? (carpeta || '') : ''); }
 
   var PERF = {
@@ -47,7 +41,7 @@
     D: { dur: 190, paso: 0, ease: 'cubic-bezier(0,0,.58,1)', f: function () { return [{ opacity: 0 }, { opacity: 1 }]; } }
   };
 
-  var M = { formatoDinero: null, _portada: null, _menuY: null };
+  var M = { formatoDinero: null, _menuY: null };
 
   /* ── lo que toca el navegador ── */
   function reducido() {
@@ -86,25 +80,9 @@
   M.pantalla = function (c, seccion) {
     var v = vistas(), p = perfil(seccion, v);
     if (seccion === 'inicio' && v.indexOf('inicio') === -1) { v.push('inicio'); sesion(CLAVE_VISTAS, JSON.stringify(v)); }
-    if (!puede() || !c) { M._portada = null; return; }
+    if (!puede() || !c) return;
     var P = PERF[p];
-    var cab = c.querySelector(':scope > .proy-cab'), grande = cab ? cab.querySelector('.proy-portada-grande') : null;
-    var flip = null, r = M._portada; M._portada = null;
-    if (grande && r && (Date.now() - r.t) < 2500 && r.w > 0 && r.h > 0) {
-      var g = grande.getBoundingClientRect();
-      if (mismaForma(r.w, r.h, g.width, g.height)) flip = { dx: r.x - g.left, dy: r.y - g.top, sx: r.w / g.width, sy: r.h / g.height, el: grande };
-    }
-    var piezas = [];
-    Array.prototype.forEach.call(c.children, function (el) {
-      if (flip && el === cab) { var info = cab.querySelector('.proy-cab-info'); if (info) piezas.push(info); }
-      else piezas.push(el);
-    });
-    var base = flip ? 120 : 0;
-    piezas.forEach(function (el, i) { anima(el, P.f(), { duration: P.dur, delay: base + i * P.paso, easing: P.ease, fill: 'backwards' }); });
-    if (flip) {
-      flip.el.style.transformOrigin = 'top left';
-      anima(flip.el, [{ transform: 'translate(' + flip.dx + 'px,' + flip.dy + 'px) scale(' + flip.sx + ',' + flip.sy + ')' }, { transform: 'none' }], { duration: 520, easing: EASE });
-    }
+    Array.prototype.forEach.call(c.children, function (el, i) { anima(el, P.f(), { duration: P.dur, delay: i * P.paso, easing: P.ease, fill: 'backwards' }); });
     if (p !== 'D') {
       Array.prototype.forEach.call(c.querySelectorAll('.barra > i'), function (el) {
         anima(el, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 800, delay: 350, easing: EASE, fill: 'backwards' });
@@ -119,11 +97,6 @@
       anima(el, [{ opacity: 0, transform: 'translateY(8px) scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 380, delay: 260 + i * 60, easing: EASE, fill: 'backwards' });
     });
     if (act) root.setTimeout(function () { if (act.isConnected) act.classList.add('pulso'); }, 260 + pasos.length * 60 + 150);
-  };
-
-  /* La portada de la tarjeta que se pulsa: la carpeta que se abre la hace crecer desde ahí. */
-  M.recuerdaPortada = function (el) {
-    try { var r = el.getBoundingClientRect(); M._portada = { x: r.left, y: r.top, w: r.width, h: r.height, t: Date.now() }; } catch (e) { M._portada = null; }
   };
 
   /* Menú: el indicador del item activo se desliza en vez de saltar. pintaNav() reconstruye #nav en cada repintado,
@@ -178,6 +151,6 @@
     root.setTimeout(acaba, a ? 450 : 0);
   };
 
-  M.perfil = perfil; M.mismaForma = mismaForma; M.valorCuenta = valorCuenta; M.claveVista = claveVista; M.puede = puede;
+  M.perfil = perfil; M.valorCuenta = valorCuenta; M.claveVista = claveVista; M.puede = puede;
   if (typeof module !== 'undefined' && module.exports) module.exports = M; else root.LW_MOV = M;
 })(typeof window !== 'undefined' ? window : this);

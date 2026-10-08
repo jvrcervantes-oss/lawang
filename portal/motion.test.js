@@ -28,13 +28,6 @@ ok(M.claveVista('documentos', 'pf') !== M.claveVista('documentos', null), 'abrir
 ok(M.claveVista('documentos', 'pf') !== M.claveVista('documentos', 'sh'), 'cambiar de carpeta cambia la clave');
 ok(M.claveVista('documentos', 'pf') === M.claveVista('documentos', 'pf'), 'repintar la misma carpeta NO cambia la clave');
 
-// el FLIP solo con la misma forma (±5 %): si no, un fundido normal
-ok(M.mismaForma(300, 225, 520, 390) === true, '4:3 con 4:3 es la misma forma');
-ok(M.mismaForma(108, 197, 358, 269) === false, 'la miniatura vertical del móvil no casa con 4:3');
-ok(M.mismaForma(300, 225, 520, 300) === false, '4:3 con 16:9.2 no casa');
-ok(M.mismaForma(0, 100, 100, 100) === false, 'ancho 0 no casa');
-ok(M.mismaForma(NaN, 100, 100, 100) === false, 'NaN no casa');
-
 // sin navegador no hace nada ni falla
 ok(M.puede() === false, 'en node no hay animate: puede() es false');
 M.pantalla(null, 'inicio'); M.menu(null); M.campana(null, 3); M.abrePanel(null);
