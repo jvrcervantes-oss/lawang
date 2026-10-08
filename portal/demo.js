@@ -115,17 +115,22 @@
     ];
     var fotosP07 = [[0, 'Estructura norte', -4], [1, 'Armado de pilares', -11], [2, 'Encofrado de losa', -18], [3, 'Cimentación terminada', -39], [4, 'Excavación', -62], [5, 'Replanteo de la parcela', -80]]
       .map(function (a) { return { path: img('obra/p07/' + a[0], foto(a[0], a[0] < 4 ? 'est' : 'cim')), titulo: a[1], fecha: dia(a[2]) }; });
+    var fotosRF = [[8, 'Entrega de llaves', -15], [9, 'Acabados interiores', -48]].map(function (a) { return { path: img('obra/rf02/' + a[0], foto(a[0], 'cub')), titulo: a[1], fecha: dia(a[2]) }; });
     var fotosSH = [[6, 'Limpieza del terreno', -9], [7, 'Replanteo', -21]].map(function (a) { return { path: img('obra/sh03/' + a[0], foto(a[0], 'cim')), titulo: a[1], fecha: dia(a[2]) }; });
     return {
       client_id: 'demo-cliente', nombre: 'Marta Keller', email: EMAIL, telefono: '+41 79 000 00 00', pais: 'Suiza',
       prefs: { pref_email: true, pref_sms: false, notif_visto_hasta: iso(-40) },
       proyectos: proyectos, contratos: contratos, documentos: documentos, facturas: facturas,
       firma_pendiente: [{ contrato_id: 'k4', enlace: '/portal/?demo=1&t=demo', enviado_en: iso(-3), expira_en: iso(11) }],
-      fases: [{ orden: 1, clave: 'cim', es: 'Cimentación', en: 'Foundation' }, { orden: 2, clave: 'est', es: 'Estructura', en: 'Structure' }, { orden: 3, clave: 'cub', es: 'Cubierta', en: 'Roof' },
-              { orden: 4, clave: 'ins', es: 'Instalaciones', en: 'Utilities' }, { orden: 5, clave: 'ent', es: 'Acabados', en: 'Finishes' }],
+      // el catálogo real de obra_fases (migración 20260805023613): seis fases de obra y «entregada», que es la entrega (revisor, 8-oct-2026)
+      fases: [{ orden: 1, clave: 'preparacion', es: 'Preparación del terreno', en: 'Site preparation' }, { orden: 2, clave: 'cimentacion', es: 'Cimentación', en: 'Foundations' },
+              { orden: 3, clave: 'estructura', es: 'Estructura', en: 'Structure' }, { orden: 4, clave: 'cubierta', es: 'Cubierta', en: 'Roofing' },
+              { orden: 5, clave: 'instalaciones', es: 'Instalaciones', en: 'Utilities & MEP' }, { orden: 6, clave: 'acabados', es: 'Acabados', en: 'Finishes' },
+              { orden: 7, clave: 'entregada', es: 'Entregada', en: 'Handed over' }],
       obra: [
-        { unidad: 'P-07', proyecto: 'Palm Field W5', contrato_numero: 'P-07-CO', fase: 'est', fecha_entrega: '2027-08-15', actualizado: dia(-4), fotos: fotosP07 },
-        { unidad: 'SH-03', proyecto: 'Sumba Hills', contrato_numero: 'SH-03-BP', fase: 'cim', fecha_entrega: '2028-03-01', actualizado: dia(-9), fotos: fotosSH }
+        { unidad: 'P-07', proyecto: 'Palm Field W5', contrato_numero: 'P-07-CO', fase: 'estructura', fecha_entrega: '2027-08-15', actualizado: dia(-4), fotos: fotosP07 },
+        { unidad: 'SH-03', proyecto: 'Sumba Hills', contrato_numero: 'SH-03-BP', fase: 'cimentacion', fecha_entrega: '2028-03-01', actualizado: dia(-9), fotos: fotosSH },
+        { unidad: 'RF-02', proyecto: 'Riverfront II', contrato_numero: 'RF-02-BP', fase: 'entregada', fecha_entrega: dia(-20), actualizado: dia(-15), fotos: fotosRF }
       ],
       kyc: [{ tipo: 'passport', subido: iso(-200), caduca: dia(13), path: 'kyc/pasaporte' }, { tipo: 'id', subido: iso(-200), caduca: dia(420), path: 'kyc/dni' }],
       tickets: [
