@@ -139,6 +139,7 @@
     <span class="crm-nav-sep" aria-hidden="true" data-lwt="· WhatsApp Bot">· WhatsApp Bot</span>
     <button role="tab" data-v="setter" aria-selected="false"><i class="ph ph-robot"></i><span data-lwt>Setter IA</span></button>
     <button role="tab" data-v="agenda" aria-selected="false" id="tabAgenda" hidden><i class="ph ph-video-camera"></i><span data-lwt>Agenda</span></button>
+    <button role="tab" data-v="config" aria-selected="false" id="tabConfig" hidden><i class="ph ph-sliders-horizontal"></i><span data-lwt>Configurar bot</span></button>
     <!-- Separador propio: esto no es seguimiento de leads, es rendimiento de personas, y
          va detrás del permiso `ranking`, no de `leads`. Con ocho comerciales, el ticket
          medio por el número devuelve el importe exacto de cada contrato — no es una tabla
@@ -286,6 +287,44 @@
              teléfono→lead. Abrirla aquí sería crear una puerta lateral a esos datos. -->
         <aside class="wa-ficha" id="waFicha"></aside>
       </div>
+    </div>
+  </section>
+
+  <!-- ======================= CONFIGURAR BOT ============================= -->
+  <!-- 8-oct-2026 (owner): instrucciones extra, saludo y horas de pausa del bot de WhatsApp, sin redesplegar.
+       Va detrás del permiso `bot_configurar` (lo que se escribe aquí lo lee el bot en TODAS las conversaciones).
+       Datos en Redis del bot, vía lawang-bot-proxy (config_get / config_set / config_revert); el navegador no
+       conoce la clave del bot ni escribe en Redis. Enganche por data-accion, nunca por rótulo. -->
+  <section class="crm-vista" id="v-config" hidden>
+    <div class="aviso gris" data-lwt="Lo que escribes aquí lo lee el bot en TODAS las conversaciones. No pegues teléfonos, correos ni datos de personas. Los cambios se aplican en unos segundos.">
+      Lo que escribes aquí lo lee el bot en TODAS las conversaciones. No pegues teléfonos, correos ni datos de personas. Los cambios se aplican en unos segundos.
+    </div>
+    <div class="aviso rojo" id="cfgError" role="alert" hidden></div>
+    <div class="caja" style="margin:16px 0">
+      <header><div><h2 data-lwt="Instrucciones extra">Instrucciones extra</h2><p data-lwt="Tono, qué ofrecer, qué no decir, promociones del momento. Se suma a lo que el bot ya sabe y no puede contradecir sus reglas de honestidad.">Tono, qué ofrecer, qué no decir, promociones del momento. Se suma a lo que el bot ya sabe y no puede contradecir sus reglas de honestidad.</p></div></header>
+      <div style="padding:16px">
+        <textarea id="cfgExtra" data-lw="cfg-extra" maxlength="2000" rows="8" style="width:100%"></textarea>
+        <div class="muted" id="cfgExtraN" style="font-size:12px;margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="caja" style="margin-bottom:16px">
+      <header><div><h2 data-lwt="Saludo de bienvenida">Saludo de bienvenida</h2><p data-lwt="Cómo abre el bot la primera conversación. Lo adapta al idioma del cliente y a lo que haya escrito, y responde a su pregunta a continuación.">Cómo abre el bot la primera conversación. Lo adapta al idioma del cliente y a lo que haya escrito, y responde a su pregunta a continuación.</p></div></header>
+      <div style="padding:16px">
+        <textarea id="cfgBienvenida" data-lw="cfg-bienvenida" maxlength="500" rows="3" style="width:100%"></textarea>
+        <div class="muted" id="cfgBienvenidaN" style="font-size:12px;margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="caja" style="margin-bottom:16px">
+      <header><div><h2 data-lwt="Cuándo vuelve el bot">Cuándo vuelve el bot</h2><p data-lwt="Horas que el bot se queda callado en un chat después de que una persona escriba (desde la app o desde el panel). 0 = no vuelve hasta que lo reactives a mano. Solo afecta a las pausas nuevas; el interruptor manual de pausa nunca caduca.">Horas que el bot se queda callado en un chat después de que una persona escriba (desde la app o desde el panel). 0 = no vuelve hasta que lo reactives a mano. Solo afecta a las pausas nuevas; el interruptor manual de pausa nunca caduca.</p></div></header>
+      <div style="padding:16px">
+        <label for="cfgPausa" data-lwt="Horas">Horas</label>
+        <input type="number" id="cfgPausa" data-lw="cfg-pausa" min="0" max="720" step="1" value="0" style="width:120px">
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <button class="btn" id="btnCfgGuardar" data-accion="cfg-guardar" type="button" data-lwt="Guardar cambios">Guardar cambios</button>
+      <button class="btn sec" id="btnCfgVolver" data-accion="cfg-volver" type="button" data-lwt="Volver a la versión anterior">Volver a la versión anterior</button>
+      <span class="muted" id="cfgEstado" role="status" style="font-size:13px"></span>
     </div>
   </section>
 

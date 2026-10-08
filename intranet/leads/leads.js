@@ -31,7 +31,7 @@ let LEADS = [], ETAPAS = [], CAMPANAS = [], SERIE = [], ACCIONES = [], CONJUNTOS
 let VISTA = 'hoy';
 let CANAL = '', BUSCA = '', FILTRO_B = 'todos';
 let ABIERTAS = new Set(), ABIERTO = null, SEL_B = null;
-let CARGADO = { panel: false, automatismos: false, setter: false, agenda: false };
+let CARGADO = { panel: false, automatismos: false, setter: false, agenda: false, config: false };
 let FICHA = null;
 let CONVERSACIONES = [], CITAS = [], EDITANDO_CITA = null;
 let CHAT_ABIERTO = null;   // teléfono del hilo abierto en Setter IA, o null
@@ -137,7 +137,7 @@ function enlaceSeguro(url){
    El `?v=` que usa el hub (`herramientas.js`) se sigue aceptando y se traduce a
    hash al entrar, para no tener que tocar los enlaces del hub.
    ========================================================================== */
-const VISTAS_OCULTABLES = { agenda: '#tabAgenda', closers: '#tabClosers', trazabilidad: '#tabTrazabilidad' };
+const VISTAS_OCULTABLES = { agenda: '#tabAgenda', config: '#tabConfig', closers: '#tabClosers', trazabilidad: '#tabTrazabilidad' };
 
 function vistaPermitida(v){
   if(!document.querySelector('#v-' + v)) return false;
@@ -171,6 +171,7 @@ function ir(v){
   if(v === 'hoy') cargarHoy();
   if(v === 'setter' && !CARGADO.setter) cargarSetter();
   if(v === 'agenda' && !CARGADO.agenda) cargarAgenda();
+  if(v === 'config') cargarConfig();
   if(v === 'closers') cargarClosers();
   if(v === 'trazabilidad') cargarTrazabilidad();
 }
@@ -2472,10 +2473,81 @@ $('#tTrazaCuentas').addEventListener('click', trazaAccion);
 $('#btnTrazaAlta').addEventListener('click', trazaAlta);
 $('#btnTrazaSync').addEventListener('click', trazaSync);
 
+/* ==========================================================================
+   VISTA — CONFIGURAR BOT (instrucciones extra, saludo, horas de pausa)
+   --------------------------------------------------------------------------
+   Datos del bot (Redis, vía lawang-bot-proxy · permiso `bot_configurar`). La
+   versión (`updatedAt`) que se estaba viendo viaja al guardar: si otra persona
+   cambió algo mientras tanto, el bot devuelve 409 y no se pisa su cambio.
+   ========================================================================== */
+let CFG_VERSION = 0;
+function cfgMuestraError(msg){ const e = $('#cfgError'); e.textContent = msg || ''; e.hidden = !msg; }
+function cfgContadores(){
+  const nExtra = $('#cfgExtra').value.length, nBienv = $('#cfgBienvenida').value.length;
+  $('#cfgExtraN').textContent = lwT('%n de 2000 caracteres', { n: nExtra });
+  $('#cfgBienvenidaN').textContent = lwT('%n de 500 caracteres', { n: nBienv });
+}
+function cfgPinta(c, hayAnterior){
+  CFG_VERSION = c.updatedAt || 0;
+  $('#cfgExtra').value = c.extra || '';
+  $('#cfgBienvenida').value = c.bienvenida || '';
+  $('#cfgPausa').value = c.pausaHoras || 0;
+  cfgContadores();
+  $('#cfgEstado').textContent = c.updatedBy
+    ? lwT('Último cambio: %who, %cuando', { who: c.updatedBy, cuando: new Date(c.updatedAt).toLocaleString() })
+    : lwT('Todavía no se ha configurado nada: el bot funciona como siempre.');
+  $('#btnCfgVolver').disabled = !hayAnterior;
+}
+async function cargarConfig(){
+  cfgMuestraError('');
+  try {
+    const r = await llamarBot('config_get');
+    CARGADO.config = true;
+    cfgPinta(r.config || {}, !!(r.log && r.log.length));
+  } catch(err){
+    // «No he podido mirar» no es «no hay configuración»: se dice distinto y no se toca lo que había en pantalla.
+    cfgMuestraError(lwT('No se ha podido leer la configuración del bot: %e', { e: err.message }));
+  }
+}
+async function guardarConfig(){
+  cfgMuestraError('');
+  const btn = $('#btnCfgGuardar'); btn.disabled = true;
+  try {
+    const r = await llamarBot('config_set', {
+      config: { extra: $('#cfgExtra').value, bienvenida: $('#cfgBienvenida').value, pausaHoras: Number($('#cfgPausa').value) || 0 },
+      expectedUpdatedAt: CFG_VERSION,
+    });
+    cfgPinta(r.config || {}, true);
+    $('#cfgEstado').textContent = lwT('Guardado. El bot lo aplica en unos segundos.');
+  } catch(err){
+    cfgMuestraError(lwT('No se ha guardado: %e', { e: err.message }));
+  } finally { btn.disabled = false; }
+}
+async function volverConfig(){
+  if(!confirm(lwT('¿Volver a la versión anterior de la configuración?'))) return;
+  cfgMuestraError('');
+  try {
+    const r = await llamarBot('config_revert', { expectedUpdatedAt: CFG_VERSION });
+    cfgPinta(r.config || {}, true);
+    $('#cfgEstado').textContent = lwT('Restaurada la versión anterior.');
+  } catch(err){
+    cfgMuestraError(lwT('No se ha podido volver atrás: %e', { e: err.message }));
+  }
+}
+$('#cfgExtra').addEventListener('input', cfgContadores);
+$('#cfgBienvenida').addEventListener('input', cfgContadores);
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-accion]');
+  if(!b) return;
+  if(b.dataset.accion === 'cfg-guardar') guardarConfig();
+  if(b.dataset.accion === 'cfg-volver') volverConfig();
+});
+
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb; YO = session && session.user; FICHA = ficha;
   const puedeClosers = !ficha || LW_ROL.esSuperGlobal(ficha) || (ficha.herramientas || []).includes('closers');
   $('#tabAgenda').hidden = !puedeClosers;
+  $('#tabConfig').hidden = !(!ficha || LW_ROL.esSuperGlobal(ficha) || (ficha.herramientas || []).includes('bot_configurar'));
   PUEDE_CLOSERS = puedeClosers;   // el boton «Agendar llamada» de la ficha del chat va detras de este permiso
   /* SOLO POR CASILLA, no por rol (decisión del owner, 11-sep-2026). La primera versión de
      esta línea dejaba pasar a cualquier `admin` por serlo, y eso metía en la tabla de
