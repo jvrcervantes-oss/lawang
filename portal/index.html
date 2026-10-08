@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="edff02c2cd33">
+<meta name="lw-version" content="24d11aa550a2">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -2867,9 +2867,8 @@
     (d.firma_pendiente || []).forEach(function(f){ firmaPend[f.contrato_id] = f; });
     var proyPorId = {};
     (d.proyectos || []).forEach(function(p){ proyPorId[p.id] = p; });
-    var fases = (d.fases || []).slice().sort(function(a, b){ return (a.orden || 0) - (b.orden || 0); });
     function obraDe(numeros){ return (d.obra || []).filter(function(o){ return numeros.indexOf(o.contrato_numero) !== -1; })[0] || null; }
-    function idxFase(o){ return o ? fases.map(function(f){ return f.clave; }).indexOf(o.fase) : -1; }
+    /* La fase se cuenta con estadoObra, como en Inicio y Obra: seis fases de obra y «entregada» aparte (revisor, 8-oct-2026). */
 
     var villas = villasPortal(todos);
     if (ESTADO.villa && !villas.some(function(v){ return v.key === ESTADO.villa; })) ESTADO.villa = null;
@@ -3000,7 +2999,7 @@
       if (!x.firmado && !sustituido && hs.length) cuerpo += '<p class="ct-texto firma">' + esc(t('ct_firma_cal')) + '</p>';
 
       // La obra de la unidad de ESTE contrato (mismo contrato_numero), como hasta ahora.
-      var o = obraDe([x.numero]), io = idxFase(o);
+      var o = obraDe([x.numero]), eo = o ? estadoObra(o) : null, io = eo ? eo.fi : -1, fases = eo ? eo.fases : [];
       if (o && fases.length && io !== -1){
         cuerpo += '<div class="ct-obra"><div class="ct-obra-cab"><span class="ct-lbl">' + esc(t('ct_obra_villa')) + '</span>' +
             (o.actualizado ? '<span>' + esc(t('actualizado')) + ': ' + esc(fecha(o.actualizado)) + '</span>' : '') + '</div>' +
@@ -3035,14 +3034,14 @@
     var villasHTML = villas.filter(function(v){ return !ESTADO.villa || v.key === ESTADO.villa; }).map(function(v){
       var p = proyPorId[v.proyecto_id] || {};
       var nums = v.contratos.map(function(x){ return x.numero; });
-      var o = obraDe(nums), io = idxFase(o);
+      var o = obraDe(nums), eo = o ? estadoObra(o) : null, io = eo ? eo.fi : -1;
       var nPend = v.contratos.filter(function(x){ return !x.firmado; }).length;
       var rs = resumenPortal(v.contratos);
       var hayCifra = !v.soloSustituidos && rs.total != null && rs.total > 0;
       var pct = hayCifra ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : 0;
       var pagada = hayCifra && !rs.soloReserva && rs.cobrado >= rs.total;   // con solo la Carta, el total es la cuota
       var chips = (p.entrega ? '<span class="ct-chip">' + entregaTxt(p) + '</span>' : '') +
-        (o && io !== -1 ? '<span class="ct-chip obra">' + esc(t('ct_obra_chip').replace('{f}', Lx(fases[io])).replace('{i}', io + 1).replace('{n}', fases.length)) + '</span>' : '') +
+        (o && io !== -1 ? '<span class="ct-chip obra">' + esc(eo.entregada ? t('fase_obra') + ': ' + eo.texto : t('ct_obra_chip').replace('{f}', eo.texto).replace('{i}', io + 1).replace('{n}', eo.n)) + '</span>' : '') +
         '<span class="ct-chip' + (nPend ? ' firma' : '') + '">' + esc(plural(v.contratos.length, 'ct_n_1', 'ct_n_n') + (nPend ? ' · ' + t('ct_por_firmar').replace('{n}', nPend) : '')) + '</span>';
       return '<article class="ct-villa"><div class="ct-villa-cab' + (v.parcela ? '' : ' sin-unidad') + (hayCifra ? '' : ' sin-cifra') + '">' +
           (v.parcela ? '<div class="ct-tile"><span>' + esc(t('unidad')) + '</span><b>' + esc(v.parcela) + '</b></div>' : '') +
