@@ -1,31 +1,18 @@
 /* textos-contrato.css — estilos propios de la pantalla «Textos de contrato» (/intranet/v4/textos-contrato/), 8-oct-2026.
    Tailwind va COMPILADO (tw.css): una clase que ninguna pantalla usa antes no existe, así que lo que esta pantalla pinta desde JS lleva su propia clase tc-*.
    Estilo de la suite (catalogo/estilos.html, leyes comunes): sin sombras, un solo acento (la laguna #104C4F), nunca negrita (peso 400/500), radio 0 o pastilla.
-   Los colores son variables: el modo oscuro del sistema cambia solo las variables, no las reglas. (Las tarjetas se pintan con fondo propio, así que quedan
-   legibles aunque el resto de la v4 todavía no tenga modo oscuro.) */
+   Los colores son los tokens de la intranet (tw.css: raw-linen, surface-container*, outline, primary-container, error). Sin modo oscuro: la v4 no lo tiene y las tarjetas oscuras desentonaban (8-oct-2026). */
 
 .tc-seccion,.tc-nota,.tc-aviso-fijo,.tc-empresa,.tc-doc,.tc-barra,.tc-pestanas{
-  --tc-fondo:#fff; --tc-fondo2:#f7f5ee; --tc-fondo3:#f3f1ea; --tc-linea:#dedbcf; --tc-linea2:#cfccbf;
-  --tc-tinta:#1b1c18; --tc-tinta2:#44483f; --tc-mute:#6a6d63;
-  --tc-acento:#104C4F; --tc-acento-suave:#dce9e7; --tc-acento-tinta:#fff;
-  --tc-verde:#485b37; --tc-verde-suave:#e9f2e1; --tc-verde-tinta:#2f5a1e;
-  --tc-fijo:#e6e8e3; --tc-fijo-tinta:#3e4741;
-  --tc-aviso:#8a5a00; --tc-aviso-suave:#f6efdc; --tc-aviso-tinta:#6b5320;
-  --tc-mal:#8c1d18; --tc-mal-suave:#fbeceb;
+  --tc-fondo:#fff; --tc-fondo2:#F5F4EE; --tc-fondo3:#EFEEE8; --tc-linea:#E9E8E3; --tc-linea2:#C5C8BC;
+  --tc-tinta:#1B1C19; --tc-tinta2:#44483F; --tc-mute:#75786E;
+  --tc-acento:#104C4F; --tc-acento-suave:#E9E8E3; --tc-acento-tinta:#fff;
+  --tc-verde:#485B37; --tc-verde-suave:#EFEEE8; --tc-verde-tinta:#314322;
+  --tc-fijo:#E9E8E3; --tc-fijo-tinta:#44483F;
+  --tc-aviso:#104C4F; --tc-aviso-suave:#F1EBDD; --tc-aviso-tinta:#44483F;
+  --tc-mal:#BA1A1A; --tc-mal-suave:#FFDAD6;
   --tc-ui:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif; --tc-doc-fuente:'Newsreader',Georgia,'Times New Roman',serif;
 }
-@media (prefers-color-scheme:dark){
-  .tc-seccion,.tc-nota,.tc-aviso-fijo,.tc-empresa,.tc-doc,.tc-barra,.tc-pestanas{
-    --tc-fondo:#18211e; --tc-fondo2:#1e2925; --tc-fondo3:#222c28; --tc-linea:#2b3732; --tc-linea2:#3a4842;
-    --tc-tinta:#e6ece8; --tc-tinta2:#b7c2bb; --tc-mute:#9aa69f;
-    --tc-acento:#6fb8b5; --tc-acento-suave:#1e3533; --tc-acento-tinta:#0b1412;
-    --tc-verde:#6fb8b5; --tc-verde-suave:#1f3a28; --tc-verde-tinta:#7fd08f;
-    --tc-fijo:#222c28; --tc-fijo-tinta:#b7c2bb;
-    --tc-aviso:#e3b55c; --tc-aviso-suave:#3a2f14; --tc-aviso-tinta:#e3c88a;
-    --tc-mal:#e58f8f; --tc-mal-suave:#412020;
-  }
-}
-
 .tc-nota{margin:0;padding:10px 14px;font-size:13px;line-height:1.45;background:var(--tc-fondo3);color:var(--tc-tinta2)}
 .tc-nota[hidden]{display:none}
 .tc-nota p{margin:0 0 6px}
