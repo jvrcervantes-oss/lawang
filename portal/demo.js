@@ -236,7 +236,8 @@
   } catch (e) { console.error('demo: no se pudo cerrar la red', e); /* si no se puede cerrar la red, el demo no sirve: falla cerrado */ throw e; }
 
   /* ───────── la cinta, y la ayuda en la pantalla de entrada ───────── */
-  var css = '.lw-demo-cinta{position:fixed;right:12px;bottom:12px;z-index:2147483000;background:#1B1C19;color:#F5F0E6;border:1px solid #C89B5C;border-radius:999px;padding:6px 14px;font:600 12px/1.4 system-ui,sans-serif;letter-spacing:.04em;pointer-events:none}' +
+  // la cinta va abajo a la izquierda, pasado el menú en escritorio: a la derecha tapaba «Cambiar contraseña» de Mi perfil (8-oct-2026)
+  var css = '.lw-demo-cinta{position:fixed;left:12px;bottom:12px;z-index:2147483000;background:#1B1C19;color:#F5F0E6;border:1px solid #C89B5C;border-radius:999px;padding:6px 14px;font:600 12px/1.4 system-ui,sans-serif;letter-spacing:.04em;pointer-events:none}@media (min-width:881px){.lw-demo-cinta{left:268px}}' +
     '.lw-demo-ayuda{background:#f6e8cc;color:#5a3b08;border-radius:12px;padding:12px 14px;margin:0 0 18px;font:13px/1.5 system-ui,sans-serif;text-align:left}' +
     '.lw-demo-ayuda b{font-weight:600}.lw-demo-ayuda code{background:rgba(0,0,0,.07);padding:1px 6px;border-radius:6px;font-family:ui-monospace,Consolas,monospace}' +
     '.lw-demo-ayuda button{margin-top:10px;font:600 13px system-ui,sans-serif;background:#104C4F;color:#fff;border:0;border-radius:999px;padding:8px 16px;cursor:pointer}';
