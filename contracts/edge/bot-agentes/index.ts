@@ -210,10 +210,22 @@ const CAMPO_EXCLUIDO = /pasaporte|nik|email|telefono|domicilio|direccion|edad|oc
 // (fields, hitos, techo, clauses, annexes, extras, lang); design, overrides,
 // compradores y adq1_client_id/adq1_emails_extra se quedan fuera.
 
-function filtraFields(fields: Record<string, unknown> | null | undefined) {
+// >>> camposPropios
+/* Campos propios de la empresa ({{cx_*}}, E8 del 8-oct-2026). El valor de un cx_ lo escribe una persona de la
+   empresa y puede ser un dato personal: el bot y la IA SOLO ven los que el catalogo marca como NO sensibles
+   (plantilla_campos_cx_publicos, calculado en el servidor). Un cx_ que no esta en esa lista —sensible, fuera
+   de catalogo, o la lectura fallo— no entra al contexto ni al texto de la plantilla. Funcion PURA: misma copia
+   en contracts/bot/campos_propios.js. */
+function cxVisible(k, publicos) {
+  return !/^cx_/.test(String(k)) || (publicos != null && typeof publicos.has === 'function' && publicos.has(k));
+}
+// <<< camposPropios
+
+function filtraFields(fields: Record<string, unknown> | null | undefined, cxPublicos?: Set<string>) {
   const out: Record<string, unknown> = {};
   if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return out;
   for (const [k, v] of Object.entries(fields)) {
+    if (!cxVisible(k, cxPublicos)) continue;
     if (CAMPO_EXCLUIDO.test(k)) continue;
     if (v === null || v === undefined || v === '') continue;
     out[k] = v;
@@ -602,6 +614,12 @@ Deno.serve(async (req) => {
       adq1_client_id: contrato.adq1_client_id,
     };
     const fields = (datos.fields ?? {}) as Record<string, unknown>;
+    // cx_* que el bot puede ver (no sensibles, del catalogo de la empresa del contrato). Si la lectura falla: ninguno (cerrado por defecto), sin tumbar la consulta.
+    let cxPublicos = new Set<string>();
+    {
+      const { data: cxp, error: eCx } = await sb.rpc('plantilla_campos_cx_publicos', { p_contrato: contrato.id });
+      if (!eCx && Array.isArray(cxp)) cxPublicos = new Set((cxp as unknown[]).filter((x): x is string => typeof x === 'string'));
+    }
     const claveCuenta = typeof fields.cuenta_bancaria === 'string' ? fields.cuenta_bancaria : '';
     const claveSociedad = typeof fields.sociedad_firmante === 'string' ? fields.sociedad_firmante : '';
     const lang = typeof datos.lang === 'string' ? datos.lang : 'es';
@@ -725,7 +743,7 @@ Deno.serve(async (req) => {
     // prom_* son la identidad de la sociedad promotora (va impresa en todo
     // documento) y no PII del comprador: se dejan pasar aunque casen con el
     // filtro de campos reservados (npwp, nib, domicilio).
-    const esReservado = (k: string) => !/^prom_/.test(k) && CAMPO_EXCLUIDO.test(k);
+    const esReservado = (k: string) => !cxVisible(k, cxPublicos) || (!/^prom_/.test(k) && CAMPO_EXCLUIDO.test(k));
     const webOk = web && 'html' in web ? web : null;
     const verPlantilla = webOk?.ver ?? null;
     // La fila de `plantillas_contrato` solo da el NOMBRE: si su lectura falla o no casa con el slug de la version fijada, se sigue sin nombre (antes era un 500)
@@ -754,7 +772,7 @@ Deno.serve(async (req) => {
         comprador_nombre: contrato.comprador_nombre, proyecto_nombre: contrato.proyecto_nombre,
         precio_total: contrato.precio_total, moneda: contrato.moneda, fecha_firma: contrato.fecha_firma,
         bloqueado: !!contrato.bloqueado, lang,
-        fields: filtraFields(fields),
+        fields: filtraFields(fields, cxPublicos),
         hitos: Array.isArray(datos.hitos) ? datos.hitos : [],
         techo: datos.techo && typeof datos.techo === 'object'
           ? (({ nombre, precio, moneda, tramo }) => ({ nombre, precio, moneda, tramo }))(datos.techo as Record<string, unknown>)
