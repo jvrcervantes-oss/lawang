@@ -214,6 +214,8 @@ const esperaPanel = (page) => page.waitForTimeout(500);
 
         // nota con enlace: la corta la pantalla antes de viajar
         await page.locator('#lw-editor [data-rp-cliente="k-ana"]').check();
+        await page.locator('#lw-editor [data-rp="nota"]').fill('paga en evil.com');
+        ok(await page.locator('#lw-editor [data-rp="nota-error"]').isVisible(), t + 'nota con dominio sin www: aviso en rojo');
         await page.locator('#lw-editor [data-rp="nota"]').fill('mira http://pago.example/x');
         ok(await page.locator('#lw-editor [data-rp="nota-error"]').isVisible(), t + 'nota con enlace: aviso en rojo al escribir');
         await page.locator('#lw-editor [data-e="guardar"]').click();
