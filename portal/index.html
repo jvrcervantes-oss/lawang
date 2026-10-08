@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="adba4774ea4b">
+<meta name="lw-version" content="a6250cdc99fd">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -698,6 +698,121 @@
   @media (max-width:640px){
     .proy-sinfoto{ display:none; }
   }
+
+  /* ═══ SOPORTE v2 (8-oct-2026; aspecto del artifact «Soporte Lawang») ═══
+     Columna de consultas (cuatro puertas por tema, abiertos con el turno visible, resueltos plegados) y columna de
+     «cómo funciona» con el aviso de canal no vinculante. El hilo se lee en el cajón (clase sop-dr). Piezas y colores de la
+     piel v4; clases propias con prefijo sop- para no pisar las compartidas (lección de .doc .num, 5-ago). */
+  .sop{ display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:18px; align-items:start; }
+  .sop-col{ display:grid; gap:18px; min-width:0; }
+  .sop .tarjeta.sop-tarjeta{ background:#fff; padding:20px 22px; margin:0; }
+  .sop-h{ margin:0; font-size:17px; font-weight:500; text-wrap:balance; }
+  .sop-sub{ margin:4px 0 0; font-size:13px; line-height:1.5; color:var(--ink2); }
+  .sop-ico{ width:36px; height:36px; border-radius:10px; display:grid; place-items:center; flex:none; background:var(--pg-low); color:var(--dl); }
+  .sop-ico svg{ width:19px; height:19px; }
+  .sop-temas{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:16px; }
+  .sop-tema{ display:flex; flex-direction:column; align-items:flex-start; gap:10px; min-width:0; padding:14px 14px 13px; text-align:left; cursor:pointer;
+    font:inherit; color:var(--va); background:var(--rl); border:1px solid var(--pg-hi); border-radius:12px; transition:background .15s,border-color .15s; }
+  .sop-tema:hover{ background:var(--pg-low); border-color:var(--linea); }
+  .sop-tema:hover .sop-ico{ background:#fff; }
+  .sop-tema:focus-visible, .sop-tk:focus-visible, .sop-resueltos summary:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .sop-tema b{ font-size:14px; font-weight:600; }
+  .sop-tema small{ font-size:12px; line-height:1.4; color:var(--out); }
+  .sop-cab{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 2px 10px; }
+  .sop-rot{ margin:0; }
+  .sop-rot b{ color:var(--va); margin-left:6px; font-variant-numeric:tabular-nums; }
+  .sop-lista{ display:grid; gap:10px; }
+  .sop-nada{ margin:0; padding:16px; text-align:center; font-size:13px; color:var(--out); background:#fff; border:1px solid var(--pg-hi); border-radius:12px; }
+  .sop-tk{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:14px; align-items:start; width:100%; text-align:left; cursor:pointer;
+    font:inherit; color:var(--va); background:#fff; border:1px solid var(--pg-hi); border-radius:12px; padding:15px 16px; transition:border-color .15s; }
+  .sop-tk:hover{ border-color:var(--linea); }
+  .sop-tk.resp{ border-color:#c9d3bf; }
+  .sop-tk-c{ min-width:0; display:block; }
+  .sop-tk-t{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; }
+  .sop-tk-t b{ font-size:14.5px; font-weight:600; }
+  .sop-ref{ display:inline-flex; align-items:center; gap:5px; font:inherit; font-size:11.5px; font-weight:500; color:var(--dl); background:#e8f0ef;
+    border:0; border-radius:999px; padding:2px 9px; }
+  button.sop-ref{ cursor:pointer; } button.sop-ref:hover{ text-decoration:underline; }
+  .sop-ref svg{ width:12px; height:12px; }
+  .sop-ex{ margin-top:6px; font-size:13px; line-height:1.45; color:var(--ink2); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .sop-ex em{ font-style:normal; font-weight:600; color:var(--va); }
+  .sop-pie{ display:block; margin-top:8px; font-size:11.5px; color:var(--out); }
+  .sop-tk-d{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .sop-tk-d .sop-pie{ margin:0; }
+  .sop-estado{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; font-size:11.5px; font-weight:600; border-radius:999px; padding:4px 10px 4px 9px; }
+  .sop-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
+  .sop-estado.resp{ background:#485B37; color:#fff; }
+  .sop-estado.espera{ background:var(--pg-low); color:var(--ink2); }
+  .sop-estado.hecho{ background:#e3eadb; color:var(--ok); }
+  .sop-resueltos{ margin-top:6px; }
+  .sop-resueltos summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 2px; border-radius:8px; }
+  .sop-resueltos summary::-webkit-details-marker{ display:none; }
+  .sop-resueltos summary svg{ width:14px; height:14px; color:var(--out); transition:transform .2s; }
+  .sop-resueltos[open] summary svg{ transform:rotate(90deg); }
+  .sop-resueltos .sop-tk{ background:var(--rl); }
+  .sop-resueltos .sop-tk-t b{ color:var(--ink2); }
+  .sop-pasos{ list-style:none; margin:14px 0 0; padding:0; display:grid; gap:14px; }
+  .sop-pasos li{ display:grid; grid-template-columns:26px minmax(0,1fr); gap:12px; align-items:start; }
+  .sop-n{ width:26px; height:26px; border-radius:50%; background:var(--pg-low); color:var(--dl); font-size:12.5px; font-weight:600; display:grid; place-items:center; }
+  .sop-pasos b{ display:block; font-size:13.5px; font-weight:600; }
+  .sop-pasos li > div > span{ display:block; margin-top:2px; font-size:12.5px; line-height:1.5; color:var(--ink2); }
+  .sop-aviso{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:10px; background:var(--pg-low); border-radius:12px; padding:14px 16px; }
+  .sop-aviso svg{ width:17px; height:17px; color:var(--out); margin-top:1px; }
+  .sop-aviso p{ margin:0; font-size:12px; line-height:1.55; color:var(--ink2); }
+  .sop-aviso p b{ display:block; color:var(--va); font-size:12.5px; font-weight:600; margin-bottom:3px; }
+  /* el cajón de un ticket y el de uno nuevo: cabecera fija, hilo con scroll y caja de respuesta abajo */
+  .drawer.sop-dr{ padding:0; display:flex; flex-direction:column; overflow:hidden; }
+  .drawer.sop-dr .drawer-cerrar{ position:absolute; top:16px; right:14px; margin:0; z-index:1; }
+  .sop-dr-cab{ padding:18px 56px 16px 22px; border-bottom:1px solid var(--pg-hi); display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:start; flex:none; }
+  .sop-dr-cab .sop-ico{ width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid var(--pg-hi); }
+  .sop-dr-cab h3{ margin:0; font-size:18px; font-weight:500; }
+  .sop-meta{ margin-top:6px; display:flex; flex-wrap:wrap; gap:6px 8px; align-items:center; font-size:12px; color:var(--out); }
+  .sop-hilo{ flex:1; min-height:0; overflow-y:auto; padding:18px 22px; display:flex; flex-direction:column; gap:14px; }
+  .sop-dia{ align-self:center; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a8a394; }
+  .sop-msg{ display:flex; flex-direction:column; max-width:84%; align-self:flex-start; align-items:flex-start; }
+  .sop-msg.mia{ align-self:flex-end; align-items:flex-end; }
+  .sop-quien{ font-size:11.5px; font-weight:600; color:var(--ink2); margin:0 0 5px 2px; display:flex; align-items:center; gap:6px; }
+  .sop-quien i{ width:18px; height:18px; border-radius:50%; background:var(--av-fondo); }
+  .sop-burbuja{ padding:11px 14px; font-size:13.5px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .sop-msg.mia .sop-burbuja{ background:var(--dl); color:#fff; border-radius:14px 14px 4px 14px; }
+  .sop-msg.suya .sop-burbuja{ background:#fff; border:1px solid var(--pg-hi); border-radius:14px 14px 14px 4px; }
+  .sop-hora{ font-size:10.5px; color:#a8a394; margin-top:4px; }
+  .sop-compositor{ flex:none; border-top:1px solid var(--pg-hi); padding:14px 22px 18px; padding-bottom:calc(18px + env(safe-area-inset-bottom, 0px)); background:var(--rl); margin:0; }
+  .sop-reabre{ display:flex; gap:8px; align-items:flex-start; font-size:12px; line-height:1.45; color:var(--ok); background:#e3eadb; border-radius:10px; padding:9px 12px; margin-bottom:10px; }
+  .sop-reabre svg{ width:15px; height:15px; flex:none; margin-top:1px; }
+  .sop-caja{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; background:#fff; border:1px solid var(--linea); border-radius:14px; padding:6px 6px 6px 14px; }
+  .sop-caja:focus-within{ outline:2px solid var(--dl); outline-offset:1px; }
+  .sop-caja textarea{ border:0; outline:0; resize:none; background:transparent; font:inherit; font-size:14px; line-height:1.5; padding:7px 0; min-height:38px; max-height:160px; color:var(--va); }
+  .sop-enviar{ display:inline-flex; align-items:center; gap:6px; }
+  .sop-enviar svg{ width:15px; height:15px; }
+  .sop-enviar:disabled{ opacity:.45; cursor:default; }
+  .sop-atajo{ margin:8px 2px 0; font-size:11px; color:#a8a394; }
+  .sop-nuevo{ flex:1; min-height:0; overflow-y:auto; padding:20px 22px 24px; display:grid; gap:16px; align-content:start; }
+  .sop-nuevo .campo{ margin:0; }
+  .sop-temas-f{ border:0; margin:0; padding:0; min-width:0; }
+  .sop-temas-f legend{ padding:0; margin:0 0 8px; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); }
+  .sop-chips{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .sop-chip{ position:relative; min-width:0; }
+  .sop-chip input{ position:absolute; opacity:0; pointer-events:none; }
+  .sop-chip span{ display:flex; align-items:center; gap:9px; padding:10px 12px; border:1px solid var(--linea); border-radius:12px; background:#fff; font-size:13.5px; font-weight:500; cursor:pointer; }
+  .sop-chip span svg{ width:17px; height:17px; color:var(--dl); flex:none; }
+  .sop-chip input:checked + span{ border-color:var(--dl); background:#e8f0ef; font-weight:600; }
+  .sop-chip input:focus-visible + span{ outline:2px solid var(--dl); outline-offset:1px; }
+  .sop-acc{ display:flex; gap:10px; flex-wrap:wrap; }
+  @media (max-width:1080px){ .sop-temas{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:900px){ .sop{ grid-template-columns:minmax(0,1fr); } }
+  @media (max-width:520px){
+    .sop .tarjeta.sop-tarjeta{ padding:16px; }
+    .sop-temas{ gap:8px; }
+    .sop-tema{ padding:12px; }
+    .sop-tema small{ display:none; }
+    .sop-tk{ grid-template-columns:minmax(0,1fr); gap:10px; padding:14px; }
+    .sop-tk > .sop-ico{ display:none; }
+    .sop-tk-d{ flex-direction:row; align-items:center; justify-content:space-between; }
+    .sop-dr-cab, .sop-hilo, .sop-compositor, .sop-nuevo{ padding-left:16px; padding-right:16px; }
+    .sop-dr-cab{ padding-right:52px; }
+  }
+  @media (prefers-reduced-motion:reduce){ .sop-tema, .sop-tk, .sop-resueltos summary svg{ transition:none; } }
 
   /* ═══ MI PERFIL — la página de la cuenta (8-oct-2026; aspecto del artifact «Mi perfil Lawang v2») ═══
      Ficha (quién es y sus datos), lo entregado, seguridad y avisos, y a quién escribir si un dato está mal. Lo que ya
@@ -1734,7 +1849,9 @@
          ct_n_1:'1 contrato', ct_n_n:'{n} contratos', ct_por_firmar:'{n} por firmar', ct_v_1:'1 villa', ct_v_n:'{n} villas', ct_f_1:'1 firmado', ct_f_n:'{n} firmados',
          ct_pagado_cuota:'Pagado de la cuota de reserva', ct_pagado_villa:'Pagado en esta villa', ct_pct_pagado:'{n} % pagado',
          ct_no_cuadra:'¿Algo no cuadra con tus documentos?', ct_escribenos:'Escríbenos desde Soporte y lo revisamos',
-         sobre:'Sobre', sobre_nada:'Nada en concreto', preguntar_factura:'Preguntar sobre esta factura', preguntar_contrato:'Preguntar sobre este contrato', },
+         sobre:'Sobre', sobre_nada:'Nada en concreto', preguntar_factura:'Preguntar sobre esta factura', preguntar_contrato:'Preguntar sobre este contrato',
+         /* Soporte v2 (8-oct-2026) */
+         sop_h:'¿Sobre qué quieres preguntar?', sop_h_sub:'Elige el tema y escríbenos. Te responde el equipo de gestión de Lawang, aquí mismo.', sop_hint_pagos:'Transferencias, recibos y plazos de un hito', sop_hint_documentacion:'Contratos, planos y papeles de tu compra', sop_hint_obra:'Avance, fotos y fecha de entrega', sop_hint_otro:'Cualquier otra duda', sop_abiertos:'Abiertos', sop_resueltos:'Resueltos', sop_ninguno_abierto:'No tienes ninguna consulta abierta.', sop_respondido:'Te hemos respondido', sop_esperando:'Esperando al equipo', sop_n_msg_1:'1 mensaje', sop_n_msg_n:'{n} mensajes', sop_como:'Cómo funciona', sop_p1_t:'Un ticket por tema', sop_p1:'Si tu duda es sobre una factura o un contrato, elígelo en «Sobre» y el equipo lo verá al momento.', sop_p2_t:'Te contestamos aquí', sop_p2:'La respuesta queda en el ticket. En la lista verás «Te hemos respondido» cuando haya algo nuevo.', sop_p3_t:'¿Vuelve a pasar?', sop_p3:'Escribe en el ticket resuelto y se abre otra vez, con toda la conversación anterior.', sop_aviso_t:'Canal de atención', sop_reabre:'Este ticket está resuelto. Si escribes, se abre otra vez y le llega al equipo.', sop_ph_reabrir:'Escribe para reabrirlo…', sop_ph_resp:'Escribe tu respuesta…', sop_atajo:'Ctrl+Intro para enviar', sop_nuevo_sub:'Te respondemos en este mismo ticket.', sop_tema:'Tema', sop_ph_msg:'Cuéntanos qué necesitas', sop_reabierto:'Ticket abierto otra vez', sop_enviado:'Mensaje enviado', },
     en:{ area:'Client area',
          login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
          login_btn:'Send me the link',
@@ -1838,7 +1955,9 @@
          tipo_carta_reserva_pma:'Conditional Reservation Letter (PT PMA)', tipo_carta_reserva_investor_deck:'Reservation Letter (Investor Deck)',
          tipo_reserva_parcela:'Plot Hold', tipo_construccion:'Construction', tipo_hak_sewa_notario:'Hak Sewa - Notary', tipo_poa:'Power of Attorney',
          tipo_adenda:'Contract addendum', tipo_contrato_general:'General Contract',
-         sobre:'About', sobre_nada:'Nothing in particular', preguntar_factura:'Ask about this invoice', preguntar_contrato:'Ask about this contract', },
+         sobre:'About', sobre_nada:'Nothing in particular', preguntar_factura:'Ask about this invoice', preguntar_contrato:'Ask about this contract',
+         /* Soporte v2 (8-oct-2026) */
+         sop_h:'What would you like to ask about?', sop_h_sub:'Pick a topic and write to us. The Lawang account team replies right here.', sop_hint_pagos:'Transfers, receipts and milestone due dates', sop_hint_documentacion:'Contracts, plans and paperwork for your purchase', sop_hint_obra:'Progress, photos and handover date', sop_hint_otro:'Anything else', sop_abiertos:'Open', sop_resueltos:'Resolved', sop_ninguno_abierto:'You have no open enquiries.', sop_respondido:'We have replied', sop_esperando:'Waiting for the team', sop_n_msg_1:'1 message', sop_n_msg_n:'{n} messages', sop_como:'How it works', sop_p1_t:'One ticket per topic', sop_p1:'If your question is about an invoice or a contract, pick it under “About” so the team sees it straight away.', sop_p2_t:'We reply here', sop_p2:'The reply stays in the ticket. The list shows “We have replied” when there is something new.', sop_p3_t:'Happening again?', sop_p3:'Write in the resolved ticket and it reopens, with the whole earlier conversation.', sop_aviso_t:'Support channel', sop_reabre:'This ticket is resolved. If you write, it reopens and reaches the team.', sop_ph_reabrir:'Write to reopen it…', sop_ph_resp:'Write your reply…', sop_atajo:'Ctrl+Enter to send', sop_nuevo_sub:'We will reply in this same ticket.', sop_tema:'Topic', sop_ph_msg:'Tell us what you need', sop_reabierto:'Ticket reopened', sop_enviado:'Message sent', },
     id:{ area:'Area klien',
          login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, tautan masuk akan segera dikirim.',
          login_btn:'Kirim tautan ke saya',
@@ -1939,7 +2058,9 @@
          ct_pagado_cuota:'Terbayar dari biaya reservasi', ct_pagado_villa:'Terbayar untuk vila ini', ct_pct_pagado:'{n} % terbayar',
          ct_no_cuadra:'Ada yang tidak sesuai dengan dokumen Anda?', ct_escribenos:'Tulis ke kami lewat Dukungan dan kami akan memeriksanya',
          tipo_carta_reserva:'Surat Pemesanan', tipo_reserva_parcela:'Pengikatan Kavling', tipo_construccion:'Konstruksi', tipo_poa:'Surat Kuasa', tipo_adenda:'Adendum kontrak',
-         sobre:'Tentang', sobre_nada:'Tidak ada yang khusus', preguntar_factura:'Tanya tentang faktur ini', preguntar_contrato:'Tanya tentang kontrak ini' }
+         sobre:'Tentang', sobre_nada:'Tidak ada yang khusus', preguntar_factura:'Tanya tentang faktur ini', preguntar_contrato:'Tanya tentang kontrak ini',
+         /* Soporte v2 (8-oct-2026) */
+         sop_h:'Apa yang ingin Anda tanyakan?', sop_h_sub:'Pilih topik dan tulis pesan Anda. Tim pengelola Lawang akan membalas di sini.', sop_hint_pagos:'Transfer, kuitansi, dan jatuh tempo termin', sop_hint_documentacion:'Kontrak, denah, dan dokumen pembelian Anda', sop_hint_obra:'Progres, foto, dan tanggal serah terima', sop_hint_otro:'Pertanyaan lainnya', sop_abiertos:'Terbuka', sop_resueltos:'Selesai', sop_ninguno_abierto:'Anda tidak punya pertanyaan yang terbuka.', sop_respondido:'Kami sudah membalas', sop_esperando:'Menunggu tim', sop_n_msg_1:'1 pesan', sop_n_msg_n:'{n} pesan', sop_como:'Cara kerjanya', sop_p1_t:'Satu tiket per topik', sop_p1:'Jika pertanyaan Anda tentang faktur atau kontrak, pilih di “Tentang” agar tim langsung melihatnya.', sop_p2_t:'Kami membalas di sini', sop_p2:'Balasan tersimpan di tiket. Daftar akan menampilkan “Kami sudah membalas” saat ada yang baru.', sop_p3_t:'Terjadi lagi?', sop_p3:'Tulis di tiket yang sudah selesai dan tiket akan dibuka lagi, lengkap dengan percakapan sebelumnya.', sop_aviso_t:'Saluran layanan', sop_reabre:'Tiket ini sudah selesai. Jika Anda menulis, tiket dibuka lagi dan sampai ke tim.', sop_ph_reabrir:'Tulis untuk membukanya lagi…', sop_ph_resp:'Tulis balasan Anda…', sop_atajo:'Ctrl+Enter untuk mengirim', sop_nuevo_sub:'Kami akan membalas di tiket ini.', sop_tema:'Topik', sop_ph_msg:'Ceritakan apa yang Anda perlukan', sop_reabierto:'Tiket dibuka lagi', sop_enviado:'Pesan terkirim' }
   };
   var LANG = localStorage.getItem('lw_portal_lang');
   if (!LANG || !(LANG in T)) { var nl = (navigator.language || 'es').slice(0,2); LANG = (nl === 'es' || nl === 'id') ? nl : 'en'; }
@@ -3691,31 +3812,84 @@
      con su propia categoría (el título) y su propio estado abierto/resuelto
      — un comprador puede tener varios a la vez, incluso de la misma
      categoría. Las conversaciones de antes de este cambio viven ya como un
-     ticket "General" abierto (migración, no se perdió nada). */
+     ticket "General" abierto (migración, no se perdió nada).
+     Soporte v2 (8-oct-2026, artifact «Soporte Lawang»): se empieza por el tema (cuatro puertas que abren el ticket ya en
+     su categoría), los abiertos dicen de quién es el turno —lo dice el último mensaje, nada nuevo en la base— y los
+     resueltos van plegados. Un mensaje del comprador en un ticket resuelto lo reabre (trigger de hilo_soporte), y el
+     cajón lo avisa. Hereda los enganches de siempre: btnNuevoTicket, data-ticket, fTicket, ticketIn, nCategoria, nSobre,
+     nTexto y btnAbrirTicket. */
   var CATEGORIAS = ['Pagos','Documentación','Obra','Otro'];
   /* El valor que se guarda es el español de siempre (la base y el equipo lo leen así); solo cambia lo que se lee. */
-  function catTxt(c){ var k = 'cat_' + String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); var v = t(k); return v === k ? c : v; }
+  function catClave(c){ return String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  function catTxt(c){ var k = 'cat_' + catClave(c); var v = t(k); return v === k ? c : v; }
+  var TRAZOS_SOP = {
+    pagos: '<rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6.5 9.5v5M17.5 9.5v5"/>',
+    documentacion: '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 6.5 20V4a.5.5 0 0 1 .5-.5z"/><path d="M14 3.5V8h4M9.5 12.5h5M9.5 16h5"/>',
+    obra: '<path d="M4 17.5h16"/><path d="M6 17.5V15a6 6 0 0 1 12 0v2.5"/><path d="M10 9.4V6.5h4v2.9"/><path d="M12 9v4"/>',
+    otro: '<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/>',
+    doc: '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 6.5 20V4a.5.5 0 0 1 .5-.5z"/>',
+    flecha: '<path d="M9 6l6 6-6 6"/>',
+    info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+    enviar: '<path d="M4.5 12h14M13 6.5l5.5 5.5-5.5 5.5"/>',
+    reabre: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v3.5H8"/>'
+  };
+  function trazoSop(k, ancho){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (ancho || 1.6) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (TRAZOS_SOP[k] || TRAZOS_SOP.otro) + '</svg>';
+  }
+  function icoCat(c){ return trazoSop(catClave(c)); }   // «General» (los de antes de los tickets) cae en el de «Otro»
+  /* De quién es el turno: el último mensaje. Del equipo → «Te hemos respondido»; del comprador → «Esperando al equipo». */
+  function turnoTicket(x){
+    if (x.estado !== 'abierto') return { cls:'hecho', txt:t('resuelto') };
+    var ms = x.mensajes || [], u = ms[ms.length - 1];
+    return u && u.de === 'equipo' ? { cls:'resp', txt:t('sop_respondido') } : { cls:'espera', txt:t('sop_esperando') };
+  }
+  function refTicket(x){
+    if (!x.ref_numero) return '';
+    return (x.factura_id ? t('factura') : x.contrato_id ? t('ob_contrato') : t('sobre')) + ' ' + x.ref_numero;
+  }
+  function filaTicket(x){
+    var ms = x.mensajes || [], u = ms[ms.length - 1], tu = turnoTicket(x);
+    var extracto = u ? '<span class="sop-ex"><em>' + esc(u.de === 'cliente' ? t('tu') : t('equipo')) + ':</em> ' + esc(u.texto) + '</span>' : '';
+    var ref = refTicket(x);
+    return '<button type="button" class="sop-tk ' + tu.cls + '" data-ticket="' + esc(x.id) + '">' +
+      '<span class="sop-ico">' + icoCat(x.categoria) + '</span>' +
+      '<span class="sop-tk-c"><span class="sop-tk-t"><b>' + esc(catTxt(x.categoria)) + '</b>' +
+        (ref ? '<span class="sop-ref">' + trazoSop('doc', 1.8) + esc(ref) + '</span>' : '') + '</span>' + extracto +
+        '<span class="sop-pie">' + esc(ms.length === 1 ? t('sop_n_msg_1') : t('sop_n_msg_n').replace('{n}', ms.length)) + '</span></span>' +
+      '<span class="sop-tk-d"><span class="sop-estado ' + tu.cls + '"><i></i>' + esc(tu.txt) + '</span>' +
+        '<span class="sop-pie">' + esc(relativa(x.actualizado_en)) + '</span></span></button>';
+  }
   function pintaSoporte(c){
-    var d = DATOS, tickets = d.tickets || [];
-    var html = '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
-      '<button type="button" class="btn-oscuro" id="btnNuevoTicket" style="margin-bottom:18px">' + esc(t('nuevo_ticket')) + '</button>';
-    html += tickets.length ? '<div class="doclista">' + tickets.map(function(x){
-      var ultimo = x.mensajes[x.mensajes.length - 1];
-      var abierto = x.estado === 'abierto';
-      // "Abierto" en sólido (1-sep-2026, pedido del cliente: se perdía contra
-      // el crema de fondo con el tinte tan suave que llevaba antes).
-      var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
-      var extracto = ultimo ? (ultimo.de === 'cliente' ? t('tu') + ': ' : '') + ultimo.texto : '';
-      if (extracto.length > 80) extracto = extracto.slice(0, 80) + '…';
-      return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(catTxt(x.categoria)) + '</div>' +
-        (x.ref_numero ? '<div class="s">' + esc(t('sobre')) + ' ' + esc(x.ref_numero) + '</div>' : '') +
-        (extracto ? '<div class="s">' + esc(extracto) + '</div>' : '') + '</div>' +
-        '<div class="der"><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' +
-          esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
-        '<div style="margin-top:4px;font-size:11px;color:#a8a394">' + esc(fecha(x.actualizado_en)) + '</div></div></div>';
-    }).join('') + '</div>' : vacio(t('sin_tickets_t'), t('sin_tickets'));
-    c.innerHTML = html;
-    document.getElementById('btnNuevoTicket').addEventListener('click', abrirNuevoTicket);
+    var tickets = DATOS.tickets || [];
+    var reciente = function(a, b){ return new Date(b.actualizado_en) - new Date(a.actualizado_en); };
+    // primero lo que ya tiene respuesta: es lo que el comprador tiene que leer
+    var abiertos = tickets.filter(function(x){ return x.estado === 'abierto'; }).sort(function(a, b){
+      return (turnoTicket(a).cls === 'resp' ? 0 : 1) - (turnoTicket(b).cls === 'resp' ? 0 : 1) || reciente(a, b);
+    });
+    var resueltos = tickets.filter(function(x){ return x.estado !== 'abierto'; }).sort(reciente);
+
+    var empezar = '<section class="tarjeta sop-tarjeta"><h2 class="sop-h">' + esc(t('sop_h')) + '</h2><p class="sop-sub">' + esc(t('sop_h_sub')) + '</p>' +
+      '<div class="sop-temas">' + CATEGORIAS.map(function(cat){
+        return '<button type="button" class="sop-tema" data-sop-cat="' + esc(cat) + '"><span class="sop-ico">' + icoCat(cat) + '</span>' +
+          '<b>' + esc(catTxt(cat)) + '</b><small>' + esc(t('sop_hint_' + catClave(cat))) + '</small></button>';
+      }).join('') + '</div></section>';
+
+    var lista = '<section><div class="sop-cab"><span class="rot-bloque sop-rot">' + esc(t('sop_abiertos')) + '<b>' + abiertos.length + '</b></span>' +
+        '<button type="button" class="btn-borde" id="btnNuevoTicket">' + esc(t('nuevo_ticket')) + '</button></div>' +
+      (abiertos.length ? '<div class="sop-lista">' + abiertos.map(filaTicket).join('') + '</div>'
+        : (resueltos.length ? '<p class="sop-nada">' + esc(t('sop_ninguno_abierto')) + '</p>' : vacio(t('sin_tickets_t'), t('sin_tickets')))) +
+      (resueltos.length ? '<details class="sop-resueltos"><summary>' + trazoSop('flecha', 2) + '<span class="rot-bloque sop-rot">' + esc(t('sop_resueltos')) + '<b>' + resueltos.length + '</b></span></summary>' +
+        '<div class="sop-lista">' + resueltos.map(filaTicket).join('') + '</div></details>' : '') + '</section>';
+
+    var paso = function(n){ return '<li><span class="sop-n">' + n + '</span><div><b>' + esc(t('sop_p' + n + '_t')) + '</b><span>' + esc(t('sop_p' + n)) + '</span></div></li>'; };
+    var lado = '<section class="tarjeta sop-tarjeta"><h2 class="sop-h">' + esc(t('sop_como')) + '</h2><ol class="sop-pasos">' + paso(1) + paso(2) + paso(3) + '</ol></section>' +
+      '<div class="sop-aviso">' + trazoSop('info') + '<p><b>' + esc(t('sop_aviso_t')) + '</b>' + esc(t('aviso_no_vinculante')) + '</p></div>';
+
+    c.innerHTML = '<div class="sop"><div class="sop-col">' + empezar + lista + '</div><div class="sop-col">' + lado + '</div></div>';
+    document.getElementById('btnNuevoTicket').addEventListener('click', function(){ abrirNuevoTicket(); });
+    c.querySelectorAll('[data-sop-cat]').forEach(function(b){
+      b.addEventListener('click', function(){ abrirNuevoTicket({ cat:b.getAttribute('data-sop-cat') }); });
+    });
     c.querySelectorAll('[data-ticket]').forEach(function(el){
       el.addEventListener('click', function(){
         var tk = tickets.filter(function(x){ return x.id === el.getAttribute('data-ticket'); })[0];
@@ -3724,40 +3898,61 @@
     });
   }
 
+  /* «Hoy», «Ayer» o la fecha: separa los días dentro del hilo. */
+  function diaHilo(f){
+    var d = new Date(f); if (!f || isNaN(d)) return '';
+    var hoy = new Date(); hoy.setHours(0,0,0,0); var x = new Date(d); x.setHours(0,0,0,0);
+    if (Math.round((hoy - x) / 86400000) > 1) return fecha(f);
+    var r = relativa(f); return r.charAt(0).toUpperCase() + r.slice(1);
+  }
   function abreTicket(x){
-    var abierto = x.estado === 'abierto';
-    var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
+    var tu = turnoTicket(x), resuelto = x.estado !== 'abierto', ref = refTicket(x);
+    var hilo = '', dia = '';
+    (x.mensajes || []).forEach(function(m){
+      var dm = diaHilo(m.creado_en);
+      if (dm !== dia){ hilo += '<div class="sop-dia">' + esc(dm) + '</div>'; dia = dm; }
+      var mia = m.de === 'cliente', d = new Date(m.creado_en);
+      hilo += '<div class="sop-msg ' + (mia ? 'mia' : 'suya') + '">' + (mia ? '' : '<span class="sop-quien"><i></i>' + esc(t('equipo')) + '</span>') +
+        '<div class="sop-burbuja">' + esc(m.texto) + '</div>' +
+        '<span class="sop-hora">' + esc(isNaN(d) ? '' : d.toLocaleTimeString(LOC(), { hour:'2-digit', minute:'2-digit' })) + '</span></div>';
+    });
+    var irRef = !ref ? '' : x.factura_id ? ' data-ir-fac="' + esc(x.ref_numero) + '"' : x.contrato_id ? ' data-ir-con="' + esc(x.ref_numero) + '"' : '';
     abreDrawer(
-      '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(catTxt(x.categoria)) + '</h3>' +
-      '<span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
-      '<div id="ticketHilo" style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;margin:14px 0;padding:2px"></div>' +
-      '<form id="fTicket">' +
-        '<input id="ticketIn" class="campo-input" placeholder="' + esc(t('responder')) + '" style="margin-bottom:10px">' +
-        '<div style="display:flex;gap:10px">' +
-          '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button>' +
-          '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>' +
-        '</div></form>'
+      '<div class="sop-dr-cab"><span class="sop-ico">' + icoCat(x.categoria) + '</span><div><h3>' + esc(catTxt(x.categoria)) + '</h3>' +
+        '<div class="sop-meta"><span class="sop-estado ' + tu.cls + '"><i></i>' + esc(tu.txt) + '</span>' +
+        (ref ? (irRef ? '<button type="button" class="sop-ref"' + irRef + '>' : '<span class="sop-ref">') + trazoSop('doc', 1.8) + esc(ref) + (irRef ? '</button>' : '</span>') : '') +
+        '</div></div></div>' +
+      '<div class="sop-hilo" id="ticketHilo">' + hilo + '</div>' +
+      '<form class="sop-compositor" id="fTicket">' +
+        (resuelto ? '<div class="sop-reabre">' + trazoSop('reabre', 1.8) + '<span>' + esc(t('sop_reabre')) + '</span></div>' : '') +
+        '<div class="sop-caja"><textarea id="ticketIn" rows="1" placeholder="' + esc(t(resuelto ? 'sop_ph_reabrir' : 'sop_ph_resp')) + '" aria-label="' + esc(t('responder')) + '"></textarea>' +
+        '<button type="submit" class="btn-oscuro sop-enviar" disabled>' + esc(t('enviar')) + trazoSop('enviar', 2) + '</button></div>' +
+        '<p class="sop-atajo">' + esc(t('sop_atajo')) + '</p></form>',
+      'sop-dr'
     );
-    var hilo = document.getElementById('ticketHilo');
-    hilo.innerHTML = x.mensajes.length ? x.mensajes.map(function(m){
-      var mia = m.de === 'cliente';
-      return '<div class="fila-msg' + (mia?' der':'') + '"><div>' +
-        '<div class="burbuja ' + (mia?'mia':'suya') + '">' + esc(m.texto) + '</div>' +
-        '<div class="fecha-msg" style="text-align:' + (mia?'right':'left') + '">' + esc(fechaHora(m.creado_en)) + '</div></div></div>';
-    }).join('') : '';
-    hilo.scrollTop = hilo.scrollHeight;
-    document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
-    document.getElementById('fTicket').addEventListener('submit', function(e){
+    var hiloEl = document.getElementById('ticketHilo'); hiloEl.scrollTop = hiloEl.scrollHeight;
+    var dr = document.getElementById('drawer');
+    dr.querySelectorAll('[data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
+    dr.querySelectorAll('[data-ir-con]').forEach(function(b){ b.addEventListener('click', function(){ vasA('contratos', b.getAttribute('data-ir-con')); }); });
+    var ta = document.getElementById('ticketIn'), form = document.getElementById('fTicket'), btn = form.querySelector('button[type="submit"]');
+    var enviando = false;
+    var ajusta = function(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; btn.disabled = enviando || !ta.value.trim(); };
+    ta.addEventListener('input', ajusta);
+    ta.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable:true })); }
+    });
+    form.addEventListener('submit', function(e){
       e.preventDefault();
-      var val = document.getElementById('ticketIn').value.trim(); if (!val) return;
-      var btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
+      var val = ta.value.trim(); if (!val || enviando) return;
+      enviando = true; btn.disabled = true;
       sb.rpc('portal_enviar_mensaje', { p_hilo_id: x.id, p_texto: val }).then(function(r){
-        btn.disabled = false;
-        if (r.error){ console.error('portal_enviar_mensaje', r.error); toastMal(t('err_mensaje')); return; }
+        enviando = false;
+        if (r.error){ console.error('portal_enviar_mensaje', r.error); btn.disabled = !ta.value.trim(); toastMal(t('err_mensaje')); return; }
         recargaSituacion(function(){
           var actual = (DATOS.tickets||[]).filter(function(t2){ return t2.id === x.id; })[0];
           if (actual) abreTicket(actual); else cierraDrawer();
           render();
+          toast(t(resuelto ? 'sop_reabierto' : 'sop_enviado'));
         });
       });
     });
@@ -3765,27 +3960,40 @@
 
   function abrirNuevoTicket(ref){
     // el listener de «Nuevo ticket» le pasa el evento: solo vale un {tipo,id} nuestro
-    var catFija = ref && ref.cat;   // Obra abre el ticket ya en su categoría (8-oct-2026); el resto sigue como estaba
+    var catFija = ref && ref.cat;   // Obra, lo entregado y las cuatro puertas de Soporte abren el ticket ya en su categoría
     ref = (ref && ref.tipo && ref.id) ? ref : null;
+    var opc = function(tipo, x, etiqueta){
+      return '<option value="' + tipo + ':' + esc(x.id) + '"' + (ref && ref.tipo === tipo && ref.id === x.id ? ' selected' : '') + '>' + esc(etiqueta) + ' ' + esc(x.numero) + '</option>';
+    };
+    var facs = (DATOS.facturas || []).map(function(f){ return opc('factura', f, t('factura')); }).join('');
+    var cons = (DATOS.contratos || []).map(function(x){ return opc('contrato', x, t('ob_contrato')); }).join('');
     var refOpts = '<option value="">' + esc(t('sobre_nada')) + '</option>' +
-      (DATOS.facturas || []).map(function(f){
-        return '<option value="factura:' + esc(f.id) + '"' + (ref && ref.tipo === 'factura' && ref.id === f.id ? ' selected' : '') + '>' + esc(t('factura')) + ' ' + esc(f.numero) + '</option>';
-      }).join('') +
-      (DATOS.contratos || []).map(function(x){
-        return '<option value="contrato:' + esc(x.id) + '"' + (ref && ref.tipo === 'contrato' && ref.id === x.id ? ' selected' : '') + '>' + esc(t('nav_contratos')) + ' ' + esc(x.numero) + '</option>';
-      }).join('');
+      (facs ? '<optgroup label="' + esc(t('nav_facturas')) + '">' + facs + '</optgroup>' : '') +
+      (cons ? '<optgroup label="' + esc(t('nav_contratos')) + '">' + cons + '</optgroup>' : '');
     var catPre = catFija || (ref ? (ref.tipo === 'factura' ? 'Pagos' : 'Documentación') : '');
     abreDrawer(
-      '<div class="hoja"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600">' + esc(t('nuevo_ticket')) + '</h3>' +
-      '<div class="campo"><label>' + esc(t('categoria')) + '</label>' +
-        '<select id="nCategoria" required><option value="">' + esc(t('elige_categoria')) + '</option>' +
-        CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '"' + (cat === catPre ? ' selected' : '') + '>' + esc(catTxt(cat)) + '</option>'; }).join('') +
-        '</select></div>' +
-      '<div class="campo"><label>' + esc(t('sobre')) + '</label><select id="nSobre">' + refOpts + '</select></div>' +
-      '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="nTexto" required style="min-height:100px"></textarea></div>' +
-      '<div style="display:flex;gap:10px;margin-top:6px"><button type="button" class="btn-oscuro" id="btnAbrirTicket">' + esc(t('abrir_ticket')) + '</button>' +
-      '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cancelar')) + '</button></div></div>'
+      '<div class="sop-dr-cab"><span class="sop-ico">' + icoCat(catPre || 'Otro') + '</span><div><h3>' + esc(t('nuevo_ticket')) + '</h3>' +
+        '<div class="sop-meta">' + esc(t('sop_nuevo_sub')) + '</div></div></div>' +
+      '<div class="sop-nuevo">' +
+        '<fieldset class="sop-temas-f"><legend>' + esc(t('sop_tema')) + '</legend><div class="sop-chips">' + CATEGORIAS.map(function(cat, i){
+          return '<label class="sop-chip"><input type="radio" name="nCat" id="nCat' + i + '" value="' + esc(cat) + '"' + (cat === catPre ? ' checked' : '') + '>' +
+            '<span>' + icoCat(cat) + esc(catTxt(cat)) + '</span></label>';
+        }).join('') + '</div><input type="hidden" id="nCategoria" value="' + esc(catPre) + '"></fieldset>' +
+        '<div class="campo"><label for="nSobre">' + esc(t('sobre')) + '</label><select id="nSobre">' + refOpts + '</select></div>' +
+        '<div class="campo"><label for="nTexto">' + esc(t('mensaje')) + '</label><textarea id="nTexto" required placeholder="' + esc(t('sop_ph_msg')) + '" style="min-height:130px"></textarea></div>' +
+        '<div class="sop-acc"><button type="button" class="btn-oscuro" id="btnAbrirTicket">' + esc(t('abrir_ticket')) + '</button>' +
+          '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cancelar')) + '</button></div>' +
+        '<div class="sop-aviso">' + trazoSop('info') + '<p>' + esc(t('aviso_no_vinculante')) + '</p></div>' +
+      '</div>',
+      'sop-dr'
     );
+    var dr = document.getElementById('drawer');
+    dr.querySelectorAll('input[name="nCat"]').forEach(function(r){
+      r.addEventListener('change', function(){
+        document.getElementById('nCategoria').value = r.value;
+        dr.querySelector('.sop-dr-cab .sop-ico').innerHTML = icoCat(r.value);
+      });
+    });
     document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
     document.getElementById('btnAbrirTicket').addEventListener('click', function(){
       var cat = document.getElementById('nCategoria').value;

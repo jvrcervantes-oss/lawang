@@ -133,7 +133,10 @@
         { unidad: 'RF-02', proyecto: 'Riverfront II', contrato_numero: 'RF-02-BP', fase: 'entregada', fecha_entrega: dia(-20), actualizado: dia(-15), fotos: fotosRF }
       ],
       kyc: [{ tipo: 'passport', subido: iso(-200), caduca: dia(13), path: 'kyc/pasaporte' }, { tipo: 'id', subido: iso(-200), caduca: dia(420), path: 'kyc/dni' }],
+      // t3 espera al equipo (último mensaje del comprador) y t1 ya tiene respuesta: Soporte v2 enseña los dos turnos (8-oct-2026)
       tickets: [
+        { id: 't3', categoria: 'Obra', estado: 'abierto', factura_id: null, contrato_id: 'k2', ref_numero: 'P-07-CO', actualizado_en: iso(-0.12),
+          mensajes: [{ id: 'm5', de: 'cliente', autor: null, texto: 'Las fotos de la estructura de P-07, ¿son de esta semana? Me gustaría ver también el forjado de la planta alta.', creado_en: iso(-0.12) }] },
         { id: 't1', categoria: 'Pagos', estado: 'abierto', factura_id: 'f1', contrato_id: null, ref_numero: 'LW-0142', actualizado_en: iso(-1),
           mensajes: [{ id: 'm1', de: 'cliente', autor: null, texto: '¿Puedo pagar el hito de cimentación en dos transferencias?', creado_en: iso(-1.1) },
                      { id: 'm2', de: 'equipo', autor: 'Equipo Lawang', texto: 'Sí, sin problema. Haz la primera esta semana y la segunda antes del vencimiento; te confirmamos al recibir cada una.', creado_en: iso(-1) }] },
