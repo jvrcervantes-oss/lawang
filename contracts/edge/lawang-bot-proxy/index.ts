@@ -91,6 +91,10 @@ Deno.serve(async (req) => {
     // Permiso propio para escribir al lead. Se reparte desde /intranet/usuarios/ como
     // una casilla mas; mientras nadie la marque, solo los super_admin pueden escribir.
     const puedeEscribir = esSuper || (ficha.herramientas ?? []).includes('bot_escribir');
+    // Configurar el bot (instrucciones extra, saludo, horas de pausa) cambia lo que el bot dice a clientes
+    // reales, así que es un permiso APARTE, y también para LEER la configuración (puede traer datos comerciales).
+    // Llamador: la pestaña «Configurar bot» de intranet/leads. Hasta que se reparta como casilla, solo super_admin.
+    const puedeConfigurar = esSuper || (ficha.herramientas ?? []).includes('bot_configurar');
 
     const body = await req.json().catch(() => ({}));
     const accion = String(body.accion ?? '');
@@ -141,6 +145,39 @@ Deno.serve(async (req) => {
       if (text.length > 4000) return json({ error: 'texto_demasiado_largo' }, 400);
       const r = await llamaBot('/admin/api/send', {
         method: 'POST', body: JSON.stringify({ phone, text, byUser: ficha.email }),
+      });
+      return json(r.body, r.status);
+    }
+    // ── Configurar el bot: requiere 'bot_configurar' (lectura incluida) ──────────────────────────
+    // La autoría (`byUser`) la pone ESTE servidor desde la sesión, nunca el navegador. Se copian solo las tres
+    // claves conocidas: el bot las valida otra vez y rechaza cualquier otra.
+    if (accion === 'config_get') {
+      if (!puedeConfigurar) return json({ error: 'sin_permiso: bot_configurar' }, 403);
+      const r = await llamaBot('/admin/api/config');
+      return json(r.body, r.status);
+    }
+    if (accion === 'config_set') {
+      if (!puedeConfigurar) return json({ error: 'sin_permiso: bot_configurar' }, 403);
+      const c = (body.config ?? {}) as Record<string, unknown>;
+      const claves = Object.keys(c);
+      if (claves.some((k) => !['extra', 'bienvenida', 'pausaHoras'].includes(k))) return json({ error: 'clave_desconocida' }, 400);
+      const config = {
+        extra: typeof c.extra === 'string' ? c.extra : '',
+        bienvenida: typeof c.bienvenida === 'string' ? c.bienvenida : '',
+        pausaHoras: typeof c.pausaHoras === 'number' ? c.pausaHoras : 0,
+      };
+      if (config.extra.length > 2000 || config.bienvenida.length > 500) return json({ error: 'texto_demasiado_largo' }, 400);
+      const expectedUpdatedAt = typeof body.expectedUpdatedAt === 'number' ? body.expectedUpdatedAt : undefined;
+      const r = await llamaBot('/admin/api/config', {
+        method: 'POST', body: JSON.stringify({ config, byUser: ficha.email, expectedUpdatedAt }),
+      });
+      return json(r.body, r.status);
+    }
+    if (accion === 'config_revert') {
+      if (!puedeConfigurar) return json({ error: 'sin_permiso: bot_configurar' }, 403);
+      const expectedUpdatedAt = typeof body.expectedUpdatedAt === 'number' ? body.expectedUpdatedAt : undefined;
+      const r = await llamaBot('/admin/api/config/revert', {
+        method: 'POST', body: JSON.stringify({ byUser: ficha.email, expectedUpdatedAt }),
       });
       return json(r.body, r.status);
     }
