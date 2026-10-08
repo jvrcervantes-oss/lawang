@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="77fbc3d9a104">
+<meta name="lw-version" content="2f96394544f8">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -460,13 +460,6 @@
   .novedad{ display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--pg-hi); font-size:13px; line-height:1.45; }
   .novedad:last-child{ border-bottom:0; }
   .novedad-punto{ width:7px; height:7px; border-radius:50%; flex:none; margin-top:6px; background:#485B37; }
-
-
-  /* documentos: buscador y descargar todo */
-  .doc-barra{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
-  .doc-barra .campo-input{ flex:1 1 220px; border-radius:999px; padding:9px 16px; }
-  .doc-proy{ margin:0 0 6px; font-size:16px; font-weight:600; }
-  .doc-tipo{ margin:14px 0 8px; }
 
   /* móvil: las tablas pasan a tarjetas (concepto, fecha, importe y estado se ven sin deslizar) */
   @media (max-width:640px){
@@ -1439,6 +1432,95 @@
     .ob-marco img, .ob-losa{ transition:none; }
     .ob-foto:hover .ob-marco img{ transform:none; }
   }
+
+  /* ═══ DOCUMENTOS v2 (owner, 8-oct-2026: artifact «Documentos Lawang») ═══
+     Reutiliza la cabecera, las pastillas y la cabecera partida de Obra (.ob-cab, .ini-filtro, .ob-heroe) y las
+     tarjetas .ob-t con su .ini-th. Lo propio: el panel en petróleo (--dl) en vez de madera, el índice de la carpeta,
+     los filtros por apartado, las filas de documento y un tinte por apartado sacado de colores que el portal ya usa. */
+  .dc-heroe{ background:var(--dl); }
+  .dc-heroe .ob-img{ background:#0c3b3d; }
+  .dc-heroe .ob-asi{ background:rgba(27,28,25,.62); gap:6px; padding-left:9px; }
+  .dc-heroe .ob-asi svg{ width:15px; height:15px; flex:none; }
+  .dc-heroe .ob-sello i{ color:var(--dl); }
+  .dc-heroe .ob-sello i svg{ width:14px; height:14px; }
+  .dc-heroe .dc-nombre{ margin-top:22px; font-size:clamp(34px,4.2vw,50px); }
+  a.ob-losa{ text-decoration:none; }
+  a.ob-losa:hover{ background:rgba(255,255,255,.17); }
+  .dc-heroe .ob-losa:focus-visible, .dc-indice button:focus-visible{ outline:2px solid #F5F0E6; outline-offset:2px; }
+  .dc-indice{ list-style:none; margin:16px 0 0; padding:14px 0 0; border-top:1px solid rgba(255,255,255,.2); display:grid; grid-template-columns:1fr 1fr; gap:2px 22px; }
+  .dc-indice button{ width:100%; font:inherit; background:none; border:0; padding:4px 0; color:#fff; cursor:pointer; display:flex; align-items:baseline; gap:8px; font-size:13.5px; text-align:left; }
+  .dc-indice button span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dc-indice button i{ flex:1; min-width:12px; border-bottom:1px dotted rgba(255,255,255,.4); transform:translateY(-3px); }
+  .dc-indice button b{ font-weight:600; font-variant-numeric:tabular-nums; }
+  .dc-indice button:hover span{ text-decoration:underline; text-underline-offset:3px; }
+  .dc-vacio-panel{ margin:16px 0 0; padding-top:14px; border-top:1px solid rgba(255,255,255,.2); font-size:13.5px; line-height:1.5; color:rgba(255,255,255,.74); }
+
+  .dc-filtros{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+  .dc-chips{ display:flex; gap:8px; flex-wrap:wrap; min-width:0; margin-right:auto; }
+  .dc-chip{ font:inherit; font-size:13px; font-weight:500; border:1px solid var(--linea); background:transparent; color:var(--va); border-radius:999px; padding:7px 13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; transition:background .15s,color .15s,border-color .15s; }
+  .dc-chip span{ font-size:11.5px; color:var(--out); font-variant-numeric:tabular-nums; }
+  .dc-chip:hover{ background:var(--pg-low); }
+  .dc-chip[aria-pressed="true"]{ background:var(--va); border-color:var(--va); color:#fff; }
+  .dc-chip[aria-pressed="true"] span{ color:rgba(255,255,255,.7); }
+  .dc-chip:focus-visible, .dc-doc:focus-visible, .dc-enlace:focus-visible{ outline:2px solid var(--dl); outline-offset:1px; }
+  .dc-acciones{ display:flex; gap:10px; margin-left:auto; justify-content:flex-end; }
+  .dc-buscar{ position:relative; flex:0 1 230px; min-width:180px; }
+  .dc-buscar svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--out); pointer-events:none; }
+  .dc-buscar input{ width:100%; font:inherit; font-size:13.5px; padding:8px 14px 8px 36px; border:1px solid var(--linea); border-radius:999px; background:var(--rl); color:var(--va); }
+  .dc-buscar input:focus{ outline:2px solid var(--dl); outline-offset:1px; }
+
+  .dc-grupos{ columns:2; column-gap:16px; margin-bottom:2px; }
+  .dc-grupos.uno{ columns:1; }
+  .dc-grupo{ break-inside:avoid; margin:0 0 16px; padding:16px 10px 8px; }
+  .dc-grupo .ini-th{ margin:0 10px 8px; }
+  .dc-grupo .ini-ti{ border:0; }
+  .dc-n{ font-size:11.5px; font-weight:600; color:var(--ink2); background:var(--pg-low); border-radius:999px; padding:3px 9px; font-variant-numeric:tabular-nums; }
+  .dc-grupo ul{ list-style:none; margin:0; padding:0; }
+  .dc-doc{ width:100%; font:inherit; text-align:left; background:none; border:0; border-top:1px solid var(--pg-hi); display:flex; align-items:center; gap:12px; padding:10px; border-radius:10px; color:var(--va); text-decoration:none; cursor:pointer; transition:background .15s; }
+  .dc-grupo li:first-child .dc-doc, .dc-grupo li:hover .dc-doc, .dc-grupo li:hover + li .dc-doc{ border-top-color:transparent; }
+  .dc-doc:hover{ background:var(--pg-low); }
+  .dc-doc.dc-sin{ cursor:default; }
+  .dc-doc.dc-sin:hover{ background:none; }
+  .dc-tipo{ width:40px; height:46px; border-radius:8px; display:grid; place-items:center; flex:none; }
+  .dc-tipo svg, .dc-grupo .ini-ti svg{ width:19px; height:19px; }
+  .dc-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .dc-txt b{ font-size:14px; font-weight:500; line-height:1.3; overflow-wrap:anywhere; }
+  .dc-txt small{ font-size:12px; color:var(--out); overflow-wrap:anywhere; }
+  .dc-ir{ width:32px; height:32px; border-radius:50%; border:1px solid var(--linea); display:grid; place-items:center; flex:none; color:var(--ink2); transition:background .15s,color .15s,border-color .15s; }
+  .dc-ir svg{ width:16px; height:16px; }
+  .dc-doc:hover .dc-ir{ background:var(--dl); border-color:var(--dl); color:#fff; }
+  .dc-c-comercial{ background:#e4ecec; color:#104C4F; }
+  .dc-c-legal{ background:#efe6da; color:#5a3417; }
+  .dc-c-tecnico{ background:#e3eadb; color:#3F5230; }
+  .dc-c-planos{ background:#e1e9e3; color:#2C5A43; }
+  .dc-c-fotos{ background:#f6e8cc; color:#8C5E10; }
+  .dc-c-precios, .dc-c-otros{ background:#ecebe4; color:#4f524a; }
+
+  .dc-vacia{ background:#fff; border:1px solid var(--pg-hi); border-radius:12px; padding:34px 24px; margin-bottom:18px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; }
+  .dc-vacia .ini-ti{ width:52px; height:52px; margin-bottom:6px; background:#ecebe4; border:0; color:#4f524a; }
+  .dc-vacia .ini-ti svg{ width:24px; height:24px; }
+  .dc-vacia b{ font-size:16px; font-weight:500; }
+  .dc-vacia p{ margin:0; font-size:13.5px; color:var(--ink2); max-width:44ch; line-height:1.5; }
+  .dc-pedir{ display:flex; align-items:center; gap:16px; padding:16px 18px; border-radius:12px; background:var(--pg-low); border:1px solid var(--pg-hi); flex-wrap:wrap; }
+  .dc-pedir .ini-ti{ background:#fff; }
+  .dc-pedir .ini-ti svg{ width:18px; height:18px; }
+  .dc-pedir-t{ flex:1 1 260px; min-width:0; }
+  .dc-pedir-t b{ display:block; font-size:14.5px; font-weight:600; }
+  .dc-pedir-t > span{ display:block; font-size:13px; color:var(--ink2); margin-top:2px; line-height:1.45; }
+  .dc-enlace{ font:inherit; background:none; border:0; padding:0; color:var(--dl); font-weight:600; cursor:pointer; }
+  .dc-enlace:hover{ text-decoration:underline; }
+  @media (max-width:760px){ .dc-grupos{ columns:1; } }
+  @media (max-width:640px){
+    .dc-indice{ grid-template-columns:1fr; }
+    .dc-heroe .ob-losas{ grid-template-columns:1fr 1fr; }
+    .dc-chips{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; max-width:100%; padding-bottom:2px; margin-right:0; }
+    .dc-chips::-webkit-scrollbar{ display:none; }
+    .dc-acciones{ margin-left:0; flex:1 1 100%; flex-wrap:wrap; justify-content:flex-start; }
+    .dc-buscar{ flex:1 1 100%; }
+    .dc-grupo{ padding:14px 6px 6px; }
+    .dc-chip, .dc-doc{ min-height:44px; }
+  }
+  @media (prefers-reduced-motion:reduce){ .dc-chip, .dc-doc, .dc-ir{ transition:none; } }
 </style>
 </head>
 <body>
@@ -1666,6 +1748,13 @@
          doc_zip_err:'No hemos podido preparar la descarga. Inténtalo de nuevo o abre los documentos de uno en uno.',
          doc_zip_vacio:'No hay documentos descargables en esta lista.', doc_zip_tope:'Son demasiados documentos para un solo archivo. Descárgalos de uno en uno.',
          doc_sin_resultados:'Ningún documento coincide con tu búsqueda.', doc_otros:'Otros',
+         doc_cat_otros:'Otros', dc_titulo:'Tus documentos', dc_sub:'Dossieres, licencias, planos y fotos de cada proyecto, en un solo sitio.', dc_proyecto:'Proyecto',
+         dc_carpeta:'Carpeta del proyecto', dc_n_apartados_1:'{d} en 1 apartado', dc_n_apartados_n:'{d} en {n} apartados', dc_sin_publicar:'Todavía sin documentos publicados',
+         dc_vacio_panel:'En cuanto publiquemos el dossier, los planos o las licencias de este proyecto, aparecerán aquí.', dc_ubicacion:'Ubicación', dc_ver_mapa:'Ver en el mapa',
+         dc_apartado:'Apartado', dc_todo:'Todo', dc_buscar_en:'Buscar en {p}', dc_t_documento:'Documento', dc_t_carpeta:'Carpeta', dc_t_album:'Álbum', dc_t_enlace:'Enlace', dc_t_fichero:'Archivo',
+         dc_vacia_t:'Aún no hay documentos de {p}', dc_vacia:'Cuando publiquemos el dossier, los planos o las licencias, los tendrás aquí. Si necesitas alguno ya, pídelo y te avisamos.',
+         dc_pedir_t:'¿Echas en falta algún documento?', dc_pedir:'Pídelo y lo añadimos a la carpeta de {p}.', dc_personales:'Tu pasaporte y demás papeles personales están en', dc_pedir_btn:'Pedir un documento',
+         dc_pedir_texto:'Hola, me gustaría recibir este documento de {p}: ',
          ct_enviado:'enviado el {f}', ct_firma_titulo:'Tu contrato de {t} de {p} espera tu firma', ct_firma_titulo_n:'Tu contrato {n} espera tu firma',
          ct_dias_firmar:'Días para firmar', ct_dia_firmar:'Día para firmar', ct_filtrar:'Filtrar por villa', ct_todas:'Todas las villas',
          ct_pagado_todo:'Pagado por completo', ct_precio_villa:'Precio de la villa', ct_pct_cuota:'{n} % de la cuota de reserva',
@@ -1764,6 +1853,13 @@
          doc_zip_err:'We could not prepare the download. Try again or open the documents one by one.',
          doc_zip_vacio:'There are no downloadable documents in this list.', doc_zip_tope:'There are too many documents for a single file. Download them one by one.',
          doc_sin_resultados:'No document matches your search.', doc_otros:'Other',
+         doc_cat_otros:'Other', dc_titulo:'Your documents', dc_sub:'Brochures, permits, plans and photos for each project, all in one place.', dc_proyecto:'Project',
+         dc_carpeta:'Project folder', dc_n_apartados_1:'{d} in 1 section', dc_n_apartados_n:'{d} in {n} sections', dc_sin_publicar:'No documents published yet',
+         dc_vacio_panel:'As soon as we publish the brochure, plans or permits for this project, they will appear here.', dc_ubicacion:'Location', dc_ver_mapa:'View on the map',
+         dc_apartado:'Section', dc_todo:'All', dc_buscar_en:'Search in {p}', dc_t_documento:'Document', dc_t_carpeta:'Folder', dc_t_album:'Album', dc_t_enlace:'Link', dc_t_fichero:'File',
+         dc_vacia_t:'No documents for {p} yet', dc_vacia:'When we publish the brochure, plans or permits, you will find them here. If you need one now, ask and we will let you know.',
+         dc_pedir_t:'Missing a document?', dc_pedir:'Ask for it and we will add it to the {p} folder.', dc_personales:'Your passport and other personal documents are in', dc_pedir_btn:'Request a document',
+         dc_pedir_texto:'Hello, I would like to receive this document for {p}: ',
          ct_enviado:'sent on {f}', ct_firma_titulo:'Your {t} contract for {p} is waiting for your signature', ct_firma_titulo_n:'Your contract {n} is waiting for your signature',
          ct_dias_firmar:'Days left to sign', ct_dia_firmar:'Day left to sign', ct_filtrar:'Filter by villa', ct_todas:'All villas',
          ct_pagado_todo:'Paid in full', ct_precio_villa:'Villa price', ct_pct_cuota:'{n} % of the reservation fee',
@@ -1866,6 +1962,13 @@
          doc_zip_err:'Kami tidak dapat menyiapkan unduhan. Coba lagi atau buka dokumen satu per satu.',
          doc_zip_vacio:'Tidak ada dokumen yang dapat diunduh dalam daftar ini.', doc_zip_tope:'Dokumennya terlalu banyak untuk satu berkas. Unduh satu per satu.',
          doc_sin_resultados:'Tidak ada dokumen yang cocok dengan pencarian Anda.', doc_otros:'Lainnya',
+         doc_cat_otros:'Lainnya', dc_titulo:'Dokumen Anda', dc_sub:'Brosur, izin, denah, dan foto setiap proyek, di satu tempat.', dc_proyecto:'Proyek',
+         dc_carpeta:'Folder proyek', dc_n_apartados_1:'{d} dalam 1 bagian', dc_n_apartados_n:'{d} dalam {n} bagian', dc_sin_publicar:'Belum ada dokumen yang diterbitkan',
+         dc_vacio_panel:'Begitu kami menerbitkan brosur, denah, atau izin proyek ini, semuanya akan muncul di sini.', dc_ubicacion:'Lokasi', dc_ver_mapa:'Lihat di peta',
+         dc_apartado:'Bagian', dc_todo:'Semua', dc_buscar_en:'Cari di {p}', dc_t_documento:'Dokumen', dc_t_carpeta:'Folder', dc_t_album:'Album', dc_t_enlace:'Tautan', dc_t_fichero:'Berkas',
+         dc_vacia_t:'Belum ada dokumen untuk {p}', dc_vacia:'Saat kami menerbitkan brosur, denah, atau izin, Anda akan menemukannya di sini. Jika Anda membutuhkannya sekarang, mintalah dan kami akan mengabari Anda.',
+         dc_pedir_t:'Ada dokumen yang belum ada?', dc_pedir:'Mintalah dan kami akan menambahkannya ke folder {p}.', dc_personales:'Paspor dan dokumen pribadi lainnya ada di', dc_pedir_btn:'Minta dokumen',
+         dc_pedir_texto:'Halo, saya ingin menerima dokumen ini untuk {p}: ',
          ct_enviado:'dikirim pada {f}', ct_firma_titulo:'Kontrak {t} Anda untuk {p} menunggu tanda tangan Anda', ct_firma_titulo_n:'Kontrak {n} Anda menunggu tanda tangan Anda',
          ct_dias_firmar:'Hari tersisa untuk menandatangani', ct_dia_firmar:'Hari tersisa untuk menandatangani', ct_filtrar:'Saring per vila', ct_todas:'Semua vila',
          ct_pagado_todo:'Lunas', ct_precio_villa:'Harga vila', ct_pct_cuota:'{n} % dari biaya reservasi',
@@ -3501,74 +3604,153 @@
      pintaPerfil(). Aquí solo queda la documentación de la promoción,
      agrupada por proyecto (pedido del cliente, 1-sep: un comprador con
      varios contratos veía todo mezclado). */
-  /* Documentos = una carpeta por proyecto del comprador (con su portada); dentro, los documentos de ESE proyecto
-     por tipo. Cada proyecto se ve aparte y nada de lo global de la empresa se mezcla. La carpeta abierta vive en la
-     dirección (#/documentos/<proyecto>), así que atrás y recargar funcionan. */
-  var ORDEN_CAT = ['comercial', 'legal', 'tecnico', 'planos', 'fotos', 'precios'];
+  /* Documentos v2 (owner, 8-oct-2026: artifact «Documentos Lawang» aprobado). Mismo lenguaje que Obra: título con
+     subtítulo, los proyectos en pastillas (.ini-filtro), la cabecera partida portada + panel (.ob-heroe, aquí en
+     petróleo) y un apartado por tarjeta. Ya no hay rejilla previa: se entra directo a la carpeta y la carpeta abierta
+     sigue viviendo en la dirección (#/documentos/<proyecto>), así que atrás, recargar y los enlaces de Inicio funcionan.
+     Lo que hacía la pantalla vieja sigue: buscador (con más de 8 documentos), «Descargar carpeta» (solo con ficheros
+     del almacén), ver ubicación, abrir enlace o fichero. Los ganchos son data-carpeta y data-doc, nunca un rótulo. */
+  var ORDEN_CAT = ['comercial', 'legal', 'tecnico', 'planos', 'fotos', 'precios', 'otros'];
+  var DOC_FILTRO = { key:null, cat:'', q:'' };   // apartado y búsqueda de la carpeta abierta; se limpian al cambiar de carpeta
+  /* Iconos de trazo de la sección (dibujados para ella, mismo grosor que los de Inicio). */
+  var ICO_DC = (function(){
+    var p = {
+      comercial:'<path d="M12 6.5C10.5 5 8 4.5 4 4.5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-13c-4 0-6.5.5-8 2z"/><path d="M12 6.5v13"/>',
+      legal:'<path d="M12 4v16M8.5 20h7M5 7h14"/><path d="M5 7l-2.5 6a2.5 2.5 0 0 0 5 0z"/><path d="M19 7l-2.5 6a2.5 2.5 0 0 0 5 0z"/>',
+      tecnico:'<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4.5M15 8v3M19 8v2"/>',
+      planos:'<rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/><path d="M3.5 10h7v10.5M10.5 3.5V6.5M14 14h6.5M14 14v6.5"/>',
+      fotos:'<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/>',
+      precios:'<path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2l-6.5 6.5a1.4 1.4 0 0 1-2 0z"/><circle cx="8" cy="8" r="1.4"/>',
+      documento:'<path d="M14 3.5H7a1.5 1.5 0 0 0-1.5 1.5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5M9 13h6M9 16.5h4"/>',
+      carpeta:'<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5v8.8A1.5 1.5 0 0 1 19 19.5H5a1.5 1.5 0 0 1-1.5-1.5z"/>',
+      album:'<rect x="6.5" y="3.5" width="14" height="12" rx="1.5"/><path d="M3.5 7.5v11a1.5 1.5 0 0 0 1.5 1.5h11"/><path d="M7 13l3.5-3 3 2.5 2.5-2 3.5 3"/>',
+      ir:'<path d="M8 16 16 8M9.5 8H16v6.5"/>',
+      buscar:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.3-4.3"/>',
+      pedir:'<path d="M4.5 5.5h15v10h-8l-4 3.5v-3.5h-3z"/><path d="M12 8.5v4M10 10.5h4"/>',
+      pin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+      vacia:'<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5v8.8A1.5 1.5 0 0 1 19 19.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9.5 13.5h5"/>'
+    };
+    p.otros = p.documento;
+    var o = {};
+    Object.keys(p).forEach(function(k){ o[k] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p[k] + '</svg>'; });
+    return o;
+  })();
+  function catClave(c){ var k = String(c || 'otros').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); return ORDEN_CAT.indexOf(k) >= 0 ? k : 'otros'; }
+  /* El enlace solo se pinta como enlace si es http(s): un `javascript:` guardado por error no llega al href. */
+  function docUrlOk(x){ return !!(x.url && /^https?:\/\//i.test(x.url)); }
+  /* Qué es cada documento, leído de su propia dirección (sin tocar la base): fichero, carpeta o álbum, y dónde se abre. */
+  function docTipo(x){
+    if (!x.url && x.path){ var ext = (/\.([A-Za-z0-9]{1,5})$/.exec(x.path) || [])[1]; return { k:'documento', txt:ext ? ext.toUpperCase() : t('dc_t_fichero'), donde:'' }; }
+    var u = String(x.url || '');
+    if (/\/folders\//.test(u)) return { k:'carpeta', txt:t('dc_t_carpeta'), donde:'Google Drive' };
+    if (/photos\.google\.com|photos\.app\.goo\.gl/i.test(u)) return { k:'album', txt:t('dc_t_album'), donde:'Google Fotos' };
+    if (/(drive|docs)\.google\.com/i.test(u)) return { k:'documento', txt:t('dc_t_documento'), donde:'Google Drive' };
+    var h = (/^https?:\/\/([^/?#]+)/i.exec(u) || [])[1] || '';
+    return { k:'documento', txt:t('dc_t_enlace'), donde:h.replace(/^www\./i, '') };
+  }
+  function docsPorCat(docs){
+    var m = {};
+    docs.forEach(function(x){ var k = catClave(x.categoria); (m[k] = m[k] || []).push(x); });
+    return ORDEN_CAT.filter(function(k){ return m[k]; }).map(function(k){ return { k:k, docs:m[k] }; });
+  }
   function pintaDocumentos(c){
     var carpetas = carpetasProyecto();
     if (!carpetas.length){ c.innerHTML = vacio(t('sin_docs_t'), t('sin_docs')); return; }
     var sel = leeHash().doc;
     var f = sel ? carpetas.filter(function(x){ return x.key === sel; })[0] : null;
-    if (sel && !f){ vasA('documentos', null, true); sel = null; }
-    if (f){ pintaCarpeta(c, f); return; }
-    c.innerHTML = '<div class="proy-grid">' + carpetas.map(function(x){
-      return '<button type="button" class="proy-card" data-carpeta="' + esc(x.key) + '">' + portadaHTML(x, 'proy-portada') +
-        '<div class="proy-cuerpo"><div class="proy-nombre">' + esc(x.nombre) + '</div>' +
-        (x.resort ? '<div class="proy-meta">' + esc(x.resort) + '</div>' : '') +
-        '<div class="proy-meta proy-enlace">' + esc(x.docs.length ? nDocsTxt(x.docs.length) : t('sin_docs_proyecto')) + ' →</div></div></button>';
-    }).join('') + '</div>';
-    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
-    cargaPortadas(c);
+    // sin carpeta en la dirección (o una que ya no es suya): la primera con documentos, y la dirección se corrige sin
+    // añadir un paso al historial
+    if (!f){ f = carpetas.filter(function(x){ return x.docs.length; })[0] || carpetas[0]; vasA('documentos', f.key, true); }
+    if (DOC_FILTRO.key !== f.key) DOC_FILTRO = { key:f.key, cat:'', q:'' };
+    pintaCarpeta(c, f, carpetas);
   }
-  function pintaCarpeta(c, f){
-    var docs = f.docs;
+  function pintaCarpeta(c, f, carpetas){
+    var docs = f.docs, grupos = docsPorCat(docs);
     var mapaOk = f.mapa && /^https:\/\//i.test(f.mapa);
-    c.innerHTML =
-      '<button type="button" class="btn-borde" id="btnVolverCarpetas">← ' + esc(t('todos_proyectos')) + '</button>' +
-      '<div class="proy-cab">' + portadaHTML(f, 'proy-portada-grande') +
-        '<div class="proy-cab-info"><h2>' + esc(f.nombre) + '</h2>' +
-          (f.resort ? '<div class="proy-meta">' + esc(f.resort) + '</div>' : '') +
-          (f.entrega ? '<div class="proy-meta">' + entregaTxt(f) + '</div>' : '') +
-          '<div class="proy-meta">' + esc(docs.length ? nDocsTxt(docs.length) : t('sin_docs_proyecto')) + '</div>' +
-          (mapaOk ? '<div style="margin-top:10px"><a class="btn-borde" style="text-decoration:none;display:inline-block" href="' + esc(f.mapa) + '" target="_blank" rel="noopener">' + esc(t('ver_ubicacion')) + '</a></div>' : '') +
-        '</div></div>' +
-      (docs.length
-        ? '<div class="doc-barra"><input id="docBuscar" class="campo-input" type="search" autocomplete="off" placeholder="' + esc(t('doc_buscar')) + '" aria-label="' + esc(t('doc_buscar')) + '">' +
+    var cab = '<div class="ob-cab"><div class="titulo-sec"><h2>' + esc(t('dc_titulo')) + '</h2><p>' + esc(t('dc_sub')) + '</p></div>' +
+      (carpetas.length > 1 ? '<div class="ini-filtro" role="group" aria-label="' + esc(t('dc_proyecto')) + '">' + carpetas.map(function(x){
+        return '<button type="button" data-carpeta="' + esc(x.key) + '" aria-pressed="' + (x.key === f.key ? 'true' : 'false') + '">' + esc(x.nombre) + '<small>' + x.docs.length + '</small></button>';
+      }).join('') + '</div>' : '') + '</div>';
+    var resumen = docs.length ? t(grupos.length === 1 ? 'dc_n_apartados_1' : 'dc_n_apartados_n').replace('{d}', nDocsTxt(docs.length)).replace('{n}', grupos.length) : t('dc_sin_publicar');
+    var heroe = '<section class="ob-heroe dc-heroe" aria-label="' + esc(f.nombre) + '">' +
+      '<div class="ob-img">' + (f.portada
+          ? '<img alt="' + esc(f.nombre) + '" data-portada="' + esc(f.portada) + '" hidden>' + (f.resort ? '<span class="ob-asi">' + ICO_DC.pin + esc(f.resort) + '</span>' : '')
+          : '<span class="ob-sinimg">' + esc(t('portada_prep')) + '</span>') + '</div>' +
+      '<div class="ob-panel"><span class="ob-sello">' + esc(t('dc_carpeta')) + '<i>' + ICO_DC.carpeta + '</i></span>' +
+        '<span class="ob-fase dc-nombre">' + esc(f.nombre) + '</span><span class="ob-donde">' + esc(resumen) + '</span>' +
+        (docs.length
+          ? '<ol class="dc-indice">' + grupos.map(function(g){
+              return '<li><button type="button" data-dc-cat="' + g.k + '"><span>' + esc(catDoc(g.k)) + '</span><i></i><b>' + g.docs.length + '</b></button></li>';
+            }).join('') + '</ol>'
+          : '<p class="dc-vacio-panel">' + esc(t('dc_vacio_panel')) + '</p>') +
+        '<div class="ob-losas"><div class="ob-losa"><span class="ob-losa-t">' + esc(t('entrega_est')) + '</span><b>' + esc(f.entrega ? mesAno(f.entrega) : t('ob_por_confirmar')) + '</b></div>' +
+          (mapaOk
+            ? '<a class="ob-losa" href="' + esc(f.mapa) + '" target="_blank" rel="noopener noreferrer"><span class="ob-losa-t">' + esc(t('dc_ubicacion')) + ICO_INI.diagP + '</span><b>' + esc(t('dc_ver_mapa')) + '</b></a>'
+            : '<div class="ob-losa"><span class="ob-losa-t">' + esc(t('dc_ubicacion')) + '</span><b>' + esc(f.resort || '—') + '</b></div>') +
+        '</div></div></section>';
+    var hayFicheros = docs.some(function(x){ return !x.url && x.path; });
+    var cuerpo = docs.length
+      ? '<div class="dc-filtros"><div class="dc-chips" role="group" aria-label="' + esc(t('dc_apartado')) + '">' +
+            '<button type="button" class="dc-chip" data-dc-cat="" aria-pressed="' + (!DOC_FILTRO.cat) + '">' + esc(t('dc_todo')) + '<span>' + docs.length + '</span></button>' +
+            grupos.map(function(g){
+              return '<button type="button" class="dc-chip" data-dc-cat="' + g.k + '" aria-pressed="' + (DOC_FILTRO.cat === g.k) + '">' + esc(catDoc(g.k)) + '<span>' + g.docs.length + '</span></button>';
+            }).join('') + '</div>' +
+          ((docs.length > 8 || hayFicheros) ? '<div class="dc-acciones">' : '') +
+          (docs.length > 8 ? '<label class="dc-buscar">' + ICO_DC.buscar + '<input id="docBuscar" type="search" autocomplete="off" placeholder="' + esc(t('dc_buscar_en').replace('{p}', f.nombre)) + '" aria-label="' + esc(t('doc_buscar')) + '"></label>' : '') +
           // «Descargar carpeta» solo si hay ficheros subidos que empaquetar: hoy casi todos los documentos son enlaces
           // externos y un botón que siempre dice «no hay nada descargable» es un botón roto.
-          (docs.some(function(x){ return !x.url && x.path; }) ? '<button type="button" class="btn-borde" id="btnZipDocs">' + esc(t('descargar_carpeta')) + '</button>' : '') +
-          '</div><div id="docLista"></div>'
-        : '');
-    document.getElementById('btnVolverCarpetas').addEventListener('click', function(){ vasA('documentos', null); });
+          (hayFicheros ? '<button type="button" class="btn-borde" id="btnZipDocs">' + esc(t('descargar_carpeta')) + '</button>' : '') +
+          ((docs.length > 8 || hayFicheros) ? '</div>' : '') +
+        '</div><div id="docLista" class="dc-grupos"></div>'
+      : '<div class="dc-vacia"><span class="ini-ti">' + ICO_DC.vacia + '</span><b>' + esc(t('dc_vacia_t').replace('{p}', f.nombre)) + '</b><p>' + esc(t('dc_vacia')) + '</p></div>';
+    var pedir = '<aside class="dc-pedir"><span class="ini-ti">' + ICO_DC.pedir + '</span><div class="dc-pedir-t"><b>' + esc(t('dc_pedir_t')) + '</b>' +
+      '<span>' + esc(t('dc_pedir').replace('{p}', f.nombre)) + ' ' + esc(t('dc_personales')) + ' <button type="button" class="dc-enlace" data-ir="perfil">' + esc(t('nav_perfil')) + '</button>.</span></div>' +
+      '<button type="button" class="btn-oscuro" data-dc-pedir>' + esc(t('dc_pedir_btn')) + '</button></aside>';
+    c.innerHTML = cab + heroe + cuerpo + pedir;
+
+    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (b.getAttribute('data-carpeta') !== f.key) vasA('documentos', b.getAttribute('data-carpeta')); }); });
+    c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+    c.querySelector('[data-dc-pedir]').addEventListener('click', function(){ abrirNuevoTicket({ cat:'Documentación', texto:t('dc_pedir_texto').replace('{p}', f.nombre) }); });
     cargaPortadas(c);
     if (!docs.length) return;
+
     var cajaLista = document.getElementById('docLista'), visibles = docs;
-    function pintaLista(q){
-      q = (q || '').trim().toLowerCase();
-      visibles = !q ? docs : docs.filter(function(x){ return [x.titulo, x.descripcion, x.categoria].join(' ').toLowerCase().indexOf(q) >= 0; });
-      if (!visibles.length){ cajaLista.innerHTML = '<p class="vacio">' + esc(t('doc_sin_resultados')) + '</p>'; return; }
-      var cats = {}, orden = [];
-      visibles.forEach(function(x){ var k = x.categoria || ''; if (!cats[k]){ cats[k] = []; orden.push(k); } cats[k].push(x); });
-      orden.sort(function(a, b){
-        var ia = ORDEN_CAT.indexOf(String(a).toLowerCase()), ib = ORDEN_CAT.indexOf(String(b).toLowerCase());
-        return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    function pintaLista(){
+      var q = DOC_FILTRO.q.trim().toLowerCase();
+      visibles = docs.filter(function(x){
+        return (!DOC_FILTRO.cat || catClave(x.categoria) === DOC_FILTRO.cat) &&
+               (!q || [x.titulo, x.descripcion, catDoc(x.categoria)].join(' ').toLowerCase().indexOf(q) >= 0);
       });
-      cajaLista.innerHTML = orden.map(function(k){
-        return '<div class="rot-bloque doc-tipo">' + esc(catDoc(k)) + '</div><div class="doclista" style="margin-bottom:20px">' +
-          cats[k].map(function(x){
-            return '<div class="docfila" data-doc="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.titulo) + '</div>' +
-              (x.descripcion ? '<div class="s">' + esc(x.descripcion) + '</div>' : '') + '</div></div>';
-          }).join('') + '</div>';
+      var gs = docsPorCat(visibles);
+      cajaLista.classList.toggle('uno', gs.length < 2);
+      if (!gs.length){ cajaLista.innerHTML = '<p class="vacio">' + esc(t('doc_sin_resultados')) + '</p>'; return; }
+      cajaLista.innerHTML = gs.map(function(g){
+        return '<article class="ob-t dc-grupo"><div class="ini-th"><span class="ini-ti dc-c-' + g.k + '">' + ICO_DC[g.k] + '</span><h3>' + esc(catDoc(g.k)) + '</h3><span class="dc-n">' + g.docs.length + '</span></div><ul>' +
+          g.docs.map(function(x){
+            var tp = docTipo(x), meta = [tp.txt, tp.donde, x.descripcion].filter(Boolean).map(esc).join(' · ');
+            var dentro = '<span class="dc-tipo dc-c-' + g.k + '">' + ICO_DC[tp.k] + '</span><span class="dc-txt"><b>' + esc(x.titulo) + '</b>' + (meta ? '<small>' + meta + '</small>' : '') + '</span>';
+            if (docUrlOk(x)) return '<li><a class="dc-doc" data-doc="' + esc(x.id) + '" href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + dentro + '<span class="dc-ir" aria-hidden="true">' + ICO_DC.ir + '</span></a></li>';
+            if (!x.url && x.path) return '<li><button type="button" class="dc-doc" data-doc="' + esc(x.id) + '">' + dentro + '<span class="dc-ir" aria-hidden="true">' + ICO_DC.ir + '</span></button></li>';
+            return '<li><div class="dc-doc dc-sin">' + dentro + '</div></li>';   // enlace que no es http(s): se lista, no se abre
+          }).join('') + '</ul></article>';
       }).join('');
     }
-    pintaLista('');
-    document.getElementById('docBuscar').addEventListener('input', function(ev){ pintaLista(ev.target.value); });
+    pintaLista();
+    var buscar = document.getElementById('docBuscar');
+    if (buscar){ buscar.value = DOC_FILTRO.q; buscar.addEventListener('input', function(ev){ DOC_FILTRO.q = ev.target.value; pintaLista(); }); }
+    c.querySelectorAll('[data-dc-cat]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var k = b.getAttribute('data-dc-cat'), desdeIndice = !!b.closest('.dc-indice');
+        DOC_FILTRO.cat = (!desdeIndice && DOC_FILTRO.cat === k) ? '' : k;
+        c.querySelectorAll('.dc-chip').forEach(function(x){ x.setAttribute('aria-pressed', x.getAttribute('data-dc-cat') === DOC_FILTRO.cat ? 'true' : 'false'); });
+        pintaLista();
+        if (desdeIndice){ var fl = c.querySelector('.dc-filtros'); if (fl) fl.scrollIntoView({ behavior:'smooth', block:'start' }); }
+      });
+    });
     cajaLista.addEventListener('click', function(ev){
-      var el = ev.target.closest('[data-doc]'); if (!el) return;
+      var el = ev.target.closest('button[data-doc]'); if (!el) return;   // los enlaces <a> se abren solos
       var doc = docs.filter(function(x){ return String(x.id) === el.getAttribute('data-doc'); })[0];
-      if (!doc) return;
-      if (doc.url) window.open(doc.url, '_blank', 'noopener'); else abreFichero('documentacion', doc.path);
+      if (doc) abreFichero('documentacion', doc.path);
     });
     var btnZip = document.getElementById('btnZipDocs');
     if (btnZip) btnZip.addEventListener('click', function(){ zipDeDocs(visibles, f.nombre, this); });
@@ -3706,6 +3888,7 @@
   function abrirNuevoTicket(ref){
     // el listener de «Nuevo ticket» le pasa el evento: solo vale un {tipo,id} nuestro
     var catFija = ref && ref.cat;   // Obra abre el ticket ya en su categoría (8-oct-2026); el resto sigue como estaba
+    var textoPre = (ref && ref.texto) || '';   // Documentos abre el ticket con el proyecto ya escrito (8-oct-2026)
     ref = (ref && ref.tipo && ref.id) ? ref : null;
     var refOpts = '<option value="">' + esc(t('sobre_nada')) + '</option>' +
       (DATOS.facturas || []).map(function(f){
@@ -3722,7 +3905,7 @@
         CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '"' + (cat === catPre ? ' selected' : '') + '>' + esc(catTxt(cat)) + '</option>'; }).join('') +
         '</select></div>' +
       '<div class="campo"><label>' + esc(t('sobre')) + '</label><select id="nSobre">' + refOpts + '</select></div>' +
-      '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="nTexto" required style="min-height:100px"></textarea></div>' +
+      '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="nTexto" required style="min-height:100px">' + esc(textoPre) + '</textarea></div>' +
       '<div style="display:flex;gap:10px;margin-top:6px"><button type="button" class="btn-oscuro" id="btnAbrirTicket">' + esc(t('abrir_ticket')) + '</button>' +
       '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cancelar')) + '</button></div></div>'
     );
