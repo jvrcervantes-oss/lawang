@@ -27,6 +27,7 @@ const path = require('path');
   for (const t of ['#662906', '#42210B', '#E7E3D2']) assert.ok(hs.toUpperCase().includes(t), 'Sandal Woods lleva ' + t);
   const hex = new Set(hs.match(/#[0-9A-Fa-f]{6}/g).map((x) => x.toUpperCase()));
   console.log('colores de Sandal Woods:', [...hex].join(' '));
+  assert.ok(hs.includes('style="background:#662906;margin:0;padding:32px 12px;"'), 'el fondo exterior es un color de la paleta (primary), no una mezcla');
   assert.ok(hs.includes('background:#42210B;border-radius:999px') && hs.includes('bgcolor="#E7E3D2"'), 'botón = deep, tarjeta = folio');
 
   // 2 · Lawang intacto
