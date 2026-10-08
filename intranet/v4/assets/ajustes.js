@@ -434,14 +434,14 @@
     if (attrs) Object.keys(attrs).forEach(function (k) { i.setAttribute(k, attrs[k]); });
     return i;
   }
-  function boton(txt, accion, extra) {
+  function botonCorreo(txt, accion, extra) {
     var b = nodo('button', 'shrink-0 px-4 py-2 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md', T(txt),
       { type: 'button', 'data-real': '', 'data-accion': accion });
     if (extra) Object.keys(extra).forEach(function (k) { b.setAttribute(k, extra[k]); });
     return b;
   }
   function botonSecundario(txt, accion, extra) {
-    var b = boton(txt, accion, extra);
+    var b = botonCorreo(txt, accion, extra);
     b.className = 'shrink-0 px-4 py-2 rounded-full border border-outline-variant text-on-surface hover:bg-surface-container font-label-md text-label-md';
     return b;
   }
@@ -512,7 +512,7 @@
     } else if (srv.fase === 'error') {
       estado.setAttribute('role', 'alert');
       estado.appendChild(nodo('span', 'font-body-md text-body-md text-error', T('No se ha podido leer el estado del servidor') + ': ' + mensajeCorreo(srv.codigo)));
-      estado.appendChild(boton('Reintentar', 'correo-estado-reintentar', { 'class': 'self-start px-4 py-2 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md' }));
+      estado.appendChild(botonCorreo('Reintentar', 'correo-estado-reintentar', { 'class': 'self-start px-4 py-2 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md' }));
     } else {
       var e = srv.estado || {};
       if (e.configurado && typeof e.host === 'string') {
@@ -595,12 +595,12 @@
     }
     var fila2 = nodo('div', 'flex flex-wrap items-center gap-3');
     if (u.fase === 'idle' || u.fase === 'pidiendo') {
-      var bp = boton(u.fase === 'pidiendo' ? 'Pidiendo el código…' : 'Pedir código', 'correo-servidor-pedir');
+      var bp = botonCorreo(u.fase === 'pidiendo' ? 'Pidiendo el código…' : 'Pedir código', 'correo-servidor-pedir');
       if (u.fase === 'pidiendo' || srv.pausados || !srv.pideCodigo) bp.disabled = true;
       fila2.appendChild(bp);
       if (configurado && u.fase === 'idle') fila2.appendChild(botonSecundario('Cancelar', 'correo-servidor-cancelar'));
     } else {
-      var bg = boton(u.fase === 'guardando' ? 'Probando…' : 'Probar y guardar', 'correo-servidor-probar');
+      var bg = botonCorreo(u.fase === 'guardando' ? 'Probando…' : 'Probar y guardar', 'correo-servidor-probar');
       if (u.fase === 'guardando' || srv.pausados) bg.disabled = true;
       fila2.appendChild(bg);
       if (u.fase === 'esperando') fila2.appendChild(botonSecundario('Cambiar los datos', 'correo-servidor-reabrir'));
@@ -632,11 +632,11 @@
       var filaB = nodo('div', 'flex flex-wrap items-center gap-3');
       var attrs = { 'data-correo-clave': d.clave };
       if (u.fase === 'idle' || u.fase === 'pidiendo') {
-        var bp = boton(u.fase === 'pidiendo' ? 'Pidiendo el código…' : 'Pedir código', 'correo-ajuste-pedir', attrs);
+        var bp = botonCorreo(u.fase === 'pidiendo' ? 'Pidiendo el código…' : 'Pedir código', 'correo-ajuste-pedir', attrs);
         if (u.fase === 'pidiendo' || !srv.pideCodigo) bp.disabled = true;
         filaB.appendChild(bp);
       } else {
-        var bg = boton(u.fase === 'guardando' ? 'Guardando…' : 'Guardar', 'correo-ajuste-guardar', attrs);
+        var bg = botonCorreo(u.fase === 'guardando' ? 'Guardando…' : 'Guardar', 'correo-ajuste-guardar', attrs);
         if (u.fase === 'guardando') bg.disabled = true;
         filaB.appendChild(bg);
         if (u.fase === 'esperando') filaB.appendChild(botonSecundario('Cancelar', 'correo-ajuste-cancelar', attrs));
