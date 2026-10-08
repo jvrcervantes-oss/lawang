@@ -259,6 +259,14 @@
     if (esCarta(S.slug)) return !!(m.reserva || m.fecha || m.validez);
     return t === 'reserva_parcela' || t === 'construccion';
   }
+  /* Empresa del proyecto elegido, para decir en la revisión con qué empresa sale el contrato. La empresa la deduce y la comprueba el servidor; esto solo la muestra. */
+  function empresaDe(nombreProyecto) {
+    if (!nombreProyecto || !PROYECTOS_DB) return '';
+    var p = PROYECTOS_DB.find(function (x) { return x.nombre === nombreProyecto; });
+    if (!p || !p.empresa) return '';
+    var emp = (typeof EMPRESAS_CAT !== 'undefined' ? EMPRESAS_CAT : []).find(function (x) { return x.clave === p.empresa; });
+    return (emp && emp.nombre) || p.empresa;
+  }
   function pasoActual() { var ps = pasos(); if (S.paso > ps.length - 1) S.paso = ps.length - 1; return ps[S.paso][0]; }
 
   function num(v) { return (typeof parseImporte === 'function') ? (parseImporte(v) || 0) : (parseFloat(v) || 0); }
@@ -577,6 +585,8 @@
       if (S.camino === 'existente') filas.push([T('Sigue a'), S.venta.numero]);
       if (S.camino === 'existente' || m.cliente) filas.push([T('Cliente'), cli]);
       if (S.camino === 'existente' || m.proyecto || m.parcela) filas.push([T('Parcela'), par]);
+      var emp = empresaDe(S.camino === 'existente' ? S.venta.proyecto_nombre : S.proyecto);
+      if (emp) filas.push([T('Empresa'), emp]);
       if (pideCondiciones()) filas.push([T('Condiciones'), cond]);
       if (pideClausulas()) filas.push([T('Cláusulas'), S.clausulas === 'rev04' ? T('Negociadas (REV04)') : S.clausulas === 'rev03' ? T('Negociadas (REV03)')
         : T('Estándar') + (S.venta && (S.venta.rev03 || S.venta.rev04) ? ' · ' + T('quita las negociadas de la venta') : '')]);
