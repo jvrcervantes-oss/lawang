@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="da51bcb9cdac">
+<meta name="lw-version" content="f3177ce81c29">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -2646,10 +2646,17 @@
     c.classList.toggle('pf-ancho', ESTADO.section === 'perfil');   // Mi perfil va a dos columnas y pide algo más de ancho
     var fns = { inicio:pintaInicio, contratos:pintaContratos, facturas:pintaFacturas, obra:pintaObra,
                 documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
+    /* Otra sección u otra carpeta se abre desde arriba: sin esto la página conservaba el scroll de la anterior (Inicio es larga) y
+       Obra o Documentos aparecían «en blanco» — el cliente miraba el final o el hueco de debajo (8-oct-2026, reproducido en la demo). */
+    var vistaNueva = ESTADO.section + '|' + (ESTADO.section === 'documentos' ? (leeHash().doc || '') : '');
+    if (vistaNueva !== VISTA_PINTADA){ VISTA_PINTADA = vistaNueva; try { window.scrollTo({ top:0, left:0, behavior:'instant' }); } catch (e){ window.scrollTo(0, 0); } }
     c.innerHTML = '';
     c.classList.toggle('ini-ancho', ESTADO.section === 'inicio');   // el Inicio tipo panel usa más ancho (8-oct-2026)
     c.classList.remove('ini-quieto');
-    (fns[ESTADO.section] || pintaInicio)(c);
+    /* Una sección que falla con un dato raro no deja la pantalla en blanco: se dice y el detalle va a la consola (8-oct-2026,
+       «al pulsar Obra y Documentos se pone en blanco»). Los enganches de arriba ya están puestos y el resto del portal sigue vivo. */
+    try { (fns[ESTADO.section] || pintaInicio)(c); }
+    catch (e){ console.error('seccion ' + ESTADO.section, e); c.innerHTML = vacio(t('tit_' + ESTADO.section), t('err_carga')); }
     /* Movimiento (motion.js). Se anima solo si cambia la clave «sección|carpeta»: un repintado por idioma, por recarga
        de datos, al abrir o cerrar un documento o un cajón NO la cambia y no mueve nada. */
     try {
@@ -2665,6 +2672,7 @@
     } catch (e){ console.error('movimiento', e); /* MUDO A PROPOSITO: el movimiento es un adorno; si falla, la pantalla ya está pintada y funciona igual, y el detalle va a la consola */ }
   }
   var ULTIMA_VISTA = '';
+  var VISTA_PINTADA = '';
 
   function vacio(titulo, texto){
     return '<div class="tabla-caja"><div class="vacio"><b>' + esc(titulo) + '</b>' + esc(texto) + '</div></div>';
@@ -3872,7 +3880,7 @@
     Object.keys(p).forEach(function(k){ o[k] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p[k] + '</svg>'; });
     return o;
   })();
-  function catClave(c){ var k = String(c || 'otros').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); return ORDEN_CAT.indexOf(k) >= 0 ? k : 'otros'; }
+  function catDocClave(c){ var k = String(c || 'otros').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); return ORDEN_CAT.indexOf(k) >= 0 ? k : 'otros'; }
   /* El enlace solo se pinta como enlace si es http(s): un `javascript:` guardado por error no llega al href. */
   function docUrlOk(x){ return !!(x.url && /^https?:\/\//i.test(x.url)); }
   /* Qué es cada documento, leído de su propia dirección (sin tocar la base): fichero, carpeta o álbum, y dónde se abre. */
@@ -3887,13 +3895,13 @@
   }
   function docsPorCat(docs){
     var m = {};
-    docs.forEach(function(x){ var k = catClave(x.categoria); (m[k] = m[k] || []).push(x); });
+    docs.forEach(function(x){ var k = catDocClave(x.categoria); (m[k] = m[k] || []).push(x); });
     return ORDEN_CAT.filter(function(k){ return m[k]; }).map(function(k){ return { k:k, docs:m[k] }; });
   }
   /* El dibujo de cada tarjeta: la hoja con el código del apartado; una carpeta de Drive es una carpeta; un álbum (o un
      documento del apartado Fotos) enseña la portada del proyecto entre dos fotos de fondo. */
   function docMiniatura(x, f){
-    var k = catClave(x.categoria), tp = docTipo(x), cod = esc(t('dc_cod_' + k));
+    var k = catDocClave(x.categoria), tp = docTipo(x), cod = esc(t('dc_cod_' + k));
     if ((tp.k === 'album' || k === 'fotos') && f.portada) return '<span class="dc-fotos"><i></i><i></i><img alt="" data-portada="' + esc(f.portada) + '" hidden></span>';
     if (tp.k === 'carpeta') return '<span class="dc-carpeta"><b>' + cod + '</b></span>';
     return '<span class="fa-papel dc-papel"><b>' + cod + '</b><span><i></i><i></i><i></i></span></span>';
@@ -3958,7 +3966,7 @@
     function pintaLista(primera){
       var q = DOC_FILTRO.q.trim().toLowerCase();
       visibles = docs.filter(function(x){
-        return (!DOC_FILTRO.cat || catClave(x.categoria) === DOC_FILTRO.cat) &&
+        return (!DOC_FILTRO.cat || catDocClave(x.categoria) === DOC_FILTRO.cat) &&
                (!q || [x.titulo, x.descripcion, catDoc(x.categoria)].join(' ').toLowerCase().indexOf(q) >= 0);
       });
       if (!visibles.length){ cajaLista.innerHTML = '<p class="vacio">' + esc(t('doc_sin_resultados')) + '</p>'; return; }
