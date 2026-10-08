@@ -10324,6 +10324,7 @@
       window.LW_V4.ficha = aut.ficha || null;
       window.LW_V4.fichaContrato = function (c, opts) { fichaContrato(aut.sb, c, opts); };
       window.LW_V4.fichaFactura = function (f) { fichaFactura(aut.sb, f); };
+      cargaTiposPropios(aut.sb);   // E9: los nombres de los contratos propios, para que tipoC no enseñe el slug crudo en listados (no bloquea la pantalla)
 
       /* La cabecera de Home traia «3 de Septiembre de 2026» escrito a mano: la
          fecha de la captura de Stitch. Una fecha congelada no envejece con un

@@ -151,7 +151,10 @@ const run = (ctx, expr) => vm.runInContext(expr, ctx);
   eq(promotor(c, {}).prom_razon, 'SANDAL', 'y sin dato, la de su empresa; nunca Tepi Sun Gai');
   c = mundo({ empresas: [{ clave: 'lawang', nombre: 'Lawang', sociedad_clave: null }] });
   await run(c, 'cargarPropios()'); run(c, "CURRENT = TEMPLATES.find(x => x.slug === 'lawang_contrato_de_obra')");
-  assert.throws(() => promotor(c, {}), /qué sociedad firma/, 'sin sociedad cierta el documento NO se imprime con la de otro'); n++;
+  c.templateHTML = '<p>{{prom_razon}}</p>';
+  assert.throws(() => promotor(c, {}), /qué sociedad firma/, 'sin sociedad cierta el documento que imprime al promotor NO sale con la identidad de otro'); n++;
+  c.templateHTML = '<p>Elige el proyecto</p>';
+  eq(promotor(c, {}).prom_razon, undefined, 'pero un texto que no imprime al promotor (el aviso previo al proyecto) no revienta la vista');
   c = mundo();
   run(c, "CURRENT = TEMPLATES.find(x => x.slug === 'carta_reserva')");
   eq(promotor(c, {}).prom_razon, 'TEPI', 'los 17 siguen con su default de siempre');
@@ -174,7 +177,8 @@ const run = (ctx, expr) => vm.runInContext(expr, ctx);
   eq(await run(c, "slugDeTipoGuardado('lawang_contrato_viejo')"), 'lawang_contrato_viejo', 'un propio que hoy no se ofrece (archivado) se recompone para reabrirlo');
   eq(run(c, "TEMPLATES.find(x => x.slug === 'lawang_contrato_viejo').name.es"), 'Contrato viejo');
   eq(await run(c, "slugDeTipoGuardado('Tipo Raro!')"), undefined, 'una forma que no es de slug se rechaza');
-  eq(await run(c, "slugDeTipoGuardado('contrato_que_no_existe')"), 'contrato_que_no_existe', 'si la base no contesta se reabre con el slug de rótulo (el texto lo sirve la base por contrato)');
+  eq(await run(c, "slugDeTipoGuardado('contrato_que_no_existe')"), undefined, 'sin fila de plantilla NO se inventa un propio fantasma (sin empresa ni sociedad): tipo desconocido');
+  eq(run(c, "TEMPLATES.some(x => x.slug === 'contrato_que_no_existe')"), false);
 
   // ---- 7. el nombre viene de la base: escapado
   const sucio = '<img src=x onerror=alert(1)>"&';
@@ -187,6 +191,7 @@ const run = (ctx, expr) => vm.runInContext(expr, ctx);
   ok(/\$\{esc\(L\(CURRENT\.name\)\)\}/.test(leer('contracts', 'assets', 'documento_diseno.js')), 'el panel de diseño escapa el nombre');
 
   // ---- 8. los puntos de decisión usan los helpers
+  ok(/await Promise\.all\(EMPRESAS_CAT\.map\(async e =>/.test(app), 'las empresas se consultan en paralelo');
   ok(/tipo: tipoDeSlug\(CURRENT\.slug\)/.test(app), 'el payload guarda el tipo con tipoDeSlug');
   ok(/const slug = await slugDeTipoGuardado\(data\.tipo\)/.test(app), 'abrir un guardado recompone el propio');
   ok(!/tipo: CONTRACT_TIPO\[CURRENT\.slug\]/.test(app), 'el payload ya no usa el mapa fijo');
@@ -197,6 +202,10 @@ const run = (ctx, expr) => vm.runInContext(expr, ctx);
   ok(/&& !CURRENT\.propio\)\{\s*const campo = \['sociedad_firmante'/.test(app), 'un propio no ofrece elegir otra sociedad');
   ok(/if\(t\.propio\) return \{ html:/.test(app), 'un propio sin texto de la base no cae a un fichero inexistente');
   ok(!/propio[^\n]*fetch\(t\.file/.test(app), 'y nunca hace fetch de un fichero');
+  // el selector de proyecto de un propio existe aunque su texto no lleve {{proyecto_nombre}} (deriveSections lo fuerza) y se filtra por su empresa
+  ok(/if\(CURRENT\.slug !== 'poa_notario'\)\{\s*inDoc\.add\('proyecto_nombre'\)/.test(app), 'el campo proyecto se fuerza para toda plantilla salvo el Poder');
+  ok(/includes\('\{\{proyecto_nombre\}\}'\) \|\| CURRENT\.propio\) await cargarProyectos\(\)/.test(app), 'un propio carga los proyectos aunque su texto no lleve el marcador');
+  ok(/CURRENT\.propio \? deMiAlcance\.filter\(p => p\.empresa === CURRENT\.empresa/.test(app), 'y el desplegable solo ofrece proyectos de su empresa');
 
   console.log('OK propios_emision.test.js — ' + n + ' comprobaciones');
 })().catch(e => { console.error(e); process.exit(1); });

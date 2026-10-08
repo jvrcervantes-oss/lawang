@@ -644,7 +644,7 @@
       var sel = S.venta && S.venta.id === v.id;
       return '<button type="button" class="asi-ri' + (sel ? ' sel' : '') + (off ? ' off' : '') + '"' + (off ? ' disabled title="' + e(off) + '"' : ' data-asi="venta" data-v="' + i + '"') +
         ' aria-pressed="' + (sel ? 'true' : 'false') + '"><span class="asi-av"><span data-ico="description" aria-hidden="true"></span></span><div><b>' +
-        e(v.numero) + ' · ' + e(TIPO_LABEL[v.tipo] || v.tipo) + '</b><small>' +
+        e(v.numero) + ' · ' + e(TIPO_LABEL[v.tipo] || (typeof PROPIOS !== 'undefined' && PROPIOS[v.tipo] && PROPIOS[v.tipo].nombre) || v.tipo) + '</b><small>' +
         e([v.comprador_nombre, [v.proyecto_nombre, v.parcela_codigo].filter(Boolean).join(' '), v.bloqueado ? T('firmado') : T('sin firmar'), off].filter(Boolean).join(' · ')) +
         '</small></div></button>';
     }).join('');

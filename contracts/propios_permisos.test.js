@@ -69,6 +69,8 @@ function ctx() {
   eq(fresco.map(f => f.slug), ['lawang_nuevo'], 'con `fresco` vuelve a preguntar: un propio recién activado sale sin recargar');
 
   // 3. el formulario de permisos
+  ok(/var variasEmp = \(rs\[4\] \|\| \[\]\)\.length > 1/.test(editores), 'variasEmp no lee empresasCat antes de declararla (var hoisted = undefined: reventaba el modal)');
+  ok(/cargaTiposPropios\(aut\.sb\);/.test(datos), 'datos.js arranca la carga de nombres para los listados');
   ok(/cargaTiposPropios\(sb, true\)/.test(editores), 'el formulario de permisos pide los propios frescos');
   ok(/tiposCat\.push\(\[f\.slug,/.test(editores), 'suma los propios a las casillas');
   ok(/' — no disponible ahora'/.test(editores), 'lo que la persona ya tiene y no se ofrece se enseña marcado (guardar no se lo quita en silencio)');

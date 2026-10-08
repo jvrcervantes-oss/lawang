@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="3d58c307d253">
+<meta name="lw-version" content="7555d2a00e84">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -90,7 +90,7 @@
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d86e607e"></script>
 <script src="assets/hitos_fechas.js?v=b3debfd2"></script>
-<script src="assets/entidades_pago.js?v=4d5bb73b"></script>
+<script src="assets/entidades_pago.js?v=d97c3dd5"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -113,7 +113,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=18cd7bfe"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=caa47b27"></script>
 <script src="/intranet/v4/assets/nav.js?v=d61bfe3a" defer></script>
 </head>
 <body>
@@ -721,13 +721,14 @@ async function cargarPropios(){
     const r = await sb.from('empresas').select('clave,nombre,sociedad_clave').eq('activa', true).order('orden');
     EMPRESAS_CAT = (r && r.data) || [];
   }catch(_){ EMPRESAS_CAT = []; /* MUDO A PROPOSITO: sin la lista de empresas no se ofrecen contratos propios; los 17 de siempre no dependen de ella */ }
-  for(const e of EMPRESAS_CAT){
+  // en paralelo (una por empresa): el arranque no espera N viajes en serie
+  await Promise.all(EMPRESAS_CAT.map(async e => {
     try{
       const { data, error } = await sb.rpc('plantilla_contratos_propios_activos', { p_empresa: e.clave });
       if(error) throw error;
       (data || []).forEach(f => registraPropio(f.slug, f.nombre, e.clave));
     }catch(_){ /* MUDO A PROPOSITO: una empresa que no es de quien está sentado contesta 42501 y se salta; el resto de empresas y los 17 de siempre siguen */ }
-  }
+  }));
 }
 /* Abrir un contrato GUARDADO de un tipo propio que hoy no se ofrece (su contrato se archivó o no es del alcance actual): se recompone su entrada
    para poder reabrirlo. El nombre y la empresa se piden a la base; si no contesta, el propio slug hace de nombre. Devuelve el slug o undefined. */
@@ -739,7 +740,10 @@ async function slugDeTipoGuardado(tipo){
     const r = await sb.from('plantillas_contrato').select('slug,nombre,empresa').eq('slug', tipo).not('empresa', 'is', null).maybeSingle();
     fila = r && r.data;
   }catch(_){ /* MUDO A PROPOSITO: sin el nombre se reabre igual con el slug como rótulo; el texto lo sirve la base por contrato */ }
-  return registraPropio(tipo, fila && fila.nombre, fila && fila.empresa) ? tipo : undefined;
+  /* Sin la fila de su plantilla (la RLS no la deja leer, o ya no existe) NO se inventa un propio sin empresa: se dice «tipo desconocido». Un propio fantasma
+     no tendría sociedad ni fichero y rompería el render en vez de explicarse. */
+  if(!fila || !fila.empresa) return undefined;
+  return registraPropio(tipo, fila.nombre, fila.empresa) ? tipo : undefined;
 }
 const plantillasOfrecidas = () =>
   TEMPLATES.filter(t => !t.disabled && puedeEmitir(t.slug) && !estaArchivada(t.slug));
@@ -3981,7 +3985,9 @@ async function loadTemplate(slug, opts){
   PLANTILLA_TOCADO = false;
   if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
   // Los proyectos vivos, antes de deriveSections(), que es quien monta el select.
-  if(templateHTML.includes('{{proyecto_nombre}}')) await cargarProyectos();
+  // (un contrato PROPIO también: su texto puede no llevar el marcador —o ser el aviso de «elige el proyecto»— y el campo proyecto se pinta igual,
+  // forzado por deriveSections para toda plantilla salvo el Poder; sin esta carga caería a la lista vieja de tokens.json y no se filtraría por empresa)
+  if(templateHTML.includes('{{proyecto_nombre}}') || CURRENT.propio) await cargarProyectos();
   if(templateHTML.includes('{{tipologia_construccion}}')) await cargarModelos();
   if(CURRENT.slug === 'poa_notario') await cargarVinculablesPoa();   // el vínculo del POA no tiene marcador: va por slug
   // CC00014/Timon no tiene versión en español (el documento original es

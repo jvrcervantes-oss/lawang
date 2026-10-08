@@ -8321,7 +8321,7 @@
              Y lo que la persona YA tiene y hoy no se ofrece (propio desactivado, de otra empresa, lectura que falló) se sigue enseñando MARCADO: la
              casilla guarda el array entero, y no enseñarlo se lo quitaría en silencio (mismo criterio que «— desactivado» de arriba). */
           var propios = (rs[5] || []).filter(function (f) { return !(u.empresas || []).length || u.empresas.indexOf(f.empresa) !== -1; });
-          var variasEmp = empresasCat.length > 1;
+          var variasEmp = (rs[4] || []).length > 1;   // (empresasCat se declara más abajo con var: aquí aún no vale)
           propios.forEach(function (f) {
             if (tiposCat.some(function (o) { return o[0] === f.slug; })) return;
             tiposCat.push([f.slug, f.nombre + (variasEmp && f.empresaNombre ? ' · ' + f.empresaNombre : '') + ' (contrato propio)']);
