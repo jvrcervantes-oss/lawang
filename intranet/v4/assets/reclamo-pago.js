@@ -70,6 +70,7 @@
       case 'pendiente': return rpT('En cola');
       case 'error': return rpT('Con error');
       case 'archivado': return rpT('Archivado');
+      case 'prueba': return rpT('Prueba de envío');
       default: return e ? String(e) : '—';
     }
   }

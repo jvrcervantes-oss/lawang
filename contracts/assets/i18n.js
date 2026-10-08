@@ -79,6 +79,7 @@
     'No se pudo cargar el historial: %e': 'Could not load the history: %e',
     'Se muestran los 20 más recientes.': 'The 20 most recent are shown.',
     'En cola': 'Queued',
+    'Prueba de envío': 'Test send',
     'Con error': 'Failed',
     'Nota: %s': 'Note: %s',
     'No tiene ficha de cliente': 'Has no client record',
