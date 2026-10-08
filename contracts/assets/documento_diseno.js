@@ -275,7 +275,7 @@ function buildDesignPanel(){
     <div class="body">
       <div class="dz" style="border-top:none;padding-top:0">
         <button type="button" class="btn ghost" id="btnSaveDesign" style="width:100%">Guardar como diseño de esta plantilla</button>
-        <p style="font-size:11px;color:var(--muted);margin:6px 2px 0">Lo verán todos los agentes al abrir "${L(CURRENT.name)}" — no solo tú.</p>
+        <p style="font-size:11px;color:var(--muted);margin:6px 2px 0">Lo verán todos los agentes al abrir "${esc(L(CURRENT.name))}" — no solo tú.</p>
       </div>
       <div class="dsec">Portada</div>
       <div class="drow"><span class="dlab">Color de fondo</span>

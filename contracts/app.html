@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="6c5150a20289">
+<meta name="lw-version" content="3d58c307d253">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=490d53a4"></script>
+<script src="/contracts/assets/i18n.js?v=e65a4589"></script>
 <script src="/contracts/assets/herramientas.js?v=e627e560"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -80,7 +80,7 @@
      Van aqui y no con `defer` a proposito: `defer` los ejecutaria DESPUES del
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
-<script src="assets/documento_diseno.js?v=a6230c91"></script>
+<script src="assets/documento_diseno.js?v=511c0b25"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
 <script src="assets/documento_anexos.js?v=7d79edb0"></script>
 <script src="assets/parcela_inventario.js?v=2413c162"></script>
@@ -90,7 +90,7 @@
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d86e607e"></script>
 <script src="assets/hitos_fechas.js?v=b3debfd2"></script>
-<script src="assets/entidades_pago.js?v=9237aa1c"></script>
+<script src="assets/entidades_pago.js?v=4d5bb73b"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -113,7 +113,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=5cdd3f4e"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=18cd7bfe"></script>
 <script src="/intranet/v4/assets/nav.js?v=d61bfe3a" defer></script>
 </head>
 <body>
@@ -618,7 +618,7 @@ window.LW_SB = sb;
    Una plantilla sin entrada en CONTRACT_TIPO (Estatutos) no se guarda ni se
    numera, así que no hay nada que permitir: pasa siempre. */
 function puedeEmitir(slug){
-  const tipo = CONTRACT_TIPO[slug];
+  const tipo = tipoDeSlug(slug);
   if(!tipo) return true;
   const f = MI_FICHA;
   if(!f || f.rol !== 'agente') return true;
@@ -646,6 +646,100 @@ function estaArchivada(slug){
   if(typeof PLANTILLAS_PAGO === 'undefined' || !PLANTILLAS_PAGO.length) return false;
   const f = PLANTILLAS_PAGO.find(p => p.slug === slug);
   return !!(f && f.archivada);
+}
+/* ── CONTRATOS PROPIOS DE UNA EMPRESA (E9 de «editor de textos», 8-oct-2026) ─────────────────────────────────────
+   Una empresa puede crear contratos suyos (/intranet/v4/textos-contrato/ → Contrato nuevo). Se EMITEN como cualquier otro, con una
+   diferencia: su `contratos.tipo` es el slug del propio contrato (no uno de los 17 de CONTRACT_TIPO, que NO se tocan: los vigila
+   listas.test.js). Por eso los propios se componen AQUÍ, en tiempo de ejecución, desde la base:
+     · la lista sale de `plantilla_contratos_propios_activos(empresa)` (solo los que tienen una versión activa), una llamada por empresa
+       del alcance de quien está sentado; una empresa que no es suya contesta 42501 y se salta sin romper el resto;
+     · cada uno entra en TEMPLATES como una entrada sin fichero (`propio:true`): su texto sale SOLO de la base (`plantilla_contrato_cuerpo`),
+       nunca de un fichero de respaldo — ver textoPlantilla;
+     · `tipoDeSlug` / `slugDeTipo` son CONTRACT_TIPO / TIPO_SLUG con el propio añadido; las comparaciones `=== 'construccion'` etc. siguen
+       usando CONTRACT_TIPO a secas, porque un propio no es de ninguna de esas familias.
+   El permiso va por el mismo sitio de siempre (`usuarios.tipos_contrato` contiene el slug) y el control de verdad es el trigger de la base;
+   que la empresa del proyecto sea la del contrato propio lo comprueba la base (trg_00_contrato_tipo_valido) y aquí se dice en llano ANTES. */
+const PROPIOS = {};            // slug -> { slug, nombre, empresa }
+let EMPRESAS_CAT = [];         // empresas visibles para quien está sentado: { clave, nombre, sociedad_clave }
+const esPropio = slug => !!(slug && PROPIOS[slug]);
+const tipoDeSlug = slug => CONTRACT_TIPO[slug] || (PROPIOS[slug] ? slug : undefined);
+const slugDeTipo = tipo => TIPO_SLUG[tipo] || (PROPIOS[tipo] ? tipo : undefined);
+/* Mete (o actualiza) un propio en TEMPLATES. Devuelve la entrada, o null si el slug no puede ser propio: es de los 17, no tiene forma de
+   slug, o choca con una plantilla fija del estudio (Estatutos…) — un propio nunca pisa lo que ya había. */
+function registraPropio(slug, nombre, empresa){
+  slug = String(slug || '');
+  if(CONTRACT_TIPO[slug] || !/^[a-z][a-z0-9_]{2,59}$/.test(slug)) return null;
+  const nom = String(nombre || '').trim() || slug;
+  let t = TEMPLATES.find(x => x.slug === slug);
+  if(t && !t.propio) return null;
+  if(!t){
+    // sin fichero (`file:null`): el texto sale solo de la base. El color de portada es neutro y oscuro (contraste ≥ 4.5:1 con blanco y con el papel)
+    t = { slug, file:null, propio:true, cover:'#3F4A52', ready:true };
+    TEMPLATES.push(t);
+  }
+  t.name = { es:nom, en:nom, id:nom };
+  t.empresa = empresa || t.empresa || null;
+  PROPIOS[slug] = { slug, nombre:nom, empresa:t.empresa };
+  return t;
+}
+/* Con más de una empresa a la vista, el rótulo de un propio dice de cuál es (dos empresas pueden llamar igual a un contrato). */
+function etiquetaEmpresaPropio(t){
+  if(EMPRESAS_CAT.length < 2 || !t.empresa) return '';
+  const e = EMPRESAS_CAT.find(x => x.clave === t.empresa);
+  return ' · ' + ((e && e.nombre) || t.empresa);
+}
+/* La sociedad que firma un contrato propio es la de SU empresa (empresas.sociedad_clave), nunca un valor por defecto: el de los 17 (Tepi Sun Gai)
+   pondría el NPWP de otra sociedad en una factura. '' = no se puede saber con certeza → no se emite (guardarContrato lo dice). */
+function sociedadDePropio(slug){
+  const p = PROPIOS[slug]; if(!p || !p.empresa) return '';
+  const e = EMPRESAS_CAT.find(x => x.clave === p.empresa);
+  const k = e && e.sociedad_clave;
+  return (k && typeof SOCIEDADES !== 'undefined' && SOCIEDADES[k]) ? k : '';
+}
+/* null = la plantilla en pantalla no es un propio (rige lo de siempre); '' = es un propio y no se sabe su sociedad; si no, la clave. */
+function sociedadPropiaDe(){ return (CURRENT && CURRENT.propio) ? sociedadDePropio(CURRENT.slug) : null; }
+/* Por qué un contrato propio NO se puede emitir ahora ('' = se puede). Es cortesía para decirlo en llano ANTES de que la base rechace con
+   un código: el control de verdad es el trigger de `contratos` (tipo válido para la empresa del proyecto) y la RLS. */
+function motivoPropioNoEmite(){
+  if(!(CURRENT && CURRENT.propio)) return '';
+  const emp = EMPRESAS_CAT.find(x => x.clave === CURRENT.empresa);
+  const nomEmp = (emp && emp.nombre) || CURRENT.empresa || '';
+  if(!PLANTILLA_VER)
+    return lwT('El texto de este contrato solo está en la base y no se ha podido leer: elige el proyecto de %emp (o recarga la página) antes de guardar.', { emp: nomEmp });
+  const pid = proyectoIdActual();
+  const proy = pid && (PROYECTOS_DB || []).find(p => p.id === pid);
+  if(!proy) return lwT('Un contrato de %emp se emite sobre un proyecto de esa empresa: elige el proyecto.', { emp: nomEmp });
+  if(proy.empresa !== CURRENT.empresa)
+    return lwT('El proyecto elegido no es de %emp, la empresa dueña de este contrato: elige un proyecto suyo.', { emp: nomEmp });
+  if(!sociedadPropiaDe())
+    return lwT('No puedo saber con certeza qué sociedad firma este contrato: la empresa %emp no tiene sociedad asignada. No se emite para no poner la identidad fiscal de otra sociedad. Pídele a un administrador que se la asigne.', { emp: nomEmp });
+  return '';
+}
+async function cargarPropios(){
+  if(!sb) return;
+  try{
+    const r = await sb.from('empresas').select('clave,nombre,sociedad_clave').eq('activa', true).order('orden');
+    EMPRESAS_CAT = (r && r.data) || [];
+  }catch(_){ EMPRESAS_CAT = []; /* MUDO A PROPOSITO: sin la lista de empresas no se ofrecen contratos propios; los 17 de siempre no dependen de ella */ }
+  for(const e of EMPRESAS_CAT){
+    try{
+      const { data, error } = await sb.rpc('plantilla_contratos_propios_activos', { p_empresa: e.clave });
+      if(error) throw error;
+      (data || []).forEach(f => registraPropio(f.slug, f.nombre, e.clave));
+    }catch(_){ /* MUDO A PROPOSITO: una empresa que no es de quien está sentado contesta 42501 y se salta; el resto de empresas y los 17 de siempre siguen */ }
+  }
+}
+/* Abrir un contrato GUARDADO de un tipo propio que hoy no se ofrece (su contrato se archivó o no es del alcance actual): se recompone su entrada
+   para poder reabrirlo. El nombre y la empresa se piden a la base; si no contesta, el propio slug hace de nombre. Devuelve el slug o undefined. */
+async function slugDeTipoGuardado(tipo){
+  const ya = slugDeTipo(tipo); if(ya) return ya;
+  if(!sb || !/^[a-z][a-z0-9_]{2,59}$/.test(String(tipo || ''))) return undefined;
+  let fila = null;
+  try{
+    const r = await sb.from('plantillas_contrato').select('slug,nombre,empresa').eq('slug', tipo).not('empresa', 'is', null).maybeSingle();
+    fila = r && r.data;
+  }catch(_){ /* MUDO A PROPOSITO: sin el nombre se reabre igual con el slug como rótulo; el texto lo sirve la base por contrato */ }
+  return registraPropio(tipo, fila && fila.nombre, fila && fila.empresa) ? tipo : undefined;
 }
 const plantillasOfrecidas = () =>
   TEMPLATES.filter(t => !t.disabled && puedeEmitir(t.slug) && !estaArchivada(t.slug));
@@ -1113,6 +1207,7 @@ function avisoNoGuardado(detalle){
    admin marca una precargada, la cuenta no se adivina — es la que él ha dicho, y
    en la Carta de Reserva además es la única que se ofrece. */
 function pdef(key){
+  if(key==='sociedad_firmante' && CURRENT && CURRENT.propio) return sociedadDePropio(CURRENT.slug);   // un propio: la sociedad de su empresa, nunca el default de los 17
   if(key==='sociedad_firmante' && CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) return SOCIEDAD_DEFAULT[CURRENT.slug];
   if(key==='cuenta_bancaria' && CURRENT && bankDefaultFor(CURRENT.slug, proyectoIdActual())) return bankDefaultFor(CURRENT.slug, proyectoIdActual());
   // Fecha de firma: el día en que se está haciendo el contrato, no una fecha
@@ -3537,9 +3632,11 @@ function deriveSections(){
        desplegable sin la opción que la ficha tiene guardada y el campo se vería
        vacío, como si el dato se hubiera perdido—. Verlo no es poder guardarlo:
        de eso se encarga la RLS. */
-    const lista = MIS_PROYECTOS
+    const deMiAlcance = MIS_PROYECTOS
       ? PROYECTOS_DB.filter(p => MIS_PROYECTOS.includes(p.id) || p.nombre === PROYECTO_ABIERTO)
       : PROYECTOS_DB;
+    // un contrato propio solo se emite sobre proyectos de SU empresa (lo exige la base); el del contrato abierto se conserva
+    const lista = CURRENT.propio ? deMiAlcance.filter(p => p.empresa === CURRENT.empresa || p.nombre === PROYECTO_ABIERTO) : deMiAlcance;
     const opts = lista.map(p=>p.nombre);
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
       (f[0]==='proyecto_nombre' && f[2]==='select') ? [f[0], f[1], f[2], opts] : f); });
@@ -3648,7 +3745,8 @@ function deriveSections(){
   // sociedad firmante (Promotor): va DENTRO de "Gestión del contrato" (sección 1,
   // petición del cliente) como un campo más, si la plantilla trae la identidad
   // tokenizada ({{prom_razon}}). Se elige por contrato; default por plantilla (pdef).
-  if(templateHTML.includes('{{prom_razon}}')){
+  /* Un contrato PROPIO no ofrece elegir la sociedad: es la de su empresa (sociedadPropiaDe) y elegir otra pondría la identidad fiscal de otra PT. */
+  if(templateHTML.includes('{{prom_razon}}') && !CURRENT.propio){
     const campo = ['sociedad_firmante',{es:'Sociedad firmante (Promotor)',en:'Signing company (Developer)',id:'Perusahaan penandatangan'},'select',sociedadOptions()];
     const g = SECTIONS.find(s=>s.id==='gestion');
     if(g) g.fields.push(campo);
@@ -3668,7 +3766,7 @@ function deriveSections(){
     // solo Hak Sewas: con trece tipos mezclados, un número y un nombre no
     // bastan para saber a qué documento te estás enganchando.
     const opts = (VINCULABLES_POA||[]).map(c=>[c.numero,
-      c.numero+' · '+(TIPO_LABEL[c.tipo]||c.tipo)+' · '+(c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
+      c.numero+' · '+(TIPO_LABEL[c.tipo]||(PROPIOS[c.tipo]&&PROPIOS[c.tipo].nombre)||c.tipo)+' · '+(c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
     const campo = opts.length ? ['poa_hs_vinculado', etiqueta, 'select', opts]
                               : ['poa_hs_vinculado', etiqueta, 'text'];
     const g = SECTIONS.find(s=>s.id==='gestion');
@@ -3767,6 +3865,9 @@ async function textoPlantilla(t, o){
     REVISION_ELEGIDA = '';   // con el texto de la base ilegible, la revisión elegida no vale: se cae al texto base
   }
   if(r) return r;
+  /* Un contrato PROPIO (E9) no tiene fichero: si la base no sirve su texto (sin proyecto de su empresa elegido aún, sin red) NO se cae a otro
+     texto, ni a «undefined»: queda un aviso en el papel y motivoPropioNoEmite() impide guardar mientras `ver` sea null. */
+  if(t.propio) return { html: '<body><p style="padding:20mm">' + esc(lwT('El texto de este contrato lo sirve la base según la empresa del proyecto: elige el proyecto de la empresa para verlo.')) + '</p></body>', ver: null };
   let html;
   try{ html = await fetch(t.file+'?v='+Date.now()).then(r=>r.text()); }
   catch(_){ html='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; /* MUDO A PROPOSITO: la propia pagina dice «Plantilla no encontrada» en el contrato */ }
@@ -3908,7 +4009,7 @@ function buildPicker(){
   const abierta = CURRENT && !ofrecidas.some(t => t.slug === CURRENT.slug)
     ? TEMPLATES.find(t => t.slug === CURRENT.slug) : null;
   const lista = abierta ? [abierta].concat(ofrecidas) : ofrecidas;
-  sel.innerHTML = lista.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}${t===abierta?' '+lwT('(archivado)'):''}${t.ready?'':' ·⚠'}</option>`).join('');
+  sel.innerHTML = lista.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${esc(L(t.name))}${t.propio ? esc(etiquetaEmpresaPropio(t)) : ''}${t===abierta?' '+lwT('(archivado)'):''}${t.ready?'':' ·⚠'}</option>`).join('');
   /* UN SOLO oyente (30-sep-2026). buildPicker() se llama otra vez en cada
      cambio de idioma (buildLangToggle) para re-rotular las opciones, y cada
      llamada colgaba OTRO `change`: tras tocar ES/EN dos veces, cambiar de tipo
@@ -4272,7 +4373,7 @@ function pintaAcciones(){
   const cerrado = LOCKED ? lwT('El contrato está firmado y bloqueado')
                 : enFirma ? lwT('Hay firmas en curso: anúlalas primero') : '';
   const sinGuardar = lwT('Guarda primero: para guardar hay que rellenarlo entero');
-  const tipo = CONTRACT_TIPO[CURRENT.slug];
+  const tipo = tipoDeSlug(CURRENT.slug);
   const proyectoFalta = CURRENT.slug === 'ppjb_bonian_c2' && !SAVED_CONTRACT
     && !(($('[name="proyecto_nombre"]')||{}).value||'').trim();
   const pdfNoSalio = lwT('Descarga o envía el PDF primero: no se puede subir firmado algo que no ha salido');
@@ -4694,7 +4795,7 @@ function updateSaveButton(){
     });
   }
   const btn=$('#btnSave'); if(!btn) return;
-  const tipo = CONTRACT_TIPO[CURRENT.slug];
+  const tipo = tipoDeSlug(CURRENT.slug);
   const form=$('#form'); if(form) form.classList.toggle('locked', LOCKED);
   const badge=$('#lockBadge'); if(badge) badge.style.display = LOCKED ? 'inline-flex' : 'none';
   // PDF firmado, Editar texto, Diseño (misma llave de admin: los dos cambian
@@ -4812,8 +4913,12 @@ $('#btnDownloadSigned').addEventListener('click', abrirPdfFirmado);
 
 function contractPayload(){
   const data = collect();
+  /* Un contrato PROPIO se guarda SIEMPRE con la sociedad de su empresa escrita en el propio contrato (E9): quien lo lea después —Operaciones,
+     Vencimientos, la edge de firma— no tiene que adivinar nada, y el respaldo «Tepi Sun Gai» de los 17 no llega a aplicarse. */
+  const socPropia = sociedadPropiaDe();
+  if(socPropia) data.sociedad_firmante = socPropia;
   return {
-    tipo: CONTRACT_TIPO[CURRENT.slug],
+    tipo: tipoDeSlug(CURRENT.slug),
     // ⚠️ 11-ago-2026, corregido el mismo día: `nombre_contrato` NO va aquí.
     // `comprador_nombre` no es una etiqueta interna — la lee TODA la suite como
     // la identidad real de la operación: el cajón de Operaciones la usa como
@@ -4993,8 +5098,10 @@ async function crearProformaAutomatica(contratoId, numero, payload){
 async function guardarContrato(){
   if(!sb){ avisoNoGuardado(lwT('Supabase no disponible.')); return; }
   if(LOCKED){ avisoNoGuardado(lwT('Contrato bloqueado.')); return; }   // el botón ya se oculta; la RLS también lo bloquearía
-  const tipo = CONTRACT_TIPO[CURRENT.slug];
+  const tipo = tipoDeSlug(CURRENT.slug);
   if(!tipo) return;
+  const motivoPropio = motivoPropioNoEmite();
+  if(motivoPropio){ avisoNoGuardado(motivoPropio); return; }
   /* El Poder Notarial no existe suelto (14-ago, petición del owner): acompaña a
      un contrato concreto y de él saca al Otorgante. Se para AQUÍ y no solo en
      el aviso visual porque sin guardar no hay número ni "Enviar a firma", así
@@ -5766,7 +5873,7 @@ async function openSavedContract(id){
   const stage = $('.stage'); if(stage) stage.classList.add('cargando');
   const { data, error } = await sb.from('contratos').select('*').eq('id', id).single();
   if(error || !data){ if(stage) stage.classList.remove('cargando'); toastMal(lwT('No se pudo abrir el contrato')); return; }
-  const slug = TIPO_SLUG[data.tipo];
+  const slug = await slugDeTipoGuardado(data.tipo);   // los 17 por TIPO_SLUG; un tipo propio (E9) se recompone desde la base
   if(!slug){ if(stage) stage.classList.remove('cargando'); toastMal(lwT('Tipo de contrato desconocido')); return; }
   OBRA_ES_GUARDADA = true;   // su precio ya está pactado: syncPrecioObraVinculada no lo precarga
   // antes de loadTemplate: deriveSections() monta el desplegable ahí dentro
@@ -6086,7 +6193,7 @@ function abrirDerivar(){
   if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){ toastMal(lwT('Guarda primero: para guardar hay que rellenarlo entero')); return; }
   const sel = $('#dvTpl');
   sel.innerHTML = plantillasOfrecidas()
-    .map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}</option>`).join('');
+    .map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${esc(L(t.name))}</option>`).join('');
   actualizarAvisoDerivar();
   $('#dvOverlay').classList.add('open');
 }
@@ -7183,13 +7290,14 @@ async function init(){
     location.replace('/intranet/?sin_permiso=contratos'); return;
   }
   MI_FICHA = ficha || null;   // el panel de guardados lo usa para el botón de reasignar autor
+  await cargarPropios();      // los contratos propios de las empresas de quien está sentado (E9): antes de decidir qué tipo se abre y de pintar el selector
   /* `CURRENT` arranca en TEMPLATES[0] —Carta de Reserva— ANTES de saber quién
      está sentado aquí. Si resulta que no puede emitirla, se aterriza en el
      primer tipo que sí pueda: dejarle rellenar un contrato entero para que la
      base lo rechace al guardar es la peor forma de enterarse, que es lo mismo
      que ya decía el rebote de arriba para las herramientas. */
   if(!puedeEmitir(CURRENT.slug)){
-    const alt = plantillasOfrecidas().find(t => CONTRACT_TIPO[t.slug]);
+    const alt = plantillasOfrecidas().find(t => tipoDeSlug(t.slug));
     if(alt) CURRENT = alt;
   }
   /* Y si NO puede emitir ninguno —desde el 27-ago, lista vacía significa
@@ -7198,7 +7306,7 @@ async function init(){
      y lo descubría al pulsar Guardar con el contrato ya relleno: exactamente lo
      que el rebote por herramienta evita tres líneas más arriba, y por el mismo
      motivo. */
-  if(MI_FICHA && MI_FICHA.rol === 'agente' && !plantillasOfrecidas().some(t => CONTRACT_TIPO[t.slug])){
+  if(MI_FICHA && MI_FICHA.rol === 'agente' && !plantillasOfrecidas().some(t => tipoDeSlug(t.slug))){
     toastMal(lwT('No tienes ningún tipo de contrato asignado. Pídeselo a un administrador antes de empezar.'));
   }
   MI_EMAIL = session.user.email || '';

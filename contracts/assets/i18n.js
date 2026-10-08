@@ -4793,6 +4793,12 @@
     'Has cambiado una parte sensible y falta confirmar el aviso. Pulsa Guardar otra vez y confírmalo.': 'You changed a sensitive part and the notice still needs confirming. Press Save again and confirm it.',
     /* Textos de contrato: el contrato como documento (8-oct-2026, encargo editor de textos E1-E3) */
     'Revisión del texto': 'Text revision',
+    /* Contratos propios de una empresa: emitirlos (8-oct-2026, encargo editor de textos E9) */
+    'El texto de este contrato solo está en la base y no se ha podido leer: elige el proyecto de %emp (o recarga la página) antes de guardar.': 'The text of this contract is only held in the database and could not be read: choose a project of %emp (or reload the page) before saving.',
+    'Un contrato de %emp se emite sobre un proyecto de esa empresa: elige el proyecto.': 'A contract of %emp is issued on a project of that company: choose the project.',
+    'El proyecto elegido no es de %emp, la empresa dueña de este contrato: elige un proyecto suyo.': 'The chosen project does not belong to %emp, the company that owns this contract: choose one of its projects.',
+    'No puedo saber con certeza qué sociedad firma este contrato: la empresa %emp no tiene sociedad asignada. No se emite para no poner la identidad fiscal de otra sociedad. Pídele a un administrador que se la asigne.': 'I cannot tell for certain which company signs this contract: %emp has no company assigned. It is not issued so that the tax identity of another company is not put on it. Ask an administrator to assign one.',
+    'El texto de este contrato lo sirve la base según la empresa del proyecto: elige el proyecto de la empresa para verlo.': 'The text of this contract comes from the database according to the company of the project: choose a project of the company to see it.',
     'Cambiar la revisión del texto borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?': 'Changing the text revision discards what you have written in this draft and not saved. Continue?',
     '%a de %b': '%a of %b',
     '0 resultados': '0 results',

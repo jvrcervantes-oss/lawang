@@ -1295,6 +1295,10 @@
        de guardar; un contrato guardado cambia de tipo como siempre. */
     interceptaCambioTipo: function (slug) {
       if (!S || !S.montado || (SAVED_CONTRACT && SAVED_CONTRACT.id)) return false;
+      /* Un contrato PROPIO de la empresa (E9) no es de los tipos que ofrece el asistente (tipoDe() da null: su flujo —cliente, parcela,
+         reserva— está pensado para los 17), así que no hay paso del asistente al que volver: el cambio sigue por el camino de siempre
+         del selector y el editor carga su texto. Criterio mínimo seguro: el asistente NO ofrece propios; el selector sí. */
+      if (!tipoDe(slug)) return false;
       var sel = document.getElementById('tplPick'); if (sel) sel.value = CURRENT.slug;
       reabreEnTipo(slug);
       return true;
