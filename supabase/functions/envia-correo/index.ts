@@ -372,6 +372,11 @@ export async function manejador(req: Request): Promise<Response> {
   const aplicaPlantilla = async (): Promise<Fallo | null> => {
     if (!VIAS_PLANTILLA.includes(via)) return { error: 'No autorizado: una plantilla exige sesión de la suite o el secreto del servicio.', status: 401 };
     const e = validaPlantillaPeticion(p); if (e) return e;
+    // «Reclamar pago» la pide solo la cola (secreto del servicio) y siempre con la sociedad del contrato: ni una sesión del equipo puede
+    // reenviarlo a mano ni sale firmado con la marca de Lawang por descuido.
+    if (p.plantilla === 'reclamo_pago' && ((via !== 'servicio' && via !== 'servicio-render') || !sociedad)) {
+      return { error: 'reclamo_pago exige el secreto del servicio y la sociedad', status: 400 };
+    }
     const r = await componePlantilla(p, cfg, portal);
     if (esFallo(r)) return r;
     comp = r;

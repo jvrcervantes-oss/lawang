@@ -284,6 +284,9 @@ export const PLANTILLAS: Record<string, SpecPlantilla> = {
   factura_primer_hito:     { adjunto: true,  ids: ['factura_id'], editables: ['nombre'] },
   proforma_total:          { adjunto: true,  ids: ['factura_id'], editables: ['nombre'] },
   factura_vencimiento:     { adjunto: true,  ids: ['factura_id'], editables: ['nombre'] },
+  // 9ª (8-oct-2026, «Reclamar pago»): solo la pide la cola con el secreto del servicio; `reclamo` = id de la fila de la cola, con él resuelve los datos
+  // (destinatario, parcela, empresa, nota) en la base. Nada de eso viaja en vars. Solo Lawang la sirve (el maestro no tiene reclamos_pago).
+  reclamo_pago:            { adjunto: false, ids: ['contrato_id'], editables: ['reclamo'] },
 };
 export const LIMITES_PLANTILLA = { asunto: 200, cuerpo: 5000, valor: 300 };
 /** Vías que pueden usar una plantilla: la de aviso interno (sin sesión) y cualquier otra no. */

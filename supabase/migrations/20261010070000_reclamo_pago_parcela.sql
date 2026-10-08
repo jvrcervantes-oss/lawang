@@ -84,7 +84,7 @@ alter table public.correos_enviados add constraint correos_enviados_plantilla_ch
 -- saludo, parcela, proyecto, empresa, nota, enlace, marca, firma.
 insert into public.correo_plantillas (clave, activa, variables, version)
 values ('reclamo_pago', false,
-        '{"variantes": 1, "permitidas": ["saludo","parcela","proyecto","empresa","nota","enlace","marca","firma"], "obligatorias": {"asunto": ["parcela"], "cuerpo": ["parcela","enlace"]}}'::jsonb, 0)
+        '{"permitidas":["saludo","parcela","proyecto","empresa","nota","enlace","marca","firma"],"obligatorias":{"asunto":["parcela"],"cuerpo":["parcela","enlace"],"cuerpo_alt":[]},"variantes":1}'::jsonb, 0)
 on conflict (clave) do nothing;
 
 -- ── 4. reglas por clave: la fila nueva (soportada=false: correo_encolar la rechaza) ─────────────────
@@ -242,10 +242,10 @@ end $$;
 -- Lo que la edge necesita para componer el correo de una fila de la cola (y nada mas).
 create or replace function public.reclamo_pago_datos(p_cola uuid)
 returns table (reclamo_id uuid, para text, nombre text, idioma text, parcela text, proyecto text,
-               empresa_razon text, sociedad_clave text, nota text)
+               empresa_razon text, sociedad_clave text, nota text, contrato_id uuid)
 language sql stable security definer set search_path = '' as $$
   select r.id, public._reclamo_pago_destino(r.id), k.full_name, k.idioma_comunicacion, u.codigo, p.nombre,
-         s.razon, s.clave, r.nota
+         s.razon, s.clave, r.nota, r.contrato_id
     from public.correos_cola q
     join public.reclamos_pago r on r.id = q.reclamo_id
     join public.clients k on k.id = r.client_id

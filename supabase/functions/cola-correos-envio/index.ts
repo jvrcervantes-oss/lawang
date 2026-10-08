@@ -43,6 +43,7 @@ const EN_PAUSA = /en pausa \(modo mantenimiento\)/i;
 export const IDS_POR_CLAVE: Record<string, string[]> = {
   enlace_firma_cadena: ['contrato_id', 'firma_id'],
   aviso_anulacion: ['contrato_id'],
+  reclamo_pago: ['contrato_id'],   // + vars.reclamo (id de la fila) y `sociedad`: ver enviar()
 };
 
 type Fila = {
@@ -92,7 +93,16 @@ async function enviar(f: Fila): Promise<{ status: number; ok: boolean; version: 
   const ids = IDS_POR_CLAVE[f.clave];
   const cuerpo: Record<string, unknown> = { to: f.para, plantilla: f.clave, attach: false };
   for (const k of ids) cuerpo[k] = k === 'contrato_id' ? f.contrato_id : k === 'firma_id' ? f.firma_id : f.factura_id;
-  if (f.vars && Object.keys(f.vars).length) cuerpo.vars = f.vars;
+  if (f.clave === 'reclamo_pago') {
+    // «Reclamar pago»: el destinatario ya viene de la base (`para`, resuelto por correo_cola_reclamar desde el libro) y el resto lo lee
+    // envia-correo con el id de la fila. Aquí solo viajan el id y la clave de la sociedad del CONTRATO (marca/firma del correo): nunca una
+    // dirección, un nombre ni la nota, y `f.vars` de esta clave se ignora. Sin sociedad no se envía: no se firma como otra empresa.
+    const d = (await rpc('reclamo_pago_datos', { p_cola: f.id })) as { sociedad_clave?: unknown }[] | null;
+    const soc = Array.isArray(d) && d.length === 1 ? d[0].sociedad_clave : null;
+    if (typeof soc !== 'string' || soc === '') return { status: 400, ok: false, version: '', error: 'reclamo_sin_sociedad' };
+    cuerpo.vars = { reclamo: f.id };
+    cuerpo.sociedad = soc;
+  } else if (f.vars && Object.keys(f.vars).length) cuerpo.vars = f.vars;
   const r = await fetch(SUPA_URL() + '/functions/v1/envia-correo', {
     method: 'POST',
     // Un timeout es AMBIGUO (el SMTP pudo aceptarlo): cuenta como fallo del intento y puede acabar en duplicado.
