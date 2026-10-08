@@ -21,17 +21,12 @@
   function iso(n) { return new Date(HOY + n * DIA).toISOString(); }
   function dia(n) { return iso(n).slice(0, 10); }
 
-  /* ───────── imágenes dibujadas (portadas y fotos de obra) ───────── */
+  /* ───────── imágenes: portadas reales, fotos de obra dibujadas ─────────
+     Las portadas son las de la intranet (Proyectos › portada) de Palm Field W5, Sumba Hills, Bonian Village y Riverfront II,
+     copiadas el 8-oct-2026 a /portal/demo/portadas/ (owner: «que la demo enseñe las portadas reales»). Son renders de
+     marketing y quedan públicos como cualquier imagen de la web; NO se actualizan solas si se cambia la portada en la
+     intranet. Las fotos de obra siguen dibujadas: son del cliente y no salen del almacén privado. */
   function svgUrl(s) { return 'data:image/svg+xml;utf8,' + encodeURIComponent(s); }
-  function portada(c, v) {
-    var sol = 230 + (v % 4) * 30;
-    return svgUrl('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><rect width="400" height="300" fill="' + c[0] + '"/>' +
-      '<circle cx="' + sol + '" cy="70" r="28" fill="#fbf9f4" opacity=".85"/>' +
-      '<polygon points="0,190 90,128 170,176 262,112 400,190 400,300 0,300" fill="' + c[1] + '"/>' +
-      '<polygon points="0,232 120,170 224,216 322,156 400,208 400,300 0,300" fill="' + c[2] + '"/>' +
-      '<rect y="268" width="400" height="32" fill="' + c[3] + '"/><rect x="' + (140 + v % 3 * 20) + '" y="196" width="58" height="38" fill="' + c[0] + '" opacity=".92"/>' +
-      '<rect x="' + (140 + v % 3 * 20) + '" y="190" width="58" height="7" fill="' + c[3] + '"/></svg>');
-  }
   function foto(n, fase) {
     var f = ['#cdbfa6', '#bfae92', '#b09c7e'][n % 3], pilares = fase === 'cim' ? 0 : 3 + (n % 3);
     var p = '';
@@ -50,16 +45,16 @@
   }
 
   /* ───────── los datos ───────── */
-  var PAL = { pr1: ['#cfd9c4', '#8F9B7A', '#485B37', '#104C4F'], pr2: ['#e6dcc6', '#BEB3A5', '#8A8474', '#42210B'], pr3: ['#d4e1de', '#8aa9a5', '#2f6b6b', '#104C4F'], pr4: ['#e3e0d4', '#a9b3a0', '#6b7a5c', '#2E3437'] };
+  var PORTADA = function (k) { return '/portal/demo/portadas/' + k + '.webp'; };
   var IMG = {};   // ruta → imagen
   function img(ruta, url) { IMG[ruta] = url; return ruta; }
 
   function datos() {
     var proyectos = [
-      { id: 'pr1', nombre: 'Palm Field W5', resort: 'Balian Hills, Bali', entrega: '2027-08-15', mapa: 'https://www.google.com/maps/search/?api=1&query=Balian+Hills+Bali', portada: img('portada/pr1', portada(PAL.pr1, 1)) },
-      { id: 'pr2', nombre: 'Sumba Hills', resort: 'Waikabubak, Sumba', entrega: '2028-03-01', mapa: 'https://www.google.com/maps/search/?api=1&query=Waikabubak+Sumba', portada: img('portada/pr2', portada(PAL.pr2, 2)) },
-      { id: 'pr3', nombre: 'Bonian Village', resort: 'Tabanan, Bali', entrega: '2027-12-01', mapa: null, portada: img('portada/pr3', portada(PAL.pr3, 3)) },
-      { id: 'pr4', nombre: 'Riverfront II', resort: 'Ubud, Bali', entrega: '2027-05-20', mapa: 'https://www.google.com/maps/search/?api=1&query=Ubud+Bali', portada: null }
+      { id: 'pr1', nombre: 'Palm Field W5', resort: 'Balian Hills, Bali', entrega: '2027-08-15', mapa: 'https://www.google.com/maps/search/?api=1&query=Balian+Hills+Bali', portada: img('portada/pr1', PORTADA('pr1')) },
+      { id: 'pr2', nombre: 'Sumba Hills', resort: 'Waikabubak, Sumba', entrega: '2028-03-01', mapa: 'https://www.google.com/maps/search/?api=1&query=Waikabubak+Sumba', portada: img('portada/pr2', PORTADA('pr2')) },
+      { id: 'pr3', nombre: 'Bonian Village', resort: 'Tabanan, Bali', entrega: '2027-12-01', mapa: null, portada: img('portada/pr3', PORTADA('pr3')) },
+      { id: 'pr4', nombre: 'Riverfront II', resort: 'Ubud, Bali', entrega: '2027-05-20', mapa: 'https://www.google.com/maps/search/?api=1&query=Ubud+Bali', portada: img('portada/pr4', PORTADA('pr4')) }
     ];
     var NOMBRE = { pr1: 'Palm Field W5', pr2: 'Sumba Hills', pr3: 'Bonian Village', pr4: 'Riverfront II' };
     function doc(id, pid, titulo, cat, extra) { return Object.assign({ id: id, proyecto_id: pid, proyecto: NOMBRE[pid], titulo: titulo, categoria: cat }, extra); }
@@ -199,7 +194,7 @@
     },
     storage: { from: function (bk) {
       function url(p) {
-        if (IMG[p]) return IMG[p];                                       // portadas y fotos de obra: dibujadas
+        if (IMG[p]) return IMG[p];                                       // portadas reales (/portal/demo/portadas) y fotos de obra dibujadas
         return pdfUrl();                                                   // el resto: un PDF de muestra
       }
       return {
