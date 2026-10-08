@@ -53,7 +53,7 @@ const C0 = {
 type Paleta = typeof C0;
 
 // Paleta de la SOCIEDAD (owner, 8-oct-2026: el correo de Sandal Woods en tonos tierra, no en el verde de Lawang). Sale de los datos de
-// `sociedades` (tinta.primary, tinta.deep, folio), nunca de una paleta aparte: acento = primary, botón = deep, tarjeta/texto del pie =
+// `sociedades` (tinta.primary, tinta.deep, folio), nunca de una paleta aparte: acento = primary, fondo exterior = primary (owner 8-oct: «algún color de la paleta»), botón = deep, tarjeta/texto del pie =
 // folio, y los tonos intermedios se mezclan con las MISMAS proporciones con que se derivan los de Lawang (SC = TG→RL al 41 %).
 // Cada color debe ser #rrggbb; si falta o es inválido, la paleta de siempre. Si el primary de la sociedad ES el verde de Lawang
 // (Tepi Sungai, la sociedad de la casa) tampoco se toca: su correo no cambia ni un byte.
@@ -72,7 +72,7 @@ function paletaDe(so: SociedadMarca | null | undefined): Paleta {
   const tinta = mezcla(deep, '#000000', 0.4);           // el VA de Lawang: casi negro, aquí del matiz de la marca
   const linea = mezcla(folio, deep, 0.2);               // el SS de Lawang: arena = el papel un punto más oscuro
   return {
-    fondo: sage, tarjeta: folio, texto: tinta, titular: tinta, acento: primary, linea, caja: 'transparent', boton: deep, boton_texto: folio,
+    fondo: primary, tarjeta: folio, texto: tinta, titular: tinta, acento: primary, linea, caja: 'transparent', boton: deep, boton_texto: folio,
     barra_fondo: 'transparent', barra_texto: tinta, barra_linea: linea, barra_punto: primary, rotulo_logo: sage,
     pie_fondo: tinta, pie_linea: tinta, pie_texto: folio, pie_marca: folio, pie_enlace: sage, pie_suave: linea,
   };
