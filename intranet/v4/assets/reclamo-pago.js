@@ -110,7 +110,7 @@
   function notaError(t) {
     var n = notaLimpia(t);
     if (n.length > NOTA_MAX) return rpT('La nota admite hasta 300 caracteres.');
-    if (/http|www\.|@/i.test(n)) return rpT('La nota no puede llevar enlaces ni direcciones de correo.');
+    if (/http|www\.|@|[a-z0-9-]\.(com|net|org|info|biz|io|co|id|es|app|xyz|top|link|click|online|site|ru|cn|me)([^a-z]|$)/i.test(n)) return rpT('La nota no puede llevar enlaces ni direcciones de correo.');
     return null;
   }
 
