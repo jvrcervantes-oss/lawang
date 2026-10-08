@@ -29,7 +29,7 @@
 --      llega a las 146. Se usa la UNION de las dos (nunca parcela_codigo, que es texto). Medido 8-oct-2026.
 --
 -- LLAMADORES CON NOMBRE (seguridad_2026 §1.ter — lo nuevo nace cerrado):
---   reclamo_pago_destinatarios / reclamo_pago_encolar / reclamo_pago_historial  <- pantalla de la ficha de parcela (authenticated;
+--   reclamo_pago_destinatarios / _encolar / _historial / _prueba  <- pantalla de la ficha de parcela (authenticated;
 --                                                                                   por dentro: es_admin_de(empresa del proyecto de la parcela))
 --   reclamo_pago_datos                                                          <- edge cola-correos-envio (service_role)
 --   _reclamo_pago_candidatos/_vigente/_destino                                  <- las RPC de arriba y correo_cola_reclamar. Sin grants.
@@ -46,10 +46,11 @@ create table public.reclamos_pago (
   creado_por   text not null check (char_length(creado_por) between 3 and 254),
   creado_por_uid uuid,
   creado_en    timestamptz not null default now(),
-  cola_id      uuid
+  cola_id      uuid,
+  prueba       boolean not null default false
 );
 comment on table public.reclamos_pago is
-  'Libro de «Reclamar pago» (8-oct-2026). Una fila por persona y pulsacion: quien lo pidio (de la sesion, nunca del navegador), cuando, a quien (ids; el correo vive en clients) y la nota. El estado del envio lo da correos_cola via cola_id. Solo se escribe desde reclamo_pago_encolar.';
+  'Libro de «Reclamar pago» (8-oct-2026). Una fila por persona y pulsacion: quien lo pidio (de la sesion, nunca del navegador), cuando, a quien (ids; el correo vive en clients) y la nota. El estado del envio lo da correos_cola via cola_id. Solo se escribe desde reclamo_pago_encolar y reclamo_pago_prueba. prueba=true: «Enviarme una prueba» (el destinatario es creado_por, nunca el comprador; no cuenta como reclamo).';
 create index reclamos_pago_unidad_idx on public.reclamos_pago (unidad_id, creado_en desc);
 create index reclamos_pago_client_idx on public.reclamos_pago (client_id);
 alter table public.reclamos_pago enable row level security;
@@ -160,7 +161,7 @@ $$;
 create or replace function public._reclamo_pago_destino(p_reclamo uuid)
 returns text language sql stable security definer set search_path = '' as $$
   select case when s.e ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' and char_length(s.e) <= 254 then s.e end
-    from (select lower(btrim(k.email)) as e
+    from (select case when r.prueba then lower(btrim(r.creado_por)) else lower(btrim(k.email)) end as e
             from public.reclamos_pago r join public.clients k on k.id = r.client_id
            where r.id = p_reclamo) s
 $$;
@@ -226,6 +227,10 @@ begin
    where q.id = p_id and q.estado = 'enviando'
   returning q.clave, q.firma_id, q.contrato_id, q.factura_id, q.reclamo_id into r;
   if not found then return false; end if;
+  -- una PRUEBA de «Reclamar pago» llega solo a quien la pidio: no deja registro de «correo enviado» en el contrato
+  if r.reclamo_id is not null and exists (select 1 from public.reclamos_pago x where x.id = r.reclamo_id and x.prueba) then
+    return true;
+  end if;
   select * into g from public._correo_cola_regla(r.clave);
 
   insert into public.correos_enviados
@@ -260,7 +265,7 @@ $$;
 create or replace function public.reclamo_pago_destinatarios(p_unidad uuid)
 returns table (contrato_id uuid, client_id uuid, nombre text, email_oculto text, idioma text, seleccionable boolean, motivo text,
                empresa text, sociedad text, parcela text, proyecto text,
-               ultimo_reclamo_en timestamptz, ultimo_estado text, ultimo_enviado_en timestamptz)
+               ultimo_reclamo_en timestamptz, ultimo_estado text, ultimo_enviado_en timestamptz, contrato_numero text)
 language plpgsql stable security definer set search_path = '' as $$
 #variable_conflict use_column
 declare
@@ -281,14 +286,15 @@ begin
          regexp_replace(c.email, '^(.).*(@.*)$', '\1***\2'),
          c.idioma, c.seleccionable, c.motivo, c.empresa_nombre, c.sociedad_razon, c.parcela, c.proyecto,
          (select r.creado_en from public.reclamos_pago r
-           where r.unidad_id = p_unidad and r.client_id = c.client_id order by r.creado_en desc limit 1),
+           where r.unidad_id = p_unidad and r.client_id = c.client_id and not r.prueba order by r.creado_en desc limit 1),
          (select case when q.id is null then 'archivado'
                       when q.estado in ('pendiente', 'enviando') then 'pendiente'
                       when q.estado = 'ok' then 'enviado' else q.estado end
             from public.reclamos_pago r left join public.correos_cola q on q.id = r.cola_id
-           where r.unidad_id = p_unidad and r.client_id = c.client_id order by r.creado_en desc limit 1),
+           where r.unidad_id = p_unidad and r.client_id = c.client_id and not r.prueba order by r.creado_en desc limit 1),
          (select max(q.enviado_en) from public.reclamos_pago r join public.correos_cola q on q.id = r.cola_id and q.estado = 'ok'
-           where r.unidad_id = p_unidad and r.client_id = c.client_id)
+           where r.unidad_id = p_unidad and r.client_id = c.client_id and not r.prueba),
+         (select k.numero from public.contratos k where k.id = c.contrato_id)
     from public._reclamo_pago_candidatos(p_unidad) c
    where c.orden = 1
    order by c.seleccionable desc, c.nombre nulls last, c.contrato_id;
@@ -365,7 +371,7 @@ begin
         using errcode = '22023', hint = v_c.motivo;
     end if;
     if exists (select 1 from public.reclamos_pago r
-                where r.unidad_id = p_unidad and r.client_id = v_id and r.creado_en > clock_timestamp() - interval '10 seconds') then
+                where r.unidad_id = p_unidad and r.client_id = v_id and not r.prueba and r.creado_en > clock_timestamp() - interval '10 seconds') then
       raise exception 'Ya se ha enviado un recordatorio a una de las personas marcadas hace unos segundos: no se repite.'
         using errcode = '22023', hint = 'doble_clic';
     end if;
@@ -415,7 +421,8 @@ begin
   end if;
   return query
   select r.id, r.creado_en, r.creado_por, r.client_id, k.full_name,
-         case when q.id is null then 'archivado'
+         case when r.prueba then 'prueba'
+              when q.id is null then 'archivado'
               when q.estado in ('pendiente', 'enviando') then 'pendiente'
               when q.estado = 'ok' then 'enviado' else q.estado end,
          q.enviado_en, q.error, r.nota
@@ -427,11 +434,77 @@ begin
    limit 200;
 end $$;
 
+-- Prueba: el mismo correo, solo para quien pulsa. El destinatario NO es un parametro: es el correo de la sesion
+-- (auth.email(), o usuarios.email), guardado en creado_por; _reclamo_pago_destino lo usa cuando prueba=true.
+-- La sociedad (marca/firma) sale del primer contrato valido de la parcela, igual que en un reclamo real, pero la fila
+-- lleva prueba=true: no cuenta como reclamo en destinatarios/doble clic, el historial la rotula 'prueba' y
+-- correo_cola_ok no escribe en correos_enviados del contrato. Sin anti doble clic por comprador (no hay comprador).
+create or replace function public.reclamo_pago_prueba(p_unidad uuid, p_nota text default null)
+returns text language plpgsql security definer set search_path = '' as $$
+#variable_conflict use_column
+declare
+  v_emp   text;
+  v_soc   text;
+  v_hay   boolean;
+  v_c     record;
+  v_nota  text;
+  v_quien text;
+  v_rec   uuid;
+  v_cola  uuid;
+begin
+  select p.empresa, e.sociedad_clave into v_emp, v_soc
+    from public.unidades u join public.proyectos p on p.id = u.proyecto_id
+    left join public.empresas e on e.clave = p.empresa
+   where u.id = p_unidad;
+  v_hay := found;
+  if not public.es_admin_de(v_emp) then
+    raise exception 'No tienes permiso sobre esta parcela.' using errcode = '42501', hint = 'sin_permiso';
+  end if;
+  if not v_hay then
+    raise exception 'La parcela no existe.' using errcode = '22023', hint = 'unidad_no_existe';
+  end if;
+  if v_soc is null then
+    raise exception 'La empresa de este proyecto no tiene sociedad definida: no se puede enviar el recordatorio.'
+      using errcode = '22023', hint = 'sociedad_proyecto_sin_definir';
+  end if;
+
+  v_nota := nullif(btrim(regexp_replace(coalesce(p_nota, ''), '[[:space:]]+', ' ', 'g')), '');
+  if v_nota is not null and (char_length(v_nota) > 300 or v_nota ~* 'http|www\.|@' or v_nota ~ '[[:cntrl:]]') then
+    raise exception 'La nota admite hasta 300 caracteres de texto, sin enlaces ni direcciones de correo.'
+      using errcode = '22023', hint = 'nota_invalida';
+  end if;
+
+  -- sociedad: la del primer contrato valido de la parcela
+  select * into v_c from public._reclamo_pago_candidatos(p_unidad) c
+   where c.orden = 1 and c.seleccionable order by c.contrato_id limit 1;
+  if not found then
+    raise exception 'Esta parcela no tiene ningún contrato firmado y válido con el que componer la prueba.'
+      using errcode = '22023', hint = 'sin_contrato_valido';
+  end if;
+
+  v_quien := lower(coalesce(nullif(btrim(coalesce(auth.email(), '')), ''),
+                            (select u.email from public.usuarios u where u.user_id = (select auth.uid()))));
+  if v_quien is null or v_quien !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' or char_length(v_quien) > 254 then
+    raise exception 'No se pudo identificar a quién enviar la prueba.' using errcode = '42501', hint = 'sin_identidad';
+  end if;
+
+  insert into public.reclamos_pago (unidad_id, contrato_id, client_id, nota, creado_por, creado_por_uid, prueba)
+  values (p_unidad, v_c.contrato_id, v_c.client_id, v_nota, v_quien, (select auth.uid()), true)
+  returning id into v_rec;
+  insert into public.correos_cola (clave, reclamo_id, prioridad)
+  values ('reclamo_pago', v_rec, (select r.prioridad from public._correo_cola_regla('reclamo_pago') r))
+  returning id into v_cola;
+  update public.reclamos_pago set cola_id = v_cola where id = v_rec;
+  perform public._correos_cola_despierta();
+  return regexp_replace(v_quien, '^(.).*(@.*)$', '\1***\2');
+end $$;
+
 -- ── 8. permisos: EXECUTE llega por PUBLIC y por los default privileges de Supabase si no se revoca ──
 revoke all on function public._reclamo_pago_candidatos(uuid), public._reclamo_pago_vigente(uuid), public._reclamo_pago_destino(uuid)
   from public, anon, authenticated, lw_lector, service_role;
-revoke all on function public.reclamo_pago_destinatarios(uuid), public.reclamo_pago_encolar(uuid, uuid[], text), public.reclamo_pago_historial(uuid)
+revoke all on function public.reclamo_pago_destinatarios(uuid), public.reclamo_pago_encolar(uuid, uuid[], text), public.reclamo_pago_historial(uuid),
+  public.reclamo_pago_prueba(uuid, text)
   from public, anon, authenticated, lw_lector, service_role;
 revoke all on function public.reclamo_pago_datos(uuid) from public, anon, authenticated, lw_lector;
-grant execute on function public.reclamo_pago_destinatarios(uuid), public.reclamo_pago_encolar(uuid, uuid[], text), public.reclamo_pago_historial(uuid) to authenticated;
+grant execute on function public.reclamo_pago_destinatarios(uuid), public.reclamo_pago_encolar(uuid, uuid[], text), public.reclamo_pago_historial(uuid), public.reclamo_pago_prueba(uuid, text) to authenticated;
 grant execute on function public.reclamo_pago_datos(uuid) to service_role;

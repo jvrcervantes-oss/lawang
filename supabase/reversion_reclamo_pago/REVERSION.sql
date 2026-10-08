@@ -1,4 +1,4 @@
--- destructivo-ok: REVERSION de 20261010070000_reclamo_pago_parcela.sql. Borra SOLO lo que esa migracion creo (libro reclamos_pago y sus filas, filas de cola con clave reclamo_pago, la plantilla reclamo_pago, la columna reclamo_id, 4+3 funciones) y restaura las definiciones anteriores byte a byte (copiadas de produccion el 8-oct-2026 con pg_get_functiondef). Los correos YA enviados quedan en correos_enviados (via = reclamo_pago): se reetiquetan a 'manual' antes de estrechar el CHECK, no se borran.
+-- destructivo-ok: REVERSION de 20261010070000_reclamo_pago_parcela.sql. Borra SOLO lo que esa migracion creo (libro reclamos_pago y sus filas, filas de cola con clave reclamo_pago, la plantilla reclamo_pago, la columna reclamo_id, 5+3 funciones (incluida reclamo_pago_prueba)) y restaura las definiciones anteriores byte a byte (copiadas de produccion el 8-oct-2026 con pg_get_functiondef). Los correos YA enviados quedan en correos_enviados (via = reclamo_pago): se reetiquetan a 'manual' antes de estrechar el CHECK, no se borran.
 -- Orden: 1) cola y registro, 2) funciones viejas, 3) CHECKs, 4) columna, 5) tabla, 6) funciones nuevas.
 -- Aplicar solo con el OK del owner. El trigger de sellado de correo_plantillas impide borrar la fila: se desactiva un instante.
 
@@ -121,6 +121,7 @@ drop table public.reclamos_pago;
 drop function public.reclamo_pago_destinatarios(uuid);
 drop function public.reclamo_pago_encolar(uuid, uuid[], text);
 drop function public.reclamo_pago_historial(uuid);
+drop function public.reclamo_pago_prueba(uuid, text);
 drop function public.reclamo_pago_datos(uuid);
 drop function public._reclamo_pago_candidatos(uuid);
 drop function public._reclamo_pago_vigente(uuid);

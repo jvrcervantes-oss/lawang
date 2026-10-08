@@ -17,6 +17,7 @@ declare
   u_disc uuid; cl_disc uuid; u_firma uuid; cl_firma uuid;
   r text; n1 bigint; n2 bigint; j jsonb; v_cola uuid; v_rec uuid; v_ok boolean;
   v_para text; v_ctr uuid; v_parc text; v_nota text; v_cnt int;
+  v_soc_ea text; v_dev text; v_u_sin uuid; v_rp uuid; v_c1 bigint; v_c2 bigint; v_est text; v_dest text;
 begin
   -- ── función temporal: ejecuta SQL como un perfil y devuelve 'OK:<filas>' o 'E<sqlstate>/<hint>' ──
   execute $f$
@@ -156,6 +157,7 @@ begin
     total := total + 1; if r not like 'E22023/sociedad_discordante' then fallos := fallos + 1; resumen := resumen || ' [B5 sociedad discordante: ' || r || ']'; end if;
   else total := total + 1; resumen := resumen || ' [B5 sociedad discordante: sin caso natural, no probado]'; end if;
   -- B6 sociedad NULA del proyecto (se anula la sociedad de la empresa dentro de la transacción)
+  select e.sociedad_clave into v_soc_ea from public.empresas e where e.clave = v_ea;
   begin
     perform set_config('request.jwt.claims', json_build_object('sub', v_prop, 'role', 'authenticated', 'email', v_prop_em)::text, true);
     update public.empresas set sociedad_clave = null where clave = v_ea;
@@ -230,6 +232,99 @@ begin
   exception when others then
     reset role; total := total + 1;
   end;
+
+  -- ═════════ E. «ENVIARME UNA PRUEBA» (reclamo_pago_prueba) ═════════
+  -- se restaura la sociedad de la empresa propia (la anuló B6) y se prueba sobre la parcela propia u_a2
+  update public.empresas set sociedad_clave = v_soc_ea where clave = v_ea;
+  -- E1 admin de empresa PROPIA: permitido; devuelve el correo ENMASCARADO de quien llama y deja 1 fila de prueba + 1 de cola, dirigida a SU correo
+  select count(*) into v_c1 from public.reclamos_pago where unidad_id = u_a2;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_ae, 'role', 'authenticated', 'email', v_ae_em)::text, true);
+  begin
+    set local role authenticated;
+    v_dev := public.reclamo_pago_prueba(u_a2, '  Texto de prueba  ');
+    reset role;
+  exception when others then
+    reset role; v_dev := 'E' || sqlstate;
+  end;
+  total := total + 1; if v_dev is null or v_dev like 'E%' or v_dev !~ '^.\*\*\*@' or v_dev = lower(v_ae_em) then
+    fallos := fallos + 1; resumen := resumen || ' [E1 prueba admin propio: ' || coalesce(v_dev, 'null') || ']'; end if;
+  select r2.id, r2.cola_id into v_rp, v_cola from public.reclamos_pago r2 where r2.unidad_id = u_a2 and r2.prueba order by r2.creado_en desc limit 1;
+  total := total + 1; if v_rp is null then fallos := fallos + 1; resumen := resumen || ' [E1b sin fila de prueba en el libro]'; end if;
+  total := total + 1; if not exists (select 1 from public.reclamos_pago x where x.id = v_rp and x.creado_por = lower(v_ae_em) and x.creado_por_uid = v_ae and x.nota = 'Texto de prueba') then
+    fallos := fallos + 1; resumen := resumen || ' [E1c autor o nota de la prueba mal guardados]'; end if;
+  total := total + 1; if not exists (select 1 from public.correos_cola q where q.id = v_cola and q.reclamo_id = v_rp and q.clave = 'reclamo_pago' and q.estado = 'pendiente') then
+    fallos := fallos + 1; resumen := resumen || ' [E1d la prueba no esta encolada por el mismo camino]'; end if;
+  -- E2 el DESTINO real que resolvera la cola es el correo de quien pulso, nunca el del comprador
+  v_dest := public._reclamo_pago_destino(v_rp);
+  total := total + 1; if v_dest is distinct from lower(v_ae_em) then fallos := fallos + 1; resumen := resumen || ' [E2 destino de la prueba distinto del correo de quien llama]'; end if;
+  total := total + 1; if v_dest = (select lower(btrim(k.email)) from public.reclamos_pago x join public.clients k on k.id = x.client_id where x.id = v_rp) and lower(v_ae_em) <> (select lower(btrim(k.email)) from public.reclamos_pago x join public.clients k on k.id = x.client_id where x.id = v_rp) then
+    fallos := fallos + 1; resumen := resumen || ' [E2b la prueba apunta al comprador]'; end if;
+  -- F1 destinatarios devuelve contrato_numero (el numero de SU contrato, nunca el uuid): coincide con contratos.numero en todas las filas
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select * from public.reclamo_pago_destinatarios(%L) d where d.contrato_numero is distinct from (select k.numero from public.contratos k where k.id = d.contrato_id)', u_a2));
+  total := total + 1; if r <> 'OK:0' then fallos := fallos + 1; resumen := resumen || ' [F1 contrato_numero no coincide con contratos.numero: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select * from public.reclamo_pago_destinatarios(%L) d where d.seleccionable and d.contrato_numero is not null', u_a2));
+  total := total + 1; if r not like 'OK:%' or r = 'OK:0' then resumen := resumen || ' [F1b ningun seleccionable con contrato_numero informado (puede ser dato): ' || r || ']'; end if;
+  -- E3 la prueba no cuenta como reclamo: destinatarios no muestra "ultimo reclamo", y el historial la rotula 'prueba'
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select * from public.reclamo_pago_destinatarios(%L) d where d.ultimo_reclamo_en is not null', u_a2));
+  total := total + 1; if r <> 'OK:0' then fallos := fallos + 1; resumen := resumen || ' [E3 la prueba figura como ultimo reclamo: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select * from public.reclamo_pago_historial(%L) h where h.estado = ''prueba''', u_a2));
+  total := total + 1; if r <> 'OK:1' then fallos := fallos + 1; resumen := resumen || ' [E3b historial no la rotula prueba: ' || r || ']'; end if;
+  -- E4 sin anti doble clic: dos pruebas seguidas entran las dos
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.reclamo_pago_prueba(%L, null)', u_a2));
+  total := total + 1; if r <> 'OK:1' then fallos := fallos + 1; resumen := resumen || ' [E4 segunda prueba seguida: ' || r || ']'; end if;
+  -- E4b una prueba no bloquea un reclamo real inmediato a esa persona
+  select c.client_id into cl_a2 from public._reclamo_pago_candidatos(u_a2) c where c.orden = 1 and c.seleccionable limit 1;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.reclamo_pago_encolar(%L, array[%L]::uuid[], null)', u_a2, cl_a2));
+  total := total + 1; if r <> 'OK:1' then fallos := fallos + 1; resumen := resumen || ' [E4b reclamo real tras una prueba: ' || r || ']'; end if;
+  -- E5 cerrar ok una prueba NO escribe en correos_enviados del contrato
+  select count(*) into v_c1 from public.correos_enviados where via = 'reclamo_pago';
+  update public.correos_cola set estado = 'enviando', reclamado_hasta = now() + interval '4 minutes' where id = v_cola;
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+  set local role service_role;
+  v_ok := public.correo_cola_ok(v_cola, v_ae_em, 'v1');
+  reset role;
+  select count(*) into v_c2 from public.correos_enviados where via = 'reclamo_pago';
+  total := total + 1; if not coalesce(v_ok, false) or v_c2 <> v_c1 then
+    fallos := fallos + 1; resumen := resumen || ' [E5 cerrar ok una prueba: ok=' || coalesce(v_ok::text, 'null') || ' registros ' || v_c1 || '->' || v_c2 || ']'; end if;
+  select q.estado into v_est from public.correos_cola q where q.id = v_cola;
+  total := total + 1; if v_est <> 'ok' then fallos := fallos + 1; resumen := resumen || ' [E5b la fila de cola no quedo ok: ' || v_est || ']'; end if;
+  -- E6 admin de empresa AJENA: denegado y sin filas
+  select count(*) into n1 from public.reclamos_pago;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.reclamo_pago_prueba(%L, null)', u_b));
+  total := total + 1; if r not like 'E42501%' then fallos := fallos + 1; resumen := resumen || ' [E6 prueba admin ajeno: ' || r || ']'; end if;
+  select count(*) into n2 from public.reclamos_pago;
+  total := total + 1; if n2 <> n1 then fallos := fallos + 1; resumen := resumen || ' [E6b la prueba denegada dejo filas]'; end if;
+  -- E7 agente, comprador del portal y anon: denegados
+  r := pg_temp.intenta('authenticated', v_ag, v_ag_em, format('select public.reclamo_pago_prueba(%L, null)', u_a2));
+  total := total + 1; if r not like 'E42501%' then fallos := fallos + 1; resumen := resumen || ' [E7 prueba agente: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_por, 'comprador@example.test', format('select public.reclamo_pago_prueba(%L, null)', u_a2));
+  total := total + 1; if r not like 'E42501%' then fallos := fallos + 1; resumen := resumen || ' [E7b prueba comprador del portal: ' || r || ']'; end if;
+  r := pg_temp.intenta('anon', null, null, format('select public.reclamo_pago_prueba(%L, null)', u_a2));
+  total := total + 1; if r not like 'E42501%' then fallos := fallos + 1; resumen := resumen || ' [E7c prueba anon: ' || r || ']'; end if;
+  -- E8 nota con enlace / www / correo / >300: rechazada, sin filas
+  select count(*) into n1 from public.reclamos_pago;
+  foreach v_nota in array array['mira http://x.test', 'entra en www.x.test', 'escribe a alguien@x.test', repeat('a', 301)] loop
+    r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.reclamo_pago_prueba(%L, %L)', u_a2, v_nota));
+    total := total + 1; if r not like 'E22023/nota_invalida' then fallos := fallos + 1; resumen := resumen || ' [E8 nota "' || left(v_nota, 12) || '": ' || r || ']'; end if;
+  end loop;
+  select count(*) into n2 from public.reclamos_pago;
+  total := total + 1; if n2 <> n1 then fallos := fallos + 1; resumen := resumen || ' [E8b nota rechazada dejo filas]'; end if;
+  -- E9 parcela sin contrato valido (la empresa tiene sociedad, pero ninguna persona seleccionable): rechazada
+  select u.id into v_u_sin from public.unidades u join public.proyectos p on p.id = u.proyecto_id join public.empresas e on e.clave = p.empresa
+   where e.sociedad_clave is not null and not exists (select 1 from public._reclamo_pago_candidatos(u.id) c where c.seleccionable) order by u.id limit 1;
+  if v_u_sin is not null then
+    r := pg_temp.intenta('authenticated', v_prop, v_prop_em, format('select public.reclamo_pago_prueba(%L, null)', v_u_sin));
+    total := total + 1; if r not like 'E22023/sin_contrato_valido' then fallos := fallos + 1; resumen := resumen || ' [E9 sin contrato valido: ' || r || ']'; end if;
+  else total := total + 1; resumen := resumen || ' [E9 sin contrato valido: sin caso natural, no probado]'; end if;
+  -- E10 sociedad nula del proyecto: rechazada (se anula otra vez dentro de la transaccion)
+  update public.empresas set sociedad_clave = null where clave = v_ea;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.reclamo_pago_prueba(%L, null)', u_a2));
+  total := total + 1; if r not like 'E22023/sociedad_proyecto_sin_definir' then fallos := fallos + 1; resumen := resumen || ' [E10 sociedad de proyecto nula: ' || r || ']'; end if;
+  update public.empresas set sociedad_clave = v_soc_ea where clave = v_ea;
+  -- E11 la funcion nueva no es ejecutable por anon/PUBLIC (solo authenticated)
+  select count(*) into n1 from information_schema.role_routine_grants g
+   where g.specific_schema = 'public' and g.routine_name = 'reclamo_pago_prueba' and g.privilege_type = 'EXECUTE' and g.grantee in ('PUBLIC', 'anon', 'lw_lector', 'service_role');
+  total := total + 1; if n1 <> 0 then fallos := fallos + 1; resumen := resumen || ' [E11 reclamo_pago_prueba ejecutable por ' || n1 || ' roles de mas]'; end if;
 
   -- ═════════ D. CUENTA DESACTIVADA ═════════
   perform set_config('request.jwt.claims', json_build_object('sub', v_prop, 'role', 'authenticated', 'email', v_prop_em)::text, true);
