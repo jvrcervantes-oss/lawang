@@ -148,6 +148,11 @@ async function enviarEmail(p: { to: string; subject: string; message: string; fi
   // se inserta tras el ok y un fallo del log nunca revienta el envío
   log?: { contrato_id?: string | null; factura_id?: string | null; via: string } }) {
   const dest = await destinoEnvio((p.pdfB64 || '').length);
+  // El PHP de respaldo (o un PDF que no cabe en la edge) no entiende `sociedad`: el correo de una sociedad que NO es Lawang saldria
+  // con el marco, logo y pie de Lawang. Mejor no enviar y que el fallo se reintente que enviar con la marca equivocada.
+  if (p.sociedad && p.sociedad !== 'tepi_sungai' && dest.url !== ENVIO_EDGE) {
+    throw new Error('email a ' + p.to + ': el destino de envio no entiende la sociedad ' + p.sociedad + ' y saldria con la marca de otra');
+  }
   const r = await fetch(dest.url, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'X-Render-Secret': dest.secreto, 'X-Llamante': 'factura-vencimiento' },

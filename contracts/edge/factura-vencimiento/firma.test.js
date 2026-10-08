@@ -39,4 +39,6 @@ assert.ok(src.includes("'\\n\\n\\n' + firma,"), 'el correo al comprador termina 
 // 3 · la sociedad viaja a envia-correo, y solo a la edge
 assert.strictEqual((src.match(/\n\s+sociedad: campos\.sociedad,\n/g) || []).length, 2, 'los dos correos (comprador y copia al estudio) llevan la sociedad');
 assert.ok(src.includes('...(p.sociedad && dest.url === ENVIO_EDGE ? { sociedad: p.sociedad } : {}),'), 'sociedad solo hacia la edge');
+// 4 · si el destino no es la edge, una sociedad que NO es Lawang no sale con la marca de Lawang: se corta
+assert.ok(src.includes("p.sociedad && p.sociedad !== 'tepi_sungai' && dest.url !== ENVIO_EDGE") && /throw new Error\('email a ' \+ p\.to \+ ': el destino de envio no entiende la sociedad/.test(src), 'sin la edge, una sociedad distinta de Lawang debe cortar el envio');
 console.log('OK firma.test.js — sin firma fija; Lawang sigue firmando igual, Sandal Woods como Sandal Woods; la sociedad del contrato viaja a envia-correo solo por la edge; copias idénticas');
