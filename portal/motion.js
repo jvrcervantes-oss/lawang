@@ -257,6 +257,24 @@
     return true;
   };
 
+  /* Cambio de villa dentro de Obra (u otro selector que repinta la misma pantalla): el selector se queda quieto y lo de debajo
+     entra por piezas, como al abrir la sección. Sin movimiento no hace nada: el repintado ya dejó la pantalla lista. */
+  M.recambio = function (c, desde) {
+    if (!puede() || !c) return;
+    var P = PERF.A, i = 0;
+    Array.prototype.forEach.call(c.children, function (el, n) {
+      if (n < (desde || 1)) return;
+      anima(el, P.f(), { duration: P.dur, delay: (i++) * P.paso, easing: P.ease, fill: 'backwards' });
+    });
+    Array.prototype.forEach.call(c.querySelectorAll('.barra > i'), function (el) {
+      anima(el, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 700, delay: 200, easing: EASE, fill: 'backwards' });
+    });
+    var pasos = c.querySelectorAll('.tl-paso');
+    Array.prototype.forEach.call(pasos, function (el, k) {
+      anima(el, [{ opacity: 0, transform: 'translateY(8px) scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 380, delay: 220 + k * 60, easing: EASE, fill: 'backwards' });
+    });
+  };
+
   M.perfil = perfil; M.valorCuenta = valorCuenta; M.claveVista = claveVista; M.recorte = recorte; M.puede = puede;
   if (typeof module !== 'undefined' && module.exports) module.exports = M; else root.LW_MOV = M;
 })(typeof window !== 'undefined' ? window : this);
