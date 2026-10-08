@@ -1,13 +1,13 @@
 <!DOCTYPE html><html lang="es" style=""><head>
-<meta name="lw-version" content="9f43e5002e18">
+<meta name="lw-version" content="19c34318c062">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/roles.js?v=11bd025d"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=56bb3760" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=5f0734c0" defer></script>
-<script src="/contracts/assets/dinero.js?v=0f73a5db" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=6a1e784c" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=977208e4" defer></script><script src="/contracts/assets/docs_contrato.js?v=73e7152b" defer></script><script src="/contracts/assets/mapa.js?v=dfa99f98" defer></script><script src="../assets/datos.js?v=f32b03e0" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/i18n.js?v=0dbfbbdc" defer></script>
+<script src="/contracts/assets/dinero.js?v=0f73a5db" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=6a1e784c" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=977208e4" defer></script><script src="/contracts/assets/docs_contrato.js?v=73e7152b" defer></script><script src="/contracts/assets/mapa.js?v=dfa99f98" defer></script><script src="../assets/datos.js?v=2cd794c1" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=d61bfe3a" defer></script>
 <link href="../assets/shell.css?v=449197c1" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=f20b109f" defer></script><script src="../assets/maqueta.js?v=ffb0fbf1" defer></script><script src="../assets/ficha_publica.js?v=b6dd6829" defer></script>
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=6b23de2b" defer></script><script src="../assets/reclamo-pago.js?v=b397dac0" defer></script><script src="../assets/maqueta.js?v=ffb0fbf1" defer></script><script src="../assets/ficha_publica.js?v=b6dd6829" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, aquí solo se engancha, nunca se reescribe. Depende de
@@ -1080,6 +1080,15 @@
 <div class="flex items-center justify-between pb-2 border-b border-warm-border/60"><span class="text-on-surface-variant font-medium">Suelo</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-suelo">—</span></div>
 <div class="flex items-center justify-between pb-2 border-b border-warm-border/60"><span class="text-on-surface-variant font-medium">Precio de suelo por m²</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-suelo-m2">—</span></div>
 <div class="flex items-center justify-between"><span class="text-on-surface-variant font-medium">Construcción</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-obra">—</span></div>
+</div>
+<!-- Recordatorio de pago (8-oct-2026): lo pinta y lo cablea ../assets/reclamo-pago.js. Oculto hasta que
+     reclamo_pago_destinatarios diga que hay a quién escribir; quien no administra la empresa nunca lo ve. -->
+<div class="hidden bg-surface-container-low rounded-xl border border-warm-border p-4 space-y-3 text-xs" data-lw="rp-bloque">
+<h4 class="text-xs font-bold uppercase tracking-wider text-outline" data-lwt>Recordatorio de pago</h4>
+<p class="text-on-surface-variant" style="margin:0;line-height:1.45" data-lwt>Envía un correo amistoso a quien compró esta parcela. Es un recordatorio, no una notificación formal de mora.</p>
+<button type="button" class="w-full py-2 px-4 rounded-xl bg-deep-lagoon text-surface-bright hover:bg-opacity-95 transition-all font-label-md text-[13px] font-semibold" data-accion="reclamar-pago" data-real hidden data-lwt>Reclamar pago</button>
+<div data-lw="rp-estado"></div>
+<div data-lw="rp-historial"></div>
 </div>
 </div><!-- /cajon-vista-parcela -->
 </div><!-- /flex-1 overflow-y-auto (cuerpo con scroll del cajón) -->

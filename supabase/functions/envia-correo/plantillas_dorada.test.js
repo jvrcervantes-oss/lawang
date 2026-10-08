@@ -30,7 +30,7 @@ const D = require(path.join(RAIZ, 'contracts', 'assets', 'dinero.js'));
   const A = await import('./arnes.mjs');
   const P = await import('./plantillas_arnes.mjs');
   const V = await import('./valida.ts');
-  const CLAVES = Object.keys(V.PLANTILLAS);
+  const CLAVES = Object.keys(V.PLANTILLAS).filter((k) => !P.SOLO_LAWANG.includes(k));   // las de una sola instancia tienen su propia prueba
   const DOM = 'lawangproperties.com';
   const CONFIG = [['marca', 'Lawang'], ['dominio_web', DOM], ['url_intranet', 'https://lawangproperties.com/intranet/'],
     ['email_avisos_soporte', 'soporte@lawangproperties.com'], ['email_avisos_sistema', 'sistema@lawangproperties.com']];

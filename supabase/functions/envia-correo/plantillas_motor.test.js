@@ -15,7 +15,7 @@ const path = require('path');
   const V = await import('./valida.ts');
   const F = await import('./plantillas_fabrica.ts');
   const CAT = P.catalogosSellados();
-  const CLAVES = Object.keys(V.PLANTILLAS);
+  const CLAVES = Object.keys(V.PLANTILLAS).filter((k) => !P.SOLO_LAWANG.includes(k));   // las de una sola instancia tienen su propia prueba
   assert.deepStrictEqual(Object.keys(CAT).sort(), [...CLAVES].sort(), 'la migración siembra exactamente las claves de valida.ts → PLANTILLAS');
   const PORTAL = 'https://erp.ejemplo.com/portal/';
   const ENLACE = 'https://ejemplo.com/contracts/firmar.html?t=tok.abc-1';

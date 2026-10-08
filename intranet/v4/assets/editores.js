@@ -1099,7 +1099,10 @@
         }, 450);
       }, function (e) {
         suelta();
-        muestraError('No se pudo guardar: ' + (e && e.message || e));
+        /* `e.silencioso`: quien llama cancela a propósito (p. ej. «No» en su propia confirmación) — nada que mostrar.
+           `e.sinPrefijo`: el mensaje ya viene completo y no es de un «guardado» (reclamo-pago.js: es un envío). */
+        if (e && e.silencioso) return;
+        muestraError((e && e.sinPrefijo ? '' : 'No se pudo guardar: ') + (e && e.message || e));
       });
     });
   }

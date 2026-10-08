@@ -25,7 +25,7 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
 
   /** Prepara el arnés. `tandas`: lo que devuelve reclamar en cada llamada (después, []); `envia(cuerpo, init)`: respuesta de envia-correo. */
   function prepara({ tandas = [[fila()]], envia = () => ({ status: 200, cuerpo: { ok: true, plantilla: 'enlace_firma_cadena', version: 'f:ab12cd34' } }),
-                     pausado = false, secreto = COLA, okRpc = true, env = {} } = {}) {
+                     pausado = false, secreto = COLA, okRpc = true, env = {}, datos = [{ sociedad_clave: 'san_dal_woods' }] } = {}) {
     const est = { rpcs: [], envios: [], patches: [], reclamos: 0 };
     const extra = async (u, init = {}) => {
       const url = new URL(u);
@@ -41,6 +41,7 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
         if (m[1] === 'correo_cola_reclamar') { const t = tandas[est.reclamos++] ?? []; return new Response(JSON.stringify(t), { status: 200 }); }
         if (m[1] === 'correo_cola_ok') return okRpc === 'lanza' ? new Response('boom', { status: 500 }) : new Response(JSON.stringify(okRpc), { status: 200 });
         if (m[1] === 'correo_cola_fallo') return new Response(JSON.stringify('pendiente'), { status: 200 });
+        if (m[1] === 'reclamo_pago_datos') return new Response(JSON.stringify(datos), { status: 200 });
         if (m[1] === 'correos_cola_purga') return new Response('0', { status: 200 });
         return new Response('null', { status: 200 });
       }
@@ -95,6 +96,20 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
   // aviso_anulacion: solo contrato_id (el motor no admite firma_id con esa clave)
   est = prepara({ tandas: [[fila({ clave: 'aviso_anulacion', prioridad: 5 })]] }); r = await pasa();
   igual(est.envios[0].cuerpo, { to: DIR, plantilla: 'aviso_anulacion', attach: false, contrato_id: C }, 'aviso_anulacion: solo contrato_id');
+
+  // reclamo_pago: el destinatario es el `para` de la base; al motor solo van el id de la fila, el contrato y la sociedad. Ni dirección en vars, ni nombre, ni nota.
+  const RECL = { clave: 'reclamo_pago', firma_id: null, prioridad: 7, vars: { nombre: 'X', nota: 'no debe viajar', para: 'otro@x.com' } };
+  est = prepara({ tandas: [[fila(RECL)]] }); r = await pasa();
+  igual(est.envios[0].cuerpo, { to: DIR, plantilla: 'reclamo_pago', attach: false, contrato_id: C, vars: { reclamo: Q }, sociedad: 'san_dal_woods' }, 'reclamo_pago: to del dueño, vars solo {reclamo}, sociedad del contrato');
+  ok(!JSON.stringify(est.envios[0].cuerpo.vars).includes('@') && !JSON.stringify(est.envios[0].cuerpo).includes('no debe viajar'), 'reclamo_pago: ninguna dirección ni nota en vars (las vars de la fila se ignoran)');
+  igual(est.rpcs.find((x) => x.nombre === 'reclamo_pago_datos').args, { p_cola: Q }, 'los datos se piden a la base por el id de la fila');
+  igual(est.rpcs.find((x) => x.nombre === 'correo_cola_ok').args, { p_id: Q, p_para: DIR, p_version: 'f:ab12cd34' }, 'reclamo_pago cierra ok como las demás');
+  // sin sociedad en el contrato: terminal visible y NO se envía firmado como otra empresa
+  for (const d of [[{ sociedad_clave: null }], [], null]) {
+    est = prepara({ tandas: [[fila(RECL)]], datos: d, envia: () => ({ status: 400, cuerpo: { error: 'reclamo_sin_sociedad' } }) }); r = await pasa();
+    ok(est.envios.length === 0, 'reclamo_pago sin sociedad: no llega al motor');
+    const f2 = est.rpcs.find((x) => x.nombre === 'correo_cola_fallo'); ok(f2 && f2.args.p_terminal === true && f2.args.p_error === 'reclamo_sin_sociedad', 'reclamo_pago sin sociedad: fallo terminal visible');
+  }
 
   // clave que la edge no sabe resolver → terminal visible, no se envía
   est = prepara({ tandas: [[fila({ clave: 'factura_vencimiento', contrato_id: null, firma_id: null, factura_id: C })]] }); r = await pasa();
@@ -173,14 +188,30 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
   const IDS = (await import(require('url').pathToFileURL(path.join(__dirname, 'index.ts')).href + '?ids')).IDS_POR_CLAVE;
   // reglas SQL: 8 claves = las 8 de PLANTILLAS; soportadas = las que resuelve la edge
   const reglas = [...mig.matchAll(/^\s*\('([a-z_]+)',\s*'(firma_id|contrato_id|factura_id)',\s*(true|false),/gm)].map((m) => ({ clave: m[1], ancla: m[2], soportada: m[3] === 'true' }));
-  const plantillas = [...valida.matchAll(/^  ([a-z_]+):\s+\{ adjunto: (true|false),\s+ids: \[([^\]]*)\]/gm)].map((m) => ({ clave: m[1], adjunto: m[2] === 'true', ids: [...m[3].matchAll(/'(\w+)'/g)].map((x) => x[1]) }));
+  const plantillasTodas = [...valida.matchAll(/^  ([a-z_]+):\s+\{ adjunto: (true|false),\s+ids: \[([^\]]*)\]/gm)].map((m) => ({ clave: m[1], adjunto: m[2] === 'true', ids: [...m[3].matchAll(/'(\w+)'/g)].map((x) => x[1]) }));
+  // «Reclamar pago» (8-oct-2026) es la 9ª: su regla vive en la migración 20261010070000 (ancla propia, soportada=false A PROPÓSITO para que
+  // correo_encolar la rechace) y la edge SÍ la resuelve; se comprueba aparte abajo. Las 8 de siempre siguen cruzadas como antes.
+  const plantillas = plantillasTodas.filter((x) => x.clave !== 'reclamo_pago');
+  igual(plantillasTodas.map((x) => x.clave).sort(), [...plantillas.map((x) => x.clave), 'reclamo_pago'].sort(), 'PLANTILLAS = las 8 + reclamo_pago');
   igual(reglas.map((x) => x.clave).sort(), plantillas.map((x) => x.clave).sort(), '_correo_cola_regla lista las mismas 8 claves que PLANTILLAS de valida.ts');
-  igual(reglas.filter((x) => x.soportada).map((x) => x.clave).sort(), Object.keys(IDS).sort(), 'las claves soportadas en SQL son las que resuelve la edge');
+  igual(reglas.filter((x) => x.soportada).map((x) => x.clave).concat(['reclamo_pago']).sort(), Object.keys(IDS).sort(), 'las claves soportadas en SQL (+ reclamo_pago, aparte) son las que resuelve la edge');
   for (const r2 of reglas.filter((x) => x.soportada)) {
     const p = plantillas.find((x) => x.clave === r2.clave);
     igual(p.adjunto, false, r2.clave + ': sin adjunto (la edge manda attach:false)');
     igual([...IDS[r2.clave]].sort(), [...p.ids].sort(), r2.clave + ': ids de la edge = ids que pide el motor');
     ok(IDS[r2.clave].includes(r2.ancla === 'firma_id' ? 'firma_id' : r2.ancla) || r2.ancla === 'firma_id', r2.clave + ': ancla');
+  }
+  // reclamo_pago: regla SQL, ids del motor, ancla, vía y CHECKs, todo cruzado con la migración que lo introduce
+  {
+    const mr = leer('supabase', 'migrations', '20261010070000_reclamo_pago_parcela.sql');
+    const fila = /\('reclamo_pago',\s*'(reclamo_id)',\s*(true|false),\s*(\d+),\s*(\d)::smallint,\s*(\d+),\s*'([a-z_]+)'/.exec(mr);
+    ok(fila, 'regla SQL de reclamo_pago');
+    igual(fila[2], 'false', 'reclamo_pago: soportada=false en SQL (correo_encolar la rechaza; solo reclamo_pago_encolar la crea)');
+    const pr = plantillasTodas.find((x) => x.clave === 'reclamo_pago');
+    igual(pr.adjunto, false, 'reclamo_pago: sin adjunto'); igual([...IDS.reclamo_pago].sort(), [...pr.ids].sort(), 'reclamo_pago: ids de la edge = ids que pide el motor');
+    ok(/editables: \['reclamo'\]/.test(valida.match(/reclamo_pago:[^\n]*/)[0]), 'reclamo_pago: la única variable editable es el id del reclamo (nada de datos del correo)');
+    ok(mr.includes("'" + fila[6] + "'") && mr.split("correos_enviados_via_check check")[1].includes("'reclamo_pago'"), 'la vía reclamo_pago está en el CHECK de correos_enviados');
+    ok(mr.includes('reclamo_pago_datos'), 'la RPC que lee la edge existe en la migración');
   }
   // las vías de correos_enviados que usa la cola existen en su CHECK
   const viasCola = [...mig.matchAll(/^\s*\('[a-z_]+',\s*'[a-z_]+',\s*(?:true|false),\s*\d+,\s*\d::smallint,\s*\d+,\s*'([a-z_]+)'/gm)].map((m) => m[1]);

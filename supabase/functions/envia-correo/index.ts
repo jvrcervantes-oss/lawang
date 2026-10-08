@@ -53,7 +53,7 @@ import {
   type TextoPlantilla,
 } from './valida.ts';
 import { remitenteEfectivo, replyToEfectivo, buzonAvisoValido, PUERTO_SMTP } from './smtp.ts';
-import { plantillaHtml, plantillaTexto, type Marca } from './plantilla.ts';
+import { plantillaHtml, plantillaTexto, type Marca, type SociedadMarca } from './plantilla.ts';
 import { resuelve, textoFabrica } from './plantillas_fabrica.ts';
 
 const env = (k: string) => (Deno.env.get(k) ?? '').trim();
@@ -342,6 +342,45 @@ async function componePlantilla(p: Peticion, cfg: Config, portal: string): Promi
   return { ...c, cta, plantilla: p.plantilla, version };
 }
 
+// ── marca por sociedad (reclamo de pago / facturas automáticas, encargos/20261008_lawang_reclamo_pago_parcela.md) ──────────────
+// `sociedad` es la CLAVE de una fila activa de `public.sociedades` (lista cerrada: se lee de la base con la clave de servicio, jamás
+// texto libre). Solo la vía de servicio puede pedirla: un navegador con sesión no elige con qué razón social sale un correo. Sin
+// `sociedad`, el correo es el de siempre. Una clave pedida que no se puede resolver NO cae a la marca de Lawang: falla (400/502),
+// porque un correo de Sandal Woods firmado como Lawang es justo el error que esto viene a quitar.
+const CLAVE_SOCIEDAD = /^[a-z][a-z0-9_]{2,39}$/;
+
+/** Logo de la sociedad como URL https ABSOLUTA de dominio propio (el de la instancia, un subdominio, o el storage de ESTE proyecto de
+ *  Supabase); una ruta «/…» se resuelve contra el dominio de la instancia. Cualquier otra cosa → null (el nombre en texto, nunca un
+ *  <img> hacia un tercero: sería un pixel de rastreo en el correo del comprador). */
+export function logoDeSociedad(logo: unknown, dominio: string, supaUrl: string): string | null {
+  if (typeof logo !== 'string') return null;
+  const l = logo.trim();
+  if (l === '' || tieneControl(l) || l.length > 500) return null;
+  let u: URL;
+  try { u = new URL(l.startsWith('/') && !l.startsWith('//') ? 'https://' + dominio + l : l); } catch { return null; }
+  if (u.protocol !== 'https:' || u.username || u.password || u.port) return null;
+  const h = u.hostname.toLowerCase();
+  let supaHost = '';
+  try { supaHost = new URL(supaUrl).hostname.toLowerCase(); } catch { /* sin URL de Supabase: solo el dominio propio */ }
+  return h === dominio || h.endsWith('.' + dominio) || (supaHost !== '' && h === supaHost) ? u.href : null;
+}
+
+async function leeSociedad(clave: string, dominio: string): Promise<SociedadMarca | Fallo> {
+  if (!CLAVE_SOCIEDAD.test(clave)) return { error: 'sociedad no válida', status: 400 };
+  let filas: unknown;
+  try {
+    filas = await leeDato('sociedades?select=razon,marca,logo&activa=is.true&clave=eq.' + encodeURIComponent(clave));
+  } catch (e) {
+    console.error('envia-correo: no se pudo leer la sociedad (' + String((e as Error)?.message ?? e).slice(0, 40) + ')');
+    return { error: 'No se pudo leer la sociedad del correo', status: 502 };
+  }
+  const f = Array.isArray(filas) && filas.length === 1 ? filas[0] as { razon?: unknown; marca?: unknown; logo?: unknown } : null;
+  const razon = typeof f?.razon === 'string' ? f.razon.trim() : '';
+  if (!f || razon === '' || tieneControl(razon)) return { error: 'sociedad desconocida o inactiva', status: 400 };
+  const marcaTxt = typeof f.marca === 'string' ? f.marca.trim() : '';
+  return { razon, marca: marcaTxt !== '' && !tieneControl(marcaTxt) ? marcaTxt : razon, logoUrl: logoDeSociedad(f.logo, dominio, SUPA_URL) };
+}
+
 // ── manejador ────────────────────────────────────────────────────────────────────────────────
 export async function manejador(req: Request): Promise<Response> {
   const cfg = await config();
@@ -376,6 +415,15 @@ export async function manejador(req: Request): Promise<Response> {
   const leida = leePeticion(entrada);
   if (esFallo(leida)) return fail(leida, via);
   const p = leida;
+  // `sociedad`: fuera de lo que lee leePeticion (canon); se mira en el JSON crudo. Solo vía de servicio; por cualquier otra, 400.
+  const sociedadPedida = entrada && typeof entrada === 'object' && !Array.isArray(entrada) ? (entrada as Record<string, unknown>).sociedad : undefined;
+  let sociedad: SociedadMarca | null = null;
+  if (sociedadPedida !== undefined && sociedadPedida !== null && sociedadPedida !== '') {
+    if (via !== 'servicio' && via !== 'servicio-render') return fail({ error: 'sociedad solo se admite con el secreto del servicio', status: 400 }, via, p.to);
+    const r = typeof sociedadPedida === 'string' ? await leeSociedad(sociedadPedida.trim(), cfg.dominio) : { error: 'sociedad no válida', status: 400 } as Fallo;
+    if (esFallo(r)) return fail(r, via, p.to);
+    sociedad = r;
+  }
   if (p.subject === '') p.subject = cfg.asuntoDefecto || ('Documento — ' + cfg.marca);
 
   // El servidor SMTP se lee UNA vez por petición y solo DESPUÉS de autorizar (una petición sin credencial no provoca lecturas a la base).
@@ -385,7 +433,7 @@ export async function manejador(req: Request): Promise<Response> {
   const construyeMarca = async (): Promise<Marca> => {
     const f = await leeFuente();
     const rem = remitenteEfectivo({ emailFrom: cfg.emailFrom, buzon: f.ok ? f.s.buzon : '', usuario: f.ok ? f.s.user : '', dominioWeb: cfg.dominio });
-    return { marca: cfg.marca, dominio: cfg.dominio, remitente: rem.from || ('no-reply@' + cfg.dominio), logoUrl: cfg.logoUrl, contacto: p.contacto };
+    return { marca: cfg.marca, dominio: cfg.dominio, remitente: rem.from || ('no-reply@' + cfg.dominio), logoUrl: cfg.logoUrl, contacto: p.contacto, sociedad };
   };
   const portal = new URL('/portal/', cfg.urlIntranet).href;
 
@@ -395,6 +443,11 @@ export async function manejador(req: Request): Promise<Response> {
   const aplicaPlantilla = async (): Promise<Fallo | null> => {
     if (!VIAS_PLANTILLA.includes(via)) return { error: 'No autorizado: una plantilla exige sesión de la suite o el secreto del servicio.', status: 401 };
     const e = validaPlantillaPeticion(p); if (e) return e;
+    // «Reclamar pago» la pide solo la cola (secreto del servicio) y siempre con la sociedad del contrato: ni una sesión del equipo puede
+    // reenviarlo a mano ni sale firmado con la marca de Lawang por descuido.
+    if (p.plantilla === 'reclamo_pago' && ((via !== 'servicio' && via !== 'servicio-render') || !sociedad)) {
+      return { error: 'reclamo_pago exige el secreto del servicio y la sociedad', status: 400 };
+    }
     const r = await componePlantilla(p, cfg, portal);
     if (esFallo(r)) return r;
     comp = r;
