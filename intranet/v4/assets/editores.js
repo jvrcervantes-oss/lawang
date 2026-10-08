@@ -4345,7 +4345,10 @@
                       .filter(function (id) { return !facturasAbiertasCache.some(function (x) { return x.id === id; }); });
                     return (sueltas.length ? sb.rpc('facturas_equipo').select('id,numero').in('id', sueltas) : Promise.resolve({ data: [] }))
                       .then(function (fr) {
+                        if (fr.error) throw fr.error;
                         (fr.data || []).forEach(function (x) { numeroDe[x.id] = x.numero; });
+                        // sin número real el recibí imprimiría un concepto vacío: no se carga
+                        if (sueltas.some(function (id) { return !numeroDe[id]; })) throw new Error('no se encontró el número de una factura de este recibí');
                         return rr;
                       });
                   }).then(function (rr) {

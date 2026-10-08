@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="b673ad08644d">
+<meta name="lw-version" content="8307a1f1072d">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -3259,8 +3259,13 @@ async function abrir(f){
     const sueltas = (data || []).map(r => r.factura_id).filter(id => !FACTURAS_ABIERTAS.some(x => x.id === id));
     const numeroDe = {};
     if(sueltas.length){
-      const { data: fs } = await sb.rpc('facturas_equipo').select('id,numero').in('id', sueltas);
+      const { data: fs, error: errFs } = await sb.rpc('facturas_equipo').select('id,numero').in('id', sueltas);
       (fs || []).forEach(x => { numeroDe[x.id] = x.numero; });
+      // sin número real el recibí imprimiría un concepto vacío: no se carga, se avisa
+      if(errFs || sueltas.some(id => !numeroDe[id])){
+        toastMal(lwT('No se pudieron traer las facturas que este recibí ya saldaba'));
+        sueltas.length = 0; if(data) data.length = 0;   // sin aplicaciones: guardar pide elegir la factura de nuevo
+      }
     }
     (data || []).forEach(row => {
       const abierta = FACTURAS_ABIERTAS.find(x => x.id === row.factura_id);
