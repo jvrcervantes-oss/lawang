@@ -174,5 +174,68 @@ es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)
   es('vacío: sin villas', R.villasPortal([]), []);
 }
 
+/* ── estado de pago de cada documento (Facturas, 8-oct-2026) ──────────────────
+   Los importes de las facturas son los de un comprador real con acceso al portal (8-oct, solo lectura):
+   INV00164 saldada entera, INV00159 con 20.000 de 25.000 aplicados, INV00160 sin nada aplicado. */
+{
+  const HOY = new Date(2026, 9, 8, 12, 0, 0);
+  const fac = (numero, total, aplicado, vence, extra) => Object.assign({ id:numero, numero, tipo:'factura', total, aplicado,
+    contrato_numero:'CC1', contrato_id:'c1', moneda:'EUR', fields:{ fecha_vencimiento:vence } }, extra);
+  es('aplicada entera: pagada', R.estadoFactura(fac('INV00164', 22250, 22250, '2026-09-01'), 0, HOY).estado, 'pagada');
+  const parcial = R.estadoFactura(fac('INV00159', 25000, 20000, '2026-12-01'), 0, HOY);
+  es('aplicada en parte y sin vencer: pago parcial', parcial.estado, 'parcial');
+  es('…con lo que falta', parcial.falta, 5000);
+  es('nada aplicado y sin vencer: pendiente', R.estadoFactura(fac('INV00160', 25250, 0, '2026-10-14'), 0, HOY).estado, 'pendiente');
+  es('nada aplicado y vencida ayer: vencida', R.estadoFactura(fac('INV00160', 25250, 0, '2026-10-07'), 0, HOY).estado, 'vencida');
+  es('vence HOY: todavía no está vencida', R.estadoFactura(fac('INV00160', 25250, 0, '2026-10-08'), 0, HOY).estado, 'pendiente');
+  es('en parte y vencida: vencida, con lo que falta', R.estadoFactura(fac('INV00159', 25000, 20000, '2026-10-01'), 0, HOY),
+     { estado:'vencida', vence:'2026-10-01', falta:5000 });
+  es('el fin del día es el LOCAL, no medianoche UTC', R.finDelDia('2026-10-14'), new Date(2026, 9, 14, 23, 59, 59, 999).getTime());
+  es('sin aplicado: no se sabe, no se pinta', R.estadoFactura(fac('X', 100, null, null), 0, HOY).estado, null);
+  es('recibí', R.estadoFactura({ tipo:'recibi', total:5 }, 0, HOY).estado, 'recibo');
+  es('proforma: sin estado de pago', R.estadoFactura({ tipo:'proforma', total:5, aplicado:null }, 0, HOY).estado, 'proforma');
+
+  // Administración: el recibí del contrato NO se aplicó a la factura. El dinero entró: la factura sale pagada.
+  const contrato = { id:'c1', numero:'CC1', cobrado:10000 };
+  const sinAplicar = [fac('F1', 10000, 0, '2026-09-01', { fecha:'2026-08-01' })];
+  const ex1 = R.saldoSinAplicar(sinAplicar, [contrato]);
+  es('recibí sin aplicar: su dinero cubre la factura impagada', ex1, { F1:10000 });
+  es('…y no sale «Vencida» sobre lo ya pagado', R.estadoFactura(sinAplicar[0], ex1.F1, HOY).estado, 'pagada');
+
+  // Revisor: 10.000 cobrados y aplicados ENTEROS a F2. F1 no tiene nada: no puede salir pagada con dinero de otra.
+  const dos = [fac('F1', 10000, 0, '2026-12-01', { fecha:'2026-08-01' }), fac('F2', 10000, 10000, '2026-12-01', { fecha:'2026-09-01' })];
+  const ex2 = R.saldoSinAplicar(dos, [contrato]);
+  es('dinero aplicado a otra factura: no queda resto que repartir', ex2, {});
+  es('…F1 sigue pendiente', R.estadoFactura(dos[0], ex2.F1, HOY).estado, 'pendiente');
+  es('…F2 pagada', R.estadoFactura(dos[1], ex2.F2, HOY).estado, 'pagada');
+
+  // El resto se reparte de la más antigua a la más reciente y nunca pasa de lo que falta de cada una.
+  const tres = [fac('B', 10000, 0, '2026-12-01', { fecha:'2026-09-01' }), fac('A', 10000, 4000, '2026-12-01', { fecha:'2026-08-01' })];
+  const ex3 = R.saldoSinAplicar(tres, [{ id:'c1', numero:'CC1', cobrado:4000 + 9000 }]);
+  es('reparto: primero completa la más antigua, luego la siguiente', ex3, { A:6000, B:3000 });
+  es('…la siguiente queda en pago parcial, con lo que falta', R.estadoFactura(tres[0], ex3.B, HOY), { estado:'parcial', vence:'2026-12-01', falta:7000 });
+  es('facturas de otro contrato no reciben nada', R.saldoSinAplicar([fac('Z', 100, 0, null, { contrato_id:'otro' })], [contrato]), {});
+  // El caso del revisor: una factura del contrato con la copia del número distinta. Por id se resta igual.
+  const copiaMala = [fac('P', 10000, 10000, null, { fecha:'2026-08-01', contrato_numero:'CC1-viejo' }), fac('Q', 10000, 0, null, { fecha:'2026-09-01' })];
+  es('se empareja por id: una copia del número distinta no infla el resto', R.saldoSinAplicar(copiaMala, [contrato]), {});
+  es('sin contrato_id no se reparte nada (no se adivina)', R.saldoSinAplicar([fac('S', 100, 0, null, { contrato_id:null })], [contrato]), {});
+}
+
+/* ── qué próximo pago se enseña cuando hay varios contratos (owner, 8-oct-2026: «la vencida primero») ── */
+{
+  const HOY = new Date(2026, 9, 8, 12, 0, 0);
+  const c = (id, vence) => ({ proximo: { contrato: id }, vence });
+  const elige = (lista) => { const e = R.eligeProximo(lista, HOY); return e && e.proximo.contrato; };
+  es('la vencida va antes que la que vence pronto, aunque su contrato vaya después',
+     elige([c('P-07-CO', '2026-10-14'), c('BV-01-BP', '2026-10-03')]), 'BV-01-BP');
+  es('entre dos vencidas, la más antigua', elige([c('A', '2026-10-05'), c('B', '2026-09-20')]), 'B');
+  es('sin vencidas, la que vence antes', elige([c('A', '2026-11-30'), c('B', '2026-10-20')]), 'B');
+  es('con vencimiento antes que sin factura', elige([c('SINFAC', null), c('A', '2026-12-01')]), 'A');
+  es('sin ninguna factura: el orden de los contratos, como antes', elige([c('PRIMERO', null), c('SEGUNDO', null)]), 'PRIMERO');
+  es('vence HOY no es vencida: va con las que vencen', elige([c('HOY', '2026-10-08'), c('ANTES', '2026-10-07')]), 'ANTES');
+  es('contratos sin pago pendiente no cuentan', elige([{ proximo:null, vence:'2026-01-01' }, c('A', null)]), 'A');
+  es('ninguno: null', R.eligeProximo([], HOY), null);
+}
+
 if(fallos){ console.error(`\n${fallos} fallo(s) en las cuentas del portal.`); process.exit(1); }
 console.log('resumen.test.js — OK');

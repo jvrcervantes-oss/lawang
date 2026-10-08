@@ -196,5 +196,82 @@ function sustitutosDe(x, contratos){
   return (contratos || []).filter(y => y && y !== x && !prelim(y.tipo) && claveVilla(y) === k);
 }
 
+/* ── El estado de pago de cada documento de la pantalla Facturas (8-oct-2026) ─────────────────────────────────
+   Dos fuentes, y ninguna basta sola (revisión previa de Administración y revisor de código, 8-oct):
+   · `aplicado` (portal_situacion → factura_aplicado()): lo que los recibís APLICADOS a esa factura han saldado.
+     Es la misma suma con la que la intranet calcula lo pendiente de una factura (facturas_pendiente_equipo).
+   · el dinero del contrato que NO está aplicado a ninguna factura. `contrato_cobrado()` es, por construcción,
+     lo aplicado a las facturas del contrato MÁS el resto sin aplicar de sus recibís; así que ese resto es
+     `cobrado − Σ aplicado` de sus facturas, sin inventar nada.
+   Solo con `aplicado`, un recibí sin aplicar dejaba «Vencida» una factura ya pagada (Administración). Con la
+   cascada de hitos entera, una factura salía «Pagada» con dinero que estaba aplicado a OTRA (revisor). Por eso
+   lo que se reparte es solo el resto sin aplicar, sobre las facturas impagadas del contrato, de la más antigua a
+   la más reciente — el mismo orden en que se cobra un plan de pagos. Orden de estados: pagada → vencida →
+   parcial → pendiente. */
+function saldoSinAplicar(facturas, contratos){
+  const extra = {};
+  (contratos || []).forEach(x => {
+    // Por id, la misma clave con la que el servidor calcula `cobrado` (contrato_cobrado). La copia `contrato_numero`
+    // de la factura no vale: una distinta o vacía dejaría su `aplicado` sin restar e inflaría el resto (revisor, 8-oct).
+    if (!x || !x.id) return;
+    const suyas = (facturas || []).filter(f => f && f.tipo === 'factura' && f.contrato_id && f.contrato_id === x.id && f.aplicado != null);
+    const aplicado = suyas.reduce((s, f) => s + (Number(f.aplicado) || 0), 0);
+    let resto = Math.max(0, (Number(x.cobrado) || 0) - aplicado);
+    suyas.slice().sort((a, b) => String(a.fecha || '').localeCompare(String(b.fecha || '')) || String(a.numero || '').localeCompare(String(b.numero || '')))
+      .forEach(f => {
+        if (resto <= 0.005) return;
+        const falta = Math.max(0, Number(f.total) - (Number(f.aplicado) || 0));
+        if (!(falta > 0.005)) return;
+        const usa = Math.min(falta, resto);
+        extra[f.id] = (extra[f.id] || 0) + usa;
+        resto -= usa;
+      });
+  });
+  return extra;
+}
+
+/* El último instante de un día «AAAA-MM-DD» en la hora LOCAL de quien mira. `new Date('2026-10-14')` es medianoche
+   UTC: al oeste de Greenwich cae el día 13, y la factura salía vencida un día antes (revisor, 8-oct). */
+function finDelDia(s){
+  if (!s) return NaN;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s).slice(0, 10));
+  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+  return isNaN(d) ? NaN : d.setHours(23, 59, 59, 999);
+}
+
+/* `extra`: lo que le toca de `saldoSinAplicar`. `hoy` es un Date (o ms). Sin `aplicado` no se sabe nada: estado
+   null y la pantalla no pinta etiqueta — «no sabemos» no es «pendiente» (la regla de importeVencimiento). */
+function estadoFactura(f, extra, hoy){
+  if (!f) return { estado: null };
+  if (f.tipo === 'recibi') return { estado: 'recibo' };
+  if (f.tipo === 'proforma') return { estado: 'proforma' };
+  if (f.aplicado == null || f.aplicado === '') return { estado: null };
+  const total = Number(f.total);
+  if (isNaN(total)) return { estado: null };
+  const cubierto = (Number(f.aplicado) || 0) + (Number(extra) || 0);
+  const vence = (f.fields && f.fields.fecha_vencimiento) || null;
+  if (cubierto >= total - 0.005) return { estado: 'pagada', vence: vence };
+  const falta = cubierto > 0.005 ? Math.max(0, total - cubierto) : null;
+  const fin = finDelDia(vence);
+  if (!isNaN(fin) && fin < Number(hoy)) return { estado: 'vencida', vence: vence, falta: falta };
+  return { estado: cubierto > 0.005 ? 'parcial' : 'pendiente', vence: vence, falta: falta };
+}
+
+/* ── Cuál es «el próximo pago» cuando hay varios contratos (8-oct-2026, owner: «la vencida primero») ──────────
+   Antes se enseñaba el primer hito sin pagar del PRIMER contrato de la lista, aunque otro contrato tuviera ya una
+   factura vencida: el bloque más visible de Inicio y de Facturas mandaba pagar algo que vence en 6 días mientras otra
+   llevaba días vencida. Cada candidato es el próximo pago de UN contrato (proximoDe, sin cambiar su importe) con el
+   vencimiento de su factura si la tiene. Orden: (1) vencidos, el más antiguo primero; (2) con vencimiento, el más
+   cercano primero; (3) sin factura todavía, en el orden de los contratos, como hasta ahora. */
+function eligeProximo(cands, hoy){
+  const ahora = Number(hoy);
+  const clase = c => { const fin = finDelDia(c.vence); return isNaN(fin) ? 2 : (fin < ahora ? 0 : 1); };
+  return (cands || []).filter(c => c && c.proximo)
+    .map((c, i) => ({ c: c, i: i, k: clase(c), fin: finDelDia(c.vence) }))
+    .sort((a, b) => (a.k - b.k) || (a.k < 2 ? a.fin - b.fin : 0) || (a.i - b.i))
+    .map(x => x.c)[0] || null;
+}
+
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe };
+  module.exports = { resumenPortal, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe,
+                     saldoSinAplicar, finDelDia, estadoFactura, eligeProximo };

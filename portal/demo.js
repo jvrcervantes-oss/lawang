@@ -89,7 +89,7 @@
     }
     var contratos = [
       c('k1', 'P-07-BP', 'reserva_parcela', 'pr1', 'P-07', 38000, 38000, true, [h('Reserva', 'Reservation', 'A la firma', 19000), h('Escritura', 'Deed', '+90 días', 19000)]),
-      c('k2', 'P-07-CO', 'construccion', 'pr1', 'P-07', 126500, 25300, true, [h('Anticipo 20 %', 'Advance 20 %', 'A la firma', 25300), h('Cimentación', 'Foundation', 'Mes 3', 37950), h('Estructura', 'Structure', 'Mes 6', 37950), h('Entrega', 'Handover', 'Mes 12', 25300)]),
+      c('k2', 'P-07-CO', 'construccion', 'pr1', 'P-07', 126500, 40300, true, [h('Anticipo 20 %', 'Advance 20 %', 'A la firma', 25300), h('Cimentación', 'Foundation', 'Mes 3', 37950), h('Estructura', 'Structure', 'Mes 6', 37950), h('Entrega', 'Handover', 'Mes 12', 25300)]),
       c('k3', 'SH-03-BP', 'reserva_parcela', 'pr2', 'SH-03', 52000, 52000, true, [h('Reserva', 'Reservation', 'A la firma', 52000)]),
       c('k4', 'SH-03-CO', 'construccion', 'pr2', 'SH-03', 98000, 0, false, [h('Anticipo 20 %', 'Advance 20 %', 'A la firma', 19600), h('Cimentación', 'Foundation', 'Mes 3', 29400), h('Estructura', 'Structure', 'Mes 6', 29400), h('Entrega', 'Handover', 'Mes 12', 19600)]),
       c('k5', 'BV-01-BP', 'reserva_parcela', 'pr3', 'BV-01', 30000, 3000, true, [h('Reserva', 'Reservation', 'A la firma', 3000), h('Escritura', 'Deed', '+60 días', 27000)]),
@@ -99,17 +99,24 @@
     ];
     var emisor = { label: 'Lawang Demo', razon: 'PT Demo Estate', domicilio: 'Jl. Demostración 1, Bali', npwp: '00.000.000.0-000.000' };
     function fac(id, numero, tipo, proy, fecha, total, contrato, concepto, extra) {
-      return Object.assign({ id: id, numero: numero, tipo: tipo, proyecto: proy, fecha: fecha, total: total, moneda: 'USD', contrato_numero: contrato, emisor: emisor, lineas: [{ descripcion: concepto, importe: total }],
-        fields: { sociedad: 'demo', tipo: tipo, moneda: 'USD', cliente_nombre: 'Marta Keller', cliente_email: EMAIL, fecha_emision: fecha, fecha_vencimiento: dia(6), proyecto_nombre: proy,
+      return Object.assign({ id: id, numero: numero, tipo: tipo, proyecto: proy, fecha: fecha, total: total, moneda: 'USD', contrato_numero: contrato,
+        contrato_id: (contratos.filter(function (k) { return k.numero === contrato; })[0] || {}).id || null, emisor: emisor, lineas: [{ descripcion: concepto, importe: total }],
+        fields: { sociedad: 'demo', tipo: tipo, moneda: 'USD', cliente_nombre: 'Marta Keller', cliente_email: EMAIL, fecha_emision: fecha, fecha_vencimiento: (extra && extra.vence) || dia(6), proyecto_nombre: proy,
           contrato_numero: contrato, lineas: [{ descripcion: concepto, importe: total }] } }, extra);
     }
+    // `aplicado` (facturas) y `salda` (recibís), como los devuelve portal_situacion desde el 8-oct-2026. LW-0118 lleva
+    // 0 aplicado a propósito: su recibí no se aplicó, pero el contrato ya lo cobró — sale «Pagada» con ese resto sin
+    // aplicar (saldoSinAplicar). LW-0142 está a medias (15.000 de REC-2026-0061) y LW-0147 vencida: así la demo enseña
+    // los cinco estados. Coherente con el cobrado de cada contrato: cobrado = Σ aplicado + resto sin aplicar.
     var facturas = [
-      fac('f1', 'LW-0142', 'factura', 'Palm Field W5', dia(-3), 37950, 'P-07-CO', 'Cimentación — Mes 3'),
-      fac('f2', 'REC-2026-0057', 'recibi', 'Palm Field W5', dia(-70), 25300, 'P-07-CO', 'Pago recibido · Anticipo 20 %'),
-      fac('f3', 'LW-0131', 'factura', 'Palm Field W5', dia(-75), 25300, 'P-07-CO', 'Anticipo 20 % — A la firma'),
-      fac('f4', 'REC-2026-0031', 'recibi', 'Sumba Hills', dia(-125), 52000, 'SH-03-BP', 'Pago recibido · Reserva'),
-      fac('f5', 'LW-0118', 'factura', 'Bonian Village', dia(-30), 3000, 'BV-01-BP', 'Reserva — A la firma'),
-      fac('f6', 'PRO-2026-0007', 'proforma', 'Sumba Hills', dia(-2), 19600, 'SH-03-CO', 'Anticipo 20 % — A la firma')
+      fac('f1', 'LW-0142', 'factura', 'Palm Field W5', dia(-3), 37950, 'P-07-CO', 'Cimentación — Mes 3', { aplicado: 15000 }),
+      fac('f7', 'REC-2026-0061', 'recibi', 'Palm Field W5', dia(-1), 15000, 'P-07-CO', 'Pago recibido · Cimentación (a cuenta)', { salda: [{ numero: 'LW-0142', importe: 15000 }] }),
+      fac('f2', 'REC-2026-0057', 'recibi', 'Palm Field W5', dia(-70), 25300, 'P-07-CO', 'Pago recibido · Anticipo 20 %', { salda: [{ numero: 'LW-0131', importe: 25300 }] }),
+      fac('f3', 'LW-0131', 'factura', 'Palm Field W5', dia(-75), 25300, 'P-07-CO', 'Anticipo 20 % — A la firma', { aplicado: 25300 }),
+      fac('f4', 'REC-2026-0031', 'recibi', 'Sumba Hills', dia(-125), 52000, 'SH-03-BP', 'Pago recibido · Reserva', { salda: [] }),
+      fac('f5', 'LW-0118', 'factura', 'Bonian Village', dia(-30), 3000, 'BV-01-BP', 'Reserva — A la firma', { aplicado: 0 }),
+      fac('f6', 'PRO-2026-0007', 'proforma', 'Sumba Hills', dia(-2), 19600, 'SH-03-CO', 'Anticipo 20 % — A la firma', { aplicado: null }),
+      fac('f8', 'LW-0147', 'factura', 'Bonian Village', dia(-20), 27000, 'BV-01-BP', 'Escritura — +60 días', { aplicado: 0, vence: dia(-5) })
     ];
     var fotosP07 = [[0, 'Estructura norte', -4], [1, 'Armado de pilares', -11], [2, 'Encofrado de losa', -18], [3, 'Cimentación terminada', -39], [4, 'Excavación', -62], [5, 'Replanteo de la parcela', -80]]
       .map(function (a) { return { path: img('obra/p07/' + a[0], foto(a[0], a[0] < 4 ? 'est' : 'cim')), titulo: a[1], fecha: dia(a[2]) }; });

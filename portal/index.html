@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="8907e51beaf2">
+<meta name="lw-version" content="e0a6c29f973b">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- MODO DEMO (7-oct-2026): con `?demo` en la dirección se carga demo.js, que sustituye el cliente de Supabase por uno falso con datos
      ficticios. document.write y no un script creado a mano: tiene que ejecutarse ANTES del script del portal, en orden. Falla CERRADO: si demo.js
      no carga, createClient se anula y el portal real nunca se crea con `?demo` puesto. Sin `?demo` esto no hace nada. -->
-<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261007c"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008c"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261007e"></script>
+<script src="/portal/resumen.js?v=20261008d"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -937,6 +937,233 @@
     .ct-acciones > *{ justify-content:center; }
   }
 
+  /* ══ FACTURAS — 2.ª pasada visual (8-oct-2026, owner: «se ve muy parecido al Inicio… tiene que quedar muy visual») ══
+     Ya no reutiliza el bloque de Inicio: la pantalla habla el idioma de las facturas.
+     · Estado de cuenta (claro): un anillo de lo pagado y las MISMAS tres cifras de Inicio (resumenPortal), sin
+       ningún reparto nuevo del dinero; y cuántas facturas hay en cada estado (recuento, no importe).
+     · El billete del próximo pago: el ÚNICO bloque fuerte (teal) — talón troquelado, hoja de calendario con el día
+       de vencimiento y la cuenta atrás centrada en su propia pastilla (antes heredaba .ini-tarea-cuenta, que está
+       hecha para una fila de Inicio, y el texto quedaba descentrado).
+     · Documentos: fichas de papel sobre una línea de tiempo; miniatura con la SERIE real del documento (INV/REC/PRO,
+       la de documento.js) y el estado como sello de goma — que sigue siendo texto legible, no solo color.
+     Sin sombras (profundidad por superficie y filete de 1px); prefers-reduced-motion apaga todo el movimiento. */
+  .fa-cabeza{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.08fr); gap:16px; align-items:stretch; }
+
+  .fa-estado{ background:#fff; border:1px solid var(--pg-hi); border-radius:20px; padding:26px 28px; display:grid;
+              grid-template-columns:auto minmax(0,1fr); gap:26px; align-items:center; min-width:0; }
+  .fa-anillo{ position:relative; width:148px; height:148px; flex:none; }
+  .fa-anillo svg{ width:100%; height:100%; transform:rotate(-90deg); display:block; }
+  .fa-anillo .pista{ fill:none; stroke:var(--pg-low); stroke-width:13; }
+  .fa-anillo .arco{ fill:none; stroke:var(--tg); stroke-width:13; stroke-linecap:round; animation:fa-arco 1.1s var(--lw-ease) both; }
+  @keyframes fa-arco{ from{ stroke-dasharray:0 400; } }
+  .fa-anillo-cen{ position:absolute; inset:0; display:grid; place-content:center; text-align:center; }
+  .fa-anillo-cen b{ font-size:38px; font-weight:400; line-height:1; letter-spacing:-.02em; color:var(--va); font-variant-numeric:tabular-nums; }
+  .fa-anillo-cen b small{ font-size:16px; margin-left:1px; }
+  .fa-anillo-cen span{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--out); margin-top:6px; }
+  .fa-estado.sin-anillo{ grid-template-columns:1fr; }
+  .fa-estado-tx{ min-width:0; display:grid; gap:14px; }
+  .fa-rot{ font-size:11px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--out); }
+  .fa-cifras{ display:grid; gap:10px; }
+  .fa-cifra{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding-bottom:10px; border-bottom:1px solid var(--pg-low); }
+  .fa-cifra:last-child{ border-bottom:0; padding-bottom:0; }
+  .fa-cifra span{ font-size:13px; color:var(--ink2); display:inline-flex; align-items:center; gap:8px; }
+  .fa-cifra span i{ width:9px; height:9px; border-radius:999px; background:var(--pg-hi); }
+  .fa-cifra span i.pagado{ background:var(--tg); }
+  .fa-cifra b{ font-size:19px; font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .fa-cifra.total b{ font-size:14px; color:var(--ink2); font-weight:400; }
+  .fa-recuento{ display:flex; flex-wrap:wrap; gap:6px; }
+  .fa-recuento span{ display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 11px; border-radius:999px; font-size:12px; background:var(--pg-low); color:var(--ink2); }
+  .fa-recuento span b{ font-weight:600; font-variant-numeric:tabular-nums; }
+  .fa-recuento .vencida{ background:rgba(158,47,38,.10); color:var(--bad); }
+  .fa-recuento .por-pagar{ background:rgba(184,99,29,.13); color:#8F4A12; }
+  .fa-recuento .pagada{ background:rgba(63,82,48,.11); color:var(--ok); }
+
+  /* el billete */
+  .fa-ticket{ position:relative; background:var(--dl); color:#fff; border-radius:20px; display:grid; grid-template-rows:auto auto auto; min-width:0; }
+  .fa-ticket-cuerpo{ padding:24px 28px 22px; display:grid; gap:4px; }
+  .fa-ticket .fa-rot{ color:rgba(255,255,255,.72); margin-bottom:6px; }
+  .fa-ticket-con{ font-size:22px; font-weight:500; line-height:1.2; }
+  .fa-ticket-sub{ font-size:13px; color:rgba(255,255,255,.78); }
+  .fa-ticket-imp{ font-size:clamp(40px, 5.2vw, 60px); font-weight:400; line-height:1; letter-spacing:-.02em; margin-top:16px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .fa-perfo{ position:relative; height:0; margin:0 22px; border-top:2px dashed rgba(255,255,255,.28); }
+  .fa-perfo::before, .fa-perfo::after{ content:""; position:absolute; top:-13px; width:24px; height:24px; border-radius:999px; background:var(--rl); }
+  .fa-perfo::before{ left:-35px; } .fa-perfo::after{ right:-35px; }
+  .fa-ticket-pie{ padding:20px 28px 24px; display:flex; flex-wrap:wrap; align-items:center; gap:14px 18px; }
+  .fa-hoja{ width:60px; flex:none; border-radius:12px; overflow:hidden; background:#fff; color:var(--va); text-align:center; }
+  .fa-hoja span{ display:block; background:#B8631D; color:#fff; font-size:10.5px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; padding:4px 0 3px; }
+  .fa-ticket.vencida .fa-hoja span{ background:var(--bad); }
+  .fa-hoja b{ display:block; font-size:26px; font-weight:400; line-height:1; padding:7px 0 8px; font-variant-numeric:tabular-nums; }
+  .fa-cuando{ display:grid; gap:8px; justify-items:start; min-width:0; flex:1 1 160px; }
+  .fa-cuando > span:first-child{ font-size:14px; }
+  .fa-dias{ display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 12px; border-radius:999px;
+            background:#fff; color:var(--bad); font-size:12px; font-weight:600; line-height:1; letter-spacing:.02em; white-space:nowrap; }
+  .fa-ticket-acc{ display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+  .fa-ticket .btn-oscuro{ background:#fff; color:var(--dl); border-color:#fff; }
+  .fa-ticket .btn-oscuro:hover{ background:#e8f0ee; }
+  .fa-ticket .btn-borde{ background:transparent; color:#fff; border-color:rgba(255,255,255,.45); }
+  .fa-ticket .btn-borde:hover{ background:rgba(255,255,255,.1); }
+  .fa-ticket :focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  .fa-ticket.al-dia{ align-content:center; }
+  .fa-ticket.al-dia .fa-ticket-cuerpo{ padding:30px 28px; }
+  .fa-ok{ width:46px; height:46px; border-radius:999px; background:rgba(255,255,255,.14); display:grid; place-items:center; margin-bottom:12px; }
+  .fa-cabeza + .kpi-nota{ margin:10px 0 0; }
+
+  .fa-secc{ display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:4px 20px; margin:44px 0 16px; }
+  .fa-secc h3{ margin:0; font-size:22px; font-weight:400; letter-spacing:-.005em; }
+  .fa-secc p{ margin:0; font-size:13px; color:var(--ink2); }
+  .fa-flechas{ display:none; }
+  .fa-flecha{ width:40px; height:40px; border-radius:999px; border:1px solid var(--linea); background:#fff; color:var(--dl);
+              display:grid; place-items:center; cursor:pointer; padding:0; transition:background .2s var(--lw-ease), opacity .2s var(--lw-ease), transform .15s var(--lw-ease); }
+  .fa-flecha.atras svg{ transform:rotate(180deg); }
+  .fa-flecha:hover:not(:disabled){ background:var(--pg-low); }
+  .fa-flecha:active:not(:disabled){ transform:scale(.94); }
+  .fa-flecha:disabled{ opacity:.35; cursor:default; }
+  .fa-flecha:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+
+  /* contratos */
+  .fa-ctrs{ display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap:12px; }
+  .fa-ctr{ background:#fff; border:1px solid var(--pg-hi); border-radius:16px; padding:18px 20px; display:grid; gap:14px; min-width:0; align-content:start; }
+  .fa-ctr-cab{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .fa-ctr-cab > div{ min-width:0; }
+  .fa-ctr-proy{ font-size:15.5px; font-weight:500; }
+  .fa-ctr-tipo{ font-size:12.5px; color:var(--ink2); }
+  .fa-mini{ position:relative; width:50px; height:50px; flex:none; }
+  .fa-mini svg{ width:100%; height:100%; transform:rotate(-90deg); display:block; }
+  .fa-mini .pista{ fill:none; stroke:var(--pg-low); stroke-width:5; }
+  .fa-mini .arco{ fill:none; stroke:var(--tg); stroke-width:5; stroke-linecap:round; animation:fa-mini 1s var(--lw-ease) both; }
+  @keyframes fa-mini{ from{ stroke-dasharray:0 200; } }
+  .fa-mini b{ position:absolute; inset:0; display:grid; place-items:center; font-size:12.5px; font-weight:500; color:var(--va); font-variant-numeric:tabular-nums; }
+  .fa-mini.firma .arco{ stroke:#B8631D; }
+  .fa-tramos{ display:flex; gap:3px; height:10px; }
+  .fa-tramos i{ display:block; height:100%; min-width:6px; border-radius:999px; background:var(--pg-hi); }
+  .fa-tramos i.pagado{ background:var(--tg); }
+  .fa-tramos i.parcial{ background:linear-gradient(90deg, var(--tg) 50%, var(--pg-hi) 50%); }
+  .fa-tramos i.facturado{ background:repeating-linear-gradient(135deg, #B8631D 0 3px, transparent 3px 6px); outline:1px solid #B8631D; outline-offset:-1px; }
+  .fa-ctr-pie{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:13px; color:var(--ink2); font-variant-numeric:tabular-nums; }
+  .fa-ctr-pie b{ font-weight:600; color:var(--va); }
+  .fa-ctr details{ border-top:1px solid var(--pg-hi); padding-top:10px; }
+  .fa-ctr summary{ cursor:pointer; list-style:none; display:flex; justify-content:space-between; font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--out); }
+  .fa-ctr summary::-webkit-details-marker{ display:none; }
+  .fa-ctr summary::after{ content:"+"; font-size:15px; line-height:1; transition:transform .25s var(--lw-ease); }
+  .fa-ctr details[open] summary::after{ transform:rotate(45deg); }
+  .fa-ctr summary:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .fa-plan{ list-style:none; margin:10px 0 0; padding:0; display:grid; gap:8px; }
+  .fa-plan li{ display:grid; grid-template-columns:10px minmax(0,1fr) auto; gap:10px; align-items:center; font-size:13px; }
+  .fa-plan li > i{ width:10px; height:10px; border-radius:999px; background:var(--pg-hi); }
+  .fa-plan li > i.pagado{ background:var(--tg); }
+  .fa-plan li > i.parcial{ background:var(--sc); }
+  .fa-plan li > i.facturado{ background:#B8631D; }
+  .fa-plan small{ color:var(--out); margin-left:6px; }
+  .fa-plan .num{ font-variant-numeric:tabular-nums; }
+  .fa-plan .ini-link{ font-size:12px; }
+  .fa-leyenda{ display:flex; flex-wrap:wrap; gap:6px 18px; font-size:12px; color:var(--ink2); margin-top:12px; }
+  .fa-leyenda span{ display:inline-flex; align-items:center; gap:6px; }
+  .fa-leyenda i{ width:14px; height:8px; border-radius:999px; display:inline-block; background:var(--pg-hi); }
+  .fa-leyenda i.pagado{ background:var(--tg); }
+  .fa-leyenda i.facturado{ background:repeating-linear-gradient(135deg, #B8631D 0 3px, transparent 3px 6px); outline:1px solid #B8631D; outline-offset:-1px; }
+
+  /* filtros */
+  .fa-filtros{ display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; justify-content:space-between; margin:0 0 10px; }
+  .fa-filtros .ct-filtro{ margin:0; }
+  .fa-filtros-der{ display:flex; flex-wrap:nowrap; gap:10px; margin-left:auto; justify-content:flex-end; }
+  .fa-campo{ font:inherit; font-size:13px; min-height:44px; padding:10px 16px; border-radius:999px; border:1px solid var(--linea); background:#fff; color:var(--va); }
+  .fa-campo:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .fa-campo[type="search"]{ width:min(240px, 100%); }
+  select.fa-campo{ appearance:none; padding-right:34px; cursor:pointer;
+    background-image:linear-gradient(45deg, transparent 50%, var(--ink2) 50%), linear-gradient(135deg, var(--ink2) 50%, transparent 50%);
+    background-position:calc(100% - 19px) 50%, calc(100% - 14px) 50%; background-size:5px 5px; background-repeat:no-repeat; }
+
+  /* archivo: línea de tiempo de fichas */
+  .fa-mes{ display:grid; grid-template-columns:150px minmax(0,1fr); gap:0 28px; margin-top:26px; }
+  .fa-mes-nom{ position:sticky; top:80px; align-self:start; padding-top:14px; display:grid; gap:2px; }
+  .fa-mes-nom b{ font-size:22px; font-weight:400; line-height:1.1; text-transform:capitalize; }
+  .fa-mes-nom span{ font-size:12px; letter-spacing:.14em; color:var(--out); font-variant-numeric:tabular-nums; }
+  .fa-docs{ position:relative; display:grid; gap:10px; padding-left:26px; min-width:0; }
+  .fa-docs::before{ content:""; position:absolute; left:6px; top:8px; bottom:8px; width:2px; border-radius:2px; background:var(--pg-hi); }
+  .fa-slip{ position:relative; font:inherit; color:inherit; text-align:left; width:100%; cursor:pointer;
+            display:grid; grid-template-columns:48px minmax(0,1fr) auto; gap:6px 18px; align-items:center;
+            background:#fff; border:1px solid var(--pg-hi); border-radius:16px; padding:16px 20px 16px 16px;
+            transition:border-color .2s var(--lw-ease), background .2s var(--lw-ease); }
+  .fa-slip::before{ content:""; position:absolute; left:-26px; top:31px; width:14px; height:14px; border-radius:999px; background:var(--pg-hi); border:3px solid var(--rl); }
+  .fa-slip.pagada::before, .fa-slip.recibo::before{ background:var(--tg); }
+  .fa-slip.parcial::before{ background:var(--sc); }
+  .fa-slip.pendiente::before{ background:#B8631D; }
+  .fa-slip.vencida::before{ background:var(--bad); }
+  .fa-slip:hover{ border-color:var(--linea); background:#fffefb; }
+  .fa-slip:hover .fa-papel{ transform:translateY(-2px) rotate(-2deg); }
+  .fa-slip:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .fa-papel{ position:relative; width:48px; height:60px; border-radius:4px; background:var(--pg-low); border:1px solid var(--pg-hi);
+             display:grid; align-content:space-between; padding:9px 7px 8px; transition:transform .3s var(--lw-ease);
+             clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
+  .fa-papel::after{ content:""; position:absolute; top:-1px; right:-1px; width:12px; height:12px; background:var(--pg-hi); border-bottom-left-radius:3px; }
+  .fa-papel b{ font-size:10.5px; font-weight:600; letter-spacing:.08em; color:var(--dl); }
+  .fa-papel i{ display:block; height:2px; border-radius:2px; background:var(--pg-hi); margin-top:3px; }
+  .fa-papel i:nth-child(2){ width:70%; } .fa-papel i:nth-child(3){ width:45%; }
+  .fa-slip.recibo .fa-papel{ background:rgba(16,76,79,.07); }
+  .fa-slip.recibo .fa-papel b{ color:var(--ok); }
+  .fa-slip.proforma .fa-papel{ background:#fff; border-style:dashed; }
+  .fa-slip-tx{ min-width:0; display:grid; gap:4px; }
+  .fa-slip-con{ font-size:16px; font-weight:500; line-height:1.3; overflow-wrap:anywhere; }
+  .fa-slip-meta{ display:flex; flex-wrap:wrap; gap:2px 14px; font-size:12.5px; color:var(--ink2); }
+  .fa-slip-meta .num{ font-variant-numeric:tabular-nums; color:var(--va); }
+  .fa-enlaces{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .fa-enlace{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 10px; border-radius:999px; font-size:12px; background:var(--pg-low); color:var(--ink2); }
+  .fa-enlace.ok{ background:rgba(63,82,48,.10); color:var(--ok); }
+  .fa-enlace.vence{ background:rgba(184,99,29,.12); color:#8F4A12; }
+  .fa-enlace.vencio{ background:rgba(158,47,38,.10); color:var(--bad); }
+  .fa-enlace svg{ flex:none; }
+  .fa-slip-der{ display:grid; gap:8px; justify-items:end; text-align:right; }
+  .fa-slip-imp{ font-size:21px; font-weight:400; letter-spacing:-.01em; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .fa-slip-falta{ font-size:12px; color:#8F4A12; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .fa-sello{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; line-height:1;
+             padding:6px 9px 5px; border:1.5px solid currentColor; outline:1px solid currentColor; outline-offset:2px;
+             transform:rotate(-4deg); opacity:.9; white-space:nowrap; }
+  .fa-sello.pagada, .fa-sello.recibo{ color:var(--ok); }
+  .fa-sello.parcial{ color:var(--tg); }
+  .fa-sello.pendiente{ color:#8F4A12; }
+  .fa-sello.vencida{ color:var(--bad); }
+  .fa-sello.proforma{ color:var(--out); border-style:dashed; outline:0; }
+  .fa-nada{ padding:40px 0; text-align:center; color:var(--out); }
+
+  @media (max-width:980px){
+    .fa-cabeza{ grid-template-columns:1fr; }
+    .fa-ticket{ order:-1; }
+  }
+  @media (max-width:640px){
+    .fa-estado{ grid-template-columns:1fr; justify-items:center; padding:22px 20px; gap:18px; }
+    .fa-estado-tx{ width:100%; }
+    .fa-ticket-cuerpo{ padding:22px 22px 20px; }
+    .fa-ticket-pie{ padding:18px 22px 22px; }
+    .fa-perfo{ margin:0 16px; } .fa-perfo::before{ left:-29px; } .fa-perfo::after{ right:-29px; }
+    .fa-ticket-acc > *{ flex:1 1 auto; justify-content:center; }
+    .fa-filtros .ct-filtro{ flex-wrap:nowrap; overflow-x:auto; margin:0 -16px; padding:0 16px; scrollbar-width:none; width:calc(100% + 32px); }
+    .fa-filtros-der{ flex-wrap:wrap; }
+    .fa-filtros-der, .fa-filtros-der > *{ width:100%; }
+    .fa-campo[type="search"]{ width:100%; }
+    .fa-mes{ grid-template-columns:1fr; margin-top:22px; }
+    .fa-mes-nom{ position:static; padding:0 0 10px; grid-auto-flow:column; justify-content:start; align-items:baseline; gap:10px; }
+    .fa-docs{ padding-left:20px; }
+    .fa-docs::before{ left:4px; }
+    .fa-slip{ grid-template-columns:40px minmax(0,1fr); padding:14px 14px 14px 12px; gap:6px 12px; }
+    .fa-slip::before{ left:-20px; top:27px; width:12px; height:12px; }
+    .fa-papel{ width:40px; height:50px; padding:7px 6px; }
+    .fa-slip-der{ grid-column:2; display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; text-align:left; }
+    .fa-slip-der .fa-sello{ margin-left:auto; }
+    .fa-ctrs{ grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:84%; overflow-x:auto; scroll-snap-type:x mandatory;
+              margin:0 -16px; padding:0 16px 4px; scroll-padding:0 16px; scrollbar-width:none; }
+    .fa-ctrs::-webkit-scrollbar{ display:none; }
+    .fa-ctr{ scroll-snap-align:start; }
+    .fa-secc-ctr{ align-items:center; }
+    .fa-secc-ctr p{ order:3; width:100%; }
+    .fa-flechas{ display:flex; gap:8px; margin-left:auto; }
+    .fa-slip-imp{ font-size:18px; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .fa-slip, .fa-papel, .fa-ctr summary::after{ transition:none; }
+    .fa-slip:hover .fa-papel{ transform:none; }
+    .fa-anillo .arco, .fa-mini .arco{ animation:none; }
+  }
+
 </style>
 </head>
 <body>
@@ -1090,6 +1317,17 @@
          f_numero:'Nº', f_tipo:'Tipo', f_proyecto:'Proyecto', f_fecha:'Fecha', f_total:'Importe', ir:'Ver →',
          factura:'Factura', recibi:'Recibo', proforma:'Proforma',
          sin_facturas_t:'Aún no hay documentos', sin_facturas:'Cuando emitamos una factura o un recibo aparecerá aquí, listo para descargar.',
+         fa_vencidas_1:'Tienes una factura vencida', fa_vencidas_n:'Tienes {n} facturas vencidas',
+         fa_por_pagar_1:'Tienes una factura por pagar', fa_por_pagar_n:'Tienes {n} facturas por pagar', fa_al_dia:'Todas tus facturas están pagadas',
+         fa_n_docs_1:'1 documento', fa_n_docs_n:'{n} documentos',
+         fa_contratos:'Cómo va cada contrato', fa_contratos_sub:'Cada tramo es un pago de su plan.',
+         fa_facturado:'Facturado, sin pagar', fa_por_facturar:'Por facturar',
+         fa_documentos:'Todos tus documentos', fa_todos:'Todos', fa_t_factura:'Facturas', fa_t_recibi:'Recibos', fa_t_proforma:'Proformas',
+         fa_todos_proy:'Todos los proyectos', fa_buscar:'Buscar número o concepto', fa_sin_resultados:'No hay documentos con este filtro.',
+         fa_e_pagada:'Pagada', fa_e_parcial:'Pago parcial', fa_e_pendiente:'Pendiente', fa_e_vencida:'Vencida', fa_e_recibo:'Pago recibido', fa_e_proforma:'Factura proforma',
+         fa_salda:'Salda {n}', fa_pagada_con:'Pagada con {n}', fa_faltan:'Faltan {m}',
+         fa_estado:'Estado de cuenta', fa_pct_pagado:'pagado', fa_vence_hoy:'Vence hoy',
+         fa_c_vencida_1:'1 vencida', fa_c_vencida_n:'{n} vencidas', fa_c_pagar_1:'1 por pagar', fa_c_pagar_n:'{n} por pagar', fa_c_pagada_1:'1 pagada', fa_c_pagada_n:'{n} pagadas', fa_ctr_anterior:'Contrato anterior', fa_ctr_siguiente:'Contrato siguiente',
          sin_obra_t:'Aún no hay novedades de obra', sin_obra:'En cuanto empiece la construcción de tu unidad publicaremos aquí su avance y sus fotos.',
          sin_contratos_t:'No vemos contratos a tu nombre', sin_contratos:'Puede que tu acceso esté sobre una ficha que todavía no tiene contratos ligados. Escríbenos y lo revisamos.',
          entrega_est:'Entrega estimada', actualizado:'Última actualización',
@@ -1182,6 +1420,17 @@
          f_numero:'No.', f_tipo:'Type', f_proyecto:'Project', f_fecha:'Date', f_total:'Amount', ir:'View →',
          factura:'Invoice', recibi:'Receipt', proforma:'Proforma',
          sin_facturas_t:'No documents yet', sin_facturas:'Once we issue an invoice or a receipt it will show up here, ready to download.',
+         fa_vencidas_1:'You have an overdue invoice', fa_vencidas_n:'You have {n} overdue invoices',
+         fa_por_pagar_1:'You have one invoice to pay', fa_por_pagar_n:'You have {n} invoices to pay', fa_al_dia:'All your invoices are paid',
+         fa_n_docs_1:'1 document', fa_n_docs_n:'{n} documents',
+         fa_contratos:'How each contract is going', fa_contratos_sub:'Each segment is one payment of its plan.',
+         fa_facturado:'Invoiced, unpaid', fa_por_facturar:'Not invoiced yet',
+         fa_documentos:'All your documents', fa_todos:'All', fa_t_factura:'Invoices', fa_t_recibi:'Receipts', fa_t_proforma:'Proformas',
+         fa_todos_proy:'All projects', fa_buscar:'Search number or description', fa_sin_resultados:'No documents match this filter.',
+         fa_e_pagada:'Paid', fa_e_parcial:'Partly paid', fa_e_pendiente:'Unpaid', fa_e_vencida:'Overdue', fa_e_recibo:'Payment received', fa_e_proforma:'Proforma invoice',
+         fa_salda:'Settles {n}', fa_pagada_con:'Paid with {n}', fa_faltan:'{m} left',
+         fa_estado:'Account status', fa_pct_pagado:'paid', fa_vence_hoy:'Due today',
+         fa_c_vencida_1:'1 overdue', fa_c_vencida_n:'{n} overdue', fa_c_pagar_1:'1 to pay', fa_c_pagar_n:'{n} to pay', fa_c_pagada_1:'1 paid', fa_c_pagada_n:'{n} paid', fa_ctr_anterior:'Previous contract', fa_ctr_siguiente:'Next contract',
          sin_obra_t:'No construction updates yet', sin_obra:'As soon as your unit breaks ground we will publish its progress and photos here.',
          sin_contratos_t:'We see no contracts under your name', sin_contratos:'Your access may sit on a record with no contracts linked yet. Write to us and we will check it.',
          entrega_est:'Estimated handover', actualizado:'Last update',
@@ -1270,6 +1519,17 @@
          f_numero:'No.', f_tipo:'Jenis', f_proyecto:'Proyek', f_fecha:'Tanggal', f_total:'Jumlah', ir:'Lihat →',
          factura:'Faktur', recibi:'Kwitansi', proforma:'Proforma',
          sin_facturas_t:'Belum ada dokumen', sin_facturas:'Saat kami menerbitkan faktur atau kwitansi, dokumennya akan muncul di sini, siap diunduh.',
+         fa_vencidas_1:'Anda memiliki satu faktur yang lewat jatuh tempo', fa_vencidas_n:'Anda memiliki {n} faktur yang lewat jatuh tempo',
+         fa_por_pagar_1:'Anda memiliki satu faktur yang harus dibayar', fa_por_pagar_n:'Anda memiliki {n} faktur yang harus dibayar', fa_al_dia:'Semua faktur Anda sudah dibayar',
+         fa_n_docs_1:'1 dokumen', fa_n_docs_n:'{n} dokumen',
+         fa_contratos:'Perkembangan setiap kontrak', fa_contratos_sub:'Setiap bagian adalah satu pembayaran dari rencananya.',
+         fa_facturado:'Sudah ditagih, belum dibayar', fa_por_facturar:'Belum ditagih',
+         fa_documentos:'Semua dokumen Anda', fa_todos:'Semua', fa_t_factura:'Faktur', fa_t_recibi:'Kwitansi', fa_t_proforma:'Proforma',
+         fa_todos_proy:'Semua proyek', fa_buscar:'Cari nomor atau keterangan', fa_sin_resultados:'Tidak ada dokumen yang cocok dengan filter ini.',
+         fa_e_pagada:'Lunas', fa_e_parcial:'Dibayar sebagian', fa_e_pendiente:'Belum dibayar', fa_e_vencida:'Lewat jatuh tempo', fa_e_recibo:'Pembayaran diterima', fa_e_proforma:'Faktur proforma',
+         fa_salda:'Melunasi {n}', fa_pagada_con:'Dibayar dengan {n}', fa_faltan:'Kurang {m}',
+         fa_estado:'Status akun', fa_pct_pagado:'dibayar', fa_vence_hoy:'Jatuh tempo hari ini',
+         fa_c_vencida_1:'1 lewat jatuh tempo', fa_c_vencida_n:'{n} lewat jatuh tempo', fa_c_pagar_1:'1 harus dibayar', fa_c_pagar_n:'{n} harus dibayar', fa_c_pagada_1:'1 lunas', fa_c_pagada_n:'{n} lunas', fa_ctr_anterior:'Kontrak sebelumnya', fa_ctr_siguiente:'Kontrak berikutnya',
          sin_obra_t:'Belum ada kabar pembangunan', sin_obra:'Begitu pembangunan unit Anda dimulai, kami akan menampilkan kemajuan dan foto-fotonya di sini.',
          sin_contratos_t:'Kami tidak melihat kontrak atas nama Anda', sin_contratos:'Mungkin akses Anda terhubung ke data yang belum memiliki kontrak. Tulis ke kami dan kami akan memeriksanya.',
          entrega_est:'Perkiraan serah terima', actualizado:'Pembaruan terakhir',
@@ -1783,6 +2043,63 @@
     return { hito:h.hito, idx:i, monto:restante, moneda:x.moneda, contrato:x.numero, contratoId:x.id, proyecto:x.proyecto, parcela:x.parcela };
   }
 
+  /* ── El próximo pago del comprador — lo pintan Inicio y Facturas (8-oct-2026) ──
+     Salió de pintaInicio cuando Facturas pasó a enseñarlo también: copiado, el día que una de las dos pantallas
+     cambiara la regla dirían dos cifras distintas del mismo pago (la lección de operaciones/, 14-ago). */
+  function pagoProximo(d){
+    var res = resumenPortal(d.contratos || []);
+    // Solo los contratos que SÍ cuentan: el calendario de una Carta sustituida
+    // son los mismos hitos que ya trae su Bloqueo, y reclamarlo aquí pediría dos
+    // veces el mismo pago.
+    /* La factura de cada próximo pago: la que tiene una línea con la descripción exacta del hito (facturaDelHito, en
+       resumen.js y probada en resumen.test.js). Sin ella, el bloque dice el plazo del contrato y el botón lleva a
+       la lista: nunca se adivina una factura ni una fecha. Entre contratos, manda la vencida (eligeProximo). */
+    var cands = res.base.map(function(x){
+      var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
+      var proximo = proximoDe(x, estadosHitos(x.hitos, Number(x.cobrado)||0, precio));
+      var factProx = (proximo && typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, { id:proximo.contratoId, numero:proximo.contrato }, proximo.hito, proximo.moneda) : null;
+      return { proximo:proximo, factProx:factProx, vence:(factProx && factProx.fields && factProx.fields.fecha_vencimiento) || null };
+    });
+    var elegido = eligeProximo(cands, Date.now()) || { proximo:null, factProx:null, vence:null };
+    return { res:res, proximo:elegido.proximo, factProx:elegido.factProx, vence:elegido.vence };
+  }
+  function heroPagoHTML(pago){
+    var res = pago.res, proximo = pago.proximo, factProx = pago.factProx, vence = pago.vence;
+    var tot = res.total, cob = res.cobrado, mon = res.moneda;
+    var hayResumen = tot != null && tot > 0;
+    var pctTot = hayResumen ? Math.min(100, Math.floor((cob || 0) / tot * 100)) : 0;
+    var pieResumen = hayResumen
+      ? '<div class="hp-pie"><span>' + esc(t('r_pagado')) + ' <b>' + esc(dinero(cob,mon)) + '</b></span>' +
+          '<div class="barra"><i style="width:' + pctTot + '%"></i></div>' +
+          '<span>' + esc(t('r_pendiente')) + ' <b>' + esc(dinero(res.pendiente,mon)) + '</b> · ' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + ' ' + esc(dinero(tot,mon)) + '</span></div>'
+      : '';
+    var impTxt = (proximo && !isNaN(proximo.monto)) ? dinero(proximo.monto, proximo.moneda) : '—';
+    var subPago = proximo ? [proximo.proyecto, proximo.parcela].filter(Boolean).map(esc).join(' · ') : '';
+    var vencida = vence && finDelDia(vence) < Date.now();
+    var cuandoPago = proximo ? (vence ? esc(t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(vence))) : esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato)) : '';
+    return '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
+      (proximo ?
+        '<div class="hp-fila"><div class="hp-info"><div class="hp-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
+          '<div class="hp-sub">' + (subPago ? subPago + ' · ' : '') + cuandoPago + '</div></div>' +
+          '<div class="hp-importe' + (impTxt.length > 11 ? ' largo' : '') + '"' + (isNaN(proximo.monto) ? '' : ' data-cuenta="' + proximo.monto + '" data-moneda="' + esc(proximo.moneda || '') + '"') + '>' + esc(impTxt) + '</div></div>' +
+        '<div class="hp-acciones">' +
+          (factProx ? '<button type="button" class="btn-oscuro" data-ir-fac="' + esc(factProx.numero) + '">' + esc(t('ver_factura_n').replace('{n}', factProx.numero)) + '</button>'
+                    : '<button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>') +
+          '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('plan_pagos')) + '</button></div>'
+        : '<p class="hp-vacio">' + esc(t('sin_proximo')) + '</p>') +
+      pieResumen + '</div>';
+  }
+  /* Una cifra que no cuadra con su propio rótulo es una cifra en la que se deja de confiar (la lección de
+     /intranet/operaciones/, 14-ago-2026): las notas del resumen van debajo del bloque, en las dos pantallas. */
+  function notaResumenHTML(res){
+    if (!(res.total != null && res.total > 0)) return '';
+    return res.soloReserva
+        ? '<p class="kpi-nota">' + esc(t('nota_solo_reserva')) + '</p>'
+        : (res.excluidos.length
+            ? '<p class="kpi-nota">' + esc(t('nota_sin_carta') + ' ' + res.excluidos.map(function(x){ return x.numero || '—'; }).join(', ') + '.') + '</p>'
+            : '');
+  }
+
   /* ── Inicio ───────────────────────────────────────────────────────── */
   function pintaInicio(c){
     var d = DATOS;
@@ -1795,18 +2112,8 @@
        misma que ve el agente en /intranet/compradores/, y tiene que serlo: si el
        cliente llama y las dos pantallas dicen cifras distintas, el problema es
        peor que el original. */
-    var res = resumenPortal(d.contratos || []);
-    var tot = res.total, cob = res.cobrado, mon = res.moneda;
-
-    var proximo = null;
-    // Solo los contratos que SÍ cuentan: el calendario de una Carta sustituida
-    // son los mismos hitos que ya trae su Bloqueo, y reclamarlo aquí pediría dos
-    // veces el mismo pago.
-    res.base.forEach(function(x){
-      if (proximo) return;
-      var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
-      proximo = proximoDe(x, estadosHitos(x.hitos, Number(x.cobrado)||0, precio));
-    });
+    var pago = pagoProximo(d);
+    var res = pago.res;
 
     /* Inicio = la dirección A del artifact «Inicio del portal Lawang», igual que se aprobó (7-oct-2026, owner: «igual que
        el artifact»). Un solo momento fuerte: el próximo pago, con lo pagado y lo pendiente en su pie. Lo que espera al
@@ -1865,41 +2172,8 @@
         (carpetasInicio.length > 3 ? '<button type="button" class="btn-borde ver-todos' + (carpetasInicio.length <= 6 ? ' solo-movil' : '') + '" data-ir="documentos">' + esc(t('ver_todos').replace('{n}', carpetasInicio.length)) + '</button>' : '')
       : '';
 
-    /* La factura del próximo pago: la que tiene una línea con la descripción exacta del hito (facturaDelHito, en
-       resumen.js y probada en resumen.test.js). Sin ella, el bloque dice el plazo del contrato y el botón lleva a
-       la lista: nunca se adivina una factura ni una fecha. */
-    var factProx = (proximo && typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, { id:proximo.contratoId, numero:proximo.contrato }, proximo.hito, proximo.moneda) : null;
-    var vence = factProx && factProx.fields && factProx.fields.fecha_vencimiento;
-
-    var hayResumen = tot != null && tot > 0;
-    var pctTot = hayResumen ? Math.min(100, Math.floor((cob || 0) / tot * 100)) : 0;
-    var pieResumen = hayResumen
-      ? '<div class="hp-pie"><span>' + esc(t('r_pagado')) + ' <b>' + esc(dinero(cob,mon)) + '</b></span>' +
-          '<div class="barra"><i style="width:' + pctTot + '%"></i></div>' +
-          '<span>' + esc(t('r_pendiente')) + ' <b>' + esc(dinero(res.pendiente,mon)) + '</b> · ' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + ' ' + esc(dinero(tot,mon)) + '</span></div>'
-      : '';
-    var impTxt = (proximo && !isNaN(proximo.monto)) ? dinero(proximo.monto, proximo.moneda) : '—';
-    var subPago = proximo ? [proximo.proyecto, proximo.parcela].filter(Boolean).map(esc).join(' · ') : '';
-    var vencida = vence && new Date(vence).setHours(23,59,59,999) < Date.now();
-    var cuandoPago = proximo ? (vence ? esc(t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(vence))) : esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato)) : '';
-    var heroPago = '<div class="tarjeta hero-pago' + (proximo ? '' : ' vacio') + '"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
-      (proximo ?
-        '<div class="hp-fila"><div class="hp-info"><div class="hp-concepto">' + esc(Lx(proximo.hito)) + '</div>' +
-          '<div class="hp-sub">' + (subPago ? subPago + ' · ' : '') + cuandoPago + '</div></div>' +
-          '<div class="hp-importe' + (impTxt.length > 11 ? ' largo' : '') + '"' + (isNaN(proximo.monto) ? '' : ' data-cuenta="' + proximo.monto + '" data-moneda="' + esc(proximo.moneda || '') + '"') + '>' + esc(impTxt) + '</div></div>' +
-        '<div class="hp-acciones">' +
-          (factProx ? '<button type="button" class="btn-oscuro" data-ir-fac="' + esc(factProx.numero) + '">' + esc(t('ver_factura_n').replace('{n}', factProx.numero)) + '</button>'
-                    : '<button type="button" class="btn-oscuro" data-ir="facturas">' + esc(t('ver_facturas')) + '</button>') +
-          '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('plan_pagos')) + '</button></div>'
-        : '<p class="hp-vacio">' + esc(t('sin_proximo')) + '</p>') +
-      pieResumen + '</div>';
-    /* Una cifra que no cuadra con su propio rótulo es una cifra en la que se deja de confiar (la lección de
-       /intranet/operaciones/, 14-ago-2026): las notas del resumen siguen debajo del bloque. */
-    var notaResumen = !hayResumen ? '' : (res.soloReserva
-        ? '<p class="kpi-nota">' + esc(t('nota_solo_reserva')) + '</p>'
-        : (res.excluidos.length
-            ? '<p class="kpi-nota">' + esc(t('nota_sin_carta') + ' ' + res.excluidos.map(function(x){ return x.numero || '—'; }).join(', ') + '.') + '</p>'
-            : ''));
+    var heroPago = heroPagoHTML(pago);
+    var notaResumen = notaResumenHTML(res);
 
     var abiertas = (d.tickets || []).filter(function(x){ return x.estado === 'abierto'; }).length;
     var subSaludo = carpetasInicio.length ? (carpetasInicio.length === 1 ? t('n_props_1') : t('n_props_n').replace('{n}', carpetasInicio.length)) : t('saludo_sub');
@@ -2144,7 +2418,7 @@
            contrato: nunca se adivina una factura ni una fecha. */
         var fac = (typeof facturaDelHito === 'function') ? facturaDelHito(d.facturas, x, prox.hito, x.moneda) : null;
         var vence = fac && fac.fields && fac.fields.fecha_vencimiento;
-        var vencida = vence && new Date(vence).setHours(23,59,59,999) < Date.now();
+        var vencida = vence && finDelDia(vence) < Date.now();
         var txt = t('ct_prox').replace('{h}', Lx(prox.hito) || '—').replace('{m}', isNaN(prox.monto) ? '—' : dinero(prox.monto, x.moneda)) + ' ' +
           (vence ? t(vencida ? 'ct_prox_vencio' : 'ct_prox_vence').replace('{f}', fecha(vence))
                  : (prox.hito.timing ? t('ct_prox_plazo').replace('{p}', prox.hito.timing) : ''));
@@ -2235,22 +2509,236 @@
   }
 
   /* ── Facturas ─────────────────────────────────────────────────────── */
+  /* Rediseño del 8-oct-2026 (artifact «Lawang Facturas v2», owner: «llévalo al portal real»). Hereda todo lo de la
+     tabla anterior (Regla 0 bis): cada documento con su número, tipo, proyecto, fecha e importe, la fila abre el
+     documento REAL en el cajón (`#/facturas/NUM` → abreFactura), y el vacío de siempre. Añade el estado de pago
+     (`estadoFactura`, resumen.js, con `aplicado` del servidor y el cobrado sin aplicar de su contrato), qué recibí salda qué
+     factura, el próximo pago (el mismo cálculo de Inicio, con su propio billete desde la 2.ª pasada visual), el avance
+     por contrato y filtros.
+     Nada se calcula aquí que no salga de resumen.js / estadosHitos / facturaDelHito: esta pantalla solo pinta. */
   var TIPO_DOC = { factura:'factura', proforma:'proforma', recibi:'recibi' };
+  var SERIE_DOC = { factura:'INV', proforma:'PRO', recibi:'REC' };   // las series de documento.js: lo que pone el propio documento
+  var ICO_P_OK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
+  var ICO_P_FLECHA = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>';
+  var ICO_P_RELOJ = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
+  var ICO_FLECHA_CAR = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
+  var ICO_G_OK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
+
+  /* Un anillo de avance (SVG). `pct` ya viene con floor de quien llama: nunca «100 %» si queda algo. */
+  function anilloHTML(pct, tam, grosor, cls, centro){
+    var r = (tam - grosor) / 2, c = tam / 2, C = 2 * Math.PI * r, len = Math.max(0, Math.min(1, pct / 100)) * C;
+    return '<div class="' + cls + '"><svg viewBox="0 0 ' + tam + ' ' + tam + '" aria-hidden="true">' +
+      '<circle class="pista" cx="' + c + '" cy="' + c + '" r="' + r + '"></circle>' +
+      (len > 0 ? '<circle class="arco" cx="' + c + '" cy="' + c + '" r="' + r + '" stroke-dasharray="' + len.toFixed(2) + ' ' + C.toFixed(2) + '"></circle>' : '') +
+      '</svg>' + centro + '</div>';
+  }
+  /* «AAAA-MM-DD» como fecha LOCAL (finDelDia, resumen.js): new Date('2026-10-14') es medianoche UTC y al oeste
+     de Greenwich pintaría el 13 en la hoja de calendario. */
+  function fechaLocal(s){ var ms = finDelDia(s); return isNaN(ms) ? null : new Date(ms); }
+
+  /* La cabecera de Facturas: estado de cuenta + billete del próximo pago. Las cifras son las de Inicio
+     (resumenPortal: pagado, pendiente, inversión) y el próximo pago es pagoProximo(): aquí no se suma nada nuevo. Lo
+     único propio es el RECUENTO de facturas por estado, que sale de los mismos estados que pinta la lista. */
+  function cabezaFacturas(pago, n){
+    var res = pago.res, tot = res.total, cob = res.cobrado || 0, mon = res.moneda;
+    var hay = tot != null && tot > 0;
+    var pct = hay ? Math.min(100, Math.floor(cob / tot * 100)) : null;
+    var recuento = (n.vencida ? '<span class="vencida">' + esc(plural(n.vencida, 'fa_c_vencida_1', 'fa_c_vencida_n')) + '</span>' : '') +
+      (n.porPagar ? '<span class="por-pagar">' + esc(plural(n.porPagar, 'fa_c_pagar_1', 'fa_c_pagar_n')) + '</span>' : '') +
+      (n.pagada ? '<span class="pagada">' + esc(plural(n.pagada, 'fa_c_pagada_1', 'fa_c_pagada_n')) + '</span>' : '');
+    var estado = '<section class="fa-estado' + (hay ? '' : ' sin-anillo') + '" aria-label="' + esc(t('fa_estado')) + '">' +
+      (hay ? anilloHTML(pct, 148, 13, 'fa-anillo', '<div class="fa-anillo-cen"><b>' + pct + '<small>%</small></b><span>' + esc(t('fa_pct_pagado')) + '</span></div>') : '') +
+      '<div class="fa-estado-tx"><div class="fa-rot">' + esc(t('fa_estado')) + '</div>' +
+        (hay ? '<div class="fa-cifras">' +
+            '<div class="fa-cifra"><span><i class="pagado"></i>' + esc(t('r_pagado')) + '</span><b>' + esc(dinero(cob, mon)) + '</b></div>' +
+            '<div class="fa-cifra"><span><i></i>' + esc(t('r_pendiente')) + '</span><b>' + esc(dinero(res.pendiente, mon)) + '</b></div>' +
+            '<div class="fa-cifra total"><span>' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</span><b>' + esc(dinero(tot, mon)) + '</b></div></div>' : '') +
+        (recuento ? '<div class="fa-recuento">' + recuento + '</div>' : '') +
+      '</div></section>';
+
+    var p = pago.proximo, vence = pago.vence, billete;
+    if (p){
+      var dt = vence ? fechaLocal(vence) : null;
+      var vencida = !!(dt && dt.getTime() < Date.now());
+      var dias = dt ? diasHasta(dt) : null;
+      var imp = isNaN(p.monto) ? '—' : dinero(p.monto, p.moneda);
+      var cuando = dt ? t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(dt)) : t('cuando') + ': ' + (p.hito.timing || '—');
+      cuando = cuando.charAt(0).toUpperCase() + cuando.slice(1);
+      var pastilla = vencida ? t('fa_e_vencida') : dias == null ? '' : dias === 0 ? t('fa_vence_hoy') : dias === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', dias);
+      billete = '<section class="fa-ticket' + (vencida ? ' vencida' : '') + '" aria-label="' + esc(t('proximo_pago')) + '">' +
+        '<div class="fa-ticket-cuerpo"><div class="fa-rot">' + esc(t('proximo_pago')) + '</div>' +
+          '<div class="fa-ticket-con">' + esc(Lx(p.hito) || '—') + '</div>' +
+          '<div class="fa-ticket-sub">' + esc([p.proyecto, p.parcela, p.contrato].filter(Boolean).join(' · ')) + '</div>' +
+          '<div class="fa-ticket-imp"' + (isNaN(p.monto) ? '' : ' data-cuenta="' + p.monto + '" data-moneda="' + esc(p.moneda || '') + '"') + '>' + esc(imp) + '</div></div>' +
+        '<div class="fa-perfo" aria-hidden="true"></div>' +
+        '<div class="fa-ticket-pie">' +
+          (dt ? '<div class="fa-hoja" aria-hidden="true"><span>' + esc(dt.toLocaleDateString(LOC(), { month:'short' }).replace('.', '')) + '</span><b>' + dt.getDate() + '</b></div>' : '') +
+          '<div class="fa-cuando"><span>' + esc(cuando) + '</span>' + (pastilla ? '<span class="fa-dias">' + esc(pastilla) + '</span>' : '') + '</div>' +
+          '<div class="fa-ticket-acc">' +
+            (pago.factProx ? '<button type="button" class="btn-oscuro" data-ir-fac="' + esc(pago.factProx.numero) + '">' + esc(t('ver_factura_n').replace('{n}', pago.factProx.numero)) + '</button>' : '') +
+            '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('plan_pagos')) + '</button></div></div></section>';
+    } else {
+      billete = '<section class="fa-ticket al-dia" aria-label="' + esc(t('proximo_pago')) + '"><div class="fa-ticket-cuerpo">' +
+        '<span class="fa-ok">' + ICO_G_OK + '</span><div class="fa-rot">' + esc(t('proximo_pago')) + '</div>' +
+        '<div class="fa-ticket-con">' + esc(t('sin_proximo')) + '</div></div></section>';
+    }
+    return '<div class="fa-cabeza">' + estado + billete + '</div>';
+  }
+  var EST_FAC = { pagada:'fa_e_pagada', parcial:'fa_e_parcial', pendiente:'fa_e_pendiente', vencida:'fa_e_vencida', recibo:'fa_e_recibo', proforma:'fa_e_proforma' };
   function pintaFacturas(c){
     var d = DATOS;
     if (!(d.facturas||[]).length){ c.innerHTML = vacio(t('sin_facturas_t'), t('sin_facturas')); return; }
-    c.innerHTML = '<div class="tabla-caja"><table><thead><tr>' +
-      '<th>' + esc(t('f_numero')) + '</th><th>' + esc(t('f_tipo')) + '</th><th>' + esc(t('f_proyecto')) + '</th><th>' + esc(t('f_fecha')) + '</th>' +
-      '<th class="num">' + esc(t('f_total')) + '</th><th></th></tr></thead><tbody>' +
-      d.facturas.map(function(f){
-        return '<tr data-fila data-fac="' + esc(f.numero) + '">' +
-          '<td class="clave" data-l="' + esc(t('f_numero')) + '">' + esc(f.numero) + '</td><td data-l="' + esc(t('f_tipo')) + '">' + esc(t(TIPO_DOC[f.tipo]||f.tipo)) + '</td>' +
-          '<td class="flojo" data-l="' + esc(t('f_proyecto')) + '">' + esc(f.proyecto||'—') + '</td>' +
-          '<td class="flojo" data-l="' + esc(t('f_fecha')) + '">' + esc(fecha(f.fecha)) + '</td>' +
-          '<td class="num" data-l="' + esc(t('f_total')) + '">' + esc(dinero(Number(f.total),f.moneda)) + '</td>' +
-          '<td class="ir">' + esc(t('ir')) + '</td></tr>';
-      }).join('') + '</tbody></table></div>';
-    c.querySelectorAll('[data-fac]').forEach(function(tr){ tr.addEventListener('click', function(){ vasA('facturas', tr.getAttribute('data-fac')); }); });
+    var facturas = d.facturas;
+    var pago = pagoProximo(d), res = pago.res;
+
+    // La cascada de cada contrato que cuenta (sin las Cartas sustituidas), la misma de Inicio y Contratos: pinta las barras.
+    var conEstados = res.base.map(function(x){ return { contrato:x, estados:estadosHitos(x.hitos, Number(x.cobrado)||0, precioContrato(x)) }; });
+    /* El estado de cada factura: lo aplicado a ella + su parte del cobrado SIN aplicar de su contrato (de todos los
+       contratos: el dinero de una Carta también entró). Regla y porqués en resumen.js (saldoSinAplicar). */
+    var extra = saldoSinAplicar(facturas, d.contratos || []);
+    var ahora = Date.now(), est = {}, pagadaCon = {};
+    facturas.forEach(function(f){ est[f.id] = estadoFactura(f, extra[f.id], ahora); });
+    facturas.forEach(function(f){ (f.salda || []).forEach(function(s){ (pagadaCon[s.numero] = pagadaCon[s.numero] || []).push(f.numero); }); });
+
+    var soloFacturas = facturas.filter(function(f){ return f.tipo === 'factura'; });
+    // Un solo recuento por estado: lo usan la frase de arriba y las pastillas del estado de cuenta (revisor, 8-oct).
+    var n = { vencida:0, porPagar:0, pagada:0 };
+    soloFacturas.forEach(function(f){
+      var e = est[f.id].estado;
+      if (e === 'vencida') n.vencida++; else if (e === 'pendiente' || e === 'parcial') n.porPagar++; else if (e === 'pagada') n.pagada++;
+    });
+    var nVenc = n.vencida, nPagar = n.porPagar;
+    var todoSabido = soloFacturas.length > 0 && soloFacturas.every(function(f){ return est[f.id].estado != null; });
+    // La frase sale de los estados ya reconciliados; si de alguna factura no se sabe nada, no se dice «al día».
+    var frase = nVenc ? plural(nVenc, 'fa_vencidas_1', 'fa_vencidas_n')
+              : nPagar ? plural(nPagar, 'fa_por_pagar_1', 'fa_por_pagar_n')
+              : todoSabido ? t('fa_al_dia') : t('tit_facturas');
+
+    /* Cómo va cada contrato: un tramo por hito, con el peso de su importe. Pagado/parcial por la cascada;
+       «facturado, sin pagar» si facturaDelHito encuentra su factura. Sin hitos no hay tarjeta. */
+    var ctrs = conEstados.filter(function(c){ return c.estados.length; }).map(function(c){
+      var x = c.contrato, base = baseAvance(x), cob = Number(x.cobrado) || 0;
+      var pct = base > 0 ? Math.min(100, Math.floor(cob / base * 100)) : null;   // floor: nunca «100 %» si queda algo
+      var tramos = c.estados.map(function(y){
+        var f = facturaDelHito(facturas, x, y.hito, x.moneda);
+        return { y:y, f:f, cls: y.estado === 'pagado' ? 'pagado' : y.estado === 'parcial' ? 'parcial' : (f ? 'facturado' : '') };
+      });
+      var titTramo = function(z){ return Lx(z.y.hito) + (isNaN(z.y.monto) ? '' : ' · ' + dinero(z.y.monto, x.moneda)); };
+      return '<article class="fa-ctr"><div class="fa-ctr-cab"><div><div class="fa-ctr-proy">' + esc([x.proyecto, x.parcela].filter(Boolean).join(' · ') || '—') + '</div>' +
+          '<div class="fa-ctr-tipo">' + esc(tipoContrato(x.tipo)) + ' · ' + esc(x.numero || '') + '</div></div>' +
+          (pct != null ? anilloHTML(pct, 50, 5, 'fa-mini' + (x.firmado ? '' : ' firma'), '<b>' + pct + '%</b>') : '') + '</div>' +
+        '<div class="fa-tramos" role="img" aria-label="' + esc(tramos.map(function(z){ return titTramo(z) + ': ' + t(z.cls === 'facturado' ? 'fa_facturado' : z.cls ? z.y.estado : 'fa_por_facturar'); }).join(' · ')) + '">' +
+          tramos.map(function(z){ return '<i class="' + z.cls + '" style="flex:' + (isNaN(z.y.monto) || z.y.monto <= 0 ? 1 : z.y.monto) + '" title="' + esc(titTramo(z)) + '"></i>'; }).join('') + '</div>' +
+        '<div class="fa-ctr-pie"><span><b>' + esc(dinero(cob, x.moneda)) + '</b> ' + esc(t('pagado')).toLowerCase() + '</span><span>' +
+          esc(!x.firmado ? t('pendiente_firma') : (base > 0 ? (cob >= base ? t('ct_pagado_todo') : dinero(Math.max(0, base - cob), x.moneda) + ' ' + t('pendiente').toLowerCase()) : '')) + '</span></div>' +
+        '<details><summary>' + esc(t('plan_pagos')) + '</summary><ol class="fa-plan">' + tramos.map(function(z){
+          return '<li><i class="' + z.cls + '"></i><span>' + esc(Lx(z.y.hito) || '—') + (z.y.hito.timing ? '<small>' + esc(z.y.hito.timing) + '</small>' : '') +
+            (z.f ? ' <button type="button" class="ini-link" data-ir-fac="' + esc(z.f.numero) + '">' + esc(z.f.numero) + '</button>' : '') + '</span>' +
+            '<span class="num">' + (isNaN(z.y.monto) ? '—' : esc(dinero(z.y.monto, x.moneda))) + '</span></li>';
+        }).join('') + '</ol></details></article>';
+    });
+
+    // Filtros: viven en ESTADO para que un cambio de idioma o una recarga de datos no los pierda.
+    var proyectos = facturas.map(function(f){ return f.proyecto || ''; }).filter(function(p, i, a){ return p && a.indexOf(p) === i; });
+    if (ESTADO.faProy && proyectos.indexOf(ESTADO.faProy) === -1) ESTADO.faProy = '';
+    var cuenta = function(tp){ return facturas.filter(function(f){ return !tp || f.tipo === tp; }).length; };
+    var chips = [['', 'fa_todos'], ['factura', 'fa_t_factura'], ['recibi', 'fa_t_recibi'], ['proforma', 'fa_t_proforma']]
+      .filter(function(o){ return !o[0] || cuenta(o[0]); })
+      .map(function(o){ return '<button type="button" class="ct-pill" data-fa-tipo="' + o[0] + '" aria-pressed="' + ((ESTADO.faTipo || '') === o[0]) + '">' + esc(t(o[1])) + ' · ' + cuenta(o[0]) + '</button>'; }).join('');
+
+    c.innerHTML =
+      '<div class="titulo-sec"><h2>' + esc(frase) + '</h2><p>' + esc(plural(facturas.length, 'fa_n_docs_1', 'fa_n_docs_n')) + '</p></div>' +
+      cabezaFacturas(pago, n) + notaResumenHTML(res) +
+      (ctrs.length ? '<div class="fa-secc fa-secc-ctr"><h3>' + esc(t('fa_contratos')) + '</h3><p>' + esc(t('fa_contratos_sub')) + '</p>' +
+          (ctrs.length > 1 ? '<div class="fa-flechas">' +
+            '<button type="button" class="fa-flecha atras" data-fa-desliza="-1" aria-label="' + esc(t('fa_ctr_anterior')) + '">' + ICO_FLECHA_CAR + '</button>' +
+            '<button type="button" class="fa-flecha" data-fa-desliza="1" aria-label="' + esc(t('fa_ctr_siguiente')) + '">' + ICO_FLECHA_CAR + '</button></div>' : '') + '</div>' +
+        '<div class="fa-ctrs">' + ctrs.join('') + '</div>' +
+        '<div class="fa-leyenda"><span><i class="pagado"></i>' + esc(t('pagado')) + '</span><span><i class="facturado"></i>' + esc(t('fa_facturado')) + '</span><span><i></i>' + esc(t('fa_por_facturar')) + '</span></div>' : '') +
+      '<div class="fa-secc"><h3>' + esc(t('fa_documentos')) + '</h3></div>' +
+      '<div class="fa-filtros"><div class="ct-filtro" role="group" aria-label="' + esc(t('f_tipo')) + '">' + chips + '</div>' +
+        '<div class="fa-filtros-der"><input type="search" class="fa-campo" id="faBuscar" placeholder="' + esc(t('fa_buscar')) + '" aria-label="' + esc(t('fa_buscar')) + '" value="' + esc(ESTADO.faTexto || '') + '">' +
+          (proyectos.length > 1 ? '<select class="fa-campo" id="faProy" aria-label="' + esc(t('f_proyecto')) + '"><option value="">' + esc(t('fa_todos_proy')) + '</option>' +
+            proyectos.map(function(p){ return '<option value="' + esc(p) + '"' + (ESTADO.faProy === p ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('') + '</select>' : '') + '</div></div>' +
+      '<div id="faLista"></div>';
+
+    var lista = c.querySelector('#faLista');
+    function pintaLista(){
+      var q = (ESTADO.faTexto || '').trim().toLowerCase();
+      var vis = facturas.filter(function(f){
+        if (ESTADO.faTipo && f.tipo !== ESTADO.faTipo) return false;
+        if (ESTADO.faProy && f.proyecto !== ESTADO.faProy) return false;
+        if (!q) return true;
+        return [f.numero, f.contrato_numero, f.proyecto].concat((f.lineas || []).map(function(l){ return l && l.descripcion; }), (f.salda || []).map(function(s){ return s.numero; }))
+          .some(function(s){ return s && String(s).toLowerCase().indexOf(q) !== -1; });
+      });
+      if (!vis.length){ lista.innerHTML = '<div class="fa-nada">' + esc(t('fa_sin_resultados')) + '</div>'; return; }
+      // Más reciente primero, como lo manda el servidor; se ordena aquí también para que agrupar por mes no dependa de él.
+      vis = vis.slice().sort(function(a, b){ return String(b.fecha || '').localeCompare(String(a.fecha || '')) || String(b.numero || '').localeCompare(String(a.numero || '')); });
+      var meses = [], porMes = {};
+      vis.forEach(function(f){
+        var dt = fechaLocal(f.fecha) || new Date(NaN), k = isNaN(dt) ? '' : dt.getFullYear() + '-' + dt.getMonth();
+        if (!porMes[k]){ porMes[k] = []; meses.push({ k:k, mes: isNaN(dt) ? '—' : dt.toLocaleDateString(LOC(), { month:'long' }), anio: isNaN(dt) ? '' : String(dt.getFullYear()) }); }
+        porMes[k].push(f);
+      });
+      lista.innerHTML = meses.map(function(m){
+        return '<section class="fa-mes"><div class="fa-mes-nom"><b>' + esc(m.mes) + '</b><span>' + esc(m.anio) + '</span></div><div class="fa-docs">' + porMes[m.k].map(function(f){
+          var e = est[f.id] || {}, lin = f.lineas || [];
+          // Un recibí no tiene concepto propio (sus líneas son las facturas que salda, y eso ya va en «Salda …»).
+          var concepto = (f.tipo !== 'recibi' && lin[0] && lin[0].descripcion) ? String(lin[0].descripcion) + (lin.length > 1 ? ' +' + (lin.length - 1) : '') : t(TIPO_DOC[f.tipo] || f.tipo);
+          var enl = [];
+          if (f.tipo === 'recibi' && (f.salda || []).length) enl.push('<span class="fa-enlace ok">' + ICO_P_FLECHA + esc(t('fa_salda').replace('{n}', f.salda.map(function(s){ return s.numero; }).join(', '))) + '</span>');
+          if (e.estado === 'pagada' && pagadaCon[f.numero]) enl.push('<span class="fa-enlace ok">' + ICO_P_OK + esc(t('fa_pagada_con').replace('{n}', pagadaCon[f.numero].join(', '))) + '</span>');
+          if ((e.estado === 'pendiente' || e.estado === 'parcial' || e.estado === 'vencida') && e.vence){
+            var fv = fechaLocal(e.vence);
+            if (fv) enl.push('<span class="fa-enlace ' + (e.estado === 'vencida' ? 'vencio' : 'vence') + '">' + ICO_P_RELOJ + esc(t(e.estado === 'vencida' ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(fv))) + '</span>');
+          }
+          return '<button type="button" class="fa-slip ' + esc(e.estado || '') + '" data-fila data-fac="' + esc(f.numero) + '">' +
+            '<span class="fa-papel" aria-hidden="true"><b>' + esc(SERIE_DOC[f.tipo] || '') + '</b><span><i></i><i></i><i></i></span></span>' +
+            '<span class="fa-slip-tx"><span class="fa-slip-con">' + esc(concepto) + '</span>' +
+              '<span class="fa-slip-meta"><span class="num">' + esc(f.numero) + '</span><span>' + esc(t(TIPO_DOC[f.tipo] || f.tipo)) + '</span>' +
+                (f.proyecto ? '<span>' + esc(f.proyecto) + '</span>' : '') + '<span>' + esc(fecha(f.fecha)) + '</span></span>' +
+              (enl.length ? '<span class="fa-enlaces">' + enl.join('') + '</span>' : '') + '</span>' +
+            '<span class="fa-slip-der"><span class="fa-slip-imp">' + esc(dinero(Number(f.total), f.moneda)) + '</span>' +
+              (e.falta != null ? '<span class="fa-slip-falta">' + esc(t('fa_faltan').replace('{m}', dinero(e.falta, f.moneda))) + '</span>' : '') +
+              (EST_FAC[e.estado] ? '<span class="fa-sello ' + e.estado + '">' + esc(t(EST_FAC[e.estado])) + '</span>' : '') + '</span></button>';
+        }).join('') + '</div></section>';
+      }).join('');
+      lista.querySelectorAll('[data-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-fac')); }); });
+    }
+    pintaLista();
+
+    c.querySelectorAll('[data-fa-tipo]').forEach(function(b){ b.addEventListener('click', function(){
+      ESTADO.faTipo = b.getAttribute('data-fa-tipo') || '';
+      c.querySelectorAll('[data-fa-tipo]').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
+      pintaLista();
+    }); });
+    var selP = c.querySelector('#faProy');
+    if (selP) selP.addEventListener('change', function(){ ESTADO.faProy = selP.value; pintaLista(); });
+    c.querySelector('#faBuscar').addEventListener('input', function(ev){ ESTADO.faTexto = ev.target.value; pintaLista(); });
+    c.querySelectorAll('.fa-ticket [data-ir-fac], .fa-ctr [data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
+    c.querySelectorAll('.fa-ticket [data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+    /* Flechas del carrusel de contratos (owner, 8-oct-2026: «una flechita para ir deslizando»). Solo se ven en móvil,
+       donde .fa-ctrs desliza de lado; avanzan una tarjeta (su ancho + el hueco) y se apagan en cada extremo. */
+    var car = c.querySelector('.fa-ctrs'), flechas = c.querySelectorAll('[data-fa-desliza]');
+    if (car && flechas.length){
+      var estadoFlechas = function(){
+        var max = car.scrollWidth - car.clientWidth - 2;
+        flechas.forEach(function(b){ b.disabled = Number(b.getAttribute('data-fa-desliza')) < 0 ? car.scrollLeft <= 2 : car.scrollLeft >= max; });
+      };
+      flechas.forEach(function(b){ b.addEventListener('click', function(){
+        // El hueco se lee del CSS (gap de .fa-ctrs): escrito aquí otra vez, los dos valores acabarían separándose.
+        var tarjeta = car.querySelector('.fa-ctr'), hueco = parseFloat(getComputedStyle(car).columnGap) || 0;
+        var paso = tarjeta ? tarjeta.getBoundingClientRect().width + hueco : car.clientWidth;
+        car.scrollBy({ left: Number(b.getAttribute('data-fa-desliza')) * paso, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      }); });
+      car.addEventListener('scroll', estadoFlechas, { passive:true });
+      // Al girar el móvil o cambiar el ancho, el carrusel cambia de tamaño: las flechas se recalculan solas.
+      // Sin alternativa con window.resize: se sumaría un listener en cada repintado (revisor). Sin ResizeObserver
+      // (navegadores de antes de 2020) las flechas se corrigen igual en cuanto se desliza.
+      if (window.ResizeObserver) new ResizeObserver(estadoFlechas).observe(car);
+      estadoFlechas();
+    }
   }
 
   /* ── Obra ─────────────────────────────────────────────────────────── */
