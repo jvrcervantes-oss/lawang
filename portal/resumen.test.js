@@ -180,7 +180,7 @@ es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)
 {
   const HOY = new Date(2026, 9, 8, 12, 0, 0);
   const fac = (numero, total, aplicado, vence, extra) => Object.assign({ id:numero, numero, tipo:'factura', total, aplicado,
-    contrato_numero:'CC1', moneda:'EUR', fields:{ fecha_vencimiento:vence } }, extra);
+    contrato_numero:'CC1', contrato_id:'c1', moneda:'EUR', fields:{ fecha_vencimiento:vence } }, extra);
   es('aplicada entera: pagada', R.estadoFactura(fac('INV00164', 22250, 22250, '2026-09-01'), 0, HOY).estado, 'pagada');
   const parcial = R.estadoFactura(fac('INV00159', 25000, 20000, '2026-12-01'), 0, HOY);
   es('aplicada en parte y sin vencer: pago parcial', parcial.estado, 'parcial');
@@ -196,7 +196,7 @@ es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)
   es('proforma: sin estado de pago', R.estadoFactura({ tipo:'proforma', total:5, aplicado:null }, 0, HOY).estado, 'proforma');
 
   // Administración: el recibí del contrato NO se aplicó a la factura. El dinero entró: la factura sale pagada.
-  const contrato = { numero:'CC1', cobrado:10000 };
+  const contrato = { id:'c1', numero:'CC1', cobrado:10000 };
   const sinAplicar = [fac('F1', 10000, 0, '2026-09-01', { fecha:'2026-08-01' })];
   const ex1 = R.saldoSinAplicar(sinAplicar, [contrato]);
   es('recibí sin aplicar: su dinero cubre la factura impagada', ex1, { F1:10000 });
@@ -211,10 +211,14 @@ es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)
 
   // El resto se reparte de la más antigua a la más reciente y nunca pasa de lo que falta de cada una.
   const tres = [fac('B', 10000, 0, '2026-12-01', { fecha:'2026-09-01' }), fac('A', 10000, 4000, '2026-12-01', { fecha:'2026-08-01' })];
-  const ex3 = R.saldoSinAplicar(tres, [{ numero:'CC1', cobrado:4000 + 9000 }]);
+  const ex3 = R.saldoSinAplicar(tres, [{ id:'c1', numero:'CC1', cobrado:4000 + 9000 }]);
   es('reparto: primero completa la más antigua, luego la siguiente', ex3, { A:6000, B:3000 });
   es('…la siguiente queda en pago parcial, con lo que falta', R.estadoFactura(tres[0], ex3.B, HOY), { estado:'parcial', vence:'2026-12-01', falta:7000 });
-  es('facturas de otro contrato no reciben nada', R.saldoSinAplicar([fac('Z', 100, 0, null, { contrato_numero:'OTRO' })], [contrato]), {});
+  es('facturas de otro contrato no reciben nada', R.saldoSinAplicar([fac('Z', 100, 0, null, { contrato_id:'otro' })], [contrato]), {});
+  // El caso del revisor: una factura del contrato con la copia del número distinta. Por id se resta igual.
+  const copiaMala = [fac('P', 10000, 10000, null, { fecha:'2026-08-01', contrato_numero:'CC1-viejo' }), fac('Q', 10000, 0, null, { fecha:'2026-09-01' })];
+  es('se empareja por id: una copia del número distinta no infla el resto', R.saldoSinAplicar(copiaMala, [contrato]), {});
+  es('sin contrato_id no se reparte nada (no se adivina)', R.saldoSinAplicar([fac('S', 100, 0, null, { contrato_id:null })], [contrato]), {});
 }
 
 if(fallos){ console.error(`\n${fallos} fallo(s) en las cuentas del portal.`); process.exit(1); }

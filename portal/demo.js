@@ -99,7 +99,8 @@
     ];
     var emisor = { label: 'Lawang Demo', razon: 'PT Demo Estate', domicilio: 'Jl. Demostración 1, Bali', npwp: '00.000.000.0-000.000' };
     function fac(id, numero, tipo, proy, fecha, total, contrato, concepto, extra) {
-      return Object.assign({ id: id, numero: numero, tipo: tipo, proyecto: proy, fecha: fecha, total: total, moneda: 'USD', contrato_numero: contrato, emisor: emisor, lineas: [{ descripcion: concepto, importe: total }],
+      return Object.assign({ id: id, numero: numero, tipo: tipo, proyecto: proy, fecha: fecha, total: total, moneda: 'USD', contrato_numero: contrato,
+        contrato_id: (contratos.filter(function (k) { return k.numero === contrato; })[0] || {}).id || null, emisor: emisor, lineas: [{ descripcion: concepto, importe: total }],
         fields: { sociedad: 'demo', tipo: tipo, moneda: 'USD', cliente_nombre: 'Marta Keller', cliente_email: EMAIL, fecha_emision: fecha, fecha_vencimiento: dia(6), proyecto_nombre: proy,
           contrato_numero: contrato, lineas: [{ descripcion: concepto, importe: total }] } }, extra);
     }

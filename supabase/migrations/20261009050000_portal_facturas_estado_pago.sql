@@ -4,6 +4,8 @@
 -- Revisión previa (Seguridad + Administración, 8-oct, #226):
 --  · `aplicado` por factura = public.factura_aplicado(), la misma suma que usa la intranet
 --    (facturas_pendiente_equipo). Solo en tipo 'factura': una proforma no se cobra y un recibí no se debe.
+--  · `contrato_id` por factura: el portal reparte lo cobrado SIN aplicar de un contrato (contrato_cobrado, por id)
+--    entre sus facturas, y emparejarlas por la copia `contrato_numero` era cruzar dos claves (revisor, 8-oct).
 --  · `salda` por recibí = las facturas a las que se aplicó, con su importe. Sale del MISMO conjunto que la
 --    lista (`mis_facturas`): hoy hay aplicaciones sobre facturas anuladas y que cruzan contratos, y un filtro
 --    escrito dos veces acabaría enseñando el número de una factura ajena o de una proforma sin enviar.
@@ -68,6 +70,7 @@ $m$      join mis_clientes mc on mc.client_id = cc.client_id
     array[
 $m$        'emisor',          f.datos->'emisor'$m$,
 $m$        'emisor',          f.datos->'emisor',
+        'contrato_id',     f.contrato_id,
         'aplicado',        case when f.tipo = 'factura' then public.factura_aplicado(f.id) end,
         'salda',           case when f.tipo = 'recibi' then coalesce((
                              select jsonb_agg(jsonb_build_object('numero', fa.numero, 'importe', ra.importe_aplicado)

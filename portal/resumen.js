@@ -211,8 +211,10 @@ function sustitutosDe(x, contratos){
 function saldoSinAplicar(facturas, contratos){
   const extra = {};
   (contratos || []).forEach(x => {
-    if (!x || !x.numero) return;
-    const suyas = (facturas || []).filter(f => f && f.tipo === 'factura' && f.contrato_numero === x.numero && f.aplicado != null);
+    // Por id, la misma clave con la que el servidor calcula `cobrado` (contrato_cobrado). La copia `contrato_numero`
+    // de la factura no vale: una distinta o vacía dejaría su `aplicado` sin restar e inflaría el resto (revisor, 8-oct).
+    if (!x || !x.id) return;
+    const suyas = (facturas || []).filter(f => f && f.tipo === 'factura' && f.contrato_id && f.contrato_id === x.id && f.aplicado != null);
     const aplicado = suyas.reduce((s, f) => s + (Number(f.aplicado) || 0), 0);
     let resto = Math.max(0, (Number(x.cobrado) || 0) - aplicado);
     suyas.slice().sort((a, b) => String(a.fecha || '').localeCompare(String(b.fecha || '')) || String(a.numero || '').localeCompare(String(b.numero || '')))

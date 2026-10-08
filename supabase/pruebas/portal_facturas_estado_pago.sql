@@ -53,7 +53,8 @@ begin
   -- 7: la lista no trae anuladas ni proformas sin enviar
   select count(*) into v_malos
     from jsonb_array_elements(v_lista) x join public.facturas f on f.id = (x ->> 'id')::uuid
-   where coalesce(f.anulada, false) or (f.tipo = 'proforma' and not coalesce(f.enviada, false));
+   where coalesce(f.anulada, false) or (f.tipo = 'proforma' and not coalesce(f.enviada, false))
+      or (x ->> 'contrato_id')::uuid is distinct from f.contrato_id;   -- y cada una con SU contrato (la clave del reparto)
   v_res := v_res || case when v_malos = 0 then '7:lista_sin_anuladas_ni_proformas_sin_enviar ' else '7:MAL(' || v_malos || ') ' end;
   -- 8: `aplicado` en las facturas y en nada más; `salda` en los recibís y en nada más
   select count(*) into v_malos
