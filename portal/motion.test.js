@@ -33,6 +33,17 @@ ok(M.puede() === false, 'en node no hay animate: puede() es false');
 M.pantalla(null, 'inicio'); M.menu(null); M.campana(null, 3); M.abrePanel(null);
 let llamado = false; M.cajon(null, null, true, () => { llamado = true; });
 ok(llamado, 'cajon sin animación llama igualmente a fin');
+// las piezas nuevas, sin navegador, tampoco hacen nada ni fallan; el aviso dice que no ha animado
+M.selectores(null); M.recuerdaPortada(null);
+let pintado = false; M.reordena(null, () => { pintado = true; }, 'data-doc');
+ok(pintado, 'reordena sin movimiento pinta igualmente');
+ok(M.aviso(null, true) === false, 'aviso sin movimiento devuelve false (el portal sigue con su fundido)');
+
+// el recorte de la foto de la tarjeta dentro de la portada: la ventana exacta, nunca negativa
+const dest = { top: 100, right: 500, bottom: 400, left: 50 };
+ok(M.recorte({ top: 110, right: 300, bottom: 200, left: 100 }, dest, 12) === 'inset(10px 200px 200px 50px round 12px)', 'recorte de una tarjeta dentro de la portada');
+ok(M.recorte(dest, dest) === 'inset(0px 0px 0px 0px round 0px)', 'la misma caja: sin recorte');
+ok(M.recorte({ top: 20, right: 600, bottom: 450, left: 0 }, dest, 8) === 'inset(0px 0px 0px 0px round 8px)', 'una tarjeta más grande que la portada no da recortes negativos');
 
 if (fallos) { console.error(fallos + ' fallo(s)'); process.exit(1); }
 console.log('motion.test.js — OK');

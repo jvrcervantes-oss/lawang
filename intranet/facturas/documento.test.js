@@ -29,7 +29,7 @@ const caja = {};
 new Function('caja',
   RUTAS.map(p => fs.readFileSync(path.join(raiz, p), 'utf8')).join('\n;\n') +
   '\n;Object.assign(caja,{SOCIEDADES,CUENTAS_BANCARIAS,calcTotales,fmtMoneda,parseImporte,' +
-  'compradoresDeContrato,nombresFactura,documentosFactura,primerDato,documentoPagina,documentoHTML,TIPOS_DOC});'
+  'compradoresDeContrato,nombresFactura,documentosFactura,primerDato,documentoPagina,documentoHTML,TIPOS_DOC,conceptoCobroRecibi});'
 )(caja);
 
 /* SOCIEDADES se siembra AQUI desde el 17-sep-2026.
@@ -199,5 +199,12 @@ assert.ok(!conMarca.includes('9999888877'), 'y no la del catálogo de hoy');
 const sinMarca = caja.documentoHTML({ ...papelBanco, banco_de_servidor: undefined }, {});
 assert.ok(sinMarca.includes('9999888877') && !sinMarca.includes('1111222233'), 'sin la marca (Lawang), el catálogo vivo');
 assert.ok(caja.documentoHTML({ ...papelBanco, banco_de_servidor: 'true' }, {}).includes('9999888877'), 'solo el booleano true activa el papel');
+
+// El concepto con el que un recibí nombra la factura que salda (8-oct-2026): lleva el NÚMERO, nunca un id interno
+assert.strictEqual(caja.conceptoCobroRecibi('INV00177'), 'Cobro de la factura INV00177 · Payment of invoice INV00177');
+assert.strictEqual(caja.conceptoCobroRecibi('  INV00177 '), 'Cobro de la factura INV00177 · Payment of invoice INV00177', 'sin espacios sobrantes');
+assert.strictEqual(caja.conceptoCobroRecibi(''), 'Cobro · Payment', 'sin número no inventa uno');
+assert.strictEqual(caja.conceptoCobroRecibi(null), 'Cobro · Payment');
+assert.strictEqual(caja.conceptoCobroRecibi(undefined), 'Cobro · Payment');
 
 console.log('documento.test.js OK');

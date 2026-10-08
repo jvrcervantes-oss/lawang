@@ -3249,14 +3249,26 @@
        el pie del cajón se esconde — la × de la cabecera cierra. */
     if (ctx.principal) {
       var pie = ctx.principal.parentNode;
-      ctx.principal.style.cssText = 'flex:0 0 auto;padding:6px 16px;border-radius:999px;border:0;background:' + CAJ.lago +
+      var estiloPie = ctx.principal.style.cssText;   // el del pie del modal: el botón vuelve a él en móvil
+      var estiloBarra = 'flex:0 0 auto;padding:6px 16px;border-radius:999px;border:0;background:' + CAJ.lago +
         ';color:#fff;font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap;line-height:1.3;margin-left:6px';
-      barra.insertBefore(ctx.principal, sp);
+      /* ≤860px (misma frontera que la regla de aseguraEstiloSplitDoc) la barra de la previa se
+         esconde y el pie vuelve: si el botón se quedaba en la barra, en el móvil el pie solo
+         tenía «Cancelar» y NO SE PODÍA EMITIR (owner, 8-oct-2026, desde el móvil). Por eso el
+         botón viaja con la pantalla: barra en ancho, pie en estrecho. */
+      var mq = window.matchMedia ? window.matchMedia('(max-width:860px)') : null;
+      var colocaEmitir = function () {
+        var estrecho = !!(mq && mq.matches);
+        ctx.principal.classList.toggle('lw-doc-emitir-barra', !estrecho);   // la clase lo oculta ≤860: solo vale en la barra
+        if (estrecho) { ctx.principal.style.cssText = estiloPie; pie.appendChild(ctx.principal); }
+        else { ctx.principal.style.cssText = estiloBarra; barra.insertBefore(ctx.principal, sp); }
+      };
+      colocaEmitir();
+      if (mq && mq.addEventListener) mq.addEventListener('change', colocaEmitir);
       // El pie se esconde solo en escritorio (regla en aseguraEstiloSplitDoc):
       // ≤860px la previa se apila BAJO el formulario y Emitir quedaría debajo
       // de veinte campos — ahí el pie vuelve y el botón de la barra se oculta.
       if (pie) pie.classList.add('lw-doc-pie-movido');
-      ctx.principal.classList.add('lw-doc-emitir-barra');
     }
     var bPdf = btn('Descargar PDF', function () { imprimeDoc(ctx.getVals(), ctx.saved); });
     var bMail = btn('Enviar por email', function () { enviaDocMail(ctx.sb, ctx.getVals(), ctx.saved, ctx.alEnviado); });
@@ -4167,9 +4179,9 @@
           var host = piezas.colForm;
           // Las «líneas» de un recibí, para el motor de render, son las
           // facturas que salda — mismo texto que ya usa onGuardar más abajo
-          // («Aplicado a factura X»), no una segunda descripción inventada.
+          // (conceptoCobroRecibi), no una segunda descripción inventada.
           function lineasDeAplicaciones() {
-            return aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
+            return aplicaciones.map(function (a) { return { descripcion: conceptoCobroRecibi(a.numero), importe: a.importe }; });
           }
           function recogeVals() {
             var vals = {};
@@ -4323,14 +4335,29 @@
               cargaAbiertas().then(function (abs) {
                 facturasAbiertasCache = abs;
                 aplicacionesRestauradas = true;
+                var numeroDe = {};
                 sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', existente.id)
                   .then(function (rr) {
                     if (rr.error) { toastMal(lwErrorHumano(rr.error, 'No se pudieron traer las facturas que este recibí ya saldaba')); pintaBtnF(); repintaAplic(); return; }
+                    // Una factura que este recibí ya salda del todo no está entre las ABIERTAS:
+                    // su número se pregunta aparte (antes caía al id interno y se imprimía).
+                    var sueltas = (rr.data || []).map(function (r) { return r.factura_id; })
+                      .filter(function (id) { return !facturasAbiertasCache.some(function (x) { return x.id === id; }); });
+                    return (sueltas.length ? sb.rpc('facturas_equipo').select('id,numero').in('id', sueltas) : Promise.resolve({ data: [] }))
+                      .then(function (fr) {
+                        if (fr.error) throw fr.error;
+                        (fr.data || []).forEach(function (x) { numeroDe[x.id] = x.numero; });
+                        // sin número real el recibí imprimiría un concepto vacío: no se carga
+                        if (sueltas.some(function (id) { return !numeroDe[id]; })) throw new Error('no se encontró el número de una factura de este recibí');
+                        return rr;
+                      });
+                  }).then(function (rr) {
+                    if (!rr || rr.error) return;
                     (rr.data || []).forEach(function (row) {
                       var abierta = facturasAbiertasCache.filter(function (x) { return x.id === row.factura_id; })[0];
                       aplicaciones.push({
                         factura_id: row.factura_id,
-                        numero: abierta ? abierta.numero : row.factura_id,
+                        numero: abierta ? abierta.numero : (numeroDe[row.factura_id] || ''),
                         pendiente: (abierta ? abierta.pendiente : 0) + Number(row.importe_aplicado),
                         importe: lwImporteCanonico(Number(row.importe_aplicado))
                       });
@@ -4513,7 +4540,7 @@
               if (!imp || imp <= 0) return { error: { message: 'Falta el importe aplicado a ' + aplicaciones[i].numero } };
               if (imp > aplicaciones[i].pendiente + 0.01) return { error: { message: aplicaciones[i].numero + ' solo tiene ' + aplicaciones[i].pendiente + ' pendiente' } };
             }
-            var lineas = aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
+            var lineas = aplicaciones.map(function (a) { return { descripcion: conceptoCobroRecibi(a.numero), importe: a.importe }; });
             var d = v; d.tipo = 'recibi'; d.lineas = lineas;
             d.cliente_nombre = v.cliente_nombre || estadoContrato.clienteNombre;
             d.cliente_documento = v.cliente_documento || estadoContrato.clienteDocumento;

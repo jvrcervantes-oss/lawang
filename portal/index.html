@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="a5438ea63679">
+<meta name="lw-version" content="e47a98215314">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- MODO DEMO (7-oct-2026): con `?demo` en la dirección se carga demo.js, que sustituye el cliente de Supabase por uno falso con datos
      ficticios. document.write y no un script creado a mano: tiene que ejecutarse ANTES del script del portal, en orden. Falla CERRADO: si demo.js
      no carga, createClient se anula y el portal real nunca se crea con `?demo` puesto. Sin `?demo` esto no hace nada. -->
-<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008s"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008m"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -49,11 +49,12 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
+<script src="/contracts/assets/mapa.js?v=dfa99f98"></script>
 <script src="/portal/resumen.js?v=20261008s"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
-<script src="/intranet/facturas/documento.js?v=638be339"></script>
+<script src="/intranet/facturas/documento.js?v=933661fe"></script>
 <style>
   :root{
     --tg:#485B37; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A; --va:#2E3437;
@@ -739,7 +740,8 @@
   .sop-resueltos summary::-webkit-details-marker{ display:none; }
   .sop-resueltos summary svg{ width:14px; height:14px; color:var(--out); transition:transform .2s; }
   .sop-resueltos[open] summary svg{ transform:rotate(90deg); }
-  .sop-resueltos .sop-tk{ background:var(--rl); }
+  /* Resueltos: blanco menos opaco que el sólido de los abiertos (antes --rl, igual que el fondo de la página y no se veía la caja). */
+  .sop-resueltos .sop-tk{ background:rgba(255,255,255,.55); }
   .sop-resueltos .sop-tk-t b{ color:var(--ink2); }
   .sop-pasos{ list-style:none; margin:14px 0 0; padding:0; display:grid; gap:14px; }
   .sop-pasos li{ display:grid; grid-template-columns:26px minmax(0,1fr); gap:12px; align-items:start; }
@@ -1381,10 +1383,15 @@
   .ini-losa small{ font-size:12px; color:rgba(255,255,255,.78); }
   .ini-pago.al-dia{ display:flex; flex-direction:column; }
   .ini-al-dia{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin:auto 0; padding-top:16px; }
-  .ini-al-dia-i{ color:#485B37; }
+  /* Sin pago pendiente la tarjeta sigue siendo el bloque laguna (fondo --dl): todo su texto va en blanco.
+     (8-oct-2026: el icono verde, el rótulo gris y el párrafo gris se perdían sobre el teal en un cliente sin datos) */
+  .ini-pago.al-dia .ini-rot{ color:rgba(255,255,255,.78); }
+  .ini-al-dia-i{ color:#fff; }
   .ini-al-dia-i svg{ width:38px; height:38px; }
-  .ini-al-dia b{ font-size:22px; font-weight:500; }
-  .ini-al-dia p{ margin:0; font-size:14px; color:var(--ink2); }
+  /* el tick va en el verde de la tarjeta: con trazo blanco sobre disco blanco no se veía (8-oct-2026) */
+  .ini-al-dia-i svg path{ stroke:var(--dl); stroke-width:2.6; }
+  .ini-al-dia b{ font-size:22px; font-weight:500; color:#fff; }
+  .ini-al-dia p{ margin:0; font-size:14px; color:rgba(255,255,255,.82); }
   /* cabecera de las tarjetas de la fila 2: icono, título y control, todos de 34 px */
   .ini-th{ display:flex; align-items:center; gap:12px; margin-bottom:16px; min-height:34px; }
   .ini-th h3{ margin:0; font-size:16px; font-weight:600; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1700,11 +1707,63 @@
     .dc-doc, .dc-mesa > *{ transition:none; }
     .dc-doc:hover, .dc-doc:hover .dc-mesa > *, .dc-doc:hover .dc-ir{ transform:none; }
   }
+
+  /* ═══ MOVIMIENTO · lo que aún saltaba (owner, 8-oct-2026: «Todas» del artifact «Movimiento del portal Lawang») ═══
+     Al final del <style> a propósito: varias reglas de aquí (transiciones, pulsar) tienen que ganar a las de cada
+     pantalla, que van antes. La curva es la del portal (--lw-ease); nada pasa de 300 ms salvo la carga. */
+  /* carga: el logotipo se descubre de izquierda a derecha y una raya fina corre debajo mientras llegan los datos */
+  .cargando{ grid-auto-flow:row; align-content:center; justify-items:center; gap:14px; }
+  .carga-marca{ font-size:26px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--dl); line-height:1;
+                animation:lw-descubre .7s cubic-bezier(.77,0,.175,1) both; }
+  .carga-raya{ display:block; width:96px; height:2px; border-radius:2px; background:var(--pg-hi); overflow:hidden; }
+  .carga-raya i{ display:block; width:40%; height:100%; border-radius:2px; background:#485B37; animation:lw-corre 1.1s linear .3s infinite both; }
+  @keyframes lw-descubre{ from{ clip-path:inset(0 100% 0 0); opacity:.4; } to{ clip-path:inset(0 0 0 0); opacity:1; } }
+  @keyframes lw-corre{ from{ transform:translateX(-100%); } to{ transform:translateX(250%); } }
+  /* el acceso entra subiendo (se repite cada vez que la pantalla de entrada pasa a verse) */
+  .entrada .caja{ animation:lw-sube .32s var(--lw-ease) both; }
+  @keyframes lw-sube{ from{ opacity:0; transform:translateY(14px); } }
+  /* selectores: la pista (la crea motion.js solo mientras se desliza) va debajo de los botones; mientras existe, el
+     elegido cede su fondo a la pista, y al borrarse lo recupera */
+  .con-pista{ position:relative; }
+  .con-pista > button{ position:relative; z-index:1; }
+  .con-pista > button[aria-pressed="true"], .con-pista > button[aria-pressed="true"]:hover{ background:transparent; }
+  /* el elegido cambia de fondo de golpe: si fundiera, su verde aparecería en el destino antes de que llegue la pista,
+     y al borrarse la pista se vería un destello claro */
+  .ini-filtro button[aria-pressed="true"], .lang-sel button[aria-pressed="true"]{ transition:color .2s, transform .12s var(--lw-ease); }
+  .lw-pista{ position:absolute; left:0; border-radius:999px; z-index:0; pointer-events:none; background:#485B37; }
+  .lang-sel .lw-pista{ background:var(--dl); }
+  /* filtrar sin saltos: las copias de lo que sale se colocan sobre la lista */
+  #docLista, #faLista{ position:relative; }
+  /* avisos: la animación de motion.js manda sobre el fundido CSS */
+  .toast.lw-aviso{ transition:none; }
+  /* pulsar: todo lo que se pulsa cede un poco (los botones ya lo hacían) */
+  .ct-pill, .dc-cifras button, button.ini-pastilla, .ini-filtro button{ transition:background .2s, color .2s, border-color .2s, transform .12s var(--lw-ease); }
+  /* el idioma no se repinta (sus botones son fijos): su fondo cambia de golpe y el movimiento lo pone la pista; si
+     fundiera, el botón que deja de estar elegido taparía la pista al salir */
+  .lang-sel button{ transition:color .2s, transform .12s var(--lw-ease); }
+  .fa-slip{ transition:border-color .2s var(--lw-ease), background .2s var(--lw-ease), transform .12s var(--lw-ease); }
+  .ini-ir:active, .ct-pill:active, button.ini-pastilla:active, .dc-cifras button:active, .ini-filtro button:active, .lang-sel button:active{ transform:scale(.96); }
+  .dc-doc:active, .fa-slip:active{ transform:scale(.99); }
+  /* lo que se mueve al pasar el ratón, solo con ratón: en el móvil un toque simulaba el «pasar por encima» */
+  @media (hover:none){
+    .proy-card:hover, .proy-card:hover .proy-portada img, .fa-slip:hover .fa-papel, .ini-ir:hover, .ob-foto:hover .ob-marco img,
+    .dc-doc:hover, .dc-doc:hover .dc-mesa > *, .dc-doc:hover .dc-ir{ transform:none; }
+    .docfila:hover{ padding-left:18px; }
+    /* al tocar, :hover y :active van a la vez: el ceder al pulsar tiene que ganar al «hover» quitado arriba */
+    .ini-ir:active{ transform:scale(.96); }
+    .dc-doc:active, .fa-slip:active{ transform:scale(.99); }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .carga-marca, .carga-raya i, .entrada .caja{ animation:none; }
+    .carga-raya{ visibility:hidden; }
+    .ct-pill, .dc-cifras button, .lang-sel button, button.ini-pastilla, .ini-filtro button, .fa-slip{ transition:none; }
+    .ini-ir:active, .ct-pill:active, button.ini-pastilla:active, .dc-cifras button:active, .ini-filtro button:active, .lang-sel button:active, .dc-doc:active, .fa-slip:active{ transform:none; }
+  }
 </style>
 </head>
 <body>
 
-<div id="vCarga" class="cargando">Lawang</div>
+<div id="vCarga" class="cargando"><span class="carga-marca">Lawang</span><span class="carga-raya" aria-hidden="true"><i></i></span></div>
 
 <!-- ── entrada ───────────────────────────────────────────────────────── -->
 <div id="vLogin" class="entrada" hidden>
@@ -1813,7 +1872,8 @@
   function toast(msg){
     var el = document.getElementById('toast');
     el.textContent = msg; el.style.opacity = '1';
-    clearTimeout(toast._t); toast._t = setTimeout(function(){ el.style.opacity = '0'; }, 3200);
+    clearTimeout(toast._t); toast._t = setTimeout(function(){ el.style.opacity = '0'; if (window.LW_MOV) LW_MOV.aviso(el, false, false); }, 3200);
+    if (window.LW_MOV) LW_MOV.aviso(el, true, false);
   }
 
   /* Aviso de ERROR: centro, rojo y 7 s (owner, 14-sep-2026). Quien lee esto es
@@ -1826,7 +1886,8 @@
              el.setAttribute('role','alert'); el.setAttribute('aria-live','assertive');
              el.setAttribute('aria-atomic','true'); document.body.appendChild(el); }
     el.className = 'toast mal'; el.textContent = msg; el.style.opacity = '1';
-    clearTimeout(toastMal._t); toastMal._t = setTimeout(function(){ el.style.opacity = '0'; }, 7000);
+    clearTimeout(toastMal._t); toastMal._t = setTimeout(function(){ el.style.opacity = '0'; if (window.LW_MOV) LW_MOV.aviso(el, false, true); }, 7000);
+    if (window.LW_MOV) LW_MOV.aviso(el, true, true);
   }
 
   /* ── idioma ───────────────────────────────────────────────────────── */
@@ -2591,10 +2652,17 @@
     c.classList.toggle('pf-ancho', ESTADO.section === 'perfil');   // Mi perfil va a dos columnas y pide algo más de ancho
     var fns = { inicio:pintaInicio, contratos:pintaContratos, facturas:pintaFacturas, obra:pintaObra,
                 documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
+    /* Otra sección u otra carpeta se abre desde arriba: sin esto la página conservaba el scroll de la anterior (Inicio es larga) y
+       Obra o Documentos aparecían «en blanco» — el cliente miraba el final o el hueco de debajo (8-oct-2026, reproducido en la demo). */
+    var vistaNueva = ESTADO.section + '|' + (ESTADO.section === 'documentos' ? (leeHash().doc || '') : '');
+    if (vistaNueva !== VISTA_PINTADA){ VISTA_PINTADA = vistaNueva; try { window.scrollTo({ top:0, left:0, behavior:'instant' }); } catch (e){ window.scrollTo(0, 0); } }
     c.innerHTML = '';
     c.classList.toggle('ini-ancho', ESTADO.section === 'inicio');   // el Inicio tipo panel usa más ancho (8-oct-2026)
     c.classList.remove('ini-quieto');
-    (fns[ESTADO.section] || pintaInicio)(c);
+    /* Una sección que falla con un dato raro no deja la pantalla en blanco: se dice y el detalle va a la consola (8-oct-2026,
+       «al pulsar Obra y Documentos se pone en blanco»). Los enganches de arriba ya están puestos y el resto del portal sigue vivo. */
+    try { (fns[ESTADO.section] || pintaInicio)(c); }
+    catch (e){ console.error('seccion ' + ESTADO.section, e); c.innerHTML = vacio(t('tit_' + ESTADO.section), t('err_carga')); }
     /* Movimiento (motion.js). Se anima solo si cambia la clave «sección|carpeta»: un repintado por idioma, por recarga
        de datos, al abrir o cerrar un documento o un cajón NO la cambia y no mueve nada. */
     try {
@@ -2604,10 +2672,13 @@
         c.classList.toggle('ini-quieto', !cambia);   // el arco de obra se dibuja al llegar a Inicio, no al repintar por idioma o datos (revisor, 8-oct)
         LW_MOV.menu(document.getElementById('nav'), cambia);
         if (cambia) LW_MOV.pantalla(c, ESTADO.section);
+        LW_MOV.selectores(c, ESTADO.section);   // la pista del elegido viaja desde donde estaba antes del repintado
+        LW_MOV.selectores(document.querySelector('.topbar2'), 'top');
       }
     } catch (e){ console.error('movimiento', e); /* MUDO A PROPOSITO: el movimiento es un adorno; si falla, la pantalla ya está pintada y funciona igual, y el detalle va a la consola */ }
   }
   var ULTIMA_VISTA = '';
+  var VISTA_PINTADA = '';
 
   function vacio(titulo, texto){
     return '<div class="tabla-caja"><div class="vacio"><b>' + esc(titulo) + '</b>' + esc(texto) + '</div></div>';
@@ -3029,12 +3100,13 @@
       proyectosHTML;
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
     c.querySelectorAll('[data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
-    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ vasA('documentos', b.getAttribute('data-carpeta')); }); });
+    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
     /* Repintar por un control del propio Inicio: quieto (el arco no se vuelve a dibujar; render() promete que un
        repintado no mueve nada) y con el foco de vuelta en el botón pulsado, para quien va con teclado (revisor, 8-oct). */
     function repinta(selector){
       pintaInicio(c);
       c.classList.add('ini-quieto');
+      if (window.LW_MOV) LW_MOV.selectores(c, 'inicio');   // la pista del proyecto viaja hasta el pulsado
       var b = selector && c.querySelector(selector);
       if (b) b.focus();
     }
@@ -3562,7 +3634,7 @@
     c.querySelectorAll('[data-fa-tipo]').forEach(function(b){ b.addEventListener('click', function(){
       ESTADO.faTipo = b.getAttribute('data-fa-tipo') || '';
       c.querySelectorAll('[data-fa-tipo]').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
-      pintaLista();
+      if (window.LW_MOV) LW_MOV.reordena(lista, pintaLista, 'data-fac'); else pintaLista();
     }); });
     var selP = c.querySelector('#faProy');
     if (selP) selP.addEventListener('change', function(){ ESTADO.faProy = selP.value; pintaLista(); });
@@ -3711,7 +3783,7 @@
         '<button type="button" class="btn-oscuro" data-ob-ticket>' + esc(t('escribir_equipo')) + '</button></article></div>';
 
     c.innerHTML = cab + heroe + ruta + '<section class="ob-f2">' + diario + ficha + '</section>';
-    c.querySelectorAll('[data-ob-villa]').forEach(function(b){ b.addEventListener('click', function(){ ESTADO.obraSel = b.getAttribute('data-ob-villa'); render(); }); });
+    c.querySelectorAll('[data-ob-villa]').forEach(function(b){ b.addEventListener('click', function(){ ESTADO.obraSel = b.getAttribute('data-ob-villa'); render(); try { if (window.LW_MOV) LW_MOV.recambio(c); } catch (e){ console.error('movimiento', e); } }); });
     c.querySelectorAll('[data-ob-foto]').forEach(function(b){ b.addEventListener('click', function(){ visorObra(o, +b.getAttribute('data-ob-foto'), b); }); });
     var bt = c.querySelector('[data-ob-ticket]');
     if (bt) bt.addEventListener('click', function(){ abrirNuevoTicket(rel.contrato ? { tipo:'contrato', id:rel.contrato.id, cat:'Obra' } : { cat:'Obra' }); });
@@ -3814,7 +3886,7 @@
     Object.keys(p).forEach(function(k){ o[k] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p[k] + '</svg>'; });
     return o;
   })();
-  function catClave(c){ var k = String(c || 'otros').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); return ORDEN_CAT.indexOf(k) >= 0 ? k : 'otros'; }
+  function catDocClave(c){ var k = String(c || 'otros').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); return ORDEN_CAT.indexOf(k) >= 0 ? k : 'otros'; }
   /* El enlace solo se pinta como enlace si es http(s): un `javascript:` guardado por error no llega al href. */
   function docUrlOk(x){ return !!(x.url && /^https?:\/\//i.test(x.url)); }
   /* Qué es cada documento, leído de su propia dirección (sin tocar la base): fichero, carpeta o álbum, y dónde se abre. */
@@ -3829,13 +3901,13 @@
   }
   function docsPorCat(docs){
     var m = {};
-    docs.forEach(function(x){ var k = catClave(x.categoria); (m[k] = m[k] || []).push(x); });
+    docs.forEach(function(x){ var k = catDocClave(x.categoria); (m[k] = m[k] || []).push(x); });
     return ORDEN_CAT.filter(function(k){ return m[k]; }).map(function(k){ return { k:k, docs:m[k] }; });
   }
   /* El dibujo de cada tarjeta: la hoja con el código del apartado; una carpeta de Drive es una carpeta; un álbum (o un
      documento del apartado Fotos) enseña la portada del proyecto entre dos fotos de fondo. */
   function docMiniatura(x, f){
-    var k = catClave(x.categoria), tp = docTipo(x), cod = esc(t('dc_cod_' + k));
+    var k = catDocClave(x.categoria), tp = docTipo(x), cod = esc(t('dc_cod_' + k));
     if ((tp.k === 'album' || k === 'fotos') && f.portada) return '<span class="dc-fotos"><i></i><i></i><img alt="" data-portada="' + esc(f.portada) + '" hidden></span>';
     if (tp.k === 'carpeta') return '<span class="dc-carpeta"><b>' + cod + '</b></span>';
     return '<span class="fa-papel dc-papel"><b>' + cod + '</b><span><i></i><i></i><i></i></span></span>';
@@ -3857,7 +3929,10 @@
     // ya no está en la carpeta deja de estar elegido
     if (docs.length <= 8) DOC_FILTRO.q = '';
     if (DOC_FILTRO.cat && !grupos.some(function(g){ return g.k === DOC_FILTRO.cat; })) DOC_FILTRO.cat = '';
-    var mapaOk = f.mapa && /^https:\/\//i.test(f.mapa);
+    // `f.mapa` es `proyectos.ubicacion_maps` tal cual se pegó en la intranet: casi siempre coordenadas, a veces un
+    // enlace. Lo traduce a enlace de Google Maps la misma función que la intranet (contracts/assets/mapa.js).
+    var mapaUrl = (window.lwMapaUbicacion && (window.lwMapaUbicacion(f.mapa) || {}).abrir) || '';
+    var mapaOk = /^https:\/\//i.test(mapaUrl);
     var cab = '<div class="ob-cab"><div class="titulo-sec"><h2>' + esc(t('dc_titulo')) + '</h2><p>' + esc(t('dc_sub')) + '</p></div>' +
       (carpetas.length > 1 ? '<div class="ini-filtro" role="group" aria-label="' + esc(t('dc_proyecto')) + '">' + carpetas.map(function(x){
         return '<button type="button" data-carpeta="' + esc(x.key) + '" aria-pressed="' + (x.key === f.key ? 'true' : 'false') + '">' + esc(x.nombre) + '<small>' + x.docs.length + '</small></button>';
@@ -3868,7 +3943,7 @@
       '<div class="dc-heroe-tx"><span class="ob-sello">' + esc(t('dc_carpeta')) + '<i>' + ICO_DC.carpeta + '</i></span>' +
         '<h3>' + esc(f.nombre) + '</h3>' + (datos ? '<p>' + esc(datos) + '</p>' : '') + '</div>' +
       '<div class="dc-heroe-acc">' +
-        (mapaOk ? '<a class="btn-borde dc-mapa" href="' + esc(f.mapa) + '" target="_blank" rel="noopener noreferrer">' + ICO_DC.pin + esc(t('dc_ver_mapa')) + '</a>' : '') +
+        (mapaOk ? '<a class="btn-borde dc-mapa" href="' + esc(mapaUrl) + '" target="_blank" rel="noopener noreferrer">' + ICO_DC.pin + esc(t('dc_ver_mapa')) + '</a>' : '') +
         '<button type="button" class="btn-oscuro dc-pedir" data-dc-pedir>' + esc(t('dc_pedir_btn')) + '</button></div></section>';
     var hayFicheros = docs.some(function(x){ return !x.url && x.path; });
     var cuerpo = docs.length
@@ -3897,7 +3972,7 @@
     function pintaLista(primera){
       var q = DOC_FILTRO.q.trim().toLowerCase();
       visibles = docs.filter(function(x){
-        return (!DOC_FILTRO.cat || catClave(x.categoria) === DOC_FILTRO.cat) &&
+        return (!DOC_FILTRO.cat || catDocClave(x.categoria) === DOC_FILTRO.cat) &&
                (!q || [x.titulo, x.descripcion, catDoc(x.categoria)].join(' ').toLowerCase().indexOf(q) >= 0);
       });
       if (!visibles.length){ cajaLista.innerHTML = '<p class="vacio">' + esc(t('doc_sin_resultados')) + '</p>'; return; }
@@ -3923,7 +3998,7 @@
         var k = b.getAttribute('data-dc-cat');
         DOC_FILTRO.cat = DOC_FILTRO.cat === k ? '' : k;
         c.querySelectorAll('[data-dc-cat]').forEach(function(x){ x.setAttribute('aria-pressed', x.getAttribute('data-dc-cat') === DOC_FILTRO.cat ? 'true' : 'false'); });
-        pintaLista();
+        if (window.LW_MOV) LW_MOV.reordena(cajaLista, function(){ pintaLista(); }, 'data-doc'); else pintaLista();
       });
     });
     cajaLista.addEventListener('click', function(ev){

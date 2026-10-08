@@ -464,6 +464,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 <!-- Panel de due diligence de la hero: fuente unica compartida con palmfield/index.html (6-oct-2026) -->
 <link rel="stylesheet" href="/investor-deck/panel-dd.css?v=20261006a">
 <script src="/investor-deck/i18n.js?v=20260924u"></script>
+<script src="/contracts/assets/mapa.js?v=dfa99f98"></script>
 </head>
 <body>
 
@@ -1389,17 +1390,9 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       }
 
   /* Ubicación (24-sep-2026): mapa incrustado si hay coordenadas; con un enlace corto de
-     Maps (no trae coordenadas y el navegador no puede seguirlo) solo el botón. Mismos
-     patrones que el cajón de la intranet (mapaProyecto en intranet/v4/assets/datos.js). */
-  function ubicMapa(t){
-    t = (t || '').trim(); if(!t) return null;
-    var m = t.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)$/);
-    if(m) return { abrir: 'https://www.google.com/maps?q=' + m[1] + ',' + m[2], embed: 'https://maps.google.com/maps?q=' + m[1] + ',' + m[2] + '&z=14&output=embed' };
-    if(!/^https:\/\/([a-z0-9-]+\.)*(google\.[a-z.]+|goo\.gl)\//i.test(t)) return null;
-    var c = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-            t.match(/[?&](?:q|ll|query|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i);
-    return { abrir: t, embed: c ? 'https://maps.google.com/maps?q=' + c[1] + ',' + c[2] + '&z=14&output=embed' : null };
-  }
+     Maps (no trae coordenadas y el navegador no puede seguirlo) solo el botón. La
+     interpretación es la de la intranet y el portal: /contracts/assets/mapa.js (8-oct-2026). */
+  function ubicMapa(t){ return window.lwMapaUbicacion ? window.lwMapaUbicacion(t, 14) : null; }
   function pintaUbicacion(valor){
     var u = ubicMapa(typeof valor === 'string' ? valor : '');
     var sec = document.getElementById('ubicacion');
