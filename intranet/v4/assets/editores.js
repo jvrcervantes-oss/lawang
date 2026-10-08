@@ -5160,6 +5160,9 @@
            a `[hidden]`, así que también se esconde con display (medido en el arnés). */
         var bFichaPub = document.querySelector('[data-accion="ficha-publica"]');
         if (bFichaPub) { bFichaPub.hidden = true; bFichaPub.style.display = 'none'; }
+        /* Bot de WhatsApp (S7): también solo admin. Cosmético: quien manda es es_admin_de(empresa) dentro de proyecto_bot_publico_poner. */
+        var bBotPub = document.querySelector('[data-accion="bot-publico"]');
+        if (bBotPub) { bBotPub.hidden = true; bBotPub.style.display = 'none'; }
       }
       /* Dar de alta un proyecto es de dirección (LAW-177, 11-sep-2026): la RLS
          de INSERT en `proyectos` exige es_admin(). Se esconde el botón aquí, en
@@ -6222,6 +6225,87 @@
         if (!window.lwFichaPublica) return aviso('La pantalla de ficha pública aún no ha cargado: prueba otra vez.', '#8A6A34');
         window.lwFichaPublica.abre({ sb: sb, esAdmin: esAdminP, proyecto: { id: p.id, nombre: p.nombre, slug: p.slug } });
       });
+
+      /* Bot de WhatsApp (S7 del encargo del bot de Lawang, 9-oct-2026): la casilla «el bot puede hablar de este proyecto».
+         El DUEÑO del dato es `proyectos.bot_publico` (cerrada por defecto, independiente del Investor Deck: Palm Field es
+         confidencial y puede estar cerrado al bot aunque su deck esté abierto, o al revés). El navegador NO escribe en la
+         tabla: pide a `proyecto_bot_publico_poner`, que comprueba en el servidor que quien llama es administrador de la
+         empresa del proyecto y deja quién y cuándo (trigger de la base, no esta pantalla). Abrirlo es publicar precios por
+         WhatsApp a cualquiera que escriba, así que pide confirmación; cerrarlo no. `visibles` lo cuenta el servidor con la
+         misma función que usa el bot (`bot_catalogo_leer`): esta pantalla no reimplementa qué es «disponible». */
+      ata('bot-publico', function () {
+        var p = proyectoObj();
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        sb.rpc('proyecto_bot_publico_lee', { p_proyecto: p.id }).then(function (r) {
+          if (r.error) return aviso('No se pudo leer el estado del bot: ' + r.error.message, '#ba1a1a');
+          pintaBotPublico(p, r.data || {});
+        }, function (e) { aviso('No se pudo leer el estado del bot: ' + ((e && e.message) || e), '#ba1a1a'); });
+      });
+
+      function estadoBotHtml(est) {
+        var cuando = est.en ? new Date(est.en).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
+        var quien = est.por ? esc(est.por) : 'alguien del equipo';
+        var traza = est.en ? ('Último cambio: ' + quien + ', ' + esc(cuando) + '.') : 'Nunca se ha abierto.';
+        if (!est.bot_publico) return '<b>Estado: </b>CERRADO — el bot no dice nada de este proyecto. ' + traza;
+        var n = Number(est.visibles) || 0;
+        return '<b>Estado: </b><b style="color:#3F5230">ABIERTO</b> — ' + traza + '<br>' +
+          (est.activo === false
+            ? '<span style="color:#ba1a1a">El proyecto está desactivado: el bot no lo ve aunque la casilla esté marcada.</span>'
+            : (n > 0 ? 'Ahora mismo el bot ve <b>' + n + '</b> unidades disponibles de este proyecto.'
+                     : '<span style="color:#8A6A34">Ahora mismo el bot no ve ninguna unidad disponible de este proyecto: no hay nada que decir.</span>'));
+      }
+
+      function pintaBotPublico(p, est) {
+        var actual = est;
+        var cuerpo =
+          '<p style="margin:0 0 4px;font-size:13px;color:' + CAJ.apagado + ';line-height:1.5">Si lo abres, el bot de WhatsApp dice el precio y la disponibilidad de las unidades <b>disponibles</b> de este proyecto a cualquiera que le escriba. Nunca cita datos de clientes ni de contratos. Está cerrado por defecto y es independiente del Investor Deck.</p>' +
+          '<label style="display:flex;gap:10px;align-items:center;background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';cursor:pointer">' +
+            '<input type="checkbox" id="bp-check" data-lw="bot-publico-check"' + (actual.bot_publico ? ' checked' : '') + ' style="width:18px;height:18px"> El bot puede hablar de este proyecto</label>' +
+          '<div id="bp-estado" data-lw="bot-publico-estado" style="background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-size:13px;color:' + CAJ.tinta + ';line-height:1.5">' + estadoBotHtml(actual) + '</div>' +
+          '<p style="margin:0;font-size:12px;color:' + CAJ.apagado + '">Lo que el bot sabe en total se ve en CRM → Configurar bot → «Lo que sabe el bot».</p>';
+        cajon({
+          titulo: 'Bot de WhatsApp', sub: p.nombre, ancho: 'min(520px,96vw)', cuerpo: cuerpo,
+          acciones: [
+            { texto: 'Guardar', tono: 'primario', onClick: guardarBotPublico },
+            { texto: 'Cerrar', cerrar: true }
+          ]
+        });
+
+        function guardarBotPublico(ev) {
+          var marcado = !!document.getElementById('bp-check').checked;
+          if (marcado === !!actual.bot_publico) return aviso('No hay cambios que guardar.', '#8A6A34');
+          var btn = ev && ev.currentTarget;
+          var pregunta = marcado
+            ? aseguraModulosDoc(['dialogo']).then(function () {
+                return lwConfirmar({
+                  titulo: 'Abrir «' + p.nombre + '» al bot',
+                  cuerpo: '<p>El bot dirá por WhatsApp, a cualquiera que le escriba, el precio y la disponibilidad de las unidades disponibles de ' + esc(p.nombre) + '.</p>' +
+                    '<p>No cita datos de clientes ni de contratos. Se puede cerrar de nuevo en cualquier momento.</p>',
+                  confirmar: 'Abrir al bot', tono: 'peligro'
+                });
+              })
+            : Promise.resolve(true);
+          pregunta.then(function (ok) {
+            if (!ok) { document.getElementById('bp-check').checked = !!actual.bot_publico; return; }
+            if (btn) btn.disabled = true;
+            return sb.rpc('proyecto_bot_publico_poner', { p_proyecto: p.id, p_valor: marcado }).then(function (r) {
+              if (btn) btn.disabled = false;
+              if (r.error) {
+                document.getElementById('bp-check').checked = !!actual.bot_publico;   // la pantalla vuelve a lo que de verdad hay
+                return aviso('No se ha cambiado nada: ' + r.error.message, '#ba1a1a');
+              }
+              actual = r.data || actual;
+              document.getElementById('bp-check').checked = !!actual.bot_publico;
+              document.getElementById('bp-estado').innerHTML = estadoBotHtml(actual);
+              aviso(actual.bot_publico ? 'Proyecto abierto al bot' : 'Proyecto cerrado al bot');
+            }, function (e) {
+              if (btn) btn.disabled = false;
+              document.getElementById('bp-check').checked = !!actual.bot_publico;
+              aviso('No se ha cambiado nada: ' + ((e && e.message) || e), '#ba1a1a');
+            });
+          });
+        }
+      }
 
       /* ¿Están las fotos donde manda el flag? (AXW-66, 28-sep-2026). Lo mide el SERVIDOR: la acción `urls` devuelve
          URL pública si la foto está en `deck` y firmada si está en `deck-privado`. Deck activo con alguna firmada, o

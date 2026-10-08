@@ -171,7 +171,7 @@ function ir(v){
   if(v === 'hoy') cargarHoy();
   if(v === 'setter' && !CARGADO.setter) cargarSetter();
   if(v === 'agenda' && !CARGADO.agenda) cargarAgenda();
-  if(v === 'config') cargarConfig();
+  if(v === 'config'){ cargarConfig(); cargarSabe(); }
   if(v === 'closers') cargarClosers();
   if(v === 'trazabilidad') cargarTrazabilidad();
 }
@@ -993,6 +993,8 @@ function abrirFicha(l){
       <p class="lb">${lwT('Próximo paso')}</p>
       <div id="proximoPaso"></div>
 
+      <div id="citaFicha"></div>
+
       <p class="lb">${lwT('Venta')}</p>
       <div id="haciaContrato"></div>
 
@@ -1015,6 +1017,7 @@ function abrirFicha(l){
   if(vc) vc.onclick = () => verContacto(l);
   pintarDuenoFicha(l);
   pintarProximoPaso(l);
+  pintarCita(l);
   pintarHaciaContrato(l);
   pintarHilo(l);
 }
@@ -1193,6 +1196,73 @@ function formularioProximoPaso(l){
   caja.querySelector('#ppQue').focus();
 }
 
+/* ---------- cita (llamada o visita) ----------
+   La cita NO es «el próximo paso»: el próximo paso es una tarea del equipo (una sola, la edita quien lleva el
+   lead) y la cita la propone el bot de WhatsApp y alguien la tiene que confirmar. Viven en la misma tabla
+   (`lead_accion`, columna `tipo`) pero se pintan aparte y se deciden aparte: `crm_lead_cita_decidir` es la única
+   puerta y comprueba permiso y alcance en el servidor; aquí solo se decide qué botones tiene sentido enseñar.
+   Los botones se enganchan por `data-cita` (confirmar | hecha | cancelar), nunca por su rótulo. */
+const citaTipoTxt = t => t === 'visita' ? lwT('Visita') : lwT('Llamada');
+const citaEstadoChip = e => ({
+  propuesta:  ['oro',   lwT('Propuesta')],
+  confirmada: ['verde', lwT('Confirmada')],
+  cancelada:  ['gris',  lwT('Cancelada')],
+  hecha:      ['gris',  lwT('Hecha')],
+}[e] || ['gris', e || '']);
+/* La hora la fija el servidor en hora de Bali (Asia/Makassar): se pinta SIEMPRE en esa zona y lo dice, para que
+   quien mira desde otra no lea una hora que no es. */
+const citaCuando = iso => { const d = new Date(iso); return isNaN(d) ? '' :
+  d.toLocaleString(lwLocale(), { timeZone: 'Asia/Makassar', weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit' }) + ' · ' + lwT('hora de Bali'); };
+function pintarCita(l){
+  const caja = document.querySelector('#citaFicha'); if(!caja) return;
+  if(!l.cita_id){ caja.innerHTML = ''; return; }
+  const [tono, etiqueta] = citaEstadoChip(l.cita_estado);
+  const pasada = l.cita_cuando_ts && new Date(l.cita_cuando_ts) < new Date();
+  const quePide = l.cita_estado === 'propuesta'
+    ? lwT('La propuso el bot: confirma con el cliente o cancela.')
+    : (pasada ? lwT('Ya pasó la hora: márcala como hecha o cancélala.') : '');
+  caja.innerHTML = `
+    <p class="lb">${lwT('Cita')}</p>
+    <div class="tarea-ficha${pasada ? ' urge' : ''}" data-lw="cita-ficha">
+      <div>
+        <div class="q"><span class="chip ${tono}" data-lw="cita-estado">${esc(etiqueta)}</span>
+          <span data-lw="cita-tipo">${esc(citaTipoTxt(l.cita_tipo))}</span></div>
+        <div class="c">${esc(citaCuando(l.cita_cuando_ts))}${quePide ? ' · ' + esc(quePide) : ''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${l.cita_estado === 'propuesta' ? `<button class="btn mini pri" data-cita="confirmar"><i class="ph ph-check"></i>${lwT('Confirmar')}</button>` : ''}
+        ${l.cita_estado === 'confirmada' ? `<button class="btn mini" data-cita="hecha"><i class="ph ph-check"></i>${lwT('Hecha')}</button>` : ''}
+        <button class="btn mini" data-cita="cancelar">${lwT('Cancelar')}</button>
+      </div>
+    </div>`;
+  caja.querySelectorAll('[data-cita]').forEach(b => b.onclick = () => decidirCita(l, b.dataset.cita));
+}
+async function decidirCita(l, decision){
+  const caja = document.querySelector('#citaFicha');
+  const botones = caja ? caja.querySelectorAll('[data-cita]') : [];
+  if(decision === 'cancelar'){
+    const seguro = await lwConfirmar({
+      titulo: lwT('Cancelar esta cita'),
+      cuerpo: lwT('La cita se cierra y el bot podrá proponer otra al cliente si lo pide. No se avisa al cliente por WhatsApp.'),
+      confirmar: lwT('Cancelar la cita'), cancelar: lwT('Volver'), tono: 'peligro',
+    });
+    if(!seguro) return;
+  }
+  botones.forEach(b => b.disabled = true);
+  const { data, error } = await SB.rpc('crm_lead_cita_decidir', { p_accion: l.cita_id, p_decision: decision });
+  if(error){
+    toastMal(lwErrorHumano(error, lwT('No se pudo actualizar la cita: ')));
+    botones.forEach(b => b.disabled = false);
+    return;
+  }
+  if(data && data.estado === 'confirmada') l.cita_estado = 'confirmada';
+  else { l.cita_id = l.cita_tipo = l.cita_cuando_ts = l.cita_estado = null; }   // cancelada / hecha: ya no hay cita viva
+  toast(decision === 'confirmar' ? lwT('Cita confirmada.') : decision === 'hecha' ? lwT('Cita marcada como hecha.') : lwT('Cita cancelada.'));
+  pintarCita(l);
+  pintarHilo(l);
+}
+
 /* ---------- del lead al contrato ----------
    POR QUÉ HAY UN PASO DE CONFIRMACIÓN Y NO UN BOTÓN DIRECTO (decisión del owner, 11-sep-2026).
    `contracts/app.html` no deja guardar un contrato cuyo comprador no tenga ficha en
@@ -1298,13 +1368,24 @@ async function pintarHilo(l){
   const { data, error } = await SB.rpc('crm_lead_hilo', { p_lead: l.id });
   if(error){ caja.innerHTML = '<p class="vacio">' + lwT('No se pudo leer la actividad.') + '</p>'; return; }
   caja.innerHTML = '<div class="hilo">' + (data || []).slice().reverse().map(ev => {
-    const ico = { alta:'ph-download-simple', estado:'ph-arrow-right', nota:'ph-note' }[ev.tipo] || 'ph-circle';
+    const ico = { alta:'ph-download-simple', estado:'ph-arrow-right', nota:'ph-note',
+                  cita:'ph-calendar-check', cita_estado:'ph-calendar-check' }[ev.tipo] || 'ph-circle';
     let texto;
     if(ev.tipo === 'alta')   texto = lwT('Entró por') + ' <b>' + esc(canal(ev.texto)) + '</b>';
     else if(ev.tipo === 'estado'){
       const origen = '<b>' + esc(nombreCol(ev.extra)) + '</b>';
       const destino = '<b>' + esc(nombreCol(ev.texto)) + '</b>';
       texto = lwT('Pasó de %a a %b', { a: origen, b: destino });
+    }
+    else if(ev.tipo === 'cita'){
+      // texto = llamada | visita; extra = fecha y hora de Bali; autor 'bot' = la propuso el bot
+      texto = '<span class="chip oro">' + lwT('Cita') + '</span> <b>' + esc(citaTipoTxt(ev.texto)) + '</b> '
+            + (ev.autor === 'bot' ? lwT('propuesta por el bot') : lwT('agendada')) + ' · ' + esc(ev.extra || '') + ' ' + lwT('hora de Bali');
+    }
+    else if(ev.tipo === 'cita_estado'){
+      // texto = confirmada | cancelada | hecha; extra = llamada | visita
+      texto = '<span class="chip oro">' + lwT('Cita') + '</span> <b>' + esc(citaTipoTxt(ev.extra)) + '</b> '
+            + esc(citaEstadoChip(ev.texto)[1].toLowerCase());
     }
     else                     texto = esc(ev.texto);
     return `<div class="ev ${ev.tipo}"><div class="ico"><i class="ph ${ico}"></i></div>
@@ -2534,6 +2615,64 @@ async function volverConfig(){
     cfgMuestraError(lwT('No se ha podido volver atrás: %e', { e: err.message }));
   }
 }
+/* ---------- «Lo que sabe el bot» (solo lectura) ----------
+   Muestra lo que `bot_catalogo_leer()` entrega al bot — la MISMA función que usa su edge, no una copia de su
+   regla ni de su lista de columnas — vía `bot_catalogo_ver()`, que además cuenta cuántos proyectos hay abiertos
+   para distinguir los tres estados que NO pueden pintarse igual:
+     · hay unidades          -> la lista;
+     · vacío                 -> «no hay unidades publicadas» (con el motivo: ninguno abierto / abiertos sin disponibles);
+     · no he podido mirar    -> rojo, y se borra la lista (una lista vieja se leería como «esto sabe ahora»).
+   Los datos entran siempre por esc(); nada se interpreta como HTML. */
+let SABE_SEC = 0;   // la última petición manda: una respuesta lenta no pisa a una más nueva
+async function cargarSabe(){
+  const aviso = $('#sabeAviso'), cuerpo = $('#sabeCuerpo');
+  if(!aviso || !cuerpo) return;
+  const mia = ++SABE_SEC;
+  cuerpo.setAttribute('aria-busy', 'true');
+  const { data, error } = await SB.rpc('bot_catalogo_ver');
+  if(mia !== SABE_SEC) return;
+  cuerpo.removeAttribute('aria-busy');
+  if(error || !data || !Array.isArray(data.unidades)){
+    cuerpo.innerHTML = '';
+    aviso.className = 'aviso rojo'; aviso.hidden = false;
+    aviso.textContent = lwT('No se ha podido mirar lo que sabe el bot: %e. Esto no significa que no sepa nada, solo que no se ha podido comprobar.',
+      { e: error ? lwErrorHumano(error, '') : lwT('respuesta inesperada') });
+    return;
+  }
+  const un = data.unidades;
+  const cabo = [];
+  if(data.bot_conectado === false) cabo.push(lwT('La conexión del bot con la base todavía no está activada: esto es lo que verá cuando lo esté.'));
+  if(!un.length){
+    cuerpo.innerHTML = '';
+    aviso.className = 'aviso gris'; aviso.hidden = false;
+    aviso.textContent = (data.proyectos_abiertos > 0
+      ? lwT('No hay unidades publicadas: hay %n proyectos abiertos al bot, pero ninguna unidad disponible en ellos.', { n: data.proyectos_abiertos })
+      : lwT('No hay unidades publicadas: ningún proyecto está abierto al bot. Se abre desde la ficha de cada proyecto.'))
+      + (cabo.length ? ' ' + cabo.join(' ') : '');
+    return;
+  }
+  const grupos = new Map();
+  un.forEach(u => { if(!grupos.has(u.proyecto)) grupos.set(u.proyecto, []); grupos.get(u.proyecto).push(u); });
+  aviso.className = 'aviso gris'; aviso.hidden = !cabo.length; aviso.textContent = cabo.join(' ');
+  const celdaPorM2 = u => (u.tipo === 'parcela' && u.precio != null && Number(u.superficie_m2) > 0)
+    ? dinero(Number(u.precio) / Number(u.superficie_m2), u.moneda) + ' / m²' : '';
+  cuerpo.innerHTML =
+    '<p style="margin:0 0 12px"><span class="chip verde" data-lw="sabe-total">'
+      + esc(un.length === 1 && grupos.size === 1 ? lwT('1 unidad disponible en 1 proyecto') : lwT('%u unidades disponibles en %p proyectos', { u: un.length, p: grupos.size })) + '</span></p>'
+    + Array.from(grupos, ([nombre, filas]) => `
+      <details class="sabe-proy"${grupos.size <= 2 ? ' open' : ''}>
+        <summary><b>${esc(nombre)}</b> <span class="muted">· ${esc(filas.length === 1 ? lwT('1 unidad') : lwT('%n unidades', { n: filas.length }))}</span></summary>
+        <div class="tabla-scroll"><table class="tabla">
+          <thead><tr><th>${lwT('Código')}</th><th>${lwT('Tipo')}</th><th>${lwT('Modelo')}</th>
+            <th class="num">${lwT('Superficie')}</th><th class="num">${lwT('Precio')}</th><th class="num">${lwT('Precio por m²')}</th></tr></thead>
+          <tbody>${filas.map(u => `<tr>
+            <td>${esc(u.codigo)}</td><td>${esc(u.tipo)}</td><td>${esc(u.modelo || '')}</td>
+            <td class="num">${u.superficie_m2 != null ? esc(u.superficie_m2) + ' m²' : ''}</td>
+            <td class="num">${u.precio != null ? esc(dinero(u.precio, u.moneda)) : '<span class="muted">' + esc(lwT('lo confirma el equipo')) + '</span>'}</td>
+            <td class="num">${esc(celdaPorM2(u))}</td></tr>`).join('')}</tbody>
+        </table></div>
+      </details>`).join('');
+}
 $('#cfgExtra').addEventListener('input', cfgContadores);
 $('#cfgBienvenida').addEventListener('input', cfgContadores);
 document.addEventListener('click', ev => {
@@ -2541,6 +2680,7 @@ document.addEventListener('click', ev => {
   if(!b) return;
   if(b.dataset.accion === 'cfg-guardar') guardarConfig();
   if(b.dataset.accion === 'cfg-volver') volverConfig();
+  if(b.dataset.accion === 'sabe-refrescar') cargarSabe();
 });
 
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
