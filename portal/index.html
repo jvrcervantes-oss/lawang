@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="1120db220271">
+<meta name="lw-version" content="da51bcb9cdac">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- MODO DEMO (7-oct-2026): con `?demo` en la dirección se carga demo.js, que sustituye el cliente de Supabase por uno falso con datos
      ficticios. document.write y no un script creado a mano: tiene que ejecutarse ANTES del script del portal, en orden. Falla CERRADO: si demo.js
      no carga, createClient se anula y el portal real nunca se crea con `?demo` puesto. Sin `?demo` esto no hace nada. -->
-<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008s"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008m"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -49,6 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
+<script src="/contracts/assets/mapa.js?v=dfa99f98"></script>
 <script src="/portal/resumen.js?v=20261008s"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
@@ -3914,7 +3915,10 @@
     // ya no está en la carpeta deja de estar elegido
     if (docs.length <= 8) DOC_FILTRO.q = '';
     if (DOC_FILTRO.cat && !grupos.some(function(g){ return g.k === DOC_FILTRO.cat; })) DOC_FILTRO.cat = '';
-    var mapaOk = f.mapa && /^https:\/\//i.test(f.mapa);
+    // `f.mapa` es `proyectos.ubicacion_maps` tal cual se pegó en la intranet: casi siempre coordenadas, a veces un
+    // enlace. Lo traduce a enlace de Google Maps la misma función que la intranet (contracts/assets/mapa.js).
+    var mapaUrl = (window.lwMapaUbicacion && (window.lwMapaUbicacion(f.mapa) || {}).abrir) || '';
+    var mapaOk = /^https:\/\//i.test(mapaUrl);
     var cab = '<div class="ob-cab"><div class="titulo-sec"><h2>' + esc(t('dc_titulo')) + '</h2><p>' + esc(t('dc_sub')) + '</p></div>' +
       (carpetas.length > 1 ? '<div class="ini-filtro" role="group" aria-label="' + esc(t('dc_proyecto')) + '">' + carpetas.map(function(x){
         return '<button type="button" data-carpeta="' + esc(x.key) + '" aria-pressed="' + (x.key === f.key ? 'true' : 'false') + '">' + esc(x.nombre) + '<small>' + x.docs.length + '</small></button>';
@@ -3925,7 +3929,7 @@
       '<div class="dc-heroe-tx"><span class="ob-sello">' + esc(t('dc_carpeta')) + '<i>' + ICO_DC.carpeta + '</i></span>' +
         '<h3>' + esc(f.nombre) + '</h3>' + (datos ? '<p>' + esc(datos) + '</p>' : '') + '</div>' +
       '<div class="dc-heroe-acc">' +
-        (mapaOk ? '<a class="btn-borde dc-mapa" href="' + esc(f.mapa) + '" target="_blank" rel="noopener noreferrer">' + ICO_DC.pin + esc(t('dc_ver_mapa')) + '</a>' : '') +
+        (mapaOk ? '<a class="btn-borde dc-mapa" href="' + esc(mapaUrl) + '" target="_blank" rel="noopener noreferrer">' + ICO_DC.pin + esc(t('dc_ver_mapa')) + '</a>' : '') +
         '<button type="button" class="btn-oscuro dc-pedir" data-dc-pedir>' + esc(t('dc_pedir_btn')) + '</button></div></section>';
     var hayFicheros = docs.some(function(x){ return !x.url && x.path; });
     var cuerpo = docs.length

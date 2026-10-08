@@ -50,11 +50,13 @@
   function img(ruta, url) { IMG[ruta] = url; return ruta; }
 
   function datos() {
+    /* `resort` y `mapa` copiados de la intranet (tabla proyectos: resort y ubicacion_maps, tal cual) el 8-oct-2026
+       (owner: Riverfront ponía «Ubud», que es falso). No se actualizan solos: si cambian en la intranet, se copian otra vez. */
     var proyectos = [
-      { id: 'pr1', nombre: 'Palm Field W5', resort: 'Balian Hills, Bali', entrega: '2027-08-15', mapa: 'https://www.google.com/maps/search/?api=1&query=Balian+Hills+Bali', portada: img('portada/pr1', PORTADA('pr1')) },
-      { id: 'pr2', nombre: 'Sumba Hills', resort: 'Waikabubak, Sumba', entrega: '2028-03-01', mapa: 'https://www.google.com/maps/search/?api=1&query=Waikabubak+Sumba', portada: img('portada/pr2', PORTADA('pr2')) },
-      { id: 'pr3', nombre: 'Bonian Village', resort: 'Tabanan, Bali', entrega: '2027-12-01', mapa: null, portada: img('portada/pr3', PORTADA('pr3')) },
-      { id: 'pr4', nombre: 'Riverfront II', resort: 'Ubud, Bali', entrega: '2027-05-20', mapa: 'https://www.google.com/maps/search/?api=1&query=Ubud+Bali', portada: img('portada/pr4', PORTADA('pr4')) }
+      { id: 'pr1', nombre: 'Palm Field W5', resort: 'Balian Hills', entrega: '2027-08-15', mapa: '-8.48475, 114.9619722', portada: img('portada/pr1', PORTADA('pr1')) },
+      { id: 'pr2', nombre: 'Sumba Hills', resort: 'Sumba Hills', entrega: '2028-03-01', mapa: '-9.756089, 119.431545', portada: img('portada/pr2', PORTADA('pr2')) },
+      { id: 'pr3', nombre: 'Bonian Village', resort: 'Balian Hills', entrega: '2027-12-01', mapa: '-8.5155278, 114.9847222', portada: img('portada/pr3', PORTADA('pr3')) },
+      { id: 'pr4', nombre: 'Riverfront II', resort: 'Signature project', entrega: '2027-05-20', mapa: '-8.593945, 115.148629', portada: img('portada/pr4', PORTADA('pr4')) }
     ];
     var NOMBRE = { pr1: 'Palm Field W5', pr2: 'Sumba Hills', pr3: 'Bonian Village', pr4: 'Riverfront II' };
     function doc(id, pid, titulo, cat, extra) { return Object.assign({ id: id, proyecto_id: pid, proyecto: NOMBRE[pid], titulo: titulo, categoria: cat }, extra); }

@@ -5076,29 +5076,12 @@
          (rejilla, tabla, carpetas). Un solo sitio que las calcula: si la tabla
          las sacara por su cuenta, el día que cambie el criterio de la rejilla
          las dos dirían cosas distintas del mismo proyecto. */
-      /* Ubicación del proyecto (24-sep-2026, owner). `proyectos.ubicacion_maps` guarda lo
-         que se pegó: enlace de Google Maps o «lat, lng». De ahí salen dos cosas: `abrir`
-         (siempre que haya algo) y `embed` (solo si se pueden sacar coordenadas o un
-         nombre de sitio — el enlace corto maps.app.goo.gl no las trae y el navegador no
-         puede seguirlo: ese se queda en el botón). Mismos patrones que la web pública
-         (assets/portfolio-app.js, mapEmbedUrl). */
+      /* Ubicación del proyecto (24-sep-2026, owner): `proyectos.ubicacion_maps` → { abrir, embed }.
+         La interpretación vive en /contracts/assets/mapa.js (8-oct-2026), compartida con el
+         portal del comprador y el investor deck: la carga proyectos/index.html, la única
+         página que pinta ubicaciones (chip de la tarjeta y cajón). */
       function mapaProyecto(p) {
-        var t = ((p && p.ubicacion_maps) || '').trim();
-        if (!t) return null;
-        var m = t.match(/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
-        if (m) {
-          var q = m[1] + ',' + m[2];
-          return { abrir: 'https://www.google.com/maps?q=' + q, embed: 'https://maps.google.com/maps?q=' + q + '&z=15&output=embed' };
-        }
-        if (!/^https:\/\/([a-z0-9-]+\.)*(google\.[a-z.]+|goo\.gl)\//i.test(t)) return null;
-        var c = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                t.match(/[?&](?:q|ll|query|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i);
-        if (c) return { abrir: t, embed: 'https://maps.google.com/maps?q=' + c[1] + ',' + c[2] + '&z=15&output=embed' };
-        var pl = t.match(/\/maps\/place\/([^/@?]+)/);
-        if (pl) {
-          try { return { abrir: t, embed: 'https://maps.google.com/maps?q=' + encodeURIComponent(decodeURIComponent(pl[1].replace(/\+/g, ' '))) + '&z=15&output=embed' }; } catch (e) {}
-        }
-        return { abrir: t, embed: null };
+        return window.lwMapaUbicacion ? window.lwMapaUbicacion(p && p.ubicacion_maps, 15) : null;
       }
       window.LW_V4.mapaProyecto = mapaProyecto;
 
