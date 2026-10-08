@@ -129,14 +129,22 @@ export function replyToEfectivo(v: unknown): string {
   return s !== '' && esEmail(s) && !tieneControl(s) ? s : '';
 }
 
+/** Proveedores de correo GRATUITO. Si el dominio del `email_from` o del usuario del servidor SMTP es uno de estos, NO cuenta como «propio» (revisión de Seguridad,
+ *  8-oct-2026): los avisos de reservas/CRM llevan datos personales de clientes y redirigirlos a un Gmail cualquiera, sin código de por medio, sería una fuga. El
+ *  dominio de la empresa (`dominio_web`) siempre cuenta: es suyo aunque fuese uno de estos. LA MISMA lista vive en SQL (`_correo_buzon_propio`, array v_gratis):
+ *  si cambia una, cambia la otra (la prueba SQL F12 y la de node fijan los dos lados). */
+export const CORREO_GRATUITO: readonly string[] = ['gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com', 'live.com', 'msn.com', 'yahoo.com', 'ymail.com',
+  'icloud.com', 'me.com', 'proton.me', 'protonmail.com', 'aol.com', 'gmx.com', 'gmx.net', 'mail.com', 'zoho.com'];
+
 /** ¿Vale `buzon` como buzón de aviso interno? (decisión del owner, 7-oct-2026) Un correo válido cuyo dominio sea el de la instancia
  *  (dominio_web o un subdominio), el del `email_from` de Ajustes o el del usuario del servidor SMTP (`usuarioSmtp`; '' si no se conoce).
- *  De email_from y del servidor vale el dominio COMPLETO exacto; `x@dominio.com.fraude.ru` no pasa. */
+ *  De email_from y del servidor vale el dominio COMPLETO exacto, salvo que sea de correo gratuito (CORREO_GRATUITO); `x@dominio.com.fraude.ru` no pasa. */
 export function buzonAvisoValido(buzon: string, o: { dominio: string; emailFrom?: string; usuarioSmtp?: string }): boolean {
   const b = String(buzon ?? '').trim();
   if (!esEmail(b) || tieneControl(b)) return false;
   const d = dominioDe(b).replace(/\.$/, '');
   if (esDominioPropio(b, o.dominio)) return true;
+  if (CORREO_GRATUITO.includes(d)) return false;
   return [o.emailFrom, o.usuarioSmtp].some((x) => {
     const t = String(x ?? '').trim();
     return esEmail(t) && !tieneControl(t) && dominioDe(t).replace(/\.$/, '') === d;

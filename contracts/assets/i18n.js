@@ -5016,6 +5016,7 @@
     'El nombre del remitente admite 60 caracteres, sin < ni >.': 'The sender name allows 60 characters, no < or >.',
     'Ese servidor no existe (no resuelve en internet).': 'That server does not exist (it does not resolve on the internet).',
     'Ese servidor apunta a una red interna: solo se admite un servidor público.': 'That server points to an internal network: only a public server is accepted.',
+    'No se ha podido comprobar a dónde apunta ese servidor ahora mismo: no se ha enviado ni guardado nada. Inténtalo de nuevo en un rato.': 'We could not check where that server points right now: nothing was sent or saved. Please try again in a little while.',
     'El usuario del buzón no es un correo y no hay remitente válido: pon uno de tu dominio en «Direcciones» más abajo.': 'The mailbox user is not an email and there is no valid sender: set one of your domain in «Addresses» below.',
     'Tu cuenta no tiene un correo válido al que mandar el código o la prueba.': 'Your account has no valid email to send the code or the test to.',
     'Tu sesión ha caducado: recarga la página o vuelve a entrar.': 'Your session has expired: reload the page or sign in again.',

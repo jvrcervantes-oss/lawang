@@ -44,7 +44,7 @@
 --   6. Un código inválido NO levanta excepción (el UPDATE del contador de fallos no se deshace): la función devuelve {codigo_no_valido:true} y la edge responde siempre el mismo error.
 --   7. `email_avisos_reservas` y `email_avisos_crm` (siguen editables SIN código) cumplen la regla de buzón PROPIO (dominio_web o subdominio, dominio de email_from o del usuario SMTP
 --      activo), solo si el valor cambia. Si no, una sesión robada redirigía esos avisos fuera sin código.
---   8. Vuelta atrás (`correo_smtp_revierte`): sobrescribe el activo con un valor vacío (no borra la fila de vault.secrets) y `correo_smtp_lee()` devuelve NULL → envia-correo vuelve a los SMTP_*.
+--   8. Vuelta atrás (`correo_smtp_revierte`): sobrescribe el activo, el candidato y el previo (smtp_previo guardaba la contraseña anterior sin llamador) con un valor vacío (no borra la fila de vault.secrets) y `correo_smtp_lee()` devuelve NULL → envia-correo vuelve a los SMTP_*.
 --      Con la caché de envia-correo (30 s fresca; si Vault falla, el último valor bueno hasta 10 min) la vuelta tarda hasta 30 s en notarse.
 --   9. Toda lectura de Vault va tras `to_regclass('vault.secrets')`: en una base sin Vault dicen «no hay servidor» en vez de romper.
 --
@@ -331,18 +331,24 @@ revoke all on function public._correo_dominio_usuario_smtp() from public, anon, 
 -- ¿Es PROPIO este buzón? '' = sí · 'sin_dominio_web' = no hay ningún dominio contra el que comprobarlo · 'buzon_ajeno' = es de otro dominio.
 -- Propio = dominio_web (o un subdominio), dominio de email_from o dominio del usuario del servidor SMTP activo (owner, 7-oct-2026). Uno de otro dominio
 -- quedaría guardado y mudo (envia-correo solo deja pasar por su vía de aviso a esos buzones) o sería una redirección de los avisos hacia fuera.
+-- Correo GRATUITO (8-oct-2026, revisión de Seguridad): si el dominio de email_from o del usuario SMTP es de un proveedor público (gmail.com…), NO cuenta como propio:
+-- los avisos de reservas/CRM llevan datos personales de clientes y redirigirlos a un Gmail sin código sería una fuga. El de dominio_web siempre cuenta (es el de la
+-- empresa). La MISMA lista vive en envia-correo/smtp.ts (CORREO_GRATUITO): si cambia una, cambia la otra (la prueba de node y la SQL fijan los dos lados).
 create or replace function public._correo_buzon_propio(p_txt text) returns text
   language plpgsql security definer set search_path to ''
   as $$
 declare
   v_bz text := lower(regexp_replace(split_part(coalesce(p_txt, ''), '@', 2), '\.$', ''));
   v_dom text; v_dom_from text; v_dom_usr text;
+  v_gratis text[] := array['gmail.com','googlemail.com','outlook.com','hotmail.com','live.com','msn.com','yahoo.com','ymail.com','icloud.com','me.com','proton.me','protonmail.com','aol.com','gmx.com','gmx.net','mail.com','zoho.com'];
 begin
   select lower(regexp_replace(btrim(c.valor #>> '{}'), '\.$', '')) into v_dom
     from public.config_instancia c where c.clave = 'dominio_web' and jsonb_typeof(c.valor) = 'string';
   select lower(regexp_replace(split_part(btrim(c.valor #>> '{}'), '@', 2), '\.$', '')) into v_dom_from
     from public.config_instancia c where c.clave = 'email_from' and jsonb_typeof(c.valor) = 'string' and public._correo_mail_valido(btrim(c.valor #>> '{}'));
   v_dom_usr := public._correo_dominio_usuario_smtp();
+  if v_dom_from = any (v_gratis) then v_dom_from := null; end if;
+  if v_dom_usr = any (v_gratis) then v_dom_usr := null; end if;
   if coalesce(v_dom, '') = '' and coalesce(v_dom_from, '') = '' and coalesce(v_dom_usr, '') = '' then return 'sin_dominio_web'; end if;
   if (coalesce(v_dom, '') <> '' and (v_bz = v_dom or v_bz like '%.' || v_dom))
      or (coalesce(v_dom_from, '') <> '' and v_bz = v_dom_from)
@@ -691,12 +697,16 @@ begin
   if exists (select 1 from vault.secrets s where s.name = 'smtp_candidato') then
     perform public._correo_smtp_pon('smtp_candidato', jsonb_build_object('vacio', true), 'F3.1: sin prueba en curso.');
   end if;
+  -- smtp_previo guardaba la contraseña del servidor anterior y ningún código la lee: tras la vuelta atrás no debe sobrevivir (8-oct-2026, Seguridad).
+  if exists (select 1 from vault.secrets s where s.name = 'smtp_previo') then
+    perform public._correo_smtp_pon('smtp_previo', jsonb_build_object('vacio', true), 'F3.1: sin servidor anterior (vuelta atrás).');
+  end if;
   delete from public.config_instancia where clave = 'correo_salida';
   perform set_config('axw.ajustes_motivo', '', true);
   return jsonb_build_object('revertido', true, 'habia_servidor', v_hubo);
 end $$;
 comment on function public.correo_smtp_revierte(text) is
-  'F3.1b: vuelta atrás del servidor de correo en una transacción (sobrescribe smtp_activo/candidato con un valor vacío, borra correo_salida, rastro en ajustes_log). Sin EXECUTE para nadie salvo el dueño de la base: lo lanza el SQL de servicio del estudio (runbook seguridad_2026 §7).';
+  'F3.1b: vuelta atrás del servidor de correo en una transacción (sobrescribe smtp_activo/candidato/previo con un valor vacío, borra correo_salida, rastro en ajustes_log). Sin EXECUTE para nadie salvo el dueño de la base: lo lanza el SQL de servicio del estudio (runbook seguridad_2026 §7).';
 revoke all on function public.correo_smtp_revierte(text) from public, anon, authenticated, service_role;
 
 -- ── 8. Guardar uno de los cuatro ajustes de correo, con código ────────────────────────────────────────────────────────────────

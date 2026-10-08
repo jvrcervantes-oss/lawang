@@ -1,6 +1,6 @@
 // smtp.ts — pruebas SIN RED (F3.1, 7-oct-2026): el servidor que escribe el super admin y el remitente con el que sale el correo.
 //   npx --yes deno test erp/funciones/envia-correo/smtp_test.ts      ·      node erp/funciones/envia-correo/corre_deno.test.js
-import { normalizaHost, validaServidor, esServidorMalo, esIpPublica, remitenteEfectivo, replyToEfectivo, buzonAvisoValido } from './smtp.ts';
+import { normalizaHost, validaServidor, esServidorMalo, esIpPublica, remitenteEfectivo, replyToEfectivo, buzonAvisoValido, CORREO_GRATUITO } from './smtp.ts';
 
 function ok(c: boolean, msg: string) { if (!c) throw new Error(msg); }
 
@@ -85,4 +85,15 @@ Deno.test('buzonAvisoValido: dominio de la instancia, de email_from o del usuari
   ok(!buzonAvisoValido('a@sub.vault.com', o), 'del servidor/email_from solo el dominio exacto'); ok(!buzonAvisoValido('a@ajeno.com', o), 'ajeno');
   ok(!buzonAvisoValido('a@vault.com.fraude.ru', o), 'sufijo falso'); ok(!buzonAvisoValido('a@vault.com\nBcc: x@y.com', o), 'con salto de línea');
   ok(!buzonAvisoValido('a@vault.com', { dominio: D }), 'sin email_from ni servidor conocidos solo vale la instancia');
+});
+
+Deno.test('buzonAvisoValido: el correo gratuito del email_from o del servidor NO es propio; el de dominio_web sí', () => {
+  for (const g of CORREO_GRATUITO) {
+    ok(!buzonAvisoValido('a@' + g, { dominio: 'ejemplo.com', emailFrom: 'x@' + g }), 'email_from gratuito: ' + g);
+    ok(!buzonAvisoValido('a@' + g, { dominio: 'ejemplo.com', usuarioSmtp: 'x@' + g }), 'usuario SMTP gratuito: ' + g);
+  }
+  ok(!buzonAvisoValido('a@GMAIL.com', { dominio: 'ejemplo.com', emailFrom: 'x@gmail.com' }), 'sin importar mayúsculas');
+  ok(buzonAvisoValido('a@gmail.com', { dominio: 'gmail.com' }), 'dominio_web siempre cuenta, aunque sea gratuito');
+  ok(buzonAvisoValido('a@ejemplo.com', { dominio: 'ejemplo.com', emailFrom: 'x@gmail.com', usuarioSmtp: 'y@outlook.com' }), 'el dominio de la empresa sigue valiendo');
+  ok(buzonAvisoValido('a@empresa.com', { dominio: 'ejemplo.com', emailFrom: 'x@empresa.com' }), 'un dominio de empresa de email_from sigue valiendo');
 });

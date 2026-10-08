@@ -10,7 +10,7 @@
 // POST JSON {accion:'estado'}                                   → 200 {ok:true, estado:{…sin contraseña…}, remitente, avisos:{soporte, sistema}, envios_pausados, pide_codigo}
 //      JSON {accion:'pedir_codigo', alcance:'servidor', host, port:465, user, pass, nombre?}  ← o ←  {accion:'pedir_codigo', alcance:'ajuste', clave, valor}
 //        200 {ok:true, codigo:'codigo_enviado', caduca_en:600, correo_enmascarado}      (el código de 6 cifras sale por correo a la SESIÓN, nunca al navegador)
-//        400 validación · 400 sin_cambios · 429 demasiados_intentos · 502 codigo_no_enviado · 503 codigo_no_disponible|envios_pausados
+//        400 validación · 503 host_no_comprobable (el DNS no se pudo comprobar) · 400 sin_cambios · 429 demasiados_intentos · 502 codigo_no_enviado · 503 codigo_no_disponible|envios_pausados
 //      JSON {accion:'guardar_ajuste', clave, valor, codigo}  (clave: email_from · email_reply_to · email_avisos_sistema · email_avisos_soporte)
 //        200 {ok:true, guardado:true, cambiado, aviso:'enviado'|'no_enviado'|'sin_destinatario', clave}  ·  403 {codigo:'codigo_no_valido'}
 //      JSON {accion:'probar_y_guardar', host, port:465, user, pass, nombre?, codigo, contrasena_actual?}
@@ -126,7 +126,12 @@ async function enviosPausados(): Promise<boolean> {
 }
 
 // ── DNS ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-/** 'ok' · 'no_resuelve' · 'privado' · 'no_disponible' (el runtime no deja resolver: no se puede comprobar, y se sigue con las demás barreras). */
+/** 'ok' · 'no_resuelve' · 'privado' · 'no_disponible' (el runtime no deja resolver: no se puede comprobar). Quien llama FALLA CERRADO con 'no_disponible'
+ *  (host_no_comprobable, 8-oct-2026): sin saber a qué IP apunta el nombre no se conecta ni se manda código. Medido en axisworks-demo: Deno.resolveDns SÍ
+ *  funciona en el runtime de Supabase Edge, así que el caso normal no se rompe.
+ *  Límite conocido (NO se resuelve aquí a propósito): nodemailer vuelve a resolver el nombre al conectar, así que un DNS que cambie entre la comprobación y la
+ *  conexión (rebinding) no se detecta. Queda acotado por el puerto 465 fijo + TLS con certificado verificado (una IP interna no presentará un certificado válido
+ *  para ese nombre) + solo super admin + código de confirmación. Conectar por la IP ya resuelta exigiría fijar `servername` para el TLS: no se hace. */
 async function compruebaDns(host: string): Promise<'ok' | 'no_resuelve' | 'privado' | 'no_disponible'> {
   const d = Deno as unknown as { resolveDns?: (h: string, t: string) => Promise<string[]> };
   if (typeof d.resolveDns !== 'function') return 'no_disponible';
@@ -249,6 +254,13 @@ async function avisaCambio(quien: Quien, cfg: Cfg, dominio: string, usuarioSmtp:
 
 // ── manejador ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 export async function manejador(req: Request): Promise<Response> {
+  // Sin credencial no se gasta ni la lectura de la configuración: 401 directo (salvo el preflight CORS, que nunca lleva credenciales y sí necesita la configuración).
+  // Sin cabeceras CORS a propósito: el front siempre manda sesión; quien no la manda no es el front.
+  if (req.method !== 'OPTIONS' && !(req.headers.get('x-suite-token') ?? '').trim() && !(req.headers.get('authorization') ?? '').trim()) {
+    console.log(JSON.stringify({ fn: 'ajustes-correo', estado: 401, codigo: 'sin_sesion' }));
+    return new Response(JSON.stringify({ ok: false, codigo: 'sin_sesion', error: 'Hace falta la sesión de un super admin' }),
+      { status: 401, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
+  }
   const cfg = await leeConfig();
   const origen = req.headers.get('origin');
   let permitido = '';
@@ -342,7 +354,10 @@ export async function manejador(req: Request): Promise<Response> {
   let remitenteNuevo = '';
   if (v) {
     const dns = await compruebaDns(v.host);
-    if (dns === 'no_disponible') console.error('ajustes-correo: dns_no_disponible (el nombre no se pudo comprobar contra rangos privados)');
+    if (dns === 'no_disponible') {
+      console.error('ajustes-correo: dns_no_disponible (el nombre no se pudo comprobar contra rangos privados): se rechaza, no se manda código ni se conecta');
+      return no('host_no_comprobable', 'No se ha podido comprobar a dónde apunta ese servidor ahora mismo: inténtalo de nuevo en un rato', 503);
+    }
     if (dns === 'no_resuelve') return no('host_no_resuelve', 'Ese servidor no existe (no resuelve en internet)', 400);
     if (dns === 'privado') return no('host_privado', 'Ese servidor apunta a una red interna: solo se admite un servidor público', 400);
     remitenteNuevo = remitenteEfectivo({ emailFrom: cfg.email_from, buzon: v.user, usuario: v.user, dominioWeb: dominio }).from;

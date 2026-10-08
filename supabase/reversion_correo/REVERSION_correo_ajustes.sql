@@ -2,7 +2,7 @@
 -- REVERSIÓN del correo desde Ajustes en Lawang (porte de F3.1 + F3.1b). ESCRITA, NO EJECUTADA. Se ejecuta con execute_sql o psql (lleva su propio begin/commit); NO por apply_migration.
 --
 -- Tres niveles, de menos a más:
---   PARTE 1 — «volver al correo de siempre» SIN deshacer la migración: `select public.correo_smtp_revierte('motivo')`. Vacía el servidor de Vault (se sobrescribe, no se borra),
+--   PARTE 1 — «volver al correo de siempre» SIN deshacer la migración: `select public.correo_smtp_revierte('motivo')`. Vacía el servidor activo, el candidato y el previo de Vault (se sobrescriben, no se borran; el previo guardaba la contraseña anterior sin ningún llamador),
 --             borra config_instancia.correo_salida y deja el rastro en ajustes_log; `correo_smtp_lee()` pasa a NULL y envia-correo usa los secretos SMTP_* del entorno (plan B
 --             permanente, nunca se borran). Tarda hasta 30 s en notarse (caché de envia-correo; con Vault caído, hasta 10 min con el último valor bueno).
 --             Es lo único que hace falta si el problema es «el servidor que se guardó no funciona».

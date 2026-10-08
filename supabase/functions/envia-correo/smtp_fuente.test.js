@@ -163,6 +163,37 @@ const assert = require('assert');
   x = await aviso('otro@vault.com', { extra: [['email_avisos_soporte', 'avisos@vault.com']] });
   igual(x.rr.status, 401, 'un buzón que no es de aviso no pasa aunque sea del dominio del servidor');
 
+  // 9b. correo GRATUITO (Seguridad, 8-oct-2026): el dominio de email_from o del usuario SMTP no cuenta como propio si es gmail.com & co; el de dominio_web siempre
+  x = await aviso('avisos@gmail.com', { extra: [['email_avisos_soporte', 'avisos@gmail.com'], ['email_from', 'empresa@gmail.com']] });
+  igual(x.rr.status, 401, 'email_from de Gmail: el buzón gmail.com NO es de aviso'); igual(x.lecturas, 1, 'cae a la comprobación del servidor, que tampoco lo admite');
+  x = await aviso('avisos@hotmail.com', { extra: [['email_avisos_soporte', 'avisos@hotmail.com']], smtpLee: lee({ ...VAULT, user: 'empresa@hotmail.com' }) });
+  igual(x.rr.status, 401, 'usuario SMTP de Hotmail: el buzón hotmail.com NO es de aviso');
+  x = await aviso('avisos@ejemplo.com', { extra: [['email_avisos_soporte', 'avisos@ejemplo.com']], smtpLee: lee({ ...VAULT, user: 'empresa@gmail.com' }) });
+  igual(x.rr.status, 200, 'el dominio de la instancia sigue valiendo aunque el servidor sea un Gmail');
+  {
+    const sinDom = sinAvisos.filter(([k]) => k !== 'dominio_web');
+    reinicia({ env: { ENVIO_AVISO_SECRET: 'av' }, config: [...sinDom, ['dominio_web', 'gmail.com'], ['email_avisos_soporte', 'avisos@gmail.com']], smtpLee: lee(VAULT) });
+    const mm = await cargaEdge(__dirname);
+    const rr = await llama(mm, { cabeceras: { 'content-type': 'application/json', 'x-aviso-secret': 'av' }, cuerpo: { to: 'avisos@gmail.com', message: 'Aviso', attach: false } });
+    igual(rr.status, 200, 'dominio_web=gmail.com: es el dominio de la empresa, SIEMPRE cuenta');
+  }
+  {   // la lista de correo gratuito es UNA: la misma en smtp.ts y en la migración de la base (si cambia una y no la otra, esto falla)
+    const fs = require('fs'), path = require('path');
+    const ts = fs.readFileSync(__dirname + '/smtp.ts', 'utf8');
+    const lt = /CORREO_GRATUITO: readonly string\[\] = \[([^\]]+)\]/.exec(ts);
+    ok(lt, 'smtp.ts declara CORREO_GRATUITO');
+    const listaTs = lt[1].match(/'([^']+)'/g).map((q) => q.slice(1, -1));
+    // la migración que lleva la lista: en el maestro la F3.1c, en Lawang la combinada (este fichero es el mismo en los dos repos)
+    const mig = [path.join(__dirname, '..', '..', 'migraciones', '20261008141000_f31c_correo_endurece.sql'),
+                 path.join(__dirname, '..', '..', 'migrations', '20261010060000_correo_ajustes_servidor_y_codigo.sql')].find((f) => fs.existsSync(f));
+    ok(mig, 'se encuentra la migración que declara la lista de correo gratuito');
+    const sql = fs.readFileSync(mig, 'utf8');
+    const ls = /v_gratis text\[\] := array\[([^\]]+)\]/.exec(sql);
+    ok(ls, 'la migración declara v_gratis');
+    igual(ls[1].match(/'([^']+)'/g).map((q) => q.slice(1, -1)), listaTs, 'misma lista, mismo orden, en SQL y en TS');
+    ok(listaTs.length === 17 && listaTs.includes('gmail.com') && listaTs.includes('proton.me'), 'los 17 dominios acordados');
+  }
+
   // ── 10. caché del ÚLTIMO valor bueno (F3.1b, 8-oct-2026): fresco 30 s; si la lectura falla, vale hasta 10 min y luego 500 ────────────────
   const fuente = require('fs').readFileSync(__dirname + '/index.ts', 'utf8');
   ok(/SMTP_LECTURA_MS = 2500/.test(fuente) && /AbortSignal\.timeout\(SMTP_LECTURA_MS\)/.test(fuente), 'la lectura de Vault tiene 2,5 s de plazo (no 6)');

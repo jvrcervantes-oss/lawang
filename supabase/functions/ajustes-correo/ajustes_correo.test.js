@@ -144,6 +144,20 @@ const assert = require('assert');
   let est = prepara();
   let r = await pide(BUENO, { origin: ORIGEN });
   igual([r.status, r.cuerpo.codigo], [401, 'sin_sesion'], 'sin credencial');
+  {   // B1: sin Authorization ni X-Suite-Token se contesta 401 ANTES de leer la configuración (no se gasta una consulta a la base por una petición anónima)
+    const f0 = globalThis.fetch; let lecturas = 0;
+    globalThis.fetch = (u, i) => { if (String(u).includes('/rest/v1/config_instancia')) lecturas++; return f0(u, i); };
+    try {
+      for (const cab of [{ origin: ORIGEN }, {}, { authorization: '  ', 'x-suite-token': '' }]) { r = await pide(BUENO, cab); igual([r.status, r.cuerpo.codigo], [401, 'sin_sesion'], 'anónimo'); }
+      igual(lecturas, 0, 'una petición sin credencial no lee la configuración');
+      r = await pide(BUENO, { 'x-suite-token': 'jwt-de-super', origin: ORIGEN }); igual(lecturas > 0 && r.status !== 401, true, 'con X-Suite-Token sí sigue su camino');
+      lecturas = 0;
+      const m0 = await A.cargaEdge(__dirname);
+      const pre = await directo(m0, new Request('https://ref.supabase.co/x', { method: 'OPTIONS', headers: { origin: ORIGEN } }));
+      igual([pre.status, lecturas > 0], [204, true], 'el preflight CORS (sin credenciales) sigue leyendo la configuración para dar sus cabeceras');
+    } finally { globalThis.fetch = f0; }
+  }
+  est = prepara();
   r = await pide(BUENO, { authorization: 'Bearer anon-falsa', origin: ORIGEN }); igual(r.status, 401, 'la clave anon no es sesión');
   r = await pide(BUENO, { authorization: 'Bearer service-falsa', origin: ORIGEN }); igual(r.status, 401, 'la clave de servicio no abre esta puerta');
   igual(est.rpcs.length, 0, 'sin sesión no se toca la base');
@@ -243,9 +257,13 @@ const assert = require('assert');
   est = prepara({ dns: async () => ['10.0.0.8'] }); r = await pide({ ...BUENO, accion: 'pedir_codigo', alcance: 'servidor' }); igual([r.status, r.cuerpo.codigo, est.rpcs.length], [400, 'host_privado', 0], 'y no se manda un código por un servidor que se va a rechazar');
   est = prepara({ dns: async (h, t) => (t === 'A' ? ['93.184.216.34'] : ['fe80::1']) }); r = await pide(BUENO); igual(r.cuerpo.codigo, 'host_privado', 'basta UNA dirección privada (AAAA)');
   est = prepara({ dns: async () => { const e = new Error('no existe'); e.name = 'NotFound'; throw e; } }); r = await pide(BUENO); igual([r.status, r.cuerpo.codigo], [400, 'host_no_resuelve']);
-  est = prepara({ dns: async () => { throw new Error('operación no permitida en este runtime'); } }); r = await pideOk(BUENO);
-  igual(r.status, 200, 'si el runtime no deja resolver DNS no se bloquea el servidor (las demás barreras siguen); se anota en el README');
-  est = prepara({ dns: null }); r = await pideOk(BUENO); igual(r.status, 200, 'sin Deno.resolveDns tampoco');
+  // M2 (8-oct-2026): si el runtime no deja comprobar el DNS se FALLA CERRADO: ni se conecta ni se manda código
+  est = prepara({ dns: async () => { throw new Error('operación no permitida en este runtime'); } }); r = await pide(BUENO);
+  igual([r.status, r.cuerpo.codigo, est.rpcs.length, A.estado.correo.transportes.length], [503, 'host_no_comprobable', 0, 0], 'DNS que falla de forma rara: se rechaza sin conectar');
+  est = prepara({ dns: null }); r = await pide(BUENO);
+  igual([r.status, r.cuerpo.codigo, est.rpcs.length, A.estado.correo.transportes.length], [503, 'host_no_comprobable', 0, 0], 'sin Deno.resolveDns tampoco se acepta');
+  est = prepara({ dns: null }); r = await pide({ ...BUENO, accion: 'pedir_codigo', alcance: 'servidor' });
+  igual([r.status, r.cuerpo.codigo, est.rpcs.length, A.estado.correo.correos.length], [503, 'host_no_comprobable', 0, 0], 'y no se manda un código por un servidor que no se pudo comprobar');
   est = prepara({ dns: async (h, t) => (t === 'A' ? ['93.184.216.34'] : ['2606:2800:220:1:248:1893:25c8:1946']) }); r = await pideOk(BUENO); igual(r.status, 200, 'IPv4 e IPv6 públicas');
   est = prepara({ email: '' }); r = await pide(BUENO); igual([r.status, r.cuerpo.codigo], [400, 'sin_correo_usuario'], 'sin correo propio no hay a quién mandar la prueba');
   est = prepara({ email: '' }); r = await pide({ ...BUENO, accion: 'pedir_codigo', alcance: 'servidor' }); igual([r.status, r.cuerpo.codigo], [400, 'sin_correo_usuario'], 'ni el código');

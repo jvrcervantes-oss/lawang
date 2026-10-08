@@ -304,6 +304,7 @@
     nombre_no_valido: 'El nombre del remitente admite 60 caracteres, sin < ni >.',
     host_no_resuelve: 'Ese servidor no existe (no resuelve en internet).',
     host_privado: 'Ese servidor apunta a una red interna: solo se admite un servidor público.',
+    host_no_comprobable: 'No se ha podido comprobar a dónde apunta ese servidor ahora mismo: no se ha enviado ni guardado nada. Inténtalo de nuevo en un rato.',
     sin_remitente: 'El usuario del buzón no es un correo y no hay remitente válido: pon uno de tu dominio en «Direcciones» más abajo.',
     sin_correo_usuario: 'Tu cuenta no tiene un correo válido al que mandar el código o la prueba.',
     sin_sesion: 'Tu sesión ha caducado: recarga la página o vuelve a entrar.',

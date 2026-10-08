@@ -393,6 +393,35 @@ begin
         public._correo_buzon_propio('x@' || dom), public._correo_buzon_propio('x@sub.' || dom), public._correo_buzon_propio('x@' || usr_dom), public._correo_buzon_propio('x@fraude.ru'), public._correo_buzon_propio('x@fraude' || dom),
         case when public._correo_buzon_propio('x@' || dom) = '' and public._correo_buzon_propio('x@sub.' || dom) = '' and public._correo_buzon_propio('x@' || usr_dom) = ''
                   and public._correo_buzon_propio('x@fraude.ru') = 'buzon_ajeno' and public._correo_buzon_propio('x@fraude' || dom) = 'buzon_ajeno' then 'ok' else 'FALLA' end);
+  -- F12: el correo gratuito (gmail…) del email_from o del usuario del servidor NO vale como «propio» (Seguridad, 8-oct-2026); el de dominio_web siempre vale
+  declare
+    f_from jsonb; f_act jsonb; f_dom jsonb; f_r text;
+  begin
+    select valor into f_from from public.config_instancia where clave = 'email_from';
+    select valor into f_dom from public.config_instancia where clave = 'dominio_web';
+    f_act := public._correo_smtp_secreto('smtp_activo');
+    -- (a) email_from de un Gmail: su buzón NO cuenta
+    insert into public.config_instancia (clave, valor) values ('email_from', to_jsonb('empresa@gmail.com'::text)) on conflict (clave) do update set valor = excluded.valor;
+    f_r := public._correo_buzon_propio('empresa@gmail.com');
+    r := r || format(E'\nF12a email_from de Gmail: el buzón gmail.com NO es propio (%s) → %s', f_r, case when f_r <> '' then 'ok' else 'FALLA' end);
+    -- (b) usuario SMTP de un hotmail
+    insert into public.config_instancia (clave, valor) values ('email_from', to_jsonb('ventas@' || dom_from)) on conflict (clave) do update set valor = excluded.valor;
+    perform public._correo_smtp_pon('smtp_activo', f_act || jsonb_build_object('user', 'alguien@hotmail.com'), 'prueba F12');
+    f_r := public._correo_buzon_propio('alguien@hotmail.com');
+    r := r || format(E'\nF12b usuario SMTP de Hotmail: hotmail.com NO es propio (%s) → %s', f_r, case when f_r <> '' then 'ok' else 'FALLA' end);
+    -- (c) el dominio de la empresa (dominio_web) vale aunque lo sea de un correo gratuito: es SU dominio
+    insert into public.config_instancia (clave, valor) values ('dominio_web', to_jsonb('gmail.com'::text)) on conflict (clave) do update set valor = excluded.valor;
+    f_r := public._correo_buzon_propio('x@gmail.com');
+    r := r || format(E'\nF12c dominio_web=gmail.com SIEMPRE cuenta (%s) → %s', f_r, case when f_r = '' then 'ok' else 'FALLA' end);
+    -- (d) un dominio de empresa de verdad sigue valiendo por email_from y por usuario SMTP
+    if f_dom is null then delete from public.config_instancia where clave = 'dominio_web';
+    else update public.config_instancia set valor = f_dom where clave = 'dominio_web'; end if;
+    perform public._correo_smtp_pon('smtp_activo', f_act, 'prueba F12 (restaurado)');
+    r := r || format(E'\nF12d dominios de empresa siguen valiendo (email_from=%s, servidor=%s) → %s', public._correo_buzon_propio('x@' || dom_from), public._correo_buzon_propio('x@' || usr_dom),
+          case when public._correo_buzon_propio('x@' || dom_from) = '' and public._correo_buzon_propio('x@' || usr_dom) = '' then 'ok' else 'FALLA' end);
+    if f_from is null then delete from public.config_instancia where clave = 'email_from';
+    else update public.config_instancia set valor = f_from where clave = 'email_from'; end if;
+  end;
   -- el camino viejo está cerrado: ajustes_config_guardar ya no escribe las 4 claves, ni siquiera un super admin
   perform set_config('request.jwt.claims', json_build_object('sub', u_sa, 'email', m_sa, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
@@ -415,6 +444,8 @@ begin
   r := r || format(E'\nG1 revierte: %s → %s', v::text, case when (v ->> 'revertido')::boolean and (v ->> 'habia_servidor')::boolean then 'ok' else 'FALLA' end);
   r := r || format(E'\nG2 lee() devuelve NULL (envia-correo cae a los SMTP_* del entorno) y «existe» dice que no → %s',
         case when public.correo_smtp_lee() is null and not public._correo_smtp_existe('smtp_activo') then 'ok' else 'FALLA' end);
+  r := r || format(E'\nG2b smtp_previo (la contraseña del servidor anterior) también quedó vacío: hay_previo=%s existe=%s → %s', public.correo_smtp_estado() ->> 'hay_previo', public._correo_smtp_existe('smtp_previo'),
+        case when (public.correo_smtp_estado() ->> 'hay_previo')::boolean is false and not public._correo_smtp_existe('smtp_previo') then 'ok' else 'FALLA' end);
   r := r || format(E'\nG3 la copia correo_salida se borró → %s', case when not exists (select 1 from public.config_instancia where clave = 'correo_salida') then 'ok' else 'FALLA' end);
   select quien, motivo, (despues is null) into e, st, ok from public.ajustes_log where clave = 'correo_salida' order by id desc limit 1;
   r := r || format(E'\nG4 rastro: borrado de correo_salida, motivo=%s, quien=%s → %s', st, e, case when ok and st like 'Vuelta atrás del servidor de correo: prueba de vuelta atrás%' then 'ok' else 'FALLA' end);
