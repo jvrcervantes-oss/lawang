@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="38d2ba693610">
+<meta name="lw-version" content="a5438ea63679">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- MODO DEMO (7-oct-2026): con `?demo` en la dirección se carga demo.js, que sustituye el cliente de Supabase por uno falso con datos
      ficticios. document.write y no un script creado a mano: tiene que ejecutarse ANTES del script del portal, en orden. Falla CERRADO: si demo.js
      no carga, createClient se anula y el portal real nunca se crea con `?demo` puesto. Sin `?demo` esto no hace nada. -->
-<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008e"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008s"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -49,7 +49,7 @@
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/portal/resumen.js?v=20261008e"></script>
+<script src="/portal/resumen.js?v=20261008s"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261007"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -687,6 +687,123 @@
     .proy-sinfoto{ display:none; }
   }
 
+  /* ═══ SOPORTE v2 (8-oct-2026; aspecto del artifact «Soporte Lawang») ═══
+     Columna de consultas (cuatro puertas por tema, abiertos con el turno visible, resueltos plegados) y columna de
+     «cómo funciona» con el aviso de canal no vinculante. El hilo se lee en el cajón (clase sop-dr). Piezas y colores de la
+     piel v4; clases propias con prefijo sop- para no pisar las compartidas (lección de .doc .num, 5-ago). */
+  .sop{ display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:18px; align-items:start; }
+  .sop-col{ display:grid; gap:18px; min-width:0; }
+  .sop .tarjeta.sop-tarjeta{ background:#fff; padding:20px 22px; margin:0; }
+  .sop-h{ margin:0; font-size:17px; font-weight:500; text-wrap:balance; }
+  .sop-sub{ margin:4px 0 0; font-size:13px; line-height:1.5; color:var(--ink2); }
+  .sop-ico{ width:36px; height:36px; border-radius:10px; display:grid; place-items:center; flex:none; background:var(--pg-low); color:var(--dl); }
+  .sop-ico svg{ width:19px; height:19px; }
+  .sop-temas{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:16px; }
+  .sop-tema{ display:flex; flex-direction:column; align-items:flex-start; gap:10px; min-width:0; padding:14px 14px 13px; text-align:left; cursor:pointer;
+    font:inherit; color:var(--va); background:var(--rl); border:1px solid var(--pg-hi); border-radius:12px; transition:background .15s,border-color .15s; }
+  .sop-tema:hover{ background:var(--pg-low); border-color:var(--linea); }
+  .sop-tema:hover .sop-ico{ background:#fff; }
+  .sop-tema:focus-visible, .sop-tk:focus-visible, .sop-resueltos summary:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .sop-tema b{ font-size:14px; font-weight:600; }
+  .sop-tema small{ font-size:12px; line-height:1.4; color:var(--out); }
+  .sop-cab{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 2px 10px; }
+  .sop-rot{ margin:0; }
+  .sop-rot b{ color:var(--va); margin-left:2px; font-variant-numeric:tabular-nums; }
+  .sop-lista{ display:grid; gap:10px; }
+  .sop-nada{ margin:0; padding:16px; text-align:center; font-size:13px; color:var(--out); background:#fff; border:1px solid var(--pg-hi); border-radius:12px; }
+  .sop-tk{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:14px; align-items:start; width:100%; text-align:left; cursor:pointer;
+    font:inherit; color:var(--va); background:#fff; border:1px solid var(--pg-hi); border-radius:12px; padding:15px 16px; transition:border-color .15s; }
+  .sop-tk:hover{ border-color:var(--linea); }
+  .sop-tk.resp{ border-color:#c9d3bf; }
+  .sop-tk-c{ min-width:0; display:block; }
+  .sop-tk-t{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; }
+  .sop-tk-t b{ font-size:14.5px; font-weight:600; }
+  .sop-ref{ display:inline-flex; align-items:center; gap:5px; font:inherit; font-size:11.5px; font-weight:500; color:var(--dl); background:#e8f0ef;
+    border:0; border-radius:999px; padding:2px 9px; }
+  button.sop-ref{ cursor:pointer; } button.sop-ref:hover{ text-decoration:underline; }
+  .sop-ref svg{ width:12px; height:12px; }
+  .sop-ex{ margin-top:6px; font-size:13px; line-height:1.45; color:var(--ink2); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .sop-ex em{ font-style:normal; font-weight:600; color:var(--va); }
+  .sop-pie{ display:block; margin-top:8px; font-size:11.5px; color:var(--out); }
+  .sop-tk-d{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .sop-tk-d .sop-pie{ margin:0; }
+  .sop-estado{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; font-size:11.5px; font-weight:600; border-radius:999px; padding:4px 10px 4px 9px; }
+  .sop-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
+  .sop-estado.resp{ background:#485B37; color:#fff; }
+  /* Las dos etiquetas de un ticket abierto van en sólido (1-sep-2026, pedido del cliente: el tinte suave de «Abierto» se
+     perdía contra el crema); la de resuelto, suave, como antes. */
+  .sop-estado.espera{ background:var(--dl); color:#fff; }
+  .sop-estado.hecho{ background:#e3eadb; color:var(--ok); }
+  .sop-resueltos{ margin-top:6px; }
+  .sop-resueltos summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 2px; border-radius:8px; }
+  .sop-resueltos summary::-webkit-details-marker{ display:none; }
+  .sop-resueltos summary svg{ width:14px; height:14px; color:var(--out); transition:transform .2s; }
+  .sop-resueltos[open] summary svg{ transform:rotate(90deg); }
+  .sop-resueltos .sop-tk{ background:var(--rl); }
+  .sop-resueltos .sop-tk-t b{ color:var(--ink2); }
+  .sop-pasos{ list-style:none; margin:14px 0 0; padding:0; display:grid; gap:14px; }
+  .sop-pasos li{ display:grid; grid-template-columns:26px minmax(0,1fr); gap:12px; align-items:start; }
+  .sop-n{ width:26px; height:26px; border-radius:50%; background:var(--pg-low); color:var(--dl); font-size:12.5px; font-weight:600; display:grid; place-items:center; }
+  .sop-pasos b{ display:block; font-size:13.5px; font-weight:600; }
+  .sop-pasos li > div > span{ display:block; margin-top:2px; font-size:12.5px; line-height:1.5; color:var(--ink2); }
+  .sop-aviso{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:10px; background:var(--pg-low); border-radius:12px; padding:14px 16px; }
+  .sop-aviso svg{ width:17px; height:17px; color:var(--out); margin-top:1px; }
+  .sop-aviso p{ margin:0; font-size:12px; line-height:1.55; color:var(--ink2); }
+  .sop-aviso p b{ display:block; color:var(--va); font-size:12.5px; font-weight:600; margin-bottom:3px; }
+  /* el cajón de un ticket y el de uno nuevo: cabecera fija, hilo con scroll y caja de respuesta abajo */
+  .drawer.sop-dr{ padding:0; display:flex; flex-direction:column; overflow:hidden; }
+  .drawer.sop-dr .drawer-cerrar{ position:absolute; top:16px; right:14px; margin:0; z-index:1; }
+  .sop-dr-cab{ padding:18px 56px 16px 22px; border-bottom:1px solid var(--pg-hi); display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:start; flex:none; }
+  .sop-dr-cab .sop-ico{ width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid var(--pg-hi); }
+  .sop-dr-cab h3{ margin:0; font-size:18px; font-weight:500; }
+  .sop-meta{ margin-top:6px; display:flex; flex-wrap:wrap; gap:6px 8px; align-items:center; font-size:12px; color:var(--out); }
+  .sop-hilo{ flex:1; min-height:0; overflow-y:auto; padding:18px 22px; display:flex; flex-direction:column; gap:14px; }
+  .sop-dia{ align-self:center; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a8a394; }
+  .sop-msg{ display:flex; flex-direction:column; max-width:84%; align-self:flex-start; align-items:flex-start; }
+  .sop-msg.mia{ align-self:flex-end; align-items:flex-end; }
+  .sop-quien{ font-size:11.5px; font-weight:600; color:var(--ink2); margin:0 0 5px 2px; display:flex; align-items:center; gap:6px; }
+  .sop-quien i{ width:18px; height:18px; border-radius:50%; background:var(--av-fondo); }
+  .sop-burbuja{ padding:11px 14px; font-size:13.5px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .sop-msg.mia .sop-burbuja{ background:var(--dl); color:#fff; border-radius:14px 14px 4px 14px; }
+  .sop-msg.suya .sop-burbuja{ background:#fff; border:1px solid var(--pg-hi); border-radius:14px 14px 14px 4px; }
+  .sop-hora{ font-size:10.5px; color:#a8a394; margin-top:4px; }
+  .sop-compositor{ flex:none; border-top:1px solid var(--pg-hi); padding:14px 22px 18px; padding-bottom:calc(18px + env(safe-area-inset-bottom, 0px)); background:var(--rl); margin:0; }
+  .sop-reabre{ display:flex; gap:8px; align-items:flex-start; font-size:12px; line-height:1.45; color:var(--ok); background:#e3eadb; border-radius:10px; padding:9px 12px; margin-bottom:10px; }
+  .sop-reabre svg{ width:15px; height:15px; flex:none; margin-top:1px; }
+  .sop-caja{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; background:#fff; border:1px solid var(--linea); border-radius:14px; padding:6px 6px 6px 14px; }
+  .sop-caja:focus-within{ outline:2px solid var(--dl); outline-offset:1px; }
+  .sop-caja textarea{ border:0; outline:0; resize:none; background:transparent; font:inherit; font-size:14px; line-height:1.5; padding:7px 0; min-height:38px; max-height:160px; color:var(--va); }
+  .sop-enviar{ display:inline-flex; align-items:center; gap:6px; }
+  .sop-enviar svg{ width:15px; height:15px; }
+  .sop-enviar:disabled{ opacity:.45; cursor:default; }
+  .sop-atajo{ margin:8px 2px 0; font-size:11px; color:#a8a394; }
+  .sop-nuevo{ flex:1; min-height:0; overflow-y:auto; padding:20px 22px 24px; display:grid; gap:16px; align-content:start; }
+  .sop-nuevo .campo{ margin:0; }
+  .sop-temas-f{ border:0; margin:0; padding:0; min-width:0; }
+  .sop-temas-f legend{ padding:0; margin:0 0 8px; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); }
+  .sop-chips{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .sop-chip{ position:relative; min-width:0; }
+  .sop-chip input{ position:absolute; opacity:0; pointer-events:none; }
+  .sop-chip span{ display:flex; align-items:center; gap:9px; padding:10px 12px; border:1px solid var(--linea); border-radius:12px; background:#fff; font-size:13.5px; font-weight:500; cursor:pointer; }
+  .sop-chip span svg{ width:17px; height:17px; color:var(--dl); flex:none; }
+  .sop-chip input:checked + span{ border-color:var(--dl); background:#e8f0ef; font-weight:600; }
+  .sop-chip input:focus-visible + span{ outline:2px solid var(--dl); outline-offset:1px; }
+  .sop-acc{ display:flex; gap:10px; flex-wrap:wrap; }
+  @media (max-width:1080px){ .sop-temas{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:900px){ .sop{ grid-template-columns:minmax(0,1fr); } }
+  @media (max-width:520px){
+    .sop .tarjeta.sop-tarjeta{ padding:16px; }
+    .sop-temas{ gap:8px; }
+    .sop-tema{ padding:12px; }
+    .sop-tema small{ display:none; }
+    .sop-tk{ grid-template-columns:minmax(0,1fr); gap:10px; padding:14px; }
+    .sop-tk > .sop-ico{ display:none; }
+    .sop-tk-d{ flex-direction:row; align-items:center; justify-content:space-between; }
+    .sop-dr-cab, .sop-hilo, .sop-compositor, .sop-nuevo{ padding-left:16px; padding-right:16px; }
+    .sop-dr-cab{ padding-right:52px; }
+  }
+  @media (prefers-reduced-motion:reduce){ .sop-tema, .sop-tk, .sop-resueltos summary svg{ transition:none; } }
+
   /* ═══ MI PERFIL — la página de la cuenta (8-oct-2026; aspecto del artifact «Mi perfil Lawang v2») ═══
      Ficha (quién es y sus datos), lo entregado, seguridad y avisos, y a quién escribir si un dato está mal. Lo que ya
      enseña Inicio (lo pagado, lo pendiente, las propiedades, la actividad) no se repite aquí (owner, 8-oct-2026).
@@ -711,15 +828,72 @@
             border:1px solid var(--pg-hi); border-radius:999px; padding:5px 12px 5px 10px; box-sizing:border-box; }
   .pf-dato svg{ width:14px; height:14px; color:var(--sc); flex:none; }
   .pf-dato span{ overflow-wrap:anywhere; }
-  /* lo entregado y ajustes: un icono por fila */
-  .pf-nota-doc{ margin:0 0 14px; font-size:12.5px; color:var(--ink2); }
-  .pf .doclista{ border:1px solid var(--pg-hi); border-radius:12px; overflow:hidden; }
-  .pf .docfila{ cursor:pointer; padding:12px 14px; gap:12px; }
-  .pf-docico{ width:36px; height:36px; border-radius:10px; background:var(--pg-low); color:var(--ink2); display:grid; place-items:center; flex:none; }
-  .pf-docico svg{ width:18px; height:18px; }
-  .pf-pill{ font-size:11.5px; font-weight:700; border-radius:999px; padding:3px 10px; white-space:nowrap; flex:none; }
-  .pf-pill.mal{ background:#f8ebe7; color:var(--bad); border:1px solid #e4c3ba; }
-  .pf-pill.ok{ background:#e3eadb; color:#3F5230; }
+  /* lo entregado (artifact «Documentos entregados Lawang», 8-oct-2026): cada documento es una pieza con su dibujo,
+     su estado en grande y una barra de lo que le queda; la que caduca en 30 días o menos, teñida de rojo */
+  .ent-cab{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .ent-res{ display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; border-radius:999px; padding:4px 11px 4px 9px; }
+  .ent-res i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .ent-res.aviso{ background:#f8ebe7; color:var(--bad); }
+  .ent-res.bien{ background:#e3eadb; color:var(--ok); }
+  .ent-intro{ margin:6px 0 16px; font-size:13px; line-height:1.5; color:var(--ink2); max-width:56ch; }
+  .ent-docs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(236px,1fr)); gap:12px; }
+  .ent-doc{ border:1px solid var(--pg-hi); border-radius:14px; background:#fff; padding:14px 14px 12px; display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .ent-doc.pronto{ background:#fdf6f3; border-color:#e4c3ba; }
+  .ent-doc.vencido{ background:var(--pg-low); }
+  .ent-top{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:center; }
+  .ent-nom .t{ font-size:14.5px; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
+  .ent-nom .s{ font-size:12px; color:var(--out); margin-top:2px; }
+  .ent-estado{ display:flex; align-items:baseline; gap:4px 8px; flex-wrap:wrap; }
+  .ent-estado b{ font-size:30px; font-weight:400; letter-spacing:-.015em; line-height:1; font-variant-numeric:tabular-nums; }
+  .ent-estado b small{ font-size:14px; margin-left:3px; letter-spacing:0; }
+  .ent-estado span{ font-size:12.5px; color:var(--ink2); }
+  .ent-doc.pronto .ent-estado b{ color:var(--bad); }
+  .ent-doc.ok .ent-estado b{ color:var(--ok); font-size:22px; }
+  .ent-doc.vencido .ent-estado b{ color:var(--bad); font-size:22px; }
+  .ent-doc.sin .ent-estado b{ color:var(--ink2); font-size:22px; }
+  .ent-estado b.txt{ font-size:20px; }
+  .ent-vida{ display:grid; gap:5px; }
+  .ent-barra{ position:relative; height:6px; border-radius:999px; background:var(--pg-hi); }
+  .ent-barra i{ position:absolute; inset:0 auto 0 0; border-radius:999px; background:var(--tg); }
+  .ent-doc.pronto .ent-barra i{ background:var(--bad); }
+  .ent-doc.vencido .ent-barra i{ background:var(--ss); }
+  .ent-barra em{ position:absolute; top:-4px; width:2px; height:14px; border-radius:2px; background:var(--va); transform:translateX(-1px); }
+  .ent-pie{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:2px 8px; font-size:11px; color:var(--out); font-variant-numeric:tabular-nums; }
+  .ent-pie span{ white-space:nowrap; }
+  .ent-acc{ display:flex; gap:8px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--pg-hi); margin-top:auto; }
+  .ent-doc.pronto .ent-acc{ border-top-color:#e4c3ba; }
+  .ent-btn{ font:inherit; border-radius:999px; font-size:12.5px; font-weight:600; padding:7px 13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; min-height:34px; }
+  .ent-btn svg{ width:15px; height:15px; }
+  .ent-btn.ver{ background:#fff; color:var(--dl); border:1px solid var(--pg-hi); }
+  .ent-btn.ver:hover{ border-color:var(--ss); }
+  .ent-btn.avisar{ background:var(--bad); color:#fff; border:1px solid var(--bad); }
+  .ent-btn.avisar:hover{ background:#86271f; border-color:#86271f; }
+  .ent-btn:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  /* el dibujo de cada documento: pasaporte (librito petróleo con escudo), documento de identidad y NPWP (tarjetas)
+     y KITAS u otro (hoja con cabecera verde) */
+  .ent-art{ width:58px; height:58px; display:grid; place-items:center; border-radius:12px; background:var(--pg-low); }
+  .ent-doc.pronto .ent-art{ background:#f6e2dc; }
+  .ent-art > span{ position:relative; display:block; }
+  .ent-art b{ position:absolute; height:2px; border-radius:2px; }
+  .ent-pas{ width:30px; height:42px; border-radius:3px 6px 6px 3px; background:var(--dl); }
+  .ent-pas::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:3px 0 0 3px; background:#0b3739; }
+  .ent-pas::after{ content:""; position:absolute; left:50%; top:11px; width:12px; height:12px; margin-left:-4px; border-radius:50%; border:1.5px solid #C89B5C; box-sizing:border-box; }
+  .ent-pas b{ left:9px; right:6px; height:1.5px; background:#C89B5C; opacity:.8; }
+  .ent-pas b:nth-child(1){ top:28px; } .ent-pas b:nth-child(2){ top:32px; right:10px; }
+  .ent-idc{ width:44px; height:29px; border-radius:4px; background:#e3eadb; border:1px solid #c9d5bd; box-sizing:border-box; }
+  .ent-idc::before{ content:""; position:absolute; left:4px; top:5px; width:11px; height:14px; border-radius:2px; background:var(--sc); }
+  .ent-idc::after{ content:""; position:absolute; left:4px; right:5px; bottom:3px; height:2px; background:#a9b796; border-radius:2px; }
+  .ent-idc b{ left:19px; background:#a9b796; }
+  .ent-idc b:nth-child(1){ top:6px; right:5px; } .ent-idc b:nth-child(2){ top:11px; right:10px; } .ent-idc b:nth-child(3){ top:16px; right:7px; }
+  .ent-npw{ width:44px; height:29px; border-radius:4px; background:#f6e8cc; border:1px solid #e6cf9f; box-sizing:border-box; }
+  .ent-npw::before{ content:""; position:absolute; left:4px; right:4px; top:4px; height:5px; border-radius:2px; background:#C89B5C; }
+  .ent-npw b{ left:4px; background:#d9bd82; }
+  .ent-npw b:nth-child(1){ top:12px; right:12px; } .ent-npw b:nth-child(2){ top:17px; right:6px; } .ent-npw b:nth-child(3){ top:22px; right:18px; }
+  .ent-kit{ width:32px; height:42px; border-radius:4px; background:#fff; border:1px solid var(--ss); box-sizing:border-box; }
+  .ent-kit::before{ content:""; position:absolute; left:0; right:0; top:0; height:8px; border-radius:3px 3px 0 0; background:var(--tg); }
+  .ent-kit b{ left:5px; background:var(--pg-hi); }
+  .ent-kit b:nth-child(1){ top:13px; right:5px; } .ent-kit b:nth-child(2){ top:18px; right:9px; } .ent-kit b:nth-child(3){ top:23px; right:6px; } .ent-kit b:nth-child(4){ top:28px; right:12px; }
+  /* ajustes: un icono por fila */
   .pf .pref-fila{ gap:12px; padding:11px 0; border-bottom-color:var(--pg-hi); }
   .pf .pref-fila span{ font-size:13.5px; }
   .pf-pref{ display:flex; align-items:center; gap:10px; min-width:0; }
@@ -1705,7 +1879,6 @@
          sin_contratos_t:'No vemos contratos a tu nombre', sin_contratos:'Puede que tu acceso esté sobre una ficha que todavía no tiene contratos ligados. Escríbenos y lo revisamos.',
          entrega_est:'Entrega estimada', actualizado:'Última actualización',
          sin_proyecto:'Otros documentos', d_entregado:'Lo que nos entregaste',
-         d_entregado_nota:'Son los documentos que aportaste para tu expediente. Si alguno está a punto de caducar, escríbenos y lo actualizamos.',
          doc_passport:'Pasaporte', doc_id:'Documento de identidad', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'caduca el',
          sin_docs_t:'Aún no hay documentos compartidos', sin_docs:'Aquí aparecerán los planos, dossieres y documentos de tu promoción cuando los publiquemos, junto con lo que tú nos hayas entregado.',
          err_fichero:'No hemos podido abrir el documento. Inténtalo de nuevo en un momento.',
@@ -1730,6 +1903,9 @@
          datos_personales:'Datos personales', nombre:'Nombre', correo:'Correo', telefono:'Teléfono', pais:'País',
          pf_caducado:'Caducado', pf_vigente:'Vigente', pf_contrasena:'Contraseña', pf_dato_mal:'¿Algún dato no es correcto?', pf_dato_mal_txt:'Tus datos los lleva el equipo de gestión de Lawang. Escríbenos y los corregimos.',
          seguridad_avisos:'Seguridad y avisos',
+         ent_intro:'Los documentos de tu expediente. Si uno va a caducar, avísanos y lo actualizamos.', ent_res_1:'1 necesita renovarse', ent_res_n:'{n} necesitan renovarse', ent_todo:'Todo vigente',
+         ent_dia:'día', ent_dias:'días', ent_para_caducar:'para que caduque · el {f}', ent_hasta:'hasta el {f}', ent_desde:'desde el {f}', ent_no_caduca:'No caduca', ent_sin_fecha:'sin fecha de caducidad',
+         ent_entregado:'Entregado {f}', ent_caduca:'Caduca {f}', ent_caduco:'Caducó {f}', ent_ver:'Ver', ent_avisar:'Avisar al equipo', ent_en_exp:'En tu expediente',
          cambiar_pass_btn:'Cambiar contraseña',
          cambiar_pass_nueva:'Nueva contraseña (mínimo 10 caracteres)', cambiar_pass_repite:'Repite la contraseña',
          cambiar_pass_nota:'La usarás junto a tu correo la próxima vez que entres — el enlace por email sigue funcionando igual.',
@@ -1769,7 +1945,9 @@
          ct_n_1:'1 contrato', ct_n_n:'{n} contratos', ct_por_firmar:'{n} por firmar', ct_v_1:'1 villa', ct_v_n:'{n} villas', ct_f_1:'1 firmado', ct_f_n:'{n} firmados',
          ct_pagado_cuota:'Pagado de la cuota de reserva', ct_pagado_villa:'Pagado en esta villa', ct_pct_pagado:'{n} % pagado',
          ct_no_cuadra:'¿Algo no cuadra con tus documentos?', ct_escribenos:'Escríbenos desde Soporte y lo revisamos',
-         sobre:'Sobre', sobre_nada:'Nada en concreto', preguntar_factura:'Preguntar sobre esta factura', preguntar_contrato:'Preguntar sobre este contrato', },
+         sobre:'Sobre', sobre_nada:'Nada en concreto', preguntar_factura:'Preguntar sobre esta factura', preguntar_contrato:'Preguntar sobre este contrato',
+         /* Soporte v2 (8-oct-2026) */
+         sop_h:'¿Sobre qué quieres preguntar?', sop_h_sub:'Elige el tema y escríbenos. Te responde el equipo de gestión de Lawang, aquí mismo.', sop_hint_pagos:'Transferencias, recibos y plazos de un hito', sop_hint_documentacion:'Contratos, planos y papeles de tu compra', sop_hint_obra:'Avance, fotos y fecha de entrega', sop_hint_otro:'Cualquier otra duda', sop_abiertos:'Abiertos', sop_resueltos:'Resueltos', sop_ninguno_abierto:'No tienes ninguna consulta abierta.', sop_respondido:'Te hemos respondido', sop_esperando:'Esperando al equipo', sop_n_msg_1:'1 mensaje', sop_n_msg_n:'{n} mensajes', sop_como:'Cómo funciona', sop_p1_t:'Un ticket por tema', sop_p1:'Si tu duda es sobre una factura o un contrato, elígelo en «Sobre» y el equipo lo verá al momento.', sop_p2_t:'Te contestamos aquí', sop_p2:'La respuesta queda en el ticket, y en la lista verás «Te hemos respondido» hasta que contestes.', sop_p3_t:'¿Vuelve a pasar?', sop_p3:'Escribe en el ticket resuelto y se abre otra vez, con toda la conversación anterior.', sop_aviso_t:'Canal de atención', sop_reabre:'Este ticket está resuelto. Si escribes, se abre otra vez y le llega al equipo.', sop_ph_reabrir:'Escribe para reabrirlo…', sop_ph_resp:'Escribe tu respuesta…', sop_atajo:'Ctrl+Intro para enviar', sop_nuevo_sub:'Te respondemos en este mismo ticket.', sop_tema:'Tema', sop_ph_msg:'Cuéntanos qué necesitas', sop_reabierto:'Ticket abierto otra vez', sop_enviado:'Mensaje enviado', },
     en:{ area:'Client area',
          login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
          login_btn:'Send me the link',
@@ -1818,7 +1996,6 @@
          sin_contratos_t:'We see no contracts under your name', sin_contratos:'Your access may sit on a record with no contracts linked yet. Write to us and we will check it.',
          entrega_est:'Estimated handover', actualizado:'Last update',
          sin_proyecto:'Other documents', d_entregado:'What you gave us',
-         d_entregado_nota:'These are the documents you provided for your file. If any is about to expire, write to us and we will update it.',
          doc_passport:'Passport', doc_id:'ID document', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'expires',
          sin_docs_t:'No shared documents yet', sin_docs:'Plans, brochures and documents for your development will appear here once we publish them, along with anything you have given us.',
          err_fichero:'We could not open the document. Please try again in a moment.',
@@ -1835,6 +2012,9 @@
          datos_personales:'Personal details', nombre:'Name', correo:'Email', telefono:'Phone', pais:'Country',
          pf_caducado:'Expired', pf_vigente:'Valid', pf_contrasena:'Password', pf_dato_mal:'Is any of your details wrong?', pf_dato_mal_txt:'Your details are kept by the Lawang management team. Write to us and we will correct them.',
          seguridad_avisos:'Security and notifications',
+         ent_intro:'The documents in your file. If one is about to expire, let us know and we will update it.', ent_res_1:'1 needs renewing', ent_res_n:'{n} need renewing', ent_todo:'All valid',
+         ent_dia:'day', ent_dias:'days', ent_para_caducar:'left · expires {f}', ent_hasta:'until {f}', ent_desde:'since {f}', ent_no_caduca:'No expiry', ent_sin_fecha:'no expiry date',
+         ent_entregado:'Provided {f}', ent_caduca:'Expires {f}', ent_caduco:'Expired {f}', ent_ver:'View', ent_avisar:'Tell the team', ent_en_exp:'In your file',
          cambiar_pass_btn:'Change password',
          cambiar_pass_nueva:'New password (10 characters minimum)', cambiar_pass_repite:'Repeat password',
          cambiar_pass_nota:'You will use it together with your email next time you sign in — the email link keeps working too.',
@@ -1878,7 +2058,9 @@
          tipo_carta_reserva_pma:'Conditional Reservation Letter (PT PMA)', tipo_carta_reserva_investor_deck:'Reservation Letter (Investor Deck)',
          tipo_reserva_parcela:'Plot Hold', tipo_construccion:'Construction', tipo_hak_sewa_notario:'Hak Sewa - Notary', tipo_poa:'Power of Attorney',
          tipo_adenda:'Contract addendum', tipo_contrato_general:'General Contract',
-         sobre:'About', sobre_nada:'Nothing in particular', preguntar_factura:'Ask about this invoice', preguntar_contrato:'Ask about this contract', },
+         sobre:'About', sobre_nada:'Nothing in particular', preguntar_factura:'Ask about this invoice', preguntar_contrato:'Ask about this contract',
+         /* Soporte v2 (8-oct-2026) */
+         sop_h:'What would you like to ask about?', sop_h_sub:'Pick a topic and write to us. The Lawang account team replies right here.', sop_hint_pagos:'Transfers, receipts and milestone due dates', sop_hint_documentacion:'Contracts, plans and paperwork for your purchase', sop_hint_obra:'Progress, photos and handover date', sop_hint_otro:'Anything else', sop_abiertos:'Open', sop_resueltos:'Resolved', sop_ninguno_abierto:'You have no open enquiries.', sop_respondido:'We have replied', sop_esperando:'Waiting for the team', sop_n_msg_1:'1 message', sop_n_msg_n:'{n} messages', sop_como:'How it works', sop_p1_t:'One ticket per topic', sop_p1:'If your question is about an invoice or a contract, pick it under “About” so the team sees it straight away.', sop_p2_t:'We reply here', sop_p2:'The reply stays in the ticket, and the list shows “We have replied” until you answer.', sop_p3_t:'Happening again?', sop_p3:'Write in the resolved ticket and it reopens, with the whole earlier conversation.', sop_aviso_t:'Support channel', sop_reabre:'This ticket is resolved. If you write, it reopens and reaches the team.', sop_ph_reabrir:'Write to reopen it…', sop_ph_resp:'Write your reply…', sop_atajo:'Ctrl+Enter to send', sop_nuevo_sub:'We will reply in this same ticket.', sop_tema:'Topic', sop_ph_msg:'Tell us what you need', sop_reabierto:'Ticket reopened', sop_enviado:'Message sent', },
     id:{ area:'Area klien',
          login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, tautan masuk akan segera dikirim.',
          login_btn:'Kirim tautan ke saya',
@@ -1927,7 +2109,6 @@
          sin_contratos_t:'Kami tidak melihat kontrak atas nama Anda', sin_contratos:'Mungkin akses Anda terhubung ke data yang belum memiliki kontrak. Tulis ke kami dan kami akan memeriksanya.',
          entrega_est:'Perkiraan serah terima', actualizado:'Pembaruan terakhir',
          sin_proyecto:'Dokumen lainnya', d_entregado:'Yang telah Anda serahkan',
-         d_entregado_nota:'Ini adalah dokumen yang Anda berikan untuk berkas Anda. Jika ada yang hampir kedaluwarsa, tulis ke kami dan kami akan memperbaruinya.',
          doc_passport:'Paspor', doc_id:'Dokumen identitas', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'berlaku sampai',
          sin_docs_t:'Belum ada dokumen yang dibagikan', sin_docs:'Denah, dossier, dan dokumen proyek Anda akan muncul di sini saat kami menerbitkannya, beserta yang telah Anda serahkan.',
          err_fichero:'Kami tidak dapat membuka dokumen. Coba lagi sebentar lagi.',
@@ -1944,6 +2125,9 @@
          datos_personales:'Data pribadi', nombre:'Nama', correo:'Email', telefono:'Telepon', pais:'Negara',
          pf_caducado:'Kedaluwarsa', pf_vigente:'Berlaku', pf_contrasena:'Kata sandi', pf_dato_mal:'Ada data yang tidak benar?', pf_dato_mal_txt:'Data Anda dikelola oleh tim manajemen Lawang. Tulis kepada kami dan kami akan memperbaikinya.',
          seguridad_avisos:'Keamanan dan notifikasi',
+         ent_intro:'Dokumen di berkas Anda. Jika ada yang akan berakhir, beri tahu kami dan kami akan memperbaruinya.', ent_res_1:'1 perlu diperbarui', ent_res_n:'{n} perlu diperbarui', ent_todo:'Semua berlaku',
+         ent_dia:'hari', ent_dias:'hari', ent_para_caducar:'lagi · berakhir {f}', ent_hasta:'sampai {f}', ent_desde:'sejak {f}', ent_no_caduca:'Tidak berakhir', ent_sin_fecha:'tanpa tanggal kedaluwarsa',
+         ent_entregado:'Diserahkan {f}', ent_caduca:'Berakhir {f}', ent_caduco:'Telah berakhir {f}', ent_ver:'Lihat', ent_avisar:'Beri tahu tim', ent_en_exp:'Di berkas Anda',
          cambiar_pass_btn:'Ganti kata sandi',
          cambiar_pass_nueva:'Kata sandi baru (minimal 10 karakter)', cambiar_pass_repite:'Ulangi kata sandi',
          cambiar_pass_nota:'Anda akan memakainya bersama email saat masuk berikutnya — tautan lewat email tetap berfungsi seperti biasa.',
@@ -1984,7 +2168,9 @@
          ct_pagado_cuota:'Terbayar dari biaya reservasi', ct_pagado_villa:'Terbayar untuk vila ini', ct_pct_pagado:'{n} % terbayar',
          ct_no_cuadra:'Ada yang tidak sesuai dengan dokumen Anda?', ct_escribenos:'Tulis ke kami lewat Dukungan dan kami akan memeriksanya',
          tipo_carta_reserva:'Surat Pemesanan', tipo_reserva_parcela:'Pengikatan Kavling', tipo_construccion:'Konstruksi', tipo_poa:'Surat Kuasa', tipo_adenda:'Adendum kontrak',
-         sobre:'Tentang', sobre_nada:'Tidak ada yang khusus', preguntar_factura:'Tanya tentang faktur ini', preguntar_contrato:'Tanya tentang kontrak ini' }
+         sobre:'Tentang', sobre_nada:'Tidak ada yang khusus', preguntar_factura:'Tanya tentang faktur ini', preguntar_contrato:'Tanya tentang kontrak ini',
+         /* Soporte v2 (8-oct-2026) */
+         sop_h:'Apa yang ingin Anda tanyakan?', sop_h_sub:'Pilih topik dan tulis pesan Anda. Tim pengelola Lawang akan membalas di sini.', sop_hint_pagos:'Transfer, kuitansi, dan jatuh tempo termin', sop_hint_documentacion:'Kontrak, denah, dan dokumen pembelian Anda', sop_hint_obra:'Progres, foto, dan tanggal serah terima', sop_hint_otro:'Pertanyaan lainnya', sop_abiertos:'Terbuka', sop_resueltos:'Selesai', sop_ninguno_abierto:'Anda tidak punya pertanyaan yang terbuka.', sop_respondido:'Kami sudah membalas', sop_esperando:'Menunggu tim', sop_n_msg_1:'1 pesan', sop_n_msg_n:'{n} pesan', sop_como:'Cara kerjanya', sop_p1_t:'Satu tiket per topik', sop_p1:'Jika pertanyaan Anda tentang faktur atau kontrak, pilih di “Tentang” agar tim langsung melihatnya.', sop_p2_t:'Kami membalas di sini', sop_p2:'Balasan tersimpan di tiket, dan daftar menampilkan “Kami sudah membalas” sampai Anda menjawab.', sop_p3_t:'Terjadi lagi?', sop_p3:'Tulis di tiket yang sudah selesai dan tiket akan dibuka lagi, lengkap dengan percakapan sebelumnya.', sop_aviso_t:'Saluran layanan', sop_reabre:'Tiket ini sudah selesai. Jika Anda menulis, tiket dibuka lagi dan sampai ke tim.', sop_ph_reabrir:'Tulis untuk membukanya lagi…', sop_ph_resp:'Tulis balasan Anda…', sop_atajo:'Ctrl+Enter untuk mengirim', sop_nuevo_sub:'Kami akan membalas di tiket ini.', sop_tema:'Topik', sop_ph_msg:'Ceritakan apa yang Anda perlukan', sop_reabierto:'Tiket dibuka lagi', sop_enviado:'Pesan terkirim' }
   };
   var LANG = localStorage.getItem('lw_portal_lang');
   if (!LANG || !(LANG in T)) { var nl = (navigator.language || 'es').slice(0,2); LANG = (nl === 'es' || nl === 'id') ? nl : 'en'; }
@@ -2357,22 +2543,19 @@
                                        fecha: o.actualizado, cuando: new Date(o.actualizado), contrato_numero: o.contrato_numero || null });
     });
     kycCaducan(d).forEach(function(k){
-      var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
+      var dias = estadoDocumento(k.caduca).dias;   // el mismo plazo que Inicio y Mi perfil (resumen.js)
       lista.push({ tipo:'kyc',
         texto: t('nov_doc_caduca').replace('{doc}', (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo))).replace('{n}', dias),
-        fecha: k.caduca, cuando: new Date()
+        fecha: diaLocal(k.caduca), cuando: new Date()
       });
     });
     lista.sort(function(a,b){ return b.cuando - a.cuando; });
     return lista.slice(0, 8);
   }
-  /* Documento de identidad que caduca en los próximos 30 días: lo usan la campana y la lista de Inicio. */
+  /* Documento de identidad que caduca en los próximos 30 días: lo usan la campana y la lista de Inicio. El estado sale
+     de estadoDocumento (resumen.js), el mismo que pinta «Lo que nos entregaste» en Mi perfil (revisor, 8-oct-2026). */
   function kycCaducan(d){
-    return ((d && d.kyc) || []).filter(function(k){
-      if (!k.caduca) return false;
-      var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
-      return dias >= 0 && dias <= 30;
-    });
+    return ((d && d.kyc) || []).filter(function(k){ return estadoDocumento(k.caduca).estado === 'pronto'; });
   }
   function pintaCampana(){
     var drop = document.getElementById('notifDrop');
@@ -2624,8 +2807,8 @@
     caducan.forEach(function(k){
       var nom = t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo);
       tareas.push('<div class="ini-tarea">' + icoTarea + '<div class="ini-tarea-tx"><b>' +
-        esc(t('kyc_caduca_el').replace('{doc}', nom === String(nom).toUpperCase() ? nom : String(nom).charAt(0).toLowerCase() + String(nom).slice(1)).replace('{Doc}', nom).replace('{f}', fechaCorta(k.caduca))) + '</b></div>' +
-        cuentaAtras(k.caduca) +
+        esc(t('kyc_caduca_el').replace('{doc}', nom === String(nom).toUpperCase() ? nom : String(nom).charAt(0).toLowerCase() + String(nom).slice(1)).replace('{Doc}', nom).replace('{f}', fechaCorta(diaLocal(k.caduca)))) + '</b></div>' +
+        cuentaAtras(diaLocal(k.caduca)) +
         '<button type="button" class="btn-borde" data-ir="perfil">' + esc(t('ver_perfil')) + '</button></div>');
     });
     var tareasHTML = tareas.length ? '<div class="ini-tareas" role="status" aria-label="' + esc(t('pendiente_ti')) + '">' + tareas.join('') + '</div>' : '';
@@ -3810,31 +3993,78 @@
      con su propia categoría (el título) y su propio estado abierto/resuelto
      — un comprador puede tener varios a la vez, incluso de la misma
      categoría. Las conversaciones de antes de este cambio viven ya como un
-     ticket "General" abierto (migración, no se perdió nada). */
+     ticket "General" abierto (migración, no se perdió nada).
+     Soporte v2 (8-oct-2026, artifact «Soporte Lawang»): se empieza por el tema (cuatro puertas que abren el ticket ya en
+     su categoría), los abiertos dicen de quién es el turno —lo dice el último mensaje, nada nuevo en la base— y los
+     resueltos van plegados. Un mensaje del comprador en un ticket resuelto lo reabre (trigger de hilo_soporte), y el
+     cajón lo avisa. Hereda los enganches de siempre: btnNuevoTicket, data-ticket, fTicket, ticketIn, nCategoria, nSobre,
+     nTexto y btnAbrirTicket. */
   var CATEGORIAS = ['Pagos','Documentación','Obra','Otro'];
   /* El valor que se guarda es el español de siempre (la base y el equipo lo leen así); solo cambia lo que se lee. */
-  function catTxt(c){ var k = 'cat_' + String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); var v = t(k); return v === k ? c : v; }
+  function catClave(c){ return String(c || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  function catTxt(c){ var k = 'cat_' + catClave(c); var v = t(k); return v === k ? c : v; }
+  var TRAZOS_SOP = {
+    pagos: '<rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6.5 9.5v5M17.5 9.5v5"/>',
+    documentacion: '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 6.5 20V4a.5.5 0 0 1 .5-.5z"/><path d="M14 3.5V8h4M9.5 12.5h5M9.5 16h5"/>',
+    obra: '<path d="M4 17.5h16"/><path d="M6 17.5V15a6 6 0 0 1 12 0v2.5"/><path d="M10 9.4V6.5h4v2.9"/><path d="M12 9v4"/>',
+    otro: '<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/>',
+    doc: '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 6.5 20V4a.5.5 0 0 1 .5-.5z"/>',
+    flecha: '<path d="M9 6l6 6-6 6"/>',
+    info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+    enviar: '<path d="M4.5 12h14M13 6.5l5.5 5.5-5.5 5.5"/>',
+    reabre: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v3.5H8"/>'
+  };
+  function trazoSop(k, ancho){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (ancho || 1.6) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (TRAZOS_SOP[k] || TRAZOS_SOP.otro) + '</svg>';
+  }
+  function icoCat(c){ return trazoSop(catClave(c)); }   // «General» (los de antes de los tickets) cae en el de «Otro»
+  /* De quién es el turno: turnoTicket de resumen.js (probado en resumen.test.js); aquí solo su texto. */
+  function turnoSop(x){
+    var cls = turnoTicket(x);
+    return { cls:cls, txt:t(cls === 'resp' ? 'sop_respondido' : cls === 'espera' ? 'sop_esperando' : 'resuelto') };
+  }
+  function refTicket(x){
+    if (!x.ref_numero) return '';
+    return (x.factura_id ? t('factura') : x.contrato_id ? t('ob_contrato') : t('sobre')) + ' ' + x.ref_numero;
+  }
+  function filaTicket(x){
+    var ms = x.mensajes || [], u = ms[ms.length - 1], tu = turnoSop(x);
+    var extracto = u ? '<span class="sop-ex"><em>' + esc(u.de === 'cliente' ? t('tu') : t('equipo')) + ':</em> ' + esc(u.texto) + '</span>' : '';
+    var ref = refTicket(x);
+    return '<button type="button" class="sop-tk ' + tu.cls + '" data-ticket="' + esc(x.id) + '">' +
+      '<span class="sop-ico">' + icoCat(x.categoria) + '</span>' +
+      '<span class="sop-tk-c"><span class="sop-tk-t"><b>' + esc(catTxt(x.categoria)) + '</b>' +
+        (ref ? '<span class="sop-ref">' + trazoSop('doc', 1.8) + esc(ref) + '</span>' : '') + '</span>' + extracto +
+        '<span class="sop-pie">' + esc(ms.length === 1 ? t('sop_n_msg_1') : t('sop_n_msg_n').replace('{n}', ms.length)) + '</span></span>' +
+      '<span class="sop-tk-d"><span class="sop-estado ' + tu.cls + '"><i></i>' + esc(tu.txt) + '</span>' +
+        '<span class="sop-pie">' + esc(relativa(x.actualizado_en)) + '</span></span></button>';
+  }
   function pintaSoporte(c){
-    var d = DATOS, tickets = d.tickets || [];
-    var html = '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
-      '<button type="button" class="btn-oscuro" id="btnNuevoTicket" style="margin-bottom:18px">' + esc(t('nuevo_ticket')) + '</button>';
-    html += tickets.length ? '<div class="doclista">' + tickets.map(function(x){
-      var ultimo = x.mensajes[x.mensajes.length - 1];
-      var abierto = x.estado === 'abierto';
-      // "Abierto" en sólido (1-sep-2026, pedido del cliente: se perdía contra
-      // el crema de fondo con el tinte tan suave que llevaba antes).
-      var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
-      var extracto = ultimo ? (ultimo.de === 'cliente' ? t('tu') + ': ' : '') + ultimo.texto : '';
-      if (extracto.length > 80) extracto = extracto.slice(0, 80) + '…';
-      return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(catTxt(x.categoria)) + '</div>' +
-        (x.ref_numero ? '<div class="s">' + esc(t('sobre')) + ' ' + esc(x.ref_numero) + '</div>' : '') +
-        (extracto ? '<div class="s">' + esc(extracto) + '</div>' : '') + '</div>' +
-        '<div class="der"><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' +
-          esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
-        '<div style="margin-top:4px;font-size:11px;color:#a8a394">' + esc(fecha(x.actualizado_en)) + '</div></div></div>';
-    }).join('') + '</div>' : vacio(t('sin_tickets_t'), t('sin_tickets'));
-    c.innerHTML = html;
-    document.getElementById('btnNuevoTicket').addEventListener('click', abrirNuevoTicket);
+    var tickets = DATOS.tickets || [];
+    var orden = ordenTickets(tickets), abiertos = orden.abiertos, resueltos = orden.resueltos;   // resumen.js: con respuesta primero
+
+    var empezar = '<section class="tarjeta sop-tarjeta"><h2 class="sop-h">' + esc(t('sop_h')) + '</h2><p class="sop-sub">' + esc(t('sop_h_sub')) + '</p>' +
+      '<div class="sop-temas">' + CATEGORIAS.map(function(cat){
+        return '<button type="button" class="sop-tema" data-sop-cat="' + esc(cat) + '"><span class="sop-ico">' + icoCat(cat) + '</span>' +
+          '<b>' + esc(catTxt(cat)) + '</b><small>' + esc(t('sop_hint_' + catClave(cat))) + '</small></button>';
+      }).join('') + '</div></section>';
+
+    var lista = '<section><div class="sop-cab"><span class="rot-bloque sop-rot">' + esc(t('sop_abiertos')) + ' <b>' + abiertos.length + '</b></span>' +
+        '<button type="button" class="btn-borde" id="btnNuevoTicket">' + esc(t('nuevo_ticket')) + '</button></div>' +
+      (abiertos.length ? '<div class="sop-lista">' + abiertos.map(filaTicket).join('') + '</div>'
+        : (resueltos.length ? '<p class="sop-nada">' + esc(t('sop_ninguno_abierto')) + '</p>' : vacio(t('sin_tickets_t'), t('sin_tickets')))) +
+      (resueltos.length ? '<details class="sop-resueltos"><summary>' + trazoSop('flecha', 2) + '<span class="rot-bloque sop-rot">' + esc(t('sop_resueltos')) + ' <b>' + resueltos.length + '</b></span></summary>' +
+        '<div class="sop-lista">' + resueltos.map(filaTicket).join('') + '</div></details>' : '') + '</section>';
+
+    var paso = function(n){ return '<li><span class="sop-n">' + n + '</span><div><b>' + esc(t('sop_p' + n + '_t')) + '</b><span>' + esc(t('sop_p' + n)) + '</span></div></li>'; };
+    var lado = '<section class="tarjeta sop-tarjeta"><h2 class="sop-h">' + esc(t('sop_como')) + '</h2><ol class="sop-pasos">' + paso(1) + paso(2) + paso(3) + '</ol></section>' +
+      '<div class="sop-aviso">' + trazoSop('info') + '<p><b>' + esc(t('sop_aviso_t')) + '</b>' + esc(t('aviso_no_vinculante')) + '</p></div>';
+
+    c.innerHTML = '<div class="sop"><div class="sop-col">' + empezar + lista + '</div><div class="sop-col">' + lado + '</div></div>';
+    document.getElementById('btnNuevoTicket').addEventListener('click', function(){ abrirNuevoTicket(); });
+    c.querySelectorAll('[data-sop-cat]').forEach(function(b){
+      b.addEventListener('click', function(){ abrirNuevoTicket({ cat:b.getAttribute('data-sop-cat') }); });
+    });
     c.querySelectorAll('[data-ticket]').forEach(function(el){
       el.addEventListener('click', function(){
         var tk = tickets.filter(function(x){ return x.id === el.getAttribute('data-ticket'); })[0];
@@ -3843,40 +4073,68 @@
     });
   }
 
+  /* «Hoy», «Ayer» o la fecha: separa los días dentro del hilo. */
+  function diaHilo(f){
+    var d = new Date(f); if (!f || isNaN(d)) return '';
+    var hoy = new Date(); hoy.setHours(0,0,0,0); var x = new Date(d); x.setHours(0,0,0,0);
+    if (Math.round((hoy - x) / 86400000) > 1) return fecha(f);
+    var r = relativa(f); return r.charAt(0).toUpperCase() + r.slice(1);
+  }
   function abreTicket(x){
-    var abierto = x.estado === 'abierto';
-    var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
+    var tu = turnoSop(x), resuelto = x.estado !== 'abierto', ref = refTicket(x);
+    var hilo = '', dia = '';
+    (x.mensajes || []).forEach(function(m){
+      var dm = diaHilo(m.creado_en);
+      if (dm !== dia){ hilo += '<div class="sop-dia">' + esc(dm) + '</div>'; dia = dm; }
+      var mia = m.de === 'cliente', d = new Date(m.creado_en);
+      hilo += '<div class="sop-msg ' + (mia ? 'mia' : 'suya') + '">' + (mia ? '' : '<span class="sop-quien"><i></i>' + esc(t('equipo')) + '</span>') +
+        '<div class="sop-burbuja">' + esc(m.texto) + '</div>' +
+        '<span class="sop-hora">' + esc(isNaN(d) ? '' : d.toLocaleTimeString(LOC(), { hour:'2-digit', minute:'2-digit' })) + '</span></div>';
+    });
+    /* La referencia enlaza solo si ese documento se abre aquí: la factura está entre las que ve el comprador (sin anuladas
+       ni proformas sin enviar) o el contrato tiene PDF, como el botón de Contratos. Si no, aplicaRuta cambiaba la sección
+       de debajo sin que se viera y al cerrar el cajón el comprador ya no estaba en Soporte (revisor, 8-oct-2026). */
+    var abrible = x.factura_id ? (DATOS.facturas || []).some(function(f){ return f.numero === x.ref_numero; })
+                : x.contrato_id ? (DATOS.contratos || []).some(function(k){ return k.numero === x.ref_numero && k.pdf; }) : false;
+    var irRef = !ref || !abrible ? '' : x.factura_id ? ' data-ir-fac="' + esc(x.ref_numero) + '"' : ' data-ir-con="' + esc(x.ref_numero) + '"';
     abreDrawer(
-      '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(catTxt(x.categoria)) + '</h3>' +
-      '<span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
-      '<div id="ticketHilo" style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;margin:14px 0;padding:2px"></div>' +
-      '<form id="fTicket">' +
-        '<input id="ticketIn" class="campo-input" placeholder="' + esc(t('responder')) + '" style="margin-bottom:10px">' +
-        '<div style="display:flex;gap:10px">' +
-          '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button>' +
-          '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>' +
-        '</div></form>'
+      '<div class="sop-dr-cab"><span class="sop-ico">' + icoCat(x.categoria) + '</span><div><h3>' + esc(catTxt(x.categoria)) + '</h3>' +
+        '<div class="sop-meta"><span class="sop-estado ' + tu.cls + '"><i></i>' + esc(tu.txt) + '</span>' +
+        (ref ? (irRef ? '<button type="button" class="sop-ref"' + irRef + '>' : '<span class="sop-ref">') + trazoSop('doc', 1.8) + esc(ref) + (irRef ? '</button>' : '</span>') : '') +
+        '</div></div></div>' +
+      '<div class="sop-hilo" id="ticketHilo">' + hilo + '</div>' +
+      '<form class="sop-compositor" id="fTicket">' +
+        (resuelto ? '<div class="sop-reabre">' + trazoSop('reabre', 1.8) + '<span>' + esc(t('sop_reabre')) + '</span></div>' : '') +
+        '<div class="sop-caja"><textarea id="ticketIn" rows="1" placeholder="' + esc(t(resuelto ? 'sop_ph_reabrir' : 'sop_ph_resp')) + '" aria-label="' + esc(t('responder')) + '"></textarea>' +
+        '<button type="submit" class="btn-oscuro sop-enviar" disabled>' + esc(t('enviar')) + trazoSop('enviar', 2) + '</button></div>' +
+        '<p class="sop-atajo">' + esc(t('sop_atajo')) + '</p></form>',
+      'sop-dr'
     );
-    var hilo = document.getElementById('ticketHilo');
-    hilo.innerHTML = x.mensajes.length ? x.mensajes.map(function(m){
-      var mia = m.de === 'cliente';
-      return '<div class="fila-msg' + (mia?' der':'') + '"><div>' +
-        '<div class="burbuja ' + (mia?'mia':'suya') + '">' + esc(m.texto) + '</div>' +
-        '<div class="fecha-msg" style="text-align:' + (mia?'right':'left') + '">' + esc(fechaHora(m.creado_en)) + '</div></div></div>';
-    }).join('') : '';
-    hilo.scrollTop = hilo.scrollHeight;
-    document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
-    document.getElementById('fTicket').addEventListener('submit', function(e){
+    var hiloEl = document.getElementById('ticketHilo'); hiloEl.scrollTop = hiloEl.scrollHeight;
+    var dr = document.getElementById('drawer');
+    dr.querySelectorAll('[data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
+    dr.querySelectorAll('[data-ir-con]').forEach(function(b){ b.addEventListener('click', function(){ vasA('contratos', b.getAttribute('data-ir-con')); }); });
+    var ta = document.getElementById('ticketIn'), form = document.getElementById('fTicket'), btn = form.querySelector('button[type="submit"]');
+    var enviando = false;
+    var ajusta = function(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; btn.disabled = enviando || !ta.value.trim(); };
+    ta.addEventListener('input', ajusta);
+    ta.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable:true })); }
+    });
+    form.addEventListener('submit', function(e){
       e.preventDefault();
-      var val = document.getElementById('ticketIn').value.trim(); if (!val) return;
-      var btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
+      var val = ta.value.trim(); if (!val || enviando) return;
+      enviando = true; btn.disabled = true;
       sb.rpc('portal_enviar_mensaje', { p_hilo_id: x.id, p_texto: val }).then(function(r){
-        btn.disabled = false;
-        if (r.error){ console.error('portal_enviar_mensaje', r.error); toastMal(t('err_mensaje')); return; }
+        // Bien: `enviando` se queda en true y el cajón se repinta con uno nuevo al recargar. Si volviera a false aquí,
+        // Ctrl+Intro (requestSubmit no mira el botón desactivado) mandaba el mismo texto otra vez durante la recarga, y
+        // cada copia avisa por correo al equipo (revisor, 8-oct-2026).
+        if (r.error){ enviando = false; console.error('portal_enviar_mensaje', r.error); btn.disabled = !ta.value.trim(); toastMal(t('err_mensaje')); return; }
         recargaSituacion(function(){
           var actual = (DATOS.tickets||[]).filter(function(t2){ return t2.id === x.id; })[0];
           if (actual) abreTicket(actual); else cierraDrawer();
           render();
+          toast(t(resuelto ? 'sop_reabierto' : 'sop_enviado'));
         });
       });
     });
@@ -3884,28 +4142,41 @@
 
   function abrirNuevoTicket(ref){
     // el listener de «Nuevo ticket» le pasa el evento: solo vale un {tipo,id} nuestro
-    var catFija = ref && ref.cat;   // Obra abre el ticket ya en su categoría (8-oct-2026); el resto sigue como estaba
+    var catFija = ref && ref.cat;   // Obra, lo entregado y las cuatro puertas de Soporte abren el ticket ya en su categoría
     var textoPre = (ref && ref.texto) || '';   // Documentos abre el ticket con el proyecto ya escrito (8-oct-2026)
     ref = (ref && ref.tipo && ref.id) ? ref : null;
+    var opc = function(tipo, x, etiqueta){
+      return '<option value="' + tipo + ':' + esc(x.id) + '"' + (ref && ref.tipo === tipo && ref.id === x.id ? ' selected' : '') + '>' + esc(etiqueta) + ' ' + esc(x.numero) + '</option>';
+    };
+    var facs = (DATOS.facturas || []).map(function(f){ return opc('factura', f, t('factura')); }).join('');
+    var cons = (DATOS.contratos || []).map(function(x){ return opc('contrato', x, t('ob_contrato')); }).join('');
     var refOpts = '<option value="">' + esc(t('sobre_nada')) + '</option>' +
-      (DATOS.facturas || []).map(function(f){
-        return '<option value="factura:' + esc(f.id) + '"' + (ref && ref.tipo === 'factura' && ref.id === f.id ? ' selected' : '') + '>' + esc(t('factura')) + ' ' + esc(f.numero) + '</option>';
-      }).join('') +
-      (DATOS.contratos || []).map(function(x){
-        return '<option value="contrato:' + esc(x.id) + '"' + (ref && ref.tipo === 'contrato' && ref.id === x.id ? ' selected' : '') + '>' + esc(t('nav_contratos')) + ' ' + esc(x.numero) + '</option>';
-      }).join('');
+      (facs ? '<optgroup label="' + esc(t('nav_facturas')) + '">' + facs + '</optgroup>' : '') +
+      (cons ? '<optgroup label="' + esc(t('nav_contratos')) + '">' + cons + '</optgroup>' : '');
     var catPre = catFija || (ref ? (ref.tipo === 'factura' ? 'Pagos' : 'Documentación') : '');
     abreDrawer(
-      '<div class="hoja"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600">' + esc(t('nuevo_ticket')) + '</h3>' +
-      '<div class="campo"><label>' + esc(t('categoria')) + '</label>' +
-        '<select id="nCategoria" required><option value="">' + esc(t('elige_categoria')) + '</option>' +
-        CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '"' + (cat === catPre ? ' selected' : '') + '>' + esc(catTxt(cat)) + '</option>'; }).join('') +
-        '</select></div>' +
-      '<div class="campo"><label>' + esc(t('sobre')) + '</label><select id="nSobre">' + refOpts + '</select></div>' +
-      '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="nTexto" required style="min-height:100px">' + esc(textoPre) + '</textarea></div>' +
-      '<div style="display:flex;gap:10px;margin-top:6px"><button type="button" class="btn-oscuro" id="btnAbrirTicket">' + esc(t('abrir_ticket')) + '</button>' +
-      '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cancelar')) + '</button></div></div>'
+      '<div class="sop-dr-cab"><span class="sop-ico">' + icoCat(catPre || 'Otro') + '</span><div><h3>' + esc(t('nuevo_ticket')) + '</h3>' +
+        '<div class="sop-meta">' + esc(t('sop_nuevo_sub')) + '</div></div></div>' +
+      '<div class="sop-nuevo">' +
+        '<fieldset class="sop-temas-f"><legend>' + esc(t('sop_tema')) + '</legend><div class="sop-chips">' + CATEGORIAS.map(function(cat, i){
+          return '<label class="sop-chip"><input type="radio" name="nCat" id="nCat' + i + '" value="' + esc(cat) + '"' + (cat === catPre ? ' checked' : '') + '>' +
+            '<span>' + icoCat(cat) + esc(catTxt(cat)) + '</span></label>';
+        }).join('') + '</div><input type="hidden" id="nCategoria" value="' + esc(catPre) + '"></fieldset>' +
+        '<div class="campo"><label for="nSobre">' + esc(t('sobre')) + '</label><select id="nSobre">' + refOpts + '</select></div>' +
+        '<div class="campo"><label for="nTexto">' + esc(t('mensaje')) + '</label><textarea id="nTexto" required placeholder="' + esc(t('sop_ph_msg')) + '" style="min-height:130px">' + esc(textoPre) + '</textarea></div>' +
+        '<div class="sop-acc"><button type="button" class="btn-oscuro" id="btnAbrirTicket">' + esc(t('abrir_ticket')) + '</button>' +
+          '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cancelar')) + '</button></div>' +
+        '<div class="sop-aviso">' + trazoSop('info') + '<p>' + esc(t('aviso_no_vinculante')) + '</p></div>' +
+      '</div>',
+      'sop-dr'
     );
+    var dr = document.getElementById('drawer');
+    dr.querySelectorAll('input[name="nCat"]').forEach(function(r){
+      r.addEventListener('change', function(){
+        document.getElementById('nCategoria').value = r.value;
+        dr.querySelector('.sop-dr-cab .sop-ico').innerHTML = icoCat(r.value);
+      });
+    });
     document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
     document.getElementById('btnAbrirTicket').addEventListener('click', function(){
       var cat = document.getElementById('nCategoria').value;
@@ -3940,14 +4211,20 @@
   function svgPerfil(clave){
     return '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' + ICONOS_PERFIL[clave] + '</svg>';
   }
-  /* Iconos de trazo de Mi perfil v2 (8-oct-2026, artifact «Mi perfil Lawang v2»): documento, candado, correo y
+  /* Iconos de trazo de Mi perfil v2 (8-oct-2026, artifact «Mi perfil Lawang v2»): ojo (ver), candado, correo y
      mensaje. SVG inline por lo mismo que los de arriba. */
   var TRAZOS_PERFIL = {
-    idcard: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.8 16c.6-1.6 1.8-2.4 3.2-2.4s2.6.8 3.2 2.4M14.5 10h4M14.5 13.5h3"/>',
+    ojo: '<path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>',
     mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>',
     chat: '<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/>'
   };
+  /* El dibujo de cada documento entregado, hecho con CSS (artifact «Documentos entregados Lawang»): su forma real
+     a escala para reconocerlo sin leer. Un tipo que no está aquí sale como hoja genérica. */
+  function arteKyc(tipo){
+    var f = { passport:['ent-pas', 2], id:['ent-idc', 3], npwp:['ent-npw', 3], kitas:['ent-kit', 4] }[tipo] || ['ent-kit', 4];
+    return '<span class="' + f[0] + '">' + new Array(f[1] + 1).join('<b></b>') + '</span>';
+  }
   function trazoPerfil(clave){
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + TRAZOS_PERFIL[clave] + '</svg>';
   }
@@ -3960,7 +4237,6 @@
      Aspecto del artifact «Mi perfil Lawang v2». El aviso de Inicio de un documento que caduca trae aquí («Ver mi
      perfil»), a lo entregado. Hereda las acciones con sus mismos id: btnCambiarPass, tglEmail, tglSms y data-kyc. */
   function nombreKyc(tipo){ return t('doc_' + tipo) === 'doc_' + tipo ? tipo : t('doc_' + tipo); }
-  function mayus1(s){ s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
   function pintaPerfil(c){
     var d = DATOS, prefs = d.prefs || { pref_email:true, pref_sms:false }, kyc = d.kyc||[];
     var carpetas = carpetasProyecto().filter(function(f){ return (f.contratos || []).length; });
@@ -3974,17 +4250,40 @@
         '<div class="pf-quien"><h2>' + esc(d.nombre || d.email || '—') + '</h2>' + (sub ? '<p class="pf-sub">' + esc(sub) + '</p>' : '') +
           (datos ? '<ul class="pf-datos">' + datos + '</ul>' : '') + '</div></div></section>';
 
-    var entregado = kyc.length ? '<section class="tarjeta" id="pfEntregado"><h3 class="pf-t pf-t-sola">' + esc(t('d_entregado')) + '</h3>' +
-        '<p class="pf-nota-doc">' + esc(t('d_entregado_nota')) + '</p>' +
-        '<div class="doclista">' + kyc.map(function(x){
-          var dias = diasHasta(x.caduca);
-          var vencido = !!x.caduca && dias == null;   // días de calendario, como el aviso de Inicio (revisor, 8-oct)
-          var pill = !x.caduca ? '' : vencido ? '<span class="pf-pill mal">' + esc(t('pf_caducado')) + '</span>'
-                   : (dias != null && dias <= 30) ? '<span class="pf-pill mal">' + esc(diasTexto(x.caduca)) + '</span>'
-                   : '<span class="pf-pill ok">' + esc(t('pf_vigente')) + '</span>';
-          return '<div class="docfila" data-kyc="' + esc(x.path) + '"><span class="pf-docico">' + trazoPerfil('idcard') + '</span><div class="cuerpo"><div class="t">' + esc(nombreKyc(x.tipo)) + '</div>' +
-            (x.caduca ? '<div class="s">' + esc(mayus1(t('caduca') + ' ' + fecha(x.caduca))) + '</div>' : '') + '</div>' + pill + '</div>';
-        }).join('') + '</div></section>' : '';
+    // lo entregado (artifact «Documentos entregados Lawang», 8-oct-2026): cada documento con su dibujo, su estado en
+    // grande y la vida que le queda (de cuando nos lo dio a cuando caduca, con hoy marcado). Los que piden algo, primero.
+    var estadoKyc = function(x){ return estadoDocumento(x.caduca).estado; };   // el mismo que el aviso de Inicio (resumen.js)
+    var ORDEN_KYC = { pronto:0, vencido:1, ok:2, sin:3 };
+    var kycOrden = kyc.slice().sort(function(a, b){ return ORDEN_KYC[estadoKyc(a)] - ORDEN_KYC[estadoKyc(b)]; });
+    var piden = kyc.filter(function(x){ var e = estadoKyc(x); return e === 'pronto' || e === 'vencido'; }).length;
+    var piezaKyc = function(x){
+      var ed = estadoDocumento(x.caduca), e = ed.estado, n = ed.dias, dCad = diaLocal(x.caduca);
+      var grande = e === 'pronto' ? (n === 0 ? '<b class="txt">' + esc(t('caduca_hoy')) + '</b>'
+                                             : '<b>' + n + '<small>' + esc(t(n === 1 ? 'ent_dia' : 'ent_dias')) + '</small></b><span>' + esc(t('ent_para_caducar').replace('{f}', fechaLargaDe(dCad))) + '</span>')
+                 : e === 'ok' ? '<b>' + esc(t('pf_vigente')) + '</b><span>' + esc(t('ent_hasta').replace('{f}', fecha(dCad))) + '</span>'
+                 : e === 'vencido' ? '<b>' + esc(t('pf_caducado')) + '</b><span>' + esc(t('ent_desde').replace('{f}', fecha(dCad))) + '</span>'
+                 : '<b>' + esc(t('ent_no_caduca')) + '</b><span>' + esc(t('ent_sin_fecha')) + '</span>';
+      var sub = new Date(x.subido), cad = dCad, haySub = !!x.subido && !isNaN(sub);
+      var entregadoEl = haySub ? '<span>' + esc(t('ent_entregado').replace('{f}', fecha(x.subido))) + '</span>' : '';
+      var vida;
+      if (cad && haySub && cad > sub){
+        var pct = Math.max(0, Math.min(100, Math.round((Date.now() - sub) / (cad - sub) * 100)));
+        vida = '<div class="ent-vida"><div class="ent-barra"><i style="width:' + pct + '%"></i>' + (e !== 'vencido' ? '<em style="left:' + pct + '%"></em>' : '') + '</div>' +
+          '<div class="ent-pie">' + entregadoEl + '<span>' + esc(t(e === 'vencido' ? 'ent_caduco' : 'ent_caduca').replace('{f}', fecha(dCad))) + '</span></div></div>';
+      } else {
+        vida = entregadoEl ? '<div class="ent-pie">' + entregadoEl + '</div>' : '';
+      }
+      var acc = '<button type="button" class="ent-btn ver" data-kyc="' + esc(x.path) + '">' + trazoPerfil('ojo') + esc(t('ent_ver')) + '</button>' +
+        (e === 'pronto' || e === 'vencido' ? '<button type="button" class="ent-btn avisar" data-kyc-avisar>' + trazoPerfil('chat') + esc(t('ent_avisar')) + '</button>' : '');
+      return '<article class="ent-doc ' + e + '"><div class="ent-top"><span class="ent-art" aria-hidden="true">' + arteKyc(x.tipo) + '</span>' +
+        '<div class="ent-nom"><div class="t">' + esc(nombreKyc(x.tipo)) + '</div><div class="s">' + esc(t('ent_en_exp')) + '</div></div></div>' +
+        '<div class="ent-estado">' + grande + '</div>' + vida + '<div class="ent-acc">' + acc + '</div></article>';
+    };
+    var entregado = kyc.length ? '<section class="tarjeta" id="pfEntregado"><div class="ent-cab"><h3 class="pf-t">' + esc(t('d_entregado')) + '</h3>' +
+        (piden ? '<span class="ent-res aviso"><i></i>' + esc(piden === 1 ? t('ent_res_1') : t('ent_res_n').replace('{n}', piden)) + '</span>'
+               : '<span class="ent-res bien"><i></i>' + esc(t('ent_todo')) + '</span>') + '</div>' +
+        '<p class="ent-intro">' + esc(t('ent_intro')) + '</p>' +
+        '<div class="ent-docs">' + kycOrden.map(piezaKyc).join('') + '</div></section>' : '';
 
     var fila = function(ico, txt){ return '<span class="pf-pref">' + trazoPerfil(ico) + '<span>' + esc(txt) + '</span></span>'; };
     var ajustes = '<section class="tarjeta"><h3 class="pf-t pf-t-sola">' + esc(t('seguridad_avisos')) + '</h3>' +
@@ -4011,6 +4310,8 @@
     document.getElementById('tglEmail').addEventListener('click', function(){ togglePref('pref_email'); });
     document.getElementById('tglSms').addEventListener('click', function(){ togglePref('pref_sms'); });
     c.querySelectorAll('[data-kyc]').forEach(function(el){ el.addEventListener('click', function(){ abreFichero('kyc', el.getAttribute('data-kyc')); }); });
+    // «Avisar al equipo» abre la consulta ya en Documentación, como Obra abre la suya en Obra
+    c.querySelectorAll('[data-kyc-avisar]').forEach(function(el){ el.addEventListener('click', function(){ abrirNuevoTicket({ cat:'Documentación' }); }); });
   }
   function togglePref(cual){
     var prefs = DATOS.prefs = DATOS.prefs || { pref_email:true, pref_sms:false };

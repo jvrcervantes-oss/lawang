@@ -279,5 +279,37 @@ es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)
      R.resumenVista([{ tipo:'construccion', precio:10, cobrado:0 }, { tipo:'construccion', precio:5, moneda:'EUR', cobrado:0 }]).total, 15);
 }
 
+/* ── documentos entregados: un solo estado para Inicio, la campana y Mi perfil (revisor, 8-oct-2026) ── */
+{
+  const ED = R.estadoDocumento;
+  const noche = new Date(2026, 9, 8, 23, 0);   // 8-oct a las 23:00, hora local
+  es('a las 23:00, el que caduca dentro de 31 días sigue vigente para todos', ED('2026-11-08', noche), { estado: 'ok', dias: 31 });
+  es('…y el que caduca dentro de 30 ya es «pronto»', ED('2026-11-07', noche), { estado: 'pronto', dias: 30 });
+  es('el mismo día de la caducidad, a cualquier hora, es «pronto» con 0 días', ED('2026-10-08', new Date(2026, 9, 8, 21, 0)), { estado: 'pronto', dias: 0 });
+  es('el día siguiente ya está vencido', ED('2026-10-08', new Date(2026, 9, 9, 0, 5)), { estado: 'vencido', dias: -1 });
+  es('sin fecha de caducidad', ED(null, noche), { estado: 'sin', dias: null });
+  es('la fecha sin hora se lee como día local, no como medianoche UTC', [R.diaLocal('2026-10-21').getFullYear(), R.diaLocal('2026-10-21').getMonth(), R.diaLocal('2026-10-21').getDate()], [2026, 9, 21]);
+  es('el umbral es el que avisa Inicio', R.KYC_AVISO_DIAS, 30);
+}
+
+/* ── Soporte v2: de quién es el turno y en qué orden salen los tickets ── */
+{
+  const tk = (id, estado, ultimo, cuando) => ({ id, estado, actualizado_en: cuando,
+    mensajes: ultimo ? [{ de: 'cliente', texto: 'pregunta' }].concat(ultimo === 'equipo' ? [{ de: 'equipo', texto: 'respuesta' }] : []) : [] });
+  es('último mensaje del equipo → «Te hemos respondido»', R.turnoTicket(tk('a', 'abierto', 'equipo')), 'resp');
+  es('último mensaje del comprador → «Esperando al equipo»', R.turnoTicket(tk('a', 'abierto', 'cliente')), 'espera');
+  es('un ticket sin mensajes espera al equipo', R.turnoTicket(tk('a', 'abierto', null)), 'espera');
+  es('resuelto, aunque lo último sea del equipo', R.turnoTicket(tk('a', 'resuelto', 'equipo')), 'hecho');
+  const o = R.ordenTickets([
+    tk('espera-nuevo', 'abierto', 'cliente', '2026-10-08T10:00:00Z'),
+    tk('resp-viejo', 'abierto', 'equipo', '2026-10-01T10:00:00Z'),
+    tk('resuelto-viejo', 'resuelto', 'equipo', '2026-09-01T10:00:00Z'),
+    tk('resp-nuevo', 'abierto', 'equipo', '2026-10-07T10:00:00Z'),
+    tk('resuelto-nuevo', 'resuelto', 'equipo', '2026-09-20T10:00:00Z')]);
+  es('los abiertos con respuesta van primero, y dentro de cada grupo el más reciente', o.abiertos.map(x => x.id), ['resp-nuevo', 'resp-viejo', 'espera-nuevo']);
+  es('los resueltos, del más reciente al más viejo', o.resueltos.map(x => x.id), ['resuelto-nuevo', 'resuelto-viejo']);
+  es('sin tickets no falla', R.ordenTickets(undefined), { abiertos: [], resueltos: [] });
+}
+
 if(fallos){ console.error(`\n${fallos} fallo(s) en las cuentas del portal.`); process.exit(1); }
 console.log('resumen.test.js — OK');

@@ -278,9 +278,8 @@ function saldoSinAplicar(facturas, contratos){
    UTC: al oeste de Greenwich cae el día 13, y la factura salía vencida un día antes (revisor, 8-oct). */
 function finDelDia(s){
   if (!s) return NaN;
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s).slice(0, 10));
-  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
-  return isNaN(d) ? NaN : d.setHours(23, 59, 59, 999);
+  const d = diaLocal(s);   // la misma lectura del día que los documentos entregados (revisor, 8-oct-2026)
+  return d ? d.setHours(23, 59, 59, 999) : NaN;
 }
 
 /* `extra`: lo que le toca de `saldoSinAplicar`. `hoy` es un Date (o ms). Sin `aplicado` no se sabe nada: estado
@@ -316,6 +315,46 @@ function eligeProximo(cands, hoy){
     .map(x => x.c)[0] || null;
 }
 
+/* Un documento entregado (pasaporte, NPWP, KITAS…) y su estado, en UN solo sitio (revisor, 8-oct-2026). El aviso de
+   Inicio y la campana restaban milisegundos y redondeaban, y «Lo que nos entregaste» de Mi perfil contaba días de
+   calendario: a las 23:00 un documento salía en el aviso de Inicio y, al pulsar «Ver mi perfil», ahí decía «Vigente».
+   Ahora los tres leen esto. `caduca` es una columna date («2026-10-21»): se lee como día LOCAL y no como medianoche
+   UTC, que en un comprador de América daba el día anterior. Días de calendario de hoy a la caducidad; de 0 a
+   KYC_AVISO_DIAS es «pronto», por debajo de 0 «vencido». */
+const KYC_AVISO_DIAS = 30;
+function diaLocal(f){
+  if (f instanceof Date) return isNaN(f) ? null : new Date(f.getFullYear(), f.getMonth(), f.getDate());
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(f || '').slice(0, 10));   // con hora detrás, cuenta el día escrito
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  const d = new Date(f);
+  return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function estadoDocumento(caduca, hoy){
+  if (!caduca) return { estado: 'sin', dias: null };
+  const fin = diaLocal(caduca), h = diaLocal(hoy || new Date());
+  if (!fin || !h) return { estado: 'sin', dias: null };   // caduca_el es date: no llega ilegible; si llegara, no se inventa un plazo
+  const dias = Math.round((fin - h) / 86400000);          // round: un día con cambio de hora mide 23 o 25 horas
+  return { estado: dias < 0 ? 'vencido' : dias <= KYC_AVISO_DIAS ? 'pronto' : 'ok', dias: dias };
+}
+
+/* Soporte: de quién es el turno en un ticket y en qué orden salen (Soporte v2, 8-oct-2026). El turno lo dice el último
+   mensaje —portal_situacion los devuelve por creado_en—: del equipo → 'resp' («Te hemos respondido»), del comprador →
+   'espera'. Un ticket resuelto es 'hecho'. No hay marca de leído en la base: 'resp' dura hasta que el comprador contesta
+   o el equipo lo cierra. Abiertos con respuesta primero (es lo que hay que leer), luego por última actividad. */
+function turnoTicket(x){
+  if (!x || x.estado !== 'abierto') return 'hecho';
+  const ms = x.mensajes || [], u = ms[ms.length - 1];
+  return u && u.de === 'equipo' ? 'resp' : 'espera';
+}
+function ordenTickets(tickets){
+  const t = (tickets || []).slice();
+  const ms = x => { const v = new Date(x.actualizado_en).getTime(); return isNaN(v) ? 0 : v; };
+  const reciente = (a, b) => ms(b) - ms(a);
+  const abiertos = t.filter(x => x.estado === 'abierto').sort((a, b) =>
+    (turnoTicket(a) === 'resp' ? 0 : 1) - (turnoTicket(b) === 'resp' ? 0 : 1) || reciente(a, b));
+  return { abiertos: abiertos, resueltos: t.filter(x => x.estado !== 'abierto').sort(reciente) };
+}
+
 if (typeof module !== 'undefined' && module.exports)
   module.exports = { resumenPortal, resumenVista, estaSustituido, cuotaReserva, precioContrato, baseAvance, descHito, facturaDelHito, villasPortal, sustitutosDe,
-                     saldoSinAplicar, finDelDia, estadoFactura, eligeProximo };
+                     saldoSinAplicar, finDelDia, estadoFactura, eligeProximo, diaLocal, estadoDocumento, KYC_AVISO_DIAS, turnoTicket, ordenTickets };
