@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="3efb339f2c9d">
+<meta name="lw-version" content="adba4774ea4b">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -2574,7 +2574,7 @@
     caducan.forEach(function(k){
       var nom = t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo);
       tareas.push('<div class="ini-tarea">' + icoTarea + '<div class="ini-tarea-tx"><b>' +
-        esc(t('kyc_caduca_el').replace('{doc}', nom === String(nom).toUpperCase() ? nom : String(nom).charAt(0).toLowerCase() + String(nom).slice(1)).replace('{Doc}', nom).replace('{f}', fechaCorta(k.caduca))) + '</b></div>' +
+        esc(t('kyc_caduca_el').replace('{doc}', nom === String(nom).toUpperCase() ? nom : String(nom).charAt(0).toLowerCase() + String(nom).slice(1)).replace('{Doc}', nom).replace('{f}', fechaCorta(diaLocal(k.caduca)))) + '</b></div>' +
         cuentaAtras(diaLocal(k.caduca)) +
         '<button type="button" class="btn-borde" data-ir="perfil">' + esc(t('ver_perfil')) + '</button></div>');
     });

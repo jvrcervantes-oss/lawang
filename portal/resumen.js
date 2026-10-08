@@ -278,9 +278,8 @@ function saldoSinAplicar(facturas, contratos){
    UTC: al oeste de Greenwich cae el día 13, y la factura salía vencida un día antes (revisor, 8-oct). */
 function finDelDia(s){
   if (!s) return NaN;
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s).slice(0, 10));
-  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
-  return isNaN(d) ? NaN : d.setHours(23, 59, 59, 999);
+  const d = diaLocal(s);   // la misma lectura del día que los documentos entregados (revisor, 8-oct-2026)
+  return d ? d.setHours(23, 59, 59, 999) : NaN;
 }
 
 /* `extra`: lo que le toca de `saldoSinAplicar`. `hoy` es un Date (o ms). Sin `aplicado` no se sabe nada: estado
@@ -325,7 +324,7 @@ function eligeProximo(cands, hoy){
 const KYC_AVISO_DIAS = 30;
 function diaLocal(f){
   if (f instanceof Date) return isNaN(f) ? null : new Date(f.getFullYear(), f.getMonth(), f.getDate());
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(f || ''));
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(f || '').slice(0, 10));   // con hora detrás, cuenta el día escrito
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
   const d = new Date(f);
   return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
