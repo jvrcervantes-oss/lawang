@@ -81,8 +81,8 @@ begin
      and prosecdef and proconfig @> array['search_path=""'];
   r := r || pg_temp.l(n = 6, 'A5 las 6 RPC son SECURITY DEFINER con search_path vacio (' || n || ' de 6)');
   select count(*) into n from pg_proc where pronamespace = 'public'::regnamespace
-     and proname in ('_plantilla_texto', '_plantilla_analiza', '_plantilla_valida', 'plantilla_cuerpo_valida', 'plantilla_cuerpo_valida_semilla') and provolatile = 's';
-  r := r || pg_temp.l(n = 5, 'A6 las 5 funciones del validador pasaron de immutable a stable porque leen el catalogo de la transaccion (' || n || ' de 5)');
+     and proname in ('_plantilla_texto', '_plantilla_analiza', '_plantilla_valida', 'plantilla_cuerpo_valida', 'plantilla_cuerpo_valida_semilla') and provolatile in ('s', 'v');
+  r := r || pg_temp.l(n = 5, 'A6 las 5 funciones del validador ya no son immutable (stable en E8, volatile desde 20261010050000) porque leen el catalogo de la transaccion (' || n || ' de 5)');
   select count(*) into n from pg_trigger where tgrelid = 'public.contratos'::regclass and tgname = 'trg_contrato_campos_propios' and not tgisinternal;
   r := r || pg_temp.l(n = 1, 'A7 el trigger de valores esta en contratos');
   r := r || pg_temp.l(pg_get_triggerdef((select oid from pg_trigger where tgname = 'trg_contrato_campos_propios')) like '%BEFORE INSERT OR UPDATE OF datos%',
