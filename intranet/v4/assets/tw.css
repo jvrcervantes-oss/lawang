@@ -1607,6 +1607,10 @@ select {
   background-color: rgb(233 232 227 / var(--tw-bg-opacity, 1));
 }
 
+.bg-surface-container-high\/60 {
+  background-color: rgb(233 232 227 / 0.6);
+}
+
 .bg-surface-container-low {
   --tw-bg-opacity: 1;
   background-color: rgb(245 244 238 / var(--tw-bg-opacity, 1));
