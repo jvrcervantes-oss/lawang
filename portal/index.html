@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="7883569bc9c2">
+<meta name="lw-version" content="b7040c0679cd">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -332,7 +332,9 @@
      sombras, 600 como peso dominante, pastilla en lo pulsable y en las etiquetas.
      Los colores de significado (#3F5230 / #9E2F26 / ámbar) no cambian. */
   :root{ --rl:#fbf9f4; --va:#1b1c19; --pg-low:#f5f4ee; --pg-hi:#e9e8e3; --ink2:#44483f; --out:#66695f; --linea:#d9d8d0;
-         --fv:'Neue Kabel','Jost',system-ui,sans-serif; }
+         --fv:'Neue Kabel','Jost',system-ui,sans-serif;
+         /* fondo del avatar de iniciales (ficha y pie del menú): petróleo a verde, elegido por el owner el 8-oct-2026 */
+         --av-fondo:linear-gradient(135deg,#104C4F 0%,#2C5A43 55%,#485B37 100%); }
   body{ font-family:var(--fv); background:var(--rl); color:var(--va); }
   button, input, select, textarea{ font-family:inherit; }
   .cargando{ font-weight:500; }
@@ -360,7 +362,7 @@
   .navrow.on{ background:#485B37; color:#fff; font-weight:600; }
   .navrow-i svg{ opacity:1; }
   .sidebar .pie{ border-top:1px solid var(--pg-hi); }
-  .avatar{ background:var(--dl); color:#fff; }
+  .avatar{ background:var(--av-fondo); color:#fff; }
   .pie .nombre{ color:var(--va); font-weight:600; }
   .pie a{ color:var(--out); }
   .overlay-sidebar{ background:rgba(27,28,25,.28); }
@@ -718,7 +720,7 @@
   .pf-vacio{ margin:0; font-size:13.5px; color:var(--ink2); }
   .pf-ficha{ padding:22px 24px 0; overflow:hidden; }
   .pf-yo{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:22px; align-items:start; }
-  .pf-avatar{ width:104px; height:104px; border-radius:16px; background:var(--dl); color:#fff; display:grid; place-items:center;
+  .pf-avatar{ width:104px; height:104px; border-radius:16px; background:var(--av-fondo); color:#fff; display:grid; place-items:center;
               font-size:36px; font-weight:400; letter-spacing:.04em; }
   .pf-quien{ min-width:0; }
   .pf-quien h2{ margin:2px 0 0; font-size:28px; font-weight:400; letter-spacing:-.01em; line-height:1.1; overflow-wrap:anywhere; }
@@ -1456,6 +1458,17 @@
   var esc = function(v){ return String(v == null ? '' : v)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
 
+  // Iniciales del avatar (ficha y pie del menú): primera y última palabra, saltando partículas.
+  // Con las dos primeras, «Ni Ketut Ayu Sari» salía «NK»: Ni/I son partículas balinesas, como de/van.
+  var PARTICULAS = ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'];
+  function inicialesDe(nombre){
+    var p = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+    var q = p.filter(function(w){ return PARTICULAS.indexOf(w.toLowerCase()) < 0; });
+    if (q.length) p = q;
+    if (!p.length) return '·';
+    return (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase();
+  }
+
   function toast(msg){
     var el = document.getElementById('toast');
     el.textContent = msg; el.style.opacity = '1';
@@ -2077,7 +2090,7 @@
         DATOS = r.data || {};
         var ini = document.getElementById('avatarIniciales');
         var nombre = (DATOS.nombre || '').trim();
-        ini.textContent = nombre ? nombre.split(/\s+/).map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase() : '·';
+        ini.textContent = inicialesDe(nombre);
         document.getElementById('quienNombre').textContent = nombre || (DATOS.email || '');
         muestra('vApp');
         var r0 = leeHash();
@@ -3524,7 +3537,7 @@
     var contratoPorId = {};
     (d.contratos || []).forEach(function(x){ contratoPorId[x.id] = x; });
     var nomFicha = (d.nombre || '').trim();
-    var iniciales = nomFicha ? nomFicha.split(/\s+/).map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase() : '·';
+    var iniciales = inicialesDe(nomFicha);
 
     // ficha: datos y cifras (las mismas que el pie del bloque de pago de Inicio)
     // con contratos en dos monedas no se suman: una línea por moneda, igual que Inicio (resumenVista, resumen.js)
