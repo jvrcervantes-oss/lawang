@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="4087b625c35b">
+<meta name="lw-version" content="38d2ba693610">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1432,7 +1432,6 @@
      Todo sale del propio portal: la portada que se acerca despacio (ob-acerca, Obra), el sello «Carpeta del proyecto»
      (.ob-sello), las cifras grandes en petróleo (Inicio), la hoja con la esquina doblada (.fa-papel, Facturas), la flecha
      verde en círculo (.ini-ir) y los botones de siempre. Radio 20 como las tarjetas de Facturas e Inicio; sin sombras. */
-  .ob-cab .ini-filtro small{ font-weight:500; opacity:.7; margin-left:6px; }
   .dc-heroe{ position:relative; border-radius:20px; overflow:hidden; min-height:340px; display:flex; flex-direction:column; justify-content:flex-end; background:var(--dl); margin-bottom:18px; }
   .dc-heroe-img{ position:absolute; inset:0; }
   .dc-heroe-img img{ width:100%; height:100%; object-fit:cover; display:block; animation:ob-acerca 2.4s var(--lw-ease) both; }
@@ -3712,7 +3711,7 @@
     if (!docs.length){ cargaPortadas(c); return; }
 
     var cajaLista = document.getElementById('docLista'), visibles = docs;
-    function pintaLista(){
+    function pintaLista(primera){
       var q = DOC_FILTRO.q.trim().toLowerCase();
       visibles = docs.filter(function(x){
         return (!DOC_FILTRO.cat || catClave(x.categoria) === DOC_FILTRO.cat) &&
@@ -3730,10 +3729,10 @@
         if (!x.url && x.path) return '<button type="button" class="dc-doc" data-doc="' + esc(x.id) + '">' + dentro + ir + '</button>';
         return '<div class="dc-doc dc-sin">' + dentro + '</span></div>';   // enlace que no es http(s): se ve, no se abre
       }).join('') + '</div>';
-      cargaPortadas(cajaLista);
+      if (!primera) cargaPortadas(cajaLista);   // en la primera pasada las firma una sola llamada, con la cabecera
     }
-    pintaLista();
-    cargaPortadas(c.querySelector('.dc-heroe'));
+    pintaLista(true);
+    cargaPortadas(c);
     var buscar = document.getElementById('docBuscar');
     if (buscar){ buscar.value = DOC_FILTRO.q; buscar.addEventListener('input', function(ev){ DOC_FILTRO.q = ev.target.value; pintaLista(); }); }
     c.querySelectorAll('[data-dc-cat]').forEach(function(b){
