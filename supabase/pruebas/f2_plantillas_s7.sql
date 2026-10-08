@@ -20,10 +20,12 @@ end $f$;
 create or replace function pg_temp.err(t text) returns text language sql immutable as $f$ select case when t like 'ERR%' then substr(t, 4, 5) end $f$;
 
 create or replace function pg_temp.f2(p_cuerpo text, p_esq text, p_emp text, p_slug text, p_uid uuid, p_email text) returns text language plpgsql as $f$
-begin  -- F2 directa (sin pasar por S3): _plantilla_exige_bloques como postgres con el JWT de la persona
+begin  -- F2 directa (sin pasar por S3): _plantilla_exige_bloques como postgres con el JWT de la persona.
+  -- 8-oct-2026 (owner): tocar un bloque fijo ya NO se rechaza; se DETECTA (_plantilla_bloques_tocados) para avisar y registrar. 'TOCA' = pasa pero toca un bloque fijo; 'OK' = no toca ninguno;
+  -- 'ERR42501' = sigue rechazado (solo-global).
   perform set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated', 'email', p_email)::text, true);
   perform public._plantilla_exige_bloques(p_cuerpo, p_esq, p_emp, p_slug);
-  return 'OK';
+  return case when jsonb_array_length(public._plantilla_bloques_tocados(p_cuerpo, p_esq, p_slug)) > 0 then 'TOCA' else 'OK' end;
 exception when others then return 'ERR' || sqlstate;
 end $f$;
 
@@ -38,8 +40,8 @@ declare
   r text := ''; v text; n bigint; k int; fallos int; j jsonb; md_antes text; md_despues text; n_ver_antes bigint; n_ver_despues bigint;
   jv _t7; ae_L _t7; se_L _t7; ae_S _t7; se_S _t7; ctl_L _t7; adm_G _t7;
   s text; emp text; u _t7; cl text; cl2 text; pL uuid; id1 uuid; id2 uuid; id3 uuid; body text; fix text;
-  fn7 text[] := array['plantilla_contrato_versiones_lista(text,text)', 'plantilla_contrato_cuerpo_version(uuid,text)', 'plantilla_contrato_guarda_borrador(text,text,text,text)',
-                      'plantilla_contrato_activa(uuid,text,boolean)', 'plantilla_contrato_descarta_borrador(uuid)', 'plantilla_contrato_edicion(text,text)', 'plantilla_contrato_revisa(text,text,text)'];
+  fn7 text[] := array['plantilla_contrato_versiones_lista(text,text)', 'plantilla_contrato_cuerpo_version(uuid,text)', 'plantilla_contrato_guarda_borrador(text,text,text,text,text,boolean)',
+                      'plantilla_contrato_activa(uuid,text,boolean)', 'plantilla_contrato_descarta_borrador(uuid)', 'plantilla_contrato_edicion(text,text,text)', 'plantilla_contrato_revisa(text,text,text,text)'];
   f text;
 begin
   select * into jv from _t7 where et = 'jv'; select * into ae_L from _t7 where et = 'ae_L'; select * into se_L from _t7 where et = 'se_L'; select * into ae_S from _t7 where et = 'ae_S';
@@ -171,7 +173,7 @@ begin
   r := r || pg_temp.l(j is not null and not (j ->> 'ok')::boolean and j::text like '%esqueleto%', 'E6 cambiar la estructura (anadir una tabla) se rechaza: el esqueleto no se toca (' || left(coalesce(j -> 'errores' ->> 0, v), 80) || ')');
   v := pg_temp.val(ae_L.uid, ae_L.em, format('select public.plantilla_contrato_revisa(''lawang'', ''commercial_offer'', %L)::text', replace(body, 'NPWP {{prom_npwp}}', 'NPWP de {{prom_npwp}}')));
   j := case when v like 'ERR%' then null else v::jsonb end;
-  r := r || pg_temp.l(j is not null and not (j ->> 'ok')::boolean and j::text like '%no edita sola%', 'E7 tocar un bloque fijo (partes/NPWP) se rechaza para un admin de empresa (' || left(coalesce(j -> 'errores' ->> 0, v), 60) || ')');
+  r := r || pg_temp.l(j is not null and (j ->> 'ok')::boolean and (j ->> 'sensibles')::boolean and jsonb_array_length(j -> 'bloques_tocados') >= 1 and j -> 'bloques_tocados' -> 0 ->> 'motivo' is not null and j -> 'bloques_tocados' -> 0 ->> 'antes' like '%NPWP%', 'E7 tocar un bloque fijo (partes/NPWP) YA NO se rechaza para un admin de empresa: el ensayo pasa y lista el bloque tocado con su motivo (' || left(coalesce(j -> 'bloques_tocados' -> 0 ->> 'motivo', v), 60) || ')');
   v := pg_temp.val(jv.uid, jv.em, format('select public.plantilla_contrato_revisa(''lawang'', ''commercial_offer'', %L)::text', replace(body, 'NPWP {{prom_npwp}}', 'NPWP de {{prom_npwp}}')));
   j := case when v like 'ERR%' then null else v::jsonb end;
   r := r || pg_temp.l(j is not null and (j ->> 'ok')::boolean, 'E8 ... y el super GLOBAL si puede tocarlo');
@@ -289,32 +291,32 @@ begin
   r := r || pg_temp.l(pg_temp.f2(fix, public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em) = 'OK', 'I0 control: el esqueleto limpio de notas pasa F2 contra si mismo para el admin');
   body := fix || '<div>Propiedad Hak Milik via nominee</div><span>escrow y BPHTB</span><p>Hak Milik</p>';
   v := pg_temp.f2(body, public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em);
-  r := r || pg_temp.l(v = 'ERR42501', 'I1 tenencia/escrow en div, span y p: rechazado 42501 (' || v || ')');
+  r := r || pg_temp.l(v = 'TOCA', 'I1 tenencia/escrow en div, span y p: detectado como parte sensible (' || v || ')');
   v := pg_temp.f2(fix || '<div>Propiedad Hak Milik via nominee</div>', public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em);
-  r := r || pg_temp.l(v = 'ERR42501', 'I1b solo el div (antes invisible para F2): 42501 (' || v || ')');
+  r := r || pg_temp.l(v = 'TOCA', 'I1b solo el div (antes invisible para F2): detectado (' || v || ')');
   v := pg_temp.f2(fix || '<span>escrow y BPHTB</span>', public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em);
-  r := r || pg_temp.l(v = 'ERR42501', 'I1c solo el span: 42501 (' || v || ')');
+  r := r || pg_temp.l(v = 'TOCA', 'I1c solo el span: detectado (' || v || ')');
   v := pg_temp.f2(fix || '<div>Hak <span>Milik</span> con <strong>nomi</strong>nee</div>', public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em);
-  r := r || pg_temp.l(v = 'ERR42501', 'I1d partido por etiquetas en linea (Hak <span>Milik</span>): 42501 (' || v || ')');
+  r := r || pg_temp.l(v = 'TOCA', 'I1d partido por etiquetas en linea (Hak <span>Milik</span>): detectado (' || v || ')');
   v := pg_temp.f2(fix || 'Hak&nbsp;Milik suelto', public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em);
-  r := r || pg_temp.l(v = 'ERR42501', 'I1e texto suelto con &nbsp;: 42501 (' || v || ')');
+  r := r || pg_temp.l(v = 'TOCA', 'I1e texto suelto con &nbsp;: detectado (' || v || ')');
   v := pg_temp.f2(fix || '<p>El comprador otorga poder notarial irrevocable al vendedor</p>', public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em);
-  r := r || pg_temp.l(v = 'ERR42501', 'I2 poder notarial irrevocable: 42501 (' || v || ')');
+  r := r || pg_temp.l(v = 'TOCA', 'I2 poder notarial irrevocable: detectado (' || v || ')');
   foreach f in array array['<p>kuasa mutlak</p>', '<p>power of attorney</p>', '<p>un apoderado</p>', '<p>sociedad fiduciaria</p>', '<p>titular registral</p>', '<p>a nombre de tercero</p>', '<p>atas nama pihak lain</p>'] loop
     v := pg_temp.f2(fix || f, public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em);
-    r := r || pg_temp.l(v = 'ERR42501', 'I2b ' || f || ' -> ' || v);
+    r := r || pg_temp.l(v = 'TOCA', 'I2b ' || f || ' -> ' || v);
   end loop;
   foreach f in array array['<p>El plazo de la reserva es de 90 dias</p>', '<span>reservation period</span>', '<div>masa reservasi</div>', '<p>plazo de reserva</p>'] loop
     v := pg_temp.f2(fix || f, public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em);
-    r := r || pg_temp.l(v = 'ERR42501', 'I3 plazo de reserva ' || f || ' -> ' || v);
+    r := r || pg_temp.l(v = 'TOCA', 'I3 plazo de reserva ' || f || ' -> ' || v);
   end loop;
   v := pg_temp.f2(fix || '<div>Texto libre sin ningun tema reservado</div>', public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', ae_L.uid, ae_L.em);
   r := r || pg_temp.l(v = 'OK', 'I4 un div de texto libre no se confunde con un bloque fijo (' || v || ')');
   v := pg_temp.f2(body, public._plantilla_esqueleto('lawang', 'commercial_offer'), 'lawang', 'commercial_offer', jv.uid, jv.em);
-  r := r || pg_temp.l(v = 'OK', 'I5 el super GLOBAL si puede (' || v || ')');
-  v := pg_temp.val(ae_L.uid, ae_L.em, format('select public.plantilla_contrato_revisa(''lawang'', ''commercial_offer'', %L)::text', replace(fix, 'acabados de alta calidad', 'acabados de alta calidad con un apoderado')));
+  r := r || pg_temp.l(v = 'TOCA', 'I5 el super GLOBAL pasa el validador aunque toque bloques fijos (' || v || ')');
+  v := pg_temp.val(ae_L.uid, ae_L.em, format('select public.plantilla_contrato_revisa(''lawang'', ''commercial_offer'', %L)::text', fix || '<p>Se nombra un apoderado</p>'));
   j := case when v like 'ERR%' then null else v::jsonb end;
-  r := r || pg_temp.l(j is not null and not (j ->> 'ok')::boolean and j::text like '%no edita sola%', 'I6 de punta a punta (revisa): una palabra de poderes en un parrafo libre se rechaza (' || left(coalesce(j -> 'errores' ->> 0, v), 50) || ')');
+  r := r || pg_temp.l(j is not null and (j ->> 'ok')::boolean and (j ->> 'sensibles')::boolean, 'I6 de punta a punta (revisa): una palabra de poderes en un parrafo libre pasa y se marca como parte sensible (' || left(coalesce(j -> 'bloques_tocados' -> 0 ->> 'motivo', v), 50) || ')');
   -- alcance entre empresas: id1 = la adenda de Lawang que el global activo en G23
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_cuerpo_version(%L)::text', id1));
   r := r || pg_temp.l(pg_temp.err(v) = '42501', 'I7 un admin de Sandal Woods no lee por id un texto ACTIVO de Lawang (' || left(v, 40) || ')');

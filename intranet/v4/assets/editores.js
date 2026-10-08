@@ -8166,7 +8166,7 @@
             valor: ((typeof LW_HERR_POR_ROL === 'object' && LW_HERR_POR_ROL[rolInicial]) || []).filter(puedoDarAlta),
             ayuda: 'Preselección según el rol elegido arriba — editable. Solo aparecen las herramientas que tienes tú.' },
           { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck', opciones: tiposCatAlta,
-            valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol — vacío marcado del todo equivale a "todos".' }
+            valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol — vacío marcado del todo equivale a "todos". Los contratos propios de una empresa se conceden después, en los permisos de la persona.' }
         ], 'Crear usuario', function (v) {
           var email = (v.email || '').trim().toLowerCase();
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: { message: 'email no válido' } };
@@ -8279,7 +8279,10 @@
           /* Paso 3 de «dos empresas» (7-oct-2026): solo el PROPIETARIO da nivel de empresa y empresas (la base lo exige
              en usuario_da_alcance y en los triggers de usuarios; esto solo decide si se ofrece el campo). */
           Promise.resolve(sb.rpc('mi_alcance')).then(function (r) { return (r && r.data) || null; }, function () { return null; }),
-          Promise.resolve(sb.from('empresas').select('clave,nombre').eq('activa', true).order('orden')).then(function (r) { return (r && r.data) || []; }, function () { return []; })
+          Promise.resolve(sb.from('empresas').select('clave,nombre').eq('activa', true).order('orden')).then(function (r) { return (r && r.data) || []; }, function () { return []; }),
+          /* Contratos PROPIOS de las empresas (E9, 8-oct-2026): su permiso es el slug en `usuarios.tipos_contrato`, igual que el de los 17. Sin
+             concederlo, la base rechaza al agente con 42501 al emitirlo. Se piden cada vez (un propio recién activado sale sin recargar). */
+          (window.LW_V4 && window.LW_V4.cargaTiposPropios) ? window.LW_V4.cargaTiposPropios(sb, true) : Promise.resolve([])
         ]).then(function (rs) {
           var ops;
           if (typeof LW_PERMISOS !== 'undefined') {
@@ -8314,6 +8317,20 @@
               });
             }
           }
+          /* Contratos propios: se suman a las opciones (los de las empresas de la persona si tiene empresas marcadas; todos los de MI alcance si no).
+             Y lo que la persona YA tiene y hoy no se ofrece (propio desactivado, de otra empresa, lectura que falló) se sigue enseñando MARCADO: la
+             casilla guarda el array entero, y no enseñarlo se lo quitaría en silencio (mismo criterio que «— desactivado» de arriba). */
+          var propios = (rs[5] || []).filter(function (f) { return !(u.empresas || []).length || u.empresas.indexOf(f.empresa) !== -1; });
+          var variasEmp = (rs[4] || []).length > 1;   // (empresasCat se declara más abajo con var: aquí aún no vale)
+          propios.forEach(function (f) {
+            if (tiposCat.some(function (o) { return o[0] === f.slug; })) return;
+            tiposCat.push([f.slug, f.nombre + (variasEmp && f.empresaNombre ? ' · ' + f.empresaNombre : '') + ' (contrato propio)']);
+          });
+          (u.tipos_contrato || []).forEach(function (k) {
+            if (tiposCat.some(function (o) { return o[0] === k; })) return;
+            var f = (rs[5] || []).filter(function (x) { return x.slug === k; })[0];
+            tiposCat.push([k, (f ? f.nombre : k) + ' — no disponible ahora']);
+          });
           /* El ROL solo lo cambia un super_admin (viva: `fRol` disabled salvo
              soySuper). Un admin lo ve, no lo toca — y no viaja en el patch. */
           var miAlc = rs[3], empresasCat = rs[4] || [];
@@ -8367,7 +8384,8 @@
                  coherente con su etiqueta; vaciar el campo se sigue pudiendo
                  hacer a mano, casilla a casilla, con el riesgo a la vista. */
               atajos: [{ texto: 'Marcar todos', valor: true }],
-              ayuda: 'Vacío = TODOS (al revés que Proyectos, arriba): no marcar nada aquí no bloquea, lo abre todo.' }
+              ayuda: 'Vacío = TODOS (al revés que Proyectos, arriba): no marcar nada aquí no bloquea, lo abre todo.'
+                + (propios.length ? ' Los contratos propios de una empresa (marcados «contrato propio») solo los puede conceder quien ya los tiene.' : '') }
           );
           modal('Permisos de ' + (u.nombre || u.email), campos, 'Guardar permisos', function (v) {
             var patch = {

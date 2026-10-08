@@ -115,6 +115,7 @@ begin
   select c.tipo into huerfano
     from public.contratos c
    where c.tipo is not null
+     and not exists (select 1 from public.plantillas_contrato t where t.slug = c.tipo and t.empresa is not null)   -- un tipo propio (E9) no es huerfano
      and not (c.tipo = any (array(select tipos[k][1] from generate_subscripts(tipos,1) k)))
    limit 1;
   if huerfano is not null then
@@ -127,6 +128,7 @@ begin
   for i in 1..n loop
     execute format('create sequence if not exists %s', tipos[i][3]);
   end loop;
+  create sequence if not exists public.contratos_cx_seq;   -- serie CX comun de los contratos propios (E9)
 
   -- ── 3. La restricción CHECK, generada de la lista ────────────────────────
   for i in 1..n loop
@@ -134,13 +136,23 @@ begin
                  || quote_literal(tipos[i][1]) || '::text';
   end loop;
 
+  -- E9 (8-oct-2026): ademas de los de esta lista, vale un tipo con forma de slug; que sea
+  -- el slug de un contrato PROPIO de la empresa del contrato lo decide el trigger
+  -- `trg_00_contrato_tipo_valido` (migracion 20261010040000), que lleva esta misma lista.
   if exists (select 1 from pg_constraint
               where conrelid = 'public.contratos'::regclass
                 and conname  = 'contratos_tipo_check') then
     execute 'alter table public.contratos drop constraint contratos_tipo_check';
   end if;
   execute 'alter table public.contratos add constraint contratos_tipo_check '
-          || 'check ((tipo = any (array[' || lista_sql || '])))';
+          || 'check ((tipo = any (array[' || lista_sql || ']::text[]) or tipo ~ ''^[a-z][a-z0-9_]{2,59}$''))';
+  execute 'create or replace function public._trg_contrato_tipo_valido() returns trigger language plpgsql security definer set search_path = '''' as $f$ '
+       || 'declare v_emp text; begin '
+       || 'if new.tipo = any (array[' || lista_sql || ']::text[]) then return new; end if; '
+       || 'v_emp := case when new.proyecto_id is null then null else public.empresa_de_proyecto(new.proyecto_id) end; '
+       || 'if v_emp is null or not exists (select 1 from public.plantillas_contrato t where t.slug = new.tipo and t.empresa = v_emp) then '
+       || 'raise exception ''Tipo de contrato no valido para esta empresa: %'', new.tipo using errcode = ''23514''; end if; '
+       || 'return new; end $f$';
 
   -- ── 4. La numeración, generada de la MISMA lista ─────────────────────────
   -- `if new.numero is not null then return new` se conserva tal cual: es lo que
@@ -155,7 +167,18 @@ begin
   cuerpo := E'declare\n  n bigint;\n  prefix text;\n  seqname text;\nbegin\n'
          || E'  if new.numero is not null then\n    return new;\n  end if;\n'
          || E'  case new.tipo\n' || casos_sql
-         || E'    else raise exception ''Tipo de contrato sin numeracion definida: %'', new.tipo;\n'
+         || E'    else
+'
+         || E'      if exists (select 1 from public.plantillas_contrato t where t.slug = new.tipo and t.empresa is not null) then
+'
+         || E'        prefix := ''CX''; seqname := ''public.contratos_cx_seq'';
+'
+         || E'      else
+'
+         || E'        raise exception ''Tipo de contrato sin numeracion definida: %'', new.tipo;
+'
+         || E'      end if;
+'
          || E'  end case;\n  n := nextval(seqname);\n'
          || E'  new.numero := prefix || lpad(n::text, 5, ''0'');\n  return new;\nend;';
 

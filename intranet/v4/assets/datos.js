@@ -159,7 +159,35 @@
   window.LW_V4.estimaEUR = estimaEUR;
   window.LW_V4.TASA_IDR_EUR_ESTIMADA = TASA_IDR_EUR_ESTIMADA;
   window.LW_V4.TASA_IDR_EUR_ESTIMADA_FECHA = TASA_IDR_EUR_ESTIMADA_FECHA;
-  function tipoC(t) { return (typeof lwTipoContrato !== 'undefined') ? lwTipoContrato(t) : t; }
+  /* Contratos PROPIOS de una empresa (E9, 8-oct-2026): su `contratos.tipo` y su permiso en `usuarios.tipos_contrato` son el slug del propio contrato,
+     que no está en el vocabulario fijo de los 17 (vocabulario.js, que no se toca). Los nombres se piden a la base una vez (por empresa del alcance de quien
+     mira) y se guardan en window.LW_V4.tiposPropios { slug: nombre }; tipoC los usa antes de caer al slug crudo. */
+  window.LW_V4 = window.LW_V4 || {};
+  window.LW_V4.tiposPropios = window.LW_V4.tiposPropios || {};
+  var tiposPropiosPromesa = null;
+  function cargaTiposPropios(sb, fresco) {
+    if (tiposPropiosPromesa && !fresco) return tiposPropiosPromesa;   // `fresco`: el formulario de permisos vuelve a pedirlos (un contrato propio recién activado sale sin recargar)
+    tiposPropiosPromesa = Promise.resolve(sb.from('empresas').select('clave,nombre').eq('activa', true).order('orden')).then(function (r) {
+      var emps = (r && r.data) || [];
+      return Promise.all(emps.map(function (e) {
+        return Promise.resolve(sb.rpc('plantilla_contratos_propios_activos', { p_empresa: e.clave })).then(function (x) {
+          return ((x && !x.error && x.data) || []).map(function (f) { return { slug: f.slug, nombre: f.nombre, empresa: e.clave, empresaNombre: e.nombre }; });
+        }, function () { return []; /* MUDO A PROPOSITO: una empresa fuera del alcance contesta 42501; se salta y el resto sigue */ });
+      }));
+    }, function () { return []; /* MUDO A PROPOSITO: sin la lista de empresas no hay contratos propios que ofrecer; los 17 de siempre no dependen de ella */ })
+      .then(function (listas) {
+        var todos = [].concat.apply([], listas);
+        todos.forEach(function (f) { window.LW_V4.tiposPropios[f.slug] = f.nombre; });
+        return todos;
+      });
+    return tiposPropiosPromesa;
+  }
+  window.LW_V4.cargaTiposPropios = cargaTiposPropios;
+  function tipoC(t) {
+    var base = (typeof lwTipoContrato !== 'undefined') ? lwTipoContrato(t) : t;
+    var propio = window.LW_V4.tiposPropios[t];
+    return (propio && base === t) ? propio : base;   // solo si el vocabulario fijo no lo conoce (devuelve el slug tal cual)
+  }
   /* «Hoy» en la fecha LOCAL del navegador (23-sep-2026, revisión previa #57 de
      Datos): `toISOString()` da la fecha UTC y en Bali (UTC+8) entre las 00:00 y
      las 08:00 la cuenta de días iba uno por detrás — una reserva que vence hoy
@@ -6451,7 +6479,8 @@
            bajo «ver mas», sin segunda consulta. */
         q(sb.from('notificaciones').select('titulo,detalle,enlace,creado_en').order('creado_en', { ascending: false }).limit(30), 'auditoría'),
         // nombres de proyecto para la ficha: `usuarios.proyectos` guarda ids
-        q(sb.from('proyectos').select('id,nombre'), 'proyectos')
+        q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
+        cargaTiposPropios(sb)   // nombres de los contratos propios de las empresas (E9): la ficha los enseña en vez del slug crudo
       ]).then(function (r) {
         var us = r[0], ns = r[1] || [], proys = r[2] || [];
         if (!us) return;
@@ -10295,6 +10324,7 @@
       window.LW_V4.ficha = aut.ficha || null;
       window.LW_V4.fichaContrato = function (c, opts) { fichaContrato(aut.sb, c, opts); };
       window.LW_V4.fichaFactura = function (f) { fichaFactura(aut.sb, f); };
+      cargaTiposPropios(aut.sb);   // E9: los nombres de los contratos propios, para que tipoC no enseñe el slug crudo en listados (no bloquea la pantalla)
 
       /* La cabecera de Home traia «3 de Septiembre de 2026» escrito a mano: la
          fecha de la captura de Stitch. Una fecha congelada no envejece con un

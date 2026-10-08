@@ -44,14 +44,20 @@
   var INVISIBLES = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f­​-‏‪-‮⁠⁦-⁩﻿]/;
 
   /* Avisos de lo que se acaba de escribir en un trozo (el servidor dice la última palabra). `original` = el texto del trozo antes de tocarlo. */
-  TC.avisosTrozo = function (nuevo, original) {
+  /* Los marcadores que el trozo tenía y ya no tiene (con multiplicidad). La pantalla los nombra en llano; la base lo comprueba igualmente. */
+  TC.faltanMarcadores = function (nuevo, original) {
+    var antes = TC.marcadores(original), ahora = TC.marcadores(nuevo).slice(), faltan = [];
+    antes.forEach(function (m) { var i = ahora.indexOf(m); if (i === -1) faltan.push(m.slice(2, -2)); else ahora.splice(i, 1); });
+    return faltan;
+  };
+  /* `sinFaltan` = true: no incluir el aviso de marcadores perdidos (la pantalla lo redacta ella con las etiquetas en llano, usando faltanMarcadores). */
+  TC.avisosTrozo = function (nuevo, original, sinFaltan) {
     var av = [];
     if (nuevo.indexOf('<') !== -1) av.push('No se puede escribir el signo «<»: la estructura del documento no se toca desde aquí.');
     if (INVISIBLES.test(nuevo)) av.push('Hay un carácter invisible o de control (ancho cero, dirección del texto…): no se admite.');
     var sinMarc = nuevo.replace(MARC_RE, '');
     if (/[{}]/.test(sinMarc)) av.push('Una llave suelta: los marcadores se escriben {{asi}}, en minúsculas, sin espacios.');
-    var antes = TC.marcadores(original), ahora = TC.marcadores(nuevo).slice(), faltan = [];
-    antes.forEach(function (m) { var i = ahora.indexOf(m); if (i === -1) faltan.push(m); else ahora.splice(i, 1); });
+    var faltan = sinFaltan ? [] : TC.faltanMarcadores(nuevo, original).map(function (k) { return '{{' + k + '}}'; });
     if (faltan.length) av.push('Faltan marcadores que este trozo tenía: ' + faltan.join(' ') + '. Los marcadores no se quitan ni se cambian: los rellena el contrato.');
     return av;
   };
@@ -103,11 +109,12 @@
   /* Los bloques que una empresa no cambia sola, localizados en el documento. `lista` = lo que dice la base (plantilla_contrato_edicion.bloques_fijos): textos
      normalizados con el prefijo E| (un elemento), S| (una sección entera desde su <h2>) o M| (una región marcada por Legal). Aquí solo se SITÚAN esos textos en
      el documento para pintarlos en solo lectura; que se respeten lo impone la base al guardar. Devuelve { spans: [[ini,fin],…], sinLocalizar: n }. */
-  TC.situaBloquesFijos = function (doc, lista) {
-    var set = {}, total = 0, spans = [], hallados = {};
-    (lista || []).forEach(function (x) { if (!set[x]) total++; set[x] = true; });
+  /* `motivos` (opcional) = plantilla_contrato_edicion.bloques_fijos_motivos, en el MISMO orden que `lista`: [{ clase, motivo }]. El motivo de cada bloque lo da la base. */
+  TC.situaBloquesFijos = function (doc, lista, motivos) {
+    var set = {}, total = 0, spans = [], hallados = {}, mot = {};
+    (lista || []).forEach(function (x, i) { if (!set[x]) total++; set[x] = true; if (motivos && motivos[i] && motivos[i].motivo) mot[x] = String(motivos[i].motivo); });
     if (!total) return { spans: [], sinLocalizar: 0 };
-    function toca(clave, a, b) { if (set[clave]) { spans.push([a, b]); hallados[clave] = true; } }
+    function toca(clave, a, b) { if (set[clave]) { spans.push([a, b, clave.charAt(0) === 'M' ? clave.split('|')[1] : clave.charAt(0), mot[clave] || null]); hallados[clave] = true; } }
     ['p', 'li', 'td', 'th', 'h1', 'h2', 'h3', 'h4'].forEach(function (tg) {
       var re = new RegExp('<' + tg + '(?: [^>]*)?>(?:(?!</' + tg + '>)[\\s\\S])*</' + tg + '>', 'g'), m;
       while ((m = re.exec(doc)) !== null) toca('E|' + TC.ws(m[0]), m.index, m.index + m[0].length);
@@ -122,7 +129,11 @@
   TC.marcaBloqueados = function (trozos, spans, todo) {
     var n = 0;
     trozos.forEach(function (t) {
-      t.bloqueado = !!todo || spans.some(function (s) { return t.ini >= s[0] && t.fin <= s[1]; });
+      var dentro = spans.filter(function (s) { return t.ini >= s[0] && t.fin <= s[1]; });
+      t.bloqueado = !!todo || dentro.length > 0;
+      /* De qué clase es el candado: el nombre de la región marcada por Legal (M), o E (un elemento) / S (una sección entera). Sirve para decir el motivo. */
+      t.fijo = dentro.length ? (dentro.filter(function (s) { return s[2].length > 1; })[0] || dentro[0])[2] : null;
+      t.motivo = dentro.length ? ((dentro.filter(function (s) { return s[3]; })[0] || [])[3] || null) : null;   // el motivo que dio la base (si lo dio)
       if (t.bloqueado && t.editable) n++;
     });
     return n;
@@ -137,6 +148,139 @@
       cur = t.fin;
     });
     return out + doc.slice(cur);
+  };
+
+  /* ── secciones: el índice del documento ───────────────────────────────────────────────────────────────────────────────────────── */
+  /* Cada <h2> abre una cláusula; lo que hay antes del primero es el encabezado (sección 0). Marca `sec` en cada trozo (y `titulo` si es parte del propio título)
+     y devuelve los títulos por sección e idioma. Es solo lectura del documento: construye() no sabe nada de esto. */
+  TC.secciones = function (doc, trozos) {
+    var h2 = [], re = /<h2(?:\s[^>]*)?>[\s\S]*?<\/h2>/gi, m;
+    while ((m = re.exec(doc)) !== null) h2.push([m.index, m.index + m[0].length]);
+    var titulos = [{}];
+    h2.forEach(function () { titulos.push({}); });
+    trozos.forEach(function (t) {
+      var k = 0;
+      for (var j = 0; j < h2.length; j++) { if (h2[j][0] <= t.ini) k = j + 1; else break; }
+      t.sec = k; t.titulo = false;
+      if (k > 0 && t.ini < h2[k - 1][1]) {
+        var l = t.lang || 'general';
+        titulos[k][l] = (titulos[k][l] ? titulos[k][l] + ' ' : '') + t.texto;
+        t.titulo = true;
+      }
+    });
+    return { n: h2.length + 1, titulos: titulos };
+  };
+
+  /* Un texto partido en trozos de texto y marcadores, para pintarlo sin tocar HTML: [{ m: false, v: 'texto' } | { m: true, k: 'fecha_firma' }]. */
+  TC.segmentos = function (txt) {
+    var out = [], last = 0, m, re = /\{\{([a-z0-9_]+)\}\}/g;
+    txt = String(txt == null ? '' : txt);
+    while ((m = re.exec(txt)) !== null) {
+      if (m.index > last) out.push({ m: false, v: txt.slice(last, m.index) });
+      out.push({ m: true, k: m[1] });
+      last = m.index + m[0].length;
+    }
+    if (last < txt.length) out.push({ m: false, v: txt.slice(last) });
+    return out;
+  };
+
+  /* Lo que se escribió en un trozo editable → el texto que se guarda. `piezas` = lo que el navegador tiene dentro del trozo, ya reducido a
+     [{ t: 'txt', v } | { t: 'marca', k } | { t: 'otro', v }] (una pieza 'otro' es cualquier cosa que el navegador haya colado: solo cuenta su TEXTO, nunca su marcado).
+     Reglas: espacio duro → espacio normal salvo que el original lo tuviera (el navegador los mete al teclear dos espacios seguidos); espacios colapsados como los
+     cuenta la base (_plantilla_ws). Si queda igual que el original (salvo espacio en blanco), devuelve el original: no hay cambio fantasma. */
+  TC.textoEscrito = function (piezas, original) {
+    var s = (piezas || []).map(function (p) { return p.t === 'marca' ? '{{' + p.k + '}}' : String(p.v == null ? '' : p.v); }).join('');
+    if (String(original).indexOf(' ') === -1) s = s.replace(/ /g, ' ');
+    s = s.replace(/[\r\n]+/g, ' ');
+    if (TC.ws(s) === TC.ws(original)) return original;
+    return TC.ws(s);
+  };
+
+  /* ── etiquetas de los marcadores, en llano ───────────────────────────────────────────────────────────────────────────────────── */
+  /* Casi todos salen de contracts/tokens.json (la pantalla lo lee, no se copia aquí: una lista a mano en dos sitios ES el bug). Estos son los que el motor
+     deriva y tokens.json no lista: el test contra las 20 plantillas falla si aparece uno sin etiqueta. */
+  TC.ETIQUETAS_EXTRA = {
+    adq1_domicilio: 'Domicilio del comprador', adq1_registro_num: 'Número de registro del comprador', adq2_firmante_nombre: 'Nombre de quien firma por el comprador II',
+    c2_adq1_domicilio: 'Domicilio del comprador I', c2_adq1_domicilio_id: 'Domicilio del comprador I (en indonesio)', c2_adq1_email: 'Email del comprador I',
+    c2_adq1_pasaporte: 'Pasaporte del comprador I', c2_adq1_telefono: 'Teléfono del comprador I', c2_adq2_domicilio: 'Domicilio del comprador II',
+    c2_adq2_domicilio_id: 'Domicilio del comprador II (en indonesio)', c2_adq2_email: 'Email del comprador II', c2_adq2_pasaporte: 'Pasaporte del comprador II',
+    c2_adq2_telefono: 'Teléfono del comprador II', c2_rep_npwp: 'NPWP del representante', carta_cobrado_importe: 'Importe ya cobrado de la carta de reserva',
+    carta_cobrado_numeros: 'Número de la carta de reserva cobrada', cc00014_ktp: 'KTP del titular de la cuenta', comp_domicilio: 'Domicilio de la sociedad compradora',
+    comp_nib: 'NIB de la sociedad compradora', comp_npwp: 'NPWP de la sociedad compradora', comp_razon: 'Razón social de la sociedad compradora',
+    cov_t: 'Título de la portada', cov_t_id: 'Título de la portada (en indonesio)', fecha_solicitud: 'Fecha de la solicitud', firma_adquiriente: 'Firma del comprador',
+    jurisdiccion: 'Jurisdicción', precio_lista_construccion: 'Precio de lista de la construcción', precio_lista_suelo: 'Precio de lista del suelo',
+    prom_cred_en: 'Cargo del representante de la promotora (en inglés)', prom_cred_es: 'Cargo del representante de la promotora', prom_cred_id: 'Cargo del representante de la promotora (en indonesio)',
+    prom_domicilio: 'Domicilio de la promotora', prom_ktp: 'KTP del representante de la promotora', prom_marca: 'Marca registrada de la promotora', prom_nib: 'NIB de la promotora',
+    prom_npwp: 'NPWP de la promotora', prom_razon: 'Razón social de la promotora', prom_rep: 'Representante de la promotora', prom_rep_npwp: 'NPWP del representante de la promotora',
+    techo_nombre: 'Tipo de techo', unidad_construccion_codigo: 'Código de la unidad en construcción'
+  };
+  /* `campos` = { clave: etiqueta } ya sacada de tokens.json por la pantalla (TC.etiquetasDeTokens). Sin etiqueta se vuelve legible la clave: nunca se enseña «prom_razon». */
+  TC.etiquetaMarcador = function (k, campos) {
+    if (campos && campos[k]) return campos[k];
+    if (TC.ETIQUETAS_EXTRA[k]) return TC.ETIQUETAS_EXTRA[k];
+    var txt = String(k).split('_').filter(Boolean).join(' ');
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  };
+  /* tokens.json → { clave: etiqueta corta } en el idioma pedido (es por defecto). «Nombre (opcional — ...)» → «Nombre». */
+  TC.etiquetasDeTokens = function (tokens, idioma) {
+    var out = {};
+    ((tokens && tokens.sections) || []).forEach(function (sec) {
+      (sec.fields || []).forEach(function (f) {
+        var l = f[1] && (f[1][idioma] || f[1].es); if (!l) return;
+        var corto = String(l).replace(/\s*[(—–].*$/, '').replace(/\s*[:.]+$/, '').trim();
+        if (corto) out[f[0]] = corto;
+      });
+    });
+    return out;
+  };
+
+  /* ── lo que contesta la base, en llano ───────────────────────────────────────────────────────────────────────────────────────── */
+  /* Clasifica un mensaje de la base por su PRINCIPIO (estable: el test lee las migraciones y falla si uno cambia). La pantalla pone la frase en llano
+     y deja el mensaje tal cual debajo, como detalle. Devuelve { tipo, detalle }. */
+  TC.PREFIJOS_BASE = [
+    ['sesion', /^Sin sesion/i], ['solo_global', /^Este texto no lo cambia una empresa sola/], ['sensibles_confirma', /^Has cambiado partes sensibles del contrato/],
+    ['marcador_desconocido', /^marcador desconocido \{\{/], ['marcador_forma', /^marcador con forma no permitida/], ['llave', /^llave suelta o marcador mal cerrado/],
+    ['esqueleto', /^el esqueleto cambia:/], ['motivo', /^Falta el motivo del cambio/], ['permiso', /^El texto de los contratos de una empresa lo escribe su administracion/],
+    ['activar_super', /^Activar un texto de contrato lo hace el super administrador/], ['caracter', /^caracter (de control|bidireccional)/], ['grande', /^(El texto supera el tope|cuerpo demasiado grande)/],
+    ['no_activable', /^Version no activable/],
+    /* Revisiones (E7, 8-oct-2026): los mensajes de plantilla_contrato_revision_* de la migración 20261010000000; el test los lee de ahí. */
+    ['rev_restaurar_super', /^Volver a poner un texto en uso lo hace el super administrador/], ['rev_borrar_en_uso', /^No se puede borrar: \d+ contrato/],
+    ['rev_borrar_activa', /^Esta revision esta activa/], ['rev_nombre', /^Pon un nombre a la revision/], ['rev_motivo', /^Falta el motivo de la revision/],
+    ['rev_tope', /^Tope de 20 revisiones/], ['rev_origen', /^Ese texto de origen no es de esta empresa/], ['rev_estandar', /^La revision estandar no se (archiva|borra)/],
+    ['rev_no_archivada', /^Esa revision no esta archivada/], ['rev_sin_activa', /^Esa revision no tiene una version activa/], ['rev_ya_activa', /^Esa revision ya tiene otra version activa/],
+    /* Contrato nuevo (E9): los mensajes de plantilla_contrato_nuevo_crea de la migración 20261010030000. */
+    ['nv_nombre', /^Pon un nombre de 3 a 80 letras/], ['nv_partida', /^Elige si partes de una copia/], ['nv_campos_forma', /^La lista de campos no es valida/],
+    ['nv_campos_catalogo', /^Alguno de los campos no esta en el catalogo/], ['nv_tope', /^Una empresa puede tener como mucho 30 contratos propios/],
+    ['nv_duplicado', /^Ya hay un contrato con ese nombre/], ['nv_falta_origen', /^Falta el contrato del que partir/], ['nv_origen', /^Ese contrato de origen no existe/],
+    ['nv_no_copia', /^Ese contrato no se copia/], ['nv_sin_texto', /^Ese contrato no tiene texto para tu empresa/], ['nv_partida_invalida', /^El texto de partida no pasa la validacion/],
+    ['rev_no_existe', /^Esa revision no existe/], ['rev_clave', /^(Clave de revision no valida|Ya hay una revision con esa clave|Revision no valida)/]
+  ];
+  TC.clasificaError = function (msg) {
+    var m = String(msg == null ? '' : msg).trim();
+    for (var i = 0; i < TC.PREFIJOS_BASE.length; i++) if (TC.PREFIJOS_BASE[i][1].test(m)) return { tipo: TC.PREFIJOS_BASE[i][0], detalle: m };
+    return { tipo: 'otro', detalle: m };
+  };
+  /* El marcador que nombra un error del validador («marcador desconocido {{x}}: …») → 'x', o null. */
+  TC.marcadorDeError = function (msg) {
+    var m = /\{\{([^{}]{1,40})\}\}/.exec(String(msg == null ? '' : msg)); return m ? m[1] : null;
+  };
+
+  /* ── qué cambió respecto a la versión de la que se parte (para «falta revisar» y «solo lo que he cambiado») ──────────────────────── */
+  /* Compara trozo a trozo (misma posición) el documento de partida con el actual, con los cambios aún sin guardar aplicados. Si el número de trozos no
+     coincide no se inventa nada: devuelve null y la pantalla lo dice. Devuelve { trozo: { i: true }, sec: { 'sec|lang': true } }. */
+  TC.cambiosRespecto = function (trozosBase, trozos, cambios) {
+    if (!trozosBase || trozosBase.length !== trozos.length) return null;
+    var porTrozo = {}, porSec = {};
+    trozos.forEach(function (t, i) {
+      var ahora = Object.prototype.hasOwnProperty.call(cambios || {}, t.i) ? cambios[t.i] : t.texto;
+      if (TC.ws(ahora) !== TC.ws(trozosBase[i].texto)) { porTrozo[t.i] = true; porSec[t.sec + '|' + (t.lang || 'general')] = true; }
+    });
+    return { trozo: porTrozo, sec: porSec };
+  };
+  /* Una cláusula está «por revisar» en un idioma si se ha cambiado en otro y en este no. */
+  TC.porRevisar = function (cambiosSec, sec, lang, idiomas) {
+    if (cambiosSec[sec + '|' + lang]) return false;
+    return (idiomas || []).some(function (l) { return l !== lang && cambiosSec[sec + '|' + l]; });
   };
 
   /* ── comparar dos versiones ───────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -183,13 +327,15 @@
     [/nombre|razon|titular|representante|cargo|marca/, 'Nombre de muestra'], [/domicilio|direccion|address/, 'Dirección de muestra'],
     [/num|codigo|ref|parcela|unidad|villa/, '0001']
   ];
-  TC.muestra = function (marcador) {
+  /* `extra` = { clave: ejemplo } de los campos propios de la empresa (LW_CX.ejemplo): un {{cx_x}} no está en la tabla de nombres. */
+  TC.muestra = function (marcador, extra) {
+    if (extra && Object.prototype.hasOwnProperty.call(extra, marcador)) return String(extra[marcador]);
     for (var i = 0; i < MUESTRA.length; i++) if (MUESTRA[i][0].test(marcador)) return MUESTRA[i][1];
     return '[' + marcador + ']';
   };
   /* El documento con datos de muestra (todo escapado: son valores de esta tabla, nunca texto de nadie), sin comentarios, y mostrando un solo idioma. */
-  TC.simula = function (doc) {
-    return String(doc).replace(/<!--[\s\S]*?-->/g, '').replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) { return TC.esc(TC.muestra(k)); });
+  TC.simula = function (doc, extra) {
+    return String(doc).replace(/<!--[\s\S]*?-->/g, '').replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) { return TC.esc(TC.muestra(k, extra)); });
   };
 
   /* La CSP del documento: la MISMA que antepone el generador (contracts/app.html → cspDocumento()); textos-contrato.test.js comprueba que no se separen. */
@@ -198,12 +344,12 @@
       + "; style-src 'unsafe-inline' " + origen + " https://fonts.googleapis.com; font-src data: " + origen + " https://fonts.gstatic.com; img-src data: blob: " + origen + (origenBase ? ' ' + origenBase : '');
   };
   /* El documento de la vista previa: CSP como primer hijo de <head>, los dos CSS del contrato, y un solo idioma visible. Va a un iframe con sandbox="" (sin scripts). */
-  TC.docPrevio = function (doc, idioma, origen, origenBase) {
+  TC.docPrevio = function (doc, idioma, origen, origenBase, extra) {
     var meta = '<meta http-equiv="Content-Security-Policy" content="' + TC.esc(TC.csp(origen, origenBase)) + '">'
       + '<base href="' + TC.esc(origen) + '/contracts/">'
       + '<link rel="stylesheet" href="assets/brand.css"><link rel="stylesheet" href="assets/contract.css">'
       + '<style>' + (idioma ? '[data-lang]{display:none!important}[data-lang="' + idioma + '"]{display:revert!important}' : '') + 'body{margin:0;padding:12px;background:#fff}</style>';
-    var html = TC.simula(doc);
+    var html = TC.simula(doc, extra);
     return /<head(\s[^>]*)?>/i.test(html) ? html.replace(/<head(\s[^>]*)?>/i, function (h) { return h + meta; }) : meta + html;
   };
 

@@ -139,7 +139,17 @@ function sociedadOptions(){
   return Object.entries(SOCIEDADES).filter(([,c])=>!c.soloFacturas).map(([v,c])=>[v, c.label]);
 }
 function applyPromotor(data){
-  const key = data.sociedad_firmante || (CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) || 'tepi_sungai';   // vacío → default de la plantilla (o Tepi Sun Gai)
+  /* Un contrato PROPIO de una empresa (E9, 8-oct-2026) firma con la sociedad de SU empresa y con ninguna otra: no hay «default Tepi Sun Gai» que valga,
+     porque pondría el NPWP de otra PT en el documento. `sociedadPropiaDe()` (app.html) devuelve null si no es un propio, '' si lo es y no se sabe
+     con certeza, o la clave. En el segundo caso se lanza, igual que con una clave inexistente: el documento no se imprime con otra identidad. */
+  const propia = (typeof sociedadPropiaDe === 'function') ? sociedadPropiaDe() : null;
+  /* Solo se lanza si el texto IMPRIME la identidad del promotor ({{prom_…}}): el aviso de «elige el proyecto» de un propio sin texto aún, o un texto sin esos
+     marcadores, se ven igual; quien impide GUARDAR es motivoPropioNoEmite() de app.html, que lo dice en llano. */
+  const imprimeProm = typeof templateHTML === 'string' && /\{\{prom_/.test(templateHTML);
+  if(propia === '' && !imprimeProm) return;
+  if(propia === '') throw new Error('No se puede saber con certeza qué sociedad firma este contrato (su empresa no tiene sociedad asignada). ' +
+    'No se imprime con la identidad de otra sociedad: pide a un administrador que se la asigne.');
+  const key = propia || data.sociedad_firmante || (CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) || 'tepi_sungai';   // vacío → default de la plantilla (o Tepi Sun Gai)
   /* Una clave que NO existe lanza, no cae a Tepi Sun Gai (17-sep-2026). La
      diferencia con la linea de arriba importa: «no ha elegido sociedad» es un
      caso normal y tiene su default por plantilla; «ha elegido una que no

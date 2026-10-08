@@ -31,8 +31,8 @@ declare
   skel text := '<h2><span data-lang="es">Las Partes</span></h2><p data-lang="es">{{prom_razon}}, con NPWP {{prom_npwp}}.</p><h2><span data-lang="es">Objeto</span></h2><p data-lang="es">Texto libre uno de la plantilla.</p><h2><span data-lang="es">Ley aplicable, arbitraje e idioma</span></h2><p data-lang="es">Las controversias van a arbitraje SIAC en Singapur.</p><p data-lang="es">Texto final libre.</p>';
   skel_m text := '<p data-lang="es">Libre A</p><!--bloque-fijo:tenencia--><p data-lang="es">Estructura fija X</p><!--/bloque-fijo:tenencia--><p data-lang="es">Libre B</p>';
   razT text; npwpT text; domT text; razS text; seg text; id1 uuid; k int;
-  fn8 text[] := array['plantilla_contrato_guarda_borrador(text,text,text,text)', 'plantilla_contrato_activa(uuid,text,boolean)', 'plantilla_contrato_descarta_borrador(uuid)',
-                      'plantilla_contrato_cuerpo(text,uuid,text)', 'plantilla_contrato_cuerpo_version(uuid,text)', 'plantilla_contrato_version_de_contrato(uuid)',
+  fn8 text[] := array['plantilla_contrato_guarda_borrador(text,text,text,text,text,boolean)', 'plantilla_contrato_activa(uuid,text,boolean)', 'plantilla_contrato_descarta_borrador(uuid)',
+                      'plantilla_contrato_cuerpo(text,uuid,text,uuid)', 'plantilla_contrato_cuerpo_version(uuid,text)', 'plantilla_contrato_version_de_contrato(uuid)',
                       'plantilla_contrato_versiones_lista(text,text)', 'plantilla_contrato_fija(uuid,uuid)'];
   f9 text;
 begin
@@ -124,15 +124,19 @@ begin
 
   -- ============================================================ C. F2 bloques fijos
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''carta_reserva'', %L, ''cambio el foro'')', replace(skel, 'arbitraje SIAC en Singapur', 'arbitraje BANI en Denpasar')));
-  r := r || pg_temp.l(pg_temp.err(v) = '42501', 'C1 el admin de empresa NO cambia un parrafo de foro/arbitraje (' || left(v, 90) || ')');
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%confirma que has leido%', 'C1 (8-oct: ahora pide confirmar el aviso, ya no se rechaza) el admin de empresa NO cambia un parrafo de foro/arbitraje (' || left(v, 90) || ')');
   v := pg_temp.val(se_S.uid, se_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''carta_reserva'', %L, ''cambio el foro'')', replace(skel, 'arbitraje SIAC en Singapur', 'arbitraje BANI en Denpasar')));
-  r := r || pg_temp.l(pg_temp.err(v) = '42501', 'C2 ni el super de la empresa (' || left(v, 60) || ')');
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%confirma que has leido%', 'C2 (8-oct: ahora pide confirmar el aviso, ya no se rechaza) ni el super de la empresa (' || left(v, 60) || ')');
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''carta_reserva'', %L, ''toco un libre dentro de la seccion de ley'')', replace(skel, 'Texto final libre', 'Texto final distinto')));
-  r := r || pg_temp.l(pg_temp.err(v) = '42501', 'C3 ni un parrafo libre dentro de la seccion «Ley aplicable» (' || left(v, 60) || ')');
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%confirma que has leido%', 'C3 (8-oct: ahora pide confirmar el aviso, ya no se rechaza) ni un parrafo libre dentro de la seccion «Ley aplicable» (' || left(v, 60) || ')');
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''carta_reserva'', %L, ''toco las partes'')', replace(skel, 'con NPWP', 'con el NPWP')));
-  r := r || pg_temp.l(pg_temp.err(v) = '42501', 'C4 ni la identidad de las partes (' || left(v, 60) || ')');
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%confirma que has leido%', 'C4 (8-oct: ahora pide confirmar el aviso, ya no se rechaza) ni la identidad de las partes (' || left(v, 60) || ')');
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''carta_reserva'', %L, ''anado arbitraje a un libre'')', replace(skel, 'Texto libre uno', 'Texto libre sobre arbitraje')));
-  r := r || pg_temp.l(pg_temp.err(v) = '42501', 'C5 tampoco se anade a un parrafo libre una palabra de esos temas (' || left(v, 60) || ')');
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%confirma que has leido%', 'C5 (8-oct: ahora pide confirmar el aviso, ya no se rechaza) tampoco se anade a un parrafo libre una palabra de esos temas (' || left(v, 60) || ')');
+  v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''carta_reserva'', %L, ''cambio el foro con aviso'', ''estandar'', true)', replace(skel, 'arbitraje SIAC en Singapur', 'arbitraje BANI en Denpasar')));
+  r := r || pg_temp.l(v !~ '^ERR', 'C5b con el aviso confirmado, el admin de empresa SI guarda el cambio de foro (' || left(v, 60) || ')');
+  select count(*) into n from public.plantilla_bloque_cambios where empresa = 'sandal_woods' and slug = 'carta_reserva' and aviso_confirmado and despues like '%BANI%' and antes like '%SIAC%';
+  r := r || pg_temp.l(n >= 1, 'C5c ... y queda registrado con el texto antes y despues (' || n || ' fila/s)');
   v := pg_temp.val(jv.uid, jv.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''carta_reserva'', %L, ''el global cambia el foro'')', replace(skel, 'arbitraje SIAC en Singapur', 'arbitraje BANI en Denpasar')));
   r := r || pg_temp.l(v !~ '^ERR', 'C6 el super GLOBAL si cambia el foro (' || left(v, 60) || ')');
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''estatutos_sw'', %L, ''cambio estatutos'')', replace(skel, 'Texto libre uno', 'Otro')));
@@ -143,7 +147,7 @@ begin
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''adenda'', %L, ''edito libres'')', replace(replace(skel_m, 'Libre A', 'Libre AA'), 'Libre B', 'Libre BB')));
   r := r || pg_temp.l(v !~ '^ERR', 'C9 con <!--bloque-fijo:tenencia--> se editan los parrafos libres de alrededor (' || left(v, 90) || ')');
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''adenda'', %L, ''edito el fijo'')', replace(skel_m, 'Estructura fija X', 'Estructura fija Y')));
-  r := r || pg_temp.l(pg_temp.err(v) = '42501', 'C10 ... y el contenido de la region marcada no se edita (' || left(v, 70) || ')');
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%confirma que has leido%', 'C10 (8-oct: ahora pide confirmar el aviso, ya no se rechaza) ... y el contenido de la region marcada no se edita (' || left(v, 70) || ')');
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''adenda'', %L, ''quito la marca'')', replace(replace(skel_m, '<!--bloque-fijo:tenencia-->', ''), '<!--/bloque-fijo:tenencia-->', '')));
   r := r || pg_temp.l(pg_temp.err(v) = '22023', 'C11 quitar la marca es cambiar el esqueleto: lo rechaza S3 (' || left(v, 70) || ')');
   v := pg_temp.val(ae_S.uid, ae_S.em, format('select public.plantilla_contrato_guarda_borrador(''sandal_woods'', ''adenda'', %L, ''marca inventada'')', replace(skel_m, 'tenencia', 'inventada')));

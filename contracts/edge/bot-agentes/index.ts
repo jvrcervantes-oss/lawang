@@ -210,10 +210,22 @@ const CAMPO_EXCLUIDO = /pasaporte|nik|email|telefono|domicilio|direccion|edad|oc
 // (fields, hitos, techo, clauses, annexes, extras, lang); design, overrides,
 // compradores y adq1_client_id/adq1_emails_extra se quedan fuera.
 
-function filtraFields(fields: Record<string, unknown> | null | undefined) {
+// >>> camposPropios
+/* Campos propios de la empresa ({{cx_*}}, E8 del 8-oct-2026). El valor de un cx_ lo escribe una persona de la
+   empresa y puede ser un dato personal: el bot y la IA SOLO ven los que el catalogo marca como NO sensibles
+   (plantilla_campos_cx_publicos, calculado en el servidor). Un cx_ que no esta en esa lista —sensible, fuera
+   de catalogo, o la lectura fallo— no entra al contexto ni al texto de la plantilla. Funcion PURA: misma copia
+   en contracts/bot/campos_propios.js. */
+function cxVisible(k, publicos) {
+  return !/^cx_/.test(String(k)) || (publicos != null && typeof publicos.has === 'function' && publicos.has(k));
+}
+// <<< camposPropios
+
+function filtraFields(fields: Record<string, unknown> | null | undefined, cxPublicos?: Set<string>) {
   const out: Record<string, unknown> = {};
   if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return out;
   for (const [k, v] of Object.entries(fields)) {
+    if (!cxVisible(k, cxPublicos)) continue;
     if (CAMPO_EXCLUIDO.test(k)) continue;
     if (v === null || v === undefined || v === '') continue;
     out[k] = v;
@@ -602,6 +614,12 @@ Deno.serve(async (req) => {
       adq1_client_id: contrato.adq1_client_id,
     };
     const fields = (datos.fields ?? {}) as Record<string, unknown>;
+    // cx_* que el bot puede ver (no sensibles, del catalogo de la empresa del contrato). Si la lectura falla: ninguno (cerrado por defecto), sin tumbar la consulta.
+    let cxPublicos = new Set<string>();
+    {
+      const { data: cxp, error: eCx } = await sb.rpc('plantilla_campos_cx_publicos', { p_contrato: contrato.id });
+      if (!eCx && Array.isArray(cxp)) cxPublicos = new Set((cxp as unknown[]).filter((x): x is string => typeof x === 'string'));
+    }
     const claveCuenta = typeof fields.cuenta_bancaria === 'string' ? fields.cuenta_bancaria : '';
     const claveSociedad = typeof fields.sociedad_firmante === 'string' ? fields.sociedad_firmante : '';
     const lang = typeof datos.lang === 'string' ? datos.lang : 'es';
@@ -621,13 +639,14 @@ Deno.serve(async (req) => {
     const temporizador = setTimeout(() => abort.abort(), 8000);
     // Texto de la plantilla (ver cabecera): por RPC con la sesión del agente y, solo si la base
     // dice «este contrato no tiene versión fijada» (null), el fichero publicado. Un error de RPC NO cae al fichero.
-    const lecturaPlantilla = async (): Promise<{ html: string; lastModified: string | null; ver: { version_id: string; empresa: string; version: number; origen: string; hash: string } | null } | { error: string } | null> => {
+    const lecturaPlantilla = async (): Promise<{ html: string; lastModified: string | null; ver: { version_id: string; empresa: string; version: number; origen: string; hash: string; slug: string; variante: string; variante_nombre: string | null } | null } | { error: string } | null> => {
       if (!slugPlantilla) return null;
       const deBase = (d: unknown) => {
-        const o = d as { cuerpo_html?: unknown; slug?: unknown; version_id?: string; empresa?: string; version?: number; origen?: string; hash?: string } | null;
+        const o = d as { cuerpo_html?: unknown; slug?: unknown; version_id?: string; empresa?: string; version?: number; origen?: string; hash?: string; variante?: string; variante_nombre?: string | null } | null;
         if (!o || typeof o !== 'object') return null;
-        if (o.slug !== slugPlantilla || typeof o.cuerpo_html !== 'string' || !o.cuerpo_html.trim()) return { error: 'cuerpo_no_valido' };
-        return { html: o.cuerpo_html, lastModified: null, ver: { version_id: String(o.version_id), empresa: String(o.empresa), version: Number(o.version), origen: String(o.origen), hash: String(o.hash) } };
+        // E7 (revisiones multiples): el slug, la revision y la version salen de la version FIJADA al contrato, no del mapa tipo→slug
+        if (typeof o.slug !== 'string' || !o.slug || typeof o.cuerpo_html !== 'string' || !o.cuerpo_html.trim()) return { error: 'cuerpo_no_valido' };
+        return { html: o.cuerpo_html, lastModified: null, ver: { version_id: String(o.version_id), empresa: String(o.empresa), version: Number(o.version), origen: String(o.origen), hash: String(o.hash), slug: o.slug, variante: String(o.variante ?? 'estandar'), variante_nombre: typeof o.variante_nombre === 'string' ? o.variante_nombre : null } };
       };
       const vinculo = await sb.rpc('plantilla_contrato_cuerpo_de_contrato', { p_contrato: contrato.id });
       if (vinculo.error) return { error: 'rpc_vinculo' };   // NO al fichero: el contrato puede estar ligado a un texto editado
@@ -678,7 +697,7 @@ Deno.serve(async (req) => {
     const fallos = [
       ['contrato_padre', padre.error], ['unidades', unidad.error], ['proyectos', proyecto.error],
       ['cuentas_bancarias', cuenta.error], ['sociedades', sociedad.error],
-      ['documentos_proyecto', docsP.error], ['plantillas_contrato', plantilla.error], ['bot_fuentes', fuente.error],
+      ['documentos_proyecto', docsP.error], ['bot_fuentes', fuente.error],
       ['bot_bloqueos', bloqueosDb.error], ['bot_pendientes', pendientes.error], ['bot_faq', faqDb.error],
     ].filter(([, e]) => e).map(([t]) => t);
     if (fallos.length) return json({ error: 'no_se_pudo_leer_contexto', tablas: fallos }, 500);
@@ -724,9 +743,11 @@ Deno.serve(async (req) => {
     // prom_* son la identidad de la sociedad promotora (va impresa en todo
     // documento) y no PII del comprador: se dejan pasar aunque casen con el
     // filtro de campos reservados (npwp, nib, domicilio).
-    const esReservado = (k: string) => !/^prom_/.test(k) && CAMPO_EXCLUIDO.test(k);
+    const esReservado = (k: string) => !cxVisible(k, cxPublicos) || (!/^prom_/.test(k) && CAMPO_EXCLUIDO.test(k));
     const webOk = web && 'html' in web ? web : null;
     const verPlantilla = webOk?.ver ?? null;
+    // La fila de `plantillas_contrato` solo da el NOMBRE: si su lectura falla o no casa con el slug de la version fijada, se sigue sin nombre (antes era un 500)
+    const slugEfectivo = verPlantilla?.slug ?? slugPlantilla;
     let textoPlantilla: string | null = null;
     if (webOk?.html) {
       textoPlantilla = plantillaTexto(webOk.html, lang, camposPlantilla, esReservado);
@@ -736,7 +757,8 @@ Deno.serve(async (req) => {
     // ¿Cambió la plantilla después de la firma? Con Last-Modified de la web si
     // lo hay (fecha real del fichero publicado); si no, la fila de
     // plantillas_contrato (creado_en), que es un proxy más flojo.
-    const pl = plantilla.data as { slug: string; nombre: string; creado_en: string; archivada: boolean } | null;
+    const plLeida = plantilla.error ? null : (plantilla.data as { slug: string; nombre: string; creado_en: string; archivada: boolean } | null);
+    const pl = plLeida && plLeida.slug === slugEfectivo ? plLeida : null;
     // Con versión fijada el texto es el de la firma (inmutable): no hay «cambio tras la firma» que avisar.
     const fechaPlantilla = verPlantilla ? null : webOk?.lastModified ? new Date(webOk.lastModified) : (pl?.creado_en ? new Date(pl.creado_en) : null);
     const plantillaCambioTrasFirma = !!(contrato.bloqueado && fechaPlantilla && contrato.fecha_firma
@@ -750,7 +772,7 @@ Deno.serve(async (req) => {
         comprador_nombre: contrato.comprador_nombre, proyecto_nombre: contrato.proyecto_nombre,
         precio_total: contrato.precio_total, moneda: contrato.moneda, fecha_firma: contrato.fecha_firma,
         bloqueado: !!contrato.bloqueado, lang,
-        fields: filtraFields(fields),
+        fields: filtraFields(fields, cxPublicos),
         hitos: Array.isArray(datos.hitos) ? datos.hitos : [],
         techo: datos.techo && typeof datos.techo === 'object'
           ? (({ nombre, precio, moneda, tramo }) => ({ nombre, precio, moneda, tramo }))(datos.techo as Record<string, unknown>)
@@ -770,7 +792,7 @@ Deno.serve(async (req) => {
         modelo: ((docsM.data ?? []) as { nombre: string; tipo: string }[]).map((d) => ({ nombre: d.nombre, tipo: d.tipo })),
       },
       plantilla: {
-        slug: slugPlantilla, nombre: pl?.nombre ?? null, idioma: lang,
+        slug: slugEfectivo, nombre: pl?.nombre ?? null, revision: verPlantilla?.variante_nombre ?? (verPlantilla ? verPlantilla.variante : null), nombre_no_leido: !!plantilla.error, idioma: lang,
         texto_disponible: !!textoPlantilla,
         nota: textoPlantilla
           ? 'Texto articulado de la plantilla en el idioma del contrato, con los campos de este ejemplar puestos: «(en blanco)» = campo sin rellenar; «(dato reservado)» = dato que no se te pasa. ' +
@@ -800,7 +822,7 @@ Deno.serve(async (req) => {
     if (soc) fuentes.push({ tabla: 'sociedades', id: claveSociedad, campo: 'razon,marca,npwp,nib,domicilio,rep' });
     for (const d of (docsP.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'documentos_proyecto', id: d.id });
     for (const d of (docsM.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'modelo_documentos', id: d.id });
-    if (textoPlantilla && verPlantilla) fuentes.push({ tabla: 'plantillas_contrato', id: slugPlantilla, campo: 'texto ' + lang + ' · v' + verPlantilla.version + ' · ' + verPlantilla.empresa + ' · ' + verPlantilla.version_id });   // la etiqueta «Plantilla» ya la conoce el panel; la versión y la empresa van en el campo
+    if (textoPlantilla && verPlantilla) fuentes.push({ tabla: 'plantillas_contrato', id: slugEfectivo, campo: 'texto ' + lang + ' · v' + verPlantilla.version + ' · ' + verPlantilla.empresa + ' · ' + verPlantilla.variante + ' · ' + verPlantilla.version_id });   // la etiqueta «Plantilla» ya la conoce el panel; la versión y la empresa van en el campo
     else if (textoPlantilla) fuentes.push({ tabla: 'plantilla_web', id: slugPlantilla + '.html', campo: 'texto ' + lang });
     else if (pl) fuentes.push({ tabla: 'plantillas_contrato', id: pl.slug, campo: 'nombre (sin texto en esta consulta)' });
     type Faq = { id: string; tema_clave: string; pregunta: string; respuesta: string };

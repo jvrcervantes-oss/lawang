@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="eed5cb16a618">
+<meta name="lw-version" content="5486e707cf83">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=21af4ca8"></script>
+<script src="/contracts/assets/i18n.js?v=e65a4589"></script>
 <script src="/contracts/assets/herramientas.js?v=e627e560"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -71,6 +71,7 @@
      la operación tiene que decir lo mismo en las dos herramientas (19-ago-2026). -->
 <script src="assets/compradores.js?v=be8f79e8"></script>
 <script src="assets/traduce_campos.js?v=29154b79"></script>
+<script src="assets/cx_campos.js?v=07ced9f9"></script>
 <!-- ¿el documento sigue diciendo lo que dice la ficha? Compara la vista
      `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
 <script src="assets/ficha_divergencia.js?v=08e41022"></script>
@@ -79,7 +80,7 @@
      Van aqui y no con `defer` a proposito: `defer` los ejecutaria DESPUES del
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
-<script src="assets/documento_diseno.js?v=a6230c91"></script>
+<script src="assets/documento_diseno.js?v=511c0b25"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
 <script src="assets/documento_anexos.js?v=7d79edb0"></script>
 <script src="assets/parcela_inventario.js?v=2413c162"></script>
@@ -89,7 +90,7 @@
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d86e607e"></script>
 <script src="assets/hitos_fechas.js?v=b3debfd2"></script>
-<script src="assets/entidades_pago.js?v=9237aa1c"></script>
+<script src="assets/entidades_pago.js?v=d97c3dd5"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -112,7 +113,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=5cdd3f4e"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=caa47b27"></script>
 <script src="/intranet/v4/assets/nav.js?v=d61bfe3a" defer></script>
 </head>
 <body>
@@ -133,6 +134,8 @@
   <div class="topbar lw-topbar lw-topbar-flujo" data-titulo="Contratos">
     <span class="lw-sep"></span>
     <select id="tplPick" class="lw-select" data-lwt-aria aria-label="Tipo de contrato"></select>
+    <!-- Revisión del texto (E10, 8-oct-2026): solo aparece en un contrato NUEVO cuya empresa tiene 2+ revisiones activas del tipo. Lo pinta cargaRevisiones(). -->
+    <select id="revPick" class="lw-select" data-revision-selector hidden data-lwt-aria aria-label="Revisión del texto"></select>
     <span class="lang-hint" data-lwt-title title="El contrato siempre incluye Bahasa Indonesia">Bahasa + </span>
     <div class="lang-toggle" id="langToggle"></div>
     <div class="lw-spacer"></div>
@@ -615,7 +618,7 @@ window.LW_SB = sb;
    Una plantilla sin entrada en CONTRACT_TIPO (Estatutos) no se guarda ni se
    numera, así que no hay nada que permitir: pasa siempre. */
 function puedeEmitir(slug){
-  const tipo = CONTRACT_TIPO[slug];
+  const tipo = tipoDeSlug(slug);
   if(!tipo) return true;
   const f = MI_FICHA;
   if(!f || f.rol !== 'agente') return true;
@@ -643,6 +646,104 @@ function estaArchivada(slug){
   if(typeof PLANTILLAS_PAGO === 'undefined' || !PLANTILLAS_PAGO.length) return false;
   const f = PLANTILLAS_PAGO.find(p => p.slug === slug);
   return !!(f && f.archivada);
+}
+/* ── CONTRATOS PROPIOS DE UNA EMPRESA (E9 de «editor de textos», 8-oct-2026) ─────────────────────────────────────
+   Una empresa puede crear contratos suyos (/intranet/v4/textos-contrato/ → Contrato nuevo). Se EMITEN como cualquier otro, con una
+   diferencia: su `contratos.tipo` es el slug del propio contrato (no uno de los 17 de CONTRACT_TIPO, que NO se tocan: los vigila
+   listas.test.js). Por eso los propios se componen AQUÍ, en tiempo de ejecución, desde la base:
+     · la lista sale de `plantilla_contratos_propios_activos(empresa)` (solo los que tienen una versión activa), una llamada por empresa
+       del alcance de quien está sentado; una empresa que no es suya contesta 42501 y se salta sin romper el resto;
+     · cada uno entra en TEMPLATES como una entrada sin fichero (`propio:true`): su texto sale SOLO de la base (`plantilla_contrato_cuerpo`),
+       nunca de un fichero de respaldo — ver textoPlantilla;
+     · `tipoDeSlug` / `slugDeTipo` son CONTRACT_TIPO / TIPO_SLUG con el propio añadido; las comparaciones `=== 'construccion'` etc. siguen
+       usando CONTRACT_TIPO a secas, porque un propio no es de ninguna de esas familias.
+   El permiso va por el mismo sitio de siempre (`usuarios.tipos_contrato` contiene el slug) y el control de verdad es el trigger de la base;
+   que la empresa del proyecto sea la del contrato propio lo comprueba la base (trg_00_contrato_tipo_valido) y aquí se dice en llano ANTES. */
+const PROPIOS = {};            // slug -> { slug, nombre, empresa }
+let EMPRESAS_CAT = [];         // empresas visibles para quien está sentado: { clave, nombre, sociedad_clave }
+const esPropio = slug => !!(slug && PROPIOS[slug]);
+const tipoDeSlug = slug => CONTRACT_TIPO[slug] || (PROPIOS[slug] ? slug : undefined);
+const slugDeTipo = tipo => TIPO_SLUG[tipo] || (PROPIOS[tipo] ? tipo : undefined);
+/* Mete (o actualiza) un propio en TEMPLATES. Devuelve la entrada, o null si el slug no puede ser propio: es de los 17, no tiene forma de
+   slug, o choca con una plantilla fija del estudio (Estatutos…) — un propio nunca pisa lo que ya había. */
+function registraPropio(slug, nombre, empresa){
+  slug = String(slug || '');
+  if(CONTRACT_TIPO[slug] || !/^[a-z][a-z0-9_]{2,59}$/.test(slug)) return null;
+  const nom = String(nombre || '').trim() || slug;
+  let t = TEMPLATES.find(x => x.slug === slug);
+  if(t && !t.propio) return null;
+  if(!t){
+    // sin fichero (`file:null`): el texto sale solo de la base. El color de portada es neutro y oscuro (contraste ≥ 4.5:1 con blanco y con el papel)
+    t = { slug, file:null, propio:true, cover:'#3F4A52', ready:true };
+    TEMPLATES.push(t);
+  }
+  t.name = { es:nom, en:nom, id:nom };
+  t.empresa = empresa || t.empresa || null;
+  PROPIOS[slug] = { slug, nombre:nom, empresa:t.empresa };
+  return t;
+}
+/* Con más de una empresa a la vista, el rótulo de un propio dice de cuál es (dos empresas pueden llamar igual a un contrato). */
+function etiquetaEmpresaPropio(t){
+  if(EMPRESAS_CAT.length < 2 || !t.empresa) return '';
+  const e = EMPRESAS_CAT.find(x => x.clave === t.empresa);
+  return ' · ' + ((e && e.nombre) || t.empresa);
+}
+/* La sociedad que firma un contrato propio es la de SU empresa (empresas.sociedad_clave), nunca un valor por defecto: el de los 17 (Tepi Sun Gai)
+   pondría el NPWP de otra sociedad en una factura. '' = no se puede saber con certeza → no se emite (guardarContrato lo dice). */
+function sociedadDePropio(slug){
+  const p = PROPIOS[slug]; if(!p || !p.empresa) return '';
+  const e = EMPRESAS_CAT.find(x => x.clave === p.empresa);
+  const k = e && e.sociedad_clave;
+  return (k && typeof SOCIEDADES !== 'undefined' && SOCIEDADES[k]) ? k : '';
+}
+/* null = la plantilla en pantalla no es un propio (rige lo de siempre); '' = es un propio y no se sabe su sociedad; si no, la clave. */
+function sociedadPropiaDe(){ return (CURRENT && CURRENT.propio) ? sociedadDePropio(CURRENT.slug) : null; }
+/* Por qué un contrato propio NO se puede emitir ahora ('' = se puede). Es cortesía para decirlo en llano ANTES de que la base rechace con
+   un código: el control de verdad es el trigger de `contratos` (tipo válido para la empresa del proyecto) y la RLS. */
+function motivoPropioNoEmite(){
+  if(!(CURRENT && CURRENT.propio)) return '';
+  const emp = EMPRESAS_CAT.find(x => x.clave === CURRENT.empresa);
+  const nomEmp = (emp && emp.nombre) || CURRENT.empresa || '';
+  if(!PLANTILLA_VER)
+    return lwT('El texto de este contrato solo está en la base y no se ha podido leer: elige el proyecto de %emp (o recarga la página) antes de guardar.', { emp: nomEmp });
+  const pid = proyectoIdActual();
+  const proy = pid && (PROYECTOS_DB || []).find(p => p.id === pid);
+  if(!proy) return lwT('Un contrato de %emp se emite sobre un proyecto de esa empresa: elige el proyecto.', { emp: nomEmp });
+  if(proy.empresa !== CURRENT.empresa)
+    return lwT('El proyecto elegido no es de %emp, la empresa dueña de este contrato: elige un proyecto suyo.', { emp: nomEmp });
+  if(!sociedadPropiaDe())
+    return lwT('No puedo saber con certeza qué sociedad firma este contrato: la empresa %emp no tiene sociedad asignada. No se emite para no poner la identidad fiscal de otra sociedad. Pídele a un administrador que se la asigne.', { emp: nomEmp });
+  return '';
+}
+async function cargarPropios(){
+  if(!sb) return;
+  try{
+    const r = await sb.from('empresas').select('clave,nombre,sociedad_clave').eq('activa', true).order('orden');
+    EMPRESAS_CAT = (r && r.data) || [];
+  }catch(_){ EMPRESAS_CAT = []; /* MUDO A PROPOSITO: sin la lista de empresas no se ofrecen contratos propios; los 17 de siempre no dependen de ella */ }
+  // en paralelo (una por empresa): el arranque no espera N viajes en serie
+  await Promise.all(EMPRESAS_CAT.map(async e => {
+    try{
+      const { data, error } = await sb.rpc('plantilla_contratos_propios_activos', { p_empresa: e.clave });
+      if(error) throw error;
+      (data || []).forEach(f => registraPropio(f.slug, f.nombre, e.clave));
+    }catch(_){ /* MUDO A PROPOSITO: una empresa que no es de quien está sentado contesta 42501 y se salta; el resto de empresas y los 17 de siempre siguen */ }
+  }));
+}
+/* Abrir un contrato GUARDADO de un tipo propio que hoy no se ofrece (su contrato se archivó o no es del alcance actual): se recompone su entrada
+   para poder reabrirlo. El nombre y la empresa se piden a la base; si no contesta, el propio slug hace de nombre. Devuelve el slug o undefined. */
+async function slugDeTipoGuardado(tipo){
+  const ya = slugDeTipo(tipo); if(ya) return ya;
+  if(!sb || !/^[a-z][a-z0-9_]{2,59}$/.test(String(tipo || ''))) return undefined;
+  let fila = null;
+  try{
+    const r = await sb.from('plantillas_contrato').select('slug,nombre,empresa').eq('slug', tipo).not('empresa', 'is', null).maybeSingle();
+    fila = r && r.data;
+  }catch(_){ /* MUDO A PROPOSITO: sin el nombre se reabre igual con el slug como rótulo; el texto lo sirve la base por contrato */ }
+  /* Sin la fila de su plantilla (la RLS no la deja leer, o ya no existe) NO se inventa un propio sin empresa: se dice «tipo desconocido». Un propio fantasma
+     no tendría sociedad ni fichero y rompería el render en vez de explicarse. */
+  if(!fila || !fila.empresa) return undefined;
+  return registraPropio(tipo, fila.nombre, fila.empresa) ? tipo : undefined;
 }
 const plantillasOfrecidas = () =>
   TEMPLATES.filter(t => !t.disabled && puedeEmitir(t.slug) && !estaArchivada(t.slug));
@@ -1110,6 +1211,7 @@ function avisoNoGuardado(detalle){
    admin marca una precargada, la cuenta no se adivina — es la que él ha dicho, y
    en la Carta de Reserva además es la única que se ofrece. */
 function pdef(key){
+  if(key==='sociedad_firmante' && CURRENT && CURRENT.propio) return sociedadDePropio(CURRENT.slug);   // un propio: la sociedad de su empresa, nunca el default de los 17
   if(key==='sociedad_firmante' && CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) return SOCIEDAD_DEFAULT[CURRENT.slug];
   if(key==='cuenta_bancaria' && CURRENT && bankDefaultFor(CURRENT.slug, proyectoIdActual())) return bankDefaultFor(CURRENT.slug, proyectoIdActual());
   // Fecha de firma: el día en que se está haciendo el contrato, no una fecha
@@ -1809,6 +1911,7 @@ function resetBorrador(slug){
      igual que borra la ficha del comprador — y por eso la entrada por `?lead=` lo asigna
      DESPUÉS de llamar a resetBorrador, nunca antes. */
   LEAD_ID = null;
+  REVISION_ELEGIDA = '';   // documento nuevo: arranca en la revisión estándar (cambioDeRevision la repone después)
   // sin contrato no hay firmas: se suelta el candado de «enviado a firma»
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   limpiarOverrides(slug);
@@ -3127,6 +3230,23 @@ const SUSTITUYE_A = {
   plazo_pago_final_dias: 'plazo_pago_final_meses',
 };
 
+/* Recorre los bloques en inglés/indonesio del texto —CUALQUIER etiqueta con data-lang="en|id": <p>, <li>, <span>, <ul>, <ol>…— y devuelve el html con cada
+   uno sustituido por fn(bloque, idioma). El cierre se busca CONTANDO la profundidad de la misma etiqueta: un <span data-lang> con un <span class="f"> dentro
+   (los hay) no se corta en el primer </span>. Un bloque sin cierre se deja tal cual. */
+function enBloquesDeIdioma(h, fn){
+  const re = /<([a-z][a-z0-9]*)\b[^>]*\bdata-lang="(en|id)"[^>]*>/g;
+  let out = '', last = 0, m;
+  while((m = re.exec(h))){
+    const ini = m.index, cierra = new RegExp('<' + m[1] + '\\b|</' + m[1] + '>', 'g');
+    cierra.lastIndex = ini + m[0].length;
+    let prof = 1, x, fin = -1;
+    while((x = cierra.exec(h))){ prof += x[0].charAt(1) === '/' ? -1 : 1; if(prof === 0){ fin = x.index + x[0].length; break; } }
+    if(fin < 0) continue;
+    out += h.slice(last, ini) + fn(h.slice(ini, fin), m[2]);
+    last = fin; re.lastIndex = fin;
+  }
+  return out + h.slice(last);
+}
 function buildDoc(){
   /* En blanco: NADA de lo tecleado. Solo sobreviven las claves con las que la
      plantilla ELIGE cláusula (<!--if:clave=valor-->: persona/empresa, régimen
@@ -3226,7 +3346,7 @@ function buildDoc(){
      traducción de assets/traduce_campos.js. Sin traducción: la nacionalidad sale como
      está (no se inventa un país) y el motivo del descuento se omite en en/id — solo
      el párrafo en español lo lleva. */
-  html=html.replace(/<(p|li)\b[^>]*\bdata-lang="(en|id)"[^>]*>[\s\S]*?<\/\1>/g,(bloque,_t,lang)=>{
+  html=enBloquesDeIdioma(html,(bloque,lang)=>{
     const motivo=()=>trMotivoDescuento(data.descuento_comercial_motivo,lang);
     // Construcción: «… {{moneda}} ({{motivo}}),»  ·  Parcela: «…; reason: {{motivo}})» / «…; alasan: {{motivo}})»
     bloque=bloque.replace(/\s*\(\{\{descuento_comercial_motivo\}\}\)/g,()=>{
@@ -3236,6 +3356,12 @@ function buildDoc(){
     bloque=bloque.replace(/;\s*(reason|alasan):\s*\{\{descuento_comercial_motivo\}\}/g,(m,rotulo)=>{
       const t=motivo();
       return t ? '; '+rotulo+': '+campoFijo('descuento_comercial_motivo', esc(t)) : '';
+    });
+    /* Un campo propio Sí/No se guarda como «si» / «no» (sin tilde, en minúsculas) y en el documento se lee en el idioma del párrafo. */
+    bloque=bloque.replace(/\{\{(cx_[a-z0-9_]+)\}\}/g,(m,k)=>{
+      const c=cxDe(k);
+      if(!c || c.tipo!=='si_no' || !data[k]) return m;
+      return campoFijo(k, esc(LW_CX.paraDocumento(c, data[k], lang), k));
     });
     return bloque.replace(/\{\{adq1_nacionalidad\}\}/g,m=>{
       const t=trNacionalidad(data.adq1_nacionalidad,lang);
@@ -3247,6 +3373,7 @@ function buildDoc(){
     if(!filled) return '';   // vacío = en blanco (writable a mano), sin "—"
     if(k==='regimen_tenencia') return campoFijo(k, esc(REGIMEN_LABEL[data[k]]||data[k]));   // código → etiqueta legible
     if(k==='proyecto_nombre') return campoFijo(k, nombreConResort(data));   // el nombre de proyecto va SIEMPRE en mayúsculas
+    if(k.startsWith('cx_') && cxDe(k)) return campoFijo(k, esc(LW_CX.paraDocumento(cxDe(k), data[k], 'es'), k));   // campo propio: Sí/No en español si el párrafo no es en/id (los en/id se resolvieron arriba)
     return campoFijo(k, esc(data[k],k));
   });
   html=idrEquiv(html, data);   // "79.000 EUR" → "79.000 EUR (≈ 1.343.000.000 IDR)"
@@ -3526,9 +3653,11 @@ function deriveSections(){
        desplegable sin la opción que la ficha tiene guardada y el campo se vería
        vacío, como si el dato se hubiera perdido—. Verlo no es poder guardarlo:
        de eso se encarga la RLS. */
-    const lista = MIS_PROYECTOS
+    const deMiAlcance = MIS_PROYECTOS
       ? PROYECTOS_DB.filter(p => MIS_PROYECTOS.includes(p.id) || p.nombre === PROYECTO_ABIERTO)
       : PROYECTOS_DB;
+    // un contrato propio solo se emite sobre proyectos de SU empresa (lo exige la base); el del contrato abierto se conserva
+    const lista = CURRENT.propio ? deMiAlcance.filter(p => p.empresa === CURRENT.empresa || p.nombre === PROYECTO_ABIERTO) : deMiAlcance;
     const opts = lista.map(p=>p.nombre);
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
       (f[0]==='proyecto_nombre' && f[2]==='select') ? [f[0], f[1], f[2], opts] : f); });
@@ -3557,7 +3686,29 @@ function deriveSections(){
       (f[0]==='tipologia_construccion' && f[2]==='select') ? [f[0], f[1], f[2], MODELOS_DB] : f); });
   }
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
-  const missing = [...inDoc].filter(k=>!known.has(k));
+  const missingTodos = [...inDoc].filter(k=>!known.has(k));
+  /* Los {{cx_…}} del texto (campos propios de la empresa, E8) NO caen en «Otros campos» como texto libre cuando el catálogo se pudo leer: tienen su sección, con
+     el tipo, las opciones y el «obligatorio» del catálogo. Sin catálogo legible (CX_CAT null) se quedan como antes y el aviso lo da cargarCamposCx(). */
+  const cxClaves = CX_CAT ? missingTodos.filter(k=>/^cx_[a-z0-9_]+$/.test(k)) : [];
+  const missing = missingTodos.filter(k=>!cxClaves.includes(k));
+  if(cxClaves.length){
+    const siNo = { si: lwT('Sí'), no: lwT('No') };
+    const campos = cxClaves.map(k=>{
+      const c = cxDe(k);
+      if(!c) return [k, {es:'Campo sin definir ('+k+')', en:'Undefined field ('+k+')', id:'Bidang belum ditentukan ('+k+')'}, 'readonly'];   // el texto lo lleva y el catálogo no: no se puede rellenar, y la base rechazaría un valor
+      const f = LW_CX.tipoForm(c, siNo);
+      FIELDTYPE[k] = f[2];
+      if(c.archivado){   // un campo archivado ya no admite valores nuevos: se enseña el que tenga el contrato, sin dejar escribir
+        ['es','en','id'].forEach(l=>{ f[1][l] = f[1][l] + ' (' + ({es:'archivado',en:'archived',id:'diarsipkan'})[l] + ')'; });
+        return [k, f[1], 'readonly'];
+      }
+      CAMPOS_OPCIONALES[c.obligatorio ? 'delete' : 'add'](k);   // camposSinRellenar() y el asterisco exigen todo lo que no esté en CAMPOS_OPCIONALES
+      return f;
+    });
+    let insCx = SECTIONS.map(s=>s.tier).lastIndexOf('siempre');
+    insCx = insCx<0 ? SECTIONS.length : insCx+1;
+    SECTIONS.splice(insCx, 0, { id:'campos_propios', tier:'siempre', title:{es:'Campos de esta empresa',en:'Company fields',id:'Bidang perusahaan'}, fields:campos });
+  }
   if(missing.length){
     let ins = SECTIONS.map(s=>s.tier).lastIndexOf('siempre');
     ins = ins<0 ? SECTIONS.length : ins+1;
@@ -3615,7 +3766,8 @@ function deriveSections(){
   // sociedad firmante (Promotor): va DENTRO de "Gestión del contrato" (sección 1,
   // petición del cliente) como un campo más, si la plantilla trae la identidad
   // tokenizada ({{prom_razon}}). Se elige por contrato; default por plantilla (pdef).
-  if(templateHTML.includes('{{prom_razon}}')){
+  /* Un contrato PROPIO no ofrece elegir la sociedad: es la de su empresa (sociedadPropiaDe) y elegir otra pondría la identidad fiscal de otra PT. */
+  if(templateHTML.includes('{{prom_razon}}') && !CURRENT.propio){
     const campo = ['sociedad_firmante',{es:'Sociedad firmante (Promotor)',en:'Signing company (Developer)',id:'Perusahaan penandatangan'},'select',sociedadOptions()];
     const g = SECTIONS.find(s=>s.id==='gestion');
     if(g) g.fields.push(campo);
@@ -3635,7 +3787,7 @@ function deriveSections(){
     // solo Hak Sewas: con trece tipos mezclados, un número y un nombre no
     // bastan para saber a qué documento te estás enganchando.
     const opts = (VINCULABLES_POA||[]).map(c=>[c.numero,
-      c.numero+' · '+(TIPO_LABEL[c.tipo]||c.tipo)+' · '+(c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
+      c.numero+' · '+(TIPO_LABEL[c.tipo]||(PROPIOS[c.tipo]&&PROPIOS[c.tipo].nombre)||c.tipo)+' · '+(c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
     const campo = opts.length ? ['poa_hs_vinculado', etiqueta, 'select', opts]
                               : ['poa_hs_vinculado', etiqueta, 'text'];
     const g = SECTIONS.find(s=>s.id==='gestion');
@@ -3681,15 +3833,40 @@ function deriveSections(){
    `PLANTILLA_VER` guarda de qué versión salió el texto en pantalla (null = fichero); al GUARDAR un contrato nuevo se
    fija esa versión (`plantilla_contrato_fija`), y desde ahí no cambia sola. */
 let PLANTILLA_VER = null, PLANTILLA_FIJADA = false, PLANTILLA_AVISO = false, PLANTILLA_TOCADO = false;
+/* Revisión del texto elegida (E10): id de la versión ACTIVA de la revisión ('' = la estándar, que es lo de siempre).
+   Solo cuenta en un contrato NUEVO; se pasa como p_version a `plantilla_contrato_cuerpo` y la valida el servidor.
+   REVISION_SLUG: de qué tipo es la elección (cambiar de tipo la suelta). */
+let REVISION_ELEGIDA = '', REVISION_SLUG = '';
+/* ── CAMPOS PROPIOS DE LA EMPRESA ({{cx_algo}}) — E8 de «editor de textos de contrato», 8-oct-2026 ──
+   Cada empresa define en /intranet/v4/textos-contrato/ → Campos los datos que sus contratos piden y el sistema no trae. El texto los lleva como {{cx_x}} y aquí salen
+   como una sección propia del formulario, con el tipo, las opciones y el «obligatorio» del catálogo. El valor se guarda en `datos.fields.cx_x` (la misma columna de
+   siempre: sin tabla ni migración por contrato). Quien manda es la BASE: el catálogo (plantilla_campos_propios), el validador de cada valor (plantilla_campo_propio_valida,
+   que usa este formulario antes de guardar) y un trigger en `contratos` que vuelve a comprobarlo al escribir. El navegador no valida de verdad.
+   CX_CAT = el catálogo de la empresa del texto en pantalla (null = no se pudo leer o no hace falta); CX_ERR = por qué no se pudo leer (distinto de «no hay campos»). */
+let CX_CAT = null, CX_ERR = '';
+async function cargarCamposCx(){
+  CX_CAT = null; CX_ERR = '';
+  if(!/\{\{cx_[a-z0-9_]+\}\}/.test(templateHTML)) return;              // un texto sin campos propios no pregunta nada
+  const emp = PLANTILLA_VER && PLANTILLA_VER.empresa;
+  if(!sb || !emp){ CX_ERR = lwT('Este texto lleva campos propios de la empresa, pero no sé de qué empresa es: elige el proyecto.'); return; }
+  try{
+    const { data, error } = await sb.rpc('plantilla_campo_propio_lista', { p_empresa: emp, p_con_uso: false });   // la lista entera: el formulario necesita también los sensibles
+    if(error) throw error;
+    CX_CAT = Array.isArray(data) ? data : [];
+  }catch(e){ CX_ERR = lwT('No he podido leer los campos propios de la empresa (') + ((e && e.message) || e) + lwT('): se piden como texto libre y la base comprueba cada valor al guardar.'); }
+  if(CX_ERR) toastMal(CX_ERR);
+}
+const cxDe = k => (CX_CAT || []).find(c => c.clave === k);
 const PLANTILLA_CACHE = {};   // clave RPC|argumento → {hash, cuerpo}: el etag evita reenviar 300 KB que ya tenemos
-async function textoPlantillaBase(slug, contratoId, proyectoId){
+async function textoPlantillaBase(slug, contratoId, proyectoId, versionId){
   if(!sb) return null;
   const esContrato = !!contratoId;
   const rpc = esContrato ? 'plantilla_contrato_cuerpo_de_contrato' : 'plantilla_contrato_cuerpo';
-  const clave = rpc + '|' + (esContrato ? contratoId : slug + '|' + (proyectoId || ''));
+  const clave = rpc + '|' + (esContrato ? contratoId : slug + '|' + (proyectoId || '') + '|' + (versionId || ''));
   const previa = PLANTILLA_CACHE[clave];
   const args = esContrato ? { p_contrato: contratoId, p_etag: previa ? previa.hash : null }
                           : { p_slug: slug, p_proyecto: proyectoId || null, p_etag: previa ? previa.hash : null }; // NOMBRE A PROPOSITO: p_proyecto es el id (uuid) del proyecto, no su nombre
+  if(!esContrato && versionId) args.p_version = versionId;   // revisión elegida: la valida el servidor (de esa empresa y tipo, y activa)
   const { data, error } = await sb.rpc(rpc, args);
   if(error) throw error;
   if(!data || typeof data !== 'object' || data.slug !== slug) return null;
@@ -3702,12 +3879,16 @@ async function textoPlantillaBase(slug, contratoId, proyectoId){
 /* Texto de una plantilla: de la base si hay (arriba) y, si no, del fichero. Devuelve {html, ver}. */
 async function textoPlantilla(t, o){
   let r = null;
-  try{ r = await textoPlantillaBase(t.slug, o && o.contratoId, o && o.proyectoId); }
+  try{ r = await textoPlantillaBase(t.slug, o && o.contratoId, o && o.proyectoId, o && o.version); }
   catch(e){
     if(!PLANTILLA_AVISO){ PLANTILLA_AVISO = true;
       toastMal(lwT('No se pudo leer el texto de contrato de tu empresa (') + ((e && e.message) || e) + lwT('): se usa el texto base. Recarga antes de guardar un contrato nuevo.')); }
+    REVISION_ELEGIDA = '';   // con el texto de la base ilegible, la revisión elegida no vale: se cae al texto base
   }
   if(r) return r;
+  /* Un contrato PROPIO (E9) no tiene fichero: si la base no sirve su texto (sin proyecto de su empresa elegido aún, sin red) NO se cae a otro
+     texto, ni a «undefined»: queda un aviso en el papel y motivoPropioNoEmite() impide guardar mientras `ver` sea null. */
+  if(t.propio) return { html: '<body><p style="padding:20mm">' + esc(lwT('El texto de este contrato lo sirve la base según la empresa del proyecto: elige el proyecto de la empresa para verlo.')) + '</p></body>', ver: null };
   let html;
   try{ html = await fetch(t.file+'?v='+Date.now()).then(r=>r.text()); }
   catch(_){ html='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; /* MUDO A PROPOSITO: la propia pagina dice «Plantilla no encontrada» en el contrato */ }
@@ -3723,7 +3904,7 @@ async function fijaVersionPlantilla(contratoId, eraNuevo){
   const pid = proyectoIdActual();
   if(!pid) return '';
   try{
-    const r = await textoPlantillaBase(CURRENT.slug, null, pid);
+    const r = await textoPlantillaBase(CURRENT.slug, null, pid, REVISION_ELEGIDA || null);   // la MISMA revisión que se ve en pantalla
     if(!r) return '';   // la empresa del proyecto no tiene texto en la base: sigue con el fichero
     if(!PLANTILLA_VER ? r.html !== templateHTML : r.ver.hash !== PLANTILLA_VER.hash)
       return ' · OJO: el texto del contrato en pantalla no es el de la empresa de este proyecto; se guardó SIN fijar la versión del texto. Revísalo.';
@@ -3731,7 +3912,13 @@ async function fijaVersionPlantilla(contratoId, eraNuevo){
     if(error) throw error;
     PLANTILLA_VER = r.ver; PLANTILLA_FIJADA = true;
     return '';
-  }catch(e){ return ' · OJO: se guardó, pero no se pudo fijar la versión del texto (' + ((e && e.message) || 'error') + ').'; }
+  }catch(e){
+    const m = String((e && e.message) || 'error');
+    /* Ya guardado, el selector se oculta (el texto no se cambia desde aquí): el aviso NO puede mandar a usarlo. La versión sigue sin fijar
+       y quien lo resuelve es administración (plantilla_contrato_fija con la revisión elegida). */
+    if(/elige cual/i.test(m)) return ' · OJO: se guardó, pero esta plantilla tiene varias revisiones del texto y no se fijó ninguna. Avisa a administración para que fije la revisión de este contrato.';
+    return ' · OJO: se guardó, pero no se pudo fijar la versión del texto (' + m + ').';
+  }finally{ ocultaRevisiones(); }   // ya guardado, el texto no se cambia desde aquí
 }
 /* Cambiar el proyecto de un contrato SIN guardar puede cambiar de empresa y, con ella, el texto. Si el texto de la
    empresa nueva es idéntico al de pantalla (hoy: las dos tienen la semilla v1, copia del mismo fichero) solo se
@@ -3743,29 +3930,88 @@ async function cambioDeProyectoYTexto(sel){
   const pid = proyectoIdActual(); if(!pid || !CURRENT) return;
   const previo = sel.dataset.previo || '';
   const nombre = sel.value, slug = CURRENT.slug;
-  const r = await textoPlantilla(CURRENT, { proyectoId: pid });
-  if(r.html === templateHTML){ PLANTILLA_VER = r.ver; sel.dataset.previo = nombre; return; }
+  const revPrevia = REVISION_ELEGIDA;
+  REVISION_ELEGIDA = '';   // otro proyecto puede ser de otra empresa: sus revisiones son otras (se vuelve a elegir)
+  const r = await textoPlantilla(CURRENT, { proyectoId: pid, version: null });
+  /* Con una revisión elegida, el texto de pantalla NUNCA es igual al estándar que se acaba de pedir: se compara la EMPRESA, que es lo que decide
+     si hay otro texto. Misma empresa = las mismas revisiones: se conserva la elegida y no se pregunta ni se borra nada. */
+  if(revPrevia && r.ver && PLANTILLA_VER && r.ver.empresa && r.ver.empresa === PLANTILLA_VER.empresa){ REVISION_ELEGIDA = revPrevia; sel.dataset.previo = nombre; return; }
+  if(r.html === templateHTML && !revPrevia){ PLANTILLA_VER = r.ver; sel.dataset.previo = nombre; await cargaRevisiones(r.ver); return; }
   if(PLANTILLA_TOCADO && !window.confirm(lwT('Ese proyecto es de otra empresa y su contrato usa otro texto. Cambiarlo borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?'))){
-    sel.value = previo; return;
+    sel.value = previo; REVISION_ELEGIDA = revPrevia; return;
   }
-  if(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes()){ sel.value = previo; return; }
+  if(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes()){ sel.value = previo; REVISION_ELEGIDA = revPrevia; return; }
   resetBorrador(slug);
-  await loadTemplate(slug, { proyectoId: pid });
+  await loadTemplate(slug, { proyectoId: pid, version: null });
   buildForm(); updateSaveButton(); editBtnIdle();
   const s2 = document.querySelector('[name="proyecto_nombre"]');
   if(s2){ s2.value = nombre; s2.dataset.previo = nombre; s2.dispatchEvent(new Event('change', { bubbles:true })); }
+}
+/* ── Revisión del texto (E10, 8-oct-2026) ──
+   Una empresa puede tener varias revisiones ACTIVAS del mismo contrato (columna `variante`, E7). Al redactar un
+   contrato NUEVO con empresa conocida se ofrece elegir cuál; con una sola, el selector no aparece y todo va como
+   siempre. La lista la da `plantilla_contrato_revisiones_activas` (solo lectura, solo las activas, a cualquier agente
+   de la empresa; nunca cuerpos ni autores). Si la base dice que no, el selector no sale y el texto es el estándar (lo de siempre).
+   Cada opción lleva el id de la versión (`data-version`); el rótulo es solo lo que se lee. */
+function ocultaRevisiones(){
+  const sel = document.getElementById('revPick'); if(!sel) return;
+  sel.hidden = true; sel.innerHTML = '';
+}
+async function cargaRevisiones(ver){
+  const sel = document.getElementById('revPick'); if(!sel) return;
+  if(!sb || !ver || !ver.empresa || !CURRENT || (SAVED_CONTRACT && SAVED_CONTRACT.id)){ ocultaRevisiones(); return; }
+  let filas = [];
+  try{
+    const { data, error } = await sb.rpc('plantilla_contrato_revisiones_activas', { p_empresa: ver.empresa, p_slug: CURRENT.slug });
+    if(error) throw error;
+    filas = data || [];
+  }catch(_){ ocultaRevisiones(); return; /* MUDO A PROPOSITO: si la lectura falla (sin sesión, otra empresa) el selector no sale y el texto es el estándar; si el servidor exige elegir, el guardado lo dice en llano */ }
+  // opciones: la estándar siempre (valor '' = la de siempre) + cada otra revisión ACTIVA (la RPC solo devuelve activas)
+  const ops = [{ v: '', nombre: (filas.find(f => f.variante === 'estandar') || {}).nombre || 'Estándar' }]
+    .concat(filas.filter(f => f.variante !== 'estandar').map(f => ({ v: f.version_id, nombre: f.nombre || f.variante })));
+  if(ops.filter(o => o.v !== '').length < 1){ ocultaRevisiones(); return; }   // solo la estándar: no estorba
+  if(!ops.some(o => o.v === (REVISION_ELEGIDA || ''))) REVISION_ELEGIDA = '';
+  REVISION_SLUG = CURRENT.slug;
+  sel.innerHTML = ops.map(o => `<option value="${esc(o.v)}" data-version="${esc(o.v)}"${o.v === REVISION_ELEGIDA ? ' selected' : ''}>${esc(lwT('Revisión del texto'))}: ${esc(o.nombre)}</option>`).join('');
+  sel.dataset.previo = REVISION_ELEGIDA;
+  sel.hidden = false;
+}
+/* Cambiar de revisión rehace el texto (y con él el formulario, que pierde lo escrito): se pregunta antes si hay algo. */
+async function cambioDeRevision(sel){
+  if(SAVED_CONTRACT && SAVED_CONTRACT.id) return;
+  const previo = sel.dataset.previo || '';
+  if(sel.value === previo) return;
+  if(PLANTILLA_TOCADO && !window.confirm(lwT('Cambiar la revisión del texto borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?'))){ sel.value = previo; return; }
+  if(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes()){ sel.value = previo; return; }
+  const pid = proyectoIdActual(), proy = document.querySelector('[name="proyecto_nombre"]'), nombreProy = proy ? proy.value : '';
+  const slug = CURRENT.slug, elegida = sel.value;
+  resetBorrador(slug);
+  REVISION_ELEGIDA = elegida; REVISION_SLUG = slug;   // DESPUÉS de resetBorrador, que la suelta
+  await loadTemplate(slug, { proyectoId: pid });
+  buildForm(); updateSaveButton(); editBtnIdle();
+  const s2 = document.querySelector('[name="proyecto_nombre"]');
+  /* El proyecto se repone Y se avisa con `change`: es el evento al que cuelgan el resort, las cuentas y la ubicación (cambioDeProyectoYTexto
+     lo reconoce como «misma empresa» y no toca nada), si no esos campos quedaban vacíos tras cambiar de revisión. */
+  if(s2 && nombreProy){ s2.value = nombreProy; s2.dataset.previo = nombreProy; s2.dispatchEvent(new Event('change', { bubbles:true })); }
 }
 async function loadTemplate(slug, opts){
   CURRENT = TEMPLATES.find(t=>t.slug===slug) || TEMPLATES[0];
   // el proyecto elegido solo cuenta en un contrato NUEVO; uno ya guardado lee el texto que fijó
   const o = Object.assign({ proyectoId: (typeof proyectoIdActual === 'function' ? proyectoIdActual() : '') || null }, opts || {});
+  if(REVISION_SLUG !== slug) REVISION_ELEGIDA = '';   // la elección es de un tipo; otro tipo arranca en la estándar
+  if(o.contratoId) REVISION_ELEGIDA = '';             // un contrato guardado lee la versión que fijó
+  else if(o.version === undefined) o.version = REVISION_ELEGIDA || null;
   const base = await textoPlantilla(CURRENT, o);
   templateHTML = base.html; PLANTILLA_VER = base.ver;
+  if(o.contratoId) ocultaRevisiones(); else await cargaRevisiones(base.ver);
+  await cargarCamposCx();   // el catálogo de campos propios de la empresa de ESTE texto (antes de deriveSections(), que monta su sección)
   PLANTILLA_FIJADA = !!(opts && opts.contratoId && base.ver);
   PLANTILLA_TOCADO = false;
   if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
   // Los proyectos vivos, antes de deriveSections(), que es quien monta el select.
-  if(templateHTML.includes('{{proyecto_nombre}}')) await cargarProyectos();
+  // (un contrato PROPIO también: su texto puede no llevar el marcador —o ser el aviso de «elige el proyecto»— y el campo proyecto se pinta igual,
+  // forzado por deriveSections para toda plantilla salvo el Poder; sin esta carga caería a la lista vieja de tokens.json y no se filtraría por empresa)
+  if(templateHTML.includes('{{proyecto_nombre}}') || CURRENT.propio) await cargarProyectos();
   if(templateHTML.includes('{{tipologia_construccion}}')) await cargarModelos();
   if(CURRENT.slug === 'poa_notario') await cargarVinculablesPoa();   // el vínculo del POA no tiene marcador: va por slug
   // CC00014/Timon no tiene versión en español (el documento original es
@@ -3793,7 +4039,7 @@ function buildPicker(){
   const abierta = CURRENT && !ofrecidas.some(t => t.slug === CURRENT.slug)
     ? TEMPLATES.find(t => t.slug === CURRENT.slug) : null;
   const lista = abierta ? [abierta].concat(ofrecidas) : ofrecidas;
-  sel.innerHTML = lista.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}${t===abierta?' '+lwT('(archivado)'):''}${t.ready?'':' ·⚠'}</option>`).join('');
+  sel.innerHTML = lista.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${esc(L(t.name))}${t.propio ? esc(etiquetaEmpresaPropio(t)) : ''}${t===abierta?' '+lwT('(archivado)'):''}${t.ready?'':' ·⚠'}</option>`).join('');
   /* UN SOLO oyente (30-sep-2026). buildPicker() se llama otra vez en cada
      cambio de idioma (buildLangToggle) para re-rotular las opciones, y cada
      llamada colgaba OTRO `change`: tras tocar ES/EN dos veces, cambiar de tipo
@@ -4157,7 +4403,7 @@ function pintaAcciones(){
   const cerrado = LOCKED ? lwT('El contrato está firmado y bloqueado')
                 : enFirma ? lwT('Hay firmas en curso: anúlalas primero') : '';
   const sinGuardar = lwT('Guarda primero: para guardar hay que rellenarlo entero');
-  const tipo = CONTRACT_TIPO[CURRENT.slug];
+  const tipo = tipoDeSlug(CURRENT.slug);
   const proyectoFalta = CURRENT.slug === 'ppjb_bonian_c2' && !SAVED_CONTRACT
     && !(($('[name="proyecto_nombre"]')||{}).value||'').trim();
   const pdfNoSalio = lwT('Descarga o envía el PDF primero: no se puede subir firmado algo que no ha salido');
@@ -4579,7 +4825,7 @@ function updateSaveButton(){
     });
   }
   const btn=$('#btnSave'); if(!btn) return;
-  const tipo = CONTRACT_TIPO[CURRENT.slug];
+  const tipo = tipoDeSlug(CURRENT.slug);
   const form=$('#form'); if(form) form.classList.toggle('locked', LOCKED);
   const badge=$('#lockBadge'); if(badge) badge.style.display = LOCKED ? 'inline-flex' : 'none';
   // PDF firmado, Editar texto, Diseño (misma llave de admin: los dos cambian
@@ -4697,8 +4943,12 @@ $('#btnDownloadSigned').addEventListener('click', abrirPdfFirmado);
 
 function contractPayload(){
   const data = collect();
+  /* Un contrato PROPIO se guarda SIEMPRE con la sociedad de su empresa escrita en el propio contrato (E9): quien lo lea después —Operaciones,
+     Vencimientos, la edge de firma— no tiene que adivinar nada, y el respaldo «Tepi Sun Gai» de los 17 no llega a aplicarse. */
+  const socPropia = sociedadPropiaDe();
+  if(socPropia) data.sociedad_firmante = socPropia;
   return {
-    tipo: CONTRACT_TIPO[CURRENT.slug],
+    tipo: tipoDeSlug(CURRENT.slug),
     // ⚠️ 11-ago-2026, corregido el mismo día: `nombre_contrato` NO va aquí.
     // `comprador_nombre` no es una etiqueta interna — la lee TODA la suite como
     // la identidad real de la operación: el cajón de Operaciones la usa como
@@ -4878,8 +5128,10 @@ async function crearProformaAutomatica(contratoId, numero, payload){
 async function guardarContrato(){
   if(!sb){ avisoNoGuardado(lwT('Supabase no disponible.')); return; }
   if(LOCKED){ avisoNoGuardado(lwT('Contrato bloqueado.')); return; }   // el botón ya se oculta; la RLS también lo bloquearía
-  const tipo = CONTRACT_TIPO[CURRENT.slug];
+  const tipo = tipoDeSlug(CURRENT.slug);
   if(!tipo) return;
+  const motivoPropio = motivoPropioNoEmite();
+  if(motivoPropio){ avisoNoGuardado(motivoPropio); return; }
   /* El Poder Notarial no existe suelto (14-ago, petición del owner): acompaña a
      un contrato concreto y de él saca al Otorgante. Se para AQUÍ y no solo en
      el aviso visual porque sin guardar no hay número ni "Enviar a firma", así
@@ -5161,6 +5413,34 @@ async function guardarContrato(){
   if(problemasAnx.length){
     avisoNoGuardado('No se guarda: ' + problemasAnx.join('; ') + '.');
     return;
+  }
+
+  /* CAMPOS PROPIOS DE LA EMPRESA (E8, 8-oct-2026). Antes de guardar se le pregunta a la BASE qué diría de los valores escritos (plantilla_campo_propio_valida): si alguno
+     no vale, se para aquí y se dice cuál, en llano. Esto es solo el aviso a tiempo; lo que decide de verdad es el trigger de `contratos`, que comprueba lo mismo al escribir.
+     Si la pregunta no llega (sin red), se sigue: el trigger rechazaría igualmente lo que no vale. */
+  {
+    const cxVals = {}, dCx = collect();
+    Object.keys(dCx).forEach(k=>{ if(/^cx_/.test(k) && String(dCx[k]).trim() !== '') cxVals[k] = dCx[k]; });
+    if(Object.keys(cxVals).length && PLANTILLA_VER && PLANTILLA_VER.empresa){
+      let rv = null;
+      try{
+        const { data, error } = await sb.rpc('plantilla_campo_propio_valida', { p_empresa: PLANTILLA_VER.empresa, p_valores: cxVals });
+        if(error) throw error;
+        rv = data;
+      }catch(_){ rv = null; /* MUDO A PROPOSITO: sin la comprobación previa decide el trigger de la base al guardar, que rechaza lo mismo y lo dice */ }
+      if(rv && rv.ok === false){
+        const claves = Object.keys(rv.errores || {});
+        const lineas = claves.map(k=>{
+          const c = cxDe(k), nombre = c ? L(LW_CX.tipoForm(c, null)[1]) : k;
+          const cl = LW_CX.clasificaValor(rv.errores[k]);
+          return nombre + ': ' + (cl ? lwT(LW_CX.FRASES_VALOR[cl]) : rv.errores[k]);
+        });
+        avisoNoGuardado(lwT('Revisa los campos de la empresa. ') + lineas.join(' · '));
+        const el0 = claves.length ? document.querySelector('[name="' + claves[0] + '"]') : null;
+        if(el0){ el0.focus(); el0.scrollIntoView({behavior:'smooth', block:'center'}); }
+        return;
+      }
+    }
   }
 
   /* true solo si el contrato quedó guardado de verdad (LAW-410, 28-sep-2026): «Enviar a firma»
@@ -5623,7 +5903,7 @@ async function openSavedContract(id){
   const stage = $('.stage'); if(stage) stage.classList.add('cargando');
   const { data, error } = await sb.from('contratos').select('*').eq('id', id).single();
   if(error || !data){ if(stage) stage.classList.remove('cargando'); toastMal(lwT('No se pudo abrir el contrato')); return; }
-  const slug = TIPO_SLUG[data.tipo];
+  const slug = await slugDeTipoGuardado(data.tipo);   // los 17 por TIPO_SLUG; un tipo propio (E9) se recompone desde la base
   if(!slug){ if(stage) stage.classList.remove('cargando'); toastMal(lwT('Tipo de contrato desconocido')); return; }
   OBRA_ES_GUARDADA = true;   // su precio ya está pactado: syncPrecioObraVinculada no lo precarga
   // antes de loadTemplate: deriveSections() monta el desplegable ahí dentro
@@ -5943,7 +6223,7 @@ function abrirDerivar(){
   if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){ toastMal(lwT('Guarda primero: para guardar hay que rellenarlo entero')); return; }
   const sel = $('#dvTpl');
   sel.innerHTML = plantillasOfrecidas()
-    .map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}</option>`).join('');
+    .map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${esc(L(t.name))}</option>`).join('');
   actualizarAvisoDerivar();
   $('#dvOverlay').classList.add('open');
 }
@@ -7040,13 +7320,14 @@ async function init(){
     location.replace('/intranet/?sin_permiso=contratos'); return;
   }
   MI_FICHA = ficha || null;   // el panel de guardados lo usa para el botón de reasignar autor
+  await cargarPropios();      // los contratos propios de las empresas de quien está sentado (E9): antes de decidir qué tipo se abre y de pintar el selector
   /* `CURRENT` arranca en TEMPLATES[0] —Carta de Reserva— ANTES de saber quién
      está sentado aquí. Si resulta que no puede emitirla, se aterriza en el
      primer tipo que sí pueda: dejarle rellenar un contrato entero para que la
      base lo rechace al guardar es la peor forma de enterarse, que es lo mismo
      que ya decía el rebote de arriba para las herramientas. */
   if(!puedeEmitir(CURRENT.slug)){
-    const alt = plantillasOfrecidas().find(t => CONTRACT_TIPO[t.slug]);
+    const alt = plantillasOfrecidas().find(t => tipoDeSlug(t.slug));
     if(alt) CURRENT = alt;
   }
   /* Y si NO puede emitir ninguno —desde el 27-ago, lista vacía significa
@@ -7055,7 +7336,7 @@ async function init(){
      y lo descubría al pulsar Guardar con el contrato ya relleno: exactamente lo
      que el rebote por herramienta evita tres líneas más arriba, y por el mismo
      motivo. */
-  if(MI_FICHA && MI_FICHA.rol === 'agente' && !plantillasOfrecidas().some(t => CONTRACT_TIPO[t.slug])){
+  if(MI_FICHA && MI_FICHA.rol === 'agente' && !plantillasOfrecidas().some(t => tipoDeSlug(t.slug))){
     toastMal(lwT('No tienes ningún tipo de contrato asignado. Pídeselo a un administrador antes de empezar.'));
   }
   MI_EMAIL = session.user.email || '';
@@ -7151,6 +7432,7 @@ async function init(){
   $('#form').addEventListener('focusin', e => { if(e.target && e.target.name === 'proyecto_nombre') e.target.dataset.previo = e.target.value; });
   $('#form').addEventListener('change', e => { if(e.target && e.target.name === 'proyecto_nombre') cambioDeProyectoYTexto(e.target); });
   $('#form').addEventListener('change', updateSaveButton);
+  $('#revPick').addEventListener('change', e => cambioDeRevision(e.target));
 
   // ── que pantalla se abre (6-ago-2026) ──────────────────────────────────
   // ?contrato=<id> abre ese contrato en el editor (lo usa Operaciones y ahora
