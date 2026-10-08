@@ -415,6 +415,11 @@ verify_jwt = false
 [functions.ajustes-correo]
 verify_jwt = false
 
+# bot-api (S4 del encargo bot de Lawang, 9-oct-2026): la llama el servicio lawang-bot (Railway), servidor a servidor, con X-Bot-Secret (un secreto por ruta).
+# Sin JWT del gateway; la puerta es el secreto, y sin secretos configurados responde 401 a todo. Se despliega con --no-verify-jwt; esta entrada fija el valor.
+[functions.bot-api]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
