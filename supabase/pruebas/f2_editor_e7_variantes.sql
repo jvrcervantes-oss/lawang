@@ -49,7 +49,7 @@ declare
   nuevas text[] := array['plantilla_contrato_revision_crea(text,text,uuid,text,text,text)', 'plantilla_contrato_revision_archiva(text,text,text)',
                          'plantilla_contrato_revision_restaura(text,text,text)', 'plantilla_contrato_revision_borra(text,text,text)', 'plantilla_contrato_revisiones_lista(text,text)'];
   cambiadas text[] := array['plantilla_contrato_cuerpo(text,uuid,text,uuid)', 'plantilla_contrato_cuerpo_de_contrato(uuid,text)', 'plantilla_contrato_cuerpo_version(uuid,text)',
-                            'plantilla_contrato_versiones_lista(text,text)', 'plantilla_contrato_edicion(text,text,text)', 'plantilla_contrato_guarda_borrador(text,text,text,text,text)',
+                            'plantilla_contrato_versiones_lista(text,text)', 'plantilla_contrato_edicion(text,text,text)', 'plantilla_contrato_guarda_borrador(text,text,text,text,text,boolean)',
                             'plantilla_contrato_descarta_borrador(uuid)', 'plantilla_contrato_activa(uuid,text,boolean)', 'plantilla_contrato_fija(uuid,uuid)'];
   f text;
 begin
