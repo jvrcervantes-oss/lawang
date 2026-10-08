@@ -184,7 +184,7 @@ const assert = require('assert');
     ok(lt, 'smtp.ts declara CORREO_GRATUITO');
     const listaTs = lt[1].match(/'([^']+)'/g).map((q) => q.slice(1, -1));
     // la migración que lleva la lista: en el maestro la F3.1c, en Lawang la combinada (este fichero es el mismo en los dos repos)
-    const mig = [path.join(__dirname, '..', '..', 'migraciones', '20261008141000_f31c_correo_endurece.sql'),
+    const mig = [path.join(__dirname, '..', '..', 'migraciones', '20261008136500_f31c_correo_endurece.sql'),
                  path.join(__dirname, '..', '..', 'migrations', '20261010060000_correo_ajustes_servidor_y_codigo.sql')].find((f) => fs.existsSync(f));
     ok(mig, 'se encuentra la migración que declara la lista de correo gratuito');
     const sql = fs.readFileSync(mig, 'utf8');
