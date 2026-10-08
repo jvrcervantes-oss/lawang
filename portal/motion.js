@@ -6,8 +6,8 @@
  * del menú, abrir una carpeta de proyecto con la portada que crece, el pulso del paso actual, la campana y el cajón.
  *
  * QUÉ NO PUEDE PASAR (y cómo se evita):
- *  · Que algo se quede oculto o a medias. Nada usa `fill` salvo `backwards` mientras espera su turno: al acabar manda
- *    el CSS. Si este fichero no carga, el portal funciona igual, sin movimiento (el CSS no depende de él salvo la
+ *  · Que algo se quede oculto o a medias. Las entradas solo usan `fill: backwards` mientras esperan su turno: al acabar
+ *    manda el CSS. Lo único con `forwards` son las copias que se desvanecen al filtrar, y se borran solas al terminar. Si este fichero no carga, el portal funciona igual, sin movimiento (el CSS no depende de él salvo la
  *    clase `lw-mov` que él mismo pone: sin la clase, el item activo del menú sigue con su fondo propio).
  *  · Que un importe quede mal. La cifra YA está escrita en el HTML; aquí solo se recorre desde 0 y siempre se
  *    restaura el valor exacto al terminar o si el nodo desaparece.
@@ -89,7 +89,7 @@
     if (seccion === 'inicio' && v.indexOf('inicio') === -1) { v.push('inicio'); sesion(CLAVE_VISTAS, JSON.stringify(v)); }
     if (!puede() || !c) return;
     var P = PERF[p];
-    /* Desde una tarjeta de proyecto de Inicio o Mi perfil: la portada de la carpeta crece desde la foto pulsada (el
+    /* Desde una tarjeta de proyecto de Inicio: la portada de la carpeta crece desde la foto pulsada (el
        resto entra después y por piezas). Solo si el clic fue hace un momento: atrás/adelante o recargar no lo hacen. */
     var r = M._portada; M._portada = null;
     var heroe = seccion === 'documentos' ? c.querySelector(':scope > .dc-heroe') : null, crece = false;
@@ -176,32 +176,42 @@
     root.setTimeout(acaba, a ? 450 : 0);
   };
 
-  /* La foto de la tarjeta que se pulsa (Inicio, Mi perfil): la carpeta que se abre la hace crecer desde ahí. */
+  /* La foto de la tarjeta que se pulsa en Inicio: la carpeta que se abre la hace crecer desde ahí. */
   M.recuerdaPortada = function (el) {
     try { var r = el.getBoundingClientRect(); M._portada = { top: r.top, right: r.right, bottom: r.bottom, left: r.left, w: r.width, h: r.height, t: Date.now() }; } catch (e) { M._portada = null; }
   };
 
   /* Selectores (.ini-filtro de proyecto o villa, .lang-sel del idioma): el fondo del elegido se desliza hasta el nuevo
      en vez de saltar, como el indicador del menú. Cada repintado rehace los botones, así que se recuerda dónde estaba
-     por grupo (zona + los data- de sus botones, nunca un rótulo) y la pista nueva arranca desde ahí. Sin movimiento
-     no se crea pista y el botón elegido conserva su fondo propio. */
+     por grupo (zona + los data- de sus botones, nunca un rótulo). La pista SOLO existe mientras se desliza: viaja
+     desde la posición vieja a la nueva y se borra sola; en reposo el botón elegido tiene su propio fondo, así que un
+     cambio de tamaño, de orientación o una fuente que llega tarde nunca dejan su texto blanco sin fondo (revisor). */
   function claveSel(g, zona) {
     var b = g.querySelector('button'), a = [];
     if (b) Array.prototype.forEach.call(b.attributes, function (x) { if (/^data-/.test(x.name)) a.push(x.name); });
     return (zona || '') + '|' + (g.id || '') + '|' + a.sort().join(',');
   }
+  function quitaPista(g) {
+    var p = g.querySelector(':scope > .lw-pista');
+    if (p) p.parentNode.removeChild(p);
+    g.classList.remove('con-pista');
+  }
   M.selectores = function (raiz, zona) {
     if (!raiz) return;
     Array.prototype.forEach.call(raiz.querySelectorAll('.ini-filtro, .lang-sel'), function (g) {
-      var on = g.querySelector('button[aria-pressed="true"]'), pista = g.querySelector(':scope > .lw-pista');
-      if (!puede() || !on || !on.offsetWidth) { if (pista) pista.parentNode.removeChild(pista); g.classList.remove('con-pista'); return; }
+      var on = g.querySelector('button[aria-pressed="true"]');
+      if (!on || !on.offsetWidth) { quitaPista(g); return; }
+      var k = claveSel(g, zona), x = on.offsetLeft, w = on.offsetWidth, antes = M._sel[k];
+      M._sel[k] = { x: x, w: w };
+      if (!puede() || !antes || (antes.x === x && antes.w === w)) { quitaPista(g); return; }
+      var pista = g.querySelector(':scope > .lw-pista');
       if (!pista) { pista = root.document.createElement('span'); pista.className = 'lw-pista'; pista.setAttribute('aria-hidden', 'true'); g.insertBefore(pista, g.firstChild); }
       g.classList.add('con-pista');
-      var k = claveSel(g, zona), x = on.offsetLeft, w = on.offsetWidth, antes = M._sel[k];
       pista.style.top = on.offsetTop + 'px'; pista.style.height = on.offsetHeight + 'px';
       pista.style.width = w + 'px'; pista.style.transform = 'translateX(' + x + 'px)';
-      if (antes && (antes.x !== x || antes.w !== w)) anima(pista, [{ transform: 'translateX(' + antes.x + 'px)', width: antes.w + 'px' }, { transform: 'translateX(' + x + 'px)', width: w + 'px' }], { duration: 280, easing: EASE });
-      M._sel[k] = { x: x, w: w };
+      anima(pista, [{ transform: 'translateX(' + antes.x + 'px)', width: antes.w + 'px' }, { transform: 'translateX(' + x + 'px)', width: w + 'px' }], { duration: 280, easing: EASE });
+      root.clearTimeout(g._lwPista);
+      g._lwPista = root.setTimeout(function () { quitaPista(g); }, 300);   // al llegar, el botón recupera su fondo
     });
   };
 
@@ -213,6 +223,7 @@
     var antes = {}, base = caja.getBoundingClientRect();
     Array.prototype.forEach.call(caja.querySelectorAll('[' + attr + ']'), function (el) { antes[el.getAttribute(attr)] = { r: el.getBoundingClientRect(), el: el }; });
     pinta();
+    if (caja.querySelectorAll('[' + attr + ']').length > 60) return;   // lo que entra también cuenta para el tope
     var quedan = {}, n = 0;
     Array.prototype.forEach.call(caja.querySelectorAll('[' + attr + ']'), function (el) {
       var k = el.getAttribute(attr), a = antes[k];

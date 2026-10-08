@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="6b3bd7addfc8">
+<meta name="lw-version" content="1120db220271">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1715,10 +1715,14 @@
   /* el acceso entra subiendo (se repite cada vez que la pantalla de entrada pasa a verse) */
   .entrada .caja{ animation:lw-sube .32s var(--lw-ease) both; }
   @keyframes lw-sube{ from{ opacity:0; transform:translateY(14px); } }
-  /* selectores: la pista del elegido (la crea motion.js) se desliza; los botones quedan encima */
+  /* selectores: la pista (la crea motion.js solo mientras se desliza) va debajo de los botones; mientras existe, el
+     elegido cede su fondo a la pista, y al borrarse lo recupera */
   .con-pista{ position:relative; }
   .con-pista > button{ position:relative; z-index:1; }
   .con-pista > button[aria-pressed="true"], .con-pista > button[aria-pressed="true"]:hover{ background:transparent; }
+  /* el elegido cambia de fondo de golpe: si fundiera, su verde aparecería en el destino antes de que llegue la pista,
+     y al borrarse la pista se vería un destello claro */
+  .ini-filtro button[aria-pressed="true"], .lang-sel button[aria-pressed="true"]{ transition:color .2s, transform .12s var(--lw-ease); }
   .lw-pista{ position:absolute; left:0; border-radius:999px; z-index:0; pointer-events:none; background:#485B37; }
   .lang-sel .lw-pista{ background:var(--dl); }
   /* filtrar sin saltos: las copias de lo que sale se colocan sobre la lista */
@@ -1726,7 +1730,10 @@
   /* avisos: la animación de motion.js manda sobre el fundido CSS */
   .toast.lw-aviso{ transition:none; }
   /* pulsar: todo lo que se pulsa cede un poco (los botones ya lo hacían) */
-  .ct-pill, .dc-cifras button, .lang-sel button, button.ini-pastilla, .ini-filtro button{ transition:background .2s, color .2s, border-color .2s, transform .12s var(--lw-ease); }
+  .ct-pill, .dc-cifras button, button.ini-pastilla, .ini-filtro button{ transition:background .2s, color .2s, border-color .2s, transform .12s var(--lw-ease); }
+  /* el idioma no se repinta (sus botones son fijos): su fondo cambia de golpe y el movimiento lo pone la pista; si
+     fundiera, el botón que deja de estar elegido taparía la pista al salir */
+  .lang-sel button{ transition:color .2s, transform .12s var(--lw-ease); }
   .fa-slip{ transition:border-color .2s var(--lw-ease), background .2s var(--lw-ease), transform .12s var(--lw-ease); }
   .ini-ir:active, .ct-pill:active, button.ini-pastilla:active, .dc-cifras button:active, .ini-filtro button:active, .lang-sel button:active{ transform:scale(.96); }
   .dc-doc:active, .fa-slip:active{ transform:scale(.99); }
@@ -1735,10 +1742,14 @@
     .proy-card:hover, .proy-card:hover .proy-portada img, .fa-slip:hover .fa-papel, .ini-ir:hover, .ob-foto:hover .ob-marco img,
     .dc-doc:hover, .dc-doc:hover .dc-mesa > *, .dc-doc:hover .dc-ir{ transform:none; }
     .docfila:hover{ padding-left:18px; }
+    /* al tocar, :hover y :active van a la vez: el ceder al pulsar tiene que ganar al «hover» quitado arriba */
+    .ini-ir:active{ transform:scale(.96); }
+    .dc-doc:active, .fa-slip:active{ transform:scale(.99); }
   }
   @media (prefers-reduced-motion:reduce){
     .carga-marca, .carga-raya i, .entrada .caja{ animation:none; }
     .carga-raya{ visibility:hidden; }
+    .ct-pill, .dc-cifras button, .lang-sel button, button.ini-pastilla, .ini-filtro button, .fa-slip{ transition:none; }
     .ini-ir:active, .ct-pill:active, button.ini-pastilla:active, .dc-cifras button:active, .ini-filtro button:active, .lang-sel button:active, .dc-doc:active, .fa-slip:active{ transform:none; }
   }
 </style>
@@ -1854,8 +1865,8 @@
   function toast(msg){
     var el = document.getElementById('toast');
     el.textContent = msg; el.style.opacity = '1';
-    if (window.LW_MOV) LW_MOV.aviso(el, true, false);
     clearTimeout(toast._t); toast._t = setTimeout(function(){ el.style.opacity = '0'; if (window.LW_MOV) LW_MOV.aviso(el, false, false); }, 3200);
+    if (window.LW_MOV) LW_MOV.aviso(el, true, false);
   }
 
   /* Aviso de ERROR: centro, rojo y 7 s (owner, 14-sep-2026). Quien lee esto es
@@ -1868,8 +1879,8 @@
              el.setAttribute('role','alert'); el.setAttribute('aria-live','assertive');
              el.setAttribute('aria-atomic','true'); document.body.appendChild(el); }
     el.className = 'toast mal'; el.textContent = msg; el.style.opacity = '1';
-    if (window.LW_MOV) LW_MOV.aviso(el, true, true);
     clearTimeout(toastMal._t); toastMal._t = setTimeout(function(){ el.style.opacity = '0'; if (window.LW_MOV) LW_MOV.aviso(el, false, true); }, 7000);
+    if (window.LW_MOV) LW_MOV.aviso(el, true, true);
   }
 
   /* ── idioma ───────────────────────────────────────────────────────── */
