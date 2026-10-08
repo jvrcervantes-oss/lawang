@@ -259,6 +259,12 @@ es('sin fecha de vencimiento se encuentra igual (la fecha la decide quien pinta)
   es('la suma de las propiedades es el total de «Todas»', (deA.total || 0) + (deB.total || 0), total.total);
   es('…y el cobrado también', deA.cobrado + deB.cobrado, total.cobrado);
   es('resumenPortal por carpeta SÍ la habría sumado (el fallo que esto evita)', R.resumenPortal(dos.filter(x => x.proyecto_id === 'B')).total, 2000);
+  /* COSTE CONOCIDO, decisión del owner pendiente (LAW-499): lo pagado con una Carta que cayó en otra carpeta resta
+     del pendiente de «Todas» pero de ninguna propiedad, porque la regla de hoy no dice a qué villa pertenece. Se
+     fija aquí para que, si alguien lo cambia, sea a propósito y no en silencio. */
+  es('LAW-499: el pendiente de la carpeta A no resta lo pagado con la Carta de B', deA.pendiente, 140000);
+  es('LAW-499: …y el de «Todas» sí (2.000 de diferencia)', total.pendiente, 138000);
+  es('LAW-499: la carpeta B, sin precio propio, no tiene pendiente', deB.pendiente, null);
 
   // Dos monedas: no se suman.
   const mix = [
