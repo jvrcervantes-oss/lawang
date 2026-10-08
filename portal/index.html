@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="421738987df0">
+<meta name="lw-version" content="4087b625c35b">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1428,94 +1428,105 @@
     .ob-foto:hover .ob-marco img{ transform:none; }
   }
 
-  /* ═══ DOCUMENTOS v2 (owner, 8-oct-2026: artifact «Documentos Lawang») ═══
-     Reutiliza la cabecera, las pastillas y la cabecera partida de Obra (.ob-cab, .ini-filtro, .ob-heroe) y las
-     tarjetas .ob-t con su .ini-th. Lo propio: el panel en petróleo (--dl) en vez de madera, el índice de la carpeta,
-     los filtros por apartado, las filas de documento y un tinte por apartado sacado de colores que el portal ya usa. */
-  .dc-heroe{ background:var(--dl); }
-  .dc-heroe .ob-img{ background:#0c3b3d; }
-  .dc-heroe .ob-asi{ background:rgba(27,28,25,.62); gap:6px; padding-left:9px; }
-  .dc-heroe .ob-asi svg{ width:15px; height:15px; flex:none; }
-  .dc-heroe .ob-sello i{ color:var(--dl); }
-  .dc-heroe .ob-sello i svg{ width:14px; height:14px; }
-  .dc-heroe .dc-nombre{ margin-top:22px; font-size:clamp(34px,4.2vw,50px); }
-  a.ob-losa{ text-decoration:none; }
-  a.ob-losa:hover{ background:rgba(255,255,255,.17); }
-  .dc-heroe .ob-losa:focus-visible, .dc-indice button:focus-visible{ outline:2px solid #F5F0E6; outline-offset:2px; }
-  .dc-indice{ list-style:none; margin:16px 0 0; padding:14px 0 0; border-top:1px solid rgba(255,255,255,.2); display:grid; grid-template-columns:1fr 1fr; gap:2px 22px; }
-  .dc-indice button{ width:100%; font:inherit; background:none; border:0; padding:4px 0; color:#fff; cursor:pointer; display:flex; align-items:baseline; gap:8px; font-size:13.5px; text-align:left; }
-  .dc-indice button span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .dc-indice button i{ flex:1; min-width:12px; border-bottom:1px dotted rgba(255,255,255,.4); transform:translateY(-3px); }
-  .dc-indice button b{ font-weight:600; font-variant-numeric:tabular-nums; }
-  .dc-indice button:hover span{ text-decoration:underline; text-underline-offset:3px; }
-  .dc-vacio-panel{ margin:16px 0 0; padding-top:14px; border-top:1px solid rgba(255,255,255,.2); font-size:13.5px; line-height:1.5; color:rgba(255,255,255,.74); }
+  /* ═══ DOCUMENTOS · Galería (owner, 8-oct-2026: opción A del artifact «Documentos Lawang · opciones visuales») ═══
+     Todo sale del propio portal: la portada que se acerca despacio (ob-acerca, Obra), el sello «Carpeta del proyecto»
+     (.ob-sello), las cifras grandes en petróleo (Inicio), la hoja con la esquina doblada (.fa-papel, Facturas), la flecha
+     verde en círculo (.ini-ir) y los botones de siempre. Radio 20 como las tarjetas de Facturas e Inicio; sin sombras. */
+  .ob-cab .ini-filtro small{ font-weight:500; opacity:.7; margin-left:6px; }
+  .dc-heroe{ position:relative; border-radius:20px; overflow:hidden; min-height:340px; display:flex; flex-direction:column; justify-content:flex-end; background:var(--dl); margin-bottom:18px; }
+  .dc-heroe-img{ position:absolute; inset:0; }
+  .dc-heroe-img img{ width:100%; height:100%; object-fit:cover; display:block; animation:ob-acerca 2.4s var(--lw-ease) both; }
+  .dc-heroe-img::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(16,40,42,.14) 0%, rgba(16,40,42,.3) 42%, rgba(16,40,42,.86) 100%); }   /* se lee también sobre portadas claras */
+  .dc-heroe.sin-portada{ min-height:260px; }
+  .dc-heroe.sin-portada .dc-heroe-img::after{ display:none; }
+  .dc-heroe-tx{ position:relative; padding:28px 30px 4px; color:#fff; display:grid; gap:10px; }
+  /* la etiqueta va sobre la foto: fondo negro translúcido para que se lea aunque la portada sea clara (owner, 8-oct) */
+  .dc-heroe-tx .ob-sello{ background:rgba(27,28,25,.55); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+  .dc-heroe-tx .ob-sello i{ color:var(--dl); }
+  .dc-heroe-tx .ob-sello i svg{ width:14px; height:14px; }
+  .dc-heroe-tx h3{ margin:4px 0 0; font-size:clamp(40px,5.4vw,64px); font-weight:400; line-height:1; letter-spacing:-.02em; overflow-wrap:anywhere; }
+  .dc-heroe-tx p{ margin:0; font-size:14px; color:rgba(255,255,255,.82); }
+  .dc-heroe-acc{ position:relative; display:flex; gap:8px; flex-wrap:wrap; padding:14px 30px 28px; }
+  .dc-mapa{ display:inline-flex; align-items:center; gap:7px; text-decoration:none; color:#fff; border-color:rgba(255,255,255,.45); background:rgba(27,28,25,.25); }
+  .dc-mapa:hover{ background:rgba(255,255,255,.12); }
+  .dc-mapa svg{ width:16px; height:16px; }
+  .btn-oscuro.dc-pedir{ background:#fff; color:var(--dl); border-color:#fff; }
+  .btn-oscuro.dc-pedir:hover{ background:#e8f0ee; }
+  .dc-heroe :focus-visible{ outline:2px solid #fff; outline-offset:2px; }
 
-  .dc-filtros{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
-  .dc-chips{ display:flex; gap:8px; flex-wrap:wrap; min-width:0; margin-right:auto; }
-  .dc-chip{ font:inherit; font-size:13px; font-weight:500; border:1px solid var(--linea); background:transparent; color:var(--va); border-radius:999px; padding:7px 13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; transition:background .15s,color .15s,border-color .15s; }
-  .dc-chip span{ font-size:11.5px; color:var(--out); font-variant-numeric:tabular-nums; }
-  .dc-chip:hover{ background:var(--pg-low); }
-  .dc-chip[aria-pressed="true"]{ background:var(--va); border-color:var(--va); color:#fff; }
-  .dc-chip[aria-pressed="true"] span{ color:rgba(255,255,255,.7); }
-  .dc-chip:focus-visible, .dc-doc:focus-visible, .dc-enlace:focus-visible{ outline:2px solid var(--dl); outline-offset:1px; }
-  .dc-acciones{ display:flex; gap:10px; margin-left:auto; justify-content:flex-end; }
-  .dc-buscar{ position:relative; flex:0 1 230px; min-width:180px; }
-  .dc-buscar svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--out); pointer-events:none; }
-  .dc-buscar input{ width:100%; font:inherit; font-size:13.5px; padding:8px 14px 8px 36px; border:1px solid var(--linea); border-radius:999px; background:var(--rl); color:var(--va); }
-  .dc-buscar input:focus{ outline:2px solid var(--dl); outline-offset:1px; }
+  .dc-cifras{ margin:0 0 18px; background:#fff; border:1px solid var(--pg-hi); border-radius:20px; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); overflow:hidden; }
+  .dc-cifras button{ font:inherit; background:none; border:0; border-left:1px solid var(--pg-hi); padding:18px 16px 16px; text-align:left; cursor:pointer; display:grid; gap:6px; position:relative; color:var(--va); min-width:0; }
+  .dc-cifras button:first-child{ border-left:0; }
+  .dc-cifras b{ font-size:34px; font-weight:500; line-height:1; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .dc-cifras span{ font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dc-cifras button:hover{ background:var(--pg-low); }
+  .dc-cifras button[aria-pressed="true"]{ background:#f2f6f4; }
+  .dc-cifras button[aria-pressed="true"]::after{ content:""; position:absolute; left:16px; right:16px; bottom:0; height:3px; border-radius:3px 3px 0 0; background:#485B37; }
+  .dc-cifras button:focus-visible{ outline:2px solid var(--dl); outline-offset:-2px; }
+  .dc-barra{ margin:0 0 14px; }
 
-  .dc-grupos{ columns:2; column-gap:16px; margin-bottom:2px; }
-  .dc-grupos.uno{ columns:1; }
-  .dc-grupo{ break-inside:avoid; margin:0 0 16px; padding:16px 10px 8px; }
-  .dc-grupo .ini-th{ margin:0 10px 8px; }
-  .dc-grupo .ini-ti{ border:0; }
-  .dc-n{ font-size:11.5px; font-weight:600; color:var(--ink2); background:var(--pg-low); border-radius:999px; padding:3px 9px; font-variant-numeric:tabular-nums; }
-  .dc-grupo ul{ list-style:none; margin:0; padding:0; }
-  .dc-doc{ width:100%; font:inherit; text-align:left; background:none; border:0; border-top:1px solid var(--pg-hi); display:flex; align-items:center; gap:12px; padding:10px; border-radius:10px; color:var(--va); text-decoration:none; cursor:pointer; transition:background .15s; }
-  .dc-grupo li:first-child .dc-doc, .dc-grupo li:hover .dc-doc, .dc-grupo li:hover + li .dc-doc{ border-top-color:transparent; }
-  .dc-doc:hover{ background:var(--pg-low); }
-  .dc-doc.dc-sin{ cursor:default; }
-  .dc-doc.dc-sin:hover{ background:none; }
-  .dc-tipo{ width:40px; height:46px; border-radius:8px; display:grid; place-items:center; flex:none; }
-  .dc-tipo svg, .dc-grupo .ini-ti svg{ width:19px; height:19px; }
-  .dc-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
-  .dc-txt b{ font-size:14px; font-weight:500; line-height:1.3; overflow-wrap:anywhere; }
-  .dc-txt small{ font-size:12px; color:var(--out); overflow-wrap:anywhere; }
-  .dc-ir{ width:32px; height:32px; border-radius:50%; border:1px solid var(--linea); display:grid; place-items:center; flex:none; color:var(--ink2); transition:background .15s,color .15s,border-color .15s; }
+  .dc-rejilla{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
+  .dc-doc{ font:inherit; text-align:left; padding:0; background:#fff; border:1px solid var(--pg-hi); border-radius:20px; overflow:hidden; color:var(--va); text-decoration:none;
+           display:flex; flex-direction:column; cursor:pointer; transition:border-color .2s, transform .3s var(--lw-ease); }
+  .dc-doc:hover{ border-color:var(--linea); transform:translateY(-2px); }
+  .dc-doc:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .dc-doc.dc-sin{ cursor:default; } .dc-doc.dc-sin:hover{ transform:none; border-color:var(--pg-hi); }
+  .dc-mesa{ height:150px; background:var(--pg-low); display:grid; place-items:center; }
+  .dc-mesa > *{ transition:transform .3s var(--lw-ease); }
+  .dc-doc:hover .dc-mesa > *{ transform:translateY(-3px) rotate(-3deg); }
+  .dc-doc.dc-sin:hover .dc-mesa > *{ transform:none; }
+  .dc-pie{ display:flex; align-items:flex-end; gap:10px; padding:14px 16px 16px; flex:1; }
+  .dc-t{ flex:1; min-width:0; display:grid; gap:3px; }
+  .dc-t small{ font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--out); }
+  .dc-t b{ font-size:15px; font-weight:500; line-height:1.3; overflow-wrap:anywhere; }
+  .dc-t em{ font-style:normal; font-size:12px; color:var(--out); overflow-wrap:anywhere; }
+  .dc-ir{ width:40px; height:40px; margin-left:0; flex:none; }
   .dc-ir svg{ width:16px; height:16px; }
-  .dc-doc:hover .dc-ir{ background:var(--dl); border-color:var(--dl); color:#fff; }
-  .dc-c-comercial{ background:#e4ecec; color:#104C4F; }
-  .dc-c-legal{ background:#efe6da; color:#5a3417; }
-  .dc-c-tecnico{ background:#e3eadb; color:#3F5230; }
-  .dc-c-planos{ background:#e1e9e3; color:#2C5A43; }
-  .dc-c-fotos{ background:#f6e8cc; color:#8C5E10; }
-  .dc-c-precios, .dc-c-faq, .dc-c-otros{ background:#ecebe4; color:#4f524a; }
+  .dc-doc:hover .dc-ir{ transform:rotate(45deg); }
+  /* los dibujos: la hoja de Facturas en grande, una carpeta y un álbum con la portada */
+  .dc-papel{ width:92px; height:116px; padding:14px 12px 12px; border-radius:6px; background:#fff; clip-path:polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%); }
+  .dc-papel::after{ width:20px; height:20px; }
+  .dc-papel b{ font-size:13px; }
+  .dc-papel i{ height:3px; margin-top:6px; }
+  .dc-carpeta{ position:relative; width:112px; height:84px; margin-top:12px; border-radius:4px 10px 10px 10px; background:#e3eadb; display:grid; place-items:center; }
+  .dc-carpeta::before{ content:""; position:absolute; left:0; top:-12px; width:44px; height:14px; border-radius:6px 6px 0 0; background:#e3eadb; }
+  .dc-carpeta b{ font-size:13px; font-weight:600; letter-spacing:.08em; color:#3F5230; }
+  .dc-fotos{ position:relative; width:120px; height:92px; }
+  .dc-fotos > *{ position:absolute; inset:0; border-radius:8px; border:5px solid #fff; background:var(--pg-hi); }
+  .dc-fotos i:nth-child(1){ transform:rotate(-8deg); } .dc-fotos i:nth-child(2){ transform:rotate(6deg); background:#e3eadb; }
+  .dc-fotos img{ width:100%; height:100%; object-fit:cover; display:block; }
 
-  .dc-vacia{ background:#fff; border:1px solid var(--pg-hi); border-radius:12px; padding:34px 24px; margin-bottom:18px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; }
-  .dc-vacia .ini-ti{ width:52px; height:52px; margin-bottom:6px; background:#ecebe4; border:0; color:#4f524a; }
-  .dc-vacia .ini-ti svg{ width:24px; height:24px; }
-  .dc-vacia b{ font-size:16px; font-weight:500; }
-  .dc-vacia p{ margin:0; font-size:13.5px; color:var(--ink2); max-width:44ch; line-height:1.5; }
-  .dc-pedir{ display:flex; align-items:center; gap:16px; padding:16px 18px; border-radius:12px; background:var(--pg-low); border:1px solid var(--pg-hi); flex-wrap:wrap; }
-  .dc-pedir .ini-ti{ background:#fff; }
-  .dc-pedir .ini-ti svg{ width:18px; height:18px; }
-  .dc-pedir-t{ flex:1 1 260px; min-width:0; }
-  .dc-pedir-t b{ display:block; font-size:14.5px; font-weight:600; }
-  .dc-pedir-t > span{ display:block; font-size:13px; color:var(--ink2); margin-top:2px; line-height:1.45; }
+  .dc-vacia{ background:#fff; border:1px solid var(--pg-hi); border-radius:20px; padding:36px 24px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; }
+  .dc-pila{ position:relative; display:block; width:64px; height:76px; margin-bottom:6px; }
+  .dc-pila .fa-papel{ position:absolute; left:8px; top:6px; background:#fff; }
+  .dc-pila .fa-papel:nth-child(1){ transform:rotate(-9deg) translate(-6px,2px); }
+  .dc-vacia b{ font-size:17px; font-weight:500; }
+  .dc-vacia p{ margin:0; font-size:13.5px; color:var(--ink2); max-width:46ch; line-height:1.5; }
+  .dc-perfil{ margin:18px 0 0; font-size:13px; color:var(--ink2); }
   .dc-enlace{ font:inherit; background:none; border:0; padding:0; color:var(--dl); font-weight:600; cursor:pointer; }
   .dc-enlace:hover{ text-decoration:underline; }
-  @media (max-width:760px){ .dc-grupos{ columns:1; } }
+  .dc-enlace:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
   @media (max-width:640px){
-    .dc-indice{ grid-template-columns:1fr; }
-    .dc-heroe .ob-losas{ grid-template-columns:1fr 1fr; }
-    .dc-chips{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; max-width:100%; padding-bottom:2px; margin-right:0; }
-    .dc-chips::-webkit-scrollbar{ display:none; }
-    .dc-acciones{ margin-left:0; flex:1 1 100%; flex-wrap:wrap; justify-content:flex-start; }
-    .dc-buscar{ flex:1 1 100%; }
-    .dc-grupo{ padding:14px 6px 6px; }
-    .dc-chip, .dc-doc{ min-height:44px; }
+    .dc-heroe{ min-height:300px; }
+    .dc-heroe-tx{ padding:22px 18px 4px; }
+    .dc-heroe-acc{ padding:12px 18px 20px; }
+    .dc-cifras{ grid-auto-flow:row; grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-columns:auto; }
+    .dc-cifras button{ border-left:0; border-top:1px solid var(--pg-hi); padding:14px 12px; }
+    .dc-cifras b{ font-size:26px; }
+    .dc-rejilla{ grid-template-columns:1fr 1fr; gap:10px; }
+    .dc-mesa{ height:120px; }
+    .dc-papel{ width:72px; height:92px; }
+    .dc-fotos{ width:96px; height:74px; }
+    .dc-carpeta{ width:88px; height:66px; }
+    .dc-pie{ padding:12px; }
+    .dc-t b{ font-size:13.5px; }
+    .dc-ir{ display:none; }
   }
-  @media (prefers-reduced-motion:reduce){ .dc-chip, .dc-doc, .dc-ir{ transition:none; } }
+  @media (prefers-reduced-motion:reduce){
+    .dc-heroe-img img{ animation:none; }
+    .dc-doc, .dc-mesa > *{ transition:none; }
+    .dc-doc:hover, .dc-doc:hover .dc-mesa > *, .dc-doc:hover .dc-ir{ transform:none; }
+  }
 </style>
 </head>
 <body>
@@ -1744,11 +1755,11 @@
          doc_zip_vacio:'No hay documentos descargables en esta lista.', doc_zip_tope:'Son demasiados documentos para un solo archivo. Descárgalos de uno en uno.',
          doc_sin_resultados:'Ningún documento coincide con tu búsqueda.', doc_otros:'Otros',
          doc_cat_otros:'Otros', dc_titulo:'Tus documentos', dc_sub:'Dossieres, licencias, planos y fotos de cada proyecto, en un solo sitio.', dc_proyecto:'Proyecto',
-         dc_carpeta:'Carpeta del proyecto', dc_n_apartados_1:'{d} en 1 apartado', dc_n_apartados_n:'{d} en {n} apartados', dc_sin_publicar:'Todavía sin documentos publicados',
-         dc_vacio_panel:'En cuanto publiquemos el dossier, los planos o las licencias de este proyecto, aparecerán aquí.', dc_ubicacion:'Ubicación', dc_ver_mapa:'Ver en el mapa',
-         dc_apartado:'Apartado', dc_todo:'Todo', dc_buscar_en:'Buscar en {p}', dc_t_documento:'Documento', dc_t_carpeta:'Carpeta', dc_t_album:'Álbum', dc_t_enlace:'Enlace', dc_t_fichero:'Archivo',
+         dc_carpeta:'Carpeta del proyecto', dc_ver_mapa:'Ver en el mapa', dc_apartado:'Apartado', dc_todos:'Todos', dc_buscar_en:'Buscar en {p}',
+         dc_t_documento:'Documento', dc_t_carpeta:'Carpeta', dc_t_album:'Álbum', dc_t_enlace:'Enlace', dc_t_fichero:'Archivo',
+         dc_cod_comercial:'COM', dc_cod_legal:'LEG', dc_cod_tecnico:'TÉC', dc_cod_planos:'PLA', dc_cod_fotos:'FOT', dc_cod_precios:'PRE', dc_cod_faq:'FAQ', dc_cod_otros:'DOC',
          dc_vacia_t:'Aún no hay documentos de {p}', dc_vacia:'Cuando publiquemos el dossier, los planos o las licencias, los tendrás aquí. Si necesitas alguno ya, pídelo y te avisamos.',
-         dc_pedir_t:'¿Echas en falta algún documento?', dc_pedir:'Pídelo y lo añadimos a la carpeta de {p}.', dc_personales:'Tu pasaporte y demás papeles personales están en', dc_pedir_btn:'Pedir un documento',
+         dc_personales:'Tu pasaporte y demás papeles personales están en', dc_pedir_btn:'Pedir un documento',
          dc_pedir_texto:'Hola, me gustaría recibir este documento de {p}: ',
          ct_enviado:'enviado el {f}', ct_firma_titulo:'Tu contrato de {t} de {p} espera tu firma', ct_firma_titulo_n:'Tu contrato {n} espera tu firma',
          ct_dias_firmar:'Días para firmar', ct_dia_firmar:'Día para firmar', ct_filtrar:'Filtrar por villa', ct_todas:'Todas las villas',
@@ -1849,11 +1860,11 @@
          doc_zip_vacio:'There are no downloadable documents in this list.', doc_zip_tope:'There are too many documents for a single file. Download them one by one.',
          doc_sin_resultados:'No document matches your search.', doc_otros:'Other',
          doc_cat_otros:'Other', dc_titulo:'Your documents', dc_sub:'Brochures, permits, plans and photos for each project, all in one place.', dc_proyecto:'Project',
-         dc_carpeta:'Project folder', dc_n_apartados_1:'{d} in 1 section', dc_n_apartados_n:'{d} in {n} sections', dc_sin_publicar:'No documents published yet',
-         dc_vacio_panel:'As soon as we publish the brochure, plans or permits for this project, they will appear here.', dc_ubicacion:'Location', dc_ver_mapa:'View on the map',
-         dc_apartado:'Section', dc_todo:'All', dc_buscar_en:'Search in {p}', dc_t_documento:'Document', dc_t_carpeta:'Folder', dc_t_album:'Album', dc_t_enlace:'Link', dc_t_fichero:'File',
+         dc_carpeta:'Project folder', dc_ver_mapa:'View on the map', dc_apartado:'Section', dc_todos:'All', dc_buscar_en:'Search in {p}',
+         dc_t_documento:'Document', dc_t_carpeta:'Folder', dc_t_album:'Album', dc_t_enlace:'Link', dc_t_fichero:'File',
+         dc_cod_comercial:'COM', dc_cod_legal:'LEG', dc_cod_tecnico:'TEC', dc_cod_planos:'PLN', dc_cod_fotos:'PHO', dc_cod_precios:'PRI', dc_cod_faq:'FAQ', dc_cod_otros:'DOC',
          dc_vacia_t:'No documents for {p} yet', dc_vacia:'When we publish the brochure, plans or permits, you will find them here. If you need one now, ask and we will let you know.',
-         dc_pedir_t:'Missing a document?', dc_pedir:'Ask for it and we will add it to the {p} folder.', dc_personales:'Your passport and other personal documents are in', dc_pedir_btn:'Request a document',
+         dc_personales:'Your passport and other personal documents are in', dc_pedir_btn:'Request a document',
          dc_pedir_texto:'Hello, I would like to receive this document for {p}: ',
          ct_enviado:'sent on {f}', ct_firma_titulo:'Your {t} contract for {p} is waiting for your signature', ct_firma_titulo_n:'Your contract {n} is waiting for your signature',
          ct_dias_firmar:'Days left to sign', ct_dia_firmar:'Day left to sign', ct_filtrar:'Filter by villa', ct_todas:'All villas',
@@ -1958,11 +1969,11 @@
          doc_zip_vacio:'Tidak ada dokumen yang dapat diunduh dalam daftar ini.', doc_zip_tope:'Dokumennya terlalu banyak untuk satu berkas. Unduh satu per satu.',
          doc_sin_resultados:'Tidak ada dokumen yang cocok dengan pencarian Anda.', doc_otros:'Lainnya',
          doc_cat_otros:'Lainnya', dc_titulo:'Dokumen Anda', dc_sub:'Brosur, izin, denah, dan foto setiap proyek, di satu tempat.', dc_proyecto:'Proyek',
-         dc_carpeta:'Folder proyek', dc_n_apartados_1:'{d} dalam 1 bagian', dc_n_apartados_n:'{d} dalam {n} bagian', dc_sin_publicar:'Belum ada dokumen yang diterbitkan',
-         dc_vacio_panel:'Begitu kami menerbitkan brosur, denah, atau izin proyek ini, semuanya akan muncul di sini.', dc_ubicacion:'Lokasi', dc_ver_mapa:'Lihat di peta',
-         dc_apartado:'Bagian', dc_todo:'Semua', dc_buscar_en:'Cari di {p}', dc_t_documento:'Dokumen', dc_t_carpeta:'Folder', dc_t_album:'Album', dc_t_enlace:'Tautan', dc_t_fichero:'Berkas',
+         dc_carpeta:'Folder proyek', dc_ver_mapa:'Lihat di peta', dc_apartado:'Bagian', dc_todos:'Semua', dc_buscar_en:'Cari di {p}',
+         dc_t_documento:'Dokumen', dc_t_carpeta:'Folder', dc_t_album:'Album', dc_t_enlace:'Tautan', dc_t_fichero:'Berkas',
+         dc_cod_comercial:'KOM', dc_cod_legal:'LEG', dc_cod_tecnico:'TEK', dc_cod_planos:'DNH', dc_cod_fotos:'FOT', dc_cod_precios:'HRG', dc_cod_faq:'FAQ', dc_cod_otros:'DOK',
          dc_vacia_t:'Belum ada dokumen untuk {p}', dc_vacia:'Saat kami menerbitkan brosur, denah, atau izin, Anda akan menemukannya di sini. Jika Anda membutuhkannya sekarang, mintalah dan kami akan mengabari Anda.',
-         dc_pedir_t:'Ada dokumen yang belum ada?', dc_pedir:'Mintalah dan kami akan menambahkannya ke folder {p}.', dc_personales:'Paspor dan dokumen pribadi lainnya ada di', dc_pedir_btn:'Minta dokumen',
+         dc_personales:'Paspor dan dokumen pribadi lainnya ada di', dc_pedir_btn:'Minta dokumen',
          dc_pedir_texto:'Halo, saya ingin menerima dokumen ini untuk {p}: ',
          ct_enviado:'dikirim pada {f}', ct_firma_titulo:'Kontrak {t} Anda untuk {p} menunggu tanda tangan Anda', ct_firma_titulo_n:'Kontrak {n} Anda menunggu tanda tangan Anda',
          ct_dias_firmar:'Hari tersisa untuk menandatangani', ct_dia_firmar:'Hari tersisa untuk menandatangani', ct_filtrar:'Saring per vila', ct_todas:'Semua vila',
@@ -3601,34 +3612,22 @@
      pintaPerfil(). Aquí solo queda la documentación de la promoción,
      agrupada por proyecto (pedido del cliente, 1-sep: un comprador con
      varios contratos veía todo mezclado). */
-  /* Documentos v2 (owner, 8-oct-2026: artifact «Documentos Lawang» aprobado). Mismo lenguaje que Obra: título con
-     subtítulo, los proyectos en pastillas (.ini-filtro), la cabecera partida portada + panel (.ob-heroe, aquí en
-     petróleo) y un apartado por tarjeta. Ya no hay rejilla previa: se entra directo a la carpeta y la carpeta abierta
-     sigue viviendo en la dirección (#/documentos/<proyecto>), así que atrás, recargar y los enlaces de Inicio funcionan.
-     Lo que hacía la pantalla vieja sigue: buscador (con más de 8 documentos), «Descargar carpeta» (solo con ficheros
-     del almacén), ver ubicación, abrir enlace o fichero. Los ganchos son data-carpeta y data-doc, nunca un rótulo. */
+  /* Documentos · Galería (owner, 8-oct-2026: opción A del artifact «Documentos Lawang · opciones visuales»). Con las
+     piezas del propio portal: la portada a todo el ancho que se acerca despacio como en Obra, una fila de cifras por
+     apartado (petróleo, como las de Inicio) que filtra, y cada documento como una tarjeta con su dibujo — la hoja de
+     Facturas con el código del apartado, una carpeta de Drive o un álbum con la portada del proyecto — y la flecha verde.
+     Sin rejilla previa: se entra directo a la carpeta y la carpeta abierta vive en la dirección (#/documentos/<proyecto>),
+     así que atrás, recargar y los enlaces de Inicio funcionan. Lo que hacía la pantalla vieja sigue: buscador (con más
+     de 8 documentos), «Descargar carpeta» (solo con ficheros del almacén), ver ubicación, abrir enlace o fichero.
+     Los ganchos son data-carpeta, data-dc-cat y data-doc, nunca un rótulo. */
   var ORDEN_CAT = ['comercial', 'legal', 'tecnico', 'planos', 'fotos', 'precios', 'faq', 'otros'];   // faq: el CHECK de la tabla la admite
   var DOC_FILTRO = { key:null, cat:'', q:'' };   // apartado y búsqueda de la carpeta abierta; se limpian al cambiar de carpeta
-  /* Iconos de trazo de la sección (dibujados para ella, mismo grosor que los de Inicio). */
   var ICO_DC = (function(){
     var p = {
-      comercial:'<path d="M12 6.5C10.5 5 8 4.5 4 4.5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-13c-4 0-6.5.5-8 2z"/><path d="M12 6.5v13"/>',
-      legal:'<path d="M12 4v16M8.5 20h7M5 7h14"/><path d="M5 7l-2.5 6a2.5 2.5 0 0 0 5 0z"/><path d="M19 7l-2.5 6a2.5 2.5 0 0 0 5 0z"/>',
-      tecnico:'<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4.5M15 8v3M19 8v2"/>',
-      planos:'<rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/><path d="M3.5 10h7v10.5M10.5 3.5V6.5M14 14h6.5M14 14v6.5"/>',
-      fotos:'<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/>',
-      precios:'<path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2l-6.5 6.5a1.4 1.4 0 0 1-2 0z"/><circle cx="8" cy="8" r="1.4"/>',
-      documento:'<path d="M14 3.5H7a1.5 1.5 0 0 0-1.5 1.5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5M9 13h6M9 16.5h4"/>',
       carpeta:'<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5v8.8A1.5 1.5 0 0 1 19 19.5H5a1.5 1.5 0 0 1-1.5-1.5z"/>',
-      album:'<rect x="6.5" y="3.5" width="14" height="12" rx="1.5"/><path d="M3.5 7.5v11a1.5 1.5 0 0 0 1.5 1.5h11"/><path d="M7 13l3.5-3 3 2.5 2.5-2 3.5 3"/>',
       ir:'<path d="M8 16 16 8M9.5 8H16v6.5"/>',
-      buscar:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.3-4.3"/>',
-      pedir:'<path d="M4.5 5.5h15v10h-8l-4 3.5v-3.5h-3z"/><path d="M12 8.5v4M10 10.5h4"/>',
-      pin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
-      faq:'<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.7"/><path d="M12 16.9v.1"/>',
-      vacia:'<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5v8.8A1.5 1.5 0 0 1 19 19.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9.5 13.5h5"/>'
+      pin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>'
     };
-    p.otros = p.documento;
     var o = {};
     Object.keys(p).forEach(function(k){ o[k] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p[k] + '</svg>'; });
     return o;
@@ -3650,6 +3649,14 @@
     var m = {};
     docs.forEach(function(x){ var k = catClave(x.categoria); (m[k] = m[k] || []).push(x); });
     return ORDEN_CAT.filter(function(k){ return m[k]; }).map(function(k){ return { k:k, docs:m[k] }; });
+  }
+  /* El dibujo de cada tarjeta: la hoja con el código del apartado; una carpeta de Drive es una carpeta; un álbum (o un
+     documento del apartado Fotos) enseña la portada del proyecto entre dos fotos de fondo. */
+  function docMiniatura(x, f){
+    var k = catClave(x.categoria), tp = docTipo(x), cod = esc(t('dc_cod_' + k));
+    if ((tp.k === 'album' || k === 'fotos') && f.portada) return '<span class="dc-fotos"><i></i><i></i><img alt="" data-portada="' + esc(f.portada) + '" hidden></span>';
+    if (tp.k === 'carpeta') return '<span class="dc-carpeta"><b>' + cod + '</b></span>';
+    return '<span class="fa-papel dc-papel"><b>' + cod + '</b><span><i></i><i></i><i></i></span></span>';
   }
   function pintaDocumentos(c){
     var carpetas = carpetasProyecto();
@@ -3673,48 +3680,36 @@
       (carpetas.length > 1 ? '<div class="ini-filtro" role="group" aria-label="' + esc(t('dc_proyecto')) + '">' + carpetas.map(function(x){
         return '<button type="button" data-carpeta="' + esc(x.key) + '" aria-pressed="' + (x.key === f.key ? 'true' : 'false') + '">' + esc(x.nombre) + '<small>' + x.docs.length + '</small></button>';
       }).join('') + '</div>' : '') + '</div>';
-    var resumen = docs.length ? t(grupos.length === 1 ? 'dc_n_apartados_1' : 'dc_n_apartados_n').replace('{d}', nDocsTxt(docs.length)).replace('{n}', grupos.length) : t('dc_sin_publicar');
-    var heroe = '<section class="ob-heroe dc-heroe" aria-label="' + esc(f.nombre) + '">' +
-      '<div class="ob-img">' + (f.portada
-          ? '<img alt="' + esc(f.nombre) + '" data-portada="' + esc(f.portada) + '" hidden>' + (f.resort ? '<span class="ob-asi">' + ICO_DC.pin + esc(f.resort) + '</span>' : '')
-          : '<span class="ob-sinimg">' + esc(t('portada_prep')) + '</span>') + '</div>' +
-      '<div class="ob-panel"><span class="ob-sello">' + esc(t('dc_carpeta')) + '<i>' + ICO_DC.carpeta + '</i></span>' +
-        '<span class="ob-fase dc-nombre">' + esc(f.nombre) + '</span><span class="ob-donde">' + esc(resumen) + '</span>' +
-        (docs.length
-          ? '<ol class="dc-indice">' + grupos.map(function(g){
-              return '<li><button type="button" data-dc-cat="' + g.k + '"><span>' + esc(catDoc(g.k)) + '</span><i></i><b>' + g.docs.length + '</b></button></li>';
-            }).join('') + '</ol>'
-          : '<p class="dc-vacio-panel">' + esc(t('dc_vacio_panel')) + '</p>') +
-        '<div class="ob-losas"><div class="ob-losa"><span class="ob-losa-t">' + esc(t('entrega_est')) + '</span><b>' + esc(f.entrega ? mesAno(f.entrega) : t('ob_por_confirmar')) + '</b></div>' +
-          (mapaOk
-            ? '<a class="ob-losa" href="' + esc(f.mapa) + '" target="_blank" rel="noopener noreferrer"><span class="ob-losa-t">' + esc(t('dc_ubicacion')) + ICO_INI.diagP + '</span><b>' + esc(t('dc_ver_mapa')) + '</b>' + (!f.portada && f.resort ? '<small>' + esc(f.resort) + '</small>' : '') + '</a>'
-            : '<div class="ob-losa"><span class="ob-losa-t">' + esc(t('dc_ubicacion')) + '</span><b>' + esc(f.resort || '—') + '</b></div>') +
-        '</div></div></section>';
+    var datos = [f.resort, f.entrega ? t('entrega_est') + ': ' + mesAno(f.entrega) : ''].filter(Boolean).join(' · ');
+    var heroe = '<section class="dc-heroe' + (f.portada ? '' : ' sin-portada') + '" aria-label="' + esc(f.nombre) + '">' +
+      '<div class="dc-heroe-img">' + (f.portada ? '<img alt="" data-portada="' + esc(f.portada) + '" hidden>' : '') + '</div>' +
+      '<div class="dc-heroe-tx"><span class="ob-sello">' + esc(t('dc_carpeta')) + '<i>' + ICO_DC.carpeta + '</i></span>' +
+        '<h3>' + esc(f.nombre) + '</h3>' + (datos ? '<p>' + esc(datos) + '</p>' : '') + '</div>' +
+      '<div class="dc-heroe-acc">' +
+        (mapaOk ? '<a class="btn-borde dc-mapa" href="' + esc(f.mapa) + '" target="_blank" rel="noopener noreferrer">' + ICO_DC.pin + esc(t('dc_ver_mapa')) + '</a>' : '') +
+        '<button type="button" class="btn-oscuro dc-pedir" data-dc-pedir>' + esc(t('dc_pedir_btn')) + '</button></div></section>';
     var hayFicheros = docs.some(function(x){ return !x.url && x.path; });
     var cuerpo = docs.length
-      ? '<div class="dc-filtros"><div class="dc-chips" role="group" aria-label="' + esc(t('dc_apartado')) + '">' +
-            '<button type="button" class="dc-chip" data-dc-cat="" aria-pressed="' + (!DOC_FILTRO.cat) + '">' + esc(t('dc_todo')) + '<span>' + docs.length + '</span></button>' +
-            grupos.map(function(g){
-              return '<button type="button" class="dc-chip" data-dc-cat="' + g.k + '" aria-pressed="' + (DOC_FILTRO.cat === g.k) + '">' + esc(catDoc(g.k)) + '<span>' + g.docs.length + '</span></button>';
-            }).join('') + '</div>' +
-          ((docs.length > 8 || hayFicheros) ? '<div class="dc-acciones">' : '') +
-          (docs.length > 8 ? '<label class="dc-buscar">' + ICO_DC.buscar + '<input id="docBuscar" type="search" autocomplete="off" placeholder="' + esc(t('dc_buscar_en').replace('{p}', f.nombre)) + '" aria-label="' + esc(t('doc_buscar')) + '"></label>' : '') +
+      ? '<section class="dc-cifras" role="group" aria-label="' + esc(t('dc_apartado')) + '">' +
+          '<button type="button" data-dc-cat="" aria-pressed="' + (!DOC_FILTRO.cat) + '"><b>' + docs.length + '</b><span>' + esc(t('dc_todos')) + '</span></button>' +
+          grupos.map(function(g){ return '<button type="button" data-dc-cat="' + g.k + '" aria-pressed="' + (DOC_FILTRO.cat === g.k) + '"><b>' + g.docs.length + '</b><span>' + esc(catDoc(g.k)) + '</span></button>'; }).join('') +
+        '</section>' +
+        ((docs.length > 8 || hayFicheros) ? '<div class="fa-filtros dc-barra"><span></span><div class="fa-filtros-der">' +
+          (docs.length > 8 ? '<input type="search" class="fa-campo" id="docBuscar" autocomplete="off" placeholder="' + esc(t('dc_buscar_en').replace('{p}', f.nombre)) + '" aria-label="' + esc(t('doc_buscar')) + '">' : '') +
           // «Descargar carpeta» solo si hay ficheros subidos que empaquetar: hoy casi todos los documentos son enlaces
           // externos y un botón que siempre dice «no hay nada descargable» es un botón roto.
           (hayFicheros ? '<button type="button" class="btn-borde" id="btnZipDocs">' + esc(t('descargar_carpeta')) + '</button>' : '') +
-          ((docs.length > 8 || hayFicheros) ? '</div>' : '') +
-        '</div><div id="docLista" class="dc-grupos"></div>'
-      : '<div class="dc-vacia"><span class="ini-ti">' + ICO_DC.vacia + '</span><b>' + esc(t('dc_vacia_t').replace('{p}', f.nombre)) + '</b><p>' + esc(t('dc_vacia')) + '</p></div>';
-    var pedir = '<aside class="dc-pedir"><span class="ini-ti">' + ICO_DC.pedir + '</span><div class="dc-pedir-t"><b>' + esc(t('dc_pedir_t')) + '</b>' +
-      '<span>' + esc(t('dc_pedir').replace('{p}', f.nombre)) + ' ' + esc(t('dc_personales')) + ' <button type="button" class="dc-enlace" data-ir="perfil">' + esc(t('nav_perfil')) + '</button>.</span></div>' +
-      '<button type="button" class="btn-oscuro" data-dc-pedir>' + esc(t('dc_pedir_btn')) + '</button></aside>';
-    c.innerHTML = cab + heroe + cuerpo + pedir;
+        '</div></div>' : '') +
+        '<div id="docLista"></div>'
+      : '<div class="dc-vacia"><span class="dc-pila"><span class="fa-papel"><b>—</b><span><i></i><i></i><i></i></span></span><span class="fa-papel"><b>—</b><span><i></i><i></i><i></i></span></span></span>' +
+          '<b>' + esc(t('dc_vacia_t').replace('{p}', f.nombre)) + '</b><p>' + esc(t('dc_vacia')) + '</p></div>';
+    var perfil = '<p class="dc-perfil">' + esc(t('dc_personales')) + ' <button type="button" class="dc-enlace" data-ir="perfil">' + esc(t('nav_perfil')) + '</button>.</p>';
+    c.innerHTML = cab + heroe + cuerpo + perfil;
 
     c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (b.getAttribute('data-carpeta') !== f.key) vasA('documentos', b.getAttribute('data-carpeta')); }); });
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
     c.querySelector('[data-dc-pedir]').addEventListener('click', function(){ abrirNuevoTicket({ cat:'Documentación', texto:t('dc_pedir_texto').replace('{p}', f.nombre) }); });
-    cargaPortadas(c);
-    if (!docs.length) return;
+    if (!docs.length){ cargaPortadas(c); return; }
 
     var cajaLista = document.getElementById('docLista'), visibles = docs;
     function pintaLista(){
@@ -3723,30 +3718,30 @@
         return (!DOC_FILTRO.cat || catClave(x.categoria) === DOC_FILTRO.cat) &&
                (!q || [x.titulo, x.descripcion, catDoc(x.categoria)].join(' ').toLowerCase().indexOf(q) >= 0);
       });
-      var gs = docsPorCat(visibles);
-      cajaLista.classList.toggle('uno', gs.length < 2);
-      if (!gs.length){ cajaLista.innerHTML = '<p class="vacio">' + esc(t('doc_sin_resultados')) + '</p>'; return; }
-      cajaLista.innerHTML = gs.map(function(g){
-        return '<article class="ob-t dc-grupo"><div class="ini-th"><span class="ini-ti dc-c-' + g.k + '">' + ICO_DC[g.k] + '</span><h3>' + esc(catDoc(g.k)) + '</h3><span class="dc-n">' + g.docs.length + '</span></div><ul>' +
-          g.docs.map(function(x){
-            var tp = docTipo(x), meta = [tp.txt, tp.donde, x.descripcion].filter(Boolean).map(esc).join(' · ');
-            var dentro = '<span class="dc-tipo dc-c-' + g.k + '">' + ICO_DC[tp.k] + '</span><span class="dc-txt"><b>' + esc(x.titulo) + '</b>' + (meta ? '<small>' + meta + '</small>' : '') + '</span>';
-            if (docUrlOk(x)) return '<li><a class="dc-doc" data-doc="' + esc(x.id) + '" href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + dentro + '<span class="dc-ir" aria-hidden="true">' + ICO_DC.ir + '</span></a></li>';
-            if (!x.url && x.path) return '<li><button type="button" class="dc-doc" data-doc="' + esc(x.id) + '">' + dentro + '<span class="dc-ir" aria-hidden="true">' + ICO_DC.ir + '</span></button></li>';
-            return '<li><div class="dc-doc dc-sin">' + dentro + '</div></li>';   // enlace que no es http(s): se lista, no se abre
-          }).join('') + '</ul></article>';
-      }).join('');
+      if (!visibles.length){ cajaLista.innerHTML = '<p class="vacio">' + esc(t('doc_sin_resultados')) + '</p>'; return; }
+      // en el orden de los apartados, como la fila de cifras
+      var orden = docsPorCat(visibles).reduce(function(a, g){ return a.concat(g.docs); }, []);
+      cajaLista.innerHTML = '<div class="dc-rejilla">' + orden.map(function(x){
+        var tp = docTipo(x), meta = [tp.txt, tp.donde, x.descripcion].filter(Boolean).map(esc).join(' · ');
+        var dentro = '<span class="dc-mesa">' + docMiniatura(x, f) + '</span>' +
+          '<span class="dc-pie"><span class="dc-t"><small>' + esc(catDoc(x.categoria)) + '</small><b>' + esc(x.titulo) + '</b>' + (meta ? '<em>' + meta + '</em>' : '') + '</span>';
+        var ir = '<span class="ini-ir dc-ir" aria-hidden="true">' + ICO_DC.ir + '</span></span>';
+        if (docUrlOk(x)) return '<a class="dc-doc" data-doc="' + esc(x.id) + '" href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + dentro + ir + '</a>';
+        if (!x.url && x.path) return '<button type="button" class="dc-doc" data-doc="' + esc(x.id) + '">' + dentro + ir + '</button>';
+        return '<div class="dc-doc dc-sin">' + dentro + '</span></div>';   // enlace que no es http(s): se ve, no se abre
+      }).join('') + '</div>';
+      cargaPortadas(cajaLista);
     }
     pintaLista();
+    cargaPortadas(c.querySelector('.dc-heroe'));
     var buscar = document.getElementById('docBuscar');
     if (buscar){ buscar.value = DOC_FILTRO.q; buscar.addEventListener('input', function(ev){ DOC_FILTRO.q = ev.target.value; pintaLista(); }); }
     c.querySelectorAll('[data-dc-cat]').forEach(function(b){
       b.addEventListener('click', function(){
-        var k = b.getAttribute('data-dc-cat'), desdeIndice = !!b.closest('.dc-indice');
-        DOC_FILTRO.cat = (!desdeIndice && DOC_FILTRO.cat === k) ? '' : k;
-        c.querySelectorAll('.dc-chip').forEach(function(x){ x.setAttribute('aria-pressed', x.getAttribute('data-dc-cat') === DOC_FILTRO.cat ? 'true' : 'false'); });
+        var k = b.getAttribute('data-dc-cat');
+        DOC_FILTRO.cat = DOC_FILTRO.cat === k ? '' : k;
+        c.querySelectorAll('[data-dc-cat]').forEach(function(x){ x.setAttribute('aria-pressed', x.getAttribute('data-dc-cat') === DOC_FILTRO.cat ? 'true' : 'false'); });
         pintaLista();
-        if (desdeIndice){ var fl = c.querySelector('.dc-filtros'); if (fl) fl.scrollIntoView({ behavior:'smooth', block:'start' }); }
       });
     });
     cajaLista.addEventListener('click', function(ev){
@@ -3754,8 +3749,8 @@
       var doc = docs.filter(function(x){ return String(x.id) === el.getAttribute('data-doc'); })[0];
       if (doc) abreFichero('documentacion', doc.path);
     });
+    // empaqueta lo que se ve (apartado y búsqueda incluidos), como hacía la pantalla vieja con su búsqueda
     var btnZip = document.getElementById('btnZipDocs');
-    // empaqueta lo que se ve (filtro y búsqueda incluidos), como hacía la pantalla vieja con su búsqueda
     if (btnZip) btnZip.addEventListener('click', function(){ zipDeDocs(visibles, f.nombre, this); });
   }
   /* «Descargar carpeta»: un solo .zip con lo que se ve en la lista. Sin función en el servidor: se piden las URLs
