@@ -4179,9 +4179,9 @@
           var host = piezas.colForm;
           // Las «líneas» de un recibí, para el motor de render, son las
           // facturas que salda — mismo texto que ya usa onGuardar más abajo
-          // («Aplicado a factura X»), no una segunda descripción inventada.
+          // (conceptoCobroRecibi), no una segunda descripción inventada.
           function lineasDeAplicaciones() {
-            return aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
+            return aplicaciones.map(function (a) { return { descripcion: conceptoCobroRecibi(a.numero), importe: a.importe }; });
           }
           function recogeVals() {
             var vals = {};
@@ -4335,14 +4335,26 @@
               cargaAbiertas().then(function (abs) {
                 facturasAbiertasCache = abs;
                 aplicacionesRestauradas = true;
+                var numeroDe = {};
                 sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', existente.id)
                   .then(function (rr) {
                     if (rr.error) { toastMal(lwErrorHumano(rr.error, 'No se pudieron traer las facturas que este recibí ya saldaba')); pintaBtnF(); repintaAplic(); return; }
+                    // Una factura que este recibí ya salda del todo no está entre las ABIERTAS:
+                    // su número se pregunta aparte (antes caía al id interno y se imprimía).
+                    var sueltas = (rr.data || []).map(function (r) { return r.factura_id; })
+                      .filter(function (id) { return !facturasAbiertasCache.some(function (x) { return x.id === id; }); });
+                    return (sueltas.length ? sb.rpc('facturas_equipo').select('id,numero').in('id', sueltas) : Promise.resolve({ data: [] }))
+                      .then(function (fr) {
+                        (fr.data || []).forEach(function (x) { numeroDe[x.id] = x.numero; });
+                        return rr;
+                      });
+                  }).then(function (rr) {
+                    if (!rr || rr.error) return;
                     (rr.data || []).forEach(function (row) {
                       var abierta = facturasAbiertasCache.filter(function (x) { return x.id === row.factura_id; })[0];
                       aplicaciones.push({
                         factura_id: row.factura_id,
-                        numero: abierta ? abierta.numero : row.factura_id,
+                        numero: abierta ? abierta.numero : (numeroDe[row.factura_id] || ''),
                         pendiente: (abierta ? abierta.pendiente : 0) + Number(row.importe_aplicado),
                         importe: lwImporteCanonico(Number(row.importe_aplicado))
                       });
@@ -4525,7 +4537,7 @@
               if (!imp || imp <= 0) return { error: { message: 'Falta el importe aplicado a ' + aplicaciones[i].numero } };
               if (imp > aplicaciones[i].pendiente + 0.01) return { error: { message: aplicaciones[i].numero + ' solo tiene ' + aplicaciones[i].pendiente + ' pendiente' } };
             }
-            var lineas = aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
+            var lineas = aplicaciones.map(function (a) { return { descripcion: conceptoCobroRecibi(a.numero), importe: a.importe }; });
             var d = v; d.tipo = 'recibi'; d.lineas = lineas;
             d.cliente_nombre = v.cliente_nombre || estadoContrato.clienteNombre;
             d.cliente_documento = v.cliente_documento || estadoContrato.clienteDocumento;

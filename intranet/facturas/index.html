@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="90f2ac49f232">
+<meta name="lw-version" content="b673ad08644d">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -974,7 +974,7 @@
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/dinero.js?v=0f73a5db"></script>
 <script src="totales.js?v=9cb91c37"></script>
-<script src="documento.js?v=638be339"></script>
+<script src="documento.js?v=933661fe"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
 <script src="/contracts/assets/facturas_contratos.js?v=2852b3b3"></script>
 <script src="/contracts/assets/suite-comun.js?v=17c1b0e9"></script>
@@ -1505,7 +1505,7 @@ function actualizarSumaAplicaciones(){
 $('#aplicaciones').addEventListener('input', e => {
   const el = e.target; if(el.dataset.a == null) return;
   APLICACIONES[+el.dataset.a].importe = el.value;
-  LINEAS = APLICACIONES.map(a => ({ descripcion:'Aplicado a factura ' + a.numero, importe:a.importe }));
+  LINEAS = APLICACIONES.map(a => ({ descripcion:conceptoCobroRecibi(a.numero), importe:a.importe }));
   actualizarSumaAplicaciones(); render();
 });
 $('#aplicaciones').addEventListener('click', e => {
@@ -1519,7 +1519,7 @@ $('#aplicaciones').addEventListener('click', e => {
    se deriva de APLICACIONES en vez de teclearse aparte. */
 function sincronizarLineasDesdeAplicaciones(){
   LINEAS = APLICACIONES.length
-    ? APLICACIONES.map(a => ({ descripcion:'Aplicado a factura ' + a.numero, importe:a.importe }))
+    ? APLICACIONES.map(a => ({ descripcion:conceptoCobroRecibi(a.numero), importe:a.importe }))
     : [{ descripcion:'', importe:'' }];
   pintarAplicaciones(); render();
 }
@@ -3253,11 +3253,20 @@ async function abrir(f){
   if(f.tipo === 'recibi' && !f.anulada){
     await cargarFacturasAbiertas();
     const { data } = await sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', f.id);
+    /* Una factura que este recibí ya salda del todo ya no está entre las ABIERTAS: su número
+       se pregunta aparte. Antes caía al id interno (uuid) y, al guardar, quedaba impreso en el
+       recibí como concepto (8 recibís, 8-oct-2026). */
+    const sueltas = (data || []).map(r => r.factura_id).filter(id => !FACTURAS_ABIERTAS.some(x => x.id === id));
+    const numeroDe = {};
+    if(sueltas.length){
+      const { data: fs } = await sb.rpc('facturas_equipo').select('id,numero').in('id', sueltas);
+      (fs || []).forEach(x => { numeroDe[x.id] = x.numero; });
+    }
     (data || []).forEach(row => {
       const abierta = FACTURAS_ABIERTAS.find(x => x.id === row.factura_id);
       APLICACIONES.push({
         factura_id: row.factura_id,
-        numero: abierta ? abierta.numero : row.factura_id,
+        numero: abierta ? abierta.numero : (numeroDe[row.factura_id] || ''),
         // pendiente visible = lo que queda SIN este recibí + lo que ya aplicaba este mismo
         pendiente: (abierta ? abierta.pendiente : 0) + Number(row.importe_aplicado),
         importe: String(row.importe_aplicado).replace('.', ','),
