@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="eed5cb16a618">
+<meta name="lw-version" content="5bbbacc24894">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=21af4ca8"></script>
+<script src="/contracts/assets/i18n.js?v=602f41e0"></script>
 <script src="/contracts/assets/herramientas.js?v=e627e560"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -133,6 +133,8 @@
   <div class="topbar lw-topbar lw-topbar-flujo" data-titulo="Contratos">
     <span class="lw-sep"></span>
     <select id="tplPick" class="lw-select" data-lwt-aria aria-label="Tipo de contrato"></select>
+    <!-- Revisión del texto (E10, 8-oct-2026): solo aparece en un contrato NUEVO cuya empresa tiene 2+ revisiones activas del tipo. Lo pinta cargaRevisiones(). -->
+    <select id="revPick" class="lw-select" data-revision-selector hidden data-lwt-aria aria-label="Revisión del texto"></select>
     <span class="lang-hint" data-lwt-title title="El contrato siempre incluye Bahasa Indonesia">Bahasa + </span>
     <div class="lang-toggle" id="langToggle"></div>
     <div class="lw-spacer"></div>
@@ -1809,6 +1811,7 @@ function resetBorrador(slug){
      igual que borra la ficha del comprador — y por eso la entrada por `?lead=` lo asigna
      DESPUÉS de llamar a resetBorrador, nunca antes. */
   LEAD_ID = null;
+  REVISION_ELEGIDA = '';   // documento nuevo: arranca en la revisión estándar (cambioDeRevision la repone después)
   // sin contrato no hay firmas: se suelta el candado de «enviado a firma»
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   limpiarOverrides(slug);
@@ -3681,15 +3684,20 @@ function deriveSections(){
    `PLANTILLA_VER` guarda de qué versión salió el texto en pantalla (null = fichero); al GUARDAR un contrato nuevo se
    fija esa versión (`plantilla_contrato_fija`), y desde ahí no cambia sola. */
 let PLANTILLA_VER = null, PLANTILLA_FIJADA = false, PLANTILLA_AVISO = false, PLANTILLA_TOCADO = false;
+/* Revisión del texto elegida (E10): id de la versión ACTIVA de la revisión ('' = la estándar, que es lo de siempre).
+   Solo cuenta en un contrato NUEVO; se pasa como p_version a `plantilla_contrato_cuerpo` y la valida el servidor.
+   REVISION_SLUG: de qué tipo es la elección (cambiar de tipo la suelta). */
+let REVISION_ELEGIDA = '', REVISION_SLUG = '';
 const PLANTILLA_CACHE = {};   // clave RPC|argumento → {hash, cuerpo}: el etag evita reenviar 300 KB que ya tenemos
-async function textoPlantillaBase(slug, contratoId, proyectoId){
+async function textoPlantillaBase(slug, contratoId, proyectoId, versionId){
   if(!sb) return null;
   const esContrato = !!contratoId;
   const rpc = esContrato ? 'plantilla_contrato_cuerpo_de_contrato' : 'plantilla_contrato_cuerpo';
-  const clave = rpc + '|' + (esContrato ? contratoId : slug + '|' + (proyectoId || ''));
+  const clave = rpc + '|' + (esContrato ? contratoId : slug + '|' + (proyectoId || '') + '|' + (versionId || ''));
   const previa = PLANTILLA_CACHE[clave];
   const args = esContrato ? { p_contrato: contratoId, p_etag: previa ? previa.hash : null }
                           : { p_slug: slug, p_proyecto: proyectoId || null, p_etag: previa ? previa.hash : null }; // NOMBRE A PROPOSITO: p_proyecto es el id (uuid) del proyecto, no su nombre
+  if(!esContrato && versionId) args.p_version = versionId;   // revisión elegida: la valida el servidor (de esa empresa y tipo, y activa)
   const { data, error } = await sb.rpc(rpc, args);
   if(error) throw error;
   if(!data || typeof data !== 'object' || data.slug !== slug) return null;
@@ -3702,10 +3710,11 @@ async function textoPlantillaBase(slug, contratoId, proyectoId){
 /* Texto de una plantilla: de la base si hay (arriba) y, si no, del fichero. Devuelve {html, ver}. */
 async function textoPlantilla(t, o){
   let r = null;
-  try{ r = await textoPlantillaBase(t.slug, o && o.contratoId, o && o.proyectoId); }
+  try{ r = await textoPlantillaBase(t.slug, o && o.contratoId, o && o.proyectoId, o && o.version); }
   catch(e){
     if(!PLANTILLA_AVISO){ PLANTILLA_AVISO = true;
       toastMal(lwT('No se pudo leer el texto de contrato de tu empresa (') + ((e && e.message) || e) + lwT('): se usa el texto base. Recarga antes de guardar un contrato nuevo.')); }
+    REVISION_ELEGIDA = '';   // con el texto de la base ilegible, la revisión elegida no vale: se cae al texto base
   }
   if(r) return r;
   let html;
@@ -3723,7 +3732,7 @@ async function fijaVersionPlantilla(contratoId, eraNuevo){
   const pid = proyectoIdActual();
   if(!pid) return '';
   try{
-    const r = await textoPlantillaBase(CURRENT.slug, null, pid);
+    const r = await textoPlantillaBase(CURRENT.slug, null, pid, REVISION_ELEGIDA || null);   // la MISMA revisión que se ve en pantalla
     if(!r) return '';   // la empresa del proyecto no tiene texto en la base: sigue con el fichero
     if(!PLANTILLA_VER ? r.html !== templateHTML : r.ver.hash !== PLANTILLA_VER.hash)
       return ' · OJO: el texto del contrato en pantalla no es el de la empresa de este proyecto; se guardó SIN fijar la versión del texto. Revísalo.';
@@ -3731,7 +3740,11 @@ async function fijaVersionPlantilla(contratoId, eraNuevo){
     if(error) throw error;
     PLANTILLA_VER = r.ver; PLANTILLA_FIJADA = true;
     return '';
-  }catch(e){ return ' · OJO: se guardó, pero no se pudo fijar la versión del texto (' + ((e && e.message) || 'error') + ').'; }
+  }catch(e){
+    const m = String((e && e.message) || 'error');
+    if(/elige cual/i.test(m)) return ' · OJO: se guardó, pero esta plantilla tiene varias revisiones del texto y no se fijó ninguna. Elige cuál usa el contrato en «Revisión del texto» y vuelve a guardar.';
+    return ' · OJO: se guardó, pero no se pudo fijar la versión del texto (' + m + ').';
+  }finally{ ocultaRevisiones(); }   // ya guardado, el texto no se cambia desde aquí
 }
 /* Cambiar el proyecto de un contrato SIN guardar puede cambiar de empresa y, con ella, el texto. Si el texto de la
    empresa nueva es idéntico al de pantalla (hoy: las dos tienen la semilla v1, copia del mismo fichero) solo se
@@ -3743,24 +3756,75 @@ async function cambioDeProyectoYTexto(sel){
   const pid = proyectoIdActual(); if(!pid || !CURRENT) return;
   const previo = sel.dataset.previo || '';
   const nombre = sel.value, slug = CURRENT.slug;
-  const r = await textoPlantilla(CURRENT, { proyectoId: pid });
-  if(r.html === templateHTML){ PLANTILLA_VER = r.ver; sel.dataset.previo = nombre; return; }
+  const revPrevia = REVISION_ELEGIDA;
+  REVISION_ELEGIDA = '';   // otro proyecto puede ser de otra empresa: sus revisiones son otras (se vuelve a elegir)
+  const r = await textoPlantilla(CURRENT, { proyectoId: pid, version: null });
+  if(r.html === templateHTML && !revPrevia){ PLANTILLA_VER = r.ver; sel.dataset.previo = nombre; await cargaRevisiones(r.ver); return; }
   if(PLANTILLA_TOCADO && !window.confirm(lwT('Ese proyecto es de otra empresa y su contrato usa otro texto. Cambiarlo borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?'))){
-    sel.value = previo; return;
+    sel.value = previo; REVISION_ELEGIDA = revPrevia; return;
   }
-  if(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes()){ sel.value = previo; return; }
+  if(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes()){ sel.value = previo; REVISION_ELEGIDA = revPrevia; return; }
   resetBorrador(slug);
-  await loadTemplate(slug, { proyectoId: pid });
+  await loadTemplate(slug, { proyectoId: pid, version: null });
   buildForm(); updateSaveButton(); editBtnIdle();
   const s2 = document.querySelector('[name="proyecto_nombre"]');
   if(s2){ s2.value = nombre; s2.dataset.previo = nombre; s2.dispatchEvent(new Event('change', { bubbles:true })); }
+}
+/* ── Revisión del texto (E10, 8-oct-2026) ──
+   Una empresa puede tener varias revisiones ACTIVAS del mismo contrato (columna `variante`, E7). Al redactar un
+   contrato NUEVO con empresa conocida se ofrece elegir cuál; con una sola, el selector no aparece y todo va como
+   siempre. La lista la da `plantilla_contrato_revisiones_lista`, que hoy solo contesta a la administración de la
+   empresa: a quien no lo es, la base le dice que no, el selector no sale y el texto es el estándar (lo de siempre).
+   Cada opción lleva el id de la versión (`data-version`); el rótulo es solo lo que se lee. */
+function ocultaRevisiones(){
+  const sel = document.getElementById('revPick'); if(!sel) return;
+  sel.hidden = true; sel.innerHTML = '';
+}
+async function cargaRevisiones(ver){
+  const sel = document.getElementById('revPick'); if(!sel) return;
+  if(!sb || !ver || !ver.empresa || !CURRENT || (SAVED_CONTRACT && SAVED_CONTRACT.id)){ ocultaRevisiones(); return; }
+  let filas = [];
+  try{
+    const { data, error } = await sb.rpc('plantilla_contrato_revisiones_lista', { p_empresa: ver.empresa, p_slug: CURRENT.slug });
+    if(error) throw error;
+    filas = (data || []).filter(f => f.slug === CURRENT.slug);
+  }catch(_){ ocultaRevisiones(); return; /* MUDO A PROPOSITO: quien no administra la empresa no puede listar revisiones; sigue con la estándar y, si el servidor exige elegir, el guardado lo dice en llano */ }
+  // opciones: la estándar siempre (valor '' = la de siempre) + cada otra revisión con versión ACTIVA
+  const ops = filas.filter(f => f.variante === 'estandar' || f.version_activa)
+                   .map(f => ({ v: f.variante === 'estandar' ? '' : f.version_activa, nombre: f.nombre || (f.variante === 'estandar' ? 'Estándar' : f.variante) }));
+  if(ops.filter(o => o.v !== '').length < 1){ ocultaRevisiones(); return; }   // solo la estándar: no estorba
+  if(!ops.some(o => o.v === (REVISION_ELEGIDA || ''))) REVISION_ELEGIDA = '';
+  REVISION_SLUG = CURRENT.slug;
+  sel.innerHTML = ops.map(o => `<option value="${esc(o.v)}" data-version="${esc(o.v)}"${o.v === REVISION_ELEGIDA ? ' selected' : ''}>${esc(lwT('Revisión del texto'))}: ${esc(o.nombre)}</option>`).join('');
+  sel.dataset.previo = REVISION_ELEGIDA;
+  sel.hidden = false;
+}
+/* Cambiar de revisión rehace el texto (y con él el formulario, que pierde lo escrito): se pregunta antes si hay algo. */
+async function cambioDeRevision(sel){
+  if(SAVED_CONTRACT && SAVED_CONTRACT.id) return;
+  const previo = sel.dataset.previo || '';
+  if(sel.value === previo) return;
+  if(PLANTILLA_TOCADO && !window.confirm(lwT('Cambiar la revisión del texto borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?'))){ sel.value = previo; return; }
+  if(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes()){ sel.value = previo; return; }
+  const pid = proyectoIdActual(), proy = document.querySelector('[name="proyecto_nombre"]'), nombreProy = proy ? proy.value : '';
+  const slug = CURRENT.slug, elegida = sel.value;
+  resetBorrador(slug);
+  REVISION_ELEGIDA = elegida; REVISION_SLUG = slug;   // DESPUÉS de resetBorrador, que la suelta
+  await loadTemplate(slug, { proyectoId: pid });
+  buildForm(); updateSaveButton(); editBtnIdle();
+  const s2 = document.querySelector('[name="proyecto_nombre"]');
+  if(s2 && nombreProy){ s2.value = nombreProy; s2.dataset.previo = nombreProy; }
 }
 async function loadTemplate(slug, opts){
   CURRENT = TEMPLATES.find(t=>t.slug===slug) || TEMPLATES[0];
   // el proyecto elegido solo cuenta en un contrato NUEVO; uno ya guardado lee el texto que fijó
   const o = Object.assign({ proyectoId: (typeof proyectoIdActual === 'function' ? proyectoIdActual() : '') || null }, opts || {});
+  if(REVISION_SLUG !== slug) REVISION_ELEGIDA = '';   // la elección es de un tipo; otro tipo arranca en la estándar
+  if(o.contratoId) REVISION_ELEGIDA = '';             // un contrato guardado lee la versión que fijó
+  else if(o.version === undefined) o.version = REVISION_ELEGIDA || null;
   const base = await textoPlantilla(CURRENT, o);
   templateHTML = base.html; PLANTILLA_VER = base.ver;
+  if(o.contratoId) ocultaRevisiones(); else await cargaRevisiones(base.ver);
   PLANTILLA_FIJADA = !!(opts && opts.contratoId && base.ver);
   PLANTILLA_TOCADO = false;
   if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
@@ -7151,6 +7215,7 @@ async function init(){
   $('#form').addEventListener('focusin', e => { if(e.target && e.target.name === 'proyecto_nombre') e.target.dataset.previo = e.target.value; });
   $('#form').addEventListener('change', e => { if(e.target && e.target.name === 'proyecto_nombre') cambioDeProyectoYTexto(e.target); });
   $('#form').addEventListener('change', updateSaveButton);
+  $('#revPick').addEventListener('change', e => cambioDeRevision(e.target));
 
   // ── que pantalla se abre (6-ago-2026) ──────────────────────────────────
   // ?contrato=<id> abre ese contrato en el editor (lo usa Operaciones y ahora
