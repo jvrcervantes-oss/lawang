@@ -409,6 +409,12 @@ verify_jwt = false
 [functions.plantillas-guardar]
 verify_jwt = false
 
+# ajustes-correo (F3.1 de Ajustes, porte a Lawang 8-oct-2026): la llama la pestana Correo de Ajustes con la sesion del super admin. verify_jwt=false SOLO
+# para que el preflight CORS (OPTIONS, sin Authorization) llegue a la funcion; la autorizacion se hace dentro (Auth + fila activa super_admin en usuarios,
+# con la clave de servicio) y solo contesta CORS al origen de config_instancia.url_intranet. Se despliega con --no-verify-jwt; esta entrada fija el valor.
+[functions.ajustes-correo]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

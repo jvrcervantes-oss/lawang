@@ -4,12 +4,15 @@
 -- lista blanca se rechaza en servidor (22023); el log registra quién, cuándo, antes y después; el log no admite UPDATE, DELETE ni
 -- TRUNCATE ni con super admin; las lecturas respetan el rol.
 --
+-- F3.1 (7-oct-2026): lista blanca de 10 claves; los casos de las 3 nuevas están en supabase/pruebas/correo_smtp_servidor.sql (sección H); los de código, en supabase/pruebas/correo_codigos.sql y aquí solo su rechazo básico.
 -- Se ejecuta ENTERA como postgres (MCP execute_sql / psql), y CAMBIA de rol dentro (`set local role authenticated|anon`) para
 -- que se prueben los GRANT y las policies de verdad, no solo el cuerpo de las funciones. NO ESCRIBE NADA: termina en
 -- `raise exception 'FIN DE PRUEBAS…'`, que deshace la transacción entera. No usa session_replication_role = replica salvo para
 -- montar los usuarios de prueba (nunca durante los casos: se saltaría los triggers que se están probando).
---   Lawang:  se pega este fichero en execute_sql (contracts/sql/prueba_ajustes_config.sql).
---   Maestro: python erp/pruebas/corre.py <instancia> ajustes_config.sql   (mismo cuerpo).
+--   Lawang:  se pega este fichero en execute_sql (contracts/sql/prueba_ajustes_config.sql) sobre una rama efímera o sobre la base YA migrada con 20261010060000_correo_ajustes_servidor_y_codigo.
+--   Maestro: python erp/pruebas/corre.py <instancia> ajustes_config.sql   (mismo cuerpo desde el porte a Lawang, 8-oct-2026).
+--   ⚠ Con la migración del correo la lista blanca de Lawang pasa de 7 a 6 claves (+asunto_por_defecto, SIN email_from, email_reply_to, email_avisos_soporte, email_avisos_sistema): este fichero
+--   YA es el de 6 claves y NO se puede correr antes de aplicar la migración (sus H1 y D esperan 6). Escrito, NO ejecutado en Lawang (el del maestro: 87/87 en rama efímera de bbm).
 do $$
 declare
   r text := '';
@@ -19,7 +22,7 @@ declare
   u_of uuid := gen_random_uuid();  m_of  text := 'super.baja.ajustes@pruebas.test';
   u_po uuid := gen_random_uuid();  m_po  text := 'portal.ajustes@pruebas.test';
   st text; h text; v jsonb; n int; n2 int; f record; c record; pv jsonb; ok boolean;
-  pk text; pval jsonb; pmax numeric; pmin numeric; pnuevo numeric;
+  pk text; pval jsonb; pmax numeric; pmin numeric; pnuevo numeric; dom text;
 begin
   -- ── Preparación (como postgres) ───────────────────────────────────────────────────────────────────────────
   execute 'set local session_replication_role = replica';
@@ -34,6 +37,12 @@ begin
     (u_of, m_of, 'Super de baja', 'super_admin', '{}', false, 'USR-PRBAJ-4');
   execute 'set local session_replication_role = origin';
   select valor into pv from public.config_instancia where clave = 'marca';
+  -- F3.1b: los buzones de aviso de reservas/CRM tienen que ser del dominio de la instancia (o de email_from / del servidor); la prueba fija uno propio (se deshace con el resto)
+  select valor #>> '{}' into dom from public.config_instancia where clave = 'dominio_web' and jsonb_typeof(valor) = 'string';
+  if dom is null or dom = '' then
+    insert into public.config_instancia (clave, valor) values ('dominio_web', '"pruebas.test"'::jsonb) on conflict (clave) do update set valor = excluded.valor;
+    dom := 'pruebas.test';
+  end if;
 
   -- ── A. El super admin escribe y el log dice quién, cuándo, antes y después ────────────────────────────────
   perform set_config('request.jwt.claims', json_build_object('sub', u_sa, 'email', m_sa, 'role', 'authenticated')::text, true);
@@ -112,9 +121,11 @@ begin
       {"c":"email_from","v":".a@x.com"}, {"c":"email_from","v":"a.@x.com"}, {"c":"email_from","v":"a..b@x.com"},
       {"c":"email_from","v":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@x.com"},
       {"c":"email_reply_to","v":"x"}, {"c":"email_avisos_reservas","v":["a@b.com"]}, {"c":"email_avisos_reservas","v":""},
-      {"c":"email_avisos_crm","v":"x@"}, {"c":"logo_correo_url","v":"http://x.com/a.png"},
+      {"c":"email_avisos_crm","v":"x@"}, {"c":"email_avisos_reservas","v":"no-es-correo"}, {"c":"logo_correo_url","v":"http://x.com/a.png"},
       {"c":"logo_correo_url","v":"https://x.com/a b.png"}, {"c":"logo_correo_url","v":"https://x.com/a.png\"onerror=\"x"},
-      {"c":"zona_horaria","v":"Mars/Base"}, {"c":"zona_horaria","v":"PST"}]$j$::jsonb) e loop
+      {"c":"zona_horaria","v":"Mars/Base"}, {"c":"zona_horaria","v":"PST"},
+      {"c":"email_avisos_soporte","v":"x@gmail.com"}, {"c":"email_avisos_soporte","v":""}, {"c":"email_avisos_sistema","v":"no-es-correo"},
+      {"c":"asunto_por_defecto","v":"Hola\nBcc: x@y.com"}, {"c":"asunto_por_defecto","v":123}]$j$::jsonb) e loop
     begin
       perform public.ajustes_config_guardar(c.clave, c.valor);
       r := r || format(E'\nD «%s» = %s → FALLA (entró)', c.clave, left(c.valor::text, 40));
@@ -124,11 +135,9 @@ begin
     end;
   end loop;
   for c in select e->>'c' as clave, e->'v' as valor, e->'esperado' as esperado from jsonb_array_elements($j$[
-      {"c":"email_reply_to","v":"","esperado":""}, {"c":"email_avisos_crm","v":"","esperado":""}, {"c":"logo_correo_url","v":"","esperado":""},
+      {"c":"email_avisos_crm","v":"","esperado":""}, {"c":"logo_correo_url","v":"","esperado":""},
       {"c":"logo_correo_url","v":"https://cdn.ejemplo.com/logo.png?v=2","esperado":"https://cdn.ejemplo.com/logo.png?v=2"},
-      {"c":"zona_horaria","v":"Asia/Makassar","esperado":"Asia/Makassar"}, {"c":"email_from","v":"  Hola@Pruebas.Test ","esperado":"Hola@Pruebas.Test"},
-      {"c":"email_avisos_reservas","v":"reservas@pruebas.test","esperado":"reservas@pruebas.test"},
-      {"c":"email_reply_to","v":"a.b+c_d%e@x.co.id","esperado":"a.b+c_d%e@x.co.id"}]$j$::jsonb) e loop
+      {"c":"zona_horaria","v":"Asia/Makassar","esperado":"Asia/Makassar"}]$j$::jsonb) e loop
     begin
       v := public.ajustes_config_guardar(c.clave, c.valor);
       r := r || format(E'\nD+ «%s» = %s entra como %s → %s', c.clave, left(c.valor::text, 40), v->>'valor', case when v->'valor' = c.esperado then 'ok' else 'FALLA' end);
@@ -137,6 +146,39 @@ begin
       r := r || format(E'\nD+ «%s» = %s se rechaza (%s) → FALLA', c.clave, left(c.valor::text, 40), st);
     end;
   end loop;
+  -- D2. F3.1b (8-oct-2026): email_avisos_reservas y email_avisos_crm (sin código) exigen buzón PROPIO, pero solo cuando el valor CAMBIA
+  execute 'set local role authenticated';
+  for c in select * from (values ('email_avisos_reservas', 'reservas@' || dom), ('email_avisos_reservas', 'reservas@sub.' || dom), ('email_avisos_crm', 'crm@' || dom)) x(clave, valor) loop
+    v := public.ajustes_config_guardar(c.clave, to_jsonb(c.valor::text));
+    r := r || format(E'\nD2 «%s» = %s (del dominio de la instancia) entra → %s', c.clave, c.valor, case when v->>'valor' = c.valor then 'ok' else 'FALLA' end);
+  end loop;
+  for c in select * from (values ('email_avisos_reservas', 'robo@fraude.ru', 'buzon_ajeno'), ('email_avisos_crm', 'robo@fraude.ru', 'buzon_ajeno'), ('email_avisos_reservas', 'robo@' || dom || '.fraude.ru', 'buzon_ajeno'),
+                                 ('email_avisos_reservas', 'robo@fraude' || dom, 'buzon_ajeno'), ('email_avisos_crm', 'ab@c.d', '-')) x(clave, valor, hint) loop
+    begin
+      perform public.ajustes_config_guardar(c.clave, to_jsonb(c.valor::text));
+      r := r || format(E'\nD2 «%s» = %s (de otro dominio) → FALLA (entró)', c.clave, c.valor);
+    exception when others then
+      get stacked diagnostics st = returned_sqlstate, h = pg_exception_hint;
+      r := r || format(E'\nD2 «%s» = %s se rechaza (%s, %s) → %s', c.clave, c.valor, st, coalesce(h, '-'), case when st = '22023' and coalesce(nullif(h, ''), '-') = c.hint then 'ok' else 'FALLA' end);
+    end;
+  end loop;
+  -- un valor YA guardado (de antes de la regla) y de otro dominio: se puede volver a guardar tal cual, no se puede cambiar a otro ajeno, y sí a uno propio
+  execute 'reset role';
+  insert into public.config_instancia (clave, valor) values ('email_avisos_crm', '"viejo@otro-dominio.test"'::jsonb) on conflict (clave) do update set valor = excluded.valor;
+  execute 'set local role authenticated';
+  v := public.ajustes_config_guardar('email_avisos_crm', to_jsonb('viejo@otro-dominio.test'::text));
+  r := r || format(E'\nD3 volver a guardar el valor actual (de otro dominio) no se invalida: cambiado=%s → %s', v->>'cambiado', case when v->>'cambiado' = 'false' and v->>'valor' = 'viejo@otro-dominio.test' then 'ok' else 'FALLA' end);
+  begin
+    perform public.ajustes_config_guardar('email_avisos_crm', to_jsonb('nuevo@otro-dominio.test'::text));
+    r := r || E'\nD3 cambiar a OTRO buzón ajeno → FALLA (entró)';
+  exception when others then
+    get stacked diagnostics st = returned_sqlstate, h = pg_exception_hint;
+    r := r || format(E'\nD3 cambiar a otro buzón ajeno se rechaza (%s, %s) → %s', st, coalesce(h, '-'), case when st = '22023' and h = 'buzon_ajeno' then 'ok' else 'FALLA' end);
+  end;
+  v := public.ajustes_config_guardar('email_avisos_crm', to_jsonb('crm2@' || dom));
+  r := r || format(E'\nD3 y pasar a uno propio entra → %s', case when v->>'valor' = 'crm2@' || dom then 'ok' else 'FALLA' end);
+  v := public.ajustes_config_guardar('email_avisos_crm', '""'::jsonb);
+  r := r || format(E'\nD3 y vaciarlo (sin aviso de CRM) entra → %s', case when v->>'valor' = '' then 'ok' else 'FALLA' end);
   execute 'reset role';
 
   -- ── E. El log no admite UPDATE, DELETE ni TRUNCATE: ni el super admin (falta el grant) ni postgres (trigger) ──
@@ -180,6 +222,11 @@ begin
   r := r || format(E'\nF2 borrar una clave también deja rastro (despues null): %s → %s', n, case when n = 1 then 'ok' else 'FALLA' end);
 
   -- ── G. Reservas (`parametros`) deja el mismo rastro por parametro_set ───────────────────────────────────────
+  -- Fixture (7-oct-2026): la rama de prueba es solo estructura y `parametros` está vacía en demo y bbm; sin una fila numérica G salía «NO PROBADO» (rojo).
+  -- La fila nace dentro de la transacción de la prueba y se deshace con ella.
+  insert into public.parametros (clave, valor, etiqueta, minimo, maximo)
+    select 'prb.dias_gracia', '5'::jsonb, 'Prueba: días de gracia', 0, 30
+    where not exists (select 1 from public.parametros p where jsonb_typeof(p.valor) = 'number');
   select p.clave, p.valor, p.minimo, p.maximo into pk, pval, pmin, pmax from public.parametros p where jsonb_typeof(p.valor) = 'number' order by p.orden limit 1;
   if pk is null then
     r := r || E'\nG parametros sin filas numéricas: NO PROBADO';
@@ -198,9 +245,11 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', u_sa, 'email', m_sa, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
   v := public.ajustes_config_datos();
-  r := r || format(E'\nH1 super admin lee la config: puede_escribir=%s, marca=%s, 7 editables=%s → %s', v->>'puede_escribir', v->'valores'->>'marca',
-        jsonb_array_length(v->'editables') = 7,
-        case when (v->>'puede_escribir')::boolean and v->'valores'->>'marca' = 'Marca Prueba Dos' and jsonb_array_length(v->'editables') = 7 then 'ok' else 'FALLA' end);
+  -- F3.1 (7-oct, 20261007210000) la lista blanca pasó de 7 a 10 claves; F3.1b (8-oct, 20261008135000) salen las 4 de correo (email_from, email_reply_to,
+  -- email_avisos_sistema, email_avisos_soporte: solo se cambian con código por correo_ajuste_guarda, prueba en supabase/pruebas/correo_codigos.sql) y quedan 6.
+  r := r || format(E'\nH1 super admin lee la config: puede_escribir=%s, marca=%s, 6 editables=%s → %s', v->>'puede_escribir', v->'valores'->>'marca',
+        jsonb_array_length(v->'editables') = 6,
+        case when (v->>'puede_escribir')::boolean and v->'valores'->>'marca' = 'Marca Prueba Dos' and jsonb_array_length(v->'editables') = 6 then 'ok' else 'FALLA' end);
   v := public.ajustes_log_datos(500);
   select count(*) filter (where e->>'clave' = 'marca' and e->>'quien' = m_sa) into n from jsonb_array_elements(v->'filas') e;
   r := r || format(E'\nH2 super admin lee el registro: %s filas de «marca» suyas → %s', n, case when n >= 2 then 'ok' else 'FALLA' end);

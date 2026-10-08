@@ -28,9 +28,14 @@
 //   contacto:'sales' se pasa a la plantilla en Marca.contacto; cada plantilla decide qué hace con él.
 //   Cabecera opcional X-Llamante: se anota (saneada, 40 car.) en la línea de log; no cambia el contrato.
 //
-// Secretos: SMTP_HOST, SMTP_PORT (465), SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_FROM_NAME?,
-// ENVIO_CORREO_SECRET?, ENVIO_AVISO_SECRET?, RENDER_SECRET (salida hacia el servicio de PDFs; y de
-// entrada solo mientras no exista ENVIO_CORREO_SECRET), PDF_SERVICE_URL?. SUPABASE_URL /
+// Servidor SMTP (F3.1, 7-oct-2026): lo escribe el super admin desde Ajustes › Correo (edge ajustes-correo) en Vault y esta edge lo lee con
+// `correo_smtp_lee` (caché de 30 s; la lectura tiene 2,5 s de plazo y, si falla, vale el último valor bueno hasta 10 min). Regla, sin atajos: si HAY fila, manda
+// ese servidor y, si falla leerlo (y no hay último valor bueno de hace menos de 10 min) o enviar, es un 500 en voz alta —NUNCA cae a los secretos de entorno—; solo si NO hay fila (o la función aún no existe en la base: instancia sin migrar) usa los secretos
+// SMTP_HOST, SMTP_PORT (465), SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_FROM_NAME? de siempre. Remitente: `email_from` de Ajustes si su dominio es
+// el del buzón o el de la instancia (smtp.ts → remitenteEfectivo); si no, el buzón. «Responder a» = `email_reply_to` si es válido.
+//
+// Secretos: ENVIO_CORREO_SECRET?, ENVIO_AVISO_SECRET?, RENDER_SECRET (salida hacia el servicio de PDFs; y de
+// entrada solo mientras no exista ENVIO_CORREO_SECRET), PDF_SERVICE_URL? y, en una instancia sin migrar, los SMTP_*. SUPABASE_URL /
 // SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY los inyecta el runtime. Detalle en README.md.
 //
 // Log: una línea JSON por petición con vía, estado, DOMINIO del destinatario y, si llegó, el llamante.
@@ -47,6 +52,7 @@ import {
   VIAS_PLANTILLA, validaPlantillaPeticion, limpiaValor, catalogoDe, validaTextoPlantilla, componeCorreo, CTA_PORTAL_TEXTO,
   type TextoPlantilla,
 } from './valida.ts';
+import { remitenteEfectivo, replyToEfectivo, buzonAvisoValido, PUERTO_SMTP } from './smtp.ts';
 import { plantillaHtml, plantillaTexto, type Marca } from './plantilla.ts';
 import { resuelve, textoFabrica } from './plantillas_fabrica.ts';
 
@@ -56,14 +62,14 @@ const SUPA_ANON = env('SUPABASE_ANON_KEY');
 const SUPA_SERVICE = env('SUPABASE_SERVICE_ROLE_KEY');
 
 // ── configuración de la instancia (dueño: config_instancia; aquí solo se lee) ─────────────────
-type Config = { marca: string; dominio: string; urlIntranet: string; origen: string; logoUrl?: string; asuntoDefecto: string; avisos: string[] };
+type Config = { marca: string; dominio: string; urlIntranet: string; origen: string; logoUrl?: string; asuntoDefecto: string; avisos: string[]; avisosPosibles: string[]; emailFrom: string; replyTo: string };
 let cache: { t: number; c: Config } | null = null;
 
 async function config(): Promise<Config | null> {
   if (cache && Date.now() - cache.t < 60_000) return cache.c;
   if (!SUPA_URL || !SUPA_SERVICE) return null;
   try {
-    const r = await fetch(SUPA_URL + '/rest/v1/config_instancia?select=clave,valor&clave=in.(marca,dominio_web,url_intranet,logo_correo_url,asunto_por_defecto,email_avisos_soporte,email_avisos_sistema,email_avisos_reservas)', {
+    const r = await fetch(SUPA_URL + '/rest/v1/config_instancia?select=clave,valor&clave=in.(marca,dominio_web,url_intranet,logo_correo_url,asunto_por_defecto,email_avisos_soporte,email_avisos_sistema,email_avisos_reservas,email_from,email_reply_to)', {
       headers: { apikey: SUPA_SERVICE, Authorization: 'Bearer ' + SUPA_SERVICE },
       signal: AbortSignal.timeout(6000),
     });
@@ -76,12 +82,16 @@ async function config(): Promise<Config | null> {
     if (!dominio || !origen.startsWith('https://')) return null;
     const logo = v('logo_correo_url');
     const asunto = v('asunto_por_defecto');   // con saltos de línea o demasiado largo se ignora: manda el de fábrica
-    const c: Config = { marca: v('marca') || dominio, dominio, urlIntranet: v('url_intranet'), origen,
+    const c: Config = { marca: v('marca') || dominio, dominio, urlIntranet: v('url_intranet'), origen, emailFrom: v('email_from'), replyTo: v('email_reply_to'),
       logoUrl: /^https:\/\//.test(logo) ? logo : undefined,
       asuntoDefecto: asunto !== '' && !tieneControl(asunto) && [...asunto].length <= LIMITES.asunto ? asunto : '',
-      // Buzones de aviso: los ÚNICOS destinos de la vía 3 (ver manejador). Solo los del propio dominio.
-      avisos: ['email_avisos_soporte', 'email_avisos_sistema', 'email_avisos_reservas'].map(v).map((x) => x.toLowerCase())
-        .filter((x) => esEmail(x) && esDominioPropio(x, dominio)) };
+      // Buzones de aviso: los ÚNICOS destinos de la vía 3 (ver manejador). Valen los del dominio de la instancia o del email_from de
+      // Ajustes (owner, 7-oct-2026); los del dominio del usuario SMTP se aceptan en el manejador, tras comprobar el secreto (leer Vault
+      // exige estar autorizado). `avisosPosibles` = los configurados que sean un correo, sin mirar el dominio.
+      avisos: [], avisosPosibles: [], };
+    const brutos = ['email_avisos_soporte', 'email_avisos_sistema', 'email_avisos_reservas'].map(v).map((x) => x.toLowerCase()).filter((x) => esEmail(x));
+    c.avisosPosibles = brutos;
+    c.avisos = brutos.filter((x) => buzonAvisoValido(x, { dominio, emailFrom: c.emailFrom }));
     cache = { t: Date.now(), c };
     return c;
   } catch { return null; }
@@ -168,17 +178,69 @@ async function renderPdf(html: string): Promise<Uint8Array | null> {
 /** Supabase Edge BLOQUEA la salida a los puertos 25 y 587 (docs «Edge Functions limits»,
  *  comprobado 25-sep-2026): solo sirve 465 con TLS implícito. Se valida aquí para dar un error
  *  claro en vez de un timeout. */
-type Smtp = { host: string; port: number; user: string; pass: string; from: string; fromName: string };
-function smtpConfig(): Smtp | { error: string } {
+type Smtp = { host: string; port: number; user: string; pass: string; fromName: string; buzon: string; origen: 'vault' | 'entorno' };
+type Fuente = { ok: true; s: Smtp } | { ok: false; error: string };
+type LecturaVault = { estado: 'fila'; s: Smtp } | { estado: 'sin_fila' } | { estado: 'ausente' } | { estado: 'error' };
+// Caché del ÚLTIMO valor bueno (F3.1b, 8-oct-2026, decisión del owner): fresco 30 s (no se lee Vault en cada envío); si la lectura FALLA, ese último valor bueno
+// vale hasta 10 minutos y después es un 500 en voz alta. Un error nunca se guarda como valor. «Sin fila» y «función ausente» son lecturas BUENAS: caen a los SMTP_*.
+const SMTP_FRESCO_MS = 30_000, SMTP_BUENO_MS = 10 * 60_000, SMTP_LECTURA_MS = 2500;
+let cacheSmtp: { t: number; v: LecturaVault } | null = null;
+
+/** El servidor de Vault. Cuatro resultados que NO se mezclan: `fila` (hay servidor), `sin_fila` (la función contestó que no hay ninguno),
+ *  `ausente` (la función no existe en esta base: instancia sin migrar, 404 PGRST202/42883) y `error` (cualquier otra cosa: red, 5xx, forma
+ *  rara). Solo `sin_fila` y `ausente` dejan usar los secretos de entorno; `error` es un 500 y no cae a ellos. */
+async function leeSmtpVault(): Promise<LecturaVault> {
+  if (cacheSmtp && Date.now() - cacheSmtp.t < SMTP_FRESCO_MS) return cacheSmtp.v;
+  if (!SUPA_URL || !SUPA_SERVICE) return { estado: 'error' };
+  /** La lectura falló: el último valor bueno de hace menos de 10 min; si no hay, el error (→ 500). */
+  const falla = (): LecturaVault => {
+    if (cacheSmtp && Date.now() - cacheSmtp.t < SMTP_BUENO_MS) {
+      console.error('envia-correo: correo_smtp_lee falló; se usa el último valor bueno (hace ' + Math.round((Date.now() - cacheSmtp.t) / 1000) + ' s)');
+      return cacheSmtp.v;
+    }
+    return { estado: 'error' };
+  };
+  let v: LecturaVault;
+  try {
+    const r = await fetch(SUPA_URL + '/rest/v1/rpc/correo_smtp_lee', {
+      method: 'POST', body: '{}', headers: { ...SERVICIO(), 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(SMTP_LECTURA_MS),
+    });
+    const texto = await r.text();
+    if (r.status === 200) {
+      let j: unknown;
+      if (texto.trim() === '') j = null;   // cuerpo vacío = la función devolvió NULL (sin fila), según la versión de PostgREST
+      else { try { j = JSON.parse(texto); } catch { return falla(); } }
+      if (j === null) v = { estado: 'sin_fila' };
+      else {
+        const o = (j && typeof j === 'object' ? j : {}) as { host?: unknown; port?: unknown; user?: unknown; pass?: unknown; nombre?: unknown };
+        if (typeof o.host !== 'string' || o.host === '' || o.port !== PUERTO_SMTP || typeof o.user !== 'string' || o.user === '' || typeof o.pass !== 'string' || o.pass === '') return falla();
+        v = { estado: 'fila', s: { host: o.host, port: PUERTO_SMTP, user: o.user, pass: o.pass, fromName: typeof o.nombre === 'string' ? o.nombre : '', buzon: esEmail(o.user) ? o.user : '', origen: 'vault' } };
+      }
+    } else {
+      let e: { code?: string } = {};
+      try { e = JSON.parse(texto); } catch { /* sin JSON: queda el estado HTTP */ }
+      if (r.status === 404 && (e.code === 'PGRST202' || e.code === '42883')) v = { estado: 'ausente' };
+      else { console.error('envia-correo: correo_smtp_lee HTTP ' + r.status + ' ' + String(e.code ?? '')); return falla(); }
+    }
+  } catch (e) { console.error('envia-correo: correo_smtp_lee ' + String((e as Error)?.name ?? e)); return falla(); }
+  cacheSmtp = { t: Date.now(), v };
+  return v;
+}
+
+/** Qué servidor SMTP usa ESTE envío: el de Vault si hay fila; los secretos de entorno solo si no la hay (ni función). */
+async function fuenteSmtp(): Promise<Fuente> {
+  const v = await leeSmtpVault();
+  if (v.estado === 'error') return { ok: false, error: 'No se pudo leer el servidor de correo de la instancia' };
+  if (v.estado === 'fila') return { ok: true, s: v.s };
   const host = env('SMTP_HOST'), port = Number(env('SMTP_PORT') || '465');
   const user = env('SMTP_USER'), pass = env('SMTP_PASS'), from = env('SMTP_FROM');
-  if (!host || !user || !pass || !esEmail(from)) return { error: 'SMTP de la instancia sin configurar' };
-  if (port !== 465) return { error: 'SMTP_PORT debe ser 465 (Supabase Edge bloquea 25 y 587)' };
-  return { host, port, user, pass, from, fromName: env('SMTP_FROM_NAME') };
+  if (!host || !user || !pass || !esEmail(from)) return { ok: false, error: 'SMTP de la instancia sin configurar' };
+  if (port !== 465) return { ok: false, error: 'SMTP_PORT debe ser 465 (Supabase Edge bloquea 25 y 587)' };
+  return { ok: true, s: { host, port, user, pass, fromName: env('SMTP_FROM_NAME'), buzon: from, origen: 'entorno' } };
 }
 
 async function enviaSmtp(p: Peticion, marca: Marca, html: string, texto: string, pdf: Uint8Array | null, fromName: string,
-  s: { host: string; port: number; user: string; pass: string; from: string }) {
+  s: { host: string; port: number; user: string; pass: string; from: string }, replyTo: string) {
   const t = nodemailer.createTransport({
     host: s.host, port: s.port, secure: true, auth: { user: s.user, pass: s.pass },
     connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 60_000,
@@ -186,6 +248,7 @@ async function enviaSmtp(p: Peticion, marca: Marca, html: string, texto: string,
   try {
     await t.sendMail({
       from: { name: fromName || marca.marca, address: s.from },
+      ...(replyTo ? { replyTo } : {}),   // email_reply_to de Ajustes, ya validado (esEmail, sin CR/LF)
       to: p.to,                       // una sola dirección ya validada (esEmail)
       subject: p.subject,             // sin caracteres de control (validaTextos); nodemailer lo codifica RFC 2047
       text: texto, html,
@@ -315,7 +378,15 @@ export async function manejador(req: Request): Promise<Response> {
   const p = leida;
   if (p.subject === '') p.subject = cfg.asuntoDefecto || ('Documento — ' + cfg.marca);
 
-  const marca: Marca = { marca: cfg.marca, dominio: cfg.dominio, remitente: env('SMTP_FROM') || ('no-reply@' + cfg.dominio), logoUrl: cfg.logoUrl, contacto: p.contacto };
+  // El servidor SMTP se lee UNA vez por petición y solo DESPUÉS de autorizar (una petición sin credencial no provoca lecturas a la base).
+  let fuente: Fuente | null = null;
+  const leeFuente = async () => (fuente ??= await fuenteSmtp());
+  /** La marca de la plantilla con el remitente EFECTIVO como contacto del pie (antes: SMTP_FROM a pelo, que ignoraba el de Ajustes). */
+  const construyeMarca = async (): Promise<Marca> => {
+    const f = await leeFuente();
+    const rem = remitenteEfectivo({ emailFrom: cfg.emailFrom, buzon: f.ok ? f.s.buzon : '', usuario: f.ok ? f.s.user : '', dominioWeb: cfg.dominio });
+    return { marca: cfg.marca, dominio: cfg.dominio, remitente: rem.from || ('no-reply@' + cfg.dominio), logoUrl: cfg.logoUrl, contacto: p.contacto };
+  };
   const portal = new URL('/portal/', cfg.urlIntranet).href;
 
   // plantilla: solo con credencial de servicio o sesión (la vía de aviso interno no admite plantillas). Compone el texto y deja
@@ -334,6 +405,7 @@ export async function manejador(req: Request): Promise<Response> {
   // vista previa: solo con sesión de la suite; no toca SMTP
   if (p.preview) {
     if (via !== 'sesion') return fail({ error: 'La vista previa exige sesión de la suite', status: 401 }, via);
+    const marca = await construyeMarca();
     if (p.plantilla !== '') { const e = await aplicaPlantilla(); if (e) return fail(e, via); }
     const t = validaTextos(p); if (t) return fail(t, via);
     if (p.message === '') return fail({ error: 'El mensaje está vacío o es demasiado largo', status: 400 }, via);
@@ -359,7 +431,16 @@ export async function manejador(req: Request): Promise<Response> {
      Así que: solo a los buzones de aviso de config_instancia —que son los únicos a los que escribe la
      base con pg_net (_avisar_equipo_soporte, revisar_almacenamiento)— y con un freno por isolate.
      El freno no es global (cada isolate cuenta el suyo): uno duradero necesita una tabla, pendiente. */
-  const va = via ? null : viaAviso({ secretoEnv: env('ENVIO_AVISO_SECRET'), cabecera: secretoAviso, attach: p.attach, to: p.to, avisos: cfg.avisos });
+  let va = via ? null : viaAviso({ secretoEnv: env('ENVIO_AVISO_SECRET'), cabecera: secretoAviso, attach: p.attach, to: p.to, avisos: cfg.avisos });
+  if (!via && !va && cfg.avisosPosibles.includes(p.to.toLowerCase())
+      && viaAviso({ secretoEnv: env('ENVIO_AVISO_SECRET'), cabecera: secretoAviso, attach: p.attach, to: p.to, avisos: [p.to.toLowerCase()] })) {
+    // buzón de aviso configurado cuyo dominio no es el de la instancia ni el de email_from: vale si es el del usuario del servidor SMTP.
+    // Solo se llega aquí con el secreto ya comprobado (o sin secreto definido: la vía anónima antigua), nunca para un extraño.
+    const f = await leeFuente();
+    if (f.ok && buzonAvisoValido(p.to, { dominio: cfg.dominio, emailFrom: cfg.emailFrom, usuarioSmtp: f.s.user })) {
+      va = viaAviso({ secretoEnv: env('ENVIO_AVISO_SECRET'), cabecera: secretoAviso, attach: p.attach, to: p.to, avisos: [p.to.toLowerCase()] });
+    }
+  }
   if (va) {
     if (!frenoAvisoInterno()) return fail({ error: 'Demasiados avisos internos seguidos; se reintenta más tarde', status: 429 }, va, p.to);
     via = va;
@@ -380,11 +461,16 @@ export async function manejador(req: Request): Promise<Response> {
     if (!pdf) return fail({ error: 'No se pudo generar ni adjuntar el PDF (servicio de render no disponible y no se adjuntó uno manualmente)', status: 502 }, via, p.to);
   }
 
-  const s = smtpConfig();
-  if ('error' in s) return fail({ error: s.error, status: 500 }, via, p.to);
+  const f = await leeFuente();
+  if (!f.ok) return fail({ error: f.error, status: 500 }, via, p.to);
+  const marca = await construyeMarca();
+  const rem = remitenteEfectivo({ emailFrom: cfg.emailFrom, buzon: f.s.buzon, usuario: f.s.user, dominioWeb: cfg.dominio });
+  if (rem.from === '') return fail({ error: 'Remitente de la instancia sin configurar', status: 500 }, via, p.to);
+  if (rem.motivo !== '') console.error('envia-correo: email_from no se usa (' + rem.motivo + '): sale el buzón');   // solo el código, nunca la dirección
+  const s = { host: f.s.host, port: f.s.port, user: f.s.user, pass: f.s.pass, from: rem.from };
   try {
     await enviaSmtp(p, marca, plantillaHtml(p.message, p.encabezado, cta, p.etiqueta, marca),
-      plantillaTexto(p.message, p.encabezado, cta, marca), pdf, s.fromName, s);
+      plantillaTexto(p.message, p.encabezado, cta, marca), pdf, f.s.fromName, s, replyToEfectivo(cfg.replyTo));
   } catch (e) {
     // La línea libre del servidor SMTP puede llevar la cuenta o el banner: al log solo códigos. Al llamante,
     // el texto con 554 / 5.7.1 (que buscan los crons para parar la tanda) y los mismos códigos en campos.

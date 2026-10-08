@@ -3,7 +3,9 @@
 //   · `Deno` es un doble (env de un mapa, serve/test recogidos);
 //   · `npm:nodemailer` lo sustituye nodemailer_falso.mjs (nada se envía, nada abre un socket);
 //   · `fetch` es un enrutador local que contesta lo que contestaría Supabase (config, sesión, pausa, PDF).
-// Es idéntico en Lawang y en el maestro (test_canon_envia_correo.py lo comprueba).
+// Idéntico en Lawang y en el maestro (test_canon_envia_correo.py lo comprueba; vuelven a serlo desde el porte del correo a Lawang, 8-oct-2026).
+// Contesta `correo_smtp_lee` (servidor de salida en Vault, F3.1). Por defecto como una base sin migrar (404 PGRST202 → secretos de entorno), que es
+// lo que suponen las pruebas viejas; `smtpLee: () => ({status, cuerpo})` lo cambia.
 import { register } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -28,8 +30,8 @@ const denoTests = [];
 let n = 0;
 
 /** Deja el arnés como nuevo. `env` se suma a BASE_ENV; `config` sustituye a CONFIG_BASE ([clave, valor]); `extra(url, init)` contesta lo que el arnés no conoce. */
-export function reinicia({ env = {}, config = CONFIG_BASE, pausado = false, sesion = false, pdf = true, extra = null } = {}) {
-  Object.assign(estado, { env: { ...BASE_ENV, ...env }, config, pausado, sesion, pdf, extra, llamadas: [], logs: [] });
+export function reinicia({ env = {}, config = CONFIG_BASE, pausado = false, sesion = false, pdf = true, extra = null, smtpLee = null } = {}) {
+  Object.assign(estado, { env: { ...BASE_ENV, ...env }, config, pausado, sesion, pdf, extra, smtpLee, llamadas: [], logs: [] });
   globalThis.__arnesCorreo = { correos: [], transportes: [], falloSmtp: null };
   estado.correo = globalThis.__arnesCorreo;
 }
@@ -54,6 +56,13 @@ globalThis.fetch = async (url, init = {}) => {
   if (u.includes('/rest/v1/rpc/envios_pausados')) {
     if (estado.pausado === 'error') return new Response('boom', { status: 500 });
     return new Response(estado.pausado ? 'true' : 'false', { status: 200 });
+  }
+  if (u.includes('/rest/v1/rpc/correo_smtp_lee')) {
+    if (estado.smtpLee === 'lanza') throw new TypeError('red caída (prueba)');
+    if (estado.smtpLee === 'timeout') throw Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' });
+    if (typeof estado.smtpLee === 'function' && estado.smtpLee.lanza) throw new TypeError('red caída (prueba)');
+    const r = estado.smtpLee ? estado.smtpLee() : { status: 404, cuerpo: { code: 'PGRST202', message: 'Could not find the function public.correo_smtp_lee' } };
+    return json(r.cuerpo, r.status);
   }
   if (u.endsWith('/render-pdf')) return estado.pdf ? new Response(PDF, { status: 200 }) : new Response('no', { status: 503 });
   throw new Error('arnes: fetch no previsto: ' + u);
