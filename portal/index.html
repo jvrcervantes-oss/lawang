@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="e8c33e472366">
+<meta name="lw-version" content="d3c57614249a">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -771,6 +771,95 @@
     .hero-pago:not(.vacio) .hp-concepto{ font-size:19px; }
   }
 
+  /* ═══ MI PERFIL — artifact «Mi perfil Lawang» (8-oct-2026, owner: «pasarlo al portal») ═══
+     Del modelo de inspiración, la estructura: ficha con cifras subrayadas, lo pendiente en teselas, las propiedades
+     y una columna de actividad. Las piezas son las del portal (tarjeta, rot-bloque, proy-card, docfila, toggle,
+     ini-sop) y los tintes los de Inicio: rojo de aviso, arena de firma, salvia de obra. Ni sombras ni colores nuevos. */
+  .content.pf-ancho{ max-width:1160px; }
+  .pf{ display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:18px; align-items:start; }
+  .pf-col{ display:grid; gap:18px; min-width:0; }
+  .pf .tarjeta{ margin:0; }
+  .pf .kpi-nota{ margin:-8px 2px 0; }
+  .pf h3.pf-t{ margin:0; font-size:17px; font-weight:500; }
+  .pf-cab{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:14px; }
+  .pf-vacio{ margin:0; font-size:13.5px; color:var(--ink2); }
+  .pf-ficha{ padding:22px 24px 0; overflow:hidden; }
+  .pf-yo{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:22px; align-items:start; }
+  .pf-avatar{ width:104px; height:104px; border-radius:16px; background:var(--dl); color:#fff; display:grid; place-items:center;
+              font-size:36px; font-weight:400; letter-spacing:.04em; }
+  .pf-quien{ min-width:0; }
+  .pf-quien h2{ margin:2px 0 0; font-size:28px; font-weight:400; letter-spacing:-.01em; line-height:1.1; overflow-wrap:anywhere; }
+  .pf-sub{ margin:6px 0 0; font-size:13.5px; color:var(--ink2); }
+  .pf-datos{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 24px; margin-top:16px; }
+  .pf-dato{ display:flex; align-items:center; gap:9px; font-size:13.5px; min-width:0; }
+  .pf-dato svg{ width:15px; height:15px; color:var(--sc); flex:none; }
+  .pf-dato span{ overflow-wrap:anywhere; }
+  .pf-cifras{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:22px -24px 0; border-top:1px solid var(--pg-hi); }
+  .pf-cifras.una{ grid-template-columns:minmax(0,1fr); }
+  .pf-cifra{ padding:16px 24px 0; min-width:0; }
+  .pf-cifra + .pf-cifra{ border-left:1px solid var(--pg-hi); }
+  .pf-cifra .rot-bloque{ margin:0 0 6px; }
+  .pf-cifra b{ display:block; font-size:26px; font-weight:400; letter-spacing:-.01em; line-height:1.1; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .pf-cifra b small{ font-size:13px; color:var(--out); margin-left:3px; letter-spacing:0; }
+  .pf-cifra i{ display:block; height:4px; margin:16px -24px 0; }
+  .pf-teselas{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+  .pf-tes{ border:0; border-radius:13px; padding:15px 16px 14px; text-align:left; font:inherit; cursor:pointer; display:flex; flex-direction:column;
+           gap:4px; min-height:148px; position:relative; transition:transform .3s var(--lw-ease), filter .2s; }
+  .pf-tes:hover{ transform:translateY(-2px); filter:brightness(.985); }
+  .pf-tes:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .pf-tes .tt{ font-size:15px; font-weight:500; line-height:1.25; padding-right:30px; }
+  .pf-tes .ss{ font-size:12.5px; opacity:.85; }
+  .pf-tes .pie{ margin-top:auto; display:flex; flex-direction:column; align-items:flex-start; gap:6px; padding-top:14px; }
+  .pf-tes .cuando{ font-size:12px; opacity:.85; }
+  .pf-tes .cuanto{ font-size:12.5px; font-weight:700; border-radius:999px; padding:3px 10px; background:#fff; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .pf-tes .flecha{ position:absolute; top:12px; right:12px; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.7);
+                   display:grid; place-items:center; font-size:13px; }
+  .pf-tes.rojo{ background:#f8ebe7; color:#5c1a14; } .pf-tes.rojo .cuanto{ color:var(--bad); }
+  .pf-tes.arena{ background:#f6e8cc; color:#6b480c; } .pf-tes.arena .cuanto{ color:#8C5E10; }
+  .pf-tes.salvia{ background:#e3eadb; color:#2f3e24; } .pf-tes.salvia .cuanto{ color:#3F5230; }
+  .pf .proy-grid.pf-props{ grid-template-columns:repeat(2,minmax(0,1fr)); margin:0; gap:12px; }
+  .pf-props .proy-portada{ aspect-ratio:21/8; }
+  .pf-props .proy-portada::before{ width:18%; }
+  .pf-props .proy-cuerpo{ padding:12px 14px 14px; gap:3px; }
+  .pf-props .proy-nombre{ font-size:15px; }
+  .pf-act{ list-style:none; margin:0; padding:0; }
+  .pf-ev{ display:grid; grid-template-columns:44px 30px minmax(0,1fr); gap:0 10px; position:relative; padding-bottom:16px; }
+  .pf-ev:last-child{ padding-bottom:0; }
+  .pf-ev::before{ content:""; position:absolute; left:68px; top:30px; bottom:2px; width:1px; background:var(--pg-hi); }
+  .pf-ev:last-child::before{ display:none; }
+  .pf-ev time{ font-size:11.5px; color:var(--out); line-height:1.25; padding-top:6px; font-variant-numeric:tabular-nums; }
+  .pf-ev time b{ display:block; font-size:15px; color:var(--va); font-weight:500; }
+  .pf-ev .ic{ width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:var(--pg-low); color:var(--ink2); }
+  .pf-ev .ic svg{ width:15px; height:15px; }
+  .pf-ev .ic.fac{ background:#f6e8cc; color:#8C5E10; }
+  .pf-ev .cu{ background:var(--pg-low); border-radius:10px; padding:10px 12px; font-size:13.5px; line-height:1.4; min-width:0; overflow-wrap:anywhere; }
+  .pf-ev .cu .ini-link{ font-size:12.5px; margin-top:4px; display:inline-block; }
+  .pf-nota-doc{ margin:0 0 14px; font-size:12.5px; color:var(--ink2); }
+  .pf .doclista{ border:1px solid var(--pg-hi); border-radius:10px; overflow:hidden; }
+  .pf .docfila{ cursor:pointer; }
+  .pf-pill{ font-size:11.5px; font-weight:700; border-radius:999px; padding:3px 10px; white-space:nowrap; flex:none; }
+  .pf-pill.mal{ background:#f8ebe7; color:var(--bad); border:1px solid #e4c3ba; }
+  .pf-pill.ok{ background:#e3eadb; color:#3F5230; }
+  .pf .pref-fila{ gap:12px; }
+  .pf .pref-fila span{ font-size:13.5px; }
+  .pf-rot-prefs{ margin:14px 0 2px; }
+  @media (max-width:1080px){ .pf{ grid-template-columns:minmax(0,1fr); } }
+  @media (max-width:640px){
+    .pf-yo{ grid-template-columns:minmax(0,1fr); gap:14px; }
+    .pf-avatar{ width:72px; height:72px; font-size:26px; border-radius:14px; }
+    .pf-quien h2{ font-size:24px; }
+    .pf-datos{ grid-template-columns:minmax(0,1fr); }
+    .pf-ficha{ padding:18px 18px 0; }
+    .pf-cifras{ margin:18px -18px 0; }
+    .pf-cifra{ padding:14px 12px 0; }
+    .pf-cifra b{ font-size:18px; }
+    .pf-cifra i{ margin:14px -12px 0; }
+    .pf-tes{ min-height:0; }
+    .pf .proy-grid.pf-props{ grid-template-columns:minmax(0,1fr); }
+    .pf-props .proy-portada{ aspect-ratio:auto; }
+  }
+  @media (prefers-reduced-motion:reduce){ .pf-tes{ transition:none; } .pf-tes:hover{ transform:none; } }
+
   /* ══ CONTRATOS POR VILLA — artifact «Lawang · Contratos (propuesta)», 7-oct-2026 ══
      Con los tonos que el portal ya usa: verde de pagado (#485B37 / --ok), teal de acción (--dl) y el ámbar de la
      firma pendiente, que es el de su etiqueta de siempre. Sin sombras; un solo momento fuerte: la firma, si la hay. */
@@ -1355,6 +1444,7 @@
          sin_tickets_t:'Aún no tienes ningún ticket', sin_tickets:'Abre uno cuando necesites algo — pagos, documentación, obra o cualquier otra duda.',
          aviso_no_vinculante:'Esto es un canal de atención, no un documento contractual: ningún precio, plazo o condición cambia hasta que quede reflejado en tu contrato o en un anexo firmado.',
          datos_personales:'Datos personales', nombre:'Nombre', correo:'Correo', telefono:'Teléfono', pais:'País',
+         pf_propiedades:'Propiedades', pf_renovar:'Hay que renovarlo en tu expediente', pf_nada:'Nada pendiente por ahora.', pf_ver_contratos:'Ver contratos', pf_actividad:'Actividad', pf_caducado:'Caducado', pf_vigente:'Vigente', pf_contrasena:'Contraseña', pf_dato_mal:'¿Algún dato no es correcto?', pf_dato_mal_txt:'Tus datos los lleva el equipo de gestión de Lawang. Escríbenos y los corregimos.',
          seguridad:'Seguridad', cambiar_pass_btn:'Cambiar contraseña',
          cambiar_pass_nueva:'Nueva contraseña (mínimo 10 caracteres)', cambiar_pass_repite:'Repite la contraseña',
          cambiar_pass_nota:'La usarás junto a tu correo la próxima vez que entres — el enlace por email sigue funcionando igual.',
@@ -1450,6 +1540,7 @@
          sin_tickets_t:'You have no tickets yet', sin_tickets:'Open one whenever you need something — payments, documentation, construction or anything else.',
          aviso_no_vinculante:'This is a support channel, not a contractual document: no price, deadline or condition changes until it is reflected in your contract or a signed annex.',
          datos_personales:'Personal details', nombre:'Name', correo:'Email', telefono:'Phone', pais:'Country',
+         pf_propiedades:'Properties', pf_renovar:'It needs renewing in your file', pf_nada:'Nothing pending right now.', pf_ver_contratos:'See contracts', pf_actividad:'Activity', pf_caducado:'Expired', pf_vigente:'Valid', pf_contrasena:'Password', pf_dato_mal:'Is any of your details wrong?', pf_dato_mal_txt:'Your details are kept by the Lawang management team. Write to us and we will correct them.',
          seguridad:'Security', cambiar_pass_btn:'Change password',
          cambiar_pass_nueva:'New password (10 characters minimum)', cambiar_pass_repite:'Repeat password',
          cambiar_pass_nota:'You will use it together with your email next time you sign in — the email link keeps working too.',
@@ -1549,6 +1640,7 @@
          sin_tickets_t:'Anda belum memiliki tiket', sin_tickets:'Buka tiket saat Anda membutuhkan sesuatu — pembayaran, dokumen, pembangunan, atau pertanyaan lain.',
          aviso_no_vinculante:'Ini adalah saluran layanan, bukan dokumen kontrak: harga, jangka waktu, atau ketentuan apa pun tidak berubah sampai tercantum dalam kontrak Anda atau lampiran yang ditandatangani.',
          datos_personales:'Data pribadi', nombre:'Nama', correo:'Email', telefono:'Telepon', pais:'Negara',
+         pf_propiedades:'Properti', pf_renovar:'Perlu diperbarui di berkas Anda', pf_nada:'Tidak ada yang tertunda saat ini.', pf_ver_contratos:'Lihat kontrak', pf_actividad:'Aktivitas', pf_caducado:'Kedaluwarsa', pf_vigente:'Berlaku', pf_contrasena:'Kata sandi', pf_dato_mal:'Ada data yang tidak benar?', pf_dato_mal_txt:'Data Anda dikelola oleh tim manajemen Lawang. Tulis kepada kami dan kami akan memperbaikinya.',
          seguridad:'Keamanan', cambiar_pass_btn:'Ganti kata sandi',
          cambiar_pass_nueva:'Kata sandi baru (minimal 10 karakter)', cambiar_pass_repite:'Ulangi kata sandi',
          cambiar_pass_nota:'Anda akan memakainya bersama email saat masuk berikutnya — tautan lewat email tetap berfungsi seperti biasa.',
@@ -1991,6 +2083,7 @@
     tit.classList.toggle('es-fecha', enInicio);
     if (enInicio) tit.setAttribute('aria-label', t('tit_inicio') + ' · ' + tit.textContent); else tit.removeAttribute('aria-label');
     var c = document.getElementById('content');
+    c.classList.toggle('pf-ancho', ESTADO.section === 'perfil');   // Mi perfil va a dos columnas y pide más ancho
     var fns = { inicio:pintaInicio, contratos:pintaContratos, facturas:pintaFacturas, obra:pintaObra,
                 documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
     c.innerHTML = '';
@@ -2022,10 +2115,14 @@
     var n = Math.round((dia - hoy) / 86400000);
     return n < 0 ? null : n;
   }
-  function cuentaAtras(f){
+  function diasTexto(f){
     var n = diasHasta(f);
     if (n == null) return '';
-    return '<span class="ini-tarea-cuenta">' + esc(n === 0 ? t('caduca_hoy') : n === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', n)) + '</span>';
+    return n === 0 ? t('caduca_hoy') : n === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', n);
+  }
+  function cuentaAtras(f){
+    var s = diasTexto(f);
+    return s ? '<span class="ini-tarea-cuenta">' + esc(s) + '</span>' : '';
   }
 
   /* El próximo pago de UN contrato: su primer hito sin pagar, por lo que le FALTA. Si está 'parcial' ya se cobró
@@ -2100,6 +2197,36 @@
             : '');
   }
 
+  /* ── La tarjeta de una propiedad — la pintan Inicio y Mi perfil (8-oct-2026) ──
+     Salió de pintaInicio cuando Mi perfil pasó a enseñar las propiedades también: copiada, el día que una cambiara
+     el % pagado o una etiqueta, las dos pantallas dirían cosas distintas de la misma villa. */
+  function contratosConFirma(d){
+    var m = {};
+    (d.firma_pendiente || []).forEach(function(fp){ m[fp.contrato_id] = true; });
+    return m;
+  }
+  function tarjetaPropiedad(f, d, conFirma){
+    var rs = resumenPortal(f.contratos || []);
+    var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(function(u, i, a){ return u && a.indexOf(u) === i; });
+    var obraU = (d.obra || []).filter(function(o){ return (f.contratos || []).some(function(x){ return x.numero === o.contrato_numero; }); })[0];
+    var fase = obraU ? (d.fases || []).filter(function(ff){ return ff.clave === obraU.fase; })[0] : null;
+    var pct = (rs.total != null && rs.total > 0) ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : null;   // floor: nunca «100 %» si queda algo
+    var firma = (f.contratos || []).some(function(x){ return conFirma[x.id]; });
+    var pagada = !rs.soloReserva && rs.total != null && rs.total > 0 && rs.cobrado >= rs.total;   // con solo la Carta, el total es la cuota de reserva
+    var chips = unidades.map(function(u){ return '<span class="proy-chip">' + esc(u) + '</span>'; }).join('') +
+      (fase ? '<span class="proy-chip obra">' + esc(t('fase_obra')) + ' · ' + esc(Lx(fase)) + '</span>' : '') +
+      (firma ? '<span class="proy-chip firma">' + esc(t('firma_pend_chip')) + '</span>' : '') +
+      (pagada ? '<span class="proy-chip obra">' + esc(t('pagada')) + '</span>' : '');
+    return '<button type="button" class="proy-card" data-carpeta="' + esc(f.key) + '">' + portadaHTML(f, 'proy-portada') +
+      '<div class="proy-cuerpo"><div class="proy-nombre">' + esc(f.nombre) + '</div>' +
+      (f.resort ? '<div class="proy-meta">' + esc(f.resort) + '</div>' : '') +
+      (chips ? '<div class="proy-chips">' + chips + '</div>' : '') +
+      (pct != null
+        ? '<div class="proy-pag"><span>' + esc(t('pagado_de').replace('{a}', dinero(rs.cobrado, rs.moneda)).replace('{b}', dinero(rs.total, rs.moneda))) + '</span><span>' + pct + ' %</span></div>' +
+          '<div class="barra"><i style="width:' + pct + '%"></i></div>' : '') +
+      (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></button>';
+  }
+
   /* ── Inicio ───────────────────────────────────────────────────────── */
   function pintaInicio(c){
     var d = DATOS;
@@ -2143,30 +2270,11 @@
 
     var carpetas = carpetasProyecto();
     var carpetasInicio = carpetas.filter(function(f){ return (f.contratos || []).length; });
-    var conFirma = {};
-    (d.firma_pendiente || []).forEach(function(fp){ conFirma[fp.contrato_id] = true; });
+    var conFirma = contratosConFirma(d);
     var proyectosHTML = carpetasInicio.length
       ? '<div class="ini-secc"><h3>' + esc(t('tus_propiedades')) + '</h3><button type="button" class="ini-link" data-ir="documentos">' + esc(t('ver_documentos')) + ' →</button></div>' +
         '<div class="proy-grid ini' + (carpetasInicio.length === 1 ? ' uno' : '') + (carpetasInicio.length > 3 ? ' muchos' : '') + '">' + carpetasInicio.map(function(f){
-          var rs = resumenPortal(f.contratos || []);
-          var unidades = (f.contratos || []).map(function(x){ return x.parcela; }).filter(function(u, i, a){ return u && a.indexOf(u) === i; });
-          var obraU = (d.obra || []).filter(function(o){ return (f.contratos || []).some(function(x){ return x.numero === o.contrato_numero; }); })[0];
-          var fase = obraU ? (d.fases || []).filter(function(ff){ return ff.clave === obraU.fase; })[0] : null;
-          var pct = (rs.total != null && rs.total > 0) ? Math.min(100, Math.floor(rs.cobrado / rs.total * 100)) : null;   // floor: nunca «100 %» si queda algo
-          var firma = (f.contratos || []).some(function(x){ return conFirma[x.id]; });
-          var pagada = !rs.soloReserva && rs.total != null && rs.total > 0 && rs.cobrado >= rs.total;   // con solo la Carta, el total es la cuota de reserva
-          var chips = unidades.map(function(u){ return '<span class="proy-chip">' + esc(u) + '</span>'; }).join('') +
-            (fase ? '<span class="proy-chip obra">' + esc(t('fase_obra')) + ' · ' + esc(Lx(fase)) + '</span>' : '') +
-            (firma ? '<span class="proy-chip firma">' + esc(t('firma_pend_chip')) + '</span>' : '') +
-            (pagada ? '<span class="proy-chip obra">' + esc(t('pagada')) + '</span>' : '');
-          return '<button type="button" class="proy-card" data-carpeta="' + esc(f.key) + '">' + portadaHTML(f, 'proy-portada') +
-            '<div class="proy-cuerpo"><div class="proy-nombre">' + esc(f.nombre) + '</div>' +
-            (f.resort ? '<div class="proy-meta">' + esc(f.resort) + '</div>' : '') +
-            (chips ? '<div class="proy-chips">' + chips + '</div>' : '') +
-            (pct != null
-              ? '<div class="proy-pag"><span>' + esc(t('pagado_de').replace('{a}', dinero(rs.cobrado, rs.moneda)).replace('{b}', dinero(rs.total, rs.moneda))) + '</span><span>' + pct + ' %</span></div>' +
-                '<div class="barra"><i style="width:' + pct + '%"></i></div>' : '') +
-            (f.docs.length ? '<div class="proy-meta proy-enlace">' + esc(nDocsTxt(f.docs.length)) + ' →</div>' : '<div class="proy-meta">' + esc(t('sin_docs_proyecto')) + '</div>') + '</div></button>';
+          return tarjetaPropiedad(f, d, conFirma);
         }).join('') + '</div>' +
         // con más de 3 proyectos solo se ven los primeros (3 en móvil, 6 en escritorio) y un enlace a todos
         (carpetasInicio.length > 3 ? '<button type="button" class="btn-borde ver-todos' + (carpetasInicio.length <= 6 ? ' solo-movil' : '') + '" data-ir="documentos">' + esc(t('ver_todos').replace('{n}', carpetasInicio.length)) + '</button>' : '')
@@ -3057,33 +3165,116 @@
   /* "Lo que nos entregaste" (kyc) vive aquí desde el 1-sep (antes en
      Documentos, pedido del cliente: es documentación de LA CUENTA —
      pasaporte, NPWP, KITAS… — no de la promoción). */
+  /* Mi perfil, propuesta aprobada el 8-oct-2026 (owner: artifact «Mi perfil Lawang», modelo de inspiración Realty Hub):
+     ficha con sus cifras arriba, lo pendiente en teselas, las propiedades y, a la derecha, actividad, lo entregado,
+     seguridad y avisos. Todo sale de portal_situacion y de las mismas funciones que Inicio (pagoProximo,
+     tarjetaPropiedad, novedadesDerivadas, kycCaducan): ninguna cifra se cuenta dos veces de dos formas.
+     Hereda las acciones de la versión anterior con sus mismos id: btnCambiarPass, tglEmail, tglSms y data-kyc. */
+  function nombreKyc(tipo){ return t('doc_' + tipo) === 'doc_' + tipo ? tipo : t('doc_' + tipo); }
+  function mayus1(s){ s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
   function pintaPerfil(c){
     var d = DATOS, prefs = d.prefs || { pref_email:true, pref_sms:false }, kyc = d.kyc||[];
-    c.innerHTML = '<div style="display:grid;gap:16px;max-width:520px">' +
-      '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('datos_personales')) + '</h3>' +
-        '<div style="display:grid;gap:10px">' +
-          '<div><div class="campo-lbl">' + svgPerfil('user') + esc(t('nombre')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.nombre||'—') + '</div></div>' +
-          '<div><div class="campo-lbl">' + svgPerfil('envelope') + esc(t('correo')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.email||'—') + '</div></div>' +
-          '<div><div class="campo-lbl">' + svgPerfil('phone') + esc(t('telefono')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.telefono||'—') + '</div></div>' +
-          '<div><div class="campo-lbl">' + svgPerfil('pin') + esc(t('pais')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.pais||'—') + '</div></div>' +
-        '</div></div>' +
-      (kyc.length ? '<div class="tarjeta"><h3 style="margin:0 0 6px;font-size:15px;font-weight:600">' + esc(t('d_entregado')) + '</h3>' +
-        '<p style="margin:0 0 14px;font-size:12.5px;color:#6b6c66">' + esc(t('d_entregado_nota')) + '</p>' +
+    var pago = pagoProximo(d), res = pago.res;
+    var carpetas = carpetasProyecto().filter(function(f){ return (f.contratos || []).length; });
+    var conFirma = contratosConFirma(d);
+    var contratoPorId = {};
+    (d.contratos || []).forEach(function(x){ contratoPorId[x.id] = x; });
+    var iniciales = (document.getElementById('avatarIniciales') || {}).textContent || '·';
+
+    // ficha: datos y cifras (las mismas que el pie del bloque de pago de Inicio)
+    var hayResumen = res.total != null && res.total > 0;
+    var cifra = function(rot, val, color){
+      return '<div class="pf-cifra"><div class="rot-bloque">' + esc(rot) + '</div><b>' + val + '</b><i style="background:' + color + '"></i></div>';
+    };
+    var cifraDinero = function(n){ var s = dinero(n, res.moneda), m = /^(.*?)\s*(\D+)$/.exec(s); return m ? esc(m[1]) + '<small>' + esc(m[2]) + '</small>' : esc(s); };
+    var sub = carpetas.length ? (carpetas.length === 1 ? t('n_props_1') : t('n_props_n').replace('{n}', carpetas.length)) : '';
+    var dato = function(ico, v){ return v ? '<div class="pf-dato">' + svgPerfil(ico) + '<span>' + esc(v) + '</span></div>' : ''; };
+    var ficha = '<section class="tarjeta pf-ficha"><div class="pf-yo"><div class="pf-avatar" aria-hidden="true">' + esc(iniciales) + '</div>' +
+        '<div class="pf-quien"><h2>' + esc(d.nombre || d.email || '—') + '</h2>' + (sub ? '<p class="pf-sub">' + esc(sub) + '</p>' : '') +
+          '<div class="pf-datos">' + dato('envelope', d.email) + dato('phone', d.telefono) + dato('pin', d.pais) + '</div></div></div>' +
+        '<div class="pf-cifras' + (hayResumen ? '' : ' una') + '">' +
+          cifra(t('pf_propiedades'), String(carpetas.length), '#8F9B7A') +
+          (hayResumen ? cifra(t('r_pagado'), cifraDinero(res.cobrado), '#485B37') + cifra(t('r_pendiente'), cifraDinero(res.pendiente), '#BEB3A5') : '') +
+        '</div></section>' + notaResumenHTML(res);
+
+    // lo pendiente: firmas, el próximo pago y los documentos que caducan — lo mismo que avisa Inicio
+    var tes = [];
+    var tesela = function(clase, attr, tt, ss, cuando, cuanto){
+      return '<button type="button" class="pf-tes ' + clase + '" ' + attr + '><span class="flecha" aria-hidden="true">↗</span>' +
+        '<span class="tt">' + esc(tt) + '</span>' + (ss ? '<span class="ss">' + esc(ss) + '</span>' : '') +
+        '<span class="pie"><span class="cuando">' + esc(cuando) + '</span>' + (cuanto ? '<span class="cuanto">' + esc(cuanto) + '</span>' : '') + '</span></button>';
+    };
+    (d.firma_pendiente || []).forEach(function(fp){
+      var k = contratoPorId[fp.contrato_id] || {};
+      tes.push(tesela('rojo', 'data-ir="contratos"', t('firma_tarea').replace('{n}', k.numero || ''), k.proyecto || '',
+        fp.expira_en ? mayus1(t('firma_caduca').replace('{f}', fechaCorta(fp.expira_en))) : '', diasTexto(fp.expira_en)));
+    });
+    if (pago.proximo){
+      var px = pago.proximo, vencida = pago.vence && finDelDia(pago.vence) < Date.now();
+      tes.push(tesela(vencida ? 'rojo' : 'arena', pago.factProx ? 'data-ir-fac="' + esc(pago.factProx.numero) + '"' : 'data-ir="facturas"',
+        Lx(px.hito), [px.proyecto, px.parcela].filter(Boolean).join(' · '),
+        pago.vence ? mayus1(t(vencida ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(pago.vence))) : t('proximo_pago'),
+        isNaN(px.monto) ? '' : dinero(px.monto, px.moneda)));
+    }
+    kycCaducan(d).forEach(function(k){
+      tes.push(tesela('salvia', 'data-ir-kyc', nombreKyc(k.tipo), t('pf_renovar'),
+        mayus1(t('caduca') + ' ' + fechaCorta(k.caduca)), diasTexto(k.caduca)));
+    });
+    var pendiente = '<section class="tarjeta"><div class="pf-cab"><h3 class="pf-t">' + esc(t('pendiente_ti')) + '</h3></div>' +
+      (tes.length ? '<div class="pf-teselas">' + tes.join('') + '</div>' : '<p class="pf-vacio">' + esc(t('pf_nada')) + '</p>') + '</section>';
+
+    var propiedades = carpetas.length
+      ? '<section><div class="ini-secc"><h3>' + esc(t('tus_propiedades')) + '</h3><button type="button" class="ini-link" data-ir="contratos">' + esc(t('pf_ver_contratos')) + ' →</button></div>' +
+        '<div class="proy-grid pf-props">' + carpetas.map(function(f){ return tarjetaPropiedad(f, d, conFirma); }).join('') + '</div></section>'
+      : '';
+
+    // actividad: las novedades de la campana (sin los avisos de documento, que ya están en lo pendiente)
+    var nov = novedadesDerivadas().filter(function(x){ return x.tipo !== 'kyc'; }).slice(0, 5);
+    var actividad = '<section class="tarjeta"><div class="pf-cab"><h3 class="pf-t">' + esc(t('pf_actividad')) + '</h3></div>' +
+      (nov.length ? '<ol class="pf-act">' + nov.map(function(x){
+        var f = new Date(x.fecha), ok = !isNaN(f);
+        var ir = x.tipo === 'factura' && x.numero ? '<button type="button" class="ini-link" data-ir-fac="' + esc(x.numero) + '">' + esc(t('ver_factura')) + ' →</button>'
+               : x.tipo === 'obra' ? '<button type="button" class="ini-link" data-ir="obra">' + esc(t('ver_fotos')) + ' →</button>' : '';
+        return '<li class="pf-ev"><time' + (ok ? ' datetime="' + esc(f.toISOString().slice(0,10)) + '"' : '') + '>' +
+            (ok ? '<b>' + f.getDate() + '</b>' + esc(f.toLocaleDateString(LOC(), { month:'short' })) : '—') + '</time>' +
+          '<span class="ic' + (x.tipo === 'factura' ? ' fac' : '') + '"><svg viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true">' + NAV_ICONOS[x.tipo === 'factura' ? 'facturas' : 'obra'] + '</svg></span>' +
+          '<div class="cu">' + esc(x.texto) + (ir ? '<br>' + ir : '') + '</div></li>';
+      }).join('') + '</ol>' : '<p class="pf-vacio">—</p>') + '</section>';
+
+    var entregado = kyc.length ? '<section class="tarjeta" id="pfEntregado"><h3 class="pf-t" style="margin-bottom:6px">' + esc(t('d_entregado')) + '</h3>' +
+        '<p class="pf-nota-doc">' + esc(t('d_entregado_nota')) + '</p>' +
         '<div class="doclista">' + kyc.map(function(x){
           var cad = x.caduca ? new Date(x.caduca) : null;
           var vencido = cad && cad < new Date();
-          return '<div class="docfila" data-kyc="' + esc(x.path) + '"><div class="cuerpo"><div class="t">' +
-            esc(t('doc_'+x.tipo) === 'doc_'+x.tipo ? x.tipo : t('doc_'+x.tipo)) + '</div></div>' +
-            '<div class="der' + (vencido?' mal':'') + '">' + (x.caduca ? esc(t('caduca')+' '+fecha(x.caduca)) : '') + '</div></div>';
-        }).join('') + '</div></div>' : '') +
-      '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('seguridad')) + '</h3>' +
-        '<button type="button" class="btn-borde" id="btnCambiarPass">' + esc(t('cambiar_pass_btn')) + '</button></div>' +
-      '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('prefs')) + '</h3>' +
-        '<div class="pref-fila"><span style="font-size:13.5px">' + esc(t('pref_email')) + '</span>' +
-          '<button type="button" class="toggle' + (prefs.pref_email?' on':'') + '" id="tglEmail"><i></i></button></div>' +
-        '<div class="pref-fila"><span style="font-size:13.5px">' + esc(t('pref_sms')) + '</span>' +
-          '<button type="button" class="toggle' + (prefs.pref_sms?' on':'') + '" id="tglSms"><i></i></button></div>' +
-      '</div></div>';
+          var dias = diasHasta(x.caduca);
+          var pill = !x.caduca ? '' : vencido ? '<span class="pf-pill mal">' + esc(t('pf_caducado')) + '</span>'
+                   : (dias != null && dias <= 30) ? '<span class="pf-pill mal">' + esc(diasTexto(x.caduca)) + '</span>'
+                   : '<span class="pf-pill ok">' + esc(t('pf_vigente')) + '</span>';
+          return '<div class="docfila" data-kyc="' + esc(x.path) + '"><div class="cuerpo"><div class="t">' + esc(nombreKyc(x.tipo)) + '</div>' +
+            (x.caduca ? '<div class="s">' + esc(mayus1(t('caduca') + ' ' + fecha(x.caduca))) + '</div>' : '') + '</div>' + pill + '</div>';
+        }).join('') + '</div></section>' : '';
+
+    var ajustes = '<section class="tarjeta"><h3 class="pf-t" style="margin-bottom:10px">' + esc(t('seguridad')) + '</h3>' +
+        '<div class="pref-fila"><span>' + esc(t('pf_contrasena')) + '</span><button type="button" class="btn-borde" id="btnCambiarPass">' + esc(t('cambiar_pass_btn')) + '</button></div>' +
+        '<div class="rot-bloque pf-rot-prefs">' + esc(t('prefs')) + '</div>' +
+        '<div class="pref-fila"><span>' + esc(t('pref_email')) + '</span>' +
+          '<button type="button" class="toggle' + (prefs.pref_email?' on':'') + '" id="tglEmail" aria-pressed="' + !!prefs.pref_email + '" aria-label="' + esc(t('pref_email')) + '"><i></i></button></div>' +
+        '<div class="pref-fila"><span>' + esc(t('pref_sms')) + '</span>' +
+          '<button type="button" class="toggle' + (prefs.pref_sms?' on':'') + '" id="tglSms" aria-pressed="' + !!prefs.pref_sms + '" aria-label="' + esc(t('pref_sms')) + '"><i></i></button></div>' +
+      '</section>';
+
+    var abiertas = (d.tickets || []).filter(function(x){ return x.estado === 'abierto'; }).length;
+    var datosMal = '<div class="ini-sop"><div class="rot-bloque">' + esc(t('datos_personales')) + '</div><h4>' + esc(t('pf_dato_mal')) + '</h4>' +
+      '<p>' + esc(t('pf_dato_mal_txt')) + (abiertas ? ' ' + esc(abiertas === 1 ? t('sop_abiertas_1') : t('sop_abiertas_n').replace('{n}', abiertas)) : '') + '</p>' +
+      '<button type="button" class="btn-oscuro" data-ir="soporte">' + esc(t('escribir_equipo')) + '</button></div>';
+
+    c.innerHTML = '<div class="pf"><div class="pf-col">' + ficha + pendiente + propiedades + '</div>' +
+      '<div class="pf-col">' + actividad + entregado + ajustes + datosMal + '</div></div>';
+    c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+    c.querySelectorAll('[data-ir-fac]').forEach(function(b){ b.addEventListener('click', function(){ vasA('facturas', b.getAttribute('data-ir-fac')); }); });
+    c.querySelectorAll('[data-ir-kyc]').forEach(function(b){ b.addEventListener('click', function(){ var e = document.getElementById('pfEntregado'); if (e) e.scrollIntoView({ behavior:'smooth', block:'start' }); }); });
+    c.querySelectorAll('[data-carpeta]').forEach(function(b){ b.addEventListener('click', function(){ if (window.LW_MOV) LW_MOV.recuerdaPortada(b.querySelector('.proy-portada')); vasA('documentos', b.getAttribute('data-carpeta')); }); });
+    cargaPortadas(c);
     document.getElementById('btnCambiarPass').addEventListener('click', abrirCambiarPass);
     document.getElementById('tglEmail').addEventListener('click', function(){ togglePref('pref_email'); });
     document.getElementById('tglSms').addEventListener('click', function(){ togglePref('pref_sms'); });
