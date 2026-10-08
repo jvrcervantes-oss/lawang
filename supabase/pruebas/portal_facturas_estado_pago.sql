@@ -4,6 +4,7 @@
 -- Esperado (cualquier «MAL» es fallo):
 --   1:propia_con_importe 2:ajena_null_para_comprador 3:equipo_ve_ajena 4:mixta_ve_ajena 5:sin_sesion_ve_ajena
 --   6:salda_solo_mis_facturas 7:lista_sin_anuladas_ni_proformas_sin_enviar 8:aplicado_solo_en_facturas
+--   9:sesion_sin_marca_ni_equipo_null
 
 do $$
 declare
@@ -73,6 +74,11 @@ begin
                      'app_metadata', json_build_object('portal', true))::text, true);
   v_n := public.factura_aplicado(v_ajena);
   v_res := v_res || case when v_n = v_real_ajena then '4:mixta_ve_ajena ' else '4:MAL(' || coalesce(v_n::text, 'null') || ') ' end;
+
+  -- 9: con sesión, sin marca de portal y sin ser del equipo (p. ej. un usuario del equipo desactivado): cierra
+  perform set_config('request.jwt.claims', json_build_object('sub', gen_random_uuid(), 'role', 'authenticated')::text, true);
+  v_n := public.factura_aplicado(v_ajena);
+  v_res := v_res || case when v_n is null then '9:sesion_sin_marca_ni_equipo_null ' else '9:MAL(' || v_n || ') ' end;
 
   -- 5: sin sesión (cron, finanzas_resumen_semanal)
   perform set_config('request.jwt.claims', '', true);

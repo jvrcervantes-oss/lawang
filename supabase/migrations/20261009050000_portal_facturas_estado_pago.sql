@@ -17,6 +17,10 @@
 --    `not es_agente()` les devolvería null en facturas ajenas, el pendiente de la intranet saldría null y el
 --    disparador factura_anulada_solo_cambia_autor dejaría reactivar un recibí sin mirar el tope de la factura
 --    (revisor de código, 8-oct). Para el equipo, las cuentas mixtas y el cron no cambia nada.
+--    Y la guarda CIERRA por defecto (Seguridad, consulta de deploy, 8-oct): no «si es del portal, solo lo suyo»,
+--    sino «si hay sesión y no es del equipo, solo lo suyo». Con la primera, un usuario del equipo DESACTIVADO
+--    (sigue con login y sin marca de portal; hay uno hoy) o cualquier cuenta futura sin marca conservaba el
+--    oráculo. El cron y service_role no tienen uid y siguen viendo todo.
 --
 -- Parche sobre la definición en vivo, como las migraciones anteriores de portal_situacion (17-sep, 7-oct):
 -- cada sustitución tiene que encontrar su texto o la migración falla — nunca se aplica a medias.
@@ -29,7 +33,7 @@ security definer
 set search_path to ''
 as $function$
 begin
-  if public.es_portal() and not public.es_agente() and not exists (
+  if (select auth.uid()) is not null and not public.es_agente() and not exists (
        select 1
          from public.facturas f
          join public.contrato_compradores cc on cc.contrato_id = f.contrato_id
