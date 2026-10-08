@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="7555d2a00e84">
+<meta name="lw-version" content="5486e707cf83">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -3230,6 +3230,23 @@ const SUSTITUYE_A = {
   plazo_pago_final_dias: 'plazo_pago_final_meses',
 };
 
+/* Recorre los bloques en inglés/indonesio del texto —CUALQUIER etiqueta con data-lang="en|id": <p>, <li>, <span>, <ul>, <ol>…— y devuelve el html con cada
+   uno sustituido por fn(bloque, idioma). El cierre se busca CONTANDO la profundidad de la misma etiqueta: un <span data-lang> con un <span class="f"> dentro
+   (los hay) no se corta en el primer </span>. Un bloque sin cierre se deja tal cual. */
+function enBloquesDeIdioma(h, fn){
+  const re = /<([a-z][a-z0-9]*)\b[^>]*\bdata-lang="(en|id)"[^>]*>/g;
+  let out = '', last = 0, m;
+  while((m = re.exec(h))){
+    const ini = m.index, cierra = new RegExp('<' + m[1] + '\\b|</' + m[1] + '>', 'g');
+    cierra.lastIndex = ini + m[0].length;
+    let prof = 1, x, fin = -1;
+    while((x = cierra.exec(h))){ prof += x[0].charAt(1) === '/' ? -1 : 1; if(prof === 0){ fin = x.index + x[0].length; break; } }
+    if(fin < 0) continue;
+    out += h.slice(last, ini) + fn(h.slice(ini, fin), m[2]);
+    last = fin; re.lastIndex = fin;
+  }
+  return out + h.slice(last);
+}
 function buildDoc(){
   /* En blanco: NADA de lo tecleado. Solo sobreviven las claves con las que la
      plantilla ELIGE cláusula (<!--if:clave=valor-->: persona/empresa, régimen
@@ -3329,7 +3346,7 @@ function buildDoc(){
      traducción de assets/traduce_campos.js. Sin traducción: la nacionalidad sale como
      está (no se inventa un país) y el motivo del descuento se omite en en/id — solo
      el párrafo en español lo lleva. */
-  html=html.replace(/<(p|li)\b[^>]*\bdata-lang="(en|id)"[^>]*>[\s\S]*?<\/\1>/g,(bloque,_t,lang)=>{
+  html=enBloquesDeIdioma(html,(bloque,lang)=>{
     const motivo=()=>trMotivoDescuento(data.descuento_comercial_motivo,lang);
     // Construcción: «… {{moneda}} ({{motivo}}),»  ·  Parcela: «…; reason: {{motivo}})» / «…; alasan: {{motivo}})»
     bloque=bloque.replace(/\s*\(\{\{descuento_comercial_motivo\}\}\)/g,()=>{
@@ -3897,7 +3914,9 @@ async function fijaVersionPlantilla(contratoId, eraNuevo){
     return '';
   }catch(e){
     const m = String((e && e.message) || 'error');
-    if(/elige cual/i.test(m)) return ' · OJO: se guardó, pero esta plantilla tiene varias revisiones del texto y no se fijó ninguna. Elige cuál usa el contrato en «Revisión del texto» y vuelve a guardar.';
+    /* Ya guardado, el selector se oculta (el texto no se cambia desde aquí): el aviso NO puede mandar a usarlo. La versión sigue sin fijar
+       y quien lo resuelve es administración (plantilla_contrato_fija con la revisión elegida). */
+    if(/elige cual/i.test(m)) return ' · OJO: se guardó, pero esta plantilla tiene varias revisiones del texto y no se fijó ninguna. Avisa a administración para que fije la revisión de este contrato.';
     return ' · OJO: se guardó, pero no se pudo fijar la versión del texto (' + m + ').';
   }finally{ ocultaRevisiones(); }   // ya guardado, el texto no se cambia desde aquí
 }
@@ -3914,6 +3933,9 @@ async function cambioDeProyectoYTexto(sel){
   const revPrevia = REVISION_ELEGIDA;
   REVISION_ELEGIDA = '';   // otro proyecto puede ser de otra empresa: sus revisiones son otras (se vuelve a elegir)
   const r = await textoPlantilla(CURRENT, { proyectoId: pid, version: null });
+  /* Con una revisión elegida, el texto de pantalla NUNCA es igual al estándar que se acaba de pedir: se compara la EMPRESA, que es lo que decide
+     si hay otro texto. Misma empresa = las mismas revisiones: se conserva la elegida y no se pregunta ni se borra nada. */
+  if(revPrevia && r.ver && PLANTILLA_VER && r.ver.empresa && r.ver.empresa === PLANTILLA_VER.empresa){ REVISION_ELEGIDA = revPrevia; sel.dataset.previo = nombre; return; }
   if(r.html === templateHTML && !revPrevia){ PLANTILLA_VER = r.ver; sel.dataset.previo = nombre; await cargaRevisiones(r.ver); return; }
   if(PLANTILLA_TOCADO && !window.confirm(lwT('Ese proyecto es de otra empresa y su contrato usa otro texto. Cambiarlo borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?'))){
     sel.value = previo; REVISION_ELEGIDA = revPrevia; return;
@@ -3968,7 +3990,9 @@ async function cambioDeRevision(sel){
   await loadTemplate(slug, { proyectoId: pid });
   buildForm(); updateSaveButton(); editBtnIdle();
   const s2 = document.querySelector('[name="proyecto_nombre"]');
-  if(s2 && nombreProy){ s2.value = nombreProy; s2.dataset.previo = nombreProy; }
+  /* El proyecto se repone Y se avisa con `change`: es el evento al que cuelgan el resort, las cuentas y la ubicación (cambioDeProyectoYTexto
+     lo reconoce como «misma empresa» y no toca nada), si no esos campos quedaban vacíos tras cambiar de revisión. */
+  if(s2 && nombreProy){ s2.value = nombreProy; s2.dataset.previo = nombreProy; s2.dispatchEvent(new Event('change', { bubbles:true })); }
 }
 async function loadTemplate(slug, opts){
   CURRENT = TEMPLATES.find(t=>t.slug===slug) || TEMPLATES[0];

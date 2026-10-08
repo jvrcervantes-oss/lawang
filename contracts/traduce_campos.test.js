@@ -61,11 +61,13 @@ for (const slug of Object.keys(COMPRADOR_FRASE)) {
 }
 
 // ── 4. Pase por idioma de buildDoc (párrafos en/id del Adquiriente I y del descuento)
-const i0 = app.indexOf('  html=html.replace(/<(p|li)');
+const i0 = app.indexOf('  html=enBloquesDeIdioma(html,');
+const h0 = app.indexOf('function enBloquesDeIdioma(h, fn){'), h1 = app.indexOf('\n}\n', h0) + 3;
+assert(h0 > 0 && h1 > h0, 'no encuentro enBloquesDeIdioma en app.html');
 const i1 = app.indexOf('\n  });', i0) + 6;
 assert(i0 > 0 && i1 > i0, 'no encuentro el pase por idioma en app.html');
 const pase = new Function('html', 'data', 'trNacionalidad', 'trMotivoDescuento', 'campoFijo', 'esc',
-  app.slice(i0, i1) + '\nreturn html;');
+  app.slice(h0, h1) + '\n' + app.slice(i0, i1) + '\nreturn html;');
 const campoFijo = (k, v) => v, esc2 = s => s;
 const doc = '<p data-lang="es">de {{adq1_nacionalidad}}, ({{descuento_comercial_motivo}}),</p>'
   + '<p data-lang="en">of {{adq1_nacionalidad}}, discount {{descuento_comercial}} ({{descuento_comercial_motivo}}),</p>'

@@ -58,5 +58,27 @@ ok(o6.includes('&lt;b&gt;x&lt;/b&gt;') && !/<b>/.test(o6), 'un campo propio sin 
 ok(LW_CX.paraDocumento(CAT[1], 'si', 'en') === 'Yes' && LW_CX.paraDocumento(CAT[1], 'no', 'id') === 'Tidak' && LW_CX.paraDocumento(CAT[1], 'si', 'id') === 'Ya', 'Si/No se lee en el idioma del parrafo');
 ok(LW_CX.paraDocumento(CAT[0], '<b>', 'es') === '<b>', 'un texto no se transforma aqui (el escape lo hace esc() al imprimir)');
 
+/* Fallo (4) de la revision del 8-oct: el Si/No de un campo propio dentro de un bloque bilingue que NO es <p> ni <li> (los textos usan <span>, <ul>, <ol> con
+   data-lang) salia siempre en español. Se ejecuta el bloque REAL de los idiomas en/id de buildDoc. */
+const iL = src.indexOf('  html=enBloquesDeIdioma(html,');
+const bloqueLang = iL >= 0 ? src.slice(iL, src.indexOf('\n  });', iL) + 6) : null;
+const mHelper = src.match(/^function enBloquesDeIdioma\(h, fn\)\{[\s\S]*?\n\}/m);
+ok(bloqueLang && mHelper, 'no encuentro en app.html el bloque de los parrafos en/id de buildDoc');
+if (bloqueLang && mHelper) {
+  const fabLang = new Function('data', 'html', 'cxDe', 'LW_CX', 'esc', 'campoFijo', 'trMotivoDescuento', 'trNacionalidad',
+    mHelper[0] + '\nreturn function(){\n' + bloqueLang + '\nreturn html;\n};');
+  const escReal = new Function(mCruda[0] + '\n' + mEsc[0] + '\nreturn esc;')();
+  const campoReal = new Function('esc', mCampo[0] + '\nreturn campoFijo;')(escReal);
+  const lang = (html, data) => fabLang(data, html, cxDe, LW_CX, escReal, campoReal, () => '', () => '')();
+  for (const [html, t] of [['<p data-lang="en">Garage: {{cx_garaje}}</p>', 'p'], ['<li data-lang="en">Garage: {{cx_garaje}}</li>', 'li'],
+      ['<span data-lang="en">Garage: {{cx_garaje}}</span>', 'span'], ['<ul data-lang="en"><li>Garage: {{cx_garaje}}</li></ul>', 'ul'], ['<ol data-lang="en"><li>Garage: {{cx_garaje}}</li></ol>', 'ol'],
+      ['<span data-lang="en">A <span class="f">x</span> garage: {{cx_garaje}}</span>', 'span anidado']]) {
+    const o = lang(html, { cx_garaje: 'si' });
+    ok(/>Yes</.test(o) && !o.includes('{{cx_garaje}}'), 'Si/No en ingles dentro de <' + t + ' data-lang="en">: ' + o);
+    const oi = lang(html.replace('"en"', '"id"'), { cx_garaje: 'no' });
+    ok(/>Tidak</.test(oi), 'Si/No en indonesio dentro de <' + t + ' data-lang="id">: ' + oi);
+  }
+}
+
 if (fallos) { console.error(fallos + ' fallo(s)'); process.exit(1); }
 console.log('campos_propios_insercion.test.js: OK');
