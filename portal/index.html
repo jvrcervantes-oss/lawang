@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="19526e84da6f">
+<meta name="lw-version" content="02a039501e07">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -2109,6 +2109,7 @@
       if (window.LW_MOV){
         var clave = LW_MOV.claveVista(ESTADO.section, leeHash().doc);
         var cambia = clave !== ULTIMA_VISTA; ULTIMA_VISTA = clave;
+        c.classList.toggle('ini-quieto', !cambia);   // el arco de obra se dibuja al llegar a Inicio, no al repintar por idioma o datos (revisor, 8-oct)
         LW_MOV.menu(document.getElementById('nav'), cambia);
         if (cambia) LW_MOV.pantalla(c, ESTADO.section);
       }
@@ -2186,7 +2187,9 @@
   /* Una cifra que no cuadra con su propio rótulo es una cifra en la que se deja de confiar (la lección de
      /intranet/operaciones/, 14-ago-2026): las notas del resumen van debajo del bloque, en las dos pantallas. */
   function notaResumenHTML(res){
-    if (!(res.total != null && res.total > 0)) return '';
+    // Con varias monedas no hay total único, pero la nota sigue haciendo falta si alguna moneda tiene precio (revisor, 8-oct).
+    var hay = res.mixta ? (res.porMoneda || []).some(function(m){ return m.total != null && m.total > 0; }) : (res.total != null && res.total > 0);
+    if (!hay) return '';
     return res.soloReserva
         ? '<p class="kpi-nota">' + esc(t('nota_solo_reserva')) + '</p>'
         : (res.excluidos.length
@@ -2524,7 +2527,7 @@
       var b = selector && c.querySelector(selector);
       if (b) b.focus();
     }
-    var cssAttr = function(v){ return String(v).replace(/["\\]/g, '\\$&'); };
+    var cssAttr = function(v){ return (window.CSS && CSS.escape) ? CSS.escape(String(v)) : String(v).replace(/["\\]/g, '\\$&'); };
     c.querySelectorAll('[data-ini-prop]').forEach(function(b){ b.addEventListener('click', function(){ var k = b.getAttribute('data-ini-prop'); ESTADO.iniProp = k || null; ESTADO.iniObra = 0; repinta('[data-ini-prop="' + cssAttr(k) + '"]'); }); });
     c.querySelectorAll('[data-ini-vista]').forEach(function(b){ b.addEventListener('click', function(){ ESTADO.iniVista = b.getAttribute('data-ini-vista'); repinta('[data-ini-vista="' + cssAttr(ESTADO.iniVista) + '"]'); }); });
     var ojo = c.querySelector('[data-ini-ojo]');
@@ -2902,7 +2905,7 @@
       var imp = isNaN(p.monto) ? '—' : dinero(p.monto, p.moneda);
       var cuando = dt ? t(dt.getTime() < Date.now() && estP !== 'pagada' ? 'vencio_el' : 'vence_el').replace('{f}', fechaLargaDe(dt)) : t('cuando') + ': ' + (p.hito.timing || '—');
       cuando = cuando.charAt(0).toUpperCase() + cuando.slice(1);
-      var pastilla = vencida ? t('fa_e_vencida') : dias == null ? '' : dias === 0 ? t('fa_vence_hoy') : dias === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', dias);
+      var pastilla = vencida ? t('fa_e_vencida') : (dias == null || estP === 'pagada') ? '' : dias === 0 ? t('fa_vence_hoy') : dias === 1 ? t('queda_dia') : t('quedan_dias').replace('{n}', dias);
       billete = '<section class="fa-ticket' + (vencida ? ' vencida' : '') + '" aria-label="' + esc(t('proximo_pago')) + '">' +
         '<div class="fa-ticket-cuerpo"><div class="fa-rot">' + esc(t('proximo_pago')) + '</div>' +
           '<div class="fa-ticket-con">' + esc(Lx(p.hito) || '—') + '</div>' +
