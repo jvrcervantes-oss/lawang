@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="b7040c0679cd">
+<meta name="lw-version" content="e466f80a2480">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1359,6 +1359,127 @@
     .ini-ir, .ini-filtro button, .ini-losa{ transition:none; }
     .ini-ir:hover{ transform:none; }
   }
+  /* ═══ OBRA (8-oct-2026, owner: artifact «Obra del comprador Lawang», paleta madera elegida en «Colores de Obra Lawang») ═══
+     Una villa a la vista (selector si hay varias): portada del proyecto + panel madera con la fase (el momento fuerte de
+     esta pantalla), el recorrido de las fases y el diario de fotos por meses con su visor. Mismo vocabulario que el arco
+     de Inicio: la fase en curso llega a la mitad, sin %. El marrón es el de marca (--be); el verde de lo terminado, el
+     de siempre. Sin sombras: el anillo de la fase en curso es un outline. */
+  .ob-cab{ display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap; margin-bottom:18px; }
+  .ob-cab .titulo-sec{ margin:0; min-width:0; }
+  .ob-cab .ini-filtro small{ font-weight:500; opacity:.75; margin-left:6px; }
+  .ob-heroe{ display:grid; grid-template-columns:minmax(0,1.45fr) minmax(0,1fr); border-radius:14px; overflow:hidden; background:var(--be); min-height:380px; margin-bottom:18px; }
+  .ob-img{ position:relative; min-height:260px; overflow:hidden; background:#5a3a22; }
+  .ob-img img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; animation:ob-acerca 2.4s var(--lw-ease) both; }
+  @keyframes ob-acerca{ from{ transform:scale(1.06); } }
+  .ob-asi{ position:absolute; left:16px; bottom:16px; display:inline-flex; align-items:center; height:30px; padding:0 12px; border-radius:999px; background:rgba(42,21,7,.72); color:#fff; font-size:12px; font-weight:600; max-width:calc(100% - 32px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ob-img img[hidden] + .ob-asi{ display:none; }
+  .ob-sinimg{ position:absolute; inset:0; display:grid; place-items:center; color:rgba(255,255,255,.7); font-size:13px; }
+  .ob-panel{ color:#fff; padding:26px 28px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .ob-sello{ display:inline-flex; align-items:center; gap:10px; height:34px; padding:0 6px 0 15px; border-radius:999px; background:rgba(255,255,255,.1); font-size:11.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; width:fit-content; }
+  .ob-sello i{ width:24px; height:24px; border-radius:99px; background:#fff; color:var(--be); display:grid; place-items:center; font-style:normal; }
+  .ob-eti{ margin-top:22px; font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.74); }
+  .ob-fase{ font-size:clamp(38px,5vw,58px); line-height:1.02; font-weight:400; letter-spacing:-.02em; overflow-wrap:anywhere; }
+  .ob-donde{ font-size:13.5px; color:rgba(255,255,255,.74); }
+  .ob-cuenta{ display:flex; gap:5px; margin:16px 0 4px; }
+  .ob-cuenta i{ flex:1; height:6px; border-radius:99px; background:rgba(255,255,255,.16); position:relative; overflow:hidden; }
+  .ob-cuenta i.h{ background:#BEB3A5; }
+  .ob-cuenta i.a::after{ content:""; position:absolute; inset:0 50% 0 0; background:#f3e6d4; border-radius:99px; transform-origin:left; animation:ob-llena 1.2s var(--lw-ease) .3s both; }
+  @keyframes ob-llena{ from{ transform:scaleX(0); } }
+  .ob-cuenta-l{ font-size:12.5px; color:rgba(255,255,255,.74); }
+  .ob-losas{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:auto; padding-top:20px; }
+  .ob-losa{ font:inherit; color:#fff; text-align:left; border:0; background:rgba(255,255,255,.1); border-radius:12px; padding:11px 13px; display:flex; flex-direction:column; gap:2px; min-width:0; transition:background .15s; }
+  button.ob-losa{ cursor:pointer; }
+  button.ob-losa:hover{ background:rgba(255,255,255,.17); }
+  .ob-losa-t{ display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.74); }
+  .ob-losa b{ font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ob-losa small{ font-size:12px; color:rgba(255,255,255,.74); }
+  .ob-t{ margin:0 0 18px; background:#fff; border:1px solid var(--pg-hi); border-radius:12px; padding:20px 22px; min-width:0; }
+  .ob-t .ini-ti{ color:var(--be); }
+  .ob-t .ini-th h3{ white-space:normal; }
+  /* recorrido: cada paso pinta su tramo desde el centro de su bola hasta el de la siguiente (sin hueco entre columnas) */
+  .ob-ruta{ list-style:none; margin:0; padding:0; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); }
+  .ob-paso{ position:relative; padding:52px 10px 0 0; min-width:0; }
+  .ob-paso::before{ content:""; position:absolute; top:18px; left:20px; right:-20px; height:5px; background:var(--pg-hi); }
+  .ob-paso.ob-entrega::before{ display:none; }
+  .ob-tramo{ position:absolute; top:18px; left:20px; height:5px; width:100%; background:#485B37; transform-origin:left; animation:ob-tramo .9s var(--lw-ease) .2s both; }
+  .ob-tramo.actual{ width:50%; background:var(--be); }
+  @keyframes ob-tramo{ from{ transform:scaleX(0); } }
+  @keyframes ob-tramo-v{ from{ transform:scaleY(0); } }
+  .ob-bola{ position:absolute; top:0; left:0; width:40px; height:40px; border-radius:99px; background:#fff; border:2px solid var(--linea); display:grid; place-items:center; color:var(--out); z-index:1; font-size:14px; font-weight:600; box-sizing:border-box; }
+  .ob-paso.hecha .ob-bola{ background:#485B37; border-color:#485B37; color:#fff; }
+  .ob-paso.actual .ob-bola{ background:var(--be); border-color:var(--be); color:#fff; outline:5px solid #eadfd3; }
+  .ob-paso.ob-entrega .ob-bola{ border-style:dashed; color:var(--be); }
+  .ob-paso > b{ display:block; font-size:14.5px; font-weight:600; line-height:1.3; }
+  .ob-paso > .ob-est{ display:block; font-size:12.5px; color:var(--out); line-height:1.4; }
+  .ob-paso.hecha > .ob-est{ color:#485B37; }
+  .ob-paso.actual > .ob-est{ color:var(--be); font-weight:600; }
+  .ob-paso.ob-entrega > b{ color:var(--be); }
+  .ob-ruta-nota{ margin:18px 0 0; padding-top:14px; border-top:1px solid var(--pg-low); font-size:12.5px; color:var(--ink2); }
+  /* diario + ficha */
+  .ob-f2{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px; align-items:start; }
+  .ob-f2 .ob-t{ margin:0; }
+  .ob-ficha{ display:flex; flex-direction:column; gap:18px; min-width:0; }
+  .ob-mes{ display:flex; align-items:center; gap:12px; margin:22px 0 12px; font-size:13px; font-weight:600; color:var(--ink2); }
+  .ini-th + .ob-mes{ margin-top:0; }
+  .ob-mes::after{ content:""; flex:1; height:1px; background:var(--pg-hi); }
+  .ob-rejilla{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+  .ob-foto{ font:inherit; color:inherit; background:none; border:0; padding:0; cursor:zoom-in; display:flex; flex-direction:column; gap:7px; min-width:0; text-align:left; }
+  .ob-marco{ position:relative; display:block; aspect-ratio:4/3; border-radius:10px; overflow:hidden; background:#E7E1D2; max-width:100%; }
+  .ob-marco img{ width:100%; height:100%; object-fit:cover; display:block; transition:transform .8s var(--lw-ease); }
+  .ob-foto:hover .ob-marco img{ transform:scale(1.04); }
+  .ob-foto b{ font-size:13.5px; font-weight:600; line-height:1.3; }
+  .ob-foto small{ font-size:12px; color:var(--out); line-height:1.3; }
+  .ob-foto.ultima{ grid-column:span 2; }
+  .ob-foto.ultima .ob-marco{ aspect-ratio:16/9; }
+  .ob-nuevo{ position:absolute; left:10px; top:10px; height:24px; padding:0 10px; border-radius:999px; background:var(--be); color:#fff; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; display:inline-flex; align-items:center; }
+  .ob-foto:focus-visible, .ob-losa:focus-visible, .ob-visor-btn:focus-visible{ outline:2px solid var(--be); outline-offset:2px; }
+  .ob-vacio{ margin:0; font-size:13.5px; color:var(--out); }
+  .ob-datos{ display:flex; flex-direction:column; }
+  .ob-dato{ display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--pg-low); font-size:13.5px; }
+  .ob-dato:last-child{ border-bottom:0; }
+  .ob-dato span{ color:var(--out); }
+  .ob-dato b{ font-weight:600; text-align:right; min-width:0; overflow-wrap:anywhere; }
+  .ob-dato b small{ display:block; font-size:11.5px; font-weight:500; color:var(--out); }
+  .ob-duda{ margin:0 0 14px; font-size:13.5px; color:var(--ink2); }
+  .btn-oscuro.ob-btn{ background:var(--be); border-color:var(--be); }
+  .btn-oscuro.ob-btn:hover{ background:#2f1708; border-color:#2f1708; }
+  /* visor de fotos: flechas, Esc y deslizar */
+  .ob-visor{ position:fixed; inset:0; z-index:130; background:rgba(30,15,5,.94); color:#fff; display:flex; flex-direction:column; padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px)); touch-action:pan-y; }
+  .ob-visor-cab{ display:flex; align-items:center; gap:12px; font-size:13px; }
+  .ob-visor-cab span{ flex:1; color:rgba(255,255,255,.75); }
+  .ob-visor-btn{ font:inherit; width:44px; height:44px; border-radius:99px; border:0; background:rgba(255,255,255,.1); color:#fff; display:grid; place-items:center; cursor:pointer; flex:none; }
+  .ob-visor-btn:hover{ background:rgba(255,255,255,.2); }
+  .ob-visor-cuerpo{ flex:1; display:flex; align-items:center; gap:12px; min-height:0; }
+  .ob-visor figure{ flex:1; margin:0; height:100%; min-width:0; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+  .ob-visor figure img{ max-width:100%; max-height:calc(100% - 56px); border-radius:10px; object-fit:contain; }
+  .ob-visor figcaption{ text-align:center; font-size:14px; }
+  .ob-visor figcaption small{ display:block; color:rgba(255,255,255,.7); font-size:12.5px; }
+  .ini-quieto .ob-img img, .ini-quieto .ob-tramo, .ini-quieto .ob-cuenta i.a::after{ animation:none; }
+  @media (max-width:1080px){ .ob-f2{ grid-template-columns:1fr; } }
+  @media (max-width:900px){
+    .ob-heroe{ grid-template-columns:1fr; min-height:0; }
+    .ob-img{ aspect-ratio:16/10; min-height:0; max-width:100%; }
+  }
+  @media (max-width:880px){ .ob-cab{ flex-direction:column; align-items:stretch; } }
+  @media (max-width:760px){
+    .ob-ruta{ grid-auto-flow:row; grid-auto-columns:auto; }
+    .ob-paso{ padding:8px 0 22px 56px; min-height:62px; }
+    .ob-paso::before{ top:20px; left:18px; right:auto; width:5px; height:100%; }
+    .ob-tramo{ top:20px; left:18px; width:5px; height:100%; transform-origin:top; animation-name:ob-tramo-v; }
+    .ob-tramo.actual{ width:5px; height:50%; }
+  }
+  @media (max-width:640px){
+    .ob-panel{ padding:22px 18px; }
+    .ob-losas{ grid-template-columns:1fr; }
+    .ob-t{ padding:18px 16px; }
+    .ob-rejilla{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .ob-foto.ultima{ grid-column:1 / -1; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .ob-img img, .ob-tramo, .ob-cuenta i.a::after{ animation:none; }
+    .ob-marco img, .ob-losa{ transition:none; }
+    .ob-foto:hover .ob-marco img{ transform:none; }
+  }
 </style>
 </head>
 <body>
@@ -1581,6 +1702,7 @@
          doc_cat_legal:'Legal', doc_cat_tecnico:'Técnico', doc_cat_comercial:'Comercial', doc_cat_fotos:'Fotos', doc_cat_planos:'Planos', doc_cat_precios:'Precios', doc_cat_faq:'Preguntas frecuentes', ver_facturas:'Ver mis facturas',
          ini_filtro:'Propiedad', ini_todas:'Todas', ini_mixta:'Tus contratos están en varias monedas: cada una se cuenta por separado.', ini_pct_inv:'{n} % de tu inversión total', ini_nada_pend:'No te queda nada por pagar', ini_sub_pend:'Lo que queda por pagar de tus contratos', ini_sub_total:'La suma de tus contratos', ini_sub_cuota:'La cuota de tu reserva', ini_que_cifra:'Qué cifra ver', ini_firmados:'Contratos firmados', ini_x_de_y:'{a} de {b}', ini_ocultar:'Ocultar importes', ini_mostrar:'Mostrar importes', ini_ir_contratos:'Ir a Contratos', ini_al_dia:'Estás al día', ini_vencido:'Vencido', ini_vencido_m:'vencido', ini_siguiente:'siguiente', ini_hace_dia:'hace 1 día', ini_hace_dias:'hace {n} días', ini_hoy:'vence hoy', ini_en_dia:'en 1 día', ini_en_dias:'en {n} días', ini_factura:'Factura', ini_sin_factura:'Factura aún no emitida', ini_despues:'Después', ini_otro_contrato:'Otro contrato', ini_ultimo_pago:'Es el último pago', ini_sin_importe:'sin importe', ini_obra:'Tu obra', ini_sin_obra:'La obra todavía no ha empezado. Te avisaremos con la primera foto.', ini_cambiar_villa:'Cambiar de villa', ini_fase_n:'Fase {a} de {b}', ini_ultima_fase:'Última fase', ini_sin_fotos:'Aún no hay fotos de la obra', ini_por_prop:'Por propiedad', ini_pend_pagar:'pendiente de pagar', ini_sin_hitos:'Todavía no hay un plan de pagos para esta propiedad.', ini_respondio:'El equipo te ha respondido', ini_leer:'Leer', ini_nada_nuevo:'Nada nuevo por ahora.', ini_nota_carta:'Lo pagado con tu Carta de Reserva cuenta como pagado del total de tus contratos definitivos, en «Todas».',
          obra_ultimo:'Lo último de tu obra',
+         ob_sub_1:'Cómo avanza la construcción de tu villa', ob_sub_n:'Cómo avanza la construcción de tus villas', ob_en_obra:'En obra', ob_fase_actual:'Fase actual', ob_asi_sera:'Así será {p}', ob_ultima_foto:'Última foto', ob_fecha_prevista:'Fecha prevista', ob_por_confirmar:'Por confirmar', ob_recorrido:'El recorrido de tu villa', ob_terminada:'Terminada', ob_en_curso:'En curso', ob_pendiente:'Pendiente', ob_entrega:'Entrega', ob_estimada:'estimada', ob_diario:'Diario de obra', ob_n_fotos_1:'1 foto', ob_n_fotos_n:'{n} fotos', ob_lo_ultimo:'Lo último', ob_tu_villa:'Tu villa', ob_proyecto:'Proyecto', ob_contrato:'Contrato', ob_duda_t:'¿Una duda sobre tu obra?', ob_duda:'Te responde el equipo de Lawang.', ob_sin_fecha:'Sin fecha', ob_anterior:'Foto anterior', ob_siguiente:'Foto siguiente',
          doc_buscar:'Buscar un documento…', doc_todo:'Descargar todo', doc_zip_prep:'Preparando…',
          doc_zip_err:'No hemos podido preparar la descarga. Inténtalo de nuevo o abre los documentos de uno en uno.',
          doc_zip_vacio:'No hay documentos descargables en esta lista.', doc_zip_tope:'Son demasiados documentos para un solo archivo. Descárgalos de uno en uno.',
@@ -1678,6 +1800,7 @@
          doc_cat_legal:'Legal', doc_cat_tecnico:'Technical', doc_cat_comercial:'Commercial', doc_cat_fotos:'Photos', doc_cat_planos:'Plans', doc_cat_precios:'Prices', doc_cat_faq:'FAQ', ver_facturas:'View my invoices',
          ini_filtro:'Property', ini_todas:'All', ini_mixta:'Your contracts are in more than one currency: each is counted separately.', ini_pct_inv:'{n}% of your total investment', ini_nada_pend:'Nothing left to pay', ini_sub_pend:'What is left to pay on your contracts', ini_sub_total:'The total of your contracts', ini_sub_cuota:'Your reservation fee', ini_que_cifra:'Which figure to show', ini_firmados:'Signed contracts', ini_x_de_y:'{a} of {b}', ini_ocultar:'Hide amounts', ini_mostrar:'Show amounts', ini_ir_contratos:'Go to Contracts', ini_al_dia:'You are up to date', ini_vencido:'Overdue', ini_vencido_m:'overdue', ini_siguiente:'next', ini_hace_dia:'1 day ago', ini_hace_dias:'{n} days ago', ini_hoy:'due today', ini_en_dia:'in 1 day', ini_en_dias:'in {n} days', ini_factura:'Invoice', ini_sin_factura:'Invoice not issued yet', ini_despues:'After that', ini_otro_contrato:'Another contract', ini_ultimo_pago:'This is the last payment', ini_sin_importe:'no amount', ini_obra:'Your construction', ini_sin_obra:'Construction has not started yet. We will let you know with the first photo.', ini_cambiar_villa:'Switch villa', ini_fase_n:'Stage {a} of {b}', ini_ultima_fase:'Final stage', ini_sin_fotos:'No construction photos yet', ini_por_prop:'By property', ini_pend_pagar:'left to pay', ini_sin_hitos:'There is no payment plan for this property yet.', ini_respondio:'The team has replied', ini_leer:'Read', ini_nada_nuevo:'Nothing new for now.', ini_nota_carta:'What you paid with your Reservation Letter counts towards the total of your final contracts, under «All».',
          obra_ultimo:'Latest from your build',
+         ob_sub_1:'How the construction of your villa is progressing', ob_sub_n:'How the construction of your villas is progressing', ob_en_obra:'Under construction', ob_fase_actual:'Current stage', ob_asi_sera:'How {p} will look', ob_ultima_foto:'Latest photo', ob_fecha_prevista:'Planned date', ob_por_confirmar:'To be confirmed', ob_recorrido:'Your villa, stage by stage', ob_terminada:'Completed', ob_en_curso:'In progress', ob_pendiente:'Coming up', ob_entrega:'Handover', ob_estimada:'estimated', ob_diario:'Construction diary', ob_n_fotos_1:'1 photo', ob_n_fotos_n:'{n} photos', ob_lo_ultimo:'Latest', ob_tu_villa:'Your villa', ob_proyecto:'Project', ob_contrato:'Contract', ob_duda_t:'A question about your build?', ob_duda:'The Lawang team will reply.', ob_sin_fecha:'Undated', ob_anterior:'Previous photo', ob_siguiente:'Next photo',
          doc_buscar:'Search a document…', doc_todo:'Download all', doc_zip_prep:'Preparing…',
          doc_zip_err:'We could not prepare the download. Try again or open the documents one by one.',
          doc_zip_vacio:'There are no downloadable documents in this list.', doc_zip_tope:'There are too many documents for a single file. Download them one by one.',
@@ -1779,6 +1902,7 @@
          doc_cat_legal:'Legal', doc_cat_tecnico:'Teknis', doc_cat_comercial:'Komersial', doc_cat_fotos:'Foto', doc_cat_planos:'Denah', doc_cat_precios:'Harga', doc_cat_faq:'Pertanyaan umum', ver_facturas:'Lihat faktur saya',
          ini_filtro:'Properti', ini_todas:'Semua', ini_mixta:'Kontrak Anda memakai lebih dari satu mata uang: masing-masing dihitung terpisah.', ini_pct_inv:'{n}% dari total investasi Anda', ini_nada_pend:'Tidak ada lagi yang harus dibayar', ini_sub_pend:'Sisa yang harus dibayar dari kontrak Anda', ini_sub_total:'Total kontrak Anda', ini_sub_cuota:'Biaya reservasi Anda', ini_que_cifra:'Angka yang ditampilkan', ini_firmados:'Kontrak ditandatangani', ini_x_de_y:'{a} dari {b}', ini_ocultar:'Sembunyikan jumlah', ini_mostrar:'Tampilkan jumlah', ini_ir_contratos:'Buka Kontrak', ini_al_dia:'Tidak ada tagihan tertunda', ini_vencido:'Lewat jatuh tempo', ini_vencido_m:'lewat tempo', ini_siguiente:'berikutnya', ini_hace_dia:'1 hari lalu', ini_hace_dias:'{n} hari lalu', ini_hoy:'jatuh tempo hari ini', ini_en_dia:'dalam 1 hari', ini_en_dias:'dalam {n} hari', ini_factura:'Faktur', ini_sin_factura:'Faktur belum diterbitkan', ini_despues:'Setelah itu', ini_otro_contrato:'Kontrak lain', ini_ultimo_pago:'Ini pembayaran terakhir', ini_sin_importe:'tanpa jumlah', ini_obra:'Pembangunan Anda', ini_sin_obra:'Pembangunan belum dimulai. Kami akan mengabari Anda dengan foto pertama.', ini_cambiar_villa:'Ganti vila', ini_fase_n:'Tahap {a} dari {b}', ini_ultima_fase:'Tahap terakhir', ini_sin_fotos:'Belum ada foto pembangunan', ini_por_prop:'Per properti', ini_pend_pagar:'belum dibayar', ini_sin_hitos:'Belum ada jadwal pembayaran untuk properti ini.', ini_respondio:'Tim sudah membalas', ini_leer:'Baca', ini_nada_nuevo:'Belum ada kabar baru.', ini_nota_carta:'Pembayaran dengan Surat Reservasi Anda dihitung dari total kontrak final Anda, di «Semua».',
          obra_ultimo:'Terbaru dari pembangunan Anda',
+         ob_sub_1:'Perkembangan pembangunan vila Anda', ob_sub_n:'Perkembangan pembangunan vila-vila Anda', ob_en_obra:'Dalam pembangunan', ob_fase_actual:'Tahap saat ini', ob_asi_sera:'Beginilah {p} nanti', ob_ultima_foto:'Foto terbaru', ob_fecha_prevista:'Tanggal rencana', ob_por_confirmar:'Akan dikonfirmasi', ob_recorrido:'Tahapan vila Anda', ob_terminada:'Selesai', ob_en_curso:'Sedang berjalan', ob_pendiente:'Berikutnya', ob_entrega:'Serah terima', ob_estimada:'perkiraan', ob_diario:'Catatan pembangunan', ob_n_fotos_1:'1 foto', ob_n_fotos_n:'{n} foto', ob_lo_ultimo:'Terbaru', ob_tu_villa:'Vila Anda', ob_proyecto:'Proyek', ob_contrato:'Kontrak', ob_duda_t:'Ada pertanyaan tentang pembangunan Anda?', ob_duda:'Tim Lawang akan membalas.', ob_sin_fecha:'Tanpa tanggal', ob_anterior:'Foto sebelumnya', ob_siguiente:'Foto berikutnya',
          doc_buscar:'Cari dokumen…', doc_todo:'Unduh semua', doc_zip_prep:'Menyiapkan…',
          doc_zip_err:'Kami tidak dapat menyiapkan unduhan. Coba lagi atau buka dokumen satu per satu.',
          doc_zip_vacio:'Tidak ada dokumen yang dapat diunduh dalam daftar ini.', doc_zip_tope:'Dokumennya terlalu banyak untuk satu berkas. Unduh satu per satu.',
@@ -3207,52 +3331,156 @@
   }
 
   /* ── Obra ─────────────────────────────────────────────────────────── */
+  /* ── Obra (8-oct-2026, owner: artifact «Obra del comprador Lawang», paleta madera) ──────────────────────────────
+     Una villa a la vista; con varias, un selector (en memoria, como el de Inicio). Hereda todo lo de la pestaña
+     anterior: todas las villas, la fase, la entrega estimada, la última actualización, todas las fotos con su título y
+     fecha, y ampliarlas. Lo nuevo sale de lo que ya trae portal_situacion: la portada es la del proyecto del contrato
+     (render del proyecto, por eso «Así será…» y no «tu villa»), las fotos se agrupan por mes porque no traen fase, y el
+     recorrido no inventa fechas ni % por fase: la fase en curso llega a la mitad, igual que el arco de Inicio. */
+  var ICO_OB = {
+    check: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>',
+    llave: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="M11 12l9-9M16 7l3 3M14 9l2 2"></path></svg>',
+    ruta: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle><path d="M7 12h3M14 12h3"></path></svg>',
+    casco: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18h18M5 18v-3a7 7 0 0 1 14 0v3M10 8V5h4v3"></path></svg>',
+    izq: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>',
+    der: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>',
+    cerrar: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>'
+  };
+  function mesAno(f){
+    var d = new Date(f); if (!f || isNaN(d)) return '';
+    var s = d.toLocaleDateString(LOC(), { month:'long', year:'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  /* La obra cuelga de un contrato (contrato_numero); el proyecto, y con él la portada, del contrato. Si el contrato no
+     llega con proyecto_id, se busca el proyecto por nombre. */
+  function obraProyecto(o){
+    var d = DATOS || {};
+    var k = (d.contratos || []).filter(function(x){ return o.contrato_numero && x.numero === o.contrato_numero; })[0] || null;
+    var p = k && k.proyecto_id ? (d.proyectos || []).filter(function(x){ return x.id === k.proyecto_id; })[0] : null;
+    if (!p && o.proyecto) p = (d.proyectos || []).filter(function(x){ return x.nombre === o.proyecto; })[0] || null;
+    return { contrato:k, proyecto:p || null };
+  }
   function pintaObra(c){
-    var d = DATOS, fases = d.fases || [];
-    if (!(d.obra||[]).length){ c.innerHTML = vacio(t('sin_obra_t'), t('sin_obra')); return; }
-    var todasFotos = [];
-    d.obra.forEach(function(u){ (u.fotos || []).forEach(function(ft){ todasFotos.push({ unidad:u.unidad, ft:ft }); }); });
-    todasFotos.sort(function(a, b){ return String(b.ft.fecha || '').localeCompare(String(a.ft.fecha || '')); });
-    var recientes = todasFotos.slice(0, 4), recSet = {};
-    recientes.forEach(function(r){ recSet[r.ft.path] = true; });
-    var feedObra = recientes.length
-      ? '<div class="rot-bloque">' + esc(t('obra_ultimo')) + '</div><div class="fotos feed-obra">' + recientes.map(function(r){
-          return '<figure><img loading="lazy" data-foto="' + esc(r.ft.path) + '" alt="' + esc(r.ft.titulo || '') + '">' +
-                 '<figcaption><b>' + esc(r.ft.fecha ? fecha(r.ft.fecha) : '') + '</b> · ' + esc(r.unidad) + (r.ft.titulo ? ' · ' + esc(r.ft.titulo) : '') + '</figcaption></figure>';
-        }).join('') + '</div>'
-      : '';
-    c.innerHTML = feedObra + d.obra.map(function(u){
-      var idx = fases.map(function(f){ return f.clave; }).indexOf(u.fase);
-      return '<div class="op"><div class="op-cab"><div class="info"><h3><b>' + esc(u.unidad) + '</b>' +
-          '<span class="sub">' + esc(u.proyecto||'') + (u.contrato_numero ? ' · ' + esc(u.contrato_numero) : '') + '</span></h3></div></div>' +
-        (fases.length ? '<div class="fases">' + fases.map(function(f,i){
-          return '<span class="fase ' + (i<idx?'hecha':(i===idx?'actual':'')) + '">' + esc(Lx(f)) + '</span>';
-        }).join('') + '</div>' : '') +
-        '<div class="op-datos" style="margin-top:14px">' +
-          (u.fecha_entrega ? '<div class="d"><div class="lbl">' + esc(t('entrega_est')) + '</div><div class="val">' + esc(fecha(u.fecha_entrega)) + '</div></div>' : '') +
-          (u.actualizado ? '<div class="d"><div class="lbl">' + esc(t('actualizado')) + '</div><div class="val">' + esc(fecha(u.actualizado)) + '</div></div>' : '') +
-        '</div>' +
-        ((u.fotos||[]).filter(function(ft){ return !recSet[ft.path]; }).length ? '<div class="fotos" style="margin-top:16px">' + u.fotos.filter(function(ft){ return !recSet[ft.path]; }).map(function(ft){
-          return '<figure><img loading="lazy" data-foto="' + esc(ft.path) + '" alt="' + esc(ft.titulo||'') + '">' +
-                 '<figcaption>' + esc(ft.titulo||'') + (ft.fecha?' · '+esc(fecha(ft.fecha)):'') + '</figcaption></figure>';
-        }).join('') + '</div>' : '') +
-      '</div>';
-    }).join('');
+    var d = DATOS, obras = d.obra || [];
+    if (!obras.length){ c.innerHTML = vacio(t('sin_obra_t'), t('sin_obra')); return; }
+    if (!(ESTADO.obraSel >= 0 && ESTADO.obraSel < obras.length)) ESTADO.obraSel = 0;
+    var o = obras[ESTADO.obraSel], rel = obraProyecto(o), p = rel.proyecto;
+    var fases = (d.fases || []).slice().sort(function(a, b){ return (a.orden || 0) - (b.orden || 0); });
+    var n = fases.length, fi = -1;
+    fases.forEach(function(f, i){ if (f.clave === o.fase) fi = i; });
+    var faseTxt = fi >= 0 ? Lx(fases[fi]) : (o.fase || '—');
+    var fotos = o.fotos || [], ult = fotos[0];   // portal_situacion las da de la más nueva a la más vieja
+    var entrega = o.fecha_entrega || (p && p.entrega) || null;
+    var nomProy = (p && p.nombre) || o.proyecto || '';
+
+    var cab = '<div class="ob-cab"><div class="titulo-sec"><h2>' + esc(t('ini_obra')) + '</h2><p>' + esc(t(obras.length > 1 ? 'ob_sub_n' : 'ob_sub_1')) + '</p></div>' +
+      (obras.length > 1 ? '<div class="ini-filtro" role="group" aria-label="' + esc(t('unidad')) + '">' + obras.map(function(x, i){
+        return '<button type="button" data-ob-villa="' + i + '" aria-pressed="' + (i === ESTADO.obraSel ? 'true' : 'false') + '">' + esc(x.unidad || '—') + (x.proyecto ? '<small>' + esc(x.proyecto) + '</small>' : '') + '</button>';
+      }).join('') + '</div>' : '') + '</div>';
+
+    var cuenta = n ? '<div class="ob-cuenta" aria-hidden="true">' + fases.map(function(f, i){ return '<i class="' + (fi < 0 ? '' : i < fi ? 'h' : i === fi ? 'a' : '') + '"></i>'; }).join('') + '</div>' +
+        (fi >= 0 ? '<span class="ob-cuenta-l">' + esc(fi === n - 1 ? t('ini_ultima_fase') : t('ini_fase_n').replace('{a}', fi + 1).replace('{b}', n)) + '</span>' : '') : '';
+    var heroe = '<section class="ob-heroe">' +
+      '<div class="ob-img">' + (p && p.portada
+          ? '<img alt="' + esc(t('ob_asi_sera').replace('{p}', nomProy)) + '" data-portada="' + esc(p.portada) + '" hidden><span class="ob-asi">' + esc(t('ob_asi_sera').replace('{p}', nomProy)) + '</span>'
+          : '<span class="ob-sinimg">' + esc(t('portada_prep')) + '</span>') + '</div>' +
+      '<div class="ob-panel"><span class="ob-sello">' + esc(t('ob_en_obra')) + '<i>' + ICO_OB.casco + '</i></span>' +
+        '<span class="ob-eti">' + esc(t('ob_fase_actual')) + '</span><span class="ob-fase">' + esc(faseTxt) + '</span>' +
+        '<span class="ob-donde">' + esc([o.unidad, nomProy, p && p.resort].filter(Boolean).join(' · ')) + '</span>' + cuenta +
+        '<div class="ob-losas"><div class="ob-losa"><span class="ob-losa-t">' + esc(t('entrega_est')) + '</span><b>' + esc(entrega ? mesAno(entrega) : t('ob_por_confirmar')) + '</b>' +
+            (entrega ? '<small>' + esc(t('ob_fecha_prevista')) + '</small>' : '') + '</div>' +
+          (ult ? '<button type="button" class="ob-losa" data-ob-foto="0"><span class="ob-losa-t">' + esc(t('ob_ultima_foto')) + ICO_INI.diagP + '</span><b>' + esc(ult.titulo || t('ver_fotos')) + '</b>' + (ult.fecha ? '<small>' + esc(relativa(ult.fecha)) + '</small>' : '') + '</button>'
+               : '<div class="ob-losa"><span class="ob-losa-t">' + esc(t('ob_ultima_foto')) + '</span><b>' + esc(t('ini_sin_fotos')) + '</b></div>') +
+        '</div></div></section>';
+
+    var entregaCorta = entrega ? (function(){ var x = new Date(entrega); return isNaN(x) ? '' : x.toLocaleDateString(LOC(), { month:'short', year:'numeric' }); })() : '';
+    var ruta = n ? '<article class="ob-t"><div class="ini-th"><span class="ini-ti">' + ICO_OB.ruta + '</span><h3>' + esc(t('ob_recorrido')) + '</h3><span class="ini-pastilla">' + esc(o.unidad || '—') + '</span></div>' +
+      '<ol class="ob-ruta">' + fases.map(function(f, i){
+        var k = fi < 0 ? '' : i < fi ? 'hecha' : i === fi ? 'actual' : '';
+        return '<li class="ob-paso ' + k + '">' + (k ? '<span class="ob-tramo ' + k + '"></span>' : '') +
+          '<span class="ob-bola">' + (k === 'hecha' ? ICO_OB.check : (i + 1)) + '</span><b>' + esc(Lx(f)) + '</b>' +
+          '<span class="ob-est">' + esc(t(k === 'hecha' ? 'ob_terminada' : k === 'actual' ? 'ob_en_curso' : 'ob_pendiente')) + '</span></li>';
+      }).join('') +
+      '<li class="ob-paso ob-entrega"><span class="ob-bola">' + ICO_OB.llave + '</span><b>' + esc(t('ob_entrega')) + '</b><span class="ob-est">' + esc(entregaCorta ? entregaCorta + ' · ' + t('ob_estimada') : t('ob_por_confirmar')) + '</span></li></ol>' +
+      (o.actualizado ? '<p class="ob-ruta-nota">' + esc(t('actualizado')) + ': ' + esc(fecha(o.actualizado)) + '</p>' : '') + '</article>' : '';
+
+    var grupos = [], porMes = {};
+    fotos.forEach(function(ft, i){ var m = ft.fecha ? mesAno(ft.fecha) : t('ob_sin_fecha'); if (!porMes[m]){ porMes[m] = []; grupos.push(m); } porMes[m].push(i); });
+    var diario = '<article class="ob-t"><div class="ini-th"><span class="ini-ti">' + ICO_INI.foto + '</span><h3>' + esc(t('ob_diario')) + '</h3>' +
+        (fotos.length ? '<span class="ini-pastilla">' + esc(fotos.length === 1 ? t('ob_n_fotos_1') : t('ob_n_fotos_n').replace('{n}', fotos.length)) + '</span>' : '') + '</div>' +
+      (fotos.length ? grupos.map(function(m){
+        return '<div class="ob-mes">' + esc(m) + '</div><div class="ob-rejilla">' + porMes[m].map(function(i){
+          var ft = fotos[i];
+          return '<button type="button" class="ob-foto' + (i === 0 ? ' ultima' : '') + '" data-ob-foto="' + i + '"><span class="ob-marco">' +
+              (ft.path ? '<img loading="lazy" data-foto="' + esc(ft.path) + '" alt="' + esc(ft.titulo || '') + '">' : '') +
+              (i === 0 ? '<span class="ob-nuevo">' + esc(t('ob_lo_ultimo')) + '</span>' : '') + '</span>' +
+            '<b>' + esc(ft.titulo || '') + '</b>' + (ft.fecha ? '<small>' + esc(fecha(ft.fecha)) + ' · ' + esc(relativa(ft.fecha)) + '</small>' : '') + '</button>';
+        }).join('') + '</div>';
+      }).join('') : '<p class="ob-vacio">' + esc(t('ini_sin_fotos')) + '</p>') + '</article>';
+
+    function dato(a, b, sub){ return '<div class="ob-dato"><span>' + esc(a) + '</span><b>' + esc(b || '—') + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</b></div>'; }
+    var ficha = '<div class="ob-ficha"><article class="ob-t"><div class="ini-th"><span class="ini-ti">' + ICO_INI.obra + '</span><h3>' + esc(t('ob_tu_villa')) + '</h3></div><div class="ob-datos">' +
+        dato(t('unidad'), o.unidad) + dato(t('ob_proyecto'), nomProy, p && p.resort) + (o.contrato_numero ? dato(t('ob_contrato'), o.contrato_numero) : '') +
+        dato(t('entrega_est'), entrega ? fecha(entrega) : t('ob_por_confirmar')) + (o.actualizado ? dato(t('actualizado'), fecha(o.actualizado), relativa(o.actualizado)) : '') +
+      '</div></article>' +
+      '<article class="ob-t"><div class="ini-th"><span class="ini-ti">' + ICO_INI.chat + '</span><h3>' + esc(t('ob_duda_t')) + '</h3></div><p class="ob-duda">' + esc(t('ob_duda')) + '</p>' +
+        '<button type="button" class="btn-oscuro ob-btn" data-ob-ticket>' + esc(t('escribir_equipo')) + '</button></article></div>';
+
+    c.innerHTML = cab + heroe + ruta + '<section class="ob-f2">' + diario + ficha + '</section>';
+    c.querySelectorAll('[data-ob-villa]').forEach(function(b){ b.addEventListener('click', function(){ ESTADO.obraSel = +b.getAttribute('data-ob-villa'); render(); }); });
+    c.querySelectorAll('[data-ob-foto]').forEach(function(b){ b.addEventListener('click', function(){ visorObra(o, +b.getAttribute('data-ob-foto'), b); }); });
+    var bt = c.querySelector('[data-ob-ticket]');
+    if (bt) bt.addEventListener('click', function(){ abrirNuevoTicket(rel.contrato ? { tipo:'contrato', id:rel.contrato.id, cat:'Obra' } : { cat:'Obra' }); });
+    cargaPortadas(c);
     cargaFotos();
-    c.querySelectorAll('.fotos img').forEach(function(img){ img.addEventListener('click', function(){ if (img.src) ampliaFoto(img.src); }); });
+  }
+  /* Las fotos de obra son URLs firmadas de 1 h: se recuerdan 50 min para que el visor y un repintado no vuelvan a firmar. */
+  var FOTO_URL = {};
+  function urlFoto(p, cb){
+    if (!p){ cb(null); return; }
+    var x = FOTO_URL[p]; if (x && x.hasta > Date.now()){ cb(x.url); return; }
+    sb.storage.from('obra').createSignedUrl(p, 3600).then(function(r){
+      if (r.data && r.data.signedUrl){ FOTO_URL[p] = { url:r.data.signedUrl, hasta:Date.now() + 50 * 60 * 1000 }; cb(r.data.signedUrl); }
+      else { console.error('foto de obra', p, r.error); cb(null); }
+    }).catch(function(e){ console.error('foto de obra', e); cb(null); /* MUDO A PROPOSITO: sin URL la foto queda en su marco vacío con su título y fecha; el detalle va a la consola */ });
   }
   function cargaFotos(){
     document.querySelectorAll('img[data-foto]').forEach(function(img){
       var p = img.getAttribute('data-foto'); img.removeAttribute('data-foto');
-      sb.storage.from('obra').createSignedUrl(p, 3600).then(function(r){ if (r.data && r.data.signedUrl) img.src = r.data.signedUrl; });
+      urlFoto(p, function(u){ if (u) img.src = u; });
     });
   }
-  function ampliaFoto(src){
-    var l = document.createElement('div'); l.className = 'lupa';
-    l.innerHTML = '<img src="' + esc(src) + '" alt="">';
-    l.addEventListener('click', function(){ l.remove(); });
-    document.addEventListener('keydown', function h(ev){ if (ev.key==='Escape'){ l.remove(); document.removeEventListener('keydown',h); } });
-    document.body.appendChild(l);
+  function visorObra(o, i, origen){
+    var fotos = o.fotos || [], n = fotos.length;
+    if (!n) return;
+    var v = document.createElement('div'), x0 = null, desliz = 0, scroll = document.body.style.overflow;
+    v.className = 'ob-visor'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-label', t('ob_diario'));
+    function dibuja(){
+      var ft = fotos[i];
+      v.innerHTML = '<div class="ob-visor-cab"><span>' + esc(t('ini_x_de_y').replace('{a}', i + 1).replace('{b}', n)) + (o.unidad ? ' · ' + esc(o.unidad) : '') + '</span>' +
+          '<button type="button" class="ob-visor-btn" data-ob-v="x" aria-label="' + esc(t('cerrar')) + '">' + ICO_OB.cerrar + '</button></div>' +
+        '<div class="ob-visor-cuerpo">' + (n > 1 ? '<button type="button" class="ob-visor-btn" data-ob-v="-1" aria-label="' + esc(t('ob_anterior')) + '">' + ICO_OB.izq + '</button>' : '') +
+          '<figure><img alt="' + esc(ft.titulo || '') + '"><figcaption>' + esc(ft.titulo || '') + (ft.fecha ? '<small>' + esc(fecha(ft.fecha)) + ' · ' + esc(relativa(ft.fecha)) + '</small>' : '') + '</figcaption></figure>' +
+          (n > 1 ? '<button type="button" class="ob-visor-btn" data-ob-v="1" aria-label="' + esc(t('ob_siguiente')) + '">' + ICO_OB.der + '</button>' : '') + '</div>';
+      var img = v.querySelector('figure img');
+      urlFoto(ft.path, function(u){ if (u && fotos[i] === ft) img.src = u; });
+      v.querySelector('[data-ob-v="x"]').focus();
+    }
+    function mueve(k){ if (n > 1){ i = (i + k + n) % n; dibuja(); } }
+    function cierra(){ v.remove(); document.removeEventListener('keydown', tecla); document.body.style.overflow = scroll; if (origen && origen.isConnected) origen.focus(); }
+    function tecla(e){ if (e.key === 'Escape') cierra(); else if (e.key === 'ArrowLeft') mueve(-1); else if (e.key === 'ArrowRight') mueve(1); }
+    v.addEventListener('click', function(e){
+      if (Date.now() - desliz < 350) return;   // el clic que sigue a deslizar no cierra ni pasa otra foto
+      var b = e.target.closest('[data-ob-v]');
+      if (b){ if (b.getAttribute('data-ob-v') === 'x') cierra(); else mueve(+b.getAttribute('data-ob-v')); }
+      else if (e.target === v || e.target.classList.contains('ob-visor-cuerpo') || e.target.tagName === 'FIGURE') cierra();
+    });
+    v.addEventListener('pointerdown', function(e){ x0 = e.clientX; });
+    v.addEventListener('pointerup', function(e){ if (x0 != null && Math.abs(e.clientX - x0) > 50){ desliz = Date.now(); mueve(e.clientX < x0 ? 1 : -1); } x0 = null; });
+    document.addEventListener('keydown', tecla);
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(v);
+    dibuja();
   }
 
   /* ── Documentos ───────────────────────────────────────────────────── */
@@ -3465,6 +3693,7 @@
 
   function abrirNuevoTicket(ref){
     // el listener de «Nuevo ticket» le pasa el evento: solo vale un {tipo,id} nuestro
+    var catFija = ref && ref.cat;   // Obra abre el ticket ya en su categoría (8-oct-2026); el resto sigue como estaba
     ref = (ref && ref.tipo && ref.id) ? ref : null;
     var refOpts = '<option value="">' + esc(t('sobre_nada')) + '</option>' +
       (DATOS.facturas || []).map(function(f){
@@ -3473,7 +3702,7 @@
       (DATOS.contratos || []).map(function(x){
         return '<option value="contrato:' + esc(x.id) + '"' + (ref && ref.tipo === 'contrato' && ref.id === x.id ? ' selected' : '') + '>' + esc(t('nav_contratos')) + ' ' + esc(x.numero) + '</option>';
       }).join('');
-    var catPre = ref ? (ref.tipo === 'factura' ? 'Pagos' : 'Documentación') : '';
+    var catPre = catFija || (ref ? (ref.tipo === 'factura' ? 'Pagos' : 'Documentación') : '');
     abreDrawer(
       '<div class="hoja"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600">' + esc(t('nuevo_ticket')) + '</h3>' +
       '<div class="campo"><label>' + esc(t('categoria')) + '</label>' +
