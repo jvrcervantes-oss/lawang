@@ -6903,12 +6903,14 @@
           pon3('t-quien', u ? (u.de === 'equipo' ? 'Equipo' : 'Cliente') : '—');
           pon3('t-fecha', fFecha(h.actualizado_en));
           f.setAttribute('data-estado-hilo', h.estado || '');
-          /* Resueltos: blanco algo translúcido (los abiertos conservan el gris del molde) con un
-             filo suave, porque la tarjeta de la bandeja ya es blanca y sin filo se confundía con ella. */
+          /* Resueltos: blanco algo translúcido con filo; abiertos: gris. La clase gris del molde no
+             existe en el CSS de esta pantalla (todos eran blancos como la tarjeta de la bandeja),
+             así que ambos colores van en línea. */
           if (h.estado === 'resuelto') {
-            f.classList.remove('bg-surface-container-high/60');
             f.style.background = 'rgba(255,255,255,.6)';
-            f.style.outline = '1px solid rgba(233,232,227,.9)'; f.style.outlineOffset = '-1px';
+            f.style.outline = '1px solid rgba(117,120,110,.28)'; f.style.outlineOffset = '-1px';
+          } else {
+            f.style.background = 'rgb(233,232,227)';
           }
           f.setAttribute('data-ts', h.actualizado_en || '');
           f.setAttribute('data-nombre', c.full_name || '');
