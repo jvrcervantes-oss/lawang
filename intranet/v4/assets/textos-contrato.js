@@ -20,7 +20,6 @@
   var T = function (s, h) { return window.lwT ? window.lwT(s, h) : s; };
   var esc = TC.esc;
   var $ = function (id) { return document.getElementById(id); };
-  var PAGINA = 25;                                 // bloques de texto por página del editor
   var IDIOMAS = [['es', 'Español'], ['en', 'English'], ['id', 'Bahasa']];
 
   /* El estado de la pantalla, en un solo sitio. */
@@ -28,9 +27,12 @@
     sb: null, ficha: null, empresas: [], empresa: null, nombres: {}, nombresOk: true,
     lista: [], porSlug: {}, slug: null, orden: {},
     ed: null,                // lo que devolvió plantilla_contrato_edicion
-    doc: '', trozos: [], editables: 0, bloqueados: 0, sinLocalizar: 0,
-    cambios: {},             // { i: textoNuevo } — solo lo que la persona ha tocado
-    lang: 'es', filtro: '', pagina: 0,
+    doc: '', trozos: [], secs: null, pars: [], editables: 0, bloqueados: 0, sinLocalizar: 0, soloLectura: false,
+    cambios: {},             // { i: textoNuevo } — solo lo que la persona ha tocado y anotado con «Listo»
+    edicion: null, edicionSucia: false,   // el párrafo abierto (clave sec|bloque) y si se ha escrito algo sin anotar
+    baseTrozos: null, camb: null, baseAviso: false, vistos: {},   // la versión de la que se parte, qué cambió respecto a ella, y lo que la persona dio por revisado
+    lang: 'es', langs: [], ancla: null, filtro: '', hits: [], hi: 0, rechazo: false,
+    campos: null, camposOk: true, etiqP: null,   // etiquetas de los marcadores (contracts/tokens.json)
     cuerpos: {}              // caché de cuerpos por version_id (el hash es el etag)
   };
 
@@ -40,7 +42,7 @@
   function msg(e) { return (e && e.message) ? e.message : String(e || ''); }
   function pill(texto, tono) { return '<span class="tc-pill tc-' + (tono || 'neutro') + '">' + esc(texto) + '</span>'; }
   function nombreDe(slug) { return E.nombres[slug] || slug; }
-  function hayCambios() { return Object.keys(E.cambios).length > 0; }
+  function hayCambios() { return Object.keys(E.cambios).length > 0 || E.edicionSucia; }
   /* «No he podido leer» y «no hay» se ven distinto, siempre (norma de la suite: un vacío no puede significar las dos cosas). */
   function nota(id, texto, tono) {
     var n = $(id); if (!n) return;
@@ -101,21 +103,46 @@
       var b = ev.target.closest('[data-tc-diff]'); if (!b) return;
       ev.stopPropagation(); verDiff(b.getAttribute('data-tc-diff'));
     });
-    $('tc-editor').addEventListener('click', function (ev) {
-      var b = ev.target.closest('[data-tc-idioma],[data-tc-pag],#tc-simular,#tc-guardar,#tc-deshacer,#tc-cerrar,[data-tc-previa-idioma]'); if (!b) return;
-      ev.stopPropagation();
-      if (b.hasAttribute('data-tc-idioma')) { E.lang = b.getAttribute('data-tc-idioma'); E.pagina = 0; pintaTrozos(); }
-      else if (b.hasAttribute('data-tc-pag')) { E.pagina += Number(b.getAttribute('data-tc-pag')); pintaTrozos(); }
-      else if (b.hasAttribute('data-tc-previa-idioma')) pintaPrevia(b.getAttribute('data-tc-previa-idioma'));
-      else if (b.id === 'tc-simular') simula();
-      else if (b.id === 'tc-guardar') guarda();
-      else if (b.id === 'tc-deshacer') deshaz();
-      else if (b.id === 'tc-cerrar') preguntaPerder().then(function (ok) { if (ok) cierraEditor(); });
+    var ed = $('tc-editor');
+    ed.addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-tc-idioma],[data-tc-ir],[data-tc-hit],[data-tc-visto],[data-tc-par-listo],[data-tc-par-deshacer],#tc-simular,#tc-guardar,#tc-deshacer,#tc-cerrar,[data-tc-previa-idioma]');
+      if (b) {
+        ev.stopPropagation();
+        if (b.hasAttribute('data-tc-idioma')) { if (commitEdicion()) { E.lang = b.getAttribute('data-tc-idioma'); E.hi = 0; pintaDocumento(true); } }
+        else if (b.hasAttribute('data-tc-ir')) { if (commitEdicion()) irA($('tc-trozos').querySelector('[data-tc-sec="' + b.getAttribute('data-tc-ir') + '"]')); }
+        else if (b.hasAttribute('data-tc-hit')) irAHit(Number(b.getAttribute('data-tc-hit')));
+        else if (b.hasAttribute('data-tc-visto')) { E.vistos[b.getAttribute('data-tc-visto') + '|' + E.lang] = true; pintaDocumento(false); }
+        else if (b.hasAttribute('data-tc-par-listo')) commitEdicion();
+        else if (b.hasAttribute('data-tc-par-deshacer')) deshacerPar();
+        else if (b.hasAttribute('data-tc-previa-idioma')) pintaPrevia(b.getAttribute('data-tc-previa-idioma'));
+        else if (b.id === 'tc-simular') simula();
+        else if (b.id === 'tc-guardar') guarda();
+        else if (b.id === 'tc-deshacer') deshaz();
+        else if (b.id === 'tc-cerrar') preguntaPerder().then(function (ok) { if (ok) cierraEditor(); });
+        return;
+      }
+      var par = ev.target.closest('[data-tc-par]');
+      if (par && $('tc-trozos').contains(par)) abrePar(par.getAttribute('data-tc-par'), ev);
     });
-    $('tc-trozos').addEventListener('input', function (ev) {
-      var ta = ev.target.closest('[data-tc-trozo]'); if (ta) tocaTrozo(ta);
+    ed.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && E.edicion) { ev.preventDefault(); deshacerPar(); }
+      else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && E.edicion) { ev.preventDefault(); commitEdicion(); }
+      else if (ev.key === 'Enter' && ev.target.matches && ev.target.matches('.tc-par-edit') && !E.edicion) { ev.preventDefault(); abrePar(ev.target.getAttribute('data-tc-par'), null); }
+      else if (ev.key === 'Enter' && ev.target.id === 'tc-buscar') { ev.preventDefault(); irAHit(ev.shiftKey ? -1 : 1); }
     });
-    $('tc-buscar').addEventListener('input', function () { E.filtro = this.value.trim().toLowerCase(); E.pagina = 0; pintaTrozos(); });
+    var papel = $('tc-trozos'), pendiente = false;
+    papel.addEventListener('input', alEscribir);
+    papel.addEventListener('beforeinput', alAntesDeEscribir);
+    papel.addEventListener('paste', alPegar);
+    papel.addEventListener('drop', function (ev) { if (E.edicion) ev.preventDefault(); });
+    papel.addEventListener('scroll', function () { if (pendiente) return; pendiente = true; window.requestAnimationFrame(function () { pendiente = false; marcaIndiceActivo(); }); });
+    $('tc-buscar').addEventListener('input', function () {
+      if (!commitEdicion()) return;
+      E.filtro = this.value.trim().toLowerCase(); E.hi = 0; pintaDocumento(false); if (E.hits.length) { E.hi = -1; irAHit(1); }
+    });
+    $('tc-f-cambios').addEventListener('change', function () { if (commitEdicion()) pintaDocumento(false); else this.checked = !this.checked; });
+    $('tc-f-sin-sens').addEventListener('change', function () { if (commitEdicion()) pintaDocumento(false); else this.checked = !this.checked; });
+    try { $('tc-indice-det').open = window.matchMedia('(min-width: 1000px)').matches; } catch (_) { /* MUDO A PROPOSITO: sin matchMedia el índice queda plegado; se abre con un clic */ }
     $('tc-act-nombre').addEventListener('input', actualizaActivar);
     $('tc-act-ok').addEventListener('change', actualizaActivar);
     $('tc-act-boton').addEventListener('click', function (ev) { ev.stopPropagation(); activa(); });
@@ -182,39 +209,93 @@
     });
   }
 
-  /* ── el editor ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+  /* ── el editor: el contrato como un documento ───────────────────────────────────────────────────────────────────────────────────── */
+  /* Se pinta con DOM propio (createElement + textContent; el HTML de la plantilla NO entra nunca en la página): cada trozo editable es un <span> y cada marcador, una
+     pastilla que no se puede partir. Lo que se GUARDA sigue saliendo de TC.construye (reemplazo literal sobre el original), así que la fidelidad de las 20
+     plantillas no depende de este pintado. La simulación fiel sigue en el iframe sandbox de abajo. */
+  var SVG = 'http://www.w3.org/2000/svg';
+  function el(tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
+  function nodoTexto(s) { return document.createTextNode(s); }
+  function boton(txt, attrs, cls) {                 // data-real: sin él, maqueta.js se come el clic y enseña «disponible en la fase de cableado»
+    var b = el('button', 'tc-btn ' + (cls || 'tc-btn-suave'), txt); b.type = 'button'; b.setAttribute('data-real', '1');
+    Object.keys(attrs || {}).forEach(function (k) { b.setAttribute(k, attrs[k]); });
+    return b;
+  }
+  function candado() {
+    var s = document.createElementNS(SVG, 'svg'); s.setAttribute('width', '14'); s.setAttribute('height', '14'); s.setAttribute('viewBox', '0 0 16 16'); s.setAttribute('aria-hidden', 'true'); s.setAttribute('focusable', 'false');
+    var r = document.createElementNS(SVG, 'rect'), p = document.createElementNS(SVG, 'path');
+    [['x', '3'], ['y', '7'], ['width', '10'], ['height', '7'], ['fill', 'none'], ['stroke', 'currentColor'], ['stroke-width', '1.4']].forEach(function (a) { r.setAttribute(a[0], a[1]); });
+    [['d', 'M5 7V5a3 3 0 0 1 6 0v2'], ['fill', 'none'], ['stroke', 'currentColor'], ['stroke-width', '1.4']].forEach(function (a) { p.setAttribute(a[0], a[1]); });
+    s.appendChild(r); s.appendChild(p); return s;
+  }
+  function etiqueta(k) { return TC.etiquetaMarcador(k, E.campos); }
+  function nombreIdioma(l) { return l === 'general' ? T('General') : (IDIOMAS.filter(function (x) { return x[0] === l; })[0] || [l, l])[1]; }
+  function idiomasReales() { return (E.langs || []).filter(function (l) { return l !== 'general'; }); }
+  function tituloSec(sec) {
+    var t = (E.secs && E.secs.titulos[sec]) || {}, l = E.lang;
+    return TC.ws(t[l] || t.es || t.en || t.id || t.general || '') || (sec === 0 ? T('Encabezado') : T('Cláusula %n', { n: sec }));
+  }
+  function valorDe(t) { return Object.prototype.hasOwnProperty.call(E.cambios, t.i) ? E.cambios[t.i] : TC.ws(t.texto); }
+
+  function cargaEtiquetas() {
+    if (E.etiqP) return E.etiqP;
+    var URL_TOKENS = '/contracts/tokens.json';
+    E.etiqP = Promise.resolve(window.fetch ? window.fetch(URL_TOKENS) : null).then(function (r) {
+      if (!r || !r.ok) throw new Error('tokens');
+      return r.json();
+    }).then(function (j) { E.campos = TC.etiquetasDeTokens(j, window.LW_IDIOMA === 'en' ? 'en' : 'es'); E.camposOk = true; },
+      function () { E.campos = null; E.camposOk = false; });   // no es un fallo mudo: abreEditor lo enseña en el aviso («se enseñan abreviados»)
+    return E.etiqP;
+  }
+
   function abreEditor(slug) {
     preguntaPerder().then(function (ok) {
       if (!ok) return;
-      E.cambios = {};
+      E.cambios = {}; E.edicion = null; E.edicionSucia = false; E.vistos = {}; E.baseAviso = false; E.baseTrozos = null; E.camb = null;
       E.slug = slug;
       var cab = $('tc-editor'); cab.hidden = false;
       $('tc-ed-titulo').textContent = nombreDe(slug);
-      $('tc-trozos').innerHTML = '<p class="tc-vacio">' + esc(T('Trayendo el texto…')) + '</p>';
-      $('tc-ed-barra').hidden = true; $('tc-previa-caja').hidden = true; $('tc-activar').hidden = true; nota('tc-ed-aviso', '');
+      $('tc-trozos').textContent = ''; $('tc-trozos').appendChild(el('p', 'tc-vacio', T('Trayendo el texto…')));
+      $('tc-ed-barra').hidden = true; $('tc-previa-caja').hidden = true; $('tc-activar').hidden = true; nota('tc-ed-aviso', ''); nota('tc-ed-estado', '');
+      $('tc-indice').textContent = ''; $('tc-aterriza').textContent = '';
       cab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      rpc('plantilla_contrato_edicion', { p_empresa: E.empresa, p_slug: slug }).then(function (r) {
+      Promise.all([rpc('plantilla_contrato_edicion', { p_empresa: E.empresa, p_slug: slug }), cargaEtiquetas()]).then(function (res) {
+        var r = res[0];
+        if (E.slug !== slug) return;                                   // se abrió otra mientras tanto
         if (r.error || !r.data) {
-          $('tc-trozos').innerHTML = '<p class="tc-vacio tc-mal"></p>';
-          $('tc-trozos').firstChild.textContent = T('No he podido leer el texto: ') + msg(r.error);
+          $('tc-trozos').textContent = ''; $('tc-trozos').appendChild(el('p', 'tc-vacio tc-mal', T('No he podido leer el texto: ') + msg(r.error)));
           return;
         }
         var d = r.data; E.ed = d; E.doc = d.cuerpo_html || '';
         var tr = TC.trocea(E.doc); E.trozos = tr.trozos;
+        E.secs = TC.secciones(E.doc, E.trozos);
         E.editables = E.trozos.filter(function (t) { return t.editable; }).length;
-        var todoBloqueado = !!d.solo_global;
+        E.soloLectura = !!d.solo_global;
         var s = TC.situaBloquesFijos(E.doc, d.bloques_fijos || []);
         E.sinLocalizar = s.sinLocalizar;
-        E.bloqueados = TC.marcaBloqueados(E.trozos, s.spans, todoBloqueado);
+        E.bloqueados = TC.marcaBloqueados(E.trozos, s.spans, E.soloLectura);
         var langs = {}; E.trozos.forEach(function (t) { if (t.editable) langs[t.lang || 'general'] = 1; });
         E.lang = langs.es ? 'es' : (langs.en ? 'en' : (langs.id ? 'id' : 'general'));
-        E.langs = Object.keys(langs); E.filtro = ''; E.pagina = 0; $('tc-buscar').value = ''; $('tc-motivo').value = '';
-        pintaCabecera(); pintaTrozos(); preparaActivar();
+        E.langs = Object.keys(langs).sort(function (a, b) { var o = { es: 0, en: 1, id: 2, general: 3 }; return o[a] - o[b]; });
+        E.filtro = ''; $('tc-buscar').value = ''; $('tc-motivo').value = ''; $('tc-f-cambios').checked = false; $('tc-f-sin-sens').checked = false; E.hi = 0;
+        E.baseTrozos = E.trozos;                                       // hasta saber de qué versión viene, la base es este mismo texto
+        pintaCabecera(); pintaDocumento(true); preparaActivar();
         $('tc-ed-barra').hidden = false;
-        nota('tc-ed-estado', '');
-        cargaListaSuave();                       // la lista marca la fila abierta
+        cargaListaSuave();                                             // la lista marca la fila abierta
+        cargaBase(slug);
       });
     });
+  }
+  /* El texto de la versión de la que viene este borrador: con él se sabe qué idioma se tocó (y cuál «falta revisar») aunque se haya guardado y reabierto. */
+  function cargaBase(slug) {
+    var d = E.ed, v = (E.lista || []).filter(function (x) { return x.id === d.version_id; })[0];
+    if (!v || !v.hereda_de || d.origen !== 'empresa') return;
+    cuerpoDe(v.hereda_de).then(function (c) {
+      if (E.slug !== slug) return;
+      var t = TC.trocea(c).trozos;
+      if (t.length !== E.trozos.length) { E.baseAviso = true; pintaCabecera(); return; }
+      E.baseTrozos = t; if (!E.edicion) pintaDocumento(false);
+    }, function () { if (E.slug === slug) { E.baseAviso = true; pintaCabecera(); } });
   }
   function cargaListaSuave() { /* repinta la marca de fila sin volver a pedir nada */
     var slugs = Object.keys(E.porSlug); if (!slugs.length) return;
@@ -223,7 +304,7 @@
   }
 
   function cierraEditor() {
-    E.cambios = {}; E.slug = null; E.ed = null; E.trozos = []; E.doc = '';
+    E.cambios = {}; E.edicion = null; E.edicionSucia = false; E.slug = null; E.ed = null; E.trozos = []; E.doc = ''; E.pars = []; E.camb = null;
     $('tc-editor').hidden = true; $('tc-previa-caja').hidden = true; $('tc-activar').hidden = true;
     cargaListaSuave();
   }
@@ -238,111 +319,394 @@
     $('tc-ed-sub').textContent = T('Empiezas desde ') + origenTxt(d) + ' (v' + d.version + ') · ' + (E.empresas.filter(function (x) { return x.clave === d.empresa; })[0] || { nombre: d.empresa }).nombre;
     var avisos = [];
     if (d.solo_global) avisos.push(T('Este texto solo lo cambia el administrador global con su abogado: ') + d.solo_global + T('. Puedes leerlo y simularlo, no editarlo.'));
-    else if (E.bloqueados) avisos.push(T('Los bloques con candado (foro y ley aplicable, tenencia, escrow e impuestos, prórroga, defectos, datos, partes y firmas, cláusulas negociadas) los cambia el administrador global con su abogado. Aquí salen en solo lectura.'));
+    else if (E.bloqueados) avisos.push(T('Las partes con candado (foro y ley aplicable, tenencia, escrow e impuestos, prórroga, defectos, datos, partes y firmas, cláusulas negociadas) son sensibles. Puedes escribir en ellas, con aviso; hoy la base todavía no admite guardar cambios en esas partes y, si lo rechaza, te lo dice aquí.'));
     if (E.sinLocalizar > 0) avisos.push(T('No he podido marcar en pantalla %n bloques con candado; la base los protege igualmente al guardar.', { n: E.sinLocalizar }));
     if (d.nunca_activable) avisos.push(T('Esta plantilla no se puede activar nunca para esta empresa: ') + d.nunca_activable);
     if (d.bloqueo && !d.nunca_activable) avisos.push(T('Tal como está, este texto no se podría activar: ') + d.bloqueo);
     if (d.notas_quitadas > 0) avisos.push(T('Se han quitado %n bytes de notas internas del autor del estudio: no se imprimen en el contrato y no se pueden guardar en una versión de empresa.', { n: d.notas_quitadas }));
-    var n = $('tc-ed-aviso'); n.hidden = !avisos.length; n.innerHTML = avisos.map(function (a) { return '<p></p>'; }).join('');
-    [].forEach.call(n.querySelectorAll('p'), function (p, i) { p.textContent = avisos[i]; });   // textContent: parte de esto viene de la base
-    $('tc-ed-idiomas').innerHTML = (E.langs || []).sort().map(function (l) {
-      var nombre = l === 'general' ? T('General') : (IDIOMAS.filter(function (x) { return x[0] === l; })[0] || [l, l])[1];
-      return '<button type="button" class="tc-tab" data-real="1" data-tc-idioma="' + esc(l) + '" aria-pressed="' + (l === E.lang ? 'true' : 'false') + '">' + esc(nombre) + '</button>';
-    }).join('');
+    if (E.camposOk === false) avisos.push(T('No he podido leer los nombres de los campos: se enseñan abreviados.'));
+    if (E.baseAviso) avisos.push(T('No he podido comparar con la versión de la que parte este borrador: «falta revisar» solo cuenta lo que cambies ahora.'));
+    var n = $('tc-ed-aviso'); n.hidden = !avisos.length; n.textContent = '';
+    avisos.forEach(function (a) { n.appendChild(el('p', null, a)); });   // textContent: parte de esto viene de la base
+    pintaPestanas();
     var solo = !!d.solo_global;
     $('tc-guardar').disabled = solo; $('tc-motivo').disabled = solo;
     $('tc-guardar').title = solo ? T('Este texto solo lo cambia el administrador global') : '';
   }
 
-  /* Los trozos de la página actual, agrupados por bloque (un párrafo, una celda, un título). */
-  function visibles() {
-    var lang = E.lang === 'general' ? null : E.lang;
-    return E.trozos.filter(function (t) {
-      if (!t.editable) return false;
-      if ((t.lang || null) !== lang) return false;
-      if (E.filtro && (E.cambios[t.i] !== undefined ? E.cambios[t.i] : t.texto).toLowerCase().indexOf(E.filtro) === -1) return false;
-      return true;
+  /* ── los párrafos del idioma que se ve ──────────────────────────────────────────────────────────────────────────────────────── */
+  /* Un párrafo = los trozos de un mismo bloque (párrafo, celda o título) en el idioma visible. Su clave es sec|bloque. */
+  function construyePars() {
+    var lang = E.lang === 'general' ? null : E.lang, orden = [], por = {};
+    E.trozos.forEach(function (t) {
+      if ((t.lang || null) !== lang) return;
+      var k = t.sec + '|' + t.bloque, p = por[k];
+      if (!p) { p = por[k] = { key: k, sec: t.sec, bloque: t.bloque, trozos: [], titulo: false, sens: false, editable: false }; orden.push(p); }
+      p.trozos.push(t);
+      if (t.titulo) p.titulo = true;
+      if (t.editable) { p.editable = true; if (t.bloqueado) p.sens = true; }
     });
+    orden.forEach(function (p) {
+      p.editable = p.editable && !E.soloLectura;
+      if (E.soloLectura) p.sens = false;                                  // todo el texto es de solo lectura: marcarlo párrafo a párrafo sería ruido
+      p.vis = p.trozos.map(function (t) { return TC.segmentos(valorDe(t)).map(function (sg) { return sg.m ? etiqueta(sg.k) : sg.v; }).join(''); }).join(' ');
+      p.cambiado = p.trozos.some(function (t) { return E.camb ? !!E.camb.trozo[t.i] : Object.prototype.hasOwnProperty.call(E.cambios, t.i); });
+    });
+    return orden;
   }
-  function altoFila(txt) { return Math.max(1, Math.min(14, Math.ceil(txt.length / 80) + (txt.match(/\n/g) || []).length)); }
-  function pintaTrozos() {
-    var todos = visibles(), grupos = [], ult = null;
-    todos.forEach(function (t) { if (!ult || ult.id !== t.bloque) { ult = { id: t.bloque, trozos: [] }; grupos.push(ult); } ult.trozos.push(t); });
-    var paginas = Math.max(1, Math.ceil(grupos.length / PAGINA));
-    E.pagina = Math.min(Math.max(0, E.pagina), paginas - 1);
-    var pag = grupos.slice(E.pagina * PAGINA, (E.pagina + 1) * PAGINA);
-    var caja = $('tc-trozos');
-    if (!pag.length) {
-      caja.innerHTML = '<p class="tc-vacio"></p>';
-      caja.firstChild.textContent = E.filtro ? T('Ningún trozo contiene esa búsqueda en este idioma.') : T('No hay texto editable en este idioma.');
-    } else {
-      caja.innerHTML = pag.map(function (g) {
-        return '<div class="tc-bloque">' + g.trozos.map(function (t) {
-          var v = E.cambios[t.i] !== undefined ? E.cambios[t.i] : t.texto;
-          var cand = t.bloqueado;
-          return '<div class="tc-trozo' + (cand ? ' tc-cand' : '') + (E.cambios[t.i] !== undefined ? ' tc-tocado' : '') + '" data-tc-fila="' + t.i + '">'
-            + (cand ? '<span class="tc-lock" title="' + esc(T('Bloque fijo: lo cambia el administrador global con su abogado')) + '">🔒</span>' : '')
-            + '<textarea data-tc-trozo="' + t.i + '" rows="' + altoFila(v) + '" spellcheck="true"' + (cand ? ' readonly aria-readonly="true"' : '')
-            + ' aria-label="' + esc(T('Texto del contrato')) + '">' + esc(v) + '</textarea><div class="tc-trozo-av" data-tc-av="' + t.i + '"></div></div>';
-        }).join('') + '</div>';
-      }).join('');
-    }
-    $('tc-pag-txt').textContent = T('Página %a de %b', { a: E.pagina + 1, b: paginas }) + ' · ' + T('%n trozos', { n: todos.length });
-    document.querySelector('[data-tc-pag="-1"]').disabled = E.pagina <= 0;
-    document.querySelector('[data-tc-pag="1"]').disabled = E.pagina >= paginas - 1;
-    [].forEach.call($('tc-ed-idiomas').querySelectorAll('[data-tc-idioma]'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-tc-idioma') === E.lang ? 'true' : 'false'); });
-    [].forEach.call(caja.querySelectorAll('[data-tc-trozo]'), function (ta) { avisaTrozo(Number(ta.getAttribute('data-tc-trozo')), ta.value); });
-    resumen();
+  function parPorKey(k) { return (E.pars || []).filter(function (p) { return p.key === k; })[0]; }
+  function nodoPar(k) { return $('tc-trozos').querySelector('[data-tc-par="' + k + '"]'); }
+  function pasaFiltros(p) {
+    if ($('tc-f-sin-sens').checked && p.sens) return false;
+    if ($('tc-f-cambios').checked && !p.cambiado) return false;
+    return true;
+  }
+  function motivoSensible(p) {
+    var t0 = p.trozos.filter(function (t) { return t.bloqueado && t.editable; })[0], k = t0 && t0.fijo;
+    if (k && k.length > 1) return T('región marcada por Legal «%cl»', { cl: k.replace(/_/g, ' ') });
+    if (k === 'S' && p.sec > 0) return T('la cláusula «%cl» no la cambia una empresa sola', { cl: tituloSec(p.sec) });
+    return T('foro y ley aplicable, tenencia, impuestos, prórroga, defectos, datos, partes y firmas');
   }
 
-  function trozoPorI(i) { return E.trozos[i]; }
-  function avisaTrozo(i, valor) {
-    var t = trozoPorI(i), av = TC.avisosTrozo(valor, t.texto), nodo = document.querySelector('[data-tc-av="' + i + '"]');
-    if (nodo) { nodo.textContent = av.length ? T(av[0]) : ''; nodo.className = 'tc-trozo-av' + (av.length ? ' tc-mal' : ''); }
-    return av.length === 0;
+  function pastilla(k, q) {
+    var lab = etiqueta(k), ej = TC.muestra(k), s = el('span', 'tc-marca', lab);
+    s.setAttribute('data-tc-marca', k); s.setAttribute('contenteditable', 'false'); s.tabIndex = 0; s.setAttribute('data-ej', ej);
+    s.setAttribute('aria-label', lab + '. ' + T('Campo que se rellena solo al emitir el contrato. Ejemplo: ') + ej);
+    if (q && lab.toLowerCase().indexOf(q) !== -1) s.classList.add('tc-marca-hit');
+    return s;
   }
-  function tocaTrozo(ta) {
-    var i = Number(ta.getAttribute('data-tc-trozo')), t = trozoPorI(i);
-    if (!t || t.bloqueado) return;
-    if (ta.value === t.texto) delete E.cambios[i]; else E.cambios[i] = ta.value;
-    ta.rows = altoFila(ta.value);
-    avisaTrozo(i, ta.value);
-    ta.closest('.tc-trozo').classList.toggle('tc-tocado', E.cambios[i] !== undefined);
+  function resalta(nodo, v, q) {
+    if (!q) { nodo.appendChild(nodoTexto(v)); return; }
+    var low = v.toLowerCase(), i = 0, j;
+    while ((j = low.indexOf(q, i)) !== -1) {
+      if (j > i) nodo.appendChild(nodoTexto(v.slice(i, j)));
+      nodo.appendChild(el('mark', null, v.slice(j, j + q.length))); i = j + q.length;
+    }
+    if (i < v.length) nodo.appendChild(nodoTexto(v.slice(i)));
+  }
+  function rellena(nodo, txt, q) {
+    TC.segmentos(txt).forEach(function (sg) { if (sg.m) nodo.appendChild(pastilla(sg.k, q)); else resalta(nodo, sg.v, q); });
+  }
+
+  /* Dos textos pegados sin blanco entre ellos en el original («Contrato Privado» | «de Reserva»: la separación la ponía el estilo) se leen con un espacio, salvo que uno de los dos
+     empiece o acabe en puntuación. Solo es pintado: lo que se guarda no cambia. */
+  function separaTrozos(a, b) { return /[\p{L}\p{N}}»”)]$/u.test(a.core) && /^[\p{L}\p{N}{«“(]/u.test(b.core); }
+  function pintaPar(p, q) {
+    var d = el('div', 'tc-par' + (p.titulo ? ' tc-par-titulo' : '') + (p.sens ? ' tc-par-sens' : '') + (p.cambiado ? ' tc-par-cambiado' : '') + (p.editable ? ' tc-par-edit' : '') + (E.ancla === p.key ? ' tc-ancla' : ''));
+    d.setAttribute('data-tc-par', p.key);
+    if (p.editable) { d.tabIndex = 0; d.title = T('Clic para editar solo este texto'); }
+    p.trozos.forEach(function (t, k) {
+      if (k > 0 && (p.trozos[k - 1].trail || t.lead || separaTrozos(p.trozos[k - 1], t))) d.appendChild(nodoTexto(' '));
+      var s = el('span', 'tc-tr' + (t.editable ? '' : ' tc-tr-fijo'));
+      if (t.editable) s.setAttribute('data-tc-trozo', String(t.i));
+      rellena(s, valorDe(t), q);
+      d.appendChild(s);
+    });
+    if (p.sens) {
+      var n = el('div', 'tc-sens-nota'); n.setAttribute('role', 'note'); n.tabIndex = 0;
+      var m = motivoSensible(p);
+      n.setAttribute('aria-label', T('Parte sensible: %m. Se puede editar, con aviso.', { m: m }));
+      n.appendChild(candado()); n.appendChild(el('span', null, T('Parte sensible: ') + m));
+      d.appendChild(n);
+    }
+    return d;
+  }
+
+  function pintaDocumento(aterriza) {
+    recalcula();
+    E.pars = construyePars();
+    var papel = $('tc-trozos'), y = papel.scrollTop, q = E.filtro || '';
+    papel.textContent = '';
+    var vis = E.pars.filter(pasaFiltros), langs = idiomasReales(), sec = -1, caja = null;
+    if (!E.pars.length) papel.appendChild(el('p', 'tc-vacio', T('No hay texto editable en este idioma.')));
+    else if (!vis.length) papel.appendChild(el('p', 'tc-vacio', $('tc-f-cambios').checked ? T('Todavía no has cambiado nada en este idioma. Quita el filtro para ver todo el texto.') : T('Ninguna cláusula coincide con los filtros. Quita un filtro para ver más texto.')));
+    vis.forEach(function (p) {
+      if (p.sec !== sec) {
+        sec = p.sec; caja = el('div', 'tc-sec'); caja.setAttribute('data-tc-sec', String(sec)); papel.appendChild(caja);
+        if (revisar(sec)) {
+          var av = el('div', 'tc-aviso-rev'); av.setAttribute('role', 'status');
+          av.appendChild(el('span', null, T('Has cambiado esta cláusula en otro idioma. Revisa que diga lo mismo.')));
+          av.appendChild(boton(T('Ya está igual'), { 'data-tc-visto': String(sec) }));
+          caja.appendChild(av);
+        }
+      }
+      caja.appendChild(pintaPar(p, q));
+    });
+    buscaHits();
+    papel.scrollTop = y;
+    pintaIndice(vis); pintaPestanas(); pintaContador(); resumen();
+    if (aterriza) aterrizaPrimera(vis);
+  }
+  function recalcula() { E.camb = TC.cambiosRespecto(E.baseTrozos, E.trozos, E.cambios); }
+  function revisar(sec) {
+    if (!E.camb || E.lang === 'general' || E.vistos[sec + '|' + E.lang]) return false;
+    return TC.porRevisar(E.camb.sec, sec, E.lang, idiomasReales());
+  }
+  function cuentaRevisar(lang) {
+    if (!E.camb || lang === 'general') return 0;
+    var n = 0;
+    for (var s = 0; s < (E.secs ? E.secs.n : 0); s++) if (!E.vistos[s + '|' + lang] && TC.porRevisar(E.camb.sec, s, lang, idiomasReales())) n++;
+    return n;
+  }
+
+  function pintaPestanas() {
+    var caja = $('tc-ed-idiomas'); caja.textContent = '';
+    (E.langs || []).forEach(function (l) {
+      var n = cuentaRevisar(l), b = el('button', 'tc-tab' + (n ? ' tc-tab-rev' : ''));
+      b.type = 'button'; b.setAttribute('data-real', '1'); b.setAttribute('data-tc-idioma', l); b.setAttribute('aria-pressed', l === E.lang ? 'true' : 'false');
+      b.appendChild(el('span', 'tc-tab-nom', nombreIdioma(l) + (l === 'es' && idiomasReales().length > 1 ? ' · ' + T('principal') : '')));
+      if (l !== 'general') b.appendChild(el('span', 'tc-tab-ins', n ? T('cambiado, falta revisar (%n)', { n: n }) : T('al día')));
+      caja.appendChild(b);
+    });
+  }
+  function pintaIndice(vis) {
+    var caja = $('tc-indice'), secs = [], vistos = {};
+    caja.textContent = '';
+    (vis || []).forEach(function (p) { if (!vistos[p.sec]) { vistos[p.sec] = { sec: p.sec, libre: false, sens: false, cambiado: false }; secs.push(vistos[p.sec]); } var s = vistos[p.sec]; if (p.editable && !p.titulo && !p.sens) s.libre = true; if (p.sens) s.sens = true; if (p.cambiado) s.cambiado = true; });
+    secs.forEach(function (s) {
+      var b = el('button', 'tc-ind'); b.type = 'button'; b.setAttribute('data-real', '1'); b.setAttribute('data-tc-ir', String(s.sec));
+      b.appendChild(el('span', 'tc-ind-nom', tituloSec(s.sec)));
+      var marcas = el('span', 'tc-ind-marcas');
+      if (revisar(s.sec)) marcas.appendChild(el('span', 'tc-ind-rev', T('revisar')));
+      else if (s.cambiado) marcas.appendChild(el('span', 'tc-ind-cambio', T('editado')));
+      if (s.sens && !s.libre) { var c = el('span', 'tc-ind-fijo'); c.appendChild(candado()); c.title = T('Parte sensible'); marcas.appendChild(c); }
+      b.appendChild(marcas); caja.appendChild(b);
+    });
+    $('tc-indice-sum').textContent = T('Índice (%n cláusulas)', { n: secs.length });
+    marcaIndiceActivo();
+  }
+  function marcaIndiceActivo() {
+    var papel = $('tc-trozos'), activa = null;
+    [].forEach.call(papel.querySelectorAll('.tc-sec'), function (c) { if (c.offsetTop <= papel.scrollTop + 24) activa = c.getAttribute('data-tc-sec'); });
+    [].forEach.call($('tc-indice').querySelectorAll('[data-tc-ir]'), function (b) { b.classList.toggle('on', b.getAttribute('data-tc-ir') === activa); });
+  }
+  function irA(nodo) {
+    var papel = $('tc-trozos'); if (!nodo) return;
+    papel.scrollTop = Math.max(0, nodo.offsetTop - 12);
+    marcaIndiceActivo();
+  }
+  function aterrizaPrimera(vis) {
+    var primera = (vis || []).filter(function (p) { return p.editable && !p.titulo && !p.sens; })[0];
+    E.ancla = null;
+    var aviso = $('tc-aterriza'); aviso.textContent = '';
+    if (!primera) { if (E.soloLectura) aviso.textContent = T('Este texto es de solo lectura para tu usuario.'); return; }
+    var n = nodoPar(primera.key);
+    E.ancla = primera.key;
+    if (n) { irA(n.closest('.tc-sec') || n); n.classList.add('tc-ancla'); }
+    aviso.textContent = T('Estás en la primera cláusula que puedes editar: ') + tituloSec(primera.sec) + '. ' + T('Haz clic en un texto para editarlo.');
+  }
+
+  /* ── buscar: «3 de 12» ───────────────────────────────────────────────────────────────────────────────────────────────────────── */
+  function buscaHits() {
+    var q = E.filtro; E.hits = [];
+    if (q) E.pars.filter(pasaFiltros).forEach(function (p) { if (p.vis.toLowerCase().indexOf(q) !== -1) E.hits.push(p.key); });
+    if (E.hi >= E.hits.length) E.hi = 0;
+  }
+  function pintaContador() {
+    var c = $('tc-hits'); c.textContent = E.filtro ? (E.hits.length ? T('%a de %b', { a: E.hi + 1, b: E.hits.length }) : T('0 resultados')) : '';
+    $('tc-hit-ant').disabled = $('tc-hit-sig').disabled = E.hits.length < 2;
+  }
+  function irAHit(delta) {
+    if (!E.hits.length) return;
+    E.hi = (E.hi + delta + E.hits.length) % E.hits.length;
+    [].forEach.call($('tc-trozos').querySelectorAll('.tc-hit-actual'), function (x) { x.classList.remove('tc-hit-actual'); });
+    var n = nodoPar(E.hits[E.hi]); if (n) { n.classList.add('tc-hit-actual'); irA(n); }
+    pintaContador();
+  }
+
+  /* ── editar un párrafo ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
+  function piezasDe(nodo) {
+    var out = [];
+    (function ir(n) {
+      [].forEach.call(n.childNodes, function (c) {
+        if (c.nodeType === 3) out.push({ t: 'txt', v: c.nodeValue });
+        else if (c.nodeType === 1) {
+          var k = c.getAttribute('data-tc-marca');
+          if (k !== null && /^[a-z0-9_]{1,60}$/.test(k)) out.push({ t: 'marca', k: k });
+          else if (c.nodeName === 'BR') out.push({ t: 'otro', v: ' ' });
+          else ir(c);                                                     // cualquier otra cosa que el navegador cuele: solo cuenta su texto
+        }
+      });
+    })(nodo);
+    return out;
+  }
+  function avisosDe(t, txt) {
+    var av = TC.avisosTrozo(txt, t.texto, true).map(function (a) { return T(a); });
+    TC.faltanMarcadores(txt, t.texto).forEach(function (k) { av.push(T('Falta el campo «%c». Los campos los rellena el contrato: vuelve a ponerlo o pulsa Deshacer.', { c: etiqueta(k) })); });
+    return av;
+  }
+  function leeEdicion(p, d) {                                             // { nuevos: { i: texto }, avisos: [] } de lo que hay escrito ahora
+    var nuevos = {}, avisos = [];
+    p.trozos.forEach(function (t) {
+      if (!t.editable) return;
+      var s = d.querySelector('[data-tc-trozo="' + t.i + '"]'); if (!s) return;
+      var txt = TC.textoEscrito(piezasDe(s), t.texto);
+      nuevos[t.i] = txt;
+      avisosDe(t, txt).forEach(function (a) { if (avisos.indexOf(a) === -1) avisos.push(a); });
+    });
+    return { nuevos: nuevos, avisos: avisos };
+  }
+  function muestraAvisoPar(d, avisos) {
+    var n = d.querySelector('[data-tc-par-av]'); if (!n) return;
+    n.textContent = avisos.join(' '); n.hidden = !avisos.length;
+  }
+  function ponCaret(span, ev) {
+    try {
+      var r = null;
+      if (ev && document.caretRangeFromPoint) r = document.caretRangeFromPoint(ev.clientX, ev.clientY);
+      else if (ev && document.caretPositionFromPoint) { var cp = document.caretPositionFromPoint(ev.clientX, ev.clientY); if (cp) { r = document.createRange(); r.setStart(cp.offsetNode, cp.offset); } }
+      if (r && span.contains(r.startContainer)) {
+        var host = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentElement, pill = host && host.closest ? host.closest('[data-tc-marca]') : null;
+        if (pill) r.setStartAfter(pill);                                  // un clic sobre una pastilla deja el cursor DETRÁS de ella: dentro no se puede escribir
+        r.setEnd(r.startContainer, r.startOffset); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); return;   // inicio = fin: cursor sin selección
+      }
+      span.focus();
+    } catch (_) { /* MUDO A PROPOSITO: sin la posición exacta del clic el cursor queda al principio del texto; escribir funciona igual */ }
+  }
+  function abrePar(key, ev) {
+    var p = parPorKey(key); if (!p || !p.editable || E.edicion === key) return;
+    var clicI = ev && ev.target && ev.target.closest ? ev.target.closest('[data-tc-trozo]') : null; clicI = clicI ? clicI.getAttribute('data-tc-trozo') : null;
+    if (!commitEdicion()) return;
+    p = parPorKey(key); var d = nodoPar(key); if (!p || !d) return;
+    E.edicion = key; E.edicionSucia = false;
+    E.ancla = null; d.classList.add('tc-editando'); d.classList.remove('tc-ancla'); d.removeAttribute('title');
+    $('tc-aterriza').textContent = '';
+    var primero = null;
+    p.trozos.forEach(function (t) {
+      if (!t.editable) return;
+      var s = d.querySelector('[data-tc-trozo="' + t.i + '"]'); if (!s) return;
+      s.textContent = ''; rellena(s, valorDe(t), '');                        // sin resaltado de búsqueda mientras se escribe
+      s.setAttribute('contenteditable', 'true'); s.setAttribute('spellcheck', 'true'); s.setAttribute('role', 'textbox'); s.setAttribute('aria-label', T('Texto del contrato'));
+      if (!primero) primero = s;
+    });
+    var barra = el('div', 'tc-par-acc');
+    if (p.sens) {
+      var w = el('div', 'tc-aviso-sens'); w.setAttribute('role', 'status');
+      w.appendChild(el('span', null, T('Esta parte es sensible (%m). Puedes cambiarla: la decisión es tuya. Consulta a tu abogado si tienes dudas. El cambio quedará registrado con tu nombre y la fecha.', { m: motivoSensible(p) })));
+      w.appendChild(el('span', 'tc-peq', T('Hoy la base todavía no deja guardar cambios en partes sensibles: si lo rechaza, te lo dirá aquí y podrás deshacerlo.')));
+      barra.appendChild(w);
+    }
+    var av = el('div', 'tc-trozo-av tc-mal'); av.setAttribute('data-tc-par-av', '1'); av.setAttribute('role', 'alert'); av.hidden = true; barra.appendChild(av);
+    var fila = el('div', 'tc-barra-fila');
+    fila.appendChild(boton(T('Listo'), { 'data-tc-par-listo': '1' }, 'tc-btn'));
+    fila.appendChild(boton(T('Deshacer'), { 'data-tc-par-deshacer': '1' }));
+    barra.appendChild(fila); d.appendChild(barra);
+    var foco = clicI !== null ? d.querySelector('[data-tc-trozo="' + clicI + '"]') : null;
+    if (foco) { foco.focus(); ponCaret(foco, ev); } else if (primero) primero.focus();
+  }
+  /* Anota lo escrito en el párrafo abierto. false = hay un aviso y el párrafo sigue abierto (no se guarda nada a medias). */
+  function commitEdicion() {
+    if (!E.edicion) return true;
+    var key = E.edicion, p = parPorKey(key), d = nodoPar(key);
+    if (!p || !d) { E.edicion = null; E.edicionSucia = false; return true; }
+    var r = leeEdicion(p, d);
+    if (r.avisos.length) { muestraAvisoPar(d, r.avisos); return false; }
+    Object.keys(r.nuevos).forEach(function (i) { if (r.nuevos[i] === E.trozos[i].texto) delete E.cambios[i]; else E.cambios[i] = r.nuevos[i]; });
+    E.edicion = null; E.edicionSucia = false;
+    pintaDocumento(false);
+    var n = nodoPar(key); if (n) n.focus({ preventScroll: true });
+    return true;
+  }
+  function deshacerPar() {
+    if (!E.edicion) return;
+    var key = E.edicion; E.edicion = null; E.edicionSucia = false;
+    pintaDocumento(false);
+    var n = nodoPar(key); if (n) n.focus({ preventScroll: true });
+  }
+  function alEscribir(ev) {
+    if (!E.edicion) return;
+    var d = nodoPar(E.edicion), p = parPorKey(E.edicion); if (!d || !p || !d.contains(ev.target)) return;
+    E.edicionSucia = true;
+    muestraAvisoPar(d, leeEdicion(p, d).avisos);
     resumen();
   }
+  function alPegar(ev) {
+    var s = ev.target.closest && ev.target.closest('[data-tc-trozo][contenteditable="true"]'); if (!s) return;
+    ev.preventDefault();
+    var cb = ev.clipboardData || window.clipboardData, txt = cb ? String(cb.getData('text/plain') || cb.getData('Text') || '') : '';
+    txt = txt.replace(/[\r\n]+/g, ' ');
+    if (!txt) return;
+    var ok = false; try { ok = document.execCommand('insertText', false, txt); } catch (_) { ok = false; }
+    if (!ok) {
+      var sel = window.getSelection(); if (!sel.rangeCount) return;
+      var r = sel.getRangeAt(0); if (!s.contains(r.commonAncestorContainer)) return;
+      r.deleteContents(); var n = nodoTexto(txt); r.insertNode(n); r.setStartAfter(n); r.setEndAfter(n); sel.removeAllRanges(); sel.addRange(r);
+    }
+    alEscribir(ev);
+  }
+  function alAntesDeEscribir(ev) {                                          // un párrafo es una línea: ni Intro, ni formato, ni arrastrar
+    var t = ev.inputType || '';
+    if (/^(insertParagraph|insertLineBreak|insertFromDrop|insertFromYank|insertOrderedList|insertUnorderedList|insertHorizontalRule|insertFromPaste)$/.test(t) || /^format/.test(t)) ev.preventDefault();
+  }
+
   function hayAvisosLocales() {
     return Object.keys(E.cambios).some(function (k) { return TC.avisosTrozo(E.cambios[k], E.trozos[k].texto).length > 0; });
   }
   function resumen() {
-    var n = Object.keys(E.cambios).length;
-    $('tc-cambios').textContent = n ? T('%n trozos cambiados sin guardar', { n: n }) : T('Sin cambios todavía');
-    $('tc-deshacer').disabled = !n;
+    var n = Object.keys(E.cambios).length, algo = n > 0 || E.edicionSucia;
+    $('tc-cambios').textContent = n ? T('%n trozos cambiados sin guardar', { n: n }) : (E.edicionSucia ? T('Estás escribiendo: pulsa Listo para anotar el cambio') : T('Sin cambios todavía'));
+    $('tc-deshacer').disabled = !algo;
     var mal = hayAvisosLocales();
-    $('tc-simular').disabled = !n;
-    $('tc-guardar').disabled = !n || mal || !!(E.ed && E.ed.solo_global);
-    if (mal) nota('tc-ed-estado', T('Corrige los avisos en rojo antes de simular o guardar.'), 'mal'); else nota('tc-ed-estado', '');
+    $('tc-simular').disabled = !algo;
+    $('tc-guardar').disabled = !algo || mal || !!(E.ed && E.ed.solo_global);
+    if (mal) nota('tc-ed-estado', T('Corrige los avisos en rojo antes de guardar.'), 'mal'); else if (!E.rechazo) nota('tc-ed-estado', '');
   }
   function deshaz() {
-    preguntaPerder().then(function (ok) { if (ok) { E.cambios = {}; pintaTrozos(); $('tc-previa-caja').hidden = true; } });
+    preguntaPerder().then(function (ok) { if (ok) { E.cambios = {}; E.edicion = null; E.edicionSucia = false; E.rechazo = false; pintaDocumento(false); $('tc-previa-caja').hidden = true; nota('tc-ed-estado', ''); } });
+  }
+
+  /* ── lo que contesta la base, en llano ────────────────────────────────────────────────────────────────────────────────────────── */
+  var FRASES = {
+    sesion: 'Tu sesión ha caducado. Vuelve a entrar; lo que has escrito sigue en pantalla.',
+    solo_global: 'Este texto no lo puede cambiar una empresa sola: lo cambia el administrador global con su abogado.',
+    bloque_fijo: 'Has cambiado una parte sensible y la base todavía no admite guardar cambios en ellas. Quita ese cambio o pídeselo al administrador global.',
+    marcador_forma: 'Un campo está mal escrito. Los campos se escriben entre dobles llaves, en minúsculas y sin espacios.',
+    llave: 'Hay una llave suelta o un campo sin cerrar. Cada campo se escribe {{asi}}.',
+    esqueleto: 'El texto cambia la estructura del documento y no solo las palabras. Deshaz lo último que has cambiado.',
+    motivo: 'Falta el motivo del cambio: escríbelo abajo (mínimo tres letras).',
+    permiso: 'Tu usuario no puede guardar textos de contrato: lo hace la administración de la empresa.',
+    activar_super: 'Activar un texto lo hace el super administrador de la empresa.',
+    caracter: 'Hay un carácter invisible o de control que no se admite. Borra esa parte y vuelve a escribirla.',
+    grande: 'El texto es demasiado grande para guardarlo.',
+    no_activable: 'La base dice que este texto no se podría activar tal cual.'
+  };
+  /* Pinta, dentro de `caja`, la frase en llano de un mensaje de la base y debajo el mensaje tal cual (textContent: repite un trozo del texto recibido). */
+  function pintaRechazo(caja, mensaje, clase) {
+    var c = TC.clasificaError(mensaje), p = el('p', clase || 'tc-rev tc-rev-mal'), frase;
+    if (c.tipo === 'marcador_desconocido') frase = T('Has escrito un campo que no existe («%c»). Quítalo: solo valen los campos que ya salen en el texto.', { c: TC.marcadorDeError(mensaje) || '' });
+    else if (FRASES[c.tipo]) frase = T(FRASES[c.tipo]);
+    else frase = T('La base no ha aceptado el texto.');
+    p.appendChild(el('span', null, frase));
+    if (c.tipo === 'bloque_fijo') {
+      var vistas = {}, lista = el('span', 'tc-rev-enlaces');
+      Object.keys(E.cambios).forEach(function (i) {
+        var t = E.trozos[i]; if (!t || !t.bloqueado || vistas[t.sec]) return;
+        vistas[t.sec] = true;
+        lista.appendChild(boton('«' + tituloSec(t.sec) + '»', { 'data-tc-ir': String(t.sec) }));
+      });
+      if (lista.firstChild) { p.appendChild(el('span', 'tc-peq', ' ' + T('Cambiaste partes sensibles en:') + ' ')); p.appendChild(lista); }
+    }
+    p.appendChild(el('span', 'tc-peq tc-detalle', T('Mensaje de la base: ') + c.detalle));
+    caja.appendChild(p);
   }
 
   /* ── simular: la base dice qué haría; aquí solo se pinta ───────────────────────────────────────────────────────────────────── */
   function cuerpoNuevo() { return TC.construye(E.doc, E.trozos, E.cambios); }
   function simula() {
-    if (!hayCambios() || hayAvisosLocales()) return;
+    if (!commitEdicion() || !hayCambios()) return;
     var nuevo = cuerpoNuevo();
     E.previo = nuevo;
     $('tc-previa-caja').hidden = false;
-    $('tc-revision').innerHTML = '<p class="tc-vacio">' + esc(T('Preguntando a la base qué haría con este texto…')) + '</p>';
+    $('tc-revision').textContent = ''; $('tc-revision').appendChild(el('p', 'tc-vacio', T('Preguntando a la base qué haría con este texto…')));
     pintaPrevia(E.langPrevia || (E.lang === 'general' ? null : E.lang) || 'es');
     rpc('plantilla_contrato_revisa', { p_empresa: E.empresa, p_slug: E.slug, p_cuerpo: nuevo }).then(function (r) {
-      var caja = $('tc-revision'); caja.innerHTML = '';
-      function linea(tono, txt) { var p = document.createElement('p'); p.className = 'tc-rev tc-rev-' + tono; p.textContent = txt; caja.appendChild(p); }
-      if (r.error) { linea('mal', T('La base no ha podido revisar el texto: ') + msg(r.error)); return; }
+      var caja = $('tc-revision'); caja.textContent = '';
+      function linea(tono, txt) { caja.appendChild(el('p', 'tc-rev tc-rev-' + tono, txt)); }
+      if (r.error) { pintaRechazo(caja, msg(r.error)); return; }
       var d = r.data || {};
       if (!d.ok) {
         linea('mal', T('La base NO guardaría este texto:'));
-        (d.errores || []).forEach(function (e) { linea('mal', '· ' + e); });
+        (d.errores || []).forEach(function (e) { pintaRechazo(caja, e); });
         return;
       }
       linea('ok', T('La base lo guardaría como borrador.'));
@@ -360,15 +724,18 @@
 
   /* ── guardar ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
   function guarda() {
+    if (!commitEdicion()) { nota('tc-ed-estado', T('Corrige el aviso en rojo del texto que estás editando antes de guardar.'), 'mal'); return; }
     var motivo = $('tc-motivo').value.trim();
     if (!hayCambios()) return;
     if (hayAvisosLocales()) { nota('tc-ed-estado', T('Corrige los avisos en rojo antes de guardar.'), 'mal'); return; }
     if (motivo.length < 3) { nota('tc-ed-estado', T('Escribe el motivo del cambio (mínimo tres letras): queda en el historial.'), 'mal'); $('tc-motivo').focus(); return; }
-    var b = $('tc-guardar'); b.disabled = true; nota('tc-ed-estado', T('Guardando…'));
+    var b = $('tc-guardar'); b.disabled = true; E.rechazo = false; nota('tc-ed-estado', T('Guardando…'));
     rpc('plantilla_contrato_guarda_borrador', { p_empresa: E.empresa, p_slug: E.slug, p_cuerpo: cuerpoNuevo(), p_motivo: motivo }).then(function (r) {
       if (r.error) {
-        nota('tc-ed-estado', T('La base no lo ha guardado: ') + msg(r.error), 'mal');   // textContent: el mensaje repite un trozo del texto
-        b.disabled = false; return;
+        var caja = $('tc-ed-estado'); caja.hidden = false; caja.className = 'tc-nota tc-nota-mal'; caja.textContent = '';
+        caja.appendChild(el('p', null, T('La base no lo ha guardado. Tus cambios siguen aquí, no se ha perdido nada.')));
+        pintaRechazo(caja, msg(r.error), 'tc-rev');
+        E.rechazo = true; b.disabled = false; return;
       }
       toast(T('Borrador guardado.'));
       E.cambios = {}; E.previo = null; var slug = E.slug;

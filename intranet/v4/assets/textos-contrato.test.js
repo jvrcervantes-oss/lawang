@@ -193,5 +193,145 @@ igual(TC.avisosTrozo('a‮b', 'ab').length, 1, 'un carácter de dirección (Troj
   });
 }
 
+/* ── EL EDITOR COMO DOCUMENTO (encargo editor de textos, E1-E3, 8-oct-2026) ──
+   Lo que se afirma, y por qué:
+   · LOS IDIOMAS NO SE TOCAN ENTRE SÍ. Con las 20 plantillas: reescribir todo el texto español deja el inglés y el indonesio byte a byte igual.
+   · NINGÚN MARCADOR SE PIERDE EN SILENCIO: lo que se escribe pasa por textoEscrito y faltanMarcadores; el servidor lo vuelve a comprobar.
+   · LAS ETIQUETAS EN LLANO existen para todo marcador de las 20 plantillas (tokens.json + lista de derivados): nunca se enseña «prom_razon».
+   · LOS MENSAJES DE LA BASE que la pantalla traduce siguen existiendo en las migraciones: si alguien reescribe uno, esto falla antes de que la pantalla enseñe «otro».
+   · TODA FRASE de la pantalla está en el diccionario inglés (una frase sin traducir se ve en el idioma equivocado). */
+{
+  const tokens = JSON.parse(leer('contracts', 'tokens.json'));
+  const campos = TC.etiquetasDeTokens(tokens, 'es');
+  const marcadoresTodos = new Set();
+  ficheros.forEach((f) => {
+    const doc = sinNotas(fs.readFileSync(path.join(dir, f), 'utf8'));
+    (doc.match(/\{\{[a-z0-9_]+\}\}/g) || []).forEach((m) => marcadoresTodos.add(m.slice(2, -2)));
+    const t = TC.trocea(doc);
+    const s = TC.secciones(doc, t.trozos);
+    const h2 = (doc.match(/<h2(?:\s[^>]*)?>/gi) || []).length;
+    igual(s.n, h2 + 1, f + ': una sección por <h2> más el encabezado');
+    let ant = 0, ok = true;
+    t.trozos.forEach((x) => { if (x.sec < ant) ok = false; ant = x.sec; if (x.sec < 0 || x.sec > h2) ok = false; });
+    igual(ok, true, f + ': la sección de cada trozo crece con el documento y cae dentro del rango');
+    // los idiomas no se tocan entre sí: se reescribe todo el español y el resto queda igual
+    const es = t.trozos.filter((x) => x.editable && x.lang === 'es');
+    if (es.length) {
+      const cambios = {}; es.forEach((x) => { cambios[x.i] = x.texto + ' (revisado)'; });
+      const nuevo = TC.construye(doc, t.trozos, cambios), t2 = TC.trocea(nuevo);
+      igual(t2.trozos.length, t.trozos.length, f + ': reescribir el español no cambia el número de trozos');
+      let tocaOtro = 0, cambiaEs = 0;
+      t2.trozos.forEach((x, i) => { const o = t.trozos[i]; if (o.lang !== 'es' && x.raw !== o.raw) tocaOtro++; if (o.lang === 'es' && cambios[o.i] !== undefined && x.texto === cambios[o.i]) cambiaEs++; });
+      igual(tocaOtro, 0, f + ': reescribir el español deja el inglés y el indonesio byte a byte igual');
+      igual(cambiaEs, es.length, f + ': y el español queda como se escribió');
+      // «falta revisar»: se cambió es, así que en e id falta revisar y en es no
+      const cmp = TC.cambiosRespecto(t.trozos, t2.trozos.map((x, i) => Object.assign({}, x, { sec: t.trozos[i].sec })), {});
+      const secs = Object.keys(cmp.sec).map((k) => k.split('|')[1]);
+      igual(secs.every((l) => l === 'es'), true, f + ': el cambio solo consta en español');
+      const hayEn = t.trozos.some((x) => x.lang === 'en'), sec0 = Object.keys(cmp.sec)[0].split('|')[0];
+      if (hayEn) igual(TC.porRevisar(cmp.sec, Number(sec0), 'en', ['es', 'en', 'id']), true, f + ': el inglés queda «falta revisar» en la cláusula que cambió el español');
+      igual(TC.porRevisar(cmp.sec, Number(sec0), 'es', ['es', 'en', 'id']), false, f + ': y el español, que es donde se escribió, no');
+    }
+  });
+  marcadoresTodos.forEach((k) => {
+    const l = TC.etiquetaMarcador(k, campos);
+    if (!l || /_/.test(l)) falla('el marcador {{' + k + '}} no tiene etiqueta en llano (sale «' + l + '»): añádelo a TC.ETIQUETAS_EXTRA');
+    if (!campos[k] && !TC.ETIQUETAS_EXTRA[k]) falla('el marcador {{' + k + '}} solo tiene la etiqueta inventada de la clave: ni tokens.json ni ETIQUETAS_EXTRA lo conocen');
+    if (campos[k] && TC.ETIQUETAS_EXTRA[k]) falla('el marcador {{' + k + '}} está en tokens.json y también en ETIQUETAS_EXTRA: una etiqueta, un sitio');
+  });
+  igual(TC.etiquetaMarcador('inventado_x_y', null), 'Inventado x y', 'un marcador desconocido se vuelve legible, no se enseña la clave');
+  igual(TC.etiquetasDeTokens({ sections: [{ fields: [['a', { es: 'Nombre (opcional — sustituye al comprador)', en: 'Name' }, 'text'], ['b', { es: 'N.º de contrato:' }, 'text']] }] }, 'es').a, 'Nombre', 'la etiqueta corta quita lo que va entre paréntesis y tras la raya');
+  igual(TC.etiquetasDeTokens({ sections: [{ fields: [['a', { es: 'Nombre', en: 'Name' }]] }] }, 'en').a, 'Name', 'la etiqueta sale en el idioma pedido');
+
+  // segmentos y texto escrito
+  igual(JSON.stringify(TC.segmentos('a {{x_1}} b {{y}}')), JSON.stringify([{ m: false, v: 'a ' }, { m: true, k: 'x_1' }, { m: false, v: ' b ' }, { m: true, k: 'y' }]), 'segmentos: texto y marcadores en orden');
+  igual(TC.segmentos('').length, 0, 'segmentos: vacío');
+  igual(TC.segmentos('{{{x}}}').map((s) => s.m ? '[' + s.k + ']' : s.v).join(''), '{[x]}', 'segmentos: una llave de más no se come el marcador');
+  igual(TC.textoEscrito([{ t: 'txt', v: 'Hola ' }, { t: 'marca', k: 'fecha_firma' }, { t: 'txt', v: ' fin' }], 'Hola {{fecha_firma}} fin'), 'Hola {{fecha_firma}} fin', 'textoEscrito: sin cambios devuelve el original');
+  igual(TC.textoEscrito([{ t: 'txt', v: 'Hola  ' }, { t: 'marca', k: 'a' }, { t: 'txt', v: '\n fin ' }], 'Hola {{a}} fin'), 'Hola {{a}} fin', 'textoEscrito: solo cambia el blanco → no hay cambio fantasma');
+  igual(TC.textoEscrito([{ t: 'txt', v: 'Hola mundo' }], 'Hola'), 'Hola mundo', 'textoEscrito: texto nuevo');
+  igual(TC.textoEscrito([{ t: 'txt', v: 'a b' }], 'a b'), 'a b', 'textoEscrito: el espacio duro que mete el navegador se vuelve espacio normal');
+  igual(TC.textoEscrito([{ t: 'txt', v: 'a b c' }], 'a b'), 'a b c', 'textoEscrito: el espacio duro que ya tenía el original se conserva');
+  igual(TC.textoEscrito([{ t: 'otro', v: '<b>x</b>' }], 'x'), '<b>x</b>', 'textoEscrito: lo que cuela el navegador cuenta como texto (la base lo rechaza por el «<»)');
+  igual(TC.avisosTrozo('<b>x</b>', 'x').length, 1, 'y el aviso local lo ve antes de enviarlo');
+  igual(TC.faltanMarcadores('hola', 'hola {{a}} y {{b}}').join(), 'a,b', 'faltanMarcadores: los nombra');
+  igual(TC.faltanMarcadores('hola {{a}}', 'hola {{a}} y {{b}}').join(), 'b', 'faltanMarcadores: solo los que faltan');
+  igual(TC.avisosTrozo('hola', 'hola {{a}}', true).length, 0, 'avisosTrozo con sinFaltan no repite el aviso (la pantalla redacta el suyo)');
+  igual(TC.avisosTrozo('hola', 'hola {{a}}').length, 1, 'avisosTrozo sin sinFaltan sigue avisando (compatibilidad)');
+  // un {{ roto pegado: el aviso local lo ve; uno bien formado pero inexistente lo decide el servidor
+  igual(TC.avisosTrozo('hola {{roto', 'hola').length, 1, 'un {{ pegado a medias se avisa antes de enviar');
+  igual(TC.avisosTrozo('hola {{no_existe}}', 'hola').length, 0, 'un marcador bien formado pero inexistente lo decide la base (lista cerrada)');
+
+  // cambiosRespecto
+  igual(TC.cambiosRespecto([{ texto: 'a' }], [{ i: 0, texto: 'a', sec: 0, lang: 'es' }, { i: 1, texto: 'b', sec: 0, lang: 'es' }], {}), null, 'cambiosRespecto: si no coinciden los trozos no inventa nada');
+  const cr = TC.cambiosRespecto([{ texto: 'a' }, { texto: 'b' }], [{ i: 0, texto: 'a', sec: 1, lang: 'es' }, { i: 1, texto: 'b', sec: 1, lang: 'en' }], { 1: 'b2' });
+  igual(JSON.stringify(cr), JSON.stringify({ trozo: { 1: true }, sec: { '1|en': true } }), 'cambiosRespecto: lo pendiente cuenta y lo no tocado no');
+  igual(TC.cambiosRespecto([{ texto: 'a  b' }], [{ i: 0, texto: 'a b', sec: 0, lang: null }], {}).sec['0|general'], undefined, 'cambiosRespecto: solo el espacio en blanco no es un cambio');
+
+  // los bloques fijos dicen de qué clase son (para el motivo)
+  {
+    const doc = '<h2><span data-lang="es">Ley aplicable</span></h2><p data-lang="es">Texto de ley</p><!--bloque-fijo:escrow--><p data-lang="es">Escrow fijo</p><!--/bloque-fijo:escrow--><p data-lang="es">Texto de PT SIAC</p><p data-lang="es">Libre</p>';
+    const lista = ['E|<p data-lang="es">Texto de PT SIAC</p>', 'M|escrow|<p data-lang="es">Escrow fijo</p>'];
+    const s = TC.situaBloquesFijos(doc, lista), t = TC.trocea(doc);
+    TC.marcaBloqueados(t.trozos, s.spans, false);
+    const por = {}; t.trozos.forEach((x) => { por[x.texto] = x.fijo; });
+    igual(por['Escrow fijo'], 'escrow', 'una región de Legal dice su nombre');
+    igual(por['Texto de PT SIAC'], 'E', 'un elemento fijo dice que es un elemento');
+    igual(por['Libre'], null, 'un párrafo libre no tiene candado');
+    const s2 = TC.situaBloquesFijos(doc, ['S|' + TC.ws(doc)]); const t2 = TC.trocea(doc); TC.marcaBloqueados(t2.trozos, s2.spans, false);
+    igual(t2.trozos.every((x) => x.fijo === 'S'), true, 'una sección entera dice que es una sección');
+  }
+
+  // los mensajes de la base que la pantalla traduce siguen existiendo en las migraciones
+  {
+    const dirM = path.join(RAIZ, 'supabase', 'migrations');
+    const sql = fs.readdirSync(dirM).map((f) => fs.readFileSync(path.join(dirM, f), 'utf8')).join('\n');
+    const literal = {
+      sesion: 'Sin sesion: vuelve a entrar', solo_global: 'Este texto no lo cambia una empresa sola', bloque_fijo: 'Tu texto cambia un bloque que una empresa no edita sola',
+      marcador_desconocido: 'marcador desconocido {{', marcador_forma: 'marcador con forma no permitida', llave: 'llave suelta o marcador mal cerrado', esqueleto: 'el esqueleto cambia:',
+      motivo: 'Falta el motivo del cambio', permiso: 'El texto de los contratos de una empresa lo escribe su administracion', activar_super: 'Activar un texto de contrato lo hace el super administrador',
+      caracter: 'caracter bidireccional o invisible', grande: 'El texto supera el tope', no_activable: 'Version no activable'
+    };
+    igual(JSON.stringify(Object.keys(literal).sort()), JSON.stringify(TC.PREFIJOS_BASE.map((x) => x[0]).sort()), 'cada clase de error que la pantalla reconoce tiene su mensaje comprobado contra las migraciones');
+    Object.keys(literal).forEach((k) => {
+      if (sql.indexOf(literal[k]) === -1) falla('el mensaje de la base «' + literal[k] + '» ya no está en las migraciones: la pantalla dejaría de reconocer el error «' + k + '»');
+      igual(TC.clasificaError(literal[k]).tipo, k, 'clasificaError reconoce «' + literal[k] + '»');
+    });
+    igual(TC.clasificaError('algo raro del servidor').tipo, 'otro', 'un mensaje desconocido cae en «otro» y se enseña tal cual');
+    igual(TC.clasificaError('marcador desconocido {{zzz}}: no esta en tokens.json').tipo, 'marcador_desconocido', 'el marcador desconocido se reconoce con su cola');
+    igual(TC.marcadorDeError('marcador desconocido {{zzz}}: no esta en tokens.json'), 'zzz', 'y se saca el marcador del mensaje');
+    igual(TC.marcadorDeError('sin marcador'), null, 'sin marcador, null');
+  }
+
+  // toda frase de la pantalla está en el diccionario inglés
+  {
+    const dic = leer('contracts', 'assets', 'i18n.js');
+    const i0 = dic.indexOf('var EN = {'), i1 = dic.indexOf('\n  };', i0), cuerpo = dic.slice(i0, i1);
+    const claves = new Set([...cuerpo.matchAll(/^\s*'((?:[^'\\]|\\.)*)'\s*:/gm)].map((m) => m[1].replace(/\\'/g, "'").replace(/\\\\/g, '\\')));
+    const js = leer('intranet', 'v4', 'assets', 'textos-contrato.js'), html = leer('intranet', 'v4', 'textos-contrato', 'index.html');
+    const sinTraducir = new Set();
+    const mira = (s) => { s = s.replace(/\\'/g, "'"); if (/[A-Za-zÁ-ú]{3}/.test(s) && !claves.has(s) && !claves.has(s.trim())) sinTraducir.add(s); };
+    [...js.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)].forEach((m) => mira(m[1]));
+    [...js.matchAll(/^\s{4}[a-z_]+: '((?:[^'\\]|\\.)*)'[,]?\s*$/gm)].forEach((m) => { if (/^(Tu sesión|Este texto no|Has cambiado una|Un campo|Hay una|El texto cambia|Falta el motivo|Tu usuario|Activar un|Hay un carácter|El texto es|La base dice)/.test(m[1])) mira(m[1]); });
+    [...html.matchAll(/<([a-z0-9]+)[^>]*\bdata-lwt\b[^>]*>([^<]+)</g)].forEach((m) => mira(m[2].trim()));
+    if (sinTraducir.size) falla('frases de la pantalla sin traducción al inglés en contracts/assets/i18n.js: ' + [...sinTraducir].slice(0, 6).map((x) => '«' + x.slice(0, 50) + '»').join(', ') + (sinTraducir.size > 6 ? ' … (' + sinTraducir.size + ')' : ''));
+  }
+
+  // la pantalla: ids nuevos, el papel se pinta con DOM propio y las partes sensibles ya no son de solo lectura
+  {
+    const js = leer('intranet', 'v4', 'assets', 'textos-contrato.js'), html = leer('intranet', 'v4', 'textos-contrato', 'index.html');
+    ['tc-f-cambios', 'tc-f-sin-sens', 'tc-hits', 'tc-hit-ant', 'tc-hit-sig', 'tc-aterriza', 'tc-indice', 'tc-indice-sum', 'tc-indice-det', 'tc-trozos', 'tc-buscar', 'tc-ed-estado'].forEach((id) => {
+      if (html.indexOf('id="' + id + '"') === -1) falla('falta #' + id + ' en la página');
+    });
+    if (/<textarea/.test(js)) falla('el editor vuelve a pintar <textarea>: el documento se edita en el papel');
+    if (/innerHTML\s*=\s*[^;]*(t\.texto|valorDe|E\.cambios|E\.doc|cuerpo_html)/.test(js)) falla('el texto del contrato llega a innerHTML: se pinta siempre con createElement / textContent');
+    if (/readonly/.test(js)) falla('hay un campo readonly en la pantalla: las partes sensibles se pueden editar con aviso (decisión del owner, 8-oct-2026)');
+    if (/if \(!t \|\| t\.bloqueado\) return;/.test(js)) falla('un trozo con candado vuelve a ser intocable: contradice la decisión del owner (editable con aviso)');
+    if (/data-tc-pag/.test(js + html)) falla('queda el paginador de 25: el documento es continuo con índice');
+    // todo botón que crea el script lleva data-real (si no, maqueta.js se lo come)
+    if (!/b\.setAttribute\('data-real', '1'\)/.test(js)) falla('los botones creados por el script deben llevar data-real');
+  }
+}
+
 if (errores.length) { console.error('textos-contrato.test.js FALLA:\n - ' + errores.join('\n - ')); process.exit(1); }
 console.log('textos-contrato.test.js OK (' + ficheros.length + ' plantillas, ' + nTrozos + ' trozos)');
