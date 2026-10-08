@@ -25,7 +25,8 @@ function lwMapaUbicacion(texto, zoom) {
     var q = m[1] + ',' + m[2];
     return { abrir: 'https://www.google.com/maps?q=' + q, embed: 'https://maps.google.com/maps?q=' + q + z };
   }
-  if (!/^https:\/\/([a-z0-9-]+\.)*(google\.[a-z.]+|goo\.gl)\//i.test(t)) return null;
+  // El host tiene que TERMINAR en google.<país> o goo.gl: «google.evil.com» no es Google (revisor, 8-oct-2026).
+  if (!/^https:\/\/([a-z0-9-]+\.)*(google\.(com|[a-z]{2}|co\.[a-z]{2}|com\.[a-z]{2})|goo\.gl)([\/?#]|$)/i.test(t)) return null;
   var c = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
           t.match(/[?&](?:q|ll|query|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i);
   if (c) return { abrir: t, embed: 'https://maps.google.com/maps?q=' + c[1] + ',' + c[2] + z };

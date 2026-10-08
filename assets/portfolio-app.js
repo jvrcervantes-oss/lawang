@@ -1262,10 +1262,14 @@
   // → maps?q=lat,lng&output=embed; con nombre de lugar (/maps/place/NAME) → q=NAME. Un enlace corto
   // (maps.app.goo.gl) no trae datos que extraer desde el navegador → null (cae al botón).
   function googleMapsEmbedSrc(url){
-    // Solo Google, comprobado en el HOST y antes de nada (8-oct-2026, revisor): el valor lo escribe el admin y
-    // acaba en el src de un iframe; un «output=embed» de cualquier otro dominio pasaba tal cual.
-    if(!/^https:\/\/([a-z0-9-]+\.)*(google\.[a-z.]+|goo\.gl)\//i.test(url)) return null;
-    if(/\/maps\/embed/i.test(url) || /[?&]output=embed/i.test(url)) return url;
+    // Solo Google (8-oct-2026, revisor): el valor lo escribe el admin y acaba en el src de un iframe. El host tiene
+    // que TERMINAR en google.<país> o goo.gl (google.evil.com no vale), y lo que se devuelve tal cual —un embed ya
+    // hecho— solo si el host es exactamente www.google.com o maps.google.com, los dos que admite el frame-src.
+    if(!/^https:\/\/([a-z0-9-]+\.)*(google\.(com|[a-z]{2}|co\.[a-z]{2}|com\.[a-z]{2})|goo\.gl)([\/?#]|$)/i.test(url)) return null;
+    if(/\/maps\/embed/i.test(url) || /[?&]output=embed/i.test(url)){
+      var host = ''; try { host = new URL(url).hostname.toLowerCase(); } catch(e){}
+      return (host === 'www.google.com' || host === 'maps.google.com') ? url : null;
+    }
     if(!/(google\.[a-z.]+\/maps|maps\.google\.|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(url)) return null;
     var m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
          || url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)
