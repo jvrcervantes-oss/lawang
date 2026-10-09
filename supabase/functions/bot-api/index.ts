@@ -170,6 +170,13 @@ const SQL = {
   cita_recordatorio_res: 'select public.bot_cita_recordatorio_res($1::uuid, $2::text) as r',
   pausar_humano: 'select public.bot_pausar_humano($1::text, $2::text, $3::text) as r',
   envio_humano: 'select public.bot_envio_humano($1::text, $2::text, $3::text, $4::text::jsonb, $5::text) as r',
+  // ── S12: consentimiento de seguimiento y reenganche ──
+  consentimiento_preguntar: 'select public.bot_consentimiento_preguntar($1::text, $2::text, $3::text, $4::text, $5::boolean) as r',
+  consentimiento_enviada: 'select public.bot_consentimiento_enviada($1::text, $2::text, $3::boolean) as r',
+  consentimiento_responder: 'select public.bot_consentimiento_responder($1::text, $2::text, $3::text, $4::text) as r',
+  seguimiento_candidatos: 'select tel, plantilla, idioma, nombre from public.bot_seguimiento_candidatos()',
+  seguimiento_reservar: 'select public.bot_seguimiento_reservar($1::text, $2::text) as r',
+  seguimiento_registrar: 'select public.bot_seguimiento_registrar($1::text, $2::text, $3::text, $4::text, $5::text) as r',
   // ── S5-puente (temporal) ──
   importar_chat: 'select public.bot_importar_chat($1::text::jsonb) as r',
   importar_config: 'select public.bot_importar_config($1::text::jsonb) as r',
@@ -329,6 +336,8 @@ const iso = (v: unknown): string => (v instanceof Date ? v.toISOString() : T(v))
 const isoN = (v: unknown): string | null => (v === null || v === undefined ? null : iso(v));
 const O = (v: unknown): Record<string, unknown> => (esObj(v) ? v : mal());
 const AVISOS = ['interested', 'booking'];
+const ESTADOS_CONSENT = ['sin_preguntar', 'preguntado', 'si', 'no', 'revocado', 'usado', 'caducado'];
+const VERSION_CONSENT = 'CONSENT-SEGUIMIENTO-2026-10-09-v1';
 
 type Def = {
   claves: readonly string[];
@@ -447,6 +456,12 @@ export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
           }),
           config: { extra: TN(c.extra), bienvenida: TN(c.bienvenida), pausa_horas: N(c.pausa_horas), resumen_cada_n: N(c.resumen_cada_n),
             fallos_alarma: N(c.fallos_alarma), version: N(c.version), actualizado_en: isoN(c.actualizado_en) },
+          // S12: opcional a proposito (una base anterior a la migracion no lo devuelve); el bot trata su ausencia como «no preguntar».
+          ...(r.consentimiento === undefined || r.consentimiento === null ? {} : (() => {
+            const k = O(r.consentimiento), e = T(k.estado);
+            if (!ESTADOS_CONSENT.includes(e)) mal();
+            return { consentimiento: { estado: e, repreguntado: B(k.repreguntado), puede_preguntar: B(k.puede_preguntar) } };
+          })()),
         };
       },
     },
@@ -544,6 +559,46 @@ export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
       valida: (o) => (o.wamid !== undefined && o.wamid !== null && (typeof o.wamid !== 'string' || !RE_MSG.test(o.wamid)) ? { error: 'wamid' } : { args: [(o.wamid as string | undefined) ?? null] }),
       forma: (r) => (Object.keys(r).length === 0 ? { encontrada: false } : { encontrada: true, tel: T(r.tel), nombre: TN(r.nombre), pregunta: T(r.pregunta) }),
     },
+    // S12 — el estado del consentimiento lo decide la base; aqui NO existe ninguna clave `estado` que el bot (o el modelo) pueda mandar.
+    consentimiento_preguntar: {
+      claves: ['accion', 'tel', 'version', 'idioma', 'texto', 'repregunta'], tel: true, sql: 'consentimiento_preguntar', tipo: 'json',
+      errores: ['telefono_invalido', 'version_desconocida', 'no_procede', 'sin_chat'],
+      valida: (o) => {
+        if (o.version !== VERSION_CONSENT) return { error: 'version' };
+        if (o.idioma !== 'en' && o.idioma !== 'es') return { error: 'idioma' };
+        const texto = recorta(o.texto, 1500);
+        if (texto === undefined || !texto.trim()) return { error: 'texto' };
+        if (o.repregunta !== undefined && typeof o.repregunta !== 'boolean') return { error: 'repregunta' };
+        return { args: [o.tel as string, o.version, o.idioma, texto, String(o.repregunta === true)] };
+      },
+      forma: (r) => ({ ok: r.ok === true ? true : mal() }),
+    },
+    consentimiento_enviada: {
+      claves: ['accion', 'tel', 'wamid', 'repregunta'], tel: true, sql: 'consentimiento_enviada', tipo: 'json',
+      errores: ['telefono_invalido', 'wamid_invalido', 'no_procede', 'sin_chat'],
+      valida: (o) => {
+        if (typeof o.wamid !== 'string' || !RE_MSG.test(o.wamid)) return { error: 'wamid' };
+        if (o.repregunta !== undefined && typeof o.repregunta !== 'boolean') return { error: 'repregunta' };
+        return { args: [o.tel as string, o.wamid, String(o.repregunta === true)] };
+      },
+      forma: (r) => ({ ok: r.ok === true ? true : mal() }),
+    },
+    consentimiento_responder: {
+      claves: ['accion', 'tel', 'wamid', 'texto', 'cita'], tel: true, sql: 'consentimiento_responder', tipo: 'json',
+      errores: ['telefono_invalido', 'wamid_invalido', 'sin_chat'],
+      valida: (o) => {
+        if (typeof o.wamid !== 'string' || !RE_MSG.test(o.wamid)) return { error: 'wamid' };
+        const texto = o.texto === undefined || o.texto === null ? '' : recorta(o.texto, 4096);
+        if (texto === undefined) return { error: 'texto' };
+        if (o.cita !== undefined && o.cita !== null && (typeof o.cita !== 'string' || !RE_MSG.test(o.cita))) return { error: 'cita' };
+        return { args: [o.tel as string, o.wamid, texto, (o.cita as string | undefined) ?? null] };
+      },
+      forma: (r) => {
+        const res = T(r.resultado), est = T(r.estado);
+        if (!['si', 'no', 'repreguntar', 'no_cuenta', 'sin_efecto'].includes(res) || !ESTADOS_CONSENT.includes(est)) mal();
+        return { resultado: res, estado: est };
+      },
+    },
     lead_resumen: {
       claves: ['accion', 'tel', 'texto', 'hasta_id'], tel: true, sql: 'lead_resumen', tipo: 'texto',
       resultados: ['ok', 'ya_hecho', 'tope', 'vacio', 'sin_lead', 'hasta_invalido', 'telefono_invalido'],
@@ -566,6 +621,36 @@ export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
           return { accion_id: id, tel, tipo, cuando_ts: iso(f.cuando_ts), ultimo_entrante_en: isoN(f.ultimo_entrante_en), nombre: f.nombre === null || f.nombre === undefined ? null : T(f.nombre).replace(/[ -]/g, ' ').trim().slice(0, 80) || null };
         }),
       }),
+    },
+    // EXCEPCION 3 (S12): sin parametros, <=20 filas, solo telefonos con consentimiento `si` vigente y un envio de reenganche debido.
+    seguimiento_candidatos: {
+      claves: ['accion'], tel: false, sql: 'seguimiento_candidatos', tipo: 'filas', valida: () => ({ args: [] }),
+      formaFilas: (filas) => ({
+        candidatos: filas.slice(0, 20).map((f) => {
+          const tel = T(f.tel), pl = T(f.plantilla), idioma = T(f.idioma);
+          if (!RE_TEL.test(tel) || (pl !== '48h' && pl !== '7d') || (idioma !== 'en' && idioma !== 'es')) mal();
+          return { tel, plantilla: pl, idioma, nombre: f.nombre === null || f.nombre === undefined ? null : T(f.nombre).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 80) || null };
+        }),
+      }),
+    },
+    seguimiento_reservar: {
+      claves: ['accion', 'tel', 'plantilla'], tel: true, sql: 'seguimiento_reservar', tipo: 'json',
+      errores: ['telefono_invalido', 'plantilla_invalida', 'no_procede', 'sin_chat'],
+      valida: (o) => (o.plantilla !== '48h' && o.plantilla !== '7d' ? { error: 'plantilla' } : { args: [o.tel as string, o.plantilla] }),
+      forma: (r) => ({ idioma: r.idioma === 'es' ? 'es' : 'en', nombre: r.nombre === null || r.nombre === undefined ? null : T(r.nombre).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 80) || null }),
+    },
+    seguimiento_registrar: {
+      claves: ['accion', 'tel', 'plantilla', 'wamid', 'resultado', 'texto'], tel: true, sql: 'seguimiento_registrar', tipo: 'texto',
+      resultados: ['ok', 'no_aplica', 'telefono_invalido', 'plantilla_invalida', 'resultado_invalido'],
+      valida: (o) => {
+        if (o.plantilla !== '48h' && o.plantilla !== '7d') return { error: 'plantilla' };
+        if (o.resultado !== 'enviado' && o.resultado !== 'fallo') return { error: 'resultado' };
+        if (o.wamid !== undefined && o.wamid !== null && (typeof o.wamid !== 'string' || !RE_MSG.test(o.wamid))) return { error: 'wamid' };
+        if (o.resultado === 'enviado' && (typeof o.wamid !== 'string' || !RE_MSG.test(o.wamid))) return { error: 'wamid' };
+        const texto = o.texto === undefined || o.texto === null ? null : recorta(o.texto, 200);
+        if (texto === undefined) return { error: 'texto' };
+        return { args: [o.tel as string, o.plantilla, (o.wamid as string | undefined) ?? null, o.resultado, texto] };
+      },
     },
     cita_recordatorio_res: {
       claves: ['accion', 'accion_id', 'resultado'], tel: false, sql: 'cita_recordatorio_res', tipo: 'texto', resultados: ['ok', 'no_aplica', 'resultado_invalido'],

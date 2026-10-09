@@ -290,8 +290,9 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
   // ── S2.2 lista cerrada y esquema cerrado ──
   reinicia();
   igual(M.ACCIONES_RUTA, {
-    estado: ['mensaje_recibir', 'turno_estado', 'turno_cerrar', 'eco_operadora', 'pausar', 'baja', 'entrega_fallida', 'escalar', 'escalacion_tomar', 'lead_resumen'],
-    recordatorio: ['citas_recordar', 'cita_recordatorio_res'],
+    estado: ['mensaje_recibir', 'turno_estado', 'turno_cerrar', 'eco_operadora', 'pausar', 'baja', 'entrega_fallida', 'escalar', 'escalacion_tomar',
+      'consentimiento_preguntar', 'consentimiento_enviada', 'consentimiento_responder', 'lead_resumen'],
+    recordatorio: ['citas_recordar', 'seguimiento_candidatos', 'seguimiento_reservar', 'seguimiento_registrar', 'cita_recordatorio_res'],
     humano: ['pausar', 'enviar'],
     importar: ['chat', 'config', 'cuadre'],
   }, 'la lista cerrada de acciones es exactamente la del plan');
@@ -575,7 +576,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     const fuenteS2 = leer('supabase', 'functions', 'bot-api', 'index.ts');
     const bloque = fuenteS2.slice(fuenteS2.indexOf('const SQL = {'), fuenteS2.indexOf('} as const;'));
     const sentencias = [...bloque.matchAll(/^\s+(\w+): '(select [^']*)',?/gm)].map((m) => ({ clave: m[1], sql: m[2] }));
-    const s2 = sentencias.filter((s) => !['catalogo', 'lead_upsert', 'lead_nota', 'lead_cita', 'importar_chat', 'importar_config', 'importar_cuadre'].includes(s.clave));
+    const s2 = sentencias.filter((s) => !['catalogo', 'lead_upsert', 'lead_nota', 'lead_cita', 'importar_chat', 'importar_config', 'importar_cuadre', 'consentimiento_preguntar', 'consentimiento_enviada', 'consentimiento_responder', 'seguimiento_candidatos', 'seguimiento_reservar', 'seguimiento_registrar'].includes(s.clave));
     igual(s2.map((s) => s.clave), ['mensaje_recibir', 'turno_estado', 'turno_cerrar', 'eco_operadora', 'pausar', 'baja', 'entrega_fallida', 'escalar', 'escalacion_tomar', 'lead_resumen', 'citas_recordar', 'cita_recordatorio_res', 'pausar_humano', 'envio_humano'], 'las 14 sentencias de S2');
     const migF = (f) => leer('supabase', 'migrations', f);
     const migs = [migF('20261010110000_bot_sin_redis_s1_esquema.sql'), migF('20261010110100_bot_sin_redis_s1_ajustes.sql')];
@@ -627,6 +628,127 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     // sin secretos, ni service_role ni PostgREST ni consola en el código nuevo (la regla de más abajo ya lo vigila en todo el fichero)
     ok(!/SERVICE_ROLE/.test(fuenteS2.replace(/\/\/.*$/gm, '')));
     ok(fuenteS2.includes("'BOT_API_SECRET_ESTADO'") && fuenteS2.includes("'BOT_API_SECRET_RECORDATORIO'") && fuenteS2.includes("'BOT_API_SECRET_HUMANO'"));
+  }
+
+  // ═══ S12 — consentimiento de seguimiento y reenganche (LAW-507) ═══════════════════════════════════════════════
+  {
+    todos(); reinicia();
+    const VER = 'CONSENT-SEGUIMIENTO-2026-10-09-v1';
+    const TXT = 'Would you like us to follow up here on WhatsApp? Please reply YES or NO.';
+    // 1. el modelo/bot NO puede escribir el estado: ninguna accion de S12 acepta una clave `estado` (ni `consentimiento`, ni `si`)
+    const buenosS12 = [
+      ['estado', { accion: 'consentimiento_preguntar', tel: TEL, version: VER, idioma: 'en', texto: TXT }],
+      ['estado', { accion: 'consentimiento_enviada', tel: TEL, wamid: W }],
+      ['estado', { accion: 'consentimiento_responder', tel: TEL, wamid: W, texto: 'si' }],
+      ['recordatorio', { accion: 'seguimiento_candidatos' }],
+      ['recordatorio', { accion: 'seguimiento_reservar', tel: TEL, plantilla: '48h' }],
+      ['recordatorio', { accion: 'seguimiento_registrar', tel: TEL, plantilla: '48h', wamid: W, resultado: 'enviado', texto: 'x' }],
+    ];
+    for (const [ruta, cuerpo] of buenosS12) {
+      for (const extra of [{ estado: 'si' }, { consentimiento: 'si' }, { consent_estado: 'si' }, { resultado_forzado: 'si' }]) {
+        const r = await rq(ruta, { ...cuerpo, ...extra });
+        igual([cuerpo.accion, r.status, r.cuerpo.error], [cuerpo.accion, 400, 'campo_no_permitido'], 'una clave de estado/etiqueta del modelo es 400');
+      }
+    }
+    igual(llamadas.length, 0, 'nada de eso llego a la base');
+    // las acciones viven SOLO en su ruta
+    igual((await rq('recordatorio', buenosS12[0][1])).status, 400); igual((await rq('estado', buenosS12[3][1])).status, 400);
+    igual((await rq('humano', buenosS12[0][1], { jwt: 'jwt-bueno' })).status, 400, 'ni /humano ni /importar las tienen');
+    // 2. validacion a fondo
+    for (const c of [{ version: 'OTRA' }, { version: undefined }, { idioma: 'id' }, { idioma: 'fr' }, { texto: '' }, { texto: '   ' }, { texto: 5 }, { repregunta: 'si' }]) {
+      igual((await rq('estado', { ...buenosS12[0][1], ...c })).status, 400, 'preguntar ' + JSON.stringify(c));
+    }
+    for (const c of [{ wamid: undefined }, { wamid: 'con espacios' }, { repregunta: 1 }]) igual((await rq('estado', { ...buenosS12[1][1], ...c })).status, 400, 'enviada ' + JSON.stringify(c));
+    for (const c of [{ wamid: undefined }, { cita: 'con espacios' }, { cita: 5 }, { texto: 5 }]) igual((await rq('estado', { ...buenosS12[2][1], ...c })).status, 400, 'responder ' + JSON.stringify(c));
+    for (const c of [{ plantilla: '24h' }, { plantilla: undefined }, { plantilla: '7D' }]) igual((await rq('recordatorio', { ...buenosS12[4][1], ...c })).status, 400, 'reservar ' + JSON.stringify(c));
+    for (const c of [{ plantilla: '3d' }, { resultado: 'ok' }, { resultado: undefined }, { wamid: undefined }, { wamid: 'con espacios' }, { texto: 5 }]) igual((await rq('recordatorio', { ...buenosS12[5][1], ...c })).status, 400, 'registrar ' + JSON.stringify(c));
+    igual((await rq('recordatorio', { accion: 'seguimiento_candidatos', tel: TEL })).status, 400, 'candidatos: sin entrada de telefono');
+    igual(llamadas.length, 0, 'ningun cuerpo invalido llego a la base');
+    // 3. lo que llega a la base y lo que sale
+    await caso('estado', { accion: 'consentimiento_preguntar', tel: TEL, version: VER, idioma: 'es', texto: 'T'.repeat(2000), repregunta: true }, FILA({ ok: true, x: 1 }),
+      [TEL, VER, 'es', 'T'.repeat(1500), 'true'], 'consentimiento_preguntar', { ok: true });
+    await caso('estado', buenosS12[0][1], FILA({ ok: true }), [TEL, VER, 'en', TXT, 'false'], 'consentimiento_preguntar', { ok: true });
+    await caso('estado', { ...buenosS12[1][1], repregunta: true }, FILA({ ok: true }), [TEL, W, 'true'], 'consentimiento_enviada', { ok: true });
+    await caso('estado', buenosS12[1][1], FILA({ ok: true }), [TEL, W, 'false'], 'consentimiento_enviada', { ok: true });
+    for (const res of ['si', 'no', 'repreguntar', 'no_cuenta', 'sin_efecto']) {
+      await caso('estado', { accion: 'consentimiento_responder', tel: TEL, wamid: W, texto: 'Sí', cita: 'wamid.Q' }, FILA({ resultado: res, estado: res === 'si' ? 'si' : 'preguntado', interno: 'x' }),
+        [TEL, W, 'Sí', 'wamid.Q'], 'consentimiento_responder', { resultado: res, estado: res === 'si' ? 'si' : 'preguntado' });
+    }
+    await caso('estado', { accion: 'consentimiento_responder', tel: TEL, wamid: W }, FILA({ resultado: 'no_cuenta', estado: 'preguntado' }), [TEL, W, '', null], 'consentimiento_responder', { resultado: 'no_cuenta', estado: 'preguntado' });
+    await caso('recordatorio', { accion: 'seguimiento_reservar', tel: TEL, plantilla: '7d' }, FILA({ ok: true, idioma: 'es', nombre: ' Ana\n', otro: 1 }), [TEL, '7d'], 'seguimiento_reservar', { idioma: 'es', nombre: 'Ana' });
+    await caso('recordatorio', { accion: 'seguimiento_reservar', tel: TEL, plantilla: '48h' }, FILA({ ok: true, idioma: 'fr', nombre: null }), [TEL, '48h'], 'seguimiento_reservar', { idioma: 'en', nombre: null });
+    await caso('recordatorio', { accion: 'seguimiento_registrar', tel: TEL, plantilla: '48h', wamid: W, resultado: 'enviado', texto: 'x'.repeat(500) }, FILA('ok'), [TEL, '48h', W, 'enviado', 'x'.repeat(200)], 'seguimiento_registrar', { resultado: 'ok' });
+    await caso('recordatorio', { accion: 'seguimiento_registrar', tel: TEL, plantilla: '7d', resultado: 'fallo' }, FILA('no_aplica'), [TEL, '7d', null, 'fallo', null], 'seguimiento_registrar', { resultado: 'no_aplica' });
+    // candidatos: EXCEPCION 3, <=20 y forma fija
+    await caso('recordatorio', { accion: 'seguimiento_candidatos' }, [
+      { tel: '34600111222', plantilla: '48h', idioma: 'en', nombre: null, consent_texto: 'no sale' },
+      { tel: '34600111223', plantilla: '7d', idioma: 'es', nombre: ' Ana\tLópez ' }], [], 'seguimiento_candidatos',
+      { candidatos: [{ tel: '34600111222', plantilla: '48h', idioma: 'en', nombre: null }, { tel: '34600111223', plantilla: '7d', idioma: 'es', nombre: 'Ana López' }] });
+    reinicia(); dbCon(new Array(30).fill({ tel: '34600111222', plantilla: '48h', idioma: 'en', nombre: null }));
+    igual((await rq('recordatorio', { accion: 'seguimiento_candidatos' })).cuerpo.candidatos.length, 20, 'candidatos: como mucho 20');
+    // 4. errores de negocio permitidos y fuera de lista
+    for (const [ruta, cuerpo, errores] of [
+      ['estado', buenosS12[0][1], ['telefono_invalido', 'version_desconocida', 'no_procede', 'sin_chat']],
+      ['estado', buenosS12[1][1], ['telefono_invalido', 'wamid_invalido', 'no_procede', 'sin_chat']],
+      ['estado', buenosS12[2][1], ['telefono_invalido', 'wamid_invalido', 'sin_chat']],
+      ['recordatorio', buenosS12[4][1], ['telefono_invalido', 'plantilla_invalida', 'no_procede', 'sin_chat']],
+    ]) {
+      for (const e of errores) { reinicia(); dbCon(FILA({ error: e })); const r = await rq(ruta, cuerpo); igual([r.status, r.cuerpo], [200, { ok: false, accion: cuerpo.accion, error: e }], cuerpo.accion + ': ' + e); }
+      reinicia(); dbCon(FILA({ error: 'relation "bot_chat" does not exist' })); const r = await rq(ruta, cuerpo);
+      igual([r.status, r.cuerpo], [502, { error: 'db_error' }], cuerpo.accion + ': error crudo = 502 generico'); ok(!/relation|bot_chat/.test(r.crudo));
+    }
+    // formas rotas = 502
+    for (const [ruta, cuerpo, mala] of [
+      ['estado', buenosS12[2][1], FILA({ resultado: 'quiza', estado: 'preguntado' })], ['estado', buenosS12[2][1], FILA({ resultado: 'si', estado: 'inventado' })],
+      ['estado', buenosS12[0][1], FILA({ ok: false })], ['estado', buenosS12[1][1], FILA('texto')],
+      ['recordatorio', { accion: 'seguimiento_candidatos' }, [{ tel: 'abc', plantilla: '48h', idioma: 'en' }]],
+      ['recordatorio', { accion: 'seguimiento_candidatos' }, [{ tel: '34600111222', plantilla: '24h', idioma: 'en' }]],
+      ['recordatorio', { accion: 'seguimiento_candidatos' }, [{ tel: '34600111222', plantilla: '48h', idioma: 'id' }]],
+      ['recordatorio', buenosS12[5][1], FILA('rarisimo')],
+    ]) { reinicia(); dbCon(mala); const r = await rq(ruta, cuerpo); igual(r.status, 502, 'forma rota de ' + cuerpo.accion); }
+    // turno_estado: el campo nuevo es OPCIONAL (base anterior a la migracion) y, si llega, solo pasa con la forma exacta
+    const BASE_EST = { baja: false, pausado: false, esperando: false, avisar_testing: false, primer_turno: false, historial: [],
+      config: { extra: '', bienvenida: '', pausa_horas: 0, resumen_cada_n: 30, fallos_alarma: 3, version: 1, actualizado_en: '2026-10-09T10:00:00+00:00' } };
+    reinicia(); dbCon(FILA(BASE_EST));
+    ok(!('consentimiento' in (await rq('estado', { accion: 'turno_estado', tel: TEL })).cuerpo), 'sin el campo en la base, la edge no lo inventa');
+    reinicia(); dbCon(FILA({ ...BASE_EST, consentimiento: { estado: 'preguntado', repreguntado: false, puede_preguntar: false, x: 1 } }));
+    igual((await rq('estado', { accion: 'turno_estado', tel: TEL })).cuerpo.consentimiento, { estado: 'preguntado', repreguntado: false, puede_preguntar: false }, 'consentimiento con forma fija');
+    reinicia(); dbCon(FILA({ ...BASE_EST, consentimiento: { estado: 'raro', repreguntado: false, puede_preguntar: false } }));
+    igual((await rq('estado', { accion: 'turno_estado', tel: TEL })).status, 502, 'estado de consentimiento fuera de lista = 502');
+    // 5. el mismo dato en todos los sitios: sentencias = firmas = grants = errores de la migracion
+    const mig = leer('supabase', 'migrations', '20261010170000_bot_sin_redis_s12_consentimiento.sql');
+    const fuente = leer('supabase', 'functions', 'bot-api', 'index.ts');
+    const bl = fuente.slice(fuente.indexOf('const SQL = {'), fuente.indexOf('} as const;'));
+    const sents = [...bl.matchAll(/^\s+(\w+): '(select [^']*)',?/gm)].map((m) => ({ clave: m[1], sql: m[2] })).filter((x) => /^(consentimiento_|seguimiento_)/.test(x.clave));
+    igual(sents.map((x) => x.clave), ['consentimiento_preguntar', 'consentimiento_enviada', 'consentimiento_responder', 'seguimiento_candidatos', 'seguimiento_reservar', 'seguimiento_registrar']);
+    const norm = (t) => t.trim().toLowerCase();
+    for (const x of sents) {
+      const nombre = /public\.(\w+)\(/.exec(x.sql)[1];
+      const m = new RegExp('create or replace function public\\.' + nombre + '\\(([\\s\\S]*?)\\)\\s*returns').exec(mig);
+      ok(m, 'la migracion define ' + nombre);
+      const params = m[1].trim() === '' ? [] : m[1].split(',').map((p) => norm(p.trim().replace(/^p_\w+\s+/, '').split(/\s+/)[0]));
+      const casts = [...x.sql.matchAll(/\$(\d+)((?:::\w+)+)/g)].sort((a, b) => a[1] - b[1]).map((c) => norm(c[2].split('::').pop()));
+      igual(casts, params, nombre + ': los casts coinciden con la firma real');
+      const g = new RegExp('grant execute on function public\\.' + nombre + '\\(([^)]*)\\)\\s+to bot_lawang').exec(mig);
+      ok(g && g[1].split(',').map(norm).join() === params.join(), nombre + ': EXECUTE solo para bot_lawang con la misma firma');
+      ok(new RegExp('revoke all on function public\\.' + nombre + '\\([^)]*\\)\\s+from public, anon, authenticated, service_role').test(mig), nombre + ': REVOKE a PUBLIC');
+      const cuerpo = mig.slice(m.index, mig.indexOf('$f$;', m.index + 10));
+      ok(/security definer set search_path = ''/.test(cuerpo.replace(/\s+/g, ' ').replace('language plpgsql volatile', 'language plpgsql')), nombre + ': DEFINER con search_path fijo');
+    }
+    // los errores del SQL = los de la edge
+    const erroresSql = (nombre) => { const m = new RegExp('create or replace function public\\.' + nombre + '\\(').exec(mig); const c = mig.slice(m.index, mig.indexOf('$f$;', m.index + 10)); return new Set([...c.matchAll(/'error',\s*'([a-z_]+)'/g)].map((x) => x[1])); };
+    for (const [ruta, acc, sqlN] of [['estado', 'consentimiento_preguntar', 'bot_consentimiento_preguntar'], ['estado', 'consentimiento_enviada', 'bot_consentimiento_enviada'],
+      ['estado', 'consentimiento_responder', 'bot_consentimiento_responder'], ['recordatorio', 'seguimiento_reservar', 'bot_seguimiento_reservar']]) {
+      const d = M.LISTA_CERRADA[ruta][acc]; const sql = erroresSql(sqlN);
+      for (const e of sql) ok(d.errores.includes(e), `${acc}: la funcion SQL devuelve '${e}' y la edge no lo acepta`);
+      for (const e of d.errores) ok(sql.has(e), `${acc}: la edge acepta '${e}' que la funcion SQL no devuelve`);
+    }
+    // ninguna funcion SQL del consentimiento tiene un parametro `estado`
+    ok(!/function public\.bot_(consentimiento|seguimiento)_\w+\([^)]*estado/.test(mig), 'ninguna funcion recibe un estado');
+    // la prueba contra la base real ejecuta las mismas funciones
+    const prueba = leer('supabase', 'pruebas', 'bot_sin_redis_s12.sql');
+    for (const x of sents) ok(prueba.includes(/public\.(\w+)\(/.exec(x.sql)[1]), 'bot_sin_redis_s12.sql prueba ' + x.clave);
+    ok(!/SERVICE_ROLE/.test(fuente.replace(/\/\/.*$/gm, '')));
   }
 
   // ═══ S5-puente — ruta /importar (TEMPORAL, LAW-507): secreto propio, esquema cerrado a fondo, sin error crudo ═══════════════════
