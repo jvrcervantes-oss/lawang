@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="613d1d0dee6e">
+<meta name="lw-version" content="6125f9edc244">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -52,7 +52,7 @@
 <script src="/contracts/assets/mapa.js?v=dfa99f98"></script>
 <script src="/portal/resumen.js?v=20261008s"></script>
 <script src="/portal/zip.js?v=20261007"></script>
-<script src="/portal/motion.js?v=20261007"></script>
+<script src="/portal/motion.js?v=20261009"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
 <script src="/intranet/facturas/documento.js?v=933661fe"></script>
 <style>
@@ -1787,18 +1787,17 @@
   .con-pista > button[aria-pressed="true"], .con-pista > button[aria-pressed="true"]:hover{ background:transparent; }
   /* el elegido cambia de fondo de golpe: si fundiera, su verde aparecería en el destino antes de que llegue la pista,
      y al borrarse la pista se vería un destello claro */
-  .ini-filtro button[aria-pressed="true"], .lang-sel button[aria-pressed="true"]{ transition:color .2s, transform .12s var(--lw-ease); }
+  .ini-filtro button[aria-pressed="true"]{ transition:color .2s, transform .12s var(--lw-ease); }
   .lw-pista{ position:absolute; left:0; border-radius:999px; z-index:0; pointer-events:none; background:#485B37; }
-  .lang-sel .lw-pista{ background:var(--dl); }
   /* filtrar sin saltos: las copias de lo que sale se colocan sobre la lista */
   #docLista, #faLista{ position:relative; }
   /* avisos: la animación de motion.js manda sobre el fundido CSS */
   .toast.lw-aviso{ transition:none; }
   /* pulsar: todo lo que se pulsa cede un poco (los botones ya lo hacían) */
   .ct-pill, .dc-cifras button, button.ini-pastilla, .ini-filtro button{ transition:background .2s, color .2s, border-color .2s, transform .12s var(--lw-ease); }
-  /* el idioma no se repinta (sus botones son fijos): su fondo cambia de golpe y el movimiento lo pone la pista; si
-     fundiera, el botón que deja de estar elegido taparía la pista al salir */
-  .lang-sel button{ transition:color .2s, transform .12s var(--lw-ease); }
+  /* el idioma ya no se desliza (owner, 9-oct-2026: «se mueve raro»): el fondo del elegido aparece con un fundido corto
+     y el del que deja de estarlo se apaga a la vez, en el mismo sitio */
+  .lang-sel button{ transition:background-color .15s ease, color .15s ease, transform .12s var(--lw-ease); }
   .fa-slip{ transition:border-color .2s var(--lw-ease), background .2s var(--lw-ease), transform .12s var(--lw-ease); }
   .ini-ir:active, .ct-pill:active, button.ini-pastilla:active, .dc-cifras button:active, .ini-filtro button:active, .lang-sel button:active{ transform:scale(.96); }
   .dc-doc:active, .fa-slip:active{ transform:scale(.99); }
@@ -2744,7 +2743,6 @@
         LW_MOV.menu(document.getElementById('nav'), cambia);
         if (cambia) LW_MOV.pantalla(c, ESTADO.section);
         LW_MOV.selectores(c, ESTADO.section);   // la pista del elegido viaja desde donde estaba antes del repintado
-        LW_MOV.selectores(document.querySelector('.topbar2'), 'top');
       }
     } catch (e){ console.error('movimiento', e); /* MUDO A PROPOSITO: el movimiento es un adorno; si falla, la pantalla ya está pintada y funciona igual, y el detalle va a la consola */ }
   }

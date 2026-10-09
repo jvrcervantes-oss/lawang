@@ -19,7 +19,7 @@
  * Se prueba en node con motion.test.js (lo puro) y con el arnés de capturas (lo visual). */
 (function (root) {
   'use strict';
-  var EASE = 'cubic-bezier(.23,1,.32,1)', EASE_IO = 'cubic-bezier(.77,0,.175,1)';
+  var EASE = 'cubic-bezier(.23,1,.32,1)', EASE_IO = 'cubic-bezier(.77,0,.175,1)', CURVA_SEL = 'cubic-bezier(.4,0,.2,1)';
   var CLAVE_VISTAS = 'lw-mov-vistas', CLAVE_CAMPANA = 'lw-mov-campana';
 
   /* ── lo puro: se prueba sin navegador ── */
@@ -181,8 +181,10 @@
     try { var r = el.getBoundingClientRect(); M._portada = { top: r.top, right: r.right, bottom: r.bottom, left: r.left, w: r.width, h: r.height, t: Date.now() }; } catch (e) { M._portada = null; }
   };
 
-  /* Selectores (.ini-filtro de proyecto o villa, .lang-sel del idioma): el fondo del elegido se desliza hasta el nuevo
-     en vez de saltar, como el indicador del menú. Cada repintado rehace los botones, así que se recuerda dónde estaba
+  /* Selectores (.ini-filtro de proyecto o villa): el fondo del elegido se desliza hasta el nuevo en vez de saltar, como
+     el indicador del menú. El idioma (.lang-sel) ya no se desliza (owner, 9-oct-2026: «se mueve raro»): cambia con un
+     fundido corto en CSS. El deslizamiento va con una curva pareja (CURVA_SEL) y sin redondear la posición: con la de
+     antes (EASE, muy brusca) recorría casi todo en 50 ms y se arrastraba el resto, y al llegar podía dar medio píxel de salto. Cada repintado rehace los botones, así que se recuerda dónde estaba
      por grupo (zona + los data- de sus botones, nunca un rótulo). La pista SOLO existe mientras se desliza: viaja
      desde la posición vieja a la nueva y se borra sola; en reposo el botón elegido tiene su propio fondo, así que un
      cambio de tamaño, de orientación o una fuente que llega tarde nunca dejan su texto blanco sin fondo (revisor). */
@@ -198,25 +200,30 @@
   }
   M.selectores = function (raiz, zona) {
     if (!raiz) return;
-    Array.prototype.forEach.call(raiz.querySelectorAll('.ini-filtro, .lang-sel'), function (g) {
+    Array.prototype.forEach.call(raiz.querySelectorAll('.ini-filtro'), function (g) {
       var on = g.querySelector('button[aria-pressed="true"]');
       if (!on || !on.offsetWidth) { quitaPista(g); return; }
       /* Posición respecto al GRUPO medida con rectángulos, no con offsetLeft: el grupo solo es `position:relative` mientras
          lleva `con-pista`, y sin esa clase offsetLeft cuenta desde la página (el verde viajaba a otro sitio y el botón
          pulsado se quedaba con el texto blanco sobre blanco; 8-oct-2026, owner). */
       var gr = g.getBoundingClientRect(), br = on.getBoundingClientRect();
-      var k = claveSel(g, zona), x = Math.round(br.left - gr.left - g.clientLeft + g.scrollLeft), w = on.offsetWidth, antes = M._sel[k];
-      var y = Math.round(br.top - gr.top - g.clientTop + g.scrollTop);
+      var k = claveSel(g, zona), x = br.left - gr.left - g.clientLeft + g.scrollLeft, w = br.width, antes = M._sel[k];
+      var y = br.top - gr.top - g.clientTop + g.scrollTop;
       M._sel[k] = { x: x, w: w };
-      if (!puede() || !antes || (antes.x === x && antes.w === w)) { quitaPista(g); return; }
+      if (!puede() || !antes || (Math.abs(antes.x - x) < .5 && Math.abs(antes.w - w) < .5)) { quitaPista(g); return; }
       var pista = g.querySelector(':scope > .lw-pista');
       if (!pista) { pista = root.document.createElement('span'); pista.className = 'lw-pista'; pista.setAttribute('aria-hidden', 'true'); g.insertBefore(pista, g.firstChild); }
       g.classList.add('con-pista');
-      pista.style.top = y + 'px'; pista.style.height = on.offsetHeight + 'px';
+      pista.style.top = y + 'px'; pista.style.height = br.height + 'px';
       pista.style.width = w + 'px'; pista.style.transform = 'translateX(' + x + 'px)';
-      anima(pista, [{ transform: 'translateX(' + antes.x + 'px)', width: antes.w + 'px' }, { transform: 'translateX(' + x + 'px)', width: w + 'px' }], { duration: 280, easing: EASE });
+      var mov = anima(pista, [{ transform: 'translateX(' + antes.x + 'px)', width: antes.w + 'px' }, { transform: 'translateX(' + x + 'px)', width: w + 'px' }], { duration: 260, easing: CURVA_SEL });
       root.clearTimeout(g._lwPista);
-      g._lwPista = root.setTimeout(function () { quitaPista(g); }, 300);   // al llegar, el botón recupera su fondo
+      // al llegar, el botón recupera su fondo: cuando acaba de verdad la animación, no a un tiempo fijo que podía cortarla
+      // antes del final; el temporizador queda solo de red por si el navegador no avisa
+      var fin = function () { if (g._lwMov === mov) quitaPista(g); };
+      g._lwMov = mov;
+      if (mov && mov.finished) mov.finished.then(fin, function () {});
+      g._lwPista = root.setTimeout(fin, 400);
     });
   };
 
