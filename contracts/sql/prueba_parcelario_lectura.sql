@@ -26,11 +26,11 @@ begin
   select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
    where s.nspname = 'public' and p.proname in ('parcelario_unidades', 'parcelario_proyectos') and a.grantee = 0 and a.privilege_type = 'EXECUTE';
   r := r || case when n = 0 then 'a4 ok; ' else 'a4 FALLO PUBLIC tiene EXECUTE; ' end;
-  -- (b) INVOKER, stable y search_path fijo
+  -- (b) INVOKER, stable y search_path VACÍO (no basta con que haya uno: `public` volvería a abrir la sustitución de objetos)
   select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
    where s.nspname = 'public' and p.proname in ('parcelario_unidades', 'parcelario_proyectos')
-     and not p.prosecdef and p.provolatile = 's' and coalesce(p.proconfig::text, '') like '%search_path%';
-  r := r || case when n = 2 then 'b1 ok (invoker, stable, search_path fijo); ' else 'b1 FALLO ficha de las funciones; ' end;
+     and not p.prosecdef and p.provolatile = 's' and 'search_path=""' = any (coalesce(p.proconfig, '{}'::text[]));
+  r := r || case when n = 2 then 'b1 ok (invoker, stable, search_path vacío); ' else 'b1 FALLO ficha de las funciones; ' end;
   -- (c) columnas EXACTAS que devuelven
   select pg_get_function_result('public.parcelario_unidades(uuid)'::regprocedure) into cols_u;
   select pg_get_function_result('public.parcelario_proyectos()'::regprocedure) into cols_p;
