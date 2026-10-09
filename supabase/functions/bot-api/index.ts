@@ -147,15 +147,18 @@ export function reiniciaRitmo() { for (const k of Object.keys(ventana)) delete v
 
 // ── la base ─────────────────────────────────────────────────────────────────────────────────
 // Lista cerrada de sentencias. Los parámetros van con casts: el pooler en modo transacción no admite sentencias preparadas.
+// JSONB: NUNCA `$N::jsonb` a pelo. postgres.js serializa un parámetro tipado jsonb con JSON.stringify, y la edge ya manda el JSON
+// hecho texto: llegaba un jsonb ESCALAR de tipo string (doble codificado) y las funciones contestaban 'forma' (LAW-507, 9-oct-2026).
+// Se recibe como texto y se convierte en SQL: `$N::text::jsonb`. Lo fija bot_api.test.js con un doble que serializa como postgres.js.
 const SQL = {
   catalogo: 'select proyecto, tipo, codigo, superficie_m2, precio, moneda, modelo, disponible from public.bot_catalogo_leer()',
   lead_upsert: 'select public.bot_lead_upsert($1::text, $2::text, $3::text, $4::text) as r',
   lead_nota: 'select public.bot_lead_nota($1::text, $2::text, $3::text) as r',
   lead_cita: 'select public.bot_lead_cita($1::text, $2::text, $3::text, $4::text) as r',
   // ── S2 ──
-  mensaje_recibir: 'select public.bot_mensaje_recibir($1::text, $2::text, $3::text, $4::jsonb) as r',
+  mensaje_recibir: 'select public.bot_mensaje_recibir($1::text, $2::text, $3::text, $4::text::jsonb) as r',
   turno_estado: 'select public.bot_turno_estado($1::text, $2::boolean) as r',
-  turno_cerrar: 'select public.bot_turno_cerrar($1::text, $2::text, $3::jsonb, $4::text, $5::text, $6::boolean, $7::boolean) as r',
+  turno_cerrar: 'select public.bot_turno_cerrar($1::text, $2::text, $3::text::jsonb, $4::text, $5::text, $6::boolean, $7::boolean) as r',
   eco_operadora: 'select public.bot_eco_operadora($1::text, $2::text, $3::text, $4::int) as r',
   pausar: 'select public.bot_pausar($1::text, $2::text, $3::int) as r',
   baja: 'select public.bot_baja($1::text, $2::text) as r',
@@ -166,13 +169,14 @@ const SQL = {
   citas_recordar: 'select accion_id, tel, tipo, cuando_ts, ultimo_entrante_en from public.bot_citas_recordar()',
   cita_recordatorio_res: 'select public.bot_cita_recordatorio_res($1::uuid, $2::text) as r',
   pausar_humano: 'select public.bot_pausar_humano($1::text, $2::text, $3::text) as r',
-  envio_humano: 'select public.bot_envio_humano($1::text, $2::text, $3::text, $4::jsonb, $5::text) as r',
+  envio_humano: 'select public.bot_envio_humano($1::text, $2::text, $3::text, $4::text::jsonb, $5::text) as r',
   // ── S5-puente (temporal) ──
-  importar_chat: 'select public.bot_importar_chat($1::jsonb) as r',
-  importar_config: 'select public.bot_importar_config($1::jsonb) as r',
+  importar_chat: 'select public.bot_importar_chat($1::text::jsonb) as r',
+  importar_config: 'select public.bot_importar_config($1::text::jsonb) as r',
   importar_cuadre: 'select public.bot_importar_cuadre($1::text) as r',
 } as const;
 type Clave = keyof typeof SQL;
+export { SQL };
 
 class ErrorBase extends Error {
   codigo: 'db_conexion' | 'db_error' | 'auth_conexion';

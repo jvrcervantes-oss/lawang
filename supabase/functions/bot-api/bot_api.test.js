@@ -49,6 +49,36 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
   let guion = () => [{ r: 'creado' }];
   M.DB.ejecuta = async (clave, args) => { llamadas.push({ clave, args }); return guion(clave, args); };
 
+  // Doble FIEL del driver (LAW-507, 9-oct-2026): los dobles de DB.ejecuta de arriba NO ven cómo postgres.js serializa un parámetro.
+  // Con `conexion.unsafe(sql, args)` postgres.js pregunta al servidor el tipo de cada $N y serializa según ese tipo: un parámetro
+  // tipado jsonb pasa por JSON.stringify AUNQUE ya sea texto (queda un string JSON de un string: jsonb ESCALAR de tipo string, y
+  // bot_importar_* contestaban 'forma' a todo en producción); un parámetro text va tal cual. Esto devuelve lo que vería la función SQL.
+  const vistoPorLaFuncion = (sql, args) => {
+    const tipos = {};
+    for (const m of sql.matchAll(/\$(\d+)((?:::[a-z]+)+)/g)) { if (!(m[1] in tipos)) tipos[m[1]] = m[2].split('::').filter(Boolean); }   // 1.er cast = tipo que infiere el servidor
+    return args.map((a, i) => {
+      const cast = tipos[String(i + 1)];
+      if (!cast) return a;
+      const alCable = cast[0] === 'jsonb' ? JSON.stringify(a) : a;            // postgres.js: serializador de jsonb = JSON.stringify
+      return cast.includes('jsonb') ? JSON.parse(alCable) : alCable;          // el servidor lee el texto como jsonb
+    });
+  };
+  const jsonbDe = (sql) => [...sql.matchAll(/\$(\d+)((?:::[a-z]+)+)/g)].filter((m) => m[2].endsWith('::jsonb')).map((m) => +m[1] - 1);
+  // la sentencia vieja se comporta como el bug: se prueba que el doble lo CAZA (si no, esta prueba no vale nada)
+  igual(typeof vistoPorLaFuncion('select f($1::jsonb)', ['{"a":1}'])[0], 'string', 'el doble reproduce el bug de $N::jsonb');
+  igual(vistoPorLaFuncion('select f($1::text::jsonb)', ['{"a":1}'])[0], { a: 1 }, 'el doble ve un objeto con $N::text::jsonb');
+  // TODAS las sentencias de la edge: cada parámetro jsonb llega a la función como el objeto/array que la edge serializó
+  for (const [clave, sql] of Object.entries(M.SQL)) {
+    for (const i of jsonbDe(sql)) {
+      const args = Array.from({ length: 8 }, () => null); args[i] = '{"k":[1,2]}';
+      const visto = vistoPorLaFuncion(sql, args)[i];
+      ok(visto !== null && typeof visto === 'object', `${clave}: el parámetro jsonb $${i + 1} llega como objeto, no como string doblemente codificado`);
+      const arr = args.slice(); arr[i] = '[]';
+      ok(Array.isArray(vistoPorLaFuncion(sql, arr)[i]), `${clave}: $${i + 1} vacío llega como array`);
+    }
+  }
+  igual(Object.entries(M.SQL).filter(([, s]) => jsonbDe(s).length).map(([c]) => c).sort(), ['envio_humano', 'importar_chat', 'importar_config', 'mensaje_recibir', 'turno_cerrar'], 'las acciones que pasan jsonb (si aparece otra, esta lista se actualiza a conciencia)');
+
   // ── 1. 401 a todo, y la base no se toca ────────────────────────────────────
   const matriz = [['catalogo', {}], ['crm', { accion: 'lead_upsert', tel: '34661569373', msg_id: 'wamid.A' }]];
   fija({});   // desplegada SIN secretos
@@ -566,7 +596,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     for (const s of s2) {
       const nombre = /public\.(\w+)\(/.exec(s.sql)[1];
       const { params, cuerpo } = defsFn(nombre);
-      const casts = [...s.sql.matchAll(/\$(\d+)::(\w+)/g)].sort((a, b) => a[1] - b[1]).map((m) => norm(m[2]));
+      const casts = [...s.sql.matchAll(/\$(\d+)((?:::\w+)+)/g)].sort((a, b) => a[1] - b[1]).map((m) => norm(m[2].split('::').pop()));   // el ULTIMO cast es el tipo de la firma ($N::text::jsonb -> jsonb)
       igual(casts, params, `${nombre}: los casts de la sentencia coinciden con la firma real`);
       const tieneGrant = migs.some((sql) => new RegExp('grant execute on function public\\.' + nombre + '\\(([^)]*)\\)\\s+to bot_lawang').test(sql) &&
         sql.match(new RegExp('grant execute on function public\\.' + nombre + '\\(([^)]*)\\)\\s+to bot_lawang'))[1].split(',').map((p) => norm(p)).filter(Boolean).join() === params.join());
@@ -671,6 +701,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     dbCon(FILA(RESP_CHAT));
     let r = await im(bienI.chat);
     igual(r.status, 200); igual(llamadas.map((l) => [l.clave, l.args.length, JSON.parse(l.args[0])]), [['importar_chat', 1, { tel: TEL, chat: CHAT, mensajes: [MSG], escalaciones: [ESC] }]], 'chat: una sentencia, un parametro jsonb');
+    igual(vistoPorLaFuncion(M.SQL[llamadas[0].clave], llamadas[0].args)[0], { tel: TEL, chat: CHAT, mensajes: [MSG], escalaciones: [ESC] }, 'chat: la funcion SQL recibe el objeto, no un string');
     igual(r.cuerpo, { ok: true, accion: 'chat', chat: 'creado', lead: 'sin_lead', mensajes: { recibidos: 1, insertados: 1, omitidos_posteriores: false }, escalaciones: { recibidas: 1, insertadas: 1 } }, 'salida fija: sin el campo interno');
     // lo que no se reconoce no viaja, los textos se recortan, null con pausado se conserva (pausa sin caducidad) y mensajes/escalaciones ausentes = []
     reinicia(); dbCon(FILA(RESP_CHAT));
@@ -684,6 +715,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     r = await im(bienI.config);
     igual(r.cuerpo, { ok: true, accion: 'config', resultado: 'importada', log_importado: 1 }); igual(llamadas[0].clave, 'importar_config');
     igual(JSON.parse(llamadas[0].args[0]), { config: bienI.config.config, log: bienI.config.log });
+    igual(vistoPorLaFuncion(M.SQL[llamadas[0].clave], llamadas[0].args)[0], { config: bienI.config.config, log: bienI.config.log }, 'config: la funcion SQL recibe el objeto, no un string');
     reinicia(); dbCon(FILA({ ok: true, resultado: 'ya_configurada' }));
     igual((await im(bienI.config)).cuerpo, { ok: true, accion: 'config', resultado: 'ya_configurada', log_importado: 0 });
     reinicia(); dbCon(FILA({ existe: true, n_mensajes: 3, hash_mensajes: 'a'.repeat(32), ultimo_entrante_ms: 1760000050000, pausado: true, pausa_hasta_ms: null, baja: false, aviso_nivel: 2, escalaciones_abiertas: 1, mas: 'x' }));
@@ -723,7 +755,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
       cuadre: ['bot_importar_cuadre', 'text', trozo(m5, 'bot_importar_cuadre')] };
     for (const [acc, [fn, tipo, cuerpo]] of Object.entries(casos)) {
       const d = M.LISTA_CERRADA.importar[acc];
-      ok(fuente5.includes(`'select public.${fn}($1::${tipo}) as r'`), `${fn}: la sentencia de la edge coincide con la firma`);
+      ok(fuente5.includes(`'select public.${fn}($1::${tipo === 'jsonb' ? 'text::jsonb' : tipo}) as r'`), `${fn}: la sentencia de la edge coincide con la firma`);
       ok(new RegExp('grant execute on function public[.]' + fn + '[(]' + tipo + '[)]\\s+to bot_lawang').test(m5 + m5b), `${fn}: EXECUTE concedido a bot_lawang`);
       igual([...d.errores].sort(), errs(cuerpo), `${fn}: los errores que acepta la edge = los que devuelve la funcion SQL`);
     }
