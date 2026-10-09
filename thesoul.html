@@ -304,6 +304,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 /* 7 · come see it */
 .see .bn{position:absolute;left:calc(63*var(--u));top:calc(10*var(--u));width:calc(1796*var(--u));height:calc(341*var(--u));border-radius:calc(16*var(--u));overflow:hidden}
 .see .bn video{display:block;width:100%;height:100%;object-fit:cover}
+.see .bn::before{content:"";position:absolute;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.45);border-radius:calc(10*var(--u));z-index:1;pointer-events:none}
 .see .bn::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,20,24,.46),rgba(8,20,24,.34) 50%,rgba(8,20,24,.46));pointer-events:none}
 .see .bn p{z-index:1;text-shadow:0 1px 14px rgba(0,0,0,.35)}
 .see .bn p{position:absolute;top:calc(112*var(--u));font-size:calc(46*var(--u));line-height:calc(53*var(--u));color:#F6F4F0;letter-spacing:.035em;text-transform:uppercase}
@@ -441,7 +442,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .dots i{width:10px;height:10px}.v1 .dots,.v2 .dots{margin-left:0}
   .see .bn{position:relative;left:auto;top:auto;width:auto;height:auto;border-radius:8px}
   .see .bn video{height:auto;aspect-ratio:1796/341}
-  .see .bn::after{content:none}
+  .see .bn::after,.see .bn::before{content:none}
   .see .bn p{text-shadow:none}
   .see .bn p{max-width:none;margin-top:14px;font-size:20px;line-height:25px;color:var(--deep)}
   .see .bn .rr{text-align:left;font-size:16px;line-height:21px;color:var(--olive)}
@@ -678,7 +679,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 </div></section>
 
 <section class="see" id="see" aria-labelledby="see-h" data-spy="see"><div class="st">
-  <div class="bn"><video class="bn-v" muted loop playsinline preload="none" poster="/assets/img/soul/visits-banner.webp" data-src="/assets/video/legacy.mp4?v=3" aria-label="Aerial views of Bali and Sumba: a sandbar between turquoise water and forest"></video>
+  <div class="bn"><video class="bn-v" muted loop playsinline preload="none" poster="/assets/img/soul/visits-video-poster.webp" data-src="/assets/video/legacy.mp4?v=3" aria-label="Aerial views of Bali and Sumba: a sandbar between turquoise water and forest"></video>
     <p class="l" data-i18n-html="se.b">YOU SEE THE VIEW YOURSELF, <br><b>BEFORE YOU DECIDE.</b></p>
     <p class="rr" data-i18n-html="se.r">WE DON'T LIST PROPERTIES. <br><b>WE SELECT THEM.</b></p></div>
   <h2 id="see-h" data-i18n-html="se.h">THE VISITS. <span>THE OFFICE</span></h2>
