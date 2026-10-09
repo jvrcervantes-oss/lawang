@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="81dbd01a3785">
+<meta name="lw-version" content="e95d5b774985">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -688,46 +688,16 @@
     .proy-sinfoto{ display:none; }
   }
 
-  /* ═══ SOPORTE v2 (8-oct-2026; aspecto del artifact «Soporte Lawang») ═══
-     Columna de consultas (cuatro puertas por tema, abiertos con el turno visible, resueltos plegados) y columna de
-     «cómo funciona» con el aviso de canal no vinculante. El hilo se lee en el cajón (clase sop-dr). Piezas y colores de la
-     piel v4; clases propias con prefijo sop- para no pisar las compartidas (lección de .doc .num, 5-ago). */
-  .sop{ display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:18px; align-items:start; }
-  .sop-col{ display:grid; gap:18px; min-width:0; }
-  .sop .tarjeta.sop-tarjeta{ background:#fff; padding:20px 22px; margin:0; }
-  .sop-h{ margin:0; font-size:17px; font-weight:500; text-wrap:balance; }
-  .sop-sub{ margin:4px 0 0; font-size:13px; line-height:1.5; color:var(--ink2); }
+  /* ═══ SOPORTE v2 (8-oct-2026) — lo que sigue vivo en la v3: el cajón del ticket y el de uno nuevo (sop-dr), la
+     etiqueta de estado, la referencia a factura/contrato y el aviso del formulario. La pantalla de Soporte es la v3 de
+     abajo; las piezas de la lista v2 (columnas, puertas, filas, pasos) se retiraron el 9-oct-2026 al no tener quien las use.
+     Clases con prefijo sop- para no pisar las compartidas (lección de .doc .num, 5-ago). */
   .sop-ico{ width:36px; height:36px; border-radius:10px; display:grid; place-items:center; flex:none; background:var(--pg-low); color:var(--dl); }
   .sop-ico svg{ width:19px; height:19px; }
-  .sop-temas{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:16px; }
-  .sop-tema{ display:flex; flex-direction:column; align-items:flex-start; gap:10px; min-width:0; padding:14px 14px 13px; text-align:left; cursor:pointer;
-    font:inherit; color:var(--va); background:var(--rl); border:1px solid var(--pg-hi); border-radius:12px; transition:background .15s,border-color .15s; }
-  .sop-tema:hover{ background:var(--pg-low); border-color:var(--linea); }
-  .sop-tema:hover .sop-ico{ background:#fff; }
-  .sop-tema:focus-visible, .sop-tk:focus-visible, .sop-resueltos summary:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
-  .sop-tema b{ font-size:14px; font-weight:600; }
-  .sop-tema small{ font-size:12px; line-height:1.4; color:var(--out); }
-  .sop-cab{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 2px 10px; }
-  .sop-rot{ margin:0; }
-  .sop-rot b{ color:var(--va); margin-left:2px; font-variant-numeric:tabular-nums; }
-  .sop-lista{ display:grid; gap:10px; }
-  .sop-nada{ margin:0; padding:16px; text-align:center; font-size:13px; color:var(--out); background:#fff; border:1px solid var(--pg-hi); border-radius:12px; }
-  .sop-tk{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:14px; align-items:start; width:100%; text-align:left; cursor:pointer;
-    font:inherit; color:var(--va); background:#fff; border:1px solid var(--pg-hi); border-radius:12px; padding:15px 16px; transition:border-color .15s; }
-  .sop-tk:hover{ border-color:var(--linea); }
-  .sop-tk.resp{ border-color:#c9d3bf; }
-  .sop-tk-c{ min-width:0; display:block; }
-  .sop-tk-t{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; }
-  .sop-tk-t b{ font-size:14.5px; font-weight:600; }
   .sop-ref{ display:inline-flex; align-items:center; gap:5px; font:inherit; font-size:11.5px; font-weight:500; color:var(--dl); background:#e8f0ef;
     border:0; border-radius:999px; padding:2px 9px; }
   button.sop-ref{ cursor:pointer; } button.sop-ref:hover{ text-decoration:underline; }
   .sop-ref svg{ width:12px; height:12px; }
-  .sop-ex{ margin-top:6px; font-size:13px; line-height:1.45; color:var(--ink2); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .sop-ex em{ font-style:normal; font-weight:600; color:var(--va); }
-  .sop-pie{ display:block; margin-top:8px; font-size:11.5px; color:var(--out); }
-  .sop-tk-d{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
-  .sop-tk-d .sop-pie{ margin:0; }
   .sop-estado{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; font-size:11.5px; font-weight:600; border-radius:999px; padding:4px 10px 4px 9px; }
   .sop-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
   .sop-estado.resp{ background:#485B37; color:#fff; }
@@ -735,19 +705,6 @@
      perdía contra el crema); la de resuelto, suave, como antes. */
   .sop-estado.espera{ background:var(--dl); color:#fff; }
   .sop-estado.hecho{ background:#e3eadb; color:var(--ok); }
-  .sop-resueltos{ margin-top:6px; }
-  .sop-resueltos summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 2px; border-radius:8px; }
-  .sop-resueltos summary::-webkit-details-marker{ display:none; }
-  .sop-resueltos summary svg{ width:14px; height:14px; color:var(--out); transition:transform .2s; }
-  .sop-resueltos[open] summary svg{ transform:rotate(90deg); }
-  /* Resueltos: blanco menos opaco que el sólido de los abiertos (antes --rl, igual que el fondo de la página y no se veía la caja). */
-  .sop-resueltos .sop-tk{ background:rgba(255,255,255,.55); }
-  .sop-resueltos .sop-tk-t b{ color:var(--ink2); }
-  .sop-pasos{ list-style:none; margin:14px 0 0; padding:0; display:grid; gap:14px; }
-  .sop-pasos li{ display:grid; grid-template-columns:26px minmax(0,1fr); gap:12px; align-items:start; }
-  .sop-n{ width:26px; height:26px; border-radius:50%; background:var(--pg-low); color:var(--dl); font-size:12.5px; font-weight:600; display:grid; place-items:center; }
-  .sop-pasos b{ display:block; font-size:13.5px; font-weight:600; }
-  .sop-pasos li > div > span{ display:block; margin-top:2px; font-size:12.5px; line-height:1.5; color:var(--ink2); }
   .sop-aviso{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:10px; background:var(--pg-low); border-radius:12px; padding:14px 16px; }
   .sop-aviso svg{ width:17px; height:17px; color:var(--out); margin-top:1px; }
   .sop-aviso p{ margin:0; font-size:12px; line-height:1.55; color:var(--ink2); }
@@ -791,20 +748,103 @@
   .sop-chip input:checked + span{ border-color:var(--dl); background:#e8f0ef; font-weight:600; }
   .sop-chip input:focus-visible + span{ outline:2px solid var(--dl); outline-offset:1px; }
   .sop-acc{ display:flex; gap:10px; flex-wrap:wrap; }
-  @media (max-width:1080px){ .sop-temas{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  @media (max-width:900px){ .sop{ grid-template-columns:minmax(0,1fr); } }
   @media (max-width:520px){
-    .sop .tarjeta.sop-tarjeta{ padding:16px; }
-    .sop-temas{ gap:8px; }
-    .sop-tema{ padding:12px; }
-    .sop-tema small{ display:none; }
-    .sop-tk{ grid-template-columns:minmax(0,1fr); gap:10px; padding:14px; }
-    .sop-tk > .sop-ico{ display:none; }
-    .sop-tk-d{ flex-direction:row; align-items:center; justify-content:space-between; }
     .sop-dr-cab, .sop-hilo, .sop-compositor, .sop-nuevo{ padding-left:16px; padding-right:16px; }
     .sop-dr-cab{ padding-right:52px; }
   }
-  @media (prefers-reduced-motion:reduce){ .sop-tema, .sop-tk, .sop-resueltos summary svg{ transition:none; } }
+
+  /* ═══ SOPORTE v3 (9-oct-2026; artifact «Soporte Lawang v3», sobre la referencia soporte.jpg del owner) ═══
+     Solo cambia el aspecto (owner: «así, solo en Soporte»; el marco del portal no se toca). Cuatro bloques: empezar (disco
+     grande y las cuatro puertas), aviso de canal, consultas en línea de tiempo con tarjetas tintadas por tema (tintes que el
+     portal ya usa) y «Cómo funciona» como bloque de acento con el botón blanco de «Nuevo ticket». El nodo de cada consulta
+     dice de quién es el turno: lleno = te hemos respondido, hueco = esperando al equipo. Sin sombras. Hereda los enganches de
+     la v2: data-sop-cat, btnNuevoTicket, data-ticket y el cajón entero (sop-dr) sin cambios. */
+  .s3{ --r-gr:20px; --t-pagos:#e3eadb; --a-pagos:#485B37; --t-doc:#e8f0ef; --a-doc:#104C4F; --t-obra:#f6e8cc; --a-obra:#8C5E10; --t-otro:#efeee7; --a-otro:#66695f;
+    display:grid; grid-template-columns:minmax(0,1.62fr) minmax(0,1fr); grid-template-areas:"empezar aviso" "lista acento"; gap:20px; align-items:stretch; }
+  .s3 > *{ min-width:0; }
+  .s3-card{ background:#fff; border:1px solid var(--pg-hi); border-radius:var(--r-gr); padding:24px 26px; margin:0; }
+  .s3-h{ margin:0; font-size:20px; font-weight:500; letter-spacing:-.005em; text-wrap:balance; }
+  .s3-sub{ margin:6px 0 0; font-size:13px; line-height:1.5; color:var(--ink2); max-width:46ch; }
+  .s3-empezar{ grid-area:empezar; display:grid; grid-template-columns:132px minmax(0,1fr); gap:26px; align-items:center; }
+  .s3-disco{ width:132px; height:132px; border-radius:50%; background:var(--av-fondo); color:#fff; display:grid; place-items:center; }
+  .s3-disco svg{ width:56px; height:56px; }
+  .s3-puertas{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:16px; }
+  .s3-puerta{ display:flex; align-items:center; gap:10px; min-width:0; padding:8px 12px 8px 8px; border:1px solid var(--pg-hi); border-radius:14px; background:#fff;
+    text-align:left; font:inherit; font-size:13.5px; color:var(--va); cursor:pointer; transition:border-color .15s, background .15s; }
+  .s3-puerta:hover{ border-color:var(--linea); background:var(--rl); }
+  .s3-bola{ width:30px; height:30px; border-radius:50%; display:grid; place-items:center; flex:none; color:#fff; background:var(--a); }
+  .s3-bola svg{ width:16px; height:16px; }
+  .s3-puerta .tx{ min-width:0; display:grid; gap:1px; }
+  .s3-puerta .tx b{ font-size:13.5px; font-weight:600; }
+  .s3-puerta .tx small{ font-size:11.5px; color:var(--out); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .s3-aviso{ grid-area:aviso; display:flex; flex-direction:column; gap:12px; }
+  .s3-aviso .tit{ display:flex; align-items:center; gap:10px; }
+  .s3-aviso .tit span{ width:34px; height:34px; border-radius:50%; background:var(--pg-low); color:var(--dl); display:grid; place-items:center; flex:none; }
+  .s3-aviso .tit svg{ width:18px; height:18px; }
+  .s3-aviso .s3-h{ font-size:17px; }
+  .s3-aviso p{ margin:0; font-size:12.5px; line-height:1.6; color:var(--ink2); }
+  .s3-lista{ grid-area:lista; }
+  .s3-cab{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:18px; }
+  .s3-cab .rot-bloque, .s3-res .rot-bloque{ margin:0; }
+  .s3-cab .rot-bloque b, .s3-res .rot-bloque b{ color:var(--va); margin-left:3px; font-variant-numeric:tabular-nums; }
+  .s3-tl{ position:relative; display:grid; gap:12px; }
+  .s3-tl::before{ content:""; position:absolute; left:12px; top:30px; bottom:30px; width:2px; background:var(--dl); opacity:.35; border-radius:2px; }
+  .s3-tl.una::before{ display:none; }
+  .s3-it{ display:grid; grid-template-columns:26px minmax(0,1fr); gap:16px; align-items:center; }
+  .s3-nodo{ position:relative; z-index:1; width:26px; height:26px; border-radius:50%; background:#fff; border:2px solid var(--dl); display:grid; place-items:center; }
+  .s3-nodo i{ width:12px; height:12px; border-radius:50%; background:var(--dl); }
+  .s3-nodo.espera i{ display:none; }
+  .s3-nodo.hecho{ border-color:var(--sc); } .s3-nodo.hecho i{ background:var(--sc); }
+  .s3-tk{ position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 14px; width:100%; text-align:left; border:0; border-radius:16px;
+    padding:16px 18px; background:var(--t); color:var(--va); font:inherit; cursor:pointer; transition:filter .15s; }
+  .s3-tk:hover{ filter:brightness(.975); }
+  .s3-tk:focus-visible, .s3-puerta:focus-visible, .s3-res summary:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  .s3-tk .t{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; min-width:0; }
+  .s3-tk .t b{ font-size:14.5px; font-weight:600; }
+  .s3-tk .sop-ref{ background:rgba(255,255,255,.7); }
+  .s3-tk .ex{ grid-column:1; margin-top:4px; font-size:13px; line-height:1.45; color:var(--ink2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .s3-tk .ex em{ font-style:normal; font-weight:600; color:var(--va); }
+  .s3-tk .pie{ grid-column:1; margin-top:6px; font-size:12px; color:var(--out); font-variant-numeric:tabular-nums; }
+  .s3-tk .sop-estado{ grid-column:2; grid-row:1; justify-self:end; align-self:start; border-radius:6px; padding:5px 10px; }
+  .s3-flecha{ grid-column:2; grid-row:2 / span 2; justify-self:end; align-self:end; width:32px; height:32px; border-radius:50%; background:var(--a); color:#fff; display:grid; place-items:center; opacity:.85; transition:opacity .15s, transform .15s; }
+  .s3-tk:hover .s3-flecha{ opacity:1; transform:translate(1px,1px); }
+  .s3-flecha svg{ width:15px; height:15px; }
+  .s3-nada{ margin:0; padding:18px; border-radius:16px; background:var(--pg-low); font-size:13px; color:var(--out); text-align:center; }
+  .s3-res{ margin-top:16px; border-top:1px solid var(--pg-hi); padding-top:6px; }
+  .s3-res summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 0; border-radius:8px; }
+  .s3-res summary::-webkit-details-marker{ display:none; }
+  .s3-res summary svg{ width:14px; height:14px; color:var(--out); transition:transform .2s; }
+  .s3-res[open] summary svg{ transform:rotate(90deg); }
+  .s3-res .s3-tl{ margin-top:8px; }
+  .s3-res .s3-tk{ background:var(--rl); border:1px solid var(--pg-hi); }
+  .s3-res .s3-tk .t b{ color:var(--ink2); }
+  .s3-res .s3-flecha{ background:var(--sc); }
+  .s3-acento{ grid-area:acento; background:var(--dl); color:#fff; border-radius:var(--r-gr); padding:26px; display:flex; flex-direction:column; gap:18px; margin:0; }
+  .s3-acento .s3-h{ color:#fff; font-size:21px; line-height:1.25; }
+  .s3-acento ul{ list-style:none; margin:0; padding:0; display:grid; gap:14px; }
+  .s3-acento li{ display:grid; grid-template-columns:8px minmax(0,1fr); gap:12px; }
+  .s3-acento li::before{ content:""; width:6px; height:6px; border-radius:50%; background:#fff; margin-top:7px; opacity:.85; }
+  .s3-acento li b{ display:block; font-size:14px; font-weight:600; }
+  .s3-acento li span{ display:block; margin-top:2px; font-size:12.5px; line-height:1.55; color:rgba(255,255,255,.78); }
+  .s3-blanco{ margin-top:auto; align-self:center; background:#fff; color:var(--dl); border:0; border-radius:14px; padding:14px 34px; font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+  .s3-blanco:hover{ background:#eef4f3; }
+  .s3-blanco:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
+  @media (max-width:1080px){ .s3-empezar{ grid-template-columns:96px minmax(0,1fr); gap:20px; } .s3-disco{ width:96px; height:96px; } .s3-disco svg{ width:42px; height:42px; } }
+  @media (max-width:900px){ .s3{ grid-template-columns:minmax(0,1fr); grid-template-areas:"empezar" "lista" "acento" "aviso"; } }
+  @media (max-width:520px){
+    .s3-card, .s3-acento{ padding:18px; }
+    .s3-empezar{ grid-template-columns:minmax(0,1fr); }
+    .s3-disco{ display:none; }
+    .s3-puertas{ grid-template-columns:minmax(0,1fr); }
+    .s3-it{ grid-template-columns:20px minmax(0,1fr); gap:10px; }
+    .s3-nodo{ width:20px; height:20px; } .s3-nodo i{ width:8px; height:8px; }
+    .s3-tl::before{ left:9px; }
+    .s3-tk{ grid-template-columns:minmax(0,1fr); padding:14px; }
+    .s3-tk .sop-estado{ grid-column:1; grid-row:auto; justify-self:start; order:-1; margin-bottom:4px; }
+    .s3-flecha{ position:absolute; right:12px; bottom:12px; width:28px; height:28px; }
+    .s3-tk .ex{ white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; padding-right:30px; }
+  }
+  @media (prefers-reduced-motion:reduce){ .s3-puerta, .s3-tk, .s3-flecha, .s3-res summary svg{ transition:none; } .s3-tk:hover .s3-flecha{ transform:none; } }
 
   /* ═══ MI PERFIL — la página de la cuenta (8-oct-2026; aspecto del artifact «Mi perfil Lawang v2») ═══
      Ficha (quién es y sus datos), lo entregado, seguridad y avisos, y a quién escribir si un dato está mal. Lo que ya
@@ -2011,7 +2051,7 @@
          ct_no_cuadra:'¿Algo no cuadra con tus documentos?', ct_escribenos:'Escríbenos desde Soporte y lo revisamos',
          sobre:'Sobre', sobre_nada:'Nada en concreto', preguntar_factura:'Preguntar sobre esta factura', preguntar_contrato:'Preguntar sobre este contrato',
          /* Soporte v2 (8-oct-2026) */
-         sop_h:'¿Sobre qué quieres preguntar?', sop_h_sub:'Elige el tema y escríbenos. Te responde el equipo de gestión de Lawang, aquí mismo.', sop_hint_pagos:'Transferencias, recibos y plazos de un hito', sop_hint_documentacion:'Contratos, planos y papeles de tu compra', sop_hint_obra:'Avance, fotos y fecha de entrega', sop_hint_otro:'Cualquier otra duda', sop_abiertos:'Abiertos', sop_resueltos:'Resueltos', sop_ninguno_abierto:'No tienes ninguna consulta abierta.', sop_respondido:'Te hemos respondido', sop_esperando:'Esperando al equipo', sop_n_msg_1:'1 mensaje', sop_n_msg_n:'{n} mensajes', sop_como:'Cómo funciona', sop_p1_t:'Un ticket por tema', sop_p1:'Si tu duda es sobre una factura o un contrato, elígelo en «Sobre» y el equipo lo verá al momento.', sop_p2_t:'Te contestamos aquí', sop_p2:'La respuesta queda en el ticket, y en la lista verás «Te hemos respondido» hasta que contestes.', sop_p3_t:'¿Vuelve a pasar?', sop_p3:'Escribe en el ticket resuelto y se abre otra vez, con toda la conversación anterior.', sop_aviso_t:'Canal de atención', sop_reabre:'Este ticket está resuelto. Si escribes, se abre otra vez y le llega al equipo.', sop_ph_reabrir:'Escribe para reabrirlo…', sop_ph_resp:'Escribe tu respuesta…', sop_atajo:'Ctrl+Intro para enviar', sop_nuevo_sub:'Te respondemos en este mismo ticket.', sop_tema:'Tema', sop_ph_msg:'Cuéntanos qué necesitas', sop_reabierto:'Ticket abierto otra vez', sop_enviado:'Mensaje enviado', },
+         sop_h:'¿Sobre qué quieres preguntar?', sop_h_sub:'Elige el tema y escríbenos. Te responde el equipo de gestión de Lawang, aquí mismo.', sop_hint_pagos:'Transferencias, recibos y plazos de un hito', sop_hint_documentacion:'Contratos, planos y papeles de tu compra', sop_hint_obra:'Avance, fotos y fecha de entrega', sop_hint_otro:'Cualquier otra duda', sop_abiertos:'Abiertos', sop_resueltos:'Resueltos', sop_ninguno_abierto:'No tienes ninguna consulta abierta.', sop_respondido:'Te hemos respondido', sop_esperando:'Esperando al equipo', sop_n_msg_1:'1 mensaje', sop_n_msg_n:'{n} mensajes', sop_como:'Cómo funciona', sop_tus:'Tus consultas', sop_p1_t:'Un ticket por tema', sop_p1:'Si tu duda es sobre una factura o un contrato, elígelo en «Sobre» y el equipo lo verá al momento.', sop_p2_t:'Te contestamos aquí', sop_p2:'La respuesta queda en el ticket, y en la lista verás «Te hemos respondido» hasta que contestes.', sop_p3_t:'¿Vuelve a pasar?', sop_p3:'Escribe en el ticket resuelto y se abre otra vez, con toda la conversación anterior.', sop_aviso_t:'Canal de atención', sop_reabre:'Este ticket está resuelto. Si escribes, se abre otra vez y le llega al equipo.', sop_ph_reabrir:'Escribe para reabrirlo…', sop_ph_resp:'Escribe tu respuesta…', sop_atajo:'Ctrl+Intro para enviar', sop_nuevo_sub:'Te respondemos en este mismo ticket.', sop_tema:'Tema', sop_ph_msg:'Cuéntanos qué necesitas', sop_reabierto:'Ticket abierto otra vez', sop_enviado:'Mensaje enviado', },
     en:{ area:'Client area',
          login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
          login_btn:'Send me the link',
@@ -2124,7 +2164,7 @@
          tipo_adenda:'Contract addendum', tipo_contrato_general:'General Contract',
          sobre:'About', sobre_nada:'Nothing in particular', preguntar_factura:'Ask about this invoice', preguntar_contrato:'Ask about this contract',
          /* Soporte v2 (8-oct-2026) */
-         sop_h:'What would you like to ask about?', sop_h_sub:'Pick a topic and write to us. The Lawang account team replies right here.', sop_hint_pagos:'Transfers, receipts and milestone due dates', sop_hint_documentacion:'Contracts, plans and paperwork for your purchase', sop_hint_obra:'Progress, photos and handover date', sop_hint_otro:'Anything else', sop_abiertos:'Open', sop_resueltos:'Resolved', sop_ninguno_abierto:'You have no open enquiries.', sop_respondido:'We have replied', sop_esperando:'Waiting for the team', sop_n_msg_1:'1 message', sop_n_msg_n:'{n} messages', sop_como:'How it works', sop_p1_t:'One ticket per topic', sop_p1:'If your question is about an invoice or a contract, pick it under “About” so the team sees it straight away.', sop_p2_t:'We reply here', sop_p2:'The reply stays in the ticket, and the list shows “We have replied” until you answer.', sop_p3_t:'Happening again?', sop_p3:'Write in the resolved ticket and it reopens, with the whole earlier conversation.', sop_aviso_t:'Support channel', sop_reabre:'This ticket is resolved. If you write, it reopens and reaches the team.', sop_ph_reabrir:'Write to reopen it…', sop_ph_resp:'Write your reply…', sop_atajo:'Ctrl+Enter to send', sop_nuevo_sub:'We will reply in this same ticket.', sop_tema:'Topic', sop_ph_msg:'Tell us what you need', sop_reabierto:'Ticket reopened', sop_enviado:'Message sent', },
+         sop_h:'What would you like to ask about?', sop_h_sub:'Pick a topic and write to us. The Lawang account team replies right here.', sop_hint_pagos:'Transfers, receipts and milestone due dates', sop_hint_documentacion:'Contracts, plans and paperwork for your purchase', sop_hint_obra:'Progress, photos and handover date', sop_hint_otro:'Anything else', sop_abiertos:'Open', sop_resueltos:'Resolved', sop_ninguno_abierto:'You have no open enquiries.', sop_respondido:'We have replied', sop_esperando:'Waiting for the team', sop_n_msg_1:'1 message', sop_n_msg_n:'{n} messages', sop_como:'How it works', sop_tus:'Your requests', sop_p1_t:'One ticket per topic', sop_p1:'If your question is about an invoice or a contract, pick it under “About” so the team sees it straight away.', sop_p2_t:'We reply here', sop_p2:'The reply stays in the ticket, and the list shows “We have replied” until you answer.', sop_p3_t:'Happening again?', sop_p3:'Write in the resolved ticket and it reopens, with the whole earlier conversation.', sop_aviso_t:'Support channel', sop_reabre:'This ticket is resolved. If you write, it reopens and reaches the team.', sop_ph_reabrir:'Write to reopen it…', sop_ph_resp:'Write your reply…', sop_atajo:'Ctrl+Enter to send', sop_nuevo_sub:'We will reply in this same ticket.', sop_tema:'Topic', sop_ph_msg:'Tell us what you need', sop_reabierto:'Ticket reopened', sop_enviado:'Message sent', },
     id:{ area:'Area klien',
          login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, tautan masuk akan segera dikirim.',
          login_btn:'Kirim tautan ke saya',
@@ -2234,7 +2274,7 @@
          tipo_carta_reserva:'Surat Pemesanan', tipo_reserva_parcela:'Pengikatan Kavling', tipo_construccion:'Konstruksi', tipo_poa:'Surat Kuasa', tipo_adenda:'Adendum kontrak',
          sobre:'Tentang', sobre_nada:'Tidak ada yang khusus', preguntar_factura:'Tanya tentang faktur ini', preguntar_contrato:'Tanya tentang kontrak ini',
          /* Soporte v2 (8-oct-2026) */
-         sop_h:'Apa yang ingin Anda tanyakan?', sop_h_sub:'Pilih topik dan tulis pesan Anda. Tim pengelola Lawang akan membalas di sini.', sop_hint_pagos:'Transfer, kuitansi, dan jatuh tempo termin', sop_hint_documentacion:'Kontrak, denah, dan dokumen pembelian Anda', sop_hint_obra:'Progres, foto, dan tanggal serah terima', sop_hint_otro:'Pertanyaan lainnya', sop_abiertos:'Terbuka', sop_resueltos:'Selesai', sop_ninguno_abierto:'Anda tidak punya pertanyaan yang terbuka.', sop_respondido:'Kami sudah membalas', sop_esperando:'Menunggu tim', sop_n_msg_1:'1 pesan', sop_n_msg_n:'{n} pesan', sop_como:'Cara kerjanya', sop_p1_t:'Satu tiket per topik', sop_p1:'Jika pertanyaan Anda tentang faktur atau kontrak, pilih di “Tentang” agar tim langsung melihatnya.', sop_p2_t:'Kami membalas di sini', sop_p2:'Balasan tersimpan di tiket, dan daftar menampilkan “Kami sudah membalas” sampai Anda menjawab.', sop_p3_t:'Terjadi lagi?', sop_p3:'Tulis di tiket yang sudah selesai dan tiket akan dibuka lagi, lengkap dengan percakapan sebelumnya.', sop_aviso_t:'Saluran layanan', sop_reabre:'Tiket ini sudah selesai. Jika Anda menulis, tiket dibuka lagi dan sampai ke tim.', sop_ph_reabrir:'Tulis untuk membukanya lagi…', sop_ph_resp:'Tulis balasan Anda…', sop_atajo:'Ctrl+Enter untuk mengirim', sop_nuevo_sub:'Kami akan membalas di tiket ini.', sop_tema:'Topik', sop_ph_msg:'Ceritakan apa yang Anda perlukan', sop_reabierto:'Tiket dibuka lagi', sop_enviado:'Pesan terkirim' }
+         sop_h:'Apa yang ingin Anda tanyakan?', sop_h_sub:'Pilih topik dan tulis pesan Anda. Tim pengelola Lawang akan membalas di sini.', sop_hint_pagos:'Transfer, kuitansi, dan jatuh tempo termin', sop_hint_documentacion:'Kontrak, denah, dan dokumen pembelian Anda', sop_hint_obra:'Progres, foto, dan tanggal serah terima', sop_hint_otro:'Pertanyaan lainnya', sop_abiertos:'Terbuka', sop_resueltos:'Selesai', sop_ninguno_abierto:'Anda tidak punya pertanyaan yang terbuka.', sop_respondido:'Kami sudah membalas', sop_esperando:'Menunggu tim', sop_n_msg_1:'1 pesan', sop_n_msg_n:'{n} pesan', sop_como:'Cara kerjanya', sop_tus:'Pertanyaan Anda', sop_p1_t:'Satu tiket per topik', sop_p1:'Jika pertanyaan Anda tentang faktur atau kontrak, pilih di “Tentang” agar tim langsung melihatnya.', sop_p2_t:'Kami membalas di sini', sop_p2:'Balasan tersimpan di tiket, dan daftar menampilkan “Kami sudah membalas” sampai Anda menjawab.', sop_p3_t:'Terjadi lagi?', sop_p3:'Tulis di tiket yang sudah selesai dan tiket akan dibuka lagi, lengkap dengan percakapan sebelumnya.', sop_aviso_t:'Saluran layanan', sop_reabre:'Tiket ini sudah selesai. Jika Anda menulis, tiket dibuka lagi dan sampai ke tim.', sop_ph_reabrir:'Tulis untuk membukanya lagi…', sop_ph_resp:'Tulis balasan Anda…', sop_atajo:'Ctrl+Enter untuk mengirim', sop_nuevo_sub:'Kami akan membalas di tiket ini.', sop_tema:'Topik', sop_ph_msg:'Ceritakan apa yang Anda perlukan', sop_reabierto:'Tiket dibuka lagi', sop_enviado:'Pesan terkirim' }
   };
   var LANG = localStorage.getItem('lw_portal_lang');
   if (!LANG || !(LANG in T)) { var nl = (navigator.language || 'es').slice(0,2); LANG = (nl === 'es' || nl === 'id') ? nl : 'en'; }
@@ -4105,40 +4145,49 @@
     if (!x.ref_numero) return '';
     return (x.factura_id ? t('factura') : x.contrato_id ? t('ob_contrato') : t('sobre')) + ' ' + x.ref_numero;
   }
+  /* v3 (9-oct-2026): cada tema con su tinte (los que ya usa el portal) y el color fuerte de su flecha y su bola. */
+  var TINTE_SOP = { pagos:'pagos', documentacion:'doc', obra:'obra' };
+  function tinteSop(c){ var k = TINTE_SOP[catClave(c)] || 'otro'; return ' style="--t:var(--t-' + k + ');--a:var(--a-' + k + ')"'; }
+  TRAZOS_SOP.cascos = '<path d="M5 13v-1a7 7 0 0 1 14 0v1"/><rect x="3.5" y="13" width="4" height="5.5" rx="1.5"/><rect x="16.5" y="13" width="4" height="5.5" rx="1.5"/><path d="M18.5 18.5c0 1.4-1.6 2-4 2h-1.5"/>';
+  TRAZOS_SOP.diag = '<path d="M7 7l10 10M17 9.5V17H9.5"/>';
   function filaTicket(x){
     var ms = x.mensajes || [], u = ms[ms.length - 1], tu = turnoSop(x);
-    var extracto = u ? '<span class="sop-ex"><em>' + esc(u.de === 'cliente' ? t('tu') : t('equipo')) + ':</em> ' + esc(u.texto) + '</span>' : '';
+    var extracto = u ? '<span class="ex"><em>' + esc(u.de === 'cliente' ? t('tu') : t('equipo')) + ':</em> ' + esc(u.texto) + '</span>' : '';
     var ref = refTicket(x);
-    return '<button type="button" class="sop-tk ' + tu.cls + '" data-ticket="' + esc(x.id) + '">' +
-      '<span class="sop-ico">' + icoCat(x.categoria) + '</span>' +
-      '<span class="sop-tk-c"><span class="sop-tk-t"><b>' + esc(catTxt(x.categoria)) + '</b>' +
-        (ref ? '<span class="sop-ref">' + trazoSop('doc', 1.8) + esc(ref) + '</span>' : '') + '</span>' + extracto +
-        '<span class="sop-pie">' + esc(ms.length === 1 ? t('sop_n_msg_1') : t('sop_n_msg_n').replace('{n}', ms.length)) + '</span></span>' +
-      '<span class="sop-tk-d"><span class="sop-estado ' + tu.cls + '"><i></i>' + esc(tu.txt) + '</span>' +
-        '<span class="sop-pie">' + esc(relativa(x.actualizado_en)) + '</span></span></button>';
+    return '<div class="s3-it"><span class="s3-nodo ' + tu.cls + '" aria-hidden="true"><i></i></span>' +
+      '<button type="button" class="s3-tk ' + tu.cls + '" data-ticket="' + esc(x.id) + '"' + tinteSop(x.categoria) + '>' +
+        '<span class="t"><b>' + esc(catTxt(x.categoria)) + '</b>' + (ref ? '<span class="sop-ref">' + trazoSop('doc', 1.8) + esc(ref) + '</span>' : '') + '</span>' +
+        '<span class="sop-estado ' + tu.cls + '"><i></i>' + esc(tu.txt) + '</span>' + extracto +
+        '<span class="pie">' + esc(ms.length === 1 ? t('sop_n_msg_1') : t('sop_n_msg_n').replace('{n}', ms.length)) + ' · ' + esc(relativa(x.actualizado_en)) + '</span>' +
+        '<span class="s3-flecha" aria-hidden="true">' + trazoSop('diag', 2) + '</span></button></div>';
   }
+  function lineaSop(l){ return '<div class="s3-tl' + (l.length === 1 ? ' una' : '') + '">' + l.map(filaTicket).join('') + '</div>'; }
   function pintaSoporte(c){
     var tickets = DATOS.tickets || [];
     var orden = ordenTickets(tickets), abiertos = orden.abiertos, resueltos = orden.resueltos;   // resumen.js: con respuesta primero
 
-    var empezar = '<section class="tarjeta sop-tarjeta"><h2 class="sop-h">' + esc(t('sop_h')) + '</h2><p class="sop-sub">' + esc(t('sop_h_sub')) + '</p>' +
-      '<div class="sop-temas">' + CATEGORIAS.map(function(cat){
-        return '<button type="button" class="sop-tema" data-sop-cat="' + esc(cat) + '"><span class="sop-ico">' + icoCat(cat) + '</span>' +
-          '<b>' + esc(catTxt(cat)) + '</b><small>' + esc(t('sop_hint_' + catClave(cat))) + '</small></button>';
-      }).join('') + '</div></section>';
+    var empezar = '<section class="s3-card s3-empezar"><div class="s3-disco" aria-hidden="true">' + trazoSop('cascos', 1.3) + '</div><div>' +
+      '<h2 class="s3-h">' + esc(t('sop_h')) + '</h2><p class="s3-sub">' + esc(t('sop_h_sub')) + '</p>' +
+      '<div class="s3-puertas">' + CATEGORIAS.map(function(cat){
+        return '<button type="button" class="s3-puerta" data-sop-cat="' + esc(cat) + '"' + tinteSop(cat) + '><span class="s3-bola">' + trazoSop(catClave(cat), 1.8) + '</span>' +
+          '<span class="tx"><b>' + esc(catTxt(cat)) + '</b><small>' + esc(t('sop_hint_' + catClave(cat))) + '</small></span></button>';
+      }).join('') + '</div></div></section>';
 
-    var lista = '<section><div class="sop-cab"><span class="rot-bloque sop-rot">' + esc(t('sop_abiertos')) + ' <b>' + abiertos.length + '</b></span>' +
-        '<button type="button" class="btn-borde" id="btnNuevoTicket">' + esc(t('nuevo_ticket')) + '</button></div>' +
-      (abiertos.length ? '<div class="sop-lista">' + abiertos.map(filaTicket).join('') + '</div>'
-        : (resueltos.length ? '<p class="sop-nada">' + esc(t('sop_ninguno_abierto')) + '</p>' : vacio(t('sin_tickets_t'), t('sin_tickets')))) +
-      (resueltos.length ? '<details class="sop-resueltos"><summary>' + trazoSop('flecha', 2) + '<span class="rot-bloque sop-rot">' + esc(t('sop_resueltos')) + ' <b>' + resueltos.length + '</b></span></summary>' +
-        '<div class="sop-lista">' + resueltos.map(filaTicket).join('') + '</div></details>' : '') + '</section>';
+    var aviso = '<section class="s3-card s3-aviso"><div class="tit"><span>' + trazoSop('info', 1.8) + '</span><h2 class="s3-h">' + esc(t('sop_aviso_t')) + '</h2></div>' +
+      '<p>' + esc(t('aviso_no_vinculante')) + '</p></section>';
 
-    var paso = function(n){ return '<li><span class="sop-n">' + n + '</span><div><b>' + esc(t('sop_p' + n + '_t')) + '</b><span>' + esc(t('sop_p' + n)) + '</span></div></li>'; };
-    var lado = '<section class="tarjeta sop-tarjeta"><h2 class="sop-h">' + esc(t('sop_como')) + '</h2><ol class="sop-pasos">' + paso(1) + paso(2) + paso(3) + '</ol></section>' +
-      '<div class="sop-aviso">' + trazoSop('info') + '<p><b>' + esc(t('sop_aviso_t')) + '</b>' + esc(t('aviso_no_vinculante')) + '</p></div>';
+    var lista = '<section class="s3-card s3-lista"><div class="s3-cab"><h2 class="s3-h">' + esc(t('sop_tus')) + '</h2>' +
+        '<span class="rot-bloque">' + esc(t('sop_abiertos')) + ' <b>' + abiertos.length + '</b></span></div>' +
+      (abiertos.length ? lineaSop(abiertos)
+        : (resueltos.length ? '<p class="s3-nada">' + esc(t('sop_ninguno_abierto')) + '</p>' : vacio(t('sin_tickets_t'), t('sin_tickets')))) +
+      (resueltos.length ? '<details class="s3-res"><summary>' + trazoSop('flecha', 2) + '<span class="rot-bloque">' + esc(t('sop_resueltos')) + ' <b>' + resueltos.length + '</b></span></summary>' +
+        lineaSop(resueltos) + '</details>' : '') + '</section>';
 
-    c.innerHTML = '<div class="sop"><div class="sop-col">' + empezar + lista + '</div><div class="sop-col">' + lado + '</div></div>';
+    var paso = function(n){ return '<li><div><b>' + esc(t('sop_p' + n + '_t')) + '</b><span>' + esc(t('sop_p' + n)) + '</span></div></li>'; };
+    var acento = '<section class="s3-acento"><h2 class="s3-h">' + esc(t('sop_como')) + '</h2><ul>' + paso(1) + paso(2) + paso(3) + '</ul>' +
+      '<button type="button" class="s3-blanco" id="btnNuevoTicket">' + esc(t('nuevo_ticket')) + '</button></section>';
+
+    c.innerHTML = '<div class="s3">' + empezar + aviso + lista + acento + '</div>';
     document.getElementById('btnNuevoTicket').addEventListener('click', function(){ abrirNuevoTicket(); });
     c.querySelectorAll('[data-sop-cat]').forEach(function(b){
       b.addEventListener('click', function(){ abrirNuevoTicket({ cat:b.getAttribute('data-sop-cat') }); });
