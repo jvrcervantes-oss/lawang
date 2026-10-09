@@ -4,6 +4,7 @@
 -- Orden: funciones nuevas → triggers → tablas → columnas → bot_lead_upsert a su version anterior.
 
 -- 1. funciones nuevas
+-- (20261010110100_bot_sin_redis_s1_ajustes solo reemplaza 4 funciones de estas mismas firmas: este drop tambien la revierte)
 drop function if exists public.bot_mensaje_recibir(text, text, text, jsonb);
 drop function if exists public.bot_turno_estado(text, boolean);
 drop function if exists public.bot_turno_cerrar(text, text, jsonb, text, text, boolean, boolean);
@@ -33,7 +34,7 @@ drop function if exists public._bot_media(jsonb);
 drop function if exists public._bot_limpia(text, int);
 drop function if exists public._bot_tel(text);
 
--- 3. columnas nuevas (lead_notas.tipo = 'resumen_bot' no debe existir ya: si hay resumenes, copiarlos antes o se pierden)
+-- 3. columnas nuevas (al soltar lead_notas.tipo, los resumenes del bot SOBREVIVEN como notas normales, indistinguibles de las humanas: marcarlos antes con un update de texto si importa)
 drop index if exists public.lead_notas_resumen_unico;
 drop index if exists public.lead_accion_recordar;
 alter table public.lead_notas  drop constraint if exists lead_notas_tipo_check, drop column if exists tipo, drop column if exists ref_hasta_id;
