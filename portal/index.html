@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="8be64318df72">
+<meta name="lw-version" content="2ced1b0892a1">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -4599,7 +4599,6 @@
   }
   function calDocNombre(tipo){ var k = 'doc_' + (tipo || ''); var s = t(k); return s === k ? (tipo || '') : s; }
   /* Título, línea de debajo e importe de un evento. Texto llano: quien lo pinta lo escapa. */
-  /* Un código (SH-03-CO, P-07, LW-0142) no se parte por el guion: guion no separable U+2011 entre letras/cifras. */
   /* Un código (SH-03-CO, P-07, LW-0142) no se parte por el guion: se envuelve en un span nowrap DESPUÉS de escapar (el
      patrón solo casa letras, cifras y guiones, que esc() no toca). El guion sigue siendo el normal: copiarlo para una
      transferencia o buscarlo con Ctrl+F da lo mismo que en la factura (revisor, 9-oct-2026). */
@@ -4639,7 +4638,7 @@
   }
   function calPunto(e){ return '<i class="cal-punto ' + (e.clase === 'vencida' ? 'mal' : 'f-' + e.familia) + '" aria-hidden="true"></i>'; }
   function calFila(e){
-    var x = calTexto(e), f = fechaDeDia(e.dia);
+    var x = calTexto(e);
     return '<div class="cal-fila' + (e.clase === 'vencida' ? ' mal' : '') + '" data-cal-ev="' + esc(e.id) + '">' +
       calPunto(e) +
       '<div class="cal-fila-tx"><b>' + esc(x.t) + '</b>' + (x.s ? '<span>' + esc(x.s) + '</span>' : '') +
@@ -4667,7 +4666,7 @@
     var venc = vencidoCalendario(todos);
     var sig = pend.filter(function(e){ return e.dias >= 0; })[0];   // «lo siguiente» nunca es algo ya pasado
     var cifra1 = venc.n
-      ? '<div class="c2-cifra mal"><span class="c2-lbl"><i></i>' + esc(venc.porMoneda.length ? t(venc.n === 1 ? 'cal_pago_venc_1' : 'cal_pago_venc_n').replace('{n}', venc.n) : t('cal_pagos_venc')) + '</span>' +
+      ? '<div class="c2-cifra mal"><span class="c2-lbl"><i></i>' + esc(venc.porMoneda.length ? t(venc.n - venc.sinImporte === 1 ? 'cal_pago_venc_1' : 'cal_pago_venc_n').replace('{n}', venc.n - venc.sinImporte) : t('cal_pagos_venc')) + '</span>' +
         '<b>' + esc(venc.porMoneda.length ? venc.porMoneda.map(function(m){ return dinero(m.total, m.moneda); }).join(' · ') : String(venc.n)) + '</b></div>'
       : '<div class="c2-cifra"><span class="c2-lbl">' + esc(t('cal_lo_siguiente')) + '</span>' +
         (sig ? '<b class="c2-txt">' + calCod(calTexto(sig).c || calTexto(sig).t) + '</b><span class="c2-sub">' + esc(calDiaLargo(sig.dia)) + '</span>' : '<b>—</b>') + '</div>';
@@ -4726,8 +4725,8 @@
     // ── el día elegido: lo que cae ese día y lo que está en marcha
     var delDia = todos.filter(function(e){ return e.dia === CAL.sel; }), enMarcha = todos.filter(function(e){ return e.dia !== CAL.sel && cubre(e, CAL.sel); });
     var diaH = '<div class="cal-dia c2-dia" id="calDia"><div class="cal-dia-cab">' + esc(calDiaLargo(CAL.sel)) + '</div>' +
-      (delDia.length ? delDia.map(function(e){ return calFila(e, false); }).join('') : (enMarcha.length ? '' : '<p class="cal-vacio">' + esc(t('cal_dia_vacio')) + '</p>')) +
-      (enMarcha.length ? '<div class="c2-marcha">' + esc(t('cal_en_marcha')) + '</div>' + enMarcha.map(function(e){ return calFila(e, false); }).join('') : '') + '</div>';
+      (delDia.length ? delDia.map(function(e){ return calFila(e); }).join('') : (enMarcha.length ? '' : '<p class="cal-vacio">' + esc(t('cal_dia_vacio')) + '</p>')) +
+      (enMarcha.length ? '<div class="c2-marcha">' + esc(t('cal_en_marcha')) + '</div>' + enMarcha.map(function(e){ return calFila(e); }).join('') : '') + '</div>';
 
     var leyenda = '<div class="c2-leyenda">' + [['firma','cal_fam_firma'],['pago','cal_fam_pago'],['obra','cal_fam_obra'],['doc','cal_fam_doc'],['mal','cal_e_vencida']].map(function(p){
         return '<span><i class="c2-' + p[0] + '"></i>' + esc(t(p[1])) + '</span>'; }).join('') +
