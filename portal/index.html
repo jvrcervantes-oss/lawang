@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="854cf7e663f6">
+<meta name="lw-version" content="bb12b02cf1fd">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -759,8 +759,8 @@
      dice de quién es el turno: lleno = te hemos respondido, hueco = esperando al equipo. Sin sombras. Hereda los enganches de
      la v2: data-sop-cat, btnNuevoTicket, data-ticket y el cajón entero (sop-dr) sin cambios. */
   /* Radio y tintes de las secciones v3 (Soporte y Mi perfil, 9-oct-2026): una sola lista para las dos. */
-  .s3, .p3{ --r-gr:20px; --tinte-verde:#e3eadb; --tinte-petroleo:#e8f0ef; --tinte-ambar:#f6e8cc; --tinte-neutro:#efeee7; --tinte-rojo:#f8ebe7; --tinte-arena:#f1ebe1; }
-  .s3{ --t-pagos:var(--tinte-verde); --a-pagos:#485B37; --t-doc:var(--tinte-petroleo); --a-doc:#104C4F; --t-obra:var(--tinte-ambar); --a-obra:#8C5E10; --t-otro:var(--tinte-neutro); --a-otro:#66695f;
+  .s3, .p3{ --r-gr:20px; --ambar-fuerte:#8C5E10; --oro:#C89B5C; --tinte-verde:#e3eadb; --tinte-petroleo:#e8f0ef; --tinte-ambar:#f6e8cc; --tinte-neutro:#efeee7; --tinte-rojo:#f8ebe7; --tinte-arena:#f1ebe1; }
+  .s3{ --t-pagos:var(--tinte-verde); --a-pagos:#485B37; --t-doc:var(--tinte-petroleo); --a-doc:#104C4F; --t-obra:var(--tinte-ambar); --a-obra:var(--ambar-fuerte); --t-otro:var(--tinte-neutro); --a-otro:#66695f;
     display:grid; grid-template-columns:minmax(0,1.62fr) minmax(0,1fr); grid-template-areas:"empezar aviso" "lista acento"; gap:20px; align-items:stretch; }
   .s3 > *{ min-width:0; }
   .s3-card{ background:#fff; border:1px solid var(--pg-hi); border-radius:var(--r-gr); padding:24px 26px; margin:0; }
@@ -891,7 +891,7 @@
   .ent-estado b{ font-size:30px; font-weight:400; letter-spacing:-.015em; line-height:1; font-variant-numeric:tabular-nums; }
   .ent-estado b small{ font-size:14px; margin-left:3px; letter-spacing:0; }
   .ent-estado span{ font-size:12.5px; color:var(--ink2); }
-  .p3-doc.pronto .ent-estado b{ color:#8C5E10; }
+  .p3-doc.pronto .ent-estado b{ color:var(--ambar-fuerte); }
   .p3-doc.ok .ent-estado b{ color:var(--ok); font-size:22px; }
   .p3-doc.vencido .ent-estado b{ color:var(--bad); font-size:22px; }
   .p3-doc.sin .ent-estado b{ color:var(--ink2); font-size:22px; }
@@ -899,7 +899,7 @@
   .ent-vida{ display:grid; gap:6px; }
   .ent-barra{ position:relative; height:6px; border-radius:999px; background:rgba(255,255,255,.8); }
   .ent-barra i{ position:absolute; inset:0 auto 0 0; border-radius:999px; background:var(--tg); }
-  .p3-doc.pronto .ent-barra i{ background:#C89B5C; }
+  .p3-doc.pronto .ent-barra i{ background:var(--oro); }
   .p3-doc.vencido .ent-barra i{ background:var(--bad); }
   .ent-barra em{ position:absolute; top:-4px; width:2px; height:14px; border-radius:2px; background:var(--va); transform:translateX(-1px); }
   .ent-pie{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:2px 8px; font-size:11px; color:var(--out); font-variant-numeric:tabular-nums; }
@@ -975,7 +975,6 @@
     .p3-card.p3-datosmal{ grid-template-columns:minmax(0,1fr); }
     .p3-ir{ justify-self:start; }
   }
-  @media (prefers-reduced-motion:reduce){ .p3-ver, .p3-ir, .p3-pass, .p3-avisar{ transition:none; } }
 
   /* ══ CONTRATOS POR VILLA — artifact «Lawang · Contratos (propuesta)», 7-oct-2026 ══
      Con los tonos que el portal ya usa: verde de pagado (#485B37 / --ok), teal de acción (--dl) y el ámbar de la
@@ -4476,7 +4475,8 @@
     prefs[cual] = !prefs[cual];
     pintaPerfil(document.getElementById('content'));
     sb.rpc('portal_set_prefs', { p_pref_email: prefs.pref_email, p_pref_sms: prefs.pref_sms }).then(function(r){
-      if (r.error){ console.error('portal_set_prefs', r.error); toastMal(t('err_prefs')); }
+      // Si no se guardó, el interruptor vuelve a como estaba: la pantalla no dice «Activados» de algo que no cambió (revisor, 9-oct-2026).
+      if (r.error){ console.error('portal_set_prefs', r.error); prefs[cual] = !prefs[cual]; if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content')); toastMal(t('err_prefs')); }
     });
   }
 
