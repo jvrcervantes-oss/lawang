@@ -33,7 +33,7 @@ function _dep(dep){
   return {
     resumenPortal: de('resumenPortal'), precioContrato: de('precioContrato'), facturaDelHito: de('facturaDelHito'),
     estadoFactura: de('estadoFactura'), saldoSinAplicar: de('saldoSinAplicar'), estadoDocumento: de('estadoDocumento'),
-    estadosHitos: de('estadosHitos'), obraProyecto: de('obraProyecto'),
+    estadosHitos: de('estadosHitos'), obraProyecto: de('obraProyecto'), avisoDias: de('KYC_AVISO_DIAS') || 30,
   };
 }
 
@@ -84,13 +84,19 @@ function eventosCalendario(d, hoy, dep){
   contratos.forEach(x => { if (x.id) porId[x.id] = x; });
   const ev = [];
 
+  /* Periodo de un evento (owner, 9-oct-2026: el calendario «en color»): además de su día clave, lo que está EN MARCHA
+     se pinta como una franja fina que cubre sus días. Solo con datos que el portal ya trae: el enlace de firma desde
+     que se envió hasta que caduca; una factura sin pagar desde que se emitió hasta que vence; una vencida desde que
+     venció hasta hoy; un documento, los días de aviso antes de caducar (KYC_AVISO_DIAS, el mismo plazo que Inicio). */
+  const periodo = (e, desde, hasta) => { if (desde && hasta && desde < hasta){ e.desde = desde; e.hasta = hasta; } return e; };
+
   // 1 · firma pendiente: el día en que caduca el enlace
   (d.firma_pendiente || []).forEach(fp => {
     const dia = diaCal(fp && fp.expira_en);
     if (!dia) return;
     const x = porId[fp.contrato_id] || {};
-    ev.push({ id: 'firma:' + fp.contrato_id, familia: 'firma', clase: 'firma', dia: dia, estado: 'firmar', pide: true,
-              contrato: x.numero || '', proyecto: x.proyecto || '', parcela: x.parcela || '', ir: 'contratos' });
+    ev.push(periodo({ id: 'firma:' + fp.contrato_id, familia: 'firma', clase: 'firma', dia: dia, estado: 'firmar', pide: true,
+              contrato: x.numero || '', proyecto: x.proyecto || '', parcela: x.parcela || '', ir: 'contratos' }, diaCal(fp.enviado_en), dia));
   });
 
   // 2 · pagos: los hitos con fecha de los contratos que cuentan (la misma base que el «Próximo pago»)
@@ -121,12 +127,14 @@ function eventosCalendario(d, hoy, dep){
         estado = y.estado === 'pagado' ? 'pagado' : (y.estado === 'parcial' ? 'parcial' : 'pendiente');
         falta = monto == null ? null : (estado === 'pagado' ? 0 : Math.max(0, monto - (y.cubierto || 0)));
       }
-      ev.push({ id: 'hito:' + x.id + ':' + i, familia: 'pago', clase: estado === 'vencida' ? 'vencida' : 'pago', dia: dia, estado: estado,
+      const pendiente = !!fac && ef.estado != null && estado !== 'pagado';
+      ev.push(periodo({ id: 'hito:' + x.id + ':' + i, familia: 'pago', clase: estado === 'vencida' ? 'vencida' : 'pago', dia: dia, estado: estado,
                 // un pago te lo pedimos cuando hay factura (sale a D-3 del vencimiento): antes es un plazo del plan, no una tarea
                 pide: !!fac && ef.estado != null && estado !== 'pagado',
                 hito: y.hito, monto: monto, falta: falta, moneda: x.moneda || null,
                 contrato: x.numero || '', proyecto: x.proyecto || '', parcela: x.parcela || '',
-                factura: fac ? fac.numero : null, ir: fac ? 'factura' : 'contratos' });
+                factura: fac ? fac.numero : null, ir: fac ? 'factura' : 'contratos' },
+                !pendiente ? null : estado === 'vencida' ? dia : diaCal(fac.fecha), !pendiente ? null : estado === 'vencida' ? hoyDia : dia));
     });
   });
 
@@ -136,10 +144,11 @@ function eventosCalendario(d, hoy, dep){
     const ef = D.estadoFactura ? D.estadoFactura(f, extra[f.id], fechaDeDia(hoyDia).setHours(12)) : { estado: null };
     const dia = diaCal(ef.vence);
     if (!dia || !ef.estado || ef.estado === 'pagada') return;
-    ev.push({ id: 'factura:' + f.id, familia: 'pago', clase: ef.estado === 'vencida' ? 'vencida' : 'pago', dia: dia,
+    ev.push(periodo({ id: 'factura:' + f.id, familia: 'pago', clase: ef.estado === 'vencida' ? 'vencida' : 'pago', dia: dia,
               estado: ef.estado === 'vencida' ? 'vencida' : (ef.estado === 'parcial' ? 'parcial' : 'pendiente'),
               pide: true, monto: Number(f.total), falta: ef.falta != null ? ef.falta : Number(f.total), moneda: f.moneda || null,
-              contrato: f.contrato_numero || '', proyecto: f.proyecto || '', factura: f.numero, ir: 'factura' });
+              contrato: f.contrato_numero || '', proyecto: f.proyecto || '', factura: f.numero, ir: 'factura' },
+              ef.estado === 'vencida' ? dia : diaCal(f.fecha), ef.estado === 'vencida' ? hoyDia : dia));
   });
 
   // 4 · pagos recibidos: el recibo, en su día, como hecho
@@ -186,8 +195,9 @@ function eventosCalendario(d, hoy, dep){
     const dia = diaCal(k && k.caduca);
     if (!dia) return;
     const e = D.estadoDocumento ? D.estadoDocumento(k.caduca, fechaDeDia(hoyDia)) : { estado: 'ok', dias: diasEntre(hoyDia, dia) };
-    ev.push({ id: 'doc:' + (k.tipo || 'otro') + ':' + i, familia: 'doc', clase: e.estado === 'vencido' ? 'vencida' : 'doc', dia: dia,
-              estado: e.estado, pide: e.estado === 'pronto' || e.estado === 'vencido', docTipo: k.tipo || '', ir: 'perfil' });
+    ev.push(periodo({ id: 'doc:' + (k.tipo || 'otro') + ':' + i, familia: 'doc', clase: e.estado === 'vencido' ? 'vencida' : 'doc', dia: dia,
+              estado: e.estado, pide: e.estado === 'pronto' || e.estado === 'vencido', docTipo: k.tipo || '', ir: 'perfil' },
+              e.estado === 'vencido' ? null : sumaDias(dia, -D.avisoDias), dia));
   });
 
   ev.forEach(e => { e.dias = diasEntre(hoyDia, e.dia); });

@@ -196,6 +196,16 @@ es('hito sin fecha con factura sin estado: cuenta como sin fecha', [C.hitosSinFe
 const casoF3 = JSON.parse(JSON.stringify(casoF)); casoF3.facturas[0].fields = {};
 es('hito sin fecha con factura sin vencimiento: cuenta como sin fecha', [C.hitosSinFecha(casoF3, dep(casoF3)), C.eventosCalendario(casoF3, HOY, dep(casoF3)).length], [1, 0]);
 
+/* ── periodos (calendario en color, 9-oct-2026) ─────────────────────── */
+es('firma: del envío del enlace a su caducidad (días locales)', [uno('firma:sh').desde, uno('firma:sh').hasta], ['2026-10-06', '2026-10-20']);
+es('factura sin pagar: de la emisión al vencimiento', [uno('hito:co:1').desde, uno('hito:co:1').hasta], ['2026-10-06', '2026-10-15']);
+es('vencida: del vencimiento hasta hoy', [uno('hito:bv:1').desde, uno('hito:bv:1').hasta], ['2026-10-04', '2026-10-09']);
+es('pagado: sin periodo', uno('hito:co:0').desde, undefined);
+es('hito sin factura: sin periodo', uno('hito:co:2').desde, undefined);
+es('documento: los 30 días de aviso antes de caducar', [uno('doc:passport:0').desde, uno('doc:passport:0').hasta], ['2026-09-22', '2026-10-22']);
+es('factura suelta: de la emisión al vencimiento', [uno('factura:f9').desde, uno('factura:f9').hasta], ['2026-10-01', '2026-10-25']);
+es('recibo y obra: sin periodo', [uno('recibo:r1').desde, uno('entrega:P-07').desde], [undefined, undefined]);
+
 /* Comprador sin nada: no rompe */
 es('sin datos, sin eventos', C.eventosCalendario({}, HOY, dep({})).length, 0);
 es('sin datos, sin hitos sin fecha', C.hitosSinFecha({}, dep({})), 0);
