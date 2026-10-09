@@ -193,6 +193,8 @@ es('y su factura sí sale en su vencimiento', C.eventosCalendario(casoF, HOY, de
 /* …pero si esa factura no trae `aplicado` no sale en el calendario: entonces sí cuenta como «sin fecha» (no se pierde) */
 const casoF2 = JSON.parse(JSON.stringify(casoF)); delete casoF2.facturas[0].aplicado;
 es('hito sin fecha con factura sin estado: cuenta como sin fecha', [C.hitosSinFecha(casoF2, dep(casoF2)), C.eventosCalendario(casoF2, HOY, dep(casoF2)).length], [1, 0]);
+const casoF3 = JSON.parse(JSON.stringify(casoF)); casoF3.facturas[0].fields = {};
+es('hito sin fecha con factura sin vencimiento: cuenta como sin fecha', [C.hitosSinFecha(casoF3, dep(casoF3)), C.eventosCalendario(casoF3, HOY, dep(casoF3)).length], [1, 0]);
 
 /* Comprador sin nada: no rompe */
 es('sin datos, sin eventos', C.eventosCalendario({}, HOY, dep({})).length, 0);

@@ -217,9 +217,11 @@ function hitosSinFecha(d, dep){
     hs.forEach(y => {
       if (y.estado === 'pagado' || diaCal(y.hito && y.hito.fecha)) return;
       // si ya tiene factura CON estado, el calendario la pinta en su vencimiento (factura suelta): no es «sin fecha».
-      // Sin `aplicado` la factura no sale (estadoFactura no sabe nada), así que ese hito sigue contando aquí.
+      // Sin `aplicado` (estado desconocido) o sin vencimiento legible la factura no sale, así que ese hito sigue contando aquí:
+      // es la misma condición con la que el bucle de facturas sueltas la descarta.
       const fac = D.facturaDelHito ? D.facturaDelHito(facturas, { id: x.id, numero: x.numero }, y.hito, x.moneda) : null;
-      const sale = fac && D.estadoFactura && D.estadoFactura(fac, 0, Date.now()).estado != null;
+      const ef = fac && D.estadoFactura ? D.estadoFactura(fac, 0, Date.now()) : null;
+      const sale = !!(ef && ef.estado != null && diaCal(ef.vence));
       if (!sale) n++;
     });
   });
