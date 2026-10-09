@@ -709,6 +709,8 @@
     'Firmado, cobrado y lo que queda por vender': 'Signed, collected and what is left to sell',
     'Estado de cuentas': 'Statement of accounts',
     'Caja y cobros': 'Cash and collections',
+    'El stock no se reparte entre suelo y obra. Quita el filtro para verlo.': 'Stock is not split between land and construction. Remove the filter to see it.',
+    'Las comisiones no se reparten entre suelo y obra.': 'Commissions are not split between land and construction.',
     'Otros': 'Other',
     'Todo': 'All',
     'Suelo': 'Land',

@@ -428,7 +428,7 @@
     var el = $('lw-fin-stock'); if (!el) return;
     if (d.fallos.unidades) { falloEn(el, T('las unidades')); return; }
     var s = pm.stock, m = pm.moneda;
-    if (MODELO_ACTUAL && MODELO_ACTUAL.noSeReparte) { vacio(el, T('El stock no se reparte por sociedad: una unidad no tiene sociedad hasta que se vende. Quita el filtro para verlo.')); return; }
+    if (MODELO_ACTUAL && MODELO_ACTUAL.noSeReparte) { vacio(el, T(MODELO_ACTUAL.familia && MODELO_ACTUAL.familia !== 'todo' ? 'El stock no se reparte entre suelo y obra. Quita el filtro para verlo.' : 'El stock no se reparte por sociedad: una unidad no tiene sociedad hasta que se vende. Quita el filtro para verlo.')); return; }
     if (!s) { vacio(el, T('Ninguna unidad con precio en') + ' ' + m + '.'); return; }
     var estados = ORDEN_STOCK.filter(function (k) { return s.estados[k]; }).concat(Object.keys(s.estados).filter(function (k) { return ORDEN_STOCK.indexOf(k) === -1; }));
     var h = '<table class="w-full text-left border-collapse"><thead><tr class="border-b border-outline-variant/60">' +
@@ -602,7 +602,7 @@
   function pintaSalidas(pm, d) {
     var el = $('lw-fin-salidas'); if (!el) return;
     var m = pm.moneda, filas = [], total = 0, faltan = [];
-    if (MODELO_ACTUAL && MODELO_ACTUAL.noSeReparte) faltan.push(T('Las comisiones no se reparten por sociedad.'));
+    if (MODELO_ACTUAL && MODELO_ACTUAL.noSeReparte) faltan.push(T(MODELO_ACTUAL.familia && MODELO_ACTUAL.familia !== 'todo' ? 'Las comisiones no se reparten entre suelo y obra.' : 'Las comisiones no se reparten por sociedad.'));
     else if (d.fallos.solicitudes || d.fallos.comisiones) faltan.push(T('No se pudieron leer las solicitudes y comisiones.'));
     else {
       var s = pm.salidas;
@@ -742,6 +742,7 @@
         var entrada = finFiltraFamilia(finFiltraEmpresa(RAW, empresa), FAMILIA);
         entrada.incluirSinFirmar = SIN_FIRMAR;
         MODELO = finModelo(entrada);
+        MODELO.familia = FAMILIA;   // para que los avisos de «no se reparte» nombren el filtro que de verdad está puesto
         MODELO_ACTUAL = MODELO; EMPRESA_CSV = empresa; SIN_FIRMAR_CSV = SIN_FIRMAR;
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.finanzas = MODELO;   // para depurar desde consola
         if (!MON || (MODELO.monedas.length && MODELO.monedas.indexOf(MON) === -1)) {
@@ -855,12 +856,21 @@
         if (cab) cab.textContent = T('Informe de finanzas') + ' · ' + hoy + ' · ' + MON + (SOC_LISTA && EMPRESA !== 'todas' ? ' · ' + nombreSociedad(EMPRESA) : '') + (SIN_FIRMAR ? ' · ' + T('incluye sin firmar') : '');
         window.print();
       });
+      /* Al imprimir salen TODAS las pestañas (el CSS @media print las muestra). El gráfico
+         de caja mide su contenedor y, si su panel estaba oculto, se pintó a 300 px: se
+         redibuja con el panel ya visible, y al terminar se vuelve a la pestaña de antes.
+         Va en beforeprint/afterprint y no en el botón para cubrir también Ctrl+P. */
+      window.addEventListener('beforeprint', function () {
+        PANELES.forEach(function (k) { var pan = document.getElementById('lw-fin-p-' + k); if (pan) pan.hidden = false; });
+        var c = $('lw-fin-caja'); if (c && SERIE) dibujaCaja(c, MON, d.fallos.contratos || d.fallos.cobrado || d.fallos.vencimientos);
+      });
+      window.addEventListener('afterprint', function () { muestraPestana(PESTANA); });
       var bCsv = $('lw-fin-csv');
       if (bCsv) bCsv.addEventListener('click', function () { exportaCSV(MODELO.porMoneda[MON] || { moneda: MON }, hoy); });
       var tRes = null;
       window.addEventListener('resize', function () {
         clearTimeout(tRes);
-        tRes = setTimeout(function () { var c = $('lw-fin-caja'); if (c && SERIE) dibujaCaja(c, MON, d.fallos.contratos || d.fallos.cobrado || d.fallos.vencimientos); }, 150);
+        tRes = setTimeout(function () { var c = $('lw-fin-caja'); if (c && SERIE && c.clientWidth > 0) dibujaCaja(c, MON, d.fallos.contratos || d.fallos.cobrado || d.fallos.vencimientos); }, 150);
       });
       pintaTodo();
 
