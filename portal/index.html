@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="279b4a167da3">
+<meta name="lw-version" content="fbb68e5c83e3">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- MODO DEMO (7-oct-2026): con `?demo` en la dirección se carga demo.js, que sustituye el cliente de Supabase por uno falso con datos
      ficticios. document.write y no un script creado a mano: tiene que ejecutarse ANTES del script del portal, en orden. Falla CERRADO: si demo.js
      no carga, createClient se anula y el portal real nunca se crea con `?demo` puesto. Sin `?demo` esto no hace nada. -->
-<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261008m"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script>if(/[?&]demo(=|&|$)/.test(location.search)){document.write('<script src="/portal/demo.js?v=20261009c"><\/script>');}</script><script>if(/[?&]demo(=|&|$)/.test(location.search)&&!window.LW_DEMO){try{window.supabase.createClient=function(){throw new Error('demo no disponible');};}catch(e){}document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="font:15px system-ui;padding:40px">La demo no está disponible ahora mismo.</p>';});}</script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -51,8 +51,10 @@
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/contracts/assets/mapa.js?v=dfa99f98"></script>
 <script src="/portal/resumen.js?v=20261008s"></script>
+<!-- `calendario.js`: las fechas de la pestaña Calendario (9-oct-2026), solo datos y con test en node (calendario.test.js). -->
+<script src="/portal/calendario.js?v=20261009e"></script>
 <script src="/portal/zip.js?v=20261007"></script>
-<script src="/portal/motion.js?v=20261007"></script>
+<script src="/portal/motion.js?v=20261009"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
 <script src="/intranet/facturas/documento.js?v=933661fe"></script>
 <style>
@@ -758,7 +760,9 @@
      portal ya usa) y «Cómo funciona» como bloque de acento con el botón blanco de «Nuevo ticket». El nodo de cada consulta
      dice de quién es el turno: lleno = te hemos respondido, hueco = esperando al equipo. Sin sombras. Hereda los enganches de
      la v2: data-sop-cat, btnNuevoTicket, data-ticket y el cajón entero (sop-dr) sin cambios. */
-  .s3{ --r-gr:20px; --t-pagos:#e3eadb; --a-pagos:#485B37; --t-doc:#e8f0ef; --a-doc:#104C4F; --t-obra:#f6e8cc; --a-obra:#8C5E10; --t-otro:#efeee7; --a-otro:#66695f;
+  /* Radio y tintes de las secciones v3 (Soporte y Mi perfil, 9-oct-2026): una sola lista para las dos. */
+  .s3, .p3{ --r-gr:20px; --ambar-fuerte:#8C5E10; --oro:#C89B5C; --tinte-verde:#e3eadb; --tinte-petroleo:#e8f0ef; --tinte-ambar:#f6e8cc; --tinte-neutro:#efeee7; --tinte-rojo:#f8ebe7; --tinte-arena:#f1ebe1; }
+  .s3{ --t-pagos:var(--tinte-verde); --a-pagos:#485B37; --t-doc:var(--tinte-petroleo); --a-doc:#104C4F; --t-obra:var(--tinte-ambar); --a-obra:var(--ambar-fuerte); --t-otro:var(--tinte-neutro); --a-otro:#66695f;
     display:grid; grid-template-columns:minmax(0,1.62fr) minmax(0,1fr); grid-template-areas:"empezar aviso" "lista acento"; gap:20px; align-items:stretch; }
   .s3 > *{ min-width:0; }
   .s3-card{ background:#fff; border:1px solid var(--pg-hi); border-radius:var(--r-gr); padding:24px 26px; margin:0; }
@@ -847,75 +851,66 @@
   }
   @media (prefers-reduced-motion:reduce){ .s3-puerta, .s3-tk, .s3-flecha, .s3-res summary svg{ transition:none; } .s3-tk:hover .s3-flecha{ transform:none; } }
 
-  /* ═══ MI PERFIL — la página de la cuenta (8-oct-2026; aspecto del artifact «Mi perfil Lawang v2») ═══
-     Ficha (quién es y sus datos), lo entregado, seguridad y avisos, y a quién escribir si un dato está mal. Lo que ya
-     enseña Inicio (lo pagado, lo pendiente, las propiedades, la actividad) no se repite aquí (owner, 8-oct-2026).
-     Piezas del portal (tarjeta, rot-bloque, docfila, toggle), tarjetas en blanco como las de Inicio, ni sombras ni
-     colores nuevos. */
+  /* ═══ MI PERFIL v3 (9-oct-2026; artifact «Mi perfil Lawang v3», sobre la referencia «Realty Hub» del owner) ═══
+     Solo cambia el aspecto (owner: «así, solo en Perfil»): ficha grande con el icono de villa y los datos en rejilla, lo
+     entregado en teselas tintadas por estado, el aviso de datos personales y, a la derecha, «Seguridad y avisos» en raíl
+     (el «Live feed» de la referencia). Lo que ya enseña Inicio (lo pagado, lo pendiente, las propiedades, la actividad) no
+     se repite aquí (owner, 8-oct-2026). Radio y tintes compartidos con Soporte v3 (.s3, .p3). Sin sombras. */
   .content.pf-ancho{ max-width:1040px; }
-  .pf{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:18px; align-items:start; }
-  .pf-col{ display:grid; gap:18px; min-width:0; }
-  .pf .tarjeta{ margin:0; background:#fff; }
-  .pf h3.pf-t{ margin:0; font-size:17px; font-weight:500; }
-  .pf h3.pf-t-sola{ margin-bottom:6px; }
-  /* ficha: quién es y sus datos en pastillas */
-  .pf-ficha{ padding:24px 26px; }
-  .pf-yo{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:22px; align-items:center; }
-  .pf-avatar{ width:96px; height:96px; border-radius:16px; background:var(--av-fondo); color:#fff; display:grid; place-items:center;
-              font-size:34px; font-weight:400; letter-spacing:.04em; }
-  .pf-quien{ min-width:0; }
-  .pf-quien h2{ margin:2px 0 0; font-size:30px; font-weight:400; letter-spacing:-.01em; line-height:1.1; overflow-wrap:anywhere; }
-  .pf-sub{ margin:4px 0 0; font-size:13.5px; color:var(--ink2); }
-  .pf-datos{ list-style:none; padding:0; margin:14px 0 0; display:flex; flex-wrap:wrap; gap:8px; }
-  .pf-dato{ display:flex; align-items:center; gap:7px; min-width:0; max-width:100%; font-size:13px; background:var(--pg-low);
-            border:1px solid var(--pg-hi); border-radius:999px; padding:5px 12px 5px 10px; box-sizing:border-box; }
-  .pf-dato svg{ width:14px; height:14px; color:var(--sc); flex:none; }
-  .pf-dato span{ overflow-wrap:anywhere; }
-  /* lo entregado (artifact «Documentos entregados Lawang», 8-oct-2026): cada documento es una pieza con su dibujo,
-     su estado en grande y una barra de lo que le queda; la que caduca en 30 días o menos, teñida de rojo */
-  .ent-cab{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .p3{ display:grid; grid-template-columns:minmax(0,1.62fr) minmax(0,1fr); gap:20px; align-items:start; }
+  .p3-col{ display:grid; gap:20px; min-width:0; }
+  .p3-card{ background:#fff; border:1px solid var(--pg-hi); border-radius:var(--r-gr); padding:24px 26px; margin:0; min-width:0; }
+  .p3-h{ margin:0; font-size:20px; font-weight:500; letter-spacing:-.005em; text-wrap:balance; }
+  /* ficha */
+  .p3-ficha{ display:grid; grid-template-columns:156px minmax(0,1fr); gap:28px; align-items:center; }
+  .p3-icono .moa{ width:156px; height:156px; }
+  .p3-quien{ min-width:0; }
+  .p3-quien h2{ margin:0; font-size:26px; font-weight:500; letter-spacing:-.01em; line-height:1.15; overflow-wrap:anywhere; }
+  .p3-quien .sub{ margin:6px 0 0; font-size:13.5px; color:var(--out); }
+  .p3-datos{ list-style:none; margin:20px 0 0; padding:20px 0 0; border-top:1px solid var(--pg-hi); display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 18px; }
+  .p3-datos li{ display:flex; align-items:center; gap:10px; min-width:0; font-size:13.5px; }
+  .p3-datos li.ancho{ grid-column:1 / -1; }
+  .p3-datos li span:last-child{ min-width:0; overflow-wrap:anywhere; }
+  .p3-datos .ico{ width:32px; height:32px; border-radius:50%; background:var(--pg-low); color:var(--dl); display:grid; place-items:center; flex:none; }
+  .p3-datos .ico svg{ width:15px; height:15px; }
+  /* lo entregado: una tesela por documento, tintada por su estado (el mismo de resumen.js que usa el aviso de Inicio) */
+  .p3-cab{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .ent-res{ display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; border-radius:999px; padding:4px 11px 4px 9px; }
   .ent-res i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
-  .ent-res.aviso{ background:#f8ebe7; color:var(--bad); }
-  .ent-res.bien{ background:#e3eadb; color:var(--ok); }
-  .ent-intro{ margin:6px 0 16px; font-size:13px; line-height:1.5; color:var(--ink2); max-width:56ch; }
-  .ent-docs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(236px,1fr)); gap:12px; }
-  .ent-doc{ border:1px solid var(--pg-hi); border-radius:14px; background:#fff; padding:14px 14px 12px; display:flex; flex-direction:column; gap:12px; min-width:0; }
-  .ent-doc.pronto{ background:#fdf6f3; border-color:#e4c3ba; }
-  .ent-doc.vencido{ background:var(--pg-low); }
-  .ent-top{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:center; }
-  .ent-nom .t{ font-size:14.5px; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
-  .ent-nom .s{ font-size:12px; color:var(--out); margin-top:2px; }
+  .ent-res.aviso{ background:var(--tinte-rojo); color:var(--bad); }
+  .ent-res.bien{ background:var(--tinte-verde); color:var(--ok); }
+  .p3-intro{ margin:6px 0 18px; font-size:13px; line-height:1.5; color:var(--ink2); max-width:56ch; }
+  .p3-docs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
+  .p3-doc{ border-radius:18px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:14px; min-width:0; background:var(--tinte-neutro); }
+  .p3-doc.ok{ background:var(--tinte-verde); } .p3-doc.pronto{ background:var(--tinte-ambar); } .p3-doc.vencido{ background:var(--tinte-rojo); }
+  .p3-doc-top{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; }
+  .p3-doc .t{ font-size:14.5px; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
+  .p3-doc .s{ font-size:12px; color:var(--out); margin-top:2px; }
+  .p3-ver{ width:36px; height:36px; border-radius:50%; border:1px solid rgba(27,28,25,.12); background:rgba(255,255,255,.75); color:var(--va); display:grid; place-items:center; padding:0; cursor:pointer; }
+  .p3-ver:hover{ background:#fff; }
+  .p3-ver svg{ width:15px; height:15px; }
   .ent-estado{ display:flex; align-items:baseline; gap:4px 8px; flex-wrap:wrap; }
   .ent-estado b{ font-size:30px; font-weight:400; letter-spacing:-.015em; line-height:1; font-variant-numeric:tabular-nums; }
   .ent-estado b small{ font-size:14px; margin-left:3px; letter-spacing:0; }
   .ent-estado span{ font-size:12.5px; color:var(--ink2); }
-  .ent-doc.pronto .ent-estado b{ color:var(--bad); }
-  .ent-doc.ok .ent-estado b{ color:var(--ok); font-size:22px; }
-  .ent-doc.vencido .ent-estado b{ color:var(--bad); font-size:22px; }
-  .ent-doc.sin .ent-estado b{ color:var(--ink2); font-size:22px; }
+  .p3-doc.pronto .ent-estado b{ color:var(--ambar-fuerte); }
+  .p3-doc.ok .ent-estado b{ color:var(--ok); font-size:22px; }
+  .p3-doc.vencido .ent-estado b{ color:var(--bad); font-size:22px; }
+  .p3-doc.sin .ent-estado b{ color:var(--ink2); font-size:22px; }
   .ent-estado b.txt{ font-size:20px; }
-  .ent-vida{ display:grid; gap:5px; }
-  .ent-barra{ position:relative; height:6px; border-radius:999px; background:var(--pg-hi); }
+  .ent-vida{ display:grid; gap:6px; }
+  .ent-barra{ position:relative; height:6px; border-radius:999px; background:rgba(255,255,255,.8); }
   .ent-barra i{ position:absolute; inset:0 auto 0 0; border-radius:999px; background:var(--tg); }
-  .ent-doc.pronto .ent-barra i{ background:var(--bad); }
-  .ent-doc.vencido .ent-barra i{ background:var(--ss); }
+  .p3-doc.pronto .ent-barra i{ background:var(--oro); }
+  .p3-doc.vencido .ent-barra i{ background:var(--bad); }
   .ent-barra em{ position:absolute; top:-4px; width:2px; height:14px; border-radius:2px; background:var(--va); transform:translateX(-1px); }
   .ent-pie{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:2px 8px; font-size:11px; color:var(--out); font-variant-numeric:tabular-nums; }
   .ent-pie span{ white-space:nowrap; }
-  .ent-acc{ display:flex; gap:8px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--pg-hi); margin-top:auto; }
-  .ent-doc.pronto .ent-acc{ border-top-color:#e4c3ba; }
-  .ent-btn{ font:inherit; border-radius:999px; font-size:12.5px; font-weight:600; padding:7px 13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; min-height:34px; }
-  .ent-btn svg{ width:15px; height:15px; }
-  .ent-btn.ver{ background:#fff; color:var(--dl); border:1px solid var(--pg-hi); }
-  .ent-btn.ver:hover{ border-color:var(--ss); }
-  .ent-btn.avisar{ background:var(--bad); color:#fff; border:1px solid var(--bad); }
-  .ent-btn.avisar:hover{ background:#86271f; border-color:#86271f; }
-  .ent-btn:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
-  /* el dibujo de cada documento: pasaporte (librito petróleo con escudo), documento de identidad y NPWP (tarjetas)
-     y KITAS u otro (hoja con cabecera verde) */
-  .ent-art{ width:58px; height:58px; display:grid; place-items:center; border-radius:12px; background:var(--pg-low); }
-  .ent-doc.pronto .ent-art{ background:#f6e2dc; }
+  .p3-avisar{ align-self:stretch; display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:12px; padding:10px 14px; font:inherit; font-size:13px; font-weight:600; color:#fff; background:var(--bad); cursor:pointer; }
+  .p3-avisar:hover{ background:#86271f; }
+  .p3-avisar svg{ width:15px; height:15px; }
+  /* el dibujo de cada documento: pasaporte (librito petróleo con escudo), documento de identidad, NPWP y KITAS (8-oct) */
+  .ent-art{ width:58px; height:58px; display:grid; place-items:center; border-radius:14px; background:rgba(255,255,255,.65); }
   .ent-art > span{ position:relative; display:block; }
   .ent-art b{ position:absolute; height:2px; border-radius:2px; }
   .ent-pas{ width:30px; height:42px; border-radius:3px 6px 6px 3px; background:var(--dl); }
@@ -936,30 +931,67 @@
   .ent-kit::before{ content:""; position:absolute; left:0; right:0; top:0; height:8px; border-radius:3px 3px 0 0; background:var(--tg); }
   .ent-kit b{ left:5px; background:var(--pg-hi); }
   .ent-kit b:nth-child(1){ top:13px; right:5px; } .ent-kit b:nth-child(2){ top:18px; right:9px; } .ent-kit b:nth-child(3){ top:23px; right:6px; } .ent-kit b:nth-child(4){ top:28px; right:12px; }
-  /* ajustes: un icono por fila */
-  .pf .pref-fila{ gap:12px; padding:11px 0; border-bottom-color:var(--pg-hi); }
-  .pf .pref-fila span{ font-size:13.5px; }
-  .pf-pref{ display:flex; align-items:center; gap:10px; min-width:0; }
-  .pf-pref svg{ width:17px; height:17px; flex:none; color:var(--sc); }
-  .pf-rot-prefs{ margin:16px 0 0; font-size:11px; }
-  /* datos personales: tarjeta propia en el gris de la piel (antes .ini-sop, que en la columna estrecha dejaba el
-     título flotando a la derecha y un hueco) */
-  .pf .tarjeta.pf-ayuda{ background:var(--pg-low); display:grid; grid-template-columns:auto minmax(0,1fr); gap:14px; padding:20px; }
-  .pf-ayuda .ico{ width:40px; height:40px; border-radius:50%; background:#fff; border:1px solid var(--pg-hi); color:var(--dl); display:grid; place-items:center; box-sizing:border-box; }
-  .pf-ayuda .ico svg{ width:19px; height:19px; }
-  .pf-ayuda-tx{ min-width:0; }
-  .pf-ayuda .rot-bloque{ margin:2px 0 4px; font-size:11px; }
-  .pf-ayuda h4{ margin:0 0 6px; font-size:16px; font-weight:500; text-wrap:balance; }
-  .pf-ayuda p{ margin:0; font-size:13.5px; line-height:1.5; color:var(--ink2); }
-  .pf-ayuda .abiertas{ display:flex; align-items:center; gap:7px; margin-top:10px; font-size:12.5px; color:var(--va); }
-  .pf-ayuda .abiertas em{ width:7px; height:7px; border-radius:50%; background:var(--tg); flex:none; }
-  .pf-ayuda .btn-oscuro{ margin-top:14px; }
-  @media (max-width:1080px){ .pf{ grid-template-columns:minmax(0,1fr); } }   /* por debajo, la columna derecha se queda en ~200px y parte el correo */
-  @media (max-width:640px){
-    .pf-ficha{ padding:18px; }
-    .pf-yo{ gap:14px; align-items:start; }
-    .pf-avatar{ width:64px; height:64px; font-size:22px; border-radius:14px; }
-    .pf-quien h2{ font-size:23px; }
+  /* datos personales */
+  .p3-card.p3-datosmal{ background:var(--tinte-arena); border:0; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px 24px; align-items:center; }
+  .p3-datosmal .rot-bloque{ display:block; margin:0 0 6px; font-size:11px; }
+  .p3-datosmal h3{ margin:0; font-size:17px; font-weight:500; text-wrap:balance; }
+  .p3-datosmal p{ margin:6px 0 0; font-size:13px; line-height:1.55; color:var(--ink2); max-width:52ch; }
+  .p3-datosmal .abiertas{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12.5px; color:var(--va); }
+  .p3-datosmal .abiertas em{ width:22px; height:22px; border-radius:50%; background:var(--dl); color:#fff; font-style:normal; font-size:11.5px; font-weight:600; display:grid; place-items:center; flex:none; }
+  .p3-ir{ display:inline-flex; align-items:center; gap:10px; border:0; border-radius:999px; background:var(--dl); color:#fff; padding:6px 6px 6px 18px; font:inherit; font-size:13.5px; font-weight:600; white-space:nowrap; cursor:pointer; }
+  .p3-ir span{ width:30px; height:30px; border-radius:50%; background:#fff; color:var(--dl); display:grid; place-items:center; }
+  .p3-ir span svg{ width:14px; height:14px; }
+  .p3-ir:hover{ background:#0b3a3c; }
+  /* seguridad y avisos: el raíl */
+  .p3-rail .p3-h{ margin-bottom:18px; }
+  .p3-raild{ position:relative; display:grid; gap:12px; }
+  .p3-raild::before{ content:""; position:absolute; left:19px; top:28px; bottom:28px; width:2px; background:var(--pg-hi); }
+  .rail-it{ display:grid; grid-template-columns:40px minmax(0,1fr); gap:12px; align-items:start; }
+  .rail-ico{ position:relative; z-index:1; width:40px; height:40px; border-radius:50%; background:var(--pg-low); border:4px solid #fff; color:var(--dl); display:grid; place-items:center; margin-top:8px; box-sizing:border-box; }
+  .rail-ico svg{ width:16px; height:16px; }
+  .rail-card{ background:var(--rl); border:1px solid var(--pg-hi); border-radius:16px; padding:14px 14px 12px; display:grid; gap:10px; min-width:0; }
+  .rail-fila{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .rail-fila b{ font-size:14px; font-weight:600; }
+  .rail-fila small{ display:block; margin-top:2px; font-size:12px; line-height:1.45; color:var(--out); }
+  .rail-pills{ display:flex; flex-wrap:wrap; gap:6px; min-width:0; }
+  .rail-pill{ font-size:11.5px; font-weight:500; border:1px solid var(--pg-hi); background:#fff; border-radius:999px; padding:3px 10px; color:var(--ink2); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rail-pill.on{ background:var(--tinte-verde); border-color:var(--tinte-verde); color:var(--ok); }
+  .rail-sep{ margin:4px 0 -2px 52px; font-size:11px; }
+  .p3-pass{ border:1px solid var(--linea); background:#fff; color:var(--va); border-radius:999px; padding:7px 14px; font:inherit; font-size:12.5px; font-weight:600; white-space:nowrap; cursor:pointer; }
+  .p3-pass:hover{ border-color:var(--ss); }
+  .p3-ver:focus-visible, .p3-ir:focus-visible, .p3-pass:focus-visible, .p3-avisar:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  /* el icono de villa en el pie del menú: el dibujo lleva su propia forma, sin el círculo de fondo */
+  .avatar.villa{ background:none; border-radius:0; }
+  /* Moanito (9-oct-2026, owner): círculo del color que elige el cliente con el moanito de Lawang en blanco encima. */
+  .moa{ display:grid; place-items:center; border-radius:50%; flex:none; }
+  .moa img{ display:block; width:60%; height:auto; }
+  .moa.c-petroleo{ background:linear-gradient(135deg,#104C4F,#1F6A6B); }
+  .moa.c-selva{ background:linear-gradient(135deg,#2C5A43,#3F7A5C); }
+  .moa.c-oliva{ background:linear-gradient(135deg,#485B37,#62784A); }
+  .moa.c-arena{ background:linear-gradient(135deg,#8C6A3A,#C89B5C); }
+  .moa.c-oceano{ background:linear-gradient(135deg,#25506B,#3A7396); }
+  .moa.c-ciruela{ background:linear-gradient(135deg,#5E3A4F,#85536F); }
+  .moa.c-tinta{ background:linear-gradient(135deg,#2F3358,#4A5088); }
+  .moa.c-carbon{ background:linear-gradient(135deg,#262826,#4A4D47); }
+  .p3-colores{ margin:20px 0 0; padding:20px 0 0; border-top:1px solid var(--pg-hi); }
+  .p3-colores .rot-bloque{ display:block; margin:0 0 12px; }
+  .p3-sw{ display:flex; flex-wrap:wrap; gap:10px; }
+  .p3-sw button{ width:30px; height:30px; padding:0; border-radius:50%; border:2px solid transparent; outline:1px solid var(--linea); outline-offset:-1px; cursor:pointer; }
+  .p3-sw button[aria-pressed="true"]{ border-color:#fff; outline:2px solid var(--va); outline-offset:0; }
+  .p3-sw button:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  @media (max-width:1080px){
+    .p3{ grid-template-columns:minmax(0,1fr); }   /* por debajo, la columna derecha se queda estrecha y parte el correo */
+    .p3-ficha{ grid-template-columns:112px minmax(0,1fr); gap:20px; }
+    .p3-icono .moa{ width:112px; height:112px; }
+  }
+  @media (max-width:560px){
+    .p3-card{ padding:18px; }
+    .p3-ficha{ grid-template-columns:72px minmax(0,1fr); gap:16px; align-items:start; }
+    .p3-icono .moa{ width:72px; height:72px; }
+    .p3-quien h2{ font-size:21px; }
+    .p3-datos{ grid-template-columns:minmax(0,1fr); }
+    .p3-card.p3-datosmal{ grid-template-columns:minmax(0,1fr); }
+    .p3-ir{ justify-self:start; }
   }
 
   /* ══ CONTRATOS POR VILLA — artifact «Lawang · Contratos (propuesta)», 7-oct-2026 ══
@@ -1773,18 +1805,17 @@
   .con-pista > button[aria-pressed="true"], .con-pista > button[aria-pressed="true"]:hover{ background:transparent; }
   /* el elegido cambia de fondo de golpe: si fundiera, su verde aparecería en el destino antes de que llegue la pista,
      y al borrarse la pista se vería un destello claro */
-  .ini-filtro button[aria-pressed="true"], .lang-sel button[aria-pressed="true"]{ transition:color .2s, transform .12s var(--lw-ease); }
+  .ini-filtro button[aria-pressed="true"]{ transition:color .2s, transform .12s var(--lw-ease); }
   .lw-pista{ position:absolute; left:0; border-radius:999px; z-index:0; pointer-events:none; background:#485B37; }
-  .lang-sel .lw-pista{ background:var(--dl); }
   /* filtrar sin saltos: las copias de lo que sale se colocan sobre la lista */
   #docLista, #faLista{ position:relative; }
   /* avisos: la animación de motion.js manda sobre el fundido CSS */
   .toast.lw-aviso{ transition:none; }
   /* pulsar: todo lo que se pulsa cede un poco (los botones ya lo hacían) */
   .ct-pill, .dc-cifras button, button.ini-pastilla, .ini-filtro button{ transition:background .2s, color .2s, border-color .2s, transform .12s var(--lw-ease); }
-  /* el idioma no se repinta (sus botones son fijos): su fondo cambia de golpe y el movimiento lo pone la pista; si
-     fundiera, el botón que deja de estar elegido taparía la pista al salir */
-  .lang-sel button{ transition:color .2s, transform .12s var(--lw-ease); }
+  /* el idioma ya no se desliza (owner, 9-oct-2026: «se mueve raro»): el fondo del elegido aparece con un fundido corto
+     y el del que deja de estarlo se apaga a la vez, en el mismo sitio */
+  .lang-sel button{ transition:background-color .15s ease, color .15s ease, transform .12s var(--lw-ease); }
   .fa-slip{ transition:border-color .2s var(--lw-ease), background .2s var(--lw-ease), transform .12s var(--lw-ease); }
   .ini-ir:active, .ct-pill:active, button.ini-pastilla:active, .dc-cifras button:active, .ini-filtro button:active, .lang-sel button:active{ transform:scale(.96); }
   .dc-doc:active, .fa-slip:active{ transform:scale(.99); }
@@ -1802,6 +1833,158 @@
     .carga-raya{ visibility:hidden; }
     .ct-pill, .dc-cifras button, .lang-sel button, button.ini-pastilla, .ini-filtro button, .fa-slip{ transition:none; }
     .ini-ir:active, .ct-pill:active, button.ini-pastilla:active, .dc-cifras button:active, .ini-filtro button:active, .lang-sel button:active, .dc-doc:active, .fa-slip:active{ transform:none; }
+  }
+
+  /* ═══ CALENDARIO (9-oct-2026) ═══════════════════════════════════════════════════════════════════════════════
+     Piel v4, no la de la maqueta (revisión previa de Diseño): tarjetas con filete sobre la superficie, radio 12 o
+     pastilla, cero sombra, el verde #485B37 como ÚNICO acento (hoy, día elegido, vista activa). El tipo de cada fecha
+     va en un punto de 8 px apagado y SIEMPRE con su texto al lado: el color nunca es lo único que lo dice. Rojo solo
+     para lo vencido, que ya es un color de significado. Tallas de la piel: 12 / 13 / 15 / 22. */
+  .cal{ display:grid; gap:18px; }
+  .cal-punto{ flex:none; width:8px; height:8px; border-radius:50%; display:inline-block; background:var(--out); }
+  .cal-punto.f-firma{ background:var(--dl); } .cal-punto.f-pago{ background:#6B7A50; }
+  .cal-punto.f-obra{ background:#8A8474; }   .cal-punto.f-doc{ background:#B7862C; }
+  .cal-punto.mal{ background:var(--bad); }
+  .cal-cabeza{ display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); border:1px solid var(--pg-hi); border-radius:12px; background:var(--rl); }
+  .cal-cifra{ display:flex; flex-direction:column; gap:4px; padding:16px 20px; min-width:0; }
+  .cal-cifra + .cal-cifra{ border-left:1px solid var(--pg-hi); }
+  .cal-lbl{ font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); }
+  .cal-cifra b{ font-size:22px; font-weight:500; color:var(--va); line-height:1.2; overflow-wrap:anywhere; }
+  .cal-cifra b.cal-num{ font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .cal-cifra-s{ font-size:13px; color:var(--ink2); }
+  .cal-cifra.mal .cal-lbl, .cal-cifra.mal b{ color:var(--bad); }
+  .cal-cuerpo{ display:grid; grid-template-columns:280px minmax(0,1fr); gap:18px; align-items:start; }
+  .cal-lado{ display:grid; gap:18px; min-width:0; }
+  .cal .tarjeta{ padding:0; overflow:hidden; }
+  .cal-vacio{ margin:0; padding:16px 18px; font-size:13px; color:var(--out); }
+
+  /* mes pequeño */
+  .cal-mini{ padding:14px 14px 10px !important; }
+  .cal-mini-cab{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .cal-mini-cab b{ font-size:15px; font-weight:600; }
+  .cal-flechas, .cal-nav{ display:flex; align-items:center; gap:6px; }
+  .cal-flecha{ width:34px; height:34px; border-radius:50%; border:1px solid var(--linea); background:transparent; color:var(--va); font-size:18px; line-height:1; cursor:pointer; display:grid; place-items:center; }
+  .cal-flecha:hover{ background:var(--pg-low); }
+  .cal-mini-grid{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; }
+  .cal-mini-sem{ font-size:12px; color:var(--out); padding:4px 0; text-transform:capitalize; }
+  .cal-mini-dia{ border:0; background:transparent; height:38px; padding:0; cursor:pointer; color:var(--va); font-size:13px; display:flex; flex-direction:column; align-items:center; gap:2px; font-variant-numeric:tabular-nums; }
+  .cal-mini-dia > span:first-child{ width:28px; height:28px; border-radius:50%; display:grid; place-items:center; }
+  .cal-mini-dia:hover > span:first-child{ background:var(--pg-low); }
+  .cal-mini-dia.fuera{ color:#a7a99f; }
+  .cal-mini-dia.hoy > span:first-child{ font-weight:600; outline:1.5px solid #485B37; outline-offset:-1.5px; }
+  .cal-mini-dia.sel > span:first-child{ background:#485B37; color:#fff; font-weight:600; }
+  .cal-mini-puntos{ display:flex; gap:2px; height:5px; }
+  .cal-mini-puntos .cal-punto{ width:5px; height:5px; }
+
+  /* listas de la izquierda */
+  .cal-lista-cab{ padding:13px 16px 11px; border-bottom:1px solid var(--pg-hi); }
+  .cal-lista-cab b{ font-size:15px; font-weight:600; }
+  .cal-tarea{ width:100%; display:flex; align-items:center; gap:11px; padding:11px 16px; border:0; border-bottom:1px solid var(--pg-hi); background:transparent; text-align:left; cursor:pointer; color:inherit; min-height:44px; }
+  .cal-tarea:last-child{ border-bottom:0; }
+  .cal-tarea:hover{ background:var(--pg-low); }
+  .cal-tarea-tx{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+  .cal-tarea-tx b{ font-size:13px; font-weight:600; overflow-wrap:anywhere; }
+  .cal-tarea-tx span{ font-size:12px; color:var(--out); }
+
+  /* estado en pastilla: el texto dice el estado, el tono solo lo refuerza */
+  .cal-est{ flex:none; font-size:12px; font-weight:500; padding:3px 10px; border-radius:999px; background:var(--pg-low); color:var(--ink2); white-space:nowrap; }
+  .cal-est.bien{ background:#e3eadb; color:var(--ok); }
+  .cal-est.aviso{ background:#f4e6c6; color:#6b4a00; }
+  .cal-est.mal{ background:#f4dcd8; color:var(--bad); }
+
+  /* panel */
+  .cal-panel{ min-width:0; }
+  .cal-panel-cab{ display:flex; align-items:center; gap:12px; padding:14px 18px 6px; flex-wrap:wrap; }
+  .cal-panel-cab h2{ margin:0; font-size:22px; font-weight:500; flex:1; min-width:0; }
+  .cal-hoy{ padding:7px 14px !important; }
+  .cal-controles{ display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; padding:6px 18px 14px; }
+  .cal-filtros{ display:flex; gap:6px; flex-wrap:wrap; }
+  .cal-filtro{ display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 13px 0 11px; border-radius:999px; border:1px solid var(--linea); background:transparent; font-size:13px; font-weight:500; color:var(--va); cursor:pointer; }
+  .cal-filtro:hover{ background:var(--pg-low); }
+  .cal-filtro[aria-pressed="false"]{ color:var(--out); text-decoration:line-through; }
+  .cal-filtro[aria-pressed="false"] .cal-punto{ background:transparent !important; outline:1.5px solid currentColor; outline-offset:-1.5px; }
+
+  /* vista mensual */
+  .cal-mes-sem, .cal-mes-grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); }
+  .cal-mes-sem span{ font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--out); padding:8px 10px; border-top:1px solid var(--pg-hi); }
+  .cal-celda{ min-height:96px; min-width:0; border:0; border-top:1px solid var(--pg-hi); border-right:1px solid var(--pg-hi); background:transparent; padding:6px; text-align:left; cursor:pointer; color:inherit; display:flex; flex-direction:column; gap:4px; }
+  .cal-celda:nth-child(7n){ border-right:0; }
+  .cal-celda:hover{ background:var(--pg-low); }
+  .cal-celda.fuera{ background:var(--pg-low); }
+  .cal-celda.fuera .cal-num-dia{ color:#a7a99f; }
+  .cal-celda.sel{ outline:2px solid #485B37; outline-offset:-2px; }
+  .cal-num-dia{ width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-size:13px; font-weight:500; color:var(--ink2); font-variant-numeric:tabular-nums; }
+  .cal-celda.hoy .cal-num-dia{ background:#485B37; color:#fff; font-weight:600; }
+  .cal-chips{ display:grid; gap:3px; min-width:0; }
+  .cal-chip{ display:flex; align-items:center; gap:6px; min-width:0; padding:3px 7px; border-radius:999px; background:var(--pg-low); border:1px solid var(--linea); font-size:12px; font-weight:500; }
+  .cal-chip > span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cal-chip.mal{ color:var(--bad); border-color:#e8c3bd; }
+  .cal-chip.pasado{ color:var(--out); }
+  .cal-mas{ font-size:12px; color:var(--out); padding-left:4px; }
+  .cal-puntos-movil{ display:none; }
+
+  /* vista semanal */
+  .cal-semana{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border-top:1px solid var(--pg-hi); }
+  .cal-sem-col{ min-width:0; border-right:1px solid var(--pg-hi); padding:0 6px 10px; min-height:260px; display:flex; flex-direction:column; gap:6px; }
+  .cal-sem-col:last-child{ border-right:0; }
+  .cal-sem-dia{ border:0; background:transparent; cursor:pointer; padding:10px 0; margin:0 -6px 4px; border-bottom:1px solid var(--pg-hi); display:flex; flex-direction:column; align-items:center; color:inherit; }
+  .cal-sem-dia b{ font-size:22px; font-weight:500; color:var(--ink2); font-variant-numeric:tabular-nums; }
+  .cal-sem-dia span{ font-size:12px; color:var(--out); text-transform:capitalize; }
+  .cal-sem-col.hoy .cal-sem-dia b{ color:#485B37; font-weight:600; }
+  .cal-sem-col.sel .cal-sem-dia{ background:var(--pg-low); }
+  .cal-tarj{ border:1px solid var(--linea); background:var(--rl); border-radius:12px; padding:9px 10px; text-align:left; cursor:pointer; color:inherit; display:flex; flex-direction:column; align-items:flex-start; gap:4px; min-width:0; }
+  .cal-tarj:hover{ background:var(--pg-low); }
+  .cal-tarj b{ font-size:13px; font-weight:600; line-height:1.3; overflow-wrap:anywhere; }
+  .cal-tarj > span:not(.cal-est){ font-size:12px; color:var(--ink2); }
+  .cal-tarj.mal{ border-color:#e8c3bd; } .cal-tarj.mal b{ color:var(--bad); }
+
+  /* filas (agenda y día elegido) */
+  .cal-agenda{ padding:0 18px 8px; }
+  .cal-ag-mes{ font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--out); padding:16px 0 8px; border-bottom:1px solid var(--pg-hi); }
+  .cal-ag-mes.mal{ color:var(--bad); }
+  .cal-fila{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--pg-hi); }
+  .cal-fecha{ flex:none; width:44px; text-align:center; }
+  .cal-fecha b{ display:block; font-size:22px; font-weight:500; line-height:1; font-variant-numeric:tabular-nums; }
+  .cal-fecha span{ font-size:12px; color:var(--out); text-transform:capitalize; }
+  .cal-fila-tx{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .cal-fila-tx > b{ font-size:15px; font-weight:600; overflow-wrap:anywhere; }
+  .cal-fila.mal .cal-fila-tx > b{ color:var(--bad); }
+  .cal-fila-tx > span{ font-size:13px; color:var(--ink2); overflow-wrap:anywhere; }
+  .cal-fila-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px; }
+  .cal-imp{ font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .cal-cuando{ font-size:12px; color:var(--out); }
+  .cal-fila-acc{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .cal-acc{ white-space:nowrap; }
+  .cal-dia{ padding:4px 18px 8px; border-top:1px solid var(--pg-hi); }
+  .cal-dia-cab{ font-size:15px; font-weight:600; padding:14px 0 4px; }
+  .cal-dia .cal-fila:last-child{ border-bottom:0; }
+  .cal-sin-fecha{ margin:0 !important; padding:12px 18px 16px; border-top:1px solid var(--pg-hi); }
+  .cal button:focus-visible{ outline:2px solid #485B37; outline-offset:2px; }
+
+  @media (max-width:1000px){
+    .cal-cuerpo{ grid-template-columns:minmax(0,1fr); }
+    .cal-lado{ grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  }
+  @media (max-width:640px){
+    .cal-cabeza{ grid-template-columns:minmax(0,1fr) auto; }
+    .cal-cifra{ padding:12px 14px; }
+    .cal-cifra b{ font-size:15px; }
+    .cal-cifra b.cal-num{ font-size:22px; }
+    .cal-mini{ display:none; }   /* en móvil el mes grande ya es el navegador */
+    .cal-solo-ancho{ display:none !important; }
+    .cal-flecha{ width:44px; height:44px; }
+    .cal-filtro{ height:44px; }
+    .cal-panel-cab{ padding:12px 14px 4px; }
+    .cal-controles{ padding:4px 14px 12px; }
+    .cal-celda{ min-height:52px; padding:4px 2px; align-items:center; }
+    .cal-chips{ display:none; }
+    .cal-puntos-movil{ display:flex; gap:3px; }
+    .cal-mes-sem span{ padding:8px 0; text-align:center; letter-spacing:0; }
+    .cal-agenda, .cal-dia{ padding-left:14px; padding-right:14px; }
+    .cal-fila{ flex-wrap:wrap; }
+    .cal-fila-acc{ width:100%; justify-content:flex-start; padding-left:56px; }
+    .cal-dia .cal-fila-acc{ padding-left:20px; }
+    .cal-acc{ min-height:44px; }
   }
 </style>
 </head>
@@ -1902,17 +2085,18 @@
   var esc = function(v){ return String(v == null ? '' : v)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
 
-  // Iniciales del avatar (ficha y pie del menú): primera y última palabra, saltando partículas.
-  // Con las dos primeras, «Ni Ketut Ayu Sari» salía «NK»: Ni/I son partículas balinesas, como de/van.
-  var PARTICULAS = ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'];
-  function inicialesDe(nombre){
-    var p = String(nombre || '').trim().split(/\s+/).filter(Boolean);
-    var q = p.filter(function(w){ return PARTICULAS.indexOf(w.toLowerCase()) < 0; });
-    if (q.length) p = q;
-    if (!p.length) return '·';
-    return (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase();
+  /* Icono de perfil (9-oct-2026, owner): el moanito de Lawang en un círculo del color que elige el cliente desde Mi perfil
+     (sustituye a «Ventana de villa», que no convenció). Sin fotografía por protección de datos. La lista de colores es
+     cerrada y la valida la base (portal_set_color_avatar): aquí solo se pinta. Lo usan la ficha de Mi perfil y el pie del menú. */
+  var COLORES_AV = ['petroleo','selva','oliva','arena','oceano','ciruela','tinta','carbon'];
+  var COLOR_AV = 'petroleo', COLOR_ELEGIDO = false;   // elegido: si el cliente ya pulsó uno, la lectura inicial que llega tarde no lo pisa
+  function iconoMoanito(px){
+    return '<span class="moa c-' + COLOR_AV + '" style="width:' + px + 'px;height:' + px + 'px" aria-hidden="true"><img src="/assets/img/moanito-face.webp" alt="" width="' + px + '" height="' + px + '"></span>';
   }
-
+  function pintaAvatarMenu(){
+    var ini = document.getElementById('avatarIniciales');
+    if (ini){ ini.innerHTML = iconoMoanito(34); ini.classList.add('villa'); }
+  }
   function toast(msg){
     var el = document.getElementById('toast');
     el.textContent = msg; el.style.opacity = '1';
@@ -1948,6 +2132,7 @@
          team_intro:'¿Eres del equipo?', team_link:'Entra aquí', salir:'Salir',
          nav_inicio:'Inicio', nav_contratos:'Contratos', nav_facturas:'Facturas', nav_obra:'Obra',
          nav_documentos:'Documentos', nav_soporte:'Soporte', nav_perfil:'Mi perfil',
+         nav_calendario:'Calendario', tit_calendario:'Calendario', cal_mes:'Mensual', cal_semana:'Semanal', cal_agenda:'Agenda', cal_vista:'Vista', cal_hoy:'Hoy', cal_ant:'Anterior', cal_sig:'Siguiente', cal_fam_firma:'Firmas', cal_fam_pago:'Pagos', cal_fam_obra:'Obra', cal_fam_doc:'Documentos', cal_filtros:'Mostrar', cal_lo_siguiente:'Lo siguiente', cal_pendientes:'Por hacer', cal_n_tareas_1:'1 tarea', cal_n_tareas_n:'{n} tareas', cal_nada_pend:'Nada pendiente. Te avisamos cuando haya algo.', cal_docs:'Tus documentos', cal_sin_docs:'No hay documentos con fecha de caducidad en tu expediente.', cal_no_caduca:'Sin caducidad', cal_dia_vacio:'Nada este día.', cal_semana_vacia:'Nada esta semana.', cal_agenda_vacia:'No hay fechas próximas con estos filtros.', cal_vencido_sec:'Vencido', cal_sin_fecha_1:'1 pago de tu plan todavía no tiene fecha fija: lo verás en Contratos.', cal_sin_fecha_n:'{n} pagos de tu plan todavía no tienen fecha fija: los verás en Contratos.', cal_firma_t:'Firmar el contrato {n}', cal_firma_s:'el enlace de firma caduca este día', cal_factura_t:'Factura {n}', cal_recibo_t:'Pago recibido', cal_entrega_t:'Entrega de llaves', cal_fotos_1:'1 foto nueva de obra', cal_fotos_n:'{n} fotos nuevas de obra', cal_doc_t:'Caduca: {doc}', cal_e_firmar:'Por firmar', cal_e_pagado:'Pagado', cal_e_parcial:'Pagado en parte', cal_e_pendiente:'Pendiente', cal_e_vencida:'Vencido', cal_e_recibido:'Recibido', cal_e_previsto:'Previsto', cal_e_hecho:'Hecho', cal_e_pronto:'Caduca pronto', cal_e_vencido:'Caducado', cal_e_ok:'Vigente', cal_queda:'falta {x}', cal_hace_dias:'hace {n} días', cal_en_dias:'en {n} días', cal_ayer:'ayer', cal_manana:'mañana', cal_ver_recibo:'Ver recibo', cal_ver_obra:'Ver obra', cal_ver_doc:'Ver mis documentos', cal_pago_t:'Pago: {h}', cal_c_firma:'Firma', cal_c_fotos:'Fotos', cal_c_entrega:'Entrega', cal_mas:'+{n} más', cal_eventos_dia:'{n} fechas', 
          tit_inicio:'Inicio', tit_contratos:'Contratos', tit_facturas:'Facturas', tit_obra:'Obra',
          tit_documentos:'Documentos', tit_soporte:'Soporte', tit_perfil:'Mi perfil',
          hola:'Hola', n_props_1:'1 propiedad con Lawang Estate', n_props_n:'{n} propiedades con Lawang Estate', firma_tarea:'Firma el contrato {n}', firma_caduca:'el enlace caduca el {f}', firmar:'Firmar', kyc_caduca_el:'Tu {doc} caduca el {f}', vence_el:'vence el {f}', vencio_el:'venció el {f}', ver_factura_n:'Ver factura {n}', tus_propiedades:'Tus propiedades', portada_prep:'Portada en preparación', pagada:'Pagada', firma_pend_chip:'Firma pendiente', nov_obra_foto:'Nuevas fotos de obra en {u}: «{t}»', ver_factura:'Ver factura', ver_fotos:'Ver fotos', sop_titulo:'¿Una duda sobre un pago o un documento?', sop_texto:'Te responde el equipo de gestión de Lawang.', sop_abiertas_1:'Tienes una conversación abierta.', sop_abiertas_n:'Tienes {n} conversaciones abiertas.', escribir_equipo:'Escribir al equipo', hola_manana:'Buenos días', hola_tarde:'Buenas tardes', hola_noche:'Buenas noches', pendiente_ti:'Pendiente de ti', quedan_dias:'Quedan {n} días', queda_dia:'Queda 1 día', caduca_hoy:'Caduca hoy', ver_perfil:'Ver mi perfil', escribir:'Escribir', saludo_sub:'Estado de tu operación con Lawang Estate',
@@ -1998,6 +2183,8 @@
          err_mensaje:'No hemos podido enviar tu mensaje. Inténtalo de nuevo en un momento; si sigue sin salir, escríbenos por WhatsApp.',
          err_ticket:'No hemos podido abrir tu consulta. Inténtalo de nuevo en un momento; si sigue sin salir, escríbenos por WhatsApp.',
          err_prefs:'No hemos podido guardar tu preferencia de avisos. Vuelve a intentarlo en un momento.',
+         err_color:'No hemos podido guardar el color de tu icono. Vuelve a intentarlo en un momento.', pf_color:'Color de tu icono',
+         col_petroleo:'Petróleo', col_selva:'Selva', col_oliva:'Oliva', col_arena:'Arena', col_oceano:'Océano', col_ciruela:'Ciruela', col_tinta:'Tinta', col_carbon:'Carbón',
          categoria:'Categoría', enviar:'Enviar', cancelar:'Cancelar', abierto:'Abierto', resuelto:'Resuelto',
          responder:'Responder…', tu:'Tú', equipo:'Equipo Lawang',
          nuevo_ticket:'Nuevo ticket', elige_categoria:'Elige de qué trata…', mensaje:'Mensaje',
@@ -2007,7 +2194,7 @@
          aviso_no_vinculante:'Esto es un canal de atención, no un documento contractual: ningún precio, plazo o condición cambia hasta que quede reflejado en tu contrato o en un anexo firmado.',
          datos_personales:'Datos personales', nombre:'Nombre', correo:'Correo', telefono:'Teléfono', pais:'País',
          pf_caducado:'Caducado', pf_vigente:'Vigente', pf_contrasena:'Contraseña', pf_dato_mal:'¿Algún dato no es correcto?', pf_dato_mal_txt:'Tus datos los lleva el equipo de gestión de Lawang. Escríbenos y los corregimos.',
-         seguridad_avisos:'Seguridad y avisos',
+         seguridad_avisos:'Seguridad y avisos', pf_pass_sub:'Tu acceso al portal', pf_activados:'Activados', pf_desactivados:'Desactivados',
          ent_intro:'Los documentos de tu expediente. Si uno va a caducar, avísanos y lo actualizamos.', ent_res_1:'1 necesita renovarse', ent_res_n:'{n} necesitan renovarse', ent_todo:'Todo vigente',
          ent_dia:'día', ent_dias:'días', ent_para_caducar:'para que caduque · el {f}', ent_hasta:'hasta el {f}', ent_desde:'desde el {f}', ent_no_caduca:'No caduca', ent_sin_fecha:'sin fecha de caducidad',
          ent_entregado:'Entregado {f}', ent_caduca:'Caduca {f}', ent_caduco:'Caducó {f}', ent_ver:'Ver', ent_avisar:'Avisar al equipo', ent_en_exp:'En tu expediente',
@@ -2065,6 +2252,7 @@
          team_intro:'On the team?', team_link:'Sign in here', salir:'Sign out',
          nav_inicio:'Home', nav_contratos:'Contracts', nav_facturas:'Invoices', nav_obra:'Construction',
          nav_documentos:'Documents', nav_soporte:'Support', nav_perfil:'My profile',
+         nav_calendario:'Calendar', tit_calendario:'Calendar', cal_mes:'Month', cal_semana:'Week', cal_agenda:'Agenda', cal_vista:'View', cal_hoy:'Today', cal_ant:'Previous', cal_sig:'Next', cal_fam_firma:'Signatures', cal_fam_pago:'Payments', cal_fam_obra:'Construction', cal_fam_doc:'Documents', cal_filtros:'Show', cal_lo_siguiente:'Coming up', cal_pendientes:'To do', cal_n_tareas_1:'1 task', cal_n_tareas_n:'{n} tasks', cal_nada_pend:'Nothing pending. We will let you know when there is.', cal_docs:'Your documents', cal_sin_docs:'There are no documents with an expiry date in your file.', cal_no_caduca:'No expiry', cal_dia_vacio:'Nothing on this day.', cal_semana_vacia:'Nothing this week.', cal_agenda_vacia:'No upcoming dates with these filters.', cal_vencido_sec:'Overdue', cal_sin_fecha_1:'1 payment in your plan has no fixed date yet: you will find it in Contracts.', cal_sin_fecha_n:'{n} payments in your plan have no fixed date yet: you will find them in Contracts.', cal_firma_t:'Sign contract {n}', cal_firma_s:'the signing link expires on this day', cal_factura_t:'Invoice {n}', cal_recibo_t:'Payment received', cal_entrega_t:'Handover of keys', cal_fotos_1:'1 new construction photo', cal_fotos_n:'{n} new construction photos', cal_doc_t:'Expires: {doc}', cal_e_firmar:'To sign', cal_e_pagado:'Paid', cal_e_parcial:'Partly paid', cal_e_pendiente:'Pending', cal_e_vencida:'Overdue', cal_e_recibido:'Received', cal_e_previsto:'Planned', cal_e_hecho:'Done', cal_e_pronto:'Expires soon', cal_e_vencido:'Expired', cal_e_ok:'Valid', cal_queda:'{x} left', cal_hace_dias:'{n} days ago', cal_en_dias:'in {n} days', cal_ayer:'yesterday', cal_manana:'tomorrow', cal_ver_recibo:'View receipt', cal_ver_obra:'View construction', cal_ver_doc:'View my documents', cal_pago_t:'Payment: {h}', cal_c_firma:'Signature', cal_c_fotos:'Photos', cal_c_entrega:'Handover', cal_mas:'+{n} more', cal_eventos_dia:'{n} dates', 
          tit_inicio:'Home', tit_contratos:'Contracts', tit_facturas:'Invoices', tit_obra:'Construction',
          tit_documentos:'Documents', tit_soporte:'Support', tit_perfil:'My profile',
          hola:'Hello', n_props_1:'1 property with Lawang Estate', n_props_n:'{n} properties with Lawang Estate', firma_tarea:'Sign contract {n}', firma_caduca:'the link expires on {f}', firmar:'Sign', kyc_caduca_el:'Your {doc} expires on {f}', vence_el:'due {f}', vencio_el:'was due {f}', ver_factura_n:'View invoice {n}', tus_propiedades:'Your properties', portada_prep:'Cover photo coming soon', pagada:'Paid in full', firma_pend_chip:'Awaiting signature', nov_obra_foto:'New construction photos for {u}: “{t}”', ver_factura:'View invoice', ver_fotos:'View photos', sop_titulo:'A question about a payment or a document?', sop_texto:'The Lawang account team will reply.', sop_abiertas_1:'You have one open conversation.', sop_abiertas_n:'You have {n} open conversations.', escribir_equipo:'Write to the team', hola_manana:'Good morning', hola_tarde:'Good afternoon', hola_noche:'Good evening', pendiente_ti:'Waiting on you', quedan_dias:'{n} days left', queda_dia:'1 day left', caduca_hoy:'Expires today', ver_perfil:'View my profile', escribir:'Write to us', saludo_sub:'Status of your operation with Lawang Estate',
@@ -2107,6 +2295,8 @@
          err_mensaje:'We could not send your message. Please try again in a moment; if it still fails, write to us on WhatsApp.',
          err_ticket:'We could not open your enquiry. Please try again in a moment; if it still fails, write to us on WhatsApp.',
          err_prefs:'We could not save your notification preference. Please try again in a moment.',
+         err_color:'We could not save your icon colour. Please try again in a moment.', pf_color:'Your icon colour',
+         col_petroleo:'Teal', col_selva:'Forest', col_oliva:'Olive', col_arena:'Sand', col_oceano:'Ocean', col_ciruela:'Plum', col_tinta:'Ink', col_carbon:'Charcoal',
          categoria:'Category', enviar:'Send', cancelar:'Cancel', abierto:'Open', resuelto:'Resolved',
          responder:'Reply…', tu:'You', equipo:'Lawang team',
          nuevo_ticket:'New ticket', elige_categoria:'What is it about…', mensaje:'Message',
@@ -2116,7 +2306,7 @@
          aviso_no_vinculante:'This is a support channel, not a contractual document: no price, deadline or condition changes until it is reflected in your contract or a signed annex.',
          datos_personales:'Personal details', nombre:'Name', correo:'Email', telefono:'Phone', pais:'Country',
          pf_caducado:'Expired', pf_vigente:'Valid', pf_contrasena:'Password', pf_dato_mal:'Is any of your details wrong?', pf_dato_mal_txt:'Your details are kept by the Lawang management team. Write to us and we will correct them.',
-         seguridad_avisos:'Security and notifications',
+         seguridad_avisos:'Security and notifications', pf_pass_sub:'Your portal sign-in', pf_activados:'On', pf_desactivados:'Off',
          ent_intro:'The documents in your file. If one is about to expire, let us know and we will update it.', ent_res_1:'1 needs renewing', ent_res_n:'{n} need renewing', ent_todo:'All valid',
          ent_dia:'day', ent_dias:'days', ent_para_caducar:'left · expires {f}', ent_hasta:'until {f}', ent_desde:'since {f}', ent_no_caduca:'No expiry', ent_sin_fecha:'no expiry date',
          ent_entregado:'Provided {f}', ent_caduca:'Expires {f}', ent_caduco:'Expired {f}', ent_ver:'View', ent_avisar:'Tell the team', ent_en_exp:'In your file',
@@ -2178,6 +2368,7 @@
          team_intro:'Anda bagian dari tim?', team_link:'Masuk di sini', salir:'Keluar',
          nav_inicio:'Beranda', nav_contratos:'Kontrak', nav_facturas:'Faktur', nav_obra:'Pembangunan',
          nav_documentos:'Dokumen', nav_soporte:'Bantuan', nav_perfil:'Profil saya',
+         nav_calendario:'Kalender', tit_calendario:'Kalender', cal_mes:'Bulanan', cal_semana:'Mingguan', cal_agenda:'Agenda', cal_vista:'Tampilan', cal_hoy:'Hari ini', cal_ant:'Sebelumnya', cal_sig:'Berikutnya', cal_fam_firma:'Tanda tangan', cal_fam_pago:'Pembayaran', cal_fam_obra:'Pembangunan', cal_fam_doc:'Dokumen', cal_filtros:'Tampilkan', cal_lo_siguiente:'Berikutnya', cal_pendientes:'Perlu dilakukan', cal_n_tareas_1:'1 tugas', cal_n_tareas_n:'{n} tugas', cal_nada_pend:'Tidak ada yang tertunda. Kami akan memberi tahu Anda jika ada.', cal_docs:'Dokumen Anda', cal_sin_docs:'Tidak ada dokumen dengan tanggal kedaluwarsa di berkas Anda.', cal_no_caduca:'Tidak berakhir', cal_dia_vacio:'Tidak ada jadwal pada hari ini.', cal_semana_vacia:'Tidak ada jadwal minggu ini.', cal_agenda_vacia:'Tidak ada tanggal mendatang dengan filter ini.', cal_vencido_sec:'Lewat jatuh tempo', cal_sin_fecha_1:'1 pembayaran dalam jadwal Anda belum memiliki tanggal tetap: lihat di Kontrak.', cal_sin_fecha_n:'{n} pembayaran dalam jadwal Anda belum memiliki tanggal tetap: lihat di Kontrak.', cal_firma_t:'Tandatangani kontrak {n}', cal_firma_s:'tautan tanda tangan berakhir pada hari ini', cal_factura_t:'Faktur {n}', cal_recibo_t:'Pembayaran diterima', cal_entrega_t:'Serah terima kunci', cal_fotos_1:'1 foto pembangunan baru', cal_fotos_n:'{n} foto pembangunan baru', cal_doc_t:'Berakhir: {doc}', cal_e_firmar:'Perlu ditandatangani', cal_e_pagado:'Lunas', cal_e_parcial:'Dibayar sebagian', cal_e_pendiente:'Belum dibayar', cal_e_vencida:'Lewat jatuh tempo', cal_e_recibido:'Diterima', cal_e_previsto:'Direncanakan', cal_e_hecho:'Selesai', cal_e_pronto:'Segera berakhir', cal_e_vencido:'Kedaluwarsa', cal_e_ok:'Berlaku', cal_queda:'sisa {x}', cal_hace_dias:'{n} hari lalu', cal_en_dias:'{n} hari lagi', cal_ayer:'kemarin', cal_manana:'besok', cal_ver_recibo:'Lihat kuitansi', cal_ver_obra:'Lihat pembangunan', cal_ver_doc:'Lihat dokumen saya', cal_pago_t:'Pembayaran: {h}', cal_c_firma:'Tanda tangan', cal_c_fotos:'Foto', cal_c_entrega:'Serah terima', cal_mas:'+{n} lagi', cal_eventos_dia:'{n} tanggal', 
          tit_inicio:'Beranda', tit_contratos:'Kontrak', tit_facturas:'Faktur', tit_obra:'Pembangunan',
          tit_documentos:'Dokumen', tit_soporte:'Bantuan', tit_perfil:'Profil saya',
          hola:'Halo', n_props_1:'1 properti bersama Lawang Estate', n_props_n:'{n} properti bersama Lawang Estate', firma_tarea:'Tandatangani kontrak {n}', firma_caduca:'tautan berakhir pada {f}', firmar:'Tanda tangani', kyc_caduca_el:'{Doc} Anda berakhir pada {f}', vence_el:'jatuh tempo {f}', vencio_el:'lewat jatuh tempo {f}', ver_factura_n:'Lihat faktur {n}', tus_propiedades:'Properti Anda', portada_prep:'Foto sampul segera hadir', pagada:'Lunas', firma_pend_chip:'Menunggu tanda tangan', nov_obra_foto:'Foto pembangunan baru di {u}: “{t}”', ver_factura:'Lihat faktur', ver_fotos:'Lihat foto', sop_titulo:'Ada pertanyaan tentang pembayaran atau dokumen?', sop_texto:'Tim pengelola Lawang akan membalas.', sop_abiertas_1:'Anda punya satu percakapan terbuka.', sop_abiertas_n:'Anda punya {n} percakapan terbuka.', escribir_equipo:'Tulis ke tim', hola_manana:'Selamat pagi', hola_tarde:'Selamat siang', hola_noche:'Selamat malam', pendiente_ti:'Menunggu Anda', quedan_dias:'{n} hari lagi', queda_dia:'1 hari lagi', caduca_hoy:'Berakhir hari ini', ver_perfil:'Lihat profil saya', escribir:'Tulis pesan', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
@@ -2220,6 +2411,8 @@
          err_mensaje:'Kami tidak dapat mengirim pesan Anda. Coba lagi sebentar lagi; jika masih gagal, hubungi kami lewat WhatsApp.',
          err_ticket:'Kami tidak dapat membuka pertanyaan Anda. Coba lagi sebentar lagi; jika masih gagal, hubungi kami lewat WhatsApp.',
          err_prefs:'Kami tidak dapat menyimpan preferensi notifikasi Anda. Coba lagi sebentar lagi.',
+         err_color:'Kami tidak dapat menyimpan warna ikon Anda. Coba lagi sebentar lagi.', pf_color:'Warna ikon Anda',
+         col_petroleo:'Teal', col_selva:'Hutan', col_oliva:'Zaitun', col_arena:'Pasir', col_oceano:'Samudra', col_ciruela:'Plum', col_tinta:'Tinta', col_carbon:'Arang',
          categoria:'Kategori', enviar:'Kirim', cancelar:'Batal', abierto:'Terbuka', resuelto:'Selesai',
          responder:'Balas…', tu:'Anda', equipo:'Tim Lawang',
          nuevo_ticket:'Tiket baru', elige_categoria:'Pilih topiknya…', mensaje:'Pesan',
@@ -2229,7 +2422,7 @@
          aviso_no_vinculante:'Ini adalah saluran layanan, bukan dokumen kontrak: harga, jangka waktu, atau ketentuan apa pun tidak berubah sampai tercantum dalam kontrak Anda atau lampiran yang ditandatangani.',
          datos_personales:'Data pribadi', nombre:'Nama', correo:'Email', telefono:'Telepon', pais:'Negara',
          pf_caducado:'Kedaluwarsa', pf_vigente:'Berlaku', pf_contrasena:'Kata sandi', pf_dato_mal:'Ada data yang tidak benar?', pf_dato_mal_txt:'Data Anda dikelola oleh tim manajemen Lawang. Tulis kepada kami dan kami akan memperbaikinya.',
-         seguridad_avisos:'Keamanan dan notifikasi',
+         seguridad_avisos:'Keamanan dan notifikasi', pf_pass_sub:'Akses Anda ke portal', pf_activados:'Aktif', pf_desactivados:'Nonaktif',
          ent_intro:'Dokumen di berkas Anda. Jika ada yang akan berakhir, beri tahu kami dan kami akan memperbaruinya.', ent_res_1:'1 perlu diperbarui', ent_res_n:'{n} perlu diperbarui', ent_todo:'Semua berlaku',
          ent_dia:'hari', ent_dias:'hari', ent_para_caducar:'lagi · berakhir {f}', ent_hasta:'sampai {f}', ent_desde:'sejak {f}', ent_no_caduca:'Tidak berakhir', ent_sin_fecha:'tanpa tanggal kedaluwarsa',
          ent_entregado:'Diserahkan {f}', ent_caduca:'Berakhir {f}', ent_caduco:'Telah berakhir {f}', ent_ver:'Lihat', ent_avisar:'Beri tahu tim', ent_en_exp:'Di berkas Anda',
@@ -2386,7 +2579,10 @@
   /* Soporte y Mensajes se fusionan en una sola sección, 'soporte' — el owner
      las vio como la misma cosa duplicada (1-sep-2026): un hilo, no un
      sistema de tickets aparte de un chat aparte. */
-  var SECCIONES = ['inicio','contratos','facturas','obra','documentos','soporte','perfil'];
+  /* Calendario (9-oct-2026): construido y visible SOLO en la demo (`?demo`) hasta que el owner lo apruebe; el comprador
+     real no lo ve ni entra por #/calendario (cae en Inicio). Para abrirlo a todos: CAL_VISIBLE = true. */
+  var CAL_VISIBLE = !!window.LW_DEMO;
+  var SECCIONES = ['inicio','contratos','facturas','obra'].concat(CAL_VISIBLE ? ['calendario'] : []).concat(['documentos','soporte','perfil']);
   function leeHash(){
     var partes = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
     if (SECCIONES.indexOf(partes[0]) !== -1)
@@ -2579,9 +2775,15 @@
           return;
         }
         DATOS = r.data || {};
-        var ini = document.getElementById('avatarIniciales');
         var nombre = (DATOS.nombre || '').trim();
-        ini.textContent = inicialesDe(nombre);
+        pintaAvatarMenu();   // el mismo icono que la ficha de Mi perfil
+        // el color del moanito va en su propia llamada: si falla se queda el de marca, nunca bloquea la entrada
+        sb.rpc('portal_get_color_avatar').then(function(rc){
+          if (!COLOR_ELEGIDO && !rc.error && COLORES_AV.indexOf(rc.data) >= 0 && rc.data !== COLOR_AV){
+            COLOR_AV = rc.data; pintaAvatarMenu();
+            if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content'));
+          }
+        });
         document.getElementById('quienNombre').textContent = nombre || (DATOS.email || '');
         muestra('vApp');
         var r0 = leeHash();
@@ -2593,7 +2795,7 @@
   }
 
   /* ══ NAV ══════════════════════════════════════════════════════════════ */
-  var NAV_DEFS = ['inicio','contratos','facturas','obra','documentos','soporte','perfil'];
+  var NAV_DEFS = SECCIONES.slice();   // el menú son las secciones, en su orden (Calendario solo si CAL_VISIBLE)
   /* Icono por sección del menú (1-sep-2026, tarde: "en /intranet/ el menú
      lleva icono y aquí no"). Mismo trazo que usa /intranet/ para el
      concepto equivalente (contratos→file-text, facturas→receipt,
@@ -2609,6 +2811,7 @@
     contratos: '<path d="M384 -192Q344 -192 315.5 -220.0Q287 -248 288 -288V-360H384V-426Q355 -427 331.5 -436.5Q308 -446 288 -464V-528H224L72 -672Q110 -710 161.0 -730.0Q212 -750 266 -750Q297 -750 326.5 -742.0Q356 -734 384 -720V-768H816V-288Q816 -248 788.0 -220.0Q760 -192 720 -192ZM456 -360H672V-300Q672 -285 682.5 -274.5Q693 -264 708.0 -264.0Q723 -264 733.5 -274.5Q744 -285 744 -300V-696H456V-669L672 -453V-402H621L521 -503L487 -468Q480 -461 472.5 -456.0Q465 -451 456 -446ZM253 -600H360V-503Q366 -501 372.0 -500.0Q378 -499 385 -499Q399 -499 412.0 -504.0Q425 -509 436 -520L469 -553L402 -621Q375 -648 339.5 -662.5Q304 -677 266 -677Q246 -677 227.5 -673.5Q209 -670 191 -662ZM600 -288H360Q360 -280 364.5 -272.0Q369 -264 383 -264H606Q604 -270 602.5 -276.0Q601 -282 600 -288ZM360 -288Q360 -282 360.0 -276.0Q360 -270 360 -264Q360 -264 360.0 -272.0Q360 -280 360 -288Z"/>',
     facturas: '<path d="M240 -96Q194 -96 169.0 -120.5Q144 -145 144 -192V-336H240V-864L298 -806L355 -864L413 -806L470 -864L528 -806L586 -864L643 -806L701 -864L758 -806L816 -864V-204Q816 -157 785.0 -126.5Q754 -96 708 -96ZM708 -168Q724 -168 734.0 -177.5Q744 -187 744 -204V-744H312V-336H672V-204Q672 -187 682.0 -177.5Q692 -168 708 -168ZM360 -600V-672H576V-600ZM360 -480V-552H576V-480ZM660 -600Q646 -600 635.0 -610.5Q624 -621 624.0 -636.0Q624 -651 635.0 -661.5Q646 -672 661 -672Q675 -672 685.5 -661.5Q696 -651 696.0 -636.0Q696 -621 685.5 -610.5Q675 -600 660 -600ZM660 -480Q646 -480 635.0 -490.5Q624 -501 624.0 -516.0Q624 -531 635.0 -541.5Q646 -552 661 -552Q675 -552 685.5 -541.5Q696 -531 696.0 -516.0Q696 -501 685.5 -490.5Q675 -480 660 -480ZM240 -168H600V-264H216V-192Q216 -175 219.5 -171.5Q223 -168 240 -168ZM216 -168Q216 -168 216.0 -171.5Q216 -175 216 -192V-264V-168Z"/>',
     obra: '<path d="M216 -144V-264H120V-336H216V-524L128 -456L84 -514L480 -816L876 -514L832 -456L744 -524V-336H840V-264H744V-144H672V-264H516V-144H444V-264H288V-144ZM288 -336H444V-698L288 -579ZM516 -336H672V-579L516 -698Z"/>',
+    calendario: '<path d="M216-96q-29.7 0-50.85-21.5Q144-139 144-168v-528q0-29 21.15-50.5T216-768h72v-96h72v96h240v-96h72v96h72q29.7 0 50.85 21.5Q816-725 816-696v528q0 29-21.15 50.5T744-96H216Zm0-72h528v-360H216v360Zm0-432h528v-96H216v96Zm0 0v-96 96Zm264 216q-15.3 0-25.65-10.29Q444-404.58 444-419.79t10.29-25.71q10.29-10.5 25.5-10.5t25.71 10.35Q516-435.3 516-420q0 15.3-10.35 25.65Q495.3-384 480-384Zm-156 0q-15.3 0-25.65-10.29Q288-404.58 288-419.79t10.29-25.71q10.29-10.5 25.5-10.5t25.71 10.35Q360-435.3 360-420q0 15.3-10.35 25.65Q339.3-384 324-384Zm312 0q-15.3 0-25.65-10.29Q600-404.58 600-419.79t10.29-25.71q10.29-10.5 25.5-10.5t25.71 10.35Q672-435.3 672-420q0 15.3-10.35 25.65Q651.3-384 636-384ZM480-240q-15.3 0-25.65-10.29Q444-260.58 444-275.79t10.29-25.71q10.29-10.5 25.5-10.5t25.71 10.35Q516-291.3 516-276q0 15.3-10.35 25.65Q495.3-240 480-240Zm-156 0q-15.3 0-25.65-10.29Q288-260.58 288-275.79t10.29-25.71q10.29-10.5 25.5-10.5t25.71 10.35Q360-291.3 360-276q0 15.3-10.35 25.65Q339.3-240 324-240Zm312 0q-15.3 0-25.65-10.29Q600-260.58 600-275.79t10.29-25.71q10.29-10.5 25.5-10.5t25.71 10.35Q672-291.3 672-276q0 15.3-10.35 25.65Q651.3-240 636-240Z"/>',
     documentos: '<path d="M168 -192Q139 -192 117.5 -213.5Q96 -235 96 -264V-696Q96 -726 117.5 -747.0Q139 -768 168 -768H384L480 -672H792Q822 -672 843.0 -651.0Q864 -630 864 -600V-264Q864 -235 843.0 -213.5Q822 -192 792 -192ZM168 -264H792Q792 -264 792.0 -264.0Q792 -264 792 -264V-600Q792 -600 792.0 -600.0Q792 -600 792 -600H450L354 -696H168Q168 -696 168.0 -696.0Q168 -696 168 -696V-264Q168 -264 168.0 -264.0Q168 -264 168 -264ZM168 -264Q168 -264 168.0 -264.0Q168 -264 168 -264V-696Q168 -696 168.0 -696.0Q168 -696 168 -696V-600Q168 -600 168.0 -600.0Q168 -600 168 -600V-264Q168 -264 168.0 -264.0Q168 -264 168 -264Z"/>',
     soporte: '<path d="M432 -144V-216H744Q744 -216 744.0 -216.0Q744 -216 744 -216V-483Q744 -593 667.0 -670.5Q590 -748 480 -748Q370 -748 293.0 -670.5Q216 -593 216 -483V-256H168Q138 -256 117.0 -277.5Q96 -299 96 -330V-404Q96 -427 109.0 -445.0Q122 -463 144 -468L147 -519Q156 -582 185.0 -636.5Q214 -691 258.5 -731.0Q303 -771 360.0 -793.5Q417 -816 480 -816Q543 -816 600.0 -793.5Q657 -771 701.5 -731.0Q746 -691 775.0 -637.0Q804 -583 813 -520L816 -468Q837 -463 850.5 -446.5Q864 -430 864 -408V-324Q864 -302 850.5 -285.5Q837 -269 816 -264V-216Q816 -186 795.0 -165.0Q774 -144 744 -144ZM372.0 -408.0Q357 -408 346.5 -418.5Q336 -429 336.0 -444.0Q336 -459 346.5 -469.5Q357 -480 372.0 -480.0Q387 -480 397.5 -469.5Q408 -459 408.0 -444.0Q408 -429 397.5 -418.5Q387 -408 372.0 -408.0ZM588.0 -408.0Q573 -408 562.5 -418.5Q552 -429 552.0 -444.0Q552 -459 562.5 -469.5Q573 -480 588.0 -480.0Q603 -480 613.5 -469.5Q624 -459 624.0 -444.0Q624 -429 613.5 -418.5Q603 -408 588.0 -408.0ZM265 -458Q256 -555 320.5 -625.5Q385 -696 482 -696Q564 -696 624.5 -641.0Q685 -586 694 -504Q609 -504 539.5 -550.5Q470 -597 432 -672Q418 -601 374.5 -544.5Q331 -488 265 -458Z"/>',
     perfil: '<path d="M480.0 -480.0Q420 -480 378.0 -522.0Q336 -564 336.0 -624.0Q336 -684 378.0 -726.0Q420 -768 480.0 -768.0Q540 -768 582.0 -726.0Q624 -684 624.0 -624.0Q624 -564 582.0 -522.0Q540 -480 480.0 -480.0ZM192 -192V-288Q192 -311 204.5 -331.5Q217 -352 239 -366Q294 -398 355.5 -415.0Q417 -432 480 -432Q543 -432 604.5 -415.0Q666 -398 721 -366Q743 -353 755.5 -332.0Q768 -311 768 -288V-192ZM264 -264H696V-288Q696 -293 693.0 -297.5Q690 -302 685 -304Q639 -332 587.0 -346.0Q535 -360 480 -360Q425 -360 373.0 -346.0Q321 -332 275 -304Q270 -300 267.0 -296.5Q264 -293 264 -288ZM480.0 -552.0Q510 -552 531.0 -573.0Q552 -594 552.0 -624.0Q552 -654 531.0 -675.0Q510 -696 480.0 -696.0Q450 -696 429.0 -675.0Q408 -654 408.0 -624.0Q408 -594 429.0 -573.0Q450 -552 480.0 -552.0ZM480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0Q480 -624 480.0 -624.0ZM480 -264Q480 -264 480.0 -264.0Q480 -264 480 -264Q480 -264 480.0 -264.0Q480 -264 480 -264Q480 -264 480.0 -264.0Q480 -264 480 -264Q480 -264 480.0 -264.0Q480 -264 480 -264Z"/>'
@@ -2695,7 +2898,7 @@
     var c = document.getElementById('content');
     c.classList.toggle('pf-ancho', ESTADO.section === 'perfil');   // Mi perfil va a dos columnas y pide algo más de ancho
     var fns = { inicio:pintaInicio, contratos:pintaContratos, facturas:pintaFacturas, obra:pintaObra,
-                documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
+                calendario:pintaCalendario, documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
     /* Otra sección u otra carpeta se abre desde arriba: sin esto la página conservaba el scroll de la anterior (Inicio es larga) y
        Obra o Documentos aparecían «en blanco» — el cliente miraba el final o el hueco de debajo (8-oct-2026, reproducido en la demo). */
     var vistaNueva = ESTADO.section + '|' + (ESTADO.section === 'documentos' ? (leeHash().doc || '') : '');
@@ -2717,7 +2920,6 @@
         LW_MOV.menu(document.getElementById('nav'), cambia);
         if (cambia) LW_MOV.pantalla(c, ESTADO.section);
         LW_MOV.selectores(c, ESTADO.section);   // la pista del elegido viaja desde donde estaba antes del repintado
-        LW_MOV.selectores(document.querySelector('.topbar2'), 'top');
       }
     } catch (e){ console.error('movimiento', e); /* MUDO A PROPOSITO: el movimiento es un adorno; si falla, la pantalla ya está pintada y funciona igual, y el detalle va a la consola */ }
   }
@@ -4339,10 +4541,9 @@
   function svgPerfil(clave){
     return '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' + ICONOS_PERFIL[clave] + '</svg>';
   }
-  /* Iconos de trazo de Mi perfil v2 (8-oct-2026, artifact «Mi perfil Lawang v2»): ojo (ver), candado, correo y
-     mensaje. SVG inline por lo mismo que los de arriba. */
+  /* Iconos de trazo de Mi perfil (8-oct-2026): candado, correo y mensaje. SVG inline por lo mismo que los de arriba.
+     El ojo de «Ver» se retiró en la v3 (9-oct-2026): ahora es la flecha redonda de cada documento (trazoSop('diag')). */
   var TRAZOS_PERFIL = {
-    ojo: '<path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>',
     mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>',
     chat: '<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/>'
@@ -4362,30 +4563,242 @@
   /* Mi perfil es la página de LA CUENTA (owner, 8-oct-2026: «no seas redundante con la info, como en mis propiedades
      que ya aparece en Inicio»): quién es y cómo contactarle, lo que nos entregó, seguridad y avisos, y a quién escribir
      si un dato está mal. Lo pagado, lo pendiente, las propiedades y la actividad viven en Inicio y no se repiten aquí.
-     Aspecto del artifact «Mi perfil Lawang v2». El aviso de Inicio de un documento que caduca trae aquí («Ver mi
-     perfil»), a lo entregado. Hereda las acciones con sus mismos id: btnCambiarPass, tglEmail, tglSms y data-kyc. */
+     Aspecto v3 (9-oct-2026, artifact «Mi perfil Lawang v3»). El aviso de Inicio de un documento que caduca trae aquí
+     («Ver mi perfil»), a lo entregado (#pfEntregado). Hereda las acciones con sus mismos id: btnCambiarPass, tglEmail,
+     tglSms, data-kyc, data-kyc-avisar y data-ir. */
   function nombreKyc(tipo){ return t('doc_' + tipo) === 'doc_' + tipo ? tipo : t('doc_' + tipo); }
+  /* ══ CALENDARIO (9-oct-2026, owner) ═══════════════════════════════════════════════════════════════════════════
+     Firmas, pagos, obra y caducidad de documentos en un solo sitio. Composición del modelo que eligió el owner (mes
+     pequeño, «Pendiente de ti», documentos, vistas Mensual / Semanal / Agenda) con la piel v4 del portal y no la de la
+     maqueta: revisión previa de Diseño, Datos y Seguridad del 9-oct, plegada aquí (un acento, el tipo nunca solo por
+     color, radio 12, sin vista semanal en móvil, 44 px táctiles).
+     Los eventos salen de calendario.js (solo datos, con test); aquí se pinta, y TODO texto pasa por esc(). Ninguna
+     escritura: cada acción lleva a la pestaña que ya hace esa cosa (firmar, ver la factura, avisar al equipo). */
+  var CAL = null;   // { vista, mes:'AAAA-MM-01', sel:'AAAA-MM-DD', off:{familia:true} } — dura lo que la pestaña del navegador
+  function calMovil(){ return !!(window.matchMedia && window.matchMedia('(max-width:640px)').matches); }
+  function calMesTxt(dia){ var s = fechaDeDia(dia).toLocaleDateString(LOC(), { month:'long', year:'numeric' }); return s.charAt(0).toUpperCase() + s.slice(1); }
+  function calDiaLargo(dia){ var s = fechaDeDia(dia).toLocaleDateString(LOC(), { weekday:'long', day:'numeric', month:'long' }); return s.charAt(0).toUpperCase() + s.slice(1); }
+  function calSemanaCorta(){   // lun…dom en el idioma del portal, desde un lunes cualquiera
+    var out = []; for (var i = 0; i < 7; i++) out.push(fechaDeDia(sumaDias('2026-10-05', i)).toLocaleDateString(LOC(), { weekday:'short' }).replace('.', ''));
+    return out;
+  }
+  function calCuando(e){
+    var n = e.dias;
+    if (n === 0) return t('cal_hoy');
+    if (n === 1) return t('cal_manana');
+    if (n === -1) return t('cal_ayer');
+    return n > 0 ? t('cal_en_dias').replace('{n}', n) : t('cal_hace_dias').replace('{n}', -n);
+  }
+  function calDocNombre(tipo){ var k = 'doc_' + (tipo || ''); var s = t(k); return s === k ? (tipo || '') : s; }
+  /* Título, línea de debajo e importe de un evento. Texto llano: quien lo pinta lo escapa. */
+  function calTexto(e){
+    var lugar = function(){ return Array.prototype.filter.call(arguments, Boolean).join(' · '); };
+    // `c`: el texto corto de la etiqueta del mes (la celda no da para más; la fila del día lleva el largo)
+    if (e.familia === 'firma') return { t:t('cal_firma_t').replace('{n}', e.contrato || '—'), c:lugar(t('cal_c_firma'), e.contrato), s:lugar(e.proyecto, e.parcela) + (e.proyecto || e.parcela ? ' — ' : '') + t('cal_firma_s') };
+    if (e.familia === 'doc') return { t:t('cal_doc_t').replace('{doc}', calDocNombre(e.docTipo)), c:calDocNombre(e.docTipo), s:'' };
+    if (e.familia === 'obra'){
+      if (e.tipoObra === 'fotos') return { t:t(e.n === 1 ? 'cal_fotos_1' : 'cal_fotos_n').replace('{n}', e.n), c:lugar(t('cal_c_fotos'), e.unidad), s:lugar(e.unidad, e.proyecto) + (e.titulo ? ' — «' + e.titulo + '»' : '') };
+      return { t:t('cal_entrega_t') + (e.unidad ? ' · ' + e.unidad : ''), c:lugar(t('cal_c_entrega'), e.unidad || e.proyecto), s:e.proyecto || '' };
+    }
+    // pagos: «Pago: Cimentación · P-07» — sin la palabra, el hito «Entrega» se leía como la entrega de llaves
+    if (e.estado === 'recibido') return { t:t('cal_recibo_t'), c:t('cal_recibo_t'), s:lugar(e.factura, e.proyecto), imp:dinero(e.monto, e.moneda) };
+    // lo que FALTA en cuanto es menos que el total, sea cual sea el estado: la misma cifra que su fila en Facturas
+    var imp = e.monto == null ? '' : dinero(e.monto, e.moneda);
+    if (e.estado !== 'pagado' && e.falta != null && (e.monto == null || e.falta < e.monto - 0.005))
+      imp = e.monto == null ? dinero(e.falta, e.moneda) : t('cal_queda').replace('{x}', dinero(e.falta, e.moneda));
+    if (e.id.indexOf('factura:') === 0) return { t:t('cal_factura_t').replace('{n}', e.factura), c:e.factura, s:e.proyecto || '', imp:imp };
+    var nom = Lx(e.hito) || t('plan_pagos');
+    return { t:t('cal_pago_t').replace('{h}', lugar(nom, e.parcela)), c:lugar(nom, e.parcela), s:lugar(e.contrato, e.proyecto), imp:imp };
+  }
+  function calEstado(e){
+    var tono = e.clase === 'vencida' ? 'mal' : e.estado === 'pronto' ? 'aviso'
+             : /^(pagado|recibido|hecho|ok)$/.test(e.estado) ? 'bien' : '';
+    return '<span class="cal-est' + (tono ? ' ' + tono : '') + '">' + esc(t('cal_e_' + e.estado)) + '</span>';
+  }
+  /* El enlace de firma NO se pinta aquí (lleva token): se firma desde Contratos, con el botón de siempre (Seguridad). */
+  function calAcciones(e){
+    var b = function(attr, txt){ return '<button type="button" class="btn-borde cal-acc" ' + attr + '>' + esc(txt) + '</button>'; };
+    if (e.familia === 'firma') return b('data-ir="contratos"', t('firmar'));
+    if (e.familia === 'obra') return b('data-ir="obra"', e.tipoObra === 'fotos' ? t('ver_fotos') : t('cal_ver_obra'));
+    if (e.familia === 'doc') return (e.pide ? b('data-ir="soporte"', t('ent_avisar')) : '') + b('data-ir="perfil"', t('cal_ver_doc'));
+    if (e.factura) return b('data-ir-fac="' + esc(e.factura) + '"', e.estado === 'recibido' ? t('cal_ver_recibo') : t('ver_factura_n').replace('{n}', e.factura));
+    return b('data-ir="contratos"', t('plan_pagos'));
+  }
+  function calPunto(e){ return '<i class="cal-punto ' + (e.clase === 'vencida' ? 'mal' : 'f-' + e.familia) + '" aria-hidden="true"></i>'; }
+  function calFila(e, conFecha){
+    var x = calTexto(e), f = fechaDeDia(e.dia);
+    return '<div class="cal-fila' + (e.clase === 'vencida' ? ' mal' : '') + '" data-cal-ev="' + esc(e.id) + '">' +
+      (conFecha ? '<div class="cal-fecha"><b>' + f.getDate() + '</b><span>' + esc(f.toLocaleDateString(LOC(), { weekday:'short' }).replace('.', '')) + '</span></div>' : '') +
+      calPunto(e) +
+      '<div class="cal-fila-tx"><b>' + esc(x.t) + '</b>' + (x.s ? '<span>' + esc(x.s) + '</span>' : '') +
+        '<span class="cal-fila-meta">' + calEstado(e) + (x.imp ? '<span class="cal-imp">' + esc(x.imp) + '</span>' : '') +
+        '<span class="cal-cuando">' + esc(calCuando(e)) + '</span></span></div>' +
+      '<div class="cal-fila-acc">' + calAcciones(e) + '</div></div>';
+  }
+
+  function pintaCalendario(c){
+    var hoy = diaCal(new Date());
+    if (!CAL) CAL = { vista:calMovil() ? 'agenda' : 'mes', mes:hoy.slice(0, 8) + '01', sel:hoy, off:{} };
+    if (CAL.vista === 'semana' && calMovil()) CAL.vista = 'agenda';   // la semanal no cabe en un móvil (Diseño): la agenda dice lo mismo
+    var todos = eventosCalendario(DATOS, new Date(), { estadosHitos:estadosHitos, obraProyecto:obraProyecto });
+    var ev = todos.filter(function(e){ return !CAL.off[e.familia]; });
+    var delDia = function(dia){ return ev.filter(function(e){ return e.dia === dia; }); };
+    var pend = pendientesCalendario(todos);
+    var sinFecha = hitosSinFecha(DATOS, { estadosHitos:estadosHitos });
+    var sem = calSemanaCorta();
+
+    // ── cabecera: lo siguiente que pide algo y cuántas cosas esperan
+    var sig = pend[0];
+    var cab = '<div class="cal-cabeza">' +
+      '<div class="cal-cifra' + (sig && sig.clase === 'vencida' ? ' mal' : '') + '"><span class="cal-lbl">' + esc(t(sig && sig.clase === 'vencida' ? 'cal_vencido_sec' : 'cal_lo_siguiente')) + '</span>' +
+        (sig ? '<b>' + esc(calTexto(sig).t) + '</b><span class="cal-cifra-s">' + esc(calDiaLargo(sig.dia)) + ' · ' + esc(calCuando(sig)) + '</span>'
+             : '<b>—</b><span class="cal-cifra-s">' + esc(t('cal_nada_pend')) + '</span>') + '</div>' +
+      '<div class="cal-cifra"><span class="cal-lbl">' + esc(t('cal_pendientes')) + '</span><b class="cal-num">' + pend.length + '</b>' +
+        '<span class="cal-cifra-s">' + esc(t(pend.length === 1 ? 'cal_n_tareas_1' : 'cal_n_tareas_n').replace('{n}', pend.length)) + '</span></div></div>';
+
+    // ── mes pequeño (navegador)
+    var mesD = fechaDeDia(CAL.mes);
+    var mini = '<section class="tarjeta cal-mini" aria-label="' + esc(calMesTxt(CAL.mes)) + '">' +
+      '<div class="cal-mini-cab"><b>' + esc(calMesTxt(CAL.mes)) + '</b><span class="cal-flechas">' +
+        '<button type="button" class="cal-flecha" data-cal-mes="-1" aria-label="' + esc(t('cal_ant')) + '">‹</button>' +
+        '<button type="button" class="cal-flecha" data-cal-mes="1" aria-label="' + esc(t('cal_sig')) + '">›</button></span></div>' +
+      '<div class="cal-mini-grid">' + sem.map(function(s){ return '<span class="cal-mini-sem">' + esc(s.slice(0, 2)) + '</span>'; }).join('') +
+      rejillaMes(mesD.getFullYear(), mesD.getMonth()).map(function(dia){
+        var es = delDia(dia), fuera = fechaDeDia(dia).getMonth() !== mesD.getMonth();
+        var fams = {}; es.forEach(function(e){ fams[e.clase === 'vencida' ? 'mal' : 'f-' + e.familia] = 1; });
+        return '<button type="button" class="cal-mini-dia' + (fuera ? ' fuera' : '') + (dia === hoy ? ' hoy' : '') + (dia === CAL.sel ? ' sel' : '') + '" data-cal-dia="' + dia + '"' +
+          ' aria-label="' + esc(calDiaLargo(dia) + (es.length ? ' · ' + t('cal_eventos_dia').replace('{n}', es.length) : '')) + '"' + (dia === CAL.sel ? ' aria-pressed="true"' : '') + '>' +
+          '<span>' + fechaDeDia(dia).getDate() + '</span><span class="cal-mini-puntos">' + Object.keys(fams).map(function(k){ return '<i class="cal-punto ' + k + '"></i>'; }).join('') + '</span></button>';
+      }).join('') + '</div></section>';
+
+    // ── pendiente de ti
+    var pendH = '<section class="tarjeta cal-lista"><div class="cal-lista-cab"><b>' + esc(t('cal_pendientes')) + '</b></div>' +
+      (pend.length ? pend.map(function(e){
+        var x = calTexto(e);
+        return '<button type="button" class="cal-tarea" data-cal-dia="' + e.dia + '" data-cal-ver="1">' + calPunto(e) +
+          '<span class="cal-tarea-tx"><b>' + esc(x.t) + '</b><span>' + esc(calDiaLargo(e.dia)) + (x.imp ? ' · ' + esc(x.imp) : '') + '</span></span>' + calEstado(e) + '</button>';
+      }).join('') : '<p class="cal-vacio">' + esc(t('cal_nada_pend')) + '</p>') + '</section>';
+
+    // ── tus documentos (la misma cuenta que Inicio y Mi perfil: estadoDocumento)
+    var kyc = ((DATOS && DATOS.kyc) || []).filter(function(k){ return k && k.caduca; })
+      .sort(function(a, b){ return String(a.caduca).localeCompare(String(b.caduca)); });
+    var docsH = '<section class="tarjeta cal-lista"><div class="cal-lista-cab"><b>' + esc(t('cal_docs')) + '</b></div>' +
+      (kyc.length ? kyc.map(function(k){
+        var st = estadoDocumento(k.caduca, new Date()), dia = diaCal(k.caduca);
+        var e = { estado:st.estado, clase:st.estado === 'vencido' ? 'vencida' : 'doc', familia:'doc' };
+        return '<button type="button" class="cal-tarea" data-cal-dia="' + dia + '" data-cal-ver="1">' + calPunto(e) +
+          '<span class="cal-tarea-tx"><b>' + esc(calDocNombre(k.tipo)) + '</b><span>' + esc(fecha(fechaDeDia(dia))) + '</span></span>' + calEstado(e) + '</button>';
+      }).join('') : '<p class="cal-vacio">' + esc(t('cal_sin_docs')) + '</p>') + '</section>';
+
+    // ── el panel: vistas, filtros y la vista elegida
+    var vistas = ['mes', 'semana', 'agenda'].map(function(v){
+      return '<button type="button" class="' + (v === 'semana' ? 'cal-solo-ancho' : '') + '" data-cal-vista="' + v + '" aria-pressed="' + (CAL.vista === v) + '">' + esc(t('cal_' + v)) + '</button>';
+    }).join('');
+    var filtros = CAL_FAMILIAS.map(function(f){
+      return '<button type="button" class="cal-filtro" data-cal-fam="' + f + '" aria-pressed="' + (!CAL.off[f]) + '"><i class="cal-punto f-' + f + '" aria-hidden="true"></i>' + esc(t('cal_fam_' + f)) + '</button>';
+    }).join('');
+    var titulo = '', cuerpo = '';
+    if (CAL.vista === 'mes'){
+      titulo = calMesTxt(CAL.mes);
+      cuerpo = '<div class="cal-mes" role="grid"><div class="cal-mes-sem" role="row">' + sem.map(function(s){ return '<span role="columnheader">' + esc(s) + '</span>'; }).join('') + '</div><div class="cal-mes-grid">' +
+        rejillaMes(mesD.getFullYear(), mesD.getMonth()).map(function(dia){
+          var es = delDia(dia), fuera = fechaDeDia(dia).getMonth() !== mesD.getMonth();
+          return '<button type="button" class="cal-celda' + (fuera ? ' fuera' : '') + (dia === hoy ? ' hoy' : '') + (dia === CAL.sel ? ' sel' : '') + '" data-cal-dia="' + dia + '"' +
+            ' aria-label="' + esc(calDiaLargo(dia) + (es.length ? ' · ' + t('cal_eventos_dia').replace('{n}', es.length) : '')) + '"' + (dia === CAL.sel ? ' aria-pressed="true"' : '') + '>' +
+            '<span class="cal-num-dia">' + fechaDeDia(dia).getDate() + '</span>' +
+            '<span class="cal-chips">' + es.slice(0, 2).map(function(e){ return '<span class="cal-chip' + (e.clase === 'vencida' ? ' mal' : '') + (e.dias < 0 && e.clase !== 'vencida' ? ' pasado' : '') + '">' + calPunto(e) + '<span>' + esc(calTexto(e).c || calTexto(e).t) + '</span></span>'; }).join('') +
+            (es.length > 2 ? '<span class="cal-mas">' + esc(t('cal_mas').replace('{n}', es.length - 2)) + '</span>' : '') + '</span>' +
+            '<span class="cal-puntos-movil">' + es.slice(0, 4).map(calPunto).join('') + '</span></button>';
+        }).join('') + '</div></div>';
+    } else if (CAL.vista === 'semana'){
+      var lun = lunesDe(CAL.sel), dom = sumaDias(lun, 6);
+      titulo = fechaDeDia(lun).toLocaleDateString(LOC(), { day:'numeric', month:'short' }) + ' – ' + fechaDeDia(dom).toLocaleDateString(LOC(), { day:'numeric', month:'short', year:'numeric' });
+      var algo = false;
+      cuerpo = '<div class="cal-semana">' + [0,1,2,3,4,5,6].map(function(i){
+        var dia = sumaDias(lun, i), es = delDia(dia); if (es.length) algo = true;
+        return '<div class="cal-sem-col' + (dia === hoy ? ' hoy' : '') + (dia === CAL.sel ? ' sel' : '') + '">' +
+          '<button type="button" class="cal-sem-dia" data-cal-dia="' + dia + '"' + (dia === CAL.sel ? ' aria-pressed="true"' : '') + '><b>' + fechaDeDia(dia).getDate() + '</b><span>' + esc(sem[i]) + '</span></button>' +
+          es.map(function(e){ var x = calTexto(e); return '<button type="button" class="cal-tarj' + (e.clase === 'vencida' ? ' mal' : '') + '" data-cal-dia="' + dia + '">' + calPunto(e) + '<b>' + esc(x.t) + '</b>' + (x.imp ? '<span>' + esc(x.imp) + '</span>' : '') + calEstado(e) + '</button>'; }).join('') +
+          '</div>';
+      }).join('') + '</div>' + (algo ? '' : '<p class="cal-vacio">' + esc(t('cal_semana_vacia')) + '</p>');
+    } else {
+      titulo = t('cal_agenda');
+      var venc = ev.filter(function(e){ return e.clase === 'vencida'; });
+      var prox = ev.filter(function(e){ return e.clase !== 'vencida' && e.dias >= 0; });
+      var mesAct = '';
+      cuerpo = '<div class="cal-agenda">' +
+        (venc.length ? '<div class="cal-ag-mes mal">' + esc(t('cal_vencido_sec')) + '</div>' + venc.map(function(e){ return calFila(e, true); }).join('') : '') +
+        prox.map(function(e){
+          var m = e.dia.slice(0, 7), h = '';
+          if (m !== mesAct){ mesAct = m; h = '<div class="cal-ag-mes">' + esc(calMesTxt(m + '-01')) + '</div>'; }
+          return h + calFila(e, true);
+        }).join('') +
+        (!venc.length && !prox.length ? '<p class="cal-vacio">' + esc(t('cal_agenda_vacia')) + '</p>' : '') + '</div>';
+    }
+    // el día elegido, con sus acciones (Mensual y Semanal; en la agenda cada fila ya las lleva)
+    var diaH = CAL.vista === 'agenda' ? '' : '<div class="cal-dia" id="calDia"><div class="cal-dia-cab">' + esc(calDiaLargo(CAL.sel)) + '</div>' +
+      (delDia(CAL.sel).length ? delDia(CAL.sel).map(function(e){ return calFila(e, false); }).join('') : '<p class="cal-vacio">' + esc(t('cal_dia_vacio')) + '</p>') + '</div>';
+    var nav = CAL.vista === 'agenda' ? '' : '<span class="cal-nav"><button type="button" class="btn-borde cal-hoy" data-cal-hoy="1">' + esc(t('cal_hoy')) + '</button>' +
+      '<button type="button" class="cal-flecha" data-cal-paso="-1" aria-label="' + esc(t('cal_ant')) + '">‹</button><button type="button" class="cal-flecha" data-cal-paso="1" aria-label="' + esc(t('cal_sig')) + '">›</button></span>';
+    var panel = '<section class="tarjeta cal-panel">' +
+      '<div class="cal-panel-cab"><h2>' + esc(titulo) + '</h2>' + nav + '</div>' +
+      '<div class="cal-controles"><div class="ini-filtro" role="group" aria-label="' + esc(t('cal_vista')) + '">' + vistas + '</div>' +
+        '<div class="cal-filtros" role="group" aria-label="' + esc(t('cal_filtros')) + '">' + filtros + '</div></div>' +
+      cuerpo + diaH +
+      (sinFecha ? '<p class="kpi-nota cal-sin-fecha">' + esc(t(sinFecha === 1 ? 'cal_sin_fecha_1' : 'cal_sin_fecha_n').replace('{n}', sinFecha)) +
+        ' <button type="button" class="ini-link" data-ir="contratos">' + esc(t('plan_pagos')) + ' →</button></p>' : '') + '</section>';
+
+    c.innerHTML = '<div class="cal">' + cab + '<div class="cal-cuerpo"><div class="cal-lado">' + mini + pendH + docsH + '</div>' + panel + '</div></div>';
+
+    var w = c.querySelector('.cal');
+    w.addEventListener('click', function(ev2){
+      var b = ev2.target.closest('button'); if (!b || !w.contains(b)) return;
+      if (b.hasAttribute('data-ir-fac')){ vasA('facturas', b.getAttribute('data-ir-fac')); return; }
+      if (b.hasAttribute('data-ir')){ vasA(b.getAttribute('data-ir'), null); return; }
+      var a;
+      if ((a = b.getAttribute('data-cal-vista'))){ CAL.vista = a; }
+      else if ((a = b.getAttribute('data-cal-fam'))){ CAL.off[a] = !CAL.off[a]; }
+      else if ((a = b.getAttribute('data-cal-mes'))){ var m = fechaDeDia(CAL.mes); m.setMonth(m.getMonth() + Number(a)); CAL.mes = diaCal(m); }
+      else if ((a = b.getAttribute('data-cal-paso'))){
+        if (CAL.vista === 'semana'){ CAL.sel = sumaDias(CAL.sel, 7 * Number(a)); CAL.mes = CAL.sel.slice(0, 8) + '01'; }
+        else { var m2 = fechaDeDia(CAL.mes); m2.setMonth(m2.getMonth() + Number(a)); CAL.mes = diaCal(m2); }
+      }
+      else if (b.hasAttribute('data-cal-hoy')){ CAL.sel = hoy; CAL.mes = hoy.slice(0, 8) + '01'; }
+      else if ((a = b.getAttribute('data-cal-dia'))){
+        CAL.sel = a; CAL.mes = a.slice(0, 8) + '01';
+        // desde las listas de la izquierda (o en la agenda) se salta a la vista que enseña ese día con sus acciones
+        if (b.hasAttribute('data-cal-ver') || CAL.vista === 'agenda'){ if (CAL.vista === 'agenda' || calMovil()) CAL.vista = 'mes'; }
+      }
+      else return;
+      pintaCalendario(c);
+      try { if (window.LW_MOV) LW_MOV.selectores(c, 'calendario'); } catch (e){ console.error('movimiento', e); /* MUDO A PROPOSITO: el movimiento es un adorno, la vista ya está pintada */ }
+      if (b.hasAttribute('data-cal-dia') && calMovil()){ var dd = document.getElementById('calDia'); if (dd && dd.scrollIntoView) dd.scrollIntoView({ block:'nearest' }); }
+    });
+  }
+
   function pintaPerfil(c){
     var d = DATOS, prefs = d.prefs || { pref_email:true, pref_sms:false }, kyc = d.kyc||[];
     var carpetas = carpetasProyecto().filter(function(f){ return (f.contratos || []).length; });
-    var iniciales = inicialesDe((d.nombre || '').trim());
 
-    // ficha: quién es y sus datos de contacto
+    // ficha: el icono de villa, quién es y sus datos de contacto en rejilla
     var sub = carpetas.length ? (carpetas.length === 1 ? t('n_props_1') : t('n_props_n').replace('{n}', carpetas.length)) : '';
-    var dato = function(ico, v){ return v ? '<li class="pf-dato">' + svgPerfil(ico) + '<span>' + esc(v) + '</span></li>' : ''; };
-    var datos = dato('envelope', d.email) + dato('phone', d.telefono) + dato('pin', d.pais);
-    var ficha = '<section class="tarjeta pf-ficha"><div class="pf-yo"><div class="pf-avatar" aria-hidden="true">' + esc(iniciales) + '</div>' +
-        '<div class="pf-quien"><h2>' + esc(d.nombre || d.email || '—') + '</h2>' + (sub ? '<p class="pf-sub">' + esc(sub) + '</p>' : '') +
-          (datos ? '<ul class="pf-datos">' + datos + '</ul>' : '') + '</div></div></section>';
+    var dato = function(ico, v, ancho){ return v ? '<li' + (ancho ? ' class="ancho"' : '') + '><span class="ico">' + svgPerfil(ico) + '</span><span>' + esc(v) + '</span></li>' : ''; };
+    var datos = dato('envelope', d.email, true) + dato('phone', d.telefono) + dato('pin', d.pais);
+    var ficha = '<section class="p3-card p3-ficha"><div class="p3-icono">' + iconoMoanito(156) + '</div>' +
+        '<div class="p3-quien"><h2>' + esc(d.nombre || d.email || '—') + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') +
+          (datos ? '<ul class="p3-datos">' + datos + '</ul>' : '') +
+          '<div class="p3-colores"><span class="rot-bloque">' + esc(t('pf_color')) + '</span><div class="p3-sw" role="group" aria-label="' + esc(t('pf_color')) + '">' +
+            COLORES_AV.map(function(k){ return '<button type="button" class="moa c-' + k + '" data-color="' + k + '" aria-pressed="' + (k === COLOR_AV) + '" aria-label="' + esc(t('col_' + k)) + '" title="' + esc(t('col_' + k)) + '"></button>'; }).join('') +
+          '</div></div></div></section>';
 
-    // lo entregado (artifact «Documentos entregados Lawang», 8-oct-2026): cada documento con su dibujo, su estado en
-    // grande y la vida que le queda (de cuando nos lo dio a cuando caduca, con hoy marcado). Los que piden algo, primero.
+    // lo entregado: una tesela por documento con su dibujo, su estado en grande y la vida que le queda (de cuando nos lo
+    // dio a cuando caduca, con hoy marcado), tintada por estado. Los que piden algo, primero.
     var estadoKyc = function(x){ return estadoDocumento(x.caduca).estado; };   // el mismo que el aviso de Inicio (resumen.js)
     var ORDEN_KYC = { pronto:0, vencido:1, ok:2, sin:3 };
     var kycOrden = kyc.slice().sort(function(a, b){ return ORDEN_KYC[estadoKyc(a)] - ORDEN_KYC[estadoKyc(b)]; });
     var piden = kyc.filter(function(x){ var e = estadoKyc(x); return e === 'pronto' || e === 'vencido'; }).length;
     var piezaKyc = function(x){
-      var ed = estadoDocumento(x.caduca), e = ed.estado, n = ed.dias, dCad = diaLocal(x.caduca);
+      var ed = estadoDocumento(x.caduca), e = ed.estado, n = ed.dias, dCad = diaLocal(x.caduca), nom = nombreKyc(x.tipo);
       var grande = e === 'pronto' ? (n === 0 ? '<b class="txt">' + esc(t('caduca_hoy')) + '</b>'
                                              : '<b>' + n + '<small>' + esc(t(n === 1 ? 'ent_dia' : 'ent_dias')) + '</small></b><span>' + esc(t('ent_para_caducar').replace('{f}', fechaLargaDe(dCad))) + '</span>')
                  : e === 'ok' ? '<b>' + esc(t('pf_vigente')) + '</b><span>' + esc(t('ent_hasta').replace('{f}', fecha(dCad))) + '</span>'
@@ -4401,52 +4814,77 @@
       } else {
         vida = entregadoEl ? '<div class="ent-pie">' + entregadoEl + '</div>' : '';
       }
-      var acc = '<button type="button" class="ent-btn ver" data-kyc="' + esc(x.path) + '">' + trazoPerfil('ojo') + esc(t('ent_ver')) + '</button>' +
-        (e === 'pronto' || e === 'vencido' ? '<button type="button" class="ent-btn avisar" data-kyc-avisar>' + trazoPerfil('chat') + esc(t('ent_avisar')) + '</button>' : '');
-      return '<article class="ent-doc ' + e + '"><div class="ent-top"><span class="ent-art" aria-hidden="true">' + arteKyc(x.tipo) + '</span>' +
-        '<div class="ent-nom"><div class="t">' + esc(nombreKyc(x.tipo)) + '</div><div class="s">' + esc(t('ent_en_exp')) + '</div></div></div>' +
-        '<div class="ent-estado">' + grande + '</div>' + vida + '<div class="ent-acc">' + acc + '</div></article>';
+      return '<article class="p3-doc ' + e + '"><div class="p3-doc-top"><span class="ent-art" aria-hidden="true">' + arteKyc(x.tipo) + '</span>' +
+          '<div><div class="t">' + esc(nom) + '</div><div class="s">' + esc(t('ent_en_exp')) + '</div></div>' +
+          '<button type="button" class="p3-ver" data-kyc="' + esc(x.path) + '" aria-label="' + esc(t('ent_ver') + ' · ' + nom) + '" title="' + esc(t('ent_ver')) + '">' + trazoSop('diag', 2) + '</button></div>' +
+        '<div class="ent-estado">' + grande + '</div>' + vida +
+        (e === 'pronto' || e === 'vencido' ? '<button type="button" class="p3-avisar" data-kyc-avisar>' + trazoPerfil('chat') + esc(t('ent_avisar')) + '</button>' : '') +
+      '</article>';
     };
-    var entregado = kyc.length ? '<section class="tarjeta" id="pfEntregado"><div class="ent-cab"><h3 class="pf-t">' + esc(t('d_entregado')) + '</h3>' +
+    var entregado = kyc.length ? '<section class="p3-card" id="pfEntregado"><div class="p3-cab"><h2 class="p3-h">' + esc(t('d_entregado')) + '</h2>' +
         (piden ? '<span class="ent-res aviso"><i></i>' + esc(piden === 1 ? t('ent_res_1') : t('ent_res_n').replace('{n}', piden)) + '</span>'
                : '<span class="ent-res bien"><i></i>' + esc(t('ent_todo')) + '</span>') + '</div>' +
-        '<p class="ent-intro">' + esc(t('ent_intro')) + '</p>' +
-        '<div class="ent-docs">' + kycOrden.map(piezaKyc).join('') + '</div></section>' : '';
+        '<p class="p3-intro">' + esc(t('ent_intro')) + '</p>' +
+        '<div class="p3-docs">' + kycOrden.map(piezaKyc).join('') + '</div></section>' : '';
 
-    var fila = function(ico, txt){ return '<span class="pf-pref">' + trazoPerfil(ico) + '<span>' + esc(txt) + '</span></span>'; };
-    var ajustes = '<section class="tarjeta"><h3 class="pf-t pf-t-sola">' + esc(t('seguridad_avisos')) + '</h3>' +
-        '<div class="pref-fila">' + fila('lock', t('pf_contrasena')) + '<button type="button" class="btn-borde" id="btnCambiarPass">' + esc(t('cambiar_pass_btn')) + '</button></div>' +
-        '<div class="rot-bloque pf-rot-prefs">' + esc(t('prefs')) + '</div>' +
-        '<div class="pref-fila">' + fila('mail', t('pref_email')) +
-          '<button type="button" class="toggle' + (prefs.pref_email?' on':'') + '" id="tglEmail" aria-pressed="' + !!prefs.pref_email + '" aria-label="' + esc(t('pref_email')) + '"><i></i></button></div>' +
-        '<div class="pref-fila">' + fila('chat', t('pref_sms')) +
-          '<button type="button" class="toggle' + (prefs.pref_sms?' on':'') + '" id="tglSms" aria-pressed="' + !!prefs.pref_sms + '" aria-label="' + esc(t('pref_sms')) + '"><i></i></button></div>' +
-      '</section>';
-
-    // datos personales: tarjeta propia (antes .ini-sop, que en la columna estrecha dejaba el título flotando a la derecha)
+    // datos personales: a quién escribir si un dato está mal
     var abiertas = (d.tickets || []).filter(function(x){ return x.estado === 'abierto'; }).length;
-    var datosMal = '<section class="tarjeta pf-ayuda"><span class="ico">' + trazoPerfil('chat') + '</span><div class="pf-ayuda-tx">' +
-      '<div class="rot-bloque">' + esc(t('datos_personales')) + '</div><h4>' + esc(t('pf_dato_mal')) + '</h4>' +
-      '<p>' + esc(t('pf_dato_mal_txt')) + '</p>' +
-      (abiertas ? '<p class="abiertas"><em></em>' + esc(abiertas === 1 ? t('sop_abiertas_1') : t('sop_abiertas_n').replace('{n}', abiertas)) + '</p>' : '') +
-      '<button type="button" class="btn-oscuro" data-ir="soporte">' + esc(t('escribir_equipo')) + '</button></div></section>';
+    var datosMal = '<section class="p3-card p3-datosmal"><div><span class="rot-bloque">' + esc(t('datos_personales')) + '</span><h3>' + esc(t('pf_dato_mal')) + '</h3>' +
+        '<p>' + esc(t('pf_dato_mal_txt')) + '</p>' +
+        (abiertas ? '<p class="abiertas"><em>' + abiertas + '</em>' + esc(abiertas === 1 ? t('sop_abiertas_1') : t('sop_abiertas_n').replace('{n}', abiertas)) + '</p>' : '') + '</div>' +
+      '<button type="button" class="p3-ir" data-ir="soporte">' + esc(t('escribir_equipo')) + '<span>' + trazoSop('diag', 2) + '</span></button></section>';
 
-    c.innerHTML = '<div class="pf"><div class="pf-col">' + ficha + entregado + '</div>' +
-      '<div class="pf-col">' + ajustes + datosMal + '</div></div>';
+    // seguridad y avisos: el raíl de la derecha; cada aviso dice si está activado y a dónde llega
+    var tg = function(id, on, lbl){ return '<button type="button" class="toggle' + (on ? ' on' : '') + '" id="' + id + '" aria-pressed="' + !!on + '" aria-label="' + esc(lbl) + '"><i></i></button>'; };
+    var estadoAviso = function(on, donde){ return '<div class="rail-pills"><span class="rail-pill' + (on ? ' on' : '') + '">' + esc(t(on ? 'pf_activados' : 'pf_desactivados')) + '</span>' + (donde ? '<span class="rail-pill">' + esc(donde) + '</span>' : '') + '</div>'; };
+    var ajustes = '<section class="p3-card p3-rail"><h2 class="p3-h">' + esc(t('seguridad_avisos')) + '</h2><div class="p3-raild">' +
+        '<div class="rail-it"><span class="rail-ico">' + trazoPerfil('lock') + '</span><div class="rail-card"><div class="rail-fila"><div><b>' + esc(t('pf_contrasena')) + '</b><small>' + esc(t('pf_pass_sub')) + '</small></div></div>' +
+          '<div class="rail-pills"><button type="button" class="p3-pass" id="btnCambiarPass">' + esc(t('cambiar_pass_btn')) + '</button></div></div></div>' +
+        '<div class="rot-bloque rail-sep">' + esc(t('prefs')) + '</div>' +
+        '<div class="rail-it"><span class="rail-ico">' + trazoPerfil('mail') + '</span><div class="rail-card"><div class="rail-fila"><b>' + esc(t('pref_email')) + '</b>' + tg('tglEmail', prefs.pref_email, t('pref_email')) + '</div>' +
+          estadoAviso(prefs.pref_email, d.email) + '</div></div>' +
+        '<div class="rail-it"><span class="rail-ico">' + trazoPerfil('chat') + '</span><div class="rail-card"><div class="rail-fila"><b>' + esc(t('pref_sms')) + '</b>' + tg('tglSms', prefs.pref_sms, t('pref_sms')) + '</div>' +
+          estadoAviso(prefs.pref_sms, d.telefono) + '</div></div>' +
+      '</div></section>';
+
+    c.innerHTML = '<div class="p3"><div class="p3-col">' + ficha + entregado + datosMal + '</div>' +
+      '<div class="p3-col">' + ajustes + '</div></div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
     document.getElementById('btnCambiarPass').addEventListener('click', abrirCambiarPass);
+    c.querySelectorAll('[data-color]').forEach(function(b){ b.addEventListener('click', function(){ eligeColor(b.getAttribute('data-color')); }); });
     document.getElementById('tglEmail').addEventListener('click', function(){ togglePref('pref_email'); });
     document.getElementById('tglSms').addEventListener('click', function(){ togglePref('pref_sms'); });
     c.querySelectorAll('[data-kyc]').forEach(function(el){ el.addEventListener('click', function(){ abreFichero('kyc', el.getAttribute('data-kyc')); }); });
     // «Avisar al equipo» abre la consulta ya en Documentación, como Obra abre la suya en Obra
     c.querySelectorAll('[data-kyc-avisar]').forEach(function(el){ el.addEventListener('click', function(){ abrirNuevoTicket({ cat:'Documentación' }); }); });
   }
+  function eligeColor(k){
+    if (COLORES_AV.indexOf(k) < 0 || k === COLOR_AV) return;
+    var antes = COLOR_AV;
+    COLOR_AV = k; COLOR_ELEGIDO = true; pintaAvatarMenu(); pintaPerfil(document.getElementById('content'));
+    var sw = document.querySelector('[data-color="' + k + '"]'); if (sw) sw.focus();   // el repintado sustituye el botón: el foco de teclado se queda en él
+    sb.rpc('portal_set_color_avatar', { p_color: k }).then(function(r){
+      // Si no se guardó, vuelve al color de antes (solo si sigue siendo el que se mandó): la pantalla no enseña un color que no quedó.
+      if (r.error){
+        console.error('portal_set_color_avatar', r.error);
+        if (COLOR_AV === k){ COLOR_AV = antes; pintaAvatarMenu(); if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content')); }
+        toastMal(t('err_color'));
+      }
+    });
+  }
   function togglePref(cual){
     var prefs = DATOS.prefs = DATOS.prefs || { pref_email:true, pref_sms:false };
     prefs[cual] = !prefs[cual];
+    var enviado = prefs[cual];
     pintaPerfil(document.getElementById('content'));
     sb.rpc('portal_set_prefs', { p_pref_email: prefs.pref_email, p_pref_sms: prefs.pref_sms }).then(function(r){
-      if (r.error){ console.error('portal_set_prefs', r.error); toastMal(t('err_prefs')); }
+      // Si no se guardó, el interruptor vuelve a como estaba: la pantalla no dice «Activados» de algo que no cambió (revisor,
+      // 9-oct-2026). Solo si sigue en el valor que se mandó: con un segundo clic en marcha, el que manda es ese.
+      if (r.error){
+        console.error('portal_set_prefs', r.error);
+        if (prefs[cual] === enviado){ prefs[cual] = !enviado; if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content')); }
+        toastMal(t('err_prefs'));
+      }
     });
   }
 
