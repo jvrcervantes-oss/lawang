@@ -110,9 +110,9 @@ begin
   insert into public.lead_accion (lead_id, que, cuando, responsable, creada_por, tipo, cuando_ts, estado, origen)
   values (l, 'cita S2', current_date, 'x@x', 'x@x', 'llamada', now() + interval '30 minutes', 'confirmada', 'humano') returning id into a;
   set local role bot_lawang;
-  execute 'select accion_id, tel, tipo, cuando_ts, ultimo_entrante_en from public.bot_citas_recordar()' into rec;
+  execute 'select accion_id, tel, tipo, cuando_ts, ultimo_entrante_en, nombre from public.bot_citas_recordar()' into rec;
   reset role;
-  if rec.accion_id is distinct from a or rec.tel <> t or rec.tipo <> 'llamada' or rec.cuando_ts is null then raise exception 'PRUEBA FALLA: citas_recordar devolvio %', rec; end if;
+  if rec.accion_id is distinct from a or rec.tel <> t or rec.tipo <> 'llamada' or rec.cuando_ts is null or length(coalesce(rec.nombre, '')) > 80 then raise exception 'PRUEBA FALLA: citas_recordar devolvio %', rec; end if;
   set local role bot_lawang;
   execute 'select public.bot_cita_recordatorio_res($1::uuid, $2::text) as r' into r using a::text, 'enviado';
   reset role;

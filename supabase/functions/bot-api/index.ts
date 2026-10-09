@@ -166,7 +166,7 @@ const SQL = {
   escalar: 'select public.bot_escalar($1::text, $2::text, $3::text, $4::text) as r',
   escalacion_tomar: 'select public.bot_escalacion_tomar($1::text) as r',
   lead_resumen: 'select public.bot_lead_resumen($1::text, $2::text, $3::bigint) as r',
-  citas_recordar: 'select accion_id, tel, tipo, cuando_ts, ultimo_entrante_en from public.bot_citas_recordar()',
+  citas_recordar: 'select accion_id, tel, tipo, cuando_ts, ultimo_entrante_en, nombre from public.bot_citas_recordar()',
   cita_recordatorio_res: 'select public.bot_cita_recordatorio_res($1::uuid, $2::text) as r',
   pausar_humano: 'select public.bot_pausar_humano($1::text, $2::text, $3::text) as r',
   envio_humano: 'select public.bot_envio_humano($1::text, $2::text, $3::text, $4::text::jsonb, $5::text) as r',
@@ -563,7 +563,7 @@ export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
         citas: filas.slice(0, 20).map((f) => {
           const id = T(f.accion_id), tel = T(f.tel), tipo = T(f.tipo);
           if (!RE_UUID.test(id) || !RE_TEL.test(tel) || (tipo !== 'llamada' && tipo !== 'visita')) mal();
-          return { accion_id: id, tel, tipo, cuando_ts: iso(f.cuando_ts), ultimo_entrante_en: isoN(f.ultimo_entrante_en) };
+          return { accion_id: id, tel, tipo, cuando_ts: iso(f.cuando_ts), ultimo_entrante_en: isoN(f.ultimo_entrante_en), nombre: f.nombre === null || f.nombre === undefined ? null : T(f.nombre).replace(/[ -]/g, ' ').trim().slice(0, 80) || null };
         }),
       }),
     },

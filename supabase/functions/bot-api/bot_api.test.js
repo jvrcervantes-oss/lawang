@@ -421,9 +421,9 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
   const U1 = '6f1c3a52-0000-4000-8000-000000000001';
   await caso('recordatorio', { accion: 'citas_recordar' }, [
     { accion_id: U1, tel: '34600111222', tipo: 'llamada', cuando_ts: new Date('2026-10-10T10:00:00Z'), ultimo_entrante_en: null, lead_id: 'x' },
-    { accion_id: U1, tel: '34600111223', tipo: 'visita', cuando_ts: '2026-10-10T11:00:00+00:00', ultimo_entrante_en: new Date('2026-10-10T09:30:00Z') }], [], 'citas_recordar',
-    { citas: [{ accion_id: U1, tel: '34600111222', tipo: 'llamada', cuando_ts: '2026-10-10T10:00:00.000Z', ultimo_entrante_en: null },
-      { accion_id: U1, tel: '34600111223', tipo: 'visita', cuando_ts: '2026-10-10T11:00:00+00:00', ultimo_entrante_en: '2026-10-10T09:30:00.000Z' }] });
+    { accion_id: U1, tel: '34600111223', tipo: 'visita', cuando_ts: '2026-10-10T11:00:00+00:00', ultimo_entrante_en: new Date('2026-10-10T09:30:00Z'), nombre: ' Ana	López ' }], [], 'citas_recordar',
+    { citas: [{ accion_id: U1, tel: '34600111222', tipo: 'llamada', cuando_ts: '2026-10-10T10:00:00.000Z', ultimo_entrante_en: null, nombre: null },
+      { accion_id: U1, tel: '34600111223', tipo: 'visita', cuando_ts: '2026-10-10T11:00:00+00:00', ultimo_entrante_en: '2026-10-10T09:30:00.000Z', nombre: 'Ana López' }] });
   await caso('recordatorio', { accion: 'citas_recordar' }, [], [], 'citas_recordar', { citas: [] });
   reinicia(); dbCon(new Array(30).fill({ accion_id: U1, tel: '34600111222', tipo: 'llamada', cuando_ts: '2026-10-10T10:00:00Z', ultimo_entrante_en: null }));
   igual((await rq('recordatorio', { accion: 'citas_recordar' })).cuerpo.citas.length, 20, 'citas_recordar: como mucho 20');
