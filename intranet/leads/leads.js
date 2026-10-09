@@ -2231,10 +2231,10 @@ function pintarAgenda(){
         <div class="sub">${c.phone ? esc(c.phone) + ' · ' : ''}closer: ${esc(c.closer || '—')}${c.notes ? ' · ' + esc(c.notes) : ''}</div>
       </div>
       <span class="chip ${citaEstadoChip(c.estado)[0]}">${esc(citaEstadoChip(c.estado)[1])}</span>
-      <div class="acciones">
+      ${c.estado === 'hecha' ? '' : `<div class="acciones">
         <button class="btn mini" data-editar="${esc(c.id)}">${lwT('Editar')}</button>
         <button class="btn mini" data-borrar="${esc(c.id)}">${lwT('Borrar')}</button>
-      </div>
+      </div>`}
     </article>`).join('') : '<p class="vacio">' + lwT('Sin citas agendadas.') + '</p>';
   $('#tAgenda').querySelectorAll('[data-editar]').forEach(b => b.onclick = () => cargarCitaEnFormulario(b.dataset.editar));
   $('#tAgenda').querySelectorAll('[data-borrar]').forEach(b => b.onclick = () => borrarCita(b.dataset.borrar));
