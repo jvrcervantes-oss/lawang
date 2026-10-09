@@ -188,6 +188,8 @@
       if (n === 'sociedades_visibles') return thenable(SOC);
       if (n === 'cuentas_cobro_visibles') return thenable([]);
       if (n === 'portal_marcar_notificaciones_leidas') { D.prefs.notif_visto_hasta = new Date().toISOString(); return ok(null); }
+      if (n === 'portal_get_color_avatar') return ok(D.color_avatar || 'petroleo');
+      if (n === 'portal_set_color_avatar') { D.color_avatar = a.p_color; return ok(null); }
       if (n === 'portal_set_prefs') { D.prefs.pref_email = !!a.p_pref_email; D.prefs.pref_sms = !!a.p_pref_sms; return ok(null); }
       if (n === 'portal_abrir_ticket') {
         var r = refDe(a), id = 't' + (D.tickets.length + 1) + '-' + Date.now();

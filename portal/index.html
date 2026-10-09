@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="613d1d0dee6e">
+<meta name="lw-version" content="acfb3e120c0d">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -861,7 +861,7 @@
   .p3-h{ margin:0; font-size:20px; font-weight:500; letter-spacing:-.005em; text-wrap:balance; }
   /* ficha */
   .p3-ficha{ display:grid; grid-template-columns:156px minmax(0,1fr); gap:28px; align-items:center; }
-  .p3-icono svg{ display:block; width:156px; height:156px; }
+  .p3-icono .moa{ width:156px; height:156px; }
   .p3-quien{ min-width:0; }
   .p3-quien h2{ margin:0; font-size:26px; font-weight:500; letter-spacing:-.01em; line-height:1.15; overflow-wrap:anywhere; }
   .p3-quien .sub{ margin:6px 0 0; font-size:13.5px; color:var(--out); }
@@ -960,16 +960,32 @@
   .p3-ver:focus-visible, .p3-ir:focus-visible, .p3-pass:focus-visible, .p3-avisar:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
   /* el icono de villa en el pie del menú: el dibujo lleva su propia forma, sin el círculo de fondo */
   .avatar.villa{ background:none; border-radius:0; }
-  .avatar.villa svg{ display:block; width:34px; height:34px; }
+  /* Moanito (9-oct-2026, owner): círculo del color que elige el cliente con el moanito de Lawang en blanco encima. */
+  .moa{ display:grid; place-items:center; border-radius:50%; flex:none; }
+  .moa img{ display:block; width:60%; height:auto; }
+  .moa.c-petroleo{ background:linear-gradient(135deg,#104C4F,#1F6A6B); }
+  .moa.c-selva{ background:linear-gradient(135deg,#2C5A43,#3F7A5C); }
+  .moa.c-oliva{ background:linear-gradient(135deg,#485B37,#62784A); }
+  .moa.c-arena{ background:linear-gradient(135deg,#8C6A3A,#C89B5C); }
+  .moa.c-oceano{ background:linear-gradient(135deg,#25506B,#3A7396); }
+  .moa.c-ciruela{ background:linear-gradient(135deg,#5E3A4F,#85536F); }
+  .moa.c-tinta{ background:linear-gradient(135deg,#2F3358,#4A5088); }
+  .moa.c-carbon{ background:linear-gradient(135deg,#262826,#4A4D47); }
+  .p3-colores{ margin:20px 0 0; padding:20px 0 0; border-top:1px solid var(--pg-hi); }
+  .p3-colores .rot-bloque{ display:block; margin:0 0 12px; }
+  .p3-sw{ display:flex; flex-wrap:wrap; gap:10px; }
+  .p3-sw button{ width:30px; height:30px; padding:0; border-radius:50%; border:2px solid transparent; outline:1px solid var(--linea); outline-offset:-1px; cursor:pointer; }
+  .p3-sw button[aria-pressed="true"]{ border-color:#fff; outline:2px solid var(--va); outline-offset:0; }
+  .p3-sw button:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
   @media (max-width:1080px){
     .p3{ grid-template-columns:minmax(0,1fr); }   /* por debajo, la columna derecha se queda estrecha y parte el correo */
     .p3-ficha{ grid-template-columns:112px minmax(0,1fr); gap:20px; }
-    .p3-icono svg{ width:112px; height:112px; }
+    .p3-icono .moa{ width:112px; height:112px; }
   }
   @media (max-width:560px){
     .p3-card{ padding:18px; }
     .p3-ficha{ grid-template-columns:72px minmax(0,1fr); gap:16px; align-items:start; }
-    .p3-icono svg{ width:72px; height:72px; }
+    .p3-icono .moa{ width:72px; height:72px; }
     .p3-quien h2{ font-size:21px; }
     .p3-datos{ grid-template-columns:minmax(0,1fr); }
     .p3-card.p3-datosmal{ grid-template-columns:minmax(0,1fr); }
@@ -1916,30 +1932,18 @@
   var esc = function(v){ return String(v == null ? '' : v)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
 
-  // Iniciales del avatar (ficha y pie del menú): primera y última palabra, saltando partículas.
-  // Con las dos primeras, «Ni Ketut Ayu Sari» salía «NK»: Ni/I son partículas balinesas, como de/van.
-  var PARTICULAS = ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'];
-  /* Icono de perfil «Ventana de villa» (9-oct-2026, owner, artifact «Iconos de perfil Lawang»): las iniciales dentro de
-     un arco de villa con el sol saliendo tras el horizonte verde. Sin fotografía por protección de datos; todo sale del
-     nombre. Lo usan la ficha de Mi perfil y el pie del menú. Ids únicos por dibujo: dos en la misma página no se pisan. */
-  var NUM_VILLA = 0;
-  function iconoVilla(iniciales, px){
-    var id = 'iv' + (++NUM_VILLA), peq = px < 60;
-    return '<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">' +
-      '<defs><linearGradient id="' + id + 'c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B393C"/><stop offset="1" stop-color="#1F6A6B"/></linearGradient>' +
-      '<clipPath id="' + id + 'k"><path d="M8,100 V44 A42,42 0 0 1 92,44 V100 Z"/></clipPath></defs>' +
-      '<g clip-path="url(#' + id + 'k)"><rect width="100" height="100" fill="url(#' + id + 'c)"/><circle cx="50" cy="84" r="24" fill="#C89B5C"/><circle cx="50" cy="84" r="31" fill="#C89B5C" opacity=".18"/>' +
-      '<path d="M0,80 Q25,74 50,79 T100,77 V100 H0 Z" fill="#485B37"/><path d="M0,88 Q30,83 55,88 T100,86 V100 H0 Z" fill="#3a4a2c"/></g>' +
-      '<text x="50" y="47" text-anchor="middle" dominant-baseline="central" font-size="' + (peq ? 32 : 27) + '" fill="#fff" letter-spacing="1">' + esc(iniciales) + '</text></svg>';
+  /* Icono de perfil (9-oct-2026, owner): el moanito de Lawang en un círculo del color que elige el cliente desde Mi perfil
+     (sustituye a «Ventana de villa», que no convenció). Sin fotografía por protección de datos. La lista de colores es
+     cerrada y la valida la base (portal_set_color_avatar): aquí solo se pinta. Lo usan la ficha de Mi perfil y el pie del menú. */
+  var COLORES_AV = ['petroleo','selva','oliva','arena','oceano','ciruela','tinta','carbon'];
+  var COLOR_AV = 'petroleo';
+  function iconoMoanito(px){
+    return '<span class="moa c-' + COLOR_AV + '" style="width:' + px + 'px;height:' + px + 'px" aria-hidden="true"><img src="/assets/img/moanito-face.webp" alt="" width="' + px + '" height="' + px + '"></span>';
   }
-  function inicialesDe(nombre){
-    var p = String(nombre || '').trim().split(/\s+/).filter(Boolean);
-    var q = p.filter(function(w){ return PARTICULAS.indexOf(w.toLowerCase()) < 0; });
-    if (q.length) p = q;
-    if (!p.length) return '·';
-    return (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase();
+  function pintaAvatarMenu(){
+    var ini = document.getElementById('avatarIniciales');
+    if (ini){ ini.innerHTML = iconoMoanito(34); ini.classList.add('villa'); }
   }
-
   function toast(msg){
     var el = document.getElementById('toast');
     el.textContent = msg; el.style.opacity = '1';
@@ -2025,6 +2029,8 @@
          err_mensaje:'No hemos podido enviar tu mensaje. Inténtalo de nuevo en un momento; si sigue sin salir, escríbenos por WhatsApp.',
          err_ticket:'No hemos podido abrir tu consulta. Inténtalo de nuevo en un momento; si sigue sin salir, escríbenos por WhatsApp.',
          err_prefs:'No hemos podido guardar tu preferencia de avisos. Vuelve a intentarlo en un momento.',
+         err_color:'No hemos podido guardar el color de tu icono. Vuelve a intentarlo en un momento.', pf_color:'Color de tu icono',
+         col_petroleo:'Petróleo', col_selva:'Selva', col_oliva:'Oliva', col_arena:'Arena', col_oceano:'Océano', col_ciruela:'Ciruela', col_tinta:'Tinta', col_carbon:'Carbón',
          categoria:'Categoría', enviar:'Enviar', cancelar:'Cancelar', abierto:'Abierto', resuelto:'Resuelto',
          responder:'Responder…', tu:'Tú', equipo:'Equipo Lawang',
          nuevo_ticket:'Nuevo ticket', elige_categoria:'Elige de qué trata…', mensaje:'Mensaje',
@@ -2134,6 +2140,8 @@
          err_mensaje:'We could not send your message. Please try again in a moment; if it still fails, write to us on WhatsApp.',
          err_ticket:'We could not open your enquiry. Please try again in a moment; if it still fails, write to us on WhatsApp.',
          err_prefs:'We could not save your notification preference. Please try again in a moment.',
+         err_color:'We could not save your icon colour. Please try again in a moment.', pf_color:'Your icon colour',
+         col_petroleo:'Teal', col_selva:'Forest', col_oliva:'Olive', col_arena:'Sand', col_oceano:'Ocean', col_ciruela:'Plum', col_tinta:'Ink', col_carbon:'Charcoal',
          categoria:'Category', enviar:'Send', cancelar:'Cancel', abierto:'Open', resuelto:'Resolved',
          responder:'Reply…', tu:'You', equipo:'Lawang team',
          nuevo_ticket:'New ticket', elige_categoria:'What is it about…', mensaje:'Message',
@@ -2247,6 +2255,8 @@
          err_mensaje:'Kami tidak dapat mengirim pesan Anda. Coba lagi sebentar lagi; jika masih gagal, hubungi kami lewat WhatsApp.',
          err_ticket:'Kami tidak dapat membuka pertanyaan Anda. Coba lagi sebentar lagi; jika masih gagal, hubungi kami lewat WhatsApp.',
          err_prefs:'Kami tidak dapat menyimpan preferensi notifikasi Anda. Coba lagi sebentar lagi.',
+         err_color:'Kami tidak dapat menyimpan warna ikon Anda. Coba lagi sebentar lagi.', pf_color:'Warna ikon Anda',
+         col_petroleo:'Teal', col_selva:'Hutan', col_oliva:'Zaitun', col_arena:'Pasir', col_oceano:'Samudra', col_ciruela:'Plum', col_tinta:'Tinta', col_carbon:'Arang',
          categoria:'Kategori', enviar:'Kirim', cancelar:'Batal', abierto:'Terbuka', resuelto:'Selesai',
          responder:'Balas…', tu:'Anda', equipo:'Tim Lawang',
          nuevo_ticket:'Tiket baru', elige_categoria:'Pilih topiknya…', mensaje:'Pesan',
@@ -2606,9 +2616,15 @@
           return;
         }
         DATOS = r.data || {};
-        var ini = document.getElementById('avatarIniciales');
         var nombre = (DATOS.nombre || '').trim();
-        ini.innerHTML = iconoVilla(inicialesDe(nombre), 34); ini.classList.add('villa');   // el mismo icono que la ficha de Mi perfil
+        pintaAvatarMenu();   // el mismo icono que la ficha de Mi perfil
+        // el color del moanito va en su propia llamada: si falla se queda el de marca, nunca bloquea la entrada
+        sb.rpc('portal_get_color_avatar').then(function(rc){
+          if (!rc.error && COLORES_AV.indexOf(rc.data) >= 0 && rc.data !== COLOR_AV){
+            COLOR_AV = rc.data; pintaAvatarMenu();
+            if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content'));
+          }
+        });
         document.getElementById('quienNombre').textContent = nombre || (DATOS.email || '');
         muestra('vApp');
         var r0 = leeHash();
@@ -4400,9 +4416,12 @@
     var sub = carpetas.length ? (carpetas.length === 1 ? t('n_props_1') : t('n_props_n').replace('{n}', carpetas.length)) : '';
     var dato = function(ico, v, ancho){ return v ? '<li' + (ancho ? ' class="ancho"' : '') + '><span class="ico">' + svgPerfil(ico) + '</span><span>' + esc(v) + '</span></li>' : ''; };
     var datos = dato('envelope', d.email, true) + dato('phone', d.telefono) + dato('pin', d.pais);
-    var ficha = '<section class="p3-card p3-ficha"><div class="p3-icono">' + iconoVilla(inicialesDe((d.nombre || '').trim()), 156) + '</div>' +
+    var ficha = '<section class="p3-card p3-ficha"><div class="p3-icono">' + iconoMoanito(156) + '</div>' +
         '<div class="p3-quien"><h2>' + esc(d.nombre || d.email || '—') + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') +
-          (datos ? '<ul class="p3-datos">' + datos + '</ul>' : '') + '</div></section>';
+          (datos ? '<ul class="p3-datos">' + datos + '</ul>' : '') +
+          '<div class="p3-colores"><span class="rot-bloque">' + esc(t('pf_color')) + '</span><div class="p3-sw" role="group" aria-label="' + esc(t('pf_color')) + '">' +
+            COLORES_AV.map(function(k){ return '<button type="button" class="moa c-' + k + '" data-color="' + k + '" aria-pressed="' + (k === COLOR_AV) + '" aria-label="' + esc(t('col_' + k)) + '" title="' + esc(t('col_' + k)) + '"></button>'; }).join('') +
+          '</div></div></div></section>';
 
     // lo entregado: una tesela por documento con su dibujo, su estado en grande y la vida que le queda (de cuando nos lo
     // dio a cuando caduca, con hoy marcado), tintada por estado. Los que piden algo, primero.
@@ -4464,11 +4483,25 @@
       '<div class="p3-col">' + ajustes + '</div></div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
     document.getElementById('btnCambiarPass').addEventListener('click', abrirCambiarPass);
+    c.querySelectorAll('[data-color]').forEach(function(b){ b.addEventListener('click', function(){ eligeColor(b.getAttribute('data-color')); }); });
     document.getElementById('tglEmail').addEventListener('click', function(){ togglePref('pref_email'); });
     document.getElementById('tglSms').addEventListener('click', function(){ togglePref('pref_sms'); });
     c.querySelectorAll('[data-kyc]').forEach(function(el){ el.addEventListener('click', function(){ abreFichero('kyc', el.getAttribute('data-kyc')); }); });
     // «Avisar al equipo» abre la consulta ya en Documentación, como Obra abre la suya en Obra
     c.querySelectorAll('[data-kyc-avisar]').forEach(function(el){ el.addEventListener('click', function(){ abrirNuevoTicket({ cat:'Documentación' }); }); });
+  }
+  function eligeColor(k){
+    if (COLORES_AV.indexOf(k) < 0 || k === COLOR_AV) return;
+    var antes = COLOR_AV;
+    COLOR_AV = k; pintaAvatarMenu(); pintaPerfil(document.getElementById('content'));
+    sb.rpc('portal_set_color_avatar', { p_color: k }).then(function(r){
+      // Si no se guardó, vuelve al color de antes (solo si sigue siendo el que se mandó): la pantalla no enseña un color que no quedó.
+      if (r.error){
+        console.error('portal_set_color_avatar', r.error);
+        if (COLOR_AV === k){ COLOR_AV = antes; pintaAvatarMenu(); if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content')); }
+        toastMal(t('err_color'));
+      }
+    });
   }
   function togglePref(cual){
     var prefs = DATOS.prefs = DATOS.prefs || { pref_email:true, pref_sms:false };
