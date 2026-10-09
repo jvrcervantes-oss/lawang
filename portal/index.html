@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="279b4a167da3">
+<meta name="lw-version" content="613d1d0dee6e">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -758,7 +758,9 @@
      portal ya usa) y «Cómo funciona» como bloque de acento con el botón blanco de «Nuevo ticket». El nodo de cada consulta
      dice de quién es el turno: lleno = te hemos respondido, hueco = esperando al equipo. Sin sombras. Hereda los enganches de
      la v2: data-sop-cat, btnNuevoTicket, data-ticket y el cajón entero (sop-dr) sin cambios. */
-  .s3{ --r-gr:20px; --t-pagos:#e3eadb; --a-pagos:#485B37; --t-doc:#e8f0ef; --a-doc:#104C4F; --t-obra:#f6e8cc; --a-obra:#8C5E10; --t-otro:#efeee7; --a-otro:#66695f;
+  /* Radio y tintes de las secciones v3 (Soporte y Mi perfil, 9-oct-2026): una sola lista para las dos. */
+  .s3, .p3{ --r-gr:20px; --ambar-fuerte:#8C5E10; --oro:#C89B5C; --tinte-verde:#e3eadb; --tinte-petroleo:#e8f0ef; --tinte-ambar:#f6e8cc; --tinte-neutro:#efeee7; --tinte-rojo:#f8ebe7; --tinte-arena:#f1ebe1; }
+  .s3{ --t-pagos:var(--tinte-verde); --a-pagos:#485B37; --t-doc:var(--tinte-petroleo); --a-doc:#104C4F; --t-obra:var(--tinte-ambar); --a-obra:var(--ambar-fuerte); --t-otro:var(--tinte-neutro); --a-otro:#66695f;
     display:grid; grid-template-columns:minmax(0,1.62fr) minmax(0,1fr); grid-template-areas:"empezar aviso" "lista acento"; gap:20px; align-items:stretch; }
   .s3 > *{ min-width:0; }
   .s3-card{ background:#fff; border:1px solid var(--pg-hi); border-radius:var(--r-gr); padding:24px 26px; margin:0; }
@@ -847,75 +849,66 @@
   }
   @media (prefers-reduced-motion:reduce){ .s3-puerta, .s3-tk, .s3-flecha, .s3-res summary svg{ transition:none; } .s3-tk:hover .s3-flecha{ transform:none; } }
 
-  /* ═══ MI PERFIL — la página de la cuenta (8-oct-2026; aspecto del artifact «Mi perfil Lawang v2») ═══
-     Ficha (quién es y sus datos), lo entregado, seguridad y avisos, y a quién escribir si un dato está mal. Lo que ya
-     enseña Inicio (lo pagado, lo pendiente, las propiedades, la actividad) no se repite aquí (owner, 8-oct-2026).
-     Piezas del portal (tarjeta, rot-bloque, docfila, toggle), tarjetas en blanco como las de Inicio, ni sombras ni
-     colores nuevos. */
+  /* ═══ MI PERFIL v3 (9-oct-2026; artifact «Mi perfil Lawang v3», sobre la referencia «Realty Hub» del owner) ═══
+     Solo cambia el aspecto (owner: «así, solo en Perfil»): ficha grande con el icono de villa y los datos en rejilla, lo
+     entregado en teselas tintadas por estado, el aviso de datos personales y, a la derecha, «Seguridad y avisos» en raíl
+     (el «Live feed» de la referencia). Lo que ya enseña Inicio (lo pagado, lo pendiente, las propiedades, la actividad) no
+     se repite aquí (owner, 8-oct-2026). Radio y tintes compartidos con Soporte v3 (.s3, .p3). Sin sombras. */
   .content.pf-ancho{ max-width:1040px; }
-  .pf{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:18px; align-items:start; }
-  .pf-col{ display:grid; gap:18px; min-width:0; }
-  .pf .tarjeta{ margin:0; background:#fff; }
-  .pf h3.pf-t{ margin:0; font-size:17px; font-weight:500; }
-  .pf h3.pf-t-sola{ margin-bottom:6px; }
-  /* ficha: quién es y sus datos en pastillas */
-  .pf-ficha{ padding:24px 26px; }
-  .pf-yo{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:22px; align-items:center; }
-  .pf-avatar{ width:96px; height:96px; border-radius:16px; background:var(--av-fondo); color:#fff; display:grid; place-items:center;
-              font-size:34px; font-weight:400; letter-spacing:.04em; }
-  .pf-quien{ min-width:0; }
-  .pf-quien h2{ margin:2px 0 0; font-size:30px; font-weight:400; letter-spacing:-.01em; line-height:1.1; overflow-wrap:anywhere; }
-  .pf-sub{ margin:4px 0 0; font-size:13.5px; color:var(--ink2); }
-  .pf-datos{ list-style:none; padding:0; margin:14px 0 0; display:flex; flex-wrap:wrap; gap:8px; }
-  .pf-dato{ display:flex; align-items:center; gap:7px; min-width:0; max-width:100%; font-size:13px; background:var(--pg-low);
-            border:1px solid var(--pg-hi); border-radius:999px; padding:5px 12px 5px 10px; box-sizing:border-box; }
-  .pf-dato svg{ width:14px; height:14px; color:var(--sc); flex:none; }
-  .pf-dato span{ overflow-wrap:anywhere; }
-  /* lo entregado (artifact «Documentos entregados Lawang», 8-oct-2026): cada documento es una pieza con su dibujo,
-     su estado en grande y una barra de lo que le queda; la que caduca en 30 días o menos, teñida de rojo */
-  .ent-cab{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .p3{ display:grid; grid-template-columns:minmax(0,1.62fr) minmax(0,1fr); gap:20px; align-items:start; }
+  .p3-col{ display:grid; gap:20px; min-width:0; }
+  .p3-card{ background:#fff; border:1px solid var(--pg-hi); border-radius:var(--r-gr); padding:24px 26px; margin:0; min-width:0; }
+  .p3-h{ margin:0; font-size:20px; font-weight:500; letter-spacing:-.005em; text-wrap:balance; }
+  /* ficha */
+  .p3-ficha{ display:grid; grid-template-columns:156px minmax(0,1fr); gap:28px; align-items:center; }
+  .p3-icono svg{ display:block; width:156px; height:156px; }
+  .p3-quien{ min-width:0; }
+  .p3-quien h2{ margin:0; font-size:26px; font-weight:500; letter-spacing:-.01em; line-height:1.15; overflow-wrap:anywhere; }
+  .p3-quien .sub{ margin:6px 0 0; font-size:13.5px; color:var(--out); }
+  .p3-datos{ list-style:none; margin:20px 0 0; padding:20px 0 0; border-top:1px solid var(--pg-hi); display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 18px; }
+  .p3-datos li{ display:flex; align-items:center; gap:10px; min-width:0; font-size:13.5px; }
+  .p3-datos li.ancho{ grid-column:1 / -1; }
+  .p3-datos li span:last-child{ min-width:0; overflow-wrap:anywhere; }
+  .p3-datos .ico{ width:32px; height:32px; border-radius:50%; background:var(--pg-low); color:var(--dl); display:grid; place-items:center; flex:none; }
+  .p3-datos .ico svg{ width:15px; height:15px; }
+  /* lo entregado: una tesela por documento, tintada por su estado (el mismo de resumen.js que usa el aviso de Inicio) */
+  .p3-cab{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .ent-res{ display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; border-radius:999px; padding:4px 11px 4px 9px; }
   .ent-res i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
-  .ent-res.aviso{ background:#f8ebe7; color:var(--bad); }
-  .ent-res.bien{ background:#e3eadb; color:var(--ok); }
-  .ent-intro{ margin:6px 0 16px; font-size:13px; line-height:1.5; color:var(--ink2); max-width:56ch; }
-  .ent-docs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(236px,1fr)); gap:12px; }
-  .ent-doc{ border:1px solid var(--pg-hi); border-radius:14px; background:#fff; padding:14px 14px 12px; display:flex; flex-direction:column; gap:12px; min-width:0; }
-  .ent-doc.pronto{ background:#fdf6f3; border-color:#e4c3ba; }
-  .ent-doc.vencido{ background:var(--pg-low); }
-  .ent-top{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:center; }
-  .ent-nom .t{ font-size:14.5px; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
-  .ent-nom .s{ font-size:12px; color:var(--out); margin-top:2px; }
+  .ent-res.aviso{ background:var(--tinte-rojo); color:var(--bad); }
+  .ent-res.bien{ background:var(--tinte-verde); color:var(--ok); }
+  .p3-intro{ margin:6px 0 18px; font-size:13px; line-height:1.5; color:var(--ink2); max-width:56ch; }
+  .p3-docs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
+  .p3-doc{ border-radius:18px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:14px; min-width:0; background:var(--tinte-neutro); }
+  .p3-doc.ok{ background:var(--tinte-verde); } .p3-doc.pronto{ background:var(--tinte-ambar); } .p3-doc.vencido{ background:var(--tinte-rojo); }
+  .p3-doc-top{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; }
+  .p3-doc .t{ font-size:14.5px; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
+  .p3-doc .s{ font-size:12px; color:var(--out); margin-top:2px; }
+  .p3-ver{ width:36px; height:36px; border-radius:50%; border:1px solid rgba(27,28,25,.12); background:rgba(255,255,255,.75); color:var(--va); display:grid; place-items:center; padding:0; cursor:pointer; }
+  .p3-ver:hover{ background:#fff; }
+  .p3-ver svg{ width:15px; height:15px; }
   .ent-estado{ display:flex; align-items:baseline; gap:4px 8px; flex-wrap:wrap; }
   .ent-estado b{ font-size:30px; font-weight:400; letter-spacing:-.015em; line-height:1; font-variant-numeric:tabular-nums; }
   .ent-estado b small{ font-size:14px; margin-left:3px; letter-spacing:0; }
   .ent-estado span{ font-size:12.5px; color:var(--ink2); }
-  .ent-doc.pronto .ent-estado b{ color:var(--bad); }
-  .ent-doc.ok .ent-estado b{ color:var(--ok); font-size:22px; }
-  .ent-doc.vencido .ent-estado b{ color:var(--bad); font-size:22px; }
-  .ent-doc.sin .ent-estado b{ color:var(--ink2); font-size:22px; }
+  .p3-doc.pronto .ent-estado b{ color:var(--ambar-fuerte); }
+  .p3-doc.ok .ent-estado b{ color:var(--ok); font-size:22px; }
+  .p3-doc.vencido .ent-estado b{ color:var(--bad); font-size:22px; }
+  .p3-doc.sin .ent-estado b{ color:var(--ink2); font-size:22px; }
   .ent-estado b.txt{ font-size:20px; }
-  .ent-vida{ display:grid; gap:5px; }
-  .ent-barra{ position:relative; height:6px; border-radius:999px; background:var(--pg-hi); }
+  .ent-vida{ display:grid; gap:6px; }
+  .ent-barra{ position:relative; height:6px; border-radius:999px; background:rgba(255,255,255,.8); }
   .ent-barra i{ position:absolute; inset:0 auto 0 0; border-radius:999px; background:var(--tg); }
-  .ent-doc.pronto .ent-barra i{ background:var(--bad); }
-  .ent-doc.vencido .ent-barra i{ background:var(--ss); }
+  .p3-doc.pronto .ent-barra i{ background:var(--oro); }
+  .p3-doc.vencido .ent-barra i{ background:var(--bad); }
   .ent-barra em{ position:absolute; top:-4px; width:2px; height:14px; border-radius:2px; background:var(--va); transform:translateX(-1px); }
   .ent-pie{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:2px 8px; font-size:11px; color:var(--out); font-variant-numeric:tabular-nums; }
   .ent-pie span{ white-space:nowrap; }
-  .ent-acc{ display:flex; gap:8px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--pg-hi); margin-top:auto; }
-  .ent-doc.pronto .ent-acc{ border-top-color:#e4c3ba; }
-  .ent-btn{ font:inherit; border-radius:999px; font-size:12.5px; font-weight:600; padding:7px 13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; min-height:34px; }
-  .ent-btn svg{ width:15px; height:15px; }
-  .ent-btn.ver{ background:#fff; color:var(--dl); border:1px solid var(--pg-hi); }
-  .ent-btn.ver:hover{ border-color:var(--ss); }
-  .ent-btn.avisar{ background:var(--bad); color:#fff; border:1px solid var(--bad); }
-  .ent-btn.avisar:hover{ background:#86271f; border-color:#86271f; }
-  .ent-btn:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
-  /* el dibujo de cada documento: pasaporte (librito petróleo con escudo), documento de identidad y NPWP (tarjetas)
-     y KITAS u otro (hoja con cabecera verde) */
-  .ent-art{ width:58px; height:58px; display:grid; place-items:center; border-radius:12px; background:var(--pg-low); }
-  .ent-doc.pronto .ent-art{ background:#f6e2dc; }
+  .p3-avisar{ align-self:stretch; display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:12px; padding:10px 14px; font:inherit; font-size:13px; font-weight:600; color:#fff; background:var(--bad); cursor:pointer; }
+  .p3-avisar:hover{ background:#86271f; }
+  .p3-avisar svg{ width:15px; height:15px; }
+  /* el dibujo de cada documento: pasaporte (librito petróleo con escudo), documento de identidad, NPWP y KITAS (8-oct) */
+  .ent-art{ width:58px; height:58px; display:grid; place-items:center; border-radius:14px; background:rgba(255,255,255,.65); }
   .ent-art > span{ position:relative; display:block; }
   .ent-art b{ position:absolute; height:2px; border-radius:2px; }
   .ent-pas{ width:30px; height:42px; border-radius:3px 6px 6px 3px; background:var(--dl); }
@@ -936,30 +929,51 @@
   .ent-kit::before{ content:""; position:absolute; left:0; right:0; top:0; height:8px; border-radius:3px 3px 0 0; background:var(--tg); }
   .ent-kit b{ left:5px; background:var(--pg-hi); }
   .ent-kit b:nth-child(1){ top:13px; right:5px; } .ent-kit b:nth-child(2){ top:18px; right:9px; } .ent-kit b:nth-child(3){ top:23px; right:6px; } .ent-kit b:nth-child(4){ top:28px; right:12px; }
-  /* ajustes: un icono por fila */
-  .pf .pref-fila{ gap:12px; padding:11px 0; border-bottom-color:var(--pg-hi); }
-  .pf .pref-fila span{ font-size:13.5px; }
-  .pf-pref{ display:flex; align-items:center; gap:10px; min-width:0; }
-  .pf-pref svg{ width:17px; height:17px; flex:none; color:var(--sc); }
-  .pf-rot-prefs{ margin:16px 0 0; font-size:11px; }
-  /* datos personales: tarjeta propia en el gris de la piel (antes .ini-sop, que en la columna estrecha dejaba el
-     título flotando a la derecha y un hueco) */
-  .pf .tarjeta.pf-ayuda{ background:var(--pg-low); display:grid; grid-template-columns:auto minmax(0,1fr); gap:14px; padding:20px; }
-  .pf-ayuda .ico{ width:40px; height:40px; border-radius:50%; background:#fff; border:1px solid var(--pg-hi); color:var(--dl); display:grid; place-items:center; box-sizing:border-box; }
-  .pf-ayuda .ico svg{ width:19px; height:19px; }
-  .pf-ayuda-tx{ min-width:0; }
-  .pf-ayuda .rot-bloque{ margin:2px 0 4px; font-size:11px; }
-  .pf-ayuda h4{ margin:0 0 6px; font-size:16px; font-weight:500; text-wrap:balance; }
-  .pf-ayuda p{ margin:0; font-size:13.5px; line-height:1.5; color:var(--ink2); }
-  .pf-ayuda .abiertas{ display:flex; align-items:center; gap:7px; margin-top:10px; font-size:12.5px; color:var(--va); }
-  .pf-ayuda .abiertas em{ width:7px; height:7px; border-radius:50%; background:var(--tg); flex:none; }
-  .pf-ayuda .btn-oscuro{ margin-top:14px; }
-  @media (max-width:1080px){ .pf{ grid-template-columns:minmax(0,1fr); } }   /* por debajo, la columna derecha se queda en ~200px y parte el correo */
-  @media (max-width:640px){
-    .pf-ficha{ padding:18px; }
-    .pf-yo{ gap:14px; align-items:start; }
-    .pf-avatar{ width:64px; height:64px; font-size:22px; border-radius:14px; }
-    .pf-quien h2{ font-size:23px; }
+  /* datos personales */
+  .p3-card.p3-datosmal{ background:var(--tinte-arena); border:0; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px 24px; align-items:center; }
+  .p3-datosmal .rot-bloque{ display:block; margin:0 0 6px; font-size:11px; }
+  .p3-datosmal h3{ margin:0; font-size:17px; font-weight:500; text-wrap:balance; }
+  .p3-datosmal p{ margin:6px 0 0; font-size:13px; line-height:1.55; color:var(--ink2); max-width:52ch; }
+  .p3-datosmal .abiertas{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12.5px; color:var(--va); }
+  .p3-datosmal .abiertas em{ width:22px; height:22px; border-radius:50%; background:var(--dl); color:#fff; font-style:normal; font-size:11.5px; font-weight:600; display:grid; place-items:center; flex:none; }
+  .p3-ir{ display:inline-flex; align-items:center; gap:10px; border:0; border-radius:999px; background:var(--dl); color:#fff; padding:6px 6px 6px 18px; font:inherit; font-size:13.5px; font-weight:600; white-space:nowrap; cursor:pointer; }
+  .p3-ir span{ width:30px; height:30px; border-radius:50%; background:#fff; color:var(--dl); display:grid; place-items:center; }
+  .p3-ir span svg{ width:14px; height:14px; }
+  .p3-ir:hover{ background:#0b3a3c; }
+  /* seguridad y avisos: el raíl */
+  .p3-rail .p3-h{ margin-bottom:18px; }
+  .p3-raild{ position:relative; display:grid; gap:12px; }
+  .p3-raild::before{ content:""; position:absolute; left:19px; top:28px; bottom:28px; width:2px; background:var(--pg-hi); }
+  .rail-it{ display:grid; grid-template-columns:40px minmax(0,1fr); gap:12px; align-items:start; }
+  .rail-ico{ position:relative; z-index:1; width:40px; height:40px; border-radius:50%; background:var(--pg-low); border:4px solid #fff; color:var(--dl); display:grid; place-items:center; margin-top:8px; box-sizing:border-box; }
+  .rail-ico svg{ width:16px; height:16px; }
+  .rail-card{ background:var(--rl); border:1px solid var(--pg-hi); border-radius:16px; padding:14px 14px 12px; display:grid; gap:10px; min-width:0; }
+  .rail-fila{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .rail-fila b{ font-size:14px; font-weight:600; }
+  .rail-fila small{ display:block; margin-top:2px; font-size:12px; line-height:1.45; color:var(--out); }
+  .rail-pills{ display:flex; flex-wrap:wrap; gap:6px; min-width:0; }
+  .rail-pill{ font-size:11.5px; font-weight:500; border:1px solid var(--pg-hi); background:#fff; border-radius:999px; padding:3px 10px; color:var(--ink2); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rail-pill.on{ background:var(--tinte-verde); border-color:var(--tinte-verde); color:var(--ok); }
+  .rail-sep{ margin:4px 0 -2px 52px; font-size:11px; }
+  .p3-pass{ border:1px solid var(--linea); background:#fff; color:var(--va); border-radius:999px; padding:7px 14px; font:inherit; font-size:12.5px; font-weight:600; white-space:nowrap; cursor:pointer; }
+  .p3-pass:hover{ border-color:var(--ss); }
+  .p3-ver:focus-visible, .p3-ir:focus-visible, .p3-pass:focus-visible, .p3-avisar:focus-visible{ outline:2px solid var(--dl); outline-offset:2px; }
+  /* el icono de villa en el pie del menú: el dibujo lleva su propia forma, sin el círculo de fondo */
+  .avatar.villa{ background:none; border-radius:0; }
+  .avatar.villa svg{ display:block; width:34px; height:34px; }
+  @media (max-width:1080px){
+    .p3{ grid-template-columns:minmax(0,1fr); }   /* por debajo, la columna derecha se queda estrecha y parte el correo */
+    .p3-ficha{ grid-template-columns:112px minmax(0,1fr); gap:20px; }
+    .p3-icono svg{ width:112px; height:112px; }
+  }
+  @media (max-width:560px){
+    .p3-card{ padding:18px; }
+    .p3-ficha{ grid-template-columns:72px minmax(0,1fr); gap:16px; align-items:start; }
+    .p3-icono svg{ width:72px; height:72px; }
+    .p3-quien h2{ font-size:21px; }
+    .p3-datos{ grid-template-columns:minmax(0,1fr); }
+    .p3-card.p3-datosmal{ grid-template-columns:minmax(0,1fr); }
+    .p3-ir{ justify-self:start; }
   }
 
   /* ══ CONTRATOS POR VILLA — artifact «Lawang · Contratos (propuesta)», 7-oct-2026 ══
@@ -1905,6 +1919,19 @@
   // Iniciales del avatar (ficha y pie del menú): primera y última palabra, saltando partículas.
   // Con las dos primeras, «Ni Ketut Ayu Sari» salía «NK»: Ni/I son partículas balinesas, como de/van.
   var PARTICULAS = ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'];
+  /* Icono de perfil «Ventana de villa» (9-oct-2026, owner, artifact «Iconos de perfil Lawang»): las iniciales dentro de
+     un arco de villa con el sol saliendo tras el horizonte verde. Sin fotografía por protección de datos; todo sale del
+     nombre. Lo usan la ficha de Mi perfil y el pie del menú. Ids únicos por dibujo: dos en la misma página no se pisan. */
+  var NUM_VILLA = 0;
+  function iconoVilla(iniciales, px){
+    var id = 'iv' + (++NUM_VILLA), peq = px < 60;
+    return '<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">' +
+      '<defs><linearGradient id="' + id + 'c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B393C"/><stop offset="1" stop-color="#1F6A6B"/></linearGradient>' +
+      '<clipPath id="' + id + 'k"><path d="M8,100 V44 A42,42 0 0 1 92,44 V100 Z"/></clipPath></defs>' +
+      '<g clip-path="url(#' + id + 'k)"><rect width="100" height="100" fill="url(#' + id + 'c)"/><circle cx="50" cy="84" r="24" fill="#C89B5C"/><circle cx="50" cy="84" r="31" fill="#C89B5C" opacity=".18"/>' +
+      '<path d="M0,80 Q25,74 50,79 T100,77 V100 H0 Z" fill="#485B37"/><path d="M0,88 Q30,83 55,88 T100,86 V100 H0 Z" fill="#3a4a2c"/></g>' +
+      '<text x="50" y="47" text-anchor="middle" dominant-baseline="central" font-size="' + (peq ? 32 : 27) + '" fill="#fff" letter-spacing="1">' + esc(iniciales) + '</text></svg>';
+  }
   function inicialesDe(nombre){
     var p = String(nombre || '').trim().split(/\s+/).filter(Boolean);
     var q = p.filter(function(w){ return PARTICULAS.indexOf(w.toLowerCase()) < 0; });
@@ -2007,7 +2034,7 @@
          aviso_no_vinculante:'Esto es un canal de atención, no un documento contractual: ningún precio, plazo o condición cambia hasta que quede reflejado en tu contrato o en un anexo firmado.',
          datos_personales:'Datos personales', nombre:'Nombre', correo:'Correo', telefono:'Teléfono', pais:'País',
          pf_caducado:'Caducado', pf_vigente:'Vigente', pf_contrasena:'Contraseña', pf_dato_mal:'¿Algún dato no es correcto?', pf_dato_mal_txt:'Tus datos los lleva el equipo de gestión de Lawang. Escríbenos y los corregimos.',
-         seguridad_avisos:'Seguridad y avisos',
+         seguridad_avisos:'Seguridad y avisos', pf_pass_sub:'Tu acceso al portal', pf_activados:'Activados', pf_desactivados:'Desactivados',
          ent_intro:'Los documentos de tu expediente. Si uno va a caducar, avísanos y lo actualizamos.', ent_res_1:'1 necesita renovarse', ent_res_n:'{n} necesitan renovarse', ent_todo:'Todo vigente',
          ent_dia:'día', ent_dias:'días', ent_para_caducar:'para que caduque · el {f}', ent_hasta:'hasta el {f}', ent_desde:'desde el {f}', ent_no_caduca:'No caduca', ent_sin_fecha:'sin fecha de caducidad',
          ent_entregado:'Entregado {f}', ent_caduca:'Caduca {f}', ent_caduco:'Caducó {f}', ent_ver:'Ver', ent_avisar:'Avisar al equipo', ent_en_exp:'En tu expediente',
@@ -2116,7 +2143,7 @@
          aviso_no_vinculante:'This is a support channel, not a contractual document: no price, deadline or condition changes until it is reflected in your contract or a signed annex.',
          datos_personales:'Personal details', nombre:'Name', correo:'Email', telefono:'Phone', pais:'Country',
          pf_caducado:'Expired', pf_vigente:'Valid', pf_contrasena:'Password', pf_dato_mal:'Is any of your details wrong?', pf_dato_mal_txt:'Your details are kept by the Lawang management team. Write to us and we will correct them.',
-         seguridad_avisos:'Security and notifications',
+         seguridad_avisos:'Security and notifications', pf_pass_sub:'Your portal sign-in', pf_activados:'On', pf_desactivados:'Off',
          ent_intro:'The documents in your file. If one is about to expire, let us know and we will update it.', ent_res_1:'1 needs renewing', ent_res_n:'{n} need renewing', ent_todo:'All valid',
          ent_dia:'day', ent_dias:'days', ent_para_caducar:'left · expires {f}', ent_hasta:'until {f}', ent_desde:'since {f}', ent_no_caduca:'No expiry', ent_sin_fecha:'no expiry date',
          ent_entregado:'Provided {f}', ent_caduca:'Expires {f}', ent_caduco:'Expired {f}', ent_ver:'View', ent_avisar:'Tell the team', ent_en_exp:'In your file',
@@ -2229,7 +2256,7 @@
          aviso_no_vinculante:'Ini adalah saluran layanan, bukan dokumen kontrak: harga, jangka waktu, atau ketentuan apa pun tidak berubah sampai tercantum dalam kontrak Anda atau lampiran yang ditandatangani.',
          datos_personales:'Data pribadi', nombre:'Nama', correo:'Email', telefono:'Telepon', pais:'Negara',
          pf_caducado:'Kedaluwarsa', pf_vigente:'Berlaku', pf_contrasena:'Kata sandi', pf_dato_mal:'Ada data yang tidak benar?', pf_dato_mal_txt:'Data Anda dikelola oleh tim manajemen Lawang. Tulis kepada kami dan kami akan memperbaikinya.',
-         seguridad_avisos:'Keamanan dan notifikasi',
+         seguridad_avisos:'Keamanan dan notifikasi', pf_pass_sub:'Akses Anda ke portal', pf_activados:'Aktif', pf_desactivados:'Nonaktif',
          ent_intro:'Dokumen di berkas Anda. Jika ada yang akan berakhir, beri tahu kami dan kami akan memperbaruinya.', ent_res_1:'1 perlu diperbarui', ent_res_n:'{n} perlu diperbarui', ent_todo:'Semua berlaku',
          ent_dia:'hari', ent_dias:'hari', ent_para_caducar:'lagi · berakhir {f}', ent_hasta:'sampai {f}', ent_desde:'sejak {f}', ent_no_caduca:'Tidak berakhir', ent_sin_fecha:'tanpa tanggal kedaluwarsa',
          ent_entregado:'Diserahkan {f}', ent_caduca:'Berakhir {f}', ent_caduco:'Telah berakhir {f}', ent_ver:'Lihat', ent_avisar:'Beri tahu tim', ent_en_exp:'Di berkas Anda',
@@ -2581,7 +2608,7 @@
         DATOS = r.data || {};
         var ini = document.getElementById('avatarIniciales');
         var nombre = (DATOS.nombre || '').trim();
-        ini.textContent = inicialesDe(nombre);
+        ini.innerHTML = iconoVilla(inicialesDe(nombre), 34); ini.classList.add('villa');   // el mismo icono que la ficha de Mi perfil
         document.getElementById('quienNombre').textContent = nombre || (DATOS.email || '');
         muestra('vApp');
         var r0 = leeHash();
@@ -4339,10 +4366,9 @@
   function svgPerfil(clave){
     return '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' + ICONOS_PERFIL[clave] + '</svg>';
   }
-  /* Iconos de trazo de Mi perfil v2 (8-oct-2026, artifact «Mi perfil Lawang v2»): ojo (ver), candado, correo y
-     mensaje. SVG inline por lo mismo que los de arriba. */
+  /* Iconos de trazo de Mi perfil (8-oct-2026): candado, correo y mensaje. SVG inline por lo mismo que los de arriba.
+     El ojo de «Ver» se retiró en la v3 (9-oct-2026): ahora es la flecha redonda de cada documento (trazoSop('diag')). */
   var TRAZOS_PERFIL = {
-    ojo: '<path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>',
     mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>',
     chat: '<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/>'
@@ -4362,30 +4388,30 @@
   /* Mi perfil es la página de LA CUENTA (owner, 8-oct-2026: «no seas redundante con la info, como en mis propiedades
      que ya aparece en Inicio»): quién es y cómo contactarle, lo que nos entregó, seguridad y avisos, y a quién escribir
      si un dato está mal. Lo pagado, lo pendiente, las propiedades y la actividad viven en Inicio y no se repiten aquí.
-     Aspecto del artifact «Mi perfil Lawang v2». El aviso de Inicio de un documento que caduca trae aquí («Ver mi
-     perfil»), a lo entregado. Hereda las acciones con sus mismos id: btnCambiarPass, tglEmail, tglSms y data-kyc. */
+     Aspecto v3 (9-oct-2026, artifact «Mi perfil Lawang v3»). El aviso de Inicio de un documento que caduca trae aquí
+     («Ver mi perfil»), a lo entregado (#pfEntregado). Hereda las acciones con sus mismos id: btnCambiarPass, tglEmail,
+     tglSms, data-kyc, data-kyc-avisar y data-ir. */
   function nombreKyc(tipo){ return t('doc_' + tipo) === 'doc_' + tipo ? tipo : t('doc_' + tipo); }
   function pintaPerfil(c){
     var d = DATOS, prefs = d.prefs || { pref_email:true, pref_sms:false }, kyc = d.kyc||[];
     var carpetas = carpetasProyecto().filter(function(f){ return (f.contratos || []).length; });
-    var iniciales = inicialesDe((d.nombre || '').trim());
 
-    // ficha: quién es y sus datos de contacto
+    // ficha: el icono de villa, quién es y sus datos de contacto en rejilla
     var sub = carpetas.length ? (carpetas.length === 1 ? t('n_props_1') : t('n_props_n').replace('{n}', carpetas.length)) : '';
-    var dato = function(ico, v){ return v ? '<li class="pf-dato">' + svgPerfil(ico) + '<span>' + esc(v) + '</span></li>' : ''; };
-    var datos = dato('envelope', d.email) + dato('phone', d.telefono) + dato('pin', d.pais);
-    var ficha = '<section class="tarjeta pf-ficha"><div class="pf-yo"><div class="pf-avatar" aria-hidden="true">' + esc(iniciales) + '</div>' +
-        '<div class="pf-quien"><h2>' + esc(d.nombre || d.email || '—') + '</h2>' + (sub ? '<p class="pf-sub">' + esc(sub) + '</p>' : '') +
-          (datos ? '<ul class="pf-datos">' + datos + '</ul>' : '') + '</div></div></section>';
+    var dato = function(ico, v, ancho){ return v ? '<li' + (ancho ? ' class="ancho"' : '') + '><span class="ico">' + svgPerfil(ico) + '</span><span>' + esc(v) + '</span></li>' : ''; };
+    var datos = dato('envelope', d.email, true) + dato('phone', d.telefono) + dato('pin', d.pais);
+    var ficha = '<section class="p3-card p3-ficha"><div class="p3-icono">' + iconoVilla(inicialesDe((d.nombre || '').trim()), 156) + '</div>' +
+        '<div class="p3-quien"><h2>' + esc(d.nombre || d.email || '—') + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') +
+          (datos ? '<ul class="p3-datos">' + datos + '</ul>' : '') + '</div></section>';
 
-    // lo entregado (artifact «Documentos entregados Lawang», 8-oct-2026): cada documento con su dibujo, su estado en
-    // grande y la vida que le queda (de cuando nos lo dio a cuando caduca, con hoy marcado). Los que piden algo, primero.
+    // lo entregado: una tesela por documento con su dibujo, su estado en grande y la vida que le queda (de cuando nos lo
+    // dio a cuando caduca, con hoy marcado), tintada por estado. Los que piden algo, primero.
     var estadoKyc = function(x){ return estadoDocumento(x.caduca).estado; };   // el mismo que el aviso de Inicio (resumen.js)
     var ORDEN_KYC = { pronto:0, vencido:1, ok:2, sin:3 };
     var kycOrden = kyc.slice().sort(function(a, b){ return ORDEN_KYC[estadoKyc(a)] - ORDEN_KYC[estadoKyc(b)]; });
     var piden = kyc.filter(function(x){ var e = estadoKyc(x); return e === 'pronto' || e === 'vencido'; }).length;
     var piezaKyc = function(x){
-      var ed = estadoDocumento(x.caduca), e = ed.estado, n = ed.dias, dCad = diaLocal(x.caduca);
+      var ed = estadoDocumento(x.caduca), e = ed.estado, n = ed.dias, dCad = diaLocal(x.caduca), nom = nombreKyc(x.tipo);
       var grande = e === 'pronto' ? (n === 0 ? '<b class="txt">' + esc(t('caduca_hoy')) + '</b>'
                                              : '<b>' + n + '<small>' + esc(t(n === 1 ? 'ent_dia' : 'ent_dias')) + '</small></b><span>' + esc(t('ent_para_caducar').replace('{f}', fechaLargaDe(dCad))) + '</span>')
                  : e === 'ok' ? '<b>' + esc(t('pf_vigente')) + '</b><span>' + esc(t('ent_hasta').replace('{f}', fecha(dCad))) + '</span>'
@@ -4401,38 +4427,41 @@
       } else {
         vida = entregadoEl ? '<div class="ent-pie">' + entregadoEl + '</div>' : '';
       }
-      var acc = '<button type="button" class="ent-btn ver" data-kyc="' + esc(x.path) + '">' + trazoPerfil('ojo') + esc(t('ent_ver')) + '</button>' +
-        (e === 'pronto' || e === 'vencido' ? '<button type="button" class="ent-btn avisar" data-kyc-avisar>' + trazoPerfil('chat') + esc(t('ent_avisar')) + '</button>' : '');
-      return '<article class="ent-doc ' + e + '"><div class="ent-top"><span class="ent-art" aria-hidden="true">' + arteKyc(x.tipo) + '</span>' +
-        '<div class="ent-nom"><div class="t">' + esc(nombreKyc(x.tipo)) + '</div><div class="s">' + esc(t('ent_en_exp')) + '</div></div></div>' +
-        '<div class="ent-estado">' + grande + '</div>' + vida + '<div class="ent-acc">' + acc + '</div></article>';
+      return '<article class="p3-doc ' + e + '"><div class="p3-doc-top"><span class="ent-art" aria-hidden="true">' + arteKyc(x.tipo) + '</span>' +
+          '<div><div class="t">' + esc(nom) + '</div><div class="s">' + esc(t('ent_en_exp')) + '</div></div>' +
+          '<button type="button" class="p3-ver" data-kyc="' + esc(x.path) + '" aria-label="' + esc(t('ent_ver') + ' · ' + nom) + '" title="' + esc(t('ent_ver')) + '">' + trazoSop('diag', 2) + '</button></div>' +
+        '<div class="ent-estado">' + grande + '</div>' + vida +
+        (e === 'pronto' || e === 'vencido' ? '<button type="button" class="p3-avisar" data-kyc-avisar>' + trazoPerfil('chat') + esc(t('ent_avisar')) + '</button>' : '') +
+      '</article>';
     };
-    var entregado = kyc.length ? '<section class="tarjeta" id="pfEntregado"><div class="ent-cab"><h3 class="pf-t">' + esc(t('d_entregado')) + '</h3>' +
+    var entregado = kyc.length ? '<section class="p3-card" id="pfEntregado"><div class="p3-cab"><h2 class="p3-h">' + esc(t('d_entregado')) + '</h2>' +
         (piden ? '<span class="ent-res aviso"><i></i>' + esc(piden === 1 ? t('ent_res_1') : t('ent_res_n').replace('{n}', piden)) + '</span>'
                : '<span class="ent-res bien"><i></i>' + esc(t('ent_todo')) + '</span>') + '</div>' +
-        '<p class="ent-intro">' + esc(t('ent_intro')) + '</p>' +
-        '<div class="ent-docs">' + kycOrden.map(piezaKyc).join('') + '</div></section>' : '';
+        '<p class="p3-intro">' + esc(t('ent_intro')) + '</p>' +
+        '<div class="p3-docs">' + kycOrden.map(piezaKyc).join('') + '</div></section>' : '';
 
-    var fila = function(ico, txt){ return '<span class="pf-pref">' + trazoPerfil(ico) + '<span>' + esc(txt) + '</span></span>'; };
-    var ajustes = '<section class="tarjeta"><h3 class="pf-t pf-t-sola">' + esc(t('seguridad_avisos')) + '</h3>' +
-        '<div class="pref-fila">' + fila('lock', t('pf_contrasena')) + '<button type="button" class="btn-borde" id="btnCambiarPass">' + esc(t('cambiar_pass_btn')) + '</button></div>' +
-        '<div class="rot-bloque pf-rot-prefs">' + esc(t('prefs')) + '</div>' +
-        '<div class="pref-fila">' + fila('mail', t('pref_email')) +
-          '<button type="button" class="toggle' + (prefs.pref_email?' on':'') + '" id="tglEmail" aria-pressed="' + !!prefs.pref_email + '" aria-label="' + esc(t('pref_email')) + '"><i></i></button></div>' +
-        '<div class="pref-fila">' + fila('chat', t('pref_sms')) +
-          '<button type="button" class="toggle' + (prefs.pref_sms?' on':'') + '" id="tglSms" aria-pressed="' + !!prefs.pref_sms + '" aria-label="' + esc(t('pref_sms')) + '"><i></i></button></div>' +
-      '</section>';
-
-    // datos personales: tarjeta propia (antes .ini-sop, que en la columna estrecha dejaba el título flotando a la derecha)
+    // datos personales: a quién escribir si un dato está mal
     var abiertas = (d.tickets || []).filter(function(x){ return x.estado === 'abierto'; }).length;
-    var datosMal = '<section class="tarjeta pf-ayuda"><span class="ico">' + trazoPerfil('chat') + '</span><div class="pf-ayuda-tx">' +
-      '<div class="rot-bloque">' + esc(t('datos_personales')) + '</div><h4>' + esc(t('pf_dato_mal')) + '</h4>' +
-      '<p>' + esc(t('pf_dato_mal_txt')) + '</p>' +
-      (abiertas ? '<p class="abiertas"><em></em>' + esc(abiertas === 1 ? t('sop_abiertas_1') : t('sop_abiertas_n').replace('{n}', abiertas)) + '</p>' : '') +
-      '<button type="button" class="btn-oscuro" data-ir="soporte">' + esc(t('escribir_equipo')) + '</button></div></section>';
+    var datosMal = '<section class="p3-card p3-datosmal"><div><span class="rot-bloque">' + esc(t('datos_personales')) + '</span><h3>' + esc(t('pf_dato_mal')) + '</h3>' +
+        '<p>' + esc(t('pf_dato_mal_txt')) + '</p>' +
+        (abiertas ? '<p class="abiertas"><em>' + abiertas + '</em>' + esc(abiertas === 1 ? t('sop_abiertas_1') : t('sop_abiertas_n').replace('{n}', abiertas)) + '</p>' : '') + '</div>' +
+      '<button type="button" class="p3-ir" data-ir="soporte">' + esc(t('escribir_equipo')) + '<span>' + trazoSop('diag', 2) + '</span></button></section>';
 
-    c.innerHTML = '<div class="pf"><div class="pf-col">' + ficha + entregado + '</div>' +
-      '<div class="pf-col">' + ajustes + datosMal + '</div></div>';
+    // seguridad y avisos: el raíl de la derecha; cada aviso dice si está activado y a dónde llega
+    var tg = function(id, on, lbl){ return '<button type="button" class="toggle' + (on ? ' on' : '') + '" id="' + id + '" aria-pressed="' + !!on + '" aria-label="' + esc(lbl) + '"><i></i></button>'; };
+    var estadoAviso = function(on, donde){ return '<div class="rail-pills"><span class="rail-pill' + (on ? ' on' : '') + '">' + esc(t(on ? 'pf_activados' : 'pf_desactivados')) + '</span>' + (donde ? '<span class="rail-pill">' + esc(donde) + '</span>' : '') + '</div>'; };
+    var ajustes = '<section class="p3-card p3-rail"><h2 class="p3-h">' + esc(t('seguridad_avisos')) + '</h2><div class="p3-raild">' +
+        '<div class="rail-it"><span class="rail-ico">' + trazoPerfil('lock') + '</span><div class="rail-card"><div class="rail-fila"><div><b>' + esc(t('pf_contrasena')) + '</b><small>' + esc(t('pf_pass_sub')) + '</small></div></div>' +
+          '<div class="rail-pills"><button type="button" class="p3-pass" id="btnCambiarPass">' + esc(t('cambiar_pass_btn')) + '</button></div></div></div>' +
+        '<div class="rot-bloque rail-sep">' + esc(t('prefs')) + '</div>' +
+        '<div class="rail-it"><span class="rail-ico">' + trazoPerfil('mail') + '</span><div class="rail-card"><div class="rail-fila"><b>' + esc(t('pref_email')) + '</b>' + tg('tglEmail', prefs.pref_email, t('pref_email')) + '</div>' +
+          estadoAviso(prefs.pref_email, d.email) + '</div></div>' +
+        '<div class="rail-it"><span class="rail-ico">' + trazoPerfil('chat') + '</span><div class="rail-card"><div class="rail-fila"><b>' + esc(t('pref_sms')) + '</b>' + tg('tglSms', prefs.pref_sms, t('pref_sms')) + '</div>' +
+          estadoAviso(prefs.pref_sms, d.telefono) + '</div></div>' +
+      '</div></section>';
+
+    c.innerHTML = '<div class="p3"><div class="p3-col">' + ficha + entregado + datosMal + '</div>' +
+      '<div class="p3-col">' + ajustes + '</div></div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
     document.getElementById('btnCambiarPass').addEventListener('click', abrirCambiarPass);
     document.getElementById('tglEmail').addEventListener('click', function(){ togglePref('pref_email'); });
@@ -4444,9 +4473,16 @@
   function togglePref(cual){
     var prefs = DATOS.prefs = DATOS.prefs || { pref_email:true, pref_sms:false };
     prefs[cual] = !prefs[cual];
+    var enviado = prefs[cual];
     pintaPerfil(document.getElementById('content'));
     sb.rpc('portal_set_prefs', { p_pref_email: prefs.pref_email, p_pref_sms: prefs.pref_sms }).then(function(r){
-      if (r.error){ console.error('portal_set_prefs', r.error); toastMal(t('err_prefs')); }
+      // Si no se guardó, el interruptor vuelve a como estaba: la pantalla no dice «Activados» de algo que no cambió (revisor,
+      // 9-oct-2026). Solo si sigue en el valor que se mandó: con un segundo clic en marcha, el que manda es ese.
+      if (r.error){
+        console.error('portal_set_prefs', r.error);
+        if (prefs[cual] === enviado){ prefs[cual] = !enviado; if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content')); }
+        toastMal(t('err_prefs'));
+      }
     });
   }
 
