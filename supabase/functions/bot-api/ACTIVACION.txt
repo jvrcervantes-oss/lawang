@@ -36,3 +36,19 @@ Hasta BOT_CRM=on el bot sigue guardando sus citas ([APPT]) en Redis. Con BOT_CRM
 3. Qué se pierde y decide el owner: el RECORDATORIO automático al cliente antes de la llamada (`reminderTick`) leía las citas de Redis; las citas de Postgres no
    lo tienen. Mientras no se decida, nadie recuerda la llamada al cliente.
 Primera ejecución (9-oct-2026): 0 citas en Redis, 0 importadas, 0 no casadas.
+
+## S2 — rutas /estado, /recordatorio y /humano (9-oct-2026) — SOLO con el OK escrito del owner
+Estado de entrega: la edge se despliega con las rutas nuevas y SIN sus secretos -> las tres responden 401 a todo (como /catalogo y /crm antes de S4).
+Nada de S2 funciona hasta crear 3 secretos: BOT_API_SECRET_ESTADO, BOT_API_SECRET_RECORDATORIO y BOT_API_SECRET_HUMANO.
+Requisito: la activacion de S4 (rol bot_lawang con LOGIN y BOT_DB_URL en la edge). Si no esta hecha, las rutas nuevas darian 503 db_conexion.
+1. Simular: `python supabase/functions/bot-api/activa.py --agencia <clon agencia> --servicio <carpeta de lawang-bot> --s2`
+2. Con el OK: el mismo comando con `--aplica`. Orden: Railway (lawang-bot: SOLO BOT_API_SECRET_ESTADO y _RECORDATORIO, sin redeploy) -> secretos de la edge (los tres). Los secretos de la edge son del PROYECTO:
+   `lawang-bot-proxy` y cualquier otra edge los ven; el secreto de /humano NO va a Railway: lo usa solo `lawang-bot-proxy` (S3/S10), que reenvia el JWT de la persona.
+3. Verificar (redesplegar si el isolate no los ve: `npx supabase functions deploy bot-api --no-verify-jwt --project-ref vtulllundrfennhjddhc --agent no`):
+   - sin cabecera / secreto de otra ruta -> 401 en las tres rutas;
+   - POST /recordatorio {accion:'citas_recordar'} con su secreto -> 200 {citas:[]}; /estado {accion:'escalacion_tomar'} -> 200 {encontrada:false};
+   - /humano con su secreto pero sin Authorization -> 401; con un JWT valido de la intranet y un tel sin chat -> 200 {ok:false,error:'sin_chat'}.
+4. Contrato para quien llama (S3/S4b/S6a): `Authorization: Bearer <jwt>` solo en /humano (la edge lo verifica contra Auth; un `usuario` en el cuerpo es 400);
+   200 {ok:false,error} = respuesta de negocio, no fallo; 429 = ritmo (en mensaje_recibir tratarlo como `tope`: descartar y 200 a Meta, NUNCA 5xx);
+   5xx = fallo (la edge contesta en <8 s: el timeout del bot por llamada debe ser MAYOR). Texto de Meta largo se recorta; no hay 400 por longitud.
+Vuelta atras S2: `supabase secrets unset BOT_API_SECRET_ESTADO BOT_API_SECRET_RECORDATORIO BOT_API_SECRET_HUMANO --project-ref vtulllundrfennhjddhc` y quitar las 2 variables (ESTADO, RECORDATORIO) de lawang-bot en Railway.

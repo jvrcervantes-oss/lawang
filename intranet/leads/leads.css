@@ -447,6 +447,8 @@
 .wa-ficha .notas { font: 400 12.5px/1.5 var(--text); background: var(--ivory);
   border: 1px solid var(--line); border-radius: var(--r-ctrl); padding: 9px 10px;
   white-space: pre-wrap; overflow-wrap: anywhere; }
+.wa-ficha .notas + .notas { margin-top: 6px; }
+.wa-ficha .notas .meta { font: 400 11px/1.4 var(--text); color: var(--mist); }
 .wa-ficha .etiquetas { display: flex; flex-wrap: wrap; gap: 5px; }
 .wa-ficha .btn { width: 100%; justify-content: center; margin-top: 8px; }
 .wa-ficha .cita { display: block; border-left-width: 3px; margin-bottom: 6px; }

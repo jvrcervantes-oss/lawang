@@ -4,6 +4,7 @@ en la base de PRODUCCION de Lawang y crea los secretos reales. Hasta entonces la
 
     python activa.py --agencia <ruta del clon de la agencia> --servicio <carpeta de lawang-bot en la agencia>            # SIMULA (por defecto)
     python activa.py --agencia ... --servicio ... --aplica                                                              # hace los cambios
+    python activa.py --agencia ... --servicio ... --s2 [--aplica]    # SOLO las 3 rutas de S2 (estado, recordatorio, humano); no toca el rol ni BOT_DB_URL
 
 Que hace, en este orden (si falla un paso, los anteriores no rompen nada: la edge sigue dando 401 hasta que esten los tres secretos):
   1. Genera EN MEMORIA tres secretos: clave de la BD de bot_lawang, secreto de la ruta catalogo y secreto de la ruta crm. Nunca se imprimen ni van por argv.
@@ -33,6 +34,8 @@ def main():
     if not dest.is_dir():
         sys.exit("no existe el servicio: %s" % serv)
 
+    if "--s2" in a:
+        return s2(rs, dest, aplica)
     clave_db, sec_cat, sec_crm = rs.clave_aleatoria(), rs.clave_aleatoria(), rs.clave_aleatoria()
     verif = rs.verificador_scram(clave_db)
     secretos = [clave_db, sec_cat, sec_crm, verif]
@@ -62,6 +65,39 @@ def main():
         except OSError:
             pass   # MUDO A PROPOSITO: si ya no existe no hay nada que borrar
     print("OK · bot_lawang LOGIN, 3 secretos sellados (valores nunca impresos). Verificar con ACTIVACION.txt.")
+
+
+S2 = ("BOT_API_SECRET_ESTADO", "BOT_API_SECRET_RECORDATORIO", "BOT_API_SECRET_HUMANO")
+S2_RAILWAY = S2[:2]   # a Railway solo los dos del bot; el de /humano NO
+
+
+def s2(rs, dest, aplica):
+    """S2 (9-oct-2026): tres secretos nuevos, uno por ruta. Requiere que la activacion de S4 (rol bot_lawang con LOGIN y BOT_DB_URL) ya este hecha.
+    Railway (lawang-bot: SOLO estado y recordatorio) --skip-deploys, y los secretos de la edge (son del PROYECTO: el proxy tambien los ve)."""
+    vals = [rs.clave_aleatoria() for _ in S2]
+    if not aplica:
+        print("SIMULACION S2 (no se toca Railway ni la edge):")
+        print("  Railway %s: %s (%d caracteres cada una, stdin, sin redeploy; el de /humano NO va a Railway)" % (dest, ", ".join(S2_RAILWAY), len(vals[0])))
+        print("  supabase secrets set --env-file <temporal> --project-ref %s : %s" % (REF, ", ".join(S2)))
+        return
+    for nombre, v in zip(S2, vals):
+        if nombre not in S2_RAILWAY:
+            continue   # el de /humano vive solo en la edge (y en el proxy, S3/S10): una fuga del bot no puede enviar como persona
+        rs._railway(["variables", "--set-from-stdin", nombre, "--skip-deploys"], dest, vals, entrada=v)
+    fd, ruta = tempfile.mkstemp(suffix=".env")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write("".join("%s=%s" % (n, v) + chr(10) for n, v in zip(S2, vals)))
+        p = subprocess.run(["cmd", "/c", "npx", "--yes", "supabase", "secrets", "set", "--env-file", ruta, "--project-ref", REF],
+                           capture_output=True, text=True, timeout=180)
+        if p.returncode != 0:
+            sys.exit("supabase secrets set devolvio %d: %s" % (p.returncode, rs._limpia(p.stderr or "", vals)[:300]))
+    finally:
+        try:
+            os.remove(ruta)
+        except OSError:
+            pass   # MUDO A PROPOSITO: si ya no existe no hay nada que borrar
+    print("OK - 3 secretos de S2 sellados (valores nunca impresos). Verificar con ACTIVACION.txt.")
 
 
 if __name__ == "__main__":
