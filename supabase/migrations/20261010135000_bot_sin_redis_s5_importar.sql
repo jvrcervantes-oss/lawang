@@ -297,3 +297,6 @@ revoke all on function public.bot_importar_config(jsonb)    from public, anon, a
 grant execute on function public.bot_importar_chat(jsonb)   to bot_lawang;
 grant execute on function public.bot_importar_cuadre(text)  to bot_lawang;
 grant execute on function public.bot_importar_config(jsonb) to bot_lawang;
+
+-- Cierre explicito (9-oct, aviso BOT-S1 de tools/check_seguridad.py): _bot_config_log ya nacio cerrada en S1 y create or replace conserva su ACL; este revoke es idempotente y deja la regla «lo nuevo nace cerrado» legible en el propio fichero.
+revoke all on function public._bot_config_log() from public, anon, authenticated, service_role;
