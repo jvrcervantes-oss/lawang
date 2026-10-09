@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="bb12b02cf1fd">
+<meta name="lw-version" content="613d1d0dee6e">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -4473,10 +4473,16 @@
   function togglePref(cual){
     var prefs = DATOS.prefs = DATOS.prefs || { pref_email:true, pref_sms:false };
     prefs[cual] = !prefs[cual];
+    var enviado = prefs[cual];
     pintaPerfil(document.getElementById('content'));
     sb.rpc('portal_set_prefs', { p_pref_email: prefs.pref_email, p_pref_sms: prefs.pref_sms }).then(function(r){
-      // Si no se guardó, el interruptor vuelve a como estaba: la pantalla no dice «Activados» de algo que no cambió (revisor, 9-oct-2026).
-      if (r.error){ console.error('portal_set_prefs', r.error); prefs[cual] = !prefs[cual]; if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content')); toastMal(t('err_prefs')); }
+      // Si no se guardó, el interruptor vuelve a como estaba: la pantalla no dice «Activados» de algo que no cambió (revisor,
+      // 9-oct-2026). Solo si sigue en el valor que se mandó: con un segundo clic en marcha, el que manda es ese.
+      if (r.error){
+        console.error('portal_set_prefs', r.error);
+        if (prefs[cual] === enviado){ prefs[cual] = !enviado; if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content')); }
+        toastMal(t('err_prefs'));
+      }
     });
   }
 
