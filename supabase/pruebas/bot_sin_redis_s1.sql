@@ -375,6 +375,16 @@ begin
   if r <> 'ok' or (select entrega_error from public.bot_chat where tel = '99977700055') not like '131047 Re-engagement%' then raise exception 'PRUEBA FALLA: entrega fallida (%)', r; end if;
   set local role bot_lawang; r := public.bot_entrega_fallida('99977700088', '1', 'x'); reset role;
   if r <> 'sin_chat' then raise exception 'PRUEBA FALLA: entrega fallida sin chat (%)', r; end if;
+  -- ajustes de la revision (20261010110100): citar un aviso cerrado NO cae a otro cliente; quitar pausa no levanta una baja
+  set local role bot_lawang; j := public.bot_escalar(t1, 'Uno', 'abierta', 'wZ'); j := public.bot_escalacion_tomar('wB'); reset role;
+  if j <> '{}'::jsonb then raise exception 'PRUEBA FALLA: citar un aviso ya resuelto debe devolver {} y no otra escalacion %', j; end if;
+  set local role bot_lawang; j := public.bot_escalacion_tomar('wInexistente'); reset role;
+  if j <> '{}'::jsonb then raise exception 'PRUEBA FALLA: citar un aviso inexistente %', j; end if;
+  set local role bot_lawang; j := public.bot_escalacion_tomar(null); reset role;
+  if j->>'tel' <> t1 then raise exception 'PRUEBA FALLA: sin cita sigue valiendo la mas antigua %', j; end if;
+  set local role bot_lawang; j := public.bot_pausar_humano(t3, 'quitar', 'ana@x'); j := public.bot_pausar(t3, 'quitar'); reset role;
+  if not (select pausado from public.bot_chat where tel = t3) or (select pausa_por from public.bot_chat where tel = t3) <> 'baja' then raise exception 'PRUEBA FALLA: quitar la pausa toco una baja'; end if;
+  v_ok := v_ok || 'citar aviso cerrado = {}; quitar pausa respeta la baja; ';
   v_ok := v_ok || 'tope de ritmo (120/hora) descarta en silencio y no afecta si son mas viejos; entrega_fallida ok/sin_chat; ';
 
   -- ═══ J. borrar la conversacion arrastra sus mensajes y escalaciones ═══
