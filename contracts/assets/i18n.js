@@ -5096,6 +5096,7 @@
     'Lectura directa de la base de datos. Cada lectura queda registrada. Desde aquí no se sabe si el bot está en modo testing ni a qué leads contesta.': 'Read straight from the database. Every read is logged. From here it is not known whether the bot is in testing mode or which leads it answers.',
     'Resumen del bot': 'Bot summary',
     'Se muestran los últimos 100 mensajes.': 'The last 100 messages are shown.',
+    'Se muestran las 500 conversaciones más recientes; hay más antiguas que no aparecen en la lista.': 'The 500 most recent conversations are shown; older ones are not in the list.',
     'Adjunto': 'Attachment',
     'Lo que sabe el bot': 'What the bot knows',
     'Las unidades, con precio y superficie, de los proyectos abiertos al bot. Solo lectura: se abre o se cierra un proyecto desde su ficha. Nunca incluye datos de clientes ni de contratos.': 'The units, with price and area, of the projects open to the bot. Read only: a project is opened or closed from its own page. It never includes client or contract data.',

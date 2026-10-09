@@ -1733,6 +1733,7 @@ function pintarAutomatismos(){
    por el bot (necesita el token de WhatsApp) en los dos modos. */
 const LECTURA_BOT = 'proxy';
 const BOT_PG = LECTURA_BOT === 'postgres' || /[?&]bot=pg(&|$)/.test(location.search);
+let HAY_MAS_CONV = false;  // true = la lista está recortada a las 500 conversaciones más recientes
 let SETTER_ERROR = false;   // true = no se PUDO mirar (distinto de «no hay conversaciones»): la lista no dice «Sin conversaciones»
 
 /* Error de las funciones de lectura. 42501 es «no tienes permiso» (la base lo decide); cualquier otro es «no se pudo leer». */
@@ -1747,6 +1748,7 @@ async function leerConversaciones(){
   if(!BOT_PG) return await llamarBot('conversaciones');
   const { data, error } = await SB.rpc('crm_bot_conversaciones');
   if(error) throw errorBotPg(error);
+  HAY_MAS_CONV = !!(data && data.hayMas);   // la base devuelve las 500 más recientes: si hay más, se avisa
   return (data && data.chats) || [];
 }
 async function leerHilo(phone){
@@ -1783,7 +1785,8 @@ async function cargarSetter(){
     SETTER_ERROR = false;
     /* Desde la base no se sabe si el bot está en modo testing (eso vive en una variable de Railway): se dice, no se inventa. */
     av.hidden = !BOT_PG;
-    if(BOT_PG) av.innerHTML = '<span data-tipo="origen_postgres">' + esc(lwT('Lectura directa de la base de datos. Cada lectura queda registrada. Desde aquí no se sabe si el bot está en modo testing ni a qué leads contesta.')) + '</span>';
+    if(BOT_PG) av.innerHTML = '<span data-tipo="origen_postgres">' + esc(lwT('Lectura directa de la base de datos. Cada lectura queda registrada. Desde aquí no se sabe si el bot está en modo testing ni a qué leads contesta.')) + '</span>'
+      + (HAY_MAS_CONV ? ' <span data-tipo="hay_mas_conversaciones">' + esc(lwT('Se muestran las 500 conversaciones más recientes; hay más antiguas que no aparecen en la lista.')) + '</span>' : '');
   } catch(err){
     CONVERSACIONES = [];
     SETTER_ERROR = true;
