@@ -1957,7 +1957,7 @@ async function verConversacion(phone){
     if(CHAT_ABIERTO !== phone) return;   // se cambió de conversación mientras cargaba
     pintarHiloChat(hilo.mensajes || [], !!hilo.hayMas);
     /* Con la lectura de la base el hilo trae además lo que el CRM sabe del lead (resúmenes y notas del bot, citas): se repinta la ficha. */
-    if(hilo.pg) pintarFicha(Object.assign({}, lead, hilo.chat || {}, { crm: hilo.lead || null, notasLista: hilo.notas || [], citasLista: hilo.citas || [] }));
+    if(hilo.pg) pintarFicha(Object.assign({}, lead, Object.fromEntries(Object.entries(hilo.chat || {}).filter(([, v]) => v !== null && v !== undefined)), { crm: hilo.lead || null, notasLista: hilo.notas || [], citasLista: hilo.citas || [] }));
   } catch(err){
     if(CHAT_ABIERTO !== phone) return;
     $('#hiloConv').innerHTML = '<p class="vacio" data-tipo="' + (err.sinPermiso ? 'sin_permiso' : 'error_lectura') + '">'
