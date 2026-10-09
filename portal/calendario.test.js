@@ -196,6 +196,32 @@ es('hito sin fecha con factura sin estado: cuenta como sin fecha', [C.hitosSinFe
 const casoF3 = JSON.parse(JSON.stringify(casoF)); casoF3.facturas[0].fields = {};
 es('hito sin fecha con factura sin vencimiento: cuenta como sin fecha', [C.hitosSinFecha(casoF3, dep(casoF3)), C.eventosCalendario(casoF3, HOY, dep(casoF3)).length], [1, 0]);
 
+/* ── periodos (calendario en color, 9-oct-2026) ─────────────────────── */
+es('firma: del envío del enlace a su caducidad (días locales)', [uno('firma:sh').desde, uno('firma:sh').hasta], ['2026-10-06', '2026-10-20']);
+es('factura sin pagar: de la emisión al vencimiento', [uno('hito:co:1').desde, uno('hito:co:1').hasta], ['2026-10-06', '2026-10-15']);
+es('vencida: del vencimiento hasta hoy', [uno('hito:bv:1').desde, uno('hito:bv:1').hasta], ['2026-10-04', '2026-10-09']);
+es('pagado: sin periodo', uno('hito:co:0').desde, undefined);
+es('hito sin factura: sin periodo', uno('hito:co:2').desde, undefined);
+es('documento: los 30 días de aviso antes de caducar', [uno('doc:passport:0').desde, uno('doc:passport:0').hasta], ['2026-09-22', '2026-10-22']);
+es('factura suelta: de la emisión al vencimiento', [uno('factura:f9').desde, uno('factura:f9').hasta], ['2026-10-01', '2026-10-25']);
+es('recibo y obra: sin periodo', [uno('recibo:r1').desde, uno('entrega:P-07').desde], [undefined, undefined]);
+
+/* ── revisor de código, 9-oct-2026 (calendario en color) ────────────── */
+/* sin KYC_AVISO_DIAS en el dep ni en el ámbito, no se inventa el plazo: el documento se queda sin franja */
+const DEP_SIN = Object.assign({}, DEP); delete DEP_SIN.KYC_AVISO_DIAS;
+const evSin = C.eventosCalendario(datos, HOY, Object.assign({}, DEP_SIN, { obraProyecto: obraProyectoDe(datos) }));
+es('sin plazo de aviso, el documento no lleva franja', evSin.filter(e => e.id === 'doc:passport:0')[0].desde, undefined);
+/* lo vencido: por moneda, sin sumar monedas distintas, y lo que no trae importe aparte */
+// 24.000 y no 27.000: el contrato BV-01 lleva 3.000 cobrados sin aplicar, que saldoSinAplicar reparte a su factura —
+// lo mismo que pinta Facturas para LW-0147
+es('vencido de una moneda', C.vencidoCalendario(ev), { n: 1, porMoneda: [{ moneda: 'USD', total: 24000 }], sinImporte: 0 });
+es('vencido de dos monedas y uno sin importe', C.vencidoCalendario([
+  { familia: 'pago', clase: 'vencida', falta: 100, moneda: 'USD' }, { familia: 'pago', clase: 'vencida', falta: 50, moneda: 'USD' },
+  { familia: 'pago', clase: 'vencida', falta: 2000000, moneda: 'IDR' }, { familia: 'pago', clase: 'vencida', falta: null, moneda: 'USD' },
+  { familia: 'doc', clase: 'vencida' }]),
+  { n: 4, porMoneda: [{ moneda: 'USD', total: 150 }, { moneda: 'IDR', total: 2000000 }], sinImporte: 1 });
+es('sin vencidos', C.vencidoCalendario([]), { n: 0, porMoneda: [], sinImporte: 0 });
+
 /* Comprador sin nada: no rompe */
 es('sin datos, sin eventos', C.eventosCalendario({}, HOY, dep({})).length, 0);
 es('sin datos, sin hitos sin fecha', C.hitosSinFecha({}, dep({})), 0);
