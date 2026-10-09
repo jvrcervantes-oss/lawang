@@ -329,19 +329,55 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 .zone h2 .lt{font-weight:300}
 .zone .p{margin:calc(16*var(--u)) auto 0;max-width:calc(780*var(--u));font-size:calc(21*var(--u));line-height:calc(36*var(--u));color:#4a4a48}
 .zcards{display:flex;justify-content:center;gap:calc(45*var(--u));margin-top:calc(40*var(--u));padding-right:calc(7*var(--u));list-style:none}
-.zc{position:relative;width:calc(551*var(--u));height:calc(596*var(--u));border-radius:calc(16*var(--u));overflow:hidden;box-shadow:0 calc(18*var(--u)) calc(40*var(--u)) rgba(40,35,20,.18);color:#fff;text-align:center}
-.zc>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.zc::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,18,12,.4),rgba(15,18,12,0) 22%,var(--z0) 48%,var(--z) 70%,var(--z))}
+.zc{position:relative;width:calc(551*var(--u));height:calc(596*var(--u));perspective:calc(1600*var(--u));color:#fff;text-align:center;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.zc .zin{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .95s cubic-bezier(.2,.8,.2,1.12)}
+.zc.on .zin{transform:rotateY(180deg)}
+.zf,.zb{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:calc(16*var(--u));overflow:hidden;box-shadow:0 calc(18*var(--u)) calc(40*var(--u)) rgba(40,35,20,.18)}
+.zf>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.zf::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,18,12,.4),rgba(15,18,12,0) 22%,var(--z0) 48%,var(--z) 70%,var(--z))}
 .zc.y{--z:rgba(122,99,47,.97);--z0:rgba(122,99,47,.55)}.zc.t{--z:rgba(36,71,75,.97);--z0:rgba(36,71,75,.55)}.zc.g{--z:rgba(75,89,56,.97);--z0:rgba(75,89,56,.55)}
-.zc::after{content:"";position:absolute;z-index:1;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.4);border-radius:calc(10*var(--u))}
+.zf::after,.zb::after{content:"";position:absolute;z-index:5;pointer-events:none;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.4);border-radius:calc(10*var(--u))}
 .zc .dot{position:absolute;left:50%;top:calc(46*var(--u));width:calc(58*var(--u));height:calc(58*var(--u));margin-left:calc(-29*var(--u));border:1px solid rgba(255,255,255,.55);border-radius:50%;z-index:2}
 .zc .dot::after{content:"";position:absolute;left:50%;top:50%;width:calc(21*var(--u));height:calc(21*var(--u));margin:calc(-10.5*var(--u)) 0 0 calc(-10.5*var(--u));border-radius:50%;background:var(--c)}
 .zc.y .dot{--c:#D9B44A}.zc.t .dot{--c:#8DB3C7}.zc.g .dot{--c:#9BBF6E}
-.zc .tx{position:absolute;left:calc(30*var(--u));right:calc(30*var(--u));bottom:calc(40*var(--u));z-index:2}
-.zc h3{font-size:calc(25*var(--u));line-height:calc(32*var(--u));font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.zf .tx{position:absolute;left:calc(30*var(--u));right:calc(30*var(--u));bottom:calc(40*var(--u));z-index:2}
+.zf h3{font-size:calc(25*var(--u));line-height:calc(32*var(--u));font-weight:500;letter-spacing:.04em;text-transform:uppercase}
 .zc .t2{margin-top:calc(12*var(--u));font-size:max(9px,calc(14*var(--u)));letter-spacing:.2em;text-transform:uppercase;opacity:.85}
-.zc p{margin-top:calc(16*var(--u));font-size:max(11px,calc(17*var(--u)));line-height:calc(27*var(--u));opacity:.92}
+.zf p{margin-top:calc(16*var(--u));font-size:max(11px,calc(17*var(--u)));line-height:calc(27*var(--u));opacity:.92}
 .zc .ok{display:flex;align-items:center;justify-content:center;margin:calc(28*var(--u)) auto 0;height:calc(51*var(--u));width:80%;border:1px solid rgba(255,255,255,.6);border-radius:999px;font-size:max(10px,calc(17*var(--u)));letter-spacing:.18em;text-transform:uppercase}
+/* reverso (9-oct): degradado del tono de la zona, sello de Lawang en retícula y brillo al girar */
+.zc.y{--zr:122,99,47}.zc.t{--zr:36,71,75}.zc.g{--zr:75,89,56}
+.zf .zmore{position:absolute;top:calc(30*var(--u));right:calc(30*var(--u));width:calc(30*var(--u));height:calc(30*var(--u));min-width:20px;min-height:20px;border:1px solid rgba(255,255,255,.6);border-radius:50%;display:grid;place-items:center;font-size:max(12px,calc(18*var(--u)));line-height:1;z-index:4;transition:transform .5s cubic-bezier(.2,.8,.2,1.12)}
+.zc:hover .zf .zmore,.zc:focus-visible .zf .zmore{transform:rotate(90deg)}
+.zb{transform:rotateY(180deg);display:flex;flex-direction:column;text-align:left;padding:calc(118*var(--u)) calc(42*var(--u)) calc(38*var(--u));
+  background:radial-gradient(110% 70% at 50% 0%,color-mix(in srgb,var(--c) 34%,transparent),transparent 62%),
+             linear-gradient(180deg,rgba(var(--zr),.8) 0%,rgb(var(--zr)) 58%,color-mix(in srgb,rgb(var(--zr)) 70%,#000) 100%);
+  background-color:rgb(var(--zr))}
+.zc.y .zb{--c:#D9B44A}.zc.t .zb{--c:#8DB3C7}.zc.g .zb{--c:#9BBF6E}
+.zb .sello{position:absolute;inset:-30%;z-index:1;pointer-events:none;background:url('/assets/img/soul/zone-strip-tile.webp') 0 0/calc(74*var(--u)) auto repeat;opacity:.42;mix-blend-mode:screen;transform:rotate(-12deg);
+  -webkit-mask:linear-gradient(180deg,rgba(0,0,0,.15) 10%,#000 62%);mask:linear-gradient(180deg,rgba(0,0,0,.15) 10%,#000 62%)}
+.zb .sheen{position:absolute;inset:-40%;z-index:2;pointer-events:none;background:linear-gradient(105deg,transparent 42%,rgba(255,250,235,.2) 50%,transparent 58%);transform:translateX(-70%)}
+.zc.on .zb .sheen{animation:zsheen 1.5s ease-out .35s both}
+@keyframes zsheen{to{transform:translateX(70%)}}
+.zb .zx{position:absolute;top:calc(30*var(--u));right:calc(30*var(--u));width:calc(30*var(--u));height:calc(30*var(--u));min-width:20px;min-height:20px;border:1px solid rgba(255,255,255,.55);border-radius:50%;display:grid;place-items:center;font-size:max(12px,calc(17*var(--u)));line-height:1;z-index:4}
+.zb .dot{z-index:4}
+.zb .tag,.zb h3,.zb .bp,.zb .lw{position:relative;z-index:4;opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .6s cubic-bezier(.2,.8,.2,1.12)}
+.zb .tag{font-size:max(10px,calc(14*var(--u)));letter-spacing:.3em;text-transform:uppercase;color:color-mix(in srgb,var(--c) 55%,#fff)}
+.zb h3{margin-top:calc(10*var(--u));font-size:calc(25*var(--u));line-height:calc(31*var(--u));font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-wrap:balance}
+.zb .bp{margin-top:calc(12*var(--u));font-size:max(10.5px,calc(17*var(--u)));line-height:max(15px,calc(26*var(--u)));color:rgba(255,255,255,.93)}
+.zb .lw{margin-top:auto;padding-top:calc(16*var(--u));font-size:max(10px,calc(15.5*var(--u)));line-height:max(14px,calc(23*var(--u)));border-top:1px solid color-mix(in srgb,var(--c) 55%,transparent)}
+.zb .lw b{display:block;margin-bottom:calc(5*var(--u));font-size:max(9px,calc(13.5*var(--u)));font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:color-mix(in srgb,var(--c) 55%,#fff)}
+.zc.on .zb .tag{opacity:1;transform:none;transition-delay:.42s}
+.zc.on .zb h3{opacity:1;transform:none;transition-delay:.5s}
+.zc.on .zb .bp{opacity:1;transform:none;transition-delay:.58s}
+.zc.on .zb .lw{opacity:1;transform:none;transition-delay:.68s}
+.zc:focus-visible .zf::after,.zc:focus-visible .zb::after{border:2px solid #fff}
+@media (prefers-reduced-motion:reduce){
+  .zc .zin{transition:none;transform:none!important}
+  .zc.on .zb .sheen{animation:none}
+  .zb{transform:none;opacity:0;transition:opacity .2s}.zc.on .zb{opacity:1}
+  .zb .tag,.zb h3,.zb .bp,.zb .lw{transition:none}
+}
 .zone .note{position:absolute;left:0;right:0;top:calc(917*var(--u));margin:0 auto;max-width:calc(930*var(--u));font-size:calc(18.6*var(--u));line-height:calc(34*var(--u));color:#45443f}
 .zone .note .b{font-weight:500;color:#2d2d2d}
 
@@ -454,7 +490,10 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .zone .k{padding-top:0;font-size:11px}.zone h2{font-size:24px;line-height:30px}.zone .p{font-size:13px;line-height:20px}
   .zcards{flex-direction:column;align-items:center;gap:16px;margin-top:24px;padding:0}
   .zc{width:100%;max-width:420px;height:auto;aspect-ratio:551/596}
-  .zc h3{font-size:18px;line-height:24px}.zc .t2{font-size:10px}.zc p{font-size:13px;line-height:19px}.zc .ok{height:38px;font-size:12px}
+  .zf h3{font-size:18px;line-height:24px}.zc .t2{font-size:10px}.zf p{font-size:13px;line-height:19px}.zc .ok{height:38px;font-size:12px}
+  .zc{aspect-ratio:auto;height:min(520px,125vw);perspective:1400px}
+  .zb{padding:84px 24px 26px}.zb .sello{background-size:60px auto}
+  .zb h3{font-size:18px;line-height:23px}.zb .bp{font-size:13.5px;line-height:20px}.zb .lw{font-size:12.5px;line-height:18px}.zb .lw b{font-size:10px}.zb .tag{font-size:10px}
   .zone .note{position:static;margin-top:20px;font-size:12px;line-height:18px}
   .mapw{position:relative;left:auto;width:100%;margin:0}
   .mapw .lab{font-size:max(9px,1.727cqw)}
@@ -693,9 +732,9 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   <h2 id="zn-h" data-i18n-html="zn.h"><em>What the land's colour</em> <span class="lt">actually means</span></h2>
   <p class="p" data-i18n-html="zn.p">Every plot in Indonesia is classified on the official RDTR zoning map. The colour decides whether it's legally buildable — and whether a PBG can be issued at all.</p>
   <ul class="zcards">
-    <li class="zc y"><img src="/assets/img/soul/zone-residential.webp" alt="Aerial view of a river valley with housing" loading="lazy"><span class="dot" aria-hidden="true"></span><div class="tx"><h3 data-i18n-html="z1.h">Residential</h3><p class="t2" data-i18n-html="z1.t">Yellow</p><p data-i18n-html="z1.p">Areas zoned for housing. Construction is allowed within the approved use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></li>
-    <li class="zc t"><img src="/assets/img/soul/zone-tourism.webp" alt="Aerial view of a villa by the coast" loading="lazy"><span class="dot" aria-hidden="true"></span><div class="tx"><h3 data-i18n-html="z2.h">Dedicated zones</h3><p class="t2" data-i18n-html="z2.t">Tourism / commercial</p><p data-i18n-html="z2.p">Zones set aside for tourism and commercial use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></li>
-    <li class="zc g"><img src="/assets/img/soul/zone-green.webp" alt="Aerial view of terraced rice fields" loading="lazy"><span class="dot" aria-hidden="true"></span><div class="tx"><h3 data-i18n-html="z3.h">Protected agricultural land</h3><p class="t2" data-i18n-html="z3.t">Green</p><p data-i18n-html="z3.p">Building is prohibited and no PBG can be issued.</p><p class="ok" data-i18n-html="z.ko">✕ Not buildable</p></div></li>
+    <li class="zc y" tabindex="0" role="button" aria-pressed="false"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-residential.webp" alt="Aerial view of a river valley with housing" loading="lazy"><span class="dot" aria-hidden="true"></span><span class="zmore" aria-hidden="true">+</span><div class="tx"><h3 data-i18n-html="z1.h">Residential</h3><p class="t2" data-i18n-html="z1.t">Yellow</p><p data-i18n-html="z1.p">Areas zoned for housing. Construction is allowed within the approved use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></div><div class="zb"><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><span class="zx" aria-hidden="true">×</span><p class="tag" data-i18n-html="zb1.k">Yellow · what you can build</p><h3 data-i18n-html="zb1.h">A home, within the approved use</h3><p class="bp" data-i18n-html="zb1.p">In the RDTR, the detailed zoning plan, yellow marks land for housing. A house can go up once its PBG, Indonesia's building approval, is issued. Running it as a holiday rental needs its own business licence, and whether the zone allows it is checked plot by plot.</p><p class="lw"><b data-i18n-html="zb.lw">How Lawang checks</b><span data-i18n-html="zb1.l">Before you pay a plot reservation fee, we hand you the plot's ITR and a GISTARU capture. If buildable zoning isn't proven, the fee comes back in full.</span></p></div></div></li>
+    <li class="zc t" tabindex="0" role="button" aria-pressed="false"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-tourism.webp" alt="Aerial view of a villa by the coast" loading="lazy"><span class="dot" aria-hidden="true"></span><span class="zmore" aria-hidden="true">+</span><div class="tx"><h3 data-i18n-html="z2.h">Dedicated zones</h3><p class="t2" data-i18n-html="z2.t">Tourism / commercial</p><p data-i18n-html="z2.p">Zones set aside for tourism and commercial use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></div><div class="zb"><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><span class="zx" aria-hidden="true">×</span><p class="tag" data-i18n-html="zb2.k">Tourism · what it's for</p><h3 data-i18n-html="zb2.h">Built for hospitality from day one</h3><p class="bp" data-i18n-html="zb2.p">These zones are planned for visitors and business: villas run as rentals, boutique hotels, restaurants. Whether a resort or rental business is allowed depends on the zoning rules for that activity, so it is checked before the first drawing, not after the build.</p><p class="lw"><b data-i18n-html="zb.lw">How Lawang checks</b><span data-i18n-html="zb2.l">Each plot's ITR and a GISTARU capture come with the reservation, before you pay, so you see its permitted use in writing.</span></p></div></div></li>
+    <li class="zc g" tabindex="0" role="button" aria-pressed="false"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-green.webp" alt="Aerial view of terraced rice fields" loading="lazy"><span class="dot" aria-hidden="true"></span><span class="zmore" aria-hidden="true">+</span><div class="tx"><h3 data-i18n-html="z3.h">Protected agricultural land</h3><p class="t2" data-i18n-html="z3.t">Green</p><p data-i18n-html="z3.p">Building is prohibited and no PBG can be issued.</p><p class="ok" data-i18n-html="z.ko">✕ Not buildable</p></div></div><div class="zb"><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><span class="zx" aria-hidden="true">×</span><p class="tag" data-i18n-html="zb3.k">Green · why we walk away</p><h3 data-i18n-html="zb3.h">Cheap for a reason</h3><p class="bp" data-i18n-html="zb3.p">Green marks farmland and open space the plan protects. Rice fields listed as LSD and Bali's subak irrigation land have their own protection, which doesn't always match the colour on the map. A house there generally can't get a PBG, and one built without it faces sanctions up to demolition. On green land, a low price is the risk, not the bargain.</p><p class="lw"><b data-i18n-html="zb.lw">How Lawang checks</b><span data-i18n-html="zb3.l">Our plot reservation letters make it a condition that the plot is not green, LSD or subak land. If it turns out to be, the fee comes back in full.</span></p></div></div></li>
   </ul>
   <p class="note" data-i18n-html="zn.n">We only acquire and develop land that is correctly zoned for construction — <span class="b">never green / agricultural</span> — and we verify the zoning before anything else.</p>
 </div></div></section>
@@ -928,6 +967,71 @@ var SOUL_I18N = {
 "en": "✕ Not buildable",
 "es": "✕ No edificable",
 "id": "✕ Tidak boleh dibangun"
+},
+"zb.lw": {
+"en": "How Lawang checks",
+"es": "Cómo lo comprueba Lawang",
+"id": "Cara Lawang memeriksa"
+},
+"zb1.k": {
+"en": "Yellow · what you can build",
+"es": "Amarillo · qué puedes construir",
+"id": "Kuning · yang boleh dibangun"
+},
+"zb1.h": {
+"en": "A home, within the approved use",
+"es": "Una casa, dentro del uso aprobado",
+"id": "Rumah, sesuai peruntukan yang disetujui"
+},
+"zb1.p": {
+"en": "In the RDTR, the detailed zoning plan, yellow marks land for housing. A house can go up once its PBG, Indonesia's building approval, is issued. Running it as a holiday rental needs its own business licence, and whether the zone allows it is checked plot by plot.",
+"es": "En el RDTR, el plan de zonificación detallado, el amarillo marca suelo para vivienda. Se puede levantar una casa cuando se emite su PBG, la licencia de obra de Indonesia. Explotarla como alquiler vacacional requiere su propia licencia de actividad, y si la zona lo permite se comprueba parcela a parcela.",
+"id": "Dalam RDTR, rencana detail tata ruang, warna kuning menandai lahan untuk perumahan. Rumah dapat dibangun setelah PBG-nya, persetujuan bangunan gedung di Indonesia, terbit. Menyewakannya sebagai vila liburan memerlukan izin usaha tersendiri, dan apakah zonanya mengizinkan hal itu diperiksa per kavling."
+},
+"zb1.l": {
+"en": "Before you pay a plot reservation fee, we hand you the plot's ITR and a GISTARU capture. If buildable zoning isn't proven, the fee comes back in full.",
+"es": "Antes de que pagues la cuota de reserva de una parcela, te entregamos su ITR y una captura de GISTARU. Si no se acredita que la zonificación es edificable, te devolvemos la cuota íntegra.",
+"id": "Sebelum Anda membayar biaya reservasi kavling, kami menyerahkan ITR dan tangkapan layar GISTARU kavling tersebut. Jika zonasi yang dapat dibangun tidak terbukti, biaya dikembalikan penuh."
+},
+"zb2.k": {
+"en": "Tourism · what it's for",
+"es": "Turístico · para qué sirve",
+"id": "Pariwisata · untuk apa"
+},
+"zb2.h": {
+"en": "Built for hospitality from day one",
+"es": "Pensado para la hospitalidad desde el primer día",
+"id": "Dirancang untuk perhotelan sejak awal"
+},
+"zb2.p": {
+"en": "These zones are planned for visitors and business: villas run as rentals, boutique hotels, restaurants. Whether a resort or rental business is allowed depends on the zoning rules for that activity, so it is checked before the first drawing, not after the build.",
+"es": "Son zonas planificadas para visitantes y negocio: villas en alquiler, hoteles boutique, restaurantes. Que un resort o un alquiler turístico esté permitido depende de las normas de zonificación para esa actividad, así que se comprueba antes del primer plano, no después de la obra.",
+"id": "Zona ini direncanakan untuk wisatawan dan usaha: vila sewa, hotel butik, restoran. Diizinkan atau tidaknya resor atau usaha sewa bergantung pada ketentuan zonasi untuk kegiatan tersebut, sehingga diperiksa sebelum gambar pertama, bukan setelah dibangun."
+},
+"zb2.l": {
+"en": "Each plot's ITR and a GISTARU capture come with the reservation, before you pay, so you see its permitted use in writing.",
+"es": "El ITR y una captura de GISTARU de cada parcela se entregan con la reserva, antes de que pagues, para que veas por escrito el uso permitido.",
+"id": "ITR dan tangkapan layar GISTARU setiap kavling diserahkan bersama reservasi, sebelum Anda membayar, agar Anda melihat peruntukan yang diizinkan secara tertulis."
+},
+"zb3.k": {
+"en": "Green · why we walk away",
+"es": "Verde · por qué lo descartamos",
+"id": "Hijau · mengapa kami mundur"
+},
+"zb3.h": {
+"en": "Cheap for a reason",
+"es": "Barato por algo",
+"id": "Murah ada alasannya"
+},
+"zb3.p": {
+"en": "Green marks farmland and open space the plan protects. Rice fields listed as LSD and Bali's subak irrigation land have their own protection, which doesn't always match the colour on the map. A house there generally can't get a PBG, and one built without it faces sanctions up to demolition. On green land, a low price is the risk, not the bargain.",
+"es": "El verde marca suelo agrícola y espacios libres que el plan protege. Los arrozales catalogados como LSD y las tierras de regadío subak de Bali tienen su propia protección, que no siempre coincide con el color del mapa. Ahí una casa, por regla general, no puede obtener PBG, y la que se levanta sin él se expone a sanciones que llegan a la demolición. En suelo verde, el precio bajo es el riesgo, no la ganga.",
+"id": "Hijau menandai lahan pertanian dan ruang terbuka yang dilindungi rencana tata ruang. Sawah yang ditetapkan sebagai LSD dan lahan irigasi subak di Bali memiliki perlindungan tersendiri, yang tidak selalu sama dengan warna di peta. Di sana rumah pada umumnya tidak dapat memperoleh PBG, dan rumah yang dibangun tanpa PBG terancam sanksi hingga pembongkaran. Di lahan hijau, harga murah adalah risikonya, bukan keuntungannya."
+},
+"zb3.l": {
+"en": "Our plot reservation letters make it a condition that the plot is not green, LSD or subak land. If it turns out to be, the fee comes back in full.",
+"es": "Nuestras cartas de reserva de parcela ponen como condición que la parcela no sea zona verde, LSD ni tierra subak. Si resulta serlo, te devolvemos la cuota íntegra.",
+"id": "Surat reservasi kavling kami mensyaratkan bahwa kavling bukan zona hijau, LSD, maupun tanah subak. Jika ternyata demikian, biaya reservasi dikembalikan penuh."
 },
 "zn.n": {
 "en": "We only acquire and develop land that is correctly zoned for construction — <span class=\"b\">never green / agricultural</span> — and we verify the zoning before anything else.",
@@ -1472,6 +1576,24 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   // CTA: mensaje prellenado
   var msg = "Hello LAWANG 🌿\n\nI'd like to request details about your projects and how you work, from land to legacy.";
   document.querySelector('#topbar .nav-cta').href = 'https://wa.me/6281138319862?text=' + encodeURIComponent(msg);
+})();
+</script>
+<script>
+/* Tarjetas de zonificación que giran: ratón en escritorio, toque en móvil, Enter/Espacio con teclado. */
+(function () {
+  var hover = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+  document.querySelectorAll('.zc').forEach(function (k) {
+    function set(on) { k.classList.toggle('on', on); k.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    if (hover) {
+      k.addEventListener('mouseenter', function () { set(true); });
+      k.addEventListener('mouseleave', function () { set(false); });
+    }
+    k.addEventListener('click', function () { if (!hover) set(!k.classList.contains('on')); });
+    k.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); set(!k.classList.contains('on')); }
+      if (e.key === 'Escape') set(false);
+    });
+  });
 })();
 </script>
 </body>
