@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="9ee39405dc44">
+<meta name="lw-version" content="8843bca76600">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -2621,10 +2621,8 @@
   /* Soporte y Mensajes se fusionan en una sola sección, 'soporte' — el owner
      las vio como la misma cosa duplicada (1-sep-2026): un hilo, no un
      sistema de tickets aparte de un chat aparte. */
-  /* Calendario (9-oct-2026): construido y visible SOLO en la demo (`?demo`) hasta que el owner lo apruebe; el comprador
-     real no lo ve ni entra por #/calendario (cae en Inicio). Para abrirlo a todos: CAL_VISIBLE = true. */
-  var CAL_VISIBLE = !!window.LW_DEMO;
-  var SECCIONES = ['inicio','contratos','facturas','obra'].concat(CAL_VISIBLE ? ['calendario'] : []).concat(['documentos','soporte','perfil']);
+  /* Calendario: abierto a todos los compradores el 9-oct-2026 (owner, tras verlo en la demo). */
+  var SECCIONES = ['inicio','contratos','facturas','obra','calendario','documentos','soporte','perfil'];
   function leeHash(){
     var partes = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
     if (SECCIONES.indexOf(partes[0]) !== -1)
@@ -2837,7 +2835,7 @@
   }
 
   /* ══ NAV ══════════════════════════════════════════════════════════════ */
-  var NAV_DEFS = SECCIONES.slice();   // el menú son las secciones, en su orden (Calendario solo si CAL_VISIBLE)
+  var NAV_DEFS = SECCIONES.slice();   // el menú son las secciones, en su orden
   /* Icono por sección del menú (1-sep-2026, tarde: "en /intranet/ el menú
      lleva icono y aquí no"). Mismo trazo que usa /intranet/ para el
      concepto equivalente (contratos→file-text, facturas→receipt,
