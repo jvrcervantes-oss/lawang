@@ -23,3 +23,16 @@ Activar = poner LOGIN y clave al rol en la base de producción y crear 3 secreto
 - Base: `alter role bot_lawang nologin;` y `alter role bot_lawang password null;`.
 - Edge: `supabase secrets unset BOT_DB_URL BOT_API_SECRET_CATALOGO BOT_API_SECRET_CRM --project-ref vtulllundrfennhjddhc` → vuelve a 401 a todo.
 - Railway: quitar las dos variables de `lawang-bot`.
+
+## S5 — las citas pasan a Postgres (9-oct-2026) — orden alrededor de BOT_CRM=on
+Hasta BOT_CRM=on el bot sigue guardando sus citas ([APPT]) en Redis. Con BOT_CRM=on deja de hacerlo (usa [CITA:...] y la base las guarda) y la pestaña
+«Agenda de cierre» de la intranet ya lee SOLO de Postgres desde que se publicó este cambio. Orden:
+1. Justo ANTES de poner BOT_CRM=on en Railway: repetir la importación (es repetible, lo ya importado no se duplica):
+   `python supabase/functions/bot-api/importa_citas.py --servicio <carpeta de lawang-bot> --salida <carpeta FUERA de cualquier repo>`
+   → ejecutar el `importa_citas.sql` que sale como propietario de la base (MCP o psql) → guardar el resultado como json y pasarlo con `--resultados`
+   para el informe de lo que no casó (0 leads, >1 lead, el lead ya tiene cita, pasada). Nada de eso se arregla solo: se mira a mano.
+2. Poner BOT_CRM=on (OK del owner). Desde ese momento: el bot no escribe citas en Redis, el panel viejo del bot rechaza crear/editar/borrar citas (409) y
+   el aviso «LLAMADA AGENDADA» al owner sale cuando la base responde a una [CITA:...].
+3. Qué se pierde y decide el owner: el RECORDATORIO automático al cliente antes de la llamada (`reminderTick`) leía las citas de Redis; las citas de Postgres no
+   lo tienen. Mientras no se decida, nadie recuerda la llamada al cliente.
+Primera ejecución (9-oct-2026): 0 citas en Redis, 0 importadas, 0 no casadas.

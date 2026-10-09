@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="leads">
 <head>
-<meta name="lw-version" content="ca42579836b7">
+<meta name="lw-version" content="73d353e05754">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -75,7 +75,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=a33b9e9b"></script>
+<script src="/contracts/assets/i18n.js?v=dcb2a8f6"></script>
 <script src="/contracts/assets/herramientas.js?v=e627e560"></script>
 <script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script>
 <!-- Cromo v4 (27-sep-2026): fuentes de la v4 solo para el menú y la cabecera, su
@@ -345,17 +345,13 @@
   <!-- ======================= AGENDA DE CIERRE =========================== -->
   <section class="crm-vista" id="v-agenda" hidden>
     <div class="kpis" id="kpis-agenda"></div>
-    <div class="aviso gris" id="avisoAgendaMeet" hidden data-lwt="El enlace de Google Meet se genera solo en cuanto el estudio active el acceso de Google Workspace. Hasta entonces, la cita se agenda igual — el closer comparte su propio enlace con el lead.">
-      El enlace de Google Meet se genera solo en cuanto el estudio active el acceso de Google Workspace. Hasta entonces, la cita se agenda igual — el closer comparte su propio enlace con el lead.
-    </div>
     <div class="caja" style="margin-bottom:16px">
       <header><div><h2 data-lwt="Nueva cita">Nueva cita</h2><p data-lwt="Agenda la llamada de venta de un lead con su closer.">Agenda la llamada de venta de un lead con su closer.</p></div></header>
       <div style="padding:16px">
         <input type="hidden" id="agCitaId">
         <div class="fila-campos">
           <div class="campo"><label for="agTelefono" data-lwt="Teléfono del lead">Teléfono del lead</label><input type="tel" id="agTelefono" placeholder="+34600000000"></div>
-          <div class="campo"><label for="agNombre" data-lwt="Nombre">Nombre</label><input type="text" id="agNombre" data-lwt-ph placeholder="Nombre del lead"></div>
-          <div class="campo"><label for="agCuando" data-lwt="Fecha y hora">Fecha y hora</label><input type="datetime-local" id="agCuando"></div>
+          <div class="campo"><label for="agCuando"><span data-lwt="Fecha y hora">Fecha y hora</span> · <span data-lwt="hora de Bali">hora de Bali</span></label><input type="datetime-local" id="agCuando"></div>
           <div class="campo"><label for="agCloser" data-lwt="Closer">Closer</label><input type="email" id="agCloser" data-lwt-ph placeholder="vacío = tú mismo"></div>
         </div>
         <div class="campo"><label for="agNotas" data-lwt="Notas">Notas</label><input type="text" id="agNotas" data-lwt-ph placeholder="Contexto para quien atienda la llamada"></div>

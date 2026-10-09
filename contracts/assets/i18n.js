@@ -2866,6 +2866,8 @@
     'No se pudo guardar la cita: ': 'Could not save the appointment: ',
     'Rellena la fecha y guarda: el teléfono y el nombre ya van puestos.':
       'Fill in the date and save: the phone and the name are already filled in.',
+    'Rellena la fecha y guarda: el teléfono ya va puesto.':
+      'Fill in the date and save: the phone is already filled in.',
     'Con Meet listo': 'With Meet ready',
     'Por confirmar': 'To confirm',
     'sin enlace todavía': 'no link yet',

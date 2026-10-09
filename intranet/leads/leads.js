@@ -33,7 +33,7 @@ let CANAL = '', BUSCA = '', FILTRO_B = 'todos';
 let ABIERTAS = new Set(), ABIERTO = null, SEL_B = null;
 let CARGADO = { panel: false, automatismos: false, setter: false, agenda: false, config: false };
 let FICHA = null;
-let CONVERSACIONES = [], CITAS = [], EDITANDO_CITA = null;
+let CONVERSACIONES = [], CITAS = [], EDITANDO_CITA = null, EDITANDO_TIPO = 'llamada';
 let CHAT_ABIERTO = null;   // teléfono del hilo abierto en Setter IA, o null
 /* La ficha del lead arranca abierta solo si hay sitio para las tres columnas. Por
    debajo de eso se superpone al chat, y abrirla sola taparía lo que vienes a leer. */
@@ -2128,10 +2128,10 @@ function pintarFicha(lead){
   const btn = $('#waAgendar');
   if(btn) btn.onclick = () => {
     location.hash = '#agenda';
+    limpiarFormularioAgenda();
     $('#agTelefono').value = lead.phone || '';
-    $('#agNombre').value = lead.name || '';
-    $('#agTelefono').focus();
-    toast(lwT('Rellena la fecha y guarda: el teléfono y el nombre ya van puestos.'));
+    $('#agCuando').focus();
+    toast(lwT('Rellena la fecha y guarda: el teléfono ya va puesto.'));
   };
 }
 
@@ -2179,52 +2179,58 @@ async function pausarLead(phone, paused){
 /* ==========================================================================
    VISTA 6 — AGENDA DE CIERRE (citas del bot + closer)
    --------------------------------------------------------------------------
-   El enlace de Google Meet solo llega si el estudio activó Calendar en el
-   bot (CALENDAR_ID+GOOGLE_SERVICE_ACCOUNT en Railway) — sin eso, `meetLink`
-   viene vacío y se avisa en vez de fingir un botón que no lleva a ningún
-   sitio.
+   Desde el 9-oct-2026 (S5 del encargo del bot) las citas viven en Postgres
+   (`lead_accion`, tipo llamada | visita) y esta pestaña habla con TRES funciones
+   de la base —crm_citas_agenda, crm_cita_guardar, crm_cita_cancelar—, no con el
+   bot ni con Redis. El permiso es `closers` (el de la pestaña) y se comprueba en
+   el servidor. La hora la fija la base: lo que se escribe en el formulario es hora
+   de Bali y así se pinta (citaCuando). El enlace de Google Meet ya no existe aquí:
+   Calendar nunca estuvo activo para Lawang y el closer comparte su propio enlace.
    ========================================================================== */
+/* Hora de Bali (Asia/Makassar) en el formato que pide <input type="datetime-local">. */
+const baliParaInput = iso => { const d = new Date(iso); if(isNaN(d)) return '';
+  const p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).forEach(x => { p[x.type] = x.value; });
+  return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute; };
+
 async function cargarAgenda(){
   CARGADO.agenda = true;
-  try { CITAS = await llamarBot('citas_listar'); }
-  catch(err){ CITAS = []; toastMal(lwErrorHumano(err, lwT('No se pudieron leer las citas: '))); }
+  const { data, error } = await SB.rpc('crm_citas_agenda');
+  if(error){ CITAS = []; toastMal(lwErrorHumano(error, lwT('No se pudieron leer las citas: '))); }
+  else CITAS = (data || []).map(c => ({ id: c.id, lead_id: c.lead_id, phone: c.telefono || '', name: c.nombre || '', when: c.cuando_ts,
+    closer: c.responsable || '', notes: c.notas || '', tipo: c.tipo, estado: c.estado, origen: c.origen }));
   pintarAgenda();
 }
 
 function kpisAgenda(filas){
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const futuras = filas.filter(c => new Date(c.when) >= new Date());
-  const conMeet = filas.filter(c => c.meetLink).length;
+  const futuras = filas.filter(c => new Date(c.when) >= new Date() && c.estado !== 'hecha');
+  const porConfirmar = filas.filter(c => c.estado === 'propuesta').length;
   const proxima = futuras[0];
   $('#kpis-agenda').innerHTML = `
     <div class="kpi"><div class="rot">${lwT('Citas agendadas')}<i class="ph ph-calendar"></i></div>
       <p class="cifra">${filas.length}</p><p class="pie">${lwT('%n todavía por llegar', { n: futuras.length })}</p></div>
-    <div class="kpi"><div class="rot">${lwT('Con Meet listo')}<i class="ph ph-video-camera"></i></div>
-      <p class="cifra oro">${conMeet}</p><p class="pie">${lwT('%n sin enlace automático', { n: filas.length - conMeet })}</p></div>
+    <div class="kpi"><div class="rot">${lwT('Por confirmar')}<i class="ph ph-hourglass"></i></div>
+      <p class="cifra oro">${porConfirmar}</p><p class="pie">${lwT('La propuso el bot: confirma con el cliente o cancela.')}</p></div>
     <div class="kpi fuerte"><div class="rot">${lwT('Próxima llamada')}<i class="ph ph-clock"></i></div>
-      <p class="cifra" style="font-size:19px">${proxima ? esc(fechaHora(proxima.when)) : '—'}</p>
+      <p class="cifra" style="font-size:19px">${proxima ? esc(citaCuando(proxima.when)) : '—'}</p>
       <p class="pie">${proxima ? esc(proxima.name || proxima.phone || lwT('sin nombre')) : lwT('nada agendado por delante')}</p></div>`;
 }
 
 function pintarAgenda(){
   const filas = CITAS.slice().sort((a, b) => new Date(a.when) - new Date(b.when));
   kpisAgenda(filas);
-  const hayMeetActivo = filas.some(c => c.meetLink);
-  $('#avisoAgendaMeet').hidden = filas.length === 0 || hayMeetActivo;
   $('#subAgenda').textContent = filas.length
     ? lwT(filas.length === 1 ? '%n cita agendada' : '%n citas agendadas', { n: filas.length })
     : lwT('Sin citas agendadas todavía.');
   $('#tAgenda').innerHTML = filas.length ? filas.map(c => `
-    <article class="cita${c.meetLink ? ' con-meet' : ''}">
+    <article class="cita" data-cita-id="${esc(c.id)}">
       <div class="avatar">${esc(iniciales(c.name || c.phone))}</div>
       <div class="cuerpo">
-        <div class="cuando">${esc(fechaHora(c.when))}</div>
-        <div class="quien">${esc(c.name || c.phone || 'sin nombre')}</div>
+        <div class="cuando">${esc(citaCuando(c.when))}</div>
+        <div class="quien">${esc(c.name || c.phone || 'sin nombre')} · ${esc(citaTipoTxt(c.tipo))}</div>
         <div class="sub">${c.phone ? esc(c.phone) + ' · ' : ''}closer: ${esc(c.closer || '—')}${c.notes ? ' · ' + esc(c.notes) : ''}</div>
       </div>
-      ${c.meetLink
-        ? `<a class="btn mini pri" target="_blank" rel="noopener" href="${esc(c.meetLink)}"><i class="ph ph-video-camera"></i>${lwT('Unirse')}</a>`
-        : '<span class="chip gris">' + lwT('sin enlace todavía') + '</span>'}
+      <span class="chip ${citaEstadoChip(c.estado)[0]}">${esc(citaEstadoChip(c.estado)[1])}</span>
       <div class="acciones">
         <button class="btn mini" data-editar="${esc(c.id)}">${lwT('Editar')}</button>
         <button class="btn mini" data-borrar="${esc(c.id)}">${lwT('Borrar')}</button>
@@ -2237,12 +2243,15 @@ function pintarAgenda(){
 function cargarCitaEnFormulario(id){
   const c = CITAS.find(x => x.id === id); if(!c) return;
   EDITANDO_CITA = id;
+  EDITANDO_TIPO = c.tipo || 'llamada';
   $('#agCitaId').value = id;
   $('#agTelefono').value = c.phone || '';
-  $('#agNombre').value = c.name || '';
-  $('#agCuando').value = (c.when || '').slice(0, 16);
+  $('#agTelefono').readOnly = true;   // una cita no cambia de lead: el teléfono es el del lead
+  $('#agCuando').value = baliParaInput(c.when);
   $('#agCloser').value = c.closer || '';
-  $('#agNotas').value = c.notes || '';
+  /* La nota de una propuesta del bot es la frase automática «pendiente de confirmar»: guardarla tal cual la dejaría escrita
+     en una cita ya confirmada. Se deja en blanco y quien confirma escribe lo que quiera. */
+  $('#agNotas').value = (c.origen === 'bot' && c.estado === 'propuesta') ? '' : (c.notes || '');
   $('#btnAgendarGuardar').innerHTML = '<i class="ph ph-check"></i>Guardar cambios';
   $('#btnAgendarCancelar').hidden = false;
   $('#v-agenda').scrollIntoView({ behavior: 'auto' });
@@ -2250,7 +2259,9 @@ function cargarCitaEnFormulario(id){
 
 function limpiarFormularioAgenda(){
   EDITANDO_CITA = null;
-  ['agCitaId','agTelefono','agNombre','agCuando','agCloser','agNotas'].forEach(id => { $('#' + id).value = ''; });
+  EDITANDO_TIPO = 'llamada';
+  $('#agTelefono').readOnly = false;
+  ['agCitaId','agTelefono','agCuando','agCloser','agNotas'].forEach(id => { $('#' + id).value = ''; });
   $('#btnAgendarGuardar').innerHTML = '<i class="ph ph-calendar-plus"></i>Agendar';
   $('#btnAgendarCancelar').hidden = true;
 }
@@ -2258,21 +2269,20 @@ function limpiarFormularioAgenda(){
 async function guardarCita(){
   const when = $('#agCuando').value;
   if(!when){ toastMal(lwT('Falta la fecha y hora.')); return; }
-  const payload = {
-    id: EDITANDO_CITA || undefined,
-    phone: $('#agTelefono').value.replace(/[^0-9]/g, ''),
-    name: $('#agNombre').value.trim(),
-    title: lwT('Llamada de venta'),
-    when,
-    closer: $('#agCloser').value.trim(),
-    notes: $('#agNotas').value.trim(),
-  };
-  try {
-    await llamarBot('citas_guardar', payload);
-    toast(lwT(EDITANDO_CITA ? 'Cita actualizada.' : 'Cita agendada.'));
-    limpiarFormularioAgenda();
-    cargarAgenda();
-  } catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo guardar la cita: '))); }
+  /* `when` es hora de Bali (así lo interpreta la base). El lead sale del teléfono (exactamente uno) o de la cita que se edita;
+     la base decide si el closer puede agendar a nombre de otro. */
+  const { error } = await SB.rpc('crm_cita_guardar', {
+    p_id: EDITANDO_CITA || null,
+    p_telefono: $('#agTelefono').value.replace(/[^0-9]/g, ''),
+    p_cuando: when,
+    p_closer: $('#agCloser').value.trim() || null,
+    p_notas: $('#agNotas').value.trim() || null,
+    p_tipo: EDITANDO_TIPO,
+  });
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo guardar la cita: '))); return; }
+  toast(lwT(EDITANDO_CITA ? 'Cita actualizada.' : 'Cita agendada.'));
+  limpiarFormularioAgenda();
+  cargarAgenda();
 }
 
 async function borrarCita(id){
@@ -2281,12 +2291,14 @@ async function borrarCita(id){
      aqui desde el 11-sep y se cambia al pasar a traducir su texto. */
   const seguro = await lwConfirmar({
     titulo: lwT('Borrar esta cita'),
-    cuerpo: lwT('Si tiene evento de Calendar, se borra también.'),
-    confirmar: lwT('Borrar'), tono: 'peligro',
+    cuerpo: lwT('La cita se cierra y el bot podrá proponer otra al cliente si lo pide. No se avisa al cliente por WhatsApp.'),
+    confirmar: lwT('Cancelar la cita'), cancelar: lwT('Volver'), tono: 'peligro',
   });
   if(!seguro) return;
-  try { await llamarBot('citas_borrar', { id }); toast(lwT('Cita borrada.')); cargarAgenda(); }
-  catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo borrar: '))); }
+  /* «Borrar» CANCELA: la cita sale de la agenda y queda en el historial del lead (quién y cuándo). */
+  const { error } = await SB.rpc('crm_cita_cancelar', { p_id: id });
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo borrar: '))); return; }
+  toast(lwT('Cita cancelada.')); cargarAgenda();
 }
 
 /* ==========================================================================

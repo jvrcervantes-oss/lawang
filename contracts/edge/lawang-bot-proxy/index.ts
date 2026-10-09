@@ -14,13 +14,12 @@
 // panel interno en un password de API abierta a lo que sea. Solo las acciones
 // de abajo, cada una con su propio chequeo de permiso.
 //
-// TRES PERMISOS DISTINTOS (no uno): 'leads' para mirar conversaciones/pausar el
-// bot (ya lo tiene cualquiera que vea el CRM de leads); 'closers' para tocar la
-// agenda de citas — quien agenda una llamada de venta y más adelante verá su
-// grabación de Fathom es una decisión de acceso aparte (misma separación que ya
-// existe entre 'leads' y 'operaciones'); y 'bot_escribir' (11-sep-2026) para
-// enviar mensajes al lead, que es el único de los tres que produce algo que ve
-// un cliente real — de ahí que no venga de regalo con 'leads'.
+// PERMISOS DISTINTOS (no uno): 'leads' para mirar conversaciones/pausar el
+// bot (ya lo tiene cualquiera que vea el CRM de leads); 'bot_escribir'
+// (11-sep-2026) para enviar mensajes al lead, que es lo único que produce algo
+// que ve un cliente real — de ahí que no venga de regalo con 'leads'; y
+// 'bot_configurar' para la configuración. La agenda de citas ('closers') dejó
+// este proxy el 9-oct-2026: ahora vive en Postgres (ver más abajo).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
@@ -87,7 +86,6 @@ Deno.serve(async (req) => {
       return json({ error: 'sin_permiso: el bot de WhatsApp atiende a las dos empresas; esta pantalla no está disponible con el alcance acotado a una empresa' }, 403);
     const esSuper = ficha.rol === 'super_admin';
     const puedeLeads = esSuper || (ficha.herramientas ?? []).includes('leads');
-    const puedeClosers = esSuper || (ficha.herramientas ?? []).includes('closers');
     // Permiso propio para escribir al lead. Se reparte desde /intranet/usuarios/ como
     // una casilla mas; mientras nadie la marque, solo los super_admin pueden escribir.
     const puedeEscribir = esSuper || (ficha.herramientas ?? []).includes('bot_escribir');
@@ -205,33 +203,10 @@ Deno.serve(async (req) => {
       return json(r.body, r.status);
     }
 
-    // ── Agenda de cierre: requiere 'closers' ─────────────────────────────
-    if (accion === 'citas_listar') {
-      if (!puedeClosers) return json({ error: 'sin_permiso: closers' }, 403);
-      const r = await llamaBot('/admin/api/appts');
-      return json(r.body, r.status);
-    }
-    if (accion === 'citas_guardar') {
-      if (!puedeClosers) return json({ error: 'sin_permiso: closers' }, 403);
-      const { id, phone, name, title, when, closer, notes } = body;
-      if (!when) return json({ error: 'when_requerido' }, 400);
-      // el closer que se guarda es el de la sesión salvo que un admin agende a
-      // nombre de otro — evita que cualquiera con 'closers' agende citas
-      // atribuidas a un compañero
-      const closerFinal = esSuper || ficha.rol === 'admin' ? (closer || ficha.email) : ficha.email;
-      const r = await llamaBot('/admin/api/appts', {
-        method: 'POST',
-        body: JSON.stringify({ id, phone, name, title, when, closer: closerFinal, notes }),
-      });
-      return json(r.body, r.status);
-    }
-    if (accion === 'citas_borrar') {
-      if (!puedeClosers) return json({ error: 'sin_permiso: closers' }, 403);
-      const id = String(body.id ?? '');
-      if (!id) return json({ error: 'id_requerido' }, 400);
-      const r = await llamaBot('/admin/api/appts/' + encodeURIComponent(id), { method: 'DELETE' });
-      return json(r.body, r.status);
-    }
+    // ── Agenda de cierre: YA NO PASA POR AQUÍ (9-oct-2026, S5 del encargo del bot) ──
+    // Las citas viven en Postgres y la pestaña Agenda habla con crm_citas_agenda / crm_cita_guardar / crm_cita_cancelar
+    // (permiso `closers` comprobado en la base). citas_listar / citas_guardar / citas_borrar se retiraron: sin llamador
+    // no se deja la puerta (seguridad_2026 §1.ter).
 
     // Cualquier otra acción se deniega — nunca un passthrough de `path` libre.
     return json({ error: 'accion_desconocida' }, 400);
