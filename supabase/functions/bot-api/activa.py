@@ -68,18 +68,21 @@ def main():
 
 
 S2 = ("BOT_API_SECRET_ESTADO", "BOT_API_SECRET_RECORDATORIO", "BOT_API_SECRET_HUMANO")
+S2_RAILWAY = S2[:2]   # a Railway solo los dos del bot; el de /humano NO
 
 
 def s2(rs, dest, aplica):
     """S2 (9-oct-2026): tres secretos nuevos, uno por ruta. Requiere que la activacion de S4 (rol bot_lawang con LOGIN y BOT_DB_URL) ya este hecha.
-    Railway (lawang-bot, quien llama a las tres) --skip-deploys, y los secretos de la edge (son del PROYECTO: el proxy tambien los ve)."""
+    Railway (lawang-bot: SOLO estado y recordatorio) --skip-deploys, y los secretos de la edge (son del PROYECTO: el proxy tambien los ve)."""
     vals = [rs.clave_aleatoria() for _ in S2]
     if not aplica:
         print("SIMULACION S2 (no se toca Railway ni la edge):")
-        print("  Railway %s: %s (%d caracteres cada una, stdin, sin redeploy)" % (dest, ", ".join(S2), len(vals[0])))
+        print("  Railway %s: %s (%d caracteres cada una, stdin, sin redeploy; el de /humano NO va a Railway)" % (dest, ", ".join(S2_RAILWAY), len(vals[0])))
         print("  supabase secrets set --env-file <temporal> --project-ref %s : %s" % (REF, ", ".join(S2)))
         return
     for nombre, v in zip(S2, vals):
+        if nombre not in S2_RAILWAY:
+            continue   # el de /humano vive solo en la edge (y en el proxy, S3/S10): una fuga del bot no puede enviar como persona
         rs._railway(["variables", "--set-from-stdin", nombre, "--skip-deploys"], dest, vals, entrada=v)
     fd, ruta = tempfile.mkstemp(suffix=".env")
     try:
