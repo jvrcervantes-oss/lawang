@@ -14,8 +14,11 @@
   Fuera del calco a propósito: la barra común (la de index.html, trinquete tools/unificar.py) y el
   pie común (/assets/lawang-pie.js); el PDF dibuja otros y cambiarlos aquí rompería la versión única.
   Submenú sin «What it costs» ni «The projects»: el PDF no les da sección (owner, 9-oct).
-  Cifras 100+/500K+/80+/6+, «+323 %», «Top 8 luxury resorts» y Gallup 89/100: copy del cliente,
-  pendiente de poder demostrarse (LAW-302). Sin pixel ni analitica.
+  Consulta de Legal sobre el copy nuevo (9-oct): fuera «+323 %» y «Top 8», tabla PT PMA / Hak Sewa
+  con su texto (accionista, escritura notarial, herencia de acciones, plazo del contrato), aviso
+  «no es asesoramiento legal», ROI marcado como previsión de Palm Field; visitas «periódicas» y
+  oficina «con cita» (owner). Gallup 89/100 con el nombre del informe; la fuente original sigue
+  pendiente de guardarse, igual que las cifras 100+/500K+/80+/6+ (LAW-302). Sin pixel ni analitica.
   Escala: 1 px del PDF = --u (1920 de ancho, sin pasarse del alto de pantalla).
 -->
 <link rel="canonical" href="https://lawangproperties.com/thesoul">
@@ -285,15 +288,16 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
 .opt h3 small{font-size:calc(30.6*var(--u));letter-spacing:.06em}
 .opt .s{font-size:max(9px,calc(16.7*var(--u)));line-height:calc(20*var(--u));font-weight:700;letter-spacing:.14em;margin-top:calc(4*var(--u));padding:0 calc(30*var(--u))}
 .cmp{position:absolute;top:calc(275*var(--u));left:0;width:100%;text-transform:uppercase}
-.cmp .tr{position:relative;height:calc(52*var(--u))}
-.cmp .tr.z::before{content:"";position:absolute;left:calc(750*var(--u));width:calc(1104*var(--u));top:0;height:calc(30*var(--u));background:var(--row)}
-.cmp .th{position:absolute;right:calc(calc(1920*var(--u)) - calc(714*var(--u)));top:calc(1*var(--u));font-size:max(11px,calc(19*var(--u)));line-height:calc(24*var(--u));letter-spacing:.03em;white-space:nowrap}
-.cmp .v{position:absolute;top:calc(3*var(--u));font-size:max(10px,calc(17*var(--u)));line-height:calc(22*var(--u));font-weight:500;letter-spacing:.035em;display:flex;align-items:center;gap:calc(22*var(--u));white-space:nowrap}
-.cmp .v1{left:calc(759*var(--u));color:var(--brown-d)}.cmp .v2{left:calc(1377*var(--u));color:var(--teal)}
+.cmp .tr{position:relative;display:grid;grid-template-columns:calc(714*var(--u)) calc(45*var(--u)) calc(598*var(--u)) calc(20*var(--u)) calc(477*var(--u));align-items:start;min-height:calc(52*var(--u));padding-bottom:calc(10*var(--u))}
+.cmp .tr.z::before{content:"";position:absolute;left:calc(750*var(--u));width:calc(1104*var(--u));top:calc(-3*var(--u));bottom:calc(7*var(--u));background:var(--row)}
+.cmp .th{position:relative;grid-column:1;text-align:right;font-size:max(11px,calc(19*var(--u)));line-height:calc(24*var(--u));letter-spacing:.03em}
+.cmp .v{position:relative;font-size:max(10px,calc(17*var(--u)));line-height:calc(23*var(--u));font-weight:500;letter-spacing:.03em;display:flex;align-items:center;flex-wrap:wrap;gap:calc(4*var(--u)) calc(22*var(--u));padding-top:calc(1*var(--u))}
+.cmp .v1{grid-column:3;color:var(--brown-d)}.cmp .v2{grid-column:5;color:var(--teal)}
+.ro-n{position:absolute;top:calc(575*var(--u));left:calc(759*var(--u));width:calc(1095*var(--u));font-size:max(11px,calc(15*var(--u)));line-height:calc(22*var(--u));color:#5d5a52;font-style:italic}
 .dots{display:inline-flex;gap:calc(6*var(--u))}
 .dots i{width:calc(19*var(--u));height:calc(19*var(--u));border-radius:50%;border:1.5px solid currentColor;display:block}
 .dots i.f{background:currentColor}
-.v1 .dots{color:#415134;margin-left:calc(6*var(--u))}.v2 .dots{color:#2C4F47;margin-left:calc(62*var(--u))}
+.v1 .dots{color:#415134}.v2 .dots{color:#2C4F47}
 
 /* 7 · come see it */
 .see .bn{position:absolute;left:calc(63*var(--u));top:calc(10*var(--u));width:calc(1796*var(--u));height:calc(341*var(--u));border-radius:calc(16*var(--u));overflow:hidden}
@@ -424,9 +428,11 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
   .opt,.opt.pma,.opt.sewa{width:auto;height:auto;padding:14px 8px}
   .opt .k{margin:0;font-size:9px}.opt h3{font-size:18px;line-height:24px}.opt h3 small{display:block;font-size:13px}.opt .s{font-size:9px;line-height:12px;padding:0}
   .cmp{margin-top:16px}
-  .cmp .tr{height:auto;display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;padding:8px}
+  .cmp .tr{height:auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;padding:8px}
+  .cmp .v1{grid-column:1}.cmp .v2{grid-column:2}
+  .ro-n{position:static;width:auto;margin-top:12px;font-size:11px;line-height:16px}
   .cmp .tr.z{background:var(--row)}.cmp .tr.z::before{display:none}
-  .cmp .th{grid-column:1/-1;font-size:11px;font-weight:700}
+  .cmp .th{grid-column:1/-1;text-align:left;font-size:11px;font-weight:700}
   .cmp .v{font-size:11px;line-height:15px;gap:8px;flex-wrap:wrap}
   .dots i{width:10px;height:10px}.v1 .dots,.v2 .dots{margin-left:0}
   .see .bn{position:relative;left:auto;top:auto;width:auto;height:auto;border-radius:8px}
@@ -582,7 +588,7 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
     <li><span class="tab"><svg viewBox="0 0 62 32" aria-hidden="true" fill="currentColor"><use href="#ico-development"/></svg><span data-i18n-html="tb.dev">Development</span></span>
       <div class="card"><img src="/assets/img/soul/card-development.webp" alt="Villa living room opening onto a sunset" loading="lazy"><div class="num"><b>80+</b><span data-i18n-html="st.bld">Buildings</span></div><p class="d" data-i18n-html="d.dev">Structural integrity <br>local knowledge.</p></div></li>
     <li><span class="tab"><svg viewBox="0 0 60 37" aria-hidden="true" fill="currentColor"><use href="#ico-legal"/></svg><span data-i18n-html="tb.legal">Legal</span></span>
-      <div class="card"><img src="/assets/img/soul/card-legal.webp" alt="Aerial view of the coastline" loading="lazy"><div class="num"><b>100+</b><span data-i18n-html="st.inv">Investors</span></div><p class="d" data-i18n-html="d.legal">Clear fiscal structure <br>personalized process.</p></div></li>
+      <div class="card"><img src="/assets/img/soul/card-legal.webp" alt="Aerial view of the coastline" loading="lazy"><div class="num"><b>100+</b><span data-i18n-html="st.inv">Investors</span></div><p class="d" data-i18n-html="d.legal">Legal and tax structure, <br>guided step by step.</p></div></li>
     <li><span class="tab"><svg viewBox="0 0 50 30" aria-hidden="true" fill="currentColor"><use href="#ico-management"/></svg><span data-i18n-html="tb.mgmt">Management</span></span>
       <div class="card"><img src="/assets/img/soul/card-management.webp" alt="Corridor of the Lawang office" loading="lazy"><div class="num"><b>6+</b><span data-i18n-html="st.yrs">Years</span></div><p class="d" data-i18n-html="d.mgmt">Curated <br>local partners</p></div></li>
   </ul>
@@ -602,9 +608,9 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
   <ul class="kpis">
     <li class="kpi k1"><div class="row"><span data-i18n-html="c1.k">Economic</span><b data-i18n-html="c1.n">5%+ GDP</b></div><p data-i18n-html="c1.p2"><b>Growth rate</b> — largest economy <br>in Southeast Asia, G20 member.</p></li>
     <li class="kpi k2"><div class="row"><span data-i18n-html="c3.k">Profitability</span><b>9.5%–12.9%</b></div><p data-i18n-html="c3.p2"><b>Year-1 ROI range across the Palm Field <br>villa typologies</b> (forecast, not guaranteed).</p></li>
-    <li class="kpi k3"><div class="row"><span data-i18n-html="c4.k">Security</span><b>89/100</b></div><p data-i18n-html="c4.p"><b>Law and order index</b> — ranks above <br>Japan and the U.S. (Gallup, 2025).</p></li>
+    <li class="kpi k3"><div class="row"><span data-i18n-html="c4.k">Security</span><b>89/100</b></div><p data-i18n-html="c4.p"><b>Law and Order Index</b> — above <br>Japan and the U.S. (Gallup Global Safety Report 2025).</p></li>
   </ul>
-  <div class="ret"><h2 id="in-h" data-i18n-html="in.h">The economy, the build, <span class="b">the return.</span></h2><p data-i18n-html="in.p2">Three numbers an investor actually needs <b>before looking at any single project.</b></p></div>
+  <div class="ret"><h2 id="in-h" data-i18n-html="in.h">The economy, the build, <span class="b">the return.</span></h2><p data-i18n-html="in.p2">Three numbers to read first. <b>The return shown is a Palm Field forecast, not a figure for every project.</b></p></div>
 </div></section>
 
 <section class="why" id="why" aria-labelledby="why-h" data-spy="why"><div class="st">
@@ -619,7 +625,7 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
       <p class="lbl" data-i18n-html="ba.l">The island everyone chose.</p>
       <ul class="facts">
         <li><small data-i18n-html="ba.1s">Tropical paradise</small><strong data-i18n-html="ba.1v">25–32 °C all year</strong></li>
-        <li><strong data-i18n-html="ba.2v">+323% growth <em>in</em></strong><small data-i18n-html="ba.2s">Digital nomad population</small></li>
+        <li><strong data-i18n-html="ba.2v">Global hub <em>for</em></strong><small data-i18n-html="ba.2s">Digital nomads</small></li>
         <li><small>Denpasar Ngurah Rai</small><strong data-i18n-html="ba.3v">International airport</strong></li>
       </ul></li>
     <li class="isle"><img src="/assets/img/soul/isle-sumba.webp" alt="Sumba weaver beside a traditional ikat textile" loading="lazy"><p class="nm l">SUMBA</p></li>
@@ -627,7 +633,7 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
       <p class="lbl" data-i18n-html="su.l">Where the wild still decides.</p>
       <ul class="facts">
         <li><small data-i18n-html="su.1s">An island</small><strong data-i18n-html="su.1v">Frozen in time</strong></li>
-        <li><small data-i18n-html="su.2s">Top 8</small><strong data-i18n-html="su.2v">Luxury resorts</strong></li>
+        <li><small data-i18n-html="su.2s">Rare</small><strong data-i18n-html="su.2v">Luxury resorts</strong></li>
         <li><small data-i18n-html="su.3s">Connected by</small><strong data-i18n-html="su.3v">Two airports</strong></li>
       </ul></li>
   </ul>
@@ -656,12 +662,13 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
   </div>
   <div class="cmp" role="table" aria-label="PT PMA vs Hak Sewa">
     <div class="sr" role="row"><span role="columnheader"></span><span role="columnheader">PT PMA – Freehold HGB</span><span role="columnheader">Hak Sewa</span></div>
-    <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r1">What it is</div><div class="v v1" role="cell" data-i18n-html="ro.r1a">An Indonesian company you own holds the HGB title.</div><div class="v v2" role="cell" data-i18n-html="ro.r1b">A long-term lease, registered before a notary.</div></div>
-    <div class="tr" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r2">Holds the title</div><div class="v v1" role="cell" data-i18n-html="ro.r2a">Your PT PMA</div><div class="v v2" role="cell" data-i18n-html="ro.r2b">You, as the lessee</div></div>
-    <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r3">Term</div><div class="v v1" role="cell" data-i18n-html="ro.r3a">30 years, extendable 20 + 30</div><div class="v v2" role="cell" data-i18n-html="ro.r3b">Up to 30 years, renewable</div></div>
-    <div class="tr" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r4">You can</div><div class="v v1" role="cell" data-i18n-html="ro.r4a">Sell, inherit, mortgage and run rentals</div><div class="v v2" role="cell" data-i18n-html="ro.r4b">Transfer and inherit</div></div>
+    <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r1">What it is</div><div class="v v1" role="cell" data-i18n-html="ro.r1a">An Indonesian company (PT PMA) in which you hold shares holds the HGB title.</div><div class="v v2" role="cell" data-i18n-html="ro.r1b">A long-term lease, signed as a notarial deed.</div></div>
+    <div class="tr" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r2">Who holds the right</div><div class="v v1" role="cell" data-i18n-html="ro.r2a">Your PT PMA</div><div class="v v2" role="cell" data-i18n-html="ro.r2b">You, as lessee. The land stays in the owner's name.</div></div>
+    <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r3">Term</div><div class="v v1" role="cell" data-i18n-html="ro.r3a">30 years, extendable 20 + 30</div><div class="v v2" role="cell" data-i18n-html="ro.r3b">Term set in the lease, with an extension option</div></div>
+    <div class="tr" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r4">You can</div><div class="v v1" role="cell" data-i18n-html="ro.r4a">Sell or mortgage the HGB, run licensed rentals; your shares pass to heirs</div><div class="v v2" role="cell" data-i18n-html="ro.r4b">Pass to heirs; transfer only as the lease allows</div></div>
     <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r5">Setup</div><div class="v v1" role="cell"><span data-i18n-html="ro.r5a">A company to set up and maintain</span> <span class="dots" role="img" aria-label="3/3"><i class="f"></i><i class="f"></i><i class="f"></i></span></div><div class="v v2" role="cell"><span data-i18n-html="ro.r5b">One notarial contract</span> <span class="dots" role="img" aria-label="1/3"><i class="f"></i><i></i><i></i></span></div></div>
   </div>
+  <p class="ro-n" data-i18n-html="ro.n">General information, not legal advice. The right route depends on your case and is confirmed with the notary/PPAT before you sign.</p>
 </div></section>
 
 <section class="see" id="see" aria-labelledby="see-h" data-spy="see"><div class="st">
@@ -670,8 +677,8 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
     <p class="rr" data-i18n-html="se.r">WE DON'T LIST PROPERTIES. <br><b>WE SELECT THEM.</b></p></div>
   <h2 id="see-h" data-i18n-html="se.h">THE VISITS. <span>THE OFFICE</span></h2>
   <div class="cols2">
-    <div><p class="lead" data-i18n-html="se.l1">Once a month, we take investors to Bali and Sumba <br>to walk the actual land.</p><p class="body" data-i18n-html="se.p1">Not renders, not a deck. The trip covers our active plots, a guided route <br>through coast and villages, and the points of interest around each project.</p></div>
-    <div><p class="lead" data-i18n-html="se.l2">A real address, a real team, open during Bali hours.</p><p class="body" data-i18n-html="se.p2">We're not a website selling renders from somewhere else; you can <br>walk in, meet us, and see the same projects you're reviewing online.</p></div>
+    <div><p class="lead" data-i18n-html="se.l1">We regularly take investors to Bali and Sumba <br>to walk the actual land. Ask us for the next date.</p><p class="body" data-i18n-html="se.p1">Not renders, not a deck. The trip covers our active plots, a guided route <br>through coast and villages, and the points of interest around each project.</p></div>
+    <div><p class="lead" data-i18n-html="se.l2">A real office in Bali, a real team.</p><p class="body" data-i18n-html="se.p2">We're not a website selling renders from somewhere else: book a visit, <br>meet us, and see the same projects you're reviewing online.</p></div>
   </div>
   <div class="ph2"><img src="/assets/img/soul/tile-visits.webp" alt="Lawang investors on a site visit, gathered on a beach" loading="lazy" style="width:calc(856*var(--u));object-position:50% 36%"><img src="/assets/img/soul/tile-office.webp" alt="Corridor of the Lawang office in Bali" loading="lazy" style="width:calc(878*var(--u));object-position:37% 50%"></div>
 </div></section>
@@ -1073,9 +1080,9 @@ var SOUL_I18N = {
 "id": "Integritas struktural <br>pengetahuan lokal."
 },
 "d.legal": {
-"en": "Clear fiscal structure <br>personalized process.",
-"es": "Estructura fiscal clara <br>proceso personalizado.",
-"id": "Struktur fiskal yang jelas <br>proses yang dipersonalisasi."
+"en": "Legal and tax structure, <br>guided step by step.",
+"es": "Estructura legal y fiscal, <br>acompañada paso a paso.",
+"id": "Struktur hukum dan pajak, <br>didampingi langkah demi langkah."
 },
 "d.mgmt": {
 "en": "Curated <br>local partners",
@@ -1118,14 +1125,14 @@ var SOUL_I18N = {
 "id": "Keamanan"
 },
 "c4.p": {
-"en": "<b>Law and order index</b> — ranks above <br>Japan and the U.S. (Gallup, 2025).",
-"es": "<b>Índice de ley y orden</b>: por encima <br>de Japón y EE. UU. (Gallup, 2025).",
-"id": "<b>Indeks hukum dan ketertiban</b> — di atas <br>Jepang dan AS (Gallup, 2025)."
+"en": "<b>Law and Order Index</b> — above <br>Japan and the U.S. (Gallup Global Safety Report 2025).",
+"es": "<b>Índice de Ley y Orden</b>: por encima <br>de Japón y EE. UU. (Gallup Global Safety Report 2025).",
+"id": "<b>Indeks Hukum dan Ketertiban</b> — di atas <br>Jepang dan AS (Gallup Global Safety Report 2025)."
 },
 "in.p2": {
-"en": "Three numbers an investor actually needs <b>before looking at any single project.</b>",
-"es": "Tres cifras que un inversor necesita de verdad <b>antes de mirar un proyecto concreto.</b>",
-"id": "Tiga angka yang benar-benar dibutuhkan investor <b>sebelum melihat satu proyek pun.</b>"
+"en": "Three numbers to read first. <b>The return shown is a Palm Field forecast, not a figure for every project.</b>",
+"es": "Tres cifras para empezar. <b>La rentabilidad mostrada es una previsión de Palm Field, no una cifra de todos los proyectos.</b>",
+"id": "Tiga angka untuk dibaca lebih dulu. <b>Imbal hasil yang ditampilkan adalah proyeksi Palm Field, bukan angka untuk semua proyek.</b>"
 },
 "w.k": {
 "en": "The why",
@@ -1158,14 +1165,14 @@ var SOUL_I18N = {
 "id": "25–32 °C sepanjang tahun"
 },
 "ba.2v": {
-"en": "+323% growth <em>in</em>",
-"es": "+323% de crecimiento <em>en</em>",
-"id": "Pertumbuhan +323% <em>pada</em>"
+"en": "Global hub <em>for</em>",
+"es": "Referente mundial <em>de</em>",
+"id": "Pusat global <em>bagi</em>"
 },
 "ba.2s": {
-"en": "Digital nomad population",
-"es": "Población de nómadas digitales",
-"id": "Populasi nomaden digital"
+"en": "Digital nomads",
+"es": "Nómadas digitales",
+"id": "Nomaden digital"
 },
 "ba.3v": {
 "en": "International airport",
@@ -1188,9 +1195,9 @@ var SOUL_I18N = {
 "id": "Membeku dalam waktu"
 },
 "su.2s": {
-"en": "Top 8",
-"es": "Top 8",
-"id": "8 teratas"
+"en": "Rare",
+"es": "Escasos",
+"id": "Langka"
 },
 "su.2v": {
 "en": "Luxury resorts",
@@ -1243,18 +1250,18 @@ var SOUL_I18N = {
 "id": "Apa itu"
 },
 "ro.r1a": {
-"en": "An Indonesian company you own holds the HGB title.",
-"es": "Una sociedad indonesia tuya es la titular del HGB.",
-"id": "Perusahaan Indonesia milik Anda memegang hak HGB."
+"en": "An Indonesian company (PT PMA) in which you hold shares holds the HGB title.",
+"es": "Una sociedad indonesia (PT PMA) de la que eres accionista es la titular del HGB.",
+"id": "Perusahaan Indonesia (PT PMA) yang sahamnya Anda miliki memegang hak HGB."
 },
 "ro.r1b": {
-"en": "A long-term lease, registered before a notary.",
-"es": "Arrendamiento a largo plazo ante notario.",
-"id": "Sewa jangka panjang, terdaftar di notaris."
+"en": "A long-term lease, signed as a notarial deed.",
+"es": "Arrendamiento a largo plazo en escritura notarial.",
+"id": "Sewa jangka panjang dalam akta notaris."
 },
 "ro.r2": {
-"en": "Holds the title",
-"es": "Titular",
+"en": "Who holds the right",
+"es": "Titular del derecho",
 "id": "Pemegang hak"
 },
 "ro.r2a": {
@@ -1263,9 +1270,9 @@ var SOUL_I18N = {
 "id": "PT PMA Anda"
 },
 "ro.r2b": {
-"en": "You, as the lessee",
-"es": "Tú, como arrendatario",
-"id": "Anda, sebagai penyewa"
+"en": "You, as lessee. The land stays in the owner's name.",
+"es": "Tú, como arrendatario. El terreno sigue a nombre del propietario.",
+"id": "Anda, sebagai penyewa. Tanah tetap atas nama pemiliknya."
 },
 "ro.r3": {
 "en": "Term",
@@ -1278,9 +1285,9 @@ var SOUL_I18N = {
 "id": "30 tahun, dapat diperpanjang 20 + 30"
 },
 "ro.r3b": {
-"en": "Up to 30 years, renewable",
-"es": "Hasta 30 años, renovable",
-"id": "Hingga 30 tahun, dapat diperpanjang"
+"en": "Term set in the lease, with an extension option",
+"es": "Plazo fijado en el contrato, con opción de prórroga",
+"id": "Jangka waktu sesuai akta sewa, dengan opsi perpanjangan"
 },
 "ro.r4": {
 "en": "You can",
@@ -1288,14 +1295,14 @@ var SOUL_I18N = {
 "id": "Anda dapat"
 },
 "ro.r4a": {
-"en": "Sell, inherit, mortgage and run rentals",
-"es": "Vender, heredar, hipotecar y alquilar",
-"id": "Menjual, mewariskan, menjaminkan, dan menyewakan"
+"en": "Sell or mortgage the HGB, run licensed rentals; your shares pass to heirs",
+"es": "Vender o hipotecar el HGB, alquilar con licencia; tus acciones pasan a tus herederos",
+"id": "Menjual atau menjaminkan HGB, menyewakan dengan izin; saham Anda dapat diwariskan"
 },
 "ro.r4b": {
-"en": "Transfer and inherit",
-"es": "Transmitir y heredar",
-"id": "Mengalihkan dan mewariskan"
+"en": "Pass to heirs; transfer only as the lease allows",
+"es": "Pasa a tus herederos; cesión solo si el contrato lo permite",
+"id": "Diwariskan; dialihkan hanya jika akta sewa mengizinkan"
 },
 "ro.r5": {
 "en": "Setup",
@@ -1328,9 +1335,9 @@ var SOUL_I18N = {
 "id": "KUNJUNGAN. <span>KANTOR</span>"
 },
 "se.l1": {
-"en": "Once a month, we take investors to Bali and Sumba <br>to walk the actual land.",
-"es": "Una vez al mes llevamos a inversores a Bali y Sumba <br>a pisar el terreno real.",
-"id": "Sebulan sekali, kami membawa investor ke Bali dan Sumba <br>untuk menyusuri lahannya langsung."
+"en": "We regularly take investors to Bali and Sumba <br>to walk the actual land. Ask us for the next date.",
+"es": "Organizamos visitas periódicas con inversores a Bali y Sumba <br>para pisar el terreno real. Pregúntanos la próxima fecha.",
+"id": "Kami rutin membawa investor ke Bali dan Sumba <br>untuk melihat lahannya langsung. Tanyakan jadwal berikutnya."
 },
 "se.p1": {
 "en": "Not renders, not a deck. The trip covers our active plots, a guided route <br>through coast and villages, and the points of interest around each project.",
@@ -1338,14 +1345,14 @@ var SOUL_I18N = {
 "id": "Bukan render, bukan presentasi. Perjalanan mencakup kavling aktif kami, rute terpandu <br>melewati pesisir dan desa, serta tempat menarik di sekitar setiap proyek."
 },
 "se.l2": {
-"en": "A real address, a real team, open during Bali hours.",
-"es": "Una dirección real, un equipo real, abierto en horario de Bali.",
-"id": "Alamat nyata, tim nyata, buka pada jam kerja Bali."
+"en": "A real office in Bali, a real team.",
+"es": "Una oficina real en Bali, un equipo real.",
+"id": "Kantor nyata di Bali, tim nyata."
 },
 "se.p2": {
-"en": "We're not a website selling renders from somewhere else; you can <br>walk in, meet us, and see the same projects you're reviewing online.",
-"es": "No somos una web que vende renders desde otro lugar: puedes <br>venir, conocernos y ver los mismos proyectos que miras en línea.",
-"id": "Kami bukan situs yang menjual render dari tempat lain; Anda bisa <br>datang, bertemu kami, dan melihat proyek yang sama yang Anda lihat secara online."
+"en": "We're not a website selling renders from somewhere else: book a visit, <br>meet us, and see the same projects you're reviewing online.",
+"es": "No somos una web que vende renders desde otro lugar: reserva una visita, <br>conócenos y ve los mismos proyectos que miras en línea.",
+"id": "Kami bukan situs yang menjual render dari tempat lain: jadwalkan kunjungan, <br>temui kami, dan lihat proyek yang sama yang Anda lihat secara online."
 },
 "mp.my": {
 "en": "Malaysia",
@@ -1386,6 +1393,11 @@ var SOUL_I18N = {
 "en": "Explore tropical territories",
 "es": "Explora territorios tropicales",
 "id": "Jelajahi wilayah tropis"
+},
+"ro.n": {
+"en": "General information, not legal advice. The right route depends on your case and is confirmed with the notary/PPAT before you sign.",
+"es": "Información general, no asesoramiento legal. La vía adecuada depende de tu caso y se confirma con el notario/PPAT antes de firmar.",
+"id": "Informasi umum, bukan nasihat hukum. Jalur yang tepat tergantung kasus Anda dan dikonfirmasi dengan notaris/PPAT sebelum menandatangani."
 }
 };
 window.lwLangInit(SOUL_I18N, { despues: function () {
