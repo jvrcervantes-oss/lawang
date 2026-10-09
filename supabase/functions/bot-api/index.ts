@@ -51,6 +51,12 @@
 //   · Las dos unicas respuestas con un telefono que no es el de la peticion: escalacion_tomar (el dueño responde y hay que saber a QUIEN)
 //     y citas_recordar (el reloj necesita saber a quien escribir). Ambas declaradas en el plan (excepciones 1 y 2).
 //
+// ── S5-puente (LAW-507, 9-oct-2026): /importar — TEMPORAL ────────────────────────────────────────────────────
+//   /importar      (secreto BOT_API_SECRET_IMPORTAR)      la importacion UNICA de lo que hay en Redis a Postgres (fase B de S5)
+// Acciones: chat (un telefono: estado + <=100 mensajes + <=20 escalaciones abiertas), config (una vez), cuadre (lectura de un telefono: conteos y md5).
+// Esquema cerrado A FONDO (la edge reconstruye el objeto y solo pasa a la base lo que reconoce). Su secreto no abre ninguna otra ruta ni al
+// reves. Se RETIRA en S9 junto con el secreto y las funciones bot_importar_* (ver ACTIVACION.txt).
+//
 // Desplegar con --no-verify-jwt (y `verify_jwt = false` en supabase/config.toml). Activación: ACTIVACION.txt.
 
 const env = (k: string) => (Deno.env.get(k) ?? '').trim();
@@ -71,6 +77,8 @@ export const AJUSTES = {
   maxCuerpoEstado: 262_144,   // 10 salidas de 4096 caracteres en UTF-8 son ~160 KB
   maxCuerpoRecordatorio: 1024,
   maxCuerpoHumano: 32_768,
+  topeImportar: 600,      // un telefono por llamada: la importacion son unos cientos de llamadas seguidas
+  maxCuerpoImportar: 2_097_152,   // 100 mensajes de 4096 caracteres (hasta 4 bytes en UTF-8 + escapes) caben en ~1,7 MB
   maxTelefonos: 5_000,    // tamaño del mapa de ritmo por telefono
 };
 
@@ -115,6 +123,7 @@ function secretoDe(ruta: string): string {
   if (ruta === 'estado') return env('BOT_API_SECRET_ESTADO');
   if (ruta === 'recordatorio') return env('BOT_API_SECRET_RECORDATORIO');
   if (ruta === 'humano') return env('BOT_API_SECRET_HUMANO');
+  if (ruta === 'importar') return env('BOT_API_SECRET_IMPORTAR');
   return '';
 }
 
@@ -158,6 +167,10 @@ const SQL = {
   cita_recordatorio_res: 'select public.bot_cita_recordatorio_res($1::uuid, $2::text) as r',
   pausar_humano: 'select public.bot_pausar_humano($1::text, $2::text, $3::text) as r',
   envio_humano: 'select public.bot_envio_humano($1::text, $2::text, $3::text, $4::jsonb, $5::text) as r',
+  // ── S5-puente (temporal) ──
+  importar_chat: 'select public.bot_importar_chat($1::jsonb) as r',
+  importar_config: 'select public.bot_importar_config($1::jsonb) as r',
+  importar_cuadre: 'select public.bot_importar_cuadre($1::text) as r',
 } as const;
 type Clave = keyof typeof SQL;
 
@@ -341,6 +354,66 @@ const mensajeDe = (v: unknown): { texto: string; media: Media | null; ts: number
   return { texto, media: m, ts };
 };
 
+// ── /importar: validacion a fondo. undefined = forma invalida (400). Los textos se RECORTAN (como en las otras rutas); los tipos NO se corrigen. ──
+const MS_MAX = 1e15;   // la base solo acepta 1-15 digitos
+/** instante en ms: entero 0..1e15 o null/ausente */
+const msOk = (v: unknown): number | null | undefined => (v === undefined || v === null ? null : (Number.isSafeInteger(v) && (v as number) >= 0 && (v as number) < MS_MAX ? (v as number) : undefined));
+const boolOk = (v: unknown): boolean | undefined => (v === undefined || v === null ? false : (typeof v === 'boolean' ? v : undefined));
+const enteroOk = (v: unknown, max: number): number | undefined => (v === undefined || v === null ? 0 : (Number.isSafeInteger(v) && (v as number) >= 0 && (v as number) <= max ? (v as number) : undefined));
+const textoN = (v: unknown, max: number): string | null | undefined => (v === undefined || v === null ? null : recorta(v, max));
+const CLAVES_CHAT = ['nombre_perfil', 'intent', 'ultimo_mensaje', 'ultimo_por', 'creado_ms', 'actualizado_ms', 'archivado', 'ultimo_entrante_ms', 'esperando', 'pausado',
+  'pausa_hasta_ms', 'baja_ms', 'baja_acuse', 'seguimientos', 'aviso_nivel', 'aviso_testing'];
+
+function chatDe(v: unknown): Record<string, unknown> | undefined {
+  if (!esObj(v) || !cerrado(v, CLAVES_CHAT)) return undefined;
+  const o: Record<string, unknown> = {};
+  for (const [k, max] of [['nombre_perfil', 200], ['intent', 40], ['ultimo_mensaje', 500], ['ultimo_por', 20]] as const) {
+    const t = textoN(v[k], max); if (t === undefined) return undefined; o[k] = t;
+  }
+  for (const k of ['creado_ms', 'actualizado_ms', 'ultimo_entrante_ms', 'pausa_hasta_ms', 'baja_ms']) {
+    const m = msOk(v[k]); if (m === undefined) return undefined; o[k] = m;   // pausa_hasta_ms null con pausado = SIN caducidad: se conserva el null
+  }
+  for (const k of ['archivado', 'esperando', 'pausado', 'baja_acuse', 'aviso_testing']) {
+    const b = boolOk(v[k]); if (b === undefined) return undefined; o[k] = b;
+  }
+  const seg = enteroOk(v.seguimientos, 1_000_000), av = enteroOk(v.aviso_nivel, 2);
+  if (seg === undefined || av === undefined) return undefined;
+  o.seguimientos = seg; o.aviso_nivel = av;
+  return o;
+}
+function mensajeImportado(v: unknown): Record<string, unknown> | undefined {
+  if (!esObj(v) || !cerrado(v, ['rol', 'por', 'por_usuario', 'contenido', 'media', 'wamid', 'ts_ms'])) return undefined;
+  const rol = textoN(v.rol, 20), por = textoN(v.por, 20), pu = textoN(v.por_usuario, 120), cont = v.contenido === undefined || v.contenido === null ? '' : recorta(v.contenido, 4096);
+  const md = media(v.media), ts = msOk(v.ts_ms);
+  if (rol === undefined || por === undefined || pu === undefined || cont === undefined || md === undefined || ts === undefined) return undefined;
+  if (v.wamid !== undefined && v.wamid !== null && (typeof v.wamid !== 'string' || !RE_MSG.test(v.wamid))) return undefined;
+  return { rol, por, por_usuario: pu, contenido: cont, media: md, wamid: (v.wamid as string | undefined) ?? null, ts_ms: ts };
+}
+function escalacionImportada(v: unknown): Record<string, unknown> | undefined {
+  if (!esObj(v) || !cerrado(v, ['nombre', 'pregunta', 'aviso_wamid', 'creada_ms'])) return undefined;
+  const nombre = textoN(v.nombre, 200), pregunta = v.pregunta === undefined || v.pregunta === null ? '' : recorta(v.pregunta, 2000), ms = msOk(v.creada_ms);
+  if (nombre === undefined || pregunta === undefined || ms === undefined) return undefined;
+  if (v.aviso_wamid !== undefined && v.aviso_wamid !== null && (typeof v.aviso_wamid !== 'string' || !RE_MSG.test(v.aviso_wamid))) return undefined;
+  return { nombre, pregunta, aviso_wamid: (v.aviso_wamid as string | undefined) ?? null, creada_ms: ms };
+}
+function ajustesDe(v: unknown, conAutor: boolean): Record<string, unknown> | undefined {
+  if (!esObj(v) || !cerrado(v, conAutor ? ['extra', 'bienvenida', 'pausa_horas', 'updated_by'] : ['extra', 'bienvenida', 'pausa_horas'])) return undefined;
+  const extra = v.extra === undefined || v.extra === null ? '' : recorta(v.extra, 2000), bien = v.bienvenida === undefined || v.bienvenida === null ? '' : recorta(v.bienvenida, 500);
+  const by = conAutor ? textoN(v.updated_by, 120) : null;
+  if (extra === undefined || bien === undefined || by === undefined || !Number.isInteger(v.pausa_horas) || (v.pausa_horas as number) < 0 || (v.pausa_horas as number) > 720) return undefined;
+  const o: Record<string, unknown> = { extra, bienvenida: bien, pausa_horas: v.pausa_horas };
+  if (conAutor) o.updated_by = by;
+  return o;
+}
+/** array de <=max elementos validados con `f`; ausente = [] ; undefined = forma invalida */
+function listaDe(v: unknown, max: number, f: (x: unknown) => Record<string, unknown> | undefined): Record<string, unknown>[] | undefined {
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v) || v.length > max) return undefined;
+  const out: Record<string, unknown>[] = [];
+  for (const x of v) { const y = f(x); if (!y) return undefined; out.push(y); }
+  return out;
+}
+
 export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
   estado: {
     mensaje_recibir: {
@@ -499,6 +572,57 @@ export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
       },
     },
   },
+  importar: {
+    chat: {
+      claves: ['accion', 'tel', 'chat', 'mensajes', 'escalaciones'], tel: true, sql: 'importar_chat', tipo: 'json', errores: ['telefono_invalido', 'forma'],
+      valida: (o) => {
+        const chat = chatDe(o.chat);
+        if (!chat) return { error: 'chat' };
+        const mensajes = listaDe(o.mensajes, 100, mensajeImportado);
+        if (!mensajes) return { error: 'mensajes' };
+        const escalaciones = listaDe(o.escalaciones, 20, escalacionImportada);
+        if (!escalaciones) return { error: 'escalaciones' };
+        return { args: [JSON.stringify({ tel: o.tel, chat, mensajes, escalaciones })] };
+      },
+      forma: (r) => {
+        const m = O(r.mensajes), e = O(r.escalaciones), ch = T(r.chat), ld = T(r.lead);
+        if (!['creado', 'actualizado'].includes(ch) || !['enlazado', 'ambiguo', 'sin_lead'].includes(ld)) mal();
+        return { chat: ch, lead: ld, mensajes: { recibidos: N(m.recibidos), insertados: N(m.insertados), omitidos_posteriores: B(m.omitidos_posteriores) },
+          escalaciones: { recibidas: N(e.recibidas), insertadas: N(e.insertadas) } };
+      },
+    },
+    config: {
+      claves: ['accion', 'config', 'log'], tel: false, sql: 'importar_config', tipo: 'json', errores: ['forma', 'pausa_horas'],
+      valida: (o) => {
+        const config = ajustesDe(o.config, true);
+        if (!config) return { error: 'config' };
+        const log = listaDe(o.log, 50, (x) => {
+          if (!esObj(x) || !cerrado(x, ['ts_ms', 'by', 'prev', 'next'])) return undefined;
+          const ts = msOk(x.ts_ms), by = textoN(x.by, 120), prev = ajustesDe(x.prev, false), next = ajustesDe(x.next, false);
+          return ts === undefined || by === undefined || !prev || !next ? undefined : { ts_ms: ts, by, prev, next };
+        });
+        if (!log) return { error: 'log' };
+        return { args: [JSON.stringify({ config, log })] };
+      },
+      forma: (r) => {
+        const res = T(r.resultado);
+        if (res !== 'importada' && res !== 'ya_configurada') mal();
+        return { resultado: res, log_importado: r.log_importado === undefined ? 0 : N(r.log_importado) };
+      },
+    },
+    cuadre: {
+      claves: ['accion', 'tel'], tel: true, sql: 'importar_cuadre', tipo: 'json', errores: [],
+      valida: (o) => ({ args: [o.tel as string] }),
+      forma: (r) => {
+        if (!B(r.existe)) return { existe: false };
+        const h = T(r.hash_mensajes);
+        if (!/^[0-9a-f]{32}$/.test(h)) mal();
+        return { existe: true, n_mensajes: N(r.n_mensajes), hash_mensajes: h, ultimo_entrante_ms: r.ultimo_entrante_ms === null || r.ultimo_entrante_ms === undefined ? null : N(r.ultimo_entrante_ms),
+          pausado: B(r.pausado), pausa_hasta_ms: r.pausa_hasta_ms === null || r.pausa_hasta_ms === undefined ? null : N(r.pausa_hasta_ms), baja: B(r.baja),
+          aviso_nivel: N(r.aviso_nivel), escalaciones_abiertas: N(r.escalaciones_abiertas) };
+      },
+    },
+  },
   humano: {
     // El usuario (ultimo argumento SQL de cada una) lo añade el manejador desde el JWT VERIFICADO; el cuerpo no puede traerlo.
     pausar: {
@@ -523,11 +647,12 @@ export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
 };
 export const ACCIONES_RUTA: Record<string, string[]> = Object.fromEntries(Object.entries(LISTA_CERRADA).map(([r, a]) => [r, Object.keys(a)]));
 const TOPES_RUTA: Record<string, () => number> = {
-  estado: () => AJUSTES.topeEstado, recordatorio: () => AJUSTES.topeRecordatorio, humano: () => AJUSTES.topeHumano,
+  estado: () => AJUSTES.topeEstado, recordatorio: () => AJUSTES.topeRecordatorio, humano: () => AJUSTES.topeHumano, importar: () => AJUSTES.topeImportar,
 };
 const TOPES_TEL: Record<string, () => number> = { estado: () => AJUSTES.topeTelEstado, humano: () => AJUSTES.topeTelHumano };
 const MAX_CUERPO: Record<string, () => number> = {
   estado: () => AJUSTES.maxCuerpoEstado, recordatorio: () => AJUSTES.maxCuerpoRecordatorio, humano: () => AJUSTES.maxCuerpoHumano,
+  importar: () => AJUSTES.maxCuerpoImportar,
 };
 
 // ritmo por telefono (por isolate, mapa acotado: se barren las ventanas caducadas y, si sigue lleno, la mas antigua)

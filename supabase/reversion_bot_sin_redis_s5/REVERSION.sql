@@ -12,3 +12,5 @@ begin
   values (left(coalesce(nullif(new.actualizado_por, ''), 'desconocido'), 120), new.version, to_jsonb(old), to_jsonb(new));
   return null;
 end $f$;
+-- (ajustes 20261010141000: el nucleo interno tambien se retira)
+drop function if exists public._bot_importar_chat_nucleo(jsonb);

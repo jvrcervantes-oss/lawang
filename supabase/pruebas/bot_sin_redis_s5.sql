@@ -19,6 +19,9 @@ begin
     end loop;
     if f <> '_bot_importar_ms(bigint)' and not has_function_privilege('bot_lawang', ('public.' || f)::regprocedure, 'execute') then raise exception 'PRUEBA FALLA: bot_lawang no ejecuta %', f; end if;
   end loop;
+  foreach rl in array array['anon','authenticated','service_role','bot_lawang'] loop
+    if has_function_privilege(rl, 'public._bot_importar_chat_nucleo(jsonb)'::regprocedure, 'execute') then raise exception 'PRUEBA FALLA: % ejecuta el nucleo interno', rl; end if;
+  end loop;
   v_ok := v_ok || 'cierre (DEFINER, search_path, sin PUBLIC, solo bot_lawang); ';
 
   -- B. primera importacion con el rol real
@@ -115,10 +118,15 @@ begin
     j := public.bot_importar_config(jsonb_build_object('config', jsonb_build_object('extra','nuevo','bienvenida','hola','pausa_horas',12,'updated_by','a@b.c'),
           'log', jsonb_build_array(
             jsonb_build_object('ts_ms', now_ms - 20000, 'by', 'z', 'prev', jsonb_build_object('extra','','bienvenida','','pausa_horas',0), 'next', jsonb_build_object('extra','v1','bienvenida','','pausa_horas',0)),
-            jsonb_build_object('ts_ms', now_ms - 10000, 'by', 'a@b.c', 'prev', jsonb_build_object('extra','v1','bienvenida','','pausa_horas',0), 'next', jsonb_build_object('extra','nuevo','bienvenida','hola','pausa_horas',12)))));
+            jsonb_build_object('ts_ms', now_ms - 10000, 'by', 'a@b.c', 'prev', jsonb_build_object('extra','v1','bienvenida','','pausa_horas',0), 'next', jsonb_build_object('extra','nuevo','bienvenida','hola','pausa_horas',12)),
+            -- entradas rotas que se SALTAN (sin prev, sin next, prev que no es objeto, sin pausa_horas): antes reventaban con un error crudo
+            jsonb_build_object('ts_ms', now_ms, 'by', 'q', 'next', jsonb_build_object('extra','x','bienvenida','','pausa_horas',1)),
+            jsonb_build_object('ts_ms', now_ms, 'by', 'q', 'prev', jsonb_build_object('extra','x','bienvenida','','pausa_horas',1)),
+            jsonb_build_object('ts_ms', now_ms, 'by', 'q', 'prev', to_jsonb(5), 'next', jsonb_build_object('extra','x','bienvenida','','pausa_horas',1)),
+            jsonb_build_object('ts_ms', now_ms, 'by', 'q', 'prev', jsonb_build_object('extra','x'), 'next', jsonb_build_object('extra','x','bienvenida','','pausa_horas',1)))));
     reset role;
     if j->>'resultado' <> 'importada' then raise exception 'PRUEBA FALLA: config %', j; end if;
-    if (select count(*) from public.bot_config_log) <> 2 then raise exception 'PRUEBA FALLA: el trigger sumo una fila de log durante la importacion'; end if;
+    if (select count(*) from public.bot_config_log) <> 2 then raise exception 'PRUEBA FALLA: el trigger sumo una fila de log durante la importacion o una entrada rota no se salto'; end if;
     if not exists (select 1 from public.bot_config where extra = 'nuevo' and bienvenida = 'hola' and pausa_horas = 12) then raise exception 'PRUEBA FALLA: valores de config'; end if;
     if (select prev->>'pausa_horas' from public.bot_config_log order by id desc limit 1) <> '0' then raise exception 'PRUEBA FALLA: el log no esta en snake_case'; end if;
     set local role bot_lawang; j := public.bot_importar_config(jsonb_build_object('config', jsonb_build_object('extra','otra','bienvenida','','pausa_horas',0), 'log', '[]'::jsonb)); reset role;
@@ -143,6 +151,19 @@ begin
   reset role;
   if j->>'lead' <> 'enlazado' or (select lead_id from public.bot_chat where tel = '99990000079') is null then raise exception 'PRUEBA FALLA: lead_id %', j; end if;
   v_ok := v_ok || 'lead_id enlazado; ';
+
+  -- J. tipos que no son los esperados: {ok:false,error:'forma'}, nunca una excepcion cruda (y sin dejar un chat a medias)
+  set local role bot_lawang;
+  for f in select unnest(array[
+      '{"pausado":"si"}', '{"seguimientos":"abc"}', '{"seguimientos":99999999999}', '{"aviso_nivel":1.5}', '{"archivado":"quizas"}', '{"esperando":7}']) loop
+    j := public.bot_importar_chat(jsonb_build_object('tel','99990000080','chat', f::jsonb));
+    if j->>'ok' <> 'false' or j->>'error' <> 'forma' then raise exception 'PRUEBA FALLA: tipo roto % -> %', f, j; end if;
+  end loop;
+  j := public.bot_importar_chat('[]'::jsonb);
+  if j->>'error' <> 'forma' then raise exception 'PRUEBA FALLA: cuerpo no objeto %', j; end if;
+  reset role;
+  if exists (select 1 from public.bot_chat where tel = '99990000080') then raise exception 'PRUEBA FALLA: una entrada rota dejo un chat a medias'; end if;
+  v_ok := v_ok || 'tipos rotos -> forma (sin chat a medias); ';
 
   raise exception 'PRUEBA OK: %', v_ok;
 end $t$;

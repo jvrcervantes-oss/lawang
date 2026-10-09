@@ -263,6 +263,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     estado: ['mensaje_recibir', 'turno_estado', 'turno_cerrar', 'eco_operadora', 'pausar', 'baja', 'entrega_fallida', 'escalar', 'escalacion_tomar', 'lead_resumen'],
     recordatorio: ['citas_recordar', 'cita_recordatorio_res'],
     humano: ['pausar', 'enviar'],
+    importar: ['chat', 'config', 'cuadre'],
   }, 'la lista cerrada de acciones es exactamente la del plan');
   for (const ruta of RUTAS_S2) {
     for (const a of ['borrar_lead', 'lead_leer', 'sql', 'lead_upsert', 'lead_nota', 'lead_cita', '__proto__', 'constructor', 'toString', 'hasOwnProperty', '', undefined, 5, ['baja']]) {
@@ -544,7 +545,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     const fuenteS2 = leer('supabase', 'functions', 'bot-api', 'index.ts');
     const bloque = fuenteS2.slice(fuenteS2.indexOf('const SQL = {'), fuenteS2.indexOf('} as const;'));
     const sentencias = [...bloque.matchAll(/^\s+(\w+): '(select [^']*)',?/gm)].map((m) => ({ clave: m[1], sql: m[2] }));
-    const s2 = sentencias.filter((s) => !['catalogo', 'lead_upsert', 'lead_nota', 'lead_cita'].includes(s.clave));
+    const s2 = sentencias.filter((s) => !['catalogo', 'lead_upsert', 'lead_nota', 'lead_cita', 'importar_chat', 'importar_config', 'importar_cuadre'].includes(s.clave));
     igual(s2.map((s) => s.clave), ['mensaje_recibir', 'turno_estado', 'turno_cerrar', 'eco_operadora', 'pausar', 'baja', 'entrega_fallida', 'escalar', 'escalacion_tomar', 'lead_resumen', 'citas_recordar', 'cita_recordatorio_res', 'pausar_humano', 'envio_humano'], 'las 14 sentencias de S2');
     const migF = (f) => leer('supabase', 'migrations', f);
     const migs = [migF('20261010110000_bot_sin_redis_s1_esquema.sql'), migF('20261010110100_bot_sin_redis_s1_ajustes.sql')];
@@ -596,6 +597,137 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     // sin secretos, ni service_role ni PostgREST ni consola en el código nuevo (la regla de más abajo ya lo vigila en todo el fichero)
     ok(!/SERVICE_ROLE/.test(fuenteS2.replace(/\/\/.*$/gm, '')));
     ok(fuenteS2.includes("'BOT_API_SECRET_ESTADO'") && fuenteS2.includes("'BOT_API_SECRET_RECORDATORIO'") && fuenteS2.includes("'BOT_API_SECRET_HUMANO'"));
+  }
+
+  // ═══ S5-puente — ruta /importar (TEMPORAL, LAW-507): secreto propio, esquema cerrado a fondo, sin error crudo ═══════════════════
+  {
+    const SI = 'sec-importar-falso';
+    const conI = () => fija({ BOT_API_SECRET_CATALOGO: SC, BOT_API_SECRET_CRM: SR, BOT_API_SECRET_ESTADO: SE, BOT_API_SECRET_RECORDATORIO: SRE, BOT_API_SECRET_HUMANO: SH,
+      BOT_API_SECRET_IMPORTAR: SI, SUPABASE_URL: 'https://ref.supabase.co', SUPABASE_ANON_KEY: 'anon-falsa' });
+    const im = (cuerpo, o = {}) => llama(peticion('importar', { metodo: o.metodo ?? 'POST', secreto: 'secreto' in o ? o.secreto : SI, cuerpo }));
+    const CHAT = { nombre_perfil: 'Ana', intent: 'interested', ultimo_mensaje: 'hola', ultimo_por: 'cliente', creado_ms: 1760000000000, actualizado_ms: 1760000100000, archivado: false,
+      ultimo_entrante_ms: 1760000050000, esperando: false, pausado: true, pausa_hasta_ms: null, baja_ms: null, baja_acuse: false, seguimientos: 1, aviso_nivel: 2, aviso_testing: false };
+    const MSG = { rol: 'user', por: 'cliente', por_usuario: null, contenido: 'Hola', media: null, wamid: 'wamid.X1', ts_ms: 1760000000000 };
+    const ESC = { nombre: 'Ana', pregunta: 'precio?', aviso_wamid: 'wamid.AV1', creada_ms: 1760000000000 };
+    const bienI = {
+      chat: { accion: 'chat', tel: TEL, chat: CHAT, mensajes: [MSG], escalaciones: [ESC] },
+      config: { accion: 'config', config: { extra: 'x', bienvenida: 'b', pausa_horas: 12, updated_by: 'a@b.c' },
+        log: [{ ts_ms: 1760000000000, by: 'a@b.c', prev: { extra: '', bienvenida: '', pausa_horas: 0 }, next: { extra: 'x', bienvenida: 'b', pausa_horas: 12 } }] },
+      cuadre: { accion: 'cuadre', tel: TEL },
+    };
+    const RESP_CHAT = { ok: true, chat: 'creado', lead: 'sin_lead', mensajes: { recibidos: 1, insertados: 1, omitidos_posteriores: false }, escalaciones: { recibidas: 1, insertadas: 1 }, interno: 'no sale' };
+
+    // 1. 401: sin secreto configurado, y el secreto de /importar no abre ninguna otra ruta ni al revés
+    todos(); reinicia();
+    for (const s of [undefined, '', 'x', SE, SRE, SH, SC, SR, SI]) igual((await im(bienI.chat, { secreto: s })).status, 401, 'sin BOT_API_SECRET_IMPORTAR configurado todo es 401');
+    conI(); reinicia();
+    const c401 = new Set();
+    for (const s of [undefined, '', '   ', 'malo', SE, SRE, SH, SC, SR, SI + 'x']) { const r = await im(bienI.chat, { secreto: s }); igual(r.status, 401, 'importar con ' + JSON.stringify(s)); c401.add(r.crudo); }
+    igual((await im(bienI.chat, { metodo: 'GET' })).status, 401, 'GET con secreto bueno: 401');
+    igual(c401.size, 1); ok(c401.has(JSON.stringify({ error: 'no_autorizado' })), 'mismo cuerpo que el resto de 401');
+    igual(llamadas.length, 0, 'ningun 401 llego a la base');
+    for (const [ruta, cuerpo] of [['estado', { accion: 'baja', tel: TEL, wamid: W }], ['recordatorio', { accion: 'citas_recordar' }], ['crm', { accion: 'lead_upsert', tel: TEL, msg_id: W }],
+      ['catalogo', {}], ['humano', { accion: 'pausar', tel: TEL, modo: 'pausar' }]]) {
+      igual((await llama(peticion(ruta, { secreto: SI, cuerpo, extra: { authorization: 'Bearer jwt-bueno' } }))).status, 401, 'el secreto de /importar no abre /' + ruta);
+    }
+    conI(); fija({ BOT_API_SECRET_IMPORTAR: '   ' }); igual((await im(bienI.chat, { secreto: '' })).status, 401, 'secreto en blanco no autentica');
+    conI(); reinicia();
+
+    // 2. lista y esquema cerrados (cada rechazo sin tocar la base)
+    for (const a of ['borrar', 'sql', 'mensaje_recibir', '__proto__', 'constructor', '', undefined, 5]) igual((await im({ ...bienI.chat, accion: a })).status, 400, 'accion fuera de lista ' + String(a));
+    igual((await im('{no json')).status, 400); igual((await im('[1]')).status, 400);
+    for (const [a, cuerpo] of Object.entries(bienI)) {
+      igual([a, (await im({ ...cuerpo, usuario: 'x' })).cuerpo.error], [a, 'campo_no_permitido']);
+    }
+    const malos = [
+      ['chat', { tel: 'abc' }, 'tel'], ['chat', { tel: undefined }, 'tel'], ['chat', { chat: undefined }, 'chat'], ['chat', { chat: [] }, 'chat'], ['chat', { chat: { ...CHAT, extra: 1 } }, 'chat'],
+      ['chat', { chat: { ...CHAT, pausado: 'si' } }, 'chat'], ['chat', { chat: { ...CHAT, seguimientos: 'abc' } }, 'chat'], ['chat', { chat: { ...CHAT, seguimientos: 1.5 } }, 'chat'],
+      ['chat', { chat: { ...CHAT, aviso_nivel: 3 } }, 'chat'], ['chat', { chat: { ...CHAT, creado_ms: -1 } }, 'chat'], ['chat', { chat: { ...CHAT, creado_ms: 1e16 } }, 'chat'],
+      ['chat', { chat: { ...CHAT, baja_ms: '123' } }, 'chat'], ['chat', { chat: { ...CHAT, nombre_perfil: 5 } }, 'chat'],
+      ['chat', { mensajes: 'x' }, 'mensajes'], ['chat', { mensajes: Array(101).fill(MSG) }, 'mensajes'], ['chat', { mensajes: [{ ...MSG, otra: 1 }] }, 'mensajes'], ['chat', { mensajes: [5] }, 'mensajes'],
+      ['chat', { mensajes: [{ ...MSG, media: { tipo: 'image', id: 'm', url: 'http://x' } }] }, 'mensajes'], ['chat', { mensajes: [{ ...MSG, contenido: 5 }] }, 'mensajes'],
+      ['chat', { mensajes: [{ ...MSG, wamid: 'con espacios' }] }, 'mensajes'], ['chat', { mensajes: [{ ...MSG, ts_ms: 'x' }] }, 'mensajes'],
+      ['chat', { escalaciones: Array(21).fill(ESC) }, 'escalaciones'], ['chat', { escalaciones: [{ ...ESC, otra: 1 }] }, 'escalaciones'], ['chat', { escalaciones: [{ ...ESC, aviso_wamid: '  ' }] }, 'escalaciones'],
+      ['config', { config: undefined }, 'config'], ['config', { config: { extra: 'x', bienvenida: 'b', pausa_horas: 'x' } }, 'config'], ['config', { config: { extra: 'x', bienvenida: 'b', pausa_horas: 721 } }, 'config'],
+      ['config', { config: { extra: 'x', bienvenida: 'b', pausa_horas: 1, otra: 1 } }, 'config'], ['config', { config: { extra: 5, bienvenida: 'b', pausa_horas: 1 } }, 'config'],
+      ['config', { log: Array(51).fill(bienI.config.log[0]) }, 'log'], ['config', { log: [{ ...bienI.config.log[0], prev: undefined }] }, 'log'], ['config', { log: [{ ...bienI.config.log[0], next: 5 }] }, 'log'],
+      ['config', { log: [{ ...bienI.config.log[0], extra: 1 }] }, 'log'], ['config', { log: [{ ...bienI.config.log[0], prev: { extra: '', bienvenida: '' } }] }, 'log'],
+      ['config', { log: [{ ...bienI.config.log[0], prev: { extra: '', bienvenida: '', pausa_horas: 0, updated_by: 'x' } }] }, 'log'],
+      ['cuadre', { tel: '12' }, 'tel'], ['cuadre', { tel: undefined }, 'tel'], ['cuadre', { chat: {} }, 'campo_no_permitido'],
+    ];
+    for (const [a, parche, err] of malos) {
+      const r = await im({ ...bienI[a], ...parche });
+      igual([a, JSON.stringify(parche).slice(0, 60), r.status, r.cuerpo.error], [a, JSON.stringify(parche).slice(0, 60), 400, err]);
+    }
+    igual(llamadas.length, 0, 'ninguna peticion invalida llego a la base');
+    igual((await im('x'.repeat(2_200_000))).status, 413, 'tope de cuerpo propio (2 MiB)');
+    // el tope deja pasar un chat grande de verdad: 100 mensajes de 4096 caracteres de 3 bytes
+    const grande = { ...bienI.chat, mensajes: Array.from({ length: 100 }, (_, i) => ({ ...MSG, wamid: 'wamid.G' + i, contenido: 'ñ'.repeat(4096), ts_ms: 1760000000000 + i })) };
+    dbCon(FILA(RESP_CHAT));
+    igual((await im(grande)).status, 200, 'un chat de 100 mensajes de 4096 caracteres cabe');
+    reinicia();
+
+    // 3. lo que llega a la base y lo que sale
+    dbCon(FILA(RESP_CHAT));
+    let r = await im(bienI.chat);
+    igual(r.status, 200); igual(llamadas.map((l) => [l.clave, l.args.length, JSON.parse(l.args[0])]), [['importar_chat', 1, { tel: TEL, chat: CHAT, mensajes: [MSG], escalaciones: [ESC] }]], 'chat: una sentencia, un parametro jsonb');
+    igual(r.cuerpo, { ok: true, accion: 'chat', chat: 'creado', lead: 'sin_lead', mensajes: { recibidos: 1, insertados: 1, omitidos_posteriores: false }, escalaciones: { recibidas: 1, insertadas: 1 } }, 'salida fija: sin el campo interno');
+    // lo que no se reconoce no viaja, los textos se recortan, null con pausado se conserva (pausa sin caducidad) y mensajes/escalaciones ausentes = []
+    reinicia(); dbCon(FILA(RESP_CHAT));
+    r = await im({ accion: 'chat', tel: '+' + TEL, chat: { pausado: true, nombre_perfil: 'N'.repeat(500) }, mensajes: [{ contenido: 'x'.repeat(9000) + '\u0000', media: { id: 'm1' } }] });
+    igual(r.status, 200);
+    const enviado = JSON.parse(llamadas[0].args[0]);
+    igual(enviado.chat.pausa_hasta_ms, null, 'pausa_hasta_ms null se conserva'); igual(enviado.chat.pausado, true); igual(enviado.chat.nombre_perfil.length, 200);
+    igual(enviado.mensajes[0].contenido.length, 4096); igual(enviado.mensajes[0].media, { tipo: 'otro', id: 'm1' }); igual(enviado.escalaciones, []);
+    igual(Object.keys(enviado.chat).sort(), [...Object.keys(CHAT)].sort(), 'el chat reconstruido lleva exactamente las 16 claves');
+    reinicia(); dbCon(FILA({ ok: true, resultado: 'importada', log_importado: 1, secreto: 'no' }));
+    r = await im(bienI.config);
+    igual(r.cuerpo, { ok: true, accion: 'config', resultado: 'importada', log_importado: 1 }); igual(llamadas[0].clave, 'importar_config');
+    igual(JSON.parse(llamadas[0].args[0]), { config: bienI.config.config, log: bienI.config.log });
+    reinicia(); dbCon(FILA({ ok: true, resultado: 'ya_configurada' }));
+    igual((await im(bienI.config)).cuerpo, { ok: true, accion: 'config', resultado: 'ya_configurada', log_importado: 0 });
+    reinicia(); dbCon(FILA({ existe: true, n_mensajes: 3, hash_mensajes: 'a'.repeat(32), ultimo_entrante_ms: 1760000050000, pausado: true, pausa_hasta_ms: null, baja: false, aviso_nivel: 2, escalaciones_abiertas: 1, mas: 'x' }));
+    r = await im(bienI.cuadre);
+    igual(llamadas, [{ clave: 'importar_cuadre', args: [TEL] }]);
+    igual(r.cuerpo, { ok: true, accion: 'cuadre', existe: true, n_mensajes: 3, hash_mensajes: 'a'.repeat(32), ultimo_entrante_ms: 1760000050000, pausado: true, pausa_hasta_ms: null, baja: false, aviso_nivel: 2, escalaciones_abiertas: 1 });
+    reinicia(); dbCon(FILA({ existe: false }));
+    igual((await im(bienI.cuadre)).cuerpo, { ok: true, accion: 'cuadre', existe: false });
+
+    // 4. errores de negocio, formas rotas y caidas: nunca el texto de Postgres
+    for (const [a, e] of [['chat', 'telefono_invalido'], ['chat', 'forma'], ['config', 'forma'], ['config', 'pausa_horas']]) {
+      reinicia(); dbCon(FILA({ ok: false, error: e }));
+      igual((await im(bienI[a])).cuerpo, { ok: false, accion: a, error: e }, a + ' ' + e);
+    }
+    for (const [a, resp] of [['chat', { ok: false, error: 'invalid input syntax for type boolean: "si"' }], ['chat', { ok: true }], ['chat', { ...RESP_CHAT, chat: 'otro' }], ['chat', { ...RESP_CHAT, lead: 'x' }],
+      ['config', { ok: true, resultado: 'rara' }], ['config', { ok: false, error: 'boom' }], ['cuadre', { existe: true, hash_mensajes: 'no-es-md5' }], ['cuadre', { existe: 'si' }], ['cuadre', { existe: false, error: 'x' }]]) {
+      reinicia(); dbCon(FILA(resp));
+      const x = await im(bienI[a]);
+      igual([a, x.status, x.cuerpo], [a, 502, { error: 'db_error' }], 'forma inesperada = 502 sin detalle');
+      ok(!x.crudo.includes('boolean') && !x.crudo.includes('boom'), 'el texto de la base no sale');
+    }
+    // la base caida (cualquier fallo del driver) la cubre el manejador comun: aqui se comprueba que /importar lo atraviesa
+    reinicia(); M.DB.ejecuta = async () => { throw new Error('connection refused postgres://bot_lawang:clave@host'); };
+    const caida = await im(bienI.cuadre);
+    ok(caida.status === 500 && !caida.crudo.includes('clave') && !caida.crudo.includes('postgres'), 'una caida no filtra detalle');
+    M.DB.ejecuta = async (clave, args) => { llamadas.push({ clave, args }); return guion(clave, args); };
+    reinicia();
+  }
+
+  // ── S5-puente: el mismo dato en todos los sitios (sentencias, grants y codigos de error de las funciones bot_importar_*) ──
+  {
+    const m5 = leer('supabase', 'migrations', '20261010135000_bot_sin_redis_s5_importar.sql'), m5b = leer('supabase', 'migrations', '20261010141000_bot_sin_redis_s5_importar_ajustes.sql');
+    const fuente5 = leer('supabase', 'functions', 'bot-api', 'index.ts');
+    const trozo = (sql, nombre) => { const i = sql.lastIndexOf('create or replace function public.' + nombre + '('); assert.ok(i >= 0, nombre); return sql.slice(i, sql.indexOf('end $f$;', i)); };
+    const errs = (t) => [...new Set([...t.matchAll(/'error',\s*'([a-z_]+)'/g)].map((m) => m[1]))].sort();
+    const casos = { chat: ['bot_importar_chat', 'jsonb', trozo(m5, 'bot_importar_chat') + trozo(m5b, 'bot_importar_chat')], config: ['bot_importar_config', 'jsonb', trozo(m5b, 'bot_importar_config')],
+      cuadre: ['bot_importar_cuadre', 'text', trozo(m5, 'bot_importar_cuadre')] };
+    for (const [acc, [fn, tipo, cuerpo]] of Object.entries(casos)) {
+      const d = M.LISTA_CERRADA.importar[acc];
+      ok(fuente5.includes(`'select public.${fn}($1::${tipo}) as r'`), `${fn}: la sentencia de la edge coincide con la firma`);
+      ok(new RegExp('grant execute on function public[.]' + fn + '[(]' + tipo + '[)]\\s+to bot_lawang').test(m5 + m5b), `${fn}: EXECUTE concedido a bot_lawang`);
+      igual([...d.errores].sort(), errs(cuerpo), `${fn}: los errores que acepta la edge = los que devuelve la funcion SQL`);
+    }
+    ok(!/grant execute[^;]*_bot_importar_chat_nucleo/.test(m5b), 'el nucleo interno no se concede a nadie');
   }
 
   // ── 8. consola limpia ──────────────────────────────────────────────────────

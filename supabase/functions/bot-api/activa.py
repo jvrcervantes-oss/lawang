@@ -36,6 +36,8 @@ def main():
 
     if "--s2" in a:
         return s2(rs, dest, aplica)
+    if "--s5-importar" in a:
+        return s5_importar(rs, dest, aplica)
     clave_db, sec_cat, sec_crm = rs.clave_aleatoria(), rs.clave_aleatoria(), rs.clave_aleatoria()
     verif = rs.verificador_scram(clave_db)
     secretos = [clave_db, sec_cat, sec_crm, verif]
@@ -98,6 +100,31 @@ def s2(rs, dest, aplica):
         except OSError:
             pass   # MUDO A PROPOSITO: si ya no existe no hay nada que borrar
     print("OK - 3 secretos de S2 sellados (valores nunca impresos). Verificar con ACTIVACION.txt.")
+
+
+def s5_importar(rs, dest, aplica):
+    """S5-puente (LAW-507, 9-oct-2026): el secreto de la ruta TEMPORAL /importar. Va a Railway (lawang-bot, sin redeploy: el bot lo lee al lanzar la
+    importacion) y a la edge. Se RETIRA en S9: `supabase secrets unset BOT_API_SECRET_IMPORTAR` y quitar la variable de Railway."""
+    nombre = "BOT_API_SECRET_IMPORTAR"
+    v = rs.clave_aleatoria()
+    if not aplica:
+        print("SIMULACION S5-importar (no se toca Railway ni la edge): %s (%d caracteres) en Railway %s y en la edge %s" % (nombre, len(v), dest, REF))
+        return
+    rs._railway(["variables", "--set-from-stdin", nombre, "--skip-deploys"], dest, [v], entrada=v)
+    fd, ruta = tempfile.mkstemp(suffix=".env")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write("%s=%s" % (nombre, v) + chr(10))
+        p = subprocess.run(["cmd", "/c", "npx", "--yes", "supabase", "secrets", "set", "--env-file", ruta, "--project-ref", REF],
+                           capture_output=True, text=True, timeout=180)
+        if p.returncode != 0:
+            sys.exit("supabase secrets set devolvio %d: %s" % (p.returncode, rs._limpia(p.stderr or "", [v])[:300]))
+    finally:
+        try:
+            os.remove(ruta)
+        except OSError:
+            pass   # MUDO A PROPOSITO: si ya no existe no hay nada que borrar
+    print("OK - %s sellado en Railway y en la edge (valor nunca impreso)." % nombre)
 
 
 if __name__ == "__main__":

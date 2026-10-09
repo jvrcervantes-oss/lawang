@@ -52,3 +52,11 @@ Requisito: la activacion de S4 (rol bot_lawang con LOGIN y BOT_DB_URL en la edge
    200 {ok:false,error} = respuesta de negocio, no fallo; 429 = ritmo (en mensaje_recibir tratarlo como `tope`: descartar y 200 a Meta, NUNCA 5xx);
    5xx = fallo (la edge contesta en <8 s: el timeout del bot por llamada debe ser MAYOR). Texto de Meta largo se recorta; no hay 400 por longitud.
 Vuelta atras S2: `supabase secrets unset BOT_API_SECRET_ESTADO BOT_API_SECRET_RECORDATORIO BOT_API_SECRET_HUMANO --project-ref vtulllundrfennhjddhc` y quitar las 2 variables (ESTADO, RECORDATORIO) de lawang-bot en Railway.
+
+## S5-puente - ruta TEMPORAL /importar (9-oct-2026, LAW-507) - SE RETIRA EN S9
+Para que el bot importe lo que hay en Redis a Postgres (fase B de S5). Acciones: `chat` (un telefono por llamada), `config` (una vez), `cuadre` (lectura de un telefono: conteos y md5).
+Secreto propio BOT_API_SECRET_IMPORTAR, creado el 9-oct con `python supabase/functions/bot-api/activa.py --agencia <clon> --servicio infraestructura/bot-whatsapp --s5-importar --aplica`
+(stdin, valor nunca impreso; Railway `lawang-bot` con --skip-deploys, y la edge). No abre ninguna otra ruta ni se abre con otro secreto.
+Las funciones SQL son bot_importar_chat / _config / _cuadre (migraciones 20261010135000 y 20261010141000; solo EXECUTE para bot_lawang).
+RETIRO (S9, junto con Redis): 1) `supabase secrets unset BOT_API_SECRET_IMPORTAR --project-ref vtulllundrfennhjddhc` y quitar la variable de `lawang-bot` en Railway;
+2) ejecutar supabase/reversion_bot_sin_redis_s5/REVERSION.sql (quita las funciones y el nucleo); 3) borrar de index.ts la ruta `importar` (y de bot_api.test.js su seccion) y esta nota.
