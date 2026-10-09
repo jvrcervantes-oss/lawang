@@ -360,6 +360,23 @@ begin
   perform set_config('bot.purga', 'off', true);
   v_ok := v_ok || 'bot_conversaciones_ver: super_admin y casilla global leen y quedan registrados; agente/admin_empresa/anon/restringido 42501; el registro solo lo borra la purga; ';
 
+  -- ═══ K. tope de ritmo (descarta en silencio) y entrega fallida ═══
+  insert into public.bot_chat (tel) values ('99977700055');
+  insert into public.bot_mensaje (tel, rol, por, contenido, creado_en)
+    select '99977700055', 'user', 'cliente', 'spam ' || g, now() - interval '30 minutes' from generate_series(1, 120) g;
+  set local role bot_lawang; j := public.bot_mensaje_recibir('99977700055', 'tp1', null, jsonb_build_object('texto', 'uno mas')); reset role;
+  if not coalesce((j->>'tope')::boolean, false) or (select count(*) from public.bot_mensaje where tel = '99977700055' and wamid = 'tp1') <> 0
+     or (select procesado_en from public.bot_wamid where wamid = 'tp1') is null then raise exception 'PRUEBA FALLA: tope de ritmo %', j; end if;
+  update public.bot_mensaje set creado_en = now() - interval '2 hours' where tel = '99977700055';
+  set local role bot_lawang; j := public.bot_mensaje_recibir('99977700055', 'tp2', null, jsonb_build_object('texto', 'normal')); reset role;
+  if (j->>'duplicado')::boolean or j ? 'tope' or (select count(*) from public.bot_mensaje where tel = '99977700055' and wamid = 'tp2') <> 1 then
+    raise exception 'PRUEBA FALLA: con los 120 de hace mas de una hora debia procesar normal %', j; end if;
+  set local role bot_lawang; r := public.bot_entrega_fallida('99977700055', '131047', 'Re-engagement message'); reset role;
+  if r <> 'ok' or (select entrega_error from public.bot_chat where tel = '99977700055') not like '131047 Re-engagement%' then raise exception 'PRUEBA FALLA: entrega fallida (%)', r; end if;
+  set local role bot_lawang; r := public.bot_entrega_fallida('99977700088', '1', 'x'); reset role;
+  if r <> 'sin_chat' then raise exception 'PRUEBA FALLA: entrega fallida sin chat (%)', r; end if;
+  v_ok := v_ok || 'tope de ritmo (120/hora) descarta en silencio y no afecta si son mas viejos; entrega_fallida ok/sin_chat; ';
+
   -- ═══ J. borrar la conversacion arrastra sus mensajes y escalaciones ═══
   delete from public.bot_chat where tel = t1;
   if exists (select 1 from public.bot_mensaje where tel = t1) or exists (select 1 from public.bot_escalacion where tel = t1) then raise exception 'PRUEBA FALLA: la cascada dejo filas'; end if;
