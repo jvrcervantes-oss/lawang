@@ -14,7 +14,7 @@ declare
 begin
   -- /estado · mensaje_recibir
   set local role bot_lawang;
-  execute 'select public.bot_mensaje_recibir($1::text, $2::text, $3::text, $4::jsonb) as r' into j
+  execute 'select public.bot_mensaje_recibir($1::text, $2::text, $3::text, $4::text::jsonb) as r' into j
     using t, 'wamid.S2-1', 'Prueba S2', '{"texto":"hola quiero una villa","media":null,"ts":1760000000}';
   reset role;
   if not (j ? 'duplicado' and j ? 'procesado') or (j->>'duplicado')::boolean then raise exception 'PRUEBA FALLA: mensaje_recibir devolvio %', j; end if;
@@ -39,12 +39,12 @@ begin
 
   -- turno_cerrar
   set local role bot_lawang;
-  execute 'select public.bot_turno_cerrar($1::text, $2::text, $3::jsonb, $4::text, $5::text, $6::boolean, $7::boolean) as r' into j
+  execute 'select public.bot_turno_cerrar($1::text, $2::text, $3::text::jsonb, $4::text, $5::text, $6::boolean, $7::boolean) as r' into j
     using t, 'wamid.S2-1', '[{"texto":"Hola, soy el asistente","media":null,"wamid":"wamid.S2-OUT1"}]', 'interested', 'interested', 'false', 'true';
   reset role;
   if not (j ? 'avisar' and j ? 'resumir' and j ? 'repetido') or (j->>'repetido')::boolean then raise exception 'PRUEBA FALLA: turno_cerrar devolvio %', j; end if;
   set local role bot_lawang;
-  execute 'select public.bot_turno_cerrar($1::text, $2::text, $3::jsonb, $4::text, $5::text, $6::boolean, $7::boolean) as r' into j
+  execute 'select public.bot_turno_cerrar($1::text, $2::text, $3::text::jsonb, $4::text, $5::text, $6::boolean, $7::boolean) as r' into j
     using t, 'wamid.S2-1', '[]', null::text, null::text, 'false', 'false';
   reset role;
   if not (j->>'repetido')::boolean then raise exception 'PRUEBA FALLA: el cierre repetido no se reconoce: %', j; end if;
@@ -127,7 +127,7 @@ begin
   select count(*) into n from public.bot_chat where tel = t and pausa_por = 'ana@lawang.com' and pausado;
   if n <> 1 then raise exception 'PRUEBA FALLA: la pausa no quedo a nombre del usuario recibido'; end if;
   set local role bot_lawang;
-  execute 'select public.bot_envio_humano($1::text, $2::text, $3::text, $4::jsonb, $5::text) as r' into j
+  execute 'select public.bot_envio_humano($1::text, $2::text, $3::text, $4::text::jsonb, $5::text) as r' into j
     using t, 'Hola, soy Ana', 'wamid.S2-HUM1', '{"tipo":"document","id":"m-9"}', 'ana@lawang.com';
   reset role;
   if (j->>'ok')::boolean is not true then raise exception 'PRUEBA FALLA: envio_humano devolvio %', j; end if;
