@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="e47a98215314">
+<meta name="lw-version" content="81dbd01a3785">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1325,6 +1325,9 @@
   .ini-cab .titulo-sec{ margin:0; min-width:0; }
   .ini-filtro{ display:flex; gap:2px; background:#fff; border:1px solid var(--pg-hi); border-radius:999px; padding:4px; max-width:100%; overflow-x:auto; scrollbar-width:none; }
   .ini-filtro button{ font:inherit; border:0; background:transparent; height:34px; padding:0 15px; border-radius:999px; font-size:13.5px; font-weight:600; color:var(--ink2); white-space:nowrap; cursor:pointer; flex:none; transition:background .2s,color .2s; }
+  /* Inicio, Obra y Documentos: todos los botones de proyecto del mismo ancho (el del nombre más largo) */
+  .ini-filtro{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; width:max-content; }
+  .ini-filtro button{ display:inline-flex; align-items:center; justify-content:center; }
   .ini-filtro button:hover{ background:var(--pg-low); color:var(--va); }
   .ini-filtro button[aria-pressed="true"]{ background:#485B37; color:#fff; }
   .ini-filtro button:focus-visible, .ini-seg button:focus-visible, .ini-ojo:focus-visible, .ini-ir:focus-visible, .ini-losa:focus-visible,
