@@ -4,25 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--
-  THE SOUL — preview oculta (24-sep-2026), pedida por el owner con los PDF del cliente
-  («4 primeros scrolls» p.4, «Servicios section» p.1-4, «Investor roadmap section»).
+  THE SOUL — publicada desde el 8-oct-2026 (antes preview oculta thesoul-r8v3, 301 en .htaccess).
 
-  v2 (24-sep, owner): «ajusta los tamaños de las fuentes, usa el mismo menú que la landing
-  y 1 scroll = 1 sección». Por eso:
-   · Barra superior = la de index.html (#topbar: logo v3, pastilla de cristal, idioma,
-     «Ask Us Anything» con WhatsApp; fantasma sobre la foto y sólida al bajar). CSS copiado
-     de index.html con los mismos nombres de clase, para compararlas a simple vista.
-   · Escala tipográfica = la de la home medida en producción: títulos 60 px, subtítulos
-     27, cuerpo 18, etiquetas 13 (antes todo escalaba con el lienzo 1920 del PDF y salía
-     más grande que la home).
-   · Scroll = el de la home: contenedor .snap con scroll-snap mandatory, cada sección
-     ocupa exactamente una pantalla.
-
-  PUBLICA desde el 8-oct-2026 (owner: los enlaces «Expedition» de la home pasan aqui).
-  Antes era la preview oculta thesoul-r8v3 (301 desde esa URL, ver .htaccess). Copy del cliente
-  con los ajustes de Legal de LAW-302 aplicados en EN/ES/ID (reserva «por el plazo de tu Carta»,
-  sin «reembolsable» ni escrow generico, sin promesas absolutas). Cifras 100+/500K+/80+/6+:
-  siguen pendientes de poder demostrarse (LAW-302). Sin pixel ni analitica.
+  v3 (9-oct-2026, owner): calco de soulcitoa.pdf (diseño de Lawang). Una pantalla = una página del
+  PDF, mismo orden, fuentes de marca (Neue Kabel y The Seasons), fotos y texturas del propio PDF y
+  submenú verde. El owner eligió «diseño del PDF + texto corregido»: donde el texto del PDF choca
+  con Legal (LAW-302: escrow, «10 días reembolsable», solo Hak Sewa, ROI de Palm Field para todo
+  Lawang, «full fiscal clarity») se mantiene el copy ya corregido. EN/ES/ID en SOUL_I18N.
+  Fuera del calco a propósito: la barra común (la de index.html, trinquete tools/unificar.py) y el
+  pie común (/assets/lawang-pie.js); el PDF dibuja otros y cambiarlos aquí rompería la versión única.
+  Submenú sin «What it costs» ni «The projects»: el PDF no les da sección (owner, 9-oct).
+  Cifras 100+/500K+/80+/6+, «+323 %», «Top 8 luxury resorts» y Gallup 89/100: copy del cliente,
+  pendiente de poder demostrarse (LAW-302). Sin pixel ni analitica.
+  Escala: 1 px del PDF = --u (1920 de ancho, sin pasarse del alto de pantalla).
 -->
 <link rel="canonical" href="https://lawangproperties.com/thesoul">
 <title>The Soul — Lawang</title>
@@ -41,6 +35,8 @@
 @font-face{font-family:'NK';src:url('/assets/fonts/neue-kabel/NeueKabel-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
 @font-face{font-family:'NK';src:url('/assets/fonts/neue-kabel/NeueKabel-BoldItalic.woff2') format('woff2');font-weight:700;font-style:italic;font-display:swap}
 @font-face{font-family:'NK';src:url('/assets/fonts/neue-kabel/NeueKabel-ExtraBold.woff2') format('woff2');font-weight:800;font-style:normal;font-display:swap}
+@font-face{font-family:'NK';src:url('/assets/fonts/neue-kabel/NeueKabel-Italic.woff2') format('woff2');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Seasons';src:url('/assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
 
 :root{
   --tg:#485B37; --pg:#587040; --rl:#F5F0E6; --gold:#BEB3A5; --gold-light:#D8D0C4;
@@ -137,239 +133,324 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #topbar.nav-open .nav-burger span:nth-child(2){opacity:0}
 #topbar.nav-open .nav-burger span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
 
-/* ═══ 1 · THE SOUL ═══ */
-.soul{display:grid;grid-template-rows:minmax(0,1fr) auto auto auto;background:var(--linen)}
-.soul-hero{position:relative;min-height:0}
-.soul-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 45%}
-.soul-hero::before{content:"";position:absolute;inset:0 0 auto;height:140px;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0))}
-.soul-hero h1{position:absolute;z-index:2;left:0;right:0;bottom:-.24em;text-align:center;color:#f6f4f0;
-  font-size:clamp(26px,2.55vw,48px);line-height:1.2;font-weight:400;letter-spacing:.035em;white-space:nowrap}
-.soul-hero h1 .b{font-weight:500}
-.soul-sub{position:relative;z-index:1;text-align:center;color:var(--earth);font-size:var(--fs-sub);font-weight:400;letter-spacing:.05em;
-  margin-top:clamp(8px,1.6vh,18px);line-height:1.3}
-.soul-sub .b{font-weight:500}
-.deco{position:absolute;pointer-events:none;opacity:.09;z-index:0}
-.deco.lamp{left:2.5vw;bottom:5vh;height:30vh}
-.deco.chair{right:2.4vw;bottom:6vh;height:30vh;opacity:.14}
-.stats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,auto);justify-content:space-between;
-  padding:clamp(14px,3.4vh,40px) calc(var(--gut) + 2vw) clamp(16px,3.6vh,42px);list-style:none}
-.stats li{color:var(--stat);font-weight:800;text-transform:uppercase}
-.stats .n{display:block;font-size:clamp(34px,3.15vw,60px);line-height:1.05;letter-spacing:.01em}
-.stats .l{display:block;font-size:clamp(13px,1.25vw,24px);line-height:1.2;letter-spacing:.03em}
-.tiles{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#fff;list-style:none}
-.tile{position:relative;height:clamp(90px,16vh,180px);overflow:hidden;background:#000}
-.tile img{width:100%;height:100%;object-fit:cover;object-position:50% 70%;transition:transform 1.2s cubic-bezier(.2,.7,.2,1)}
-.tile:hover img{transform:scale(1.04)}
-.tile::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.34),rgba(0,0,0,0) 55%)}
-.tile h2{position:absolute;z-index:2;left:clamp(14px,3.5vw,68px);top:clamp(10px,1.8vh,22px);color:#fff;font-weight:700;font-style:italic;
-  font-size:clamp(14px,1.25vw,24px);letter-spacing:.02em;text-transform:uppercase}
-
-/* ═══ 2 · THE SERVICES — un panel, 4 estados ═══ */
-.svc{color:#fff;background:#1a1f16}
-.svc-bg{position:absolute;inset:0;opacity:0;transition:opacity .8s ease}
-.svc-bg.on{opacity:1}
-.svc-bg img{width:100%;height:100%;object-fit:cover}
-.svc-bg::after{content:"";position:absolute;inset:0;background:var(--veil)}
-.svc-bg[data-k=territorial]{--veil:rgba(14,19,12,.53)}
-.svc-bg[data-k=development]{--veil:rgba(8,9,10,.49)}
-.svc-bg[data-k=legal]{--veil:rgba(5,8,9,.5)}
-.svc-bg[data-k=management]{--veil:rgba(0,0,0,.4)}
-.svc-bg[data-k=development] img{object-position:50% 0}
-.svc-bg[data-k=management] img{object-position:50% 64%}
-.svc-in{position:relative;height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,clamp(380px,35vw,669px));
-  column-gap:clamp(32px,4vw,90px);align-items:center;padding:var(--top) var(--gut) clamp(24px,5vh,60px)}
-.svc-left{position:relative;display:grid}
-.pane{transition:opacity .45s ease}
-.svc-left .pane,.aio-txt .pane{grid-area:1/1}
-.aio-txt{display:grid}
-.pane[hidden]{display:block;visibility:hidden;opacity:0;pointer-events:none}
-.kick{display:inline-flex;align-items:center;min-height:34px;padding:6px 16px;border-radius:6px;background:var(--k);
-  font-size:var(--fs-label);font-weight:500;letter-spacing:.12em;text-transform:uppercase}
-.svc h2{margin-top:clamp(14px,2.2vh,24px);text-transform:uppercase;line-height:.95}
-.svc h2 .t1{display:block;font-weight:700;font-size:var(--fs-title);letter-spacing:.07em}
-.svc h2 .t2{display:block;font-weight:350;font-size:calc(var(--fs-title) * 1.12);letter-spacing:.06em}
-.svc h2 .and{font-weight:350;font-size:.82em;letter-spacing:.06em}
-.stat{margin-top:clamp(28px,9vh,120px);text-transform:uppercase;white-space:nowrap}
-.stat .n{font-weight:700;font-size:calc(var(--fs-title) * .95);letter-spacing:.03em}
-.stat .l{font-weight:350;font-size:calc(var(--fs-title) * .85);letter-spacing:.06em;margin-left:.2em}
-.rule{display:block;margin-top:clamp(14px,2.4vh,28px);width:min(100%,666px);height:2px;background:#fff}
-.chips{margin-top:clamp(16px,2.6vh,28px);max-width:666px;display:flex;flex-wrap:wrap;gap:12px;list-style:none}
-.chips.col{flex-direction:column;align-items:flex-start}
-.chips li{display:inline-flex;align-items:center;min-height:40px;padding:6px 16px;border:.75px solid var(--chip);border-radius:7px;
-  font-size:var(--fs-label);font-weight:500;letter-spacing:.08em;text-transform:uppercase}
-.aio{border-left:3px solid #fff;padding:6px 0 6px clamp(18px,1.7vw,32px)}
-.aio .h{display:flex;align-items:center;gap:16px;color:var(--cream)}
-.aio .h svg{width:clamp(26px,2vw,38px);height:auto;flex:none}
-.aio .h span{font-weight:700;font-size:clamp(20px,1.75vw,34px);letter-spacing:.24em}
-.aio p{margin-top:clamp(14px,2.4vh,26px);font-size:var(--fs-body);line-height:1.6;letter-spacing:.08em;text-transform:uppercase}
-.svc-list-h{width:100%;display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:clamp(24px,4.5vh,48px);
-  color:var(--cream);font-size:var(--fs-label);font-weight:500;letter-spacing:.1em}
-.svc-list-h svg.iso{width:24px;height:auto}
-.svc-list-h .chev{width:12px;transition:transform .3s}
-.svc-list-h[aria-expanded=false] .chev{transform:rotate(-90deg)}
-.bands{list-style:none;margin-top:clamp(12px,2.2vh,24px);display:grid;gap:clamp(10px,1.8vh,20px);transition:opacity .3s}
-.bands.closed{opacity:0;pointer-events:none}
-.band{position:relative;display:flex;align-items:center;width:100%;height:clamp(58px,8.6vh,93px);overflow:hidden;text-align:left;
-  padding:0 22px 0 clamp(20px,2.3vw,44px);font-size:clamp(14px,1.05vw,20px);letter-spacing:.1em;text-transform:uppercase;color:#fff}
-.band img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .9s cubic-bezier(.2,.7,.2,1)}
-.band::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(0,0,0,.42),rgba(0,0,0,.12) 60%,rgba(0,0,0,0))}
-.band:hover img{transform:scale(1.05)}
-.band span,.band svg{position:relative;z-index:2}
-.band span .b{font-weight:700}
-.band svg{margin-left:auto;width:clamp(36px,2.8vw,54px);height:auto}
-.band[data-k=territorial] img{object-position:50% 47%}
-.band[data-k=development] img{object-position:50% 81%}
-.band[data-k=legal] img{object-position:50% 55%}
-.band[data-k=management] img{object-position:50% 52%}
-
-/* ═══ 3 · INVESTOR ROADMAP ═══ */
-.road{color:#fff}
-.road>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 83%}
-.road::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,22,32,0) 28%,rgba(0,22,32,.3) 42%,rgba(0,22,32,.3))}
-.road-in{position:relative;z-index:1;padding-top:calc(var(--top) + clamp(16px,3.5vh,44px))}
-.frame{position:relative;margin:0 clamp(16px,5.9vw,114px);padding:clamp(18px,3.6vh,40px) 16px clamp(34px,6vh,64px);text-align:center}
-.frame::before{content:"";position:absolute;inset:0;border:2px solid rgba(255,255,255,.85);border-top:0;
-  -webkit-mask:linear-gradient(180deg,transparent,#000 22%);mask:linear-gradient(180deg,transparent,#000 22%)}
-.frame .k{display:block;font-size:var(--fs-label);letter-spacing:.2em}
-.frame h2{margin-top:10px;font-size:clamp(28px,2.6vw,50px);line-height:1.2;font-weight:400;letter-spacing:.045em;text-transform:uppercase}
-.frame h2 .b{font-weight:500}
-.frame .one{position:absolute;left:50%;bottom:0;transform:translate(-50%,50%);height:34px;padding:0 20px;display:inline-flex;align-items:center;
-  border-radius:999px;background:#fff;color:#1c4245;font-size:var(--fs-label);letter-spacing:.14em;white-space:nowrap}
-.steps{list-style:none;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:clamp(12px,1.4vw,28px);
-  margin:clamp(34px,6vh,64px) clamp(16px,4.5vw,86px) 0}
-.step .box{display:flex;flex-direction:column;align-items:flex-start}
-.step h3{position:relative;height:36px;display:inline-flex;align-items:center;padding:0 14px;margin-left:-14px;
-  font-size:clamp(12px,.9vw,17px);font-weight:700;letter-spacing:.11em;white-space:nowrap}
-.step h3::before{content:"";position:absolute;inset:0;border:1px solid rgba(255,255,255,.9);border-radius:999px;
-  -webkit-mask:linear-gradient(90deg,transparent 4%,#000 45%);mask:linear-gradient(90deg,transparent 4%,#000 45%)}
-.step p{margin-top:14px;font-size:clamp(12px,.74vw,14px);line-height:1.8;letter-spacing:.06em;text-transform:uppercase}
-@media (max-width:1500px){ .step br.d{display:none} }
-@media (min-width:901px) and (max-width:1200px){ .steps{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:clamp(18px,3.4vh,34px)} }
-
-/* ═══ 4 · LEGAL & FISCAL y 5 · COLOR DEL SUELO — piel de la HOME de lawangproperties.com (24-sep) ═══
-   El owner: «replicar el diseño de la web de lawangproperties.com y obviar el diseño de las
-   imágenes, solo queremos los datos». Piezas tomadas de index.html, mismos valores:
-   fondo de «The Tropical Ecosystem» (bg-ecosystem.webp + velo lino .25), .lw-head centrado,
-   .lw-kicker (13 px, .26em, verde #485B37), titular en Neue Kabel mayúsculas normal + ExtraLight
-   como «Four ways, one legacy», tarjetas .lw-show (radio 16, filete interior, degradado oscuro,
-   pastilla inferior) y filetes finos como la lista de FAQ. Datos de 1.jpeg, dos rutas del owner. */
-.hl{--ca:#485B37;--ci:#2E3437;--ci2:#5A5048;--ci3:#8A7A6A;--cl:#DED5C3;--cb:#F5F0E6;--cd:#141A11;
-  background:linear-gradient(rgba(243,238,228,.25),rgba(243,238,228,.25)),url('/assets/img/bg-ecosystem.webp?v=2') center/cover no-repeat;
-  color:var(--ci)}
-.hl-in{height:100%;display:flex;flex-direction:column;justify-content:center;max-width:1480px;margin:0 auto;
-  padding:calc(var(--top) + 4px) clamp(22px,5vw,72px) clamp(18px,3.5vh,40px)}
-.hl-head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:clamp(8px,1.4vh,12px);max-width:980px;margin:0 auto}
-.hl-kick{font-size:clamp(12px,11.65px + .09vw,13px);font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--ca)}
-.hl-title{font-weight:400;text-transform:uppercase;line-height:1.02;letter-spacing:.01em;color:var(--ci);
-  font-size:clamp(26px,1.9vw + 12px,54px)}
-.hl-title em{font-style:normal;font-weight:400}
-.hl-title .lt{font-weight:200}
-.hl-p{max-width:62ch;font-size:clamp(14px,.5vw + 9px,18px);line-height:1.7;color:var(--ci2)}
-.hl-body{margin-top:clamp(18px,3.6vh,42px);display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.25fr);gap:clamp(24px,3vw,56px);align-items:start}
-.hl-sub{font-size:clamp(12px,11.65px + .09vw,13px);font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--ci2);margin-bottom:clamp(10px,1.8vh,16px)}
-
-/* tarjeta de la home (.lw-show) sin foto */
-.hs{position:relative;overflow:hidden;border-radius:16px;isolation:isolate;background:var(--bg,#1b2416);color:var(--cb);
-  box-shadow:0 24px 50px -30px rgba(46,52,55,.5)}
-.hs::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,rgba(8,11,7,.55) 0%,rgba(8,11,7,.15) 55%,rgba(8,11,7,.25) 100%)}
-.hs::after{content:"";position:absolute;inset:clamp(8px,.8vw,11px);border:1px solid rgba(245,240,230,.38);border-radius:clamp(9px,.9vw,11px);pointer-events:none}
-.hs-t{display:block;font-weight:500;font-size:clamp(15px,.6vw + 10px,24px);letter-spacing:.04em;line-height:1;text-transform:uppercase}
-.hs-s{display:block;margin-top:6px;font-weight:400;font-size:clamp(10.5px,.7vw,12px);letter-spacing:.16em;line-height:1.5;text-transform:uppercase;color:rgba(255,255,255,.86)}
-@media (min-width:1600px){.hs-s{font-size:13px}}
-
-.routes2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:clamp(10px,1vw,16px);align-items:stretch}
-.routes2 .inv{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:22px 18px;--bg:#2a3322}
-.rcol{display:grid;gap:clamp(10px,1vw,16px)}
-.rt{padding:clamp(14px,2.2vh,22px) clamp(16px,1.4vw,24px) clamp(14px,2.2vh,20px)}
-.rt .lab{display:inline-block;margin-bottom:10px;padding:5px 12px;border:1px solid rgba(245,240,230,.4);border-radius:999px;
-  font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase}
-.rt .steps2{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.rt .steps2 .ar{opacity:.6}
-.rt .fin .hs-t{color:#fff}
-.rt.a{--bg:#485B37}
-.rt.b{--bg:#104C4F}
-
-/* comparativa: lista con filetes finos, como la FAQ de la home */
-.cmp2{border-top:1px solid var(--cl)}
-.cmp2-r{display:grid;grid-template-columns:minmax(0,.78fr) minmax(0,1.1fr) minmax(0,1.1fr);gap:clamp(12px,1.4vw,24px);
-  padding:clamp(10px,1.7vh,16px) 0;border-bottom:1px solid var(--cl)}
-.cmp2-h{padding-top:clamp(8px,1.3vh,12px);padding-bottom:clamp(8px,1.3vh,12px)}
-.cmp2-h > div{font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--ci3)}
-.cmp2-h .l{color:var(--ca)}
-.cmp2-h .n{color:#7a3a1f}
-.cmp2-r .a strong{display:block;font-weight:500;font-size:clamp(12px,.4vw + 6.5px,15px);letter-spacing:.12em;text-transform:uppercase;color:var(--ci)}
-.cmp2-r .a span{display:block;margin-top:3px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ci3)}
-.cmp2-r .l,.cmp2-r .n{display:flex;gap:10px;font-size:clamp(12.5px,.45vw + 7px,16px);line-height:1.55;color:var(--ci2)}
-.cmp2-r .ic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-top:1px;border-radius:50%;
-  font-size:11px;font-weight:700;color:#fff}
-.cmp2-r .l .ic{background:var(--ca)}
-.cmp2-r .n .ic{background:#9a8676}
-
-/* color del suelo: tarjetas .lw-show de color */
-.zg{list-style:none;margin-top:clamp(20px,4vh,48px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(1.2rem,2.4vw,3rem)}
-.zg .zph{position:absolute;inset:0;z-index:-3;width:100%;height:100%;object-fit:cover;transition:transform .9s cubic-bezier(.16,1,.3,1)}
-.zg .hs:hover .zph{transform:scale(1.05)}
-.zg .hs::before{background:linear-gradient(to top,color-mix(in srgb,var(--bg) 94%,#000) 0%,color-mix(in srgb,var(--bg) 70%,transparent) 30%,rgba(8,11,7,0) 56%,rgba(8,11,7,.28) 100%)}
-.zg .hs{display:flex;flex-direction:column;align-items:center;text-align:center;height:clamp(300px,52vh,520px);
-  padding:clamp(26px,4vh,42px) clamp(20px,1.8vw,30px) clamp(22px,3.4vh,32px)}
-.zg .dot{width:clamp(44px,5vh,58px);height:clamp(44px,5vh,58px);border-radius:50%;border:1px solid rgba(245,240,230,.55);
-  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase}
-.zg .dot i{width:40%;height:40%;border-radius:50%;background:var(--sw)}
-.zg .cap{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px}
-.zg .cap p{margin-top:4px;max-width:34ch;font-size:clamp(12.5px,.45vw + 7px,17px);line-height:1.6;color:rgba(245,240,230,.88)}
-.zg .pill{margin-top:clamp(10px,1.8vh,18px);align-self:stretch;border:1px solid rgba(245,240,230,.4);border-radius:999px;padding:10px 14px;
-  font-size:clamp(12px,11.65px + .09vw,13px);letter-spacing:.14em;text-transform:uppercase}
-.zn-foot{margin:clamp(16px,3vh,32px) auto 0;max-width:76ch;text-align:center;font-size:clamp(13px,.45vw + 8px,17px);line-height:1.7;color:var(--ci2)}
-.zn-foot .b{font-weight:500;color:var(--ca)}
-@media (min-width:901px) and (max-width:1150px){
-  .cmp2-r{padding:8px 0}
-  .cmp2-r .l,.cmp2-r .n{font-size:12px;line-height:1.45}
-  .hl-body{margin-top:14px}
-  .hl-p{font-size:13px}
+/* ═══ CALCO DE soulcitoa.pdf (9-oct-2026) ═══
+   Cada página del PDF (1920×1080) es una pantalla del snap. El contenido vive en un
+   escenario de 1920×906 (alto del PDF menos cabecera y submenú) y escala con --u, que
+   vale 1px a 1920 de ancho y nunca deja que el escenario se salga de la pantalla. */
+:root{
+  --band:clamp(44px,min(4.53vw,8vh),87px);
+  --u:min(calc(100vw / 1920),calc((100vh - var(--top) - var(--band)) / 906));
+  --ink:#333;--brown:#754C24;--brown-d:#42210B;--olive:#5B7445;--green:#3B5D2D;--deep:#1B3B05;--teal:#1C4245;--paper:#F1EFE8;--row:#F7F4EA;
 }
+html,body{background:var(--paper)}
+.snap{background:var(--paper) url('/assets/img/soul/soul-paper.webp') top center/1920px auto repeat}
+.m{font-weight:500}.r{font-weight:400}.xb{font-weight:800}
+.snap > section{padding-top:calc(var(--top) + var(--band))}
+.st{position:relative;width:calc(1920*var(--u));height:calc(906*var(--u));margin:0 auto}
+.bleed{position:absolute;left:calc(50% - 50vw);width:100vw}
 
-/* base compartida con 6 · INDONESIA (piel The Soul) */
-.kick-l{display:block;font-size:var(--fs-label);letter-spacing:.2em;text-transform:uppercase;color:var(--pg)}
-.ttl{margin-top:clamp(10px,1.6vh,16px);font-size:clamp(26px,2.5vw,48px);line-height:1.12;font-weight:350;letter-spacing:.04em;text-transform:uppercase}
-.ttl .b{color:var(--stat)}
-.intro{margin-top:clamp(12px,2vh,20px);max-width:52ch;font-size:var(--fs-body);line-height:1.6;color:#4a4a44}
+/* submenú verde (página propia de The Soul, no es el menú común) */
+.soulnav{position:fixed;left:0;right:0;top:var(--top);z-index:140;height:var(--band);background:#1B3B05 url('/assets/img/soul/soul-band.webp') center/auto 100% repeat-x}
+.soulnav ul{list-style:none;height:100%;display:flex;justify-content:center;align-items:center;gap:calc(56*var(--u))}
+.soulnav a{font-size:max(12px,calc(18.6*var(--u)));color:#F6F4F0;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.soulnav a.on{font-weight:700}
+.soulnav a:hover{color:#fff}
 
-/* ═══ 6 · INDONESIA (2.jpeg del cliente) ═══ */
-.indo{color:var(--rl);background:#1c2416}
-.indo>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 70%}
-.indo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,16,10,.55),rgba(12,16,10,.72))}
-.in-in{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;justify-content:center;padding:var(--top) var(--gut) clamp(24px,5vh,60px)}
-.indo .kick-l{color:var(--gold-light)}
-.indo .ttl .b{color:#e8c9a6}
-.indo .intro{color:rgba(245,240,230,.85)}
-.cards3{list-style:none;margin-top:clamp(22px,4.5vh,52px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,1.4vw,28px)}
-.cards3 li{padding:clamp(18px,2.8vh,32px) clamp(18px,1.6vw,30px);border:1px solid rgba(245,240,230,.45);border-radius:8px;background:rgba(12,16,10,.28);
-  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
-.cards3 .k{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-light)}
-.cards3 .n{display:block;margin-top:10px;font-size:clamp(28px,2.6vw,50px);font-weight:700;letter-spacing:.02em;line-height:1.05;text-transform:uppercase}
-.cards3 p{margin-top:12px;font-size:clamp(13px,.84vw,16px);line-height:1.6;color:rgba(245,240,230,.86)}
-.band4{list-style:none;margin-top:clamp(14px,2.6vh,28px);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
-  border-top:1px solid rgba(245,240,230,.4);border-bottom:1px solid rgba(245,240,230,.4)}
-.band4 li{padding:clamp(14px,2.6vh,28px) 12px;text-align:center}
-.band4 li + li{border-left:1px solid rgba(245,240,230,.22)}
-.band4 .n{display:block;font-size:clamp(24px,2vw,38px);font-weight:800;letter-spacing:.02em;line-height:1.1}
-.band4 .l{display:block;margin-top:6px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,.8)}
+/* 1 · hero */
+.hero .ph{top:0;height:calc(511*var(--u));overflow:hidden;z-index:2}
+.hero .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 56%}
+.hero .ph h1{position:absolute;left:calc(50vw - calc(960*var(--u)) + calc(83*var(--u)));top:calc(464*var(--u));font-size:calc(47*var(--u));line-height:calc(59*var(--u));color:#F6F4F0;letter-spacing:.035em;font-weight:400;white-space:nowrap}
+.sil{position:absolute;opacity:.05;pointer-events:none}
+.totem{position:absolute;left:calc(1600*var(--u));top:calc(455*var(--u));width:calc(260*var(--u));mix-blend-mode:multiply;pointer-events:none}
+.hero h2{position:absolute;left:calc(86*var(--u));top:calc(552*var(--u));font-size:calc(44*var(--u));line-height:calc(54*var(--u));color:var(--brown-d);font-weight:700;letter-spacing:.025em;white-space:nowrap}
+.hero .sub{position:absolute;left:calc(85*var(--u));top:calc(607*var(--u));font-size:calc(30*var(--u));line-height:calc(37*var(--u));color:var(--brown);letter-spacing:.02em;white-space:nowrap}
+.hero .sub b{font-weight:700}
+.stats4{position:absolute;left:calc(71*var(--u));top:calc(688*var(--u));width:calc(1199*var(--u));height:calc(160*var(--u));border:1px solid rgba(83,71,63,.85);border-radius:calc(12*var(--u));list-style:none}
+.stats4 li{position:absolute;top:0;text-align:right;color:var(--brown);font-weight:700;text-transform:uppercase;transform:translateX(-100%)}
+.stats4 .n{display:block;font-size:calc(73.3*var(--u));line-height:calc(91*var(--u));margin-top:calc(15*var(--u));letter-spacing:.01em}
+.stats4 .l{display:block;font-size:calc(31*var(--u));line-height:calc(40*var(--u));margin-top:calc(-11*var(--u));letter-spacing:.015em;white-space:nowrap}
+.claim{position:absolute;left:calc(1383*var(--u));top:calc(616*var(--u));color:var(--olive);width:calc(520*var(--u))}
+.claim .k{font-size:max(11px,calc(15.6*var(--u)));line-height:1.25;font-weight:500;letter-spacing:.2em;text-transform:uppercase}
+.claim .it{margin:calc(13*var(--u)) 0 0 calc(-3*var(--u));font-style:italic;font-weight:700;font-size:calc(29.7*var(--u));line-height:calc(40.5*var(--u));letter-spacing:.02em;text-transform:uppercase}
+.claim .k2{margin-top:calc(22*var(--u))}
 
+/* 2 · who we are */
+.terr{top:calc(4*var(--u));height:calc(481*var(--u));color:#fff;overflow:hidden}
+.terr>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 58%}
+.terr::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,22,10,.6),rgba(15,22,10,.32) 60%,rgba(15,22,10,.18))}
+.terr .in{position:relative;z-index:2;width:calc(1920*var(--u));height:100%;margin:0 auto}
+.terr .fr{position:absolute;left:calc(45*var(--u));top:calc(39*var(--u));width:calc(1830*var(--u));height:calc(393*var(--u));border:1px solid rgba(255,255,255,.8);border-radius:calc(10*var(--u))}
+.terr .tag{position:absolute;left:calc(148*var(--u));top:calc(81*var(--u));min-width:calc(331*var(--u));height:calc(48*var(--u));padding:0 calc(20*var(--u));background:var(--deep);border-radius:calc(6*var(--u));display:flex;align-items:center;justify-content:center;font-size:max(11px,calc(19.9*var(--u)));font-weight:500;letter-spacing:.05em;text-transform:uppercase}
+.terr h2{position:absolute;left:calc(148*var(--u));top:calc(158*var(--u));font-size:calc(80.9*var(--u));line-height:calc(100*var(--u));letter-spacing:.045em;font-weight:350;white-space:nowrap}
+.terr h2 b{font-weight:700}
+.terr .tp{position:absolute;left:calc(1210*var(--u));top:calc(160*var(--u));width:calc(640*var(--u));font-size:calc(24.4*var(--u));line-height:calc(36*var(--u));letter-spacing:.045em;text-transform:uppercase}
+.terr .chips{position:absolute;top:calc(335*var(--u));left:calc(148*var(--u));right:calc(154*var(--u));display:flex;justify-content:space-between;list-style:none}
+.terr .chips li{height:calc(54*var(--u));padding:0 calc(26*var(--u));min-width:calc(312*var(--u));border:1px solid rgba(255,249,243,.85);border-radius:calc(8*var(--u));display:flex;align-items:center;justify-content:center;font-size:max(11px,calc(21*var(--u)));font-weight:500;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.svc-h{position:absolute;top:calc(533*var(--u));left:0;right:0;text-align:center}
+.svc-h .k{font-size:max(11px,calc(25*var(--u)));line-height:calc(30*var(--u));font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.svc-h h2{margin-top:calc(3*var(--u));font-size:calc(44*var(--u));line-height:calc(55*var(--u));font-weight:400;letter-spacing:.02em}
+.cards4{position:absolute;top:calc(668*var(--u));left:calc(25*var(--u));right:calc(24*var(--u));display:grid;grid-template-columns:435fr 438fr 465fr 467fr;gap:0 calc(20*var(--u));list-style:none}
+.cards4 .tab{display:inline-flex;align-items:center;gap:calc(12*var(--u));height:calc(46*var(--u));background:#fff;border-radius:calc(6*var(--u)) calc(6*var(--u)) 0 0;padding:0 calc(26*var(--u)) 0 calc(16*var(--u));color:var(--deep);font-size:max(11px,calc(21*var(--u)));font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.cards4 .tab svg{height:calc(24*var(--u));width:auto}
+.cards4 .card{position:relative;height:calc(187*var(--u));overflow:hidden;color:#fff}
+.cards4 .card img{width:100%;height:100%;object-fit:cover}
+.cards4 .num{position:absolute;right:calc(30*var(--u));top:calc(10*var(--u));text-align:right;font-weight:800;text-transform:uppercase}
+.cards4 .num b{display:block;font-size:calc(60.2*var(--u));line-height:calc(75*var(--u));font-weight:800}
+.cards4 .num span{display:block;font-size:calc(25.5*var(--u));line-height:calc(32*var(--u));margin-top:calc(-10*var(--u))}
+.cards4 .d{position:absolute;left:calc(24*var(--u));top:calc(115*var(--u));font-size:max(10px,calc(17.2*var(--u)));line-height:calc(32*var(--u));letter-spacing:.17em;text-transform:uppercase}
+
+/* 3 · indonesia */
+.ban{top:0;height:calc(394*var(--u));overflow:hidden;color:#F6F4F0}
+.ban>img{width:100%;height:100%;object-fit:cover}
+.ban .in{position:absolute;inset:0;width:calc(1920*var(--u));margin:0 auto}
+.ban .t{position:absolute;left:calc(212*var(--u));top:calc(72*var(--u));font-family:'Seasons','Didot',Georgia,serif;font-weight:300;font-size:calc(124*var(--u));line-height:1;letter-spacing:.02em;color:#F4EEE3}
+.ban .t::after{content:attr(data-t);position:absolute;left:0;top:100%;margin-top:calc(-28*var(--u));transform:scaleY(-1);opacity:.35;-webkit-mask:linear-gradient(0deg,#000,transparent 55%);mask:linear-gradient(0deg,#000,transparent 55%);pointer-events:none}
+.ban .s{position:absolute;left:calc(214*var(--u));top:calc(186*var(--u));font-size:calc(36*var(--u));line-height:calc(44*var(--u));letter-spacing:.03em;text-transform:uppercase}
+.ban .s b{font-weight:700}
+.ban .f,.ban .g{position:absolute;text-align:right;text-transform:uppercase;letter-spacing:.06em;font-size:calc(32*var(--u));line-height:calc(36*var(--u));font-weight:500}
+.ban .f{right:calc(calc(1920*var(--u)) - calc(1340*var(--u)));top:calc(119*var(--u))}
+.ban .g{right:calc(calc(1920*var(--u)) - calc(1707*var(--u)));top:calc(110*var(--u));font-size:calc(34*var(--u));line-height:calc(40*var(--u))}
+.ban .f b,.ban .g b{font-weight:700}
+.ban small{font-size:calc(21*var(--u));font-weight:500;letter-spacing:.08em}
+.isl{position:absolute;top:calc(393*var(--u));left:0;right:0;display:flex;justify-content:center}
+.isl span{background:#fff;border-radius:999px;height:calc(44*var(--u));padding:0 calc(30*var(--u));display:flex;align-items:center;font-size:max(11px,calc(24*var(--u)));color:#2C3E3F;letter-spacing:.08em;white-space:nowrap}
+.isl b{font-weight:700}
+.kpis{position:absolute;top:calc(503*var(--u));left:0;right:0;display:flex;justify-content:center;gap:calc(81*var(--u));list-style:none}
+.kpi{position:relative;height:calc(173*var(--u));color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 calc(30*var(--u))}
+.kpi::before{content:"";position:absolute;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.55);border-radius:calc(8*var(--u))}
+.kpi.k1{width:calc(445*var(--u));background:#311B0C}
+.kpi.k2{width:calc(524*var(--u));background:linear-gradient(rgba(71,85,50,.88),rgba(71,85,50,.88)),url('/assets/img/soul/kpi-leaf.webp') center/cover}
+.kpi.k3{width:calc(445*var(--u));background:#223635}
+.kpi .row{display:flex;align-items:baseline;gap:calc(22*var(--u))}
+.kpi .row span{font-size:max(11px,calc(22*var(--u)));letter-spacing:.16em;text-transform:uppercase}
+.kpi .row b{font-size:calc(41*var(--u));letter-spacing:.07em;font-weight:700}
+.kpi p{margin-top:calc(14*var(--u));font-size:max(9px,calc(14.5*var(--u)));line-height:1.15;letter-spacing:.11em;font-weight:500;text-transform:uppercase}
+.kpi p b{font-weight:800}
+.ret{position:absolute;top:calc(731*var(--u));left:0;right:0;text-align:center}
+.ret h2{font-size:calc(60*var(--u));line-height:calc(72*var(--u));font-weight:300;letter-spacing:.04em;text-transform:uppercase}
+.ret h2 .b{font-weight:500}
+.ret p{margin-top:calc(8*var(--u));font-size:calc(28.5*var(--u));line-height:calc(36*var(--u));letter-spacing:.03em;text-transform:uppercase}
+.ret p b,.ret p .b{font-weight:700}
+
+/* 4 · the why */
+.why .hd{position:absolute;top:calc(58*var(--u));left:0;right:0;text-align:center}
+.why .k{font-size:max(11px,calc(25*var(--u)));line-height:calc(30*var(--u));font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.why h2{margin-top:calc(38*var(--u));font-size:calc(44*var(--u));line-height:calc(55*var(--u));font-weight:400;letter-spacing:.02em}
+.why .s{margin-top:calc(4*var(--u));font-size:calc(27*var(--u));line-height:calc(34*var(--u));color:var(--deep);letter-spacing:.03em}
+.why .s b{font-weight:700}
+.isles{position:absolute;top:calc(276*var(--u));left:0;right:0;display:flex;justify-content:center;gap:calc(37*var(--u));padding-left:calc(3*var(--u));list-style:none}
+.isle{position:relative;width:calc(396*var(--u));height:calc(587*var(--u));overflow:hidden;color:#F6F4F0}
+.isle>img{width:100%;height:100%;object-fit:cover}
+.isle .nm{position:absolute;bottom:calc(-2*var(--u));font-size:calc(97*var(--u));line-height:calc(116*var(--u));font-weight:700;letter-spacing:.02em}
+.isle .nm.r{right:calc(29*var(--u))}.isle .nm.l{left:calc(17*var(--u))}
+.info .lbl{position:absolute;top:calc(33*var(--u));left:0;right:0;text-align:center;font-size:max(9px,calc(18.3*var(--u)));line-height:calc(23*var(--u));letter-spacing:.18em;white-space:nowrap;color:#fff;text-transform:uppercase}
+.facts{position:absolute;left:calc(26*var(--u));top:calc(181*var(--u));right:calc(20*var(--u));list-style:none;text-transform:uppercase}
+.facts li{margin-bottom:calc(37*var(--u))}
+.facts small{display:block;font-size:max(9px,calc(14.6*var(--u)));line-height:calc(19*var(--u));letter-spacing:.05em}
+.facts strong{display:block;font-size:calc(20.8*var(--u));line-height:calc(25*var(--u));font-weight:700;letter-spacing:.04em}
+.facts strong em{font-style:normal;font-weight:350;font-size:calc(14.6*var(--u))}
+
+/* 5 · how it works */
+.how{color:#fff}
+.how>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+.how::after{content:"";position:absolute;left:0;right:0;top:calc(var(--top) + var(--band) + calc(206*var(--u)));height:calc(520*var(--u));background:linear-gradient(180deg,rgba(10,25,35,0),rgba(10,25,35,.28) 30%,rgba(10,25,35,.12) 75%,rgba(10,25,35,0))}
+.how .st{z-index:2}
+.how .hd{position:absolute;top:calc(39*var(--u));left:0;right:0;text-align:center;color:var(--ink)}
+.how .hd .k{font-size:max(11px,calc(25*var(--u)));line-height:calc(30*var(--u));letter-spacing:.2em;text-transform:uppercase}
+.how .hd h2{margin-top:calc(12*var(--u));font-size:calc(44*var(--u));line-height:calc(55*var(--u));font-weight:400;letter-spacing:.02em}
+.how .hd h2 .b{font-weight:500}
+.how .one{display:inline-flex;align-items:center;margin-top:calc(50*var(--u));height:calc(41*var(--u));padding:0 calc(26*var(--u));background:#fff;border-radius:999px;color:var(--teal);font-size:max(11px,calc(21.6*var(--u)));letter-spacing:.08em}
+.steps6{position:absolute;top:calc(258*var(--u));left:calc(60*var(--u));right:calc(60*var(--u));display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:calc(24*var(--u));list-style:none}
+.steps6 li{display:flex;flex-direction:column;align-items:center}
+.steps6 h3{height:calc(42*var(--u));padding:0 calc(18*var(--u));display:flex;align-items:center;border:1.5px solid rgba(255,255,255,.92);border-radius:999px;font-size:max(11px,calc(22.4*var(--u)));font-weight:700;letter-spacing:.06em;white-space:nowrap}
+.steps6 p{margin-top:calc(26*var(--u));font-size:max(10px,calc(15*var(--u)));line-height:calc(27*var(--u));letter-spacing:.035em;text-transform:uppercase;text-shadow:0 1px 10px rgba(0,20,30,.35)}
+.steps6 p .b{font-weight:700}
+
+/* 6 · cómo tiene un extranjero el inmueble */
+.routes .tt{position:absolute;left:calc(130*var(--u));top:calc(69*var(--u));width:calc(578*var(--u));color:var(--olive);text-transform:uppercase}
+.routes .tt>span{display:block}
+.routes .tt .a{font-size:calc(40*var(--u));line-height:calc(50*var(--u));font-weight:300;margin-left:calc(5*var(--u));letter-spacing:.03em}
+.routes .tt .bg{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 calc(14*var(--u));color:var(--deep);font-weight:800;margin-top:calc(-7*var(--u))}
+.routes .tt .bg span:first-child{font-size:calc(62.5*var(--u));line-height:calc(78*var(--u));letter-spacing:.03em}
+.routes .tt .bg span:last-child{font-size:calc(56.3*var(--u));letter-spacing:.03em}
+html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;line-height:calc(70*var(--u))!important}
+.routes .tt .c{text-align:right;font-size:calc(36*var(--u));line-height:calc(45*var(--u));font-weight:400;letter-spacing:.03em;margin-top:calc(2*var(--u));padding-right:calc(9*var(--u))}
+.opt{position:absolute;top:calc(63*var(--u));height:calc(160*var(--u));color:#fff;text-align:center;background-size:cover;text-transform:uppercase}
+.opt.pma{left:calc(761*var(--u));width:calc(562*var(--u));background-image:url('/assets/img/soul/route-pma.webp')}
+.opt.sewa{left:calc(1335*var(--u));width:calc(518*var(--u));background-image:url('/assets/img/soul/route-sewa.webp')}
+.opt .k{margin-top:calc(31*var(--u));font-size:max(10px,calc(16.6*var(--u)));line-height:calc(21*var(--u));letter-spacing:.2em}
+.opt h3{font-size:calc(40*var(--u));line-height:calc(50*var(--u));font-weight:700;letter-spacing:.05em}
+.opt h3 small{font-size:calc(30.6*var(--u));letter-spacing:.06em}
+.opt .s{font-size:max(9px,calc(16.7*var(--u)));line-height:calc(20*var(--u));font-weight:700;letter-spacing:.14em;margin-top:calc(4*var(--u));padding:0 calc(30*var(--u))}
+.cmp{position:absolute;top:calc(275*var(--u));left:0;width:100%;text-transform:uppercase}
+.cmp .tr{position:relative;height:calc(52*var(--u))}
+.cmp .tr.z::before{content:"";position:absolute;left:calc(750*var(--u));width:calc(1104*var(--u));top:0;height:calc(30*var(--u));background:var(--row)}
+.cmp .th{position:absolute;right:calc(calc(1920*var(--u)) - calc(714*var(--u)));top:calc(1*var(--u));font-size:max(11px,calc(19*var(--u)));line-height:calc(24*var(--u));letter-spacing:.03em;white-space:nowrap}
+.cmp .v{position:absolute;top:calc(3*var(--u));font-size:max(10px,calc(17*var(--u)));line-height:calc(22*var(--u));font-weight:500;letter-spacing:.035em;display:flex;align-items:center;gap:calc(22*var(--u));white-space:nowrap}
+.cmp .v1{left:calc(759*var(--u));color:var(--brown-d)}.cmp .v2{left:calc(1377*var(--u));color:var(--teal)}
+.dots{display:inline-flex;gap:calc(6*var(--u))}
+.dots i{width:calc(19*var(--u));height:calc(19*var(--u));border-radius:50%;border:1.5px solid currentColor;display:block}
+.dots i.f{background:currentColor}
+.v1 .dots{color:#415134;margin-left:calc(6*var(--u))}.v2 .dots{color:#2C4F47;margin-left:calc(62*var(--u))}
+
+/* 7 · come see it */
+.see .bn{position:absolute;left:calc(63*var(--u));top:calc(10*var(--u));width:calc(1796*var(--u));height:calc(341*var(--u));border-radius:calc(16*var(--u));overflow:hidden}
+.see .bn img{width:100%;height:100%;object-fit:cover}
+.see .bn p{position:absolute;top:calc(112*var(--u));font-size:calc(46*var(--u));line-height:calc(53*var(--u));color:#F6F4F0;letter-spacing:.035em;text-transform:uppercase}
+.see .bn p b{font-weight:700}
+.see .bn .l{left:calc(82*var(--u))}.see .bn .rr{right:calc(94*var(--u));text-align:right;top:calc(96*var(--u))}
+.see h2{position:absolute;top:calc(399*var(--u));left:0;right:0;text-align:center;font-size:calc(56.4*var(--u));line-height:calc(71*var(--u));font-weight:500;color:var(--deep);letter-spacing:.03em}
+.see h2 span{font-weight:400}
+.cols2{position:absolute;top:calc(487*var(--u));left:0;right:0;display:grid;grid-template-columns:calc(888*var(--u)) calc(1032*var(--u));color:var(--olive);font-weight:700;text-align:center;text-transform:uppercase}
+.cols2 .lead{font-size:max(12px,calc(20*var(--u)));line-height:calc(27*var(--u));letter-spacing:.05em}
+.cols2 .body{margin-top:calc(32*var(--u));font-size:max(10px,calc(15*var(--u)));line-height:calc(27*var(--u));letter-spacing:.06em}
+.cols2>div:last-child{padding-top:calc(20*var(--u));padding-right:calc(120*var(--u))}
+.ph2{position:absolute;top:calc(666*var(--u));left:calc(81*var(--u));display:flex;gap:calc(28*var(--u))}
+.ph2 img{height:calc(189*var(--u));object-fit:cover}
+
+/* 8 · land zoning */
+.zone .st{overflow:visible}
+.zone .zs{position:absolute;left:0;top:0;width:calc(1920*var(--u));height:calc(1050*var(--u));transform:scale(.8629);transform-origin:top center;text-align:center}
+.zone{background:#F7F4E9 url('/assets/img/soul/zone-bg.webp') center/cover}
+.zone .strip{position:absolute;left:calc(50% - 50vw / .8629);width:calc(100vw / .8629);top:calc(898*var(--u));height:calc(88*var(--u));background:url('/assets/img/soul/zone-strip.webp') left top/calc(441*var(--u)) calc(88*var(--u)) repeat-x}
+.zone .k{padding-top:calc(40*var(--u));font-size:max(11px,calc(17*var(--u)));line-height:calc(20*var(--u));letter-spacing:.32em;color:var(--ink);font-weight:500;text-transform:uppercase}
+.zone h2{margin-top:calc(14*var(--u));font-size:calc(57*var(--u));line-height:calc(66*var(--u));font-weight:400;letter-spacing:.01em;color:#2d2d2d;text-transform:uppercase}
+.zone h2 em{font-style:normal}
+.zone h2 .lt{font-weight:300}
+.zone .p{margin:calc(16*var(--u)) auto 0;max-width:calc(780*var(--u));font-size:calc(21*var(--u));line-height:calc(36*var(--u));color:#4a4a48}
+.zcards{display:flex;justify-content:center;gap:calc(45*var(--u));margin-top:calc(40*var(--u));padding-right:calc(7*var(--u));list-style:none}
+.zc{position:relative;width:calc(551*var(--u));height:calc(596*var(--u));border-radius:calc(16*var(--u));overflow:hidden;box-shadow:0 calc(18*var(--u)) calc(40*var(--u)) rgba(40,35,20,.18);color:#fff;text-align:center}
+.zc>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.zc::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,18,12,.4),rgba(15,18,12,0) 22%,var(--z0) 48%,var(--z) 70%,var(--z))}
+.zc.y{--z:rgba(122,99,47,.97);--z0:rgba(122,99,47,.55)}.zc.t{--z:rgba(36,71,75,.97);--z0:rgba(36,71,75,.55)}.zc.g{--z:rgba(75,89,56,.97);--z0:rgba(75,89,56,.55)}
+.zc::after{content:"";position:absolute;z-index:1;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.4);border-radius:calc(10*var(--u))}
+.zc .dot{position:absolute;left:50%;top:calc(46*var(--u));width:calc(58*var(--u));height:calc(58*var(--u));margin-left:calc(-29*var(--u));border:1px solid rgba(255,255,255,.55);border-radius:50%;z-index:2}
+.zc .dot::after{content:"";position:absolute;left:50%;top:50%;width:calc(21*var(--u));height:calc(21*var(--u));margin:calc(-10.5*var(--u)) 0 0 calc(-10.5*var(--u));border-radius:50%;background:var(--c)}
+.zc.y .dot{--c:#D9B44A}.zc.t .dot{--c:#8DB3C7}.zc.g .dot{--c:#9BBF6E}
+.zc .tx{position:absolute;left:calc(30*var(--u));right:calc(30*var(--u));bottom:calc(40*var(--u));z-index:2}
+.zc h3{font-size:calc(25*var(--u));line-height:calc(32*var(--u));font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.zc .t2{margin-top:calc(12*var(--u));font-size:max(9px,calc(14*var(--u)));letter-spacing:.2em;text-transform:uppercase;opacity:.85}
+.zc p{margin-top:calc(16*var(--u));font-size:max(11px,calc(17*var(--u)));line-height:calc(27*var(--u));opacity:.92}
+.zc .ok{display:flex;align-items:center;justify-content:center;margin:calc(28*var(--u)) auto 0;height:calc(51*var(--u));width:80%;border:1px solid rgba(255,255,255,.6);border-radius:999px;font-size:max(10px,calc(17*var(--u)));letter-spacing:.18em;text-transform:uppercase}
+.zone .note{position:absolute;left:0;right:0;top:calc(917*var(--u));margin:0 auto;max-width:calc(930*var(--u));font-size:calc(18.6*var(--u));line-height:calc(34*var(--u));color:#45443f}
+.zone .note .b{font-weight:500;color:#2d2d2d}
+
+/* 9 · mapa */
+.mapw{position:absolute;left:50%;top:0;width:calc(1439*var(--u));margin-left:calc(-719.5*var(--u));container-type:inline-size}
+.mapw img{width:100%;height:auto}
+.mapw .lab{position:absolute;color:#fff;font-style:italic;font-size:1.727cqw;line-height:1.2;white-space:nowrap}
+.mapw .lab.st2{font-weight:700}
+.mapw .ws{position:absolute;left:51.75%;top:41.4%;color:#F4EEE3;font-size:2.243cqw;line-height:1.2;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.mapw .ws b{font-weight:700}
+.mapw .chips{position:absolute;left:11.1%;top:84%;width:36%;display:flex;flex-wrap:wrap;gap:1.4cqw 1.6cqw;list-style:none}
+.mapw .chips li{border:1px solid rgba(255,255,255,.5);border-radius:.5cqw;padding:.25cqw .5cqw;color:#fff;font-weight:700;font-size:1.2cqw;white-space:nowrap}
+
+/* 10 · cierre */
+.snap > section.closing{height:auto;padding:calc(62*var(--u)) calc(54*var(--u)) calc(81*var(--u)) calc(44*var(--u))}
+.cl{position:relative;max-width:calc(1822*var(--u));height:calc(362*var(--u));margin:0 auto;border-radius:calc(22*var(--u));overflow:hidden;background:linear-gradient(90deg,#1f150c,#3a2a1b 45%,#2a1d12)}
+.cl img{position:absolute;right:0;top:0;width:68%;height:100%;object-fit:cover;object-position:center 30%;-webkit-mask:linear-gradient(90deg,transparent,#000 22%);mask:linear-gradient(90deg,transparent,#000 22%)}
+.cl::after{content:"";position:absolute;inset:calc(30*var(--u));border:1px solid rgba(255,255,255,.4);border-radius:calc(14*var(--u));pointer-events:none}
+.cl h2{position:absolute;left:calc(84*var(--u));top:calc(62*var(--u));font-size:calc(60*var(--u));line-height:calc(81*var(--u));font-weight:500;color:#F6F4F0;letter-spacing:.01em;z-index:2;text-transform:uppercase}
+.cl a{position:absolute;left:calc(84*var(--u));top:calc(246*var(--u));height:calc(49*var(--u));padding:0 calc(30*var(--u));border-radius:999px;display:flex;align-items:center;gap:calc(10*var(--u));background:linear-gradient(90deg,#6E6740,#8C7E3C);color:#F3EEDD;font-size:max(11px,calc(18*var(--u)));font-weight:700;letter-spacing:.06em;z-index:3;text-transform:uppercase}
+.cl a:hover{filter:brightness(1.08)}
+
+/* ═══ móvil / tablet vertical ═══ */
 @media (max-width:900px){
-  .hl-in{height:auto;padding:84px 16px 44px}
-  .hl-title{font-size:7.2vw}
-  .hl-body{grid-template-columns:1fr}
-  .routes2{grid-template-columns:1fr}
-  .cmp2-h{display:none}
-  .cmp2-r{grid-template-columns:1fr;gap:8px}
-  .zg{grid-template-columns:1fr}
-  .zg .hs{height:auto;min-height:260px}
-  .in-in{height:auto;padding:84px 16px 44px}
-  .cards3{grid-template-columns:1fr}
-  .band4{grid-template-columns:1fr 1fr}
-  .band4 li:nth-child(3){border-left:0}
-  .band4 li:nth-child(n+3){border-top:1px solid rgba(245,240,230,.22)}
-  .ttl{font-size:7.4vw}
+  :root{--u:.5px;--band:44px}
+  .snap{background-size:960px auto}
+  .snap > section{padding-top:calc(var(--top) + var(--band))}
+  .st{width:auto;height:auto;padding:24px 16px 36px}
+  .bleed{position:relative;left:auto;width:auto;margin:-24px -16px 0}
+  .soulnav ul{justify-content:flex-start;overflow-x:auto;gap:22px;padding:0 16px;scrollbar-width:none}
+  .soulnav ul::-webkit-scrollbar{display:none}
+  .soulnav a{font-size:12px}
+  .hero .ph{height:56vw}
+  .hero .ph h1{left:16px;top:auto;bottom:-6px;font-size:5.6vw;line-height:1.25}
+  .sil,.totem{display:none}
+  .hero h2,.hero .sub,.stats4,.stats4 li,.claim,.routes .tt,.opt,.cmp,.cmp .th,.cmp .v,.see .bn p,.see h2,.cols2,.ph2,.svc-h,.cards4,.terr .tag,.terr h2,.terr .tp,.terr .chips,.isl,.kpis,.ret,.why .hd,.isles,.how .hd,.steps6{position:static;transform:none;width:auto;white-space:normal}
+  .hero h2{margin-top:22px;font-size:22px;line-height:28px}
+  .hero .sub{margin-top:6px;font-size:15px;line-height:20px}
+  .stats4{margin-top:20px;height:auto;display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;border-radius:10px}
+  .stats4 li{text-align:left}.stats4 .n{font-size:34px;line-height:38px;margin:0}.stats4 .l{font-size:14px;line-height:18px;margin:0}
+  .claim{margin-top:24px}.claim .k{font-size:11px}.claim .it{font-size:18px;line-height:24px;margin:8px 0 0}
+  .terr{top:auto;height:auto;margin:-24px -16px 0}
+  .terr .in{width:auto;padding:28px 16px}
+  .terr .fr{inset:10px;width:auto;height:auto}
+  .terr .tag{display:inline-flex;height:auto;min-width:0;padding:6px 12px;font-size:12px}
+  .terr h2{margin-top:12px;font-size:32px;line-height:38px}
+  .terr .tp{margin-top:10px;font-size:14px;line-height:21px}
+  .terr .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .terr .chips li{height:auto;min-width:0;padding:8px 10px;font-size:12px;white-space:normal}
+  .svc-h{margin-top:30px}.svc-h .k{font-size:12px}.svc-h h2{font-size:22px;line-height:28px}
+  .cards4{grid-template-columns:1fr;gap:16px;margin-top:20px}
+  .cards4 .tab{font-size:13px;height:34px}.cards4 .tab svg{height:16px}
+  .cards4 .card{height:170px}
+  .cards4 .num b{font-size:40px;line-height:46px}.cards4 .num span{font-size:15px;line-height:18px;margin:0}
+  .cards4 .d{left:16px;top:auto;bottom:12px;font-size:12px;line-height:20px}
+  .ban{height:auto;margin:-24px -16px 0}
+  .ban>img{height:62vw;object-position:30% center}
+  .ban .in{width:auto}
+  .ban .t{left:16px;top:6vw;font-size:13vw}
+  .ban .t::after{margin-top:-3vw}
+  .ban .s{left:16px;top:30vw;font-size:4vw;line-height:1.2}
+  .ban .f,.ban .g{display:none}
+  .isl{margin-top:-18px;position:relative}.isl span{height:auto;padding:8px 14px;font-size:12px;text-align:center;border-radius:20px;white-space:normal}
+  .kpis{flex-direction:column;align-items:stretch;gap:12px;margin-top:24px}
+  .kpi.k1,.kpi.k2,.kpi.k3{width:auto;height:auto;padding:28px 20px}
+  .kpi::before{inset:8px}.kpi .row span{font-size:12px}.kpi .row b{font-size:22px}.kpi p{font-size:10px}
+  .ret{margin-top:30px}.ret h2{font-size:24px;line-height:30px}.ret p{font-size:14px;line-height:20px}
+  .why .k{font-size:12px}.why h2{margin-top:12px;font-size:22px;line-height:28px}.why .s{font-size:14px;line-height:20px}
+  .isles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px;padding:0}
+  .isle{width:auto;height:auto;aspect-ratio:396/587}
+  .isle .nm{font-size:40px;line-height:48px}
+  .info .lbl{top:12px;font-size:9px;line-height:12px;white-space:normal;padding:0 6px}
+  .facts{left:10px;top:auto;bottom:0;right:6px}
+  .facts small{font-size:9px;line-height:12px}.facts strong{font-size:11px;line-height:14px}.facts strong em{font-size:9px}.facts li{margin-bottom:10px}
+  .how::after{top:0;height:100%;background:rgba(10,25,35,.45)}
+  .how>img{object-position:30% center}
+  .how .hd{color:#fff}.how .hd .k{font-size:12px}.how .hd h2{font-size:22px;line-height:28px}.how .one{margin-top:16px;font-size:12px;height:30px}
+  .steps6{grid-template-columns:1fr 1fr;gap:20px 12px;margin-top:28px}
+  .steps6 li{align-items:flex-start}
+  .steps6 h3{font-size:12px;height:30px;padding:0 12px;white-space:normal;text-align:center}
+  .steps6 p{margin-top:10px;font-size:11px;line-height:16px}
+  .steps6 br.d{display:none}
+  .routes .tt .a{font-size:20px;line-height:24px}.routes .tt .bg span:first-child{font-size:30px;line-height:36px}.routes .tt .bg span:last-child{font-size:27px}.routes .tt .bg{flex-wrap:wrap;gap:8px}.routes .tt .c{font-size:18px;line-height:22px;text-align:left}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px}
+  .opt,.opt.pma,.opt.sewa{width:auto;height:auto;padding:14px 8px}
+  .opt .k{margin:0;font-size:9px}.opt h3{font-size:18px;line-height:24px}.opt h3 small{display:block;font-size:13px}.opt .s{font-size:9px;line-height:12px;padding:0}
+  .cmp{margin-top:16px}
+  .cmp .tr{height:auto;display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;padding:8px}
+  .cmp .tr.z{background:var(--row)}.cmp .tr.z::before{display:none}
+  .cmp .th{grid-column:1/-1;font-size:11px;font-weight:700}
+  .cmp .v{font-size:11px;line-height:15px;gap:8px;flex-wrap:wrap}
+  .dots i{width:10px;height:10px}.v1 .dots,.v2 .dots{margin-left:0}
+  .see .bn{position:relative;left:auto;top:auto;width:auto;height:auto;border-radius:8px}
+  .see .bn img{height:auto}
+  .see .bn p{margin-top:14px;font-size:20px;line-height:25px;color:var(--deep)}
+  .see .bn .rr{text-align:left;font-size:16px;line-height:21px;color:var(--olive)}
+  .see h2{margin-top:28px;font-size:26px;line-height:32px}
+  .cols2{grid-template-columns:1fr;gap:24px;margin-top:10px}.cols2>div:last-child{padding:0}
+  .cols2 br{display:none}
+  .cols2 .lead{font-size:14px;line-height:20px}.cols2 .body{margin-top:10px;font-size:11px;line-height:18px}
+  .ph2{flex-direction:column;margin-top:24px;gap:10px}.ph2 img{height:auto;width:100%!important}
+  .zone .zs{position:static;width:auto;height:auto;transform:none}
+  .zone .strip{display:none}
+  .zone .k{padding-top:0;font-size:11px}.zone h2{font-size:24px;line-height:30px}.zone .p{font-size:13px;line-height:20px}
+  .zcards{flex-direction:column;align-items:center;gap:16px;margin-top:24px;padding:0}
+  .zc{width:100%;max-width:420px;height:auto;aspect-ratio:551/596}
+  .zc h3{font-size:18px;line-height:24px}.zc .t2{font-size:10px}.zc p{font-size:13px;line-height:19px}.zc .ok{height:38px;font-size:12px}
+  .zone .note{position:static;margin-top:20px;font-size:12px;line-height:18px}
+  .mapw{position:relative;left:auto;width:100%;margin:0}
+  .mapw .lab{font-size:max(9px,1.727cqw)}
+  .mapw .ws{font-size:max(9px,2.243cqw);white-space:normal;right:3%}
+  .mapw .chips{position:static;width:auto;margin-top:12px;gap:8px}
+  .mapw .chips li{font-size:11px;padding:4px 8px;border-color:rgba(27,59,5,.35);color:var(--deep);border-radius:6px;white-space:normal}
+  .snap > section.closing{padding:30px 16px}
+  .cl{height:220px}
+  .cl img{width:100%;-webkit-mask:linear-gradient(90deg,transparent,#000 50%);mask:linear-gradient(90deg,transparent,#000 50%)}
+  .cl::after{inset:10px}
+  .cl h2{left:24px;top:30px;font-size:22px;line-height:28px}
+  .cl a{left:24px;top:auto;bottom:26px;height:34px;padding:0 14px;font-size:10px}
 }
 
 /* pie compartido (lo pinta /assets/lawang-pie.js), última parada del scroll */
@@ -393,38 +474,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   .nav-cta .cta-label{display:none}
   .nav-cta,#topbar.scrolled .nav-cta,#topbar.solid .nav-cta{padding-right:7px;border-color:transparent;background:transparent}
   .nav-cta .wa{width:30px;height:30px}.nav-cta .wa svg{width:17px;height:17px}
-
-  .soul{display:block;padding-top:58px}
-  .soul-hero{height:56vw}
-  .soul-hero::before{display:none}
-  .soul-hero h1{font-size:6.2vw;white-space:normal;bottom:12px;padding:0 16px;text-shadow:0 1px 14px rgba(0,0,0,.45)}
-  .soul-sub{font-size:4.2vw;margin:18px 16px 0}
-  .stats{grid-template-columns:1fr 1fr;justify-content:stretch;gap:22px 16px;padding:28px 16px 32px;text-align:center}
-  .stats .n{font-size:13vw}.stats .l{font-size:4.6vw}
-  .deco,br.d{display:none}
-  .tiles{grid-template-columns:1fr 1fr}
-  .tile{height:44vw}
-  .tile h2{left:14px;top:12px;font-size:4.4vw}
-  .svc-in{display:block;height:auto;padding:84px 16px 40px}
-  .svc h2 .t1,.svc h2 .t2{font-size:10vw}
-  .stat{margin-top:26px}.stat .n{font-size:9vw}.stat .l{font-size:8vw}
-  .rule{margin:18px 0}
-  .chips li{font-size:12px;min-height:36px;padding:6px 12px}
-  .pane[hidden]{display:none}
-  .aio{margin-top:36px}
-  .aio p{font-size:13px}
-  .svc-list-h{justify-content:flex-start}
-  .band{height:64px;font-size:14px;padding:0 16px}
-  .road{padding-bottom:40px}
-  .road>img{object-position:50% 100%}
-  .road::after{background:linear-gradient(180deg,rgba(0,22,32,.1),rgba(0,22,32,.55) 30%,rgba(0,22,32,.55))}
-  .road-in{padding-top:84px}
-  .frame h2{font-size:8.4vw}
-  .frame .one{font-size:12px;height:32px}
-  .steps{grid-template-columns:1fr;gap:26px;margin:48px 16px 0}
-  .step h3{margin-left:0;font-size:14px}
-  .step h3::before{-webkit-mask:none;mask:none}
-  .step p{font-size:12.5px}
 }
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
@@ -465,183 +514,194 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   </div>
 </header>
 
-<!-- ════════ SNAP — 1 pantalla = 1 sección ════════ -->
+<!-- ════════ SUBMENÚ DE THE SOUL (solo esta página) ════════ -->
+<nav class="soulnav" aria-label="The Soul">
+  <ul>
+    <li><a href="#who" data-s="who" data-i18n="bn.who">Who we are</a></li>
+    <li><a href="#indonesia" data-s="why" data-i18n="bn.why">Why Indonesia</a></li>
+    <li><a href="#how" data-s="how" data-i18n="bn.how">How it works</a></li>
+    <li><a href="#zoning" data-s="prot" data-i18n="bn.prot">What protects you</a></li>
+    <li><a href="#see" data-s="see" data-i18n="bn.see">Come see it</a></li>
+  </ul>
+</nav>
+
+<!-- ════════ SNAP — 1 pantalla = 1 página del PDF ════════ -->
 <main class="snap" id="snap">
 
-<section class="soul" id="soul" aria-labelledby="soul-h">
-  <div class="soul-hero">
+<section class="hero" id="soul" aria-labelledby="soul-h"><div class="st">
+  <div class="ph bleed">
     <img src="/assets/img/soul/soul-hero.webp" width="1711" height="919" alt="Living room of a Lawang villa with a floating timber staircase and an indoor garden" fetchpriority="high">
-    <h1 id="soul-h"><span class="b">LAWANG</span> TROPICAL PROPERTIES</h1>
+    <h1 id="soul-h"><span class="m">LAWANG</span> TROPICAL PROPERTIES</h1>
   </div>
-  <p class="soul-sub" data-i18n-html="soul.sub"><span class="b">ALL-IN-ONE BUSINESS</span>, FROM LAND TO LEGACY.</p>
-  <img class="deco lamp" src="/assets/img/soul/deco-lamp.webp" alt="" aria-hidden="true">
-  <img class="deco chair" src="/assets/img/soul/deco-chair.webp" alt="" aria-hidden="true">
-  <ul class="stats">
-    <li><span class="n">100+</span><span class="l" data-i18n-html="st.inv">Investors</span></li>
-    <li><span class="n">500K+</span><span class="l" data-i18n-html="st.land">SQM land</span></li>
-    <li><span class="n">80+</span><span class="l" data-i18n-html="st.bld">Buildings</span></li>
-    <li><span class="n">6+</span><span class="l" data-i18n-html="st.yrs">Years</span></li>
+  <img class="sil" src="/assets/img/soul/soul-sil-2.webp" alt="" aria-hidden="true" style="left:calc(81*var(--u));top:calc(449*var(--u));width:calc(463*var(--u))">
+  <img class="sil" src="/assets/img/soul/soul-sil-3.webp" alt="" aria-hidden="true" style="left:calc(509*var(--u));top:calc(605*var(--u));width:calc(297*var(--u))">
+  <img class="sil" src="/assets/img/soul/soul-sil-1.webp" alt="" aria-hidden="true" style="left:calc(830*var(--u));top:calc(524*var(--u));width:calc(277*var(--u))">
+  <img class="totem" src="/assets/img/soul/soul-totem.webp" alt="" aria-hidden="true">
+  <h2 data-i18n-html="h.h1">STRATEGIC LAND AND ASSET PLATFORM IN INDONESIA.</h2>
+  <p class="sub" data-i18n-html="h.sub"><b>BALI · SUMBA</b>. AN ALL-IN-ONE BUSINESS, FROM LAND TO LEGACY.</p>
+  <ul class="stats4">
+    <li style="left:calc(280*var(--u))"><span class="n">500K+</span><span class="l" data-i18n-html="st.land">SQM land</span></li>
+    <li style="left:calc(588*var(--u))"><span class="n">80+</span><span class="l" data-i18n-html="st.bld">Buildings</span></li>
+    <li style="left:calc(906*var(--u))"><span class="n">100+</span><span class="l" data-i18n-html="st.inv">Investors</span></li>
+    <li style="left:calc(1154*var(--u))"><span class="n">6+</span><span class="l" data-i18n-html="st.yrs">Years</span></li>
   </ul>
-  <ul class="tiles">
-    <li class="tile"><img src="/assets/img/soul/tile-visits.webp" width="1000" height="667" loading="lazy" alt="Lawang investors on a site visit, gathered on a beach"><h2 data-i18n-html="tl.visits">The Visits</h2></li>
-    <li class="tile"><img src="/assets/img/soul/tile-plots.webp" width="1000" height="563" loading="lazy" alt="Aerial view of a cleared plot among palm forest"><h2 data-i18n-html="tl.plots">The Plots</h2></li>
-    <li class="tile"><img src="/assets/img/soul/tile-villas.webp" width="1000" height="746" loading="lazy" alt="Timber dining pavilion inside a Lawang villa"><h2 data-i18n-html="tl.villas">The Villas</h2></li>
-    <li class="tile"><img src="/assets/img/soul/tile-office.webp" width="1000" height="926" loading="lazy" alt="Corridor of the Lawang office with glass-walled rooms"><h2 data-i18n-html="tl.office">The Office</h2></li>
-  </ul>
-</section>
+  <div class="claim">
+    <p class="k" data-i18n-html="cl.k">A real estate company that shows you</p>
+    <p class="it" data-i18n-html="cl.it">What you'll hold, <br>what it costs <br>where you can build</p>
+    <p class="k k2" data-i18n-html="cl.k2">In a few clicks with our own <b>portal</b></p>
+  </div>
+</div></section>
 
-<section class="svc" id="services" aria-label="The services">
-  <div class="svc-bg on" data-k="territorial"><img src="/assets/img/soul/bg-territorial.webp" alt="" loading="lazy"></div>
-  <div class="svc-bg" data-k="development"><img src="/assets/img/soul/bg-development.webp" alt="" loading="lazy"></div>
-  <div class="svc-bg" data-k="legal"><img src="/assets/img/soul/bg-legal.webp" alt="" loading="lazy"></div>
-  <div class="svc-bg" data-k="management"><img src="/assets/img/soul/bg-management.webp" alt="" loading="lazy"></div>
-
-  <div class="svc-in">
-    <div class="svc-left">
-      <div class="pane" data-k="territorial" id="pane-territorial">
-        <span class="kick" style="--k:#22390f" data-i18n-html="k.terr">Verified long-term areas.</span>
-        <h2 data-i18n-html="h.terr"><span class="t1">Territorial</span><span class="t2">Sourcing</span></h2>
-        <p class="stat"><span class="n">500K+</span><span class="l" data-i18n-html="st.land">SQM land</span></p>
-        <span class="rule" aria-hidden="true"></span>
-        <ul class="chips"><li data-i18n-html="c.zon">Zoning verification</li><li data-i18n-html="c.acc">Access and infrastructure</li><li data-i18n-html="c.mkt">Market research</li><li data-i18n-html="c.neg">Direct-owner negotiation</li></ul>
-      </div>
-      <div class="pane" data-k="development" id="pane-development" hidden>
-        <span class="kick" style="--k:#42200a" data-i18n-html="k.dev">Structural integrity. Local knowledge.</span>
-        <h2 data-i18n-html="h.dev"><span class="t1">Development</span><span class="t2">and build</span></h2>
-        <p class="stat"><span class="n">80+</span><span class="l" data-i18n-html="st.bld">Buildings</span></p>
-        <span class="rule" aria-hidden="true"></span>
-        <ul class="chips col"><li data-i18n-html="c.std">International construction standards</li><li data-i18n-html="c.mat">Tropical-grade materials</li><li data-i18n-html="c.des">Architectural and structural design</li></ul>
-      </div>
-      <div class="pane" data-k="legal" id="pane-legal" hidden>
-        <span class="kick" style="--k:#1b4245" data-i18n-html="k.legal">Clear fiscal structure.</span>
-        <h2 data-i18n-html="h.legal"><span class="t1">Legal <span class="and">and</span></span><span class="t2">Structure</span></h2>
-        <p class="stat"><span class="n">100+</span><span class="l" data-i18n-html="st.inv">Investors</span></p>
-        <span class="rule" aria-hidden="true"></span>
-        <ul class="chips"><li data-i18n-html="c.for">Structures for foreign buyers</li><li data-i18n-html="c.cmp">Completion certification</li><li data-i18n-html="c.tit">Title verification and structure selection</li><li data-i18n-html="c.not">Notary process, deed and permit filing</li></ul>
-      </div>
-      <div class="pane" data-k="management" id="pane-management" hidden>
-        <span class="kick" style="--k:#425b32" data-i18n-html="k.mgmt">Curated local partners.</span>
-        <h2 data-i18n-html="h.mgmt"><span class="t1">Management</span><span class="t2">and returns</span></h2>
-        <p class="stat"><span class="n">6+</span><span class="l" data-i18n-html="st.yrs">Years</span></p>
-        <span class="rule" aria-hidden="true"></span>
-        <ul class="chips col"><li data-i18n-html="c.mnt">Maintenance and asset upkeep</li><li data-i18n-html="c.fin">Financial reporting to the owner</li><li data-i18n-html="c.bok">Booking/occupancy and guest operation</li></ul>
-      </div>
-    </div>
-
-    <div class="svc-right">
-      <div class="aio">
-        <div class="h"><svg aria-hidden="true" id="aio-ico" viewBox="0 0 60 35"><use href="#ico-territorial"/></svg><span data-i18n-html="aio">ALL-IN-ONE</span></div>
-        <div class="aio-txt">
-          <p class="pane" data-k="territorial" data-i18n-html="p.terr">We identify and secure land in <span class="b">Indonesia's highest-potential growth corridors.</span></p>
-          <p class="pane" data-k="development" hidden data-i18n-html="p.dev">We design and build with <span class="b">tropical-grade materials</span> and strict on-site control.</p>
-          <p class="pane" data-k="legal" hidden data-i18n-html="p.legal">We structure every acquisition <span class="b">title, company, and tax — with clear legal and fiscal steps from day one.</span></p>
-          <p class="pane" data-k="management" hidden data-i18n-html="p.mgmt"><span class="b">Once built, our trusted local partners</span> manage the property and your returns.</p>
-        </div>
-      </div>
-      <button class="svc-list-h" id="svc-toggle" aria-expanded="true" aria-controls="bands"><span data-i18n="svc.list">THE SERVICES</span>
-        <svg class="iso" viewBox="0 0 34 37" aria-hidden="true"><use href="#isotipo"/></svg>
-        <svg class="chev" viewBox="0 0 14 8" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1 1l6 6 6-6"/></svg>
-      </button>
-      <ul class="bands" id="bands">
-        <li data-k="territorial" hidden><button class="band" data-k="territorial" aria-controls="pane-territorial"><img src="/assets/img/soul/band-territorial.webp" alt="" loading="lazy"><span data-i18n-html="b.terr"><span class="b">Territorial</span> sourcing</span><svg viewBox="0 0 60 35" aria-hidden="true"><use href="#ico-territorial"/></svg></button></li>
-        <li data-k="development"><button class="band" data-k="development" aria-controls="pane-development"><img src="/assets/img/soul/band-development.webp" alt="" loading="lazy"><span data-i18n-html="b.dev"><span class="b">Development</span> and build</span><svg viewBox="0 0 62 32" aria-hidden="true"><use href="#ico-development"/></svg></button></li>
-        <li data-k="legal"><button class="band" data-k="legal" aria-controls="pane-legal"><img src="/assets/img/soul/bg-legal.webp" alt="" loading="lazy"><span data-i18n-html="b.legal"><span class="b">Legal</span> and structure</span><svg viewBox="0 0 60 37" aria-hidden="true"><use href="#ico-legal"/></svg></button></li>
-        <li data-k="management"><button class="band" data-k="management" aria-controls="pane-management"><img src="/assets/img/soul/bg-management.webp" alt="" loading="lazy"><span data-i18n-html="b.mgmt"><span class="b">Management</span> and returns</span><svg viewBox="0 0 50 30" aria-hidden="true"><use href="#ico-management"/></svg></button></li>
+<section class="who" id="who" aria-labelledby="who-h" data-spy="who"><div class="st">
+  <div class="terr bleed">
+    <img src="/assets/img/soul/bg-territorial.webp" alt="Aerial view of rice fields and coastline in Indonesia" loading="lazy">
+    <div class="in">
+      <div class="fr" aria-hidden="true"></div>
+      <p class="tag" data-i18n-html="k.terr">Verified long-term areas.</p>
+      <h2 id="who-h" data-i18n-html="h.terr2"><b>TERRITORIAL</b> SOURCING</h2>
+      <p class="tp" data-i18n-html="t.p">Identify and secure land in Indonesia’s <br>highest potential growth corridors, <br>verified before the market catches on.</p>
+      <ul class="chips">
+        <li data-i18n-html="c.zon">Zoning verification</li>
+        <li data-i18n-html="c.mkt">Market research</li>
+        <li data-i18n-html="c.acc">Access and infrastructure</li>
+        <li data-i18n-html="c.neg">Direct-owner negotiation</li>
       </ul>
     </div>
   </div>
-</section>
+  <div class="svc-h"><p class="k" data-i18n-html="sv.k">All-in-one services</p><h2 data-i18n-html="sv.h">FOUR DISCIPLINES. <span class="m">ONE TEAM.</span></h2></div>
+  <ul class="cards4">
+    <li><span class="tab"><svg viewBox="0 0 60 35" aria-hidden="true" fill="currentColor"><use href="#ico-territorial"/></svg><span data-i18n-html="tb.terr">Territorial</span></span>
+      <div class="card"><img src="/assets/img/soul/card-territorial.webp" alt="Cleared hillside plot surrounded by palm trees" loading="lazy"><div class="num"><b>500K+</b><span data-i18n-html="st.land">SQM land</span></div><p class="d" data-i18n-html="d.terr">Securing land in <br>growth corridors.</p></div></li>
+    <li><span class="tab"><svg viewBox="0 0 62 32" aria-hidden="true" fill="currentColor"><use href="#ico-development"/></svg><span data-i18n-html="tb.dev">Development</span></span>
+      <div class="card"><img src="/assets/img/soul/card-development.webp" alt="Villa living room opening onto a sunset" loading="lazy"><div class="num"><b>80+</b><span data-i18n-html="st.bld">Buildings</span></div><p class="d" data-i18n-html="d.dev">Structural integrity <br>local knowledge.</p></div></li>
+    <li><span class="tab"><svg viewBox="0 0 60 37" aria-hidden="true" fill="currentColor"><use href="#ico-legal"/></svg><span data-i18n-html="tb.legal">Legal</span></span>
+      <div class="card"><img src="/assets/img/soul/card-legal.webp" alt="Aerial view of the coastline" loading="lazy"><div class="num"><b>100+</b><span data-i18n-html="st.inv">Investors</span></div><p class="d" data-i18n-html="d.legal">Clear fiscal structure <br>personalized process.</p></div></li>
+    <li><span class="tab"><svg viewBox="0 0 50 30" aria-hidden="true" fill="currentColor"><use href="#ico-management"/></svg><span data-i18n-html="tb.mgmt">Management</span></span>
+      <div class="card"><img src="/assets/img/soul/card-management.webp" alt="Corridor of the Lawang office" loading="lazy"><div class="num"><b>6+</b><span data-i18n-html="st.yrs">Years</span></div><p class="d" data-i18n-html="d.mgmt">Curated <br>local partners</p></div></li>
+  </ul>
+</div></section>
 
-<section class="road" id="roadmap" aria-labelledby="road-h">
-  <img src="/assets/img/soul/bg-roadmap.webp" width="1684" height="934" loading="lazy" alt="Three people sitting on the sand watching the sea at sunset">
-  <div class="road-in">
-    <div class="frame">
-      <span class="k" data-i18n-html="r.k">INVESTOR ROADMAP</span>
-      <h2 id="road-h" data-i18n-html="r.h"><span class="b">FROM RESERVATION</span> TO RETURN.</h2>
-      <span class="one" data-i18n-html="r.one">EVERY STAGE IN ONE LINE.</span>
+<section class="indo" id="indonesia" aria-labelledby="in-h" data-spy="why"><div class="st">
+  <div class="ban bleed">
+    <img src="/assets/img/soul/soul-indonesia.webp" alt="Palm trees and thatched roofs under a starry night sky" loading="lazy">
+    <div class="in">
+      <p class="t" data-t="INDONESIA">INDONESIA</p>
+      <p class="s" data-i18n-html="in.s">WHERE GROWTH <b>IS UNSTOPPABLE.</b></p>
+      <p class="f" data-i18n-html="in.f">2nd fastest <br><b>growing economy</b><br><small>in Asia</small></p>
+      <p class="g" data-i18n-html="in.g"><b>G20</b><br><b>host nation</b><br><small>2022</small></p>
     </div>
-    <ol class="steps">
-      <li class="step"><div class="box"><h3 data-i18n-html="s1.h">RESERVE</h3><p data-i18n-html="s1.p"><span class="b">Deposit secures your plot</span><br class="d"> under a signed<br class="d"> Letter of Reservation.</p></div></li>
-      <li class="step"><div class="box"><h3 data-i18n-html="s2.h">DUE DILIGENCE</h3><p data-i18n-html="s2.p"><span class="b">Your plot stays reserved</span><br class="d"> for the period set in your<br class="d"> Letter of Reservation.</p></div></li>
-      <li class="step"><div class="box"><h3 data-i18n-html="s3.h">NOTARIAL SIGNATURE</h3><p data-i18n-html="s3.p"><span class="b">HGB deed</span> to your PT PMA,<br class="d"> or <span class="b">Hak Sewa</span> without a company,<br class="d"> signed before a PPAT <span class="b">notary</span><br class="d"> (power of attorney available if you can't attend).</p></div></li>
-      <li class="step"><div class="box"><h3 data-i18n-html="s4.h">CONSTRUCTION</h3><p data-i18n-html="s4.p"><span class="b">Licensed contractors,</span> on-site<br class="d"> QC, tropical-grade materials<br class="d"> and standards.</p></div></li>
-      <li class="step"><div class="box"><h3 data-i18n-html="s5.h">DELIVERY</h3><p data-i18n-html="s5.p"><span class="b">Completion certification</span><br class="d"> (SLF) issued once the building<br class="d"> meets the requirements for use.</p></div></li>
-      <li class="step"><div class="box"><h3 data-i18n-html="s6.h">MANAGEMENT</h3><p data-i18n-html="s6.p"><span class="b">Our local partner network</span><br class="d"> runs the rental and reports<br class="d"> your returns.</p></div></li>
+  </div>
+  <p class="isl"><span data-i18n-html="isl">17,000 ISLANDS.&nbsp;<b>WE CHOSE TWO: BALI AND SUMBA.</b></span></p>
+  <ul class="kpis">
+    <li class="kpi k1"><div class="row"><span data-i18n-html="c1.k">Economic</span><b data-i18n-html="c1.n">5%+ GDP</b></div><p data-i18n-html="c1.p2"><b>Growth rate</b> — largest economy <br>in Southeast Asia, G20 member.</p></li>
+    <li class="kpi k2"><div class="row"><span data-i18n-html="c3.k">Profitability</span><b>9.5%–12.9%</b></div><p data-i18n-html="c3.p2"><b>Year-1 ROI range across the Palm Field <br>villa typologies</b> (forecast, not guaranteed).</p></li>
+    <li class="kpi k3"><div class="row"><span data-i18n-html="c4.k">Security</span><b>89/100</b></div><p data-i18n-html="c4.p"><b>Law and order index</b> — ranks above <br>Japan and the U.S. (Gallup, 2025).</p></li>
+  </ul>
+  <div class="ret"><h2 id="in-h" data-i18n-html="in.h">The economy, the build, <span class="b">the return.</span></h2><p data-i18n-html="in.p2">Three numbers an investor actually needs <b>before looking at any single project.</b></p></div>
+</div></section>
+
+<section class="why" id="why" aria-labelledby="why-h" data-spy="why"><div class="st">
+  <div class="hd">
+    <p class="k" data-i18n-html="w.k">The why</p>
+    <h2 id="why-h" data-i18n-html="w.h"><span class="m">TWO ISLANDS,</span> CHOSEN ON PURPOSE.</h2>
+    <p class="s" data-i18n-html="w.s"><b>WELL CONNECTED.</b> PERFECTLY POSITIONED.</p>
+  </div>
+  <ul class="isles">
+    <li class="isle"><img src="/assets/img/soul/isle-bali.webp" alt="Illustration of a Balinese temple with a woman carrying offerings" loading="lazy"><p class="nm r">BALI</p></li>
+    <li class="isle info"><img src="/assets/img/soul/isle-bali-info.webp" alt="Volcano and palm trees in Bali at dawn" loading="lazy">
+      <p class="lbl" data-i18n-html="ba.l">The island everyone chose.</p>
+      <ul class="facts">
+        <li><small data-i18n-html="ba.1s">Tropical paradise</small><strong data-i18n-html="ba.1v">25–32 °C all year</strong></li>
+        <li><strong data-i18n-html="ba.2v">+323% growth <em>in</em></strong><small data-i18n-html="ba.2s">Digital nomad population</small></li>
+        <li><small>Denpasar Ngurah Rai</small><strong data-i18n-html="ba.3v">International airport</strong></li>
+      </ul></li>
+    <li class="isle"><img src="/assets/img/soul/isle-sumba.webp" alt="Sumba weaver beside a traditional ikat textile" loading="lazy"><p class="nm l">SUMBA</p></li>
+    <li class="isle info"><img src="/assets/img/soul/isle-sumba-info.webp" alt="Traditional Sumba village with tall thatched roofs in the forest" loading="lazy">
+      <p class="lbl" data-i18n-html="su.l">Where the wild still decides.</p>
+      <ul class="facts">
+        <li><small data-i18n-html="su.1s">An island</small><strong data-i18n-html="su.1v">Frozen in time</strong></li>
+        <li><small data-i18n-html="su.2s">Top 8</small><strong data-i18n-html="su.2v">Luxury resorts</strong></li>
+        <li><small data-i18n-html="su.3s">Connected by</small><strong data-i18n-html="su.3v">Two airports</strong></li>
+      </ul></li>
+  </ul>
+</div></section>
+
+<section class="how" id="how" aria-labelledby="how-h" data-spy="how">
+  <img src="/assets/img/soul/bg-roadmap.webp" alt="Three people sitting on the beach looking at the sea at sunset" loading="lazy">
+  <div class="st">
+    <div class="hd"><p class="k" data-i18n-html="hw.k">How it works</p><h2 id="how-h" data-i18n-html="r.h"><span class="b">FROM RESERVATION</span> TO RETURN.</h2><span class="one" data-i18n-html="r.one">EVERY STAGE IN ONE LINE.</span></div>
+    <ol class="steps6">
+      <li><h3 data-i18n-html="s1.h">RESERVE</h3><p data-i18n-html="s1.p"><span class="b">Deposit secures your plot</span><br class="d"> under a signed<br class="d"> Letter of Reservation.</p></li>
+      <li><h3 data-i18n-html="s2.h">DUE DILIGENCE</h3><p data-i18n-html="s2.p"><span class="b">Your plot stays reserved</span><br class="d"> for the period set in your<br class="d"> Letter of Reservation.</p></li>
+      <li><h3 data-i18n-html="s3.h">NOTARIAL SIGNATURE</h3><p data-i18n-html="s3.p"><span class="b">HGB deed</span> to your PT PMA,<br class="d"> or <span class="b">Hak Sewa</span> without a company,<br class="d"> signed before a PPAT <span class="b">notary</span><br class="d"> (power of attorney available if you can't attend).</p></li>
+      <li><h3 data-i18n-html="s4.h">CONSTRUCTION</h3><p data-i18n-html="s4.p"><span class="b">Licensed contractors,</span> on-site<br class="d"> QC, tropical-grade materials<br class="d"> and standards.</p></li>
+      <li><h3 data-i18n-html="s5.h">DELIVERY</h3><p data-i18n-html="s5.p"><span class="b">Completion certification</span><br class="d"> (SLF) issued once the building<br class="d"> meets the requirements for use.</p></li>
+      <li><h3 data-i18n-html="s6.h">MANAGEMENT</h3><p data-i18n-html="s6.p"><span class="b">Our local partner network</span><br class="d"> runs the rental and reports<br class="d"> your returns.</p></li>
     </ol>
   </div>
 </section>
 
-<section class="legal hl" id="legal" aria-labelledby="lg-h">
-  <div class="hl-in">
-    <div class="hl-head">
-      <span class="hl-kick" data-i18n-html="lg.k">Legal &amp; fiscal</span>
-      <h2 class="hl-title" id="lg-h" data-i18n-html="lg.h"><em>What you'll hold, what it costs,</em> <span class="lt">and where you can build</span></h2>
-      <p class="hl-p" data-i18n-html="lg.p">Three plain questions: is the title real, is the money protected, and where is building actually allowed.</p>
-    </div>
-    <div class="hl-body">
-      <div>
-        <p class="hl-sub" data-i18n-html="lg.flow">How a foreign investor holds Bali real estate</p>
-        <!-- Dos rutas (owner, 24-sep): con empresa, Freehold HGB via PT PMA; sin empresa, Hak Sewa. -->
-        <div class="routes2">
-          <div class="hs inv"><span class="hs-t" data-i18n-html="fl.1">Foreign investor</span><span class="hs-s" data-i18n-html="fl.1s">You, the buyer</span></div>
-          <div class="rcol">
-            <div class="hs rt a"><span class="lab" data-i18n-html="rt.a">With a company</span>
-              <div class="steps2"><span class="hs-t">PT PMA</span><span class="ar" aria-hidden="true">→</span><span class="hs-t fin">Freehold HGB</span></div>
-              <span class="hs-s"><span data-i18n-html="fl.2s">Foreign-owned Indonesian company</span> · <span data-i18n-html="fl.3s">30 years, then extendable 20 + 30</span></span></div>
-            <div class="hs rt b"><span class="lab" data-i18n-html="rt.b">Without a company</span>
-              <div class="steps2"><span class="hs-t fin">Hak Sewa</span></div>
-              <span class="hs-s" data-i18n-html="fl.4s">Registered lease — up to 30 years per grant, renewable</span></div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <p class="hl-sub" data-i18n-html="cm.t">Registered title and notarial process vs. informal leasehold</p>
-        <div class="cmp2" role="table" aria-labelledby="lg-h">
-        <div class="cmp2-r cmp2-h" role="row"><div class="a" role="columnheader" data-i18n-html="cm.h1">Aspect</div><div class="l" role="columnheader">Lawang</div><div class="n" role="columnheader" data-i18n-html="cm.h3">Common practice</div></div>
-        <div class="cmp2-r" role="row"><div class="a" role="cell"><strong data-i18n-html="cm.1a">Payment security</strong><span data-i18n-html="cm.1b">Notarial process (PPAT)</span></div><div class="l" role="cell"><span class="ic" aria-hidden="true">✓</span><span data-i18n-html="cm.1l">Reservation and stage payments follow the signed agreement and are released against agreed conditions.</span></div><div class="n" role="cell"><span class="ic" aria-hidden="true">✕</span><span data-i18n-html="cm.1n">Funds paid directly to a private landowner or intermediary, with no third-party custody.</span></div></div>
-        <div class="cmp2-r" role="row"><div class="a" role="cell"><strong data-i18n-html="cm.2a">Term &amp; registration</strong><span data-i18n-html="cm.2b">HGB or Hak Sewa, Indonesian law</span></div><div class="l" role="cell"><span class="ic" aria-hidden="true">✓</span><span data-i18n-html="cm.2l">Registered title: Freehold HGB through your PT PMA, or Hak Sewa if you buy without a company. Transferable and heritable.</span></div><div class="n" role="cell"><span class="ic" aria-hidden="true">✕</span><span data-i18n-html="cm.2n">Unregistered private agreement with no guaranteed renewal and limited transferability.</span></div></div>
-        <div class="cmp2-r" role="row"><div class="a" role="cell"><strong data-i18n-html="cm.3a">Building permits (PBG / SLF)</strong><span data-i18n-html="cm.3b">Government portal (SIMBG)</span></div><div class="l" role="cell"><span class="ic" aria-hidden="true">✓</span><span data-i18n-html="cm.3l">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</span></div><div class="n" role="cell"><span class="ic" aria-hidden="true">✕</span><span data-i18n-html="cm.3n">Frequently started without permits or with permits pending, exposed to government closure.</span></div></div>
-        <div class="cmp2-r" role="row"><div class="a" role="cell"><strong data-i18n-html="cm.4a">Land zoning (RDTR)</strong><span data-i18n-html="cm.4b">Official urban classification</span></div><div class="l" role="cell"><span class="ic" aria-hidden="true">✓</span><span data-i18n-html="cm.4l">Zoned for tourism / residential use, legally enabled for short-stay rental income.</span></div><div class="n" role="cell"><span class="ic" aria-hidden="true">✕</span><span data-i18n-html="cm.4n">Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</span></div></div>
-        </div>
-      </div>
-    </div>
+<section class="routes" id="routes" aria-labelledby="ro-h" data-spy="how"><div class="st">
+  <h2 class="tt" id="ro-h"><span class="a" data-i18n-html="ro.a">How a</span><span class="bg" data-i18n-html="ro.b"><span>FOREIGN</span><span>INVESTOR</span></span><span class="c" data-i18n-html="ro.c">holds Bali real estate</span></h2>
+  <div class="opts">
+    <div class="opt pma"><p class="k" data-i18n-html="rt.a">With a company</p><h3>PT PMA <small>– FREEHOLD HGB</small></h3><p class="s" data-i18n-html="ro.ps">Best for long-term wealth and rentals</p></div>
+    <div class="opt sewa"><p class="k" data-i18n-html="rt.b">Without a company</p><h3>HAK SEWA</h3><p class="s" data-i18n-html="ro.ss">Best for a simpler, no-company route</p></div>
   </div>
-</section>
+  <div class="cmp" role="table" aria-label="PT PMA vs Hak Sewa">
+    <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r1">What it is</div><div class="v v1" role="cell" data-i18n-html="ro.r1a">An Indonesian company you own holds the HGB title.</div><div class="v v2" role="cell" data-i18n-html="ro.r1b">A long-term lease, registered before a notary.</div></div>
+    <div class="tr" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r2">Holds the title</div><div class="v v1" role="cell" data-i18n-html="ro.r2a">Your PT PMA</div><div class="v v2" role="cell" data-i18n-html="ro.r2b">You, as the lessee</div></div>
+    <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r3">Term</div><div class="v v1" role="cell" data-i18n-html="ro.r3a">30 years, extendable 20 + 30</div><div class="v v2" role="cell" data-i18n-html="ro.r3b">Up to 30 years, renewable</div></div>
+    <div class="tr" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r4">You can</div><div class="v v1" role="cell" data-i18n-html="ro.r4a">Sell, inherit, mortgage and run rentals</div><div class="v v2" role="cell" data-i18n-html="ro.r4b">Transfer and inherit</div></div>
+    <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r5">Setup</div><div class="v v1" role="cell"><span data-i18n-html="ro.r5a">A company to set up and maintain</span> <span class="dots" role="img" aria-label="3/3"><i class="f"></i><i class="f"></i><i class="f"></i></span></div><div class="v v2" role="cell"><span data-i18n-html="ro.r5b">One notarial contract</span> <span class="dots" role="img" aria-label="1/3"><i class="f"></i><i></i><i></i></span></div></div>
+  </div>
+</div></section>
 
-<section class="zone hl" id="zoning" aria-labelledby="zn-h">
-  <div class="hl-in">
-    <div class="hl-head">
-      <span class="hl-kick" data-i18n-html="zn.k">Land zoning · RDTR</span>
-      <h2 class="hl-title" id="zn-h" data-i18n-html="zn.h"><em>What the land's colour</em> <span class="lt">actually means</span></h2>
-      <p class="hl-p" data-i18n-html="zn.p">Every plot in Indonesia is classified on the official RDTR zoning map. The colour decides whether it's legally buildable — and whether a PBG can be issued at all.</p>
-    </div>
-    <ul class="zg">
-      <li class="hs" style="--bg:#8a6a24;--sw:#e0b54a"><img class="zph" src="/assets/img/soul/zone-residential.webp" width="1200" height="675" loading="lazy" alt="Aerial view of a Balinese village and river"><span class="dot"><i></i></span><div class="cap"><span class="hs-t" data-i18n-html="z1.h">Residential</span><span class="hs-s" data-i18n-html="z1.t">Yellow</span><p data-i18n-html="z1.p">Areas zoned for housing. Construction is allowed within the approved use.</p><span class="pill" data-i18n-html="z.ok">✓ Buildable</span></div></li>
-      <li class="hs" style="--bg:#104C4F;--sw:#6fa7c4"><img class="zph" src="/assets/img/soul/zone-tourism.webp" width="1200" height="675" loading="lazy" alt="Aerial view of a villa on the Balian coast"><span class="dot"><i></i></span><div class="cap"><span class="hs-t" data-i18n-html="z2.h">Dedicated zones</span><span class="hs-s" data-i18n-html="z2.t">Tourism / commercial</span><p data-i18n-html="z2.p">Zones set aside for tourism and commercial use.</p><span class="pill" data-i18n-html="z.ok">✓ Buildable</span></div></li>
-      <li class="hs" style="--bg:#485B37;--sw:#9fc27a"><img class="zph" src="/assets/img/soul/zone-green.webp" width="1200" height="675" loading="lazy" alt="Aerial view of protected rice fields"><span class="dot"><i></i></span><div class="cap"><span class="hs-t" data-i18n-html="z3.h">Protected agricultural land</span><span class="hs-s" data-i18n-html="z3.t">Green</span><p data-i18n-html="z3.p">Building is prohibited and no PBG can be issued.</p><span class="pill" data-i18n-html="z.ko">✕ Not buildable</span></div></li>
-    </ul>
-    <p class="zn-foot" data-i18n-html="zn.n">We only acquire and develop land that is correctly zoned for construction — <span class="b">never green / agricultural</span> — and we verify the zoning before anything else.</p>
+<section class="see" id="see" aria-labelledby="see-h" data-spy="see"><div class="st">
+  <div class="bn"><img src="/assets/img/soul/visits-banner.webp" alt="Aerial view of a sandbar between turquoise water and forest" loading="lazy">
+    <p class="l" data-i18n-html="se.b">YOU SEE THE VIEW YOURSELF, <br><b>BEFORE YOU DECIDE.</b></p>
+    <p class="rr" data-i18n-html="se.r">WE DON'T LIST PROPERTIES. <br><b>WE SELECT THEM.</b></p></div>
+  <h2 id="see-h" data-i18n-html="se.h">THE VISITS. <span>THE OFFICE</span></h2>
+  <div class="cols2">
+    <div><p class="lead" data-i18n-html="se.l1">Once a month, we take investors to Bali and Sumba <br>to walk the actual land.</p><p class="body" data-i18n-html="se.p1">Not renders, not a deck. The trip covers our active plots, a guided route <br>through coast and villages, and the points of interest around each project.</p></div>
+    <div><p class="lead" data-i18n-html="se.l2">A real address, a real team, open during Bali hours.</p><p class="body" data-i18n-html="se.p2">We're not a website selling renders from somewhere else; you can <br>walk in, meet us, and see the same projects you're reviewing online.</p></div>
   </div>
-</section>
+  <div class="ph2"><img src="/assets/img/soul/tile-visits.webp" alt="Lawang investors on a site visit, gathered on a beach" loading="lazy" style="width:calc(856*var(--u));object-position:50% 36%"><img src="/assets/img/soul/tile-office.webp" alt="Corridor of the Lawang office in Bali" loading="lazy" style="width:calc(878*var(--u));object-position:37% 50%"></div>
+</div></section>
 
-<section class="indo" id="indonesia" aria-labelledby="in-h">
-  <img src="/assets/img/bg-indonesia.webp" width="2560" height="1440" loading="lazy" alt="">
-  <div class="in-in">
-    <span class="kick-l">Indonesia</span>
-    <h2 class="ttl" id="in-h" data-i18n-html="in.h">The economy, the build, <span class="b">the return.</span></h2>
-    <p class="intro" data-i18n-html="in.p">Three numbers an investor actually needs before looking at any single project.</p>
-    <ul class="cards3">
-      <li><span class="k" data-i18n-html="c1.k">Economic</span><span class="n" data-i18n-html="c1.n">5%+ GDP</span><p data-i18n-html="c1.p">Growth rate — largest economy in Southeast Asia, G20 member.</p></li>
-      <li><span class="k" data-i18n-html="c2.k">Construction</span><span class="n" data-i18n-html="c2.n">80+ buildings</span><p data-i18n-html="c2.p">Delivered or under construction across 500K+ sqm of managed land.</p></li>
-      <li><span class="k" data-i18n-html="c3.k">Profitability</span><span class="n">9.5%–12.9%</span><p data-i18n-html="c3.p">Year-1 ROI range across the Palm Field villa typologies (forecast, not guaranteed).</p></li>
-    </ul>
-    <ul class="band4">
-      <li><span class="n" data-i18n-html="b1.n">2nd</span><span class="l" data-i18n-html="b1.l">Fastest-growing economy in Asia</span></li>
-      <li><span class="n">G20</span><span class="l" data-i18n-html="b2.l">Host nation, 2022</span></li>
-      <li><span class="n" data-i18n-html="b3.n">4th</span><span class="l" data-i18n-html="b3.l">Most populous country</span></li>
-      <li><span class="n" data-i18n-html="b4.n">17,000+</span><span class="l" data-i18n-html="b4.l">Islands</span></li>
+<section class="zone" id="zoning" aria-labelledby="zn-h" data-spy="prot"><div class="st"><div class="zs">
+  <div class="strip" aria-hidden="true"></div>
+  <p class="k" data-i18n-html="zn.k">Land zoning · RDTR</p>
+  <h2 id="zn-h" data-i18n-html="zn.h"><em>What the land's colour</em> <span class="lt">actually means</span></h2>
+  <p class="p" data-i18n-html="zn.p">Every plot in Indonesia is classified on the official RDTR zoning map. The colour decides whether it's legally buildable — and whether a PBG can be issued at all.</p>
+  <ul class="zcards">
+    <li class="zc y"><img src="/assets/img/soul/zone-residential.webp" alt="Aerial view of a river valley with housing" loading="lazy"><span class="dot" aria-hidden="true"></span><div class="tx"><h3 data-i18n-html="z1.h">Residential</h3><p class="t2" data-i18n-html="z1.t">Yellow</p><p data-i18n-html="z1.p">Areas zoned for housing. Construction is allowed within the approved use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></li>
+    <li class="zc t"><img src="/assets/img/soul/zone-tourism.webp" alt="Aerial view of a villa by the coast" loading="lazy"><span class="dot" aria-hidden="true"></span><div class="tx"><h3 data-i18n-html="z2.h">Dedicated zones</h3><p class="t2" data-i18n-html="z2.t">Tourism / commercial</p><p data-i18n-html="z2.p">Zones set aside for tourism and commercial use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></li>
+    <li class="zc g"><img src="/assets/img/soul/zone-green.webp" alt="Aerial view of terraced rice fields" loading="lazy"><span class="dot" aria-hidden="true"></span><div class="tx"><h3 data-i18n-html="z3.h">Protected agricultural land</h3><p class="t2" data-i18n-html="z3.t">Green</p><p data-i18n-html="z3.p">Building is prohibited and no PBG can be issued.</p><p class="ok" data-i18n-html="z.ko">✕ Not buildable</p></div></li>
+  </ul>
+  <p class="note" data-i18n-html="zn.n">We only acquire and develop land that is correctly zoned for construction — <span class="b">never green / agricultural</span> — and we verify the zoning before anything else.</p>
+</div></div></section>
+
+<section class="map" id="map" aria-label="Indonesia" data-spy="prot"><div class="st">
+  <div class="mapw">
+    <img src="/assets/img/soul/soul-map.webp" width="1917" height="1207" alt="Map of Indonesia with flight routes from Bali to Vietnam, Malaysia, Singapore, Sumba and Australia" loading="lazy">
+    <p class="ws" data-i18n-html="in.s">WHERE GROWTH <b>IS UNSTOPPABLE.</b></p>
+    <span class="lab" style="left:26.55%;top:11.35%">Vietnam</span>
+    <span class="lab" style="left:17.53%;top:20.8%" data-i18n-html="mp.my">Malaysia</span>
+    <span class="lab" style="left:14.4%;top:38.36%" data-i18n-html="mp.sg">Singapore</span>
+    <span class="lab st2" style="left:42.41%;top:70.75%">Bali</span>
+    <span class="lab st2" style="left:53.47%;top:75.31%">Sumba</span>
+    <span class="lab" style="left:80.75%;top:81.6%">Australia</span>
+    <ul class="chips">
+      <li data-i18n-html="mp.1">2nd fastest-growing economy in Asia</li>
+      <li data-i18n-html="mp.2">G20 host in 2022</li>
+      <li data-i18n-html="mp.3">4th most populous country in the world</li>
+      <li data-i18n-html="mp.4">17,000+ islands</li>
     </ul>
   </div>
+</div></section>
+
+<section class="closing" id="closing" aria-labelledby="cl-h">
+  <div class="cl"><img src="/assets/img/soul/closing-women.webp" alt="Balinese women smiling in traditional headdresses" loading="lazy"><h2 id="cl-h" data-i18n-html="cl.h">EVERY GREAT LEGACY <br>BEGINS WITH A JOURNEY.</h2><a href="/thecollection#land"><span data-i18n-html="cl.a">Explore tropical territories</span> <span aria-hidden="true">→</span></a></div>
 </section>
 
 <footer data-lw-pie data-wa="https://wa.me/6281138319862">
@@ -652,18 +712,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 <script>
 /* Traducciones de esta pagina (EN/ES/ID). Menu y CTA = las de assets/i18n-home.js.
-   Glosario de Legal: Hak Sewa, PPAT, SLF y escrow NO se traducen. */
+   Glosario de Legal: Hak Sewa, HGB, freehold, PPAT, SLF y escrow NO se traducen. */
 var SOUL_I18N = {
-"soul.sub": {
-"en": "<span class=\"b\">ALL-IN-ONE BUSINESS</span>, FROM LAND TO LEGACY.",
-"es": "<span class=\"b\">TODO EN UNO</span>, DEL SUELO AL LEGADO.",
-"id": "<span class=\"b\">SEMUA DALAM SATU</span>, DARI TANAH HINGGA WARISAN."
-},
-"st.inv": {
-"en": "Investors",
-"es": "Inversores",
-"id": "Investor"
-},
 "st.land": {
 "en": "SQM land",
 "es": "m² de suelo",
@@ -674,190 +724,60 @@ var SOUL_I18N = {
 "es": "Edificios",
 "id": "Bangunan"
 },
+"st.inv": {
+"en": "Investors",
+"es": "Inversores",
+"id": "Investor"
+},
 "st.yrs": {
 "en": "Years",
 "es": "Años",
 "id": "Tahun"
-},
-"tl.visits": {
-"en": "The Visits",
-"es": "Las visitas",
-"id": "Kunjungan"
-},
-"tl.plots": {
-"en": "The Plots",
-"es": "Las parcelas",
-"id": "Kavling"
-},
-"tl.villas": {
-"en": "The Villas",
-"es": "Las villas",
-"id": "Villa"
-},
-"tl.office": {
-"en": "The Office",
-"es": "La oficina",
-"id": "Kantor"
 },
 "k.terr": {
 "en": "Verified long-term areas.",
 "es": "Zonas verificadas a largo plazo.",
 "id": "Kawasan terverifikasi jangka panjang."
 },
-"k.dev": {
-"en": "Structural integrity. Local knowledge.",
-"es": "Solidez estructural. Conocimiento local.",
-"id": "Integritas struktural. Pengetahuan lokal."
-},
-"k.legal": {
-"en": "Clear fiscal structure.",
-"es": "Estructura fiscal clara.",
-"id": "Struktur fiskal yang jelas."
-},
-"k.mgmt": {
-"en": "Curated local partners.",
-"es": "Socios locales seleccionados.",
-"id": "Mitra lokal pilihan."
-},
-"h.terr": {
-"en": "<span class=\"t1\">Territorial</span><span class=\"t2\">Sourcing</span>",
-"es": "<span class=\"t1\">Búsqueda</span><span class=\"t2\">territorial</span>",
-"id": "<span class=\"t1\">Pencarian</span><span class=\"t2\">lahan</span>"
-},
-"h.dev": {
-"en": "<span class=\"t1\">Development</span><span class=\"t2\">and build</span>",
-"es": "<span class=\"t1\">Desarrollo</span><span class=\"t2\">y obra</span>",
-"id": "<span class=\"t1\">Pengembangan</span><span class=\"t2\">dan konstruksi</span>"
-},
-"h.legal": {
-"en": "<span class=\"t1\">Legal <span class=\"and\">and</span></span><span class=\"t2\">Structure</span>",
-"es": "<span class=\"t1\">Legal <span class=\"and\">y</span></span><span class=\"t2\">Estructura</span>",
-"id": "<span class=\"t1\">Legal <span class=\"and\">dan</span></span><span class=\"t2\">Struktur</span>"
-},
-"h.mgmt": {
-"en": "<span class=\"t1\">Management</span><span class=\"t2\">and returns</span>",
-"es": "<span class=\"t1\">Gestión</span><span class=\"t2\">y rentabilidad</span>",
-"id": "<span class=\"t1\">Pengelolaan</span><span class=\"t2\">dan hasil</span>"
-},
 "c.zon": {
 "en": "Zoning verification",
 "es": "Verificación de zonificación",
 "id": "Verifikasi zonasi"
-},
-"c.acc": {
-"en": "Access and infrastructure",
-"es": "Accesos e infraestructura",
-"id": "Akses dan infrastruktur"
 },
 "c.mkt": {
 "en": "Market research",
 "es": "Estudio de mercado",
 "id": "Riset pasar"
 },
+"c.acc": {
+"en": "Access and infrastructure",
+"es": "Accesos e infraestructura",
+"id": "Akses dan infrastruktur"
+},
 "c.neg": {
 "en": "Direct-owner negotiation",
-"es": "Negociación directa con el propietario",
+"es": "Trato directo con el dueño",
 "id": "Negosiasi langsung dengan pemilik"
 },
-"c.std": {
-"en": "International construction standards",
-"es": "Estándares internacionales de construcción",
-"id": "Standar konstruksi internasional"
+"c1.k": {
+"en": "Economic",
+"es": "Economía",
+"id": "Ekonomi"
 },
-"c.mat": {
-"en": "Tropical-grade materials",
-"es": "Materiales aptos para el trópico",
-"id": "Material kelas tropis"
+"c1.n": {
+"en": "5%+ GDP",
+"es": "PIB +5%",
+"id": "PDB 5%+"
 },
-"c.des": {
-"en": "Architectural and structural design",
-"es": "Diseño arquitectónico y estructural",
-"id": "Desain arsitektur dan struktur"
+"c3.k": {
+"en": "Profitability",
+"es": "Rentabilidad",
+"id": "Profitabilitas"
 },
-"c.for": {
-"en": "Structures for foreign buyers",
-"es": "Estructuras para compradores extranjeros",
-"id": "Struktur untuk pembeli asing"
-},
-"c.cmp": {
-"en": "Completion certification",
-"es": "Certificado de fin de obra",
-"id": "Sertifikasi penyelesaian"
-},
-"c.tit": {
-"en": "Title verification and structure selection",
-"es": "Verificación del título y elección de estructura",
-"id": "Verifikasi sertifikat dan pemilihan struktur"
-},
-"c.not": {
-"en": "Notary process, deed and permit filing",
-"es": "Notaría, escritura y tramitación de licencias",
-"id": "Proses notaris, akta, dan pengurusan izin"
-},
-"c.mnt": {
-"en": "Maintenance and asset upkeep",
-"es": "Mantenimiento y conservación del activo",
-"id": "Pemeliharaan dan perawatan aset"
-},
-"c.fin": {
-"en": "Financial reporting to the owner",
-"es": "Informes financieros al propietario",
-"id": "Laporan keuangan untuk pemilik"
-},
-"c.bok": {
-"en": "Booking/occupancy and guest operation",
-"es": "Reservas, ocupación y atención a huéspedes",
-"id": "Pemesanan, okupansi, dan layanan tamu"
-},
-"aio": {
-"en": "ALL-IN-ONE",
-"es": "TODO EN UNO",
-"id": "SEMUA DALAM SATU"
-},
-"p.terr": {
-"en": "We identify and secure land in <span class=\"b\">Indonesia's highest-potential growth corridors.</span>",
-"es": "Identificamos y aseguramos suelo en <span class=\"b\">los corredores de crecimiento con más potencial de Indonesia.</span>",
-"id": "Kami mengidentifikasi dan mengamankan lahan di <span class=\"b\">koridor pertumbuhan paling potensial di Indonesia.</span>"
-},
-"p.dev": {
-"en": "We design and build with <span class=\"b\">tropical-grade materials</span> and strict on-site control.",
-"es": "Diseñamos y construimos con <span class=\"b\">materiales aptos para el trópico</span> y un control estricto en obra.",
-"id": "Kami merancang dan membangun dengan <span class=\"b\">material kelas tropis</span> dan pengawasan ketat di lapangan."
-},
-"p.legal": {
-"en": "We structure every acquisition <span class=\"b\">title, company, and tax — with clear legal and fiscal steps from day one.</span>",
-"es": "Estructuramos cada adquisición <span class=\"b\">—título, sociedad e impuestos— con pasos legales y fiscales claros desde el primer día.</span>",
-"id": "Kami menyusun struktur setiap akuisisi <span class=\"b\">— sertifikat, perusahaan, dan pajak — dengan langkah hukum dan fiskal yang jelas sejak hari pertama.</span>"
-},
-"p.mgmt": {
-"en": "<span class=\"b\">Once built, our trusted local partners</span> manage the property and your returns.",
-"es": "<span class=\"b\">Una vez construida, nuestros socios locales de confianza</span> gestionan la propiedad y tu rentabilidad.",
-"id": "<span class=\"b\">Setelah selesai dibangun, mitra lokal tepercaya kami</span> mengelola properti dan hasil investasi Anda."
-},
-"b.terr": {
-"en": "<span class=\"b\">Territorial</span> sourcing",
-"es": "<span class=\"b\">Búsqueda</span> territorial",
-"id": "<span class=\"b\">Pencarian</span> lahan"
-},
-"b.dev": {
-"en": "<span class=\"b\">Development</span> and build",
-"es": "<span class=\"b\">Desarrollo</span> y obra",
-"id": "<span class=\"b\">Pengembangan</span> dan konstruksi"
-},
-"b.legal": {
-"en": "<span class=\"b\">Legal</span> and structure",
-"es": "<span class=\"b\">Legal</span> y estructura",
-"id": "<span class=\"b\">Legal</span> dan struktur"
-},
-"b.mgmt": {
-"en": "<span class=\"b\">Management</span> and returns",
-"es": "<span class=\"b\">Gestión</span> y rentabilidad",
-"id": "<span class=\"b\">Pengelolaan</span> dan hasil"
-},
-"r.k": {
-"en": "INVESTOR ROADMAP",
-"es": "HOJA DE RUTA DEL INVERSOR",
-"id": "PETA JALAN INVESTOR"
+"in.h": {
+"en": "The economy, the build, <span class=\"b\">the return.</span>",
+"es": "La economía, la obra, <span class=\"b\">la rentabilidad.</span>",
+"id": "Ekonomi, pembangunan, <span class=\"b\">imbal hasil.</span>"
 },
 "r.h": {
 "en": "<span class=\"b\">FROM RESERVATION</span> TO RETURN.",
@@ -929,175 +849,15 @@ var SOUL_I18N = {
 "es": "<span class=\"b\">Nuestra red de socios locales</span> gestiona el alquiler y te informa de tu rentabilidad.",
 "id": "<span class=\"b\">Jaringan mitra lokal kami</span> mengelola penyewaan dan melaporkan hasil investasi Anda."
 },
-"foot": {
-"en": "All content — including prices, areas, renders, availability, delivery dates and projected returns — is indicative, may change without notice and does not constitute a binding offer, financial advice or a guarantee of return.",
-"es": "Todo el contenido —incluidos precios, superficies, renders, disponibilidad, fechas de entrega y rentabilidades previstas— es orientativo, puede cambiar sin previo aviso y no constituye una oferta vinculante, asesoramiento financiero ni garantía de rentabilidad.",
-"id": "Seluruh konten — termasuk harga, luas, render, ketersediaan, tanggal serah terima, dan proyeksi imbal hasil — bersifat indikatif, dapat berubah tanpa pemberitahuan, dan bukan merupakan penawaran yang mengikat, nasihat keuangan, maupun jaminan imbal hasil."
+"rt.a": {
+"en": "With a company",
+"es": "Con sociedad",
+"id": "Dengan perusahaan"
 },
-"nav.land": {
-"en": "The Land",
-"es": "El Suelo",
-"id": "Tanah"
-},
-"nav.villas": {
-"en": "The Villas",
-"es": "Las Villas",
-"id": "Villa"
-},
-"nav.soul": {
-"en": "The Soul",
-"es": "La Esencia",
-"id": "Jiwa"
-},
-"nav.portfolio": {
-"en": "The Portfolio",
-"es": "El Portafolio",
-"id": "Portofolio"
-},
-"cta.ask": {
-"en": "Ask Us Anything",
-"es": "Pregúntanos lo que sea",
-"id": "Tanya Apa Saja"
-},
-"svc.list": {
-"en": "THE SERVICES",
-"es": "LOS SERVICIOS",
-"id": "LAYANAN KAMI"
-},
-"lg.k": {
-"en": "Legal &amp; fiscal",
-"es": "Legal y fiscal",
-"id": "Legal &amp; fiskal"
-},
-"lg.h": {
-"en": "<em>What you'll hold, what it costs,</em> <span class=\"lt\">and where you can build</span>",
-"es": "<em>Qué vas a tener, qué cuesta</em> <span class=\"lt\">y dónde puedes construir</span>",
-"id": "<em>Apa yang Anda miliki, berapa biayanya,</em> <span class=\"lt\">dan di mana Anda boleh membangun</span>"
-},
-"lg.p": {
-"en": "Three plain questions: is the title real, is the money protected, and where is building actually allowed.",
-"es": "Tres preguntas claras: ¿el título es real?, ¿el dinero está protegido? y ¿dónde se puede construir de verdad?",
-"id": "Tiga pertanyaan sederhana: apakah haknya nyata, apakah dananya terlindungi, dan di mana membangun benar-benar diizinkan."
-},
-"lg.flow": {
-"en": "How a foreign investor holds Bali real estate",
-"es": "Cómo tiene un inversor extranjero un inmueble en Bali",
-"id": "Cara investor asing memegang properti di Bali"
-},
-"fl.1": {
-"en": "Foreign investor",
-"es": "Inversor extranjero",
-"id": "Investor asing"
-},
-"fl.1s": {
-"en": "You, the buyer",
-"es": "Tú, el comprador",
-"id": "Anda, sebagai pembeli"
-},
-"fl.2s": {
-"en": "Foreign-owned Indonesian company",
-"es": "Sociedad indonesia de capital extranjero",
-"id": "Perusahaan Indonesia bermodal asing"
-},
-"fl.3s": {
-"en": "30 years, then extendable 20 + 30",
-"es": "30 años, prorrogables 20 + 30",
-"id": "30 tahun, lalu dapat diperpanjang 20 + 30"
-},
-"cm.t": {
-"en": "Registered title and notarial process vs. informal leasehold",
-"es": "Título inscrito y proceso notarial frente al leasehold informal",
-"id": "Hak terdaftar dengan proses notaris vs. leasehold informal"
-},
-"cm.h1": {
-"en": "Aspect",
-"es": "Aspecto",
-"id": "Aspek"
-},
-"cm.h3": {
-"en": "Common practice",
-"es": "Práctica habitual",
-"id": "Praktik umum"
-},
-"cm.1a": {
-"en": "Payment security",
-"es": "Seguridad del pago",
-"id": "Keamanan pembayaran"
-},
-"cm.1b": {
-"en": "Notarial process (PPAT)",
-"es": "Proceso notarial (PPAT)",
-"id": "Proses notaris (PPAT)"
-},
-"cm.1l": {
-"en": "Reservation and stage payments follow the signed agreement and are released against agreed conditions.",
-"es": "La reserva y los pagos por hitos siguen el contrato firmado y se liberan contra las condiciones pactadas.",
-"id": "Pemesanan dan pembayaran bertahap mengikuti perjanjian yang ditandatangani dan dilepas sesuai syarat yang disepakati."
-},
-"cm.1n": {
-"en": "Funds paid directly to a private landowner or intermediary, with no third-party custody.",
-"es": "El dinero se paga directamente a un propietario particular o a un intermediario, sin custodia de un tercero.",
-"id": "Dana dibayarkan langsung ke pemilik tanah atau perantara, tanpa kustodian pihak ketiga."
-},
-"cm.2a": {
-"en": "Term &amp; registration",
-"es": "Plazo y registro",
-"id": "Jangka waktu &amp; pendaftaran"
-},
-"cm.2b": {
-"en": "HGB or Hak Sewa, Indonesian law",
-"es": "HGB o Hak Sewa, derecho indonesio",
-"id": "HGB atau Hak Sewa, hukum Indonesia"
-},
-"cm.2l": {
-"en": "Registered title: Freehold HGB through your PT PMA, or Hak Sewa if you buy without a company. Transferable and heritable.",
-"es": "Título inscrito: Freehold HGB a través de tu PT PMA, o Hak Sewa si compras sin sociedad. Transmisible y heredable.",
-"id": "Hak terdaftar: Freehold HGB melalui PT PMA Anda, atau Hak Sewa jika membeli tanpa perusahaan. Dapat dialihkan dan diwariskan."
-},
-"cm.2n": {
-"en": "Unregistered private agreement with no guaranteed renewal and limited transferability.",
-"es": "Acuerdo privado sin inscribir, sin renovación garantizada y con transmisibilidad limitada.",
-"id": "Perjanjian privat tanpa pendaftaran, tanpa jaminan perpanjangan dan dengan pengalihan terbatas."
-},
-"cm.3a": {
-"en": "Building permits (PBG / SLF)",
-"es": "Licencias de obra (PBG / SLF)",
-"id": "Izin bangunan (PBG / SLF)"
-},
-"cm.3b": {
-"en": "Government portal (SIMBG)",
-"es": "Portal del gobierno (SIMBG)",
-"id": "Portal pemerintah (SIMBG)"
-},
-"cm.3l": {
-"en": "Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.",
-"es": "Aprobadas antes de construir, con certificado de ocupación (SLF) que habilita el alquiler de corta estancia legal.",
-"id": "Disetujui sebelum konstruksi, dengan sertifikat laik fungsi (SLF) yang memungkinkan sewa jangka pendek secara legal."
-},
-"cm.3n": {
-"en": "Frequently started without permits or with permits pending, exposed to government closure.",
-"es": "Se empieza a menudo sin licencia o con la licencia pendiente, expuesto al cierre administrativo.",
-"id": "Sering dimulai tanpa izin atau dengan izin yang masih diproses, berisiko ditutup pemerintah."
-},
-"cm.4a": {
-"en": "Land zoning (RDTR)",
-"es": "Calificación del suelo (RDTR)",
-"id": "Zonasi lahan (RDTR)"
-},
-"cm.4b": {
-"en": "Official urban classification",
-"es": "Clasificación urbanística oficial",
-"id": "Klasifikasi tata ruang resmi"
-},
-"cm.4l": {
-"en": "Zoned for tourism / residential use, legally enabled for short-stay rental income.",
-"es": "Calificado para uso turístico / residencial, habilitado legalmente para ingresos por alquiler de corta estancia.",
-"id": "Berzonasi pariwisata / hunian, secara hukum boleh menghasilkan pendapatan sewa jangka pendek."
-},
-"cm.4n": {
-"en": "Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.",
-"es": "A menudo sobre suelo verde o de protección agrícola (LSD/LP2B), no edificable legalmente.",
-"id": "Sering berada di lahan hijau atau lahan pertanian dilindungi (LSD/LP2B), yang secara hukum tidak boleh dibangun."
+"rt.b": {
+"en": "Without a company",
+"es": "Sin sociedad",
+"id": "Tanpa perusahaan"
 },
 "zn.k": {
 "en": "Land zoning · RDTR",
@@ -1174,105 +934,450 @@ var SOUL_I18N = {
 "es": "Solo compramos y desarrollamos suelo correctamente calificado para construir —<span class=\"b\">nunca verde / agrícola</span>— y verificamos la calificación antes que nada.",
 "id": "Kami hanya membeli dan mengembangkan tanah dengan zonasi yang tepat untuk konstruksi — <span class=\"b\">tidak pernah hijau / pertanian</span> — dan kami memeriksa zonasinya sebelum hal lain."
 },
-"in.h": {
-"en": "The economy, the build, <span class=\"b\">the return.</span>",
-"es": "La economía, la obra, <span class=\"b\">la rentabilidad.</span>",
-"id": "Ekonomi, pembangunan, <span class=\"b\">imbal hasil.</span>"
+"foot": {
+"en": "All content — including prices, areas, renders, availability, delivery dates and projected returns — is indicative, may change without notice and does not constitute a binding offer, financial advice or a guarantee of return.",
+"es": "Todo el contenido —incluidos precios, superficies, renders, disponibilidad, fechas de entrega y rentabilidades previstas— es orientativo, puede cambiar sin previo aviso y no constituye una oferta vinculante, asesoramiento financiero ni garantía de rentabilidad.",
+"id": "Seluruh konten — termasuk harga, luas, render, ketersediaan, tanggal serah terima, dan proyeksi imbal hasil — bersifat indikatif, dapat berubah tanpa pemberitahuan, dan bukan merupakan penawaran yang mengikat, nasihat keuangan, maupun jaminan imbal hasil."
 },
-"in.p": {
-"en": "Three numbers an investor actually needs before looking at any single project.",
-"es": "Tres cifras que un inversor necesita de verdad antes de mirar un proyecto concreto.",
-"id": "Tiga angka yang benar-benar dibutuhkan investor sebelum melihat satu proyek pun."
+"nav.land": {
+"en": "The Land",
+"es": "El Suelo",
+"id": "Tanah"
 },
-"c1.k": {
-"en": "Economic",
-"es": "Economía",
-"id": "Ekonomi"
+"nav.villas": {
+"en": "The Villas",
+"es": "Las Villas",
+"id": "Villa"
 },
-"c1.n": {
-"en": "5%+ GDP",
-"es": "PIB +5%",
-"id": "PDB 5%+"
+"nav.soul": {
+"en": "The Soul",
+"es": "La Esencia",
+"id": "Jiwa"
 },
-"c1.p": {
-"en": "Growth rate — largest economy in Southeast Asia, G20 member.",
-"es": "Ritmo de crecimiento: la mayor economía del Sudeste Asiático, miembro del G20.",
-"id": "Laju pertumbuhan — ekonomi terbesar di Asia Tenggara, anggota G20."
+"nav.portfolio": {
+"en": "The Portfolio",
+"es": "El Portafolio",
+"id": "Portofolio"
 },
-"c2.k": {
-"en": "Construction",
-"es": "Construcción",
-"id": "Konstruksi"
+"cta.ask": {
+"en": "Ask Us Anything",
+"es": "Pregúntanos lo que sea",
+"id": "Tanya Apa Saja"
 },
-"c2.n": {
-"en": "80+ buildings",
-"es": "80+ edificios",
-"id": "80+ bangunan"
+"bn.who": {
+"en": "Who we are",
+"es": "Quiénes somos",
+"id": "Tentang kami"
 },
-"c2.p": {
-"en": "Delivered or under construction across 500K+ sqm of managed land.",
-"es": "Entregados o en construcción sobre más de 500.000 m² de suelo gestionado.",
-"id": "Sudah diserahkan atau sedang dibangun di atas 500K+ m² lahan yang dikelola."
+"bn.why": {
+"en": "Why Indonesia",
+"es": "Por qué Indonesia",
+"id": "Mengapa Indonesia"
 },
-"c3.k": {
-"en": "Profitability",
-"es": "Rentabilidad",
-"id": "Profitabilitas"
+"bn.how": {
+"en": "How it works",
+"es": "Cómo funciona",
+"id": "Cara kerjanya"
 },
-"c3.p": {
-"en": "Year-1 ROI range across the Palm Field villa typologies (forecast, not guaranteed).",
-"es": "Rango de ROI del año 1 de las tipologías de villa de Palm Field (previsión, no garantizada).",
-"id": "Kisaran ROI tahun pertama untuk tipe villa Palm Field (proyeksi, tidak dijamin)."
+"bn.prot": {
+"en": "What protects you",
+"es": "Qué te protege",
+"id": "Apa yang melindungi Anda"
 },
-"b1.n": {
-"en": "2nd",
-"es": "2.ª",
-"id": "Ke-2"
+"bn.see": {
+"en": "Come see it",
+"es": "Ven a verlo",
+"id": "Datang dan lihat"
 },
-"b1.l": {
-"en": "Fastest-growing economy in Asia",
-"es": "Economía de mayor crecimiento de Asia",
-"id": "Ekonomi dengan pertumbuhan tercepat di Asia"
+"h.h1": {
+"en": "STRATEGIC LAND AND ASSET PLATFORM IN INDONESIA.",
+"es": "PLATAFORMA ESTRATÉGICA DE SUELO Y ACTIVOS EN INDONESIA.",
+"id": "PLATFORM STRATEGIS LAHAN DAN ASET DI INDONESIA."
 },
-"b2.l": {
-"en": "Host nation, 2022",
-"es": "País anfitrión en 2022",
-"id": "Tuan rumah 2022"
+"h.sub": {
+"en": "<b>BALI · SUMBA</b>. AN ALL-IN-ONE BUSINESS, FROM LAND TO LEGACY.",
+"es": "<b>BALI · SUMBA</b>. UN NEGOCIO TODO EN UNO, DEL SUELO AL LEGADO.",
+"id": "<b>BALI · SUMBA</b>. BISNIS SEMUA DALAM SATU, DARI TANAH HINGGA WARISAN."
 },
-"b3.n": {
-"en": "4th",
-"es": "4.º",
-"id": "Ke-4"
+"cl.k": {
+"en": "A real estate company that shows you",
+"es": "Una inmobiliaria que te enseña",
+"id": "Perusahaan properti yang menunjukkan"
 },
-"b3.l": {
-"en": "Most populous country",
-"es": "País más poblado",
-"id": "Negara berpenduduk terbanyak"
+"cl.it": {
+"en": "What you'll hold, <br>what it costs <br>where you can build",
+"es": "Qué vas a tener, <br>qué cuesta <br>y dónde puedes construir",
+"id": "Apa yang Anda miliki, <br>berapa biayanya <br>dan di mana Anda bisa membangun"
 },
-"b4.n": {
-"en": "17,000+",
-"es": "17.000+",
-"id": "17.000+"
+"cl.k2": {
+"en": "In a few clicks with our own <b>portal</b>",
+"es": "En pocos clics, con nuestro propio <b>portal</b>",
+"id": "Dalam beberapa klik lewat <b>portal</b> kami sendiri"
 },
-"b4.l": {
-"en": "Islands",
-"es": "Islas",
-"id": "Pulau"
+"h.terr2": {
+"en": "<b>TERRITORIAL</b> SOURCING",
+"es": "<b>BÚSQUEDA</b> TERRITORIAL",
+"id": "<b>PENCARIAN</b> LAHAN"
 },
-"rt.a": {
-"en": "With a company",
-"es": "Con sociedad",
-"id": "Dengan perusahaan"
+"t.p": {
+"en": "Identify and secure land in Indonesia’s <br>highest potential growth corridors, <br>verified before the market catches on.",
+"es": "Identificamos y aseguramos suelo en los corredores de crecimiento con más potencial de Indonesia, verificado antes que el mercado.",
+"id": "Mengidentifikasi dan mengamankan lahan di koridor pertumbuhan paling potensial di Indonesia, terverifikasi sebelum pasar menyadarinya."
 },
-"rt.b": {
-"en": "Without a company",
-"es": "Sin sociedad",
-"id": "Tanpa perusahaan"
+"sv.k": {
+"en": "All-in-one services",
+"es": "Servicios todo en uno",
+"id": "Layanan semua dalam satu"
 },
-"fl.4s": {
-"en": "Registered lease — up to 30 years per grant, renewable",
-"es": "Arrendamiento inscrito: hasta 30 años por otorgamiento, renovable",
-"id": "Sewa terdaftar — hingga 30 tahun per pemberian, dapat diperpanjang"
+"sv.h": {
+"en": "FOUR DISCIPLINES. <span class=\"m\">ONE TEAM.</span>",
+"es": "CUATRO DISCIPLINAS. <span class=\"m\">UN SOLO EQUIPO.</span>",
+"id": "EMPAT DISIPLIN. <span class=\"m\">SATU TIM.</span>"
+},
+"tb.terr": {
+"en": "Territorial",
+"es": "Territorial",
+"id": "Teritorial"
+},
+"tb.dev": {
+"en": "Development",
+"es": "Desarrollo",
+"id": "Pengembangan"
+},
+"tb.legal": {
+"en": "Legal",
+"es": "Legal",
+"id": "Legal"
+},
+"tb.mgmt": {
+"en": "Management",
+"es": "Gestión",
+"id": "Pengelolaan"
+},
+"d.terr": {
+"en": "Securing land in <br>growth corridors.",
+"es": "Suelo asegurado en <br>corredores de crecimiento.",
+"id": "Mengamankan lahan di <br>koridor pertumbuhan."
+},
+"d.dev": {
+"en": "Structural integrity <br>local knowledge.",
+"es": "Solidez estructural <br>conocimiento local.",
+"id": "Integritas struktural <br>pengetahuan lokal."
+},
+"d.legal": {
+"en": "Clear fiscal structure <br>personalized process.",
+"es": "Estructura fiscal clara <br>proceso personalizado.",
+"id": "Struktur fiskal yang jelas <br>proses yang dipersonalisasi."
+},
+"d.mgmt": {
+"en": "Curated <br>local partners",
+"es": "Socios locales <br>seleccionados",
+"id": "Mitra lokal <br>pilihan"
+},
+"in.s": {
+"en": "WHERE GROWTH <b>IS UNSTOPPABLE.</b>",
+"es": "DONDE EL CRECIMIENTO <b>NO SE DETIENE.</b>",
+"id": "TEMPAT PERTUMBUHAN <b>TAK TERBENDUNG.</b>"
+},
+"in.f": {
+"en": "2nd fastest <br><b>growing economy</b> <br><small>in Asia</small>",
+"es": "2.ª economía <br><b>de mayor crecimiento</b> <br><small>de Asia</small>",
+"id": "Ekonomi dengan <br><b>pertumbuhan tercepat ke-2</b> <br><small>di Asia</small>"
+},
+"in.g": {
+"en": "<b>G20</b> <br><b>host nation</b> <br><small>2022</small>",
+"es": "<b>G20</b> <br><b>país anfitrión</b> <br><small>2022</small>",
+"id": "<b>G20</b> <br><b>tuan rumah</b> <br><small>2022</small>"
+},
+"isl": {
+"en": "17,000 ISLANDS.&nbsp;<b>WE CHOSE TWO: BALI AND SUMBA.</b>",
+"es": "17.000 ISLAS.&nbsp;<b>ELEGIMOS DOS: BALI Y SUMBA.</b>",
+"id": "17.000 PULAU.&nbsp;<b>KAMI MEMILIH DUA: BALI DAN SUMBA.</b>"
+},
+"c1.p2": {
+"en": "<b>Growth rate</b> — largest economy <br>in Southeast Asia, G20 member.",
+"es": "<b>Ritmo de crecimiento</b>: mayor economía <br>del Sudeste Asiático, miembro del G20.",
+"id": "<b>Laju pertumbuhan</b> — ekonomi terbesar <br>di Asia Tenggara, anggota G20."
+},
+"c3.p2": {
+"en": "<b>Year-1 ROI range across the Palm Field <br>villa typologies</b> (forecast, not guaranteed).",
+"es": "<b>ROI del año 1 de las tipologías de villa <br>de Palm Field</b> (previsión, no garantizada).",
+"id": "<b>Kisaran ROI tahun pertama tipe villa <br>Palm Field</b> (proyeksi, tidak dijamin)."
+},
+"c4.k": {
+"en": "Security",
+"es": "Seguridad",
+"id": "Keamanan"
+},
+"c4.p": {
+"en": "<b>Law and order index</b> — ranks above <br>Japan and the U.S. (Gallup, 2025).",
+"es": "<b>Índice de ley y orden</b>: por encima <br>de Japón y EE. UU. (Gallup, 2025).",
+"id": "<b>Indeks hukum dan ketertiban</b> — di atas <br>Jepang dan AS (Gallup, 2025)."
+},
+"in.p2": {
+"en": "Three numbers an investor actually needs <b>before looking at any single project.</b>",
+"es": "Tres cifras que un inversor necesita de verdad <b>antes de mirar un proyecto concreto.</b>",
+"id": "Tiga angka yang benar-benar dibutuhkan investor <b>sebelum melihat satu proyek pun.</b>"
+},
+"w.k": {
+"en": "The why",
+"es": "El porqué",
+"id": "Alasannya"
+},
+"w.h": {
+"en": "<span class=\"m\">TWO ISLANDS,</span> CHOSEN ON PURPOSE.",
+"es": "<span class=\"m\">DOS ISLAS,</span> ELEGIDAS A PROPÓSITO.",
+"id": "<span class=\"m\">DUA PULAU,</span> DIPILIH DENGAN SENGAJA."
+},
+"w.s": {
+"en": "<b>WELL CONNECTED.</b> PERFECTLY POSITIONED.",
+"es": "<b>BIEN CONECTADAS.</b> PERFECTAMENTE SITUADAS.",
+"id": "<b>TERHUBUNG BAIK.</b> POSISI SEMPURNA."
+},
+"ba.l": {
+"en": "The island everyone chose.",
+"es": "La isla que todos eligieron.",
+"id": "Pulau pilihan semua orang."
+},
+"ba.1s": {
+"en": "Tropical paradise",
+"es": "Paraíso tropical",
+"id": "Surga tropis"
+},
+"ba.1v": {
+"en": "25–32 °C all year",
+"es": "25–32 °C todo el año",
+"id": "25–32 °C sepanjang tahun"
+},
+"ba.2v": {
+"en": "+323% growth <em>in</em>",
+"es": "+323% de crecimiento <em>en</em>",
+"id": "Pertumbuhan +323% <em>pada</em>"
+},
+"ba.2s": {
+"en": "Digital nomad population",
+"es": "Población de nómadas digitales",
+"id": "Populasi nomaden digital"
+},
+"ba.3v": {
+"en": "International airport",
+"es": "Aeropuerto internacional",
+"id": "Bandara internasional"
+},
+"su.l": {
+"en": "Where the wild still decides.",
+"es": "Donde lo salvaje aún manda.",
+"id": "Tempat alam liar masih berkuasa."
+},
+"su.1s": {
+"en": "An island",
+"es": "Una isla",
+"id": "Pulau yang"
+},
+"su.1v": {
+"en": "Frozen in time",
+"es": "Detenida en el tiempo",
+"id": "Membeku dalam waktu"
+},
+"su.2s": {
+"en": "Top 8",
+"es": "Top 8",
+"id": "8 teratas"
+},
+"su.2v": {
+"en": "Luxury resorts",
+"es": "Resorts de lujo",
+"id": "Resor mewah"
+},
+"su.3s": {
+"en": "Connected by",
+"es": "Conectada por",
+"id": "Terhubung oleh"
+},
+"su.3v": {
+"en": "Two airports",
+"es": "Dos aeropuertos",
+"id": "Dua bandara"
+},
+"hw.k": {
+"en": "How it works",
+"es": "Cómo funciona",
+"id": "Cara kerjanya"
+},
+"ro.a": {
+"en": "How a",
+"es": "Cómo un",
+"id": "Bagaimana"
+},
+"ro.b": {
+"en": "<span>FOREIGN</span><span>INVESTOR</span>",
+"es": "<span>INVERSOR</span><span>EXTRANJERO</span>",
+"id": "<span>INVESTOR</span><span>ASING</span>"
+},
+"ro.c": {
+"en": "holds Bali real estate",
+"es": "tiene un inmueble en Bali",
+"id": "memiliki properti di Bali"
+},
+"ro.ps": {
+"en": "Best for long-term wealth and rentals",
+"es": "Ideal para patrimonio a largo plazo y alquiler",
+"id": "Terbaik untuk kekayaan jangka panjang dan sewa"
+},
+"ro.ss": {
+"en": "Best for a simpler, no-company route",
+"es": "Ideal para una vía más sencilla, sin sociedad",
+"id": "Terbaik untuk jalur sederhana tanpa perusahaan"
+},
+"ro.r1": {
+"en": "What it is",
+"es": "Qué es",
+"id": "Apa itu"
+},
+"ro.r1a": {
+"en": "An Indonesian company you own holds the HGB title.",
+"es": "Una sociedad indonesia tuya es la titular del HGB.",
+"id": "Perusahaan Indonesia milik Anda memegang hak HGB."
+},
+"ro.r1b": {
+"en": "A long-term lease, registered before a notary.",
+"es": "Arrendamiento a largo plazo ante notario.",
+"id": "Sewa jangka panjang, terdaftar di notaris."
+},
+"ro.r2": {
+"en": "Holds the title",
+"es": "Titular",
+"id": "Pemegang hak"
+},
+"ro.r2a": {
+"en": "Your PT PMA",
+"es": "Tu PT PMA",
+"id": "PT PMA Anda"
+},
+"ro.r2b": {
+"en": "You, as the lessee",
+"es": "Tú, como arrendatario",
+"id": "Anda, sebagai penyewa"
+},
+"ro.r3": {
+"en": "Term",
+"es": "Plazo",
+"id": "Jangka waktu"
+},
+"ro.r3a": {
+"en": "30 years, extendable 20 + 30",
+"es": "30 años, prorrogables 20 + 30",
+"id": "30 tahun, dapat diperpanjang 20 + 30"
+},
+"ro.r3b": {
+"en": "Up to 30 years, renewable",
+"es": "Hasta 30 años, renovable",
+"id": "Hingga 30 tahun, dapat diperpanjang"
+},
+"ro.r4": {
+"en": "You can",
+"es": "Puedes",
+"id": "Anda dapat"
+},
+"ro.r4a": {
+"en": "Sell, inherit, mortgage and run rentals",
+"es": "Vender, heredar, hipotecar y alquilar",
+"id": "Menjual, mewariskan, menjaminkan, dan menyewakan"
+},
+"ro.r4b": {
+"en": "Transfer and inherit",
+"es": "Transmitir y heredar",
+"id": "Mengalihkan dan mewariskan"
+},
+"ro.r5": {
+"en": "Setup",
+"es": "Puesta en marcha",
+"id": "Persiapan"
+},
+"ro.r5a": {
+"en": "A company to set up and maintain",
+"es": "Una sociedad que crear y mantener",
+"id": "Perusahaan yang harus didirikan dan dikelola"
+},
+"ro.r5b": {
+"en": "One notarial contract",
+"es": "Un contrato notarial",
+"id": "Satu akta notaris"
+},
+"se.b": {
+"en": "YOU SEE THE VIEW YOURSELF, <br><b>BEFORE YOU DECIDE.</b>",
+"es": "VES LAS VISTAS CON TUS OJOS, <br><b>ANTES DE DECIDIR.</b>",
+"id": "ANDA MELIHAT PEMANDANGANNYA SENDIRI, <br><b>SEBELUM MEMUTUSKAN.</b>"
+},
+"se.r": {
+"en": "WE DON'T LIST PROPERTIES. <br><b>WE SELECT THEM.</b>",
+"es": "NO LISTAMOS PROPIEDADES. <br><b>LAS SELECCIONAMOS.</b>",
+"id": "KAMI TIDAK SEKADAR MENDAFTAR PROPERTI. <br><b>KAMI MEMILIHNYA.</b>"
+},
+"se.h": {
+"en": "THE VISITS. <span>THE OFFICE</span>",
+"es": "LAS VISITAS. <span>LA OFICINA</span>",
+"id": "KUNJUNGAN. <span>KANTOR</span>"
+},
+"se.l1": {
+"en": "Once a month, we take investors to Bali and Sumba <br>to walk the actual land.",
+"es": "Una vez al mes llevamos a inversores a Bali y Sumba <br>a pisar el terreno real.",
+"id": "Sebulan sekali, kami membawa investor ke Bali dan Sumba <br>untuk menyusuri lahannya langsung."
+},
+"se.p1": {
+"en": "Not renders, not a deck. The trip covers our active plots, a guided route <br>through coast and villages, and the points of interest around each project.",
+"es": "Ni renders ni presentaciones. El viaje recorre nuestras parcelas activas, una ruta guiada <br>por la costa y los pueblos, y los puntos de interés de cada proyecto.",
+"id": "Bukan render, bukan presentasi. Perjalanan mencakup kavling aktif kami, rute terpandu <br>melewati pesisir dan desa, serta tempat menarik di sekitar setiap proyek."
+},
+"se.l2": {
+"en": "A real address, a real team, open during Bali hours.",
+"es": "Una dirección real, un equipo real, abierto en horario de Bali.",
+"id": "Alamat nyata, tim nyata, buka pada jam kerja Bali."
+},
+"se.p2": {
+"en": "We're not a website selling renders from somewhere else; you can <br>walk in, meet us, and see the same projects you're reviewing online.",
+"es": "No somos una web que vende renders desde otro lugar: puedes <br>venir, conocernos y ver los mismos proyectos que miras en línea.",
+"id": "Kami bukan situs yang menjual render dari tempat lain; Anda bisa <br>datang, bertemu kami, dan melihat proyek yang sama yang Anda lihat secara online."
+},
+"mp.my": {
+"en": "Malaysia",
+"es": "Malasia",
+"id": "Malaysia"
+},
+"mp.sg": {
+"en": "Singapore",
+"es": "Singapur",
+"id": "Singapura"
+},
+"mp.1": {
+"en": "2nd fastest-growing economy in Asia",
+"es": "2.ª economía de mayor crecimiento de Asia",
+"id": "Ekonomi dengan pertumbuhan tercepat ke-2 di Asia"
+},
+"mp.2": {
+"en": "G20 host in 2022",
+"es": "Anfitrión del G20 en 2022",
+"id": "Tuan rumah G20 tahun 2022"
+},
+"mp.3": {
+"en": "4th most populous country in the world",
+"es": "4.º país más poblado del mundo",
+"id": "Negara berpenduduk terbanyak ke-4 di dunia"
+},
+"mp.4": {
+"en": "17,000+ islands",
+"es": "Más de 17.000 islas",
+"id": "17.000+ pulau"
+},
+"cl.h": {
+"en": "EVERY GREAT LEGACY <br>BEGINS WITH A JOURNEY.",
+"es": "TODO GRAN LEGADO <br>EMPIEZA CON UN VIAJE.",
+"id": "SETIAP WARISAN BESAR <br>BERAWAL DARI PERJALANAN."
+},
+"cl.a": {
+"en": "Explore tropical territories",
+"es": "Explora territorios tropicales",
+"id": "Jelajahi wilayah tropis"
 }
 };
 window.lwLangInit(SOUL_I18N, { despues: function () {
@@ -1286,17 +1391,19 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
 (function () {
   'use strict';
   var snap = document.getElementById('snap'), tb = document.getElementById('topbar'),
-      logo = document.getElementById('logo'), bur = document.getElementById('navBurger');
+      logo = document.getElementById('logo'), bur = document.getElementById('navBurger'),
+      root = document.documentElement;
 
-  // Barra: fantasma sobre la foto, sólida al salir de la primera pantalla (igual que la home)
+  // Barra común siempre sólida en esta página: debajo va el submenú verde del PDF,
+  // pegado al borde inferior real de la barra (--top).
+  function alto() { root.style.setProperty('--top', tb.offsetHeight + 'px'); }
   function onScroll() {
-    var open = tb.classList.contains('nav-open'), past = snap.scrollTop > innerHeight * 0.6;
-    tb.classList.toggle('solid', past || open);
+    tb.classList.add('solid'); logo.classList.add('dark');
     tb.classList.toggle('scrolled', snap.scrollTop > 8);
-    logo.classList.toggle('dark', past || open);
   }
   snap.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  window.addEventListener('resize', alto);
+  onScroll(); alto();
 
   // Burger móvil
   bur.addEventListener('click', function () {
@@ -1315,6 +1422,20 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
       if (t) { e.preventDefault(); snap.scrollTo({ top: t.offsetTop, behavior: 'smooth' }); }
     });
   });
+
+  // Submenú: marca la entrada de la sección que ocupa la pantalla
+  var links = [].slice.call(document.querySelectorAll('.soulnav a[data-s]'));
+  var secs = [].slice.call(snap.querySelectorAll('section'));
+  function spy() {
+    var y = snap.scrollTop + snap.clientHeight * 0.4, cur = null;
+    secs.forEach(function (s) { if (s.offsetTop <= y) cur = s.getAttribute('data-spy'); });
+    links.forEach(function (a) {
+      var on = a.getAttribute('data-s') === cur;
+      a.classList.toggle('on', on);
+      if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+    });
+  }
+  snap.addEventListener('scroll', spy, { passive: true }); spy();
 
   // Idioma: mismo desplegable que la home. La elección la guarda y aplica
   // assets/idioma-web.js (clave lawang_lang, compartida con toda la web pública).
@@ -1335,29 +1456,6 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   // CTA: mensaje prellenado
   var msg = "Hello LAWANG 🌿\n\nI'd like to request details about your projects and how you work, from land to legacy.";
   document.querySelector('#topbar .nav-cta').href = 'https://wa.me/6281138319862?text=' + encodeURIComponent(msg);
-
-  // Servicios: un panel, cuatro estados. Las bandas muestran siempre los otros tres.
-  var ICO = { territorial: ['#ico-territorial', '0 0 60 35'], development: ['#ico-development', '0 0 62 32'],
-              legal: ['#ico-legal', '0 0 60 37'], management: ['#ico-management', '0 0 50 30'] };
-  var svc = document.getElementById('services');
-  function activa(k) {
-    svc.querySelectorAll('.svc-bg').forEach(function (el) { el.classList.toggle('on', el.dataset.k === k); });
-    svc.querySelectorAll('.pane').forEach(function (el) { el.hidden = el.dataset.k !== k; });
-    svc.querySelectorAll('#bands > li').forEach(function (el) { el.hidden = el.dataset.k === k; });
-    var ico = document.getElementById('aio-ico');
-    ico.setAttribute('viewBox', ICO[k][1]);
-    ico.querySelector('use').setAttribute('href', ICO[k][0]);
-    svc.dataset.activo = k;
-  }
-  svc.addEventListener('click', function (e) { var b = e.target.closest('.band'); if (b) activa(b.dataset.k); });
-  var tg = document.getElementById('svc-toggle'), bands = document.getElementById('bands');
-  tg.addEventListener('click', function () {
-    var abierto = tg.getAttribute('aria-expanded') !== 'true';
-    tg.setAttribute('aria-expanded', abierto);
-    bands.classList.toggle('closed', !abierto);
-  });
-  var h = location.hash.match(/^#services-(territorial|development|legal|management)$/);
-  if (h) { activa(h[1]); snap.scrollTop = svc.offsetTop; }
 })();
 </script>
 </body>
