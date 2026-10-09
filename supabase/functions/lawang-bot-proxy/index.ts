@@ -89,6 +89,19 @@ async function llamaHumano(jwt: string, cuerpo: Record<string, unknown>): Promis
     return { status: r.status, body: (b && typeof b === 'object' ? b : {}) as Record<string, unknown> };
   } catch { return { status: 502, body: { error: 'bot_api_sin_respuesta' } }; }
 }
+/** Traduce la respuesta NO buena de /humano a códigos cerrados PROPIOS: nunca se reenvía el `error` de bot-api (podría traer texto de la edge o de Postgres), y un
+ *  401 o 429 de bot-api no sube con su código — un secreto mal puesto (401) no debe leerse en la pantalla como «sesión caducada» (la sesión ya la comprobó este proxy). */
+function falloHumano(h: { status: number; body: Record<string, unknown> }): { status: number; body: { error: string } } {
+  if (h.status === 200) {
+    const e = h.body.error;
+    if (e === 'sin_chat') return { status: 404, body: { error: 'sin_chat' } };
+    if (e === 'sin_usuario') return { status: 400, body: { error: 'usuario_no_valido' } };
+    return { status: 400, body: { error: 'valor_no_valido' } };   // telefono_invalido, modo_invalido… o un código que no conocemos
+  }
+  if (h.status === 429) return { status: 429, body: { error: 'demasiadas' } };
+  if (h.body.error === 'humano_sin_configurar') return { status: 503, body: { error: 'humano_sin_configurar' } };   // el propio proxy sin secreto
+  return { status: 502, body: { error: 'bot_api_no_disponible' } };   // 401 (secreto mal puesto), 5xx, sin respuesta, 400 de forma del cuerpo…
+}
 /** Tras un envío correcto del bot: lo anota en la conversación como mensaje de una persona (con el wamid de Meta). El envío ya salió: si esto falla se avisa, no se deshace. */
 async function registraEnvio(jwt: string, phone: string, bot: { status: number; body: unknown }) {
   const b = (bot.body ?? {}) as Record<string, unknown>;
@@ -204,8 +217,8 @@ export const manejador = async (req: Request) => {
       if (humanoEnPostgres()) {
         const h = await llamaHumano(jwt, { accion: 'pausar', tel: phone, modo: body.paused ? 'pausar' : 'quitar' });
         if (h.status === 200 && h.body.ok === true) return json({ ok: true, paused: !!h.body.pausado });
-        const e = String(h.body.error ?? 'bot_api');
-        return json({ error: e }, h.status === 200 ? (e === 'sin_chat' ? 404 : 400) : (h.status === 401 || h.status === 429 || h.status === 503 ? h.status : 502));
+        const f = falloHumano(h);
+        return json(f.body, f.status);
       }
       const r = await llamaBot('/admin/api/pause', {
         method: 'POST', body: JSON.stringify({ phone, paused: !!body.paused }),
