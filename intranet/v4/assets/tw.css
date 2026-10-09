@@ -1479,6 +1479,10 @@ select {
   border-color: rgb(197 200 188 / 0.4);
 }
 
+.border-outline-variant\/50 {
+  border-color: rgb(197 200 188 / 0.5);
+}
+
 .border-outline-variant\/60 {
   border-color: rgb(197 200 188 / 0.6);
 }

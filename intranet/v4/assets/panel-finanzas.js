@@ -162,7 +162,7 @@
          pendiente de la original, facturas_pendiente_equipo) y no tiene fila de pendiente propia. */
       facturas: d.fallos.pendiente ? [] : facturas.filter(function (f) { return f.tipo === 'factura' && !f.rectifica_id; }).map(function (f) {
         var c = f.contrato_id && firmado.hasOwnProperty(f.contrato_id) ? firmado[f.contrato_id] : null;
-        return { tipo: f.tipo, sociedad: f.sociedad, moneda: f.moneda, anulada: f.anulada, venc: f.venc, fecha_emision: f.fecha_emision, pendiente: f.id in pend ? pend[f.id] : null, contrato_firmado: c };
+        return { tipo: f.tipo, sociedad: f.sociedad, moneda: f.moneda, anulada: f.anulada, venc: f.venc, fecha_emision: f.fecha_emision, pendiente: f.id in pend ? pend[f.id] : null, contrato_firmado: c, contrato_id: f.contrato_id };
       }),
       unidades: d.unidades || [],
       solicitudes: d.solicitudes == null ? null : d.solicitudes,
@@ -729,6 +729,8 @@
       var RAW = normaliza(d, hoy);
       var EMPRESA = lee('lw_fin_empresa', 'todas');
       var SIN_FIRMAR = lee('lw_fin_sin_firmar', '0') === '1';
+      var FAMILIA = lee('lw_fin_familia', 'todo'); if (FAMILIA !== 'suelo' && FAMILIA !== 'obra') FAMILIA = 'todo';
+      var PESTANA = lee('lw_fin_pestana', 'estado');
       var SOC_LISTA = false;           // ¿llegó ya la sociedad de cada contrato?
       var MODELO = null, MON = null;
 
@@ -737,7 +739,7 @@
          sociedad de los contratos cargada no se filtra: se ve «Todas». */
       function recalcula() {
         var empresa = SOC_LISTA ? EMPRESA : 'todas';
-        var entrada = finFiltraEmpresa(RAW, empresa);
+        var entrada = finFiltraFamilia(finFiltraEmpresa(RAW, empresa), FAMILIA);
         entrada.incluirSinFirmar = SIN_FIRMAR;
         MODELO = finModelo(entrada);
         MODELO_ACTUAL = MODELO; EMPRESA_CSV = empresa; SIN_FIRMAR_CSV = SIN_FIRMAR;
@@ -758,6 +760,7 @@
           return '<button type="button" class="fin-chip" data-real data-moneda="' + esc(m) + '" aria-pressed="' + (m === MON) + '">' + esc(m) + '</button>';
         }).join('');
         if (bSin) bSin.setAttribute('aria-pressed', String(SIN_FIRMAR));
+        Array.prototype.forEach.call(document.querySelectorAll('[data-familia]'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-familia') === FAMILIA)); });
       }
       /* Lo que cambia el SIGNIFICADO de las cifras se dice en fijo, no en un
          toast: quien mira la pantalla tiene que saber qué está viendo. */
@@ -766,13 +769,27 @@
         var t = [];
         if (SIN_FIRMAR) t.push(T('Incluye contratos SIN FIRMAR: la cartera y la previsión suman borradores, que todavía no son un compromiso. Útil mientras dure el alta de histórico.'));
         if (SOC_LISTA && EMPRESA !== 'todas') t.push(T('Viendo solo') + ' ' + nombreSociedad(EMPRESA) + '. ' + T('El stock y las comisiones no se reparten por sociedad.'));
+        if (FAMILIA !== 'todo') t.push(T(FAMILIA === 'suelo' ? 'Viendo solo SUELO (Bloqueo de Parcela y su Carta de Reserva).' : 'Viendo solo OBRA (Construcción).') + ' ' + T('El stock, los gastos, las comisiones y los contratos sin familia no se reparten entre suelo y obra.'));
         caja.innerHTML = t.map(function (x) {
           return '<div role="status" class="rounded-xl border border-deep-lagoon/30 bg-secondary-container/30 px-5 py-3 flex items-start gap-3 font-body-sm text-body-sm text-on-surface">' +
             '<span class="material-symbols-outlined text-[20px] text-deep-lagoon shrink-0">filter_alt</span><p>' + esc(x) + '</p></div>';
         }).join('');
         pon('t-pendiente', T(SIN_FIRMAR ? 'Contratado por cobrar' : 'Firmado por cobrar'));
       }
+      /* Pestañas: solo muestran u ocultan paneles ya pintados. Al abrir un panel se
+         repinta porque el gráfico de caja mide su contenedor y, oculto, mide 0. */
+      var PANELES = ['estado', 'caja', 'proyecto', 'otros'];
+      function muestraPestana(n) {
+        if (PANELES.indexOf(n) === -1) n = 'estado';
+        PESTANA = n;
+        PANELES.forEach(function (k) {
+          var pan = document.getElementById('lw-fin-p-' + k), tab = document.getElementById('lw-fin-t-' + k);
+          if (pan) pan.hidden = k !== n;
+          if (tab) { tab.setAttribute('aria-selected', String(k === n)); tab.tabIndex = k === n ? 0 : -1; }
+        });
+      }
       function pintaTodo() {
+        muestraPestana(PESTANA);
         var pm = MODELO.porMoneda[MON] || { moneda: MON, porProyecto: [] };
         pintaChips();
         pintaModo();
@@ -801,6 +818,19 @@
         var b = ev.target.closest && ev.target.closest('[data-moneda]'); if (!b) return;
         MON = b.getAttribute('data-moneda'); guarda('lw_fin_moneda', MON);
         pintaTodo();
+      });
+      var barraTabs = $('lw-fin-pestanas');
+      if (barraTabs) barraTabs.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-fin-tab]'); if (!b) return;
+        guarda('lw_fin_pestana', b.getAttribute('data-fin-tab'));
+        PESTANA = b.getAttribute('data-fin-tab');
+        pintaTodo();
+      });
+      var grupoFam = $('lw-fin-familias');
+      if (grupoFam) grupoFam.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-familia]'); if (!b) return;
+        FAMILIA = b.getAttribute('data-familia'); guarda('lw_fin_familia', FAMILIA);
+        repinta();
       });
       if (bSin) bSin.addEventListener('click', function () {
         SIN_FIRMAR = !SIN_FIRMAR; guarda('lw_fin_sin_firmar', SIN_FIRMAR ? '1' : '0');
