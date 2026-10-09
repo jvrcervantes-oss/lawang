@@ -20,6 +20,14 @@
 // que ve un cliente real — de ahí que no venga de regalo con 'leads'; y
 // 'bot_configurar' para la configuración. La agenda de citas ('closers') dejó
 // este proxy el 9-oct-2026: ahora vive en Postgres (ver más abajo).
+//
+// CONFIGURACIÓN DEL BOT (S3 del encargo «bot sin Redis», 9-oct-2026). Dos almacenes, un interruptor:
+//   BOT_CONFIG_STORE = 'redis' (por defecto, o sin definir) -> config_get/set/revert se reenvían al bot, que la guarda en Redis (como siempre).
+//   BOT_CONFIG_STORE = 'postgres'                          -> se leen y escriben en bot_config por las RPC crm_bot_config_* (la base comprueba el
+//                                                            permiso otra vez y compara la versión bajo FOR UPDATE). El bot solo la LEE.
+// POR QUÉ UN INTERRUPTOR: el bot vivo sigue leyendo su configuración de Redis hasta que S4b lo cambie. Si esto escribiera ya en Postgres, la
+// pantalla diría «Guardado» y el bot seguiría obedeciendo a Redis. Se pasa a 'postgres' en el corte (S8), DESPUÉS de importar la config de
+// Redis (S5) y con el bot leyendo bot_turno_estado. Vuelta atrás: poner 'redis'.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
@@ -61,7 +69,55 @@ async function llamaBot(path: string, init: RequestInit = {}) {
   return { status: r.status, body };
 }
 
-Deno.serve(async (req) => {
+// ── Validación de la configuración (portada de botcfg.js `validaConfig`: la MISMA regla, ahora en el servidor que escribe) ──────────
+// Si cambia una, cambia la otra mientras el bot siga escribiendo en Redis: lawang_bot_proxy.test.js pasa los casos de test-botcfg.js por esta.
+const MAX_EXTRA = 2000;
+const MAX_BIENVENIDA = 500;
+const MAX_PAUSA_HORAS = 720;
+const CLAVES_CFG = ['extra', 'bienvenida', 'pausaHoras'];
+const RE_TELEFONO_CAND = /(?:\+|00)?\d(?:[ -]?\d){8,}/g;
+const RE_CORREO = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+export function pareceTelefono(t: string): boolean {
+  for (const m of String(t).matchAll(RE_TELEFONO_CAND)) {
+    const c = m[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(c)) continue;          // fecha ISO
+    if (/^[1-9]\d{0,2}(?: \d{3})+$/.test(c)) continue;    // miles con espacio
+    return true;
+  }
+  return false;
+}
+export function neutraliza(t: string): string {
+  return String(t).replace(/<<</g, '‹‹‹').replace(/>>>/g, '›››').replace(/\r\n/g, '\n').trim();
+}
+export function validaConfig(input: unknown): { ok: true; value: { extra: string; bienvenida: string; pausaHoras: number } } | { ok: false; error: string } {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return { ok: false, error: 'cuerpo no válido' };
+  const c = input as Record<string, unknown>;
+  for (const k of Object.keys(c)) if (!CLAVES_CFG.includes(k)) return { ok: false, error: `clave desconocida: ${k}` };
+  const extra = c.extra === undefined ? '' : c.extra;
+  const bienvenida = c.bienvenida === undefined ? '' : c.bienvenida;
+  const pausaHoras = c.pausaHoras === undefined ? 0 : c.pausaHoras;
+  if (typeof extra !== 'string') return { ok: false, error: 'extra debe ser texto' };
+  if (typeof bienvenida !== 'string') return { ok: false, error: 'bienvenida debe ser texto' };
+  if (extra.length > MAX_EXTRA) return { ok: false, error: `extra pasa de ${MAX_EXTRA} caracteres` };
+  if (bienvenida.length > MAX_BIENVENIDA) return { ok: false, error: `bienvenida pasa de ${MAX_BIENVENIDA} caracteres` };
+  if (typeof pausaHoras !== 'number' || !Number.isInteger(pausaHoras) || pausaHoras < 0 || pausaHoras > MAX_PAUSA_HORAS)
+    return { ok: false, error: `pausaHoras debe ser un entero entre 0 y ${MAX_PAUSA_HORAS}` };
+  for (const [campo, t] of [['extra', extra], ['bienvenida', bienvenida]] as const) {
+    if (RE_CORREO.test(t)) return { ok: false, error: `${campo}: no pongas correos (lo ve el bot en todas las conversaciones)` };
+    if (pareceTelefono(t)) return { ok: false, error: `${campo}: no pongas teléfonos (lo ve el bot en todas las conversaciones)` };
+  }
+  return { ok: true, value: { extra: neutraliza(extra), bienvenida: neutraliza(bienvenida), pausaHoras } };
+}
+
+// Traduce el fallo de una RPC crm_bot_config_* a una respuesta SIN texto de Postgres (el detalle va solo al log de la edge).
+function falloRpc(e: { code?: string; message?: string } | null | undefined, que: string): { status: number; body: Record<string, unknown> } {
+  if (e?.code === '42501') return { status: 403, body: { error: 'sin_permiso: bot_configurar' } };
+  if (e?.code === 'PT400') return { status: 400, body: { error: 'valor_no_valido' } };
+  console.error(`lawang-bot-proxy: ${que} fallo (${e?.code ?? '?'}): ${e?.message ?? ''}`);
+  return { status: 500, body: { error: 'no_se_pudo_' + que } };
+}
+
+export const manejador = async (req: Request) => {
   const cors = corsFor(req);
   const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -149,13 +205,35 @@ Deno.serve(async (req) => {
     // ── Configurar el bot: requiere 'bot_configurar' (lectura incluida) ──────────────────────────
     // La autoría (`byUser`) la pone ESTE servidor desde la sesión, nunca el navegador. Se copian solo las tres
     // claves conocidas: el bot las valida otra vez y rechaza cualquier otra.
+    const enPostgres = (Deno.env.get('BOT_CONFIG_STORE') ?? '').trim().toLowerCase() === 'postgres';
     if (accion === 'config_get') {
       if (!puedeConfigurar) return json({ error: 'sin_permiso: bot_configurar' }, 403);
+      if (enPostgres) {
+        const { data, error } = await admin.rpc('crm_bot_config_leer', { p_user: quien.user.id });
+        if (error) { const f = falloRpc(error, 'leer'); return json(f.body, f.status); }
+        return json(data);
+      }
       const r = await llamaBot('/admin/api/config');
       return json(r.body, r.status);
     }
     if (accion === 'config_set') {
       if (!puedeConfigurar) return json({ error: 'sin_permiso: bot_configurar' }, 403);
+      if (enPostgres) {
+        const claves = Object.keys((body.config ?? {}) as Record<string, unknown>);
+        // Faltando una clave se guardaría vacía (se borraría en silencio): se exigen las tres, como con el bot.
+        if (CLAVES_CFG.some((k) => !claves.includes(k))) return json({ error: 'config_incompleta' }, 400);
+        const v = validaConfig(body.config);
+        if (!v.ok) return json({ error: v.error }, 400);
+        if (typeof body.expectedUpdatedAt !== 'number' || !Number.isFinite(body.expectedUpdatedAt))
+          return json({ error: 'expectedUpdatedAt requerido (la versión que estabas viendo)' }, 400);
+        const { data, error } = await admin.rpc('crm_bot_config_guardar', {
+          p_user: quien.user.id, p_extra: v.value.extra, p_bienvenida: v.value.bienvenida, p_pausa_horas: v.value.pausaHoras,
+          p_esperada: Math.trunc(body.expectedUpdatedAt), p_por: ficha.email ?? '',
+        });
+        if (error) { const f = falloRpc(error, 'guardar'); return json(f.body, f.status); }
+        if (data?.conflicto) return json({ error: 'otra persona ha cambiado la configuración mientras la editabas', config: data.config }, 409);
+        return json(data);
+      }
       const c = (body.config ?? {}) as Record<string, unknown>;
       const claves = Object.keys(c);
       if (claves.some((k) => !['extra', 'bienvenida', 'pausaHoras'].includes(k))) return json({ error: 'clave_desconocida' }, 400);
@@ -175,6 +253,17 @@ Deno.serve(async (req) => {
     }
     if (accion === 'config_revert') {
       if (!puedeConfigurar) return json({ error: 'sin_permiso: bot_configurar' }, 403);
+      if (enPostgres) {
+        if (typeof body.expectedUpdatedAt !== 'number' || !Number.isFinite(body.expectedUpdatedAt))
+          return json({ error: 'expectedUpdatedAt requerido (la versión que estabas viendo)' }, 400);
+        const { data, error } = await admin.rpc('crm_bot_config_volver', {
+          p_user: quien.user.id, p_esperada: Math.trunc(body.expectedUpdatedAt), p_por: ficha.email ?? '',
+        });
+        if (error) { const f = falloRpc(error, 'volver'); return json(f.body, f.status); }
+        if (data?.conflicto) return json({ error: 'otra persona ha cambiado la configuración mientras la mirabas' }, 409);
+        if (data?.sin_anterior) return json({ error: 'no hay un cambio anterior al que volver' }, 404);
+        return json(data);
+      }
       const expectedUpdatedAt = typeof body.expectedUpdatedAt === 'number' ? body.expectedUpdatedAt : undefined;
       const r = await llamaBot('/admin/api/config/revert', {
         method: 'POST', body: JSON.stringify({ byUser: ficha.email, expectedUpdatedAt }),
@@ -211,6 +300,8 @@ Deno.serve(async (req) => {
     // Cualquier otra acción se deniega — nunca un passthrough de `path` libre.
     return json({ error: 'accion_desconocida' }, 400);
   } catch (e) {
-    return json({ error: String((e as Error)?.message ?? e) }, 500);
+    console.error('lawang-bot-proxy: error no previsto: ' + String((e as Error)?.message ?? e));
+    return json({ error: 'error_interno' }, 500);
   }
-});
+};
+Deno.serve(manejador);

@@ -2569,9 +2569,10 @@ $('#btnTrazaSync').addEventListener('click', trazaSync);
 /* ==========================================================================
    VISTA — CONFIGURAR BOT (instrucciones extra, saludo, horas de pausa)
    --------------------------------------------------------------------------
-   Datos del bot (Redis, vía lawang-bot-proxy · permiso `bot_configurar`). La
-   versión (`updatedAt`) que se estaba viendo viaja al guardar: si otra persona
-   cambió algo mientras tanto, el bot devuelve 409 y no se pisa su cambio.
+   Datos de bot_config (Postgres) o, hasta el corte del bot sin Redis (S8), de Redis del
+   bot: lo decide la edge lawang-bot-proxy · permiso `bot_configurar`. La versión (`updatedAt`)
+   que se estaba viendo viaja al guardar: si otra persona cambió algo mientras tanto, la edge
+   devuelve 409 y no se pisa su cambio.
    ========================================================================== */
 let CFG_VERSION = 0;
 function cfgMuestraError(msg){ const e = $('#cfgError'); e.textContent = msg || ''; e.hidden = !msg; }
