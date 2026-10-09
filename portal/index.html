@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="acfb3e120c0d">
+<meta name="lw-version" content="4f1445c81949">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1936,7 +1936,7 @@
      (sustituye a «Ventana de villa», que no convenció). Sin fotografía por protección de datos. La lista de colores es
      cerrada y la valida la base (portal_set_color_avatar): aquí solo se pinta. Lo usan la ficha de Mi perfil y el pie del menú. */
   var COLORES_AV = ['petroleo','selva','oliva','arena','oceano','ciruela','tinta','carbon'];
-  var COLOR_AV = 'petroleo';
+  var COLOR_AV = 'petroleo', COLOR_ELEGIDO = false;   // elegido: si el cliente ya pulsó uno, la lectura inicial que llega tarde no lo pisa
   function iconoMoanito(px){
     return '<span class="moa c-' + COLOR_AV + '" style="width:' + px + 'px;height:' + px + 'px" aria-hidden="true"><img src="/assets/img/moanito-face.webp" alt="" width="' + px + '" height="' + px + '"></span>';
   }
@@ -2620,7 +2620,7 @@
         pintaAvatarMenu();   // el mismo icono que la ficha de Mi perfil
         // el color del moanito va en su propia llamada: si falla se queda el de marca, nunca bloquea la entrada
         sb.rpc('portal_get_color_avatar').then(function(rc){
-          if (!rc.error && COLORES_AV.indexOf(rc.data) >= 0 && rc.data !== COLOR_AV){
+          if (!COLOR_ELEGIDO && !rc.error && COLORES_AV.indexOf(rc.data) >= 0 && rc.data !== COLOR_AV){
             COLOR_AV = rc.data; pintaAvatarMenu();
             if (ESTADO.section === 'perfil') pintaPerfil(document.getElementById('content'));
           }
@@ -4493,7 +4493,8 @@
   function eligeColor(k){
     if (COLORES_AV.indexOf(k) < 0 || k === COLOR_AV) return;
     var antes = COLOR_AV;
-    COLOR_AV = k; pintaAvatarMenu(); pintaPerfil(document.getElementById('content'));
+    COLOR_AV = k; COLOR_ELEGIDO = true; pintaAvatarMenu(); pintaPerfil(document.getElementById('content'));
+    var sw = document.querySelector('[data-color="' + k + '"]'); if (sw) sw.focus();   // el repintado sustituye el botón: el foco de teclado se queda en él
     sb.rpc('portal_set_color_avatar', { p_color: k }).then(function(r){
       // Si no se guardó, vuelve al color de antes (solo si sigue siendo el que se mandó): la pantalla no enseña un color que no quedó.
       if (r.error){
