@@ -33,12 +33,14 @@ function _dep(dep){
   return {
     resumenPortal: de('resumenPortal'), precioContrato: de('precioContrato'), facturaDelHito: de('facturaDelHito'),
     estadoFactura: de('estadoFactura'), saldoSinAplicar: de('saldoSinAplicar'), estadoDocumento: de('estadoDocumento'),
-    diaLocal: de('diaLocal'), estadosHitos: de('estadosHitos'),
+    estadosHitos: de('estadosHitos'), obraProyecto: de('obraProyecto'),
   };
 }
 
 const _2 = n => (n < 10 ? '0' : '') + n;
-/* Un Date (o «AAAA-MM-DD», o un instante ISO) → su día local «AAAA-MM-DD». null si no se puede leer. */
+/* Un Date (o «AAAA-MM-DD», o un instante ISO) → su día local «AAAA-MM-DD». null si no se puede leer.
+   No es `diaLocal` (resumen.js) a propósito: aquel, con un instante con hora, cuenta el día ESCRITO (el de UTC);
+   aquí un instante —la caducidad del enlace de firma— se pasa al día de quien mira, que es cuando de verdad caduca. */
 function diaCal(f){
   if (f == null || f === '') return null;
   let d;
@@ -104,15 +106,24 @@ function eventosCalendario(d, hoy, dep){
       if (!dia) return;
       const fac = D.facturaDelHito ? D.facturaDelHito(facturas, { id: x.id, numero: x.numero }, y.hito, x.moneda) : null;
       if (fac) facturasDeHito[fac.id] = true;
-      // la factura manda sobre el reparto: pagada/vencida salen de ella (estadoFactura), no de la fecha
+      /* Con factura de estado conocido, la FACTURA manda en el estado y en lo que falta, en todos sus estados: es lo
+         que pinta su fila en Facturas (aplicado + resto sin aplicar). El reparto por hitos puede dar por pagado un hito
+         cuya factura sigue abierta porque el dinero se aplicó a otra (un extra), y un «vencida» con pago parcial debe
+         decir lo que falta, no el total (revisor de código, 9-oct-2026: dos cifras del mismo dinero). Sin factura, o
+         con una sin `aplicado`, decide el reparto, como en Contratos. */
       const ef = fac && D.estadoFactura ? D.estadoFactura(fac, extra[fac.id], fechaDeDia(hoyDia).setHours(12)) : { estado: null };
-      let estado = y.estado === 'pagado' ? 'pagado' : (y.estado === 'parcial' ? 'parcial' : 'pendiente');
-      if (ef.estado === 'pagada') estado = 'pagado';
-      else if (ef.estado === 'vencida') estado = 'vencida';
       const monto = isNaN(y.monto) ? null : y.monto;
-      const falta = monto == null ? null : (estado === 'pagado' ? 0 : Math.max(0, monto - (y.cubierto || 0)));
+      let estado, falta;
+      if (ef.estado === 'pagada'){ estado = 'pagado'; falta = 0; }
+      else if (ef.estado === 'vencida' || ef.estado === 'parcial' || ef.estado === 'pendiente'){
+        estado = ef.estado; falta = ef.falta != null ? ef.falta : Number(fac.total);
+      } else {
+        estado = y.estado === 'pagado' ? 'pagado' : (y.estado === 'parcial' ? 'parcial' : 'pendiente');
+        falta = monto == null ? null : (estado === 'pagado' ? 0 : Math.max(0, monto - (y.cubierto || 0)));
+      }
       ev.push({ id: 'hito:' + x.id + ':' + i, familia: 'pago', clase: estado === 'vencida' ? 'vencida' : 'pago', dia: dia, estado: estado,
-                pide: estado !== 'pagado' && diasEntre(hoyDia, dia) <= 45,
+                // un pago te lo pedimos cuando hay factura (sale a D-3 del vencimiento): antes es un plazo del plan, no una tarea
+                pide: !!fac && ef.estado != null && estado !== 'pagado',
                 hito: y.hito, monto: monto, falta: falta, moneda: x.moneda || null,
                 contrato: x.numero || '', proyecto: x.proyecto || '', parcela: x.parcela || '',
                 factura: fac ? fac.numero : null, ir: fac ? 'factura' : 'contratos' });
@@ -142,11 +153,16 @@ function eventosCalendario(d, hoy, dep){
   });
 
   // 5 · obra: la entrega de cada unidad y los días con fotos nuevas
-  const conUnidad = {};
+  /* Qué proyecto es el de una unidad lo dice `obraProyecto` (index.html: contrato_numero → proyecto_id, y solo si no
+     hay id, el nombre), la misma regla que la pantalla Obra: cruzar por nombre aquí era una segunda versión de ella, y
+     con nombres que no casan salían dos «Entrega de llaves» (revisor de código, 9-oct-2026). */
+  const proyDe = o => { const r = D.obraProyecto ? D.obraProyecto(o) : null; return r && r.proyecto ? r.proyecto.id : null; };
+  const conEntrega = {};
   (d.obra || []).forEach(o => {
     if (!o) return;
-    if (o.proyecto) conUnidad[o.proyecto] = true;
     const dia = diaCal(o.fecha_entrega);
+    // solo la unidad que TRAE fecha tapa la estimada del proyecto: si no, no quedaba ninguna fecha de entrega
+    if (dia){ const pid = proyDe(o); if (pid) conEntrega[pid] = true; }
     if (dia) ev.push({ id: 'entrega:' + (o.unidad || o.contrato_numero), familia: 'obra', clase: 'obra', dia: dia,
                        estado: o.fase === 'entregada' ? 'hecho' : 'previsto', pide: false,
                        unidad: o.unidad || '', proyecto: o.proyecto || '', tipoObra: 'entrega', ir: 'obra' });
@@ -160,7 +176,7 @@ function eventosCalendario(d, hoy, dep){
   // la entrega estimada del proyecto solo si ninguna unidad suya trae la suya (si no, saldría dos veces)
   (d.proyectos || []).forEach(p => {
     const dia = diaCal(p && p.entrega);
-    if (!dia || conUnidad[p.nombre]) return;
+    if (!dia || conEntrega[p.id]) return;
     ev.push({ id: 'entrega-proy:' + p.id, familia: 'obra', clase: 'obra', dia: dia, estado: 'previsto', pide: false,
               unidad: '', proyecto: p.nombre || '', tipoObra: 'entrega', ir: 'obra' });
   });
@@ -191,13 +207,19 @@ function pendientesCalendario(eventos){
 function hitosSinFecha(d, dep){
   const D = _dep(dep);
   const contratos = ((d && d.contratos) || []).filter(Boolean);
+  const facturas = ((d && d.facturas) || []).filter(Boolean);
   const res = D.resumenPortal ? D.resumenPortal(contratos) : { base: contratos };
   let n = 0;
   res.base.forEach(x => {
     if (!x.firmado) return;
     const precio = D.precioContrato ? D.precioContrato(x) : Number(x.precio);
     const hs = D.estadosHitos ? D.estadosHitos(x.hitos, Number(x.cobrado) || 0, precio) : [];
-    hs.forEach(y => { if (y.estado !== 'pagado' && !diaCal(y.hito && y.hito.fecha)) n++; });
+    hs.forEach(y => {
+      if (y.estado === 'pagado' || diaCal(y.hito && y.hito.fecha)) return;
+      // si ya tiene factura, el calendario la pinta en su vencimiento (factura suelta): no es «sin fecha»
+      const fac = D.facturaDelHito ? D.facturaDelHito(facturas, { id: x.id, numero: x.numero }, y.hito, x.moneda) : null;
+      if (!fac) n++;
+    });
   });
   return n;
 }

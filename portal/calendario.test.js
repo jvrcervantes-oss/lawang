@@ -36,6 +36,9 @@ function sacaFuncion(src, nombre){
 const html = fs.readFileSync(path.join(AQUI, 'index.html'), 'utf8');
 const estadosHitos = new Function(sacaFuncion(html, 'num') + '\n' + sacaFuncion(html, 'estadosHitos') + '\nreturn estadosHitos;')();
 const DEP = Object.assign({}, R, { estadosHitos: estadosHitos });
+/* `obraProyecto` lee el DATOS de la página: se evalúa con el DATOS de cada caso. */
+const obraProyectoDe = new Function('DATOS', sacaFuncion(html, 'obraProyecto') + '\nreturn obraProyecto;');
+const dep = datos => Object.assign({}, DEP, { obraProyecto: obraProyectoDe(datos) });
 
 let fallos = 0;
 const es = (que, dio, esperado) => {
@@ -91,7 +94,7 @@ const datos = {
   proyectos: [{ id: 'pr1', nombre: 'Palm Field W5', entrega: '2027-09-01' }, { id: 'pr3', nombre: 'Bonian Village', entrega: '2027-12-01' }],
   kyc: [{ tipo: 'passport', caduca: '2026-10-22' }, { tipo: 'kitas', caduca: '2026-11-28' }, { tipo: 'id', caduca: '2027-12-02' }, { tipo: 'npwp', caduca: null }],
 };
-const ev = C.eventosCalendario(datos, HOY, DEP);
+const ev = C.eventosCalendario(datos, HOY, dep(datos));
 const de = pref => ev.filter(e => e.id.indexOf(pref) === 0);
 const uno = id => ev.filter(e => e.id === id)[0] || null;
 
@@ -108,7 +111,7 @@ es('anticipo pagado', uno('hito:co:0').estado, 'pagado');
 es('cimentación parcial, falta lo no cobrado', [uno('hito:co:1').estado, uno('hito:co:1').falta, uno('hito:co:1').factura], ['parcial', 22950, 'LW-0142']);
 es('estructura pendiente sin factura lleva a Contratos', [uno('hito:co:2').estado, uno('hito:co:2').ir], ['pendiente', 'contratos']);
 es('un hito sin fecha no se coloca', de('hito:co:3').length, 0);
-es('y se cuenta como sin fecha', C.hitosSinFecha(datos, DEP), 1);
+es('y se cuenta como sin fecha', C.hitosSinFecha(datos, dep(datos)), 1);
 es('el texto del hito llega tal cual, sin montar HTML', uno('hito:co:2').hito.es, 'Estructura');
 
 /* Bonian: la escritura con factura vencida es vencida; su factura no se repite como evento suelto */
@@ -147,9 +150,50 @@ es('un documento sin caducidad no sale', de('doc:npwp').length, 0);
 es('pendientes en orden', C.pendientesCalendario(ev).map(e => e.id),
    ['hito:bv:1', 'hito:co:1', 'firma:sh', 'doc:passport:0', 'factura:f9']);
 
+
+/* ── revisor de código, 9-oct-2026 ─────────────────────────────────── */
+/* A: el reparto da el hito por pagado, pero su factura sigue abierta porque el cobro se aplicó a otra (un extra) */
+const casoA = { contratos: [{ id: 'z', numero: 'Z-1', tipo: 'construccion', precio: 2000, cobrado: 1000, moneda: 'USD', firmado: true,
+  hitos: [h('Pago 1', '2026-10-20', 1000)] }],
+  facturas: [{ id: 'fz1', numero: 'LW-Z1', tipo: 'factura', contrato_id: 'z', contrato_numero: 'Z-1', fecha: '2026-10-17', total: 1000, aplicado: 0,
+               lineas: [{ descripcion: 'Pago 1', importe: 1000 }], fields: { fecha_vencimiento: '2026-10-20' } },
+             { id: 'fz2', numero: 'LW-Z2', tipo: 'factura', contrato_id: 'z', contrato_numero: 'Z-1', fecha: '2026-09-01', total: 1000, aplicado: 1000,
+               lineas: [{ descripcion: 'Extra: pérgola', importe: 1000 }], fields: { fecha_vencimiento: '2026-09-05' } }] };
+const a = C.eventosCalendario(casoA, HOY, dep(casoA)).filter(e => e.id === 'hito:z:0')[0];
+es('A · la factura abierta manda sobre el reparto por hitos', [a.estado, a.falta, a.pide], ['pendiente', 1000, true]);
+es('A · su estado es el mismo que pinta Facturas', R.estadoFactura(casoA.facturas[0], R.saldoSinAplicar(casoA.facturas, casoA.contratos).fz1, HOY.getTime()).estado, 'pendiente');
+/* B: factura vencida y pagada en parte: lo que falta, no el total */
+const casoB = { contratos: [{ id: 'w', numero: 'W-1', tipo: 'construccion', precio: 1000, cobrado: 400, moneda: 'USD', firmado: true,
+  hitos: [h('Pago', '2026-09-01', 1000)] }],
+  facturas: [{ id: 'fw', numero: 'LW-W', tipo: 'factura', contrato_id: 'w', contrato_numero: 'W-1', fecha: '2026-08-28', total: 1000, aplicado: 400,
+               lineas: [{ descripcion: 'Pago', importe: 1000 }], fields: { fecha_vencimiento: '2026-09-01' } }] };
+const b = C.eventosCalendario(casoB, HOY, dep(casoB))[0];
+es('B · vencida con pago parcial dice lo que falta', [b.estado, b.monto, b.falta], ['vencida', 1000, 600]);
+/* Un plazo del plan sin factura todavía no es una tarea («pide» llega con la factura) */
+es('un hito futuro sin factura no pide', uno('hito:co:2').pide, false);
+
+/* Obra ↔ proyecto por id, no por nombre: nombres distintos, la estimada del proyecto no se duplica */
+const casoO = { contratos: [{ id: 'k', numero: 'PF-1', tipo: 'construccion', proyecto: 'Palm Field', proyecto_id: 'p1', firmado: true, hitos: [] }],
+  obra: [{ unidad: 'P-01', proyecto: 'PALM FIELD W5 (fase 1)', contrato_numero: 'PF-1', fase: 'estructura', fecha_entrega: '2027-08-15', fotos: [] }],
+  proyectos: [{ id: 'p1', nombre: 'Palm Field W5', entrega: '2027-09-01' }] };
+const o = C.eventosCalendario(casoO, HOY, dep(casoO));
+es('con nombres que no casan, una sola entrega (la de la unidad)', o.filter(e => e.tipoObra === 'entrega').map(e => e.id), ['entrega:P-01']);
+/* Una unidad SIN fecha no esconde la estimada de su proyecto */
+const casoS = JSON.parse(JSON.stringify(casoO)); casoS.obra[0].fecha_entrega = null;
+const sf = C.eventosCalendario(casoS, HOY, dep(casoS));
+es('unidad sin fecha: queda la estimada del proyecto', sf.filter(e => e.tipoObra === 'entrega').map(e => e.id), ['entrega-proy:p1']);
+
+/* Un hito sin fecha pero con factura sale como factura suelta y no se cuenta como «sin fecha» */
+const casoF = { contratos: [{ id: 'q', numero: 'Q-1', tipo: 'construccion', precio: 500, cobrado: 0, moneda: 'USD', firmado: true,
+  hitos: [h('Entrega', null, 500)] }],
+  facturas: [{ id: 'fq', numero: 'LW-Q', tipo: 'factura', contrato_id: 'q', contrato_numero: 'Q-1', fecha: '2026-10-01', total: 500, aplicado: 0,
+               lineas: [{ descripcion: 'Entrega', importe: 500 }], fields: { fecha_vencimiento: '2026-10-30' } }] };
+es('hito sin fecha con factura: no cuenta como sin fecha', C.hitosSinFecha(casoF, dep(casoF)), 0);
+es('y su factura sí sale en su vencimiento', C.eventosCalendario(casoF, HOY, dep(casoF)).map(e => e.id), ['factura:fq']);
+
 /* Comprador sin nada: no rompe */
-es('sin datos, sin eventos', C.eventosCalendario({}, HOY, DEP).length, 0);
-es('sin datos, sin hitos sin fecha', C.hitosSinFecha({}, DEP), 0);
+es('sin datos, sin eventos', C.eventosCalendario({}, HOY, dep({})).length, 0);
+es('sin datos, sin hitos sin fecha', C.hitosSinFecha({}, dep({})), 0);
 
 if (fallos){ console.error(`calendario.test.js: ${fallos} fallo(s)`); process.exit(1); }
 console.log('calendario.test.js: ok');
