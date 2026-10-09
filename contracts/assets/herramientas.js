@@ -79,6 +79,15 @@ const LW_HERRAMIENTAS = [
     soloPermiso:true,
     para:'La agenda de llamadas de venta del closer, dentro del CRM.',
     claves:'closers agenda citas llamadas venta cierre meet closers calendar appointments calls sales closing meet' },
+  /* `bot_conversaciones_ver` (9-oct-2026, encargo «bot de Lawang sin Redis», S10): leer lo que la gente escribe al bot de WhatsApp,
+     directamente de la base. Permiso PROPIO y no 'leads', a proposito: «leads» abre los datos de contacto del CRM, y esto abre el
+     TEXTO de conversaciones privadas con un tercero (datos personales); quien tiene lo uno no tiene por que tener lo otro. Solo
+     funciona con alcance global (el bot es uno y mezcla las dos empresas) y cada lectura queda apuntada (quien, que telefono, cuando).
+     `soloPermiso`: vive DENTRO del CRM (pestaña «Setter IA») y existe como casilla en Usuarios, sin entrada propia en el menú. */
+  { grupo:'Seguimiento', nombre:'Conversaciones del bot', icon:'ph-chats-circle', href:'/intranet/leads/?v=setter', herr:'bot_conversaciones_ver',
+    soloPermiso:true,
+    para:'Leer los mensajes que los clientes intercambian con el bot de WhatsApp. Cada lectura queda registrada.',
+    claves:'bot whatsapp conversaciones chat mensajes setter ia leer bot whatsapp conversations chat messages setter ai read' },
   { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/intranet/v4/operaciones/', herr:'operaciones',
     para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
     claves:'ventas seguimiento estado cuenta sales deals pipeline statement account tracking',
@@ -473,7 +482,7 @@ const LW_PERMISOS = (function () {
    sí y distinto del resto de la suite — Leads abre los datos de contacto de
    un centenar de personas, Ranking las cifras de cada comercial, Reparto
    quién atiende cada campaña, Agenda la agenda de llamadas de venta. */
-const LW_PERMISOS_CRM = ['leads', 'ranking', 'reparto', 'closers'];
+const LW_PERMISOS_CRM = ['leads', 'ranking', 'reparto', 'closers', 'bot_conversaciones_ver'];
 
 /* Con qué herramientas y qué tipos de contrato nace cada rol (11-sep-2026,
    encargo del owner) — solo PRESELECCIÓN al crear: sigue siendo editable
