@@ -137,9 +137,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
    Cada página del PDF (1920×1080) es una pantalla del snap. El contenido vive en un
    escenario de 1920×906 (alto del PDF menos cabecera y submenú) y escala con --u, que
    vale 1px a 1920 de ancho y nunca deja que el escenario se salga de la pantalla. */
+@supports (height:100dvh){:root{--vh:100dvh}}
 :root{
   --band:clamp(44px,min(4.53vw,8vh),87px);
-  --u:min(calc(100vw / 1920),calc((100vh - var(--top) - var(--band)) / 906));
+  --vh:100vh;
+  --u:min(calc(100vw / 1920),calc((var(--vh) - var(--top) - var(--band)) / 906));
   --ink:#333;--brown:#754C24;--brown-d:#42210B;--olive:#5B7445;--green:#3B5D2D;--deep:#1B3B05;--teal:#1C4245;--paper:#F1EFE8;--row:#F7F4EA;
 }
 html,body{background:var(--paper)}
@@ -204,27 +206,27 @@ html,body{background:var(--paper)}
 .ban>img{width:100%;height:100%;object-fit:cover}
 .ban .in{position:absolute;inset:0;width:calc(1920*var(--u));margin:0 auto}
 .ban .t{position:absolute;left:calc(212*var(--u));top:calc(72*var(--u));font-family:'Seasons','Didot',Georgia,serif;font-weight:300;font-size:calc(124*var(--u));line-height:1;letter-spacing:.02em;color:#F4EEE3}
-.ban .t::after{content:attr(data-t);position:absolute;left:0;top:100%;margin-top:calc(-28*var(--u));transform:scaleY(-1);opacity:.35;-webkit-mask:linear-gradient(0deg,#000,transparent 55%);mask:linear-gradient(0deg,#000,transparent 55%);pointer-events:none}
+.ban .t::after{content:attr(data-t);content:attr(data-t) / "";position:absolute;left:0;top:100%;margin-top:calc(-28*var(--u));transform:scaleY(-1);opacity:.35;-webkit-mask:linear-gradient(0deg,#000,transparent 55%);mask:linear-gradient(0deg,#000,transparent 55%);pointer-events:none}
 .ban .s{position:absolute;left:calc(214*var(--u));top:calc(186*var(--u));font-size:calc(36*var(--u));line-height:calc(44*var(--u));letter-spacing:.03em;text-transform:uppercase}
 .ban .s b{font-weight:700}
 .ban .f,.ban .g{position:absolute;text-align:right;text-transform:uppercase;letter-spacing:.06em;font-size:calc(32*var(--u));line-height:calc(36*var(--u));font-weight:500}
-.ban .f{right:calc(calc(1920*var(--u)) - calc(1340*var(--u)));top:calc(119*var(--u))}
-.ban .g{right:calc(calc(1920*var(--u)) - calc(1707*var(--u)));top:calc(110*var(--u));font-size:calc(34*var(--u));line-height:calc(40*var(--u))}
+.ban .f{right:calc(calc(1920*var(--u)) - calc(1340*var(--u)));top:calc(119*var(--u));max-width:calc(430*var(--u))}
+.ban .g{right:calc(calc(1920*var(--u)) - calc(1707*var(--u)));top:calc(110*var(--u));font-size:calc(34*var(--u));line-height:calc(40*var(--u));max-width:calc(330*var(--u))}
 .ban .f b,.ban .g b{font-weight:700}
 .ban small{font-size:calc(21*var(--u));font-weight:500;letter-spacing:.08em}
 .isl{position:absolute;top:calc(393*var(--u));left:0;right:0;display:flex;justify-content:center}
 .isl span{background:#fff;border-radius:999px;height:calc(44*var(--u));padding:0 calc(30*var(--u));display:flex;align-items:center;font-size:max(11px,calc(24*var(--u)));color:#2C3E3F;letter-spacing:.08em;white-space:nowrap}
 .isl b{font-weight:700}
 .kpis{position:absolute;top:calc(503*var(--u));left:0;right:0;display:flex;justify-content:center;gap:calc(81*var(--u));list-style:none}
-.kpi{position:relative;height:calc(173*var(--u));color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 calc(30*var(--u))}
+.kpi{position:relative;min-height:calc(173*var(--u));color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 calc(30*var(--u))}
 .kpi::before{content:"";position:absolute;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.55);border-radius:calc(8*var(--u))}
-.kpi.k1{width:calc(445*var(--u));background:#311B0C}
-.kpi.k2{width:calc(524*var(--u));background:linear-gradient(rgba(71,85,50,.88),rgba(71,85,50,.88)),url('/assets/img/soul/kpi-leaf.webp') center/cover}
-.kpi.k3{width:calc(445*var(--u));background:#223635}
-.kpi .row{display:flex;align-items:baseline;gap:calc(22*var(--u))}
+.kpi.k1{min-width:calc(445*var(--u));background:#311B0C}
+.kpi.k2{min-width:calc(524*var(--u));background:linear-gradient(rgba(71,85,50,.88),rgba(71,85,50,.88)),url('/assets/img/soul/kpi-leaf.webp') center/cover}
+.kpi.k3{min-width:calc(445*var(--u));background:#223635}
+.kpi .row{display:flex;align-items:baseline;gap:calc(22*var(--u));white-space:nowrap;margin-top:calc(20*var(--u))}
 .kpi .row span{font-size:max(11px,calc(22*var(--u)));letter-spacing:.16em;text-transform:uppercase}
 .kpi .row b{font-size:calc(41*var(--u));letter-spacing:.07em;font-weight:700}
-.kpi p{margin-top:calc(14*var(--u));font-size:max(9px,calc(14.5*var(--u)));line-height:1.15;letter-spacing:.11em;font-weight:500;text-transform:uppercase}
+.kpi p{margin:calc(14*var(--u)) 0 calc(20*var(--u));font-size:max(9px,calc(14.5*var(--u)));line-height:1.15;letter-spacing:.11em;font-weight:500;text-transform:uppercase}
 .kpi p b{font-weight:800}
 .ret{position:absolute;top:calc(731*var(--u));left:0;right:0;text-align:center}
 .ret h2{font-size:calc(60*var(--u));line-height:calc(72*var(--u));font-weight:300;letter-spacing:.04em;text-transform:uppercase}
@@ -298,7 +300,7 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
 .see .bn img{width:100%;height:100%;object-fit:cover}
 .see .bn p{position:absolute;top:calc(112*var(--u));font-size:calc(46*var(--u));line-height:calc(53*var(--u));color:#F6F4F0;letter-spacing:.035em;text-transform:uppercase}
 .see .bn p b{font-weight:700}
-.see .bn .l{left:calc(82*var(--u))}.see .bn .rr{right:calc(94*var(--u));text-align:right;top:calc(96*var(--u))}
+.see .bn .l{left:calc(82*var(--u));max-width:calc(800*var(--u))}.see .bn .rr{right:calc(94*var(--u));text-align:right;top:calc(96*var(--u));max-width:calc(800*var(--u))}
 .see h2{position:absolute;top:calc(399*var(--u));left:0;right:0;text-align:center;font-size:calc(56.4*var(--u));line-height:calc(71*var(--u));font-weight:500;color:var(--deep);letter-spacing:.03em}
 .see h2 span{font-weight:400}
 .cols2{position:absolute;top:calc(487*var(--u));left:0;right:0;display:grid;grid-template-columns:calc(888*var(--u)) calc(1032*var(--u));color:var(--olive);font-weight:700;text-align:center;text-transform:uppercase}
@@ -355,8 +357,10 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
 .cl a:hover{filter:brightness(1.08)}
 
 /* ═══ móvil / tablet vertical ═══ */
-@media (max-width:900px){
+@media (max-width:900px),(max-height:600px),(orientation:portrait) and (max-width:1366px){
   :root{--u:.5px;--band:44px}
+  .snap{scroll-snap-type:y proximity}
+  .snap > section{height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
   .snap{background-size:960px auto}
   .snap > section{padding-top:calc(var(--top) + var(--band))}
   .st{width:auto;height:auto;padding:24px 16px 36px}
@@ -396,7 +400,8 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
   .ban .f,.ban .g{display:none}
   .isl{margin-top:-18px;position:relative}.isl span{height:auto;padding:8px 14px;font-size:12px;text-align:center;border-radius:20px;white-space:normal}
   .kpis{flex-direction:column;align-items:stretch;gap:12px;margin-top:24px}
-  .kpi.k1,.kpi.k2,.kpi.k3{width:auto;height:auto;padding:28px 20px}
+  .kpi.k1,.kpi.k2,.kpi.k3{width:auto;min-width:0;height:auto;min-height:0;padding:28px 20px}
+  .kpi .row{white-space:normal;flex-wrap:wrap;justify-content:center;margin-top:0}
   .kpi::before{inset:8px}.kpi .row span{font-size:12px}.kpi .row b{font-size:22px}.kpi p{font-size:10px}
   .ret{margin-top:30px}.ret h2{font-size:24px;line-height:30px}.ret p{font-size:14px;line-height:20px}
   .why .k{font-size:12px}.why h2{margin-top:12px;font-size:22px;line-height:28px}.why .s{font-size:14px;line-height:20px}
@@ -426,7 +431,7 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
   .dots i{width:10px;height:10px}.v1 .dots,.v2 .dots{margin-left:0}
   .see .bn{position:relative;left:auto;top:auto;width:auto;height:auto;border-radius:8px}
   .see .bn img{height:auto}
-  .see .bn p{margin-top:14px;font-size:20px;line-height:25px;color:var(--deep)}
+  .see .bn p{max-width:none;margin-top:14px;font-size:20px;line-height:25px;color:var(--deep)}
   .see .bn .rr{text-align:left;font-size:16px;line-height:21px;color:var(--olive)}
   .see h2{margin-top:28px;font-size:26px;line-height:32px}
   .cols2{grid-template-columns:1fr;gap:24px;margin-top:10px}.cols2>div:last-child{padding:0}
@@ -452,6 +457,8 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
   .cl h2{left:24px;top:30px;font-size:22px;line-height:28px}
   .cl a{left:24px;top:auto;bottom:26px;height:34px;padding:0 14px;font-size:10px}
 }
+
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* pie compartido (lo pinta /assets/lawang-pie.js), última parada del scroll */
 
@@ -648,6 +655,7 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
     <div class="opt sewa"><p class="k" data-i18n-html="rt.b">Without a company</p><h3>HAK SEWA</h3><p class="s" data-i18n-html="ro.ss">Best for a simpler, no-company route</p></div>
   </div>
   <div class="cmp" role="table" aria-label="PT PMA vs Hak Sewa">
+    <div class="sr" role="row"><span role="columnheader"></span><span role="columnheader">PT PMA – Freehold HGB</span><span role="columnheader">Hak Sewa</span></div>
     <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r1">What it is</div><div class="v v1" role="cell" data-i18n-html="ro.r1a">An Indonesian company you own holds the HGB title.</div><div class="v v2" role="cell" data-i18n-html="ro.r1b">A long-term lease, registered before a notary.</div></div>
     <div class="tr" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r2">Holds the title</div><div class="v v1" role="cell" data-i18n-html="ro.r2a">Your PT PMA</div><div class="v v2" role="cell" data-i18n-html="ro.r2b">You, as the lessee</div></div>
     <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r3">Term</div><div class="v v1" role="cell" data-i18n-html="ro.r3a">30 years, extendable 20 + 30</div><div class="v v2" role="cell" data-i18n-html="ro.r3b">Up to 30 years, renewable</div></div>
@@ -1082,7 +1090,7 @@ var SOUL_I18N = {
 "in.f": {
 "en": "2nd fastest <br><b>growing economy</b> <br><small>in Asia</small>",
 "es": "2.ª economía <br><b>de mayor crecimiento</b> <br><small>de Asia</small>",
-"id": "Ekonomi dengan <br><b>pertumbuhan tercepat ke-2</b> <br><small>di Asia</small>"
+"id": "Pertumbuhan ekonomi <br><b>tercepat ke-2</b> <br><small>di Asia</small>"
 },
 "in.g": {
 "en": "<b>G20</b> <br><b>host nation</b> <br><small>2022</small>",
@@ -1312,7 +1320,7 @@ var SOUL_I18N = {
 "se.r": {
 "en": "WE DON'T LIST PROPERTIES. <br><b>WE SELECT THEM.</b>",
 "es": "NO LISTAMOS PROPIEDADES. <br><b>LAS SELECCIONAMOS.</b>",
-"id": "KAMI TIDAK SEKADAR MENDAFTAR PROPERTI. <br><b>KAMI MEMILIHNYA.</b>"
+"id": "KAMI TIDAK MENDAFTAR PROPERTI. <br><b>KAMI MEMILIHNYA.</b>"
 },
 "se.h": {
 "en": "THE VISITS. <span>THE OFFICE</span>",
@@ -1422,6 +1430,11 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
       if (t) { e.preventDefault(); snap.scrollTo({ top: t.offsetTop, behavior: 'smooth' }); }
     });
   });
+
+  // Anclas de la versión anterior (8-oct): siguen llevando a su sección equivalente
+  var VIEJAS = { '#roadmap': '#how', '#legal': '#routes', '#services': '#who' };
+  var h = location.hash.replace(/^#services-.*/, '#services');
+  if (VIEJAS[h]) { var dest = document.querySelector(VIEJAS[h]); if (dest) snap.scrollTop = dest.offsetTop; }
 
   // Submenú: marca la entrada de la sección que ocupa la pantalla
   var links = [].slice.call(document.querySelectorAll('.soulnav a[data-s]'));
