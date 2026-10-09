@@ -280,9 +280,9 @@ html,body{background:var(--paper)}
 .routes .tt .bg span:last-child{font-size:calc(56.3*var(--u));letter-spacing:.03em}
 html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;line-height:calc(70*var(--u))!important}
 .routes .tt .c{text-align:right;font-size:calc(36*var(--u));line-height:calc(45*var(--u));font-weight:400;letter-spacing:.03em;margin-top:calc(2*var(--u));padding-right:calc(9*var(--u))}
-.opt{position:absolute;top:calc(46*var(--u));height:calc(190*var(--u));color:#fff;text-align:center;background-size:cover;text-transform:uppercase}
-.opt.pma{left:calc(680*var(--u));width:calc(620*var(--u));background-image:url('/assets/img/soul/route-pma.webp')}
-.opt.sewa{left:calc(1320*var(--u));width:calc(560*var(--u));background-image:url('/assets/img/soul/route-sewa.webp')}
+.opt{position:absolute;top:calc(46*var(--u));height:calc(177*var(--u));color:#fff;text-align:center;background-size:100% 100%;text-transform:uppercase}
+.opt.pma{left:calc(670*var(--u));width:calc(621*var(--u));background-image:url('/assets/img/soul/route-pma.webp')}
+.opt.sewa{left:calc(1307*var(--u));width:calc(573*var(--u));background-image:url('/assets/img/soul/route-sewa.webp')}
 .opt .k{margin-top:calc(36*var(--u));font-size:max(10px,calc(20*var(--u)));line-height:calc(26*var(--u));letter-spacing:.2em}
 html[data-lang=es] .opt .k,html[data-lang=id] .opt .k{margin-top:calc(24*var(--u))}
 html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-size:max(9px,calc(15*var(--u)));line-height:calc(18*var(--u));padding:0 calc(40*var(--u))}
@@ -430,7 +430,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .steps6 br.d{display:none}
   .routes .tt .a{font-size:20px;line-height:24px}.routes .tt .bg span:first-child{font-size:30px;line-height:36px}.routes .tt .bg span:last-child{font-size:27px}.routes .tt .bg{flex-wrap:wrap;gap:8px}.routes .tt .c{font-size:18px;line-height:22px;text-align:left}
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px}
-  .opt,.opt.pma,.opt.sewa{width:auto;height:auto;padding:14px 8px}
+  .opt,.opt.pma,.opt.sewa{width:auto;height:auto;padding:14px 8px;background-size:cover}
   .opt .k{margin:0;font-size:9px}.opt h3{font-size:18px;line-height:24px}.opt h3 small{display:block;font-size:13px}.opt .s{font-size:9px;line-height:12px;padding:0}
   .cmp{margin-top:16px}
   .cmp .tr{height:auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;padding:8px}
@@ -1411,6 +1411,11 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   }
   snap.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', alto);
+  window.addEventListener('load', alto);
+  // La barra anima su padding al hacerse sólida y el logo carga después: se vuelve a medir
+  // siempre que cambie de alto, o --top queda mayor que la barra y asoma la página entre ambas.
+  if (window.ResizeObserver) new ResizeObserver(alto).observe(tb);
+  tb.addEventListener('transitionend', alto);
   onScroll(); alto();
 
   // Burger móvil
