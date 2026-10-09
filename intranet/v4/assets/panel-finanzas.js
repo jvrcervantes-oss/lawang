@@ -445,6 +445,30 @@
     el.innerHTML = h;
   }
 
+  /* Estado de cuentas en resumen: una tarjeta por proyecto con las cuatro
+     cifras que el cliente pregunta (cartera, cobrado, por cobrar, vencido). Sale
+     de pm.porProyecto, la MISMA fuente que la tabla «Por proyecto»: no recalcula
+     nada, así las dos pantallas no pueden discrepar. Solo proyectos con cartera:
+     uno con solo stock no tiene cuentas que enseñar. */
+  function pintaEstado(pm, d) {
+    var el = $('lw-fin-estado'); if (!el) return;
+    if (d.fallos.contratos || d.fallos.cobrado || d.fallos.vencimientos) { el.innerHTML = '<p class="py-6 text-center text-error">' + esc(T('No se pudo cargar la cartera ni las unidades.')) + '</p>'; return; }
+    var m = pm.moneda, filas = (pm.porProyecto || []).filter(function (p) { return (p.cartera || 0) > 0 || (p.cobrado || 0) > 0; });
+    if (!filas.length) { el.innerHTML = '<p class="py-6 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Ningún proyecto con contratos firmados ni stock en') + ' ' + m + '.') + '</p>'; return; }
+    var cifra = function (rot, v, mal) {
+      return '<div class="flex items-baseline justify-between gap-3 py-1.5 border-t border-outline-variant/30"><span class="font-body-sm text-body-sm text-on-surface-variant">' + esc(T(rot)) + '</span>' +
+        '<span class="fin-num font-label-md text-label-md' + (mal ? ' text-error' : ' text-on-surface') + '">' + esc(fmt(v, m)) + '</span></div>';
+    };
+    el.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">' + filas.map(function (p) {
+      var pc = p.pctCobrado == null ? null : Math.min(100, p.pctCobrado);
+      return '<article class="rounded-xl border border-outline-variant/40 bg-surface-container-low p-5">' +
+        '<h3 class="font-label-md text-label-md text-deep-lagoon mb-3">' + esc(p.proyecto) + '</h3>' +
+        cifra('Cartera', p.cartera) + cifra('Cobrado', p.cobrado) + cifra('Por cobrar', p.pendiente) + cifra('Vencido', p.vencido, p.vencido > 0) +
+        '<div class="mt-3 flex items-center gap-2"><span class="flex-1 h-1.5 rounded-full bg-surface-container overflow-hidden"><span class="block h-full" style="width:' + (pc == null ? 0 : pc) + '%;background:#104C4F"></span></span>' +
+        '<span class="fin-num font-body-sm text-body-sm text-on-surface-variant">' + (pc == null ? '—' : esc(String(p.pctCobrado).replace('.', ',')) + ' %') + '</span></div></article>';
+    }).join('') + '</div>';
+  }
+
   function pintaProyectos(pm, d) {
     var tb = $('lw-fin-proyectos'); if (!tb) return;
     var sinCartera = d.fallos.contratos || d.fallos.cobrado || d.fallos.vencimientos;
@@ -758,6 +782,7 @@
         pintaFacturado(pm, d);
         pintaTrimestres(pm, d);
         pintaStock(pm, d);
+        pintaEstado(pm, d);
         pintaProyectos(pm, d);
         pintaCloser(pm, d);
         pintaBancos(d);
