@@ -190,6 +190,9 @@ const casoF = { contratos: [{ id: 'q', numero: 'Q-1', tipo: 'construccion', prec
                lineas: [{ descripcion: 'Entrega', importe: 500 }], fields: { fecha_vencimiento: '2026-10-30' } }] };
 es('hito sin fecha con factura: no cuenta como sin fecha', C.hitosSinFecha(casoF, dep(casoF)), 0);
 es('y su factura sí sale en su vencimiento', C.eventosCalendario(casoF, HOY, dep(casoF)).map(e => e.id), ['factura:fq']);
+/* …pero si esa factura no trae `aplicado` no sale en el calendario: entonces sí cuenta como «sin fecha» (no se pierde) */
+const casoF2 = JSON.parse(JSON.stringify(casoF)); delete casoF2.facturas[0].aplicado;
+es('hito sin fecha con factura sin estado: cuenta como sin fecha', [C.hitosSinFecha(casoF2, dep(casoF2)), C.eventosCalendario(casoF2, HOY, dep(casoF2)).length], [1, 0]);
 
 /* Comprador sin nada: no rompe */
 es('sin datos, sin eventos', C.eventosCalendario({}, HOY, dep({})).length, 0);
