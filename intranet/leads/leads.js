@@ -1723,6 +1723,39 @@ function pintarAutomatismos(){
    proxy guarda la clave del bot como secreto de la función: esta pantalla
    nunca ve `ADMIN_PASSWORD`.
    ========================================================================== */
+/* ORIGEN DE LA LECTURA DE CONVERSACIONES (S10, 9-oct-2026, encargo «bot sin Redis»).
+   'proxy'    = como hasta ahora: el bot (Redis) por lawang-bot-proxy, con el permiso 'leads'.
+   'postgres' = las dos funciones de la base (crm_bot_conversaciones / crm_bot_conversacion): permiso PROPIO `bot_conversaciones_ver`
+                y cada lectura queda apuntada. El permiso lo decide la base; esta pantalla solo pinta y explica por qué no hay datos.
+   Se pasa a 'postgres' en el corte (fase F3b del encargo), cuando bot_chat/bot_mensaje ya tienen los hilos (importador S5 + doble
+   escritura). Mientras tanto, `?bot=pg` en la URL abre la lectura de Postgres para probarla con un teléfono canario, sin tocar al resto.
+   Quien tiene 'leads' pero no la casilla nueva deja de ver conversaciones EN EL CORTE, no antes. Pausar, enviar y plantillas siguen
+   por el bot (necesita el token de WhatsApp) en los dos modos. */
+const LECTURA_BOT = 'proxy';
+const BOT_PG = LECTURA_BOT === 'postgres' || /[?&]bot=pg(&|$)/.test(location.search);
+let SETTER_ERROR = false;   // true = no se PUDO mirar (distinto de «no hay conversaciones»): la lista no dice «Sin conversaciones»
+
+/* Error de las funciones de lectura. 42501 es «no tienes permiso» (la base lo decide); cualquier otro es «no se pudo leer». */
+function errorBotPg(error){
+  const e = new Error(error && error.code === '42501'
+    ? lwT('No tienes permiso para leer las conversaciones del bot. Pide la casilla «Conversaciones del bot» a quien administra los usuarios.')
+    : lwT('No se pudo leer: ') + ((error && error.message) || ''));
+  e.sinPermiso = !!(error && error.code === '42501');
+  return e;
+}
+async function leerConversaciones(){
+  if(!BOT_PG) return await llamarBot('conversaciones');
+  const { data, error } = await SB.rpc('crm_bot_conversaciones');
+  if(error) throw errorBotPg(error);
+  return (data && data.chats) || [];
+}
+async function leerHilo(phone){
+  if(!BOT_PG) return { mensajes: (await llamarBot('conversacion', { phone })) || [], pg: false };
+  const { data, error } = await SB.rpc('crm_bot_conversacion', { p_tel: phone });
+  if(error) throw errorBotPg(error);
+  return Object.assign({ pg: true }, data || {});
+}
+
 async function llamarBot(accion, extra){
   const { data: ses } = await SB.auth.getSession();
   const token = ses && ses.session && ses.session.access_token;
@@ -1746,14 +1779,20 @@ async function cargarSetter(){
   CARGADO.setter = true;
   const av = $('#avisoSetter');
   try {
-    CONVERSACIONES = await llamarBot('conversaciones');
-    av.hidden = true;
+    CONVERSACIONES = await leerConversaciones();
+    SETTER_ERROR = false;
+    /* Desde la base no se sabe si el bot está en modo testing (eso vive en una variable de Railway): se dice, no se inventa. */
+    av.hidden = !BOT_PG;
+    if(BOT_PG) av.innerHTML = '<span data-tipo="origen_postgres">' + esc(lwT('Lectura directa de la base de datos. Cada lectura queda registrada. Desde aquí no se sabe si el bot está en modo testing ni a qué leads contesta.')) + '</span>';
   } catch(err){
     CONVERSACIONES = [];
+    SETTER_ERROR = true;
     av.hidden = false;
-    av.innerHTML = err.message === 'lawang-bot-proxy no configurado (falta LAWANG_BOT_ADMIN_KEY)'
-      ? lwT('El puente con el bot todavía no está activado por el estudio.')
-      : lwT('No se pudo leer el bot: ') + esc(err.message);
+    av.innerHTML = err.sinPermiso
+      ? '<span data-tipo="sin_permiso">' + esc(err.message) + '</span>'
+      : err.message === 'lawang-bot-proxy no configurado (falta LAWANG_BOT_ADMIN_KEY)'
+        ? lwT('El puente con el bot todavía no está activado por el estudio.')
+        : lwT('No se pudo leer el bot: ') + esc(err.message);
   }
   pintarSetter();
   /* Si se entró por un enlace directo (`#setter/62…`), el hilo se abrió ANTES de que
@@ -1772,6 +1811,7 @@ const iniciales = nombre => {
 };
 
 function kpisSetter(){
+  if(SETTER_ERROR){ $('#kpis-setter').innerHTML = ''; return; }   // «no se pudo mirar» no se pinta como «0 conversaciones»
   const activas = CONVERSACIONES.filter(l => !l.paused).length;
   const pausadas = CONVERSACIONES.length - activas;
   $('#kpis-setter').innerHTML = `
@@ -1827,7 +1867,7 @@ function pintarSetter(){
               aria-label="${l.paused ? 'Reanudar IA' : 'Pausar IA'}">
         <i class="ph ${l.paused ? 'ph-play' : 'ph-pause'}"></i>
       </button>
-    </div>`).join('') : '<p class="vacio">' + lwT('Sin conversaciones todavía.') + '</p>';
+    </div>`).join('') : (SETTER_ERROR ? '' : '<p class="vacio">' + lwT('Sin conversaciones todavía.') + '</p>');
 
   $('#tSetter').querySelectorAll('.wa-fila').forEach(c => {
     c.onclick = () => irAConversacion(c.dataset.phone);
@@ -1913,12 +1953,15 @@ async function verConversacion(phone){
   pintarCaja(lead);
 
   try {
-    const historia = await llamarBot('conversacion', { phone });
+    const hilo = await leerHilo(phone);
     if(CHAT_ABIERTO !== phone) return;   // se cambió de conversación mientras cargaba
-    pintarHiloChat(historia || []);
+    pintarHiloChat(hilo.mensajes || [], !!hilo.hayMas);
+    /* Con la lectura de la base el hilo trae además lo que el CRM sabe del lead (resúmenes y notas del bot, citas): se repinta la ficha. */
+    if(hilo.pg) pintarFicha(Object.assign({}, lead, Object.fromEntries(Object.entries(hilo.chat || {}).filter(([, v]) => v !== null && v !== undefined)), { crm: hilo.lead || null, notasLista: hilo.notas || [], citasLista: hilo.citas || [] }));
   } catch(err){
     if(CHAT_ABIERTO !== phone) return;
-    $('#hiloConv').innerHTML = '<p class="vacio">' + lwT('No se pudo leer la conversación.') + '</p>';
+    $('#hiloConv').innerHTML = '<p class="vacio" data-tipo="' + (err.sinPermiso ? 'sin_permiso' : 'error_lectura') + '">'
+      + (err.sinPermiso ? esc(err.message) : lwT('No se pudo leer la conversación.')) + '</p>';
   }
 }
 
@@ -2091,6 +2134,9 @@ function pintarFicha(lead){
     [lwT('Estado'), ESTADO_COM[lead.status] || lead.status],
     [lwT('País'),        lead.country],
     [lwT('Campaña'), lead.campaign],
+    /* Con la lectura de la base (S10) el lead viene del CRM, que es su dueño: de ahí salen el origen y el proyecto. */
+    [lwT('Origen'), lead.crm && lead.crm.source],
+    [lwT('Proyecto'), lead.crm && lead.crm.project],
     /* travelDate lo extrae el bot de la conversación, así que puede venir en
        cualquier forma ("noviembre", "14/11"...). Se formatea SOLO si es una fecha
        de verdad; si no, se enseña tal cual — inventarle un formato sería perderla. */
@@ -2105,18 +2151,31 @@ function pintarFicha(lead){
   const tags = (lead.tags || []).map(t => `<span class="chip gris">${esc(t)}</span>`).join('');
   /* Las citas viven en el historial del lead como eventos type:'appt' — es donde las
      escribe el bot, así que se leen de ahí y no de una segunda fuente. */
-  const citas = (lead.history || []).filter(h => h.type === 'appt')
+  const citas = lead.citasLista
+    /* Lectura de la base: las citas son de lead_accion (el CRM). `data-estado` es el estado real; el rótulo es solo pintura. */
+    ? lead.citasLista.map(c => `<div class="cita con-meet" data-cita-id="${esc(c.id)}" data-estado="${esc(c.estado)}"><div class="cuerpo">
+        <div class="cuando">${esc(c.ts ? fechaHora(new Date(c.ts).toISOString()) : lwT('sin fecha'))}</div>
+        <div class="quien">${esc(c.que || (c.tipo === 'visita' ? lwT('Visita') : lwT('Llamada')))}</div></div></div>`).join('')
+    : (lead.history || []).filter(h => h.type === 'appt')
     .sort((a, b) => String(b.when || '').localeCompare(String(a.when || '')))
     .map(h => `<div class="cita con-meet"><div class="cuerpo">
         <div class="cuando">${esc(h.when ? fechaHora(new Date(h.when).toISOString()) : 'sin fecha')}</div>
         <div class="quien">${esc(h.title || lwT('Llamada'))}</div></div></div>`).join('');
+  /* Notas del bot (lead_notas). El texto de un resumen sale de un chat con un tercero y de un modelo: es NO FIABLE, va escapado y como
+     texto (white-space en .notas), nunca como HTML. `data-tipo` distingue el resumen de una nota suelta del bot — el código engancha por él,
+     no por el rótulo. */
+  const notasBot = lead.notasLista
+    ? lead.notasLista.map(nt => `<div class="notas" data-nota-id="${esc(nt.id)}" data-tipo="${esc(nt.tipo)}">
+        ${nt.tipo === 'resumen_bot' ? '<span class="chip verde"><i class="ph ph-note"></i> ' + esc(lwT('Resumen del bot')) + '</span> ' : ''}<span class="meta">${esc(nt.ts ? fechaHora(new Date(nt.ts).toISOString()) : '')}</span>
+        <div>${esc(nt.texto)}</div></div>`).join('')
+    : (lead.notes ? `<div class="notas">${esc(lead.notes)}</div>` : '');
 
   f.innerHTML = `
     <p class="lb">${lwT('El lead')}</p>
     ${filas || '<p class="nada">' + lwT('El bot todavía no ha sacado datos de esta conversación.') + '</p>'}
     ${tags ? `<p class="lb">${lwT('Etiquetas')}</p><div class="etiquetas">${tags}</div>` : ''}
     <p class="lb">${lwT('Notas del bot')}</p>
-    ${lead.notes ? `<div class="notas">${esc(lead.notes)}</div>` : '<p class="nada">' + lwT('Sin notas.') + '</p>'}
+    ${notasBot || '<p class="nada">' + lwT('Sin notas.') + '</p>'}
     <p class="lb">${lwT('Citas')}</p>
     ${citas || '<p class="nada">' + lwT('Ninguna agendada.') + '</p>'}
     ${PUEDE_CLOSERS ? `<button type="button" class="btn pri" id="waAgendar">
@@ -2135,11 +2194,11 @@ function pintarFicha(lead){
   };
 }
 
-function pintarHiloChat(historia){
+function pintarHiloChat(historia, hayMas){
   const hilo = $('#hiloConv');
   if(!historia.length){ hilo.innerHTML = '<p class="vacio">' + lwT('Sin mensajes.') + '</p>'; return; }
   let ultimoDia = '';
-  hilo.innerHTML = historia.map(m => {
+  hilo.innerHTML = (hayMas ? '<div class="wa-dia" data-tipo="hay_mas">' + esc(lwT('Se muestran los últimos 100 mensajes.')) + '</div>' : '') + historia.map(m => {
     const d = m.ts ? new Date(m.ts) : null;
     const dia = d ? d.toLocaleDateString(lwLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : '';
     const separador = dia && dia !== ultimoDia ? `<div class="wa-dia">${esc(dia)}</div>` : '';
@@ -2148,7 +2207,7 @@ function pintarHiloChat(historia){
     const humana = !entra && m.by === 'human';
     return separador + `<div class="wa-b ${entra ? 'entra' : 'sale'}${humana ? ' humana' : ''}">
       ${humana ? '<span class="firma">' + lwT('Respuesta del equipo') + '</span>' : ''}
-      <div class="txt">${esc(m.content || '')}</div>
+      <div class="txt">${m.media ? '<i>' + esc(lwT('Adjunto') + ': ' + (m.media.tipo || '')) + '</i> ' : ''}${esc(m.content || '')}</div>
       <span class="meta">${d ? esc(d.toLocaleTimeString(lwLocale(), { hour: '2-digit', minute: '2-digit' })) : ''}</span>
     </div>`;
   }).join('');

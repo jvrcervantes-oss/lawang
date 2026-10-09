@@ -50,7 +50,8 @@
       { path: 'leads', texto: 'CRM', clave: 'leads', extra: [
         { clave: 'ranking', texto: 'Ranking de closers' },
         { clave: 'reparto', texto: 'Reparto de leads' },
-        { clave: 'closers', texto: 'Agenda de cierre' }] },
+        { clave: 'closers', texto: 'Agenda de cierre' },
+        { clave: 'bot_conversaciones_ver', texto: 'Conversaciones del bot' }] },
       { path: 'operaciones', texto: 'Operaciones', clave: 'operaciones' },
       { path: 'reservas', texto: 'Reservas', clave: 'reservas' }] },
     { seccion: 'Documentación', entradas: [
