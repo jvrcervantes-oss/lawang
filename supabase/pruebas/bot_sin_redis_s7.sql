@@ -90,6 +90,9 @@ begin
   v_ok := v_ok || '2a ejecucion no-op; ';
 
   -- ═══ C. los logs siguen siendo de solo anadir fuera de la purga ═══
+  -- bot_purga fija bot.purga=on con set_config(local) y en ESTE DO (una sola transaccion) sigue puesto; en produccion el job corre en su propia
+  -- transaccion y la marca muere con ella. Aqui se baja a mano para probar el estado «fuera de la purga».
+  perform set_config('bot.purga', 'off', true);
   begin delete from public.bot_acciones_log; raise exception 'PRUEBA FALLA: se pudo borrar bot_acciones_log sin la purga';
   exception when insufficient_privilege then null; end;
   begin update public.bot_acciones_log set detalle = 'z'; raise exception 'PRUEBA FALLA: se pudo editar bot_acciones_log';
@@ -100,6 +103,7 @@ begin
   exception when insufficient_privilege then null; end;
   begin delete from public.bot_olvidos_log; raise exception 'PRUEBA FALLA: se pudo borrar bot_olvidos_log fuera de la purga';
   exception when insufficient_privilege then null; end;
+  insert into public.bot_config_log (usuario, version, prev, next) values ('s7', 0, '{}'::jsonb, '{}'::jsonb);   -- sembrada: un trigger de fila no salta con la tabla vacia
   begin delete from public.bot_config_log; raise exception 'PRUEBA FALLA: bot_config_log dejo de ser solo anade';
   exception when insufficient_privilege then null; end;
   v_ok := v_ok || 'logs de solo anadir fuera de la purga (la compartida sigue cerrando bot_config_log); ';
