@@ -303,7 +303,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 
 /* 7 · come see it */
 .see .bn{position:absolute;left:calc(63*var(--u));top:calc(10*var(--u));width:calc(1796*var(--u));height:calc(341*var(--u));border-radius:calc(16*var(--u));overflow:hidden}
-.see .bn img{width:100%;height:100%;object-fit:cover}
+.see .bn video{display:block;width:100%;height:100%;object-fit:cover}
 .see .bn p{position:absolute;top:calc(112*var(--u));font-size:calc(46*var(--u));line-height:calc(53*var(--u));color:#F6F4F0;letter-spacing:.035em;text-transform:uppercase}
 .see .bn p b{font-weight:700}
 .see .bn .l{left:calc(82*var(--u));max-width:calc(800*var(--u))}.see .bn .rr{right:calc(94*var(--u));text-align:right;top:calc(96*var(--u));max-width:calc(800*var(--u))}
@@ -438,7 +438,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .cmp .v{font-size:11px;line-height:15px;gap:8px;flex-wrap:wrap}
   .dots i{width:10px;height:10px}.v1 .dots,.v2 .dots{margin-left:0}
   .see .bn{position:relative;left:auto;top:auto;width:auto;height:auto;border-radius:8px}
-  .see .bn img{height:auto}
+  .see .bn video{height:auto;aspect-ratio:1796/341}
   .see .bn p{max-width:none;margin-top:14px;font-size:20px;line-height:25px;color:var(--deep)}
   .see .bn .rr{text-align:left;font-size:16px;line-height:21px;color:var(--olive)}
   .see h2{margin-top:28px;font-size:26px;line-height:32px}
@@ -674,7 +674,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 </div></section>
 
 <section class="see" id="see" aria-labelledby="see-h" data-spy="see"><div class="st">
-  <div class="bn"><img src="/assets/img/soul/visits-banner.webp" alt="Aerial view of a sandbar between turquoise water and forest" loading="lazy">
+  <div class="bn"><video class="bn-v" muted loop playsinline preload="none" poster="/assets/img/soul/visits-banner.webp" data-src="/assets/video/legacy.mp4?v=3" aria-label="Aerial views of Bali and Sumba: a sandbar between turquoise water and forest"></video>
     <p class="l" data-i18n-html="se.b">YOU SEE THE VIEW YOURSELF, <br><b>BEFORE YOU DECIDE.</b></p>
     <p class="rr" data-i18n-html="se.r">WE DON'T LIST PROPERTIES. <br><b>WE SELECT THEM.</b></p></div>
   <h2 id="see-h" data-i18n-html="se.h">THE VISITS. <span>THE OFFICE</span></h2>
@@ -1451,6 +1451,20 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   if (VIEJAS[h]) window.addEventListener('load', function () {
     var dest = document.querySelector(VIEJAS[h]); if (dest) snap.scrollTop = dest.offsetTop;
   });
+
+  // Vídeo de fondo de «Come see it»: el mismo de la landing (legacy.mp4). Se descarga solo al
+  // acercarse a la sección, se pausa fuera de pantalla y no arranca con «reducir movimiento».
+  var bv = document.querySelector('.see .bn-v');
+  if (bv && 'IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    new IntersectionObserver(function (ents) {
+      ents.forEach(function (e) {
+        if (e.isIntersecting) {
+          if (!bv.getAttribute('src')) bv.setAttribute('src', bv.dataset.src);
+          var p = bv.play(); if (p && p.catch) p.catch(function () {});
+        } else if (bv.getAttribute('src')) { bv.pause(); }
+      });
+    }, { root: snap, rootMargin: '600px 0px' }).observe(bv);
+  }
 
   // Submenú: marca la entrada de la sección que ocupa la pantalla
   var links = [].slice.call(document.querySelectorAll('.soulnav a[data-s]'));
