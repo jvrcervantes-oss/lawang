@@ -140,13 +140,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
    Cada página del PDF (1920×1080) es una pantalla del snap. El contenido vive en un
    escenario de 1920×906 (alto del PDF menos cabecera y submenú) y escala con --u, que
    vale 1px a 1920 de ancho y nunca deja que el escenario se salga de la pantalla. */
-@supports (height:100dvh){:root{--vh:100dvh}}
 :root{
   --band:clamp(44px,min(4.53vw,8vh),87px);
   --vh:100vh;
   --u:min(calc(100vw / 1920),calc((var(--vh) - var(--top) - var(--band)) / 906));
   --ink:#333;--brown:#754C24;--brown-d:#42210B;--olive:#5B7445;--green:#3B5D2D;--deep:#1B3B05;--teal:#1C4245;--paper:#F1EFE8;--row:#F7F4EA;
 }
+@supports (height:100dvh){:root{--vh:100dvh}}
 html,body{background:var(--paper)}
 .snap{background:var(--paper) url('/assets/img/soul/soul-paper.webp') top center/1920px auto repeat}
 .m{font-weight:500}.r{font-weight:400}.xb{font-weight:800}
@@ -293,7 +293,7 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
 .cmp .th{position:relative;grid-column:1;text-align:right;font-size:max(11px,calc(19*var(--u)));line-height:calc(24*var(--u));letter-spacing:.03em}
 .cmp .v{position:relative;font-size:max(10px,calc(17*var(--u)));line-height:calc(23*var(--u));font-weight:500;letter-spacing:.03em;display:flex;align-items:center;flex-wrap:wrap;gap:calc(4*var(--u)) calc(22*var(--u));padding-top:calc(1*var(--u))}
 .cmp .v1{grid-column:3;color:var(--brown-d)}.cmp .v2{grid-column:5;color:var(--teal)}
-.ro-n{position:absolute;top:calc(575*var(--u));left:calc(759*var(--u));width:calc(1095*var(--u));font-size:max(11px,calc(15*var(--u)));line-height:calc(22*var(--u));color:#5d5a52;font-style:italic}
+.ro-n{position:relative;margin:calc(8*var(--u)) 0 0 calc(759*var(--u));width:calc(1095*var(--u));text-transform:none;font-size:max(11px,calc(15*var(--u)));line-height:calc(22*var(--u));color:#5d5a52;font-style:italic}
 .dots{display:inline-flex;gap:calc(6*var(--u))}
 .dots i{width:calc(19*var(--u));height:calc(19*var(--u));border-radius:50%;border:1.5px solid currentColor;display:block}
 .dots i.f{background:currentColor}
@@ -430,7 +430,7 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
   .cmp{margin-top:16px}
   .cmp .tr{height:auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;padding:8px}
   .cmp .v1{grid-column:1}.cmp .v2{grid-column:2}
-  .ro-n{position:static;width:auto;margin-top:12px;font-size:11px;line-height:16px}
+  .ro-n{position:static;width:auto;margin:12px 0 0;font-size:11px;line-height:16px}
   .cmp .tr.z{background:var(--row)}.cmp .tr.z::before{display:none}
   .cmp .th{grid-column:1/-1;text-align:left;font-size:11px;font-weight:700}
   .cmp .v{font-size:11px;line-height:15px;gap:8px;flex-wrap:wrap}
@@ -667,8 +667,8 @@ html[data-lang=es] .routes .tt .bg span{font-size:calc(47*var(--u))!important;li
     <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r3">Term</div><div class="v v1" role="cell" data-i18n-html="ro.r3a">30 years, extendable 20 + 30</div><div class="v v2" role="cell" data-i18n-html="ro.r3b">Term set in the lease, with an extension option</div></div>
     <div class="tr" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r4">You can</div><div class="v v1" role="cell" data-i18n-html="ro.r4a">Sell or mortgage the HGB, run licensed rentals; your shares pass to heirs</div><div class="v v2" role="cell" data-i18n-html="ro.r4b">Pass to heirs; transfer only as the lease allows</div></div>
     <div class="tr z" role="row"><div class="th" role="rowheader" data-i18n-html="ro.r5">Setup</div><div class="v v1" role="cell"><span data-i18n-html="ro.r5a">A company to set up and maintain</span> <span class="dots" role="img" aria-label="3/3"><i class="f"></i><i class="f"></i><i class="f"></i></span></div><div class="v v2" role="cell"><span data-i18n-html="ro.r5b">One notarial contract</span> <span class="dots" role="img" aria-label="1/3"><i class="f"></i><i></i><i></i></span></div></div>
-  </div>
   <p class="ro-n" data-i18n-html="ro.n">General information, not legal advice. The right route depends on your case and is confirmed with the notary/PPAT before you sign.</p>
+  </div>
 </div></section>
 
 <section class="see" id="see" aria-labelledby="see-h" data-spy="see"><div class="st">
@@ -1445,7 +1445,7 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
 
   // Anclas de la versión anterior (8-oct): siguen llevando a su sección equivalente
   var VIEJAS = { '#roadmap': '#how', '#legal': '#routes', '#services': '#who' };
-  var h = location.hash.replace(/^#services-.*/, '#services');
+  var h = location.hash.replace(/^#(services-.*|pane-.*|bands)$/, '#services');
   if (VIEJAS[h]) { var dest = document.querySelector(VIEJAS[h]); if (dest) snap.scrollTop = dest.offsetTop; }
 
   // Submenú: marca la entrada de la sección que ocupa la pantalla
