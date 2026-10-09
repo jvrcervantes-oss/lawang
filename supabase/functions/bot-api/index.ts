@@ -46,7 +46,7 @@
 //   · Contenido que viene de Meta (texto, nombre de perfil) se RECORTA, no se rechaza: un 400 ahi acabaria en un 5xx del bot a Meta y
 //     Meta reentrega durante 7 dias. La FORMA que construye el bot (claves, media {tipo,id}, <=10 salidas) es esquema cerrado.
 //   · /humano: el usuario NO viaja en el cuerpo (un `usuario` en el cuerpo es 400). Sale del JWT de la persona, que el proxy reenvia
-//     en `Authorization: Bearer <jwt>`; la edge lo VERIFICA contra Auth (GET /auth/v1/user) y pasa a la base el email (o el id) verificado.
+//     en `Authorization: Bearer <jwt>`; la edge lo VERIFICA contra Auth (GET /auth/v1/user) y pasa a la base el id (uuid) verificado (el email solo si Auth no lo diera).
 //     Un JWT valido NO implica permiso: el permiso 'leads'/'bot_escribir' lo comprueba el proxy antes de llamar.
 //   · Las dos unicas respuestas con un telefono que no es el de la peticion: escalacion_tomar (el dueño responde y hay que saber a QUIEN)
 //     y citas_recordar (el reloj necesita saber a quien escribir). Ambas declaradas en el plan (excepciones 1 y 2).
@@ -271,7 +271,8 @@ export const AUTH = {
     let u: Record<string, unknown>;
     try { u = await r.json(); } catch { throw new ErrorBase('auth_conexion'); }
     if (!u || u.is_anonymous === true) return null;
-    const quien = typeof u.email === 'string' && u.email.trim() ? u.email.trim() : (typeof u.id === 'string' ? u.id : '');
+    // El id (sub) es estable y no suplantable; el email es mutable y reasignable. Solo si Auth no da id se usa el email.
+    const quien = typeof u.id === 'string' && u.id ? u.id : (typeof u.email === 'string' ? u.email.trim() : '');
     return quien && quien.length <= 120 ? quien : null;
   },
 };
@@ -285,7 +286,9 @@ type Args = (string | null)[];
 const esObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const cerrado = (o: Record<string, unknown>, claves: readonly string[]) => Object.keys(o).every((k) => claves.includes(k));
 /** Contenido de fuera (Meta, el modelo): si no es texto es 400; si es largo se RECORTA (nunca un 400 por longitud). */
-const recorta = (v: unknown, max: number): string | undefined => (typeof v === 'string' ? (v.length > max ? v.slice(0, max) : v) : undefined);
+// Tras cortar se normaliza: un par sustituto partido o un NUL harian que Postgres rechace el jsonb/text (502 -> Meta reentrega 7 dias).
+const recorta = (v: unknown, max: number): string | undefined =>
+  (typeof v === 'string' ? (v.length > max ? v.slice(0, max) : v).replace(/\u0000/g, '').toWellFormed() : undefined);
 const horasOk = (v: unknown): number | null | undefined => (v === undefined || v === null ? null : (Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 720 ? (v as number) : undefined));
 
 type Media = { tipo: string; id: string };

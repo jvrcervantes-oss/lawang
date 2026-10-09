@@ -411,6 +411,13 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
   igual(rU2.status, 400); igual(llamadas.length, 0);
   ok(!JSON.stringify(llamadas).includes('jefe@lawang.com'));
 
+  // texto de Meta con un par sustituto partido por el corte o un NUL: la base recibe texto bien formado
+  reinicia(); dbCon(FILA({ duplicado: false, procesado: false }));
+  await rq('estado', { ...bien.mensaje_recibir, mensaje: { texto: 'a'.repeat(4095) + '\u{1F600}' + 'z\u0000z' } });
+  { const enviado = JSON.parse(llamadas.pop().args[3]).texto; ok(enviado.length === 4096 && enviado === enviado.toWellFormed() && !enviado.includes('\u0000'), 'surrogate partido y NUL fuera'); }
+  await rq('estado', { ...bien.eco_operadora, texto: 'b\u0000'.repeat(10) });
+  igual(llamadas.pop().args[2], 'b'.repeat(10), 'NUL fuera tambien en texto plano');
+
   // ── S2.4 errores de negocio, formas rotas y caídas ──
   for (const [ruta, cuerpo, errores, jwt] of [
     ['estado', bien.mensaje_recibir, ['telefono_invalido', 'wamid_invalido', 'mensaje_invalido'], undefined],
@@ -474,9 +481,9 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
   };
   const resp = (status, cuerpo) => new Response(JSON.stringify(cuerpo ?? {}), { status, headers: { 'content-type': 'application/json' } });
   let [q, v] = await conAuth(resp(200, { id: 'u-1', email: ' Ana@Lawang.com ' }), () => authReal('el-jwt'));
-  igual(q, 'Ana@Lawang.com', 'usuario = email verificado'); igual(v.length, 1);
+  igual(q, 'u-1', 'usuario = id verificado (estable), no el email'); igual(v.length, 1);
   igual(v[0].u, 'https://ref.supabase.co/auth/v1/user'); igual(v[0].h, { authorization: 'Bearer el-jwt', apikey: 'anon-falsa' });
-  igual((await conAuth(resp(200, { id: 'u-1' }), () => authReal('t')))[0], 'u-1', 'sin email: el id');
+  igual((await conAuth(resp(200, { email: ' x@y.com ' }), () => authReal('t')))[0], 'x@y.com', 'sin id: el email');
   igual((await conAuth(resp(401, { msg: 'bad' }), () => authReal('t')))[0], null, '401 de Auth = token que no vale');
   igual((await conAuth(resp(403), () => authReal('t')))[0], null);
   igual((await conAuth(resp(200, { id: 'u', email: 'a@b.c', is_anonymous: true }), () => authReal('t')))[0], null, 'anónimo no vale');
@@ -498,7 +505,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     dbCon(FILA({ pausado: true, hasta: null }));
     const [r3] = await conAuth(resp(200, { id: 'u-9', email: 'real@lawang.com' }), async () => llama(new Request('https://ref.supabase.co/functions/v1/bot-api/humano', {
       method: 'POST', headers: { 'x-bot-secret': SH, authorization: 'Bearer jwt-x', 'x-usuario': 'falso@x.com', 'content-type': 'application/json' }, body: JSON.stringify({ accion: 'pausar', tel: TEL, modo: 'pausar' }) })));
-    igual(r3.status, 200); igual(llamadas.pop().args, [TEL, 'pausar', 'real@lawang.com'], 'solo cuenta el usuario que Auth verifica');
+    igual(r3.status, 200); igual(llamadas.pop().args, [TEL, 'pausar', 'u-9'], 'solo cuenta el usuario que Auth verifica');
   }
   M.AUTH.usuario = async (jwt) => { authLlamadas.push(jwt); return jwt === 'jwt-bueno' ? 'ana@lawang.com' : null; };
 
