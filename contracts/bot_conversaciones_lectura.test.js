@@ -100,5 +100,7 @@ ok(/bot_conversaciones_ver/.test(leer('intranet', 'v4', 'assets', 'nav.js')), 'n
 ok(/HERRAMIENTAS = \[[^\]]*'bot_conversaciones_ver'/.test(leer('contracts', 'edge', 'admin-usuarios', 'index.ts')), 'admin-usuarios: la lista HERRAMIENTAS no conoce bot_conversaciones_ver (el alta devolveria 400)');
 ok(/error\.code === '42501'/.test(leads), 'leads.js: la pantalla no distingue «sin permiso» (42501) de «no se pudo leer»');
 ok(/SETTER_ERROR/.test(leads), 'leads.js: «no se pudo mirar» no se distingue de «sin conversaciones»');
+ok(/HAY_MAS_CONV\s*=\s*!!\(data && data\.hayMas\)/.test(leads), 'leads.js: la lista descarta hayMas (mas de 500 hilos) sin guardarlo');
+ok(/HAY_MAS_CONV \? [^\n]*data-tipo="hay_mas_conversaciones"[^\n]*esc\(lwT\(/.test(leads), 'leads.js: no pinta el aviso data-tipo=hay_mas_conversaciones con texto escapado cuando hay mas de 500 hilos');
 
 console.log('bot_conversaciones_lectura.test.js OK (' + n + ' comprobaciones)');
