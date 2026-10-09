@@ -228,7 +228,28 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     monta('postgres', { humanoResp: { ok: false, error: 'sin_chat' } });
     igual((await llama({ accion: 'pausar', phone: '628110001', paused: true })).status, 404);
     monta('postgres', { humanoResp: { ok: false, error: 'sin_usuario' } });
-    igual((await llama({ accion: 'pausar', phone: '628110001', paused: true })).status, 400);
+    r = await llama({ accion: 'pausar', phone: '628110001', paused: true });
+    igual(r.status, 400); igual(r.cuerpo, { error: 'usuario_no_valido' });
+    // el `error` de bot-api NUNCA llega al navegador: un código raro (o texto de Postgres) sale como valor_no_valido
+    monta('postgres', { humanoResp: { ok: false, error: 'relation "x" does not exist secreto-interno' } });
+    r = await llama({ accion: 'pausar', phone: '628110001', paused: true });
+    igual(r.status, 400); igual(r.cuerpo, { error: 'valor_no_valido' }); ok(!/secreto-interno|relation/.test(r.crudo));
+    // 401 / 429 / 5xx de bot-api: no suben con su código (un secreto mal puesto no es «sesión caducada»)
+    const montaEstado = (st, cuerpo) => {
+      monta('postgres');
+      globalThis.fetch = async (url, init = {}) => { llamadas.push({ url: String(url), init }); return new Response(JSON.stringify(cuerpo), { status: st }); };
+    };
+    montaEstado(401, { error: 'no_autorizado' });
+    r = await llama({ accion: 'pausar', phone: '628110001', paused: true });
+    igual(r.status, 502); igual(r.cuerpo, { error: 'bot_api_no_disponible' });
+    montaEstado(429, { error: 'demasiadas_peticiones texto-interno' });
+    r = await llama({ accion: 'pausar', phone: '628110001', paused: true });
+    igual(r.status, 429); igual(r.cuerpo, { error: 'demasiadas' });
+    montaEstado(503, { error: 'db_caida texto-interno' });
+    r = await llama({ accion: 'pausar', phone: '628110001', paused: true });
+    igual(r.status, 502); igual(r.cuerpo, { error: 'bot_api_no_disponible' }); ok(!/texto-interno/.test(r.crudo));
+    montaEstado(500, { error: 'interno' });
+    igual((await llama({ accion: 'pausar', phone: '628110001', paused: true })).status, 502);
     // enviar: el bot envía, el proxy registra con el wamid de Meta y el texto enviado; el usuario lo pone la edge desde el JWT
     monta('postgres');
     r = await llama({ accion: 'enviar', phone: '628110001', text: 'Hola desde una persona' });
@@ -236,6 +257,11 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     igual(new URL(llamadas[0].url).pathname, '/admin/api/send');
     igual(JSON.parse(llamadas[1].init.body), { accion: 'enviar', tel: '628110001', texto: 'Hola desde una persona', wamid: 'wamid.ENV1' });
     igual(llamadas[1].init.headers.Authorization, 'Bearer jwt-ok');
+    // sin wamid de Meta (registrar.wamid null): el proxy fabrica uno de reserva h-<tel>-<ms>, y el envío se registra igual
+    monta('postgres', { botResp: { ok: true, registrar: { texto: 'Hola sin wamid', wamid: null } } });
+    r = await llama({ accion: 'enviar', phone: '628110001', text: 'Hola sin wamid' });
+    igual(r.status, 200); igual(r.cuerpo.registrado, true);
+    ok(/^h-628110001-\d+$/.test(JSON.parse(llamadas[1].init.body).wamid), 'wamid de reserva');
     // si el bot no pudo enviar, no se registra nada
     monta('postgres', { botResp: { error: 'opt_out' } });
     r = await llama({ accion: 'enviar', phone: '628110001', text: 'Hola' });
@@ -246,7 +272,8 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     igual(r.status, 200); igual(r.cuerpo.registrado, false);
     // sin secreto de /humano configurado: la pausa falla cerrada
     monta('postgres'); delete entorno.BOT_API_SECRET_HUMANO;
-    igual((await llama({ accion: 'pausar', phone: '628110001', paused: true })).status, 503);
+    r = await llama({ accion: 'pausar', phone: '628110001', paused: true });
+    igual(r.status, 503); igual(r.cuerpo, { error: 'humano_sin_configurar' });
     delete entorno.BOT_HUMANO_STORE;
   }
 
