@@ -69,6 +69,37 @@ async function llamaBot(path: string, init: RequestInit = {}) {
   return { status: r.status, body };
 }
 
+// ── /humano de la edge bot-api (S4b, 9-oct-2026) ──────────────────────────────────────────────────────────────
+// Con BOT_STORE=postgres el bot ya no guarda nada como persona: ni la pausa ni el registro de un envío. Lo hace ESTE proxy, que es el único
+// que tiene a la vez el secreto de /humano (BOT_API_SECRET_HUMANO, solo en la edge, nunca en Railway) y el JWT de la persona (la edge lo verifica
+// contra Auth y de ahí sale el usuario; un `usuario` en el cuerpo es 400). Interruptor BOT_HUMANO_STORE=postgres: se enciende en el corte S8 JUNTO con
+// BOT_STORE=postgres del bot. Fuera de sincronía, la pausa de la pantalla daría 410 (bot nuevo) o no quedaría en la base (proxy nuevo).
+const humanoEnPostgres = () => (Deno.env.get('BOT_HUMANO_STORE') ?? '').trim().toLowerCase() === 'postgres';
+async function llamaHumano(jwt: string, cuerpo: Record<string, unknown>): Promise<{ status: number; body: Record<string, unknown> }> {
+  const secreto = (Deno.env.get('BOT_API_SECRET_HUMANO') ?? '').trim();
+  if (!secreto) return { status: 503, body: { error: 'humano_sin_configurar' } };
+  try {
+    const r = await fetch(`${URL_SB}/functions/v1/bot-api/humano`, {
+      method: 'POST',
+      headers: { 'X-Bot-Secret': secreto, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cuerpo),
+      signal: AbortSignal.timeout(12000),
+    });
+    const b = await r.json().catch(() => ({}));
+    return { status: r.status, body: (b && typeof b === 'object' ? b : {}) as Record<string, unknown> };
+  } catch { return { status: 502, body: { error: 'bot_api_sin_respuesta' } }; }
+}
+/** Tras un envío correcto del bot: lo anota en la conversación como mensaje de una persona (con el wamid de Meta). El envío ya salió: si esto falla se avisa, no se deshace. */
+async function registraEnvio(jwt: string, phone: string, bot: { status: number; body: unknown }) {
+  const b = (bot.body ?? {}) as Record<string, unknown>;
+  const reg = (b.registrar ?? null) as { texto?: unknown; wamid?: unknown } | null;
+  if (bot.status !== 200 || b.ok !== true || !reg || typeof reg.texto !== 'string') return bot;
+  const wamid = typeof reg.wamid === 'string' && reg.wamid ? reg.wamid : `h-${phone}-${Date.now()}`;
+  const h = await llamaHumano(jwt, { accion: 'enviar', tel: phone, texto: reg.texto, wamid });
+  const { registrar: _r, ...resto } = b;   // eslint-disable-line @typescript-eslint/no-unused-vars
+  return { status: 200, body: { ...resto, registrado: h.status === 200 && h.body.ok === true } };
+}
+
 // ── Validación de la configuración (portada de botcfg.js `validaConfig`: la MISMA regla, ahora en el servidor que escribe) ──────────
 // Si cambia una, cambia la otra mientras el bot siga escribiendo en Redis: lawang_bot_proxy.test.js pasa los casos de test-botcfg.js por esta.
 const MAX_EXTRA = 2000;
@@ -170,6 +201,12 @@ export const manejador = async (req: Request) => {
       if (!puedeLeads) return json({ error: 'sin_permiso: leads' }, 403);
       const phone = String(body.phone ?? '').replace(/[^0-9]/g, '');
       if (!phone) return json({ error: 'phone_requerido' }, 400);
+      if (humanoEnPostgres()) {
+        const h = await llamaHumano(jwt, { accion: 'pausar', tel: phone, modo: body.paused ? 'pausar' : 'quitar' });
+        if (h.status === 200 && h.body.ok === true) return json({ ok: true, paused: !!h.body.pausado });
+        const e = String(h.body.error ?? 'bot_api');
+        return json({ error: e }, h.status === 200 ? (e === 'sin_chat' ? 404 : 400) : (h.status === 401 || h.status === 429 || h.status === 503 ? h.status : 502));
+      }
       const r = await llamaBot('/admin/api/pause', {
         method: 'POST', body: JSON.stringify({ phone, paused: !!body.paused }),
       });
@@ -197,9 +234,10 @@ export const manejador = async (req: Request) => {
       const text = String(body.text ?? '').trim();
       if (!phone || !text) return json({ error: 'phone_y_text_requeridos' }, 400);
       if (text.length > 4000) return json({ error: 'texto_demasiado_largo' }, 400);
-      const r = await llamaBot('/admin/api/send', {
+      let r = await llamaBot('/admin/api/send', {
         method: 'POST', body: JSON.stringify({ phone, text, byUser: ficha.email }),
       });
+      if (humanoEnPostgres()) r = await registraEnvio(jwt, phone, r);
       return json(r.body, r.status);
     }
     // ── Configurar el bot: requiere 'bot_configurar' (lectura incluida) ──────────────────────────
@@ -286,9 +324,10 @@ export const manejador = async (req: Request) => {
         ? body.params.slice(0, 10).map((p: unknown) => String(p ?? '').slice(0, 300))
         : [];
       const lang = /^[a-z]{2}(_[A-Z]{2})?$/.test(String(body.lang ?? '')) ? String(body.lang) : 'es';
-      const r = await llamaBot('/admin/api/send-template', {
+      let r = await llamaBot('/admin/api/send-template', {
         method: 'POST', body: JSON.stringify({ phone, template, lang, params, byUser: ficha.email }),
       });
+      if (humanoEnPostgres()) r = await registraEnvio(jwt, phone, r);
       return json(r.body, r.status);
     }
 

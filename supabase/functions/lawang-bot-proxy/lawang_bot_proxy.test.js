@@ -196,6 +196,60 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
   globalThis.__sb.getUser = async () => { throw new Error('boom con secreto-interno'); };
   r = await llama({ accion: 'config_get' }); igual(r.status, 500); igual(r.cuerpo.error, 'error_interno'); ok(!/secreto-interno/.test(r.crudo));
 
+  /* ── 6b. BOT_HUMANO_STORE: la pausa y el registro de un envío los escribe el PROXY por /humano (el bot ya no tiene ese secreto) ── */
+  {
+    const llamadas = [];
+    const monta = (humano, { botResp, humanoResp } = {}) => {
+      prepara({ store: 'redis' });
+      if (humano === undefined) delete entorno.BOT_HUMANO_STORE; else entorno.BOT_HUMANO_STORE = humano;
+      entorno.BOT_API_SECRET_HUMANO = 'secreto-humano-falso';
+      llamadas.length = 0;
+      globalThis.fetch = async (url, init = {}) => {
+        const u = String(url); llamadas.push({ url: u, init });
+        if (u.includes('/functions/v1/bot-api/humano')) return new Response(JSON.stringify(humanoResp ?? { ok: true, accion: 'pausar', pausado: true, hasta: null }), { status: 200 });
+        return new Response(JSON.stringify(botResp ?? { ok: true, wamid: 'wamid.ENV1', registrar: { texto: 'Hola desde una persona', wamid: 'wamid.ENV1' } }), { status: 200 });
+      };
+    };
+    const humanoLlamadas = () => llamadas.filter((c) => c.url.includes('/bot-api/humano'));
+    // apagado (por defecto): todo pasa por el bot como hoy y /humano no se toca
+    for (const v of [undefined, '', 'redis']) {
+      monta(v, { botResp: { ok: true, paused: true } });
+      r = await llama({ accion: 'pausar', phone: '+62 811 0000 1', paused: true });
+      igual(r.status, 200); igual(new URL(llamadas[0].url).pathname, '/admin/api/pause'); igual(humanoLlamadas().length, 0, 'apagado: /humano no se toca');
+    }
+    // encendido: la pausa NO pasa por el bot, va a /humano con el secreto, el JWT de la persona y SIN usuario en el cuerpo
+    monta('postgres');
+    r = await llama({ accion: 'pausar', phone: '628110001', paused: true, usuario: 'otro@x' });
+    igual(r.status, 200); igual(r.cuerpo, { ok: true, paused: true });
+    igual(llamadas.length, 1, 'solo /humano'); igual(llamadas[0].init.headers['X-Bot-Secret'], 'secreto-humano-falso'); igual(llamadas[0].init.headers.Authorization, 'Bearer jwt-ok');
+    igual(JSON.parse(llamadas[0].init.body), { accion: 'pausar', tel: '628110001', modo: 'pausar' }, 'sin usuario en el cuerpo');
+    r = await llama({ accion: 'pausar', phone: '628110001', paused: false });
+    igual(JSON.parse(llamadas[1].init.body).modo, 'quitar');
+    monta('postgres', { humanoResp: { ok: false, error: 'sin_chat' } });
+    igual((await llama({ accion: 'pausar', phone: '628110001', paused: true })).status, 404);
+    monta('postgres', { humanoResp: { ok: false, error: 'sin_usuario' } });
+    igual((await llama({ accion: 'pausar', phone: '628110001', paused: true })).status, 400);
+    // enviar: el bot envía, el proxy registra con el wamid de Meta y el texto enviado; el usuario lo pone la edge desde el JWT
+    monta('postgres');
+    r = await llama({ accion: 'enviar', phone: '628110001', text: 'Hola desde una persona' });
+    igual(r.status, 200); igual(r.cuerpo, { ok: true, wamid: 'wamid.ENV1', registrado: true }, 'registrar no sale al navegador');
+    igual(new URL(llamadas[0].url).pathname, '/admin/api/send');
+    igual(JSON.parse(llamadas[1].init.body), { accion: 'enviar', tel: '628110001', texto: 'Hola desde una persona', wamid: 'wamid.ENV1' });
+    igual(llamadas[1].init.headers.Authorization, 'Bearer jwt-ok');
+    // si el bot no pudo enviar, no se registra nada
+    monta('postgres', { botResp: { error: 'opt_out' } });
+    r = await llama({ accion: 'enviar', phone: '628110001', text: 'Hola' });
+    igual(humanoLlamadas().length, 0, 'sin envío no hay registro');
+    // el envío salió pero el registro falló: se dice, no se deshace
+    monta('postgres', { humanoResp: { ok: false, error: 'sin_chat' } });
+    r = await llama({ accion: 'enviar_plantilla', phone: '628110001', template: 'lawang_x', lang: 'es', params: ['a'] });
+    igual(r.status, 200); igual(r.cuerpo.registrado, false);
+    // sin secreto de /humano configurado: la pausa falla cerrada
+    monta('postgres'); delete entorno.BOT_API_SECRET_HUMANO;
+    igual((await llama({ accion: 'pausar', phone: '628110001', paused: true })).status, 503);
+    delete entorno.BOT_HUMANO_STORE;
+  }
+
   /* ── 7. lo demás sigue igual: acción desconocida, método ── */
   prepara({ store: 'postgres' });
   igual((await llama({ accion: 'passthrough', path: '/admin/api/x' })).status, 400);
