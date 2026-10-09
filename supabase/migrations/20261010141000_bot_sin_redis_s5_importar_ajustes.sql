@@ -77,3 +77,6 @@ end $f$;
 -- grants: el envoltorio solo para bot_lawang; bot_importar_config conserva los suyos (create or replace no los toca)
 revoke all on function public.bot_importar_chat(jsonb) from public, anon, authenticated, service_role;
 grant execute on function public.bot_importar_chat(jsonb) to bot_lawang;
+
+-- Cierre explicito (9-oct, aviso BOT-S1): bot_importar_config conserva el ACL de la 20261010135000 (create or replace no lo toca); este revoke es idempotente y no cambia ningun permiso.
+revoke all on function public.bot_importar_config(jsonb) from public, anon, authenticated, service_role;
