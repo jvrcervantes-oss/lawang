@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="780ccadc183c">
+<meta name="lw-version" content="8be64318df72">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -52,7 +52,7 @@
 <script src="/contracts/assets/mapa.js?v=dfa99f98"></script>
 <script src="/portal/resumen.js?v=20261008s"></script>
 <!-- `calendario.js`: las fechas de la pestaña Calendario (9-oct-2026), solo datos y con test en node (calendario.test.js). -->
-<script src="/portal/calendario.js?v=20261009f"></script>
+<script src="/portal/calendario.js?v=20261009g"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261009"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
@@ -1918,8 +1918,9 @@
   .c2-celda.fuera .c2-num{ color:#a7a99f; }
   .c2-celda.hoy .c2-num{ background:#2E3437; color:#fff; font-weight:600; }
   .c2-bloque{ border:0; border-radius:10px; padding:6px 8px; font-size:12px; font-weight:600; line-height:1.25; text-align:left; cursor:pointer; width:100%;
-              overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+              overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; max-height:calc(2.5em + 12px); }
   .c2-mas{ font-size:12px; color:var(--out); padding-left:4px; }
+  .c2-nw{ white-space:nowrap; }
   .c2-tramo{ position:absolute; left:0; right:0; height:4px; opacity:.85; pointer-events:none; }
   .c2-tramo.ini{ margin-left:6px; border-radius:99px 0 0 99px; }
   .c2-tramo.fin{ margin-right:6px; border-radius:0 99px 99px 0; }
@@ -2140,7 +2141,7 @@
          team_intro:'¿Eres del equipo?', team_link:'Entra aquí', salir:'Salir',
          nav_inicio:'Inicio', nav_contratos:'Contratos', nav_facturas:'Facturas', nav_obra:'Obra',
          nav_documentos:'Documentos', nav_soporte:'Soporte', nav_perfil:'Mi perfil',
-         nav_calendario:'Calendario', tit_calendario:'Calendario', cal_mi:'Mi calendario', cal_sub:'Firmas, pagos, obra y documentos de tus propiedades con Lawang.', cal_pago_venc_1:'Pago vencido', cal_pago_venc_n:'{n} pagos vencidos', cal_tarea:'tarea', cal_tareas:'tareas', cal_v_mes:'Mes', cal_v_semana:'Semana', cal_en_marcha:'En marcha este día', cal_ley_tramo:'Franja fina: lo que está en marcha (enlace de firma activo, factura por pagar, aviso de caducidad)', cal_vista:'Vista', cal_hoy:'Hoy', cal_ant:'Anterior', cal_sig:'Siguiente', cal_fam_firma:'Firmas', cal_fam_pago:'Pagos', cal_fam_obra:'Obra', cal_fam_doc:'Documentos', cal_lo_siguiente:'Lo siguiente', cal_pendientes:'Por hacer', cal_nada_pend:'Nada pendiente. Te avisamos cuando haya algo.', cal_dia_vacio:'Nada este día.', cal_semana_vacia:'Nada esta semana.', cal_sin_fecha_1:'1 pago de tu plan todavía no tiene fecha fija: lo verás en Contratos.', cal_sin_fecha_n:'{n} pagos de tu plan todavía no tienen fecha fija: los verás en Contratos.', cal_firma_t:'Firmar el contrato {n}', cal_firma_s:'el enlace de firma caduca este día', cal_factura_t:'Factura {n}', cal_recibo_t:'Pago recibido', cal_entrega_t:'Entrega de llaves', cal_fotos_1:'1 foto nueva de obra', cal_fotos_n:'{n} fotos nuevas de obra', cal_doc_t:'Caduca: {doc}', cal_e_firmar:'Por firmar', cal_e_pagado:'Pagado', cal_e_parcial:'Pagado en parte', cal_e_pendiente:'Pendiente', cal_e_vencida:'Vencido', cal_e_recibido:'Recibido', cal_e_previsto:'Previsto', cal_e_hecho:'Hecho', cal_e_pronto:'Caduca pronto', cal_e_vencido:'Caducado', cal_e_ok:'Vigente', cal_queda:'falta {x}', cal_hace_dias:'hace {n} días', cal_en_dias:'en {n} días', cal_ayer:'ayer', cal_manana:'mañana', cal_ver_recibo:'Ver recibo', cal_ver_obra:'Ver obra', cal_ver_doc:'Ver mis documentos', cal_pago_t:'Pago: {h}', cal_c_firma:'Firma', cal_c_fotos:'Fotos', cal_c_entrega:'Entrega', cal_mas:'+{n} más', cal_eventos_dia:'{n} fechas', 
+         nav_calendario:'Calendario', tit_calendario:'Calendario', cal_mi:'Mi calendario', cal_sub:'Firmas, pagos, obra y documentos de tus propiedades con Lawang.', cal_pago_venc_1:'Pago vencido', cal_pago_venc_n:'{n} pagos vencidos', cal_pagos_venc:'Pagos vencidos', cal_tarea:'tarea', cal_tareas:'tareas', cal_v_mes:'Mes', cal_v_semana:'Semana', cal_en_marcha:'En marcha este día', cal_ley_tramo:'Franja fina: lo que está en marcha (enlace de firma activo, factura por pagar, aviso de caducidad)', cal_vista:'Vista', cal_hoy:'Hoy', cal_ant:'Anterior', cal_sig:'Siguiente', cal_fam_firma:'Firmas', cal_fam_pago:'Pagos', cal_fam_obra:'Obra', cal_fam_doc:'Documentos', cal_lo_siguiente:'Lo siguiente', cal_pendientes:'Por hacer', cal_nada_pend:'Nada pendiente. Te avisamos cuando haya algo.', cal_dia_vacio:'Nada este día.', cal_semana_vacia:'Nada esta semana.', cal_sin_fecha_1:'1 pago de tu plan todavía no tiene fecha fija: lo verás en Contratos.', cal_sin_fecha_n:'{n} pagos de tu plan todavía no tienen fecha fija: los verás en Contratos.', cal_firma_t:'Firmar el contrato {n}', cal_firma_s:'el enlace de firma caduca este día', cal_factura_t:'Factura {n}', cal_recibo_t:'Pago recibido', cal_entrega_t:'Entrega de llaves', cal_fotos_1:'1 foto nueva de obra', cal_fotos_n:'{n} fotos nuevas de obra', cal_doc_t:'Caduca: {doc}', cal_e_firmar:'Por firmar', cal_e_pagado:'Pagado', cal_e_parcial:'Pagado en parte', cal_e_pendiente:'Pendiente', cal_e_vencida:'Vencido', cal_e_recibido:'Recibido', cal_e_previsto:'Previsto', cal_e_hecho:'Hecho', cal_e_pronto:'Caduca pronto', cal_e_vencido:'Caducado', cal_e_ok:'Vigente', cal_queda:'falta {x}', cal_hace_dias:'hace {n} días', cal_en_dias:'en {n} días', cal_ayer:'ayer', cal_manana:'mañana', cal_ver_recibo:'Ver recibo', cal_ver_obra:'Ver obra', cal_ver_doc:'Ver mis documentos', cal_pago_t:'Pago: {h}', cal_c_firma:'Firma', cal_c_fotos:'Fotos', cal_c_entrega:'Entrega', cal_mas:'+{n} más', cal_eventos_dia:'{n} fechas', 
          tit_inicio:'Inicio', tit_contratos:'Contratos', tit_facturas:'Facturas', tit_obra:'Obra',
          tit_documentos:'Documentos', tit_soporte:'Soporte', tit_perfil:'Mi perfil',
          hola:'Hola', n_props_1:'1 propiedad con Lawang Estate', n_props_n:'{n} propiedades con Lawang Estate', firma_tarea:'Firma el contrato {n}', firma_caduca:'el enlace caduca el {f}', firmar:'Firmar', kyc_caduca_el:'Tu {doc} caduca el {f}', vence_el:'vence el {f}', vencio_el:'venció el {f}', ver_factura_n:'Ver factura {n}', tus_propiedades:'Tus propiedades', portada_prep:'Portada en preparación', pagada:'Pagada', firma_pend_chip:'Firma pendiente', nov_obra_foto:'Nuevas fotos de obra en {u}: «{t}»', ver_factura:'Ver factura', ver_fotos:'Ver fotos', sop_titulo:'¿Una duda sobre un pago o un documento?', sop_texto:'Te responde el equipo de gestión de Lawang.', sop_abiertas_1:'Tienes una conversación abierta.', sop_abiertas_n:'Tienes {n} conversaciones abiertas.', escribir_equipo:'Escribir al equipo', hola_manana:'Buenos días', hola_tarde:'Buenas tardes', hola_noche:'Buenas noches', pendiente_ti:'Pendiente de ti', quedan_dias:'Quedan {n} días', queda_dia:'Queda 1 día', caduca_hoy:'Caduca hoy', ver_perfil:'Ver mi perfil', escribir:'Escribir', saludo_sub:'Estado de tu operación con Lawang Estate',
@@ -2260,7 +2261,7 @@
          team_intro:'On the team?', team_link:'Sign in here', salir:'Sign out',
          nav_inicio:'Home', nav_contratos:'Contracts', nav_facturas:'Invoices', nav_obra:'Construction',
          nav_documentos:'Documents', nav_soporte:'Support', nav_perfil:'My profile',
-         nav_calendario:'Calendar', tit_calendario:'Calendar', cal_mi:'My calendar', cal_sub:'Signatures, payments, construction and documents for your properties with Lawang.', cal_pago_venc_1:'Overdue payment', cal_pago_venc_n:'{n} overdue payments', cal_tarea:'task', cal_tareas:'tasks', cal_v_mes:'Month', cal_v_semana:'Week', cal_en_marcha:'Under way on this day', cal_ley_tramo:'Thin strip: what is under way (signing link active, invoice to pay, expiry notice)', cal_vista:'View', cal_hoy:'Today', cal_ant:'Previous', cal_sig:'Next', cal_fam_firma:'Signatures', cal_fam_pago:'Payments', cal_fam_obra:'Construction', cal_fam_doc:'Documents', cal_lo_siguiente:'Coming up', cal_pendientes:'To do', cal_nada_pend:'Nothing pending. We will let you know when there is.', cal_dia_vacio:'Nothing on this day.', cal_semana_vacia:'Nothing this week.', cal_sin_fecha_1:'1 payment in your plan has no fixed date yet: you will find it in Contracts.', cal_sin_fecha_n:'{n} payments in your plan have no fixed date yet: you will find them in Contracts.', cal_firma_t:'Sign contract {n}', cal_firma_s:'the signing link expires on this day', cal_factura_t:'Invoice {n}', cal_recibo_t:'Payment received', cal_entrega_t:'Handover of keys', cal_fotos_1:'1 new construction photo', cal_fotos_n:'{n} new construction photos', cal_doc_t:'Expires: {doc}', cal_e_firmar:'To sign', cal_e_pagado:'Paid', cal_e_parcial:'Partly paid', cal_e_pendiente:'Pending', cal_e_vencida:'Overdue', cal_e_recibido:'Received', cal_e_previsto:'Planned', cal_e_hecho:'Done', cal_e_pronto:'Expires soon', cal_e_vencido:'Expired', cal_e_ok:'Valid', cal_queda:'{x} left', cal_hace_dias:'{n} days ago', cal_en_dias:'in {n} days', cal_ayer:'yesterday', cal_manana:'tomorrow', cal_ver_recibo:'View receipt', cal_ver_obra:'View construction', cal_ver_doc:'View my documents', cal_pago_t:'Payment: {h}', cal_c_firma:'Signature', cal_c_fotos:'Photos', cal_c_entrega:'Handover', cal_mas:'+{n} more', cal_eventos_dia:'{n} dates', 
+         nav_calendario:'Calendar', tit_calendario:'Calendar', cal_mi:'My calendar', cal_sub:'Signatures, payments, construction and documents for your properties with Lawang.', cal_pago_venc_1:'Overdue payment', cal_pago_venc_n:'{n} overdue payments', cal_pagos_venc:'Overdue payments', cal_tarea:'task', cal_tareas:'tasks', cal_v_mes:'Month', cal_v_semana:'Week', cal_en_marcha:'Under way on this day', cal_ley_tramo:'Thin strip: what is under way (signing link active, invoice to pay, expiry notice)', cal_vista:'View', cal_hoy:'Today', cal_ant:'Previous', cal_sig:'Next', cal_fam_firma:'Signatures', cal_fam_pago:'Payments', cal_fam_obra:'Construction', cal_fam_doc:'Documents', cal_lo_siguiente:'Coming up', cal_pendientes:'To do', cal_nada_pend:'Nothing pending. We will let you know when there is.', cal_dia_vacio:'Nothing on this day.', cal_semana_vacia:'Nothing this week.', cal_sin_fecha_1:'1 payment in your plan has no fixed date yet: you will find it in Contracts.', cal_sin_fecha_n:'{n} payments in your plan have no fixed date yet: you will find them in Contracts.', cal_firma_t:'Sign contract {n}', cal_firma_s:'the signing link expires on this day', cal_factura_t:'Invoice {n}', cal_recibo_t:'Payment received', cal_entrega_t:'Handover of keys', cal_fotos_1:'1 new construction photo', cal_fotos_n:'{n} new construction photos', cal_doc_t:'Expires: {doc}', cal_e_firmar:'To sign', cal_e_pagado:'Paid', cal_e_parcial:'Partly paid', cal_e_pendiente:'Pending', cal_e_vencida:'Overdue', cal_e_recibido:'Received', cal_e_previsto:'Planned', cal_e_hecho:'Done', cal_e_pronto:'Expires soon', cal_e_vencido:'Expired', cal_e_ok:'Valid', cal_queda:'{x} left', cal_hace_dias:'{n} days ago', cal_en_dias:'in {n} days', cal_ayer:'yesterday', cal_manana:'tomorrow', cal_ver_recibo:'View receipt', cal_ver_obra:'View construction', cal_ver_doc:'View my documents', cal_pago_t:'Payment: {h}', cal_c_firma:'Signature', cal_c_fotos:'Photos', cal_c_entrega:'Handover', cal_mas:'+{n} more', cal_eventos_dia:'{n} dates', 
          tit_inicio:'Home', tit_contratos:'Contracts', tit_facturas:'Invoices', tit_obra:'Construction',
          tit_documentos:'Documents', tit_soporte:'Support', tit_perfil:'My profile',
          hola:'Hello', n_props_1:'1 property with Lawang Estate', n_props_n:'{n} properties with Lawang Estate', firma_tarea:'Sign contract {n}', firma_caduca:'the link expires on {f}', firmar:'Sign', kyc_caduca_el:'Your {doc} expires on {f}', vence_el:'due {f}', vencio_el:'was due {f}', ver_factura_n:'View invoice {n}', tus_propiedades:'Your properties', portada_prep:'Cover photo coming soon', pagada:'Paid in full', firma_pend_chip:'Awaiting signature', nov_obra_foto:'New construction photos for {u}: “{t}”', ver_factura:'View invoice', ver_fotos:'View photos', sop_titulo:'A question about a payment or a document?', sop_texto:'The Lawang account team will reply.', sop_abiertas_1:'You have one open conversation.', sop_abiertas_n:'You have {n} open conversations.', escribir_equipo:'Write to the team', hola_manana:'Good morning', hola_tarde:'Good afternoon', hola_noche:'Good evening', pendiente_ti:'Waiting on you', quedan_dias:'{n} days left', queda_dia:'1 day left', caduca_hoy:'Expires today', ver_perfil:'View my profile', escribir:'Write to us', saludo_sub:'Status of your operation with Lawang Estate',
@@ -2376,7 +2377,7 @@
          team_intro:'Anda bagian dari tim?', team_link:'Masuk di sini', salir:'Keluar',
          nav_inicio:'Beranda', nav_contratos:'Kontrak', nav_facturas:'Faktur', nav_obra:'Pembangunan',
          nav_documentos:'Dokumen', nav_soporte:'Bantuan', nav_perfil:'Profil saya',
-         nav_calendario:'Kalender', tit_calendario:'Kalender', cal_mi:'Kalender saya', cal_sub:'Tanda tangan, pembayaran, pembangunan, dan dokumen properti Anda bersama Lawang.', cal_pago_venc_1:'Pembayaran lewat jatuh tempo', cal_pago_venc_n:'{n} pembayaran lewat jatuh tempo', cal_tarea:'tugas', cal_tareas:'tugas', cal_v_mes:'Bulan', cal_v_semana:'Minggu', cal_en_marcha:'Sedang berjalan pada hari ini', cal_ley_tramo:'Garis tipis: yang sedang berjalan (tautan tanda tangan aktif, faktur yang harus dibayar, pemberitahuan kedaluwarsa)', cal_vista:'Tampilan', cal_hoy:'Hari ini', cal_ant:'Sebelumnya', cal_sig:'Berikutnya', cal_fam_firma:'Tanda tangan', cal_fam_pago:'Pembayaran', cal_fam_obra:'Pembangunan', cal_fam_doc:'Dokumen', cal_lo_siguiente:'Berikutnya', cal_pendientes:'Perlu dilakukan', cal_nada_pend:'Tidak ada yang tertunda. Kami akan memberi tahu Anda jika ada.', cal_dia_vacio:'Tidak ada jadwal pada hari ini.', cal_semana_vacia:'Tidak ada jadwal minggu ini.', cal_sin_fecha_1:'1 pembayaran dalam jadwal Anda belum memiliki tanggal tetap: lihat di Kontrak.', cal_sin_fecha_n:'{n} pembayaran dalam jadwal Anda belum memiliki tanggal tetap: lihat di Kontrak.', cal_firma_t:'Tandatangani kontrak {n}', cal_firma_s:'tautan tanda tangan berakhir pada hari ini', cal_factura_t:'Faktur {n}', cal_recibo_t:'Pembayaran diterima', cal_entrega_t:'Serah terima kunci', cal_fotos_1:'1 foto pembangunan baru', cal_fotos_n:'{n} foto pembangunan baru', cal_doc_t:'Berakhir: {doc}', cal_e_firmar:'Perlu ditandatangani', cal_e_pagado:'Lunas', cal_e_parcial:'Dibayar sebagian', cal_e_pendiente:'Belum dibayar', cal_e_vencida:'Lewat jatuh tempo', cal_e_recibido:'Diterima', cal_e_previsto:'Direncanakan', cal_e_hecho:'Selesai', cal_e_pronto:'Segera berakhir', cal_e_vencido:'Kedaluwarsa', cal_e_ok:'Berlaku', cal_queda:'sisa {x}', cal_hace_dias:'{n} hari lalu', cal_en_dias:'{n} hari lagi', cal_ayer:'kemarin', cal_manana:'besok', cal_ver_recibo:'Lihat kuitansi', cal_ver_obra:'Lihat pembangunan', cal_ver_doc:'Lihat dokumen saya', cal_pago_t:'Pembayaran: {h}', cal_c_firma:'Tanda tangan', cal_c_fotos:'Foto', cal_c_entrega:'Serah terima', cal_mas:'+{n} lagi', cal_eventos_dia:'{n} tanggal', 
+         nav_calendario:'Kalender', tit_calendario:'Kalender', cal_mi:'Kalender saya', cal_sub:'Tanda tangan, pembayaran, pembangunan, dan dokumen properti Anda bersama Lawang.', cal_pago_venc_1:'Pembayaran lewat jatuh tempo', cal_pago_venc_n:'{n} pembayaran lewat jatuh tempo', cal_pagos_venc:'Pembayaran lewat jatuh tempo', cal_tarea:'tugas', cal_tareas:'tugas', cal_v_mes:'Bulan', cal_v_semana:'Minggu', cal_en_marcha:'Sedang berjalan pada hari ini', cal_ley_tramo:'Garis tipis: yang sedang berjalan (tautan tanda tangan aktif, faktur yang harus dibayar, pemberitahuan kedaluwarsa)', cal_vista:'Tampilan', cal_hoy:'Hari ini', cal_ant:'Sebelumnya', cal_sig:'Berikutnya', cal_fam_firma:'Tanda tangan', cal_fam_pago:'Pembayaran', cal_fam_obra:'Pembangunan', cal_fam_doc:'Dokumen', cal_lo_siguiente:'Berikutnya', cal_pendientes:'Perlu dilakukan', cal_nada_pend:'Tidak ada yang tertunda. Kami akan memberi tahu Anda jika ada.', cal_dia_vacio:'Tidak ada jadwal pada hari ini.', cal_semana_vacia:'Tidak ada jadwal minggu ini.', cal_sin_fecha_1:'1 pembayaran dalam jadwal Anda belum memiliki tanggal tetap: lihat di Kontrak.', cal_sin_fecha_n:'{n} pembayaran dalam jadwal Anda belum memiliki tanggal tetap: lihat di Kontrak.', cal_firma_t:'Tandatangani kontrak {n}', cal_firma_s:'tautan tanda tangan berakhir pada hari ini', cal_factura_t:'Faktur {n}', cal_recibo_t:'Pembayaran diterima', cal_entrega_t:'Serah terima kunci', cal_fotos_1:'1 foto pembangunan baru', cal_fotos_n:'{n} foto pembangunan baru', cal_doc_t:'Berakhir: {doc}', cal_e_firmar:'Perlu ditandatangani', cal_e_pagado:'Lunas', cal_e_parcial:'Dibayar sebagian', cal_e_pendiente:'Belum dibayar', cal_e_vencida:'Lewat jatuh tempo', cal_e_recibido:'Diterima', cal_e_previsto:'Direncanakan', cal_e_hecho:'Selesai', cal_e_pronto:'Segera berakhir', cal_e_vencido:'Kedaluwarsa', cal_e_ok:'Berlaku', cal_queda:'sisa {x}', cal_hace_dias:'{n} hari lalu', cal_en_dias:'{n} hari lagi', cal_ayer:'kemarin', cal_manana:'besok', cal_ver_recibo:'Lihat kuitansi', cal_ver_obra:'Lihat pembangunan', cal_ver_doc:'Lihat dokumen saya', cal_pago_t:'Pembayaran: {h}', cal_c_firma:'Tanda tangan', cal_c_fotos:'Foto', cal_c_entrega:'Serah terima', cal_mas:'+{n} lagi', cal_eventos_dia:'{n} tanggal', 
          tit_inicio:'Beranda', tit_contratos:'Kontrak', tit_facturas:'Faktur', tit_obra:'Pembangunan',
          tit_documentos:'Dokumen', tit_soporte:'Bantuan', tit_perfil:'Profil saya',
          hola:'Halo', n_props_1:'1 properti bersama Lawang Estate', n_props_n:'{n} properti bersama Lawang Estate', firma_tarea:'Tandatangani kontrak {n}', firma_caduca:'tautan berakhir pada {f}', firmar:'Tanda tangani', kyc_caduca_el:'{Doc} Anda berakhir pada {f}', vence_el:'jatuh tempo {f}', vencio_el:'lewat jatuh tempo {f}', ver_factura_n:'Lihat faktur {n}', tus_propiedades:'Properti Anda', portada_prep:'Foto sampul segera hadir', pagada:'Lunas', firma_pend_chip:'Menunggu tanda tangan', nov_obra_foto:'Foto pembangunan baru di {u}: “{t}”', ver_factura:'Lihat faktur', ver_fotos:'Lihat foto', sop_titulo:'Ada pertanyaan tentang pembayaran atau dokumen?', sop_texto:'Tim pengelola Lawang akan membalas.', sop_abiertas_1:'Anda punya satu percakapan terbuka.', sop_abiertas_n:'Anda punya {n} percakapan terbuka.', escribir_equipo:'Tulis ke tim', hola_manana:'Selamat pagi', hola_tarde:'Selamat siang', hola_noche:'Selamat malam', pendiente_ti:'Menunggu Anda', quedan_dias:'{n} hari lagi', queda_dia:'1 hari lagi', caduca_hoy:'Berakhir hari ini', ver_perfil:'Lihat profil saya', escribir:'Tulis pesan', saludo_sub:'Status transaksi Anda dengan Lawang Estate',
@@ -4576,14 +4577,13 @@
      tglSms, data-kyc, data-kyc-avisar y data-ir. */
   function nombreKyc(tipo){ return t('doc_' + tipo) === 'doc_' + tipo ? tipo : t('doc_' + tipo); }
   /* ══ CALENDARIO (9-oct-2026, owner) ═══════════════════════════════════════════════════════════════════════════
-     Firmas, pagos, obra y caducidad de documentos en un solo sitio. Composición del modelo que eligió el owner (mes
-     pequeño, «Pendiente de ti», documentos, vistas Mensual / Semanal / Agenda) con la piel v4 del portal y no la de la
-     maqueta: revisión previa de Diseño, Datos y Seguridad del 9-oct, plegada aquí (un acento, el tipo nunca solo por
-     color, radio 12, sin vista semanal en móvil, 44 px táctiles).
+     Firmas, pagos, obra y caducidad de documentos en un solo sitio. Diseño «en color» del artifact que aprobó el owner
+     el 9-oct (bloque en papel granulado, un color de marca por tipo, Mes por defecto y Semana; en móvil la semana se
+     desplaza dentro de su panel, como en el artifact aprobado). Revisión previa de Diseño, Datos y Seguridad del
+     9-oct para los datos y la seguridad; la parte visual la decidió el owner sobre el artifact.
      Los eventos salen de calendario.js (solo datos, con test); aquí se pinta, y TODO texto pasa por esc(). Ninguna
      escritura: cada acción lleva a la pestaña que ya hace esa cosa (firmar, ver la factura, avisar al equipo). */
-  var CAL = null;   // { vista, mes:'AAAA-MM-01', sel:'AAAA-MM-DD', off:{familia:true} } — dura lo que la pestaña del navegador
-  function calMovil(){ return !!(window.matchMedia && window.matchMedia('(max-width:640px)').matches); }
+  var CAL = null;   // { v2, vista:'mes'|'semana', mes:'AAAA-MM-01', sel:'AAAA-MM-DD' } — dura lo que la pestaña del navegador
   function calMesTxt(dia){ var s = fechaDeDia(dia).toLocaleDateString(LOC(), { month:'long', year:'numeric' }); return s.charAt(0).toUpperCase() + s.slice(1); }
   function calDiaLargo(dia){ var s = fechaDeDia(dia).toLocaleDateString(LOC(), { weekday:'long', day:'numeric', month:'long' }); return s.charAt(0).toUpperCase() + s.slice(1); }
   function calSemanaCorta(){   // lun…dom en el idioma del portal, desde un lunes cualquiera
@@ -4600,9 +4600,11 @@
   function calDocNombre(tipo){ var k = 'doc_' + (tipo || ''); var s = t(k); return s === k ? (tipo || '') : s; }
   /* Título, línea de debajo e importe de un evento. Texto llano: quien lo pinta lo escapa. */
   /* Un código (SH-03-CO, P-07, LW-0142) no se parte por el guion: guion no separable U+2011 entre letras/cifras. */
-  function calNoParte(x){ return String(x == null ? '' : x).replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g, '$1‑'); }
-  function calTexto(e){ var r = calTextoBase(e); r.t = calNoParte(r.t); if (r.c) r.c = calNoParte(r.c); return r; }
-  function calTextoBase(e){
+  /* Un código (SH-03-CO, P-07, LW-0142) no se parte por el guion: se envuelve en un span nowrap DESPUÉS de escapar (el
+     patrón solo casa letras, cifras y guiones, que esc() no toca). El guion sigue siendo el normal: copiarlo para una
+     transferencia o buscarlo con Ctrl+F da lo mismo que en la factura (revisor, 9-oct-2026). */
+  function calCod(x){ return esc(x).replace(/\b([A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)\b/g, '<span class="c2-nw">$1</span>'); }
+  function calTexto(e){
     var lugar = function(){ return Array.prototype.filter.call(arguments, Boolean).join(' · '); };
     // `c`: el texto corto de la etiqueta del mes (la celda no da para más; la fila del día lleva el largo)
     if (e.familia === 'firma') return { t:t('cal_firma_t').replace('{n}', e.contrato || '—'), c:lugar(t('cal_c_firma'), e.contrato), s:lugar(e.proyecto, e.parcela) + (e.proyecto || e.parcela ? ' — ' : '') + t('cal_firma_s') };
@@ -4636,10 +4638,9 @@
     return b('data-ir="contratos"', t('plan_pagos'));
   }
   function calPunto(e){ return '<i class="cal-punto ' + (e.clase === 'vencida' ? 'mal' : 'f-' + e.familia) + '" aria-hidden="true"></i>'; }
-  function calFila(e, conFecha){
+  function calFila(e){
     var x = calTexto(e), f = fechaDeDia(e.dia);
     return '<div class="cal-fila' + (e.clase === 'vencida' ? ' mal' : '') + '" data-cal-ev="' + esc(e.id) + '">' +
-      (conFecha ? '<div class="cal-fecha"><b>' + f.getDate() + '</b><span>' + esc(f.toLocaleDateString(LOC(), { weekday:'short' }).replace('.', '')) + '</span></div>' : '') +
       calPunto(e) +
       '<div class="cal-fila-tx"><b>' + esc(x.t) + '</b>' + (x.s ? '<span>' + esc(x.s) + '</span>' : '') +
         '<span class="cal-fila-meta">' + calEstado(e) + (x.imp ? '<span class="cal-imp">' + esc(x.imp) + '</span>' : '') +
@@ -4654,7 +4655,7 @@
        calendario.js) es una franja fina al pie de los días que cubre, en un carril fijo para todo el mes. */
     var hoy = diaCal(new Date());
     if (!CAL || !CAL.v2) CAL = { v2:true, vista:'mes', mes:hoy.slice(0, 8) + '01', sel:hoy };
-    var todos = eventosCalendario(DATOS, new Date(), { estadosHitos:estadosHitos, obraProyecto:obraProyecto });
+    var todos = eventosCalendario(DATOS, new Date(), { estadosHitos:estadosHitos, obraProyecto:obraProyecto, KYC_AVISO_DIAS:KYC_AVISO_DIAS });
     var pend = pendientesCalendario(todos);
     var sinFecha = hitosSinFecha(DATOS, { estadosHitos:estadosHitos });
     var sem = calSemanaCorta();
@@ -4662,13 +4663,14 @@
     var cubre = function(e, dia){ return e.desde && e.desde <= dia && e.hasta >= dia; };
 
     // ── cifras: lo vencido manda; si no hay, lo siguiente que te pide algo
-    var venc = pend.filter(function(e){ return e.familia === 'pago' && e.clase === 'vencida'; });
-    var mon = venc.length ? venc[0].moneda : null, unaMon = venc.every(function(e){ return e.moneda === mon && e.falta != null; });
-    var cifra1 = venc.length
-      ? '<div class="c2-cifra mal"><span class="c2-lbl"><i></i>' + esc(t(venc.length === 1 ? 'cal_pago_venc_1' : 'cal_pago_venc_n').replace('{n}', venc.length)) + '</span>' +
-        '<b>' + esc(unaMon ? dinero(venc.reduce(function(s, e){ return s + e.falta; }, 0), mon) : String(venc.length)) + '</b></div>'
+    // (la cuenta vive en calendario.js, con test: por moneda y sin inventar importes)
+    var venc = vencidoCalendario(todos);
+    var sig = pend.filter(function(e){ return e.dias >= 0; })[0];   // «lo siguiente» nunca es algo ya pasado
+    var cifra1 = venc.n
+      ? '<div class="c2-cifra mal"><span class="c2-lbl"><i></i>' + esc(venc.porMoneda.length ? t(venc.n === 1 ? 'cal_pago_venc_1' : 'cal_pago_venc_n').replace('{n}', venc.n) : t('cal_pagos_venc')) + '</span>' +
+        '<b>' + esc(venc.porMoneda.length ? venc.porMoneda.map(function(m){ return dinero(m.total, m.moneda); }).join(' · ') : String(venc.n)) + '</b></div>'
       : '<div class="c2-cifra"><span class="c2-lbl">' + esc(t('cal_lo_siguiente')) + '</span>' +
-        (pend[0] ? '<b class="c2-txt">' + esc(calTexto(pend[0]).c || calTexto(pend[0]).t) + '</b><span class="c2-sub">' + esc(calDiaLargo(pend[0].dia)) + '</span>' : '<b>—</b>') + '</div>';
+        (sig ? '<b class="c2-txt">' + calCod(calTexto(sig).c || calTexto(sig).t) + '</b><span class="c2-sub">' + esc(calDiaLargo(sig.dia)) + '</span>' : '<b>—</b>') + '</div>';
     var cab = '<div class="c2-cab"><div class="c2-tit"><h2>' + esc(t('cal_mi')) + '</h2><p>' + esc(t('cal_sub')) + '</p></div>' +
       '<div class="c2-cifras">' + cifra1 + '<span class="c2-sep"></span>' +
       '<div class="c2-cifra"><span class="c2-lbl">' + esc(t('cal_pendientes')) + '</span><b>' + pend.length + '<small>' + esc(t(pend.length === 1 ? 'cal_tarea' : 'cal_tareas')) + '</small></b></div></div></div>';
@@ -4678,7 +4680,7 @@
       (pend.length ? pend.map(function(e){
         var x = calTexto(e);
         return '<button type="button" class="c2-tarea" data-cal-dia="' + e.dia + '"><span class="c2-chk' + (e.clase === 'vencida' ? ' mal' : '') + '"></span>' +
-          '<span class="c2-tarea-tx"><b>' + esc(x.t) + '</b><span>' + esc(calDiaLargo(e.dia)) + (x.imp ? ' · ' + esc(x.imp) : '') + '</span></span>' + calEstado(e) + '</button>';
+          '<span class="c2-tarea-tx"><b>' + calCod(x.t) + '</b><span>' + esc(calDiaLargo(e.dia)) + (x.imp ? ' · ' + esc(x.imp) : '') + '</span></span>' + calEstado(e) + '</button>';
       }).join('') : '<p class="c2-vacio">' + esc(t('cal_nada_pend')) + '</p>') + '</section>';
 
     // ── la vista
@@ -4688,7 +4690,7 @@
       titulo = fechaDeDia(lun).toLocaleDateString(LOC(), { day:'numeric', month:'short' }) + ' – ' + fechaDeDia(dom).toLocaleDateString(LOC(), { day:'numeric', month:'long' });
       var idxHoy = hoy >= lun && hoy <= dom ? diasEntre(lun, hoy) : -1;
       var es = todos.filter(function(e){ return (e.desde || e.dia) <= dom && (e.hasta || e.dia) >= lun; })
-        .sort(function(x, y){ return (x.clase === 'vencida' ? 0 : x.pide ? 1 : 2) - (y.clase === 'vencida' ? 0 : y.pide ? 1 : 2) || ((x.desde || x.dia) < (y.desde || y.dia) ? -1 : 1); });
+        .sort(function(x, y){ return (x.clase === 'vencida' ? 0 : x.pide ? 1 : 2) - (y.clase === 'vencida' ? 0 : y.pide ? 1 : 2) || String(x.desde || x.dia).localeCompare(String(y.desde || y.dia)) || x.id.localeCompare(y.id); });
       var carril = [];
       cuerpo = '<div class="c2-sem"><div class="c2-sem-cab">' + [0,1,2,3,4,5,6].map(function(i){
           var dia = sumaDias(lun, i);
@@ -4700,21 +4702,21 @@
           (carril[l] = carril[l] || []).push([c0, c1]);
           var izq = (e.desde || e.dia) < lun, der = (e.hasta || e.dia) > dom, x = calTexto(e);
           return '<button type="button" class="c2-barra ' + claseB(e) + (izq ? ' sigue-izq' : '') + (der ? ' sigue-der' : '') + '" data-cal-dia="' + e.dia + '" style="grid-column:' + (c0 + 1) + ' / ' + (c1 + 2) + ';grid-row:' + (l + 1) + '">' +
-            '<b>' + (izq ? '← ' : '') + esc(x.c || x.t) + (der ? ' →' : '') + '</b><span>' + esc(x.imp || calCuando(e)) + '</span></button>';
+            '<b>' + (izq ? '← ' : '') + calCod(x.c || x.t) + (der ? ' →' : '') + '</b><span>' + esc(x.imp || calCuando(e)) + '</span></button>';
         }).join('') + (es.length ? '' : '<p class="c2-vacio c2-sem-vacia">' + esc(t('cal_semana_vacia')) + '</p>') + '</div></div>';
     } else {
       titulo = calMesTxt(CAL.mes);
       var dias = rejillaMes(mesD.getFullYear(), mesD.getMonth()), ini = dias[0], fin = dias[dias.length - 1];
       var slot = {}, ns = 0;   // carril fijo de cada franja en todo el mes: si no, saltaba de altura de un día a otro
       todos.filter(function(e){ return e.desde && e.hasta >= ini && e.desde <= fin; })
-           .sort(function(x, y){ return x.desde < y.desde ? -1 : 1; }).forEach(function(e){ slot[e.id] = ns++; });
+           .sort(function(x, y){ return x.desde.localeCompare(y.desde) || x.id.localeCompare(y.id); }).forEach(function(e){ slot[e.id] = ns++; });
       cuerpo = '<div class="c2-mes" style="--c2-slots:' + ns + '"><div class="c2-mes-cab">' + sem.map(function(s){ return '<span>' + esc(s) + '</span>'; }).join('') + '</div><div class="c2-mes-grid">' +
         dias.map(function(dia){
           var en = todos.filter(function(e){ return e.dia === dia; }), tr = todos.filter(function(e){ return cubre(e, dia); });
           var fuera = fechaDeDia(dia).getMonth() !== mesD.getMonth();
           return '<div class="c2-celda' + (fuera ? ' fuera' : '') + (dia === hoy ? ' hoy' : '') + (dia === CAL.sel ? ' sel' : '') + '" data-cal-dia="' + dia + '">' +
             '<button type="button" class="c2-num" data-cal-dia="' + dia + '" aria-label="' + esc(calDiaLargo(dia) + (en.length ? ' · ' + t('cal_eventos_dia').replace('{n}', en.length) : '')) + '"' + (dia === CAL.sel ? ' aria-pressed="true"' : '') + '>' + fechaDeDia(dia).getDate() + '</button>' +
-            en.slice(0, 3).map(function(e){ var x = calTexto(e); return '<button type="button" class="c2-bloque ' + claseB(e) + '" data-cal-dia="' + dia + '" title="' + esc(x.t) + '">' + esc(x.c || x.t) + '</button>'; }).join('') +
+            en.slice(0, 3).map(function(e){ var x = calTexto(e); return '<button type="button" class="c2-bloque ' + claseB(e) + '" data-cal-dia="' + dia + '" title="' + esc(x.t) + '">' + calCod(x.c || x.t) + '</button>'; }).join('') +
             (en.length > 3 ? '<span class="c2-mas">' + esc(t('cal_mas').replace('{n}', en.length - 3)) + '</span>' : '') +
             tr.map(function(e){ return '<i class="c2-tramo ' + claseB(e) + (e.desde === dia ? ' ini' : '') + (e.hasta === dia ? ' fin' : '') + '" style="bottom:' + (6 + slot[e.id] * 6) + 'px" aria-hidden="true"></i>'; }).join('') +
             '</div>';

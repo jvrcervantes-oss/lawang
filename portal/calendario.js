@@ -33,7 +33,10 @@ function _dep(dep){
   return {
     resumenPortal: de('resumenPortal'), precioContrato: de('precioContrato'), facturaDelHito: de('facturaDelHito'),
     estadoFactura: de('estadoFactura'), saldoSinAplicar: de('saldoSinAplicar'), estadoDocumento: de('estadoDocumento'),
-    estadosHitos: de('estadosHitos'), obraProyecto: de('obraProyecto'), avisoDias: de('KYC_AVISO_DIAS') || 30,
+    estadosHitos: de('estadosHitos'), obraProyecto: de('obraProyecto'),
+    /* KYC_AVISO_DIAS es un `const` de resumen.js: en el navegador no cuelga de window, así que la pantalla lo PASA en el
+       dep (revisor, 9-oct-2026: con `|| 30` siempre salía el 30 copiado). Sin él no se pinta la franja del documento. */
+    avisoDias: dep.KYC_AVISO_DIAS != null ? dep.KYC_AVISO_DIAS : (typeof KYC_AVISO_DIAS !== 'undefined' ? KYC_AVISO_DIAS : null),
   };
 }
 
@@ -128,6 +131,8 @@ function eventosCalendario(d, hoy, dep){
         falta = monto == null ? null : (estado === 'pagado' ? 0 : Math.max(0, monto - (y.cubierto || 0)));
       }
       const pendiente = !!fac && ef.estado != null && estado !== 'pagado';
+      /* Una factura vencida cuyo hito tiene fecha FUTURA (factura adelantada) se queda sin franja: desde (dia) > hasta
+         (hoy). Es la consecuencia de pintar la fecha del contrato y no la de la factura (decisión del owner, arriba). */
       ev.push(periodo({ id: 'hito:' + x.id + ':' + i, familia: 'pago', clase: estado === 'vencida' ? 'vencida' : 'pago', dia: dia, estado: estado,
                 // un pago te lo pedimos cuando hay factura (sale a D-3 del vencimiento): antes es un plazo del plan, no una tarea
                 pide: !!fac && ef.estado != null && estado !== 'pagado',
@@ -197,13 +202,29 @@ function eventosCalendario(d, hoy, dep){
     const e = D.estadoDocumento ? D.estadoDocumento(k.caduca, fechaDeDia(hoyDia)) : { estado: 'ok', dias: diasEntre(hoyDia, dia) };
     ev.push(periodo({ id: 'doc:' + (k.tipo || 'otro') + ':' + i, familia: 'doc', clase: e.estado === 'vencido' ? 'vencida' : 'doc', dia: dia,
               estado: e.estado, pide: e.estado === 'pronto' || e.estado === 'vencido', docTipo: k.tipo || '', ir: 'perfil' },
-              e.estado === 'vencido' ? null : sumaDias(dia, -D.avisoDias), dia));
+              e.estado === 'vencido' || D.avisoDias == null ? null : sumaDias(dia, -D.avisoDias), dia));
   });
 
   ev.forEach(e => { e.dias = diasEntre(hoyDia, e.dia); });
   // por día; dentro del día, primero lo que pide algo y lo vencido
   const peso = e => (e.clase === 'vencida' ? 0 : e.pide ? 1 : 2);
   return ev.sort((a, b) => a.dia.localeCompare(b.dia) || peso(a) - peso(b) || a.id.localeCompare(b.id));
+}
+
+/* Lo vencido de la cabecera (revisor, 9-oct-2026: era una suma de dinero en la pantalla, sin test). Lo que FALTA de
+   cada pago vencido, por moneda —nunca se suman monedas distintas, la regla de resumenVista—; los que no traen
+   importe se cuentan aparte en `sinImporte` y no se inventan. */
+function vencidoCalendario(eventos){
+  const venc = (eventos || []).filter(e => e.familia === 'pago' && e.clase === 'vencida');
+  const grupos = {}, orden = [];
+  let sinImporte = 0;
+  venc.forEach(e => {
+    if (e.falta == null || isNaN(e.falta)){ sinImporte++; return; }
+    const m = e.moneda || 'EUR';
+    if (!grupos[m]){ grupos[m] = 0; orden.push(m); }
+    grupos[m] += e.falta;
+  });
+  return { n: venc.length, porMoneda: orden.map(m => ({ moneda: m, total: grupos[m] })), sinImporte: sinImporte };
 }
 
 /* «Pendiente de ti»: lo que le pide algo, vencido primero y luego por fecha. */
@@ -239,4 +260,4 @@ function hitosSinFecha(d, dep){
 }
 
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { eventosCalendario, pendientesCalendario, hitosSinFecha, diaCal, fechaDeDia, diasEntre, sumaDias, lunesDe, rejillaMes, CAL_FAMILIAS };
+  module.exports = { eventosCalendario, pendientesCalendario, vencidoCalendario, hitosSinFecha, diaCal, fechaDeDia, diasEntre, sumaDias, lunesDe, rejillaMes, CAL_FAMILIAS };
