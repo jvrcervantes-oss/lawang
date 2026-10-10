@@ -119,7 +119,9 @@ const err = (status, codigo, extra = {}) => ({ status, body: Object.assign({ ok:
     ok('Cambiar abre el formulario con host, usuario y nombre del estado y la contraseña VACÍA', await valor(p, 'host') === 'smtp.viejo.com' && await valor(p, 'user') === 'hola@negocio.com' && await valor(p, 'nombre') === 'Mi Negocio' && await valor(p, 'pass') === '');
     const pw = await p.$eval(cam('pass'), (e) => ({ t: e.type, a: e.autocomplete }));
     ok('contraseña: type=password y autocomplete=new-password', pw.t === 'password' && pw.a === 'new-password');
-    ok('puerto 465 fijo e inerte', await p.$eval(cam('port'), (e) => e.value === '465' && e.disabled));
+    // Desde el asistente de 3 pasos (e0e88e58, 9-oct) el puerto no es una casilla: es una línea fija. Que no haya NINGUNA casilla de puerto
+    // es lo que importa (nadie puede mandar otro); que viaje 465 lo miden los cuerpos de pedir_codigo y probar_y_guardar más abajo.
+    ok('puerto 465 fijo: línea informativa y ninguna casilla de puerto editable', /465/.test(await txt(p, '[data-correo="puerto-fijo"]') || '') && !(await hay(p, cam('port') + ', #lw-aj-correo-servidor input[name="port"], #lw-aj-correo-servidor input[type="number"]')));
     await p.fill(cam('host'), '  smtp.nuevo.com ');
     await p.fill(cam('user'), 'envios@negocio.com');
     await p.fill(cam('pass'), SECRETO);
