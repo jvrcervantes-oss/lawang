@@ -285,6 +285,12 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   const eqc = await llama(INVITAR, { accion: 'invitar', email: EMAIL, client_ids: ['c1'] }, ADMIN);
   igual([eqc.status, eqc.cuerpo, est.envios.length, llamo('admin.generateLink').length, llamo('admin.updateUserById').length, llamo('from:portal_accesos').length],
     [400, { error: 'ese_email_es_del_equipo' }, 0, 0, 0, 0], 'invitar: equipo por cuenta → 400, nada se toca');
+  // d3. generateLink LANZA (red) tras pasar el freno → 500 y el hueco se devuelve igualmente
+  avanza(61);
+  prepara();
+  globalThis.__sb.generateLink = () => { throw new TypeError('red caída (prueba)'); };
+  const lz = await llama(INVITAR, { accion: 'reenviar', email: EMAIL }, ADMIN);
+  igual([lz.status, est.envios.length, llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true).length], [500, 0, 1], 'invitar: excepción tras el freno → devuelve el hueco');
   // e. sin sesión → 401 sin tocar nada
   prepara();
   const sin = await llama(INVITAR, { accion: 'invitar', email: EMAIL, client_ids: ['c1'] });

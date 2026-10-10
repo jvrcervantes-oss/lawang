@@ -118,6 +118,8 @@ export async function manejador(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
 
+  // LAW-1: si el freno ya anotó este envío y algo lanza después, el catch devuelve el hueco (como portal-acceso).
+  let libera: (() => Promise<void>) | null = null;
   try {
     // ── quién llama: un admin ACTIVO de la suite ─────────────────────────
     const jwt = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
@@ -274,7 +276,8 @@ export async function manejador(req: Request): Promise<Response> {
       console.log('portal-invitar ' + (eFreno ? 'freno_fallo' : 'frenado') + ' @' + dominio(email));
       return json({ ok: true, aviso: AVISO_NO_ENVIADO });
     }
-    const libera = async () => {
+    libera = async () => {
+      libera = null;   // una sola vez
       const { error } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'invitar', p_libera: true });
       if (error) console.error('portal-invitar freno_libera_fallo @' + dominio(email));
     };
@@ -284,16 +287,18 @@ export async function manejador(req: Request): Promise<Response> {
     const th = link?.properties?.hashed_token;
     if (eLink || !th || link?.user?.id !== user.id) {
       console.error('portal-invitar generateLink_fallo @' + dominio(email) + ': ' + String(eLink?.code ?? eLink?.status ?? (th ? 'otro_usuario' : 'sin_token')).slice(0, 40));
-      await libera();
+      await libera?.();
       return json({ ok: true, aviso: AVISO_NO_ENVIADO });
     }
     if (!(await enviaEnlace(email, PORTAL_URL + '?th=' + encodeURIComponent(th)))) {
-      await libera();
+      await libera?.();
       return json({ ok: true, aviso: AVISO_NO_ENVIADO });
     }
+    libera = null;   // salió: el hueco se queda gastado
     console.log('portal-invitar enlace_enviado @' + dominio(email));
     return json({ ok: true });
   } catch (e) {
+    if (libera) await (libera as () => Promise<void>)().catch(() => {});
     return json({ error: String((e as Error)?.message ?? e) }, 500);
   }
 }
