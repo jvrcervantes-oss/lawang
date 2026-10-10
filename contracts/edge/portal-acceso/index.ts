@@ -203,6 +203,23 @@ export async function manejador(req: Request): Promise<Response> {
     }
     let user = (lista?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === email) ?? null;
 
+    // Equipo también por la CUENTA, no solo por el correo: una cuenta del equipo cuyo correo de `usuarios` no coincide con el
+    // de Auth (medido el 11-oct-2026: 1 caso real) pasaba el filtro por correo y habría recibido el claim y un enlace a su
+    // cuenta entera. Antes de tocar el claim y de generar nada.
+    if (user) {
+      const { data: delEquipo, error: eUid } = await admin.from('usuarios').select('user_id').eq('user_id', user.id).limit(1);
+      if (eUid) {
+        console.error('portal-acceso equipo_uid_fallo @' + dominio(email) + ': ' + limpia(eUid.code ?? eUid.message));
+        await libera();
+        return json({ error: 'no_disponible' }, 500);
+      }
+      if ((delEquipo ?? []).length) {
+        anota('es_del_equipo');
+        await libera();
+        return json({ ok: true });
+      }
+    }
+
     if (!user) {
       const { data: creado, error: eCrear } = await admin.auth.admin.createUser({
         email, email_confirm: true,

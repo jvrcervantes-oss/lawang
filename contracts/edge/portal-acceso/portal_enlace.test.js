@@ -61,6 +61,7 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
       correo: o.correo || (() => ({ status: 200, cuerpo: '{"ok":true}' })),
       linkUid: o.linkUid || UID,
       frenoError: !!o.frenoError,
+      equipoUid: !!o.equipoUid,   // la cuenta de Auth es del equipo aunque `usuarios` tenga OTRO correo
     };
     globalThis.__sb = {
       traza: est.traza,
@@ -87,6 +88,7 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
       consulta: (q) => {
         if (q.tabla === 'config_instancia') return { data: est.urlEnvio === null ? null : { valor: est.urlEnvio }, error: null };
         if (q.tabla === 'usuarios' && q.filtros.some((f) => f[1] === 'email')) return { data: est.equipo ? [{ user_id: 'x' }] : [], error: null };
+        if (q.tabla === 'usuarios' && q.campos === 'user_id' && q.filtros.some((f) => f[1] === 'user_id')) return { data: est.equipoUid ? [{ user_id: UID }] : [], error: null };
         if (q.tabla === 'usuarios' && q.filtros.some((f) => f[1] === 'user_id')) return { data: { rol: 'super_admin', activo: true, herramientas: [] }, error: null };
         if (q.tabla === 'clients') return { data: (q.filtros.find((f) => f[0] === 'in') || [0, 0, []])[2].map((id) => ({ id })), error: null };
         if (q.tabla === 'portal_accesos' && q.op === 'select') return { data: [{ client_id: 'c1' }], error: null };
@@ -159,6 +161,13 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   prepara({ equipo: true });
   mudas.equipo = await llama(ACCESO, { email: EMAIL });
   igual([est.envios.length, llamo('admin.generateLink').length, llamo('rpc:portal_enlace_freno').length], [0, 0, 0], 'acceso: equipo → ni fetch, ni generateLink, ni freno');
+  // 2b. cuenta del equipo con otro correo en `usuarios`: el filtro por correo no la ve, el de la cuenta sí (misma respuesta, hueco devuelto)
+  avanza(61);   // el correo de la prueba 1 ya no está frenado: así lo que para es el filtro de equipo, no el freno
+  prepara({ equipoUid: true });
+  mudas.equipo_por_cuenta = await llama(ACCESO, { email: EMAIL });
+  ok(llamo('rpc:portal_enlace_freno').some((t) => !t.args.p_libera), 'acceso: equipo por cuenta → el freno sí llegó a pasar (lo paró el filtro)');
+  igual([est.envios.length, llamo('admin.generateLink').length, llamo('admin.updateUserById').length], [0, 0, 0], 'acceso: equipo por cuenta → ni claim, ni enlace, ni correo');
+  igual(llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true).length, 1, 'acceso: equipo por cuenta → devuelve el hueco');
   // 3. el 6.º envío en una hora (con más de 60 s entre cada uno) frena; el 2.º a menos de 60 s, también
   const otro = 'otrocomprador@cliente-prueba.com';
   prepara();
@@ -271,6 +280,11 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   const eq = await llama(INVITAR, { accion: 'invitar', email: EMAIL, client_ids: ['c1'] }, ADMIN);
   igual([eq.status, eq.cuerpo, est.envios.length, llamo('admin.generateLink').length, llamo('rpc:portal_enlace_freno').length],
     [400, { error: 'ese_email_es_del_equipo' }, 0, 0, 0], 'invitar: equipo → 400, nada sale');
+  // d2. cuenta del equipo con otro correo en `usuarios` → 400, sin claim, sin vincular, sin enlace
+  prepara({ equipoUid: true });
+  const eqc = await llama(INVITAR, { accion: 'invitar', email: EMAIL, client_ids: ['c1'] }, ADMIN);
+  igual([eqc.status, eqc.cuerpo, est.envios.length, llamo('admin.generateLink').length, llamo('admin.updateUserById').length, llamo('from:portal_accesos').length],
+    [400, { error: 'ese_email_es_del_equipo' }, 0, 0, 0, 0], 'invitar: equipo por cuenta → 400, nada se toca');
   // e. sin sesión → 401 sin tocar nada
   prepara();
   const sin = await llama(INVITAR, { accion: 'invitar', email: EMAIL, client_ids: ['c1'] });

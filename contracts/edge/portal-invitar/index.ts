@@ -233,6 +233,14 @@ export async function manejador(req: Request): Promise<Response> {
     if (eLista) return json({ error: eLista.message }, 500);
     let user = (lista?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === email) ?? null;
 
+    // LAW-1: equipo también por la CUENTA (una cuenta del equipo con otro correo en `usuarios`; 1 caso real medido el
+    // 11-oct-2026). Antes de marcarla como portal, de vincular fichas y de generar un enlace a la cuenta entera.
+    if (user) {
+      const { data: delEquipo, error: eUid } = await admin.from('usuarios').select('user_id').eq('user_id', user.id).limit(1);
+      if (eUid) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
+      if ((delEquipo ?? []).length) return json({ error: 'ese_email_es_del_equipo' }, 400);
+    }
+
     if (!user) {
       const { data: creado, error: eCrear } = await admin.auth.admin.createUser({
         email, email_confirm: true,
