@@ -1608,6 +1608,8 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   document.addEventListener('click', navClose);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') navClose(); });
   snap.addEventListener('scroll', spy, { passive: true }); spy();
+  window.addEventListener('load', function () { setTimeout(spy, 300); }); // las etiquetas ya traducidas
+
 
   // Idioma: mismo desplegable que la home. La elección la guarda y aplica
   // assets/idioma-web.js (clave lawang_lang, compartida con toda la web pública).
