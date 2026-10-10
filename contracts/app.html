@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="38e0aa1a2533">
+<meta name="lw-version" content="77ffb252b1a7">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -4013,7 +4013,9 @@ async function loadTemplate(slug, opts){
   // Los proyectos vivos, antes de deriveSections(), que es quien monta el select.
   // (un contrato PROPIO también: su texto puede no llevar el marcador —o ser el aviso de «elige el proyecto»— y el campo proyecto se pinta igual,
   // forzado por deriveSections para toda plantilla salvo el Poder; sin esta carga caería a la lista vieja de tokens.json y no se filtraría por empresa)
-  if(templateHTML.includes('{{proyecto_nombre}}') || CURRENT.propio) await cargarProyectos();
+  // LAW-36 (11-oct-2026): se carga siempre que el campo se pregunte, que es en toda plantilla salvo el Poder (deriveSections lo
+  // fuerza aunque el texto no lleve el marcador: 13 de las 21 no lo llevan). Antes esas 13 caían a la lista de tokens.json; ya no existe.
+  if(templateHTML.includes('{{proyecto_nombre}}') || CURRENT.propio || CURRENT.slug !== 'poa_notario') await cargarProyectos();
   if(templateHTML.includes('{{tipologia_construccion}}')) await cargarModelos();
   if(CURRENT.slug === 'poa_notario') await cargarVinculablesPoa();   // el vínculo del POA no tiene marcador: va por slug
   // CC00014/Timon no tiene versión en español (el documento original es
