@@ -1,4 +1,4 @@
--- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (version y nombre exactos; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260927172000_lead_publico_alta.sql
+-- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (nombre exacto; version real del catalogo 20260926203119, el prefijo sigue al fichero padre para que el orden de replay sea el de aplicacion; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260927172000_lead_publico_alta.sql
 create or replace function public.lead_publico_alta(p_email text, p_name text default null, p_whatsapp text default null,
                                                     p_source text default null, p_project text default null,
                                                     p_ip text default null)
@@ -26,4 +26,4 @@ begin
   return true;
 end $$;
 revoke all on function public.lead_publico_alta(text, text, text, text, text, text) from public, authenticated;
-grant execute on function public.lead_publico_alta(text, text, text, text, text, text) to anon, service_role;;
+grant execute on function public.lead_publico_alta(text, text, text, text, text, text) to anon, service_role;

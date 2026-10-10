@@ -1,4 +1,4 @@
--- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (version y nombre exactos; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260928230000_documento_borra_admin.sql
+-- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (nombre exacto; version real del catalogo 20260928085205, el prefijo sigue al fichero padre para que el orden de replay sea el de aplicacion; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260928230000_documento_borra_admin.sql
 -- destructivo-ok: el DELETE es el cuerpo ya existente de la función (borra UNA fila cuando la llama la edge); aplicar esto no borra nada
 create or replace function public.documento_proyecto_borra(p_uid uuid, p_id uuid, p_solo_comprobar boolean default false)
 returns text
@@ -16,4 +16,4 @@ begin
   end if;
   if not coalesce(p_solo_comprobar, false) then delete from public.documentos_proyecto where id = p_id; end if;
   return v_d.path;
-end $$;;
+end $$;

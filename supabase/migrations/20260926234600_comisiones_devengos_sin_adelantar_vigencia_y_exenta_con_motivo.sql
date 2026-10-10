@@ -1,4 +1,4 @@
--- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (version y nombre exactos; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260926234500_frontera_comisiones_rpc.sql
+-- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (nombre exacto; version real del catalogo 20260926134818, el prefijo sigue al fichero padre para que el orden de replay sea el de aplicacion; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260926234500_frontera_comisiones_rpc.sql
 -- destructivo-ok: reemplaza dos funciones (mismas firmas); los DELETE van dentro de funciones, no se borra ninguna fila al aplicarse.
 create or replace function public.condicion_comision_guarda(p_id uuid, p_cond jsonb, p_tramos jsonb,
                                                             p_motivo text default null)
@@ -131,4 +131,4 @@ begin
          actualizado_en = now()
    where l.id = p_id;
   return p_estado;
-end $$;;
+end $$;

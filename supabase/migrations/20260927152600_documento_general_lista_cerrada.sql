@@ -1,4 +1,4 @@
--- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (version y nombre exactos; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260927152500_documento_general_alta_admin.sql (y la funcion vigente, 20261006110000_documento_url_por_idioma.sql)
+-- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (nombre exacto; version real del catalogo 20260926200154, el prefijo sigue al fichero padre para que el orden de replay sea el de aplicacion; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260927152500_documento_general_alta_admin.sql (y la funcion vigente, 20261006110000_documento_url_por_idioma.sql)
 do $$
 declare v_def text; v_nuevo text;
 begin
@@ -11,4 +11,4 @@ begin
     raise exception 'documento_proyecto_guarda cambió: no encuentro la regla de los nombres generales';
   end if;
   execute v_nuevo;
-end $$;;
+end $$;

@@ -1,4 +1,4 @@
--- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (version y nombre exactos; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260927210000_unidad_guarda_cambia_modelo.sql
+-- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (nombre exacto; version real del catalogo 20260927040419, el prefijo sigue al fichero padre para que el orden de replay sea el de aplicacion; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260927210000_unidad_guarda_cambia_modelo.sql
 do $do$
 declare d text; n text;
 begin
@@ -11,4 +11,4 @@ begin
     raise exception 'patch no aplicado';
   end if;
   execute n;
-end $do$;;
+end $do$;

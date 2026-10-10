@@ -1,4 +1,4 @@
--- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (version y nombre exactos; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20261001160000_axw127_cola_copias_firmadas.sql (funcion) y 20261005010948_axw202_c10_volcado_cron_copias_firmadas.sql (cron vigente)
+-- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (nombre exacto; version real del catalogo 20261001145838, el prefijo sigue al fichero padre para que el orden de replay sea el de aplicacion; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20261001160000_axw127_cola_copias_firmadas.sql (funcion) y 20261005010948_axw202_c10_volcado_cron_copias_firmadas.sql (cron vigente)
 create or replace function public._copias_firmadas_despierta()
 returns void language plpgsql security definer set search_path = '' as $$
 begin
@@ -27,4 +27,3 @@ select cron.schedule(
     timeout_milliseconds := 60000);
   $cron$
 );
-;

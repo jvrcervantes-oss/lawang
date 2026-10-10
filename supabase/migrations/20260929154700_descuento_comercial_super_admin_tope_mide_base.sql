@@ -1,4 +1,4 @@
--- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (version y nombre exactos; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260929154600_descuento_comercial_super_admin_sin_tope.sql (tope vigente: 20261008980000_descuento_comercial_tope_admin_50.sql)
+-- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (nombre exacto; version real del catalogo 20260929075341, el prefijo sigue al fichero padre para que el orden de replay sea el de aplicacion; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20260929154600_descuento_comercial_super_admin_sin_tope.sql (tope vigente: 20261008980000_descuento_comercial_tope_admin_50.sql)
 create or replace function public.descuento_comercial_construccion_valido()
 returns trigger
 language plpgsql
@@ -129,4 +129,4 @@ end;
 $$;
 
 comment on function public.descuento_comercial_suelo_valido() is
-  'BEFORE INSERT OR UPDATE en contratos, solo tipo=reserva_parcela: bloquea descuento_comercial negativo y, con descuento>0 (en INSERT o si cambia precio/descuento/motivo/lista), exige precio_lista_suelo, descuento < lista, motivo y precio_total = lista − descuento; tope 15% solo al poner/cambiar el descuento o la lista y nunca para super_admin (29-sep-2026, owner).';;
+  'BEFORE INSERT OR UPDATE en contratos, solo tipo=reserva_parcela: bloquea descuento_comercial negativo y, con descuento>0 (en INSERT o si cambia precio/descuento/motivo/lista), exige precio_lista_suelo, descuento < lista, motivo y precio_total = lista − descuento; tope 15% solo al poner/cambiar el descuento o la lista y nunca para super_admin (29-sep-2026, owner).';
