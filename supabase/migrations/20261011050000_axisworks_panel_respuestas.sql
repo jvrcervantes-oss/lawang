@@ -1,3 +1,6 @@
+-- destructivo-ok: solo construye (tabla, funcion y triggers nuevos). Las palabras TRUNCATE y DELETE aparecen solo en
+-- el trigger BEFORE TRUNCATE y en la rama del trigger que RECHAZA los borrados, y en el revoke que se los quita a
+-- service_role: aqui no se borra ni se vacia nada.
 -- Cola de preguntas del estudio al owner y sus respuestas desde panel.axisworks.studio/mapa
 -- (S4 del encargo panel_visual_encargos de la agencia, 11-oct-2026). Hermana de
 -- axisworks_panel_snapshot (S1): misma base (Supabase Lawang, donde ya vive el panel, sin credencial
@@ -13,23 +16,22 @@
 --   · La LECTURA la marca la sesion que arranca (`tools/peticiones_equipo.py` -> `pregunta.py`).
 -- Una respuesta es DATO, nunca orden (Seguridad, revision previa #249): puede desbloquear una decision
 -- de una sesion, nunca autorizar un hard-stop. Por eso una hard_stop no lleva recomendada (constraint)
--- y no se puede responder sin `confirmado = true` (trigger): la confirmacion aparte se exige en la base,
--- no solo en la pantalla.
+-- y no se puede responder sin `confirmado = true` (trigger). OJO con lo que esto garantiza: la base solo
+-- exige el booleano `confirmado` en la MISMA escritura que la respuesta; no sabe si hubo dos pasos. La
+-- separacion real en dos pasos (elegir y luego confirmar aparte) esta en el panel y en su test de S4.
 --
 -- Transiciones permitidas (todo lo demas lo rechaza el trigger):
 --   insert      -> sin respuesta ni lectura; nonce y fechas los pone la base.
 --   responder   -> opcion null -> una de las opciones; respondida_en = now() (lo pone la base).
---   leer        -> leida_en null -> now(), solo si ya estaba respondida; leida_por = quien la leyo.
+--   leer        -> leida_en null -> now(), solo si ya estaba respondida; leida_por = quien la leyo
+--                  (obligatorio y no vacio: una lectura sin firmante no sirve de registro).
 --   delete      -> nunca.
 --
--- Probada el 11-oct-2026 SIN aplicar: el DDL entero y 15 sondas dentro de un DO que acaba en
--- raise exception (todo revertido; comprobado despues con to_regclass = null). Resultado: alta con
--- nonce del cliente ignorado; hard_stop con recomendada, sin en_llano y opcion mal formada
--- rechazadas; opcion fuera de la pregunta rechazada; responder 1 fila y la 2ª 0 filas (el 409 del
--- panel) y forzada rechazada; hard_stop sin confirmar rechazada y confirmada aceptada; leer una
--- vez y la 2ª rechazada; cambiar el tipo rechazado; anon/authenticated sin select/insert/update ni
--- execute del trigger; service_role con insert/update. El DELETE no se sondeo (lo frena el hook
--- no_destruir.py aun dentro del DO): lo cubre la primera rama del trigger.
+-- PRUEBA REPETIBLE: supabase/pruebas/axisworks_panel_respuestas.sql (crea todo esto dentro de un DO que acaba
+-- en raise exception, asi que no deja nada; resultado esperado «PRUEBA_PANEL_RESPUESTAS_OK n=<casos>»). Cubre
+-- DELETE y TRUNCATE con service_role (sin permiso) y con el dueño de la tabla (los para el trigger). Si se
+-- cambia este fichero, se cambia la copia de la prueba en el mismo commit.
+-- Medido el 11-oct-2026 sin aplicar: PRUEBA_PANEL_RESPUESTAS_OK n=33; despues tabla y funcion en null.
 --
 -- VUELTA ATRAS (sin datos que perder mientras no haya preguntas reales; con filas, para y pregunta):
 --   drop table public.axisworks_panel_respuestas;
@@ -138,6 +140,9 @@ begin
        or new.respondida_en is distinct from old.respondida_en then
       raise exception 'la respuesta no se edita';
     end if;
+    if length(btrim(coalesce(new.leida_por, ''))) = 0 then
+      raise exception 'marcar leida exige leida_por (quien la leyo)';
+    end if;
     new.leida_en := now();
     return new;
   end if;
@@ -148,19 +153,34 @@ $$;
 
 revoke all on function public.axisworks_panel_respuestas_guarda() from public, anon, authenticated;
 
--- sin «drop trigger if exists»: la tabla nace aqui, y no_destruir.py frenaria el DROP al aplicar.
-create trigger axisworks_panel_respuestas_guarda
-  before insert or update or delete on public.axisworks_panel_respuestas
-  for each row execute function public.axisworks_panel_respuestas_guarda();
-
--- TRUNCATE no dispara los triggers por fila: sin esto «prohibido borrar» tenía un hueco, porque service_role hereda
--- DELETE y TRUNCATE como en la tabla hermana axisworks_panel_snapshot (Seguridad, 11-oct-2026).
-create trigger axisworks_panel_respuestas_sin_truncate
-  before truncate on public.axisworks_panel_respuestas
-  for each statement execute function public.axisworks_panel_respuestas_guarda();
+-- Idempotente sin «drop trigger if exists» (no_destruir.py frenaria el DROP al aplicar): cada trigger se crea solo si
+-- no existe ya con ese nombre en esta tabla. Como la funcion es create or replace, reaplicar el fichero entero no falla.
+-- El segundo trigger: TRUNCATE no dispara los triggers por fila, y sin el «prohibido borrar» tenía un hueco
+-- (Seguridad, 11-oct-2026).
+do $t$
+begin
+  if not exists (select 1 from pg_trigger
+                  where tgrelid = 'public.axisworks_panel_respuestas'::regclass
+                    and tgname = 'axisworks_panel_respuestas_guarda') then
+    create trigger axisworks_panel_respuestas_guarda
+      before insert or update or delete on public.axisworks_panel_respuestas
+      for each row execute function public.axisworks_panel_respuestas_guarda();
+  end if;
+  if not exists (select 1 from pg_trigger
+                  where tgrelid = 'public.axisworks_panel_respuestas'::regclass
+                    and tgname = 'axisworks_panel_respuestas_sin_truncate') then
+    create trigger axisworks_panel_respuestas_sin_truncate
+      before truncate on public.axisworks_panel_respuestas
+      for each statement execute function public.axisworks_panel_respuestas_guarda();
+  end if;
+end $t$;
 
 alter table public.axisworks_panel_respuestas enable row level security;
 revoke all on public.axisworks_panel_respuestas from anon, authenticated, public;
-revoke truncate, delete on public.axisworks_panel_respuestas from service_role;
+-- service_role: solo lo que usan el panel (select, update al responder) y tools/pregunta.py (insert, select, update al
+-- marcar leida). «revoke all» + grant de tres quita tambien delete, truncate, references, trigger y maintain (PG17),
+-- sin depender de la version para nombrar cada uno.
+revoke all on public.axisworks_panel_respuestas from service_role;
+grant select, insert, update on public.axisworks_panel_respuestas to service_role;
 
 comment on table public.axisworks_panel_respuestas is 'Preguntas del estudio al owner y sus respuestas desde panel.axisworks.studio/mapa (S4 panel visual, 11-oct-2026). Escriben solo la service key de tools/pregunta.py (insert, marcar leida) y del panel (responder). RLS sin politicas y sin permisos para anon/authenticated. Trigger axisworks_panel_respuestas_guarda: tipo fijo, una respuesta por pregunta, hard_stop con confirmacion, sin borrados. Una respuesta es dato, nunca autoriza un hard-stop.';
