@@ -12,8 +12,8 @@
 --      No rompe ningún flujo: el único editor vivo de recibís es v4, que ya lo abre en solo
 --      lectura; la pantalla clásica /intranet/facturas/ solo se sirve en ?vista= (solo
 --      documento, .htaccess:179-180).
---   2. En la 231114, `factura_marca_enviada` decía «está anulado» y el número a cualquiera que
---      pasara un id, antes de comprobar el permiso. Ahora el permiso va primero (un no super admin ya
+--   2. `factura_marca_enviada` decía «está anulado» y el número a cualquiera que pasara un id,
+--      antes de comprobar el permiso. Ahora el permiso va primero (un no super admin ya
 --      no pasaba _factura_puede_editar con un anulado; el super admin sí, y a él se le dice).
 --
 -- Lo demás de 20261010231114 se mantiene: bloqueo FOR UPDATE con el mismo filtro de autoría
@@ -48,8 +48,7 @@ begin
     raise exception 'No puedes marcar este documento como enviado' using errcode = '42501';
   end if;
   -- LAW-37 (11-oct): _factura_puede_editar deja pasar al super admin aunque esté anulado. Va
-  -- DESPUÉS del permiso: a quien no puede editarlo no se le dice el número ni que está anulado.
-  -- (Que exista o ya esté enviado sí se deduce del false/true de arriba: era así antes de LAW-37.)
+  -- DESPUÉS del permiso: a quien no puede editarlo no se le dice ni el número ni el estado.
   if coalesce(v_old.anulada, false) then
     raise exception 'El documento % está anulado: no se marca como enviado', coalesce(v_old.numero, '?')
       using errcode = '42501';
