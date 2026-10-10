@@ -7,6 +7,31 @@
 -- ENSAYADO el 10-oct-2026 en transacción revertida (este fichero entero, como postgres, con el rol real después):
 --   ataque 76 usuarios × 8 tablas → 608/608 dan 42501, 0 leen; firma (md5) de las 7 RPC de pantalla igual antes y
 --   después en los 76. Comprobado tras el ensayo: authenticated conserva el SELECT (nada quedó aplicado).
+-- REPETIDO el 11-oct-2026 tras la restauración de Lawang (instantánea de las 21:06 del 10-oct), con el arnés (a) de
+--   supabase/pruebas/law338_l3_paridad.sql en una sola llamada revertida: 33 usuarios activos (admin 1, admin_empresa 2,
+--   agente 18, project_manager 5, sales_manager 2, super_admin 3, super_admin_empresa 2; ningún usuario de portal
+--   en `usuarios`: el portal no lee estas tablas), 9 llamadas × 33 → dif=0 err=0; ataque 264/264 → 42501, 0 leen.
+--   Tras el revoke siguen leyendo axw_lectura (pg_read_all_data + BYPASSRLS: la copia diaria) y service_role (grant
+--   propio): este cierre no los toca. Después: authenticated conserva el SELECT (nada quedó aplicado).
+--   Las 2 migraciones de L3 (20261010062215, 20261010101716) sobrevivieron a la restauración: list_migrations y
+--   operacion_comisiones_datos sin el tope de 2000.
+-- Llamadores vivos, medidos el 11-oct-2026 en pg_stat_statements (desde el 1-oct): 18 formas de consulta de
+--   `authenticated` sobre estas tablas (1221 llamadas); cada una casa con un .from() de origin/main que esta rama
+--   quita (datos.js 884/7148-7157/7393/8471-8472/8663-8666, editores.js 9001-9002/9071, asistente-contrato.js
+--   165-166/194, comisiones-equipo.js 47, panel-finanzas.js 111-112). Ninguna forma sin pareja = ningún llamador
+--   desconocido. service_role (12 llamadas, SELECT * paginado) y axw_lectura (COPY) no dependen de authenticated.
+--   La edge `ficheros` desplegada (v20) es la de origin/main: aún lee `gastos` con el JWT; por eso el paso 2.
+-- ORDEN EXACTO DE PRODUCCIÓN (nada de esto se ha ejecutado):
+--   1. revisor-codigo sobre esta rama y sobre la copia de la agencia (el rebase del 11-oct cambió todos los shas).
+--   2. python tools/aterriza.py 1010-1315-law338-bloques --edge ficheros   (en segundo plano; si falla, a Deploy).
+--   3. get_edge_function('ficheros') contiene `gasto_estado_datos`; curl de datos.js, editores.js, panel-finanzas.js,
+--      comisiones-equipo.js y asistente-contrato.js servidos con su ?v= nuevo y 0 .from() de estas tablas.
+--   4. Arnés (a) otra vez (ensayo revertido) con los datos de ese momento.
+--   5. OK del owner.
+--   6. apply_migration(name='law338_l3_revoke', query=este fichero); git mv a supabase/migrations/<versión real>_law338_l3_revoke.sql;
+--      las 8 tablas a _CERRADAS_LAW338 de tools/salud_lawang.py (agencia) en el mismo aterrizaje; supabase_fetch_seguro.py.
+--   7. Arnés (b) (agg igual que el paso 4), GET /rest/v1/<tabla> con sesión de agente → 42501, verificador de las pantallas
+--      (comisiones, reparto, equipos-venta, condiciones, finanzas, gastos, contrato nuevo) y salud_lawang.py --sql.
 -- Con ella: las 8 tablas a _CERRADAS_LAW338 de tools/salud_lawang.py y ataque 42501 por usuario × tabla.
 -- Pareja del maestro: va en erp/por_aplicar/ cuando app.axisworks.studio sirva el front nuevo (no antes).
 --
