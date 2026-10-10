@@ -1731,7 +1731,7 @@ function pintarAutomatismos(){
    escritura). Mientras tanto, `?bot=pg` en la URL abre la lectura de Postgres para probarla con un teléfono canario, sin tocar al resto.
    Quien tiene 'leads' pero no la casilla nueva deja de ver conversaciones EN EL CORTE, no antes. Pausar, enviar y plantillas siguen
    por el bot (necesita el token de WhatsApp) en los dos modos. */
-const LECTURA_BOT = 'proxy';
+const LECTURA_BOT = 'postgres';  /* corte 10-oct-2026 (paso 8). VUELTA ATRAS: volver a 'proxy' y aterrizar */
 const BOT_PG = LECTURA_BOT === 'postgres' || /[?&]bot=pg(&|$)/.test(location.search);
 let HAY_MAS_CONV = false;  // true = la lista está recortada a las 500 conversaciones más recientes
 let SETTER_ERROR = false;   // true = no se PUDO mirar (distinto de «no hay conversaciones»): la lista no dice «Sin conversaciones»

@@ -3014,7 +3014,7 @@
     'Saludo de bienvenida': 'Welcome greeting',
     'Cómo abre el bot la primera conversación. Lo adapta al idioma del cliente y a lo que haya escrito, y responde a su pregunta a continuación.': "How the bot opens the first conversation. It adapts it to the client's language and message, then answers their question.",
     'Cuándo vuelve el bot': 'When the bot comes back',
-    'Horas que el bot se queda callado en un chat después de que una persona escriba (desde la app o desde el panel). 0 = no vuelve hasta que lo reactives a mano. Solo afecta a las pausas nuevas; el interruptor manual de pausa nunca caduca.': 'Hours the bot stays silent in a chat after a person writes (from the app or the panel). 0 = it does not come back until you reactivate it by hand. Only affects new pauses; the manual pause switch never expires.',
+    'Horas que el bot se queda callado en un chat después de que una persona escriba (desde la app o desde el panel). 0 = 72 h: toda pausa caduca sola. Solo la baja (STOP) no vuelve. Solo afecta a las pausas nuevas.': 'Hours the bot stays silent in a chat after a person writes (from the app or the panel). 0 = 72 h: every pause expires on its own. Only an opt-out (STOP) never comes back. Only affects new pauses.',
     'Horas': 'Hours',
     'Volver a la versión anterior': 'Restore previous version',
     '%n de 2000 caracteres': '%n of 2000 characters',
