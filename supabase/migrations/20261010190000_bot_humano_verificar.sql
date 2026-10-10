@@ -3,7 +3,7 @@
 -- el proxy: quien robe esa clave escribe a los clientes como cualquiera. Con esto el bot comprueba él mismo, contra la base, quién es y qué puede.
 --
 -- DATO CON DUEÑO: la regla de permisos del bot es de `public.usuarios` (rol, activo, herramientas, ambito, empresas). Vive en DOS sitios hasta que el proxy
--- (lawang-bot-proxy, `reglaBot`) llame también a esta función: se mantienen iguales con un test de paridad (supabase/functions/bot-api/bot_humano_verificar.test.js
+-- (lawang-bot-proxy, `reglaBot`) llame también a esta función: se mantienen iguales con un test de paridad (supabase/functions/lawang-bot-proxy/lawang_bot_proxy.test.js y bot-api/bot_api.test.js
 -- + supabase/pruebas/bot_humano_verificar.sql, los mismos casos). Regla: usuario `activo`, `ambito` distinto de 'empresa' y sin `empresas` marcadas (el bot
 -- es UNO y mezcla las dos empresas), y (rol = 'super_admin' o la casilla en `herramientas`).
 --

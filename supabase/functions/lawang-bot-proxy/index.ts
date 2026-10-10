@@ -163,9 +163,9 @@ function falloRpc(e: { code?: string; message?: string } | null | undefined, que
   return { status: 500, body: { error: 'no_se_pudo_' + que } };
 }
 
-// ── La regla de permisos del bot, UNA sola vez (11-oct-2026, acción `verificar` del bot) ─────────────────────────────────────────
+// ── La regla de permisos del bot, UNA sola vez (10-oct-2026, acción `verificar` del bot) ─────────────────────────────────────────
 // La misma regla vive también en SQL: public.bot_humano_verificar (la edge bot-api la usa cuando el bot pide comprobar a una persona). Hasta que este proxy
-// llame también a esa función son DOS sitios: bot_humano_verificar.test.js (en bot-api) pasa los MISMOS casos por esta y por la SQL. Si cambia una, cambia la otra.
+// llame también a esa función son DOS sitios: bot_api.test.js y lawang_bot_proxy.test.js pasa los MISMOS casos por esta y por la SQL. Si cambia una, cambia la otra.
 export type FichaBot = { rol?: string | null; activo?: boolean | null; herramientas?: string[] | null; ambito?: string | null; empresas?: string[] | null };
 /** Alcance acotado a una empresa (rol de empresa o personas con empresas marcadas): el bot es uno y mezcla las dos, no se usa desde ahí. */
 export const acotadoAEmpresa = (f: FichaBot) => f.ambito === 'empresa' || (f.empresas ?? []).length > 0;

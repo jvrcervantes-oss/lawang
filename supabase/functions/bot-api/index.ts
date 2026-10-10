@@ -171,7 +171,7 @@ const SQL = {
   cita_recordatorio_res: 'select public.bot_cita_recordatorio_res($1::uuid, $2::text) as r',
   pausar_humano: 'select public.bot_pausar_humano($1::text, $2::text, $3::text) as r',
   envio_humano: 'select public.bot_envio_humano($1::text, $2::text, $3::text, $4::text::jsonb, $5::text) as r',
-  // ── verificar (11-oct-2026): ¿esta persona (JWT verificado) tiene la casilla? $1 = el usuario de Auth, $2 = el permiso ──
+  // ── verificar (10-oct-2026): ¿esta persona (JWT verificado) tiene la casilla? $1 = el usuario de Auth, $2 = el permiso ──
   verificar_humano: 'select public.bot_humano_verificar($1::text, $2::text) as r',
   // ── S12: consentimiento de seguimiento y reenganche ──
   consentimiento_preguntar: 'select public.bot_consentimiento_preguntar($1::text, $2::text, $3::text, $4::text, $5::boolean) as r',
@@ -613,7 +613,7 @@ export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
         return { args: [o.tel as string, texto, String(o.hasta_id)] };
       },
     },
-    // verificar (11-oct-2026): el bot pregunta si la PERSONA que le pide enviar/pausar tiene la casilla. Es la única acción de /estado con JWT: el usuario sale del JWT
+    // verificar (10-oct-2026): el bot pregunta si la PERSONA que le pide enviar/pausar tiene la casilla. Es la única acción de /estado con JWT: el usuario sale del JWT
     // verificado contra Auth (nunca del cuerpo: un `usuario` es 400) y el permiso es una lista de UNO. Devuelve si puede y su email, nunca la lista de herramientas.
     verificar: {
       claves: ['accion', 'permiso'], tel: false, persona: 'primero', sql: 'verificar_humano', tipo: 'json', errores: ['permiso_invalido'],

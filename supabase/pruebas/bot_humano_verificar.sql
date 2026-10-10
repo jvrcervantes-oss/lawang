@@ -1,5 +1,5 @@
 -- supabase/pruebas/bot_humano_verificar.sql — la regla de `bot_humano_verificar` contra la base real, SOLO LECTURA (no toca ninguna fila).
--- Los mismos casos que bot_humano_verificar.test.js pasa por la regla del proxy (`reglaBot`): si una cambia, cambia la otra.
+-- Los mismos casos que lawang_bot_proxy.test.js pasa por la regla del proxy (`reglaBot`): si una cambia, cambia la otra.
 -- Devuelve filas SOLO cuando algo está mal.
 with casos(n, rol, activo, ambito, empresas, herramientas, permiso, esperado) as (values
   --CASOS-INICIO
