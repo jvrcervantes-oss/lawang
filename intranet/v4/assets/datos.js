@@ -72,8 +72,21 @@
   function colsSerie() { return window.AXW_NUCLEO_OPERACION ? ',rectifica_id,emitida_en' : ''; }
   /* LAW-38/LAW-40 (11-oct-2026): las marcas de documento histórico solo existen en la base de Lawang. Este
      fichero también se empaqueta para las instancias del ERP (guard.js pone AXW_NUCLEO_OPERACION), y pedir allí
-     una columna que su `facturas` no tiene tumbaría la lista entera. */
+     una columna que su `facturas` no tiene tumbaría la lista entera.
+     POR QUÉ LA BANDERA Y NO ALGO MÁS DIRECTO (revisor, 11-oct-2026): en este código no hay otra señal de «esto
+     es Lawang» —ni marca de instancia ni lista de columnas disponibles—; la ausencia de AXW_NUCLEO_OPERACION es
+     la convención que ya usan colsSerie, moduloVisible, operaciones y Ajustes, y el empaquetado del ERP la
+     escribe en la primera línea de su guard.js. RIESGO: una instancia del ERP empaquetada SIN esa línea pediría
+     estas columnas y su lista de facturas/recibís daría 400 (se vería como consulta caída, no en silencio); y si
+     algún día la base del ERP las tuviera, aquí no se pedirían. Si eso cambia, la regla se cambia aquí, una vez. */
   function colsHistorico() { return window.AXW_NUCLEO_OPERACION ? '' : ',historico_sin_contrato,historico_sin_justificante'; }
+  /* LAW-40 · UNA sola regla del justificante de un recibí (revisor, 11-oct-2026: el chip «Sin justificante»
+     contaba los 16 históricos que el KPI y el panel ya excluían). El valor sale en `data-lw-just` de la fila y
+     el chip filtra por él, así que contador, filtro, KPI y aviso del panel no pueden separarse:
+       '1' tiene justificante · 'anulado' anulado sin él · 'historico' marcado por el owner · '0' falta (pendiente). */
+  function nJustRecibo(f) { return (Array.isArray(f.justificantes) && f.justificantes.length) || (f.justificante_path ? 1 : 0); }
+  function estadoJustRecibo(f) { return nJustRecibo(f) ? '1' : f.anulada ? 'anulado' : f.historico_sin_justificante ? 'historico' : '0'; }
+  function reciboFaltaJustificante(f) { return estadoJustRecibo(f) === '0'; }
 
   /* ===== Closer (atribución de venta) — 21-sep-2026, encargo del owner.
      Compartido entre el Expediente de Operaciones (pintaExpediente) y la
@@ -1016,7 +1029,7 @@
         }
         /* LAW-40 (owner 10-oct-2026): los recibís de antes del 11-ago-2026 marcados `historico_sin_justificante`
            se quedan sin justificante por decisión del owner; no son trabajo pendiente y no avisan. */
-        var sinJ = r[5].filter(function (f) { return f.tipo === 'recibi' && !f.anulada && !f.historico_sin_justificante && !(Array.isArray(f.justificantes) && f.justificantes.length) && !f.justificante_path; });
+        var sinJ = r[5].filter(function (f) { return f.tipo === 'recibi' && reciboFaltaJustificante(f); });
         if (sinJ.length) fila('neutro', 'attach_file', T('Recibís sin justificante'), lista3(sinJ.map(function (f) { return f.numero + ' (' + (f.cliente_nombre || '—') + ')'; })), sinJ.length, '/intranet/v4/recibos/', T('Subir'));
       }
 
@@ -2491,13 +2504,13 @@
           var numFac = {}; rr[2].forEach(function (x) { numFac[x.id] = x.numero; });
           var saldaDe = {}; rr[1].forEach(function (a) { (saldaDe[a.recibi_id] = saldaDe[a.recibi_id] || []).push(numFac[a.factura_id] || 'factura fuera de tu alcance'); });
           var justifDe = function (r) { return Array.isArray(r.justificantes) && r.justificantes.length ? r.justificantes : (r.justificante_path ? [{ path: r.justificante_path, nombre: '' }] : []); };
-          var nJust = function (r) { return (Array.isArray(r.justificantes) && r.justificantes.length) || (r.justificante_path ? 1 : 0); };
+          var nJust = nJustRecibo;
           var s = sumaMesEUR(rs);
           pon2('k-cobrado-mes', fmt(s.eur, 'EUR'));
           pon2('k-cobrado-mes-pie', 'recibís vigentes del mes en euros, impuestos incluidos' + (s.otros ? ' · +' + s.otros + ' en otra moneda' : ''));
           var anul = rs.filter(function (r) { return r.anulada; }).length;
           // LAW-40: los históricos sin justificante (decisión del owner, 10-oct-2026) no cuentan como pendientes.
-          var sinJ = rs.filter(function (r) { return !r.anulada && !nJust(r) && !r.historico_sin_justificante; }).length;
+          var sinJ = rs.filter(reciboFaltaJustificante).length;
           pon2('k-emitidos', String(rs.length));
           pon2('k-emitidos-pie', anul + ' anulado' + (anul === 1 ? '' : 's') + ' · histórico completo');
           pon2('k-sinjust', String(sinJ));
@@ -2520,7 +2533,7 @@
               tr.setAttribute('data-lw-proyecto', r.proyecto_nombre || '');
               tr.setAttribute('data-lw-moneda', m);
               tr.setAttribute('data-lw-estado', r.anulada ? 'anulado' : 'emitido');
-              tr.setAttribute('data-lw-just', nj ? '1' : '0');
+              tr.setAttribute('data-lw-just', estadoJustRecibo(r));
               tr.setAttribute('data-lw-pajar', [r.numero, r.cliente_nombre, r.contrato_numero, r.proyecto_nombre, salda, r.creado_por, nombreAutor(AUT, r.creado_por)].join(' ').toLowerCase());
               var tds = tr.querySelectorAll('td');
               if (tds[6] && !nj && !r.anulada) tds[6].innerHTML = r.historico_sin_justificante ? pill('histórico', 'neutro') : pill('sin justificante', 'espera');
@@ -2556,7 +2569,7 @@
               { clave: '*', texto: 'Todos', n: rs.length },
               { clave: 'emitido', texto: 'Emitidos', n: rs.length - anul },
               { clave: 'anulado', texto: 'Anulados', n: anul },
-              { clave: '0', atributo: 'just', texto: 'Sin justificante', n: rs.filter(function (r) { return !nJust(r); }).length }], estado, aplicar);
+              { clave: '0', atributo: 'just', texto: 'Sin justificante', n: rs.filter(reciboFaltaJustificante).length }], estado, aplicar);
             buscadorDe(aplicar, function (v) { texto = v; });
           }
           var pedido = new URLSearchParams(location.search).get('id');
