@@ -70,6 +70,23 @@
      ellas daría 400). Quién suma lo decide `lwFacturaQueCuenta` (dinero.js), una
      sola regla para todas las pantallas. Sin bandera todo queda como estaba. */
   function colsSerie() { return window.AXW_NUCLEO_OPERACION ? ',rectifica_id,emitida_en' : ''; }
+  /* LAW-38/LAW-40 (11-oct-2026): las marcas de documento histórico solo existen en la base de Lawang. Este
+     fichero también se empaqueta para las instancias del ERP (guard.js pone AXW_NUCLEO_OPERACION), y pedir allí
+     una columna que su `facturas` no tiene tumbaría la lista entera.
+     POR QUÉ LA BANDERA Y NO ALGO MÁS DIRECTO (revisor, 11-oct-2026): en este código no hay otra señal de «esto
+     es Lawang» —ni marca de instancia ni lista de columnas disponibles—; la ausencia de AXW_NUCLEO_OPERACION es
+     la convención que ya usan colsSerie, moduloVisible, operaciones y Ajustes, y el empaquetado del ERP la
+     escribe en la primera línea de su guard.js. RIESGO: una instancia del ERP empaquetada SIN esa línea pediría
+     estas columnas y su lista de facturas/recibís daría 400 (se vería como consulta caída, no en silencio); y si
+     algún día la base del ERP las tuviera, aquí no se pedirían. Si eso cambia, la regla se cambia aquí, una vez. */
+  function colsHistorico() { return window.AXW_NUCLEO_OPERACION ? '' : ',historico_sin_contrato,historico_sin_justificante'; }
+  /* LAW-40 · UNA sola regla del justificante de un recibí (revisor, 11-oct-2026: el chip «Sin justificante»
+     contaba los 16 históricos que el KPI y el panel ya excluían). El valor sale en `data-lw-just` de la fila y
+     el chip filtra por él, así que contador, filtro, KPI y aviso del panel no pueden separarse:
+       '1' tiene justificante · 'anulado' anulado sin él · 'historico' marcado por el owner · '0' falta (pendiente). */
+  function nJustRecibo(f) { return (Array.isArray(f.justificantes) && f.justificantes.length) || (f.justificante_path ? 1 : 0); }
+  function estadoJustRecibo(f) { return nJustRecibo(f) ? '1' : f.anulada ? 'anulado' : f.historico_sin_justificante ? 'historico' : '0'; }
+  function reciboFaltaJustificante(f) { return estadoJustRecibo(f) === '0'; }
 
   /* ===== Closer (atribución de venta) — 21-sep-2026, encargo del owner.
      Compartido entre el Expediente de Operaciones (pintaExpediente) y la
@@ -941,7 +958,7 @@
         .eq('contratos.bloqueado', true).is('contratos.liberado_en', null).is('factura_id', null).eq('no_facturar', false)
         .lt('fecha', hoy).gte('fecha', '2026-08-18').order('fecha')),
       suave(sb.rpc('facturas_pendiente_equipo')),
-      suave(sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,cliente_nombre,contrato_id,justificantes,justificante_path,fecha_emision,created_at' + colsSerie()).in('tipo', ['factura', 'recibi']))
+      suave(sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,cliente_nombre,contrato_id,justificantes,justificante_path,fecha_emision,created_at' + colsSerie() + colsHistorico()).in('tipo', ['factura', 'recibi']))
     ]).then(function (r) {
       var FILAS = [];
       var fila = function (tono, icono, titulo, detalle, n, href, cta) { FILAS.push({ tono: tono, icono: icono, titulo: titulo, detalle: detalle, n: n, href: href, cta: cta }); };
@@ -1010,7 +1027,9 @@
             fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), fmt(eur, 'EUR') + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : ''), con.length, '/intranet/v4/facturas/', T('Ver'));
           }
         }
-        var sinJ = r[5].filter(function (f) { return f.tipo === 'recibi' && !f.anulada && !(Array.isArray(f.justificantes) && f.justificantes.length) && !f.justificante_path; });
+        /* LAW-40 (owner 10-oct-2026): los recibís de antes del 11-ago-2026 marcados `historico_sin_justificante`
+           se quedan sin justificante por decisión del owner; no son trabajo pendiente y no avisan. */
+        var sinJ = r[5].filter(function (f) { return f.tipo === 'recibi' && reciboFaltaJustificante(f); });
         if (sinJ.length) fila('neutro', 'attach_file', T('Recibís sin justificante'), lista3(sinJ.map(function (f) { return f.numero + ' (' + (f.cliente_nombre || '—') + ')'; })), sinJ.length, '/intranet/v4/recibos/', T('Subir'));
       }
 
@@ -1841,7 +1860,7 @@
       });
     }
     Promise.all([
-      sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie()).eq('id', f0.id).maybeSingle(),
+      sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie() + colsHistorico()).eq('id', f0.id).maybeSingle(),
       f0.contrato_id ? sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).eq('id', f0.contrato_id).maybeSingle() : Promise.resolve({ data: null })
     ]).then(function (r) {
       if (!document.getElementById('lw-cajon')) return;
@@ -1878,7 +1897,9 @@
         cuerpo += H.seccion('Justificantes de pago (' + js.length + ')',
           js.length ? js.map(function (j, i) {
             return '<button type="button" data-lw-just="' + esc(j.path) + '" style="justify-self:start;padding:8px 14px;border-radius:10px;border:1px solid #c5c8bc;background:#fff;color:#104C4F;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">' + esc(j.nombre || ('Justificante ' + (i + 1))) + '</button>';
-          }).join('') : H.nota('Este recibí no tiene justificante adjunto. Se adjunta desde la herramienta viva.'));
+          }).join('') : H.nota(f.historico_sin_justificante
+            ? 'Recibí anterior a la regla del 11-ago-2026: queda sin justificante por decisión del owner (LAW-40).'
+            : 'Este recibí no tiene justificante adjunto. Se adjunta desde la herramienta viva.'));
       }
       caj.cuerpo.innerHTML = cuerpo;
       var hostSaldo = caj.cuerpo.querySelector('[data-lw-saldo-host]');
@@ -2250,7 +2271,7 @@
          sigue en la herramienta viva (numeración por secuencia de la base). */
       var t = tablaPor('tabla-facturas');
       Promise.all([
-        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie() + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t),
+        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie() + colsHistorico() + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t),
         // Cuánto lleva cobrada cada factura (22-sep-2026, owner): la misma
         // función que usa el recibí para saber qué puede saldar — nunca una
         // segunda forma de restar recibís a facturas.
@@ -2460,7 +2481,7 @@
           var pedido = new URLSearchParams(location.search).get('id');
           if (pedido) {
             if (porId[pedido]) fichaFactura(sb, porId[pedido]);
-            else sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie()).eq('id', pedido).maybeSingle().then(function (r) {
+            else sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie() + colsHistorico()).eq('id', pedido).maybeSingle().then(function (r) {
               if (r.data) fichaFactura(sb, r.data); else toast('Ese documento no está a tu alcance o no existe.');
             });
           }
@@ -2470,7 +2491,7 @@
     recibos: function (sb) {
       var t = tablaPor('tabla-recibos');
       Promise.all([
-        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie()).eq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'recibís', t),
+        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie() + colsHistorico()).eq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'recibís', t),
         // Qué factura(s) salda cada recibí (22-sep-2026, owner): es la razón de
         // ser del documento y no estaba en la tabla. La RLS de
         // recibi_aplicaciones deja ver las de los recibís que uno ve.
@@ -2483,16 +2504,21 @@
           var numFac = {}; rr[2].forEach(function (x) { numFac[x.id] = x.numero; });
           var saldaDe = {}; rr[1].forEach(function (a) { (saldaDe[a.recibi_id] = saldaDe[a.recibi_id] || []).push(numFac[a.factura_id] || 'factura fuera de tu alcance'); });
           var justifDe = function (r) { return Array.isArray(r.justificantes) && r.justificantes.length ? r.justificantes : (r.justificante_path ? [{ path: r.justificante_path, nombre: '' }] : []); };
-          var nJust = function (r) { return (Array.isArray(r.justificantes) && r.justificantes.length) || (r.justificante_path ? 1 : 0); };
+          var nJust = nJustRecibo;
           var s = sumaMesEUR(rs);
           pon2('k-cobrado-mes', fmt(s.eur, 'EUR'));
           pon2('k-cobrado-mes-pie', 'recibís vigentes del mes en euros, impuestos incluidos' + (s.otros ? ' · +' + s.otros + ' en otra moneda' : ''));
           var anul = rs.filter(function (r) { return r.anulada; }).length;
-          var sinJ = rs.filter(function (r) { return !r.anulada && !nJust(r); }).length;
+          // LAW-40: los históricos sin justificante (decisión del owner, 10-oct-2026) no cuentan como pendientes.
+          var sinJ = rs.filter(reciboFaltaJustificante).length;
           pon2('k-emitidos', String(rs.length));
           pon2('k-emitidos-pie', anul + ' anulado' + (anul === 1 ? '' : 's') + ' · histórico completo');
           pon2('k-sinjust', String(sinJ));
-          pon2('k-sinjust-pie', sinJ ? 'recibís vigentes sin justificante de pago adjunto' : 'todos los recibís vigentes tienen justificante');
+          // Los históricos tampoco lo tienen: decir «todos lo tienen» con ellos dentro sería falso, se nombran aparte.
+          var histJ = rs.filter(function (r) { return estadoJustRecibo(r) === 'historico'; }).length;
+          var trasHist = histJ ? ' · ' + histJ + ' histórico' + (histJ === 1 ? '' : 's') + ' sin justificante, no cuenta' + (histJ === 1 ? '' : 'n') : '';
+          pon2('k-sinjust-pie', (sinJ ? 'recibís vigentes sin justificante de pago adjunto'
+            : (histJ ? 'el resto de recibís vigentes tienen justificante' : 'todos los recibís vigentes tienen justificante')) + trasHist);
           var porId = {}; rs.forEach(function (r) { porId[r.id] = r; });
           window.LW_V4 = window.LW_V4 || {}; window.LW_V4.facturasLista = porId;
 
@@ -2511,10 +2537,10 @@
               tr.setAttribute('data-lw-proyecto', r.proyecto_nombre || '');
               tr.setAttribute('data-lw-moneda', m);
               tr.setAttribute('data-lw-estado', r.anulada ? 'anulado' : 'emitido');
-              tr.setAttribute('data-lw-just', nj ? '1' : '0');
+              tr.setAttribute('data-lw-just', estadoJustRecibo(r));
               tr.setAttribute('data-lw-pajar', [r.numero, r.cliente_nombre, r.contrato_numero, r.proyecto_nombre, salda, r.creado_por, nombreAutor(AUT, r.creado_por)].join(' ').toLowerCase());
               var tds = tr.querySelectorAll('td');
-              if (tds[6] && !nj && !r.anulada) tds[6].innerHTML = pill('sin justificante', 'espera');
+              if (tds[6] && !nj && !r.anulada) tds[6].innerHTML = r.historico_sin_justificante ? pill('histórico', 'neutro') : pill('sin justificante', 'espera');
               if (tds[8]) tds[8].innerHTML = htmlAutor(AUT, r.creado_por);
               if (tds[9]) tds[9].innerHTML = pill(r.anulada ? 'Anulado' : (r.enviada ? 'Enviado' : 'Emitido'), est[1]);
               // «Ver el justificante desde la fila» (22-sep-2026, owner): con uno,
@@ -2547,7 +2573,7 @@
               { clave: '*', texto: 'Todos', n: rs.length },
               { clave: 'emitido', texto: 'Emitidos', n: rs.length - anul },
               { clave: 'anulado', texto: 'Anulados', n: anul },
-              { clave: '0', atributo: 'just', texto: 'Sin justificante', n: rs.filter(function (r) { return !nJust(r); }).length }], estado, aplicar);
+              { clave: '0', atributo: 'just', texto: 'Sin justificante', n: rs.filter(reciboFaltaJustificante).length }], estado, aplicar);
             buscadorDe(aplicar, function (v) { texto = v; });
           }
           var pedido = new URLSearchParams(location.search).get('id');
