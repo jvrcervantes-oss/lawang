@@ -26,7 +26,8 @@
 --     comisiones_diferencias → comisiones_devengadas, condicion_tramos → condiciones_comision. Se cierran JUNTAS: tras
 --     esto solo las evalúa lw_lector, que conserva el SELECT de todas.
 --   · Storage «gastos: leer justificantes» nombra 'gastos' como bucket (texto), no lee la tabla.
---   · INVOKER que las nombran, ninguna ejecutable por authenticated: _trg_condicion_comision_manager (trigger; solo
+--   · INVOKER que las nombran: _trg_condicion_comision_manager (trigger: su proacl incluye authenticated=X, inocuo
+--     porque una función de trigger no se puede llamar suelta; Seguridad 10-oct; solo
 --     llega a mirar comisiones_devengadas con current_user authenticated/anon, y esos roles no escriben en
 --     condiciones_comision: las escrituras van por DEFINER de postgres), condicion_tramos_reemplaza y
 --     finanzas_resumen_semanal (EXECUTE solo postgres/service_role). Se exceptúan por nombre y se comprueba su ACL.
@@ -63,7 +64,10 @@ begin
      or has_function_privilege('anon', 'public.finanzas_resumen_semanal(date)', 'execute') then
     raise exception 'L3 revoke: una INVOKER exceptuada es ejecutable por authenticated/anon';
   end if;
-  if has_table_privilege('authenticated', 'public.condiciones_comision', 'insert,update,delete') then
+  -- también por columna (has_table_privilege no ve un INSERT/UPDATE concedido columna a columna; Seguridad 10-oct)
+  if has_table_privilege('authenticated', 'public.condiciones_comision', 'insert,update,delete')
+     or has_any_column_privilege('authenticated', 'public.condiciones_comision', 'insert')
+     or has_any_column_privilege('authenticated', 'public.condiciones_comision', 'update') then
     raise exception 'L3 revoke: authenticated escribe en condiciones_comision (el trigger leería comisiones_devengadas)';
   end if;
 
