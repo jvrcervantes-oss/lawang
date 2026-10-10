@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="7bd604375b2e">
+<meta name="lw-version" content="998bd633a384">
 <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como #th=<token> (o ?th= en los correos viejos); ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -2116,7 +2116,26 @@
   /* LAW-1 S3 (11-oct-2026): el enlace de entrada (#th=<token>, o ?th= en los correos viejos) se quita de la barra y del
      historial lo PRIMERO, antes de crear el cliente y antes de aplicaRuta (el portal usa el # para rutas); se canjea al pulsar «Entrar» (ver el
      arranque). Por qué así y qué estados hay: portal/enlace.js. */
-  var TH = window.LW_ENLACE.quitaTh(location, history);
+  /* Si portal/enlace.js no llega (bloqueador, red, CDN), el portal NO puede morir: antes de LAW-1 no dependía de él.
+     Sustituto mínimo: quita el token de la barra igual, no ofrece el canje (se entra con el formulario de siempre) y el
+     oyente de sesión calla mientras arranca, como callado() (verificador, 11-oct-2026: sin esto la página quedaba en blanco). */
+  var LWE = window.LW_ENLACE || {
+    quitaTh: function(loc, hist){
+      try {
+        if (/^#th=/.test(loc.hash || '') || /[?&]th=/.test(loc.search || '')) {
+          var q = (loc.search || '').replace(/([?&])th=[^&]*(&|$)/, function(m, a, b){ return b ? a : ''; }).replace(/^&/, '?');
+          hist.replaceState(null, '', loc.pathname + (q === '?' ? '' : q));
+        }
+      } catch (e) {}
+      return null;
+    },
+    formatoOk: function(){ return false; },
+    decide: function(){ return { accion: 'pide_otro', ses: null, aviso: 'enlace_caducado' }; },
+    callado: function(entrada, fn){ return function(ev, ses){ if (!entrada.ocupado) fn(ev, ses); }; },
+    canjeaCallado: function(){ return Promise.resolve({ estado: 'red' }); },
+    AVISO: { caducado: 'enlace_caducado', red: 'enlace_red' }
+  };
+  var TH = LWE.quitaTh(location, history);
   /* ocupado: el oyente de onAuthStateChange calla mientras el arranque decide y mientras se
      canjea; si no, el SIGNED_IN de supabase-js y el arranque llamaban los dos a cargar(). */
   var ENTRADA = { ocupado: true };
@@ -2731,7 +2750,7 @@
   /* `guardada`: la sesión que devolvió getSession() en el arranque (null si no había). */
   function ofreceEnlace(guardada){
     muestra('vLogin');
-    if (!window.LW_ENLACE.formatoOk(TH)){ aplicaEnlace(window.LW_ENLACE.decide({ estado: 'caducado' }, guardada)); return; }
+    if (!LWE.formatoOk(TH)){ aplicaEnlace(LWE.decide({ estado: 'caducado' }, guardada)); return; }
     modoEnlace(true);
   }
   /* La sesión guardada se vuelve a leer en el momento: la del arranque pudo caducar o cerrarse
@@ -2745,9 +2764,9 @@
     if (TH === null || btn.disabled) return;
     btn.disabled = true;
     var a = document.getElementById('avisoLogin'); a.className = 'aviso'; a.textContent = '…';
-    window.LW_ENLACE.canjeaCallado(sb, TH, ENTRADA).then(function(r){
-      if (r.estado !== 'caducado') return window.LW_ENLACE.decide(r, null);
-      return sesionAhora().then(function(guardada){ return window.LW_ENLACE.decide(r, guardada); });
+    LWE.canjeaCallado(sb, TH, ENTRADA).then(function(r){
+      if (r.estado !== 'caducado') return LWE.decide(r, null);
+      return sesionAhora().then(function(guardada){ return LWE.decide(r, guardada); });
     }).then(function(d){
       btn.disabled = false;
       aplicaEnlace(d);
@@ -2755,7 +2774,7 @@
       /* Hoy no rechaza nada de la cadena (canjea y sesionAhora resuelven siempre); si algún día
          lo hace, el botón no se queda bloqueado en «…»: se dice «no he podido comprobarlo». */
       btn.disabled = false;
-      avisoEnlace(window.LW_ENLACE.AVISO.red);
+      avisoEnlace(LWE.AVISO.red);
     });
   });
 
@@ -2773,7 +2792,7 @@
     if (TH !== null && !window.LW_DEMO) ofreceEnlace(null); else muestra('vLogin');
   });
 
-  sb.auth.onAuthStateChange(window.LW_ENLACE.callado(ENTRADA, function(ev, ses){
+  sb.auth.onAuthStateChange(LWE.callado(ENTRADA, function(ev, ses){
     if (ev === 'SIGNED_IN' && ses && (ses.user.app_metadata || {}).portal &&
         document.getElementById('vApp').hidden){
       cargar();
