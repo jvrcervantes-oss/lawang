@@ -311,11 +311,16 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 .see .bn .l{left:calc(82*var(--u));max-width:calc(800*var(--u))}
 .see h2{position:absolute;top:calc(399*var(--u));left:0;right:0;text-align:center;font-size:calc(56.4*var(--u));line-height:calc(71*var(--u));font-weight:500;color:var(--deep);letter-spacing:.03em}
 .see h2 span{font-weight:400}
-.cols2{position:absolute;top:calc(545*var(--u));left:calc(81*var(--u));width:calc(1762*var(--u));display:grid;grid-template-columns:calc(856*var(--u)) calc(878*var(--u));column-gap:calc(28*var(--u));color:var(--olive);font-weight:700;text-align:center;text-transform:uppercase}
-.cols2 .lead{font-size:max(12px,calc(22*var(--u)));line-height:calc(32*var(--u));letter-spacing:.05em}
-.cols2>div:last-child{padding:0}
-.ph2{position:absolute;top:calc(666*var(--u));left:calc(81*var(--u));display:flex;gap:calc(28*var(--u))}
-.ph2 img{height:calc(189*var(--u));object-fit:cover}
+.see .pr{position:absolute;top:calc(510*var(--u));left:calc(81*var(--u));display:grid;grid-template-columns:calc(856*var(--u)) calc(878*var(--u));column-gap:calc(28*var(--u));text-align:center}
+.see .pr figure{margin:0;min-width:0}
+.see .pr .ph{position:relative;height:calc(290*var(--u));overflow:hidden}
+.see .pr .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(8,20,24,.38),rgba(8,20,24,0) 42%);pointer-events:none}
+.see .pr img{width:100%;height:100%;object-fit:cover}
+.see .pr .iv{object-position:50% 36%}.see .pr .io{object-position:37% 50%}
+.see .pr .tg{position:absolute;z-index:1;left:calc(22*var(--u));bottom:calc(22*var(--u));display:inline-flex;align-items:center;height:calc(41*var(--u));padding:0 calc(26*var(--u));background:#fff;border-radius:999px;color:var(--teal);font-size:max(11px,calc(19*var(--u)));letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.see .pr figcaption{margin-top:calc(20*var(--u));font-size:max(12px,calc(22*var(--u)));line-height:calc(32*var(--u));color:var(--ink)}
+.see .pr figcaption a{color:var(--olive);font-weight:500;text-decoration:underline;text-underline-offset:.2em;white-space:nowrap}
+.see .pr figcaption a:hover{color:var(--deep)}
 
 /* 8 · land zoning */
 .zone .st{overflow:visible}
@@ -414,7 +419,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .hero .ph{height:56vw}
   .hero .ph h1{left:16px;top:auto;bottom:-6px;font-size:5.6vw;line-height:1.25}
   .sil,.totem{display:none}
-  .hero h2,.hero .sub,.stats4,.stats4 li,.claim,.routes .tt,.opt,.cmp,.cmp .th,.cmp .v,.see .bn p,.see h2,.cols2,.ph2,.svc-h,.cards4,.terr .tag,.terr h2,.terr .chips,.isl,.kpis,.ret,.why .hd,.isles,.how .hd,.steps6{position:static;transform:none;width:auto;white-space:normal}
+  .hero h2,.hero .sub,.stats4,.stats4 li,.claim,.routes .tt,.opt,.cmp,.cmp .th,.cmp .v,.see .bn p,.see h2,.see .pr,.svc-h,.cards4,.terr .tag,.terr h2,.terr .chips,.isl,.kpis,.ret,.why .hd,.isles,.how .hd,.steps6{position:static;transform:none;width:auto;white-space:normal}
   .hero h2{margin-top:22px;font-size:22px;line-height:28px}
   .hero .sub{margin-top:6px;font-size:15px;line-height:20px}
   .stats4{margin-top:20px;height:auto;display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;border-radius:10px}
@@ -479,10 +484,10 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .see .bn p{text-shadow:none}
   .see .bn p{max-width:none;margin-top:14px;font-size:20px;line-height:25px;color:var(--deep)}
   .see h2{margin-top:28px;font-size:26px;line-height:32px}
-  .cols2{grid-template-columns:1fr;gap:24px;margin-top:10px}.cols2>div:last-child{padding:0}
-  .cols2 br{display:none}
-  .cols2 .lead{font-size:14px;line-height:20px}
-  .ph2{flex-direction:column;margin-top:24px;gap:10px}.ph2 img{height:auto;width:100%!important}
+  .see .pr{grid-template-columns:1fr;row-gap:24px;margin-top:20px}
+  .see .pr .ph{height:auto}.see .pr img{height:auto;aspect-ratio:3/2}
+  .see .pr .tg{left:12px;bottom:12px;height:30px;padding:0 14px;font-size:12px}
+  .see .pr figcaption{margin-top:10px;font-size:14px;line-height:20px}
   .zone .zs{position:static;width:auto;height:auto;transform:none}
   .zone .strip{display:none}
   .zone .k{padding-top:0;font-size:11px}.zone h2{font-size:24px;line-height:30px}.zone .p{font-size:13px;line-height:20px}
@@ -748,12 +753,13 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 <section class="see" id="see" aria-labelledby="see-h" data-spy="see"><div class="st">
   <div class="bn"><video class="bn-v" muted loop playsinline preload="none" poster="/assets/img/soul/visits-video-poster.webp" data-src="/assets/video/legacy.mp4?v=3" aria-label="Aerial views of Bali and Sumba: a sandbar between turquoise water and forest"></video>
     <p class="l" data-i18n-html="se.b">YOU SEE THE VIEW YOURSELF, <br><b>BEFORE YOU DECIDE.</b></p></div>
-  <h2 id="see-h" data-i18n-html="se.h">THE VISITS. <span>THE OFFICE</span></h2>
-  <div class="cols2">
-    <div><p class="lead" data-i18n-html="se.l1">We regularly take investors to Bali and Sumba <br>to walk the actual land. Ask us for the next date.</p></div>
-    <div><p class="lead" data-i18n-html="se.l2">A real office in Bali, a real team.</p></div>
+  <h2 id="see-h" data-i18n-html="se.h">COME SEE IT. <span>MEET US.</span></h2>
+  <div class="pr">
+    <figure><div class="ph"><img class="iv" src="/assets/img/soul/tile-visits.webp" alt="Lawang investors on a site visit, gathered on a beach" loading="lazy"><span class="tg" data-i18n-html="se.t1">The visits</span></div>
+      <figcaption><span data-i18n-html="se.l1">We regularly take investors to walk the plots.</span> <a href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27d%20like%20to%20know%20the%20date%20of%20your%20next%20investor%20visit%20to%20Bali%20and%20Sumba." target="_blank" rel="noopener" data-i18n-html="se.a">Ask for the next date</a></figcaption></figure>
+    <figure><div class="ph"><img class="io" src="/assets/img/soul/tile-office.webp" alt="Corridor of the Lawang office in Bali" loading="lazy"><span class="tg" data-i18n-html="se.t2">The office</span></div>
+      <figcaption data-i18n-html="se.l2">Our team works from Bali. Come and meet them.</figcaption></figure>
   </div>
-  <div class="ph2"><img src="/assets/img/soul/tile-visits.webp" alt="Lawang investors on a site visit, gathered on a beach" loading="lazy" style="width:calc(856*var(--u));object-position:50% 36%"><img src="/assets/img/soul/tile-office.webp" alt="Corridor of the Lawang office in Bali" loading="lazy" style="width:calc(878*var(--u));object-position:37% 50%"></div>
 </div></section>
 
 <section class="zone" id="zoning" aria-labelledby="zn-h" data-spy="prot"><div class="st"><div class="zs">
@@ -1429,19 +1435,34 @@ var SOUL_I18N = {
 "id": "ANDA MELIHAT PEMANDANGANNYA SENDIRI, <br><b>SEBELUM MEMUTUSKAN.</b>"
 },
 "se.h": {
-"en": "THE VISITS. <span>THE OFFICE</span>",
-"es": "LAS VISITAS. <span>LA OFICINA</span>",
-"id": "KUNJUNGAN. <span>KANTOR</span>"
+"en": "COME SEE IT. <span>MEET US.</span>",
+"es": "VEN A VERLO. <span>CONÓCENOS.</span>",
+"id": "DATANG DAN LIHAT. <span>TEMUI KAMI.</span>"
+},
+"se.t1": {
+"en": "The visits",
+"es": "Las visitas",
+"id": "Kunjungan"
+},
+"se.t2": {
+"en": "The office",
+"es": "La oficina",
+"id": "Kantor"
 },
 "se.l1": {
-"en": "We regularly take investors to Bali and Sumba <br>to walk the actual land. Ask us for the next date.",
-"es": "Organizamos visitas periódicas con inversores a Bali y Sumba <br>para pisar el terreno real. Pregúntanos la próxima fecha.",
-"id": "Kami rutin membawa investor ke Bali dan Sumba <br>untuk melihat lahannya langsung. Tanyakan jadwal berikutnya."
+"en": "We regularly take investors to walk the plots.",
+"es": "Organizamos visitas periódicas para pisar las parcelas.",
+"id": "Kami rutin membawa investor untuk melihat kavlingnya langsung."
+},
+"se.a": {
+"en": "Ask for the next date",
+"es": "Pide la próxima fecha",
+"id": "Tanyakan jadwal berikutnya"
 },
 "se.l2": {
-"en": "A real office in Bali, a real team.",
-"es": "Una oficina real en Bali, un equipo real.",
-"id": "Kantor nyata di Bali, tim nyata."
+"en": "Our team works from Bali. Come and meet them.",
+"es": "Nuestro equipo trabaja desde Bali. Ven a conocerlo.",
+"id": "Tim kami bekerja dari Bali. Datang dan temui mereka."
 },
 "mp.my": {
 "en": "Malaysia",
