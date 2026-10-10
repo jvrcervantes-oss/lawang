@@ -832,6 +832,20 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
       const errs = [...mig.matchAll(/'error',\s*'([a-z_]+)'/g)].map((m) => m[1]);
       igual(errs, M.LISTA_CERRADA.estado.verificar.errores, 'errores de negocio: función SQL = edge');
       igual(M.LISTA_CERRADA.estado.verificar.claves, ['accion', 'permiso']);
+    // quién exige a la PERSONA: toda acción de /humano (por la ruta, aunque falte la marca) y SOLO verificar fuera de ella; la sentencia lleva al usuario donde la firma lo espera
+    for (const [ruta, defs] of Object.entries(M.LISTA_CERRADA)) for (const [acc, d] of Object.entries(defs)) {
+      const esperado = ruta === 'humano' ? 'ultimo' : (ruta === 'estado' && acc === 'verificar' ? 'primero' : undefined);
+      ok(esperado === undefined ? d.persona === undefined : (d.persona ?? (ruta === 'humano' ? 'ultimo' : undefined)) === esperado, `${ruta}/${acc}: persona esperada ${esperado}`);
+    }
+    {   // una acción de /humano SIN la marca `persona` sigue exigiendo JWT verificado (no falla abierta)
+      const marca = M.LISTA_CERRADA.humano.pausar.persona; delete M.LISTA_CERRADA.humano.pausar.persona;
+      reinicia(); dbCon(FILA({ pausado: true, hasta: null }));
+      igual((await rq('humano', { accion: 'pausar', tel: TEL, modo: 'pausar' }, { jwt: undefined })).status, 401, 'humano sin marca y sin JWT: 401');
+      igual(llamadas.length, 0);
+      igual((await rq('humano', { accion: 'pausar', tel: TEL, modo: 'pausar' }, { jwt: 'jwt-bueno' })).status, 200);
+      igual(llamadas.pop().args, [TEL, 'pausar', 'ana@lawang.com'], 'el usuario verificado va el último');
+      M.LISTA_CERRADA.humano.pausar.persona = marca; reinicia();
+    }
       ok(/p_permiso is distinct from 'bot_escribir'/.test(mig), 'la función SQL solo acepta bot_escribir, igual que la edge');
       const prueba = leer('supabase', 'pruebas', 'bot_humano_verificar.sql');
       ok(prueba.includes('public.bot_humano_verificar(') && prueba.includes('_bot_humano_regla'), 'la prueba SQL ejercita la función y la regla');

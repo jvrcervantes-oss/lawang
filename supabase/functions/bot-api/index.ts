@@ -803,18 +803,20 @@ async function rutaLista(req: Request, ruta: string): Promise<Response> {
   }
 
   const args = v.args;
-  if (def.persona) {
+  // Toda acción de /humano exige a la persona (la ruta lo manda, aunque a una acción nueva se le olvide la marca); la única de otra ruta es `verificar`.
+  const persona = def.persona ?? (ruta === 'humano' ? 'ultimo' : undefined);
+  if (persona) {
     // La persona que actua sale del JWT verificado, nunca del cuerpo ni del bot. Va la ULTIMA (humano) o la PRIMERA (verificar) en los argumentos SQL.
     const jwt = (req.headers.get('authorization') ?? '').replace(/^Bearer(\s+|$)/i, '').trim();
     if (!jwt || jwt.length > 4096) return NO_AUTORIZADO();
-    if (def.persona === 'primero') {
+    if (persona === 'primero') {
       // `verificar` lleva su propio tope (una llamada por envio humano): pasado, 429 y NUNCA llega a Auth.
       const espera = demasiado('estado:verificar', AJUSTES.topeVerificar);
       if (espera) return json({ error: 'demasiadas_peticiones' }, 429, { 'retry-after': String(espera) });
     }
     const quien = await AUTH.usuario(jwt);
     if (!quien) return NO_AUTORIZADO();
-    if (def.persona === 'primero') args.unshift(quien); else args.push(quien);
+    if (persona === 'primero') args.unshift(quien); else args.push(quien);
   }
 
   const filas = await DB.ejecuta(def.sql, args);
