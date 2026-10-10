@@ -2548,6 +2548,7 @@
     'Justificante de pago (obligatorio)': 'Proof of payment (required)',
     'Adjunta el justificante de pago': 'Attach the proof of payment',
     'Sin justificante': 'No proof of payment',
+    'Histórico': 'Historical',
     'Un recibí admite hasta 8 justificantes (ya lleva ': 'A receipt takes up to 8 proofs of payment (it already has ',
     'Etiqueta': 'Label',
     'Ej. PPN': 'e.g. PPN',
