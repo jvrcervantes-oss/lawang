@@ -188,9 +188,8 @@ html,body{background:var(--paper)}
 .terr .tag{position:absolute;left:calc(148*var(--u));top:calc(81*var(--u));min-width:calc(331*var(--u));height:calc(48*var(--u));padding:0 calc(20*var(--u));background:var(--deep);border-radius:calc(6*var(--u));display:flex;align-items:center;justify-content:center;font-size:max(11px,calc(19.9*var(--u)));font-weight:500;letter-spacing:.05em;text-transform:uppercase}
 .terr h2{position:absolute;left:calc(148*var(--u));top:calc(158*var(--u));font-size:calc(80.9*var(--u));line-height:calc(100*var(--u));letter-spacing:.045em;font-weight:350;white-space:nowrap}
 .terr h2 b{font-weight:700}
-.terr .tp{position:absolute;left:calc(1210*var(--u));top:calc(160*var(--u));width:calc(640*var(--u));font-size:calc(24.4*var(--u));line-height:calc(36*var(--u));letter-spacing:.045em;text-transform:uppercase}
 .terr .chips{position:absolute;top:calc(335*var(--u));left:calc(148*var(--u));right:calc(154*var(--u));display:flex;justify-content:space-between;list-style:none}
-.terr .chips li{height:calc(54*var(--u));padding:0 calc(26*var(--u));min-width:calc(312*var(--u));border:1px solid rgba(255,249,243,.85);border-radius:calc(8*var(--u));display:flex;align-items:center;justify-content:center;font-size:max(11px,calc(21*var(--u)));font-weight:500;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.terr .chips li{height:calc(54*var(--u));padding:0 calc(26*var(--u));min-width:calc(312*var(--u));border:1px solid rgba(255,249,243,.85);border-radius:calc(8*var(--u));background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;font-size:max(11px,calc(21*var(--u)));font-weight:500;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
 .svc-h{position:absolute;top:calc(533*var(--u));left:0;right:0;text-align:center}
 .svc-h .k{font-size:max(11px,calc(25*var(--u)));line-height:calc(30*var(--u));font-weight:700;letter-spacing:.2em;text-transform:uppercase}
 .svc-h h2{margin-top:calc(3*var(--u));font-size:calc(44*var(--u));line-height:calc(55*var(--u));font-weight:400;letter-spacing:.02em}
@@ -379,7 +378,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .hero .ph{height:56vw}
   .hero .ph h1{left:16px;top:auto;bottom:-6px;font-size:5.6vw;line-height:1.25}
   .sil,.totem{display:none}
-  .hero h2,.hero .sub,.stats4,.stats4 li,.claim,.routes .tt,.opt,.cmp,.cmp .th,.cmp .v,.see .bn p,.see h2,.cols2,.ph2,.svc-h,.cards4,.terr .tag,.terr h2,.terr .tp,.terr .chips,.isl,.kpis,.ret,.why .hd,.isles,.how .hd,.steps6{position:static;transform:none;width:auto;white-space:normal}
+  .hero h2,.hero .sub,.stats4,.stats4 li,.claim,.routes .tt,.opt,.cmp,.cmp .th,.cmp .v,.see .bn p,.see h2,.cols2,.ph2,.svc-h,.cards4,.terr .tag,.terr h2,.terr .chips,.isl,.kpis,.ret,.why .hd,.isles,.how .hd,.steps6{position:static;transform:none;width:auto;white-space:normal}
   .hero h2{margin-top:22px;font-size:22px;line-height:28px}
   .hero .sub{margin-top:6px;font-size:15px;line-height:20px}
   .stats4{margin-top:20px;height:auto;display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;border-radius:10px}
@@ -390,8 +389,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .terr .fr{inset:10px;width:auto;height:auto}
   .terr .tag{display:inline-flex;height:auto;min-width:0;padding:6px 12px;font-size:12px}
   .terr h2{margin-top:12px;font-size:32px;line-height:38px}
-  .terr .tp{margin-top:10px;font-size:14px;line-height:21px}
-  .terr .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    .terr .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
   .terr .chips li{height:auto;min-width:0;padding:8px 10px;font-size:12px;white-space:normal}
   .svc-h{margin-top:30px}.svc-h .k{font-size:12px}.svc-h h2{font-size:22px;line-height:28px}
   .cards4{grid-template-columns:1fr;gap:16px;margin-top:20px}
@@ -577,7 +575,6 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
       <div class="fr" aria-hidden="true"></div>
       <p class="tag" data-i18n-html="k.terr">Verified long-term areas.</p>
       <h2 id="who-h" data-i18n-html="h.terr2"><b>TERRITORIAL</b> SOURCING</h2>
-      <p class="tp" data-i18n-html="t.p">Identify and secure land in Indonesia’s <br>highest potential growth corridors, <br>verified before the market catches on.</p>
       <ul class="chips">
         <li data-i18n-html="c.zon">Zoning verification</li>
         <li data-i18n-html="c.mkt">Market research</li>
@@ -1018,11 +1015,6 @@ var SOUL_I18N = {
 "en": "<b>TERRITORIAL</b> SOURCING",
 "es": "<b>BÚSQUEDA</b> TERRITORIAL",
 "id": "<b>PENCARIAN</b> LAHAN"
-},
-"t.p": {
-"en": "Identify and secure land in Indonesia’s <br>highest potential growth corridors, <br>verified before the market catches on.",
-"es": "Identificamos y aseguramos suelo en los corredores de crecimiento con más potencial de Indonesia, verificado antes que el mercado.",
-"id": "Mengidentifikasi dan mengamankan lahan di koridor pertumbuhan paling potensial di Indonesia, terverifikasi sebelum pasar menyadarinya."
 },
 "sv.k": {
 "en": "All-in-one services",
