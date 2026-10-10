@@ -403,6 +403,11 @@ verify_jwt = false
 [functions.cola-correos-envio]
 verify_jwt = false
 
+# deck-sincroniza (AXW-66 S6, 10-oct-2026): la invoca SOLO el job pg_cron `deck-sincroniza-diario` con X-Cron-Secret (secreto propio en Vault), sin JWT.
+# Codigo REAL en supabase/functions/deck-sincroniza; se despliega con --no-verify-jwt y esta entrada fija el valor.
+[functions.deck-sincroniza]
+verify_jwt = false
+
 # plantillas-guardar (S5.1 de Ajustes, 2-oct-2026): la llama la pantalla de Ajustes con la sesion del super admin. verify_jwt=false SOLO para que
 # el preflight CORS (OPTIONS, sin Authorization) llegue a la funcion; la autorizacion se hace dentro (Auth + fila activa super_admin en usuarios).
 # Se despliega con --no-verify-jwt en el lote del owner; esta entrada fija el valor.
