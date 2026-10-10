@@ -1,0 +1,30 @@
+-- Reconstruida el 10-oct-2026 desde supabase_migrations.schema_migrations.statements (version y nombre exactos; ya APLICADA en produccion, no se vuelve a aplicar). Su cambio ya esta fundido en: 20261001160000_axw127_cola_copias_firmadas.sql (funcion) y 20261005010948_axw202_c10_volcado_cron_copias_firmadas.sql (cron vigente)
+create or replace function public._copias_firmadas_despierta()
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  perform net.http_post(
+    url     := 'https://vtulllundrfennhjddhc.supabase.co/functions/v1/copias-firmadas-envio',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'X-Cron-Secret', public.cron_copias_firmadas_secret()),
+    body    := '{}'::jsonb,
+    timeout_milliseconds := 60000);
+exception when others then
+  raise warning 'copias firmadas: no se pudo despertar la Edge (%): la recoge el cron', sqlerrm;
+end $$;
+revoke execute on function public._copias_firmadas_despierta() from public, anon, authenticated;
+
+select cron.schedule(
+  'copias-firmadas-envio',
+  '*/10 * * * *',
+  $cron$
+  select net.http_post(
+    url     := 'https://vtulllundrfennhjddhc.supabase.co/functions/v1/copias-firmadas-envio',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'X-Cron-Secret', public.cron_copias_firmadas_secret()),
+    body    := '{}'::jsonb,
+    timeout_milliseconds := 60000);
+  $cron$
+);
+;

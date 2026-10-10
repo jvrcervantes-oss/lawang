@@ -1,5 +1,5 @@
 -- Prueba (se revierte sola: acaba en RAISE) del estado de pago de Facturas en el portal — 8-oct-2026.
--- Migración: 20261009050000_portal_facturas_estado_pago.sql. Hace de comprador del portal, de cuenta del equipo
+-- Migración: 20261008024253_20261009050000_portal_facturas_estado_pago.sql (aplicada con ese nombre). Hace de comprador del portal, de cuenta del equipo
 -- y de cuenta mixta (equipo + portal) con claims simulados, y llama a las funciones REALES. No escribe nada.
 -- Esperado (cualquier «MAL» es fallo):
 --   1:propia_con_importe 2:ajena_null_para_comprador 3:equipo_ve_ajena 4:mixta_ve_ajena 5:sin_sesion_ve_ajena
