@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="ff571db0a9ff">
+<meta name="lw-version" content="7bd604375b2e">
 <meta charset="UTF-8">
-<meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como ?th=<token>; ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
+<meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como #th=<token> (o ?th= en los correos viejos); ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -56,7 +56,7 @@
 <script src="/portal/calendario.js?v=20261009g"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261009"></script>
-<script src="/portal/enlace.js?v=20261011b"></script>
+<script src="/portal/enlace.js?v=20261011c"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
 <script src="/intranet/facturas/documento.js?v=933661fe"></script>
 <style>
@@ -2040,7 +2040,7 @@
   <div class="caja">
     <div class="marca">LAWANG</div>
     <div class="rot" data-t="area">Área de clientes</div>
-    <!-- LAW-1 S3 (11-oct-2026): llegada con el enlace de nuestro correo (?th=). Se entra PULSANDO, no al cargar: los filtros de correo de empresa abren el enlace para revisarlo y lo gastarían (portal/enlace.js). -->
+    <!-- LAW-1 S3 (11-oct-2026): llegada con el enlace de nuestro correo (#th=, o ?th= en los viejos). Se entra PULSANDO, no al cargar: los filtros de correo de empresa abren el enlace para revisarlo y lo gastarían (portal/enlace.js). -->
     <div id="bloqueEnlace" hidden>
       <p data-t="enlace_intro">Pulsa el botón para entrar en tu área de clientes.</p>
       <button class="btn-primario" type="button" id="btnEnlace" data-accion="canjear-enlace" data-t="enlace_btn">Entrar</button>
@@ -2113,8 +2113,8 @@
 <script>
 (function(){
   'use strict';
-  /* LAW-1 S3 (11-oct-2026): el enlace de entrada (?th=<token>) se quita de la barra y del
-     historial lo PRIMERO, antes de crear el cliente; se canjea al pulsar «Entrar» (ver el
+  /* LAW-1 S3 (11-oct-2026): el enlace de entrada (#th=<token>, o ?th= en los correos viejos) se quita de la barra y del
+     historial lo PRIMERO, antes de crear el cliente y antes de aplicaRuta (el portal usa el # para rutas); se canjea al pulsar «Entrar» (ver el
      arranque). Por qué así y qué estados hay: portal/enlace.js. */
   var TH = window.LW_ENLACE.quitaTh(location, history);
   /* ocupado: el oyente de onAuthStateChange calla mientras el arranque decide y mientras se
@@ -2703,7 +2703,7 @@
     cargar();
   }
 
-  /* ── entrada con el enlace de nuestro correo (?th=, LAW-1 S3) ─────── */
+  /* ── entrada con el enlace de nuestro correo (#th= o ?th=, LAW-1 S3) ─────── */
   /* Se ofrece el botón «Entrar» en vez del formulario; al pulsarlo se canjea (portal/enlace.js).
      Qué pasa después lo decide LW_ENLACE.decide, no esta página: correcto → entra con la sesión
      nueva; caducado o ya usado → entra con la sesión de comprador que ya tuviera viva o, si no
@@ -2760,7 +2760,7 @@
   });
 
   /* ── arranque ─────────────────────────────────────────────────────── */
-  /* Con ?th= (y sin ?demo) se ofrece el botón aunque hubiera otra sesión guardada: quien pulsa
+  /* Con #th= o ?th= (y sin ?demo) se ofrece el botón aunque hubiera otra sesión guardada: quien pulsa
      un enlace quiere entrar con ESE correo. El botón sale después de getSession, con el cliente
      ya arrancado (portal/enlace.js, punto 3). */
   sb.auth.getSession().then(function(r){

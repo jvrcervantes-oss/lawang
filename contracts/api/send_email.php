@@ -260,7 +260,9 @@ if (!$autorizado) {
 // Qué vía autorizó cada envío. Un solo renglón, y es el dato con el que se
 // comprueba en producción que los tres llamantes entran por donde deben — sin
 // esto, "funciona" y "funciona por la puerta de atrás" se ven igual.
-error_log('send_email: autorizado por ' . $via . ' -> ' . $to);
+// Solo el dominio del destinatario (LAW-1, Seguridad 11-oct-2026): la dirección completa es un dato personal y el log del
+// hosting no es sitio para ella; para saber por qué vía entra cada llamante basta el dominio.
+error_log('send_email: autorizado por ' . $via . ' -> @' . substr(strrchr($to, '@') ?: '@?', 1));
 
 /* ---- botón de acceso directo (8-sep-2026) ------------------------------
    Encargo del owner: "que todas tengan un botón para acceder directamente".

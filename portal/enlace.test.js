@@ -1,5 +1,7 @@
-// enlace.test.js — canje del enlace del portal (?th=) con un supabase falso (LAW-1 S3, 11-oct-2026).
+// enlace.test.js — canje del enlace del portal (#th=, y ?th= por convivencia) con un supabase falso (LAW-1 S3, 11-oct-2026).
 // Comprueba lo que no se ve en pantalla y es caro si falla:
+//   · el enlace nuevo trae el token en el FRAGMENTO (#th=): sale de la barra dejando pathname+search y sin #; un # de ruta
+//     normal (#/facturas) no se toca y no se llama a replaceState; ?th= se sigue aceptando;
 //   · el `th` desaparece de la dirección ANTES de llamar a verifyOtp, y el resto de la dirección se conserva;
 //   · verifyOtp va con { token_hash, type: 'email' };
 //   · con ?demo no se llama a verifyOtp (y el `th` se quita igual);
@@ -138,6 +140,56 @@ function supabaseFalso(nav, resp) {
     ok(!/th=/.test(nav.loc.href), 'th malo: también se quita de la dirección');
   }
   ok(E.formatoOk(TH), 'un hashed_token real (56 hex) tiene forma de token');
+
+  // 6b. #th= en el fragmento (el enlace nuevo, Seguridad 11-oct-2026): devuelve el token, deja pathname+search y SIN #.
+  {
+    const nav = navegador('https://lawangproperties.com/portal/?lang=en#th=' + TH);
+    const { sb, est } = supabaseFalso(nav, 'ok');
+    const th = E.quitaTh(nav.loc, nav.hist);
+    igual(th, TH, '#th: devuelve el token');
+    igual(nav.loc.href, 'https://lawangproperties.com/portal/?lang=en', '#th: barra con pathname+search y sin fragmento');
+    igual(nav.hist.llamadas, ['/portal/?lang=en'], '#th: una sola llamada a replaceState, sin el token');
+    const r = await E.canjeaCallado(sb, th, { ocupado: false });
+    igual([r.estado, est.args], ['ok', { token_hash: TH, type: 'email' }], '#th: se canjea igual que ?th');
+    ok(est.urlEnCanje && !/th=|#/.test(est.urlEnCanje), '#th: el token ya no estaba en la dirección al llamar a verifyOtp');
+  }
+  {
+    // codificado (%xx) se decodifica; sin query queda solo el pathname
+    const nav = navegador('https://lawangproperties.com/portal/#th=' + encodeURIComponent(TH));
+    igual(E.quitaTh(nav.loc, nav.hist), TH, '#th codificado: se decodifica');
+    igual(nav.loc.href, 'https://lawangproperties.com/portal/', '#th sin query: queda solo el pathname');
+  }
+  {
+    // un # de ruta normal no se toca y no hay replaceState
+    for (const h of ['#/facturas', '#/contratos/12', '#th', '#th=', '#th=abc&x=1', '#x=1&th=abc', '#/th=abc']) {
+      const nav = navegador('https://lawangproperties.com/portal/?lang=en' + h);
+      const antes = nav.loc.href;
+      igual(E.quitaTh(nav.loc, nav.hist), null, 'hash ' + h + ': no es un th → null');
+      igual([nav.loc.href, nav.hist.llamadas.length], [antes, 0], 'hash ' + h + ': la dirección queda intacta y sin replaceState');
+    }
+  }
+  {
+    // ?th= y #th= a la vez: manda el #, y la query también se limpia
+    const OTRO = 'f'.repeat(56);
+    const nav = navegador('https://lawangproperties.com/portal/?th=' + OTRO + '&lang=id#th=' + TH);
+    igual(E.quitaTh(nav.loc, nav.hist), TH, '#th y ?th: manda el fragmento');
+    igual(nav.loc.href, 'https://lawangproperties.com/portal/?lang=id', '#th y ?th: los dos fuera');
+    ok(!/th=/.test(nav.hist.llamadas.join(' ')), '#th y ?th: replaceState nunca recibe un token');
+  }
+  {
+    // ?th= (convivencia con los correos que ya salieron) conserva el # de ruta
+    const nav = navegador('https://lawangproperties.com/portal/?th=' + TH + '#/facturas');
+    igual(E.quitaTh(nav.loc, nav.hist), TH, '?th con # de ruta: devuelve el token');
+    igual(nav.loc.href, 'https://lawangproperties.com/portal/#/facturas', '?th con # de ruta: el # se conserva');
+  }
+  {
+    // #th= con forma mala: sale de la barra igual y no llega al servidor
+    const nav = navegador('https://lawangproperties.com/portal/#th=' + encodeURIComponent('<b>corto'));
+    const { sb, est } = supabaseFalso(nav, 'ok');
+    const th = E.quitaTh(nav.loc, nav.hist);
+    const r = await E.canjea(sb, th, false);
+    igual([est.llamadas, r.estado, nav.loc.href], [0, 'caducado', 'https://lawangproperties.com/portal/'], '#th malo: fuera de la barra, no llega al servidor, caducado');
+  }
 
   // 7. decide: qué hace la página tras el canje (LAW-1 S3, hallazgo MEDIA del revisor).
   {

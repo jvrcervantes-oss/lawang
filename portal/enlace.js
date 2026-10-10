@@ -3,14 +3,20 @@
 
    Desde LAW-1 las edges `portal-acceso` y `portal-invitar` ya no dejan que el correo gratuito de
    Supabase mande el enlace (~4/h: de 44 compradores con acceso había entrado 1). Generan el enlace
-   con `generateLink` y lo mandan por el buzón de Lawang como `/portal/?th=<hashed_token>`. Esta
-   página canjea ese `th` con `verifyOtp`. Los enlaces viejos (redirección de GoTrue con
+   con `generateLink` y lo mandan por el buzón de Lawang como `/portal/#th=<hashed_token>`. Esta
+   página canjea ese `th` con `verifyOtp`. En el FRAGMENTO y no en `?th=` (Seguridad, consulta del
+   revisor, 11-oct-2026): el fragmento no viaja al servidor, así que el token no queda en los logs
+   de acceso del hosting, del CDN ni de un proxy. `?th=` se sigue aceptando (convivencia con los
+   correos que ya salieron con la forma vieja). Los enlaces viejos (redirección de GoTrue con
    `#access_token=`) no pasan por aquí: los recoge supabase-js al arrancar, como siempre.
 
    Cómo, y por qué:
      1. `quitaTh` lo PRIMERO y de forma síncrona: el token sale de la barra y del historial antes
         de que corra nada más del portal, para que no quede en el historial, en una captura ni en
-        un «copiar enlace». Se queda solo en memoria. (El `<meta name="referrer"
+        un «copiar enlace». Se queda solo en memoria. Corre ANTES de `aplicaRuta` (el portal usa
+        el # para sus rutas: `#th=…` no debe tomarse por una sección) y antes de crear el cliente
+        (supabase-js mira el # al arrancar). Solo toca un # que sea EXACTAMENTE `#th=<algo>`; un
+        # de ruta normal (`#/facturas`) no se toca. (El `<meta name="referrer"
         content="no-referrer">` de la página cubre la cabecera Referer.)
      2. El canje lo dispara un BOTÓN, no la carga de la página. Los filtros de correo de empresa
         (Microsoft Defender Safe Links y parecidos) abren los enlaces del correo para revisarlos;
@@ -68,10 +74,11 @@
 
    ORDEN DE PUBLICACIÓN OBLIGATORIO (revisor, 11-oct-2026): primero esta página servida en
    producción, y solo DESPUÉS las edges con `--edge`. Si las edges salen antes, mandan enlaces
-   `?th=` a la página vieja, que no sabe canjearlos: el comprador no entra y cada «pide otro»
-   gasta el freno. Cómo se comprueba antes de `--edge`: el `<meta name="lw-version">` de
-   https://lawangproperties.com/portal/ tiene que ser el mismo que el de portal/index.html de la
-   copia que se publica (y /portal/enlace.js servido debe exportar `decide`).
+   `#th=` a la página vieja, que no sabe canjearlos (y tomaría `#th=…` por una ruta): el comprador
+   no entra y cada «pide otro» gasta el freno. Cómo se comprueba antes de `--edge`: el
+   `<meta name="lw-version">` de https://lawangproperties.com/portal/ tiene que ser el mismo que el
+   de portal/index.html de la copia que se publica (y /portal/enlace.js servido debe exportar
+   `decide` y su `quitaTh` debe leer `#th=`: lo dice el `?v=20261011c` con que lo pide la página).
 
    Se prueba en node con enlace.test.js. */
 (function (root) {
@@ -82,16 +89,32 @@
   // nada que no tenga forma de token llega al servidor.
   var FORMATO = /^[A-Za-z0-9_-]{16,256}$/;
 
+  // Fragmento del enlace nuevo: exactamente `#th=<algo sin &>`. Cualquier otro # es una ruta del portal.
+  var HASH_TH = /^#th=([^&]+)$/;
+
   /* Quita `th` de la dirección (barra e historial) y lo devuelve; null si no venía.
-     El resto de la dirección (otros parámetros como `demo`, el # de sección) se conserva. */
+     Lo busca primero en el fragmento (`#th=`, el enlace nuevo) y después en la query (`?th=`, el
+     de los correos que ya salieron); de la query se quita siempre, venga o no también en el #.
+     Con `#th=` la barra queda con pathname + search y SIN fragmento; con `?th=` se conservan los
+     demás parámetros (como `demo`) y el # de sección. Sin `th` no llama a replaceState. */
   function quitaTh(loc, hist) {
     var u;
     try { u = new URL(loc.href); }
     catch (e) { return null; /* MUDO A PROPOSITO: sin URL legible no hay `th` que canjear; el arranque sigue como siempre */ }
-    if (!u.searchParams.has('th')) return null;
-    var th = u.searchParams.get('th') || '';
-    u.searchParams.delete('th');
-    try { hist.replaceState(hist.state, '', u.pathname + u.search + u.hash); }
+    var th = null;
+    var m = HASH_TH.exec(u.hash);
+    if (m) {
+      try { th = decodeURIComponent(m[1]); }
+      catch (e) { th = m[1]; /* MUDO A PROPOSITO: %-secuencia rota; formatoOk lo rechazará y se pedirá otro */ }
+    }
+    var enQuery = u.searchParams.has('th');
+    if (enQuery) {
+      if (th === null) th = u.searchParams.get('th') || '';
+      u.searchParams.delete('th');
+    }
+    if (th === null) return null;
+    var destino = u.pathname + u.search + (m ? '' : u.hash);
+    try { hist.replaceState(hist.state, '', destino); }
     catch (e) { /* MUDO A PROPOSITO: si el navegador no deja reescribir la barra se sigue igual; al canjearlo, un token usado en la barra ya no abre nada */ }
     return th;
   }

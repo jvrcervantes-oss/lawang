@@ -22,13 +22,21 @@
 //     mandar cualquier correo a cualquiera, así que destinatario, asunto, texto y
 //     botón se fijan AQUÍ: de la petición solo se toma `email`, y solo se manda al
 //     correo que ya pasó la regla. Nunca `preview`, nunca `sociedad`;
-//   · el enlace es `PORTAL_URL?th=<hashed_token>` y la página lo canjea con
-//     verifyOtp. El token no viaja en la respuesta ni en ningún log;
-//   · freno propio (`portal_enlace_freno`, migración 20261010182058) ANTES de tocar
+//   · el enlace es `PORTAL_URL#th=<hashed_token>` y la página lo canjea con
+//     verifyOtp. En el FRAGMENTO (#) y no en `?th=` (Seguridad, consulta del
+//     revisor): el fragmento no viaja al servidor, así que no queda en los logs de
+//     acceso de Hostinger, del CDN ni de un proxy. El token no viaja en la
+//     respuesta ni en ningún log;
+//   · freno propio (`portal_enlace_freno`, migración 20261010194801) ANTES de tocar
 //     la cuenta y de generar el enlace: `generateLink` se salta el límite de GoTrue
 //     y cada enlace invalida el anterior, así que repetir el formulario dejaría al
 //     comprador sin poder entrar. Frenado = la misma respuesta que un correo sin
-//     derecho. Si el envío falla, el hueco se devuelve;
+//     derecho. Si el envío falla, el hueco se devuelve. Además de 60 s y 5/h por
+//     correo y el techo global de 30/h, como mucho 5 enlaces por hora desde la
+//     misma IP: una sola máquina no puede invalidar el enlace de 30 compradores ni
+//     agotar el global. La IP viaja a la base como HMAC (nunca en claro) y su fila
+//     se purga 1 h después de su última petición. El frenazo por tope global se
+//     registra con su propia línea (`frenado_tope_global`) para poder avisar;
 //   · un correo con fila en `usuarios` (equipo, activa o no) no recibe enlace: el
 //     enlace abre la cuenta de Auth ENTERA, no solo el portal;
 //   · logs: solo el dominio del correo y códigos (nunca la dirección ni el token).
@@ -99,6 +107,22 @@ const dominio = (email: string) => { const i = email.lastIndexOf('@'); return i 
 /** Texto de error para el log sin direcciones de correo ni cadenas largas (un token, una URL con token). */
 const limpia = (s: unknown) => String(s ?? '').replace(/[^\s@<>]+@[^\s@<>]+/g, '[correo]').replace(/[A-Za-z0-9_\-]{24,}/g, '[…]').slice(0, 120);
 
+/** IP de quien llama, como alta-colaborador: cf-connecting-ip la pone el proxy y el cliente no la puede falsear; si falta,
+ *  la ÚLTIMA entrada de x-forwarded-for (la añade el proxy), nunca la primera. '' si no hay ninguna. */
+function ipDe(req: Request): string {
+  const xff = (req.headers.get('x-forwarded-for') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  return ((req.headers.get('cf-connecting-ip') ?? '').trim() || xff[xff.length - 1] || '').slice(0, 64);
+}
+/** HMAC-SHA256 de la IP, en hex (64). Clave = la service_role de la edge, con etiqueta propia: un sha256 sin clave de una
+ *  IPv4 se deshace probando las ~4.300 millones de IPs. Si la clave rota, solo se reinician los contadores. null sin IP. */
+async function hashIp(ip: string): Promise<string | null> {
+  if (!ip) return null;
+  const enc = new TextEncoder();
+  const k = await crypto.subtle.importKey('raw', enc.encode(SERVICE), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const firma = new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode('lawang-portal-acceso-ip:' + ip)));
+  return Array.from(firma, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** Manda el enlace por envia-correo (o el PHP), con destinatario y textos fijados aquí. true solo si respondió ok. */
 async function enviaEnlace(email: string, enlace: string): Promise<boolean> {
   const url = await urlEnvio();
@@ -136,11 +160,12 @@ export async function manejador(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
 
   let email = '';
+  let ipHash: string | null = null;
   let reservado = false;   // true = el freno ya anotó este envío (si no sale, se devuelve el hueco)
   const libera = async () => {
     if (!reservado) return;
     reservado = false;
-    const { error } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'autoservicio', p_libera: true });
+    const { error } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'autoservicio', p_ip_hash: ipHash, p_libera: true });
     if (error) console.error('portal-acceso freno_libera_fallo @' + dominio(email) + ': ' + limpia(error.code ?? error.message));
   };
   try {
@@ -181,13 +206,21 @@ export async function manejador(req: Request): Promise<Response> {
     }
 
     // ── freno: antes de tocar la cuenta y de generar el enlace ──────────
-    const { data: pasa, error: eFreno } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'autoservicio' });
+    // Por correo (60 s, 5/h), por IP (5/h) y techo global (30/h), todo en la misma llamada y con el mismo candado.
+    // Sin IP legible (no debería pasar detrás del proxy de Supabase) no se inventa un cubo común: cuenta el correo y el
+    // global, y queda en el log.
+    ipHash = await hashIp(ipDe(req));
+    if (!ipHash) anota('sin_ip');
+    const { data: motivo, error: eFreno } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'autoservicio', p_ip_hash: ipHash });
     if (eFreno) {
       console.error('portal-acceso freno_fallo @' + dominio(email) + ': ' + limpia(eFreno.code ?? eFreno.message));
       return json({ error: 'no_disponible' }, 500);
     }
-    if (pasa !== true) {
-      anota('frenado');
+    if (motivo !== 'pasa') {
+      const m = ['correo', 'ip', 'global', 'invalido'].includes(String(motivo)) ? String(motivo) : 'desconocido';
+      anota('frenado:' + m);
+      // Línea fija para avisar: 30 enlaces en una hora desde el formulario = alguien martillea o el techo se queda corto.
+      if (m === 'global') console.warn('portal-acceso frenado_tope_global');
       return json({ ok: true });
     }
     reservado = true;
@@ -258,7 +291,7 @@ export async function manejador(req: Request): Promise<Response> {
       await libera();
       return json({ ok: true, reintentar: true });
     }
-    const enviado = await enviaEnlace(email, PORTAL_URL + '?th=' + encodeURIComponent(th));
+    const enviado = await enviaEnlace(email, PORTAL_URL + '#th=' + encodeURIComponent(th));
     if (!enviado) {
       await libera();
       return json({ ok: true, reintentar: true });

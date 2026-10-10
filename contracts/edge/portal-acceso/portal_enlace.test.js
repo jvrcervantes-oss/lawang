@@ -2,11 +2,14 @@
    index.ts REAL, sin Deno, sin red y sin base (no hay deno en todas las máquinas; node >= 22.18 carga el .ts quitándole los tipos).
    `Deno` es un doble; supabase-js lo sustituye supabase_falso.mjs (gancho portal_hooks.mjs) y `fetch` y `console` son simulados: el único
    fetch que hacen estas edges es el envío del correo, así que «sin llamar a fetch» = «no salió ningún correo».
-   El freno de la base se simula con la MISMA regla que portal_enlace_freno (60 s y 5/h por correo, 30/h global solo del formulario,
-   p_libera devuelve el hueco); la prueba real contra la base: supabase/pruebas/law1_portal_enlace_freno.sql.
+   El freno de la base se simula con la MISMA regla que portal_enlace_freno (60 s y 5/h por correo, 5/h por IP y 30/h global solo del
+   formulario, devuelve 'pasa' o el motivo, p_libera devuelve el hueco); la prueba real contra la base:
+   supabase/pruebas/law1_portal_enlace_freno.sql.
    Qué fija (criterio de S2 del encargo encargos/20261011_lawang_portal_enlace_por_correo.md, revisión previa #261):
    · el token (hashed_token), el action_link y la parte local del correo no aparecen en ninguna respuesta ni en ningún log;
-   · un correo sin derecho, uno del equipo y el 6.º envío en una hora dan LA MISMA respuesta que el éxito y no llaman a fetch ni a generateLink;
+   · un correo sin derecho, uno del equipo, el 6.º envío en una hora y el 6.º desde la misma IP dan LA MISMA respuesta que el éxito y no
+     llaman a fetch ni a generateLink; la IP viaja a la base como HMAC (64 hex), nunca en claro; el tope global deja su línea propia;
+   · el enlace lleva el token en el FRAGMENTO (#th=), no en la query;
    · destinatario, asunto, texto y botón los fija el servidor (lo que traiga la petición además de `email` se ignora); nunca preview ni sociedad;
    · vía de servicio X-Render-Secret: ENVIO_CORREO_SECRET hacia la edge envia-correo, RENDER_SECRET hacia el PHP, y nada a otra URL;
    · generateLink solo sobre una cuenta ya existente y con el mismo id; signInWithOtp (mailer de Supabase) no se usa nunca;
@@ -46,7 +49,7 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
 
   /* ── base, Auth y correo de mentira ── */
   let reloj = Date.parse('2026-10-11T03:00:00Z');
-  const freno = { marcas: {}, global: [] };   // estado persistente entre llamadas, como la tabla portal_enlaces_envios
+  const freno = { marcas: {}, global: [], ip: {} };   // estado persistente entre llamadas, como la tabla portal_enlaces_envios
   let est;
   function prepara(o = {}) {
     Object.keys(entorno).forEach((k) => delete entorno[k]);
@@ -75,13 +78,22 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
           const mio = (freno.marcas[e] || []).filter((t) => t > hora);
           const glob = freno.global.filter((t) => t > hora);
           const cuentaGlobal = a.p_origen === 'autoservicio';
-          if (a.p_libera) { mio.pop(); if (cuentaGlobal) glob.pop(); freno.marcas[e] = mio; freno.global = glob; return { data: true, error: null }; }
-          if (mio.length && mio[mio.length - 1] > reloj - 60_000) return { data: false, error: null };
-          if (mio.length >= 5) return { data: false, error: null };
-          if (cuentaGlobal && glob.length >= 30) return { data: false, error: null };
+          const ip = cuentaGlobal && a.p_ip_hash ? a.p_ip_hash : null;
+          if (ip && !/^[0-9a-f]{64}$/.test(ip)) return { data: null, error: { code: '22023', message: 'ip_hash no válido' } };
+          const deIp = ip ? (freno.ip[ip] || []).filter((t) => t > hora) : [];
+          if (a.p_libera) {
+            if (mio.length) { mio.pop(); if (cuentaGlobal) glob.pop(); if (ip) deIp.pop(); }
+            freno.marcas[e] = mio; freno.global = glob; if (ip) freno.ip[ip] = deIp;
+            return { data: 'liberado', error: null };
+          }
+          if (mio.length && mio[mio.length - 1] > reloj - 60_000) return { data: 'correo', error: null };
+          if (mio.length >= 5) return { data: 'correo', error: null };
+          if (ip && deIp.length >= 5) return { data: 'ip', error: null };
+          if (cuentaGlobal && glob.length >= 30) return { data: 'global', error: null };
           freno.marcas[e] = [...mio, reloj];
           if (cuentaGlobal) freno.global = [...glob, reloj];
-          return { data: true, error: null };
+          if (ip) freno.ip[ip] = [...deIp, reloj];
+          return { data: 'pasa', error: null };
         }
         throw new Error('rpc no prevista: ' + nombre);
       },
@@ -142,7 +154,7 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   igual(Object.keys(env.cuerpo).sort(), ['attach', 'cta_texto', 'cta_url', 'message', 'subject', 'to'], 'acceso: solo los campos fijados (sin preview ni sociedad)');
   igual(env.cuerpo.to, EMAIL, 'acceso: destinatario = el correo normalizado, nunca un `to` de la petición');
   igual(env.cuerpo.attach, false, 'acceso: attach:false');
-  igual(env.cuerpo.cta_url, 'https://lawangproperties.com/portal/?th=' + TOKEN, 'acceso: enlace PORTAL_URL?th=<hashed_token>');
+  igual(env.cuerpo.cta_url, 'https://lawangproperties.com/portal/#th=' + TOKEN, 'acceso: enlace PORTAL_URL#th=<hashed_token> (fragmento, no query)');
   ok(!/malo|^X$|^Y$/.test(env.cuerpo.subject + env.cuerpo.message), 'acceso: asunto y texto del servidor');
   ok(!env.cuerpo.message.includes(TOKEN) && !env.cuerpo.message.includes('action'), 'acceso: el token solo va en el botón');
   const ordenA = est.traza.map((t) => t.que);
@@ -243,10 +255,48 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   prepara();
   const glob = await llama(ACCESO, { email: 'nuevo-global@cliente-prueba.com' });
   igual([glob.crudo, est.envios.length], [exito.crudo, 0], 'acceso: tope global → misma respuesta y no sale');
+  ok(glob.logs.includes('portal-acceso frenado_tope_global'), 'acceso: el tope global deja su línea propia (para avisar)');
+  ok(glob.logs.some((l) => l.includes('frenado:global @cliente-prueba.com')), 'acceso: y el motivo con solo el dominio');
   // 11. método y correo inválido
   prepara();
   igual((await llama(ACCESO, { email: 'no-es-correo' })).crudo, exito.crudo, 'acceso: correo mal formado → misma respuesta');
   igual(llamo('rpc:portal_autoservicio').length, 0, 'acceso: correo mal formado ni pregunta a la base');
+
+  // 12. por IP: 5 correos distintos con derecho desde la misma IP salen; el 6.º (otro correo) frena con la respuesta muda
+  avanza(3601);
+  freno.global = [];
+  const IP = '203.0.113.77';
+  const deIp = { 'cf-connecting-ip': IP };
+  prepara();
+  for (let i = 1; i <= 5; i++) { const r = await llama(ACCESO, { email: 'ip' + i + '@cliente-prueba.com' }, deIp); igual(r.crudo, exito.crudo, 'acceso: IP, envío ' + i + ' sale'); }
+  igual(est.envios.length, 5, 'acceso: IP, 5 correos distintos desde la misma IP salen');
+  const hIp = llamo('rpc:portal_enlace_freno')[0].args.p_ip_hash;
+  ok(/^[0-9a-f]{64}$/.test(hIp), 'acceso: la IP va a la base como hash de 64 hex');
+  ok(!JSON.stringify(est.traza).includes(IP), 'acceso: la IP en claro no llega a la base');
+  const sextaIp = await llama(ACCESO, { email: 'ip6@cliente-prueba.com' }, deIp);
+  igual([sextaIp.status, sextaIp.crudo, est.envios.length], [200, exito.crudo, 5], 'acceso: 6.º desde la misma IP → misma respuesta y no sale');
+  ok(sextaIp.logs.some((l) => l.includes('frenado:ip @cliente-prueba.com')), 'acceso: IP, el log dice el motivo');
+  ok(!sextaIp.logs.some((l) => l.includes('frenado_tope_global')), 'acceso: IP no se confunde con el tope global');
+  // la última entrada de x-forwarded-for (la del proxy) es la misma IP: también frena; la primera (la que pone el cliente) no cuenta
+  const xff = await llama(ACCESO, { email: 'ip7@cliente-prueba.com' }, { 'x-forwarded-for': '198.51.100.1, ' + IP });
+  igual([xff.crudo, est.envios.length], [exito.crudo, 5], 'acceso: x-forwarded-for, cuenta la última entrada');
+  const otraIp = await llama(ACCESO, { email: 'ip8@cliente-prueba.com' }, { 'x-forwarded-for': IP + ', 198.51.100.2' });
+  igual([otraIp.crudo, est.envios.length], [exito.crudo, 6], 'acceso: otra IP (la del proxy es otra) sí sale');
+  // envío fallido desde una IP: el hueco de la IP también se devuelve
+  avanza(61);
+  const IP2 = '203.0.113.88';
+  prepara({ correo: () => ({ status: 500, cuerpo: '{"ok":false}' }) });
+  await llama(ACCESO, { email: 'ip9@cliente-prueba.com' }, { 'cf-connecting-ip': IP2 });
+  const lib = llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true);
+  igual(lib.length, 1, 'acceso: IP, envío fallido devuelve el hueco');
+  ok(/^[0-9a-f]{64}$/.test(lib[0].args.p_ip_hash), 'acceso: el hueco devuelto lleva el hash de la IP');
+  igual((freno.ip[lib[0].args.p_ip_hash] || ['x']).length, 0, 'acceso: la marca de esa IP se ha devuelto');
+  // sin cabeceras de IP: no hay cubo común; cuentan correo y global, y queda «sin_ip» en el log
+  avanza(61);
+  prepara();
+  const sinIp = await llama(ACCESO, { email: 'ip10@cliente-prueba.com' });
+  igual([sinIp.crudo, est.envios.length, llamo('rpc:portal_enlace_freno')[0].args.p_ip_hash], [exito.crudo, 1, null], 'acceso: sin IP sale con p_ip_hash null');
+  ok(sinIp.logs.some((l) => l.includes('sin_ip @cliente-prueba.com')), 'acceso: sin IP queda en el log');
 
   /* ════════ portal-invitar ════════ */
   freno.global = [];
@@ -258,7 +308,7 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   igual(inv.cuerpo, { ok: true }, 'invitar: éxito {ok:true}');
   igual(est.envios.length, 1, 'invitar: un envío');
   igual(Object.keys(est.envios[0].cuerpo).sort(), ['attach', 'cta_texto', 'cta_url', 'message', 'subject', 'to'], 'invitar: solo campos fijados');
-  igual([est.envios[0].cuerpo.to, est.envios[0].cuerpo.cta_url], [EMAIL, 'https://lawangproperties.com/portal/?th=' + TOKEN], 'invitar: destinatario y enlace del servidor');
+  igual([est.envios[0].cuerpo.to, est.envios[0].cuerpo.cta_url], [EMAIL, 'https://lawangproperties.com/portal/#th=' + TOKEN], 'invitar: destinatario y enlace del servidor (fragmento)');
   igual([est.envios[0].url, est.envios[0].cabeceras['X-Render-Secret'], est.envios[0].cabeceras['X-Llamante']], [ENVIO_EDGE, 'secreto-envio-falso', 'portal-invitar'], 'invitar: vía de servicio hacia la edge');
   igual(llamo('rpc:portal_enlace_freno')[0].args, { p_email: EMAIL, p_origen: 'invitar' }, 'invitar: freno con origen invitar (no cuenta en el global)');
   const ordenI = est.traza.map((t) => t.que);
@@ -298,7 +348,7 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
 
   /* ════════ barrida: ni token, ni action_link, ni la parte local del correo, en ningún log ni respuesta ════════ */
   const junto = todo.join('\n');
-  for (const [nombre, v] of [['hashed_token', TOKEN], ['action_link', 'ACTIONLINKSECRETO'], ['otp', '123456'], ['parte local', LOCAL], ['parte local 2', 'otrocomprador'], ['parte local 3', 'tercero']]) {
+  for (const [nombre, v] of [['hashed_token', TOKEN], ['action_link', 'ACTIONLINKSECRETO'], ['otp', '123456'], ['parte local', LOCAL], ['parte local 2', 'otrocomprador'], ['parte local 3', 'tercero'], ['IP en claro', '203.0.113.77'], ['IP en claro 2', '203.0.113.88']]) {
     ok(!junto.includes(v), 'barrida: «' + nombre + '» no aparece en logs ni respuestas');
   }
   ok(todo.length > 30, 'barrida: se han revisado ' + todo.length + ' líneas');

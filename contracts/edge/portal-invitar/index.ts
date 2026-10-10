@@ -17,9 +17,11 @@
 // `auth.admin.generateLink({type:'magiclink'})` sobre la cuenta ya resuelta y se
 // manda por `envia-correo` (buzón de Lawang) con la vía de servicio
 // `X-Render-Secret`; destinatario, asunto, texto y botón fijados aquí. El enlace
-// es `PORTAL_URL?th=<hashed_token>` y no viaja en la respuesta ni en los logs.
+// es `PORTAL_URL#th=<hashed_token>` (en el fragmento: no viaja al servidor ni a
+// sus logs de acceso) y no viaja en la respuesta ni en los logs.
 // Antes de generarlo pasa por el freno `portal_enlace_freno` (60 s y 5/h por
-// correo; los de un admin no cuentan en el tope global del formulario anónimo).
+// correo; los de un admin no cuentan en el tope global ni por IP del formulario
+// anónimo). La función devuelve 'pasa' o el motivo del frenazo.
 // Si frena o el envío falla, el acceso queda dado y la respuesta lleva el aviso
 // `acceso_creado_pero_email_no_enviado` (la pantalla dice «reenvía en un rato»).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -271,9 +273,9 @@ export async function manejador(req: Request): Promise<Response> {
     // Freno antes de generar el enlace: cada enlace invalida el anterior, así que
     // dos «Reenviar» seguidos dejarían sin valor el que ya tiene el comprador.
     // Si frena o la base no contesta, el acceso queda dado y se avisa.
-    const { data: pasa, error: eFreno } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'invitar' });
-    if (eFreno || pasa !== true) {
-      console.log('portal-invitar ' + (eFreno ? 'freno_fallo' : 'frenado') + ' @' + dominio(email));
+    const { data: motivo, error: eFreno } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'invitar' });
+    if (eFreno || motivo !== 'pasa') {
+      console.log('portal-invitar ' + (eFreno ? 'freno_fallo' : 'frenado:' + (['correo', 'invalido'].includes(String(motivo)) ? motivo : 'desconocido')) + ' @' + dominio(email));
       return json({ ok: true, aviso: AVISO_NO_ENVIADO });
     }
     libera = async () => {
@@ -290,7 +292,7 @@ export async function manejador(req: Request): Promise<Response> {
       await libera?.();
       return json({ ok: true, aviso: AVISO_NO_ENVIADO });
     }
-    if (!(await enviaEnlace(email, PORTAL_URL + '?th=' + encodeURIComponent(th)))) {
+    if (!(await enviaEnlace(email, PORTAL_URL + '#th=' + encodeURIComponent(th)))) {
       await libera?.();
       return json({ ok: true, aviso: AVISO_NO_ENVIADO });
     }
