@@ -72,6 +72,7 @@ export const AJUSTES = {
   topeEstado: 600,        // por minuto e isolate: 3-4 llamadas por mensaje, varios chats a la vez
   topeRecordatorio: 30,   // el reloj corre cada 5 min
   topeHumano: 120,
+  topeVerificar: 60,      // `verificar` (estado): una llamada por envio humano; por minuto e isolate
   topeTelEstado: 60,      // por minuto y telefono (~20 mensajes/min). Pasado esto: 429, que el bot trata como `tope`
   topeTelHumano: 20,
   maxCuerpoEstado: 262_144,   // 10 salidas de 4096 caracteres en UTF-8 son ~160 KB
@@ -170,6 +171,8 @@ const SQL = {
   cita_recordatorio_res: 'select public.bot_cita_recordatorio_res($1::uuid, $2::text) as r',
   pausar_humano: 'select public.bot_pausar_humano($1::text, $2::text, $3::text) as r',
   envio_humano: 'select public.bot_envio_humano($1::text, $2::text, $3::text, $4::text::jsonb, $5::text) as r',
+  // ── verificar (10-oct-2026): ¿esta persona (JWT verificado) tiene la casilla? $1 = el usuario de Auth, $2 = el permiso ──
+  verificar_humano: 'select public.bot_humano_verificar($1::text, $2::text) as r',
   // ── S12: consentimiento de seguimiento y reenganche ──
   consentimiento_preguntar: 'select public.bot_consentimiento_preguntar($1::text, $2::text, $3::text, $4::text, $5::boolean) as r',
   consentimiento_enviada: 'select public.bot_consentimiento_enviada($1::text, $2::text, $3::boolean) as r',
@@ -349,6 +352,7 @@ type Def = {
   resultados?: readonly string[];                      // texto: palabras que la base puede devolver
   forma?: (r: Record<string, unknown>) => Record<string, unknown>;            // json: salida fija
   formaFilas?: (f: Record<string, unknown>[]) => Record<string, unknown>;     // filas: salida fija
+  persona?: 'primero' | 'ultimo';                      // exige el JWT de una persona (cabecera Authorization); su usuario VERIFICADO va como primer o último argumento SQL
 };
 const ERR_TEL = ['telefono_invalido', 'wamid_invalido', 'sin_chat'];
 
@@ -609,6 +613,18 @@ export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
         return { args: [o.tel as string, texto, String(o.hasta_id)] };
       },
     },
+    // verificar (10-oct-2026): el bot pregunta si la PERSONA que le pide enviar/pausar tiene la casilla. Es la única acción de /estado con JWT: el usuario sale del JWT
+    // verificado contra Auth (nunca del cuerpo: un `usuario` es 400) y el permiso es una lista de UNO. Devuelve si puede y su email, nunca la lista de herramientas.
+    verificar: {
+      claves: ['accion', 'permiso'], tel: false, persona: 'primero', sql: 'verificar_humano', tipo: 'json', errores: ['permiso_invalido'],
+      valida: (o) => (o.permiso === 'bot_escribir' ? { args: [o.permiso] } : { error: 'permiso' }),
+      forma: (r) => {
+        const email = r.email === null || r.email === undefined ? null : T(r.email);
+        const permitido = B(r.permitido);
+        if (email !== null && email.length > 320) mal();
+        return { permitido, email: permitido ? email : null };
+      },
+    },
   },
   recordatorio: {
     // EXCEPCION 2: sin parametros (la ventana de 60 min esta fijada en SQL) y devuelve telefonos de OTROS clientes: es el reloj.
@@ -715,12 +731,12 @@ export const LISTA_CERRADA: Record<string, Record<string, Def>> = {
   humano: {
     // El usuario (ultimo argumento SQL de cada una) lo añade el manejador desde el JWT VERIFICADO; el cuerpo no puede traerlo.
     pausar: {
-      claves: ['accion', 'tel', 'modo'], tel: true, sql: 'pausar_humano', tipo: 'json', errores: ['telefono_invalido', 'sin_usuario', 'modo_invalido', 'sin_chat'],
+      claves: ['accion', 'tel', 'modo'], tel: true, persona: 'ultimo', sql: 'pausar_humano', tipo: 'json', errores: ['telefono_invalido', 'sin_usuario', 'modo_invalido', 'sin_chat'],
       valida: (o) => (o.modo !== 'pausar' && o.modo !== 'quitar' ? { error: 'modo' } : { args: [o.tel as string, o.modo] }),
       forma: (r) => ({ pausado: B(r.pausado), hasta: isoN(r.hasta) }),
     },
     enviar: {
-      claves: ['accion', 'tel', 'texto', 'wamid', 'media'], tel: true, sql: 'envio_humano', tipo: 'json', errores: ['telefono_invalido', 'sin_usuario', 'mensaje_vacio', 'sin_chat'],
+      claves: ['accion', 'tel', 'texto', 'wamid', 'media'], tel: true, persona: 'ultimo', sql: 'envio_humano', tipo: 'json', errores: ['telefono_invalido', 'sin_usuario', 'mensaje_vacio', 'sin_chat'],
       valida: (o) => {
         if (typeof o.wamid !== 'string' || !RE_MSG.test(o.wamid)) return { error: 'wamid' };
         const texto = o.texto === undefined || o.texto === null ? '' : recorta(o.texto, 4096);
@@ -787,13 +803,20 @@ async function rutaLista(req: Request, ruta: string): Promise<Response> {
   }
 
   const args = v.args;
-  if (ruta === 'humano') {
-    // La persona que actua sale del JWT verificado, nunca del cuerpo ni del bot. Va la ULTIMA en los argumentos SQL.
+  // Toda acción de /humano exige a la persona (la ruta lo manda, aunque a una acción nueva se le olvide la marca); la única de otra ruta es `verificar`.
+  const persona = def.persona ?? (ruta === 'humano' ? 'ultimo' : undefined);
+  if (persona) {
+    // La persona que actua sale del JWT verificado, nunca del cuerpo ni del bot. Va la ULTIMA (humano) o la PRIMERA (verificar) en los argumentos SQL.
     const jwt = (req.headers.get('authorization') ?? '').replace(/^Bearer(\s+|$)/i, '').trim();
     if (!jwt || jwt.length > 4096) return NO_AUTORIZADO();
+    if (persona === 'primero') {
+      // `verificar` lleva su propio tope (una llamada por envio humano): pasado, 429 y NUNCA llega a Auth.
+      const espera = demasiado('estado:verificar', AJUSTES.topeVerificar);
+      if (espera) return json({ error: 'demasiadas_peticiones' }, 429, { 'retry-after': String(espera) });
+    }
     const quien = await AUTH.usuario(jwt);
     if (!quien) return NO_AUTORIZADO();
-    args.push(quien);
+    if (persona === 'primero') args.unshift(quien); else args.push(quien);
   }
 
   const filas = await DB.ejecuta(def.sql, args);

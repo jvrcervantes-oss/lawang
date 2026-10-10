@@ -420,6 +420,56 @@ verify_jwt = false
 [functions.bot-api]
 verify_jwt = false
 
+# Fijado el 10-oct-2026 (autorizacion expresa del owner): anota el verify_jwt MEDIDO en produccion (list_edge_functions) de las edges que no tenian entrada.
+# No cambia nada desplegado; evita que un despliegue sin --no-verify-jwt las deje en true (el defecto).
+[functions.admin-usuarios]
+verify_jwt = false
+
+[functions.alta-colaborador]
+verify_jwt = false
+
+[functions.bot-agentes]
+verify_jwt = false
+
+[functions.deck-documento]
+verify_jwt = false
+
+[functions.factura-vencimiento]
+verify_jwt = false
+
+[functions.ficheros]
+verify_jwt = false
+
+[functions.ficheros-contrato]
+verify_jwt = false
+
+[functions.ficheros-kyc]
+verify_jwt = false
+
+[functions.firma-get]
+verify_jwt = false
+
+[functions.firma-submit]
+verify_jwt = false
+
+[functions.lawang-bot-proxy]
+verify_jwt = false
+
+[functions.libera-reservas-vencidas]
+verify_jwt = false
+
+[functions.portal-invitar]
+verify_jwt = false
+
+[functions.send-contract-email]
+verify_jwt = false
+
+[functions.trazabilidad-ghl]
+verify_jwt = false
+
+[functions.asistente-peticiones]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

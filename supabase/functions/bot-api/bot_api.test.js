@@ -291,7 +291,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
   reinicia();
   igual(M.ACCIONES_RUTA, {
     estado: ['mensaje_recibir', 'turno_estado', 'turno_cerrar', 'eco_operadora', 'pausar', 'baja', 'entrega_fallida', 'escalar', 'escalacion_tomar',
-      'consentimiento_preguntar', 'consentimiento_enviada', 'consentimiento_responder', 'lead_resumen'],
+      'consentimiento_preguntar', 'consentimiento_enviada', 'consentimiento_responder', 'lead_resumen', 'verificar'],
     recordatorio: ['citas_recordar', 'seguimiento_candidatos', 'seguimiento_reservar', 'seguimiento_registrar', 'cita_recordatorio_res'],
     humano: ['pausar', 'enviar'],
     importar: ['chat', 'config', 'cuadre'],
@@ -576,7 +576,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     const fuenteS2 = leer('supabase', 'functions', 'bot-api', 'index.ts');
     const bloque = fuenteS2.slice(fuenteS2.indexOf('const SQL = {'), fuenteS2.indexOf('} as const;'));
     const sentencias = [...bloque.matchAll(/^\s+(\w+): '(select [^']*)',?/gm)].map((m) => ({ clave: m[1], sql: m[2] }));
-    const s2 = sentencias.filter((s) => !['catalogo', 'lead_upsert', 'lead_nota', 'lead_cita', 'importar_chat', 'importar_config', 'importar_cuadre', 'consentimiento_preguntar', 'consentimiento_enviada', 'consentimiento_responder', 'seguimiento_candidatos', 'seguimiento_reservar', 'seguimiento_registrar'].includes(s.clave));
+    const s2 = sentencias.filter((s) => !['catalogo', 'lead_upsert', 'lead_nota', 'lead_cita', 'importar_chat', 'importar_config', 'importar_cuadre', 'consentimiento_preguntar', 'consentimiento_enviada', 'consentimiento_responder', 'seguimiento_candidatos', 'seguimiento_reservar', 'seguimiento_registrar', 'verificar_humano'].includes(s.clave));
     igual(s2.map((s) => s.clave), ['mensaje_recibir', 'turno_estado', 'turno_cerrar', 'eco_operadora', 'pausar', 'baja', 'entrega_fallida', 'escalar', 'escalacion_tomar', 'lead_resumen', 'citas_recordar', 'cita_recordatorio_res', 'pausar_humano', 'envio_humano'], 'las 14 sentencias de S2');
     const migF = (f) => leer('supabase', 'migrations', f);
     const migs = [migF('20261010110000_bot_sin_redis_s1_esquema.sql'), migF('20261010110100_bot_sin_redis_s1_ajustes.sql')];
@@ -749,6 +749,109 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     const prueba = leer('supabase', 'pruebas', 'bot_sin_redis_s12.sql');
     for (const x of sents) ok(prueba.includes(/public\.(\w+)\(/.exec(x.sql)[1]), 'bot_sin_redis_s12.sql prueba ' + x.clave);
     ok(!/SERVICE_ROLE/.test(fuente.replace(/\/\/.*$/gm, '')));
+  }
+
+  // ═══ verificar (10-oct-2026) — ¿esta PERSONA (JWT) tiene la casilla bot_escribir? Acción de /estado con JWT ══════════════════════
+  {
+    todos(); reinicia();
+    const V = { accion: 'verificar', permiso: 'bot_escribir' };
+    const authSalvado = M.AUTH.usuario;
+    // 1. 401 sin secreto, con el de OTRA ruta, sin JWT utilizable, con JWT que Auth rechaza; ninguno toca la base
+    for (const s of [undefined, '', 'malo', SH, SRE, SC, SR, SE + 'x']) igual((await rq('estado', V, { secreto: s, jwt: 'jwt-bueno' })).status, 401, 'verificar con secreto ' + JSON.stringify(s));
+    igual((await rq('humano', V, { jwt: 'jwt-bueno' })).status, 400, 'verificar vive SOLO en /estado (en /humano no existe)');
+    igual((await rq('recordatorio', V, { jwt: 'jwt-bueno' })).status, 400);
+    for (const jwt of [undefined, '', 'x'.repeat(5000)]) igual((await rq('estado', V, { jwt })).status, 401, 'verificar sin JWT utilizable: 401');
+    igual((await rq('estado', V, { jwt: 'jwt-falso' })).status, 401, 'JWT que Auth rechaza: 401');
+    igual(llamadas.length, 0, 'ningún 401 llegó a la base');
+    // 2. el usuario NUNCA viaja en el cuerpo; esquema cerrado; el permiso es una lista de UNO
+    reinicia();
+    for (const extra of [{ usuario: 'jefe@lawang.com' }, { email: 'a@b.c' }, { user_id: 'u-1' }, { tel: TEL }, { herramientas: ['bot_escribir'] }]) {
+      const r = await rq('estado', { ...V, ...extra }, { jwt: 'jwt-bueno' });
+      igual([r.status, r.cuerpo.error], [400, 'campo_no_permitido'], 'verificar: clave de más ' + Object.keys(extra)[0]);
+    }
+    for (const permiso of [undefined, '', 'leads', 'bot_configurar', 'super_admin', ['bot_escribir'], 5, 'bot_escribir ']) {
+      igual((await rq('estado', { accion: 'verificar', permiso }, { jwt: 'jwt-bueno' })).status, 400, 'permiso fuera de lista ' + JSON.stringify(permiso));
+    }
+    igual([llamadas.length, authLlamadas.length], [0, 0], 'ningún cuerpo inválido llegó a la base ni a Auth');
+    // 3. lo que llega a la base (usuario VERIFICADO primero, permiso después) y lo que sale (solo permitido + email)
+    reinicia(); dbCon(FILA({ permitido: true, email: 'ana@lawang.com', herramientas: ['x'], rol: 'super_admin' }));
+    let r = await rq('estado', V, { jwt: 'jwt-bueno' });
+    igual(llamadas, [{ clave: 'verificar_humano', args: ['ana@lawang.com', 'bot_escribir'] }], 'sentencia y argumentos: el usuario del JWT va primero');
+    igual(r.cuerpo, { ok: true, accion: 'verificar', permitido: true, email: 'ana@lawang.com' }, 'salida fija: nunca herramientas ni rol');
+    reinicia(); dbCon(FILA({ permitido: false, email: 'no@debe.salir' }));
+    r = await rq('estado', V, { jwt: 'jwt-bueno' });
+    igual([r.status, r.cuerpo], [200, { ok: true, accion: 'verificar', permitido: false, email: null }], 'sin permiso: 200 con permitido:false y SIN email');
+    reinicia(); dbCon(FILA({ permitido: false, email: null }));
+    igual((await rq('estado', V, { jwt: 'jwt-bueno' })).cuerpo.permitido, false, 'usuario sin ficha');
+    // error de negocio de la base y formas rotas
+    reinicia(); dbCon(FILA({ error: 'permiso_invalido' }));
+    igual((await rq('estado', V, { jwt: 'jwt-bueno' })).cuerpo, { ok: false, accion: 'verificar', error: 'permiso_invalido' });
+    for (const rota of [FILA({ permitido: 'si', email: 'a@b.c' }), FILA({ email: 'a@b.c' }), FILA({ permitido: true, email: 5 }), FILA({ error: 'relation "usuarios" does not exist' }), FILA('texto'), []]) {
+      reinicia(); dbCon(rota); r = await rq('estado', V, { jwt: 'jwt-bueno' });
+      igual([r.status, r.cuerpo], [502, { error: 'db_error' }], 'forma rota = 502 genérico'); ok(!/relation|usuarios/.test(r.crudo));
+    }
+    // base caída: 503 sin detalle (el bot falla CERRADO)
+    reinicia(); delete entorno.BOT_DB_URL;
+    MM = await carga(); MM.AUTH.usuario = async () => 'ana@lawang.com';
+    r = await rq('estado', V, { jwt: 'jwt-bueno' }); igual([r.status, r.cuerpo], [503, { error: 'db_conexion' }], 'base caída = 503 sin detalle'); ok(!/Error|stack/.test(r.crudo));
+    MM = M;
+    // 4. Auth caída = 503 auth_conexion y la base no se toca; Auth que rechaza = 401; solo cuenta el usuario que Auth verifica
+    M.AUTH.usuario = authReal;
+    reinicia(); dbCon(FILA({ permitido: true, email: 'real@lawang.com' }));
+    {
+      const [r1] = await conAuth(new Error('red'), () => rq('estado', V, { jwt: 'jwt-bueno' }));
+      igual([r1.status, r1.cuerpo], [503, { error: 'auth_conexion' }], 'Auth caída'); igual(llamadas.length, 0, 'sin usuario verificado no se sigue');
+      const [r2] = await conAuth(resp(401), () => rq('estado', V, { jwt: 'jwt-bueno' }));
+      igual([r2.status, r2.cuerpo], [401, { error: 'no_autorizado' }]); igual(llamadas.length, 0);
+      const [r3] = await conAuth(resp(200, { id: 'u-9', email: 'real@lawang.com' }), async () => llama(new Request('https://ref.supabase.co/functions/v1/bot-api/estado', {
+        method: 'POST', headers: { 'x-bot-secret': SE, authorization: 'Bearer jwt-x', 'x-usuario': 'falso@x.com', 'content-type': 'application/json' }, body: JSON.stringify(V) })));
+      igual(r3.status, 200); igual(llamadas.pop().args, ['u-9', 'bot_escribir'], 'solo cuenta el usuario que Auth verifica');
+    }
+    M.AUTH.usuario = async (jwt) => { authLlamadas.push(jwt); return jwt === 'jwt-bueno' ? 'ana@lawang.com' : null; };
+    // 5. ritmo propio: pasado el tope 429 y NUNCA llega a Auth; el resto de /estado no se ve afectado
+    reinicia(); M.AJUSTES.topeVerificar = 2; dbCon(FILA({ permitido: true, email: 'ana@lawang.com' }));
+    const cods = []; for (let i = 0; i < 4; i++) cods.push((await rq('estado', V, { jwt: 'jwt-bueno' })).status);
+    igual(cods, [200, 200, 429, 429], 'tope propio de verificar'); igual(authLlamadas.length, 2, 'una petición con 429 no llega a Auth');
+    dbCon(FILA({ baja: 'nueva', pausado: true })); igual((await rq('estado', { accion: 'baja', tel: TEL, wamid: W })).status, 200, 'las demás acciones de /estado siguen igual');
+    M.AJUSTES.topeVerificar = 60; reinicia();
+    // 6. el resto de /estado NO exige JWT (el bot sigue llamando sin él)
+    dbCon(FILA({ baja: 'nueva', pausado: true })); igual((await rq('estado', { accion: 'baja', tel: TEL, wamid: W })).status, 200);
+    igual(authLlamadas.length, 0, 'baja no consulta a Auth');
+    // 7. el mismo dato en todos los sitios: sentencia, función SQL, grant, errores y prueba SQL
+    {
+      const fuente = leer('supabase', 'functions', 'bot-api', 'index.ts');
+      const sentencia = /verificar_humano: '(select [^']*)'/.exec(fuente)[1];
+      igual(M.SQL.verificar_humano, sentencia);
+      const mig = leer('supabase', 'migrations', '20261010190000_bot_humano_verificar.sql');
+      ok(/create or replace function public\.bot_humano_verificar\(p_usuario text, p_permiso text\)\s*returns jsonb/.test(mig), 'la firma de la función SQL = la sentencia (text, text)');
+      ok(sentencia.includes('public.bot_humano_verificar($1::text, $2::text)'));
+      ok(/security definer set search_path = ''/.test(mig), 'SECURITY DEFINER con search_path fijo');
+      ok(/revoke all on function public\.bot_humano_verificar\(text, text\)\s+from public, anon, authenticated, service_role;/.test(mig), 'REVOKE de PUBLIC y de los roles de la API');
+      ok(/grant execute on function public\.bot_humano_verificar\(text, text\) to bot_lawang;/.test(mig), 'EXECUTE solo para bot_lawang');
+      igual((mig.match(/grant execute/g) ?? []).length, 1, 'un solo GRANT en la migración');
+      const errs = [...mig.matchAll(/'error',\s*'([a-z_]+)'/g)].map((m) => m[1]);
+      igual(errs, M.LISTA_CERRADA.estado.verificar.errores, 'errores de negocio: función SQL = edge');
+      igual(M.LISTA_CERRADA.estado.verificar.claves, ['accion', 'permiso']);
+    // quién exige a la PERSONA: toda acción de /humano (por la ruta, aunque falte la marca) y SOLO verificar fuera de ella; la sentencia lleva al usuario donde la firma lo espera
+    for (const [ruta, defs] of Object.entries(M.LISTA_CERRADA)) for (const [acc, d] of Object.entries(defs)) {
+      const esperado = ruta === 'humano' ? 'ultimo' : (ruta === 'estado' && acc === 'verificar' ? 'primero' : undefined);
+      ok(esperado === undefined ? d.persona === undefined : (d.persona ?? (ruta === 'humano' ? 'ultimo' : undefined)) === esperado, `${ruta}/${acc}: persona esperada ${esperado}`);
+    }
+    {   // una acción de /humano SIN la marca `persona` sigue exigiendo JWT verificado (no falla abierta)
+      const marca = M.LISTA_CERRADA.humano.pausar.persona; delete M.LISTA_CERRADA.humano.pausar.persona;
+      reinicia(); dbCon(FILA({ pausado: true, hasta: null }));
+      igual((await rq('humano', { accion: 'pausar', tel: TEL, modo: 'pausar' }, { jwt: undefined })).status, 401, 'humano sin marca y sin JWT: 401');
+      igual(llamadas.length, 0);
+      igual((await rq('humano', { accion: 'pausar', tel: TEL, modo: 'pausar' }, { jwt: 'jwt-bueno' })).status, 200);
+      igual(llamadas.pop().args, [TEL, 'pausar', 'ana@lawang.com'], 'el usuario verificado va el último');
+      M.LISTA_CERRADA.humano.pausar.persona = marca; reinicia();
+    }
+      ok(/p_permiso is distinct from 'bot_escribir'/.test(mig), 'la función SQL solo acepta bot_escribir, igual que la edge');
+      const prueba = leer('supabase', 'pruebas', 'bot_humano_verificar.sql');
+      ok(prueba.includes('public.bot_humano_verificar(') && prueba.includes('_bot_humano_regla'), 'la prueba SQL ejercita la función y la regla');
+      ok(!/herramientas/.test(JSON.stringify(M.LISTA_CERRADA.estado.verificar.forma({ permitido: true, email: 'a@b.c', herramientas: ['x'] }))), 'la salida no lleva herramientas');
+    }
+    M.AUTH.usuario = authSalvado; reinicia();
   }
 
   // ═══ S5-puente — ruta /importar (TEMPORAL, LAW-507): secreto propio, esquema cerrado a fondo, sin error crudo ═══════════════════

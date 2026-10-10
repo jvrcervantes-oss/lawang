@@ -4,7 +4,7 @@
      2. El resumen del bot sale marcado con data-tipo="resumen_bot" (el codigo engancha por el identificador, no por el rotulo) y las
         notas sueltas del bot con data-tipo="nota"; las citas llevan data-cita-id y data-estado.
      3. La lectura de Postgres distingue «sin permiso» (42501) de «no se pudo leer» y ninguna se confunde con «sin conversaciones».
-     4. Con el origen 'proxy' (la vuelta atras; desde el 10-oct el de por defecto es 'postgres') la pantalla pinta lo mismo que antes: ni notasLista ni citasLista, caen a notes/history. */
+     4. Desde el 10-oct-2026 (LAW-513) la lectura es SIEMPRE la de la base: ya no existe el origen 'proxy' (las acciones del proxy se retiraron, 410) ni la vuelta atras a el. */
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -40,7 +40,7 @@ function mundo(opts = {}) {
     llamarBot: async accion => (opts.proxy ? opts.proxy(accion) : []),
   };
   vm.createContext(ctx);
-  vm.runInContext((opts.origen === 'proxy' ? lectura.replace("const LECTURA_BOT = 'postgres';", "const LECTURA_BOT = 'proxy';") : lectura) + '\n' + ficha + '\n' + kpis + '\nthis.__x = { errorBotPg, leerConversaciones, leerHilo, pintarFicha, pintarHiloChat, kpisSetter, BOT_PG, setErr: v => { SETTER_ERROR = v; }, setConv: v => { CONVERSACIONES = v; } };', ctx);
+  vm.runInContext(lectura + '\n' + ficha + '\n' + kpis + '\nthis.__x = { errorBotPg, leerConversaciones, leerHilo, pintarFicha, pintarHiloChat, kpisSetter, BOT_PG, setErr: v => { SETTER_ERROR = v; }, setConv: v => { CONVERSACIONES = v; } };', ctx);
   return { ctx, celdas, x: ctx.__x, elem };
 }
 
@@ -103,14 +103,14 @@ function mundo(opts = {}) {
     ok((await bien.x.leerConversaciones()).length === 1, 'la lista es chats');
     const h = await bien.x.leerHilo('1');
     ok(h.pg === true && h.mensajes.length === 1 && h.hayMas === true, 'el hilo trae mensajes y hayMas');
-    // el origen proxy NO toca la base
-    ok(/const LECTURA_BOT = 'postgres';/.test(lectura), 'tras el corte del 10-oct el origen por defecto es postgres');
-    ok(mundo().x.BOT_PG === true, 'por defecto la lectura es la de Postgres');
-    const prox = mundo({ origen: 'proxy', proxy: async a => (a === 'conversaciones' ? [{ phone: '9' }] : [{ role: 'user', content: 'x' }]), rpc: async () => { throw new Error('no debe llamar a la base'); } });
-    ok(prox.x.BOT_PG === false, 'con origen proxy (vuelta atras) no se usa la base');
-    ok((await prox.x.leerConversaciones())[0].phone === '9', 'el proxy sigue funcionando');
-    const hp = await prox.x.leerHilo('9');
-    ok(hp.pg === false && hp.mensajes.length === 1, 'el hilo del proxy conserva su forma');
+    // la lectura es SIEMPRE la de la base: el proxy ya no sirve conversaciones (410) y la pantalla no las pide por ahi
+    ok(!/const LECTURA_BOT\b/.test(lectura), 'ya no hay interruptor de origen (no hay vuelta atras al proxy)');
+    ok(mundo().x.BOT_PG === true, 'la lectura es la de Postgres');
+    ok(!/llamarBot\(\s*'conversacion(es)?'/.test(lectura), 'leads.js no pide conversaciones al proxy');
+    // el tope por hora (PT429) se explica, no se confunde con «sin permiso»
+    const tope = mundo({ rpc: async () => ({ data: null, error: { code: 'PT429', message: 'Demasiadas lecturas' } }) });
+    let e3; try { await tope.x.leerConversaciones(); } catch (e) { e3 = e; }
+    ok(e3 && e3.sinPermiso === false && /Demasiadas lecturas/.test(e3.message), 'PT429 = demasiadas lecturas, no «sin permiso»');
     // «no se pudo mirar» no se pinta como «0 conversaciones»
     const k = mundo();
     k.x.setErr(true); k.x.kpisSetter();

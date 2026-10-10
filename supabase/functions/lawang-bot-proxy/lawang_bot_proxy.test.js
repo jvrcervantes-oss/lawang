@@ -277,6 +277,80 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     delete entorno.BOT_HUMANO_STORE;
   }
 
+  /* ── 6b. X-User-Jwt: la sesión de la persona llega al bot SOLO en enviar, enviar_plantilla y pausar (la rama que sigue yendo al bot) ── */
+  {
+    delete entorno.BOT_HUMANO_STORE;
+    // apagado (defecto): el JWT NO viaja al bot en ninguna acción
+    prepara({ store: 'redis' });
+    for (const c of [{ accion: 'enviar', phone: '628110001', text: 'hola' }, { accion: 'enviar_plantilla', phone: '628110001', template: 'lawang_x', lang: 'es', params: [] }, { accion: 'pausar', phone: '628110001', paused: true }]) await llama(c);
+    igual(bot.length, 3); for (const b of bot) ok(!('X-User-Jwt' in b.init.headers), 'sin BOT_ENVIA_JWT el token no sale: ' + b.url);
+    entorno.BOT_ENVIA_JWT = 'on';
+    prepara({ store: 'redis' });
+    const cab = (i) => bot[i].init.headers;
+    await llama({ accion: 'enviar', phone: '628110001', text: 'hola' });
+    igual(cab(0)['X-User-Jwt'], 'jwt-ok', 'enviar lleva la sesión, sin «Bearer »'); igual(bot.length, 1);
+    await llama({ accion: 'enviar_plantilla', phone: '628110001', template: 'lawang_x', lang: 'es', params: [] });
+    igual(cab(1)['X-User-Jwt'], 'jwt-ok', 'enviar_plantilla la lleva');
+    await llama({ accion: 'pausar', phone: '628110001', paused: true });
+    igual(cab(2)['X-User-Jwt'], 'jwt-ok', 'pausar (rama del bot) la lleva');
+    igual(cab(0)['X-Admin-Key'], 'clave-bot-falsa', 'la clave de administración sigue yendo');
+    // ni en el resto: leer, config, plantillas
+    const antes = bot.length;
+    for (const c of [{ accion: 'config_get' }, { accion: 'plantillas' },
+      { accion: 'config_set', config: { extra: '', bienvenida: '', pausaHoras: 0 }, expectedUpdatedAt: 1 }, { accion: 'config_revert', expectedUpdatedAt: 1 }]) {
+      await llama(c);
+    }
+    ok(bot.length - antes === 4, 'cada acción de lectura/config llamó al bot una vez');
+    // LAW-513 (10-oct-2026): las conversaciones ya NO se leen por el proxy (410, también con permiso) y no llaman al bot
+    const antes410 = bot.length;
+    for (const c of [{ accion: 'conversaciones' }, { accion: 'conversacion', phone: '628110001' }]) igual((await llama(c)).status, 410, 'retirada: ' + c.accion);
+    igual(bot.length, antes410, 'las acciones retiradas no llaman al bot');
+    for (const b of bot.slice(antes)) ok(!('X-User-Jwt' in b.init.headers), 'sin X-User-Jwt fuera de las tres acciones: ' + b.url);
+    // con BOT_HUMANO_STORE=postgres la pausa ya no pasa por el bot: ningún JWT va al bot en ese camino
+    entorno.BOT_HUMANO_STORE = 'postgres'; entorno.BOT_API_SECRET_HUMANO = 's-humano';
+    prepara({ store: 'redis' });
+    const f0 = globalThis.fetch;
+    globalThis.fetch = async (url, init = {}) => { bot.push({ url: String(url), init }); return new Response(JSON.stringify({ ok: true, pausado: true }), { status: 200 }); };
+    await llama({ accion: 'pausar', phone: '628110001', paused: true });
+    ok(bot.every((b) => !new URL(b.url).pathname.startsWith('/admin/api/')), 'pausar con postgres no llama al bot'); globalThis.fetch = f0;
+    delete entorno.BOT_HUMANO_STORE; delete entorno.BOT_API_SECRET_HUMANO;
+    // el token no sale en ningún log
+    ok(!logs.some((l) => l.includes('jwt-ok')), 'el JWT no se registra en ningún log');
+    delete entorno.BOT_ENVIA_JWT;
+    // sin el JWT utilizable no hay llamada (la sesión se comprueba antes) y un token con espacios no llega partido
+    prepara({ store: 'redis' });
+    igual((await llama({ accion: 'enviar', phone: '628110001', text: 'hola' }, { auth: '' })).status, 401); igual(bot.length, 0);
+  }
+
+  /* ── 6c. la regla de permisos exportada es la que usa el manejador (paridad con SQL: bot_humano_verificar.test.js, en bot-api) ── */
+  {
+    const F = { rol: 'agente', activo: true, herramientas: ['bot_escribir'], ambito: 'global', empresas: [] };
+    igual(M.reglaBot(F, 'bot_escribir'), true); igual(M.reglaBot(F, 'bot_configurar'), false);
+    igual(M.reglaBot({ ...F, activo: false }, 'bot_escribir'), false); igual(M.reglaBot(null, 'bot_escribir'), false);
+    igual(M.reglaBot({ ...F, ambito: 'empresa' }, 'bot_escribir'), false); igual(M.reglaBot({ ...F, empresas: ['sw'] }, 'bot_escribir'), false);
+    igual(M.reglaBot({ ...F, rol: 'super_admin', herramientas: [] }, 'bot_escribir'), true); igual(M.reglaBot({ ...F, herramientas: null }, 'bot_escribir'), false);
+    // y el manejador la respeta: sin casilla, 403 y el bot no se llama
+    prepara({ store: 'redis', ficha: { ...F, herramientas: ['leads'] } });
+    igual((await llama({ accion: 'enviar', phone: '628110001', text: 'hola' })).status, 403); igual(bot.length, 0);
+  }
+
+  /* ── 6d. PARIDAD con la regla SQL (bot_humano_verificar): los casos de supabase/pruebas/bot_humano_verificar.sql pasan por `reglaBot` y dan lo mismo ── */
+  {
+    const fs = require('fs');
+    const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'pruebas', 'bot_humano_verificar.sql'), 'utf8').replace(/\r\n/g, '\n');
+    const tabla = sql.slice(sql.indexOf('--CASOS-INICIO'), sql.indexOf('--CASOS-FIN')).split('\n').filter((l) => l.trim().startsWith("('"));
+    const lit = (t) => (t.trim() === 'null' ? null : t.trim().replace(/^'|'$/g, ''));
+    const arr = (t) => { t = t.trim(); if (t.startsWith('null')) return null; const m = /^'\{(.*)\}'::text\[\]/.exec(t); return m[1] === '' ? [] : m[1].split(','); };
+    const bool = (t) => (t.trim() === 'null' ? null : t.trim() === 'true');
+    const casos = tabla.map((l) => {
+      const m = /^\s*\('([^']*)',\s*('[^']*'|null),\s*(true|false|null),\s*('[^']*'|null),\s*((?:'[^']*'|null)::text\[\]),\s*((?:'[^']*'|null)::text\[\]),\s*'([^']*)',\s*(true|false)\)/.exec(l);
+      assert.ok(m, 'no sé leer el caso: ' + l);
+      return { n: m[1], ficha: { rol: lit(m[2]), activo: bool(m[3]), ambito: lit(m[4]), empresas: arr(m[5]), herramientas: arr(m[6]) }, permiso: m[7], esperado: m[8] === 'true' };
+    });
+    ok(casos.length >= 16, 'la tabla de casos SQL se lee entera: ' + casos.length);
+    for (const c of casos) igual([c.n, M.reglaBot(c.ficha, c.permiso)], [c.n, c.esperado], 'paridad proxy/SQL: ' + c.n);
+  }
+
   /* ── 7. lo demás sigue igual: acción desconocida, método ── */
   prepara({ store: 'postgres' });
   igual((await llama({ accion: 'passthrough', path: '/admin/api/x' })).status, 400);

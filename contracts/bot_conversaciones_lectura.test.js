@@ -103,4 +103,25 @@ ok(/SETTER_ERROR/.test(leads), 'leads.js: «no se pudo mirar» no se distingue d
 ok(/HAY_MAS_CONV\s*=\s*!!\(data && data\.hayMas\)/.test(leads), 'leads.js: la lista descarta hayMas (mas de 500 hilos) sin guardarlo');
 ok(/HAY_MAS_CONV \? [^\n]*data-tipo="hay_mas_conversaciones"[^\n]*esc\(lwT\(/.test(leads), 'leads.js: no pinta el aviso data-tipo=hay_mas_conversaciones con texto escapado cuando hay mas de 500 hilos');
 
+// 5. LAW-513 (10-oct-2026): la casilla basta, la concesion se apunta, el panel avisa y el proxy ya no lee chats
+const migCasilla = fs.readdirSync(path.join(RAIZ, 'supabase', 'migrations')).filter(f => /bot_conversaciones_casilla_suficiente/.test(f));
+ok(migCasilla.length === 1, 'debe haber UNA migracion bot_conversaciones_casilla_suficiente');
+const sqlC = fs.readFileSync(path.join(RAIZ, 'supabase', 'migrations', migCasilla[0]), 'utf8').replace(/--.*$/gm, '');
+const autC = /create or replace function public\._bot_conversaciones_autoriza[\s\S]*?end \$f\$;/i.exec(sqlC);
+ok(autC, 'la migracion redefine _bot_conversaciones_autoriza');
+ok(/u\.ambito = 'global'/.test(autC[0]) && /'bot_conversaciones_ver' = any/.test(autC[0]) && /u\.rol = 'super_admin' and coalesce\(cardinality\(u\.empresas\), 0\) = 0/.test(autC[0]),
+   'regla: ambito global Y (casilla O super_admin sin empresas)');
+ok(!/and coalesce\(cardinality\(u\.empresas\), 0\) = 0\s*\n\s*and \(/.test(autC[0]), 'la casilla ya NO exige «sin empresas marcadas»');
+ok(/insert into public\.bot_lecturas_log/.test(autC[0]) && /PT429/.test(autC[0]) && /300/.test(autC[0]), 'sigue apuntando cada lectura y tiene tope por hora');
+ok(/usuarios_bot_casilla_log/.test(sqlC) && /bot_casilla_log/.test(sqlC) && /es_super_admin\(\)/.test(sqlC), 'registro de concesiones y candado «solo super_admin»');
+const hz = leer('contracts', 'assets', 'herramientas.js');
+ok(/LW_AVISO_PERMISO\s*=\s*\{[^}]*bot_conversaciones_ver:[^}]*TODAS las empresas/.test(hz), 'herramientas.js: el aviso de la casilla (TODAS las empresas) no esta en LW_AVISO_PERMISO');
+const i18n = leer('contracts', 'assets', 'i18n.js');
+ok(i18n.includes("'Quien reciba esta casilla verá los chats del bot de TODAS las empresas"), 'i18n.js: falta la traduccion del aviso de la casilla');
+ok(i18n.includes("'Demasiadas lecturas de conversaciones en la última hora."), 'i18n.js: falta la traduccion del mensaje de tope');
+ok(/LW_AVISO_PERMISO/.test(leer('intranet', 'v4', 'assets', 'editores.js')), 'editores.js (Usuarios) no pinta el aviso por casilla');
+const prox = leer('supabase', 'functions', 'lawang-bot-proxy', 'index.ts');
+ok(/accion === 'conversaciones' \|\| accion === 'conversacion'\)\s*\n\s*return json\([^\n]*410\)/.test(prox), 'lawang-bot-proxy: las acciones de lectura de chats deben devolver 410');
+ok(!/\/admin\/api\/leads|\/admin\/api\/conv\//.test(prox.replace(/\/\/.*$/gm, '')), 'lawang-bot-proxy ya no llama a /admin/api/leads ni /admin/api/conv');
+
 console.log('bot_conversaciones_lectura.test.js OK (' + n + ' comprobaciones)');

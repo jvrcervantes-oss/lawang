@@ -1723,36 +1723,33 @@ function pintarAutomatismos(){
    proxy guarda la clave del bot como secreto de la función: esta pantalla
    nunca ve `ADMIN_PASSWORD`.
    ========================================================================== */
-/* ORIGEN DE LA LECTURA DE CONVERSACIONES (S10, 9-oct-2026, encargo «bot sin Redis»).
-   'proxy'    = como hasta ahora: el bot (Redis) por lawang-bot-proxy, con el permiso 'leads'.
-   'postgres' = las dos funciones de la base (crm_bot_conversaciones / crm_bot_conversacion): permiso PROPIO `bot_conversaciones_ver`
-                y cada lectura queda apuntada. El permiso lo decide la base; esta pantalla solo pinta y explica por qué no hay datos.
-   Se pasa a 'postgres' en el corte (fase F3b del encargo), cuando bot_chat/bot_mensaje ya tienen los hilos (importador S5 + doble
-   escritura). Mientras tanto, `?bot=pg` en la URL abre la lectura de Postgres para probarla con un teléfono canario, sin tocar al resto.
-   Quien tiene 'leads' pero no la casilla nueva deja de ver conversaciones EN EL CORTE, no antes. Pausar, enviar y plantillas siguen
-   por el bot (necesita el token de WhatsApp) en los dos modos. */
-const LECTURA_BOT = 'postgres';  /* corte 10-oct-2026 (paso 8). VUELTA ATRAS: volver a 'proxy' y aterrizar */
-const BOT_PG = LECTURA_BOT === 'postgres' || /[?&]bot=pg(&|$)/.test(location.search);
+/* ORIGEN DE LA LECTURA DE CONVERSACIONES: siempre la base (crm_bot_conversaciones / crm_bot_conversacion). El permiso es la casilla PROPIA
+   `bot_conversaciones_ver` y la decide la base (_bot_conversaciones_autoriza): basta por sí sola con alcance global, aunque la persona tenga
+   empresas marcadas (el bot atiende a las dos; el panel de Usuarios lo avisa), y cada lectura queda apuntada. Esta pantalla solo pinta y
+   explica por qué no hay datos. Pausar, enviar y plantillas siguen por el bot (necesita el token de WhatsApp) y piden 'leads' / 'bot_escribir'.
+   10-oct-2026 (LAW-513, decisión del owner): las acciones 'conversaciones' y 'conversacion' del proxy se retiraron (410, sin registro de
+   lecturas): ya no existe la vuelta atrás a 'proxy'. Vuelta atrás de la REGLA: supabase/reversion_casilla_bot_conv/REVERSION.sql. */
+const BOT_PG = true;
 let HAY_MAS_CONV = false;  // true = la lista está recortada a las 500 conversaciones más recientes
 let SETTER_ERROR = false;   // true = no se PUDO mirar (distinto de «no hay conversaciones»): la lista no dice «Sin conversaciones»
 
 /* Error de las funciones de lectura. 42501 es «no tienes permiso» (la base lo decide); cualquier otro es «no se pudo leer». */
 function errorBotPg(error){
   const e = new Error(error && error.code === '42501'
-    ? lwT('No tienes permiso para leer las conversaciones del bot. Pide la casilla «Conversaciones del bot» a quien administra los usuarios.')
+    ? lwT('No tienes permiso para leer las conversaciones del bot. Hace falta la casilla «Conversaciones del bot» y alcance global; pídelo a quien administra los usuarios.')
+    : error && error.code === 'PT429'
+    ? lwT('Demasiadas lecturas de conversaciones en la última hora. Espera un rato y vuelve a intentarlo.')
     : lwT('No se pudo leer: ') + ((error && error.message) || ''));
   e.sinPermiso = !!(error && error.code === '42501');
   return e;
 }
 async function leerConversaciones(){
-  if(!BOT_PG) return await llamarBot('conversaciones');
   const { data, error } = await SB.rpc('crm_bot_conversaciones');
   if(error) throw errorBotPg(error);
   HAY_MAS_CONV = !!(data && data.hayMas);   // la base devuelve las 500 más recientes: si hay más, se avisa
   return (data && data.chats) || [];
 }
 async function leerHilo(phone){
-  if(!BOT_PG) return { mensajes: (await llamarBot('conversacion', { phone })) || [], pg: false };
   const { data, error } = await SB.rpc('crm_bot_conversacion', { p_tel: phone });
   if(error) throw errorBotPg(error);
   return Object.assign({ pg: true }, data || {});

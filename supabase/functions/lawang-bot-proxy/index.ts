@@ -55,13 +55,18 @@ const corsFor = (req: Request) => {
 // El bot responde JSON siempre (o texto plano en algún caso raro) — se
 // reenvía tal cual, sin reinterpretarlo, para no inventar una forma nueva de
 // error que el frontend tenga que aprender aparte de la del bot real.
-async function llamaBot(path: string, init: RequestInit = {}) {
+// `jwt` (solo en enviar, enviar_plantilla y pausar): la sesión de la PERSONA, para que el bot compruebe él mismo su permiso (acción `verificar` de la edge
+// bot-api; encargo «bot sin Redis», apartado c). Va en `X-User-Jwt`, sin «Bearer »; el bot actual lo ignora. NUNCA se registra en ningún log.
+// Seguridad (10-oct-2026, «reducir la exposición»): un JWT de sesión es un bearer completo; no viaja al bot mientras el bot no lo use. Interruptor del secreto de la edge
+// BOT_ENVIA_JWT=on, que se enciende en el mismo paso que BOT_HUMANO_VERIFICA=sombra|on del bot (y solo tras comprobar que el bot no lo registra).
+const enviaJwtAlBot = () => (Deno.env.get('BOT_ENVIA_JWT') ?? '').trim().toLowerCase() === 'on';
+async function llamaBot(path: string, init: RequestInit = {}, jwt?: string) {
   if (!BOT_KEY) {
     return { status: 503, body: { error: 'lawang-bot-proxy no configurado (falta LAWANG_BOT_ADMIN_KEY)' } };
   }
   const r = await fetch(BOT_BASE + path, {
     ...init,
-    headers: { ...(init.headers ?? {}), 'X-Admin-Key': BOT_KEY, 'Content-Type': 'application/json' },
+    headers: { ...(init.headers ?? {}), 'X-Admin-Key': BOT_KEY, 'Content-Type': 'application/json', ...(jwt && enviaJwtAlBot() ? { 'X-User-Jwt': jwt } : {}) },
   });
   const texto = await r.text();
   let body: unknown;
@@ -161,6 +166,17 @@ function falloRpc(e: { code?: string; message?: string } | null | undefined, que
   return { status: 500, body: { error: 'no_se_pudo_' + que } };
 }
 
+// ── La regla de permisos del bot, UNA sola vez (10-oct-2026, acción `verificar` del bot) ─────────────────────────────────────────
+// La misma regla vive también en SQL: public.bot_humano_verificar (la edge bot-api la usa cuando el bot pide comprobar a una persona). Hasta que este proxy
+// llame también a esa función son DOS sitios: bot_api.test.js y lawang_bot_proxy.test.js pasa los MISMOS casos por esta y por la SQL. Si cambia una, cambia la otra.
+export type FichaBot = { rol?: string | null; activo?: boolean | null; herramientas?: string[] | null; ambito?: string | null; empresas?: string[] | null };
+/** Alcance acotado a una empresa (rol de empresa o personas con empresas marcadas): el bot es uno y mezcla las dos, no se usa desde ahí. */
+export const acotadoAEmpresa = (f: FichaBot) => f.ambito === 'empresa' || (f.empresas ?? []).length > 0;
+/** ¿Tiene esta casilla? super_admin las tiene todas. */
+export const tieneCasilla = (f: FichaBot, casilla: string) => f.rol === 'super_admin' || (f.herramientas ?? []).includes(casilla);
+/** La regla completa: ficha activa, sin alcance acotado y con la casilla. */
+export const reglaBot = (f: FichaBot | null | undefined, casilla: string) => !!f && !!f.activo && !acotadoAEmpresa(f) && tieneCasilla(f, casilla);
+
 export const manejador = async (req: Request) => {
   const cors = corsFor(req);
   const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
@@ -182,34 +198,26 @@ export const manejador = async (req: Request) => {
     // las dos empresas, y su API no sabe de empresas. Quien tiene el alcance acotado (un rol de empresa, o una persona con
     // empresas marcadas) NO pasa por aquí: dejarlo pasar le enseñaría las conversaciones de la otra empresa con solo tener
     // la casilla «leads». Nace cerrado hasta que el bot filtre por empresa (LAW-E13, departamento Bots). Hoy nadie está acotado.
-    if (ficha.ambito === 'empresa' || (ficha.empresas ?? []).length > 0)
+    if (acotadoAEmpresa(ficha))
       return json({ error: 'sin_permiso: el bot de WhatsApp atiende a las dos empresas; esta pantalla no está disponible con el alcance acotado a una empresa' }, 403);
-    const esSuper = ficha.rol === 'super_admin';
-    const puedeLeads = esSuper || (ficha.herramientas ?? []).includes('leads');
+    const puedeLeads = reglaBot(ficha, 'leads');
     // Permiso propio para escribir al lead. Se reparte desde /intranet/usuarios/ como
     // una casilla mas; mientras nadie la marque, solo los super_admin pueden escribir.
-    const puedeEscribir = esSuper || (ficha.herramientas ?? []).includes('bot_escribir');
+    const puedeEscribir = reglaBot(ficha, 'bot_escribir');
     // Configurar el bot (instrucciones extra, saludo, horas de pausa) cambia lo que el bot dice a clientes
     // reales, así que es un permiso APARTE, y también para LEER la configuración (puede traer datos comerciales).
     // Llamador: la pestaña «Configurar bot» de intranet/leads. Hasta que se reparta como casilla, solo super_admin.
-    const puedeConfigurar = esSuper || (ficha.herramientas ?? []).includes('bot_configurar');
+    const puedeConfigurar = reglaBot(ficha, 'bot_configurar');
 
     const body = await req.json().catch(() => ({}));
     const accion = String(body.accion ?? '');
 
     // ── Setter IA: requiere 'leads' ──────────────────────────────────────
-    if (accion === 'conversaciones') {
-      if (!puedeLeads) return json({ error: 'sin_permiso: leads' }, 403);
-      const r = await llamaBot('/admin/api/leads');
-      return json(r.body, r.status);
-    }
-    if (accion === 'conversacion') {
-      if (!puedeLeads) return json({ error: 'sin_permiso: leads' }, 403);
-      const phone = String(body.phone ?? '').replace(/[^0-9]/g, '');
-      if (!phone) return json({ error: 'phone_requerido' }, 400);
-      const r = await llamaBot('/admin/api/conv/' + encodeURIComponent(phone));
-      return json(r.body, r.status);
-    }
+    // RETIRADAS el 10-oct-2026 (LAW-513, decisión del owner, Seguridad): leían los chats con el permiso 'leads' y SIN apuntar la lectura en
+    // bot_lecturas_log. Las conversaciones se leen ahora SOLO en la base (crm_bot_conversaciones / crm_bot_conversacion), con la casilla
+    // bot_conversaciones_ver y registro. Sin llamador desde LECTURA_BOT='postgres' (paso 8 del corte).
+    if (accion === 'conversaciones' || accion === 'conversacion')
+      return json({ error: 'retirada: las conversaciones se leen en la base con la casilla bot_conversaciones_ver' }, 410);
     if (accion === 'pausar') {
       if (!puedeLeads) return json({ error: 'sin_permiso: leads' }, 403);
       const phone = String(body.phone ?? '').replace(/[^0-9]/g, '');
@@ -222,7 +230,7 @@ export const manejador = async (req: Request) => {
       }
       const r = await llamaBot('/admin/api/pause', {
         method: 'POST', body: JSON.stringify({ phone, paused: !!body.paused }),
-      });
+      }, jwt);
       return json(r.body, r.status);
     }
 
@@ -249,7 +257,7 @@ export const manejador = async (req: Request) => {
       if (text.length > 4000) return json({ error: 'texto_demasiado_largo' }, 400);
       let r = await llamaBot('/admin/api/send', {
         method: 'POST', body: JSON.stringify({ phone, text, byUser: ficha.email }),
-      });
+      }, jwt);
       if (humanoEnPostgres()) r = await registraEnvio(jwt, phone, r);
       return json(r.body, r.status);
     }
@@ -339,7 +347,7 @@ export const manejador = async (req: Request) => {
       const lang = /^[a-z]{2}(_[A-Z]{2})?$/.test(String(body.lang ?? '')) ? String(body.lang) : 'es';
       let r = await llamaBot('/admin/api/send-template', {
         method: 'POST', body: JSON.stringify({ phone, template, lang, params, byUser: ficha.email }),
-      });
+      }, jwt);
       if (humanoEnPostgres()) r = await registraEnvio(jwt, phone, r);
       return json(r.body, r.status);
     }
