@@ -162,13 +162,13 @@
     var yo = String(MI_EMAIL || '').toLowerCase(), hoy = hoyLocalISO();
     return Promise.all([
       Promise.resolve(cargarEquipo()).catch(function () { /* MUDO A PROPOSITO: sin nombres se enseña el email del Sales Manager, que también lo identifica */ }),
-      sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'),
-      sb.from('equipos_venta').select('id,nombre,manager_email,activo').eq('activo', true)
+      window.lwDatos('equipos_datos')   // equipos y miembros por el servidor (LAW-338 L3, 10-oct-2026)
     ]).then(function (r) {
-      r = r.slice(1);
-      if (r[0].error || r[1].error) return (RT.equipo = { fallo: true });
-      var eqs = r[1].data || [];
-      var mia = (r[0].data || []).find(function (m) {
+      var d = r[1];
+      if (d.error || !d.data) return (RT.equipo = { fallo: true });
+      var eqs = (d.data.equipos || []).filter(function (x) { return x.activo === true; });
+      var miembros = d.data.miembros || [];
+      var mia = miembros.find(function (m) {
         return String(m.closer_email || '').toLowerCase() === yo && (!m.desde || m.desde <= hoy) && (!m.hasta || m.hasta >= hoy)
           && eqs.some(function (x) { return x.id === m.equipo_id; });
       });
@@ -179,7 +179,7 @@
       var eq = mia ? eqs.find(function (x) { return x.id === mia.equipo_id; }) : null;
       /* Con equipos por empresa una persona puede estar en uno por empresa: se guardan todos los suyos y, al elegir proyecto,
          se toma el de la empresa de ese proyecto (lo que hace el servidor al congelar la venta). Con uno solo, como siempre. */
-      RT.equipos = (r[0].data || []).filter(function (m) {
+      RT.equipos = miembros.filter(function (m) {
         return String(m.closer_email || '').toLowerCase() === yo && (!m.desde || m.desde <= hoy) && (!m.hasta || m.hasta >= hoy);
       }).map(function (m) { return eqs.find(function (x) { return x.id === m.equipo_id; }); }).filter(Boolean)
         .map(function (x) { return { id: x.id, en: true, nombre: x.nombre, sm: x.manager_email, soySM: String(x.manager_email || '').toLowerCase() === yo }; });
@@ -191,11 +191,11 @@
      proyecto = «sin equipo», igual que el servidor. Un fallo al leer deja el equipo por defecto. */
   function ajustaEquipoAlProyecto(nombreProyecto) {
     if (!nombreProyecto || !RT.equipos || RT.equipos.length < 2) return Promise.resolve();
-    return Promise.all([sb.from('equipos_venta').select('id,empresa'), sb.from('proyectos').select('nombre,empresa')]).then(function (r) {
-      if (r[0].error || r[1].error) return;
+    return Promise.all([window.lwDatos('equipos_datos'), sb.from('proyectos').select('nombre,empresa')]).then(function (r) {
+      if (r[0].error || !r[0].data || r[1].error) return;
       var p = (r[1].data || []).find(function (x) { return x.nombre === nombreProyecto; });
       var emp = p && p.empresa;
-      var eqEmp = {}; (r[0].data || []).forEach(function (x) { eqEmp[x.id] = x.empresa; });
+      var eqEmp = {}; (r[0].data.equipos || []).forEach(function (x) { eqEmp[x.id] = x.empresa; });
       var el = RT.equipos.find(function (x) { return emp && eqEmp[x.id] === emp; });
       RT.equipo = el || { en: false };
     }, function () { /* MUDO A PROPOSITO: sin poder leer las empresas se queda el equipo por defecto y el servidor decide al guardar */ });

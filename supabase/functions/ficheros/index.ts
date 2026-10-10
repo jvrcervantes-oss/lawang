@@ -275,8 +275,10 @@ const CLASES: Record<string, Clase> = {
     carpeta: async (u, body) => {
       const gasto = String(body.gasto_id ?? '');
       if (!esUuid(gasto)) return { error: 'gasto_invalido', status: 400 };
-      // la lectura de `gastos` ya exige admin + herramienta gastos (RLS): si no la ve, no es suya
-      const { data, error } = await u.from('gastos').select('id, estado').eq('id', gasto).maybeSingle();
+      // la lectura de `gastos` ya exige admin + herramienta gastos (RLS): si no la ve, no es suya. Por la RPC de
+      // lectura con el JWT del usuario (LAW-338 L3, 10-oct-2026): la tabla deja de servirse por la API de datos.
+      const { data: r, error } = await u.rpc('gasto_estado_datos', { p_gasto: gasto });
+      const data = r && (r as { gasto?: { id: string; estado: string } | null }).gasto;
       if (error || !data) return { error: 'gasto_no_visible', status: 403 };
       if (data.estado === 'anulado') return { error: 'gasto_anulado', status: 409 };
       return gasto + '/';

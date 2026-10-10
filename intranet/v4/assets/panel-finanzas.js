@@ -97,6 +97,11 @@
        datos.js). La RPC ya filtra por puede('ranking'); sin la casilla
        devolvería 0 filas y la tabla diría «nadie ha vendido nada». */
     var verCloser = puede(ficha, 'ranking');
+    var l3 = (verCom || verGas) ? window.lwDatos('finanzas_panel_datos', { p_comisiones: verCom, p_gastos: verGas }).then(function (r) {
+      if (r.error) { console.error('[finanzas] finanzas_panel_datos:', r.error); throw new Error('comisiones y gastos'); }
+      if (r.data && r.data.recortado && r.data.recortado.length) { console.error('[finanzas] recortado:', r.data.recortado); throw new Error('recortado'); }
+      return r.data || {};
+    }) : Promise.resolve({});
     var fuentes = {
       contratos: todas(function () { return sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at,liberado_en'); }, 'contratos'),
       cobrado: todas(function () { return sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado'); }, 'cobrado por contrato', 'contrato_id'),
@@ -108,8 +113,10 @@
       pendiente: todas(function () { return sb.rpc('facturas_pendiente_equipo').select('factura_id,pendiente'); }, 'pendiente por factura', 'factura_id'),
       unidades: todas(function () { return sb.from('unidades').select('id,proyecto,estado,precio,moneda'); }, 'unidades'),
       solicitudes: verSol ? todas(function () { return sb.from('solicitudes_pago').select('id,estado,importe,moneda'); }, 'solicitudes de pago') : Promise.resolve(null),
-      comisiones: verCom ? todas(function () { return sb.from('comisiones_devengadas').select('id,estado,importe,importe_ajustado,moneda,solicitud_id,pagado_en,anulado_en,contrato_raiz_id'); }, 'comisiones devengadas') : Promise.resolve(null),
-      gastos: verGas ? todas(function () { return sb.from('gastos').select('id,estado,moneda,total,base,pph_retenido,pph_ingresado_el,fecha,vence_el,pagado_el,sociedad,proyectos(nombre),gasto_categorias(grupo)'); }, 'gastos') : Promise.resolve(null),
+      /* LAW-338 L3 (10-oct-2026): comisiones y gastos por el servidor, en una llamada (finanzas_panel_datos). Cada
+         lista solo si su casilla lo permite; si no, null («sin permiso»). Un fallo hace fallar las dos. */
+      comisiones: verCom ? l3.then(function (d) { return d.comisiones; }) : Promise.resolve(null),
+      gastos: verGas ? l3.then(function (d) { return d.gastos; }) : Promise.resolve(null),
       closer: verCloser ? todas(function () { return sb.rpc('crm_contratos_para_atribuir', { p_solo_pendientes: false }).select('contrato_id,closer_email'); }, 'closers', 'contrato_id') : Promise.resolve(null),
       bancos: sb.rpc('bancos_resumen', { p_anio: new Date().getFullYear() }).then(function (r) { if (r.error) { console.error('[finanzas] bancos:', r.error); throw new Error('bancos'); } return r.data; }),
       equipo: sb.from('usuarios').select('email,nombre').then(function (r) { if (r.error) { console.error('[finanzas] equipo:', r.error); throw new Error('equipo'); } return r.data || []; }),
@@ -171,7 +178,7 @@
       gastos: (d.gastos == null || d.fallos.gastos) ? null : d.gastos.map(function (g) {
         return { estado: g.estado, moneda: g.moneda, total: g.total, base: g.base, pph_retenido: g.pph_retenido, pph_ingresado_el: g.pph_ingresado_el,
                  fecha: g.fecha, vence_el: g.vence_el, pagado_el: g.pagado_el, sociedad: g.sociedad,
-                 proyecto_nombre: g.proyectos ? g.proyectos.nombre : '', grupo: g.gasto_categorias ? g.gasto_categorias.grupo : 'general' };
+                 proyecto_nombre: g.proyecto_nombre || '', grupo: g.grupo || 'general' };
       })
     };
   }
