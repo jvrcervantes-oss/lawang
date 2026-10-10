@@ -14,12 +14,24 @@
 //  · `logo_correo_url` de config_instancia NO se usa: el logo lleva su halo y un alto fijo de 38 px (ver LOGO_URL).
 //  · un `\d` con dígitos no ASCII en un rótulo «N. TÍTULO» (PCRE con /u los acepta, JS no): no ocurre en la práctica.
 
+// Identidad de la SOCIEDAD que firma el correo (reclamo de pago, facturas automáticas): sustituye el logo, el rótulo, el pie y el
+// copyright fijos de Lawang. La rellena index.ts, nunca texto del navegador: sale de `sociedades` por clave cerrada y solo por la
+// vía de servicio. Ausente = el correo de siempre, byte a byte (dorada.test.js + golden_sin_sociedad.*).
+export type SociedadMarca = {
+  razon: string;          // sociedades.razon: pie y copyright
+  marca: string;          // sociedades.marca (o la razón si está vacía): rótulo de la barra y alt del logo
+  logoUrl: string | null; // https absoluta de dominio propio ya validada; null = sin logo, el nombre en texto
+  tinta?: { deep?: unknown; primary?: unknown } | null;   // sociedades.tinta: los dos tonos de su marca (paletaDe los valida)
+  folio?: unknown;        // sociedades.folio: el papel de su marca (paletaDe lo valida)
+};
+
 export type Marca = {
   marca: string;          // config_instancia.marca (esta piel la usa solo para el asunto por defecto, en index.ts)
   dominio: string;        // config_instancia.dominio_web: pie y buzones admin@/sales@
   remitente: string;      // SMTP_FROM (esta piel no lo pinta: el contacto del pie es admin@/sales@)
   logoUrl?: string;       // config_instancia.logo_correo_url — no usado por esta piel
   contacto?: 'sales' | null;   // 'sales' solo lo piden lo de ventas de la web (investor deck); todo lo demás, admin@
+  sociedad?: SociedadMarca | null;   // ver SociedadMarca
 };
 
 export type Cta = { url: string; texto: string } | null;
@@ -33,11 +45,38 @@ const GRANO_BASE = '#FFFFF3';   // el máximo de cada canal del grano: la capa s
 // Paleta «canopy» = base ∪ variante canopy del PHP, ya resuelta. Los siete oficiales de Lawang: Territorial Green,
 // Deep Lagoon, Burnt Earth, Soft Canopy, Volcanic Ash, Stone Sand, Raw Linen.
 const TG = '#485B37', BE = '#42210B', SC = '#8F9B7A', VA = '#2E3437', SS = '#BEB3A5', RL = '#F5F0E6';
-const C = {
+const C0 = {
   fondo: SC, tarjeta: RL, texto: VA, titular: VA, acento: TG, linea: SS, caja: 'transparent', boton: BE, boton_texto: RL,
   barra_fondo: 'transparent', barra_texto: VA, barra_linea: SS, barra_punto: TG, rotulo_logo: SC,
   pie_fondo: VA, pie_linea: VA, pie_texto: RL, pie_marca: RL, pie_enlace: SC, pie_suave: SS,
 };
+type Paleta = typeof C0;
+
+// Paleta de la SOCIEDAD (owner, 8-oct-2026: el correo de Sandal Woods en tonos tierra, no en el verde de Lawang). Sale de los datos de
+// `sociedades` (tinta.primary, tinta.deep, folio), nunca de una paleta aparte: acento = primary, fondo exterior = primary (owner 8-oct: «algún color de la paleta»), botón = deep, tarjeta/texto del pie =
+// folio, y los tonos intermedios se mezclan con las MISMAS proporciones con que se derivan los de Lawang (SC = TG→RL al 41 %).
+// Cada color debe ser #rrggbb; si falta o es inválido, la paleta de siempre. Si el primary de la sociedad ES el verde de Lawang
+// (Tepi Sungai, la sociedad de la casa) tampoco se toca: su correo no cambia ni un byte.
+const HEX6 = /^#[0-9a-fA-F]{6}$/;
+const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mezcla = (a: string, b: string, t: number) => {
+  const x = rgb(a), y = rgb(b);
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('').toUpperCase();
+};
+function paletaDe(so: SociedadMarca | null | undefined): Paleta {
+  const primary = so?.tinta?.primary, deep = so?.tinta?.deep, folio = so?.folio;
+  if (typeof primary !== 'string' || typeof deep !== 'string' || typeof folio !== 'string'
+      || !HEX6.test(primary) || !HEX6.test(deep) || !HEX6.test(folio)) return C0;
+  if (primary.toUpperCase() === TG) return C0;
+  const sage = mezcla(primary, folio, 0.41);            // el SC de Lawang: el acento aclarado hacia el papel
+  const tinta = mezcla(deep, '#000000', 0.4);           // el VA de Lawang: casi negro, aquí del matiz de la marca
+  const linea = mezcla(folio, deep, 0.2);               // el SS de Lawang: arena = el papel un punto más oscuro
+  return {
+    fondo: primary, tarjeta: folio, texto: tinta, titular: tinta, acento: primary, linea, caja: 'transparent', boton: deep, boton_texto: folio,
+    barra_fondo: 'transparent', barra_texto: tinta, barra_linea: linea, barra_punto: primary, rotulo_logo: sage,
+    pie_fondo: tinta, pie_linea: tinta, pie_texto: folio, pie_marca: folio, pie_enlace: sage, pie_suave: linea,
+  };
+}
 const SANS = "'Neue Kabel','Helvetica Neue',Helvetica,Arial,sans-serif";
 const SERIF = SANS;   // titulares y rótulos: misma familia, otro peso
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -50,7 +89,7 @@ export function esc(s: string): string {
 /** trim() de PHP: solo espacio, \t, \n, \r, NUL y VT (el trim de JS quita también NBSP y otros). */
 const phpTrim = (s: string) => s.replace(/^[ \t\n\r\0\x0B]+|[ \t\n\r\0\x0B]+$/g, '');
 
-function cuerpoHtmlDe(mensaje: string): string {
+function cuerpoHtmlDe(mensaje: string, C: Paleta): string {
   let cuerpoHtml = '';
   const bloques = phpTrim(mensaje.replace(/\r\n/g, '\n')).split(/\r?\n[\t\n\v\f\r ]*\r?\n/);   // \s de PCRE sin /u: solo ASCII
   for (const bloque of bloques) {
@@ -86,7 +125,8 @@ function cuerpoHtmlDe(mensaje: string): string {
 }
 
 export function plantillaHtml(mensaje: string, encabezado: string, cta: Cta, etiqueta: string, m: Marca, hoy = new Date()): string {
-  const cuerpoHtml = cuerpoHtmlDe(mensaje);
+  const C = paletaDe(m.sociedad);
+  const cuerpoHtml = cuerpoHtmlDe(mensaje, C);
 
   // ── titular ─────────────────────────────────────────────────────────────
   const encabezadoHtml = phpTrim(encabezado) !== ''
@@ -127,12 +167,31 @@ export function plantillaHtml(mensaje: string, encabezado: string, cta: Cta, eti
 
   // ── barra superior: rótulo y fecha ──────────────────────────────────────
   const hoyTxt = hoy.getUTCDate() + ' ' + MESES[hoy.getUTCMonth()] + ' ' + hoy.getUTCFullYear();
-  const rotulo = esc(phpTrim(etiqueta) !== '' ? phpTrim(etiqueta) : 'Lawang Properties');
+  const so = m.sociedad ?? null;
+  const rotulo = esc(phpTrim(etiqueta) !== '' ? phpTrim(etiqueta) : (so ? so.marca : 'Lawang Properties'));
   const anio = String(hoy.getUTCFullYear());
   // Contacto del pie (owner, 23-sep-2026): admin@ por defecto (todo lo que sale de la intranet); sales@ solo si quien llama lo pide.
   const mail = (m.contacto === 'sales' ? 'sales' : 'admin') + '@' + esc(m.dominio);
   const dominio = esc(m.dominio);
   const logo = LOGO_URL, grano = GRANO_URL, granoBase = GRANO_BASE;
+  const nombrePie = so ? esc(so.razon) : 'Lawang Tropical Properties';
+  // Con sociedad: sin la marca de agua del moanito (es de Lawang) y sin el rótulo «Properties» bajo el logo.
+  const moanito = 'https://lawangproperties.com/assets/img/correo-moanito.png';
+  const celdaMarca = so
+    ? '<td>'
+    : `<td background="${moanito}" style="background-image:url('${moanito}');background-repeat:no-repeat;background-position:right 24px;background-size:auto min(calc(100% - 48px), 560px);">`;
+  const bloqueMarca = !so ? `<!-- 210×38 = el logo de 200×28 con 5 px de halo alrededor: el relleno de la
+                 celda (32→27) y el margen del filete (18→13) lo descuentan -->
+            <img src="${logo}" width="210" height="38" alt="LAWANG"
+                 style="display:block;width:210px;height:38px;border:0;margin:0 auto;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:360px;margin:13px auto 0;"><tr>
+              <td valign="middle"><div style="height:1px;background:${C.linea};font-size:0;line-height:0;">&nbsp;</div></td>
+              <td valign="middle" style="width:1%;white-space:nowrap;padding:0 14px;font-family:${SERIF};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${C.rotulo_logo};">Properties</td>
+              <td valign="middle"><div style="height:1px;background:${C.linea};font-size:0;line-height:0;">&nbsp;</div></td>
+            </tr></table>` : (so.logoUrl
+    ? `<img src="${esc(so.logoUrl)}" width="150" alt="${esc(so.marca)}"
+                 style="display:block;width:150px;height:auto;border:0;margin:0 auto;">`
+    : `<div style="font-family:${SERIF};font-size:22px;line-height:28px;font-weight:500;letter-spacing:3px;text-transform:uppercase;text-align:center;color:${C.titular};">${esc(so.marca)}</div>`);
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -171,20 +230,12 @@ export function plantillaHtml(mensaje: string, encabezado: string, cta: Cta, eti
              Una capa propia con UNA sola imagen de fondo: varios fondos en el
              mismo elemento no los pinta Gmail. El grano sigue en la tarjeta. -->
         <tr>
-          <td background="https://lawangproperties.com/assets/img/correo-moanito.png" style="background-image:url('https://lawangproperties.com/assets/img/correo-moanito.png');background-repeat:no-repeat;background-position:right 24px;background-size:auto min(calc(100% - 48px), 560px);">
+          ${celdaMarca}
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         <!-- marca -->
         <tr>
           <td align="center" style="padding:27px 40px 8px;">
-            <!-- 210×38 = el logo de 200×28 con 5 px de halo alrededor: el relleno de la
-                 celda (32→27) y el margen del filete (18→13) lo descuentan -->
-            <img src="${logo}" width="210" height="38" alt="LAWANG"
-                 style="display:block;width:210px;height:38px;border:0;margin:0 auto;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:360px;margin:13px auto 0;"><tr>
-              <td valign="middle"><div style="height:1px;background:${C.linea};font-size:0;line-height:0;">&nbsp;</div></td>
-              <td valign="middle" style="width:1%;white-space:nowrap;padding:0 14px;font-family:${SERIF};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${C.rotulo_logo};">Properties</td>
-              <td valign="middle"><div style="height:1px;background:${C.linea};font-size:0;line-height:0;">&nbsp;</div></td>
-            </tr></table>
+            ${bloqueMarca}
           </td>
         </tr>
 
@@ -207,9 +258,9 @@ ${accionHtml}
               <tr>
                 <td class="lw-px" style="padding:26px 40px 28px;font-family:${SANS};font-size:11.5px;line-height:18px;color:${C.pie_texto};">
                   ${enClaroHtml}
-                  <p style="margin:0 0 6px;font-family:${SERIF};font-size:12px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:${C.pie_marca};">Lawang Tropical Properties</p>
+                  <p style="margin:0 0 6px;font-family:${SERIF};font-size:12px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:${C.pie_marca};">${nombrePie}</p>
                   <p style="margin:0;"><a href="mailto:${mail}" style="color:${C.pie_enlace};text-decoration:none;">${mail}</a> &middot; <a href="https://${dominio}" style="color:${C.pie_enlace};text-decoration:none;">${dominio}</a></p>
-                  <p style="margin:14px 0 0;font-size:10.5px;color:${C.pie_suave};">&copy; ${anio} Lawang Tropical Properties</p>
+                  <p style="margin:14px 0 0;font-size:10.5px;color:${C.pie_suave};">&copy; ${anio} ${nombrePie}</p>
                 </td>
               </tr>
             </table>
@@ -233,6 +284,6 @@ export function plantillaTexto(mensaje: string, encabezado: string, cta: Cta, m:
   const ctaUrl = cta ? phpTrim(cta.url) : '', ctaTexto = cta ? phpTrim(cta.texto) : '';
   if (ctaUrl !== '' && ctaTexto !== '') partes.push(ctaTexto + ': ' + ctaUrl.replace(/^mailto:/i, ''));
   const mail = (m.contacto === 'sales' ? 'sales' : 'admin') + '@' + m.dominio;
-  partes.push('--\nLawang Tropical Properties\n' + mail + ' - https://' + m.dominio);
+  partes.push('--\n' + (m.sociedad ? m.sociedad.razon : 'Lawang Tropical Properties') + '\n' + mail + ' - https://' + m.dominio);
   return partes.join('\n\n') + '\n';
 }

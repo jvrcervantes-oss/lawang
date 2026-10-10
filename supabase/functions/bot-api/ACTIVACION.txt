@@ -1,0 +1,62 @@
+# bot-api — activación (SOLO con el OK escrito del owner)
+
+Estado de entrega (9-oct-2026): edge desplegada **sin secretos** → responde 401 a todo. El rol `bot_lawang` sigue NOLOGIN.
+Activar = poner LOGIN y clave al rol en la base de producción y crear 3 secretos. Es una credencial de la BD de producción: hard-stop de `CLAUDE.md`.
+
+## Por qué no `railway_secreto.py genera`
+`genera` solo activa `agente_piloto`/`agente_tesorero`/`padrino_correo` y sella en Railway. Aquí la clave de la BD vive en los secretos de la **edge**
+(la edge se conecta como `bot_lawang`; `service_role` no tiene EXECUTE sobre las funciones del bot desde la migración de S3). `activa.py` reutiliza
+`clave_aleatoria`, `verificador_scram`, `_railway` y `_psql` de esa herramienta.
+
+## Pasos
+1. Simular (no toca nada):
+   `python supabase/functions/bot-api/activa.py --agencia <clon agencia> --servicio <carpeta de lawang-bot>`
+2. Con el OK: el mismo comando con `--aplica`. Orden: Railway → base → secretos de la edge. Si falla a medias, la edge sigue en 401 hasta tener los 3 secretos.
+3. Verificar (los secretos se leen en cada arranque de isolate; si no se ven, redesplegar con `npx supabase functions deploy bot-api --no-verify-jwt --project-ref vtulllundrfennhjddhc --agent no`):
+   - sin cabecera / cabecera mala / secreto de la otra ruta → 401 en las dos rutas;
+   - `POST /functions/v1/bot-api/catalogo` con el secreto → 200 y `unidades: []` (ninguna casilla `bot_publico` encendida);
+   - `POST …/crm` `{accion:'lead_upsert', tel:'<canario>', msg_id:'wamid.CANARIO-1'}` dos veces → `creado` y `creado` (y UN lead). Con dos peticiones
+     simultáneas (la prueba de concurrencia real, pendiente desde S4) → un solo lead y una sola nota; borrar después el lead canario (el log es append-only).
+4. Los secretos de ruta quedan en las variables `BOT_API_SECRET_CATALOGO` / `BOT_API_SECRET_CRM` de `lawang-bot` (S6 las usa).
+
+## Vuelta atrás (cerrar)
+- Base: `alter role bot_lawang nologin;` y `alter role bot_lawang password null;`.
+- Edge: `supabase secrets unset BOT_DB_URL BOT_API_SECRET_CATALOGO BOT_API_SECRET_CRM --project-ref vtulllundrfennhjddhc` → vuelve a 401 a todo.
+- Railway: quitar las dos variables de `lawang-bot`.
+
+## S5 — las citas pasan a Postgres (9-oct-2026) — orden alrededor de BOT_CRM=on
+Hasta BOT_CRM=on el bot sigue guardando sus citas ([APPT]) en Redis. Con BOT_CRM=on deja de hacerlo (usa [CITA:...] y la base las guarda) y la pestaña
+«Agenda de cierre» de la intranet ya lee SOLO de Postgres desde que se publicó este cambio. Orden:
+1. Justo ANTES de poner BOT_CRM=on en Railway: repetir la importación (es repetible, lo ya importado no se duplica):
+   `python supabase/functions/bot-api/importa_citas.py --servicio <carpeta de lawang-bot> --salida <carpeta FUERA de cualquier repo>`
+   → ejecutar el `importa_citas.sql` que sale como propietario de la base (MCP o psql) → guardar el resultado como json y pasarlo con `--resultados`
+   para el informe de lo que no casó (0 leads, >1 lead, el lead ya tiene cita, pasada). Nada de eso se arregla solo: se mira a mano.
+2. Poner BOT_CRM=on (OK del owner). Desde ese momento: el bot no escribe citas en Redis, el panel viejo del bot rechaza crear/editar/borrar citas (409) y
+   el aviso «LLAMADA AGENDADA» al owner sale cuando la base responde a una [CITA:...].
+3. Qué se pierde y decide el owner: el RECORDATORIO automático al cliente antes de la llamada (`reminderTick`) leía las citas de Redis; las citas de Postgres no
+   lo tienen. Mientras no se decida, nadie recuerda la llamada al cliente.
+Primera ejecución (9-oct-2026): 0 citas en Redis, 0 importadas, 0 no casadas.
+
+## S2 — rutas /estado, /recordatorio y /humano (9-oct-2026) — SOLO con el OK escrito del owner
+Estado de entrega: la edge se despliega con las rutas nuevas y SIN sus secretos -> las tres responden 401 a todo (como /catalogo y /crm antes de S4).
+Nada de S2 funciona hasta crear 3 secretos: BOT_API_SECRET_ESTADO, BOT_API_SECRET_RECORDATORIO y BOT_API_SECRET_HUMANO.
+Requisito: la activacion de S4 (rol bot_lawang con LOGIN y BOT_DB_URL en la edge). Si no esta hecha, las rutas nuevas darian 503 db_conexion.
+1. Simular: `python supabase/functions/bot-api/activa.py --agencia <clon agencia> --servicio <carpeta de lawang-bot> --s2`
+2. Con el OK: el mismo comando con `--aplica`. Orden: Railway (lawang-bot: SOLO BOT_API_SECRET_ESTADO y _RECORDATORIO, sin redeploy) -> secretos de la edge (los tres). Los secretos de la edge son del PROYECTO:
+   `lawang-bot-proxy` y cualquier otra edge los ven; el secreto de /humano NO va a Railway: lo usa solo `lawang-bot-proxy` (S3/S10), que reenvia el JWT de la persona.
+3. Verificar (redesplegar si el isolate no los ve: `npx supabase functions deploy bot-api --no-verify-jwt --project-ref vtulllundrfennhjddhc --agent no`):
+   - sin cabecera / secreto de otra ruta -> 401 en las tres rutas;
+   - POST /recordatorio {accion:'citas_recordar'} con su secreto -> 200 {citas:[]}; /estado {accion:'escalacion_tomar'} -> 200 {encontrada:false};
+   - /humano con su secreto pero sin Authorization -> 401; con un JWT valido de la intranet y un tel sin chat -> 200 {ok:false,error:'sin_chat'}.
+4. Contrato para quien llama (S3/S4b/S6a): `Authorization: Bearer <jwt>` solo en /humano (la edge lo verifica contra Auth; un `usuario` en el cuerpo es 400);
+   200 {ok:false,error} = respuesta de negocio, no fallo; 429 = ritmo (en mensaje_recibir tratarlo como `tope`: descartar y 200 a Meta, NUNCA 5xx);
+   5xx = fallo (la edge contesta en <8 s: el timeout del bot por llamada debe ser MAYOR). Texto de Meta largo se recorta; no hay 400 por longitud.
+Vuelta atras S2: `supabase secrets unset BOT_API_SECRET_ESTADO BOT_API_SECRET_RECORDATORIO BOT_API_SECRET_HUMANO --project-ref vtulllundrfennhjddhc` y quitar las 2 variables (ESTADO, RECORDATORIO) de lawang-bot en Railway.
+
+## S5-puente - ruta TEMPORAL /importar (9-oct-2026, LAW-507) - SE RETIRA EN S9
+Para que el bot importe lo que hay en Redis a Postgres (fase B de S5). Acciones: `chat` (un telefono por llamada), `config` (una vez), `cuadre` (lectura de un telefono: conteos y md5).
+Secreto propio BOT_API_SECRET_IMPORTAR, creado el 9-oct con `python supabase/functions/bot-api/activa.py --agencia <clon> --servicio infraestructura/bot-whatsapp --s5-importar --aplica`
+(stdin, valor nunca impreso; Railway `lawang-bot` con --skip-deploys, y la edge). No abre ninguna otra ruta ni se abre con otro secreto.
+Las funciones SQL son bot_importar_chat / _config / _cuadre (migraciones 20261010135000 y 20261010141000; solo EXECUTE para bot_lawang).
+RETIRO (S9, junto con Redis): 1) `supabase secrets unset BOT_API_SECRET_IMPORTAR --project-ref vtulllundrfennhjddhc` y quitar la variable de `lawang-bot` en Railway;
+2) ejecutar supabase/reversion_bot_sin_redis_s5/REVERSION.sql (quita las funciones y el nucleo); 3) borrar de index.ts la ruta `importar` (y de bot_api.test.js su seccion) y esta nota.

@@ -281,6 +281,14 @@
 .ev.alta .ico    { background: var(--meta-bg); color: var(--meta-ink); }
 .ev.estado .ico  { background: var(--primary-soft); color: var(--primary); }
 .ev.nota .ico    { background: var(--gold-soft); color: var(--gold-ink); }
+.ev.cita .ico, .ev.cita_estado .ico { background: var(--primary-soft); color: var(--primary); }
+.ev .chip { vertical-align: 1px; }
+/* «Lo que sabe el bot»: un desplegable por proyecto */
+.sabe-proy { border-top: 1px solid var(--line-soft); padding: 4px 0; }
+.sabe-proy > summary { cursor: pointer; padding: 10px 0; font: 500 14px/1.4 var(--text); }
+.sabe-proy .muted { color: var(--mist); font-weight: 400; }
+.sabe-proy .tabla th, .sabe-proy .tabla td { white-space: nowrap; }   /* en móvil la tabla se desliza, no parte «SH-
+001» */
 .ev .qué { font: 400 13.5px/1.5 var(--text); word-break: break-word; }
 .ev .cuando { font: 400 11.5px/1.3 var(--text); color: var(--mist); margin-top: 3px; }
 
@@ -439,6 +447,8 @@
 .wa-ficha .notas { font: 400 12.5px/1.5 var(--text); background: var(--ivory);
   border: 1px solid var(--line); border-radius: var(--r-ctrl); padding: 9px 10px;
   white-space: pre-wrap; overflow-wrap: anywhere; }
+.wa-ficha .notas + .notas { margin-top: 6px; }
+.wa-ficha .notas .meta { font: 400 11px/1.4 var(--text); color: var(--mist); }
 .wa-ficha .etiquetas { display: flex; flex-wrap: wrap; gap: 5px; }
 .wa-ficha .btn { width: 100%; justify-content: center; margin-top: 8px; }
 .wa-ficha .cita { display: block; border-left-width: 3px; margin-bottom: 6px; }

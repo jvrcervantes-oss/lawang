@@ -523,6 +523,47 @@ function finFiltraEmpresa(e, empresa){
   };
 }
 
+/* ── SUELO u OBRA ──────────────────────────────────────────────────────────
+   El selector Suelo | Obra | Todo de la pantalla. La familia sale del TIPO del
+   contrato, la misma regla del cajón de Proyectos (datos.js → FAMILIA_TIPO):
+   `reserva_parcela` es el Bloqueo de Parcela (suelo); `construccion` y
+   `cc00014_timon` son obra. Una Carta de Reserva es preliminar y no tiene
+   familia propia: hereda la de su Bloqueo subiendo por `contrato_padre_id`.
+   Lo que no cae en ninguna (contrato general, POA…) solo cuenta en «Todo»: no
+   se reparte a ojo.
+   Como el recorte por sociedad, se hace sobre la ENTRADA: contratos, y los
+   recibís y facturas que cuelgan de ellos (por contrato_id; uno sin contrato
+   no se sabe de qué familia es y sale de Suelo y de Obra). Stock, gastos,
+   comisiones y salidas no tienen familia: `null` + `noSeReparte`. */
+const FIN_FAMILIA_TIPO = { reserva_parcela: 'suelo', construccion: 'obra', cc00014_timon: 'obra' };
+function finFamiliaDe(c, porId, visto){
+  visto = visto || {};
+  if (!c || visto[c.id]) return null;
+  visto[c.id] = true;
+  if (FIN_FAMILIA_TIPO[c.tipo]) return FIN_FAMILIA_TIPO[c.tipo];
+  if (lwEsPreliminar(c.tipo) && c.contrato_padre_id) return finFamiliaDe(porId[c.contrato_padre_id], porId, visto);
+  return null;
+}
+function finFiltraFamilia(e, familia){
+  if (familia !== 'suelo' && familia !== 'obra') return e;
+  const porId = {}; (e.contratos || []).forEach(c => { porId[c.id] = c; });
+  const dentro = {};
+  (e.contratos || []).forEach(c => { if (finFamiliaDe(c, porId) === familia) dentro[c.id] = true; });
+  const deLaFamilia = x => !!x.contrato_id && !!dentro[x.contrato_id];
+  return {
+    ...e,
+    contratos: (e.contratos || []).filter(c => dentro[c.id]),
+    recibis: (e.recibis || []).filter(deLaFamilia),
+    facturas: (e.facturas || []).filter(deLaFamilia),
+    vencimientos: (e.vencimientos || []).filter(v => !!dentro[v.contrato_id]),
+    gastos: null,
+    unidades: null,
+    solicitudes: null,
+    comisiones: null,
+    noSeReparte: true,
+  };
+}
+
 /* ── EL MODELO ENTERO ──────────────────────────────────────────────────────
    Entrada normalizada (el contrato del módulo — cualquier instancia del ERP
    que traiga estas filas obtiene el mismo dashboard):
@@ -603,4 +644,4 @@ function finSerieCaja(pm, hoyISO, atras, adelante){
 }
 
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { finMeses, finCobros, finFacturadoSinCobrar, finStock, finSalidas, finGastos, finComisionesPagadas, finPorCloser, finCartera, finPersonas, finPorProyecto, finFiltraEmpresa, finModelo, finSerieCaja };
+  module.exports = { finMeses, finCobros, finFacturadoSinCobrar, finStock, finSalidas, finGastos, finComisionesPagadas, finPorCloser, finCartera, finPersonas, finPorProyecto, finFiltraEmpresa, finFamiliaDe, finFiltraFamilia, finModelo, finSerieCaja };

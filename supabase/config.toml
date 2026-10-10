@@ -403,11 +403,77 @@ verify_jwt = false
 [functions.cola-correos-envio]
 verify_jwt = false
 
+# deck-sincroniza (AXW-66 S6, 10-oct-2026): la invoca SOLO el job pg_cron `deck-sincroniza-diario` con X-Cron-Secret (secreto propio en Vault), sin JWT.
+# Codigo REAL en supabase/functions/deck-sincroniza; se despliega con --no-verify-jwt y esta entrada fija el valor.
+[functions.deck-sincroniza]
+verify_jwt = false
+
 # plantillas-guardar (S5.1 de Ajustes, 2-oct-2026): la llama la pantalla de Ajustes con la sesion del super admin. verify_jwt=false SOLO para que
 # el preflight CORS (OPTIONS, sin Authorization) llegue a la funcion; la autorizacion se hace dentro (Auth + fila activa super_admin en usuarios).
 # Se despliega con --no-verify-jwt en el lote del owner; esta entrada fija el valor.
 [functions.plantillas-guardar]
 verify_jwt = false
+
+# ajustes-correo (F3.1 de Ajustes, porte a Lawang 8-oct-2026): la llama la pestana Correo de Ajustes con la sesion del super admin. verify_jwt=false SOLO
+# para que el preflight CORS (OPTIONS, sin Authorization) llegue a la funcion; la autorizacion se hace dentro (Auth + fila activa super_admin en usuarios,
+# con la clave de servicio) y solo contesta CORS al origen de config_instancia.url_intranet. Se despliega con --no-verify-jwt; esta entrada fija el valor.
+[functions.ajustes-correo]
+verify_jwt = false
+
+# bot-api (S4 del encargo bot de Lawang, 9-oct-2026): la llama el servicio lawang-bot (Railway), servidor a servidor, con X-Bot-Secret (un secreto por ruta).
+# Sin JWT del gateway; la puerta es el secreto, y sin secretos configurados responde 401 a todo. Se despliega con --no-verify-jwt; esta entrada fija el valor.
+[functions.bot-api]
+verify_jwt = false
+
+# Fijado el 10-oct-2026 (autorizacion expresa del owner): anota el verify_jwt MEDIDO en produccion (list_edge_functions) de las edges que no tenian entrada.
+# No cambia nada desplegado; evita que un despliegue sin --no-verify-jwt las deje en true (el defecto).
+[functions.admin-usuarios]
+verify_jwt = false
+
+[functions.alta-colaborador]
+verify_jwt = false
+
+[functions.bot-agentes]
+verify_jwt = false
+
+[functions.deck-documento]
+verify_jwt = false
+
+[functions.factura-vencimiento]
+verify_jwt = false
+
+[functions.ficheros]
+verify_jwt = false
+
+[functions.ficheros-contrato]
+verify_jwt = false
+
+[functions.ficheros-kyc]
+verify_jwt = false
+
+[functions.firma-get]
+verify_jwt = false
+
+[functions.firma-submit]
+verify_jwt = false
+
+[functions.lawang-bot-proxy]
+verify_jwt = false
+
+[functions.libera-reservas-vencidas]
+verify_jwt = false
+
+[functions.portal-invitar]
+verify_jwt = false
+
+[functions.send-contract-email]
+verify_jwt = false
+
+[functions.trazabilidad-ghl]
+verify_jwt = false
+
+[functions.asistente-peticiones]
+verify_jwt = true
 
 [analytics]
 enabled = true

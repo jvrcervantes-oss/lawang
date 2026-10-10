@@ -33,6 +33,15 @@ var TIPOS_DOC = {
   rectificativa: { es:'Factura rectificativa', en:'Corrective invoice', serie:'R' },
 };
 
+/* Concepto con el que un recibí nombra la factura que salda. UNA sola frase para los dos
+   editores (el clásico y el v4) y para el papel, que es bilingüe. Antes decía «Aplicado a
+   factura X», que no dice si X se paga o se anula, y si la factura ya estaba saldada por este
+   mismo recibí imprimía su id interno en vez de su número (8 recibís, 8-oct-2026). */
+function conceptoCobroRecibi(numero){
+  numero = String(numero == null ? '' : numero).trim();
+  return numero ? 'Cobro de la factura ' + numero + ' · Payment of invoice ' + numero : 'Cobro · Payment';
+}
+
 function escDoc(s){
   return String(s == null ? '' : s).replace(/[&<>"]/g,
     c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
@@ -265,4 +274,4 @@ function documentoPagina(d, opts){
 }
 
 if(typeof module !== 'undefined')
-  module.exports = { TIPOS_DOC, escDoc, bancoDocHTML, documentoVars, documentoHTML, documentoPagina };
+  module.exports = { TIPOS_DOC, conceptoCobroRecibi, escDoc, bancoDocHTML, documentoVars, documentoHTML, documentoPagina };

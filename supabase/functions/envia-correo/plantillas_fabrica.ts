@@ -14,7 +14,7 @@
 //     partir de los ids. Del llamante solo llega `nombre` (con quién se saluda), nunca un importe, un total ni un enlace.
 //   · el catálogo de variables permitidas/obligatorias de cada clave vive SELLADO en `correo_plantillas.variables` (migración
 //     20261002100000); este fichero tiene que producir todas las permitidas (lo comprueba plantillas_fabrica.test.js).
-import { type Fallo, CTA_FIRMA_TEXTO, ctaPermitida } from './valida.ts';
+import { type Fallo, CTA_FIRMA_TEXTO, ctaPermitida, tieneControl } from './valida.ts';
 
 export type Vars = Record<string, string>;
 export type Ids = { contrato_id: string; factura_id: string; firma_id: string };
@@ -79,6 +79,17 @@ const TEXTOS: Record<string, TextoFabrica> = {
       '\n\n\n' + FIRMA,
     cuerpo_alt: null,
   },
+  // «Reclamar pago» (8-oct-2026): texto en español APROBADO por el owner (encargos/20261008_lawang_reclamo_pago_parcela.md). Firma y
+  // saludo salen de la sociedad del contrato, no de la constante FIRMA de Lawang. En/id: pendientes de Legal + nativo; mientras tanto
+  // se envía en español a todos (nada de traducciones inventadas).
+  reclamo_pago: {
+    asunto: 'Un recordatorio amistoso sobre tu parcela {{parcela}}',
+    cuerpo: '{{saludo}},\n\nTe escribimos desde {{empresa}} para recordarte, con toda la confianza, que tenemos un pago pendiente de tu parcela {{parcela}} en {{proyecto}}.' +
+      '\n\n{{nota}}Puedes ver tu contrato y tus pagos entrando a tu portal de cliente: {{enlace}}' +
+      '\n\nSi ya lo has realizado, ignora este mensaje y disculpa las molestias. Si tienes cualquier duda, respóndenos a este correo y lo vemos juntos.' +
+      '\n\nUn abrazo,\n{{firma}}',
+    cuerpo_alt: null,
+  },
 };
 
 export function textoFabrica(clave: string): TextoFabrica | null {
@@ -106,6 +117,12 @@ export async function resuelve(clave: string, ids: Ids, to: string, vars: Vars, 
   };
   const primero = (n: unknown) => String(n ?? '').trim().split(/\s+/)[0];
   const saludo = (n: unknown) => 'Hola' + (primero(n) ? ' ' + primero(n) : '');
+  // Solo reclamo_pago (owner, 8-oct-2026): el nombre de la ficha viene a veces en MAYÚSCULAS («VICTOR»). Primer nombre, inicial en
+  // mayúscula y el resto en minúscula (tildes y ñ incluidas); vacío = «Hola». Las otras plantillas siguen con `saludo` tal cual.
+  const saludoNombre = (n: unknown) => {
+    const p = primero(n).toLocaleLowerCase('es');
+    return 'Hola' + (p ? ' ' + p.charAt(0).toLocaleUpperCase('es') + p.slice(1) : '');
+  };
   const marca = comun.marca;
 
   if (clave === 'enlace_firma_cadena') {
@@ -168,6 +185,25 @@ export async function resuelve(clave: string, ids: Ids, to: string, vars: Vars, 
     if (clave === 'factura_vencimiento' && !fecha) return mal('La factura no tiene fecha de vencimiento');
     return { vars: { saludo: saludo(vars.nombre), factura: String(f.numero ?? ''), numero: String(f.contrato_numero ?? ''), concepto, fecha,
                      importe: fmtMoneda(f.total, String(f.moneda ?? 'EUR')), marca }, variante: 'principal', cta: null };
+  }
+
+  if (clave === 'reclamo_pago') {
+    // Todo sale de la base por el id de la fila de la cola (`vars.reclamo`): el destinatario es el de la ficha del cliente y tiene que
+    // ser `to`; el contrato, el del libro. Del llamante no llega ningún dato del correo (ni el nombre, ni la nota, ni la parcela).
+    const id = String(vars.reclamo ?? '');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return mal('Reclamo no válido');
+    const d = await uno('rpc/reclamo_pago_datos?p_cola=' + id);
+    if (!d) return mal('Reclamo no encontrado');
+    if (String(d.para ?? '').trim().toLowerCase() !== to.toLowerCase()) return mal('El destinatario no es el del reclamo');
+    if (d.contrato_id !== ids.contrato_id) return mal('El reclamo no es de ese contrato');
+    const empresa = linea(d.empresa_razon), parcela = linea(d.parcela), proyecto = linea(d.proyecto);
+    if (!empresa || !parcela || !proyecto) return mal('Al reclamo le faltan la empresa, la parcela o el proyecto');
+    // la nota ya llega validada de la base (texto plano, sin enlaces ni correos, <= 300); aquí se vuelve a comprobar y NO se escapa:
+    // plantillaHtml la escapa entera al pintarla (comillas dobles y simples incluidas)
+    const nota = String(d.nota ?? '').replace(/\s+/g, ' ').trim();
+    if ([...nota].length > 300 || tieneControl(nota)) return mal('La nota del reclamo no es válida');
+    return { vars: { saludo: saludoNombre(d.nombre), parcela, proyecto, empresa, nota: nota ? nota + '\n\n' : '', enlace: comun.portal,
+                     marca, firma: 'El equipo de ' + empresa }, variante: 'principal', cta: null };
   }
 
   return mal('Plantilla no reconocida');

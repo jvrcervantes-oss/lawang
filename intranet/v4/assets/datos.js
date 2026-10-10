@@ -5039,6 +5039,8 @@
         vd.scrollTop = 0;
         var niebla = document.getElementById('cajon-niebla-parcela');
         if (niebla) niebla.classList.remove('hidden');
+        /* Aviso para reclamo-pago.js (botón «Reclamar pago» de la ficha): qué parcela se abrió. */
+        document.dispatchEvent(new CustomEvent('lw:parcela-abierta', { detail: { id: id, codigo: u.codigo || '', proyecto: u.proyecto || '' } }));
       }
       function volverAProyecto() {
         var vp = document.getElementById('cajon-vista-proyecto');
@@ -5047,6 +5049,7 @@
         if (vp) vp.classList.remove('hidden');
         var niebla = document.getElementById('cajon-niebla-parcela');
         if (niebla) niebla.classList.add('hidden');
+        document.dispatchEvent(new CustomEvent('lw:parcela-cerrada'));
       }
       window.LW_V4.abrirDetalleUnidad = abrirDetalleUnidad;
       var cajaUnidadesClic = document.getElementById('d-unidades');

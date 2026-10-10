@@ -31,9 +31,9 @@ let LEADS = [], ETAPAS = [], CAMPANAS = [], SERIE = [], ACCIONES = [], CONJUNTOS
 let VISTA = 'hoy';
 let CANAL = '', BUSCA = '', FILTRO_B = 'todos';
 let ABIERTAS = new Set(), ABIERTO = null, SEL_B = null;
-let CARGADO = { panel: false, automatismos: false, setter: false, agenda: false };
+let CARGADO = { panel: false, automatismos: false, setter: false, agenda: false, config: false };
 let FICHA = null;
-let CONVERSACIONES = [], CITAS = [], EDITANDO_CITA = null;
+let CONVERSACIONES = [], CITAS = [], EDITANDO_CITA = null, EDITANDO_TIPO = 'llamada';
 let CHAT_ABIERTO = null;   // teléfono del hilo abierto en Setter IA, o null
 /* La ficha del lead arranca abierta solo si hay sitio para las tres columnas. Por
    debajo de eso se superpone al chat, y abrirla sola taparía lo que vienes a leer. */
@@ -137,7 +137,7 @@ function enlaceSeguro(url){
    El `?v=` que usa el hub (`herramientas.js`) se sigue aceptando y se traduce a
    hash al entrar, para no tener que tocar los enlaces del hub.
    ========================================================================== */
-const VISTAS_OCULTABLES = { agenda: '#tabAgenda', closers: '#tabClosers', trazabilidad: '#tabTrazabilidad' };
+const VISTAS_OCULTABLES = { agenda: '#tabAgenda', config: '#tabConfig', closers: '#tabClosers', trazabilidad: '#tabTrazabilidad' };
 
 function vistaPermitida(v){
   if(!document.querySelector('#v-' + v)) return false;
@@ -171,6 +171,7 @@ function ir(v){
   if(v === 'hoy') cargarHoy();
   if(v === 'setter' && !CARGADO.setter) cargarSetter();
   if(v === 'agenda' && !CARGADO.agenda) cargarAgenda();
+  if(v === 'config'){ cargarConfig(); cargarSabe(); }
   if(v === 'closers') cargarClosers();
   if(v === 'trazabilidad') cargarTrazabilidad();
 }
@@ -992,6 +993,8 @@ function abrirFicha(l){
       <p class="lb">${lwT('Próximo paso')}</p>
       <div id="proximoPaso"></div>
 
+      <div id="citaFicha"></div>
+
       <p class="lb">${lwT('Venta')}</p>
       <div id="haciaContrato"></div>
 
@@ -1014,6 +1017,7 @@ function abrirFicha(l){
   if(vc) vc.onclick = () => verContacto(l);
   pintarDuenoFicha(l);
   pintarProximoPaso(l);
+  pintarCita(l);
   pintarHaciaContrato(l);
   pintarHilo(l);
 }
@@ -1192,6 +1196,73 @@ function formularioProximoPaso(l){
   caja.querySelector('#ppQue').focus();
 }
 
+/* ---------- cita (llamada o visita) ----------
+   La cita NO es «el próximo paso»: el próximo paso es una tarea del equipo (una sola, la edita quien lleva el
+   lead) y la cita la propone el bot de WhatsApp y alguien la tiene que confirmar. Viven en la misma tabla
+   (`lead_accion`, columna `tipo`) pero se pintan aparte y se deciden aparte: `crm_lead_cita_decidir` es la única
+   puerta y comprueba permiso y alcance en el servidor; aquí solo se decide qué botones tiene sentido enseñar.
+   Los botones se enganchan por `data-cita` (confirmar | hecha | cancelar), nunca por su rótulo. */
+const citaTipoTxt = t => t === 'visita' ? lwT('Visita') : lwT('Llamada');
+const citaEstadoChip = e => ({
+  propuesta:  ['oro',   lwT('Propuesta')],
+  confirmada: ['verde', lwT('Confirmada')],
+  cancelada:  ['gris',  lwT('Cancelada')],
+  hecha:      ['gris',  lwT('Hecha')],
+}[e] || ['gris', e || '']);
+/* La hora la fija el servidor en hora de Bali (Asia/Makassar): se pinta SIEMPRE en esa zona y lo dice, para que
+   quien mira desde otra no lea una hora que no es. */
+const citaCuando = iso => { const d = new Date(iso); return isNaN(d) ? '' :
+  d.toLocaleString(lwLocale(), { timeZone: 'Asia/Makassar', weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit' }) + ' · ' + lwT('hora de Bali'); };
+function pintarCita(l){
+  const caja = document.querySelector('#citaFicha'); if(!caja) return;
+  if(!l.cita_id){ caja.innerHTML = ''; return; }
+  const [tono, etiqueta] = citaEstadoChip(l.cita_estado);
+  const pasada = l.cita_cuando_ts && new Date(l.cita_cuando_ts) < new Date();
+  const quePide = l.cita_estado === 'propuesta'
+    ? lwT('La propuso el bot: confirma con el cliente o cancela.')
+    : (pasada ? lwT('Ya pasó la hora: márcala como hecha o cancélala.') : '');
+  caja.innerHTML = `
+    <p class="lb">${lwT('Cita')}</p>
+    <div class="tarea-ficha${pasada ? ' urge' : ''}" data-lw="cita-ficha">
+      <div>
+        <div class="q"><span class="chip ${tono}" data-lw="cita-estado">${esc(etiqueta)}</span>
+          <span data-lw="cita-tipo">${esc(citaTipoTxt(l.cita_tipo))}</span></div>
+        <div class="c">${esc(citaCuando(l.cita_cuando_ts))}${quePide ? ' · ' + esc(quePide) : ''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${l.cita_estado === 'propuesta' ? `<button class="btn mini pri" data-cita="confirmar"><i class="ph ph-check"></i>${lwT('Confirmar')}</button>` : ''}
+        ${l.cita_estado === 'confirmada' ? `<button class="btn mini" data-cita="hecha"><i class="ph ph-check"></i>${lwT('Hecha')}</button>` : ''}
+        <button class="btn mini" data-cita="cancelar">${lwT('Cancelar')}</button>
+      </div>
+    </div>`;
+  caja.querySelectorAll('[data-cita]').forEach(b => b.onclick = () => decidirCita(l, b.dataset.cita));
+}
+async function decidirCita(l, decision){
+  const caja = document.querySelector('#citaFicha');
+  const botones = caja ? caja.querySelectorAll('[data-cita]') : [];
+  if(decision === 'cancelar'){
+    const seguro = await lwConfirmar({
+      titulo: lwT('Cancelar esta cita'),
+      cuerpo: lwT('La cita se cierra y el bot podrá proponer otra al cliente si lo pide. No se avisa al cliente por WhatsApp.'),
+      confirmar: lwT('Cancelar la cita'), cancelar: lwT('Volver'), tono: 'peligro',
+    });
+    if(!seguro) return;
+  }
+  botones.forEach(b => b.disabled = true);
+  const { data, error } = await SB.rpc('crm_lead_cita_decidir', { p_accion: l.cita_id, p_decision: decision });
+  if(error){
+    toastMal(lwErrorHumano(error, lwT('No se pudo actualizar la cita: ')));
+    botones.forEach(b => b.disabled = false);
+    return;
+  }
+  if(data && data.estado === 'confirmada') l.cita_estado = 'confirmada';
+  else { l.cita_id = l.cita_tipo = l.cita_cuando_ts = l.cita_estado = null; }   // cancelada / hecha: ya no hay cita viva
+  toast(decision === 'confirmar' ? lwT('Cita confirmada.') : decision === 'hecha' ? lwT('Cita marcada como hecha.') : lwT('Cita cancelada.'));
+  pintarCita(l);
+  pintarHilo(l);
+}
+
 /* ---------- del lead al contrato ----------
    POR QUÉ HAY UN PASO DE CONFIRMACIÓN Y NO UN BOTÓN DIRECTO (decisión del owner, 11-sep-2026).
    `contracts/app.html` no deja guardar un contrato cuyo comprador no tenga ficha en
@@ -1297,13 +1368,24 @@ async function pintarHilo(l){
   const { data, error } = await SB.rpc('crm_lead_hilo', { p_lead: l.id });
   if(error){ caja.innerHTML = '<p class="vacio">' + lwT('No se pudo leer la actividad.') + '</p>'; return; }
   caja.innerHTML = '<div class="hilo">' + (data || []).slice().reverse().map(ev => {
-    const ico = { alta:'ph-download-simple', estado:'ph-arrow-right', nota:'ph-note' }[ev.tipo] || 'ph-circle';
+    const ico = { alta:'ph-download-simple', estado:'ph-arrow-right', nota:'ph-note',
+                  cita:'ph-calendar-check', cita_estado:'ph-calendar-check' }[ev.tipo] || 'ph-circle';
     let texto;
     if(ev.tipo === 'alta')   texto = lwT('Entró por') + ' <b>' + esc(canal(ev.texto)) + '</b>';
     else if(ev.tipo === 'estado'){
       const origen = '<b>' + esc(nombreCol(ev.extra)) + '</b>';
       const destino = '<b>' + esc(nombreCol(ev.texto)) + '</b>';
       texto = lwT('Pasó de %a a %b', { a: origen, b: destino });
+    }
+    else if(ev.tipo === 'cita'){
+      // texto = llamada | visita; extra = fecha y hora de Bali; autor 'bot' = la propuso el bot
+      texto = '<span class="chip oro">' + lwT('Cita') + '</span> <b>' + esc(citaTipoTxt(ev.texto)) + '</b> '
+            + (ev.autor === 'bot' ? lwT('propuesta por el bot') : lwT('agendada')) + ' · ' + esc(ev.extra || '') + ' ' + lwT('hora de Bali');
+    }
+    else if(ev.tipo === 'cita_estado'){
+      // texto = confirmada | cancelada | hecha; extra = llamada | visita
+      texto = '<span class="chip oro">' + lwT('Cita') + '</span> <b>' + esc(citaTipoTxt(ev.extra)) + '</b> '
+            + esc(citaEstadoChip(ev.texto)[1].toLowerCase());
     }
     else                     texto = esc(ev.texto);
     return `<div class="ev ${ev.tipo}"><div class="ico"><i class="ph ${ico}"></i></div>
@@ -1641,6 +1723,38 @@ function pintarAutomatismos(){
    proxy guarda la clave del bot como secreto de la función: esta pantalla
    nunca ve `ADMIN_PASSWORD`.
    ========================================================================== */
+/* ORIGEN DE LA LECTURA DE CONVERSACIONES: siempre la base (crm_bot_conversaciones / crm_bot_conversacion). El permiso es la casilla PROPIA
+   `bot_conversaciones_ver` y la decide la base (_bot_conversaciones_autoriza): basta por sí sola con alcance global, aunque la persona tenga
+   empresas marcadas (el bot atiende a las dos; el panel de Usuarios lo avisa), y cada lectura queda apuntada. Esta pantalla solo pinta y
+   explica por qué no hay datos. Pausar, enviar y plantillas siguen por el bot (necesita el token de WhatsApp) y piden 'leads' / 'bot_escribir'.
+   10-oct-2026 (LAW-513, decisión del owner): las acciones 'conversaciones' y 'conversacion' del proxy se retiraron (410, sin registro de
+   lecturas): ya no existe la vuelta atrás a 'proxy'. Vuelta atrás de la REGLA: supabase/reversion_casilla_bot_conv/REVERSION.sql. */
+const BOT_PG = true;
+let HAY_MAS_CONV = false;  // true = la lista está recortada a las 500 conversaciones más recientes
+let SETTER_ERROR = false;   // true = no se PUDO mirar (distinto de «no hay conversaciones»): la lista no dice «Sin conversaciones»
+
+/* Error de las funciones de lectura. 42501 es «no tienes permiso» (la base lo decide); cualquier otro es «no se pudo leer». */
+function errorBotPg(error){
+  const e = new Error(error && error.code === '42501'
+    ? lwT('No tienes permiso para leer las conversaciones del bot. Hace falta la casilla «Conversaciones del bot» y alcance global; pídelo a quien administra los usuarios.')
+    : error && error.code === 'PT429'
+    ? lwT('Demasiadas lecturas de conversaciones en la última hora. Espera un rato y vuelve a intentarlo.')
+    : lwT('No se pudo leer: ') + ((error && error.message) || ''));
+  e.sinPermiso = !!(error && error.code === '42501');
+  return e;
+}
+async function leerConversaciones(){
+  const { data, error } = await SB.rpc('crm_bot_conversaciones');
+  if(error) throw errorBotPg(error);
+  HAY_MAS_CONV = !!(data && data.hayMas);   // la base devuelve las 500 más recientes: si hay más, se avisa
+  return (data && data.chats) || [];
+}
+async function leerHilo(phone){
+  const { data, error } = await SB.rpc('crm_bot_conversacion', { p_tel: phone });
+  if(error) throw errorBotPg(error);
+  return Object.assign({ pg: true }, data || {});
+}
+
 async function llamarBot(accion, extra){
   const { data: ses } = await SB.auth.getSession();
   const token = ses && ses.session && ses.session.access_token;
@@ -1664,14 +1778,21 @@ async function cargarSetter(){
   CARGADO.setter = true;
   const av = $('#avisoSetter');
   try {
-    CONVERSACIONES = await llamarBot('conversaciones');
-    av.hidden = true;
+    CONVERSACIONES = await leerConversaciones();
+    SETTER_ERROR = false;
+    /* Desde la base no se sabe si el bot está en modo testing (eso vive en una variable de Railway): se dice, no se inventa. */
+    av.hidden = !BOT_PG;
+    if(BOT_PG) av.innerHTML = '<span data-tipo="origen_postgres">' + esc(lwT('Lectura directa de la base de datos. Cada lectura queda registrada. Desde aquí no se sabe si el bot está en modo testing ni a qué leads contesta.')) + '</span>'
+      + (HAY_MAS_CONV ? ' <span data-tipo="hay_mas_conversaciones">' + esc(lwT('Se muestran las 500 conversaciones más recientes; hay más antiguas que no aparecen en la lista.')) + '</span>' : '');
   } catch(err){
     CONVERSACIONES = [];
+    SETTER_ERROR = true;
     av.hidden = false;
-    av.innerHTML = err.message === 'lawang-bot-proxy no configurado (falta LAWANG_BOT_ADMIN_KEY)'
-      ? lwT('El puente con el bot todavía no está activado por el estudio.')
-      : lwT('No se pudo leer el bot: ') + esc(err.message);
+    av.innerHTML = err.sinPermiso
+      ? '<span data-tipo="sin_permiso">' + esc(err.message) + '</span>'
+      : err.message === 'lawang-bot-proxy no configurado (falta LAWANG_BOT_ADMIN_KEY)'
+        ? lwT('El puente con el bot todavía no está activado por el estudio.')
+        : lwT('No se pudo leer el bot: ') + esc(err.message);
   }
   pintarSetter();
   /* Si se entró por un enlace directo (`#setter/62…`), el hilo se abrió ANTES de que
@@ -1690,6 +1811,7 @@ const iniciales = nombre => {
 };
 
 function kpisSetter(){
+  if(SETTER_ERROR){ $('#kpis-setter').innerHTML = ''; return; }   // «no se pudo mirar» no se pinta como «0 conversaciones»
   const activas = CONVERSACIONES.filter(l => !l.paused).length;
   const pausadas = CONVERSACIONES.length - activas;
   $('#kpis-setter').innerHTML = `
@@ -1745,7 +1867,7 @@ function pintarSetter(){
               aria-label="${l.paused ? 'Reanudar IA' : 'Pausar IA'}">
         <i class="ph ${l.paused ? 'ph-play' : 'ph-pause'}"></i>
       </button>
-    </div>`).join('') : '<p class="vacio">' + lwT('Sin conversaciones todavía.') + '</p>';
+    </div>`).join('') : (SETTER_ERROR ? '' : '<p class="vacio">' + lwT('Sin conversaciones todavía.') + '</p>');
 
   $('#tSetter').querySelectorAll('.wa-fila').forEach(c => {
     c.onclick = () => irAConversacion(c.dataset.phone);
@@ -1831,12 +1953,15 @@ async function verConversacion(phone){
   pintarCaja(lead);
 
   try {
-    const historia = await llamarBot('conversacion', { phone });
+    const hilo = await leerHilo(phone);
     if(CHAT_ABIERTO !== phone) return;   // se cambió de conversación mientras cargaba
-    pintarHiloChat(historia || []);
+    pintarHiloChat(hilo.mensajes || [], !!hilo.hayMas);
+    /* Con la lectura de la base el hilo trae además lo que el CRM sabe del lead (resúmenes y notas del bot, citas): se repinta la ficha. */
+    if(hilo.pg) pintarFicha(Object.assign({}, lead, Object.fromEntries(Object.entries(hilo.chat || {}).filter(([, v]) => v !== null && v !== undefined)), { crm: hilo.lead || null, notasLista: hilo.notas || [], citasLista: hilo.citas || [] }));
   } catch(err){
     if(CHAT_ABIERTO !== phone) return;
-    $('#hiloConv').innerHTML = '<p class="vacio">' + lwT('No se pudo leer la conversación.') + '</p>';
+    $('#hiloConv').innerHTML = '<p class="vacio" data-tipo="' + (err.sinPermiso ? 'sin_permiso' : 'error_lectura') + '">'
+      + (err.sinPermiso ? esc(err.message) : lwT('No se pudo leer la conversación.')) + '</p>';
   }
 }
 
@@ -2009,6 +2134,9 @@ function pintarFicha(lead){
     [lwT('Estado'), ESTADO_COM[lead.status] || lead.status],
     [lwT('País'),        lead.country],
     [lwT('Campaña'), lead.campaign],
+    /* Con la lectura de la base (S10) el lead viene del CRM, que es su dueño: de ahí salen el origen y el proyecto. */
+    [lwT('Origen'), lead.crm && lead.crm.source],
+    [lwT('Proyecto'), lead.crm && lead.crm.project],
     /* travelDate lo extrae el bot de la conversación, así que puede venir en
        cualquier forma ("noviembre", "14/11"...). Se formatea SOLO si es una fecha
        de verdad; si no, se enseña tal cual — inventarle un formato sería perderla. */
@@ -2023,18 +2151,31 @@ function pintarFicha(lead){
   const tags = (lead.tags || []).map(t => `<span class="chip gris">${esc(t)}</span>`).join('');
   /* Las citas viven en el historial del lead como eventos type:'appt' — es donde las
      escribe el bot, así que se leen de ahí y no de una segunda fuente. */
-  const citas = (lead.history || []).filter(h => h.type === 'appt')
+  const citas = lead.citasLista
+    /* Lectura de la base: las citas son de lead_accion (el CRM). `data-estado` es el estado real; el rótulo es solo pintura. */
+    ? lead.citasLista.map(c => `<div class="cita con-meet" data-cita-id="${esc(c.id)}" data-estado="${esc(c.estado)}"><div class="cuerpo">
+        <div class="cuando">${esc(c.ts ? fechaHora(new Date(c.ts).toISOString()) : lwT('sin fecha'))}</div>
+        <div class="quien">${esc(c.que || (c.tipo === 'visita' ? lwT('Visita') : lwT('Llamada')))}</div></div></div>`).join('')
+    : (lead.history || []).filter(h => h.type === 'appt')
     .sort((a, b) => String(b.when || '').localeCompare(String(a.when || '')))
     .map(h => `<div class="cita con-meet"><div class="cuerpo">
         <div class="cuando">${esc(h.when ? fechaHora(new Date(h.when).toISOString()) : 'sin fecha')}</div>
         <div class="quien">${esc(h.title || lwT('Llamada'))}</div></div></div>`).join('');
+  /* Notas del bot (lead_notas). El texto de un resumen sale de un chat con un tercero y de un modelo: es NO FIABLE, va escapado y como
+     texto (white-space en .notas), nunca como HTML. `data-tipo` distingue el resumen de una nota suelta del bot — el código engancha por él,
+     no por el rótulo. */
+  const notasBot = lead.notasLista
+    ? lead.notasLista.map(nt => `<div class="notas" data-nota-id="${esc(nt.id)}" data-tipo="${esc(nt.tipo)}">
+        ${nt.tipo === 'resumen_bot' ? '<span class="chip verde"><i class="ph ph-note"></i> ' + esc(lwT('Resumen del bot')) + '</span> ' : ''}<span class="meta">${esc(nt.ts ? fechaHora(new Date(nt.ts).toISOString()) : '')}</span>
+        <div>${esc(nt.texto)}</div></div>`).join('')
+    : (lead.notes ? `<div class="notas">${esc(lead.notes)}</div>` : '');
 
   f.innerHTML = `
     <p class="lb">${lwT('El lead')}</p>
     ${filas || '<p class="nada">' + lwT('El bot todavía no ha sacado datos de esta conversación.') + '</p>'}
     ${tags ? `<p class="lb">${lwT('Etiquetas')}</p><div class="etiquetas">${tags}</div>` : ''}
     <p class="lb">${lwT('Notas del bot')}</p>
-    ${lead.notes ? `<div class="notas">${esc(lead.notes)}</div>` : '<p class="nada">' + lwT('Sin notas.') + '</p>'}
+    ${notasBot || '<p class="nada">' + lwT('Sin notas.') + '</p>'}
     <p class="lb">${lwT('Citas')}</p>
     ${citas || '<p class="nada">' + lwT('Ninguna agendada.') + '</p>'}
     ${PUEDE_CLOSERS ? `<button type="button" class="btn pri" id="waAgendar">
@@ -2046,18 +2187,18 @@ function pintarFicha(lead){
   const btn = $('#waAgendar');
   if(btn) btn.onclick = () => {
     location.hash = '#agenda';
+    limpiarFormularioAgenda();
     $('#agTelefono').value = lead.phone || '';
-    $('#agNombre').value = lead.name || '';
-    $('#agTelefono').focus();
-    toast(lwT('Rellena la fecha y guarda: el teléfono y el nombre ya van puestos.'));
+    $('#agCuando').focus();
+    toast(lwT('Rellena la fecha y guarda: el teléfono ya va puesto.'));
   };
 }
 
-function pintarHiloChat(historia){
+function pintarHiloChat(historia, hayMas){
   const hilo = $('#hiloConv');
   if(!historia.length){ hilo.innerHTML = '<p class="vacio">' + lwT('Sin mensajes.') + '</p>'; return; }
   let ultimoDia = '';
-  hilo.innerHTML = historia.map(m => {
+  hilo.innerHTML = (hayMas ? '<div class="wa-dia" data-tipo="hay_mas">' + esc(lwT('Se muestran los últimos 100 mensajes.')) + '</div>' : '') + historia.map(m => {
     const d = m.ts ? new Date(m.ts) : null;
     const dia = d ? d.toLocaleDateString(lwLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : '';
     const separador = dia && dia !== ultimoDia ? `<div class="wa-dia">${esc(dia)}</div>` : '';
@@ -2066,7 +2207,7 @@ function pintarHiloChat(historia){
     const humana = !entra && m.by === 'human';
     return separador + `<div class="wa-b ${entra ? 'entra' : 'sale'}${humana ? ' humana' : ''}">
       ${humana ? '<span class="firma">' + lwT('Respuesta del equipo') + '</span>' : ''}
-      <div class="txt">${esc(m.content || '')}</div>
+      <div class="txt">${m.media ? '<i>' + esc(lwT('Adjunto') + ': ' + (m.media.tipo || '')) + '</i> ' : ''}${esc(m.content || '')}</div>
       <span class="meta">${d ? esc(d.toLocaleTimeString(lwLocale(), { hour: '2-digit', minute: '2-digit' })) : ''}</span>
     </div>`;
   }).join('');
@@ -2097,56 +2238,62 @@ async function pausarLead(phone, paused){
 /* ==========================================================================
    VISTA 6 — AGENDA DE CIERRE (citas del bot + closer)
    --------------------------------------------------------------------------
-   El enlace de Google Meet solo llega si el estudio activó Calendar en el
-   bot (CALENDAR_ID+GOOGLE_SERVICE_ACCOUNT en Railway) — sin eso, `meetLink`
-   viene vacío y se avisa en vez de fingir un botón que no lleva a ningún
-   sitio.
+   Desde el 9-oct-2026 (S5 del encargo del bot) las citas viven en Postgres
+   (`lead_accion`, tipo llamada | visita) y esta pestaña habla con TRES funciones
+   de la base —crm_citas_agenda, crm_cita_guardar, crm_cita_cancelar—, no con el
+   bot ni con Redis. El permiso es `closers` (el de la pestaña) y se comprueba en
+   el servidor. La hora la fija la base: lo que se escribe en el formulario es hora
+   de Bali y así se pinta (citaCuando). El enlace de Google Meet ya no existe aquí:
+   Calendar nunca estuvo activo para Lawang y el closer comparte su propio enlace.
    ========================================================================== */
+/* Hora de Bali (Asia/Makassar) en el formato que pide <input type="datetime-local">. */
+const baliParaInput = iso => { const d = new Date(iso); if(isNaN(d)) return '';
+  const p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).forEach(x => { p[x.type] = x.value; });
+  return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute; };
+
 async function cargarAgenda(){
   CARGADO.agenda = true;
-  try { CITAS = await llamarBot('citas_listar'); }
-  catch(err){ CITAS = []; toastMal(lwErrorHumano(err, lwT('No se pudieron leer las citas: '))); }
+  const { data, error } = await SB.rpc('crm_citas_agenda');
+  if(error){ CITAS = []; toastMal(lwErrorHumano(error, lwT('No se pudieron leer las citas: '))); }
+  else CITAS = (data || []).map(c => ({ id: c.id, lead_id: c.lead_id, phone: c.telefono || '', name: c.nombre || '', when: c.cuando_ts,
+    closer: c.responsable || '', notes: c.notas || '', tipo: c.tipo, estado: c.estado, origen: c.origen }));
   pintarAgenda();
 }
 
 function kpisAgenda(filas){
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const futuras = filas.filter(c => new Date(c.when) >= new Date());
-  const conMeet = filas.filter(c => c.meetLink).length;
+  const futuras = filas.filter(c => new Date(c.when) >= new Date() && c.estado !== 'hecha');
+  const porConfirmar = filas.filter(c => c.estado === 'propuesta').length;
   const proxima = futuras[0];
   $('#kpis-agenda').innerHTML = `
     <div class="kpi"><div class="rot">${lwT('Citas agendadas')}<i class="ph ph-calendar"></i></div>
       <p class="cifra">${filas.length}</p><p class="pie">${lwT('%n todavía por llegar', { n: futuras.length })}</p></div>
-    <div class="kpi"><div class="rot">${lwT('Con Meet listo')}<i class="ph ph-video-camera"></i></div>
-      <p class="cifra oro">${conMeet}</p><p class="pie">${lwT('%n sin enlace automático', { n: filas.length - conMeet })}</p></div>
+    <div class="kpi"><div class="rot">${lwT('Por confirmar')}<i class="ph ph-hourglass"></i></div>
+      <p class="cifra oro">${porConfirmar}</p><p class="pie">${lwT('La propuso el bot: confirma con el cliente o cancela.')}</p></div>
     <div class="kpi fuerte"><div class="rot">${lwT('Próxima llamada')}<i class="ph ph-clock"></i></div>
-      <p class="cifra" style="font-size:19px">${proxima ? esc(fechaHora(proxima.when)) : '—'}</p>
+      <p class="cifra" style="font-size:19px">${proxima ? esc(citaCuando(proxima.when)) : '—'}</p>
       <p class="pie">${proxima ? esc(proxima.name || proxima.phone || lwT('sin nombre')) : lwT('nada agendado por delante')}</p></div>`;
 }
 
 function pintarAgenda(){
   const filas = CITAS.slice().sort((a, b) => new Date(a.when) - new Date(b.when));
   kpisAgenda(filas);
-  const hayMeetActivo = filas.some(c => c.meetLink);
-  $('#avisoAgendaMeet').hidden = filas.length === 0 || hayMeetActivo;
   $('#subAgenda').textContent = filas.length
     ? lwT(filas.length === 1 ? '%n cita agendada' : '%n citas agendadas', { n: filas.length })
     : lwT('Sin citas agendadas todavía.');
   $('#tAgenda').innerHTML = filas.length ? filas.map(c => `
-    <article class="cita${c.meetLink ? ' con-meet' : ''}">
+    <article class="cita" data-cita-id="${esc(c.id)}">
       <div class="avatar">${esc(iniciales(c.name || c.phone))}</div>
       <div class="cuerpo">
-        <div class="cuando">${esc(fechaHora(c.when))}</div>
-        <div class="quien">${esc(c.name || c.phone || 'sin nombre')}</div>
+        <div class="cuando">${esc(citaCuando(c.when))}</div>
+        <div class="quien">${esc(c.name || c.phone || 'sin nombre')} · ${esc(citaTipoTxt(c.tipo))}</div>
         <div class="sub">${c.phone ? esc(c.phone) + ' · ' : ''}closer: ${esc(c.closer || '—')}${c.notes ? ' · ' + esc(c.notes) : ''}</div>
       </div>
-      ${c.meetLink
-        ? `<a class="btn mini pri" target="_blank" rel="noopener" href="${esc(c.meetLink)}"><i class="ph ph-video-camera"></i>${lwT('Unirse')}</a>`
-        : '<span class="chip gris">' + lwT('sin enlace todavía') + '</span>'}
-      <div class="acciones">
+      <span class="chip ${citaEstadoChip(c.estado)[0]}">${esc(citaEstadoChip(c.estado)[1])}</span>
+      ${c.estado === 'hecha' ? '' : `<div class="acciones">
         <button class="btn mini" data-editar="${esc(c.id)}">${lwT('Editar')}</button>
         <button class="btn mini" data-borrar="${esc(c.id)}">${lwT('Borrar')}</button>
-      </div>
+      </div>`}
     </article>`).join('') : '<p class="vacio">' + lwT('Sin citas agendadas.') + '</p>';
   $('#tAgenda').querySelectorAll('[data-editar]').forEach(b => b.onclick = () => cargarCitaEnFormulario(b.dataset.editar));
   $('#tAgenda').querySelectorAll('[data-borrar]').forEach(b => b.onclick = () => borrarCita(b.dataset.borrar));
@@ -2155,12 +2302,15 @@ function pintarAgenda(){
 function cargarCitaEnFormulario(id){
   const c = CITAS.find(x => x.id === id); if(!c) return;
   EDITANDO_CITA = id;
+  EDITANDO_TIPO = c.tipo || 'llamada';
   $('#agCitaId').value = id;
   $('#agTelefono').value = c.phone || '';
-  $('#agNombre').value = c.name || '';
-  $('#agCuando').value = (c.when || '').slice(0, 16);
+  $('#agTelefono').readOnly = true;   // una cita no cambia de lead: el teléfono es el del lead
+  $('#agCuando').value = baliParaInput(c.when);
   $('#agCloser').value = c.closer || '';
-  $('#agNotas').value = c.notes || '';
+  /* La nota de una propuesta del bot es la frase automática «pendiente de confirmar»: guardarla tal cual la dejaría escrita
+     en una cita ya confirmada. Se deja en blanco y quien confirma escribe lo que quiera. */
+  $('#agNotas').value = (c.origen === 'bot' && c.estado === 'propuesta') ? '' : (c.notes || '');
   $('#btnAgendarGuardar').innerHTML = '<i class="ph ph-check"></i>Guardar cambios';
   $('#btnAgendarCancelar').hidden = false;
   $('#v-agenda').scrollIntoView({ behavior: 'auto' });
@@ -2168,7 +2318,9 @@ function cargarCitaEnFormulario(id){
 
 function limpiarFormularioAgenda(){
   EDITANDO_CITA = null;
-  ['agCitaId','agTelefono','agNombre','agCuando','agCloser','agNotas'].forEach(id => { $('#' + id).value = ''; });
+  EDITANDO_TIPO = 'llamada';
+  $('#agTelefono').readOnly = false;
+  ['agCitaId','agTelefono','agCuando','agCloser','agNotas'].forEach(id => { $('#' + id).value = ''; });
   $('#btnAgendarGuardar').innerHTML = '<i class="ph ph-calendar-plus"></i>Agendar';
   $('#btnAgendarCancelar').hidden = true;
 }
@@ -2176,21 +2328,20 @@ function limpiarFormularioAgenda(){
 async function guardarCita(){
   const when = $('#agCuando').value;
   if(!when){ toastMal(lwT('Falta la fecha y hora.')); return; }
-  const payload = {
-    id: EDITANDO_CITA || undefined,
-    phone: $('#agTelefono').value.replace(/[^0-9]/g, ''),
-    name: $('#agNombre').value.trim(),
-    title: lwT('Llamada de venta'),
-    when,
-    closer: $('#agCloser').value.trim(),
-    notes: $('#agNotas').value.trim(),
-  };
-  try {
-    await llamarBot('citas_guardar', payload);
-    toast(lwT(EDITANDO_CITA ? 'Cita actualizada.' : 'Cita agendada.'));
-    limpiarFormularioAgenda();
-    cargarAgenda();
-  } catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo guardar la cita: '))); }
+  /* `when` es hora de Bali (así lo interpreta la base). El lead sale del teléfono (exactamente uno) o de la cita que se edita;
+     la base decide si el closer puede agendar a nombre de otro. */
+  const { error } = await SB.rpc('crm_cita_guardar', {
+    p_id: EDITANDO_CITA || null,
+    p_telefono: $('#agTelefono').value.replace(/[^0-9]/g, ''),
+    p_cuando: when,
+    p_closer: $('#agCloser').value.trim() || null,
+    p_notas: $('#agNotas').value.trim() || null,
+    p_tipo: EDITANDO_TIPO,
+  });
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo guardar la cita: '))); return; }
+  toast(lwT(EDITANDO_CITA ? 'Cita actualizada.' : 'Cita agendada.'));
+  limpiarFormularioAgenda();
+  cargarAgenda();
 }
 
 async function borrarCita(id){
@@ -2199,12 +2350,14 @@ async function borrarCita(id){
      aqui desde el 11-sep y se cambia al pasar a traducir su texto. */
   const seguro = await lwConfirmar({
     titulo: lwT('Borrar esta cita'),
-    cuerpo: lwT('Si tiene evento de Calendar, se borra también.'),
-    confirmar: lwT('Borrar'), tono: 'peligro',
+    cuerpo: lwT('La cita se cierra y el bot podrá proponer otra al cliente si lo pide. No se avisa al cliente por WhatsApp.'),
+    confirmar: lwT('Cancelar la cita'), cancelar: lwT('Volver'), tono: 'peligro',
   });
   if(!seguro) return;
-  try { await llamarBot('citas_borrar', { id }); toast(lwT('Cita borrada.')); cargarAgenda(); }
-  catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo borrar: '))); }
+  /* «Borrar» CANCELA: la cita sale de la agenda y queda en el historial del lead (quién y cuándo). */
+  const { error } = await SB.rpc('crm_cita_cancelar', { p_id: id });
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo borrar: '))); return; }
+  toast(lwT('Cita cancelada.')); cargarAgenda();
 }
 
 /* ==========================================================================
@@ -2472,10 +2625,141 @@ $('#tTrazaCuentas').addEventListener('click', trazaAccion);
 $('#btnTrazaAlta').addEventListener('click', trazaAlta);
 $('#btnTrazaSync').addEventListener('click', trazaSync);
 
+/* ==========================================================================
+   VISTA — CONFIGURAR BOT (instrucciones extra, saludo, horas de pausa)
+   --------------------------------------------------------------------------
+   Datos de bot_config (Postgres) o, hasta el corte del bot sin Redis (S8), de Redis del
+   bot: lo decide la edge lawang-bot-proxy · permiso `bot_configurar`. La versión (`updatedAt`)
+   que se estaba viendo viaja al guardar: si otra persona cambió algo mientras tanto, la edge
+   devuelve 409 y no se pisa su cambio.
+   ========================================================================== */
+let CFG_VERSION = 0;
+function cfgMuestraError(msg){ const e = $('#cfgError'); e.textContent = msg || ''; e.hidden = !msg; }
+function cfgContadores(){
+  const nExtra = $('#cfgExtra').value.length, nBienv = $('#cfgBienvenida').value.length;
+  $('#cfgExtraN').textContent = lwT('%n de 2000 caracteres', { n: nExtra });
+  $('#cfgBienvenidaN').textContent = lwT('%n de 500 caracteres', { n: nBienv });
+}
+function cfgPinta(c, hayAnterior){
+  CFG_VERSION = c.updatedAt || 0;
+  $('#cfgExtra').value = c.extra || '';
+  $('#cfgBienvenida').value = c.bienvenida || '';
+  $('#cfgPausa').value = c.pausaHoras || 0;
+  cfgContadores();
+  $('#cfgEstado').textContent = c.updatedBy
+    ? lwT('Último cambio: %who, %cuando', { who: c.updatedBy, cuando: new Date(c.updatedAt).toLocaleString() })
+    : lwT('Todavía no se ha configurado nada: el bot funciona como siempre.');
+  $('#btnCfgVolver').disabled = !hayAnterior;
+}
+async function cargarConfig(){
+  cfgMuestraError('');
+  try {
+    const r = await llamarBot('config_get');
+    CARGADO.config = true;
+    cfgPinta(r.config || {}, !!(r.log && r.log.length));
+  } catch(err){
+    // «No he podido mirar» no es «no hay configuración»: se dice distinto y no se toca lo que había en pantalla.
+    cfgMuestraError(lwT('No se ha podido leer la configuración del bot: %e', { e: err.message }));
+  }
+}
+async function guardarConfig(){
+  cfgMuestraError('');
+  const btn = $('#btnCfgGuardar'); btn.disabled = true;
+  try {
+    const r = await llamarBot('config_set', {
+      config: { extra: $('#cfgExtra').value, bienvenida: $('#cfgBienvenida').value, pausaHoras: Number($('#cfgPausa').value) || 0 },
+      expectedUpdatedAt: CFG_VERSION,
+    });
+    cfgPinta(r.config || {}, true);
+    $('#cfgEstado').textContent = lwT('Guardado. El bot lo aplica en unos segundos.');
+  } catch(err){
+    cfgMuestraError(lwT('No se ha guardado: %e', { e: err.message }));
+  } finally { btn.disabled = false; }
+}
+async function volverConfig(){
+  if(!confirm(lwT('¿Volver a la versión anterior de la configuración?'))) return;
+  cfgMuestraError('');
+  try {
+    const r = await llamarBot('config_revert', { expectedUpdatedAt: CFG_VERSION });
+    cfgPinta(r.config || {}, true);
+    $('#cfgEstado').textContent = lwT('Restaurada la versión anterior.');
+  } catch(err){
+    cfgMuestraError(lwT('No se ha podido volver atrás: %e', { e: err.message }));
+  }
+}
+/* ---------- «Lo que sabe el bot» (solo lectura) ----------
+   Muestra lo que `bot_catalogo_leer()` entrega al bot — la MISMA función que usa su edge, no una copia de su
+   regla ni de su lista de columnas — vía `bot_catalogo_ver()`, que además cuenta cuántos proyectos hay abiertos
+   para distinguir los tres estados que NO pueden pintarse igual:
+     · hay unidades          -> la lista;
+     · vacío                 -> «no hay unidades publicadas» (con el motivo: ninguno abierto / abiertos sin disponibles);
+     · no he podido mirar    -> rojo, y se borra la lista (una lista vieja se leería como «esto sabe ahora»).
+   Los datos entran siempre por esc(); nada se interpreta como HTML. */
+let SABE_SEC = 0;   // la última petición manda: una respuesta lenta no pisa a una más nueva
+async function cargarSabe(){
+  const aviso = $('#sabeAviso'), cuerpo = $('#sabeCuerpo');
+  if(!aviso || !cuerpo) return;
+  const mia = ++SABE_SEC;
+  cuerpo.setAttribute('aria-busy', 'true');
+  const { data, error } = await SB.rpc('bot_catalogo_ver');
+  if(mia !== SABE_SEC) return;
+  cuerpo.removeAttribute('aria-busy');
+  if(error || !data || !Array.isArray(data.unidades)){
+    cuerpo.innerHTML = '';
+    aviso.className = 'aviso rojo'; aviso.hidden = false;
+    aviso.textContent = lwT('No se ha podido mirar lo que sabe el bot: %e. Esto no significa que no sepa nada, solo que no se ha podido comprobar.',
+      { e: error ? lwErrorHumano(error, '') : lwT('respuesta inesperada') });
+    return;
+  }
+  const un = data.unidades;
+  const cabo = [];
+  if(data.bot_conectado === false) cabo.push(lwT('La conexión del bot con la base todavía no está activada: esto es lo que verá cuando lo esté.'));
+  if(!un.length){
+    cuerpo.innerHTML = '';
+    aviso.className = 'aviso gris'; aviso.hidden = false;
+    aviso.textContent = (data.proyectos_abiertos > 0
+      ? lwT('No hay unidades publicadas: hay %n proyectos abiertos al bot, pero ninguna unidad disponible en ellos.', { n: data.proyectos_abiertos })
+      : lwT('No hay unidades publicadas: ningún proyecto está abierto al bot. Se abre desde la ficha de cada proyecto.'))
+      + (cabo.length ? ' ' + cabo.join(' ') : '');
+    return;
+  }
+  const grupos = new Map();
+  un.forEach(u => { if(!grupos.has(u.proyecto)) grupos.set(u.proyecto, []); grupos.get(u.proyecto).push(u); });
+  aviso.className = 'aviso gris'; aviso.hidden = !cabo.length; aviso.textContent = cabo.join(' ');
+  const celdaPorM2 = u => (u.tipo === 'parcela' && u.precio != null && Number(u.superficie_m2) > 0)
+    ? dinero(Number(u.precio) / Number(u.superficie_m2), u.moneda) + ' / m²' : '';
+  cuerpo.innerHTML =
+    '<p style="margin:0 0 12px"><span class="chip verde" data-lw="sabe-total">'
+      + esc(un.length === 1 && grupos.size === 1 ? lwT('1 unidad disponible en 1 proyecto') : lwT('%u unidades disponibles en %p proyectos', { u: un.length, p: grupos.size })) + '</span></p>'
+    + Array.from(grupos, ([nombre, filas]) => `
+      <details class="sabe-proy"${grupos.size <= 2 ? ' open' : ''}>
+        <summary><b>${esc(nombre)}</b> <span class="muted">· ${esc(filas.length === 1 ? lwT('1 unidad') : lwT('%n unidades', { n: filas.length }))}</span></summary>
+        <div class="tabla-scroll"><table class="tabla">
+          <thead><tr><th>${lwT('Código')}</th><th>${lwT('Tipo')}</th><th>${lwT('Modelo')}</th>
+            <th class="num">${lwT('Superficie')}</th><th class="num">${lwT('Precio')}</th><th class="num">${lwT('Precio por m²')}</th></tr></thead>
+          <tbody>${filas.map(u => `<tr>
+            <td>${esc(u.codigo)}</td><td>${esc(u.tipo)}</td><td>${esc(u.modelo || '')}</td>
+            <td class="num">${u.superficie_m2 != null ? esc(u.superficie_m2) + ' m²' : ''}</td>
+            <td class="num">${u.precio != null ? esc(dinero(u.precio, u.moneda)) : '<span class="muted">' + esc(lwT('lo confirma el equipo')) + '</span>'}</td>
+            <td class="num">${esc(celdaPorM2(u))}</td></tr>`).join('')}</tbody>
+        </table></div>
+      </details>`).join('');
+}
+$('#cfgExtra').addEventListener('input', cfgContadores);
+$('#cfgBienvenida').addEventListener('input', cfgContadores);
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-accion]');
+  if(!b) return;
+  if(b.dataset.accion === 'cfg-guardar') guardarConfig();
+  if(b.dataset.accion === 'cfg-volver') volverConfig();
+  if(b.dataset.accion === 'sabe-refrescar') cargarSabe();
+});
+
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb; YO = session && session.user; FICHA = ficha;
   const puedeClosers = !ficha || LW_ROL.esSuperGlobal(ficha) || (ficha.herramientas || []).includes('closers');
   $('#tabAgenda').hidden = !puedeClosers;
+  $('#tabConfig').hidden = !(!ficha || LW_ROL.esSuperGlobal(ficha) || (ficha.herramientas || []).includes('bot_configurar'));
   PUEDE_CLOSERS = puedeClosers;   // el boton «Agendar llamada» de la ficha del chat va detras de este permiso
   /* SOLO POR CASILLA, no por rol (decisión del owner, 11-sep-2026). La primera versión de
      esta línea dejaba pasar a cualquier `admin` por serlo, y eso metía en la tabla de

@@ -79,18 +79,19 @@
       doc('d16', 'pr3', 'Planos de la parcela', 'planos', { path: 'pr3/planos.pdf' }),
       doc('d17', 'pr4', 'Dossier de Riverfront II', 'comercial', { path: 'pr4/dossier.pdf' })
     ];
-    function h(es, en, timing, monto) { return { es: es, en: en, timing: timing, monto: monto }; }
+    // `fecha`: el vencimiento del hito, como lo trae `datos->hitos` en producción (Calendario, 9-oct-2026). Relativa a hoy, como todo aquí.
+    function h(es, en, timing, monto, fecha) { var x = { es: es, en: en, timing: timing, monto: monto }; if (fecha != null) x.fecha = dia(fecha); return x; }
     function c(id, numero, tipo, pid, parcela, precio, cobrado, firmado, hitos) {
       return { id: id, numero: numero, tipo: tipo, proyecto_id: pid, proyecto: NOMBRE[pid], parcela: parcela, precio: precio, cobrado: cobrado, moneda: 'USD',
         firmado: firmado, fecha_firma: firmado ? dia(-140) : null, pdf: firmado ? 'contratos/' + numero + '.pdf' : null, hitos: hitos };
     }
     var contratos = [
-      c('k1', 'P-07-BP', 'reserva_parcela', 'pr1', 'P-07', 38000, 38000, true, [h('Reserva', 'Reservation', 'A la firma', 19000), h('Escritura', 'Deed', '+90 días', 19000)]),
-      c('k2', 'P-07-CO', 'construccion', 'pr1', 'P-07', 126500, 40300, true, [h('Anticipo 20 %', 'Advance 20 %', 'A la firma', 25300), h('Cimentación', 'Foundation', 'Mes 3', 37950), h('Estructura', 'Structure', 'Mes 6', 37950), h('Entrega', 'Handover', 'Mes 12', 25300)]),
-      c('k3', 'SH-03-BP', 'reserva_parcela', 'pr2', 'SH-03', 52000, 52000, true, [h('Reserva', 'Reservation', 'A la firma', 52000)]),
+      c('k1', 'P-07-BP', 'reserva_parcela', 'pr1', 'P-07', 38000, 38000, true, [h('Reserva', 'Reservation', 'A la firma', 19000, -140), h('Escritura', 'Deed', '+90 días', 19000, -50)]),
+      c('k2', 'P-07-CO', 'construccion', 'pr1', 'P-07', 126500, 40300, true, [h('Anticipo 20 %', 'Advance 20 %', 'A la firma', 25300, -78), h('Cimentación', 'Foundation', 'Mes 3', 37950, 6), h('Estructura', 'Structure', 'Mes 6', 37950, 96), h('Entrega', 'Handover', 'Mes 12', 25300, 282)]),
+      c('k3', 'SH-03-BP', 'reserva_parcela', 'pr2', 'SH-03', 52000, 52000, true, [h('Reserva', 'Reservation', 'A la firma', 52000, -125)]),
       c('k4', 'SH-03-CO', 'construccion', 'pr2', 'SH-03', 98000, 0, false, [h('Anticipo 20 %', 'Advance 20 %', 'A la firma', 19600), h('Cimentación', 'Foundation', 'Mes 3', 29400), h('Estructura', 'Structure', 'Mes 6', 29400), h('Entrega', 'Handover', 'Mes 12', 19600)]),
-      c('k5', 'BV-01-BP', 'reserva_parcela', 'pr3', 'BV-01', 30000, 3000, true, [h('Reserva', 'Reservation', 'A la firma', 3000), h('Escritura', 'Deed', '+60 días', 27000)]),
-      c('k6', 'RF-02-BP', 'reserva_parcela', 'pr4', 'RF-02', 24000, 24000, true, [h('Reserva', 'Reservation', 'A la firma', 24000)]),
+      c('k5', 'BV-01-BP', 'reserva_parcela', 'pr3', 'BV-01', 30000, 3000, true, [h('Reserva', 'Reservation', 'A la firma', 3000, -33), h('Escritura', 'Deed', '+60 días', 27000, -5)]),
+      c('k6', 'RF-02-BP', 'reserva_parcela', 'pr4', 'RF-02', 24000, 24000, true, [h('Reserva', 'Reservation', 'A la firma', 24000, -200)]),
       // La Carta de Reserva de P-07, ya recogida en su Bloqueo y su Construcción: el caso «sustituida» de Contratos
       c('k7', 'P-07-CR', 'carta_reserva', 'pr1', 'P-07', 164500, 0, true, [h('Reserva', 'Reservation', 'A la firma', 5000)])
     ];
@@ -134,7 +135,8 @@
         { unidad: 'SH-03', proyecto: 'Sumba Hills', contrato_numero: 'SH-03-BP', fase: 'cimentacion', fecha_entrega: '2028-03-01', actualizado: dia(-9), fotos: fotosSH },
         { unidad: 'RF-02', proyecto: 'Riverfront II', contrato_numero: 'RF-02-BP', fase: 'entregada', fecha_entrega: dia(-20), actualizado: dia(-15), fotos: fotosRF }
       ],
-      kyc: [{ tipo: 'passport', subido: iso(-200), caduca: dia(13), path: 'kyc/pasaporte' }, { tipo: 'id', subido: iso(-200), caduca: dia(420), path: 'kyc/dni' }],
+      kyc: [{ tipo: 'passport', subido: iso(-200), caduca: dia(13), path: 'kyc/pasaporte' }, { tipo: 'kitas', subido: iso(-315), caduca: dia(50), path: 'kyc/kitas' },
+            { tipo: 'id', subido: iso(-200), caduca: dia(420), path: 'kyc/dni' }],
       // t3 espera al equipo (último mensaje del comprador) y t1 ya tiene respuesta: Soporte v2 enseña los dos turnos (8-oct-2026)
       tickets: [
         { id: 't3', categoria: 'Obra', estado: 'abierto', factura_id: null, contrato_id: 'k2', ref_numero: 'P-07-CO', actualizado_en: iso(-0.12),
@@ -188,6 +190,8 @@
       if (n === 'sociedades_visibles') return thenable(SOC);
       if (n === 'cuentas_cobro_visibles') return thenable([]);
       if (n === 'portal_marcar_notificaciones_leidas') { D.prefs.notif_visto_hasta = new Date().toISOString(); return ok(null); }
+      if (n === 'portal_get_color_avatar') return ok(D.color_avatar || 'petroleo');
+      if (n === 'portal_set_color_avatar') { D.color_avatar = a.p_color; return ok(null); }
       if (n === 'portal_set_prefs') { D.prefs.pref_email = !!a.p_pref_email; D.prefs.pref_sms = !!a.p_pref_sms; return ok(null); }
       if (n === 'portal_abrir_ticket') {
         var r = refDe(a), id = 't' + (D.tickets.length + 1) + '-' + Date.now();

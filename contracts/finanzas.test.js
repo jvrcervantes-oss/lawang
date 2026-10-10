@@ -346,4 +346,32 @@ caso('por closer: la raíz decide el closer, la Carta no suma precio y la suma d
   assert.strictEqual(f.reduce((a, x) => a + x.cobradoAnio, 0), cob.anio);
 });
 
+caso('suelo/obra: la Carta hereda la familia de su Bloqueo y suelo + obra + sin familia = todo', () => {
+  const base = { moneda: 'EUR', bloqueado: true, proyecto_nombre: 'P1' };
+  const contratos = [
+    { ...base, id: 'b1', tipo: 'reserva_parcela', precio_total: 100000 },
+    { ...base, id: 'c1', tipo: 'carta_reserva', precio_total: 5000, contrato_padre_id: 'b1' },
+    { ...base, id: 'o1', tipo: 'construccion', precio_total: 300000 },
+    { ...base, id: 'g1', tipo: 'contrato_general', precio_total: 7000 },
+  ];
+  const recibis = [
+    { contrato_id: 'c1', total: 5000, moneda: 'EUR', fecha: '2026-09-01' },
+    { contrato_id: 'b1', total: 20000, moneda: 'EUR', fecha: '2026-09-02' },
+    { contrato_id: 'o1', total: 50000, moneda: 'EUR', fecha: '2026-09-03' },
+    { contrato_id: 'g1', total: 1000, moneda: 'EUR', fecha: '2026-09-04' },
+    { contrato_id: null, total: 300, moneda: 'EUR', fecha: '2026-09-05' },
+  ];
+  const e = { hoyISO: HOY, contratos, cobradoPorId: { b1: 25000, c1: 0, o1: 50000, g1: 1000 }, vencimientos: [], recibis, facturas: [], unidades: [{ proyecto: 'P1', estado: 'disponible', precio: 10, moneda: 'EUR' }] };
+  const anio = x => F.finModelo(x).porMoneda.EUR.cobros.anio;
+  const suelo = F.finFiltraFamilia(e, 'suelo'), obra = F.finFiltraFamilia(e, 'obra');
+  assert.deepStrictEqual(suelo.contratos.map(c => c.id).sort(), ['b1', 'c1']);   // la Carta cuenta con su Bloqueo
+  assert.deepStrictEqual(obra.contratos.map(c => c.id), ['o1']);
+  assert.strictEqual(anio(suelo), 25000);
+  assert.strictEqual(anio(obra), 50000);
+  assert.strictEqual(anio(e) - anio(suelo) - anio(obra), 1300);                  // contrato general + recibí sin contrato: solo en «Todo»
+  assert.strictEqual(F.finFiltraFamilia(e, 'todo'), e);                           // «Todo» no toca nada
+  assert.strictEqual(suelo.unidades, null);                                       // el stock no se reparte por familia
+  assert.strictEqual(suelo.noSeReparte, true);
+});
+
 console.log('finanzas.test.js OK — ' + n + ' casos');

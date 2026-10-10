@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { reinicia, CONFIG_BASE } from './arnes.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
+/** Claves de PLANTILLAS que sirve UNA sola instancia y que estas pruebas comunes no recorren (su catálogo no está en la migración común):
+ *  la de «Reclamar pago» de Lawang tiene su propia prueba (reclamo_pago.test.js, solo en Lawang). Vacía de efecto en el maestro. */
+export const SOLO_LAWANG = ['reclamo_pago'];
 export const MIGRACION = '20261002100000_correo_plantillas.sql';
 
 /** Ruta de la migración de plantillas en ESTE repo (Lawang: supabase/migrations · maestro: erp/migraciones). */

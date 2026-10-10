@@ -162,7 +162,7 @@
          pendiente de la original, facturas_pendiente_equipo) y no tiene fila de pendiente propia. */
       facturas: d.fallos.pendiente ? [] : facturas.filter(function (f) { return f.tipo === 'factura' && !f.rectifica_id; }).map(function (f) {
         var c = f.contrato_id && firmado.hasOwnProperty(f.contrato_id) ? firmado[f.contrato_id] : null;
-        return { tipo: f.tipo, sociedad: f.sociedad, moneda: f.moneda, anulada: f.anulada, venc: f.venc, fecha_emision: f.fecha_emision, pendiente: f.id in pend ? pend[f.id] : null, contrato_firmado: c };
+        return { tipo: f.tipo, sociedad: f.sociedad, moneda: f.moneda, anulada: f.anulada, venc: f.venc, fecha_emision: f.fecha_emision, pendiente: f.id in pend ? pend[f.id] : null, contrato_firmado: c, contrato_id: f.contrato_id };
       }),
       unidades: d.unidades || [],
       solicitudes: d.solicitudes == null ? null : d.solicitudes,
@@ -428,7 +428,7 @@
     var el = $('lw-fin-stock'); if (!el) return;
     if (d.fallos.unidades) { falloEn(el, T('las unidades')); return; }
     var s = pm.stock, m = pm.moneda;
-    if (MODELO_ACTUAL && MODELO_ACTUAL.noSeReparte) { vacio(el, T('El stock no se reparte por sociedad: una unidad no tiene sociedad hasta que se vende. Quita el filtro para verlo.')); return; }
+    if (MODELO_ACTUAL && MODELO_ACTUAL.noSeReparte) { vacio(el, T(MODELO_ACTUAL.familia && MODELO_ACTUAL.familia !== 'todo' ? 'El stock no se reparte entre suelo y obra. Quita el filtro para verlo.' : 'El stock no se reparte por sociedad: una unidad no tiene sociedad hasta que se vende. Quita el filtro para verlo.')); return; }
     if (!s) { vacio(el, T('Ninguna unidad con precio en') + ' ' + m + '.'); return; }
     var estados = ORDEN_STOCK.filter(function (k) { return s.estados[k]; }).concat(Object.keys(s.estados).filter(function (k) { return ORDEN_STOCK.indexOf(k) === -1; }));
     var h = '<table class="w-full text-left border-collapse"><thead><tr class="border-b border-outline-variant/60">' +
@@ -443,6 +443,30 @@
     }).join('') + '</tbody></table>';
     if (s.sinPrecio) h += '<p class="mt-3 font-body-sm text-body-sm text-outline">' + esc(num(s.sinPrecio) + ' ' + T('unidades sin precio no suman valor.')) + '</p>';
     el.innerHTML = h;
+  }
+
+  /* Estado de cuentas en resumen: una tarjeta por proyecto con las cuatro
+     cifras que el cliente pregunta (cartera, cobrado, por cobrar, vencido). Sale
+     de pm.porProyecto, la MISMA fuente que la tabla «Por proyecto»: no recalcula
+     nada, así las dos pantallas no pueden discrepar. Solo proyectos con cartera:
+     uno con solo stock no tiene cuentas que enseñar. */
+  function pintaEstado(pm, d) {
+    var el = $('lw-fin-estado'); if (!el) return;
+    if (d.fallos.contratos || d.fallos.cobrado || d.fallos.vencimientos) { el.innerHTML = '<p class="py-6 text-center text-error">' + esc(T('No se pudo cargar la cartera ni las unidades.')) + '</p>'; return; }
+    var m = pm.moneda, filas = (pm.porProyecto || []).filter(function (p) { return (p.cartera || 0) > 0 || (p.cobrado || 0) > 0; });
+    if (!filas.length) { el.innerHTML = '<p class="py-6 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Ningún proyecto con contratos firmados ni stock en') + ' ' + m + '.') + '</p>'; return; }
+    var cifra = function (rot, v, mal) {
+      return '<div class="flex items-baseline justify-between gap-3 py-1.5 border-t border-outline-variant/30"><span class="font-body-sm text-body-sm text-on-surface-variant">' + esc(T(rot)) + '</span>' +
+        '<span class="fin-num font-label-md text-label-md' + (mal ? ' text-error' : ' text-on-surface') + '">' + esc(fmt(v, m)) + '</span></div>';
+    };
+    el.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">' + filas.map(function (p) {
+      var pc = p.pctCobrado == null ? null : Math.min(100, p.pctCobrado);
+      return '<article class="rounded-xl border border-outline-variant/40 bg-surface-container-low p-5">' +
+        '<h3 class="font-label-md text-label-md text-deep-lagoon mb-3">' + esc(p.proyecto) + '</h3>' +
+        cifra('Cartera', p.cartera) + cifra('Cobrado', p.cobrado) + cifra('Por cobrar', p.pendiente) + cifra('Vencido', p.vencido, p.vencido > 0) +
+        '<div class="mt-3 flex items-center gap-2"><span class="flex-1 h-1.5 rounded-full bg-surface-container overflow-hidden"><span class="block h-full" style="width:' + (pc == null ? 0 : pc) + '%;background:#104C4F"></span></span>' +
+        '<span class="fin-num font-body-sm text-body-sm text-on-surface-variant">' + (pc == null ? '—' : esc(String(p.pctCobrado).replace('.', ',')) + ' %') + '</span></div></article>';
+    }).join('') + '</div>';
   }
 
   function pintaProyectos(pm, d) {
@@ -578,7 +602,7 @@
   function pintaSalidas(pm, d) {
     var el = $('lw-fin-salidas'); if (!el) return;
     var m = pm.moneda, filas = [], total = 0, faltan = [];
-    if (MODELO_ACTUAL && MODELO_ACTUAL.noSeReparte) faltan.push(T('Las comisiones no se reparten por sociedad.'));
+    if (MODELO_ACTUAL && MODELO_ACTUAL.noSeReparte) faltan.push(T(MODELO_ACTUAL.familia && MODELO_ACTUAL.familia !== 'todo' ? 'Las comisiones no se reparten entre suelo y obra.' : 'Las comisiones no se reparten por sociedad.'));
     else if (d.fallos.solicitudes || d.fallos.comisiones) faltan.push(T('No se pudieron leer las solicitudes y comisiones.'));
     else {
       var s = pm.salidas;
@@ -705,6 +729,8 @@
       var RAW = normaliza(d, hoy);
       var EMPRESA = lee('lw_fin_empresa', 'todas');
       var SIN_FIRMAR = lee('lw_fin_sin_firmar', '0') === '1';
+      var FAMILIA = lee('lw_fin_familia', 'todo'); if (FAMILIA !== 'suelo' && FAMILIA !== 'obra') FAMILIA = 'todo';
+      var PESTANA = lee('lw_fin_pestana', 'estado');
       var SOC_LISTA = false;           // ¿llegó ya la sociedad de cada contrato?
       var MODELO = null, MON = null;
 
@@ -713,9 +739,10 @@
          sociedad de los contratos cargada no se filtra: se ve «Todas». */
       function recalcula() {
         var empresa = SOC_LISTA ? EMPRESA : 'todas';
-        var entrada = finFiltraEmpresa(RAW, empresa);
+        var entrada = finFiltraFamilia(finFiltraEmpresa(RAW, empresa), FAMILIA);
         entrada.incluirSinFirmar = SIN_FIRMAR;
         MODELO = finModelo(entrada);
+        MODELO.familia = FAMILIA;   // para que los avisos de «no se reparte» nombren el filtro que de verdad está puesto
         MODELO_ACTUAL = MODELO; EMPRESA_CSV = empresa; SIN_FIRMAR_CSV = SIN_FIRMAR;
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.finanzas = MODELO;   // para depurar desde consola
         if (!MON || (MODELO.monedas.length && MODELO.monedas.indexOf(MON) === -1)) {
@@ -734,6 +761,7 @@
           return '<button type="button" class="fin-chip" data-real data-moneda="' + esc(m) + '" aria-pressed="' + (m === MON) + '">' + esc(m) + '</button>';
         }).join('');
         if (bSin) bSin.setAttribute('aria-pressed', String(SIN_FIRMAR));
+        Array.prototype.forEach.call(document.querySelectorAll('[data-familia]'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-familia') === FAMILIA)); });
       }
       /* Lo que cambia el SIGNIFICADO de las cifras se dice en fijo, no en un
          toast: quien mira la pantalla tiene que saber qué está viendo. */
@@ -742,13 +770,27 @@
         var t = [];
         if (SIN_FIRMAR) t.push(T('Incluye contratos SIN FIRMAR: la cartera y la previsión suman borradores, que todavía no son un compromiso. Útil mientras dure el alta de histórico.'));
         if (SOC_LISTA && EMPRESA !== 'todas') t.push(T('Viendo solo') + ' ' + nombreSociedad(EMPRESA) + '. ' + T('El stock y las comisiones no se reparten por sociedad.'));
+        if (FAMILIA !== 'todo') t.push(T(FAMILIA === 'suelo' ? 'Viendo solo SUELO (Bloqueo de Parcela y su Carta de Reserva).' : 'Viendo solo OBRA (Construcción).') + ' ' + T('El stock, los gastos, las comisiones y los contratos sin familia no se reparten entre suelo y obra.'));
         caja.innerHTML = t.map(function (x) {
           return '<div role="status" class="rounded-xl border border-deep-lagoon/30 bg-secondary-container/30 px-5 py-3 flex items-start gap-3 font-body-sm text-body-sm text-on-surface">' +
             '<span class="material-symbols-outlined text-[20px] text-deep-lagoon shrink-0">filter_alt</span><p>' + esc(x) + '</p></div>';
         }).join('');
         pon('t-pendiente', T(SIN_FIRMAR ? 'Contratado por cobrar' : 'Firmado por cobrar'));
       }
+      /* Pestañas: solo muestran u ocultan paneles ya pintados. Al abrir un panel se
+         repinta porque el gráfico de caja mide su contenedor y, oculto, mide 0. */
+      var PANELES = ['estado', 'caja', 'proyecto', 'otros'];
+      function muestraPestana(n) {
+        if (PANELES.indexOf(n) === -1) n = 'estado';
+        PESTANA = n;
+        PANELES.forEach(function (k) {
+          var pan = document.getElementById('lw-fin-p-' + k), tab = document.getElementById('lw-fin-t-' + k);
+          if (pan) pan.hidden = k !== n;
+          if (tab) { tab.setAttribute('aria-selected', String(k === n)); tab.tabIndex = k === n ? 0 : -1; }
+        });
+      }
       function pintaTodo() {
+        muestraPestana(PESTANA);
         var pm = MODELO.porMoneda[MON] || { moneda: MON, porProyecto: [] };
         pintaChips();
         pintaModo();
@@ -758,6 +800,7 @@
         pintaFacturado(pm, d);
         pintaTrimestres(pm, d);
         pintaStock(pm, d);
+        pintaEstado(pm, d);
         pintaProyectos(pm, d);
         pintaCloser(pm, d);
         pintaBancos(d);
@@ -776,6 +819,19 @@
         var b = ev.target.closest && ev.target.closest('[data-moneda]'); if (!b) return;
         MON = b.getAttribute('data-moneda'); guarda('lw_fin_moneda', MON);
         pintaTodo();
+      });
+      var barraTabs = $('lw-fin-pestanas');
+      if (barraTabs) barraTabs.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-fin-tab]'); if (!b) return;
+        guarda('lw_fin_pestana', b.getAttribute('data-fin-tab'));
+        PESTANA = b.getAttribute('data-fin-tab');
+        pintaTodo();
+      });
+      var grupoFam = $('lw-fin-familias');
+      if (grupoFam) grupoFam.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-familia]'); if (!b) return;
+        FAMILIA = b.getAttribute('data-familia'); guarda('lw_fin_familia', FAMILIA);
+        repinta();
       });
       if (bSin) bSin.addEventListener('click', function () {
         SIN_FIRMAR = !SIN_FIRMAR; guarda('lw_fin_sin_firmar', SIN_FIRMAR ? '1' : '0');
@@ -800,12 +856,21 @@
         if (cab) cab.textContent = T('Informe de finanzas') + ' · ' + hoy + ' · ' + MON + (SOC_LISTA && EMPRESA !== 'todas' ? ' · ' + nombreSociedad(EMPRESA) : '') + (SIN_FIRMAR ? ' · ' + T('incluye sin firmar') : '');
         window.print();
       });
+      /* Al imprimir salen TODAS las pestañas (el CSS @media print las muestra). El gráfico
+         de caja mide su contenedor y, si su panel estaba oculto, se pintó a 300 px: se
+         redibuja con el panel ya visible, y al terminar se vuelve a la pestaña de antes.
+         Va en beforeprint/afterprint y no en el botón para cubrir también Ctrl+P. */
+      window.addEventListener('beforeprint', function () {
+        PANELES.forEach(function (k) { var pan = document.getElementById('lw-fin-p-' + k); if (pan) pan.hidden = false; });
+        var c = $('lw-fin-caja'); if (c && SERIE) dibujaCaja(c, MON, d.fallos.contratos || d.fallos.cobrado || d.fallos.vencimientos);
+      });
+      window.addEventListener('afterprint', function () { muestraPestana(PESTANA); });
       var bCsv = $('lw-fin-csv');
       if (bCsv) bCsv.addEventListener('click', function () { exportaCSV(MODELO.porMoneda[MON] || { moneda: MON }, hoy); });
       var tRes = null;
       window.addEventListener('resize', function () {
         clearTimeout(tRes);
-        tRes = setTimeout(function () { var c = $('lw-fin-caja'); if (c && SERIE) dibujaCaja(c, MON, d.fallos.contratos || d.fallos.cobrado || d.fallos.vencimientos); }, 150);
+        tRes = setTimeout(function () { var c = $('lw-fin-caja'); if (c && SERIE && c.clientWidth > 0) dibujaCaja(c, MON, d.fallos.contratos || d.fallos.cobrado || d.fallos.vencimientos); }, 150);
       });
       pintaTodo();
 

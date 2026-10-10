@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="leads">
 <head>
-<meta name="lw-version" content="62150128a6f5">
+<meta name="lw-version" content="664a86e204ff">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -75,8 +75,8 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=e65a4589"></script>
-<script src="/contracts/assets/herramientas.js?v=e627e560"></script>
+<script src="/contracts/assets/i18n.js?v=203b420b"></script>
+<script src="/contracts/assets/herramientas.js?v=15317b6f"></script>
 <script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script>
 <!-- Cromo v4 (27-sep-2026): fuentes de la v4 solo para el menú y la cabecera, su
      hoja, y los tres scripts EN ESTE ORDEN (defer respeta el orden): cabecera.js
@@ -87,11 +87,11 @@
 <link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=032139e5">
 <script src="/intranet/v4/assets/cabecera.js?v=977208e4" defer></script>
 <script src="/intranet/v4/assets/nav-montaje.js?v=2c463182" defer></script>
-<script src="/intranet/v4/assets/nav.js?v=d61bfe3a" defer></script>
+<script src="/intranet/v4/assets/nav.js?v=623417f8" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/roles.js?v=11bd025d"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=56bb3760" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
-<link rel="stylesheet" href="/intranet/leads/leads.css?v=12">
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=15">
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
@@ -139,6 +139,7 @@
     <span class="crm-nav-sep" aria-hidden="true" data-lwt="· WhatsApp Bot">· WhatsApp Bot</span>
     <button role="tab" data-v="setter" aria-selected="false"><i class="ph ph-robot"></i><span data-lwt>Setter IA</span></button>
     <button role="tab" data-v="agenda" aria-selected="false" id="tabAgenda" hidden><i class="ph ph-video-camera"></i><span data-lwt>Agenda</span></button>
+    <button role="tab" data-v="config" aria-selected="false" id="tabConfig" hidden><i class="ph ph-sliders-horizontal"></i><span data-lwt>Configurar bot</span></button>
     <!-- Separador propio: esto no es seguimiento de leads, es rendimiento de personas, y
          va detrás del permiso `ranking`, no de `leads`. Con ocho comerciales, el ticket
          medio por el número devuelve el importe exacto de cada contrato — no es una tabla
@@ -289,20 +290,69 @@
     </div>
   </section>
 
+  <!-- ======================= CONFIGURAR BOT ============================= -->
+  <!-- 8-oct-2026 (owner): instrucciones extra, saludo y horas de pausa del bot de WhatsApp, sin redesplegar.
+       Va detrás del permiso `bot_configurar` (lo que se escribe aquí lo lee el bot en TODAS las conversaciones).
+       Datos en bot_config (Postgres; hasta el corte del bot sin Redis, S8, aún en Redis del bot: lo decide el
+       interruptor BOT_CONFIG_STORE de la edge), vía lawang-bot-proxy (config_get / config_set / config_revert); el navegador
+       no conoce la clave del bot ni escribe en la base. Enganche por data-accion, nunca por rótulo. -->
+  <section class="crm-vista" id="v-config" hidden>
+    <div class="aviso gris" data-lwt="Lo que escribes aquí lo lee el bot en TODAS las conversaciones. No pegues teléfonos, correos ni datos de personas. Los cambios se aplican en unos segundos.">
+      Lo que escribes aquí lo lee el bot en TODAS las conversaciones. No pegues teléfonos, correos ni datos de personas. Los cambios se aplican en unos segundos.
+    </div>
+    <div class="aviso rojo" id="cfgError" role="alert" hidden></div>
+    <div class="caja" style="margin:16px 0">
+      <header><div><h2 data-lwt="Instrucciones extra">Instrucciones extra</h2><p data-lwt="Tono, qué ofrecer, qué no decir, promociones del momento. Se suma a lo que el bot ya sabe y no puede contradecir sus reglas de honestidad.">Tono, qué ofrecer, qué no decir, promociones del momento. Se suma a lo que el bot ya sabe y no puede contradecir sus reglas de honestidad.</p></div></header>
+      <div style="padding:16px">
+        <textarea id="cfgExtra" data-lw="cfg-extra" maxlength="2000" rows="8" style="width:100%"></textarea>
+        <div class="muted" id="cfgExtraN" style="font-size:12px;margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="caja" style="margin-bottom:16px">
+      <header><div><h2 data-lwt="Saludo de bienvenida">Saludo de bienvenida</h2><p data-lwt="Cómo abre el bot la primera conversación. Lo adapta al idioma del cliente y a lo que haya escrito, y responde a su pregunta a continuación.">Cómo abre el bot la primera conversación. Lo adapta al idioma del cliente y a lo que haya escrito, y responde a su pregunta a continuación.</p></div></header>
+      <div style="padding:16px">
+        <textarea id="cfgBienvenida" data-lw="cfg-bienvenida" maxlength="500" rows="3" style="width:100%"></textarea>
+        <div class="muted" id="cfgBienvenidaN" style="font-size:12px;margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="caja" style="margin-bottom:16px">
+      <header><div><h2 data-lwt="Cuándo vuelve el bot">Cuándo vuelve el bot</h2><p data-lwt="Horas que el bot se queda callado en un chat después de que una persona escriba (desde la app o desde el panel). 0 = 72 h: toda pausa caduca sola. Solo la baja (STOP) no vuelve. Solo afecta a las pausas nuevas.">Horas que el bot se queda callado en un chat después de que una persona escriba (desde la app o desde el panel). 0 = 72 h: toda pausa caduca sola. Solo la baja (STOP) no vuelve. Solo afecta a las pausas nuevas.</p></div></header>
+      <div style="padding:16px">
+        <label for="cfgPausa" data-lwt="Horas">Horas</label>
+        <input type="number" id="cfgPausa" data-lw="cfg-pausa" min="0" max="720" step="1" value="0" style="width:120px">
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <button class="btn" id="btnCfgGuardar" data-accion="cfg-guardar" type="button" data-lwt="Guardar cambios">Guardar cambios</button>
+      <button class="btn sec" id="btnCfgVolver" data-accion="cfg-volver" type="button" data-lwt="Volver a la versión anterior">Volver a la versión anterior</button>
+      <span class="muted" id="cfgEstado" role="status" style="font-size:13px"></span>
+    </div>
+
+    <!-- «Lo que sabe el bot» (S7, 9-oct-2026): SOLO LECTURA. Lo que entrega bot_catalogo_leer() al bot, vía bot_catalogo_ver().
+         Para abrir o cerrar un proyecto al bot: su ficha en /intranet/v4/proyectos/ (botón «Bot de WhatsApp»), nunca aquí. -->
+    <div class="caja" style="margin-top:24px" data-lw="sabe-bot">
+      <header>
+        <div><h2 data-lwt="Lo que sabe el bot">Lo que sabe el bot</h2>
+          <p data-lwt="Las unidades, con precio y superficie, de los proyectos abiertos al bot. Solo lectura: se abre o se cierra un proyecto desde su ficha. Nunca incluye datos de clientes ni de contratos.">Las unidades, con precio y superficie, de los proyectos abiertos al bot. Solo lectura: se abre o se cierra un proyecto desde su ficha. Nunca incluye datos de clientes ni de contratos.</p></div>
+        <button class="btn sec" type="button" data-accion="sabe-refrescar" data-lwt="Refrescar">Refrescar</button>
+      </header>
+      <div style="padding:16px">
+        <div class="aviso gris" id="sabeAviso" role="status" hidden></div>
+        <div id="sabeCuerpo" data-lw="sabe-cuerpo"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ======================= AGENDA DE CIERRE =========================== -->
   <section class="crm-vista" id="v-agenda" hidden>
     <div class="kpis" id="kpis-agenda"></div>
-    <div class="aviso gris" id="avisoAgendaMeet" hidden data-lwt="El enlace de Google Meet se genera solo en cuanto el estudio active el acceso de Google Workspace. Hasta entonces, la cita se agenda igual — el closer comparte su propio enlace con el lead.">
-      El enlace de Google Meet se genera solo en cuanto el estudio active el acceso de Google Workspace. Hasta entonces, la cita se agenda igual — el closer comparte su propio enlace con el lead.
-    </div>
     <div class="caja" style="margin-bottom:16px">
       <header><div><h2 data-lwt="Nueva cita">Nueva cita</h2><p data-lwt="Agenda la llamada de venta de un lead con su closer.">Agenda la llamada de venta de un lead con su closer.</p></div></header>
       <div style="padding:16px">
         <input type="hidden" id="agCitaId">
         <div class="fila-campos">
           <div class="campo"><label for="agTelefono" data-lwt="Teléfono del lead">Teléfono del lead</label><input type="tel" id="agTelefono" placeholder="+34600000000"></div>
-          <div class="campo"><label for="agNombre" data-lwt="Nombre">Nombre</label><input type="text" id="agNombre" data-lwt-ph placeholder="Nombre del lead"></div>
-          <div class="campo"><label for="agCuando" data-lwt="Fecha y hora">Fecha y hora</label><input type="datetime-local" id="agCuando"></div>
+          <div class="campo"><label for="agCuando"><span data-lwt="Fecha y hora">Fecha y hora</span> · <span data-lwt="hora de Bali">hora de Bali</span></label><input type="datetime-local" id="agCuando"></div>
           <div class="campo"><label for="agCloser" data-lwt="Closer">Closer</label><input type="email" id="agCloser" data-lwt-ph placeholder="vacío = tú mismo"></div>
         </div>
         <div class="campo"><label for="agNotas" data-lwt="Notas">Notas</label><input type="text" id="agNotas" data-lwt-ph placeholder="Contexto para quien atienda la llamada"></div>
@@ -408,6 +458,6 @@
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=17c1b0e9"></script>
 <script src="/intranet/leads/buscador.js?v=1"></script>
-<script src="/intranet/leads/leads.js?v=21"></script>
+<script src="/intranet/leads/leads.js?v=25"></script>
 </body>
 </html>

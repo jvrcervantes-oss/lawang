@@ -1,0 +1,230 @@
+/* Test de la pestaña Calendario del portal. `node calendario.test.js`. Lo corre tools/test.py, y con él el gate de push.
+
+   Lo que vigila es lo que la revisión previa del 9-oct-2026 dijo que se rompería:
+   · la Carta sustituida no repite en el calendario los pagos de su Bloqueo (Datos);
+   · «vencida» sale de la factura, no de la fecha: un hito con fecha pasada sin factura no se pinta vencido, y una
+     factura cubierta por un recibí sin aplicar no sale vencida (la regla de Inicio y Facturas);
+   · un borrador no aparece; un hito sin fecha no se coloca pero se cuenta;
+   · las fechas son días locales, sin el desfase de un día de `new Date('AAAA-MM-DD')`;
+   · el texto llega tal cual (sin HTML montado aquí) y el enlace de firma con su token no aparece en ningún evento (Seguridad).
+
+   `estadosHitos` y `num` viven en index.html: se sacan de su código y se evalúan, no se copian — una copia en el test
+   pasaría aunque la pantalla cambiara la regla. */
+const path = require('path');
+const fs = require('fs');
+
+const AQUI = __dirname;
+const RAIZ = path.join(__dirname, '..');
+const dinero = require(path.join(RAIZ, 'contracts', 'assets', 'dinero.js'));
+global.lwParseImporte = dinero.lwParseImporte;
+const voc = fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'vocabulario.js'), 'utf8');
+new Function(voc + '; globalThis.lwEsPreliminar = lwEsPreliminar;')();
+
+const R = require(path.join(AQUI, 'resumen.js'));
+const C = require(path.join(AQUI, 'calendario.js'));
+
+function sacaFuncion(src, nombre){
+  const i = src.indexOf('function ' + nombre + '(');
+  if (i < 0) throw new Error('no encuentro ' + nombre + ' en index.html');
+  let j = src.indexOf('{', i), n = 0;
+  for (let k = j; k < src.length; k++){
+    if (src[k] === '{') n++;
+    else if (src[k] === '}' && --n === 0) return src.slice(i, k + 1);
+  }
+  throw new Error('llaves sin cerrar en ' + nombre);
+}
+const html = fs.readFileSync(path.join(AQUI, 'index.html'), 'utf8');
+const estadosHitos = new Function(sacaFuncion(html, 'num') + '\n' + sacaFuncion(html, 'estadosHitos') + '\nreturn estadosHitos;')();
+const DEP = Object.assign({}, R, { estadosHitos: estadosHitos });
+/* `obraProyecto` lee el DATOS de la página: se evalúa con el DATOS de cada caso. */
+const obraProyectoDe = new Function('DATOS', sacaFuncion(html, 'obraProyecto') + '\nreturn obraProyecto;');
+const dep = datos => Object.assign({}, DEP, { obraProyecto: obraProyectoDe(datos) });
+
+let fallos = 0;
+const es = (que, dio, esperado) => {
+  const ok = JSON.stringify(dio) === JSON.stringify(esperado);
+  if (!ok){ fallos++; console.error(`  FALLA  ${que}\n         dio ${JSON.stringify(dio)} · esperaba ${JSON.stringify(esperado)}`); }
+};
+
+const HOY = new Date(2026, 9, 9, 10, 0);   // 9-oct-2026, 10:00 local
+
+/* ── fechas ─────────────────────────────────────────────────────────── */
+es('diaCal de una cadena de fecha no se va al día anterior', C.diaCal('2026-10-14'), '2026-10-14');
+es('diaCal de un Date local', C.diaCal(new Date(2026, 0, 3, 23, 59)), '2026-01-03');
+es('diaCal vacío', C.diaCal(''), null);
+es('diaCal ilegible', C.diaCal('mañana'), null);
+es('diasEntre cruza el cambio de hora', C.diasEntre('2026-10-20', '2026-11-03'), 14);
+es('lunesDe un domingo', C.lunesDe('2026-10-11'), '2026-10-05');
+es('rejilla de octubre 2026 empieza el lunes 28-sep', C.rejillaMes(2026, 9)[0], '2026-09-28');
+es('rejilla de octubre 2026 tiene 5 semanas', C.rejillaMes(2026, 9).length, 35);
+es('rejilla de marzo 2026 tiene 6 semanas', C.rejillaMes(2026, 2).length, 42);
+
+/* ── el comprador de prueba: Carta + Bloqueo + Construcción de la misma villa (el caso P-07 de la demo) ── */
+const h = (es, fecha, monto) => ({ es: es, en: es, timing: '', fecha: fecha, monto: monto });
+const datos = {
+  contratos: [
+    { id: 'cr', numero: 'P-07-CR', tipo: 'carta_reserva', proyecto: 'Palm Field W5', parcela: 'P-07', precio: 164500, cobrado: 0, moneda: 'USD', firmado: true,
+      hitos: [h('Reserva', '2026-05-01', 5000), h('Resto', '2026-11-01', 159500)] },
+    { id: 'bp', numero: 'P-07-BP', tipo: 'reserva_parcela', proyecto: 'Palm Field W5', parcela: 'P-07', precio: 38000, cobrado: 38000, moneda: 'USD', firmado: true,
+      hitos: [h('Reserva', '2026-06-01', 19000), h('Escritura', '2026-09-01', 19000)] },
+    { id: 'co', numero: 'P-07-CO', tipo: 'construccion', proyecto: 'Palm Field W5', parcela: 'P-07', precio: 126500, cobrado: 40300, moneda: 'USD', firmado: true,
+      hitos: [h('Anticipo 20 %', '2026-07-01', 25300), h('Cimentación', '2026-10-15', 37950), h('Estructura', '2027-01-06', 37950), h('Entrega <img src=x onerror=alert(1)>', null, 25300)] },
+    { id: 'bv', numero: 'BV-01-BP', tipo: 'reserva_parcela', proyecto: 'Bonian Village', parcela: 'BV-01', precio: 30000, cobrado: 3000, moneda: 'USD', firmado: true,
+      hitos: [h('Reserva', '2026-08-01', 3000), h('Escritura', '2026-10-04', 27000)] },
+    { id: 'sh', numero: 'SH-03-CO', tipo: 'construccion', proyecto: 'Sumba Hills', parcela: 'SH-03', precio: 98000, cobrado: 0, moneda: 'USD', firmado: false,
+      hitos: [h('Anticipo 20 %', '2026-10-20', 19600)] },
+  ],
+  facturas: [
+    // el anticipo, facturado y saldado por su recibí: sin él, el cobrado de P-07-CO quedaría «sin aplicar» y cubriría la cimentación
+    { id: 'f3', numero: 'LW-0131', tipo: 'factura', contrato_id: 'co', contrato_numero: 'P-07-CO', fecha: '2026-06-28', total: 25300, moneda: 'USD', aplicado: 25300,
+      lineas: [{ descripcion: 'Anticipo 20 %', importe: 25300 }], fields: { fecha_vencimiento: '2026-07-01' } },
+    { id: 'f1', numero: 'LW-0142', tipo: 'factura', contrato_id: 'co', contrato_numero: 'P-07-CO', fecha: '2026-10-06', total: 37950, moneda: 'USD', aplicado: 15000,
+      lineas: [{ descripcion: 'Cimentación', importe: 37950 }], fields: { fecha_vencimiento: '2026-10-15' } },
+    { id: 'f8', numero: 'LW-0147', tipo: 'factura', contrato_id: 'bv', contrato_numero: 'BV-01-BP', fecha: '2026-09-19', total: 27000, moneda: 'USD', aplicado: 0,
+      lineas: [{ descripcion: 'Escritura', importe: 27000 }], fields: { fecha_vencimiento: '2026-10-04' } },
+    { id: 'f9', numero: 'LW-0150', tipo: 'factura', contrato_id: 'co', contrato_numero: 'P-07-CO', fecha: '2026-10-01', total: 1200, moneda: 'USD', aplicado: 0,
+      lineas: [{ descripcion: 'Extra: piscina', importe: 1200 }], fields: { fecha_vencimiento: '2026-10-25' } },
+    { id: 'r1', numero: 'REC-2026-0061', tipo: 'recibi', contrato_numero: 'P-07-CO', fecha: '2026-10-08', total: 15000, moneda: 'USD' },
+  ],
+  firma_pendiente: [{ contrato_id: 'sh', enlace: 'https://firma.example/?t=SECRETO123', enviado_en: '2026-10-06T03:00:00Z', expira_en: '2026-10-20T03:00:00Z' }],
+  obra: [
+    { unidad: 'P-07', proyecto: 'Palm Field W5', contrato_numero: 'P-07-CO', fase: 'estructura', fecha_entrega: '2027-08-15',
+      fotos: [{ titulo: 'Estructura norte', fecha: '2026-10-05' }, { titulo: 'Pilares', fecha: '2026-10-05' }, { titulo: 'Losa', fecha: '2026-09-28' }] },
+  ],
+  proyectos: [{ id: 'pr1', nombre: 'Palm Field W5', entrega: '2027-09-01' }, { id: 'pr3', nombre: 'Bonian Village', entrega: '2027-12-01' }],
+  kyc: [{ tipo: 'passport', caduca: '2026-10-22' }, { tipo: 'kitas', caduca: '2026-11-28' }, { tipo: 'id', caduca: '2027-12-02' }, { tipo: 'npwp', caduca: null }],
+};
+const ev = C.eventosCalendario(datos, HOY, dep(datos));
+const de = pref => ev.filter(e => e.id.indexOf(pref) === 0);
+const uno = id => ev.filter(e => e.id === id)[0] || null;
+
+/* Carta sustituida: ninguno de sus hitos sale */
+es('la Carta sustituida no pinta sus hitos', de('hito:cr:').length, 0);
+/* Borrador: sin pagos; su firma sí */
+es('un borrador no pinta pagos', de('hito:sh:').length, 0);
+es('la firma pendiente sale el día local en que caduca el enlace', uno('firma:sh') && uno('firma:sh').dia, '2026-10-20');
+es('la firma pendiente pide algo y su estado es «por firmar», no «pendiente» de pago', [uno('firma:sh').pide, uno('firma:sh').estado], [true, 'firmar']);
+es('el token del enlace de firma no aparece en ningún evento', JSON.stringify(ev).indexOf('SECRETO123'), -1);
+
+/* Construcción: anticipo pagado, cimentación parcial con su factura, estructura pendiente, entrega sin fecha */
+es('anticipo pagado', uno('hito:co:0').estado, 'pagado');
+es('cimentación parcial, falta lo no cobrado', [uno('hito:co:1').estado, uno('hito:co:1').falta, uno('hito:co:1').factura], ['parcial', 22950, 'LW-0142']);
+es('estructura pendiente sin factura lleva a Contratos', [uno('hito:co:2').estado, uno('hito:co:2').ir], ['pendiente', 'contratos']);
+es('un hito sin fecha no se coloca', de('hito:co:3').length, 0);
+es('y se cuenta como sin fecha', C.hitosSinFecha(datos, dep(datos)), 1);
+es('el texto del hito llega tal cual, sin montar HTML', uno('hito:co:2').hito.es, 'Estructura');
+
+/* Bonian: la escritura con factura vencida es vencida; su factura no se repite como evento suelto */
+es('escritura BV-01 vencida por su factura', [uno('hito:bv:1').estado, uno('hito:bv:1').clase], ['vencida', 'vencida']);
+es('la factura del hito no sale dos veces', de('factura:f8').length, 0);
+/* Bloqueo P-07 pagado entero: sus hitos salen como pagados (escritura con fecha pasada, sin factura, no vencida) */
+es('bloqueo pagado', uno('hito:bp:1').estado, 'pagado');
+
+/* «vencida» nunca por la fecha sola: hito pasado sin factura */
+const sinFactura = C.eventosCalendario({ contratos: [{ id: 'x', numero: 'X-1', tipo: 'construccion', precio: 1000, cobrado: 0, moneda: 'USD', firmado: true,
+  hitos: [h('Pago', '2026-09-01', 1000)] }], facturas: [] }, HOY, DEP);
+es('hito con fecha pasada y sin factura no se pinta vencido', sinFactura[0].estado, 'pendiente');
+/* factura cubierta por un recibí sin aplicar: pagada, no vencida (saldoSinAplicar) */
+const cubierta = C.eventosCalendario({ contratos: [{ id: 'y', numero: 'Y-1', tipo: 'construccion', precio: 1000, cobrado: 1000, moneda: 'USD', firmado: true,
+  hitos: [h('Pago', '2026-09-01', 1000)] }], facturas: [{ id: 'fy', numero: 'LW-9', tipo: 'factura', contrato_id: 'y', contrato_numero: 'Y-1', fecha: '2026-08-25', total: 1000,
+  aplicado: 0, lineas: [{ descripcion: 'Pago', importe: 1000 }], fields: { fecha_vencimiento: '2026-09-01' } }] }, HOY, DEP);
+es('factura cubierta por un recibí sin aplicar no sale vencida', cubierta[0].estado, 'pagado');
+
+/* Factura suelta (no es de ningún hito) y pendiente: sale en su vencimiento */
+es('factura suelta pendiente', [uno('factura:f9') && uno('factura:f9').dia, uno('factura:f9') && uno('factura:f9').estado], ['2026-10-25', 'pendiente']);
+/* Recibo */
+es('el recibo sale como recibido', uno('recibo:r1') && uno('recibo:r1').estado, 'recibido');
+
+/* Obra: una entrega por unidad; la del proyecto solo si no hay unidad; un evento por día de fotos */
+es('entrega de la unidad', uno('entrega:P-07') && uno('entrega:P-07').dia, '2027-08-15');
+es('la entrega del proyecto con unidad no se repite', de('entrega-proy:pr1').length, 0);
+es('la entrega del proyecto sin unidad sí sale', de('entrega-proy:pr3').length, 1);
+es('dos fotos del mismo día son un evento', uno('fotos:P-07:2026-10-05') && uno('fotos:P-07:2026-10-05').n, 2);
+
+/* Documentos: misma cuenta que Inicio y Mi perfil (30 días) */
+es('pasaporte caduca pronto y pide', [uno('doc:passport:0').estado, uno('doc:passport:0').pide], ['pronto', true]);
+es('KITAS a 50 días no pide todavía', [uno('doc:kitas:1').estado, uno('doc:kitas:1').pide], ['ok', false]);
+es('un documento sin caducidad no sale', de('doc:npwp').length, 0);
+
+/* Pendiente de ti: vencido primero, luego por fecha */
+es('pendientes en orden', C.pendientesCalendario(ev).map(e => e.id),
+   ['hito:bv:1', 'hito:co:1', 'firma:sh', 'doc:passport:0', 'factura:f9']);
+
+
+/* ── revisor de código, 9-oct-2026 ─────────────────────────────────── */
+/* A: el reparto da el hito por pagado, pero su factura sigue abierta porque el cobro se aplicó a otra (un extra) */
+const casoA = { contratos: [{ id: 'z', numero: 'Z-1', tipo: 'construccion', precio: 2000, cobrado: 1000, moneda: 'USD', firmado: true,
+  hitos: [h('Pago 1', '2026-10-20', 1000)] }],
+  facturas: [{ id: 'fz1', numero: 'LW-Z1', tipo: 'factura', contrato_id: 'z', contrato_numero: 'Z-1', fecha: '2026-10-17', total: 1000, aplicado: 0,
+               lineas: [{ descripcion: 'Pago 1', importe: 1000 }], fields: { fecha_vencimiento: '2026-10-20' } },
+             { id: 'fz2', numero: 'LW-Z2', tipo: 'factura', contrato_id: 'z', contrato_numero: 'Z-1', fecha: '2026-09-01', total: 1000, aplicado: 1000,
+               lineas: [{ descripcion: 'Extra: pérgola', importe: 1000 }], fields: { fecha_vencimiento: '2026-09-05' } }] };
+const a = C.eventosCalendario(casoA, HOY, dep(casoA)).filter(e => e.id === 'hito:z:0')[0];
+es('A · la factura abierta manda sobre el reparto por hitos', [a.estado, a.falta, a.pide], ['pendiente', 1000, true]);
+es('A · su estado es el mismo que pinta Facturas', R.estadoFactura(casoA.facturas[0], R.saldoSinAplicar(casoA.facturas, casoA.contratos).fz1, HOY.getTime()).estado, 'pendiente');
+/* B: factura vencida y pagada en parte: lo que falta, no el total */
+const casoB = { contratos: [{ id: 'w', numero: 'W-1', tipo: 'construccion', precio: 1000, cobrado: 400, moneda: 'USD', firmado: true,
+  hitos: [h('Pago', '2026-09-01', 1000)] }],
+  facturas: [{ id: 'fw', numero: 'LW-W', tipo: 'factura', contrato_id: 'w', contrato_numero: 'W-1', fecha: '2026-08-28', total: 1000, aplicado: 400,
+               lineas: [{ descripcion: 'Pago', importe: 1000 }], fields: { fecha_vencimiento: '2026-09-01' } }] };
+const b = C.eventosCalendario(casoB, HOY, dep(casoB))[0];
+es('B · vencida con pago parcial dice lo que falta', [b.estado, b.monto, b.falta], ['vencida', 1000, 600]);
+/* Un plazo del plan sin factura todavía no es una tarea («pide» llega con la factura) */
+es('un hito futuro sin factura no pide', uno('hito:co:2').pide, false);
+
+/* Obra ↔ proyecto por id, no por nombre: nombres distintos, la estimada del proyecto no se duplica */
+const casoO = { contratos: [{ id: 'k', numero: 'PF-1', tipo: 'construccion', proyecto: 'Palm Field', proyecto_id: 'p1', firmado: true, hitos: [] }],
+  obra: [{ unidad: 'P-01', proyecto: 'PALM FIELD W5 (fase 1)', contrato_numero: 'PF-1', fase: 'estructura', fecha_entrega: '2027-08-15', fotos: [] }],
+  proyectos: [{ id: 'p1', nombre: 'Palm Field W5', entrega: '2027-09-01' }] };
+const o = C.eventosCalendario(casoO, HOY, dep(casoO));
+es('con nombres que no casan, una sola entrega (la de la unidad)', o.filter(e => e.tipoObra === 'entrega').map(e => e.id), ['entrega:P-01']);
+/* Una unidad SIN fecha no esconde la estimada de su proyecto */
+const casoS = JSON.parse(JSON.stringify(casoO)); casoS.obra[0].fecha_entrega = null;
+const sf = C.eventosCalendario(casoS, HOY, dep(casoS));
+es('unidad sin fecha: queda la estimada del proyecto', sf.filter(e => e.tipoObra === 'entrega').map(e => e.id), ['entrega-proy:p1']);
+
+/* Un hito sin fecha pero con factura sale como factura suelta y no se cuenta como «sin fecha» */
+const casoF = { contratos: [{ id: 'q', numero: 'Q-1', tipo: 'construccion', precio: 500, cobrado: 0, moneda: 'USD', firmado: true,
+  hitos: [h('Entrega', null, 500)] }],
+  facturas: [{ id: 'fq', numero: 'LW-Q', tipo: 'factura', contrato_id: 'q', contrato_numero: 'Q-1', fecha: '2026-10-01', total: 500, aplicado: 0,
+               lineas: [{ descripcion: 'Entrega', importe: 500 }], fields: { fecha_vencimiento: '2026-10-30' } }] };
+es('hito sin fecha con factura: no cuenta como sin fecha', C.hitosSinFecha(casoF, dep(casoF)), 0);
+es('y su factura sí sale en su vencimiento', C.eventosCalendario(casoF, HOY, dep(casoF)).map(e => e.id), ['factura:fq']);
+/* …pero si esa factura no trae `aplicado` no sale en el calendario: entonces sí cuenta como «sin fecha» (no se pierde) */
+const casoF2 = JSON.parse(JSON.stringify(casoF)); delete casoF2.facturas[0].aplicado;
+es('hito sin fecha con factura sin estado: cuenta como sin fecha', [C.hitosSinFecha(casoF2, dep(casoF2)), C.eventosCalendario(casoF2, HOY, dep(casoF2)).length], [1, 0]);
+const casoF3 = JSON.parse(JSON.stringify(casoF)); casoF3.facturas[0].fields = {};
+es('hito sin fecha con factura sin vencimiento: cuenta como sin fecha', [C.hitosSinFecha(casoF3, dep(casoF3)), C.eventosCalendario(casoF3, HOY, dep(casoF3)).length], [1, 0]);
+
+/* ── periodos (calendario en color, 9-oct-2026) ─────────────────────── */
+es('firma: del envío del enlace a su caducidad (días locales)', [uno('firma:sh').desde, uno('firma:sh').hasta], ['2026-10-06', '2026-10-20']);
+es('factura sin pagar: de la emisión al vencimiento', [uno('hito:co:1').desde, uno('hito:co:1').hasta], ['2026-10-06', '2026-10-15']);
+es('vencida: del vencimiento hasta hoy', [uno('hito:bv:1').desde, uno('hito:bv:1').hasta], ['2026-10-04', '2026-10-09']);
+es('pagado: sin periodo', uno('hito:co:0').desde, undefined);
+es('hito sin factura: sin periodo', uno('hito:co:2').desde, undefined);
+es('documento: los 30 días de aviso antes de caducar', [uno('doc:passport:0').desde, uno('doc:passport:0').hasta], ['2026-09-22', '2026-10-22']);
+es('factura suelta: de la emisión al vencimiento', [uno('factura:f9').desde, uno('factura:f9').hasta], ['2026-10-01', '2026-10-25']);
+es('recibo y obra: sin periodo', [uno('recibo:r1').desde, uno('entrega:P-07').desde], [undefined, undefined]);
+
+/* ── revisor de código, 9-oct-2026 (calendario en color) ────────────── */
+/* sin KYC_AVISO_DIAS en el dep ni en el ámbito, no se inventa el plazo: el documento se queda sin franja */
+const DEP_SIN = Object.assign({}, DEP); delete DEP_SIN.KYC_AVISO_DIAS;
+const evSin = C.eventosCalendario(datos, HOY, Object.assign({}, DEP_SIN, { obraProyecto: obraProyectoDe(datos) }));
+es('sin plazo de aviso, el documento no lleva franja', evSin.filter(e => e.id === 'doc:passport:0')[0].desde, undefined);
+/* lo vencido: por moneda, sin sumar monedas distintas, y lo que no trae importe aparte */
+// 24.000 y no 27.000: el contrato BV-01 lleva 3.000 cobrados sin aplicar, que saldoSinAplicar reparte a su factura —
+// lo mismo que pinta Facturas para LW-0147
+es('vencido de una moneda', C.vencidoCalendario(ev), { n: 1, porMoneda: [{ moneda: 'USD', total: 24000 }], sinImporte: 0 });
+es('vencido de dos monedas y uno sin importe', C.vencidoCalendario([
+  { familia: 'pago', clase: 'vencida', falta: 100, moneda: 'USD' }, { familia: 'pago', clase: 'vencida', falta: 50, moneda: 'USD' },
+  { familia: 'pago', clase: 'vencida', falta: 2000000, moneda: 'IDR' }, { familia: 'pago', clase: 'vencida', falta: null, moneda: 'USD' },
+  { familia: 'doc', clase: 'vencida' }]),
+  { n: 4, porMoneda: [{ moneda: 'USD', total: 150 }, { moneda: 'IDR', total: 2000000 }], sinImporte: 1 });
+es('sin vencidos', C.vencidoCalendario([]), { n: 0, porMoneda: [], sinImporte: 0 });
+
+/* Comprador sin nada: no rompe */
+es('sin datos, sin eventos', C.eventosCalendario({}, HOY, dep({})).length, 0);
+es('sin datos, sin hitos sin fecha', C.hitosSinFecha({}, dep({})), 0);
+
+if (fallos){ console.error(`calendario.test.js: ${fallos} fallo(s)`); process.exit(1); }
+console.log('calendario.test.js: ok');

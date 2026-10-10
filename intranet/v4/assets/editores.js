@@ -66,7 +66,8 @@
       var pon = function (k, texto, rol) {
         if (!existe[k] || usadas[k] || (filtro && !filtro(k))) return;
         usadas[k] = true;
-        filas.push([k, marca(texto) + sufijo(rol)]);
+        var aviso = (typeof LW_AVISO_PERMISO !== 'undefined' && LW_AVISO_PERMISO[k]) ? T(LW_AVISO_PERMISO[k]) : '';
+        filas.push(aviso ? [k, marca(texto) + sufijo(rol), aviso] : [k, marca(texto) + sufijo(rol)]);
       };
       sec.entradas.forEach(function (e) {
         var nom = T(e.texto);
@@ -354,8 +355,10 @@
             var fs = filaSinCasilla(o, 'display:flex;gap:7px;align-items:center');
             if (fs !== null) return fs;
             var vv = typeof o === 'string' ? [o, o] : o;
-            return '<label style="display:flex;gap:7px;align-items:center"><input type="checkbox" value="' + esc(vv[0]) + '"' +
-              ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '>' + esc(vv[1]) + '</label>';
+            /* vv[2] = aviso opcional de ESA casilla (LW_AVISO_PERMISO): va dentro del label, ocupando la fila entera de la rejilla. */
+            return '<label style="display:flex;gap:7px;align-items:center' + (vv[2] ? ';flex-wrap:wrap;grid-column:1 / -1' : '') + '"><input type="checkbox" value="' + esc(vv[0]) + '"' +
+              ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '>' + esc(vv[1]) +
+              (vv[2] ? '<small data-tipo="aviso_casilla" style="flex-basis:100%;font-weight:400;font-size:12px;color:#8A6A34">' + esc(vv[2]) + '</small>' : '') + '</label>';
           }).join('') + '</div>' +
           /* Atajos OPT-IN por campo (21-sep-2026, LAW-71/paridad de Usuarios):
              solo se pintan si el campo trae `c.atajos` — no se enciende por
@@ -1099,7 +1102,10 @@
         }, 450);
       }, function (e) {
         suelta();
-        muestraError('No se pudo guardar: ' + (e && e.message || e));
+        /* `e.silencioso`: quien llama cancela a propósito (p. ej. «No» en su propia confirmación) — nada que mostrar.
+           `e.sinPrefijo`: el mensaje ya viene completo y no es de un «guardado» (reclamo-pago.js: es un envío). */
+        if (e && e.silencioso) return;
+        muestraError((e && e.sinPrefijo ? '' : 'No se pudo guardar: ') + (e && e.message || e));
       });
     });
   }
@@ -3249,14 +3255,26 @@
        el pie del cajón se esconde — la × de la cabecera cierra. */
     if (ctx.principal) {
       var pie = ctx.principal.parentNode;
-      ctx.principal.style.cssText = 'flex:0 0 auto;padding:6px 16px;border-radius:999px;border:0;background:' + CAJ.lago +
+      var estiloPie = ctx.principal.style.cssText;   // el del pie del modal: el botón vuelve a él en móvil
+      var estiloBarra = 'flex:0 0 auto;padding:6px 16px;border-radius:999px;border:0;background:' + CAJ.lago +
         ';color:#fff;font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap;line-height:1.3;margin-left:6px';
-      barra.insertBefore(ctx.principal, sp);
+      /* ≤860px (misma frontera que la regla de aseguraEstiloSplitDoc) la barra de la previa se
+         esconde y el pie vuelve: si el botón se quedaba en la barra, en el móvil el pie solo
+         tenía «Cancelar» y NO SE PODÍA EMITIR (owner, 8-oct-2026, desde el móvil). Por eso el
+         botón viaja con la pantalla: barra en ancho, pie en estrecho. */
+      var mq = window.matchMedia ? window.matchMedia('(max-width:860px)') : null;
+      var colocaEmitir = function () {
+        var estrecho = !!(mq && mq.matches);
+        ctx.principal.classList.toggle('lw-doc-emitir-barra', !estrecho);   // la clase lo oculta ≤860: solo vale en la barra
+        if (estrecho) { ctx.principal.style.cssText = estiloPie; pie.appendChild(ctx.principal); }
+        else { ctx.principal.style.cssText = estiloBarra; barra.insertBefore(ctx.principal, sp); }
+      };
+      colocaEmitir();
+      if (mq && mq.addEventListener) mq.addEventListener('change', colocaEmitir);
       // El pie se esconde solo en escritorio (regla en aseguraEstiloSplitDoc):
       // ≤860px la previa se apila BAJO el formulario y Emitir quedaría debajo
       // de veinte campos — ahí el pie vuelve y el botón de la barra se oculta.
       if (pie) pie.classList.add('lw-doc-pie-movido');
-      ctx.principal.classList.add('lw-doc-emitir-barra');
     }
     var bPdf = btn('Descargar PDF', function () { imprimeDoc(ctx.getVals(), ctx.saved); });
     var bMail = btn('Enviar por email', function () { enviaDocMail(ctx.sb, ctx.getVals(), ctx.saved, ctx.alEnviado); });
@@ -4167,9 +4185,9 @@
           var host = piezas.colForm;
           // Las «líneas» de un recibí, para el motor de render, son las
           // facturas que salda — mismo texto que ya usa onGuardar más abajo
-          // («Aplicado a factura X»), no una segunda descripción inventada.
+          // (conceptoCobroRecibi), no una segunda descripción inventada.
           function lineasDeAplicaciones() {
-            return aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
+            return aplicaciones.map(function (a) { return { descripcion: conceptoCobroRecibi(a.numero), importe: a.importe }; });
           }
           function recogeVals() {
             var vals = {};
@@ -4323,14 +4341,29 @@
               cargaAbiertas().then(function (abs) {
                 facturasAbiertasCache = abs;
                 aplicacionesRestauradas = true;
+                var numeroDe = {};
                 sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', existente.id)
                   .then(function (rr) {
                     if (rr.error) { toastMal(lwErrorHumano(rr.error, 'No se pudieron traer las facturas que este recibí ya saldaba')); pintaBtnF(); repintaAplic(); return; }
+                    // Una factura que este recibí ya salda del todo no está entre las ABIERTAS:
+                    // su número se pregunta aparte (antes caía al id interno y se imprimía).
+                    var sueltas = (rr.data || []).map(function (r) { return r.factura_id; })
+                      .filter(function (id) { return !facturasAbiertasCache.some(function (x) { return x.id === id; }); });
+                    return (sueltas.length ? sb.rpc('facturas_equipo').select('id,numero').in('id', sueltas) : Promise.resolve({ data: [] }))
+                      .then(function (fr) {
+                        if (fr.error) throw fr.error;
+                        (fr.data || []).forEach(function (x) { numeroDe[x.id] = x.numero; });
+                        // sin número real el recibí imprimiría un concepto vacío: no se carga
+                        if (sueltas.some(function (id) { return !numeroDe[id]; })) throw new Error('no se encontró el número de una factura de este recibí');
+                        return rr;
+                      });
+                  }).then(function (rr) {
+                    if (!rr || rr.error) return;
                     (rr.data || []).forEach(function (row) {
                       var abierta = facturasAbiertasCache.filter(function (x) { return x.id === row.factura_id; })[0];
                       aplicaciones.push({
                         factura_id: row.factura_id,
-                        numero: abierta ? abierta.numero : row.factura_id,
+                        numero: abierta ? abierta.numero : (numeroDe[row.factura_id] || ''),
                         pendiente: (abierta ? abierta.pendiente : 0) + Number(row.importe_aplicado),
                         importe: lwImporteCanonico(Number(row.importe_aplicado))
                       });
@@ -4513,7 +4546,7 @@
               if (!imp || imp <= 0) return { error: { message: 'Falta el importe aplicado a ' + aplicaciones[i].numero } };
               if (imp > aplicaciones[i].pendiente + 0.01) return { error: { message: aplicaciones[i].numero + ' solo tiene ' + aplicaciones[i].pendiente + ' pendiente' } };
             }
-            var lineas = aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
+            var lineas = aplicaciones.map(function (a) { return { descripcion: conceptoCobroRecibi(a.numero), importe: a.importe }; });
             var d = v; d.tipo = 'recibi'; d.lineas = lineas;
             d.cliente_nombre = v.cliente_nombre || estadoContrato.clienteNombre;
             d.cliente_documento = v.cliente_documento || estadoContrato.clienteDocumento;
@@ -5130,6 +5163,9 @@
            a `[hidden]`, así que también se esconde con display (medido en el arnés). */
         var bFichaPub = document.querySelector('[data-accion="ficha-publica"]');
         if (bFichaPub) { bFichaPub.hidden = true; bFichaPub.style.display = 'none'; }
+        /* Bot de WhatsApp (S7): también solo admin. Cosmético: quien manda es es_admin_de(empresa) dentro de proyecto_bot_publico_poner. */
+        var bBotPub = document.querySelector('[data-accion="bot-publico"]');
+        if (bBotPub) { bBotPub.hidden = true; bBotPub.style.display = 'none'; }
       }
       /* Dar de alta un proyecto es de dirección (LAW-177, 11-sep-2026): la RLS
          de INSERT en `proyectos` exige es_admin(). Se esconde el botón aquí, en
@@ -6193,19 +6229,101 @@
         window.lwFichaPublica.abre({ sb: sb, esAdmin: esAdminP, proyecto: { id: p.id, nombre: p.nombre, slug: p.slug } });
       });
 
+      /* Bot de WhatsApp (S7 del encargo del bot de Lawang, 9-oct-2026): la casilla «el bot puede hablar de este proyecto».
+         El DUEÑO del dato es `proyectos.bot_publico` (cerrada por defecto, independiente del Investor Deck: Palm Field es
+         confidencial y puede estar cerrado al bot aunque su deck esté abierto, o al revés). El navegador NO escribe en la
+         tabla: pide a `proyecto_bot_publico_poner`, que comprueba en el servidor que quien llama es administrador de la
+         empresa del proyecto y deja quién y cuándo (trigger de la base, no esta pantalla). Abrirlo es publicar precios por
+         WhatsApp a cualquiera que escriba, así que pide confirmación; cerrarlo no. `visibles` lo cuenta el servidor con la
+         misma función que usa el bot (`bot_catalogo_leer`): esta pantalla no reimplementa qué es «disponible». */
+      ata('bot-publico', function () {
+        var p = proyectoObj();
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        sb.rpc('proyecto_bot_publico_lee', { p_proyecto_id: p.id }).then(function (r) {
+          if (r.error) return aviso('No se pudo leer el estado del bot: ' + r.error.message, '#ba1a1a');
+          pintaBotPublico(p, r.data || {});
+        }, function (e) { aviso('No se pudo leer el estado del bot: ' + ((e && e.message) || e), '#ba1a1a'); });
+      });
+
+      function estadoBotHtml(est) {
+        var cuando = est.en ? new Date(est.en).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
+        var quien = est.por ? esc(est.por) : 'alguien del equipo';
+        var traza = est.en ? ('Último cambio: ' + quien + ', ' + esc(cuando) + '.') : 'Nunca se ha abierto.';
+        if (!est.bot_publico) return '<b>Estado: </b>CERRADO — el bot no dice nada de este proyecto. ' + traza;
+        var n = Number(est.visibles) || 0;
+        return '<b>Estado: </b><b style="color:#3F5230">ABIERTO</b> — ' + traza + '<br>' +
+          (est.activo === false
+            ? '<span style="color:#ba1a1a">El proyecto está desactivado: el bot no lo ve aunque la casilla esté marcada.</span>'
+            : (n > 0 ? 'Ahora mismo el bot ve <b>' + n + '</b> unidades disponibles de este proyecto.'
+                     : '<span style="color:#8A6A34">Ahora mismo el bot no ve ninguna unidad disponible de este proyecto: no hay nada que decir.</span>'));
+      }
+
+      function pintaBotPublico(p, est) {
+        var actual = est;
+        var cuerpo =
+          '<p style="margin:0 0 4px;font-size:13px;color:' + CAJ.apagado + ';line-height:1.5">Si lo abres, el bot de WhatsApp dice el precio y la disponibilidad de las unidades <b>disponibles</b> de este proyecto a cualquiera que le escriba. Nunca cita datos de clientes ni de contratos. Está cerrado por defecto y es independiente del Investor Deck.</p>' +
+          '<label style="display:flex;gap:10px;align-items:center;background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';cursor:pointer">' +
+            '<input type="checkbox" id="bp-check" data-lw="bot-publico-check"' + (actual.bot_publico ? ' checked' : '') + ' style="width:18px;height:18px"> El bot puede hablar de este proyecto</label>' +
+          '<div id="bp-estado" data-lw="bot-publico-estado" style="background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-size:13px;color:' + CAJ.tinta + ';line-height:1.5">' + estadoBotHtml(actual) + '</div>' +
+          '<p style="margin:0;font-size:12px;color:' + CAJ.apagado + '">Lo que el bot sabe en total se ve en CRM → Configurar bot → «Lo que sabe el bot».</p>';
+        cajon({
+          titulo: 'Bot de WhatsApp', sub: p.nombre, ancho: 'min(520px,96vw)', cuerpo: cuerpo,
+          acciones: [
+            { texto: 'Guardar', tono: 'primario', onClick: guardarBotPublico },
+            { texto: 'Cerrar', cerrar: true }
+          ]
+        });
+
+        function guardarBotPublico(ev) {
+          var marcado = !!document.getElementById('bp-check').checked;
+          if (marcado === !!actual.bot_publico) return aviso('No hay cambios que guardar.', '#8A6A34');
+          var btn = ev && ev.currentTarget;
+          var pregunta = marcado
+            ? aseguraModulosDoc(['dialogo']).then(function () {
+                return lwConfirmar({
+                  titulo: 'Abrir «' + p.nombre + '» al bot',
+                  cuerpo: '<p>El bot dirá por WhatsApp, a cualquiera que le escriba, el precio y la disponibilidad de las unidades disponibles de ' + esc(p.nombre) + '.</p>' +
+                    '<p>No cita datos de clientes ni de contratos. Se puede cerrar de nuevo en cualquier momento.</p>',
+                  confirmar: 'Abrir al bot', tono: 'peligro'
+                });
+              })
+            : Promise.resolve(true);
+          pregunta.then(function (ok) {
+            if (!ok) { document.getElementById('bp-check').checked = !!actual.bot_publico; return; }
+            if (btn) btn.disabled = true;
+            return sb.rpc('proyecto_bot_publico_poner', { p_proyecto_id: p.id, p_valor: marcado }).then(function (r) {
+              if (btn) btn.disabled = false;
+              if (r.error) {
+                document.getElementById('bp-check').checked = !!actual.bot_publico;   // la pantalla vuelve a lo que de verdad hay
+                return aviso('No se ha cambiado nada: ' + r.error.message, '#ba1a1a');
+              }
+              actual = r.data || actual;
+              document.getElementById('bp-check').checked = !!actual.bot_publico;
+              document.getElementById('bp-estado').innerHTML = estadoBotHtml(actual);
+              aviso(actual.bot_publico ? 'Proyecto abierto al bot' : 'Proyecto cerrado al bot');
+            }, function (e) {
+              if (btn) btn.disabled = false;
+              document.getElementById('bp-check').checked = !!actual.bot_publico;
+              aviso('No se ha cambiado nada: ' + ((e && e.message) || e), '#ba1a1a');
+            });
+          });
+        }
+      }
+
       /* ¿Están las fotos donde manda el flag? (AXW-66, 28-sep-2026). Lo mide el SERVIDOR: la acción `urls` devuelve
          URL pública si la foto está en `deck` y firmada si está en `deck-privado`. Deck activo con alguna firmada, o
          inactivo con alguna pública = «a medias» (un cambio que no terminó): se ve al abrir, también tras recargar.
          Si no se puede mirar, se dice — nunca se pinta como «todo en su sitio». */
-      /* INTERRUPTOR — encender en S5, AXW-66 (decisión del CEO, 28-sep-2026). Hasta que S5 mueva al privado las
-         fotos de los proyectos cerrados (tras S3e y el respaldo previo), TODO proyecto cerrado tiene sus fotos aún en
-         `deck`: avisar «a medias» ahí marcaría ~27 proyectos y su «Reintentar» adelantaría S5 sin respaldo. Mientras
-         esté en false solo se avisa del caso que rompe el deck público: ACTIVO con fotos privadas. */
-      var DECK_AVISA_CERRADO_CON_PUBLICAS = false;   // encender en S5, AXW-66
+      /* INTERRUPTOR — ENCENDIDO en S5 de AXW-66 (10-oct-2026), con el barrido hecho y desajustes = 0 (decisión del CEO
+         del 28-sep: estuvo en false mientras las fotos de los proyectos cerrados seguían en `deck`). Desde ahora el
+         Investor Deck avisa «A MEDIAS» también de un deck INACTIVO con fotos públicas, y su «Reintentar» las pasa al
+         privado. El barrido diario (edge deck-sincroniza, pg_cron) corrige lo mismo sin que nadie lo pulse. */
+      var DECK_AVISA_CERRADO_CON_PUBLICAS = true;   // encendido en S5, AXW-66 (10-oct-2026)
       function fotosDelDeck(p, activo) {
         if (!activo && !DECK_AVISA_CERRADO_CON_PUBLICAS) return Promise.resolve(null);   // no se mira: ver interruptor
         if (typeof window.lwFotoUrls !== 'function') return Promise.resolve({ error: 'falta guard.js actualizado: recarga la página' });
-        return sb.from('deck_fotos').select('id').eq('proyecto_id', p.id).then(function (r) {
+        // solo ambito 'proyecto': las de modelo viven siempre en `deck` (deck_fotos_desajustes) y no deben contar como «A MEDIAS»
+        return sb.from('deck_fotos').select('id').eq('proyecto_id', p.id).eq('ambito', 'proyecto').then(function (r) {
           if (r.error) throw r.error;
           var ids = (r.data || []).map(function (f) { return f.id; });
           if (!ids.length) return { mal: 0, total: 0 };

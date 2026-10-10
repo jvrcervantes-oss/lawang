@@ -16,7 +16,7 @@ const path = require('path');
   const V = await import('./valida.ts');
   const F = await import('./plantillas_fabrica.ts');
   const CAT = P.catalogosSellados();
-  const CLAVES = Object.keys(V.PLANTILLAS);
+  const CLAVES = Object.keys(V.PLANTILLAS).filter((k) => !P.SOLO_LAWANG.includes(k));   // las de una sola instancia tienen su propia prueba
   let n = 0;
   const ok = (c, m) => { assert.ok(c, m); n++; };
 
