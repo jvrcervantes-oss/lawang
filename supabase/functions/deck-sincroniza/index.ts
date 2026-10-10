@@ -17,8 +17,10 @@
 //
 // DUPLICADO A PROPÓSITO: `mueveObjeto` y `reconcilia` son copia de las de supabase/functions/ficheros/index.ts (acción
 // `sincroniza` / `deck_activa`). Se copiaron en vez de tocar `ficheros` porque otra sesión la estaba desplegando el
-// 10-oct; pasarlas a `_shared/` es tarea de S6 cuando `ficheros` esté quieta (y entonces la acción `sincroniza` de
-// `ficheros`, que no tiene llamador, se retira). Si cambias una, cambia la otra.
+// 10-oct; pasarlas a `_shared/` es criterio de S6 cuando `ficheros` esté quieta (y entonces la acción `sincroniza` de
+// `ficheros`, que no tiene llamador, se retira). Diferencias a propósito: aquí `mueveObjeto` tiene tope de 20 s y un
+// fallo de red cuenta como fallida (no revienta el barrido). Lo que importa de las dos lo fija deck_sincroniza.test.js
+// (origen → destino, `en_ambos` intacto, parar sin progreso). Si cambias una, cambia la otra.
 //
 // Desplegar con --no-verify-jwt (y `verify_jwt = false` en supabase/config.toml).
 
@@ -100,8 +102,12 @@ export async function manejador(req: Request): Promise<Response> {
   if (env('DECK_SINCRONIZA') !== 'on') return json({ ok: false, error: 'sincroniza_apagada' }, 409);
 
   try {
+    // `fallidas` suma intentos fallidos de TODAS las pasadas: uno que falla en la 1.ª y entra en la 2.ª no es un error.
+    // Lo que manda es `quedan` (lo que la base sigue viendo mal puesto al acabar). `en_ambos` no es fallo del barrido:
+    // lo decide una persona y lo canta salud_lawang.py.
     const r = await reconcilia();
-    return json({ ok: r.fallidas === 0 && r.quedan === 0, ...r }, r.fallidas === 0 && r.quedan === 0 ? 200 : 500);
+    if (r.quedan > 0) return json({ ok: false, error: 'quedan_sin_mover', ...r }, 500);
+    return json({ ok: true, ...r });
   } catch (_e) {
     return json({ ok: false, error: 'desajustes_no_leidos' }, 500);
   }
