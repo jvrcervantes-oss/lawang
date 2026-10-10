@@ -339,10 +339,10 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 .zc.on .zin{transform:rotateY(180deg)}
 .zf,.zb{position:relative;grid-area:1/1;min-width:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:calc(16*var(--u));overflow:hidden;box-shadow:0 calc(18*var(--u)) calc(40*var(--u)) rgba(40,35,20,.18)}
 .zf>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-/* cara delantera: al darle la vuelta se oculta del todo a mitad del giro (en algunos navegadores el reverso dejaba ver su texto invertido abajo) */
-.zf{transition:visibility 0s .42s,opacity 0s .42s}
+/* cara delantera: al darle la vuelta se oculta del todo a mitad del giro (en algunos navegadores el reverso dejaba ver su texto invertido abajo); al cerrar vuelve al instante para que el foco del teclado llegue al botón */
+.zf{transition:none}
 .zf *{backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.zc.on .zf{visibility:hidden;opacity:0}
+.zc.on .zf{visibility:hidden;opacity:0;transition:visibility 0s .42s,opacity 0s .42s}
 .zf::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,18,12,.4),rgba(15,18,12,0) 22%,var(--z0) 48%,var(--z) 70%,var(--z))}
 .zc.y{--z:rgba(122,99,47,.97);--z0:rgba(122,99,47,.55)}.zc.t{--z:rgba(36,71,75,.97);--z0:rgba(36,71,75,.55)}.zc.g{--z:rgba(75,89,56,.97);--z0:rgba(75,89,56,.55)}
 .zf::after,.zb::after{content:"";position:absolute;z-index:5;pointer-events:none;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.4);border-radius:calc(10*var(--u))}
@@ -384,7 +384,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .zc .zin{transition:none;transform:none!important}
   .zc.on .zb .sheen{animation:none}
   .zb{transform:none;opacity:0;transition:opacity .2s}.zc.on .zb{opacity:1}
-  .zf{transition:none}
+  .zc.on .zf{transition:none}
   .zb .tag,.zb h3,.zb .bp{transition:none}
 }
 .zone .note{position:absolute;left:0;right:0;top:calc(917*var(--u) + var(--zx));margin:0 auto;max-width:calc(930*var(--u));font-size:calc(18.6*var(--u));line-height:calc(34*var(--u));color:#45443f}
