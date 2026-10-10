@@ -361,6 +361,10 @@ RedirectMatch 404 (?i)/_diag_
   #   leadconnectorhq.com  GHL, solo desde los formularios de la web publica
   #   connect.facebook.net pixel de Meta (lo carga consent.js tras consentimiento)
   #   drive.google.com     iframes de vista previa de Documentacion
+  #   maps.google.com / www.google.com  mapa incrustado de la ubicacion del proyecto
+  #                        (contracts/assets/mapa.js: investor decks y la ficha de
+  #                        Proyectos; la web publica, portfolio-app.js). Sin ellos, al
+  #                        pasar a enforce el mapa desaparece (visto en consola 8-oct-2026).
   #   data: y blob: en img/media: los anexos de contrato son imagenes en base64 y
   #                        los PDF firmados se abren como blob. Quitarlos rompe el
   #                        generador de contratos entero (ver hallazgo 02: eso es
@@ -373,7 +377,7 @@ RedirectMatch 404 (?i)/_diag_
   #                        sitio — tools/empaqueta_css.py + tailwind/tailwind.json.
   #                        No volver a meterlo: un script externo sin version fija
   #                        en pantallas con PII.)
-  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://connect.facebook.net https://*.leadconnectorhq.com https://assets.calendly.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://assets.calendly.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://www.facebook.com; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co https://contracts-pdf-service-production.up.railway.app https://*.leadconnectorhq.com https://open.er-api.com https://connect.facebook.net https://www.facebook.com; frame-src 'self' https://drive.google.com https://*.supabase.co https://calendly.com https://*.calendly.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://*.leadconnectorhq.com; object-src 'none'"
+  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://connect.facebook.net https://*.leadconnectorhq.com https://assets.calendly.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://assets.calendly.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://www.facebook.com; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co https://contracts-pdf-service-production.up.railway.app https://*.leadconnectorhq.com https://open.er-api.com https://connect.facebook.net https://www.facebook.com; frame-src 'self' https://drive.google.com https://maps.google.com https://www.google.com https://*.supabase.co https://calendly.com https://*.calendly.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://*.leadconnectorhq.com; object-src 'none'"
 
   # Piezas COMPARTIDAS de la suite interna: el servidor las servia con
   # max-age=604800 (7 dias). El 29-jul eso dejo a los agentes con un guard.js

@@ -35,6 +35,9 @@ es('vacío → nada', lwMapaUbicacion('   '), null);
 es('https ajeno → nada', lwMapaUbicacion('https://evil.example/maps'), null);
 es('javascript: → nada', lwMapaUbicacion('javascript:alert(1)'), null);
 es('http sin s → nada', lwMapaUbicacion('http://maps.google.com/?q=1,2'), null);
+es('subdominio de otro dominio → nada', lwMapaUbicacion('https://google.evil.com/maps/@1.1,2.2'), null);
+es('google.co.<x> de otro dominio → nada', lwMapaUbicacion('https://www.google.co.evil.com/maps'), null);
+es('google.co.id sí es Google', lwMapaUbicacion('https://www.google.co.id/maps/@-8.5,115.1,15z').abrir, 'https://www.google.co.id/maps/@-8.5,115.1,15z');
 
 // Toda página que llama a lwMapaUbicacion (directamente o vía datos.js) tiene que cargar mapa.js:
 // si falta, el botón y el mapa desaparecen sin un solo error.

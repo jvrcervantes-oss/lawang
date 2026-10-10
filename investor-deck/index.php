@@ -464,7 +464,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 <!-- Panel de due diligence de la hero: fuente unica compartida con palmfield/index.html (6-oct-2026) -->
 <link rel="stylesheet" href="/investor-deck/panel-dd.css?v=20261006a">
 <script src="/investor-deck/i18n.js?v=20260924u"></script>
-<script src="/contracts/assets/mapa.js?v=dfa99f98"></script>
+<script src="/contracts/assets/mapa.js?v=6344d6d9"></script>
 </head>
 <body>
 
