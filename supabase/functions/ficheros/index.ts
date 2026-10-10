@@ -277,8 +277,16 @@ const CLASES: Record<string, Clase> = {
       if (!esUuid(gasto)) return { error: 'gasto_invalido', status: 400 };
       // la lectura de `gastos` ya exige admin + herramienta gastos (RLS): si no la ve, no es suya. Por la RPC de
       // lectura con el JWT del usuario (LAW-338 L3, 10-oct-2026): la tabla deja de servirse por la API de datos.
-      const { data: r, error } = await u.rpc('gasto_estado_datos', { p_gasto: gasto });
-      const data = r && (r as { gasto?: { id: string; estado: string } | null }).gasto;
+      const { data: r, error: e1 } = await u.rpc('gasto_estado_datos', { p_gasto: gasto });
+      let error = e1;
+      let data = r && (r as { gasto?: { id: string; estado: string } | null }).gasto;
+      // Instancia del ERP que aún no tiene la RPC (bbm sin 20261008139650; este código se despliega también allí):
+      // PostgREST responde PGRST202 y su tabla sigue abierta, así que se lee como antes. Donde la tabla ya está cerrada
+      // (Lawang tras el revoke de L3) la RPC existe y esta rama no corre; cualquier otro error sigue siendo 403.
+      if (e1 && (e1 as { code?: string }).code === 'PGRST202') {
+        const q = await u.from('gastos').select('id, estado').eq('id', gasto).maybeSingle();
+        error = q.error; data = q.data;
+      }
       if (error || !data) return { error: 'gasto_no_visible', status: 403 };
       if (data.estado === 'anulado') return { error: 'gasto_anulado', status: 409 };
       return gasto + '/';
