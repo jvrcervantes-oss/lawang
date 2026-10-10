@@ -40,12 +40,38 @@
      'demo'       → con `?demo` NO se canjea nada (el cliente es falso); el `th` se quita igual.
      'ok'         → sesión creada (va en `ses`).
      'caducado'   → el servidor dijo que no (4xx: caducado, ya usado, inválido), contestó sin
-                    sesión (el token ya está gastado), o el `th` no tiene forma de token:
-                    «el enlace ha caducado o ya se usó: pide otro», sin más pistas.
+                    sesión (el token ya está gastado), o el `th` no tiene forma de token.
+                    Qué ve el comprador lo decide `decide` (abajo): si ya tenía una sesión de
+                    comprador viva en este navegador, entra con ella; si no, «el enlace ha
+                    caducado o ya se usó: pide otro», sin más pistas.
      'red'        → no se ha podido preguntar (sin red, 5xx, 429 por exceso de peticiones): NO se
                     dice «pide otro», porque pedir otro invalida el que tiene y quizá sigue
                     valiendo; el botón reintenta. «No he podido mirar» se ve distinto de
                     «caducado».
+
+   Qué hace la página después (`decide`, función pura; la página no decide en línea):
+     'ok'         → entra con la sesión NUEVA del canje (aunque hubiera otra guardada: quien pulsa
+                    un enlace quiere entrar con ESE correo).
+     'red'        → reintenta con el mismo botón, haya o no sesión guardada: «no he podido
+                    mirar» no se convierte ni en «entra» ni en «pide otro».
+     'caducado'   → con una sesión de comprador viva (la que guarda `lw-portal-auth`), entra con
+                    ella. Caso real: el comprador ya dentro vuelve a pulsar su correo, con el
+                    enlace ya gastado; decirle «pide otro» era falso (su sesión sigue viva) y cada
+                    «pide otro» gasta el freno de envíos. Sin sesión viva → «pide otro».
+                    Es seguro porque un `verifyOtp` que falla NO borra la sesión guardada
+                    (auth-js 2.110.9, GoTrueClient.verifyOtp: en error devuelve `{ error }` sin
+                    llamar a `_removeSession`; comprobado en el fuente el 11-oct-2026). La sesión
+                    se vuelve a leer con `getSession()` en el momento del «caducado», no se usa
+                    una copia del arranque que pudo caducar mientras la pestaña estaba abierta.
+                    Entrar con ella no expone nada nuevo: es la misma sesión que abriría /portal/
+                    sin enlace en este navegador.
+
+   ORDEN DE PUBLICACIÓN OBLIGATORIO (revisor, 11-oct-2026): primero esta página servida en
+   producción, y solo DESPUÉS las edges con `--edge`. Si las edges salen antes, mandan enlaces
+   `?th=` a la página vieja, que no sabe canjearlos: el comprador no entra y cada «pide otro»
+   gasta el freno. Cómo se comprueba antes de `--edge`: el `<meta name="lw-version">` de
+   https://lawangproperties.com/portal/ tiene que ser el mismo que el de portal/index.html de la
+   copia que se publica (y /portal/enlace.js servido debe exportar `decide`).
 
    Se prueba en node con enlace.test.js. */
 (function (root) {
@@ -107,7 +133,28 @@
 
   var AVISO = { caducado: 'enlace_caducado', red: 'enlace_red' };
 
-  var api = { TIPO: TIPO, AVISO: AVISO, quitaTh: quitaTh, formatoOk: formatoOk, clasifica: clasifica, canjea: canjea, canjeaCallado: canjeaCallado, callado: callado };
+  /* Sesión de comprador utilizable: tiene token y el claim `portal`. Una sin claim no sirve para
+     entrar (trasSesion la cerraría con «sin activar»), así que ante un enlace caducado se pide
+     otro en vez de eso. */
+  function sesionViva(ses) {
+    return !!(ses && ses.access_token && ((ses.user && ses.user.app_metadata) || {}).portal);
+  }
+
+  /* Qué hace la página tras el canje. `r` = { estado, ses } de canjea/canjeaCallado (o
+     { estado: 'caducado' } si el `th` no tenía forma de token); `guardada` = la sesión que
+     devuelve getSession() en ese momento. Devuelve { accion, ses, aviso }:
+       'entra'     → trasSesion(ses)
+       'reintenta' → deja el botón y muestra `aviso` (enlace_red)
+       'pide_otro' → formulario con `aviso` (enlace_caducado) */
+  function decide(r, guardada) {
+    var estado = r && r.estado;
+    if (estado === 'ok' && r.ses) return { accion: 'entra', ses: r.ses, aviso: null };
+    if (estado === 'red') return { accion: 'reintenta', ses: null, aviso: AVISO.red };
+    if (sesionViva(guardada)) return { accion: 'entra', ses: guardada, aviso: null };
+    return { accion: 'pide_otro', ses: null, aviso: AVISO.caducado };
+  }
+
+  var api = { TIPO: TIPO, AVISO: AVISO, quitaTh: quitaTh, formatoOk: formatoOk, clasifica: clasifica, canjea: canjea, canjeaCallado: canjeaCallado, callado: callado, sesionViva: sesionViva, decide: decide };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LW_ENLACE = api;
 })(typeof window !== 'undefined' ? window : this);

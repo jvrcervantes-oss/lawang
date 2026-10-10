@@ -6,7 +6,9 @@
 //   · caducado (4xx, o respuesta sin sesión) → «pide otro»; red / 5xx / 429 → «no he podido comprobarlo», nunca «pide otro»;
 //   · un `th` sin forma de token no llega al servidor;
 //   · tras un canje correcto, cargar() corre UNA vez aunque verifyOtp avise SIGNED_IN a los oyentes,
-//     y pasado el canje el oyente vuelve a funcionar.
+//     y pasado el canje el oyente vuelve a funcionar;
+//   · decide: caducado con sesión de comprador viva → entra con ella (no «pide otro», que gasta el freno);
+//     sin sesión → pide otro; th válido → entra con la sesión NUEVA aunque hubiera otra; red → reintenta siempre.
 // La página (portal/index.html) usa estas mismas piezas: quitaTh al empezar, canjeaCallado al pulsar «Entrar»,
 // callado alrededor de su oyente. El recorrido en navegador real está en la bitácora del encargo (S3).
 'use strict';
@@ -136,6 +138,54 @@ function supabaseFalso(nav, resp) {
     ok(!/th=/.test(nav.loc.href), 'th malo: también se quita de la dirección');
   }
   ok(E.formatoOk(TH), 'un hashed_token real (56 hex) tiene forma de token');
+
+  // 7. decide: qué hace la página tras el canje (LAW-1 S3, hallazgo MEDIA del revisor).
+  {
+    const VIVA = { access_token: 'vieja', user: { id: 'u1', app_metadata: { portal: true } } };
+    const SIN_CLAIM = { access_token: 'otra', user: { id: 'u9', app_metadata: {} } };
+    const CAD = { name: 'AuthApiError', status: 403, code: 'otp_expired', message: 'Email link is invalid or has expired' };
+
+    // sesión viva + enlace ya gastado → entra con la sesión guardada, sin «pide otro».
+    {
+      const nav = navegador('https://lawangproperties.com/portal/?th=' + TH);
+      const { sb } = supabaseFalso(nav, CAD);
+      const r = await E.canjeaCallado(sb, E.quitaTh(nav.loc, nav.hist), { ocupado: false });
+      const d = E.decide(r, VIVA);
+      igual([d.accion, d.aviso], ['entra', null], 'sesión viva + caducado → entra sin aviso');
+      ok(d.ses === VIVA, 'sesión viva + caducado → entra con la sesión guardada');
+    }
+    // sin sesión + caducado → pide otro.
+    {
+      const nav = navegador('https://lawangproperties.com/portal/?th=' + TH);
+      const { sb } = supabaseFalso(nav, CAD);
+      const r = await E.canjeaCallado(sb, E.quitaTh(nav.loc, nav.hist), { ocupado: false });
+      const d = E.decide(r, null);
+      igual([d.accion, d.ses, d.aviso], ['pide_otro', null, 'enlace_caducado'], 'sin sesión + caducado → pide otro');
+      igual(E.decide({ estado: 'caducado', ses: null }, SIN_CLAIM).accion, 'pide_otro', 'sesión sin claim portal + caducado → pide otro (no entra a medias)');
+      igual(E.decide({ estado: 'caducado', ses: null }, { user: { app_metadata: { portal: true } } }).accion, 'pide_otro', 'sesión sin token + caducado → pide otro');
+    }
+    // sesión viva + th válido → canjea y entra con la NUEVA.
+    {
+      const nav = navegador('https://lawangproperties.com/portal/?th=' + TH);
+      const { sb, est } = supabaseFalso(nav, 'ok');
+      const r = await E.canjeaCallado(sb, E.quitaTh(nav.loc, nav.hist), { ocupado: false });
+      const d = E.decide(r, VIVA);
+      igual(est.llamadas, 1, 'sesión viva + th válido → sí canjea');
+      igual([d.accion, d.aviso], ['entra', null], 'sesión viva + th válido → entra');
+      ok(d.ses === r.ses && d.ses !== VIVA && d.ses.access_token === 'x', 'sesión viva + th válido → entra con la sesión nueva, no con la guardada');
+    }
+    // red con sesión viva → reintenta: «no he podido mirar» no se convierte en «entra».
+    for (const resp of ['lanza', { name: 'AuthApiError', status: 429, message: 'x' }]) {
+      const nav = navegador('https://lawangproperties.com/portal/?th=' + TH);
+      const { sb } = supabaseFalso(nav, resp);
+      const r = await E.canjeaCallado(sb, E.quitaTh(nav.loc, nav.hist), { ocupado: false });
+      const d = E.decide(r, VIVA);
+      igual([d.accion, d.ses, d.aviso], ['reintenta', null, 'enlace_red'], 'red (' + (resp.status || resp) + ') con sesión viva → reintenta');
+    }
+    // th sin forma de token (p. ej. cortado por el cliente de correo) con sesión viva → entra; sin sesión → pide otro.
+    igual(E.decide({ estado: 'caducado' }, VIVA).accion, 'entra', 'th malo + sesión viva → entra');
+    igual(E.decide({ estado: 'caducado' }, null).accion, 'pide_otro', 'th malo sin sesión → pide otro');
+  }
 
   if (fallos) { console.error(fallos + ' de ' + pruebas + ' comprobaciones fallan'); process.exit(1); }
   console.log('enlace.test.js: ' + pruebas + ' comprobaciones OK');

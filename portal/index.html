@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="16bb03dbab14">
+<meta name="lw-version" content="ff571db0a9ff">
 <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como ?th=<token>; ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -56,7 +56,7 @@
 <script src="/portal/calendario.js?v=20261009g"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261009"></script>
-<script src="/portal/enlace.js?v=20261011"></script>
+<script src="/portal/enlace.js?v=20261011b"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
 <script src="/intranet/facturas/documento.js?v=933661fe"></script>
 <style>
@@ -2705,8 +2705,10 @@
 
   /* ── entrada con el enlace de nuestro correo (?th=, LAW-1 S3) ─────── */
   /* Se ofrece el botón «Entrar» en vez del formulario; al pulsarlo se canjea (portal/enlace.js).
-     Caducado o ya usado → vuelve el formulario con «pide otro»; sin red → mismo botón para
-     reintentar, con un aviso distinto («no he podido comprobarlo» ≠ «caducado»). */
+     Qué pasa después lo decide LW_ENLACE.decide, no esta página: correcto → entra con la sesión
+     nueva; caducado o ya usado → entra con la sesión de comprador que ya tuviera viva o, si no
+     hay, vuelve el formulario con «pide otro»; sin red → mismo botón para reintentar, con un
+     aviso distinto («no he podido comprobarlo» ≠ «caducado»). */
   function modoEnlace(on){
     document.getElementById('bloqueEnlace').hidden = !on;
     document.getElementById('fLogin').hidden = on;
@@ -2718,10 +2720,25 @@
     a.className = clave ? 'aviso mal' : 'aviso';
     a.textContent = clave ? t(clave) : '';
   }
-  function ofreceEnlace(){
+  /* Aplica la decisión de LW_ENLACE.decide. 'reintenta' deja el botón y el TH en memoria. */
+  function aplicaEnlace(d){
+    if (d.accion === 'reintenta'){ avisoEnlace(d.aviso); return; }
+    TH = null;   // gastado (o rechazado): ya no se reintenta
+    modoEnlace(false);
+    avisoEnlace(d.aviso);
+    if (d.accion === 'entra') trasSesion(d.ses);
+  }
+  /* `guardada`: la sesión que devolvió getSession() en el arranque (null si no había). */
+  function ofreceEnlace(guardada){
     muestra('vLogin');
-    if (!window.LW_ENLACE.formatoOk(TH)){ TH = null; avisoEnlace('enlace_caducado'); return; }
+    if (!window.LW_ENLACE.formatoOk(TH)){ aplicaEnlace(window.LW_ENLACE.decide({ estado: 'caducado' }, guardada)); return; }
     modoEnlace(true);
+  }
+  /* La sesión guardada se vuelve a leer en el momento: la del arranque pudo caducar o cerrarse
+     mientras la pestaña estaba abierta. Si no se puede leer, cuenta como «no hay». */
+  function sesionAhora(){
+    return sb.auth.getSession().then(function(g){ return (g && g.data && g.data.session) || null; },
+      function(){ return null; /* MUDO A PROPOSITO: sin sesión legible se trata como «no hay» y el comprador ve «pide otro», que es lo que veía antes de este arreglo */ });
   }
   document.getElementById('btnEnlace').addEventListener('click', function(){
     var btn = this;
@@ -2729,12 +2746,16 @@
     btn.disabled = true;
     var a = document.getElementById('avisoLogin'); a.className = 'aviso'; a.textContent = '…';
     window.LW_ENLACE.canjeaCallado(sb, TH, ENTRADA).then(function(r){
+      if (r.estado !== 'caducado') return window.LW_ENLACE.decide(r, null);
+      return sesionAhora().then(function(guardada){ return window.LW_ENLACE.decide(r, guardada); });
+    }).then(function(d){
       btn.disabled = false;
-      if (r.estado === 'red'){ avisoEnlace(window.LW_ENLACE.AVISO.red); return; }
-      TH = null;   // gastado (o rechazado): ya no se reintenta
-      modoEnlace(false);
-      if (r.estado === 'ok'){ avisoEnlace(null); trasSesion(r.ses); return; }
-      avisoEnlace(window.LW_ENLACE.AVISO.caducado);
+      aplicaEnlace(d);
+    }).catch(function(){
+      /* Hoy no rechaza nada de la cadena (canjea y sesionAhora resuelven siempre); si algún día
+         lo hace, el botón no se queda bloqueado en «…»: se dice «no he podido comprobarlo». */
+      btn.disabled = false;
+      avisoEnlace(window.LW_ENLACE.AVISO.red);
     });
   });
 
@@ -2744,11 +2765,12 @@
      ya arrancado (portal/enlace.js, punto 3). */
   sb.auth.getSession().then(function(r){
     ENTRADA.ocupado = false;
-    if (TH !== null && !window.LW_DEMO){ ofreceEnlace(); return; }
-    trasSesion(r && r.data && r.data.session);
+    var ses = (r && r.data && r.data.session) || null;
+    if (TH !== null && !window.LW_DEMO){ ofreceEnlace(ses); return; }
+    trasSesion(ses);
   }).catch(function(){
     ENTRADA.ocupado = false;
-    if (TH !== null && !window.LW_DEMO) ofreceEnlace(); else muestra('vLogin');
+    if (TH !== null && !window.LW_DEMO) ofreceEnlace(null); else muestra('vLogin');
   });
 
   sb.auth.onAuthStateChange(window.LW_ENLACE.callado(ENTRADA, function(ev, ses){
