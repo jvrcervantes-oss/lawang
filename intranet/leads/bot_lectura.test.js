@@ -4,7 +4,7 @@
      2. El resumen del bot sale marcado con data-tipo="resumen_bot" (el codigo engancha por el identificador, no por el rotulo) y las
         notas sueltas del bot con data-tipo="nota"; las citas llevan data-cita-id y data-estado.
      3. La lectura de Postgres distingue «sin permiso» (42501) de «no se pudo leer» y ninguna se confunde con «sin conversaciones».
-     4. Con el origen 'proxy' (el de hoy) la pantalla pinta lo mismo que antes: ni notasLista ni citasLista, caen a notes/history. */
+     4. Con el origen 'proxy' (la vuelta atras; desde el 10-oct el de por defecto es 'postgres') la pantalla pinta lo mismo que antes: ni notasLista ni citasLista, caen a notes/history. */
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -40,7 +40,7 @@ function mundo(opts = {}) {
     llamarBot: async accion => (opts.proxy ? opts.proxy(accion) : []),
   };
   vm.createContext(ctx);
-  vm.runInContext(lectura + '\n' + ficha + '\n' + kpis + '\nthis.__x = { errorBotPg, leerConversaciones, leerHilo, pintarFicha, pintarHiloChat, kpisSetter, BOT_PG, setErr: v => { SETTER_ERROR = v; }, setConv: v => { CONVERSACIONES = v; } };', ctx);
+  vm.runInContext((opts.origen === 'proxy' ? lectura.replace("const LECTURA_BOT = 'postgres';", "const LECTURA_BOT = 'proxy';") : lectura) + '\n' + ficha + '\n' + kpis + '\nthis.__x = { errorBotPg, leerConversaciones, leerHilo, pintarFicha, pintarHiloChat, kpisSetter, BOT_PG, setErr: v => { SETTER_ERROR = v; }, setConv: v => { CONVERSACIONES = v; } };', ctx);
   return { ctx, celdas, x: ctx.__x, elem };
 }
 
@@ -104,8 +104,10 @@ function mundo(opts = {}) {
     const h = await bien.x.leerHilo('1');
     ok(h.pg === true && h.mensajes.length === 1 && h.hayMas === true, 'el hilo trae mensajes y hayMas');
     // el origen proxy NO toca la base
-    const prox = mundo({ proxy: async a => (a === 'conversaciones' ? [{ phone: '9' }] : [{ role: 'user', content: 'x' }]), rpc: async () => { throw new Error('no debe llamar a la base'); } });
-    ok(prox.x.BOT_PG === false, 'por defecto el origen es el proxy');
+    ok(/const LECTURA_BOT = 'postgres';/.test(lectura), 'tras el corte del 10-oct el origen por defecto es postgres');
+    ok(mundo().x.BOT_PG === true, 'por defecto la lectura es la de Postgres');
+    const prox = mundo({ origen: 'proxy', proxy: async a => (a === 'conversaciones' ? [{ phone: '9' }] : [{ role: 'user', content: 'x' }]), rpc: async () => { throw new Error('no debe llamar a la base'); } });
+    ok(prox.x.BOT_PG === false, 'con origen proxy (vuelta atras) no se usa la base');
     ok((await prox.x.leerConversaciones())[0].phone === '9', 'el proxy sigue funcionando');
     const hp = await prox.x.leerHilo('9');
     ok(hp.pg === false && hp.mensajes.length === 1, 'el hilo del proxy conserva su forma');
