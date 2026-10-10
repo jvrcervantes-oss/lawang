@@ -424,8 +424,12 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .soulnav a{font-size:12px}
   .hero .ph{height:56vw}
   .hero .ph h1{left:16px;top:auto;bottom:-6px;font-size:5.6vw;line-height:1.25}
-  .sil{display:none}
-  .totem{left:auto;right:10px;top:auto;bottom:24px;width:min(28vw,110px);opacity:.75;clip-path:inset(13% 0 0 0)}
+  /* fondo de la primera pantalla: los 3 iconos de escritorio (sin el totem, que en móvil se veía con fondo blanco) */
+  .totem{display:none}
+  .sil{opacity:.09;z-index:0;top:auto!important}
+  .sil:nth-of-type(1){left:-24px!important;bottom:36px;width:min(52vw,210px)!important}
+  .sil:nth-of-type(2){left:38%!important;bottom:104px;width:min(34vw,140px)!important}
+  .sil:nth-of-type(3){right:0;left:auto!important;bottom:28px;width:min(38vw,150px)!important}
   .hero h2,.hero .sub,.stats4,.stats4 li,.claim,.routes .tt,.opt,.cmp,.cmp .th,.cmp .v,.see .bn p,.see h2,.see .pr,.svc-h,.cards4,.terr .tag,.terr h2,.terr .chips,.isl,.kpis,.ret,.why .hd,.isles,.how .hd,.ruta6{position:static;transform:none;width:auto;white-space:normal}
   .hero h2{margin-top:22px;font-size:22px;line-height:28px}
   .hero .sub{margin-top:6px;font-size:15px;line-height:20px}
@@ -642,8 +646,8 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
     <li><a href="#who" data-s="who" data-i18n="bn.who">Who we are</a></li>
     <li><a href="#indonesia" data-s="why" data-i18n="bn.why">Why Indonesia</a></li>
     <li><a href="#how" data-s="how" data-i18n="bn.how">How it works</a></li>
-    <li><a href="#zoning" data-s="prot" data-i18n="bn.prot">What protects you</a></li>
     <li><a href="#see" data-s="see" data-i18n="bn.see">Come see it</a></li>
+    <li><a href="#zoning" data-s="prot" data-i18n="bn.prot">What protects you</a></li>
   </ul>
 </nav>
 
