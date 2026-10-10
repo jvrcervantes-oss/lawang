@@ -77,7 +77,7 @@ declare
   ids text[];
   o jsonb;
 begin
-  if tg_op = 'DELETE' then
+  if tg_op in ('DELETE', 'TRUNCATE') then
     raise exception 'axisworks_panel_respuestas es de solo añadir: no se borra';
   end if;
 
@@ -153,7 +153,14 @@ create trigger axisworks_panel_respuestas_guarda
   before insert or update or delete on public.axisworks_panel_respuestas
   for each row execute function public.axisworks_panel_respuestas_guarda();
 
+-- TRUNCATE no dispara los triggers por fila: sin esto «prohibido borrar» tenía un hueco, porque service_role hereda
+-- DELETE y TRUNCATE como en la tabla hermana axisworks_panel_snapshot (Seguridad, 11-oct-2026).
+create trigger axisworks_panel_respuestas_sin_truncate
+  before truncate on public.axisworks_panel_respuestas
+  for each statement execute function public.axisworks_panel_respuestas_guarda();
+
 alter table public.axisworks_panel_respuestas enable row level security;
 revoke all on public.axisworks_panel_respuestas from anon, authenticated, public;
+revoke truncate, delete on public.axisworks_panel_respuestas from service_role;
 
 comment on table public.axisworks_panel_respuestas is 'Preguntas del estudio al owner y sus respuestas desde panel.axisworks.studio/mapa (S4 panel visual, 11-oct-2026). Escriben solo la service key de tools/pregunta.py (insert, marcar leida) y del panel (responder). RLS sin politicas y sin permisos para anon/authenticated. Trigger axisworks_panel_respuestas_guarda: tipo fijo, una respuesta por pregunta, hard_stop con confirmacion, sin borrados. Una respuesta es dato, nunca autoriza un hard-stop.';
