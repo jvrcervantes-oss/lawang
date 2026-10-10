@@ -613,6 +613,16 @@
   function cifras(nombre, args) {
     return q(window.lwDatos(nombre, args), nombre);
   }
+  /* Carga de una pantalla por su `*_datos` (LAW-338 L3, 10-oct-2026): el objeto entero o null (fallo ya avisado en
+     `cont`, como q()). Si el servidor recortó alguna lista por su tope, se dice: una lista incompleta no se calla. */
+  function datosDe(nombre, args, que, cont) {
+    return q(window.lwDatos(nombre, args), que, cont).then(function (d) {
+      if (d && d.recortado && d.recortado.length) {
+        (typeof toastMal === 'function' ? toastMal : console.warn)('«' + que + '» no cabe entera en una carga (' + d.recortado.join(', ') + '): lo que ves está incompleto.');
+      }
+      return d;
+    });
+  }
 
   var mesIni = new Date(); mesIni.setDate(1); mesIni.setHours(0, 0, 0, 0);
   function sumaMesEUR(recibis) {
@@ -881,11 +891,16 @@
       Promise.all([
         sb.rpc('facturas_equipo').select('id,anulada').in('contrato_id', ids),
         sb.rpc('contrato_firmas_equipo').select('id,contrato_id,estado,snapshot_path').in('contrato_id', ids).in('estado', ['pendiente', 'procesando']),
-        sb.from('comisiones_devengadas').select('id,estado,solicitud_id').in('contrato_raiz_id', ids)
+        /* LAW-338 L3 (10-oct-2026): las comisiones de la operación por el servidor (operacion_comisiones_datos). */
+        window.lwDatos('operacion_comisiones_datos', { p_contratos: ids }).then(function (rr) {
+          return rr.error ? rr : { data: (rr.data && rr.data.comisiones) || [], error: null };
+        })
       ]).then(function (r) {
         var facturasVivas = (r[0].error ? [] : (r[0].data || [])).filter(function (f) { return !f.anulada; }).length;
         var firmasVivas = r[1].error ? [] : (r[1].data || []);
         var comisiones = r[2].error ? [] : (r[2].data || []);
+        /* Si algo no se pudo leer, se dice: el diálogo no puede prometer «no hay nada» sin haberlo mirado. */
+        var sinMirar = ['facturas', 'enlaces de firma', 'comisiones'].filter(function (_, i) { return r[i].error; });
         var yaPagadas = comisiones.filter(function (x) { return x.estado === 'pagada'; }).length;
         var detalle = [];
         detalle.push(contratos.length > 1
@@ -895,6 +910,7 @@
         if (facturasVivas) detalle.push(facturasVivas + ' ' + (facturasVivas === 1 ? 'factura quedará ANULADA (no se borra: la serie no puede tener huecos)' : 'facturas quedarán ANULADAS (no se borran: la serie no puede tener huecos)'));
         if (comisiones.length) detalle.push(comisiones.length + ' comisión(es) devengada(s) y su solicitud de pago (si la tienen) se PURGARÁN' +
           (yaPagadas ? ' — OJO: ' + yaPagadas + ' ya está' + (yaPagadas === 1 ? '' : 'n') + ' PAGADA(S): el sistema va a parar el borrado entero' : ''));
+        if (sinMirar.length) detalle.push('No he podido comprobar ' + sinMirar.join(', ') + ' de esta operación: si algo impide el borrado, el sistema lo parará entero');
         detalle.push('La parcela vinculada vuelve a estar disponible.');
         aseguraDialogoV4().then(function () {
           return lwConfirmar({
@@ -7135,6 +7151,8 @@
     var tablaEq = document.getElementById('lw-filas-equipo');
     var cajaEq = tablaEq ? tablaEq.closest('section') : null;
 
+    var reparto = datosDe('comisiones_reparto_datos', {}, 'reparto de equipo', cajaEq);
+    var equipos = datosDe('equipos_datos', {}, 'equipos de venta');
     Promise.all([
       /* `id` y los campos de la ficha (vence_el, nota, resolución…): sin `id` cada fila
          salía con data-id="" y el clic no abría nada — no se podía editar ninguna
@@ -7145,16 +7163,18 @@
       /* Si la RLS de `usuarios` solo deja leer la propia ficha, el mapa se queda
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
       q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios'),
-      q(sb.from('comisiones_devengadas').select('id,contrato_raiz_id,beneficiario_email,nivel,importe,importe_ajustado,ajuste_motivo,anulado_motivo,moneda,estado,disparado_en,pagado_por,pagado_en,disparado_por_snapshot').in('nivel', ['closer', 'setter', 'team_lead']).order('disparado_en', { ascending: false }), 'reparto de equipo', cajaEq),
-      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
-      q(sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'), 'miembros de equipo'),
+      /* LAW-338 L3 (10-oct-2026): reparto, diferencias y equipos por el servidor (comisiones_reparto_datos,
+         equipos_datos); misma RLS, mismas filas. */
+      reparto.then(function (d) { return d ? d.devengadas : null; }),
+      equipos.then(function (d) { return d ? d.equipos : null; }),
+      equipos.then(function (d) { return d ? d.miembros : null; }),
       /* De qué parcela sale cada comisión (23-sep-2026, owner): las unidades cuelgan
          de la RAÍZ de la venta (`unidades.contrato_id`), igual que las lee el motor. */
       q(sb.from('unidades').select('codigo,codigo_orden,contrato_id').not('contrato_id', 'is', null), 'parcelas'),
       /* Diferencias por cambio de contrato (28-sep-2026): las crea la base
          (comisiones_reconciliar) cuando cambia un contrato de una comisión ya
          aprobada o pagada. La RLS enseña las de las comisiones que ves. */
-      q(sb.from('comisiones_diferencias').select('id,numero,devengo_id,importe,estado,motivo,created_at,comisiones_devengadas(nivel,beneficiario_email,contrato_raiz_id,moneda)').order('created_at', { ascending: false }), 'diferencias')
+      reparto.then(function (d) { return d ? d.diferencias : null; })
     ]).then(function (r) {
       var ss = r[0], contratosRows = r[1] || [], usuariosRows = r[2] || [], cd = r[3], eqs = r[4] || [], miembros = r[5] || [], unidadesRows = r[6] || [], difRows = r[7] || [];
       var difsDe = {}; difRows.forEach(function (x) { (difsDe[x.devengo_id] = difsDe[x.devengo_id] || []).push(x); });
@@ -7198,7 +7218,7 @@
          revisar» — por eso van en un bloque propio encima, y solo mientras estén vivas. */
       function pintaDifLawang() {
         var vivas = difRows.filter(function (d) {
-          var dv = d.comisiones_devengadas || {};
+          var dv = d.devengo || {};
           return ['manager', 'estandar', 'propia'].indexOf(dv.nivel) !== -1 && (d.estado === 'revisar' || (d.estado === 'pendiente' && !(Number(d.importe) > 0)));
         });
         if (!vivas.length || document.getElementById('lw-dif-lawang')) return;
@@ -7212,7 +7232,7 @@
         sec.innerHTML = '<div style="font:700 11px \'Neue Kabel\',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8A5A00">Diferencias por cambio de contrato</div>' +
           '<p style="margin:0;font:400 13px \'Neue Kabel\',sans-serif;color:#5C5A52">Un contrato cambió después de aprobar o pagar su comisión. Las negativas se descuentan del bruto del siguiente pago a esa persona (antes de la retención); las «por revisar» las decide un administrador.</p>' +
           vivas.map(function (d) {
-            var dv = d.comisiones_devengadas || {};
+            var dv = d.devengo || {};
             var cV = ct[dv.contrato_raiz_id];
             var quien = (porEmail[(dv.beneficiario_email || '').toLowerCase()] || {}).nombre || dv.beneficiario_email || '—';
             var puede = esAdm && (dv.beneficiario_email || '').toLowerCase() !== yo;
@@ -7390,13 +7410,17 @@
              solo se hace VISIBLE, y solo para las nacidas de una comision
              automatica (las manuales no tienen fila que vincular). */
           if (x.origen === 'comision_automatica' && cj && cj.cuerpo) {
-            sb.from('comisiones_devengadas').select('estado,pagado_en,importe,importe_ajustado,moneda')
-              // manager Y estándar (22-sep-2026): las dos las paga Lawang y llevan solicitud
-              .eq('solicitud_id', x.id).in('nivel', ['manager', 'estandar', 'propia']).maybeSingle()
+            // manager, estándar y propia (22-sep-2026): las paga Lawang y llevan solicitud. Por el servidor desde
+            // LAW-338 L3 (comision_de_solicitud_datos): null si no hay exactamente una que tu sesión vea.
+            window.lwDatos('comision_de_solicitud_datos', { p_solicitud: x.id })
+              .then(function (rr) { return { error: rr.error, data: rr.data ? rr.data.comision : null }; })
               .then(function (rcd) {
                 if (!cj.cuerpo.isConnected) return;   // el cajon ya se cerro
                 var html;
-                if (rcd.error || !rcd.data) {
+                if (rcd.error) {
+                  html = H.seccion('Comisión vinculada',
+                    H.nota('No he podido leer la comisión vinculada (fallo al preguntar al servidor): recarga la ficha para comprobarla.'));
+                } else if (!rcd.data) {
                   html = H.seccion('Comisión vinculada',
                     H.nota('No se encuentra la fila de comisiones_devengadas de esta comisión automática (o tu sesión no puede verla) — no hay sincronización automática entre las dos: compruébalo a mano si hace falta.'));
                 } else {
@@ -8467,9 +8491,15 @@
     var selEq = document.getElementById('lw-mi-equipo');
     var hoy = new Date().toISOString().slice(0, 10);
 
+    /* LAW-338 L3 (10-oct-2026): equipos y miembros por el servidor (equipos_datos, ya ordenados: equipos por nombre,
+       miembros por «desde» descendente). Si falla, lo dicen las dos tablas. */
+    var cargaEq = datosDe('equipos_datos', {}, 'equipos de venta', cuerpoEq).then(function (d) {
+      if (!d && cuerpoMi) fallo('miembros de equipo', null, cuerpoMi);
+      return d;
+    });
     Promise.all([
-      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,created_at,closers_ven_comision,empresa').order('nombre'), 'equipos de venta', cuerpoEq),
-      q(sb.from('equipo_miembros').select('id,equipo_id,closer_email,desde,hasta,rol,rol_nombre').order('desde', { ascending: false }), 'miembros de equipo', cuerpoMi),
+      cargaEq.then(function (d) { return d ? d.equipos : null; }),
+      cargaEq.then(function (d) { return d ? d.miembros : null; }),
       q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios'),
       empresasVista()
     ]).then(function (r) {
@@ -8658,12 +8688,15 @@
     var cuerpo = document.getElementById('lw-condiciones-filas');
     var selEquipo = document.getElementById('lw-co-equipo');
     var selProyecto = document.getElementById('lw-co-proyecto');
+    var cargaCond = datosDe('condiciones_comision_datos', {}, 'condiciones de comisión', cuerpo);
 
     Promise.all([
-      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,vigente_desde,vigente_hasta,created_at,sustituye_a,empresa').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
-      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,empresa'), 'equipos de venta'),
+      /* LAW-338 L3 (10-oct-2026): condiciones con sus tramos (condiciones_comision_datos) y equipos (equipos_datos)
+         por el servidor; condiciones por fecha de alta descendente y tramos por orden, como antes. */
+      cargaCond.then(function (d) { return d ? d.condiciones : null; }),
+      datosDe('equipos_datos', {}, 'equipos de venta').then(function (d) { return d ? d.equipos : null; }),
       q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
-      q(sb.from('condicion_tramos').select('id,condicion_id,orden,disparador_tipo,umbral,pct_tramo').order('orden'), 'tramos de comisión'),
+      cargaCond.then(function (d) { return d ? d.tramos : null; }),
       q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios'),
       empresasVista()
     ]).then(function (r) {

@@ -51,8 +51,12 @@
     var p = document.createElement('div'); p.setAttribute('role', 'status');
     p.className = 'rounded-xl border px-5 py-4 font-body-sm text-body-sm ' + (tono === 'mal' ? 'border-error/40 bg-error-container/40 text-on-surface' : tono === 'bien' ? 'border-primary/30 bg-primary-fixed/40 text-on-surface' : 'border-burnt-earth/30 bg-surface-alt text-on-surface-variant');
     p.textContent = texto; caja.appendChild(p);
+    return p;
   }
   function limpiaAvisos() { var c = $('lw-ban-avisos'); if (c) c.innerHTML = ''; }
+  /* Solo el aviso de «recortado» (LAW-338, BAJA de L1): refrescar() lo quita y cargar() lo vuelve a poner si sigue
+     haciendo falta. Los de «Extractos >7 días», «No ves los gastos» o el resultado de una importación se quedan. */
+  function limpiaRecortado() { var c = $('lw-ban-avisos'); if (c) c.querySelectorAll('[data-aviso="recortado"],[data-aviso="refresco"]').forEach(function (n) { n.remove(); }); }
   function avisoRapido(texto, mal) {
     if (mal && typeof toastMal === 'function') return toastMal(texto);
     if (!mal && typeof toastBien === 'function') return toastBien(texto);
@@ -103,7 +107,7 @@
     return pag(null).then(function () {
       var d = primera;
       var rec = (d.recortado || []).concat(cortado ? ['movimientos'] : []);
-      if (rec.length) aviso(T('Hay más datos de los que caben en una carga') + ': ' + rec.join(', ') + '. ' + T('Avisa a Desarrollo.'), 'mal');
+      if (rec.length) { var avr = aviso(T('Hay más datos de los que caben en una carga') + ': ' + rec.join(', ') + '. ' + T('Avisa a Desarrollo.'), 'mal'); if (avr) avr.setAttribute('data-aviso', 'recortado'); }
       D.movs = movs.sort(function (a, b) { return a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : (b.orden || 0) - (a.orden || 0); });
       D.lineas = lineas; D.cuentas = d.cuentas || [];
       D.perfiles = {}; (d.perfiles || []).forEach(function (p) { D.perfiles[p.cuenta_clave] = p.mapeo; });
@@ -232,8 +236,11 @@
   }
   function pintaTodo() { llenaFiltros(); pintaCuentas(); pintaLista(); if (typeof lwIdiomaAplicar === 'function') { try { lwIdiomaAplicar(); } catch (_) { /* MUDO A PROPOSITO: traducir no tumba la pantalla */ } } }
   function refrescar() {
-    limpiaAvisos();   // el aviso de «recortado» lo vuelve a poner cargar() si sigue haciendo falta
-    return cargar().then(pintaTodo, function (e) { aviso(T('No se pudieron volver a leer los bancos') + ' (' + e.message + '). ' + T('Recarga la página.'), 'mal'); });
+    limpiaRecortado();   // «recortado» lo vuelve a poner cargar() si sigue haciendo falta; el fallo de un refresco anterior se va
+    return cargar().then(pintaTodo, function (e) {
+      var p = aviso(T('No se pudieron volver a leer los bancos') + ' (' + e.message + '). ' + T('Recarga la página.'), 'mal');
+      if (p) p.setAttribute('data-aviso', 'refresco');
+    });
   }
 
   /* ── IMPORTAR ──────────────────────────────────────────────────────────── */

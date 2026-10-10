@@ -8997,14 +8997,15 @@
          evita ofrecer lo que la base rechazaría. */
       var miEmailE = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       var misEquipos = [], misCloser = {};
-      var cargaMisEquipos = admin ? Promise.resolve() : Promise.all([
-        sb.from('equipos_venta').select('id,nombre,manager_email,activo').eq('activo', true),
-        sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta')
-      ]).then(function (r) {
+      /* LAW-338 L3 (10-oct-2026): equipos y miembros por el servidor (equipos_datos). Si falla, se avisa: sin sus
+         equipos el manager vería «solo administración» sin saber por qué. */
+      var cargaMisEquipos = admin ? Promise.resolve() : window.lwDatos('equipos_datos').then(function (rr) {
+        if (rr.error) { console.error('[condiciones] equipos_datos', rr.error); aviso('No he podido leer tus equipos de venta: recarga la página.', '#8A6A34'); }
+        var d = rr.data || {};
         var hoy = new Date().toISOString().slice(0, 10);
-        misEquipos = ((r[0] && r[0].data) || []).filter(function (e) { return (e.manager_email || '').toLowerCase() === miEmailE; });
+        misEquipos = (d.equipos || []).filter(function (e) { return e.activo === true && (e.manager_email || '').toLowerCase() === miEmailE; });
         var ids = misEquipos.map(function (e) { return e.id; });
-        ((r[1] && r[1].data) || []).forEach(function (m) {
+        (d.miembros || []).forEach(function (m) {
           if (ids.indexOf(m.equipo_id) !== -1 && m.desde <= hoy && (!m.hasta || m.hasta >= hoy)) misCloser[(m.closer_email || '').toLowerCase()] = true;
         });
       });
@@ -9068,7 +9069,10 @@
         cargaMisEquipos.then(function () {
         if (!admin && !misEquipos.length) return soloAdmin();
         Promise.all([
-          admin ? sb.from('equipos_venta').select('id,nombre').eq('activo', true).order('nombre') : Promise.resolve({ data: misEquipos }),
+          // equipos_datos ya viene ordenado por nombre (LAW-338 L3)
+          admin ? window.lwDatos('equipos_datos').then(function (rr) {
+            return rr.error ? rr : { data: ((rr.data && rr.data.equipos) || []).filter(function (e) { return e.activo === true; }) };
+          }) : Promise.resolve({ data: misEquipos }),
           sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
         ]).then(function (r) {
           var equipos = (r[0] && r[0].data) || [], proyectos = (r[1] && r[1].data) || [];
@@ -9184,8 +9188,9 @@
         // F6: solo se borra la que aún no ha empezado (la base lo exige igual); las demás se cierran
         var hoyBC = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
         if (cond && !(cond.vigente_desde > hoyBC)) return aviso('Solo se borra una condición que aún no ha empezado; esta se cierra en su lugar.', '#8A6A34');
-        sb.from('comisiones_devengadas').select('id', { count: 'exact', head: true }).eq('condicion_id', id).then(function (r) {
-          var n = r.error ? 0 : (r.count || 0);
+        window.lwDatos('condicion_usos_datos', { p_condicion: id }).then(function (r) {
+          if (r.error) aviso('No he podido comprobar si esta condición ya ha devengado comisiones: si las tiene, la base no dejará cambiarla.', '#8A6A34');
+          var n = r.error ? 0 : ((r.data && r.data.devengadas) || 0);
           if (n) {
             return modal('No se puede borrar — ' + etq, [
               { tipo: 'nota', label: 'Esta condición ya ha devengado ' + n + (n === 1 ? ' comisión' : ' comisiones') + ' que la citan: la base no deja borrarla. Desactívala en su lugar — deja de aplicarse a lo nuevo y lo devengado se conserva.' }
@@ -9228,8 +9233,9 @@
         if (!cond) return aviso('No encuentro esa condición — recarga la página.', '#8A6A34');
         if (!admin && !esMiCondicion(cond)) return soloAdmin();
         var tramosAct = ((window.LW_V4.tramosDe || {})[id] || []).slice().sort(function (x, y) { return x.orden - y.orden; });
-        sb.from('comisiones_devengadas').select('id', { count: 'exact', head: true }).eq('condicion_id', id).then(function (r) {
-          var n = r.error ? 0 : (r.count || 0);
+        window.lwDatos('condicion_usos_datos', { p_condicion: id }).then(function (r) {
+          if (r.error) aviso('No he podido comprobar si esta condición ya ha devengado comisiones: si las tiene, la base no dejará cambiarla.', '#8A6A34');
+          var n = r.error ? 0 : ((r.data && r.data.devengadas) || 0);
           var getTramos = null;
           var campos = [
             { tipo: 'lectura', label: 'Equipo · proyecto', valor: etq },

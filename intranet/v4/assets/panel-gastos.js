@@ -1,10 +1,14 @@
 /* panel-gastos.js — la pantalla /v4/gastos/ (24-sep-2026). Módulo `gastos`.
  *
  * Misma forma que panel-finanzas.js: carga → cálculo (finGastos, en
- * contracts/assets/finanzas.js, con test) → pintado. Escribe por las tablas
- * `gastos` y `proveedores` directamente: la puerta es la RLS (es_admin() Y
- * puede('gastos')) y lo que la base protege no se repite aquí (autoría, log,
- * anulado inmutable, escrow, CHECK de pagado/anulado/PPh — migración
+ * contracts/assets/finanzas.js, con test) → pintado. Lee por las RPC
+ * `gastos_panel_datos` y `gasto_historial_datos` (window.lwDatos) y escribe por
+ * las RPC `gasto_guarda`, `gasto_marca_pagado`, `gasto_pph_ingresado`,
+ * `gasto_anula` y `proveedor_guarda`: el navegador no toca las tablas (LAW-338;
+ * con el cierre de L3, supabase/por_aplicar/law338_l3_revoke.sql, `authenticated`
+ * pierde el SELECT directo sobre `gastos`). La puerta es la base
+ * (es_admin() Y puede('gastos')) y lo que protege no se repite aquí (autoría,
+ * log, anulado inmutable, escrow, CHECK de pagado/anulado/PPh — migración
  * 20260924075945_gastos_proveedores.sql).
  *
  * Reglas de la suite que se cumplen aquí, con su porqué:

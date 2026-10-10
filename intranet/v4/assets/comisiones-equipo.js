@@ -44,13 +44,18 @@
 
     Promise.all([
       sb.rpc('comisiones_ventas_equipo'),
-      sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'),
+      window.lwDatos('equipos_datos'),   // miembros por el servidor (LAW-338 L3, 10-oct-2026)
       sb.from('usuarios').select('nombre,email')
     ]).then(function (r) {
       if (r[0].error) { console.error('[ventas del equipo]', r[0].error); return; }
       var ventas = r[0].data || [];
       if (!ventas.length) return;   // sin ventas de equipo que ver: el bloque no aparece
-      var miembros = (r[1] && r[1].data) || [];
+      if (r[1] && r[1].error) {
+        console.error('[ventas del equipo] equipos_datos', r[1].error);
+        /* Se dice en pantalla: sin miembros, setter y team lead salen vacíos y parecería que no hay nadie. */
+        if (typeof toastMal === 'function') toastMal('No se pudieron leer los miembros de los equipos: setter y team lead pueden salir vacíos. Recarga la página.');
+      }
+      var miembros = (r[1] && r[1].data && r[1].data.miembros) || [];
       var nombre = {};
       ((r[2] && r[2].data) || []).forEach(function (u) { if (u.email) nombre[u.email.toLowerCase()] = u.nombre || u.email; });
       function quien(e) { return e ? (nombre[e.toLowerCase()] || e) : '—'; }
