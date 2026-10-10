@@ -1,4 +1,4 @@
--- Acción `verificar` del bot (encargo «bot sin Redis», apartado c, 10-oct-2026; aplicada a la base como 20261009235701): el bot pregunta a la edge si la PERSONA que le pide enviar o pausar
+-- Acción `verificar` del bot (encargo «bot sin Redis», apartado c, 10-oct-2026; aplicada a la base con la version 20261009235701; el repo la nombra 20261010190000 como las demas (se compara por NOMBRE)): el bot pregunta a la edge si la PERSONA que le pide enviar o pausar
 -- (su JWT, verificado contra Auth por la edge) tiene la casilla `bot_escribir`. Hoy el bot se fía de la clave de administración y de un `byUser` que pone
 -- el proxy: quien robe esa clave escribe a los clientes como cualquiera. Con esto el bot comprueba él mismo, contra la base, quién es y qué puede.
 --

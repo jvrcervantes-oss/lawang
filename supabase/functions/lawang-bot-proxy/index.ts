@@ -197,14 +197,14 @@ export const manejador = async (req: Request) => {
     // la casilla «leads». Nace cerrado hasta que el bot filtre por empresa (LAW-E13, departamento Bots). Hoy nadie está acotado.
     if (acotadoAEmpresa(ficha))
       return json({ error: 'sin_permiso: el bot de WhatsApp atiende a las dos empresas; esta pantalla no está disponible con el alcance acotado a una empresa' }, 403);
-    const puedeLeads = tieneCasilla(ficha, 'leads');
+    const puedeLeads = reglaBot(ficha, 'leads');
     // Permiso propio para escribir al lead. Se reparte desde /intranet/usuarios/ como
     // una casilla mas; mientras nadie la marque, solo los super_admin pueden escribir.
-    const puedeEscribir = tieneCasilla(ficha, 'bot_escribir');
+    const puedeEscribir = reglaBot(ficha, 'bot_escribir');
     // Configurar el bot (instrucciones extra, saludo, horas de pausa) cambia lo que el bot dice a clientes
     // reales, así que es un permiso APARTE, y también para LEER la configuración (puede traer datos comerciales).
     // Llamador: la pestaña «Configurar bot» de intranet/leads. Hasta que se reparta como casilla, solo super_admin.
-    const puedeConfigurar = tieneCasilla(ficha, 'bot_configurar');
+    const puedeConfigurar = reglaBot(ficha, 'bot_configurar');
 
     const body = await req.json().catch(() => ({}));
     const accion = String(body.accion ?? '');
