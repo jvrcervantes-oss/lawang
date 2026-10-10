@@ -177,8 +177,16 @@ Deno.serve(async (req) => {
     // apunta el envío y se marca `enviada` con ese id, y `enviada=true` congela número
     // y emisor y veta el borrado — no puede hacerlo quien no puede ver la factura.
     if (facturaId) {
-      const { data: fv, error: eF } = await usuario.from('facturas').select('id').eq('id', facturaId).maybeSingle();
+      const { data: fv, error: eF } = await usuario.from('facturas').select('id, anulada').eq('id', facturaId).maybeSingle();
       if (eF || !fv) return json({ ok: false, error: 'factura_no_visible' }, 403);
+      // LAW-37 (11-oct-2026): un documento anulado no sale al cliente. Antes se renderizaba y se
+      // enviaba, y solo fallaba después la marca (factura_marca_enviada rechaza anulados desde la
+      // 20261010231114): el cliente recibía un papel anulado y la pantalla decía «no se pudo marcar».
+      // Se corta aquí, antes del render, del SMTP y del registro. `error` es texto: la pantalla lo enseña tal cual.
+      if (fv.anulada === true) {
+        return json({ ok: false, codigo: 'documento_anulado',
+          error: 'Este documento está anulado: no se envía al cliente. Si hace falta, emite otro.' }, 409);
+      }
     }
     // Y el contrato igual: el registro de envíos se lee como «quién lo tiene» y lo
     // escribe el service role — sin esto, cualquiera del equipo dejaba un envío falso
