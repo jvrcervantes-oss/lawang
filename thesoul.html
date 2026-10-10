@@ -339,6 +339,10 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 .zc.on .zin{transform:rotateY(180deg)}
 .zf,.zb{position:relative;grid-area:1/1;min-width:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:calc(16*var(--u));overflow:hidden;box-shadow:0 calc(18*var(--u)) calc(40*var(--u)) rgba(40,35,20,.18)}
 .zf>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* cara delantera: al darle la vuelta se oculta del todo a mitad del giro (en algunos navegadores el reverso dejaba ver su texto invertido abajo); al cerrar vuelve al instante para que el foco del teclado llegue al botón */
+.zf{transition:none}
+.zf *{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.zc.on .zf{visibility:hidden;opacity:0;transition:visibility 0s .42s,opacity 0s .42s}
 .zf::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,18,12,.4),rgba(15,18,12,0) 22%,var(--z0) 48%,var(--z) 70%,var(--z))}
 .zc.y{--z:rgba(122,99,47,.97);--z0:rgba(122,99,47,.55)}.zc.t{--z:rgba(36,71,75,.97);--z0:rgba(36,71,75,.55)}.zc.g{--z:rgba(75,89,56,.97);--z0:rgba(75,89,56,.55)}
 .zf::after,.zb::after{content:"";position:absolute;z-index:5;pointer-events:none;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.4);border-radius:calc(10*var(--u))}
@@ -380,6 +384,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .zc .zin{transition:none;transform:none!important}
   .zc.on .zb .sheen{animation:none}
   .zb{transform:none;opacity:0;transition:opacity .2s}.zc.on .zb{opacity:1}
+  .zc.on .zf{transition:none}
   .zb .tag,.zb h3,.zb .bp{transition:none}
 }
 .zone .note{position:absolute;left:0;right:0;top:calc(917*var(--u) + var(--zx));margin:0 auto;max-width:calc(930*var(--u));font-size:calc(18.6*var(--u));line-height:calc(34*var(--u));color:#45443f}
@@ -418,7 +423,8 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .soulnav a{font-size:12px}
   .hero .ph{height:56vw}
   .hero .ph h1{left:16px;top:auto;bottom:-6px;font-size:5.6vw;line-height:1.25}
-  .sil,.totem{display:none}
+  .sil{display:none}
+  .totem{left:auto;right:10px;top:auto;bottom:24px;width:min(28vw,110px);opacity:.75;clip-path:inset(13% 0 0 0)}
   .hero h2,.hero .sub,.stats4,.stats4 li,.claim,.routes .tt,.opt,.cmp,.cmp .th,.cmp .v,.see .bn p,.see h2,.see .pr,.svc-h,.cards4,.terr .tag,.terr h2,.terr .chips,.isl,.kpis,.ret,.why .hd,.isles,.how .hd,.steps6{position:static;transform:none;width:auto;white-space:normal}
   .hero h2{margin-top:22px;font-size:22px;line-height:28px}
   .hero .sub{margin-top:6px;font-size:15px;line-height:20px}
@@ -468,7 +474,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .steps6 br.d{display:none}
   .routes .tt .a{font-size:20px;line-height:24px}.routes .tt .bg span:first-child{font-size:30px;line-height:36px}.routes .tt .bg span:last-child{font-size:27px}.routes .tt .bg{flex-wrap:wrap;gap:8px}.routes .tt .c{font-size:18px;line-height:22px;text-align:left}
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px}
-  .opt,.opt.pma,.opt.sewa{width:auto;height:auto;padding:14px 8px;background-size:cover}
+  .opt,.opt.pma,.opt.sewa{position:relative;left:auto;top:auto;width:auto;height:auto;padding:22px 16px}
   .opt .k{margin:0;font-size:9px}.opt h3{font-size:18px;line-height:24px}.opt h3 small{display:block;font-size:13px}.opt .s{font-size:9px;line-height:12px;padding:0}
   .cmp{margin-top:16px}
   .cmp .tr{height:auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;padding:8px}
@@ -479,7 +485,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .cmp .v{font-size:11px;line-height:15px;gap:8px;flex-wrap:wrap}
   .dots i{width:10px;height:10px}.v1 .dots,.v2 .dots{margin-left:0}
   .see .bn{position:relative;left:auto;top:auto;width:auto;height:auto;border-radius:8px}
-  .see .bn video{height:auto;aspect-ratio:1796/341}
+  .see .bn video{display:none}
   .see .bn::after,.see .bn::before{content:none}
   .see .bn p{text-shadow:none}
   .see .bn p{max-width:none;margin-top:14px;font-size:20px;line-height:25px;color:var(--deep)}
@@ -510,7 +516,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .cl h2{left:24px;top:30px;font-size:22px;line-height:28px}
   .cl a{left:24px;top:auto;bottom:26px;height:34px;padding:0 14px;font-size:10px}
   /* repaso responsive (10-oct-2026): texto mínimo 11px, titular del hero dentro de la foto, pista de scroll en el submenú */
-  .hero .ph h1{bottom:14px;z-index:1;font-size:max(20px,5.6vw)}
+  .hero .ph h1{bottom:4px;line-height:1.1;z-index:1;font-size:max(20px,5.6vw)}
   .hero .ph::after{content:"";position:absolute;left:0;right:0;bottom:0;height:55%;background:linear-gradient(transparent,rgba(20,14,8,.55));pointer-events:none}
   .soulnav ul{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);padding-right:40px}
   .kpi p{font-size:11px}.kpi p br{display:none}
@@ -518,6 +524,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .facts small{font-size:11px;line-height:14px}.facts strong{font-size:12px;line-height:15px}.facts strong em{font-size:11px}
   .opt .k,.opt .s,html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{font-size:11px;line-height:14px}
   .zc .t2{font-size:11px}
+  .zb .tag{font-size:11px}
   .cl a{height:38px;font-size:12px}
 }
 
@@ -568,6 +575,25 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .nav-cta,#topbar.scrolled .nav-cta,#topbar.solid .nav-cta{padding-right:7px;border-color:transparent;background:transparent}
   .nav-cta .wa{width:30px;height:30px}.nav-cta .wa svg{width:17px;height:17px}
 }
+/* repaso 2 (10-oct-2026, owner): submenú desplegable en móvil, tarjetas de ruta con marco propio, cabecera en 360 px */
+.sn-cur{display:none}
+@media (max-width:640px){
+  .soulnav .sn-cur{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;height:100%;padding:0 16px;color:#F6F4F0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-align:left}
+  .sn-c{flex:none;width:8px;height:8px;border:solid #F6F4F0;border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg);transition:transform .2s}
+  .soulnav.open .sn-c{transform:translateY(2px) rotate(-135deg)}
+  .soulnav ul{display:none;position:absolute;top:100%;left:0;right:0;height:auto;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0;padding:4px 0 8px;overflow:visible;-webkit-mask-image:none;mask-image:none;background:#1B3B05;box-shadow:0 14px 24px -14px rgba(0,0,0,.5)}
+  .soulnav.open ul{display:flex}
+  .soulnav ul a{display:block;padding:13px 16px;font-size:12px}
+  .opt{position:relative}
+  .opt::before{content:"";position:absolute;inset:8px;border:1px solid rgba(255,255,255,.55);border-radius:8px;pointer-events:none}
+  .opt.pma{background:linear-gradient(rgba(49,27,12,.92),rgba(49,27,12,.92)),url('/assets/img/soul/kpi-leaf.webp') center/cover}
+  .opt.sewa{background:linear-gradient(rgba(34,54,53,.92),rgba(34,54,53,.92)),url('/assets/img/soul/kpi-leaf.webp') center/cover}
+}
+@media (max-width:400px){
+  #logo-inner .ll-dark{height:15px;width:108px}
+  #nav-actions{gap:.55rem}
+  .nav-lang{gap:.3rem;letter-spacing:.06em}
+}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
 }
@@ -609,7 +635,8 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 
 <!-- ════════ SUBMENÚ DE THE SOUL (solo esta página) ════════ -->
 <nav class="soulnav" aria-label="The Soul">
-  <ul>
+  <button type="button" class="sn-cur" aria-expanded="false" aria-controls="sn-list"><span class="sn-t"></span><i class="sn-c" aria-hidden="true"></i></button>
+  <ul id="sn-list">
     <li><a href="#who" data-s="who" data-i18n="bn.who">Who we are</a></li>
     <li><a href="#indonesia" data-s="why" data-i18n="bn.why">Why Indonesia</a></li>
     <li><a href="#how" data-s="how" data-i18n="bn.how">How it works</a></li>
@@ -1583,21 +1610,32 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   var links = [].slice.call(document.querySelectorAll('.soulnav a[data-s]'));
   var secs = [].slice.call(snap.querySelectorAll('section'));
   var navUl = document.querySelector('.soulnav ul'), navPrev = null;
+  var navBox = document.querySelector('.soulnav'), navBtn = navBox.querySelector('.sn-cur'), navTxt = navBox.querySelector('.sn-t');
+  navTxt.textContent = (navBox.querySelector('a') || {}).textContent || '';
   function spy() {
     var y = snap.scrollTop + snap.clientHeight * 0.4, cur = null;
     secs.forEach(function (s) { if (s.offsetTop <= y) cur = s.getAttribute('data-spy'); });
+    var first = links[0] ? links[0].textContent : '', hit = false;
     links.forEach(function (a) {
       var on = a.getAttribute('data-s') === cur;
       a.classList.toggle('on', on);
-      if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+      if (on) { a.setAttribute('aria-current', 'true'); hit = true; if (navTxt.textContent !== a.textContent) navTxt.textContent = a.textContent; } else a.removeAttribute('aria-current');
       // móvil: el submenú desliza solo hasta la entrada activa
       if (on && cur !== navPrev && navUl && navUl.scrollWidth > navUl.clientWidth) {
         navPrev = cur;
         navUl.scrollTo({ left: Math.max(0, a.offsetLeft - 16), behavior: 'smooth' });
       }
     });
+    if (!hit && navTxt.textContent !== first) navTxt.textContent = first;
   }
+  navBtn.addEventListener('click', function (e) { e.stopPropagation(); var o = !navBox.classList.contains('open'); navBox.classList.toggle('open', o); navBtn.setAttribute('aria-expanded', o); });
+  function navClose() { navBox.classList.remove('open'); navBtn.setAttribute('aria-expanded', 'false'); }
+  navBox.addEventListener('click', function (e) { if (e.target.closest('a')) navClose(); });
+  document.addEventListener('click', navClose);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') navClose(); });
   snap.addEventListener('scroll', spy, { passive: true }); spy();
+  window.addEventListener('load', function () { setTimeout(spy, 300); }); // las etiquetas ya traducidas
+
 
   // Idioma: mismo desplegable que la home. La elección la guarda y aplica
   // assets/idioma-web.js (clave lawang_lang, compartida con toda la web pública).
