@@ -18,8 +18,11 @@
 -- Llamadores vivos, medidos el 11-oct-2026 en pg_stat_statements (desde el 1-oct): 18 formas de consulta de
 --   `authenticated` sobre estas tablas (1221 llamadas); cada una casa con un .from() de origin/main que esta rama
 --   quita (datos.js 884/7148-7157/7393/8471-8472/8663-8666, editores.js 9001-9002/9071, asistente-contrato.js
---   165-166/194, comisiones-equipo.js 47, panel-finanzas.js 111-112). Ninguna forma sin pareja = ningún llamador
---   desconocido. service_role (12 llamadas, SELECT * paginado) y axw_lectura (COPY) no dependen de authenticated.
+--   165-166/194, comisiones-equipo.js 47, panel-finanzas.js 111-112). Dos formas (condiciones_comision y equipos_venta
+--   sin `empresa`) casan con la versión anterior de datos.js 8663/8471, servida hasta 8abc06cd (7-oct). Ninguna forma
+--   sin pareja; como pg_stat_statements tiene dealloc=15 esto es una cota, y la prueba principal es el grep del repo
+--   (0 .from() de estas tablas en código servido y PHP de esta rama; en edges solo la rama PGRST202 de `ficheros`,
+--   que en Lawang no corre, y el `admin` con service_role). service_role (12 llamadas, SELECT * paginado) y axw_lectura (COPY) no dependen de authenticated.
 --   La edge `ficheros` desplegada (v20) es la de origin/main: aún lee `gastos` con el JWT; por eso el paso 2.
 -- ORDEN EXACTO DE PRODUCCIÓN (nada de esto se ha ejecutado):
 --   1. revisor-codigo sobre esta rama y sobre la copia de la agencia (el rebase del 11-oct cambió todos los shas).
