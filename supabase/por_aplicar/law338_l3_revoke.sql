@@ -60,6 +60,26 @@
 --     condiciones_comision: las escrituras van por DEFINER de postgres), condicion_tramos_reemplaza y
 --     finanzas_resumen_semanal (EXECUTE solo postgres/service_role). Se exceptúan por nombre y se comprueba su ACL.
 -- Riesgo que la comprobación textual NO ve: SQL dinámico. Se mira abajo (INVOKER/otro dueño con execute + format).
+--
+-- VUELTA ATRÁS (exacta; revisor 11-oct-2026). NO hacer `grant select on <las 8> to authenticated` de memoria: en
+-- comisiones_diferencias devolvería el SELECT de TABLA que LAW-465 quitó (un closer volvería a leer origen,
+-- provocado_por y resuelto_por: correos y precios de otros contratos), y las policies deben volver a
+-- `TO authenticated, lw_lector` (como las dejó L0), no a `TO authenticated`:
+--   grant select on public.comisiones_devengadas, public.equipos_venta, public.equipo_miembros, public.condiciones_comision,
+--     public.condicion_tramos, public.gastos, public.gasto_categorias to authenticated;
+--   grant select (id, numero, devengo_id, importe, importe_vigente, importe_nuevo, base_antes, base_despues, motivo,
+--     estado, solicitud_id, resuelto_en, resolucion_motivo, created_at) on public.comisiones_diferencias to authenticated;
+--   alter policy "comisiones_devengadas: leer" on public.comisiones_devengadas to authenticated, lw_lector;
+--   alter policy "comisiones_diferencias: leer" on public.comisiones_diferencias to authenticated, lw_lector;
+--   alter policy "equipos_venta: leer" on public.equipos_venta to authenticated, lw_lector;
+--   alter policy "equipo_miembros: leer" on public.equipo_miembros to authenticated, lw_lector;
+--   alter policy "condiciones_comision: leer" on public.condiciones_comision to authenticated, lw_lector;
+--   alter policy "condiciones: el manager lee las de su equipo" on public.condiciones_comision to authenticated, lw_lector;
+--   alter policy "condicion_tramos: leer" on public.condicion_tramos to authenticated, lw_lector;
+--   alter policy "tramos: el manager lee los de su equipo" on public.condicion_tramos to authenticated, lw_lector;
+--   alter policy "gastos: leer" on public.gastos to authenticated, lw_lector;
+--   alter policy "categorias: leer" on public.gasto_categorias to authenticated, lw_lector;
+--   -- comprobación: has_table_privilege('authenticated','public.comisiones_diferencias','select') tiene que seguir FALSE.
 
 do $$
 declare v_n int; v_lista text;
@@ -115,7 +135,8 @@ begin
   if v_n > 0 then raise exception 'L3 revoke: SQL dinámico fuera de DEFINER de postgres (no se puede descartar que lea estas tablas): %', v_lista; end if;
 end $$;
 
--- comisiones_diferencias tiene SELECT por COLUMNAS (LAW-465): revocar el de tabla quita también el de cada columna.
+-- comisiones_diferencias: desde LAW-465 authenticated ya NO tiene SELECT de tabla, solo por COLUMNAS; lo que la cierra
+-- es el revoke por columnas de abajo (el de tabla no le hace nada y se deja por simetría con las otras 7).
 revoke select on public.comisiones_devengadas, public.comisiones_diferencias, public.equipos_venta, public.equipo_miembros,
   public.condiciones_comision, public.condicion_tramos, public.gastos, public.gasto_categorias
   from authenticated;
