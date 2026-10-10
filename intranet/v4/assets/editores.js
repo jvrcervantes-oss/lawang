@@ -6322,7 +6322,8 @@
       function fotosDelDeck(p, activo) {
         if (!activo && !DECK_AVISA_CERRADO_CON_PUBLICAS) return Promise.resolve(null);   // no se mira: ver interruptor
         if (typeof window.lwFotoUrls !== 'function') return Promise.resolve({ error: 'falta guard.js actualizado: recarga la página' });
-        return sb.from('deck_fotos').select('id').eq('proyecto_id', p.id).then(function (r) {
+        // solo ambito 'proyecto': las de modelo viven siempre en `deck` (deck_fotos_desajustes) y no deben contar como «A MEDIAS»
+        return sb.from('deck_fotos').select('id').eq('proyecto_id', p.id).eq('ambito', 'proyecto').then(function (r) {
           if (r.error) throw r.error;
           var ids = (r.data || []).map(function (f) { return f.id; });
           if (!ids.length) return { mal: 0, total: 0 };
