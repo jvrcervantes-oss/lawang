@@ -37,10 +37,14 @@ const SITIO = (Deno.env.get('SITIO_URL') || 'https://lawangproperties.com').repl
 // la edge envia-correo o, de vuelta atrás, el PHP). Solo se aceptan esas dos URL: una clave manipulada no puede sacar
 // el secreto a otro host. Si la clave falta, no es texto o no es una de las dos, cae al PHP (comportamiento de siempre).
 // La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET.
-// Tamaño (AXW-127, 1-oct-2026): la edge rechaza un PDF de más de 34 MB de base64 (no se puede subir: el runtime tiene 256 MB) y
-// hay contratos firmados de hasta 33 MB reales. Antes esos caían al PHP; ahora este envío responde 413 con un texto que la
-// pantalla enseña tal cual: un PDF tan grande no cabe en el buzón de casi nadie (Gmail corta en 25 MB) y se entrega por el
-// portal del comprador o, para el estudio, desde la intranet. Es un rechazo previo al SMTP, así que nunca habría duplicado.
+// Tamaño: la edge envia-correo rechaza un PDF de más de 34 MB de base64 (no se puede subir: el runtime tiene 256 MB) y hay
+// contratos firmados de hasta 33 MB reales. Qué pasa con ellos lo decide config_instancia.copias_firmadas_modo, el MISMO
+// interruptor (y con la misma lectura) que firma-submit:
+//  · «enlace» (hoy, medido 11-oct-2026), clave ausente o ilegible → siguen por el PHP (destinoEnvio), como en la v25.
+//    Mientras el PHP no sea 410 es lo único que entrega esos PDF desde el botón manual.
+//  · «cola» → 413 `pdf_demasiado_grande` con un texto que la pantalla enseña tal cual: no cabe en el buzón de casi nadie
+//    (Gmail corta en 25 MB) y se entrega por el portal del comprador o, para el estudio, desde la intranet. Rechazo previo
+//    al SMTP: nunca habría duplicado. Decisión del owner (1-oct-2026, AXW-127): el 413 se enciende con la cola, no antes.
 const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
 const ENVIO_EDGE = URL_SB + '/functions/v1/envia-correo';
 const TOPE_PDF_EDGE = 34 * 1024 * 1024;
@@ -53,6 +57,13 @@ async function destinoEnvio(pdfLen: number): Promise<{ url: string; secreto: str
     }
   } catch (_) { /* cae al PHP */ }
   return { url: ENVIO_PHP, secreto: RENDER_SECRET };
+}
+/** true solo con copias_firmadas_modo = «cola» (copia de modoCola() de firma-submit). Ante cualquier fallo, false = PHP. */
+async function modoColaCopias(): Promise<boolean> {
+  try {
+    const { data } = await admin.from('config_instancia').select('valor').eq('clave', 'copias_firmadas_modo').maybeSingle();
+    return data?.valor === 'cola';
+  } catch (_) { return false; }
 }
 
 const ORIGENES = [
@@ -252,7 +263,8 @@ Deno.serve(async (req) => {
       } catch (e) { console.error('copia del PDF enviado: ' + String((e as Error)?.message ?? e)); }
     }
 
-    if (pdfB64.length > TOPE_PDF_EDGE) {
+    // Solo se pregunta por el interruptor cuando el PDF pasa del tope: un envío normal no paga una consulta más.
+    if (pdfB64.length > TOPE_PDF_EDGE && await modoColaCopias()) {
       return json({ ok: false, codigo: 'pdf_demasiado_grande',
         error: 'Este PDF pesa más de 25 MB y no se puede mandar por correo. Se entrega por el portal del comprador (o desde la intranet, si es para el estudio).' }, 413);
     }
