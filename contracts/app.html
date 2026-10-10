@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="77ffb252b1a7">
+<meta name="lw-version" content="d1ea31d9a81c">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=1b39129b"></script>
+<script src="/contracts/assets/i18n.js?v=acd9dc0a"></script>
 <script src="/contracts/assets/herramientas.js?v=15317b6f"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -1092,6 +1092,14 @@ function syncTipologiaModelos(){
 }
 
 let PROYECTOS_DB = null;
+/* ¿Pregunta esta plantilla el proyecto (y el resort)? En TODAS salvo el Poder Notarial
+   (14-ago, owner), aunque el texto no lleve el marcador. Una sola condición para
+   preguntarlo (deriveSections) y para cargar la lista de la tabla (loadTemplate):
+   cuando vivía escrita dos veces, 13 de las 21 plantillas lo preguntaban sin
+   cargar la lista (LAW-36, 11-oct-2026). */
+function preguntaProyecto(){
+  return !!CURRENT && CURRENT.slug !== 'poa_notario';
+}
 /* PERMISOS POR PROYECTO — 18-ago-2026 (sql/permisos_por_proyecto.sql).
    `MIS_PROYECTOS` a null = SIN LÍMITE (admin, super_admin, o cuenta sin ficha);
    un array de uuids = solo esos. Quien de verdad manda es la RLS
@@ -3543,7 +3551,7 @@ function deriveSections(){
   // pero NO se pregunta: lo hereda del contrato vinculado (ver contractPayload),
   // que es de donde sale el resto de la identidad de este documento. Preguntarlo
   // a mano solo abría la puerta a que no coincidieran.
-  if(CURRENT.slug !== 'poa_notario'){
+  if(preguntaProyecto()){
     inDoc.add('proyecto_nombre');
     inDoc.add('resort');
   }
@@ -4015,7 +4023,8 @@ async function loadTemplate(slug, opts){
   // forzado por deriveSections para toda plantilla salvo el Poder; sin esta carga caería a la lista vieja de tokens.json y no se filtraría por empresa)
   // LAW-36 (11-oct-2026): se carga siempre que el campo se pregunte, que es en toda plantilla salvo el Poder (deriveSections lo
   // fuerza aunque el texto no lleve el marcador: 13 de las 21 no lo llevan). Antes esas 13 caían a la lista de tokens.json; ya no existe.
-  if(templateHTML.includes('{{proyecto_nombre}}') || CURRENT.propio || CURRENT.slug !== 'poa_notario') await cargarProyectos();
+  // (CURRENT.propio ya no hace falta: un propio nunca es uno de los 17, así que nunca es el Poder.)
+  if(templateHTML.includes('{{proyecto_nombre}}') || preguntaProyecto()) await cargarProyectos();
   if(templateHTML.includes('{{tipologia_construccion}}')) await cargarModelos();
   if(CURRENT.slug === 'poa_notario') await cargarVinculablesPoa();   // el vínculo del POA no tiene marcador: va por slug
   // CC00014/Timon no tiene versión en español (el documento original es

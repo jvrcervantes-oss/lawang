@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="597b2eceaa81">
+<meta name="lw-version" content="2869dc519b1f">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="documento.css?v=5337c601">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=1b39129b"></script>
+<script src="/contracts/assets/i18n.js?v=acd9dc0a"></script>
 <script src="/contracts/assets/herramientas.js?v=15317b6f"></script>
 <script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/topbar.js?v=0906fb5b" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -1806,9 +1806,9 @@ function estadoDelFormulario(d){
   // enviado, que es justo del que más se pregunta "¿a quién se le mandó?".
   const regBtn = $('#btnRegistro');
   if(regBtn) regBtn.style.display = (SAVED && SAVED.id) ? '' : 'none';
-  // LAW-37: solo sobre un documento emitido (con número) que la base aún no da por enviado.
+  // LAW-37: solo sobre una factura o proforma emitida (con número) que la base aún no da por enviada.
   const envBtn = $('#btnMarcarEnviada');
-  if(envBtn) envBtn.style.display = (SAVED && SAVED.id && SAVED.numero && !SAVED.enviada) ? '' : 'none';
+  if(envBtn) envBtn.style.display = sePuedeMarcarEnviada() ? '' : 'none';
 }
 
 function render(){
@@ -1857,7 +1857,7 @@ $('#btnPrint').onclick = () => {
   /* LAW-37 (11-oct-2026): descargar el PDF y mandarlo a mano lo entrega al cliente sin
      que `facturas.enviada` se entere. NO se marca en silencio por descargar (se descarga
      también para revisarlo): se PREGUNTA, y la respuesta por defecto es «no». */
-  if(SAVED && SAVED.id && SAVED.numero && !SAVED.enviada && !document.body.classList.contains('modo-vista'))
+  if(sePuedeMarcarEnviada() && !document.body.classList.contains('modo-vista'))
     marcarEnviada({ trasDescargar: true });
 };
 
@@ -1866,14 +1866,28 @@ $('#btnPrint').onclick = () => {
    `_factura_puede_editar`), la misma que llama la edge al mandar el correo. Nunca un
    UPDATE desde aquí. Marcarla tiene consecuencias y desde la pantalla no se desmarca,
    por eso pasa siempre por una confirmación que las dice. */
+/* Qué se puede marcar a mano (Administración, 11-oct-2026): factura y proforma, ya
+   emitidas y aún no enviadas. Un recibí NO: la base todavía no lo congela al marcarlo
+   (queda para Backend), así que «enviado» sería una etiqueta sin efecto. El tipo se lee
+   del selector, que se bloquea en cuanto el documento tiene número (estadoDelFormulario). */
+function sePuedeMarcarEnviada(){
+  return !!(SAVED && SAVED.id && SAVED.numero && !SAVED.enviada)
+    && ['factura', 'proforma'].includes($('#selTipo').value);
+}
 async function marcarEnviada(op){
-  if(!(SAVED && SAVED.id && SAVED.numero) || SAVED.enviada) return;
+  if(!sePuedeMarcarEnviada()) return;
   const id = SAVED.id, numero = SAVED.numero;
-  const esProforma = collect().tipo === 'proforma';
+  const esProforma = $('#selTipo').value === 'proforma';
+  // dd/mm/aaaa de HOY en local (hoyLocalISO, nunca toISOString: daría ayer de madrugada)
+  const fecha = hoyLocalISO().split('-').reverse().join('/');
   const ok = await lwConfirmar({
     titulo: (op && op.trasDescargar) ? lwT('¿Vas a mandar este PDF al cliente?') : lwT('Marcar como enviada'),
     cuerpo: '<p>' + esc(lwT('Si %num ya ha llegado (o va a llegar) al cliente por WhatsApp u otro canal, márcala como enviada para que la intranet lo sepa.', { num: numero })) + '</p>'
-      + '<p>' + esc(lwT('Una vez enviada: su total y su emisor ya no cambian (se anula y se reemite), no se puede borrar y un cambio de nombre del proyecto ya no la toca.')) + '</p>'
+      + '<p>' + esc(lwT('Se anota hoy (%fecha) como fecha de envío; desde ella corren plazos y reclamaciones.', { fecha: fecha })) + '</p>'
+      + '<p>' + esc(esProforma
+          ? lwT('Se congelan el total, la moneda y las líneas; la sociedad aún puede cambiarse.')
+          : lwT('La factura queda congelada entera; si hay que corregirla, con una rectificativa.')) + '</p>'
+      + '<p>' + esc(lwT('No se puede borrar y un cambio de nombre del proyecto ya no la toca.')) + '</p>'
       + (esProforma ? '<p>' + esc(lwT('Al ser una proforma, el comprador la verá en su portal.')) + '</p>' : '')
       + '<p>' + esc(lwT('Desde esta pantalla no se puede desmarcar.')) + '</p>',
     confirmar: lwT('Sí, márcala como enviada'),
@@ -1950,6 +1964,7 @@ $('#mailSend').onclick = async () => {
   btn.disabled = true; btn.textContent = 'Enviando…';
   try{
     const d = collect();
+    const idEnvio = SAVED.id;   // el documento que se manda, por si SAVED cambia mientras responde la edge
     /* Va a la Edge Function send-contract-email, NO directo a send_email.php:
        el WAF de Hostinger bloquea con 403 el HTML con CSS de diseño (LAW-30,
        ver contracts/app.html). La factura hoy no lo dispara (su CSS no tiene
@@ -1976,7 +1991,13 @@ $('#mailSend').onclick = async () => {
       LDOCS = null;   // que el listado enseñe el estado «enviada» al volver
       if(res.marcada !== true)   // sin `marcada` (edge sin desplegar) tampoco es «marcada»
         toastMal(lwT('Enviado a ') + to + ' — pero NO se ha podido marcar como enviada: no la reenvíes, avisa al administrador.');
-      else toast(lwT('Enviado a ') + to);
+      else {
+        toast(lwT('Enviado a ') + to);
+        // LAW-37: la base ya la da por enviada; que la pantalla también, o «Marcar como
+        // enviada» y la pregunta al descargar seguirían ofreciéndose. Sin `marcada` no:
+        // ahí el botón manual es la única forma de dejarla marcada.
+        if(SAVED && SAVED.id === idEnvio){ SAVED.enviada = true; render(); }
+      }
       cerrarMail();
     }
     else toastMal(res.error || 'No se pudo enviar');

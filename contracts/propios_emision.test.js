@@ -203,8 +203,11 @@ const run = (ctx, expr) => vm.runInContext(expr, ctx);
   ok(/if\(t\.propio\) return \{ html:/.test(app), 'un propio sin texto de la base no cae a un fichero inexistente');
   ok(!/propio[^\n]*fetch\(t\.file/.test(app), 'y nunca hace fetch de un fichero');
   // el selector de proyecto de un propio existe aunque su texto no lleve {{proyecto_nombre}} (deriveSections lo fuerza) y se filtra por su empresa
-  ok(/if\(CURRENT\.slug !== 'poa_notario'\)\{\s*inDoc\.add\('proyecto_nombre'\)/.test(app), 'el campo proyecto se fuerza para toda plantilla salvo el Poder');
-  ok(/includes\('\{\{proyecto_nombre\}\}'\) \|\| CURRENT\.propio\) await cargarProyectos\(\)/.test(app), 'un propio carga los proyectos aunque su texto no lleve el marcador');
+  // LAW-36 (11-oct-2026): preguntarlo y cargar la lista salen de UNA función; escrita dos veces, 13 de 21 plantillas lo preguntaban sin lista
+  ok(/function preguntaProyecto\(\)\{\s*return !!CURRENT && CURRENT\.slug !== 'poa_notario';/.test(app), 'el campo proyecto se pregunta en toda plantilla salvo el Poder (una sola condición)');
+  ok(/if\(preguntaProyecto\(\)\)\{\s*inDoc\.add\('proyecto_nombre'\)/.test(app), 'deriveSections fuerza el campo con esa condición');
+  ok(/includes\('\{\{proyecto_nombre\}\}'\) \|\| preguntaProyecto\(\)\) await cargarProyectos\(\)/.test(app), 'y loadTemplate carga los proyectos con la misma (un propio nunca es el Poder: carga aunque su texto no lleve el marcador)');
+  ok(!/CURRENT\.slug !== 'poa_notario'\)\{\s*inDoc\.add\('proyecto_nombre'\)/.test(app), 'la condición no vuelve a escribirse suelta en deriveSections');
   ok(/CURRENT\.propio \? deMiAlcance\.filter\(p => p\.empresa === CURRENT\.empresa/.test(app), 'y el desplegable solo ofrece proyectos de su empresa');
 
   console.log('OK propios_emision.test.js — ' + n + ' comprobaciones');
