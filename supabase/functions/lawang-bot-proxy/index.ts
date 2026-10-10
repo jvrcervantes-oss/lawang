@@ -57,13 +57,16 @@ const corsFor = (req: Request) => {
 // error que el frontend tenga que aprender aparte de la del bot real.
 // `jwt` (solo en enviar, enviar_plantilla y pausar): la sesión de la PERSONA, para que el bot compruebe él mismo su permiso (acción `verificar` de la edge
 // bot-api; encargo «bot sin Redis», apartado c). Va en `X-User-Jwt`, sin «Bearer »; el bot actual lo ignora. NUNCA se registra en ningún log.
+// Seguridad (10-oct-2026, «reducir la exposición»): un JWT de sesión es un bearer completo; no viaja al bot mientras el bot no lo use. Interruptor del secreto de la edge
+// BOT_ENVIA_JWT=on, que se enciende en el mismo paso que BOT_HUMANO_VERIFICA=sombra|on del bot (y solo tras comprobar que el bot no lo registra).
+const enviaJwtAlBot = () => (Deno.env.get('BOT_ENVIA_JWT') ?? '').trim().toLowerCase() === 'on';
 async function llamaBot(path: string, init: RequestInit = {}, jwt?: string) {
   if (!BOT_KEY) {
     return { status: 503, body: { error: 'lawang-bot-proxy no configurado (falta LAWANG_BOT_ADMIN_KEY)' } };
   }
   const r = await fetch(BOT_BASE + path, {
     ...init,
-    headers: { ...(init.headers ?? {}), 'X-Admin-Key': BOT_KEY, 'Content-Type': 'application/json', ...(jwt ? { 'X-User-Jwt': jwt } : {}) },
+    headers: { ...(init.headers ?? {}), 'X-Admin-Key': BOT_KEY, 'Content-Type': 'application/json', ...(jwt && enviaJwtAlBot() ? { 'X-User-Jwt': jwt } : {}) },
   });
   const texto = await r.text();
   let body: unknown;

@@ -280,6 +280,11 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
   /* ── 6b. X-User-Jwt: la sesión de la persona llega al bot SOLO en enviar, enviar_plantilla y pausar (la rama que sigue yendo al bot) ── */
   {
     delete entorno.BOT_HUMANO_STORE;
+    // apagado (defecto): el JWT NO viaja al bot en ninguna acción
+    prepara({ store: 'redis' });
+    for (const c of [{ accion: 'enviar', phone: '628110001', text: 'hola' }, { accion: 'enviar_plantilla', phone: '628110001', template: 'lawang_x', lang: 'es', params: [] }, { accion: 'pausar', phone: '628110001', paused: true }]) await llama(c);
+    igual(bot.length, 3); for (const b of bot) ok(!('X-User-Jwt' in b.init.headers), 'sin BOT_ENVIA_JWT el token no sale: ' + b.url);
+    entorno.BOT_ENVIA_JWT = 'on';
     prepara({ store: 'redis' });
     const cab = (i) => bot[i].init.headers;
     await llama({ accion: 'enviar', phone: '628110001', text: 'hola' });
@@ -307,6 +312,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     delete entorno.BOT_HUMANO_STORE; delete entorno.BOT_API_SECRET_HUMANO;
     // el token no sale en ningún log
     ok(!logs.some((l) => l.includes('jwt-ok')), 'el JWT no se registra en ningún log');
+    delete entorno.BOT_ENVIA_JWT;
     // sin el JWT utilizable no hay llamada (la sesión se comprueba antes) y un token con espacios no llega partido
     prepara({ store: 'redis' });
     igual((await llama({ accion: 'enviar', phone: '628110001', text: 'hola' }, { auth: '' })).status, 401); igual(bot.length, 0);
