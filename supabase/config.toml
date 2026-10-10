@@ -466,6 +466,20 @@ verify_jwt = false
 [functions.portal-invitar]
 verify_jwt = false
 
+# portal-acceso (LAW-1 S0, 11-oct-2026): formulario ANONIMO del portal del comprador (quien entra aun no tiene cuenta), asi que
+# verify_jwt=false es obligatorio: con el defecto (true) el gateway contestaria 401 a todo y el formulario dejaria de enviar
+# enlaces sin dar error en la pagina. Valor medido en produccion: get_edge_function v16 -> verify_jwt false.
+# El codigo vive SOLO en contracts/edge/portal-acceso/index.ts (sha256 3622f3f8...a520, 6893 bytes, identico byte a byte a la
+# v16 publicada, medido el 11-oct). `entrypoint` (relativo a este config.toml; CLI >= 1.215.0, aqui 2.120.0;
+# https://supabase.com/docs/guides/functions/function-configuration) apunta alli: sin symlink (en Windows con
+# core.symlinks=false se materializa como un fichero de texto con la ruta y desplegaria eso), sin copia duplicada y sin junction.
+# supabase/functions/portal-acceso/ solo lleva un README para que `aterriza.py --edge` la encuentre.
+# NO COMPROBADO hasta el primer despliegue: que el CLI empaquete un entrypoint fuera de supabase/. Si no lo hace, el deploy falla
+# con error (no en silencio); tras desplegar se confirma con get_edge_function que el fichero publicado tiene el mismo sha que el repo.
+[functions.portal-acceso]
+verify_jwt = false
+entrypoint = "../contracts/edge/portal-acceso/index.ts"
+
 [functions.send-contract-email]
 verify_jwt = false
 
