@@ -16,6 +16,10 @@
 --     finanzas_panel_datos).
 --   · edges: `ficheros` leía `gastos` con el JWT del usuario para autorizar un justificante → pasa a gasto_estado_datos
 --     (hay que redesplegarla ANTES de aplicar esto); su `filaDe` lee con service_role (`admin`), que no se toca.
+--     Le queda UNA lectura directa con el JWT, solo si la RPC no existe (PGRST202): es para las instancias del ERP que
+--     comparten el código y aún no tienen la RPC (bbm). En Lawang no corre; y si corriera tras esto, daría 42501 → 403
+--     (falla cerrada). Se quita cuando bbm tenga 20261008139650 (fila en contexto/pendientes.md de la agencia).
+-- Prueba de paridad y de ataque, repetible: supabase/pruebas/law338_l3_paridad.sql (antes y después de aplicar).
 --   · escrituras: todas por funciones DEFINER de postgres (authenticated solo tenía SELECT): cerrar la lectura no
 --     rompe ninguna escritura.
 --   · Policies que consultan otra tabla del lote: condiciones_comision → equipos_venta, equipos_venta → equipo_miembros,

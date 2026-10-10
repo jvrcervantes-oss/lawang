@@ -56,7 +56,7 @@
   function limpiaAvisos() { var c = $('lw-ban-avisos'); if (c) c.innerHTML = ''; }
   /* Solo el aviso de «recortado» (LAW-338, BAJA de L1): refrescar() lo quita y cargar() lo vuelve a poner si sigue
      haciendo falta. Los de «Extractos >7 días», «No ves los gastos» o el resultado de una importación se quedan. */
-  function limpiaRecortado() { var c = $('lw-ban-avisos'); if (c) c.querySelectorAll('[data-aviso="recortado"]').forEach(function (n) { n.remove(); }); }
+  function limpiaRecortado() { var c = $('lw-ban-avisos'); if (c) c.querySelectorAll('[data-aviso="recortado"],[data-aviso="refresco"]').forEach(function (n) { n.remove(); }); }
   function avisoRapido(texto, mal) {
     if (mal && typeof toastMal === 'function') return toastMal(texto);
     if (!mal && typeof toastBien === 'function') return toastBien(texto);
@@ -236,8 +236,11 @@
   }
   function pintaTodo() { llenaFiltros(); pintaCuentas(); pintaLista(); if (typeof lwIdiomaAplicar === 'function') { try { lwIdiomaAplicar(); } catch (_) { /* MUDO A PROPOSITO: traducir no tumba la pantalla */ } } }
   function refrescar() {
-    limpiaRecortado();   // el aviso de «recortado» lo vuelve a poner cargar() si sigue haciendo falta
-    return cargar().then(pintaTodo, function (e) { aviso(T('No se pudieron volver a leer los bancos') + ' (' + e.message + '). ' + T('Recarga la página.'), 'mal'); });
+    limpiaRecortado();   // «recortado» lo vuelve a poner cargar() si sigue haciendo falta; el fallo de un refresco anterior se va
+    return cargar().then(pintaTodo, function (e) {
+      var p = aviso(T('No se pudieron volver a leer los bancos') + ' (' + e.message + '). ' + T('Recarga la página.'), 'mal');
+      if (p) p.setAttribute('data-aviso', 'refresco');
+    });
   }
 
   /* ── IMPORTAR ──────────────────────────────────────────────────────────── */
