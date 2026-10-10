@@ -1,1 +1,0 @@
-../../../contracts/edge/portal-invitar/index.ts

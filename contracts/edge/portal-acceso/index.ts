@@ -12,6 +12,27 @@
 // manda el enlace de entrada. La REGLA vive en SQL, aquí solo lo que exige
 // service_role.
 //
+// LAW-1 (11-oct-2026, encargos/20261011_lawang_portal_enlace_por_correo.md de la
+// agencia, revisión previa #261 Backend + Seguridad): el enlace ya NO lo manda el
+// correo gratuito de Supabase (~4/h: de 44 compradores con acceso solo había
+// entrado 1). Ahora:
+//   · el enlace se genera con `auth.admin.generateLink({type:'magiclink'})` y se
+//     manda por `envia-correo` (el buzón de Lawang de Ajustes) por la vía de
+//     servicio `X-Render-Secret`, como alta-colaborador. Ese secreto permite
+//     mandar cualquier correo a cualquiera, así que destinatario, asunto, texto y
+//     botón se fijan AQUÍ: de la petición solo se toma `email`, y solo se manda al
+//     correo que ya pasó la regla. Nunca `preview`, nunca `sociedad`;
+//   · el enlace es `PORTAL_URL?th=<hashed_token>` y la página lo canjea con
+//     verifyOtp. El token no viaja en la respuesta ni en ningún log;
+//   · freno propio (`portal_enlace_freno`, migración 20261010182058) ANTES de tocar
+//     la cuenta y de generar el enlace: `generateLink` se salta el límite de GoTrue
+//     y cada enlace invalida el anterior, así que repetir el formulario dejaría al
+//     comprador sin poder entrar. Frenado = la misma respuesta que un correo sin
+//     derecho. Si el envío falla, el hueco se devuelve;
+//   · un correo con fila en `usuarios` (equipo, activa o no) no recibe enlace: el
+//     enlace abre la cuenta de Auth ENTERA, no solo el portal;
+//   · logs: solo el dominio del correo y códigos (nunca la dirección ni el token).
+//
 // ⚠️ Respuesta uniforme a propósito: un correo que no da acceso recibe
 // exactamente lo mismo que uno que sí. Si contestara distinto, este formulario
 // sería un buscador público de «¿quién ha comprado en Lawang?».
@@ -27,10 +48,35 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const admin = createClient(URL_SB, SERVICE);
 
 const PORTAL_URL = 'https://lawangproperties.com/portal/';
+
+// A dónde va el correo lo decide config_instancia.url_envio_correo (interruptor único, AXW-124), y solo valen estas dos
+// URL exactas: una clave manipulada no puede sacar el secreto ni el enlace a otro host. Mismo patrón que alta-colaborador.
+const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
+const ENVIO_EDGE = URL_SB + '/functions/v1/envia-correo';
+async function urlEnvio(): Promise<string> {
+  try {
+    const { data } = await admin.from('config_instancia').select('valor').eq('clave', 'url_envio_correo').maybeSingle();
+    const u = typeof data?.valor === 'string' ? data.valor.trim() : '';
+    if (u === ENVIO_EDGE || u === ENVIO_PHP) return u;
+  } catch (_) { /* cae al PHP */ }
+  return ENVIO_PHP;
+}
+
+const ASUNTO = 'Your Lawang client portal link · Tu enlace al portal de Lawang';
+const TEXTO =
+  'Hello,\n\n'
+  + 'Use the button below to sign in to your Lawang client portal. The link works only once and expires soon; '
+  + 'if it has expired, request a new one from the portal page.\n\n'
+  + 'If you did not ask for this email, you can ignore it: nobody can sign in without opening this message.\n\n'
+  + '—\n\n'
+  + 'Hola:\n\n'
+  + 'Usa el botón para entrar a tu portal de cliente de Lawang. El enlace sirve una sola vez y caduca pronto; '
+  + 'si ha caducado, pide otro desde la página del portal.\n\n'
+  + 'Si no has pedido este correo, puedes ignorarlo: nadie puede entrar sin abrir este mensaje.';
+const CTA_TEXTO = 'Sign in · Entrar al portal';
 
 const ORIGENES = [
   'https://lawangproperties.com',
@@ -48,7 +94,40 @@ const corsFor = (req: Request) => {
   };
 };
 
-Deno.serve(async (req) => {
+/** Solo el dominio: la dirección completa no va a los logs (LAW-1). */
+const dominio = (email: string) => { const i = email.lastIndexOf('@'); return i > 0 ? email.slice(i + 1) : '?'; };
+/** Texto de error para el log sin direcciones de correo ni cadenas largas (un token, una URL con token). */
+const limpia = (s: unknown) => String(s ?? '').replace(/[^\s@<>]+@[^\s@<>]+/g, '[correo]').replace(/[A-Za-z0-9_\-]{24,}/g, '[…]').slice(0, 120);
+
+/** Manda el enlace por envia-correo (o el PHP), con destinatario y textos fijados aquí. true solo si respondió ok. */
+async function enviaEnlace(email: string, enlace: string): Promise<boolean> {
+  const url = await urlEnvio();
+  // La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET.
+  const secreto = url === ENVIO_EDGE ? (Deno.env.get('ENVIO_CORREO_SECRET') || Deno.env.get('RENDER_SECRET') || '') : (Deno.env.get('RENDER_SECRET') || '');
+  if (!secreto) { console.error('portal-acceso envio sin_secreto @' + dominio(email)); return false; }
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), 8000);
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'X-Render-Secret': secreto, 'X-Llamante': 'portal-acceso' },
+      // attach:false: sin él el destino exige PDF. cta_url + cta_texto: van juntos o el destino da 400.
+      body: JSON.stringify({ to: email, subject: ASUNTO, message: TEXTO, attach: false, cta_url: enlace, cta_texto: CTA_TEXTO }),
+      signal: ac.signal,
+    });
+    const cuerpo = await r.text().catch(() => '');
+    const ok = r.ok && cuerpo.includes('"ok":true');
+    if (!ok) console.error('portal-acceso envio http_' + r.status + ' @' + dominio(email));
+    return ok;
+  } catch (e) {
+    console.error('portal-acceso envio excepcion @' + dominio(email) + ': ' + limpia((e as Error)?.name ?? e));
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+export async function manejador(req: Request): Promise<Response> {
   const cors = corsFor(req);
   const json = (o: unknown, s = 200) =>
     new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
@@ -57,37 +136,69 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
 
   let email = '';
+  let reservado = false;   // true = el freno ya anotó este envío (si no sale, se devuelve el hueco)
+  const libera = async () => {
+    if (!reservado) return;
+    reservado = false;
+    const { error } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'autoservicio', p_libera: true });
+    if (error) console.error('portal-acceso freno_libera_fallo @' + dominio(email) + ': ' + limpia(error.code ?? error.message));
+  };
   try {
     const body = await req.json().catch(() => ({}));
-    email = String(body.email ?? '').trim().toLowerCase();
+    email = String(body.email ?? '').trim().toLowerCase().slice(0, 320);
 
     // El motivo real solo viaja al log: es lo único que permite auditar por qué
     // alguien no entró, sin decírselo a quien pregunta desde fuera.
-    const anota = (m: string) => console.log('portal-acceso ' + m + ' <' + email + '>');
+    const anota = (m: string) => console.log('portal-acceso ' + m + ' @' + dominio(email));
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      anota('email_invalido');
+      console.log('portal-acceso email_invalido');
       return json({ ok: true });
     }
 
     const { data: veredicto, error: eRpc } = await admin.rpc('portal_autoservicio', { p_email: email });
     if (eRpc) {
-      console.error('portal-acceso rpc_fallo <' + email + '>: ' + eRpc.message);
+      console.error('portal-acceso rpc_fallo @' + dominio(email) + ': ' + limpia(eRpc.code ?? eRpc.message));
       return json({ error: 'no_disponible' }, 500);
     }
     const v = (veredicto ?? {}) as { elegible?: boolean; motivo?: string; creadas?: number };
     if (!v.elegible) {
-      anota('sin_derecho:' + (v.motivo ?? '?'));
+      anota('sin_derecho:' + limpia(v.motivo ?? '?'));
       return json({ ok: true });
     }
-    if (v.creadas) anota('acceso_creado_por_regla:' + v.creadas);
+    if (v.creadas) anota('acceso_creado_por_regla:' + Number(v.creadas));
+
+    // ── equipo: el enlace abre la cuenta de Auth entera, no solo el portal ──
+    // Cualquier fila de `usuarios` (activa o no), igual que portal-invitar.
+    const { data: equipo, error: eEquipo } = await admin.from('usuarios').select('user_id').eq('email', email).limit(1);
+    if (eEquipo) {
+      console.error('portal-acceso equipo_fallo @' + dominio(email) + ': ' + limpia(eEquipo.code ?? eEquipo.message));
+      return json({ error: 'no_disponible' }, 500);
+    }
+    if ((equipo ?? []).length) {
+      anota('es_del_equipo');
+      return json({ ok: true });
+    }
+
+    // ── freno: antes de tocar la cuenta y de generar el enlace ──────────
+    const { data: pasa, error: eFreno } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'autoservicio' });
+    if (eFreno) {
+      console.error('portal-acceso freno_fallo @' + dominio(email) + ': ' + limpia(eFreno.code ?? eFreno.message));
+      return json({ error: 'no_disponible' }, 500);
+    }
+    if (pasa !== true) {
+      anota('frenado');
+      return json({ ok: true });
+    }
+    reservado = true;
 
     // ── la cuenta de Auth ────────────────────────────────────────────────
     // Mismo paginado de 1000 que portal-invitar: sobra con los volúmenes de la
     // promotora, y si algún día no sobra hay que cambiarlo en los DOS sitios.
     const { data: lista, error: eLista } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (eLista) {
-      console.error('portal-acceso listUsers <' + email + '>: ' + eLista.message);
+      console.error('portal-acceso listUsers @' + dominio(email) + ': ' + limpia(eLista.message));
+      await libera();
       return json({ error: 'no_disponible' }, 500);
     }
     let user = (lista?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === email) ?? null;
@@ -98,7 +209,8 @@ Deno.serve(async (req) => {
         app_metadata: { portal: true },
       });
       if (eCrear || !creado?.user) {
-        console.error('portal-acceso createUser <' + email + '>: ' + (eCrear?.message ?? 'sin usuario'));
+        console.error('portal-acceso createUser @' + dominio(email) + ': ' + limpia(eCrear?.message ?? 'sin usuario'));
+        await libera();
         return json({ error: 'no_disponible' }, 500);
       }
       user = creado.user;
@@ -111,32 +223,36 @@ Deno.serve(async (req) => {
         app_metadata: { ...(user.app_metadata ?? {}), portal: true },
       });
       if (eMeta) {
-        console.error('portal-acceso claim <' + email + '>: ' + eMeta.message);
+        console.error('portal-acceso claim @' + dominio(email) + ': ' + limpia(eMeta.message));
+        await libera();
         return json({ error: 'no_disponible' }, 500);
       }
       anota('claim_puesto');
     }
 
     // ── el enlace ────────────────────────────────────────────────────────
-    // `shouldCreateUser:false` sigue siendo obligatorio: la cuenta ya está
-    // creada arriba, y dejarlo en true convertiría este endpoint en un alta
-    // abierta para cualquier correo si algún día la regla fallara.
-    // El freno contra el abuso (mandarle enlaces a un comprador a base de
-    // repetir el formulario) es el rate-limit de GoTrue por correo, no algo
-    // propio — verificar que sigue ahí si se cambia de proveedor de Auth.
-    const pub = createClient(URL_SB, ANON);
-    const { error: eOtp } = await pub.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false, emailRedirectTo: PORTAL_URL },
-    });
-    if (eOtp) {
-      console.error('portal-acceso envio <' + email + '>: ' + eOtp.message);
+    // La cuenta ya existe (arriba): `generateLink` se llama solo sobre ella y se
+    // comprueba que devuelve ESE usuario; si no, no se manda nada. Ni `data` ni
+    // `action_link` se registran nunca.
+    const { data: link, error: eLink } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
+    const th = link?.properties?.hashed_token;
+    if (eLink || !th || link?.user?.id !== user.id) {
+      console.error('portal-acceso generateLink_fallo @' + dominio(email) + ': ' + limpia(eLink?.code ?? eLink?.status ?? (th ? 'otro_usuario' : 'sin_token')));
+      await libera();
+      return json({ ok: true, reintentar: true });
+    }
+    const enviado = await enviaEnlace(email, PORTAL_URL + '?th=' + encodeURIComponent(th));
+    if (!enviado) {
+      await libera();
       return json({ ok: true, reintentar: true });
     }
     anota('enlace_enviado');
     return json({ ok: true });
   } catch (e) {
-    console.error('portal-acceso excepcion <' + email + '>: ' + String((e as Error)?.message ?? e));
+    console.error('portal-acceso excepcion @' + dominio(email) + ': ' + limpia((e as Error)?.message ?? e));
+    await libera().catch(() => {});
     return json({ error: 'no_disponible' }, 500);
   }
-});
+}
+
+Deno.serve(manejador);

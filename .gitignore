@@ -19,6 +19,8 @@ Marketing/
 !supabase/functions/envia-correo/README.md
 # LAW-1 S0 (11-oct-2026): la carpeta de portal-acceso solo lleva este README (el codigo va por `entrypoint` de config.toml). Mismo motivo: supabase/ no se sirve.
 !supabase/functions/portal-acceso/README.md
+# LAW-1 S2 (11-oct-2026): igual para portal-invitar (el symlink de 47 bytes se cambio por `entrypoint`).
+!supabase/functions/portal-invitar/README.md
 brand_identity.md
 inventario_assets.md
 PRODUCT.md

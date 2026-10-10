@@ -463,8 +463,12 @@ verify_jwt = false
 [functions.libera-reservas-vencidas]
 verify_jwt = false
 
+# portal-invitar (LAW-1 S2, 11-oct-2026): el codigo vive SOLO en contracts/edge/portal-invitar/index.ts; antes habia un symlink de 47 bytes en
+# supabase/functions/portal-invitar/index.ts que en Windows (core.symlinks=false) es un fichero de texto con la ruta. Mismo arreglo que portal-acceso.
+# verify_jwt=false: la autorizacion va dentro (JWT del admin + fila activa en usuarios), y el preflight CORS no lleva Authorization.
 [functions.portal-invitar]
 verify_jwt = false
+entrypoint = "../contracts/edge/portal-invitar/index.ts"
 
 # portal-acceso (LAW-1 S0, 11-oct-2026): formulario ANONIMO del portal del comprador (quien entra aun no tiene cuenta), asi que
 # verify_jwt=false es obligatorio: con el defecto (true) el gateway contestaria 401 a todo y el formulario dejaria de enviar
