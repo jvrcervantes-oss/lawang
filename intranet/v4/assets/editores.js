@@ -66,7 +66,8 @@
       var pon = function (k, texto, rol) {
         if (!existe[k] || usadas[k] || (filtro && !filtro(k))) return;
         usadas[k] = true;
-        filas.push([k, marca(texto) + sufijo(rol)]);
+        var aviso = (typeof LW_AVISO_PERMISO !== 'undefined' && LW_AVISO_PERMISO[k]) ? T(LW_AVISO_PERMISO[k]) : '';
+        filas.push(aviso ? [k, marca(texto) + sufijo(rol), aviso] : [k, marca(texto) + sufijo(rol)]);
       };
       sec.entradas.forEach(function (e) {
         var nom = T(e.texto);
@@ -354,8 +355,10 @@
             var fs = filaSinCasilla(o, 'display:flex;gap:7px;align-items:center');
             if (fs !== null) return fs;
             var vv = typeof o === 'string' ? [o, o] : o;
-            return '<label style="display:flex;gap:7px;align-items:center"><input type="checkbox" value="' + esc(vv[0]) + '"' +
-              ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '>' + esc(vv[1]) + '</label>';
+            /* vv[2] = aviso opcional de ESA casilla (LW_AVISO_PERMISO): va dentro del label, ocupando la fila entera de la rejilla. */
+            return '<label style="display:flex;gap:7px;align-items:center' + (vv[2] ? ';flex-wrap:wrap;grid-column:1 / -1' : '') + '"><input type="checkbox" value="' + esc(vv[0]) + '"' +
+              ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '>' + esc(vv[1]) +
+              (vv[2] ? '<small data-tipo="aviso_casilla" style="flex-basis:100%;font-weight:400;font-size:12px;color:#8A6A34">' + esc(vv[2]) + '</small>' : '') + '</label>';
           }).join('') + '</div>' +
           /* Atajos OPT-IN por campo (21-sep-2026, LAW-71/paridad de Usuarios):
              solo se pintan si el campo trae `c.atajos` — no se enciende por

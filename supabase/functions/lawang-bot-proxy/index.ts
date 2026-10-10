@@ -213,18 +213,11 @@ export const manejador = async (req: Request) => {
     const accion = String(body.accion ?? '');
 
     // ── Setter IA: requiere 'leads' ──────────────────────────────────────
-    if (accion === 'conversaciones') {
-      if (!puedeLeads) return json({ error: 'sin_permiso: leads' }, 403);
-      const r = await llamaBot('/admin/api/leads');
-      return json(r.body, r.status);
-    }
-    if (accion === 'conversacion') {
-      if (!puedeLeads) return json({ error: 'sin_permiso: leads' }, 403);
-      const phone = String(body.phone ?? '').replace(/[^0-9]/g, '');
-      if (!phone) return json({ error: 'phone_requerido' }, 400);
-      const r = await llamaBot('/admin/api/conv/' + encodeURIComponent(phone));
-      return json(r.body, r.status);
-    }
+    // RETIRADAS el 10-oct-2026 (LAW-513, decisión del owner, Seguridad): leían los chats con el permiso 'leads' y SIN apuntar la lectura en
+    // bot_lecturas_log. Las conversaciones se leen ahora SOLO en la base (crm_bot_conversaciones / crm_bot_conversacion), con la casilla
+    // bot_conversaciones_ver y registro. Sin llamador desde LECTURA_BOT='postgres' (paso 8 del corte).
+    if (accion === 'conversaciones' || accion === 'conversacion')
+      return json({ error: 'retirada: las conversaciones se leen en la base con la casilla bot_conversaciones_ver' }, 410);
     if (accion === 'pausar') {
       if (!puedeLeads) return json({ error: 'sin_permiso: leads' }, 403);
       const phone = String(body.phone ?? '').replace(/[^0-9]/g, '');

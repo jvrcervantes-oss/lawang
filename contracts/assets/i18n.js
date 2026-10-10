@@ -5104,7 +5104,9 @@
     'lo confirma el equipo': 'the team confirms it',
     // S10 (9-oct-2026): conversaciones del bot leídas directamente de la base
     'Leer los mensajes que los clientes intercambian con el bot de WhatsApp. Cada lectura queda registrada.': 'Read the messages clients exchange with the WhatsApp bot. Every read is logged.',
-    'No tienes permiso para leer las conversaciones del bot. Pide la casilla «Conversaciones del bot» a quien administra los usuarios.': 'You do not have permission to read the bot conversations. Ask whoever manages users for the «Bot conversations» box.',
+    'No tienes permiso para leer las conversaciones del bot. Hace falta la casilla «Conversaciones del bot» y alcance global; pídelo a quien administra los usuarios.': 'You do not have permission to read the bot conversations. You need the «Bot conversations» box and global scope; ask whoever manages users.',
+    'Demasiadas lecturas de conversaciones en la última hora. Espera un rato y vuelve a intentarlo.': 'Too many conversation reads in the last hour. Wait a while and try again.',
+    'Quien reciba esta casilla verá los chats del bot de TODAS las empresas (Lawang y Sandalwoods). Cada lectura queda registrada con su nombre y el teléfono. Solo un super_admin la concede.': 'Whoever gets this box will see the bot chats of ALL companies (Lawang and Sandalwoods). Every read is logged with their name and the phone number. Only a super_admin grants it.',
     'No se pudo leer: ': 'Could not read: ',
     'Lectura directa de la base de datos. Cada lectura queda registrada. Desde aquí no se sabe si el bot está en modo testing ni a qué leads contesta.': 'Read straight from the database. Every read is logged. From here it is not known whether the bot is in testing mode or which leads it answers.',
     'Resumen del bot': 'Bot summary',

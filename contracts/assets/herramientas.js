@@ -484,6 +484,14 @@ const LW_PERMISOS = (function () {
    quién atiende cada campaña, Agenda la agenda de llamadas de venta. */
 const LW_PERMISOS_CRM = ['leads', 'ranking', 'reparto', 'closers', 'bot_conversaciones_ver'];
 
+/* Aviso que Usuarios pinta BAJO una casilla concreta (alta y edición; lo lee permisosPorMenu en editores.js). Existe porque `para:` solo se ve
+   en las tarjetas de la home y quien concede la casilla no pasa por ahí. LAW-513 (10-oct-2026, decisión del owner): la casilla de
+   conversaciones del bot basta por sí sola, aunque la persona tenga empresas marcadas, y el bot atiende a las dos empresas a la vez. Es una
+   PISTA visual: quien decide es la base (_bot_conversaciones_autoriza), que además apunta cada lectura y cada concesión. */
+const LW_AVISO_PERMISO = {
+  bot_conversaciones_ver: 'Quien reciba esta casilla verá los chats del bot de TODAS las empresas (Lawang y Sandalwoods). Cada lectura queda registrada con su nombre y el teléfono. Solo un super_admin la concede.'
+};
+
 /* Con qué herramientas y qué tipos de contrato nace cada rol (11-sep-2026,
    encargo del owner) — solo PRESELECCIÓN al crear: sigue siendo editable
    después, ficha a ficha. `tipos_contrato` vacío en la tabla significa

@@ -296,11 +296,15 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
     igual(cab(0)['X-Admin-Key'], 'clave-bot-falsa', 'la clave de administración sigue yendo');
     // ni en el resto: leer, config, plantillas
     const antes = bot.length;
-    for (const c of [{ accion: 'conversaciones' }, { accion: 'conversacion', phone: '628110001' }, { accion: 'config_get' }, { accion: 'plantillas' },
+    for (const c of [{ accion: 'config_get' }, { accion: 'plantillas' },
       { accion: 'config_set', config: { extra: '', bienvenida: '', pausaHoras: 0 }, expectedUpdatedAt: 1 }, { accion: 'config_revert', expectedUpdatedAt: 1 }]) {
       await llama(c);
     }
-    ok(bot.length - antes === 6, 'cada acción de lectura/config llamó al bot una vez');
+    ok(bot.length - antes === 4, 'cada acción de lectura/config llamó al bot una vez');
+    // LAW-513 (10-oct-2026): las conversaciones ya NO se leen por el proxy (410, también con permiso) y no llaman al bot
+    const antes410 = bot.length;
+    for (const c of [{ accion: 'conversaciones' }, { accion: 'conversacion', phone: '628110001' }]) igual((await llama(c)).status, 410, 'retirada: ' + c.accion);
+    igual(bot.length, antes410, 'las acciones retiradas no llaman al bot');
     for (const b of bot.slice(antes)) ok(!('X-User-Jwt' in b.init.headers), 'sin X-User-Jwt fuera de las tres acciones: ' + b.url);
     // con BOT_HUMANO_STORE=postgres la pausa ya no pasa por el bot: ningún JWT va al bot en ese camino
     entorno.BOT_HUMANO_STORE = 'postgres'; entorno.BOT_API_SECRET_HUMANO = 's-humano';
