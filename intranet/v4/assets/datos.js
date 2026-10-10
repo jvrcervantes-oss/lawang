@@ -2514,7 +2514,11 @@
           pon2('k-emitidos', String(rs.length));
           pon2('k-emitidos-pie', anul + ' anulado' + (anul === 1 ? '' : 's') + ' · histórico completo');
           pon2('k-sinjust', String(sinJ));
-          pon2('k-sinjust-pie', sinJ ? 'recibís vigentes sin justificante de pago adjunto' : 'todos los recibís vigentes tienen justificante');
+          // Los históricos tampoco lo tienen: decir «todos lo tienen» con ellos dentro sería falso, se nombran aparte.
+          var histJ = rs.filter(function (r) { return estadoJustRecibo(r) === 'historico'; }).length;
+          var trasHist = histJ ? ' · ' + histJ + ' histórico' + (histJ === 1 ? '' : 's') + ' sin justificante, no cuenta' + (histJ === 1 ? '' : 'n') : '';
+          pon2('k-sinjust-pie', (sinJ ? 'recibís vigentes sin justificante de pago adjunto'
+            : (histJ ? 'el resto de recibís vigentes tienen justificante' : 'todos los recibís vigentes tienen justificante')) + trasHist);
           var porId = {}; rs.forEach(function (r) { porId[r.id] = r; });
           window.LW_V4 = window.LW_V4 || {}; window.LW_V4.facturasLista = porId;
 
