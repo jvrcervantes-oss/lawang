@@ -822,7 +822,7 @@ globalThis.Deno = { env: { get: (k) => entorno[k] }, serve: () => ({}), test: ()
       const fuente = leer('supabase', 'functions', 'bot-api', 'index.ts');
       const sentencia = /verificar_humano: '(select [^']*)'/.exec(fuente)[1];
       igual(M.SQL.verificar_humano, sentencia);
-      const mig = leer('supabase', 'migrations', '20261009235701_bot_humano_verificar.sql');
+      const mig = leer('supabase', 'migrations', '20261010190000_bot_humano_verificar.sql');
       ok(/create or replace function public\.bot_humano_verificar\(p_usuario text, p_permiso text\)\s*returns jsonb/.test(mig), 'la firma de la función SQL = la sentencia (text, text)');
       ok(sentencia.includes('public.bot_humano_verificar($1::text, $2::text)'));
       ok(/security definer set search_path = ''/.test(mig), 'SECURITY DEFINER con search_path fijo');
