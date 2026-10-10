@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="ad084f21e4cb">
+<meta name="lw-version" content="16bb03dbab14">
 <meta charset="UTF-8">
+<meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como ?th=<token>; ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -55,6 +56,7 @@
 <script src="/portal/calendario.js?v=20261009g"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261009"></script>
+<script src="/portal/enlace.js?v=20261011"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
 <script src="/intranet/facturas/documento.js?v=933661fe"></script>
 <style>
@@ -2038,6 +2040,11 @@
   <div class="caja">
     <div class="marca">LAWANG</div>
     <div class="rot" data-t="area">Área de clientes</div>
+    <!-- LAW-1 S3 (11-oct-2026): llegada con el enlace de nuestro correo (?th=). Se entra PULSANDO, no al cargar: los filtros de correo de empresa abren el enlace para revisarlo y lo gastarían (portal/enlace.js). -->
+    <div id="bloqueEnlace" hidden>
+      <p data-t="enlace_intro">Pulsa el botón para entrar en tu área de clientes.</p>
+      <button class="btn-primario" type="button" id="btnEnlace" data-accion="canjear-enlace" data-t="enlace_btn">Entrar</button>
+    </div>
     <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.</p>
     <form id="fLogin">
       <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required data-ph="ph_correo" placeholder="tu@correo.com"></div>
@@ -2106,6 +2113,13 @@
 <script>
 (function(){
   'use strict';
+  /* LAW-1 S3 (11-oct-2026): el enlace de entrada (?th=<token>) se quita de la barra y del
+     historial lo PRIMERO, antes de crear el cliente; se canjea al pulsar «Entrar» (ver el
+     arranque). Por qué así y qué estados hay: portal/enlace.js. */
+  var TH = window.LW_ENLACE.quitaTh(location, history);
+  /* ocupado: el oyente de onAuthStateChange calla mientras el arranque decide y mientras se
+     canjea; si no, el SIGNED_IN de supabase-js y el arranque llamaban los dos a cargar(). */
+  var ENTRADA = { ocupado: true };
   var URL_SB = window.LW_INSTANCIA.sb_url;
   var KEY_SB = window.LW_INSTANCIA.sb_key;   // publicable: el candado es la RLS y la RPC
   /* Sesión propia, aislada de la del equipo (1-sep-2026). El resto de la
@@ -2168,6 +2182,7 @@
          enviado:'Si ese correo tiene acceso, acabamos de enviarte el enlace. Revisa tu bandeja (mira también en spam).',
          error_envio:'No hemos podido enviarte el correo ahora mismo. Inténtalo de nuevo en un momento o escríbenos a sales@lawangproperties.com.',
          sin_activar:'Tu cuenta todavía no tiene el área de clientes activada. Pide un enlace de acceso con tu correo aquí abajo y se activa sola; si no llega, escríbenos a sales@lawangproperties.com.',
+         enlace_caducado:'El enlace ha caducado o ya se usó: pide otro.', enlace_red:'No hemos podido comprobar el enlace ahora mismo. Pulsa «Entrar» de nuevo en un momento.', enlace_intro:'Pulsa el botón para entrar en tu área de clientes.', enlace_btn:'Entrar',
          login_intro_pass:'Introduce tu correo y tu contraseña.', pass_btn:'Entrar',
          pass_toggle:'¿Tienes contraseña? Entra con ella', pass_toggle_back:'Prefiero que me manden un enlace',
          pass_mal:'Correo o contraseña incorrectos.', pie:'¿Dudas? Escríbenos a',
@@ -2288,6 +2303,7 @@
          enviado:'If that email has access, we have just sent you the link. Check your inbox (and your spam folder).',
          error_envio:'We could not send the email right now. Please try again in a moment or write to sales@lawangproperties.com.',
          sin_activar:'Your account does not have the client area enabled yet. Request a sign-in link with your email below and it activates itself; if nothing arrives, write to sales@lawangproperties.com.',
+         enlace_caducado:'This link has expired or has already been used: request a new one.', enlace_red:'We could not check the link right now. Press «Sign in» again in a moment.', enlace_intro:'Press the button to enter your client area.', enlace_btn:'Sign in',
          login_intro_pass:'Enter your email and password.', pass_btn:'Sign in',
          pass_toggle:'Have a password? Sign in with it', pass_toggle_back:'Send me a link instead',
          pass_mal:'Wrong email or password.', pie:'Questions? Write to',
@@ -2404,6 +2420,7 @@
          enviado:'Jika email tersebut memiliki akses, kami baru saja mengirimkan tautan. Periksa kotak masuk Anda (cek juga folder spam).',
          error_envio:'Kami belum bisa mengirim email saat ini. Coba lagi sebentar lagi atau tulis ke sales@lawangproperties.com.',
          sin_activar:'Akun Anda belum mengaktifkan area klien. Minta tautan akses dengan email Anda di bawah ini dan akan aktif otomatis; jika tidak datang, tulis ke sales@lawangproperties.com.',
+         enlace_caducado:'Tautan ini sudah kedaluwarsa atau sudah dipakai: minta yang baru.', enlace_red:'Kami belum bisa memeriksa tautan saat ini. Tekan «Masuk» lagi sebentar lagi.', enlace_intro:'Tekan tombol untuk masuk ke area klien Anda.', enlace_btn:'Masuk',
          login_intro_pass:'Masukkan email dan kata sandi Anda.', pass_btn:'Masuk',
          pass_toggle:'Punya kata sandi? Masuk dengan itu', pass_toggle_back:'Saya lebih suka dikirimi tautan',
          pass_mal:'Email atau kata sandi salah.', pie:'Ada pertanyaan? Tulis ke',
@@ -2663,8 +2680,8 @@
   }
 
   /* ── arranque ─────────────────────────────────────────────────────── */
-  sb.auth.getSession().then(function(r){
-    var ses = r && r.data && r.data.session;
+  /* Sesión resuelta → al portal, o a la entrada si no hay sesión o no es de comprador. */
+  function trasSesion(ses){
     if (!ses){ muestra('vLogin'); return; }
     /* Una sesion sin el claim `portal` YA NO se manda a /intranet/ (8-sep-2026,
        orden del owner: «los clientes no deben entrar nunca en /intranet/»).
@@ -2684,14 +2701,62 @@
       return;
     }
     cargar();
-  }).catch(function(){ muestra('vLogin'); });
+  }
 
-  sb.auth.onAuthStateChange(function(ev, ses){
+  /* ── entrada con el enlace de nuestro correo (?th=, LAW-1 S3) ─────── */
+  /* Se ofrece el botón «Entrar» en vez del formulario; al pulsarlo se canjea (portal/enlace.js).
+     Caducado o ya usado → vuelve el formulario con «pide otro»; sin red → mismo botón para
+     reintentar, con un aviso distinto («no he podido comprobarlo» ≠ «caducado»). */
+  function modoEnlace(on){
+    document.getElementById('bloqueEnlace').hidden = !on;
+    document.getElementById('fLogin').hidden = on;
+    document.getElementById('loginIntroEnlace').hidden = on;
+    document.getElementById('togglePass').hidden = on;
+  }
+  function avisoEnlace(clave){
+    var a = document.getElementById('avisoLogin');
+    a.className = clave ? 'aviso mal' : 'aviso';
+    a.textContent = clave ? t(clave) : '';
+  }
+  function ofreceEnlace(){
+    muestra('vLogin');
+    if (!window.LW_ENLACE.formatoOk(TH)){ TH = null; avisoEnlace('enlace_caducado'); return; }
+    modoEnlace(true);
+  }
+  document.getElementById('btnEnlace').addEventListener('click', function(){
+    var btn = this;
+    if (TH === null || btn.disabled) return;
+    btn.disabled = true;
+    var a = document.getElementById('avisoLogin'); a.className = 'aviso'; a.textContent = '…';
+    window.LW_ENLACE.canjeaCallado(sb, TH, ENTRADA).then(function(r){
+      btn.disabled = false;
+      if (r.estado === 'red'){ avisoEnlace(window.LW_ENLACE.AVISO.red); return; }
+      TH = null;   // gastado (o rechazado): ya no se reintenta
+      modoEnlace(false);
+      if (r.estado === 'ok'){ avisoEnlace(null); trasSesion(r.ses); return; }
+      avisoEnlace(window.LW_ENLACE.AVISO.caducado);
+    });
+  });
+
+  /* ── arranque ─────────────────────────────────────────────────────── */
+  /* Con ?th= (y sin ?demo) se ofrece el botón aunque hubiera otra sesión guardada: quien pulsa
+     un enlace quiere entrar con ESE correo. El botón sale después de getSession, con el cliente
+     ya arrancado (portal/enlace.js, punto 3). */
+  sb.auth.getSession().then(function(r){
+    ENTRADA.ocupado = false;
+    if (TH !== null && !window.LW_DEMO){ ofreceEnlace(); return; }
+    trasSesion(r && r.data && r.data.session);
+  }).catch(function(){
+    ENTRADA.ocupado = false;
+    if (TH !== null && !window.LW_DEMO) ofreceEnlace(); else muestra('vLogin');
+  });
+
+  sb.auth.onAuthStateChange(window.LW_ENLACE.callado(ENTRADA, function(ev, ses){
     if (ev === 'SIGNED_IN' && ses && (ses.user.app_metadata || {}).portal &&
         document.getElementById('vApp').hidden){
       cargar();
     }
-  });
+  }));
 
   /* ── entrada por enlace mágico ────────────────────────────────────── */
   /* Desde el 8-sep NO llama a `signInWithOtp` directamente, sino a la Edge
