@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="b0ca2ce875dc">
+<meta name="lw-version" content="2869dc519b1f">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="documento.css?v=5337c601">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=1b39129b"></script>
+<script src="/contracts/assets/i18n.js?v=acd9dc0a"></script>
 <script src="/contracts/assets/herramientas.js?v=15317b6f"></script>
 <script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/topbar.js?v=0906fb5b" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -497,7 +497,7 @@
      <900px — aquí se fuerza visible, porque en modo vista el documento ES la
      página. */
   body.modo-vista .topbar, body.modo-vista .pane-form,
-  body.modo-vista #btnSave, body.modo-vista #btnNueva{ display:none !important; }
+  body.modo-vista #btnSave, body.modo-vista #btnNueva, body.modo-vista #btnMarcarEnviada{ display:none !important; }
   body.modo-vista .stage{ grid-template-columns:1fr; padding-top:0; }
   body.modo-vista .pane-preview{ display:flex !important; }
 
@@ -911,6 +911,8 @@
         <div class="spacer"></div>
         <button class="btn primary" id="btnSave" data-lwt="Guardar en base de datos">Guardar en base de datos</button>
         <button class="btn" id="btnPrint" data-lwt="Descargar PDF">Descargar PDF</button>
+        <!-- LAW-37 (11-oct-2026): mandarlo a mano (WhatsApp, otro correo) tambien es enviarlo. -->
+        <button class="btn" id="btnMarcarEnviada" data-lwt="Marcar como enviada" style="display:none">Marcar como enviada</button>
         <button class="btn" id="btnMail" data-lwt="Enviar por email">Enviar por email</button>
         <button class="btn" id="btnRecibiDeFactura" data-lwt="Crear recibí">Crear recibí</button>
         <button class="btn ghost" id="btnRegistro" style="display:none"
@@ -1804,6 +1806,9 @@ function estadoDelFormulario(d){
   // enviado, que es justo del que más se pregunta "¿a quién se le mandó?".
   const regBtn = $('#btnRegistro');
   if(regBtn) regBtn.style.display = (SAVED && SAVED.id) ? '' : 'none';
+  // LAW-37: solo sobre una factura o proforma emitida (con número) que la base aún no da por enviada.
+  const envBtn = $('#btnMarcarEnviada');
+  if(envBtn) envBtn.style.display = sePuedeMarcarEnviada() ? '' : 'none';
 }
 
 function render(){
@@ -1849,7 +1854,54 @@ $('#btnPrint').onclick = () => {
   document.title = `${rotulo}_${limpiaNombre(d.cliente_nombre) || 'SIN_NOMBRE'}`.toUpperCase();
   window.print();
   document.title = antes;
+  /* LAW-37 (11-oct-2026): descargar el PDF y mandarlo a mano lo entrega al cliente sin
+     que `facturas.enviada` se entere. NO se marca en silencio por descargar (se descarga
+     también para revisarlo): se PREGUNTA, y la respuesta por defecto es «no». */
+  if(sePuedeMarcarEnviada() && !document.body.classList.contains('modo-vista'))
+    marcarEnviada({ trasDescargar: true });
 };
+
+/* ---------- marcar como enviada a mano (LAW-37) ----------
+   Por la RPC `factura_marca_enviada` (DEFINER, misma regla de permiso que anular:
+   `_factura_puede_editar`), la misma que llama la edge al mandar el correo. Nunca un
+   UPDATE desde aquí. Marcarla tiene consecuencias y desde la pantalla no se desmarca,
+   por eso pasa siempre por una confirmación que las dice. */
+/* Qué se puede marcar a mano (Administración, 11-oct-2026): factura y proforma, ya
+   emitidas y aún no enviadas. Un recibí NO: la base todavía no lo congela al marcarlo
+   (queda para Backend), así que «enviado» sería una etiqueta sin efecto. El tipo se lee
+   del selector, que se bloquea en cuanto el documento tiene número (estadoDelFormulario). */
+function sePuedeMarcarEnviada(){
+  return !!(SAVED && SAVED.id && SAVED.numero && !SAVED.enviada)
+    && ['factura', 'proforma'].includes($('#selTipo').value);
+}
+async function marcarEnviada(op){
+  if(!sePuedeMarcarEnviada()) return;
+  const id = SAVED.id, numero = SAVED.numero;
+  const esProforma = $('#selTipo').value === 'proforma';
+  // dd/mm/aaaa de HOY en local (hoyLocalISO, nunca toISOString: daría ayer de madrugada)
+  const fecha = hoyLocalISO().split('-').reverse().join('/');
+  const ok = await lwConfirmar({
+    titulo: (op && op.trasDescargar) ? lwT('¿Vas a mandar este PDF al cliente?') : lwT('Marcar como enviada'),
+    cuerpo: '<p>' + esc(lwT('Si %num ya ha llegado (o va a llegar) al cliente por WhatsApp u otro canal, márcala como enviada para que la intranet lo sepa.', { num: numero })) + '</p>'
+      + '<p>' + esc(lwT('Se anota hoy (%fecha) como fecha de envío; desde ella corren plazos y reclamaciones.', { fecha: fecha })) + '</p>'
+      + '<p>' + esc(esProforma
+          ? lwT('Se congelan el total, la moneda y las líneas; la sociedad aún puede cambiarse.')
+          : lwT('La factura queda congelada entera; si hay que corregirla, con una rectificativa.')) + '</p>'
+      + '<p>' + esc(lwT('No se puede borrar y un cambio de nombre del proyecto ya no la toca.')) + '</p>'
+      + (esProforma ? '<p>' + esc(lwT('Al ser una proforma, el comprador la verá en su portal.')) + '</p>' : '')
+      + '<p>' + esc(lwT('Desde esta pantalla no se puede desmarcar.')) + '</p>',
+    confirmar: lwT('Sí, márcala como enviada'),
+    cancelar: (op && op.trasDescargar) ? lwT('No, solo la estaba revisando') : lwT('Cancelar'),
+  });
+  if(!ok) return;
+  const { data, error } = await sb.rpc('factura_marca_enviada', { p_id: id });
+  if(error || data !== true){ toastMal(lwT('No se ha podido marcar como enviada: ') + ((error && error.message) || lwT('el documento ya no existe'))); return; }
+  if(SAVED && SAVED.id === id) SAVED.enviada = true;
+  LDOCS = null;   // que el listado enseñe «Enviada» al volver
+  toast(lwT('%num marcada como enviada', { num: numero }));
+  render();
+}
+$('#btnMarcarEnviada').onclick = () => marcarEnviada({});
 
 /* ---------- enviar por email ----------
    Mismo endpoint que los contratos: `/contracts/api/send_email.php` recoge el
@@ -1912,6 +1964,7 @@ $('#mailSend').onclick = async () => {
   btn.disabled = true; btn.textContent = 'Enviando…';
   try{
     const d = collect();
+    const idEnvio = SAVED.id;   // el documento que se manda, por si SAVED cambia mientras responde la edge
     /* Va a la Edge Function send-contract-email, NO directo a send_email.php:
        el WAF de Hostinger bloquea con 403 el HTML con CSS de diseño (LAW-30,
        ver contracts/app.html). La factura hoy no lo dispara (su CSS no tiene
@@ -1938,7 +1991,13 @@ $('#mailSend').onclick = async () => {
       LDOCS = null;   // que el listado enseñe el estado «enviada» al volver
       if(res.marcada !== true)   // sin `marcada` (edge sin desplegar) tampoco es «marcada»
         toastMal(lwT('Enviado a ') + to + ' — pero NO se ha podido marcar como enviada: no la reenvíes, avisa al administrador.');
-      else toast(lwT('Enviado a ') + to);
+      else {
+        toast(lwT('Enviado a ') + to);
+        // LAW-37: la base ya la da por enviada; que la pantalla también, o «Marcar como
+        // enviada» y la pregunta al descargar seguirían ofreciéndose. Sin `marcada` no:
+        // ahí el botón manual es la única forma de dejarla marcada.
+        if(SAVED && SAVED.id === idEnvio){ SAVED.enviada = true; render(); }
+      }
       cerrarMail();
     }
     else toastMal(res.error || 'No se pudo enviar');
@@ -2617,14 +2676,17 @@ $('#btnSave').onclick = async () => {
       if(g.error) throw g.error;
       const guardada = Array.isArray(g.data) ? g.data[0] : g.data;
       if(!guardada || !guardada.id) throw new Error(lwT('El servidor no ha devuelto el documento guardado'));
-      const r = await sb.from('facturas').select('id,numero,datos').eq('id', guardada.id).single();
+      const r = await sb.from('facturas').select('id,numero,datos,enviada').eq('id', guardada.id).single();
       if(r.error) throw r.error;
       data = r.data;
     }
     // `emisor`: la identidad CONGELADA que puso la base al emitir. Viaja en
     // SAVED para que la vista previa y el PDF del correo impriman lo que dice
     // el documento, no lo que diga hoy la ficha de la sociedad.
-    SAVED = { id:data.id, numero:data.numero, emisor:(data.datos && data.datos.emisor) || null };
+    // `enviada` (LAW-37): decide si se ofrece «Marcar como enviada». La RPC de recibís no lo
+    // devuelve; si es el mismo documento se conserva lo que ya se sabía.
+    const yaEnviada = !!(data.enviada || (SAVED && SAVED.id === data.id && SAVED.enviada));
+    SAVED = { id:data.id, numero:data.numero, emisor:(data.datos && data.datos.emisor) || null, enviada:yaEnviada };
     $('[name="numero_visible"]').value = data.numero;
     LDOCS = null;   // el listado queda viejo: al volver se recarga y el documento nuevo aparece (auditoría 19-ago)
     toast(lwT('Guardada como ') + data.numero);
@@ -3233,7 +3295,7 @@ async function abrir(f){
   // caché del listado, así que editar líneas sin guardar quedaba escrito en
   // LDOCS y reabrir el documento enseñaba la edición fantasma
   LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas.map(l => ({...l})) : [{ descripcion:'', importe:'' }];
-  SAVED = f.anulada ? null : { id:f.id, numero:f.numero, emisor:(f.datos && f.datos.emisor) || null };   // una anulada se abre como copia, no se reescribe
+  SAVED = f.anulada ? null : { id:f.id, numero:f.numero, emisor:(f.datos && f.datos.emisor) || null, enviada:!!f.enviada };   // una anulada se abre como copia, no se reescribe
   CONTRATO_ID = f.contrato_id || null;
   pintarContratoElegido();
   // el panel de hitos se repinta para ESTE contrato (auditoría 19-ago): antes
