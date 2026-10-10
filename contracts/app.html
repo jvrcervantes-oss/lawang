@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="742e814f3938">
+<meta name="lw-version" content="38e0aa1a2533">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -1104,16 +1104,20 @@ async function cargarProyectos(){
   if(PROYECTOS_DB || !sb) return;
   const { data, error } = await sb.from('proyectos')
     .select('id,nombre,resort,parcela_master,empresa').eq('activo', true).order('nombre');
-  // Si la consulta no llega (sin red) se cae a la lista de tokens.json: es
-  // vieja, pero peor es un desplegable vacio que no deja hacer el contrato.
-  if(!error) PROYECTOS_DB = data || [];
+  /* LAW-36 (11-oct-2026): ya NO se cae a una lista de tokens.json. Esa copia a
+     mano llevaba nombres que la tabla no tiene («Palm Field», «Mejan»), y
+     ofrecerla cuando la consulta falla era dejar elegir un proyecto que no
+     existe. Sin la tabla no hay lista: se dice, y el contrato abierto conserva
+     su proyecto como opcion huerfana (buildField). Guardar exige red igual. */
+  if(error){ toastMal(lwT('No se han podido cargar los proyectos: recarga la página antes de elegir uno.')); return; }
+  PROYECTOS_DB = data || [];
 }
-/* El resort del proyecto elegido: primero la tabla, y tokens.json de respaldo
-   para los proyectos viejos que aun no lo tengan puesto en la base. */
+/* El resort del proyecto elegido: solo la tabla (LAW-36, 11-oct-2026: el
+   respaldo `resortPorProyecto` de tokens.json se retiró; todos los proyectos
+   con resort lo tienen en `proyectos.resort`, y sus claves eran nombres viejos). */
 function resortDe(nombre){
   const enBase = (PROYECTOS_DB || []).find(p => p.nombre === nombre);
-  if(enBase && enBase.resort) return enBase.resort;
-  return ((TOKENS && TOKENS.resortPorProyecto) || {})[nombre] || '';
+  return (enBase && enBase.resort) || '';
 }
 
 /* Aqui vivian `syncPoderVinculado()` y su tabla de derivacion. Se retiran con el
@@ -2492,7 +2496,7 @@ function aplicarReglasCampos(){
   }
 }
 
-/* Código de parcela por proyecto (tokens.json → parcelaPorProyecto).
+/* Código de parcela máster por proyecto (`proyectos.parcela_master`; hasta el 11-oct-2026 también tokens.json → parcelaPorProyecto).
    El campo sigue siendo de texto libre a propósito: el automatismo es una ayuda,
    no una lista cerrada — una parcela nueva se escribe y no hay que esperar a que
    alguien la dé de alta. Por eso solo se rellena cuando el hueco está vacío o
@@ -2551,14 +2555,12 @@ function syncParcelaMaster(){
     }
     return;
   }
-  /* Primero la tabla, tokens.json de respaldo. La lista a mano de tokens.json
-     esta escrita con los nombres VIEJOS de los proyectos («Palm Field», «Mejan»)
-     y la tabla dice «Palm Field W5», «Mejan Village S7»: desde que el
-     desplegable lee la tabla, esas claves ya no casan y el autorrelleno se
-     quedaria mudo. El dato se ha mudado a `proyectos.parcela_master`. */
+  /* Solo la tabla: el dato vive en `proyectos.parcela_master`. El respaldo
+     `parcelaPorProyecto` de tokens.json se retiró el 11-oct-2026 (LAW-36): sus
+     claves eran los nombres VIEJOS («Palm Field», «Mejan») y la tabla dice
+     «Palm Field W5», «Mejan Village S7», así que ya no casaba con nada. */
   const enBase = (PROYECTOS_DB || []).find(p => p.nombre === sel.value);
-  const codigo = (enBase && enBase.parcela_master)
-              || ((TOKENS && TOKENS.parcelaPorProyecto) || {})[sel.value] || '';
+  const codigo = (enBase && enBase.parcela_master) || '';
   if(codigo === actual) return;
   // Un proyecto sin código (Sumba Hills) BORRA el que puso el automatismo: dejar
   // el W8 de Balian Hills en un contrato de Sumba sería un terreno de otro sitio.
@@ -2643,7 +2645,7 @@ function aplicaPrecargaCuenta(sel, slug, proyectoId){
 }
 
 /* Resort del proyecto (7-ago): mismo patrón que syncParcelaMaster, sobre
-   TOKENS.resortPorProyecto. Antes "Bonian Village by Balian Hills" era un
+   `proyectos.resort` (resortDe; hasta el 11-oct-2026 con respaldo en tokens.json). Antes "Bonian Village by Balian Hills" era un
    único texto en proyecto_nombre; ahora son dos campos y este es el que
    rellena solo el segundo al elegir el primero. */
 let AUTO_RESORT = '';
@@ -3662,7 +3664,7 @@ function deriveSections(){
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
       (f[0]==='proyecto_nombre' && f[2]==='select') ? [f[0], f[1], f[2], opts] : f); });
     /* Resort (24-ago): mismo motivo que proyecto_nombre arriba — la lista de
-       tokens.json es solo el fallback sin red. Si Proyectos da de alta un
+       tokens.json es el catálogo de resorts declarados (vocabulario, se queda). Si Proyectos da de alta un
        resort nuevo (p.ej. "Signature project", texto libre en su ficha), el
        desplegable de Contratos tiene que verlo sin que alguien recuerde tocar
        este fichero a mano; si no, es la misma lista-a-mano-en-dos-sitios que

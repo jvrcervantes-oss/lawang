@@ -5245,9 +5245,10 @@
 
       /* Renombrar un proyecto (S10.1, 22-sep-2026): porta el `renombrarProyecto()`
          de /intranet/proyectos/index.html:704-732 — mismo radio de impacto (5
-         tablas), mismo aviso de `contracts/tokens.json` (no se actualiza
-         solo), mismo RPC `renombrar_proyecto` (SECURITY DEFINER, gate
-         es_admin() dentro). Nunca un UPDATE directo a `proyectos.nombre`. */
+         tablas), mismo RPC `renombrar_proyecto` (SECURITY DEFINER, gate
+         es_admin() dentro). Nunca un UPDATE directo a `proyectos.nombre`.
+         El aviso de «tokens.json no se actualiza solo» se retiró el 11-oct-2026
+         (LAW-36): tokens.json ya no guarda proyectos; Contratos los lee de la tabla. */
       function confirmaYRenombraProyecto(p, nuevo) {
         // unidades/modelos/documentos: proyecto_vinculos_datos (B10a, 28-sep). Cuenta con el criterio de borrar_proyecto
         // (nombre O proyecto_id); renombrar_proyecto solo reescribe las filas que llevan el nombre, así que el texto
@@ -5286,7 +5287,7 @@
           return aseguraModulosDoc(['dialogo']).then(function () {
             return lwConfirmar({
               titulo: 'Renombrar «' + p.nombre + '» a «' + nuevo + '»',
-              cuerpo: '<p>' + esc(avisoRadio) + '</p><p>Si este proyecto aparece en <b>contracts/tokens.json</b> (proyecto_nombre, parcelaPorProyecto, resortPorProyecto), ese archivo <b>no se actualiza solo</b> y hay que tocarlo a mano.</p>',
+              cuerpo: '<p>' + esc(avisoRadio) + '</p>',
               confirmar: 'Renombrar'
             });
           });

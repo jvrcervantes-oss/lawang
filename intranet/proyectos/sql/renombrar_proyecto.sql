@@ -29,6 +29,9 @@
 -- resortPorProyecto) ni la que deriva Documentación de ese mismo tokens.json.
 -- Sin tocarlas a mano, el proyecto renombrado desaparece del desplegable de
 -- contratos nuevos y pierde su autofill de máster/resort.
+-- ⮕ RESUELTO 11-oct-2026 (LAW-36): esas listas ya no existen. tokens.json no
+--   guarda proyectos y contracts/app.html lee nombre, resort y parcela_master de
+--   la tabla `proyectos`; contracts/listas.test.js falla si vuelven a escribirse.
 create or replace function public.renombrar_proyecto(p_antiguo text, p_nuevo text)
 returns jsonb
 language plpgsql

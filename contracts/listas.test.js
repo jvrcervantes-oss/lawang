@@ -189,6 +189,33 @@ comprueba('los tipos que emiten proforma automática no coinciden entre los dos 
   proformaDe(APP, 'app.html'), 'app.html (al guardar)',
   proformaDe(FSUB, 'firma-submit'), 'firma-submit (al firmar)');
 
+/* ── LOS PROYECTOS NO VIVEN EN tokens.json — LAW-36, 11-oct-2026 ──────────
+   El dueño de nombre, resort y parcela máster de cada proyecto es la tabla
+   `proyectos` (se dan de alta y se renombran desde la intranet). tokens.json
+   tenía una copia a mano —`parcelaPorProyecto`, `resortPorProyecto` y las
+   opciones de `proyecto_nombre`— que renombrar un proyecto dejaba vieja sin
+   avisar (señalado dos veces en agosto; el 17-ago mordió: 14 proyectos nuevos
+   no salían en Contratos). Si alguien la vuelve a escribir, falla aquí. */
+{
+  const TOK = JSON.parse(leer('tokens.json'));
+  ['parcelaPorProyecto', 'resortPorProyecto'].forEach(k => {
+    if (k in TOK) {
+      fallos++;
+      console.error('\n  FALLA  tokens.json vuelve a tener `' + k + '`: ese dato vive en la tabla `proyectos`.');
+    }
+  });
+  const fProy = (TOK.sections || []).flatMap(s => s.fields || []).find(f => f[0] === 'proyecto_nombre');
+  if (fProy && Array.isArray(fProy[3]) && fProy[3].length) {
+    fallos++;
+    console.error('\n  FALLA  tokens.json vuelve a listar proyectos en `proyecto_nombre` (' + fProy[3].join(', ') + ').');
+    console.error('         La lista sale de la tabla `proyectos` (cargarProyectos en app.html).');
+  }
+  if (/TOKENS\.(parcelaPorProyecto|resortPorProyecto)/.test(APP)) {
+    fallos++;
+    console.error('\n  FALLA  app.html vuelve a leer un mapa de proyectos de tokens.json.');
+  }
+}
+
 /* ── Salida ──────────────────────────────────────────────────────────────── */
 if (fallos) {
   console.error(`\nlistas.test.js — ${fallos} divergencia(s). Cada una es un dato que dice`);
