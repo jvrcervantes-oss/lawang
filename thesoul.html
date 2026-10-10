@@ -257,18 +257,19 @@ html,body{background:var(--paper)}
 /* 5 · how it works */
 .how{color:#fff;background:#8a6a50;--iw:max(100vw,calc(1980*var(--u)),calc((var(--vh) - var(--top) - var(--band) - calc(240*var(--u))) / .3601))}
 .how>img{position:absolute;left:50%;top:calc(var(--top) + var(--band) + calc(240*var(--u)) - var(--iw) * .1947);width:var(--iw);height:auto;max-width:none;transform:translateX(-50%)}
-.how::after{content:none}
+.how::after{content:"";position:absolute;inset:0;background:rgba(10,25,35,.45)}  /* velo del móvil también en escritorio (owner, 10-oct) */
 .how .st{z-index:2}
-.how .hd{position:absolute;top:calc(39*var(--u));left:0;right:0;text-align:center;color:var(--ink)}
+.how .hd{position:absolute;top:calc(39*var(--u));left:0;right:0;text-align:center;color:#fff}
 .how .hd .k{font-size:max(11px,calc(25*var(--u)));line-height:calc(30*var(--u));letter-spacing:.2em;text-transform:uppercase}
 .how .hd h2{margin-top:calc(12*var(--u));font-size:calc(44*var(--u));line-height:calc(55*var(--u));font-weight:400;letter-spacing:.02em}
 .how .hd h2 .b{font-weight:500}
 .how .one{display:inline-flex;align-items:center;margin-top:calc(50*var(--u));height:calc(41*var(--u));padding:0 calc(26*var(--u));background:#fff;border-radius:999px;color:var(--teal);font-size:max(11px,calc(21.6*var(--u)));letter-spacing:.08em}
-.steps6{position:absolute;top:calc(262*var(--u));left:calc(60*var(--u));right:calc(60*var(--u));display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:calc(24*var(--u));list-style:none;padding:calc(26*var(--u)) calc(22*var(--u)) calc(30*var(--u));background:rgba(0,0,0,.42);border-radius:calc(14*var(--u))}
-.steps6 li{display:flex;flex-direction:column;align-items:center}
-.steps6 h3{height:calc(42*var(--u));padding:0 calc(18*var(--u));display:flex;align-items:center;border:1.5px solid rgba(255,255,255,.92);border-radius:999px;font-size:max(11px,calc(22.4*var(--u)));font-weight:700;letter-spacing:.06em;white-space:nowrap}
-.steps6 p{margin-top:calc(26*var(--u));font-size:max(10px,calc(15*var(--u)));line-height:calc(27*var(--u));letter-spacing:.035em;text-transform:uppercase;text-shadow:0 1px 10px rgba(0,20,30,.35)}
-.steps6 p .b{font-weight:700}
+.ruta6{position:absolute;top:calc(300*var(--u));left:calc(110*var(--u));right:calc(110*var(--u));display:grid;grid-template-columns:repeat(6,minmax(0,1fr));list-style:none}
+.ruta6::before{content:"";position:absolute;top:calc(23*var(--u));left:calc(100%/12);right:calc(100%/12);height:max(1px,calc(2*var(--u)));background:rgba(255,255,255,.75)}
+.ruta6 li{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center}
+.ruta6 .nd{width:calc(46*var(--u));height:calc(46*var(--u));border-radius:50%;background:#fff;color:var(--teal);display:grid;place-items:center;font-weight:700;font-size:max(11px,calc(19*var(--u)))}
+.ruta6 h3{margin-top:calc(24*var(--u));font-size:max(11px,calc(21*var(--u)));font-weight:700;letter-spacing:.08em;white-space:nowrap;text-shadow:0 1px 12px rgba(0,20,30,.5)}
+.ruta6 p{margin-top:calc(8*var(--u));font-size:max(10px,calc(17*var(--u)));line-height:calc(24*var(--u));letter-spacing:.05em;text-transform:uppercase;text-shadow:0 1px 12px rgba(0,20,30,.5)}
 
 /* 6 · cómo tiene un extranjero el inmueble */
 .routes .tt{position:absolute;left:calc(50*var(--u));top:calc(52*var(--u));width:calc(578*var(--u));color:var(--olive);text-transform:uppercase}
@@ -425,7 +426,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .hero .ph h1{left:16px;top:auto;bottom:-6px;font-size:5.6vw;line-height:1.25}
   .sil{display:none}
   .totem{left:auto;right:10px;top:auto;bottom:24px;width:min(28vw,110px);opacity:.75;clip-path:inset(13% 0 0 0)}
-  .hero h2,.hero .sub,.stats4,.stats4 li,.claim,.routes .tt,.opt,.cmp,.cmp .th,.cmp .v,.see .bn p,.see h2,.see .pr,.svc-h,.cards4,.terr .tag,.terr h2,.terr .chips,.isl,.kpis,.ret,.why .hd,.isles,.how .hd,.steps6{position:static;transform:none;width:auto;white-space:normal}
+  .hero h2,.hero .sub,.stats4,.stats4 li,.claim,.routes .tt,.opt,.cmp,.cmp .th,.cmp .v,.see .bn p,.see h2,.see .pr,.svc-h,.cards4,.terr .tag,.terr h2,.terr .chips,.isl,.kpis,.ret,.why .hd,.isles,.how .hd,.ruta6{position:static;transform:none;width:auto;white-space:normal}
   .hero h2{margin-top:22px;font-size:22px;line-height:28px}
   .hero .sub{margin-top:6px;font-size:15px;line-height:20px}
   .stats4{margin-top:20px;height:auto;display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;border-radius:10px}
@@ -467,11 +468,12 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .how::after{content:"";position:absolute;inset:0;top:0;height:100%;background:rgba(10,25,35,.45)}
   .how>img{left:0;top:0;width:100%;height:100%;transform:none;object-fit:cover;object-position:30% center}
   .how .hd{color:#fff}.how .hd .k{font-size:12px}.how .hd h2{font-size:22px;line-height:28px}.how .one{margin-top:16px;font-size:12px;height:30px}
-  .steps6{grid-template-columns:1fr 1fr;gap:20px 12px;margin-top:28px;padding:0;background:none;border-radius:0}
-  .steps6 li{align-items:flex-start}
-  .steps6 h3{font-size:12px;height:30px;padding:0 12px;white-space:normal;text-align:center}
-  .steps6 p{margin-top:10px;font-size:11px;line-height:16px}
-  .steps6 br.d{display:none}
+  .ruta6{position:relative;display:block;margin:28px 0 0 6px;max-width:360px}
+  .ruta6::before{left:13px;right:auto;top:14px;bottom:14px;width:1.5px;height:auto}
+  .ruta6 li{display:grid;grid-template-columns:28px 1fr;gap:0 14px;align-items:center;text-align:left;padding-block:7px}
+  .ruta6 .nd{grid-row:span 2;width:28px;height:28px;font-size:12px}
+  .ruta6 h3{margin-top:0;font-size:13px;white-space:normal}
+  .ruta6 p{margin-top:0;font-size:11px;line-height:16px}
   .routes .tt .a{font-size:20px;line-height:24px}.routes .tt .bg span:first-child{font-size:30px;line-height:36px}.routes .tt .bg span:last-child{font-size:27px}.routes .tt .bg{flex-wrap:wrap;gap:8px}.routes .tt .c{font-size:18px;line-height:22px;text-align:left}
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px}
   .opt,.opt.pma,.opt.sewa{position:relative;left:auto;top:auto;width:auto;height:auto;padding:22px 16px}
@@ -546,7 +548,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .kpis{flex-direction:row;align-items:stretch}
   .kpi.k1,.kpi.k2,.kpi.k3{flex:1}
   .isles{grid-template-columns:repeat(4,1fr)}
-  .steps6{grid-template-columns:repeat(3,1fr)}
+  .ruta6{margin-inline:auto}
   .zcards{flex-direction:row;flex-wrap:wrap;justify-content:center}
   .zc{width:calc(50% - 8px);max-width:none}
 }
@@ -748,14 +750,14 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 <section class="how" id="how" aria-labelledby="how-h" data-spy="how">
   <img src="/assets/img/soul/bg-roadmap.webp" alt="Three people sitting on the beach looking at the sea at sunset" loading="lazy">
   <div class="st">
-    <div class="hd"><p class="k" data-i18n-html="hw.k">How it works</p><h2 id="how-h" data-i18n-html="r.h"><span class="b">FROM RESERVATION</span> TO RETURN.</h2><span class="one" data-i18n-html="r.one">EVERY STAGE IN ONE LINE.</span></div>
-    <ol class="steps6">
-      <li><h3 data-i18n-html="s1.h">RESERVE</h3><p data-i18n-html="s1.p"><span class="b">Deposit secures your plot</span><br class="d"> under a signed<br class="d"> Letter of Reservation.</p></li>
-      <li><h3 data-i18n-html="s2.h">DUE DILIGENCE</h3><p data-i18n-html="s2.p"><span class="b">Your plot stays reserved</span><br class="d"> for the period set in your<br class="d"> Letter of Reservation.</p></li>
-      <li><h3 data-i18n-html="s3.h">NOTARIAL SIGNATURE</h3><p data-i18n-html="s3.p"><span class="b">HGB deed</span> to your PT PMA,<br class="d"> or <span class="b">Hak Sewa</span> without a company,<br class="d"> signed before a PPAT <span class="b">notary</span><br class="d"> (power of attorney available if you can't attend).</p></li>
-      <li><h3 data-i18n-html="s4.h">CONSTRUCTION</h3><p data-i18n-html="s4.p"><span class="b">Licensed contractors,</span> on-site<br class="d"> QC, tropical-grade materials<br class="d"> and standards.</p></li>
-      <li><h3 data-i18n-html="s5.h">DELIVERY</h3><p data-i18n-html="s5.p"><span class="b">Completion certification</span><br class="d"> (SLF) issued once the building<br class="d"> meets the requirements for use.</p></li>
-      <li><h3 data-i18n-html="s6.h">MANAGEMENT</h3><p data-i18n-html="s6.p"><span class="b">Our local partner network</span><br class="d"> runs the rental and reports<br class="d"> your returns.</p></li>
+    <div class="hd"><p class="k" data-i18n-html="hw.k">How it works</p><h2 id="how-h" data-i18n-html="r.h"><span class="b">FROM RESERVATION</span> TO RETURN.</h2><span class="one" data-i18n-html="r.one">SIX STEPS, START TO FINISH.</span></div>
+    <ol class="ruta6">
+      <li><span class="nd" aria-hidden="true">1</span><h3 data-i18n-html="s1.h">RESERVE</h3><p data-i18n-html="s1.p">Deposit &amp; letter</p></li>
+      <li><span class="nd" aria-hidden="true">2</span><h3 data-i18n-html="s2.h">DUE DILIGENCE</h3><p data-i18n-html="s2.p">Held for a set term</p></li>
+      <li><span class="nd" aria-hidden="true">3</span><h3 data-i18n-html="s3.h">NOTARIAL SIGNATURE</h3><p data-i18n-html="s3.p">Before a notary</p></li>
+      <li><span class="nd" aria-hidden="true">4</span><h3 data-i18n-html="s4.h">CONSTRUCTION</h3><p data-i18n-html="s4.p">Licensed contractors</p></li>
+      <li><span class="nd" aria-hidden="true">5</span><h3 data-i18n-html="s5.h">DELIVERY</h3><p data-i18n-html="s5.p">Keys + SLF</p></li>
+      <li><span class="nd" aria-hidden="true">6</span><h3 data-i18n-html="s6.h">MANAGEMENT</h3><p data-i18n-html="s6.p">Managed by local partners</p></li>
     </ol>
   </div>
 </section>
@@ -887,9 +889,9 @@ var SOUL_I18N = {
 "id": "<span class=\"b\">DARI RESERVASI</span> HINGGA IMBAL HASIL."
 },
 "r.one": {
-"en": "EVERY STAGE IN ONE LINE.",
-"es": "CADA ETAPA, DE UN VISTAZO.",
-"id": "SETIAP TAHAP DALAM SATU ALUR."
+"en": "SIX STEPS, START TO FINISH.",
+"es": "SEIS PASOS, DE PRINCIPIO A FIN.",
+"id": "ENAM LANGKAH, DARI AWAL HINGGA AKHIR."
 },
 "s1.h": {
 "en": "RESERVE",
@@ -922,34 +924,34 @@ var SOUL_I18N = {
 "id": "PENGELOLAAN"
 },
 "s1.p": {
-"en": "<span class=\"b\">Deposit secures your plot</span><br class=\"d\"> under a signed<br class=\"d\"> Letter of Reservation.",
-"es": "<span class=\"b\">El depósito asegura tu parcela</span> mediante una Carta de Reserva firmada.",
-"id": "<span class=\"b\">Deposit mengamankan kavling Anda</span> melalui Surat Reservasi yang ditandatangani."
+"en": "Deposit &amp; letter",
+"es": "Depósito y carta",
+"id": "Deposit &amp; surat reservasi"
 },
 "s2.p": {
-"en": "<span class=\"b\">Your plot stays reserved</span><br class=\"d\"> for the period set in your<br class=\"d\"> Letter of Reservation.",
-"es": "<span class=\"b\">Tu parcela queda reservada</span> durante el plazo fijado en tu Carta de Reserva.",
-"id": "<span class=\"b\">Kavling Anda tetap dipesan</span> selama jangka waktu yang tercantum dalam Surat Reservasi."
+"en": "Held for a set term",
+"es": "Bloqueada a plazo fijo",
+"id": "Ditahan jangka tertentu"
 },
 "s3.p": {
-"en": "<span class=\"b\">HGB deed</span> to your PT PMA,<br class=\"d\"> or <span class=\"b\">Hak Sewa</span> without a company,<br class=\"d\"> signed before a PPAT <span class=\"b\">notary</span><br class=\"d\"> (power of attorney available if you can't attend).",
-"es": "<span class=\"b\">Escritura HGB</span> a nombre de tu PT PMA, o <span class=\"b\">Hak Sewa</span> sin sociedad, firmada ante un <span class=\"b\">notario</span> PPAT (poder notarial disponible si no puedes asistir).",
-"id": "<span class=\"b\">Akta HGB</span> atas nama PT PMA Anda, atau <span class=\"b\">Hak Sewa</span> tanpa perusahaan, ditandatangani di hadapan <span class=\"b\">notaris</span> PPAT (surat kuasa tersedia bila Anda tidak dapat hadir)."
+"en": "Before a notary",
+"es": "Ante notario",
+"id": "Di hadapan notaris"
 },
 "s4.p": {
-"en": "<span class=\"b\">Licensed contractors,</span> on-site<br class=\"d\"> QC, tropical-grade materials<br class=\"d\"> and standards.",
-"es": "<span class=\"b\">Contratistas con licencia,</span> control de calidad en obra, materiales y estándares aptos para el trópico.",
-"id": "<span class=\"b\">Kontraktor berlisensi,</span> kontrol mutu di lapangan, material dan standar kelas tropis."
+"en": "Licensed contractors",
+"es": "Contratistas con licencia",
+"id": "Kontraktor berlisensi"
 },
 "s5.p": {
-"en": "<span class=\"b\">Completion certification</span><br class=\"d\"> (SLF) issued once the building<br class=\"d\"> meets the requirements for use.",
-"es": "<span class=\"b\">Certificado de fin de obra</span> (SLF), emitido cuando el edificio cumple los requisitos de uso.",
-"id": "<span class=\"b\">Sertifikat Laik Fungsi</span> (SLF), diterbitkan setelah bangunan memenuhi persyaratan penggunaan."
+"en": "Keys + SLF",
+"es": "Llaves + SLF",
+"id": "Kunci + SLF"
 },
 "s6.p": {
-"en": "<span class=\"b\">Our local partner network</span><br class=\"d\"> runs the rental and reports<br class=\"d\"> your returns.",
-"es": "<span class=\"b\">Nuestra red de socios locales</span> gestiona el alquiler y te informa de tu rentabilidad.",
-"id": "<span class=\"b\">Jaringan mitra lokal kami</span> mengelola penyewaan dan melaporkan hasil investasi Anda."
+"en": "Managed by local partners",
+"es": "Gestión con socios locales",
+"id": "Dikelola mitra lokal"
 },
 "rt.a": {
 "en": "With a company",
