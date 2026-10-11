@@ -2653,6 +2653,13 @@
     'El documento que tienes abierto ya está guardado, así que no se pierde. Se limpia el formulario para empezar otro.':
       'The document you have open is already saved, so nothing is lost. The form is cleared to start another.',
     'Guarda el documento antes de enviarlo': 'Save the document before sending it',
+    // LAW-37 (11-oct-2026): un documento anulado no se envía. La primera frase es la del 409 de send-contract-email
+    // (la pantalla la pasa por lwT); la segunda, la del aviso de la propia pantalla.
+    'Este documento está anulado: no se envía al cliente. Si hace falta, emite otro.':
+      'This document is voided: it is not sent to the client. If needed, issue a new one.',
+    'Este documento está anulado: no se envía al cliente.': 'This document is voided: it is not sent to the client.',
+    'Este PDF pesa más de 25 MB y no se puede mandar por correo. Se entrega por el portal del comprador (o desde la intranet, si es para el estudio).':
+      'This PDF is over 25 MB and cannot be sent by email. It is delivered through the buyer portal (or from the intranet, if it is for the studio).',
     'Guarda el documento para ver su registro': 'Save the document to see its log',
     'Sin correos registrados para este documento.': 'No emails logged for this document.',
     'Email de destinatario no válido': 'Invalid recipient email',

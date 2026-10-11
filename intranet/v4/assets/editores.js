@@ -3136,6 +3136,9 @@
      persona: mandar un correo a un tercero real no se automatiza. */
   function enviaDocMail(sb, vals, saved, alEnviado) {
     if (!(saved && saved.numero)) return aviso('Guarda el documento primero: sin número no se envía, porque no queda registrado como emitido.', '#8A6A34');
+    // LAW-37 (11-oct-2026): un anulado no sale al cliente. Aquí, y no solo en el botón, para cubrir a todos los que llaman
+    // (barra de la previa, visor, ficha). La edge lo rechaza también (409 documento_anulado).
+    if (saved.anulada) return aviso(edT('Este documento está anulado: no se envía al cliente.'), '#8A6A34');
     var tipo = tipoDocEs(vals);
     var estiloIn = 'width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font:500 14px/1.4 inherit;color:' + CAJ.tinta + ';background:#fff;margin-top:4px';
     var campo = function (id, label, tag, attrs, valor) {
@@ -3170,7 +3173,7 @@
         });
       }).then(function (r) { return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; }); })
         .then(function (res) {
-          if (!(res && res.ok)) { toastMal((res && res.error) || 'No se pudo enviar'); return; }
+          if (!(res && res.ok)) { toastMal(res && res.error ? edT(res.error) : 'No se pudo enviar'); return; }   // frases de la edge (409, 413) traducidas
           /* `enviada` la marca la edge en el servidor, justo tras el envío y con TU
              sesión (26-sep-2026, «Operaciones atómicas»): antes la marcaba esta pantalla
              en una segunda llamada, y si fallaba la factura seguía como no enviada y se
@@ -3222,7 +3225,7 @@
     });
   }
   /* La barra, montada sobre `piezas.barra` del split. `ctx`: { sb, getVals,
-     saved: {id, numero, tipo, contrato_id, emisor}, esRecibi, alEnviado }.
+     saved: {id, numero, tipo, contrato_id, emisor, anulada}, esRecibi, alEnviado }.
      Devuelve `repasa()`, que cada editor llama tras repintar la previa: el
      total cambia con cada tecla y con él lo que se puede hacer. Un botón
      apagado no está `disabled` (un disabled no enseña su `title` al pasar
@@ -3284,7 +3287,9 @@
       var vals = ctx.getVals(), total = totalDoc(vals), num = !!(ctx.saved && ctx.saved.numero);
       razon(bPdf, total > 0 && num, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
         : 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
-      razon(bMail, total > 0 && num, !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
+      var anulada = !!(ctx.saved && ctx.saved.anulada);   // LAW-37: un anulado no se ofrece enviar
+      razon(bMail, !anulada && total > 0 && num, anulada ? 'Este documento está anulado: no se envía al cliente. Desde su ficha se puede emitir una copia.'
+        : !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
         : 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.');
       razon(bRec, vals.tipo === 'factura' && num, vals.tipo !== 'factura' ? 'Solo se crea un recibí a partir de una factura.' : 'Guarda primero esta factura.');
       bReg.style.display = (ctx.saved && ctx.saved.id) ? '' : 'none';
@@ -3297,13 +3302,13 @@
   // emisor congelado). facturas_equipo(): el documento pudo emitirlo otro
   // agente del equipo; rpc + eq + maybeSingle, sin order (42703 sobre RPC).
   function cargaDocGuardado(sb, id) {
-    return sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,cliente_nombre,datos').eq('id', id).maybeSingle().then(function (r) {
+    return sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,cliente_nombre,anulada,datos').eq('id', id).maybeSingle().then(function (r) {
       if (r.error || !r.data) return { error: (r.error && r.error.message) || 'No se encontró ese documento.' };
       var f = r.data, datos = f.datos || {};
       var vals = Object.assign({}, datos.fields || {}, { lineas: datos.lineas || [] });
       if (!vals.tipo) vals.tipo = f.tipo || 'factura';
       if (!vals.cliente_nombre) vals.cliente_nombre = f.cliente_nombre || '';
-      return { vals: vals, saved: { id: f.id, numero: f.numero, tipo: f.tipo, contrato_id: f.contrato_id, emisor: datos.emisor || null } };
+      return { vals: vals, saved: { id: f.id, numero: f.numero, tipo: f.tipo, contrato_id: f.contrato_id, emisor: datos.emisor || null, anulada: !!f.anulada } };
     });
   }
   function conDocGuardado(id, cb) {
@@ -3768,7 +3773,7 @@
             sb: sb, getVals: recogeVals, esRecibi: false,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
-              ? { id: existente.id, numero: existente.numero, tipo: existente.tipo, contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor }
+              ? { id: existente.id, numero: existente.numero, tipo: existente.tipo, contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor, anulada: !!existente.anulada }
               : { tipo: 'factura' },
             alEnviado: function () { cierraModal(); location.reload(); }
           });
@@ -4221,7 +4226,7 @@
             sb: sb, getVals: recogeVals, esRecibi: true,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
-              ? { id: existente.id, numero: existente.numero, tipo: 'recibi', contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor }
+              ? { id: existente.id, numero: existente.numero, tipo: 'recibi', contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor, anulada: !!existente.anulada }
               : { tipo: 'recibi' },
             alEnviado: function () { cierraModal(); location.reload(); }
           });

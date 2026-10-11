@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="2869dc519b1f">
+<meta name="lw-version" content="6ca95b14a98f">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="documento.css?v=5337c601">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=acd9dc0a"></script>
+<script src="/contracts/assets/i18n.js?v=39533ec2"></script>
 <script src="/contracts/assets/herramientas.js?v=15317b6f"></script>
 <script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/topbar.js?v=0906fb5b" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -1113,6 +1113,11 @@ function hoyLocalISO(){
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 let SAVED  = null;   // {id, numero} una vez guardada — null = borrador
+/* LAW-37 (11-oct-2026): el documento que hay en pantalla está ANULADO en la base (se abrió uno anulado como copia, o se
+   anuló desde el listado el que estaba abierto). Un anulado no sale al cliente: «Enviar por email» se desactiva con ese
+   motivo (la edge también lo rechaza con 409). Se limpia al guardar —la copia es ya un documento nuevo, con su número—
+   y al empezar uno nuevo. */
+let ANULADA_EN_PANTALLA = false;
 let CONTRATO_ID = null;
 let CLIENTE_DEL_CONTRATO = null;   // ficha del comprador del contrato elegido (19-ago)
 /* Reforma del modelo de facturación (11-ago-2026): un recibí no describe
@@ -1793,9 +1798,10 @@ function estadoDelFormulario(d){
         !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
                      : 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
   repasaPlegables();
-  razon($('#btnMail'), total > 0 && !!(SAVED && SAVED.numero),
-        !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
-                     : 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.');
+  razon($('#btnMail'), !ANULADA_EN_PANTALLA && total > 0 && !!(SAVED && SAVED.numero),
+        ANULADA_EN_PANTALLA ? 'Este documento está anulado: no se envía al cliente. Guarda la copia como documento nuevo si hace falta.'
+        : !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
+                       : 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.');
   // "Crear recibí" (31-ago-2026): solo tiene sentido sobre una FACTURA ya
   // guardada — de una proforma o de un recibí no se deriva otro recibí.
   razon($('#btnRecibiDeFactura'), d.tipo === 'factura' && !!(SAVED && SAVED.numero),
@@ -1960,6 +1966,7 @@ $('#mailSend').onclick = async () => {
   const to = $('#mailTo').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toastMal(lwT('Email de destinatario no válido')); return; }
   if(!(SAVED && SAVED.numero)){ toastMal(lwT('Guarda el documento antes de enviarlo')); return; }
+  if(ANULADA_EN_PANTALLA){ toastMal(lwT('Este documento está anulado: no se envía al cliente.')); return; }
   const btn = $('#mailSend');
   btn.disabled = true; btn.textContent = 'Enviando…';
   try{
@@ -2000,7 +2007,7 @@ $('#mailSend').onclick = async () => {
       }
       cerrarMail();
     }
-    else toastMal(res.error || 'No se pudo enviar');
+    else toastMal(res.error ? lwT(res.error) : 'No se pudo enviar');   // las frases de la edge (409 anulado, 413) tienen su traducción
   }catch(err){ toastMal(lwT('Error: ') + (err.message || err)); }
   btn.disabled = false; btn.textContent = 'Enviar';
 };
@@ -2687,6 +2694,7 @@ $('#btnSave').onclick = async () => {
     // devuelve; si es el mismo documento se conserva lo que ya se sabía.
     const yaEnviada = !!(data.enviada || (SAVED && SAVED.id === data.id && SAVED.enviada));
     SAVED = { id:data.id, numero:data.numero, emisor:(data.datos && data.datos.emisor) || null, enviada:yaEnviada };
+    ANULADA_EN_PANTALLA = false;   // lo guardado es un documento vivo (la copia de una anulada ya tiene su número)
     $('[name="numero_visible"]').value = data.numero;
     LDOCS = null;   // el listado queda viejo: al volver se recarga y el documento nuevo aparece (auditoría 19-ago)
     toast(lwT('Guardada como ') + data.numero);
@@ -2699,7 +2707,7 @@ $('#btnSave').onclick = async () => {
    que se estaba filtrando. Antes era un manejador anonimo y el segundo boton
    habria sido una copia. */
 function nuevoDocumento(tipo){
-  SAVED = null; CONTRATO_ID = null; $('#form').reset();
+  SAVED = null; CONTRATO_ID = null; ANULADA_EN_PANTALLA = false; $('#form').reset();
   // el selector de tipo vive fuera del <form>, así que reset() no lo toca
   $('#selTipo').value = (tipo && TIPOS[tipo]) ? tipo : 'factura';
   toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
@@ -3207,7 +3215,11 @@ function pintarListado(){
       // devolver cero filas en silencio como hacía la RLS (auditoría 19-ago).
       const { error } = await sb.rpc('factura_anula', { p_id: an.dataset.anular });
       if(error) toastMal(lwT('No se pudo anular: ') + error.message);
-      else toast(lwT('Factura anulada'));
+      else {
+        toast(lwT('Factura anulada'));
+        // LAW-37: si era la que estaba abierta en el editor, ya no se ofrece enviarla
+        if(SAVED && SAVED.id === an.dataset.anular){ ANULADA_EN_PANTALLA = true; render(); }
+      }
       recargarListado(); return;
     }
     /* Borrar está reservado a administradores (petición del owner, 31-jul) y NO
@@ -3296,6 +3308,7 @@ async function abrir(f){
   // LDOCS y reabrir el documento enseñaba la edición fantasma
   LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas.map(l => ({...l})) : [{ descripcion:'', importe:'' }];
   SAVED = f.anulada ? null : { id:f.id, numero:f.numero, emisor:(f.datos && f.datos.emisor) || null, enviada:!!f.enviada };   // una anulada se abre como copia, no se reescribe
+  ANULADA_EN_PANTALLA = !!f.anulada;
   CONTRATO_ID = f.contrato_id || null;
   pintarContratoElegido();
   // el panel de hitos se repinta para ESTE contrato (auditoría 19-ago): antes
