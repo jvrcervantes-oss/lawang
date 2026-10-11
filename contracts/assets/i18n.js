@@ -5477,32 +5477,38 @@
      lwTSuave(texto) — para los PUNTOS DE PASO comunes (12-oct-2026, la demo en
      inglés): el aviso de `toast()`, el rótulo de un dato o una sección del
      cajón. Por ahí pasan cientos de frases y traducir en el punto de paso
-     evita envolver cada llamada. Dos diferencias con lwT, las dos para que la
-     lista de lo que falta (`LW_T_MISSES`) siga diciendo la verdad:
+     evita envolver cada llamada. Diferencias con lwT:
+       · SOLO una clave del diccionario pasa por lwT. Lo demás sale tal cual:
+         por un punto de paso también llegan DATOS (un email con «~», un texto
+         con «%marca») y lwT los cortaría o rellenaría (revisor, 12-oct-2026);
+         si no está traducido se apunta en `LW_T_MISSES`;
        · una frase que YA llega traducida (el llamante usó lwT) se deja tal cual
          y no cuenta como «falta»;
        · lo que no lleva ni una letra (un número, «—») no se busca.
-     En español devuelve el texto TAL CUAL, sin pasar por lwT: es exactamente lo
-     que el punto de paso pintaba antes.
+     En español (o sin idioma elegido) devuelve el texto TAL CUAL, sin pasar por
+     lwT: es exactamente lo que el punto de paso pintaba antes.
      ========================================================================== */
   var VALORES_EN = null, HECHAS = {};
   window.lwTSuave = function (s) {
-    if (window.LW_IDIOMA === 'es' || typeof s !== 'string' || !/[A-Za-zÀ-ÿ]/.test(s)) return s;
+    // Sin idioma (página que no carga idioma.js) o en español: tal cual, sin pasar por lwT (que cortaría en «~» y rellenaría %marca).
+    if (!window.LW_IDIOMA || window.LW_IDIOMA === 'es' || typeof s !== 'string' || !/[A-Za-zÀ-ÿ]/.test(s)) return s;
     var nucleo = s.trim(), propia = Object.prototype.hasOwnProperty;
-    if (propia.call(HECHAS, nucleo)) return s;            // ya pasó por lwT (con sus huecos rellenos)
-    if (!propia.call(EN, s) && !propia.call(EN, nucleo)) {
-      if (!VALORES_EN) { VALORES_EN = {}; for (var k in EN) if (propia.call(EN, k)) VALORES_EN[EN[k]] = 1; }
-      if (propia.call(VALORES_EN, nucleo)) return s;      // ya viene en inglés
-      /* «KYC · Pendiente», «Factura · INV00012»: rótulos compuestos con « · ». Si CADA trozo es conocido (clave,
-         ya traducido o sin letras), se traduce trozo a trozo; si alguno no lo es, la frase entera cuenta como falta. */
-      if (nucleo.indexOf(' · ') !== -1) {
-        var trozos = s.split(' · '), vale = trozos.every(function (t) {
-          var n = t.trim(); return !n || !/[A-Za-zÀ-ÿ]/.test(n) || propia.call(EN, n) || propia.call(VALORES_EN, n);
-        });
-        if (vale) return trozos.map(function (t) { return window.lwTSuave(t); }).join(' · ');
-      }
+    if (propia.call(EN, s) || propia.call(EN, nucleo)) return window.lwT(s);   // SOLO una clave del diccionario pasa por lwT
+    if (!VALORES_EN) { VALORES_EN = {}; for (var k in EN) if (propia.call(EN, k)) VALORES_EN[EN[k]] = 1; }
+    var conocido = function (n) { return propia.call(HECHAS, n) || propia.call(VALORES_EN, n); };
+    if (conocido(nucleo)) return s;                        // ya viene traducido (por lwT o tal cual del diccionario)
+    /* «KYC · Pendiente», «Factura · INV00012»: rótulos compuestos con « · ». Si CADA trozo es conocido (clave,
+       ya traducido o sin letras), se traduce trozo a trozo; si alguno no lo es, la frase entera cuenta como falta. */
+    if (nucleo.indexOf(' · ') !== -1) {
+      var trozos = s.split(' · '), vale = trozos.every(function (t) {
+        var n = t.trim(); return !n || !/[A-Za-zÀ-ÿ]/.test(n) || propia.call(EN, n) || conocido(n);
+      });
+      if (vale) return trozos.map(function (t) { return window.lwTSuave(t); }).join(' · ');
     }
-    return window.lwT(s);
+    /* No es una clave: puede ser un DATO (un email con «~», un texto con «%marca»). Se apunta como falta y sale
+       EXACTAMENTE como llegó; pasarlo por lwT lo cortaría en el «~» y le rellenaría los huecos de la ficha. */
+    if (window.LW_T_MISSES) window.LW_T_MISSES.add(nucleo);
+    return s;
   };
 
   /* ==========================================================================

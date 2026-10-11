@@ -1125,7 +1125,7 @@
   var SEL_VALUE = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
   var SEL_INDICE = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
   var selAbierto = null;
-  function selVacia(o) { return !o || o.value === '' || /^(Elige|Choose|Pick|—|- )/.test(o.text); }   // Choose/Pick: la misma opción en inglés (12-oct-2026)
+  function selVacia(o) { return !o || o.value === '' || /^(Elige|—|- )/.test(o.text); }
   function mejoraSelects(raiz) {
     raiz.querySelectorAll('select.las-in:not([data-mejorado])').forEach(function (sel) {
       sel.setAttribute('data-mejorado', '1');
