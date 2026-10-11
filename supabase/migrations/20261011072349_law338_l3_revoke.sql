@@ -1,3 +1,4 @@
+-- APLICADA el 11-oct-2026 a las 07:23 UTC (version 20261011072349, apply_migration 'law338_l3_revoke'; team2, OK del owner via orquestador agencia-40). Antes, ensayo (a) revertido con los datos de ese momento: 9/9 RPC dif=0 err=0 en 33 usuarios, ataque 264/264 -> 42501. Despues, arnes (b): mismas 9 huellas agg que el ensayo, ataque 264/264 -> 42501; tools/flujos_lawang.py 24/24 ok. Lo que sigue es la cabecera original («SIN APLICAR» ya no vale).
 -- LAW-338 L3 — CIERRE al navegador de las 8 tablas de comisiones, equipos de venta, condiciones y gastos.
 -- SIN APLICAR (10-oct-2026). Orden seguro (lección B3-B5), y se aplica SOLO con OK del owner, como L1 y L2:
 --   1. migración aditiva 20261010062215_law338_l3_comisiones_datos (APLICADA 10-oct; paridad 76 usuarios, 872

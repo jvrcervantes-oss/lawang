@@ -1,5 +1,6 @@
 /* GENERADO por tools/empaqueta_css.py desde tailwind/tailwind.json (tema «hub») — NO SE EDITA A MANO.
    Tailwind v3.4.17 compilado; el pre-commit lo regenera y --check falla si está desfasado. */
+:root{--tema-accent-gold:200 155 92;--tema-background:251 249 244;--tema-burnt-earth:66 33 11;--tema-control-border:138 132 116;--tema-deep-lagoon:16 76 79;--tema-error:186 26 26;--tema-error-container:255 218 214;--tema-fiduciary-green:63 82 48;--tema-inverse-on-surface:242 241 235;--tema-inverse-primary:184 206 161;--tema-inverse-surface:48 49 45;--tema-on-background:27 28 25;--tema-on-error:255 255 255;--tema-on-error-container:147 0 10;--tema-on-primary:255 255 255;--tema-on-primary-container:188 210 165;--tema-on-primary-fixed:15 32 3;--tema-on-primary-fixed-variant:58 76 42;--tema-on-secondary:255 255 255;--tema-on-secondary-container:53 107 110;--tema-on-secondary-fixed:0 32 33;--tema-on-secondary-fixed-variant:20 78 81;--tema-on-surface:27 28 25;--tema-on-surface-variant:68 72 63;--tema-on-tertiary:255 255 255;--tema-on-tertiary-container:237 189 216;--tema-on-tertiary-fixed:46 17 37;--tema-on-tertiary-fixed-variant:95 60 82;--tema-outline:117 120 110;--tema-outline-variant:197 200 188;--tema-primary:49 67 34;--tema-primary-container:72 91 55;--tema-primary-fixed:211 234 187;--tema-primary-fixed-dim:184 206 161;--tema-raw-linen:245 240 230;--tema-secondary:49 102 105;--tema-secondary-container:179 233 237;--tema-secondary-fixed:182 236 239;--tema-secondary-fixed-dim:154 208 211;--tema-soft-canopy:143 155 122;--tema-stone-sand:190 179 165;--tema-surface:251 249 244;--tema-surface-alt:241 235 221;--tema-surface-bright:251 249 244;--tema-surface-container:239 238 232;--tema-surface-container-high:233 232 227;--tema-surface-container-highest:228 226 221;--tema-surface-container-low:245 244 238;--tema-surface-container-lowest:255 255 255;--tema-surface-dim:219 218 213;--tema-surface-tint:81 100 63;--tema-surface-variant:228 226 221;--tema-territorial-green:72 91 55;--tema-tertiary:86 51 73;--tema-tertiary-container:111 74 97;--tema-tertiary-fixed:255 216 237;--tema-tertiary-fixed-dim:233 185 212;--tema-volcanic-ash:46 52 55;--tema-warm-border:228 220 203}
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1066,63 +1067,63 @@ video {
 }
 
 .border-burnt-earth\/30 {
-  border-color: rgb(66 33 11 / 0.3);
+  border-color: rgb(var(--tema-burnt-earth) / 0.3);
 }
 
 .border-control-border\/40 {
-  border-color: rgb(138 132 116 / 0.4);
+  border-color: rgb(var(--tema-control-border) / 0.4);
 }
 
 .border-control-border\/50 {
-  border-color: rgb(138 132 116 / 0.5);
+  border-color: rgb(var(--tema-control-border) / 0.5);
 }
 
 .border-deep-lagoon {
   --tw-border-opacity: 1;
-  border-color: rgb(16 76 79 / var(--tw-border-opacity, 1));
+  border-color: rgb(var(--tema-deep-lagoon) / var(--tw-border-opacity, 1));
 }
 
 .border-deep-lagoon\/30 {
-  border-color: rgb(16 76 79 / 0.3);
+  border-color: rgb(var(--tema-deep-lagoon) / 0.3);
 }
 
 .border-outline-variant {
   --tw-border-opacity: 1;
-  border-color: rgb(197 200 188 / var(--tw-border-opacity, 1));
+  border-color: rgb(var(--tema-outline-variant) / var(--tw-border-opacity, 1));
 }
 
 .border-outline-variant\/20 {
-  border-color: rgb(197 200 188 / 0.2);
+  border-color: rgb(var(--tema-outline-variant) / 0.2);
 }
 
 .border-outline-variant\/30 {
-  border-color: rgb(197 200 188 / 0.3);
+  border-color: rgb(var(--tema-outline-variant) / 0.3);
 }
 
 .border-outline-variant\/40 {
-  border-color: rgb(197 200 188 / 0.4);
+  border-color: rgb(var(--tema-outline-variant) / 0.4);
 }
 
 .border-outline-variant\/60 {
-  border-color: rgb(197 200 188 / 0.6);
+  border-color: rgb(var(--tema-outline-variant) / 0.6);
 }
 
 .border-outline-variant\/70 {
-  border-color: rgb(197 200 188 / 0.7);
+  border-color: rgb(var(--tema-outline-variant) / 0.7);
 }
 
 .border-primary\/30 {
-  border-color: rgb(49 67 34 / 0.3);
+  border-color: rgb(var(--tema-primary) / 0.3);
 }
 
 .border-stone-sand {
   --tw-border-opacity: 1;
-  border-color: rgb(190 179 165 / var(--tw-border-opacity, 1));
+  border-color: rgb(var(--tema-stone-sand) / var(--tw-border-opacity, 1));
 }
 
 .bg-background {
   --tw-bg-opacity: 1;
-  background-color: rgb(251 249 244 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--tema-background) / var(--tw-bg-opacity, 1));
 }
 
 .bg-black\/30 {
@@ -1131,36 +1132,36 @@ video {
 
 .bg-deep-lagoon {
   --tw-bg-opacity: 1;
-  background-color: rgb(16 76 79 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--tema-deep-lagoon) / var(--tw-bg-opacity, 1));
 }
 
 .bg-primary {
   --tw-bg-opacity: 1;
-  background-color: rgb(49 67 34 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--tema-primary) / var(--tw-bg-opacity, 1));
 }
 
 .bg-raw-linen\/60 {
-  background-color: rgb(245 240 230 / 0.6);
+  background-color: rgb(var(--tema-raw-linen) / 0.6);
 }
 
 .bg-stone-sand {
   --tw-bg-opacity: 1;
-  background-color: rgb(190 179 165 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--tema-stone-sand) / var(--tw-bg-opacity, 1));
 }
 
 .bg-surface-alt {
   --tw-bg-opacity: 1;
-  background-color: rgb(241 235 221 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--tema-surface-alt) / var(--tw-bg-opacity, 1));
 }
 
 .bg-territorial-green {
   --tw-bg-opacity: 1;
-  background-color: rgb(72 91 55 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--tema-territorial-green) / var(--tw-bg-opacity, 1));
 }
 
 .bg-volcanic-ash {
   --tw-bg-opacity: 1;
-  background-color: rgb(46 52 55 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--tema-volcanic-ash) / var(--tw-bg-opacity, 1));
 }
 
 .bg-white\/60 {
@@ -1536,60 +1537,60 @@ video {
 
 .text-accent-gold {
   --tw-text-opacity: 1;
-  color: rgb(200 155 92 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-accent-gold) / var(--tw-text-opacity, 1));
 }
 
 .text-burnt-earth {
   --tw-text-opacity: 1;
-  color: rgb(66 33 11 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-burnt-earth) / var(--tw-text-opacity, 1));
 }
 
 .text-control-border {
   --tw-text-opacity: 1;
-  color: rgb(138 132 116 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-control-border) / var(--tw-text-opacity, 1));
 }
 
 .text-deep-lagoon {
   --tw-text-opacity: 1;
-  color: rgb(16 76 79 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-deep-lagoon) / var(--tw-text-opacity, 1));
 }
 
 .text-on-surface {
   --tw-text-opacity: 1;
-  color: rgb(27 28 25 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-on-surface) / var(--tw-text-opacity, 1));
 }
 
 .text-primary {
   --tw-text-opacity: 1;
-  color: rgb(49 67 34 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-primary) / var(--tw-text-opacity, 1));
 }
 
 .text-raw-linen {
   --tw-text-opacity: 1;
-  color: rgb(245 240 230 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-raw-linen) / var(--tw-text-opacity, 1));
 }
 
 .text-stone-sand {
   --tw-text-opacity: 1;
-  color: rgb(190 179 165 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-stone-sand) / var(--tw-text-opacity, 1));
 }
 
 .text-territorial-green {
   --tw-text-opacity: 1;
-  color: rgb(72 91 55 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-territorial-green) / var(--tw-text-opacity, 1));
 }
 
 .text-volcanic-ash {
   --tw-text-opacity: 1;
-  color: rgb(46 52 55 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-volcanic-ash) / var(--tw-text-opacity, 1));
 }
 
 .text-volcanic-ash\/70 {
-  color: rgb(46 52 55 / 0.7);
+  color: rgb(var(--tema-volcanic-ash) / 0.7);
 }
 
 .text-volcanic-ash\/80 {
-  color: rgb(46 52 55 / 0.8);
+  color: rgb(var(--tema-volcanic-ash) / 0.8);
 }
 
 .text-white {
@@ -1608,8 +1609,8 @@ video {
 }
 
 .decoration-deep-lagoon\/30 {
-  -webkit-text-decoration-color: rgb(16 76 79 / 0.3);
-          text-decoration-color: rgb(16 76 79 / 0.3);
+  -webkit-text-decoration-color: rgb(var(--tema-deep-lagoon) / 0.3);
+          text-decoration-color: rgb(var(--tema-deep-lagoon) / 0.3);
 }
 
 .opacity-60 {
@@ -1674,41 +1675,41 @@ video {
 
 .hover\:border-accent-gold:hover {
   --tw-border-opacity: 1;
-  border-color: rgb(200 155 92 / var(--tw-border-opacity, 1));
+  border-color: rgb(var(--tema-accent-gold) / var(--tw-border-opacity, 1));
 }
 
 .hover\:border-deep-lagoon:hover {
   --tw-border-opacity: 1;
-  border-color: rgb(16 76 79 / var(--tw-border-opacity, 1));
+  border-color: rgb(var(--tema-deep-lagoon) / var(--tw-border-opacity, 1));
 }
 
 .hover\:border-territorial-green:hover {
   --tw-border-opacity: 1;
-  border-color: rgb(72 91 55 / var(--tw-border-opacity, 1));
+  border-color: rgb(var(--tema-territorial-green) / var(--tw-border-opacity, 1));
 }
 
 .hover\:bg-primary:hover {
   --tw-bg-opacity: 1;
-  background-color: rgb(49 67 34 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--tema-primary) / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-surface-alt:hover {
   --tw-bg-opacity: 1;
-  background-color: rgb(241 235 221 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--tema-surface-alt) / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-surface-alt\/50:hover {
-  background-color: rgb(241 235 221 / 0.5);
+  background-color: rgb(var(--tema-surface-alt) / 0.5);
 }
 
 .hover\:text-deep-lagoon:hover {
   --tw-text-opacity: 1;
-  color: rgb(16 76 79 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-deep-lagoon) / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-on-surface:hover {
   --tw-text-opacity: 1;
-  color: rgb(27 28 25 / var(--tw-text-opacity, 1));
+  color: rgb(var(--tema-on-surface) / var(--tw-text-opacity, 1));
 }
 
 .hover\:underline:hover {
