@@ -45,14 +45,11 @@ begin
     (u_sa, m_sa, 'authenticated', 'authenticated'), (u_ad, m_ad, 'authenticated', 'authenticated'),
     (u_ag, m_ag, 'authenticated', 'authenticated'), (u_of, m_of, 'authenticated', 'authenticated'),
     (u_po, m_po, 'authenticated', 'authenticated');
-  -- u_sa es PROPIETARIO: desde el bloque 12 (20261008970100, 7-oct) sociedad_guarda, sociedades_ajustes_datos y sociedades_log son
-  -- solo del propietario; sin esto cada llamada de u_sa daba 42501 y la prueba fallaba por algo ajeno a lo que mide (AXW-253, 11-oct).
   insert into public.usuarios (user_id, email, nombre, rol, herramientas, activo, numero_usuario) values
     (u_sa, m_sa, 'Super Soc', 'super_admin', '{}', true, 'USR-PRBSO-1'),
     (u_ad, m_ad, 'Admin Soc', 'admin', array['ajustes'], true, 'USR-PRBSO-2'),
     (u_ag, m_ag, 'Agente Soc', 'agente', array['ajustes'], true, 'USR-PRBSO-3'),
     (u_of, m_of, 'Super de baja', 'super_admin', '{}', false, 'USR-PRBSO-4');
-  update public.usuarios set es_propietario = true where user_id = u_sa;   -- super_admin + global + activo: lo exige su CHECK
   execute 'set local session_replication_role = origin';
 
   -- ── A. Alta y edición SIN documentos (el super admin) ─────────────────────────────────────────────────────
