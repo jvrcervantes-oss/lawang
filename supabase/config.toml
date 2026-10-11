@@ -484,8 +484,11 @@ entrypoint = "../contracts/edge/portal-invitar/index.ts"
 verify_jwt = false
 entrypoint = "../contracts/edge/portal-acceso/index.ts"
 
+# send-contract-email (11-oct-2026): el codigo vive SOLO en contracts/edge/send-contract-email/index.ts; el symlink de supabase/functions/ se cambio por un
+# README (en Windows con core.symlinks=false es un fichero de texto con la ruta). Mismo arreglo que portal-acceso y portal-invitar. verify_jwt=false medido en produccion.
 [functions.send-contract-email]
 verify_jwt = false
+entrypoint = "../contracts/edge/send-contract-email/index.ts"
 
 [functions.trazabilidad-ghl]
 verify_jwt = false
