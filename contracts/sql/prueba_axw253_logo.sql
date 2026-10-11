@@ -5,7 +5,8 @@
 -- final (fila LAW-535); esta no depende de ella ni de ningún usuario de prueba (el camino que mide, el UPDATE directo, no pasa por
 -- la sesión). Casos: bucket privado y sin políticas; trigger puesto y su función sin EXECUTE para nadie con sesión; sociedad_guarda
 -- ya no nombra la URL pública y nombra al trigger; las sociedades reales cumplen; un UPDATE directo con un logo de fuera da
--- 22023|logo_no_admitido y con una ruta válida entra; cambiar otra columna de una fila con logo viejo no se bloquea.
+-- 22023|logo_no_admitido y con una ruta válida entra; reenviar un logo viejo sin cambiarlo no bloquea otra columna; un alta con
+-- logo de fuera no entra. El caso 1 da por hecho 512 KB de límite (medido el 11-oct en Lawang: 524288).
 do $$
 declare
   r text := ''; v text; n bigint; e text; h text; malo text;
@@ -54,8 +55,16 @@ begin
   execute 'set local session_replication_role = replica';
   update public.sociedades set logo = 'https://viejo.example/a.png' where clave = k;
   execute 'set local session_replication_role = origin';
-  begin update public.sociedades set domicilio = 'PRB domicilio 2' where clave = k; e := 'ok';
+  -- `logo = logo` como hace sociedad_guarda (siempre manda el logo): dispara el trigger y mide la guarda «solo si cambia»
+  begin update public.sociedades set logo = logo, domicilio = 'PRB domicilio 2' where clave = k; e := 'ok';
   exception when others then e := sqlstate; end;
   r := r || format(E'\n9 un logo viejo no bloquea editar el domicilio: %s → %s', e, case when e = 'ok' then 'ok' else 'FALLA' end);
+  -- rama INSERT del trigger: un alta con un logo de fuera (modo normal; el trigger del logo corre antes que los de registro)
+  begin insert into public.sociedades (clave, label, razon, domicilio, logo)
+        values (k || '_2', 'PRB AXW-253 2', 'PRB AXW-253 2', 'PRB domicilio', 'https://evil.example/logo.png'); e := 'entró'; h := '-';
+  exception when others then get stacked diagnostics e = returned_sqlstate, h = pg_exception_hint; end;
+  r := r || format(E'
+10 un ALTA con logo de fuera no entra: %s|%s → %s', e, coalesce(h, '-'),
+    case when e = '22023' and h = 'logo_no_admitido' then 'ok' else 'FALLA' end);
   raise exception 'FIN DE PRUEBAS (se deshace todo):%', r;
 end $$;
