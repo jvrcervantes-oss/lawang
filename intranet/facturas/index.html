@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="6ca95b14a98f">
+<meta name="lw-version" content="aa2b3ec4120a">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1877,7 +1877,7 @@ $('#btnPrint').onclick = () => {
    (queda para Backend), así que «enviado» sería una etiqueta sin efecto. El tipo se lee
    del selector, que se bloquea en cuanto el documento tiene número (estadoDelFormulario). */
 function sePuedeMarcarEnviada(){
-  return !!(SAVED && SAVED.id && SAVED.numero && !SAVED.enviada)
+  return !!(SAVED && SAVED.id && SAVED.numero && !SAVED.enviada) && !ANULADA_EN_PANTALLA   // un anulado tampoco se marca enviado
     && ['factura', 'proforma'].includes($('#selTipo').value);
 }
 async function marcarEnviada(op){

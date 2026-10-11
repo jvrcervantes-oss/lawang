@@ -23,6 +23,7 @@ ok(/if\(SAVED && SAVED\.id === an\.dataset\.anular\)\{ ANULADA_EN_PANTALLA = tru
 { const i = fac.indexOf("$('#mailSend').onclick"), g = fac.indexOf('if(ANULADA_EN_PANTALLA)', i), f = fac.indexOf("fetch(window.lwEdge('send-contract-email')", i);
   ok(i > 0 && g > i && g < f, 'facturas: el envío se corta antes de llamar a la edge'); }
 ok(/toastMal\(res\.error \? lwT\(res\.error\)/.test(fac), 'facturas: la frase de la edge pasa por lwT');
+ok(/SAVED\.numero && !SAVED\.enviada\) && !ANULADA_EN_PANTALLA/.test(fac), 'facturas: «Marcar como enviada» tampoco se ofrece sobre un anulado');
 ok(/data-anular="\$\{f\.id\}"/.test(fac) && /id="btnMail"/.test(fac), 'facturas: engancha por id y data-anular, no por rótulo');
 
 // ── v4 (editores.js) ────────────────────────────────────────────────────────────────────────────────────────────
