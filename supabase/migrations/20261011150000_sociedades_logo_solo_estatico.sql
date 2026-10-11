@@ -28,7 +28,8 @@
 -- tools/salud_lawang.py la cuenta como «fichero sin registrar»: es lo esperado.
 --
 -- REVERTIR: drop trigger sociedades_logo_valida on public.sociedades; drop function public._sociedades_logo_valida();
---   sociedad_guarda: la misma sustitución al revés (nuevo → viejo, y reponer la constante v_url_logo) sobre la definición viva.
+--   todo junto (trigger, función y la sustitución inversa en sociedad_guarda): supabase/reversion_f2/REVERSION_axw253_20261011150000.sql
+-- PRUEBA tras aplicarla: contracts/sql/prueba_ajustes_sociedades.sql (bloque G: RPC y UPDATE directo), entera en execute_sql.
 
 do $do$
 declare v_malas text;

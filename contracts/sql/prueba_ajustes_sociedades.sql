@@ -2,7 +2,8 @@
 -- PRUEBA — Ajustes del ERP, S2 + S3 (20260930200000_ajustes_sociedades_identidad). 30-sep-2026.
 -- Encargo: encargos/20260930_erp_ajustes_pantalla.md. Criterio de S3: la identidad fiscal de una sociedad CON documentos no se puede
 -- cambiar ni por la RPC ni con un UPDATE directo (service_role, ni con claims de otro rol); la clave no se cambia de NINGUNA forma;
--- desactivar con documentos abiertos se rechaza; el logo solo entra si es una imagen PNG/JPEG/WebP del bucket o una ruta heredada;
+-- desactivar con documentos abiertos se rechaza; el logo solo entra si es una ruta PNG/JPEG/WebP de /contracts/assets/brand/ (desde
+-- 20261011150000, AXW-253, ya no la URL del bucket `sociedades`: es privado y saldría rota), por la RPC y con un UPDATE directo (trigger);
 -- nadie que no sea super admin escribe; el registro guarda antes y después. Criterio de S2: cambiar el nombre del ERP queda en el
 -- registro y lo lee `instancia_marca()` cualquier sesión.
 --
@@ -227,13 +228,13 @@ begin
   execute 'reset role';
   r := r || format(E'\nE8 un super admin con sesión tampoco borra (sin grant): %s → %s', split_part(res, '|', 1), case when split_part(res, '|', 1) = '42501' then 'ok' else 'FALLA' end);
 
-  -- ── G. Logo: solo imágenes PNG/JPEG/WebP; la ruta heredada o la URL del bucket para ESA clave ─────────────
+  -- ── G. Logo: solo imágenes PNG/JPEG/WebP de /contracts/assets/brand/ (AXW-253: la URL del bucket ya NO entra) ─
   execute 'set local role authenticated';
   for c in select * from (values
       ('ruta heredada .png', '/contracts/assets/brand/sandalwoods-lockup.png', true),
       ('ruta heredada .webp en mayúsculas', '/contracts/assets/brand/Logo-1.WEBP', true),
-      ('URL del bucket para esta clave', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', true),
-      ('URL del bucket .jpg', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.jpg', true),
+      ('URL del bucket para esta clave (AXW-253: ya no)', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', false),
+      ('URL del bucket .jpg (AXW-253: ya no)', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.jpg', false),
       ('un SVG heredado', '/contracts/assets/brand/logo.svg', false),
       ('una ruta con subcarpeta y ..', '/contracts/assets/brand/../../../etc/x.png', false),
       ('una dirección ajena', 'https://evil.example/logo.png', false),
@@ -254,6 +255,20 @@ begin
   end loop;
   res := public._zz_intenta(format($q$ select public.sociedad_guarda(%L, '{"logo":null}'::jsonb, false) $q$, soc));
   r := r || format(E'\nG quitar el logo (null): %s → %s', res, case when res = 'ok' then 'ok' else 'FALLA' end);
+  -- AXW-253: el trigger sociedades_logo_valida cierra también el UPDATE directo (sin la RPC), aunque lo haga postgres
+  execute 'reset role';
+  for c in select * from (values
+      ('una dirección ajena', 'https://evil.example/logo.png', false),
+      ('una ruta con ..', '/contracts/assets/brand/../x.png', false),
+      ('una ruta con ?', '/contracts/assets/brand/a.png?x=1', false),
+      ('la URL del bucket', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', false),
+      ('una ruta válida', '/contracts/assets/brand/sandalwoods-lockup.png', true)
+    ) x(que, logo, debe) loop
+    res := public._zz_intenta(format($q$ update public.sociedades set logo = %L where clave = %L $q$, c.logo, soc));
+    r := r || format(E'\nG UPDATE directo con %s: %s → %s', c.que, split_part(res, '|', 1) || '|' || split_part(res, '|', 2),
+          case when c.debe and res = 'ok' then 'ok' when not c.debe and split_part(res, '|', 1) = '22023' and split_part(res, '|', 2) = 'logo_no_admitido' then 'ok' else 'FALLA' end);
+  end loop;
+  execute 'set local role authenticated';
 
   -- ── H. Tinta, folio y alto se validan ───────────────────────────────────────────────────────────────────
   for c in select * from (values
