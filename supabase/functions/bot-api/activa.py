@@ -20,6 +20,26 @@ from pathlib import Path
 REF, REGION, ROL = "vtulllundrfennhjddhc", "ap-southeast-1", "bot_lawang"
 
 
+# 11-oct-2026: la llave de DESPLIEGUE (Migrations + Edge Functions) NO escribe secretos de funcion; medido en axisworks-demo:
+# `secrets set` -> «Missing required permission(s): edge_functions_secrets_write». Hasta que el owner decida (subir ese permiso
+# o una llave propia para instalar), este script no puede completar su paso de Supabase: se para antes de rotar nada.
+SECRETOS_CUBIERTOS = False
+
+
+def _preflight_supabase(rs):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(rs.__file__)))
+    try:
+        import supabase_llave
+        supabase_llave.entorno("despliegue")
+    except ImportError:
+        sys.exit("falta tools/supabase_llave.py en --agencia: usa una copia de la agencia con ese fichero aterrizado")
+    except supabase_llave.SinLlave as e:
+        sys.exit("sin llave de despliegue de Supabase: %s" % e)
+    if not SECRETOS_CUBIERTOS:
+        sys.exit("PARADO ANTES de tocar nada: `supabase secrets set` necesita edge_functions_secrets_write y la llave de despliegue "
+                 "no lo tiene (decision del owner pendiente, 11-oct-2026). Pon SECRETOS_CUBIERTOS = True cuando lo tenga.")
+
+
 def _secrets_set(rs, ruta):
     """`supabase secrets set` con la llave de DESPLIEGUE (permisos limitados), no con la sesion de propietario del PC
     (11-oct-2026): el punto unico es tools/supabase_llave.py de la agencia, que vive junto a railway_secreto.py."""
@@ -48,6 +68,8 @@ def main():
     dest = Path(serv)
     if not dest.is_dir():
         sys.exit("no existe el servicio: %s" % serv)
+    if aplica:
+        _preflight_supabase(rs)   # ANTES de tocar Railway o la base: sin esto un fallo aqui dejaba Railway rotado y la edge con el secreto viejo
 
     if "--s2" in a:
         return s2(rs, dest, aplica)
