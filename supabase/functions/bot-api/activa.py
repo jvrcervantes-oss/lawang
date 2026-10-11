@@ -20,6 +20,21 @@ from pathlib import Path
 REF, REGION, ROL = "vtulllundrfennhjddhc", "ap-southeast-1", "bot_lawang"
 
 
+def _secrets_set(rs, ruta):
+    """`supabase secrets set` con la llave de DESPLIEGUE (permisos limitados), no con la sesion de propietario del PC
+    (11-oct-2026): el punto unico es tools/supabase_llave.py de la agencia, que vive junto a railway_secreto.py."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(rs.__file__)))
+    import supabase_llave
+    try:
+        env = supabase_llave.entorno("despliegue")
+    except supabase_llave.SinLlave as e:
+        sys.exit("sin llave de despliegue de Supabase: %s" % e)
+    p = subprocess.run(["cmd", "/c", "npx", "--yes", "supabase", "secrets", "set", "--env-file", ruta, "--project-ref", REF],
+                       capture_output=True, text=True, timeout=180, env=env)
+    p.stderr = supabase_llave.tapa(p.stderr)
+    return p
+
+
 def main():
     a = sys.argv[1:]
     def opt(n):
@@ -57,8 +72,7 @@ def main():
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write("BOT_DB_URL=%s\nBOT_API_SECRET_CATALOGO=%s\nBOT_API_SECRET_CRM=%s\n" % (url, sec_cat, sec_crm))
-        p = subprocess.run(["cmd", "/c", "npx", "--yes", "supabase", "secrets", "set", "--env-file", ruta, "--project-ref", REF],
-                           capture_output=True, text=True, timeout=180)
+        p = _secrets_set(rs, ruta)
         if p.returncode != 0:
             sys.exit("supabase secrets set devolvio %d: %s" % (p.returncode, rs._limpia(p.stderr or "", secretos)[:300]))
     finally:
@@ -90,8 +104,7 @@ def s2(rs, dest, aplica):
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write("".join("%s=%s" % (n, v) + chr(10) for n, v in zip(S2, vals)))
-        p = subprocess.run(["cmd", "/c", "npx", "--yes", "supabase", "secrets", "set", "--env-file", ruta, "--project-ref", REF],
-                           capture_output=True, text=True, timeout=180)
+        p = _secrets_set(rs, ruta)
         if p.returncode != 0:
             sys.exit("supabase secrets set devolvio %d: %s" % (p.returncode, rs._limpia(p.stderr or "", vals)[:300]))
     finally:
@@ -115,8 +128,7 @@ def s5_importar(rs, dest, aplica):
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write("%s=%s" % (nombre, v) + chr(10))
-        p = subprocess.run(["cmd", "/c", "npx", "--yes", "supabase", "secrets", "set", "--env-file", ruta, "--project-ref", REF],
-                           capture_output=True, text=True, timeout=180)
+        p = _secrets_set(rs, ruta)
         if p.returncode != 0:
             sys.exit("supabase secrets set devolvio %d: %s" % (p.returncode, rs._limpia(p.stderr or "", [v])[:300]))
     finally:
