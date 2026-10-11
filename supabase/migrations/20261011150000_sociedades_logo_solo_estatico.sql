@@ -20,7 +20,15 @@
 -- usa SOCIEDADES solo para la factura (documentoPagina, supabase/functions/firma-submit/index.ts l.551 y l.680) y el PDF del contrato
 -- sale de su diseño (contracts/assets/documento_diseno.js, logos de assets/brand/).
 --
+-- Y en `sociedad_guarda` (sustitución exacta sobre la definición viva, como 20261008970100): quita la rama de la URL pública
+-- (y su constante v_url_logo) y el texto «subida desde Ajustes» del error, y añade una línea que nombra al trigger: las dos
+-- copias de la regla se nombran entre sí (contexto/suite_lawang.md, LAW-51/LAW-50 punto 5). Medido en vivo el 11-oct: cada
+-- texto sustituido aparece exactamente 1 vez en la definición.
+-- NO SE APLICA sin el OK del orquestador (límite del owner del 11-oct; fila AXW-253 de contexto/pendientes.md). Hasta entonces
+-- tools/salud_lawang.py la cuenta como «fichero sin registrar»: es lo esperado.
+--
 -- REVERTIR: drop trigger sociedades_logo_valida on public.sociedades; drop function public._sociedades_logo_valida();
+--   sociedad_guarda: la misma sustitución al revés (nuevo → viejo, y reponer la constante v_url_logo) sobre la definición viva.
 
 do $do$
 declare v_malas text;
@@ -40,6 +48,7 @@ end $do$;
 create or replace function public._sociedades_logo_valida() returns trigger
 language plpgsql set search_path = '' as $$
 begin
+  -- Misma regla que sociedad_guarda (su bloque del logo): si cambia una, cambia la otra.
   if new.logo is not null
      and (tg_op = 'INSERT' or new.logo is distinct from old.logo)
      and new.logo !~* '^/contracts/assets/brand/[A-Za-z0-9._-]{1,80}\.(png|jpe?g|webp)$' then
@@ -50,6 +59,27 @@ begin
 end $$;
 revoke all on function public._sociedades_logo_valida() from public, anon, authenticated;
 
-drop trigger if exists sociedades_logo_valida on public.sociedades;
-create trigger sociedades_logo_valida before insert or update of logo on public.sociedades
+create or replace trigger sociedades_logo_valida before insert or update of logo on public.sociedades
   for each row execute function public._sociedades_logo_valida();
+
+-- sociedad_guarda: la regla del logo, igual que el trigger. Sustitución exacta sobre la definición viva (1 coincidencia o PARA).
+do $m$
+declare d text; viejo text; nuevo text; n int;
+begin
+  d := pg_get_functiondef('public.sociedad_guarda(text,jsonb,boolean)'::regprocedure);
+  viejo := E'  if n_logo is distinct from s.logo and n_logo is not null and not (\n'
+        || E'       n_logo ~* ''^/contracts/assets/brand/[A-Za-z0-9._-]{1,80}\\.(png|jpe?g|webp)$''\n'
+        || E'       or n_logo ~ (v_url_logo || v_clave || ''/[0-9a-f]{64}\\.(png|jpg|webp)$'')) then\n'
+        || E'    raise exception ''El logo tiene que ser una imagen PNG, JPEG o WebP subida desde Ajustes (nunca un SVG ni una dirección cualquiera)''';
+  nuevo := E'  -- Misma regla que el trigger sociedades_logo_valida (20261011150000, AXW-253): si cambia una, cambia la otra.\n'
+        || E'  if n_logo is distinct from s.logo and n_logo is not null and not (\n'
+        || E'       n_logo ~* ''^/contracts/assets/brand/[A-Za-z0-9._-]{1,80}\\.(png|jpe?g|webp)$'') then\n'
+        || E'    raise exception ''El logo tiene que ser una imagen PNG, JPEG o WebP de /contracts/assets/brand/ (nunca un SVG ni una dirección de fuera)''';
+  n := (length(d) - length(replace(d, viejo, ''))) / length(viejo);
+  if n <> 1 then raise exception 'sociedad_guarda (logo): se esperaba 1 coincidencia y hay %', n; end if;
+  d := replace(d, viejo, nuevo);
+  viejo := E'  v_url_logo constant text := ''^https://vtulllundrfennhjddhc\\.supabase\\.co/storage/v1/object/public/sociedades/'';\n';
+  n := (length(d) - length(replace(d, viejo, ''))) / length(viejo);
+  if n <> 1 then raise exception 'sociedad_guarda (v_url_logo): se esperaba 1 coincidencia y hay %', n; end if;
+  execute replace(d, viejo, '');
+end $m$;

@@ -625,7 +625,9 @@ Deno.serve(async (req) => {
 
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const accion = String(body.accion ?? '');
-    const clase = CLASES[String(body.clase ?? '')];
+    // Object.hasOwn: «constructor» o «__proto__» no son clases (sin esto heredaban del prototipo y seguían de largo)
+    const nombreClase = String(body.clase ?? '');
+    const clase = Object.hasOwn(CLASES, nombreClase) ? CLASES[nombreClase] : undefined;
     if (!clase) return json({ ok: false, error: 'clase_desconocida' }, 400);
     const errRpc = (e: { message?: string; code?: string } | null) =>
       json({ ok: false, error: e?.message ?? 'error', code: e?.code }, e?.code === '42501' ? 403 : 400);
