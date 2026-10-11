@@ -29,7 +29,8 @@
 --
 -- REVERTIR: drop trigger sociedades_logo_valida on public.sociedades; drop function public._sociedades_logo_valida();
 --   todo junto (trigger, función y la sustitución inversa en sociedad_guarda): supabase/reversion_f2/REVERSION_axw253_20261011150000.sql
--- PRUEBA tras aplicarla: contracts/sql/prueba_ajustes_sociedades.sql (bloque G: RPC y UPDATE directo), entera en execute_sql.
+-- PRUEBA tras aplicarla: contracts/sql/prueba_axw253_logo.sql, entera en execute_sql (prueba_ajustes_sociedades.sql está desfasada
+-- desde el bloque 12 y no llega al final: fila LAW-535).
 
 do $do$
 declare v_malas text;
