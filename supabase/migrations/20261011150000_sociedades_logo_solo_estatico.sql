@@ -2,7 +2,9 @@
 -- de /contracts/assets/brand/; nunca una URL. Gemela de erp/migraciones/20261011150000_sociedades_logo_solo_estatico.sql del
 -- maestro (misma regla en las dos bases: arreglo compartido Lawang↔maestro).
 --
--- Por qué: `sociedad_guarda` (20260930210000, l.108-111) admite dos formas de logo: la ruta estática y la URL PÚBLICA del bucket
+-- Por qué: `sociedad_guarda` (cuerpo de 20260930210000 l.108-111; 20261008970100 solo le cambió la puerta de rol por
+-- sustitución sobre la definición viva, su l.14; medido en vivo el 11-oct: la definición sigue nombrando object/public/sociedades)
+-- admite dos formas de logo: la ruta estática y la URL PÚBLICA del bucket
 -- `sociedades` de este proyecto. Pero el bucket es PRIVADO (medido el 11-oct-2026: public=false, 0 objetos, ninguna política),
 -- así que una URL de esa forma se guardaría y saldría rota en cada factura y PDF, sin error. Quien las producía, la clase
 -- `sociedad_logo` de la edge `ficheros`, se retira en este mismo commit (su pantalla, ajustes-sociedades.js, se quitó el 7-oct
@@ -14,7 +16,9 @@
 -- 11-oct-2026): privado, sin políticas, solo service_role. No se borra aquí.
 --
 -- Dueño del dato: `sociedades.logo` es de la sociedad (lo escribe `sociedad_guarda`, solo el propietario); facturas y PDF lo
--- LEEN vivo (cosmética, intranet/facturas/documento.js). Los contratos llevan su logo en la plantilla.
+-- LEEN vivo (cosmética, intranet/facturas/documento.js l.147-163). Los contratos no leen esta columna: firma-submit
+-- usa SOCIEDADES solo para la factura (documentoPagina, supabase/functions/firma-submit/index.ts l.551 y l.680) y el PDF del contrato
+-- sale de su diseño (contracts/assets/documento_diseno.js, logos de assets/brand/).
 --
 -- REVERTIR: drop trigger sociedades_logo_valida on public.sociedades; drop function public._sociedades_logo_valida();
 
