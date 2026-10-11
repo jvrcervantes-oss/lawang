@@ -26,9 +26,9 @@
    v4 nativa, donde el cajón va por encima del menú y la cabecera.            */
 
 html.v4{
-  --v4-surface:#fbf9f4; --v4-surface-low:#f5f4ee; --v4-surface-high:#e9e8e3;
-  --v4-ink:#1b1c19; --v4-ink-2:#44483f; --v4-outline:#75786e; --v4-outline-2:#c5c8bc;
-  --v4-lagoon:#104C4F; --v4-green:#485B37; --v4-primary-container:#485B37;
+  --v4-surface:rgb(var(--tema-surface, 251 249 244)); --v4-surface-low:rgb(var(--tema-surface-container-low, 245 244 238)); --v4-surface-high:rgb(var(--tema-surface-container-high, 233 232 227));
+  --v4-ink:rgb(var(--tema-on-surface, 27 28 25)); --v4-ink-2:rgb(var(--tema-on-surface-variant, 68 72 63)); --v4-outline:rgb(var(--tema-outline, 117 120 110)); --v4-outline-2:rgb(var(--tema-outline-variant, 197 200 188));
+  --v4-lagoon:rgb(var(--tema-deep-lagoon, 16 76 79)); --v4-green:rgb(var(--tema-primary-container, 72 91 55)); --v4-primary-container:rgb(var(--tema-primary-container, 72 91 55));
   --v4-font:'Neue Kabel', 'Jost', sans-serif;
 }
 
@@ -80,7 +80,7 @@ html.v4 .lw4-sb-a{
 html.v4 .lw4-sb-a:hover{ background:var(--v4-surface-high); color:var(--v4-ink); }
 html.v4 .lw4-sb-a:focus-visible{ outline:2px solid var(--v4-lagoon); outline-offset:-2px; }
 /* nav.js marca la activa con aria-current (y clases de Tailwind que aquí no existen) */
-html.v4 .lw4-sb-a[aria-current="page"]{ background:var(--v4-primary-container); color:#fff; font-weight:700; }
+html.v4 .lw4-sb-a[aria-current="page"]{ background:var(--v4-primary-container); color:rgb(var(--tema-on-primary, 255 255 255)); font-weight:700; }
 
 html.v4 .lw4-sb .material-symbols-outlined,
 html.v4 .lw4-cab .material-symbols-outlined{
@@ -92,13 +92,13 @@ html.v4 .lw4-cab .material-symbols-outlined{
 html.v4 .lw4-sb-pie{ display:flex; flex-direction:column; gap:12px; padding-top:16px; border-top:1px solid rgba(117,120,110,.2); }
 html.v4 .lw4-sb-idioma{ display:flex; align-items:center; justify-content:space-between; padding:0 12px; }
 html.v4 .lw4-sb-idioma > span{ font-size:13px; font-weight:500; letter-spacing:.05em; text-transform:uppercase; color:var(--v4-outline); }
-html.v4 .lw4-sb-seg{ display:flex; align-items:center; gap:2px; padding:4px; border-radius:999px; background:#efeee8; }
+html.v4 .lw4-sb-seg{ display:flex; align-items:center; gap:2px; padding:4px; border-radius:999px; background:rgb(var(--tema-surface-container, 239 238 232)); }
 html.v4 .lw4-sb-seg button{
   padding:2px 12px; border:0; border-radius:999px; background:transparent;
   font:inherit; font-size:14px; line-height:20px; font-weight:600; color:var(--v4-ink-2); cursor:pointer;
 }
 /* nav.js marca el idioma activo con esta clase (wireIdiomaToggle) */
-html.v4 .lw4-sb-seg button.bg-deep-lagoon{ background:var(--v4-lagoon); color:#fff; }
+html.v4 .lw4-sb-seg button.bg-deep-lagoon{ background:var(--v4-lagoon); color:rgb(var(--tema-on-primary, 255 255 255)); }
 
 @media (prefers-reduced-motion: reduce){
   html.v4 .lw4-sb, html.v4 .lw4-velo{ transition:none; }
@@ -125,13 +125,13 @@ html.v4 .lw4-cab-btn{
   border:0; border-radius:999px; background:transparent; color:var(--v4-ink-2); cursor:pointer; padding:0;
   transition:background .15s, color .15s;
 }
-html.v4 .lw4-cab-btn:hover{ background:#efeee8; color:var(--v4-ink); }
+html.v4 .lw4-cab-btn:hover{ background:rgb(var(--tema-surface-container, 239 238 232)); color:var(--v4-ink); }
 html.v4 .lw4-cab-btn:focus-visible{ outline:2px solid var(--v4-lagoon); outline-offset:2px; }
 /* el contador lo pinta cabecera.js (número, color del aviso más grave y display:none a cero) */
 html.v4 .lw4-cab-n{
   position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 3px; box-sizing:border-box;
   display:flex; align-items:center; justify-content:center; border-radius:999px;
-  background:#ba1a1a; color:#fff; font:700 10px/1 var(--v4-font); white-space:nowrap;
+  background:rgb(var(--tema-error, 186 26 26)); color:rgb(var(--tema-on-primary, 255 255 255)); font:700 10px/1 var(--v4-font); white-space:nowrap;
 }
 html.v4 .lw4-cab-yo{ display:flex; align-items:center; gap:12px; padding-left:12px; border-left:1px solid rgba(117,120,110,.2); min-width:0; }
 html.v4 .lw4-cab-quien{ display:flex; flex-direction:column; text-align:right; min-width:0; }
@@ -139,7 +139,7 @@ html.v4 .lw4-cab-quien > span{ white-space:nowrap; overflow:hidden; text-overflo
 html.v4 .lw4-cab-nom{ font-size:14px; line-height:1.25; font-weight:600; color:var(--v4-ink); }
 html.v4 .lw4-cab-rol{ font-size:13px; line-height:1.25; color:var(--v4-outline); }
 html.v4 .lw4-cab-ava{
-  width:32px; height:32px; flex:none; border-radius:999px; background:#314322; color:#fff;
+  width:32px; height:32px; flex:none; border-radius:999px; background:rgb(var(--tema-primary, 49 67 34)); color:rgb(var(--tema-on-primary, 255 255 255));
   display:flex; align-items:center; justify-content:center;
 }
 html.v4 .lw4-cab-ava .material-symbols-outlined{ font-size:18px; }

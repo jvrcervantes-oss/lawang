@@ -34,14 +34,14 @@
        neutro (gris)  informativo: borrador, sin firmar, emitida, inventario
      `borde` e `icono` los usa la campana; `fondo`/`tinta` son la etiqueta. */
   var LW_TONOS = window.LW_TONOS = {
-    ok:     { fondo: '#E4F0DA', tinta: '#3F5230', borde: '#3F5230', suave: '#F6FAF2', icono: 'check_circle' },
-    espera: { fondo: '#FBF3E4', tinta: '#8A6A34', borde: '#C9892B', suave: '#FFFAF0', icono: 'schedule' },
-    mal:    { fondo: '#FFDAD6', tinta: '#93000A', borde: '#BA1A1A', suave: '#FFF4F2', icono: 'error' },
+    ok:     { fondo: '#E4F0DA', tinta: 'rgb(var(--tema-fiduciary-green, 63 82 48))', borde: 'rgb(var(--tema-fiduciary-green, 63 82 48))', suave: '#F6FAF2', icono: 'check_circle' },
+    espera: { fondo: '#FBF3E4', tinta: 'rgb(var(--tema-aviso, 138 106 52))', borde: 'rgb(var(--tema-aviso, 201 137 43))', suave: '#FFFAF0', icono: 'schedule' },
+    mal:    { fondo: 'rgb(var(--tema-error-container, 255 218 214))', tinta: 'rgb(var(--tema-on-error-container, 147 0 10))', borde: 'rgb(var(--tema-error, 186 26 26))', suave: '#FFF4F2', icono: 'error' },
     // en curso (lago): trámite en marcha que ya no espera a nadie más que al último paso
     // — p. ej. una solicitud APROBADA que falta pagar (23-sep-2026, owner: «diferencia
     // los estados por colores» en Comisiones; con solo ámbar, pendiente y aprobada eran iguales)
-    curso:  { fondo: '#D9ECEC', tinta: '#104C4F', borde: '#104C4F', suave: '#F2F8F8', icono: 'sync' },
-    neutro: { fondo: '#EAE8E2', tinta: '#2E3437', borde: '#B9B5A8', suave: '#FFFFFF', icono: 'info' }
+    curso:  { fondo: '#D9ECEC', tinta: 'rgb(var(--tema-deep-lagoon, 16 76 79))', borde: 'rgb(var(--tema-deep-lagoon, 16 76 79))', suave: '#F2F8F8', icono: 'sync' },
+    neutro: { fondo: '#EAE8E2', tinta: 'rgb(var(--tema-volcanic-ash, 46 52 55))', borde: '#B9B5A8', suave: 'rgb(var(--tema-surface-container-lowest, 255 255 255))', icono: 'info' }
   };
 
   /* ══════════════ la campana (S17, 23-sep-2026) ══════════════
@@ -94,23 +94,23 @@
       return d.toLocaleDateString(locale(), d.getFullYear() === hoyAnio ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
     };
     var css = '<style>' +
-      '.lw-av{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;align-items:center;gap:12px;padding:9px 14px;border-radius:10px;border:1px solid #E4DCCB;color:#1b1c19;text-decoration:none;transition:filter .15s}' +
+      '.lw-av{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;align-items:center;gap:12px;padding:9px 14px;border-radius:10px;border:1px solid rgb(var(--tema-warm-border, 228 220 203));color:rgb(var(--tema-on-surface, 27 28 25));text-decoration:none;transition:filter .15s}' +
       '.lw-av:hover{filter:brightness(.97)}' +
-      '.lw-av-cab{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;gap:12px;padding:0 15px 2px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8A8474}' +
+      '.lw-av-cab{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;gap:12px;padding:0 15px 2px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--tema-control-border, 138 132 116))}' +
       '.lw-av-t{font-size:13px;line-height:1.35;overflow-wrap:anywhere}' +
-      '.lw-av-d{font-size:12px;color:#44483f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
-      '.lw-av-f{font-size:11.5px;color:#75786e;text-align:right;white-space:nowrap}' +
+      '.lw-av-d{font-size:12px;color:rgb(var(--tema-on-surface-variant, 68 72 63));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '.lw-av-f{font-size:11.5px;color:rgb(var(--tema-outline, 117 120 110));text-align:right;white-space:nowrap}' +
       '@media (max-width:720px){.lw-av-cab{display:none}.lw-av{grid-template-columns:20px minmax(0,1fr) auto;gap:4px 10px}' +
       '.lw-av .lw-av-e{grid-column:2;grid-row:2}.lw-av .lw-av-t{grid-column:2;grid-row:1}.lw-av .lw-av-d{grid-column:2 / 4;grid-row:3;white-space:normal}.lw-av .lw-av-f{grid-column:3;grid-row:1}}' +
       '</style>';
     var fila = function (a) {
       var t = tonoAviso(a.nivel);
-      var fondo = (a.clase === 'alerta' || a.nuevo) ? t.suave : '#FFFFFF';
+      var fondo = (a.clase === 'alerta' || a.nuevo) ? t.suave : 'rgb(var(--tema-surface-container-lowest, 255 255 255))';
       return '<a class="lw-av" href="' + esc(aV4(a.enlace)) + '" title="' + esc(a.titulo + (a.detalle ? ' — ' + a.detalle : '')) + '" style="border-left:4px solid ' + t.borde + ';background:' + fondo + '">' +
         '<span class="material-symbols-outlined" style="font-size:19px;color:' + t.borde + '">' + t.icono + '</span>' +
         '<span class="lw-av-e" style="display:flex;flex-wrap:wrap;gap:4px">' +
           '<span style="padding:1px 8px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(T(a.etiqueta || 'Aviso')) + '</span>' +
-          (a.nuevo && a.clase !== 'alerta' ? '<span style="padding:1px 8px;border-radius:999px;background:#2E3437;color:#fff;font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(T('Nuevo')) + '</span>' : '') +
+          (a.nuevo && a.clase !== 'alerta' ? '<span style="padding:1px 8px;border-radius:999px;background:rgb(var(--tema-volcanic-ash, 46 52 55));color:rgb(var(--tema-on-primary, 255 255 255));font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(T('Nuevo')) + '</span>' : '') +
         '</span>' +
         '<span class="lw-av-t" style="font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + '">' + esc(a.titulo) + '</span>' +
         '<span class="lw-av-d">' + esc(a.detalle || '') + '</span>' +
@@ -119,7 +119,7 @@
     };
     var bloque = function (titulo, lista) {
       return lista.length ? '<section style="display:grid;gap:6px">' +
-        '<h4 style="margin:6px 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#75786e">' + esc(T(titulo)) + ' (' + lista.length + ')</h4>' +
+        '<h4 style="margin:6px 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgb(var(--tema-outline, 117 120 110))">' + esc(T(titulo)) + ' (' + lista.length + ')</h4>' +
         '<div class="lw-av-cab"><span></span><span>' + esc(T('Estado')) + '</span><span>' + esc(T('Aviso')) + '</span><span>' + esc(T('Detalle')) + '</span><span style="text-align:right">' + esc(T('Fecha')) + '</span></div>' +
         lista.map(fila).join('') + '</section>' : '';
     };
@@ -145,8 +145,8 @@
       badges.forEach(function (e) {
         e.textContent = n == null ? '—' : (n > 99 ? '99+' : String(n));
         e.style.display = n === 0 ? 'none' : '';
-        e.style.backgroundColor = !peor ? '' : (peor === 'neutro' ? '#2E3437' : tonoAviso(peor).borde);
-        e.style.color = peor ? '#fff' : '';
+        e.style.backgroundColor = !peor ? '' : (peor === 'neutro' ? 'rgb(var(--tema-volcanic-ash, 46 52 55))' : tonoAviso(peor).borde);
+        e.style.color = peor ? 'rgb(var(--tema-on-primary, 255 255 255))' : '';
       });
     }
     function aV4(href) {
@@ -165,10 +165,10 @@
        persona le toca alguna noticia (window.lwNovedades). Por `data-accion`, no por el rótulo. */
     function filaNovedades() {
       if (!window.lwNovedades || typeof window.lwNovedades.abre !== 'function') return '';
-      return '<button type="button" data-accion="ver-novedades" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border-radius:10px;border:1px solid #DCEAE7;background:#F1F7F5;color:#104C4F;cursor:pointer;font:inherit">' +
+      return '<button type="button" data-accion="ver-novedades" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border-radius:10px;border:1px solid #DCEAE7;background:#F1F7F5;color:rgb(var(--tema-deep-lagoon, 16 76 79));cursor:pointer;font:inherit">' +
         '<span class="material-symbols-outlined" style="font-size:22px">auto_awesome</span>' +
         '<span style="display:grid;gap:1px"><span style="font-size:14px;font-weight:700">' + esc(T('Novedades')) + '</span>' +
-        '<span style="font-size:12.5px;color:#44483f">' + esc(T('Repasa lo último que ha llegado a la intranet.')) + '</span></span></button>';
+        '<span style="font-size:12.5px;color:rgb(var(--tema-on-surface-variant, 68 72 63))">' + esc(T('Repasa lo último que ha llegado a la intranet.')) + '</span></span></button>';
     }
     document.addEventListener('click', function (ev) {
       var b = ev.target && ev.target.closest && ev.target.closest('[data-accion="ver-novedades"]');
@@ -190,7 +190,7 @@
         // una consulta caída no se lee como «nada nuevo»: la nota va antes que la lista, haya lista o no
         var notaFallo = (out && out.fallos) ? nota(T(out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Alguna de las consultas de avisos falló: la lista puede estar incompleta.')) : '';
         if (!out) cuerpo = nota(T('No se pudieron cargar los avisos. Prueba a recargar la página.'));
-        else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:#8A8474">' + esc(T('Nada nuevo.')) + '</p>';
+        else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:rgb(var(--tema-control-border, 138 132 116))">' + esc(T('Nada nuevo.')) + '</p>';
         else cuerpo = notaFallo + pintaAvisos(out.avisos, aV4);
         cuerpo = filaNovedades() + cuerpo;
         // ancho de siempre (owner: «que fuese muy amplia nunca fue un problema»);
@@ -214,7 +214,7 @@
        encima de la cabecera (40) y el menú (50). */
     var caja = null;
     function notaSimple(t) {
-      return '<p style="margin:0;padding:8px 12px;border-radius:8px;background:#FBF3E4;color:#8A6A34;font-size:13px">' + esc(t) + '</p>';
+      return '<p style="margin:0;padding:8px 12px;border-radius:8px;background:#FBF3E4;color:rgb(var(--tema-aviso, 138 106 52));font-size:13px">' + esc(t) + '</p>';
     }
     function fuera(ev) { if (caja && !caja.contains(ev.target) && !(boton && boton.contains(ev.target))) cierraDesplegable(); }
     function tecla(ev) { if (ev.key === 'Escape' && caja) { cierraDesplegable(); if (boton) boton.focus(); } }
@@ -232,11 +232,11 @@
       caja.setAttribute('role', 'dialog');
       caja.setAttribute('aria-label', T(TITULO));
       caja.style.cssText = 'position:fixed;top:60px;right:16px;z-index:58;width:640px;max-width:calc(100vw - 32px);box-sizing:border-box;' +
-        'max-height:calc(100vh - 80px);overflow-y:auto;background:#fff;border:1px solid #E7E4DC;border-radius:12px;' +
+        'max-height:calc(100vh - 80px);overflow-y:auto;background:rgb(var(--tema-surface-container-lowest, 255 255 255));border:1px solid #E7E4DC;border-radius:12px;' +
         'box-shadow:0 18px 40px -12px rgba(30,37,34,.22),0 2px 6px rgba(30,37,34,.06);padding:16px;display:grid;gap:12px;' +
-        "font-family:'Neue Kabel','Jost',sans-serif;color:#1b1c19";
-      caja.innerHTML = '<div><div style="font-size:18px;font-weight:600;color:#104C4F">' + esc(T(TITULO)) + '</div>' +
-        '<div style="font-size:13px;color:#75786e">' + esc(T(BAJO)) + '</div></div>' + cuerpo;
+        "font-family:'Neue Kabel','Jost',sans-serif;color:rgb(var(--tema-on-surface, 27 28 25))";
+      caja.innerHTML = '<div><div style="font-size:18px;font-weight:600;color:rgb(var(--tema-deep-lagoon, 16 76 79))">' + esc(T(TITULO)) + '</div>' +
+        '<div style="font-size:13px;color:rgb(var(--tema-outline, 117 120 110))">' + esc(T(BAJO)) + '</div></div>' + cuerpo;
       document.body.appendChild(caja);
       document.addEventListener('click', fuera, true);
       document.addEventListener('keydown', tecla);
