@@ -52,6 +52,9 @@
    que se traducen aqui son solo los POR DEFECTO: cuando quien llama pasa su
    propio `titulo` o `cancelar`, manda el suyo y lo traduce el. */
 function dlgT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
+/* Lo que manda quien llama (título, botones) pasa por el diccionario si la frase está en él (12-oct-2026, la demo en
+   inglés): lwTSuave deja tal cual lo que ya llega traducido y, en español, no toca nada. */
+function dlgS(s) { return (typeof window.lwTSuave === 'function') ? window.lwTSuave(s) : s; }
 
 
 (function(){
@@ -128,13 +131,13 @@ function dlgT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
       if(!fondo) construir();
       cerrar(false);                     // si había uno abierto, se resuelve en falso
       focoPrevio = document.activeElement;
-      elT.textContent   = o.titulo || dlgT('¿Seguimos?');
+      elT.textContent   = o.titulo ? dlgS(o.titulo) : dlgT('¿Seguimos?');
       elC.innerHTML     = o.cuerpo || '';
       elC.style.display = o.cuerpo ? '' : 'none';
-      bOk.textContent   = o.confirmar || dlgT('Continuar');
+      bOk.textContent   = o.confirmar ? dlgS(o.confirmar) : dlgT('Continuar');
       // `cancelar: false` -> un solo boton. Para mensajes que PARAN y no ofrecen
       // alternativa: dos botones ahi son mentira, porque no hay nada que elegir.
-      bNo.textContent   = o.cancelar === false ? '' : (o.cancelar || dlgT('Cancelar'));
+      bNo.textContent   = o.cancelar === false ? '' : (o.cancelar ? dlgS(o.cancelar) : dlgT('Cancelar'));
       bNo.style.display = o.cancelar === false ? 'none' : '';
       var peligro = o.tono === 'peligro';
       caja.setAttribute('data-tono', peligro ? 'peligro' : 'normal');

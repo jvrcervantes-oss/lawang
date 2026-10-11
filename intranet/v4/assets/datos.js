@@ -35,6 +35,16 @@
      que los usos que no son de atributo no cambian de aspecto.
      Lo cazó Seguridad en la consulta de deploy del 18-sep. */
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML.replace(/"/g, '&quot;'); }
+  /* Puente al diccionario de TODO el fichero (12-oct-2026, la demo en inglés). La clave es la frase española, y en
+     español sale tal cual: lwT devuelve su entrada. Los números y nombres van en huecos (`tx('%n firmados', {n: 3})`),
+     nunca pegados con «+», o la frase no se puede traducir entera. Sin i18n.js rellena los huecos igual. */
+  function tx(s, h) {
+    if (typeof lwT === 'function') return lwT(s, h);
+    var v = String(s); for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) v = v.split('%' + k).join(h[k]);
+    return v;
+  }
+  // Fechas en el idioma de la interfaz: es-ES en español (lo de siempre), en-GB en inglés (lwLocale de i18n.js).
+  function loc() { return (typeof lwLocale === 'function') ? lwLocale() : 'es-ES'; }
   /* SIN DECIMALES EN TODA LA V4 (23-sep-2026, owner: «quita decimales de toda la
      intranet v4»). Una regla en UN sitio: se envuelve la `lwFormatoImporte`
      global de dinero.js, y así la cumplen datos.js, editores.js y cualquier
@@ -229,8 +239,8 @@
     return { vencidas: rs.filter(function (x) { return x.d <= 0; }), pronto: rs.filter(function (x) { return x.d >= 1 && x.d <= 2; }) };
   };
   // fecha + hora (hh:mm) en una línea: el registro de envíos (26-sep-2026, owner)
-  function fFechaHoraCorta(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x) : fFecha(x) + ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }); }
-  function fFecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  function fFechaHoraCorta(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x) : fFecha(x) + ' · ' + d.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }); }
+  function fFecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleDateString(loc(), { day: '2-digit', month: 'short', year: 'numeric' }); }
   /* Entrega estimada del PROYECTO en trimestres (16-sep-2026, encargo del
      owner: "Q1 de 2027 es para el primer trimestre de 2027") -- se guarda
      como el primer dia del trimestre (editores.js -> montaTrimestre()), aqui
@@ -646,7 +656,7 @@
      Compradores, misma familia). */
   var CAMPOS_CONTRATO = 'id,numero,tipo,nombre_contrato,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,pdf_firmado_hash,creado_por,created_at,contrato_padre_id,liberado_en,liberado_motivo';
   function URL_FACTURA(id) { return '/intranet/v4/facturas/?id=' + encodeURIComponent(id); }
-  function tipoDoc(t) { return t === 'recibi' ? 'Recibí' : t === 'proforma' ? 'Proforma' : 'Factura'; }
+  function tipoDoc(t) { return tx(t === 'recibi' ? 'Recibí' : t === 'proforma' ? 'Proforma' : 'Factura'); }
   /* Una solicitud de firma «pendiente» con `expira_en` pasado ya no la puede usar el
      comprador (firma-submit devuelve 410): se pinta caducada y no cuenta como viva
      (Legal, consulta de deploy 19-sep). */
@@ -664,7 +674,7 @@
     var t = LW_TONOS[tono] || LW_TONOS.neutro, c = [t.fondo, t.tinta];
     return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font:600 11px/1.5 \'Neue Kabel\',sans-serif;letter-spacing:.04em;text-transform:uppercase;background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
   }
-  var ABRIR = '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir</span>';
+  var ABRIR = '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(tx('Abrir')) + '</span>';
   /* «Ficha ≠» en un listado (27-sep-2026 en Facturas; 28-sep-2026 también en
      Contratos, LAW-390 — solo lo hacía el listado clásico de contracts/app.html, ya
      retirado). Una sola pieza para los dos listados, no una copia por pantalla.
@@ -1080,11 +1090,11 @@
     // por id: la bandeja «Hoy toca» también dice «Firmas» y buscar por texto la encontraba a ella
     var card = document.getElementById('lw-firmas-card');
     if (!card) return;
-    card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">Firmas pendientes</p>' +
+    card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">' + esc(tx('Firmas pendientes')) + '</p>' +
       '<p style="font:700 30px \'Neue Kabel\',sans-serif;margin:0">' + vivas + '</p>' +
-      '<p style="font:400 12px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0 ' + (caducadas ? '4px' : '10px') + '">contratos esperando la firma del cliente</p>' +
-      (caducadas ? '<p style="font:600 12px \'Neue Kabel\',sans-serif;color:#93000A;margin:0 0 10px">+' + caducadas + ' con el enlace caducado: ya no cuentan como «en firma»</p>' : '') +
-      '<a href="/intranet/v4/operaciones/?filtro=firma" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Verlos en Operaciones →</a>';
+      '<p style="font:400 12px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0 ' + (caducadas ? '4px' : '10px') + '">' + esc(tx('contratos esperando la firma del cliente')) + '</p>' +
+      (caducadas ? '<p style="font:600 12px \'Neue Kabel\',sans-serif;color:#93000A;margin:0 0 10px">' + esc(tx('+%n con el enlace caducado: ya no cuentan como «en firma»', { n: caducadas })) + '</p>' : '') +
+      '<a href="/intranet/v4/operaciones/?filtro=firma" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(tx('Verlos en Operaciones')) + ' →</a>';
   }
 
   function fichaContrato(sb, c0, opts) {
@@ -1712,7 +1722,7 @@
      abre, imprime, envía o anula en la herramienta viva (/intranet/facturas/),
      que es la única que emite con numeración de la base. */
   var CAMPOS_FACTURA = 'id,numero,tipo,sociedad,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id,total,moneda,fecha_emision,anulada,enviada,fecha_envio,creado_por,created_at,justificantes,justificante_path,client_id';
-  function estadoDoc(f) { return f.anulada ? ['Anulada', 'mal'] : (f.enviada ? ['Enviada', 'ok'] : ['Emitida', 'espera']); }
+  function estadoDoc(f) { return f.anulada ? [tx('Anulada'), 'mal'] : (f.enviada ? [tx('Enviada'), 'ok'] : [tx('Emitida'), 'espera']); }
 
   /* ══ Anular / Borrar (S14, 21-sep-2026 — encargo 20260919, revisión previa
      #34) ══ Calcado del comportamiento de /intranet/facturas/, con el mismo
@@ -2075,15 +2085,15 @@
       q(sb.rpc('contratos_equipo').select('id,bloqueado'), 'contratos').then(function (cs) {
         if (!cs) return;
         var firmados = cs.filter(function (c) { return c.bloqueado; }).length;
-        kpi('kpi-contratos-activos', String(cs.length), firmados + ' firmados · ' + (cs.length - firmados) + ' editables');
+        kpi('kpi-contratos-activos', String(cs.length), tx('%n firmados · %m editables', { n: firmados, m: cs.length - firmados }));
         pon2('k-contratos', String(cs.length));
         pon2('k-encurso', String(cs.length - firmados));
-        pon2('k-firmados-pie', firmados + ' firmados');
+        pon2('k-firmados-pie', tx('%n firmados', { n: firmados }));
       });
       q(sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,enviada,created_at,fecha_emision,numero,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id' + colsSerie()), 'facturas').then(function (fs) {
         if (!fs) return;
         var s = sumaMesEUR(fs.filter(function (f) { return f.tipo === 'recibi'; }));
-        kpi('kpi-cobrado-mes', fmt(s.eur, 'EUR'), s.otros ? '+' + s.otros + ' cobros en otra moneda' : 'recibís del mes en curso');
+        kpi('kpi-cobrado-mes', fmt(s.eur, 'EUR'), s.otros ? tx('+%n cobros en otra moneda', { n: s.otros }) : tx('recibís del mes en curso'));
         pon2('k-cobrado', fmt(s.eur, 'EUR'));
         /* «+18,4% vs mes anterior» era del diseno. Se calcula de verdad, y si no
            hay con que comparar se dice, en vez de ensenar una flecha verde. */
@@ -2123,12 +2133,12 @@
       pCifras.then(function (c) {
         var n = c ? c.vencimientos_30 : null;
         if (n != null) {
-          kpi('kpi-vencimientos', String(n), 'con fecha en los próximos 30 días');
+          kpi('kpi-vencimientos', String(n), tx('con fecha en los próximos 30 días'));
           pon2('k-operaciones', String(n));   // la tarjeta es «Vencimientos (30 días)»
         }
         // «15 por conciliar esta semana» era del diseño: se cuentan los hitos con fecha en 7 días
         var n7 = c ? c.vencimientos_7 : null;
-        pon2('k-venc-semana', n7 == null ? '—' : (n7 + ' con fecha en los próximos 7 días'));
+        pon2('k-venc-semana', n7 == null ? '—' : tx('%n con fecha en los próximos 7 días', { n: n7 }));
       });
       // el buscador de Home busca en Contratos (Enter)
       var busca = document.querySelector('[data-lw="buscador"]');
@@ -2142,9 +2152,9 @@
          lee igual que la respuesta correcta. */
       pCifras.then(function (c) {
         if (!c || c.unidades_libres == null) return;
-        kpi('kpi-unidades-libres', String(c.unidades_libres), c.unidades != null ? 'disponibles de ' + c.unidades + ' en inventario' : null);
+        kpi('kpi-unidades-libres', String(c.unidades_libres), c.unidades != null ? tx('disponibles de %n en inventario', { n: c.unidades }) : null);
         pon2('k-unidades', String(c.unidades_libres));
-        pon2('k-unidades-sub', c.unidades != null ? 'de ' + c.unidades + ' parcelas' : 'en inventario');
+        pon2('k-unidades-sub', c.unidades != null ? tx('de %n parcelas', { n: c.unidades }) : tx('en inventario'));
         pon2('k-reservadas', c.unidades_reservadas != null ? String(c.unidades_reservadas) : '—');
       });
       // módulos laterales: nunca dejar las tarjetas mock como "verdad"
@@ -2156,10 +2166,10 @@
           if (!anc) { console.info('[v4] home: sin ancla de críticos'); return; }
           var card = tarjetaDe(anc);
           for (var i = 0; i < 3 && card.parentElement && card.querySelectorAll('*').length < 12; i++) card = card.parentElement;
-          card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">Vencimientos críticos</p>' +
-            (vs.length ? vs.map(function (v) { return itemPanel(esc(v.descripcion || 'Hito') + ' · ' + esc(v.contratos.numero), fFecha(v.fecha), v.monto ? esc(v.monto) : (v.pct ? esc(v.pct) + ' %' : '—')); }).join('')
-                       : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f">Ninguno con fecha futura en contratos firmados.</p>') +
-            '<a href="/intranet/v4/vencimientos/" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir vencimientos →</a>';
+          card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">' + esc(tx('Vencimientos críticos')) + '</p>' +
+            (vs.length ? vs.map(function (v) { return itemPanel(esc(v.descripcion || tx('Hito')) + ' · ' + esc(v.contratos.numero), fFecha(v.fecha), v.monto ? esc(v.monto) : (v.pct ? esc(v.pct) + ' %' : '—')); }).join('')
+                       : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f">' + esc(tx('Ninguno con fecha futura en contratos firmados.')) + '</p>') +
+            '<a href="/intranet/v4/vencimientos/" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(tx('Abrir vencimientos')) + ' →</a>';
         });
       // Firmas pendientes (vivas / caducadas) y la bandeja «Hoy toca»: bandejaHoy()
       bandejaHoy(sb);
@@ -2684,15 +2694,15 @@
         pon2('k-compradores', String(cs.length));
         var ver = cs.filter(function (c2) { return c2.kyc_status === 'verified'; }).length;
         pon2('k-verificados', cs.length ? Math.round(ver / cs.length * 100) + '%' : '—');
-        pon2('k-verificados-pie', ver + ' de ' + cs.length + ' con KYC verificado');
+        pon2('k-verificados-pie', tx('%n de %m con KYC verificado', { n: ver, m: cs.length }));
         var q0 = new Date(); q0.setMonth(Math.floor(q0.getMonth() / 3) * 3, 1); q0.setHours(0, 0, 0, 0);
         var nuevos = cs.filter(function (c2) { return new Date(c2.created_at) >= q0; }).length;
-        pon2('k-nuevos', '+' + nuevos + ' este trimestre');
+        pon2('k-nuevos', tx('+%n este trimestre', { n: nuevos }));
         var capital = 0, pagado = 0, fueraEur = 0;
         Object.keys(deCliente).forEach(function (k) { capital += deCliente[k].inv; pagado += deCliente[k].pag; fueraEur += deCliente[k].otras; });
         if (conContratos) {
           pon2('k-capital', fmt(capital, 'EUR'));
-          pon2('k-capital-chip', capital ? Math.round(pagado / capital * 100) + '% cobrado' : 'sin contratos EUR');
+          pon2('k-capital-chip', capital ? tx('%n% cobrado', { n: Math.round(pagado / capital * 100) }) : tx('sin contratos EUR'));
           if (fueraEur) bandaNota('El capital es SOLO en euros: ' + fueraEur + ' contrato(s) en otra moneda quedan fuera de la suma.', '#8A6A34');
         } else {
           /* Sin el módulo de contratos no hay capital ni cobrado: se OCULTA la tarjeta. Un «0 €» o un «—» leería
@@ -2715,11 +2725,11 @@
 
         var conContrato = cs.filter(function (c2) { return deCliente[c2.id]; });
         var enFirma = cs.filter(function (c2) { return deCliente[c2.id] && deCliente[c2.id].firma; });
-        pon2('cc-todos', 'Todos (' + cs.length + ')');
+        pon2('cc-todos', tx('Todos (%n)', { n: cs.length }));
         if (conContratos) {
-          pon2('cc-contrato', 'Con contrato (' + conContrato.length + ')');
-          pon2('cc-firma', 'En firma (' + enFirma.length + ')');
-          pon2('cc-prospectos', 'Sin contrato (' + cs.filter(function (c2) { return !deCliente[c2.id] && !basicaDe[c2.id]; }).length + ')');
+          pon2('cc-contrato', tx('Con contrato (%n)', { n: conContrato.length }));
+          pon2('cc-firma', tx('En firma (%n)', { n: enFirma.length }));
+          pon2('cc-prospectos', tx('Sin contrato (%n)', { n: cs.filter(function (c2) { return !deCliente[c2.id] && !basicaDe[c2.id]; }).length }));
         } else {
           // sin contratos no hay «con contrato», «en firma» ni «sin contrato»: los tres filtros se ocultan, no se dejan en 0
           ['cc-contrato', 'cc-firma', 'cc-prospectos'].forEach(function (k) {
@@ -2728,14 +2738,14 @@
             else console.error('[v4 datos] Clientes sin contratos: no encuentro el filtro [data-lw="' + k + '"]; queda a la vista');
           });
         }
-        pon2('k-lista-pie', cs.length + (cs.length === 1 ? ' cliente' : ' clientes') + ' · pulsa uno para abrir su ficha');
+        pon2('k-lista-pie', tx(cs.length === 1 ? '%n cliente · pulsa uno para abrir su ficha' : '%n clientes · pulsa uno para abrir su ficha', { n: cs.length }));
 
         /* ================= LA FICHA (cajon compartido de editores.js) ================= */
         var KYC = { pending: ['Pendiente', 'espera'], submitted: ['En revisión', 'espera'], verified: ['Aprobado', 'ok'], rejected: ['Rechazado', 'mal'] };
-        var IDIOMA = { es: 'Español', en: 'English', id: 'Bahasa Indonesia' };
+        var IDIOMA = { es: tx('Español'), en: 'English', id: 'Bahasa Indonesia' };
         // mismas etiquetas que DOCS en /intranet/compradores/ (alli viven dentro del HTML: no hay fuente compartida que importar)
-        var DOC_TIPO = { passport: 'Pasaporte', npwp: 'NPWP', visa: 'Visado', proof_of_funds: 'Justificante de fondos', proof_of_address: 'Justificante de domicilio', signed_contract: 'Contrato firmado', other: 'Otro' };
-        var TIPO_DOC_FAC = { factura: 'Factura', proforma: 'Proforma', recibi: 'Recibí' };
+        var DOC_TIPO = { passport: tx('Pasaporte'), npwp: 'NPWP', visa: tx('Visado'), proof_of_funds: tx('Justificante de fondos'), proof_of_address: tx('Justificante de domicilio'), signed_contract: tx('Contrato firmado'), other: tx('Otro') };
+        var TIPO_DOC_FAC = { factura: tx('Factura'), proforma: tx('Proforma'), recibi: tx('Recibí') };
         var porId = {}; cs.forEach(function (c2) { porId[c2.id] = c2; });
 
         /* Portal del comprador — misma Edge Function que /intranet/compradores/
@@ -2752,7 +2762,7 @@
           password_corta: 'La contraseña necesita 10 caracteres o más.',
           no_es_cuenta_de_portal: 'Ese email no tiene acceso al portal todavía — invítalo primero.'
         };
-        function motivoPortal(e) { return MOTIVOS_PORTAL[e] || e; }
+        function motivoPortal(e) { return MOTIVOS_PORTAL[e] ? tx(MOTIVOS_PORTAL[e]) : e; }
         function llamaPortal(body) {
           return sb.auth.getSession().then(function (s) {
             /* Sesión caducada = `data.session` null, sin error de por medio.
@@ -2783,7 +2793,7 @@
           var lista = Object.keys(monedas);
           var cobrado = suyos.reduce(function (a, x) { return a + (cobId[x.id] || 0); }, 0);
           if (lista.length > 1) {
-            return H.nota('Sus contratos están en monedas distintas (' + lista.join(', ') + '): no hay una sola cifra. El detalle por contrato está arriba.') +
+            return H.nota(tx('Sus contratos están en monedas distintas (%l): no hay una sola cifra. El detalle por contrato está arriba.', { l: lista.join(', ') })) +
               H.dato('Cobrado (recibís, todas las monedas)', suyos.map(function (x) { return fmt(cobId[x.id] || 0, x.moneda || 'EUR'); }).join(' · '));
           }
           var moneda = lista[0];
@@ -2794,7 +2804,7 @@
                contratos (paridad S6, 23-sep-2026 — antes decía «se ve en la
                clásica»). `data-cuota-reserva` lo rellena pintaFicha. */
             return H.nota('Solo tiene Carta(s) de Reserva: el precio final de la villa lo fija el contrato que la sustituya. Lo exigible hoy es la cuota de reserva.') +
-              H.dato('Cuota de reserva', '<span data-cuota-reserva="' + esc(suyos.map(function (x) { return x.id; }).join(',')) + '" style="color:#75786e">Cargando…</span>', { html: 1 }) +
+              H.dato('Cuota de reserva', '<span data-cuota-reserva="' + esc(suyos.map(function (x) { return x.id; }).join(',')) + '" style="color:#75786e">' + esc(tx('Cargando…')) + '</span>', { html: 1 }) +
               H.dato('Cobrado', fmt(cobrado, moneda));
           }
           var precio = sumables.reduce(function (a, x) { return a + (Number(x.precio_total) || 0); }, 0);
@@ -2822,8 +2832,8 @@
               var color = i === 1 ? '#3F5230' : (i === 2 && pendiente > 0 ? '#9E2F26' : '');
               return [etq, color ? '<span style="color:' + color + '">' + esc(fmt(v, moneda)) + '</span>' : esc(fmt(v, moneda))];
             })) +
-            '<p style="margin:6px 0 0;font-size:11.5px;color:#75786e">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.' +
-            (sumables.length !== suyos.length ? ' El precio no cuenta las Cartas de Reserva.' : '') + '</p>' + tablaProy;
+            '<p style="margin:6px 0 0;font-size:11.5px;color:#75786e">' + esc(tx('Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.')) +
+            (sumables.length !== suyos.length ? ' ' + esc(tx('El precio no cuenta las Cartas de Reserva.')) : '') + '</p>' + tablaProy;
         }
         /* La ficha COMPLETA se pide al abrir, y solo la de ese comprador. Si
            la consulta falla se pinta con lo que el listado ya sabe y se avisa:
@@ -2874,7 +2884,7 @@
              no se ofrece; quien ve el contrato de ese cliente lo abre desde el propio contrato. */
           acciones.push({ texto: 'Cerrar', cerrar: true });
           window.lwCajon({ sub: Tx(esEmpresa ? 'Ficha básica de empresa cliente' : 'Ficha básica de cliente'), titulo: c0.full_name || Tx('Sin nombre'),
-            estado: ['KYC · ' + kyc[0], kyc[1]],
+            estado: ['KYC · ' + tx(kyc[0]), kyc[1]],
             bajoTitulo: [c0.numero_cliente, c0.nationality].filter(Boolean).join(' · ') || Tx('sin identificación'),
             cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
           var u2 = new URL(location.href);
@@ -2890,7 +2900,7 @@
           var kyc = KYC[c2.kyc_status || 'pending'] || [c2.kyc_status, 'neutro'];
           var identidad =
             H.dato('Nº de cliente', c2.numero_cliente) +
-            H.dato('Tipo', esEmpresa ? 'Empresa' : 'Persona física') +
+            H.dato('Tipo', esEmpresa ? tx('Empresa') : tx('Persona física')) +
             H.dato('Email', c2.email) +
             H.dato('Teléfono', c2.phone ? H.enlace('https://wa.me/' + String(c2.phone).replace(/[^0-9]/g, ''), c2.phone, true) : null, { html: 1 }) +
             H.dato(esEmpresa ? 'País de constitución' : 'Nacionalidad', c2.nationality) +
@@ -2905,8 +2915,8 @@
             (c2.notes ? H.dato('Notas', c2.notes) : '');
           var autorAlta = c2.propietario
             ? esc(nombreEquipo[String(c2.propietario).toLowerCase()] || c2.propietario) +
-              ((window.LW_V4.miEmail || '').toLowerCase() === String(c2.propietario).toLowerCase() ? ' <span class="lwc-apagado">(tú)</span>' : '')
-            : '<span class="lwc-apagado">Nadie · ficha antigua, solo la corrige un administrador</span>';
+              ((window.LW_V4.miEmail || '').toLowerCase() === String(c2.propietario).toLowerCase() ? ' <span class="lwc-apagado">' + esc(tx('(tú)')) + '</span>' : '')
+            : '<span class="lwc-apagado">' + esc(tx('Nadie · ficha antigua, solo la corrige un administrador')) + '</span>';
           /* Traspasar la ficha (14-sep en la clásica, paridad 21-sep). Sin RPC
              por defecto: la policy «admins actualizan clientes» ya deja a un
              admin escribir `propietario` — solo con la casilla de arrastrar
@@ -2926,19 +2936,19 @@
                estilo: el `display:grid` en línea de dentro anularía `hidden`. */
             var controles = '<div data-tr-panel hidden><div style="display:grid;gap:10px">' +
               '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">' +
-              '<div class="las-campo" style="flex:1;min-width:180px"><label class="las-etq" for="' + idSel + '">Pasar la ficha a</label>' +
+              '<div class="las-campo" style="flex:1;min-width:180px"><label class="las-etq" for="' + idSel + '">' + esc(tx('Pasar la ficha a')) + '</label>' +
               '<div class="las-rel"><select id="' + idSel + '" data-tr-sel class="las-in">' + opciones + '</select></div></div>' +
-              '<button type="button" data-tr-btn class="las-btn1" style="min-width:0;padding:10px 22px">Traspasar</button>' +
+              '<button type="button" data-tr-btn class="las-btn1" style="min-width:0;padding:10px 22px">' + esc(tx('Traspasar')) + '</button>' +
               '</div>';
             if (window.LW_V4.esSuperAdmin) {
               controles += '<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:#44403c;cursor:pointer">' +
                 '<input type="checkbox" data-tr-chk style="accent-color:#104C4F">' +
-                '<span>Arrastrar también sus contratos y facturas (solo los de ' + esc(nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—') + ')</span></label>' +
+                '<span>' + esc(tx('Arrastrar también sus contratos y facturas (solo los de %p)', { p: nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—' })) + '</span></label>' +
                 // `hidden` en un envoltorio sin clase: .las-campo pone display:grid y lo anularía
-                '<div data-tr-caja hidden><div class="las-campo"><label class="las-etq" for="' + idSel + '-m">Motivo</label>' +
-                '<input type="text" id="' + idSel + '-m" data-tr-motivo maxlength="180" class="las-in" placeholder="Ej. Ana deja el equipo, sus clientes pasan a Carmen"></div></div>';
+                '<div data-tr-caja hidden><div class="las-campo"><label class="las-etq" for="' + idSel + '-m">' + esc(tx('Motivo')) + '</label>' +
+                '<input type="text" id="' + idSel + '-m" data-tr-motivo maxlength="180" class="las-in" placeholder="' + esc(tx('Ej. Ana deja el equipo, sus clientes pasan a Carmen')) + '"></div></div>';
             }
-            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">Quien la reciba podrá editarla. Contratos y facturas no se mueven sin la casilla.</p></div></div>';
+            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">' + esc(tx('Quien la reciba podrá editarla. Contratos y facturas no se mueven sin la casilla.')) + '</p></div></div>';
             return base + controles;
           }
           /* Una fila por OPERACIÓN (26-sep-2026, owner: «¿hay forma de unificar
@@ -2971,15 +2981,15 @@
           var contratos = ops.length
             ? H.tabla(['Operación', 'Contratos', 'Estado'], ops.map(function (o) {
                 var r = o.raiz;
-                var enlaceOp = r.numero ? H.enlace('/intranet/v4/operaciones/?contrato=' + encodeURIComponent(r.numero), 'Ver operación') : '';
+                var enlaceOp = r.numero ? H.enlace('/intranet/v4/operaciones/?contrato=' + encodeURIComponent(r.numero), tx('Ver operación')) : '';
                 return [
                   '<div style="font-weight:600;color:#1b1c19">' + esc(r.proyecto_nombre || '—') + '</div>' +
                     // la(s) parcela(s) que dice el contrato (columna generada de datos.fields; «A4, A5» si son varias)
-                    '<div style="font-size:12px;color:#75786e">' + esc(r.parcela_codigo ? 'Parcela ' + r.parcela_codigo : 'Sin parcela') + '</div>' +
+                    '<div style="font-size:12px;color:#75786e">' + esc(r.parcela_codigo ? tx('Parcela %c', { c: r.parcela_codigo }) : tx('Sin parcela')) + '</div>' +
                     (enlaceOp ? '<div style="font-size:12px;margin-top:4px">' + enlaceOp + '</div>' : ''),
                   o.piezas.map(function (k) {
                     return '<div style="padding:3px 0' + (k.liberado_en ? ';opacity:.6' : '') + '">' +
-                      (k.numero ? H.enlace('/intranet/v4/contratos/?contrato=' + encodeURIComponent(k.numero), k.numero) : 'sin nº') +
+                      (k.numero ? H.enlace('/intranet/v4/contratos/?contrato=' + encodeURIComponent(k.numero), k.numero) : esc(tx('sin nº'))) +
                       ' <span style="font-size:11px;color:#75786e">' + esc(tipoC(k.tipo)) + '</span></div>';
                   }).join(''),
                   o.piezas.map(function (k) { return '<div style="padding:3px 0">' + estadoPieza(k) + '</div>'; }).join('')
@@ -2992,14 +3002,14 @@
             /* Con contratos o soporte apagados la sección NO se pinta (ni «Ninguno enlazado», que mentiría: no es que no
                haya, es que aquí no se mide). Las facturas y los envíos de la ficha cuelgan de los contratos del cliente. */
             (conC ? H.seccion(ops.length === nPiezas
-              ? 'Contratos (' + nPiezas + ')'
-              : 'Operaciones (' + ops.length + ') · ' + nPiezas + ' contratos', contratos, 'contratos') : '') +
+              ? tx('Contratos (%n)', { n: nPiezas })
+              : tx('Operaciones (%n) · %m contratos', { n: ops.length, m: nPiezas }), contratos, 'contratos') : '') +
             (conC ? H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H), 'cuentas') : '') +
-            (conC ? H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'facturas') : '') +
-            H.seccion('Documentación KYC', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'docs') +
-            (conC ? H.seccion('Registro de envíos', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'envios') : '') +
-            (conS ? H.seccion('Soporte', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'soporte') : '') +
-            H.seccion('Portal del comprador', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'portal');
+            (conC ? H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">' + esc(tx('Cargando…')) + '</p>', 'facturas') : '') +
+            H.seccion('Documentación KYC', '<p style="margin:0;font-size:12.5px;color:#75786e">' + esc(tx('Cargando…')) + '</p>', 'docs') +
+            (conC ? H.seccion('Registro de envíos', '<p style="margin:0;font-size:12.5px;color:#75786e">' + esc(tx('Cargando…')) + '</p>', 'envios') : '') +
+            (conS ? H.seccion('Soporte', '<p style="margin:0;font-size:12.5px;color:#75786e">' + esc(tx('Cargando…')) + '</p>', 'soporte') : '') +
+            H.seccion('Portal del comprador', '<p style="margin:0;font-size:12.5px;color:#75786e">' + esc(tx('Cargando…')) + '</p>', 'portal');
           var acciones = [
             { texto: 'Editar datos', tono: 'primario', onClick: function () {
               if (window.LW_V4.abreEditaComprador) window.LW_V4.abreEditaComprador(c2);
@@ -3021,18 +3031,18 @@
           if (window.LW_V4.esSuperAdmin) {
             acciones.push({ texto: 'Borrar la ficha', tono: 'peligro', onClick: function () {
               lwConfirmar({
-                titulo: 'Borrar la ficha de ' + (c2.full_name || 'este cliente'),
-                cuerpo: '<p>Se borra la ficha y sus documentos KYC del archivo privado, si los tuviera.</p>' +
-                  '<p>Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide y te dice cuál — esta acción es para <b>duplicados sueltos</b>.</p>' +
-                  '<p>No hay papelera.</p>',
+                titulo: tx('Borrar la ficha de %n', { n: c2.full_name || tx('este cliente') }),
+                cuerpo: '<p>' + esc(tx('Se borra la ficha y sus documentos KYC del archivo privado, si los tuviera.')) + '</p>' +
+                  '<p>' + tx('Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide y te dice cuál — esta acción es para %b.', { b: '<b>' + esc(tx('duplicados sueltos')) + '</b>' }) + '</p>' +
+                  '<p>' + esc(tx('No hay papelera.')) + '</p>',
                 confirmar: 'Borrar la ficha', tono: 'peligro'
               }).then(function (ok) {
                 if (!ok) return;
                 // la edge llama a borrar_comprador con tu sesión y borra los ficheros que devuelve la base,
                 // servidor a servidor (27-sep-2026, LAW-336 bloque 2)
                 window.lwKyc(sb, 'borra_comprador', { client_id: c2.id }).then(function (d) {
-                  if (d.ficheros_pendientes) toastMal('Ficha borrada, pero ' + d.ficheros_pendientes + ' fichero(s) KYC no se pudieron quitar del archivo: avisa a Datos.');
-                  toast('Ficha de ' + (d.nombre || 'cliente') + ' borrada' + (d.ficheros_quitados ? ' · ' + d.ficheros_quitados + ' documento(s) retirados' : ''));
+                  if (d.ficheros_pendientes) toastMal(tx('Ficha borrada, pero %n fichero(s) KYC no se pudieron quitar del archivo: avisa a Datos.', { n: d.ficheros_pendientes }));
+                  toast(tx('Ficha de %n borrada', { n: d.nombre || tx('cliente') }) + (d.ficheros_quitados ? ' · ' + tx('%n documento(s) retirados', { n: d.ficheros_quitados }) : ''));
                   cj.cierra();
                   location.reload();
                 }, function (e) { toastMal(lwErrorHumano(e, 'No se pudo borrar la ficha')); });
@@ -3040,9 +3050,9 @@
             } });
           }
           acciones.push({ texto: 'Cerrar', cerrar: true });
-          var cj = window.lwCajon({ sub: esEmpresa ? 'Ficha de empresa cliente' : 'Ficha de cliente', titulo: c2.full_name || 'Sin nombre',
+          var cj = window.lwCajon({ sub: esEmpresa ? 'Ficha de empresa cliente' : 'Ficha de cliente', titulo: c2.full_name || tx('Sin nombre'),
             estado: ['KYC · ' + kyc[0], kyc[1]], lado: conC ? ['cuentas'] : undefined,
-            bajoTitulo: [c2.numero_cliente, c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || 'sin identificación',
+            bajoTitulo: [c2.numero_cliente, c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || tx('sin identificación'),
             cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
           if (window.lwMejoraSelects && cj.cuerpo) window.lwMejoraSelects(cj.cuerpo);   // «Pasar la ficha a»
           var u2 = new URL(location.href);
@@ -3063,20 +3073,20 @@
             var sc = cj.cuerpo.querySelector('[data-cajon-sec="contratos"] > div');
             if (sc) {
               var lis = ajenos.map(function (x) {
-                return '<li>' + esc(tipoC(x.tipo)) + ' · ' + esc(x.proyecto_nombre || '—') + ' · de <b>' +
-                  esc(nombreEquipo[String(x.autor || '').toLowerCase()] || x.autor || 'nadie (sin autor)') + '</b> · ' +
+                return '<li>' + esc(tipoC(x.tipo)) + ' · ' + esc(x.proyecto_nombre || '—') + ' · ' + esc(tx('de~autor')) + ' <b>' +
+                  esc(nombreEquipo[String(x.autor || '').toLowerCase()] || x.autor || tx('nadie (sin autor)')) + '</b> · ' +
                   (x.bloqueado ? H.tag('Firmado', 'ok') : H.tag('Sin firmar', 'neutro')) + '</li>';
               }).join('');
               sc.insertAdjacentHTML('beforeend',
-                H.nota('Esta persona tiene <b>' + todos.length + '</b> contratos en total; aquí ves <b>' + (todos.length - ajenos.length) + '</b>. ' +
-                       'Los que no ves son de otro comercial: sus cifras no entran en esta ficha.', true) +
+                H.nota(tx('Esta persona tiene %n contratos en total; aquí ves %m.', { n: '<b>' + todos.length + '</b>', m: '<b>' + (todos.length - ajenos.length) + '</b>' }) + ' ' +
+                       esc(tx('Los que no ves son de otro comercial: sus cifras no entran en esta ficha.')), true) +
                 '<ul style="margin:0 0 0 18px;padding:0;font-size:12.5px;color:#2E3437;display:grid;gap:4px">' + lis + '</ul>' +
                 (ajenos.some(function (x) { return x.bloqueado; })
                   ? H.nota('Un contrato firmado, sea de quien sea, congela esta ficha: desde entonces solo la corrige un administrador.')
                   : ''));
             }
             var h4 = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > h4');
-            if (h4) h4.textContent = 'Estado de cuentas de tus contratos';
+            if (h4) h4.textContent = tx('Estado de cuentas de tus contratos');
             var scu = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > div');
             if (scu) scu.insertAdjacentHTML('afterbegin', H.nota('Solo suma tus contratos: los de otros comerciales no entran en estas cifras.'));
           });
@@ -3093,12 +3103,12 @@
             var abreTr = document.createElement('button');
             abreTr.type = 'button';
             abreTr.className = 'lwc-h4-accion';
-            abreTr.textContent = 'Traspasar';
+            abreTr.textContent = tx('Traspasar');
             abreTr.setAttribute('aria-expanded', 'false');
             abreTr.addEventListener('click', function () {
               var abrir = panelTr.hidden;
               panelTr.hidden = !abrir;
-              abreTr.textContent = abrir ? 'Cancelar' : 'Traspasar';
+              abreTr.textContent = abrir ? tx('Cancelar') : tx('Traspasar');
               abreTr.setAttribute('aria-expanded', abrir ? 'true' : 'false');
               if (abrir) { var s0 = panelTr.querySelector('[data-tr-sel]'); if (s0) s0.focus(); }
             });
@@ -3119,10 +3129,10 @@
               if (conDocumentos && motivo.length < 3) { toastMal('Escribe el motivo: es lo que explica el traspaso dentro de un año.'); return; }
               var nombreNuevo = nombreEquipo[nuevo.toLowerCase()] || nuevo;
               lwConfirmar({
-                titulo: 'Pasar la ficha de ' + (c2.full_name || '—') + ' a ' + nombreNuevo,
+                titulo: tx('Pasar la ficha de %n a %m', { n: c2.full_name || '—', m: nombreNuevo }),
                 cuerpo: '<p>' + (conDocumentos
-                  ? 'Se traspasarán también los contratos y las facturas de ' + esc(nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—') + '. Lo que ya sea de otra persona, o esté firmado o anulado, no se mueve y queda a la vista para revisarlo a mano.'
-                  : 'Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.') + '</p>',
+                  ? tx('Se traspasarán también los contratos y las facturas de %n. Lo que ya sea de otra persona, o esté firmado o anulado, no se mueve y queda a la vista para revisarlo a mano.', { n: esc(nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—') })
+                  : esc(tx('Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.'))) + '</p>',
                 confirmar: 'Traspasar'
               }).then(function (ok) {
                 if (!ok) return;
@@ -3145,15 +3155,15 @@
                   if (conDocumentos) {
                     var res = (r.data && r.data[0]) || {};
                     lwConfirmar({
-                      titulo: 'Traspaso de ' + (c2.full_name || '—'),
-                      cuerpo: '<p>Contratos: ' + (res.contratos_movidos || 0) + ' movidos · ' + (res.contratos_omitidos_firmados || 0) + ' firmados sin tocar · ' + (res.contratos_omitidos_otro_autor || 0) + ' de otro autor · ' + (res.contratos_omitidos_sin_autor || 0) + ' sin autor.</p>' +
-                        '<p>Facturas y recibís: ' + (res.facturas_movidas || 0) + ' movidas (' + (res.facturas_movidas_anuladas || 0) + ' anuladas incluidas) · ' + (res.facturas_omitidas_otro_autor || 0) + ' de otro autor · ' + (res.facturas_omitidas_sin_autor || 0) + ' sin autor' +
+                      titulo: tx('Traspaso de %n', { n: c2.full_name || '—' }),
+                      cuerpo: '<p>' + tx('Contratos: %a movidos · %b firmados sin tocar · %c de otro autor · %d sin autor.', { a: res.contratos_movidos || 0, b: res.contratos_omitidos_firmados || 0, c: res.contratos_omitidos_otro_autor || 0, d: res.contratos_omitidos_sin_autor || 0 }) + '</p>' +
+                        '<p>' + tx('Facturas y recibís: %a movidas (%b anuladas incluidas) · %c de otro autor · %d sin autor', { a: res.facturas_movidas || 0, b: res.facturas_movidas_anuladas || 0, c: res.facturas_omitidas_otro_autor || 0, d: res.facturas_omitidas_sin_autor || 0 }) +
                         // ERP maestro (AXW-39): las emitidas en serie fiscal no cambian de autor
-                        (res.facturas_omitidas_emitidas != null ? ' · ' + res.facturas_omitidas_emitidas + ' emitidas sin tocar (su autor no cambia)' : '') + '.</p>',
+                        (res.facturas_omitidas_emitidas != null ? ' · ' + tx('%n emitidas sin tocar (su autor no cambia)', { n: res.facturas_omitidas_emitidas }) : '') + '.</p>',
                       confirmar: 'Entendido', cancelar: false
                     }).then(function () { cj.cierra(); location.reload(); });
                   } else {
-                    toast('Ficha traspasada a ' + nombreNuevo);
+                    toast(tx('Ficha traspasada a %n', { n: nombreNuevo }));
                     cj.cierra(); location.reload();
                   }
                 });
@@ -3176,12 +3186,12 @@
           if (huecoCuota) {
             var preIds = huecoCuota.getAttribute('data-cuota-reserva').split(',').filter(Boolean);
             sb.rpc('contratos_equipo').select('id,numero,precio_total,moneda,precio_reserva:datos->fields->>precio_reserva').in('id', preIds).then(function (rc) {
-              if (rc.error) { huecoCuota.textContent = 'no se pudo leer'; huecoCuota.style.color = '#9E2F26'; return; }
+              if (rc.error) { huecoCuota.textContent = tx('no se pudo leer'); huecoCuota.style.color = '#9E2F26'; return; }
               huecoCuota.style.color = '';
               // sin cuota fijada, el precio del documento como aproximación — mismo criterio que la clásica
               huecoCuota.textContent = (rc.data || []).map(function (x) {
-                var imp = x.precio_reserva ? x.precio_reserva + ' ' + (x.moneda || '') : fmt(Number(x.precio_total) || 0, x.moneda || 'EUR') + ' (sin cuota fijada: importe del documento)';
-                return (x.numero || 'sin nº') + ': ' + imp;
+                var imp = x.precio_reserva ? x.precio_reserva + ' ' + (x.moneda || '') : fmt(Number(x.precio_total) || 0, x.moneda || 'EUR') + ' ' + tx('(sin cuota fijada: importe del documento)');
+                return (x.numero || tx('sin nº')) + ': ' + imp;
               }).join(' · ') || '—';
             });
           }
@@ -3194,14 +3204,14 @@
             if (!ids.length) return pinta('envios', H.nota('Sin contratos enlazados: no hay envíos que atarle.'));
             sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en,contrato_id,factura_id')
               .in('contrato_id', ids).order('enviado_en', { ascending: false }).limit(200).then(function (re) {
-                if (re.error) return pinta('envios', H.nota('No se pudo leer el registro de envíos: ' + re.error.message));
+                if (re.error) return pinta('envios', H.nota(tx('No se pudo leer el registro de envíos: %e', { e: re.error.message })));
                 var filas = re.data || [];
                 if (!filas.length) return pinta('envios', H.nota('Sin correos registrados para sus contratos. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.'));
                 var via = function (v) { return typeof lwViaCorreo === 'function' ? lwViaCorreo(v) : (v || '—'); };
                 pinta('envios', H.tabla(['Cuándo', 'Contrato', 'Para', 'Vía', 'Quién'], filas.map(function (x) {
                   var k = porC[x.contrato_id];
-                  return [esc(fFechaHoraCorta(x.enviado_en)), esc((k && k.numero) || '—') + (x.factura_id ? '<div style="font-size:11px;color:#75786e">con factura</div>' : ''),
-                    esc(x.para || '—'), esc(via(x.via)), esc(x.enviado_por || 'Automático')];
+                  return [esc(fFechaHoraCorta(x.enviado_en)), esc((k && k.numero) || '—') + (x.factura_id ? '<div style="font-size:11px;color:#75786e">' + esc(tx('con factura')) + '</div>' : ''),
+                    esc(x.para || '—'), esc(via(x.via)), esc(x.enviado_por || tx('Automático'))];
                 })));
               });
           })();
@@ -3210,15 +3220,15 @@
              enlace a su bandeja en Soporte v4 — el hilo completo vive allí; repetirlo
              aquí sería la duplicación que ya se cerró el 1-sep en la clásica. */
           if (conS) clientesSoporteResumen(sb, c2.id).then(function (rs) {
-            if (rs[0].error || rs[1].error) return pinta('soporte', H.nota('No se pudo leer Soporte: ' + (rs[0].error || rs[1].error).message));
+            if (rs[0].error || rs[1].error) return pinta('soporte', H.nota(tx('No se pudo leer Soporte: %e', { e: (rs[0].error || rs[1].error).message })));
             var ultimo = (rs[0].data || [])[0], hilos = rs[1].data || [];
             if (!ultimo && !hilos.length) return pinta('soporte', H.nota('Sin mensajes desde el área de clientes.'));
             var abiertos = hilos.filter(function (h) { return h.estado === 'abierto'; }).length;
             pinta('soporte',
-              '<p style="margin:0 0 6px;font-size:12.5px">' + (abiertos ? H.tag(abiertos + (abiertos === 1 ? ' abierto' : ' abiertos'), 'espera') : H.tag('Todo resuelto', 'ok')) +
-              ' <span style="color:#75786e;margin-left:6px">' + hilos.length + ' ticket' + (hilos.length === 1 ? '' : 's') + ' en total' + (ultimo ? ' · último mensaje ' + esc(fFecha(ultimo.creado_en)) : '') + '</span></p>' +
-              (ultimo ? '<p style="margin:0 0 8px;font-size:13px;color:#2E3437">' + esc((ultimo.de === 'equipo' ? 'Equipo: ' : 'Cliente: ') + ultimo.texto) + '</p>' : '') +
-              H.enlace('/intranet/v4/soporte/?id=' + encodeURIComponent(c2.id), 'Ver sus tickets en Soporte →'));
+              '<p style="margin:0 0 6px;font-size:12.5px">' + (abiertos ? H.tag(tx(abiertos === 1 ? '%n abierto' : '%n abiertos', { n: abiertos }), 'espera') : H.tag('Todo resuelto', 'ok')) +
+              ' <span style="color:#75786e;margin-left:6px">' + esc(tx(hilos.length === 1 ? '%n ticket en total' : '%n tickets en total', { n: hilos.length })) + (ultimo ? ' · ' + esc(tx('último mensaje %f', { f: fFecha(ultimo.creado_en) })) : '') + '</span></p>' +
+              (ultimo ? '<p style="margin:0 0 8px;font-size:13px;color:#2E3437">' + esc((ultimo.de === 'equipo' ? tx('Equipo:') + ' ' : tx('Cliente:') + ' ') + ultimo.texto) + '</p>' : '') +
+              H.enlace('/intranet/v4/soporte/?id=' + encodeURIComponent(c2.id), tx('Ver sus tickets en Soporte →')));
           });
 
           /* Lo que cuesta una consulta se pide al abrir, no al listar 200
@@ -3228,7 +3238,7 @@
           if (!ids.length) pinta('facturas', H.nota('Sin contrato enlazado, no hay a qué factura atarla.'));
           else sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_numero,proyecto_nombre,total,moneda,fecha_emision,anulada')
             .in('contrato_id', ids).order('fecha_emision', { ascending: false }).then(function (rf) {
-              if (rf.error) return pinta('facturas', H.nota('No se pudieron leer las facturas: ' + rf.error.message));
+              if (rf.error) return pinta('facturas', H.nota(tx('No se pudieron leer las facturas: %e', { e: rf.error.message })));
               var fs = rf.data || [];
               if (!fs.length) return pinta('facturas', H.nota('Ninguna factura emitida todavía en sus contratos.'));
               var vivas = fs.filter(function (x) { return !x.anulada; }), nulas = fs.filter(function (x) { return x.anulada; });
@@ -3238,14 +3248,14 @@
               var TONO_DOC = { recibi: 'ok', factura: 'curso', proforma: 'neutro' };
               var etiquetaDoc = function (t) { return H.tag(TIPO_DOC_FAC[t] || t || '—', TONO_DOC[t] || 'neutro'); };
               var cuenta = {}; vivas.forEach(function (x) { cuenta[x.tipo] = (cuenta[x.tipo] || 0) + 1; });
-              var PLURAL = { factura: ['factura', 'facturas'], recibi: ['recibí', 'recibís'], proforma: ['proforma', 'proformas'] };
+              var PLURAL = { factura: ['%n factura', '%n facturas'], recibi: ['%n recibí', '%n recibís'], proforma: ['%n proforma', '%n proformas'] };
               var resumen = ['factura', 'recibi', 'proforma'].filter(function (t) { return cuenta[t]; }).map(function (t) {
-                return H.tag(cuenta[t] + ' ' + PLURAL[t][cuenta[t] === 1 ? 0 : 1], TONO_DOC[t]);
+                return H.tag(tx(PLURAL[t][cuenta[t] === 1 ? 0 : 1], { n: cuenta[t] }), TONO_DOC[t]);
               }).join(' ');
               var tabla = function (lista) {
                 return H.tabla(['Nº', 'Tipo', 'Contrato · unidad', 'Fecha', 'Importe'], lista.map(function (x) {
                   return [
-                    H.enlace(URL_FACTURA(x.id), x.numero || 'borrador', true),
+                    H.enlace(URL_FACTURA(x.id), x.numero || tx('borrador'), true),
                     etiquetaDoc(x.tipo),
                     esc([x.contrato_numero, x.proyecto_nombre].filter(Boolean).join(' · ') || '—'),
                     '<span style="white-space:nowrap">' + esc(fFecha(x.fecha_emision)) + '</span>',
@@ -3256,7 +3266,7 @@
               // las anuladas se APARTAN, no se esconden: un contador a la vista
               pinta('facturas', (resumen ? '<div style="display:flex;flex-wrap:wrap;gap:6px">' + resumen + '</div>' : '') +
                 (vivas.length ? tabla(vivas) : H.nota('Ninguna vigente: todas sus facturas están anuladas.')) +
-                (nulas.length ? '<details style="font-size:12px;color:#75786e"><summary style="cursor:pointer">' + nulas.length + (nulas.length === 1 ? ' anulada' : ' anuladas') + ' · no cuentan</summary>' + tabla(nulas) + '</details>' : ''));
+                (nulas.length ? '<details style="font-size:12px;color:#75786e"><summary style="cursor:pointer">' + esc(tx(nulas.length === 1 ? '%n anulada · no cuentan' : '%n anuladas · no cuentan', { n: nulas.length })) + '</summary>' + tabla(nulas) + '</details>' : ''));
             });
 
           /* Documentación KYC: tabla + subir + borrar (admin). Función nombrada
@@ -3277,17 +3287,17 @@
             ]).then(function (rr) {
                 if (!rr[0].error && !rr[0].data) return pinta('docs', H.nota('Los documentos de este comprador solo los ven quien lo dio de alta, su manager y administración.'));
                 var rd = rr[1];
-                if (rd.error) return pinta('docs', H.nota('No se pudieron leer los documentos: ' + rd.error.message));
+                if (rd.error) return pinta('docs', H.nota(tx('No se pudieron leer los documentos: %e', { e: rd.error.message })));
                 var ds = rd.data || [];
                 var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
                 var tablaDocs = ds.length ? H.tabla(['Documento', 'Subido', 'Caduca', ''], ds.map(function (d) {
-                  var cad = '<span style="color:#75786e">sin caducidad</span>';
+                  var cad = '<span style="color:#75786e">' + esc(tx('sin caducidad')) + '</span>';
                   if (d.caduca_el) {
                     var dd = Math.round((new Date(d.caduca_el + 'T00:00:00') - hoy) / 86400000);
-                    cad = dd < 0 ? H.tag('caducado hace ' + (-dd) + ' d', 'mal') : (dd <= 60 ? H.tag(fFecha(d.caduca_el), 'espera') : H.tag(fFecha(d.caduca_el), 'ok'));
+                    cad = dd < 0 ? H.tag(tx('caducado hace %n d', { n: -dd }), 'mal') : (dd <= 60 ? H.tag(fFecha(d.caduca_el), 'espera') : H.tag(fFecha(d.caduca_el), 'ok'));
                   }
-                  var acciones2 = (d.storage_path ? '<button type="button" data-doc-path="' + esc(d.storage_path) + '" style="padding:4px 10px;border-radius:999px;border:1px solid #E4DCCB;background:#fff;font-size:12px;cursor:pointer;color:#104C4F;font-weight:600">Abrir</button>' : '') +
-                    (puedeBorrarDoc ? '<button type="button" data-doc-borrar="' + esc(d.id) + '" style="margin-left:6px;padding:4px 10px;border-radius:999px;border:1px solid #9E2F26;background:#fff;font-size:12px;cursor:pointer;color:#9E2F26;font-weight:600">Borrar</button>' : '');
+                  var acciones2 = (d.storage_path ? '<button type="button" data-doc-path="' + esc(d.storage_path) + '" style="padding:4px 10px;border-radius:999px;border:1px solid #E4DCCB;background:#fff;font-size:12px;cursor:pointer;color:#104C4F;font-weight:600">' + esc(tx('Abrir')) + '</button>' : '') +
+                    (puedeBorrarDoc ? '<button type="button" data-doc-borrar="' + esc(d.id) + '" style="margin-left:6px;padding:4px 10px;border-radius:999px;border:1px solid #9E2F26;background:#fff;font-size:12px;cursor:pointer;color:#9E2F26;font-weight:600">' + esc(tx('Borrar')) + '</button>' : '');
                   return [esc(DOC_TIPO[d.doc_type] || d.doc_type || '—'), esc(fFecha(d.uploaded_at)), cad, acciones2];
                 })) : H.nota('Sin documentos todavía.');
                 /* Piel del alta (26-sep-2026, owner): desplegable propio de la v4
@@ -3295,14 +3305,14 @@
                 var idDocF = 'lwdoc-' + esc(c2.id);
                 var formSubida = '<div style="display:grid;gap:12px;margin-top:4px;padding-top:16px;border-top:1px solid #f5f5f4">' +
                   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">' +
-                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-t">Tipo</label><div class="las-rel"><select id="' + idDocF + '-t" data-doc-tipo class="las-in">' +
+                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-t">' + esc(tx('Tipo')) + '</label><div class="las-rel"><select id="' + idDocF + '-t" data-doc-tipo class="las-in">' +
                   Object.keys(DOC_TIPO).map(function (k) { return '<option value="' + esc(k) + '">' + esc(DOC_TIPO[k]) + '</option>'; }).join('') +
                   '</select></div></div>' +
-                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-c">Caduca el (opcional)</label><input type="date" id="' + idDocF + '-c" data-doc-caduca class="las-in"></div>' +
+                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-c">' + esc(tx('Caduca el (opcional)')) + '</label><input type="date" id="' + idDocF + '-c" data-doc-caduca class="las-in"></div>' +
                   '</div>' +
-                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-f">Fichero</label><input type="file" id="' + idDocF + '-f" data-doc-file accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif" class="las-in" style="padding:8px 12px"></div>' +
-                  '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><button type="button" data-doc-subir class="las-btn1" style="min-width:0;padding:10px 22px">Subir documento</button>' +
-                  '<p style="margin:0;font-size:11.5px;color:#a8a29e;flex:1;min-width:200px">Van a un archivo privado: al abrirlos se genera un enlace de 5 minutos.</p></div>' +
+                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-f">' + esc(tx('Fichero')) + '</label><input type="file" id="' + idDocF + '-f" data-doc-file accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif" class="las-in" style="padding:8px 12px"></div>' +
+                  '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><button type="button" data-doc-subir class="las-btn1" style="min-width:0;padding:10px 22px">' + esc(tx('Subir documento')) + '</button>' +
+                  '<p style="margin:0;font-size:11.5px;color:#a8a29e;flex:1;min-width:200px">' + esc(tx('Van a un archivo privado: al abrirlos se genera un enlace de 5 minutos.')) + '</p></div>' +
                   '</div>';
                 /* Alerta KYC (paridad S6, 23-sep-2026) — misma regla que
                    `alerta()` de la clásica: el PEOR documento con caducidad
@@ -3315,7 +3325,7 @@
                 });
                 var alertaKyc = peor === null ? ''
                   : peor < 0 ? H.nota('Hay un documento caducado: el KYC de esta persona no vale hasta renovarlo.')
-                  : peor <= 60 ? H.nota('Un documento caduca en ' + peor + ' día' + (peor === 1 ? '' : 's') + ': conviene pedir el nuevo ya.')
+                  : peor <= 60 ? H.nota(tx(peor === 1 ? 'Un documento caduca en %n día: conviene pedir el nuevo ya.' : 'Un documento caduca en %n días: conviene pedir el nuevo ya.', { n: peor }))
                   : '';
                 pinta('docs', alertaKyc + tablaDocs + formSubida);
                 if (window.lwMejoraSelects) window.lwMejoraSelects(cj.cuerpo);
@@ -3327,7 +3337,7 @@
                     b.disabled = true;
                     sb.storage.from('kyc').createSignedUrl(b.getAttribute('data-doc-path'), 300).then(function (ru) {
                       b.disabled = false;
-                      if (ru.error || !(ru.data && ru.data.signedUrl)) return toastMal('No se pudo abrir el documento' + (ru.error ? ': ' + ru.error.message : ''));
+                      if (ru.error || !(ru.data && ru.data.signedUrl)) return toastMal(tx('No se pudo abrir el documento') + (ru.error ? ': ' + ru.error.message : ''));
                       window.open(ru.data.signedUrl, '_blank', 'noopener');
                     });
                   });
@@ -3340,28 +3350,28 @@
                     var idDoc = b.getAttribute('data-doc-borrar');
                     var d = ds.filter(function (x) { return x.id === idDoc; })[0];
                     if (!d) return;
-                    var nombreDoc = DOC_TIPO[d.doc_type] || d.doc_type || 'documento';
+                    var nombreDoc = DOC_TIPO[d.doc_type] || d.doc_type || tx('documento');
                     lwConfirmar({
-                      titulo: 'Retirar ' + nombreDoc,
-                      cuerpo: '<p>Se retira <b>' + esc(nombreDoc) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '') + ' de la ficha.</p>' +
-                        '<p>Si el comprador tiene contratos o pagos a su nombre, el fichero se conserva archivado (lo retira solo un super admin, con motivo). Si no, se borra del archivo privado y no hay papelera.</p>' +
-                        '<label for="kyc-retira-motivo">Motivo</label><input id="kyc-retira-motivo" type="text" maxlength="300" class="las-in">',
+                      titulo: tx('Retirar %n', { n: nombreDoc }),
+                      cuerpo: '<p>' + tx(d.uploaded_at ? 'Se retira %n (subido el %f) de la ficha.' : 'Se retira %n de la ficha.', { n: '<b>' + esc(nombreDoc) + '</b>', f: d.uploaded_at ? esc(fFecha(d.uploaded_at)) : '' }) + '</p>' +
+                        '<p>' + esc(tx('Si el comprador tiene contratos o pagos a su nombre, el fichero se conserva archivado (lo retira solo un super admin, con motivo). Si no, se borra del archivo privado y no hay papelera.')) + '</p>' +
+                        '<label for="kyc-retira-motivo">' + esc(tx('Motivo')) + '</label><input id="kyc-retira-motivo" type="text" maxlength="300" class="las-in">',
                       confirmar: 'Retirar el documento', tono: 'peligro'
                     }).then(function (ok) {
                       if (!ok) return;
                       var mEl = document.getElementById('kyc-retira-motivo');
                       var motivoDoc = ((mEl && mEl.value) || '').trim();
-                      b.disabled = true; b.textContent = 'Retirando…';
+                      b.disabled = true; b.textContent = tx('Retirando…');
                       // por el servidor (27-sep-2026, LAW-336 bloque 2): la base decide si se puede y si el
                       // fichero se borra o se conserva (contrato firmado, decisión del owner)
                       window.lwKyc(sb, 'retira', { document_id: idDoc, motivo: motivoDoc || null }).then(function (r) {
                         if (r.aviso) toastMal('Documento retirado de la ficha, pero su fichero sigue en el archivo: avisa a Datos.');
                         if (r.kyc_vuelve_a_revision) c2.kyc_status = 'submitted';
-                        toast(nombreDoc + (r.conservado ? ' retirado (el fichero queda archivado)' : ' retirado') +
-                              (r.kyc_vuelve_a_revision ? ' · el KYC vuelve a «En revisión»' : ''));
+                        toast(tx(r.conservado ? '%n retirado (el fichero queda archivado)' : '%n retirado', { n: nombreDoc }) +
+                              (r.kyc_vuelve_a_revision ? ' · ' + tx('el KYC vuelve a «En revisión»') : ''));
                         cargaDocs();
                       }, function (e) {
-                        b.disabled = false; b.textContent = 'Borrar';
+                        b.disabled = false; b.textContent = tx('Borrar');
                         toastMal(lwErrorHumano(e, 'No se pudo retirar'));
                       });
                     });
@@ -3373,17 +3383,17 @@
                   var f = fEl && fEl.files && fEl.files[0];
                   if (!f) { toastMal('Elige un fichero'); return; }
                   if (f.size > 20 * 1024 * 1024) { toastMal('El fichero supera los 20 MB'); return; }
-                  bSub.disabled = true; bSub.textContent = 'Subiendo…';
+                  bSub.disabled = true; bSub.textContent = tx('Subiendo…');
                   var tipoDoc = cj.cuerpo.querySelector('[data-doc-tipo]').value;
                   var caduca = cj.cuerpo.querySelector('[data-doc-caduca]').value || null;
                   // la ruta la decide el servidor, la subida va por URL firmada y al registrar el servidor mira
                   // que el fichero sea lo que dice ser (27-sep-2026, LAW-336 bloque 2: guard.js lwKycSube)
                   window.lwKycSube(sb, c2.id, f, tipoDoc, caduca).then(function () {
-                    bSub.disabled = false; bSub.textContent = 'Subir documento';
+                    bSub.disabled = false; bSub.textContent = tx('Subir documento');
                     toast('Documento subido');
                     cargaDocs();
                   }, function (e) {
-                    bSub.disabled = false; bSub.textContent = 'Subir documento';
+                    bSub.disabled = false; bSub.textContent = tx('Subir documento');
                     toastMal(lwErrorHumano(e, 'No se pudo subir'));
                   });
                 });
@@ -3399,39 +3409,39 @@
             .then(function (g) { puedeGestPortal = !g.error && g.data === true; }, function () { puedeGestPortal = false; });
           function cargaPortal() {
             avisoGestPortal.then(function () { return sb.from('portal_accesos').select('email,activo,ultimo_acceso,accesos').eq('client_id', c2.id); }).then(function (rp) {
-              if (rp.error) return pinta('portal', H.nota('No se pudo leer el acceso al portal: ' + rp.error.message));
+              if (rp.error) return pinta('portal', H.nota(tx('No se pudo leer el acceso al portal: %e', { e: rp.error.message })));
               var suyos = rp.data || [], activos = suyos.filter(function (x) { return x.activo; });
               var rastro = function (a) {
                 return !a.accesos ? H.tag('sin estrenar', 'espera')
-                  : H.tag(a.accesos + (a.accesos === 1 ? ' entrada' : ' entradas'), 'ok') + (a.ultimo_acceso ? ' <span style="font-size:11px;color:#75786e">última: ' + esc(fFecha(a.ultimo_acceso)) + '</span>' : '');
+                  : H.tag(tx(a.accesos === 1 ? '%n entrada' : '%n entradas', { n: a.accesos }), 'ok') + (a.ultimo_acceso ? ' <span style="font-size:11px;color:#75786e">' + esc(tx('última: %f', { f: fFecha(a.ultimo_acceso) })) + '</span>' : '');
               };
               var estado;
               if (activos.length) {
                 estado = activos.map(function (a) { return H.dato(a.email, rastro(a), { html: 1 }); }).join('') +
-                  '<p style="margin:4px 0 0;font-size:11.5px;color:#75786e">Ve sus contratos, pagos, facturas y obra en /portal/.</p>';
+                  '<p style="margin:4px 0 0;font-size:11.5px;color:#75786e">' + esc(tx('Ve sus contratos, pagos, facturas y obra en /portal/.')) + '</p>';
               } else if (suyos.length) {
                 estado = H.nota('Acceso REVOCADO. Se puede volver a invitar desde aquí; mientras haya una fila revocada, la entrada automática no se la devuelve.');
               } else if (c2.email && vins.length) {
-                estado = H.nota('Entra solo: con ' + esc(c2.email) + ' y sus contratos, el portal le abre la puerta sin invitación (salvo que ese correo sea de alguien del equipo).', true);
+                estado = H.nota(tx('Entra solo: con %e y sus contratos, el portal le abre la puerta sin invitación (salvo que ese correo sea de alguien del equipo).', { e: esc(c2.email) }), true);
               } else {
-                estado = H.nota('Sin acceso todavía. La entrada automática pide correo en la ficha y al menos un contrato — le falta ' + (c2.email ? 'el contrato' : 'el correo') + '.');
+                estado = H.nota(tx(c2.email ? 'Sin acceso todavía. La entrada automática pide correo en la ficha y al menos un contrato — le falta el contrato.' : 'Sin acceso todavía. La entrada automática pide correo en la ficha y al menos un contrato — le falta el correo.'));
               }
               var botonesTop = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
-                '<button type="button" data-portal-preview style="padding:7px 14px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#104C4F;font-weight:600;font-size:12.5px;cursor:pointer">Vista previa del portal</button>' +
-                '<button type="button" data-portal-tickets style="padding:7px 14px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#104C4F;font-weight:600;font-size:12.5px;cursor:pointer">Ver tickets →</button>' +
+                '<button type="button" data-portal-preview style="padding:7px 14px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#104C4F;font-weight:600;font-size:12.5px;cursor:pointer">' + esc(tx('Vista previa del portal')) + '</button>' +
+                '<button type="button" data-portal-tickets style="padding:7px 14px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#104C4F;font-weight:600;font-size:12.5px;cursor:pointer">' + esc(tx('Ver tickets')) + ' →</button>' +
                 '</div>';
               var controles;
               if (window.LW_V4.esAdmin && puedeGestPortal) {
                 var emailPre = (activos[0] && activos[0].email) || c2.email || '';
                 controles = '<div style="display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(228,220,203,.7)">' +
-                  '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">Email de acceso<input type="email" data-portal-email value="' + esc(emailPre) + '" style="padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff"></label>' +
+                  '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">' + esc(tx('Email de acceso')) + '<input type="email" data-portal-email value="' + esc(emailPre) + '" style="padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff"></label>' +
                   '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-                  '<button type="button" data-portal-invitar style="padding:9px 16px;border-radius:8px;border:0;background:#104C4F;color:#fff;font-weight:600;font-size:13px;cursor:pointer">' + (activos.length ? 'Reenviar enlace' : 'Invitar al portal') + '</button>' +
-                  (activos.length ? '<button type="button" data-portal-pass style="padding:9px 16px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#2E3437;font-weight:600;font-size:13px;cursor:pointer">Ponerle contraseña</button>' : '') +
-                  (activos.length ? '<button type="button" data-portal-revocar style="padding:9px 16px;border-radius:8px;border:1px solid #9E2F26;background:#fff;color:#9E2F26;font-weight:600;font-size:13px;cursor:pointer">Revocar acceso</button>' : '') +
+                  '<button type="button" data-portal-invitar style="padding:9px 16px;border-radius:8px;border:0;background:#104C4F;color:#fff;font-weight:600;font-size:13px;cursor:pointer">' + esc(activos.length ? tx('Reenviar enlace') : tx('Invitar al portal')) + '</button>' +
+                  (activos.length ? '<button type="button" data-portal-pass style="padding:9px 16px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#2E3437;font-weight:600;font-size:13px;cursor:pointer">' + esc(tx('Ponerle contraseña')) + '</button>' : '') +
+                  (activos.length ? '<button type="button" data-portal-revocar style="padding:9px 16px;border-radius:8px;border:1px solid #9E2F26;background:#fff;color:#9E2F26;font-weight:600;font-size:13px;cursor:pointer">' + esc(tx('Revocar acceso')) + '</button>' : '') +
                   '</div></div>';
               } else {
-                controles = '<p style="margin:8px 0 0;font-size:11.5px;color:#75786e">Invitar o revocar lo hace un administrador.</p>';
+                controles = '<p style="margin:8px 0 0;font-size:11.5px;color:#75786e">' + esc(tx('Invitar o revocar lo hace un administrador.')) + '</p>';
               }
               pinta('portal', botonesTop + estado + controles);
 
@@ -3449,8 +3459,8 @@
                   var email = (campoEmail.value || '').trim().toLowerCase();
                   if (!email) { toastMal('Falta el email de acceso'); return; }
                   lwConfirmar({
-                    titulo: 'Invitar a ' + email + ' al portal',
-                    cuerpo: '<p>Se le envía un <b>correo de acceso</b> y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.</p>',
+                    titulo: tx('Invitar a %e al portal', { e: email }),
+                    cuerpo: '<p>' + tx('Se le envía un %c y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.', { c: '<b>' + esc(tx('correo de acceso')) + '</b>' }) + '</p>',
                     confirmar: 'Enviar la invitación'
                   }).then(function (ok) {
                     if (!ok) return;
@@ -3467,7 +3477,7 @@
                 if (bPass) bPass.addEventListener('click', function () {
                   var email = (campoEmail.value || '').trim().toLowerCase() || (activos[0] && activos[0].email);
                   if (!email) return;
-                  var p = prompt('Nueva contraseña para ' + email + ' (mínimo 10 caracteres).\nApúntala: no se puede volver a consultar, solo cambiar por otra.');
+                  var p = prompt(tx('Nueva contraseña para %e (mínimo 10 caracteres).', { e: email }) + '\n' + tx('Apúntala: no se puede volver a consultar, solo cambiar por otra.'));
                   if (p === null) return;
                   if (p.length < 10) { toastMal('Mínimo 10 caracteres'); return; }
                   bPass.disabled = true;
@@ -3482,8 +3492,8 @@
                   var email = activos[0] && activos[0].email;
                   if (!email) return;
                   lwConfirmar({
-                    titulo: 'Revocar el acceso de ' + email,
-                    cuerpo: '<p>Dejará de ver <b>todas</b> las fichas vinculadas a ese email, no solo ésta.</p>',
+                    titulo: tx('Revocar el acceso de %e', { e: email }),
+                    cuerpo: '<p>' + tx('Dejará de ver %t las fichas vinculadas a ese email, no solo ésta.', { t: '<b>' + esc(tx('todas')) + '</b>' }) + '</p>',
                     confirmar: 'Revocar el acceso', tono: 'peligro'
                   }).then(function (ok) {
                     if (!ok) return;
@@ -3516,22 +3526,22 @@
               var facs = (r[1] && r[1].data) || [];
               var docs = (r[2] && r[2].data) || [];
               var tContratos = cts.length ? H.tabla(['Nº', 'Tipo', 'Estado', 'Precio', 'Cobrado'], cts.map(function (x) {
-                return [esc(x.numero || 'borrador'), esc(tipoC(x.tipo)), x.bloqueado ? 'Firmado' : 'Borrador',
+                return [esc(x.numero || tx('borrador')), esc(tipoC(x.tipo)), esc(x.bloqueado ? tx('Firmado') : tx('Borrador')),
                   (!esPre(x.tipo) && x.precio_total != null) ? esc(fmt(Number(x.precio_total), x.moneda)) : '—',
                   esc(fmt(cobId[x.id] || 0, x.moneda))];
               })) : H.nota('Sin contratos.');
               var tFacturas = facs.length ? H.tabla(['Nº', 'Fecha', 'Importe', 'Estado'], facs.map(function (f) {
-                return [esc(f.numero || 'borrador'), esc(fFecha(f.fecha_emision)), f.total != null ? esc(fmt(Number(f.total), f.moneda)) : '—', f.anulada ? 'Anulada' : '—'];
+                return [esc(f.numero || tx('borrador')), esc(fFecha(f.fecha_emision)), f.total != null ? esc(fmt(Number(f.total), f.moneda)) : '—', f.anulada ? esc(tx('Anulada')) : '—'];
               })) : H.nota('Sin facturas.');
               var tDocs = docs.length ? H.tabla(['Documento', 'Subido'], docs.map(function (d) {
                 return [esc(DOC_TIPO[d.doc_type] || d.doc_type || '—'), esc(fFecha(d.uploaded_at))];
               })) : H.nota('Sin documentos.');
               lwConfirmar({
-                titulo: 'Vista previa del portal — ' + (c2.full_name || ''),
+                titulo: tx('Vista previa del portal') + ' — ' + (c2.full_name || ''),
                 cuerpo: H.nota('Esto es lo que este cliente ve ahora mismo en /portal/. No se ha abierto ninguna sesión suya: se lee con tu permiso de equipo.') +
-                  '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">Contratos</h4>' + tContratos +
-                  '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">Facturas</h4>' + tFacturas +
-                  '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">Documentos</h4>' + tDocs,
+                  '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">' + esc(tx('Contratos')) + '</h4>' + tContratos +
+                  '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">' + esc(tx('Facturas')) + '</h4>' + tFacturas +
+                  '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">' + esc(tx('Documentos')) + '</h4>' + tDocs,
                 confirmar: 'Cerrar', cancelar: false
               });
             });
@@ -3554,11 +3564,11 @@
           fila(pl, [
             c2.full_name,
             (c2.email || '—') + (c2.nationality ? ' · ' + c2.nationality : ''),
-            c2.tipo === 'empresa' ? 'Empresa' : 'Persona física',
-            d ? Object.keys(d.proys).join(' · ') || (d.n + (d.n === 1 ? ' contrato' : ' contratos')) : '—',
-            d && d.inv ? fmt(d.inv, 'EUR') : (d && d.otras ? 'otra moneda' : '—'),
+            c2.tipo === 'empresa' ? tx('Empresa') : tx('Persona física'),
+            d ? Object.keys(d.proys).join(' · ') || tx(d.n === 1 ? '%n contrato' : '%n contratos', { n: d.n }) : '—',
+            d && d.inv ? fmt(d.inv, 'EUR') : (d && d.otras ? tx('otra moneda') : '—'),
             d && d.inv ? fmt(d.pag, 'EUR') + ' · ' + Math.round(d.pag / d.inv * 100) + '%' : (d ? fmt(d.pag, 'EUR') : '—'),
-            (KYC[c2.kyc_status || 'pending'] || [c2.kyc_status])[0],
+            tx((KYC[c2.kyc_status || 'pending'] || [c2.kyc_status])[0]),
             '',
             ''
           ]);
@@ -3574,7 +3584,7 @@
           if (basicaDe[c2.id]) tr.setAttribute('data-ficha-basica', '1');
           tr.setAttribute('data-tiene-contrato', d ? '1' : '0');
           tr.setAttribute('data-en-firma', d && d.firma ? '1' : '0');
-          tr.lastElementChild.innerHTML = '<button type="button" data-real title="Ver ficha" class="p-1 text-on-surface-variant hover:text-deep-lagoon transition-colors"><span class="material-symbols-outlined text-[18px]">visibility</span></button>';
+          tr.lastElementChild.innerHTML = '<button type="button" data-real title="' + esc(tx('Ver ficha')) + '" class="p-1 text-on-surface-variant hover:text-deep-lagoon transition-colors"><span class="material-symbols-outlined text-[18px]">visibility</span></button>';
         });
         pl.tbody.addEventListener('click', function (ev) {
           var tr = ev.target.closest && ev.target.closest('tr[data-id]');
@@ -6750,7 +6760,7 @@
           cajaFrenos.hidden = false;
           var diaHora = function (s) {
             var d = new Date(s);
-            return isNaN(d) ? String(s) : d.toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            return isNaN(d) ? String(s) : d.toLocaleString(loc(), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
           };
           var pintaFalloFrenos = function () {
             cuerpoFrenos.innerHTML = '<p class="text-[12.5px] mt-1" style="color:#C8791F">'
@@ -8357,7 +8367,7 @@
     if (!x) return '—';
     var d = new Date(x);
     if (isNaN(d)) return String(x);
-    return d.toLocaleString('es-ES', { timeZone: 'Asia/Makassar', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleString(loc(), { timeZone: 'Asia/Makassar', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   }
   function pintaVentasPorSuCuenta(sb, ctx) {
     var T = function (x, h) { return (typeof lwT === 'function') ? lwT(x, h) : x; };
@@ -9620,8 +9630,8 @@
     var hoy = hoyLocal();
     function masDias(iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
     function entre(a, b) { return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5); }
-    function fecha(iso) { return iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—'; }
-    function fechaC(iso) { return iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '—'; }
+    function fecha(iso) { return iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—'; }
+    function fechaC(iso) { return iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString(loc(), { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '—'; }
     function pon(k, v) { var e = document.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v; }
     var hace14 = new Date(Date.now() - 14 * 864e5).toISOString();
     Promise.all([
@@ -9862,7 +9872,7 @@
     if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
     var cuerpo = document.getElementById('lw-ajustes-lista');
     var soloLee = !(window.LW_V4 && window.LW_V4.esSuperAdmin);
-    function fFechaHora(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleString('es-ES'); }
+    function fFechaHora(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleString(loc()); }
     function pinta() {
       q(sb.from('parametros').select('*').order('grupo').order('orden'), 'ajustes', cuerpo).then(function (rows) {
         if (!rows) return;
@@ -10033,7 +10043,7 @@
     function fFechaHora(x) {
       if (!x) return '—';
       var d = new Date(x);
-      return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleString('es-ES');
+      return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleString(loc());
     }
 
     Promise.all([
@@ -10382,7 +10392,7 @@
          aviso, envejece en silencio — y en una consola operativa lo que dice es
          que lo de debajo es de ese dia. Se pinta la de hoy, aqui y no en el HTML,
          que es donde ya se pintan el usuario y el rol. */
-      var hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+      var hoy = new Date().toLocaleDateString(loc(), { day: 'numeric', month: 'long', year: 'numeric' });
       document.querySelectorAll('[data-lw-hoy]').forEach(function (e) { e.textContent = hoy; });
 
       if (window.LW_CABECERA) window.LW_CABECERA.campana(aut, rol, { cajon: true });

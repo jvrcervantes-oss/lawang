@@ -24,6 +24,8 @@
   var seg = location.pathname.replace(/\/(index\.html)?$/, '').split('/').pop();
 
   /* ---------- utilidades ---------- */
+  // Rótulos de las piezas del cajón en el idioma de la interfaz (12-oct-2026): i18n.js → lwTSuave; en español, tal cual.
+  function tS(v) { return (typeof lwTSuave === 'function') ? lwTSuave(v) : v; }
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -32,6 +34,8 @@
   /* Puente al diccionario (28-sep-2026, LAW-407): el marco del cajón («Cerrar») pasa por lwT.
      Dentro del IIFE: un `lwT` propio pisaría el global de i18n.js. */
   function edT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
+  // Como edT pero rellena los huecos también sin i18n.js (12-oct-2026): «%n de %m» nunca sale con el % a la vista.
+  function tH(s, h) { if (window.lwT) return window.lwT(s, h); var v = String(s); for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) v = v.split('%' + k).join(h[k]); return v; }
   /* Filas SIN casilla dentro de un `multicheck` (27-sep-2026, permisos de Usuarios por
      secciones del menú): `{seccion}` es una cabecera y `{info, nota}` una herramienta que
      se abre por ROL y no por casilla («solo super admin», «según rol»). Ninguna lleva
@@ -448,8 +452,8 @@
       Promise.resolve(onGuardar(vals)).then(function (r) {
         if (r && r.error) {
           btn.disabled = false; btn.textContent = textoBoton || 'Guardar';
-          muestraError('No se pudo guardar: ' + (r.error.message || r.error) +
-            (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — tu usuario no tiene ese permiso; el gate es la policy, no esta pantalla.' : ''));
+          muestraError(tS('No se pudo guardar: ') + (r.error.message || r.error) +
+            (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — ' + tS('tu usuario no tiene ese permiso; el gate es la policy, no esta pantalla.') : ''));
           return;
         }
         cierraModal();
@@ -846,16 +850,16 @@
       '<div role="dialog" aria-modal="true" aria-labelledby="' + idT + '" class="las-marco">' +
       '<form data-e="form" data-lateral="1" class="las-panel las-gen ' + (split ? 'las-gen-split' : 'las-gen-solo') + '"' + ancho + '>' +
       '<header class="las-cab"><div class="las-cab-izq"><span class="las-barra"></span><div class="las-min0">' +
-      (opts.sub || nuevo ? '<div class="las-miga">' + (opts.sub ? '<span>' + esc(opts.sub) + '</span>' : '') +
-        (nuevo ? (opts.sub ? '<span class="las-sep">/</span>' : '') + '<span class="las-estado">Nuevo</span>' : '') + '</div>' : '') +
-      '<h1 id="' + idT + '" class="las-h1">' + esc(titulo) + '</h1></div></div>' +
-      '<button type="button" data-e="cerrar" class="las-cerrar" title="Cerrar panel" aria-label="Cerrar">' + icoBase(ICO_BASE.x) + '</button></header>' +
+      (opts.sub || nuevo ? '<div class="las-miga">' + (opts.sub ? '<span>' + esc(tS(opts.sub)) + '</span>' : '') +
+        (nuevo ? (opts.sub ? '<span class="las-sep">/</span>' : '') + '<span class="las-estado">' + esc(tS('Nuevo')) + '</span>' : '') + '</div>' : '') +
+      '<h1 id="' + idT + '" class="las-h1">' + esc(tS(titulo)) + '</h1></div></div>' +
+      '<button type="button" data-e="cerrar" class="las-cerrar" title="' + esc(tS('Cerrar panel')) + '" aria-label="' + esc(tS('Cerrar')) + '">' + icoBase(ICO_BASE.x) + '</button></header>' +
       '<div class="las-cuerpo">' +
-      (split ? '<button type="button" class="las-lado-btn" aria-expanded="false">Resumen ' + icoBase(ICO_BASE.abajo) + '</button>' +
+      (split ? '<button type="button" class="las-lado-btn" aria-expanded="false">' + esc(tS('Resumen')) + ' ' + icoBase(ICO_BASE.abajo) + '</button>' +
         '<section class="las-lado" aria-label="Resumen">' +
-        (oblig.length ? '<article class="las-card"><h2 class="las-cinta las-card-h"><span>Resumen</span><span class="las-fase" data-e="cuenta">0 de ' + oblig.length + '</span></h2>' +
+        (oblig.length ? '<article class="las-card"><h2 class="las-cinta las-card-h"><span>' + esc(tS('Resumen')) + '</span><span class="las-fase" data-e="cuenta">' + esc(tH('%n de %m', { n: 0, m: oblig.length })) + '</span></h2>' +
           '<div class="las-datos las-gen-res">' + oblig.map(function (c) {
-            return '<div class="las-min0"><span class="las-dato-etq">' + esc(c.label) + '</span><span class="las-dato" data-res="' + esc(c.k) + '">—</span></div>';
+            return '<div class="las-min0"><span class="las-dato-etq">' + esc(tS(c.label)) + '</span><span class="las-dato" data-res="' + esc(c.k) + '">—</span></div>';
           }).join('') + '</div></article>' : '') +
         '<div data-e="notas" class="las-gen-notas"></div></section>' : '') +
       '<div class="las-derecha"><div class="las-scroll"><div class="las-form">' +
@@ -866,9 +870,9 @@
       '</div></div>' +
       '<footer class="las-pie"><div class="las-pie-izq">' +
       (oblig.length ? '<span class="las-punto" data-e="punto"></span><span data-e="faltan"></span>' : '') + '</div>' +
-      '<div class="las-pie-der"><button type="button" data-e="cancelar" class="las-btn2">Cancelar</button>' +
-      '<button type="submit" data-e="guardar" class="las-btn1"><span class="las-txt">' + esc(textoBoton || 'Guardar') + icoBase(ICO_BASE.flecha, 'las-ico las-flecha') + '</span>' +
-      '<span class="las-giro" aria-hidden="true"><i></i></span><span class="las-ok">Guardado ✓</span></button></div></footer>' +
+      '<div class="las-pie-der"><button type="button" data-e="cancelar" class="las-btn2">' + esc(tS('Cancelar')) + '</button>' +
+      '<button type="submit" data-e="guardar" class="las-btn1"><span class="las-txt">' + esc(tS(textoBoton || 'Guardar')) + icoBase(ICO_BASE.flecha, 'las-ico las-flecha') + '</span>' +
+      '<span class="las-giro" aria-hidden="true"><i></i></span><span class="las-ok">' + esc(tS('Guardado')) + ' ✓</span></button></div></footer>' +
       '</div></div></form></div>';
     document.body.appendChild(w);
     var form = w.querySelector('[data-e="form"]'), fondo = w.querySelector('[data-e="fondo"]');
@@ -890,7 +894,7 @@
       var s = document.createElement('section');
       s.className = 'las-bloque';
       s.innerHTML = '<div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n' + (n > 1 ? ' las-n-verde' : '') + '">0' + n + '</span><h3>' + g.t + '</h3></div>' +
-        (n === 1 && oblig.length ? '<span class="las-req-nota">* Campos requeridos</span>' : '') + '</div><div class="las-rejilla"></div>';
+        (n === 1 && oblig.length ? '<span class="las-req-nota">* ' + esc(tS('Campos requeridos')) + '</span>' : '') + '</div><div class="las-rejilla"></div>';
       cont.appendChild(s);
       rejillas.push({ f: g.f, el: s.querySelector('.las-rejilla') });
     });
@@ -904,23 +908,23 @@
       var ancha = !c.medio || c.tipo === 'check' || c.tipo === 'nota' || c.tipo === 'custom' || c.tipo === 'multicheck';
       if (ancha) d.classList.add('las-ancha');
       if (c.req && c.k) d.setAttribute('data-req', c.k);
-      var etq = '<label for="' + id + '" class="las-etq">' + esc(c.label) + (c.req ? ' <span class="las-rojo">*</span>' : '') + '</label>';
-      var ayuda = c.ayuda && c.tipo !== 'check' ? '<p class="las-ayuda">' + esc(c.ayuda) + '</p>' : '';
+      var etq = '<label for="' + id + '" class="las-etq">' + esc(tS(c.label)) + (c.req ? ' <span class="las-rojo">*</span>' : '') + '</label>';
+      var ayuda = c.ayuda && c.tipo !== 'check' ? '<p class="las-ayuda">' + esc(tS(c.ayuda)) + '</p>' : '';
       var msg = '<p class="las-msg" role="alert"></p>';
       if (c.tipo === 'check') {
         d.innerHTML = '<label class="las-check"><input type="checkbox" data-k="' + esc(c.k) + '"' + (c.valor ? ' checked' : '') + '>' +
-          '<span><span class="las-check-t">' + esc(c.label) + '</span>' + (c.ayuda ? '<span class="las-ayuda">' + esc(c.ayuda) + '</span>' : '') + '</span></label>' + msg;
+          '<span><span class="las-check-t">' + esc(tS(c.label)) + '</span>' + (c.ayuda ? '<span class="las-ayuda">' + esc(tS(c.ayuda)) + '</span>' : '') + '</span></label>' + msg;
       } else if (c.tipo === 'select') {
         d.innerHTML = etq + '<div class="las-rel"><select id="' + id + '" data-k="' + esc(c.k) + '" class="las-in">' +
           (c.opciones || []).map(function (o) {
             var vv = typeof o === 'string' ? [o, o] : o;
-            return '<option value="' + esc(vv[0]) + '"' + (String(c.valor) === String(vv[0]) ? ' selected' : '') + '>' + esc(vv[1]) + '</option>';
+            return '<option value="' + esc(vv[0]) + '"' + (String(c.valor) === String(vv[0]) ? ' selected' : '') + '>' + esc(tS(vv[1])) + '</option>';
           }).join('') + '</select></div>' + ayuda + msg;
       } else if (c.tipo === 'nota') {
         /* Texto explicativo: sin data-k, no se recoge. En ámbar para que no se
            lea como un campo bloqueado. */
         d.className = 'las-aviso las-ancha';
-        d.innerHTML = icoBase(ICO_BASE.info, 'las-ico-aviso') + '<div class="las-min0">' + esc(c.label) + '</div>';
+        d.innerHTML = icoBase(ICO_BASE.info, 'las-ico-aviso') + '<div class="las-min0">' + esc(tS(c.label)) + '</div>';
       } else if (c.tipo === 'lectura') {
         // Espejo de solo lectura; `dataMostrar` solo sirve para que otro script
         // actualice su texto en vivo. Nunca se lee al recoger.
@@ -929,24 +933,24 @@
       } else if (c.tipo === 'textarea') {
         d.innerHTML = etq + '<div class="las-rel"><textarea id="' + id + '" data-k="' + esc(c.k) + '" rows="4" class="las-in las-area">' + esc(c.valor) + '</textarea></div>' + ayuda + msg;
       } else if (c.tipo === 'file') {
-        d.innerHTML = etq + '<label class="las-in las-file">' + icoBase(ICO_BASE.subir) + '<span class="las-file-t">Elegir fichero</span>' +
+        d.innerHTML = etq + '<label class="las-in las-file">' + icoBase(ICO_BASE.subir) + '<span class="las-file-t">' + esc(tS('Elegir fichero')) + '</span>' +
           '<input id="' + id + '" data-k="' + esc(c.k) + '" type="file" accept="' + esc(c.accept || '*/*') + '"></label>' + ayuda + msg;
         var fi = d.querySelector('input[type="file"]'), ft = d.querySelector('.las-file-t');
-        fi.addEventListener('change', function () { ft.textContent = fi.files && fi.files[0] ? fi.files[0].name : 'Elegir fichero'; d.classList.toggle('las-file-on', !!(fi.files && fi.files[0])); });
+        fi.addEventListener('change', function () { ft.textContent = fi.files && fi.files[0] ? fi.files[0].name : tS('Elegir fichero'); d.classList.toggle('las-file-on', !!(fi.files && fi.files[0])); });
       } else if (c.tipo === 'custom') {
         /* Widget propio (tramos de Condiciones…). SIN data-k: lo recoge su
            onGuardar. c.render(d) lo monta dentro. */
         d.className = 'las-gen-custom las-ancha';
         if (typeof c.render === 'function') c.render(d);
       } else if (c.tipo === 'multicheck') {
-        d.innerHTML = '<span class="las-etq">' + esc(c.label) + (c.req ? ' <span class="las-rojo">*</span>' : '') + '</span>' +
+        d.innerHTML = '<span class="las-etq">' + esc(tS(c.label)) + (c.req ? ' <span class="las-rojo">*</span>' : '') + '</span>' +
           '<div data-k="' + esc(c.k) + '" class="las-multi">' +
           (c.opciones || []).map(function (o) {
             var fs = filaSinCasilla(o, '');
             if (fs !== null) return fs;
             var vv = typeof o === 'string' ? [o, o] : o;
             return '<label class="las-check las-check-p"><input type="checkbox" value="' + esc(vv[0]) + '"' +
-              ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '><span class="las-check-t">' + esc(vv[1]) + '</span></label>';
+              ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '><span class="las-check-t">' + esc(tS(vv[1])) + '</span></label>';
           }).join('') + '</div>' +
           /* Atajos OPT-IN por campo (21-sep-2026, LAW-71): {texto, valor}. */
           (Array.isArray(c.atajos) && c.atajos.length
@@ -1017,9 +1021,9 @@
         var r = w.querySelector('[data-res="' + c.k + '"]'); if (r) r.textContent = v || '—';
       });
       var falta = oblig.length - llenos;
-      var t = w.querySelector('[data-e="faltan"]'); if (t) t.textContent = falta ? 'Faltan ' + falta + ' de ' + oblig.length + ' datos obligatorios' : 'Listo para guardar';
+      var t = w.querySelector('[data-e="faltan"]'); if (t) t.textContent = falta ? tH('Faltan %n de %m datos obligatorios', { n: falta, m: oblig.length }) : tS('Listo para guardar');
       var p = w.querySelector('[data-e="punto"]'); if (p) p.classList.toggle('las-listo', !falta);
-      var cu = w.querySelector('[data-e="cuenta"]'); if (cu) cu.textContent = llenos + ' de ' + oblig.length;
+      var cu = w.querySelector('[data-e="cuenta"]'); if (cu) cu.textContent = tH('%n de %m', { n: llenos, m: oblig.length });
     }
     w._recuenta = recuenta;
     form.addEventListener('input', function (e) {
@@ -1070,11 +1074,11 @@
         faltan.forEach(function (c) {
           var card = w.querySelector('[data-req="' + c.k + '"]');
           if (!card || card.classList.contains('las-oculto')) return;
-          var m = card.querySelector('.las-msg'); if (m) m.textContent = 'Este dato hace falta para guardar.';
+          var m = card.querySelector('.las-msg'); if (m) m.textContent = tS('Este dato hace falta para guardar.');
           card.classList.add('las-mal'); card.classList.remove('las-tiembla'); void card.offsetWidth; card.classList.add('las-tiembla');
           if (!primero) primero = card;
         });
-        if (!primero) return muestraError('Falta «' + faltan[0].label + '».');
+        if (!primero) return muestraError(tH('Falta «%c».', { c: tS(faltan[0].label) }));
         var foco = primero.querySelector('.las-sel-btn, .las-pildora[aria-pressed="true"], input:not([type="hidden"]), textarea, .las-pildora');
         if (foco) foco.focus({ preventScroll: true });
         primero.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -1085,8 +1089,8 @@
       Promise.resolve(onGuardar(vals)).then(function (r) {
         if (r && r.error) {
           suelta();
-          muestraError('No se pudo guardar: ' + (r.error.message || r.error) +
-            (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — tu usuario no tiene ese permiso; el gate es la policy, no esta pantalla.' : ''));
+          muestraError(tS('No se pudo guardar: ') + (r.error.message || r.error) +
+            (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — ' + tS('tu usuario no tiene ese permiso; el gate es la policy, no esta pantalla.') : ''));
           return;
         }
         btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
@@ -1105,7 +1109,7 @@
         /* `e.silencioso`: quien llama cancela a propósito (p. ej. «No» en su propia confirmación) — nada que mostrar.
            `e.sinPrefijo`: el mensaje ya viene completo y no es de un «guardado» (reclamo-pago.js: es un envío). */
         if (e && e.silencioso) return;
-        muestraError((e && e.sinPrefijo ? '' : 'No se pudo guardar: ') + (e && e.message || e));
+        muestraError((e && e.sinPrefijo ? '' : tS('No se pudo guardar: ')) + (e && e.message || e));
       });
     });
   }
@@ -1121,7 +1125,7 @@
   var SEL_VALUE = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
   var SEL_INDICE = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
   var selAbierto = null;
-  function selVacia(o) { return !o || o.value === '' || /^(Elige|—|- )/.test(o.text); }
+  function selVacia(o) { return !o || o.value === '' || /^(Elige|Choose|Pick|—|- )/.test(o.text); }   // Choose/Pick: la misma opción en inglés (12-oct-2026)
   function mejoraSelects(raiz) {
     raiz.querySelectorAll('select.las-in:not([data-mejorado])').forEach(function (sel) {
       sel.setAttribute('data-mejorado', '1');
@@ -1330,8 +1334,8 @@
       '<div data-c="fondo" class="las-velo" style="z-index:calc(' + z + ' - 1)"></div>' +
       '<aside role="dialog" aria-modal="true" aria-label="' + esc(o.titulo || 'Ficha') + '" data-c="panel" class="las-panel" style="position:fixed;top:0;right:0;height:100%;width:' + (o.ancho || 'min(60vw,96vw)') + ';z-index:' + z + ';transform:translateX(100%);transition:transform .3s ease-in-out">' +
       '<header class="las-cab"><div class="las-cab-izq"><span class="las-barra"></span><div class="las-min0">' +
-      (o.sub || tEst ? '<div class="las-miga">' + (o.sub ? '<span>' + esc(o.sub) + '</span>' : '') +
-        (tEst ? (o.sub ? '<span class="las-sep">/</span>' : '') + '<span class="las-estado" style="background:' + tEst.fondo + ';color:' + tEst.tinta + '">' + esc(o.estado[0]) + '</span>' : '') + '</div>' : '') +
+      (o.sub || tEst ? '<div class="las-miga">' + (o.sub ? '<span>' + esc(tS(o.sub)) + '</span>' : '') +
+        (tEst ? (o.sub ? '<span class="las-sep">/</span>' : '') + '<span class="las-estado" style="background:' + tEst.fondo + ';color:' + tEst.tinta + '">' + esc(tS(o.estado[0])) + '</span>' : '') + '</div>' : '') +
       '<h1 class="las-h1">' + esc(o.titulo || '') + '</h1>' +
       (o.bajoTitulo ? '<p class="lwc-bajo">' + esc(o.bajoTitulo) + '</p>' : '') +
       '</div></div><button type="button" data-c="cerrar" class="las-cerrar" title="' + esc(edT('Cerrar')) + '" aria-label="' + esc(edT('Cerrar')) + '">' + icoBase(ICO_BASE.x) + '</button></header>' +
@@ -1364,8 +1368,8 @@
       } else { b = document.createElement('button'); b.type = 'button'; }
       // Clases del alta: principal rellena con flecha, el resto contorno; la que
       // borra va a la izquierda en rojo (el orden lo pone el CSS, no el array).
-      if (a.tono === 'primario') { b.className = 'las-btn1'; b.innerHTML = '<span>' + esc(a.texto) + '</span>' + icoBase(ICO_BASE.flecha, 'las-ico las-flecha'); }
-      else { b.className = 'las-btn2' + (a.tono === 'peligro' ? ' lwc-peligro' : ''); b.textContent = a.texto; }
+      if (a.tono === 'primario') { b.className = 'las-btn1'; b.innerHTML = '<span>' + esc(tS(a.texto)) + '</span>' + icoBase(ICO_BASE.flecha, 'las-ico las-flecha'); }
+      else { b.className = 'las-btn2' + (a.tono === 'peligro' ? ' lwc-peligro' : ''); b.textContent = tS(a.texto); }
       // `disabled`/`title` (22-sep-2026, S10.3): el botón «Activar deck» nace
       // deshabilitado sin título guardado — mismo criterio que la clásica
       // (nunca activar un deck vacío), y `title` dice por qué sin un tooltip
@@ -1473,15 +1477,15 @@
     // rellenar después): la estructura section > h4 + div no se cambia.
     seccion: function (titulo, inner, id) {
       return '<section class="las-bloque lwc-sec"' + (id ? ' data-cajon-sec="' + esc(id) + '"' : '') + '>' +
-        '<h4>' + esc(titulo) + '</h4><div>' + (inner || '') + '</div></section>';
+        '<h4>' + esc(tS(titulo)) + '</h4><div>' + (inner || '') + '</div></section>';
     },
     dato: function (etq, valor, opts) {
       var v = (valor == null || valor === '') ? '<span class="lwc-apagado">—</span>' : ((opts && opts.html) ? valor : esc(valor));
-      return '<div class="lwc-dato"><span class="las-etq">' + esc(etq) + '</span><span class="lwc-val">' + v + '</span></div>';
+      return '<div class="lwc-dato"><span class="las-etq">' + esc(tS(etq)) + '</span><span class="lwc-val">' + v + '</span></div>';
     },
     tabla: function (cabeceras, filas) {
       return '<div class="lwc-tabla-caja"><table class="lwc-tabla"><thead><tr>' +
-        cabeceras.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        cabeceras.map(function (h) { return '<th>' + esc(tS(h)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
         filas.map(function (f) { return '<tr>' + f.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') +
         '</tbody></table></div>';
     },
@@ -1489,13 +1493,13 @@
       // paleta ÚNICA de la v4 (window.LW_TONOS, datos.js) — antes era una copia aquí
       var T = window.LW_TONOS || {}, t = T[tono] || T.neutro;
       var c = t ? [t.fondo, t.tinta] : ['#EAE8E2', '#2E3437'];
-      return '<span class="lwc-tag" style="background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
+      return '<span class="lwc-tag" style="background:' + c[0] + ';color:' + c[1] + '">' + esc(tS(texto)) + '</span>';
     },
     chips: function (lista) {
       return '<div class="lwc-chips">' + lista.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div>';
     },
     nota: function (texto, html) {
-      return '<article class="las-aviso">' + icoBase(ICO_BASE.info, 'las-ico-aviso') + '<div class="las-min0">' + (html ? texto : esc(texto)) + '</div></article>';
+      return '<article class="las-aviso">' + icoBase(ICO_BASE.info, 'las-ico-aviso') + '<div class="las-min0">' + (html ? texto : esc(tS(texto))) + '</div></article>';
     },
     enlace: function (href, texto, nuevaPestana) {
       return '<a class="lwc-link" href="' + esc(href) + '"' + (nuevaPestana ? ' target="_blank" rel="noopener"' : '') + '>' + esc(texto) + '</a>';
@@ -1503,11 +1507,11 @@
     // Cifras del resumen (precio, cobrado…). `valor` llega ya escapado/HTML.
     cifras: function (lista) {
       return '<div class="lwc-cifras">' + lista.map(function (x) {
-        return '<div class="lwc-cifra"><span class="las-etq">' + esc(x[0]) + '</span><b>' + x[1] + '</b>' + (x[2] ? '<small>' + esc(x[2]) + '</small>' : '') + '</div>';
+        return '<div class="lwc-cifra"><span class="las-etq">' + esc(tS(x[0])) + '</span><b>' + x[1] + '</b>' + (x[2] ? '<small>' + esc(tS(x[2])) + '</small>' : '') + '</div>';
       }).join('') + '</div>';
     },
     paso: function (titulo, texto) {
-      return '<article class="las-aviso lwc-paso">' + icoBase(ICO_BASE.flecha, 'las-ico-aviso') + '<div class="las-min0"><span class="las-aviso-t">' + esc(titulo) + '</span>' + esc(texto) + '</div></article>';
+      return '<article class="las-aviso lwc-paso">' + icoBase(ICO_BASE.flecha, 'las-ico-aviso') + '<div class="las-min0"><span class="las-aviso-t">' + esc(tS(titulo)) + '</span>' + esc(tS(texto)) + '</div></article>';
     }
   };
   window.lwCajon = cajon;
@@ -7819,13 +7823,13 @@
             ? '<div class="las-rel"><select id="' + id + '" data-k="' + k + '" class="las-in"' + idA + '>' + o.select + '</select><span class="las-ico-der">' + svg(I.abajo) + '</span></div>'
             : '<div class="las-rel">' + (o.ico ? '<span class="las-ico-izq">' + svg(o.ico) + '</span>' : '') +
               '<input id="' + id + '" data-k="' + k + '" type="' + (o.tipo || 'text') + '" class="las-in' + (o.ico ? ' las-con-ico' : '') + (o.mono ? ' las-mono' : '') + '"' +
-              (o.ph ? ' placeholder="' + esc(o.ph) + '"' : '') + (o.auto ? ' autocomplete="' + o.auto + '"' : '') + idA + '></div>';
+              (o.ph ? ' placeholder="' + esc(tS(o.ph)) + '"' : '') + (o.auto ? ' autocomplete="' + o.auto + '"' : '') + idA + '></div>';
           return '<div class="las-campo' + (o.cls ? ' ' + o.cls : '') + '"' + (o.req ? ' data-req="' + k + '"' : '') + '>' +
-            '<label for="' + id + '" class="las-etq">' + esc(etq) + (o.req ? ' <span class="las-rojo">*</span>' : '') + (o.extra || '') + '</label>' + ctl +
-            (o.ayuda ? '<p id="' + id + '-a" class="las-ayuda">' + esc(o.ayuda) + '</p>' : '') +
+            '<label for="' + id + '" class="las-etq">' + esc(tS(etq)) + (o.req ? ' <span class="las-rojo">*</span>' : '') + (o.extra || '') + '</label>' + ctl +
+            (o.ayuda ? '<p id="' + id + '-a" class="las-ayuda">' + esc(tS(o.ayuda)) + '</p>' : '') +
             '<p class="las-msg" role="alert"></p></div>';
         };
-        var soloEmp = ' <span class="las-etq-sec">(Solo empresa)</span>';
+        var soloEmp = ' <span class="las-etq-sec">' + esc(tS('(Solo empresa)')) + '</span>';
 
         var w = document.createElement('div');
         w.id = 'lw-editor';
@@ -7835,37 +7839,37 @@
           '<form data-e="form" data-lateral="1" class="las-panel" novalidate>' +
           /* cabecera */
           '<header class="las-cab"><div class="las-cab-izq"><span class="las-barra"></span><div>' +
-          '<div class="las-miga"><span>Base de datos • Clientes</span><span class="las-sep">/</span><span class="las-estado">Ficha nueva</span></div>' +
-          '<h1 id="las-titulo" class="las-h1">Alta de cliente</h1></div></div>' +
-          '<button type="button" data-e="cerrar" class="las-cerrar" title="Cerrar panel" aria-label="Cerrar">' + svg(I.x) + '</button></header>' +
+          '<div class="las-miga"><span>' + esc(tS('Base de datos')) + ' • ' + esc(tS('Clientes')) + '</span><span class="las-sep">/</span><span class="las-estado">' + esc(tS('Ficha nueva')) + '</span></div>' +
+          '<h1 id="las-titulo" class="las-h1">' + esc(tS('Alta de cliente')) + '</h1></div></div>' +
+          '<button type="button" data-e="cerrar" class="las-cerrar" title="' + esc(tS('Cerrar panel')) + '" aria-label="' + esc(tS('Cerrar')) + '">' + svg(I.x) + '</button></header>' +
           '<div class="las-cuerpo">' +
           /* columna izquierda: la ficha tal como va quedando */
-          '<button type="button" class="las-lado-btn" aria-expanded="false" aria-controls="las-lado">Resumen de la ficha ' + svg(I.abajo) + '</button>' +
-          '<section id="las-lado" class="las-lado" aria-label="Resumen de la ficha">' +
-          '<article class="las-card"><div class="las-card-cab"><span class="las-cinta">Ficha del cliente</span></div>' +
+          '<button type="button" class="las-lado-btn" aria-expanded="false" aria-controls="las-lado">' + esc(tS('Resumen de la ficha')) + ' ' + svg(I.abajo) + '</button>' +
+          '<section id="las-lado" class="las-lado" aria-label="' + esc(tS('Resumen de la ficha')) + '">' +
+          '<article class="las-card"><div class="las-card-cab"><span class="las-cinta">' + esc(tS('Ficha del cliente')) + '</span></div>' +
           '<div class="las-quien"><div class="las-avatar" data-p="ini">--</div><div class="las-min0">' +
-          '<p class="las-nombre" data-p="nombre">Sin titular asignado</p><p class="las-sub" data-p="tipo">Persona física • Español</p></div></div>' +
-          '<div class="las-datos"><div><span class="las-dato-etq">Identificación</span><span class="las-dato las-mono" data-p="doc">—</span></div>' +
-          '<div class="las-min0"><span class="las-dato-etq">Contacto rápido</span><span class="las-dato las-trunca" data-p="tel">—</span></div></div></article>' +
-          '<article class="las-card"><h2 class="las-cinta las-card-h"><span>Documentos KYC</span><span class="las-fase">Después del alta</span></h2>' +
+          '<p class="las-nombre" data-p="nombre">' + esc(tS('Sin titular asignado')) + '</p><p class="las-sub" data-p="tipo">' + esc(tS('Persona física')) + ' • ' + esc(tS('Español')) + '</p></div></div>' +
+          '<div class="las-datos"><div><span class="las-dato-etq">' + esc(tS('Identificación')) + '</span><span class="las-dato las-mono" data-p="doc">—</span></div>' +
+          '<div class="las-min0"><span class="las-dato-etq">' + esc(tS('Contacto rápido')) + '</span><span class="las-dato las-trunca" data-p="tel">—</span></div></div></article>' +
+          '<article class="las-card"><h2 class="las-cinta las-card-h"><span>' + esc(tS('Documentos KYC')) + '</span><span class="las-fase">' + esc(tS('Después del alta')) + '</span></h2>' +
           '<ul class="las-lista">' +
-          '<li><span class="las-num">1</span><div><p class="las-li-t">Pasaporte</p><p class="las-li-s">Se sube desde la ficha, una vez creada. Si caduca, la ficha avisa 60 días antes.</p></div></li>' +
-          '<li><span class="las-num">2</span><div><p class="las-li-t">NPWP</p><p class="las-li-s">El número fiscal indonesio, si el cliente lo tiene.</p></div></li>' +
-          '<li><span class="las-num">3</span><div><p class="las-li-t">Justificante de fondos</p><p class="las-li-s">Origen del dinero de la compra. Tiene que estar en la ficha antes de firmar.</p></div></li>' +
+          '<li><span class="las-num">1</span><div><p class="las-li-t">' + esc(tS('Pasaporte')) + '</p><p class="las-li-s">' + esc(tS('Se sube desde la ficha, una vez creada. Si caduca, la ficha avisa 60 días antes.')) + '</p></div></li>' +
+          '<li><span class="las-num">2</span><div><p class="las-li-t">NPWP</p><p class="las-li-s">' + esc(tS('El número fiscal indonesio, si el cliente lo tiene.')) + '</p></div></li>' +
+          '<li><span class="las-num">3</span><div><p class="las-li-t">' + esc(tS('Justificante de fondos')) + '</p><p class="las-li-s">' + esc(tS('Origen del dinero de la compra. Tiene que estar en la ficha antes de firmar.')) + '</p></div></li>' +
           '</ul></article>' +
-          '<article class="las-aviso">' + svg(I.info, 'las-ico-aviso') + '<div><span class="las-aviso-t">Lo que sale en los contratos</span>' +
-          'El <b>nombre</b> (se guarda en MAYÚSCULAS) y el <b>pasaporte / NPWP</b> se imprimen tal cual en los contratos y facturas que se hagan con esta ficha. Revísalos contra el documento antes de dar de alta.</div></article>' +
-          '<p class="las-pie-lado">Una vez creada, la ficha la corrigen su autor —mientras no cuelgue de un contrato firmado— o un administrador.</p>' +
+          '<article class="las-aviso">' + svg(I.info, 'las-ico-aviso') + '<div><span class="las-aviso-t">' + esc(tS('Lo que sale en los contratos')) + '</span>' +
+          tH('El %a (se guarda en MAYÚSCULAS) y el %b se imprimen tal cual en los contratos y facturas que se hagan con esta ficha. Revísalos contra el documento antes de dar de alta.', { a: '<b>' + esc(tS('nombre')) + '</b>', b: '<b>' + esc(tS('pasaporte / NPWP')) + '</b>' }) + '</div></article>' +
+          '<p class="las-pie-lado">' + esc(tS('Una vez creada, la ficha la corrigen su autor —mientras no cuelgue de un contrato firmado— o un administrador.')) + '</p>' +
           '</section>' +
           /* columna derecha: el formulario */
           '<div class="las-derecha"><div class="las-scroll"><div class="las-form">' +
-          '<section class="las-bloque"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n">01</span><h3>Identificación &amp; contacto principal</h3></div>' +
-          '<span class="las-req-nota">* Campos requeridos</span></div>' +
-          '<div class="las-campo"><span class="las-etq" id="las-tipo-etq">Tipo de cliente</span>' +
+          '<section class="las-bloque"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n">01</span><h3>' + esc(tS('Identificación & contacto principal')) + '</h3></div>' +
+          '<span class="las-req-nota">* ' + esc(tS('Campos requeridos')) + '</span></div>' +
+          '<div class="las-campo"><span class="las-etq" id="las-tipo-etq">' + esc(tS('Tipo de cliente')) + '</span>' +
           '<input type="hidden" data-k="tipo" value="persona">' +
           '<div class="las-pildoras" role="group" aria-labelledby="las-tipo-etq">' +
-          '<button type="button" class="las-pildora" data-tipo="persona" aria-pressed="true">' + svg(I.user) + '<span>Persona física</span></button>' +
-          '<button type="button" class="las-pildora" data-tipo="empresa" aria-pressed="false">' + svg(I.empresa) + '<span>Persona jurídica (Empresa)</span></button>' +
+          '<button type="button" class="las-pildora" data-tipo="persona" aria-pressed="true">' + svg(I.user) + '<span>' + esc(tS('Persona física')) + '</span></button>' +
+          '<button type="button" class="las-pildora" data-tipo="empresa" aria-pressed="false">' + svg(I.empresa) + '<span>' + esc(tS('Persona jurídica (Empresa)')) + '</span></button>' +
           '</div></div>' +
           campo('full_name', 'Nombre completo / Razón social', { req: 1, ico: I.nombre, ph: 'Nombre y apellidos, o razón social', auto: 'off' }) +
           campo('email', 'Email', { req: 1, ico: I.mail, tipo: 'email', ph: 'nombre@dominio.com', auto: 'off' }) +
@@ -7876,11 +7880,11 @@
           campo('nationality', 'Nacionalidad', { req: 1, ico: I.globo, ph: 'Elige el país', ayuda: 'Pulsa para elegir el país.' }) +
           campo('passport_number', 'Pasaporte / NPWP', { req: 1, ico: I.doc, mono: 1, cls: 'las-mayus', ph: 'Nº del documento', ayuda: 'Es lo que se imprime en el contrato.', auto: 'off' }) +
           '</div>' +
-          campo('idioma_comunicacion', 'Idioma de comunicación', { select: '<option value="es">Español</option><option value="en">English</option><option value="id">Bahasa Indonesia</option>' }) +
+          campo('idioma_comunicacion', 'Idioma de comunicación', { select: '<option value="es">' + esc(tS('Español')) + '</option><option value="en">English</option><option value="id">Bahasa Indonesia</option>' }) +
           '</section>' +
           '<div class="las-emp-caja" data-emp-caja><section class="las-bloque las-emp" data-emp><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n las-n-verde">02</span><div>' +
-          '<h3>Información mercantil &amp; representación</h3><p class="las-bloque-s">Solo se guarda si el cliente es una empresa.</p></div></div>' +
-          '<span class="las-insignia las-insignia-on">Solo empresa</span></div>' +
+          '<h3>' + esc(tS('Información mercantil & representación')) + '</h3><p class="las-bloque-s">' + esc(tS('Solo se guarda si el cliente es una empresa.')) + '</p></div></div>' +
+          '<span class="las-insignia las-insignia-on">' + esc(tS('Solo empresa')) + '</span></div>' +
           '<div class="las-fila">' +
           campo('forma_juridica', 'Forma jurídica', { extra: soloEmp, ph: 'S.L., LLC, PT PMA, GmbH…', ayuda: 'S.L., LLC, PT PMA, GmbH…', auto: 'off' }) +
           campo('registro_num', 'Nº de registro mercantil', { extra: soloEmp, ph: 'Número en el registro', auto: 'off' }) +
@@ -7891,10 +7895,10 @@
           '<p data-e="error" role="alert" class="las-error" hidden></p>' +
           '</div></div>' +
           /* barra de acciones */
-          '<footer class="las-pie"><div class="las-pie-izq"><span class="las-punto" data-p="punto"></span><span data-p="faltan">Faltan 6 de 6 datos obligatorios</span></div>' +
-          '<div class="las-pie-der"><button type="button" data-e="cancelar" class="las-btn2">Cancelar</button>' +
-          '<button type="submit" data-e="guardar" class="las-btn1"><span class="las-txt">Dar de alta' + svg(I.flecha, 'las-ico las-flecha') + '</span>' +
-          '<span class="las-giro" aria-hidden="true"><i></i></span><span class="las-ok">Guardado ✓</span></button></div></footer>' +
+          '<footer class="las-pie"><div class="las-pie-izq"><span class="las-punto" data-p="punto"></span><span data-p="faltan">' + esc(tH('Faltan %n de %m datos obligatorios', { n: 6, m: 6 })) + '</span></div>' +
+          '<div class="las-pie-der"><button type="button" data-e="cancelar" class="las-btn2">' + esc(tS('Cancelar')) + '</button>' +
+          '<button type="submit" data-e="guardar" class="las-btn1"><span class="las-txt">' + esc(tS('Dar de alta')) + svg(I.flecha, 'las-ico las-flecha') + '</span>' +
+          '<span class="las-giro" aria-hidden="true"><i></i></span><span class="las-ok">' + esc(tS('Guardado')) + ' ✓</span></button></div></footer>' +
           '</div></div></form></div>';
         document.body.appendChild(w);
         mejoraSelects(w);
@@ -7904,7 +7908,7 @@
         var $ = function (s) { return w.querySelector(s); };
         var val = function (k) { var el = $('[data-k="' + k + '"]'); return el ? el.value.trim() : ''; };
         var tipoInput = $('[data-k="tipo"]'), emp = $('[data-emp]'), empCaja = $('[data-emp-caja]');
-        var IDIOMA = { es: 'Español', en: 'English', id: 'Bahasa Indonesia' };
+        var IDIOMA = { es: tS('Español'), en: 'English', id: 'Bahasa Indonesia' };
         var OBLIG = (typeof CAMPOS_ALTA_COMPRADOR !== 'undefined' ? CAMPOS_ALTA_COMPRADOR.map(function (x) { return x[0]; })
           : ['full_name', 'email', 'prefijo', 'telefono', 'nationality', 'passport_number']);
 
@@ -7912,13 +7916,13 @@
         function resumen() {
           var n = val('full_name').toUpperCase();
           var ini = n.split(/\s+/).filter(Boolean).map(function (p) { return p[0]; }).slice(0, 2).join('');
-          $('[data-p="nombre"]').textContent = n || 'Sin titular asignado';
+          $('[data-p="nombre"]').textContent = n || tS('Sin titular asignado');
           $('[data-p="ini"]').textContent = ini || '--';
-          $('[data-p="tipo"]').textContent = (tipoInput.value === 'empresa' ? 'Persona jurídica' : 'Persona física') + ' • ' + (IDIOMA[val('idioma_comunicacion')] || 'Español');
+          $('[data-p="tipo"]').textContent = tS(tipoInput.value === 'empresa' ? 'Persona jurídica' : 'Persona física') + ' • ' + (IDIOMA[val('idioma_comunicacion')] || tS('Español'));
           $('[data-p="doc"]').textContent = val('passport_number').toUpperCase() || '—';
           $('[data-p="tel"]').textContent = val('telefono') ? (val('prefijo') + ' ' + val('telefono')).trim() : '—';
           var faltan = OBLIG.filter(function (k) { return !val(k); }).length;
-          $('[data-p="faltan"]').textContent = faltan ? 'Faltan ' + faltan + ' de ' + OBLIG.length + ' datos obligatorios' : 'Listo para dar de alta';
+          $('[data-p="faltan"]').textContent = faltan ? tH('Faltan %n de %m datos obligatorios', { n: faltan, m: OBLIG.length }) : tS('Listo para dar de alta');
           $('[data-p="punto"]').classList.toggle('las-listo', !faltan);
         }
         function ponTipo(t) {
@@ -7970,8 +7974,8 @@
           w.querySelectorAll('[data-k]').forEach(function (el) { v[el.getAttribute('data-k')] = el.value.trim(); });
           // Los que faltan se marcan en su sitio: tiemblan, rojo y su mensaje debajo.
           var malos = [];
-          OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, 'Este dato hace falta para dar de alta.']); });
-          if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', 'No parece una dirección de correo válida.']);
+          OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
+          if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', tS('No parece una dirección de correo válida.')]);
           w.querySelectorAll('.las-campo.las-mal').forEach(function (c) { c.classList.remove('las-mal'); });
           if (malos.length) {
             malos.forEach(function (m) {
@@ -7987,8 +7991,8 @@
           Promise.resolve(guardaAltaComprador(v)).then(function (r) {
             if (r && r.error) {
               btn.classList.remove('las-guardando'); btn.disabled = false;
-              return error('No se pudo dar de alta: ' + (r.error.message || r.error) +
-                (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — tu usuario no tiene ese permiso.' : ''));
+              return error(tS('No se pudo dar de alta:') + ' ' + (r.error.message || r.error) +
+                (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — ' + tS('tu usuario no tiene ese permiso.') : ''));
             }
             btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
             /* Vuelta al asistente de Nuevo contrato (F7, 30-sep-2026): quien llegó
@@ -8005,7 +8009,7 @@
             }, 750);
           }, function (e) {
             btn.classList.remove('las-guardando'); btn.disabled = false;
-            error('No se pudo dar de alta: ' + (e && e.message || e));
+            error(tS('No se pudo dar de alta:') + ' ' + (e && e.message || e));
           });
         });
 
@@ -8038,17 +8042,17 @@
           if (r.error || !r.data) return true;
           var mismos = fichasConMismoTelefono(r.data, tel, excluirId);
           if (!mismos.length) return true;
-          var lista = mismos.slice(0, 5).map(function (x) { return '<b>' + esc(x.full_name || 'Sin nombre') + '</b> (' + esc(x.phone || '') + ')'; }).join('<br>');
+          var lista = mismos.slice(0, 5).map(function (x) { return '<b>' + esc(x.full_name || tS('Sin nombre')) + '</b> (' + esc(x.phone || '') + ')'; }).join('<br>');
           var pregunta = typeof lwConfirmar === 'function'
             ? lwConfirmar({
                 titulo: 'Ese teléfono ya está en otra ficha',
                 cuerpo: '<p>' + lista + '</p>' +
-                  '<p>Si es la misma persona, no la crees otra vez: búscala en el directorio y usa esa ficha.</p>' +
-                  '<p>Si de verdad comparten teléfono —un matrimonio que compra junto, una persona y su propia empresa— puedes seguir.</p>',
+                  '<p>' + esc(tS('Si es la misma persona, no la crees otra vez: búscala en el directorio y usa esa ficha.')) + '</p>' +
+                  '<p>' + esc(tS('Si de verdad comparten teléfono —un matrimonio que compra junto, una persona y su propia empresa— puedes seguir.')) + '</p>',
                 confirmar: 'Guardar igualmente', cancelar: 'No guardar' })
             : Promise.resolve(window.confirm('Ese teléfono ya está en: ' + mismos.map(function (x) { return x.full_name; }).join(', ') + '. ¿Guardar igualmente?'));
           return Promise.resolve(pregunta).then(function (ok) {
-            return ok ? true : { error: { message: 'ese teléfono ya es de ' + mismos.map(function (x) { return x.full_name; }).join(', ') + '. Búscalo en el directorio por el teléfono.' } };
+            return ok ? true : { error: { message: tH('ese teléfono ya es de %n. Búscalo en el directorio por el teléfono.', { n: mismos.map(function (x) { return x.full_name; }).join(', ') }) } };
           });
         });
       }
@@ -8063,11 +8067,11 @@
           : /clients_email_tipo_key|clients_email_key/.test(msg)
           ? 'Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Esa otra ficha puede ser de un compañero.'
           : /duplicate key/.test(msg)
-          ? 'Ese dato ya está en otra ficha: ' + msg
+          ? tS('Ese dato ya está en otra ficha:') + ' ' + msg
           : /PGRST116/.test(code) || /ninguna fila/.test(msg)
           ? 'No se ha guardado: la base no te deja editar esta ficha. Suele ser porque no la diste de alta tú, o porque ya cuelga de un contrato firmado. Habla con un administrador — recargar no lo arregla.'
           : null;
-        return m ? { error: { message: m } } : r;
+        return m ? { error: { message: tS(m) } } : r;
       }
       var miEmailC = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       var pideCambio = function (c, accion, nuevos, motivo) {
@@ -8086,7 +8090,7 @@
          cuelga, el owner lo ve en el aviso y la solicitud vuelve como «no se pudo». */
       window.LW_V4.pideBorradoComprador = function (c) {
         if (!c) return aviso('La ficha aún no ha cargado.', '#8A6A34');
-        modal('Pedir borrado — ' + (c.full_name || ''), [
+        modal(tH('Pedir borrado — %n', { n: c.full_name || '' }), [
           { tipo: 'nota', label: 'Se enviará al administrador para que lo apruebe. Solo se borra si la ficha no tiene nada enlazado (contratos, facturas, documentos KYC, portal). Te llegará la respuesta a la campana.' },
           { k: 'motivo', label: 'Por qué hay que borrarla', tipo: 'textarea', req: 1, valor: '' }
         ], 'Enviar para aprobar', function (v) {
@@ -8146,10 +8150,10 @@
             { tipo: 'nota', label: 'No puedes editar esta ficha directamente (no la diste de alta tú, o ya cuelga de un contrato firmado). Cambia lo que haga falta y se enviará al administrador para que lo apruebe; te llegará la respuesta a la campana.' },
             { k: 'motivo', label: 'Por qué hace falta el cambio', tipo: 'textarea', req: 1, valor: '' });
         }
-        modal((pedir ? 'Pedir cambio — ' : 'Editar datos — ') + (c.full_name || ''), camposForm,
+        modal(tH(pedir ? 'Pedir cambio — %n' : 'Editar datos — %n', { n: c.full_name || '' }), camposForm,
           pedir ? 'Enviar para aprobar' : 'Guardar datos', function (v) {
-          if (v.prefijo && !/^\+\d{1,4}$/.test(v.prefijo)) return { error: { message: 'El prefijo va con «+» y solo dígitos: +34, +62…' } };
-          if (v.full_name.trim().length < 2) return { error: { message: 'Falta el nombre' } };
+          if (v.prefijo && !/^\+\d{1,4}$/.test(v.prefijo)) return { error: { message: tS('El prefijo va con «+» y solo dígitos: +34, +62…') } };
+          if (v.full_name.trim().length < 2) return { error: { message: tS('Falta el nombre') } };
           var patch = {
             tipo: v.tipo,
             // MAYÚSCULAS como la viva («el único sitio que escribe clients.full_name»):
@@ -8186,7 +8190,7 @@
                     telefonoDigitos(c.phone) === telefonoDigitos(patch.phone)) return;
                 if ((c[k] == null ? null : String(c[k])) !== patch[k]) pedido[k] = patch[k];
               });
-              if (!Object.keys(pedido).length) return { error: { message: 'No has cambiado nada respecto a la ficha.' } };
+              if (!Object.keys(pedido).length) return { error: { message: tS('No has cambiado nada respecto a la ficha.') } };
               return pideCambio(c, 'editar_comprador', pedido, v.motivo);
             }
             return sb.rpc('cliente_guarda', { p_id: c.id, p_datos: patch }).then(errorClienteHumano);

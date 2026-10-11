@@ -5140,6 +5140,277 @@
     'Adjunto': 'Attachment',
     'Lo que sabe el bot': 'What the bot knows',
     'Las unidades, con precio y superficie, de los proyectos abiertos al bot. Solo lectura: se abre o se cierra un proyecto desde su ficha. Nunca incluye datos de clientes ni de contratos.': 'The units, with price and area, of the projects open to the bot. Read only: a project is opened or closed from its own page. It never includes client or contract data.',
+
+    // ---------- Paquete D (12-oct-2026): la demo en inglés — pantallas v4 del recorrido, marcadas una a una ----------
+    // Home y lo común de la barra
+    'Buenos días,': 'Good morning,',
+    'Resumen ejecutivo y flujo operativo del día ·': 'Executive summary and today’s operations ·',
+    'Buscar contratos, parcelas, clientes...': 'Search contracts, plots, clients...',
+    'Emitir factura': 'Issue invoice',
+    'Emitir contrato': 'Issue contract',
+    'Cerrar sesión': 'Log out',
+    'Buscar herramienta': 'Search tools',
+    'Contratos Activos': 'Active contracts',
+    'Cobrado Este Mes': 'Collected this month',
+    'Vencimientos (30 días)': 'Due dates (30 days)',
+    'Unidades Libres': 'Available units',
+    'reservadas': 'reserved',
+    '%n firmados · %m editables': '%n signed · %m editable',
+    '%n firmados': '%n signed',
+    '+%n cobros en otra moneda': '+%n payments in another currency',
+    'recibís del mes en curso': 'receipts this month',
+    'con fecha en los próximos 30 días': 'due in the next 30 days',
+    '%n con fecha en los próximos 7 días': '%n due in the next 7 days',
+    'disponibles de %n en inventario': 'available out of %n in inventory',
+    'de %n parcelas': 'of %n plots',
+    'en inventario': 'in inventory',
+    'Hoy toca': 'To do today',
+    'Lo que está esperando a alguien. Cada fila lleva a la pantalla que lo resuelve.': 'What is waiting on someone. Each row takes you to the screen that resolves it.',
+    'Reservas vencidas pendientes de liberar': 'Expired reservations waiting to be released',
+    'Reservas que vencen en 1–2 días': 'Reservations expiring in 1–2 days',
+    'Prorrogar o pasar a Bloqueo': 'Extend or move to Lock-in',
+    'Decidir': 'Decide',
+    'pasado mañana': 'the day after tomorrow',
+    'Firmas caducadas sin firmar': 'Expired signature links, unsigned',
+    'Reenviar': 'Resend',
+    'Hitos vencidos sin factura': 'Overdue milestones without an invoice',
+    'La factura automática no cubre lo que llega tarde': 'Automatic invoicing does not cover late entries',
+    'el más antiguo': 'oldest',
+    'hito': 'milestone',
+    'Revisar': 'Review',
+    'en otra moneda': 'in another currency',
+    'Facturas con saldo pendiente · contratos firmados': 'Invoices with an outstanding balance · signed contracts',
+    'Recibís sin justificante': 'Receipts without proof of payment',
+    'colas: lo de arriba puede estar incompleto. Recarga o revisa la sesión.': 'queues: the list above may be incomplete. Reload or check your session.',
+    'Nada pendiente en tus colas. Buen día.': 'Nothing pending in your queues. Have a good day.',
+    'Operaciones Recientes': 'Recent activity',
+    'Últimos documentos emitidos: facturas, proformas y recibís': 'Latest documents issued: invoices, pro formas and receipts',
+    'Ver todas': 'See all',
+    'N° Doc': 'Doc no.',
+    'Concepto / Desarrollo': 'Concept / Development',
+    'Trayendo los últimos documentos…': 'Loading the latest documents…',
+    'Los': 'The',
+    'últimos documentos emitidos · la fila abre la ficha': 'latest documents issued · the row opens the record',
+    'Recibos →': 'Receipts →',
+    'Herramientas de Acceso Frecuente': 'Frequently used tools',
+    'Consola Directa': 'Direct console',
+    'Operaciones & Trazabilidad': 'Operations & Traceability',
+    'Estado de cuenta, cobros, hitos y firmas de cada contrato.': 'Account statement, payments, milestones and signatures for each contract.',
+    'Inventario de Proyectos & Bóveda': 'Project Inventory & Vault',
+    'Parcelario, estados de cada unidad y documentos por proyecto.': 'Plot map, status of each unit and documents per project.',
+    'Vencimientos & Tesorería': 'Due Dates & Treasury',
+    'Calendario de cobros y previsión de caja.': 'Payment calendar and cash forecast.',
+    'Soporte & Atención': 'Support & Service',
+    'Mensajes de los clientes desde el portal.': 'Messages from clients through the portal.',
+    'Vencimientos críticos': 'Critical due dates',
+    'Ninguno con fecha futura en contratos firmados.': 'None with a future date in signed contracts.',
+    'Abrir vencimientos': 'Open due dates',
+    'Abrir calendario de tesorería': 'Open treasury calendar',
+    'Firmas pendientes': 'Pending signatures',
+    'contratos esperando la firma del cliente': 'contracts awaiting the client’s signature',
+    '+%n con el enlace caducado: ya no cuentan como «en firma»': '+%n with an expired link: no longer counted as «out for signature»',
+    'Verlos en Operaciones': 'See them in Operations',
+    'Facturación & Proformas': 'Invoicing & Pro formas',
+    // Clientes (lista y ficha)
+    'Directorio de Clientes & Inversores': 'Clients & Investors Directory',
+    'Inversores Registrados': 'Registered investors',
+    'clientes activos': 'active clients',
+    'Capital Total Invertido': 'Total capital invested',
+    'Nacionalidades Principales': 'Main nationalities',
+    'Cobertura legal multijurisdicción': 'Multi-jurisdiction legal coverage',
+    'Expedientes KYC Completados': 'Completed KYC files',
+    'verificados': 'verified',
+    '+ Alta de cliente': '+ New client',
+    'Inversor / Titular': 'Investor / Holder',
+    'Contacto & País': 'Contact & Country',
+    'Vehículo Jurídico': 'Legal vehicle',
+    'Proyecto(s)': 'Project(s)',
+    'Inversión': 'Investment',
+    'Pagado a la fecha': 'Paid to date',
+    'Trayendo los clientes…': 'Loading clients…',
+    'Buscar por nombre, nº de cliente, email, teléfono o nacionalidad…': 'Search by name, client no., email, phone or nationality…',
+    'KYC': 'KYC',
+    'Ver ficha': 'View record',
+    'de~autor': 'by',
+    '%n de %m con KYC verificado': '%n of %m with verified KYC',
+    '+%n este trimestre': '+%n this quarter',
+    '%n% cobrado': '%n% collected',
+    'sin contratos EUR': 'no EUR contracts',
+    'Todos (%n)': 'All (%n)',
+    'Con contrato (%n)': 'With contract (%n)',
+    'En firma (%n)': 'Out for signature (%n)',
+    'Sin contrato (%n)': 'No contract (%n)',
+    '%n cliente · pulsa uno para abrir su ficha': '%n client · click one to open their record',
+    '%n clientes · pulsa uno para abrir su ficha': '%n clients · click one to open their record',
+    '%n contrato': '%n contract',
+    'otra moneda': 'another currency',
+    'cliente': 'client',
+    'documento': 'document',
+    'todas': 'all',
+    'no se pudo leer': 'could not be read',
+    'con factura': 'with invoice',
+    'Automático': 'Automatic',
+    'Equipo:': 'Team:',
+    'Cliente:': 'Client:',
+    '(tú)': '(you)',
+    'Liberado': 'Released',
+    'Identificación fiscal': 'Tax ID',
+    'Nº de registro': 'Registration no.',
+    'Cuota de reserva': 'Reservation fee',
+    'Cobrado (recibís, todas las monedas)': 'Collected (receipts, all currencies)',
+    'Documentación KYC': 'KYC documents',
+    'Pedir borrado': 'Request deletion',
+    'Sin parcela': 'No plot',
+    'Parcela %c': 'Plot %c',
+    'Ver operación': 'View deal',
+    'Contratos (%n)': 'Contracts (%n)',
+    'Operaciones (%n) · %m contratos': 'Deals (%n) · %m contracts',
+    'Nadie · ficha antigua, solo la corrige un administrador': 'Nobody · old record, only an administrator can correct it',
+    'Arrastrar también sus contratos y facturas (solo los de %p)': 'Also move their contracts and invoices (only those by %p)',
+    'Quien la reciba podrá editarla. Contratos y facturas no se mueven sin la casilla.': 'Whoever receives it will be able to edit it. Contracts and invoices do not move without the checkbox.',
+    'Pasar la ficha de %n a %m': 'Hand over the record of %n to %m',
+    'Ficha traspasada a %n': 'Record handed over to %n',
+    'No se pudo traspasar': 'Could not hand over',
+    'No se ha traspasado: la base no te ha dejado tocar esta ficha. Habla con un administrador — recargar no lo arregla.': 'Not handed over: the database did not let you change this record. Talk to an administrator — reloading will not fix it.',
+    'Contratos: %a movidos · %b firmados sin tocar · %c de otro autor · %d sin autor.': 'Contracts: %a moved · %b signed, left as they were · %c by another author · %d without author.',
+    'Facturas y recibís: %a movidas (%b anuladas incluidas) · %c de otro autor · %d sin autor': 'Invoices and receipts: %a moved (%b voided included) · %c by another author · %d without author',
+    '%n emitidas sin tocar (su autor no cambia)': '%n issued, left as they were (their author does not change)',
+    'Borrar la ficha de %n': 'Delete the record of %n',
+    'Se borra la ficha y sus documentos KYC del archivo privado, si los tuviera.': 'The record is deleted, along with its KYC documents in the private archive, if any.',
+    'Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide y te dice cuál — esta acción es para %b.': 'If it is linked to a contract or has portal access, the system blocks it and tells you which — this action is for %b.',
+    'Ficha borrada, pero %n fichero(s) KYC no se pudieron quitar del archivo: avisa a Datos.': 'Record deleted, but %n KYC file(s) could not be removed from the archive: tell the data team.',
+    'Ficha de %n borrada': 'Record of %n deleted',
+    '%n documento(s) retirados': '%n document(s) removed',
+    'No se pudo borrar la ficha': 'Could not delete the record',
+    'No se pudo leer la ficha completa: se enseña lo que hay en el listado.': 'Could not read the full record: showing what the list has.',
+    'El editor aún no ha cargado — prueba de nuevo en un segundo.': 'The editor has not loaded yet — try again in a second.',
+    'Esta persona tiene %n contratos en total; aquí ves %m.': 'This person has %n contracts in total; you see %m here.',
+    'Sus contratos están en monedas distintas (%l): no hay una sola cifra. El detalle por contrato está arriba.': 'Their contracts are in different currencies (%l): there is no single figure. The detail per contract is above.',
+    'Solo tiene Carta(s) de Reserva: el precio final de la villa lo fija el contrato que la sustituya. Lo exigible hoy es la cuota de reserva.': 'Only has Reservation Letter(s): the final villa price is set by the contract that replaces it. What is due today is the reservation fee.',
+    'El precio no cuenta las Cartas de Reserva.': 'The price does not include Reservation Letters.',
+    '(sin cuota fijada: importe del documento)': '(no fee set: document amount)',
+    'Sin contrato enlazado, no hay a qué factura atarla.': 'No linked contract, so no invoice to tie it to.',
+    'No se pudieron leer las facturas: %e': 'Could not read the invoices: %e',
+    '%n anulada · no cuentan': '%n voided · not counted',
+    '%n anuladas · no cuentan': '%n voided · not counted',
+    'Los documentos de este comprador solo los ven quien lo dio de alta, su manager y administración.': 'This buyer’s documents can only be seen by whoever registered them, their manager and administration.',
+    'No se pudieron leer los documentos: %e': 'Could not read the documents: %e',
+    'Sin documentos.': 'No documents.',
+    'caducado hace %n d': 'expired %n d ago',
+    'Van a un archivo privado: al abrirlos se genera un enlace de 5 minutos.': 'They go to a private archive: opening one generates a 5-minute link.',
+    'Hay un documento caducado: el KYC de esta persona no vale hasta renovarlo.': 'A document has expired: this person’s KYC is not valid until it is renewed.',
+    'Un documento caduca en %n día: conviene pedir el nuevo ya.': 'A document expires in %n day: better request the new one now.',
+    'Un documento caduca en %n días: conviene pedir el nuevo ya.': 'A document expires in %n days: better request the new one now.',
+    'No se pudo abrir el documento': 'Could not open the document',
+    'Retirar %n': 'Remove %n',
+    'Se retira %n (subido el %f) de la ficha.': '%n (uploaded on %f) is removed from the record.',
+    'Se retira %n de la ficha.': '%n is removed from the record.',
+    'Si el comprador tiene contratos o pagos a su nombre, el fichero se conserva archivado (lo retira solo un super admin, con motivo). Si no, se borra del archivo privado y no hay papelera.': 'If the buyer has contracts or payments in their name, the file is kept archived (only a super admin removes it, with a reason). Otherwise it is deleted from the private archive and there is no recycle bin.',
+    'Documento retirado de la ficha, pero su fichero sigue en el archivo: avisa a Datos.': 'Document removed from the record, but its file is still in the archive: tell the data team.',
+    '%n retirado': '%n removed',
+    '%n retirado (el fichero queda archivado)': '%n removed (the file stays archived)',
+    'el KYC vuelve a «En revisión»': 'KYC goes back to «Under review»',
+    'No se pudo retirar': 'Could not remove',
+    'No se pudo subir': 'Could not upload',
+    'No se pudo leer el registro de envíos: %e': 'Could not read the sending log: %e',
+    'Sin contratos enlazados: no hay envíos que atarle.': 'No linked contracts: no sendings to tie to them.',
+    'Sin correos registrados para sus contratos. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.': 'No emails logged for their contracts. The log exists since 18 Aug 2026: earlier sendings left no trace.',
+    'No se pudo leer Soporte: %e': 'Could not read Support: %e',
+    '%n ticket en total': '%n ticket in total',
+    '%n tickets en total': '%n tickets in total',
+    'último mensaje %f': 'last message %f',
+    'Ver sus tickets en Soporte →': 'See their tickets in Support →',
+    'No se pudo leer el acceso al portal: %e': 'Could not read the portal access: %e',
+    '%n entrada': '%n login',
+    '%n entradas': '%n logins',
+    'última: %f': 'last: %f',
+    'Ve sus contratos, pagos, facturas y obra en /portal/.': 'Sees their contracts, payments, invoices and construction at /portal/.',
+    'Acceso REVOCADO. Se puede volver a invitar desde aquí; mientras haya una fila revocada, la entrada automática no se la devuelve.': 'Access REVOKED. They can be invited again from here; while there is a revoked row, automatic login does not give it back.',
+    'Entra solo: con %e y sus contratos, el portal le abre la puerta sin invitación (salvo que ese correo sea de alguien del equipo).': 'Logs in on their own: with %e and their contracts, the portal lets them in without an invitation (unless that email belongs to someone on the team).',
+    'Sin acceso todavía. La entrada automática pide correo en la ficha y al menos un contrato — le falta el contrato.': 'No access yet. Automatic login needs an email on the record and at least one contract — the contract is missing.',
+    'Sin acceso todavía. La entrada automática pide correo en la ficha y al menos un contrato — le falta el correo.': 'No access yet. Automatic login needs an email on the record and at least one contract — the email is missing.',
+    'Vista previa del portal': 'Portal preview',
+    'Ver tickets': 'See tickets',
+    'Se le envía un %c y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.': 'They are sent an %c and will be able to see everything on this record in the portal: contracts, payments, invoices and construction.',
+    'Nueva contraseña para %e (mínimo 10 caracteres).': 'New password for %e (at least 10 characters).',
+    'Dejará de ver %t las fichas vinculadas a ese email, no solo ésta.': 'They will stop seeing %t the records linked to that email, not just this one.',
+    'Esto es lo que este cliente ve ahora mismo en /portal/. No se ha abierto ninguna sesión suya: se lee con tu permiso de equipo.': 'This is what this client sees right now at /portal/. None of their sessions was opened: it is read with your team permission.',
+    'Sin contratos.': 'No contracts.',
+    'Sin facturas.': 'No invoices.',
+    '%n proforma': '%n pro forma',
+    '%n proformas': '%n pro formas',
+    // Formularios del cajón (modal() de editores.js) y alta / edición de cliente
+    'Cerrar panel': 'Close panel',
+    '%n de %m': '%n of %m',
+    'Campos requeridos': 'Required fields',
+    'Elegir fichero': 'Choose file',
+    'Faltan %n de %m datos obligatorios': '%n of %m required fields missing',
+    'Listo para guardar': 'Ready to save',
+    'Este dato hace falta para guardar.': 'This field is needed to save.',
+    'Falta «%c».': '«%c» is missing.',
+    'tu usuario no tiene ese permiso; el gate es la policy, no esta pantalla.': 'your user does not have that permission; the gate is the policy, not this screen.',
+    'Enviado para aprobar': 'Sent for approval',
+    '(Solo empresa)': '(Company only)',
+    'Ficha nueva': 'New record',
+    'Alta de cliente': 'New client',
+    'Resumen de la ficha': 'Record summary',
+    'Ficha del cliente': 'Client record',
+    'Sin titular asignado': 'No holder assigned',
+    'Identificación': 'Identification',
+    'Contacto rápido': 'Quick contact',
+    'Documentos KYC': 'KYC documents',
+    'Después del alta': 'After registration',
+    'Se sube desde la ficha, una vez creada. Si caduca, la ficha avisa 60 días antes.': 'Uploaded from the record once it is created. If it expires, the record warns 60 days ahead.',
+    'El número fiscal indonesio, si el cliente lo tiene.': 'The Indonesian tax number, if the client has one.',
+    'Origen del dinero de la compra. Tiene que estar en la ficha antes de firmar.': 'Source of the purchase money. It has to be on the record before signing.',
+    'Lo que sale en los contratos': 'What goes into the contracts',
+    'El %a (se guarda en MAYÚSCULAS) y el %b se imprimen tal cual en los contratos y facturas que se hagan con esta ficha. Revísalos contra el documento antes de dar de alta.': 'The %a (saved in CAPITALS) and the %b are printed as they are in the contracts and invoices made with this record. Check them against the document before registering.',
+    'nombre': 'name',
+    'pasaporte / NPWP': 'passport / NPWP',
+    'Una vez creada, la ficha la corrigen su autor —mientras no cuelgue de un contrato firmado— o un administrador.': 'Once created, the record can be corrected by its author —as long as it is not tied to a signed contract— or by an administrator.',
+    'Identificación & contacto principal': 'Identification & main contact',
+    'Persona jurídica (Empresa)': 'Legal entity (Company)',
+    'Información mercantil & representación': 'Company details & representation',
+    'Solo se guarda si el cliente es una empresa.': 'Only saved if the client is a company.',
+    'Solo empresa': 'Company only',
+    'Listo para dar de alta': 'Ready to register',
+    'Este dato hace falta para dar de alta.': 'This field is needed to register.',
+    'No parece una dirección de correo válida.': 'This does not look like a valid email address.',
+    'No se pudo dar de alta:': 'Could not register:',
+    'tu usuario no tiene ese permiso.': 'your user does not have that permission.',
+    'Si es la misma persona, no la crees otra vez: búscala en el directorio y usa esa ficha.': 'If it is the same person, do not create them again: find them in the directory and use that record.',
+    'ese teléfono ya es de %n. Búscalo en el directorio por el teléfono.': 'that phone already belongs to %n. Search the directory by phone.',
+    'Ese dato ya está en otra ficha:': 'That data is already on another record:',
+    'Pedir borrado — %n': 'Request deletion — %n',
+    'El prefijo va con «+» y solo dígitos: +34, +62…': 'The prefix goes with «+» and digits only: +34, +62…',
+    'No has cambiado nada respecto a la ficha.': 'You have not changed anything on the record.',
+    'Administrador, director…': 'Administrator, director…',
+    'Cargo del representante (solo empresa)': 'Representative’s position (company only)',
+    'Elige el país': 'Choose the country',
+    'English': 'English',
+    'Es lo que se imprime en el contrato.': 'It is what gets printed on the contract.',
+    'Forma jurídica (solo empresa)': 'Legal form (company only)',
+    'No puedes editar esta ficha directamente (no la diste de alta tú, o ya cuelga de un contrato firmado). Cambia lo que haga falta y se enviará al administrador para que lo apruebe; te llegará la respuesta a la campana.': 'You cannot edit this record directly (you did not register it, or it is already tied to a signed contract). Change what is needed and it will be sent to the administrator for approval; the answer will reach your bell.',
+    'Nombre completo / Razón social': 'Full name / Company name',
+    'Nombre y apellidos, o razón social': 'Name and surname, or company name',
+    'Nº de registro mercantil (solo empresa)': 'Company registration no. (company only)',
+    'Nº del documento': 'Document no.',
+    'Número en el registro': 'Registry number',
+    'Número sin prefijo': 'Number without prefix',
+    'Por qué hace falta el cambio': 'Why the change is needed',
+    'Por qué hay que borrarla': 'Why it has to be deleted',
+    'Prefijo del teléfono': 'Phone prefix',
+    'Pulsa para elegir el país.': 'Click to choose the country.',
+    'Representante legal (solo empresa)': 'Legal representative (company only)',
+    'S.L., LLC, PT PMA, GmbH…': 'S.L., LLC, PT PMA, GmbH…',
+    'Se enviará al administrador para que lo apruebe. Solo se borra si la ficha no tiene nada enlazado (contratos, facturas, documentos KYC, portal). Te llegará la respuesta a la campana.': 'It will be sent to the administrator for approval. It is only deleted if the record has nothing linked (contracts, invoices, KYC documents, portal). The answer will reach your bell.',
+    'Si esta ficha cuelga de un contrato ya FIRMADO, su pasaporte y domicilio están impresos en ese documento y la base rechazará el cambio: es cosa de un administrador.': 'If this record is tied to an already SIGNED contract, its passport and address are printed on that document and the database will reject the change: that is for an administrator.',
+    'Solo de contacto: cambiarlo NO cambia con qué email entra al portal.': 'Contact only: changing it does NOT change the email used to log into the portal.',
+    'nombre@dominio.com': 'name@domain.com',
+    'Editar datos — %n': 'Edit details — %n',
+    'Pedir cambio — %n': 'Request a change — %n',
+    'Guardar datos': 'Save details',
+    'Enviar para aprobar': 'Send for approval',
   };
 
   window.LW_EN = EN;
@@ -5203,6 +5474,38 @@
   };
 
   /* ==========================================================================
+     lwTSuave(texto) — para los PUNTOS DE PASO comunes (12-oct-2026, la demo en
+     inglés): el aviso de `toast()`, el rótulo de un dato o una sección del
+     cajón. Por ahí pasan cientos de frases y traducir en el punto de paso
+     evita envolver cada llamada. Dos diferencias con lwT, las dos para que la
+     lista de lo que falta (`LW_T_MISSES`) siga diciendo la verdad:
+       · una frase que YA llega traducida (el llamante usó lwT) se deja tal cual
+         y no cuenta como «falta»;
+       · lo que no lleva ni una letra (un número, «—») no se busca.
+     En español devuelve el texto TAL CUAL, sin pasar por lwT: es exactamente lo
+     que el punto de paso pintaba antes.
+     ========================================================================== */
+  var VALORES_EN = null, HECHAS = {};
+  window.lwTSuave = function (s) {
+    if (window.LW_IDIOMA === 'es' || typeof s !== 'string' || !/[A-Za-zÀ-ÿ]/.test(s)) return s;
+    var nucleo = s.trim(), propia = Object.prototype.hasOwnProperty;
+    if (propia.call(HECHAS, nucleo)) return s;            // ya pasó por lwT (con sus huecos rellenos)
+    if (!propia.call(EN, s) && !propia.call(EN, nucleo)) {
+      if (!VALORES_EN) { VALORES_EN = {}; for (var k in EN) if (propia.call(EN, k)) VALORES_EN[EN[k]] = 1; }
+      if (propia.call(VALORES_EN, nucleo)) return s;      // ya viene en inglés
+      /* «KYC · Pendiente», «Factura · INV00012»: rótulos compuestos con « · ». Si CADA trozo es conocido (clave,
+         ya traducido o sin letras), se traduce trozo a trozo; si alguno no lo es, la frase entera cuenta como falta. */
+      if (nucleo.indexOf(' · ') !== -1) {
+        var trozos = s.split(' · '), vale = trozos.every(function (t) {
+          var n = t.trim(); return !n || !/[A-Za-zÀ-ÿ]/.test(n) || propia.call(EN, n) || propia.call(VALORES_EN, n);
+        });
+        if (vale) return trozos.map(function (t) { return window.lwTSuave(t); }).join(' · ');
+      }
+    }
+    return window.lwT(s);
+  };
+
+  /* ==========================================================================
      LA MARCA DE LA INSTANCIA EN EL TEXTO (AxisWorks ERP, F3 lote 2b, 26-sep-2026)
 
      El núcleo no escribe el nombre del cliente: escribe `%marca` (o
@@ -5263,12 +5566,17 @@
      llamante. */
   var lwTSolo = window.lwT;
   window.lwT = function (s, huecos) {
-    var f = fichaViva();
-    if (!f) return lwTSolo(s, huecos);
-    var todos = {};
-    CAMPOS_FICHA.forEach(function (c) { if (f[c] != null) todos[c] = f[c]; });
-    for (var k in huecos) if (Object.prototype.hasOwnProperty.call(huecos, k)) todos[k] = huecos[k];
-    return lwTSolo(s, todos);
+    var f = fichaViva(), r;
+    if (!f) r = lwTSolo(s, huecos);
+    else {
+      var todos = {};
+      CAMPOS_FICHA.forEach(function (c) { if (f[c] != null) todos[c] = f[c]; });
+      for (var k in huecos) if (Object.prototype.hasOwnProperty.call(huecos, k)) todos[k] = huecos[k];
+      r = lwTSolo(s, todos);
+    }
+    // lo que ya salió de aquí no se vuelve a buscar en un punto de paso (lwTSuave): «3 abiertos» → «3 open» no es una falta
+    if (window.LW_IDIOMA !== 'es' && typeof r === 'string') HECHAS[r.trim()] = 1;
+    return r;
   };
   window.lwMarca = conFicha;
 
@@ -5304,6 +5612,10 @@
     if (t && f.titulo) {
       if (!t.hasAttribute('data-lw-base')) t.setAttribute('data-lw-base', t.textContent);
       var nombre = t.getAttribute('data-lw-base');
+      /* En inglés el nombre de la pantalla también (12-oct-2026): las v4 se titulan «Facturas — ⟨marca⟩» y el
+         paso de lwIdiomaAplicar solo entiende «Lawang · ⟨herramienta⟩»; sin esto todas las pestañas salían en
+         español. La base guardada sigue en español, así que repetirlo no traduce dos veces. */
+      if (nombre && window.LW_IDIOMA && window.LW_IDIOMA !== 'es') nombre = window.lwT(nombre);
       document.title = nombre ? nombre + ' — ' + f.titulo : f.titulo;
     }
   };
@@ -5380,6 +5692,25 @@
       if (!k) return;
       el.dataset.lwtAria = k;
       el.setAttribute('aria-label', window.lwT(k));
+    });
+
+    /* data-lwt-nodos (12-oct-2026, la demo en inglés): para una frase partida
+       por un dato, `<p data-lwt-nodos><span data-lw="k-n">—</span> en curso</p>`.
+       `data-lwt` en ese <p> aplanaría el <span> (textContent) y mataría el
+       enganche del dato, y solo en inglés. Esto traduce SOLO los nodos de texto
+       que son hijos directos, cada uno por su texto sin el blanco de los lados
+       (el blanco se conserva), y no toca ningún elemento hijo. La clave se
+       guarda en el propio nodo: volver a llamarla no busca la frase ya en
+       inglés. Marcar así no añade ni quita un elemento, así que en español (y
+       para el código que cuenta hijos, como `kpi()` de datos.js) es lo mismo. */
+    r.querySelectorAll('[data-lwt-nodos]').forEach(function (el) {
+      for (var n = el.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType !== 3) continue;
+        if (n.__lwtOrig == null) n.__lwtOrig = n.nodeValue;     // el texto español original, una vez
+        var m = n.__lwtOrig.match(/^(\s*)([\s\S]*?)(\s*)$/);
+        if (!m[2]) continue;
+        n.nodeValue = m[1] + window.lwT(m[2]) + m[3];
+      }
     });
 
     /* El título de la pestaña. Todas las páginas de la suite se llaman

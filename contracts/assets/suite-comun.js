@@ -87,7 +87,8 @@ function nodoToast(id, clase, rol, live) {
 
 const pintarAviso = (t, m, ms) => {
   if (!t) return;
-  t.textContent = m;
+  // en inglés, el aviso que esté en el diccionario sale traducido (i18n.js); en español, tal cual (12-oct-2026)
+  t.textContent = (typeof lwTSuave === 'function') ? lwTSuave(m) : m;
   /* Quitar las clases, forzar un reflujo y volver a ponerlas. Sin esto, un
      segundo aviso que llega con el primero AÚN VISIBLE no reinicia la barra de
      cuenta atrás —las clases ya estaban puestas, así que el navegador no
