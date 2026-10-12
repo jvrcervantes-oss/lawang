@@ -103,7 +103,7 @@
     cab.className = 'lw4-cab';
     cab.innerHTML =
       '<div class="lw4-cab-izq">' +
-        '<button type="button" class="lw4-cab-btn lw4-cab-menu" data-lw4-menu aria-controls="lw4-sb" aria-label="Menú">' +
+        '<button type="button" class="lw4-cab-btn lw4-cab-menu" data-lw4-menu aria-controls="lw4-sb" aria-label="' + (window.lwT ? window.lwT('Menú') : 'Menú') + '">' +
           '<span class="material-symbols-outlined">menu</span></button>' +
       '</div>' +
       '<div class="lw4-cab-der">' +

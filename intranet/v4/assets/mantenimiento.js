@@ -10,7 +10,9 @@
  */
 (function () {
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function fecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x) : d.toLocaleString('es-ES'); }
+  function fecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x) : d.toLocaleString(window.lwLocale ? lwLocale() : 'es-ES'); }
+  // Puente al diccionario (12-oct-2026, idiomas): en español devuelve la frase tal cual, con sus huecos rellenos.
+  function T(s, h) { if (window.lwT) return window.lwT(s, h); var v = String(s); for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) v = v.split('%' + k).join(h[k]); return v; }
   function aviso(t) { if (typeof toast === 'function') toast(t); else console.log(t); }   // toast: const global de suite-comun.js, no cuelga de window
 
   var sb = null, estado = null;
@@ -28,9 +30,9 @@
       main.insertBefore(f, main.firstChild);
     }
     f.innerHTML = '<span class="material-symbols-outlined text-[22px] text-error shrink-0">block</span>' +
-      '<div class="flex flex-col gap-0.5"><span class="font-label-md text-label-md text-on-error-container">Envíos de correo en pausa (modo mantenimiento). No sale ningún email de la intranet.</span>' +
+      '<div class="flex flex-col gap-0.5"><span class="font-label-md text-label-md text-on-error-container">' + T('Envíos de correo en pausa (modo mantenimiento). No sale ningún email de la intranet.') + '</span>' +
       (estado.motivo ? '<span class="font-body-sm text-body-sm text-on-error-container">' + esc(estado.motivo) + '</span>' : '') +
-      '<span class="font-body-sm text-[12px] text-on-error-container/80">Desde ' + esc(fecha(estado.cambiado_en)) + '. Se reanuda en Ajustes.</span></div>';
+      '<span class="font-body-sm text-[12px] text-on-error-container/80">' + T('Desde %f. Se reanuda en Ajustes.', { f: esc(fecha(estado.cambiado_en)) }) + '</span></div>';
   }
 
   function panel() {
@@ -40,21 +42,21 @@
     p.innerHTML =
       '<div class="flex flex-col gap-1">' +
         '<span class="font-label-md text-label-md ' + (pausa ? 'text-error' : 'text-on-surface') + '">' +
-          (pausa ? 'EN PAUSA: no sale ningún correo de la intranet.' : 'Activos: la intranet envía correos con normalidad.') + '</span>' +
+          T(pausa ? 'EN PAUSA: no sale ningún correo de la intranet.' : 'Activos: la intranet envía correos con normalidad.') + '</span>' +
         (estado && estado.motivo ? '<span class="font-body-sm text-body-sm text-on-surface-variant">' + esc(estado.motivo) + '</span>' : '') +
-        '<span class="font-body-sm text-[12px] text-outline">Último cambio: ' + esc(fecha(estado && estado.cambiado_en)) + '</span>' +
+        '<span class="font-body-sm text-[12px] text-outline">' + T('Último cambio') + ': ' + esc(fecha(estado && estado.cambiado_en)) + '</span>' +
       '</div>' +
       (pausa
-        ? '<button type="button" id="lw-mant-reanudar" class="shrink-0 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">Reanudar envíos</button>'
+        ? '<button type="button" id="lw-mant-reanudar" class="shrink-0 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">' + T('Reanudar envíos') + '</button>'
         : '<div class="flex flex-col md:flex-row gap-3 md:items-center">' +
-            '<input id="lw-mant-motivo" maxlength="300" placeholder="Motivo (lo verá todo el equipo)" class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
-            '<button type="button" id="lw-mant-pausar" class="shrink-0 px-5 py-2.5 rounded-full bg-error text-on-error hover:opacity-90 font-label-md text-label-md">Pausar todos los envíos</button>' +
+            '<input id="lw-mant-motivo" maxlength="300" placeholder="' + esc(T('Motivo (lo verá todo el equipo)')) + '" class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
+            '<button type="button" id="lw-mant-pausar" class="shrink-0 px-5 py-2.5 rounded-full bg-error text-on-error hover:opacity-90 font-label-md text-label-md">' + T('Pausar todos los envíos') + '</button>' +
           '</div>');
     var bp = document.getElementById('lw-mant-pausar'), br = document.getElementById('lw-mant-reanudar');
     if (bp) bp.addEventListener('click', function () { cambia(true, (document.getElementById('lw-mant-motivo').value || '').trim(), bp); });
     if (br) br.addEventListener('click', function () {
       var pregunta = window.lwConfirmar
-        ? window.lwConfirmar({ titulo: 'Reanudar los envíos', cuerpo: 'Vuelven a salir todos los correos de la intranet, y lo que quedó en cola de Comunicación sale ya. ¿Seguro que el correo funciona de nuevo?', confirmar: 'Reanudar' })
+        ? window.lwConfirmar({ titulo: 'Reanudar los envíos', cuerpo: T('Vuelven a salir todos los correos de la intranet, y lo que quedó en cola de Comunicación sale ya. ¿Seguro que el correo funciona de nuevo?'), confirmar: 'Reanudar' })
         : Promise.resolve(true);
       pregunta.then(function (si) { if (si) cambia(false, null, br); });
     });
@@ -64,7 +66,7 @@
     b.disabled = true;
     sb.rpc('mantenimiento_envios', { p_pausar: pausar, p_motivo: motivo || (pausar ? 'Envíos pausados por administración.' : null) }).then(function (r) {
       b.disabled = false;
-      if (r.error) { aviso('No se pudo cambiar: ' + (r.error.message || 'sin detalle')); return; }
+      if (r.error) { aviso(T('No se pudo cambiar: ') + (r.error.message || T('sin detalle'))); return; }
       aviso(pausar ? 'Envíos en pausa: no sale ningún correo.' : 'Envíos reanudados.');
       carga();
     });
@@ -77,22 +79,22 @@
     if (!p) return;
     if (estado && estado.intranet_cerrada == null) {
       // sin «Ajustes» la base no dice si está cerrada: no se pinta un «Abierta» que podría ser falso
-      p.textContent = 'El acceso del equipo a la intranet lo cambia un admin con la herramienta «Ajustes».';
+      p.textContent = T('El acceso del equipo a la intranet lo cambia un admin con la herramienta «Ajustes».');
       return;
     }
     var cerrada = !!(estado && estado.intranet_cerrada);
     p.innerHTML =
       '<div class="flex flex-col gap-1">' +
         '<span class="font-label-md text-label-md ' + (cerrada ? 'text-error' : 'text-on-surface') + '">' +
-          (cerrada ? 'CERRADA: solo entran los admins.' : 'Abierta: todo el equipo entra con normalidad.') + '</span>' +
+          T(cerrada ? 'CERRADA: solo entran los admins.' : 'Abierta: todo el equipo entra con normalidad.') + '</span>' +
         (cerrada && estado.intranet_motivo ? '<span class="font-body-sm text-body-sm text-on-surface-variant">' + esc(estado.intranet_motivo) + '</span>' : '') +
-        '<span class="font-body-sm text-[12px] text-outline">Último cambio: ' + esc(fecha(estado && estado.intranet_cambiado_en)) + '</span>' +
+        '<span class="font-body-sm text-[12px] text-outline">' + T('Último cambio') + ': ' + esc(fecha(estado && estado.intranet_cambiado_en)) + '</span>' +
       '</div>' +
       (cerrada
-        ? '<button type="button" id="lw-int-abrir" class="shrink-0 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">Reabrir la intranet</button>'
+        ? '<button type="button" id="lw-int-abrir" class="shrink-0 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">' + T('Reabrir la intranet') + '</button>'
         : '<div class="flex flex-col md:flex-row gap-3 md:items-center">' +
-            '<input id="lw-int-motivo" maxlength="300" placeholder="Motivo (lo verá el equipo)" class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
-            '<button type="button" id="lw-int-cerrar" class="shrink-0 px-5 py-2.5 rounded-full bg-error text-on-error hover:opacity-90 font-label-md text-label-md">Cerrar al equipo</button>' +
+            '<input id="lw-int-motivo" maxlength="300" placeholder="' + esc(T('Motivo (lo verá el equipo)')) + '" class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
+            '<button type="button" id="lw-int-cerrar" class="shrink-0 px-5 py-2.5 rounded-full bg-error text-on-error hover:opacity-90 font-label-md text-label-md">' + T('Cerrar al equipo') + '</button>' +
           '</div>');
     var bc = document.getElementById('lw-int-cerrar'), ba = document.getElementById('lw-int-abrir');
     var confirma = function (o) { return window.lwConfirmar ? window.lwConfirmar(o) : Promise.resolve(true); };
@@ -100,11 +102,11 @@
       var motivo = (document.getElementById('lw-int-motivo').value || '').trim();
       if (!motivo) { aviso('Escribe el motivo: es lo que verá el equipo.'); document.getElementById('lw-int-motivo').focus(); return; }
       confirma({ titulo: 'Cerrar la intranet al equipo', tono: 'peligro',
-        cuerpo: 'Solo podrán entrar los admins. Quien esté dentro verá un aviso y se le cerrará en 3 minutos. ¿Cerrar ahora?', confirmar: 'Cerrar' })
+        cuerpo: T('Solo podrán entrar los admins. Quien esté dentro verá un aviso y se le cerrará en 3 minutos. ¿Cerrar ahora?'), confirmar: 'Cerrar' })
         .then(function (si) { if (si) cambiaIntranet(true, motivo, bc); });
     });
     if (ba) ba.addEventListener('click', function () {
-      confirma({ titulo: 'Reabrir la intranet', cuerpo: 'Todo el equipo vuelve a poder entrar. ¿Reabrir?', confirmar: 'Reabrir' })
+      confirma({ titulo: 'Reabrir la intranet', cuerpo: T('Todo el equipo vuelve a poder entrar. ¿Reabrir?'), confirmar: 'Reabrir' })
         .then(function (si) { if (si) cambiaIntranet(false, null, ba); });
     });
   }
@@ -113,7 +115,7 @@
     b.disabled = true;
     sb.rpc('mantenimiento_intranet', { p_cerrar: cerrar, p_motivo: motivo }).then(function (r) {
       b.disabled = false;
-      if (r.error) { aviso('No se pudo cambiar: ' + (r.error.message || 'sin detalle')); return; }
+      if (r.error) { aviso(T('No se pudo cambiar: ') + (r.error.message || T('sin detalle'))); return; }
       aviso(cerrar ? 'Intranet cerrada al equipo: solo entran los admins.' : 'Intranet reabierta al equipo.');
       carga();
       // la pastilla roja de admin (cierre.js) se refresca al instante, no a los 5 minutos
@@ -131,7 +133,7 @@
         // la franja no se puede pintar sin el dato; en Ajustes se DICE, no se deja el interruptor en blanco
         ['lw-mant-panel', 'lw-mant-intranet'].forEach(function (id) {
           var p = document.getElementById(id);
-          if (p) p.textContent = 'No se ha podido leer el estado de mantenimiento: ' + (r.error.message || 'sin respuesta') + '. Recarga la página.';
+          if (p) p.textContent = T('No se ha podido leer el estado de mantenimiento: %m. Recarga la página.', { m: r.error.message || T('sin respuesta') });
         });
         return;
       }

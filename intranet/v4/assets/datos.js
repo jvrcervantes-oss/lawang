@@ -6550,7 +6550,7 @@
         // ETIQ_ROL vive en editores.js (una sola lista de roles): se lee, no se copia
         var rolDe = function (u) {
           var E = (window.LW_V4 && window.LW_V4.ETIQ_ROL) || {};
-          return E[u.rol] || u.rol || '—';
+          return ts(E[u.rol] || u.rol || '—');   // «agente» crudo si ETIQ_ROL aún no llegó: los dos en el diccionario
         };
         var nombresProy = function (ids) { return (ids || []).map(function (id) { return nombreProy[id] || id; }); };
 
@@ -9887,7 +9887,7 @@
     function pinta() {
       q(sb.from('parametros').select('*').order('grupo').order('orden'), 'ajustes', cuerpo).then(function (rows) {
         if (!rows) return;
-        if (!rows.length) { cuerpo.innerHTML = '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">No hay ajustes dados de alta.</td></tr>'; return; }
+        if (!rows.length) { cuerpo.innerHTML = '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(tx('No hay ajustes dados de alta.')) + '</td></tr>'; return; }
         cuerpo.innerHTML = rows.map(function (r) {
           var esNum = typeof r.valor === 'number';
           var rango = esNum && (r.minimo != null || r.maximo != null) ? ' <span class="text-outline">(' + (r.minimo != null ? r.minimo : '…') + ' – ' + (r.maximo != null ? r.maximo : '…') + ')</span>' : '';

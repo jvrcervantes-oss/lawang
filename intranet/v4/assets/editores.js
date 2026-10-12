@@ -893,7 +893,7 @@
       n++;
       var s = document.createElement('section');
       s.className = 'las-bloque';
-      s.innerHTML = '<div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n' + (n > 1 ? ' las-n-verde' : '') + '">0' + n + '</span><h3>' + g.t + '</h3></div>' +
+      s.innerHTML = '<div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n' + (n > 1 ? ' las-n-verde' : '') + '">0' + n + '</span><h3>' + esc(tS(g.t)) + '</h3></div>' +
         (n === 1 && oblig.length ? '<span class="las-req-nota">* ' + esc(tS('Campos requeridos')) + '</span>' : '') + '</div><div class="las-rejilla"></div>';
       cont.appendChild(s);
       rejillas.push({ f: g.f, el: s.querySelector('.las-rejilla') });
@@ -8603,7 +8603,7 @@
         if (u.rol === 'super_admin' && aut.ficha.rol !== 'super_admin') {
           return aviso('Solo un super admin puede modificar la cuenta de otro super admin.', '#8A6A34');
         }
-        var p = window.prompt('Nueva contraseña para ' + u.email + ' (mínimo 10 caracteres).\nApúntala: no se puede volver a consultar.');
+        var p = window.prompt(tH('Nueva contraseña para %e (mínimo 10 caracteres).', { e: u.email }) + '\n' + edT('Apúntala: no se puede volver a consultar.'));
         if (p === null) return;
         if (p.length < 10) return aviso('Mínimo 10 caracteres.', '#8A6A34');
         sb.auth.getSession().then(function (r) {
