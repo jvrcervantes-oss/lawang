@@ -1935,6 +1935,7 @@
     '%d documentos · %p proyectos': '%d documents · %p projects',
     '%n emitidas': '%n issued',
     '%n anuladas': '%n voided',
+    'ninguna anulada': 'none voided',
     '%n emitidos': '%n issued',
     '%n por resolver o pagar': '%n to decide or pay',
     'Sin solicitudes en vuelo': 'No requests in flight',
