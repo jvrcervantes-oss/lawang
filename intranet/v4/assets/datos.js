@@ -666,18 +666,33 @@
   /* Firma en cadena a medias (12-oct-2026, owner: «¿no podemos señalar firma parcial si hay más de un firmante?»).
      «En firma» no distinguía el RP00264 (no había firmado nadie) de la CR00108 (1 de 2), y al equipo le dijeron
      «está firmado» de uno por el otro. Y un contrato con una firma hecha y la cadena rota (CR00020: 1 de 2 desde el
-     14-ago, sin enlace vivo) salía como «Borrador». `nCompradores` = filas de contrato_compradores, la misma lista
-     que recorre firma-submit; si falta o se queda corta, el total es lo que hay en firmas (nunca menos).
-     Solo cuenta `firmado`: al reabrir un contrato sus firmas pasan a `anulado` y no se arrastran. */
-  function progresoFirma(firmas, nCompradores) {
+     14-ago, sin enlace vivo) salía como «Borrador».
+     El TOTAL es el mayor de tres cuentas, porque cada una puede quedarse corta sola: filas de contrato_compradores
+     (`nFilas`; falta si el comprador no tiene ficha o quien mira no la ve), compradores nombrados en
+     `comprador_nombre` (« · », el criterio de compradoresNombrados de operaciones-cuentas.js; firma-submit arma la
+     cadena desde los datos del contrato, no desde las fichas) y las firmas que ya existen. Nunca menos.
+     Solo cuenta `firmado`. REABIERTO (`pdf_firmado_path` sin `bloqueado`) no se toca: «Desbloquear» deja las firmas
+     en `firmado` y no es una cadena a medias; «Editar» las pasa a `anulado`. Ahí manda la etiqueta de siempre. */
+  function progresoFirma(c, firmas, nFilas) {
     var fs = firmas || [];
     var hechas = fs.filter(function (f) { return f.estado === 'firmado'; });
     var vivas = fs.filter(function (f) { return f.estado === 'pendiente' && !firmaCaducada(f); });
-    var total = Math.max(Number(nCompradores) || 0, hechas.length + vivas.length);
-    return { hechas: hechas, vivas: vivas, firmadas: hechas.length, total: total, aMedias: hechas.length > 0 && !vivas.length };
+    var nombrados = String((c && c.comprador_nombre) || '').split(' · ').filter(function (x) { return x.trim(); }).length;
+    var total = Math.max(Number(nFilas) || 0, nombrados, hechas.length + vivas.length);
+    var reabierto = !!(c && c.pdf_firmado_path && !c.bloqueado);
+    return { hechas: hechas, vivas: vivas, firmadas: hechas.length, total: total, reabierto: reabierto,
+             aMedias: !reabierto && hechas.length > 0 && !vivas.length && hechas.length < total };
+  }
+  var TOPE_FIRMA_PARCIAL = 1000;   // = max_rows de la API: más no llega aunque se pida
+  // `null` = la lectura falló (se pinta como antes del 12-oct, sin «1 de 2»); en el tope = puede faltar algo: se dice
+  function avisaFirmaParcial(firmadas, vinculos) {
+    if ((firmadas && firmadas.length >= TOPE_FIRMA_PARCIAL) || (vinculos && vinculos.length >= TOPE_FIRMA_PARCIAL)) {
+      bandaNota(tx('Hay más de %n firmas o compradores: el «1 de 2» de los contratos en firma puede estar incompleto. Pide a Desarrollo subir el tope.', { n: TOPE_FIRMA_PARCIAL }));
+    }
   }
   /* Etiqueta de un contrato SIN bloquear según su cadena; null = no hay nada que añadir (sigue la de siempre). */
   function etiquetaFirma(pf) {
+    if (pf.reabierto) return null;
     if (pf.aMedias) return [tx('Firma a medias · %f de %t', { f: pf.firmadas, t: pf.total }), 'mal'];
     if (pf.vivas.length && pf.total > 1) return [tx('En firma · %f de %t', { f: pf.firmadas, t: pf.total }), 'espera'];
     return null;
@@ -778,11 +793,15 @@
   function clientesContratosCarga(sb, conContratos) {
     if (!conContratos) return Promise.resolve([[], [], [], []]);
     return Promise.all([
-      q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,parcela_codigo,fecha_firma,precio_total,moneda,bloqueado,contrato_padre_id,liberado_en,created_at'), 'contratos'),
+      // comprador_nombre y pdf_firmado_path: los usa progresoFirma (total de firmantes y «reabierto»)
+      q(sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,fecha_firma,precio_total,moneda,bloqueado,pdf_firmado_path,contrato_padre_id,liberado_en,created_at'), 'contratos'),
       q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
       vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
-      // pendientes Y firmadas: las firmadas son para el «1 de 2» de cada pieza (progresoFirma)
-      q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').in('estado', ['pendiente', 'firmado']), 'firmas')
+      /* pendientes Y firmadas (el «1 de 2» de cada pieza) en la MISMA llamada de siempre (guarda_clientes.test.js
+         fija el número de consultas). Ordenadas por estado DESC: «pendiente» > «firmado», así que si la API recorta
+         en el tope solo caen firmadas, nunca una pendiente; y en el tope se avisa (avisaFirmaParcial). */
+      q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').in('estado', ['pendiente', 'firmado'])
+        .order('estado', { ascending: false }).limit(TOPE_FIRMA_PARCIAL), 'firmas')
     ]);
   }
   function clientesSoporteResumen(sb, clientId) {
@@ -1270,7 +1289,7 @@
       var ETQ2 = { liberada: tx('Reserva liberada') }; (typeof ETAPAS !== 'undefined' ? ETAPAS : []).forEach(function (e) { ETQ2[e[0]] = e[1]; });
       var TONO2 = { sin_firmar: 'espera', firma_viva: 'espera', cobro_pend: 'mal', cobro_ok: 'ok', liberada: '' };
       var nCompC = (r[4] && r[4].data || []).length;
-      var pfDe = function (x) { return progresoFirma(x.firmas, x.id === c.id ? nCompC : (x.compradores || []).length); };
+      var pfDe = function (x) { return progresoFirma(x, x.firmas, x.id === c.id ? nCompC : (x.compradores || []).length); };
       function estadoPieza(x) {
         if (x.liberado_en) return ['liberada', 'mal'];
         if (x.bloqueado) return ['firmado', 'ok'];
@@ -2211,16 +2230,21 @@
         // `rev03`: cláusulas negociadas REV03 (2-oct-2026) — una clave de datos_fields, como `soc` en Finanzas;
         // solo aquí y no en CAMPOS_CONTRATO, que comparten la ficha y otras lecturas que no la pintan.
         q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO + ',rev03:datos_fields->>clausulas_negociadas').order('created_at', { ascending: false }).limit(1000), 'contratos', t),
-        // pendientes Y firmadas: con las firmadas se ve «1 de 2» y la cadena rota (progresoFirma)
-        q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').in('estado', ['pendiente', 'firmado']), 'firmas'),
+        q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente'), 'firmas pendientes'),
         autores(sb),
-        vig(sb.from('contrato_compradores').select('contrato_id')).then(function (x) { return x.error ? [] : (x.data || []); })
+        /* Para el «1 de 2» (progresoFirma, 12-oct): las firmas HECHAS y los compradores por contrato, aparte de
+           las pendientes para que un recorte nunca se lleve una pendiente. Con tope explícito y aviso si se llega
+           (max_rows de la API = 1000): un recorte callado es un número que miente. Si fallan, se pinta como antes. */
+        vig(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'firmado').order('firmado_en', { ascending: false }).limit(TOPE_FIRMA_PARCIAL)).then(function (x) { return x.error ? null : (x.data || []); }),
+        vig(sb.from('contrato_compradores').select('contrato_id').limit(TOPE_FIRMA_PARCIAL)).then(function (x) { return x.error ? null : (x.data || []); })
       ]).then(function (rr) {
           var cs = rr[0], AUT = rr[2] || {};
-          var firmasDe = {}; (rr[1] || []).forEach(function (x) { (firmasDe[x.contrato_id] = firmasDe[x.contrato_id] || []).push(x); });
-          var nCompDe = {}; (rr[3] || []).forEach(function (x) { nCompDe[x.contrato_id] = (nCompDe[x.contrato_id] || 0) + 1; });
-          var pfDe = function (c) { return progresoFirma(firmasDe[c.id], nCompDe[c.id]); };
+          var firmasDe = {};
+          (rr[1] || []).concat(rr[3] || []).forEach(function (x) { (firmasDe[x.contrato_id] = firmasDe[x.contrato_id] || []).push(x); });
+          var nCompDe = {}; (rr[4] || []).forEach(function (x) { nCompDe[x.contrato_id] = (nCompDe[x.contrato_id] || 0) + 1; });
+          var pfDe = function (c) { return progresoFirma(c, firmasDe[c.id], nCompDe[c.id]); };
           if (!cs) return;
+          avisaFirmaParcial(rr[3], rr[4]);
           // firmado > en firma (hay firma viva pendiente, o una hecha con la cadena rota: ya no es borrador) > borrador
           var estadoC = function (c) { if (c.bloqueado) return 'firmado'; var pf = pfDe(c); return (pf.vivas.length || pf.aMedias) ? 'firma' : 'borrador'; };
           var ETQ_C = { firmado: ['Firmado', 'ok'], firma: ['En firma', 'espera'], borrador: ['Borrador', ''] };
@@ -2720,6 +2744,7 @@
           (firmasDe[x.contrato_id] = firmasDe[x.contrato_id] || []).push(x);
         });
         vin.forEach(function (v) { nCompDe[v.contrato_id] = (nCompDe[v.contrato_id] || 0) + 1; });
+        avisaFirmaParcial(fir, vin);
         var nombreEquipo = {}; eq.forEach(function (u) { if (u.email) nombreEquipo[u.email.toLowerCase()] = u.nombre || u.email; });
         var deCliente = {};
         vin.forEach(function (v) {
@@ -3004,7 +3029,7 @@
           var estadoPieza = function (k) {
             if (k.liberado_en) return H.tag('Liberado', 'neutro');
             if (k.bloqueado) return H.tag('Firmado', 'ok');
-            var etq = etiquetaFirma(progresoFirma(firmasDe[k.id], nCompDe[k.id]));
+            var etq = etiquetaFirma(progresoFirma(k, firmasDe[k.id], nCompDe[k.id]));
             if (etq) return H.tag(etq[0], etq[1]);
             return firmaPend[k.id] ? H.tag('En firma', 'espera') : H.tag('Sin firmar', 'mal');
           };
@@ -3756,7 +3781,7 @@
         var cadena = function (o) { return (typeof cadenaOperacion === 'function') ? cadenaOperacion(o) : [o].concat(o.hijos || []); };
         var firmaViva = function (c) { return (c.firmas || []).some(function (f) { return f.estado === 'pendiente' && !firmaCaducada(f); }); };
         /* estado de UNA pieza de la cadena, para la columna «Contratos» */
-        var pfDe = function (c) { return progresoFirma(c.firmas, (c.compradores || []).length); };
+        var pfDe = function (c) { return progresoFirma(c, c.firmas, (c.compradores || []).length); };
         function estadoPieza(c) {
           if (c.liberado_en) return [T('liberada'), 'mal'];
           if (c.bloqueado) return [T('firmado'), 'ok'];

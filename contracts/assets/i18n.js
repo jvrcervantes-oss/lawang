@@ -5489,6 +5489,7 @@
     'En firma · %f de %t': 'Signing · %f of %t',
     'Firma a medias · %f de %t': 'Half signed · %f of %t',
     'Firma a medias sin enlace': 'Half signed, no link',
+    'Hay más de %n firmas o compradores: el «1 de 2» de los contratos en firma puede estar incompleto. Pide a Desarrollo subir el tope.': 'There are more than %n signatures or buyers: the «1 of 2» of contracts being signed may be incomplete. Ask Development to raise the cap.',
     'Ya firmó %h (%f de %t)': '%h already signed (%f of %t)',
     'Firma a medias: ya firmó %h (%f de %t), pero el siguiente no tiene enlace de firma vivo. Genera su enlace desde el contrato.': 'Half signed: %h already signed (%f of %t), but the next signer has no live signing link. Generate their link from the contract.',
     'Este contrato tiene %n parcelas reservadas a la vez (%l). Liberar una marcaría el contrato entero como liberado y dejaría el resto sin forma de soltarlas. Este caso no está cubierto todavía — pide a Desarrollo que la libere a mano.': 'This contract has %n plots reserved at once (%l). Releasing one would mark the whole contract as released and leave no way to free the rest. This case is not covered yet — ask Development to release it by hand.',
