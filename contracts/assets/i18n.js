@@ -5985,6 +5985,7 @@
     'Datos': 'Details',
     'Opciones': 'Options',
     'Menú': 'Menu',
+    'Recibí de cobro': 'Payment receipt',
   };
 
   window.LW_EN = EN;
