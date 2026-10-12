@@ -553,7 +553,9 @@
     var aqui = location.pathname;
     for (var g in GRUPOS) {
       var t = GRUPOS[g].pestanas.filter(function (p) { return aqui.indexOf('/' + p.path + '/') !== -1; })[0];
-      if (t) return { grupo: g, pestana: t };
+      /* `hondo` (12-oct-2026): una página DENTRO de la carpeta de una pestaña (/ajustes/configurar/ de las instancias) marca su
+         entrada, pero no lleva la barra de pestañas: no es ninguna de ellas. */
+      if (t) return { grupo: g, pestana: t, hondo: !new RegExp('/' + t.path + '/(index\\.html)?$').test(aqui) };
     }
     return null;
   }
@@ -644,7 +646,7 @@
       if (entrada && mias.length) submenu(entrada, g, mias, aquiG, ficha);
       else if (entrada && aquiG && aquiG.grupo === g) marcaActiva(entrada);
     });
-    if (!aquiG) return;
+    if (!aquiG || aquiG.hondo) return;
     var idBarra = 'lw-pestanas-' + aquiG.grupo;
     if (document.getElementById(idBarra)) return;
     var mias = pestanasDe(aquiG.grupo, ficha);
