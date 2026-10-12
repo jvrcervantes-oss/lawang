@@ -11691,11 +11691,18 @@
       function guardaSociedad(args) {
         return Promise.resolve(sb.rpc('sociedad_guarda', args)).then(function (r) {
           if (!(r && r.error && r.error.hint === 'falta_confirmo')) return r;
-          var pref = (args.p_datos && args.p_datos.prefijo_serie) || '—';
-          if (!window.confirm(tH('El prefijo de las facturas («%p») no se podrá cambiar después de emitir la primera factura. ¿Fijarlo ahora?', { p: pref }))) {
-            return { data: null, error: { message: tH('No se ha guardado nada: el prefijo queda sin fijar.') } };
-          }
-          return Promise.resolve(sb.rpc('sociedad_guarda', Object.assign({}, args, { p_confirmo: true })));
+          var nada = { data: null, error: { message: tH('No se ha guardado nada: el prefijo queda sin fijar.') } };
+          // la pregunta va en el diálogo de la suite (dialogo.js), nunca en window.confirm; si aún no ha cargado, no se guarda nada
+          if (typeof lwConfirmar !== 'function') return { data: null, error: { message: tH('El diálogo aún no ha cargado — prueba de nuevo en un segundo.') } };
+          var pref = String((args.p_datos && args.p_datos.prefijo_serie) || '').trim();
+          var cuerpo = pref
+            ? tH('El prefijo de las facturas («%p») no se podrá cambiar después de emitir la primera factura. ¿Fijarlo ahora?', { p: pref })
+            : tH('Las facturas quedarán sin prefijo, y eso no se podrá cambiar después de emitir la primera factura. ¿Guardarlo así?');
+          return lwConfirmar({ titulo: pref ? 'Fijar el prefijo de las facturas' : 'Facturas sin prefijo', cuerpo: '<p>' + esc(cuerpo) + '</p>', confirmar: pref ? 'Fijar el prefijo' : 'Guardar sin prefijo' })
+            .then(function (ok) {
+              if (!ok) return nada;
+              return Promise.resolve(sb.rpc('sociedad_guarda', Object.assign({}, args, { p_confirmo: true })));
+            });
         });
       }
 

@@ -637,20 +637,32 @@
   }
 
   var mesIni = new Date(); mesIni.setDate(1); mesIni.setHours(0, 0, 0, 0);
-  function sumaMesEUR(recibis, base) {
-    if (base === undefined) base = 'EUR';
-    var eur = 0, otros = 0;
+  function sumaMesBase(recibis, base) {
+    var suma = 0, otros = 0;
+    if (!base) return { suma: 0, otros: 0 };   // sin moneda base no se suma nada: quien pinta enseña «—»
     (recibis || []).forEach(function (f) {
       if (f.anulada) return;
       if (new Date(f.fecha_emision || f.created_at) < mesIni) return;   // el mes es el de EMISIÓN
-      if ((f.moneda || base) === base) eur += Number(f.total) || 0; else otros++;
+      if ((f.moneda || base) === base) suma += Number(f.total) || 0; else otros++;
     });
-    return { eur: eur, otros: otros };
+    return { suma: suma, otros: otros };
   }
   /* Moneda BASE del ERP (F3 fase E, 12-oct-2026): la decide guard.js (lwMonedaBase). En Lawang es EUR, como siempre; en una instancia es la que
      se eligió en Ajustes, y null = aún sin decidir: entonces las cifras de cobro salen «—», nunca «0 EUR» ni sumadas en otra moneda. */
   function monedaBase() { return typeof window.lwMonedaBase === 'function' ? window.lwMonedaBase() : 'EUR'; }
   var SIN_MONEDA = 'la moneda del ERP aún no está decidida: se elige en Ajustes';
+  var SIN_LEER_MONEDA = 'no se pudo leer la moneda del ERP: recarga la página';
+  /* La moneda llega con la capa de módulos (apagados_instancia.js la fija ANTES de resolver AXW_MODULOS_LISTOS). Quien pinta una cifra sumada
+     espera aquí (revisor de p20): leerla antes daba «—» y «aún no está decidida» con la moneda ya elegida. fn(base, motivo): base null =
+     no se pinta cifra, y motivo dice por qué (sin decidir o no se pudo leer). Sin bandera (Lawang) fn corre en el acto con 'EUR', como siempre. */
+  function conMonedaBase(fn) {
+    var espera = esperaModulos();
+    if (!espera) { var b = monedaBase(); return fn(b, b ? '' : SIN_MONEDA); }
+    espera.then(function (ok) {
+      var b2 = ok ? monedaBase() : null;
+      fn(b2, b2 ? '' : (ok ? SIN_MONEDA : SIN_LEER_MONEDA));
+    }, function () { fn(null, SIN_LEER_MONEDA); });
+  }
 
   /* ══════════════ registro por pantalla ══════════════ */
   /* ══════════════ ficha de CONTRATO en cajón lateral (18-sep-2026) ══════════════
@@ -2145,10 +2157,10 @@
       });
       q(sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,enviada,created_at,fecha_emision,numero,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id' + colsSerie()), 'facturas').then(function (fs) {
         if (!fs) return;
-        var mb = monedaBase();
-        var s = sumaMesEUR(fs.filter(function (f) { return f.tipo === 'recibi'; }), mb);
-        kpi('kpi-cobrado-mes', mb ? fmt(s.eur, mb) : '—', !mb ? tx(SIN_MONEDA) : s.otros ? tx('+%n cobros en otra moneda', { n: s.otros }) : tx('recibís del mes en curso'));
-        pon2('k-cobrado', mb ? fmt(s.eur, mb) : '—');
+        conMonedaBase(function (mb, motivo) {
+        var s = sumaMesBase(fs.filter(function (f) { return f.tipo === 'recibi'; }), mb);
+        kpi('kpi-cobrado-mes', mb ? fmt(s.suma, mb) : '—', !mb ? tx(motivo) : s.otros ? tx('+%n cobros en otra moneda', { n: s.otros }) : tx('recibís del mes en curso'));
+        pon2('k-cobrado', mb ? fmt(s.suma, mb) : '—');
         /* «+18,4% vs mes anterior» era del diseno. Se calcula de verdad, y si no
            hay con que comparar se dice, en vez de ensenar una flecha verde. */
         var ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
@@ -2160,7 +2172,8 @@
           if (d >= iniPrev && d < ini) prev += Number(f.total) || 0;
         });
         // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra
-        pon2('k-cobrado-tend', prev ? ((s.eur >= prev ? '+' : '') + Math.round((s.eur - prev) / prev * 1000) / 10 + '%') : '—');
+        pon2('k-cobrado-tend', prev ? ((s.suma >= prev ? '+' : '') + Math.round((s.suma - prev) / prev * 1000) / 10 + '%') : '—');
+        });
         var t = tablaPor('tabla-documentos');
         if (t) {
           var pl = plantillaFilas(t);
@@ -2396,35 +2409,40 @@
             return p <= 0.005 ? 'cobrada' : (tot - p <= 0.005 ? 'pendiente' : 'parcial');
           }
           var ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
-          var mb = monedaBase();
-          var mesEUR = 0, mesOtras = 0, nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0, nRect = 0;
+          var nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0, nRect = 0;
           fs.forEach(function (f) {
             if (f.tipo === 'proforma') { nPro++; if (f.anulada) nProAnu++; } else { nFac++; if (f.anulada) nFacAnu++; if (f.rectifica_id) nRect++; }
+          });
+          // las cifras en dinero esperan a la moneda base (conMonedaBase); los recuentos no dependen de ella
+          conMonedaBase(function (mb, motivo) {
+          var mesBase = 0, mesOtras = 0;
+          fs.forEach(function (f) {
             // por DEVENGO (lwFacturaCuentaEnSuFecha, dinero.js): la emitida suma en su mes aunque se anulara, la R resta en el suyo
-            if (f.tipo !== 'proforma' && lwFacturaCuentaEnSuFecha(f) && new Date(f.fecha_emision || f.created_at) >= ini) {
-              if ((f.moneda || mb) === mb) mesEUR += Number(f.total) || 0; else mesOtras++;
+            if (mb && f.tipo !== 'proforma' && lwFacturaCuentaEnSuFecha(f) && new Date(f.fecha_emision || f.created_at) >= ini) {
+              if ((f.moneda || mb) === mb) mesBase += Number(f.total) || 0; else mesOtras++;
             }
           });
-          pon2('k-mes', mb ? fmt(mesEUR, mb) : '—');
-          pon2('k-mes-pie', !mb ? tx(SIN_MONEDA) : mb !== 'EUR' ? tx('facturado del mes por fecha de emisión (las rectificativas restan), impuestos incluidos') + (mesOtras ? ' · ' + tx('+%n en otra moneda', { n: mesOtras }) : '')
+          pon2('k-mes', mb ? fmt(mesBase, mb) : '—');
+          pon2('k-mes-pie', !mb ? tx(motivo) : mb !== 'EUR' ? tx('facturado del mes por fecha de emisión (las rectificativas restan), impuestos incluidos') + (mesOtras ? ' · ' + tx('+%n en otra moneda', { n: mesOtras }) : '')
             : tx(window.AXW_NUCLEO_OPERACION ? 'facturado del mes por fecha de emisión (las rectificativas restan), en euros, impuestos incluidos' : 'facturas vigentes del mes en euros, impuestos incluidos') + (mesOtras ? ' · ' + tx('+%n en otra moneda', { n: mesOtras }) : ''));
+          // KPI «Pendiente de cobro» en el sitio de «Proformas» (22-sep-2026):
+          // las proformas son automáticas y no facturan; lo pendiente es lo
+          // que de verdad se mira aquí.
+          var pendBase = 0, pendOtras = 0, nPend = 0;
+          fs.forEach(function (f) {
+            var c = cobroDe(f); if (c !== 'pendiente' && c !== 'parcial') return;
+            nPend++; if ((f.moneda || mb) === mb) pendBase += pendPor[f.id] || 0; else pendOtras++;
+          });
+          pon2('k-pendiente', hayPend && mb ? fmt(pendBase, mb) : '—');
+          pon2('k-pendiente-pie', !hayPend ? tx('no se pudo calcular lo pendiente de cobro') : !mb ? tx(motivo)
+            : (mb !== 'EUR' ? tx(nPend === 1 ? '%n factura vigente con saldo pendiente' : '%n facturas vigentes con saldo pendiente', { n: nPend })
+                            : tx(nPend === 1 ? '%n factura vigente con saldo pendiente, en euros' : '%n facturas vigentes con saldo pendiente, en euros', { n: nPend }))
+              + (pendOtras ? ' · ' + tx('+%n en otra moneda', { n: pendOtras }) : ''));
+          });
           // las rectificativas (ERP maestro) se cuentan APARTE, no como facturas; en Lawang nRect = 0 y queda lo de siempre
           pon2('k-facturas', String(nFac - nRect));
           pon2('k-facturas-pie', (nRect ? tx(nFac - nRect === 1 ? '%n factura' : '%n facturas', { n: nFac - nRect }) + ' · ' + tx(nRect === 1 ? '%n rectificativa' : '%n rectificativas', { n: nRect }) + ' · ' : '') +
             tx(nFacAnu === 1 ? '%n anulada' : '%n anuladas', { n: nFacAnu }) + ' · ' + tx('histórico completo'));
-          // KPI «Pendiente de cobro» en el sitio de «Proformas» (22-sep-2026):
-          // las proformas son automáticas y no facturan; lo pendiente es lo
-          // que de verdad se mira aquí.
-          var pendEUR = 0, pendOtras = 0, nPend = 0;
-          fs.forEach(function (f) {
-            var c = cobroDe(f); if (c !== 'pendiente' && c !== 'parcial') return;
-            nPend++; if ((f.moneda || mb) === mb) pendEUR += pendPor[f.id] || 0; else pendOtras++;
-          });
-          pon2('k-pendiente', hayPend && mb ? fmt(pendEUR, mb) : '—');
-          pon2('k-pendiente-pie', !hayPend ? tx('no se pudo calcular lo pendiente de cobro') : !mb ? tx(SIN_MONEDA)
-            : (mb !== 'EUR' ? tx(nPend === 1 ? '%n factura vigente con saldo pendiente' : '%n facturas vigentes con saldo pendiente', { n: nPend })
-                            : tx(nPend === 1 ? '%n factura vigente con saldo pendiente, en euros' : '%n facturas vigentes con saldo pendiente, en euros', { n: nPend }))
-              + (pendOtras ? ' · ' + tx('+%n en otra moneda', { n: pendOtras }) : ''));
           var porId = {}; fs.forEach(function (f) { porId[f.id] = f; });
           window.LW_V4 = window.LW_V4 || {}; window.LW_V4.facturasLista = porId;
 
@@ -2604,10 +2622,11 @@
           var saldaDe = {}; rr[1].forEach(function (a) { (saldaDe[a.recibi_id] = saldaDe[a.recibi_id] || []).push(numFac[a.factura_id] || tx('factura fuera de tu alcance')); });
           var justifDe = function (r) { return Array.isArray(r.justificantes) && r.justificantes.length ? r.justificantes : (r.justificante_path ? [{ path: r.justificante_path, nombre: '' }] : []); };
           var nJust = nJustRecibo;
-          var mb = monedaBase();
-          var s = sumaMesEUR(rs, mb);
-          pon2('k-cobrado-mes', mb ? fmt(s.eur, mb) : '—');
-          pon2('k-cobrado-mes-pie', !mb ? tx(SIN_MONEDA) : tx(mb !== 'EUR' ? 'recibís vigentes del mes, impuestos incluidos' : 'recibís vigentes del mes en euros, impuestos incluidos') + (s.otros ? ' · ' + tx('+%n en otra moneda', { n: s.otros }) : ''));
+          conMonedaBase(function (mb, motivo) {
+            var sm = sumaMesBase(rs, mb);
+            pon2('k-cobrado-mes', mb ? fmt(sm.suma, mb) : '—');
+            pon2('k-cobrado-mes-pie', !mb ? tx(motivo) : tx(mb !== 'EUR' ? 'recibís vigentes del mes, impuestos incluidos' : 'recibís vigentes del mes en euros, impuestos incluidos') + (sm.otros ? ' · ' + tx('+%n en otra moneda', { n: sm.otros }) : ''));
+          });
           var anul = rs.filter(function (r) { return r.anulada; }).length;
           // LAW-40: los históricos sin justificante (decisión del owner, 10-oct-2026) no cuentan como pendientes.
           var sinJ = rs.filter(reciboFaltaJustificante).length;
