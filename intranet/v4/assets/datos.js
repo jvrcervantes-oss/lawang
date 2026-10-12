@@ -6715,7 +6715,8 @@
               var enlace = null;
               if (nx.enlace && /^\/(?![\/\\])/.test(nx.enlace)) enlace = nx.enlace;
               else if (nx.enlace && nx.enlace.indexOf(location.origin + '/') === 0) enlace = nx.enlace;
-              return '<div class="flex items-start gap-3"' + (i >= 6 ? ' data-audit-mas hidden' : '') + '>' +
+              // plegado con style y no con `hidden`: la clase `flex` gana al atributo y el «ver más» no plegaba nada (12-oct-2026)
+              return '<div class="flex items-start gap-3"' + (i >= 6 ? ' data-audit-mas hidden style="display:none"' : '') + '>' +
                 '<div class="w-2 h-2 rounded-full ' + (enlace ? 'bg-deep-lagoon' : 'bg-stone-sand') + ' mt-1.5 shrink-0"></div>' +
                 '<div class="flex flex-col min-w-0">' +
                 (enlace
@@ -6727,14 +6728,16 @@
           }
           if (mas) {
             var ocultos = caja.querySelectorAll('[data-audit-mas]').length;
-            if (!ocultos) mas.textContent = tx('Ver más hechos');   // el rótulo del HTML, en el idioma de la interfaz (en español, el mismo)
+            /* El botón lleva `hidden` y la clase `inline-flex`, que gana al atributo: se veía «Ver más hechos» aunque no hubiera
+               nada que desplegar, y al pulsarlo no desaparecía. Se esconde y se enseña con style (12-oct-2026, cambio visible). */
+            if (!ocultos) mas.style.display = 'none';
             if (ocultos) {
-              mas.hidden = false;
+              mas.hidden = false; mas.style.display = '';
               mas.textContent = tx('Ver %n hechos anteriores', { n: ocultos });
               mas.addEventListener('click', function (ev) {
                 ev.stopPropagation();
-                caja.querySelectorAll('[data-audit-mas]').forEach(function (e) { e.hidden = false; });
-                mas.hidden = true;
+                caja.querySelectorAll('[data-audit-mas]').forEach(function (e) { e.hidden = false; e.style.display = ''; });
+                mas.hidden = true; mas.style.display = 'none';
               });
             }
           }
