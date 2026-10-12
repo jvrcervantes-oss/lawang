@@ -3390,7 +3390,7 @@
   function tituloBarraDoc(texto) {
     return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
       '<span style="width:3px;height:13px;background:' + CAJ.lago + ';border-radius:2px;display:inline-block;flex:0 0 auto"></span>' +
-      '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + '">' + esc(texto) + '</span></div>';
+      '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + '">' + esc(tS(texto)) + '</span></div>';
   }
   function seccionFijaDoc(host, titulo) {
     var card = document.createElement('div');
@@ -3420,7 +3420,7 @@
       'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + ';width:100%';
     var marca = document.createElement('span'); marca.style.cssText = 'width:11px;color:' + CAJ.apagado + ';flex:0 0 auto';
     marca.textContent = abierta ? '−' : '+';
-    var lbl = document.createElement('span'); lbl.textContent = titulo; lbl.style.flex = '0 0 auto';
+    var lbl = document.createElement('span'); lbl.textContent = tS(titulo); lbl.style.flex = '0 0 auto';
     var res = document.createElement('span');
     res.style.cssText = 'margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;' +
       'font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:' + CAJ.apagado;

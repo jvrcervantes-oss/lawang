@@ -291,8 +291,8 @@ var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta 
       cerrar(null);
       focoPrevio = document.activeElement;
       items = normaliza(o.opciones);
-      elT.textContent = o.titulo || dlgT('Elige una opción');
-      elQ.placeholder = o.buscarPh || dlgT('Escribe para buscar…');
+      elT.textContent = o.titulo ? dlgS(o.titulo) : dlgT('Elige una opción');
+      elQ.placeholder = o.buscarPh ? dlgS(o.buscarPh) : dlgT('Escribe para buscar…');
       elQ.value = '';
       pintar();
       resolver = res;
