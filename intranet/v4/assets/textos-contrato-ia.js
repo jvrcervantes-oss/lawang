@@ -384,7 +384,7 @@
       tb.appendChild(cab);
       d.extracto.forEach(function (x) {
         var tr = el('tr', null);
-        [String(x.periodo).slice(0, 7), x.empresa, x.llamadas, x.fallidas, x.pendientes, x.creditos, x.creditos_prueba, x.facturables, x.incluidos === null ? '—' : x.incluidos, x.exceso, typeof window.lwFormatoImporte === 'function' ? window.lwFormatoImporte(x.importe, x.moneda) : x.importe + (x.moneda ? ' ' + x.moneda : ''), x.aceptadas, x.coste_usd + (x.coste_incompleto ? ' (' + T('sin tarifa') + ')' : '')].forEach(function (v) { tr.appendChild(el('td', null, String(v))); });
+        [String(x.periodo).slice(0, 7), x.empresa, x.llamadas, x.fallidas, x.pendientes, x.creditos, x.creditos_prueba, x.facturables, x.incluidos === null ? '—' : x.incluidos, x.exceso, typeof window.lwFormatoImporte === 'function' ? window.lwFormatoImporte(x.importe, x.moneda) : x.importe + (x.moneda ? ' ' + x.moneda : ''), x.aceptadas, x.coste_usd + (x.coste_incompleto ? ' (' + T('coste incompleto') + ')' : '')].forEach(function (v) { tr.appendChild(el('td', null, String(v))); });
         tb.appendChild(tr);
       });
       s3.appendChild(tb);

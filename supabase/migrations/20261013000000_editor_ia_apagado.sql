@@ -485,6 +485,7 @@ begin
     select to_jsonb(a) - 'id' into v_antes from public.editor_ia_ajustes a where a.id for update;
     -- Una sola moneda por mes (revisor 13-oct): cada consulta congela la suya y el importe del extracto las sumaría mezcladas.
     -- Con consultas hechas o en curso este mes, la moneda no cambia hasta el mes que viene (antes de su primera consulta).
+    perform public._editor_ia_candado();                                     -- la misma cola que las reservas: ninguna se cuela a la vez
     if p_campos ? 'moneda' and (p_campos ->> 'moneda') is distinct from (v_antes ->> 'moneda')
        and exists (select 1 from public.editor_ia_uso u where u.periodo = public._editor_ia_periodo() and u.estado in ('hecho', 'reservado')) then
       raise exception 'La moneda no se cambia a mitad de mes: este mes ya hay consultas en %. Se puede cambiar el primer dia del mes que viene, antes de la primera consulta', v_antes ->> 'moneda' using errcode = '22023';

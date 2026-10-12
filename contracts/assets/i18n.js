@@ -5031,6 +5031,7 @@
     'Aceptadas': 'Accepted',
     'Coste real (USD)': 'Real cost (USD)',
     'sin tarifa': 'no rate',
+    'coste incompleto': 'incomplete cost',
     'Registro de cambios de precios': 'Price change log',
     'Nadie ha cambiado los precios todavía.': 'Nobody has changed the prices yet.',
     'El asistente no está encendido para esta empresa.': 'The assistant is not switched on for this company.',
