@@ -218,6 +218,26 @@ begin
   if j is null or (j ->> 'creditos') <> '2' or (j ->> 'pendientes') <> '5' or (j ->> 'fallidas') <> '3' then
     fallos := fallos + 1; resumen := resumen || ' [H5 extracto: ' || coalesce(j::text, 'error') || ']';
   end if;
+  -- H6: una reserva abandonada de OTRA empresa también caduca (si no, tendría ocupada la jaula global de las demás)
+  insert into public.editor_ia_saldo (empresa, periodo, usados) values (v_eb, public._editor_ia_periodo(), 5)
+    on conflict (empresa, periodo) do update set usados = public.editor_ia_saldo.usados + 5;
+  update public.editor_ia_saldo set usados = usados + 5 where empresa = '*' and periodo = public._editor_ia_periodo();
+  select usados into n from public.editor_ia_saldo where empresa = '*' and periodo = public._editor_ia_periodo();
+  insert into public.editor_ia_uso (empresa, usuario, autor, fecha, periodo, accion, slug, variante, parrafos, creditos)
+  values (v_eb, v_sup, 'prueba', now() - interval '11 minutes', public._editor_ia_periodo(), 'propone', v_slug, 'estandar', 1, 5)
+  returning id into v_uso;
+  j := pg_temp.pide('authenticated', v_sup, v_sup_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
+  total := total + 1;
+  if not exists (select 1 from public.editor_ia_uso where id = v_uso and estado = 'caducada')
+     or (select usados from public.editor_ia_saldo where empresa = '*' and periodo = public._editor_ia_periodo()) <> n - 5 + 2 then
+    fallos := fallos + 1; resumen := resumen || ' [H6 la abandonada de otra empresa no libera la jaula global]';
+  end if;
+  -- H7: un uso SUYO de una empresa de la que ya no es admin (el admin de A no lo es de B): no puede anotarlo como aceptado
+  insert into public.editor_ia_uso (empresa, usuario, autor, periodo, accion, slug, variante, parrafos, creditos, estado)
+  values (v_eb, v_ae, 'prueba', public._editor_ia_periodo(), 'propone', v_slug, 'estandar', 1, 1, 'hecho')
+  returning id into v_uso;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_aceptada(%L, %L)', v_uso, v_ver));
+  total := total + 1; if r not like 'E42501%' then fallos := fallos + 1; resumen := resumen || ' [H7 aceptada sin rol en la empresa: ' || r || ']'; end if;
 
   -- vaciar un precio con la empresa encendida: el servidor deja de aceptar llamadas
   r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_ajustes_guarda(null, %L::jsonb, %L)', '{"precio_credito": null}', 'prueba'));

@@ -19,7 +19,8 @@
 -- QUIÉN LLAMA A CADA FUNCIÓN (reducir la exposición, seguridad_2026.md §1.ter)
 --   editor_ia_estado          authenticated · textos-contrato-ia.js (saldo y si está encendido, en llano)
 --   editor_ia_reserva         authenticated · edge editor-ia, con el JWT de la persona (la identidad la pone la base, no la edge).
---                             Llamarla a mano desde el navegador solo gasta créditos propios sin recibir nada.
+--                             Llamarla a mano desde el navegador ocupa créditos sin recibir nada; a los 10 min caducan y vuelven
+--                             (las de TODAS las empresas: si no, una empresa podría tener llena la jaula global de las demás).
 --   editor_ia_cierra          SOLO service_role · edge editor-ia: escribe tokens, modelo y caracteres REALES. Ningún navegador.
 --   editor_ia_aceptada        authenticated · textos-contrato-ia.js tras guardar el borrador (la propuesta quedó en una versión)
 --   editor_ia_marcas          authenticated · textos-contrato-ia.js (qué trozos están «traducidos, sin revisar»)
@@ -178,21 +179,28 @@ revoke all on function public._editor_ia_periodo(), public._editor_ia_falta(text
 -- Reservas que nadie cerró (la función murió a medias, o alguien reservó desde el navegador sin llamar a la función): a los 10
 -- minutos caducan y devuelven sus créditos a la empresa y a la jaula global. Una función viva cierra en segundos (su tope de
 -- ejecución es muy inferior), así que no se pisa con un cierre de verdad; y si chocan, el cierre ve que ya no está «reservado».
--- Orden fijo de bloqueo en todo el módulo: fila de la empresa y DESPUÉS la fila global «*» (la reserva suma en ese orden).
-create function public._editor_ia_caduca(p_empresa text) returns integer language plpgsql security definer set search_path = '' as $$
+-- Caducan las de TODAS las empresas (Seguridad 13-oct): si solo caducaran las de quien reserva, las abandonadas por una empresa
+-- seguirían ocupando la jaula global de las demás. Todo lo que mueve `editor_ia_saldo` (reserva, cierre, caducidad) toma antes
+-- el MISMO candado de transacción (`_editor_ia_candado`): así no hay orden de bloqueo entre filas que respetar ni abrazo mortal
+-- posible. El volumen es mínimo (6 por persona y minuto) y el candado dura una transacción corta, nunca la llamada al modelo.
+create function public._editor_ia_candado() returns void language sql security definer set search_path = '' as $$
+  select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('editor_ia/saldo', 0))
+$$;
+create function public._editor_ia_caduca() returns integer language plpgsql security definer set search_path = '' as $$
 declare u record; n int := 0;
 begin
-  for u in select x.id, x.periodo, x.creditos from public.editor_ia_uso x
-            where x.empresa = p_empresa and x.estado = 'reservado' and x.fecha < now() - interval '10 minutes'
+  perform public._editor_ia_candado();
+  for u in select x.id, x.empresa, x.periodo, x.creditos from public.editor_ia_uso x
+            where x.estado = 'reservado' and x.fecha < now() - interval '10 minutes'
             order by x.fecha for update skip locked loop
     update public.editor_ia_uso set estado = 'caducada', cerrada_en = now() where id = u.id;
-    update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = p_empresa and s.periodo = u.periodo;
+    update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = u.empresa and s.periodo = u.periodo;
     update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = '*' and s.periodo = u.periodo;
     n := n + 1;
   end loop;
   return n;
 end $$;
-revoke all on function public._editor_ia_caduca(text) from public, anon, authenticated, service_role;
+revoke all on function public._editor_ia_candado(), public._editor_ia_caduca() from public, anon, authenticated, service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────────────────────── estado (pantalla)
 create function public.editor_ia_estado(p_empresa text) returns jsonb language plpgsql stable security definer set search_path = '' as $$
@@ -239,7 +247,7 @@ begin
   end if;
   v_falta := public._editor_ia_falta(p_empresa);
   if v_falta is not null then raise exception 'Asistente apagado: %', v_falta using errcode = '55000', hint = 'apagado'; end if;
-  perform public._editor_ia_caduca(p_empresa);                               -- antes de medir el tope: lo abandonado no ocupa saldo
+  perform public._editor_ia_caduca();                                        -- toma el candado del saldo; lo abandonado deja de ocupar
   -- tope por persona: 6 llamadas por minuto (serializado por persona: dos peticiones suyas a la vez no se cuelan las dos)
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('editor_ia/usuario/' || v_uid::text, 0));
   select count(*) into v_min from public.editor_ia_uso u where u.usuario = v_uid and u.fecha > now() - interval '1 minute';
@@ -278,6 +286,7 @@ begin
   select * into u from public.editor_ia_uso x where x.id = p_uso for update;
   if not found then raise exception 'Uso no encontrado' using errcode = '22023'; end if;
   if u.estado <> 'reservado' then return false; end if;                       -- ya cerrado: no se cuenta dos veces
+  perform public._editor_ia_candado();                                       -- el mismo candado que la reserva y la caducidad
   if p_huella is not null and p_huella !~ '^[0-9a-f]{64}$' then raise exception 'Huella no valida' using errcode = '22023'; end if;
   update public.editor_ia_uso set estado = case when p_ok then 'hecho' else 'fallo' end, cerrada_en = now(),
          modelo = left(p_modelo, 80), tokens_entrada = greatest(p_entrada, 0), tokens_salida = greatest(p_salida, 0),
@@ -314,6 +323,9 @@ begin
   if (select auth.uid()) is null then raise exception 'Sin sesion: vuelve a entrar' using errcode = '42501'; end if;
   select * into u from public.editor_ia_uso x where x.id = p_uso for update;
   if not found or u.usuario <> (select auth.uid()) then raise exception 'Uso no encontrado' using errcode = '22023'; end if;
+  if not (public.es_admin_de(u.empresa) and public.empresa_en_alcance(u.empresa)) then     -- quien perdió el rol ya no anota nada
+    raise exception 'El asistente de textos lo usa la administracion de la empresa' using errcode = '42501';
+  end if;
   if u.estado <> 'hecho' then raise exception 'Esa consulta no termino bien' using errcode = '22023'; end if;
   if not exists (select 1 from public.plantilla_contrato_versiones v where v.id = p_version and v.empresa = u.empresa and v.slug = u.slug) then
     raise exception 'Version no valida' using errcode = '22023';

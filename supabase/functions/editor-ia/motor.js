@@ -61,7 +61,10 @@ const corsFor = (req) => {
   return { 'Access-Control-Allow-Origin': ok ? o : ORIGENES[0], 'Access-Control-Allow-Headers': 'content-type, authorization, apikey',
            'Access-Control-Allow-Methods': 'POST, OPTIONS', Vary: 'Origin' };
 };
-const neutro = (s) => String(s).replace(/<\/?\s*(instruccion|parrafo|clausula|origen|destino)[^>]*>/gi, ' ');
+// Lo que va entre delimitadores no puede abrir ni cerrar uno (Seguridad 13-oct: «< /parrafo>» se colaba): en el JSON, todo «<»
+// va escapado (< sigue siendo JSON válido y el modelo lo lee igual); en la instrucción, que va en llano, se quitan «<» y «>».
+const neutro = (s) => String(s).replace(/</g, '\\u003c');
+const neutroLlano = (s) => String(s).replace(/[<>]/g, ' ');
 const cadena = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
 
 // El documento en trozos, como lo ve la pantalla (mismo núcleo, mismos candados).
@@ -185,7 +188,7 @@ export function deXml(xml, destTs, destino) {
 }
 async function traduceDeepl(dep, pares, destino) {
   const clave = dep.claves.deepl;
-  const url = /:fx$/.test(clave) ? 'https://api-free.deepl.com/v2/translate' : 'https://api.deepl.com/v2/translate';
+  const url = 'https://api.deepl.com/v2/translate';                       // solo la API Pro (ver la guarda de «:fx» en crea)
   const textos = pares.map((p) => aXml(p.es));
   const r = await dep.fetch(url, {
     method: 'POST',
@@ -255,7 +258,7 @@ export function crea(dep) {
         const dr = datoReal(texto, true) || datoReal(instruccion, false);
         if (dr) return json({ error: 'dato_real', tipo: dr }, 422);
         pAccion = 'propone'; nParrafos = 1;
-        contenido = '<instruccion>\n' + neutro(instruccion) + '\n</instruccion>\n<parrafo idioma="' + (IDIOMA[lang] || 'sin idioma') + '">\n'
+        contenido = '<instruccion>\n' + neutroLlano(instruccion) + '\n</instruccion>\n<parrafo idioma="' + (IDIOMA[lang] || 'sin idioma') + '">\n'
           + neutro(JSON.stringify(piezas(par))) + '\n</parrafo>';
       } else {
         const sec = Number(body.sec);
@@ -294,7 +297,9 @@ export function crea(dep) {
 
       let res;
       if (accion === 'traduce' && motor === 'deepl') {
-        if (!dep.claves.deepl) { await cierra(false); return json({ error: 'no_configurado', motor: 'deepl' }, 503); }
+        // Una clave «:fx» es de la API GRATUITA de DeepL, que no garantiza no guardar ni entrenar con el texto (Seguridad 13-oct;
+        // revisión previa (7): «proveedor sin entrenamiento ni retención»). Se trata como si no hubiera clave.
+        if (!dep.claves.deepl || /:fx$/.test(dep.claves.deepl)) { await cierra(false); return json({ error: 'no_configurado', motor: 'deepl' }, 503); }
         res = await traduceDeepl(dep, pares, destino);
       } else {
         if (!dep.claves.anthropic) { await cierra(false); return json({ error: 'no_configurado', motor: 'ia' }, 503); }
