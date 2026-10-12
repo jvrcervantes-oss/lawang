@@ -476,6 +476,7 @@
     papel.scrollTop = y;
     pintaIndice(vis); pintaPestanas(); pintaContador(); resumen();
     if (aterriza) aterrizaPrimera(vis);
+    avisa('lw-tc-pintado');                                            // textos-contrato-ia.js: «Traducir» y «sin revisar» en inglés e indonesio
   }
   function recalcula() { E.camb = TC.cambiosRespecto(E.baseTrozos, E.trozos, E.cambios); }
   function revisar(sec) {
@@ -634,6 +635,7 @@
     barra.appendChild(fila);
     if (E.cxOk) barra.appendChild(menuCx());
     d.appendChild(barra);
+    avisa('lw-tc-par-abierto', { key: key, barra: barra });            // el asistente IA (textos-contrato-ia.js) pone aquí su caja, si está encendido
     var foco = clicI !== null ? d.querySelector('[data-tc-trozo="' + clicI + '"]') : null;
     if (foco) { foco.focus(); ponCaret(foco, ev); } else if (primero) primero.focus();
   }
@@ -852,6 +854,7 @@
         E.rechazo = true; b.disabled = false; return;
       }
       toast(T('Borrador guardado.'));
+      avisa('lw-tc-guardado', { version: r.data, slug: E.slug });         // textos-contrato-ia.js anota qué propuestas quedaron en esta versión
       E.cambios = {}; E.previo = null; var slug = E.slug;
       cargaLista().then(function () { E.ed = null; reabre(slug); });
     });
@@ -1006,7 +1009,9 @@
 
   /* El puente con textos-contrato-config.js (las pestañas Revisiones y Campos): lo que necesita de esta pantalla, sin tocar su estado a mano. */
   window.LW_TC = { E: E, rpc: rpc, cargaLista: cargaLista, abreEditor: abreEditor, abreHistorial: abreHistorial, preguntaPerder: preguntaPerder, nombreDe: nombreDe,
-                   el: el, boton: boton, pill: pill, fFecha: fFecha, fFechaHora: fFechaHora, msg: msg };
+                   el: el, boton: boton, pill: pill, fFecha: fFecha, fFechaHora: fFechaHora, msg: msg,
+                   /* para el asistente IA (textos-contrato-ia.js, 13-oct-2026): mete una propuesta en los cambios como si la hubiera escrito la persona */
+                   pintaDocumento: pintaDocumento, parPorKey: parPorKey, deshacerPar: deshacerPar, commitEdicion: commitEdicion, tituloSec: tituloSec, nota: nota };
 
   /* ── puesta en marcha ─────────────────────────────────────────────────────────────────────────────────────────────────────────── */
   function inicia() {
