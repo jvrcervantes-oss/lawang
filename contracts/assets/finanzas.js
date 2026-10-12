@@ -30,9 +30,6 @@
      sin fecha o sin importe salen con su cifra, no desaparecen.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Moneda por defecto de un importe sin moneda (repaso 12-oct-2026): la base del ERP (lwMonedaBase, guard.js); en Lawang y en node, 'EUR'. */
-function _finMonedaDef() { return ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR'); }
-
 /* Puente a logica.js: en el navegador son globales (se carga antes), en node
    el test las pone en `global`. Defensivo a propósito: un fichero de cálculo
    que revienta al importarse tumba el guardrail que lo prueba. */
@@ -90,7 +87,7 @@ function finCobros(recibis, hoyISO){
     if (r.anulada || !finEsISO(r.fecha)) continue;
     const imp = finImporte(r.total);
     if (imp == null) continue;
-    const m = _porMoneda(porMoneda, r.moneda || _finMonedaDef(), () => ({ mes:0, mesAnterior:0, anio:0, anioAnteriorMismoTramo:0, n:0, porMes:{}, porSociedadAnio:{}, porProyecto:{},
+    const m = _porMoneda(porMoneda, r.moneda || 'EUR', () => ({ mes:0, mesAnterior:0, anio:0, anioAnteriorMismoTramo:0, n:0, porMes:{}, porSociedadAnio:{}, porProyecto:{},
       porMesCaja:{}, porMesTerceros:{}, porProyectoCaja:{}, anioCaja:0, porDestinoAnio:{ propia:0, tercero:0, escrow:0, sin_clasificar:0 } }));
     const destino = FIN_DESTINOS.includes(r.destino) ? r.destino : 'sin_clasificar';
     const esCaja = destino === 'propia' || destino === 'sin_clasificar';
@@ -149,7 +146,7 @@ function finFacturadoSinCobrar(facturas, hoyISO){
     if (f.tipo !== 'factura' || f.anulada) continue;
     const pend = finImporte(f.pendiente);
     if (!(pend > 0)) continue;
-    const m = _porMoneda(porMoneda, f.moneda || _finMonedaDef(), () => ({ total:0, n:0, porVencimiento:0, porEmision:0, sinFecha:0, deSinFirmar:0, nSinFirmar:0, tramos:tramosVacios() }));
+    const m = _porMoneda(porMoneda, f.moneda || 'EUR', () => ({ total:0, n:0, porVencimiento:0, porEmision:0, sinFecha:0, deSinFirmar:0, nSinFirmar:0, tramos:tramosVacios() }));
     m.total += pend; m.n++;
     if (f.contrato_firmado === false){ m.deSinFirmar += pend; m.nSinFirmar++; }
     let ref = null;
@@ -172,7 +169,7 @@ function finFacturadoSinCobrar(facturas, hoyISO){
 function finStock(unidades){
   const porMoneda = {};
   for (const u of unidades || []){
-    const m = _porMoneda(porMoneda, u.moneda || _finMonedaDef(), () => ({ estados:{}, porProyecto:{}, sinPrecio:0 }));
+    const m = _porMoneda(porMoneda, u.moneda || 'EUR', () => ({ estados:{}, porProyecto:{}, sinPrecio:0 }));
     const est = u.estado || 'sin_estado';
     const e = m.estados[est] || (m.estados[est] = { n:0, valor:0 });
     const precio = finImporte(u.precio);
@@ -198,7 +195,7 @@ function finStock(unidades){
 const FIN_VIVAS = ['pendiente', 'aprobada'];
 function finSalidas(solicitudes, comisiones){
   const porMoneda = {};
-  const de = m => _porMoneda(porMoneda, m || _finMonedaDef(), () => ({ solicitudes:{ n:0, importe:0 }, comisiones:{ n:0, importe:0 }, total:0 }));
+  const de = m => _porMoneda(porMoneda, m || 'EUR', () => ({ solicitudes:{ n:0, importe:0 }, comisiones:{ n:0, importe:0 }, total:0 }));
   for (const s of solicitudes || []){
     if (!FIN_VIVAS.includes(s.estado)) continue;
     const imp = finImporte(s.importe); if (imp == null) continue;
@@ -234,7 +231,7 @@ function finGastosVacio(){
 function finGastos(gastos, hoyISO){
   const mesHoy = hoyISO.slice(0, 7), anio = hoyISO.slice(0, 4);
   const porMoneda = {};
-  const de = m => _porMoneda(porMoneda, m || _finMonedaDef(), finGastosVacio);
+  const de = m => _porMoneda(porMoneda, m || 'EUR', finGastosVacio);
   const suma = (obj, k, v) => { obj[k] = FIN_R((obj[k] || 0) + v); };
   for (const g of gastos || []){
     if (!g || g.estado === 'anulado') continue;
@@ -295,7 +292,7 @@ function finComisionesPagadas(comisiones, proyectoDe, hoyISO){
     if (!c || !c.pagado_en || c.anulado_en) continue;
     const imp = finImporte(c.importe_ajustado != null ? c.importe_ajustado : c.importe);
     if (imp == null) continue;
-    const m = _porMoneda(porMoneda, c.moneda || _finMonedaDef(), () => ({ porMes: {}, porProyecto: {}, mes: 0, anio: 0 }));
+    const m = _porMoneda(porMoneda, c.moneda || 'EUR', () => ({ porMes: {}, porProyecto: {}, mes: 0, anio: 0 }));
     const f = String(c.pagado_en).slice(0, 10), mes = f.slice(0, 7);
     m.porMes[mes] = FIN_R((m.porMes[mes] || 0) + imp);
     if (mes === mesHoy) m.mes = FIN_R(m.mes + imp);
@@ -333,14 +330,14 @@ function finPorCloser(contratos, recibis, closerDe, hoyISO){
   for (const c of contratos || []){
     if (!c.bloqueado || c.liberado_en || lwEsPreliminar(c.tipo)) continue;
     const precio = finImporte(c.precio_total); if (!precio) continue;
-    const f = fila(c.moneda || _finMonedaDef(), quien(c.id));
+    const f = fila(c.moneda || 'EUR', quien(c.id));
     f.firmado = FIN_R(f.firmado + precio);
     const r = raiz(c.id); if (r) f.ops.add(r.id);
   }
   for (const r of recibis || []){
     if (r.anulada || !finEsISO(r.fecha)) continue;
     const imp = finImporte(r.total); if (imp == null) continue;
-    const f = fila(r.moneda || _finMonedaDef(), r.contrato_id ? quien(r.contrato_id) : '');
+    const f = fila(r.moneda || 'EUR', r.contrato_id ? quien(r.contrato_id) : '');
     f.cobradoTotal = FIN_R(f.cobradoTotal + imp);
     if (r.fecha.slice(0, 4) === anio && r.fecha <= hoyISO) f.cobradoAnio = FIN_R(f.cobradoAnio + imp);
   }
@@ -376,7 +373,7 @@ function finCartera(e){
   for (const c of e.contratos || []){
     if (c.liberado_en){
       if (c.bloqueado && !lwEsPreliminar(c.tipo)){
-        const l = _porMoneda(liberadas, c.moneda || _finMonedaDef(), () => ({ n:0, precio:0 }));
+        const l = _porMoneda(liberadas, c.moneda || 'EUR', () => ({ n:0, precio:0 }));
         l.n++; l.precio = FIN_R(l.precio + (Number(c.precio_total) || 0));
       }
       continue;

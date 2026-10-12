@@ -230,7 +230,7 @@
       { k: 'categoria', label: T('Categoría'), tipo: 'select', req: true, medio: 1, valor: g.categoria || '', opciones: [['', T('— elige —')]].concat(D.categorias.filter(function (c) { return c.activa || c.clave === g.categoria; }).map(function (c) { return [c.clave, c.nombre]; })) },
       { k: 'concepto', label: T('Concepto'), req: true, valor: g.concepto || '' },
       { k: 'referencia', label: T('Nº de factura del proveedor'), medio: 1, valor: g.referencia || '' },
-      { k: 'moneda', label: T('Moneda'), tipo: 'select', medio: 1, valor: g.moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR'), opciones: MONEDAS },
+      { k: 'moneda', label: T('Moneda'), tipo: 'select', medio: 1, valor: g.moneda || 'EUR', opciones: MONEDAS },
       { k: 'fecha', label: T('Fecha de la factura'), tipo: 'date', req: true, medio: 1, valor: g.fecha || hoy },
       { k: 'vence_el', label: T('Vence el'), tipo: 'date', medio: 1, valor: g.vence_el || '' },
       { k: 'base', label: T('Base (sin impuesto)'), req: true, medio: 1, valor: g.base != null ? String(g.base) : '' },
@@ -256,7 +256,7 @@
     if (pph.n > base.n + imp.n) return { error: { message: T('La retención no puede ser mayor que el total de la factura.') } };
     return { p: {
       sociedad: v.sociedad, proyecto_id: v.proyecto_id || null, proveedor_id: v.proveedor_id || null, categoria: v.categoria,
-      concepto: v.concepto, referencia: v.referencia || null, moneda: v.moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR'), fecha: v.fecha, vence_el: v.vence_el || null,
+      concepto: v.concepto, referencia: v.referencia || null, moneda: v.moneda || 'EUR', fecha: v.fecha, vence_el: v.vence_el || null,
       base: base.n, impuesto: imp.n, pph_tipo: v.pph_tipo || null, pph_retenido: pph.n, notas: v.notas || null
     } };
   }
