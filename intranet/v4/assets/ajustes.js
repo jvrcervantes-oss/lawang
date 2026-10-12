@@ -90,7 +90,8 @@
         if (location.hash !== '#' + n) location.hash = n; else activa(n);
       });
       b.addEventListener('keydown', function (ev) {
-        var d = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0;
+        var vert = document.documentElement.classList.contains('lw-aj-s81');   // piel S81: secciones en columna
+        var d = (ev.key === 'ArrowRight' || (vert && ev.key === 'ArrowDown')) ? 1 : (ev.key === 'ArrowLeft' || (vert && ev.key === 'ArrowUp')) ? -1 : 0;
         if (!d) return;
         ev.preventDefault();
         var vis = botones.filter(function (x) { return !x.hidden; }), j = vis.indexOf(b);   // las flechas saltan las pestañas ocultas
@@ -877,6 +878,14 @@
     { c: 'en', n: 'English', ej: 'Your booking is confirmed.' },
     { c: 'id', n: 'Bahasa Indonesia', ej: 'Pemesanan Anda dikonfirmasi.' }
   ];
+  /* Las combinaciones que el arranque de una instancia sabe pintar HOY (idioma.js + los parches de build.py → IDIOMAS_CONOCIDOS): la de
+     siempre (español por defecto + inglés) y la de bbm (indonesio por defecto + inglés). La base admite más (cualquier lista de es/en/id), pero
+     guardar una que el arranque no sabe pintar sería una casilla que no hace nada: se dice y no se guarda. Ampliarla = ampliar el arranque. */
+  var IDIOMAS_PINTABLES = [['es', 'en'], ['id', 'en']];
+  function pintable(of, def) {
+    var lista = [def].concat(of.filter(function (c) { return c !== def; }));
+    return IDIOMAS_PINTABLES.some(function (p) { return p.join() === lista.join(); });
+  }
   var IDIOMAS_ORIGEN = {
     lee: function () {
       var dec = Array.isArray(window.AXW_IDIOMAS) && window.AXW_IDIOMAS.length ? window.AXW_IDIOMAS.slice() : ['es', 'en'];
@@ -892,8 +901,11 @@
     if (idi.fase === 'inicial') {
       idi.fase = 'cargando';
       IDIOMAS_ORIGEN.lee().then(function (v) {
+        var ok = v && Array.isArray(v.ofrecidos) && v.ofrecidos.length && v.ofrecidos.every(function (c) { return IDIOMAS_CONOCIDOS.some(function (l) { return l.c === c; }); }) &&
+          v.ofrecidos.indexOf(v.defecto) >= 0;
+        if (!ok) throw new Error('forma de idiomas');   // vacía, con un código desconocido o con el de por defecto fuera: no se pinta un formulario mudo
         idi.actual = v; idi.ofrecidos = v.ofrecidos.slice(); idi.defecto = v.defecto; idi.fase = 'lista'; pintaIdiomas();
-      }, function () { idi.fase = 'fallo'; pintaIdiomas(); });
+      }).catch(function () { idi.fase = 'fallo'; pintaIdiomas(); });
     }
     if (idi.fase === 'cargando') { caja.innerHTML = '<p class="px-8 py-6 font-body-md text-body-md text-on-surface-variant">' + esc(T('Trayendo los idiomas…')) + '</p>'; return; }
     if (idi.fase === 'fallo') {
@@ -951,6 +963,7 @@
     if (a === 'idiomas-reintentar') { idi.fase = 'inicial'; pintaIdiomas(); }
     else if (a === 'idiomas-deshacer' && idi.actual) { idi.ofrecidos = idi.actual.ofrecidos.slice(); idi.defecto = idi.actual.defecto; idi.msg = ''; idi.error = ''; pintaIdiomas(); }
     else if (a === 'idiomas-guardar') {
+      if (!pintable(idi.ofrecidos, idi.defecto)) { idi.error = T('Esa combinación de idiomas todavía no se puede usar en este ERP. Pídesela al estudio.'); pintaIdiomas(); return; }
       IDIOMAS_ORIGEN.guarda({ ofrecidos: idi.ofrecidos.slice(), defecto: idi.defecto }).then(function (r) {
         if (r && r.ok) { idi.actual = { ofrecidos: idi.ofrecidos.slice(), defecto: idi.defecto, origen: 'base' }; idi.msg = T('Idiomas guardados.'); idi.error = ''; }
         else if (r && r.motivo === 'sin_base') { idi.error = T('No se ha guardado: este ERP todavía no guarda los idiomas en su base. Pídeselo al estudio.'); }
@@ -962,7 +975,11 @@
 
   function arranca() {
     if (!document.querySelector('[data-lw-tab]')) return;   // otra página con este script: nada que hacer
-    if (ES_MAESTRO) document.documentElement.classList.add('lw-aj-s81');   // piel S81 (diseño del owner): solo en una instancia del ERP
+    if (ES_MAESTRO) {   // piel S81 (diseño del owner): solo en una instancia del ERP; las secciones van en columna desde 1024 px
+      document.documentElement.classList.add('lw-aj-s81');
+      var tl = document.querySelector('[role=tablist]');
+      if (tl && window.matchMedia && window.matchMedia('(min-width:1024px)').matches) tl.setAttribute('aria-orientation', 'vertical');
+    }
     document.addEventListener('change', cambiaIdioma);
     cablePestanas();
     document.addEventListener('click', function (ev) {
@@ -985,7 +1002,7 @@
       /* Idiomas (owner, 12-oct-2026: «Sí, en Ajustes»): solo en una instancia del ERP y solo para el administrador principal. En Lawang no
          existe: allí manda el ES/EN de siempre. */
       var bi = document.querySelector('[data-lw-tab="idiomas"]');
-      if (bi && ES_MAESTRO && window.LW_ROL && LW_ROL.esSuperGlobal(aut.ficha)) { bi.hidden = false; pintaIdiomas(); if (location.hash === '#idiomas') activa('idiomas'); }
+      if (bi && window.LW_ROL && LW_ROL.puedeIdiomas && LW_ROL.puedeIdiomas(aut.ficha)) { bi.hidden = false; pintaIdiomas(); if (location.hash === '#idiomas') activa('idiomas'); }
       carga().then(function () { if (desdeHash() === 'registro') cargaRegistro(false); });
     });
   }
