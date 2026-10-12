@@ -7978,19 +7978,22 @@
           }).join('') || '—';
           // falta por firmar (12-oct-2026, owner: «ver si falta algo por firmar y avisar que no se cobra
           // entera»). El cálculo es de comision_trazabilidad(); aquí solo se pinta.
+          // Quien no ve la operación completa recibe solo falta_algo, sin cifras.
           var falta = Number(t.falta_por_firmar) || 0;
           var hFalta = '';
-          if (falta > 0) {
-            var pctC = Number(snap.pct_comision), pctT = snap.pct_tramo != null ? Number(snap.pct_tramo) : 100;
-            var extra = isFinite(pctC) ? Math.round(falta * pctC / 100 * pctT / 100 * 100) / 100 : null;
+          if (t.falta_algo) {
+            var pctC = snap.pct_comision != null ? Number(snap.pct_comision) : NaN;
+            var pctT = snap.pct_tramo != null ? Number(snap.pct_tramo) : 100;
+            var extra = (falta > 0 && pctC > 0 && isFinite(pctT) && (snap.base_calculo || 'precio_total') === 'precio_total')
+              ? Math.round(falta * pctC / 100 * pctT / 100 * 100) / 100 : null;
             var queFalta = (t.por_firmar || []).map(function (c) {
               return linea(esc(c.numero) + ' · ' + esc(tipoC(c.tipo)) + ' <span style="font-size:12px">(sin firmar)</span>', esc(fmt(c.precio_total, c.moneda || mon)));
             }).join('') + (t.sin_contrato_obra != null
               ? linea('Construcción <span style="font-size:12px">(aún no hay contrato; precio de la parcela)</span>', esc(fmt(t.sin_contrato_obra, mon))) : '');
             hFalta = '<div data-traza-falta style="margin-top:12px;padding:12px 14px;border-radius:10px;background:#FFF4E0;border:1px solid #E8C27A;color:#5C4210">' +
-              '<b>Esta comisión no es la entera: falta por firmar ' + esc(fmt(falta, mon)) + '.</b><br>' +
-              '<span style="font-size:12px">Solo cuentan los contratos firmados. ' +
-              (extra != null ? 'Cuando se firme, el sistema añade solo unos ' + esc(fmt(extra, mon)) + ' más.' : 'Cuando se firme, el sistema añade solo la diferencia.') +
+              '<b>Esta comisión no es la entera: ' + (falta > 0 ? 'falta por firmar ' + esc(fmt(falta, mon)) : 'falta algún contrato por firmar') + '.</b><br>' +
+              '<span style="font-size:12px">Solo cuentan los contratos firmados.' +
+              (extra != null ? ' Al firmarse, a esta comisión le corresponderían unos ' + esc(fmt(extra, mon)) + ' más.' : '') +
               '</span>' + (queFalta ? '<div style="margin-top:8px">' + queFalta + '</div>' : '') + '</div>';
           }
           var hOperacion = bloque('La operación',
