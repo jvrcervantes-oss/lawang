@@ -227,9 +227,9 @@ html,body{background:var(--paper)}
 .ban .f b,.ban .g b{font-weight:700}
 .ban small{font-size:calc(21*var(--u));font-weight:500;letter-spacing:.08em}
 .isl{position:absolute;top:calc(372*var(--u));left:0;right:0;z-index:2;display:flex;justify-content:center}
-.isl span{background:#fff;border-radius:999px;height:calc(44*var(--u));padding:0 calc(30*var(--u));display:flex;align-items:center;font-size:max(11px,calc(24*var(--u)));color:#2C3E3F;letter-spacing:.08em;white-space:nowrap}
+.isl span{background:#fff;border-radius:999px;height:calc(44*var(--u));line-height:calc(44*var(--u));padding:0 calc(30*var(--u));display:block;font-size:max(11px,calc(24*var(--u)));color:#2C3E3F;letter-spacing:.08em;white-space:nowrap}
 .isl b{font-weight:700}
-.kpis{position:absolute;top:calc(503*var(--u));left:0;right:0;display:flex;justify-content:center;gap:calc(81*var(--u));list-style:none}
+.kpis{position:absolute;top:calc(646*var(--u));left:0;right:0;display:flex;justify-content:center;gap:calc(81*var(--u));list-style:none}
 .kpi{position:relative;min-height:calc(173*var(--u));color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 calc(30*var(--u))}
 .kpi::before{content:"";position:absolute;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.55);border-radius:calc(8*var(--u))}
 .kpi.k1{min-width:calc(445*var(--u));background:linear-gradient(rgba(49,27,12,.9),rgba(49,27,12,.9)),url('/assets/img/soul/kpi-leaf.webp') center/cover}
@@ -240,7 +240,7 @@ html,body{background:var(--paper)}
 .kpi .row b{font-size:calc(41*var(--u));letter-spacing:.07em;font-weight:700}
 .kpi p{margin:calc(14*var(--u)) 0 calc(20*var(--u));font-size:max(9px,calc(14.5*var(--u)));line-height:1.15;letter-spacing:.11em;font-weight:500;text-transform:uppercase}
 .kpi p b{font-weight:800}
-.ret{position:absolute;top:calc(731*var(--u));left:0;right:0;text-align:center}
+.ret{position:absolute;top:calc(476*var(--u));left:0;right:0;text-align:center}
 .ret h2{font-size:calc(60*var(--u));line-height:calc(72*var(--u));font-weight:300;letter-spacing:.04em;text-transform:uppercase}
 .ret h2 .b{font-weight:500}
 .ret p{margin-top:calc(8*var(--u));font-size:calc(28.5*var(--u));line-height:calc(36*var(--u));letter-spacing:.03em;text-transform:uppercase}
@@ -476,13 +476,12 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .ban .f,.ban .g{position:static;right:auto;top:auto;max-width:none;text-align:left;font-size:clamp(11px,calc(3.3*var(--k)),14px);line-height:1.3;padding:7px 14px;border:1px solid rgba(246,244,240,.6);border-radius:16px;background:rgba(8,12,18,.35)}
   .ban .f br,.ban .g br{display:none}
   .ban .f small,.ban .g small{font-size:1em;letter-spacing:.06em}
-  .isl{margin-top:0;height:0;position:relative;top:auto;align-items:center}.isl span{display:block;max-width:calc(100% - 24px);height:auto;min-height:34px;padding:8px 14px;font-size:12px;text-align:center;border-radius:20px;white-space:normal}
-  .kpis{flex-direction:column;align-items:stretch;gap:12px;margin-top:40px}
+  .isl{margin-top:0;height:0;position:relative;top:auto;align-items:center}.isl span{display:block;max-width:calc(100% - 16px);height:auto;min-height:34px;padding:8px 12px;font-size:min(12px,2.55vw);line-height:18px;letter-spacing:.03em;text-align:center;border-radius:20px;white-space:nowrap}
+  .kpis{flex-direction:column;align-items:stretch;gap:12px;margin-top:28px}
   .kpi.k1,.kpi.k2,.kpi.k3{width:auto;min-width:0;height:auto;min-height:0;padding:28px 20px}
-  .kpi .row{white-space:normal;flex-wrap:wrap;justify-content:center;margin-top:0}
+  .kpi .row{white-space:normal;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin-top:0}
   .kpi::before{inset:8px}.kpi .row span{font-size:16px;letter-spacing:.14em}.kpi .row b{font-size:28px}.kpi p{font-size:10px}  /* título de la tarjeta + cifra: a 12/22px se perdían en móvil (owner, 12-oct) */
-  .kpi .row{gap:4px 14px}
-  .ret{margin-top:30px}.ret h2{font-size:24px;line-height:30px}.ret p{font-size:14px;line-height:20px}
+  .ret{margin-top:40px}.ret h2{font-size:24px;line-height:30px}.ret p{font-size:14px;line-height:20px}
   .why .k{font-size:12px}.why h2{margin-top:12px;font-size:22px;line-height:28px}.why .s{font-size:14px;line-height:20px}
   .isles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px;padding:0}
   .isle{width:auto;height:auto;aspect-ratio:396/587}
@@ -640,7 +639,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   <nav id="nav">
     <a class="nav-link" href="/thecollection#land" data-i18n="nav.land">The Land</a>
     <a class="nav-link" href="/thecollection#villas" data-i18n="nav.villas">The Villas</a>
-    <a class="nav-link" href="#expedition" data-i18n="nav.soul">The Soul</a>
+    <a class="nav-link" href="/thesoul" data-i18n="nav.soul">The Soul</a>
     <a class="nav-link" href="/portfolio" data-i18n="nav.portfolio">The Portfolio</a>
   </nav>
   <div id="nav-actions">
@@ -738,12 +737,12 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
     </div>
   </div>
   <p class="isl"><span data-i18n-html="isl">17,000 ISLANDS.&nbsp;<b>WE CHOSE TWO: BALI AND SUMBA.</b></span></p>
+  <div class="ret"><h2 id="in-h" data-i18n-html="in.h">The economy, the build, <span class="b">the return.</span></h2><p data-i18n-html="in.p2">Three numbers to read first. <b>The return shown is a Palm Field forecast, not a figure for every project.</b></p></div>
   <ul class="kpis">
     <li class="kpi k1"><div class="row"><span data-i18n-html="c1.k">Economic</span><b data-i18n-html="c1.n">5%+ GDP</b></div><p data-i18n-html="c1.p2"><b>Growth rate</b> — largest economy <br>in Southeast Asia, G20 member.</p></li>
     <li class="kpi k2"><div class="row"><span data-i18n-html="c3.k">Profitability</span><b>9.5%–12.9%</b></div><p data-i18n-html="c3.p2"><b>Year-1 ROI range across the Palm Field <br>villa typologies</b> (forecast, not guaranteed).</p></li>
     <li class="kpi k3"><div class="row"><span data-i18n-html="c4.k">Security</span><b>89/100</b></div><p data-i18n-html="c4.p"><b>Law and Order Index</b> — above <br>Japan and the U.S. (Gallup Global Safety Report 2025).</p></li>
   </ul>
-  <div class="ret"><h2 id="in-h" data-i18n-html="in.h">The economy, the build, <span class="b">the return.</span></h2><p data-i18n-html="in.p2">Three numbers to read first. <b>The return shown is a Palm Field forecast, not a figure for every project.</b></p></div>
 </div></section>
 
 <section class="why" id="why" aria-labelledby="why-h" data-spy="why"><div class="st">
