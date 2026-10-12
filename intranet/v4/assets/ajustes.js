@@ -64,7 +64,7 @@
   /* ── Pestañas ─────────────────────────────────────────────────────────────────────────────────────────────── */
   function desdeHash() {
     var h = String(location.hash || '').replace(/^#/, '');
-    var bt = h && document.querySelector('[data-lw-tab="' + h + '"]');
+    var bt = PESTANAS.indexOf(h) >= 0 ? document.querySelector('[data-lw-tab="' + h + '"]') : null;   // solo nombres de la lista: un hash raro no llega al selector
     if (bt && bt.hidden) h = '';   // una pestaña oculta para esta sesión (Sociedades, si no es de quien las gestiona) no se abre por la URL
     return PESTANAS.indexOf(h) >= 0 ? h : 'empresa';
   }

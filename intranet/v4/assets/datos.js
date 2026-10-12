@@ -10059,7 +10059,15 @@
 
     Promise.all([
       q(sb.from('sociedades').select('*').order('orden'), 'sociedades', cuerpoLista),
-      q(sb.from('sociedades_log').select('clave,antes,accion,quien,cuando').order('cuando', { ascending: false }).limit(200), 'historial de sociedades', cuerpoLog)
+      /* En una instancia del ERP el historial es del módulo «sociedades» hasta que Backend lo pase al núcleo (F3, Entrega 1): con el módulo
+         apagado, apagados_instancia.js respondería [] y «Rastro» diría «ningún cambio» sin haber mirado. Ahí se oculta, y también si no se pudo
+         comprobar. Lawang no lleva AXW_MODULOS_LISTOS: pide el historial como siempre. */
+      (window.AXW_MODULOS_LISTOS ? window.AXW_MODULOS_LISTOS.then(function (ok) { return !!ok && window.axwModuloActivo('sociedades'); }) : Promise.resolve(true)).then(function (hay) {
+        if (hay) return q(sb.from('sociedades_log').select('clave,antes,accion,quien,cuando').order('cuando', { ascending: false }).limit(200), 'historial de sociedades', cuerpoLog);
+        var s = cuerpoLog && cuerpoLog.closest('section');
+        if (s) s.style.display = 'none';
+        return null;
+      })
     ]).then(function (r) {
       var socs = r[0], log = r[1];
       if (!socs) return;   // fallo() ya pinto el aviso en cuerpoLista

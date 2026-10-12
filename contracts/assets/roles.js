@@ -12,7 +12,7 @@
      esSuperGlobal(f)  SOLO el super_admin global                        (herramientas sin casilla, ajustes de la instancia)
      esPropietario(f)  SOLO el propietario (super global con es_propietario) (Sociedades emisoras; la base lo decide con es_propietario())
      puedeSociedades(f) quien gestiona las Sociedades emisoras: el MISMO predicado que sociedad_guarda en cada base — el propietario en
-                       Lawang (es_propietario()) y el super admin en el ERP maestro (allí sociedad_guarda exige super_admin y
+                       Lawang (es_propietario()) y el super admin global en el ERP maestro (allí sociedad_guarda exige rol super_admin y
                        es_propietario es latente, false para todos). Sin esto nadie podía abrirlas en una instancia (12-oct-2026)
      esEmpresa(f)      rol de empresa o ámbito 'empresa'
      esGlobal(f)       lo contrario: lo que es de toda la instancia (Ajustes, mantenimiento, tarifa 0,5 %, tablero CRM…)
@@ -29,7 +29,7 @@ var LW_ROL = {
   esSuperAdmin: function (f) { return LW_ROL.efectivo(f) === 'super_admin'; },
   esSuperGlobal: function (f) { return !!f && f.rol === 'super_admin'; },
   esPropietario: function (f) { return !!f && f.rol === 'super_admin' && f.es_propietario === true && f.ambito !== 'empresa'; },
-  puedeSociedades: function (f) { return (typeof window !== 'undefined' && window.AXW_NUCLEO_OPERACION) ? LW_ROL.esSuperAdmin(f) : LW_ROL.esPropietario(f); },
+  puedeSociedades: function (f) { return (typeof window !== 'undefined' && window.AXW_NUCLEO_OPERACION) ? LW_ROL.esSuperGlobal(f) : LW_ROL.esPropietario(f); },
   esEmpresa: function (f) { return !!f && (!!ROL_EMPRESA[f.rol] || f.ambito === 'empresa'); },
   esGlobal: function (f) { return !!f && !LW_ROL.esEmpresa(f); },
   empresas: function (f) { return (f && Array.isArray(f.empresas)) ? f.empresas : []; },

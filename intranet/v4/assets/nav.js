@@ -100,7 +100,8 @@
       { path: 'textos-contrato', texto: 'Textos de contrato', rol: 'admin' },
       { path: 'ajustes', texto: 'Ajustes', clave: 'ajustes', rol: 'admin', global: true },
       /* `solo` (7-oct-2026, owner): la puerta de la página lleva data-ambito igual — comision-admin: «super-global» (solo los super admins
-         globales; un super de EMPRESA no la ve ni entra), sociedades: «propietario» (solo el propietario). nav.test.js casa menú y puerta. */
+         globales; un super de EMPRESA no la ve ni entra). Sociedades emisoras («propietario») dejó el menú el 12-oct: es una pestaña de Ajustes.
+         nav.test.js casa menú y puerta. */
       { path: 'comision-admin', texto: 'Comisión de administración', rol: 'super_admin', solo: 'super-global' }] }
       /* Sociedades emisoras ya no es entrada del menú (owner, 12-oct-2026: «sobra, va en Ajustes»): es una pestaña de Ajustes y
          /sociedades/ redirige a /ajustes/#sociedades. */
@@ -467,8 +468,9 @@
   var PANEL_CONTROL_SUPER = [
     { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración', solo: 'super-global' }
   ];
-  /* Quién ve cada entrada de PANEL_CONTROL_SUPER (7-oct-2026): la Comisión de administración, solo un super admin GLOBAL; Sociedades emisoras, solo el
-     propietario. Un super admin de empresa ya no las ve (ni la base le contesta: es_super_admin() / es_propietario()). */
+  /* Quién ve cada entrada de PANEL_CONTROL_SUPER (7-oct-2026): la Comisión de administración, solo un super admin GLOBAL. Un super admin de empresa ya no
+     la ve (ni la base le contesta: es_super_admin()). Sociedades emisoras («propietario») dejó el panel el 12-oct: es una pestaña de Ajustes; la rama
+     'propietario' de veSolo se queda para cualquier entrada futura de ese ámbito. */
   function veSolo(solo, ficha) {
     if (solo === 'propietario') return LW_ROL.esPropietario(ficha);
     if (solo === 'super-global') return LW_ROL.esSuperGlobal(ficha);
