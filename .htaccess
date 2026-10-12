@@ -133,6 +133,17 @@ RedirectMatch 404 (?i)/_diag_
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  # ── QR DINAMICOS (12-oct-2026, owner) ──
+  # El QR impreso codifica /qr/<nombre>, nunca el destino final: si cambia el numero o el
+  # texto del WhatsApp se edita esta linea y el QR ya impreso sigue valiendo. Por eso:
+  #   · 302 y no 301 -- un 301 se lo guarda el navegador para siempre y el QR dejaria de ser
+  #     dinamico para quien ya lo escaneo; ademas va con no-store (bloque mod_headers, LW_QR)
+  #     para que tampoco lo guarde el CDN de Hostinger.
+  #   · destino fijo, sin parametros de la peticion: no es una redireccion abierta.
+  #   · NE: el destino ya va codificado (%20, %21...); sin NE Apache lo codificaria dos veces.
+  #   · QR en SVG: Marketing/qr/<nombre>.svg (fuera de git; se rehace con segno, nivel M).
+  RewriteRule ^qr/balian-hills/?$ https://wa.me/6281138305237?text=Hello\%21\%20I\%27m\%20interested\%20in\%20Balian\%20Hills\%20and\%20would\%20love\%20to\%20receive\%20more\%20information\%20about\%20the\%20freehold\%20land\%20and\%20ocean-view\%20villas.\%20Thank\%20you\%21 [R=302,NE,L]
+
   # /portfolio existe desde el 23-sep-2026 (portfolio.php: landing de seleccion de modelo). Se retira
   # el alias temporal /portfolio.html -> /thecollection: ahora la regla 1 manda /portfolio.html a /portfolio.
 
@@ -419,6 +430,13 @@ RedirectMatch 404 (?i)/_diag_
   SetEnvIf Request_URI "^/(intranet|operaciones|vencimientos|facturas|compradores|proyectos|documentacion|obra|usuarios|creatividades|dossier|contracts|entrar|portal)/" LW_SUITE
   Header set Cache-Control "no-cache, must-revalidate" env=LW_SUITE
   Header unset Expires env=LW_SUITE
+
+  # QR dinamicos (/qr/<nombre>, regla en el bloque de mod_rewrite): ni el navegador ni el
+  # CDN se guardan la redireccion, o cambiar el destino no llegaria a quien ya escaneo.
+  # `always`: un 302 no es una respuesta 2xx y `Header set` a secas no lo tocaria.
+  SetEnvIf Request_URI "^/qr/" LW_QR
+  Header always set Cache-Control "no-store" env=LW_QR
+  Header always unset Expires env=LW_QR
 
   <FilesMatch "\.(js|css)$">
     Header set Cache-Control "no-cache, must-revalidate"
