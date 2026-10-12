@@ -154,12 +154,14 @@ html,body{background:var(--paper)}
 .st{position:relative;width:calc(1920*var(--u));height:calc(906*var(--u));margin:0 auto}
 /* pantallas más altas que el PDF (4:3, 16:10 — 12-oct-2026): lo que sobra de alto se reparte arriba y abajo en vez de
    quedarse todo como banda vacía al pie; las fotos a sangre de arriba (hero, Territorial, Indonesia) crecen hasta la franja.
-   En 16:9 --sobra vale 0 y nada cambia. Zoning no: ya usa ese sobrante para alargar sus tarjetas (--zx). */
-:root{--sobra:max(0px,calc((var(--vh) - var(--top) - var(--band) - 906*var(--u)) / 2))}
+   En 16:9 --sobra vale 0 y nada cambia (medido a 1920×1080: 0 elementos movidos). Zoning no: ya usa ese sobrante para alargar sus tarjetas (--zx). */
+:root{--libre:calc(var(--vh) - var(--top) - var(--band) - 906*var(--u));
+  --sobra:max(0px,min(var(--libre) / 2,2*var(--libre) - 80px))}  /* 0 hasta 40 px libres (16:9: el calco del PDF queda donde estaba); desde ~53 px, la mitad */
 .snap > section{--sube:var(--sobra)}
 .snap > section.hero,.snap > section.who,.snap > section.indo{--sube:calc(2*var(--sobra))}  /* con foto a sangre arriba: la foto se queda TODO el sobrante y abajo no queda banda */
+.snap > section.see{--sube:calc(var(--sobra) + min(var(--sobra),22*var(--u)))}  /* su contenido tiene 10u libres arriba y 54u abajo: se iguala solo si hay sobrante */
+.snap > section.zone{--sube:0px}
 .snap > section > .st{top:var(--sube)}
-.zone .st{top:0}
 .bleed{position:absolute;left:calc(50% - 50vw);width:100vw}
 
 /* submenú verde (página propia de The Soul, no es el menú común) */
@@ -192,7 +194,7 @@ html,body{background:var(--paper)}
 .terr>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 58%}
 .terr::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,22,10,.6),rgba(15,22,10,.32) 60%,rgba(15,22,10,.18))}
 .terr .in{position:relative;z-index:2;top:var(--sube);width:calc(1920*var(--u));height:calc(100% - var(--sube));margin:0 auto}
-.terr .fr{position:absolute;left:calc(45*var(--u));top:calc(39*var(--u));width:calc(1830*var(--u));height:calc(393*var(--u));border:1px solid rgba(255,255,255,.8);border-radius:calc(10*var(--u))}
+.terr .fr{position:absolute;left:calc(45*var(--u));top:calc(39*var(--u) - var(--sube));width:calc(1830*var(--u));height:calc(393*var(--u) + var(--sube));border:1px solid rgba(255,255,255,.8);border-radius:calc(10*var(--u))}
 .terr .tag{position:absolute;left:calc(148*var(--u));top:calc(81*var(--u));min-width:calc(331*var(--u));height:calc(48*var(--u));padding:0 calc(20*var(--u));background:var(--deep);border-radius:calc(6*var(--u));display:flex;align-items:center;justify-content:center;font-size:max(11px,calc(19.9*var(--u)));font-weight:500;letter-spacing:.05em;text-transform:uppercase}
 .terr h2{position:absolute;left:calc(148*var(--u));top:calc(158*var(--u));font-size:calc(80.9*var(--u));line-height:calc(100*var(--u));letter-spacing:.045em;font-weight:350;white-space:nowrap}
 .terr h2 b{font-weight:700}
