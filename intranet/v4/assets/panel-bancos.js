@@ -140,7 +140,7 @@
     var ya = yaConciliado(), out = [];
     var mete = function (tipo, id, importe, moneda, fecha, numero, texto) {
       if (!id || !(Number(importe) > 0)) return;
-      out.push({ tipo: tipo, id: id, importe: r2(importe), pendiente: r2(Number(importe) - (ya[tipo + ':' + id] || 0)), moneda: moneda || 'EUR', fecha: fecha ? String(fecha).slice(0, 10) : null, numero: numero || '', texto: texto || '' });
+      out.push({ tipo: tipo, id: id, importe: r2(importe), pendiente: r2(Number(importe) - (ya[tipo + ':' + id] || 0)), moneda: moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR'), fecha: fecha ? String(fecha).slice(0, 10) : null, numero: numero || '', texto: texto || '' });
     };
     D.recibis.forEach(function (f) { mete('recibi', f.id, f.total, f.moneda, f.fecha_emision || f.created_at, f.numero, f.proyecto_nombre); });
     D.gastos.forEach(function (g) {
@@ -313,7 +313,7 @@
         fila(T('Moneda si no hay columna'), sel('monedaFija', [['', '—']].concat(MONEDAS.map(function (m) { return [m, m]; })), perfil.monedaFija || ''));
     }
     function vista() {
-      var r = bancosLeer(filas, perfil, cuenta, perfil.monedaFija || 'EUR');
+      var r = bancosLeer(filas, perfil, cuenta, perfil.monedaFija || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR'));
       perfil._leido = r;
       var falta = perfil.fecha == null ? T('Falta la columna de la fecha.') : (perfil.importe == null && perfil.cargo == null && perfil.abono == null) ? T('Falta el importe (o cargo y abono).') : '';
       var porM = {}; r.movimientos.forEach(function (m) { porM[m.moneda] = (porM[m.moneda] || 0) + 1; });
@@ -344,7 +344,7 @@
     columnas(); vista();
   }
   function guardaImportacion(cuenta, nombre, filas, perfil, boton) {
-    var r = perfil._leido || bancosLeer(filas, perfil, cuenta, perfil.monedaFija || 'EUR');
+    var r = perfil._leido || bancosLeer(filas, perfil, cuenta, perfil.monedaFija || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR'));
     if (!r.movimientos.length) { avisoRapido(T('No hay ningún movimiento que importar con estas columnas.'), true); return; }
     if (r.movimientos.length > 5000) { avisoRapido(T('Máximo 5.000 movimientos por importación: exporta el extracto por meses.'), true); return; }
     if (boton) { boton.disabled = true; boton.textContent = T('Importando…'); }

@@ -754,7 +754,7 @@
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.finanzas = MODELO;   // para depurar desde consola
         if (!MON || (MODELO.monedas.length && MODELO.monedas.indexOf(MON) === -1)) {
           var elegida = lee('lw_fin_moneda', null);
-          MON = MODELO.monedas.indexOf(elegida) !== -1 ? elegida : (MODELO.monedas[0] || 'EUR');
+          MON = MODELO.monedas.indexOf(elegida) !== -1 ? elegida : (MODELO.monedas[0] || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR'));
         }
       }
       try { recalcula(); }

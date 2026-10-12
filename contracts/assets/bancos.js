@@ -191,7 +191,7 @@ function bancosLeer(filas, perfil, cuenta, monedaCuenta){
     }
     if (importe == null){ errores.push({ linea, motivo: 'importe vacío o ilegible' }); return; }
     if (importe === 0) return;                                    // líneas informativas del banco
-    const moneda = (p.moneda != null ? celda('moneda').toUpperCase() : '') || p.monedaFija || monedaCuenta || 'EUR';
+    const moneda = (p.moneda != null ? celda('moneda').toUpperCase() : '') || p.monedaFija || monedaCuenta || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR');
     if (!/^[A-Z]{3}$/.test(moneda)){ errores.push({ linea, motivo: 'moneda «' + moneda + '»' }); return; }
     const saldo = p.saldo != null ? bancosImporte(celda('saldo')) : null;
     const concepto = celda('concepto'), referencia = celda('referencia');

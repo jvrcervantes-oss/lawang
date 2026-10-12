@@ -43,7 +43,7 @@ function lwAgrupaPorContrato(docs){
      Sin `rectifica_id` (Lawang) equivale a `!f.anulada`, lo de siempre. */
   const cuenta = lwFacturaQueCuenta(docs);
   const suma = (l, t) => lwSumaPorMoneda(l.filter(f => f.tipo === t && cuenta(f)),
-                                          f => Number(f.total) || 0, f => f.moneda || 'EUR');
+                                          f => Number(f.total) || 0, f => f.moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR'));
   return [...g.values()].map(c => {
     c.facturado = suma(c.docs, 'factura');
     c.cobrado   = suma(c.docs, 'recibi');

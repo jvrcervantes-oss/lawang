@@ -309,11 +309,11 @@
       var iBase27 = campo(fila1, 'Base 2027', m.precio_construccion_2027, { num: 1, ph: 'sin precio' });
       var lm = document.createElement('label'); lm.className = 'fm-campo'; lm.appendChild(document.createTextNode('Moneda'));
       var sel = document.createElement('select'); sel.className = 'fm-in';
-      ['EUR', 'IDR'].forEach(function (x) { var o = document.createElement('option'); o.value = x; o.textContent = x; if ((m.moneda || 'EUR') === x) o.selected = true; sel.appendChild(o); });
+      ['EUR', 'IDR'].forEach(function (x) { var o = document.createElement('option'); o.value = x; o.textContent = x; if ((m.moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR')) === x) o.selected = true; sel.appendChild(o); });
       if (conCifras) sel.disabled = true;
       lm.appendChild(sel); fila1.appendChild(lm);
       var ex = document.createElement('p'); ex.className = 'fm-nota'; ex.style.paddingBottom = '10px';
-      ex.textContent = conCifras ? 'La moneda no se cambia: el modelo ya tiene techos, extras, precios por proyecto o previsión en ' + (m.moneda || 'EUR') + ' y no se convierten.' : 'La base la heredan los proyectos que no tienen precio propio.';
+      ex.textContent = conCifras ? 'La moneda no se cambia: el modelo ya tiene techos, extras, precios por proyecto o previsión en ' + (m.moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR')) + ' y no se convierten.' : 'La base la heredan los proyectos que no tienen precio propio.';
       fila1.appendChild(ex);
 
       // Ya no hay que «mover los techos» con la base (30-sep-2026): son suplementos sobre ella.
@@ -354,7 +354,7 @@
       return function () {
         var sb = ctx.sb;
         var nb = num(iBase.value), nb27 = chk(num(iBase27.value), 'El precio base 2027');
-        var monedaNueva = sel.value || m.moneda || 'EUR';
+        var monedaNueva = sel.value || m.moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR');
         if (nb != null && !(nb >= 0)) throw new Error('el precio base no es un número');
         var cambiosFila = ins.filter(function (x) {
           var nv = num(x.i.value); var ov = x.v.precio_construccion == null ? null : Number(x.v.precio_construccion);
@@ -376,7 +376,7 @@
         var cambios = {};
         if (nb !== base) cambios.base = nb;
         if (nb27 !== (m.precio_construccion_2027 == null ? null : Number(m.precio_construccion_2027))) cambios.base_2027 = nb27;
-        if (monedaNueva !== (m.moneda || 'EUR')) cambios.moneda = monedaNueva;
+        if (monedaNueva !== (m.moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR'))) cambios.moneda = monedaNueva;
         if (cambiosFila.length) cambios.villas = cambiosFila.map(function (x) { return { id: x.v.id, precio: num(x.i.value) }; });
         if (altas.length) cambios.altas = altas.map(function (x) { return { proyecto_id: h.idProy[x.proyecto], precio: num(x.i.value) }; });
         if (!Object.keys(cambios).length) return Promise.resolve();
@@ -631,7 +631,7 @@
     var porExtra = {}; h.mex.forEach(function (x) { porExtra[x.extra_id] = x; });
     var b = bloque(col, 'extras', 'Extras', { editar: activos.length ? function (host) {
       var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) 140px auto'; host.appendChild(t);
-      t.innerHTML = '<span class="fm-lbl">Extra</span><span class="fm-lbl">Precio (' + esc(m.moneda || 'EUR') + ')</span><span class="fm-lbl">Se ofrece</span>';
+      t.innerHTML = '<span class="fm-lbl">Extra</span><span class="fm-lbl">Precio (' + esc(m.moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR')) + ')</span><span class="fm-lbl">Se ofrece</span>';
       var ins = activos.map(function (e) {
         var ex = porExtra[e.id] || null;
         var n = document.createElement('span'); n.textContent = e.nombre; n.style.fontWeight = '600'; t.appendChild(n);
@@ -667,7 +667,7 @@
         abreEdicion(b, function (host) {
           var n = campo(host, 'Nombre del extra', '', { ph: 'p. ej. Piscina infinita' });
           var d = campo(host, 'Descripción (web y contrato)', '', { area: 1, filas: 3 });
-          var p = campo(host, 'Precio en ' + m.nombre + ' (' + (m.moneda || 'EUR') + ')', '', { num: 1 });
+          var p = campo(host, 'Precio en ' + m.nombre + ' (' + (m.moneda || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR')) + ')', '', { num: 1 });
           nota(host, 'Se ofrece solo en ' + m.nombre + '. En los demás modelos aparece como «no se ofrece» hasta que le pongas precio en su ficha.');
           return function () {
             var nombre = n.value.trim();
