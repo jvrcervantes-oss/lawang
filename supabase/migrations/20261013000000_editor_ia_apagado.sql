@@ -22,6 +22,7 @@
 --                             Llamarla a mano desde el navegador ocupa créditos sin recibir nada; a los 10 min caducan y vuelven
 --                             (las de TODAS las empresas: si no, una empresa podría tener llena la jaula global de las demás).
 --   editor_ia_cierra          SOLO service_role · edge editor-ia: escribe tokens, modelo y caracteres REALES. Ningún navegador.
+--   editor_ia_enviada         SOLO service_role · edge editor-ia, justo antes de llamar al proveedor (la jaula ya no devuelve).
 --   editor_ia_aceptada        authenticated · textos-contrato-ia.js tras guardar el borrador (la propuesta quedó en una versión)
 --   editor_ia_marcas          authenticated · textos-contrato-ia.js (qué trozos están «traducidos, sin revisar»)
 --   editor_ia_marca_revisada  authenticated · textos-contrato-ia.js («Ya lo he revisado»)
@@ -99,7 +100,7 @@ create table public.editor_ia_uso (
   accion            text not null check (accion in ('propone', 'traduce_ia', 'traduce_deepl')),
   slug              text not null,
   variante          text not null,
-  version_id        uuid,
+  version_id        uuid references public.plantilla_contrato_versiones (id),
   parrafos          integer not null check (parrafos between 1 and 40),
   creditos          integer not null check (creditos > 0),
   de_prueba         boolean not null default false,
@@ -111,7 +112,10 @@ create table public.editor_ia_uso (
   huella_propuesta  text check (huella_propuesta ~ '^[0-9a-f]{64}$'),
   cerrada_en        timestamptz,
   aceptada_en       timestamptz,
-  version_aceptada  uuid,
+  version_aceptada  uuid references public.plantilla_contrato_versiones (id),
+  -- La edge lo marca JUSTO ANTES de llamar al proveedor (editor_ia_enviada). Con la petición ya enviada el proveedor puede
+  -- haber cobrado aunque la función muera sin cerrar: entonces la jaula global NO se devuelve (ni al fallar ni al caducar).
+  enviada_en        timestamptz,
   -- Congelados en el apunte (Administración 13-oct): el extracto de un mes pasado no se recalcula con el precio ni las tarifas de hoy.
   precio_credito    numeric(14,4),                              -- precio del crédito al reservar
   moneda            text,                                       -- moneda de ese precio
@@ -119,6 +123,8 @@ create table public.editor_ia_uso (
 );
 create index editor_ia_uso_usuario_fecha on public.editor_ia_uso (usuario, fecha desc);
 create index editor_ia_uso_empresa_periodo on public.editor_ia_uso (empresa, periodo);
+create index editor_ia_uso_periodo on public.editor_ia_uso (periodo);                                  -- extracto de 3 meses
+create index editor_ia_uso_reservadas on public.editor_ia_uso (fecha) where estado = 'reservado';    -- caducidad (dentro del candado)
 comment on table public.editor_ia_uso is
   'Un apunte por llamada al asistente IA del editor de textos. Sin texto del contrato ni instrucción: quién, cuándo, plantilla, créditos, modelo y tokens. Lo escriben editor_ia_reserva y editor_ia_cierra.';
 
@@ -195,12 +201,14 @@ create function public._editor_ia_caduca() returns integer language plpgsql secu
 declare u record; n int := 0;
 begin
   perform public._editor_ia_candado();
-  for u in select x.id, x.empresa, x.periodo, x.creditos from public.editor_ia_uso x
+  for u in select x.id, x.empresa, x.periodo, x.creditos, x.enviada_en from public.editor_ia_uso x
             where x.estado = 'reservado' and x.fecha < now() - interval '10 minutes'
             order by x.fecha for update skip locked loop
     update public.editor_ia_uso set estado = 'caducada', cerrada_en = now() where id = u.id;
     update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = u.empresa and s.periodo = u.periodo;
-    update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = '*' and s.periodo = u.periodo;
+    if u.enviada_en is null then                                               -- enviada = el proveedor pudo cobrar: la jaula no devuelve
+      update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = '*' and s.periodo = u.periodo;
+    end if;
     n := n + 1;
   end loop;
   return n;
@@ -247,7 +255,8 @@ begin
   end if;
   if v_var !~ '^[a-z][a-z0-9_]{0,39}$' then raise exception 'Revision no valida' using errcode = '22023'; end if;
   if p_slug is null or not exists (select 1 from public.plantillas_contrato t where t.slug = p_slug) then raise exception 'Plantilla no valida' using errcode = '22023'; end if;
-  if p_version is not null and not exists (select 1 from public.plantilla_contrato_versiones v where v.id = p_version and v.empresa = p_empresa and v.slug = p_slug) then
+  if p_version is not null and not exists (select 1 from public.plantilla_contrato_versiones v where v.id = p_version and v.empresa = p_empresa and v.slug = p_slug
+                                             and v.variante = v_var and v.borrada_en is null) then
     raise exception 'Version no valida' using errcode = '22023';
   end if;
   v_falta := public._editor_ia_falta(p_empresa);
@@ -304,11 +313,11 @@ begin
          caracteres = greatest(p_caracteres, 0), huella_propuesta = case when p_ok then p_huella end, coste_usd = round(v_coste, 6)
    where id = u.id;
   if not p_ok then
-    -- La empresa no paga una llamada fallida. La jaula global solo la devuelve si el proveedor no cobró nada: si ya gastó
-    -- tokens o caracteres, ese gasto real sigue contando contra el tope de la instancia (así los fallos tampoco salen gratis).
-    -- Dos updates en el orden fijo del módulo (empresa, luego «*»): uno solo con «in (…)» no garantiza el orden de bloqueo.
+    -- La empresa no paga una llamada fallida. La jaula global solo la devuelve si la petición NO llegó a enviarse al proveedor:
+    -- enviada, pudo cobrar (aunque la función no sepa cuánto, p. ej. si se cortó por tiempo), y ese gasto real sigue contando
+    -- contra el tope de la instancia. Así los fallos tampoco salen gratis y la jaula nunca devuelve gasto real.
     update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = u.empresa and s.periodo = u.periodo;
-    if greatest(p_entrada, 0) + greatest(p_salida, 0) + greatest(p_caracteres, 0) = 0 then
+    if u.enviada_en is null then
       update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = '*' and s.periodo = u.periodo;
     end if;
     return true;
@@ -327,6 +336,15 @@ end $$;
 revoke all on function public.editor_ia_cierra(uuid, boolean, text, integer, integer, integer, text, jsonb) from public, anon, authenticated;
 grant execute on function public.editor_ia_cierra(uuid, boolean, text, integer, integer, integer, text, jsonb) to service_role;
 
+-- La edge marca la reserva como enviada justo antes de llamar al proveedor (ver `enviada_en`). Solo service_role.
+create function public.editor_ia_enviada(p_uso uuid) returns boolean language plpgsql security definer set search_path = '' as $$
+begin
+  update public.editor_ia_uso set enviada_en = now() where id = p_uso and estado = 'reservado' and enviada_en is null;
+  return found;
+end $$;
+revoke all on function public.editor_ia_enviada(uuid) from public, anon, authenticated;
+grant execute on function public.editor_ia_enviada(uuid) to service_role;
+
 -- ─────────────────────────────────────────────────────────────────────────────────────────────── la propuesta quedó en un borrador
 create function public.editor_ia_aceptada(p_uso uuid, p_version uuid) returns boolean language plpgsql security definer set search_path = '' as $$
 declare u public.editor_ia_uso%rowtype;
@@ -338,7 +356,8 @@ begin
     raise exception 'El asistente de textos lo usa la administracion de la empresa' using errcode = '42501';
   end if;
   if u.estado <> 'hecho' then raise exception 'Esa consulta no termino bien' using errcode = '22023'; end if;
-  if not exists (select 1 from public.plantilla_contrato_versiones v where v.id = p_version and v.empresa = u.empresa and v.slug = u.slug) then
+  if not exists (select 1 from public.plantilla_contrato_versiones v where v.id = p_version and v.empresa = u.empresa and v.slug = u.slug
+                   and v.variante = u.variante and v.borrada_en is null) then
     raise exception 'Version no valida' using errcode = '22023';
   end if;
   if u.aceptada_en is not null then return false; end if;
@@ -490,6 +509,9 @@ begin
     tope_mensual       = case when p_campos ? 'tope_mensual' then (p_campos ->> 'tope_mensual')::int else e.tope_mensual end,
     actualizado_por = v_autor, actualizado_en = now()
    where e.empresa = p_empresa;
+  -- un solo dueño de «incluidos» (Backend 13-oct): el MES EN CURSO sigue al valor vivo; los meses cerrados quedan congelados
+  update public.editor_ia_saldo s set incluidos = (select x.creditos_incluidos from public.editor_ia_empresa x where x.empresa = p_empresa)
+   where s.empresa = p_empresa and s.periodo = public._editor_ia_periodo();
   -- encender exige que no falte ningún dato de precio: si falta, no se guarda nada
   if (select x.encendido from public.editor_ia_empresa x where x.empresa = p_empresa) then
     v_falta := public._editor_ia_falta(p_empresa);

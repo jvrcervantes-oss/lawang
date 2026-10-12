@@ -62,7 +62,10 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
           return { data: null, error: { message: 'rpc inesperada ' + n } };
         },
       }),
-      servicio: { rpc: async (n, a) => { if (n === 'editor_ia_cierra') { reg.cierres.push(a); return { data: !o.cierreCaducado, error: null }; } return { data: null, error: { message: 'x' } }; } },
+      servicio: { rpc: async (n, a) => {
+        if (n === 'editor_ia_cierra') { reg.cierres.push(a); return { data: !o.cierreCaducado, error: null }; }
+        if (n === 'editor_ia_enviada') { reg.enviadas = (reg.enviadas || 0) + 1; reg.enviadaAntes = reg.fetch.length === 0; return { data: true, error: null }; }
+        return { data: null, error: { message: 'x' } }; } },
       fetch: async (url, init) => {
         reg.fetch.push({ url, init });
         const cuerpo = JSON.parse(init.body);
@@ -132,6 +135,7 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
     ok(reg.fetch.length === 1 && reg.fetch[0].url === M.URL_MODELO && req.model === 'claude-opus-5-5' && req.output_config.format.type === 'json_schema'
        && !req.thinking && !('fallbacks' in req) && !hd['anthropic-beta'] && hd['x-api-key'] === CLAVE, 'llamada: modelo, salida estructurada, sin thinking apagado, sin modelo de respaldo, clave del asistente', req);
     ok(reg.ultimaReserva && reg.ultimaReserva.p_accion === 'propone' && reg.ultimaReserva.p_parrafos === 1, 'reserva de UN párrafo', reg.ultimaReserva);
+    ok(reg.enviadas === 1 && reg.enviadaAntes === true && reg.fetch[0].init.signal, 'se marca «enviada» ANTES de llamar al proveedor, y la llamada lleva tiempo máximo', reg.enviadas);
     const c = reg.cierres[0] || {};
     ok(reg.cierres.length === 1 && c.p_ok === true && c.p_entrada === 321 && c.p_salida === 45 && /^[0-9a-f]{64}$/.test(c.p_huella) && c.p_modelo === 'claude-opus-5-5' && c.p_marcas.length === 0,
        'cierre con los tokens REALES y la huella (sin texto)', c);

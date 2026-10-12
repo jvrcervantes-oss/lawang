@@ -59,7 +59,8 @@ begin
    where rol in ('admin_empresa', 'super_admin_empresa') and ambito = 'empresa' and activo and cardinality(empresas) = 1 order by user_id limit 1;
   select user_id, email into v_ag, v_ag_em from public.usuarios where rol = 'agente' and activo order by user_id limit 1;
   select e.clave into v_eb from public.empresas e where e.clave <> v_ea and e.activa order by e.clave limit 1;
-  select v.slug, v.id into v_slug, v_ver from public.plantilla_contrato_versiones v where v.empresa = v_ea order by v.slug, v.version limit 1;
+  select v.slug, v.id into v_slug, v_ver from public.plantilla_contrato_versiones v
+   where v.empresa = v_ea and v.variante = 'estandar' and v.borrada_en is null order by v.slug, v.version limit 1;
   if v_sup is null or v_ae is null or v_ag is null or v_eb is null or v_slug is null then
     raise exception 'FALLOS=1 | sin perfiles de prueba (super %, admin de empresa %, agente %, otra empresa %, plantilla %)',
       v_sup is not null, v_ae is not null, v_ag is not null, v_eb is not null, v_slug is not null;
@@ -138,13 +139,17 @@ begin
   -- traducción de 2 párrafos: 2 créditos > 1 que queda
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 2)', v_ea, 'traduce_ia', v_slug, 'estandar', v_ver));
   total := total + 1; if r <> 'EP0001/tope_empresa' then fallos := fallos + 1; resumen := resumen || ' [D6 traducción sobre el tope: ' || r || ']'; end if;
-  -- la edge cierra la segunda como fallo: devuelve los créditos; cerrarla otra vez no devuelve dos veces
+  -- la edge marca la segunda como ENVIADA (el navegador no puede) y la cierra como fallo: devuelve los créditos a la empresa;
+  -- cerrarla otra vez no devuelve dos veces
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_enviada(%L)', v_uso2));
+  total := total + 1; if r not like 'E42501%' then fallos := fallos + 1; resumen := resumen || ' [D6b el navegador marca enviada: ' || r || ']'; end if;
+  perform pg_temp.intenta('service_role', null, null, format('select public.editor_ia_enviada(%L)', v_uso2));
   r := pg_temp.intenta('service_role', null, null, format('select public.editor_ia_cierra(%L, false, %L, 10, 0, 0, null, %L::jsonb)', v_uso2, 'm', '[]'));
   total := total + 1; if r <> 'OK:1' then fallos := fallos + 1; resumen := resumen || ' [D7 cierre fallido: ' || r || ']'; end if;
   perform pg_temp.intenta('service_role', null, null, format('select public.editor_ia_cierra(%L, false, %L, 10, 0, 0, null, %L::jsonb)', v_uso2, 'm', '[]'));
   select usados into n from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo();
   total := total + 1; if n <> 2 then fallos := fallos + 1; resumen := resumen || ' [D8 devolución: ' || n || ']'; end if;
-  -- ese fallo gastó 10 tokens del proveedor: la empresa no paga, pero la jaula global lo sigue contando
+  -- ese fallo ya se había ENVIADO al proveedor: la empresa no paga, pero la jaula global lo sigue contando
   select usados into n from public.editor_ia_saldo where empresa = '*' and periodo = public._editor_ia_periodo();
   total := total + 1; if n <> 4 then fallos := fallos + 1; resumen := resumen || ' [D8b la jaula no devuelve lo que el proveedor cobró: ' || n || ']'; end if;
   -- la primera, bien, con marcas de traducción
@@ -225,6 +230,25 @@ begin
   if j is null or (j ->> 'creditos') <> '2' or (j ->> 'pendientes') <> '5' or (j ->> 'fallidas') <> '3'
      or (j ->> 'facturables') <> '0' or (j ->> 'importe')::numeric <> 0 or (j ->> 'creditos_prueba') <> '2' then
     fallos := fallos + 1; resumen := resumen || ' [H5 extracto: ' || coalesce(j::text, 'error') || ']';
+  end if;
+  -- H8: una abandonada que ya se había ENVIADO caduca y devuelve a la empresa, pero NO a la jaula global (el proveedor pudo cobrar)
+  j := pg_temp.pide('authenticated', v_sup, v_sup_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
+  v_uso2 := (j ->> 'uso')::uuid;
+  perform pg_temp.intenta('service_role', null, null, format('select public.editor_ia_enviada(%L)', v_uso2));
+  update public.editor_ia_uso set fecha = now() - interval '11 minutes' where id = v_uso2;
+  select usados into i from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo();
+  select usados into n from public.editor_ia_saldo where empresa = '*' and periodo = public._editor_ia_periodo();
+  perform public._editor_ia_caduca();
+  total := total + 1;
+  if (select usados from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo()) <> i - 2
+     or (select usados from public.editor_ia_saldo where empresa = '*' and periodo = public._editor_ia_periodo()) <> n then
+    fallos := fallos + 1; resumen := resumen || ' [H8 la enviada abandonada devuelve la jaula global]';
+  end if;
+  -- H9: cambiar los incluidos de la empresa mueve los del MES EN CURSO (un solo dueño)
+  r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_ajustes_guarda(%L, %L::jsonb, %L)', v_ea, '{"creditos_incluidos": 7}', 'prueba'));
+  total := total + 1;
+  if (select incluidos from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo()) is distinct from 7 then
+    fallos := fallos + 1; resumen := resumen || ' [H9 incluidos del mes en curso: ' || r || ']';
   end if;
   -- H6: una reserva abandonada de OTRA empresa también caduca (si no, tendría ocupada la jaula global de las demás)
   insert into public.editor_ia_saldo (empresa, periodo, usados) values (v_eb, public._editor_ia_periodo(), 5)

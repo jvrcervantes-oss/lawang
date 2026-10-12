@@ -6,8 +6,9 @@
 // SECRETOS (los pone el owner; ninguno existe todavía):
 //   EDITOR_IA_ANTHROPIC_KEY   clave PROPIA de este asistente, con su límite de gasto en el panel del proveedor. No es la
 //                             ANTHROPIC_API_KEY de asistente-peticiones: así encender el editor no gasta de la otra ni al revés.
-//   EDITOR_IA_DEEPL_KEY       clave de DeepL (si termina en «:fx» es de la cuenta gratuita y va a su dirección).
-// La clave de servicio se usa SOLO para auth.getUser y para editor_ia_cierra (tokens reales); nunca para el texto del contrato.
+//   EDITOR_IA_DEEPL_KEY       clave de DeepL de la API de PAGO (Pro). Una de la cuenta gratuita (termina en «:fx») se trata como
+//                             si no hubiera clave: la gratuita no garantiza no guardar ni entrenar con el texto.
+// La clave de servicio se usa SOLO para auth.getUser, editor_ia_enviada y editor_ia_cierra; nunca para el texto del contrato.
 // verify_jwt = true en config.toml (como asistente-peticiones); dentro se vuelve a comprobar la sesión (getUser) y el rol (RPC).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { crea } from './motor.js';

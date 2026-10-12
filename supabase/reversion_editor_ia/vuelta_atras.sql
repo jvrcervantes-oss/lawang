@@ -7,6 +7,7 @@ drop function if exists public.editor_ia_ajustes_datos();
 drop function if exists public.editor_ia_marca_revisada(text, text, text, text, text[]);
 drop function if exists public.editor_ia_marcas(text, text, text);
 drop function if exists public.editor_ia_aceptada(uuid, uuid);
+drop function if exists public.editor_ia_enviada(uuid);
 drop function if exists public.editor_ia_cierra(uuid, boolean, text, integer, integer, integer, text, jsonb);
 drop function if exists public.editor_ia_reserva(text, text, text, text, uuid, integer);
 drop function if exists public.editor_ia_estado(text);

@@ -116,8 +116,10 @@ ${REGLAS}`;
 
 // Una llamada al modelo con salida estructurada. Devuelve { ok, piezas, nota, modelo, entrada, salida } (tokens reales).
 async function preguntaModelo(dep, sistema, contenido) {
+  // Tiempo máximo por debajo del tope de reloj de la función: si se pasa, aborta, el catch cierra como fallo (ya enviada:
+  // la jaula global no devuelve) y no se queda una reserva colgada.
   const r = await dep.fetch(URL_MODELO, {
-    method: 'POST',
+    method: 'POST', signal: AbortSignal.timeout(110000),
     // Sin modelo de respaldo a propósito (revisor 13-oct): el extracto calcula el coste con UNA tarifa, la de MODELO, y un
     // respaldo cobraría con otra sin que se viera. Si el modelo no contesta, la llamada falla limpia y no se cobra.
     headers: { 'content-type': 'application/json', 'x-api-key': dep.claves.anthropic, 'anthropic-version': '2023-06-01' },
@@ -191,7 +193,7 @@ async function traduceDeepl(dep, pares, destino) {
   const url = 'https://api.deepl.com/v2/translate';                       // solo la API Pro (ver la guarda de «:fx» en crea)
   const textos = pares.map((p) => aXml(p.es));
   const r = await dep.fetch(url, {
-    method: 'POST',
+    method: 'POST', signal: AbortSignal.timeout(30000),
     headers: { 'content-type': 'application/json', Authorization: 'DeepL-Auth-Key ' + clave },
     body: JSON.stringify({ text: textos, source_lang: 'ES', target_lang: destino === 'en' ? 'EN-GB' : 'ID', tag_handling: 'xml',
                            ignore_tags: ['x'], preserve_formatting: true }),
@@ -295,14 +297,20 @@ export function crea(dep) {
       }
       reserva = rv.data;
 
+      const enviar = async () => {                                         // justo antes de llamar al proveedor (ver enviada_en)
+        const e = await dep.servicio.rpc('editor_ia_enviada', { p_uso: reserva.uso });
+        if (e.error || e.data !== true) throw new Error('no se pudo marcar la reserva');
+      };
       let res;
       if (accion === 'traduce' && motor === 'deepl') {
         // Una clave «:fx» es de la API GRATUITA de DeepL, que no garantiza no guardar ni entrenar con el texto (Seguridad 13-oct;
         // revisión previa (7): «proveedor sin entrenamiento ni retención»). Se trata como si no hubiera clave.
         if (!dep.claves.deepl || /:fx$/.test(dep.claves.deepl)) { await cierra(false); return json({ error: 'no_configurado', motor: 'deepl' }, 503); }
+        await enviar();
         res = await traduceDeepl(dep, pares, destino);
       } else {
         if (!dep.claves.anthropic) { await cierra(false); return json({ error: 'no_configurado', motor: 'ia' }, 503); }
+        await enviar();
         res = await preguntaModelo(dep, accion === 'propone' ? SISTEMA_PROPONE : sistemaTraduce(destino), contenido);
       }
       gasto = res;                                                       // lo que el proveedor ya cobró, por si algo revienta después

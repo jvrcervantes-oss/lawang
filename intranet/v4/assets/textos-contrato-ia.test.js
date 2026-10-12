@@ -35,8 +35,8 @@ igual(JSON.stringify(deLaPantalla), JSON.stringify(esperadas), 'las RPC que llam
 igual(deLaPantalla.length, 6, 'seis RPC en la pantalla del asistente');
 igual(alAutenticado.has('editor_ia_reserva'), true, 'la reserva se abre a authenticated (la llama la función CON la sesión de la persona)');
 igual(/sb\.rpc\('editor_ia_reserva'/.test(motor), true, 'la función reserva con el cliente de la persona (sb), no con el de servicio');
-igual(JSON.stringify([...alServicio]), JSON.stringify(['editor_ia_cierra']), 'solo editor_ia_cierra es de service_role');
-igual(/editor_ia_cierra/.test(js), false, 'la pantalla no nombra editor_ia_cierra');
+igual(JSON.stringify([...alServicio].sort()), JSON.stringify(['editor_ia_cierra', 'editor_ia_enviada']), 'solo editor_ia_cierra y editor_ia_enviada son de service_role');
+igual(/editor_ia_cierra|editor_ia_enviada/.test(js), false, 'la pantalla no nombra editor_ia_cierra ni editor_ia_enviada');
 igual(/editor_ia_reserva/.test(js), false, 'la pantalla no reserva créditos por su cuenta');
 if (/[^a-z_]grant [^;]* to (anon|public)\b/i.test(mig)) falla('la migración abre algo a anon o public');
 igual(/encendido\s+boolean not null default false/.test(mig), true, 'cada empresa nace con el asistente apagado');
