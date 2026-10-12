@@ -183,7 +183,7 @@ function lwDescuentoCascada(montos, descuento){
 function lwSumaPorMoneda(lista, importeDe, monedaDe){
   const out = {};
   (lista || []).forEach(function(x){
-    const m = (monedaDe ? monedaDe(x) : x.moneda) || ((typeof lwMonedaBase === 'function' && lwMonedaBase()) || 'EUR');
+    const m = (monedaDe ? monedaDe(x) : x.moneda) || 'EUR';
     out[m] = (out[m] || 0) + (Number(importeDe ? importeDe(x) : x.total) || 0);
   });
   return out;
