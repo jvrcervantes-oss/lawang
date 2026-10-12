@@ -5944,7 +5944,7 @@
     'pendiente %p': 'outstanding %p',
     'No se pudieron traer las facturas que este recibí ya saldaba': 'Could not bring the invoices this receipt already settled',
     'no se encontró el número de una factura de este recibí': 'the number of one invoice in this receipt was not found',
-    'Quitada %n factura que no son de esta moneda: %l': 'Removed %n invoice not in this currency: %l',
+    'Quitada %n factura que no es de esta moneda: %l': 'Removed %n invoice not in this currency: %l',
     'Quitadas %n facturas que no son de esta moneda: %l': 'Removed %n invoices not in this currency: %l',
     'Elige arriba la factura que se cobra.': 'Choose the invoice being collected above.',
     'Hay %n factura pendiente más de este cliente.': 'There is %n more outstanding invoice for this client.',
@@ -6007,6 +6007,10 @@
     'Recibí de cobro': 'Payment receipt',
     // G2 de Ajustes (12-oct-2026): «Modelos» pasa a «Modelos de casas» (menú, hub, título de la pantalla)
     'Modelos de casas': 'House models',
+    // idiomas-pH (12-oct-2026): lo que bbm aún enseñaba en español en Ajustes › Sociedades
+    'Trayendo el historial…': 'Loading the history…',
+    'Solo se listan los campos que el documento DICE (razón social, marca, identificación fiscal, NIB, domicilio, representante). Los retoques de logo, folio o tinta no dejan rastro aquí: son aspecto, no identidad.': 'Only the fields the document SAYS are listed (legal name, brand, tax ID, NIB, address, representative). Changes to the logo, numbering or ink leave no trace here: they are appearance, not identity.',
+    'Menú de la intranet': 'Intranet menu',
   };
 
   window.LW_EN = EN;
