@@ -30,7 +30,7 @@
   /* EL MENÚ DE LA v4, DECLARADO UNA VEZ (27-sep-2026, owner: «Separa las herramientas
      con secciones como en el menú» + Finanzas en 5 entradas con pestañas). Es la
      fuente de las SECCIONES y los NOMBRES que usan:
-       · este fichero: qué entradas llevan pestañas (Cobros, Comisiones, Tesorería),
+       · este fichero: qué entradas llevan pestañas (Cobros, Comisiones, Ajustes),
          en qué orden va Finanzas y Comunicación, y qué ofrece el buscador;
        · /v4/usuarios/ (editores.js): las casillas de permiso, agrupadas por sección
          y con el nombre de la entrada del menú — por eso se expone en
@@ -65,7 +65,7 @@
          solo SIN AXW_NUCLEO_OPERACION — en una instancia la entrada es la de arriba y el paquete ya no lleva /textos-contrato/. Sin
          casilla, como antes: la abre el rol (admin o rol de empresa, `data-rol="admin"` en la puerta) y la base decide qué empresa ve
          cada uno (es_admin_de) y quién activa (es_super_admin_de). Nace en el pase con rol (PANEL_CONTROL) y se cuelga tras Contratos. */
-      { path: 'textos-contrato', texto: 'Plantillas', rol: 'admin', sinNucleo: true },
+      { path: 'textos-contrato', texto: 'Plantillas', rol: 'admin', sinNucleo: true, alias: 'Textos de contrato' },
       /* Emitir contrato (AxisWorks ERP, 30-sep-2026, plantillas MVP subtarea M5): emitir desde una versión
          ACTIVA. Solo con AXW_NUCLEO_OPERACION. Abre con la MISMA casilla que Contratos (la base exige
          es_agente() y puede('contratos') en contrato_desde_plantilla): `mismaCasilla` le dice a nav.test.js
@@ -87,7 +87,7 @@
       { path: 'gastos', texto: 'Gastos', clave: 'gastos', rol: 'admin' },
       /* Tesorería (12-oct-2026): era una entrada con dos pestañas, Bancos y Cuentas bancarias; Cuentas pasó a Ajustes (owner: «Cuentas
          bancarias debería ir en ajustes») y una entrada con una sola pestaña era un clic de más. Queda como entrada simple a /bancos/. */
-      { path: 'bancos', texto: 'Tesorería', clave: 'bancos', rol: 'admin' }] },
+      { path: 'bancos', texto: 'Tesorería', clave: 'bancos', rol: 'admin', alias: 'Bancos' }] },
     { seccion: 'Comunicación', entradas: [
       { path: 'comunicacion', texto: 'Comunicados', clave: 'comunicacion', rol: 'admin' },
       { path: 'soporte', texto: 'Soporte', clave: 'soporte' }] },
@@ -96,7 +96,7 @@
          vive dentro de Proyectos desde el 8-sep; su casilla escribe enlaces y FAQ. */
       { path: 'proyectos', texto: 'Proyectos', clave: 'unidades', extra: [
         { clave: 'documentacion', texto: 'documentación (enlaces, FAQ y ficheros)' }] },
-      { path: 'modelos', texto: 'Modelos de casas', clave: 'modelos' },   // «Modelos» hasta el 12-oct-2026 (owner: «se puede renombrar a 'Modelos de casas'»)
+      { path: 'modelos', texto: 'Modelos de casas', clave: 'modelos', alias: 'Modelos' },   // «Modelos» hasta el 12-oct-2026 (owner: «se puede renombrar a 'Modelos de casas'»)
       { path: 'obra', texto: 'Obra', clave: 'obra' },
       { path: 'compradores', texto: 'Clientes', clave: 'compradores' }] },
     { seccion: 'Panel de control', entradas: [
@@ -108,7 +108,7 @@
          pide admin GLOBAL + `ajustes`). Así quien abría Cuentas la sigue abriendo —desde «Ajustes», que le lleva a la primera pestaña que
          tiene— y quien no, no gana nada. `global` en una pestaña: un rol de empresa no la ve (pestanaVisible), como su puerta. El nombre
          del grupo no puede ser una carpeta (GRUPOS y puedeVer se miran por la misma clave). */
-      { grupo: 'configuracion', texto: 'Ajustes', icono: 'tune', pestanas: [
+      { grupo: 'configuracion', texto: 'Ajustes', icono: 'tune', conEntrada: true, pestanas: [
         { path: 'ajustes', clave: 'ajustes', texto: 'General', rol: 'admin', global: true },
         { path: 'cuentas', clave: 'cuentas', texto: 'Cuentas bancarias', rol: 'admin' }] },
       /* `solo` (7-oct-2026, owner): la puerta de la página lleva data-ambito igual — comision-admin: «super-global» (solo los super admins
@@ -437,9 +437,9 @@
        grupo porque es la que se mira, no la que se configura. Admin, como la
        puerta (`data-rol="admin"`); lo que ve cada cifra lo decide la RLS y el
        panel dice «sin permiso» donde la ficha no llega. Solo lectura. */
-    /* Finanzas, Gastos, Bancos y Cuentas nacen aquí (misma puerta de rol) pero se
-       MUDAN a la sección «Finanzas» (ordenaFinanzas, más abajo); Bancos y Cuentas,
-       como pestañas de «Tesorería». La cabecera ya dice «Finanzas», así que la
+    /* Finanzas, Gastos y Bancos nacen aquí (misma puerta de rol) pero se MUDAN a la
+       sección «Finanzas» (ordenaFinanzas, más abajo); Bancos como «Tesorería» (12-oct-2026;
+       hasta entonces, Bancos y Cuentas eran pestañas de Tesorería). La cabecera ya dice «Finanzas», así que la
        entrada del panel es «Resumen». Sociedades se queda en el Panel (27-sep). */
     { path: 'finanzas',      icono: 'monitoring',       texto: 'Resumen' },
     /* Gastos y proveedores (24-sep-2026): admin + casilla `gastos` (la poda la
@@ -509,7 +509,7 @@
        (comision-admin, sociedades), que gobierna el rol. Usuarios, Cuentas,
        Bancos, Gastos, Ajustes y Comunicados SÍ llevan clave: además de admin,
        hace falta tenerlas asignadas. Las entradas con pestañas (Cobros,
-       Comisiones, Tesorería) se ven si la sesión abre alguna de sus pestañas. */
+       Comisiones, Ajustes) se ven si la sesión abre alguna de sus pestañas. */
   var CLAVE_MENU = {
     leads: 'leads', operaciones: 'operaciones', soporte: 'soporte', vencimientos: 'vencimientos',
     contratos: 'contratos', asistente: 'asistente', 'asistente-correos': 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
@@ -521,7 +521,7 @@
     comunicacion: 'comunicacion', ajustes: 'ajustes'
   };
 
-  /* ENTRADAS CON PESTAÑAS (Cobros, Comisiones, Tesorería — 27-sep-2026, owner). Salen de
+  /* ENTRADAS CON PESTAÑAS (Cobros, Comisiones — 27-sep-2026, owner; Ajustes desde el 12-oct-2026). Salen de
      MENU_V4: una entrada del menú y una barra de pestañas encima de cada pantalla. Cada
      pestaña sigue siendo SU pantalla con SU puerta (guard.js) y SU casilla, y su URL no
      cambia (enlaces de correos, `?id=`). La entrada lleva a la primera pestaña que la
@@ -744,7 +744,7 @@
      casilla y la RLS: cambiar de grupo no cambia permisos.
      27-sep-2026 (owner): de 9 entradas a 5 — Resumen · Cobros [Vencimientos |
      Facturas | Recibos] · Comisiones [sus 4 pestañas] · Gastos · Tesorería
-     [Bancos | Cuentas bancarias]; Sociedades vuelve al Panel de control. El orden
+     (entrada simple a Bancos desde el 12-oct-2026: Cuentas bancarias pasó a Ajustes). El orden
      y las pestañas salen de MENU_V4. Una entrada con pestañas se CREA clonando su
      primera pestaña (mismas clases) y los enlaces de las pestañas SALEN de la
      sidebar: quedan en la barra de pestañas de su pantalla y en el buscador.
@@ -752,8 +752,8 @@
      `tras: 'vencimientos'`, Comisiones y Productos `tras: 'recibos'`: esos
      enlaces tienen que existir todavía) y ANTES de traduceSidebar (la cabecera
      y las entradas nuevas pasan por T allí). En el segundo pase (tras LW_AUTH)
-     se vuelve a llamar con `traducir`: Tesorería nace entonces, de los enlaces
-     de Bancos y Cuentas que injerta el Panel de control. */
+     se vuelve a llamar con `traducir`: Tesorería (Bancos) llega entonces, del
+     enlace que injerta el Panel de control. */
   var FINANZAS_V4 = MENU_V4.filter(function (s) { return s.seccion === 'Finanzas'; })[0].entradas;
   function ordenaFinanzas(aside, traducir) {
     var g = aside.querySelector('[data-seccion="finanzas"]');
@@ -805,7 +805,7 @@
   function agrupaPestanas(aside, traducir) {
     var aquiG = grupoDeAqui();
     MENU_V4.forEach(function (s) {
-      if (s.seccion === 'Finanzas') return;      // las suyas las coloca ordenaFinanzas
+      if (s.entradas === FINANZAS_V4) return;    // las suyas las coloca ordenaFinanzas
       s.entradas.forEach(function (e) { if (e.grupo) entradaDeGrupo(aside, e, traducir, aquiG); });
     });
   }
@@ -981,9 +981,14 @@
     lupa.setAttribute('data-real', '');
     lupa.setAttribute('aria-label', T('Buscar herramienta'));
     var caja = null;
-    /* Cada resultado es {nombre, href}. Una entrada con pestañas (Cobros, Comisiones,
-       Tesorería) se abre en sus pestañas: el buscador sigue encontrando «Facturas» o
-       «Bancos» por su nombre aunque ya no tengan enlace propio en la sidebar (27-sep). */
+    /* Cada resultado es {nombre, href, alias}. Una entrada con pestañas (Cobros, Comisiones,
+       Ajustes) se abre en sus pestañas: el buscador sigue encontrando «Facturas» por su nombre
+       aunque ya no tenga enlace propio en la sidebar (27-sep). Desde el 12-oct-2026: con
+       `conEntrada` la pestaña sale como «Ajustes · General» (buscar «ajustes» la encuentra), y
+       `alias` es el nombre de antes de un renombre («Bancos», «Textos de contrato», «Modelos»):
+       también casa, aunque se enseña el nombre de ahora. */
+    var ALIAS = {};
+    MENU_V4.forEach(function (s) { s.entradas.forEach(function (e) { if (e.path && e.alias) ALIAS[e.path] = e.alias; }); });
     function enlaces() {
       var aside = document.querySelector('aside');
       if (!aside) return [];
@@ -995,11 +1000,12 @@
         if (GRUPOS[dp]) {
           var rol = (FICHA_SESION && LW_ROL.efectivo(FICHA_SESION)) || '';
           pestanasDe(dp, FICHA_SESION).forEach(function (t) {
-            out.push({ nombre: T((t.rotulo && t.rotulo[rol]) || t.texto), href: ROOT + t.path + '/' });
+            var n = T((t.rotulo && t.rotulo[rol]) || t.texto);
+            out.push({ nombre: GRUPOS[dp].conEntrada ? T(GRUPOS[dp].texto) + ' · ' + n : n, href: ROOT + t.path + '/' });
           });
           return;
         }
-        out.push({ nombre: nombre(a), href: a.href });
+        out.push({ nombre: nombre(a), href: a.href, alias: ALIAS[dp] ? T(ALIAS[dp]) : '' });
       });
       return out;
     }
@@ -1024,7 +1030,7 @@
       function pinta() {
         var q = sinTildes(inp.value.trim());
         lista.innerHTML = '';
-        var hay = enlaces().filter(function (a) { return !q || sinTildes(a.nombre).indexOf(q) !== -1; });
+        var hay = enlaces().filter(function (a) { return !q || sinTildes(a.nombre).indexOf(q) !== -1 || (a.alias && sinTildes(a.alias).indexOf(q) !== -1); });
         if (!hay.length) {
           var p = document.createElement('p'); p.textContent = T('Ninguna herramienta con ese nombre.');
           p.style.cssText = 'margin:6px 8px;font:400 13px Jost,system-ui,sans-serif;color:#a8a29e;font-style:italic'; lista.appendChild(p); return;
