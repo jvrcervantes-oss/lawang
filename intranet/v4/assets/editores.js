@@ -11592,7 +11592,7 @@
 
     'sociedades': function (aut) {
       var sb = aut.sb;
-      var superAdmin = LW_ROL.esPropietario(aut.ficha);      // sociedades emisoras: solo el propietario (7-oct-2026, owner); la base: es_propietario()
+      var superAdmin = LW_ROL.puedeSociedades(aut.ficha);    // sociedades emisoras: quien la base deja escribir — el propietario en Lawang (7-oct-2026, owner), el super admin en el ERP maestro
       var superGlobal = superAdmin;                          // alta de sociedad nueva: la misma puerta
       window.LW_V4 = window.LW_V4 || {};
 
@@ -11863,6 +11863,8 @@
          quedar inconsistente. El error va a consola con su prefijo para poder
          reproducirlo. */
       if (fn) { try { fn(aut); } catch (e) { console.error('[v4 editores]', e); } }
+      // Sociedades emisoras viven en una pestaña de Ajustes (owner, 12-oct-2026): su editor se monta también ahí (la puerta la lleva ED.sociedades)
+      if (seg === 'ajustes' && ED.sociedades && document.getElementById('lw-soc-lista')) { try { ED.sociedades(aut); } catch (e) { console.error('[v4 editores]', e); } }
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca); else arranca();

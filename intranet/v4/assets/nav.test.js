@@ -95,7 +95,7 @@ const casaAmbito = (e, donde) => {
   if (e.global && (!q || q.ambito !== 'global')) errores.push(`MENU_V4 ${donde}: es de la instancia (global: true) y la puerta de ${e.path}/ no lleva data-ambito="global"`);
   if (!e.global && q && q.ambito === 'global') errores.push(`MENU_V4 ${donde}: la puerta de ${e.path}/ es global (data-ambito) y el menú no lo marca global: true`);
 };
-/* `solo` (7-oct-2026, owner): Comisión de administración = «super-global», Sociedades emisoras = «propietario». La puerta de la página lleva
+/* `solo` (7-oct-2026, owner): Comisión de administración = «super-global» (Sociedades emisoras, «propietario», es una pestaña de Ajustes desde el 12-oct). La puerta de la página lleva
    el mismo data-ambito, o el menú la esconde y la URL directa la abre. */
 const casaSolo = (e, donde) => {
   const q = e.path && puerta(e.path);

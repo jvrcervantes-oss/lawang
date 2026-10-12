@@ -18,7 +18,7 @@
 (function () {
   'use strict';
 
-  var PESTANAS = ['empresa', 'correo', 'usuarios', 'mantenimiento', 'reservas', 'registro'];
+  var PESTANAS = ['empresa', 'sociedades', 'correo', 'usuarios', 'mantenimiento', 'reservas', 'registro'];
   var ES_MAESTRO = !!window.AXW_NUCLEO_OPERACION;   // la bandera del ERP maestro; en Lawang no existe
 
   // Fuente única de lo que esta pantalla ofrece editar. La base tiene la lista blanca de verdad (_ajustes_claves_editables):
@@ -64,6 +64,8 @@
   /* ── Pestañas ─────────────────────────────────────────────────────────────────────────────────────────────── */
   function desdeHash() {
     var h = String(location.hash || '').replace(/^#/, '');
+    var bt = PESTANAS.indexOf(h) >= 0 ? document.querySelector('[data-lw-tab="' + h + '"]') : null;   // solo nombres de la lista: un hash raro no llega al selector
+    if (bt && bt.hidden) h = '';   // una pestaña oculta para esta sesión (Sociedades, si no es de quien las gestiona) no se abre por la URL
     return PESTANAS.indexOf(h) >= 0 ? h : 'empresa';
   }
   function activa(nombre) {
@@ -91,7 +93,8 @@
         var d = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0;
         if (!d) return;
         ev.preventDefault();
-        var s = botones[(i + d + botones.length) % botones.length];
+        var vis = botones.filter(function (x) { return !x.hidden; }), j = vis.indexOf(b);   // las flechas saltan las pestañas ocultas
+        var s = vis[(j + d + vis.length) % vis.length];
         s.focus(); s.click();
       });
     });
@@ -879,6 +882,9 @@
     window.LW_AUTH.then(function (aut) {
       if (!aut || !aut.sb) return;
       sb = aut.sb;
+      /* Sociedades emisoras (owner, 12-oct-2026): la pestaña solo para quien la base deja escribir; los demás ni la ven ni lanzan su consulta. */
+      var bs = document.querySelector('[data-lw-tab="sociedades"]');
+      if (bs && window.LW_ROL && LW_ROL.puedeSociedades(aut.ficha)) { bs.hidden = false; if (location.hash === '#sociedades') activa('sociedades'); }
       carga().then(function () { if (desdeHash() === 'registro') cargaRegistro(false); });
     });
   }
