@@ -7976,9 +7976,26 @@
           var parcelasT = (t.parcelas || []).map(function (p) {
             return '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#104C4F;color:#fff;font:700 13px \'Neue Kabel\',sans-serif;margin-right:4px">' + esc(p.codigo) + '</span>';
           }).join('') || '—';
+          // falta por firmar (12-oct-2026, owner: «ver si falta algo por firmar y avisar que no se cobra
+          // entera»). El cálculo es de comision_trazabilidad(); aquí solo se pinta.
+          var falta = Number(t.falta_por_firmar) || 0;
+          var hFalta = '';
+          if (falta > 0) {
+            var pctC = Number(snap.pct_comision), pctT = snap.pct_tramo != null ? Number(snap.pct_tramo) : 100;
+            var extra = isFinite(pctC) ? Math.round(falta * pctC / 100 * pctT / 100 * 100) / 100 : null;
+            var queFalta = (t.por_firmar || []).map(function (c) {
+              return linea(esc(c.numero) + ' · ' + esc(tipoC(c.tipo)) + ' <span style="font-size:12px">(sin firmar)</span>', esc(fmt(c.precio_total, c.moneda || mon)));
+            }).join('') + (t.sin_contrato_obra != null
+              ? linea('Construcción <span style="font-size:12px">(aún no hay contrato; precio de la parcela)</span>', esc(fmt(t.sin_contrato_obra, mon))) : '');
+            hFalta = '<div data-traza-falta style="margin-top:12px;padding:12px 14px;border-radius:10px;background:#FFF4E0;border:1px solid #E8C27A;color:#5C4210">' +
+              '<b>Esta comisión no es la entera: falta por firmar ' + esc(fmt(falta, mon)) + '.</b><br>' +
+              '<span style="font-size:12px">Solo cuentan los contratos firmados. ' +
+              (extra != null ? 'Cuando se firme, el sistema añade solo unos ' + esc(fmt(extra, mon)) + ' más.' : 'Cuando se firme, el sistema añade solo la diferencia.') +
+              '</span>' + (queFalta ? '<div style="margin-top:8px">' + queFalta + '</div>' : '') + '</div>';
+          }
           var hOperacion = bloque('La operación',
             '<div style="margin-bottom:8px">Parcela ' + parcelasT + '</div>' + ops +
-            linea('<b>Base de la comisión hoy</b> <span style="font-size:12px">(solo contratos firmados)</span>', '<b>' + esc(fmt(t.base_hoy, mon)) + '</b>'));
+            linea('<b>Base de la comisión hoy</b> <span style="font-size:12px">(solo contratos firmados)</span>', '<b>' + esc(fmt(t.base_hoy, mon)) + '</b>') + hFalta);
 
           // 2 · cómo se calculó
           var hCalculo = bloque('Cómo se calculó',
