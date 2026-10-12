@@ -1511,7 +1511,7 @@
       }).join('') + '</div>';
     },
     paso: function (titulo, texto) {
-      return '<article class="las-aviso lwc-paso">' + icoBase(ICO_BASE.flecha, 'las-ico-aviso') + '<div class="las-min0"><span class="las-aviso-t">' + esc(tS(titulo)) + '</span>' + esc(tS(texto)) + '</div></article>';
+      return '<article class="las-aviso lwc-paso">' + icoBase(ICO_BASE.flecha, 'las-ico-aviso') + '<div class="las-min0"><span class="las-aviso-t">' + esc(tS(titulo)) + '</span>' + esc(texto) + '</div></article>';   // el texto lo compone quien llama, ya traducido
     }
   };
   window.lwCajon = cajon;
@@ -2298,7 +2298,7 @@
     // listado y del clásico — para «cuánto lleva cobrado» del recibí.
     facturasContratos: { src: '/contracts/assets/facturas_contratos.js', listo: function () { return typeof lwAgrupaPorContrato === 'function'; } },
     // Saldo del contrato (5-oct-2026): las cifras las da la base (contrato_saldo), aquí solo se pintan.
-    saldoContrato: { src: '/contracts/assets/saldo_contrato.js?v=577fa3e6', listo: function () { return typeof lwSaldoHTML === 'function'; } },
+    saldoContrato: { src: '/contracts/assets/saldo_contrato.js?v=a836b9bb', listo: function () { return typeof lwSaldoHTML === 'function'; } },
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
@@ -3484,7 +3484,7 @@
   function campoSimpleDoc(host, cfg) {
     var wrap = document.createElement('div'); wrap.style.cssText = 'display:grid;gap:5px;min-width:0';
     var lbl = document.createElement('label'); lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';font-weight:500';
-    lbl.textContent = cfg.label + (cfg.req ? ' *' : '');
+    lbl.textContent = tS(cfg.label) + (cfg.req ? ' *' : '');
     wrap.appendChild(lbl);
     var estilo = 'width:100%;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-weight:500;font-size:14px;' +
       'color:' + (cfg.readonly ? CAJ.apagado : CAJ.tinta) + ';background-color:' + (cfg.readonly ? CAJ.banda : CAJ.papel) + ';box-sizing:border-box';
@@ -3493,7 +3493,7 @@
       el = document.createElement('select'); el.style.cssText = estilo + flechaSelect;
       (cfg.opciones || []).forEach(function (o) {
         var vv = typeof o === 'string' ? [o, o] : o;
-        var op = document.createElement('option'); op.value = vv[0]; op.textContent = vv[1];
+        var op = document.createElement('option'); op.value = vv[0]; op.textContent = tS(vv[1]);
         if (String(cfg.valor) === String(vv[0])) op.selected = true;
         el.appendChild(op);
       });
@@ -3503,11 +3503,11 @@
       el = document.createElement('input'); el.type = cfg.tipo || 'text'; el.value = cfg.valor == null ? '' : cfg.valor;
       el.style.cssText = estilo + (cfg.readonly ? ';cursor:not-allowed' : '');
       if (cfg.readonly) { el.readOnly = true; el.tabIndex = -1; }
-      if (cfg.placeholder) el.placeholder = cfg.placeholder;
+      if (cfg.placeholder) el.placeholder = tS(cfg.placeholder);
     }
     if (cfg.k) el.setAttribute('data-k', cfg.k);
     wrap.appendChild(el);
-    if (cfg.ayuda) { var s = document.createElement('small'); s.style.cssText = 'font-size:11.5px;color:' + CAJ.apagado; s.textContent = cfg.ayuda; wrap.appendChild(s); }
+    if (cfg.ayuda) { var s = document.createElement('small'); s.style.cssText = 'font-size:11.5px;color:' + CAJ.apagado; s.textContent = tS(cfg.ayuda); wrap.appendChild(s); }
     host.appendChild(wrap);
     return el;
   }
