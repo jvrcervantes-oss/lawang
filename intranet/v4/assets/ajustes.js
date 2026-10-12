@@ -962,6 +962,7 @@
 
   function arranca() {
     if (!document.querySelector('[data-lw-tab]')) return;   // otra página con este script: nada que hacer
+    if (ES_MAESTRO) document.documentElement.classList.add('lw-aj-s81');   // piel S81 (diseño del owner): solo en una instancia del ERP
     document.addEventListener('change', cambiaIdioma);
     cablePestanas();
     document.addEventListener('click', function (ev) {
