@@ -474,6 +474,10 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   .hero-foot{flex-direction:column;align-items:flex-start;gap:1.4rem}
   .hero-discover{align-self:center}
 }
+/* 320-359 px: con el mínimo de 45 px «LEGACY» se salía por la derecha (12-oct, tools/huecos_web.js) */
+@media(max-width:359px){.hero-h .hh-bold{font-size:40px}.hero-h .hh-thin{font-size:28px}.hero-h .hh-iso{height:21px}}
+/* 821-1180 px: subtítulo y botón en la misma fila no cabían y el botón se salía por la derecha */
+@media(min-width:821px) and (max-width:1180px){.hero-sub{min-width:0}.hero-sub b,.hero-sub .hero-sub-2{white-space:normal}}
 @media(max-width:680px){
   .marks-track{gap:14px}
   .marks-track img{height:44px}
