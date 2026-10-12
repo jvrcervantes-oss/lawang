@@ -954,7 +954,7 @@
           }).join('') + '</div>' +
           /* Atajos OPT-IN por campo (21-sep-2026, LAW-71): {texto, valor}. */
           (Array.isArray(c.atajos) && c.atajos.length
-            ? '<div class="las-atajos">' + c.atajos.map(function (a) { return '<button type="button" data-atajo="1" class="las-btn2 las-mini">' + esc(a.texto) + '</button>'; }).join('') + '</div>'
+            ? '<div class="las-atajos">' + c.atajos.map(function (a) { return '<button type="button" data-atajo="1" class="las-btn2 las-mini">' + esc(tS(a.texto)) + '</button>'; }).join('') + '</div>'
             : '') + ayuda + msg;
         if (Array.isArray(c.atajos) && c.atajos.length) {
           var cajaMC = d.querySelector('[data-k]');
@@ -2284,9 +2284,9 @@
      aseguraModulosDoc), nunca se copia su contenido. dinero.js YA esta en las
      16 pantallas (comprobado), asi que no entra en la lista. */
   var MODULOS_DOC = {
-    entities: { src: '/contracts/assets/entities.js?v=e015c66a', listo: function () { return typeof SOCIEDADES !== 'undefined'; } },
+    entities: { src: '/contracts/assets/entities.js?v=65021341', listo: function () { return typeof SOCIEDADES !== 'undefined'; } },
     compradores: { src: '/contracts/assets/compradores.js?v=be8f79e8', listo: function () { return typeof compradoresDeContrato === 'function'; } },
-    dialogo: { src: '/contracts/assets/dialogo.js?v=cefc9e4e', listo: function () { return typeof window.lwElegir === 'function'; } },
+    dialogo: { src: '/contracts/assets/dialogo.js?v=76e342e4', listo: function () { return typeof window.lwElegir === 'function'; } },
     totales: { src: '/intranet/facturas/totales.js', listo: function () { return typeof calcTotales === 'function'; } },
     // El MISMO motor que pinta la vista previa y la impresión del clásico y
     // que arma el PDF que se manda solo al firmar (22-sep-2026, split en
@@ -2302,7 +2302,7 @@
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
-    deckFotos: { src: '/contracts/assets/deck_fotos.js?v=0deaf654', listo: function () { return !!window.lwDeckFotos; } }
+    deckFotos: { src: '/contracts/assets/deck_fotos.js?v=1ea07d17', listo: function () { return !!window.lwDeckFotos; } }
   };
   var modPromesasDoc = {};
   function cargaModuloDoc(nombre) {
@@ -8515,7 +8515,7 @@
               ayuda: 'Vacío = TODOS (al revés que Proyectos, arriba): no marcar nada aquí no bloquea, lo abre todo.'
                 + (propios.length ? ' Los contratos propios de una empresa (marcados «contrato propio») solo los puede conceder quien ya los tiene.' : '') }
           );
-          modal('Permisos de ' + (u.nombre || u.email), campos, 'Guardar permisos', function (v) {
+          modal(tH('Permisos de %n', { n: u.nombre || u.email }), campos, 'Guardar permisos', function (v) {
             var patch = {
               nombre: v.nombre.trim() || null, herramientas: v.herramientas,
               tipos_contrato: v.tipos_contrato

@@ -801,7 +801,7 @@
     if (_cargaDialogo) return _cargaDialogo;
     _cargaDialogo = new Promise(function (res, rej) {
       var s = document.createElement('script');
-      s.src = '/contracts/assets/dialogo.js?v=cefc9e4e';
+      s.src = '/contracts/assets/dialogo.js?v=76e342e4';
       s.onload = res;
       s.onerror = function () { _cargaDialogo = null; rej(new Error('no se pudo cargar dialogo.js')); };
       document.head.appendChild(s);
@@ -2297,6 +2297,10 @@
          La pantalla de Stitch era un editor de emisión dibujado; la emisión
          sigue en la herramienta viva (numeración por secuencia de la base). */
       var t = tablaPor('tabla-facturas');
+      /* El rótulo de la vista agrupada, ya al abrir (12-oct-2026): esperar a los datos lo dejaba en español hasta entonces en
+         inglés. Con la operación del núcleo (la demo) se llama «Por operación»; en español queda el mismo texto que trae el HTML. */
+      var bVista0 = document.querySelector('[data-lw-vista-btn="contrato"]');
+      if (bVista0) bVista0.textContent = window.AXW_NUCLEO_OPERACION ? tx('Por operación') : tx('Por contrato');
       Promise.all([
         q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie() + colsHistorico() + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t),
         // Cuánto lleva cobrada cada factura (22-sep-2026, owner): la misma
@@ -6537,7 +6541,7 @@
         var act = us.filter(function (u) { return u.activo; });
         var esAdminRol = function (u) { return u.rol === 'admin' || u.rol === 'super_admin' || u.rol === 'admin_empresa' || u.rol === 'super_admin_empresa'; };
         pon2('k-usuarios', String(act.length));
-        pon2('k-usuarios-pie', us.length + (us.length === 1 ? ' usuario' : ' usuarios') + ' dados de alta · pulsa uno para abrir su ficha');
+        pon2('k-usuarios-pie', tx(us.length === 1 ? '%n usuario dados de alta · pulsa uno para abrir su ficha' : '%n usuarios dados de alta · pulsa uno para abrir su ficha', { n: us.length }));
         var roles = {}; us.forEach(function (u) { if (u.rol) roles[u.rol] = 1; });
         pon2('k-roles', String(Object.keys(roles).length));
         pon2('k-admins', String(act.filter(esAdminRol).length));
@@ -6568,21 +6572,21 @@
               H.dato('Email', u.email) +
               H.dato('Rol', rolDe(u)) +
               H.dato('Estado', u.activo ? H.tag('Activo', 'ok') : H.tag('Inactivo', 'mal'), { html: 1 }) +
-              H.dato('Alta', u.creado_en ? fFecha(u.creado_en) + (u.creado_por ? ' · por ' + u.creado_por : '') : null));
+              H.dato('Alta', u.creado_en ? fFecha(u.creado_en) + (u.creado_por ? ' · ' + tx('por %n', { n: u.creado_por }) : '') : null));
           /* El mapa de permisos (herramientas, proyectos, tipos) solo lo ve
              administracion: para el resto del equipo es la lista de que puede
              tocar cada admin, util solo para una cuenta comprometida (Seguridad,
              revision previa 18-sep). La policy de `usuarios` deja leerlo; esto
              es no enseñarlo. */
           if (soyAdmin) cuerpo +=
-            H.seccion('Herramientas (' + hs.length + ')',
+            H.seccion(tx('Herramientas (%n)', { n: hs.length }),
               // nombre del catálogo en vez de la clave cruda de la base (27-sep-2026)
               hs.length ? H.chips(hs.map(function (k) { return window.lwEtiquetaPermiso ? window.lwEtiquetaPermiso(k) : k; }))
                 : H.nota(u.rol === 'super_admin' ? 'Super admin: entra en todas las herramientas sin necesitar la lista.'
                                                   : 'Sin ninguna herramienta marcada: no puede abrir nada de la suite.')) +
-            H.seccion('Proyectos en los que trabaja (' + pr.length + ')',
+            H.seccion(tx('Proyectos en los que trabaja (%n)', { n: pr.length }),
               pr.length ? H.chips(pr) : H.nota('Ninguno: no puede crear ni editar contratos en ningún proyecto.')) +
-            H.seccion('Proyectos que supervisa como manager (' + sup.length + ')',
+            H.seccion(tx('Proyectos que supervisa como manager (%n)', { n: sup.length }),
               sup.length ? H.chips(sup) : H.nota('Ninguno. Es una lista distinta de la de arriba: supervisar es ver y escribir lo del proyecto entero, no solo lo propio.')) +
             H.seccion('Contratos que puede hacer',
               tipos.length ? H.chips(tipos) : H.nota('Sin restricción: vacío = TODOS los tipos (al revés que Proyectos).'));
@@ -6612,9 +6616,9 @@
           var pl = plantillaFilas(t);
           us.forEach(function (u) {
             fila(pl, [u.nombre || '—', u.email || '—', rolDe(u),
-              (u.herramientas || []).length + (u.rol === 'super_admin' ? ' · todas' : ''),
+              (u.herramientas || []).length + (u.rol === 'super_admin' ? ' · ' + tx('todas') : ''),
               String((u.proyectos || []).length),
-              u.activo ? 'ACTIVO' : 'INACTIVO', '']);
+              u.activo ? tx('ACTIVO') : tx('INACTIVO'), '']);
             var tr = pl.tbody.lastElementChild;
             // el nº bajo el nombre, igual que CLI- en Compradores; el buscador lo encuentra (filtra por textContent)
             var td0 = tr.querySelector('td');
@@ -6623,7 +6627,7 @@
             tr.setAttribute('data-email', u.email || '');
             tr.setAttribute('data-rol', u.rol || '');
             tr.setAttribute('data-herr', ' ' + (u.herramientas || []).join(' ') + ' ');
-            tr.lastElementChild.innerHTML = '<button type="button" data-real class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px] transition-colors">Ver ficha</button>';
+            tr.lastElementChild.innerHTML = '<button type="button" data-real class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px] transition-colors">' + esc(tx('Ver ficha')) + '</button>';
           });
           // una fila = una ficha; delegado porque los chips de filtro las esconden y enseñan
           pl.tbody.addEventListener('click', function (ev) {
@@ -6661,6 +6665,9 @@
             var n = clave === 'all' ? us.length : us.filter(function (u) {
               return coincideChipUsuario({ getAttribute: function (k) { return k === 'data-rol' ? (u.rol || '') : (' ' + (u.herramientas || []).join(' ') + ' '); } }, clave);
             }).length;
+            // el rótulo del chip en el idioma de la interfaz (la cuenta la pone esta misma línea); en español, igual que antes
+            var partes = btn.textContent.match(/^(\s*)([\s\S]*?)(\s*\(\s*[^)]*\s*\)\s*)$/);
+            if (partes) btn.textContent = partes[1] + ts(partes[2]) + partes[3];
             btn.textContent = btn.textContent.replace(/\(\s*[^)]*\s*\)\s*$/, '(' + n + ')');
           });
           cablearChipsFiltro(chipsUsuarios, pl.tbody, 'tr[data-rol]',
@@ -6698,10 +6705,10 @@
         var mas = document.getElementById('lw-audit-mas');
         if (caja) {
           if (!ns.length) {
-            caja.innerHTML = '<p class="text-body-sm text-on-surface-variant">Sin hechos registrados todavía.</p>';
+            caja.innerHTML = '<p class="text-body-sm text-on-surface-variant">' + esc(tx('Sin hechos registrados todavía.')) + '</p>';
           } else {
             caja.innerHTML = ns.map(function (nx, i) {
-              var titulo = esc(nx.titulo || 'Hecho');
+              var titulo = esc(nx.titulo || tx('Hecho'));
               /* Solo rutas propias: `//evil.com` y `/\evil.com` tambien empiezan por
                  «/» y el navegador los abre fuera (hallazgo ALTA de Seguridad en la
                  revision previa, 18-sep). Un http(s) solo si es este mismo origen. */
@@ -6720,9 +6727,10 @@
           }
           if (mas) {
             var ocultos = caja.querySelectorAll('[data-audit-mas]').length;
+            if (!ocultos) mas.textContent = tx('Ver más hechos');   // el rótulo del HTML, en el idioma de la interfaz (en español, el mismo)
             if (ocultos) {
               mas.hidden = false;
-              mas.textContent = 'Ver ' + ocultos + ' hechos anteriores';
+              mas.textContent = tx('Ver %n hechos anteriores', { n: ocultos });
               mas.addEventListener('click', function (ev) {
                 ev.stopPropagation();
                 caja.querySelectorAll('[data-audit-mas]').forEach(function (e) { e.hidden = false; });
@@ -6766,8 +6774,7 @@
           };
           var pintaFalloFrenos = function () {
             cuerpoFrenos.innerHTML = '<p class="text-[12.5px] mt-1" style="color:#C8791F">'
-              + '<b>No se ha podido leer el registro de privilegios.</b> Esto NO quiere decir que '
-              + 'nadie se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.</p>';
+              + '<b>' + esc(tx('No se ha podido leer el registro de privilegios.')) + '</b> ' + esc(tx('Esto NO quiere decir que nadie se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.')) + '</p>';
           };
           Promise.all([
             sb.from('privilegios_ejercidos').select('cuando,quien,evento,contrato,detalle')
@@ -6775,7 +6782,7 @@
             sb.from('borrados').select('id', { count: 'exact', head: true })
           ]).then(function (r) {
             var priv = r[0] || {}, borr = r[1] || {};
-            var fallo = priv.error ? (priv.error.message || 'no se ha podido leer') : null;
+            var fallo = priv.error ? (priv.error.message || tx('no se ha podido leer')) : null;
             var filas = priv.data || [];
             /* Claves EXACTAS de `registra_privilegio()` (supabase/migrations/
                20260819045000_law71_frenos_saltables_con_rastro.sql) — no las
@@ -6787,20 +6794,19 @@
                sin la clave correcta el fallback `|| f.evento` enseñaba la
                jerga cruda de la base al super_admin en vez de la frase. */
             var NOMBRE = {
-              desbloqueado: 'desbloqueó un contrato firmado',
-              editado_estando_firmado: 'editó un contrato firmado',
-              factura_sin_bloquear: 'facturó un contrato sin firmar',
-              cobro_a_otro_comprador: 'aplicó un cobro al cliente de otro contrato',
-              cobro_a_factura_huerfana: 'aplicó un cobro a una factura sin contrato',
-              comprador_sin_ficha: 'guardó un contrato sin ficha de cliente',
-              factura_reactivada: 'reactivó una factura anulada'
+              desbloqueado: tx('desbloqueó un contrato firmado'),
+              editado_estando_firmado: tx('editó un contrato firmado'),
+              factura_sin_bloquear: tx('facturó un contrato sin firmar'),
+              cobro_a_otro_comprador: tx('aplicó un cobro al cliente de otro contrato'),
+              cobro_a_factura_huerfana: tx('aplicó un cobro a una factura sin contrato'),
+              comprador_sin_ficha: tx('guardó un contrato sin ficha de cliente'),
+              factura_reactivada: tx('reactivó una factura anulada')
             };
             var cabecera = '<div class="flex items-center justify-between mb-2">' +
-              '<span class="text-[11px] tracking-[0.12em] uppercase text-on-surface-variant font-bold">Registro</span>' +
+              '<span class="text-[11px] tracking-[0.12em] uppercase text-on-surface-variant font-bold">' + esc(tx('Registro')) + '</span>' +
               '<span class="text-[11.5px] text-on-surface-variant">' +
-              (borr.error ? 'caja negra: no se ha podido leer'
-                : esc(String(borr.count || 0)) + ((borr.count || 0) === 1
-                  ? ' documento borrado guardado en la caja negra' : ' documentos borrados guardados en la caja negra')) +
+              (borr.error ? esc(tx('caja negra: no se ha podido leer'))
+                : esc(tx((borr.count || 0) === 1 ? '%n documento borrado guardado en la caja negra' : '%n documentos borrados guardados en la caja negra', { n: String(borr.count || 0) }))) +
               '</span></div>';
             var cuerpo;
             if (fallo) {
@@ -6808,9 +6814,9 @@
               // mucho en pantalla y son afirmaciones distintas — la lección del
               // 21-ago-2026 en la clásica: la alarma rota no se pinta igual que
               // la alarma tranquila.
-              cuerpo = '<p class="text-[12.5px] mt-1" style="color:#C8791F"><b>No se ha podido leer el registro de privilegios.</b> Esto NO quiere decir que nadie se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.</p>';
+              cuerpo = '<p class="text-[12.5px] mt-1" style="color:#C8791F"><b>' + esc(tx('No se ha podido leer el registro de privilegios.')) + '</b> ' + esc(tx('Esto NO quiere decir que nadie se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.')) + '</p>';
             } else if (!filas.length) {
-              cuerpo = '<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Mirado ahora mismo: <b>nadie se ha saltado ningún freno</b> todavía.</p>';
+              cuerpo = '<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">' + tx('Mirado ahora mismo: %b todavía.', { b: '<b>' + esc(tx('nadie se ha saltado ningún freno')) + '</b>' }) + '</p>';
             } else {
               cuerpo = '<div class="overflow-x-auto mt-2"><table class="w-full text-left" style="font-size:12.5px;border-collapse:collapse">' +
                 '<tbody>' + filas.map(function (f) {
