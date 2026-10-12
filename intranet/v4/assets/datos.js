@@ -10040,6 +10040,8 @@
     pinta();
   }
 
+  // Las columnas que lee el ERP maestro (lista y editor de Sociedades emisoras); `prefijo_serie` solo existe allí
+  var SOC_COLUMNAS_NUCLEO = 'clave,label,razon,marca,npwp,npwp_label,nib,domicilio,rep,logo,logo_alto,emisor_debajo,folio,tinta,activa,orden,es_indonesia,prefijo_serie';
   REG['sociedades'] = function (sb) {
     if (!(window.LW_V4 && window.LW_V4.puedeSociedades)) { notaSoloAdmin(); return; }   // solo quien la base deja escribir: el propietario en Lawang (7-oct-2026, owner), el super admin en el ERP maestro
 
@@ -10061,7 +10063,13 @@
     }
 
     Promise.all([
-      q(sb.from('sociedades').select('*').order('orden'), 'sociedades', cuerpoLista),
+      /* El catálogo NO se lee con select=*: desde AXW-116 (30-sep-2026) `authenticated` solo lee 17 columnas de la tabla y `*` pide también las
+         de autoría (creado_por, actualizado_por…) → 42501 (lo vio el owner al abrir la pestaña, 12-oct). En Lawang el catálogo entero sale de
+         sociedades_ajustes_datos() (definer, la misma puerta que sociedad_guarda: es_propietario()). El ERP maestro no tiene esa función:
+         ahí se piden las columnas que usan la lista y el editor, nada más. */
+      (window.AXW_NUCLEO_OPERACION
+        ? q(sb.from('sociedades').select(SOC_COLUMNAS_NUCLEO).order('orden'), 'sociedades', cuerpoLista)
+        : datosDe('sociedades_ajustes_datos', null, 'sociedades', cuerpoLista).then(function (d) { return d ? (Array.isArray(d.sociedades) ? d.sociedades : []) : null; })),
       /* En una instancia del ERP el historial es del módulo «sociedades» hasta que Backend lo pase al núcleo (F3, Entrega 1): con el módulo
          apagado, apagados_instancia.js respondería [] y «Rastro» diría «ningún cambio» sin haber mirado. Ahí se oculta, y también si no se pudo
          comprobar. Lawang no lleva AXW_MODULOS_LISTOS: pide el historial como siempre. */
