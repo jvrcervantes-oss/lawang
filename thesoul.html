@@ -450,13 +450,17 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .cards4 .card{height:170px}
   .cards4 .num b{font-size:40px;line-height:46px}.cards4 .num span{font-size:15px;line-height:18px;margin:0}
   .cards4 .d{left:16px;top:auto;bottom:12px;font-size:12px;line-height:20px}
-  .ban{height:auto;margin:-24px -16px 0}
-  .ban>img{height:62vw;object-position:30% center}
-  .ban .in{width:auto}
-  .ban .t{left:16px;top:6vw;font-size:13vw}
-  .ban .t::after{margin-top:-3vw}
-  .ban .s{left:16px;top:30vw;font-size:4vw;line-height:1.2}
-  .ban .f,.ban .g{display:none}
+  /* Indonesia en móvil (12-oct-2026, owner, opción D): las dos cifras vuelven como dos etiquetas de una línea bajo el subtítulo.
+     --k = 1vw, salvo en horizontal: ahí lo limita el alto (antes la foto medía 62vw = 523 px en una pantalla de 390). */
+  .ban{height:auto;margin:-24px -16px 0;--k:min(1vw,.97dvh)}
+  .ban>img{height:calc(82*var(--k));object-position:36% center}
+  .ban .in{width:auto;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:8px;padding:0 16px 42px;background:linear-gradient(0deg,rgba(8,12,18,.8),rgba(8,12,18,0) 50%)}
+  .ban .t{left:16px;top:calc(6*var(--k));font-size:calc(13*var(--k))}
+  .ban .t::after{margin-top:calc(-3*var(--k))}
+  .ban .s{left:16px;right:16px;top:calc(30*var(--k));font-size:max(12px,calc(4*var(--k)));line-height:1.2}
+  .ban .f,.ban .g{position:static;right:auto;top:auto;max-width:none;text-align:left;font-size:clamp(11px,calc(3.3*var(--k)),14px);line-height:1.3;padding:7px 14px;border:1px solid rgba(246,244,240,.6);border-radius:16px;background:rgba(8,12,18,.35)}
+  .ban .f br,.ban .g br{display:none}
+  .ban .f small,.ban .g small{font-size:1em;letter-spacing:.06em;margin-left:.3em}
   .isl{margin-top:0;height:0;position:relative;top:auto;align-items:center}.isl span{display:block;max-width:calc(100% - 24px);height:auto;min-height:34px;padding:8px 14px;font-size:12px;text-align:center;border-radius:20px;white-space:normal}
   .kpis{flex-direction:column;align-items:stretch;gap:12px;margin-top:40px}
   .kpi.k1,.kpi.k2,.kpi.k3{width:auto;min-width:0;height:auto;min-height:0;padding:28px 20px}
@@ -714,8 +718,8 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
     <div class="in">
       <p class="t" data-t="INDONESIA">INDONESIA</p>
       <p class="s" data-i18n-html="in.s">WHERE GROWTH <b>IS UNSTOPPABLE.</b></p>
-      <p class="f" data-i18n-html="in.f">2nd fastest <br><b>growing economy</b><br><small>in Asia</small></p>
-      <p class="g" data-i18n-html="in.g"><b>G20</b><br><b>host nation</b><br><small>2022</small></p>
+      <p class="f" data-i18n-html="in.f">2nd fastest <br><b>growing economy</b> <br><small>in Asia</small></p>
+      <p class="g" data-i18n-html="in.g"><b>G20</b> <br><b>host nation</b> <br><small>2022</small></p>
     </div>
   </div>
   <p class="isl"><span data-i18n-html="isl">17,000 ISLANDS.&nbsp;<b>WE CHOSE TWO: BALI AND SUMBA.</b></span></p>
