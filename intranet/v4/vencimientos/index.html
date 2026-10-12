@@ -1,9 +1,9 @@
 <!DOCTYPE html><html lang="es" style=""><head>
-<meta name="lw-version" content="2a65c70011cd">
+<meta name="lw-version" content="ee15162b0d5f">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/roles.js?v=11d9478b"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=8384087b" data-herramienta="vencimientos"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=2bff34d7" defer></script>
-<script src="/contracts/assets/dinero.js?v=0f73a5db" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=847edcce" defer></script><!-- entities.js ANTES que logica.js (S15, 22-sep-2026): trae SOCIEDADES y lwSociedadContrato, que empresasFinancieras()/filtraEmpresa() de logica.js llaman como global — sin esto los chips de empresa enseñan la clave cruda. Mismo orden que la clasica. --><script src="/contracts/assets/entities.js?v=65021341" defer></script><script src="/intranet/vencimientos/logica.js?v=567781fe" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=82d90529" defer></script><script src="../assets/datos.js?v=733a9a93" defer></script>
+<script src="/contracts/assets/i18n.js?v=20af6b1c" defer></script>
+<script src="/contracts/assets/dinero.js?v=0f73a5db" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=847edcce" defer></script><!-- entities.js ANTES que logica.js (S15, 22-sep-2026): trae SOCIEDADES y lwSociedadContrato, que empresasFinancieras()/filtraEmpresa() de logica.js llaman como global — sin esto los chips de empresa enseñan la clave cruda. Mismo orden que la clasica. --><script src="/contracts/assets/entities.js?v=65021341" defer></script><script src="/intranet/vencimientos/logica.js?v=567781fe" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=82d90529" defer></script><script src="../assets/datos.js?v=1fe1ff70" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=e7a7356c" defer></script>
 <link href="../assets/shell.css?v=eac636db" rel="stylesheet">
@@ -11,15 +11,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}#sidebar-root{transition:width 0.25s cubic-bezier(0.4,0,0.2,1);}#main-stage,#topbar-stage{transition:padding-left 0.25s cubic-bezier(0.4,0,0.2,1),left 0.25s cubic-bezier(0.4,0,0.2,1);}.sidebar-collapsed #sidebar-root{width:68px;}.sidebar-collapsed #main-stage{padding-left:68px;}.sidebar-collapsed #topbar-stage{left:68px;}.sidebar-collapsed .nav-text-item,.sidebar-collapsed .nav-section-title,.sidebar-collapsed .sidebar-full-brand,.sidebar-collapsed .sidebar-user-details{display:none;}.sidebar-collapsed .nav-link-anchor{justify-content:center;padding-left:0;padding-right:0;}</style><link href="../assets/tw-base.css?v=c5c5e9b0" rel="stylesheet"></head><body class="bg-raw-linen font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col justify-between py-6 px-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-6"><div class="flex items-center justify-between px-2"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-deep-lagoon tracking-wider font-semibold leading-none" data-lw-ficha="cabecera"></span><span class="font-body-sm text-body-sm text-outline tracking-widest uppercase leading-none mt-1" data-lw-ficha="subcabecera"></span></div><button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">left_panel_close</span></button></div><nav class="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1" data-active-classes="bg-primary-container text-on-primary font-bold rounded-xl"><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Seguimiento</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="home" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Home</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="operaciones" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="">Operaciones</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="soporte" href="#"><span class="material-symbols-outlined text-[20px]">support_agent</span><span class="">Soporte</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="vencimientos" href="#"><span class="material-symbols-outlined text-[20px]">event_busy</span><span class="">Vencimientos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Documentación</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="contratos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="">Contratos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="creatividades" href="#"><span class="material-symbols-outlined text-[20px]">palette</span><span class="">Creatividades</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="documentacion" href="#"><span class="material-symbols-outlined text-[20px]">folder</span><span class="">Documentación</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Administración</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="facturas" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="">Facturas</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="recibos" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span class="">Recibos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Base de Datos</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="proyectos" href="#"><span class="material-symbols-outlined text-[20px]">apartment</span><span class="">Proyectos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="obra" href="#"><span class="material-symbols-outlined text-[20px]">foundation</span><span class="">Obra</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="compradores" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span class="">Clientes</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="usuarios" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span class="">Usuarios</span></a></div></nav></div><div class="flex flex-col gap-3 pt-4 border-t border-outline/20"><div class="flex items-center justify-between px-3"><span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Idioma</span><div class="flex items-center bg-surface-container p-1 rounded-full"><button class="px-3 py-0.5 rounded-full font-label-md text-label-md bg-deep-lagoon text-on-primary" type="button">ES</button><button class="px-3 py-0.5 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface" type="button">EN</button></div></div><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="login" href="#"><span class="material-symbols-outlined text-[20px]">logout</span><span class="">Cerrar Sesión</span></a></div></aside><div class="pl-72" id="main-stage"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-low/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-4"></div><div class="flex items-center gap-4"><button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Buscar" type="button"><span class="material-symbols-outlined text-[20px]">search</span></button><button class="relative w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Notificaciones" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 w-4 h-4 bg-error text-on-error font-body-sm text-[10px] rounded-full flex items-center justify-center font-bold whitespace-nowrap" data-lw="k-avisos">—</span></button><div class="flex items-center gap-3 pl-3 border-l border-outline/20"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight" data-lw-user>Usuario del equipo</span><span class="font-body-sm text-body-sm text-outline leading-tight" data-lw-rol>—</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative pt-16 bg-raw-linen min-h-screen px-6 lg:px-8 py-8"><div class="flex flex-col w-full">
 <section class="lw-cabecera flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-8">
 <div class="space-y-1">
-<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Vencimientos</h1>
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight" data-lwt>Vencimientos</h1>
 </div>
 <div class="flex flex-wrap items-center gap-3">
 
-<button data-accion="exportar-prevision" class="inline-flex items-center gap-2 bg-surface-container-lowest hover:bg-surface-container-low text-deep-lagoon font-label-md text-label-md px-5 py-2.5 rounded-full shadow-sm transition-all duration-150" type="button">
+<button data-accion="exportar-prevision" data-lwt-nodos class="inline-flex items-center gap-2 bg-surface-container-lowest hover:bg-surface-container-low text-deep-lagoon font-label-md text-label-md px-5 py-2.5 rounded-full shadow-sm transition-all duration-150" type="button">
 <span class="material-symbols-outlined text-[18px]">file_download</span>
         Exportar previsión de caja
       </button>
-<button data-accion="registrar-hito" class="inline-flex items-center gap-2 bg-deep-lagoon hover:bg-primary text-on-primary font-label-md text-label-md px-5 py-2.5 rounded-full shadow-sm transition-all duration-150" type="button">
+<button data-accion="registrar-hito" data-lwt-nodos class="inline-flex items-center gap-2 bg-deep-lagoon hover:bg-primary text-on-primary font-label-md text-label-md px-5 py-2.5 rounded-full shadow-sm transition-all duration-150" type="button">
 <span class="material-symbols-outlined text-[18px]">add_circle</span>
         + Registrar hito
       </button>
@@ -28,7 +28,7 @@
 <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
 <div class="flex items-center justify-between">
-<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Vence en 90 días</span>
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold" data-lwt>Vence en 90 días</span>
 <span class="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-deep-lagoon">
 <span class="material-symbols-outlined text-[16px]">account_balance_wallet</span>
 </span>
@@ -42,7 +42,7 @@
 </div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
 <div class="flex items-center justify-between">
-<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Vencimientos Críticos</span>
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold" data-lwt>Vencimientos Críticos</span>
 <span class="w-7 h-7 rounded-full bg-burnt-earth/10 flex items-center justify-center text-burnt-earth">
 <span class="material-symbols-outlined text-[16px]">priority_high</span>
 </span>
@@ -50,14 +50,14 @@
 <div class="mt-4">
 <div class="font-kpi-number text-headline-md text-burnt-earth" data-lw="k-criticos">—</div>
 <div class="flex items-center gap-2 mt-1.5">
-<span class="px-2 py-0.5 rounded-full bg-burnt-earth/15 text-burnt-earth font-label-md text-[11px] font-semibold">&lt; 7 días límite</span>
+<span class="px-2 py-0.5 rounded-full bg-burnt-earth/15 text-burnt-earth font-label-md text-[11px] font-semibold" data-lwt>&lt; 7 días límite</span>
 <span class="text-on-surface-variant font-body-sm text-[12px]" data-lw="k-criticos-total">—</span>
 </div>
 </div>
 </div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
 <div class="flex items-center justify-between">
-<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Vencidos Sin Regularizar</span>
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold" data-lwt>Vencidos Sin Regularizar</span>
 <span class="w-7 h-7 rounded-full bg-error-container flex items-center justify-center text-error">
 <span class="material-symbols-outlined text-[16px]">warning</span>
 </span>
@@ -83,20 +83,20 @@
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col gap-4">
 <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
 <div class="flex flex-wrap items-center gap-2" data-lw-chips="empresa" data-lw-on="bg-deep-lagoon text-on-secondary font-semibold shadow-sm" data-lw-off="bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-lw-base="px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors">
-<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Empresa</span>
+<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold" data-lwt>Empresa</span>
 </div>
 <div class="flex flex-wrap items-center gap-2" data-lw-chips="moneda" data-lw-on="bg-deep-lagoon text-on-secondary font-semibold shadow-sm" data-lw-off="bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-lw-base="px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors">
-<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Moneda</span>
+<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold" data-lwt>Moneda</span>
 </div>
 </div>
 <div class="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
 <div class="flex flex-wrap items-center gap-2" data-lw-chips="estado" data-lw-on="bg-deep-lagoon text-on-secondary font-semibold shadow-sm" data-lw-off="bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-lw-base="px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors">
-<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Estado</span>
+<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold" data-lwt>Estado</span>
 </div>
 <!-- «Incluir sin firmar»: nace hidden — solo se enseña si hay algo sin
      firmar que contar (mismo criterio que la clásica, index.html:598-602).
      APAGADO por defecto: nadie se encuentra un número distinto sin pedirlo. -->
-<button type="button" id="venc-chip-sinfirmar" hidden class="px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors bg-surface-container text-on-surface-variant hover:bg-surface-container-high" title="Mientras se da de alta el histórico, «sin firmar» significa «aún no marcado», no «aún no acordado»">Incluir sin firmar</button>
+<button type="button" id="venc-chip-sinfirmar" hidden class="px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-lwt-title title="Mientras se da de alta el histórico, «sin firmar» significa «aún no marcado», no «aún no acordado»">Incluir sin firmar</button>
 </div>
 <div id="venc-avisos"></div>
 </div>
@@ -111,45 +111,45 @@
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="bg-surface-container-low text-control-border font-label-md text-[11px] uppercase tracking-wider select-none">
-<th class="py-3.5 px-5 font-semibold">Vence</th>
-<th class="py-3.5 px-4 font-semibold">Contrato</th>
-<th class="py-3.5 px-4 font-semibold">Cliente</th>
-<th class="py-3.5 px-4 font-semibold">Concepto</th>
-<th class="py-3.5 px-4 font-semibold text-right">Importe</th>
-<th class="py-3.5 px-4 font-semibold text-right">Cubierto</th>
-<th class="py-3.5 px-4 font-semibold text-right">Pendiente</th>
-<th class="py-3.5 px-5 font-semibold">Estado</th>
+<th class="py-3.5 px-5 font-semibold" data-lwt>Vence</th>
+<th class="py-3.5 px-4 font-semibold" data-lwt>Contrato</th>
+<th class="py-3.5 px-4 font-semibold" data-lwt>Cliente</th>
+<th class="py-3.5 px-4 font-semibold" data-lwt>Concepto</th>
+<th class="py-3.5 px-4 font-semibold text-right" data-lwt>Importe</th>
+<th class="py-3.5 px-4 font-semibold text-right" data-lwt>Cubierto</th>
+<th class="py-3.5 px-4 font-semibold text-right" data-lwt>Pendiente</th>
+<th class="py-3.5 px-5 font-semibold" data-lwt>Estado</th>
 </tr>
 </thead>
 <tbody id="venc-tbody" class="text-on-surface font-body-sm text-body-sm">
-<tr><td class="py-8 px-5 text-center text-control-border" colspan="8">Trayendo los vencimientos…</td></tr>
+<tr><td class="py-8 px-5 text-center text-control-border" colspan="8" data-lwt>Trayendo los vencimientos…</td></tr>
 </tbody>
 </table>
 </div>
 </div>
 <div class="flex items-center justify-end gap-3" id="venc-pager" hidden>
-<button type="button" id="venc-pag-antes" class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors shadow-sm disabled:opacity-40" disabled>← Anteriores</button>
+<button type="button" id="venc-pag-antes" data-lwt class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors shadow-sm disabled:opacity-40" disabled>← Anteriores</button>
 <span class="text-body-sm font-body-sm text-control-border" id="venc-pag-info">—</span>
-<button type="button" id="venc-pag-despues" class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors shadow-sm disabled:opacity-40">Siguientes →</button>
+<button type="button" id="venc-pag-despues" data-lwt class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors shadow-sm disabled:opacity-40">Siguientes →</button>
 </div>
 </div>
 
 <div class="space-y-3">
-<h2 class="font-headline-sm text-headline-sm text-volcanic-ash px-1">Por proyecto</h2>
+<h2 class="font-headline-sm text-headline-sm text-volcanic-ash px-1" data-lwt>Por proyecto</h2>
 <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="bg-surface-container-low text-control-border font-label-md text-[11px] uppercase tracking-wider select-none">
-<th class="py-3.5 px-5 font-semibold">Proyecto</th>
-<th class="py-3.5 px-4 font-semibold text-right">Cartera</th>
-<th class="py-3.5 px-4 font-semibold text-right">Cobrado</th>
-<th class="py-3.5 px-4 font-semibold text-right">Vence en 90 días</th>
-<th class="py-3.5 px-5 font-semibold text-right">Vencido</th>
+<th class="py-3.5 px-5 font-semibold" data-lwt>Proyecto</th>
+<th class="py-3.5 px-4 font-semibold text-right" data-lwt>Cartera</th>
+<th class="py-3.5 px-4 font-semibold text-right" data-lwt>Cobrado</th>
+<th class="py-3.5 px-4 font-semibold text-right" data-lwt>Vence en 90 días</th>
+<th class="py-3.5 px-5 font-semibold text-right" data-lwt>Vencido</th>
 </tr>
 </thead>
 <tbody id="venc-tproy" class="text-on-surface font-body-sm text-body-sm">
-<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">Trayendo proyectos…</td></tr>
+<tr><td class="py-8 px-5 text-center text-control-border" colspan="5" data-lwt>Trayendo proyectos…</td></tr>
 </tbody>
 </table>
 </div>
@@ -157,26 +157,26 @@
 </div>
 
 <div class="space-y-3">
-<h2 class="font-headline-sm text-headline-sm text-volcanic-ash px-1">Facturas con vencimiento propio</h2>
+<h2 class="font-headline-sm text-headline-sm text-volcanic-ash px-1" data-lwt>Facturas con vencimiento propio</h2>
 <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="bg-surface-container-low text-control-border font-label-md text-[11px] uppercase tracking-wider select-none">
-<th class="py-3.5 px-5 font-semibold">Vence</th>
-<th class="py-3.5 px-4 font-semibold">Factura</th>
-<th class="py-3.5 px-4 font-semibold">Cliente</th>
-<th class="py-3.5 px-4 font-semibold text-right">Importe</th>
-<th class="py-3.5 px-5 font-semibold">Estado</th>
+<th class="py-3.5 px-5 font-semibold" data-lwt>Vence</th>
+<th class="py-3.5 px-4 font-semibold" data-lwt>Factura</th>
+<th class="py-3.5 px-4 font-semibold" data-lwt>Cliente</th>
+<th class="py-3.5 px-4 font-semibold text-right" data-lwt>Importe</th>
+<th class="py-3.5 px-5 font-semibold" data-lwt>Estado</th>
 </tr>
 </thead>
 <tbody id="venc-tfact" class="text-on-surface font-body-sm text-body-sm">
-<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">Trayendo facturas…</td></tr>
+<tr><td class="py-8 px-5 text-center text-control-border" colspan="5" data-lwt>Trayendo facturas…</td></tr>
 </tbody>
 </table>
 </div>
 </div>
-<p class="text-body-sm font-body-sm text-control-border px-1">Una factura emitida con fecha de vencimiento es una promesa aparte del calendario de hitos: se lista para que nada con fecha se quede sin vigilar, pero no se suma a la cascada — su cobro ya entra por el recibí.</p>
+<p class="text-body-sm font-body-sm text-control-border px-1" data-lwt>Una factura emitida con fecha de vencimiento es una promesa aparte del calendario de hitos: se lista para que nada con fecha se quede sin vigilar, pero no se suma a la cascada — su cobro ya entra por el recibí.</p>
 </div>
 
 </div>

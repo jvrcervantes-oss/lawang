@@ -6024,6 +6024,36 @@
     'Esa combinación de idiomas todavía no se puede usar en este ERP. Pídesela al estudio.': 'That combination of languages cannot be used in this ERP yet. Ask the studio for it.',
     // G2 de Ajustes (12-oct-2026): «Modelos» pasa a «Modelos de casas» (menú, hub, título de la pantalla)
     'Modelos de casas': 'House models',
+    // ── idiomas-pH (12-oct-2026): Vencimientos (vencimientos/index.html y el módulo vencimientos de datos.js) ──
+    'Exportar previsión de caja': 'Export cash forecast',
+    '+ Registrar hito': '+ Record milestone',
+    'Vencimientos Críticos': 'Critical due dates',
+    '< 7 días límite': '< 7 days left',
+    'Vencidos Sin Regularizar': 'Overdue, not settled',
+    'Trayendo los vencimientos…': 'Loading the due dates…',
+    '← Anteriores': '← Previous',
+    'Siguientes →': 'Next →',
+    'Trayendo proyectos…': 'Loading projects…',
+    'Trayendo facturas…': 'Loading invoices…',
+    '%n vencimiento(s) sin fecha — no se pueden vigilar; usa el filtro «Sin fecha»': '%n due date(s) without a date — they cannot be tracked; use the «No date» filter',
+    'Fuera de este panel: %t': 'Outside this panel: %t',
+    '%a y %b': '%a and %b',
+    '%i de precio': '%i in price',
+    'Sobre todo en %p': 'Mostly in %p',
+    '(salvo los sin firmar, ya incluidos con el interruptor encendido)': '(except the unsigned ones, already included with the switch on)',
+    '%n cobro': '%n payment',
+    '%n cobros': '%n payments',
+    'Total: %t': 'Total: %t',
+    'el más antiguo, del %f': 'the oldest, from %f',
+    'nada vencido': 'nothing overdue',
+    '%n cliente · quién debe qué': '%n client · who owes what',
+    '%n clientes · quién debe qué': '%n clients · who owes what',
+    'Una factura emitida con fecha de vencimiento es una promesa aparte del calendario de hitos: se lista para que nada con fecha se quede sin vigilar, pero no se suma a la cascada — su cobro ya entra por el recibí.': 'An issued invoice with a due date is a promise separate from the milestone schedule: it is listed so that nothing with a date goes untracked, but it is not added to the cascade — its payment already comes in through the receipt.',
+    // idiomas-pH (12-oct-2026): estado del comunicado en Comunicación (comunicacion.js)
+    'Borrador sin guardar.': 'Unsaved draft.',
+    'Enviado por primera vez el %f. Ya no se puede cambiar: para otra versión, «Duplicar».': 'First sent on %f. It can no longer be changed: for another version, «Duplicate».',
+    'Borrador · guardado %f.': 'Draft · saved %f.',
+    'Todavía no se ha enviado.': 'Not sent yet.',
   };
 
   window.LW_EN = EN;
