@@ -257,7 +257,7 @@ html,body{background:var(--paper)}
 .isle>img{width:100%;height:100%;object-fit:cover}
 .isle .nm{position:absolute;bottom:calc(-2*var(--u));font-size:calc(97*var(--u));line-height:calc(116*var(--u));font-weight:700;letter-spacing:.02em}
 .isle .nm.r{right:calc(29*var(--u))}.isle .nm.l{left:calc(17*var(--u))}
-.info .lbl{position:absolute;top:calc(33*var(--u));left:0;right:0;text-align:center;font-size:max(9px,calc(18.3*var(--u)));line-height:calc(23*var(--u));letter-spacing:.18em;white-space:nowrap;color:#fff;text-transform:uppercase}
+.info .lbl{position:absolute;top:calc(33*var(--u));left:0;right:0;text-align:center;font-size:max(9px,calc(18.3*var(--u)));line-height:calc(23*var(--u));letter-spacing:.18em;white-space:normal;text-wrap:balance;padding:0 calc(14*var(--u));color:#fff;text-transform:uppercase}  /* en ID («Tempat alam liar masih berkuasa.») no cabía en una línea y se cortaba (12-oct) */
 .facts{position:absolute;left:calc(26*var(--u));top:calc(181*var(--u));right:calc(20*var(--u));list-style:none;text-transform:uppercase}
 .facts li{margin-bottom:calc(37*var(--u))}
 .facts small{display:block;font-size:max(9px,calc(14.6*var(--u)));line-height:calc(19*var(--u));letter-spacing:.05em}
@@ -485,7 +485,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .why .k{font-size:12px}.why h2{margin-top:12px;font-size:22px;line-height:28px}.why .s{font-size:14px;line-height:20px}
   .isles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px;padding:0}
   .isle{width:auto;height:auto;aspect-ratio:396/587}
-  .isle .nm{font-size:40px;line-height:48px}
+  .isle .nm{font-size:min(40px,11vw);line-height:1.2}  /* a 320 px «SUMBA» no cabía en su tarjeta (12-oct) */
   .info .lbl{top:12px;font-size:9px;line-height:12px;white-space:normal;padding:0 6px}
   .facts{left:10px;top:auto;bottom:0;right:6px}
   .facts small{font-size:9px;line-height:12px}.facts strong{font-size:11px;line-height:14px}.facts strong em{font-size:9px}.facts li{margin-bottom:10px}
@@ -1603,12 +1603,14 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
     a.addEventListener('click', function () { tb.classList.remove('nav-open'); bur.setAttribute('aria-expanded', 'false'); onScroll(); });
   });
 
-  // Anclas internas: se desplaza el contenedor .snap, no la ventana
+  // Anclas internas: se desplaza el contenedor .snap, no la ventana. Se descuenta su scroll-padding
+  // (en móvil, el alto de la cabecera) para que el título caiga debajo de ella; scrollIntoView lo haría,
+  // pero también desplazaría html/body si algún día desbordan.
+  function destino(t) { return t.offsetTop - (parseFloat(getComputedStyle(snap).scrollPaddingTop) || 0); }
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
       var t = document.querySelector(a.getAttribute('href'));
-      // scrollIntoView respeta el scroll-padding de .snap: en móvil el título cae bajo la cabecera, no debajo de ella
-      if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      if (t) { e.preventDefault(); snap.scrollTo({ top: destino(t), behavior: 'smooth' }); }
     });
   });
 
@@ -1616,7 +1618,7 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   var VIEJAS = { '#roadmap': '#how', '#legal': '#routes', '#services': '#who' };
   var h = location.hash.replace(/^#(services-.*|pane-.*|bands)$/, '#services');
   if (VIEJAS[h]) window.addEventListener('load', function () {
-    var dest = document.querySelector(VIEJAS[h]); if (dest) dest.scrollIntoView({ block: 'start' });
+    var dest = document.querySelector(VIEJAS[h]); if (dest) snap.scrollTop = destino(dest);
   });
 
   // Vídeo de fondo de «Come see it»: el mismo de la landing (legacy.mp4). Se descarga solo al
