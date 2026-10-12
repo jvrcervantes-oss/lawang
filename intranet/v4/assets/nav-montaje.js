@@ -205,7 +205,8 @@
     b.className = 'lw4-hamburguesa';
     b.setAttribute('data-lw4-menu', '');
     b.setAttribute('aria-controls', 'lw4-sb');
-    b.setAttribute('aria-label', 'Abrir menú');
+    b.setAttribute('aria-label', window.lwT ? window.lwT('Abrir menú') : 'Abrir menú');
+    b.setAttribute('data-lwt-aria', 'Abrir menú');
     b.innerHTML = '<span class="material-symbols-outlined">menu</span>';
     barra.insertBefore(b, barra.firstChild);
   }

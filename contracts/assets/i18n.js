@@ -6028,6 +6028,7 @@
     'Trayendo el historial…': 'Loading the history…',
     'Solo se listan los campos que el documento DICE (razón social, marca, identificación fiscal, NIB, domicilio, representante). Los retoques de logo, folio o tinta no dejan rastro aquí: son aspecto, no identidad.': 'Only the fields the document SAYS are listed (legal name, brand, tax ID, NIB, address, representative). Changes to the logo, numbering or ink leave no trace here: they are appearance, not identity.',
     'Menú de la intranet': 'Intranet menu',
+    'Abrir menú': 'Open menu',
   };
 
   window.LW_EN = EN;
