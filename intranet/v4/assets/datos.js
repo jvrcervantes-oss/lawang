@@ -797,6 +797,13 @@
     return !(window.AXW_NUCLEO_OPERACION && !(window.axwModuloActivo ? window.axwModuloActivo(m) : true));
   }
   function contratosActivo() { return moduloEncendido('contratos'); }
+  /* Ajustes › plazos (idiomas-pH, 12-oct-2026): qué filas de `parametros` se pintan. Las `reservas.*` (plazos de las Cartas de Reserva) son
+     del módulo `reservas`: en una instancia que lo tiene apagado no se ofrecen; el resto de la tabla (p. ej. construccion.*, que lee
+     hitos_fechas.js) sí, porque `parametros` es del núcleo. `encendido` es moduloEncendido: sin bandera (Lawang) siempre true y no se quita
+     ninguna. Lo fija parametros_visibles.test.js. */
+  function parametrosVisibles(rows, encendido) {
+    return (rows || []).filter(function (r) { return !(/^reservas\./.test(String((r && r.clave) || '')) && !encendido('reservas')); });
+  }
   function soporteActivo() { return moduloEncendido('soporte'); }
   /* Desacople (corte 3, 5-oct-2026): en el maestro, `axwModuloActivo` devuelve true («no sé») mientras carga lo
      encendido. Una pantalla que DECIDE qué pedir (no solo qué enseñar) espera aquí a que la base conteste, o pediría
@@ -6777,10 +6784,10 @@
           });
           /* En una instancia del ERP, el chip de una herramienta cuyo módulo está APAGADO no se ofrece (Acceso a Contratos / Unidades / Clientes
              en un negocio sin esos módulos). Por la clave del chip (data-role), nunca por su rótulo. Lawang: sin bandera, nada cambia (idiomas-pH). */
-          var moduloDeChip = { legal: 'contratos', obra: 'proyectos', sales: 'compradores', finance: 'facturas' };
+          var moduloDeHerramienta = { contratos: 'contratos', unidades: 'proyectos', compradores: 'compradores', facturas: 'facturas' };   // chip → herramienta sale de mapaRolChip
           var espChips = esperaModulos();
           if (espChips) espChips.then(function () {
-            chipsUsuarios.forEach(function (btn) { var m = moduloDeChip[btn.getAttribute('data-role')]; if (m && !moduloEncendido(m)) btn.hidden = true; });
+            chipsUsuarios.forEach(function (btn) { var m = moduloDeHerramienta[mapaRolChip[btn.getAttribute('data-role')]]; if (m && !moduloEncendido(m)) btn.hidden = true; });
           });
           cablearChipsFiltro(chipsUsuarios, pl.tbody, 'tr[data-rol]',
             function (btn) { return btn.getAttribute('data-role'); },
@@ -9999,6 +10006,11 @@
     function pinta() {
       q(sb.from('parametros').select('*').order('grupo').order('orden'), 'ajustes', cuerpo).then(function (rows) {
         if (!rows) return;
+        rows = parametrosVisibles(rows, moduloEncendido);
+        // instancia sin el módulo reservas y sin otra fila que enseñar: la sección (su título habla de Cartas de Reserva) no se pinta.
+        // La pestaña sigue: ahí vive también Impuestos (el asistente de setup manda a /ajustes/#reservas). Por el id de la tabla, no por rótulo.
+        var secPlazos = cuerpo && cuerpo.closest && cuerpo.closest('section');
+        if (secPlazos) secPlazos.hidden = !rows.length && !moduloEncendido('reservas');
         if (!rows.length) { cuerpo.innerHTML = '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(tx('No hay ajustes dados de alta.')) + '</td></tr>'; return; }
         cuerpo.innerHTML = rows.map(function (r) {
           var esNum = typeof r.valor === 'number';
@@ -10018,7 +10030,9 @@
         }).join('');
       });
     }
-    pinta();
+    // en una instancia, pintar cuando la base ha dicho qué módulos hay (las filas reservas.* dependen de ello); sin bandera, en el acto
+    var espModulos = esperaModulos();
+    if (espModulos) espModulos.then(pinta); else pinta();
     if (cuerpo && !cuerpo._wired) {
       cuerpo._wired = true;
       cuerpo.addEventListener('click', function (ev) {
@@ -10043,16 +10057,6 @@
     /* Impuestos (AxisWorks ERP): la BANDERA primero, antes de mirar ningún dato. En Lawang no existe la
        tabla y esta pantalla tiene que quedar exactamente como estaba: ni sección, ni consulta. */
     if (window.AXW_NUCLEO_OPERACION) impuestosAjustes(sb, soloLee);
-    /* Los plazos de las Cartas de Reserva son del módulo `reservas` (Lawang). En una instancia del ERP que lo tiene APAGADO esa sección no se
-       pinta; la pestaña sigue, porque ahí vive también Impuestos (el asistente de setup manda a /ajustes/#reservas). Se engancha por el id de
-       su tabla, nunca por un rótulo. Sin bandera (Lawang) esperaModulos() es null: nada cambia (idiomas-pH, 12-oct; orquestador). */
-    var espReservas = esperaModulos();
-    if (espReservas) espReservas.then(function () {
-      if (moduloEncendido('reservas')) return;
-      var tablaPlazos = document.getElementById('lw-ajustes-lista');
-      var secPlazos = tablaPlazos && tablaPlazos.closest('section');
-      if (secPlazos) secPlazos.hidden = true;
-    });
     /* Sociedades emisoras viven en su pestaña de Ajustes (owner, 12-oct-2026: «Va en Ajustes»): las pinta REG.sociedades, y solo para
        quien la base deja escribir; a los demás, ni consulta. */
     if (window.LW_V4.puedeSociedades && document.getElementById('lw-soc-lista')) REG['sociedades'](sb);
