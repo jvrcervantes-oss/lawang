@@ -1306,7 +1306,7 @@
       if (c.liberado_en) {
         sigPaso = tx(c.liberado_motivo === 'desistida' ? 'Reserva liberada el %f (el cliente desistió). No queda nada exigible.' : 'Reserva liberada el %f (plazo vencido). No queda nada exigible.', { f: fFecha(c.liberado_en) });
       } else if (!c.bloqueado) {
-        if (firmasVivas.length) sigPaso = (pfC.firmadas ? tx('Ya firmó %h (%f de %t)', { h: nombresF(pfC.hechas), f: pfC.firmadas, t: pfC.total }) + ' · ' : '') +
+        if (firmasVivas.length) sigPaso = (pfC.firmadas && !pfC.reabierto ? tx('Ya firmó %h (%f de %t)', { h: nombresF(pfC.hechas), f: pfC.firmadas, t: pfC.total }) + ' · ' : '') +
           tx('Esperando la firma de %n', { n: nombresF(firmasVivas) }) + (firmasVivas[0].expira_en ? ' · ' + tx('caduca el %f', { f: fFecha(firmasVivas[0].expira_en) }) : '') + '.';
         else if (pfC.aMedias) sigPaso = tx('Firma a medias: ya firmó %h (%f de %t), pero el siguiente no tiene enlace de firma vivo. Genera su enlace desde el contrato.', { h: nombresF(pfC.hechas), f: pfC.firmadas, t: pfC.total });
         else if (c.pdf_firmado_path) sigPaso = tx('Se reabrió después de firmarse: hay que volver a enviarlo a firma.');
@@ -2235,8 +2235,9 @@
         /* Para el «1 de 2» (progresoFirma, 12-oct): las firmas HECHAS y los compradores por contrato, aparte de
            las pendientes para que un recorte nunca se lleve una pendiente. Con tope explícito y aviso si se llega
            (max_rows de la API = 1000): un recorte callado es un número que miente. Si fallan, se pinta como antes. */
-        vig(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'firmado').order('firmado_en', { ascending: false }).limit(TOPE_FIRMA_PARCIAL)).then(function (x) { return x.error ? null : (x.data || []); }),
-        vig(sb.from('contrato_compradores').select('contrato_id').limit(TOPE_FIRMA_PARCIAL)).then(function (x) { return x.error ? null : (x.data || []); })
+        // sin .order(): sobre una función, PostgREST da 42703 si la columna del orden no va en el select (operaciones-cuentas.js:248)
+        vig(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'firmado').limit(TOPE_FIRMA_PARCIAL)).then(function (x) { return x.error ? (fallo('firmas hechas', x.error), null) : (x.data || []); }),
+        vig(sb.from('contrato_compradores').select('contrato_id').limit(TOPE_FIRMA_PARCIAL)).then(function (x) { return x.error ? (fallo('compradores por contrato', x.error), null) : (x.data || []); })
       ]).then(function (rr) {
           var cs = rr[0], AUT = rr[2] || {};
           var firmasDe = {};
