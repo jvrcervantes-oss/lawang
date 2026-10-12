@@ -354,6 +354,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 .zf h3{font-size:calc(25*var(--u));line-height:calc(32*var(--u));font-weight:500;letter-spacing:.04em;text-transform:uppercase}
 .zc .t2{margin-top:calc(12*var(--u));font-size:max(9px,calc(14*var(--u)));letter-spacing:.2em;text-transform:uppercase;opacity:.85}
 .zf p{margin-top:calc(16*var(--u));font-size:max(11px,calc(17*var(--u)));line-height:calc(27*var(--u));opacity:.92}
+.zf .tx p:not(.t2):not(.ok){min-height:2lh}  /* el bloque va anclado abajo: si un texto ocupa más líneas su título sube; reservar 2 alinea los títulos de las tres tarjetas (12-oct) */
 .zc .ok{display:flex;align-items:center;justify-content:center;margin:calc(28*var(--u)) auto 0;height:calc(51*var(--u));width:80%;border:1px solid rgba(255,255,255,.6);border-radius:999px;font-size:max(10px,calc(17*var(--u)));letter-spacing:.18em;text-transform:uppercase}
 /* reverso (9-oct): degradado del tono de la zona, sello de Lawang en retícula y brillo al girar */
 .zc.y{--zr:122,99,47}.zc.t{--zr:36,71,75}.zc.g{--zr:75,89,56}
@@ -472,12 +473,13 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .how::after{content:"";position:absolute;inset:0;top:0;height:100%;background:rgba(10,25,35,.45)}
   .how>img{left:0;top:0;width:100%;height:100%;transform:none;object-fit:cover;object-position:30% center}
   .how .hd{color:#fff}.how .hd .k{font-size:12px}.how .hd h2{font-size:22px;line-height:28px}.how .one{margin-top:16px;font-size:12px;height:30px}
-  .ruta6{position:relative;display:block;margin:28px 0 0 6px;max-width:360px}
-  .ruta6::before{left:13px;right:auto;top:14px;bottom:14px;width:1.5px;height:auto}
-  .ruta6 li{display:grid;grid-template-columns:28px 1fr;gap:0 14px;align-items:center;text-align:left;padding-block:7px}
-  .ruta6 .nd{grid-row:span 2;width:28px;height:28px;font-size:12px}
-  .ruta6 h3{margin-top:0;font-size:13px;white-space:normal}
-  .ruta6 p{margin-top:0;font-size:11px;line-height:16px}
+  /* paso a paso en móvil (12-oct): inset:auto quita el top/left de escritorio, que con position:relative bajaba la lista 150px y la sacaba por la derecha */
+  .ruta6{position:relative;inset:auto;display:block;margin:24px auto 0;max-width:340px;padding:10px 18px;background:rgba(10,25,35,.38);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.28);border-radius:16px}
+  .ruta6::before{left:35px;right:auto;top:37px;bottom:37px;width:1.5px;height:auto}
+  .ruta6 li{display:grid;grid-template-columns:34px 1fr;gap:2px 16px;align-items:center;text-align:left;padding-block:10px}
+  .ruta6 .nd{grid-row:span 2;width:34px;height:34px;font-size:14px}
+  .ruta6 h3{margin-top:0;font-size:15px;line-height:19px;letter-spacing:.06em;white-space:normal;text-wrap:pretty}
+  .ruta6 p{margin-top:0;font-size:13px;line-height:17px;letter-spacing:.04em;opacity:.9}
   .routes .tt .a{font-size:20px;line-height:24px}.routes .tt .bg span:first-child{font-size:30px;line-height:36px}.routes .tt .bg span:last-child{font-size:27px}.routes .tt .bg{flex-wrap:wrap;gap:8px}.routes .tt .c{font-size:18px;line-height:22px;text-align:left}
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px}
   .opt,.opt.pma,.opt.sewa{position:relative;left:auto;top:auto;width:auto;height:auto;padding:22px 16px}
@@ -522,7 +524,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .cl h2{left:24px;top:30px;font-size:22px;line-height:28px}
   .cl a{left:24px;top:auto;bottom:26px;height:34px;padding:0 14px;font-size:10px}
   /* repaso responsive (10-oct-2026): texto mínimo 11px, titular del hero dentro de la foto, pista de scroll en el submenú */
-  .hero .ph h1{bottom:4px;line-height:1.1;z-index:1;font-size:max(20px,5.6vw)}
+  .hero .ph h1{bottom:-.195em;line-height:1.1;z-index:1;font-size:max(20px,5.6vw)}  /* línea base a ras del borde de la foto, como en escritorio y en soulcitoa.pdf: (1.1 - 1.277)/2 + 0.284 de descendente de NK = .195em (12-oct) */
   .hero .ph::after{content:"";position:absolute;left:0;right:0;bottom:0;height:55%;background:linear-gradient(transparent,rgba(20,14,8,.55));pointer-events:none}
   .soulnav ul{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);padding-right:40px}
   .kpi p{font-size:11px}.kpi p br{display:none}
@@ -801,7 +803,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   <h2 id="zn-h" data-i18n-html="zn.h"><em>What the land's colour</em> <span class="lt">actually means</span></h2>
   <p class="p" data-i18n-html="zn.p">Every plot in Indonesia is classified on the official RDTR zoning map. The colour decides whether it's legally buildable — and whether a PBG can be issued at all.</p>
   <ul class="zcards">
-    <li class="zc y"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-residential.webp" alt="Aerial view of a river valley with housing" loading="lazy"><span class="dot" aria-hidden="true"></span><button class="zmore" type="button" aria-expanded="false" aria-controls="zb1"><span aria-hidden="true">+</span><span class="sr" data-i18n-html="zb.more">More about this zone</span></button><div class="tx"><h3 data-i18n-html="z1.h">Residential</h3><p class="t2" data-i18n-html="z1.t">Yellow</p><p data-i18n-html="z1.p">Areas zoned for housing. Construction is allowed within the approved use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></div><div class="zb" id="zb1" aria-hidden="true" inert><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><button class="zx" type="button"><span aria-hidden="true">×</span><span class="sr" data-i18n-html="zb.close">Close</span></button><p class="tag" data-i18n-html="zb1.k">Yellow · what you can build</p><h3 data-i18n-html="zb1.h">A home, within the approved use</h3><p class="bp" data-i18n-html="zb1.p">In the RDTR, the detailed zoning plan, yellow marks land for housing. A house can go up once its PBG, Indonesia's building approval, is issued. Running it as a holiday rental needs its own business licence, and whether the zone allows it is checked plot by plot.</p></div></div></li>
+    <li class="zc y"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-residential.webp" alt="Aerial view of a river valley with housing" loading="lazy"><span class="dot" aria-hidden="true"></span><button class="zmore" type="button" aria-expanded="false" aria-controls="zb1"><span aria-hidden="true">+</span><span class="sr" data-i18n-html="zb.more">More about this zone</span></button><div class="tx"><h3 data-i18n-html="z1.h">Residential</h3><p class="t2" data-i18n-html="z1.t">Yellow</p><p data-i18n-html="z1.p">Areas zoned for housing.<br>Construction is allowed within the approved use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></div><div class="zb" id="zb1" aria-hidden="true" inert><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><button class="zx" type="button"><span aria-hidden="true">×</span><span class="sr" data-i18n-html="zb.close">Close</span></button><p class="tag" data-i18n-html="zb1.k">Yellow · what you can build</p><h3 data-i18n-html="zb1.h">A home, within the approved use</h3><p class="bp" data-i18n-html="zb1.p">In the RDTR, the detailed zoning plan, yellow marks land for housing. A house can go up once its PBG, Indonesia's building approval, is issued. Running it as a holiday rental needs its own business licence, and whether the zone allows it is checked plot by plot.</p></div></div></li>
     <li class="zc t"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-tourism.webp" alt="Aerial view of a villa by the coast" loading="lazy"><span class="dot" aria-hidden="true"></span><button class="zmore" type="button" aria-expanded="false" aria-controls="zb2"><span aria-hidden="true">+</span><span class="sr" data-i18n-html="zb.more">More about this zone</span></button><div class="tx"><h3 data-i18n-html="z2.h">Dedicated zones</h3><p class="t2" data-i18n-html="z2.t">Tourism / commercial</p><p data-i18n-html="z2.p">Zones set aside for tourism and commercial use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></div><div class="zb" id="zb2" aria-hidden="true" inert><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><button class="zx" type="button"><span aria-hidden="true">×</span><span class="sr" data-i18n-html="zb.close">Close</span></button><p class="tag" data-i18n-html="zb2.k">Tourism · what it's for</p><h3 data-i18n-html="zb2.h">Built for hospitality from day one</h3><p class="bp" data-i18n-html="zb2.p">These zones are planned for visitors and business: villas run as rentals, boutique hotels, restaurants. Whether a resort or rental business is allowed depends on the zoning rules for that activity, so it is checked before the first drawing, not after the build.</p></div></div></li>
     <li class="zc g"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-green.webp" alt="Aerial view of terraced rice fields" loading="lazy"><span class="dot" aria-hidden="true"></span><button class="zmore" type="button" aria-expanded="false" aria-controls="zb3"><span aria-hidden="true">+</span><span class="sr" data-i18n-html="zb.more">More about this zone</span></button><div class="tx"><h3 data-i18n-html="z3.h">Protected agricultural land</h3><p class="t2" data-i18n-html="z3.t">Green</p><p data-i18n-html="z3.p">Building is prohibited and no PBG can be issued.</p><p class="ok" data-i18n-html="z.ko">✕ Not buildable</p></div></div><div class="zb" id="zb3" aria-hidden="true" inert><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><button class="zx" type="button"><span aria-hidden="true">×</span><span class="sr" data-i18n-html="zb.close">Close</span></button><p class="tag" data-i18n-html="zb3.k">Green · why we walk away</p><h3 data-i18n-html="zb3.h">Cheap for a reason</h3><p class="bp" data-i18n-html="zb3.p">Green marks farmland and open space the plan protects. Rice fields listed as LSD and Bali's subak irrigation land have their own protection, which doesn't always match the colour on the map. A house there generally can't get a PBG, and one built without it faces sanctions up to demolition. On green land, a low price is the risk, not the bargain.</p></div></div></li>
   </ul>
@@ -993,9 +995,9 @@ var SOUL_I18N = {
 "id": "Permukiman"
 },
 "z1.p": {
-"en": "Areas zoned for housing. Construction is allowed within the approved use.",
-"es": "Zonas calificadas para vivienda. Se puede construir dentro del uso aprobado.",
-"id": "Kawasan berzonasi hunian. Pembangunan diizinkan sesuai peruntukan yang disetujui."
+"en": "Areas zoned for housing.<br>Construction is allowed within the approved use.",
+"es": "Zonas calificadas para vivienda.<br>Se puede construir dentro del uso aprobado.",
+"id": "Kawasan berzonasi hunian.<br>Pembangunan diizinkan sesuai peruntukan yang disetujui."
 },
 "z2.t": {
 "en": "Tourism / commercial",
