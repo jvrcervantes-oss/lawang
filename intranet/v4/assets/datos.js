@@ -6774,6 +6774,13 @@
             if (partes) btn.textContent = partes[1] + ts(partes[2]) + partes[3];
             btn.textContent = btn.textContent.replace(/\(\s*[^)]*\s*\)\s*$/, '(' + n + ')');
           });
+          /* En una instancia del ERP, el chip de una herramienta cuyo módulo está APAGADO no se ofrece (Acceso a Contratos / Unidades / Clientes
+             en un negocio sin esos módulos). Por la clave del chip (data-role), nunca por su rótulo. Lawang: sin bandera, nada cambia (idiomas-pH). */
+          var moduloDeChip = { legal: 'contratos', obra: 'proyectos', sales: 'compradores', finance: 'facturas' };
+          var espChips = esperaModulos();
+          if (espChips) espChips.then(function () {
+            chipsUsuarios.forEach(function (btn) { var m = moduloDeChip[btn.getAttribute('data-role')]; if (m && !moduloEncendido(m)) btn.hidden = true; });
+          });
           cablearChipsFiltro(chipsUsuarios, pl.tbody, 'tr[data-rol]',
             function (btn) { return btn.getAttribute('data-role'); },
             'all',
@@ -10035,6 +10042,16 @@
     /* Impuestos (AxisWorks ERP): la BANDERA primero, antes de mirar ningún dato. En Lawang no existe la
        tabla y esta pantalla tiene que quedar exactamente como estaba: ni sección, ni consulta. */
     if (window.AXW_NUCLEO_OPERACION) impuestosAjustes(sb, soloLee);
+    /* Los plazos de las Cartas de Reserva son del módulo `reservas` (Lawang). En una instancia del ERP que lo tiene APAGADO esa sección no se
+       pinta; la pestaña sigue, porque ahí vive también Impuestos (el asistente de setup manda a /ajustes/#reservas). Se engancha por el id de
+       su tabla, nunca por un rótulo. Sin bandera (Lawang) esperaModulos() es null: nada cambia (idiomas-pH, 12-oct; orquestador). */
+    var espReservas = esperaModulos();
+    if (espReservas) espReservas.then(function () {
+      if (moduloEncendido('reservas')) return;
+      var tablaPlazos = document.getElementById('lw-ajustes-lista');
+      var secPlazos = tablaPlazos && tablaPlazos.closest('section');
+      if (secPlazos) secPlazos.hidden = true;
+    });
     /* Sociedades emisoras viven en su pestaña de Ajustes (owner, 12-oct-2026: «Va en Ajustes»): las pinta REG.sociedades, y solo para
        quien la base deja escribir; a los demás, ni consulta. */
     if (window.LW_V4.puedeSociedades && document.getElementById('lw-soc-lista')) REG['sociedades'](sb);
