@@ -33,5 +33,11 @@ total++;
 if (!/var bt = PESTANAS\.indexOf\(h\) >= 0 \? document\.querySelector\(/.test(aj)) { fallos++; console.log('FALLA ajustes.js: desdeHash pasa el hash al selector sin mirar la lista'); }
 total++;
 if (!/if \(bt && bt\.hidden\) h = '';/.test(aj)) { fallos++; console.log('FALLA ajustes.js: una pestaña oculta se abriría por la URL'); }
+// datos.js: el catálogo de Sociedades no se pide con select=* (42501 desde AXW-116); en Lawang va por sociedades_ajustes_datos
+const dj = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'assets', 'datos.js'), 'utf8');
+total++;
+if (/from\('sociedades'\)\.select\('\*'\)/.test(dj)) { fallos++; console.log('FALLA datos.js: sociedades con select=* (la base da 42501)'); }
+total++;
+if (!/datosDe\('sociedades_ajustes_datos'/.test(dj)) { fallos++; console.log('FALLA datos.js: el catálogo de Lawang no sale de sociedades_ajustes_datos'); }
 console.log((fallos ? 'FALLAN ' + fallos + ' de ' : 'OK ') + total + ' — roles_sociedades.test.js');
 process.exit(fallos ? 1 : 0);
