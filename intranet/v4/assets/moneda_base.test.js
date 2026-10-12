@@ -54,6 +54,7 @@ function mundoSoc(opts, fuenteSoc) {
   const sb = { rpc: (n, a) => { llamadas.push([n, JSON.parse(JSON.stringify(a))]); return Promise.resolve(opts.respuestas.shift() || { data: true, error: null }); } };
   const ctx = {
     sb, Promise, Object, String,
+    aseguraModulosDoc: () => (opts.cargaFalla ? Promise.reject(new Error('no carga')) : Promise.resolve()),
     tH: (s, h) => { var v = String(s); for (var k in (h || {})) v = v.split('%' + k).join(h[k]); return v; },
     esc: (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'),
     window: {}
@@ -162,6 +163,9 @@ async function escenarios(F) {
     const m = mundoSoc({ respuestas: [{ data: null, error: { hint: 'falta_confirmo' } }], dialogo: false, confirmNativo: true }, F.soc);
     const out = await m.g(JSON.parse(JSON.stringify(args)));
     comprueba(m.llamadas.length === 1 && m.dialogos.length === 0 && out.error, 'D: sin diálogo → no se guarda ni se usa el nativo');
+    const mf = mundoSoc({ respuestas: [{ data: null, error: { hint: 'falta_confirmo' } }], dialogo: false, cargaFalla: true }, F.soc);
+    const of = await mf.g(JSON.parse(JSON.stringify(args)));
+    comprueba(mf.llamadas.length === 1 && of && of.error && /no ha cargado/.test(of.error.message), 'D: si cargar el diálogo falla → se dice y no se guarda');
   }
   {
     // el prefijo entra escapado; vaciarlo lleva su propio texto
@@ -170,8 +174,9 @@ async function escenarios(F) {
     await m.g(a2);
     comprueba(m.dialogos[0] && m.dialogos[0].cuerpo.indexOf('<b>X') < 0 && m.dialogos[0].cuerpo.indexOf('&lt;b&gt;X') >= 0, 'D: el prefijo va escapado');
     const m3 = mundoSoc({ respuestas: [{ data: null, error: { hint: 'falta_confirmo' } }], confirma: false }, F.soc);
-    await m3.g({ p_clave: 'pt_x', p_datos: { prefijo_serie: '' }, p_nueva: false });
-    comprueba(m3.dialogos[0] && /sin prefijo/.test(m3.dialogos[0].cuerpo) && !/«»/.test(m3.dialogos[0].cuerpo), 'D: vaciar el prefijo lleva su propio texto');
+    await m3.g({ p_clave: 'pt_x-2', p_datos: { prefijo_serie: '' }, p_nueva: false });
+    // vacío = la clave en mayúsculas sin signos, como el servidor al emitir: se dice ESE prefijo, nunca «sin prefijo»
+    comprueba(m3.dialogos[0] && m3.dialogos[0].cuerpo.indexOf('«PTX2»') >= 0 && !/sin prefijo|«»/i.test(m3.dialogos[0].cuerpo.replace('Sin prefijo propio', '')), 'D: vaciar el prefijo dice el que saldrá (la clave en mayúsculas)');
   }
   return fallos;
 }
@@ -189,7 +194,8 @@ async function escenarios(F) {
     ['instancia con EUR por defecto', 'guard', ": null;\n    return m || 'EUR';", ": 'EUR';\n    return m || 'EUR';"],
     ['siempre p_confirmo', 'soc', "Promise.resolve(sb.rpc('sociedad_guarda', args))", "Promise.resolve(sb.rpc('sociedad_guarda', Object.assign({}, args, { p_confirmo: true })))"],
     ['reenvía aunque se cancele', 'soc', 'if (!ok) return nada;', ''],
-    ['sin escapar', 'soc', "'<p>' + esc(cuerpo) + '</p>'", "'<p>' + cuerpo + '</p>'"]
+    ['sin escapar', 'soc', "'<p>' + esc(cuerpo) + '</p>'", "'<p>' + cuerpo + '</p>'"],
+    ['vacío sin la clave', 'soc', ".toUpperCase() || '—'", ".toUpperCase() && ''"]
   ];
   for (const [nombre, k, de, a] of muta) {
     assert.ok(F[k].indexOf(de) >= 0, 'mutación «' + nombre + '»: no encuentro el texto a mutar');

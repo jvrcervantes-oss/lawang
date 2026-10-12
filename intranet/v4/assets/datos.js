@@ -1044,6 +1044,8 @@
       suave(sb.rpc('facturas_pendiente_equipo')),
       suave(sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,cliente_nombre,contrato_id,justificantes,justificante_path,fecha_emision,created_at' + colsSerie() + colsHistorico()).in('tipo', ['factura', 'recibi']))
     ]).then(function (r) {
+      // la fila del saldo pendiente suma en la moneda base (conMonedaBase; en Lawang, en el acto y en EUR, como siempre)
+      conMonedaBase(function (mb, motivo) {
       var FILAS = [];
       var fila = function (tono, icono, titulo, detalle, n, href, cta) { FILAS.push({ tono: tono, icono: icono, titulo: titulo, detalle: detalle, n: n, href: href, cta: cta }); };
       var diasA = function (iso) { return Math.round((new Date(iso + 'T00:00:00') - new Date(hoy + 'T00:00:00')) / 864e5); };
@@ -1107,8 +1109,8 @@
           (r[2] || []).forEach(function (c) { if (c.bloqueado && !c.liberado_en) vivoFirmado[c.id] = true; });
           var con = !r[2] ? [] : r[5].filter(function (f) { return f.tipo === 'factura' && !f.anulada && pend[f.id] > 0.005 && vivoFirmado[f.contrato_id]; });
           if (con.length) {
-            var eur = 0, otras = 0; con.forEach(function (f) { if ((f.moneda || 'EUR') === 'EUR') eur += pend[f.id]; else otras++; });
-            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), fmt(eur, 'EUR') + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : ''), con.length, '/intranet/v4/facturas/', T('Ver'));
+            var enBase = 0, otras = 0; if (mb) con.forEach(function (f) { if ((f.moneda || mb) === mb) enBase += pend[f.id]; else otras++; });
+            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), mb ? fmt(enBase, mb) + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : '') : T(motivo), con.length, '/intranet/v4/facturas/', T('Ver'));
           }
         }
         /* LAW-40 (owner 10-oct-2026): los recibís de antes del 11-ago-2026 marcados `historico_sin_justificante`
@@ -1139,6 +1141,7 @@
           '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(x.cta) + ' →</span></span></a>';
       }).join('') + avisoCaidas;
       caja.hidden = false;
+      });
     });
   }
   /* «Firmas pendientes» separa vivas de caducadas (23-sep-2026): antes contaba

@@ -11692,17 +11692,23 @@
         return Promise.resolve(sb.rpc('sociedad_guarda', args)).then(function (r) {
           if (!(r && r.error && r.error.hint === 'falta_confirmo')) return r;
           var nada = { data: null, error: { message: tH('No se ha guardado nada: el prefijo queda sin fijar.') } };
-          // la pregunta va en el diálogo de la suite (dialogo.js), nunca en window.confirm; si aún no ha cargado, no se guarda nada
+          // la pregunta va en el diálogo de la suite (dialogo.js), nunca en window.confirm: se carga si falta, como al desactivar;
+          // si aun así no está, no se guarda nada
+          return aseguraModulosDoc(['dialogo']).then(null, function () {}).then(function () {
           if (typeof lwConfirmar !== 'function') return { data: null, error: { message: tH('El diálogo aún no ha cargado — prueba de nuevo en un segundo.') } };
           var pref = String((args.p_datos && args.p_datos.prefijo_serie) || '').trim();
+          // vacío no es «sin prefijo»: al emitir, el servidor usa la clave en mayúsculas sin signos
+          // (coalesce(prefijo_serie, upper(regexp_replace(clave,'[^A-Za-z0-9]','','g')))); se dice el que saldrá de verdad
           var cuerpo = pref
             ? tH('El prefijo de las facturas («%p») no se podrá cambiar después de emitir la primera factura. ¿Fijarlo ahora?', { p: pref })
-            : tH('Las facturas quedarán sin prefijo, y eso no se podrá cambiar después de emitir la primera factura. ¿Guardarlo así?');
-          return lwConfirmar({ titulo: pref ? 'Fijar el prefijo de las facturas' : 'Facturas sin prefijo', cuerpo: '<p>' + esc(cuerpo) + '</p>', confirmar: pref ? 'Fijar el prefijo' : 'Guardar sin prefijo' })
+            : tH('Sin prefijo propio, las facturas usarán «%p» (la clave en mayúsculas), y no se podrá cambiar después de emitir la primera factura. ¿Guardarlo así?',
+                 { p: String(args.p_clave || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase() || '—' });
+          return lwConfirmar({ titulo: 'Fijar el prefijo de las facturas', cuerpo: '<p>' + esc(cuerpo) + '</p>', confirmar: pref ? 'Fijar el prefijo' : 'Guardar así' })
             .then(function (ok) {
               if (!ok) return nada;
               return Promise.resolve(sb.rpc('sociedad_guarda', Object.assign({}, args, { p_confirmo: true })));
             });
+          });
         });
       }
 
