@@ -123,22 +123,23 @@
       if (s.mensaje) c.appendChild(el('p', 'font-body-sm text-body-sm text-on-surface-variant mt-2', '«' + s.mensaje + '»'));
 
       var form = el('div', 'mt-3 grid gap-3 md:grid-cols-3');
-      function grupo(titulo, items, nombre, marcados, fijo) {
+      // `traduce`: los rótulos fijos (tipos, herramientas) van por el diccionario; los nombres de proyecto son datos y no
+      function grupo(titulo, items, nombre, marcados, fijo, traduce) {
         var g = el('div', '');
         g.appendChild(el('div', 'font-body-sm text-body-sm font-semibold mb-1', T(titulo)));
         items.forEach(function (it) {
           var l = el('label', 'flex items-center gap-2 font-body-sm text-body-sm');
           var i = document.createElement('input'); i.type = 'checkbox'; i.name = nombre; i.value = it[0];
           i.checked = marcados.indexOf(it[0]) >= 0; if (fijo) i.disabled = false;
-          l.appendChild(i); l.appendChild(el('span', '', nombre.charAt(0) === 'p' ? it[1] : T(it[1]))); g.appendChild(l);
+          l.appendChild(i); l.appendChild(el('span', '', traduce ? T(it[1]) : it[1])); g.appendChild(l);
         });
         return g;
       }
       if (errProy || !proyectos.length) form.appendChild(el('div', 'text-error font-body-sm text-body-sm',
         T('No se han podido cargar los proyectos') + (errProy ? ' (' + errProy + ')' : '') + '. ' + T('Recarga la página antes de activar.')));
       else form.appendChild(grupo('Proyectos que puede vender', proyectos.map(function (p) { return [p.id, p.nombre]; }), 'p_' + s.id, []));
-      form.appendChild(grupo('Tipos de contrato', TIPOS, 't_' + s.id, TIPOS_DEF));
-      form.appendChild(grupo('Herramientas', HERR_COMERCIAL, 'h_' + s.id, HERR_COMERCIAL.map(function (h) { return h[0]; })));
+      form.appendChild(grupo('Tipos de contrato', TIPOS, 't_' + s.id, TIPOS_DEF, false, true));
+      form.appendChild(grupo('Herramientas', HERR_COMERCIAL, 'h_' + s.id, HERR_COMERCIAL.map(function (h) { return h[0]; }), false, true));
       c.appendChild(form);
 
       var acc = el('div', 'flex flex-wrap items-center gap-2 mt-3');
@@ -151,7 +152,8 @@
       function marcados(n) { return Array.prototype.map.call(c.querySelectorAll('input[name="' + n + '"]:checked'), function (i) { return i.value; }); }
 
       act.addEventListener('click', function () {
-        if (!window.confirm(T('¿Activar a %n (%e)? Tendrá acceso a la intranet como comercial.', { n: s.nombre, e: s.email }))) return;
+        // %e antes que %n: el nombre viene del formulario público y un «%e» en él no puede tragarse el email
+        if (!window.confirm(T('¿Activar a %n (%e)? Tendrá acceso a la intranet como comercial.', { e: s.email, n: s.nombre }))) return;
         if (act.dataset.enCurso) return; act.dataset.enCurso = '1';
         act.disabled = des.disabled = true; aviso.textContent = T('Activando…'); aviso.className = 'font-body-sm text-body-sm text-on-surface-variant';
         llama(sb, { accion: 'activar_solicitud', solicitud_id: s.id, proyectos: marcados('p_' + s.id),
