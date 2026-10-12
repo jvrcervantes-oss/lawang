@@ -6021,6 +6021,8 @@
     'Idiomas guardados.': 'Languages saved.',
     'No se ha guardado: este ERP todavía no guarda los idiomas en su base. Pídeselo al estudio.': 'Not saved: this ERP does not store its languages in its database yet. Ask the studio.',
     'No se ha guardado: %m': 'Not saved: %m',
+    // G2 de Ajustes (12-oct-2026): «Modelos» pasa a «Modelos de casas» (menú, hub, título de la pantalla)
+    'Modelos de casas': 'House models',
   };
 
   window.LW_EN = EN;

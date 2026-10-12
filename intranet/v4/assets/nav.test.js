@@ -110,8 +110,19 @@ MENU.forEach(s => s.entradas.forEach(e => {
   (e.claves || []).forEach(c => enMenu.push(c.clave));
   (e.extra || []).forEach(c => enMenu.push(c.clave));
   if (e.path) { casaPuerta(e.path, e.clave || (e.claves || []).map(c => c.clave).join(','), e.rol, donde); casaAmbito(e, donde); casaSolo(e, donde); }
-  (e.pestanas || []).forEach(t => { enMenu.push(t.clave); casaPuerta(t.path, t.clave, t.rol, donde + ' › ' + t.texto); });
+  // una pestaña también casa su ámbito (12-oct-2026: Ajustes › General es global; Ajustes › Cuentas bancarias no, entra un admin de empresa)
+  (e.pestanas || []).forEach(t => { enMenu.push(t.clave); casaPuerta(t.path, t.clave, t.rol, donde + ' › ' + t.texto); casaAmbito(t, donde + ' › ' + t.texto); });
 }));
+/* `sinNucleo` (12-oct-2026, Plantillas de Lawang = /textos-contrato/): la entrada del menú y el enlace que la sidebar injerta
+   (PANEL_CONTROL) llevan la misma marca, o en una instancia nacería un enlace a una pantalla que su paquete no lleva. */
+{
+  const bloque = (nav.match(/var PANEL_CONTROL = \[([\s\S]*?)\];/) || [])[1] || '';
+  const conMarca = {};
+  (bloque.match(/\{[^}]*\}/g) || []).forEach(o => { const p = (o.match(/path: '([^']+)'/) || [])[1]; if (p) conMarca[p] = /sinNucleo: true/.test(o); });
+  MENU.forEach(s => s.entradas.forEach(e => {
+    if (e.path && e.path in conMarca && !!e.sinNucleo !== conMarca[e.path]) errores.push(`PANEL_CONTROL: «${e.path}» y MENU_V4 no coinciden en sinNucleo`);
+  }));
+}
 /* El menú lateral injertado (PANEL_CONTROL_SUPER) tiene que decir lo mismo que MENU_V4 y que la puerta: cada entrada con su `solo` (7-oct-2026). */
 {
   const bloque = (nav.match(/var PANEL_CONTROL_SUPER = \[([\s\S]*?)\];/) || [])[1] || '';

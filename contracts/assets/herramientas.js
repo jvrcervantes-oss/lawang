@@ -306,7 +306,7 @@ const LW_HERRAMIENTAS = [
      desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
      guardar en la base sigue pidiendo el permiso de la herramienta madre.
      La migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre. */
-  { grupo:'Base de datos', nombre:'Modelos', icon:'ph-house-line', href:'/intranet/v4/modelos/', herr:'modelos',
+  { grupo:'Base de datos', nombre:'Modelos de casas', icon:'ph-house-line', href:'/intranet/v4/modelos/', herr:'modelos',
     para:'Que se puede construir: habitaciones, metros, precio, techos, extras y planos de cada tipo de vivienda.',
     claves:'modelos tipologias villas tipos vivienda specs precio techos extras planos catalogo dormitorios metros house models types specs price roofs add-ons floor plans catalogue bedrooms sqm',
     /* El estado dice lo que hay que ARREGLAR, no cuantas filas hay: un modelo
@@ -334,13 +334,15 @@ const LW_HERRAMIENTAS = [
   /* Nueva 14-sep-2026 (encargo del owner: «tenemos muchas cuentas bancarias y
      no son editables ni marcables lo que quiero que aparezca en cada una»).
      Iba en «Equipo» junto a Usuarios; desde el 24-sep-2026 va en «Finanzas»
-     (owner, opción A): es la tesorería, adónde entra el dinero.
+     (owner, opción A): es la tesorería, adónde entra el dinero. Desde el 12-oct-2026 vuelve a
+     «Equipo», junto a Ajustes (owner: «Cuentas bancarias debería ir en ajustes»): en el menú v4
+     es una pestaña de la entrada Ajustes, con su misma puerta y su misma URL.
      `soloAdmin` es la puerta del menú, pero la de verdad es la RLS: escribir
      estas dos tablas exige `es_super_admin()` en la base. Un admin normal que
      llegue por la URL puede MIRAR el reparto —le sirve para entender por qué un
      contrato ofrece las cuentas que ofrece— y no puede cambiar nada. Es el dato
      que decide adónde va el dinero de un comprador: ahí no hay delegación. */
-  { grupo:'Finanzas', nombre:'Cuentas bancarias', icon:'ph-bank', href:'/intranet/v4/cuentas/', herr:'cuentas', soloAdmin:true,
+  { grupo:'Equipo', nombre:'Cuentas bancarias', icon:'ph-bank', href:'/intranet/v4/cuentas/', herr:'cuentas', soloAdmin:true,
     para:'Las cuentas de cobro y qué cuenta se ofrece en cada tipo de contrato.',
     claves:'cuentas bancarias banco iban swift cobro pago escrow notario destino plantillas contratos bank accounts payment details escrow beneficiary',
     estado:d => d.cuentas == null ? null
