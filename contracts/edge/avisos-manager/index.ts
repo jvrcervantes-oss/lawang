@@ -1,8 +1,9 @@
-// avisos-manager — envía por correo real los avisos que un trigger marcó
-// `email_pendiente=true` en `notificaciones` (contrato bloqueado, solicitud de
-// pago resuelta, unidad que avanza de estado) a los sales_manager/project_manager
-// del proyecto de cada fila. El QUÉ y el A QUIÉN ya los decidió la base
-// (`_avisar_managers`, `avisos_manager_email.sql`); esta Edge solo entrega.
+// avisos-manager — envía por correo real CUALQUIER fila de `notificaciones` que
+// un trigger o función marcó `email_pendiente=true`, al `destinatario` de esa
+// fila. Hoy las marcan: _avisar_managers (contrato bloqueado, solicitud de pago,
+// unidad que avanza de estado → managers), trg_aviso_contrato_firmado (el autor
+// del contrato cuando su cliente firma, 12-oct-2026) y otras funciones de la
+// base. El QUÉ y el A QUIÉN los decide la base; esta Edge solo entrega.
 //
 // Invocada por pg_cron cada 10 min (job `avisos-manager-email`), nunca por el
 // navegador. Desplegar con verify_jwt=false: la puerta es X-Cron-Secret,
