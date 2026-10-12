@@ -152,6 +152,16 @@ html,body{background:var(--paper)}
 .m{font-weight:500}.r{font-weight:400}.xb{font-weight:800}
 .snap > section{padding-top:calc(var(--top) + var(--band))}
 .st{position:relative;width:calc(1920*var(--u));height:calc(906*var(--u));margin:0 auto}
+/* pantallas más altas que el PDF (4:3, 16:10 — 12-oct-2026): lo que sobra de alto se reparte arriba y abajo en vez de
+   quedarse todo como banda vacía al pie; las fotos a sangre de arriba (hero, Territorial, Indonesia) crecen hasta la franja.
+   En 16:9 --sobra vale 0 y nada cambia (medido a 1920×1080: 0 elementos movidos). Zoning no: ya usa ese sobrante para alargar sus tarjetas (--zx). */
+:root{--libre:calc(var(--vh) - var(--top) - var(--band) - 906*var(--u));
+  --sobra:max(0px,min(var(--libre) / 2,2*var(--libre) - 80px))}  /* 0 hasta 40 px libres (16:9: el calco del PDF queda donde estaba); desde ~53 px, la mitad */
+.snap > section{--sube:var(--sobra)}
+.snap > section.hero,.snap > section.who,.snap > section.indo{--sube:calc(2*var(--sobra))}  /* con foto a sangre arriba: la foto se queda TODO el sobrante y abajo no queda banda */
+.snap > section.see{--sube:calc(var(--sobra) + min(var(--sobra),22*var(--u)))}  /* su contenido tiene 10u libres arriba y 54u abajo: se iguala solo si hay sobrante */
+.snap > section.zone{--sube:0px}
+.snap > section > .st{top:var(--sube)}
 .bleed{position:absolute;left:calc(50% - 50vw);width:100vw}
 
 /* submenú verde (página propia de The Soul, no es el menú común) */
@@ -162,9 +172,9 @@ html,body{background:var(--paper)}
 .soulnav a:hover{color:#fff}
 
 /* 1 · hero */
-.hero .ph{top:0;height:calc(511*var(--u));overflow:hidden;z-index:2}
+.hero .ph{top:calc(-1*var(--sube));height:calc(511*var(--u) + var(--sube));overflow:hidden;z-index:2}
 .hero .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 56%}
-.hero .ph h1{position:absolute;left:calc(50vw - calc(960*var(--u)) + calc(83*var(--u)));top:calc(464*var(--u));font-size:calc(47*var(--u));line-height:calc(59*var(--u));color:#F6F4F0;letter-spacing:.035em;font-weight:400;white-space:nowrap}
+.hero .ph h1{position:absolute;left:calc(50vw - calc(960*var(--u)) + calc(83*var(--u)));top:calc(464*var(--u) + var(--sube));font-size:calc(47*var(--u));line-height:calc(59*var(--u));color:#F6F4F0;letter-spacing:.035em;font-weight:400;white-space:nowrap}
 .sil{position:absolute;opacity:.05;pointer-events:none}
 .totem{position:absolute;left:calc(1600*var(--u));top:calc(455*var(--u));width:calc(260*var(--u));mix-blend-mode:multiply;pointer-events:none}
 .hero h2{position:absolute;left:calc(86*var(--u));top:calc(552*var(--u));font-size:calc(44*var(--u));line-height:calc(54*var(--u));color:var(--brown-d);font-weight:700;letter-spacing:.025em;white-space:nowrap}
@@ -180,11 +190,11 @@ html,body{background:var(--paper)}
 .claim .k2{margin-top:calc(22*var(--u))}
 
 /* 2 · who we are */
-.terr{top:calc(4*var(--u));height:calc(481*var(--u));color:#fff;overflow:hidden}
+.terr{top:calc(4*var(--u) - var(--sube));height:calc(481*var(--u) + var(--sube));color:#fff;overflow:hidden}
 .terr>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 58%}
 .terr::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,22,10,.6),rgba(15,22,10,.32) 60%,rgba(15,22,10,.18))}
-.terr .in{position:relative;z-index:2;width:calc(1920*var(--u));height:100%;margin:0 auto}
-.terr .fr{position:absolute;left:calc(45*var(--u));top:calc(39*var(--u));width:calc(1830*var(--u));height:calc(393*var(--u));border:1px solid rgba(255,255,255,.8);border-radius:calc(10*var(--u))}
+.terr .in{position:relative;z-index:2;top:var(--sube);width:calc(1920*var(--u));height:calc(100% - var(--sube));margin:0 auto}
+.terr .fr{position:absolute;left:calc(45*var(--u));top:calc(39*var(--u) - var(--sube));width:calc(1830*var(--u));height:calc(393*var(--u) + var(--sube));border:1px solid rgba(255,255,255,.8);border-radius:calc(10*var(--u))}
 .terr .tag{position:absolute;left:calc(148*var(--u));top:calc(81*var(--u));min-width:calc(331*var(--u));height:calc(48*var(--u));padding:0 calc(20*var(--u));background:var(--deep);border-radius:calc(6*var(--u));display:flex;align-items:center;justify-content:center;font-size:max(11px,calc(19.9*var(--u)));font-weight:500;letter-spacing:.05em;text-transform:uppercase}
 .terr h2{position:absolute;left:calc(148*var(--u));top:calc(158*var(--u));font-size:calc(80.9*var(--u));line-height:calc(100*var(--u));letter-spacing:.045em;font-weight:350;white-space:nowrap}
 .terr h2 b{font-weight:700}
@@ -204,9 +214,9 @@ html,body{background:var(--paper)}
 .cards4 .d{position:absolute;left:calc(24*var(--u));top:calc(115*var(--u));font-size:max(10px,calc(17.2*var(--u)));line-height:calc(32*var(--u));letter-spacing:.17em;text-transform:uppercase}
 
 /* 3 · indonesia */
-.ban{top:0;height:calc(394*var(--u));overflow:hidden;color:#F6F4F0}
+.ban{top:calc(-1*var(--sube));height:calc(394*var(--u) + var(--sube));overflow:hidden;color:#F6F4F0}
 .ban>img{width:100%;height:100%;object-fit:cover}
-.ban .in{position:absolute;inset:0;width:calc(1920*var(--u));margin:0 auto}
+.ban .in{position:absolute;inset:0;top:var(--sube);width:calc(1920*var(--u));margin:0 auto}
 .ban .t{position:absolute;left:calc(212*var(--u));top:calc(72*var(--u));font-family:'Seasons','Didot',Georgia,serif;font-weight:300;font-size:calc(124*var(--u));line-height:1;letter-spacing:.02em;color:#F4EEE3}
 .ban .t::after{content:attr(data-t);content:attr(data-t) / "";position:absolute;left:0;top:100%;margin-top:calc(-28*var(--u));transform:scaleY(-1);opacity:.35;-webkit-mask:linear-gradient(0deg,#000,transparent 55%);mask:linear-gradient(0deg,#000,transparent 55%);pointer-events:none}
 .ban .s{position:absolute;left:calc(214*var(--u));top:calc(186*var(--u));font-size:calc(36*var(--u));line-height:calc(44*var(--u));letter-spacing:.03em;text-transform:uppercase}
@@ -217,9 +227,9 @@ html,body{background:var(--paper)}
 .ban .f b,.ban .g b{font-weight:700}
 .ban small{font-size:calc(21*var(--u));font-weight:500;letter-spacing:.08em}
 .isl{position:absolute;top:calc(372*var(--u));left:0;right:0;z-index:2;display:flex;justify-content:center}
-.isl span{background:#fff;border-radius:999px;height:calc(44*var(--u));padding:0 calc(30*var(--u));display:flex;align-items:center;font-size:max(11px,calc(24*var(--u)));color:#2C3E3F;letter-spacing:.08em;white-space:nowrap}
+.isl span{background:#fff;border-radius:999px;height:calc(44*var(--u));line-height:calc(44*var(--u));padding:0 calc(30*var(--u));display:block;font-size:max(11px,calc(24*var(--u)));color:#2C3E3F;letter-spacing:.08em;white-space:nowrap}
 .isl b{font-weight:700}
-.kpis{position:absolute;top:calc(503*var(--u));left:0;right:0;display:flex;justify-content:center;gap:calc(81*var(--u));list-style:none}
+.kpis{position:absolute;top:calc(646*var(--u));left:0;right:0;display:flex;justify-content:center;gap:calc(81*var(--u));list-style:none}
 .kpi{position:relative;min-height:calc(173*var(--u));color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 calc(30*var(--u))}
 .kpi::before{content:"";position:absolute;inset:calc(15*var(--u));border:1px solid rgba(255,255,255,.55);border-radius:calc(8*var(--u))}
 .kpi.k1{min-width:calc(445*var(--u));background:linear-gradient(rgba(49,27,12,.9),rgba(49,27,12,.9)),url('/assets/img/soul/kpi-leaf.webp') center/cover}
@@ -230,7 +240,7 @@ html,body{background:var(--paper)}
 .kpi .row b{font-size:calc(41*var(--u));letter-spacing:.07em;font-weight:700}
 .kpi p{margin:calc(14*var(--u)) 0 calc(20*var(--u));font-size:max(9px,calc(14.5*var(--u)));line-height:1.15;letter-spacing:.11em;font-weight:500;text-transform:uppercase}
 .kpi p b{font-weight:800}
-.ret{position:absolute;top:calc(731*var(--u));left:0;right:0;text-align:center}
+.ret{position:absolute;top:calc(476*var(--u));left:0;right:0;text-align:center}
 .ret h2{font-size:calc(60*var(--u));line-height:calc(72*var(--u));font-weight:300;letter-spacing:.04em;text-transform:uppercase}
 .ret h2 .b{font-weight:500}
 .ret p{margin-top:calc(8*var(--u));font-size:calc(28.5*var(--u));line-height:calc(36*var(--u));letter-spacing:.03em;text-transform:uppercase}
@@ -247,7 +257,7 @@ html,body{background:var(--paper)}
 .isle>img{width:100%;height:100%;object-fit:cover}
 .isle .nm{position:absolute;bottom:calc(-2*var(--u));font-size:calc(97*var(--u));line-height:calc(116*var(--u));font-weight:700;letter-spacing:.02em}
 .isle .nm.r{right:calc(29*var(--u))}.isle .nm.l{left:calc(17*var(--u))}
-.info .lbl{position:absolute;top:calc(33*var(--u));left:0;right:0;text-align:center;font-size:max(9px,calc(18.3*var(--u)));line-height:calc(23*var(--u));letter-spacing:.18em;white-space:nowrap;color:#fff;text-transform:uppercase}
+.info .lbl{position:absolute;top:calc(33*var(--u));left:0;right:0;text-align:center;font-size:max(9px,calc(18.3*var(--u)));line-height:calc(23*var(--u));letter-spacing:.18em;white-space:normal;text-wrap:balance;padding:0 calc(14*var(--u));color:#fff;text-transform:uppercase}  /* en ID («Tempat alam liar masih berkuasa.») no cabía en una línea y se cortaba (12-oct) */
 .facts{position:absolute;left:calc(26*var(--u));top:calc(181*var(--u));right:calc(20*var(--u));list-style:none;text-transform:uppercase}
 .facts li{margin-bottom:calc(37*var(--u))}
 .facts small{display:block;font-size:max(9px,calc(14.6*var(--u)));line-height:calc(19*var(--u));letter-spacing:.05em}
@@ -354,6 +364,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 .zf h3{font-size:calc(25*var(--u));line-height:calc(32*var(--u));font-weight:500;letter-spacing:.04em;text-transform:uppercase}
 .zc .t2{margin-top:calc(12*var(--u));font-size:max(9px,calc(14*var(--u)));letter-spacing:.2em;text-transform:uppercase;opacity:.85}
 .zf p{margin-top:calc(16*var(--u));font-size:max(11px,calc(17*var(--u)));line-height:calc(27*var(--u));opacity:.92}
+.zf .tx p:not(.t2):not(.ok){min-height:2lh}  /* el bloque va anclado abajo: si un texto ocupa más líneas su título sube; reservar 2 alinea los títulos de las tres tarjetas (12-oct) */
 .zc .ok{display:flex;align-items:center;justify-content:center;margin:calc(28*var(--u)) auto 0;height:calc(51*var(--u));width:80%;border:1px solid rgba(255,255,255,.6);border-radius:999px;font-size:max(10px,calc(17*var(--u)));letter-spacing:.18em;text-transform:uppercase}
 /* reverso (9-oct): degradado del tono de la zona, sello de Lawang en retícula y brillo al girar */
 .zc.y{--zr:122,99,47}.zc.t{--zr:36,71,75}.zc.g{--zr:75,89,56}
@@ -412,11 +423,15 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 
 /* ═══ móvil / tablet vertical ═══ */
 @media (max-width:900px),(max-height:600px),(orientation:portrait) and (max-width:1366px){
-  :root{--u:.5px;--band:44px}
-  .snap{scroll-snap-type:y proximity}
-  .snap > section{height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
+  :root{--u:.5px;--band:44px;--sobra:0px}
+  /* flujo continuo (12-oct-2026, owner: «espacios muy grandes»): aquí cada sección mide lo que su contenido.
+     Con alto mínimo de pantalla, la cabecera reservada en cada sección y el imán, cada final de sección dejaba
+     un hueco de papel de 120-680 px. La cabecera la reserva solo el hero; las anclas caen bajo ella por scroll-padding.
+     Medido con tools/huecos_web.js. */
+  .snap{scroll-snap-type:none;scroll-padding-top:calc(var(--top) + var(--band))}
+  .snap > section{height:auto;min-height:0;overflow:visible;padding-top:0}
   .snap{background-size:960px auto}
-  .snap > section{padding-top:calc(var(--top) + var(--band))}
+  .snap > section.hero{padding-top:calc(var(--top) + var(--band))}
   .st{width:auto;height:auto;padding:24px 16px 36px}
   .bleed{position:relative;left:auto;width:auto;margin:-24px -16px 0}
   .soulnav ul{justify-content:flex-start;overflow-x:auto;gap:22px;padding:0 16px;scrollbar-width:none}
@@ -441,43 +456,50 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .terr .fr{inset:10px;width:auto;height:auto}
   .terr .tag{display:inline-flex;height:auto;min-width:0;padding:6px 12px;font-size:12px}
   .terr h2{margin-top:12px;font-size:32px;line-height:38px}
-    .terr .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-  .terr .chips li{height:auto;min-width:0;padding:8px 10px;font-size:12px;white-space:normal}
+  /* las 4 pastillas en columna, una debajo de otra (owner, 12-oct, opción C): con wrap + el space-between de escritorio quedaba una sola a la derecha */
+  .terr .chips{display:flex;flex-direction:column;gap:8px;margin-top:16px;max-width:420px}
+  .terr .chips li{height:auto;min-width:0;padding:10px 14px;font-size:12px;white-space:normal;justify-content:flex-start;text-align:left}
   .svc-h{margin-top:30px}.svc-h .k{font-size:12px}.svc-h h2{font-size:22px;line-height:28px}
   .cards4{grid-template-columns:1fr;gap:16px;margin-top:20px}
   .cards4 .tab{font-size:13px;height:34px}.cards4 .tab svg{height:16px}
   .cards4 .card{height:170px}
   .cards4 .num b{font-size:40px;line-height:46px}.cards4 .num span{font-size:15px;line-height:18px;margin:0}
   .cards4 .d{left:16px;top:auto;bottom:12px;font-size:12px;line-height:20px}
-  .ban{height:auto;margin:-24px -16px 0}
-  .ban>img{height:62vw;object-position:30% center}
-  .ban .in{width:auto}
-  .ban .t{left:16px;top:6vw;font-size:13vw}
-  .ban .t::after{margin-top:-3vw}
-  .ban .s{left:16px;top:30vw;font-size:4vw;line-height:1.2}
-  .ban .f,.ban .g{display:none}
-  .isl{margin-top:0;height:0;position:relative;top:auto;align-items:center}.isl span{display:block;max-width:calc(100% - 24px);height:auto;min-height:34px;padding:8px 14px;font-size:12px;text-align:center;border-radius:20px;white-space:normal}
-  .kpis{flex-direction:column;align-items:stretch;gap:12px;margin-top:40px}
+  /* Indonesia en móvil (12-oct-2026, owner, opción D): las dos cifras vuelven como dos etiquetas de una línea bajo el subtítulo.
+     --k = 1vw, salvo en horizontal: ahí lo limita el alto (antes la foto medía 62vw = 523 px en una pantalla de 390). */
+  .ban{height:auto;margin:-24px -16px 0;--k:1vw}
+  @supports (height:1dvh){.ban{--k:min(1vw,.97dvh)}}
+  .ban>img{height:calc(82*var(--k));object-position:36% center}
+  .ban .in{width:auto;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:8px;padding:0 16px 42px;background:linear-gradient(0deg,rgba(8,12,18,.8),rgba(8,12,18,0) 50%)}
+  .ban .t{left:16px;top:calc(6*var(--k));font-size:calc(13*var(--k))}
+  .ban .t::after{margin-top:calc(-3*var(--k))}
+  .ban .s{left:16px;right:16px;top:calc(30*var(--k));font-size:max(12px,calc(4*var(--k)));line-height:1.2}
+  .ban .f,.ban .g{position:static;right:auto;top:auto;max-width:none;text-align:left;font-size:clamp(11px,calc(3.3*var(--k)),14px);line-height:1.3;padding:7px 14px;border:1px solid rgba(246,244,240,.6);border-radius:16px;background:rgba(8,12,18,.35)}
+  .ban .f br,.ban .g br{display:none}
+  .ban .f small,.ban .g small{font-size:1em;letter-spacing:.06em}
+  .isl{margin-top:0;height:0;position:relative;top:auto;align-items:center}.isl span{display:block;max-width:calc(100% - 16px);height:auto;min-height:34px;padding:8px 12px;font-size:min(12px,2.55vw);line-height:18px;letter-spacing:.03em;text-align:center;border-radius:20px;white-space:nowrap}
+  .kpis{flex-direction:column;align-items:stretch;gap:12px;margin-top:28px}
   .kpi.k1,.kpi.k2,.kpi.k3{width:auto;min-width:0;height:auto;min-height:0;padding:28px 20px}
-  .kpi .row{white-space:normal;flex-wrap:wrap;justify-content:center;margin-top:0}
-  .kpi::before{inset:8px}.kpi .row span{font-size:12px}.kpi .row b{font-size:22px}.kpi p{font-size:10px}
-  .ret{margin-top:30px}.ret h2{font-size:24px;line-height:30px}.ret p{font-size:14px;line-height:20px}
+  .kpi .row{white-space:normal;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin-top:0}
+  .kpi::before{inset:8px}.kpi .row span{font-size:16px;letter-spacing:.14em}.kpi .row b{font-size:28px}.kpi p{font-size:10px}  /* título de la tarjeta + cifra: a 12/22px se perdían en móvil (owner, 12-oct) */
+  .ret{margin-top:40px}.ret h2{font-size:24px;line-height:30px}.ret p{font-size:14px;line-height:20px}
   .why .k{font-size:12px}.why h2{margin-top:12px;font-size:22px;line-height:28px}.why .s{font-size:14px;line-height:20px}
   .isles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px;padding:0}
   .isle{width:auto;height:auto;aspect-ratio:396/587}
-  .isle .nm{font-size:40px;line-height:48px}
+  .isle .nm{font-size:min(40px,11vw);line-height:1.2}  /* a 320 px «SUMBA» no cabía en su tarjeta (12-oct) */
   .info .lbl{top:12px;font-size:9px;line-height:12px;white-space:normal;padding:0 6px}
   .facts{left:10px;top:auto;bottom:0;right:6px}
   .facts small{font-size:9px;line-height:12px}.facts strong{font-size:11px;line-height:14px}.facts strong em{font-size:9px}.facts li{margin-bottom:10px}
   .how::after{content:"";position:absolute;inset:0;top:0;height:100%;background:rgba(10,25,35,.45)}
   .how>img{left:0;top:0;width:100%;height:100%;transform:none;object-fit:cover;object-position:30% center}
   .how .hd{color:#fff}.how .hd .k{font-size:12px}.how .hd h2{font-size:22px;line-height:28px}.how .one{margin-top:16px;font-size:12px;height:30px}
-  .ruta6{position:relative;display:block;margin:28px 0 0 6px;max-width:360px}
-  .ruta6::before{left:13px;right:auto;top:14px;bottom:14px;width:1.5px;height:auto}
-  .ruta6 li{display:grid;grid-template-columns:28px 1fr;gap:0 14px;align-items:center;text-align:left;padding-block:7px}
-  .ruta6 .nd{grid-row:span 2;width:28px;height:28px;font-size:12px}
-  .ruta6 h3{margin-top:0;font-size:13px;white-space:normal}
-  .ruta6 p{margin-top:0;font-size:11px;line-height:16px}
+  /* paso a paso en móvil (12-oct): inset:auto quita el top/left de escritorio, que con position:relative bajaba la lista 150px y la sacaba por la derecha */
+  .ruta6{position:relative;inset:auto;display:block;margin:32px auto 0;max-width:340px;padding:14px 18px;background:rgba(10,25,35,.38);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.28);border-radius:16px}
+  .ruta6::before{left:35px;right:auto;top:calc(31px + clamp(14px,2.4vh,22px));bottom:calc(31px + clamp(14px,2.4vh,22px));width:1.5px;height:auto}
+  .ruta6 li{display:grid;grid-template-columns:34px 1fr;gap:2px 16px;align-items:center;text-align:left;padding-block:clamp(14px,2.4vh,22px)}  /* más aire entre pasos: con 10px la línea quedaba apretada y sobraba fondo (owner, 12-oct) */
+  .ruta6 .nd{grid-row:span 2;width:34px;height:34px;font-size:14px}
+  .ruta6 h3{margin-top:0;font-size:15px;line-height:19px;letter-spacing:.06em;white-space:normal;text-wrap:pretty}
+  .ruta6 p{margin-top:0;font-size:13px;line-height:17px;letter-spacing:.04em;opacity:.9}
   .routes .tt .a{font-size:20px;line-height:24px}.routes .tt .bg span:first-child{font-size:30px;line-height:36px}.routes .tt .bg span:last-child{font-size:27px}.routes .tt .bg{flex-wrap:wrap;gap:8px}.routes .tt .c{font-size:18px;line-height:22px;text-align:left}
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px}
   .opt,.opt.pma,.opt.sewa{position:relative;left:auto;top:auto;width:auto;height:auto;padding:22px 16px}
@@ -522,7 +544,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .cl h2{left:24px;top:30px;font-size:22px;line-height:28px}
   .cl a{left:24px;top:auto;bottom:26px;height:34px;padding:0 14px;font-size:10px}
   /* repaso responsive (10-oct-2026): texto mínimo 11px, titular del hero dentro de la foto, pista de scroll en el submenú */
-  .hero .ph h1{bottom:4px;line-height:1.1;z-index:1;font-size:max(20px,5.6vw)}
+  .hero .ph h1{bottom:-.195em;line-height:1.1;z-index:1;font-size:max(20px,5.6vw);right:16px;white-space:normal}  /* a 320 px no cabía en una línea y se cortaba: parte en dos (12-oct) */  /* línea base a ras del borde de la foto, como en escritorio y en soulcitoa.pdf: (1.1 - 1.277)/2 + 0.284 de descendente de NK = .195em (12-oct) */
   .hero .ph::after{content:"";position:absolute;left:0;right:0;bottom:0;height:55%;background:linear-gradient(transparent,rgba(20,14,8,.55));pointer-events:none}
   .soulnav ul{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);padding-right:40px}
   .kpi p{font-size:11px}.kpi p br{display:none}
@@ -564,8 +586,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 /* ═══ móvil / tablet vertical ═══ */
 @media (max-width:900px){
   :root{--menu-h:18px;--gut:16px}
-  .snap{scroll-snap-type:y proximity}
-  .snap > section{height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
+  /* el flujo de las secciones (sin imán ni alto mínimo) lo fija el bloque de móvil / tableta vertical de arriba */
   #topbar{background:rgba(247,244,239,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(190,179,165,.3)}
   #logo-inner .ll-white{display:none}
   #logo-inner .ll-dark{display:block;height:18px;width:129px}
@@ -619,7 +640,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   <nav id="nav">
     <a class="nav-link" href="/thecollection#land" data-i18n="nav.land">The Land</a>
     <a class="nav-link" href="/thecollection#villas" data-i18n="nav.villas">The Villas</a>
-    <a class="nav-link" href="#expedition" data-i18n="nav.soul">The Soul</a>
+    <a class="nav-link" href="/thesoul" data-i18n="nav.soul">The Soul</a>
     <a class="nav-link" href="/portfolio" data-i18n="nav.portfolio">The Portfolio</a>
   </nav>
   <div id="nav-actions">
@@ -712,17 +733,17 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
     <div class="in">
       <p class="t" data-t="INDONESIA">INDONESIA</p>
       <p class="s" data-i18n-html="in.s">WHERE GROWTH <b>IS UNSTOPPABLE.</b></p>
-      <p class="f" data-i18n-html="in.f">2nd fastest <br><b>growing economy</b><br><small>in Asia</small></p>
-      <p class="g" data-i18n-html="in.g"><b>G20</b><br><b>host nation</b><br><small>2022</small></p>
+      <p class="f" data-i18n-html="in.f">2nd fastest <br><b>growing economy</b> <br><small>in Asia</small></p>
+      <p class="g" data-i18n-html="in.g"><b>G20</b> <br><b>host nation</b> <br><small>2022</small></p>
     </div>
   </div>
   <p class="isl"><span data-i18n-html="isl">17,000 ISLANDS.&nbsp;<b>WE CHOSE TWO: BALI AND SUMBA.</b></span></p>
+  <div class="ret"><h2 id="in-h" data-i18n-html="in.h">The economy, the build, <span class="b">the return.</span></h2><p data-i18n-html="in.p2">Three numbers to read first. <b>The return shown is a Palm Field forecast, not a figure for every project.</b></p></div>
   <ul class="kpis">
     <li class="kpi k1"><div class="row"><span data-i18n-html="c1.k">Economic</span><b data-i18n-html="c1.n">5%+ GDP</b></div><p data-i18n-html="c1.p2"><b>Growth rate</b> — largest economy <br>in Southeast Asia, G20 member.</p></li>
     <li class="kpi k2"><div class="row"><span data-i18n-html="c3.k">Profitability</span><b>9.5%–12.9%</b></div><p data-i18n-html="c3.p2"><b>Year-1 ROI range across the Palm Field <br>villa typologies</b> (forecast, not guaranteed).</p></li>
     <li class="kpi k3"><div class="row"><span data-i18n-html="c4.k">Security</span><b>89/100</b></div><p data-i18n-html="c4.p"><b>Law and Order Index</b> — above <br>Japan and the U.S. (Gallup Global Safety Report 2025).</p></li>
   </ul>
-  <div class="ret"><h2 id="in-h" data-i18n-html="in.h">The economy, the build, <span class="b">the return.</span></h2><p data-i18n-html="in.p2">Three numbers to read first. <b>The return shown is a Palm Field forecast, not a figure for every project.</b></p></div>
 </div></section>
 
 <section class="why" id="why" aria-labelledby="why-h" data-spy="why"><div class="st">
@@ -801,7 +822,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   <h2 id="zn-h" data-i18n-html="zn.h"><em>What the land's colour</em> <span class="lt">actually means</span></h2>
   <p class="p" data-i18n-html="zn.p">Every plot in Indonesia is classified on the official RDTR zoning map. The colour decides whether it's legally buildable — and whether a PBG can be issued at all.</p>
   <ul class="zcards">
-    <li class="zc y"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-residential.webp" alt="Aerial view of a river valley with housing" loading="lazy"><span class="dot" aria-hidden="true"></span><button class="zmore" type="button" aria-expanded="false" aria-controls="zb1"><span aria-hidden="true">+</span><span class="sr" data-i18n-html="zb.more">More about this zone</span></button><div class="tx"><h3 data-i18n-html="z1.h">Residential</h3><p class="t2" data-i18n-html="z1.t">Yellow</p><p data-i18n-html="z1.p">Areas zoned for housing. Construction is allowed within the approved use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></div><div class="zb" id="zb1" aria-hidden="true" inert><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><button class="zx" type="button"><span aria-hidden="true">×</span><span class="sr" data-i18n-html="zb.close">Close</span></button><p class="tag" data-i18n-html="zb1.k">Yellow · what you can build</p><h3 data-i18n-html="zb1.h">A home, within the approved use</h3><p class="bp" data-i18n-html="zb1.p">In the RDTR, the detailed zoning plan, yellow marks land for housing. A house can go up once its PBG, Indonesia's building approval, is issued. Running it as a holiday rental needs its own business licence, and whether the zone allows it is checked plot by plot.</p></div></div></li>
+    <li class="zc y"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-residential.webp" alt="Aerial view of a river valley with housing" loading="lazy"><span class="dot" aria-hidden="true"></span><button class="zmore" type="button" aria-expanded="false" aria-controls="zb1"><span aria-hidden="true">+</span><span class="sr" data-i18n-html="zb.more">More about this zone</span></button><div class="tx"><h3 data-i18n-html="z1.h">Residential</h3><p class="t2" data-i18n-html="z1.t">Yellow</p><p data-i18n-html="z1.p">Residential zoning.<br>Approved construction permitted.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></div><div class="zb" id="zb1" aria-hidden="true" inert><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><button class="zx" type="button"><span aria-hidden="true">×</span><span class="sr" data-i18n-html="zb.close">Close</span></button><p class="tag" data-i18n-html="zb1.k">Yellow · what you can build</p><h3 data-i18n-html="zb1.h">A home, within the approved use</h3><p class="bp" data-i18n-html="zb1.p">In the RDTR, the detailed zoning plan, yellow marks land for housing. A house can go up once its PBG, Indonesia's building approval, is issued. Running it as a holiday rental needs its own business licence, and whether the zone allows it is checked plot by plot.</p></div></div></li>
     <li class="zc t"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-tourism.webp" alt="Aerial view of a villa by the coast" loading="lazy"><span class="dot" aria-hidden="true"></span><button class="zmore" type="button" aria-expanded="false" aria-controls="zb2"><span aria-hidden="true">+</span><span class="sr" data-i18n-html="zb.more">More about this zone</span></button><div class="tx"><h3 data-i18n-html="z2.h">Dedicated zones</h3><p class="t2" data-i18n-html="z2.t">Tourism / commercial</p><p data-i18n-html="z2.p">Zones set aside for tourism and commercial use.</p><p class="ok" data-i18n-html="z.ok">✓ Buildable</p></div></div><div class="zb" id="zb2" aria-hidden="true" inert><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><button class="zx" type="button"><span aria-hidden="true">×</span><span class="sr" data-i18n-html="zb.close">Close</span></button><p class="tag" data-i18n-html="zb2.k">Tourism · what it's for</p><h3 data-i18n-html="zb2.h">Built for hospitality from day one</h3><p class="bp" data-i18n-html="zb2.p">These zones are planned for visitors and business: villas run as rentals, boutique hotels, restaurants. Whether a resort or rental business is allowed depends on the zoning rules for that activity, so it is checked before the first drawing, not after the build.</p></div></div></li>
     <li class="zc g"><div class="zin"><div class="zf"><img src="/assets/img/soul/zone-green.webp" alt="Aerial view of terraced rice fields" loading="lazy"><span class="dot" aria-hidden="true"></span><button class="zmore" type="button" aria-expanded="false" aria-controls="zb3"><span aria-hidden="true">+</span><span class="sr" data-i18n-html="zb.more">More about this zone</span></button><div class="tx"><h3 data-i18n-html="z3.h">Protected agricultural land</h3><p class="t2" data-i18n-html="z3.t">Green</p><p data-i18n-html="z3.p">Building is prohibited and no PBG can be issued.</p><p class="ok" data-i18n-html="z.ko">✕ Not buildable</p></div></div><div class="zb" id="zb3" aria-hidden="true" inert><span class="sello" aria-hidden="true"></span><span class="sheen" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><button class="zx" type="button"><span aria-hidden="true">×</span><span class="sr" data-i18n-html="zb.close">Close</span></button><p class="tag" data-i18n-html="zb3.k">Green · why we walk away</p><h3 data-i18n-html="zb3.h">Cheap for a reason</h3><p class="bp" data-i18n-html="zb3.p">Green marks farmland and open space the plan protects. Rice fields listed as LSD and Bali's subak irrigation land have their own protection, which doesn't always match the colour on the map. A house there generally can't get a PBG, and one built without it faces sanctions up to demolition. On green land, a low price is the risk, not the bargain.</p></div></div></li>
   </ul>
@@ -993,9 +1014,9 @@ var SOUL_I18N = {
 "id": "Permukiman"
 },
 "z1.p": {
-"en": "Areas zoned for housing. Construction is allowed within the approved use.",
-"es": "Zonas calificadas para vivienda. Se puede construir dentro del uso aprobado.",
-"id": "Kawasan berzonasi hunian. Pembangunan diizinkan sesuai peruntukan yang disetujui."
+"en": "Residential zoning.<br>Approved construction permitted.",
+"es": "Zonificación residencial.<br>Se permite la construcción aprobada.",
+"id": "Zonasi hunian.<br>Pembangunan yang disetujui diizinkan."
 },
 "z2.t": {
 "en": "Tourism / commercial",
@@ -1583,11 +1604,14 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
     a.addEventListener('click', function () { tb.classList.remove('nav-open'); bur.setAttribute('aria-expanded', 'false'); onScroll(); });
   });
 
-  // Anclas internas: se desplaza el contenedor .snap, no la ventana
+  // Anclas internas: se desplaza el contenedor .snap, no la ventana. Se descuenta su scroll-padding
+  // (en móvil, el alto de la cabecera) para que el título caiga debajo de ella; scrollIntoView lo haría,
+  // pero también desplazaría html/body si algún día desbordan.
+  function destino(t) { return t.offsetTop - (parseFloat(getComputedStyle(snap).scrollPaddingTop) || 0); }
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
       var t = document.querySelector(a.getAttribute('href'));
-      if (t) { e.preventDefault(); snap.scrollTo({ top: t.offsetTop, behavior: 'smooth' }); }
+      if (t) { e.preventDefault(); snap.scrollTo({ top: destino(t), behavior: 'smooth' }); }
     });
   });
 
@@ -1595,7 +1619,7 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   var VIEJAS = { '#roadmap': '#how', '#legal': '#routes', '#services': '#who' };
   var h = location.hash.replace(/^#(services-.*|pane-.*|bands)$/, '#services');
   if (VIEJAS[h]) window.addEventListener('load', function () {
-    var dest = document.querySelector(VIEJAS[h]); if (dest) snap.scrollTop = dest.offsetTop;
+    var dest = document.querySelector(VIEJAS[h]); if (dest) snap.scrollTop = destino(dest);
   });
 
   // Vídeo de fondo de «Come see it»: el mismo de la landing (legacy.mp4). Se descarga solo al
