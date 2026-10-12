@@ -6005,6 +6005,8 @@
     'Opciones': 'Options',
     'Menú': 'Menu',
     'Recibí de cobro': 'Payment receipt',
+    // G2 de Ajustes (12-oct-2026): «Modelos» pasa a «Modelos de casas» (menú, hub, título de la pantalla)
+    'Modelos de casas': 'House models',
   };
 
   window.LW_EN = EN;

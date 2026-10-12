@@ -74,6 +74,7 @@
         filas.push(aviso ? [k, marca(texto) + sufijo(rol), aviso] : [k, marca(texto) + sufijo(rol)]);
       };
       sec.entradas.forEach(function (e) {
+        if (e.sinNucleo && window.AXW_NUCLEO_OPERACION) return;   // Plantillas de Lawang (textos-contrato): en una instancia no existe (12-oct-2026)
         var nom = T(e.texto);
         if (e.pestanas) e.pestanas.forEach(function (t) { pon(t.clave, nom + ' · ' + T(t.texto), t.rol || e.rol); });
         else if (e.claves) e.claves.forEach(function (c) { pon(c.clave, nom + ' · ' + T(c.texto), e.rol); });
