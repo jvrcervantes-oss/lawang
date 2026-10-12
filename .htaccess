@@ -433,7 +433,8 @@ RedirectMatch 404 (?i)/_diag_
 
   # QR dinamicos (/qr/<nombre>, regla en el bloque de mod_rewrite): ni el navegador ni el
   # CDN se guardan la redireccion, o cambiar el destino no llegaria a quien ya escaneo.
-  # `always`: un 302 no es una respuesta 2xx y `Header set` a secas no lo tocaria.
+  # `always`: en un Apache estandar `Header set` a secas no toca un 302. Este host si lo aplica
+  # (el 302 de /intranet/v4/ ya lleva LW_SUITE), pero `always` lo garantiza si cambia el servidor.
   SetEnvIf Request_URI "^/qr/" LW_QR
   Header always set Cache-Control "no-store" env=LW_QR
   Header always unset Expires env=LW_QR
