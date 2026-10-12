@@ -438,7 +438,9 @@ begin
                  'tokens_entrada', coalesce(sum(u.tokens_entrada), 0), 'tokens_salida', coalesce(sum(u.tokens_salida), 0),
                  'caracteres', coalesce(sum(u.caracteres), 0),
                  'coste_usd', round(coalesce(sum(u.coste_usd) filter (where u.estado in ('hecho', 'fallo')), 0), 4),
-                 'coste_incompleto', coalesce(bool_or(u.coste_usd is null and u.estado in ('hecho', 'fallo')), false)) x
+                 -- incompleto: falta una tarifa, o una consulta enviada al proveedor caducó sin cerrar (pudo cobrar y no se sabe cuánto)
+                 'coste_incompleto', coalesce(bool_or((u.coste_usd is null and u.estado in ('hecho', 'fallo'))
+                                                      or (u.estado = 'caducada' and u.enviada_en is not null)), false)) x
           from public.editor_ia_uso u
          where u.periodo >= (v_per - interval '2 months')::date
          group by u.periodo, u.empresa) t), '[]'::jsonb),
@@ -481,6 +483,12 @@ begin
   end loop;
   if p_empresa is null then
     select to_jsonb(a) - 'id' into v_antes from public.editor_ia_ajustes a where a.id for update;
+    -- Una sola moneda por mes (revisor 13-oct): cada consulta congela la suya y el importe del extracto las sumaría mezcladas.
+    -- Con consultas hechas o en curso este mes, la moneda no cambia hasta el mes que viene (antes de su primera consulta).
+    if p_campos ? 'moneda' and (p_campos ->> 'moneda') is distinct from (v_antes ->> 'moneda')
+       and exists (select 1 from public.editor_ia_uso u where u.periodo = public._editor_ia_periodo() and u.estado in ('hecho', 'reservado')) then
+      raise exception 'La moneda no se cambia a mitad de mes: este mes ya hay consultas en %. Se puede cambiar el primer dia del mes que viene, antes de la primera consulta', v_antes ->> 'moneda' using errcode = '22023';
+    end if;
     update public.editor_ia_ajustes a set
       precio_credito            = case when p_campos ? 'precio_credito' then (p_campos ->> 'precio_credito')::numeric else a.precio_credito end,
       moneda                    = case when p_campos ? 'moneda' then p_campos ->> 'moneda' else a.moneda end,

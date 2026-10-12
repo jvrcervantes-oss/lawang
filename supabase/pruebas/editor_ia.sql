@@ -250,6 +250,23 @@ begin
   if (select incluidos from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo()) is distinct from 7 then
     fallos := fallos + 1; resumen := resumen || ' [H9 incluidos del mes en curso: ' || r || ']';
   end if;
+  -- H10: una consulta hecha y NO de prueba se factura al precio congelado (2 créditos × 1,5 = 3 EUR), y la moneda ya no cambia este mes
+  j := pg_temp.pide('authenticated', v_sup, v_sup_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
+  v_uso2 := (j ->> 'uso')::uuid;
+  perform pg_temp.intenta('service_role', null, null, format('select public.editor_ia_cierra(%L, true, %L, 10, 5, 0, %L, %L::jsonb)', v_uso2, 'claude-opus-5-5', h2, '[]'));
+  j := pg_temp.pide('authenticated', v_sup, v_sup_em, 'select public.editor_ia_ajustes_datos()');
+  select x into j from jsonb_array_elements(j -> 'extracto') x where x ->> 'empresa' = v_ea and (x ->> 'periodo')::date = public._editor_ia_periodo();
+  total := total + 1;
+  if j is null or (j ->> 'facturables') <> '2' or (j ->> 'importe')::numeric <> 3 or (j ->> 'moneda') <> 'EUR' then
+    fallos := fallos + 1; resumen := resumen || ' [H10 importe facturable: ' || coalesce(j::text, 'error') || ']';
+  end if;
+  r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_ajustes_guarda(null, %L::jsonb, %L)', '{"moneda": "USD"}', 'prueba'));
+  total := total + 1; if r not like 'E22023%' or (select moneda from public.editor_ia_ajustes where id) <> 'EUR' then
+    fallos := fallos + 1; resumen := resumen || ' [H11 cambiar la moneda a mitad de mes: ' || r || ']';
+  end if;
+  r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_ajustes_guarda(null, %L::jsonb, %L)', '{"moneda": "EUR", "precio_credito": 2}', 'prueba'));
+  total := total + 1; if r <> 'OK:1' then fallos := fallos + 1; resumen := resumen || ' [H12 la misma moneda y otro precio sí: ' || r || ']'; end if;
+
   -- H6: una reserva abandonada de OTRA empresa también caduca (si no, tendría ocupada la jaula global de las demás)
   insert into public.editor_ia_saldo (empresa, periodo, usados) values (v_eb, public._editor_ia_periodo(), 5)
     on conflict (empresa, periodo) do update set usados = public.editor_ia_saldo.usados + 5;
