@@ -152,6 +152,14 @@ html,body{background:var(--paper)}
 .m{font-weight:500}.r{font-weight:400}.xb{font-weight:800}
 .snap > section{padding-top:calc(var(--top) + var(--band))}
 .st{position:relative;width:calc(1920*var(--u));height:calc(906*var(--u));margin:0 auto}
+/* pantallas más altas que el PDF (4:3, 16:10 — 12-oct-2026): lo que sobra de alto se reparte arriba y abajo en vez de
+   quedarse todo como banda vacía al pie; las fotos a sangre de arriba (hero, Territorial, Indonesia) crecen hasta la franja.
+   En 16:9 --sobra vale 0 y nada cambia. Zoning no: ya usa ese sobrante para alargar sus tarjetas (--zx). */
+:root{--sobra:max(0px,calc((var(--vh) - var(--top) - var(--band) - 906*var(--u)) / 2))}
+.snap > section{--sube:var(--sobra)}
+.snap > section.hero,.snap > section.who,.snap > section.indo{--sube:calc(2*var(--sobra))}  /* con foto a sangre arriba: la foto se queda TODO el sobrante y abajo no queda banda */
+.snap > section > .st{top:var(--sube)}
+.zone .st{top:0}
 .bleed{position:absolute;left:calc(50% - 50vw);width:100vw}
 
 /* submenú verde (página propia de The Soul, no es el menú común) */
@@ -162,9 +170,9 @@ html,body{background:var(--paper)}
 .soulnav a:hover{color:#fff}
 
 /* 1 · hero */
-.hero .ph{top:0;height:calc(511*var(--u));overflow:hidden;z-index:2}
+.hero .ph{top:calc(-1*var(--sube));height:calc(511*var(--u) + var(--sube));overflow:hidden;z-index:2}
 .hero .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 56%}
-.hero .ph h1{position:absolute;left:calc(50vw - calc(960*var(--u)) + calc(83*var(--u)));top:calc(464*var(--u));font-size:calc(47*var(--u));line-height:calc(59*var(--u));color:#F6F4F0;letter-spacing:.035em;font-weight:400;white-space:nowrap}
+.hero .ph h1{position:absolute;left:calc(50vw - calc(960*var(--u)) + calc(83*var(--u)));top:calc(464*var(--u) + var(--sube));font-size:calc(47*var(--u));line-height:calc(59*var(--u));color:#F6F4F0;letter-spacing:.035em;font-weight:400;white-space:nowrap}
 .sil{position:absolute;opacity:.05;pointer-events:none}
 .totem{position:absolute;left:calc(1600*var(--u));top:calc(455*var(--u));width:calc(260*var(--u));mix-blend-mode:multiply;pointer-events:none}
 .hero h2{position:absolute;left:calc(86*var(--u));top:calc(552*var(--u));font-size:calc(44*var(--u));line-height:calc(54*var(--u));color:var(--brown-d);font-weight:700;letter-spacing:.025em;white-space:nowrap}
@@ -180,10 +188,10 @@ html,body{background:var(--paper)}
 .claim .k2{margin-top:calc(22*var(--u))}
 
 /* 2 · who we are */
-.terr{top:calc(4*var(--u));height:calc(481*var(--u));color:#fff;overflow:hidden}
+.terr{top:calc(4*var(--u) - var(--sube));height:calc(481*var(--u) + var(--sube));color:#fff;overflow:hidden}
 .terr>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 58%}
 .terr::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,22,10,.6),rgba(15,22,10,.32) 60%,rgba(15,22,10,.18))}
-.terr .in{position:relative;z-index:2;width:calc(1920*var(--u));height:100%;margin:0 auto}
+.terr .in{position:relative;z-index:2;top:var(--sube);width:calc(1920*var(--u));height:calc(100% - var(--sube));margin:0 auto}
 .terr .fr{position:absolute;left:calc(45*var(--u));top:calc(39*var(--u));width:calc(1830*var(--u));height:calc(393*var(--u));border:1px solid rgba(255,255,255,.8);border-radius:calc(10*var(--u))}
 .terr .tag{position:absolute;left:calc(148*var(--u));top:calc(81*var(--u));min-width:calc(331*var(--u));height:calc(48*var(--u));padding:0 calc(20*var(--u));background:var(--deep);border-radius:calc(6*var(--u));display:flex;align-items:center;justify-content:center;font-size:max(11px,calc(19.9*var(--u)));font-weight:500;letter-spacing:.05em;text-transform:uppercase}
 .terr h2{position:absolute;left:calc(148*var(--u));top:calc(158*var(--u));font-size:calc(80.9*var(--u));line-height:calc(100*var(--u));letter-spacing:.045em;font-weight:350;white-space:nowrap}
@@ -204,9 +212,9 @@ html,body{background:var(--paper)}
 .cards4 .d{position:absolute;left:calc(24*var(--u));top:calc(115*var(--u));font-size:max(10px,calc(17.2*var(--u)));line-height:calc(32*var(--u));letter-spacing:.17em;text-transform:uppercase}
 
 /* 3 · indonesia */
-.ban{top:0;height:calc(394*var(--u));overflow:hidden;color:#F6F4F0}
+.ban{top:calc(-1*var(--sube));height:calc(394*var(--u) + var(--sube));overflow:hidden;color:#F6F4F0}
 .ban>img{width:100%;height:100%;object-fit:cover}
-.ban .in{position:absolute;inset:0;width:calc(1920*var(--u));margin:0 auto}
+.ban .in{position:absolute;inset:0;top:var(--sube);width:calc(1920*var(--u));margin:0 auto}
 .ban .t{position:absolute;left:calc(212*var(--u));top:calc(72*var(--u));font-family:'Seasons','Didot',Georgia,serif;font-weight:300;font-size:calc(124*var(--u));line-height:1;letter-spacing:.02em;color:#F4EEE3}
 .ban .t::after{content:attr(data-t);content:attr(data-t) / "";position:absolute;left:0;top:100%;margin-top:calc(-28*var(--u));transform:scaleY(-1);opacity:.35;-webkit-mask:linear-gradient(0deg,#000,transparent 55%);mask:linear-gradient(0deg,#000,transparent 55%);pointer-events:none}
 .ban .s{position:absolute;left:calc(214*var(--u));top:calc(186*var(--u));font-size:calc(36*var(--u));line-height:calc(44*var(--u));letter-spacing:.03em;text-transform:uppercase}
@@ -413,11 +421,15 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 
 /* ═══ móvil / tablet vertical ═══ */
 @media (max-width:900px),(max-height:600px),(orientation:portrait) and (max-width:1366px){
-  :root{--u:.5px;--band:44px}
-  .snap{scroll-snap-type:y proximity}
-  .snap > section{height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
+  :root{--u:.5px;--band:44px;--sobra:0px}
+  /* flujo continuo (12-oct-2026, owner: «espacios muy grandes»): aquí cada sección mide lo que su contenido.
+     Con alto mínimo de pantalla, la cabecera reservada en cada sección y el imán, cada final de sección dejaba
+     un hueco de papel de 120-680 px. La cabecera la reserva solo el hero; las anclas caen bajo ella por scroll-padding.
+     Medido con tools/huecos_web.js. */
+  .snap{scroll-snap-type:none;scroll-padding-top:calc(var(--top) + var(--band))}
+  .snap > section{height:auto;min-height:0;overflow:visible;padding-top:0}
   .snap{background-size:960px auto}
-  .snap > section{padding-top:calc(var(--top) + var(--band))}
+  .snap > section.hero{padding-top:calc(var(--top) + var(--band))}
   .st{width:auto;height:auto;padding:24px 16px 36px}
   .bleed{position:relative;left:auto;width:auto;margin:-24px -16px 0}
   .soulnav ul{justify-content:flex-start;overflow-x:auto;gap:22px;padding:0 16px;scrollbar-width:none}
@@ -524,7 +536,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .cl h2{left:24px;top:30px;font-size:22px;line-height:28px}
   .cl a{left:24px;top:auto;bottom:26px;height:34px;padding:0 14px;font-size:10px}
   /* repaso responsive (10-oct-2026): texto mínimo 11px, titular del hero dentro de la foto, pista de scroll en el submenú */
-  .hero .ph h1{bottom:-.195em;line-height:1.1;z-index:1;font-size:max(20px,5.6vw)}  /* línea base a ras del borde de la foto, como en escritorio y en soulcitoa.pdf: (1.1 - 1.277)/2 + 0.284 de descendente de NK = .195em (12-oct) */
+  .hero .ph h1{bottom:-.195em;line-height:1.1;z-index:1;font-size:max(20px,5.6vw);right:16px;white-space:normal}  /* a 320 px no cabía en una línea y se cortaba: parte en dos (12-oct) */  /* línea base a ras del borde de la foto, como en escritorio y en soulcitoa.pdf: (1.1 - 1.277)/2 + 0.284 de descendente de NK = .195em (12-oct) */
   .hero .ph::after{content:"";position:absolute;left:0;right:0;bottom:0;height:55%;background:linear-gradient(transparent,rgba(20,14,8,.55));pointer-events:none}
   .soulnav ul{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);padding-right:40px}
   .kpi p{font-size:11px}.kpi p br{display:none}
@@ -566,8 +578,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 /* ═══ móvil / tablet vertical ═══ */
 @media (max-width:900px){
   :root{--menu-h:18px;--gut:16px}
-  .snap{scroll-snap-type:y proximity}
-  .snap > section{height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
+  /* el flujo de las secciones (sin imán ni alto mínimo) lo fija el bloque de móvil / tableta vertical de arriba */
   #topbar{background:rgba(247,244,239,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(190,179,165,.3)}
   #logo-inner .ll-white{display:none}
   #logo-inner .ll-dark{display:block;height:18px;width:129px}
@@ -1589,7 +1600,8 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
       var t = document.querySelector(a.getAttribute('href'));
-      if (t) { e.preventDefault(); snap.scrollTo({ top: t.offsetTop, behavior: 'smooth' }); }
+      // scrollIntoView respeta el scroll-padding de .snap: en móvil el título cae bajo la cabecera, no debajo de ella
+      if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     });
   });
 
@@ -1597,7 +1609,7 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   var VIEJAS = { '#roadmap': '#how', '#legal': '#routes', '#services': '#who' };
   var h = location.hash.replace(/^#(services-.*|pane-.*|bands)$/, '#services');
   if (VIEJAS[h]) window.addEventListener('load', function () {
-    var dest = document.querySelector(VIEJAS[h]); if (dest) snap.scrollTop = dest.offsetTop;
+    var dest = document.querySelector(VIEJAS[h]); if (dest) dest.scrollIntoView({ block: 'start' });
   });
 
   // Vídeo de fondo de «Come see it»: el mismo de la landing (legacy.mp4). Se descarga solo al
