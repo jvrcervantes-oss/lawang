@@ -18,6 +18,18 @@
 --    igualar a la regla general. Sin comisiones generadas: se desactiva y manda la general.
 --
 -- Idempotente: ids fijos, cada paso comprueba antes de escribir.
+--
+-- ACEPTADO (CEO, 12-oct-2026, decisión de dinero del owner tomada ese día): las 3 condiciones nuevas
+-- solapan a propósito con las de 2,5 % (lawang 2ad6c563, sandal_woods 8166a6f7), que tienen devengos
+-- (RP00025, SP-47 pagada) y no se pueden reescribir ni cerrar antes. El empate en vigente_desde
+-- (1900-01-01, comprobado en base) lo resuelve el motor por created_at → gana el 10 %. Coste: editar
+-- en la intranet cualquiera de esas condiciones cerradas (1900..29-sep) choca con _condicion_solapa;
+-- son de un periodo ya cerrado y no se editan.
+-- Comprobado tras aplicar: las 6 en 10 % con su solicitud y concepto «10% s/»; RP00202 → SP-113;
+-- una venta de Victor en Palm Field (CR00025, 18-ago) elige la condición nueva, no la 50/50.
+-- Ventas antiguas que ahora devengarían al 10 % (antes al 2,5 %) con su próximo cobro: ninguna del
+-- equipo de Victor pasa del 6 % de la parcela; sin equipo, solo RP00082 (80 %, sin firmar) y
+-- RP00040 (48,5 %, firmada), además de las de hello@, que siguen al 0 %.
 
 do $$
 declare
