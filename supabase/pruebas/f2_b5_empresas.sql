@@ -84,13 +84,11 @@ begin
   -- ================================================================ preparacion: personas (todo en rollback)
   select array_agg(user_id order by email), array_agg(email order by email) into ag, age
     from (select user_id, email from public.usuarios where rol = 'agente' and activo and cardinality(empresas) = 0
-            and email not in ('yanayjefferson@gmail.com','cris.blueiestates@gmail.com','adenovit.b@gmail.com') order by email limit 12) q;
-  select user_id, email into a, ae from public.usuarios where email = 'yanayjefferson@gmail.com';
-  select user_id, email into s, se from public.usuarios where email = 'cris.blueiestates@gmail.com';
-  select user_id, email into d, de from public.usuarios where email = 'adenovit.b@gmail.com';
-  x := ag[1]; xe := age[1]; c := ag[2]; ce := age[2];
-  t1 := ag[3]; t1e := age[3]; t2 := ag[4]; t2e := age[4]; t3 := ag[5]; t3e := age[5]; t4 := ag[6]; t4e := age[6];
-  t5 := ag[7]; t5e := age[7]; t6 := ag[8]; t6e := age[8]; t7 := ag[9]; t7e := age[9]; t8 := ag[10]; t8e := age[10];
+            order by email limit 15) q;   -- 13-oct-2026: sin correos reales en el repo; a, s y d son los tres primeros del mismo grupo
+  a := ag[1]; ae := age[1]; s := ag[2]; se := age[2]; d := ag[3]; de := age[3];
+  x := ag[4]; xe := age[4]; c := ag[5]; ce := age[5];
+  t1 := ag[6]; t1e := age[6]; t2 := ag[7]; t2e := age[7]; t3 := ag[8]; t3e := age[8]; t4 := ag[9]; t4e := age[9];
+  t5 := ag[10]; t5e := age[10]; t6 := ag[11]; t6e := age[11]; t7 := ag[12]; t7e := age[12]; t8 := ag[13]; t8e := age[13];
   perform set_config('request.jwt.claims', json_build_object('sub', jv, 'role', 'authenticated', 'email', je)::text, true);   -- el propietario monta las fichas de prueba
   -- roles de empresa (como postgres: sin sesion, el candado lo deja pasar)
   update public.usuarios set rol = 'admin_empresa', ambito = 'empresa', empresas = '{lawang}', proyectos = '{}', proyectos_supervisados = '{}', herramientas = '{usuarios,contratos,leads}', tipos_contrato = '{carta_reserva}' where user_id = a;

@@ -1,5 +1,5 @@
 -- Foto de visibilidad por usuario (Fase 2, paso 1, 7-oct-2026). Se ejecuta por execute_sql ANTES y DESPUES de cada migracion de la Fase 2;
--- termina con un raise a proposito (sin rastro) cuyo mensaje trae un md5 y las filas. Debe dar el md5 de supabase/pruebas/f2_foto_previa.json (md5_servidor).
+-- termina con un raise a proposito (sin rastro) cuyo mensaje trae un md5 y las filas. Debe dar el md5_servidor de la foto previa: b2ccde66a58969661c794fa68108f21f (la foto, con correos reales, se retiró del repo público el 13-oct-2026; solo se compara el md5).
 -- Por usuario: JWT simulado con email + set local role authenticated; filas visibles de 9 tablas; es_admin/es_super_admin/es_agente; proyecto_visible sobre
 -- 3 proyectos (Bonian Village, el primer Sumba Hills por nombre, el primero con empresa nula = Karana). Nota: si cambia el reparto de empresas o usuarios, la foto previa ya no vale.
 do $t$
