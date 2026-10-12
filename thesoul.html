@@ -456,8 +456,9 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .terr .fr{inset:10px;width:auto;height:auto}
   .terr .tag{display:inline-flex;height:auto;min-width:0;padding:6px 12px;font-size:12px}
   .terr h2{margin-top:12px;font-size:32px;line-height:38px}
-    .terr .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-  .terr .chips li{height:auto;min-width:0;padding:8px 10px;font-size:12px;white-space:normal}
+  /* las 4 pastillas en columna, una debajo de otra (owner, 12-oct, opción C): con wrap + el space-between de escritorio quedaba una sola a la derecha */
+  .terr .chips{display:flex;flex-direction:column;gap:8px;margin-top:16px;max-width:420px}
+  .terr .chips li{height:auto;min-width:0;padding:10px 14px;font-size:12px;white-space:normal;justify-content:flex-start;text-align:left}
   .svc-h{margin-top:30px}.svc-h .k{font-size:12px}.svc-h h2{font-size:22px;line-height:28px}
   .cards4{grid-template-columns:1fr;gap:16px;margin-top:20px}
   .cards4 .tab{font-size:13px;height:34px}.cards4 .tab svg{height:16px}
