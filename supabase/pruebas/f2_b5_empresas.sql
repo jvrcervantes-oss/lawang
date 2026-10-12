@@ -85,6 +85,7 @@ begin
   select array_agg(user_id order by email), array_agg(email order by email) into ag, age
     from (select user_id, email from public.usuarios where rol = 'agente' and activo and cardinality(empresas) = 0
             order by email limit 15) q;   -- 13-oct-2026: sin correos reales en el repo; a, s y d son los tres primeros del mismo grupo
+  if coalesce(cardinality(ag), 0) < 13 then raise exception 'f2_b5: hacen falta 13 agentes activos sin empresa y hay %', coalesce(cardinality(ag), 0); end if;
   a := ag[1]; ae := age[1]; s := ag[2]; se := age[2]; d := ag[3]; de := age[3];
   x := ag[4]; xe := age[4]; c := ag[5]; ce := age[5];
   t1 := ag[6]; t1e := age[6]; t2 := ag[7]; t2e := age[7]; t3 := ag[8]; t3e := age[8]; t4 := ag[9]; t4e := age[9];
