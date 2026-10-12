@@ -101,8 +101,9 @@
       { path: 'ajustes', texto: 'Ajustes', clave: 'ajustes', rol: 'admin', global: true },
       /* `solo` (7-oct-2026, owner): la puerta de la página lleva data-ambito igual — comision-admin: «super-global» (solo los super admins
          globales; un super de EMPRESA no la ve ni entra), sociedades: «propietario» (solo el propietario). nav.test.js casa menú y puerta. */
-      { path: 'comision-admin', texto: 'Comisión de administración', rol: 'super_admin', solo: 'super-global' },
-      { path: 'sociedades', texto: 'Sociedades emisoras', rol: 'super_admin', solo: 'propietario' }] }
+      { path: 'comision-admin', texto: 'Comisión de administración', rol: 'super_admin', solo: 'super-global' }] }
+      /* Sociedades emisoras ya no es entrada del menú (owner, 12-oct-2026: «sobra, va en Ajustes»): es una pestaña de Ajustes y
+         /sociedades/ redirige a /ajustes/#sociedades. */
   ];
   if (typeof window !== 'undefined') window.LW_MENU_V4 = MENU_V4;
 
@@ -464,8 +465,7 @@
      del todo (27-sep-2026). */
 
   var PANEL_CONTROL_SUPER = [
-    { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración', solo: 'super-global' },
-    { path: 'sociedades',     icono: 'domain',             texto: 'Sociedades emisoras',        solo: 'propietario' }
+    { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración', solo: 'super-global' }
   ];
   /* Quién ve cada entrada de PANEL_CONTROL_SUPER (7-oct-2026): la Comisión de administración, solo un super admin GLOBAL; Sociedades emisoras, solo el
      propietario. Un super admin de empresa ya no las ve (ni la base le contesta: es_super_admin() / es_propietario()). */

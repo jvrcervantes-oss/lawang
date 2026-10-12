@@ -9928,6 +9928,9 @@
     /* Impuestos (AxisWorks ERP): la BANDERA primero, antes de mirar ningún dato. En Lawang no existe la
        tabla y esta pantalla tiene que quedar exactamente como estaba: ni sección, ni consulta. */
     if (window.AXW_NUCLEO_OPERACION) impuestosAjustes(sb, soloLee);
+    /* Sociedades emisoras viven en su pestaña de Ajustes (owner, 12-oct-2026: «Va en Ajustes»): las pinta REG.sociedades, y solo para
+       quien la base deja escribir; a los demás, ni consulta. */
+    if (window.LW_V4.puedeSociedades && document.getElementById('lw-soc-lista')) REG['sociedades'](sb);
   };
 
   /* ═══ IMPUESTOS — Ajustes (AxisWorks ERP, 26-sep-2026) ═══════════════════════════════════════════════
@@ -10035,7 +10038,7 @@
   }
 
   REG['sociedades'] = function (sb) {
-    if (!(window.LW_V4 && window.LW_V4.esPropietario)) { notaSoloAdmin(); return; }   // solo el propietario (7-oct-2026, owner); la base: es_propietario()
+    if (!(window.LW_V4 && window.LW_V4.puedeSociedades)) { notaSoloAdmin(); return; }   // solo quien la base deja escribir: el propietario en Lawang (7-oct-2026, owner), el super admin en el ERP maestro
 
     var cuerpoLista = document.getElementById('lw-soc-lista');
     var cuerpoLog = document.getElementById('lw-soc-log');
@@ -10077,17 +10080,17 @@
             '</div></td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(s.npwp_label || 'NPWP') + ': ' + esc(s.npwp || '—') + '</td>' +
             '<td class="px-5 py-4"><div class="flex flex-wrap gap-1">' +
-              (s.es_indonesia === false ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider bg-surface-container-high text-on-surface-variant">No indonesa</span>' : '') +
-              (npwpPendiente ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider bg-error-container/60 text-error">NPWP pendiente</span>' : '') +
+              (s.es_indonesia === false ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider bg-surface-container-high text-on-surface-variant">' + esc(tx('No indonesa')) + '</span>' : '') +
+              (npwpPendiente ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider bg-error-container/60 text-error">' + esc(tx('NPWP pendiente')) + '</span>' : '') +
             '</div></td>' +
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
-              (s.activa ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-error-container/60 text-error') + '">' + (s.activa ? 'Activa' : 'Desactivada') + '</span></td>' +
-            '<td class="px-5 py-4 text-right"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-soc-editar="' + esc(s.clave) + '">Editar</button></td></tr>';
-        }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">No hay ninguna sociedad dada de alta.</td></tr>';
+              (s.activa ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-error-container/60 text-error') + '">' + esc(tx(s.activa ? 'Activa' : 'Desactivada')) + '</span></td>' +
+            '<td class="px-5 py-4 text-right"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-soc-editar="' + esc(s.clave) + '">' + esc(tx('Editar')) + '</button></td></tr>';
+        }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(tx('No hay ninguna sociedad dada de alta.')) + '</td></tr>';
       }
 
       if (selLog) {
-        selLog.innerHTML = '<option value="">Todas las sociedades</option>' +
+        selLog.innerHTML = '<option value="">' + esc(tx('Todas las sociedades')) + '</option>' +
           socs.map(function (s) { return '<option value="' + esc(s.clave) + '">' + esc(s.razon) + '</option>'; }).join('');
       }
 
@@ -10130,10 +10133,10 @@
           return '<tr class="border-b border-outline-variant/30">' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFechaHora(f.cuando)) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(nombre) + '</td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(f.quien || '(sin registrar)') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(f.quien || tx('(sin registrar)')) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-on-surface-variant">' + f.cambios + '</td></tr>';
         }).join('') : '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' +
-          (filtro ? 'Ningún cambio de identidad fiscal registrado para esta sociedad.' : 'Ningún cambio de identidad fiscal registrado todavía.') + '</td></tr>';
+          esc(tx(filtro ? 'Ningún cambio de identidad fiscal registrado para esta sociedad.' : 'Ningún cambio de identidad fiscal registrado todavía.')) + '</td></tr>';
       }
       pintaLog();
       if (selLog) selLog.addEventListener('change', pintaLog);
@@ -10388,6 +10391,7 @@
       window.LW_V4.esGlobal = LW_ROL.esGlobal(aut.ficha);
       window.LW_V4.esSuperGlobal = LW_ROL.esSuperGlobal(aut.ficha);
       window.LW_V4.esPropietario = LW_ROL.esPropietario(aut.ficha);
+      window.LW_V4.puedeSociedades = LW_ROL.puedeSociedades(aut.ficha);   // el mismo predicado que sociedad_guarda en esta base (12-oct-2026)
       window.LW_V4.empresasMias = LW_ROL.empresas(aut.ficha);
       // la ficha de sesion entera (herramientas incluidas), para quien decida por ella
       window.LW_V4.ficha = aut.ficha || null;

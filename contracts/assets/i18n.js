@@ -5756,6 +5756,16 @@
     'Limita en qué proyectos puede crear y editar contratos. Sin ninguno marcado, no puede crear en ninguno. Solo se pueden marcar los proyectos de las empresas marcadas arriba.': 'Limits the projects where they can create and edit contracts. With none ticked, they cannot create in any. Only projects of the companies ticked above can be ticked.',
     'No se pudo leer el catálogo de tipos de contrato, o no tiene ninguno activo: los que tiene se conservan tal cual (no se tocan desde aquí hasta que cargue).': 'The contract type catalogue could not be read, or has none active: the ones they have are kept as they are (not touched from here until it loads).',
     'No se ha podido leer el catálogo de tipos de contrato, o no tiene ninguno activo: recarga la pantalla (o activa un tipo en Plantillas) antes de dar de alta a nadie.': 'The contract type catalogue could not be read, or has none active: reload the screen (or activate a type in Templates) before registering anyone.',
+    // Sociedades emisoras en Ajustes (bbm-p18-front, 12-oct-2026)
+    'Cada sociedad y su identidad': 'Each company and its identity',
+    'Cambios de identidad fiscal': 'Changes to tax identity',
+    'Qué cambió': 'What changed',
+    'No indonesa': 'Not Indonesian',
+    'NPWP pendiente': 'NPWP pending',
+    'No hay ninguna sociedad dada de alta.': 'No company has been added yet.',
+    'Ningún cambio de identidad fiscal registrado todavía.': 'No tax identity change recorded yet.',
+    'Ningún cambio de identidad fiscal registrado para esta sociedad.': 'No tax identity change recorded for this company.',
+    '(sin registrar)': '(not recorded)'
   };
 
   window.LW_EN = EN;
