@@ -637,14 +637,31 @@
   }
 
   var mesIni = new Date(); mesIni.setDate(1); mesIni.setHours(0, 0, 0, 0);
-  function sumaMesEUR(recibis) {
-    var eur = 0, otros = 0;
+  function sumaMesBase(recibis, base) {
+    var suma = 0, otros = 0;
+    if (!base) return { suma: 0, otros: 0 };   // sin moneda base no se suma nada: quien pinta enseña «—»
     (recibis || []).forEach(function (f) {
       if (f.anulada) return;
       if (new Date(f.fecha_emision || f.created_at) < mesIni) return;   // el mes es el de EMISIÓN
-      if ((f.moneda || 'EUR') === 'EUR') eur += Number(f.total) || 0; else otros++;
+      if ((f.moneda || base) === base) suma += Number(f.total) || 0; else otros++;
     });
-    return { eur: eur, otros: otros };
+    return { suma: suma, otros: otros };
+  }
+  /* Moneda BASE del ERP (F3 fase E, 12-oct-2026): la decide guard.js (lwMonedaBase). En Lawang es EUR, como siempre; en una instancia es la que
+     se eligió en Ajustes, y null = aún sin decidir: entonces las cifras de cobro salen «—», nunca «0 EUR» ni sumadas en otra moneda. */
+  function monedaBase() { return typeof window.lwMonedaBase === 'function' ? window.lwMonedaBase() : 'EUR'; }
+  var SIN_MONEDA = 'la moneda del ERP aún no está decidida: se elige en Ajustes';
+  var SIN_LEER_MONEDA = 'no se pudo leer la moneda del ERP: recarga la página';
+  /* La moneda llega con la capa de módulos (apagados_instancia.js la fija ANTES de resolver AXW_MODULOS_LISTOS). Quien pinta una cifra sumada
+     espera aquí (revisor de p20): leerla antes daba «—» y «aún no está decidida» con la moneda ya elegida. fn(base, motivo): base null =
+     no se pinta cifra, y motivo dice por qué (sin decidir o no se pudo leer). Sin bandera (Lawang) fn corre en el acto con 'EUR', como siempre. */
+  function conMonedaBase(fn) {
+    var espera = esperaModulos();
+    if (!espera) { var b = monedaBase(); return fn(b, b ? '' : SIN_MONEDA); }
+    espera.then(function (ok) {
+      var b2 = ok ? monedaBase() : null;
+      fn(b2, b2 ? '' : (ok ? SIN_MONEDA : SIN_LEER_MONEDA));
+    }, function () { fn(null, SIN_LEER_MONEDA); });
   }
 
   /* ══════════════ registro por pantalla ══════════════ */
@@ -780,6 +797,13 @@
     return !(window.AXW_NUCLEO_OPERACION && !(window.axwModuloActivo ? window.axwModuloActivo(m) : true));
   }
   function contratosActivo() { return moduloEncendido('contratos'); }
+  /* Ajustes › plazos (idiomas-pH, 12-oct-2026): qué filas de `parametros` se pintan. Las `reservas.*` (plazos de las Cartas de Reserva) son
+     del módulo `reservas`: en una instancia que lo tiene apagado no se ofrecen; el resto de la tabla (p. ej. construccion.*, que lee
+     hitos_fechas.js) sí, porque `parametros` es del núcleo. `encendido` es moduloEncendido: sin bandera (Lawang) siempre true y no se quita
+     ninguna. Lo fija parametros_visibles.test.js. */
+  function parametrosVisibles(rows, encendido) {
+    return (rows || []).filter(function (r) { return !(/^reservas\./.test(String((r && r.clave) || '')) && !encendido('reservas')); });
+  }
   function soporteActivo() { return moduloEncendido('soporte'); }
   /* Desacople (corte 3, 5-oct-2026): en el maestro, `axwModuloActivo` devuelve true («no sé») mientras carga lo
      encendido. Una pantalla que DECIDE qué pedir (no solo qué enseñar) espera aquí a que la base conteste, o pediría
@@ -1027,6 +1051,8 @@
       suave(sb.rpc('facturas_pendiente_equipo')),
       suave(sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,cliente_nombre,contrato_id,justificantes,justificante_path,fecha_emision,created_at' + colsSerie() + colsHistorico()).in('tipo', ['factura', 'recibi']))
     ]).then(function (r) {
+      // la fila del saldo pendiente suma en la moneda base (conMonedaBase; en Lawang, en el acto y en EUR, como siempre)
+      conMonedaBase(function (mb, motivo) {
       var FILAS = [];
       var fila = function (tono, icono, titulo, detalle, n, href, cta) { FILAS.push({ tono: tono, icono: icono, titulo: titulo, detalle: detalle, n: n, href: href, cta: cta }); };
       var diasA = function (iso) { return Math.round((new Date(iso + 'T00:00:00') - new Date(hoy + 'T00:00:00')) / 864e5); };
@@ -1090,8 +1116,8 @@
           (r[2] || []).forEach(function (c) { if (c.bloqueado && !c.liberado_en) vivoFirmado[c.id] = true; });
           var con = !r[2] ? [] : r[5].filter(function (f) { return f.tipo === 'factura' && !f.anulada && pend[f.id] > 0.005 && vivoFirmado[f.contrato_id]; });
           if (con.length) {
-            var eur = 0, otras = 0; con.forEach(function (f) { if ((f.moneda || 'EUR') === 'EUR') eur += pend[f.id]; else otras++; });
-            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), fmt(eur, 'EUR') + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : ''), con.length, '/intranet/v4/facturas/', T('Ver'));
+            var enBase = 0, otras = 0; if (mb) con.forEach(function (f) { if ((f.moneda || mb) === mb) enBase += pend[f.id]; else otras++; });
+            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), mb ? fmt(enBase, mb) + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : '') : T(motivo), con.length, '/intranet/v4/facturas/', T('Ver'));
           }
         }
         /* LAW-40 (owner 10-oct-2026): los recibís de antes del 11-ago-2026 marcados `historico_sin_justificante`
@@ -1122,6 +1148,7 @@
           '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(x.cta) + ' →</span></span></a>';
       }).join('') + avisoCaidas;
       caja.hidden = false;
+      });
     });
   }
   /* «Firmas pendientes» separa vivas de caducadas (23-sep-2026): antes contaba
@@ -2140,21 +2167,23 @@
       });
       q(sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,enviada,created_at,fecha_emision,numero,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id' + colsSerie()), 'facturas').then(function (fs) {
         if (!fs) return;
-        var s = sumaMesEUR(fs.filter(function (f) { return f.tipo === 'recibi'; }));
-        kpi('kpi-cobrado-mes', fmt(s.eur, 'EUR'), s.otros ? tx('+%n cobros en otra moneda', { n: s.otros }) : tx('recibís del mes en curso'));
-        pon2('k-cobrado', fmt(s.eur, 'EUR'));
+        conMonedaBase(function (mb, motivo) {
+        var s = sumaMesBase(fs.filter(function (f) { return f.tipo === 'recibi'; }), mb);
+        kpi('kpi-cobrado-mes', mb ? fmt(s.suma, mb) : '—', !mb ? tx(motivo) : s.otros ? tx('+%n cobros en otra moneda', { n: s.otros }) : tx('recibís del mes en curso'));
+        pon2('k-cobrado', mb ? fmt(s.suma, mb) : '—');
         /* «+18,4% vs mes anterior» era del diseno. Se calcula de verdad, y si no
            hay con que comparar se dice, en vez de ensenar una flecha verde. */
         var ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
         var iniPrev = new Date(ini); iniPrev.setMonth(iniPrev.getMonth() - 1);
         var prev = 0;
         fs.forEach(function (f) {
-          if (f.tipo !== 'recibi' || f.anulada || (f.moneda || 'EUR') !== 'EUR') return;
+          if (!mb || f.tipo !== 'recibi' || f.anulada || (f.moneda || mb) !== mb) return;
           var d = new Date(f.fecha_emision || f.created_at);
           if (d >= iniPrev && d < ini) prev += Number(f.total) || 0;
         });
         // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra
-        pon2('k-cobrado-tend', prev ? ((s.eur >= prev ? '+' : '') + Math.round((s.eur - prev) / prev * 1000) / 10 + '%') : '—');
+        pon2('k-cobrado-tend', prev ? ((s.suma >= prev ? '+' : '') + Math.round((s.suma - prev) / prev * 1000) / 10 + '%') : '—');
+        });
         var t = tablaPor('tabla-documentos');
         if (t) {
           var pl = plantillaFilas(t);
@@ -2390,32 +2419,40 @@
             return p <= 0.005 ? 'cobrada' : (tot - p <= 0.005 ? 'pendiente' : 'parcial');
           }
           var ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
-          var mesEUR = 0, mesOtras = 0, nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0, nRect = 0;
+          var nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0, nRect = 0;
           fs.forEach(function (f) {
             if (f.tipo === 'proforma') { nPro++; if (f.anulada) nProAnu++; } else { nFac++; if (f.anulada) nFacAnu++; if (f.rectifica_id) nRect++; }
+          });
+          // las cifras en dinero esperan a la moneda base (conMonedaBase); los recuentos no dependen de ella
+          conMonedaBase(function (mb, motivo) {
+          var mesBase = 0, mesOtras = 0;
+          fs.forEach(function (f) {
             // por DEVENGO (lwFacturaCuentaEnSuFecha, dinero.js): la emitida suma en su mes aunque se anulara, la R resta en el suyo
-            if (f.tipo !== 'proforma' && lwFacturaCuentaEnSuFecha(f) && new Date(f.fecha_emision || f.created_at) >= ini) {
-              if ((f.moneda || 'EUR') === 'EUR') mesEUR += Number(f.total) || 0; else mesOtras++;
+            if (mb && f.tipo !== 'proforma' && lwFacturaCuentaEnSuFecha(f) && new Date(f.fecha_emision || f.created_at) >= ini) {
+              if ((f.moneda || mb) === mb) mesBase += Number(f.total) || 0; else mesOtras++;
             }
           });
-          pon2('k-mes', fmt(mesEUR, 'EUR'));
-          pon2('k-mes-pie', tx(window.AXW_NUCLEO_OPERACION ? 'facturado del mes por fecha de emisión (las rectificativas restan), en euros, impuestos incluidos' : 'facturas vigentes del mes en euros, impuestos incluidos') + (mesOtras ? ' · ' + tx('+%n en otra moneda', { n: mesOtras }) : ''));
+          pon2('k-mes', mb ? fmt(mesBase, mb) : '—');
+          pon2('k-mes-pie', !mb ? tx(motivo) : mb !== 'EUR' ? tx('facturado del mes por fecha de emisión (las rectificativas restan), impuestos incluidos') + (mesOtras ? ' · ' + tx('+%n en otra moneda', { n: mesOtras }) : '')
+            : tx(window.AXW_NUCLEO_OPERACION ? 'facturado del mes por fecha de emisión (las rectificativas restan), en euros, impuestos incluidos' : 'facturas vigentes del mes en euros, impuestos incluidos') + (mesOtras ? ' · ' + tx('+%n en otra moneda', { n: mesOtras }) : ''));
+          // KPI «Pendiente de cobro» en el sitio de «Proformas» (22-sep-2026):
+          // las proformas son automáticas y no facturan; lo pendiente es lo
+          // que de verdad se mira aquí.
+          var pendBase = 0, pendOtras = 0, nPend = 0;
+          fs.forEach(function (f) {
+            var c = cobroDe(f); if (c !== 'pendiente' && c !== 'parcial') return;
+            nPend++; if ((f.moneda || mb) === mb) pendBase += pendPor[f.id] || 0; else pendOtras++;
+          });
+          pon2('k-pendiente', hayPend && mb ? fmt(pendBase, mb) : '—');
+          pon2('k-pendiente-pie', !hayPend ? tx('no se pudo calcular lo pendiente de cobro') : !mb ? tx(motivo)
+            : (mb !== 'EUR' ? tx(nPend === 1 ? '%n factura vigente con saldo pendiente' : '%n facturas vigentes con saldo pendiente', { n: nPend })
+                            : tx(nPend === 1 ? '%n factura vigente con saldo pendiente, en euros' : '%n facturas vigentes con saldo pendiente, en euros', { n: nPend }))
+              + (pendOtras ? ' · ' + tx('+%n en otra moneda', { n: pendOtras }) : ''));
+          });
           // las rectificativas (ERP maestro) se cuentan APARTE, no como facturas; en Lawang nRect = 0 y queda lo de siempre
           pon2('k-facturas', String(nFac - nRect));
           pon2('k-facturas-pie', (nRect ? tx(nFac - nRect === 1 ? '%n factura' : '%n facturas', { n: nFac - nRect }) + ' · ' + tx(nRect === 1 ? '%n rectificativa' : '%n rectificativas', { n: nRect }) + ' · ' : '') +
             tx(nFacAnu === 1 ? '%n anulada' : '%n anuladas', { n: nFacAnu }) + ' · ' + tx('histórico completo'));
-          // KPI «Pendiente de cobro» en el sitio de «Proformas» (22-sep-2026):
-          // las proformas son automáticas y no facturan; lo pendiente es lo
-          // que de verdad se mira aquí.
-          var pendEUR = 0, pendOtras = 0, nPend = 0;
-          fs.forEach(function (f) {
-            var c = cobroDe(f); if (c !== 'pendiente' && c !== 'parcial') return;
-            nPend++; if ((f.moneda || 'EUR') === 'EUR') pendEUR += pendPor[f.id] || 0; else pendOtras++;
-          });
-          pon2('k-pendiente', hayPend ? fmt(pendEUR, 'EUR') : '—');
-          pon2('k-pendiente-pie', hayPend
-            ? (tx(nPend === 1 ? '%n factura vigente con saldo pendiente, en euros' : '%n facturas vigentes con saldo pendiente, en euros', { n: nPend }) + (pendOtras ? ' · ' + tx('+%n en otra moneda', { n: pendOtras }) : ''))
-            : tx('no se pudo calcular lo pendiente de cobro'));
           var porId = {}; fs.forEach(function (f) { porId[f.id] = f; });
           window.LW_V4 = window.LW_V4 || {}; window.LW_V4.facturasLista = porId;
 
@@ -2595,9 +2632,11 @@
           var saldaDe = {}; rr[1].forEach(function (a) { (saldaDe[a.recibi_id] = saldaDe[a.recibi_id] || []).push(numFac[a.factura_id] || tx('factura fuera de tu alcance')); });
           var justifDe = function (r) { return Array.isArray(r.justificantes) && r.justificantes.length ? r.justificantes : (r.justificante_path ? [{ path: r.justificante_path, nombre: '' }] : []); };
           var nJust = nJustRecibo;
-          var s = sumaMesEUR(rs);
-          pon2('k-cobrado-mes', fmt(s.eur, 'EUR'));
-          pon2('k-cobrado-mes-pie', tx('recibís vigentes del mes en euros, impuestos incluidos') + (s.otros ? ' · ' + tx('+%n en otra moneda', { n: s.otros }) : ''));
+          conMonedaBase(function (mb, motivo) {
+            var sm = sumaMesBase(rs, mb);
+            pon2('k-cobrado-mes', mb ? fmt(sm.suma, mb) : '—');
+            pon2('k-cobrado-mes-pie', !mb ? tx(motivo) : tx(mb !== 'EUR' ? 'recibís vigentes del mes, impuestos incluidos' : 'recibís vigentes del mes en euros, impuestos incluidos') + (sm.otros ? ' · ' + tx('+%n en otra moneda', { n: sm.otros }) : ''));
+          });
           var anul = rs.filter(function (r) { return r.anulada; }).length;
           // LAW-40: los históricos sin justificante (decisión del owner, 10-oct-2026) no cuentan como pendientes.
           var sinJ = rs.filter(reciboFaltaJustificante).length;
@@ -4104,7 +4143,7 @@
         var emps = (typeof empresasFinancieras === 'function') ? empresasFinancieras(RAW, FACTURAS) : [];
         if (emps.length < 2) return;
         var nombreDe = function (k) { return (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[k] && SOCIEDADES[k].razon) || k; };
-        var opciones = [{ clave: 'todas', texto: 'Todas' }].concat(emps.map(function (e) { return { clave: e, texto: nombreDe(e) }; }));
+        var opciones = [{ clave: 'todas', texto: ts('Todas') }].concat(emps.map(function (e) { return { clave: e, texto: nombreDe(e) }; }));
         opciones.forEach(function (o) {
           var b = document.createElement('button');
           b.type = 'button'; b.setAttribute('data-real', '');
@@ -4147,7 +4186,7 @@
           var b = document.createElement('button');
           b.type = 'button'; b.setAttribute('data-real', '');
           b.className = 'px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors ' + (clave === FILTRO ? 'bg-deep-lagoon text-on-secondary font-semibold shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high');
-          b.textContent = texto + ' ' + n;
+          b.textContent = ts(texto) + ' ' + n;
           b.addEventListener('click', function (ev) {
             ev.stopPropagation();
             FILTRO = clave; PAGINA = 0;
@@ -4159,7 +4198,7 @@
         if (chipSF) {
           var f = m.fuera || { sinFirmar: 0 };
           chipSF.hidden = !(f.sinFirmar || SIN_FIRMAR);
-          chipSF.textContent = 'Incluir sin firmar' + (f.sinFirmar ? ' ' + f.sinFirmar : '');
+          chipSF.textContent = ts('Incluir sin firmar') + (f.sinFirmar ? ' ' + f.sinFirmar : '');
           chipSF.className = 'px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors ' + (SIN_FIRMAR ? 'bg-deep-lagoon text-on-secondary font-semibold shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high');
           chipSF.setAttribute('data-real', '');
           chipSF.onclick = function (ev) {
@@ -4176,14 +4215,14 @@
       function pintarAvisos(m) {
         var cont = document.getElementById('venc-avisos'); if (!cont) return;
         var partes = [];
-        if (m.nSinFecha) partes.push(m.nSinFecha + ' vencimiento(s) sin fecha — no se pueden vigilar; usa el filtro «Sin fecha»');
+        if (m.nSinFecha) partes.push(tx('%n vencimiento(s) sin fecha — no se pueden vigilar; usa el filtro «Sin fecha»', { n: m.nSinFecha }));
         var sinCal = (m.avisos || []).filter(function (a) { return a.tipo === 'sin_calendario'; });
-        if (sinCal.length) partes.push(sinCal.length + (sinCal.length === 1 ? ' contrato con precio y sin calendario de pagos' : ' contratos con precio y sin calendario de pagos'));
+        if (sinCal.length) partes.push(tx(sinCal.length === 1 ? '%n contrato con precio y sin calendario de pagos' : '%n contratos con precio y sin calendario de pagos', { n: sinCal.length }));
         // pct_no_100 (hallazgo del code-review de esta subtarea): modeloFinanciero()
         // ya calcula este aviso — logica.js lo empuja a m.avisos igual que sin_calendario
         // — pero se filtraba aquí y se perdía en silencio. Mismo texto que la clásica.
         var pctMal = (m.avisos || []).filter(function (a) { return a.tipo === 'pct_no_100'; });
-        if (pctMal.length) partes.push(pctMal.length + (pctMal.length === 1 ? ' contrato cuyos hitos no suman 100%' : ' contratos cuyos hitos no suman 100%'));
+        if (pctMal.length) partes.push(tx(pctMal.length === 1 ? '%n contrato cuyos hitos no suman 100%' : '%n contratos cuyos hitos no suman 100%', { n: pctMal.length }));
         /* «Fuera de este panel» (hallazgo del code-review, gravedad alta): sin esto
            se reproduce en silencio el incidente del 26-ago-2026 (Sumba Hills, 46
            contratos y solo 2 firmados+preliminares → el panel salía VACÍO y nadie
@@ -4193,15 +4232,16 @@
         var f = m.fuera || { sinFirmar: 0, preliminares: 0, proyectos: {}, importe: 0 };
         if (f.sinFirmar || f.preliminares) {
           var trozos = [];
-          if (f.sinFirmar) trozos.push(f.sinFirmar + ' sin firmar');
-          if (f.preliminares) trozos.push(f.preliminares + (f.preliminares === 1 ? ' Carta de Reserva' : ' Cartas de Reserva'));
+          if (f.sinFirmar) trozos.push(tx('%n sin firmar', { n: f.sinFirmar }));
+          if (f.preliminares) trozos.push(tx(f.preliminares === 1 ? '%n Carta de Reserva' : '%n Cartas de Reserva', { n: f.preliminares }));
           var top = Object.keys(f.proyectos || {}).map(function (p) { return [p, f.proyectos[p]]; })
             .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 3)
             .map(function (par) { return par[0] + ' (' + par[1] + ')'; }).join(', ');
-          partes.push('Fuera de este panel: ' + trozos.join(' y ')
-            + (f.importe ? ' — ' + fmt(f.importe, '') + ' de precio' : '')
-            + (top ? '. Sobre todo en ' + top : '')
-            + '. Aquí solo entran contratos firmados que no sean preliminares' + (SIN_FIRMAR ? ' (salvo los sin firmar, ya incluidos con el interruptor encendido)' : ''));
+          // trozos: uno o dos («%a y %b»); cada pieza con su clave y los números en huecos (idiomas-pH, 12-oct)
+          partes.push(tx('Fuera de este panel: %t', { t: trozos.length === 2 ? tx('%a y %b', { a: trozos[0], b: trozos[1] }) : trozos[0] })
+            + (f.importe ? ' — ' + tx('%i de precio', { i: fmt(f.importe, '') }) : '')
+            + (top ? '. ' + tx('Sobre todo en %p', { p: top }) : '')
+            + '. ' + ts('Aquí solo entran contratos firmados que no sean preliminares') + (SIN_FIRMAR ? ' ' + ts('(salvo los sin firmar, ya incluidos con el interruptor encendido)') : ''));
         }
         cont.innerHTML = partes.length
           ? '<p class="text-body-sm font-body-sm px-3 py-2 rounded-lg bg-soft-canopy/15 text-territorial-green" role="status">' + esc(partes.join(' · ')) + '</p>'
@@ -4211,19 +4251,19 @@
       /* ── KPIs (3: 90 días, críticos 7d, vencido) ─────────────────────────── */
       function pintarKpis(m) {
         pon2('k-prevision', fmt(m.proximos90, MONEDA));
-        pon2('k-prevision-chip', 'previsto en el trimestre');
+        pon2('k-prevision-chip', ts('previsto en el trimestre'));
         var d7d = new Date(hoyD.getTime() + 7 * 864e5);
         var d7 = d7d.getFullYear() + '-' + String(d7d.getMonth() + 1).padStart(2, '0') + '-' + String(d7d.getDate()).padStart(2, '0');
         var semana = m.filas.filter(function (f) { return f.estado !== 'vencido' && f.estado !== 'cobrado' && f.fecha && f.fecha >= hoy && f.fecha <= d7; });
         var sumaCrit = semana.reduce(function (a, f) { return a + (f.pendiente != null ? f.pendiente : (f.importe || 0)); }, 0);
-        pon2('k-criticos', semana.length + (semana.length === 1 ? ' cobro' : ' cobros'));
-        pon2('k-criticos-total', 'Total: ' + fmt(sumaCrit, MONEDA));
+        pon2('k-criticos', tx(semana.length === 1 ? '%n cobro' : '%n cobros', { n: semana.length }));
+        pon2('k-criticos-total', tx('Total: %t', { t: fmt(sumaCrit, MONEDA) }));
         var venc = m.filas.filter(function (f) { return f.estado === 'vencido'; }).sort(function (a, b) { return (a.fecha || '') < (b.fecha || '') ? -1 : 1; });
         var nCon = {}; venc.forEach(function (f) { nCon[f.contrato_id] = 1; });
         var nc = Object.keys(nCon).length;
-        pon2('k-vencidos-n', nc + (nc === 1 ? ' contrato' : ' contratos'));
-        pon2('k-vencidos-total', 'Total: ' + fmt(m.vencido, MONEDA));
-        pon2('k-vencidos-chip', venc.length ? 'el más antiguo, del ' + fFecha(venc[0].fecha) : 'nada vencido');
+        pon2('k-vencidos-n', tx(nc === 1 ? '%n contrato' : '%n contratos', { n: nc }));
+        pon2('k-vencidos-total', tx('Total: %t', { t: fmt(m.vencido, MONEDA) }));
+        pon2('k-vencidos-chip', venc.length ? tx('el más antiguo, del %f', { f: fFecha(venc[0].fecha) }) : ts('nada vencido'));
         // Cobrado y Cartera salieron de esta pantalla el 30-sep-2026 (owner): están
         // en Resumen y en las columnas de «Por proyecto».
       }
@@ -4233,22 +4273,22 @@
         var entrada = FILTROS.filter(function (x) { return x[0] === FILTRO; })[0] || FILTROS[4];
         var filas = m.filas.filter(entrada[2]);
         var titulo = document.getElementById('venc-tabla-titulo');
-        if (titulo) titulo.textContent = entrada[1] + ' · ' + filas.length;
+        if (titulo) titulo.textContent = ts(entrada[1]) + ' · ' + filas.length;
         var tbody = document.getElementById('venc-tbody');
         var pager = document.getElementById('venc-pager');
         var resumen = document.getElementById('venc-resumen');
         if (!tbody) return;
         if (!filas.length) {
-          tbody.innerHTML = '<tr><td class="py-8 px-5 text-center text-control-border" colspan="8">Nada con este filtro.</td></tr>';
+          tbody.innerHTML = '<tr><td class="py-8 px-5 text-center text-control-border" colspan="8">' + esc(ts('Nada con este filtro.')) + '</td></tr>';
           if (pager) pager.hidden = true;
-          if (resumen) resumen.textContent = '0 de 0';
+          if (resumen) resumen.textContent = tx('%n de %t', { n: 0, t: 0 });
           return;
         }
         var totalPaginas = Math.max(1, Math.ceil(filas.length / POR_PAGINA));
         if (PAGINA >= totalPaginas) PAGINA = totalPaginas - 1;
         var desde = PAGINA * POR_PAGINA;
         var pagina = filas.slice(desde, desde + POR_PAGINA);
-        var texto = (desde + 1) + '–' + (desde + pagina.length) + ' de ' + filas.length;
+        var texto = tx('%n de %t', { n: (desde + 1) + '–' + (desde + pagina.length), t: filas.length });
         if (resumen) resumen.textContent = texto;
         if (pager) pager.hidden = filas.length <= POR_PAGINA;
         var pInfo = document.getElementById('venc-pag-info');
@@ -4263,12 +4303,12 @@
             + (f.factura_id ? ' ' + pill('Facturada', 'ok') : '')
             + (f.no_facturar ? ' ' + pill('Sin auto', '') : '');
           var cubiertoHtml = f.cubierto ? esc(fmt(f.cubierto, MONEDA)) : '<span class="text-control-border">—</span>';
-          var fechaTxt = f.fecha ? esc(fFecha(f.fecha)) : '<span class="text-control-border">sin fecha</span>';
+          var fechaTxt = f.fecha ? esc(fFecha(f.fecha)) : '<span class="text-control-border">' + esc(ts('sin fecha')) + '</span>';
           return '<tr class="hover:bg-surface-container-low/70 transition-colors border-t border-surface-container-high/40 cursor-pointer" data-vid="' + esc(f.id) + '">'
-            + '<td class="py-4 px-5 text-control-border">' + fechaTxt + (f.ajustado ? ' <span class="text-control-border" title="Fecha ajustada a mano">·aj</span>' : '') + '</td>'
-            + '<td class="py-4 px-4"><span class="font-label-md font-semibold text-deep-lagoon">' + esc(f.contrato.numero || 'sin nº') + '</span> <span class="text-on-surface-variant">' + esc(tipoC(f.contrato.tipo)) + '</span></td>'
-            + '<td class="py-4 px-4">' + esc(f.contrato.comprador_nombre || 'sin nombre') + '</td>'
-            + '<td class="py-4 px-4">' + esc(f.descripcion || 'Hito ' + f.orden) + (f.pct ? ' <span class="text-on-surface-variant">' + esc(f.pct) + '%</span>' : '') + '</td>'
+            + '<td class="py-4 px-5 text-control-border">' + fechaTxt + (f.ajustado ? ' <span class="text-control-border" title="' + esc(ts('Fecha ajustada a mano')) + '">·aj</span>' : '') + '</td>'
+            + '<td class="py-4 px-4"><span class="font-label-md font-semibold text-deep-lagoon">' + esc(f.contrato.numero || ts('sin nº')) + '</span> <span class="text-on-surface-variant">' + esc(tipoC(f.contrato.tipo)) + '</span></td>'
+            + '<td class="py-4 px-4">' + esc(f.contrato.comprador_nombre || ts('sin nombre')) + '</td>'
+            + '<td class="py-4 px-4">' + esc(f.descripcion || tx('Hito %n', { n: String(f.orden) })) + (f.pct ? ' <span class="text-on-surface-variant">' + esc(f.pct) + '%</span>' : '') + '</td>'
             + '<td class="py-4 px-4 text-right font-kpi-number font-semibold text-deep-lagoon text-[15px]">' + esc(fmt(f.importe, MONEDA)) + '</td>'
             + '<td class="py-4 px-4 text-right">' + cubiertoHtml + '</td>'
             + '<td class="py-4 px-4 text-right font-semibold">' + (f.pendiente != null ? esc(fmt(f.pendiente, MONEDA)) : '—') + '</td>'
@@ -4295,7 +4335,7 @@
         var tbody = document.getElementById('venc-tproy'); if (!tbody) return;
         var filas = Object.keys(m.porProyecto || {}).map(function (p) { return [p, m.porProyecto[p]]; })
           .sort(function (a, b) { return b[1].cartera - a[1].cartera; });
-        if (!filas.length) { tbody.innerHTML = '<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">Sin contratos en esta moneda.</td></tr>'; return; }
+        if (!filas.length) { tbody.innerHTML = '<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">' + esc(ts('Sin contratos en esta moneda.')) + '</td></tr>'; return; }
         var html = '';
         filas.forEach(function (par) {
           var p = par[0], d = par[1];
@@ -4312,14 +4352,14 @@
           if (personas.length) {
             html += '<tr class="border-t border-surface-container-high/40"><td colspan="5" class="p-0 bg-surface-container">'
               + '<details class="px-5 py-2.5"><summary class="cursor-pointer text-body-sm font-body-sm text-control-border select-none">'
-              + personas.length + (personas.length === 1 ? ' cliente' : ' clientes') + ' · quién debe qué</summary>'
+              + esc(tx(personas.length === 1 ? '%n cliente · quién debe qué' : '%n clientes · quién debe qué', { n: personas.length })) + '</summary>'
               + '<table class="w-full text-left mt-2"><tbody>' + personas.map(function (par2) {
                 var n = par2[0], v = par2[1];
                 return '<tr class="border-t border-surface-container-high/40">'
                   + '<td class="py-2 px-2 text-body-sm">' + esc(n) + (v.firmados === 0 ? ' ' + pill('sin firmar', 'neutro') : '') + '</td>'
                   + '<td class="py-2 px-2 text-body-sm text-right">' + esc(fmt(v.precio, MONEDA)) + '</td>'
                   + '<td class="py-2 px-2 text-body-sm text-right">' + esc(fmt(v.cobrado, MONEDA)) + '</td>'
-                  + '<td class="py-2 px-2 text-body-sm text-right font-semibold">' + (v.pendiente > 0.005 ? esc(fmt(v.pendiente, MONEDA)) : '<span class="text-control-border">Cobrado</span>') + '</td>'
+                  + '<td class="py-2 px-2 text-body-sm text-right font-semibold">' + (v.pendiente > 0.005 ? esc(fmt(v.pendiente, MONEDA)) : '<span class="text-control-border">' + esc(ts('Cobrado')) + '</span>') + '</td>'
                   + '</tr>';
               }).join('') + '</tbody></table></details></td></tr>';
           }
@@ -4336,12 +4376,12 @@
           return (f.moneda || 'EUR') === MONEDA
             && (EMPRESA === 'todas' || (typeof lwSociedadContrato === 'function' && lwSociedadContrato(f.sociedad, f.tipo) === EMPRESA));
         }).sort(function (a, b) { return a.venc < b.venc ? -1 : 1; }).slice(0, 40);
-        if (!filas.length) { tbody.innerHTML = '<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">Ninguna factura con fecha de vencimiento en esta moneda.</td></tr>'; return; }
+        if (!filas.length) { tbody.innerHTML = '<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">' + esc(ts('Ninguna factura con fecha de vencimiento en esta moneda.')) + '</td></tr>'; return; }
         tbody.innerHTML = filas.map(function (f) {
           var pasada = f.venc < hoy;
           return '<tr class="border-t border-surface-container-high/40">'
             + '<td class="py-4 px-5 text-control-border">' + esc(fFecha(f.venc)) + '</td>'
-            + '<td class="py-4 px-4"><span class="font-label-md font-semibold text-deep-lagoon">' + esc(f.numero || 'sin nº') + '</span> <span class="text-on-surface-variant">' + esc(tipoDoc(f.tipo)) + '</span></td>'
+            + '<td class="py-4 px-4"><span class="font-label-md font-semibold text-deep-lagoon">' + esc(f.numero || ts('sin nº')) + '</span> <span class="text-on-surface-variant">' + esc(tipoDoc(f.tipo)) + '</span></td>'
             + '<td class="py-4 px-4">' + esc(f.cliente_nombre || '') + '</td>'
             // MONEDA, no f.moneda: las filas ya están filtradas a la moneda activa
             // (f.moneda||'EUR')===MONEDA — una factura con `moneda` vacía en base
@@ -6741,6 +6781,13 @@
             var partes = btn.textContent.match(/^(\s*)([\s\S]*?)(\s*\(\s*[^)]*\s*\)\s*)$/);
             if (partes) btn.textContent = partes[1] + ts(partes[2]) + partes[3];
             btn.textContent = btn.textContent.replace(/\(\s*[^)]*\s*\)\s*$/, '(' + n + ')');
+          });
+          /* En una instancia del ERP, el chip de una herramienta cuyo módulo está APAGADO no se ofrece (Acceso a Contratos / Unidades / Clientes
+             en un negocio sin esos módulos). Por la clave del chip (data-role), nunca por su rótulo. Lawang: sin bandera, nada cambia (idiomas-pH). */
+          var moduloDeHerramienta = { contratos: 'contratos', unidades: 'proyectos', compradores: 'compradores', facturas: 'facturas' };   // chip → herramienta sale de mapaRolChip
+          var espChips = esperaModulos();
+          if (espChips) espChips.then(function () {
+            chipsUsuarios.forEach(function (btn) { var m = moduloDeHerramienta[mapaRolChip[btn.getAttribute('data-role')]]; if (m && !moduloEncendido(m)) btn.hidden = true; });
           });
           cablearChipsFiltro(chipsUsuarios, pl.tbody, 'tr[data-rol]',
             function (btn) { return btn.getAttribute('data-role'); },
@@ -9959,6 +10006,11 @@
     function pinta() {
       q(sb.from('parametros').select('*').order('grupo').order('orden'), 'ajustes', cuerpo).then(function (rows) {
         if (!rows) return;
+        rows = parametrosVisibles(rows, moduloEncendido);
+        // instancia sin el módulo reservas y sin otra fila que enseñar: la sección (su título habla de Cartas de Reserva) no se pinta.
+        // La pestaña sigue: ahí vive también Impuestos (el asistente de setup manda a /ajustes/#reservas). Por el id de la tabla, no por rótulo.
+        var secPlazos = cuerpo && cuerpo.closest && cuerpo.closest('section');
+        if (secPlazos) secPlazos.hidden = !rows.length && !moduloEncendido('reservas');
         if (!rows.length) { cuerpo.innerHTML = '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(tx('No hay ajustes dados de alta.')) + '</td></tr>'; return; }
         cuerpo.innerHTML = rows.map(function (r) {
           var esNum = typeof r.valor === 'number';
@@ -9978,7 +10030,9 @@
         }).join('');
       });
     }
-    pinta();
+    // en una instancia, pintar cuando la base ha dicho qué módulos hay (las filas reservas.* dependen de ello); sin bandera, en el acto
+    var espModulos = esperaModulos();
+    if (espModulos) espModulos.then(pinta); else pinta();
     if (cuerpo && !cuerpo._wired) {
       cuerpo._wired = true;
       cuerpo.addEventListener('click', function (ev) {

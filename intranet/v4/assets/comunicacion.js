@@ -46,8 +46,10 @@
   var ESTADO_TXT = { pendiente: 'En cola', enviando: 'Enviando', ok: 'Enviado', error: 'Falló' };
 
   function $(id) { return document.getElementById(id); }
+  // Puente al diccionario (idiomas-pH, 12-oct): en español sale la clave tal cual; los números y fechas, en huecos.
+  function tC(s, h) { if (window.lwT) return window.lwT(s, h); var v = String(s); for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) v = v.split('%' + k).join(h[k]); return v; }
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML.replace(/"/g, '&quot;'); }
-  function fecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? '—' : d.toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+  function fecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? '—' : d.toLocaleString((typeof lwLocale === 'function') ? lwLocale() : 'es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
   function mal(err, pref) {
     console.error('[comunicacion]', pref, err);
     var t = (window.lwErrorHumano ? window.lwErrorHumano(err, pref) : (pref + ': ' + ((err && err.message) || err)));
@@ -130,10 +132,10 @@
     $('lw-com-guardar').hidden = congelado;
     $('lw-com-borrar').hidden = !c.id || congelado;
     $('lw-com-duplicar').hidden = !c.id;
-    $('lw-com-titulo').textContent = c.id ? (c.asunto || 'Comunicado') : 'Nuevo comunicado';
-    $('lw-com-estado').textContent = !c.id ? 'Borrador sin guardar.'
-      : congelado ? 'Enviado por primera vez el ' + fecha(c.enviado_en) + '. Ya no se puede cambiar: para otra versión, «Duplicar».'
-      : 'Borrador · guardado ' + fecha(c.actualizado_en) + '.';
+    $('lw-com-titulo').textContent = c.id ? (c.asunto || tC('Comunicado')) : tC('Nuevo comunicado');
+    $('lw-com-estado').textContent = !c.id ? tC('Borrador sin guardar.')
+      : congelado ? tC('Enviado por primera vez el %f. Ya no se puede cambiar: para otra versión, «Duplicar».', { f: fecha(c.enviado_en) })
+      : tC('Borrador · guardado %f.', { f: fecha(c.actualizado_en) });
     $('lw-com-previa-caja').hidden = true;
     sucio = false;
     cuenta();
@@ -224,7 +226,7 @@
   }
   function pintaRegistro() {
     var tb = $('lw-com-registro');
-    if (!envios.length) { tb.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center font-body-sm text-body-sm text-outline">Todavía no se ha enviado.</td></tr>'; }
+    if (!envios.length) { tb.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center font-body-sm text-body-sm text-outline">' + esc(tC('Todavía no se ha enviado.')) + '</td></tr>'; }
     else tb.innerHTML = envios.map(function (e) {
       /* Un fallo que aún se va a reintentar también se enseña (23-sep-2026: Hostinger
          cortó el SMTP a mitad de envío y la pantalla solo decía «En cola», sin motivo). */

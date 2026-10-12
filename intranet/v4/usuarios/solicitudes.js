@@ -51,7 +51,15 @@
     email_ya_existe_en_auth: 'Ese email ya tiene una cuenta (por ejemplo, de cliente en el portal). No se convierte en agente: dale de alta a mano con otro email.',
   };
 
+  /* Las solicitudes de alta de comerciales y los contactos de referidos llegan de la guía de partners y son del módulo `comisiones`.
+     En una instancia del ERP que lo tiene APAGADO, estas dos secciones no se montan ni piden nada. Sin bandera (Lawang), como siempre
+     (idiomas-pH, 12-oct; orquestador: lo de un módulo apagado no se pinta). axwModuloActivo falla abierto si no pudo saberlo. */
   espera(function (sb) {
+    if (window.AXW_NUCLEO_OPERACION && window.AXW_MODULOS_LISTOS && window.AXW_MODULOS_LISTOS.then) {
+      window.AXW_MODULOS_LISTOS.then(function () { if (!window.axwModuloActivo || window.axwModuloActivo('comisiones')) monta(sb); });
+    } else monta(sb);
+  });
+  function monta(sb) {
     var cont = document.querySelector('main > div') || document.querySelector('main');
     var sec = el('section', 'bg-surface-container-lowest rounded-xl p-6 shadow-sm');
     sec.id = 'lwSolicitudes';
@@ -222,5 +230,5 @@
         });
       });
     }
-  });
+  }
 })();

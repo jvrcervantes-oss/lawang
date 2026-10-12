@@ -270,7 +270,7 @@
         var izq = hdrs[j].firstElementChild;
         if (izq && !izq.querySelector('.lw-burger')) {
           var b = document.createElement('button');
-          b.type = 'button'; b.className = 'lw-burger'; b.setAttribute('aria-label', 'Menú');
+          b.type = 'button'; b.className = 'lw-burger'; b.setAttribute('aria-label', window.lwT ? window.lwT('Menú') : 'Menú'); b.setAttribute('data-lwt-aria', 'Menú');
           b.innerHTML = '<span class="material-symbols-outlined">menu</span>';
           // Escritorio: solo se ve con la sidebar plegada y la despliega.
           // Móvil: abre/cierra el cajón. Mismo corte de 1024px que maneja().

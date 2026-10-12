@@ -29,6 +29,8 @@ var LW_ROL = {
   esSuperAdmin: function (f) { return LW_ROL.efectivo(f) === 'super_admin'; },
   esSuperGlobal: function (f) { return !!f && f.rol === 'super_admin'; },
   esPropietario: function (f) { return !!f && f.rol === 'super_admin' && f.es_propietario === true && f.ambito !== 'empresa'; },
+  // Ajustes › Idiomas (12-oct-2026, owner): solo en una instancia del ERP y solo para el administrador principal (super admin global)
+  puedeIdiomas: function (f) { return !!(typeof window !== 'undefined' && window.AXW_NUCLEO_OPERACION) && LW_ROL.esSuperGlobal(f); },
   puedeSociedades: function (f) { return (typeof window !== 'undefined' && window.AXW_NUCLEO_OPERACION) ? LW_ROL.esSuperGlobal(f) : LW_ROL.esPropietario(f); },
   esEmpresa: function (f) { return !!f && (!!ROL_EMPRESA[f.rol] || f.ambito === 'empresa'); },
   esGlobal: function (f) { return !!f && !LW_ROL.esEmpresa(f); },

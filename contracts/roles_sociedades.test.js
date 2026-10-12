@@ -27,6 +27,21 @@ for (const modo of Object.keys(esperado)) {
     if (r !== esperado[modo][k]) { fallos++; console.log('FALLA puedeSociedades ' + modo + ' / ' + k + ': ' + r); }
   }
 }
+// Ajustes › Idiomas (12-oct-2026): solo en una instancia del ERP y solo el super admin global; en Lawang, nadie
+const espIdiomas = {
+  lawang: { propietario: false, super_global: false, super_empresa: false, admin: false, agente: false, sin_ficha: false },
+  maestro: { propietario: true, super_global: true, super_empresa: false, admin: false, agente: false, sin_ficha: false }
+};
+for (const modo of Object.keys(espIdiomas)) {
+  const w = {}; w.window = w;
+  if (modo === 'maestro') w.AXW_NUCLEO_OPERACION = true;
+  vm.runInNewContext(src, w);
+  for (const [k, f] of Object.entries(fichas)) {
+    total++;
+    const r = w.LW_ROL.puedeIdiomas(f);
+    if (r !== espIdiomas[modo][k]) { fallos++; console.log('FALLA puedeIdiomas ' + modo + ' / ' + k + ': ' + r); }
+  }
+}
 // ajustes.js: la comprobación de la pestaña oculta mira la lista ANTES del selector
 const aj = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'assets', 'ajustes.js'), 'utf8');
 total++;

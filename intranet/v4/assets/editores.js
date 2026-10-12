@@ -74,6 +74,7 @@
         filas.push(aviso ? [k, marca(texto) + sufijo(rol), aviso] : [k, marca(texto) + sufijo(rol)]);
       };
       sec.entradas.forEach(function (e) {
+        if (e.sinNucleo && window.AXW_NUCLEO_OPERACION) return;   // Plantillas de Lawang (textos-contrato): en una instancia no existe (12-oct-2026)
         var nom = T(e.texto);
         if (e.pestanas) e.pestanas.forEach(function (t) { pon(t.clave, nom + ' · ' + T(t.texto), t.rol || e.rol); });
         else if (e.claves) e.claves.forEach(function (c) { pon(c.clave, nom + ' · ' + T(c.texto), e.rol); });
@@ -445,7 +446,7 @@
         else vals[k] = el.value.trim();
       });
       for (var i = 0; i < campos.length; i++) {
-        if (campos[i].req && !vals[campos[i].k]) { muestraError('Falta «' + campos[i].label + '».'); return; }
+        if (campos[i].req && !vals[campos[i].k]) { muestraError(tH('Falta «%c».', { c: tS(campos[i].label) })); return; }
       }
       var btn = w.querySelector('[data-e="guardar"]');
       btn.disabled = true; btn.textContent = tS('Guardando…');
@@ -4427,7 +4428,7 @@
               var fuera = aplicaciones.filter(function (a) { return !validas[a.factura_id]; });
               if (fuera.length) {
                 aplicaciones = aplicaciones.filter(function (a) { return validas[a.factura_id]; });
-                toast(tH(fuera.length === 1 ? 'Quitada %n factura que no son de esta moneda: %l' : 'Quitadas %n facturas que no son de esta moneda: %l',
+                toast(tH(fuera.length === 1 ? 'Quitada %n factura que no es de esta moneda: %l' : 'Quitadas %n facturas que no son de esta moneda: %l',
                   { n: fuera.length, l: fuera.map(function (a) { return a.numero; }).join(', ') }));
               }
               pintaBtnF(); repintaAplic();
@@ -11685,6 +11686,33 @@
         ]);
       }
 
+      /* ERP maestro (S1 de F3, 12-oct-2026): fijar o cambiar el prefijo de la serie no se deshace y sociedad_guarda lo pide confirmado (hint
+         falta_confirmo). Se pregunta aquí y se reenvía con p_confirmo = true; si no se confirma, no se guarda nada. Lawang no devuelve nunca ese
+         hint, así que allí la llamada es exactamente la de siempre. */
+      function guardaSociedad(args) {
+        return Promise.resolve(sb.rpc('sociedad_guarda', args)).then(function (r) {
+          if (!(r && r.error && r.error.hint === 'falta_confirmo')) return r;
+          var nada = { data: null, error: { message: tH('No se ha guardado nada: el prefijo queda sin fijar.') } };
+          // la pregunta va en el diálogo de la suite (dialogo.js), nunca en window.confirm: se carga si falta, como al desactivar;
+          // si aun así no está, no se guarda nada
+          return aseguraModulosDoc(['dialogo']).then(null, function () {}).then(function () {
+          if (typeof lwConfirmar !== 'function') return { data: null, error: { message: tH('El diálogo aún no ha cargado — prueba de nuevo en un segundo.') } };
+          var pref = String((args.p_datos && args.p_datos.prefijo_serie) || '').trim();
+          // vacío no es «sin prefijo»: al emitir, el servidor usa la clave en mayúsculas sin signos
+          // (coalesce(prefijo_serie, upper(regexp_replace(clave,'[^A-Za-z0-9]','','g')))); se dice el que saldrá de verdad
+          var cuerpo = pref
+            ? tH('El prefijo de las facturas («%p») no se podrá cambiar después de emitir la primera factura. ¿Fijarlo ahora?', { p: pref })
+            : tH('Sin prefijo propio, las facturas usarán «%p» (la clave en mayúsculas), y no se podrá cambiar después de emitir la primera factura. ¿Guardarlo así?',
+                 { p: String(args.p_clave || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase() || '—' });
+          return lwConfirmar({ titulo: 'Fijar el prefijo de las facturas', cuerpo: '<p>' + esc(cuerpo) + '</p>', confirmar: pref ? 'Fijar el prefijo' : 'Guardar así' })
+            .then(function (ok) {
+              if (!ok) return nada;
+              return Promise.resolve(sb.rpc('sociedad_guarda', Object.assign({}, args, { p_confirmo: true })));
+            });
+          });
+        });
+      }
+
       // ── Editar una sociedad que ya existe ───────────────────────────────
       window.LW_V4.abreEditaSociedad = function (btn) {
         if (!superAdmin) return soloSuper();
@@ -11699,7 +11727,7 @@
           function guarda() {
             // por el servidor (`sociedad_guarda`): la allowlist de columnas y el
             // permiso de super_admin los comprueba él
-            return Promise.resolve(sb.rpc('sociedad_guarda', { p_clave: s.clave, p_datos: fila, p_nueva: false })).then(trasRpc);
+            return guardaSociedad({ p_clave: s.clave, p_datos: fila, p_nueva: false }).then(trasRpc);
           }
 
           // Desactivar una sociedad YA EXISTENTE (nunca aplica en el alta):
@@ -11809,7 +11837,7 @@
             var fila = payloadDesdeForm(v);
             if (fila.error) return fila;
             // nace activa siempre (lo impone el servidor); desactivarla es un paso aparte, ya existiendo
-            return Promise.resolve(sb.rpc('sociedad_guarda', { p_clave: clave, p_datos: fila, p_nueva: true })).then(trasRpc);
+            return guardaSociedad({ p_clave: clave, p_datos: fila, p_nueva: true }).then(trasRpc);
           });
         });
       }
