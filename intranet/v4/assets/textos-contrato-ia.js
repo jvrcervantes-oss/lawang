@@ -380,11 +380,11 @@
     if (!(d.extracto || []).length) s3.appendChild(el('p', 'tc-peq', T('Todavía no hay ningún uso.')));
     else {
       var tb = el('table', 'tc-tabla'), cab = el('tr', null);
-      [T('Mes'), T('Empresa'), T('Consultas'), T('Fallidas'), T('Sin cerrar'), T('Créditos facturables'), T('De prueba'), T('Aceptadas'), T('Coste real (USD)')].forEach(function (h) { cab.appendChild(el('th', null, h)); });
+      [T('Mes'), T('Empresa'), T('Consultas'), T('Fallidas'), T('Sin cerrar'), T('Créditos hechos'), T('De prueba'), T('Créditos facturables'), T('Incluidos'), T('Exceso'), T('Importe'), T('Aceptadas'), T('Coste real (USD)')].forEach(function (h) { cab.appendChild(el('th', null, h)); });
       tb.appendChild(cab);
       d.extracto.forEach(function (x) {
         var tr = el('tr', null);
-        [String(x.periodo).slice(0, 7), x.empresa, x.llamadas, x.fallidas, x.pendientes, x.creditos, x.creditos_prueba, x.aceptadas, x.coste_usd === null ? T('sin tarifa') : x.coste_usd].forEach(function (v) { tr.appendChild(el('td', null, String(v))); });
+        [String(x.periodo).slice(0, 7), x.empresa, x.llamadas, x.fallidas, x.pendientes, x.creditos, x.creditos_prueba, x.facturables, x.incluidos === null ? '—' : x.incluidos, x.exceso, x.importe + (x.moneda ? ' ' + x.moneda : ''), x.aceptadas, x.coste_usd + (x.coste_incompleto ? ' (' + T('sin tarifa') + ')' : '')].forEach(function (v) { tr.appendChild(el('td', null, String(v))); });
         tb.appendChild(tr);
       });
       s3.appendChild(tb);

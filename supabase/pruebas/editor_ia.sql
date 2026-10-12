@@ -109,6 +109,8 @@ begin
   r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_ajustes_guarda(null, %L::jsonb, %L)',
         '{"precio_credito": 1.5, "moneda": "EUR", "creditos_propuesta": 2, "creditos_traduccion_ia": 1, "creditos_traduccion_deepl": 1, "tope_global_mensual": 100, "factura_a": "instancia", "caducan": true, "prueba_creditos": 2}', 'prueba de precios'));
   total := total + 1; if r <> 'OK:1' then fallos := fallos + 1; resumen := resumen || ' [C1 precios: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_ajustes_guarda(null, %L::jsonb, %L)', '{"caducan": false}', 'prueba'));
+  total := total + 1; if r not like 'E22023%' then fallos := fallos + 1; resumen := resumen || ' [C1b «no caducan» sin arrastre construido: ' || r || ']'; end if;
   r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_ajustes_guarda(%L, %L::jsonb, %L)', v_ea, '{"creditos_incluidos": 4, "tope_mensual": 5, "encendido": true}', 'prueba'));
   total := total + 1; if r <> 'OK:1' then fallos := fallos + 1; resumen := resumen || ' [C2 encender: ' || r || ']'; end if;
   select count(*) into n from public.editor_ia_ajustes_log; total := total + 1; if n < 2 then fallos := fallos + 1; resumen := resumen || ' [C3 sin registro de cambios]'; end if;
@@ -151,6 +153,10 @@ begin
   total := total + 1; if r <> 'OK:1' then fallos := fallos + 1; resumen := resumen || ' [D9 cierre bueno: ' || r || ']'; end if;
   select count(*) into n from public.editor_ia_uso where id = v_uso and estado = 'hecho' and tokens_entrada = 120 and tokens_salida = 40 and huella_propuesta = h1;
   total := total + 1; if n <> 1 then fallos := fallos + 1; resumen := resumen || ' [D10 apunte del uso]'; end if;
+  select count(*) into n from public.editor_ia_uso where id = v_uso and precio_credito = 1.5 and moneda = 'EUR';
+  total := total + 1; if n <> 1 then fallos := fallos + 1; resumen := resumen || ' [D10b el apunte congela precio y moneda]'; end if;
+  select count(*) into n from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo() and incluidos is not null;
+  total := total + 1; if n <> 1 then fallos := fallos + 1; resumen := resumen || ' [D10c el mes congela los incluidos de la empresa]'; end if;
   -- una marca rara no entra
   r := pg_temp.intenta('service_role', null, null, format('select public.editor_ia_cierra(%L, true, %L, 1, 1, 0, null, %L::jsonb)', v_uso, 'm', '[{"lang":"xx","huella":"z"}]'));
   total := total + 1; if r <> 'OK:1' then fallos := fallos + 1; resumen := resumen || ' [D11 cierre repetido: ' || r || ']'; end if;   -- ya cerrado: no hace nada (false)
@@ -215,7 +221,9 @@ begin
   j := pg_temp.pide('authenticated', v_sup, v_sup_em, 'select public.editor_ia_ajustes_datos()');
   select x into j from jsonb_array_elements(j -> 'extracto') x where x ->> 'empresa' = v_ea and (x ->> 'periodo')::date = public._editor_ia_periodo();
   total := total + 1;
-  if j is null or (j ->> 'creditos') <> '2' or (j ->> 'pendientes') <> '5' or (j ->> 'fallidas') <> '3' then
+  -- D1 fue de prueba: 2 créditos hechos y 0 facturables (la prueba no se cobra)
+  if j is null or (j ->> 'creditos') <> '2' or (j ->> 'pendientes') <> '5' or (j ->> 'fallidas') <> '3'
+     or (j ->> 'facturables') <> '0' or (j ->> 'importe')::numeric <> 0 or (j ->> 'creditos_prueba') <> '2' then
     fallos := fallos + 1; resumen := resumen || ' [H5 extracto: ' || coalesce(j::text, 'error') || ']';
   end if;
   -- H6: una reserva abandonada de OTRA empresa también caduca (si no, tendría ocupada la jaula global de las demás)

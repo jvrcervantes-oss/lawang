@@ -62,7 +62,7 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
           return { data: null, error: { message: 'rpc inesperada ' + n } };
         },
       }),
-      servicio: { rpc: async (n, a) => { if (n === 'editor_ia_cierra') { reg.cierres.push(a); return { data: true, error: null }; } return { data: null, error: { message: 'x' } }; } },
+      servicio: { rpc: async (n, a) => { if (n === 'editor_ia_cierra') { reg.cierres.push(a); return { data: !o.cierreCaducado, error: null }; } return { data: null, error: { message: 'x' } }; } },
       fetch: async (url, init) => {
         reg.fetch.push({ url, init });
         const cuerpo = JSON.parse(init.body);
@@ -173,6 +173,10 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
   { const { h, reg } = montaje({ proveedor: async () => ({ ok: false, json: async () => ({}) }) }); const r = await pide(h, propone()); ok(r.s === 502 && reg.cierres[0].p_ok === false, 'proveedor caído: 502 y devolución', r.j); }
   { const { h, reg } = montaje({ proveedor: modelo((rec) => rec) }); const r = await pide(h, propone({ instruccion: 'traduce al chino' }));
     ok(r.s === 200 && r.j.sin_cambios === true && reg.cierres[0].p_ok === true, 'sin cambios: se dice y cuenta como uso', r.j); }
+
+  { // la reserva caducó antes del cierre (cierre = false): la propuesta NO se entrega
+    const { h } = montaje({ cierreCaducado: true, proveedor: modelo(cambia) }); const r = await pide(h, propone());
+    ok(r.s === 500 && r.j.error === 'no_se_pudo_cerrar' && !r.j.propuesta, 'cierre sobre una reserva caducada: sin propuesta', r.j); }
 
   // ── 6. traducción con IA: una cláusula entera, marcas «sin revisar» por trozo ──
   const destTs = M.parrafosDe(trozosDoc, secPartes, 'en').flat().filter((t) => t.editable);

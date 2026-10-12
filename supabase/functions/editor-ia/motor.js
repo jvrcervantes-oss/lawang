@@ -197,7 +197,7 @@ async function traduceDeepl(dep, pares, destino) {
                            ignore_tags: ['x'], preserve_formatting: true }),
   });
   const caracteres = textos.reduce((n, t) => n + t.replace(/<[^>]*>/g, '').length, 0);
-  if (!r.ok) return { ok: false, caracteres };
+  if (!r.ok) return { ok: false, caracteres: 0 };                     // DeepL no cobra una petición que rechaza: no cuenta contra la jaula
   const out = await r.json();
   const tr = out && Array.isArray(out.translations) ? out.translations : [];
   if (tr.length !== pares.length) return { ok: false, caracteres };
@@ -216,7 +216,7 @@ export function crea(dep) {
     const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
     if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
     if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
-    let reserva = null;
+    let reserva = null, gasto = null;
     const cierra = (ok, extra = {}) => dep.servicio.rpc('editor_ia_cierra', {
       p_uso: reserva.uso, p_ok: ok, p_modelo: extra.modelo ?? null, p_entrada: extra.entrada ?? 0, p_salida: extra.salida ?? 0,
       p_caracteres: extra.caracteres ?? 0, p_huella: extra.huella ?? null, p_marcas: extra.marcas ?? [],
@@ -305,6 +305,7 @@ export function crea(dep) {
         if (!dep.claves.anthropic) { await cierra(false); return json({ error: 'no_configurado', motor: 'ia' }, 503); }
         res = await preguntaModelo(dep, accion === 'propone' ? SISTEMA_PROPONE : sistemaTraduce(destino), contenido);
       }
+      gasto = res;                                                       // lo que el proveedor ya cobró, por si algo revienta después
       if (!res.ok) { await cierra(false, res); return json({ error: res.forma ? 'forma_distinta' : 'modelo_no_disponible' }, res.forma ? 422 : 502); }
       const ac = aceptaPiezas(res.piezas, esperados);
       if (ac.error) { await cierra(false, res); return json({ error: 'propuesta_no_valida', motivo: ac.error }, 422); }
@@ -312,12 +313,13 @@ export function crea(dep) {
       const huella = await dep.sha256(JSON.stringify(Object.keys(ac.propuesta).sort((a, b) => a - b).map((i) => [Number(i), ac.propuesta[i]])));
       const marcas = accion === 'traduce' ? await Promise.all(Object.keys(ac.propuesta).map(async (i) => ({ lang: destino, huella: await dep.sha256(ac.propuesta[i]) }))) : [];
       const c = await cierra(true, { ...res, huella, marcas });
-      if (c.error) return json({ error: 'no_se_pudo_cerrar' }, 500);
+      // false = ya no estaba «reservado» (caducó: la llamada pasó de 10 min): no se entrega gratis lo que no quedó apuntado
+      if (c.error || c.data === false) return json({ error: 'no_se_pudo_cerrar' }, 500);
       const sinCambios = esperados.every((t) => ac.propuesta[t.i] === TC.ws(t.texto));
       return json({ uso: reserva.uso, propuesta: ac.propuesta, sin_cambios: sinCambios, nota: sinCambios ? res.nota || '' : '',
                     creditos: reserva.creditos, usados: reserva.usados, incluidos: reserva.incluidos, tope: reserva.tope, de_prueba: reserva.de_prueba });
     } catch (_e) {
-      if (reserva) { try { await cierra(false); } catch (_) { /* MUDO A PROPOSITO: el apunte queda «reservado» (aparte en el extracto, no se factura) y a los 10 minutos caduca y devuelve sus créditos */ } }
+      if (reserva) { try { await cierra(false, gasto || {}); } catch (_) { /* MUDO A PROPOSITO: el apunte queda «reservado» (aparte en el extracto, no se factura) y a los 10 minutos caduca y devuelve sus créditos */ } }
       return json({ error: 'error_interno' }, 500);
     }
   };

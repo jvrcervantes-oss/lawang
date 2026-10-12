@@ -85,6 +85,7 @@ create table public.editor_ia_saldo (
   empresa   text not null,                                     -- clave de la empresa, o '*' = toda la instancia
   periodo   date not null,                                     -- primer día del mes (hora de Bali)
   usados    integer not null default 0 check (usados >= 0),
+  incluidos integer check (incluidos >= 0),                    -- créditos incluidos de la empresa ESE mes (congelados al primer uso)
   primary key (empresa, periodo)
 );
 
@@ -110,7 +111,11 @@ create table public.editor_ia_uso (
   huella_propuesta  text check (huella_propuesta ~ '^[0-9a-f]{64}$'),
   cerrada_en        timestamptz,
   aceptada_en       timestamptz,
-  version_aceptada  uuid
+  version_aceptada  uuid,
+  -- Congelados en el apunte (Administración 13-oct): el extracto de un mes pasado no se recalcula con el precio ni las tarifas de hoy.
+  precio_credito    numeric(14,4),                              -- precio del crédito al reservar
+  moneda            text,                                       -- moneda de ese precio
+  coste_usd         numeric(14,6)                               -- coste real del proveedor al cerrar, con las tarifas de ese momento (null = sin tarifa)
 );
 create index editor_ia_uso_usuario_fecha on public.editor_ia_uso (usuario, fecha desc);
 create index editor_ia_uso_empresa_periodo on public.editor_ia_uso (empresa, periodo);
@@ -256,7 +261,8 @@ begin
   select * into e from public.editor_ia_empresa x where x.empresa = p_empresa;
   v_unit := case p_accion when 'propone' then a.creditos_propuesta when 'traduce_ia' then a.creditos_traduccion_ia else a.creditos_traduccion_deepl end;
   v_n := v_unit * p_parrafos;
-  insert into public.editor_ia_saldo (empresa, periodo) values (p_empresa, v_per), ('*', v_per) on conflict (empresa, periodo) do nothing;
+  insert into public.editor_ia_saldo (empresa, periodo, incluidos) values (p_empresa, v_per, e.creditos_incluidos), ('*', v_per, null)
+    on conflict (empresa, periodo) do nothing;
   -- la empresa, con su tope: un update condicional (atómico frente a peticiones a la vez)
   update public.editor_ia_saldo s set usados = s.usados + v_n
    where s.empresa = p_empresa and s.periodo = v_per and s.usados + v_n <= e.tope_mensual
@@ -267,9 +273,11 @@ begin
    where s.empresa = '*' and s.periodo = v_per and s.usados + v_n <= a.tope_global_mensual;
   if not found then raise exception 'El asistente ha llegado al tope de creditos de este mes' using errcode = 'P0001', hint = 'tope_global'; end if;
   select coalesce(sum(u.creditos), 0) into v_hist from public.editor_ia_uso u where u.empresa = p_empresa and u.estado in ('reservado', 'hecho');
+  -- La prueba es por llamada entera, a propósito: si una llamada no cabe en lo que queda de prueba, se cobra entera y ese resto
+  -- de prueba no se usa (partirla complicaría el extracto por unos pocos créditos).
   v_prueba := v_hist + v_n <= a.prueba_creditos;
-  insert into public.editor_ia_uso (empresa, usuario, autor, periodo, accion, slug, variante, version_id, parrafos, creditos, de_prueba)
-  values (p_empresa, v_uid, v_autor, v_per, p_accion, p_slug, v_var, p_version, p_parrafos, v_n, v_prueba)
+  insert into public.editor_ia_uso (empresa, usuario, autor, periodo, accion, slug, variante, version_id, parrafos, creditos, de_prueba, precio_credito, moneda)
+  values (p_empresa, v_uid, v_autor, v_per, p_accion, p_slug, v_var, p_version, p_parrafos, v_n, v_prueba, a.precio_credito, a.moneda)
   returning id into v_id;
   return jsonb_build_object('uso', v_id, 'creditos', v_n, 'usados', v_usados, 'incluidos', e.creditos_incluidos, 'tope', e.tope_mensual, 'de_prueba', v_prueba);
 end $$;
@@ -281,16 +289,19 @@ grant execute on function public.editor_ia_reserva(text, text, text, text, uuid,
 create function public.editor_ia_cierra(p_uso uuid, p_ok boolean, p_modelo text, p_entrada integer, p_salida integer, p_caracteres integer,
                                         p_huella text, p_marcas jsonb default '[]'::jsonb)
  returns boolean language plpgsql security definer set search_path = '' as $$
-declare u public.editor_ia_uso%rowtype; m jsonb;
+declare u public.editor_ia_uso%rowtype; m jsonb; a public.editor_ia_ajustes%rowtype; v_coste numeric;
 begin
   select * into u from public.editor_ia_uso x where x.id = p_uso for update;
   if not found then raise exception 'Uso no encontrado' using errcode = '22023'; end if;
   if u.estado <> 'reservado' then return false; end if;                       -- ya cerrado: no se cuenta dos veces
   perform public._editor_ia_candado();                                       -- el mismo candado que la reserva y la caducidad
   if p_huella is not null and p_huella !~ '^[0-9a-f]{64}$' then raise exception 'Huella no valida' using errcode = '22023'; end if;
+  select * into a from public.editor_ia_ajustes x where x.id;
+  v_coste := case when u.accion = 'traduce_deepl' then greatest(p_caracteres, 0) * a.tarifa_deepl_usd_mcar / 1000000.0
+                  else (greatest(p_entrada, 0) * a.tarifa_entrada_usd_mtok + greatest(p_salida, 0) * a.tarifa_salida_usd_mtok) / 1000000.0 end;
   update public.editor_ia_uso set estado = case when p_ok then 'hecho' else 'fallo' end, cerrada_en = now(),
          modelo = left(p_modelo, 80), tokens_entrada = greatest(p_entrada, 0), tokens_salida = greatest(p_salida, 0),
-         caracteres = greatest(p_caracteres, 0), huella_propuesta = case when p_ok then p_huella end
+         caracteres = greatest(p_caracteres, 0), huella_propuesta = case when p_ok then p_huella end, coste_usd = round(v_coste, 6)
    where id = u.id;
   if not p_ok then
     -- La empresa no paga una llamada fallida. La jaula global solo la devuelve si el proveedor no cobró nada: si ya gastó
@@ -395,14 +406,20 @@ begin
         select jsonb_build_object('periodo', u.periodo, 'empresa', u.empresa,
                  'llamadas', count(*), 'fallidas', count(*) filter (where u.estado in ('fallo', 'caducada')),
                  'pendientes', count(*) filter (where u.estado = 'reservado'),
-                 'creditos', coalesce(sum(u.creditos) filter (where u.estado = 'hecho'), 0),           -- lo que se factura: solo «hecho»
+                 'creditos', coalesce(sum(u.creditos) filter (where u.estado = 'hecho'), 0),           -- hechos (con los de prueba)
                  'creditos_prueba', coalesce(sum(u.creditos) filter (where u.estado = 'hecho' and u.de_prueba), 0),
+                 -- lo que se factura: hecho y no de prueba, con el precio CONGELADO en cada apunte
+                 'facturables', coalesce(sum(u.creditos) filter (where u.estado = 'hecho' and not u.de_prueba), 0),
+                 'importe', coalesce(sum(u.creditos * u.precio_credito) filter (where u.estado = 'hecho' and not u.de_prueba), 0),
+                 'moneda', string_agg(distinct u.moneda, '/') filter (where u.estado = 'hecho' and not u.de_prueba),
+                 'incluidos', (select s.incluidos from public.editor_ia_saldo s where s.empresa = u.empresa and s.periodo = u.periodo),
+                 'exceso', greatest(coalesce(sum(u.creditos) filter (where u.estado = 'hecho' and not u.de_prueba), 0)
+                                    - coalesce((select s.incluidos from public.editor_ia_saldo s where s.empresa = u.empresa and s.periodo = u.periodo), 0), 0),
                  'aceptadas', count(*) filter (where u.aceptada_en is not null),
                  'tokens_entrada', coalesce(sum(u.tokens_entrada), 0), 'tokens_salida', coalesce(sum(u.tokens_salida), 0),
                  'caracteres', coalesce(sum(u.caracteres), 0),
-                 'coste_usd', case when a.tarifa_entrada_usd_mtok is null or a.tarifa_salida_usd_mtok is null or a.tarifa_deepl_usd_mcar is null then null
-                                   else round((coalesce(sum(u.tokens_entrada), 0) * a.tarifa_entrada_usd_mtok + coalesce(sum(u.tokens_salida), 0) * a.tarifa_salida_usd_mtok
-                                               + coalesce(sum(u.caracteres), 0) * a.tarifa_deepl_usd_mcar) / 1000000.0, 4) end) x
+                 'coste_usd', round(coalesce(sum(u.coste_usd) filter (where u.estado in ('hecho', 'fallo')), 0), 4),
+                 'coste_incompleto', coalesce(bool_or(u.coste_usd is null and u.estado in ('hecho', 'fallo')), false)) x
           from public.editor_ia_uso u
          where u.periodo >= (v_per - interval '2 months')::date
          group by u.periodo, u.empresa) t), '[]'::jsonb),
@@ -438,6 +455,10 @@ begin
     if k = any (ENT) and (jsonb_typeof(v) <> 'number' or (v #>> '{}')::numeric <> trunc((v #>> '{}')::numeric)) then raise exception '«%» es un numero entero', k using errcode = '22023'; end if;
     if k in ('caducan', 'encendido') and jsonb_typeof(v) <> 'boolean' then raise exception '«%» es si o no', k using errcode = '22023'; end if;
     if k in ('moneda', 'factura_a') and jsonb_typeof(v) <> 'string' then raise exception '«%» es un texto', k using errcode = '22023'; end if;
+    -- Administración 13-oct: el saldo es por mes y no hay arrastre construido; aceptar «no caducan» sería un dato que no hace nada
+    if k = 'caducan' and v = 'false'::jsonb then
+      raise exception 'Que los creditos no usados pasen al mes siguiente todavia no esta construido: hoy caducan a fin de mes' using errcode = '22023';
+    end if;
   end loop;
   if p_empresa is null then
     select to_jsonb(a) - 'id' into v_antes from public.editor_ia_ajustes a where a.id for update;
