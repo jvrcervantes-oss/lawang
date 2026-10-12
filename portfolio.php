@@ -183,7 +183,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
   <nav id="nav" aria-label="Main">
     <a class="nav-link" href="/thecollection#land">The Land</a>
     <a class="nav-link" href="/thecollection#villas">The Villas</a>
-    <a class="nav-link" href="/#expedition">The Soul</a>
+    <a class="nav-link" href="/thesoul">The Soul</a>
     <a class="nav-link active" href="/portfolio" aria-current="page">The Portfolio</a>
   </nav>
   <div id="nav-actions">
