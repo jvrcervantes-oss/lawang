@@ -6005,6 +6005,22 @@
     'Opciones': 'Options',
     'Menú': 'Menu',
     'Recibí de cobro': 'Payment receipt',
+    // Ajustes › Idiomas (12-oct-2026, G2)
+    'Idiomas': 'Languages',
+    'En qué idiomas trabaja este ERP': 'The languages this ERP works in',
+    'Los idiomas de las pantallas del equipo y el que sale por defecto.': 'The languages of your team\'s screens and the default one.',
+    'Trayendo los idiomas…': 'Loading the languages…',
+    'No se han podido leer los idiomas de este ERP.': 'Could not read this ERP\'s languages.',
+    'Qué idiomas ofrece este ERP': 'Which languages this ERP offers',
+    'Idioma por defecto': 'Default language',
+    'Es el de la pantalla de entrada y el de quien aún no ha elegido. Cada persona del equipo puede cambiar el suyo.': 'It is the language of the sign-in screen and of anyone who has not chosen yet. Each person on the team can change their own.',
+    'Hoy los idiomas los fija el estudio al publicar el ERP: todavía no se pueden cambiar desde aquí. Si quieres otros, pídeselo al estudio.': 'Today the studio sets the languages when it publishes the ERP: they cannot be changed here yet. If you want others, ask the studio.',
+    'Hay cambios sin guardar.': 'There are unsaved changes.',
+    'Sin cambios.': 'No changes.',
+    'Tiene que quedar al menos un idioma.': 'At least one language has to stay.',
+    'Idiomas guardados.': 'Languages saved.',
+    'No se ha guardado: este ERP todavía no guarda los idiomas en su base. Pídeselo al estudio.': 'Not saved: this ERP does not store its languages in its database yet. Ask the studio.',
+    'No se ha guardado: %m': 'Not saved: %m',
   };
 
   window.LW_EN = EN;
