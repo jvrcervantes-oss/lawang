@@ -446,7 +446,7 @@
         else vals[k] = el.value.trim();
       });
       for (var i = 0; i < campos.length; i++) {
-        if (campos[i].req && !vals[campos[i].k]) { muestraError('Falta «' + campos[i].label + '».'); return; }
+        if (campos[i].req && !vals[campos[i].k]) { muestraError(tH('Falta «%c».', { c: tS(campos[i].label) })); return; }
       }
       var btn = w.querySelector('[data-e="guardar"]');
       btn.disabled = true; btn.textContent = tS('Guardando…');
@@ -4428,7 +4428,7 @@
               var fuera = aplicaciones.filter(function (a) { return !validas[a.factura_id]; });
               if (fuera.length) {
                 aplicaciones = aplicaciones.filter(function (a) { return validas[a.factura_id]; });
-                toast(tH(fuera.length === 1 ? 'Quitada %n factura que no son de esta moneda: %l' : 'Quitadas %n facturas que no son de esta moneda: %l',
+                toast(tH(fuera.length === 1 ? 'Quitada %n factura que no es de esta moneda: %l' : 'Quitadas %n facturas que no son de esta moneda: %l',
                   { n: fuera.length, l: fuera.map(function (a) { return a.numero; }).join(', ') }));
               }
               pintaBtnF(); repintaAplic();

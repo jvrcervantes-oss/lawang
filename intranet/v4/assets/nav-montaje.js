@@ -62,7 +62,8 @@
   var aside = document.createElement('aside');
   aside.className = 'lw4-sb';
   aside.id = 'lw4-sb';
-  aside.setAttribute('aria-label', 'Menú de la intranet');
+  aside.setAttribute('aria-label', window.lwT ? window.lwT('Menú de la intranet') : 'Menú de la intranet');
+  aside.setAttribute('data-lwt-aria', 'Menú de la intranet');
   aside.setAttribute('aria-hidden', 'true');
   aside.innerHTML =
     '<div class="lw4-sb-arriba">' +
@@ -103,7 +104,7 @@
     cab.className = 'lw4-cab';
     cab.innerHTML =
       '<div class="lw4-cab-izq">' +
-        '<button type="button" class="lw4-cab-btn lw4-cab-menu" data-lw4-menu aria-controls="lw4-sb" aria-label="' + (window.lwT ? window.lwT('Menú') : 'Menú') + '">' +
+        '<button type="button" class="lw4-cab-btn lw4-cab-menu" data-lw4-menu aria-controls="lw4-sb" aria-label="' + (window.lwT ? window.lwT('Menú') : 'Menú').replace(/"/g, '&quot;') + '" data-lwt-aria="Menú">' +
           '<span class="material-symbols-outlined">menu</span></button>' +
       '</div>' +
       '<div class="lw4-cab-der">' +
@@ -204,7 +205,8 @@
     b.className = 'lw4-hamburguesa';
     b.setAttribute('data-lw4-menu', '');
     b.setAttribute('aria-controls', 'lw4-sb');
-    b.setAttribute('aria-label', 'Abrir menú');
+    b.setAttribute('aria-label', window.lwT ? window.lwT('Abrir menú') : 'Abrir menú');
+    b.setAttribute('data-lwt-aria', 'Abrir menú');
     b.innerHTML = '<span class="material-symbols-outlined">menu</span>';
     barra.insertBefore(b, barra.firstChild);
   }
