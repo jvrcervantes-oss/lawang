@@ -73,6 +73,15 @@
   }
   fija('LW_SB_URL', URL_SB);
   fija('LW_SB_KEY', KEY_SB);
+  /* Moneda BASE del ERP (F3 fase E, 12-oct-2026): la de los importes nuevos y la de las cifras sumadas. En Lawang, EUR de siempre (0 px). En una
+     instancia del ERP (el build pone window.AXW_NUCLEO_OPERACION arriba de este fichero) es la que se eligió en Ajustes, que la capa de módulos
+     deja en window.LW_MONEDA_BASE al leer modulos_activos_datos; mientras no está, o si no es un código de 3 letras, null = sin decidir, y quien
+     pinta enseña «—», nunca euros. Se mira al llamar, no al cargar: la moneda llega después que este fichero. */
+  fija('lwMonedaBase', function () {
+    var m = window.LW_MONEDA_BASE;
+    if (window.AXW_NUCLEO_OPERACION) return typeof m === 'string' && /^[A-Z]{3}$/.test(m) ? m : null;
+    return m || 'EUR';
+  });
   fija('lwEdge', function (nombre) {
     if (!/^[a-z0-9-]+$/.test(String(nombre))) throw new Error('lwEdge: nombre de edge no válido');
     return URL_SB + '/functions/v1/' + nombre;

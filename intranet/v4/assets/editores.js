@@ -11685,6 +11685,20 @@
         ]);
       }
 
+      /* ERP maestro (S1 de F3, 12-oct-2026): fijar o cambiar el prefijo de la serie no se deshace y sociedad_guarda lo pide confirmado (hint
+         falta_confirmo). Se pregunta aquí y se reenvía con p_confirmo = true; si no se confirma, no se guarda nada. Lawang no devuelve nunca ese
+         hint, así que allí la llamada es exactamente la de siempre. */
+      function guardaSociedad(args) {
+        return Promise.resolve(sb.rpc('sociedad_guarda', args)).then(function (r) {
+          if (!(r && r.error && r.error.hint === 'falta_confirmo')) return r;
+          var pref = (args.p_datos && args.p_datos.prefijo_serie) || '—';
+          if (!window.confirm(tH('El prefijo de las facturas («%p») no se podrá cambiar después de emitir la primera factura. ¿Fijarlo ahora?', { p: pref }))) {
+            return { data: null, error: { message: tH('No se ha guardado nada: el prefijo queda sin fijar.') } };
+          }
+          return Promise.resolve(sb.rpc('sociedad_guarda', Object.assign({}, args, { p_confirmo: true })));
+        });
+      }
+
       // ── Editar una sociedad que ya existe ───────────────────────────────
       window.LW_V4.abreEditaSociedad = function (btn) {
         if (!superAdmin) return soloSuper();
@@ -11699,7 +11713,7 @@
           function guarda() {
             // por el servidor (`sociedad_guarda`): la allowlist de columnas y el
             // permiso de super_admin los comprueba él
-            return Promise.resolve(sb.rpc('sociedad_guarda', { p_clave: s.clave, p_datos: fila, p_nueva: false })).then(trasRpc);
+            return guardaSociedad({ p_clave: s.clave, p_datos: fila, p_nueva: false }).then(trasRpc);
           }
 
           // Desactivar una sociedad YA EXISTENTE (nunca aplica en el alta):
@@ -11809,7 +11823,7 @@
             var fila = payloadDesdeForm(v);
             if (fila.error) return fila;
             // nace activa siempre (lo impone el servidor); desactivarla es un paso aparte, ya existiendo
-            return Promise.resolve(sb.rpc('sociedad_guarda', { p_clave: clave, p_datos: fila, p_nueva: true })).then(trasRpc);
+            return guardaSociedad({ p_clave: clave, p_datos: fila, p_nueva: true }).then(trasRpc);
           });
         });
       }
