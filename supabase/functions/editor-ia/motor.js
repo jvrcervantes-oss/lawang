@@ -115,10 +115,11 @@ ${REGLAS}`;
 async function preguntaModelo(dep, sistema, contenido) {
   const r = await dep.fetch(URL_MODELO, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': dep.claves.anthropic, 'anthropic-version': '2023-06-01',
-               'anthropic-beta': 'server-side-fallback-2026-07-01' },
+    // Sin modelo de respaldo a propósito (revisor 13-oct): el extracto calcula el coste con UNA tarifa, la de MODELO, y un
+    // respaldo cobraría con otra sin que se viera. Si el modelo no contesta, la llamada falla limpia y no se cobra.
+    headers: { 'content-type': 'application/json', 'x-api-key': dep.claves.anthropic, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: MODELO, max_tokens: 16000, fallbacks: 'default', system: sistema,
+      model: MODELO, max_tokens: 16000, system: sistema,
       // reescribir un párrafo no pide pensar mucho: esfuerzo bajo (el pensamiento no se puede apagar en este modelo)
       output_config: { effort: 'low', format: { type: 'json_schema', schema: ESQUEMA } },
       messages: [{ role: 'user', content: contenido }],
@@ -267,7 +268,9 @@ export function crea(dep) {
         if (pares.some((p) => p.es.concat(p.dest).some((t) => t.editable && t.bloqueado))) return json({ error: 'parte_sensible' }, 422);
         const texto = es.map((ts) => ts.filter((t) => t.editable).map((t) => t.texto).join(' ')).join('\n');
         if (texto.length > TOPES.clausula) return json({ error: 'demasiado_largo', tope: TOPES.clausula }, 413);
-        const dr = datoReal(texto, true);
+        // también el texto de destino: con IA se envía al modelo (y con DeepL se sustituiría). Antes de reservar nada.
+        const textoDest = de.map((ts) => ts.filter((t) => t.editable).map((t) => t.texto).join(' ')).join(' ');
+        const dr = datoReal(texto, true) || datoReal(textoDest, true);
         if (dr) return json({ error: 'dato_real', tipo: dr }, 422);
         if (motor === 'deepl' && pares.some((p) => forma(p.es, 'es') !== forma(p.dest, destino))) return json({ error: 'forma_distinta', motor: 'deepl' }, 422);
         esperados = pares.flatMap((p) => p.dest.filter((t) => t.editable));
@@ -309,7 +312,7 @@ export function crea(dep) {
       return json({ uso: reserva.uso, propuesta: ac.propuesta, sin_cambios: sinCambios, nota: sinCambios ? res.nota || '' : '',
                     creditos: reserva.creditos, usados: reserva.usados, incluidos: reserva.incluidos, tope: reserva.tope, de_prueba: reserva.de_prueba });
     } catch (_e) {
-      if (reserva) { try { await cierra(false); } catch (_) { /* MUDO A PROPOSITO: el apunte queda «reservado» y se ve en el extracto */ } }
+      if (reserva) { try { await cierra(false); } catch (_) { /* MUDO A PROPOSITO: el apunte queda «reservado» (aparte en el extracto, no se factura) y a los 10 minutos caduca y devuelve sus créditos */ } }
       return json({ error: 'error_interno' }, 500);
     }
   };

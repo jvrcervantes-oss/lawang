@@ -101,7 +101,7 @@ create table public.editor_ia_uso (
   parrafos          integer not null check (parrafos between 1 and 40),
   creditos          integer not null check (creditos > 0),
   de_prueba         boolean not null default false,
-  estado            text not null default 'reservado' check (estado in ('reservado', 'hecho', 'fallo')),
+  estado            text not null default 'reservado' check (estado in ('reservado', 'hecho', 'fallo', 'caducada')),   -- se factura SOLO «hecho»
   modelo            text,
   tokens_entrada    integer check (tokens_entrada >= 0),
   tokens_salida     integer check (tokens_salida >= 0),
@@ -175,6 +175,25 @@ begin
 end $$;
 revoke all on function public._editor_ia_periodo(), public._editor_ia_falta(text) from public, anon, authenticated, service_role;
 
+-- Reservas que nadie cerró (la función murió a medias, o alguien reservó desde el navegador sin llamar a la función): a los 10
+-- minutos caducan y devuelven sus créditos a la empresa y a la jaula global. Una función viva cierra en segundos (su tope de
+-- ejecución es muy inferior), así que no se pisa con un cierre de verdad; y si chocan, el cierre ve que ya no está «reservado».
+-- Orden fijo de bloqueo en todo el módulo: fila de la empresa y DESPUÉS la fila global «*» (la reserva suma en ese orden).
+create function public._editor_ia_caduca(p_empresa text) returns integer language plpgsql security definer set search_path = '' as $$
+declare u record; n int := 0;
+begin
+  for u in select x.id, x.periodo, x.creditos from public.editor_ia_uso x
+            where x.empresa = p_empresa and x.estado = 'reservado' and x.fecha < now() - interval '10 minutes'
+            order by x.fecha for update skip locked loop
+    update public.editor_ia_uso set estado = 'caducada', cerrada_en = now() where id = u.id;
+    update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = p_empresa and s.periodo = u.periodo;
+    update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = '*' and s.periodo = u.periodo;
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+revoke all on function public._editor_ia_caduca(text) from public, anon, authenticated, service_role;
+
 -- ─────────────────────────────────────────────────────────────────────────────────────────────── estado (pantalla)
 create function public.editor_ia_estado(p_empresa text) returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v_falta text; a public.editor_ia_ajustes%rowtype; e public.editor_ia_empresa%rowtype; v_per date := public._editor_ia_periodo(); v_usados int;
@@ -220,6 +239,7 @@ begin
   end if;
   v_falta := public._editor_ia_falta(p_empresa);
   if v_falta is not null then raise exception 'Asistente apagado: %', v_falta using errcode = '55000', hint = 'apagado'; end if;
+  perform public._editor_ia_caduca(p_empresa);                               -- antes de medir el tope: lo abandonado no ocupa saldo
   -- tope por persona: 6 llamadas por minuto (serializado por persona: dos peticiones suyas a la vez no se cuelan las dos)
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('editor_ia/usuario/' || v_uid::text, 0));
   select count(*) into v_min from public.editor_ia_uso u where u.usuario = v_uid and u.fecha > now() - interval '1 minute';
@@ -238,7 +258,7 @@ begin
   update public.editor_ia_saldo s set usados = s.usados + v_n
    where s.empresa = '*' and s.periodo = v_per and s.usados + v_n <= a.tope_global_mensual;
   if not found then raise exception 'El asistente ha llegado al tope de creditos de este mes' using errcode = 'P0001', hint = 'tope_global'; end if;
-  select coalesce(sum(u.creditos), 0) into v_hist from public.editor_ia_uso u where u.empresa = p_empresa and u.estado <> 'fallo';
+  select coalesce(sum(u.creditos), 0) into v_hist from public.editor_ia_uso u where u.empresa = p_empresa and u.estado in ('reservado', 'hecho');
   v_prueba := v_hist + v_n <= a.prueba_creditos;
   insert into public.editor_ia_uso (empresa, usuario, autor, periodo, accion, slug, variante, version_id, parrafos, creditos, de_prueba)
   values (p_empresa, v_uid, v_autor, v_per, p_accion, p_slug, v_var, p_version, p_parrafos, v_n, v_prueba)
@@ -264,8 +284,13 @@ begin
          caracteres = greatest(p_caracteres, 0), huella_propuesta = case when p_ok then p_huella end
    where id = u.id;
   if not p_ok then
-    update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0)
-     where s.periodo = u.periodo and s.empresa in (u.empresa, '*');
+    -- La empresa no paga una llamada fallida. La jaula global solo la devuelve si el proveedor no cobró nada: si ya gastó
+    -- tokens o caracteres, ese gasto real sigue contando contra el tope de la instancia (así los fallos tampoco salen gratis).
+    -- Dos updates en el orden fijo del módulo (empresa, luego «*»): uno solo con «in (…)» no garantiza el orden de bloqueo.
+    update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = u.empresa and s.periodo = u.periodo;
+    if greatest(p_entrada, 0) + greatest(p_salida, 0) + greatest(p_caracteres, 0) = 0 then
+      update public.editor_ia_saldo s set usados = greatest(s.usados - u.creditos, 0) where s.empresa = '*' and s.periodo = u.periodo;
+    end if;
     return true;
   end if;
   if jsonb_typeof(coalesce(p_marcas, '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_marcas, '[]'::jsonb)) > 400 then
@@ -356,9 +381,10 @@ begin
     -- extracto de los tres últimos meses, por empresa: lo que se factura sale de aquí (sin texto de nadie)
     'extracto', coalesce((select jsonb_agg(x order by x ->> 'periodo' desc, x ->> 'empresa') from (
         select jsonb_build_object('periodo', u.periodo, 'empresa', u.empresa,
-                 'llamadas', count(*), 'fallidas', count(*) filter (where u.estado = 'fallo'),
-                 'creditos', coalesce(sum(u.creditos) filter (where u.estado <> 'fallo'), 0),
-                 'creditos_prueba', coalesce(sum(u.creditos) filter (where u.estado <> 'fallo' and u.de_prueba), 0),
+                 'llamadas', count(*), 'fallidas', count(*) filter (where u.estado in ('fallo', 'caducada')),
+                 'pendientes', count(*) filter (where u.estado = 'reservado'),
+                 'creditos', coalesce(sum(u.creditos) filter (where u.estado = 'hecho'), 0),           -- lo que se factura: solo «hecho»
+                 'creditos_prueba', coalesce(sum(u.creditos) filter (where u.estado = 'hecho' and u.de_prueba), 0),
                  'aceptadas', count(*) filter (where u.aceptada_en is not null),
                  'tokens_entrada', coalesce(sum(u.tokens_entrada), 0), 'tokens_salida', coalesce(sum(u.tokens_salida), 0),
                  'caracteres', coalesce(sum(u.caracteres), 0),

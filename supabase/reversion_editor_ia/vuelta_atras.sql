@@ -10,6 +10,7 @@ drop function if exists public.editor_ia_aceptada(uuid, uuid);
 drop function if exists public.editor_ia_cierra(uuid, boolean, text, integer, integer, integer, text, jsonb);
 drop function if exists public.editor_ia_reserva(text, text, text, text, uuid, integer);
 drop function if exists public.editor_ia_estado(text);
+drop function if exists public._editor_ia_caduca(text);
 drop function if exists public._editor_ia_falta(text);
 drop function if exists public._editor_ia_periodo();
 drop table if exists public.editor_ia_traduccion_marca;

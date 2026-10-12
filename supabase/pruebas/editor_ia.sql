@@ -142,6 +142,9 @@ begin
   perform pg_temp.intenta('service_role', null, null, format('select public.editor_ia_cierra(%L, false, %L, 10, 0, 0, null, %L::jsonb)', v_uso2, 'm', '[]'));
   select usados into n from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo();
   total := total + 1; if n <> 2 then fallos := fallos + 1; resumen := resumen || ' [D8 devolución: ' || n || ']'; end if;
+  -- ese fallo gastó 10 tokens del proveedor: la empresa no paga, pero la jaula global lo sigue contando
+  select usados into n from public.editor_ia_saldo where empresa = '*' and periodo = public._editor_ia_periodo();
+  total := total + 1; if n <> 4 then fallos := fallos + 1; resumen := resumen || ' [D8b la jaula no devuelve lo que el proveedor cobró: ' || n || ']'; end if;
   -- la primera, bien, con marcas de traducción
   r := pg_temp.intenta('service_role', null, null, format('select public.editor_ia_cierra(%L, true, %L, 120, 40, 0, %L, %L::jsonb)', v_uso, 'claude-opus-5-5', h1,
         json_build_array(json_build_object('lang', 'en', 'huella', h1), json_build_object('lang', 'id', 'huella', h2))));
@@ -182,6 +185,40 @@ begin
   end loop;
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
   total := total + 1; if r <> 'EP0001/tope_minuto' then fallos := fallos + 1; resumen := resumen || ' [F3 tope por minuto: ' || r || ']'; end if;
+
+  -- ═════════ H. RESERVAS ABANDONADAS, FALLOS SIN COSTE Y LO QUE SE FACTURA ═════════
+  -- (con el super admin: el admin de empresa ya llenó su tope por minuto)
+  select usados into i from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo();
+  select usados into n from public.editor_ia_saldo where empresa = '*' and periodo = public._editor_ia_periodo();
+  j := pg_temp.pide('authenticated', v_sup, v_sup_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
+  v_uso := (j ->> 'uso')::uuid;
+  perform pg_temp.intenta('service_role', null, null, format('select public.editor_ia_cierra(%L, false, %L, 0, 0, 0, null, %L::jsonb)', v_uso, 'm', '[]'));
+  total := total + 1;
+  if (select usados from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo()) <> i
+     or (select usados from public.editor_ia_saldo where empresa = '*' and periodo = public._editor_ia_periodo()) <> n then
+    fallos := fallos + 1; resumen := resumen || ' [H1 un fallo sin coste devuelve a la empresa y a la jaula]';
+  end if;
+  -- una reserva que nadie cierra: a los 10 minutos caduca y devuelve; la siguiente reserva la limpia
+  j := pg_temp.pide('authenticated', v_sup, v_sup_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
+  v_uso2 := (j ->> 'uso')::uuid;
+  update public.editor_ia_uso set fecha = now() - interval '11 minutes' where id = v_uso2;
+  j := pg_temp.pide('authenticated', v_sup, v_sup_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
+  total := total + 1; if not exists (select 1 from public.editor_ia_uso where id = v_uso2 and estado = 'caducada') then fallos := fallos + 1; resumen := resumen || ' [H2 la reserva abandonada no caduca]'; end if;
+  total := total + 1;
+  if (select usados from public.editor_ia_saldo where empresa = v_ea and periodo = public._editor_ia_periodo()) <> i + 2
+     or (select usados from public.editor_ia_saldo where empresa = '*' and periodo = public._editor_ia_periodo()) <> n + 2 then
+    fallos := fallos + 1; resumen := resumen || ' [H3 la caducada no devuelve sus créditos]';
+  end if;
+  j := pg_temp.pide('service_role', null, null, format('select to_jsonb(public.editor_ia_cierra(%L, true, %L, 1, 1, 0, null, %L::jsonb))', v_uso2, 'm', '[]'));
+  total := total + 1; if j is distinct from 'false'::jsonb then fallos := fallos + 1; resumen := resumen || ' [H4 cerrar una caducada: ' || coalesce(j::text, 'error') || ']'; end if;
+  -- el extracto factura SOLO lo hecho: D1 (2 créditos); lo reservado va aparte y lo fallido/caducado no cuenta
+  j := pg_temp.pide('authenticated', v_sup, v_sup_em, 'select public.editor_ia_ajustes_datos()');
+  select x into j from jsonb_array_elements(j -> 'extracto') x where x ->> 'empresa' = v_ea and (x ->> 'periodo')::date = public._editor_ia_periodo();
+  total := total + 1;
+  if j is null or (j ->> 'creditos') <> '2' or (j ->> 'pendientes') <> '5' or (j ->> 'fallidas') <> '3' then
+    fallos := fallos + 1; resumen := resumen || ' [H5 extracto: ' || coalesce(j::text, 'error') || ']';
+  end if;
+
   -- vaciar un precio con la empresa encendida: el servidor deja de aceptar llamadas
   r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_ajustes_guarda(null, %L::jsonb, %L)', '{"precio_credito": null}', 'prueba'));
   j := pg_temp.pide('authenticated', v_ae, v_ae_em, format('select public.editor_ia_estado(%L)', v_ea));

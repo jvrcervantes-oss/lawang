@@ -130,7 +130,7 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
   { const { r, reg } = bueno; const req = reg.fetch[0] && JSON.parse(reg.fetch[0].init.body), hd = reg.fetch[0] && reg.fetch[0].init.headers;
     ok(r.s === 200 && r.j.propuesta && r.j.propuesta[libre.i] === TC.ws(libre.texto) + ' (catorce días)' && r.j.sin_cambios === false, 'propuesta: el párrafo cambiado, solo ese trozo', r.j);
     ok(reg.fetch.length === 1 && reg.fetch[0].url === M.URL_MODELO && req.model === 'claude-opus-5-5' && req.output_config.format.type === 'json_schema'
-       && !req.thinking && req.fallbacks === 'default' && hd['x-api-key'] === CLAVE, 'llamada: modelo, salida estructurada, sin thinking apagado, clave del asistente', req);
+       && !req.thinking && !('fallbacks' in req) && !hd['anthropic-beta'] && hd['x-api-key'] === CLAVE, 'llamada: modelo, salida estructurada, sin thinking apagado, sin modelo de respaldo, clave del asistente', req);
     ok(reg.ultimaReserva && reg.ultimaReserva.p_accion === 'propone' && reg.ultimaReserva.p_parrafos === 1, 'reserva de UN párrafo', reg.ultimaReserva);
     const c = reg.cierres[0] || {};
     ok(reg.cierres.length === 1 && c.p_ok === true && c.p_entrada === 321 && c.p_salida === 45 && /^[0-9a-f]{64}$/.test(c.p_huella) && c.p_modelo === 'claude-opus-5-5' && c.p_marcas.length === 0,
@@ -183,6 +183,12 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
     ok(reg.ultimaReserva && reg.ultimaReserva.p_accion === 'traduce_ia' && reg.ultimaReserva.p_parrafos === M.parrafosDe(trozosDoc, secPartes, 'es').length, 'reserva por párrafos de la cláusula', reg.ultimaReserva);
     ok(c.p_ok && c.p_marcas.length === destTs.length && c.p_marcas.every((x) => x.lang === 'en' && /^[0-9a-f]{64}$/.test(x.huella))
        && c.p_marcas.some((x) => x.huella === sha(r.j.propuesta[destTs[0].i])), 'marcas «sin revisar»: la huella de cada trozo traducido', c.p_marcas && c.p_marcas.length); }
+
+  // el texto de DESTINO también se filtra: un correo en el inglés no viaja al modelo (revisor 13-oct), y se rechaza antes de reservar
+  { const doc = DOC.replace(destTs[0].core, destTs[0].core + ' Write to buyer@example.com.');
+    const { h, reg } = montaje({ doc, proveedor: async () => { throw new Error('no debería llamar'); } });
+    const r = await pide(h, Object.assign({ accion: 'traduce', motor: 'ia', destino: 'en', sec: secPartes }, base));
+    ok(r.s === 422 && r.j.error === 'dato_real' && !reg.reservas && reg.fetch.length === 0, 'traducción con un correo en el texto de destino: 422 sin reservar ni llamar', r); }
 
   // ── 7. traducción con DeepL: XML con fronteras y campos protegidos; si mueve una frontera, no vale ──
   const deeplEco = (mueve) => async (url, cuerpo, init) => {

@@ -1011,7 +1011,7 @@
   window.LW_TC = { E: E, rpc: rpc, cargaLista: cargaLista, abreEditor: abreEditor, abreHistorial: abreHistorial, preguntaPerder: preguntaPerder, nombreDe: nombreDe,
                    el: el, boton: boton, pill: pill, fFecha: fFecha, fFechaHora: fFechaHora, msg: msg,
                    /* para el asistente IA (textos-contrato-ia.js, 13-oct-2026): mete una propuesta en los cambios como si la hubiera escrito la persona */
-                   pintaDocumento: pintaDocumento, parPorKey: parPorKey, deshacerPar: deshacerPar, commitEdicion: commitEdicion, tituloSec: tituloSec, nota: nota };
+                   pintaDocumento: pintaDocumento, parPorKey: parPorKey, deshacerPar: deshacerPar, tituloSec: tituloSec };
 
   /* ── puesta en marcha ─────────────────────────────────────────────────────────────────────────────────────────────────────────── */
   function inicia() {

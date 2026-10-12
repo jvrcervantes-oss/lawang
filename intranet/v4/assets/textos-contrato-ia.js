@@ -88,7 +88,7 @@
     Object.keys(propuesta).forEach(function (i) {
       var t = E.trozos[i]; if (!t) return;
       if (propuesta[i] === TC.ws(t.texto)) delete E.cambios[i]; else E.cambios[i] = propuesta[i];
-      IA.pendientes[i] = uso;
+      IA.pendientes[i] = { uso: uso, texto: propuesta[i] };                  // «aceptada» solo si al guardar sigue tal cual
     });
     IA.pendSlug = E.slug + '|' + E.variante;
     var m = $('tc-motivo'); if (m && !m.value.trim() && motivo) m.value = motivo.slice(0, 300);
@@ -230,6 +230,12 @@
   }
   function traduce(sec, motor, n, f) {
     if (IA.ocupado) return;
+    // se traduce el español GUARDADO (la función lo lee de la base): con cambios sin guardar en el español de esta cláusula, el
+    // inglés o el indonesio saldrían de un texto que ya no es el de pantalla
+    if (E.trozos.some(function (t) { return t.sec === sec && t.lang === 'es' && Object.prototype.hasOwnProperty.call(E.cambios, t.i); })) {
+      var av = f.querySelector('[data-tc-ia-aviso]') || f.appendChild(el('p', 'tc-peq tc-mal')); av.setAttribute('data-tc-ia-aviso', '1');
+      av.textContent = T('El español de esta cláusula tiene cambios sin guardar: guárdalos antes de traducir.'); return;
+    }
     var cr = n * IA.estado.creditos[motor === 'ia' ? 'traduce_ia' : 'traduce_deepl'], lang = E.lang;
     var hay = E.trozos.some(function (t) { return t.sec === sec && t.lang === lang && Object.prototype.hasOwnProperty.call(E.cambios, t.i); });
     confirmaGasto(T('Traducir «%s»', { s: API.tituloSec(sec) }),
@@ -256,7 +262,9 @@
   function alGuardar(ev) {
     var v = ev.detail && ev.detail.version, usos = {};
     if (!v || IA.pendSlug !== E.slug + '|' + E.variante) { IA.pendientes = {}; return; }
-    Object.keys(IA.pendientes).forEach(function (i) { usos[IA.pendientes[i]] = 1; });
+    // el aviso llega ANTES de vaciar E.cambios: cuenta como aceptada la propuesta que se guarda tal cual la dio el asistente
+    // (si se deshizo, o se retocó a mano después, no)
+    Object.keys(IA.pendientes).forEach(function (i) { var p = IA.pendientes[i]; if (E.cambios[i] === p.texto) usos[p.uso] = 1; });
     IA.pendientes = {};
     Object.keys(usos).forEach(function (u) {
       // MUDO A PROPOSITO: es solo la marca «aceptada» del extracto; el borrador ya está guardado y el uso ya contó
@@ -372,11 +380,11 @@
     if (!(d.extracto || []).length) s3.appendChild(el('p', 'tc-peq', T('Todavía no hay ningún uso.')));
     else {
       var tb = el('table', 'tc-tabla'), cab = el('tr', null);
-      [T('Mes'), T('Empresa'), T('Consultas'), T('Fallidas'), T('Créditos'), T('De prueba'), T('Aceptadas'), T('Coste real (USD)')].forEach(function (h) { cab.appendChild(el('th', null, h)); });
+      [T('Mes'), T('Empresa'), T('Consultas'), T('Fallidas'), T('Sin cerrar'), T('Créditos facturables'), T('De prueba'), T('Aceptadas'), T('Coste real (USD)')].forEach(function (h) { cab.appendChild(el('th', null, h)); });
       tb.appendChild(cab);
       d.extracto.forEach(function (x) {
         var tr = el('tr', null);
-        [String(x.periodo).slice(0, 7), x.empresa, x.llamadas, x.fallidas, x.creditos, x.creditos_prueba, x.aceptadas, x.coste_usd === null ? T('sin tarifa') : x.coste_usd].forEach(function (v) { tr.appendChild(el('td', null, String(v))); });
+        [String(x.periodo).slice(0, 7), x.empresa, x.llamadas, x.fallidas, x.pendientes, x.creditos, x.creditos_prueba, x.aceptadas, x.coste_usd === null ? T('sin tarifa') : x.coste_usd].forEach(function (v) { tr.appendChild(el('td', null, String(v))); });
         tb.appendChild(tr);
       });
       s3.appendChild(tb);
@@ -406,7 +414,7 @@
 
   /* ── puesta en marcha ─────────────────────────────────────────────────────────────────────────────────────────────────────── */
   document.addEventListener('lw-tc-listo', function () { cargaEstado(); cablePestana(); });
-  document.addEventListener('lw-tc-empresa', function () { IA.pendientes = {}; IA.marcasDe = null; cargaEstado(); });
+  document.addEventListener('lw-tc-empresa', function () { IA.pendientes = {}; IA.marcasDe = null; IA.confirmado = false; cargaEstado(); });
   document.addEventListener('lw-tc-par-abierto', alAbrirParrafo);
   document.addEventListener('lw-tc-pintado', alPintar);
   document.addEventListener('lw-tc-guardado', alGuardar);
