@@ -463,6 +463,7 @@
     document.querySelectorAll('[data-gas-vista]').forEach(function (b) { b.addEventListener('click', function () { cambiaVista(b.getAttribute('data-gas-vista')); }); });
     $('lw-gas-nuevo').addEventListener('click', function (ev) { ev.stopPropagation(); if (VISTA === 'gastos') nuevoGasto(); else formProveedor(null); });
     $('lw-gas-csv').addEventListener('click', exportaCSV);
+    $('lw-gas-nuevo-txt').textContent = VISTA === 'gastos' ? T('Nuevo gasto') : T('Nuevo proveedor');   // el rótulo del HTML, en su idioma desde el arranque (idiomas-pH)
     var abre = function (ev) {
       if (ev.type === 'keydown' && ev.key !== 'Enter' && ev.key !== ' ') return;
       var tr = ev.target.closest && ev.target.closest('tr[data-gas-id],tr[data-prov-id]'); if (!tr) return;
