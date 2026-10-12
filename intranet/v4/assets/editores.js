@@ -244,7 +244,7 @@
       '<form data-e="form" data-lateral="1" style="' + cajaForm + FUENTE + '">' +
       '<div style="' + cajaCabecera + '">' +
       '<div style="min-width:0">' +
-      (opts.sub ? '<p style="margin:0 0 5px;font-weight:600;font-size:11px;line-height:1.3;letter-spacing:.12em;text-transform:uppercase;color:' + CAJ.hoja + '">' + esc(opts.sub) + '</p>' : '') +
+      (opts.sub ? '<p style="margin:0 0 5px;font-weight:600;font-size:11px;line-height:1.3;letter-spacing:.12em;text-transform:uppercase;color:' + CAJ.hoja + '">' + esc(tS(opts.sub)) + '</p>' : '') +
       "<h3 style=\"margin:0;font:700 25px/1.2 'Neue Kabel',sans-serif;letter-spacing:-.01em;color:" + CAJ.lago + "\">" + esc(titulo) + "</h3>" +
       '</div>' +
       '<button type="button" data-e="cerrar" style="border:0;background:none;font-size:20px;cursor:pointer;color:#75786e;line-height:1">×</button></div>' +
@@ -261,8 +261,8 @@
          ocupa el ancho que sobra — igual que «Exportar cuentas del proyecto» en
          el cajon de /v4/proyectos/. Con el pie fijo, un boton ancho es ademas
          mas facil de acertar que una pastilla en la esquina. */
-      '<button type="button" data-e="cancelar" style="flex:0 0 auto;padding:11px 20px;border-radius:10px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.tinta + ';font-weight:600;font-size:14px;cursor:pointer">Cancelar</button>' +
-      '<button type="submit" data-e="guardar" style="flex:1;padding:11px 20px;border-radius:10px;border:0;background:' + CAJ.lago + ';color:#fff;font-weight:600;font-size:14px;cursor:pointer;letter-spacing:.02em">' + esc(textoBoton || 'Guardar') + '</button>' +
+      '<button type="button" data-e="cancelar" style="flex:0 0 auto;padding:11px 20px;border-radius:10px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.tinta + ';font-weight:600;font-size:14px;cursor:pointer">' + esc(tS('Cancelar')) + '</button>' +
+      '<button type="submit" data-e="guardar" style="flex:1;padding:11px 20px;border-radius:10px;border:0;background:' + CAJ.lago + ';color:#fff;font-weight:600;font-size:14px;cursor:pointer;letter-spacing:.02em">' + esc(tS(textoBoton || 'Guardar')) + '</button>' +
       '</div></form></div>';
     document.body.appendChild(w);
     if (lateral) {
@@ -322,7 +322,7 @@
         d.style.cssText = 'display:block;font-weight:400;font-size:12.5px;line-height:1.5;text-transform:none;letter-spacing:0;' +
           'color:#8A6A34;background:#FBF3E4;border:1px solid #EBDCB4;border-radius:12px;padding:11px 14px;margin:0';
         if (lateral) d.style.gridColumn = '1 / -1';   // cssText de arriba lo borro
-        d.innerHTML = esc(c.label);
+        d.innerHTML = esc(tS(c.label));
       } else if (c.tipo === 'lectura') {
         // Espejo de solo lectura: se ve el valor y se entiende que no se toca
         // aquí. Tampoco lleva `data-k`, por lo mismo que 'nota'. `dataMostrar`
@@ -448,11 +448,11 @@
         if (campos[i].req && !vals[campos[i].k]) { muestraError('Falta «' + campos[i].label + '».'); return; }
       }
       var btn = w.querySelector('[data-e="guardar"]');
-      btn.disabled = true; btn.textContent = 'Guardando…';
+      btn.disabled = true; btn.textContent = tS('Guardando…');
       Promise.resolve(onGuardar(vals)).then(function (r) {
         if (r && r.error) {
-          btn.disabled = false; btn.textContent = textoBoton || 'Guardar';
-          muestraError(tS('No se pudo guardar: ') + (r.error.message || r.error) +
+          btn.disabled = false; btn.textContent = tS(textoBoton || 'Guardar');
+          muestraError(tS('No se pudo guardar: ') + tS(r.error.message || r.error) +
             (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — ' + tS('tu usuario no tiene ese permiso; el gate es la policy, no esta pantalla.') : ''));
           return;
         }
@@ -464,8 +464,8 @@
            la pagina por haber pulsado «Guardar» en algo que no guarda. */
         if (!opts.sinRecarga) location.reload();
       }, function (e) {
-        btn.disabled = false; btn.textContent = textoBoton || 'Guardar';
-        muestraError('No se pudo guardar: ' + (e && e.message || e));
+        btn.disabled = false; btn.textContent = tS(textoBoton || 'Guardar');
+        muestraError(tS('No se pudo guardar: ') + (e && e.message || e));
       });
     });
   }
@@ -2340,7 +2340,7 @@
       .order('created_at', { ascending: false }).limit(500)
       .then(function (r) {
         if (r.error) {
-          toastMal(lwErrorHumano(r.error, 'No se pudo cargar la lista de contratos'));
+          toastMal(lwErrorHumano(r.error, edT('No se pudo cargar la lista de contratos')));
           return { data: [] };
         }
         return { data: (r.data || []).filter(function (c) { return c.numero; }) };
@@ -2390,8 +2390,8 @@
     return Promise.all([lee('factura_exige_contrato', 'regla de contrato'), lee('factura_imprime_domicilio', 'regla de domicilio')])
       .then(function (rs) {
         var notas = [];
-        if (rs[0] === null) notas.push(NO_CONTRATO);
-        if (rs[1] === null) notas.push(NO_DOMICILIO);
+        if (rs[0] === null) notas.push(edT(NO_CONTRATO));
+        if (rs[1] === null) notas.push(edT(NO_DOMICILIO));
         return { sinContrato: rs[0] === false, domicilio: rs[1] === true, domicilioIlegible: rs[1] === null, nota: notas.join(' ') };
       });
   }
@@ -2402,7 +2402,7 @@
      rechaza. Documento y email se piden al elegir, uno solo. Resuelve null si se cancela. */
   function eligeClienteDoc(sb, actual) {
     return sb.from('clients').select('id,full_name').order('full_name').then(function (r) {
-      if (r.error) { toastMal(lwErrorHumano(r.error, 'No se pudo cargar la lista de clientes')); return null; }
+      if (r.error) { toastMal(lwErrorHumano(r.error, edT('No se pudo cargar la lista de clientes'))); return null; }
       var cs = (r.data || []).filter(function (c) { return c.full_name; });
       if (!cs.length) { toastMal('No tienes ningún cliente todavía: da de alta su ficha en Clientes.'); return null; }
       return lwElegir({ titulo: 'Elige el cliente', buscarPh: 'Nombre del cliente…', valor: actual || null,
@@ -2410,7 +2410,7 @@
         .then(function (id) {
           if (!id) return null;
           return sb.from('clients').select('id,full_name,email,passport_number,registro_num,address').eq('id', id).maybeSingle().then(function (rc) {
-            if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: 'cliente no encontrado' }, 'No se pudo cargar el cliente')); return null; }
+            if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente'))); return null; }
             var c = rc.data;
             return { id: c.id, nombre: c.full_name || '', documento: c.passport_number || c.registro_num || '', email: c.email || '', domicilio: c.address || '' };
           });
@@ -2444,7 +2444,7 @@
     else el.readOnly = !!si;
     el.style.backgroundColor = si ? '#F1EBDD' : CAJ.papel;
     el.style.color = si ? '#4A5052' : CAJ.tinta;
-    el.title = si ? 'Traído del contrato: se cambia en el contrato, no aquí' : '';
+    el.title = si ? edT('Traído del contrato: se cambia en el contrato, no aquí') : '';
     if (si) el.setAttribute('data-del-contrato', '1'); else el.removeAttribute('data-del-contrato');
   }
   function sueltaCamposDoc() {
@@ -2581,7 +2581,7 @@
         C.hitos.forEach(function (h) {
           var v = venc[h.orden];
           if (v && v.factura_id && v.factura_id !== ctx.propioId) {
-            var d = descHitoDoc(h); if (!otraFactura[d]) otraFactura[d] = numPorId[v.factura_id] || 'otra factura';
+            var d = descHitoDoc(h); if (!otraFactura[d]) otraFactura[d] = numPorId[v.factura_id] || edT('otra factura');
           }
         });
       });
@@ -2603,7 +2603,7 @@
             numPorId[f.id] = f.numero;
             if (f.id === ctx.propioId) return;
             (((f.datos || {}).lineas) || []).forEach(function (l) {
-              var d = (l.descripcion || '').trim(); if (d && !otraFactura[d]) otraFactura[d] = f.numero || 'otra factura';
+              var d = (l.descripcion || '').trim(); if (d && !otraFactura[d]) otraFactura[d] = f.numero || edT('otra factura');
             });
           });
         });
@@ -2649,22 +2649,22 @@
         var otra = !usado && otraFactura[desc];
         b.disabled = usado || !!otra || hayTotal;
         b.classList.toggle('usado', usado || !!otra);
-        b.title = usado ? 'Ya está en este documento'
-          : otra ? 'Ya facturado en ' + otra + ' — facturarlo otra vez lo cobraría dos veces'
-          : hayTotal ? 'Este documento factura el contrato entero: un hito encima cobraría de más' : '';
+        b.title = usado ? edT('Ya está en este documento')
+          : otra ? tH('Ya facturado en %f — facturarlo otra vez lo cobraría dos veces', { f: otra })
+          : hayTotal ? edT('Este documento factura el contrato entero: un hito encima cobraría de más') : '';
       });
       var bt = caja.querySelector('[data-todo]');
-      if (bt) { bt.disabled = hayTotal; bt.classList.toggle('usado', hayTotal); bt.title = hayTotal ? 'Ya está en este documento' : hayHito ? 'Sustituirá los conceptos que ya hay' : ''; }
+      if (bt) { bt.disabled = hayTotal; bt.classList.toggle('usado', hayTotal); bt.title = hayTotal ? edT('Ya está en este documento') : hayHito ? edT('Sustituirá los conceptos que ya hay') : ''; }
       Array.prototype.forEach.call(cajaV.querySelectorAll('[data-unidad],[data-vinc]'), function (b) {
         var otra = b.getAttribute('data-otra');
         var otraPuesta = !!otra && L.some(function (l) { return txt(l) === otra; });
         if (b.hasAttribute('data-unidad')) {
           var completa = otraPuesta && hayTotal;
           b.disabled = completa; b.classList.toggle('usado', completa);
-          b.title = completa ? 'Ya está en este documento' : (hayHito || hayTotal ? 'Sustituirá los conceptos que ya hay' : '');
+          b.title = completa ? edT('Ya está en este documento') : (hayHito || hayTotal ? edT('Sustituirá los conceptos que ya hay') : '');
         } else {
           b.disabled = otraPuesta; b.classList.toggle('usado', otraPuesta);
-          b.title = otraPuesta ? 'Su precio total ya está en este documento: sus hitos encima lo cobrarían dos veces' : '';
+          b.title = otraPuesta ? edT('Su precio total ya está en este documento: sus hitos encima lo cobrarían dos veces') : '';
         }
       });
     }
@@ -2672,20 +2672,20 @@
       if (!C) { caja.innerHTML = ''; return; }
       var esProforma = ctx.tipoActual() === 'proforma';
       var precio = C.precio, moneda = C.moneda, hitos = C.hitos;
-      caja.innerHTML = '<div class="t">Del contrato ' + esc(C.numero || '') + '</div>' +
-        '<p class="arrastrado">' + (C.puesto.length ? 'Traído del contrato y <b>bloqueado</b>: ' + esc(C.puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.') +
-          (C.nCompradores > 1 ? ' Contrato a <b>' + C.nCompradores + ' nombres</b>.' : '') +
-          (precio ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : '') + '</p>' +
-        ((precio || hitos.length) ? '<p class="pregunta">' + (esProforma ? 'Esta proforma declara el total del proyecto' : '¿Qué cobras en este documento?') + '</p>' : '') +
-        ((precio && esProforma) ? '<button type="button" class="hito-todo" data-todo="1"><span class="q">Total del proyecto</span>' +
-          '<span class="n">' + esc(fmtMoneda(precio, moneda)) + '</span><span class="p">Lo que se le comunica al cliente. Informativo: no factura ni vence</span></button>' : '') +
+      caja.innerHTML = '<div class="t">' + esc(tH('Del contrato %n', { n: C.numero || '' })) + '</div>' +
+        '<p class="arrastrado">' + (C.puesto.length ? tH('Traído del contrato y <b>bloqueado</b>: %l.', { l: esc(C.puesto.map(function (p) { return edT(p); }).join(', ')) }) : edT('El contrato no tenía datos de cliente que traer.')) +
+          (C.nCompradores > 1 ? ' ' + tH('Contrato a <b>%n nombres</b>.', { n: C.nCompradores }) : '') +
+          (precio ? ' ' + tH('Precio del contrato: <b>%p</b>.', { p: esc(fmtMoneda(precio, moneda)) }) : '') + '</p>' +
+        ((precio || hitos.length) ? '<p class="pregunta">' + (esProforma ? edT('Esta proforma declara el total del proyecto') : edT('¿Qué cobras en este documento?')) + '</p>' : '') +
+        ((precio && esProforma) ? '<button type="button" class="hito-todo" data-todo="1"><span class="q">' + edT('Total del proyecto') + '</span>' +
+          '<span class="n">' + esc(fmtMoneda(precio, moneda)) + '</span><span class="p">' + edT('Lo que se le comunica al cliente. Informativo: no factura ni vence') + '</span></button>' : '') +
         ((hitos.length && !esProforma) ? '<div class="hitos">' + hitos.map(function (h, i) {
             return '<button type="button" class="hito" data-h="' + i + '">' + (h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : '') +
-              esc(h.texto || 'Hito ' + (i + 1)) + (h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : '') + '</button>';
-          }).join('') + '</div><p class="arrastrado">Se factura el hito que se haya alcanzado.</p>' : '') +
-        ((precio && !esProforma) ? '<details class="excepcion"><summary>El proyecto se factura de una vez</summary>' +
-          '<button type="button" class="hito-todo" data-todo="1"><span class="q">Todo el contrato</span><span class="n">' + esc(fmtMoneda(precio, moneda)) + '</span>' +
-          '<span class="p">Una sola factura por el importe completo, sin hitos</span></button></details>' : '');
+              esc(h.texto || tH('Hito %n', { n: i + 1 })) + (h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : '') + '</button>';
+          }).join('') + '</div><p class="arrastrado">' + edT('Se factura el hito que se haya alcanzado.') + '</p>' : '') +
+        ((precio && !esProforma) ? '<details class="excepcion"><summary>' + edT('El proyecto se factura de una vez') + '</summary>' +
+          '<button type="button" class="hito-todo" data-todo="1"><span class="q">' + edT('Todo el contrato') + '</span><span class="n">' + esc(fmtMoneda(precio, moneda)) + '</span>' +
+          '<span class="p">' + edT('Una sola factura por el importe completo, sin hitos') + '</span></button></details>' : '');
       DESC_TOTAL = 'Precio total del contrato ' + (C.numero || '');
       var bt = caja.querySelector('[data-todo]');
       if (bt) {
@@ -2694,13 +2694,13 @@
           if (bt.disabled) return;
           var sigue = enBlanco() ? Promise.resolve(true) : lwConfirmar({
             titulo: 'Sustituir los conceptos',
-            cuerpo: '<p>El documento ya tiene conceptos. Poner <b>todo el contrato</b> los reemplaza por una sola línea con el importe completo.</p>' +
-              '<p>Se hace así a propósito: dejar los dos cobraría el total <b>y</b> el hito, y el documento saldría creíble.</p>',
+            cuerpo: '<p>' + edT('El documento ya tiene conceptos. Poner <b>todo el contrato</b> los reemplaza por una sola línea con el importe completo.') + '</p>' +
+              '<p>' + edT('Se hace así a propósito: dejar los dos cobraría el total <b>y</b> el hito, y el documento saldría creíble.') + '</p>',
             confirmar: 'Sustituir por el total', cancelar: 'Dejarlo como está' });
           sigue.then(function (ok) {
             if (!ok) return;
             pon([{ descripcion: DESC_TOTAL, importe: importeTxtDoc(precio) }]);
-            toast((ctx.tipoActual() === 'proforma' ? 'Proforma' : 'Factura') + ' por el total del contrato: ' + fmtMoneda(precio, moneda));
+            toast(tH(ctx.tipoActual() === 'proforma' ? 'Proforma por el total del contrato: %p' : 'Factura por el total del contrato: %p', { p: fmtMoneda(precio, moneda) }));
           });
         });
       }
@@ -2713,8 +2713,8 @@
           var v = venc[h.orden], fv = campoDeDoc('fecha_vencimiento');
           var conFecha = !!(v && v.fecha && fv && C.tipoContrato !== 'construccion');
           if (conFecha) { fv.value = v.fecha; ctx.repinta(); }
-          toast((h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano') +
-            (conFecha ? ' · vence el ' + v.fecha.split('-').reverse().join('/') + ' según el calendario del contrato' : ''));
+          toast(edT(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano') +
+            (conFecha ? ' · ' + tH('vence el %f según el calendario del contrato', { f: v.fecha.split('-').reverse().join('/') }) : ''));
         });
       });
       pintaSaldo();
@@ -2728,7 +2728,7 @@
       var box = document.createElement('div'); box.className = 'hitos';
       box.innerHTML = hitos.map(function (h, i) {
         return '<button type="button" class="hito" data-vh="' + i + '">[' + esc(etiqueta) + '] ' + (h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : '') +
-          esc(h.texto || 'Hito ' + (i + 1)) + (h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : '') + '</button>';
+          esc(h.texto || tH('Hito %n', { n: i + 1 })) + (h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : '') + '</button>';
       }).join('');
       cajaV.appendChild(box);
       Array.prototype.forEach.call(box.querySelectorAll('[data-vh]'), function (b) {
@@ -2759,14 +2759,14 @@
           var sumable = compatible && precioC && C.precio && !prelim(c.tipo) && !prelim(C.tipoContrato) && monedaC === monedaP;
           var totalUnidad = sumable ? C.precio + precioC : 0;
           return compatible
-            ? '<div class="vinc" role="status"><div class="vinc-t">Este contrato va encadenado con ' + esc(c.numero) + '</div>' +
-              '<p>La venta está en dos contratos: <b>' + esc(etiqueta) + '</b> es el otro. Puedes cobrar los dos en este mismo documento.</p>' +
-              (sumable ? '<button type="button" class="hito-todo doble" data-unidad="' + esc(c.id) + '"><span class="q">Toda la unidad · los dos contratos</span>' +
-                '<span class="n">' + esc(fmtMoneda(totalUnidad, monedaP)) + '</span><span class="p">' + esc(fmtMoneda(C.precio, monedaP)) + ' de este + ' +
-                esc(fmtMoneda(precioC, monedaP)) + ' de ' + esc(c.numero) + '</span></button>' : '') +
-              '<button type="button" class="vinc-btn" data-vinc="' + esc(c.id) + '">Traer los conceptos de ' + esc(c.numero) + '</button></div>'
-            : '<div class="vinc malo" role="status"><div class="vinc-t">' + esc(c.numero) + ' (' + esc(etiqueta) + ') va encadenado con este</div>' +
-              '<p>Pero lo emite <b>otra sociedad</b>, así que no se puede combinar en la misma factura: sería una sociedad cobrando el ingreso de otra.</p></div>';
+            ? '<div class="vinc" role="status"><div class="vinc-t">' + tH('Este contrato va encadenado con %n', { n: esc(c.numero) }) + '</div>' +
+              '<p>' + tH('La venta está en dos contratos: <b>%e</b> es el otro. Puedes cobrar los dos en este mismo documento.', { e: esc(tS(etiqueta)) }) + '</p>' +
+              (sumable ? '<button type="button" class="hito-todo doble" data-unidad="' + esc(c.id) + '"><span class="q">' + edT('Toda la unidad · los dos contratos') + '</span>' +
+                '<span class="n">' + esc(fmtMoneda(totalUnidad, monedaP)) + '</span><span class="p">' +
+                tH('%a de este + %b de %n', { a: esc(fmtMoneda(C.precio, monedaP)), b: esc(fmtMoneda(precioC, monedaP)), n: esc(c.numero) }) + '</span></button>' : '') +
+              '<button type="button" class="vinc-btn" data-vinc="' + esc(c.id) + '">' + tH('Traer los conceptos de %n', { n: esc(c.numero) }) + '</button></div>'
+            : '<div class="vinc malo" role="status"><div class="vinc-t">' + tH('%n (%e) va encadenado con este', { e: esc(tS(etiqueta)), n: esc(c.numero) }) + '</div>' +
+              '<p>' + edT('Pero lo emite <b>otra sociedad</b>, así que no se puede combinar en la misma factura: sería una sociedad cobrando el ingreso de otra.') + '</p></div>';
         }).join('');
         Array.prototype.forEach.call(cajaV.querySelectorAll('[data-vinc]'), function (b) {
           var c = data.filter(function (x) { return x.id === b.getAttribute('data-vinc'); })[0];
@@ -2783,13 +2783,13 @@
             if (b.disabled) return;
             var sigue = enBlanco() ? Promise.resolve(true) : lwConfirmar({
               titulo: 'Facturar la unidad completa',
-              cuerpo: '<p>Sustituye los conceptos por <b>dos líneas</b>: el precio total de cada uno de los dos contratos.</p>' +
-                '<p>Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo cliente, y fundirlas borra a qué contrato corresponde cada euro.</p>',
+              cuerpo: '<p>' + edT('Sustituye los conceptos por <b>dos líneas</b>: el precio total de cada uno de los dos contratos.') + '</p>' +
+                '<p>' + edT('Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo cliente, y fundirlas borra a qué contrato corresponde cada euro.') + '</p>',
               confirmar: 'Sustituir por los dos', cancelar: 'Dejarlo como está' });
             sigue.then(function (ok) {
               if (!ok) return;
               pon([{ descripcion: DESC_UNIDAD, importe: importeTxtDoc(C.precio) }, { descripcion: descOtro, importe: importeTxtDoc(precioC) }]);
-              toast('Factura por la unidad completa: ' + fmtMoneda(total, monedaP));
+              toast(tH('Factura por la unidad completa: %p', { p: fmtMoneda(total, monedaP) }));
             });
           });
         });
@@ -2814,22 +2814,22 @@
        entra un pago parcial. Con lwAgrupaPorContrato, las mismas reglas de
        dinero que el listado; nunca una segunda forma de sumar lo cobrado. */
     function pintaRecibi() {
-      caja.innerHTML = '<div class="t">Del contrato ' + esc(C.numero || '') + '</div>' +
-        '<p class="arrastrado">' + (C.puesto.length ? 'Traído del contrato y <b>bloqueado</b>: ' + esc(C.puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.') +
-          (C.nCompradores > 1 ? ' Contrato a <b>' + C.nCompradores + ' nombres</b>.' : '') + '</p>' +
-        '<p class="arrastrado" data-cobrado>Calculando cuánto lleva cobrado este contrato…</p>';
+      caja.innerHTML = '<div class="t">' + esc(tH('Del contrato %n', { n: C.numero || '' })) + '</div>' +
+        '<p class="arrastrado">' + (C.puesto.length ? tH('Traído del contrato y <b>bloqueado</b>: %l.', { l: esc(C.puesto.map(function (p) { return edT(p); }).join(', ')) }) : edT('El contrato no tenía datos de cliente que traer.')) +
+          (C.nCompradores > 1 ? ' ' + tH('Contrato a <b>%n nombres</b>.', { n: C.nCompradores }) : '') + '</p>' +
+        '<p class="arrastrado" data-cobrado>' + edT('Calculando cuánto lleva cobrado este contrato…') + '</p>';
       var caj = caja.querySelector('[data-cobrado]');
       // rectifica_id: solo en el ERP maestro; lwAgrupaPorContrato la usa para no sumar la R de una anulada (AXW-39)
       return ctx.sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,fecha_emision' + (window.AXW_NUCLEO_OPERACION ? ',rectifica_id' : ''))
         .eq('contrato_id', C.id).then(function (r) {
-          if (r.error) { caj.textContent = 'No se pudo calcular lo cobrado: ' + r.error.message; return; }
+          if (r.error) { caj.textContent = edT('No se pudo calcular lo cobrado: ') + r.error.message; return; }
           var docs = r.data || [];
-          if (!docs.length) { caj.textContent = 'Este contrato no tiene todavía ninguna factura ni recibí.'; return; }
+          if (!docs.length) { caj.textContent = edT('Este contrato no tiene todavía ninguna factura ni recibí.'); return; }
           if (typeof lwAgrupaPorContrato !== 'function' || typeof lwSumaTexto !== 'function') { caj.textContent = ''; return; }
           var g = lwAgrupaPorContrato(docs)[0];
           var pct = g.unaMoneda && g.totalFacturado ? ' · ' + g.pct.toFixed(0) + ' %' : '';
-          caj.innerHTML = 'De este contrato hay <b>' + esc(lwSumaTexto(g.cobrado)) + '</b> cobrado' +
-            (g.totalFacturado ? ' sobre ' + esc(lwSumaTexto(g.facturado)) + ' facturado' + pct : '') + '.';
+          caj.innerHTML = tH('De este contrato hay <b>%c</b> cobrado', { c: esc(lwSumaTexto(g.cobrado)) }) +
+            (g.totalFacturado ? ' ' + tH('sobre %f facturado', { f: esc(lwSumaTexto(g.facturado)) }) + pct : '') + '.';
         });
     }
     return {
@@ -2837,7 +2837,7 @@
         var moneda = ctx.monedaActual() || res.moneda || 'EUR', precio = parseImporte(res.precio);
         C = { id: res.id, numero: res.numero, tipoContrato: res.tipoContrato, padreId: res.padreId, puesto: res.puesto || [],
               nCompradores: res.nCompradores || 0, precio: precio, moneda: moneda, hitos: hitosDeDoc(res.hitos, precio, moneda) };
-        caja.innerHTML = '<div class="t">Cargando contrato…</div>';
+        caja.innerHTML = '<div class="t">' + edT('Cargando contrato…') + '</div>';
         if (ctx.esRecibi) return pintaRecibi();
         return cargaOtraFactura(res.id).then(cargaVencimientos).then(cargaSaldo).then(pinta).then(pintaVinculados).then(precarga);
       },
@@ -2890,7 +2890,7 @@
          sociedad desactivada harían desaparecer su fila, y el PDF y el email saldrían
          con otro total (code-review, 27-sep-2026). */
       if (cfg.soloLectura) {
-        if (!(iniciales || []).length) { nota('Sin impuestos.'); return; }
+        if (!(iniciales || []).length) { nota(edT('Sin impuestos.')); return; }
         (iniciales || []).forEach(function (i) {
           var lbl = document.createElement('label'); lbl.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:' + CAJ.tinta;
           var ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = true; ck.disabled = true;
@@ -2899,16 +2899,16 @@
         });
         return;
       }
-      if (fallo) { nota('No se ha podido leer el catálogo de impuestos (' + fallo + '): recarga antes de emitir.', '#9E2F26'); return; }
-      if (!catalogo) { nota('Leyendo el catálogo de impuestos…'); return; }
-      if (!paisDe(socActual())) { nota('Elige primero la sociedad que factura: los impuestos dependen de su país.'); return; }
+      if (fallo) { nota(tH('No se ha podido leer el catálogo de impuestos (%f): recarga antes de emitir.', { f: fallo }), '#9E2F26'); return; }
+      if (!catalogo) { nota(edT('Leyendo el catálogo de impuestos…')); return; }
+      if (!paisDe(socActual())) { nota(edT('Elige primero la sociedad que factura: los impuestos dependen de su país.')); return; }
       var cs = candidatos(), ids = {};
       cs.forEach(function (i) { ids[i.id] = true; });
       // lo elegido que ya no vale para esta sociedad (otro país, desactivado) se suelta, y se dice
       var sueltos = Object.keys(elegidos).filter(function (id) { return !ids[id]; });
       sueltos.forEach(function (id) { delete elegidos[id]; });
       if (!Object.keys(elegidos).length && esNuevo) cs.forEach(function (i) { if (i.por_defecto) elegidos[i.id] = true; });
-      if (!cs.length) { nota('No hay ningún impuesto activo para el país de esta sociedad: dalo de alta en Ajustes → Impuestos.'); return; }
+      if (!cs.length) { nota(edT('No hay ningún impuesto activo para el país de esta sociedad: dalo de alta en Ajustes → Impuestos.')); return; }
       cs.forEach(function (i) {
         var lbl = document.createElement('label'); lbl.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:' + CAJ.tinta + ';cursor:pointer';
         var ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = !!elegidos[i.id];
@@ -2918,10 +2918,10 @@
         var t = document.createElement('span'); t.textContent = i.nombre;
         var c = document.createElement('small'); c.style.color = CAJ.apagado;
         var cl = (window.LW_V4 && window.LW_V4.claseImpuesto) ? window.LW_V4.claseImpuesto(i.clase)[1] : i.clase;
-        c.textContent = cl + (i.sociedad_clave ? ' · solo ' + i.sociedad_clave : '');
+        c.textContent = cl + (i.sociedad_clave ? ' · ' + tH('solo %s', { s: i.sociedad_clave }) : '');
         lbl.appendChild(ck); lbl.appendChild(t); lbl.appendChild(c); caja.appendChild(lbl);
       });
-      if (sueltos.length) nota('Se ha quitado ' + sueltos.length + ' impuesto(s) que no valen para esta sociedad o ya no están activos: revisa la selección.', '#8A6A34');
+      if (sueltos.length) nota(tH('Se ha quitado %n impuesto(s) que no valen para esta sociedad o ya no están activos: revisa la selección.', { n: sueltos.length }), '#8A6A34');
       avisoReg = document.createElement('p'); avisoReg.style.cssText = 'margin:0;font-size:12px;color:#9E2F26'; avisoReg.setAttribute('role', 'alert');
       caja.appendChild(avisoReg); avisaRegimen();
     }
@@ -2929,7 +2929,7 @@
     var avisoReg = null;
     function avisaRegimen() { if (avisoReg) avisoReg.textContent = regimenImpuestoError(lista()) || ''; }
     if (!cfg.soloLectura) sb.from('impuestos').select('*').eq('activo', true).order('orden').order('nombre').then(function (r) {
-      if (r.error) { console.error('[facturas] catálogo de impuestos:', r.error); fallo = lwErrorHumano(r.error, 'error de lectura'); }
+      if (r.error) { console.error('[facturas] catálogo de impuestos:', r.error); fallo = lwErrorHumano(r.error, edT('error de lectura')); }
       else catalogo = r.data || [];
       pinta(); cfg.alCambiar();
     });
@@ -2957,7 +2957,7 @@
       : [{ descripcion: '', importe: '' }];
     var wrap = document.createElement('div'); wrap.style.cssText = 'display:grid;gap:6px';
     var lista = document.createElement('div'); lista.style.cssText = 'display:grid;gap:6px'; wrap.appendChild(lista);
-    var btnAdd = document.createElement('button'); btnAdd.type = 'button'; btnAdd.textContent = '+ Añadir concepto';
+    var btnAdd = document.createElement('button'); btnAdd.type = 'button'; btnAdd.textContent = edT('+ Añadir concepto');
     btnAdd.style.cssText = 'justify-self:start;padding:7px 12px;border-radius:8px;border:1px dashed ' + CAJ.hoja +
       ';background:transparent;color:' + CAJ.lago + ';font-weight:600;font-size:12.5px;cursor:pointer';
     wrap.appendChild(btnAdd);
@@ -2969,11 +2969,11 @@
         el.style.cssText = 'display:grid;grid-template-columns:1fr 130px 22px;gap:6px;align-items:center';
         var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;' +
           'color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
-        var inpDesc = document.createElement('input'); inpDesc.type = 'text'; inpDesc.placeholder = 'Descripción';
+        var inpDesc = document.createElement('input'); inpDesc.type = 'text'; inpDesc.placeholder = edT('Descripción');
         inpDesc.value = f.descripcion; inpDesc.style.cssText = campoEstilo;
         var inpImp = document.createElement('input'); inpImp.type = 'text'; inpImp.inputMode = 'decimal';
-        inpImp.placeholder = 'Importe'; inpImp.value = f.importe; inpImp.style.cssText = campoEstilo;
-        var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar concepto';
+        inpImp.placeholder = edT('Importe'); inpImp.value = f.importe; inpImp.style.cssText = campoEstilo;
+        var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = edT('Quitar concepto');
         btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:19px;line-height:1;cursor:pointer';
         inpDesc.addEventListener('input', function () { f.descripcion = inpDesc.value; });
         inpImp.addEventListener('input', function () { f.importe = inpImp.value; });
@@ -3025,16 +3025,16 @@
     var estado = document.createElement('div'); estado.style.cssText = 'display:grid;gap:4px;font-size:12.5px';
     var hint = document.createElement('p');
     hint.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
-    hint.textContent = 'Hasta 8, 10 MB cada uno. Se puede adjuntar más de uno: un pago real llega a veces en el resguardo y la captura del banco.';
+    hint.textContent = edT('Hasta 8, 10 MB cada uno. Se puede adjuntar más de uno: un pago real llega a veces en el resguardo y la captura del banco.');
     wrap.appendChild(input); wrap.appendChild(estado); wrap.appendChild(hint);
     host.appendChild(wrap);
     function repinta() {
       estado.innerHTML = lista.map(function (j, i) {
         return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">' +
-          '<span>✓ ' + esc(j.nombre || 'Justificante adjunto') + '</span>' +
+          '<span>✓ ' + esc(j.nombre || edT('Justificante adjunto')) + '</span>' +
           '<span style="display:flex;gap:10px;align-items:center">' +
-          '<button type="button" data-ver="' + i + '" style="all:unset;cursor:pointer;font-size:12px;font-weight:600;color:' + CAJ.lago + ';text-decoration:underline">Ver</button>' +
-          '<button type="button" data-quitar="' + i + '" title="Quitar de este recibí" style="border:0;background:none;color:#9E2F26;cursor:pointer;font-size:16px;line-height:1">×</button></span></div>';
+          '<button type="button" data-ver="' + i + '" style="all:unset;cursor:pointer;font-size:12px;font-weight:600;color:' + CAJ.lago + ';text-decoration:underline">' + esc(edT('Ver')) + '</button>' +
+          '<button type="button" data-quitar="' + i + '" title="' + esc(edT('Quitar de este recibí')) + '" style="border:0;background:none;color:#9E2F26;cursor:pointer;font-size:16px;line-height:1">×</button></span></div>';
       }).join('');
     }
     estado.addEventListener('click', function (ev) {
@@ -3042,7 +3042,7 @@
       if (v) {
         var j = lista[Number(v.getAttribute('data-ver'))]; if (!j || !j.path) return;
         sb.storage.from('justificantes').createSignedUrl(j.path, 300).then(function (u) {
-          if (u.error || !u.data) return toastMal(lwErrorHumano(u.error || {}, 'No se pudo abrir el justificante'));
+          if (u.error || !u.data) return toastMal(lwErrorHumano(u.error || {}, edT('No se pudo abrir el justificante')));
           window.open(u.data.signedUrl, '_blank', 'noopener');
         });
         return;
@@ -3054,19 +3054,19 @@
     input.addEventListener('change', function () {
       var elegidos = Array.prototype.slice.call(input.files); input.value = '';
       if (!elegidos.length) return;
-      if (lista.length + elegidos.length > 8) { toastMal('Un recibí admite hasta 8 justificantes (ya lleva ' + lista.length + ')'); return; }
+      if (lista.length + elegidos.length > 8) { toastMal(tH('Un recibí admite hasta 8 justificantes (ya lleva %n)', { n: lista.length })); return; }
       elegidos.reduce(function (p, f) {
         return p.then(function () {
-          if (f.size > 10 * 1024 * 1024) { toastMal(f.name + ' supera los 10 MB: no se ha subido'); return; }
+          if (f.size > 10 * 1024 * 1024) { toastMal(tH('%f supera los 10 MB: no se ha subido', { f: f.name })); return; }
           var ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
           // la ruta la decide el servidor y la subida va por URL firmada (26-sep-2026, LAW-336 pieza 5)
           return window.lwFicheros(sb, 'justificante_url', { ext: ext }).then(function (u) {
             return sb.storage.from('justificantes').uploadToSignedUrl(u.path, u.token, f, { contentType: f.type || 'application/octet-stream' })
               .then(function (up) {
-                if (up.error) { toastMal(lwErrorHumano(up.error, 'No se pudo subir ' + f.name)); return; }
+                if (up.error) { toastMal(lwErrorHumano(up.error, tH('No se pudo subir %f', { f: f.name }))); return; }
                 lista.push({ path: u.path, nombre: f.name, subido_en: new Date().toISOString() }); repinta();
               });
-          }, function (e) { toastMal('No se pudo subir ' + f.name + ': ' + (e.message || e)); });
+          }, function (e) { toastMal(tH('No se pudo subir %f', { f: f.name }) + ': ' + (e.message || e)); });
         });
       }, Promise.resolve());
     });
@@ -3124,7 +3124,7 @@
         setTimeout(function () {
           document.title = titulo;
           try { w.addEventListener('afterprint', function () { setTimeout(quita, 300); }); w.focus(); w.print(); }
-          catch (e) { quita(); toastMal('No se pudo abrir la impresión: ' + (e && e.message || e)); }
+          catch (e) { quita(); toastMal(edT('No se pudo abrir la impresión: ') + (e && e.message || e)); }
           setTimeout(quita, 180000);
         }, 200);
       });
@@ -3151,19 +3151,19 @@
           ? '<textarea id="' + id + '" ' + attrs + ' style="' + estiloIn + ';resize:vertical">' + esc(valor) + '</textarea>'
           : '<input id="' + id + '" ' + attrs + ' value="' + esc(valor) + '" style="' + estiloIn + '">') + '</label>';
     };
-    var cuerpo = '<p style="margin:0 0 12px;font-size:12.5px;line-height:1.5;color:#8A6A34">Se adjunta ' + esc(saved.numero) + ' en PDF, tal y como se ve en la vista previa.</p>' +
-      campo('lw-mail-para', 'Para', 'input', 'type="email" autocomplete="off" placeholder="cliente@email.com"', vals.cliente_email || '') +
-      campo('lw-mail-asunto', 'Asunto', 'input', 'type="text"', tipo + ' ' + saved.numero + ' — ' + lwMarca('%firma_correo')) +
+    var cuerpo = '<p style="margin:0 0 12px;font-size:12.5px;line-height:1.5;color:#8A6A34">' + tH('Se adjunta %n en PDF, tal y como se ve en la vista previa.', { n: esc(saved.numero) }) + '</p>' +
+      campo('lw-mail-para', edT('Para'), 'input', 'type="email" autocomplete="off" placeholder="cliente@email.com"', vals.cliente_email || '') +
+      campo('lw-mail-asunto', edT('Asunto'), 'input', 'type="text"', tipo + ' ' + saved.numero + ' — ' + lwMarca('%firma_correo')) +
       // Firmante del CORREO: siempre la marca, nunca la sociedad emisora (owner, 8-sep-2026)
-      campo('lw-mail-msg', 'Mensaje', 'textarea', 'rows="6"', 'Buenos días' + (vals.cliente_nombre ? ' ' + vals.cliente_nombre : '') + ',\n\n' +
+      campo('lw-mail-msg', edT('Mensaje'), 'textarea', 'rows="6"', 'Buenos días' + (vals.cliente_nombre ? ' ' + vals.cliente_nombre : '') + ',\n\n' +
         'Adjunto ' + tipo.toLowerCase() + ' ' + saved.numero + ' para su revisión.\n\nUn saludo,\n' + lwMarca('%firma_correo'));
-    lwConfirmar({ titulo: 'Enviar por email — ' + saved.numero, cuerpo: cuerpo, confirmar: 'Enviar' }).then(function (ok) {
+    lwConfirmar({ titulo: tH('Enviar por email — %n', { n: saved.numero }), cuerpo: cuerpo, confirmar: 'Enviar' }).then(function (ok) {
       if (!ok) return;
       var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
       var para = v('lw-mail-para'), asunto = v('lw-mail-asunto'), msg = v('lw-mail-msg');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(para)) { toastMal('Email de destinatario no válido'); return; }
       if (!asunto) { toastMal('Falta el asunto'); return; }
-      toast('Enviando a ' + para + '…');
+      toast(tH('Enviando a %p…', { p: para }));
       sb.auth.getSession().then(function (r) {
         var tok = r && r.data && r.data.session && r.data.session.access_token;
         return fetch(window.lwEdge('send-contract-email'), {
@@ -3185,12 +3185,12 @@
              SÍ salió, y eso no se puede callar. `!== true`, no `=== false`: una edge
              sin desplegar devuelve ok sin `marcada`, y eso NO es «marcada». */
           if (res.marcada !== true) {
-            toastMal('Enviado a ' + para + ', pero NO se ha podido marcar como enviada: no la reenvíes, avisa al administrador.');
+            toastMal(tH('Enviado a %p, pero NO se ha podido marcar como enviada: no la reenvíes, avisa al administrador.', { p: para }));
           } else {
-            toast('Enviado a ' + para);
+            toast(tH('Enviado a %p', { p: para }));
           }
           if (alEnviado) alEnviado();
-        }, function (err) { toastMal('Error: ' + (err && err.message || err)); });
+        }, function (err) { toastMal(edT('Error: ') + (err && err.message || err)); });
     });
   }
   /* Registro de envíos: `correos_enviados` por factura_id, como el clásico
@@ -3199,22 +3199,22 @@
     if (!(saved && saved.id)) return aviso('Guarda el documento para ver su registro.', '#8A6A34');
     var H = window.lwCajonHtml;
     var via = function (x) { return typeof lwViaCorreo === 'function' ? lwViaCorreo(x) : (x || '—'); };
-    var fecha = function (iso) { return iso ? new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; };
+    var fecha = function (iso) { return iso ? new Date(iso).toLocaleString(window.lwLocale ? lwLocale() : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; };
     sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en')
       .eq('factura_id', saved.id).order('enviado_en', { ascending: false }).limit(200).then(function (r) {
-        var cuerpo = r.error ? H.nota('No se pudo cargar el registro: ' + r.error.message)
+        var cuerpo = r.error ? H.nota(edT('No se pudo cargar el registro: ') + r.error.message)
           : (r.data || []).length
             ? H.tabla(['Cuándo', 'Para', 'Vía', 'Quién', 'Asunto'], r.data.map(function (m) {
-                return [esc(fecha(m.enviado_en)), esc(m.para), esc(via(m.via)), esc(m.enviado_por || 'Automático'), esc(m.asunto)];
+                return [esc(fecha(m.enviado_en)), esc(m.para), esc(via(m.via)), esc(m.enviado_por || edT('Automático')), esc(m.asunto)];
               }))
             : H.nota('Sin correos registrados para este documento.');
-        lwConfirmar({ titulo: 'Registro de envíos — ' + (saved.numero || ''), cuerpo: cuerpo, confirmar: 'Cerrar', cancelar: false });
+        lwConfirmar({ titulo: tH('Registro de envíos — %n', { n: saved.numero || '' }), cuerpo: cuerpo, confirmar: 'Cerrar', cancelar: false });
       });
   }
   function creaRecibiDesdeDoc(saved) {
     lwConfirmar({
-      titulo: 'Crear un recibí de ' + (saved.numero || 'esta factura'),
-      cuerpo: '<p style="margin:0">Esta factura ya está guardada, así que no se pierde. Se abre un recibí nuevo enganchado a ella.</p>',
+      titulo: saved.numero ? tH('Crear un recibí de %n', { n: saved.numero }) : edT('Crear un recibí de esta factura'),
+      cuerpo: '<p style="margin:0">' + edT('Esta factura ya está guardada, así que no se pierde. Se abre un recibí nuevo enganchado a ella.') + '</p>',
       confirmar: 'Crear recibí'
     }).then(function (ok) {
       if (!ok) return;
@@ -3242,7 +3242,7 @@
     var base = 'padding:6px 12px;border-radius:999px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.lago +
       ';font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap;line-height:1.3';
     function btn(texto, onClick) {
-      var b = document.createElement('button'); b.type = 'button'; b.textContent = texto; b.style.cssText = base;
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = edT(texto); b.style.cssText = base;
       b.addEventListener('click', function (ev) {
         ev.preventDefault();
         if (b.getAttribute('aria-disabled') === 'true') return aviso(b.getAttribute('data-porque') || 'No disponible todavía.', '#8A6A34');
@@ -3253,7 +3253,8 @@
     function razon(b, ok, porque) {
       if (!b) return;
       b.setAttribute('aria-disabled', ok ? 'false' : 'true');
-      b.setAttribute('data-porque', ok ? '' : porque); b.title = ok ? '' : porque;
+      var pq = ok ? '' : edT(porque);
+      b.setAttribute('data-porque', pq); b.title = pq;
       b.style.opacity = ok ? '1' : '.45';
     }
     /* «Emitir» pequeño y junto a «Vista previa» (owner, 22-sep-2026): el
@@ -3322,7 +3323,7 @@
         return cargarSociedades(aut.sb).then(null, function () { return null; });
       }).then(function () { return cargaDocGuardado(aut.sb, id); })
         .then(function (d) { if (d.error) return toastMal(d.error); cb(aut, d); },
-              function (e) { toastMal('No se pudo preparar el documento: ' + (e && e.message || e)); });
+              function (e) { toastMal(edT('No se pudo preparar el documento: ') + (e && e.message || e)); });
     });
   }
   // Para la ficha de factura (datos.js): las tres acciones sobre un id.
@@ -3351,7 +3352,7 @@
     if (!id || !window.LW_AUTH) return;
     window.LW_AUTH.then(function (aut) {
       aut.sb.rpc('facturas_equipo').select('id,tipo').eq('id', id).maybeSingle().then(function (r) {
-        if (r.error || !r.data) return toastMal('No se encontró ese documento' + (r.error ? ': ' + r.error.message : '.'));
+        if (r.error || !r.data) return toastMal(r.error ? edT('No se encontró ese documento') + ': ' + r.error.message : edT('No se encontró ese documento.'));
         // Sin `soloLectura` forzado: abrir ES editar; el editor decide solo si
         // el documento admite cambios y, si no, se bloquea y dice por qué.
         if (r.data.tipo === 'recibi') abrirEditorRecibiDoc({ id: id, alCerrar: alCerrar });
@@ -3463,13 +3464,13 @@
     var soc = campoDeDoc('sociedad'), cta = campoDeDoc('cuenta');
     var s = soc && soc.selectedOptions && soc.selectedOptions[0] ? soc.selectedOptions[0].text.split(' (')[0] : '';
     var c = cta && cta.value ? (cta.selectedOptions[0] ? cta.selectedOptions[0].text : '') : '';
-    return [s, (!c || /sin datos bancarios/i.test(c)) ? '⚠️ sin cuenta' : c].filter(Boolean).join(' · ');
+    return [s, (!c || /sin datos bancarios/i.test(c)) ? edT('⚠️ sin cuenta') : c].filter(Boolean).join(' · ');
   }
   function resumenClienteDoc() {
     var nEl = campoDeDoc('cliente_nombre'), pEl = campoDeDoc('proyecto_nombre');
     var n = (nEl && nEl.value || '').trim(), p = (pEl && pEl.value || '').trim();
     var partes = n.split('·').map(function (x) { return x.trim(); }).filter(Boolean);
-    var quien = partes.length > 1 ? partes[0] + ' +' + (partes.length - 1) : (n || 'sin nombre');
+    var quien = partes.length > 1 ? partes[0] + ' +' + (partes.length - 1) : (n || edT('sin nombre'));
     return [quien, p].filter(Boolean).join(' · ');
   }
   function filaDosDoc(host) {
@@ -3621,7 +3622,7 @@
     var barra = document.createElement('div');
     barra.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;flex:0 0 auto';
     barra.innerHTML = '<span style="width:3px;height:13px;background:' + CAJ.lago + ';border-radius:2px;display:inline-block;flex:0 0 auto"></span>' +
-      '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + '">Vista previa</span>';
+      '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + '">' + edT('Vista previa') + '</span>';
     colPrev.appendChild(barra);
     // El panel y la hoja son los del clásico (`.lw-doc-pv` ≡ .pane-preview +
     // .pv-scroll; `.sheet` A4 al 78%), pintados por aseguraEstiloSplitDoc():
@@ -3701,7 +3702,7 @@
           if (motivoLectura) pre.soloLectura = true;
         }
         construye(sociedadesOk, cuentasOk, contratos, existente, copia, motivoLectura);
-      }, function (e) { aviso('No se ha podido preparar el editor: ' + (e && e.message || e), '#93000a'); });
+      }, function (e) { aviso(edT('No se ha podido preparar el editor: ') + (e && e.message || e), '#93000a'); });
 
       /* `copia` («Emitir copia» de una anulada, 22-sep-2026, owner): el
          formulario nace relleno con los datos de aquella —contrato, cliente,
@@ -3793,12 +3794,12 @@
           var tipoDocFijo = existente ? (existente.tipo || 'factura') : 'factura';
 
           var secDoc = seccionFijaDoc(host, 'Documento');
-          var lblC = document.createElement('div'); lblC.textContent = 'Contrato';
+          var lblC = document.createElement('div'); lblC.textContent = edT('Contrato');
           lblC.style.cssText = 'font-size:12px;color:' + CAJ.apagado;
           var btnC = document.createElement('button'); btnC.type = 'button'; btnC.setAttribute('data-lw-lectura-inerte', '1');
           btnC.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
             ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';cursor:pointer';
-          btnC.textContent = estadoContrato.numero ? estadoContrato.numero : estadoContrato.sinContrato ? '— sin contrato —' : '— elige un contrato —';
+          btnC.textContent = estadoContrato.numero ? estadoContrato.numero : estadoContrato.sinContrato ? edT('— sin contrato —') : edT('— elige un contrato —');
           var notaC = document.createElement('p'); notaC.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
           secDoc.appendChild(lblC); secDoc.appendChild(btnC); secDoc.appendChild(notaC);
           /* Sin contrato (AxisWorks ERP, 25-sep-2026): el documento va a nombre de un CLIENTE que
@@ -3806,11 +3807,11 @@
           var filaCli = null, btnCli = null;
           if (regla.sinContrato) {
             filaCli = document.createElement('div'); filaCli.style.cssText = 'display:grid;gap:6px';
-            var lblCli = document.createElement('div'); lblCli.textContent = 'Cliente';
+            var lblCli = document.createElement('div'); lblCli.textContent = edT('Cliente');
             lblCli.style.cssText = 'font-size:12px;color:' + CAJ.apagado;
             btnCli = document.createElement('button'); btnCli.type = 'button'; btnCli.setAttribute('data-lw-lectura-inerte', '1');
             btnCli.style.cssText = btnC.style.cssText;
-            btnCli.textContent = (estadoContrato.sinContrato && f0.cliente_nombre) || '— elige el cliente —';
+            btnCli.textContent = (estadoContrato.sinContrato && f0.cliente_nombre) || edT('— elige el cliente —');
             filaCli.appendChild(lblCli); filaCli.appendChild(btnCli); secDoc.appendChild(filaCli);
             btnCli.addEventListener('click', function () {
               eligeClienteDoc(sb, estadoContrato.clienteId).then(function (c) {
@@ -3830,8 +3831,8 @@
             sueltaCamposDoc();
             ['cliente_nombre', 'cliente_documento', 'cliente_email', 'cliente_domicilio', 'proyecto_nombre'].forEach(function (k) { ponCampoDoc(k, ''); });
             if (delC) delC.limpia();
-            btnC.textContent = '— sin contrato —'; btnCli.textContent = '— elige el cliente —';
-            notaC.textContent = 'El documento irá a nombre del cliente que elijas, sin contrato.';
+            btnC.textContent = edT('— sin contrato —'); btnCli.textContent = edT('— elige el cliente —');
+            notaC.textContent = edT('El documento irá a nombre del cliente que elijas, sin contrato.');
             pintaModoContrato(); repintaPreview();
           }
           // `inicial`: la carga del documento ya guardado al reabrirlo — ahí se respeta el domicilio guardado.
@@ -3850,7 +3851,7 @@
               campoDom.value = ''; repintaPreview();
               if (res.clienteId) {
                 sb.from('clients').select('address').eq('id', res.clienteId).maybeSingle().then(function (rd) {
-                  if (rd.error) { console.error('[facturas] domicilio del comprador:', rd.error); toastMal(lwErrorHumano(rd.error, 'No se pudo traer el domicilio del cliente: escríbelo a mano')); return; }
+                  if (rd.error) { console.error('[facturas] domicilio del comprador:', rd.error); toastMal(lwErrorHumano(rd.error, edT('No se pudo traer el domicilio del cliente: escríbelo a mano'))); return; }
                   if (rd.data && rd.data.address && estadoContrato.id === id) { campoDom.value = rd.data.address; repintaPreview(); }
                 });
               }
@@ -3858,15 +3859,15 @@
           }
           btnC.addEventListener('click', function () {
             var ops = opcionesContratoPickerDoc(contratosLigeros);
-            if (regla.sinContrato) ops = [{ valor: SIN_CONTRATO_DOC, texto: '— sin contrato —', nota: 'A nombre de un cliente, sin contrato' }].concat(ops);
+            if (regla.sinContrato) ops = [{ valor: SIN_CONTRATO_DOC, texto: edT('— sin contrato —'), nota: edT('A nombre de un cliente, sin contrato') }].concat(ops);
             lwElegir({ titulo: 'Elige un contrato', buscarPh: 'Número, cliente o proyecto…', opciones: ops, valor: estadoContrato.sinContrato ? SIN_CONTRATO_DOC : estadoContrato.id })
               .then(function (id) {
                 if (id === null) return;
                 if (id === SIN_CONTRATO_DOC) { pasaASinContrato(); return; }
-                var antes = btnC.textContent; btnC.disabled = true; btnC.textContent = 'Cargando…';
+                var antes = btnC.textContent; btnC.disabled = true; btnC.textContent = edT('Cargando…');
                 aplicaContratoDoc(sb, id).then(function (res) {
                   btnC.disabled = false;
-                  if (res.error) { toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato')); btnC.textContent = antes; return; }
+                  if (res.error) { toastMal(lwErrorHumano(res.error, edT('No se pudo cargar el contrato'))); btnC.textContent = antes; return; }
                   contratoCargado(id, res);
                 });
               });
@@ -3886,7 +3887,7 @@
           var contratoInicial = estadoContrato.id;
           var filaDM = filaDosDoc(secDoc);
           campoSimpleDoc(filaDM, { k: 'moneda', label: 'Moneda', tipo: 'select', valor: f0.moneda || 'EUR', opciones: ['EUR', 'USD', 'AUD', 'IDR'] });
-          campoSimpleDoc(filaDM, { label: 'Nº de documento', readonly: 1, valor: existente ? (existente.numero || '') : 'Lo asigna la base al guardar' });
+          campoSimpleDoc(filaDM, { label: 'Nº de documento', readonly: 1, valor: existente ? (existente.numero || '') : edT('Lo asigna la base al guardar') });
           // «Del contrato»: hitos, total, encadenados — DEBAJO de Moneda y Nº,
           // como #delContrato/#delVinculado en el clásico (27-ago-2026, owner:
           // moneda y nº «pegados al contrato, juntos y arriba», el bloque de
@@ -3909,7 +3910,7 @@
           campoSimpleDoc(secEmisor, { k: 'sociedad', label: 'Sociedad que factura', tipo: 'select', req: 1, valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) });
           var selCuenta = campoSimpleDoc(secEmisor, { k: 'cuenta', label: 'Cuenta donde se cobra', tipo: 'select', valor: f0.cuenta || '', opciones: opcionesCuentaDoc() });
           var hintCuenta = document.createElement('p'); hintCuenta.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
-          hintCuenta.textContent = 'Sin cuenta, el documento no imprime datos bancarios.';
+          hintCuenta.textContent = edT('Sin cuenta, el documento no imprime datos bancarios.');
           secEmisor.appendChild(hintCuenta);
           // Los datos de «Otros» solo se enseñan con esa cuenta elegida —
           // medido: el clásico los esconde igual (toggleCuentaOtros()).
@@ -3960,15 +3961,15 @@
           // En modo lectura NO se recarga el contrato: se enseña lo GUARDADO
           // tal cual, no lo que el contrato diga hoy.
           if (contratoInicial && !pre.soloLectura) {
-            btnC.textContent = 'Cargando…';
+            btnC.textContent = edT('Cargando…');
             aplicaContratoDoc(sb, contratoInicial).then(function (res) {
-              if (res.error) { btnC.textContent = estadoContrato.numero || '— elige un contrato —'; toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato')); return; }
+              if (res.error) { btnC.textContent = estadoContrato.numero || edT('— elige un contrato —'); toastMal(lwErrorHumano(res.error, edT('No se pudo cargar el contrato'))); return; }
               contratoCargado(contratoInicial, res, true);
             });
           }
         } });
 
-        modal(pre.soloLectura ? (existente.numero || 'Documento') : existente ? 'Editar ' + (existente.numero || 'documento') : (copia ? 'Nuevo documento — copia de ' + (copia.numero || '') : 'Nuevo documento'), campos,
+        modal(pre.soloLectura ? (existente.numero || edT('Documento')) : existente ? tH('Editar %n', { n: existente.numero || edT('documento') }) : (copia ? tH('Nuevo documento — copia de %n', { n: copia.numero || '' }) : edT('Nuevo documento')), campos,
           existente ? 'Guardar cambios' : 'Emitir', function (v) {
             if (pre.soloLectura) return { error: { message: 'Este documento se abre solo para consultarlo.' } };
             var sinContrato = !estadoContrato.id && estadoContrato.sinContrato && regla.sinContrato;
@@ -4024,7 +4025,7 @@
               if (res.error) return { error: res.error };
               var fila = Array.isArray(res.data) ? res.data[0] : res.data;
               if (!fila || !fila.id) return { error: { message: 'El servidor no ha devuelto el documento guardado.' } };
-              toast((existente ? 'Actualizada como ' : 'Guardada como ') + fila.numero);
+              toast(tH(existente ? 'Actualizada como %n' : 'Guardada como %n', { n: fila.numero }));
               abreDocumentoViewerDoc(fila.id, function () { location.reload(); });
               return {};
             });
@@ -4049,7 +4050,7 @@
   function ofreceTraerFichaDoc(sb, id) {
     var ficha = { nombre: 'cliente_nombre', identidad: 'cliente_documento', email: 'cliente_email' };
     sb.from('documentos_desactualizados').select('id,congelado,ficha,diferencias').eq('id', id).maybeSingle().then(function (r) {
-      if (r.error) { toastMal('No se ha podido comprobar si la ficha del cliente dice otra cosa: ' + r.error.message); return; }
+      if (r.error) { toastMal(edT('No se ha podido comprobar si la ficha del cliente dice otra cosa: ') + r.error.message); return; }
       var d = r.data;
       if (!d || d.congelado || !Array.isArray(d.diferencias) || !d.diferencias.length) return;
       return cargaModuloDoc('divergencia').then(function () {
@@ -4065,7 +4066,7 @@
         });
         toast('Datos traídos de la ficha: revisa y guarda.');
       });
-    }, function (e) { toastMal('No se ha podido comprobar si la ficha del cliente dice otra cosa: ' + (e && e.message || e)); });
+    }, function (e) { toastMal(edT('No se ha podido comprobar si la ficha del cliente dice otra cosa: ') + (e && e.message || e)); });
   }
 
   /* ---------- Recibí de cobro: crear o editar ---------- */
@@ -4105,7 +4106,7 @@
           if (motivoLectura) pre.soloLectura = true;
         }
         construye(sociedadesOk, cuentasOk, contratos, existente, motivoLectura);
-      }, function (e) { aviso('No se ha podido preparar el editor: ' + (e && e.message || e), '#93000a'); });
+      }, function (e) { aviso(edT('No se ha podido preparar el editor: ') + (e && e.message || e), '#93000a'); });
 
       function construye(sociedadesOk, cuentasOk, contratosLigeros, existente, motivoLectura) {
         var f0 = (existente && existente.datos && existente.datos.fields) || {};
@@ -4236,19 +4237,19 @@
           });
 
           var secDoc = seccionFijaDoc(host, 'Documento');
-          var lblF = document.createElement('div'); lblF.textContent = 'Factura que se cobra';
+          var lblF = document.createElement('div'); lblF.textContent = edT('Factura que se cobra');
           lblF.style.cssText = 'font-size:12px;color:' + CAJ.apagado;
           var btnF = document.createElement('button'); btnF.type = 'button'; btnF.setAttribute('data-lw-lectura-inerte', '1');
           btnF.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
             ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';cursor:pointer';
-          btnF.textContent = '— elige la factura que cobras —';
+          btnF.textContent = edT('— elige la factura que cobras —');
           secDoc.appendChild(lblF); secDoc.appendChild(btnF);
 
           pintaBtnF = function () {
-            if (!aplicaciones.length) { btnF.textContent = '— elige la factura que cobras —'; }
+            if (!aplicaciones.length) { btnF.textContent = edT('— elige la factura que cobras —'); }
             else {
               var f0a = aplicaciones[0];
-              btnF.textContent = f0a.numero + (aplicaciones.length > 1 ? ' y ' + (aplicaciones.length - 1) + ' más' : '') +
+              btnF.textContent = f0a.numero + (aplicaciones.length > 1 ? ' ' + tH('y %n más', { n: aplicaciones.length - 1 }) : '') +
                 (estadoContrato.clienteNombre ? ' — ' + estadoContrato.clienteNombre : '');
             }
             repintaPreview();
@@ -4260,7 +4261,7 @@
              de su cliente. Los datos del cliente salen de su ficha, uno solo, con la RLS de quien emite. */
           function pasaACliente(f) {
             return sb.from('clients').select('id,full_name,email,passport_number,registro_num').eq('id', f.client_id).maybeSingle().then(function (rc) {
-              if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: 'cliente no encontrado' }, 'No se pudo cargar el cliente de esa factura')); return false; }
+              if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente de esa factura'))); return false; }
               var c = rc.data;
               estadoContrato.id = null; estadoContrato.numero = ''; estadoContrato.sinContrato = true; estadoContrato.clienteId = c.id;
               estadoContrato.clienteNombre = c.full_name || f.cliente_nombre || '';
@@ -4288,14 +4289,14 @@
                   facturasAbiertasCache = abs;
                   aplicaciones.push({ factura_id: f.id, numero: f.numero, pendiente: f.pendiente, importe: '' });
                   pintaBtnF(); repintaAplic();
-                  toast('Factura ' + f.numero + ' — escribe cuánto se ha cobrado');
+                  toast(tH('Factura %n — escribe cuánto se ha cobrado', { n: f.numero }));
                 });
               });
               return;
             }
             var cambioContrato = f.contrato_id && f.contrato_id !== estadoContrato.id;
             (cambioContrato ? aplicaContratoDoc(sb, f.contrato_id).then(function (res) {
-              if (res.error) { toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato de esa factura')); return; }
+              if (res.error) { toastMal(lwErrorHumano(res.error, edT('No se pudo cargar el contrato de esa factura'))); return; }
               estadoContrato.id = f.contrato_id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
               estadoContrato.moneda = res.moneda || estadoContrato.moneda;
               estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
@@ -4306,7 +4307,7 @@
               facturasAbiertasCache = abs;
               aplicaciones.push({ factura_id: f.id, numero: f.numero, pendiente: f.pendiente, importe: '' });
               pintaBtnF(); repintaAplic();
-              toast('Factura ' + f.numero + ' — escribe cuánto se ha cobrado');
+              toast(tH('Factura %n — escribe cuánto se ha cobrado', { n: f.numero }));
             });
           }
 
@@ -4320,8 +4321,8 @@
               lwElegir({
                 titulo: 'Factura que se cobra', buscarPh: 'Número, cliente o contrato…',
                 opciones: libres.map(function (f) {
-                  return { valor: f.id, texto: (f.numero || 'sin nº') + ' — ' + (f.cliente_nombre || 'sin nombre'),
-                    nota: 'pendiente ' + fmtMoneda(f.pendiente, f.moneda || estadoContrato.moneda) + (f.contrato_numero ? ' · ' + f.contrato_numero : '') };
+                  return { valor: f.id, texto: (f.numero || edT('sin nº')) + ' — ' + (f.cliente_nombre || edT('sin nombre')),
+                    nota: tH('pendiente %p', { p: fmtMoneda(f.pendiente, f.moneda || estadoContrato.moneda) }) + (f.contrato_numero ? ' · ' + f.contrato_numero : '') };
                 })
               }).then(function (id) {
                 if (!id) return;
@@ -4335,7 +4336,7 @@
           if (existente) {
             // EDITAR: no se pide elegir — se restaura de `recibi_aplicaciones`
             // (código de más abajo, code-review 21-sep) sin vaciar nada antes.
-            btnF.textContent = 'Cargando…';
+            btnF.textContent = edT('Cargando…');
             // En modo lectura se enseña lo GUARDADO: no se recarga el contrato,
             // solo se restauran las facturas que este recibí saldó.
             // Recibí sin contrato: no hay contrato que recargar; sus datos son los guardados y el cliente es su client_id.
@@ -4353,7 +4354,7 @@
                 var numeroDe = {};
                 sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', existente.id)
                   .then(function (rr) {
-                    if (rr.error) { toastMal(lwErrorHumano(rr.error, 'No se pudieron traer las facturas que este recibí ya saldaba')); pintaBtnF(); repintaAplic(); return; }
+                    if (rr.error) { toastMal(lwErrorHumano(rr.error, edT('No se pudieron traer las facturas que este recibí ya saldaba'))); pintaBtnF(); repintaAplic(); return; }
                     // Una factura que este recibí ya salda del todo no está entre las ABIERTAS:
                     // su número se pregunta aparte (antes caía al id interno y se imprimía).
                     var sueltas = (rr.data || []).map(function (r) { return r.factura_id; })
@@ -4363,7 +4364,7 @@
                         if (fr.error) throw fr.error;
                         (fr.data || []).forEach(function (x) { numeroDe[x.id] = x.numero; });
                         // sin número real el recibí imprimiría un concepto vacío: no se carga
-                        if (sueltas.some(function (id) { return !numeroDe[id]; })) throw new Error('no se encontró el número de una factura de este recibí');
+                        if (sueltas.some(function (id) { return !numeroDe[id]; })) throw new Error(edT('no se encontró el número de una factura de este recibí'));
                         return rr;
                       });
                   }).then(function (rr) {
@@ -4378,16 +4379,16 @@
                       });
                     });
                     pintaBtnF(); repintaAplic();
-                  }, function (e) { toastMal(lwErrorHumano(e, 'No se pudieron traer las facturas que este recibí ya saldaba')); pintaBtnF(); repintaAplic(); });
+                  }, function (e) { toastMal(lwErrorHumano(e, edT('No se pudieron traer las facturas que este recibí ya saldaba'))); pintaBtnF(); repintaAplic(); });
               });
             });
           } else if (pre.contrato_id) {
             // Atajo desde la ficha de un contrato: se precarga sola la lista
             // de pendientes de ese comprador y, si solo hay una, se aplica —
             // es el caso normal (un hito facturado, pendiente de cobro).
-            btnF.textContent = 'Cargando…';
+            btnF.textContent = edT('Cargando…');
             aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
-              if (res.error) { toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato')); btnF.textContent = '— elige la factura que cobras —'; return; }
+              if (res.error) { toastMal(lwErrorHumano(res.error, edT('No se pudo cargar el contrato'))); btnF.textContent = edT('— elige la factura que cobras —'); return; }
               estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
               estadoContrato.moneda = res.moneda || estadoContrato.moneda;
               estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
@@ -4413,7 +4414,7 @@
 
           var filaDM = filaDosDoc(secDoc);
           var selMonedaR = campoSimpleDoc(filaDM, { k: 'moneda', label: 'Moneda', tipo: 'select', valor: estadoContrato.moneda, opciones: ['EUR', 'USD', 'AUD', 'IDR'] });
-          campoSimpleDoc(filaDM, { label: 'Nº de documento', readonly: 1, valor: existente ? (existente.numero || '') : 'Lo asigna la base al guardar' });
+          campoSimpleDoc(filaDM, { label: 'Nº de documento', readonly: 1, valor: existente ? (existente.numero || '') : edT('Lo asigna la base al guardar') });
           // Cambiar la moneda a mitad refresca qué facturas se pueden saldar y
           // quita las que dejan de valer (refrescarAplicablesDelRecibi del
           // clásico): la base rechaza mezclar monedas (recibi_no_mezcla_moneda).
@@ -4426,8 +4427,8 @@
               var fuera = aplicaciones.filter(function (a) { return !validas[a.factura_id]; });
               if (fuera.length) {
                 aplicaciones = aplicaciones.filter(function (a) { return validas[a.factura_id]; });
-                toast('Quitad' + (fuera.length === 1 ? 'a ' : 'as ') + fuera.length + ' factura' + (fuera.length === 1 ? '' : 's') +
-                  ' que no son de esta moneda: ' + fuera.map(function (a) { return a.numero; }).join(', '));
+                toast(tH(fuera.length === 1 ? 'Quitada %n factura que no son de esta moneda: %l' : 'Quitadas %n facturas que no son de esta moneda: %l',
+                  { n: fuera.length, l: fuera.map(function (a) { return a.numero; }).join(', ') }));
               }
               pintaBtnF(); repintaAplic();
             });
@@ -4452,7 +4453,7 @@
           campoSimpleDoc(secEmisor, { k: 'sociedad', label: 'Sociedad que cobra', tipo: 'select', req: 1, valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) });
           campoSimpleDoc(secEmisor, { k: 'cuenta', label: 'Cuenta donde se cobró', tipo: 'select', valor: f0.cuenta || '', opciones: opcionesCuentaDoc(true) });
           var hintCuenta = document.createElement('p'); hintCuenta.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
-          hintCuenta.textContent = 'Sin cuenta, el documento no imprime datos bancarios.';
+          hintCuenta.textContent = edT('Sin cuenta, el documento no imprime datos bancarios.');
           secEmisor.appendChild(hintCuenta);
 
           var secCliente = seccionPlegableDoc(host, 'Cliente', true, { resumen: resumenClienteDoc });
@@ -4475,7 +4476,7 @@
           var totalAplic = document.createElement('div');
           totalAplic.style.cssText = 'display:none;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 12px;border-radius:10px;background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde;
           secAplic.appendChild(totalAplic);
-          var btnAdd = document.createElement('button'); btnAdd.type = 'button'; btnAdd.textContent = '+ Añadir otra factura';
+          var btnAdd = document.createElement('button'); btnAdd.type = 'button'; btnAdd.textContent = edT('+ Añadir otra factura');
           btnAdd.style.cssText = 'justify-self:start;padding:7px 12px;border-radius:8px;border:1px dashed ' + CAJ.hoja +
             ';background:transparent;color:' + CAJ.lago + ';font-weight:600;font-size:12.5px;cursor:pointer';
           secAplic.appendChild(btnAdd);
@@ -4485,15 +4486,15 @@
             var usadas = {}; aplicaciones.forEach(function (a) { usadas[a.factura_id] = 1; });
             var libres = facturasAbiertasCache.filter(function (x) { return !usadas[x.id]; });
             btnAdd.hidden = !hayOrigen();
-            avisoAplic.textContent = !hayOrigen() ? 'Elige arriba la factura que se cobra.'
-              : libres.length && estadoContrato.sinContrato ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este cliente.'
-              : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este cliente, incluidas las de sus otros contratos.'
-              : facturasOtraMoneda ? 'Este cliente tiene ' + facturasOtraMoneda + ' factura' + (facturasOtraMoneda === 1 ? '' : 's') + ' pendiente' + (facturasOtraMoneda === 1 ? '' : 's') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
-              : 'No le queda ninguna otra factura pendiente a este cliente.';
+            avisoAplic.textContent = !hayOrigen() ? edT('Elige arriba la factura que se cobra.')
+              : libres.length && estadoContrato.sinContrato ? tH(libres.length === 1 ? 'Hay %n factura pendiente más de este cliente.' : 'Hay %n facturas pendientes más de este cliente.', { n: libres.length })
+              : libres.length ? tH(libres.length === 1 ? 'Hay %n factura pendiente más de este cliente, incluidas las de sus otros contratos.' : 'Hay %n facturas pendientes más de este cliente, incluidas las de sus otros contratos.', { n: libres.length })
+              : facturasOtraMoneda ? tH(facturasOtraMoneda === 1 ? 'Este cliente tiene %n factura pendiente, pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.' : 'Este cliente tiene %n facturas pendientes, pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.', { n: facturasOtraMoneda })
+              : edT('No le queda ninguna otra factura pendiente a este cliente.');
             var suma = aplicaciones.reduce(function (s, a) { return s + (lwParseImporte(a.importe) || 0); }, 0);
             totalAplic.style.display = aplicaciones.length ? 'flex' : 'none';
-            totalAplic.innerHTML = '<span style="font-size:12.5px;font-weight:600;color:' + CAJ.tinta + '">Total del recibí <span style="font-weight:500;color:' + CAJ.apagado + '">· ' +
-              aplicaciones.length + ' factura' + (aplicaciones.length === 1 ? '' : 's') + '</span></span>' +
+            totalAplic.innerHTML = '<span style="font-size:12.5px;font-weight:600;color:' + CAJ.tinta + '">' + edT('Total del recibí') + ' <span style="font-weight:500;color:' + CAJ.apagado + '">· ' +
+              tH(aplicaciones.length === 1 ? '%n factura' : '%n facturas', { n: aplicaciones.length }) + '</span></span>' +
               '<span style="font-size:16px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:' + CAJ.lago + '">' + esc(fmtMoneda(suma, estadoContrato.moneda)) + '</span>';
             lista.innerHTML = '';
             aplicaciones.forEach(function (a, i) {
@@ -4502,19 +4503,19 @@
               var cab = document.createElement('div'); cab.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;gap:10px';
               var num = document.createElement('div');
               num.innerHTML = '<div style="font-size:14px;font-weight:700;color:' + CAJ.tinta + ';letter-spacing:-.01em">' + esc(a.numero) + '</div>' +
-                '<div style="font-size:12px;color:' + CAJ.apagado + ';margin-top:2px">Pendiente de esta factura: <b style="color:' + CAJ.tinta + ';font-weight:600">' + esc(fmtMoneda(a.pendiente, estadoContrato.moneda)) + '</b></div>';
-              var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar esta factura del recibí';
+                '<div style="font-size:12px;color:' + CAJ.apagado + ';margin-top:2px">' + edT('Pendiente de esta factura:') + ' <b style="color:' + CAJ.tinta + ';font-weight:600">' + esc(fmtMoneda(a.pendiente, estadoContrato.moneda)) + '</b></div>';
+              var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = edT('Quitar esta factura del recibí');
               btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:20px;line-height:1;cursor:pointer;flex:0 0 auto;padding:0 2px';
               cab.appendChild(num); cab.appendChild(btnDel);
-              var lbl = document.createElement('div'); lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';font-weight:500'; lbl.textContent = 'Importe cobrado';
+              var lbl = document.createElement('div'); lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';font-weight:500'; lbl.textContent = edT('Importe cobrado');
               var fila = document.createElement('div'); fila.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap';
-              var inpImp = document.createElement('input'); inpImp.type = 'text'; inpImp.inputMode = 'decimal'; inpImp.placeholder = '¿cuánto ha entrado?';
+              var inpImp = document.createElement('input'); inpImp.type = 'text'; inpImp.inputMode = 'decimal'; inpImp.placeholder = edT('¿cuánto ha entrado?');
               inpImp.value = a.importe;
               inpImp.style.cssText = 'flex:1 1 160px;min-width:0;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-size:14px;font-weight:500;color:' + CAJ.tinta + ';background:' + CAJ.papel + ';box-sizing:border-box';
               var pend = document.createElement('button'); pend.type = 'button';
               pend.style.cssText = 'flex:0 0 auto;padding:7px 12px;border-radius:999px;border:1px solid ' + CAJ.lago + ';background:' + CAJ.papel + ';color:' + CAJ.lago + ';font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap';
-              pend.textContent = 'Cobrar todo';
-              pend.title = 'Pone ' + fmtMoneda(a.pendiente, estadoContrato.moneda) + ', lo que queda pendiente';
+              pend.textContent = edT('Cobrar todo');
+              pend.title = tH('Pone %p, lo que queda pendiente', { p: fmtMoneda(a.pendiente, estadoContrato.moneda) });
               pend.addEventListener('click', function () { a.importe = lwImporteCanonico(a.pendiente); repinta(); });
               inpImp.addEventListener('input', function () { a.importe = inpImp.value; });
               inpImp.addEventListener('blur', function () { var n = lwParseImporte(inpImp.value); var txt = lwImporteCanonico(n); inpImp.value = txt; a.importe = txt; repinta(); });
@@ -4542,7 +4543,7 @@
           repintaPreview();
         } });
 
-        modal(pre.soloLectura ? (existente.numero || 'Recibí') : existente ? 'Editar ' + (existente.numero || 'recibí') : 'Emitir recibí de cobro', campos,
+        modal(pre.soloLectura ? (existente.numero || edT('Recibí')) : existente ? tH('Editar %n', { n: existente.numero || edT('recibí') }) : edT('Emitir recibí de cobro'), campos,
           existente ? 'Guardar cambios' : 'Emitir recibí', function (v) {
             if (pre.soloLectura) return { error: { message: 'Este recibí se abre solo para consultarlo.' } };
             if (!hayOrigen()) return { error: { message: 'Elige la factura que se cobra.' } };
@@ -4552,8 +4553,8 @@
             if (!justificantes.length) return { error: { message: 'Adjunta el justificante de pago.' } };
             for (var i = 0; i < aplicaciones.length; i++) {
               var imp = lwParseImporte(aplicaciones[i].importe);
-              if (!imp || imp <= 0) return { error: { message: 'Falta el importe aplicado a ' + aplicaciones[i].numero } };
-              if (imp > aplicaciones[i].pendiente + 0.01) return { error: { message: aplicaciones[i].numero + ' solo tiene ' + aplicaciones[i].pendiente + ' pendiente' } };
+              if (!imp || imp <= 0) return { error: { message: tH('Falta el importe aplicado a %n', { n: aplicaciones[i].numero }) } };
+              if (imp > aplicaciones[i].pendiente + 0.01) return { error: { message: tH('%n solo tiene %p pendiente', { p: aplicaciones[i].pendiente, n: aplicaciones[i].numero }) } };
             }
             var lineas = aplicaciones.map(function (a) { return { descripcion: conceptoCobroRecibi(a.numero), importe: a.importe }; });
             var d = v; d.tipo = 'recibi'; d.lineas = lineas;
@@ -4575,7 +4576,7 @@
             return sb.rpc('guardar_recibi', { p_id: (existente && existente.id) || null, p_factura: pFactura, p_aplicaciones: pAplicaciones })
               .then(function (res) {
                 if (res.error) return { error: res.error };
-                toast((existente ? 'Actualizado como ' : 'Guardado como ') + res.data.numero);
+                toast(tH(existente ? 'Actualizado como %n' : 'Guardado como %n', { n: res.data.numero }));
                 abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
                 return {};
               });
