@@ -1,7 +1,8 @@
 // 13-oct-2026, petición del cliente (vía owner), dos reglas de pantalla que fija este test:
 //   1. Recibí: antes de guardar_recibi se pregunta «¿Ha llegado ya el dinero?»; «Todavía no» no llama a la base.
-//   2. Alta de cliente: el documento de identidad es obligatorio y se valida ANTES de crear la ficha; si la subida
-//      falla, el reintento no vuelve a llamar a cliente_guarda.
+//   2. Alta de cliente: el documento de identidad es obligatorio y se valida ANTES de subir nada. Desde LAW-557
+//      (13-oct, owner: «alta y pasaporte juntos») ficha y documento entran en UNA operación de la edge ficheros-kyc
+//      (alta_subida_url → alta): con el interruptor ya no se llama a cliente_guarda ni existe «ficha sin documento».
 // Lee el código fuente (como correo_anulado.test.js): las dos viven dentro de cierres que no se pueden cargar sueltos.
 // Corre con: node intranet/v4/assets/recibi_llegada_alta_documento.test.js
 'use strict';
@@ -46,16 +47,44 @@ ok(/var exigeDoc = !!\(window\.LW_INSTANCIA && window\.LW_INSTANCIA\.alta_exige_
 ok(/persona: \{ etq: 'Foto del pasaporte', tipo: 'passport'/.test(alta) && /empresa: \{ etq: 'Documento de identificación de la empresa', tipo: 'other'/.test(alta),
    'alta: tipos de documento que admite documento_kyc_registra');
 { const s = alta.indexOf("form.addEventListener('submit'"), d = alta.indexOf("if (docMal) malos.push(['doc_identidad', docMal]);", s),
-        r = alta.indexOf('if (malos.length) {', s), g = alta.indexOf('guardaAltaComprador(v)', s);
-  ok(s > 0 && d > s && r > d && g > r, 'alta: el documento se valida ANTES de crear la ficha'); }
-ok(/Promise\.resolve\(creadoId \? \{ data: creadoId \} : guardaAltaComprador\(v\)\)/.test(alta), 'alta: el reintento NO vuelve a llamar a cliente_guarda');
-ok(/creadoId = id;\n\s+return subeDocs\(id, v\.doc_caduca \|\| null\)/.test(alta), 'alta: se apunta la ficha creada antes de subir');
-ok(/window\.lwKycSube\(sb, id, f, tipoDoc, caduca\)\.then\(function \(\) \{ subidos\.push\(f\); \}\)/.test(alta), 'alta: sube por lwKycSube y apunta lo subido (sin duplicar al reintentar)');
-ok(/return docsElegidos\(\)\.filter\(function \(f\) \{ return subidos\.indexOf\(f\) < 0; \}\);/.test(alta), 'alta: el reintento sube solo lo que falta');
-ok(/then\(function \(\) \{ docOk = true; listo\(r\); \}/.test(alta) && /if \(!creadoId \|\| docOk\) return;/.test(alta),
-   'alta: el aviso al cerrar depende de que TODO subiera, no de lo que haya en el selector');
+        r = alta.indexOf('if (malos.length) {', s), g = alta.indexOf('exigeDoc ? altaConDocumento(v) : guardaAltaComprador(v)', s);
+  ok(s > 0 && d > s && r > d && g > r, 'alta: el documento se valida ANTES de subir nada ni crear la ficha'); }
+ok(/Promise\.resolve\(exigeDoc \? altaConDocumento\(v\) : guardaAltaComprador\(v\)\)/.test(alta), 'alta: con el interruptor va por la vía con documento; sin él, la de siempre');
+// LAW-557: ficha y documento en UNA operación del servidor; el estado «ficha creada, falta el documento» ya no existe
+ok(!/creadoId|modoReintento|_alCerrarAlta|docOk/.test(alta), 'alta: fuera la máquina vieja (creadoId/modoReintento/_alCerrarAlta)');
+{ const f = tramo('function altaConDocumento(v) {', 'function falloAlta(e) {');
+  ok(/faltanDatosComprador\(v\)/.test(f) && /telefonoRepetidoSigue\(telAlta, null\)/.test(f), 'alta con documento: mismas comprobaciones previas que el alta de siempre');
+  ok(!/sb\.rpc\('cliente_guarda'/.test(f), 'alta con documento: no llama a cliente_guarda');
+  ok(/if \(pathDe\(f\)\) return null;/.test(f), 'alta con documento: lo ya subido no se vuelve a subir');
+  ok(/window\.lwKycAltaSube\(sb, altaId, f\)/.test(f), 'alta con documento: sube a la carpeta de alta pendiente que da el servidor');
+  const iSube = f.indexOf('window.lwKycAltaSube('), iAlta = f.indexOf("window.lwKyc(sb, 'alta', pide)");
+  ok(iSube > 0 && iAlta > iSube, 'alta con documento: primero se sube todo, después UNA llamada a `alta`');
+  ok(/datos: datosAltaComprador\(v, telAlta\), paths: fs\.map\(pathDe\)/.test(f), 'alta con documento: manda los mismos datos que el alta de siempre y los paths');
+  ok(!/doc_type|tipoDoc/.test(f), 'alta con documento: el tipo de documento lo decide el servidor, no la pantalla'); }
+ok((ed.match(/function datosAltaComprador\(/g) || []).length === 1 && /sb\.rpc\('cliente_guarda', \{ p_id: null, p_datos: datosAltaComprador\(v, telAlta\) \}\)/.test(ed),
+   'alta: los datos del alta se escriben UNA vez y los comparten las dos vías');
+{ const f = tramo('function falloAlta(e) {', 'function listo(r) {');
+  ok(/if \(enDuda && !clave\)/.test(f) && /duda: true/.test(f), 'alta: sin respuesta del servidor es DUDA (reenviar es seguro), no error');
+  ok(/clave === 'el_fichero_no_es_lo_que_dice_ser' \|\| clave === 'el_fichero_no_ha_llegado'/.test(f) && /quitaSubido\(e\.path\)/.test(f),
+     'alta: un fichero rechazado sale de lo subido y se pide otro');
+  ok(/clave === 'alta_no_valida'/.test(f), 'alta: una carpeta caducada o ajena se olvida y el reenvío empieza limpio'); }
+ok(/function descartaAlta\(\)/.test(alta) && /window\.lwKyc\(sb, 'alta_descarta', \{ alta_id: id \}\)/.test(alta) && /if \(!altaId \|\| hecho\) return Promise\.resolve\(\);/.test(alta),
+   'alta: al cerrar sin terminar se descarta la carpeta pendiente (nunca después de crear la ficha)');
+ok(/w\._alCerrar = function \(\) \{ document\.removeEventListener\('keydown', teclas\); if \(exigeDoc\) alCerrarAlta\(\); \};/.test(alta), 'alta: el descarte va en TODAS las salidas del panel');
 ok(/var cerrar = function \(\) \{ if \(!ocupado\(\)\) cierraModal\(\); \};/.test(alta) && /e\.key === 'Escape' && !ocupado\(\)/.test(alta),
    'alta: no se cierra con el alta o la subida en marcha');
+// guard.js: la pieza de subida del alta, una sola copia
+{ const g = leer('contracts', 'assets', 'guard.js');
+  ok(/fija\('lwKycAltaSube', function \(sb, altaId, f\)/.test(g) && /if \(altaId\) pide\.alta_id = altaId;/.test(g), 'guard.js: lwKycAltaSube nunca inventa un alta_id');
+  ok(/window\.lwKyc\(sb, 'alta_subida_url', pide\)/.test(g) && /type: u\.content_type/.test(g), 'guard.js: sube con el tipo que decide el servidor');
+  ['alta_no_disponible', 'alta_no_valida', 'demasiadas_altas_abiertas', 'demasiados_ficheros', 'faltan_ficheros'].forEach(function (k) {
+    ok(new RegExp('\\n\\s+' + k + ': \'').test(g), 'guard.js: falta el texto del error ' + k);
+  }); }
+// CRM de leads: con el interruptor, una ficha NUEVA no nace desde aquí
+{ const l = leer('intranet', 'leads', 'leads.js');
+  ok(/const altaEnClientes = !!\(window\.LW_INSTANCIA && window\.LW_INSTANCIA\.alta_exige_documento === true\)\n\s+&& d\.email && !d\.ficha_existente;/.test(l),
+     'leads: el interruptor solo cambia el caso sin ficha previa');
+  ok(/altaEnClientes \? `<a class="btn pri" href="\/intranet\/v4\/compradores\/\?nuevo=1"/.test(l), 'leads: sin ficha, enlaza al alta de Clientes en vez de crearla'); }
 ok(/if \(fs\.length > DOC_MAX\)/.test(alta) && /fs\[i\]\.size > 20 \* 1024 \* 1024/.test(alta) && /DOC_EXT = \/\\\.\(pdf\|jpe\?g\|png\|webp\|hei\[cf\]\)\$\/i/.test(alta),
    'alta: tipo, tamaño (tope del archivo KYC) y número de ficheros');
 
@@ -70,7 +99,8 @@ ok(!/lawangproperties|Lawang Properties/.test(ed.slice(ed.indexOf('function abre
 // ── Interruptores y textos ──────────────────────────────────────────────────────────────────────────────────────────
 ok(/alta_exige_documento: true,/.test(inst) && /recibi_confirma_llegada: true/.test(inst), 'instancia.js: los dos interruptores encendidos en este cliente');
 ['¿Ha llegado ya el dinero?', 'Vas a emitir un recibí por %i.', 'Sí, ya está en la cuenta', 'Todavía no', 'Foto del pasaporte',
- 'Adjunta la foto del pasaporte.', 'Reintentar la subida', 'Falta el documento de identidad'].forEach(function (k) {
+ 'Adjunta la foto del pasaporte.', 'Elige otro fichero.', 'Vuelve a pulsar «Dar de alta».', 'Este lead todavía no tiene ficha de cliente.',
+ 'Dar de alta en Clientes'].forEach(function (k) {
   ok(i18n.indexOf("    '" + k + "': ") > 0, 'i18n: falta la traducción de «' + k + '»');
 });
 
