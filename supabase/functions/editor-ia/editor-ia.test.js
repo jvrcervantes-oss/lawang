@@ -281,6 +281,13 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
     const m = /HUELLA_JS_ES constant text := '([0-9a-f]{64}|[A-Z]+)'/.exec(sqlPrueba);
     ok(m && m[1] === huellaEs, 'la huella canónica de node es la que espera la prueba de la base (H0)', { node: huellaEs, sql: m && m[1] }); }
   ok(M.textoHuella(null, enLang(P3, 'en')) !== M.textoHuella(null, enLang(P3, 'id')) && M.huellaEntrada(aEs(P3)).indexOf('\u001c') > 0, 'huella: separadores y un texto por idioma');
+  // lo que la base rechazaría al crear se rechaza ya en la edge (no se cobra un borrador imposible): «>», invisibles; los espacios raros se normalizan
+  { const conPar = (t) => Object.assign({}, aEs(P3), { clausulas: [{ titulo: 'Objeto', parrafos: [t] }] });
+    const conOpc = (o) => Object.assign({}, aEs(P3), { campos: P3.campos.map((c) => (c.tipo === 'lista' ? Object.assign({}, c, { opciones: [o, 'USD'] }) : c)) });
+    ok(M.validaRedaccion(conPar('Si el retraso es > 30 días, se resuelve.')).error === 'clausulas', 'redacta: un «>» en un párrafo no pasa (la base lo rechazaría)');
+    ok(M.validaRedaccion(conPar('Texto con​ invisible.')).error === 'clausulas', 'redacta: un invisible no pasa');
+    const nb = M.validaRedaccion(conOpc('Rupia IDR'));
+    ok(!nb.error && nb.propuesta.campos.filter((c) => c.tipo === 'lista')[0].opciones[0] === 'Rupia IDR', 'redacta: un espacio duro en una opción se normaliza (la base no lo admite en opciones)', nb); }
 
   // un modelo de redacción que responde lo que se le pida
   const respuesta = (datos, extra) => async () => ({ ok: true, json: async () => Object.assign({ model: 'claude-opus-5-5', stop_reason: 'end_turn',

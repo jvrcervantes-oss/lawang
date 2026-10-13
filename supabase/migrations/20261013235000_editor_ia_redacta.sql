@@ -45,7 +45,11 @@ create table public.editor_ia_redaccion (
   cerrada_en       timestamptz,
   rechazada_http   smallint check (rechazada_http between 400 and 599),
   coste_max_usd    numeric(14,6) check (coste_max_usd >= 0),                 -- peor caso apartado al reservar
-  margen_pct       numeric(7,2) check (margen_pct >= 0),                     -- congelado al reservar
+  -- (solo redacta) el peor caso de las DOS traducciones, apartado del tope desde que se reserva la redacción hasta que cada traducción
+  -- reserva el suyo (lo descuenta de aquí bajo el candado) o la redacción deja de servir (fallo, caducada, usada o con más de 2 h).
+  -- Sin esto, dos redacciones a la vez cerca del tope pasaban las dos y luego no se podían traducir (revisión de código, 13-oct).
+  reserva_traduccion_usd numeric(14,6) not null default 0 check (reserva_traduccion_usd >= 0),
+  margen_pct      numeric(7,2) check (margen_pct >= 0),                     -- congelado al reservar
   coste_usd        numeric(16,8) check (coste_usd >= 0),                     -- coste real al cerrar, sin redondear
   importe_usd      numeric(16,8) check (importe_usd >= 0),                   -- coste × (1 + margen), solo «hecho»
   aceptada_en      timestamptz,                                              -- se creó un contrato con esta redacción
@@ -84,8 +88,13 @@ $$;
 create or replace function public._editor_ia_peso(u public.editor_ia_uso) returns numeric language sql stable set search_path = '' as $$
   select public._editor_ia_peso_de(u.estado, u.enviada_en, u.fecha, u.coste_usd, u.coste_max_usd)
 $$;
+-- Una redacción viva, además, aparta lo que aún le queda de sus dos traducciones (reserva_traduccion_usd): mientras está en vuelo (salvo la
+-- reserva sin enviar de más de 10 minutos, que no pesa nada) o hecha sin usar y con menos de 2 horas, que es cuando todavía se puede traducir.
 create function public._editor_ia_peso_r(u public.editor_ia_redaccion) returns numeric language sql stable set search_path = '' as $$
   select public._editor_ia_peso_de(u.estado, u.enviada_en, u.fecha, u.coste_usd, u.coste_max_usd)
+       + case when u.accion = 'redacta' and u.aceptada_en is null and u.fecha >= now() - interval '2 hours'
+                   and (u.estado = 'hecho' or (u.estado = 'reservado' and (u.enviada_en is not null or u.fecha >= now() - interval '10 minutes')))
+              then u.reserva_traduccion_usd else 0 end
 $$;
 
 -- Gasto del mes contra el tope (empresa, o toda la instancia con p_empresa null): las DOS tablas.
@@ -142,17 +151,21 @@ revoke all on function public._editor_ia_huella_redaccion(jsonb, text) from publ
 
 -- ─────────────────────────────────────────────────────────────────────────────────────────────── reserva (antes de llamar al proveedor)
 -- Misma lógica que editor_ia_reserva (20261013220000), para la tabla hermana. Diferencias:
---   · redacta reserva SU peor caso, pero solo se deja empezar si cabe la creación ENTERA (redacta + 2 × redacta_traduce): un tope que se
---     llena entre el paso (a) y el (b) cobraría una redacción que ya no se puede terminar (revisión de diseño 13-oct).
+--   · redacta reserva SU peor caso y APARTA además el de sus dos traducciones (reserva_traduccion_usd): solo empieza si cabe la creación
+--     ENTERA (redacta + 2 × redacta_traduce), y lo que cabía sigue apartado hasta que las traducciones lo usan. Dos redacciones a la vez
+--     cerca del tope ya no pasan las dos para luego no poder traducirse (revisión de código 13-oct, sobre la revisión de diseño).
 --   · redacta_traduce solo sobre una redacción propia, terminada bien, de menos de 2 h y sin usar, y con la MISMA huella que el paso (a)
---     apuntó (hint «huella»: el navegador mandó otro español). Una traducción viva por idioma, y como mucho 3 intentos por idioma.
+--     apuntó (hint «huella»: el navegador mandó otro español). Se comprueba otra vez con el candado tomado y la fila bloqueada (una
+--     traducción que llega mientras se crea el contrato no se cobra). Toma su peor caso de lo apartado por la redacción; solo si ya no
+--     queda (un reintento tras un fallo) necesita hueco nuevo en el tope. Una traducción viva por idioma, y como mucho 3 intentos por idioma.
 create function public.editor_ia_redaccion_reserva(p_empresa text, p_accion text, p_origen uuid, p_idioma text, p_huella_entrada text)
  returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
   v_uid uuid := (select auth.uid());
   v_autor text := coalesce((select auth.email()), (select auth.uid())::text);
   v_falta text; s public.servicios_axisworks_ajustes%rowtype; o public.editor_ia_redaccion%rowtype;
-  v_per date := public._editor_ia_periodo(); v_min int; v_n int; v_id uuid; v_max numeric; v_hueco numeric; v_gasto numeric; v_tope numeric; v_inst numeric;
+  v_per date := public._editor_ia_periodo(); v_min int; v_n int; v_id uuid; v_max numeric; v_tr numeric; v_hueco numeric; v_libera numeric := 0;
+  v_gasto numeric; v_tope numeric; v_inst numeric;
 begin
   if v_uid is null then raise exception 'Sin sesion: vuelve a entrar' using errcode = '42501'; end if;
   if p_empresa is null or not (public.es_admin_de(p_empresa) and public.empresa_en_alcance(p_empresa)) then
@@ -162,18 +175,8 @@ begin
   if p_accion = 'redacta' and (p_origen is not null or p_idioma is not null or p_huella_entrada is not null) then
     raise exception 'Parametros no validos' using errcode = '22023';
   end if;
-  if p_accion = 'redacta_traduce' then
-    if p_idioma is null or p_idioma not in ('en', 'id') or coalesce(p_huella_entrada, '') !~ '^[0-9a-f]{64}$' then
-      raise exception 'Parametros no validos' using errcode = '22023';
-    end if;
-    select * into o from public.editor_ia_redaccion x where x.id = p_origen;
-    if not found or o.usuario <> v_uid or o.empresa <> p_empresa or o.accion <> 'redacta' or o.estado <> 'hecho'
-       or o.aceptada_en is not null or o.fecha < now() - interval '2 hours' then
-      raise exception 'Esa redaccion ya no se puede traducir: vuelve a pedirla' using errcode = '22023', hint = 'origen';
-    end if;
-    if o.huella_propuesta is distinct from p_huella_entrada then
-      raise exception 'El texto a traducir no es el que redacto el asistente' using errcode = '22023', hint = 'huella';
-    end if;
+  if p_accion = 'redacta_traduce' and (p_idioma is null or p_idioma not in ('en', 'id') or coalesce(p_huella_entrada, '') !~ '^[0-9a-f]{64}$') then
+    raise exception 'Parametros no validos' using errcode = '22023';
   end if;
   v_falta := public._editor_ia_falta(p_empresa);
   if v_falta is not null then
@@ -189,19 +192,31 @@ begin
     raise exception 'Asistente apagado: %', v_falta using errcode = '55000', hint = 'apagado', detail = coalesce(public._editor_ia_falta_clave(p_empresa), 'apagado');
   end if;
   v_max := public._editor_ia_coste_max(p_accion);
-  if v_max is null or public._editor_ia_coste_max('redacta_traduce') is null then
+  v_tr := public._editor_ia_coste_max('redacta_traduce');
+  if v_max is null or v_tr is null then
     raise exception 'Ese motor no esta configurado' using errcode = '55000', hint = 'no_configurado';
   end if;
-  v_hueco := case when p_accion = 'redacta' then v_max + 2 * public._editor_ia_coste_max('redacta_traduce') else v_max end;
   if p_accion = 'redacta_traduce' then
+    -- con el candado tomado y la fila bloqueada: crear el contrato (que la bloquea y la marca usada) va antes o después, nunca a la vez
+    select * into o from public.editor_ia_redaccion x where x.id = p_origen for update;
+    if not found or o.usuario <> v_uid or o.empresa <> p_empresa or o.accion <> 'redacta' or o.estado <> 'hecho'
+       or o.aceptada_en is not null or o.fecha < now() - interval '2 hours' then
+      raise exception 'Esa redaccion ya no se puede traducir: vuelve a pedirla' using errcode = '22023', hint = 'origen';
+    end if;
+    if o.huella_propuesta is distinct from p_huella_entrada then
+      raise exception 'El texto a traducir no es el que redacto el asistente' using errcode = '22023', hint = 'huella';
+    end if;
     if exists (select 1 from public.editor_ia_redaccion x where x.origen = p_origen and x.idioma = p_idioma and x.estado in ('reservado', 'hecho')) then
       raise exception 'Ese idioma ya esta traducido o en curso' using errcode = 'P0001', hint = 'ya_traducido';
     end if;
     select count(*) into v_n from public.editor_ia_redaccion x where x.origen = p_origen and x.idioma = p_idioma;
     if v_n >= 3 then raise exception 'Demasiados intentos para ese idioma: vuelve a pedir la redaccion' using errcode = 'P0001', hint = 'intentos'; end if;
+    v_libera := least(o.reserva_traduccion_usd, v_max);                     -- lo que la redacción ya tenía apartado para esto
   end if;
+  -- lo que esta llamada AÑADE al gasto del mes: su peor caso (y, si es redacta, lo apartado para traducir), menos lo que ya estaba apartado
+  v_hueco := case when p_accion = 'redacta' then v_max + 2 * v_tr else v_max - v_libera end;
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('editor_ia/usuario/' || v_uid::text, 0));
-  -- el tope por persona y minuto cuenta las DOS tablas (si no, se esquivaría alternando acciones)
+  -- el tope por persona y minuto cuenta las DOS tablas (editor_ia_reserva también, desde esta migración: si no, se esquivaría alternando)
   select (select count(*) from public.editor_ia_uso u where u.usuario = v_uid and u.fecha > now() - interval '1 minute')
        + (select count(*) from public.editor_ia_redaccion r where r.usuario = v_uid and r.fecha > now() - interval '1 minute') into v_min;
   if v_min >= 6 then raise exception 'Demasiadas consultas seguidas: espera un minuto' using errcode = 'P0001', hint = 'tope_minuto'; end if;
@@ -218,11 +233,15 @@ begin
   if v_inst + v_hueco > s.tope_instancia_usd then
     raise exception 'El asistente ha llegado al tope de gasto de este mes' using errcode = 'P0001', hint = 'tope_global';
   end if;
-  insert into public.editor_ia_redaccion (empresa, usuario, autor, periodo, accion, origen, idioma, huella_entrada, coste_max_usd, margen_pct)
-  values (p_empresa, v_uid, v_autor, v_per, p_accion, p_origen, p_idioma, p_huella_entrada, v_max, s.margen_pct)
+  insert into public.editor_ia_redaccion (empresa, usuario, autor, periodo, accion, origen, idioma, huella_entrada, coste_max_usd, reserva_traduccion_usd, margen_pct)
+  values (p_empresa, v_uid, v_autor, v_per, p_accion, p_origen, p_idioma, p_huella_entrada, v_max,
+          case when p_accion = 'redacta' then 2 * v_tr else 0 end, s.margen_pct)
   returning id into v_id;
-  return jsonb_build_object('uso', v_id, 'coste_max_usd', round(v_max, 4), 'gasto_usd', round(v_gasto + v_max, 2), 'tope_usd', v_tope,
-                            'aviso', v_gasto + v_max >= v_tope * s.aviso_pct / 100.0);
+  if v_libera > 0 then
+    update public.editor_ia_redaccion set reserva_traduccion_usd = reserva_traduccion_usd - v_libera where id = o.id;
+  end if;
+  return jsonb_build_object('uso', v_id, 'coste_max_usd', round(v_max, 4), 'gasto_usd', round(v_gasto + v_hueco, 2), 'tope_usd', v_tope,
+                            'aviso', v_gasto + v_hueco >= v_tope * s.aviso_pct / 100.0);
 end $$;
 revoke all on function public.editor_ia_redaccion_reserva(text, text, uuid, text, text) from public, anon, service_role;
 grant execute on function public.editor_ia_redaccion_reserva(text, text, uuid, text, text) to authenticated;
@@ -274,7 +293,7 @@ grant execute on function public.editor_ia_redaccion_paso(uuid, text, text, inte
 create or replace function public.editor_ia_estado(p_empresa text) returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare
   v_falta text; v_per date := public._editor_ia_periodo(); v_gasto numeric; v_tope numeric; v_inst numeric; v_fact numeric;
-  s public.servicios_axisworks_ajustes%rowtype; k text; v_max numeric; v_min numeric;
+  s public.servicios_axisworks_ajustes%rowtype; k text; v_max numeric; v_hold numeric; v_min numeric;
   v_cm jsonb := '{}'::jsonb; v_pm jsonb := '{}'::jsonb; v_puede jsonb := '{}'::jsonb; v_lleno text;
 begin
   if (select auth.uid()) is null then raise exception 'Sin sesion: vuelve a entrar' using errcode = '42501'; end if;
@@ -294,7 +313,9 @@ begin
                   else public._editor_ia_coste_max(k) end;
     v_cm := v_cm || jsonb_build_object(k, round(v_max, 4));
     v_pm := v_pm || jsonb_build_object(k, ceil(v_max * (1 + s.margen_pct / 100.0) * 100) / 100.0);
-    v_puede := v_puede || jsonb_build_object(k, v_max is not null and v_gasto + v_max <= v_tope and v_inst + v_max <= s.tope_instancia_usd);
+    -- «puede» dice lo mismo que la reserva: redacta solo empieza si cabe la creación entera (lo suyo + lo apartado para las dos traducciones)
+    v_hold := case when k = 'redacta' then public._editor_ia_coste_max('redacta') + 2 * public._editor_ia_coste_max('redacta_traduce') else v_max end;
+    v_puede := v_puede || jsonb_build_object(k, v_hold is not null and v_gasto + v_hold <= v_tope and v_inst + v_hold <= s.tope_instancia_usd);
     if k in ('propone', 'traduce_ia') and v_max is not null then v_min := least(coalesce(v_min, v_max), v_max); end if;
   end loop;
   v_lleno := case when v_min is null then null
@@ -341,7 +362,7 @@ begin
                  'llamadas', count(*), 'hechas', count(*) filter (where u.estado = 'hecho'),
                  'fallidas', count(*) filter (where u.estado in ('fallo', 'caducada')), 'en_vuelo', count(*) filter (where u.estado = 'reservado'),
                  'rechazadas', count(*) filter (where u.rechazada_http is not null),
-                 'redacciones', count(*) filter (where u.tabla = 'r'),
+                 'redacciones', count(*) filter (where u.es_redacta),                                  -- contratos pedidos desde una frase (sin sus traducciones)
                  'coste_proveedor_usd', round(coalesce(sum(u.coste_usd) filter (where u.estado in ('hecho', 'fallo')), 0), 2),
                  'coste_no_repercutido_usd', round(coalesce(sum(u.coste_usd) filter (where u.estado in ('hecho', 'fallo')), 0), 2)
                                              - round(coalesce(sum(u.coste_usd) filter (where u.estado = 'hecho'), 0), 2),
@@ -350,15 +371,15 @@ begin
                                - round(coalesce(sum(u.coste_usd) filter (where u.estado = 'hecho'), 0), 2),
                  'total_sin_impuestos_usd', round(coalesce(sum(u.importe_usd) filter (where u.estado = 'hecho'), 0), 2),
                  'margenes_pct', coalesce(jsonb_agg(distinct u.margen_pct) filter (where u.estado = 'hecho' and u.margen_pct is not null), '[]'::jsonb),
-                 'aceptadas', count(*) filter (where u.aceptada_en is not null),
+                 'aceptadas', count(*) filter (where u.aceptada_en is not null and (u.tabla = 'u' or u.es_redacta)),   -- un contrato creado = 1, no 3
                  'tokens_entrada', coalesce(sum(u.tokens_entrada), 0), 'tokens_salida', coalesce(sum(u.tokens_salida), 0),
                  'coste_incompleto', coalesce(bool_or((u.coste_usd is null and u.estado in ('hecho', 'fallo') and u.enviada_en is not null)
                                                       or (u.estado = 'caducada' and u.enviada_en is not null)), false)) x
-          from (select 'u'::text as tabla, e.periodo, e.empresa, e.estado, e.rechazada_http, e.coste_usd, e.importe_usd, e.margen_pct, e.aceptada_en,
+          from (select 'u'::text as tabla, false as es_redacta, e.periodo, e.empresa, e.estado, e.rechazada_http, e.coste_usd, e.importe_usd, e.margen_pct, e.aceptada_en,
                        e.tokens_entrada, e.tokens_salida, e.enviada_en
                   from public.editor_ia_uso e where e.periodo >= (v_per - interval '2 months')::date
                 union all
-                select 'r', r.periodo, r.empresa, r.estado, r.rechazada_http, r.coste_usd, r.importe_usd, r.margen_pct, r.aceptada_en,
+                select 'r', r.accion = 'redacta', r.periodo, r.empresa, r.estado, r.rechazada_http, r.coste_usd, r.importe_usd, r.margen_pct, r.aceptada_en,
                        r.tokens_entrada, r.tokens_salida, r.enviada_en
                   from public.editor_ia_redaccion r where r.periodo >= (v_per - interval '2 months')::date) u
          group by u.periodo, u.empresa) t), '[]'::jsonb),
@@ -564,7 +585,8 @@ begin
   select * into t_id from public.editor_ia_redaccion x where x.origen = r.id and x.idioma = 'id' and x.estado = 'hecho';
   if not found then raise exception 'Falta la traduccion al indonesio' using errcode = '22023', hint = 'traduccion'; end if;
 
-  -- 3 (forma, antes de calcular huellas sobre algo que no es lo esperado)
+  -- 2. forma ENTERA antes de calcular huellas: la huella no puede depender del orden de las comprobaciones (revisión de código 13-oct:
+  --    un párrafo que no es objeto rompía el cálculo sin hint, y concat_ws se salta los nulos)
   if p_propuesta is null or jsonb_typeof(p_propuesta) <> 'object' or jsonb_typeof(p_propuesta -> 'campos') <> 'array'
      or jsonb_typeof(p_propuesta -> 'clausulas') <> 'array' or jsonb_typeof(p_propuesta -> 'nombre') <> 'string' then
     raise exception 'La propuesta no es valida' using errcode = '22023', hint = 'forma';
@@ -573,14 +595,7 @@ begin
     raise exception 'La propuesta no es valida (como mucho 8 campos y de 1 a 8 clausulas)' using errcode = '22023', hint = 'forma';
   end if;
 
-  -- 2. huellas: el texto es el que la edge validó
-  if public._editor_ia_huella_redaccion(p_propuesta, 'es') is distinct from r.huella_propuesta
-     or public._editor_ia_huella_redaccion(p_propuesta, 'en') is distinct from t_en.huella_propuesta
-     or public._editor_ia_huella_redaccion(p_propuesta, 'id') is distinct from t_id.huella_propuesta then
-    raise exception 'La propuesta no es la que redacto el asistente' using errcode = '22023', hint = 'huella';
-  end if;
-
-  -- 3. campos
+  -- campos
   for c in select x from jsonb_array_elements(p_propuesta -> 'campos') x loop
     k := c ->> 'clave';
     if jsonb_typeof(c) <> 'object' or coalesce(k, '') !~ '^cx_[a-z0-9_]{1,40}$' or k = any (v_claves)
@@ -633,17 +648,34 @@ begin
     end loop;
   end loop;
 
-  -- nombre: lo puede cambiar la persona; siempre acaba en « (IA)» (la validación de 3-80 letras la hace nuevo_crea)
+  -- 3. huellas: el texto es el que la edge validó (con la forma ya comprobada, cada título y párrafo es un texto no vacío en los tres idiomas)
+  if public._editor_ia_huella_redaccion(p_propuesta, 'es') is distinct from r.huella_propuesta
+     or public._editor_ia_huella_redaccion(p_propuesta, 'en') is distinct from t_en.huella_propuesta
+     or public._editor_ia_huella_redaccion(p_propuesta, 'id') is distinct from t_id.huella_propuesta then
+    raise exception 'La propuesta no es la que redacto el asistente' using errcode = '22023', hint = 'huella';
+  end if;
+
+  -- nombre: no entra en la huella porque la persona lo puede cambiar (es un rótulo suyo, como el de «Contrato nuevo»); se comprueba aquí
+  -- igual que en nuevo_crea (3 a 75 letras sin < > { } & " ni controles) y siempre acaba en « (IA)». Las palabras prohibidas del asistente
+  -- (PROHIBIDOS de la edge) son para lo que escribe el MODELO; un nombre que pone una persona no las pasa, igual que en el alta a mano.
   v_nom := btrim(p_propuesta ->> 'nombre');
-  if right(v_nom, 5) <> ' (IA)' then v_nom := v_nom || ' (IA)'; end if;
+  if right(v_nom, 5) = ' (IA)' then v_nom := btrim(left(v_nom, -5)); end if;
+  if length(v_nom) not between 3 and 75 or v_nom ~ CTRL or v_nom ~ '[{}&"]' then
+    raise exception 'Pon un nombre de 3 a 75 letras, sin los signos < > { } & ni comillas dobles' using errcode = '22023', hint = 'nombre';
+  end if;
+  v_nom := v_nom || ' (IA)';
 
   -- 4. campos: reutilizar, renombrar o crear (renombrar antes de crear nada)
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('cx/' || p_empresa, 0));
   for c in select x from jsonb_array_elements(p_propuesta -> 'campos') x loop
     k := c ->> 'clave';
     select * into pc from public.plantilla_campos_propios pf where pf.empresa = p_empresa and pf.clave = k;
-    if found and pc.tipo = c ->> 'tipo' and not pc.archivado then
-      v_finales := v_finales || k;                                            -- se reutiliza tal cual
+    -- se reutiliza SOLO si es el mismo campo que la persona vio en la vista previa: mismo tipo, mismas etiquetas y, en una lista, mismas
+    -- opciones. Si no, el contrato saldría con etiquetas u opciones que nadie aceptó (revisión de código 13-oct): se renombra y se crea.
+    if found and not pc.archivado and pc.tipo = c ->> 'tipo' and pc.etiqueta_es = c ->> 'etiqueta_es'
+       and coalesce(pc.etiqueta_en, pc.etiqueta_es) = c ->> 'etiqueta_en' and coalesce(pc.etiqueta_id, pc.etiqueta_es) = c ->> 'etiqueta_id'
+       and (pc.tipo <> 'lista' or pc.opciones = c -> 'opciones') then
+      v_finales := v_finales || k;
       continue;
     end if;
     k2 := k;
@@ -696,6 +728,22 @@ end $$;
 revoke all on function public.plantilla_contrato_crea_desde_asistente(text, uuid, jsonb, boolean, boolean) from public, anon, service_role;
 grant execute on function public.plantilla_contrato_crea_desde_asistente(text, uuid, jsonb, boolean, boolean) to authenticated;
 
+-- ─────────────────────────────────────────────────────────────────────────────────────────────── editor_ia_reserva: el tope por minuto, con las dos tablas
+-- La reserva del editor (20261013220000) contaba solo editor_ia_uso: 5 redacciones + 6 propuestas en un minuto pasaban (revisión de código
+-- 13-oct). Se parchea SU línea, no se reescribe la función: se cambia una línea marcada que tiene que estar exactamente una vez (si no,
+-- la migración para). Vuelta atrás: la misma sustitución al revés (supabase/reversion_editor_ia/vuelta_atras_redacta.sql).
+do $parche$
+declare
+  d text := pg_catalog.pg_get_functiondef('public.editor_ia_reserva'::regproc);
+  viejo constant text := 'select count(*) into v_min from public.editor_ia_uso u where u.usuario = v_uid and u.fecha > now() - interval ''1 minute'';';
+  nuevo constant text := 'select (select count(*) from public.editor_ia_uso u where u.usuario = v_uid and u.fecha > now() - interval ''1 minute'') + (select count(*) from public.editor_ia_redaccion r where r.usuario = v_uid and r.fecha > now() - interval ''1 minute'') into v_min;';
+begin
+  if (length(d) - length(replace(d, viejo, ''))) / length(viejo) <> 1 then
+    raise exception 'editor_ia_reserva no tiene la linea del tope por minuto exactamente una vez: no se parchea a ciegas';
+  end if;
+  execute replace(d, viejo, nuevo);
+end $parche$;
+
 do $comprueba$
 begin
   if has_function_privilege('authenticated', 'public._plantilla_esqueleto_en_blanco(text, text[], text)', 'execute')
@@ -704,6 +752,9 @@ begin
      or has_function_privilege('authenticated', 'public._editor_ia_huella_redaccion(jsonb, text)', 'execute')
      or has_table_privilege('authenticated', 'public.editor_ia_redaccion', 'select') then
     raise exception 'Permiso de mas en E10';
+  end if;
+  if position('editor_ia_redaccion' in pg_catalog.pg_get_functiondef('public.editor_ia_reserva'::regproc)) = 0 then
+    raise exception 'editor_ia_reserva no cuenta las redacciones en el tope por minuto';
   end if;
   if not has_function_privilege('authenticated', 'public.plantilla_contrato_crea_desde_asistente(text, uuid, jsonb, boolean, boolean)', 'execute')
      or not has_function_privilege('authenticated', 'public.editor_ia_redaccion_reserva(text, text, uuid, text, text)', 'execute') then

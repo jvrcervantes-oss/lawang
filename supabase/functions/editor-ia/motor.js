@@ -190,10 +190,14 @@ export function prohibido(txt) {
 }
 // Un texto de la salida: limpio (sin «<», sin invisibles, sin llaves sueltas), sin datos reales ni enlaces, sin lo prohibido, con tope.
 // `claves` = los campos {{cx_…}} que puede llevar (null = ninguno). Devuelve { t: texto normalizado } o { error, categoria }.
+// Lo que la base rechaza al crear (CTRL de plantilla_contrato_crea_desde_asistente y _cx_opciones_ok), rechazado YA aquí: si no, la edge
+// cobraría tres llamadas por un borrador que la base nunca dejaría crear (revisión de código 13-oct). Los espacios raros se normalizan.
+const RE_BASE_NO = /[<>\u0000-\u001f\u007f­؜᠎​-‏‪-‮⁠⁦-⁩﻿]/;
 function textoLimpio(v, max, claves) {
   if (typeof v !== 'string') return { error: 'no_es_texto' };
-  const t = TC.ws(v);
+  const t = TC.ws(v.replace(/[   ]/g, ' '));
   if (!t || t.length > max || !/[\p{L}\p{N}]/u.test(t.replace(/\{\{[a-z0-9_]+\}\}/g, ''))) return { error: 'longitud' };
+  if (RE_BASE_NO.test(t)) return { error: 'avisos' };
   if (TC.avisosTrozo(t, t).length) return { error: 'avisos' };
   const marc = TC.marcadores(t).map((m) => m.slice(2, -2));
   if (marc.some((k) => !claves || !claves.includes(k))) return { error: 'campo_nuevo' };

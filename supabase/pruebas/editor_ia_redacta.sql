@@ -99,6 +99,8 @@ begin
      or has_function_privilege('authenticated', 'public._editor_ia_huella_redaccion(jsonb, text)', 'execute')
      or has_function_privilege('authenticated', 'public._editor_ia_peso_de(text, timestamptz, timestamptz, numeric, numeric)', 'execute') then
     fallos := fallos + 1; resumen := resumen || ' [P3 función abierta de más]'; end if;
+  total := total + 1; if position('editor_ia_redaccion' in pg_get_functiondef('public.editor_ia_reserva'::regproc)) = 0 then
+    fallos := fallos + 1; resumen := resumen || ' [P4 el tope por minuto del editor no cuenta las redacciones]'; end if;
 
   -- ═════════ E9 SIGUE: el contrato en blanco a mano trae partes, ley, idioma y firmas, y no nombra a otra sociedad ═════════
   select count(*) into v_np from public.plantillas_contrato;
@@ -145,6 +147,15 @@ begin
   total := total + 1; if (j #>> '{puede,redacta_completo}')::boolean is not false or (j #>> '{coste_max,redacta_completo}')::numeric <> 1.112
      or (j #>> '{precio_max,redacta_completo}')::numeric <> 1.39 or (j #>> '{coste_max,redacta}')::numeric <> 0.344 then
     fallos := fallos + 1; resumen := resumen || ' [T2 estado de redacta: ' || coalesce(j::text, 'error') || ']'; end if;
+  total := total + 1; if (j #>> '{puede,redacta}')::boolean is not false or (j #>> '{puede,propone}')::boolean is not true then
+    fallos := fallos + 1; resumen := resumen || ' [T2b puede.redacta no dice lo mismo que la reserva: ' || coalesce(j ->> 'puede', 'null') || ']'; end if;
+  -- T3: dos redacciones a la vez con hueco para UNA creación entera: la segunda no empieza (lo de traducir queda apartado)
+  update public.servicios_axisworks_empresa set tope_usd = 1.5 where empresa = v_ea;
+  j := pg_temp.pide('authenticated', v_ae, v_ae_em, format('select public.editor_ia_redaccion_reserva(%L, %L, null, null, null)', v_ea, 'redacta'));
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_redaccion_reserva(%L, %L, null, null, null)', v_ea, 'redacta'));
+  total := total + 1; if j ? 'error' or r <> 'EP0001/tope_empresa' then
+    fallos := fallos + 1; resumen := resumen || ' [T3 dos redacciones con hueco para una: ' || coalesce(j::text, 'null') || ' / ' || r || ']'; end if;
+  delete from public.editor_ia_redaccion where id = (j ->> 'uso')::uuid;
   update public.servicios_axisworks_empresa set tope_usd = null where empresa = v_ea;
 
   -- ═════════ R. PASO (a): redacta ═════════
@@ -152,7 +163,7 @@ begin
   v_red := (j ->> 'uso')::uuid;
   total := total + 1; if v_red is null or (j ->> 'coste_max_usd')::numeric <> 0.344 then fallos := fallos + 1; resumen := resumen || ' [R1 reserva: ' || coalesce(j::text, 'error') || ']'; end if;
   n := public._servicios_gasto_mes(v_ea, public._editor_ia_periodo());
-  total := total + 1; if n < 0.344 then fallos := fallos + 1; resumen := resumen || ' [R2 la reserva en vuelo no pesa: ' || n || ']'; end if;
+  total := total + 1; if n < 1.112 then fallos := fallos + 1; resumen := resumen || ' [R2 la reserva en vuelo no pesa lo suyo + lo apartado para traducir (1,112): ' || n || ']'; end if;
   -- traducir antes de que el paso (a) termine: no
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_redaccion_reserva(%L, %L, %L, %L, %L)', v_ea, 'redacta_traduce', v_red, 'en', public._editor_ia_huella_redaccion(P, 'es')));
   total := total + 1; if r <> 'E22023/origen' then fallos := fallos + 1; resumen := resumen || ' [R3 traduce sin terminar: ' || r || ']'; end if;
@@ -189,26 +200,35 @@ begin
   perform pg_temp.intenta('service_role', null, null, format('select public.editor_ia_redaccion_paso(%L, %L)', v_id, 'enviada'));
   perform pg_temp.intenta('service_role', null, null, format('select public.editor_ia_redaccion_paso(%L, %L, %L, 1500, 2500, null, %L)', v_id, 'hecho', 'claude-opus-5-5', public._editor_ia_huella_redaccion(P, 'id')));
   total := total + 1; if (select count(*) from public.editor_ia_redaccion where origen = v_red and estado = 'hecho') <> 2 then fallos := fallos + 1; resumen := resumen || ' [S7 dos traducciones hechas]'; end if;
+  total := total + 1; if (select reserva_traduccion_usd from public.editor_ia_redaccion where id = v_red) <> 0 then
+    fallos := fallos + 1; resumen := resumen || ' [S8 lo apartado para traducir no se ha descontado]'; end if;
 
   -- ═════════ C. CREAR: aviso, huellas, sensibles, campos, todo o nada ═════════
   -- dos campos que ya existen: uno con el mismo tipo (se reutiliza sin tocarlo) y otro con otro tipo (el nuevo se renombra)
-  perform pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_campo_propio_guarda(%L, %L, %L, null, null, %L, null, false, true)', v_ea, 'cx_e10_reuso', 'Referencia de antes', 'texto'));
+  perform pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_campo_propio_guarda(%L, %L, %L, %L, %L, %L, null, false, true)', v_ea, 'cx_e10_reuso', 'Referencia', 'Reference', 'Referensi', 'texto'));
+  perform pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_campo_propio_guarda(%L, %L, %L, null, null, %L, null, false, true)', v_ea, 'cx_e10_precio', 'Otro precio', 'importe'));
   perform pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_campo_propio_guarda(%L, %L, %L, null, null, %L, null, false, true)', v_ea, 'cx_e10_choca', 'Choca', 'texto'));
   select count(*) into v_np from public.plantillas_contrato;
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, false)', v_ea, v_red, P));
   total := total + 1; if r <> 'E22023/aviso' then fallos := fallos + 1; resumen := resumen || ' [C1 sin aceptar el aviso: ' || r || ']'; end if;
-  P2 := jsonb_set(P, '{clausulas,0,parrafos,0,es}', '"El comprador paga lo que quiera."');
+  P2 := jsonb_set(P, '{clausulas,0,parrafos,0,es}', '"El comprador paga lo que quiera por {{cx_e10_precio}} en {{cx_e10_moneda}}."');
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true)', v_ea, v_red, P2));
   total := total + 1; if r <> 'E22023/huella' then fallos := fallos + 1; resumen := resumen || ' [C2 texto cambiado en el navegador: ' || r || ']'; end if;
-  P2 := jsonb_set(P, '{clausulas,1,parrafos,0,id}', '"Teks lain."');
+  P2 := jsonb_set(P, '{clausulas,1,parrafos,0,id}', '"Teks lain {{cx_e10_choca}}."');
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true)', v_ea, v_red, P2));
   total := total + 1; if r <> 'E22023/huella' then fallos := fallos + 1; resumen := resumen || ' [C3 indonesio cambiado: ' || r || ']'; end if;
   r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true)', v_ea, v_red, P));
   total := total + 1; if r <> 'E22023/origen' then fallos := fallos + 1; resumen := resumen || ' [C4 otra persona crea con mi redacción: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true, true)', v_ea, v_red, jsonb_set(P, '{nombre}', '"   "')));
+  total := total + 1; if r <> 'E22023/nombre' then fallos := fallos + 1; resumen := resumen || ' [N1 nombre vacío: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true, true)', v_ea, v_red, jsonb_set(P, '{clausulas,0,parrafos}', '"x"')));
+  total := total + 1; if r <> 'E22023/forma' then fallos := fallos + 1; resumen := resumen || ' [F1 párrafos que no son lista: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true, true)', v_ea, v_red, jsonb_set(P, '{clausulas,0,parrafos,0}', '"texto suelto"')));
+  total := total + 1; if r <> 'E22023/forma' then fallos := fallos + 1; resumen := resumen || ' [F2 párrafo que no es objeto: ' || r || ']'; end if;
   -- «defectos» es parte sensible: sin confirmar, la base para y NO queda nada (ni contrato ni campos nuevos)
   j := pg_temp.pide('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true)', v_ea, v_red, P));
   total := total + 1; if not (j ? 'error') or position('partes sensibles' in coalesce(j ->> 'mensaje', '')) = 0
-     or (select count(*) from public.plantillas_contrato) <> v_np or exists (select 1 from public.plantilla_campos_propios where empresa = v_ea and clave = 'cx_e10_precio') then
+     or (select count(*) from public.plantillas_contrato) <> v_np or exists (select 1 from public.plantilla_campos_propios where empresa = v_ea and clave = 'cx_e10_moneda') then
     fallos := fallos + 1; resumen := resumen || ' [C5 sensible sin confirmar: ' || coalesce(j::text, 'null') || ']'; end if;
   -- confirmado: se crea entero
   j := pg_temp.pide('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true, true)', v_ea, v_red, P));
@@ -217,12 +237,15 @@ begin
   if v_slug is not null then
     select c.cuerpo_html into v_body from public.plantilla_contrato_cuerpos c where c.version_id = (j ->> 'version_id')::uuid;
     total := total + 1; if v_body is null or v_body like '%[Escribe%' or v_body not like '%2. Garantía%' or v_body not like '%{{cx_e10_choca_2}}%'
-       or v_body like '%{{cx_e10_choca}}%' or v_body not like '%anexos técnicos%' or v_body not like '%&amp; anexos%' or v_body not like '%<!--bloque-fijo:partes-->%' then
+       or v_body like '%{{cx_e10_choca}}%' or v_body not like '%{{cx_e10_precio_2}}%' or v_body like '%{{cx_e10_precio}}%' or v_body not like '%{{cx_e10_reuso}}%' or v_body not like '%anexos técnicos%' or v_body not like '%&amp; anexos%' or v_body not like '%<!--bloque-fijo:partes-->%' then
       fallos := fallos + 1; resumen := resumen || ' [C7 cuerpo: ' || left(coalesce(v_body, 'null'), 120) || ']'; end if;
     total := total + 1; if not exists (select 1 from public.plantilla_contrato_versiones v where v.id = (j ->> 'version_id')::uuid and v.estado = 'borrador' and v.activable)
        or exists (select 1 from public.plantilla_contrato_versiones v where v.slug = v_slug and v.estado = 'activa') then
       fallos := fallos + 1; resumen := resumen || ' [C8 debe quedar en borrador activable, sin activar]'; end if;
-    total := total + 1; if not exists (select 1 from public.plantilla_campos_propios where empresa = v_ea and clave = 'cx_e10_reuso' and etiqueta_es = 'Referencia de antes' and tipo = 'texto')
+    total := total + 1; if not exists (select 1 from public.plantilla_campos_propios where empresa = v_ea and clave = 'cx_e10_reuso' and etiqueta_es = 'Referencia' and tipo = 'texto')
+       or exists (select 1 from public.plantilla_campos_propios where empresa = v_ea and clave = 'cx_e10_reuso_2')
+       or not exists (select 1 from public.plantilla_campos_propios where empresa = v_ea and clave = 'cx_e10_precio_2' and etiqueta_es = 'Precio del pack')
+       or j #>> '{renombrados,cx_e10_precio}' is distinct from 'cx_e10_precio_2'
        or not exists (select 1 from public.plantilla_campos_propios where empresa = v_ea and clave = 'cx_e10_choca_2' and tipo = 'fecha' and sensible)
        or not exists (select 1 from public.plantilla_campos_propios where empresa = v_ea and clave = 'cx_e10_moneda' and tipo = 'lista' and opciones = '["IDR", "USD", "EUR"]'::jsonb)
        or j #>> '{renombrados,cx_e10_choca}' is distinct from 'cx_e10_choca_2' then
@@ -246,8 +269,8 @@ begin
   -- facturado = 0,085 (a) + 2 × (1500 × 4 + 2500 × 20) / 1e6 × 1,25 = 0,085 + 2 × 0,07 = 0,225
   total := total + 1; if (j ->> 'facturado_usd')::numeric <> 0.23 then fallos := fallos + 1; resumen := resumen || ' [D1 facturado del mes: ' || coalesce(j ->> 'facturado_usd', 'null') || ']'; end if;
   j := pg_temp.pide('authenticated', v_sup, v_sup_em, 'select public.servicios_axisworks_datos()');
-  total := total + 1; if not exists (select 1 from jsonb_array_elements(j -> 'extracto') e where e ->> 'empresa' = v_ea and (e ->> 'redacciones')::int = 4
-                                       and (e ->> 'aceptadas')::int >= 3 and (e ->> 'total_sin_impuestos_usd')::numeric >= 0.22) then
+  total := total + 1; if not exists (select 1 from jsonb_array_elements(j -> 'extracto') e where e ->> 'empresa' = v_ea and (e ->> 'redacciones')::int = 1
+                                       and (e ->> 'aceptadas')::int = 1 and (e ->> 'total_sin_impuestos_usd')::numeric >= 0.22) then
     fallos := fallos + 1; resumen := resumen || ' [D2 extracto: ' || left(coalesce((j -> 'extracto')::text, 'null'), 300) || ']'; end if;
   n := public._servicios_gasto_mes(v_ea, public._editor_ia_periodo());
   total := total + 1; if n < 0.18 then fallos := fallos + 1; resumen := resumen || ' [D3 gasto del mes con redacciones: ' || n || ']'; end if;
