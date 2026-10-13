@@ -814,7 +814,7 @@
 
     /* ---------- acciones: los botones de toda la suite ---------- */
     'Guardar': 'Save',
-    'Este mes: %f facturados; usado el %p % del tope de tu empresa.': 'This month: %f billed; %p % of your company's cap used.',
+    'Este mes: %f facturados; usado el %p % del tope de tu empresa.': 'This month: %f billed; %p % of your company cap used.',
     'Escribe un número en este campo (con punto para los decimales); no se ha guardado nada.': 'Type a number in this field (with a point for decimals); nothing has been saved.',
     'Los servicios de pago de AxisWorks están suspendidos para esta empresa. Habla con el estudio.': 'AxisWorks paid services are suspended for this company. Talk to the studio.',
     'Guardar cambios': 'Save changes',
