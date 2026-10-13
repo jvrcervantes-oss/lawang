@@ -615,6 +615,14 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .soulnav ul{display:none;position:absolute;top:100%;left:0;right:0;height:auto;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0;padding:4px 0 8px;overflow:visible;-webkit-mask-image:none;mask-image:none;background:#1B3B05;box-shadow:0 14px 24px -14px rgba(0,0,0,.5)}
   .soulnav.open ul{display:flex}
   .soulnav ul a{display:block;padding:13px 16px;font-size:12px}
+  /* motion del submenú (13-oct-2026, owner): al pasar de una sección a otra la etiqueta de la banda rueda como un marcador
+     (sale por arriba y entra la siguiente por abajo; al subir, al revés) y las entradas del desplegable caen en cascada */
+  .sn-t{position:relative;flex:1;align-self:stretch;overflow:hidden}
+  .sn-t > span{position:absolute;left:0;top:calc(50% - 8px);line-height:16px;white-space:nowrap}
+  .soulnav.open ul li{animation:snli .38s cubic-bezier(.2,.8,.2,1) both}
+  .soulnav.open ul li:nth-child(2){animation-delay:.04s}.soulnav.open ul li:nth-child(3){animation-delay:.08s}
+  .soulnav.open ul li:nth-child(4){animation-delay:.12s}.soulnav.open ul li:nth-child(5){animation-delay:.16s}
+  @keyframes snli{from{opacity:0;transform:translateY(-6px)}}
   .opt{position:relative}
   .opt::before{content:"";position:absolute;inset:8px;border:1px solid rgba(255,255,255,.55);border-radius:8px;pointer-events:none}
   .opt.pma{background:linear-gradient(rgba(49,27,12,.92),rgba(49,27,12,.92)),url('/assets/img/soul/kpi-leaf.webp') center/cover}
@@ -1680,7 +1688,24 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   var secs = [].slice.call(snap.querySelectorAll('section'));
   var navUl = document.querySelector('.soulnav ul'), navPrev = null;
   var navBox = document.querySelector('.soulnav'), navBtn = navBox.querySelector('.sn-cur'), navTxt = navBox.querySelector('.sn-t');
-  navTxt.textContent = (navBox.querySelector('a') || {}).textContent || '';
+  // Etiqueta de la banda en móvil: al cambiar de sección rueda (la vieja sale, la nueva entra; al subir, al revés).
+  // Misma entrada con otro texto = cambio de idioma: se cambia sin efecto. Con «reducir movimiento», fundido corto.
+  var quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var navIdx = 0, navLbl = document.createElement('span');
+  navLbl.textContent = (navBox.querySelector('a') || {}).textContent || ''; navTxt.appendChild(navLbl);
+  function etiqueta(t, i) {
+    if (navLbl.textContent === t) return;
+    var dir = i === navIdx ? 0 : i > navIdx ? 1 : -1, viejo = navLbl, nuevo = document.createElement('span'); navIdx = i;
+    nuevo.textContent = t; navLbl = nuevo; viejo.setAttribute('aria-hidden', 'true');  // el lector de pantalla solo lee la nueva
+    [].slice.call(navTxt.children).forEach(function (c) { if (c !== viejo) c.remove(); });
+    var quita = function () { if (viejo.parentNode) viejo.remove(); };
+    navTxt.appendChild(nuevo);
+    if (!viejo.animate || window.innerWidth > 640 || dir === 0) return quita();
+    if (quieto) { nuevo.animate([{ opacity: 0 }, { opacity: 1 }], 180); viejo.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' }).onfinish = quita; return; }
+    var ez = 'cubic-bezier(.2,.8,.2,1)';
+    viejo.animate([{ transform: 'none' }, { transform: 'translateY(' + (-140 * dir) + '%)' }], { duration: 480, easing: ez, fill: 'forwards' }).onfinish = quita;
+    nuevo.animate([{ transform: 'translateY(' + (140 * dir) + '%)' }, { transform: 'none' }], { duration: 480, easing: ez });
+  }
   function spy() {
     var y = snap.scrollTop + snap.clientHeight * 0.4, cur = null;
     secs.forEach(function (s) { if (s.offsetTop <= y) cur = s.getAttribute('data-spy'); });
@@ -1688,14 +1713,14 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
     links.forEach(function (a) {
       var on = a.getAttribute('data-s') === cur;
       a.classList.toggle('on', on);
-      if (on) { a.setAttribute('aria-current', 'true'); hit = true; if (navTxt.textContent !== a.textContent) navTxt.textContent = a.textContent; } else a.removeAttribute('aria-current');
+      if (on) { a.setAttribute('aria-current', 'true'); hit = true; etiqueta(a.textContent, links.indexOf(a)); } else a.removeAttribute('aria-current');
       // móvil: el submenú desliza solo hasta la entrada activa
       if (on && cur !== navPrev && navUl && navUl.scrollWidth > navUl.clientWidth) {
         navPrev = cur;
         navUl.scrollTo({ left: Math.max(0, a.offsetLeft - 16), behavior: 'smooth' });
       }
     });
-    if (!hit && navTxt.textContent !== first) navTxt.textContent = first;
+    if (!hit) etiqueta(first, 0);
   }
   navBtn.addEventListener('click', function (e) { e.stopPropagation(); var o = !navBox.classList.contains('open'); navBox.classList.toggle('open', o); navBtn.setAttribute('aria-expanded', o); });
   function navClose() { navBox.classList.remove('open'); navBtn.setAttribute('aria-expanded', 'false'); }
