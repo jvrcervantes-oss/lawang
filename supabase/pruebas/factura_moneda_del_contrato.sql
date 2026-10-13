@@ -1,6 +1,7 @@
 -- Prueba de LAW-553 (13-oct-2026): la moneda de un documento la decide su contrato, el tope de una venta se mide por
 -- cadena Y moneda, y la moneda de un contrato con documentos no cambia por debajo. Migración:
--- supabase/migrations/20261013074408_factura_moneda_del_contrato.sql.
+-- supabase/migrations/20261013074408_factura_moneda_del_contrato.sql, con 20261013081849_factura_tope_proforma_y_reactiva
+-- (a12, a13, h1, h2, c3) y 20261013105140_factura_reactiva_moneda (h3, h4: reactivar vuelve a comprobar la moneda).
 --
 -- Se ejecuta por execute_sql DESPUÉS de aplicar (o pegada detrás de la migración, antes de aplicarla): todo va en un
 -- único bloque que termina con un raise a propósito, así que no deja rastro (contratos ZZ-L553-*, proyecto, facturas,
@@ -18,7 +19,7 @@ declare
   v_rec uuid; v_venc uuid; v_soc text; v_ag_sub text; v_ag_mail text; v_ag_emp text; v_ad_sub text; v_ad_mail text;
   v_sa_sub text; v_sa_mail text; v_ev int; acl_ok boolean;
   v_venc2 uuid; v_c3 uuid; v_c3i uuid; v_h1 uuid; v_h2 uuid; v_n0 int; v_n1 int; v_n2 int; v_e0 int; v_e1 int;
-  v_ok boolean;
+  v_ok boolean; v_m uuid; v_h3 uuid; v_h4 uuid;
 begin
   -- ── identidades ────────────────────────────────────────────────────────────────────────────────────────────────
   select u.user_id::text, u.email, coalesce(u.empresas[1], '') into v_ag_sub, v_ag_mail, v_ag_emp
@@ -73,6 +74,20 @@ begin
     values ('ZZ-L553-H1', v_soc, 'factura', v_e2, '{}'::jsonb, 600, 'EUR', v_ag_mail, true) returning id into v_h1;
   insert into public.facturas (numero, sociedad, tipo, contrato_id, datos, total, moneda, creado_por, anulada)
     values ('ZZ-L553-H2', v_soc, 'factura', v_e2, '{}'::jsonb, 400, 'EUR', v_ag_mail, true) returning id into v_h2;
+  -- h3/h4 (revisión de código sobre b40a8a2f8, 13-oct; migración 20261013105140_factura_reactiva_moneda): M, venta EUR con una factura y una
+  -- proforma en EUR. Se anulan, M pasa a IDR (con todo anulado, trg_zz_00 lo deja) y se intenta reactivarlas.
+  -- Alta firmada (bloqueado) para que trg_contrato_moneda_desde_unidad no recalcule la moneda.
+  insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por, bloqueado)
+    values ('ZZ-L553-M', 'contrato_general', v_p, 'EUR', 1000, '{"hitos":[]}', v_ag_mail, true) returning id into v_m;
+  insert into public.facturas (numero, sociedad, tipo, contrato_id, datos, total, moneda, creado_por)
+    values ('ZZ-L553-H3', v_soc, 'factura', v_m, '{}'::jsonb, 100, 'EUR', v_ag_mail) returning id into v_h3;
+  insert into public.facturas (numero, sociedad, tipo, contrato_id, datos, total, moneda, creado_por)
+    values ('ZZ-L553-H4', v_soc, 'proforma', v_m, '{}'::jsonb, 10, 'EUR', v_ag_mail) returning id into v_h4;
+  update public.facturas set anulada = true where id in (v_h3, v_h4);
+  begin update public.contratos set moneda = 'IDR' where id = v_m;
+    out := out || case when (select moneda from public.contratos where id = v_m) = 'IDR' then 'OK ' else 'MAL ' end
+               || E'h0 montaje: con sus documentos anulados, M pasa de EUR a IDR\n';
+  exception when others then out := out || 'MAL h0 montaje (M a IDR): ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
   -- c3: copia INVOKER, sin tope, de factura_vencimiento_emite tal como la dejó 20260926160000 (la de antes de LAW-553),
   -- para comparar lo que deja el robot en su versión DEFINER con lo que dejaba antes.
   create function public.zz_l553_venc_invoker(p_venc_id uuid, p_fila jsonb)
@@ -246,13 +261,19 @@ begin
   begin perform public.factura_reactiva(v_h1);
     select count(*) into v_e1 from public.contrato_eventos where contrato_id = v_e2 and evento = 'factura_sobre_tope';
     out := out || case when v_e1 > v_e0 then 'OK ' else 'MAL ' end || 'h1 reactivar 600 sobre 500 de 1.000: pasa con rastro=' || (v_e1 > v_e0) || E'\n';
+  -- 23514 por sí solo no basta (la constraint de contrato_eventos también lo da): tiene que ser el mensaje del tope
   exception when others then out := out || case when sqlerrm like '%contrato_eventos_evento_check%' then 'PENDIENTE '
-                                                  when sqlstate = '23514' then 'OK ' else 'MAL ' end
+                                                  when sqlstate = '23514' and sqlerrm like '%precio acordado%' then 'OK ' else 'MAL ' end
                                        || 'h1 reactivar 600 sobre 500 de 1.000: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
   begin perform public.factura_reactiva(v_h2);
     out := out || case when not (select anulada from public.facturas where id = v_h2) then 'OK ' else 'MAL ' end
                || E'h2 reactivar 400 dentro del tope: pasa\n';
   exception when others then out := out || 'MAL h2 reactivar 400 dentro del tope: ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
+  -- h3: la factura EUR anulada de M, ahora en IDR → no se reactiva (ni el super_admin: integridad, no tope)
+  begin perform public.factura_reactiva(v_h3);
+    out := out || E'MAL h3 reactivar factura EUR sobre contrato que pasó a IDR: PASA\n';
+  exception when others then out := out || case when sqlstate = '23514' and sqlerrm like '%va en IDR%' then 'OK ' else 'MAL ' end
+                                       || 'h3 reactivar factura EUR sobre contrato que pasó a IDR: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
   execute 'reset role';
   select count(*) into v_ev from public.contrato_eventos
    where (contrato_id = v_hs and evento = 'documento_sobre_hak_sewa') or (contrato_id = v_i2 and evento = 'factura_sobre_tope');
@@ -288,6 +309,13 @@ begin
                  'total', 50, 'moneda', 'EUR', 'fecha_emision', current_date, 'datos', jsonb_build_object('totales', jsonb_build_object('subtotal', 50))));
     select count(*) into v_n2 from public.notificaciones where contrato_id = v_e;
   exception when others then out := out || 'MAL c3 robot dentro del tope: ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
+  -- h4: el camino del TRIGGER. service_role (las edges) revive por UPDATE directo la proforma EUR anulada de M (ahora
+  -- IDR): factura_anulada_solo_cambia_autor no mira nada sin auth.uid(), así que solo la para trg_01_moneda_del_contrato.
+  out := out || case when current_user = 'service_role' then 'OK ' else 'MAL ' end || E'C0 canario service_role\n';
+  begin update public.facturas set anulada = false where id = v_h4;
+    out := out || E'MAL h4 service_role revive proforma EUR sobre contrato que pasó a IDR: PASA\n';
+  exception when others then out := out || case when sqlstate = '23514' and sqlerrm like '%va en IDR%' then 'OK ' else 'MAL ' end
+                                       || 'h4 service_role revive proforma EUR sobre contrato IDR: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
   execute 'reset role';
   if v_c3 is not null and v_c3i is not null then
     select a.creado_por is null and a.created_at = now()
@@ -352,6 +380,10 @@ begin
                       and not has_function_privilege('authenticated', 'public.factura_vencimiento_emite(uuid,jsonb)', 'execute')
                       and not has_function_privilege('anon', 'public.factura_vencimiento_emite(uuid,jsonb)', 'execute')
                      then 'OK ' else 'MAL ' end || E'privilegios: factura_vencimiento_emite solo service_role\n';
+  -- factura_reactiva: la ACL de siempre (authenticated, que dentro exige super_admin, y service_role), nunca anon
+  out := out || case when has_function_privilege('authenticated', 'public.factura_reactiva(uuid)', 'execute')
+                      and not has_function_privilege('anon', 'public.factura_reactiva(uuid)', 'execute')
+                     then 'OK ' else 'MAL ' end || E'privilegios: factura_reactiva para authenticated, no anon\n';
 
   raise exception E'RESULTADOS\n%', out;
 end $t$;
