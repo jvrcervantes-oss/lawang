@@ -48,6 +48,11 @@ declare
   nom_cs text; em_cs text; pas_cs text; pas_cl text; path_cs text; cols text;
   hs text := '{comisiones,leads,ranking,reparto,comunicacion,compradores,usuarios}';
 begin
+  -- LAW-557 (13-oct-2026): el caso 6 (alta duplicada) usa cliente_guarda(null), que con `alta_exige_documento` encendido
+  -- se niega con 22023 antes de llegar al duplicado. Se apaga DENTRO de la transacción; el raise final lo revierte.
+  -- La misma garantía (sin fuga de la otra ficha) por la vía nueva: caso 1.32-1.33 de law557_558_alta_documento_retencion.sql.
+  insert into public.config_instancia (clave, valor) values ('alta_exige_documento', 'false'::jsonb)
+  on conflict (clave) do update set valor = excluded.valor;
   select user_id into jv from public.usuarios where email='jvr.cervantes@gmail.com';
   select user_id, email into ya, e_ya from public.usuarios where email='yanayjefferson@gmail.com';
   select user_id, email into cr, e_cr from public.usuarios where email='cris.blueiestates@gmail.com';

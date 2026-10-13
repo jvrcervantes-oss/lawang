@@ -451,6 +451,10 @@ verify_jwt = false
 [functions.ficheros-kyc]
 verify_jwt = false
 
+# kyc-retencion (LAW-557/558, 13-oct-2026): la invoca SOLO el job pg_cron `kyc-retencion-diario` con X-Cron-Secret (Vault cron_kyc_retencion), sin JWT.
+[functions.kyc-retencion]
+verify_jwt = false
+
 [functions.firma-get]
 verify_jwt = false
 
