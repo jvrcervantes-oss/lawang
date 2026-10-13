@@ -61,7 +61,7 @@
 <!-- Idioma de la web publica (EN/ES/ID). SIN defer y antes que nada: fija el idioma,
      la tipografia de display y el velo antidestello antes del primer pintado. -->
 <script src="assets/idioma-web.js?v=20260908113407"></script>
-<script src="assets/i18n-home.js?v=20261013095401"></script>
+<script src="assets/i18n-home.js?v=20261013101118"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1325,27 +1325,6 @@ function applyHomeFeatured(p, live, stale){
 .lw-ct-faq .cs-faq-item.open .faq-a { grid-template-rows:1fr; }
 .lw-ct-faq .faq-a p { font-family:var(--csa); font-size:calc(var(--fs-body) * .8); line-height:1.6; color:rgba(245,240,230,.6);
   margin:0 0 calc(clamp(14px,2vh,20px) * .8); max-width:46ch; }
-.lw-ft { position:relative; z-index:1; border-top:1px solid rgba(245,240,230,.12); padding:clamp(2.6rem,5vh,3.6rem) 0 2rem;
-  max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
-.lw-ft-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:2.4rem; }
-.lw-ft-logo { font-family:var(--cse); font-size:24px; letter-spacing:.06em; }
-.lw-ft-sub { font-family:var(--csa); font-size:var(--fs-caption); letter-spacing:.3em; text-transform:uppercase; color:var(--css); margin-top:4px; }
-.lw-ft-tag { font-family:var(--csa); font-size:var(--fs-caption); opacity:.5; line-height:1.7; max-width:34ch; margin-top:14px; }
-.lw-ft-col h5 { font-family:var(--csa); font-size:var(--fs-caption); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--cal); margin-bottom:14px; }
-.lw-ft-col a { display:block; font-family:var(--csa); font-size:var(--fs-caption); color:rgba(245,240,230,.72); margin-bottom:10px; transition:color .2s; cursor:pointer; text-decoration:none; }
-.lw-ft-col a:hover { color:#fff; }
-.lw-ft-bottom { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;
-  max-width:var(--cmx); margin:2.2rem auto 0; padding:1.5rem var(--cpd) 0; border-top:1px solid rgba(245,240,230,.1); position:relative; z-index:1; }
-.lw-ft-copy { font-family:var(--csa); font-size:var(--fs-caption); color:rgba(245,240,230,.4); letter-spacing:.04em; }
-.lw-ft-contact { display:flex; gap:1.6rem; flex-wrap:wrap; align-items:center; }
-/* Teléfono y email del pie, un 30% más grandes (petición cliente 27-jul): escalados sobre el token
-   --fs-caption en vez de tocarlo, que lo comparten copyright, legales y media docena de bloques. */
-.lw-ft-cti { display:inline-flex; align-items:center; gap:10px; font-family:var(--csa); font-size:calc(var(--fs-caption) * 1.3);
-  color:rgba(245,240,230,.82); text-decoration:none; letter-spacing:.04em; transition:color .2s; }
-.lw-ft-cti:hover { color:#fff; }
-.lw-ft-cti svg { width:19.5px; height:19.5px; flex:none; opacity:.9; }
-.lw-ft-wrap { background:transparent; padding-bottom:1.8rem; position:relative; z-index:1; }
-.lw-ft-wrap .lw-ft { border-top:none; }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media(max-width:980px){
@@ -1353,7 +1332,6 @@ function applyHomeFeatured(p, live, stale){
   .lw-pf-grid { grid-template-columns:1fr 1fr; }
   .lw-svc-intro, .lw-why-grid, .lw-feat-grid, .lw-ct-grid { grid-template-columns:1fr; }
   .lw-tl-grid { grid-template-columns:repeat(2,1fr); }
-  .lw-ft-grid { grid-template-columns:1fr 1fr; }
 }
 @media(max-width:780px){
   .lw-pipe-track { grid-template-columns:1fr; gap:0; }
@@ -1365,22 +1343,13 @@ function applyHomeFeatured(p, live, stale){
   .lw-step-num { margin-bottom:6px; }
 }
 @media(max-width:560px){
-  .lw-pf-grid, .lw-tl-grid, .lw-ft-grid { grid-template-columns:1fr; }
+  .lw-pf-grid, .lw-tl-grid { grid-template-columns:1fr; }
   .lw-stats { gap:1.6rem; }
   /* Tropical Ecosystem: slider horizontal solo en móvil (desktop/tablet siguen en grid) */
   .lw-show-grid { display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; scroll-behavior:smooth;
     scrollbar-width:none; -ms-overflow-style:none; gap:1.2rem; }
   .lw-show-grid::-webkit-scrollbar { display:none; }
   .lw-show-grid > .lw-show { flex:0 0 82%; scroll-snap-align:start; height:clamp(360px,58vh,520px); }
-  /* Footer compacto en móvil: 2 columnas de enlaces en vez de 1, menos aire vertical */
-  .lw-ft-grid { grid-template-columns:1fr 1fr; gap:1.6rem 1.2rem; }
-  .lw-ft-grid > div:first-child { grid-column:1 / -1; }
-  .lw-ft { padding-top:1.6rem; padding-bottom:1rem; }
-  .lw-ft-tag { margin-top:8px; }
-  .lw-ft-col h5 { margin-bottom:8px; }
-  .lw-ft-col a { margin-bottom:6px; }
-  .lw-ft-bottom { margin-top:1.2rem; padding-top:1rem; gap:.7rem; }
-  .lw-ft-wrap { padding-bottom:1rem; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1556,11 +1525,6 @@ function applyHomeFeatured(p, live, stale){
 .lw-ct-h.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-weight:400; letter-spacing:.02em; }
 .lw-ct-h.lw-ct-seasons { font-family:var(--cse); font-weight:400; letter-spacing:.04em; white-space:nowrap; }
 .lw-ct-italic.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-style:italic; font-weight:300; }
-.lw-ft-logo-img { height:34px; width:auto; display:block; }
-.lw-ft-tc { font-family:var(--csa); font-size:var(--fs-caption); font-weight:600; letter-spacing:.14em; text-transform:uppercase;
-  color:rgba(245,240,230,.72); text-decoration:none; cursor:pointer; padding:9px 18px; border:1px solid rgba(245,240,230,.22);
-  border-radius:999px; transition:all .25s; }
-.lw-ft-tc:hover { color:#0A0C09; background:var(--cb); border-color:var(--cb); }
 
 /* ── WhatsApp flotante (sticky, aparece al scrollear; hover → Monito) ── */
 #wa-float { position:fixed; right:clamp(16px,2.4vw,28px); bottom:clamp(16px,2.4vw,28px); z-index:9000;
@@ -1588,7 +1552,6 @@ function applyHomeFeatured(p, live, stale){
 }
 @media(prefers-reduced-motion:reduce){ #wa-float.show{ animation:none; } }
 
-.lw-ft-legal { display:flex; gap:1.4rem; flex-wrap:wrap; }
   width:min(720px,92vw); max-height:86vh; display:flex; flex-direction:column; background:var(--rl); color:var(--va);
   border-radius:16px; overflow:hidden; box-shadow:0 40px 100px -30px rgba(0,0,0,.7); }
   background:rgba(46,52,55,.08); color:var(--va); font-size:24px; line-height:1; cursor:pointer; transition:background .2s; }
@@ -1914,49 +1877,10 @@ function applyHomeFeatured(p, live, stale){
       </div>
     </div>
   </div>
-  <div class="lw-ft-wrap">
-  <div class="lw-ft">
-    <div class="lw-ft-grid">
-      <div>
-        <img class="lw-ft-logo-img" loading="lazy" src="assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
-        <div class="lw-ft-sub" style="margin-top:10px">Tropical Properties</div>
-        <p class="lw-ft-tag" data-i18n="ft.tag">Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.</p>
-      </div>
-      <div class="lw-ft-col">
-        <h5 data-i18n="ft.h.portfolio">Portfolio</h5>
-        <a href="/thecollection#signature" data-i18n="ft.signature">Signature</a>
-        <a href="/thecollection#land" data-i18n="ft.land">Land</a>
-        <a href="/thecollection#villas" data-i18n="ft.villas">Villas</a>
-        <a href="/thecollection#resorts" data-i18n="ft.resorts">Resorts</a>
-      </div>
-      <div class="lw-ft-col">
-        <h5 data-i18n="ft.h.company">Company</h5>
-        <a href="/thesoul" data-i18n="ft.soul">The Soul</a>
-        <a href="/thesoul#who" data-i18n="ft.whatwedo">What We Do</a>
-        <a href="/#expedition" data-i18n="ft.expedition">The Expedition</a>
-        <a href="#portfolio" data-i18n="ft.choose">Choose your Legacy</a>
-      </div>
-      <div class="lw-ft-col">
-        <h5 data-i18n="ft.h.divisions">Divisions</h5>
-        <a href="/thecollection">Tepi Sungai</a>
-        <a href="/thecollection">Balian Hills</a>
-        <a href="/thecollection#signature">Riverfront II®</a>
-      </div>
-    </div>
-  </div>
-  <div class="lw-ft-bottom">
-    <span class="lw-ft-copy">© 2026 Lawang Tropical Properties · Indonesia</span>
-    <div class="lw-ft-contact">
-      <a class="lw-ft-cti" href="tel:+6281138319862"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+62 811-3831-9862</a>
-      <a class="lw-ft-cti" href="mailto:sales@lawangproperties.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>sales@lawangproperties.com</a>
-    </div>
-    <div class="lw-ft-legal">
-      <a class="lw-ft-tc lw-legal-link" href="/legal#terms" data-i18n="ft.terms">Terms &amp; Conditions</a>
-      <a class="lw-ft-tc lw-legal-link" href="/legal#privacy" data-i18n="ft.privacy">Privacy Policy</a>
-      <a class="lw-ft-tc" href="#" onclick="event.preventDefault();window.lwConsentReopen&&window.lwConsentReopen()" data-i18n="ft.cookies">Cookie Settings</a>
-    </div>
-  </div>
-  </div><!-- end .lw-ft-wrap -->
+  <!-- Pie: fuente unica en assets/lawang-pie.js (variante «home»), el mismo que llevan /thecollection,
+       /thesoul y /portfolio (owner, 13-oct-2026). Sin fondo: el obsidiana y el totem son de section.lw-contact. -->
+  <div data-lw-pie="home" data-sin-fondo data-cookies></div>
+  <script src="assets/lawang-pie.js?v=20261013101118"></script>
 </section>
 
 </div><!-- end #content-sections -->
@@ -1993,17 +1917,7 @@ function applyHomeFeatured(p, live, stale){
         els[i].href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg)
           + '&utm_source=web&utm_medium=whatsapp&utm_content=' + lang;   /* de que idioma vino */
       }
-
-      /* El aviso legal en espanol esta MAS COMPLETO que el ingles: identifica al
-         responsable (PT TEPI SUN GAI) y declara el rango de presupuesto que los
-         formularios ya piden. Mandar a un hispanohablante al /legal ingles seria
-         ensenarle la version incompleta — hallazgo de Legal en la revision previa. */
-      if (lang === 'es') {
-        var lg = document.querySelectorAll('a.lw-legal-link');
-        for (var j = 0; j < lg.length; j++) {
-          lg[j].href = lg[j].getAttribute('href').replace('/legal#', '/legal-es#');
-        }
-      }
+      /* /legal-es para el español: lo resuelve ya el pie compartido (assets/lawang-pie.js). */
     }
   });
 })();
