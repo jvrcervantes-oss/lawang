@@ -28,7 +28,7 @@
 --    contrato o un recibí en otra moneda no suma). Si la familia tiene contratos firmados (no liberados) en más de una
 --    moneda, _comisiones_bases_firmadas lo marca (multimoneda) y el motor y el reconciliador NO tocan los tramos con base
 --    o disparo «firmado» de esa raíz (raise warning con la raíz; el motor lo deja además en
---    comisiones_interruptor.ultimo_error, que ya vigila salud_lawang.py, y comisiones_1nov_imputacion.sql saca la fila). Medido 13-oct: 0 familias multimoneda, 0 recibís en moneda distinta de su contrato → no
+--    comisiones_interruptor.ultimo_error si no hay otro error sin resolver, que ya vigila salud_lawang.py, y comisiones_1nov_imputacion.sql saca la fila). Medido 13-oct: 0 familias multimoneda, 0 recibís en moneda distinta de su contrato → no
 --    cambia ningún número.
 --  * Disparos nuevos pct_cobrado_suelo_firmado / pct_cobrado_obra_firmada: denominador = la base firmada de esa parte;
 --    numerador = lo cobrado imputado con «PRIMERO PARCELA, LUEGO OBRA» (owner, 13-oct-2026, decisión cerrada, tras medir
@@ -66,7 +66,9 @@
 --    (con una sola base, o sin tramos, es exactamente la comparación viva de base de condición: un manager de 1 tramo y
 --    un closer de 2 con la misma base siguen casando); snapshot y concepto llevan la base del tramo.
 --  * comisiones_reconciliar: usa la base efectiva de CADA devengo (antes saltaba todo lo que no fuera precio_total
---    de la condición: con 'por_tramo' habría saltado, y con 'precio_total' habría pagado el 10 % del total).
+--    de la condición: con 'por_tramo' habría saltado, y con 'precio_total' habría pagado el 10 % del total). La base
+--    CONGELADA en el snapshot del devengo (disparado_por_snapshot->>'base_calculo') manda sobre la viva del tramo
+--    (consulta de Backend). Medido 13-oct: los 21 devengos la llevan y es 'precio_total', igual que la viva → no cambia nada.
 --  * Edición de tramos (_condicion_tramos_pone, la que usa condicion_comision_guarda): acepta base_calculo por tramo;
 --    si la clave falta (editor viejo) CONSERVA la base que había en ese orden. condicion_tramos_reemplaza NO se toca:
 --    sin llamador desde el 27-sep, y quitarla es decisión del owner (erp/modulos.py); ver 6b.
@@ -78,6 +80,13 @@
 --    disparado_por_snapshot; comision_trazabilidad no lo devuelve) quita las 7 cifras nuevas de la operación
 --    (precio_*_firmad*, cobrado_*_firmad*, cobrado_directo_*, cobrado_cartas) a quien no tiene la vista completa, con
 --    la MISMA regla que decide `completa` en comision_trazabilidad, ahora en un solo sitio: _comision_vista_completa.
+--    MÁS SEGURO, NO IDÉNTICO: _comision_vista_completa hace coalesce(..., false). Cuando la regla da NULL (p. ej.
+--    puede_reparto_de devuelve null y no es manager), la viva de comision_trazabilidad enseñaba la operación y las
+--    parcelas (`case when not v_completa` con NULL cae en el else) y comisiones_reparto_datos daba el snapshot entero;
+--    ahora las dos lo ocultan, como a quien no tiene la vista completa.
+--
+-- VUELTA ATRÁS: supabase/vivo/20261013_comisiones_1nov/vuelta.sql (esquema y datos, en una transacción; para sola si
+-- alguna sucesora ya tiene devengos: desde el primer devengo de noviembre ya no es limpia y se arregla hacia delante).
 --
 -- REDEFINICIONES desde la definición VIVA del 13-oct-2026 (pg_get_functiondef), guardada como vuelta atrás en
 -- supabase/vivo/20261013_comisiones_1nov/. Ninguna de las redefinidas es CRLF en la base. El bloque 0 para si
@@ -92,7 +101,10 @@
 -- condicion_tramos.disparador_tipo y condicion_tramos_umbral_coherente— con la lista vieja más los valores nuevos;
 -- (6) _condicion_tramos_pone se redefine y su cuerpo conserva el DELETE de los tramos que ya traía (borra y repone los
 -- tramos de UNA condición);
--- (10b) mi_condicion_comision se quita y se crea para añadirle la columna tramos. Ningún dato se borra ni se sobrescribe.
+-- (10b) mi_condicion_comision se quita y se crea para añadirle la columna tramos;
+-- (11) se ACTUALIZA vigente_hasta (null → 2026-10-31) en 12 filas reales de condiciones_comision (las 12 genéricas
+-- abiertas con % > 0, por id exacto; cada una con su línea en condiciones_comision_log) y se insertan sus 12 sucesoras
+-- con 24 tramos. Ningún dato se borra; fuera de esas 12 fechas, ninguno se sobrescribe.
 
 -- 0 · guarda: las funciones a redefinir son las que se fotografiaron (solo en la primera aplicación)
 do $$
@@ -840,11 +852,16 @@ begin
         raise warning 'comisiones_evaluar_contrato: la venta (raiz %) tiene contratos firmados en mas de una moneda; el tramo % de la condicion % no devenga', v_raiz_id, v_tramo.orden, v_condicion.id;
         -- y queda donde ya mira salud_lawang.py («ningun recalculo de comisiones ha fallado en silencio»): un warning
         -- solo llega al log de Postgres
+        -- no tapa un error distinto sin resolver (salud_lawang.py enseña uno solo y se resuelve poniéndolo a null): solo
+        -- escribe si está vacío o si es este mismo aviso. Guarda nueva: los otros escritores de ultimo_error
+        -- (el trigger de recálculo y el fin de espera por su cuenta) sobrescriben sin mirar; esos son fallos reales.
         if not v_mm_avisado then
           update public.comisiones_interruptor
              set ultimo_error = 'venta en mas de una moneda: sus tramos de parcela/obra firmada no devengan (raiz ' || v_raiz_id || ')',
                  ultimo_error_en = now()
-           where id;
+           where id
+             and (ultimo_error is null
+                  or ultimo_error = 'venta en mas de una moneda: sus tramos de parcela/obra firmada no devengan (raiz ' || v_raiz_id || ')');
           v_mm_avisado := true;
         end if;
         continue;
@@ -1045,9 +1062,12 @@ begin
     from public._comisiones_bases_firmadas(p_raiz) b;
 
   for r in
+    -- base efectiva: la CONGELADA en el snapshot del devengo manda sobre la viva del tramo (si alguien cambia luego la
+    -- base del tramo, el devengo sigue siendo de lo que se devengó). Los devengos anteriores al 13-oct también la
+    -- llevan (el motor viejo escribía ahí la base de la condición, 'precio_total' en los 21 medidos ese día): no cambia nada.
     select d.*, c.base_calculo,
            case when c.base_calculo = 'importe_fijo' then 'importe_fijo'
-                else coalesce(t.base_calculo, c.base_calculo) end as base_ef,
+                else coalesce(nullif(d.disparado_por_snapshot->>'base_calculo', ''), t.base_calculo, c.base_calculo) end as base_ef,
            case when d.disparado_por_snapshot->>'plantilla_pct' is not null then nullif(d.disparado_por_snapshot->>'pct_comision', '')::numeric else c.pct_comision end as pct_comision, c.importe_fijo, t.pct_tramo
       from public.comisiones_devengadas d
       join public.condiciones_comision c on c.id = d.condicion_id

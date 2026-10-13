@@ -26,7 +26,7 @@
 -- plantilla del SM: closer 25 %).
 -- G1/G3 van por condicion_comision_guarda, la RPC real de la pantalla (condicion_tramos_reemplaza no tiene llamador y
 -- la migración no la toca). F8b (plantilla con distinto nº de tramos), R7 (recorte del snapshot), AD (adenda en obra) y
--- M1/M2 (moneda) se añadieron
+-- M1/M2 (moneda) se añadieron (M3, el aviso multimoneda no tapa otro error, tras la consulta de Backend)
 -- el 13-oct tras la revisión de código y la consulta de Administración.
 do $$
 declare
@@ -433,6 +433,7 @@ begin
   begin
     execute 'set local session_replication_role = replica';
     update public.contratos set moneda = 'IDR' where id = v_cc84;
+    update public.comisiones_interruptor set ultimo_error = null, ultimo_error_en = null where id;   -- M2 parte de vacío
     execute 'set local session_replication_role = origin';
     select b.suelo_firmado || '/' || b.obra_firmada || ' cob ' || b.cobrado_suelo_firmado || '/' || b.cobrado_obra_firmada
            || ' multi=' || b.multimoneda into v_t
@@ -443,6 +444,18 @@ begin
   exception when others then
     r := r || 'M2 contrato firmado en otra moneda=' || sqlerrm
          || case when sqlerrm = 'R:59000/44000 cob 29500/0 multi=true|0|aviso=true' then ' ok; ' else ' FALLO; ' end;
+  end;
+  -- M3 · (consulta de Backend, 13-oct) el aviso multimoneda NO tapa un error distinto sin resolver en ultimo_error
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.contratos set moneda = 'IDR' where id = v_cc84;
+    update public.comisiones_interruptor set ultimo_error = 'recalculo fallido (prueba M3)', ultimo_error_en = now() where id;
+    execute 'set local session_replication_role = origin';
+    perform public.comisiones_evaluar_contrato(v_raiz);
+    raise exception 'R:%', (select ultimo_error from public.comisiones_interruptor);
+  exception when others then
+    r := r || 'M3 aviso no tapa otro error=' || sqlerrm
+         || case when sqlerrm = 'R:recalculo fallido (prueba M3)' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- C · «PRIMERO PARCELA, LUEGO OBRA» (owner, 13-oct-2026). Cada caso compara las 7 cifras de _comisiones_bases_firmadas
