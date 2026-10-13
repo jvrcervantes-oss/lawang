@@ -422,11 +422,21 @@
      DOMContentLoaded, que llega cuando ya han corrido TODOS los diferidos; si ya pasó (o el cajón ya está), se abre al momento
      y la ficha avisa como siempre si de verdad falta algo. Una sola ayuda para todas las aperturas por dirección: arreglar
      solo la de Contratos dejaba igual a sus hermanas. */
+  /* `load` además de DOMContentLoaded (revisor, 13-oct): si este fichero llegara a evaluarse con DOMContentLoaded ya
+     pasado pero sin `load` (readyState 'interactive'), esperar solo al primero no acababa nunca y la ficha no se abría
+     ni avisaba. Con los dos, `fn` corre siempre una vez, y si el cajón sigue sin estar la ficha lo dice con su aviso.
+     No vale mirar `readyState !== 'loading'`: mientras corren los diferidos ya es 'interactive' y desharía el arreglo. */
   var DIFERIDOS_LISTOS = document.readyState === 'complete';
-  if (!DIFERIDOS_LISTOS) document.addEventListener('DOMContentLoaded', function () { DIFERIDOS_LISTOS = true; });
+  if (!DIFERIDOS_LISTOS) {
+    document.addEventListener('DOMContentLoaded', function () { DIFERIDOS_LISTOS = true; });
+    window.addEventListener('load', function () { DIFERIDOS_LISTOS = true; });
+  }
   function cuandoCajon(fn) {
     if (DIFERIDOS_LISTOS || (window.lwCajon && window.lwCajonHtml)) return fn();
-    document.addEventListener('DOMContentLoaded', function () { fn(); }, { once: true });
+    var hecho = false;
+    var una = function () { if (hecho) return; hecho = true; fn(); };
+    document.addEventListener('DOMContentLoaded', una, { once: true });
+    window.addEventListener('load', una, { once: true });
   }
   function delega(caja, pares) {
     if (!caja) return;
@@ -455,12 +465,13 @@
     /* `urls[i]` (S16, 23-sep-2026): una URL por fila cuando la herramienta
        viva sabe abrir esa unidad concreta (`/intranet/obra/?id=`); si no,
        el `verUrl` común de siempre. */
-    if (verUrl || urls) {
-      var its = cont.querySelectorAll('[data-mq-item]');
-      for (var i = 0; i < its.length; i++) (function (el, u) {
-        if (u) el.addEventListener('click', function () { location.href = u; });
-      })(its[i], (urls && urls[i]) || verUrl);
-    }
+    /* Una fila sin destino no lleva la mano (13-oct-2026): itemPanel pone `cursor:pointer` a todas, y en una
+       instancia o en la demo (sin Obra clásica) y en los partes de trabajo la fila no abre nada. */
+    var its = cont.querySelectorAll('[data-mq-item]');
+    for (var i = 0; i < its.length; i++) (function (el, u) {
+      if (u) el.addEventListener('click', function () { location.href = u; });
+      else el.style.cursor = 'default';
+    })(its[i], (urls && urls[i]) || verUrl);
   }
   function panelReal(titulo, items, urls, vacio, verMasUrl) {
     var h1 = document.querySelector('h1'); if (!h1) return;
@@ -6539,6 +6550,10 @@
          perdería un proyecto recién pasado a construcción que aún no tiene
          ningún parte — el mismo fallo, ya cazado dos veces en esta suite, de
          agrupar por la fila que todavía no existe. */
+      /* Sin Obra clásica (instancia del ERP o demo), «Abrir la herramienta completa» se aparta ANTES de leer nada: si la
+         lectura fallaba se quedaba a la vista y llevaba a «Herramienta no incluida». `hidden` no basta: la clase flex de
+         Tailwind le gana. */
+      if (window.AXW_NUCLEO_OPERACION) { var aCompleta = document.querySelector('[data-lw="obra-completa"]'); if (aCompleta) aCompleta.style.display = 'none'; }
       Promise.all([
         /* SIN `limit` (S16, 23-sep-2026): el 60 de antes dejaba unidades con
            fase fuera sin decirlo — mismo fallo que ya se quitó en Soporte y
@@ -6564,7 +6579,6 @@
            inglés, 13-oct-2026: cada fila acababa en «Not included in the demo»). En Lawang no cambia nada. */
         var conClasica = !window.AXW_NUCLEO_OPERACION;
         var urlUnidad = function (u) { return conClasica ? '/intranet/obra/?id=' + encodeURIComponent(u.id) : null; };
-        if (!conClasica) { var aCompleta = document.querySelector('[data-lw="obra-completa"]'); if (aCompleta) aCompleta.style.display = 'none'; }   // `hidden` no basta: la clase flex de Tailwind le gana
         var T = function (x, h) { return (typeof lwT === 'function') ? lwT(x, h) : x; };
 
         var enConstruccion = proys.filter(function (p) { return p.estado === 'en_construccion'; });

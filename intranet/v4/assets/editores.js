@@ -7475,7 +7475,7 @@
 
         Promise.all([
           sb.from('proyectos').select('id,nombre,estado').eq('estado', 'en_construccion').order('nombre'),
-          sb.from('obra_fases').select('clave,es,orden').order('orden')
+          sb.from('obra_fases').select('clave,es,en,orden').order('orden')
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudieron leer los proyectos: ' + rs[0].error.message, '#93000a');
           var proys = rs[0].data || [], fases = rs[1].data || [];
@@ -7493,6 +7493,12 @@
           }, { sinRecarga: true });
         });
       });
+
+      // Frases del parte montadas con datos: por el diccionario con sus huecos (en español salen tal cual).
+      function trParte(s, h) {
+        if (window.lwT) return window.lwT(s, h);
+        return s.replace(/%([a-z])/g, function (m, k) { return h && h[k] != null ? String(h[k]) : m; });
+      }
 
       /* Paso 2 — qué cubo del masterplan avanza, y a qué fase.
          La fase siguiente NO se elige: la base solo admite avanzar un paso
@@ -7527,7 +7533,8 @@
           prog.forEach(function (r) { porCubo[JSON.stringify([r.fase_masterplan, r.zona_masterplan])] = r.obra_fase_actual; });
 
           var etiqueta = {}, siguiente = {};
-          fases.forEach(function (f) { etiqueta[f.clave] = f.es || f.clave; });
+          // Nombre de la fase en el idioma de la interfaz (13-oct-2026, demo en inglés): en español, el de siempre.
+          fases.forEach(function (f) { etiqueta[f.clave] = window.lwNombreFase ? window.lwNombreFase(f) : (f.es || f.clave); });
 
           var ops = claves.map(function (k) {
             var partes = JSON.parse(k);
@@ -7540,9 +7547,9 @@
               }
             }
             siguiente[k] = sig;
-            var texto = 'Fase ' + partes[0] + ' · ' + partes[1] + ' · ' + cubos[k] + ' parcelas · ' +
-              (actual ? 'ahora en ' + (etiqueta[actual] || actual) : 'sin empezar') +
-              (sig ? ' → ' + (etiqueta[sig] || sig) : ' · ya terminado');
+            var texto = trParte('Fase %f · %z · %n parcelas', { f: partes[0], z: partes[1], n: cubos[k] }) + ' · ' +
+              (actual ? trParte('ahora en %e', { e: etiqueta[actual] || actual }) : trParte('sin empezar')) +
+              (sig ? ' → ' + (etiqueta[sig] || sig) : ' · ' + trParte('ya terminado'));
             return [k, texto];
           });
 
@@ -7617,7 +7624,7 @@
             }).join('  ·  ');
 
             var campos = [
-              { tipo: 'lectura', medio: 1, label: 'Tramo', valor: 'Fase ' + fase + ' · ' + zona },
+              { tipo: 'lectura', medio: 1, label: 'Tramo', valor: trParte('Fase %f · %z', { f: fase, z: zona }) },
               { tipo: 'lectura', medio: 1, label: 'Pasa a', valor: faseNuevaEs },
               { tipo: 'custom', label: 'Lo que se va a cobrar', render: function (d) {
                   d.style.cssText = 'display:grid;gap:8px;background:#f5f4ee;border:1px solid ' + CAJ.borde +
