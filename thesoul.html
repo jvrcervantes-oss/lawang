@@ -495,7 +495,7 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .how .hd{color:#fff}.how .hd .k{font-size:12px}.how .hd h2{font-size:22px;line-height:28px}.how .one{margin-top:16px;font-size:12px;height:30px}
   /* paso a paso en móvil (12-oct): inset:auto quita el top/left de escritorio, que con position:relative bajaba la lista 150px y la sacaba por la derecha */
   .ruta6{position:relative;inset:auto;display:block;margin:32px auto 0;max-width:340px;padding:14px 18px;background:rgba(10,25,35,.38);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.28);border-radius:16px}
-  .ruta6::before{left:35px;right:auto;top:calc(31px + clamp(14px,2.4vh,22px));bottom:calc(31px + clamp(14px,2.4vh,22px));width:1.5px;height:auto}
+  .ruta6::before{left:35px;right:auto;top:calc(31px + clamp(14px,2.4vh,22px));bottom:calc(31px + clamp(14px,2.4vh,22px));width:1.5px;height:auto;transform-origin:center top;transform:scaleY(var(--line))}
   .ruta6 li{display:grid;grid-template-columns:34px 1fr;gap:2px 16px;align-items:center;text-align:left;padding-block:clamp(14px,2.4vh,22px)}  /* más aire entre pasos: con 10px la línea quedaba apretada y sobraba fondo (owner, 12-oct) */
   .ruta6 .nd{grid-row:span 2;width:34px;height:34px;font-size:14px}
   .ruta6 h3{margin-top:0;font-size:15px;line-height:19px;letter-spacing:.06em;white-space:normal;text-wrap:pretty}
@@ -624,6 +624,28 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
 }
+
+/* ═══ MOTION — entradas por sección (13-oct-2026, owner eligió la «A» en el laboratorio de motion) ═══
+   Al llegar a cada pantalla su contenido entra en orden. Solo actúa con html.mo, que pone el script del final
+   si hay IntersectionObserver y no se pide «reducir movimiento»: sin JS o con movimiento reducido todo se ve quieto.
+   El estado es m-on, NUNCA «on»: «on» es el giro de las tarjetas de zonificación (girarían solas al llegar).
+   Se anima con translate/scale/clip-path, que no pisan los transform del calco (stats4, how>img, zone .zs). */
+@property --line{syntax:'<number>';inherits:true;initial-value:1}
+.ruta6::before{transform-origin:left center;transform:scaleX(var(--line))}
+@media (max-width:900px),(max-height:600px),(orientation:portrait) and (max-width:1366px){.ruta6::before{transform-origin:center top;transform:scaleY(var(--line))}}  /* en móvil la línea es vertical */
+.mo .m-v{opacity:0;translate:0 30px;transition:opacity .9s cubic-bezier(.16,1,.3,1) var(--d,0s),translate 1.1s cubic-bezier(.16,1,.3,1) var(--d,0s)}
+.mo .m-z{scale:1.14;transition:scale 2.4s cubic-bezier(.16,1,.3,1) var(--d,0s)}
+.mo .m-k{clip-path:inset(100% 0 0 0);transition:clip-path 1.15s cubic-bezier(.16,1,.3,1) var(--d,0s)}
+.mo .m-r{clip-path:inset(0 100% 0 0);transition:clip-path 1.3s cubic-bezier(.16,1,.3,1) var(--d,0s)}
+.mo .m-x{clip-path:inset(0 50% 0 50%);transition:clip-path 1.4s cubic-bezier(.16,1,.3,1) var(--d,0s)}
+.mo .m-l{opacity:0;letter-spacing:.42em;transition:opacity 1s ease var(--d,0s),letter-spacing 1.8s cubic-bezier(.16,1,.3,1) var(--d,0s)}
+.mo .m-line{--line:0;transition:--line 1.8s cubic-bezier(.16,1,.3,1) .45s}
+.mo .m-p{opacity:0;scale:.35;transition:opacity .5s ease var(--d,0s),scale .8s cubic-bezier(.16,1,.3,1) var(--d,0s)}
+.mo .m-v.m-on,.mo .m-l.m-on,.mo .m-p.m-on{opacity:1;translate:0 0;scale:1}
+.mo .m-l.m-on{letter-spacing:.02em}
+.mo .m-z.m-on{scale:1}
+.mo .m-k.m-on,.mo .m-r.m-on,.mo .m-x.m-on{clip-path:inset(0 0 0 0)}
+.mo .m-line.m-on{--line:1}
 </style>
 </head>
 <body>
@@ -833,10 +855,13 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   <div class="cl"><img src="/assets/img/soul/closing-journey.webp" width="1470" height="980" alt="Balinese women laughing as they walk out of a brick temple gate" loading="lazy"><h2 id="cl-h" data-i18n-html="cl.h">EVERY GREAT LEGACY <br>BEGINS WITH A JOURNEY.</h2><a href="/thecollection#land"><span data-i18n-html="cl.a">Explore tropical territories</span> <span aria-hidden="true">→</span></a></div>
 </section>
 
-<footer data-lw-pie data-wa="https://wa.me/6281138319862">
+<!-- Pie = el de la home (variante «home» de lawang-pie.js), owner 13-oct-2026. Sigue siendo un <footer>
+     hijo directo de #snap: el scroll-snap lo necesita para llegar al final. Sin data-cookies: esta
+     pagina no carga consent.js. La nota la reescribe el despues de lwLangInit (clave «foot»). -->
+<footer data-lw-pie="home">
   <span data-pie-nota>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
 </footer>
-<script src="/assets/lawang-pie.js?v=20261007114054"></script>
+<script src="/assets/lawang-pie.js?v=20261013103505"></script>
 </main>
 
 <script>
@@ -1715,6 +1740,55 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
     x.addEventListener('click', function (e) { set(false, e.detail === 0); });
     k.addEventListener('keydown', function (e) { if (e.key === 'Escape' && k.classList.contains('on')) set(false, true); });
   });
+})();
+</script>
+<script>
+/* Motion «A · entradas por sección» (13-oct-2026). Cada pieza entra al asomar en pantalla, escalonada con las que
+   entran a la vez, y se rearma al salir del todo para que vuelva a entrar. Efectos (CSS arriba): v sube y aparece ·
+   z foto que se asienta · k se descubre de abajo arriba · r se dibuja de izquierda a derecha · x se abre desde el
+   centro · l letras que se cierran · line la línea de la ruta · p sus nodos. Estado: m-on (nunca «on», ver CSS). */
+(function () {
+  var snap = document.getElementById('snap');
+  if (!snap || !('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var MAP = [
+    ['#soul .ph img','z'],['#soul .ph h1','v'],['#soul .st > h2','v'],['#soul .sub','v'],['#soul .stats4','r'],['#soul .stats4 li','v'],['#soul .claim p','v'],['#soul .totem','v'],
+    ['#who .terr > img','z'],['#who .fr','x'],['#who .terr .tag','v'],['#who .terr h2','v'],['#who .terr .chips li','v'],['#who .svc-h > *','v'],['#who .cards4 .tab','v'],['#who .cards4 .card','k'],['#who .cards4 .card img','z'],
+    ['#indonesia .ban > img','z'],['#indonesia .ban .t','l'],['#indonesia .ban .s','v'],['#indonesia .ban .f','v'],['#indonesia .ban .g','v'],['#indonesia .isl span','v'],['#indonesia .ret > *','v'],['#indonesia .kpi','v'],
+    ['#why .hd > *','v'],['#why .isle','k'],['#why .isle > img','z'],['#why .isle .nm','v'],['#why .info .lbl','v'],['#why .facts li','v'],
+    ['#how > img','z'],['#how .hd > *','v'],['#how .ruta6','line'],['#how .ruta6 .nd','p'],['#how .ruta6 h3','v'],['#how .ruta6 p','v'],
+    ['#routes .tt > span','v'],['#routes .opt','k'],['#routes .cmp .sr','v'],['#routes .cmp .tr','v'],['#routes .ro-n','v'],
+    ['#see .bn','x'],['#see .bn p','v'],['#see h2','v'],['#see .pr figure','v'],
+    ['#zoning .zs > .k','v'],['#zoning .zs > h2','v'],['#zoning .zs > .p','v'],['#zoning .zc','v'],['#zoning .note','v'],
+    ['#closing .cl','k'],['#closing .cl img','z'],['#closing .cl h2','v'],['#closing .cl a','v']
+  ];
+  var els = [];
+  MAP.forEach(function (m) { document.querySelectorAll(m[0]).forEach(function (el) { el.classList.add('m-' + m[1]); els.push(el); }); });
+  document.documentElement.classList.add('mo');
+
+  // Las cifras del hero cuentan desde 0 al entrar; el texto final es siempre el original (y el del idioma, si cambia).
+  function cuenta(n) {
+    // n.dataset.fin guarda el valor real solo mientras dura una cuenta: si se vuelve a entrar a medias se parte de él
+    // (nunca de una cifra intermedia), y al acabar se borra para que un cambio de idioma posterior mande.
+    if (!n.dataset.fin) n.dataset.fin = n.textContent;
+    var txt = n.dataset.fin, m = txt.match(/^(\d+)(.*)$/), t0 = null; cancelAnimationFrame(n._raf);
+    if (!m) { delete n.dataset.fin; return; }
+    (function paso(t) { if (!t0) t0 = t; var q = Math.min(1, (t - t0) / 1500);
+      n.textContent = q < 1 ? Math.round(+m[1] * (1 - Math.pow(1 - q, 4))) + m[2] : txt;
+      if (q < 1) n._raf = requestAnimationFrame(paso); else delete n.dataset.fin; })(performance.now());
+  }
+  var entra = new IntersectionObserver(function (ents) {
+    var nuevos = ents.filter(function (e) { return e.isIntersecting && !e.target.classList.contains('m-on'); }).map(function (e) { return e.target; });
+    nuevos.sort(function (a, b) { return a.compareDocumentPosition(b) & 4 ? -1 : 1; });
+    nuevos.forEach(function (el, i) {
+      el.style.setProperty('--d', Math.min(i * .07, 1.2).toFixed(2) + 's');
+      el.classList.add('m-on');
+      if (el.classList.contains('stats4')) el.querySelectorAll('.n').forEach(cuenta);
+    });
+  }, { root: snap, rootMargin: '0px 0px 40px 0px', threshold: 0 });
+  var sale = new IntersectionObserver(function (ents) {
+    ents.forEach(function (e) { if (!e.isIntersecting) { e.target.classList.remove('m-on'); e.target.style.removeProperty('--d'); } });
+  }, { root: snap, rootMargin: '0px 0px 40px 0px', threshold: 0 });
+  els.forEach(function (el) { entra.observe(el); sale.observe(el); });
 })();
 </script>
 </body>

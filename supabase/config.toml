@@ -496,6 +496,12 @@ verify_jwt = false
 [functions.asistente-peticiones]
 verify_jwt = true
 
+# editor-ia (13-oct-2026, encargo 20261008_lawang_editor_textos_contrato E4/E4b): asistente y traduccion del editor de textos de contrato.
+# La llama SOLO /intranet/v4/textos-contrato/ (textos-contrato-ia.js) con la sesion de la persona. verify_jwt = true como su gemela asistente-peticiones
+# (Seguridad, revision previa del 8-oct); dentro se vuelve a comprobar la sesion (getUser) y el rol (plantilla_contrato_edicion y editor_ia_reserva).
+[functions.editor-ia]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327
