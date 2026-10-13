@@ -14,7 +14,8 @@
    · vía de servicio X-Render-Secret: ENVIO_CORREO_SECRET hacia la edge envia-correo, RENDER_SECRET hacia el PHP, y nada a otra URL;
    · generateLink solo sobre una cuenta ya existente y con el mismo id; signInWithOtp (mailer de Supabase) no se usa nunca;
    · si envia-correo falla: portal-acceso {ok:true, reintentar:true}, portal-invitar el aviso acceso_creado_pero_email_no_enviado, y el hueco
-     del freno se devuelve (el siguiente intento inmediato sí sale). */
+     del freno se devuelve (el siguiente intento inmediato sí sale); si se acaba la espera (20 s, 13-oct-2026) la misma respuesta pero el
+     hueco NO se devuelve (el correo pudo salir). */
 const assert = require('assert');
 const path = require('path');
 const { register } = require('node:module');
@@ -217,6 +218,22 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   avanza(61);
   prepara({ correo: () => ({ status: 200, cuerpo: '{"ok":false}' }) });
   igual((await llama(ACCESO, { email: 'cuarto@cliente-prueba.com' })).cuerpo, { ok: true, reintentar: true }, 'acceso: 200 sin "ok":true = no enviado');
+  // 4b. (13-oct) se acaba la espera a envia-correo → reintentar, pero el hueco NO se devuelve: el correo pudo salir y un segundo
+  //     envío inmediato invalidaría ese enlace; el siguiente intento inmediato queda frenado (misma respuesta, sin correo).
+  avanza(61);
+  // El temporizador de 20 s de la edge se captura (setTimeout con 20000 ms) y el doble de fetch lo dispara: la señal queda
+  // abortada de verdad, como cuando se acaba la espera, y fetch lanza lo que lanzaría Deno.
+  const setTOriginal = globalThis.setTimeout;
+  let temporizadorEnvio = null;
+  globalThis.setTimeout = (f, ms, ...a) => { if (ms === 20000) { temporizadorEnvio = f; return 0; } return setTOriginal(f, ms, ...a); };
+  const agota = () => { temporizadorEnvio(); throw new DOMException('The signal has been aborted', 'AbortError'); };
+  prepara({ correo: agota });
+  const ag = await llama(ACCESO, { email: 'quinto@cliente-prueba.com' });
+  igual([ag.cuerpo, llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true).length], [{ ok: true, reintentar: true, lento: true }, 0], 'acceso: espera agotada (temporizador de 20 s) → reintentar + lento, sin devolver el hueco');
+  ok(ag.logs.some((l) => l.includes('envio agotado @cliente-prueba.com')), 'acceso: espera agotada deja su línea propia, solo con el dominio');
+  est.correo = () => ({ status: 200, cuerpo: '{"ok":true}' });
+  const tras = await llama(ACCESO, { email: 'quinto@cliente-prueba.com' });
+  igual([tras.cuerpo, est.envios.length], [{ ok: true }, 1], 'acceso: tras la espera agotada, el intento inmediato queda frenado (no sale otro enlace)');
 
   // 5. generateLink devuelve OTRO usuario → no se manda nada
   avanza(61);
@@ -325,6 +342,12 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   const fi = await llama(INVITAR, { accion: 'reenviar', email: EMAIL }, ADMIN);
   igual(fi.cuerpo, { ok: true, aviso: 'acceso_creado_pero_email_no_enviado' }, 'invitar: envío fallido → aviso sin el texto del servidor');
   igual(llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true).length, 1, 'invitar: devuelve el hueco');
+  // c2. (13-oct) espera agotada → mismo aviso, el hueco NO se devuelve
+  avanza(61);
+  prepara({ correo: agota });
+  const fa = await llama(INVITAR, { accion: 'reenviar', email: EMAIL }, ADMIN);
+  igual([fa.cuerpo, llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true).length], [{ ok: true, aviso: 'acceso_creado_pero_email_no_enviado' }, 0], 'invitar: espera agotada → aviso sin devolver el hueco');
+  globalThis.setTimeout = setTOriginal;
   // d. correo del equipo → 400 de siempre, sin freno, enlace ni correo
   prepara({ equipo: true });
   const eq = await llama(INVITAR, { accion: 'invitar', email: EMAIL, client_ids: ['c1'] }, ADMIN);

@@ -227,7 +227,7 @@ window.LW_I18N_HOME = {
   "ft.whatwedo":    { en: "What We Do",     es: "Qué hacemos",       id: "Apa yang Kami Lakukan" },
   "ft.expedition":  { en: "The Expedition", es: "La Expedición",     id: "Ekspedisi" },
   "ft.choose":      { en: "Choose your Legacy", es: "Elige tu legado", id: "Pilih Warisan Anda" },
-  "ft.terms":       { en: "Terms &amp; Conditions", es: "Términos y Condiciones", id: "Syarat &amp; Ketentuan" },
+  "ft.terms":       { en: "Terms & Conditions", es: "Términos y Condiciones", id: "Syarat & Ketentuan" },
   "ft.privacy":     { en: "Privacy Policy",  es: "Política de Privacidad", id: "Kebijakan Privasi" },
   "ft.cookies":     { en: "Cookie Settings", es: "Preferencias de cookies", id: "Pengaturan Cookie" },
 
