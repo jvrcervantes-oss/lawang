@@ -1660,7 +1660,7 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   function etiqueta(t, i) {
     if (navLbl.textContent === t) return;
     var dir = i === navIdx ? 0 : i > navIdx ? 1 : -1, viejo = navLbl, nuevo = document.createElement('span'); navIdx = i;
-    nuevo.textContent = t; navLbl = nuevo;
+    nuevo.textContent = t; navLbl = nuevo; viejo.setAttribute('aria-hidden', 'true');  // el lector de pantalla solo lee la nueva
     [].slice.call(navTxt.children).forEach(function (c) { if (c !== viejo) c.remove(); });
     var quita = function () { if (viejo.parentNode) viejo.remove(); };
     navTxt.appendChild(nuevo);
