@@ -7512,6 +7512,8 @@
             .eq('proyecto_id', proy.id)
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudieron leer las parcelas: ' + rs[0].error.message, '#93000a');
+          // Sin el avance, todos los tramos salían «sin empezar» y se proponía la primera fase: la base lo rechaza tarde.
+          if (rs[1].error) return aviso('No se pudo leer el avance de la obra: ' + rs[1].error.message, '#93000a');
           var uds = rs[0].data || [], prog = rs[1].data || [];
 
           // Cubos reales del proyecto. Una parcela sin fase o sin zona queda
