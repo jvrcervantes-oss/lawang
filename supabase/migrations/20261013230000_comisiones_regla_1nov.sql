@@ -27,8 +27,8 @@
 --  * MONEDA (consulta de Administración, 13-oct-2026): bases y cobros se cuentan SOLO en la moneda de la raíz (un
 --    contrato o un recibí en otra moneda no suma). Si la familia tiene contratos firmados (no liberados) en más de una
 --    moneda, _comisiones_bases_firmadas lo marca (multimoneda) y el motor y el reconciliador NO tocan los tramos con base
---    o disparo «firmado» de esa raíz (raise warning con la raíz; no hay patrón ultimo_error en el motor: el aviso queda
---    en el log de Postgres). Medido 13-oct: 0 familias multimoneda, 0 recibís en moneda distinta de su contrato → no
+--    o disparo «firmado» de esa raíz (raise warning con la raíz; el motor lo deja además en
+--    comisiones_interruptor.ultimo_error, que ya vigila salud_lawang.py, y comisiones_1nov_imputacion.sql saca la fila). Medido 13-oct: 0 familias multimoneda, 0 recibís en moneda distinta de su contrato → no
 --    cambia ningún número.
 --  * Disparos nuevos pct_cobrado_suelo_firmado / pct_cobrado_obra_firmada: denominador = la base firmada de esa parte;
 --    numerador = lo cobrado imputado con «PRIMERO PARCELA, LUEGO OBRA» (owner, 13-oct-2026, decisión cerrada, tras medir
@@ -468,6 +468,7 @@ declare
   v_cob_dir_obra         numeric := 0;
   v_cob_cartas           numeric := 0;
   v_multimoneda          boolean := false;
+  v_mm_avisado           boolean := false;
   v_closer_email         text;
   v_fecha_venta          date;
   v_equipo_id            uuid;
@@ -843,6 +844,15 @@ begin
       if v_multimoneda and (v_base_ef in ('precio_suelo_firmado', 'precio_obra_firmada')
                             or v_tramo.disparador_tipo in ('pct_cobrado_suelo_firmado', 'pct_cobrado_obra_firmada')) then
         raise warning 'comisiones_evaluar_contrato: la venta (raiz %) tiene contratos firmados en mas de una moneda; el tramo % de la condicion % no devenga', v_raiz_id, v_tramo.orden, v_condicion.id;
+        -- y queda donde ya mira salud_lawang.py («ningun recalculo de comisiones ha fallado en silencio»): un warning
+        -- solo llega al log de Postgres
+        if not v_mm_avisado then
+          update public.comisiones_interruptor
+             set ultimo_error = 'venta en mas de una moneda: sus tramos de parcela/obra firmada no devengan (raiz ' || v_raiz_id || ')',
+                 ultimo_error_en = now()
+           where id;
+          v_mm_avisado := true;
+        end if;
         continue;
       end if;
 

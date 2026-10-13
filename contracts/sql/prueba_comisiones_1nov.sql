@@ -25,7 +25,8 @@
 -- Condiciones sucesoras del equipo (lawang): manager c0a11010-…-04 (10 %), closer genérico c0a11010-…-03 (2,5 %,
 -- plantilla del SM: closer 25 %).
 -- condicion_tramos_reemplaza se quitó en la migración (sin llamador): G1/G3 ya iban por condicion_comision_guarda, la
--- RPC real de la pantalla. F8b (plantilla con distinto nº de tramos), AD (adenda en obra) y M1/M2 (moneda) se añadieron
+-- RPC real de la pantalla. F8b (plantilla con distinto nº de tramos), R7 (recorte del snapshot), AD (adenda en obra) y
+-- M1/M2 (moneda) se añadieron
 -- el 13-oct tras la revisión de código y la consulta de Administración.
 do $$
 declare
@@ -370,6 +371,36 @@ begin
          || case when sqlerrm = 'R:1/2 closer:1:25.00,closer:2:25.00' then ' ok; ' else ' FALLO; ' end;
   end;
 
+  -- R7 · (revisión 13-oct, hallazgo 7) comisiones_reparto_datos recorta en el SERVIDOR las 7 cifras nuevas del snapshot a
+  --      quien no ve la operación completa: el closer (santidavidse, agente) ve sus 2 devengos sin ninguna; el super
+  --      admin los ve con ellas. El motor corre con los usuarios desactivados (montaje: sin solicitud, sin serie) y
+  --      DESPUÉS se reactivan solo esos dos; el equipo deja ver la comisión a sus closers (closers_ven_comision).
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.contrato_closer set closer_email = 'santidavidse@gmail.com' where contrato_id = v_raiz;
+    update public.contratos set precio_total = 36000 where id = v_cc85;
+    execute 'set local session_replication_role = origin';
+    perform public.comisiones_evaluar_contrato(v_raiz);
+    execute 'set local session_replication_role = replica';
+    update public.usuarios set activo = true where lower(email) in ('santidavidse@gmail.com', lower(v_adm.email));
+    update public.equipos_venta set closers_ven_comision = true where id = v_gus;
+    execute 'set local session_replication_role = origin';
+    select u.user_id, u.email into v_sm from public.usuarios u where lower(u.email) = 'santidavidse@gmail.com';
+    perform set_config('request.jwt.claims', json_build_object('sub', v_sm.user_id, 'email', v_sm.email, 'role', 'authenticated')::text, true);
+    set local role authenticated;
+    select 'closer n=' || count(*) || ' con_cifras=' || count(*) filter (where (e->'disparado_por_snapshot') ?| array['precio_suelo_firmado',
+             'precio_obra_firmada', 'cobrado_suelo_firmado', 'cobrado_obra_firmada', 'cobrado_directo_suelo', 'cobrado_directo_obra', 'cobrado_cartas'])
+      into v_t from jsonb_array_elements(public.comisiones_reparto_datos()->'devengadas') e where e->>'contrato_raiz_id' = v_raiz::text;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_adm.user_id, 'email', v_adm.email, 'role', 'authenticated')::text, true);
+    select v_t || ' | admin n=' || count(*) || ' con_cifras=' || count(*) filter (where (e->'disparado_por_snapshot') ?& array['precio_suelo_firmado',
+             'precio_obra_firmada', 'cobrado_suelo_firmado', 'cobrado_obra_firmada', 'cobrado_directo_suelo', 'cobrado_directo_obra', 'cobrado_cartas'])
+      into v_t from jsonb_array_elements(public.comisiones_reparto_datos()->'devengadas') e where e->>'contrato_raiz_id' = v_raiz::text;
+    raise exception 'R:%', v_t;
+  exception when others then
+    r := r || 'R7 snapshot recortado en servidor=' || sqlerrm
+         || case when sqlerrm = 'R:closer n=2 con_cifras=0 | admin n=2 con_cifras=2' then ' ok; ' else ' FALLO; ' end;
+  end;
+
   -- AD · (consulta de Administración, 13-oct) una ADENDA con precio cuenta en la base de OBRA aunque su tipo diga
   --      es_obra = false: CC00084 pasa a tipo 'adenda' → mismas bases que B (con la clasificación por es_obra saldría
   --      103000/44000: la adenda en la parcela).
@@ -407,10 +438,11 @@ begin
            || ' multi=' || b.multimoneda into v_t
       from public._comisiones_bases_firmadas(v_raiz) b;
     perform public.comisiones_evaluar_contrato(v_raiz);
-    raise exception 'R:%|%', v_t, (select count(*) from public.comisiones_devengadas where contrato_raiz_id = v_raiz);
+    raise exception 'R:%|%|aviso=%', v_t, (select count(*) from public.comisiones_devengadas where contrato_raiz_id = v_raiz),
+      (select coalesce(ultimo_error like 'venta en mas de una moneda%' || v_raiz || ')', false) from public.comisiones_interruptor);
   exception when others then
     r := r || 'M2 contrato firmado en otra moneda=' || sqlerrm
-         || case when sqlerrm = 'R:59000/44000 cob 29500/0 multi=true|0' then ' ok; ' else ' FALLO; ' end;
+         || case when sqlerrm = 'R:59000/44000 cob 29500/0 multi=true|0|aviso=true' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- C · «PRIMERO PARCELA, LUEGO OBRA» (owner, 13-oct-2026). Cada caso compara las 7 cifras de _comisiones_bases_firmadas
