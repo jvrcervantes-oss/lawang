@@ -150,7 +150,7 @@ $$;
 revoke all on function public._editor_ia_huella_redaccion(jsonb, text) from public, anon, authenticated, service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────────────────────── reserva (antes de llamar al proveedor)
--- Misma lógica que editor_ia_reserva (20261013220000), para la tabla hermana. Diferencias:
+-- Misma lógica que editor_ia_reserva (20261013062302), para la tabla hermana. Diferencias:
 --   · redacta reserva SU peor caso y APARTA además el de sus dos traducciones (reserva_traduccion_usd): solo empieza si cabe la creación
 --     ENTERA (redacta + 2 × redacta_traduce), y lo que cabía sigue apartado hasta que las traducciones lo usan. Dos redacciones a la vez
 --     cerca del tope ya no pasan las dos para luego no poder traducirse (revisión de código 13-oct, sobre la revisión de diseño).
@@ -288,7 +288,7 @@ revoke all on function public.editor_ia_redaccion_paso(uuid, text, text, integer
 grant execute on function public.editor_ia_redaccion_paso(uuid, text, text, integer, integer, integer, text) to service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────────────────────── estado (pantalla del editor)
--- Misma firma y forma que 20261013220000; añade redacta, redacta_traduce y «redacta_completo» (a + 2 × b, lo que cuesta como mucho crear un
+-- Misma firma y forma que 20261013062302; añade redacta, redacta_traduce y «redacta_completo» (a + 2 × b, lo que cuesta como mucho crear un
 -- contrato desde una frase) a coste_max / precio_max / puede, y «facturado_usd» suma la tabla hermana.
 create or replace function public.editor_ia_estado(p_empresa text) returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare
@@ -729,7 +729,7 @@ revoke all on function public.plantilla_contrato_crea_desde_asistente(text, uuid
 grant execute on function public.plantilla_contrato_crea_desde_asistente(text, uuid, jsonb, boolean, boolean) to authenticated;
 
 -- ─────────────────────────────────────────────────────────────────────────────────────────────── editor_ia_reserva: el tope por minuto, con las dos tablas
--- La reserva del editor (20261013220000) contaba solo editor_ia_uso: 5 redacciones + 6 propuestas en un minuto pasaban (revisión de código
+-- La reserva del editor (20261013062302) contaba solo editor_ia_uso: 5 redacciones + 6 propuestas en un minuto pasaban (revisión de código
 -- 13-oct). Se parchea SU línea, no se reescribe la función: se cambia una línea marcada que tiene que estar exactamente una vez (si no,
 -- la migración para). Vuelta atrás: la misma sustitución al revés (supabase/reversion_editor_ia/vuelta_atras_redacta.sql).
 do $parche$

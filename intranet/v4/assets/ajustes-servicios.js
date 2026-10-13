@@ -1,5 +1,5 @@
 /* Ajustes → «Servicios de AxisWorks» (AXW-104, decisión del owner 13-oct-2026). Primer servicio de pago: el asistente de IA del editor
- * de textos de contrato. Encargo agencia encargos/20261008_lawang_editor_textos_contrato.md (E11). Migración 20261013210000.
+ * de textos de contrato. Encargo agencia encargos/20261008_lawang_editor_textos_contrato.md (E11). Migración 20261013060136.
  *
  * Qué hace esta pieza (y solo esto), solo para el super administrador GLOBAL (el estudio):
  *  · margen % sobre el coste real del proveedor, tope por defecto por empresa, tope de toda la intranet, aviso %, y las tarifas del

@@ -277,7 +277,7 @@ export function validaTraduccion(d, es, claves) {
   }
   return { clausulas: out };
 }
-// Texto canónico de la huella: el MISMO que _editor_ia_huella_redaccion de la base (migración 20261013235000). Español = campos + FS +
+// Texto canónico de la huella: el MISMO que _editor_ia_huella_redaccion de la base (migración 20261013073950). Español = campos + FS +
 // cláusulas; inglés/indonesio (campos = null) = solo las cláusulas. US/RS/GS/FS: ningún texto aceptado lleva caracteres de control.
 const US = '\u001f', RS = '\u001e', GS = '\u001d', FS = '\u001c';
 export function textoHuella(campos, clausulas) {

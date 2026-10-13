@@ -2,7 +2,7 @@
 -- «Servicios de AxisWorks» (AXW-104), primera pieza: el asistente de IA del editor de textos de contrato pasa a COSTE + MARGEN, con tope
 -- en dólares por empresa, interruptor de impago y extracto mensual. Encargo agencia encargos/20261008_lawang_editor_textos_contrato.md.
 --
--- DECISIONES DEL OWNER (13-oct-2026, por opciones; sustituyen el modelo de créditos de 20261013000000, construido ayer y nunca usado):
+-- DECISIONES DEL OWNER (13-oct-2026, por opciones; sustituyen el modelo de créditos de 20261013020822, construido ayer y nunca usado):
 --   «No es gratis, lo pago yo y luego se lo cobro. Con tope, dijimos de en Ajustes ponerle ciertas herramientas de pago mediante IA».
 --   1. Precio = coste real del proveedor + margen fijo en %, que el owner pone en Ajustes (aquí nace VACÍO: sin margen no arranca).
 --   2. Cobro = en la factura mensual de mantenimiento; el ERP lleva contador y extracto mensual por empresa (coste, margen, total). Sin Stripe.
@@ -424,9 +424,9 @@ on conflict (empresa) do update set encendido = true, actualizado_por = excluded
 insert into public.servicios_axisworks_log (ambito, antes, despues, motivo, autor)
 values ('instancia', null, jsonb_build_object('margen_pct', null, 'tope_usd_defecto', 20, 'tope_instancia_usd', 20, 'aviso_pct', 80,
                                                'tarifa_entrada_usd_mtok', 4, 'tarifa_salida_usd_mtok', 20, 'tarifa_deepl_usd_mcar', null),
-        'Decisión del owner 13-oct: coste + margen, tope 20 USD/mes por empresa, aviso al 80 %; margen pendiente de que lo ponga él', 'estudio (migración 20261013210000)'),
+        'Decisión del owner 13-oct: coste + margen, tope 20 USD/mes por empresa, aviso al 80 %; margen pendiente de que lo ponga él', 'estudio (migración 20261013060136)'),
        ('lawang', null, jsonb_build_object('editor_ia', true, 'suspendido', false, 'tope_usd', null),
-        'Decisión del owner 13-oct: encendido solo para Lawang', 'estudio (migración 20261013210000)');
+        'Decisión del owner 13-oct: encendido solo para Lawang', 'estudio (migración 20261013060136)');
 
 do $comprueba$
 begin

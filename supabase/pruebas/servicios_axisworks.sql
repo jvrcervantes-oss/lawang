@@ -1,4 +1,4 @@
--- Prueba por PERFILES de «Servicios de AxisWorks» y el asistente IA a coste + margen (migraciones 20261013210000 y 20261013220000, 13-oct-2026).
+-- Prueba por PERFILES de «Servicios de AxisWorks» y el asistente IA a coste + margen (migraciones 20261013060136 y 20261013062302, 13-oct-2026).
 -- Sustituye a supabase/pruebas/editor_ia.sql (modelo de créditos, retirado). Conserva sus casos de permisos y de «sin texto».
 -- destructivo-ok: prueba en transacción que termina en raise (rollback); no se borra nada.
 -- Veredicto en el mensaje «FALLOS=0 de N casos | …». Solo cuentas y códigos: ningún dato personal ni texto de contrato.

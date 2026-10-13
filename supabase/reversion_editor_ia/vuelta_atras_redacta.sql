@@ -1,4 +1,4 @@
--- destructivo-ok: VUELTA ATRÁS de 20261013235000_editor_ia_redacta.sql (E10, «contrato entero desde una frase»), 13-oct-2026.
+-- destructivo-ok: VUELTA ATRÁS de 20261013073950_editor_ia_redacta.sql (E10, «contrato entero desde una frase»), 13-oct-2026.
 -- Solo a mano, con OK del owner y su válvula (tools/no_destruir.py), y con copia previa:
 --   python erp/respaldo_instancia.py lawang --previa "antes de revertir E10 contrato desde una frase"
 --
@@ -13,9 +13,9 @@
 --   1. Ejecutar TODO el bloque begin…commit de abajo de una vez. Dentro, en el hueco marcado (a), pegar las versiones anteriores de las
 --      funciones que la migración sustituyó, copiadas de su migración y cambiando `create function` por `create or replace function`
 --      (dos de ellas se crearon con `create function` y darían «ya existe»):
---        _editor_ia_peso(editor_ia_uso)                    20261013230000_servicios_axisworks_reserva_colgada.sql
---        _servicios_gasto_mes, _editor_ia_caduca           20261013210000_servicios_axisworks_editor_ia.sql
---        editor_ia_estado, servicios_axisworks_datos       20261013220000_servicios_axisworks_correcciones.sql
+--        _editor_ia_peso(editor_ia_uso)                    20261013063935_servicios_axisworks_reserva_colgada.sql
+--        _servicios_gasto_mes, _editor_ia_caduca           20261013060136_servicios_axisworks_editor_ia.sql
+--        editor_ia_estado, servicios_axisworks_datos       20261013062302_servicios_axisworks_correcciones.sql
 --        _plantilla_esqueleto_en_blanco                    20261010030000_f2_editor_e9_contrato_nuevo.sql
 --      Si se olvida pegarlas, la guarda de después para el bloque entero (rollback) sin borrar nada.
 -- Las filas de editor_ia_redaccion son parte del extracto que se factura (importe, quién aceptó): con filas, el bloque PARA. Exportar el

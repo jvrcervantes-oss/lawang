@@ -1,4 +1,4 @@
--- E10, consulta de Datos del 13-oct-2026 sobre 20261013235000_editor_ia_redacta.sql: dos ajustes, solo construye (create or replace
+-- E10, consulta de Datos del 13-oct-2026 sobre 20261013073950_editor_ia_redacta.sql: dos ajustes, solo construye (create or replace
 -- de dos funciones ya existentes, misma firma; los permisos se conservan).
 --  1. plantilla_contrato_crea_desde_asistente: la lista CTRL de la base no traía U+061C (marca de letra árabe) ni U+180E (separador
 --     mongol), que la función editor-ia sí rechaza (RE_BASE_NO de motor.js). El nombre del contrato es el único texto que la base recibe

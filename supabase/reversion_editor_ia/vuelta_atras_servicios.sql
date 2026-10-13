@@ -1,4 +1,4 @@
--- destructivo-ok: VUELTA ATRÁS de 20261013210000_servicios_axisworks_editor_ia.sql («Servicios de AxisWorks», coste + margen).
+-- destructivo-ok: VUELTA ATRÁS de 20261013060136_servicios_axisworks_editor_ia.sql («Servicios de AxisWorks», coste + margen).
 -- Solo a mano, con OK del owner y su válvula (tools/no_destruir.py), y con copia previa:
 --   python erp/respaldo_instancia.py lawang --previa "antes de revertir servicios de AxisWorks"
 --
@@ -11,8 +11,8 @@
 -- retirar el asistente entero: este fichero y después vuelta_atras.sql (que quita todo lo editor_ia_*). Antes: retirar la edge
 -- (supabase functions delete editor-ia) y la pestaña de Ajustes (ajustes-servicios.js) y textos-contrato-ia.js de la pantalla.
 begin;
-drop function if exists public.editor_ia_rechazada(uuid, integer);            -- 20261013220000
-drop function if exists public._editor_ia_falta_clave(text);                -- 20261013220000
+drop function if exists public.editor_ia_rechazada(uuid, integer);            -- 20261013062302
+drop function if exists public._editor_ia_falta_clave(text);                -- 20261013062302
 drop function if exists public.servicios_axisworks_guarda(text, jsonb, text);
 drop function if exists public.servicios_axisworks_datos();
 drop function if exists public._servicios_tope_empresa(text);

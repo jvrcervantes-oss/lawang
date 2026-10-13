@@ -18,7 +18,7 @@ const leer = (...r) => fs.readFileSync(path.join(RAIZ, ...r), 'utf8');
 const js = leer('intranet', 'v4', 'assets', 'textos-contrato-redacta.js');
 const tc = leer('intranet', 'v4', 'assets', 'textos-contrato.js');
 const html = leer('intranet', 'v4', 'textos-contrato', 'index.html');
-const mig = leer('supabase', 'migrations', '20261013235000_editor_ia_redacta.sql');
+const mig = leer('supabase', 'migrations', '20261013073950_editor_ia_redacta.sql');
 const motor = leer('supabase', 'functions', 'editor-ia', 'motor.js');
 
 /* ── RPC y frontera ── */
