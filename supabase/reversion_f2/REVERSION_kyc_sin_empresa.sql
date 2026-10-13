@@ -3,6 +3,7 @@
 -- Deja cliente_visible y _cliente_en_empresas con el texto de 20261013154339 (lo que no tiene empresa vuelve a contar como «de fuera» para VER,
 -- y la condicion vuelve a empresa_de_contrato/empresa_de_factura por fila: ~225 ms en vez de ~97 ms en clients para un admin de empresa).
 -- NO reabre la fuga KYC entre empresas (esa vuelta atras es REVERSION_kyc_entre_empresas.sql, solo con OK del owner).
+-- Ensayada el 14-oct en transaccion con rollback sobre la base real: compila, el caso «cse» de f2_b3 vuelve a 0 / false y los permisos no cambian.
 -- destructivo-ok: solo reemplaza 2 funciones (mismo tipo de retorno); no toca datos ni tablas
 
 create or replace function public.cliente_visible(p_propietario text, p_client_id uuid)
