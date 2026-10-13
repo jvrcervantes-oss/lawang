@@ -94,6 +94,16 @@ ok(/bloque\('Español', avisoDoc\.es\) \+ bloque\('English', avisoDoc\.en\) \+ b
 ok(/aviso_documento_alta: Object\.freeze\(\{\n\s+es: 'Aviso sobre sus datos\./.test(inst) && /\n\s+en: 'About your data\./.test(inst) && /\n\s+id: 'Tentang data Anda\./.test(inst),
    'instancia.js: el aviso de Lawang en es/en/id');
 ok(!/balian/i.test(inst), 'instancia.js: sin el rastro que aborta el build de instancia');
+// LAW-558 (Legal, 13-oct): los meses que promete el aviso son los que siembra la base; si alguien cambia uno, este test
+// obliga a cambiar el otro (y a que Legal relea el aviso).
+{ const mig = leer('supabase', 'migrations', '20261013230000_law557_558_alta_con_documento_y_retencion_kyc.sql');
+  const m = /values \('kyc_meses_retencion', '(\d+)'::jsonb/.exec(mig);
+  ok(m, 'la migración siembra kyc_meses_retencion');
+  const aviso = inst.slice(inst.indexOf('aviso_documento_alta: Object.freeze({'), inst.indexOf('})', inst.indexOf('aviso_documento_alta: Object.freeze({')));
+  ok(aviso.indexOf('pasan ' + m[1] + ' meses') > 0 && aviso.indexOf(m[1] + ' months pass') > 0 && aviso.indexOf(m[1] + ' bulan berlalu') > 0,
+     'el aviso (es/en/id) dice los mismos meses que siembra la base (' + m[1] + ')');
+  ok(/la copia no se borra automáticamente/.test(aviso) && /the copy is not deleted automatically/.test(aviso) && /salinan tidak dihapus secara otomatis/.test(aviso),
+     'el aviso cubre el caso en que hay registros y no se borra (Legal, 13-oct)'); }
 ok(!/lawangproperties|Lawang Properties/.test(ed.slice(ed.indexOf('function abreAltaComprador() {'), ed.indexOf('/* EDITAR una ficha, desde su cajon'))), 'alta: el nombre y el correo del cliente no viven en editores.js');
 
 // ── Interruptores y textos ──────────────────────────────────────────────────────────────────────────────────────────
