@@ -28,8 +28,22 @@
       'Palm Field W5': '/investor-deck/masterplan/palmfield.json',  // tiene masterplan y qué fichero pinta (los MISMOS
       'Sumba Hills': '/investor-deck/masterplan/sumbahills.json'    // .json que usan los investor decks)
     }),
-    proyectos_con_fases: Object.freeze(['Sumba Hills'])          // proyectos cuyas unidades llevan fase/zona de masterplan
+    proyectos_con_fases: Object.freeze(['Sumba Hills']),         // proyectos cuyas unidades llevan fase/zona de masterplan
                                                                  // (editores.js: «Nueva unidad» y «Editar unidad» las piden)
+    alta_exige_documento: true,                                  // el alta de cliente pide la foto del pasaporte (o el
+                                                                 // documento de la empresa) y la sube al archivo KYC
+                                                                 // (13-oct-2026, petición del cliente). Sin la clave: alta de siempre
+    recibi_confirma_llegada: true,                               // antes de emitir un recibí, «¿ha llegado ya el dinero?»
+                                                                 // (13-oct-2026, petición del cliente). Sin la clave: no pregunta
+    // Aviso al titular en el momento de recoger la copia del pasaporte (Legal, revisión previa del 13-oct-2026: es la
+    // condición para pedirla en el alta). Lo enseña el agente desde el alta («Aviso de privacidad para el cliente»).
+    // Dice solo lo que es verdad hoy: sin plazo de borrado con cifra ni registro de accesos (LAW-349). Es dato de este
+    // cliente (sociedad, correo), por eso vive aquí y no en editores.js.
+    aviso_documento_alta: Object.freeze({
+      es: 'Aviso sobre sus datos. La sociedad de Lawang Properties que firme su reserva o contrato es responsable de la copia de su pasaporte (o del documento de su sociedad). La usamos para identificarle antes de la compraventa, como exige la normativa indonesia contra el blanqueo, y para preparar el contrato. Se guarda en un archivo privado al que solo accede el personal que gestiona su operación, y el notario o las autoridades cuando la ley lo exija. Si firma, la conservamos el plazo legal; si no, la borramos cuando deje de ser necesaria o cuando nos lo pida. Para acceder, rectificar, suprimir u oponerse: sales@lawangproperties.com.',
+      en: 'About your data. The Lawang Properties company that signs your reservation or contract is responsible for the copy of your passport (or your company\'s identification document). We use it to verify your identity before the sale, as Indonesian anti-money-laundering rules require, and to prepare the contract. It is kept in a private archive that only the staff handling your purchase can access, and the notary or authorities where the law requires. If you sign, we keep it for the legally required period; if not, we delete it once it is no longer needed or when you ask. To access, correct, delete it or object: sales@lawangproperties.com.',
+      id: 'Tentang data Anda. Perusahaan Lawang Properties yang menandatangani reservasi atau kontrak Anda bertanggung jawab atas salinan paspor Anda (atau dokumen identitas perusahaan Anda). Kami menggunakannya untuk memverifikasi identitas Anda sebelum jual beli, sesuai peraturan anti pencucian uang Indonesia, dan untuk menyiapkan kontrak. Salinan disimpan di arsip privat yang hanya dapat diakses staf yang menangani transaksi Anda, serta notaris atau otoritas bila diwajibkan hukum. Jika Anda menandatangani, kami menyimpannya selama jangka waktu yang diwajibkan hukum; jika tidak, kami menghapusnya bila tidak diperlukan lagi atau atas permintaan Anda. Untuk mengakses, memperbaiki, menghapus, atau menolak pemrosesan: sales@lawangproperties.com.'
+    })
   });
   try { Object.defineProperty(window, 'LW_INSTANCIA', { value: ficha, writable: false, configurable: false, enumerable: true }); }
   catch (e) { /* cargado dos veces: la primera ya fijó la misma ficha */ }
