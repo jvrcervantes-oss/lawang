@@ -244,7 +244,9 @@ Deno.serve(async (req) => {
         .select('fields:datos->fields, extras:datos->compradores').eq('id', v.contrato_id).single();
       if (eCt || !fila_ct) throw new Error('no se pudo leer el contrato: ' + (eCt?.message ?? 'sin fila'));
       const f = (fila_ct as any).fields || {};
-      const moneda = f.moneda || ct.moneda || 'EUR';
+      // La moneda es la de la COLUMNA del contrato (LAW-553, 13-oct): antes ganaba datos.fields.moneda, y en 2 contratos
+      // los dos no coinciden. La base la vuelve a exigir (trg_01_moneda_del_contrato) y para el documento si no cuadra.
+      const moneda = ct.moneda || f.moneda || 'EUR';
       const compradores = C.compradoresDeContrato(f, (fila_ct as any).extras);
       const descripcion = (v.descripcion || 'Hito ' + v.orden)
         + (yo.cubierto ? ' (parte ya entregada a cuenta: descontada)' : '')
