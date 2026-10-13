@@ -155,7 +155,8 @@ begin
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_redaccion_reserva(%L, %L, null, null, null)', v_ea, 'redacta'));
   total := total + 1; if j ? 'error' or r <> 'EP0001/tope_empresa' then
     fallos := fallos + 1; resumen := resumen || ' [T3 dos redacciones con hueco para una: ' || coalesce(j::text, 'null') || ' / ' || r || ']'; end if;
-  delete from public.editor_ia_redaccion where id = (j ->> 'uso')::uuid;
+  -- (se cierra como fallo sin enviar: deja de pesar; sin DELETE, que no_destruir.py para aunque sea dentro de la prueba)
+  update public.editor_ia_redaccion set estado = 'fallo', cerrada_en = now() where id = (j ->> 'uso')::uuid;
   update public.servicios_axisworks_empresa set tope_usd = null where empresa = v_ea;
 
   -- ═════════ R. PASO (a): redacta ═════════
@@ -269,7 +270,7 @@ begin
   -- facturado = 0,085 (a) + 2 × (1500 × 4 + 2500 × 20) / 1e6 × 1,25 = 0,085 + 2 × 0,07 = 0,225
   total := total + 1; if (j ->> 'facturado_usd')::numeric <> 0.23 then fallos := fallos + 1; resumen := resumen || ' [D1 facturado del mes: ' || coalesce(j ->> 'facturado_usd', 'null') || ']'; end if;
   j := pg_temp.pide('authenticated', v_sup, v_sup_em, 'select public.servicios_axisworks_datos()');
-  total := total + 1; if not exists (select 1 from jsonb_array_elements(j -> 'extracto') e where e ->> 'empresa' = v_ea and (e ->> 'redacciones')::int = 1
+  total := total + 1; if not exists (select 1 from jsonb_array_elements(j -> 'extracto') e where e ->> 'empresa' = v_ea and (e ->> 'redacciones')::int = 2   -- la de T3 (cerrada como fallo) y la de R1
                                        and (e ->> 'aceptadas')::int = 1 and (e ->> 'total_sin_impuestos_usd')::numeric >= 0.22) then
     fallos := fallos + 1; resumen := resumen || ' [D2 extracto: ' || left(coalesce((j -> 'extracto')::text, 'null'), 300) || ']'; end if;
   n := public._servicios_gasto_mes(v_ea, public._editor_ia_periodo());

@@ -9,6 +9,9 @@
 //   EDITOR_IA_DEEPL_KEY       clave de DeepL de la API de PAGO (Pro). Una de la cuenta gratuita (termina en «:fx») se trata como
 //                             si no hubiera clave: la gratuita no garantiza no guardar ni entrenar con el texto.
 // La clave de servicio se usa SOLO para auth.getUser, editor_ia_enviada, editor_ia_cierra y editor_ia_rechazada (el proveedor contestó con error: coste 0); nunca para el texto del contrato.
+// E10 (13-oct-2026): acciones «redacta» y «redacta_traduce» (contrato entero desde una frase). Reservan con la sesión de la persona
+// (editor_ia_redaccion_reserva) y la clave de servicio solo marca sus pasos (editor_ia_redaccion_paso); el contrato lo crea la persona
+// con plantilla_contrato_crea_desde_asistente, nunca esta función.
 // verify_jwt = true en config.toml (como asistente-peticiones); dentro se vuelve a comprobar la sesión (getUser) y el rol (RPC).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { crea } from './motor.js';
