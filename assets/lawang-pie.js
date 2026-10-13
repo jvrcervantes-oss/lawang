@@ -161,12 +161,182 @@
     }
   }
 
-  if (!document.getElementById('lwpie-css')) {
-    var st = document.createElement('style');
-    st.id = 'lwpie-css';
-    st.textContent = CSS;
-    document.head.appendChild(st);
+  /* ═══════════════════════════════════════════════════════════════════════════
+     VARIANTE «home» — el pie de la home, para las páginas del menú   13-oct-2026
+     ═══════════════════════════════════════════════════════════════════════════
+     Pedido del owner: The Land / The Villas (/thecollection y sus fichas), The Soul y
+     The Portfolio llevan EL MISMO pie que la home. Antes había tres: el de la home
+     escrito a mano en index.html, una copia en portfolio-app.js que ya se había
+     desviado (el 13-oct se corrigieron los enlaces de Company en la home y la copia
+     siguió con los viejos) y el pie de contacto de arriba en /thesoul y /portfolio.
+     Ahora la home también lo pinta desde aquí: una sola fuente.
+
+     USO.
+       <footer data-lw-pie="home" [data-cookies]>            ← páginas estáticas
+         <span data-pie-nota>Aviso propio (opcional)</span>
+       </footer>
+       <script src="/assets/lawang-pie.js?v=..."></script>   ← justo después, SIN defer
+       · data-sin-fondo  sin fondo ni tótem: en la home los pone section.lw-contact.
+       · data-cookies    pinta «Cookie Settings» (solo donde se carga consent.js).
+       · [data-pie-nota] se conserva tal cual (nodo incluido) bajo la barra de abajo.
+     En plantillas que se repintan (portfolio-app.js): window.lwPieHome({cookies:true})
+     devuelve el <footer> como cadena.
+
+     CSS con prefijo propio (.lwh) y su propia tipografía: /thesoul llama 'NK' a la
+     Neue Kabel en .woff2 y /thecollection tiene reglas sueltas .lw-ft-*; con los mismos
+     .otf que la home el pie mide igual en las cuatro (interlineado 1.6, el que el pie hereda en la home de su sección). */
+  var TH = {
+    tag:   { en: 'Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.',
+             es: 'Inversión, estructuración y desarrollo de activos estratégicos en Indonesia. Bali · Sumba.',
+             id: 'Investasi, penataan struktur, dan pengembangan aset strategis di Indonesia. Bali · Sumba.' },
+    hPort: { en: 'Portfolio', es: 'Portafolio', id: 'Portofolio' },
+    hComp: { en: 'Company',   es: 'Compañía',   id: 'Perusahaan' },
+    hDiv:  { en: 'Divisions', es: 'Divisiones', id: 'Divisi' },
+    signature:  { en: 'Signature', es: 'Signature', id: 'Signature' },
+    land:       { en: 'Land',      es: 'Terrenos',  id: 'Tanah' },
+    villas:     { en: 'Villas',    es: 'Villas',    id: 'Villa' },
+    resorts:    { en: 'Resorts',   es: 'Resorts',   id: 'Resort' },
+    soul:       { en: 'The Soul',       es: 'La Esencia',    id: 'Jiwa' },
+    whatwedo:   { en: 'What We Do',     es: 'Qué hacemos',   id: 'Apa yang Kami Lakukan' },
+    expedition: { en: 'The Expedition', es: 'La Expedición', id: 'Ekspedisi' },
+    choose:     { en: 'Choose your Legacy', es: 'Elige tu legado', id: 'Pilih Warisan Anda' },
+    terms:      { en: 'Terms & Conditions', es: 'Términos y Condiciones', id: 'Syarat & Ketentuan' },
+    privacy:    { en: 'Privacy Policy',  es: 'Política de Privacidad', id: 'Kebijakan Privasi' },
+    cookies:    { en: 'Cookie Settings', es: 'Preferencias de cookies', id: 'Pengaturan Cookie' },
+    access:     { en: 'Accessibility',   es: 'Accesibilidad',  id: 'Aksesibilitas' }
+  };
+  function th(k, lang) { var e = TH[k]; return e[lang] || e.en; }
+
+  var F = '/assets/fonts/NeueKabel-';
+  var CSS_HOME =
+    "@font-face{font-family:'LWH Kabel';src:url('" + F + "Book.otf') format('opentype');font-weight:400;font-display:swap}" +
+    "@font-face{font-family:'LWH Kabel';src:url('" + F + "Regular.otf') format('opentype');font-weight:450;font-display:swap}" +
+    "@font-face{font-family:'LWH Kabel';src:url('" + F + "Medium.otf') format('opentype');font-weight:500;font-display:swap}" +
+    "@font-face{font-family:'LWH Kabel';src:url('" + F + "Bold.otf') format('opentype');font-weight:700;font-display:swap}" +
+    '.lwh{--lwh-fs:clamp(12px, 11.65px + 0.09vw, 13px);--lwh-pd:clamp(22px,5vw,72px);display:block;position:relative;z-index:1;' +
+      "overflow:hidden;background:#0A0C09;color:#F5F0E6;font-family:'LWH Kabel','Neue Kabel','Jost',system-ui,sans-serif;" +
+      'font-weight:400;font-size:16px;line-height:1.6;text-align:left;padding-bottom:1.8rem}' +
+    '.lwh.lwh--sinfondo{background:transparent;overflow:visible}' +
+    '.lwh *{box-sizing:border-box}:where(.lwh) h5,:where(.lwh) p{margin:0}' +
+    '.lwh__totem{position:absolute;right:-1%;bottom:0;height:clamp(420px,84vh,760px);width:auto;opacity:.07;pointer-events:none;z-index:0}' +
+    '.lwh__in{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(2.6rem,5vh,3.6rem) var(--lwh-pd) 2rem}' +
+    '.lwh__grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:2.4rem}' +
+    '.lwh__logo{height:34px;width:auto;display:block}' +
+    '.lwh__sub{font-size:var(--lwh-fs);letter-spacing:.3em;text-transform:uppercase;color:#BEB3A5;margin-top:10px}' +
+    '.lwh__tag{font-size:var(--lwh-fs);opacity:.5;line-height:1.7;max-width:34ch;margin-top:14px}' +
+    '.lwh__col h5{font-size:var(--lwh-fs);font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#8F9B7A;margin-bottom:14px}' +
+    '.lwh__col a{display:block;font-size:var(--lwh-fs);color:rgba(245,240,230,.72);margin-bottom:10px;transition:color .2s;text-decoration:none}' +
+    '.lwh__col a:hover{color:#fff}' +
+    '.lwh__bottom{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;position:relative;z-index:1;' +
+      'max-width:1280px;margin:2.2rem auto 0;padding:1.5rem var(--lwh-pd) 0;border-top:1px solid rgba(245,240,230,.1)}' +
+    '.lwh__copy{font-size:var(--lwh-fs);color:rgba(245,240,230,.4);letter-spacing:.04em}' +
+    '.lwh__contact{display:flex;gap:1.6rem;flex-wrap:wrap;align-items:center}' +
+    '.lwh__cti{display:inline-flex;align-items:center;gap:10px;font-size:calc(var(--lwh-fs) * 1.3);color:rgba(245,240,230,.82);' +
+      'text-decoration:none;letter-spacing:.04em;transition:color .2s}' +
+    '.lwh__cti:hover{color:#fff}.lwh__cti svg{width:19.5px;height:19.5px;flex:none;opacity:.9}' +
+    '.lwh__legal{display:flex;gap:1.4rem;flex-wrap:wrap}' +
+    '.lwh__tc{font-size:var(--lwh-fs);font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(245,240,230,.72);' +
+      'text-decoration:none;cursor:pointer;padding:9px 18px;border:1px solid rgba(245,240,230,.22);border-radius:999px;transition:all .25s}' +
+    '.lwh__tc:hover{color:#0A0C09;background:#F5F0E6;border-color:#F5F0E6}' +
+    '.lwh__nota{display:block;position:relative;z-index:1;max-width:1280px;margin:1.2rem auto 0;padding:0 var(--lwh-pd);' +
+      'font-size:var(--lwh-fs);line-height:1.6;color:rgba(245,240,230,.4)}' +
+    '@media(max-width:980px){.lwh__grid{grid-template-columns:1fr 1fr}}' +
+    '@media(max-width:560px){.lwh__grid{grid-template-columns:1fr 1fr;gap:1.6rem 1.2rem}.lwh__grid>div:first-child{grid-column:1/-1}' +
+      '.lwh__in{padding-top:1.6rem;padding-bottom:1rem}.lwh__tag{margin-top:8px}.lwh__col h5{margin-bottom:8px}.lwh__col a{margin-bottom:6px}' +
+      '.lwh__bottom{margin-top:1.2rem;padding-top:1rem;gap:.7rem}.lwh{padding-bottom:1rem}}';
+
+  var SVG_TEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
+  var SVG_MAIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>';
+
+  function cssHome() {
+    if (document.getElementById('lwh-css')) return;
+    var s = document.createElement('style');
+    s.id = 'lwh-css';
+    s.textContent = CSS_HOME;
+    (document.head || document.documentElement).appendChild(s);
   }
-  var pies = document.querySelectorAll('footer[data-lw-pie]');
-  for (var i = 0; i < pies.length; i++) pinta(pies[i]);
+
+  // «Cookie Settings» sin onclick en línea: un solo manejador delegado, que sirve también
+  // al pie que portfolio-app.js repinta.
+  var cookiesEnganchado = false;
+  function enganchaCookies() {
+    if (cookiesEnganchado) return;
+    cookiesEnganchado = true;
+    document.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('[data-lwh-cookies]') : null;
+      if (!a) return;
+      e.preventDefault();
+      if (typeof window.lwConsentReopen === 'function') window.lwConsentReopen();
+    });
+  }
+
+  function interiorHome(o) {
+    var lang = idioma();
+    var legal = lang === 'es' ? '/legal-es' : '/legal';   // el aviso en español es el completo (LAW-247)
+    // En la home «Choose your Legacy» es su propia sección: ancla local; fuera, a la home.
+    var enHome = /^\/(index\.html)?$/.test(location.pathname);
+    function a(href, k) { return '<a href="' + esc(href) + '">' + esc(th(k, lang)) + '</a>'; }
+    function n(href, txt) { return '<a href="' + esc(href) + '">' + esc(txt) + '</a>'; }
+    return (o.sinFondo ? '' : '<img class="lwh__totem" src="/assets/img/tiki-totem.webp" alt="" aria-hidden="true" loading="lazy" draggable="false">') +
+      '<div class="lwh__in"><div class="lwh__grid">' +
+        '<div><img class="lwh__logo" loading="lazy" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">' +
+          '<div class="lwh__sub">Tropical Properties</div>' +
+          '<p class="lwh__tag">' + esc(th('tag', lang)) + '</p></div>' +
+        '<div class="lwh__col"><h5>' + esc(th('hPort', lang)) + '</h5>' +
+          a('/thecollection#signature', 'signature') + a('/thecollection#land', 'land') +
+          a('/thecollection#villas', 'villas') + a('/thecollection#resorts', 'resorts') + '</div>' +
+        '<div class="lwh__col"><h5>' + esc(th('hComp', lang)) + '</h5>' +
+          a('/thesoul', 'soul') + a('/thesoul#who', 'whatwedo') + a('/#expedition', 'expedition') +
+          a(enHome ? '#portfolio' : '/#portfolio', 'choose') + '</div>' +
+        '<div class="lwh__col"><h5>' + esc(th('hDiv', lang)) + '</h5>' +
+          n('/thecollection', 'Tepi Sungai') + n('/thecollection', 'Balian Hills') +
+          n('/thecollection#signature', 'Riverfront II®') + '</div>' +
+      '</div></div>' +
+      '<div class="lwh__bottom">' +
+        '<span class="lwh__copy">© 2026 Lawang Tropical Properties · Indonesia</span>' +
+        '<div class="lwh__contact">' +
+          '<a class="lwh__cti" href="tel:+' + esc(DATOS.wa.num) + '">' + SVG_TEL + esc(DATOS.wa.show) + '</a>' +
+          '<a class="lwh__cti" href="mailto:' + esc(DATOS.email) + '">' + SVG_MAIL + esc(DATOS.email) + '</a>' +
+        '</div>' +
+        '<div class="lwh__legal">' +
+          '<a class="lwh__tc" href="' + legal + '#terms">' + esc(th('terms', lang)) + '</a>' +
+          '<a class="lwh__tc" href="' + legal + '#privacy">' + esc(th('privacy', lang)) + '</a>' +
+          (o.cookies ? '<a class="lwh__tc" href="#" data-lwh-cookies>' + esc(th('cookies', lang)) + '</a>' : '') +
+          '<a class="lwh__tc" href="/accessibility">' + esc(th('access', lang)) + '</a>' +
+        '</div>' +
+      '</div>';
+  }
+
+  // Para plantillas que se repintan enteras (portfolio-app.js): devuelve el <footer>.
+  window.lwPieHome = function (o) {
+    o = o || {};
+    cssHome();
+    if (o.cookies) enganchaCookies();
+    return '<footer class="lwh' + (o.sinFondo ? ' lwh--sinfondo' : '') + '" data-lw-pie="home" data-no-i18n>' +
+      interiorHome(o) + '</footer>';
+  };
+
+  function montaHome(pie) {
+    var o = { cookies: pie.hasAttribute('data-cookies'), sinFondo: pie.hasAttribute('data-sin-fondo') };
+    var nota = pie.querySelector('[data-pie-nota]');
+    cssHome();
+    if (o.cookies) enganchaCookies();
+    pie.classList.add('lwh');
+    if (o.sinFondo) pie.classList.add('lwh--sinfondo');
+    pie.innerHTML = interiorHome(o);
+    // La nota es de la página (la traduce ella): se mueve el nodo, no se reescribe.
+    if (nota) { nota.classList.add('lwh__nota'); nota.removeAttribute('hidden'); pie.appendChild(nota); }
+  }
+
+  var pies = document.querySelectorAll('[data-lw-pie]');
+  for (var i = 0; i < pies.length; i++) {
+    if (pies[i].getAttribute('data-lw-pie') === 'home') { montaHome(pies[i]); continue; }
+    if (!document.getElementById('lwpie-css')) {
+      var st = document.createElement('style');
+      st.id = 'lwpie-css';
+      st.textContent = CSS;
+      document.head.appendChild(st);
+    }
+    pinta(pies[i]);
+  }
 })();
