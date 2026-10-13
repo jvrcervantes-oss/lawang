@@ -1,6 +1,7 @@
 // editor-ia — el motor del asistente de redacción y traducción del editor de textos de contrato (13-oct-2026).
-// Encargo agencia encargos/20261008_lawang_editor_textos_contrato.md, E4 (propone) y E4b (traduce). Construido APAGADO:
-// sin precios rellenos y sin la empresa encendida, la base rechaza la reserva y aquí no se llama a nadie.
+// Encargo agencia encargos/20261008_lawang_editor_textos_contrato.md, E4 (propone) y E4b (traduce). Es el primer «Servicio de
+// AxisWorks» de pago (AXW-104, owner 13-oct): coste real del proveedor + margen, con tope en dólares por empresa. Sin margen puesto
+// en Ajustes, sin la empresa encendida o con ella suspendida, la base rechaza la reserva y aquí no se llama a nadie.
 //
 // QUÉ HACE Y QUÉ NO
 //  · Solo PROPONE texto. No escribe en la base nada del contrato: ni service role para el texto, ni guarda_borrador.
@@ -10,8 +11,9 @@
 //    pide (plantilla_contrato_edicion: comprueba admin de la empresa y alcance), lo parte igual que la pantalla
 //    (trozos.js = copia literal del núcleo, la prueba lo vigila) y comprueba que el hash es el que la persona tiene abierto.
 //  · Rechaza ANTES de gastar: partes sensibles, párrafos con datos reales (correo, teléfono, NIK, importes), textos largos.
-//  · Reserva los créditos ANTES de llamar (editor_ia_reserva, con el JWT de la persona); al acabar cierra el apunte con los
-//    tokens o caracteres REALES (editor_ia_cierra, solo con la clave de servicio). Si algo falla, el cierre devuelve los créditos.
+//  · Reserva ANTES de llamar (editor_ia_reserva, con el JWT de la persona): la base aparta el PEOR CASO en dólares de la llamada y
+//    la niega si no cabe en el tope del mes; al acabar cierra el apunte con los tokens o caracteres REALES (editor_ia_cierra, solo con
+//    la clave de servicio), que fijan el coste real. Una llamada fallida no se factura a la empresa.
 //  · La respuesta del modelo es DATO: salida estructurada, y cada trozo devuelto pasa los mismos avisos que la pantalla
 //    (sin «<», sin invisibles, sin llaves sueltas, mismos campos {{…}}), sin enlaces, correos ni teléfonos nuevos.
 //  · Sin escribir en consola: ni el texto, ni la instrucción, ni la respuesta.
@@ -292,6 +294,7 @@ export function crea(dep) {
         const h = rv.error.hint || '';
         if (h === 'apagado') return json({ error: 'apagado', motivo: String(rv.error.message || '').replace(/^Asistente apagado:\s*/, '').slice(0, 400) }, 403);
         if (h === 'tope_minuto' || h === 'tope_empresa' || h === 'tope_global') return json({ error: h }, 429);
+        if (h === 'no_configurado') return json({ error: 'no_configurado', motor: motor === 'deepl' ? 'deepl' : 'ia' }, 503);
         if (rv.error.code === '42501') return json({ error: 'no_autorizado' }, 403);
         return json({ error: 'no_se_pudo_reservar' }, 500);
       }
@@ -325,9 +328,9 @@ export function crea(dep) {
       if (c.error || c.data === false) return json({ error: 'no_se_pudo_cerrar' }, 500);
       const sinCambios = esperados.every((t) => ac.propuesta[t.i] === TC.ws(t.texto));
       return json({ uso: reserva.uso, propuesta: ac.propuesta, sin_cambios: sinCambios, nota: sinCambios ? res.nota || '' : '',
-                    creditos: reserva.creditos, usados: reserva.usados, incluidos: reserva.incluidos, tope: reserva.tope, de_prueba: reserva.de_prueba });
+                    coste_max_usd: reserva.coste_max_usd, gasto_usd: reserva.gasto_usd, tope_usd: reserva.tope_usd, aviso: reserva.aviso === true });
     } catch (_e) {
-      if (reserva) { try { await cierra(false, gasto || {}); } catch (_) { /* MUDO A PROPOSITO: el apunte queda «reservado» (aparte en el extracto, no se factura) y a los 10 minutos caduca y devuelve sus créditos */ } }
+      if (reserva) { try { await cierra(false, gasto || {}); } catch (_) { /* MUDO A PROPOSITO: el apunte queda «reservado» (aparte en el extracto, no se factura) y a los 10 minutos caduca; si se llegó a enviar, pesa contra el tope al peor caso */ } }
       return json({ error: 'error_interno' }, 500);
     }
   };

@@ -55,9 +55,10 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
           }
           if (n === 'editor_ia_reserva') {
             reg.reservas++; reg.ultimaReserva = a;
-            if (o.apagado) return { data: null, error: { code: '55000', hint: 'apagado', message: 'Asistente apagado: Faltan datos de precio: precio del crédito.' } };
+            if (o.apagado) return { data: null, error: { code: '55000', hint: 'apagado', message: 'Asistente apagado: Falta configurar en Ajustes → Servicios de AxisWorks: el margen sobre el coste.' } };
             if (o.tope) return { data: null, error: { code: 'P0001', hint: 'tope_empresa', message: 'tope' } };
-            return { data: { uso: 'uso-1', creditos: 2 * a.p_parrafos, usados: 2, incluidos: 10, tope: 20, de_prueba: false }, error: null };
+            if (o.motorSinTarifa) return { data: null, error: { code: '55000', hint: 'no_configurado', message: 'Ese motor no esta configurado' } };
+            return { data: { uso: 'uso-1', coste_max_usd: 0.352, gasto_usd: 16.4, tope_usd: 20, aviso: true }, error: null };
           }
           return { data: null, error: { message: 'rpc inesperada ' + n } };
         },
@@ -106,10 +107,12 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
 
   // ── 2. apagado, topes y sin clave: no se llama a nadie ──
   { const { h, reg } = montaje({ apagado: true, proveedor: modelo(cambia) }); const r = await pide(h, propone());
-    ok(r.s === 403 && r.j.error === 'apagado' && /precio del crédito/.test(r.j.motivo) && !reg.fetch.length && !reg.cierres.length, 'apagado: 403 con el motivo en llano, sin llamar ni cerrar', r); }
+    ok(r.s === 403 && r.j.error === 'apagado' && /^Falta configurar en Ajustes → Servicios de AxisWorks: el margen/.test(r.j.motivo) && !reg.fetch.length && !reg.cierres.length, 'apagado (sin margen): 403 con el motivo en llano, sin llamar ni cerrar', r); }
   { const { h, reg } = montaje({ tope: true, proveedor: modelo(cambia) }); const r = await pide(h, propone()); ok(r.s === 429 && r.j.error === 'tope_empresa' && !reg.fetch.length, 'tope de la empresa: 429', r); }
   { const { h, reg } = montaje({ sinClave: true, proveedor: modelo(cambia) }); const r = await pide(h, propone());
-    ok(r.s === 503 && r.j.error === 'no_configurado' && !reg.fetch.length && reg.cierres.length === 1 && reg.cierres[0].p_ok === false, 'sin clave: 503, devuelve los créditos', r); }
+    ok(r.s === 503 && r.j.error === 'no_configurado' && !reg.fetch.length && reg.cierres.length === 1 && reg.cierres[0].p_ok === false, 'sin clave: 503, cierra el apunte como fallo sin enviar (no pesa ni se factura)', r); }
+  { const { h, reg } = montaje({ motorSinTarifa: true, proveedor: modelo(cambia) }); const r = await pide(h, propone());
+    ok(r.s === 503 && r.j.error === 'no_configurado' && r.j.motor === 'ia' && !reg.fetch.length && !reg.cierres.length, 'motor sin tarifa en Ajustes: 503 «no configurado», sin llamar ni cerrar', r); }
 
   // ── 3. lo que se rechaza ANTES de reservar ──
   { const { h, reg } = montaje({ proveedor: modelo(cambia) }); const r = await pide(h, propone({ instruccion: 'x'.repeat(301) })); ok(r.s === 413 && !reg.reservas, 'instrucción de más de 300: 413', r); }
@@ -135,6 +138,7 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
     ok(reg.fetch.length === 1 && reg.fetch[0].url === M.URL_MODELO && req.model === 'claude-opus-5-5' && req.output_config.format.type === 'json_schema'
        && !req.thinking && !('fallbacks' in req) && !hd['anthropic-beta'] && hd['x-api-key'] === CLAVE, 'llamada: modelo, salida estructurada, sin thinking apagado, sin modelo de respaldo, clave del asistente', req);
     ok(reg.ultimaReserva && reg.ultimaReserva.p_accion === 'propone' && reg.ultimaReserva.p_parrafos === 1, 'reserva de UN párrafo', reg.ultimaReserva);
+    ok(r.j.coste_max_usd === 0.352 && r.j.gasto_usd === 16.4 && r.j.tope_usd === 20 && r.j.aviso === true && !('creditos' in r.j), 'respuesta en dólares: peor caso, gasto y tope del mes, aviso del 80 %', r.j);
     ok(reg.enviadas === 1 && reg.enviadaAntes === true && reg.fetch[0].init.signal, 'se marca «enviada» ANTES de llamar al proveedor, y la llamada lleva tiempo máximo', reg.enviadas);
     const c = reg.cierres[0] || {};
     ok(reg.cierres.length === 1 && c.p_ok === true && c.p_entrada === 321 && c.p_salida === 45 && /^[0-9a-f]{64}$/.test(c.p_huella) && c.p_modelo === 'claude-opus-5-5' && c.p_marcas.length === 0,
