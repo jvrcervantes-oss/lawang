@@ -7993,7 +7993,10 @@
         var btnAviso = $('[data-e="aviso-doc"]');
         if (btnAviso) btnAviso.addEventListener('click', function () {
           var bloque = function (etq, txt) { return txt ? '<p><b>' + esc(etq) + '</b><br>' + esc(txt) + '</p>' : ''; };
-          var cuerpo = bloque('Español', avisoDoc.es) + bloque('English', avisoDoc.en) + bloque('Bahasa Indonesia', avisoDoc.id);
+          // Los tres idiomas no caben en una pantalla de portátil (medido a 1440×900): el texto se desplaza dentro y el
+          // título y el botón quedan siempre a la vista.
+          var cuerpo = '<div style="max-height:min(56vh,520px);overflow:auto;padding-right:6px">' +
+            bloque('Español', avisoDoc.es) + bloque('English', avisoDoc.en) + bloque('Bahasa Indonesia', avisoDoc.id) + '</div>';
           if (typeof lwConfirmar === 'function') lwConfirmar({ titulo: 'Aviso de privacidad para el cliente', cuerpo: cuerpo, confirmar: 'Cerrar', cancelar: false });
           else window.alert(avisoDoc.es);
         });
