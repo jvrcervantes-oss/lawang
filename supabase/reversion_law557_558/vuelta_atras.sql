@@ -196,6 +196,8 @@ drop function if exists public.kyc_alta_descarta(uuid, uuid);
 drop function if exists public.kyc_barrido(boolean);
 drop function if exists public.kyc_retencion(boolean);
 drop function if exists public._kyc_retencion_candidato(uuid, timestamptz);
+drop function if exists public.kyc_retencion_registra(jsonb);
+drop table if exists public.kyc_retencion_pasadas;   -- solo recuentos de cada pasada; se pierde ese historial
 drop function if exists public._cliente_crea(uuid, jsonb);
 drop function if exists public.cron_kyc_retencion_secret();
 drop table if exists public.kyc_altas_pendientes;

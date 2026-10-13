@@ -3,8 +3,11 @@
 // contrato se borran solas a los 12 meses de su última documentación. La ficha se queda entera.
 //
 // Qué hace, en este orden (la BASE decide qué se borra; esta función solo mueve bytes):
-//   1. kyc_barrido(dry): pendientes de alta de más de 36 h y ficheros sin fila, sin cliente y sin pendiente viva.
-//   2. kyc_retencion(dry): clientes candidatos (12 meses, sin reserva/factura/contrato/portal; tope 20 por pasada).
+//   1. kyc_barrido(dry): pendientes de alta de más de 36 h y ficheros sin fila y sin pendiente viva (también en la
+//      carpeta de un cliente: así se reintenta solo el fichero que la base ya soltó y Storage no borró).
+//   2. kyc_retencion(dry): clientes candidatos (12 meses, sin reserva/factura/contrato/portal; 20 por pasada, los más
+//      antiguos; con más de 100 no borra nada y avisa).
+//   4. kyc_retencion_registra: una fila por pasada en kyc_retencion_pasadas; si fue mal, correo (1 por semana).
 //      Sin `kyc_meses_retencion` en config_instancia no hace nada. Los meses NO se leen del cuerpo.
 //   3. Borra en Storage las rutas que la base devuelve. En la retención, solo las que empiezan por `<client_id>/` de un
 //      cliente aplicado (defensa en profundidad: la base ya las filtra).
@@ -90,7 +93,7 @@ export async function manejador(req: Request): Promise<Response> {
     const fallB = dry ? 0 : await borra(rutasB);
 
     const r = (await rpc('kyc_retencion', { p_dry: dry })) as {
-      activa?: boolean; meses?: number; aviso?: string; candidatos?: number; aplicados?: number; clientes?: unknown; rutas?: unknown;
+      activa?: boolean; meses?: number; aviso?: string; candidatos?: number; quedan?: number; aplicados?: number; clientes?: unknown; rutas?: unknown;
     };
     const clientes = textos(r?.clientes);
     // defensa en profundidad: solo ficheros dentro de la carpeta de un cliente aplicado
@@ -103,16 +106,23 @@ export async function manejador(req: Request): Promise<Response> {
       barrido: { pendientes_caducadas: b?.pendientes_caducadas ?? 0, ficheros: rutasB.length, fallidos: fallB },
       retencion: {
         activa: r?.activa === true, meses: r?.meses ?? null, aviso: r?.aviso ?? null,
-        candidatos: r?.candidatos ?? 0, aplicados: r?.aplicados ?? 0, clientes,
+        candidatos: r?.candidatos ?? 0, quedan: r?.quedan ?? 0, aplicados: r?.aplicados ?? 0, clientes,
         ficheros: dry ? 0 : rutasR.length, fallidos: fallR,
       },
     };
     console.log('kyc-retencion ' + JSON.stringify({ dry, pend: salida.barrido.pendientes_caducadas, fB: rutasB.length,
       cand: salida.retencion.candidatos, apl: salida.retencion.aplicados, fR: rutasR.length, aviso: salida.retencion.aviso }));
+    await registra(salida);
     return json(salida, salida.ok ? 200 : 500);
   } catch (_e) {
+    await registra({ ok: false, dry, error: 'pasada_fallida' });
     return json({ ok: false, error: 'pasada_fallida' }, 500);
   }
+}
+
+/** Deja la pasada en kyc_retencion_pasadas (y la base avisa por correo si fue mal). Nunca tumba la respuesta. */
+async function registra(resumen: Record<string, unknown>): Promise<void> {
+  try { await rpc('kyc_retencion_registra', { p_resumen: resumen }); } catch { console.error('kyc-retencion: no se pudo registrar la pasada'); }
 }
 
 Deno.serve(manejador);

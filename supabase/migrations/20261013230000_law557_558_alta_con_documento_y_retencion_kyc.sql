@@ -459,8 +459,11 @@ as $$
 $$;
 
 -- ─── 9. Barrido diario (lo llama la edge kyc-retencion) ────────────────────────────────────────────────────────────
--- (1) pendientes de más de 36 h; (2) objetos de `kyc` sin fila en documents, sin cliente y sin pendiente viva, de más
--- de 36 h. Con p_dry solo cuenta. Devuelve las rutas a borrar (la edge las borra; nunca se piden por el cuerpo).
+-- (1) pendientes de más de 36 h; (2) objetos de `kyc` sin fila en documents y sin pendiente viva, de más de 36 h —
+-- TAMBIÉN dentro de la carpeta de un cliente que existe (revisor, 13-oct): ahí acaba el fichero cuando la base ya borró
+-- su fila (retención, retirada, borrado de ficha) y el borrado en Storage falló, o una subida que llegó tarde. Un fichero
+-- sin fila no lo ve nadie en la suite; todo fichero legítimo del bucket tiene su fila (medido el 13-oct: 192 de 192).
+-- Con p_dry solo cuenta. Devuelve las rutas a borrar (la edge las borra; nunca se piden por el cuerpo).
 create or replace function public.kyc_barrido(p_dry boolean default true)
 returns jsonb
 language plpgsql
@@ -478,7 +481,6 @@ begin
      where o.bucket_id = 'kyc'
        and o.created_at < now() - interval '36 hours'
        and not exists (select 1 from public.documents d where d.storage_path = o.name)
-       and not exists (select 1 from public.clients c where c.id::text = split_part(o.name, '/', 1))
        and not exists (select 1 from public.kyc_altas_pendientes k
                         where k.id::text = split_part(o.name, '/', 1) and k.creado_en >= now() - interval '36 hours')
      limit 500) x;
@@ -490,7 +492,7 @@ grant execute on function public.kyc_barrido(boolean) to service_role;
 -- ─── 10. Retención LAW-558 ─────────────────────────────────────────────────────────────────────────────────────────
 -- ¿Es candidato este cliente? Lo barato primero (reloj, tipos, signed_contract, vínculos en documents) y solo al
 -- final _sc_referencias_cliente, que cuenta en cada tabla que apunta a clients y en contratos (lección del 1-oct:
--- nunca contratos entero; aquí es un count con where por cliente, como mucho 21 veces por pasada).
+-- nunca contratos entero; aquí es un count con where por cliente, una vez por cada cliente que pasa los filtros baratos).
 create or replace function public._kyc_retencion_candidato(p_id uuid, p_corte timestamptz)
 returns boolean
 language plpgsql
@@ -519,7 +521,9 @@ end $$;
 revoke all on function public._kyc_retencion_candidato(uuid, timestamptz) from public, anon, authenticated, service_role;
 
 -- Sin parámetro de meses a propósito: lo manda config_instancia (mínimo 12 en código); sin la clave, no hace NADA.
--- Tope 20 por pasada: si hay más, no borra ninguno y lo devuelve como aviso (algo raro está pasando).
+-- Tope 20 por pasada, los más antiguos primero; el resto, en las noches siguientes (revisor, 13-oct: «no borrar
+-- ninguno si hay más de 20» paraba la retención para siempre, porque la lista solo crece). Freno de anomalía: con más
+-- de 100 candidatos no borra NINGUNO y lo devuelve como aviso (una regla de candidatos rota no vacía el archivo).
 create or replace function public.kyc_retencion(p_dry boolean default true)
 returns jsonb
 language plpgsql
@@ -528,7 +532,7 @@ set search_path = ''
 as $$
 declare
   v_cfg jsonb; v_meses int; v_corte timestamptz; v_cand uuid[] := '{}'; v_c uuid; v_estado text;
-  v_rutas text[] := '{}'; v_esta text[]; v_n int; v_aplicados uuid[] := '{}';
+  v_rutas text[] := '{}'; v_esta text[]; v_n int; v_aplicados uuid[] := '{}'; v_total int;
   v_tipos constant text[] := array['passport', 'npwp', 'visa', 'proof_of_funds', 'proof_of_address', 'other'];
 begin
   select c.valor into v_cfg from public.config_instancia c where c.clave = 'kyc_meses_retencion';
@@ -546,17 +550,19 @@ begin
   loop
     if public._kyc_retencion_candidato(v_c, v_corte) then
       v_cand := v_cand || v_c;
-      exit when cardinality(v_cand) > 20;
+      exit when cardinality(v_cand) > 100;
     end if;
   end loop;
 
-  if cardinality(v_cand) > 20 then
-    return jsonb_build_object('activa', true, 'meses', v_meses, 'aviso', 'mas_de_20_candidatos', 'candidatos', cardinality(v_cand),
+  if cardinality(v_cand) > 100 then
+    return jsonb_build_object('activa', true, 'meses', v_meses, 'aviso', 'mas_de_100_candidatos', 'candidatos', cardinality(v_cand),
                               'aplicados', 0, 'rutas', '[]'::jsonb);
   end if;
+  v_total := cardinality(v_cand);
+  v_cand := coalesce(v_cand[1:20], '{}');   -- ya vienen por antigüedad
   if coalesce(p_dry, true) then
-    return jsonb_build_object('activa', true, 'meses', v_meses, 'dry', true, 'candidatos', cardinality(v_cand),
-                              'clientes', to_jsonb(v_cand), 'aplicados', 0, 'rutas', '[]'::jsonb);
+    return jsonb_build_object('activa', true, 'meses', v_meses, 'dry', true, 'candidatos', v_total,
+                              'clientes', to_jsonb(v_cand), 'quedan', v_total - cardinality(v_cand), 'aplicados', 0, 'rutas', '[]'::jsonb);
   end if;
 
   foreach v_c in array v_cand loop
@@ -581,11 +587,63 @@ begin
       values ('clients', v_c, 'kyc_status', 'verified', 'submitted', 'retención automática LAW-558: sin documentos KYC', 'retencion-automatica');
     end if;
   end loop;
-  return jsonb_build_object('activa', true, 'meses', v_meses, 'dry', false, 'candidatos', cardinality(v_cand),
+  return jsonb_build_object('activa', true, 'meses', v_meses, 'dry', false, 'candidatos', v_total, 'quedan', v_total - cardinality(v_cand),
                             'aplicados', cardinality(v_aplicados), 'clientes', to_jsonb(v_aplicados), 'rutas', to_jsonb(v_rutas));
 end $$;
 revoke all on function public.kyc_retencion(boolean) from public, anon, authenticated;
 grant execute on function public.kyc_retencion(boolean) to service_role;
+
+-- ─── 10 bis. Registro de cada pasada y aviso si algo falla (revisor, 13-oct: «el 500 no lo lee nadie») ──────────────
+-- Una fila por pasada (en seco o real) con solo recuentos: deja prueba de que el cron corre y de lo que hizo. Si la
+-- pasada trae aviso o ficheros que no se pudieron borrar, correo al buzón de avisos del sistema (config_instancia
+-- `email_avisos_sistema`), como mucho uno a la semana: uno cada noche se deja de leer.
+create table if not exists public.kyc_retencion_pasadas (
+  id bigint generated always as identity primary key,
+  pasada_en timestamptz not null default now(),
+  dry boolean not null,
+  resumen jsonb not null,
+  avisado boolean not null default false
+);
+alter table public.kyc_retencion_pasadas enable row level security;
+revoke all on table public.kyc_retencion_pasadas from public, anon, authenticated;
+
+create or replace function public.kyc_retencion_registra(p_resumen jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_mal boolean; v_avisa boolean := false; v_url text; v_to text;
+begin
+  if jsonb_typeof(p_resumen) is distinct from 'object' then raise exception 'resumen no válido' using errcode = '22023'; end if;
+  v_mal := coalesce((p_resumen->>'ok')::boolean, false) is false;
+  if v_mal and not exists (select 1 from public.kyc_retencion_pasadas p where p.avisado and p.pasada_en > now() - interval '7 days') then
+    v_to := (select nullif(btrim(c.valor #>> '{}'), '') from public.config_instancia c
+              where c.clave = 'email_avisos_sistema' and jsonb_typeof(c.valor) = 'string');
+    v_url := coalesce((select nullif(btrim(c.valor #>> '{}'), '') from public.config_instancia c
+                        where c.clave = 'url_envio_correo' and jsonb_typeof(c.valor) = 'string'),
+                      'https://lawangproperties.com/contracts/api/send_email.php');
+    if v_to is not null then
+      begin
+        perform net.http_post(
+          url := v_url,
+          headers := jsonb_build_object('Content-Type', 'application/json') || public._aviso_cabecera(),
+          body := jsonb_build_object('to', v_to, 'subject', 'Aviso: la limpieza nocturna del archivo KYC no ha ido bien',
+            'message', 'Aviso automático de la intranet. La pasada de kyc-retencion (borrado de copias KYC a los meses '
+                       || 'fijados y limpieza de ficheros sueltos) ha terminado con un problema. Resumen (solo recuentos): '
+                       || p_resumen::text || chr(10) || chr(10)
+                       || 'Se revisa en kyc_retencion_pasadas. Este aviso sale como mucho una vez a la semana.',
+            'attach', false));
+        v_avisa := true;
+      exception when others then v_avisa := false;   -- el aviso puede fallar; la fila de la pasada se guarda igual
+      end;
+    end if;
+  end if;
+  insert into public.kyc_retencion_pasadas (dry, resumen, avisado)
+  values (coalesce((p_resumen->>'dry')::boolean, true), p_resumen, v_avisa);
+end $$;
+revoke all on function public.kyc_retencion_registra(jsonb) from public, anon, authenticated;
+grant execute on function public.kyc_retencion_registra(jsonb) to service_role;
 
 -- ─── 11. Secreto de la edge kyc-retencion (Vault, generado aquí dentro; nadie lo ha visto) ─────────────────────────
 do $$
