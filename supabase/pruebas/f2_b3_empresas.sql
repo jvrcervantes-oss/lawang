@@ -151,12 +151,10 @@ begin
   r := r || pg_temp.t(cr, e_cr, format('select (public.borrar_comprador(%L)->>''borrado'')', cn), '42501', 'cr (super de otra empresa) NO borra la ficha vacia de p4', 'service_role') || E'\n';
   r := r || pg_temp.t(p4, e_p4, format('select (public.borrar_comprador(%L)->>''borrado'')', cn), 'true', 'p4 (super de Lawang) borra una ficha vacia suya', 'service_role') || E'\n';
   -- traspaso con documentos
-  -- (13-oct) desde que cliente_traspasa SIEMPRE arrastra (envuelve a traspasar_cliente_con_documentos) la puerta es «admin de las empresas del comprador», no super:
-  -- ya pasa la puerta y para en 22023 porque la ficha, sus contratos y sus facturas ya son de ad4 (lo traspaso arriba)
-  r := r || pg_temp.t(ya, e_ya, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas::text', cl, e_ad4), '22023', 'ya (admin de Lawang) pasa la puerta; para porque todo ya es de ad4') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select ((public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null)::text', cl, e_p4), 'true', 'ya (admin_empresa) SI traspasa con documentos desde el 13-oct (owner: los admins gestionan su negocio)') || E'\n';
   r := r || pg_temp.t(cr, e_cr, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas::text', cl, e_ad4), '42501', 'cr NO traspasa un cliente de Lawang con documentos') || E'\n';
-  r := r || pg_temp.t(p4, e_p4, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null', cl, e_cr), '22023', 'p4 NO traspasa a una persona solo de Sandal Woods (22023: «debe ser de tu empresa»)') || E'\n';
-  r := r || pg_temp.t(p4, e_p4, format('select ((public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null)::text', cl, e_ya), 'true', 'p4 traspasa con documentos un cliente de Lawang a ya (la ficha ya era de ad4)') || E'\n';
+  r := r || pg_temp.t(p4, e_p4, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null', cl, e_cr), '22023', 'p4 NO traspasa a una persona solo de Sandal Woods') || E'\n';
+  r := r || pg_temp.t(p4, e_p4, format('select ((public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null)::text', cl, e_ya), 'true', 'p4 traspasa con documentos un cliente de Lawang a ya (la ficha era de p4)') || E'\n';
   r := r || pg_temp.t(p4, e_p4, format('select ((public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null)::text', cb, e_ad4), '42501', 'p4 NO traspasa con documentos el cliente compartido') || E'\n';
   -- directorio: comprador_ficha y comprador_buscar
   r := r || pg_temp.t(ya, e_ya, format('select count(*)::text from public.comprador_ficha(%L)', cl), '1', 'ya abre la ficha de su cliente') || E'\n';
