@@ -19,7 +19,13 @@
 //   · solo contratos FIRMADOS y fechas de hoy a hoy+3 — lo vencido del pasado
 //     lo gestiona una persona, no un robot que llega tarde;
 //   · copia al estudio de cada envío, y modo {"dry":true} que cuenta qué haría
-//     sin escribir ni enviar nada (es como se verifica tras desplegar).
+//     sin escribir ni enviar nada (es como se verifica tras desplegar);
+//   · lo que no se pudo emitir y necesita una persona (la base lo rechaza por
+//     tope, moneda o Hak Sewa; contrato sin moneda; importe no calculable; un
+//     error después de crear la factura) llega al estudio en UN correo resumen
+//     por ejecución (LAW-553, 13-oct): el cron por pg_net no lee la respuesta,
+//     así que hasta entonces solo quedaba en los logs. Mientras el hito siga en
+//     la ventana [hoy, hoy+3] el aviso se repite cada día (hasta 4).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { FUENTES, EXPORTA } from './compartidos.generated.ts';
 
@@ -205,7 +211,8 @@ Deno.serve(async (req) => {
     .order('fecha').limit(40);
   if (eCand) return json({ error: 'no_se_pudieron_leer_vencimientos: ' + eCand.message }, 500);
 
-  const emitidas: string[] = [], saltadas: string[] = [];
+  const emitidas: string[] = [], saltadas: string[] = [], paraRevisar: string[] = [];
+  const revisar = (m: string) => { saltadas.push(m); paraRevisar.push(m); };
 
   for (const v of (cands ?? [])) {
     if (emitidas.length >= TOPE_POR_EJECUCION) {
@@ -218,6 +225,17 @@ Deno.serve(async (req) => {
       // Una Carta de Reserva no recibe facturas de robot: su importe no es de
       // fiar por definición (regla del 14-ago). Ni ningún tipo sin calendario.
       if (C.lwEsPreliminar(ct.tipo)) { saltadas.push(etiqueta + ': tipo preliminar, no se factura solo'); continue; }
+
+      // La moneda es la de la COLUMNA del contrato y, si no tiene (hijo sin moneda propia), la de su padre: la misma
+      // regla que _factura_moneda_valida en la base (LAW-553, 13-oct). Nunca datos.fields.moneda (en RP00169 y CC00096
+      // no coinciden, LAW-561) ni un 'EUR' por defecto: sin moneda la base la rechaza igual, así que se avisa sin intentarlo.
+      let moneda: string | null = ct.moneda || null;
+      if (!moneda && ct.contrato_padre_id) {
+        const { data: padre, error: ePadre } = await sb.from('contratos').select('moneda').eq('id', ct.contrato_padre_id).maybeSingle();
+        if (ePadre) throw new Error('no se pudo leer la moneda del contrato padre: ' + ePadre.message);
+        moneda = (padre as any)?.moneda || null;
+      }
+      if (!moneda) { revisar(etiqueta + ': ni el contrato ni su venta tienen moneda — ponla en el contrato'); continue; }
 
       // ── lo pendiente DE VERDAD: la cascada del contrato entero ──────────
       const [vencs, cobradoPropio, hijos] = await Promise.all([
@@ -232,21 +250,18 @@ Deno.serve(async (req) => {
         const r = await sb.rpc('contrato_cobrado', { p_contrato_id: h.id });
         cobrado += Number(r.data) || 0;
       }
-      const anotados = C.cascada(vencs.data ?? [], ct, cobrado, hoy);
+      const anotados = C.cascada(vencs.data ?? [], { ...ct, moneda }, cobrado, hoy);
       const yo = anotados.find((x: any) => x.id === v.id);
-      if (!yo || yo.importe == null) { saltadas.push(etiqueta + ': importe no calculable (ni monto ni pct sobre precio) — lo revisa una persona'); continue; }
+      if (!yo || yo.importe == null) { revisar(etiqueta + ': importe no calculable (ni monto ni pct sobre precio) — lo revisa una persona'); continue; }
       if (!(yo.pendiente > 0)) { saltadas.push(etiqueta + ': ya cubierto por lo cobrado — no se pide dos veces'); continue; }
 
-      if (dry) { emitidas.push('[DRY] ' + etiqueta + ' → ' + C.fmtMoneda(yo.pendiente, ct.moneda || 'EUR')); continue; }
+      if (dry) { emitidas.push('[DRY] ' + etiqueta + ' → ' + C.fmtMoneda(yo.pendiente, moneda)); continue; }
 
       // ── la factura, con la misma forma que produce /intranet/facturas/ ───────────
       const { data: fila_ct, error: eCt } = await sb.from('contratos')
         .select('fields:datos->fields, extras:datos->compradores').eq('id', v.contrato_id).single();
       if (eCt || !fila_ct) throw new Error('no se pudo leer el contrato: ' + (eCt?.message ?? 'sin fila'));
       const f = (fila_ct as any).fields || {};
-      // La moneda es la de la COLUMNA del contrato (LAW-553, 13-oct): antes ganaba datos.fields.moneda, y en 2 contratos
-      // los dos no coinciden. La base la vuelve a exigir (trg_01_moneda_del_contrato) y para el documento si no cuadra.
-      const moneda = ct.moneda || f.moneda || 'EUR';
       const compradores = C.compradoresDeContrato(f, (fila_ct as any).extras);
       const descripcion = (v.descripcion || 'Hito ' + v.orden)
         + (yo.cubierto ? ' (parte ya entregada a cuenta: descontada)' : '')
@@ -288,6 +303,9 @@ Deno.serve(async (req) => {
         },
       });
       if ((rpc.error as any)?.hint === 'ya_facturado') { saltadas.push(etiqueta + ': ya facturado por otra ejecución'); continue; }
+      // 23514: la base no la deja emitir (tope de la venta, moneda, Hak Sewa parado). No es un fallo del robot: lo
+      // decide una persona, y por eso va al resumen del estudio con el mensaje de la base tal cual.
+      if ((rpc.error as any)?.code === '23514') { revisar(etiqueta + ': la base no deja emitirla — ' + String(rpc.error!.message).slice(0, 300)); continue; }
       const fila = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
       if (rpc.error || !fila) throw new Error('no se pudo crear la factura: ' + (rpc.error?.message ?? 'sin fila'));
       const ins = { data: fila as { id: string; numero: string; datos: any } };
@@ -320,7 +338,10 @@ Deno.serve(async (req) => {
       });
       const marcaEnv = await sb.from('facturas')
         .update({ enviada: true, fecha_envio: new Date().toISOString() }).eq('id', ins.data.id);
-      if (marcaEnv.error) console.error('factura', ins.data.numero, 'enviada pero sin marcar enviada:', marcaEnv.error.message);
+      if (marcaEnv.error) {
+        console.error('factura', ins.data.numero, 'enviada pero sin marcar enviada:', marcaEnv.error.message);
+        paraRevisar.push(etiqueta + ': factura ' + ins.data.numero + ' enviada al comprador pero sin marcar como enviada — márcala a mano');
+      }
       if (para !== ESTUDIO_EMAIL) {
         await enviarEmail({
           to: ESTUDIO_EMAIL,
@@ -335,11 +356,32 @@ Deno.serve(async (req) => {
       }
       emitidas.push(etiqueta + ' → ' + ins.data.numero + ' (' + importe + ') a ' + para);
     } catch (e) {
-      saltadas.push(etiqueta + ': ERROR ' + String((e as Error).message).slice(0, 200));
+      revisar(etiqueta + ': ERROR ' + String((e as Error).message).slice(0, 200));
       console.error('factura-vencimiento', etiqueta, e);
     }
   }
 
-  console.log('factura-vencimiento', dry ? '[DRY]' : '', 'emitidas:', emitidas.length, '· saltadas:', saltadas.length);
-  return json({ ok: true, dry, hoy, emitidas, saltadas });
+  // ── resumen al estudio de lo que necesita una persona (canal de siempre: el correo a ESTUDIO_EMAIL de la copia de
+  // cada envío). En su propio try: un fallo del aviso nunca tumba la respuesta. En dry no se envía; va en el JSON.
+  let aviso: string | null = null;
+  if (!dry && paraRevisar.length) {
+    try {
+      await enviarEmail({
+        to: ESTUDIO_EMAIL,
+        subject: 'Facturas automáticas · ' + paraRevisar.length + ' vencimiento(s) que revisar · ' + hoy,
+        message: 'El robot de facturas por vencimiento (D-' + DIAS_ANTES + ') no ha podido terminar estos vencimientos y necesitan a una persona:\n\n' +
+          paraRevisar.map((x) => '· ' + x).join('\n') +
+          '\n\nMientras sigan sin resolver y dentro de los ' + DIAS_ANTES + ' días previos a su vencimiento, este aviso se repetirá cada día.' +
+          '\n\nFacturas: ' + SITIO + '/intranet/facturas/',
+      });
+      aviso = 'enviado';
+    } catch (e) {
+      aviso = 'ERROR ' + String((e as Error).message).slice(0, 200);
+      console.error('factura-vencimiento: aviso al estudio sin enviar:', aviso);
+    }
+  }
+
+  console.log('factura-vencimiento', dry ? '[DRY]' : '', 'emitidas:', emitidas.length, '· saltadas:', saltadas.length,
+              '· para revisar:', paraRevisar.length, aviso ? '· aviso: ' + aviso : '');
+  return json({ ok: true, dry, hoy, emitidas, saltadas, para_revisar: paraRevisar, aviso });
 });
