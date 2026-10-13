@@ -4,11 +4,15 @@
 --   nueva (intranet/v4/assets/datos.js, cajon de clientes) llama solo a traspasar_cliente_con_documentos. cliente_traspasa quedo como envoltorio
 --   para la pantalla VIEJA mientras siga publicada. Regla «reducir la exposicion» (contexto/seguridad_2026.md §1.ter): sin llamador, se revoca.
 --
--- Cuando se aplica (las tres cosas comprobadas, no supuestas):
---   1. El datos.js nuevo de Lawang esta en produccion: curl -s https://<intranet>/intranet/v4/assets/datos.js | grep -c "cliente_traspasa" → 0.
---   2. El front publicado de cada instancia del ERP (erp/despliegues/<inst>/ y AxisWorks/comercial/demo-erp/dist, dist/demo-erp) ya no la nombra:
---      grep -rl "cliente_traspasa" en esos dist → solo los mapas generados guard.js / modulos_hub.js (salen de erp/modulos.json; regenerarlos).
---   3. grep -rn "cliente_traspasa" proyectos/Lawang (sin supabase/ ni contracts/sql/) → nada.
+-- Cuando se aplica EN LAWANG (esta base es solo de Lawang; las instancias del ERP tienen su base y su propia retirada). Las tres, comprobadas:
+--   1. La copia sesion/1013-2205-traspaso-arrastra ha aterrizado y el datos.js NUEVO es el que se sirve: el ?v= de datos.js en
+--      https://<intranet>/intranet/v4/compradores/index.html es el de main, y curl -s "https://<intranet>/intranet/v4/assets/datos.js?v=<ese sello>"
+--      | grep -c "cliente_traspasa" da 0.
+--   2. git grep -n "cliente_traspasa" en proyectos/Lawang con main al dia, fuera de supabase y contracts/sql: nada (la intranet clasica se
+--      archivo en 7570f837c; si reaparece un llamador, no se aplica).
+--   3. Nadie la ha llamado desde el aterrizaje: los logs de la API (query_logs, servicio api) sin «/rpc/cliente_traspasa» en las 24 h siguientes
+--      (una pestana abierta con el datos.js viejo la seguiria llamando hasta recargar).
+--   Las instancias del ERP (erp/despliegues/<inst>, demo-erp) llevan su propio revoke en su base: no se miran aqui.
 -- Como: migracion nueva en supabase/migrations con este cuerpo (apply_migration), y despues tools/supabase_fetch_seguro.py.
 -- No es destructivo (revoke, no drop): la funcion se queda para un rollback del front; volver atras = grant execute ... to authenticated.
 
