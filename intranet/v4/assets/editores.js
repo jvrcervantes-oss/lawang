@@ -8296,7 +8296,7 @@
             valor: ((typeof LW_HERR_POR_ROL === 'object' && LW_HERR_POR_ROL[rolInicial]) || []).filter(puedoDarAlta),
             ayuda: 'Preselección según el rol elegido arriba — editable. Solo aparecen las herramientas que tienes tú.' },
           { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck', opciones: tiposCatAlta,
-            valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol — vacío marcado del todo equivale a "todos". Los contratos propios de una empresa se conceden después, en los permisos de la persona.' }
+            valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol. Solo limita a los agentes: un agente sin ninguno marcado no puede emitir ningún contrato (la base lo bloquea); los demás niveles emiten todos. Los contratos propios de una empresa se conceden después, en los permisos de la persona.' }
         ], 'Crear usuario', function (v) {
           var email = (v.email || '').trim().toLowerCase();
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: { message: 'email no válido' } };
@@ -8514,7 +8514,9 @@
                  coherente con su etiqueta; vaciar el campo se sigue pudiendo
                  hacer a mano, casilla a casilla, con el riesgo a la vista. */
               atajos: [{ texto: 'Marcar todos', valor: true }],
-              ayuda: 'Vacío = TODOS (al revés que Proyectos, arriba): no marcar nada aquí no bloquea, lo abre todo.'
+              /* 13-oct-2026: la ayuda decía «Vacío = TODOS», y desde el 24-sep es al revés para un agente (trigger
+                 contratos_tipo_permitido: sin ninguno no emite nada); a los demás niveles esta lista no les limita. */
+              ayuda: 'Solo limita a los agentes: un agente sin ninguno marcado no puede emitir ningún contrato (la base lo bloquea); los demás niveles emiten todos.'
                 + (propios.length ? ' Los contratos propios de una empresa (marcados «contrato propio») solo los puede conceder quien ya los tiene.' : '') }
           );
           modal(tH('Permisos de %n', { n: u.nombre || u.email }), campos, 'Guardar permisos', function (v) {
