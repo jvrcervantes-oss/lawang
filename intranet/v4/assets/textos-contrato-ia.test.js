@@ -1,6 +1,6 @@
 /* textos-contrato-ia.test.js — pruebas de la parte de PANTALLA del asistente IA de «Textos de contrato» (E5/E5b, 13-oct-2026). Se lanza con
    `node intranet/v4/assets/textos-contrato-ia.test.js` desde la raíz de Lawang (lo recoge tools/test.py como el resto de los .test.js).
-   La base la prueba supabase/pruebas/editor_ia.sql y la función supabase/functions/editor-ia/editor-ia.test.js; aquí solo lo que une las tres:
+   La base la prueba supabase/pruebas/servicios_axisworks.sql y la función supabase/functions/editor-ia/editor-ia.test.js; aquí solo lo que une las tres:
 
    · LAS RPC QUE LLAMA LA PANTALLA son exactamente las editor_ia_* que la migración abre a `authenticated`, menos editor_ia_reserva (esa la
      llama la función con la sesión de la persona, nunca el navegador). editor_ia_cierra solo es de service_role y la pantalla no la nombra.
@@ -8,7 +8,10 @@
    · CADA CÓDIGO QUE DEVUELVE LA FUNCIÓN y que una persona puede provocar usando la pantalla tiene su frase en llano (sin frase cae en el
      genérico «No ha salido bien», que no dice qué hacer). Todas las frases tienen su inglés.
    · LOS ENGANCHES con textos-contrato.js existen en los dos lados (si alguien quita un avisa(), el asistente desaparece sin un error).
-   · NACE APAGADO: la pestaña de precios sale oculta y solo la enseña el super administrador global; la empresa nace con encendido = false. */
+   · NACE APAGADO: la empresa nace con encendido = false.
+   · SERVICIOS DE AXISWORKS (13-oct-2026, owner, AXW-104): la configuración (margen, topes, impago, extracto) ya no está en esta pantalla sino
+     en Ajustes → «Servicios de AxisWorks» (ajustes-servicios.js), que solo llama a servicios_axisworks_datos/_guarda y solo se destapa
+     para el super administrador global. Las RPC de precios en créditos (editor_ia_ajustes_*) quedan sin permiso y sin llamador. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -22,23 +25,36 @@ const leer = (...r) => fs.readFileSync(path.join(RAIZ, ...r), 'utf8');
 const js = leer('intranet', 'v4', 'assets', 'textos-contrato-ia.js');
 const tc = leer('intranet', 'v4', 'assets', 'textos-contrato.js');
 const html = leer('intranet', 'v4', 'textos-contrato', 'index.html');
-const mig = leer('supabase', 'migrations', '20261013000000_editor_ia_apagado.sql');
+const mig0 = leer('supabase', 'migrations', '20261013000000_editor_ia_apagado.sql');
+const mig1 = leer('supabase', 'migrations', '20261013210000_servicios_axisworks_editor_ia.sql');
+const mig = mig0 + '\n' + mig1;
+const srv = leer('intranet', 'v4', 'assets', 'ajustes-servicios.js');
+const ajHtml = leer('intranet', 'v4', 'ajustes', 'index.html');
+const ajJs = leer('intranet', 'v4', 'assets', 'ajustes.js');
 const motor = leer('supabase', 'functions', 'editor-ia', 'motor.js');
 const config = leer('supabase', 'config.toml');
 
 /* ── RPC: la pantalla ↔ la migración ── */
 const alAutenticado = new Set(), alServicio = new Set();
-[...mig.matchAll(/grant execute on function public\.([a-z_]+)\([^)]*\) to ([a-z_]+);/g)].forEach((m) => (m[2] === 'authenticated' ? alAutenticado : alServicio).add(m[1]));
+[...mig.matchAll(/grant execute on function public\.([a-z_]+)\([^)]*\)(?:, public\.([a-z_]+)\([^)]*\))? to ([a-z_]+);/g)].forEach((m) => [m[1], m[2]].filter(Boolean).forEach((f) => (m[3] === 'authenticated' ? alAutenticado : alServicio).add(f)));
+// lo que la migración de servicios deja sin permiso (sin llamador desde el 13-oct): fuera de lo abierto
+igual(/revoke all on function public\.editor_ia_ajustes_datos\(\), public\.editor_ia_ajustes_guarda\(text, jsonb, text\)\s+from public, anon, authenticated, service_role;/.test(mig1), true,
+  'la migración de servicios quita el permiso a editor_ia_ajustes_datos/_guarda');
+['editor_ia_ajustes_datos', 'editor_ia_ajustes_guarda'].forEach((f) => alAutenticado.delete(f));
+const deAjustes = [...new Set([...srv.matchAll(/(?:rpc|lwDatos)\('([a-z_]+)'/g)].map((m) => m[1]))].sort();
+igual(JSON.stringify(deAjustes), JSON.stringify(['servicios_axisworks_datos', 'servicios_axisworks_guarda']), 'Ajustes → Servicios llama solo a servicios_axisworks_datos y _guarda');
+['servicios_axisworks_datos', 'servicios_axisworks_guarda'].forEach((f) => { if (!alAutenticado.delete(f)) falla(f + ' no se abre a authenticated'); });
 const deLaPantalla = [...new Set([...js.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]))].sort();
 const esperadas = [...alAutenticado].filter((f) => f !== 'editor_ia_reserva').sort();
 igual(JSON.stringify(deLaPantalla), JSON.stringify(esperadas), 'las RPC que llama la pantalla son EXACTAMENTE las que la migración abre a authenticated, salvo la reserva');
-igual(deLaPantalla.length, 6, 'seis RPC en la pantalla del asistente');
+igual(deLaPantalla.length, 4, 'cuatro RPC en la pantalla del asistente');
 igual(alAutenticado.has('editor_ia_reserva'), true, 'la reserva se abre a authenticated (la llama la función CON la sesión de la persona)');
 igual(/sb\.rpc\('editor_ia_reserva'/.test(motor), true, 'la función reserva con el cliente de la persona (sb), no con el de servicio');
 igual(JSON.stringify([...alServicio].sort()), JSON.stringify(['editor_ia_cierra', 'editor_ia_enviada']), 'solo editor_ia_cierra y editor_ia_enviada son de service_role');
 igual(/editor_ia_cierra|editor_ia_enviada/.test(js), false, 'la pantalla no nombra editor_ia_cierra ni editor_ia_enviada');
-igual(/editor_ia_reserva/.test(js), false, 'la pantalla no reserva créditos por su cuenta');
+igual(/rpc\('editor_ia_reserva'/.test(js), false, 'la pantalla no reserva por su cuenta');
 if (/[^a-z_]grant [^;]* to (anon|public)\b/i.test(mig)) falla('la migración abre algo a anon o public');
+if (/\.from\(|innerHTML|insertAdjacentHTML|outerHTML/.test(srv)) falla('ajustes-servicios.js lee una tabla o pinta con HTML: RPC y createElement / textContent');
 igual(/encendido\s+boolean not null default false/.test(mig), true, 'cada empresa nace con el asistente apagado');
 
 /* ── la función: un solo nombre, con verificación del JWT ── */
@@ -76,11 +92,12 @@ const textos = new Set();
 [...js.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)].forEach((m) => textos.add(m[1].replace(/\\'/g, "'")));
 [...frases.values()].forEach((x) => textos.add(x.replace(/\\'/g, "'")));
 textos.add('No ha salido bien. No se ha cambiado nada.');
-[...html.matchAll(/<[a-z0-9]+[^>]*\bdata-tc-(?:ia-pestana|panel="ia")[^>]*>([\s\S]*?)<\/div>|<[a-z0-9]+[^>]*\bdata-tc-ia-pestana[^>]*>([^<]+)</g)].forEach((m) => { if (m[2]) textos.add(m[2].trim()); });
-const panel = /<div[^>]*id="tc-panel-ia"[\s\S]*?id="tc-ia-ajustes"/.exec(html);
-if (!panel) falla('index.html: falta el panel tc-panel-ia con #tc-ia-ajustes');
-else [...panel[0].matchAll(/data-lwt[^>]*>([^<]+)</g)].forEach((m) => textos.add(m[1].trim()));
+[...srv.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)].forEach((m) => textos.add(m[1].replace(/\\'/g, "'")));
+const pestSrv = /<button[^>]*data-lw-tab="servicios"[^>]*>([^<]+)</.exec(ajHtml), panelSrv = /<div id="lw-panel-servicios"[\s\S]*?<\/div><\/div>/.exec(ajHtml);
+if (!pestSrv || !panelSrv) falla('ajustes/index.html: falta la pestaña «servicios» o su panel #lw-panel-servicios');
+else { textos.add(pestSrv[1].trim()); [...panelSrv[0].matchAll(/data-lwt>([^<]+)</g)].forEach((m) => textos.add(m[1].trim())); }
 const sinIngles = [...textos].filter((x) => !claves.has(x));
+if (process.env.LISTA_EN) console.log(JSON.stringify(sinIngles, null, 1));
 if (sinIngles.length) falla('frases del asistente sin inglés en contracts/assets/i18n.js: ' + sinIngles.slice(0, 6).map((x) => '«' + x.slice(0, 50) + '»').join(', ') + (sinIngles.length > 6 ? ' … (' + sinIngles.length + ')' : ''));
 igual(textos.size > 60, true, 'se han recogido las frases de la pantalla (' + textos.size + ')');
 
@@ -96,9 +113,12 @@ const usados = new Set([...js.matchAll(/\bAPI\.([A-Za-z]+)/g)].map((m) => m[1]))
 /* ── index.html: el script va después del núcleo y del editor; la pestaña nace oculta y solo la abre el super administrador global ── */
 const orden = ['textos-contrato-nucleo.js', 'textos-contrato.js', 'textos-contrato-ia.js'].map((f) => html.indexOf('../assets/' + f + '?v='));
 igual(orden.every((x, k) => x > 0 && (k === 0 || x > orden[k - 1])), true, 'index.html carga núcleo → editor → asistente, en ese orden');
-igual(/<button[^>]*data-tc-ia-pestana="1"[^>]*\bhidden\b/.test(html), true, 'la pestaña «Asistente IA» nace oculta');
-igual(/<div[^>]*data-tc-panel="ia"[^>]*\bhidden\b/.test(html), true, 'el panel de precios nace oculto');
-igual(/rol\.esSuperAdmin\(E\.ficha\) && rol\.esGlobal\(E\.ficha\)/.test(js), true, 'la pestaña de precios solo la enseña el super administrador global (y la base lo vuelve a comprobar)');
+igual(/data-tc-ia-pestana|tc-panel-ia|tc-ia-ajustes/.test(html), false, 'la pestaña vieja «Asistente IA» ya no está en Textos de contrato (vive en Ajustes)');
+igual(/<button[^>]*data-lw-tab="servicios"[^>]*\bhidden\b/.test(ajHtml), true, 'la pestaña «Servicios de AxisWorks» nace oculta');
+igual(/<div id="lw-panel-servicios"[^>]*\bhidden\b/.test(ajHtml), true, 'su panel nace oculto');
+igual(/LW_ROL\.esSuperGlobal\(aut\.ficha\)/.test(srv) && /window\.AXW_NUCLEO_OPERACION\) return;/.test(srv), true, 'solo la destapa el super administrador global, y nunca en una instancia del ERP (la base lo vuelve a comprobar)');
+igual(/'servicios'/.test((/var PESTANAS = \[[^\]]*\]/.exec(ajJs) || [''])[0]), true, 'ajustes.js conoce la pestaña «servicios» (sin ella el # no la abre)');
+igual(ajHtml.indexOf('../assets/ajustes.js?v=') > 0 && ajHtml.indexOf('../assets/ajustes-servicios.js?v=') > ajHtml.indexOf('../assets/ajustes.js?v='), true, 'Ajustes carga ajustes-servicios.js después de ajustes.js');
 
 if (errores.length) { console.error('textos-contrato-ia.test.js FALLA:\n - ' + errores.join('\n - ')); process.exit(1); }
 console.log('textos-contrato-ia.test.js OK (' + deLaPantalla.length + ' RPC, ' + codigos.size + ' códigos de la función, ' + textos.size + ' frases con inglés)');

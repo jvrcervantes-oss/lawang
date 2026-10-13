@@ -1,12 +1,15 @@
 /* textos-contrato-ia.js — el asistente de redacción y la traducción por IA de la pantalla «Textos de contrato», 13-oct-2026.
    Encargo agencia encargos/20261008_lawang_editor_textos_contrato.md, E5 (asistente en el párrafo) y E5b (traducir a inglés e indonesio).
    Construido APAGADO (owner 12-oct-2026, «Constrúyelo apagado»): mientras la base diga que no está encendido para la empresa, esta pantalla
-   no enseña nada más que una línea en el párrafo abierto. Lo que manda está en el servidor, no aquí:
-     editor_ia_estado          si está encendido y el saldo del mes (para enseñar el coste ANTES de pedir)
-     edge editor-ia            la propuesta y la traducción (reserva créditos, llama al proveedor, valida lo que vuelve)
+   no enseña nada más que una línea en el párrafo abierto, con el MOTIVO que da la base (p. ej. «falta el margen»).
+   13-oct-2026 (owner, AXW-104): es el primer «Servicio de AxisWorks» de pago. Ya no hay créditos: cuesta el coste real del proveedor + un
+   margen, en dólares, con un tope al mes por empresa. Lo que manda está en el servidor, no aquí:
+     editor_ia_estado          si está encendido (o por qué no), el gasto del mes contra el tope y el PEOR caso de cada llamada (se enseña ANTES de pedir)
+     edge editor-ia            la propuesta y la traducción (aparta el peor caso del tope, llama al proveedor, valida lo que vuelve)
      editor_ia_aceptada        tras guardar el borrador: qué propuestas quedaron en esa versión (cuenta para el extracto)
      editor_ia_marcas / editor_ia_marca_revisada   «traducido automáticamente, sin revisar» y «ya lo he revisado»
-     editor_ia_ajustes_datos / editor_ia_ajustes_guarda   la pestaña «Asistente IA» (precios y encendido), solo el super administrador global
+   La configuración (margen, topes, tarifas, empresas, extracto) NO está en esta pantalla: vive en Ajustes → Servicios de AxisWorks
+   (ajustes-servicios.js), solo para el super administrador global.
    ACEPTAR no escribe nada: mete el texto propuesto en los cambios del editor, como si lo hubiera escrito la persona, y se guarda con el mismo
    botón, el mismo motivo y el mismo validador de la base de siempre. Descartar no escribe nada.
    Las pestañas de inglés e indonesio siguen editables a mano (decisión por defecto del 13-oct: el owner puede pedir dejarlas de solo lectura).
@@ -25,8 +28,8 @@
   var FRASES = {
     apagado: 'El asistente no está encendido para esta empresa.',
     tope_minuto: 'Demasiadas consultas seguidas: espera un minuto.',
-    tope_empresa: 'Tu empresa ha gastado los créditos de este mes.',
-    tope_global: 'El asistente ha llegado a su tope de este mes. Avisa al estudio.',
+    tope_empresa: 'Esta empresa llegó a su tope de este mes; el estudio puede subirlo.',
+    tope_global: 'El asistente ha llegado al tope de gasto de este mes de toda la intranet. Avisa al estudio.',
     no_configurado: 'El asistente no está configurado todavía. Avisa al estudio.',
     texto_cambiado: 'El texto ha cambiado desde que lo abriste. Guarda o deshaz, vuelve a abrirlo y pídelo otra vez.',
     parte_sensible: 'El asistente no trabaja en las partes sensibles: cámbialas a mano.',
@@ -43,7 +46,25 @@
     parrafo_no_editable: 'Este párrafo no se puede cambiar con el asistente.',
     solo_global: 'Este texto no lo puede cambiar una empresa sola.'
   };
-  function frase(cod) { return T(FRASES[cod] || 'No ha salido bien. No se ha cambiado nada.'); }
+  var DEEPL_NO = 'La traducción con DeepL no está configurada: usa la IA.';
+  // por qué está apagado, por CLAVE (editor_ia_estado.motivo_clave, o la edge): se traduce aquí; el texto en llano de la base es para Ajustes
+  var MOTIVOS = {
+    apagado: FRASES.apagado,
+    suspendido: 'Los servicios de pago de AxisWorks están suspendidos para esta empresa. Habla con el estudio.',
+    sin_configurar: FRASES.no_configurado
+  };
+  // r = lo que contestó la función: «apagado» trae la clave del motivo y «no_configurado» dice qué motor
+  function frase(cod, r) {
+    if (cod === 'apagado') return T(MOTIVOS[r && r.motivo_clave] || FRASES.apagado);
+    if (cod === 'no_configurado' && r && r.motor === 'deepl') return T(DEEPL_NO);
+    return T(FRASES[cod] || 'No ha salido bien. No se ha cambiado nada.');
+  }
+  // importes en dólares con el formateador único de la suite (dinero.js): «0,35 USD»
+  function usd(n) {
+    var x = Number(n);
+    if (n === null || n === undefined || !isFinite(x)) return '—';
+    return typeof window.lwFormatoImporte === 'function' ? window.lwFormatoImporte(x, 'USD') : x.toFixed(2) + ' USD';
+  }
 
   /* ── estado del asistente para la empresa abierta ─────────────────────────────────────────────────────────────────────────── */
   function cargaEstado() {
@@ -54,10 +75,50 @@
       IA.estado = r.error || !r.data ? { error: true } : r.data;
     });
   }
+  // Tras cada llamada (buena o rechazada por tope) se vuelve a leer el gasto: el que devuelve la función es el de la RESERVA (peor caso),
+  // no el real del cierre. Sin poner el estado a null mientras llega: la caja abierta sigue en pantalla. Si no se puede leer, se dice.
+  function refresca() {
+    if (!E.empresa || !IA.estado || IA.estado.error) return Promise.resolve();
+    var emp = E.empresa;
+    return API.rpc('editor_ia_estado', { p_empresa: emp }).then(function (r) {
+      if (IA.empresa !== emp || !IA.estado) return;
+      if (r.error || !r.data) IA.estado.desfasado = true; else IA.estado = r.data;
+      pintaSaldos();
+    });
+  }
   var encendido = function () { return !!(IA.estado && IA.estado.encendido === true); };
-  function lineaSaldo(n) {
+  var lleno = function () { return !!(IA.estado && IA.estado.lleno === true); };
+  // lo que como mucho se le FACTURA a la empresa por llamada (coste × (1 + margen), redondeado hacia arriba en la base); DeepL, por párrafo
+  function pm() { return (IA.estado && IA.estado.precio_max) || {}; }
+  // la misma cuenta que hace la reserva (editor_ia_estado.puede): un botón que la base va a rechazar no se ofrece
+  function puede(accion) { return !!(IA.estado && IA.estado.puede && IA.estado.puede[accion] === true); }
+  function lineaSaldo() {
     var s = IA.estado || {};
-    return T('Cada propuesta gasta %c créditos. Este mes tu empresa lleva %u de %t (incluidos: %i).', { c: n, u: s.usados, t: s.tope, i: s.incluidos });
+    if (!encendido()) return T('Asistente de redacción: ') + frase('apagado', s);
+    var t = T('Este mes: %f facturados; usado el %p % del tope de tu empresa.', { f: usd(s.facturado_usd), p: s.pct });
+    if (s.lleno) t += ' ' + frase(s.lleno_por === 'instancia' ? 'tope_global' : 'tope_empresa');
+    else if (s.aviso) t += ' ' + T('Queda poco: ya se ha gastado el %p % del tope.', { p: s.pct });
+    if (s.desfasado) t += ' ' + T('(sin actualizar: no se ha podido leer el gasto)');
+    return t;
+  }
+  // cada línea de saldo de la pantalla lleva data-tc-ia-saldo; al volver a leer el gasto se repintan todas
+  function saldo(extra) {
+    var p = el('p', 'tc-peq', ''); p.setAttribute('data-tc-ia-saldo', extra || '');
+    pintaSaldo(p); return p;
+  }
+  function pintaSaldo(p) {
+    var s = IA.estado || {}, extra = p.getAttribute('data-tc-ia-saldo');
+    p.className = 'tc-peq' + (s.lleno || !encendido() ? ' tc-mal' : s.aviso ? ' tc-ia-saldo-aviso' : '');
+    p.textContent = lineaSaldo() + (encendido() && !s.lleno && extra === 'propone' ? ' ' + T('Cada propuesta: como mucho %z.', { z: usd(pm().propone) }) : '');
+  }
+  function pintaSaldos() {
+    var raiz = $('tc-trozos'); if (!raiz) return;
+    [].forEach.call(raiz.querySelectorAll('[data-tc-ia-saldo]'), pintaSaldo);
+    [].forEach.call(raiz.querySelectorAll('[data-tc-ia-pide]'), function (b) { b.disabled = IA.ocupado || lleno() || !encendido(); });
+    [].forEach.call(raiz.querySelectorAll('[data-tc-ia-motor]'), function (b) {
+      var mo = b.getAttribute('data-tc-ia-motor');
+      b.disabled = lleno() || !encendido() || (mo === 'deepl' ? IA.estado.deepl !== true || !puede('traduce_deepl') : !puede('traduce_ia'));
+    });
   }
 
   /* ── llamada a la edge con la sesión de la persona ────────────────────────────────────────────────────────────────────────── */
@@ -72,7 +133,7 @@
             var d = null; try { d = JSON.parse(t); } catch (_) { d = null; }
             if (resp.ok && d && d.propuesta) return { d: d };
             var cod = d && typeof d.error === 'string' && /^[a-z_]{3,40}$/.test(d.error) ? d.error : (resp.status === 404 ? 'no_configurado' : 'otro');
-            return { codigo: cod };
+            return { codigo: cod, motivo_clave: d && typeof d.motivo_clave === 'string' ? d.motivo_clave : null, motor: d && d.motor === 'deepl' ? 'deepl' : null };
           });
         }, function () { return { codigo: 'modelo_no_disponible' }; });
     }, function () { return { codigo: 'sin_sesion' }; });
@@ -102,8 +163,9 @@
     var caja = el('div', 'tc-ia-caja'); caja.setAttribute('data-tc-ia-caja', key);
     d.parentNode.insertBefore(caja, d.nextSibling);                            // FUERA del párrafo: lo que se escribe aquí no es texto del contrato
     if (IA.estado.error) return;                                               // la base no tiene el asistente (o no contestó): 0 px, como antes
-    if (!encendido()) { caja.appendChild(el('p', 'tc-peq', T('Asistente de redacción: ') + frase('apagado'))); return; }
+    if (!encendido()) { caja.appendChild(saldo()); return; }                 // el motivo de la base, tal cual (textContent)
     if (p.sens) { caja.appendChild(el('p', 'tc-peq', frase('parte_sensible'))); return; }
+    if (lleno()) { caja.appendChild(saldo()); return; }                      // tope del mes alcanzado: ni caja para pedir
     if (p.trozos.some(function (t) { return Object.prototype.hasOwnProperty.call(E.cambios, t.i); })) {
       caja.appendChild(el('p', 'tc-peq', T('Este párrafo tiene cambios sin guardar: guárdalos o deshazlos para pedir una propuesta.'))); return;
     }
@@ -116,23 +178,24 @@
     var fila = el('div', 'tc-barra-fila'), b = boton(T('Pedir propuesta'), { 'data-tc-ia-pide': key }, 'tc-btn');
     b.addEventListener('click', function (e) { e.stopPropagation(); pide(); });
     fila.appendChild(inp); fila.appendChild(b);
-    var coste = el('p', 'tc-peq', lineaSaldo(IA.estado.creditos.propone));
+    var coste = saldo('propone');
     var res = el('div', 'tc-ia-res'); res.setAttribute('aria-live', 'polite');
     caja.appendChild(lab); caja.appendChild(fila); caja.appendChild(coste); caja.appendChild(res);
 
     function pide() {
       var instr = inp.value.trim();
       if (!instr || IA.ocupado) { if (!instr) muestra(frase('instruccion_requerida'), true); return; }
+      if (!encendido() || lleno()) { muestra(lineaSaldo(), true); return; }
       var paso = IA.confirmado ? Promise.resolve(true)
-        : confirmaGasto(T('El asistente gasta créditos'), T('Cada propuesta gasta %c créditos de la bolsa de tu empresa, también si la descartas. El texto de este párrafo y tu instrucción se envían al proveedor de IA; los datos de los clientes no salen nunca.', { c: IA.estado.creditos.propone }));
+        : confirmaGasto(T('El asistente tiene coste'), T('Cada propuesta cuesta como mucho %z y cuenta para el tope de este mes de tu empresa, también si la descartas. El texto de este párrafo y tu instrucción se envían al proveedor de IA; los datos de los clientes no salen nunca.', { z: usd(pm().propone) }));
       paso.then(function (ok) {
         if (!ok) return;
         IA.confirmado = true; IA.ocupado = true; b.disabled = true; muestra(T('Pidiendo la propuesta…'));
         llama({ accion: 'propone', empresa: E.empresa, slug: E.slug, variante: E.variante, hash: E.ed && E.ed.hash, bloque: p.bloque, lang: E.lang === 'general' ? null : E.lang, instruccion: instr })
           .then(function (r) {
-            IA.ocupado = false; b.disabled = false;
-            if (!r.d) { muestra(frase(r.codigo), true); if (r.codigo === 'apagado') cargaEstado(); return; }
-            actualizaSaldo(r.d); coste.textContent = lineaSaldo(IA.estado.creditos.propone);
+            IA.ocupado = false; b.disabled = lleno();
+            refresca();                                                      // el gasto real tras el cierre (y «lleno», que la función no dice)
+            if (!r.d) { muestra(frase(r.codigo, r), true); return; }
             pintaPropuesta(r.d, instr);
           });
       });
@@ -159,7 +222,6 @@
       f.appendChild(ac); f.appendChild(de); res.appendChild(f);
     }
   }
-  function actualizaSaldo(d) { if (IA.estado && typeof d.usados === 'number') { IA.estado.usados = d.usados; IA.estado.tope = d.tope; IA.estado.incluidos = d.incluidos; } }
 
   /* ── E5b: «Traducir del español» en inglés e indonesio, y «traducido sin revisar» ─────────────────────────────────────────── */
   function sha(txt) {
@@ -210,8 +272,11 @@
       });
     });
   }
+  // Lo que como mucho se FACTURA por una traducción: con IA, una llamada por cláusula; con DeepL, por párrafo × párrafos.
+  // DeepL sin tarifa en Ajustes = «no configurado» (hoy no hay cuenta): botón visible pero apagado.
+  function maxTraduce(motor, n) { var c = pm(); return motor === 'ia' ? c.traduce_ia : (c.traduce_deepl == null ? null : n * c.traduce_deepl); }
   function pintaTraducir(lang) {
-    var c = IA.estado.creditos;
+    var conDeepl = IA.estado.deepl === true;
     [].forEach.call($('tc-trozos').querySelectorAll('.tc-sec[data-tc-sec]'), function (caja) {
       var sec = Number(caja.getAttribute('data-tc-sec'));
       var pars = (E.pars || []).filter(function (p) { return p.sec === sec && p.editable; });
@@ -220,34 +285,40 @@
       var n = Object.keys(nEs).length; if (!n) return;
       var f = el('div', 'tc-ia-traduce'); f.setAttribute('data-tc-ia-traduce', String(sec));
       f.appendChild(el('span', 'tc-peq', T('Traducir esta cláusula del español:')));
-      [['deepl', T('Con DeepL (%c créditos)', { c: n * c.traduce_deepl })], ['ia', T('Con IA (%c créditos)', { c: n * c.traduce_ia })]].forEach(function (m) {
-        var b = boton(m[1], { 'data-tc-ia-motor': m[0] });
+      [['ia', T('Con IA (como mucho %z)', { z: usd(maxTraduce('ia', n)) }), 'tc-btn'],          // la IA, por defecto: primero y destacada
+       ['deepl', conDeepl ? T('Con DeepL (como mucho %z)', { z: usd(maxTraduce('deepl', n)) }) : T('Con DeepL (no configurado)'), null]].forEach(function (m) {
+        var b = boton(m[1], { 'data-tc-ia-motor': m[0] }, m[2]);
+        if (m[0] === 'deepl' && !conDeepl) { b.disabled = true; b.title = T(DEEPL_NO); }
+        else if (lleno() || !puede(m[0] === 'ia' ? 'traduce_ia' : 'traduce_deepl')) b.disabled = true;
         b.addEventListener('click', function (e) { e.stopPropagation(); traduce(sec, m[0], n, f); });
         f.appendChild(b);
       });
+      if (lleno()) f.appendChild(saldo());
       caja.insertBefore(f, caja.firstChild);
     });
   }
   function traduce(sec, motor, n, f) {
     if (IA.ocupado) return;
+    if (motor === 'deepl' && IA.estado.deepl !== true) return;                 // apagado en pantalla; la función lo rechazaría igual (no_configurado)
+    if (lleno()) return;
     // se traduce el español GUARDADO (la función lo lee de la base): con cambios sin guardar en el español de esta cláusula, el
     // inglés o el indonesio saldrían de un texto que ya no es el de pantalla
     if (E.trozos.some(function (t) { return t.sec === sec && t.lang === 'es' && Object.prototype.hasOwnProperty.call(E.cambios, t.i); })) {
       var av = f.querySelector('[data-tc-ia-aviso]') || f.appendChild(el('p', 'tc-peq tc-mal')); av.setAttribute('data-tc-ia-aviso', '1');
       av.textContent = T('El español de esta cláusula tiene cambios sin guardar: guárdalos antes de traducir.'); return;
     }
-    var cr = n * IA.estado.creditos[motor === 'ia' ? 'traduce_ia' : 'traduce_deepl'], lang = E.lang;
+    var lang = E.lang;
     var hay = E.trozos.some(function (t) { return t.sec === sec && t.lang === lang && Object.prototype.hasOwnProperty.call(E.cambios, t.i); });
     confirmaGasto(T('Traducir «%s»', { s: API.tituloSec(sec) }),
-      T('Gasta %c créditos (%n párrafos). El texto en español de esta cláusula se envía al traductor; los datos de los clientes no salen nunca. Lo traducido queda marcado «sin revisar» hasta que lo revises.', { c: cr, n: n })
+      T('Cuesta como mucho %z y cuenta para el tope de este mes de tu empresa. El texto en español de esta cláusula (%n párrafos) se envía al traductor; los datos de los clientes no salen nunca. Lo traducido queda marcado «sin revisar» hasta que lo revises.', { z: usd(maxTraduce(motor, n)), n: n })
       + (hay ? ' ' + T('Lo que has cambiado a mano en esta cláusula en este idioma se sustituye.') : '')).then(function (ok) {
       if (!ok) return;
       IA.ocupado = true;
       var aviso = el('p', 'tc-peq', T('Traduciendo…')); f.appendChild(aviso);
       llama({ accion: 'traduce', motor: motor, destino: lang, empresa: E.empresa, slug: E.slug, variante: E.variante, hash: E.ed && E.ed.hash, sec: sec }).then(function (r) {
         IA.ocupado = false;
-        if (!r.d) { aviso.textContent = frase(r.codigo); aviso.className = 'tc-peq tc-mal'; if (r.codigo === 'apagado') cargaEstado(); return; }
-        actualizaSaldo(r.d);
+        refresca();                                                            // el gasto real tras el cierre (y «lleno»)
+        if (!r.d) { aviso.textContent = frase(r.codigo, r); aviso.className = 'tc-peq tc-mal'; return; }
         var hs = Object.keys(r.d.propuesta).map(function (i) { return sha(r.d.propuesta[i]); });
         Promise.all(hs).then(function (lista) {
           lista.forEach(function (h) { if (h) IA.marcasLocal[lang + '|' + h] = true; });
@@ -272,148 +343,8 @@
     });
   }
 
-  /* ── la pestaña «Asistente IA»: precios y encendido (solo el super administrador global) ──────────────────────────────────── */
-  var CAMPOS_INST = [
-    ['precio_credito', 'Precio de un crédito', 'num'], ['moneda', 'Moneda', 'moneda'],
-    ['creditos_propuesta', 'Créditos por propuesta', 'ent'], ['creditos_traduccion_ia', 'Créditos por párrafo traducido con IA', 'ent'],
-    ['creditos_traduccion_deepl', 'Créditos por párrafo traducido con DeepL', 'ent'], ['tope_global_mensual', 'Tope de créditos al mes de toda la intranet', 'ent'],
-    ['factura_a', 'A quién se factura', 'factura'], ['caducan', 'Los créditos no usados caducan a fin de mes', 'sino'],
-    ['prueba_creditos', 'Créditos de prueba por empresa (no se facturan)', 'ent'],
-    ['tarifa_entrada_usd_mtok', 'Coste del proveedor de IA: dólares por millón de tokens de entrada', 'num'],
-    ['tarifa_salida_usd_mtok', 'Coste del proveedor de IA: dólares por millón de tokens de salida', 'num'],
-    ['tarifa_deepl_usd_mcar', 'Coste de DeepL: dólares por millón de caracteres', 'num']
-  ];
-  function control(tipo, valor) {
-    var c;
-    if (tipo === 'moneda' || tipo === 'factura' || tipo === 'sino') {
-      c = el('select', null);
-      var ops = tipo === 'moneda' ? [['', T('Sin poner')], ['EUR', 'EUR'], ['USD', 'USD'], ['IDR', 'IDR']]
-        : tipo === 'factura' ? [['', T('Sin poner')], ['instancia', T('A Lawang, todo junto')], ['empresa', T('A cada empresa por separado')]]
-        : [['', T('Sin poner')], ['true', T('Sí')], ['false', T('No')]];
-      ops.forEach(function (o) { var op = el('option', null, o[1]); op.value = o[0]; c.appendChild(op); });
-      c.value = valor === null || valor === undefined ? '' : String(valor);
-    } else {
-      c = el('input', null); c.type = 'number'; c.min = '0'; c.step = tipo === 'ent' ? '1' : 'any';
-      c.value = valor === null || valor === undefined ? '' : String(valor);
-    }
-    c.setAttribute('data-tc-ia-tipo', tipo);
-    return c;
-  }
-  function leeControl(c) {
-    var v = c.value, t = c.getAttribute('data-tc-ia-tipo');
-    if (v === '') return null;
-    if (t === 'sino') return v === 'true';
-    if (t === 'moneda' || t === 'factura') return v;
-    return Number(v);
-  }
-  function campoFila(nombre, ctrl) {
-    var f = el('label', 'tc-campo tc-ia-campo'); f.appendChild(el('span', 'tc-peq', nombre)); f.appendChild(ctrl); return f;
-  }
-  function cargaAjustes() {
-    var panel = $('tc-ia-ajustes'); if (!panel) return;
-    panel.textContent = ''; panel.appendChild(el('p', 'tc-vacio', T('Trayendo los precios del asistente…')));
-    API.rpc('editor_ia_ajustes_datos', {}).then(function (r) {
-      panel.textContent = '';
-      if (r.error || !r.data) { panel.appendChild(el('p', 'tc-vacio tc-mal', T('No he podido leer los precios del asistente: ') + API.msg(r.error))); return; }
-      pintaAjustes(panel, r.data);
-    });
-  }
-  function guardaAjustes(empresa, campos, motivo, estado) {
-    if (!Object.keys(campos).length) { estado.textContent = T('No has cambiado nada.'); return; }
-    if (motivo.length < 3) { estado.textContent = T('Escribe el motivo del cambio (mínimo tres letras): queda en el registro.'); estado.className = 'tc-peq tc-mal'; return; }
-    estado.textContent = T('Guardando…'); estado.className = 'tc-peq';
-    API.rpc('editor_ia_ajustes_guarda', { p_empresa: empresa, p_campos: campos, p_motivo: motivo }).then(function (r) {
-      if (r.error) { estado.textContent = T('No se ha guardado: ') + API.msg(r.error); estado.className = 'tc-peq tc-mal'; return; }
-      if (typeof window.toast === 'function') window.toast(T('Guardado.'));
-      cargaAjustes(); cargaEstado();
-    });
-  }
-  function pintaAjustes(panel, d) {
-    var inst = d.instancia || {};
-    panel.appendChild(el('p', 'tc-peq', T('Todo nace vacío y apagado. Mientras falte un dato o una empresa esté apagada, el servidor rechaza cualquier consulta y no se gasta nada. La clave del proveedor no va aquí: se pone en los secretos de la función editor-ia (EDITOR_IA_ANTHROPIC_KEY y EDITOR_IA_DEEPL_KEY).')));
-    // la instancia
-    var s1 = el('section', 'tc-seccion'); s1.appendChild(el('h2', null, T('Precios de toda la intranet')));
-    var malla = el('div', 'tc-ia-malla'), ctrls = {};
-    CAMPOS_INST.forEach(function (c) { ctrls[c[0]] = control(c[2], inst[c[0]]); malla.appendChild(campoFila(T(c[1]), ctrls[c[0]])); });
-    s1.appendChild(malla);
-    var mot = el('input', 'tc-ia-input'); mot.type = 'text'; mot.maxLength = 300; mot.setAttribute('placeholder', T('Motivo del cambio (queda en el registro)'));
-    var est = el('p', 'tc-peq'), bg = boton(T('Guardar precios'), { 'data-tc-ia-guarda': 'instancia' }, 'tc-btn');
-    bg.addEventListener('click', function () {
-      var campos = {};
-      CAMPOS_INST.forEach(function (c) {
-        var antes = inst[c[0]] === undefined || inst[c[0]] === null ? null : ((c[2] === 'num' || c[2] === 'ent') ? Number(inst[c[0]]) : inst[c[0]]);
-        var v = leeControl(ctrls[c[0]]); if (v !== antes) campos[c[0]] = v;
-      });
-      guardaAjustes(null, campos, mot.value.trim(), est);
-    });
-    var fila = el('div', 'tc-barra-fila'); fila.appendChild(campoFila(T('Motivo'), mot)); fila.appendChild(bg);
-    s1.appendChild(fila); s1.appendChild(est); panel.appendChild(s1);
-    // las empresas
-    var s2 = el('section', 'tc-seccion'); s2.appendChild(el('h2', null, T('Cada empresa')));
-    s2.appendChild(el('p', 'tc-peq', T('Este mes la intranet lleva %u créditos.', { u: d.usados_instancia })));
-    (d.empresas || []).forEach(function (e) {
-      var caja = el('div', 'tc-ia-empresa');
-      caja.appendChild(el('h3', null, e.nombre + ' · ' + (e.encendido ? T('encendido') : T('apagado'))));
-      if (e.falta) caja.appendChild(el('p', 'tc-peq', e.falta));
-      var on = el('input', null); on.type = 'checkbox'; on.checked = !!e.encendido; on.setAttribute('data-tc-ia-encendido', e.clave);
-      var inc = control('ent', e.creditos_incluidos), tope = control('ent', e.tope_mensual);
-      var m = el('div', 'tc-ia-malla');
-      var lon = el('label', 'tc-chk'); lon.appendChild(on); lon.appendChild(el('span', null, T('Encendido para esta empresa')));
-      m.appendChild(lon); m.appendChild(campoFila(T('Créditos incluidos al mes'), inc)); m.appendChild(campoFila(T('Tope de créditos al mes'), tope));
-      caja.appendChild(m);
-      caja.appendChild(el('p', 'tc-peq', T('Este mes lleva %u créditos.', { u: e.usados })));
-      var mo = el('input', 'tc-ia-input'); mo.type = 'text'; mo.maxLength = 300; mo.setAttribute('placeholder', T('Motivo del cambio (queda en el registro)'));
-      var es = el('p', 'tc-peq'), b = boton(T('Guardar esta empresa'), { 'data-tc-ia-guarda': e.clave }, 'tc-btn');
-      b.addEventListener('click', function () {
-        var campos = {}, vi = leeControl(inc), vt = leeControl(tope);
-        if (on.checked !== !!e.encendido) campos.encendido = on.checked;
-        if (vi !== e.creditos_incluidos) campos.creditos_incluidos = vi;
-        if (vt !== e.tope_mensual) campos.tope_mensual = vt;
-        guardaAjustes(e.clave, campos, mo.value.trim(), es);
-      });
-      var f = el('div', 'tc-barra-fila'); f.appendChild(campoFila(T('Motivo'), mo)); f.appendChild(b);
-      caja.appendChild(f); caja.appendChild(es); s2.appendChild(caja);
-    });
-    panel.appendChild(s2);
-    // extracto y registro
-    var s3 = el('section', 'tc-seccion'); s3.appendChild(el('h2', null, T('Extracto de los tres últimos meses')));
-    if (!(d.extracto || []).length) s3.appendChild(el('p', 'tc-peq', T('Todavía no hay ningún uso.')));
-    else {
-      var tb = el('table', 'tc-tabla'), cab = el('tr', null);
-      [T('Mes'), T('Empresa'), T('Consultas'), T('Fallidas'), T('Sin cerrar'), T('Créditos hechos'), T('De prueba'), T('Créditos facturables'), T('Incluidos'), T('Exceso'), T('Importe'), T('Aceptadas'), T('Coste real (USD)')].forEach(function (h) { cab.appendChild(el('th', null, h)); });
-      tb.appendChild(cab);
-      d.extracto.forEach(function (x) {
-        var tr = el('tr', null);
-        [String(x.periodo).slice(0, 7), x.empresa, x.llamadas, x.fallidas, x.pendientes, x.creditos, x.creditos_prueba, x.facturables, x.incluidos === null ? '—' : x.incluidos, x.exceso, typeof window.lwFormatoImporte === 'function' ? window.lwFormatoImporte(x.importe, x.moneda) : x.importe + (x.moneda ? ' ' + x.moneda : ''), x.aceptadas, x.coste_usd + (x.coste_incompleto ? ' (' + T('coste incompleto') + ')' : '')].forEach(function (v) { tr.appendChild(el('td', null, String(v))); });
-        tb.appendChild(tr);
-      });
-      s3.appendChild(tb);
-    }
-    panel.appendChild(s3);
-    var s4 = el('section', 'tc-seccion'); s4.appendChild(el('h2', null, T('Registro de cambios de precios')));
-    if (!(d.registro || []).length) s4.appendChild(el('p', 'tc-peq', T('Nadie ha cambiado los precios todavía.')));
-    (d.registro || []).forEach(function (l) { s4.appendChild(el('p', 'tc-peq', API.fFechaHora(l.fecha) + ' · ' + l.autor + ' · ' + l.ambito + ' · ' + l.motivo)); });
-    panel.appendChild(s4);
-  }
-  function cablePestana() {
-    var b = document.querySelector('[data-tc-ia-pestana]'), panel = document.querySelector('[data-tc-panel="ia"]');
-    if (!b || !panel) return;
-    var rol = window.LW_ROL, global = rol && rol.esSuperAdmin(E.ficha) && rol.esGlobal(E.ficha);
-    if (!global) return;                                                       // solo el super administrador global; la base lo vuelve a comprobar
-    b.hidden = false;
-    b.addEventListener('click', function (e) {
-      e.stopPropagation();
-      [].forEach.call(document.querySelectorAll('[data-tc-pestana]'), function (x) { x.setAttribute('aria-selected', 'false'); });
-      [].forEach.call(document.querySelectorAll('[data-tc-panel]'), function (x) { x.hidden = x !== panel; });
-      b.setAttribute('aria-selected', 'true');
-      cargaAjustes();
-    });
-    // las otras pestañas (textos-contrato-config.js) esconden este panel solas; aquí solo se desmarca el botón
-    [].forEach.call(document.querySelectorAll('[data-tc-pestana]'), function (x) { x.addEventListener('click', function () { b.setAttribute('aria-selected', 'false'); panel.hidden = true; }); });
-  }
-
   /* ── puesta en marcha ─────────────────────────────────────────────────────────────────────────────────────────────────────── */
-  document.addEventListener('lw-tc-listo', function () { cargaEstado(); cablePestana(); });
+  document.addEventListener('lw-tc-listo', function () { cargaEstado(); });
   document.addEventListener('lw-tc-empresa', function () { IA.pendientes = {}; IA.marcasDe = null; IA.confirmado = false; cargaEstado(); });
   document.addEventListener('lw-tc-par-abierto', alAbrirParrafo);
   document.addEventListener('lw-tc-pintado', alPintar);

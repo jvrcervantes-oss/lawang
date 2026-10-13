@@ -1,6 +1,7 @@
 // editor-ia — el motor del asistente de redacción y traducción del editor de textos de contrato (13-oct-2026).
-// Encargo agencia encargos/20261008_lawang_editor_textos_contrato.md, E4 (propone) y E4b (traduce). Construido APAGADO:
-// sin precios rellenos y sin la empresa encendida, la base rechaza la reserva y aquí no se llama a nadie.
+// Encargo agencia encargos/20261008_lawang_editor_textos_contrato.md, E4 (propone) y E4b (traduce). Es el primer «Servicio de
+// AxisWorks» de pago (AXW-104, owner 13-oct): coste real del proveedor + margen, con tope en dólares por empresa. Sin margen puesto
+// en Ajustes, sin la empresa encendida o con ella suspendida, la base rechaza la reserva y aquí no se llama a nadie.
 //
 // QUÉ HACE Y QUÉ NO
 //  · Solo PROPONE texto. No escribe en la base nada del contrato: ni service role para el texto, ni guarda_borrador.
@@ -10,8 +11,9 @@
 //    pide (plantilla_contrato_edicion: comprueba admin de la empresa y alcance), lo parte igual que la pantalla
 //    (trozos.js = copia literal del núcleo, la prueba lo vigila) y comprueba que el hash es el que la persona tiene abierto.
 //  · Rechaza ANTES de gastar: partes sensibles, párrafos con datos reales (correo, teléfono, NIK, importes), textos largos.
-//  · Reserva los créditos ANTES de llamar (editor_ia_reserva, con el JWT de la persona); al acabar cierra el apunte con los
-//    tokens o caracteres REALES (editor_ia_cierra, solo con la clave de servicio). Si algo falla, el cierre devuelve los créditos.
+//  · Reserva ANTES de llamar (editor_ia_reserva, con el JWT de la persona): la base aparta el PEOR CASO en dólares de la llamada y
+//    la niega si no cabe en el tope del mes; al acabar cierra el apunte con los tokens o caracteres REALES (editor_ia_cierra, solo con
+//    la clave de servicio), que fijan el coste real. Una llamada fallida no se factura a la empresa.
 //  · La respuesta del modelo es DATO: salida estructurada, y cada trozo devuelto pasa los mismos avisos que la pantalla
 //    (sin «<», sin invisibles, sin llaves sueltas, mismos campos {{…}}), sin enlaces, correos ni teléfonos nuevos.
 //  · Sin escribir en consola: ni el texto, ni la instrucción, ni la respuesta.
@@ -23,6 +25,14 @@ import TC from './trozos.js';
 export const MODELO = 'claude-opus-5-5';
 export const URL_MODELO = 'https://api.anthropic.com/v1/messages';
 export const TOPES = { parrafo: 2000, instruccion: 300, clausula: 6000, parrafos: 20 };
+// Lo que se manda al modelo ENTERO (reglas del sistema + esquema + contenido) cabe en los tokens de entrada que la base aparta como peor
+// caso (_editor_ia_coste_max: 8000 para proponer, 16000 para traducir). Se cuenta a 2 letras por token, muy por debajo de lo real (3-4 en
+// español, inglés o indonés): así el tope en dólares no se pasa (code-review 13-oct: el texto de destino de una traducción no tenía techo).
+export const ENTRADA_TOKENS = { propone: 8000, traduce_ia: 16000 };
+export function cabeEntrada(accion, sistema, contenido) {
+  const t = ENTRADA_TOKENS[accion];
+  return !!t && (String(sistema).length + JSON.stringify(ESQUEMA).length + String(contenido).length) <= t * 2;
+}
 const ORIGENES = ['https://lawangproperties.com', 'https://www.lawangproperties.com'];
 const IDIOMA = { es: 'español', en: 'inglés', id: 'indonesio' };
 
@@ -130,7 +140,7 @@ async function preguntaModelo(dep, sistema, contenido) {
       messages: [{ role: 'user', content: contenido }],
     }),
   });
-  if (!r.ok) return { ok: false };
+  if (!r.ok) return { ok: false, rechazada: r.status };                    // contestó con error: no cobra (ver editor_ia_rechazada)
   const out = await r.json();
   const uso = out.usage || {};
   const base = { modelo: String(out.model || MODELO), entrada: (uso.input_tokens || 0) + (uso.cache_creation_input_tokens || 0) + (uso.cache_read_input_tokens || 0),
@@ -199,7 +209,7 @@ async function traduceDeepl(dep, pares, destino) {
                            ignore_tags: ['x'], preserve_formatting: true }),
   });
   const caracteres = textos.reduce((n, t) => n + t.replace(/<[^>]*>/g, '').length, 0);
-  if (!r.ok) return { ok: false, caracteres: 0 };                     // DeepL no cobra una petición que rechaza: no cuenta contra la jaula
+  if (!r.ok) return { ok: false, caracteres: 0, rechazada: r.status };  // DeepL no cobra una petición que rechaza: coste 0 (editor_ia_rechazada)
   const out = await r.json();
   const tr = out && Array.isArray(out.translations) ? out.translations : [];
   if (tr.length !== pares.length) return { ok: false, caracteres };
@@ -223,6 +233,10 @@ export function crea(dep) {
       p_uso: reserva.uso, p_ok: ok, p_modelo: extra.modelo ?? null, p_entrada: extra.entrada ?? 0, p_salida: extra.salida ?? 0,
       p_caracteres: extra.caracteres ?? 0, p_huella: extra.huella ?? null, p_marcas: extra.marcas ?? [],
     });
+    // el proveedor contestó con un error HTTP: no cobró. Coste 0 y no pesa contra el tope. Sin código HTTP válido, cierre normal (peor caso).
+    const cierraFallo = (res) => (Number.isInteger(res.rechazada) && res.rechazada >= 400 && res.rechazada <= 599
+      ? dep.servicio.rpc('editor_ia_rechazada', { p_uso: reserva.uso, p_http: res.rechazada })
+      : cierra(false, res));
     try {
       const jwt = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
       if (!jwt) return json({ error: 'sin_sesion' }, 401);
@@ -286,12 +300,19 @@ export function crea(dep) {
         }
       }
 
+      const sistema = motor === 'deepl' ? null : (accion === 'propone' ? SISTEMA_PROPONE : sistemaTraduce(destino));
+      if (sistema && !cabeEntrada(pAccion, sistema, contenido)) return json({ error: 'demasiado_largo' }, 413);   // antes de reservar
+
       // ── reserva (la base decide si está encendido, los topes y quién es) ──
       const rv = await sb.rpc('editor_ia_reserva', { p_empresa: empresa, p_accion: pAccion, p_slug: slug, p_variante: variante, p_version: d.version_id ?? null, p_parrafos: nParrafos });
       if (rv.error) {
         const h = rv.error.hint || '';
-        if (h === 'apagado') return json({ error: 'apagado', motivo: String(rv.error.message || '').replace(/^Asistente apagado:\s*/, '').slice(0, 400) }, 403);
+        if (h === 'apagado') {
+          const clave = ['apagado', 'suspendido', 'sin_configurar'].includes(rv.error.details) ? rv.error.details : 'apagado';
+          return json({ error: 'apagado', motivo_clave: clave, motivo: String(rv.error.message || '').replace(/^Asistente apagado:\s*/, '').slice(0, 400) }, 403);
+        }
         if (h === 'tope_minuto' || h === 'tope_empresa' || h === 'tope_global') return json({ error: h }, 429);
+        if (h === 'no_configurado') return json({ error: 'no_configurado', motor: motor === 'deepl' ? 'deepl' : 'ia' }, 503);
         if (rv.error.code === '42501') return json({ error: 'no_autorizado' }, 403);
         return json({ error: 'no_se_pudo_reservar' }, 500);
       }
@@ -311,10 +332,10 @@ export function crea(dep) {
       } else {
         if (!dep.claves.anthropic) { await cierra(false); return json({ error: 'no_configurado', motor: 'ia' }, 503); }
         await enviar();
-        res = await preguntaModelo(dep, accion === 'propone' ? SISTEMA_PROPONE : sistemaTraduce(destino), contenido);
+        res = await preguntaModelo(dep, sistema, contenido);
       }
       gasto = res;                                                       // lo que el proveedor ya cobró, por si algo revienta después
-      if (!res.ok) { await cierra(false, res); return json({ error: res.forma ? 'forma_distinta' : 'modelo_no_disponible' }, res.forma ? 422 : 502); }
+      if (!res.ok) { await cierraFallo(res); return json({ error: res.forma ? 'forma_distinta' : 'modelo_no_disponible' }, res.forma ? 422 : 502); }
       const ac = aceptaPiezas(res.piezas, esperados);
       if (ac.error) { await cierra(false, res); return json({ error: 'propuesta_no_valida', motivo: ac.error }, 422); }
 
@@ -325,9 +346,9 @@ export function crea(dep) {
       if (c.error || c.data === false) return json({ error: 'no_se_pudo_cerrar' }, 500);
       const sinCambios = esperados.every((t) => ac.propuesta[t.i] === TC.ws(t.texto));
       return json({ uso: reserva.uso, propuesta: ac.propuesta, sin_cambios: sinCambios, nota: sinCambios ? res.nota || '' : '',
-                    creditos: reserva.creditos, usados: reserva.usados, incluidos: reserva.incluidos, tope: reserva.tope, de_prueba: reserva.de_prueba });
+                    coste_max_usd: reserva.coste_max_usd, gasto_usd: reserva.gasto_usd, tope_usd: reserva.tope_usd, aviso: reserva.aviso === true });
     } catch (_e) {
-      if (reserva) { try { await cierra(false, gasto || {}); } catch (_) { /* MUDO A PROPOSITO: el apunte queda «reservado» (aparte en el extracto, no se factura) y a los 10 minutos caduca y devuelve sus créditos */ } }
+      if (reserva) { try { await cierra(false, gasto || {}); } catch (_) { /* MUDO A PROPOSITO: el apunte queda «reservado» (aparte en el extracto, no se factura) y a los 10 minutos caduca; si se llegó a enviar, pesa contra el tope al peor caso */ } }
       return json({ error: 'error_interno' }, 500);
     }
   };

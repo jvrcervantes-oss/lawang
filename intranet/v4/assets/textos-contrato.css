@@ -227,10 +227,4 @@
 .tc-ia-antes,.tc-ia-despues{font-family:var(--tc-doc-fuente);font-size:15px;line-height:1.5;color:var(--tc-tinta2);padding:6px 8px;background:var(--tc-fondo2)}
 .tc-ia-despues{background:var(--tc-verde-suave);color:var(--tc-tinta)}
 .tc-ia-traduce{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:10px 0 4px;font-family:var(--tc-ui)}
-.tc-ia-malla{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px 16px;margin:10px 0}
-.tc-ia-campo{display:flex;flex-direction:column;gap:4px}
-.tc-ia-campo select,.tc-ia-campo input{padding:8px 12px;border:1px solid var(--tc-linea2);border-radius:999px;background:var(--tc-fondo);font:inherit;font-size:14px;color:var(--tc-tinta);min-height:36px}
-.tc-ia-empresa{padding:12px 0;border-top:1px solid var(--tc-linea)}
-.tc-ia-empresa h3{margin:0 0 4px;font-size:15px;font-weight:500;color:var(--tc-tinta)}
-#tc-ia-ajustes .tc-seccion{margin-bottom:20px}
-#tc-ia-ajustes h2{font-size:17px;font-weight:500;margin:0 0 6px;color:var(--tc-tinta)}
+.tc-ia-saldo-aviso{color:var(--tc-aviso)}

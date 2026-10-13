@@ -18,7 +18,7 @@
 (function () {
   'use strict';
 
-  var PESTANAS = ['empresa', 'sociedades', 'idiomas', 'correo', 'usuarios', 'mantenimiento', 'reservas', 'registro'];
+  var PESTANAS = ['empresa', 'sociedades', 'idiomas', 'correo', 'usuarios', 'mantenimiento', 'reservas', 'servicios', 'registro'];   // servicios: ajustes-servicios.js (AXW-104)
   var ES_MAESTRO = !!window.AXW_NUCLEO_OPERACION;   // la bandera del ERP maestro; en Lawang no existe
 
   // Fuente única de lo que esta pantalla ofrece editar. La base tiene la lista blanca de verdad (_ajustes_claves_editables):
