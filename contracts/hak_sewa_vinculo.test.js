@@ -293,6 +293,22 @@ async function main() {
   c7.cuenta = () => ({ precio: 500, pendiente: 100 });
   ok('etapa(): un Hak Sewa CON precio y pendiente cae al flujo normal', c7.etapa({ tipo: 'hak_sewa_notario', bloqueado: true }) === 'cobro_pend');
 
+  // cuentaGrupo: un hijo que acompaña no suma precio (gemela de _cadena_saldo, 20261013062339); una raíz pieza sí
+  {
+    const cg = trozo(opsSrc, 'function cuentaGrupo(op){', '\n}\n', 'operaciones-cuentas') + '\n}';
+    const c9 = { PIEZAS_ACOMPANAN: ['poa', 'hak_sewa_notario', 'adenda'], lwEsPreliminar: t => /^carta_reserva/.test(t || ''),
+      parseImporte: v => (v == null ? null : Number(v)), redondear: v => Math.round(v * 100) / 100 };
+    vm.createContext(c9);
+    vm.runInContext(cg + '\nthis.cuentaGrupo = cuentaGrupo;', c9);
+    const raiz = { tipo: 'reserva_parcela', precio_total: 1000, cobrado: 100, moneda: 'EUR' };
+    raiz.hijos = [{ tipo: 'construccion', precio_total: 5000, cobrado: 0 }, { tipo: 'hak_sewa_notario', precio_total: 900000000, cobrado: 0 },
+      { tipo: 'adenda', precio_total: 200, cobrado: 0 }, { tipo: 'poa', precio_total: null, cobrado: 0 }];
+    const r = c9.cuentaGrupo(raiz);
+    ok('cuentaGrupo: Hak Sewa, Adenda y Poder hijos no suman al precio de la venta', r.precio === 6000 && r.pendiente === 5900);
+    const suelto = { tipo: 'hak_sewa_notario', precio_total: 750, cobrado: 0, hijos: [{ tipo: 'poa', precio_total: 30, cobrado: 0 }] };
+    ok('cuentaGrupo: un Hak Sewa suelto (raíz) sí cuenta su precio, su Poder no', c9.cuentaGrupo(suelto).precio === 750);
+  }
+
   // datos.js (Operaciones v4): «Falta precio» no se pinta para lo que acompaña, y la lista es la de operaciones-cuentas.js
   const datos = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'assets', 'datos.js'), 'utf8');
   ok('datos.js: «Falta precio» excluye PIEZAS_ACOMPANAN, sin una segunda lista de respaldo',

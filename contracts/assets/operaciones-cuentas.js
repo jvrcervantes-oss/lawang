@@ -102,7 +102,12 @@ function cuentaGrupo(op){
      Si el grupo es SOLO preliminar (una Carta que todavía no tiene su Bloqueo),
      se cuenta igualmente: si no, la operación diría 0 € y leería como que no se
      ha pactado nada, cuando la cuota de reserva sí es exigible. */
-  const sumables = grupo.filter(o => !lwEsPreliminar(o.tipo));
+  /* Un HIJO que acompaña a la venta (PIEZAS_ACOMPANAN: Poder, Hak Sewa, Adenda) tampoco suma, tenga o no precio:
+     la Adenda no lleva precio porque se contaría dos veces, y el del Hak Sewa va en hsn_precio_rp. Gemela de la
+     regla del servidor (_cadena_saldo, migración 20261013062339, 13-oct-2026); una raíz que es ella misma la pieza
+     (Hak Sewa suelto) sí cuenta, como allí. */
+  const raiz = grupo[0];
+  const sumables = grupo.filter(o => !lwEsPreliminar(o.tipo) && !(o !== raiz && PIEZAS_ACOMPANAN.indexOf(o.tipo) !== -1));
   const base = sumables.length ? sumables : grupo;
   const precio = base.reduce((a, o) => a + (parseImporte(o.precio_total) || 0), 0) || null;
   // el cobrado sí cuenta TODO el grupo: un recibí contra la Carta es dinero real
