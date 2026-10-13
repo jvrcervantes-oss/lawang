@@ -68,10 +68,8 @@
 --  * comisiones_reconciliar: usa la base efectiva de CADA devengo (antes saltaba todo lo que no fuera precio_total
 --    de la condición: con 'por_tramo' habría saltado, y con 'precio_total' habría pagado el 10 % del total).
 --  * Edición de tramos (_condicion_tramos_pone, la que usa condicion_comision_guarda): acepta base_calculo por tramo;
---    si la clave falta (editor viejo) CONSERVA la base que había en ese orden. condicion_tramos_reemplaza SE QUITA: sin
---    llamador desde el 27-sep (ni SQL ni JS en el repo, ni otra función en pg_proc; solo EXECUTE de postgres y
---    service_role, proacl {postgres=X/postgres,service_role=X/postgres}). Vuelta atrás: su definición viva en
---    supabase/vivo/20261013_comisiones_1nov/condicion_tramos_reemplaza.sql + ese grant.
+--    si la clave falta (editor viejo) CONSERVA la base que había en ese orden. condicion_tramos_reemplaza NO se toca:
+--    sin llamador desde el 27-sep, y quitarla es decisión del owner (erp/modulos.py); ver 6b.
 --    _condicion_comision_guarda_en compara la base del tramo al decidir si «cambian las cifras». valida_suma_tramos_comision: 100 por base efectiva; 'por_tramo'
 --    exige base en cada tramo; importe fijo no admite base de tramo; también al cambiar la base de la condición.
 --  * Lecturas: condiciones_comision_datos, mi_condicion_comision (+ columna tramos), comision_trazabilidad (base del
@@ -93,7 +91,7 @@
 -- la válvula abre aquí, y nada más: (1b) se quitan y reponen AMPLIADOS tres CHECK —condiciones_comision.base_calculo,
 -- condicion_tramos.disparador_tipo y condicion_tramos_umbral_coherente— con la lista vieja más los valores nuevos;
 -- (6) _condicion_tramos_pone se redefine y su cuerpo conserva el DELETE de los tramos que ya traía (borra y repone los
--- tramos de UNA condición) y condicion_tramos_reemplaza se QUITA (drop function: sin llamador, vuelta atrás guardada);
+-- tramos de UNA condición);
 -- (10b) mi_condicion_comision se quita y se crea para añadirle la columna tramos. Ningún dato se borra ni se sobrescribe.
 
 -- 0 · guarda: las funciones a redefinir son las que se fotografiaron (solo en la primera aplicación)
@@ -107,7 +105,6 @@ begin
   for v in select * from (values
       ('public.comisiones_evaluar_contrato(uuid)', '3ae27316aba2045428d5a763981c3f01'),
       ('public.comisiones_reconciliar(uuid,boolean,jsonb)', '4d2bff43e2f47834e9a6c30334e6f3c7'),
-      ('public.condicion_tramos_reemplaza(uuid,jsonb)', '91e4eb408c5436afe701b5f2fec01a3f'),
       ('public._condicion_tramos_pone(uuid,jsonb)', '1e0dfd064a1dc32955ab69e056ec1ec5'),
       ('public.valida_suma_tramos_comision()', '11a246607c2097424f10dc6a140bbed1'),
       ('public.condiciones_comision_datos()', 'c74355e79665c6dbada4b327d0c6156a'),
@@ -412,12 +409,9 @@ begin
     from jsonb_array_elements(p_tramos) with ordinality as x(t, ord);
 end $function$;
 
--- 6b · condicion_tramos_reemplaza se QUITA (revisión de código 13-oct-2026, hallazgo 6): sin llamador desde el 27-sep
---      (revocada a authenticated en 20260927004500; ni SQL ni JS del repo ni otra función la llaman, medido en pg_proc
---      el 13-oct). Ampliarla para la base por tramo era mantener una puerta sin uso. Vuelta atrás: crearla con
---      supabase/vivo/20261013_comisiones_1nov/condicion_tramos_reemplaza.sql y `revoke all … from public, anon,
---      authenticated; grant execute … to service_role` (proacl medido: {postgres=X/postgres,service_role=X/postgres}).
-drop function if exists public.condicion_tramos_reemplaza(uuid, jsonb);
+-- 6b · condicion_tramos_reemplaza NO se toca (CEO, 13-oct-2026): sin llamador desde el 27-sep (solo EXECUTE de postgres
+--      y service_role), y borrarla es «decisión del owner» según erp/modulos.py (catálogo de funciones). Ni se amplía ni
+--      se quita: si alguien la llamara, sus tramos nacen sin base (null = heredan la de la condición), como hoy.
 
 -- 7 · guarda de la condición: «cambian las cifras» mira también la base del tramo (parche por marca de UNA línea
 --     sobre la viva: la función es de 17 KB y solo cambian dos líneas)

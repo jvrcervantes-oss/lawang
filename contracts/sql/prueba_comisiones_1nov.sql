@@ -24,8 +24,8 @@
 --   como números (no como texto) y el devengo que sale.
 -- Condiciones sucesoras del equipo (lawang): manager c0a11010-…-04 (10 %), closer genérico c0a11010-…-03 (2,5 %,
 -- plantilla del SM: closer 25 %).
--- condicion_tramos_reemplaza se quitó en la migración (sin llamador): G1/G3 ya iban por condicion_comision_guarda, la
--- RPC real de la pantalla. F8b (plantilla con distinto nº de tramos), R7 (recorte del snapshot), AD (adenda en obra) y
+-- G1/G3 van por condicion_comision_guarda, la RPC real de la pantalla (condicion_tramos_reemplaza no tiene llamador y
+-- la migración no la toca). F8b (plantilla con distinto nº de tramos), R7 (recorte del snapshot), AD (adenda en obra) y
 -- M1/M2 (moneda) se añadieron
 -- el 13-oct tras la revisión de código y la consulta de Administración.
 do $$
