@@ -415,6 +415,29 @@
      `stopPropagation` no es higiene: `maqueta.js` delega en `document` y llega
      por burbujeo DESPUES, asi que sin esto anunciaria el boton como «sin
      cablear» encima del editor que si respondio. */
+  /* Abrir una ficha pedida por la DIRECCIÓN (?contrato=, ?id=, ?u=) cuando el cajón aún no existe (13-oct-2026, demo en
+     inglés: /contratos/?contrato=CC00004 decía «La ficha aún no ha cargado» y no abría nada). arranca() corre mientras se
+     ejecutan los scripts diferidos, y editores.js (que pone lwCajon) va DETRÁS de datos.js: con una base que contesta al
+     momento (la demo responde en memoria) los datos llegaban antes que el cajón. En Lawang lo tapaba la red. Se espera a
+     DOMContentLoaded, que llega cuando ya han corrido TODOS los diferidos; si ya pasó (o el cajón ya está), se abre al momento
+     y la ficha avisa como siempre si de verdad falta algo. Una sola ayuda para todas las aperturas por dirección: arreglar
+     solo la de Contratos dejaba igual a sus hermanas. */
+  /* `load` además de DOMContentLoaded (revisor, 13-oct): si este fichero llegara a evaluarse con DOMContentLoaded ya
+     pasado pero sin `load` (readyState 'interactive'), esperar solo al primero no acababa nunca y la ficha no se abría
+     ni avisaba. Con los dos, `fn` corre siempre una vez, y si el cajón sigue sin estar la ficha lo dice con su aviso.
+     No vale mirar `readyState !== 'loading'`: mientras corren los diferidos ya es 'interactive' y desharía el arreglo. */
+  var DIFERIDOS_LISTOS = document.readyState === 'complete';
+  if (!DIFERIDOS_LISTOS) {
+    document.addEventListener('DOMContentLoaded', function () { DIFERIDOS_LISTOS = true; });
+    window.addEventListener('load', function () { DIFERIDOS_LISTOS = true; });
+  }
+  function cuandoCajon(fn) {
+    if (DIFERIDOS_LISTOS || (window.lwCajon && window.lwCajonHtml)) return fn();
+    var hecho = false;
+    var una = function () { if (hecho) return; hecho = true; fn(); };
+    document.addEventListener('DOMContentLoaded', una, { once: true });
+    window.addEventListener('load', una, { once: true });
+  }
   function delega(caja, pares) {
     if (!caja) return;
     caja.addEventListener('click', function (ev) {
@@ -442,12 +465,13 @@
     /* `urls[i]` (S16, 23-sep-2026): una URL por fila cuando la herramienta
        viva sabe abrir esa unidad concreta (`/intranet/obra/?id=`); si no,
        el `verUrl` común de siempre. */
-    if (verUrl || urls) {
-      var its = cont.querySelectorAll('[data-mq-item]');
-      for (var i = 0; i < its.length; i++) (function (el, u) {
-        if (u) el.addEventListener('click', function () { location.href = u; });
-      })(its[i], (urls && urls[i]) || verUrl);
-    }
+    /* Una fila sin destino no lleva la mano (13-oct-2026): itemPanel pone `cursor:pointer` a todas, y en una
+       instancia o en la demo (sin Obra clásica) y en los partes de trabajo la fila no abre nada. */
+    var its = cont.querySelectorAll('[data-mq-item]');
+    for (var i = 0; i < its.length; i++) (function (el, u) {
+      if (u) el.addEventListener('click', function () { location.href = u; });
+      else el.style.cursor = 'default';
+    })(its[i], (urls && urls[i]) || verUrl);
   }
   function panelReal(titulo, items, urls, vacio, verMasUrl) {
     var h1 = document.querySelector('h1'); if (!h1) return;
@@ -2375,7 +2399,7 @@
 
           // ?contrato=NUM abre la ficha directamente (enlaces de la auditoría, de Home, etc.)
           var pedido = new URLSearchParams(location.search).get('contrato');
-          if (pedido && porNum[pedido]) fichaContrato(sb, porNum[pedido]);
+          if (pedido && porNum[pedido]) cuandoCajon(function () { fichaContrato(sb, porNum[pedido]); });
         });
     },
 
@@ -2607,9 +2631,9 @@
              desde la ficha de un contrato) se pide ese documento solo. */
           var pedido = new URLSearchParams(location.search).get('id');
           if (pedido) {
-            if (porId[pedido]) fichaFactura(sb, porId[pedido]);
+            if (porId[pedido]) cuandoCajon(function () { fichaFactura(sb, porId[pedido]); });
             else sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie() + colsHistorico()).eq('id', pedido).maybeSingle().then(function (r) {
-              if (r.data) fichaFactura(sb, r.data); else toast('Ese documento no está a tu alcance o no existe.');
+              if (r.data) cuandoCajon(function () { fichaFactura(sb, r.data); }); else toast('Ese documento no está a tu alcance o no existe.');
             });
           }
         });
@@ -2706,7 +2730,7 @@
             buscadorDe(aplicar, function (v) { texto = v; });
           }
           var pedido = new URLSearchParams(location.search).get('id');
-          if (pedido && porId[pedido]) fichaFactura(sb, porId[pedido]);
+          if (pedido && porId[pedido]) cuandoCajon(function () { fichaFactura(sb, porId[pedido]); });
         });
     },
 
@@ -3756,7 +3780,7 @@
         // ?id= abre la ficha directamente: es adonde apuntan ahora los enlaces
         // «comprador» de Proyectos y Soporte, y adonde vuelve «Editar datos».
         var pedido = new URLSearchParams(location.search).get('id');
-        if (pedido && porId[pedido]) setTimeout(function () { abreFicha(porId[pedido]); }, 0);
+        if (pedido && porId[pedido]) cuandoCajon(function () { setTimeout(function () { abreFicha(porId[pedido]); }, 0); });
 
         /* Ficha≠: el control de divergencia de la suite. Se pide AL FINAL y
            fuera de `vig()` (ver cabecera: 12,7 s en la base) — la pantalla ya
@@ -4003,7 +4027,7 @@
         if (pedido) {
           // por número o por id: los avisos de la campana (avisos.js) llevan el id
           var el0 = OPS.filter(function (c) { return c.numero === pedido || c.id === pedido; })[0];
-          if (el0) fichaContrato(sb, el0, { sinExpediente: true, cadena: cadena(el0) });
+          if (el0) cuandoCajon(function () { fichaContrato(sb, el0, { sinExpediente: true, cadena: cadena(el0) }); });
           else if (typeof toastMal === 'function') toastMal(T('No encuentro el contrato') + ' ' + pedido + ' ' + T('entre los cargados.'));
         }
       }, function (e) { fallo('operaciones', e, caja); });
@@ -6526,6 +6550,10 @@
          perdería un proyecto recién pasado a construcción que aún no tiene
          ningún parte — el mismo fallo, ya cazado dos veces en esta suite, de
          agrupar por la fila que todavía no existe. */
+      /* Sin Obra clásica (instancia del ERP o demo), «Abrir la herramienta completa» se aparta ANTES de leer nada: si la
+         lectura fallaba se quedaba a la vista y llevaba a «Herramienta no incluida». `hidden` no basta: la clase flex de
+         Tailwind le gana. */
+      if (window.AXW_NUCLEO_OPERACION) { var aCompleta = document.querySelector('[data-lw="obra-completa"]'); if (aCompleta) aCompleta.style.display = 'none'; }
       Promise.all([
         /* SIN `limit` (S16, 23-sep-2026): el 60 de antes dejaba unidades con
            fase fuera sin decirlo — mismo fallo que ya se quitó en Soporte y
@@ -6536,7 +6564,7 @@
         // entregas con fecha y nº de partes: obra_cifras_datos (B10a; antes dos conteos con tabla dinámica)
         cifras('obra_cifras_datos', {}),
         q(sb.from('obra_partes_trabajo').select('fase_masterplan,zona_masterplan,fase_anterior,fase_nueva,fecha,autor,nota,dias_offset,proyecto_id').order('creado_en', { ascending: false }).limit(6), 'últimos partes de trabajo'),
-        q(sb.from('obra_fases').select('clave,es').order('orden'), 'fases de obra'),
+        q(sb.from('obra_fases').select('clave,es,en').order('orden'), 'fases de obra'),
         // solo la columna para contar: las fotos se ven y se gestionan en la viva
         q(sb.from('obra_fotos').select('unidad_id'), 'fotos de obra')
       ]).then(function (r) {
@@ -6546,20 +6574,25 @@
         // null = la consulta de fotos falló (ya avisada por q()): «? fotos», nunca un 0 que miente
         var nFotos = r[5] == null ? null : {};
         (r[5] || []).forEach(function (f) { nFotos[f.unidad_id] = (nFotos[f.unidad_id] || 0) + 1; });
-        var urlUnidad = function (u) { return '/intranet/obra/?id=' + encodeURIComponent(u.id); };
+        /* La Obra clásica (/intranet/obra/) solo existe en Lawang: en una instancia del ERP y en la demo es el aviso
+           «Herramienta no incluida». Allí ni las filas ni «Abrir la herramienta completa» llevan a ella (demo en
+           inglés, 13-oct-2026: cada fila acababa en «Not included in the demo»). En Lawang no cambia nada. */
+        var conClasica = !window.AXW_NUCLEO_OPERACION;
+        var urlUnidad = function (u) { return conClasica ? '/intranet/obra/?id=' + encodeURIComponent(u.id) : null; };
+        var T = function (x, h) { return (typeof lwT === 'function') ? lwT(x, h) : x; };
 
         var enConstruccion = proys.filter(function (p) { return p.estado === 'en_construccion'; });
         pon2('k-po', String(enConstruccion.length));
         pon2('k-po-pie', enConstruccion.length
           ? enConstruccion.map(function (p) { return p.nombre; }).slice(0, 3).join(', ')
-          : 'ningún proyecto en construcción todavía');
+          : T('ningún proyecto en construcción todavía'));
 
         pon2('k-hitos', nEntregas == null ? '—' : String(nEntregas));
-        pon2('k-hitos-pie', 'unidades con fecha de entrega puesta');
+        pon2('k-hitos-pie', T('unidades con fecha de entrega puesta'));
 
         pon2('k-partes', nPartes == null ? '—' : String(nPartes));
 
-        var nombreFase = {}; (fases || []).forEach(function (f) { nombreFase[f.clave] = f.es || f.clave; });
+        var nombreFase = {}; (fases || []).forEach(function (f) { nombreFase[f.clave] = window.lwNombreFase ? window.lwNombreFase(f) : (f.es || f.clave); });
         var nombreProy = {}; proys.forEach(function (p) { nombreProy[p.id] = p.nombre; });
 
         var hoy = new Date().toISOString().slice(0, 10);
@@ -6568,12 +6601,12 @@
         if (conFecha.length) {
           var sgu = conFecha[0];
           var d = Math.round((new Date(sgu.obra_fecha_entrega) - new Date(hoy)) / 864e5);
-          pon2('sig-titulo', 'Entrega ' + sgu.codigo);
+          pon2('sig-titulo', T('Entrega %c', { c: sgu.codigo }));
           pon2('sig-sub', (sgu.proyecto || '—') + ' · ' + fFecha(sgu.obra_fecha_entrega));
-          pon2('sig-chip', 'en ' + d + (d === 1 ? ' día' : ' días'));
+          pon2('sig-chip', d === 1 ? T('en 1 día') : T('en %n días', { n: d }));
           pon2('sig-prio', nombreFase[sgu.obra_fase] || sgu.obra_fase || '—');
         } else {
-          pon2('sig-titulo', 'Sin entregas con fecha futura');
+          pon2('sig-titulo', T('Sin entregas con fecha futura'));
           pon2('sig-sub', '—'); pon2('sig-chip', '—'); pon2('sig-prio', '—');
         }
 
@@ -6581,27 +6614,29 @@
           var nf = nFotos == null ? null : (nFotos[u.id] || 0);
           return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || '—'),
             esc(u.modelo || '—') + ' · ' +
-            (u.contrato_numero ? esc(u.contrato_numero) + ' · ' + esc(u.comprador_nombre || 'sin cliente') : 'sin contrato') +
-            ' · ' + (nf == null ? '? fotos' : nf === 1 ? '1 foto' : nf + ' fotos') +
-            ' · entrega ' + (u.obra_fecha_entrega ? fFecha(u.obra_fecha_entrega) : 'sin fecha') +
-            ' · actualizado ' + (u.obra_actualizado ? fFecha(u.obra_actualizado) : '—'),
+            (u.contrato_numero ? esc(u.contrato_numero) + ' · ' + esc(u.comprador_nombre || T('sin cliente')) : esc(T('sin contrato'))) +
+            ' · ' + esc(nf == null ? T('? fotos') : nf === 1 ? T('1 foto') : T('%n fotos', { n: nf })) +
+            ' · ' + esc(T('entrega %f', { f: u.obra_fecha_entrega ? fFecha(u.obra_fecha_entrega) : T('sin fecha') })) +
+            ' · ' + esc(T('actualizado %f', { f: u.obra_actualizado ? fFecha(u.obra_actualizado) : '—' })),
             esc(nombreFase[u.obra_fase] || u.obra_fase || '—'));
-        }), 'Ninguna unidad con fase de obra abierta todavía. Se abre una desde «Registrar avance técnico».', '/intranet/obra/', us.map(urlUnidad));
+        }), T('Ninguna unidad con fase de obra abierta todavía. Se abre una desde «Registrar avance técnico».'), conClasica ? '/intranet/obra/' : null, us.map(urlUnidad));
 
         pintaListaObra('proximas-entregas', conFecha.slice(0, 5).map(function (u) {
           return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || '—'), fFecha(u.obra_fecha_entrega), '');
-        }), 'Ninguna unidad con fecha de entrega futura.', '/intranet/obra/', conFecha.slice(0, 5).map(urlUnidad));
+        }), T('Ninguna unidad con fecha de entrega futura.'), conClasica ? '/intranet/obra/' : null, conFecha.slice(0, 5).map(urlUnidad));
 
         pintaListaObra('partes-trabajo', (ultimosPartes || []).map(function (p) {
           // itemPanel mete lo que se le da en innerHTML sin escapar: todo lo
           // que sale de la base pasa por esc() (el repo es publico y una
           // zona o un autor son texto libre).
+          // en inglés, la fase por su nombre (salía la clave cruda «cimentacion → estructura»); en español se deja como estaba
+          var nf2 = function (k) { return window.LW_IDIOMA === 'en' ? (nombreFase[k] || k) : k; };
           return itemPanel(
-            esc((nombreProy[p.proyecto_id] || '—') + ' · fase ' + p.fase_masterplan + ' · ' + p.zona_masterplan),
-            esc((p.fase_anterior ? p.fase_anterior + ' → ' : 'arranca en ') + p.fase_nueva +
+            esc((nombreProy[p.proyecto_id] || '—') + ' · ' + T('fase %f', { f: p.fase_masterplan }) + ' · ' + p.zona_masterplan),
+            esc((p.fase_anterior ? nf2(p.fase_anterior) + ' → ' : T('arranca en') + ' ') + nf2(p.fase_nueva) +
               ' · ' + fFecha(p.fecha) + (p.autor ? ' · ' + p.autor : '')),
-            p.dias_offset != null ? 'cobro +' + Number(p.dias_offset) + 'd' : '');
-        }), 'Todavía no hay ningún parte de trabajo. Se crean desde «Nuevo parte de trabajo».');
+            p.dias_offset != null ? esc(T('cobro +%nd', { n: Number(p.dias_offset) })) : '');
+        }), T('Todavía no hay ningún parte de trabajo. Se crean desde «Nuevo parte de trabajo».'));
       });
     },
     /* documentacion/: fusionada en Proyectos el 8-sep (decision del owner).
@@ -7684,7 +7719,7 @@
         // ?id= abre la ficha directamente (enlace desde la campana, o tras
         // guardar un editor que recarga la pagina).
         var pedidoId = new URLSearchParams(location.search).get('id');
-        if (pedidoId && porId[pedidoId]) setTimeout(function () { abreFicha(porId[pedidoId]); }, 0);
+        if (pedidoId && porId[pedidoId]) cuandoCajon(function () { setTimeout(function () { abreFicha(porId[pedidoId]); }, 0); });
       }
 
       function pintaEquipo(cd, eqs, miembros) {
@@ -9848,7 +9883,7 @@
         if (!contratosLeidos) s.push(pill(T('Bloqueo: no leído'), 'neutro'));
         else if (c.padre) {
           var b = porIdC[c.padre];
-          s.push(b ? pill(T('Bloqueo') + ' ' + (b.numero || '') + ' · ' + (b.bloqueado ? T('firmado') : enFirma[b.id] ? T('en firma') : T('borrador')), b.bloqueado ? 'ok' : 'curso')
+          s.push(b ? pill(T('Bloqueo~contrato') + ' ' + (b.numero || '') + ' · ' + (b.bloqueado ? T('firmado') : enFirma[b.id] ? T('en firma') : T('borrador')), b.bloqueado ? 'ok' : 'curso')
                    : pill(T('Bloqueo creado · no visible para ti'), 'neutro'));
         } else s.push(pill(T('Sin Bloqueo'), 'neutro'));
         if (cobrado[c.id] != null) s.push(pill(T('Cobrado') + ' ' + fmt(cobrado[c.id], c.moneda), cobrado[c.id] > 0 ? 'ok' : 'espera'));

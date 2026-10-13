@@ -1,4 +1,4 @@
--- destructivo-ok: VUELTA ATRÁS de 20261013000000_editor_ia_apagado.sql (asistente IA del editor de textos). Solo se lanza a mano y con OK del owner.
+-- destructivo-ok: VUELTA ATRÁS de 20261013020822_editor_ia_apagado.sql (asistente IA del editor de textos). Solo se lanza a mano y con OK del owner.
 -- Mientras el asistente siga apagado no hay datos que perder (sin usos ni marcas). Con filas en editor_ia_uso: PARA y pregunta, que es el
 -- extracto de lo que se factura. Antes: retirar la edge (supabase functions delete editor-ia) y quitar textos-contrato-ia.js de la pantalla.
 begin;

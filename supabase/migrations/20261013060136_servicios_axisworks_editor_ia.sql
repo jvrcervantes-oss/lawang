@@ -2,7 +2,7 @@
 -- «Servicios de AxisWorks» (AXW-104), primera pieza: el asistente de IA del editor de textos de contrato pasa a COSTE + MARGEN, con tope
 -- en dólares por empresa, interruptor de impago y extracto mensual. Encargo agencia encargos/20261008_lawang_editor_textos_contrato.md.
 --
--- DECISIONES DEL OWNER (13-oct-2026, por opciones; sustituyen el modelo de créditos de 20261013000000, construido ayer y nunca usado):
+-- DECISIONES DEL OWNER (13-oct-2026, por opciones; sustituyen el modelo de créditos de 20261013020822, construido ayer y nunca usado):
 --   «No es gratis, lo pago yo y luego se lo cobro. Con tope, dijimos de en Ajustes ponerle ciertas herramientas de pago mediante IA».
 --   1. Precio = coste real del proveedor + margen fijo en %, que el owner pone en Ajustes (aquí nace VACÍO: sin margen no arranca).
 --   2. Cobro = en la factura mensual de mantenimiento; el ERP lleva contador y extracto mensual por empresa (coste, margen, total). Sin Stripe.

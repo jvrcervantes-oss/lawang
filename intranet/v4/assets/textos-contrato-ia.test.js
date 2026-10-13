@@ -25,8 +25,8 @@ const leer = (...r) => fs.readFileSync(path.join(RAIZ, ...r), 'utf8');
 const js = leer('intranet', 'v4', 'assets', 'textos-contrato-ia.js');
 const tc = leer('intranet', 'v4', 'assets', 'textos-contrato.js');
 const html = leer('intranet', 'v4', 'textos-contrato', 'index.html');
-const mig0 = leer('supabase', 'migrations', '20261013000000_editor_ia_apagado.sql');
-const mig1 = leer('supabase', 'migrations', '20261013210000_servicios_axisworks_editor_ia.sql');
+const mig0 = leer('supabase', 'migrations', '20261013020822_editor_ia_apagado.sql');
+const mig1 = leer('supabase', 'migrations', '20261013060136_servicios_axisworks_editor_ia.sql');
 const mig = mig0 + '\n' + mig1;
 const srv = leer('intranet', 'v4', 'assets', 'ajustes-servicios.js');
 const ajHtml = leer('intranet', 'v4', 'ajustes', 'index.html');
@@ -81,8 +81,17 @@ const codigos = new Set([...motor.matchAll(/error: (?:'([a-z_]+)'|h \}|res\.form
 ['tope_minuto', 'tope_empresa', 'tope_global'].forEach((h) => { if (!new RegExp("h === '" + h + "'").test(motor)) falla('la función ya no devuelve ' + h); codigos.add(h); });
 // los que no tienen frase propia a propósito: llamadas mal formadas (la pantalla no las manda) o fallos internos (el genérico es lo que toca)
 const genericos = new Set(['metodo', 'accion', 'parametros', 'piezas', 'no_se_pudo_leer', 'no_se_pudo_reservar', 'no_se_pudo_cerrar', 'error_interno']);
-[...codigos].forEach((c) => { if (!frases.has(c) && !genericos.has(c)) falla('la función devuelve «' + c + '» y la pantalla no tiene frase para él'); });
-[...frases.keys()].forEach((c) => { if (!codigos.has(c)) falla('FRASES tiene «' + c + '», que la función ya no devuelve'); });
+// E10 (13-oct-2026): los motivos INTERNOS de los validadores (validaRedaccion / validaTraduccion / textoLimpio) nunca salen como «error»
+// de la respuesta: van dentro de propuesta_no_valida como «motivo»
+['no_es_texto', 'longitud', 'avisos', 'campo_nuevo', 'enlace', 'prohibido', 'forma', 'nombre', 'campos', 'clausulas'].forEach((c) => genericos.add(c));
+// y las acciones redacta / redacta_traduce las pinta textos-contrato-redacta.js con su propio FRASES: entre las dos pantallas cubren
+// todo lo que devuelve la función, y ninguna lleva una frase de más
+const jsRd = leer('intranet', 'v4', 'assets', 'textos-contrato-redacta.js');
+const bloqueRd = /var FRASES = \{([\s\S]*?)\n  \};/.exec(jsRd);
+if (!bloqueRd) falla('no encuentro FRASES en textos-contrato-redacta.js');
+const frasesRd = new Map([...(bloqueRd ? bloqueRd[1] : '').matchAll(/^\s+([a-z_]+): '((?:[^'\\]|\\.)*)'/gm)].map((m) => [m[1], m[2]]));
+[...codigos].forEach((c) => { if (!frases.has(c) && !frasesRd.has(c) && !genericos.has(c)) falla('la función devuelve «' + c + '» y ninguna pantalla tiene frase para él'); });
+[...frases.keys(), ...frasesRd.keys()].forEach((c) => { if (!codigos.has(c)) falla('FRASES tiene «' + c + '», que la función ya no devuelve'); });
 
 /* ── inglés de todo lo que enseña ── */
 const dic = leer('contracts', 'assets', 'i18n.js');

@@ -1,4 +1,4 @@
--- Servicios de AxisWorks: correcciones de la revisión de código del 13-oct-2026 (code-review sobre 20261013210000, antes de aterrizar).
+-- Servicios de AxisWorks: correcciones de la revisión de código del 13-oct-2026 (code-review sobre 20261013060136, antes de aterrizar).
 -- Solo CONSTRUYE: una columna nueva, dos funciones nuevas y create or replace con las MISMAS firmas (la edge v2 en producción sigue llamando igual).
 --   1. Una llamada que el PROVEEDOR RECHAZA (contesta con un error HTTP: 429, 500, 529…) no cobra: se cierra con coste 0 y no pesa contra el
 --      tope (editor_ia_rechazada, solo la edge). Antes pesaba al peor caso: 57 caídas seguidas del proveedor gastaban el tope del mes sin
@@ -10,7 +10,7 @@
 --   4. Extracto: las líneas de la factura suman (se redondea cada total una vez y lo derivado se resta).
 --   5. Ajustes: el margen y las tarifas de Claude no se pueden vaciar; una tarifa tiene que ser mayor que cero.
 -- Vuelta atrás: supabase/reversion_editor_ia/vuelta_atras_servicios.sql (quita también editor_ia_rechazada y _editor_ia_falta_clave). Para
--- volver SOLO a la versión anterior de estado/reserva/datos/guarda: copiar sus cuerpos de 20261013210000 cambiando `create function` por
+-- volver SOLO a la versión anterior de estado/reserva/datos/guarda: copiar sus cuerpos de 20261013060136 cambiando `create function` por
 -- `create or replace function` (tal cual darían «ya existe»). La columna rechazada_http se queda: vacía no estorba.
 
 alter table public.editor_ia_uso add column rechazada_http smallint check (rechazada_http between 400 and 599);   -- el proveedor rechazó: coste 0
@@ -86,7 +86,7 @@ begin
 end $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────────────────────── reserva
--- MISMA firma y retorno que 20261013210000. Cambia: (1) se vuelve a mirar lo que falta y el peor caso con el candado tomado; (2) un margen
+-- MISMA firma y retorno que 20261013060136. Cambia: (1) se vuelve a mirar lo que falta y el peor caso con el candado tomado; (2) un margen
 -- vacío bajo el candado para; (3) el «apagado» lleva su clave en DETAIL (apagado | suspendido | sin_configurar) para traducirlo en pantalla.
 create or replace function public.editor_ia_reserva(p_empresa text, p_accion text, p_slug text, p_variante text, p_version uuid, p_parrafos integer)
  returns jsonb language plpgsql security definer set search_path = '' as $$

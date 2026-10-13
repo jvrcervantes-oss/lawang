@@ -871,7 +871,7 @@
     return out;
   }
   function confirmaSensibles(lista) {
-    if (typeof window.lwConfirmar !== 'function') return Promise.resolve(true);
+    if (typeof window.lwConfirmar !== 'function') { window.alert(T('El diálogo aún no ha cargado — prueba de nuevo en un segundo.')); return Promise.resolve(false); }   /* falla cerrado: sin diálogo no hay «sí» */
     var cuerpo = '<p>' + esc(T('Estás cambiando partes sensibles del contrato. La decisión es tuya: consulta a tu abogado si tienes dudas. El cambio queda registrado con tu nombre, la fecha y el texto de antes y después.')) + '</p><ul>'
       + lista.map(function (x) { return '<li>' + esc(tituloSec(x.sec) + ' — ' + x.motivo) + '</li>'; }).join('') + '</ul>';
     return window.lwConfirmar({ titulo: T('Vas a cambiar partes sensibles'), cuerpo: cuerpo, confirmar: T('Entiendo el aviso y guardo'), tono: 'peligro' });

@@ -228,3 +228,10 @@
 .tc-ia-despues{background:var(--tc-verde-suave);color:var(--tc-tinta)}
 .tc-ia-traduce{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:10px 0 4px;font-family:var(--tc-ui)}
 .tc-ia-saldo-aviso{color:var(--tc-aviso)}
+/* «Descríbelo en una frase» (textos-contrato-redacta.js, E10, 13-oct-2026): la caja de la frase y la vista previa del borrador, de solo lectura */
+#tc-rd-cuerpo{display:flex;flex-direction:column;gap:10px}
+#tc-rd-cuerpo p{margin:0}
+.tc-rd-frase{min-height:84px;resize:vertical}
+.tc-rd-frase:focus-visible,#tc-rd-nombre:focus-visible{outline:2px solid var(--tc-acento);outline-offset:2px}
+.tc-rd-previa{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-left:2px solid var(--tc-linea2);font-family:var(--tc-ui)}
+.tc-rd-clausula{display:flex;flex-direction:column;gap:4px;padding:8px 10px;background:var(--tc-fondo2);font-family:var(--tc-doc-fuente);line-height:1.5;overflow-wrap:anywhere}
