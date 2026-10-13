@@ -106,6 +106,8 @@ async function main() {
   ok('Construcción sin Bloqueo: apagado con motivo', o && /no está enlazada/.test(o.off || ''));
   o = hsDe({ ...cc, contrato_padre_id: undefined }, {});
   ok('estado guardado antes de hoy (sin padre): «comprobando», no «sin Bloqueo»', o && /Comprobando/.test(o.off || ''));
+  o = hsDe({ ...cc, contrato_padre_id: undefined }, { padre: { invisible: true } });
+  ok('…y si esa Construcción ya no se ve, lo dice (no «recarga la página» para siempre)', o && /ya no está entre los contratos que ves/.test(o.off || ''));
 
   ok('desde una Carta no se ofrece (antes pasa a Bloqueo)', !hsDe({ id: 'c', numero: 'CR1', tipo: 'carta_reserva' }, {}));
   ok('desde un Poder no se ofrece', !hsDe({ id: 'p', numero: 'PA1', tipo: 'poa' }, {}));
@@ -154,8 +156,22 @@ async function main() {
   ok('app.html: la lista de Bloqueos se carga también para el Hak Sewa (no lleva marcador)',
     /if\(templateHTML\.includes\('\{\{num_reserva_vinculada\}\}'\) \|\| cuelgaDeBloqueo\(CURRENT\.slug\)\) await cargarVinculables\(\);/.test(app));
   const inyecta = trozo(app, '  if(cuelgaDeBloqueo(CURRENT.slug)){', '  /* AQUI NO VA EL SELECTOR DEL PODER', 'deriveSections');
-  ok('deriveSections inyecta el campo num_reserva_vinculada en «Gestión del contrato»', /\['num_reserva_vinculada', etiqueta, 'select', opts\]/.test(inyecta)
-    && /\['num_reserva_vinculada', etiqueta, 'text'\]/.test(inyecta) && /s\.id==='gestion'/.test(inyecta));
+  ok('deriveSections inyecta el campo num_reserva_vinculada en «Gestión del contrato»', /aGestion\(opts\.length \? \['num_reserva_vinculada', etiqueta, 'select', opts\]/.test(inyecta)
+    && /\['num_reserva_vinculada', etiqueta, 'text'\], true\)/.test(inyecta) && /const aGestion = [^\n]*\n\s*const g = SECTIONS\.find\(s=>s\.id==='gestion'\);/.test(app));
+  // derivar a Hak Sewa desde una Construcción: manda el padre REAL de la fila, no el número tecleado (se ejecuta el trozo real)
+  {
+    const t = trozo(app, '  if(cuelgaDeBloqueo(slug) && CONTRACT_TIPO[CURRENT.slug] === \'construccion\'', '  // A cualquier otro tipo destino', 'derivarContrato');
+    const prueba = (padre, tecleado) => {
+      const c = { CONTRACT_TIPO, CURRENT: { slug: 'ppjb_construccion' }, cuelgaDeBloqueo: s => s === 'hak_sewa_notario', slug: 'hak_sewa_notario',
+        SAVED_CONTRACT: { id: 'cc1', numero: 'CC1', padre }, VINCULABLES: [{ id: 'rpA', numero: 'RP-A' }, { id: 'rpB', numero: 'RP-B' }],
+        f: { num_reserva_vinculada: tecleado } };
+      vm.createContext(c); vm.runInContext(t, c); return c.f.num_reserva_vinculada;
+    };
+    ok('derivar: con padre real distinto del tecleado, manda el padre real', prueba('rpB', 'RP-A') === 'RP-B');
+    ok('derivar: obra sin padre → Hak Sewa suelto (no hereda un número tecleado)', prueba(null, 'RP-A') === undefined);
+    ok('derivar: recién guardada (padre desconocido) → queda el tecleado', prueba(undefined, 'RP-A') === 'RP-A');
+    ok('al abrir un contrato se guarda su padre real', /SAVED_CONTRACT = \{ id:data\.id, numero:data\.numero, padre: data\.contrato_padre_id \|\| null \};/.test(app));
+  }
   ok('…y no por inDoc (cogería la sección y la etiqueta de la Construcción)', !/inDoc\.add\('num_reserva_vinculada'\)/.test(app));
   ok('el contrato_padre_id de la pantalla sale de esa misma clave', /contrato_padre_id: \(\(VINCULABLES\|\|\[\]\)\.find\(c=>c\.numero===data\.num_reserva_vinculada\)\|\|\{\}\)\.id/.test(app));
   ok('derivar a Hak Sewa refresca la lista de Bloqueos', /if\(slug === 'ppjb_construccion' \|\| cuelgaDeBloqueo\(slug\)\) VINCULABLES = null;/.test(app));

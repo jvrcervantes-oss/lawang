@@ -4479,6 +4479,7 @@
     'No se ha podido poner la venta vinculada del Hak Sewa: elígela en el editor, en «Gestión del contrato».': 'Could not set the Hak Sewa\'s linked sale: choose it in the editor, under «Contract management».',
     'Ese Bloqueo no está en la lista de vinculables: comprueba la venta vinculada en el editor.': 'That Plot Hold is not in the list of linkable contracts: check the linked sale in the editor.',
     'Se enlaza a': 'Linked to',
+    'Esta Construcción ya no está entre los contratos que ves: vuelve al paso anterior y elige otra venta.': 'This Construction is no longer among the contracts you can see: go back one step and choose another sale.',
     'su Bloqueo de Parcela': 'its Plot Hold',
     'Copia cliente y parcela, y descuenta al guardar lo ya cobrado con la Carta.': 'Copies client and plot, and deducts what the Letter already collected when saved.',
     'Crear borrador': 'Create draft',

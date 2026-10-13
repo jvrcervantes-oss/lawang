@@ -371,8 +371,10 @@
     if (!v) return { off: T('Elige primero la venta.') };
     if (v.tipo === 'reserva_parcela') return { numero: v.numero };
     var p = RT.padre;
-    if (v.contrato_padre_id === undefined)   // estado guardado antes del 13-oct: se está releyendo (abrir)
+    if (v.contrato_padre_id === undefined) {   // estado guardado antes del 13-oct: se está releyendo (abrir)
+      if (p && p.invisible) return { off: T('Esta Construcción ya no está entre los contratos que ves: vuelve al paso anterior y elige otra venta.') };
       return p && p.fallo ? { off: T('No se ha podido comprobar de qué Bloqueo es esta Construcción. Recarga la página.') } : { off: T('Comprobando de qué Bloqueo es esta Construcción…') };
+    }
     if (!v.contrato_padre_id) return { off: T('Esta Construcción no está enlazada a ningún Bloqueo de Parcela: haz el Hak Sewa desde su Bloqueo, o enlázala primero en el editor.') };
     if (!p || p.id !== v.contrato_padre_id) return { off: T('Comprobando de qué Bloqueo es esta Construcción…') };
     if (p.fallo) return { off: T('No se ha podido comprobar de qué Bloqueo es esta Construcción. Recarga la página.') };
@@ -855,7 +857,7 @@
       RT.padre = r.error ? { id: id, fallo: true } : r.data ? { id: id, numero: r.data.numero, tipo: r.data.tipo } : { id: id, invisible: true };
       if (alLlegar) alLlegar();
       pinta();
-    }, function () { if (S.venta && S.venta.id === v.id) { RT.padre = { id: id, fallo: true }; pinta(); } });
+    }, function () { if (S.venta && S.venta.id === v.id) { RT.padre = { id: id, fallo: true }; if (alLlegar) alLlegar(); pinta(); } });
   }
   function eligeVenta(v) {
     S.venta = { id: v.id, numero: v.numero, tipo: v.tipo, comprador_nombre: v.comprador_nombre, proyecto_nombre: v.proyecto_nombre,
@@ -1374,7 +1376,8 @@
           var vv = S.venta;
           Promise.resolve(sb.rpc('contratos_equipo').select('contrato_padre_id').eq('id', vv.id).maybeSingle()).then(function (r) {
             if (S.venta !== vv) return;
-            if (r.error || !r.data) { RT.padre = { fallo: true }; pinta(); return; }
+            // sin fila = esa Construcción ya no está entre las que ve: no se pide «recargar», que daría lo mismo
+            if (r.error || !r.data) { RT.padre = r.error ? { fallo: true } : { invisible: true }; pinta(); return; }
             vv.contrato_padre_id = r.data.contrato_padre_id || null; guarda(); cargaPadre(vv, null); pinta();
           }, function () { if (S.venta === vv) { RT.padre = { fallo: true }; pinta(); } });
         } else cargaPadre(S.venta, null);
