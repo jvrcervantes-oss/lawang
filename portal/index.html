@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="b218a82e7105">
+<meta name="lw-version" content="81fdb969e0a3">
 <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como #th=<token>; ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -2924,8 +2924,9 @@
         clearTimeout(tope);
         PIDIENDO = false;
         btn.disabled = false; btn.classList.remove('enviando'); btn.removeAttribute('aria-busy');
-        /* 'lento': lo cortó el tope del navegador, no la edge; el correo pudo salir, así que no se dice «no hemos podido». */
-        if (r.error === 'lento'){ aviso.className = 'aviso'; aviso.textContent = t('envio_lento'); return; }
+        /* 'lento' (lo cortó el tope del navegador) o `lento:true` (a la edge se le acabó la espera al servidor de correo): el
+           correo pudo salir, así que no se dice «no hemos podido». */
+        if (r.error === 'lento' || r.lento === true){ aviso.className = 'aviso'; aviso.textContent = t('envio_lento'); return; }
         var mal = !!(r.error || r.reintentar);
         aviso.className = 'aviso ' + (mal ? 'mal' : 'bien');
         aviso.textContent = mal ? t('error_envio') : t('enviado');
