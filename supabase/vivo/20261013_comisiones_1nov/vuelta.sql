@@ -15,7 +15,8 @@
 -- colgando de su condición. El esquema nuevo (columna, CHECK ampliados, funciones) se queda: los snapshots de esos
 -- devengos usan sus bases y el reconciliador las necesita. Si el owner decide anular alguno, se anula por el camino
 -- normal (con motivo), nunca borrando la fila.
--- También para si alguien tocó lo que dejó la migración (una sucesora editada, desactivada o sustituida; una condición
+-- También para si alguien tocó lo que dejó la migración (una sucesora editada —%, nivel, equipo, proyecto, empresa o
+-- sus tramos—, desactivada o sustituida; su vieja reabierta o cambiada; una condición
 -- o un tramo nuevos con valores que los CHECK viejos no admiten; un tramo con base propia): eso se resuelve a mano
 -- antes, porque devolverlo «a como estaba» borraría trabajo del equipo.
 --
@@ -32,8 +33,10 @@
 -- trigger condiciones_comision_tramos_suma y las 5 funciones nuevas; quita y crea mi_condicion_comision (vuelve a su
 -- RETURNS TABLE sin tramos).
 --
--- Cómo se aplica: igual que la migración, con la válvula del owner abierta. Se ha comprobado solo en seco (sintaxis con
--- pglast 8.5, sin ejecutarla: la migración aún no está aplicada).
+-- Cómo se aplica: con la válvula del owner abierta, pensada para psql o el SQL editor (lleva su begin/commit). Si se
+-- pasa por apply_migration (que ya envuelve en transacción: quitar entonces begin/commit), queda como versión en la
+-- base y hay que bajarla al repo con tools/supabase_fetch_seguro.py, o el 8.º invariante de salud_lawang.py lo canta.
+-- Se ha comprobado solo en seco (sintaxis con pglast 8.5, sin ejecutarla: la migración aún no está aplicada).
 
 begin;
 
@@ -63,7 +66,18 @@ begin
      and (not s.activo or s.vigente_hasta is not null or s.base_calculo <> 'por_tramo' or s.closer_email is not null
           or s.vigente_desde <> date '2026-11-01'
           or v.id is null or not v.activo or v.vigente_hasta is distinct from date '2026-10-31'
+          or s.pct_comision is distinct from v.pct_comision or s.nivel is distinct from v.nivel
+          or s.equipo_id is distinct from v.equipo_id or s.proyecto_id is distinct from v.proyecto_id
+          or s.empresa is distinct from v.empresa or s.importe_fijo is not null
+          -- los 2 tramos son los de la migración (ids fijos c0a11010-1101-4b10-…): el editor los borra y repone con
+          -- ids nuevos, así que cualquier edición cambia el id
           or (select count(*) from public.condicion_tramos t where t.condicion_id = s.id) <> 2
+          or exists (select 1 from public.condicion_tramos t
+                      where t.condicion_id = s.id
+                        and (t.id::text not like 'c0a11010-1101-4b10-8000-0000000000%'
+                             or (t.orden, t.disparador_tipo, t.umbral, t.pct_tramo, t.base_calculo)
+                                not in ((1, 'pct_cobrado_suelo_firmado', 50::numeric, 100::numeric, 'precio_suelo_firmado'),
+                                        (2, 'pct_cobrado_obra_firmada', 25::numeric, 100::numeric, 'precio_obra_firmada'))))
           or exists (select 1 from public.condiciones_comision x where x.sustituye_a = s.id));
   if v_t is not null then
     raise exception 'vuelta comisiones 1-nov: estas sucesoras (o su vieja) se han tocado después de la migración: %. Resolver a mano antes', v_t;
