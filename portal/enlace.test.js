@@ -11,7 +11,8 @@
 //     y pasado el canje el oyente vuelve a funcionar;
 //   · decide: caducado con sesión de comprador viva → entra con ella (no «pide otro», que gasta el freno);
 //     sin sesión → pide otro; th válido → entra con la sesión NUEVA aunque hubiera otra; red → reintenta siempre.
-// La página (portal/index.html) usa estas mismas piezas: quitaTh al empezar, canjeaCallado al pulsar «Entrar»,
+//   · puedeCanjearSolo: canje sin botón solo con la página visible, con foco, sin prerender, iframe ni webdriver (13-oct-2026).
+// La página (portal/index.html) usa estas mismas piezas: quitaTh al empezar, canjeaCallado solo (o al pulsar «Entrar»),
 // callado alrededor de su oyente. El recorrido en navegador real está en la bitácora del encargo (S3).
 'use strict';
 const E = require('./enlace.js');
@@ -237,6 +238,86 @@ function supabaseFalso(nav, resp) {
     // th sin forma de token (p. ej. cortado por el cliente de correo) con sesión viva → entra; sin sesión → pide otro.
     igual(E.decide({ estado: 'caducado' }, VIVA).accion, 'entra', 'th malo + sesión viva → entra');
     igual(E.decide({ estado: 'caducado' }, null).accion, 'pide_otro', 'th malo sin sesión → pide otro');
+  }
+
+  // ── puedeCanjearSolo (13-oct-2026): canje sin botón solo con una persona delante ──
+  {
+    function ventana(o) {
+      o = o || {};
+      const w = {
+        document: { visibilityState: o.vis || 'visible', prerendering: !!o.pre, hasFocus: () => o.foco !== false },
+        navigator: { webdriver: !!o.wd },
+      };
+      w.top = o.iframe ? {} : w;
+      return w;
+    }
+    ok(E.puedeCanjearSolo(ventana()) === true, 'visible + foco + sin iframe ni webdriver → canjea solo');
+    ok(E.puedeCanjearSolo(ventana({ vis: 'hidden' })) === false, 'pestaña oculta → botón');
+    ok(E.puedeCanjearSolo(ventana({ pre: true })) === false, 'prerender → botón');
+    ok(E.puedeCanjearSolo(ventana({ wd: true })) === false, 'navegador automatizado → botón');
+    ok(E.puedeCanjearSolo(ventana({ iframe: true })) === false, 'dentro de un iframe → botón');
+    ok(E.puedeCanjearSolo(ventana({ foco: false })) === false, 'sin foco → botón');
+    const lanza = { document: { visibilityState: 'visible', hasFocus: () => true }, navigator: {} };
+    Object.defineProperty(lanza, 'top', { get() { throw new Error('origen cruzado'); } });
+    ok(E.puedeCanjearSolo(lanza) === false, 'window.top que lanza → botón, sin romper');
+    ok(E.puedeCanjearSolo({}) === false, 'sin document → botón');
+    ok(typeof E.ESPERA_MS === 'number' && E.ESPERA_MS >= 500 && E.ESPERA_MS <= 2000, 'pausa antes del canje solo entre 0,5 y 2 s');
+  }
+
+  // ── esperaSolo (13-oct-2026): la espera del canje solo, con temporizadores falsos ──
+  {
+    function monta(o) {
+      o = o || {};
+      const st = { puede: o.puede !== undefined ? o.puede : true, activo: true, vista: [], canjes: 0, timers: {}, sig: 1, borrados: 0 };
+      const es = E.esperaSolo({
+        activo: () => st.activo,
+        puede: () => st.puede,
+        entrando: () => st.vista.push('entrando'),
+        boton: () => st.vista.push('boton'),
+        canjea: () => { st.canjes++; st.activo = false; },
+        espera: E.ESPERA_MS,
+        setT: (f) => { const id = st.sig++; st.timers[id] = f; return id; },
+        clearT: (id) => { if (st.timers[id]) st.borrados++; delete st.timers[id]; },
+      });
+      st.vence = () => { const ids = Object.keys(st.timers); ids.forEach((id) => { const f = st.timers[id]; delete st.timers[id]; f(); }); };
+      return { es, st };
+    }
+    { // camino normal: «Entrando…», pasa la espera, canjea una vez
+      const { es, st } = monta();
+      es.intenta();
+      igual([st.vista, st.canjes, Object.keys(st.timers).length], [['entrando'], 0, 1], 'esperaSolo: enseña «Entrando…» y espera antes de canjear');
+      st.vence();
+      igual(st.canjes, 1, 'esperaSolo: pasada la espera, canjea');
+    }
+    { // focus y visibilitychange a la vez → un solo temporizador, un solo canje
+      const { es, st } = monta();
+      es.intenta(); es.intenta(); es.intenta();
+      igual(Object.keys(st.timers).length, 1, 'esperaSolo: varios avisos seguidos → un solo temporizador');
+      st.vence(); es.intenta(); st.vence();
+      igual(st.canjes, 1, 'esperaSolo: un solo canje aunque lleguen más avisos');
+    }
+    { // sin guarda al llegar → botón, sin temporizador
+      const { es, st } = monta({ puede: false });
+      es.intenta();
+      igual([st.vista, Object.keys(st.timers).length, st.canjes], [['boton'], 0, 0], 'esperaSolo: sin persona delante → botón y nada más');
+      st.puede = true; es.intenta(); st.vence();
+      igual(st.canjes, 1, 'esperaSolo: al cumplirse después (foco), canjea solo');
+    }
+    { // la página se oculta durante la espera → se cancela y queda el botón
+      const { es, st } = monta();
+      es.intenta(); es.cancela();
+      igual([st.vista, st.borrados, Object.keys(st.timers).length, st.canjes], [['entrando', 'boton'], 1, 0, 0], 'esperaSolo: oculta durante la espera → cancela, botón, sin canje');
+    }
+    { // la guarda deja de cumplirse justo al vencer → botón, sin canje
+      const { es, st } = monta();
+      es.intenta(); st.puede = false; st.vence();
+      igual([st.vista, st.canjes], [['entrando', 'boton'], 0], 'esperaSolo: se vuelve a mirar al vencer; si ya no se cumple, botón');
+    }
+    { // inactivo (th gastado, canje en curso o fallo de red) → no hace nada
+      const { es, st } = monta();
+      st.activo = false; es.intenta(); es.cancela();
+      igual([st.vista, Object.keys(st.timers).length, st.canjes], [[], 0, 0], 'esperaSolo: inactivo → ni indicador ni temporizador ni canje');
+    }
   }
 
   if (fallos) { console.error(fallos + ' de ' + pruebas + ' comprobaciones fallan'); process.exit(1); }

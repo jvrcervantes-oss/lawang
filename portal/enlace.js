@@ -6,8 +6,9 @@
    con `generateLink` y lo mandan por el buzón de Lawang como `/portal/#th=<hashed_token>`. Esta
    página canjea ese `th` con `verifyOtp`. En el FRAGMENTO y no en `?th=` (Seguridad, consulta del
    revisor, 11-oct-2026): el fragmento no viaja al servidor, así que el token no queda en los logs
-   de acceso del hosting, del CDN ni de un proxy. `?th=` se sigue aceptando (convivencia con los
-   correos que ya salieron con la forma vieja). Los enlaces viejos (redirección de GoTrue con
+   de acceso del hosting, del CDN ni de un proxy. `?th=` no lo genera nadie (nunca salió un correo
+   con esa forma: las edges nacieron ya con `#th=`); se sigue leyendo y quitando de la barra solo
+   para que un token pegado a mano en la query tampoco se quede en el historial. Los enlaces viejos (redirección de GoTrue con
    `#access_token=`) no pasan por aquí: los recoge supabase-js al arrancar, como siempre.
 
    Cómo, y por qué:
@@ -18,14 +19,26 @@
         (supabase-js mira el # al arrancar). Solo toca un # que sea EXACTAMENTE `#th=<algo>`; un
         # de ruta normal (`#/facturas`) no se toca. (El `<meta name="referrer"
         content="no-referrer">` de la página cubre la cabecera Referer.)
-     2. El canje lo dispara un BOTÓN, no la carga de la página. Los filtros de correo de empresa
-        (Microsoft Defender Safe Links y parecidos) abren los enlaces del correo para revisarlos;
-        si la página canjeara sola, el filtro gastaría el enlace (es de un solo uso) y el
-        comprador vería «caducado» al pulsarlo. Es la salida que da la documentación de Supabase
-        (docs/guides/auth/auth-email-templates, «email prefetching»: una página propia con un
-        botón que dispara la confirmación). Si falla por red, el token sigue en memoria y el
-        mismo botón reintenta.
-     3. El botón solo se ofrece después de `getSession()`: el cliente ya ha terminado de arrancar.
+     2. El canje es SOLO, sin botón (owner, 13-oct-2026: «me lleva a una landing que me vuelve a
+        pedir darle a un botón, ¿podemos saltar ese paso?»; hasta ese día lo disparaba un botón
+        «Entrar»). El riesgo que tapaba el botón: los filtros de correo de empresa (Microsoft
+        Defender Safe Links y parecidos) abren el enlace para revisarlo y, si la página canjea
+        sola, gastan el token de un solo uso y el comprador ve «caducado» (doc de Supabase,
+        auth-email-templates, «email prefetching»). No es una fuga: la sesión se la queda el
+        navegador desechable del filtro, como con cualquier enlace mágico. Para que solo canjee
+        una persona delante, `puedeCanjearSolo` exige (Seguridad, 13-oct-2026, «APTO con cambios»):
+        página visible, sin prerender, con foco, fuera de un iframe y sin `navigator.webdriver`; y
+        la página espera `ESPERA_MS` y vuelve a mirarlo antes de canjear (se cancela si en ese
+        rato deja de cumplirse; la espera vive en `esperaSolo`). Un filtro que ejecuta JS con todo
+        eso en regla NO se para (no se puede garantizar): su comprador vería «ya se usó» una y otra
+        vez. Es la salida que fijó el encargo del owner («si hay riesgo real, canje automático solo
+        si la página está visible y hay un navegador de verdad, no un botón»); se mide en la fila
+        LAW-549 de `contexto/pendientes.md` de la agencia (los `otp_expired` de /verify y si se
+        repiten), y la vuelta atrás es revertir el commit del 13-oct (vuelve el botón). Si la guarda
+        no se cumple, se enseña el botón «Entrar» y se canjea solo en cuanto se cumpla (la pestaña
+        pasa a visible o coge foco). Si falla por red, el token sigue en memoria y el botón
+        reintenta; tras un fallo de red ya no se canjea solo (sin bucles).
+     3. El canje (solo o con el botón) empieza después de `getSession()`: el cliente ya ha terminado de arrancar.
         Si no, un arranque que encuentre caducada la sesión guardada en `lw-portal-auth` y la
         borre (`_recoverAndRefresh` → `_removeSession`) podría terminar DESPUÉS del canje y
         borrar la sesión recién creada.
@@ -78,7 +91,8 @@
    no entra y cada «pide otro» gasta el freno. Cómo se comprueba antes de `--edge`: el
    `<meta name="lw-version">` de https://lawangproperties.com/portal/ tiene que ser el mismo que el
    de portal/index.html de la copia que se publica (y /portal/enlace.js servido debe exportar
-   `decide` y su `quitaTh` debe leer `#th=`: lo dice el `?v=20261011c` con que lo pide la página).
+   `decide` y su `quitaTh` debe leer `#th=`: lo dice el `?v=` con que lo pide la página; desde el
+   13-oct `?v=20261013a`, que además exporta `puedeCanjearSolo`).
 
    Se prueba en node con enlace.test.js. */
 (function (root) {
@@ -156,6 +170,25 @@
 
   var AVISO = { caducado: 'enlace_caducado', red: 'enlace_red' };
 
+  /* Pausa antes del canje solo (punto 2): un filtro que abre y cierra la página no llega; una
+     persona apenas la nota (va con «Entrando…»). */
+  var ESPERA_MS = 800;
+
+  /* ¿Puede canjearse sin que nadie pulse? (punto 2). `w` = window. Cualquier duda → false (se
+     enseña el botón, que sigue entrando de un clic). */
+  function puedeCanjearSolo(w) {
+    try {
+      var d = w.document, n = w.navigator || {};
+      if (!d || d.visibilityState !== 'visible' || d.prerendering) return false;
+      if (n.webdriver === true) return false;
+      if (w.top !== w) return false;
+      if (typeof d.hasFocus === 'function' && !d.hasFocus()) return false;
+      return true;
+    } catch (e) {
+      return false; /* MUDO A PROPOSITO: un window.top de otro origen lanza al compararlo en algún navegador; ante la duda, botón */
+    }
+  }
+
   /* Sesión de comprador utilizable: tiene token y el claim `portal`. Una sin claim no sirve para
      entrar (trasSesion la cerraría con «sin activar»), así que ante un enlace caducado se pide
      otro en vez de eso. */
@@ -177,7 +210,36 @@
     return { accion: 'pide_otro', ses: null, aviso: AVISO.caducado };
   }
 
-  var api = { TIPO: TIPO, AVISO: AVISO, quitaTh: quitaTh, formatoOk: formatoOk, clasifica: clasifica, canjea: canjea, canjeaCallado: canjeaCallado, callado: callado, sesionViva: sesionViva, decide: decide };
+  /* La espera del canje solo (punto 2), aparte de la página para poder probarla en node. `o`:
+       activo()   → true mientras quede un `th` sin gastar, no haya canje en curso y no haya habido fallo de red
+       puede()    → puedeCanjearSolo(window)
+       entrando() / boton() → lo que se enseña (indicador «Entrando…» / botón «Entrar»)
+       canjea()   → el canje de verdad (la página lo protege además con su candado EN_CURSO)
+       espera, setT, clearT → ESPERA_MS y los temporizadores (en la página, setTimeout/clearTimeout)
+     intenta(): si puede, «Entrando…» y vuelve a mirar pasada la espera antes de canjear; si no, botón. Un solo
+     temporizador a la vez (focus y visibilitychange llegan juntos). cancela(): si la página se oculta o pierde el
+     foco durante la espera, se anula y queda el botón. */
+  function esperaSolo(o) {
+    var timer = 0;
+    function intenta() {
+      if (timer || !o.activo()) return;
+      if (!o.puede()) { o.boton(); return; }
+      o.entrando();
+      timer = o.setT(function () {
+        timer = 0;
+        if (!o.activo()) return;
+        if (o.puede()) o.canjea(); else o.boton();
+      }, o.espera);
+    }
+    function cancela() {
+      if (!timer) return;
+      o.clearT(timer); timer = 0;
+      if (o.activo()) o.boton();
+    }
+    return { intenta: intenta, cancela: cancela, esperando: function () { return !!timer; } };
+  }
+
+  var api = { TIPO: TIPO, AVISO: AVISO, ESPERA_MS: ESPERA_MS, puedeCanjearSolo: puedeCanjearSolo, esperaSolo: esperaSolo, quitaTh: quitaTh, formatoOk: formatoOk, clasifica: clasifica, canjea: canjea, canjeaCallado: canjeaCallado, callado: callado, sesionViva: sesionViva, decide: decide };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LW_ENLACE = api;
 })(typeof window !== 'undefined' ? window : this);
