@@ -39,11 +39,15 @@
   var T = function (s) { return (typeof window.lwT === 'function') ? window.lwT(s) : s; };
   var LLAVE = 'lw-asistente-contrato';
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  /* Los tres tipos que SIGUEN a una venta que ya existe (cuelgan de otro
+  /* Los tipos que SIGUEN a una venta que ya existe (cuelgan de otro
      contrato): en «venta nueva» salen apagados con el motivo, y se hacen desde
      «Seguir una venta». Es la definición del camino, no un catálogo: el nombre,
-     el permiso y el orden siguen saliendo de TEMPLATES y CONTRACT_TIPO. */
-  var SIGUE_A_VENTA = ['construccion', 'poa', 'adenda'];
+     el permiso y el orden siguen saliendo de TEMPLATES y CONTRACT_TIPO.
+     El Hak Sewa entra el 13-oct-2026 (owner: «sigue después de un contrato de
+     construcción, no venta nueva. 1 Reserva o Bloqueo · 2 Construcción · 3 Hak
+     Sewa · 4 poder notarial»). Cuelga del Bloqueo (la raíz) aunque se haga desde
+     su Construcción: ver TIPOS_CUELGAN_DE_BLOQUEO en app.html. */
+  var SIGUE_A_VENTA = ['construccion', 'hak_sewa_notario', 'poa', 'adenda'];
   var ORIGENES = [
     ['contacto_personal', 'Contacto personal'],
     ['referido_cliente', 'Referido de un cliente mío'],
@@ -340,6 +344,18 @@
         desc: T('Se enlaza a este Bloqueo con su cliente y su parcela; el precio de la obra sale del modelo y el techo.'),
         off: lleno ? T('Este Bloqueo ya tiene un Contrato de Construcción por cada parcela.') : null });
     }
+    /* Hak Sewa (13-oct-2026): paso 3 de la venta, tras la Construcción. Se ofrece desde el Bloqueo («Le toca» si ya
+       tiene obra; sin obra —venta de solo suelo— se puede igual) y desde su Construcción. Nunca se apaga por tener ya
+       uno: tres de 30 años por venta es lo normal (contexto/suite_lawang.md → «Tres Hak Sewa NO son un duplicado»). */
+    if (v.tipo === 'reserva_parcela' || v.tipo === 'construccion') {
+      var hs = bloqueoDelHakSewa();
+      ops.push({ slug: slugDeTipo('hak_sewa_notario'), texto: nombre(slugDeTipo('hak_sewa_notario')),
+        toca: v.tipo === 'construccion' || (typeof RT.construcciones === 'number' && RT.construcciones > 0),
+        desc: v.tipo === 'reserva_parcela'
+          ? T('Arrendamiento ante notario, colgado de este Bloqueo. Lo normal es tras la Construcción; si la venta es solo de suelo, también vale.')
+          : T('Arrendamiento ante notario. Se enlaza al Bloqueo de esta Construcción') + (hs.numero ? ': ' + hs.numero : '.'),
+        off: hs.off || null });
+    }
     ops.push({ slug: slugDeTipo('poa'), texto: nombre(slugDeTipo('poa')), desc: T('Para que un apoderado firme por el cliente.') });
     ops.push({ slug: slugDeTipo('adenda'), texto: nombre(slugDeTipo('adenda')), desc: T('Cambia este contrato firmado sin rehacerlo.'),
       off: v.bloqueado ? null : T('Una Adenda cambia un contrato ya firmado. Este aún no lo está: se corrige en el propio contrato.') });
@@ -347,6 +363,23 @@
     return ops;
   }
   function opcionExistente(slug) { return opcionesExistente().find(function (o) { return o.slug === slug; }) || null; }
+  /* De qué Bloqueo cuelga el Hak Sewa de la venta elegida: { numero } o { off: motivo }. Desde un Bloqueo, él mismo;
+     desde una Construcción, su padre, que tiene que ser un Bloqueo (es lo único que `contrato_guarda` enlaza por
+     `num_reserva_vinculada`). Lo que no se ha podido mirar se dice, no se trata como «no tiene». */
+  function bloqueoDelHakSewa() {
+    var v = S.venta;
+    if (!v) return { off: T('Elige primero la venta.') };
+    if (v.tipo === 'reserva_parcela') return { numero: v.numero };
+    var p = RT.padre;
+    if (v.contrato_padre_id === undefined)   // estado guardado antes del 13-oct: se está releyendo (abrir)
+      return p && p.fallo ? { off: T('No se ha podido comprobar de qué Bloqueo es esta Construcción. Recarga la página.') } : { off: T('Comprobando de qué Bloqueo es esta Construcción…') };
+    if (!v.contrato_padre_id) return { off: T('Esta Construcción no está enlazada a ningún Bloqueo de Parcela: haz el Hak Sewa desde su Bloqueo, o enlázala primero en el editor.') };
+    if (!p || p.id !== v.contrato_padre_id) return { off: T('Comprobando de qué Bloqueo es esta Construcción…') };
+    if (p.fallo) return { off: T('No se ha podido comprobar de qué Bloqueo es esta Construcción. Recarga la página.') };
+    if (p.invisible) return { off: T('El Bloqueo de esta Construcción no está entre los contratos que ves: el Hak Sewa no quedaría enlazado. Pídeselo a administración.') };
+    if (p.tipo !== 'reserva_parcela') return { off: T('Esta Construcción cuelga de un contrato que no es un Bloqueo de Parcela:') + ' ' + (p.numero || '—') + '. ' + T('Haz el Hak Sewa desde su Bloqueo.') };
+    return { numero: p.numero };
+  }
 
   /* ── pintar ─────────────────────────────────────────────────────────────── */
   function opcion(accion, valor, sel, ico, titulo, desc, extra) {
@@ -382,8 +415,8 @@
     inicio: function () {
       return '<h2 id="asi-h">' + e(T('¿Qué vas a hacer?')) + '</h2><p class="asi-q">' +
         e(T('Si continúas una venta, copio lo que ya tiene y solo te pregunto lo que falta.')) + '</p><div class="asi-ops">' +
-        opcion('camino', 'nueva', S.camino === 'nueva', 'add_circle', T('Empezar una venta nueva'), T('Carta de Reserva, Bloqueo de Parcela directo, Hak Sewa u otro documento.')) +
-        opcion('camino', 'existente', S.camino === 'existente', 'link', T('Seguir una venta que ya existe'), T('Construcción de un Bloqueo, pasar una Carta a Bloqueo, Poder Notarial o Adenda.')) +
+        opcion('camino', 'nueva', S.camino === 'nueva', 'add_circle', T('Empezar una venta nueva'), T('Carta de Reserva, Bloqueo de Parcela directo u otro documento.')) +
+        opcion('camino', 'existente', S.camino === 'existente', 'link', T('Seguir una venta que ya existe'), T('Construcción de un Bloqueo, Hak Sewa tras la Construcción, pasar una Carta a Bloqueo, Poder Notarial o Adenda.')) +
         '</div>';
     },
     modo: function () {
@@ -583,6 +616,11 @@
       if (modoTxt()) filas.push([T('Venta'), modoTxt()]);
       filas.push([T('Contrato'), nombre(S.slug)]);
       if (S.camino === 'existente') filas.push([T('Sigue a'), S.venta.numero]);
+      // el Hak Sewa hecho desde una Construcción cuelga de su Bloqueo, no de la obra: se dice cuál
+      if (S.camino === 'existente' && t === 'hak_sewa_notario' && S.venta.tipo === 'construccion') {
+        var bq = bloqueoDelHakSewa();
+        if (bq.numero) filas.push([T('Se enlaza a'), bq.numero + ' · ' + T('su Bloqueo de Parcela')]);
+      }
       if (S.camino === 'existente' || m.cliente) filas.push([T('Cliente'), cli]);
       if (S.camino === 'existente' || m.proyecto || m.parcela) filas.push([T('Parcela'), par]);
       var emp = empresaDe(S.camino === 'existente' ? S.venta.proyecto_nombre : S.proyecto);
@@ -789,7 +827,7 @@
     RT.qVenta = texto;
     var limpio = String(texto || '').replace(/[%_,()*\\]/g, '').trim();
     var consulta = sb.rpc('contratos_equipo')
-      .select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,bloqueado,liberado_en,fecha_firma,created_at,rev03:datos_fields->>clausulas_negociadas');
+      .select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,bloqueado,liberado_en,fecha_firma,created_at,contrato_padre_id,rev03:datos_fields->>clausulas_negociadas');
     if (limpio.length >= 2) consulta = consulta.or('numero.ilike.%' + limpio + '%,comprador_nombre.ilike.%' + limpio + '%');
     var yo = texto;
     Promise.resolve(consulta.not('numero', 'is', null).order('created_at', { ascending: false }).limit(10)).then(function (r) {
@@ -806,15 +844,29 @@
       pinta();
     }, function () { RT.construcciones = 'fallo'; pinta(); });
   }
+  /* El Bloqueo del que cuelga una Construcción (para su Hak Sewa). La misma RPC que el resto del asistente: si no lo
+     ve quien pregunta, el servidor tampoco se lo enlazaría (puede_ver_contrato en contrato_guarda). */
+  function cargaPadre(v, alLlegar) {
+    if (!v.contrato_padre_id) { RT.padre = null; if (alLlegar) alLlegar(); return; }
+    var id = v.contrato_padre_id;
+    RT.padre = null;
+    Promise.resolve(sb.rpc('contratos_equipo').select('id,numero,tipo').eq('id', id).maybeSingle()).then(function (r) {
+      if (!S.venta || S.venta.id !== v.id) return;
+      RT.padre = r.error ? { id: id, fallo: true } : r.data ? { id: id, numero: r.data.numero, tipo: r.data.tipo } : { id: id, invisible: true };
+      if (alLlegar) alLlegar();
+      pinta();
+    }, function () { if (S.venta && S.venta.id === v.id) { RT.padre = { id: id, fallo: true }; pinta(); } });
+  }
   function eligeVenta(v) {
     S.venta = { id: v.id, numero: v.numero, tipo: v.tipo, comprador_nombre: v.comprador_nombre, proyecto_nombre: v.proyecto_nombre,
       parcela_codigo: v.parcela_codigo, bloqueado: !!v.bloqueado, fecha_firma: v.fecha_firma, liberado_en: v.liberado_en,
-      rev03: v.rev03 === 'si', rev04: v.rev03 === 'rev04' };
-    S.slug = null; RT.construcciones = null; RT.modelos = null; RT.techos = null;
+      contrato_padre_id: v.contrato_padre_id || null, rev03: v.rev03 === 'si', rev04: v.rev03 === 'rev04' };
+    S.slug = null; RT.construcciones = null; RT.padre = null; RT.modelos = null; RT.techos = null;
     ajustaEquipoAlProyecto(v.proyecto_nombre).then(pinta);
     S.clausulas = clausulasDeSalida();
     S.obra = { modelo: '', techoId: '', fpago: 'estandar' };
     if (v.tipo === 'reserva_parcela') cuentaConstrucciones(v, preseleccionaExistente);
+    else if (v.tipo === 'construccion') cargaPadre(v, preseleccionaExistente);
     else preseleccionaExistente();
   }
   function preseleccionaExistente() {
@@ -1057,6 +1109,9 @@
   }
   async function montaExistente() {
     var v = S.venta, slug = S.slug;
+    // El Bloqueo del Hak Sewa se fija ANTES de abrir nada: openSavedContract/derivarContrato cambian el estado del editor
+    var hs = tipoDe(slug) === 'hak_sewa_notario' ? bloqueoDelHakSewa() : null;
+    if (hs && !hs.numero) { avisaMal(hs.off || T('No se sabe de qué Bloqueo cuelga este Hak Sewa. No se ha creado nada.')); return false; }
     await openSavedContract(v.id);
     // Si no se pudo abrir, derivarContrato copiaría «el borrador actual» (la Carta en blanco de debajo)
     if (!SAVED_CONTRACT || SAVED_CONTRACT.id !== v.id) { avisaMal(T('No se ha podido abrir la venta elegida. No se ha creado nada.')); return false; }
@@ -1069,6 +1124,15 @@
       aplicarReglasCampos();
     }
     if (t === 'adenda') populateForm({ adenda_contrato: v.numero, adenda_contrato_fecha: v.fecha_firma || '' });
+    if (hs) {
+      /* Cuelga de la RAÍZ: desde una Construcción, su Bloqueo (no la obra), para no crear nietos. Es la clave que
+         contrato_guarda enlaza; el campo lo inyecta deriveSections (app.html, TIPOS_CUELGAN_DE_BLOQUEO). */
+      populateForm({ num_reserva_vinculada: hs.numero });
+      var cv = document.querySelector('[name="num_reserva_vinculada"]');
+      if (!cv || cv.value !== hs.numero) avisaMal(T('No se ha podido poner la venta vinculada del Hak Sewa: elígela en el editor, en «Gestión del contrato».'));
+      else if (!(VINCULABLES || []).some(function (c) { return c.numero === hs.numero; }))
+        avisaMal(T('Ese Bloqueo no está en la lista de vinculables: comprueba la venta vinculada en el editor.'));
+    }
     if (t === 'reserva_parcela' && lwEsPreliminar(v.tipo)) avisa(T('Bloqueo de Parcela con los datos de') + ' ' + v.numero + ' · ' + T('el abono ya pagado en la Carta se descontará al guardar.'));
     await montaCondiciones();
     return true;
@@ -1304,6 +1368,17 @@
       }
       // Solo se vuelve a contar: lo que ya había elegido (tipo, modelo, techo) se conserva.
       if (S.camino === 'existente' && S.venta && S.venta.tipo === 'reserva_parcela') cuentaConstrucciones(S.venta, null);
+      if (S.camino === 'existente' && S.venta && S.venta.tipo === 'construccion') {
+        // un estado guardado antes del 13-oct-2026 no trae el padre: se relee en vez de darlo por «sin Bloqueo»
+        if (S.venta.contrato_padre_id === undefined) {
+          var vv = S.venta;
+          Promise.resolve(sb.rpc('contratos_equipo').select('contrato_padre_id').eq('id', vv.id).maybeSingle()).then(function (r) {
+            if (S.venta !== vv) return;
+            if (r.error || !r.data) { RT.padre = { fallo: true }; pinta(); return; }
+            vv.contrato_padre_id = r.data.contrato_padre_id || null; guarda(); cargaPadre(vv, null); pinta();
+          }, function () { if (S.venta === vv) { RT.padre = { fallo: true }; pinta(); } });
+        } else cargaPadre(S.venta, null);
+      }
       guarda(); pinta(); preparaPaso();
     },
     /* El #tplPick del editor montado por el asistente: vuelve al paso «tipo»

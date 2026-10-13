@@ -362,8 +362,14 @@ async function lwOperacionesCargar(SB, avisar){
      fila normal antes que desaparecer de la vista. */
   const porId = {};
   OPS.forEach(o => { porId[o.id] = o; o.hijos = []; o.padre = null; });
+  /* `padre` es la RAÍZ de la venta, no el contrato inmediato (13-oct-2026): un Poder hecho desde un Hak Sewa que
+     cuelga de su Bloqueo es nieto (PA → HS → RP; hoy ya existe PA00014 → CC00135 → RP00202). Con un solo nivel
+     el nieto colgaba de un hijo, la lista lo quitaba por tener padre y el grupo de la raíz no lo traía: desaparecía
+     de Operaciones. Se sube mientras el padre esté cargado; el tope y el «!== o» cortan un ciclo. */
   OPS.forEach(o => {
-    const p = o.contrato_padre_id && porId[o.contrato_padre_id];
+    let p = o.contrato_padre_id && porId[o.contrato_padre_id], n = 0;
+    while(p && p !== o && p.contrato_padre_id && porId[p.contrato_padre_id] && porId[p.contrato_padre_id] !== o && n++ < 10)
+      p = porId[p.contrato_padre_id];
     if(p && p !== o){ o.padre = p; p.hijos.push(o); }
   });
 
