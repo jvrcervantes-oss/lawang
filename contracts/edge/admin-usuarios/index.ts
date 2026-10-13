@@ -156,7 +156,9 @@ const TIPOS_CONTRATO = [
 // lista del navegador. QUÉ se puede conceder lo decide además la base para todos los caminos (trigger
 // usuarios_tipos_contrato_validos, migración 20261013015508): tipo conocido, de la empresa de la persona y, con sesión, del
 // alcance de quien concede. QUIÉN: en los caminos con service_role de esta edge (alta global, solicitudes) un admin que no es
-// super solo da los propios que tiene él (misma regla que usuario_guarda_permisos); el alta de un rol de empresa va por
+// super solo da los propios que tiene él (Permisos, usuario_guarda_permisos, es más estricto: a ese admin le limita TODOS los
+// tipos; aquí los 17 siguen como estaban antes del 13-oct, y hoy ningún admin global no super tiene la casilla «usuarios»:
+// medido ese día, solo los super admin la tienen). El alta de un rol de empresa va por
 // usuario_alta_empresa con la sesión de quien la da. En una instancia del ERP sin contratos propios (sin la columna `empresa`) la
 // consulta falla y solo valen los de la lista: no se da nada de más.
 async function tiposConcedibles(pedidos: string[], soloLosMios: string[] | null) {

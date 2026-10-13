@@ -22,7 +22,8 @@
 --      resolucion que usan los contratos (_trg_contrato_tipo_valido): una lista sola, no una tercera copia de los 17.
 --   2. Si es propio y la persona tiene empresas marcadas, es de una de ellas. Si no, nunca podria emitirlo:
 --      _trg_contrato_tipo_valido exige que el contrato propio sea de la empresa del proyecto, y sus proyectos son de sus
---      empresas (usuario_guarda_permisos).
+--      empresas (usuario_guarda_permisos). Se mira al CONCEDER: si despues cambian las empresas de la persona, el propio que
+--      ya tenia se le queda guardado sin servirle (el trigger de contratos le impide emitirlo en otra empresa).
 --   3. Si es propio y hay sesion (Permisos, alta de empresa), la empresa del contrato esta en el alcance de quien lo
 --      concede (`empresa_en_alcance`, la misma puerta que plantilla_contratos_propios_activos, que es de donde la pantalla
 --      saca la lista). Sin sesion (edge con service_role, MCP) esta regla no aplica: la edge comprueba a quien llama.
@@ -83,6 +84,9 @@ create trigger usuarios_tipos_contrato_validos
 -- Arreglo: el proyecto se resuelve con UNA funcion (`_contrato_proyecto_de`), la misma regla que ya aplicaba el espejo (el id si
 -- viene; si no, el proyecto con ese nombre), y la usan el espejo y los dos triggers. No se renombran triggers: cambiar el orden
 -- de `trg_espejo_proyecto` haria que otros ~8 triggers vieran el proyecto donde hoy no lo ven, y eso es otra revision.
+-- Medido el 13-oct: 6 de esos 8 ya resuelven el proyecto tambien por su nombre (_empresa_fila_contrato(id, nombre) o su
+-- propia busqueda); descuento_comercial_construccion_valido NO (llama a _modelo_techos_opciones con proyecto_id nulo en el
+-- alta): fila LAW-E57 de contexto/pendientes.md. La lista literal de los 17 en _trg_contrato_tipo_valido es la de antes.
 create or replace function public._contrato_proyecto_de(p_id uuid, p_nombre text)
 returns uuid
 language sql

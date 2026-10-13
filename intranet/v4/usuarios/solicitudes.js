@@ -168,7 +168,8 @@
                     tipos_contrato: marcados('t_' + s.id), herramientas: marcados('h_' + s.id) }).then(function (x) {
           if (x && x.ok) {
             aviso.textContent = (x.email_enviado ? T('Activado. Le ha llegado el correo para crear su contraseña.') : T('Activado, pero el correo no salió: usa «Reenviar enlace».')) +
-              (x.herramientas_no_dadas && x.herramientas_no_dadas.length ? ' ' + T('Sin %h: no las tienes tú; pídeselas a un super admin.', { h: x.herramientas_no_dadas.join(', ') }) : '');
+              (x.herramientas_no_dadas && x.herramientas_no_dadas.length ? ' ' + T('Sin %h: no las tienes tú; pídeselas a un super admin.', { h: x.herramientas_no_dadas.join(', ') }) : '') +
+              (x.tipos_no_dados && x.tipos_no_dados.length ? ' ' + T('Sin los contratos %t: no existen o no los tienes tú.', { t: x.tipos_no_dados.join(', ') }) : '');
             aviso.className = 'font-body-sm text-body-sm text-primary';
             setTimeout(pintaSolicitudes, 1800);
           } else {

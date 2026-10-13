@@ -8296,7 +8296,7 @@
             valor: ((typeof LW_HERR_POR_ROL === 'object' && LW_HERR_POR_ROL[rolInicial]) || []).filter(puedoDarAlta),
             ayuda: 'Preselección según el rol elegido arriba — editable. Solo aparecen las herramientas que tienes tú.' },
           { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck', opciones: tiposCatAlta,
-            valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol. Solo limita a los agentes: un agente sin ninguno marcado no puede emitir ningún contrato (la base lo bloquea); los demás niveles emiten todos. Los contratos propios de una empresa se conceden después, en los permisos de la persona.' }
+            valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol. Solo limita a los agentes: un agente sin ninguno marcado no puede emitir ningún contrato (la base lo bloquea); los demás niveles emiten todos. Los contratos propios (marcados «contrato propio») solo salen si tienen una versión activa.' }
         ], 'Crear usuario', function (v) {
           var email = (v.email || '').trim().toLowerCase();
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: { message: 'email no válido' } };
@@ -8330,10 +8330,14 @@
               // Confirmación en los DOS sentidos (17-sep-2026 en la clásica,
               // misma regla aquí): el éxito también habla, no solo el fallo —
               // sin esto quien da de alta no sabe si el correo salió o no.
+              /* 13-oct-2026: lo que la edge no ha dado (un contrato propio que ya no existe o que tú no tienes) vuelve en
+                 `tipos_no_dados`; antes se tiraba en silencio y la persona nacía sin ese permiso sin que nadie lo supiera. */
+              var noDados = Array.isArray(d.tipos_no_dados) && d.tipos_no_dados.length
+                ? ' Sin estos contratos (no existen o no los tienes tú): ' + d.tipos_no_dados.map(function (k) { return (window.LW_V4 && window.LW_V4.tiposPropios && window.LW_V4.tiposPropios[k]) || k; }).join(', ') + '.' : '';
               if (d.email_enviado === false) {
-                aviso('Usuario creado: ' + email + '. Aviso: no se pudo enviar el correo de bienvenida — dale la contraseña a mano.', '#8A6A34');
+                aviso('Usuario creado: ' + email + '. Aviso: no se pudo enviar el correo de bienvenida — dale la contraseña a mano.' + noDados, '#8A6A34');
               } else {
-                aviso('Usuario creado: ' + email + ' — correo de bienvenida enviado.');
+                aviso('Usuario creado: ' + email + ' — correo de bienvenida enviado.' + noDados, noDados ? '#8A6A34' : undefined);
               }
               // ?u=<email> es lo que hace que la recarga de abajo reabra la
               // ficha del recién creado — mismo mecanismo que ya usa abreFicha
@@ -8367,7 +8371,21 @@
         });
       };
       var btnAlta = ata('invitar-miembro', function () {
-        if (!window.AXW_NUCLEO_OPERACION) return abreAlta(tiposCatAlta);
+        /* 13-oct-2026: el alta también ofrece los contratos PROPIOS activos de las empresas de mi alcance (como «Guardar
+           permisos»); la edge los acepta preguntando a la base y la base decide si se pueden dar. Si no se pueden leer, el
+           alta se abre con los de siempre. */
+        if (!window.AXW_NUCLEO_OPERACION) {
+          var conPropios = function (propios) {
+            var ops = tiposCatAlta.slice();
+            (propios || []).forEach(function (f) {
+              if (!ops.some(function (o) { return o[0] === f.slug; })) ops.push([f.slug, f.nombre + (f.empresaNombre ? ' · ' + f.empresaNombre : '') + ' (contrato propio)']);
+            });
+            return abreAlta(ops);
+          };
+          return (window.LW_V4 && window.LW_V4.cargaTiposPropios)
+            ? window.LW_V4.cargaTiposPropios(sb, true).then(conPropios, function () { return conPropios([]); })
+            : conPropios([]);
+        }
         /* ERP: si el catálogo no se lee, el alta NO se abre. «Contratos que puede hacer» vacío significa TODOS:
            un formulario sin opciones daría acceso a todo sin que nadie lo decidiera. */
         tiposErp().then(function (t) {
