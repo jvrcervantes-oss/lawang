@@ -138,11 +138,16 @@ begin
   -- tope de 8 URLs por alta (al2 lleva 1)
   for i in 1..7 loop perform pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid, %L::uuid)::text', a, al2)); end loop;
   r := r || pg_temp.ok(pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid, %L::uuid)::text', a, al2)), 'PT409:demasiados_ficheros', '1.41 la 9.ª URL de una alta: demasiados_ficheros');
-  -- tope de 3 abiertas por usuario (abiertas en plazo ahora: al2; al5 caducada no cuenta)
-  perform pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a));
-  perform pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a));
-  r := r || pg_temp.ok(pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a)), 'PT409:demasiadas_altas_abiertas', '1.42 la 4.ª alta abierta: demasiadas_altas_abiertas');
-  r := r || pg_temp.ok((select count(*)::text from public.kyc_altas_pendientes where uid = a and creado_en > now() - interval '24 hours'), '3', '1.43 ... y quedan exactamente 3 abiertas');
+  -- tope de 3 abiertas por usuario (abiertas en plazo ahora: al2, con fichero; al5 caducada no cuenta)
+  al3 := pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a))::uuid;
+  al4 := pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a))::uuid;
+  update public.kyc_altas_pendientes set creado_en = now() - interval '2 hours' where id = al3;   -- al3, la vacía más antigua
+  alx := pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a))::uuid;
+  r := r || pg_temp.ok((select count(*)::text from public.kyc_altas_pendientes where id = al3) || '/' || (select count(*) from public.kyc_altas_pendientes where id in (al2, al4, alx)),
+                       '0/3', '1.42 en el tope, la 4.ª suelta la vacía más antigua (al3) y nunca la que tiene ficheros (al2)');
+  insert into storage.objects (bucket_id, name) values ('kyc', al4 || '/' || gen_random_uuid() || '.pdf'), ('kyc', alx || '/' || gen_random_uuid() || '.pdf');
+  r := r || pg_temp.ok(pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a)), 'PT409:demasiadas_altas_abiertas', '1.43 con las 3 con ficheros: demasiadas_altas_abiertas');
+  r := r || pg_temp.ok((select count(*)::text from public.kyc_altas_pendientes where uid = a and creado_en > now() - interval '24 hours'), '3', '1.43b ... y quedan exactamente 3 abiertas');
   -- kyc_sueltos_de: una carpeta con pendiente viva no es suelta
   r := r || pg_temp.ok((select count(*)::text from public.kyc_sueltos_de(al2)), '0', '1.44 kyc_sueltos_de no ve los ficheros de una alta pendiente viva');
 

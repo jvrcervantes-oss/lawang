@@ -17,8 +17,9 @@
 --      Si la ficha no valida, no queda nada (ni ficha ni documentos), y la pendiente y los ficheros siguen para el
 --      reintento. Reintento tras confirmar = idempotente (devuelve la ficha ya creada del mismo dueño).
 --   4. Con `config_instancia.alta_exige_documento` = true, `cliente_guarda(null, …)` y el «Crear ficha» del CRM de
---      leads se niegan: el alta solo entra por el paso 3. La migración NO lo enciende (orden: front primero, luego
---      servidor): fichero aparte `supabase/datos/law557_enciende_alta_exige_documento.sql`.
+--      leads se niegan: el alta solo entra por el paso 3. La migración NO lo enciende: se enciende al final, con
+--      la base, las edges y el front ya publicados (orden único: guion de la agencia
+--      encargos/20261013_lawang_law557_558_guion.md), con `supabase/datos/law557_enciende_alta_exige_documento.sql`.
 --   5. Retención: `kyc_retencion(p_dry)` (solo service_role, sin parámetro de meses: lo lee de
 --      `config_instancia.kyc_meses_retencion`, mínimo 12 en código; sin la clave no hace nada). La llama la edge
 --      `kyc-retencion` desde pg_cron con X-Cron-Secret (`cron_kyc_retencion_secret()`, Vault). La edge borra después
@@ -291,7 +292,16 @@ begin
     perform pg_advisory_xact_lock(hashtext('kyc_alta:' || p_uid::text));
     if (select count(*) from public.kyc_altas_pendientes k
          where k.uid = p_uid and k.creado_en > now() - interval '24 hours') >= 3 then
-      raise exception 'demasiadas_altas_abiertas' using errcode = 'PT409';
+      -- en el tope, la más antigua SIN ningún fichero se suelta y deja sitio (revisor, 13-oct: quien recarga la página a
+      -- mitad de tres altas no puede cerrarlas y se quedaría 24 h sin dar altas). Una con ficheros no se toca: es trabajo.
+      delete from public.kyc_altas_pendientes k
+       where k.id = (select k2.id from public.kyc_altas_pendientes k2
+                      where k2.uid = p_uid and k2.creado_en > now() - interval '24 hours'
+                        and not exists (select 1 from storage.objects o where o.bucket_id = 'kyc' and o.name like k2.id::text || '/%')
+                      order by k2.creado_en, k2.id limit 1);
+      if not found then
+        raise exception 'demasiadas_altas_abiertas' using errcode = 'PT409';
+      end if;
     end if;
     insert into public.kyc_altas_pendientes (uid, urls_firmadas) values (p_uid, 1) returning id into v_id;
     return v_id;
