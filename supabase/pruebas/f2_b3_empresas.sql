@@ -4,6 +4,8 @@
 --   ya = admin_empresa/lawang · cr = super_admin_empresa/sandal_woods · ad4 = admin_empresa con las dos · p4 = super_admin_empresa/lawang · ctl = agente SIN empresas (control: como hoy) · adm = admin global
 -- Seccion 1 (13-oct-2026): p4 y ctl son usuarios SINTETICOS creados dentro de la transaccion (antes se cogia «el primer global sin empresas»: salia NULL
 --   o caia en alguien con fichas propias, y unos OK no probaban nada y otros FALLO eran falsos). Si un actor o una muestra sale NULL, la seccion PARA (raise).
+-- Secciones 2 y 3 (14-oct-2026): igual, p4 y ctl SINTETICOS; la 2 ademas con destinatarios sinteticos lw/sw (nada se encola a un correo real).
+-- Medido el 14-oct en vivo (rollback): seccion 1 FALLOS=0, seccion 2 FALLOS=0, seccion 3 FALLOS=0.
 -- Cada linea OK/FALLO, termina en «FALLOS=n». El esperado se pasa como texto: el resultado escalar o el sqlstate del error.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); sin drop de datos
 --
@@ -33,7 +35,7 @@ declare
   jv uuid; ya uuid; cr uuid; ad4 uuid; p4 uuid; ctl uuid; adm uuid;
   e_ya text; e_cr text; e_ad4 text; e_p4 text; e_ctl text; e_adm text;
   cl uuid; cs uuid; cb uuid; cn uuid; dl uuid; db uuid; r text := ''; fallos int;
-  cs2 uuid; e_cs2 text; rutas2 text[];
+  cs2 uuid; e_cs2 text; rutas2 text[]; csf uuid; cse uuid; kse uuid;
   x text; hs text := '{comisiones,leads,ranking,reparto,comunicacion,compradores,usuarios}';
 begin
   select user_id into jv from public.usuarios where email='jvr.cervantes@gmail.com';
@@ -81,6 +83,20 @@ begin
   -- rutas de sus escaneos, medidas como postgres (si se midieran con la sesion de ya, el 0 saldria de la RLS de documents y no probaria storage)
   select array_agg(d.storage_path) into rutas2 from public.documents d join storage.objects o on o.bucket_id='kyc' and o.name=d.storage_path
    where d.client_id=cs2 and d.retirado_el is null;
+  -- csf (14-oct): cliente SOLO con facturas (sin contratos), todas de Sandal Woods, cuyo DUENO es de las dos empresas (real: era 1 de los 9 que medio Seguridad)
+  select c.id into csf from public.clients c join public.usuarios pr on lower(pr.email) = lower(c.propietario) and pr.activo
+   where pr.empresas @> '{lawang,sandal_woods}' and lower(pr.email) not in (lower(e_ya), lower(e_ad4))
+     and not exists (select 1 from public.contrato_compradores cc where cc.client_id=c.id)
+     and exists (select 1 from public.facturas f where f.client_id=c.id)
+     and not exists (select 1 from public.facturas f where f.client_id=c.id and public.empresa_de_factura(f.id) is distinct from 'sandal_woods')
+   order by c.id limit 1;
+  -- cse (14-oct, 20261014 «sin empresa no es de fuera»): cliente SINTETICO cuyo unico negocio es un contrato SIN empresa (legado sin proyecto, sin
+  -- comprador: se le cuelga dentro de la transaccion) y cuyo dueno es p4 (solo Lawang). ya solo lo puede ver por la rama propietario.
+  select k.id into kse from public.contratos k left join public.proyectos pr on pr.id = k.proyecto_id
+   where pr.empresa is null and not exists (select 1 from public.contrato_compradores cc where cc.contrato_id = k.id) order by k.id limit 1;
+  insert into public.clients (full_name, propietario) values ('Prueba B3 sin empresa', e_p4) returning id into cse;
+  update public.clients set propietario = e_p4 where id = cse;
+  if kse is not null then insert into public.contrato_compradores (contrato_id, client_id, rol) values (kse, cse, 'adquiriente_1'); end if;
   select cc.client_id into cb from public.contrato_compradores cc join public.contratos k on k.id=cc.contrato_id join public.proyectos p on p.id=k.proyecto_id
    group by cc.client_id having count(distinct p.empresa) filter (where p.empresa in ('lawang','sandal_woods'))=2
    order by (select count(*) from public.documents d where d.client_id=cc.client_id) desc, cc.client_id limit 1;
@@ -94,9 +110,10 @@ begin
   -- (13-oct) ningun actor ni muestra puede salir NULL: un caso con un NULL dentro no prueba nada (o falla por otra cosa)
   if jv is null or ya is null or cr is null or ad4 is null or p4 is null or ctl is null or adm is null
      or cl is null or cs is null or cb is null or cn is null or cs2 is null or dl is null or db is null
+     or csf is null or cse is null or kse is null
      or coalesce(cardinality(rutas2), 0) = 0 or x is null or length(x) < 3 then
-    raise exception 'FIXTURE ROTO (seccion 1): jv=% ya=% cr=% ad4=% p4=% ctl=% adm=% cl=% cs=% cb=% cn=% cs2=% dl=% db=% rutas2=% x=%',
-      jv, ya, cr, ad4, p4, ctl, adm, cl, cs, cb, cn, cs2, dl, db, cardinality(rutas2), x;
+    raise exception 'FIXTURE ROTO (seccion 1): jv=% ya=% cr=% ad4=% p4=% ctl=% adm=% cl=% cs=% cb=% cn=% cs2=% dl=% db=% csf=% cse=% kse=% rutas2=% x=%',
+      jv, ya, cr, ad4, p4, ctl, adm, cl, cs, cb, cn, cs2, dl, db, csf, cse, kse, cardinality(rutas2), x;
   end if;
   -- cn lo lleva p4 (super de Lawang): asi lo ve y lo puede borrar
   update public.clients set propietario = e_p4 where id = cn;
@@ -119,6 +136,19 @@ begin
   r := r || pg_temp.t(ad4, e_ad4, format('select count(*)::text from public.clients where id = %L', cs2), '1', 'cs2: control positivo, ad4 (las dos empresas) si lo ve') || E'\n';
   r := r || pg_temp.t(ad4, e_ad4, format('select count(*)::text from storage.objects where bucket_id = ''kyc'' and name = any (%L::text[])', rutas2), cardinality(rutas2)::text, 'cs2: control positivo, ad4 lee todos sus escaneos') || E'\n';
   r := r || pg_temp.t(cr, e_cr, format('select count(*)::text from public.comprador_ficha(%L)', cs2), '1', 'cs2: control positivo, cr (Sandal Woods) abre su ficha entera') || E'\n';
+  -- csf (14-oct): solo facturas de Sandal Woods, dueno de las dos -> ya no ve nada; ad4 (las dos) si
+  r := r || pg_temp.t(ya, e_ya, format('select count(*)::text from public.clients where id = %L', csf), '0', 'csf: ya NO ve al cliente solo con facturas de Sandal Woods aunque su dueno sea tambien de Lawang') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select count(*)::text from public.comprador_ficha(%L)', csf), '0', 'csf: ya NO abre su ficha entera') || E'\n';
+  r := r || pg_temp.t(ad4, e_ad4, format('select count(*)::text from public.clients where id = %L', csf), '1', 'csf: control positivo, ad4 (las dos empresas) si lo ve') || E'\n';
+  -- cse (14-oct): lo que no tiene empresa no es «de fuera» para VER; sigue bloqueando en la rama exclusiva (traspasar, borrar, retirar KYC)
+  r := r || pg_temp.t(ya, e_ya, format('select count(*)::text from public.clients where id = %L', cse), '1', 'cse: ya ve al cliente de p4 cuyo unico contrato no tiene empresa') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select count(*)::text from public.comprador_ficha(%L)', cse), '1', 'cse: ya abre su ficha entera') || E'\n';
+  r := r || pg_temp.t(cr, e_cr, format('select count(*)::text from public.clients where id = %L', cse), '0', 'cse: cr (solo Sandal Woods, no comparte empresa con p4) no lo ve') || E'\n';
+  -- las dos funciones llevan la misma condicion en linea (20261014): para el mismo usuario y cliente tienen que decir lo mismo
+  r := r || pg_temp.t(ya, e_ya, format('select public._cliente_en_empresas(%L, false, ''{admin_empresa,super_admin_empresa}'')::text', cse), 'true', 'cse: _cliente_en_empresas (no exclusiva) coincide con cliente_visible para ya', 'postgres') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select public._cliente_en_empresas(%L, false, ''{admin_empresa,super_admin_empresa}'')::text', cs2), 'false', 'cs2: _cliente_en_empresas (no exclusiva) tampoco se lo da a ya', 'postgres') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select public._cliente_en_empresas(%L, false, ''{admin_empresa,super_admin_empresa}'')::text', csf), 'false', 'csf: _cliente_en_empresas (no exclusiva) tampoco se lo da a ya', 'postgres') || E'\n';
+  r := r || pg_temp.t(p4, e_p4, format('select public._cliente_en_empresas(%L, true, ''{admin_empresa,super_admin_empresa}'')::text', cse), 'false', 'cse: en la rama EXCLUSIVA el contrato sin empresa sigue bloqueando (ni su dueno p4 lo traspasa ni lo borra)', 'postgres') || E'\n';
   -- editar fichas
   r := r || pg_temp.t(ya, e_ya, format('select (public.cliente_guarda(%L, %L::jsonb) is not null)::text', cl, '{"notes":"prueba b3"}'), 'true', 'ya edita la ficha de su cliente') || E'\n';
   r := r || pg_temp.t(ya, e_ya, format('select (public.cliente_guarda(%L, %L::jsonb) is not null)::text', cb, '{"notes":"prueba b3"}'), 'true', 'ya edita la ficha del cliente compartido (la ficha es una; los contratos no)') || E'\n';
@@ -170,7 +200,11 @@ begin
 end $t$;
 
 -- ===== SECCION 2: COMUNICADOS ===== (mismo setup que la seccion 1: pg_temp.t y las personas; sin el bloque de clientes)
--- Para no enviar nada ni pegar a la red: dentro de la transaccion se anulan _comunicados_despierta() y envios_pausados() (el raise final lo deshace).
+-- Para no enviar nada ni pegar a la red: dentro de la transaccion se anulan _comunicados_despierta() (la unica que sale a la red: net.http_post a
+-- la edge comunicados-envio) y envios_pausados() (para que encolar no pare en 55000 si el modo mantenimiento esta puesto); el raise final lo deshace.
+-- 14-oct: comunicado_encolar INSERTA filas en comunicado_envios para cada destinatario y comunicado_prueba una para quien la lanza. Aunque todo
+--   se revierte y la edge no se despierta, ningun destinatario es real: p4, ctl, lw y sw son SINTETICOS (@prueba.invalid, creados dentro de la
+--   transaccion, como en la seccion 1) y la prueba la lanza p4. Una linea final comprueba que ningun envio encolado lleva un correo real.
 create function pg_temp.t(p_uid uuid, p_email text, p_sql text, p_esp text, p_et text, p_rol text default 'authenticated') returns text language plpgsql as $f$
 declare got text; r text;
 begin
@@ -184,8 +218,8 @@ create or replace function public._comunicados_despierta() returns void language
 create or replace function public.envios_pausados() returns boolean language sql as 'select false';
 do $t$
 declare
-  jv uuid; ya uuid; cr uuid; ad4 uuid; p4 uuid; ctl uuid;
-  e_ya text; e_cr text; e_ad4 text; e_p4 text; e_ctl text;
+  jv uuid; ya uuid; cr uuid; ad4 uuid; p4 uuid; ctl uuid; lw uuid; sw uuid;
+  e_ya text; e_cr text; e_ad4 text; e_p4 text; e_ctl text; e_lw text; e_sw text;
   g uuid; l1 uuid; l2 uuid; s1 uuid; r text := ''; fallos int;
   hs text := '{comisiones,leads,ranking,reparto,comunicacion,compradores,usuarios}';
 begin
@@ -193,15 +227,29 @@ begin
   select user_id, email into ya, e_ya from public.usuarios where email='yanayjefferson@gmail.com';
   select user_id, email into cr, e_cr from public.usuarios where email='cris.blueiestates@gmail.com';
   select user_id, email into ad4, e_ad4 from public.usuarios where email='adenovit.b@gmail.com';
-  select user_id, email into p4, e_p4 from public.usuarios
-   where activo and ambito='global' and cardinality(coalesce(empresas,'{}'))=0 and rol not in ('admin','super_admin') and user_id not in (ya,cr,ad4) order by email limit 1;
-  select user_id, email into ctl, e_ctl from public.usuarios
-   where activo and ambito='global' and cardinality(coalesce(empresas,'{}'))=0 and rol not in ('admin','super_admin') and user_id not in (ya,cr,ad4,p4) order by email limit 1;
+  -- 14-oct: actores y destinatarios SINTETICOS (como en la seccion 1): p4 super de Lawang, ctl agente global sin empresas, lw y sw agentes restringidos a Lawang / Sandal Woods (ambito global con empresas: el CHECK usuarios_ambito_rol_check solo deja ambito empresa a los admins)
+  perform set_config('request.jwt.claims', '', true);
+  p4 := gen_random_uuid(); e_p4 := 'b3-p4@prueba.invalid';
+  ctl := gen_random_uuid(); e_ctl := 'b3-ctl@prueba.invalid';
+  lw := gen_random_uuid(); e_lw := 'b3-lw@prueba.invalid';
+  sw := gen_random_uuid(); e_sw := 'b3-sw@prueba.invalid';
+  insert into auth.users (id, instance_id, email, aud, role) values
+    (p4, '00000000-0000-0000-0000-000000000000', e_p4, 'authenticated', 'authenticated'),
+    (ctl, '00000000-0000-0000-0000-000000000000', e_ctl, 'authenticated', 'authenticated'),
+    (lw, '00000000-0000-0000-0000-000000000000', e_lw, 'authenticated', 'authenticated'),
+    (sw, '00000000-0000-0000-0000-000000000000', e_sw, 'authenticated', 'authenticated');
+  insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, herramientas, activo) values
+    (p4, e_p4, 'Prueba B3 super Lawang', 'super_admin_empresa', 'empresa', '{lawang}', hs::text[], true),
+    (ctl, e_ctl, 'Prueba B3 control', 'agente', 'global', '{}', hs::text[], true),
+    (lw, e_lw, 'Prueba B3 agente Lawang', 'agente', 'global', '{lawang}', '{}', true),
+    (sw, e_sw, 'Prueba B3 agente Sandal Woods', 'agente', 'global', '{sandal_woods}', '{}', true);
+  if jv is null or ya is null or cr is null or ad4 is null then
+    raise exception 'FIXTURE ROTO (seccion 2): jv=% ya=% cr=% ad4=%', jv, ya, cr, ad4;
+  end if;
   perform set_config('request.jwt.claims', json_build_object('sub',jv,'role','authenticated','email','jvr.cervantes@gmail.com')::text, true);
   update public.usuarios set rol='admin_empresa', ambito='empresa', empresas='{lawang}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=ya;
   update public.usuarios set rol='super_admin_empresa', ambito='empresa', empresas='{sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=cr;
   update public.usuarios set rol='admin_empresa', ambito='empresa', empresas='{lawang,sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=ad4;
-  update public.usuarios set rol='super_admin_empresa', ambito='empresa', empresas='{lawang}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=p4;
   r := r || pg_temp.t(jv, 'jvr.cervantes@gmail.com', 'select (public.comunicado_guarda(null, ''{"asunto":"B3 global","cuerpo":"x"}''::jsonb)->>''empresa'')', 'null', 'global crea un comunicado global (empresa nula)') || E'\n';
   r := r || pg_temp.t(ya, e_ya, 'select (public.comunicado_guarda(null, ''{"asunto":"B3 L1","cuerpo":"x"}''::jsonb)->>''empresa'')', 'lawang', 'ya crea un comunicado: queda de Lawang sin decirlo') || E'\n';
   r := r || pg_temp.t(ad4, e_ad4, 'select (public.comunicado_guarda(null, ''{"asunto":"B3 sin empresa","cuerpo":"x"}''::jsonb)->>''empresa'')', '22023', 'ad4 (dos empresas) debe elegir la empresa') || E'\n';
@@ -227,17 +275,21 @@ begin
   r := r || pg_temp.t(ya, e_ya, format('select (public.comunicado_guarda(%L, ''{"asunto":"B3 L1 editado"}''::jsonb)->>''asunto'')', l1), 'B3 L1 editado', 'ya edita su comunicado') || E'\n';
   r := r || pg_temp.t(cr, e_cr, format('select (public.comunicado_guarda(%L, ''{"asunto":"hackeado"}''::jsonb)->>''asunto'')', l1), '22023', 'cr no edita el comunicado de Lawang') || E'\n';
   r := r || pg_temp.t(ya, e_ya, format('select (public.comunicado_guarda(%L, ''{"asunto":"hackeado"}''::jsonb)->>''asunto'')', g), '22023', 'ya no edita un comunicado global') || E'\n';
-  r := r || pg_temp.t(ya, e_ya, format('select public.comunicado_encolar(%L, array[%L,%L,%L,%L]::uuid[])::text', l2, ya, cr, p4, ctl), '3', 'ya encola a 4 y llegan 3: se cae el de Sandal Woods') || E'\n';
-  r := r || pg_temp.t(cr, e_cr, format('select public.comunicado_encolar(%L, array[%L]::uuid[])::text', l2, cr), 'P0002', 'cr no encola un comunicado de Lawang') || E'\n';
-  r := r || pg_temp.t(ya, e_ya, format('select public.comunicado_encolar(%L, array[%L]::uuid[])::text', g, ya), 'P0002', 'ya no encola un comunicado global') || E'\n';
-  r := r || pg_temp.t(jv, 'jvr.cervantes@gmail.com', format('select public.comunicado_encolar(%L, array[%L,%L]::uuid[])::text', g, ya, cr), '2', 'global sigue enviando a quien quiera') || E'\n';
-  r := r || pg_temp.t(ya, e_ya, format('select public.comunicado_prueba(%L)', l2), e_ya, 'ya se manda una prueba de un comunicado de su empresa') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select public.comunicado_encolar(%L, array[%L,%L,%L,%L]::uuid[])::text', l2, lw, sw, p4, ctl), '3', 'ya encola a 4 (sinteticos) y llegan 3: se cae el de Sandal Woods') || E'\n';
+  r := r || pg_temp.t(cr, e_cr, format('select public.comunicado_encolar(%L, array[%L]::uuid[])::text', l2, sw), 'P0002', 'cr no encola un comunicado de Lawang') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select public.comunicado_encolar(%L, array[%L]::uuid[])::text', g, lw), 'P0002', 'ya no encola un comunicado global') || E'\n';
+  r := r || pg_temp.t(jv, 'jvr.cervantes@gmail.com', format('select public.comunicado_encolar(%L, array[%L,%L]::uuid[])::text', g, lw, sw), '2', 'global sigue enviando a quien quiera (Lawang y Sandal Woods)') || E'\n';
+  r := r || pg_temp.t(p4, e_p4, format('select public.comunicado_prueba(%L)', l2), e_p4, 'p4 (super de Lawang) se manda una prueba de un comunicado de su empresa (a su correo sintetico)') || E'\n';
   r := r || pg_temp.t(cr, e_cr, format('select public.comunicado_prueba(%L)', l2), 'P0002', 'cr no prueba un comunicado de Lawang') || E'\n';
   r := r || pg_temp.t(cr, e_cr, format('select public.comunicado_borra(%L)::text', l1), '22023', 'cr no borra el comunicado de Lawang') || E'\n';
   r := r || pg_temp.t(ya, e_ya, format('select (public.comunicado_borra(%L) is not null)::text', l1), 'true', 'ya borra su comunicado') || E'\n';
   r := r || pg_temp.t(ya, e_ya, format('select public.comunicado_borra(%L)::text', g), '22023', 'ya no borra un comunicado global') || E'\n';
   r := r || pg_temp.t(ya, e_ya, 'select public.referidos_datos(10,null)::text', '42501', 'referidos siguen cerrados a un rol de empresa') || E'\n';
   r := r || pg_temp.t(ya, e_ya, 'select public.solicitudes_alta_datos(10,null)::text', '42501', 'solicitudes de alta siguen cerradas a un rol de empresa') || E'\n';
+  -- 14-oct: nada de lo encolado en esta prueba va a un correo real (y se revierte entero)
+  r := r || case when (select count(*) from public.comunicado_envios ce where ce.comunicado_id in (g, l1, l2, s1)) > 0
+                  and not exists (select 1 from public.comunicado_envios ce where ce.comunicado_id in (g, l1, l2, s1) and ce.email not like '%@prueba.invalid')
+             then 'OK   ' else 'FALLO' end || ' ningun envio encolado por la prueba lleva un correo real' || E'\n';
   fallos := (length(r) - length(replace(r, 'FALLO', ''))) / 5;
   raise exception E'\n%FALLOS=%', r, fallos;
 end $t$;
@@ -273,16 +325,20 @@ begin
   select user_id, email into ya, e_ya from public.usuarios where email='yanayjefferson@gmail.com';
   select user_id, email into cr, e_cr from public.usuarios where email='cris.blueiestates@gmail.com';
   select user_id, email into ad4, e_ad4 from public.usuarios where email='adenovit.b@gmail.com';
-  select user_id, email into p4, e_p4 from public.usuarios
-   where activo and ambito='global' and cardinality(coalesce(empresas,'{}'))=0 and rol not in ('admin','super_admin') and user_id not in (ya,cr,ad4) order by email limit 1;
-  select user_id, email into ctl, e_ctl from public.usuarios
-   where activo and ambito='global' and cardinality(coalesce(empresas,'{}'))=0 and rol not in ('admin','super_admin') and user_id not in (ya,cr,ad4,p4) order by email limit 1;
+  -- 14-oct: p4 y ctl SINTETICOS, como en la seccion 1 (antes «el primer global sin empresas», que es una persona real y cambia con el tiempo)
+  perform set_config('request.jwt.claims', '', true);
+  p4 := gen_random_uuid(); e_p4 := 'b3-p4@prueba.invalid';
+  ctl := gen_random_uuid(); e_ctl := 'b3-ctl@prueba.invalid';
+  insert into auth.users (id, instance_id, email, aud, role) values
+    (p4, '00000000-0000-0000-0000-000000000000', e_p4, 'authenticated', 'authenticated'),
+    (ctl, '00000000-0000-0000-0000-000000000000', e_ctl, 'authenticated', 'authenticated');
+  insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, herramientas, activo) values
+    (p4, e_p4, 'Prueba B3 super Lawang', 'super_admin_empresa', 'empresa', '{lawang}', hs::text[], true),
+    (ctl, e_ctl, 'Prueba B3 control', 'agente', 'global', '{}', hs::text[], true);
   perform set_config('request.jwt.claims', json_build_object('sub',jv,'role','authenticated','email','jvr.cervantes@gmail.com')::text, true);
   update public.usuarios set rol='admin_empresa', ambito='empresa', empresas='{lawang}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=ya;
   update public.usuarios set rol='super_admin_empresa', ambito='empresa', empresas='{sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=cr;
   update public.usuarios set rol='admin_empresa', ambito='empresa', empresas='{lawang,sandal_woods}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=ad4;
-  update public.usuarios set rol='super_admin_empresa', ambito='empresa', empresas='{lawang}', proyectos='{}', proyectos_supervisados='{}', herramientas=hs::text[], tipos_contrato='{}' where user_id=p4;
-  update public.usuarios set herramientas = hs::text[] where user_id=ctl;
   select l.id into ll from public.leads l where public.empresa_de_lead(l.id)='lawang' order by l.id limit 1;
   select l.id into ls from public.leads l where public.empresa_de_lead(l.id)='sandal_woods' order by l.id limit 1;
   select c.id into kl from public.contratos c join public.proyectos p on p.id=c.proyecto_id where p.empresa='lawang' order by c.id limit 1;
@@ -290,6 +346,9 @@ begin
   select count(*) into nl from public.leads l where public.empresa_de_lead(l.id)='lawang';
   select count(*) into ns from public.leads l where public.empresa_de_lead(l.id)='sandal_woods';
   select count(*) into nt from public.leads;
+  if jv is null or ya is null or cr is null or ad4 is null or ll is null or ls is null or kl is null or ks is null then
+    raise exception 'FIXTURE ROTO (seccion 3): jv=% ya=% cr=% ad4=% ll=% ls=% kl=% ks=%', jv, ya, cr, ad4, ll, ls, kl, ks;
+  end if;
   r := r || format('INFO leads: lawang=%s sandal=%s total=%s (sin empresa=%s)', nl, ns, nt, nt-nl-ns) || E'\n';
 
   -- visibilidad
