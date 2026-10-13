@@ -271,10 +271,12 @@ async function main() {
   rp.hijos = [ccLib, hs];
   c6.cuentaGrupo = () => ({ precio: 100, pendiente: 40 });
   ok('obra liberada + Hak Sewa en borrador: la pieza activa es el Bloqueo vivo', c6.piezaActiva(rp) === rp && c6.etapaOperacion(rp) === 'cobro_pend');
-  // venta entera liberada: un documento que la acompaña no la resucita
+  // venta entera liberada con un documento VIVO colgando: se enseña ese documento, no se esconde como «liberada»
   const rpLib = { tipo: 'reserva_parcela', bloqueado: true, created_at: '1', liberado_en: '2026-10-01' };
   rpLib.hijos = [ccLib, hs];
-  ok('Bloqueo y obra liberados: la venta sale «liberada» aunque quede un Hak Sewa colgando', c6.etapaOperacion(rpLib) === 'liberada');
+  ok('Bloqueo y obra liberados con un Hak Sewa vivo: decide el Hak Sewa (no sale «liberada»)', c6.piezaActiva(rpLib) === hs && c6.etapaOperacion(rpLib) === 'sin_firmar');
+  rpLib.hijos = [ccLib, { tipo: 'hak_sewa_notario', bloqueado: false, created_at: '3', liberado_en: '2026-10-02', firmas: [] }];
+  ok('…y con todo liberado, Hak Sewa incluido, sí sale «liberada»', c6.etapaOperacion(rpLib) === 'liberada');
   // solo documentos que acompañan (Hak Sewa suelto en borrador, con un Poder): deciden ellos, el último vivo
   const hsSuelto = { tipo: 'hak_sewa_notario', bloqueado: false, created_at: '1', firmas: [] };
   hsSuelto.hijos = [{ tipo: 'poa', bloqueado: true, created_at: '2' }];
@@ -293,8 +295,11 @@ async function main() {
 
   // datos.js (Operaciones v4): «Falta precio» no se pinta para lo que acompaña, y la lista es la de operaciones-cuentas.js
   const datos = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'assets', 'datos.js'), 'utf8');
-  ok('datos.js: «Falta precio» excluye PIEZAS_ACOMPANAN (con el Poder de reserva si no cargó)',
-    /if \(p\.bloqueado && !cg\.precio && \(typeof PIEZAS_ACOMPANAN !== 'undefined' \? PIEZAS_ACOMPANAN : \['poa'\]\)\.indexOf\(p\.tipo\) === -1\) out\.push\(\[T\('Falta precio'\)/.test(datos));
+  ok('datos.js: «Falta precio» excluye PIEZAS_ACOMPANAN, sin una segunda lista de respaldo',
+    /if \(p\.bloqueado && !cg\.precio && PIEZAS_ACOMPANAN\.indexOf\(p\.tipo\) === -1\) out\.push\(\[T\('Falta precio'\)/.test(datos)
+    && !/\['poa'\]\)\.indexOf\(p\.tipo\)/.test(datos));
+  ok('datos.js: esa línea va detrás de la guarda que sale si operaciones-cuentas.js no cargó',
+    datos.indexOf("operaciones-cuentas.js no cargó") > 0 && datos.indexOf("operaciones-cuentas.js no cargó") < datos.indexOf("PIEZAS_ACOMPANAN.indexOf(p.tipo)"));
   const pagOps = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'operaciones', 'index.html'), 'utf8');
   const iOc = pagOps.indexOf('/contracts/assets/operaciones-cuentas.js'), iDa = pagOps.indexOf('../assets/datos.js');
   ok('Operaciones v4 carga operaciones-cuentas.js ANTES que datos.js (si no, la lista sería la de reserva)', iOc > 0 && iDa > iOc);

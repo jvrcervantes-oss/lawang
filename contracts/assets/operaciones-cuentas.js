@@ -172,14 +172,17 @@ function cadenaOperacion(o){
 /* Documentos que ACOMPAÑAN a la venta sin ser una pieza de su dinero (13-oct-2026, revisor de código): el Hak
    Sewa se firma ante notario meses después de la obra, y el Poder o la Adenda cuando toque. Si contaran como «la
    última pieza», un Hak Sewa en borrador pasaría la venta de «Cobro pendiente» a «Sin firmar» mientras se cobra la
-   obra. Siguen en la lista de documentos de la operación; solo no deciden su etapa, salvo que no haya otra pieza. */
+   obra. Siguen en la lista de documentos de la operación; solo no deciden su etapa mientras quede viva una pieza
+   de dinero. Si todas las de dinero están liberadas y queda viva una que acompaña (un Hak Sewa de 30 años sobre
+   una venta anulada), decide ESA: es justo lo que Operaciones tiene que enseñar, no esconderlo como «liberada»
+   (revisor de código, 13-oct-2026). */
 const PIEZAS_ACOMPANAN = ['poa', 'hak_sewa_notario', 'adenda'];
 function piezaActiva(o){
   const cad = cadenaOperacion(o);
-  const principales = cad.filter(c => PIEZAS_ACOMPANAN.indexOf(c.tipo) === -1);
-  const base = principales.length ? principales : cad;
-  const vivas = base.filter(c => !c.liberado_en);
-  return (vivas.length ? vivas : base)[(vivas.length ? vivas : base).length - 1];
+  const ultima = l => l[l.length - 1];
+  const vivas = cad.filter(c => !c.liberado_en);
+  const principalesVivas = vivas.filter(c => PIEZAS_ACOMPANAN.indexOf(c.tipo) === -1);
+  return ultima(principalesVivas.length ? principalesVivas : vivas.length ? vivas : cad);
 }
 function etapaOperacion(o){
   const p = piezaActiva(o);
