@@ -1,6 +1,6 @@
 /* textos-contrato-ia.test.js — pruebas de la parte de PANTALLA del asistente IA de «Textos de contrato» (E5/E5b, 13-oct-2026). Se lanza con
    `node intranet/v4/assets/textos-contrato-ia.test.js` desde la raíz de Lawang (lo recoge tools/test.py como el resto de los .test.js).
-   La base la prueba supabase/pruebas/editor_ia.sql y la función supabase/functions/editor-ia/editor-ia.test.js; aquí solo lo que une las tres:
+   La base la prueba supabase/pruebas/servicios_axisworks.sql y la función supabase/functions/editor-ia/editor-ia.test.js; aquí solo lo que une las tres:
 
    · LAS RPC QUE LLAMA LA PANTALLA son exactamente las editor_ia_* que la migración abre a `authenticated`, menos editor_ia_reserva (esa la
      llama la función con la sesión de la persona, nunca el navegador). editor_ia_cierra solo es de service_role y la pantalla no la nombra.

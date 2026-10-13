@@ -41,15 +41,20 @@
     if (ayuda) f.appendChild(el('span', C_PEQ, ayuda));
     return f;
   }
-  // Solo lo que ha cambiado; vacío = null (la base dice si ese dato puede quedar vacío).
+  // Solo lo que ha cambiado. Un número que el navegador no entiende («12,5» en algunos) llega como '' y NO se manda como vacío: se para
+  // y se dice (code-review 13-oct: vaciar el margen apagaba el servicio sin avisar). Vacío solo vale donde vacío significa algo (tope
+  // propio = el de por defecto; DeepL = sin configurar); la base lo vuelve a comprobar.
+  var PUEDE_VACIO = { tope_usd: 1, tarifa_deepl_usd_mcar: 1 };
   function leeCambios(raiz) {
-    var c = {}, n = 0;
+    var c = {}, n = 0, mal = null;
     [].forEach.call(raiz.querySelectorAll('[data-srv-in]'), function (i) {
+      if (mal) return;
+      var clave = i.getAttribute('data-srv-in'), v = i.value.trim();
+      if ((i.validity && i.validity.badInput) || (v === '' && !PUEDE_VACIO[clave]) || (v !== '' && !isFinite(Number(v)))) { mal = i; return; }
       if (i.value === i.getAttribute('data-srv-antes')) return;
-      var v = i.value.trim();
-      c[i.getAttribute('data-srv-in')] = v === '' ? null : Number(v); n++;
+      c[clave] = v === '' ? null : Number(v); n++;
     });
-    return n ? c : null;
+    return { campos: n ? c : null, mal: mal };
   }
   function filaMotivo(raiz, accion, empresa) {
     var f = el('div', 'flex flex-col md:flex-row gap-3 md:items-center pt-2');
@@ -63,7 +68,8 @@
   }
 
   function guarda(raiz, empresa, m, b, extra) {
-    var campos = extra || leeCambios(raiz);
+    var lc = extra ? { campos: extra, mal: null } : leeCambios(raiz), campos = lc.campos;
+    if (lc.mal) { aviso(T('Escribe un número en este campo (con punto para los decimales); no se ha guardado nada.')); lc.mal.focus(); return; }
     if (!campos) { aviso(T('No has cambiado nada.')); return; }
     var motivo = (m && m.value || '').trim();
     if (motivo.length < 3) { aviso(T('Escribe el motivo del cambio (queda en el registro).')); if (m) m.focus(); return; }

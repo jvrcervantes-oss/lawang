@@ -47,9 +47,15 @@
     solo_global: 'Este texto no lo puede cambiar una empresa sola.'
   };
   var DEEPL_NO = 'La traducción con DeepL no está configurada: usa la IA.';
-  // r = lo que contestó la función: «apagado» trae el motivo de la base en llano (se enseña tal cual) y «no_configurado» dice qué motor
+  // por qué está apagado, por CLAVE (editor_ia_estado.motivo_clave, o la edge): se traduce aquí; el texto en llano de la base es para Ajustes
+  var MOTIVOS = {
+    apagado: FRASES.apagado,
+    suspendido: 'Los servicios de pago de AxisWorks están suspendidos para esta empresa. Habla con el estudio.',
+    sin_configurar: FRASES.no_configurado
+  };
+  // r = lo que contestó la función: «apagado» trae la clave del motivo y «no_configurado» dice qué motor
   function frase(cod, r) {
-    if (cod === 'apagado' && r && r.motivo) return String(r.motivo);
+    if (cod === 'apagado') return T(MOTIVOS[r && r.motivo_clave] || FRASES.apagado);
     if (cod === 'no_configurado' && r && r.motor === 'deepl') return T(DEEPL_NO);
     return T(FRASES[cod] || 'No ha salido bien. No se ha cambiado nada.');
   }
@@ -82,12 +88,15 @@
   }
   var encendido = function () { return !!(IA.estado && IA.estado.encendido === true); };
   var lleno = function () { return !!(IA.estado && IA.estado.lleno === true); };
-  function cm() { return (IA.estado && IA.estado.coste_max) || {}; }
+  // lo que como mucho se le FACTURA a la empresa por llamada (coste × (1 + margen), redondeado hacia arriba en la base); DeepL, por párrafo
+  function pm() { return (IA.estado && IA.estado.precio_max) || {}; }
+  // la misma cuenta que hace la reserva (editor_ia_estado.puede): un botón que la base va a rechazar no se ofrece
+  function puede(accion) { return !!(IA.estado && IA.estado.puede && IA.estado.puede[accion] === true); }
   function lineaSaldo() {
     var s = IA.estado || {};
-    if (!encendido()) return T('Asistente de redacción: ') + (s.motivo ? String(s.motivo) : frase('apagado'));
-    var t = T('Este mes: %g de %t.', { g: usd(s.gasto_usd), t: usd(s.tope_usd) });
-    if (s.lleno) t += ' ' + frase('tope_empresa');
+    if (!encendido()) return T('Asistente de redacción: ') + frase('apagado', s);
+    var t = T('Este mes: %f facturados; usado el %p % del tope de tu empresa.', { f: usd(s.facturado_usd), p: s.pct });
+    if (s.lleno) t += ' ' + frase(s.lleno_por === 'instancia' ? 'tope_global' : 'tope_empresa');
     else if (s.aviso) t += ' ' + T('Queda poco: ya se ha gastado el %p % del tope.', { p: s.pct });
     if (s.desfasado) t += ' ' + T('(sin actualizar: no se ha podido leer el gasto)');
     return t;
@@ -100,14 +109,15 @@
   function pintaSaldo(p) {
     var s = IA.estado || {}, extra = p.getAttribute('data-tc-ia-saldo');
     p.className = 'tc-peq' + (s.lleno || !encendido() ? ' tc-mal' : s.aviso ? ' tc-ia-saldo-aviso' : '');
-    p.textContent = lineaSaldo() + (encendido() && !s.lleno && extra === 'propone' ? ' ' + T('Cada propuesta: como mucho %z.', { z: usd(cm().propone) }) : '');
+    p.textContent = lineaSaldo() + (encendido() && !s.lleno && extra === 'propone' ? ' ' + T('Cada propuesta: como mucho %z.', { z: usd(pm().propone) }) : '');
   }
   function pintaSaldos() {
     var raiz = $('tc-trozos'); if (!raiz) return;
     [].forEach.call(raiz.querySelectorAll('[data-tc-ia-saldo]'), pintaSaldo);
     [].forEach.call(raiz.querySelectorAll('[data-tc-ia-pide]'), function (b) { b.disabled = IA.ocupado || lleno() || !encendido(); });
     [].forEach.call(raiz.querySelectorAll('[data-tc-ia-motor]'), function (b) {
-      b.disabled = lleno() || !encendido() || (b.getAttribute('data-tc-ia-motor') === 'deepl' && IA.estado.deepl !== true);
+      var mo = b.getAttribute('data-tc-ia-motor');
+      b.disabled = lleno() || !encendido() || (mo === 'deepl' ? IA.estado.deepl !== true || !puede('traduce_deepl') : !puede('traduce_ia'));
     });
   }
 
@@ -123,7 +133,7 @@
             var d = null; try { d = JSON.parse(t); } catch (_) { d = null; }
             if (resp.ok && d && d.propuesta) return { d: d };
             var cod = d && typeof d.error === 'string' && /^[a-z_]{3,40}$/.test(d.error) ? d.error : (resp.status === 404 ? 'no_configurado' : 'otro');
-            return { codigo: cod, motivo: d && typeof d.motivo === 'string' ? d.motivo.slice(0, 400) : null, motor: d && d.motor === 'deepl' ? 'deepl' : null };
+            return { codigo: cod, motivo_clave: d && typeof d.motivo_clave === 'string' ? d.motivo_clave : null, motor: d && d.motor === 'deepl' ? 'deepl' : null };
           });
         }, function () { return { codigo: 'modelo_no_disponible' }; });
     }, function () { return { codigo: 'sin_sesion' }; });
@@ -177,7 +187,7 @@
       if (!instr || IA.ocupado) { if (!instr) muestra(frase('instruccion_requerida'), true); return; }
       if (!encendido() || lleno()) { muestra(lineaSaldo(), true); return; }
       var paso = IA.confirmado ? Promise.resolve(true)
-        : confirmaGasto(T('El asistente tiene coste'), T('Cada propuesta cuesta como mucho %z y cuenta para el tope de este mes de tu empresa, también si la descartas. El texto de este párrafo y tu instrucción se envían al proveedor de IA; los datos de los clientes no salen nunca.', { z: usd(cm().propone) }));
+        : confirmaGasto(T('El asistente tiene coste'), T('Cada propuesta cuesta como mucho %z y cuenta para el tope de este mes de tu empresa, también si la descartas. El texto de este párrafo y tu instrucción se envían al proveedor de IA; los datos de los clientes no salen nunca.', { z: usd(pm().propone) }));
       paso.then(function (ok) {
         if (!ok) return;
         IA.confirmado = true; IA.ocupado = true; b.disabled = true; muestra(T('Pidiendo la propuesta…'));
@@ -262,9 +272,9 @@
       });
     });
   }
-  // Lo que se aparta del tope por una traducción (lo mismo que hace editor_ia_reserva): con IA, UN peor caso por cláusula; con DeepL,
-  // el peor caso por párrafo × párrafos. DeepL sin tarifa en Ajustes = «no configurado» (hoy no hay cuenta): botón visible pero apagado.
-  function maxTraduce(motor, n) { var c = cm(); return motor === 'ia' ? c.traduce_ia : (c.traduce_deepl == null ? null : n * c.traduce_deepl); }
+  // Lo que como mucho se FACTURA por una traducción: con IA, una llamada por cláusula; con DeepL, por párrafo × párrafos.
+  // DeepL sin tarifa en Ajustes = «no configurado» (hoy no hay cuenta): botón visible pero apagado.
+  function maxTraduce(motor, n) { var c = pm(); return motor === 'ia' ? c.traduce_ia : (c.traduce_deepl == null ? null : n * c.traduce_deepl); }
   function pintaTraducir(lang) {
     var conDeepl = IA.estado.deepl === true;
     [].forEach.call($('tc-trozos').querySelectorAll('.tc-sec[data-tc-sec]'), function (caja) {
@@ -279,7 +289,7 @@
        ['deepl', conDeepl ? T('Con DeepL (como mucho %z)', { z: usd(maxTraduce('deepl', n)) }) : T('Con DeepL (no configurado)'), null]].forEach(function (m) {
         var b = boton(m[1], { 'data-tc-ia-motor': m[0] }, m[2]);
         if (m[0] === 'deepl' && !conDeepl) { b.disabled = true; b.title = T(DEEPL_NO); }
-        else if (lleno()) b.disabled = true;
+        else if (lleno() || !puede(m[0] === 'ia' ? 'traduce_ia' : 'traduce_deepl')) b.disabled = true;
         b.addEventListener('click', function (e) { e.stopPropagation(); traduce(sec, m[0], n, f); });
         f.appendChild(b);
       });
