@@ -33,7 +33,7 @@
         eso en regla NO se para (no se puede garantizar): su comprador vería «ya se usó» una y otra
         vez. Es la salida que fijó el encargo del owner («si hay riesgo real, canje automático solo
         si la página está visible y hay un navegador de verdad, no un botón»); se mide en la fila
-        LAW-545 de `contexto/pendientes.md` de la agencia (los `otp_expired` de /verify y si se
+        LAW-549 de `contexto/pendientes.md` de la agencia (los `otp_expired` de /verify y si se
         repiten), y la vuelta atrás es revertir el commit del 13-oct (vuelve el botón). Si la guarda
         no se cumple, se enseña el botón «Entrar» y se canjea solo en cuanto se cumpla (la pestaña
         pasa a visible o coge foco). Si falla por red, el token sigue en memoria y el botón
