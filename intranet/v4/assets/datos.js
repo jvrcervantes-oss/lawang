@@ -7664,7 +7664,7 @@
                     H.dato('Estado en comisiones_devengadas', H.tag(cd.estado, tonoCd), { html: 1 }) +
                     H.dato('Calculado por el motor', fmt(cd.importe, cd.moneda || 'EUR')) +
                     // sobre qué y en qué momento (comisiones desde el 1-nov-2026); sin las claves, no sale
-                    (cd.base_calculo && cd.base_calculo !== 'importe_fijo' ? H.dato('Calculada sobre', baseLlano(cd.base_calculo) + (cd.base_valor != null ? ' · ' + fmt(cd.base_valor, cd.moneda || 'EUR') : '')) : '') +
+                    (cd.base_calculo && cd.base_calculo !== 'importe_fijo' ? H.dato('Calculada sobre', baseLlano(cd.base_calculo) + (cd.base_valor != null ? ' · ' + fmt(cd.base_valor, cd.moneda || monedaBase()) : '')) : '') +
                     (cd.disparador_tipo ? H.dato('Momento del pago', (cd.tramo_orden != null ? 'pago ' + cd.tramo_orden + ' · ' : '') + momentoLlano(cd)) : '') +
                     (cd.importe_ajustado != null ? H.dato('Ajustado a mano', fmt(cd.importe_ajustado, cd.moneda || 'EUR')) : '') +
                     (diverge
@@ -8003,7 +8003,7 @@
             return (c.proyecto_id ? en + (nomP[c.proyecto_id] || 'un proyecto') : en + 'todos los proyectos') + (c.personal ? ' (solo para ti)' : '') + deEmp;
           };
           var txt = function (c) {
-            var v = c.importe_fijo != null ? fmt(c.importe_fijo, 'EUR') + ' fijos' : numComa(c.pct_comision) + ' % del ' + baseLlano(c.base_calculo);
+            var v = c.importe_fijo != null ? fmt(c.importe_fijo, monedaBase()) + ' fijos' : numComa(c.pct_comision) + ' % del ' + baseLlano(c.base_calculo);
             return v + alcance(c);
           };
           /* Los momentos del pago (comisiones desde el 1-nov-2026, owner): mi_condicion_comision trae los tramos y se
@@ -8013,7 +8013,7 @@
             return (Array.isArray(c.tramos) ? c.tramos.slice() : []).sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); })
               .map(function (t) {
                 var parte = c.importe_fijo != null
-                  ? fmt(Number(c.importe_fijo) * Number(t.pct_tramo) / 100, 'EUR')
+                  ? fmt(Number(c.importe_fijo) * Number(t.pct_tramo) / 100, monedaBase())
                   : numComa(Number(c.pct_comision) * Number(t.pct_tramo) / 100) + ' % del ' + baseLlano(t.base_efectiva || t.base_calculo || c.base_calculo);
                 return parte + ', ' + momentoLlano(t);
               });
@@ -8024,7 +8024,7 @@
             // «según cada tramo»: el % va en cada pago (sobre bases distintas); arriba solo el dónde, para que no se lea como un total
             var cab = c.base_calculo === 'por_tramo' && c.importe_fijo == null
               ? alcance(c, true)
-              : (c.importe_fijo != null ? fmt(c.importe_fijo, 'EUR') + ' fijos' : numComa(c.pct_comision) + ' %') + alcance(c);
+              : (c.importe_fijo != null ? fmt(c.importe_fijo, monedaBase()) + ' fijos' : numComa(c.pct_comision) + ' %') + alcance(c);
             cab += (m.length === 1 ? ', en un pago:' : ', en ' + m.length + ' pagos:');
             return '<li data-lw-mi-cond-tramos>' + esc(cab) + '<ul style="margin:2px 0 0;padding-left:16px;list-style:circle">' +
               m.map(function (s) { return '<li class="font-body-sm text-body-sm text-on-surface-variant">' + esc(s) + '</li>'; }).join('') + '</ul></li>';
