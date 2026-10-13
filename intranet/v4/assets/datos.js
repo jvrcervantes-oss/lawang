@@ -3050,10 +3050,13 @@
             ? esc(nombreEquipo[String(c2.propietario).toLowerCase()] || c2.propietario) +
               ((window.LW_V4.miEmail || '').toLowerCase() === String(c2.propietario).toLowerCase() ? ' <span class="lwc-apagado">' + esc(tx('(tú)')) + '</span>' : '')
             : '<span class="lwc-apagado">' + esc(tx('Nadie · ficha antigua, solo la corrige un administrador')) + '</span>';
-          /* Traspasar la ficha (14-sep en la clásica, paridad 21-sep). Sin RPC
-             por defecto: la policy «admins actualizan clientes» ya deja a un
-             admin escribir `propietario` — solo con la casilla de arrastrar
-             contratos/facturas entra `traspasar_cliente_con_documentos`.
+          /* Traspasar la ficha (14-sep en la clásica, paridad 21-sep). Desde el
+             13-oct-2026 (owner: «el traspaso SIEMPRE arrastra todo») no hay
+             casilla: siempre `traspasar_cliente_con_documentos`, que se lleva la
+             ficha y TODOS sus contratos, facturas y recibís (cualquier autor,
+             firmados y anulados), con motivo obligatorio. Lo ve quien es admin
+             para mostrar (admin, admin_empresa, super_admin_empresa, super_admin);
+             la puerta de verdad es la RPC (supabase/migrations/20261013143832).
              Compacta (26-sep-2026, owner: «ocupa mucho»): autor en una línea,
              desplegable y botón en una fila, la explicación en una sola frase.
              El desplegable es el propio de la v4 (lwMejoraSelects, editores.js). */
@@ -3073,15 +3076,10 @@
               '<div class="las-rel"><select id="' + idSel + '" data-tr-sel class="las-in">' + opciones + '</select></div></div>' +
               '<button type="button" data-tr-btn class="las-btn1" style="min-width:0;padding:10px 22px">' + esc(tx('Traspasar')) + '</button>' +
               '</div>';
-            if (window.LW_V4.esSuperAdmin) {
-              controles += '<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:#44403c;cursor:pointer">' +
-                '<input type="checkbox" data-tr-chk style="accent-color:#104C4F">' +
-                '<span>' + esc(tx('Arrastrar también sus contratos y facturas (solo los de %p)', { p: nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—' })) + '</span></label>' +
-                // `hidden` en un envoltorio sin clase: .las-campo pone display:grid y lo anularía
-                '<div data-tr-caja hidden><div class="las-campo"><label class="las-etq" for="' + idSel + '-m">' + esc(tx('Motivo')) + '</label>' +
-                '<input type="text" id="' + idSel + '-m" data-tr-motivo maxlength="180" class="las-in" placeholder="' + esc(tx('Ej. Ana deja el equipo, sus clientes pasan a Carmen')) + '"></div></div>';
-            }
-            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">' + esc(tx('Quien la reciba podrá editarla. Contratos y facturas no se mueven sin la casilla.')) + '</p></div></div>';
+            // Motivo siempre visible y obligatorio (la base lo exige: 3 caracteres o más)
+            controles += '<div data-tr-caja><div class="las-campo"><label class="las-etq" for="' + idSel + '-m">' + esc(tx('Motivo')) + '</label>' +
+              '<input type="text" id="' + idSel + '-m" data-tr-motivo maxlength="180" required class="las-in" placeholder="' + esc(tx('Ej. Ana deja el equipo, sus clientes pasan a Carmen')) + '"></div></div>';
+            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">' + esc(tx('Quien la reciba se lleva también todos sus contratos, facturas y recibís, firmados y anulados incluidos.')) + '</p></div></div>';
             return base + controles;
           }
           /* Una fila por OPERACIÓN (26-sep-2026, owner: «¿hay forma de unificar
@@ -3232,7 +3230,8 @@
           var bTr = cj.cuerpo.querySelector('[data-tr-btn]');
           /* Botón «Traspasar» a la derecha del título de la sección: solo existe
              si seccionResponsable() pintó los controles, que es solo para admin y
-             super_admin (la puerta real es la RPC de traspaso en la base). */
+             super_admin, globales o de empresa (la puerta real es la RPC de
+             traspaso en la base). */
           var panelTr = cj.cuerpo.querySelector('[data-tr-panel]');
           var h4Tr = cj.cuerpo.querySelector('[data-cajon-sec="responsable"] > h4');
           if (panelTr && h4Tr) {
@@ -3251,57 +3250,44 @@
             h4Tr.appendChild(abreTr);
           }
           if (bTr) {
-            var chkTodo = cj.cuerpo.querySelector('[data-tr-chk]');
-            var cajaMotivo = cj.cuerpo.querySelector('[data-tr-caja]');
-            if (chkTodo) chkTodo.addEventListener('change', function () { if (cajaMotivo) cajaMotivo.hidden = !chkTodo.checked; });
             bTr.addEventListener('click', function () {
               var sel = cj.cuerpo.querySelector('[data-tr-sel]');
               var nuevo = sel && sel.value;
               if (!nuevo) return;
-              if (String(c2.propietario || '').toLowerCase() === nuevo.toLowerCase()) { toastMal('Esa ficha ya es suya.'); return; }
-              var conDocumentos = !!(chkTodo && chkTodo.checked);
+              /* Sin «esa ficha ya es suya» aquí: con la ficha ya suya, la base
+                 igualmente le pasa los contratos y facturas que aún no son suyos
+                 (las fichas traspasadas solas antes del 13-oct los recuperan así);
+                 si ya era todo suyo, la base lo dice. */
               var motivoEl = cj.cuerpo.querySelector('[data-tr-motivo]');
               var motivo = ((motivoEl && motivoEl.value) || '').trim();
-              if (conDocumentos && motivo.length < 3) { toastMal('Escribe el motivo: es lo que explica el traspaso dentro de un año.'); return; }
+              if (motivo.length < 3) { toastMal('Escribe el motivo: es lo que explica el traspaso dentro de un año.'); if (motivoEl) motivoEl.focus(); return; }
               var nombreNuevo = nombreEquipo[nuevo.toLowerCase()] || nuevo;
               lwConfirmar({
                 titulo: tx('Pasar la ficha de %n a %m', { n: c2.full_name || '—', m: nombreNuevo }),
-                cuerpo: '<p>' + (conDocumentos
-                  ? tx('Se traspasarán también los contratos y las facturas de %n. Lo que ya sea de otra persona, o esté firmado o anulado, no se mueve y queda a la vista para revisarlo a mano.', { n: esc(nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—') })
-                  : esc(tx('Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.'))) + '</p>',
+                cuerpo: '<p>' + esc(tx('%m se lleva la ficha y TODOS sus contratos, facturas y recibís: los de cualquier autor, los firmados y los anulados, y también los contratos que comparte con otros compradores. Queda apuntado quién lo hizo, cuándo y el motivo.', { m: nombreNuevo })) + '</p>' +
+                  '<p>' + esc(tx('Las comisiones no cambian: siguen siendo de quien cerró cada venta.')) + '</p>',
                 confirmar: 'Traspasar'
               }).then(function (ok) {
                 if (!ok) return;
                 bTr.disabled = true;
-                /* `.select('id')` en la rama sin documentos: un UPDATE que la
-                   policy filtra no da error, devuelve 0 filas — sin comprobar
-                   `r.data.length` el cajon diría «traspasada» sin haber
-                   tocado nada (mismo fallo que `unaFila()` ya evita en
-                   editores.js; hallazgo code-review 21-sep-2026). */
-                var p = conDocumentos
-                  ? sb.rpc('traspasar_cliente_con_documentos', { p_client_id: c2.id, p_nuevo_propietario: nuevo, p_motivo: motivo })
-                  : sb.rpc('cliente_traspasa', { p_id: c2.id, p_nuevo: nuevo, p_motivo: motivo || null });
-                p.then(function (r) {
+                sb.rpc('traspasar_cliente_con_documentos', { p_client_id: c2.id, p_nuevo_propietario: nuevo, p_motivo: motivo }).then(function (r) {
                   bTr.disabled = false;
                   if (r.error) { toastMal(lwErrorHumano(r.error, 'No se pudo traspasar')); return; }
-                  if (!conDocumentos && !r.data) {
-                    toastMal('No se ha traspasado: la base no te ha dejado tocar esta ficha. Habla con un administrador — recargar no lo arregla.');
+                  /* La RPC devuelve UNA fila o falla; sin fila es que algo se ha
+                     comido la respuesta: no se dice «hecho» sin pruebas. */
+                  var res = r.data && r.data[0];
+                  if (!res) {
+                    toastMal('No se ha podido confirmar el traspaso: recarga la ficha para ver de quién es antes de repetirlo.');
                     return;
                   }
-                  if (conDocumentos) {
-                    var res = (r.data && r.data[0]) || {};
-                    lwConfirmar({
-                      titulo: tx('Traspaso de %n', { n: c2.full_name || '—' }),
-                      cuerpo: '<p>' + tx('Contratos: %a movidos · %b firmados sin tocar · %c de otro autor · %d sin autor.', { a: res.contratos_movidos || 0, b: res.contratos_omitidos_firmados || 0, c: res.contratos_omitidos_otro_autor || 0, d: res.contratos_omitidos_sin_autor || 0 }) + '</p>' +
-                        '<p>' + tx('Facturas y recibís: %a movidas (%b anuladas incluidas) · %c de otro autor · %d sin autor', { a: res.facturas_movidas || 0, b: res.facturas_movidas_anuladas || 0, c: res.facturas_omitidas_otro_autor || 0, d: res.facturas_omitidas_sin_autor || 0 }) +
-                        // ERP maestro (AXW-39): las emitidas en serie fiscal no cambian de autor
-                        (res.facturas_omitidas_emitidas != null ? ' · ' + tx('%n emitidas sin tocar (su autor no cambia)', { n: res.facturas_omitidas_emitidas }) : '') + '.</p>',
-                      confirmar: 'Entendido', cancelar: false
-                    }).then(function () { cj.cierra(); location.reload(); });
-                  } else {
-                    toast(tx('Ficha traspasada a %n', { n: nombreNuevo }));
-                    cj.cierra(); location.reload();
-                  }
+                  lwConfirmar({
+                    titulo: tx('Ficha traspasada a %n', { n: nombreNuevo }),
+                    cuerpo: '<p>' + esc(tx('Contratos movidos: %a.', { a: res.contratos_movidos || 0 })) + '</p>' +
+                      '<p>' + esc(tx('Facturas y recibís movidos: %a (%b anulados).', { a: res.facturas_movidas || 0, b: res.facturas_movidas_anuladas || 0 })) +
+                      // ERP maestro (AXW-39): las emitidas en serie fiscal no cambian de autor (se rectifican, no se reasignan)
+                      (res.facturas_omitidas_emitidas ? ' ' + esc(tx('%n facturas emitidas se quedan con su autor (una emitida no se reasigna).', { n: res.facturas_omitidas_emitidas })) : '') + '</p>',
+                    confirmar: 'Entendido', cancelar: false
+                  }).then(function () { cj.cierra(); location.reload(); });
                 });
               });
             });
