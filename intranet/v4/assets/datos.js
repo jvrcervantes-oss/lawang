@@ -9848,7 +9848,7 @@
         if (!contratosLeidos) s.push(pill(T('Bloqueo: no leído'), 'neutro'));
         else if (c.padre) {
           var b = porIdC[c.padre];
-          s.push(b ? pill(T('Bloqueo') + ' ' + (b.numero || '') + ' · ' + (b.bloqueado ? T('firmado') : enFirma[b.id] ? T('en firma') : T('borrador')), b.bloqueado ? 'ok' : 'curso')
+          s.push(b ? pill(T('Bloqueo~contrato') + ' ' + (b.numero || '') + ' · ' + (b.bloqueado ? T('firmado') : enFirma[b.id] ? T('en firma') : T('borrador')), b.bloqueado ? 'ok' : 'curso')
                    : pill(T('Bloqueo creado · no visible para ti'), 'neutro'));
         } else s.push(pill(T('Sin Bloqueo'), 'neutro'));
         if (cobrado[c.id] != null) s.push(pill(T('Cobrado') + ' ' + fmt(cobrado[c.id], c.moneda), cobrado[c.id] > 0 ? 'ok' : 'espera'));
