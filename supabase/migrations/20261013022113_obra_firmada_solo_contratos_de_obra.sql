@@ -27,7 +27,7 @@
 -- owner con Administración. Medido sin aplicar el 13-oct: los 10.000 EUR de CP00002 (Carta PMA) la pantalla
 -- (_split) los cuenta como suelo y estado/comisiones (_interno) como obra; ninguna unidad cambiaría de
 -- estado ni ningún tramo dispararía si se igualasen. El cálculo de «asignadas» (qué parcela tiene ya su
--- Construcción) tampoco cambia: hoy solo las Construcciones llevan unidad_id.
+-- Construcción) tampoco cambia: hoy solo las Construcciones llevan unidad_id. Decisión abierta: LAW-550.
 --
 -- Cómo: parche de función viva con marca de UNA línea (pg_get_functiondef → replace → execute), que exige
 -- encontrar la marca exactamente una vez. CREATE OR REPLACE conserva SECURITY DEFINER, search_path y los
