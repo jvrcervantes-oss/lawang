@@ -45,6 +45,9 @@ igual(/inp\.maxLength = 75;/.test(js) && /between 3 and 75/.test(mig), true, 'el
 igual(/p_acepta_aviso: true/.test(js) && /bc\.disabled = !R\.acepta/.test(js), true, 'crear exige la casilla del aviso y la base lo recibe');
 igual(/p_confirma_sensibles: confirmaSensibles === true/.test(js) && /if \(ok\) crea\(true\)/.test(js) && (js.match(/crea\(true\)/g) || []).length === 1, true,
   'p_confirma_sensibles solo va a true tras el diálogo de partes sensibles');
+igual(/TC\.clasificaError\(m\)\.tipo === 'sensibles_confirma'/.test(js) && !/\/partes sensibles\/i/.test(js), true, 'las partes sensibles se reconocen por el prefijo fijado del núcleo, no por una regex propia');
+igual(/if \(pet !== R\.pet \|\| E\.empresa !== emp\) return;/.test(js) && /R\.uso !== uso \|\| R\.pet !== pet/.test(js), true, 'una respuesta vieja (otra empresa, borrador vaciado) no se pinta');
+igual((js.match(/Promise\.resolve\(true\)/g) || []).length, 0, 'sin diálogo no hay «sí»: la confirmación falla cerrada');
 
 /* ── códigos de la función → frase (los de la base al crear, por hint) ── */
 const hints = new Set([...mig.matchAll(/hint = '([a-z_]+)'/g)].map((m) => m[1]));

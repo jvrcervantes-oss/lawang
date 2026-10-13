@@ -21,7 +21,7 @@
   var el = API.el, boton = API.boton, E = API.E;
   var LANGS = ['es', 'en', 'id'];
 
-  var R = { estado: null, empresa: null, ocupado: false, frase: '', es: null, uso: null, tr: {}, trErr: {}, trVa: {}, nombre: '', acepta: false, creando: false, err: null };
+  var R = { pet: 0, estado: null, empresa: null, ocupado: false, frase: '', es: null, uso: null, tr: {}, trErr: {}, trVa: {}, nombre: '', acepta: false, creando: false, err: null };
 
   // lo que devuelve la función y una persona puede provocar desde esta caja, en llano
   var FRASES = {
@@ -119,11 +119,13 @@
       T('Redactar el borrador y traducirlo a inglés e indonesio cuesta como mucho %z y cuenta para el tope de este mes de tu empresa, también si no lo usas.', { z: usd(R.estado.precio_max && R.estado.precio_max.redacta_completo) }),
       T('Sí, sigue')).then(function (ok) {
       if (!ok) return;
+      var pet = ++R.pet, emp = E.empresa;                                 // la respuesta solo vale para ESTA petición y ESTA empresa
       R.ocupado = true; R.err = null; R.es = null; R.uso = null; R.tr = {}; R.trErr = {}; R.trVa = {}; R.acepta = false; pinta();
-      llama({ accion: 'redacta', empresa: E.empresa, frase: f }).then(function (r) {
+      llama({ accion: 'redacta', empresa: emp, frase: f }).then(function (r) {
+        if (pet !== R.pet || E.empresa !== emp) return;                   // se cambió de empresa o se vació mientras tanto
         R.ocupado = false;
         if (!r.d) { R.err = frase(r.codigo, r); refresca(); return pinta(); }
-        R.es = r.d.propuesta; R.uso = r.d.uso; R.nombre = r.d.propuesta.nombre; R.empresaDe = E.empresa;
+        R.es = r.d.propuesta; R.uso = r.d.uso; R.nombre = r.d.propuesta.nombre; R.empresaDe = emp;
         pinta();
         traduce('en'); traduce('id');
       });
@@ -132,9 +134,9 @@
   function traduce(lg) {
     if (!R.es || R.trVa[lg]) return;
     R.trVa[lg] = true; delete R.trErr[lg]; pinta();
-    var uso = R.uso;
+    var uso = R.uso, pet = R.pet;
     llama({ accion: 'redacta_traduce', empresa: R.empresaDe, uso: uso, destino: lg, propuesta: R.es }).then(function (r) {
-      if (R.uso !== uso) return;                                           // se pidió otro borrador mientras tanto
+      if (R.uso !== uso || R.pet !== pet) return;                                           // se pidió otro borrador mientras tanto
       R.trVa[lg] = false;
       if (r.d && Array.isArray(r.d.clausulas)) R.tr[lg] = r.d.clausulas; else R.trErr[lg] = frase(r.codigo, r);
       refresca(); pinta();
@@ -171,7 +173,7 @@
         R.creando = false;
         if (r.error || !r.data) {
           var m = API.msg(r.error || T('la base no ha devuelto el contrato')), h = r.error && r.error.hint;
-          if (!confirmaSensibles && /partes sensibles/i.test(m)) {
+          if (!confirmaSensibles && TC.clasificaError(m).tipo === 'sensibles_confirma') {   // por el prefijo fijado en textos-contrato-nucleo.js (su test lo lee de las migraciones)
             pinta();
             return confirma(T('El borrador toca partes sensibles'), m, T('Sí, créalo con el aviso')).then(function (ok) { if (ok) crea(true); });
           }
@@ -190,7 +192,7 @@
       });
   }
   function traduciendo() { return Object.keys(R.trVa).some(function (k) { return R.trVa[k]; }); }
-  function vacia() { R.ocupado = false; R.frase = ''; R.es = null; R.uso = null; R.tr = {}; R.trErr = {}; R.trVa = {}; R.nombre = ''; R.acepta = false; R.creando = false; R.err = null; pinta(); }
+  function vacia() { R.pet++; R.ocupado = false; R.frase = ''; R.es = null; R.uso = null; R.tr = {}; R.trErr = {}; R.trVa = {}; R.nombre = ''; R.acepta = false; R.creando = false; R.err = null; pinta(); }
 
   /* ── pintado ──────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
   function llano(txt, lg) {                                                   // {{cx_…}} → «Etiqueta» del campo en ese idioma
