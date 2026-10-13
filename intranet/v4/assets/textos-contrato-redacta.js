@@ -105,14 +105,14 @@
     }, function () { return { codigo: 'sin_sesion' }; });
   }
   function confirma(titulo, texto, botonTxt) {
-    if (typeof window.lwConfirmar !== 'function') return Promise.resolve(true);
+    if (typeof window.lwConfirmar !== 'function') { window.alert(T('El diálogo aún no ha cargado — prueba de nuevo en un segundo.')); return Promise.resolve(false); }   /* falla cerrado: sin diálogo no hay «sí» */
     return window.lwConfirmar({ titulo: titulo, cuerpo: '<p>' + TC.esc(texto) + '</p>', confirmar: botonTxt });
   }
 
   /* ── pedir: la frase → español → inglés e indonesio a la vez ──────────────────────────────────────────────────────────────── */
   function pide() {
     var f = R.frase.trim();
-    if (R.ocupado) return;
+    if (R.ocupado || Object.keys(R.trVa).some(function (k) { return R.trVa[k]; })) return;   // no se tira lo pagado: espera a las traducciones
     if (!f) { R.err = frase('frase_requerida'); return pinta(); }
     if (!encendido() || !puede()) return;
     confirma(T('Redactar el contrato con el asistente'),
@@ -189,6 +189,7 @@
         });
       });
   }
+  function traduciendo() { return Object.keys(R.trVa).some(function (k) { return R.trVa[k]; }); }
   function vacia() { R.ocupado = false; R.frase = ''; R.es = null; R.uso = null; R.tr = {}; R.trErr = {}; R.trVa = {}; R.nombre = ''; R.acepta = false; R.creando = false; R.err = null; pinta(); }
 
   /* ── pintado ──────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -214,7 +215,7 @@
     var linea = T('Este mes: %f facturados; usado el %p % del tope de tu empresa.', { f: usd(s.facturado_usd), p: s.pct });
     caja.appendChild(el('p', 'tc-peq' + (puede() ? '' : ' tc-mal'), (puede() ? T('Redactar y traducir: como mucho %z.', { z: usd(s.precio_max && s.precio_max.redacta_completo) }) + ' ' : frase(s.lleno_por === 'instancia' ? 'tope_global' : 'tope_empresa') + ' ') + linea));
     var fila = el('div', 'tc-barra-fila'), b = boton(R.ocupado ? T('Redactando…') : T('Redactar borrador'), { 'data-tc-rd-pide': '1' }, 'tc-btn');
-    b.disabled = R.ocupado || !puede(); fila.appendChild(b);
+    b.disabled = R.ocupado || traduciendo() || !puede(); fila.appendChild(b);
     if (R.es) fila.appendChild(boton(T('Descartar el borrador'), { 'data-tc-rd-descarta': '1' }));
     caja.appendChild(fila);
     if (R.err) caja.appendChild(el('p', 'tc-nota tc-nota-mal', R.err));

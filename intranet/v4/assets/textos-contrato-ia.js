@@ -139,7 +139,7 @@
     }, function () { return { codigo: 'sin_sesion' }; });
   }
   function confirmaGasto(titulo, texto) {
-    if (typeof window.lwConfirmar !== 'function') return Promise.resolve(true);
+    if (typeof window.lwConfirmar !== 'function') { window.alert(T('El diálogo aún no ha cargado — prueba de nuevo en un segundo.')); return Promise.resolve(false); }   /* falla cerrado: sin diálogo no hay «sí» */
     return window.lwConfirmar({ titulo: titulo, cuerpo: '<p>' + TC.esc(texto) + '</p>', confirmar: T('Sí, sigue') });
   }
   function textoLlano(txt) {                                                    // {{campo}} → «Etiqueta», para enseñar antes / después

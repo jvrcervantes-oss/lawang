@@ -396,7 +396,7 @@ end $$;
 --   · «Ley aplicable, arbitraje e idioma» en <!--bloque-fijo:foro_ley-->: ley = commercial_collaboration.html:142-144 con «Contrato»;
 --     arbitraje = Adenda tal cual (no remite a ningún contrato madre); idioma = Adenda (Ley 24/2009, prevalece el indonesio). La cláusula de
 --     idioma va DENTRO de foro_ley porque _plantilla_analiza solo admite una lista cerrada de nombres de bloque fijo (no hay «idioma»).
---     Aviso de Legal que va al owner, no aquí: el SIAC es desproporcionado para un contrato pequeño con un particular (UU 8/1999, BPSK).
+--     Aviso de Legal, decisión del owner en contexto/pendientes.md LAW-562: el SIAC es desproporcionado para un contrato pequeño con un particular (UU 8/1999, BPSK).
 --   · «Suscrito como acuerdo» en <!--bloque-fijo:firmas-->: firmas de la Adenda con «Nama» y «Jabatan» también en indonesio, y SOLO la imagen
 --     de firma de la sociedad de la empresa (la Adenda trae las dos y la de Lawang hace saltar _plantilla_otra_sociedad en Sandal Woods).
 --   · «Nº de contrato / Contract No. / No. Kontrak» con {{contrato_num}}; se conservan <!--extra-clauses--> y <!--firmas-adquirientes-->.

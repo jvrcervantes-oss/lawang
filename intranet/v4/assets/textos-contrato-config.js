@@ -236,7 +236,7 @@
 
   /* El cuerpo de lwConfirmar es HTML: el texto de la persona (el nombre de una revisión) NO entra nunca sin escapar. */
   function confirmaTexto(titulo, cuerpoTexto, botonTxt) {
-    if (typeof window.lwConfirmar !== 'function') return Promise.resolve(true);
+    if (typeof window.lwConfirmar !== 'function') { window.alert(T('El diálogo aún no ha cargado — prueba de nuevo en un segundo.')); return Promise.resolve(false); }   /* falla cerrado: sin diálogo no hay «sí» */
     return window.lwConfirmar({ titulo: titulo, cuerpo: '<p>' + TC.esc(cuerpoTexto) + '</p>', confirmar: botonTxt, tono: 'peligro' });
   }
   function accionRev(rpcNombre, variante, exito) {

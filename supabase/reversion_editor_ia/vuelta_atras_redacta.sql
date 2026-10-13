@@ -28,7 +28,22 @@ begin
   end if;
   execute replace(d, nuevo, viejo);
 end $deshace$;
--- (c) solo DESPUÉS de (a): las versiones anteriores ya no nombran editor_ia_redaccion
+-- (c) solo DESPUÉS de (a): las versiones anteriores ya no nombran editor_ia_redaccion. Si alguna función que se queda la sigue nombrando
+-- (el paso (a) no se hizo, o se hizo a medias), PARA aquí: borrar la tabla dejaría el editor entero sin funcionar (las funciones
+-- `language sql` no registran dependencias, así que el drop no avisaría).
+do $guarda$
+declare v_quedan text;
+begin
+  select string_agg(p.proname, ', ' order by p.proname) into v_quedan
+    from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prokind in ('f', 'p')
+     and p.proname not in ('plantilla_contrato_crea_desde_asistente', '_plantilla_cuerpo_asistente', 'editor_ia_redaccion_paso',
+                           'editor_ia_redaccion_reserva', '_editor_ia_huella_redaccion', '_editor_ia_peso_r', '_editor_ia_peso_de')
+     and (pg_catalog.pg_get_functiondef(p.oid) ~ 'editor_ia_redaccion|_editor_ia_peso_r|_editor_ia_peso_de|lw\.esqueleto_asistente');
+  if v_quedan is not null then
+    raise exception 'Paso (a) sin hacer: estas funciones siguen nombrando lo de E10: %', v_quedan;
+  end if;
+end $guarda$;
 drop function if exists public.plantilla_contrato_crea_desde_asistente(text, uuid, jsonb, boolean, boolean);
 drop function if exists public._plantilla_cuerpo_asistente(text, text[], text, jsonb);
 drop function if exists public.editor_ia_redaccion_paso(uuid, text, text, integer, integer, integer, text);
