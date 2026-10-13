@@ -1,4 +1,4 @@
--- Prueba por PERFILES de «Servicios de AxisWorks» y el asistente IA a coste + margen (migración 20261013210000, 13-oct-2026).
+-- Prueba por PERFILES de «Servicios de AxisWorks» y el asistente IA a coste + margen (migraciones 20261013210000 y 20261013220000, 13-oct-2026).
 -- Sustituye a supabase/pruebas/editor_ia.sql (modelo de créditos, retirado). Conserva sus casos de permisos y de «sin texto».
 -- destructivo-ok: prueba en transacción que termina en raise (rollback); no se borra nada.
 -- Veredicto en el mensaje «FALLOS=0 de N casos | …». Solo cuentas y códigos: ningún dato personal ni texto de contrato.
@@ -64,7 +64,7 @@ begin
 
   -- ═════════ A. LAWANG NACE ENCENDIDA PERO SIN MARGEN: NO SE LLAMA A NADIE ═════════
   j := pg_temp.pide('authenticated', v_ae, v_ae_em, format('select public.editor_ia_estado(%L)', v_ea));
-  total := total + 1; if j is null or (j ->> 'encendido')::boolean is not false or position('margen' in coalesce(j ->> 'motivo', '')) = 0 then fallos := fallos + 1; resumen := resumen || ' [A1 sin margen: ' || coalesce(j::text, 'error') || ']'; end if;
+  total := total + 1; if j is null or (j ->> 'encendido')::boolean is not false or position('margen' in coalesce(j ->> 'motivo', '')) = 0 or j ->> 'motivo_clave' is distinct from 'sin_configurar' then fallos := fallos + 1; resumen := resumen || ' [A1 sin margen: ' || coalesce(j::text, 'error') || ']'; end if;
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
   total := total + 1; if r <> 'E55000/apagado' then fallos := fallos + 1; resumen := resumen || ' [A2 reserva sin margen: ' || r || ']'; end if;
   select count(*) into i from public.editor_ia_uso; total := total + 1; if i <> 0 then fallos := fallos + 1; resumen := resumen || ' [A3 apunte sin margen]'; end if;
@@ -104,6 +104,12 @@ begin
   total := total + 1; if r not like 'E22023%' then fallos := fallos + 1; resumen := resumen || ' [B14 clave de créditos: ' || r || ']'; end if;
   r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.servicios_axisworks_guarda(null, %L::jsonb, %L)', '{"margen_pct": -1}', 'prueba'));
   total := total + 1; if r not like 'E23514%' then fallos := fallos + 1; resumen := resumen || ' [B15 margen negativo: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.servicios_axisworks_guarda(null, %L::jsonb, %L)', '{"margen_pct": null}', 'prueba'));
+  total := total + 1; if r not like 'E22023%' then fallos := fallos + 1; resumen := resumen || ' [B16 margen vaciado: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.servicios_axisworks_guarda(null, %L::jsonb, %L)', '{"tarifa_entrada_usd_mtok": 0}', 'prueba'));
+  total := total + 1; if r not like 'E22023%' then fallos := fallos + 1; resumen := resumen || ' [B17 tarifa a cero: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_rechazada(%L, 429)', gen_random_uuid()));
+  total := total + 1; if r not like 'E42501%' then fallos := fallos + 1; resumen := resumen || ' [B18 un navegador marca un rechazo: ' || r || ']'; end if;
 
   -- ═════════ C. EL OWNER PONE EL MARGEN ═════════
   r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.servicios_axisworks_guarda(null, %L::jsonb, %L)', '{"margen_pct": 25}', 'prueba de margen'));
@@ -113,7 +119,8 @@ begin
   r := pg_temp.intenta('postgres', v_sup, v_sup_em, 'update public.servicios_axisworks_log set motivo = motivo returning 1');
   total := total + 1; if r not like 'E55000%' then fallos := fallos + 1; resumen := resumen || ' [C3 registro reescribible: ' || r || ']'; end if;
   j := pg_temp.pide('authenticated', v_ae, v_ae_em, format('select public.editor_ia_estado(%L)', v_ea));
-  total := total + 1; if j is null or (j ->> 'encendido')::boolean is not true or (j ->> 'tope_usd')::numeric <> 20 or (j #>> '{coste_max,propone}')::numeric <> 0.35
+  total := total + 1; if j is null or (j ->> 'encendido')::boolean is not true or (j ->> 'tope_usd')::numeric <> 20 or (j #>> '{coste_max,propone}')::numeric <> 0.352
+     or (j #>> '{precio_max,propone}')::numeric <> 0.44 or (j ->> 'lleno')::boolean is not false or (j #>> '{puede,traduce_ia}')::boolean is not true
      or (j ->> 'deepl')::boolean is not false then fallos := fallos + 1; resumen := resumen || ' [C4 estado encendido: ' || coalesce(j::text, 'error') || ']'; end if;
   r := pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, null, 1)', v_eb, 'propone', v_slug, 'estandar'));
   total := total + 1; if r <> 'E55000/apagado' then fallos := fallos + 1; resumen := resumen || ' [C5 la otra empresa sigue apagada: ' || r || ']'; end if;
@@ -123,6 +130,8 @@ begin
   perform pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.servicios_axisworks_guarda(%L, %L::jsonb, %L)', v_ea, '{"suspendido": true}', 'prueba impago'));
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
   total := total + 1; if r <> 'E55000/apagado' then fallos := fallos + 1; resumen := resumen || ' [C7 suspendida reserva: ' || r || ']'; end if;
+  j := pg_temp.pide('authenticated', v_ae, v_ae_em, format('select public.editor_ia_estado(%L)', v_ea));
+  total := total + 1; if j is null or j ->> 'motivo_clave' is distinct from 'suspendido' then fallos := fallos + 1; resumen := resumen || ' [C8 clave de suspendida: ' || coalesce(j::text, 'error') || ']'; end if;
   perform pg_temp.intenta('authenticated', v_sup, v_sup_em, format('select public.servicios_axisworks_guarda(%L, %L::jsonb, %L)', v_ea, '{"suspendido": false, "tope_usd": 1}', 'prueba'));
 
   -- ═════════ D. EL TOPE EN DÓLARES, CON EL PEOR CASO (tope de la empresa = 1 USD; propuesta = 0,352 USD como mucho) ═════════
@@ -132,6 +141,10 @@ begin
   j := pg_temp.pide('authenticated', v_ae, v_ae_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
   v_uso2 := (j ->> 'uso')::uuid;
   total := total + 1; if v_uso2 is null then fallos := fallos + 1; resumen := resumen || ' [D2 segunda reserva: ' || coalesce(j::text, 'error') || ']'; end if;
+  -- la pantalla dice lo mismo que la reserva: con 0,704 apartados de 1 USD no cabe otra propuesta (0,352)
+  j := pg_temp.pide('authenticated', v_ae, v_ae_em, format('select public.editor_ia_estado(%L)', v_ea));
+  total := total + 1; if j is null or (j ->> 'lleno')::boolean is not true or j ->> 'lleno_por' is distinct from 'empresa' or (j #>> '{puede,propone}')::boolean is not false then
+    fallos := fallos + 1; resumen := resumen || ' [D2b estado lleno como la reserva: ' || coalesce(j::text, 'error') || ']'; end if;
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
   total := total + 1; if r <> 'EP0001/tope_empresa' then fallos := fallos + 1; resumen := resumen || ' [D3 tercera pasa del tope con dos en vuelo: ' || r || ']'; end if;
   -- la segunda se envía y se corta sin saber sus tokens: no se factura, pero sigue pesando al peor caso
@@ -191,12 +204,29 @@ begin
      or public._servicios_gasto_mes(v_ea, public._editor_ia_periodo()) <> n - 0.352 then
     fallos := fallos + 1; resumen := resumen || ' [F3 la abandonada sigue pesando: ' || n || ']'; end if;
 
+  -- el proveedor RECHAZA una llamada (429): no cobra, cierra con coste 0 y no pesa contra el tope
+  j := pg_temp.pide('authenticated', v_sup, v_sup_em, format('select public.editor_ia_reserva(%L, %L, %L, %L, %L, 1)', v_ea, 'propone', v_slug, 'estandar', v_ver));
+  v_uso2 := (j ->> 'uso')::uuid;
+  r := pg_temp.intenta('service_role', null, null, format('select public.editor_ia_rechazada(%L, 429)', v_uso2));
+  total := total + 1; if r not like 'E22023%' then fallos := fallos + 1; resumen := resumen || ' [R1 rechazo sin enviar: ' || r || ']'; end if;
+  perform pg_temp.intenta('service_role', null, null, format('select public.editor_ia_enviada(%L)', v_uso2));
+  r := pg_temp.intenta('service_role', null, null, format('select public.editor_ia_rechazada(%L, 429)', v_uso2));
+  total := total + 1; if r <> 'OK:1' or not exists (select 1 from public.editor_ia_uso where id = v_uso2 and estado = 'fallo' and coste_usd = 0 and importe_usd is null and rechazada_http = 429) then
+    fallos := fallos + 1; resumen := resumen || ' [R2 rechazo: ' || r || ']'; end if;
+  total := total + 1; if public._servicios_gasto_mes(v_ea, public._editor_ia_periodo()) <> n - 0.352 then
+    fallos := fallos + 1; resumen := resumen || ' [R3 el rechazo pesa: ' || public._servicios_gasto_mes(v_ea, public._editor_ia_periodo()) || ']'; end if;
+  r := pg_temp.intenta('service_role', null, null, format('select public.editor_ia_cierra(%L, true, %L, 1, 1, 0, null, %L::jsonb)', v_uso2, 'm', '[]'));
+  total := total + 1; if not exists (select 1 from public.editor_ia_uso where id = v_uso2 and estado = 'fallo' and coste_usd = 0) then fallos := fallos + 1; resumen := resumen || ' [R4 cierre tras rechazo cambia el apunte]'; end if;
+
   -- ═════════ H. EXTRACTO: SE FACTURA SOLO LO HECHO, AL MARGEN CONGELADO, REDONDEADO AL FINAL ═════════
   j := pg_temp.pide('authenticated', v_sup, v_sup_em, 'select public.servicios_axisworks_datos()');
   select x into j from jsonb_array_elements(j -> 'extracto') x where x ->> 'empresa' = v_ea and (x ->> 'periodo')::date = public._editor_ia_periodo();
   -- hechas: D (0,014 → 0,0175 a 25 %) y E1 (800/3000 = 0,0632 → 0,0948 a 50 %): total 0,1123 → 0,11; coste facturable 0,0772 → 0,08
   total := total + 1; if j is null or (j ->> 'hechas') <> '2' or (j ->> 'coste_facturable_usd')::numeric <> 0.08 or (j ->> 'total_sin_impuestos_usd')::numeric <> 0.11
-     or (j ->> 'coste_incompleto')::boolean is not true or jsonb_array_length(j -> 'margenes_pct') <> 2 then
+     or (j ->> 'coste_incompleto')::boolean is not true or jsonb_array_length(j -> 'margenes_pct') <> 2
+     or (j ->> 'margen_usd')::numeric <> 0.03 or (j ->> 'rechazadas') <> '1'
+     or (j ->> 'coste_facturable_usd')::numeric + (j ->> 'margen_usd')::numeric <> (j ->> 'total_sin_impuestos_usd')::numeric
+     or (j ->> 'coste_facturable_usd')::numeric + (j ->> 'coste_no_repercutido_usd')::numeric <> (j ->> 'coste_proveedor_usd')::numeric then
     fallos := fallos + 1; resumen := resumen || ' [H1 extracto: ' || coalesce(j::text, 'error') || ']'; end if;
 
   -- ═════════ G. NINGÚN TEXTO EN LAS TABLAS, NINGÚN PERMISO DE MÁS ═════════
