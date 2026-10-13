@@ -21,13 +21,13 @@
 --
 -- Otros caminos que podían convertir un documento en factura viva, revisados el 13-oct contra pg_proc vivo:
 --   · Cambian facturas.tipo: solo factura_guarda (el UPDATE de guardar_recibi filtra `tipo = 'recibi'` y no lo
---     asigna). set_factura_numero solo numera en INSERT: una proforma pasada a factura conserva su número PRO.
+--     asigna). set_factura_numero solo numera en INSERT: una proforma pasada a factura conserva su número PRO (LAW-567; 0 hoy).
 --   · Cambian anulada a false: solo factura_reactiva.
 --   · authenticated y anon: sin INSERT ni UPDATE sobre facturas (has_table_privilege, 13-oct).
 --   · service_role SÍ tiene INSERT/UPDATE directos (lo usan las edges). El tope vive en las RPC, no en un trigger: una
 --     edge que escribiera tipo='factura' directo se lo saltaría. Hoy: firma-submit solo inserta/actualiza proformas
 --     (y PROFORMA_AUTO_PARADA = true) y facturarPrimerHito no se llama desde el 11-ago (código muerto, sin tope);
---     factura-vencimiento va por factura_vencimiento_emite. Límite escrito, no cerrado aquí.
+--     factura-vencimiento va por factura_vencimiento_emite. Abierto como LAW-566 (con facturarPrimerHito).
 --
 -- Prueba: supabase/pruebas/factura_moneda_del_contrato.sql (casos a12, a13, h1, h2, c3; transacción que acaba en raise).
 --
