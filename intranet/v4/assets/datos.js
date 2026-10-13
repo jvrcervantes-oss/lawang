@@ -3859,7 +3859,8 @@
           // (Legal, consulta de deploy 22-sep): con el borrador del Bloqueo creado la
           // pieza activa es el borrador y el aviso desaparecía en el paso normal del flujo.
           if (cadena(o).some(function (c) { return c.bloqueado && !c.liberado_en && esPreliminar(c); }) && !(cg.facturado > 0)) out.push([T('Reserva sin señal cobrada'), 'mal']);
-          if (p.bloqueado && !cg.precio && p.tipo !== 'poa') out.push([T('Falta precio'), 'espera']);
+          // un documento que acompaña a la venta sin precio propio (Poder, Hak Sewa, Adenda: PIEZAS_ACOMPANAN de operaciones-cuentas.js) no «falta precio»
+          if (p.bloqueado && !cg.precio && (typeof PIEZAS_ACOMPANAN !== 'undefined' ? PIEZAS_ACOMPANAN : ['poa']).indexOf(p.tipo) === -1) out.push([T('Falta precio'), 'espera']);
           // cadena rota a medias: la etapa la deja en «Sin firmar», y eso solo es verdad a medias (CR00020, 12-oct)
           if (cadena(o).some(function (c) { return !c.bloqueado && !c.liberado_en && pfDe(c).aMedias; })) out.push([T('Firma a medias sin enlace'), 'mal']);
           if (cadena(o).some(function (c) { return (c.firmas || []).some(function (f) { return f.estado === 'pendiente' && f.expira_en && new Date(f.expira_en).getTime() < lim48 && new Date(f.expira_en).getTime() > Date.now(); }); })) out.push([T('Firma caduca en < 48 h'), 'mal']);

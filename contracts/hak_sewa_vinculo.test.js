@@ -226,6 +226,20 @@ async function main() {
   ok('la lista de Operaciones (raíces = sin padre) no pierde a nadie de la venta',
     OPS.filter(o => !o.padre).map(o => o.id).includes('rp') && ['cc', 'hs', 'pa'].every(k => !!por[k].padre));
   ok('un padre no cargado deja la pieza como fila propia', por.suelto.padre === null);
+
+  // La etapa de la venta no la decide un documento que la acompaña (Hak Sewa en borrador meses después de la obra)
+  const fn = trozo(opsSrc, 'function cadenaOperacion(o){', '\n\n\n', 'operaciones-cuentas');
+  const c6 = { cuentaGrupo: () => ({ precio: 100, pendiente: 40 }) };
+  vm.createContext(c6);
+  vm.runInContext(fn + '\nthis.piezaActiva = piezaActiva; this.etapaOperacion = etapaOperacion;', c6);
+  const rp = { tipo: 'reserva_parcela', bloqueado: true, created_at: '1' }, cc = { tipo: 'construccion', bloqueado: true, created_at: '2' },
+        hs = { tipo: 'hak_sewa_notario', bloqueado: false, created_at: '3', firmas: [] };
+  rp.hijos = [cc, hs];
+  ok('un Hak Sewa en borrador no es la pieza activa: lo es la obra firmada', c6.piezaActiva(rp) === cc);
+  ok('…y la venta sigue en «Cobro pendiente», no en «Sin firmar»', c6.etapaOperacion(rp) === 'cobro_pend');
+  const hsSolo = { tipo: 'hak_sewa_notario', bloqueado: true, created_at: '1', hijos: [] };
+  c6.cuentaGrupo = () => ({ precio: null, pendiente: null });
+  ok('un Hak Sewa suelto firmado (sin precio de venta) no queda «cobro pendiente» para siempre', c6.piezaActiva(hsSolo) === hsSolo && c6.etapaOperacion(hsSolo) === 'cobro_ok');
 }
 
 console.log('hak_sewa_vinculo.test.js: ' + n + ' comprobaciones en verde');

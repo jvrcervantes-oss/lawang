@@ -152,7 +152,7 @@ function etapa(o){
   // del propio fix): si algún día un 'poa' SÍ tuviera precio_total — reutilización
   // de tipo por error, o un POA que además cobrara algo — cae al flujo normal en
   // vez de darlo por cobrado sin comprobarlo.
-  if(o.tipo === 'poa' && !c.precio) return 'cobro_ok';
+  if(PIEZAS_ACOMPANAN.indexOf(o.tipo) !== -1 && !c.precio) return 'cobro_ok';   // y el Hak Sewa y la Adenda (13-oct-2026): ver PIEZAS_ACOMPANAN
   if(c.precio == null || !c.precio) return 'cobro_pend';   // firmado sin precio: no se afirma que esté cobrado
   return (c.pendiente != null && c.pendiente > 0) ? 'cobro_pend' : 'cobro_ok';
 }
@@ -169,10 +169,17 @@ function cadenaOperacion(o){
   const raiz = o.padre || o;
   return [raiz, ...(raiz.hijos || [])].slice().sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
 }
+/* Documentos que ACOMPAÑAN a la venta sin ser una pieza de su dinero (13-oct-2026, revisor de código): el Hak
+   Sewa se firma ante notario meses después de la obra, y el Poder o la Adenda cuando toque. Si contaran como «la
+   última pieza», un Hak Sewa en borrador pasaría la venta de «Cobro pendiente» a «Sin firmar» mientras se cobra la
+   obra. Siguen en la lista de documentos de la operación; solo no deciden su etapa, salvo que no haya otra pieza. */
+const PIEZAS_ACOMPANAN = ['poa', 'hak_sewa_notario', 'adenda'];
 function piezaActiva(o){
   const cad = cadenaOperacion(o);
-  const vivas = cad.filter(c => !c.liberado_en);
-  return (vivas.length ? vivas : cad)[(vivas.length ? vivas : cad).length - 1];
+  const principales = cad.filter(c => PIEZAS_ACOMPANAN.indexOf(c.tipo) === -1);
+  const base = principales.length ? principales : cad;
+  const vivas = base.filter(c => !c.liberado_en);
+  return (vivas.length ? vivas : base)[(vivas.length ? vivas : base).length - 1];
 }
 function etapaOperacion(o){
   const p = piezaActiva(o);
@@ -183,7 +190,7 @@ function etapaOperacion(o){
   const caducada = f => f.expira_en && new Date(f.expira_en).getTime() < Date.now();
   if(!p.bloqueado) return (p.firmas || []).some(f => f.estado === 'pendiente' && !caducada(f)) ? 'firma_viva' : 'sin_firmar';
   const c = cuentaGrupo(o.padre || o);
-  if(p.tipo === 'poa' && !c.precio) return 'cobro_ok';
+  if(PIEZAS_ACOMPANAN.indexOf(p.tipo) !== -1 && !c.precio) return 'cobro_ok';
   if(!c.precio) return 'cobro_pend';
   return (c.pendiente != null && c.pendiente > 0) ? 'cobro_pend' : 'cobro_ok';
 }
