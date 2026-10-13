@@ -2647,12 +2647,20 @@ select {
 }
 
 @media (min-width: 768px) {
+  .md\:w-40 {
+    width: 10rem;
+  }
+
   .md\:w-64 {
     width: 16rem;
   }
 
   .md\:w-80 {
     width: 20rem;
+  }
+
+  .md\:w-96 {
+    width: 24rem;
   }
 
   .md\:w-auto {

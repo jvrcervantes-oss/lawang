@@ -71,5 +71,24 @@ es(null, 'No se pudo guardar', 'No se pudo guardar: Algo ha fallado', 'sin error
 es('texto suelto', null, 'texto suelto', 'un string se enseña');
 es({ message: '' }, null, 'Algo ha fallado', 'mensaje vacío');
 
+// ── Idioma de la pantalla (13-oct: bbm en inglés enseñaba «…: Algo ha fallado») ─
+// Las frases fijas pasan por lwT; lo que ya venía escrito, no. Y cada frase fija tiene su entrada en inglés.
+window.lwT = s => '«' + s + '»';
+es(null, 'No se pudo guardar', 'No se pudo guardar: «Algo ha fallado»', 'el respaldo sale del diccionario');
+es({ code: 'PGRST301', message: 'JWT expired' }, null, '«Tu sesión ha caducado: vuelve a entrar»', 'frase fija traducida');
+es({ code: 'P0001', message: 'Esta operación tiene una comisión pagada' }, null,
+   'Esta operación tiene una comisión pagada', 'lo nuestro no se pasa por el diccionario');
+delete window.lwT;
+{
+  const fs = require('fs'), path = require('path');
+  const fuente = fs.readFileSync(path.join(__dirname, 'suite-comun.js'), 'utf8');
+  const cuerpo = fuente.slice(fuente.indexOf('window.lwErrorHumano = function'), fuente.indexOf('module.exports'));
+  const i18n = fs.readFileSync(path.join(__dirname, 'i18n.js'), 'utf8');
+  const fijas = [...cuerpo.matchAll(/texto = '([^']+)'/g)].map(m => m[1]);
+  if (fijas.length < 13) { fallos++; console.log(`  FALLA  solo ${fijas.length} frases fijas leídas en lwErrorHumano`); }
+  for (const f of fijas)
+    if (!i18n.includes(`'${f.replace(/'/g, "\\'")}':`)) { fallos++; console.log(`  FALLA  «${f}» sin entrada en i18n.js: en inglés saldría en español`); }
+}
+
 if (fallos) { console.log(`\n${fallos} fallo(s)`); process.exit(1); }
 console.log('OK errores.test.js — lo nuestro se enseña, lo de Postgres se traduce');

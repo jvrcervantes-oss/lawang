@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="3edc52ebfd07">
+<meta name="lw-version" content="c74c3651f1cd">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=79115298"></script>
+<script src="/contracts/assets/i18n.js?v=e0ae375b"></script>
 <script src="/contracts/assets/herramientas.js?v=5658fcc3"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -100,7 +100,7 @@
      dos capas de override apiladas eran el bug (la llave `lw3-on` de otra
      herramienta de la pestaña la encendía encima). operaciones-cuentas.js se
      queda: es la regla del dinero, no de la piel. -->
-<script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=d347fb01"></script>
 <!-- CARA v4 (23-sep-2026; la única desde el 27-sep). Todo lo de aquí abajo pinta
      bajo `html.v4` (assets/piel.js), que también cuelga las fuentes de la v4.
      Va AL FINAL de la PRIMERA cabecera a propósito: este fichero cierra cinco, y
@@ -113,7 +113,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=135aa750"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=a5e3a8f7"></script>
 <script src="/intranet/v4/assets/nav.js?v=e7a7356c" defer></script>
 </head>
 <body>
@@ -782,10 +782,23 @@ let LEAD_ID = null;
    (comentario de más arriba: se reserva, se bloquea la parcela, se firma la
    obra). Antes incluía también las Cartas de Reserva, Hak Sewa, los PPJB de
    Bonian y el Contrato General, ninguno de los cuales precede a una
-   Construcción de verdad. `num_reserva_vinculada` es EXCLUSIVO de
+   Construcción de verdad. `num_reserva_vinculada` solo lo IMPRIME
    ppjb_construccion.html — estrechar esta lista no afecta a ningún otro
-   documento (verificado, ningún otro template imprime ese marcador). */
+   documento (verificado, ningún otro template imprime ese marcador).
+   HAK SEWA (13-oct-2026, owner: «el Hak Sewa sigue después de un contrato de
+   construcción, no venta nueva. 1 Reserva o Bloqueo · 2 Construcción · 3 Hak
+   Sewa · 4 poder notarial»). El Hak Sewa usa la MISMA clave, pero como campo
+   de gestión que no se imprime (deriveSections lo inyecta, igual que el
+   vínculo del POA): es la que `contrato_guarda` ya resuelve a contrato_padre_id
+   contra un `reserva_parcela`, así que el servidor lo enlaza sin cambiar SQL.
+   Cuelga de la RAÍZ (el Bloqueo) aunque se haga desde su Construcción, para
+   no crear nietos. Es OPCIONAL (CAMPOS_OPCIONALES_POR_TIPO): el editor clásico
+   sigue pudiendo hacer un Hak Sewa suelto. Lo que en el front lee esta clave
+   pensando en la obra (syncPrecioObraVinculada, syncUnidadConstruccion) va
+   acotado a tipo 'construccion' — lo fija contracts/hak_sewa_vinculo.test.js. */
 const TIPOS_VINCULABLES = ['reserva_parcela'];
+const TIPOS_CUELGAN_DE_BLOQUEO = ['hak_sewa_notario'];   // llevan el vínculo inyectado (no impreso) a su Bloqueo
+const cuelgaDeBloqueo = slug => TIPOS_CUELGAN_DE_BLOQUEO.includes(CONTRACT_TIPO[slug]);
 let VINCULABLES = null;      // caché de sesión; null = aún sin cargar
 async function cargarVinculables(){
   if(VINCULABLES || !sb) return;
@@ -2182,7 +2195,7 @@ function fieldHTML(f){
      sin la clase. Va por CLASE del `.field`, nunca metido en el texto del
      <label>: aplicarBloqueoComprador() reescribe `label.textContent` a mano
      (ver más arriba) y un asterisco de texto habría desaparecido con ella. */
-  const reqCls = CAMPOS_OPCIONALES.has(key) ? '' : ' req';
+  const reqCls = campoOpcional(key) ? '' : ' req';
   /* ── CAMPO DE LEGADO (27-ago-2026) ─────────────────────────────────────────
      Un campo que YA NO se rellena pero que 31 documentos guardados sí tienen.
      Caso real: `validez_meses`. El owner pidió pasar el plazo de la reserva de
@@ -3777,11 +3790,16 @@ function deriveSections(){
   // petición del cliente) como un campo más, si la plantilla trae la identidad
   // tokenizada ({{prom_razon}}). Se elige por contrato; default por plantilla (pdef).
   /* Un contrato PROPIO no ofrece elegir la sociedad: es la de su empresa (sociedadPropiaDe) y elegir otra pondría la identidad fiscal de otra PT. */
+  /* Un campo de gestión inyectado (no viene de la plantilla) va a «Gestión del contrato»; si la plantilla no tiene
+     esa sección, se crea. Una sola definición para los tres que se inyectan aquí (13-oct-2026). */
+  const aGestion = (campo, alPrincipio) => {
+    const g = SECTIONS.find(s=>s.id==='gestion');
+    if(g) g.fields[alPrincipio ? 'unshift' : 'push'](campo);
+    else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
+  };
   if(templateHTML.includes('{{prom_razon}}') && !CURRENT.propio){
     const campo = ['sociedad_firmante',{es:'Sociedad firmante (Promotor)',en:'Signing company (Developer)',id:'Perusahaan penandatangan'},'select',sociedadOptions()];
-    const g = SECTIONS.find(s=>s.id==='gestion');
-    if(g) g.fields.push(campo);
-    else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
+    aGestion(campo, false);
   }
   /* contrato vinculado (POA, 14-ago-2026): campo OBLIGATORIO y sin marcador en
      la plantilla —no se imprime, identifica la operación— así que se inyecta
@@ -3798,11 +3816,17 @@ function deriveSections(){
     // bastan para saber a qué documento te estás enganchando.
     const opts = (VINCULABLES_POA||[]).map(c=>[c.numero,
       c.numero+' · '+(TIPO_LABEL[c.tipo]||(PROPIOS[c.tipo]&&PROPIOS[c.tipo].nombre)||c.tipo)+' · '+(c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
-    const campo = opts.length ? ['poa_hs_vinculado', etiqueta, 'select', opts]
-                              : ['poa_hs_vinculado', etiqueta, 'text'];
-    const g = SECTIONS.find(s=>s.id==='gestion');
-    if(g) g.fields.unshift(campo);
-    else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
+    aGestion(opts.length ? ['poa_hs_vinculado', etiqueta, 'select', opts]
+                         : ['poa_hs_vinculado', etiqueta, 'text'], true);
+  }
+  /* Venta de la que cuelga un Hak Sewa (13-oct-2026, ver TIPOS_CUELGAN_DE_BLOQUEO): el mismo patrón que el
+     POA de arriba —no se imprime, va en «Gestión del contrato», texto libre si la lista no cargó— pero con la
+     clave que `contrato_guarda` ya resuelve contra un Bloqueo. Opcional: vacío = Hak Sewa suelto. */
+  if(cuelgaDeBloqueo(CURRENT.slug)){
+    const etiqueta = {es:'Venta vinculada (Bloqueo de Parcela)',en:'Linked sale (Plot Hold)',id:'Penjualan terkait (Penahanan Kavling)'};
+    const opts = (VINCULABLES||[]).map(c=>[c.numero, c.numero+' · '+(c.nombre_contrato||c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
+    aGestion(opts.length ? ['num_reserva_vinculada', etiqueta, 'select', opts]
+                         : ['num_reserva_vinculada', etiqueta, 'text'], true);
   }
   /* AQUI NO VA EL SELECTOR DEL PODER — retirado el 17-ago-2026, el mismo dia que
      lo puse. Lo coloque en el documento que CITA el poder (el Hak Sewa), y el
@@ -4017,7 +4041,7 @@ async function loadTemplate(slug, opts){
   await cargarCamposCx();   // el catálogo de campos propios de la empresa de ESTE texto (antes de deriveSections(), que monta su sección)
   PLANTILLA_FIJADA = !!(opts && opts.contratoId && base.ver);
   PLANTILLA_TOCADO = false;
-  if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
+  if(templateHTML.includes('{{num_reserva_vinculada}}') || cuelgaDeBloqueo(CURRENT.slug)) await cargarVinculables();   // el Hak Sewa no lo imprime: va por tipo, como el POA
   // Los proyectos vivos, antes de deriveSections(), que es quien monta el select.
   // (un contrato PROPIO también: su texto puede no llevar el marcador —o ser el aviso de «elige el proyecto»— y el campo proyecto se pinta igual,
   // forzado por deriveSections para toda plantilla salvo el Poder; sin esta carga caería a la lista vieja de tokens.json y no se filtraría por empresa)
@@ -6062,7 +6086,8 @@ async function openSavedContract(id){
   UNIDADES_RESERVA_VINCULADA = null;
   UNIDAD_ID_CONSTRUCCION = data.unidad_id || null;
   await syncUnidadConstruccion();
-  SAVED_CONTRACT = { id:data.id, numero:data.numero };
+  // `padre`: el contrato_padre_id REAL (el servidor lo puede haber fijado sin tocar el campo tecleado); lo usa derivarContrato
+  SAVED_CONTRACT = { id:data.id, numero:data.numero, padre: data.contrato_padre_id || null };
   // sin await: el contrato se enseña ya y los anexos se pintan al llegar. Lo que falle dentro
   // ya queda en el panel; esto es para lo imprevisto, que tampoco puede pasar callado.
   CARGA_ANEXOS = cargaAnexosAlmacen(data.id).catch(e => toastMal('No se han podido cargar los anexos: ' + ((e && e.message) || 'error')));
@@ -6257,9 +6282,20 @@ async function derivarContrato(slug){
   Object.keys(f).forEach(k => { if(k.startsWith('firma')) delete f[k]; });
   // derivar una reserva/PPJB guardada hacia la Construcción es exactamente el
   // caso para el que existe el vínculo: se deja puesto sin que haya que buscarlo
-  if(slug==='ppjb_construccion' && SAVED_CONTRACT && SAVED_CONTRACT.numero
+  if((slug==='ppjb_construccion' || cuelgaDeBloqueo(slug)) && SAVED_CONTRACT && SAVED_CONTRACT.numero
      && TIPOS_VINCULABLES.includes(CONTRACT_TIPO[CURRENT.slug]))
     f.num_reserva_vinculada = SAVED_CONTRACT.numero;
+  /* Hak Sewa desde una Construcción: cuelga del Bloqueo de la obra (la raíz). Manda el padre REAL de la fila, no el
+     número tecleado en su formulario: un traspaso o «la carta colgada de su RP» fijan el padre en el servidor sin tocar
+     `datos` (revisión de código, 13-oct-2026). Sin padre conocido (recién guardada) queda el tecleado, que es del que
+     el servidor acaba de resolverlo; una obra sin padre da un Hak Sewa suelto. */
+  if(cuelgaDeBloqueo(slug) && CONTRACT_TIPO[CURRENT.slug] === 'construccion' && SAVED_CONTRACT && SAVED_CONTRACT.padre !== undefined){
+    const bq = SAVED_CONTRACT.padre && (VINCULABLES||[]).find(c => c.id === SAVED_CONTRACT.padre);
+    if(bq) f.num_reserva_vinculada = bq.numero;
+    else if(!SAVED_CONTRACT.padre) delete f.num_reserva_vinculada;
+  }
+  // A cualquier otro tipo destino la clave no le pertenece y se suelta.
+  if(!(slug==='ppjb_construccion' || cuelgaDeBloqueo(slug))) delete f.num_reserva_vinculada;
   const compradores = COMPRADORES.map(c=>({...c}));
   // La ficha del Adquiriente I viaja igual que la de los II+ (que ya la llevan
   // dentro de `client_id`, ver `compradores` arriba): sin esto, el derivado
@@ -6362,7 +6398,7 @@ async function derivarContrato(slug){
   // La lista de Bloqueos vinculables es caché de sesión y no se refrescaba: el
   // Bloqueo recién guardado no estaba en el desplegable si antes se había abierto
   // otra Construcción, y la derivada se quedaba sin vínculo (26-sep-2026).
-  if(slug === 'ppjb_construccion') VINCULABLES = null;
+  if(slug === 'ppjb_construccion' || cuelgaDeBloqueo(slug)) VINCULABLES = null;
   await loadTemplate(slug);
   $('#tplPick').value = slug;
   buildForm();
@@ -6487,6 +6523,11 @@ function blobToBase64(blob){
    CAMPOS_DESCUENTO_COMERCIAL); lo que se quita es exigirlo vacío. */
 const CAMPOS_OPCIONALES = new Set(['nombre_contrato', 'precio_total_letras', 'precio_reserva_letras', 'adq1_registro',
   'descuento_comercial', 'descuento_comercial_motivo', 'clausulas_negociadas', 'poder_titular', 'poder_apoderado', 'finca_shm_nib']);   // clausulas_negociadas: vacío = texto estándar (owner, 5-oct-2026)
+/* Opcional solo en un tipo (13-oct-2026): el vínculo a su Bloqueo es OBLIGATORIO en la Construcción y opcional en
+   el Hak Sewa (el editor clásico sigue pudiendo hacerlo suelto). Meterlo en CAMPOS_OPCIONALES lo quitaría a los dos. */
+const CAMPOS_OPCIONALES_POR_TIPO = { hak_sewa_notario: ['num_reserva_vinculada'] };
+const campoOpcional = key => CAMPOS_OPCIONALES.has(key)
+  || (CAMPOS_OPCIONALES_POR_TIPO[CONTRACT_TIPO[CURRENT && CURRENT.slug]] || []).includes(key);
 const SECCIONES_OPCIONALES = new Set(['hs_segunda_parte']);
 const valorCampo = key => { const el = document.querySelector(`[name="${key}"]`); return el ? String(el.value||'').trim() : ''; };
 function camposSinRellenar(){
@@ -6496,7 +6537,7 @@ function camposSinRellenar(){
     (s.fields||[]).forEach(f=>{
       const [key, labelObj, type] = f;
       if(type==='legacy' || type==='signature') return;   // se rellenan solos, o al firmar — nunca antes de enviar
-      if(type==='readonly' || CAMPOS_OPCIONALES.has(key)) return;   // gestión/opcional: ver CAMPOS_OPCIONALES arriba
+      if(type==='readonly' || campoOpcional(key)) return;   // gestión/opcional: ver CAMPOS_OPCIONALES arriba
       const caja = document.querySelector(`.field[data-key="${key}"]`);
       if(!caja || caja.offsetParent === null) return;   // no visible: campo condicional o sección apagada
       const el = document.querySelector(`[name="${key}"]`);

@@ -102,7 +102,14 @@ function cuentaGrupo(op){
      Si el grupo es SOLO preliminar (una Carta que todavía no tiene su Bloqueo),
      se cuenta igualmente: si no, la operación diría 0 € y leería como que no se
      ha pactado nada, cuando la cuota de reserva sí es exigible. */
-  const sumables = grupo.filter(o => !lwEsPreliminar(o.tipo));
+  /* Un HIJO que acompaña a la venta (PIEZAS_ACOMPANAN: Poder, Hak Sewa, Adenda) tampoco suma, tenga o no precio:
+     la Adenda no lleva precio porque se contaría dos veces, y el del Hak Sewa va en hsn_precio_rp. Gemela de la
+     regla del servidor (_cadena_saldo, migración 20261013062339, 13-oct-2026); una raíz que es ella misma la pieza
+     (Hak Sewa suelto) sí cuenta, como allí. Y como allí, un hijo en otra moneda que la raíz (o sin moneda bajo una
+     raíz con ella) no suma: precio y facturado van en la misma moneda (`is distinct from`, nulos incluidos). */
+  const raiz = grupo[0];
+  const otraMoneda = o => o !== raiz && (o.moneda || null) !== (raiz.moneda || null);
+  const sumables = grupo.filter(o => !lwEsPreliminar(o.tipo) && !(o !== raiz && PIEZAS_ACOMPANAN.indexOf(o.tipo) !== -1) && !otraMoneda(o));
   const base = sumables.length ? sumables : grupo;
   const precio = base.reduce((a, o) => a + (parseImporte(o.precio_total) || 0), 0) || null;
   // el cobrado sí cuenta TODO el grupo: un recibí contra la Carta es dinero real
@@ -152,7 +159,7 @@ function etapa(o){
   // del propio fix): si algún día un 'poa' SÍ tuviera precio_total — reutilización
   // de tipo por error, o un POA que además cobrara algo — cae al flujo normal en
   // vez de darlo por cobrado sin comprobarlo.
-  if(o.tipo === 'poa' && !c.precio) return 'cobro_ok';
+  if(PIEZAS_ACOMPANAN.indexOf(o.tipo) !== -1 && !c.precio) return 'cobro_ok';   // y el Hak Sewa y la Adenda (13-oct-2026): ver PIEZAS_ACOMPANAN
   if(c.precio == null || !c.precio) return 'cobro_pend';   // firmado sin precio: no se afirma que esté cobrado
   return (c.pendiente != null && c.pendiente > 0) ? 'cobro_pend' : 'cobro_ok';
 }
@@ -169,10 +176,20 @@ function cadenaOperacion(o){
   const raiz = o.padre || o;
   return [raiz, ...(raiz.hijos || [])].slice().sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
 }
+/* Documentos que ACOMPAÑAN a la venta sin ser una pieza de su dinero (13-oct-2026, revisor de código): el Hak
+   Sewa se firma ante notario meses después de la obra, y el Poder o la Adenda cuando toque. Si contaran como «la
+   última pieza», un Hak Sewa en borrador pasaría la venta de «Cobro pendiente» a «Sin firmar» mientras se cobra la
+   obra. Siguen en la lista de documentos de la operación; solo no deciden su etapa mientras quede viva una pieza
+   de dinero. Si todas las de dinero están liberadas y queda viva una que acompaña (un Hak Sewa de 30 años sobre
+   una venta anulada), decide ESA: es justo lo que Operaciones tiene que enseñar, no esconderlo como «liberada»
+   (revisor de código, 13-oct-2026). */
+const PIEZAS_ACOMPANAN = ['poa', 'hak_sewa_notario', 'adenda'];
 function piezaActiva(o){
   const cad = cadenaOperacion(o);
+  const ultima = l => l[l.length - 1];
   const vivas = cad.filter(c => !c.liberado_en);
-  return (vivas.length ? vivas : cad)[(vivas.length ? vivas : cad).length - 1];
+  const principalesVivas = vivas.filter(c => PIEZAS_ACOMPANAN.indexOf(c.tipo) === -1);
+  return ultima(principalesVivas.length ? principalesVivas : vivas.length ? vivas : cad);
 }
 function etapaOperacion(o){
   const p = piezaActiva(o);
@@ -183,7 +200,7 @@ function etapaOperacion(o){
   const caducada = f => f.expira_en && new Date(f.expira_en).getTime() < Date.now();
   if(!p.bloqueado) return (p.firmas || []).some(f => f.estado === 'pendiente' && !caducada(f)) ? 'firma_viva' : 'sin_firmar';
   const c = cuentaGrupo(o.padre || o);
-  if(p.tipo === 'poa' && !c.precio) return 'cobro_ok';
+  if(PIEZAS_ACOMPANAN.indexOf(p.tipo) !== -1 && !c.precio) return 'cobro_ok';
   if(!c.precio) return 'cobro_pend';
   return (c.pendiente != null && c.pendiente > 0) ? 'cobro_pend' : 'cobro_ok';
 }
@@ -362,8 +379,14 @@ async function lwOperacionesCargar(SB, avisar){
      fila normal antes que desaparecer de la vista. */
   const porId = {};
   OPS.forEach(o => { porId[o.id] = o; o.hijos = []; o.padre = null; });
+  /* `padre` es la RAÍZ de la venta, no el contrato inmediato (13-oct-2026): un Poder hecho desde un Hak Sewa que
+     cuelga de su Bloqueo es nieto (PA → HS → RP; hoy ya existe PA00014 → CC00135 → RP00202). Con un solo nivel
+     el nieto colgaba de un hijo, la lista lo quitaba por tener padre y el grupo de la raíz no lo traía: desaparecía
+     de Operaciones. Se sube mientras el padre esté cargado; el tope y el «!== o» cortan un ciclo. */
   OPS.forEach(o => {
-    const p = o.contrato_padre_id && porId[o.contrato_padre_id];
+    let p = o.contrato_padre_id && porId[o.contrato_padre_id], n = 0;
+    while(p && p !== o && p.contrato_padre_id && porId[p.contrato_padre_id] && porId[p.contrato_padre_id] !== o && n++ < 10)
+      p = porId[p.contrato_padre_id];
     if(p && p !== o){ o.padre = p; p.hijos.push(o); }
   });
 
