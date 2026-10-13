@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="95129c25d2fe">
+<meta name="lw-version" content="b218a82e7105">
 <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como #th=<token>; ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -2060,7 +2060,7 @@
         <button class="btn-primario" type="button" id="btnEnlace" data-accion="canjear-enlace" data-t="enlace_btn">Entrar</button>
       </div>
     </div>
-    <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.</p>
+    <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Si tienes contrato con nosotros, te mandamos el enlace por correo.</p>
     <form id="fLogin">
       <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required data-ph="ph_correo" placeholder="tu@correo.com"></div>
       <button class="btn-primario" type="submit" id="btnPideEnlace" data-accion="pedir-enlace"><span class="lw-spin" aria-hidden="true"></span><span class="btn-txt" data-t="login_btn">Enviarme el enlace</span><span class="btn-env" data-t="enviando">Enviando el enlace…</span></button>
@@ -2213,12 +2213,12 @@
   /* ── idioma ───────────────────────────────────────────────────────── */
   var T = {
     es:{ area:'Área de clientes',
-         login_intro:'Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.',
+         login_intro:'Introduce el correo con el que compraste. Si tienes contrato con nosotros, te mandamos el enlace por correo.',
          login_btn:'Enviarme el enlace',
          enviado:'Si ese correo tiene acceso, acabamos de enviarte el enlace. Revisa tu bandeja (mira también en spam); puede tardar un par de minutos. Si pides otro, el anterior deja de valer.', enviando:'Enviando el enlace…', entrando:'Entrando…',
          error_envio:'No hemos podido enviarte el correo ahora mismo. Inténtalo de nuevo en un momento o escríbenos a sales@lawangproperties.com.',
          sin_activar:'Tu cuenta todavía no tiene el área de clientes activada. Pide un enlace de acceso con tu correo aquí abajo y se activa sola; si no llega, escríbenos a sales@lawangproperties.com.',
-         enlace_caducado:'Este enlace ya se usó o ha caducado. Pide otro aquí abajo: te llega al momento.', enlace_red:'No hemos podido comprobar el enlace ahora mismo. Pulsa «Entrar» de nuevo en un momento.', enlace_intro:'Pulsa el botón para entrar en tu área de clientes.', enlace_btn:'Entrar',
+         enlace_caducado:'Este enlace ya se usó o ha caducado. Pide otro aquí abajo.', envio_lento:'Está tardando más de lo normal. Si en unos minutos no te ha llegado el correo, vuelve a pedirlo.', enlace_red:'No hemos podido comprobar el enlace ahora mismo. Pulsa «Entrar» de nuevo en un momento.', enlace_intro:'Pulsa el botón para entrar en tu área de clientes.', enlace_btn:'Entrar',
          login_intro_pass:'Introduce tu correo y tu contraseña.', pass_btn:'Entrar',
          pass_toggle:'¿Tienes contraseña? Entra con ella', pass_toggle_back:'Prefiero que me manden un enlace',
          pass_mal:'Correo o contraseña incorrectos.', pie:'¿Dudas? Escríbenos a',
@@ -2334,12 +2334,12 @@
          /* Soporte v2 (8-oct-2026) */
          sop_h:'¿Sobre qué quieres preguntar?', sop_h_sub:'Elige el tema y escríbenos. Te responde el equipo de gestión de Lawang, aquí mismo.', sop_hint_pagos:'Transferencias, recibos y plazos de un hito', sop_hint_documentacion:'Contratos, planos y papeles de tu compra', sop_hint_obra:'Avance, fotos y fecha de entrega', sop_hint_otro:'Cualquier otra duda', sop_abiertos:'Abiertos', sop_resueltos:'Resueltos', sop_ninguno_abierto:'No tienes ninguna consulta abierta.', sop_respondido:'Te hemos respondido', sop_esperando:'Esperando al equipo', sop_n_msg_1:'1 mensaje', sop_n_msg_n:'{n} mensajes', sop_como:'Cómo funciona', sop_tus:'Tus consultas', sop_p1_t:'Un ticket por tema', sop_p1:'Si tu duda es sobre una factura o un contrato, elígelo en «Sobre» y el equipo lo verá al momento.', sop_p2_t:'Te contestamos aquí', sop_p2:'La respuesta queda en el ticket, y en la lista verás «Te hemos respondido» hasta que contestes.', sop_p3_t:'¿Vuelve a pasar?', sop_p3:'Escribe en el ticket resuelto y se abre otra vez, con toda la conversación anterior.', sop_aviso_t:'Canal de atención', sop_reabre:'Este ticket está resuelto. Si escribes, se abre otra vez y le llega al equipo.', sop_ph_reabrir:'Escribe para reabrirlo…', sop_ph_resp:'Escribe tu respuesta…', sop_atajo:'Ctrl+Intro para enviar', sop_nuevo_sub:'Te respondemos en este mismo ticket.', sop_tema:'Tema', sop_ph_msg:'Cuéntanos qué necesitas', sop_reabierto:'Ticket abierto otra vez', sop_enviado:'Mensaje enviado', },
     en:{ area:'Client area',
-         login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
+         login_intro:'Enter the email you purchased with. If you have a contract with us, we email you the link.',
          login_btn:'Send me the link',
          enviado:'If that email has access, we have just sent you the link. Check your inbox (and your spam folder); it can take a couple of minutes. If you request another one, the previous link stops working.', enviando:'Sending the link…', entrando:'Signing you in…',
          error_envio:'We could not send the email right now. Please try again in a moment or write to sales@lawangproperties.com.',
          sin_activar:'Your account does not have the client area enabled yet. Request a sign-in link with your email below and it activates itself; if nothing arrives, write to sales@lawangproperties.com.',
-         enlace_caducado:'This link has already been used or has expired. Request a new one below: it arrives right away.', enlace_red:'We could not check the link right now. Press «Sign in» again in a moment.', enlace_intro:'Press the button to enter your client area.', enlace_btn:'Sign in',
+         enlace_caducado:'This link has already been used or has expired. Request a new one below.', envio_lento:'This is taking longer than usual. If the email has not arrived in a few minutes, request it again.', enlace_red:'We could not check the link right now. Press «Sign in» again in a moment.', enlace_intro:'Press the button to enter your client area.', enlace_btn:'Sign in',
          login_intro_pass:'Enter your email and password.', pass_btn:'Sign in',
          pass_toggle:'Have a password? Sign in with it', pass_toggle_back:'Send me a link instead',
          pass_mal:'Wrong email or password.', pie:'Questions? Write to',
@@ -2451,12 +2451,12 @@
          /* Soporte v2 (8-oct-2026) */
          sop_h:'What would you like to ask about?', sop_h_sub:'Pick a topic and write to us. The Lawang account team replies right here.', sop_hint_pagos:'Transfers, receipts and milestone due dates', sop_hint_documentacion:'Contracts, plans and paperwork for your purchase', sop_hint_obra:'Progress, photos and handover date', sop_hint_otro:'Anything else', sop_abiertos:'Open', sop_resueltos:'Resolved', sop_ninguno_abierto:'You have no open enquiries.', sop_respondido:'We have replied', sop_esperando:'Waiting for the team', sop_n_msg_1:'1 message', sop_n_msg_n:'{n} messages', sop_como:'How it works', sop_tus:'Your requests', sop_p1_t:'One ticket per topic', sop_p1:'If your question is about an invoice or a contract, pick it under “About” so the team sees it straight away.', sop_p2_t:'We reply here', sop_p2:'The reply stays in the ticket, and the list shows “We have replied” until you answer.', sop_p3_t:'Happening again?', sop_p3:'Write in the resolved ticket and it reopens, with the whole earlier conversation.', sop_aviso_t:'Support channel', sop_reabre:'This ticket is resolved. If you write, it reopens and reaches the team.', sop_ph_reabrir:'Write to reopen it…', sop_ph_resp:'Write your reply…', sop_atajo:'Ctrl+Enter to send', sop_nuevo_sub:'We will reply in this same ticket.', sop_tema:'Topic', sop_ph_msg:'Tell us what you need', sop_reabierto:'Ticket reopened', sop_enviado:'Message sent', },
     id:{ area:'Area klien',
-         login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, tautan masuk akan segera dikirim.',
+         login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, kami kirimkan tautan masuk lewat email.',
          login_btn:'Kirim tautan ke saya',
          enviado:'Jika email tersebut memiliki akses, kami baru saja mengirimkan tautan. Periksa kotak masuk Anda (cek juga folder spam); bisa memakan waktu beberapa menit. Jika Anda meminta yang baru, tautan sebelumnya tidak berlaku lagi.', enviando:'Mengirim tautan…', entrando:'Sedang masuk…',
          error_envio:'Kami belum bisa mengirim email saat ini. Coba lagi sebentar lagi atau tulis ke sales@lawangproperties.com.',
          sin_activar:'Akun Anda belum mengaktifkan area klien. Minta tautan akses dengan email Anda di bawah ini dan akan aktif otomatis; jika tidak datang, tulis ke sales@lawangproperties.com.',
-         enlace_caducado:'Tautan ini sudah dipakai atau sudah kedaluwarsa. Minta yang baru di bawah ini: langsung dikirim.', enlace_red:'Kami belum bisa memeriksa tautan saat ini. Tekan «Masuk» lagi sebentar lagi.', enlace_intro:'Tekan tombol untuk masuk ke area klien Anda.', enlace_btn:'Masuk',
+         enlace_caducado:'Tautan ini sudah dipakai atau sudah kedaluwarsa. Minta yang baru di bawah ini.', envio_lento:'Ini memakan waktu lebih lama dari biasanya. Jika email belum sampai dalam beberapa menit, minta lagi.', enlace_red:'Kami belum bisa memeriksa tautan saat ini. Tekan «Masuk» lagi sebentar lagi.', enlace_intro:'Tekan tombol untuk masuk ke area klien Anda.', enlace_btn:'Masuk',
          login_intro_pass:'Masukkan email dan kata sandi Anda.', pass_btn:'Masuk',
          pass_toggle:'Punya kata sandi? Masuk dengan itu', pass_toggle_back:'Saya lebih suka dikirimi tautan',
          pass_mal:'Email atau kata sandi salah.', pie:'Ada pertanyaan? Tulis ke',
@@ -2749,7 +2749,8 @@
      solo (sin bucles). */
   /* Correo recordado (Seguridad, 13-oct-2026): SOLO el que la persona escribió ella misma en el formulario, nunca uno
      sacado del enlace o de la sesión; se borra al pulsar «Salir». En un ordenador compartido el siguiente lo vería:
-     riesgo bajo, aceptado. El formulario contesta lo mismo exista o no el correo, así que no delata a nadie. */
+     riesgo bajo, aceptado. El formulario contesta lo mismo exista o no el correo, así que no delata a nadie. No se borra
+     cuando trasSesion cierra una sesión sin el claim `portal`: ese aviso le pide justo un enlace con su correo. */
   var CORREO_KEY = 'lw_portal_correo';
   function recuerdaCorreo(email){ try { localStorage.setItem(CORREO_KEY, email); } catch(e){ /* MUDO A PROPOSITO: sin almacenamiento solo se pierde el relleno de «pide otro» */ } }
   function olvidaCorreo(){ try { localStorage.removeItem(CORREO_KEY); } catch(e){ /* MUDO A PROPOSITO: sin almacenamiento no hay nada guardado que borrar */ } }
@@ -2804,34 +2805,31 @@
       return sesionAhora().then(function(guardada){ return LWE.decide(r, guardada); });
     }).then(function(d){
       EN_CURSO = false; btn.disabled = false;
-      if (d.accion === 'reintenta') SOLO.rojo = true;
+      if (d.accion === 'reintenta') SOLO_ROJO = true;
       aplicaEnlace(d);
     }).catch(function(){
       /* Hoy no rechaza nada de la cadena (canjea y sesionAhora resuelven siempre); si algún día
          lo hace, no se queda en «Entrando…»: botón y «no he podido comprobarlo». */
-      EN_CURSO = false; btn.disabled = false; SOLO.rojo = true;
+      EN_CURSO = false; btn.disabled = false; SOLO_ROJO = true;
       estadoEnlace('boton');
       avisoEnlace(LWE.AVISO.red);
     });
   }
-  /* Canje solo: espera LWE.ESPERA_MS con «Entrando…» y vuelve a mirar antes de canjear; si la página
-     se oculta o pierde el foco en ese rato, se cancela y queda el botón. `rojo`: tras un fallo de red
-     ya no se intenta solo. */
-  var SOLO = { timer: 0, escucha: false, rojo: false };
-  function intentaSolo(){
-    if (TH === null || EN_CURSO || SOLO.rojo || SOLO.timer) return;
-    if (!LWE.puedeCanjearSolo(window)){ estadoEnlace('boton'); return; }
-    estadoEnlace('entrando');
-    SOLO.timer = setTimeout(function(){
-      SOLO.timer = 0;
-      if (LWE.puedeCanjearSolo(window)) canjeaAhora(); else estadoEnlace('boton');
-    }, LWE.ESPERA_MS);
-  }
-  function cancelaSolo(){
-    if (!SOLO.timer) return;
-    clearTimeout(SOLO.timer); SOLO.timer = 0;
-    if (!EN_CURSO && TH !== null) estadoEnlace('boton');
-  }
+  /* Canje solo: la espera (LWE.ESPERA_MS con «Entrando…», volver a mirar antes de canjear, cancelar si la página se
+     oculta o pierde el foco) la lleva LW_ENLACE.esperaSolo, probada en node. SOLO_ROJO: tras un fallo de red ya no se
+     intenta solo; queda el botón. */
+  var SOLO_ROJO = false;
+  var ESPERA = LWE.esperaSolo ? LWE.esperaSolo({
+    activo: function(){ return TH !== null && !EN_CURSO && !SOLO_ROJO; },
+    puede: function(){ return LWE.puedeCanjearSolo(window); },
+    entrando: function(){ estadoEnlace('entrando'); },
+    boton: function(){ estadoEnlace('boton'); },
+    canjea: function(){ canjeaAhora(); },
+    espera: LWE.ESPERA_MS, setT: function(f, ms){ return setTimeout(f, ms); }, clearT: function(id){ clearTimeout(id); }
+  }) : { intenta: function(){ estadoEnlace('boton'); }, cancela: function(){} };
+  var SOLO = { escucha: false };
+  function intentaSolo(){ ESPERA.intenta(); }
+  function cancelaSolo(){ ESPERA.cancela(); }
   function alCambiarVisibilidad(){ if (document.visibilityState === 'visible') intentaSolo(); else cancelaSolo(); }
   function escuchaSolo(){
     if (SOLO.escucha) return;
@@ -2842,7 +2840,7 @@
     window.addEventListener('blur', cancelaSolo);
   }
   function sueltaSolo(){
-    if (SOLO.timer){ clearTimeout(SOLO.timer); SOLO.timer = 0; }
+    ESPERA.cancela();
     if (!SOLO.escucha) return;
     SOLO.escucha = false;
     document.removeEventListener('visibilitychange', alCambiarVisibilidad);
@@ -2899,7 +2897,7 @@
      indicador y «Enviando el enlace…», queda deshabilitado y PIDIENDO corta un segundo envío (Enter repetido, doble
      clic): cada envío que pasa el freno genera un enlace nuevo e invalida el anterior. Tope propio de 35 s en el
      navegador, por encima de lo que la edge espera al correo, para que el botón nunca se quede girando: si salta, es
-     «no hemos podido enviarlo». El freno antiabuso contesta igual que un envío a propósito (no delata qué correos
+     «está tardando más de lo normal» (no «no hemos podido»: la edge pudo acabar mandándolo). El freno antiabuso contesta igual que un envío a propósito (no delata qué correos
      tienen acceso), así que la página no lo distingue: el texto de «enviado» avisa de que pedir otro anula el anterior. */
   var PIDIENDO = false;
   document.getElementById('fLogin').addEventListener('submit', function(e){
@@ -2921,11 +2919,13 @@
       signal: ac ? ac.signal : undefined
     })
       .then(function(r){ return r.json().catch(function(){ return { error: 'ilegible' }; }); })
-      .catch(function(){ return { error: 'red' }; })
+      .catch(function(e){ return { error: (e && e.name === 'AbortError') ? 'lento' : 'red' }; })
       .then(function(r){
         clearTimeout(tope);
         PIDIENDO = false;
         btn.disabled = false; btn.classList.remove('enviando'); btn.removeAttribute('aria-busy');
+        /* 'lento': lo cortó el tope del navegador, no la edge; el correo pudo salir, así que no se dice «no hemos podido». */
+        if (r.error === 'lento'){ aviso.className = 'aviso'; aviso.textContent = t('envio_lento'); return; }
         var mal = !!(r.error || r.reintentar);
         aviso.className = 'aviso ' + (mal ? 'mal' : 'bien');
         aviso.textContent = mal ? t('error_envio') : t('enviado');

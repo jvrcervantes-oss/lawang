@@ -264,6 +264,62 @@ function supabaseFalso(nav, resp) {
     ok(typeof E.ESPERA_MS === 'number' && E.ESPERA_MS >= 500 && E.ESPERA_MS <= 2000, 'pausa antes del canje solo entre 0,5 y 2 s');
   }
 
+  // ── esperaSolo (13-oct-2026): la espera del canje solo, con temporizadores falsos ──
+  {
+    function monta(o) {
+      o = o || {};
+      const st = { puede: o.puede !== undefined ? o.puede : true, activo: true, vista: [], canjes: 0, timers: {}, sig: 1, borrados: 0 };
+      const es = E.esperaSolo({
+        activo: () => st.activo,
+        puede: () => st.puede,
+        entrando: () => st.vista.push('entrando'),
+        boton: () => st.vista.push('boton'),
+        canjea: () => { st.canjes++; st.activo = false; },
+        espera: E.ESPERA_MS,
+        setT: (f) => { const id = st.sig++; st.timers[id] = f; return id; },
+        clearT: (id) => { if (st.timers[id]) st.borrados++; delete st.timers[id]; },
+      });
+      st.vence = () => { const ids = Object.keys(st.timers); ids.forEach((id) => { const f = st.timers[id]; delete st.timers[id]; f(); }); };
+      return { es, st };
+    }
+    { // camino normal: «Entrando…», pasa la espera, canjea una vez
+      const { es, st } = monta();
+      es.intenta();
+      igual([st.vista, st.canjes, Object.keys(st.timers).length], [['entrando'], 0, 1], 'esperaSolo: enseña «Entrando…» y espera antes de canjear');
+      st.vence();
+      igual(st.canjes, 1, 'esperaSolo: pasada la espera, canjea');
+    }
+    { // focus y visibilitychange a la vez → un solo temporizador, un solo canje
+      const { es, st } = monta();
+      es.intenta(); es.intenta(); es.intenta();
+      igual(Object.keys(st.timers).length, 1, 'esperaSolo: varios avisos seguidos → un solo temporizador');
+      st.vence(); es.intenta(); st.vence();
+      igual(st.canjes, 1, 'esperaSolo: un solo canje aunque lleguen más avisos');
+    }
+    { // sin guarda al llegar → botón, sin temporizador
+      const { es, st } = monta({ puede: false });
+      es.intenta();
+      igual([st.vista, Object.keys(st.timers).length, st.canjes], [['boton'], 0, 0], 'esperaSolo: sin persona delante → botón y nada más');
+      st.puede = true; es.intenta(); st.vence();
+      igual(st.canjes, 1, 'esperaSolo: al cumplirse después (foco), canjea solo');
+    }
+    { // la página se oculta durante la espera → se cancela y queda el botón
+      const { es, st } = monta();
+      es.intenta(); es.cancela();
+      igual([st.vista, st.borrados, Object.keys(st.timers).length, st.canjes], [['entrando', 'boton'], 1, 0, 0], 'esperaSolo: oculta durante la espera → cancela, botón, sin canje');
+    }
+    { // la guarda deja de cumplirse justo al vencer → botón, sin canje
+      const { es, st } = monta();
+      es.intenta(); st.puede = false; st.vence();
+      igual([st.vista, st.canjes], [['entrando', 'boton'], 0], 'esperaSolo: se vuelve a mirar al vencer; si ya no se cumple, botón');
+    }
+    { // inactivo (th gastado, canje en curso o fallo de red) → no hace nada
+      const { es, st } = monta();
+      st.activo = false; es.intenta(); es.cancela();
+      igual([st.vista, Object.keys(st.timers).length, st.canjes], [[], 0, 0], 'esperaSolo: inactivo → ni indicador ni temporizador ni canje');
+    }
+  }
+
   if (fallos) { console.error(fallos + ' de ' + pruebas + ' comprobaciones fallan'); process.exit(1); }
   console.log('enlace.test.js: ' + pruebas + ' comprobaciones OK');
 })().catch((e) => { console.error('FALLO inesperado:', e); process.exit(1); });

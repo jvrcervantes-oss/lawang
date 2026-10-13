@@ -29,13 +29,16 @@
         una persona delante, `puedeCanjearSolo` exige (Seguridad, 13-oct-2026, «APTO con cambios»):
         página visible, sin prerender, con foco, fuera de un iframe y sin `navigator.webdriver`; y
         la página espera `ESPERA_MS` y vuelve a mirarlo antes de canjear (se cancela si en ese
-        rato deja de cumplirse). Un filtro que ejecuta JS con todo eso en regla NO se para: eso
-        no se puede garantizar; lo que se ve es que el comprador de ese dominio recibe «ya se
-        usó» una y otra vez (pendiente de medir, ver el encargo). Si no se cumple, se enseña el
-        botón «Entrar» y se canjea solo en cuanto se cumpla (la pestaña pasa a visible o coge
-        foco). Si falla por red, el token sigue en memoria y el botón reintenta; tras un fallo
-        de red ya no se canjea solo (sin bucles).
-     3. El botón solo se ofrece después de `getSession()`: el cliente ya ha terminado de arrancar.
+        rato deja de cumplirse; la espera vive en `esperaSolo`). Un filtro que ejecuta JS con todo
+        eso en regla NO se para (no se puede garantizar): su comprador vería «ya se usó» una y otra
+        vez. Es la salida que fijó el encargo del owner («si hay riesgo real, canje automático solo
+        si la página está visible y hay un navegador de verdad, no un botón»); se mide en la fila
+        LAW-545 de `contexto/pendientes.md` de la agencia (los `otp_expired` de /verify y si se
+        repiten), y la vuelta atrás es revertir el commit del 13-oct (vuelve el botón). Si la guarda
+        no se cumple, se enseña el botón «Entrar» y se canjea solo en cuanto se cumpla (la pestaña
+        pasa a visible o coge foco). Si falla por red, el token sigue en memoria y el botón
+        reintenta; tras un fallo de red ya no se canjea solo (sin bucles).
+     3. El canje (solo o con el botón) empieza después de `getSession()`: el cliente ya ha terminado de arrancar.
         Si no, un arranque que encuentre caducada la sesión guardada en `lw-portal-auth` y la
         borre (`_recoverAndRefresh` → `_removeSession`) podría terminar DESPUÉS del canje y
         borrar la sesión recién creada.
@@ -207,7 +210,36 @@
     return { accion: 'pide_otro', ses: null, aviso: AVISO.caducado };
   }
 
-  var api = { TIPO: TIPO, AVISO: AVISO, ESPERA_MS: ESPERA_MS, puedeCanjearSolo: puedeCanjearSolo, quitaTh: quitaTh, formatoOk: formatoOk, clasifica: clasifica, canjea: canjea, canjeaCallado: canjeaCallado, callado: callado, sesionViva: sesionViva, decide: decide };
+  /* La espera del canje solo (punto 2), aparte de la página para poder probarla en node. `o`:
+       activo()   → true mientras quede un `th` sin gastar, no haya canje en curso y no haya habido fallo de red
+       puede()    → puedeCanjearSolo(window)
+       entrando() / boton() → lo que se enseña (indicador «Entrando…» / botón «Entrar»)
+       canjea()   → el canje de verdad (la página lo protege además con su candado EN_CURSO)
+       espera, setT, clearT → ESPERA_MS y los temporizadores (en la página, setTimeout/clearTimeout)
+     intenta(): si puede, «Entrando…» y vuelve a mirar pasada la espera antes de canjear; si no, botón. Un solo
+     temporizador a la vez (focus y visibilitychange llegan juntos). cancela(): si la página se oculta o pierde el
+     foco durante la espera, se anula y queda el botón. */
+  function esperaSolo(o) {
+    var timer = 0;
+    function intenta() {
+      if (timer || !o.activo()) return;
+      if (!o.puede()) { o.boton(); return; }
+      o.entrando();
+      timer = o.setT(function () {
+        timer = 0;
+        if (!o.activo()) return;
+        if (o.puede()) o.canjea(); else o.boton();
+      }, o.espera);
+    }
+    function cancela() {
+      if (!timer) return;
+      o.clearT(timer); timer = 0;
+      if (o.activo()) o.boton();
+    }
+    return { intenta: intenta, cancela: cancela, esperando: function () { return !!timer; } };
+  }
+
+  var api = { TIPO: TIPO, AVISO: AVISO, ESPERA_MS: ESPERA_MS, puedeCanjearSolo: puedeCanjearSolo, esperaSolo: esperaSolo, quitaTh: quitaTh, formatoOk: formatoOk, clasifica: clasifica, canjea: canjea, canjeaCallado: canjeaCallado, callado: callado, sesionViva: sesionViva, decide: decide };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LW_ENLACE = api;
 })(typeof window !== 'undefined' ? window : this);
