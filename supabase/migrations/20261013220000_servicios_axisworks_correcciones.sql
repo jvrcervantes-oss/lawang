@@ -9,8 +9,9 @@
 --      El motivo de «apagado» va además como clave (motivo_clave) para traducirlo en pantalla.
 --   4. Extracto: las líneas de la factura suman (se redondea cada total una vez y lo derivado se resta).
 --   5. Ajustes: el margen y las tarifas de Claude no se pueden vaciar; una tarifa tiene que ser mayor que cero.
--- Vuelta atrás: supabase/reversion_editor_ia/vuelta_atras_servicios.sql (las funciones vuelven a su versión de 20261013210000 re-aplicando
--- ese fichero desde «ayudantes»; la columna rechazada_http se queda: vacía no estorba).
+-- Vuelta atrás: supabase/reversion_editor_ia/vuelta_atras_servicios.sql (quita también editor_ia_rechazada y _editor_ia_falta_clave). Para
+-- volver SOLO a la versión anterior de estado/reserva/datos/guarda: copiar sus cuerpos de 20261013210000 cambiando `create function` por
+-- `create or replace function` (tal cual darían «ya existe»). La columna rechazada_http se queda: vacía no estorba.
 
 alter table public.editor_ia_uso add column rechazada_http smallint check (rechazada_http between 400 and 599);   -- el proveedor rechazó: coste 0
 

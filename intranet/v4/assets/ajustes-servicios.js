@@ -50,8 +50,9 @@
     [].forEach.call(raiz.querySelectorAll('[data-srv-in]'), function (i) {
       if (mal) return;
       var clave = i.getAttribute('data-srv-in'), v = i.value.trim();
-      if ((i.validity && i.validity.badInput) || (v === '' && !PUEDE_VACIO[clave]) || (v !== '' && !isFinite(Number(v)))) { mal = i; return; }
-      if (i.value === i.getAttribute('data-srv-antes')) return;
+      if (i.validity && i.validity.badInput) { mal = i; return; }
+      if (i.value === i.getAttribute('data-srv-antes')) return;               // sin tocar (también un margen aún vacío): no frena lo demás
+      if ((v === '' && !PUEDE_VACIO[clave]) || (v !== '' && !isFinite(Number(v)))) { mal = i; return; }
       c[clave] = v === '' ? null : Number(v); n++;
     });
     return { campos: n ? c : null, mal: mal };
