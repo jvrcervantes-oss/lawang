@@ -1,3 +1,5 @@
+-- AJUSTADA el mismo día por 20261013081849_factura_tope_proforma_y_reactiva: _factura_tope_cadena (sección 5) solo exime
+-- del tope la edición de una factura viva, y factura_reactiva pasa el tope. La definición viva de esa función es la de 081849.
 -- LAW-553 (13-oct-2026): la moneda de un documento con contrato la decide el CONTRATO, no el navegador; y el tope de
 -- facturas de una venta se mide por cadena Y moneda (nunca se salta por ir en otra moneda).
 --
