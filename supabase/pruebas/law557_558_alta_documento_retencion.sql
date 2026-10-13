@@ -21,7 +21,8 @@ begin
   return got;
 end $f$;
 create function pg_temp.ok(p_got text, p_esp text, p_et text) returns text language sql as $f$
-  select case when p_got like p_esp then 'OK    ' else 'FALLO ' end || p_et || '  [' || left(p_got, 160) || ' | esp ' || p_esp || ']' || E'\n'
+  -- un p_got null no puede borrar el resultado del bloque (null || x = null): se escribe 'null' (Backend, 13-oct)
+  select case when coalesce(p_got, 'null') like p_esp then 'OK    ' else 'FALLO ' end || p_et || '  [' || left(coalesce(p_got, 'null'), 160) || ' | esp ' || p_esp || ']' || E'\n'
 $f$;
 
 -- ─── BLOQUE 1: el alta con documento (RPC de la edge) ──────────────────────────────────────────────────────────────
@@ -263,22 +264,28 @@ begin
   raise exception E'RES BLOQUE 3\n%FALLOS=%', r, n;
 end $t$;
 
--- ─── BLOQUE 4: retención sin clave, mínimo 12 meses, tope 20 y sin parámetro de meses ─────────────────────────────
+-- ─── BLOQUE 4: retención sin clave, mínimo 12 meses, 20 por noche (los más antiguos), freno a los 100, sin meses ──
+-- Cuenta con que en la base no hay candidatos reales (la pasada en seco del guion los enseña antes): si los hubiera,
+-- entrarían en los recuentos de 4.1/4.2/4.9 y esas líneas saldrían FALLO sin que la función esté mal.
 do $t$
-declare ea text; r text := ''; n int; j jsonb; i int; x uuid; ids uuid[] := '{}';
+declare ea text; r text := ''; n int; j jsonb; i int; x uuid; ids uuid[] := '{}'; mas uuid[] := '{}';
 begin
   select lower(u.email) into ea from public.usuarios u where u.activo and u.rol = 'agente' and u.user_id is not null limit 1;
+  -- 21 candidatos escalonados: el 1 es el más antiguo y el 21 el más reciente (todos de más de 12 meses)
   for i in 1..21 loop
     insert into public.clients (full_name, email, phone, nationality, passport_number, tipo, kyc_status, propietario, created_at)
     values ('PRUEBA TOPE ' || i, 'law558.tope.' || i || '.' || substr(md5(random()::text), 1, 6) || '@example.invalid', '+34600000000', 'ES',
-            'ZZT' || i || upper(substr(md5(random()::text), 1, 6)), 'persona', 'pending', ea, now() - interval '13 months')
+            'ZZT' || i || upper(substr(md5(random()::text), 1, 6)), 'persona', 'pending', ea, now() - interval '13 months' - (21 - i) * interval '1 day')
     returning id into x;
     ids := ids || x;
-    insert into public.documents (client_id, doc_type, storage_path, status, uploaded_at) values (x, 'passport', x || '/' || gen_random_uuid() || '.jpg', 'pending', now() - interval '13 months');
+    insert into public.documents (client_id, doc_type, storage_path, status, uploaded_at)
+    values (x, 'passport', x || '/' || gen_random_uuid() || '.jpg', 'pending', now() - interval '13 months' - (21 - i) * interval '1 day');
   end loop;
   j := public.kyc_retencion(false);
-  r := r || pg_temp.ok((j->>'aviso') || '/' || (j->>'aplicados'), 'mas_de_20_candidatos/0', '4.1 más de 20 candidatos: no borra NINGUNO y avisa');
-  r := r || pg_temp.ok((select count(*)::text from public.documents where client_id = any (ids)), '21', '4.2 ... sus 21 documentos siguen');
+  r := r || pg_temp.ok(coalesce(j->>'aviso', 'sin_aviso') || '/' || (j->>'aplicados') || '/' || (j->>'quedan'), 'sin_aviso/20/1',
+                       '4.1 21 candidatos: borra 20 esta noche y deja 1 para la siguiente');
+  r := r || pg_temp.ok((select string_agg(d.client_id::text, ',') from public.documents d where d.client_id = any (ids)), ids[21]::text,
+                       '4.2 ... el que queda es el más reciente (los más antiguos van primero)');
   -- mínimo 12 meses aunque la clave diga menos: un cliente de 7 meses no es candidato con kyc_meses_retencion = 6
   update public.config_instancia set valor = '6'::jsonb where clave = 'kyc_meses_retencion';
   update public.clients set created_at = now() - interval '7 months' where id = any (ids);
@@ -287,11 +294,25 @@ begin
   r := r || pg_temp.ok((j->>'meses') || '/' || (j->>'candidatos'), '12/0', '4.3 kyc_meses_retencion = 6 se lee como 12: nada de 7 meses');
   -- sin la clave: no hace nada
   update public.config_instancia set clave = 'kyc_meses_retencion_apagada' where clave = 'kyc_meses_retencion';
-  update public.clients set created_at = now() - interval '13 months' where id = any (ids[1:3]);
-  update public.documents set uploaded_at = now() - interval '13 months' where client_id = any (ids[1:3]);
+  update public.clients set created_at = now() - interval '13 months' where id = ids[21];
+  update public.documents set uploaded_at = now() - interval '13 months' where client_id = ids[21];
   j := public.kyc_retencion(false);
   r := r || pg_temp.ok(j::text, '{"activa": false}', '4.4 sin kyc_meses_retencion: no hace nada');
-  r := r || pg_temp.ok((select count(*)::text from public.documents where client_id = any (ids)), '21', '4.5 ... ni un documento menos');
+  r := r || pg_temp.ok((select count(*)::text from public.documents where client_id = any (ids)), '1', '4.5 ... ni un documento menos');
+  -- freno de anomalía: con más de 100 candidatos no borra NINGUNO y avisa
+  update public.config_instancia set clave = 'kyc_meses_retencion', valor = '12'::jsonb where clave = 'kyc_meses_retencion_apagada';
+  for i in 1..101 loop
+    insert into public.clients (full_name, email, phone, nationality, passport_number, tipo, kyc_status, propietario, created_at)
+    values ('PRUEBA FRENO ' || i, 'law558.freno.' || i || '.' || substr(md5(random()::text), 1, 6) || '@example.invalid', '+34600000000', 'ES',
+            'ZZF' || i || upper(substr(md5(random()::text), 1, 6)), 'persona', 'pending', ea, now() - interval '14 months')
+    returning id into x;
+    mas := mas || x;
+    insert into public.documents (client_id, doc_type, storage_path, status, uploaded_at)
+    values (x, 'passport', x || '/' || gen_random_uuid() || '.jpg', 'pending', now() - interval '14 months');
+  end loop;
+  j := public.kyc_retencion(false);
+  r := r || pg_temp.ok(coalesce(j->>'aviso', 'sin_aviso') || '/' || (j->>'aplicados'), 'mas_de_100_candidatos/0', '4.9 más de 100 candidatos: no borra NINGUNO y avisa');
+  r := r || pg_temp.ok((select count(*)::text from public.documents where client_id = any (mas || ids)), '102', '4.10 ... sus 102 documentos siguen');
   -- los meses no se pueden pasar desde fuera
   r := r || pg_temp.ok(pg_temp.como('service_role', gen_random_uuid(), '', 'select public.kyc_retencion(false, 1)::text'), '42883:%', '4.6 kyc_retencion no admite un parámetro de meses');
   r := r || pg_temp.ok(pg_temp.como('authenticated', gen_random_uuid(), 'x@example.invalid', 'select public.kyc_retencion(true)::text'), '42501:%', '4.7 authenticated no ejecuta kyc_retencion');
@@ -331,13 +352,42 @@ begin
 end $t$;
 
 -- ─── BLOQUE 6: permisos (consulta de solo lectura) ─────────────────────────────────────────────────────────────────
--- Esperado: la tabla sin NINGÚN privilegio para anon/authenticated/service_role (0 filas en la 1.ª); _cliente_crea y
+-- Esperado: las dos tablas (kyc_altas_pendientes, kyc_retencion_pasadas) sin NINGÚN privilegio para anon/authenticated/service_role (0 filas en la 1.ª); _cliente_crea y
 -- _kyc_retencion_candidato sin execute para nadie; el resto de lo nuevo solo service_role; cliente_guarda y
 -- crm_lead_ficha_crear como antes (authenticated + service_role); kyc_sueltos_de solo service_role.
 -- select r, p from unnest(array['anon','authenticated','service_role']) r, unnest(array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p
---  where has_table_privilege(r, 'public.kyc_altas_pendientes', p);
+--  where has_table_privilege(r, 'public.kyc_altas_pendientes', p) or has_table_privilege(r, 'public.kyc_retencion_pasadas', p);
 -- select f, r from unnest(array['public._cliente_crea(uuid,jsonb)','public._kyc_retencion_candidato(uuid,timestamptz)','public.kyc_alta_reserva(uuid,uuid)',
 --        'public.kyc_alta_estado(uuid,uuid)','public.kyc_alta_descarta(uuid,uuid)','public.cliente_alta_con_documentos(uuid,uuid,jsonb,text[],date)',
---        'public.kyc_barrido(boolean)','public.kyc_retencion(boolean)','public.cron_kyc_retencion_secret()','public.cliente_guarda(uuid,jsonb)',
+--        'public.kyc_barrido(boolean)','public.kyc_retencion(boolean)','public.kyc_retencion_registra(jsonb)','public.cron_kyc_retencion_secret()',
+--        'public.cliente_guarda(uuid,jsonb)',
 --        'public.crm_lead_ficha_crear(uuid)','public.kyc_sueltos_de(uuid)']) f, unnest(array['public','anon','authenticated','service_role']) r
 --  where has_function_privilege(r, f::regprocedure, 'execute') order by 1, 2;
+
+-- ─── BLOQUE 7: registro de cada pasada y aviso (kyc_retencion_registra) ────────────────────────────────────────────
+-- net.http_post solo encola en net.http_request_queue: el raise final lo revierte y no sale ningún correo. Si en los
+-- últimos 7 días ya se avisó de verdad, 7.3 sale FALLO por eso (se comprueba antes con: select max(pasada_en) from
+-- public.kyc_retencion_pasadas where avisado).
+do $t$
+declare r text := ''; n int; c0 bigint; m0 bigint; uid_falso uuid := gen_random_uuid(); hay_buzon boolean; cuerpo text;
+begin
+  hay_buzon := exists (select 1 from public.config_instancia c where c.clave = 'email_avisos_sistema' and jsonb_typeof(c.valor) = 'string'
+                         and nullif(btrim(c.valor #>> '{}'), '') is not null);
+  select count(*), coalesce(max(id), 0) into c0, m0 from public.kyc_retencion_pasadas;
+  perform public.kyc_retencion_registra('{"ok": true, "dry": true}'::jsonb);
+  r := r || pg_temp.ok((select count(*)::text || '/' || bool_or(avisado)::text || '/' || bool_and(dry)::text from public.kyc_retencion_pasadas where id > m0),
+                       '1/false/true', '7.1 una pasada correcta deja su fila (en seco) y no avisa');
+  perform public.kyc_retencion_registra(jsonb_build_object('ok', false, 'dry', false, 'retencion', jsonb_build_object('clientes', jsonb_build_array(uid_falso))));
+  perform public.kyc_retencion_registra(jsonb_build_object('ok', false, 'dry', false, 'retencion', jsonb_build_object('clientes', jsonb_build_array(uid_falso))));
+  r := r || pg_temp.ok((select count(*)::text from public.kyc_retencion_pasadas), (c0 + 3)::text, '7.2 una fila por pasada, también las que fallan');
+  r := r || pg_temp.ok((select string_agg(avisado::text, ',' order by id) from public.kyc_retencion_pasadas where id > m0 and not dry),
+                       case when hay_buzon then 'true,false' else 'false,false' end, '7.3 avisa como mucho una vez a la semana (si hay buzón configurado)');
+  select string_agg(convert_from(q.body, 'UTF8'), ' ') into cuerpo from net.http_request_queue q where convert_from(q.body, 'UTF8') like '%kyc-retencion%';
+  r := r || pg_temp.ok(case when cuerpo is null then 'sin_correo' when position(uid_falso::text in cuerpo) > 0 then 'lleva_ids' else 'sin_ids' end,
+                       case when hay_buzon then 'sin_ids' else 'sin_correo' end, '7.4 el correo de aviso no lleva los ids de clientes');
+  r := r || pg_temp.ok(pg_temp.como('authenticated', gen_random_uuid(), 'x@example.invalid', 'select public.kyc_retencion_registra(''{}''::jsonb)::text'), '42501:%', '7.5 authenticated no ejecuta kyc_retencion_registra');
+  r := r || pg_temp.ok(pg_temp.como('service_role', gen_random_uuid(), '', 'select count(*)::text from public.kyc_retencion_pasadas'), '42501:%', '7.6 kyc_retencion_pasadas cerrada también a service_role');
+  r := r || pg_temp.ok(pg_temp.como('service_role', gen_random_uuid(), '', 'select public.kyc_retencion_registra(''[]''::jsonb)::text'), '22023:%', '7.7 un resumen que no es objeto se rechaza');
+  n := (length(r) - length(replace(r, 'FALLO', ''))) / 5;
+  raise exception E'RES BLOQUE 7\n%FALLOS=%', r, n;
+end $t$;
