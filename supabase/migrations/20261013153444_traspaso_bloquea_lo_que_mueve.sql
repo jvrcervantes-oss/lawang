@@ -1,4 +1,4 @@
--- Traspaso de ficha: bloquea los contratos y facturas que va a mover (13-oct-2026).
+﻿-- Traspaso de ficha: bloquea los contratos y facturas que va a mover (13-oct-2026).
 --
 -- POR QUÉ: revisor-codigo, 2.ª vuelta sobre 20261013150901. Los ids de contratos
 -- y facturas se leían sin bloqueo; si otra transacción cambiaba el client_id de
@@ -9,6 +9,7 @@
 -- Parche sobre el cuerpo vivo (patrón «parchear función viva con marca»): se
 -- sustituyen las dos lecturas literales y se aborta si alguna no está, para no
 -- recompilar una función distinta de la que se cree.
+-- REVERTIR: el mismo replace al revés (las lecturas con «for update» vuelven a las de 20261013150901).
 do $mig$
 declare
   v_def text := pg_get_functiondef('public.traspasar_cliente_con_documentos(uuid,text,text)'::regprocedure);
