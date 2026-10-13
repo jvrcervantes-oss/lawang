@@ -393,6 +393,7 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
     ['tipo malo', Object.assign({}, SALIDA_A, { campos: [{ clave: 'cx_p', tipo: 'json', etiqueta_es: 'P', etiqueta_en: 'P', etiqueta_id: 'P', opciones: [] }] })],
     ['lista sin opciones', Object.assign({}, SALIDA_A, { campos: [{ clave: 'cx_p', tipo: 'lista', etiqueta_es: 'P', etiqueta_en: 'P', etiqueta_id: 'P', opciones: [] }] })],
     ['nombre con comillas', Object.assign({}, SALIDA_A, { nombre: 'Pack "premium"' })],
+    ['nombre con un invisible', Object.assign({}, SALIDA_A, { nombre: 'Pack​ premium' })],
     ['etiqueta con llaves', Object.assign({}, SALIDA_A, { campos: [{ clave: 'cx_p', tipo: 'texto', etiqueta_es: '{{x}}', etiqueta_en: 'P', etiqueta_id: 'P', opciones: [] }] })],
   ];
   for (const [nombre, datos] of malosForma) {

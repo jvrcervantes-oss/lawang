@@ -215,7 +215,7 @@ const marcadoresOrden = (t) => TC.marcadores(t).slice().sort().join('|');
 export function validaRedaccion(d) {
   if (!d || typeof d !== 'object') return { error: 'forma' };
   const nombre = typeof d.nombre === 'string' ? TC.ws(d.nombre).replace(/\s*\(IA\)$/i, '') : '';
-  if (nombre.length < 3 || nombre.length > REDACTA.nombre || /[<>{}&"\u0000-\u001f\u007f]/.test(nombre) || prohibido(nombre)) return { error: 'nombre' };
+  if (nombre.length < 3 || nombre.length > REDACTA.nombre || /[<>{}&"\u0000-\u001f\u007f]/.test(nombre) || RE_BASE_NO.test(nombre) || prohibido(nombre)) return { error: 'nombre' };
   if (!Array.isArray(d.campos) || d.campos.length > REDACTA.campos) return { error: 'campos' };
   const campos = [], claves = [];
   for (const c of d.campos) {

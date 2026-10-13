@@ -44,7 +44,7 @@ begin
   execute replace(d, nuevo, viejo);
 end $deshace$;
 
--- (a) ═══ PEGAR AQUÍ las cinco versiones anteriores, con `create or replace function` (ver la lista de arriba) ═══
+-- (a) ═══ PEGAR AQUÍ las seis versiones anteriores, con `create or replace function` (ver la lista de arriba) ═══
 
 -- Guarda: ninguna función que se queda puede seguir nombrando lo de E10. Si (a) no se pegó, o se pegó a medias, PARA aquí: borrar la tabla
 -- dejaría el editor entero sin funcionar (las funciones `language sql` no registran dependencias, así que el drop no avisaría).
