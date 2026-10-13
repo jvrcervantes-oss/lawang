@@ -11,12 +11,14 @@
 -- Perfiles con el ROL REAL (`set local role authenticated` + claims JWT, como tools/flujos_lawang.py): el MCP corre
 -- como postgres con bypassrls y sin cambiar de rol ninguna policy se evalúa. Identidades resueltas desde la base:
 -- un agente con la herramienta Facturas y empresa, un admin y un super_admin; ningún uid ni email en el fichero.
--- Cada línea dice OK, MAL o PENDIENTE (solo g3-g5, ver allí); ninguna debe decir MAL. El canario C0 tiene que salir OK o lo demás no vale.
+-- Cada línea dice OK, MAL o PENDIENTE (solo g3-g5 y h1, ver allí); ninguna debe decir MAL. El canario C0 tiene que salir OK o lo demás no vale.
 do $t$
 declare
   out text := ''; v_p uuid; v_e uuid; v_i uuid; v_i2 uuid; v_n uuid; v_hs uuid; v_e2 uuid; v_f uuid; v_pro uuid;
   v_rec uuid; v_venc uuid; v_soc text; v_ag_sub text; v_ag_mail text; v_ag_emp text; v_ad_sub text; v_ad_mail text;
   v_sa_sub text; v_sa_mail text; v_ev int; acl_ok boolean;
+  v_venc2 uuid; v_c3 uuid; v_c3i uuid; v_h1 uuid; v_h2 uuid; v_n0 int; v_n1 int; v_n2 int; v_e0 int; v_e1 int;
+  v_ok boolean;
 begin
   -- ── identidades ────────────────────────────────────────────────────────────────────────────────────────────────
   select u.user_id::text, u.email, coalesce(u.empresas[1], '') into v_ag_sub, v_ag_mail, v_ag_emp
@@ -62,6 +64,38 @@ begin
     values ('ZZ-L553-HS', 'hak_sewa_notario', v_p, null, v_e, '{"hitos":[]}', v_ag_mail) returning id into v_hs;
   insert into public.contrato_vencimientos (contrato_id, orden, descripcion, monto, fecha)
     values (v_e, 1, 'ZZ L553', 100, current_date + 1) returning id into v_venc;
+  insert into public.contrato_vencimientos (contrato_id, orden, descripcion, monto, fecha)
+    values (v_e, 2, 'ZZ L553 b', 100, current_date + 2) returning id into v_venc2;
+  -- h1/h2 (reactivar): en E2 (precio 1.000) una factura viva de 500 y dos anuladas sin enviar, de 600 y de 400.
+  insert into public.facturas (numero, sociedad, tipo, contrato_id, datos, total, moneda, creado_por)
+    values ('ZZ-L553-H0', v_soc, 'factura', v_e2, '{}'::jsonb, 500, 'EUR', v_ag_mail);
+  insert into public.facturas (numero, sociedad, tipo, contrato_id, datos, total, moneda, creado_por, anulada)
+    values ('ZZ-L553-H1', v_soc, 'factura', v_e2, '{}'::jsonb, 600, 'EUR', v_ag_mail, true) returning id into v_h1;
+  insert into public.facturas (numero, sociedad, tipo, contrato_id, datos, total, moneda, creado_por, anulada)
+    values ('ZZ-L553-H2', v_soc, 'factura', v_e2, '{}'::jsonb, 400, 'EUR', v_ag_mail, true) returning id into v_h2;
+  -- c3: copia INVOKER, sin tope, de factura_vencimiento_emite tal como la dejó 20260926160000 (la de antes de LAW-553),
+  -- para comparar lo que deja el robot en su versión DEFINER con lo que dejaba antes.
+  create function public.zz_l553_venc_invoker(p_venc_id uuid, p_fila jsonb)
+    returns table (id uuid, numero text, datos jsonb) language plpgsql security invoker set search_path to '' as $f$
+  declare v_contrato uuid; v_factura uuid; f public.facturas; n int;
+  begin
+    select cv.contrato_id, cv.factura_id into v_contrato, v_factura
+      from public.contrato_vencimientos cv where cv.id = p_venc_id for update;
+    if not found then raise exception 'vencimiento % no existe', p_venc_id using hint = 'sin_fila'; end if;
+    if v_factura is not null then raise exception 'vencimiento % ya tiene factura', p_venc_id using hint = 'ya_facturado'; end if;
+    insert into public.facturas (tipo, sociedad, cliente_nombre, proyecto_nombre, contrato_numero, contrato_id,
+                                 total, moneda, fecha_emision, datos)
+    values (p_fila->>'tipo', p_fila->>'sociedad', p_fila->>'cliente_nombre', p_fila->>'proyecto_nombre',
+            p_fila->>'contrato_numero', v_contrato, (p_fila->>'total')::numeric, p_fila->>'moneda',
+            (p_fila->>'fecha_emision')::date, p_fila->'datos')
+    returning * into f;
+    update public.contrato_vencimientos cv set factura_id = f.id where cv.id = p_venc_id;
+    get diagnostics n = row_count;
+    if n <> 1 then raise exception 'no se pudo marcar el vencimiento %', p_venc_id using hint = 'sin_fila'; end if;
+    return query select f.id, f.numero, f.datos;
+  end $f$;
+  revoke all on function public.zz_l553_venc_invoker(uuid, jsonb) from public, anon, authenticated;
+  grant execute on function public.zz_l553_venc_invoker(uuid, jsonb) to service_role;
   out := out || 'datos: E=' || (select moneda from public.contratos where id = v_e) || ' I=' || (select moneda from public.contratos where id = v_i)
              || ' N=' || coalesce((select moneda from public.contratos where id = v_n), 'null')
              || ' HS=' || coalesce((select moneda from public.contratos where id = v_hs), 'null') || E'\n';
@@ -138,6 +172,26 @@ begin
   exception when others then out := out || case when sqlstate = '23514' and sqlerrm like '%va en IDR%' then 'OK ' else 'MAL ' end
                                        || 'a11 edición a contrato en otra moneda: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
 
+  -- a12/a13 (revisión de código, 13-oct): una proforma convertida en factura cuenta entera en el tope; el atajo de
+  -- «editar sin subir el importe» solo vale para una factura que ya contaba. a3 ya factura 500 de los 1.000 de E.
+  begin
+    select id into v_pro from public.factura_guarda(null, jsonb_build_object('tipo', 'proforma', 'sociedad', v_soc, 'contrato_id', v_e, 'moneda', 'EUR', 'total', '600',
+                 'datos', jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object('descripcion', 'x', 'importe', '600')), 'fields', '{}'::jsonb)));
+    begin perform public.factura_guarda(v_pro, jsonb_build_object('tipo', 'factura', 'sociedad', v_soc, 'contrato_id', v_e, 'moneda', 'EUR', 'total', '600',
+                 'datos', jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object('descripcion', 'x', 'importe', '600')), 'fields', '{}'::jsonb)));
+      out := out || E'MAL a12 proforma de 600 pasada a factura con 500 de 1.000 facturados: PASA\n';
+    exception when others then out := out || case when sqlstate = '23514' and sqlerrm like '%precio acordado%' then 'OK ' else 'MAL ' end
+                                         || 'a12 proforma de 600 pasada a factura con 500 de 1.000 facturados: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
+  exception when others then out := out || 'MAL a12 montaje (proforma): ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
+  begin
+    select id into v_pro from public.factura_guarda(null, jsonb_build_object('tipo', 'proforma', 'sociedad', v_soc, 'contrato_id', v_e, 'moneda', 'EUR', 'total', '300',
+                 'datos', jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object('descripcion', 'x', 'importe', '300')), 'fields', '{}'::jsonb)));
+    perform public.factura_guarda(v_pro, jsonb_build_object('tipo', 'factura', 'sociedad', v_soc, 'contrato_id', v_e, 'moneda', 'EUR', 'total', '300',
+                 'datos', jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object('descripcion', 'x', 'importe', '300')), 'fields', '{}'::jsonb)));
+    out := out || case when (select tipo from public.facturas where id = v_pro) = 'factura' then 'OK ' else 'MAL ' end
+               || E'a13 proforma de 300 pasada a factura dentro del tope (500+300 de 1.000): pasa\n';
+  exception when others then out := out || 'MAL a13 proforma de 300 pasada a factura: ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
+
   -- b1: recibí del agente sobre su venta EUR mandando IDR → para (trigger, camino de guardar_recibi; la RPC exige al
   -- menos una factura que saldar, así que se aplica a la de a3)
   begin perform public.guardar_recibi(null, jsonb_build_object('contrato_id', v_e, 'sociedad', v_soc, 'total', '1', 'moneda', 'IDR',
@@ -184,6 +238,20 @@ begin
     out := out || E'OK g4 super_admin hija IDR sin precio: pasa\n';
   exception when others then out := out || case when sqlerrm like '%contrato_eventos_evento_check%' then 'PENDIENTE ' else 'MAL ' end
                                        || 'g4 super_admin hija IDR sin precio: ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
+  -- h1/h2 (revisión de código, 13-oct): reactivar una factura anulada la devuelve al tope. E2: 500 vivos de 1.000.
+  -- h1, 600 → 1.100: el super_admin solo pasa con rastro 'factura_sobre_tope' (PENDIENTE mientras LAW-560 no amplíe
+  -- contrato_eventos_evento_check); pasar SIN rastro es MAL (era lo de antes). h2, 400 → 900: pasa.
+  select count(*) into v_e0 from public.contrato_eventos where contrato_id = v_e2 and evento = 'factura_sobre_tope';
+  begin perform public.factura_reactiva(v_h1);
+    select count(*) into v_e1 from public.contrato_eventos where contrato_id = v_e2 and evento = 'factura_sobre_tope';
+    out := out || case when v_e1 > v_e0 then 'OK ' else 'MAL ' end || 'h1 reactivar 600 sobre 500 de 1.000: pasa con rastro=' || (v_e1 > v_e0) || E'\n';
+  exception when others then out := out || case when sqlerrm like '%contrato_eventos_evento_check%' then 'PENDIENTE '
+                                                  when sqlstate = '23514' then 'OK ' else 'MAL ' end
+                                       || 'h1 reactivar 600 sobre 500 de 1.000: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
+  begin perform public.factura_reactiva(v_h2);
+    out := out || case when not (select anulada from public.facturas where id = v_h2) then 'OK ' else 'MAL ' end
+               || E'h2 reactivar 400 dentro del tope: pasa\n';
+  exception when others then out := out || 'MAL h2 reactivar 400 dentro del tope: ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
   execute 'reset role';
   select count(*) into v_ev from public.contrato_eventos
    where (contrato_id = v_hs and evento = 'documento_sobre_hak_sewa') or (contrato_id = v_i2 and evento = 'factura_sobre_tope');
@@ -202,10 +270,36 @@ begin
                                        || 'c1 robot con moneda ajena: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
   begin perform public.factura_vencimiento_emite(v_venc, jsonb_build_object('tipo', 'factura', 'sociedad', v_soc, 'contrato_numero', 'ZZ-L553-E',
                  'total', 900, 'moneda', 'EUR', 'fecha_emision', current_date, 'datos', jsonb_build_object('totales', jsonb_build_object('subtotal', 900))));
-    out := out || E'MAL c2 robot sobre el tope (500+900 sobre 1.000): PASA\n';
+    out := out || E'MAL c2 robot sobre el tope (800+900 sobre 1.000): PASA\n';
   exception when others then out := out || case when sqlstate = '23514' and sqlerrm like '%precio acordado%' then 'OK ' else 'MAL ' end
                                        || 'c2 robot sobre el tope: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
+  -- c3: caso POSITIVO del robot (DEFINER desde 20261013074408). Dentro del tope (500+300 de a3/a13, +100) y con la
+  -- moneda buena: inserta y marca el vencimiento. Y deja lo mismo que la versión INVOKER de antes (copia de arriba,
+  -- otro vencimiento del mismo contrato): creado_por (fija_autor devuelve la fila sin tocar con auth.role() =
+  -- 'service_role'; el default auth.email() es null), created_at = now(), y los mismos avisos de los triggers AFTER.
+  select count(*) into v_n0 from public.notificaciones where contrato_id = v_e;
+  begin
+    select id into v_c3 from public.factura_vencimiento_emite(v_venc, jsonb_build_object('tipo', 'factura', 'sociedad', v_soc, 'contrato_numero', 'ZZ-L553-E',
+                 'total', 100, 'moneda', 'EUR', 'fecha_emision', current_date, 'datos', jsonb_build_object('totales', jsonb_build_object('subtotal', 100))));
+    select count(*) into v_n1 from public.notificaciones where contrato_id = v_e;
+    select id into v_c3i from public.zz_l553_venc_invoker(v_venc2, jsonb_build_object('tipo', 'factura', 'sociedad', v_soc, 'contrato_numero', 'ZZ-L553-E',
+                 'total', 100, 'moneda', 'EUR', 'fecha_emision', current_date, 'datos', jsonb_build_object('totales', jsonb_build_object('subtotal', 100))));
+    select count(*) into v_n2 from public.notificaciones where contrato_id = v_e;
+  exception when others then out := out || 'MAL c3 robot dentro del tope: ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
   execute 'reset role';
+  if v_c3 is not null and v_c3i is not null then
+    select a.creado_por is null and a.created_at = now()
+           and (a.creado_por, a.created_at, a.tipo, a.moneda, a.total, a.anulada, a.enviada, a.sociedad, a.contrato_id, a.proyecto_id)
+               is not distinct from (b.creado_por, b.created_at, b.tipo, b.moneda, b.total, b.anulada, b.enviada, b.sociedad, b.contrato_id, b.proyecto_id)
+           and (select cv.factura_id from public.contrato_vencimientos cv where cv.id = v_venc) = v_c3
+           and (select cv.factura_id from public.contrato_vencimientos cv where cv.id = v_venc2) = v_c3i
+           and v_n1 - v_n0 = v_n2 - v_n1
+      into v_ok
+      from public.facturas a, public.facturas b where a.id = v_c3 and b.id = v_c3i;
+    out := out || case when v_ok then 'OK ' else 'MAL ' end
+               || 'c3 robot dentro del tope: inserta, marca el vencimiento y deja lo mismo que la versión INVOKER (avisos '
+               || (v_n1 - v_n0) || '/' || (v_n2 - v_n1) || E')\n';
+  end if;
 
   -- ── contrato con documentos (como postgres —los cambios de contrato van por RPCs DEFINER—, con las claims del
   --    agente: no es super_admin, así que no hay salida con rastro) ──────────────────────────────────────────────

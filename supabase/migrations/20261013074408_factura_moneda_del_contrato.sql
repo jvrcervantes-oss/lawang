@@ -59,7 +59,7 @@
 --      super_admin con rastro 'cambia_venta_con_facturas' (sacaría sus facturas de un tope y las metería en otro).
 --   8. factura_vencimiento_emite (robot): pasa por _factura_tope_cadena. La edge factura-vencimiento manda la moneda
 --      de la columna del contrato (antes `f.moneda || ct.moneda`, con f = datos.fields; 2 contratos, RP00169 y
---      CC00096, tienen la columna en IDR y los campos en EUR: LAW-557, del owner).
+--      CC00096, tienen la columna en IDR y los campos en EUR: LAW-561, del owner).
 --   (2 a 8 vienen de la revisión previa de Seguridad y Administración del 13-oct, #305.)
 --
 -- Hallazgo al probar (13-oct): contrato_eventos_evento_check NO admite 'factura_sobre_tope' (ni los dos eventos nuevos
