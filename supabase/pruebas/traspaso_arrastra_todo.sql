@@ -1,5 +1,5 @@
-﻿-- Prueba «el traspaso SIEMPRE arrastra todo» (13-oct-2026, migraciones 20261013143832_traspaso_cliente_arrastra_todo,
--- 20261013150447_traspaso_receptor_ve_lo_que_recibe 20261013150901_traspaso_solo_lo_del_cliente y 20261013153444_traspaso_bloquea_lo_que_mueve).
+-- Prueba «el traspaso SIEMPRE arrastra todo» (13-oct-2026, migraciones 20261013143832_traspaso_cliente_arrastra_todo,
+-- 20261013150447_traspaso_receptor_ve_lo_que_recibe 20261013150901_traspaso_solo_lo_del_cliente 20261013153444_traspaso_bloquea_lo_que_mueve y 20261013154657_traspaso_parada_sin_numero).
 -- Casos del revisor (13-oct): K* cocomprador con factura de otro client_id (no se mueve), R7 admin_empresa sin la empresa de una factura
 -- sin cliente colgada de su contrato, R8 receptor de otra empresa con un admin GLOBAL, M* la marca puesta como authenticated.
 -- Se pega DESPUES de la migracion en la MISMA peticion (ensayo), o sola cuando ya esta aplicada. Sin rastro: acaba en raise y todo se deshace.

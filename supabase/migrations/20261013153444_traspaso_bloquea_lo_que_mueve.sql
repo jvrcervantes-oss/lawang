@@ -1,4 +1,4 @@
-﻿-- Traspaso de ficha: bloquea los contratos y facturas que va a mover (13-oct-2026).
+-- Traspaso de ficha: bloquea los contratos y facturas que va a mover (13-oct-2026).
 --
 -- POR QUÉ: revisor-codigo, 2.ª vuelta sobre 20261013150901. Los ids de contratos
 -- y facturas se leían sin bloqueo; si otra transacción cambiaba el client_id de

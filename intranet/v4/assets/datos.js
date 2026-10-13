@@ -3294,8 +3294,6 @@
                     ['contratos_omitidos_otro_autor', '%n contratos de otro autor no se han movido.'],
                     ['contratos_omitidos_sin_autor', '%n contratos sin autor no se han movido.'],
                     ['facturas_omitidas_otro_autor', '%n facturas o recibís a nombre de otro comprador del mismo contrato se quedan con quien los lleva.'],
-                    // el maestro (erp/migraciones/20261013223000) la llama por su nombre
-                    ['facturas_omitidas_otro_cliente', '%n facturas o recibís a nombre de otro comprador del mismo contrato se quedan con quien los lleva.'],
                     ['facturas_omitidas_sin_autor', '%n facturas o recibís sin autor no se han movido.'],
                     ['facturas_omitidas_emitidas', '%n facturas emitidas se quedan con su autor (una emitida no se reasigna).']
                   ].filter(function (o) { return Number(res[o[0]]) > 0; }).map(function (o) {
