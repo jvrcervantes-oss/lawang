@@ -11,7 +11,8 @@
 //     y pasado el canje el oyente vuelve a funcionar;
 //   · decide: caducado con sesión de comprador viva → entra con ella (no «pide otro», que gasta el freno);
 //     sin sesión → pide otro; th válido → entra con la sesión NUEVA aunque hubiera otra; red → reintenta siempre.
-// La página (portal/index.html) usa estas mismas piezas: quitaTh al empezar, canjeaCallado al pulsar «Entrar»,
+//   · puedeCanjearSolo: canje sin botón solo con la página visible, con foco, sin prerender, iframe ni webdriver (13-oct-2026).
+// La página (portal/index.html) usa estas mismas piezas: quitaTh al empezar, canjeaCallado solo (o al pulsar «Entrar»),
 // callado alrededor de su oyente. El recorrido en navegador real está en la bitácora del encargo (S3).
 'use strict';
 const E = require('./enlace.js');
@@ -237,6 +238,30 @@ function supabaseFalso(nav, resp) {
     // th sin forma de token (p. ej. cortado por el cliente de correo) con sesión viva → entra; sin sesión → pide otro.
     igual(E.decide({ estado: 'caducado' }, VIVA).accion, 'entra', 'th malo + sesión viva → entra');
     igual(E.decide({ estado: 'caducado' }, null).accion, 'pide_otro', 'th malo sin sesión → pide otro');
+  }
+
+  // ── puedeCanjearSolo (13-oct-2026): canje sin botón solo con una persona delante ──
+  {
+    function ventana(o) {
+      o = o || {};
+      const w = {
+        document: { visibilityState: o.vis || 'visible', prerendering: !!o.pre, hasFocus: () => o.foco !== false },
+        navigator: { webdriver: !!o.wd },
+      };
+      w.top = o.iframe ? {} : w;
+      return w;
+    }
+    ok(E.puedeCanjearSolo(ventana()) === true, 'visible + foco + sin iframe ni webdriver → canjea solo');
+    ok(E.puedeCanjearSolo(ventana({ vis: 'hidden' })) === false, 'pestaña oculta → botón');
+    ok(E.puedeCanjearSolo(ventana({ pre: true })) === false, 'prerender → botón');
+    ok(E.puedeCanjearSolo(ventana({ wd: true })) === false, 'navegador automatizado → botón');
+    ok(E.puedeCanjearSolo(ventana({ iframe: true })) === false, 'dentro de un iframe → botón');
+    ok(E.puedeCanjearSolo(ventana({ foco: false })) === false, 'sin foco → botón');
+    const lanza = { document: { visibilityState: 'visible', hasFocus: () => true }, navigator: {} };
+    Object.defineProperty(lanza, 'top', { get() { throw new Error('origen cruzado'); } });
+    ok(E.puedeCanjearSolo(lanza) === false, 'window.top que lanza → botón, sin romper');
+    ok(E.puedeCanjearSolo({}) === false, 'sin document → botón');
+    ok(typeof E.ESPERA_MS === 'number' && E.ESPERA_MS >= 500 && E.ESPERA_MS <= 2000, 'pausa antes del canje solo entre 0,5 y 2 s');
   }
 
   if (fallos) { console.error(fallos + ' de ' + pruebas + ' comprobaciones fallan'); process.exit(1); }

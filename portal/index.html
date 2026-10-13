@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="998bd633a384">
+<meta name="lw-version" content="95129c25d2fe">
 <meta charset="UTF-8">
-<meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como #th=<token> (o ?th= en los correos viejos); ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
+<meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como #th=<token>; ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -56,7 +56,7 @@
 <script src="/portal/calendario.js?v=20261009g"></script>
 <script src="/portal/zip.js?v=20261007"></script>
 <script src="/portal/motion.js?v=20261009"></script>
-<script src="/portal/enlace.js?v=20261011c"></script>
+<script src="/portal/enlace.js?v=20261013a"></script>
 <script src="/intranet/facturas/totales.js?v=9cb91c37"></script>
 <script src="/intranet/facturas/documento.js?v=933661fe"></script>
 <style>
@@ -102,6 +102,18 @@
   .btn-primario:disabled{ opacity:.55; cursor:default; }
   .aviso{ font-size:12.5px; line-height:1.5; min-height:18px; margin-top:14px; color:#8a8570; }
   .aviso.mal{ color:var(--bad); } .aviso.bien{ color:var(--ok); font-weight:600; }
+  /* LAW-1 (13-oct-2026, owner: «tarda un poquito, pon un spinner»): el botón de pedir el enlace y la llegada con el
+     enlace enseñan un indicador mientras esperan. Los dos textos están en el marcado y se alternan por clase: así
+     cambiar de idioma a mitad de envío no borra el indicador (aplicaLangEstatico reescribe cada [data-t]). */
+  .lw-spin{ display:inline-block; width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent;
+            border-radius:50%; vertical-align:-2px; margin-right:9px; animation:lw-gira .7s linear infinite; }
+  @keyframes lw-gira{ to{ transform:rotate(360deg); } }
+  .btn-primario .lw-spin, .btn-primario .btn-env{ display:none; }
+  .btn-primario.enviando .lw-spin{ display:inline-block; }
+  .btn-primario.enviando .btn-env{ display:inline; } .btn-primario.enviando .btn-txt{ display:none; }
+  .btn-primario.enviando:disabled{ opacity:.85; cursor:progress; }
+  .entrando{ display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--dl); margin:6px 0 2px; }
+  @media (prefers-reduced-motion:reduce){ .lw-spin{ animation-duration:2.4s; } }
   .link-sutil{ color:var(--dl); text-decoration:none; }
   .link-sutil:hover{ text-decoration:underline; }
 
@@ -2040,15 +2052,18 @@
   <div class="caja">
     <div class="marca">LAWANG</div>
     <div class="rot" data-t="area">Área de clientes</div>
-    <!-- LAW-1 S3 (11-oct-2026): llegada con el enlace de nuestro correo (#th=, o ?th= en los viejos). Se entra PULSANDO, no al cargar: los filtros de correo de empresa abren el enlace para revisarlo y lo gastarían (portal/enlace.js). -->
+    <!-- LAW-1 (13-oct-2026, owner: «saltar ese paso»): llegada con el enlace de nuestro correo (#th=). Se entra SOLO, con «Entrando…», cuando la página la tiene delante una persona (visible, con foco, sin iframe ni navegador automatizado, tras una pausa corta); si no, o sin red, queda el botón «Entrar» (portal/enlace.js). -->
     <div id="bloqueEnlace" hidden>
-      <p data-t="enlace_intro">Pulsa el botón para entrar en tu área de clientes.</p>
-      <button class="btn-primario" type="button" id="btnEnlace" data-accion="canjear-enlace" data-t="enlace_btn">Entrar</button>
+      <p class="entrando" id="enlaceEntrando" role="status" hidden><span class="lw-spin" aria-hidden="true"></span><span data-t="entrando">Entrando…</span></p>
+      <div id="enlaceManual">
+        <p data-t="enlace_intro">Pulsa el botón para entrar en tu área de clientes.</p>
+        <button class="btn-primario" type="button" id="btnEnlace" data-accion="canjear-enlace" data-t="enlace_btn">Entrar</button>
+      </div>
     </div>
     <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.</p>
     <form id="fLogin">
       <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required data-ph="ph_correo" placeholder="tu@correo.com"></div>
-      <button class="btn-primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
+      <button class="btn-primario" type="submit" id="btnPideEnlace" data-accion="pedir-enlace"><span class="lw-spin" aria-hidden="true"></span><span class="btn-txt" data-t="login_btn">Enviarme el enlace</span><span class="btn-env" data-t="enviando">Enviando el enlace…</span></button>
     </form>
     <p data-t="login_intro_pass" id="loginIntroPass" hidden>Introduce tu correo y tu contraseña.</p>
     <form id="fLoginPass" hidden>
@@ -2056,7 +2071,7 @@
       <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z"></path></svg><input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••"></div>
       <button class="btn-primario" type="submit" data-t="pass_btn">Entrar</button>
     </form>
-    <div id="avisoLogin" class="aviso"></div>
+    <div id="avisoLogin" class="aviso" aria-live="polite"></div>
     <p style="margin-top:18px;font-size:12px">
       <a href="#" id="togglePass" class="link-sutil" data-t="pass_toggle">¿Tienes contraseña? Entra con ella</a>
     </p>
@@ -2113,9 +2128,9 @@
 <script>
 (function(){
   'use strict';
-  /* LAW-1 S3 (11-oct-2026): el enlace de entrada (#th=<token>, o ?th= en los correos viejos) se quita de la barra y del
-     historial lo PRIMERO, antes de crear el cliente y antes de aplicaRuta (el portal usa el # para rutas); se canjea al pulsar «Entrar» (ver el
-     arranque). Por qué así y qué estados hay: portal/enlace.js. */
+  /* LAW-1 S3 (11-oct-2026): el enlace de entrada (#th=<token>) se quita de la barra y del historial lo PRIMERO, antes de
+     crear el cliente y antes de aplicaRuta (el portal usa el # para rutas); se canjea solo, con «Entrando…», si la página la
+     tiene delante una persona (13-oct-2026; ver el arranque). Por qué así y qué estados hay: portal/enlace.js. */
   /* Si portal/enlace.js no llega (bloqueador, red, CDN), el portal NO puede morir: antes de LAW-1 no dependía de él.
      Sustituto mínimo: quita el token de la barra igual, no ofrece el canje (se entra con el formulario de siempre) y el
      oyente de sesión calla mientras arranca, como callado() (verificador, 11-oct-2026: sin esto la página quedaba en blanco). */
@@ -2133,6 +2148,8 @@
     decide: function(){ return { accion: 'pide_otro', ses: null, aviso: 'enlace_caducado' }; },
     callado: function(entrada, fn){ return function(ev, ses){ if (!entrada.ocupado) fn(ev, ses); }; },
     canjeaCallado: function(){ return Promise.resolve({ estado: 'red' }); },
+    puedeCanjearSolo: function(){ return false; },
+    ESPERA_MS: 800,
     AVISO: { caducado: 'enlace_caducado', red: 'enlace_red' }
   };
   var TH = LWE.quitaTh(location, history);
@@ -2198,10 +2215,10 @@
     es:{ area:'Área de clientes',
          login_intro:'Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.',
          login_btn:'Enviarme el enlace',
-         enviado:'Si ese correo tiene acceso, acabamos de enviarte el enlace. Revisa tu bandeja (mira también en spam).',
+         enviado:'Si ese correo tiene acceso, acabamos de enviarte el enlace. Revisa tu bandeja (mira también en spam); puede tardar un par de minutos. Si pides otro, el anterior deja de valer.', enviando:'Enviando el enlace…', entrando:'Entrando…',
          error_envio:'No hemos podido enviarte el correo ahora mismo. Inténtalo de nuevo en un momento o escríbenos a sales@lawangproperties.com.',
          sin_activar:'Tu cuenta todavía no tiene el área de clientes activada. Pide un enlace de acceso con tu correo aquí abajo y se activa sola; si no llega, escríbenos a sales@lawangproperties.com.',
-         enlace_caducado:'El enlace ha caducado o ya se usó: pide otro.', enlace_red:'No hemos podido comprobar el enlace ahora mismo. Pulsa «Entrar» de nuevo en un momento.', enlace_intro:'Pulsa el botón para entrar en tu área de clientes.', enlace_btn:'Entrar',
+         enlace_caducado:'Este enlace ya se usó o ha caducado. Pide otro aquí abajo: te llega al momento.', enlace_red:'No hemos podido comprobar el enlace ahora mismo. Pulsa «Entrar» de nuevo en un momento.', enlace_intro:'Pulsa el botón para entrar en tu área de clientes.', enlace_btn:'Entrar',
          login_intro_pass:'Introduce tu correo y tu contraseña.', pass_btn:'Entrar',
          pass_toggle:'¿Tienes contraseña? Entra con ella', pass_toggle_back:'Prefiero que me manden un enlace',
          pass_mal:'Correo o contraseña incorrectos.', pie:'¿Dudas? Escríbenos a',
@@ -2319,10 +2336,10 @@
     en:{ area:'Client area',
          login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
          login_btn:'Send me the link',
-         enviado:'If that email has access, we have just sent you the link. Check your inbox (and your spam folder).',
+         enviado:'If that email has access, we have just sent you the link. Check your inbox (and your spam folder); it can take a couple of minutes. If you request another one, the previous link stops working.', enviando:'Sending the link…', entrando:'Signing you in…',
          error_envio:'We could not send the email right now. Please try again in a moment or write to sales@lawangproperties.com.',
          sin_activar:'Your account does not have the client area enabled yet. Request a sign-in link with your email below and it activates itself; if nothing arrives, write to sales@lawangproperties.com.',
-         enlace_caducado:'This link has expired or has already been used: request a new one.', enlace_red:'We could not check the link right now. Press «Sign in» again in a moment.', enlace_intro:'Press the button to enter your client area.', enlace_btn:'Sign in',
+         enlace_caducado:'This link has already been used or has expired. Request a new one below: it arrives right away.', enlace_red:'We could not check the link right now. Press «Sign in» again in a moment.', enlace_intro:'Press the button to enter your client area.', enlace_btn:'Sign in',
          login_intro_pass:'Enter your email and password.', pass_btn:'Sign in',
          pass_toggle:'Have a password? Sign in with it', pass_toggle_back:'Send me a link instead',
          pass_mal:'Wrong email or password.', pie:'Questions? Write to',
@@ -2436,10 +2453,10 @@
     id:{ area:'Area klien',
          login_intro:'Masukkan email yang Anda gunakan saat membeli. Jika Anda memiliki kontrak dengan kami, tautan masuk akan segera dikirim.',
          login_btn:'Kirim tautan ke saya',
-         enviado:'Jika email tersebut memiliki akses, kami baru saja mengirimkan tautan. Periksa kotak masuk Anda (cek juga folder spam).',
+         enviado:'Jika email tersebut memiliki akses, kami baru saja mengirimkan tautan. Periksa kotak masuk Anda (cek juga folder spam); bisa memakan waktu beberapa menit. Jika Anda meminta yang baru, tautan sebelumnya tidak berlaku lagi.', enviando:'Mengirim tautan…', entrando:'Sedang masuk…',
          error_envio:'Kami belum bisa mengirim email saat ini. Coba lagi sebentar lagi atau tulis ke sales@lawangproperties.com.',
          sin_activar:'Akun Anda belum mengaktifkan area klien. Minta tautan akses dengan email Anda di bawah ini dan akan aktif otomatis; jika tidak datang, tulis ke sales@lawangproperties.com.',
-         enlace_caducado:'Tautan ini sudah kedaluwarsa atau sudah dipakai: minta yang baru.', enlace_red:'Kami belum bisa memeriksa tautan saat ini. Tekan «Masuk» lagi sebentar lagi.', enlace_intro:'Tekan tombol untuk masuk ke area klien Anda.', enlace_btn:'Masuk',
+         enlace_caducado:'Tautan ini sudah dipakai atau sudah kedaluwarsa. Minta yang baru di bawah ini: langsung dikirim.', enlace_red:'Kami belum bisa memeriksa tautan saat ini. Tekan «Masuk» lagi sebentar lagi.', enlace_intro:'Tekan tombol untuk masuk ke area klien Anda.', enlace_btn:'Masuk',
          login_intro_pass:'Masukkan email dan kata sandi Anda.', pass_btn:'Masuk',
          pass_toggle:'Punya kata sandi? Masuk dengan itu', pass_toggle_back:'Saya lebih suka dikirimi tautan',
          pass_mal:'Email atau kata sandi salah.', pie:'Ada pertanyaan? Tulis ke',
@@ -2722,17 +2739,32 @@
     cargar();
   }
 
-  /* ── entrada con el enlace de nuestro correo (#th= o ?th=, LAW-1 S3) ─────── */
-  /* Se ofrece el botón «Entrar» en vez del formulario; al pulsarlo se canjea (portal/enlace.js).
-     Qué pasa después lo decide LW_ENLACE.decide, no esta página: correcto → entra con la sesión
-     nueva; caducado o ya usado → entra con la sesión de comprador que ya tuviera viva o, si no
-     hay, vuelve el formulario con «pide otro»; sin red → mismo botón para reintentar, con un
-     aviso distinto («no he podido comprobarlo» ≠ «caducado»). */
+  /* ── entrada con el enlace de nuestro correo (#th=, LAW-1) ───────────── */
+  /* Al llegar con el enlace se canjea SOLO, con «Entrando…», si LW_ENLACE.puedeCanjearSolo dice que hay una persona
+     delante (owner, 13-oct-2026: «saltar ese paso»); si no, se enseña el botón «Entrar» y se canjea solo en cuanto se
+     cumpla (la pestaña pasa a visible o coge foco). Qué pasa después lo decide LW_ENLACE.decide, no esta página:
+     correcto → entra con la sesión nueva; caducado o ya usado → entra con la sesión de comprador que ya tuviera viva o,
+     si no hay, vuelve el formulario con «ya se usó o caducó» y el correo que esta persona escribió aquí la última vez;
+     sin red → botón para reintentar, con un aviso distinto («no he podido comprobarlo» ≠ «caducado»), y ya sin canje
+     solo (sin bucles). */
+  /* Correo recordado (Seguridad, 13-oct-2026): SOLO el que la persona escribió ella misma en el formulario, nunca uno
+     sacado del enlace o de la sesión; se borra al pulsar «Salir». En un ordenador compartido el siguiente lo vería:
+     riesgo bajo, aceptado. El formulario contesta lo mismo exista o no el correo, así que no delata a nadie. */
+  var CORREO_KEY = 'lw_portal_correo';
+  function recuerdaCorreo(email){ try { localStorage.setItem(CORREO_KEY, email); } catch(e){ /* MUDO A PROPOSITO: sin almacenamiento solo se pierde el relleno de «pide otro» */ } }
+  function olvidaCorreo(){ try { localStorage.removeItem(CORREO_KEY); } catch(e){ /* MUDO A PROPOSITO: sin almacenamiento no hay nada guardado que borrar */ } }
+  function correoRecordado(){ try { return localStorage.getItem(CORREO_KEY) || ''; } catch(e){ return ''; /* MUDO A PROPOSITO: ídem */ } }
+
   function modoEnlace(on){
     document.getElementById('bloqueEnlace').hidden = !on;
     document.getElementById('fLogin').hidden = on;
     document.getElementById('loginIntroEnlace').hidden = on;
     document.getElementById('togglePass').hidden = on;
+  }
+  /* Dentro del bloque del enlace: 'entrando' (indicador) o 'boton' (texto + «Entrar»). */
+  function estadoEnlace(cual){
+    document.getElementById('enlaceEntrando').hidden = cual !== 'entrando';
+    document.getElementById('enlaceManual').hidden = cual === 'entrando';
   }
   function avisoEnlace(clave){
     var a = document.getElementById('avisoLogin');
@@ -2741,17 +2773,15 @@
   }
   /* Aplica la decisión de LW_ENLACE.decide. 'reintenta' deja el botón y el TH en memoria. */
   function aplicaEnlace(d){
-    if (d.accion === 'reintenta'){ avisoEnlace(d.aviso); return; }
+    if (d.accion === 'reintenta'){ estadoEnlace('boton'); avisoEnlace(d.aviso); return; }
     TH = null;   // gastado (o rechazado): ya no se reintenta
+    sueltaSolo();
     modoEnlace(false);
     avisoEnlace(d.aviso);
-    if (d.accion === 'entra') trasSesion(d.ses);
-  }
-  /* `guardada`: la sesión que devolvió getSession() en el arranque (null si no había). */
-  function ofreceEnlace(guardada){
-    muestra('vLogin');
-    if (!LWE.formatoOk(TH)){ aplicaEnlace(LWE.decide({ estado: 'caducado' }, guardada)); return; }
-    modoEnlace(true);
+    if (d.accion === 'entra'){ trasSesion(d.ses); return; }
+    /* pide_otro: el formulario ahí mismo; con el correo recordado basta un clic en «Enviarme el enlace». */
+    var inp = document.getElementById('inEmail');
+    if (!inp.value) inp.value = correoRecordado();
   }
   /* La sesión guardada se vuelve a leer en el momento: la del arranque pudo caducar o cerrarse
      mientras la pestaña estaba abierta. Si no se puede leer, cuenta como «no hay». */
@@ -2759,29 +2789,83 @@
     return sb.auth.getSession().then(function(g){ return (g && g.data && g.data.session) || null; },
       function(){ return null; /* MUDO A PROPOSITO: sin sesión legible se trata como «no hay» y el comprador ve «pide otro», que es lo que veía antes de este arreglo */ });
   }
-  document.getElementById('btnEnlace').addEventListener('click', function(){
-    var btn = this;
-    if (TH === null || btn.disabled) return;
+  /* Un solo canje a la vez, lo pida la espera o el botón (candado EN_CURSO; Seguridad, 13-oct). */
+  var EN_CURSO = false;
+  function canjeaAhora(){
+    if (TH === null || EN_CURSO) return;
+    EN_CURSO = true;
+    sueltaSolo();
+    var btn = document.getElementById('btnEnlace');
     btn.disabled = true;
-    var a = document.getElementById('avisoLogin'); a.className = 'aviso'; a.textContent = '…';
+    estadoEnlace('entrando');
+    avisoEnlace(null);
     LWE.canjeaCallado(sb, TH, ENTRADA).then(function(r){
       if (r.estado !== 'caducado') return LWE.decide(r, null);
       return sesionAhora().then(function(guardada){ return LWE.decide(r, guardada); });
     }).then(function(d){
-      btn.disabled = false;
+      EN_CURSO = false; btn.disabled = false;
+      if (d.accion === 'reintenta') SOLO.rojo = true;
       aplicaEnlace(d);
     }).catch(function(){
       /* Hoy no rechaza nada de la cadena (canjea y sesionAhora resuelven siempre); si algún día
-         lo hace, el botón no se queda bloqueado en «…»: se dice «no he podido comprobarlo». */
-      btn.disabled = false;
+         lo hace, no se queda en «Entrando…»: botón y «no he podido comprobarlo». */
+      EN_CURSO = false; btn.disabled = false; SOLO.rojo = true;
+      estadoEnlace('boton');
       avisoEnlace(LWE.AVISO.red);
     });
+  }
+  /* Canje solo: espera LWE.ESPERA_MS con «Entrando…» y vuelve a mirar antes de canjear; si la página
+     se oculta o pierde el foco en ese rato, se cancela y queda el botón. `rojo`: tras un fallo de red
+     ya no se intenta solo. */
+  var SOLO = { timer: 0, escucha: false, rojo: false };
+  function intentaSolo(){
+    if (TH === null || EN_CURSO || SOLO.rojo || SOLO.timer) return;
+    if (!LWE.puedeCanjearSolo(window)){ estadoEnlace('boton'); return; }
+    estadoEnlace('entrando');
+    SOLO.timer = setTimeout(function(){
+      SOLO.timer = 0;
+      if (LWE.puedeCanjearSolo(window)) canjeaAhora(); else estadoEnlace('boton');
+    }, LWE.ESPERA_MS);
+  }
+  function cancelaSolo(){
+    if (!SOLO.timer) return;
+    clearTimeout(SOLO.timer); SOLO.timer = 0;
+    if (!EN_CURSO && TH !== null) estadoEnlace('boton');
+  }
+  function alCambiarVisibilidad(){ if (document.visibilityState === 'visible') intentaSolo(); else cancelaSolo(); }
+  function escuchaSolo(){
+    if (SOLO.escucha) return;
+    SOLO.escucha = true;
+    document.addEventListener('visibilitychange', alCambiarVisibilidad);
+    document.addEventListener('prerenderingchange', intentaSolo);
+    window.addEventListener('focus', intentaSolo);
+    window.addEventListener('blur', cancelaSolo);
+  }
+  function sueltaSolo(){
+    if (SOLO.timer){ clearTimeout(SOLO.timer); SOLO.timer = 0; }
+    if (!SOLO.escucha) return;
+    SOLO.escucha = false;
+    document.removeEventListener('visibilitychange', alCambiarVisibilidad);
+    document.removeEventListener('prerenderingchange', intentaSolo);
+    window.removeEventListener('focus', intentaSolo);
+    window.removeEventListener('blur', cancelaSolo);
+  }
+  /* `guardada`: la sesión que devolvió getSession() en el arranque (null si no había). */
+  function ofreceEnlace(guardada){
+    muestra('vLogin');
+    if (!LWE.formatoOk(TH)){ aplicaEnlace(LWE.decide({ estado: 'caducado' }, guardada)); return; }
+    modoEnlace(true);
+    escuchaSolo();
+    intentaSolo();
+  }
+  document.getElementById('btnEnlace').addEventListener('click', function(){
+    if (!this.disabled) canjeaAhora();
   });
 
   /* ── arranque ─────────────────────────────────────────────────────── */
-  /* Con #th= o ?th= (y sin ?demo) se ofrece el botón aunque hubiera otra sesión guardada: quien pulsa
-     un enlace quiere entrar con ESE correo. El botón sale después de getSession, con el cliente
-     ya arrancado (portal/enlace.js, punto 3). */
+  /* Con #th= (y sin ?demo) se va al canje aunque hubiera otra sesión guardada: quien abre un enlace
+     quiere entrar con ESE correo. El canje empieza después de getSession, con el cliente ya
+     arrancado (portal/enlace.js, punto 3). */
   sb.auth.getSession().then(function(r){
     ENTRADA.ocupado = false;
     var ses = (r && r.data && r.data.session) || null;
@@ -2811,19 +2895,37 @@
      se dice a propósito: el 8-sep había 18 invitaciones a compradores reales
      dadas por enviadas y ninguna estrenada, sin forma de saber si el correo
      llegó a salir. Un «enviado» que puede ser mentira es peor que un fallo. */
+  /* Mientras se envía (owner, 13-oct-2026: «tarda un poquito, pon un spinner»; hoy unos 5 s) el botón enseña el
+     indicador y «Enviando el enlace…», queda deshabilitado y PIDIENDO corta un segundo envío (Enter repetido, doble
+     clic): cada envío que pasa el freno genera un enlace nuevo e invalida el anterior. Tope propio de 35 s en el
+     navegador, por encima de lo que la edge espera al correo, para que el botón nunca se quede girando: si salta, es
+     «no hemos podido enviarlo». El freno antiabuso contesta igual que un envío a propósito (no delata qué correos
+     tienen acceso), así que la página no lo distingue: el texto de «enviado» avisa de que pedir otro anula el anterior. */
+  var PIDIENDO = false;
   document.getElementById('fLogin').addEventListener('submit', function(e){
     e.preventDefault();
+    if (PIDIENDO) return;
     var email = document.getElementById('inEmail').value.trim().toLowerCase();
     var aviso = document.getElementById('avisoLogin');
-    aviso.className = 'aviso'; aviso.textContent = '…';
+    var btn = document.getElementById('btnPideEnlace');
+    PIDIENDO = true;
+    btn.disabled = true; btn.classList.add('enviando'); btn.setAttribute('aria-busy', 'true');
+    aviso.className = 'aviso'; aviso.textContent = '';
+    recuerdaCorreo(email);
+    var ac = typeof AbortController === 'function' ? new AbortController() : null;
+    var tope = ac ? setTimeout(function(){ ac.abort(); }, 35000) : 0;
     fetch(URL_SB + '/functions/v1/portal-acceso', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: email })
+      body: JSON.stringify({ email: email }),
+      signal: ac ? ac.signal : undefined
     })
       .then(function(r){ return r.json().catch(function(){ return { error: 'ilegible' }; }); })
       .catch(function(){ return { error: 'red' }; })
       .then(function(r){
+        clearTimeout(tope);
+        PIDIENDO = false;
+        btn.disabled = false; btn.classList.remove('enviando'); btn.removeAttribute('aria-busy');
         var mal = !!(r.error || r.reintentar);
         aviso.className = 'aviso ' + (mal ? 'mal' : 'bien');
         aviso.textContent = mal ? t('error_envio') : t('enviado');
@@ -2855,6 +2957,7 @@
 
   document.getElementById('btnSalir').addEventListener('click', function(e){
     e.preventDefault();
+    olvidaCorreo();   // el correo recordado para «pide otro» se va con la sesión (Seguridad, 13-oct-2026)
     sb.auth.signOut().then(function(){ location.replace('/portal/' + (window.LW_DEMO ? '?demo=1' : '')); });
   });
   document.getElementById('selLang').addEventListener('click', function(ev){
