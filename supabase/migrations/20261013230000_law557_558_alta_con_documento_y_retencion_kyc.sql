@@ -480,6 +480,10 @@ begin
     select o.name from storage.objects o
      where o.bucket_id = 'kyc'
        and o.created_at < now() - interval '36 hours'
+       -- solo carpetas de cliente o de alta (uuid): el bucket guarda más cosas sin fila en documents, p. ej. la KTP de
+       -- los apoderados (`apoderados/…`, apoderados_hak_sewa.ktp; Seguridad, 13-oct)
+       and o.name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/'
+       and not exists (select 1 from public.apoderados_hak_sewa a where a.ktp = o.name)
        and not exists (select 1 from public.documents d where d.storage_path = o.name)
        and not exists (select 1 from public.kyc_altas_pendientes k
                         where k.id::text = split_part(o.name, '/', 1) and k.creado_en >= now() - interval '36 hours')
@@ -605,7 +609,7 @@ create table if not exists public.kyc_retencion_pasadas (
   avisado boolean not null default false
 );
 alter table public.kyc_retencion_pasadas enable row level security;
-revoke all on table public.kyc_retencion_pasadas from public, anon, authenticated;
+revoke all on table public.kyc_retencion_pasadas from public, anon, authenticated, service_role;   -- solo la escribe la función
 
 create or replace function public.kyc_retencion_registra(p_resumen jsonb)
 returns void
@@ -631,7 +635,7 @@ begin
           body := jsonb_build_object('to', v_to, 'subject', 'Aviso: la limpieza nocturna del archivo KYC no ha ido bien',
             'message', 'Aviso automático de la intranet. La pasada de kyc-retencion (borrado de copias KYC a los meses '
                        || 'fijados y limpieza de ficheros sueltos) ha terminado con un problema. Resumen (solo recuentos): '
-                       || p_resumen::text || chr(10) || chr(10)
+                       || (p_resumen #- '{retencion,clientes}')::text || chr(10) || chr(10)   -- sin los ids de clientes (quedan en la tabla)
                        || 'Se revisa en kyc_retencion_pasadas. Este aviso sale como mucho una vez a la semana.',
             'attach', false));
         v_avisa := true;

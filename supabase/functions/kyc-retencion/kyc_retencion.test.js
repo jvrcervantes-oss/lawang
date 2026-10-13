@@ -125,11 +125,15 @@ let n = 0; const ok = (c, msg) => { assert.ok(c, msg); n++; };
   ok(mig.includes('revoke all on function public._kyc_retencion_candidato(uuid, timestamptz) from public, anon, authenticated, service_role;'),
      '_kyc_retencion_candidato: sin execute para nadie');
   ok(/vault\.create_secret\(\s*replace\(gen_random_uuid\(\)/.test(mig), 'el secreto se genera dentro de la base');
-  ok(mig.includes('revoke all on table public.kyc_retencion_pasadas from public, anon, authenticated;') &&
+  ok(mig.includes('revoke all on table public.kyc_retencion_pasadas from public, anon, authenticated, service_role;') &&
      mig.includes('alter table public.kyc_retencion_pasadas enable row level security;'), 'tabla de pasadas cerrada');
   ok(/exit when cardinality\(v_cand\) > 100;/.test(mig) && /v_cand := coalesce\(v_cand\[1:20\], '\{\}'\);/.test(mig), 'retención: 20 por noche y freno a los 100');
   ok(/doc_type = 'signed_contract' or d\.contrato_id is not null or d\.reservation_id is not null/.test(mig), 'retención: nunca un cliente con contrato firmado o documento vinculado');
   ok(/if v_cfg is null or jsonb_typeof\(v_cfg\) <> 'number' then\s+return jsonb_build_object\('activa', false\);/.test(mig), 'retención: sin la clave no hace nada');
+  ok(mig.includes("and o.name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/'") &&
+     mig.includes('and not exists (select 1 from public.apoderados_hak_sewa a where a.ktp = o.name)'),
+     'barrido: solo carpetas uuid y nunca la KTP de un apoderado (Seguridad, 13-oct)');
+  ok(mig.includes("(p_resumen #- '{retencion,clientes}')::text"), 'el correo de aviso no lleva los ids de clientes');
   const cfg = leer('supabase', 'config.toml');
   ok(/\[functions\.kyc-retencion\]\nverify_jwt = false/.test(cfg), 'config.toml: verify_jwt = false');
 

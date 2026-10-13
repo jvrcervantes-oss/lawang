@@ -302,7 +302,7 @@ end $t$;
 
 -- ─── BLOQUE 5: barrido de pendientes y ficheros huérfanos ──────────────────────────────────────────────────────────
 do $t$
-declare a uuid; ea text; r text := ''; n int; j jsonb; vieja uuid; viva uuid; cli uuid; fv text; fw text; fh text; fc text;
+declare a uuid; ea text; r text := ''; n int; j jsonb; vieja uuid; viva uuid; cli uuid; fv text; fw text; fh text; fc text; fa text;
 begin
   select u.user_id, lower(u.email) into a, ea from public.usuarios u
    where u.activo and u.rol = 'agente' and u.user_id is not null and cardinality(coalesce(u.empresas, '{}')) > 0 order by u.email limit 1;
@@ -312,13 +312,16 @@ begin
   fv := vieja || '/' || gen_random_uuid() || '.jpg';                -- de una pendiente caducada: se barre
   fw := viva  || '/' || gen_random_uuid() || '.jpg';                -- de una pendiente viva (aunque el fichero sea viejo): no
   fh := gen_random_uuid() || '/' || gen_random_uuid() || '.pdf';    -- huérfano sin dueño: se barre
-  fc := cli   || '/' || gen_random_uuid() || '.pdf';                -- en la carpeta de un cliente existente: no (eso es de kyc_sueltos_de)
+  fc := cli   || '/' || gen_random_uuid() || '.pdf';                -- sin fila en la carpeta de un cliente existente: SÍ (revisor, 13-oct:
+                                                                     -- lo que Storage no borró tras soltar la base su fila)
+  fa := 'apoderados/prueba-' || gen_random_uuid() || '-ktp.jpg';    -- KTP de apoderado (sin fila en documents, carpeta no uuid): NUNCA (Seguridad)
   insert into storage.objects (bucket_id, name, created_at) values ('kyc', fv, now() - interval '39 hours'), ('kyc', fw, now() - interval '39 hours'),
                                                                    ('kyc', fh, now() - interval '50 hours'), ('kyc', fc, now() - interval '50 hours'),
+                                                                   ('kyc', fa, now() - interval '90 days'),
                                                                    ('kyc', gen_random_uuid() || '/' || gen_random_uuid() || '.pdf', now() - interval '3 hours');  -- reciente: no
   j := public.kyc_barrido(true);
   r := r || pg_temp.ok((j->>'pendientes_caducadas') || '/' || (select string_agg(v, ',' order by v) from jsonb_array_elements_text(j->'rutas') v),
-                       '1/' || (select string_agg(v, ',' order by v) from unnest(array[fv, fh]) v), '5.1 dry: 1 pendiente caducada y solo los dos ficheros sin dueño de más de 36 h');
+                       '1/' || (select string_agg(v, ',' order by v) from unnest(array[fv, fh, fc]) v), '5.1 dry: 1 pendiente caducada y los tres ficheros sin fila de más de 36 h en carpetas uuid (nunca la KTP de apoderados)');
   r := r || pg_temp.ok((select count(*)::text from public.kyc_altas_pendientes where id in (vieja, viva)), '2', '5.2 dry no borra pendientes');
   j := public.kyc_barrido(false);
   r := r || pg_temp.ok((select count(*)::text from public.kyc_altas_pendientes where id = vieja) || '/' || (select count(*) from public.kyc_altas_pendientes where id = viva), '0/1', '5.3 real: la caducada se va, la viva sigue');
