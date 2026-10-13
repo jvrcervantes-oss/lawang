@@ -123,14 +123,21 @@ async function hashIp(ip: string): Promise<string | null> {
   return Array.from(firma, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Manda el enlace por envia-correo (o el PHP), con destinatario y textos fijados aquí. true solo si respondió ok. */
-async function enviaEnlace(email: string, enlace: string): Promise<boolean> {
+/** Espera máxima a envia-correo. 20 s y no 8 (13-oct-2026): hoy tarda ~5 s y con el SMTP lento pasaba de 8, la edge daba
+ *  el envío por fallido y devolvía el hueco del freno aunque el correo hubiera salido. */
+const ESPERA_ENVIO_MS = 20000;
+
+/** Manda el enlace por envia-correo (o el PHP), con destinatario y textos fijados aquí.
+ *  'ok' solo si respondió ok; 'fallo' si contestó que no o no se pudo llamar; 'agotado' si se acabó la espera sin respuesta:
+ *  el correo pudo salir, así que quien llama NO devuelve el hueco del freno (si lo devolviera, un segundo envío inmediato
+ *  invalidaría el enlace que quizá ya está en el buzón). */
+async function enviaEnlace(email: string, enlace: string): Promise<'ok' | 'fallo' | 'agotado'> {
   const url = await urlEnvio();
   // La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET.
   const secreto = url === ENVIO_EDGE ? (Deno.env.get('ENVIO_CORREO_SECRET') || Deno.env.get('RENDER_SECRET') || '') : (Deno.env.get('RENDER_SECRET') || '');
-  if (!secreto) { console.error('portal-acceso envio sin_secreto @' + dominio(email)); return false; }
+  if (!secreto) { console.error('portal-acceso envio sin_secreto @' + dominio(email)); return 'fallo'; }
   const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), 8000);
+  const t = setTimeout(() => ac.abort(), ESPERA_ENVIO_MS);
   try {
     const r = await fetch(url, {
       method: 'POST',
@@ -142,10 +149,12 @@ async function enviaEnlace(email: string, enlace: string): Promise<boolean> {
     const cuerpo = await r.text().catch(() => '');
     const ok = r.ok && cuerpo.includes('"ok":true');
     if (!ok) console.error('portal-acceso envio http_' + r.status + ' @' + dominio(email));
-    return ok;
+    return ok ? 'ok' : 'fallo';
   } catch (e) {
+    // Solo aborta nuestro temporizador: AbortError = se acabó la espera, no «no salió».
+    if ((e as Error)?.name === 'AbortError') { console.error('portal-acceso envio agotado @' + dominio(email)); return 'agotado'; }
     console.error('portal-acceso envio excepcion @' + dominio(email) + ': ' + limpia((e as Error)?.name ?? e));
-    return false;
+    return 'fallo';
   } finally {
     clearTimeout(t);
   }
@@ -292,8 +301,8 @@ export async function manejador(req: Request): Promise<Response> {
       return json({ ok: true, reintentar: true });
     }
     const enviado = await enviaEnlace(email, PORTAL_URL + '#th=' + encodeURIComponent(th));
-    if (!enviado) {
-      await libera();
+    if (enviado !== 'ok') {
+      if (enviado === 'fallo') await libera();   // 'agotado': el correo pudo salir, el hueco se queda gastado
       return json({ ok: true, reintentar: true });
     }
     anota('enlace_enviado');
