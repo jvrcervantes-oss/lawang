@@ -152,25 +152,32 @@ const TIPOS_CONTRATO = [
 
 // 13-oct-2026: contratos PROPIOS de una empresa (E9, 8-oct). Su permiso es el slug de `plantillas_contrato` con `empresa`, que
 // no está en la lista de arriba, y hasta hoy el `.filter()` lo tiraba en silencio: un contrato propio no se podía dar en el alta
-// (divergencia (2) de contexto/suite_lawang.md). Ahora se aceptan si existen como propios, preguntando a la base, nunca a una
-// lista del navegador. QUÉ se puede conceder lo decide además la base para todos los caminos (trigger
-// usuarios_tipos_contrato_validos, migración 20261013015508): tipo conocido, de la empresa de la persona y, con sesión, del
-// alcance de quien concede. QUIÉN: en los caminos con service_role de esta edge (alta global, solicitudes) un admin que no es
-// super solo da los propios que tiene él (Permisos, usuario_guarda_permisos, es más estricto: a ese admin le limita TODOS los
-// tipos; aquí los 17 siguen como estaban antes del 13-oct, y hoy ningún admin global no super tiene la casilla «usuarios»:
-// medido ese día, solo los super admin la tienen). El alta de un rol de empresa va por
-// usuario_alta_empresa con la sesión de quien la da. En una instancia del ERP sin contratos propios (sin la columna `empresa`) la
-// consulta falla y solo valen los de la lista: no se da nada de más.
-async function tiposConcedibles(pedidos: string[], soloLosMios: string[] | null) {
+// (divergencia (2) de contexto/suite_lawang.md). Ahora un propio se da solo si la BASE, preguntada CON LA SESIÓN DE QUIEN LLAMA
+// (`lector`), lo devuelve en plantilla_contratos_propios_activos: esa RPC exige empresa_en_alcance y una versión activa. Así un
+// super admin global con empresas marcadas no da el propio de una empresa que no es suya (revisión de Seguridad del 13-oct: este
+// camino inserta con service_role y el trigger usuarios_tipos_contrato_validos no puede mirar el alcance sin sesión). Además un
+// admin que no es super solo da los propios que tiene él (Permisos, usuario_guarda_permisos, es más estricto: a ese admin le limita
+// TODOS los tipos; aquí los 17 siguen como antes del 13-oct, y medido ese día ningún admin global no super tiene la casilla
+// «usuarios»). El alta de un rol de empresa va por usuario_alta_empresa con la sesión de quien la da. Lo que no se da vuelve en
+// `tipos_no_dados`. En una instancia del ERP sin contratos propios cualquiera de las dos consultas falla y solo valen los de la
+// lista: no se da nada de más.
+// deno-lint-ignore no-explicit-any
+async function tiposConcedibles(pedidos: string[], soloLosMios: string[] | null, lector: any) {
   const unicos = [...new Set(pedidos.map(String))];
   const otros = unicos.filter((t) => !TIPOS_CONTRATO.includes(t) && /^[a-z0-9_]{1,80}$/.test(t));
-  let propios: string[] = [];
+  const propios: string[] = [];
   if (otros.length) {
-    const { data, error } = await admin.from('plantillas_contrato').select('slug').in('slug', otros).not('empresa', 'is', null);
-    if (!error) propios = (data ?? []).map((f: { slug: string }) => String(f.slug));
-    if (soloLosMios) propios = propios.filter((t) => soloLosMios.includes(t));
+    // de qué empresa es cada uno (service_role solo para saberlo); quién puede darlo lo dice la base con la sesión de quien llama
+    const { data, error } = await admin.from('plantillas_contrato').select('slug, empresa').in('slug', otros).not('empresa', 'is', null);
+    const empresas = error ? [] : [...new Set((data ?? []).map((f: { empresa: string }) => String(f.empresa)))];
+    for (const e of empresas) {
+      const { data: activos, error: eAct } = await lector.rpc('plantilla_contratos_propios_activos', { p_empresa: e });
+      if (eAct || !Array.isArray(activos)) continue;   // 42501 = empresa fuera de su alcance: no se da ninguno de esa empresa
+      for (const f of activos as { slug: string }[]) if (otros.includes(String(f.slug))) propios.push(String(f.slug));
+    }
   }
-  const dados = unicos.filter((t) => TIPOS_CONTRATO.includes(t) || propios.includes(t));
+  const mios = soloLosMios ? propios.filter((t) => soloLosMios.includes(t)) : propios;
+  const dados = unicos.filter((t) => TIPOS_CONTRATO.includes(t) || mios.includes(t));
   return { dados, no_dados: unicos.filter((t) => !dados.includes(t)) };
 }
 
@@ -245,7 +252,7 @@ Deno.serve(async (req) => {
       // los 17 o un contrato propio que exista; un admin global que no es super, solo los propios que tiene él
       const { dados: tipos_contrato, no_dados: tipos_no_dados } = await tiposConcedibles(
         Array.isArray(body.tipos_contrato) ? body.tipos_contrato : [],
-        soySuper || esEmpresa ? null : ((ficha.tipos_contrato ?? []) as string[]).map(String));
+        soySuper || esEmpresa ? null : ((ficha.tipos_contrato ?? []) as string[]).map(String), usuario);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'email_invalido' }, 400);
       if (password.length < 10) return json({ error: 'password_corta' }, 400);   // 10+: son cuentas con datos de clientes reales
       if (!ROLES.includes(rol)) return json({ error: 'rol_invalido' }, 400);
@@ -377,7 +384,7 @@ Deno.serve(async (req) => {
       const herramientas = pedidas.filter((h) => BASE_COMERCIAL.includes(h) && (soySuper || mias.has(h)));
       const { dados: tipos_contrato, no_dados: tipos_no_dados } = await tiposConcedibles(
         Array.isArray(body.tipos_contrato) ? body.tipos_contrato : [],
-        soySuper ? null : ((ficha.tipos_contrato ?? []) as string[]).map(String));
+        soySuper ? null : ((ficha.tipos_contrato ?? []) as string[]).map(String), usuario);
       // `tipos_contrato` vacío BLOQUEA a un agente (trigger contratos_tipo_permitido,
       // verificado 24-sep) y `proyectos` vacío = ninguno: sin los dos, no trabaja.
       if (!tipos_contrato.length) return json({ error: 'elige_tipos_de_contrato' }, 400);
