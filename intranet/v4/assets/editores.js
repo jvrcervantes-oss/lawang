@@ -7478,6 +7478,8 @@
           sb.from('obra_fases').select('clave,es,en,orden').order('orden')
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudieron leer los proyectos: ' + rs[0].error.message, '#93000a');
+          // Sin las fases, el paso 2 decía «sin empezar · ya terminado» en todos los tramos y luego «no hay paso siguiente».
+          if (rs[1].error) return aviso('No se pudieron leer las fases de obra: ' + rs[1].error.message, '#93000a');
           var proys = rs[0].data || [], fases = rs[1].data || [];
           // Sin proyectos en construcción no hay nada que avanzar, y el motivo
           // no es obvio: se dice entero, con el camino para resolverlo.
@@ -7571,7 +7573,7 @@
          Enseña los contratos que van a recibir fecha de cobro Y los que se
          quedan fuera con su motivo: un contrato excluido en silencio es
          exactamente el fallo que esta pantalla tiene que evitar. */
-      function previaAvance(sb, proy, fase, zona, faseNueva, faseNuevaEs) {
+      function previaAvance(sb, proy, fase, zona, faseNueva, faseNuevaNombre) {
         Promise.all([
           sb.rpc('obra_contratos_afectados', {
             p_proyecto_id: proy.id, p_fase_masterplan: fase,
@@ -7625,7 +7627,7 @@
 
             var campos = [
               { tipo: 'lectura', medio: 1, label: 'Tramo', valor: trParte('Fase %f · %z', { f: fase, z: zona }) },
-              { tipo: 'lectura', medio: 1, label: 'Pasa a', valor: faseNuevaEs },
+              { tipo: 'lectura', medio: 1, label: 'Pasa a', valor: faseNuevaNombre },
               { tipo: 'custom', label: 'Lo que se va a cobrar', render: function (d) {
                   d.style.cssText = 'display:grid;gap:8px;background:#f5f4ee;border:1px solid ' + CAJ.borde +
                     ';border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.4;color:' + CAJ.apagado;
