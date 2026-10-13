@@ -19,7 +19,7 @@
   window.__lwNovedades = true;
   if (location.pathname.indexOf('/intranet/v4/') === -1) return;
 
-  var NOV_ID = '20260930';
+  var NOV_ID = '20261013';
   var Q = 'lw-novedades:visto:';
 
   function T(s, h) { return window.lwT ? window.lwT(s, h) : (h ? s.replace(/%(\w+)/g, function (m, k) { return h[k] != null ? h[k] : m; }) : s); }
@@ -33,53 +33,47 @@
   }
   var QUIETO = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-  /* ── Las noticias. `herr` = herramienta del menú que hace falta para verla ── */
+  /* ── Las noticias. La ve quien tiene la herramienta `herr` del menú o uno de los
+     `roles` de la lista (el super global, todas). `lista` = puntos bajo el texto.
+     Las dos del 30-sep (asistente de contrato y avisos del Asistente) se retiraron
+     el 13-oct al subir NOV_ID: ya las había visto todo el equipo. ── */
   var NOTICIAS = [
     {
-      id: 'asistente-contrato', herr: 'contratos',
-      titulo: function () { return T('Nuevo contrato, paso a paso'); },
-      texto: function () { return T('El asistente te va preguntando lo justo: si la venta es de tu equipo o por tu cuenta, el tipo de contrato, el cliente y las condiciones. Antes de guardar, revisas el resumen. El formulario de siempre sigue ahí.'); },
-      nota: function () { return T('Está en pruebas: si algo no va bien, cuéntaselo al Asistente de la esquina.'); },
-      cta: function () { return { texto: T('Probarlo ahora'), href: '/contracts/app.html?nuevo=1&asistente=1' }; },
-      arte: arteContrato
-    },
-    {
-      id: 'asistente-avisa', herr: 'asistente',
-      titulo: function () { return T('El Asistente te avisa de lo grave'); },
-      texto: function () { return T('Si una reserva tuya está a punto de vencer y la parcela se va a liberar, el Asistente te lo dice al entrar. El punto rojo se queda en su esquina mientras siga pendiente.'); },
-      nota: function () { return ''; },
+      /* Regla del owner (13-oct-2026), texto aprobado por él ese día. Solo ventas
+         con fecha de venta desde el 1-nov; las anteriores siguen con la de hoy. */
+      id: 'comisiones-1nov', roles: ['agente', 'sales_manager'],
+      titulo: function () { return T('Comisiones desde el 1 de noviembre'); },
+      texto: function () { return T('Desde el 1 de noviembre de 2026, la comisión de cada venta se paga en dos momentos:'); },
+      lista: function () {
+        return [
+          T('Parcela: el 10\u00a0% de su valor, cuando el cliente ha pagado el 50\u00a0% de la parcela.'),
+          T('Construcción: el 10\u00a0% de su valor, cuando el cliente ha pagado el 25\u00a0% de la construcción.')
+        ];
+      },
+      nota: function () { return T('Tu parte dentro del equipo no cambia. Las ventas anteriores al 1 de noviembre siguen con la regla de hoy.'); },
       cta: function () { return null; },
-      arte: arteAviso,
-      grave: true
+      arte: arteComision
     }
   ];
 
   /* Ilustraciones: marcado fijo de este fichero, con textos por T(); ningún dato. */
-  function arteContrato() {
-    var m = el('div', 'lwn-mini');
-    var barra = el('div', 'lwn-barra');
-    for (var i = 0; i < 5; i++) barra.appendChild(el('i', i === 0 ? 'h' : ''));
-    m.appendChild(barra);
-    m.appendChild(el('div', 'lwn-q', T('¿Venta de equipo o por tu cuenta?')));
-    var op = el('div', 'lwn-op');
-    op.appendChild(el('span', 'on', T('Venta de equipo')));
-    op.appendChild(el('span', '', T('Por mi cuenta')));
-    m.appendChild(op);
-    var ft = el('div', 'lwn-ft');
-    ft.appendChild(el('span', '', T('Paso %n de %t', { n: 1, t: 5 })));
-    ft.appendChild(el('u', '', T('Formulario clásico')));
-    m.appendChild(ft);
+  function arteComision() {
+    var m = el('div', 'lwn-com');
+    [[T('Parcela'), 50], [T('Construcción'), 25]].forEach(function (p) {
+      var f = el('div', 'lwn-com-f');
+      var cab = el('div', 'lwn-com-cab');
+      cab.appendChild(el('span', '', p[0]));
+      cab.appendChild(el('b', '', '10\u00a0%'));
+      f.appendChild(cab);
+      var barra = el('div', 'lwn-com-barra');
+      var lleno = el('i');
+      lleno.style.width = p[1] + '%';
+      barra.appendChild(lleno);
+      f.appendChild(barra);
+      f.appendChild(el('div', 'lwn-com-pie', T('al cobrar el %p', { p: p[1] + '\u00a0%' })));
+      m.appendChild(f);
+    });
     return m;
-  }
-  function arteAviso() {
-    var e = el('div', 'lwn-esc');
-    var av = el('div', 'lwn-aviso');
-    av.appendChild(el('b', '', T('Urgente')));
-    av.appendChild(document.createTextNode(T('Una reserva vence en 2 días. Pide la prórroga o cierra el Bloqueo.')));
-    e.appendChild(av);
-    var mas = el('div', 'lwn-mas', 'A');
-    e.appendChild(mas);
-    return e;
   }
 
   var CSS =
@@ -109,23 +103,17 @@
     '#lw-novedades .lwn-btn.t{border-color:transparent;background:transparent;color:#75786e}' +
     '#lw-novedades button:focus-visible,#lw-novedades a:focus-visible{outline:2px solid #104C4F;outline-offset:2px}' +
     '#lw-novedades [hidden]{display:none!important}' +
-    /* ilustración 1: mini pantalla del asistente */
-    '#lw-novedades .lwn-mini{width:100%;max-width:380px;background:#FBF9F4;border-radius:14px;padding:14px 16px;display:grid;gap:10px}' +
-    '#lw-novedades .lwn-barra{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}' +
-    '#lw-novedades .lwn-barra i{height:4px;border-radius:2px;background:#E4DCCB}' +
-    '#lw-novedades .lwn-barra i.h{background:#104C4F}' +
-    '#lw-novedades .lwn-q{font-size:17px;font-weight:600;line-height:1.2;color:#2E3437}' +
-    '#lw-novedades .lwn-op{display:grid;grid-template-columns:1fr 1fr;gap:8px}' +
-    '#lw-novedades .lwn-op span{border:1px solid #E4DCCB;border-radius:10px;padding:10px 12px;font-size:14px}' +
-    '#lw-novedades .lwn-op span.on{border-color:#104C4F;background:#104C4F;color:#fff}' +
-    '#lw-novedades .lwn-ft{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:#75786e}' +
-    '#lw-novedades .lwn-ft u{text-decoration:none;border-bottom:1px solid #75786e}' +
-    /* ilustración 2: el aviso y la mascota con su punto */
-    '#lw-novedades .lwn-esc{position:relative;width:100%;max-width:380px;height:100%}' +
-    '#lw-novedades .lwn-aviso{position:absolute;left:0;right:60px;top:26px;background:#FBF9F4;border:1px solid #9E2F26;border-radius:16px 16px 4px 16px;padding:12px 14px;font-size:14px;line-height:1.4;color:#2E3437}' +
-    '#lw-novedades .lwn-aviso b{display:block;color:#9E2F26;font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px}' +
-    '#lw-novedades .lwn-mas{position:absolute;right:4px;bottom:8px;width:52px;height:52px;border-radius:999px;background:#104C4F;color:#FBF9F4;display:grid;place-items:center;font-size:22px;font-weight:600}' +
-    '#lw-novedades .lwn-mas::after{content:"";position:absolute;top:1px;right:1px;width:14px;height:14px;border-radius:999px;background:#9E2F26;border:2px solid #F8E3E0}' +
+    '#lw-novedades .lwn-lista{margin:10px 0 0;padding:0 0 0 18px;font-size:15px;line-height:1.55}' +
+    '#lw-novedades .lwn-lista li+li{margin-top:6px}' +
+    /* ilustración: las dos partes de la comisión, cada una con su barra de cobro */
+    '#lw-novedades .lwn-arte:has(.lwn-com){height:auto}' +
+    '#lw-novedades .lwn-com{width:100%;max-width:380px;display:grid;gap:10px}' +
+    '#lw-novedades .lwn-com-f{background:#FBF9F4;border-radius:14px;padding:12px 16px;display:grid;gap:8px}' +
+    '#lw-novedades .lwn-com-cab{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:15px;color:#2E3437}' +
+    '#lw-novedades .lwn-com-cab b{font-weight:400;font-size:24px;line-height:1;color:#104C4F;font-variant-numeric:tabular-nums}' +
+    '#lw-novedades .lwn-com-barra{height:6px;border-radius:3px;background:#E4DCCB;overflow:hidden}' +
+    '#lw-novedades .lwn-com-barra i{display:block;height:100%;background:#104C4F}' +
+    '#lw-novedades .lwn-com-pie{font-size:12px;color:#75786e;font-variant-numeric:tabular-nums}' +
     '@media (max-width:480px){#lw-novedades .lwn-arte{height:190px}#lw-novedades .lwn-not,#lw-novedades .lwn-nav{padding-left:18px;padding-right:18px}#lw-novedades .lwn-cab{padding-left:18px}}' +
     '@media (prefers-reduced-motion:no-preference){#lw-novedades .lwn-not.on{animation:lwnEntra .28s ease-out}@keyframes lwnEntra{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}}' +
     '@media print{#lw-novedades{display:none}}';
@@ -136,7 +124,9 @@
     if (!email || !aut.ficha) return;            // sin usuario o sin ficha no hay a quién recordar ni qué herramientas tiene
     var K = Q + email;
     var herr = ficha.herramientas || [];
-    var lista = NOTICIAS.filter(function (n) { return LW_ROL.esSuperGlobal(ficha) || herr.indexOf(n.herr) !== -1; });
+    var lista = NOTICIAS.filter(function (n) {
+      return LW_ROL.esSuperGlobal(ficha) || (n.herr && herr.indexOf(n.herr) !== -1) || (n.roles || []).indexOf(ficha.rol) !== -1;
+    });
     if (!lista.length) return;
     var yaVisto = lee(K) === NOV_ID;
 
@@ -189,6 +179,11 @@
         h.id = 'lwn-t' + i;
         p.appendChild(h);
         p.appendChild(el('p', 'lwn-txt', n.texto()));
+        if (n.lista) {
+          var ul = el('ul', 'lwn-lista');
+          n.lista().forEach(function (s) { ul.appendChild(el('li', '', s)); });
+          p.appendChild(ul);
+        }
         var nota = n.nota();
         if (nota) p.appendChild(el('p', 'lwn-nota', nota));
         pop.appendChild(p);
