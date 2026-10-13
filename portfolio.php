@@ -242,8 +242,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
   </section>
 </main>
 
-<footer data-lw-pie data-cookies data-wa="<?= lw_e($WA_LINK) ?>"></footer>
-<script src="/assets/lawang-pie.js?v=20261007114054"></script>
+<!-- Pie = el de la home (variante «home» de lawang-pie.js), owner 13-oct-2026. -->
+<footer data-lw-pie="home" data-cookies></footer>
+<script src="/assets/lawang-pie.js?v=20261013101118"></script>
 <script>
 (function () {
   'use strict';
@@ -257,8 +258,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
   if (location.search) document.querySelectorAll('.pf-grid a[href^="/modelo/"]').forEach(function (a) {
     a.href = a.getAttribute('href') + location.search;
   });
-  var ck = document.getElementById('lw-cookies');
-  if (ck) ck.addEventListener('click', function (e) { e.preventDefault(); if (window.lwConsentReopen) window.lwConsentReopen(); });
 })();
 </script>
 <script src="/assets/consent.js?v=20260924165606" defer></script>
