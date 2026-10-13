@@ -1727,8 +1727,8 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   var snap = document.getElementById('snap'), fila = document.querySelector('#soul .stats4');
   if (!snap || !fila || !('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   function cuenta(n) {
-    // n.dataset.fin guarda el valor real solo mientras dura una cuenta: si se vuelve a entrar a medias se parte de él
-    // (nunca de una cifra intermedia), y al acabar se borra para que un cambio de idioma posterior mande.
+    // n.dataset.fin guarda el valor real mientras dura una cuenta: si se vuelve a entrar a medias se parte de él
+    // (nunca de una cifra intermedia), y al acabar se borra.
     if (!n.dataset.fin) n.dataset.fin = n.textContent;
     var txt = n.dataset.fin, m = txt.match(/^(\d+)(.*)$/), t0 = null; cancelAnimationFrame(n._raf);
     if (!m) { delete n.dataset.fin; return; }
@@ -1736,6 +1736,8 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
       n.textContent = q < 1 ? Math.round(+m[1] * (1 - Math.pow(1 - q, 4))) + m[2] : txt;
       if (q < 1) n._raf = requestAnimationFrame(paso); else delete n.dataset.fin; })(performance.now());
   }
+  // Arrancan en 0 ya, sin esperar al observer (que llega un instante después): así no se ve la cifra final y luego el salto.
+  fila.querySelectorAll('.n').forEach(function (n) { var m = n.textContent.match(/^(\d+)(.*)$/); if (m) { n.dataset.fin = n.textContent; n.textContent = '0' + m[2]; } });
   var dentro = false;
   new IntersectionObserver(function (ents) {
     var e = ents[ents.length - 1];
