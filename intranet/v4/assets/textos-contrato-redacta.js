@@ -257,8 +257,8 @@
       }
     });
     if (listo()) {
-      var av = el('div', 'tc-nota');
-      av.appendChild(el('p', null, T('Este texto lo ha redactado un asistente de IA y el estudio no lo ha revisado. Al activarlo, responde de él %e. La versión en indonesio es la que prevalece y es una traducción automática: antes de usarlo con un cliente, consulte a un abogado o notario que revise la versión en indonesio.', { e: nombreEmpresa() })));
+      var av = el('div', 'tc-nota');   // texto de Legal: si cambia, sube AVISO ('legal-2026-10-13') en plantilla_contrato_crea_desde_asistente (lo vigila el test)
+      av.appendChild(el('p', null, T('Este texto lo ha redactado un asistente de IA y el estudio no lo ha revisado. Al activarlo, responde de él %e. La versión en indonesio es la que prevalece y es una traducción automática: antes de usarlo con un cliente, consulta a un abogado o notario que revise la versión en indonesio.', { e: nombreEmpresa() })));
       var lc = el('label', 'tc-check'), ch = el('input'); ch.type = 'checkbox'; ch.checked = R.acepta; ch.setAttribute('data-tc-rd', 'acepta');
       lc.appendChild(ch); lc.appendChild(el('span', null, T('He leído el aviso'))); av.appendChild(lc);
       p.appendChild(av);

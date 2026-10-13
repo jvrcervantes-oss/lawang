@@ -40,8 +40,9 @@ const tope = /REDACTA = \{ frase: (\d+)/.exec(motor);
 igual(tope && new RegExp('ta\\.maxLength = ' + tope[1] + ';').test(js), true, 'la caja corta la frase en el mismo tope que la función');
 igual(/inp\.maxLength = 75;/.test(js) && /between 3 and 75/.test(mig), true, 'el nombre: 75 letras en pantalla y en la base');
 ['Tu frase se envía a un proveedor externo de IA (Anthropic) para redactar el borrador. No escribas nombres, direcciones, números de pasaporte ni otros datos de clientes: describe el tipo de contrato y deja los importes como campo.',
- 'Este texto lo ha redactado un asistente de IA y el estudio no lo ha revisado. Al activarlo, responde de él %e. La versión en indonesio es la que prevalece y es una traducción automática: antes de usarlo con un cliente, consulte a un abogado o notario que revise la versión en indonesio.']
-  .forEach((x) => { if (js.indexOf(x) === -1) falla('falta el texto de Legal tal cual: «' + x.slice(0, 60) + '…»'); });
+ 'Este texto lo ha redactado un asistente de IA y el estudio no lo ha revisado. Al activarlo, responde de él %e. La versión en indonesio es la que prevalece y es una traducción automática: antes de usarlo con un cliente, consulta a un abogado o notario que revise la versión en indonesio.']
+  .forEach((x) => { if (js.indexOf(x) === -1) falla('falta el texto de Legal tal cual (si se cambia a propósito, sube también AVISO en la base, que registra qué versión se aceptó): «' + x.slice(0, 60) + '…»'); });
+igual(/AVISO constant text := 'legal-2026-10-13'/.test(mig), true, 'la base registra la versión del aviso que corresponde a estos textos');
 igual(/p_acepta_aviso: true/.test(js) && /bc\.disabled = !R\.acepta/.test(js), true, 'crear exige la casilla del aviso y la base lo recibe');
 igual(/p_confirma_sensibles: confirmaSensibles === true/.test(js) && /if \(ok\) crea\(true\)/.test(js) && (js.match(/crea\(true\)/g) || []).length === 1, true,
   'p_confirma_sensibles solo va a true tras el diálogo de partes sensibles');

@@ -6248,7 +6248,7 @@
     'Traduciendo al %l…': 'Translating into %l…',
     'No ha salido la traducción al %l: ': 'The translation into %l did not work: ',
     'Volver a traducir': 'Translate again',
-    'Este texto lo ha redactado un asistente de IA y el estudio no lo ha revisado. Al activarlo, responde de él %e. La versión en indonesio es la que prevalece y es una traducción automática: antes de usarlo con un cliente, consulte a un abogado o notario que revise la versión en indonesio.': 'This text was drafted by an AI assistant and has not been reviewed by the studio. By activating it, %e takes responsibility for it. The Indonesian version prevails and is a machine translation: before using it with a client, consult a lawyer or notary to review the Indonesian version.',
+    'Este texto lo ha redactado un asistente de IA y el estudio no lo ha revisado. Al activarlo, responde de él %e. La versión en indonesio es la que prevalece y es una traducción automática: antes de usarlo con un cliente, consulta a un abogado o notario que revise la versión en indonesio.': 'This text was drafted by an AI assistant and has not been reviewed by the studio. By activating it, %e takes responsibility for it. The Indonesian version prevails and is a machine translation: before using it with a client, consult a lawyer or notary to review the Indonesian version.',
     'He leído el aviso': 'I have read the warning',
     'Crear el contrato en borrador': 'Create the contract as a draft',
     'Se crea en borrador, sin activar. Después lo cambias en el editor como cualquier texto; activarlo lo hace el super administrador de la empresa.': 'It is created as a draft, not active. You then change it in the editor like any text; the company\'s super administrator activates it.',
