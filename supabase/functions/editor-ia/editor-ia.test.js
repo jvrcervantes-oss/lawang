@@ -285,6 +285,10 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
   { const conPar = (t) => Object.assign({}, aEs(P3), { clausulas: [{ titulo: 'Objeto', parrafos: [t] }] });
     const conOpc = (o) => Object.assign({}, aEs(P3), { campos: P3.campos.map((c) => (c.tipo === 'lista' ? Object.assign({}, c, { opciones: [o, 'USD'] }) : c)) });
     ok(M.validaRedaccion(conPar('Si el retraso es > 30 días, se resuelve.')).error === 'clausulas', 'redacta: un «>» en un párrafo no pasa (la base lo rechazaría)');
+    { const par = 'Las partes acuerdan lo siguiente. '.repeat(20).slice(0, 680);
+      const larga = Object.assign({}, aEs(P3), { clausulas: Array.from({ length: 6 }, (_, k) => ({ titulo: 'Cláusula ' + (k + 1), parrafos: [par, par] })) });
+      ok(M.validaRedaccion(larga).error === 'clausulas', 'redacta: más de ' + M.REDACTA.total + ' letras de párrafos en total no pasa (la traducción no acabaría a tiempo)');
+      larga.clausulas.length = 5; ok(!M.validaRedaccion(larga).error, 'redacta: 5 × 2 párrafos de 680 sí pasa'); }
     ok(M.validaRedaccion(conPar('Texto con​ invisible.')).error === 'clausulas', 'redacta: un invisible no pasa');
     const nb = M.validaRedaccion(conOpc('Rupia IDR'));
     ok(!nb.error && nb.propuesta.campos.filter((c) => c.tipo === 'lista')[0].opciones[0] === 'Rupia IDR', 'redacta: un espacio duro en una opción se normaliza (la base no lo admite en opciones)', nb); }

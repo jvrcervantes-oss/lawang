@@ -222,6 +222,8 @@ begin
   total := total + 1; if r <> 'E22023/origen' then fallos := fallos + 1; resumen := resumen || ' [C4 otra persona crea con mi redacción: ' || r || ']'; end if;
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true, true)', v_ea, v_red, jsonb_set(P, '{nombre}', '"   "')));
   total := total + 1; if r <> 'E22023/nombre' then fallos := fallos + 1; resumen := resumen || ' [N1 nombre vacío: ' || r || ']'; end if;
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true, true)', v_ea, v_red, jsonb_set(P, '{nombre}', to_jsonb('Prueba ' || chr(1564) || 'E10 marca'))));
+  total := total + 1; if r <> 'E22023/nombre' then fallos := fallos + 1; resumen := resumen || ' [N2 marca de dirección U+061C en el nombre (20261014000000): ' || r || ']'; end if;
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true, true)', v_ea, v_red, jsonb_set(P, '{clausulas,0,parrafos}', '"x"')));
   total := total + 1; if r <> 'E22023/forma' then fallos := fallos + 1; resumen := resumen || ' [F1 párrafos que no son lista: ' || r || ']'; end if;
   r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.plantilla_contrato_crea_desde_asistente(%L, %L, %L::jsonb, true, true)', v_ea, v_red, jsonb_set(P, '{clausulas,0,parrafos,0}', '"texto suelto"')));
@@ -275,6 +277,11 @@ begin
     fallos := fallos + 1; resumen := resumen || ' [D2 extracto: ' || left(coalesce((j -> 'extracto')::text, 'null'), 300) || ']'; end if;
   n := public._servicios_gasto_mes(v_ea, public._editor_ia_periodo());
   total := total + 1; if n < 0.18 then fallos := fallos + 1; resumen := resumen || ' [D3 gasto del mes con redacciones: ' || n || ']'; end if;
+
+  -- ═════════ M. TOPE POR MINUTO: una redacción solo empieza si caben ella y sus dos traducciones (20261014000000) ═════════
+  -- (todo va en una transacción: now() es fijo, así que las 5 filas de esta persona cuentan como «del último minuto»)
+  r := pg_temp.intenta('authenticated', v_ae, v_ae_em, format('select public.editor_ia_redaccion_reserva(%L, %L, null, null, null)', v_ea, 'redacta'));
+  total := total + 1; if r <> 'EP0001/tope_minuto' then fallos := fallos + 1; resumen := resumen || ' [M1 redacta con 5 consultas en el minuto: ' || r || ']'; end if;
 
   -- ═════════ K. CADUCIDAD: una reserva de redacción olvidada caduca bajo el mismo candado ═════════
   insert into public.editor_ia_redaccion (empresa, usuario, autor, fecha, periodo, accion, coste_max_usd, margen_pct)

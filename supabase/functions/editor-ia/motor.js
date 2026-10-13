@@ -165,7 +165,9 @@ async function preguntaModelo(dep, sistema, contenido, esquema) {
 // las huellas. Se apunta en editor_ia_redaccion (tabla hermana de editor_ia_uso; el dinero suma las dos).
 // ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 export const REDACTA = { frase: 1000, nombre: 70, campos: 8, etiqueta: 60, opciones: 10, opcion: 80, clausulas: 8, parrafos: 3,
-                         titulo: 100, parrafo: 700, tituloTr: 120, parrafoTr: 1200 };
+                         titulo: 100, parrafo: 700, tituloTr: 120, parrafoTr: 1200, total: 8000 };
+// total: letras de TODOS los párrafos en español (consulta de Datos, 13-oct). Sin él, 8 × 3 × 700 traducido al indonesio son ~8.000 tokens de
+// salida, que no caben en el corte de 110 s (la función no puede pasar de 150 s sin responder). 8.000 letras dan ~3.000 tokens: ~1 minuto.
 export const TIPOS_CAMPO = ['texto', 'numero', 'fecha', 'importe', 'lista', 'si_no'];
 // Lo que el asistente NO redacta, en los tres idiomas (Legal 13-oct). Va en la salida, no solo en la instrucción: una frase con
 // órdenes dentro puede hacer que el modelo no obedezca. Acotado para no tumbar textos normales (medido contra las plantillas reales en
@@ -251,6 +253,7 @@ export function validaRedaccion(d) {
     }
     clausulas.push({ titulo: ti.t, parrafos });
   }
+  if (clausulas.reduce((s, c) => s + c.parrafos.reduce((a, p) => a + p.length, 0), 0) > REDACTA.total) return { error: 'clausulas', motivo: 'longitud' };
   return { propuesta: { nombre, campos, clausulas } };
 }
 // La salida del paso (b) frente al español: mismas cláusulas, mismos párrafos, mismos campos en cada párrafo.
@@ -317,7 +320,7 @@ la descripción del contrato que ha escrito una persona del equipo. Devuelves, e
 - «campos»: los datos que cambian en cada contrato y se rellenan al emitirlo (precio, moneda, fechas límite, plazos…), como mucho 8.
   Cada uno con «clave» (cx_ seguido de minúsculas, cifras o _), «tipo» (texto, numero, fecha, importe, lista o si_no), su etiqueta
   corta en español, inglés e indonesio, y «opciones» solo si es una lista (si no, vacío).
-- «clausulas»: de 1 a 8, cada una con un «titulo» corto y de 1 a 3 «parrafos» de como mucho 600 caracteres.
+- «clausulas»: de 1 a 8, cada una con un «titulo» corto y de 1 a 3 «parrafos» de como mucho 600 caracteres; entre todos los párrafos, como mucho 7000 caracteres.
   Donde vaya un dato que cambia, escribe su campo así: {{cx_clave}} (solo campos que declaras).
 ${NO_REDACTA}`;
 const IDIOMA_R = { en: 'inglés', id: 'indonesio' };

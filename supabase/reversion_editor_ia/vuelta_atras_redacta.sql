@@ -2,21 +2,36 @@
 -- Solo a mano, con OK del owner y su válvula (tools/no_destruir.py), y con copia previa:
 --   python erp/respaldo_instancia.py lawang --previa "antes de revertir E10 contrato desde una frase"
 --
--- PASO 1 — PARAR (no borra nada; basta casi siempre). El asistente entero se apaga en Ajustes → Servicios de AxisWorks (encendido = false
--- por empresa). Sin margen o apagado, la reserva de redacta/redacta_traduce ya rechaza y la caja de la pantalla solo enseña el motivo.
--- Para quitar solo la caja: retirar textos-contrato-redacta.js de textos-contrato/index.html (y la sección #tc-rd).
+-- PASO 1 — PARAR (no borra nada; basta casi siempre). El asistente entero se apaga en Ajustes → Servicios de AxisWorks (margen vacío,
+-- o encendido = false por empresa). Sin margen o apagado, la reserva de redacta/redacta_traduce ya rechaza y la caja de la pantalla solo
+-- enseña el motivo. Para quitar solo la caja: retirar textos-contrato-redacta.js de textos-contrato/index.html (y la sección #tc-rd).
 --
--- PASO 2 — QUITAR LA PIEZA. Con filas en editor_ia_redaccion: PARA y pregunta (es parte del extracto que se factura: exportarlo antes).
+-- PASO 2 — QUITAR LA PIEZA, en este orden:
+--   0. ANTES de tocar la base: desplegar la función editor-ia sin las acciones redacta/redacta_traduce (o con E10 retirado de motor.js) y
+--      dejar el margen vacío. Si no, entre la vuelta de las funciones de dinero y el borrado, una redacción se podría reservar sin contar
+--      contra el tope (consulta de Datos, 13-oct). El bloque de abajo PARA si el margen sigue puesto.
+--   1. Ejecutar TODO el bloque begin…commit de abajo de una vez. Dentro, en el hueco marcado (a), pegar las versiones anteriores de las
+--      funciones que la migración sustituyó, copiadas de su migración y cambiando `create function` por `create or replace function`
+--      (dos de ellas se crearon con `create function` y darían «ya existe»):
+--        _editor_ia_peso(editor_ia_uso)                    20261013230000_servicios_axisworks_reserva_colgada.sql
+--        _servicios_gasto_mes, _editor_ia_caduca           20261013210000_servicios_axisworks_editor_ia.sql
+--        editor_ia_estado, servicios_axisworks_datos       20261013220000_servicios_axisworks_correcciones.sql
+--        _plantilla_esqueleto_en_blanco                    20261010030000_f2_editor_e9_contrato_nuevo.sql
+--      Si se olvida pegarlas, la guarda de después para el bloque entero (rollback) sin borrar nada.
+-- Las filas de editor_ia_redaccion son parte del extracto que se factura (importe, quién aceptó): con filas, el bloque PARA. Exportar el
+-- extracto (Ajustes → Servicios de AxisWorks) y decidir con el owner antes de quitar esa guarda.
 -- Los contratos ya creados con el asistente NO se tocan: son contratos propios normales (su nombre acaba en « (IA)»).
--- Orden: (a) devolver las funciones que la migración sustituyó a su versión anterior, ejecutando de nuevo SOLO su bloque
--- `create or replace` de la migración que se indica (copiado de ese fichero, tal cual):
---     _editor_ia_peso(editor_ia_uso)          20261013230000_servicios_axisworks_reserva_colgada.sql
---     _servicios_gasto_mes, _editor_ia_caduca  20261013210000_servicios_axisworks_editor_ia.sql
---     editor_ia_estado, servicios_axisworks_datos   20261013220000_servicios_axisworks_correcciones.sql
---     _plantilla_esqueleto_en_blanco          20261010030000_f2_editor_e9_contrato_nuevo.sql
---   (b) deshacer el parche del tope por minuto de editor_ia_reserva (abajo, misma regla: la línea tiene que estar una vez);
---   (c) borrar lo nuevo (abajo). Antes de (c), la edge editor-ia desplegada sin redacta (o con E10 retirado de motor.js).
 begin;
+do $previo$
+begin
+  if exists (select 1 from public.servicios_axisworks_ajustes where margen_pct is not null) then
+    raise exception 'El asistente sigue con margen: vacíalo (y despliega editor-ia sin redacta) antes de revertir';
+  end if;
+  if exists (select 1 from public.editor_ia_redaccion) then
+    raise exception 'editor_ia_redaccion tiene filas (parte del extracto que se factura): exportar y decidir con el owner antes de borrarla';
+  end if;
+end $previo$;
+-- (b) deshacer el parche del tope por minuto de editor_ia_reserva (la línea tiene que estar exactamente una vez)
 do $deshace$
 declare
   d text := pg_catalog.pg_get_functiondef('public.editor_ia_reserva'::regproc);
@@ -28,9 +43,11 @@ begin
   end if;
   execute replace(d, nuevo, viejo);
 end $deshace$;
--- (c) solo DESPUÉS de (a): las versiones anteriores ya no nombran editor_ia_redaccion. Si alguna función que se queda la sigue nombrando
--- (el paso (a) no se hizo, o se hizo a medias), PARA aquí: borrar la tabla dejaría el editor entero sin funcionar (las funciones
--- `language sql` no registran dependencias, así que el drop no avisaría).
+
+-- (a) ═══ PEGAR AQUÍ las cinco versiones anteriores, con `create or replace function` (ver la lista de arriba) ═══
+
+-- Guarda: ninguna función que se queda puede seguir nombrando lo de E10. Si (a) no se pegó, o se pegó a medias, PARA aquí: borrar la tabla
+-- dejaría el editor entero sin funcionar (las funciones `language sql` no registran dependencias, así que el drop no avisaría).
 do $guarda$
 declare v_quedan text;
 begin
@@ -44,6 +61,7 @@ begin
     raise exception 'Paso (a) sin hacer: estas funciones siguen nombrando lo de E10: %', v_quedan;
   end if;
 end $guarda$;
+-- (c) borrar lo nuevo
 drop function if exists public.plantilla_contrato_crea_desde_asistente(text, uuid, jsonb, boolean, boolean);
 drop function if exists public._plantilla_cuerpo_asistente(text, text[], text, jsonb);
 drop function if exists public.editor_ia_redaccion_paso(uuid, text, text, integer, integer, integer, text);
