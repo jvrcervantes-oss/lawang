@@ -1,3 +1,5 @@
+-- AJUSTADA el mismo día por 20261013062339_cadena_saldo_hijo_sin_moneda_fuera (un hijo sin moneda bajo raíz con
+-- moneda también queda fuera). La regla y su porqué siguen aquí; la definición viva es la de 062339.
 -- _cadena_saldo, regla definitiva del 13-oct-2026 (sustituye a 20261013060855 y 20261013061519, ambas del mismo día).
 --
 -- Qué pasaba (verificado contra pg_proc vivo el 13-oct): un hijo poa/hak_sewa_notario/adenda sin precio dejaba la

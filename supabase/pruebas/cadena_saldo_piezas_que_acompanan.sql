@@ -1,5 +1,6 @@
 -- Prueba de _cadena_saldo con piezas que acompañan a la venta (Poder, Hak Sewa, Adenda) e hijos en otra moneda —
--- regla definitiva 20261013062019_cadena_saldo_tope_se_queda_estrecho (13-oct-2026; sustituye a 060855 y 061519).
+-- regla definitiva 20261013062019_cadena_saldo_tope_se_queda_estrecho + su ajuste 20261013062339_cadena_saldo_hijo_sin_moneda_fuera
+-- (13-oct-2026; sustituyen a 060855 y 061519).
 -- Se ejecuta por execute_sql DESPUÉS de aplicar: termina con un raise a propósito, así que no deja rastro (los
 -- contratos ZZT-* se deshacen; llevan número propio para no gastar la secuencia real de numeración, y cuelgan del
 -- proyecto de RP00170, que tiene empresa: sin empresa el contrato es invisible y la prueba mentiría).
@@ -9,11 +10,11 @@
 -- «sin precio»: ante un dato que no debería estar, el tope se queda estrecho (contracts/app.html:536-543).
 -- Resultado con la función original (20261005210000), 13-oct: MAL en A (sin_precio = true por el Poder; el tope de
 -- 5.000 sobre 1.000 PASABA) y RP00170 (sin_precio = true). Con 061519 MAL en B y H (sumaba la Adenda y los
--- 900.000.000 del Hak Sewa). Con la definitiva: todo OK.
+-- 900.000.000 del Hak Sewa). Con 062019 + ajuste: todo OK (N no se corrió contra 062019 sola).
 -- No se prueba una factura sobre una pieza: darla de alta gasta un número de la serie legal de facturas (nextval no
 -- se deshace con el raise). La rama fa no cambia respecto a 20261005210000.
 do $t$
-declare out text := ''; p uuid; r1 uuid; r2 uuid; r3 uuid; r4 uuid; r6 uuid; s record; ok boolean; acl text;
+declare out text := ''; p uuid; r1 uuid; r2 uuid; r3 uuid; r4 uuid; r6 uuid; r7 uuid; s record; ok boolean; acl text;
 begin
   select proyecto_id into p from public.contratos where numero = 'RP00170';
   out := out || 'super_admin sin sesión = ' || coalesce(public.es_super_admin_de(public._empresa_doc(null::uuid,
@@ -84,6 +85,19 @@ begin
   out := out || case when ok then 'OK ' else 'MAL ' end || 'G hijo en otra moneda fuera: precio=' || coalesce(s.precio::text, 'null') || ' sin_precio=' || s.sin_precio || E'\n';
   begin perform public._factura_tope_cadena(null, r6, 'EUR', 5000, 'factura'); out := out || E'MAL G tope 5000 sobre 1000: PASA\n';
   exception when sqlstate '23514' then out := out || E'OK G tope 5000 sobre 1000: bloquea\n'; end;
+
+  -- N: hijo SIN moneda (parcelas en monedas mezcladas: el trigger no resuelve una) bajo raíz EUR tampoco entra:
+  -- precio 1.000 y 5.000 sobre 1.000 bloquea. Mismo truco que G (alta firmada y luego moneda = null).
+  insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos)
+    values ('ZZT-N0', 'contrato_general', p, 'EUR', 1000, '{"hitos":[]}') returning id into r7;
+  insert into public.contratos (numero, tipo, proyecto_id, precio_total, contrato_padre_id, datos, bloqueado)
+    values ('ZZT-N1', 'construccion', p, 5000000, r7, '{"hitos":[]}', true);
+  update public.contratos set moneda = null where numero = 'ZZT-N1';
+  select * into s from public._cadena_saldo(r7, null);
+  ok := s.precio = 1000 and not s.sin_precio;
+  out := out || case when ok then 'OK ' else 'MAL ' end || 'N hijo sin moneda fuera: precio=' || coalesce(s.precio::text, 'null') || ' sin_precio=' || s.sin_precio || E'\n';
+  begin perform public._factura_tope_cadena(null, r7, 'EUR', 5000, 'factura'); out := out || E'MAL N tope 5000 sobre 1000: PASA\n';
+  exception when sqlstate '23514' then out := out || E'OK N tope 5000 sobre 1000: bloquea\n'; end;
 
   -- Real: RP00170 (45.900 EUR con su Poder PA00010 sin precio) deja de estar «sin precio»
   select * into s from public._cadena_saldo((select id from public.contratos where numero = 'RP00170'), null);
