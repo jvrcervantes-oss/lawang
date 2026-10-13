@@ -1,5 +1,5 @@
 -- PRUEBA de LAW-557 (alta con documento en una operación) y LAW-558 (retención de copias KYC), 13-oct-2026.
--- Se pasa DESPUÉS de aplicar 20261013230000_law557_558_alta_con_documento_y_retencion_kyc (MCP supabase-lawang,
+-- Se pasa DESPUÉS de aplicar 20261013235338_law557_558_alta_con_documento_y_retencion_kyc (MCP supabase-lawang,
 -- execute_sql). Cada bloque es UNA petición: setup + casos + raise final que lo revierte todo (no queda rastro salvo
 -- números de la secuencia de clientes, que se gastan aunque se revierta: CLI-xxxxx con huecos).
 -- Las RPC se llaman con el rol REAL: service_role (la edge) con el p_uid de una persona real del equipo, y

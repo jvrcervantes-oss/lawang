@@ -6,7 +6,7 @@
 -- El front NO puede salir antes que la migración y la edge: instancia.js ya trae alta_exige_documento en Lawang y la
 -- pantalla nueva solo da altas por la edge (revisor, 13-oct). Y este fichero no puede ir antes que el front: la
 -- pantalla vieja llamaría a cliente_guarda(null, …) y el alta se quedaría sin salida.
--- Requisito: aplicada 20261013230000_law557_558_alta_con_documento_y_retencion_kyc y desplegada ficheros-kyc con
+-- Requisito: aplicada 20261013235338_law557_558_alta_con_documento_y_retencion_kyc y desplegada ficheros-kyc con
 -- las acciones alta_*.
 --
 -- Con esto encendido:

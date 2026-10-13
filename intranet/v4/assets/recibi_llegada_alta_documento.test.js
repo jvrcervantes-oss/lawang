@@ -96,7 +96,7 @@ ok(/aviso_documento_alta: Object\.freeze\(\{\n\s+es: 'Aviso sobre sus datos\./.t
 ok(!/balian/i.test(inst), 'instancia.js: sin el rastro que aborta el build de instancia');
 // LAW-558 (Legal, 13-oct): los meses que promete el aviso son los que siembra la base; si alguien cambia uno, este test
 // obliga a cambiar el otro (y a que Legal relea el aviso).
-{ const mig = leer('supabase', 'migrations', '20261013230000_law557_558_alta_con_documento_y_retencion_kyc.sql');
+{ const mig = leer('supabase', 'migrations', '20261013235338_law557_558_alta_con_documento_y_retencion_kyc.sql');
   const m = /values \('kyc_meses_retencion', '(\d+)'::jsonb/.exec(mig);
   ok(m, 'la migración siembra kyc_meses_retencion');
   const aviso = inst.slice(inst.indexOf('aviso_documento_alta: Object.freeze({'), inst.indexOf('})', inst.indexOf('aviso_documento_alta: Object.freeze({')));

@@ -1,4 +1,4 @@
--- VUELTA ATRÁS de 20261013230000_law557_558_alta_con_documento_y_retencion_kyc + 20261013230100_law558_kyc_retencion_cron.
+-- VUELTA ATRÁS de 20261013235338_law557_558_alta_con_documento_y_retencion_kyc + 20261013235905_law558_kyc_retencion_cron.
 -- Restaura cliente_guarda, crm_lead_ficha_crear y kyc_sueltos_de EXACTAMENTE como estaban el 13-oct-2026 antes de la
 -- migración (leídos con pg_get_functiondef de producción ese día) y quita lo nuevo.
 -- ANTES de lanzarla: (1) apagar el front nuevo o volver a la versión anterior de editores.js/leads.js (la pantalla

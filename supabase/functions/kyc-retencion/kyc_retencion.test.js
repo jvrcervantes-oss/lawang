@@ -117,7 +117,7 @@ let n = 0; const ok = (c, msg) => { assert.ok(c, msg); n++; };
   ok(r.status === 500 && est.registros.length === 1 && est.registros[0].error === 'pasada_fallida', 'una RPC que revienta → 500 y se registra');
 
   // ── migración y config ───────────────────────────────────────────────────────────────────────────────────────────
-  const mig = leer('supabase', 'migrations', '20261013230000_law557_558_alta_con_documento_y_retencion_kyc.sql');
+  const mig = leer('supabase', 'migrations', '20261013235338_law557_558_alta_con_documento_y_retencion_kyc.sql');
   for (const f of ['kyc_barrido(boolean)', 'kyc_retencion(boolean)', 'kyc_retencion_registra(jsonb)', 'cron_kyc_retencion_secret()']) {
     ok(mig.includes('revoke all on function public.' + f + ' from public, anon, authenticated;') &&
        mig.includes('grant execute on function public.' + f + ' to service_role;'), f + ': solo service_role');
