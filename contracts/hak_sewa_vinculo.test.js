@@ -301,12 +301,18 @@ async function main() {
     vm.createContext(c9);
     vm.runInContext(cg + '\nthis.cuentaGrupo = cuentaGrupo;', c9);
     const raiz = { tipo: 'reserva_parcela', precio_total: 1000, cobrado: 100, moneda: 'EUR' };
-    raiz.hijos = [{ tipo: 'construccion', precio_total: 5000, cobrado: 0 }, { tipo: 'hak_sewa_notario', precio_total: 900000000, cobrado: 0 },
-      { tipo: 'adenda', precio_total: 200, cobrado: 0 }, { tipo: 'poa', precio_total: null, cobrado: 0 }];
+    raiz.hijos = [{ tipo: 'construccion', precio_total: 5000, cobrado: 0, moneda: 'EUR' }, { tipo: 'hak_sewa_notario', precio_total: 900000000, cobrado: 0, moneda: 'EUR' },
+      { tipo: 'adenda', precio_total: 200, cobrado: 0, moneda: 'EUR' }, { tipo: 'poa', precio_total: null, cobrado: 0, moneda: 'EUR' }];
     const r = c9.cuentaGrupo(raiz);
     ok('cuentaGrupo: Hak Sewa, Adenda y Poder hijos no suman al precio de la venta', r.precio === 6000 && r.pendiente === 5900);
     const suelto = { tipo: 'hak_sewa_notario', precio_total: 750, cobrado: 0, hijos: [{ tipo: 'poa', precio_total: 30, cobrado: 0 }] };
     ok('cuentaGrupo: un Hak Sewa suelto (raíz) sí cuenta su precio, su Poder no', c9.cuentaGrupo(suelto).precio === 750);
+    const mixta = { tipo: 'reserva_parcela', precio_total: 1000, cobrado: 0, moneda: 'EUR',
+      hijos: [{ tipo: 'construccion', precio_total: 5000, cobrado: 0, moneda: 'IDR' }, { tipo: 'construccion', precio_total: 300, cobrado: 0, moneda: null },
+              { tipo: 'construccion', precio_total: 2000, cobrado: 0, moneda: 'EUR' }] };
+    ok('cuentaGrupo: un hijo en otra moneda o sin moneda no suma (como _cadena_saldo)', c9.cuentaGrupo(mixta).precio === 3000);
+    const sinMon = { tipo: 'reserva_parcela', precio_total: 1000, cobrado: 0, hijos: [{ tipo: 'construccion', precio_total: 2000, cobrado: 0 }] };
+    ok('cuentaGrupo: raíz e hijo sin moneda los dos sí suman (null = null)', c9.cuentaGrupo(sinMon).precio === 3000);
   }
 
   // datos.js (Operaciones v4): «Falta precio» no se pinta para lo que acompaña, y la lista es la de operaciones-cuentas.js
