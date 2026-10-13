@@ -5,27 +5,33 @@
 -- Devuelve filas SOLO cuando algo está mal: la función no coincide con la regla, o alguna parte pasa del 100 %.
 -- Lo que se esperaba el 13-oct (cambia si entran cobros): 54 ventas, parcela >= 50 % = 20, obra >= 25 % = 4,
 -- imputado total 703.429,79 (consulta comentada al final).
+-- 13-oct-2026 (consulta de Administración): parte = public._comisiones_parte_obra (adenda = obra, fuente única) y solo
+-- cuentan contratos, recibís y facturas en la moneda de la raíz; una venta multimoneda sale como fila (no debería haber).
 with raices as (
-  select r.id as raiz, r.numero from public.contratos r
+  select r.id as raiz, r.numero, r.moneda from public.contratos r
    where r.contrato_padre_id is null and r.liberado_en is null and coalesce(r.bloqueado, false)
 ), fam as (
-  select rz.raiz, c.id, coalesce(c.precio_total, 0) as precio, coalesce(e.es_obra, false) as es_obra,
+  select rz.raiz, rz.moneda, c.id, coalesce(c.precio_total, 0) as precio,
+         public._comisiones_parte_obra(c.tipo, e.es_obra) as es_obra,
          coalesce(c.tipo, '') like 'carta_reserva%' as es_carta
     from raices rz
     join public.contratos c on (c.id = rz.raiz or c.contrato_padre_id = rz.raiz)
     left join public.contrato_tipo_etapa e on e.tipo = c.tipo
    where coalesce(c.bloqueado, false) and c.liberado_en is null
+     and c.moneda is not distinct from rz.moneda
 ), cob as (
   select f.*,
          coalesce((select sum(ra.importe_aplicado) from public.recibi_aplicaciones ra
                      join public.facturas r on r.id = ra.recibi_id join public.facturas fa on fa.id = ra.factura_id
-                    where fa.contrato_id = f.id and not coalesce(r.anulada, false) and not coalesce(fa.anulada, false)), 0)
+                    where fa.contrato_id = f.id and not coalesce(r.anulada, false) and not coalesce(fa.anulada, false)
+                      and (f.moneda is null or (r.moneda is not distinct from f.moneda and fa.moneda is not distinct from f.moneda))), 0)
        + coalesce((select sum(r.total - coalesce((select sum(ra.importe_aplicado) from public.recibi_aplicaciones ra
                                                     join public.facturas f2 on f2.id = ra.factura_id
                                                    where ra.recibi_id = r.id and f2.contrato_id is not null
                                                      and not coalesce(f2.anulada, false)), 0))
                      from public.facturas r
-                    where r.tipo = 'recibi' and r.contrato_id = f.id and not coalesce(r.anulada, false)), 0) as cobrado
+                    where r.tipo = 'recibi' and r.contrato_id = f.id and not coalesce(r.anulada, false)
+                      and (f.moneda is null or r.moneda is not distinct from f.moneda)), 0) as cobrado
     from fam f
 ), v as (
   select rz.raiz, rz.numero,
@@ -52,7 +58,8 @@ select x.numero, x.p, x.o, x.ip as esperado_parcela, x.io as esperado_obra,
         b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas)
        is distinct from (x.p, x.o, x.ip, x.io, x.cp, x.co, x.cc)
     or b.cobrado_suelo_firmado > b.suelo_firmado
-    or b.cobrado_obra_firmada > b.obra_firmada;
+    or b.cobrado_obra_firmada > b.obra_firmada
+    or b.multimoneda;
 
 -- Recuento (no forma parte del veredicto; para comparar con lo medido el 13-oct):
 -- select count(*), count(*) filter (where b.suelo_firmado > 0 and b.cobrado_suelo_firmado / b.suelo_firmado >= 0.5),

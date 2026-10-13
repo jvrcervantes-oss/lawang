@@ -24,6 +24,9 @@
 --   como números (no como texto) y el devengo que sale.
 -- Condiciones sucesoras del equipo (lawang): manager c0a11010-…-04 (10 %), closer genérico c0a11010-…-03 (2,5 %,
 -- plantilla del SM: closer 25 %).
+-- condicion_tramos_reemplaza se quitó en la migración (sin llamador): G1/G3 ya iban por condicion_comision_guarda, la
+-- RPC real de la pantalla. F8b (plantilla con distinto nº de tramos), AD (adenda en obra) y M1/M2 (moneda) se añadieron
+-- el 13-oct tras la revisión de código y la consulta de Administración.
 do $$
 declare
   r text := '';
@@ -341,6 +344,73 @@ begin
   exception when others then
     r := r || '10 prueba roja=' || sqlerrm
          || case when sqlerrm = 'R:cuadrado=0 | al 12%: 7080.00,9600.00 | obra sobre parcela: 7080.00,7080.00' then ' ok; ' else ' FALLO; ' end;
+  end;
+
+  -- F8b · (revisión 13-oct, hallazgo 4) manager con 1 tramo y closer con 2, MISMA base (precio_total) → la plantilla
+  --       del SM se aplica (25 %) en los dos tramos del closer. Con la comparación tramo a tramo («1:x» ≠ «1:x,2:x») el
+  --       closer perdía la plantilla en silencio: salía '-'.
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.contrato_closer set closer_email = 'santidavidse@gmail.com' where contrato_id = v_raiz;
+    update public.contratos set precio_total = 36000 where id = v_cc85;
+    update public.condiciones_comision set base_calculo = 'precio_total' where id in (c_man, c_clo);
+    update public.condicion_tramos set base_calculo = null where condicion_id in (c_man, c_clo);
+    delete from public.condicion_tramos where id = t_man2;
+    execute 'set local session_replication_role = origin';
+    perform public.comisiones_evaluar_contrato(v_raiz);
+    select (select count(*) from public.condicion_tramos where condicion_id = c_man) || '/'
+           || (select count(*) from public.condicion_tramos where condicion_id = c_clo) || ' '
+           || coalesce(string_agg(d.nivel || ':' || t.orden || ':' || coalesce(d.disparado_por_snapshot->>'plantilla_pct', '-'), ','
+                                  order by t.orden), '-') into v_t
+      from public.comisiones_devengadas d join public.condicion_tramos t on t.id = d.tramo_id
+     where d.contrato_raiz_id = v_raiz and d.nivel = 'closer';
+    raise exception 'R:%', v_t;
+  exception when others then
+    r := r || 'F8b manager 1 tramo / closer 2, misma base=' || sqlerrm
+         || case when sqlerrm = 'R:1/2 closer:1:25.00,closer:2:25.00' then ' ok; ' else ' FALLO; ' end;
+  end;
+
+  -- AD · (consulta de Administración, 13-oct) una ADENDA con precio cuenta en la base de OBRA aunque su tipo diga
+  --      es_obra = false: CC00084 pasa a tipo 'adenda' → mismas bases que B (con la clasificación por es_obra saldría
+  --      103000/44000: la adenda en la parcela).
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.contratos set tipo = 'adenda' where id = v_cc84;
+    execute 'set local session_replication_role = origin';
+    select b.suelo_firmado || '/' || b.obra_firmada || ' cob ' || b.cobrado_suelo_firmado || '/' || b.cobrado_obra_firmada
+      into v_t from public._comisiones_bases_firmadas(v_raiz) b;
+    raise exception 'R:%', v_t;
+  exception when others then
+    r := r || 'AD adenda en obra=' || sqlerrm || case when sqlerrm = 'R:59000/88000 cob 29500/20000' then ' ok; ' else ' FALLO; ' end;
+  end;
+
+  -- M · (consulta de Administración, 13-oct) MONEDA. M1: los recibís (y facturas) de la RP en IDR (la venta es EUR) no suman →
+  --     parcela cobrada 0 y sin devengo. M2: CC00084 firmada en IDR → no suma en la base de obra, la familia queda
+  --     multimoneda y el motor no devenga ningún tramo «firmado» aunque la parcela esté al 50 % (sin la guarda saldría
+  --     manager:1:5900.00). El `raise warning` con la raíz no se puede capturar aquí: se comprueba la bandera.
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.facturas set moneda = 'IDR' where contrato_id = v_raiz;   -- sus recibís y las facturas a las que se aplican
+    execute 'set local session_replication_role = origin';
+    select b.cobrado_directo_suelo || '/' || b.cobrado_suelo_firmado || ' multi=' || b.multimoneda into v_t
+      from public._comisiones_bases_firmadas(v_raiz) b;
+    perform public.comisiones_evaluar_contrato(v_raiz);
+    raise exception 'R:%|%', v_t, (select count(*) from public.comisiones_devengadas where contrato_raiz_id = v_raiz);
+  exception when others then
+    r := r || 'M1 recibí en otra moneda=' || sqlerrm || case when sqlerrm = 'R:0/0 multi=false|0' then ' ok; ' else ' FALLO; ' end;
+  end;
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.contratos set moneda = 'IDR' where id = v_cc84;
+    execute 'set local session_replication_role = origin';
+    select b.suelo_firmado || '/' || b.obra_firmada || ' cob ' || b.cobrado_suelo_firmado || '/' || b.cobrado_obra_firmada
+           || ' multi=' || b.multimoneda into v_t
+      from public._comisiones_bases_firmadas(v_raiz) b;
+    perform public.comisiones_evaluar_contrato(v_raiz);
+    raise exception 'R:%|%', v_t, (select count(*) from public.comisiones_devengadas where contrato_raiz_id = v_raiz);
+  exception when others then
+    r := r || 'M2 contrato firmado en otra moneda=' || sqlerrm
+         || case when sqlerrm = 'R:59000/44000 cob 29500/0 multi=true|0' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- C · «PRIMERO PARCELA, LUEGO OBRA» (owner, 13-oct-2026). Cada caso compara las 7 cifras de _comisiones_bases_firmadas

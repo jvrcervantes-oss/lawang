@@ -16,11 +16,20 @@
 --                             'carta_reserva%', raíz o hija: «la carta de reserva no devenga comisiones», owner).
 --      precio_obra_firmada  = misma familia, bloqueados, no liberados, es_obra = true.
 --    Invariante: parcela + obra <= _comisiones_precio_total(raíz) (esa excluye solo la carta hija; esta, toda carta).
---  * ADENDAS (decisión documentada): se clasifican por su tipo como cualquier contrato. 'adenda' tiene es_obra = false
---    → cuenta en la parcela. Hoy hay 0 contratos de tipo adenda (medido 13-oct). Las dos partes pagan el mismo 10 %,
---    así que una adenda de obra con precio cambia el MOMENTO del pago (tramo de parcela), no el total; si el owner
---    quiere que espere al 25 % de obra, se da de alta un tipo de adenda de obra con es_obra = true, sin tocar código.
+--  * ADENDAS (decisión por defecto del CEO, 13-oct-2026, CAMBIADA tras la consulta de Administración): una adenda
+--    (tipo like 'adenda%') con precio cuenta en la base de OBRA, nunca en la de parcela, aunque su contrato_tipo_etapa
+--    diga es_obra = false (esa tabla no se toca: de ella sale v_obra_firmada y otras pantallas). Porqué: si contara en
+--    la parcela, una adenda firmada después de disparar el tramo de parcela generaría al momento una DIF positiva y se
+--    pagaría construcción por adelantado; en obra solo retrasa el pago al 25 % de obra. La clasificación vive en UN
+--    sitio, _comisiones_parte_obra(tipo, es_obra), que usan las bases, la trazabilidad y la comprobación de
+--    contracts/sql/comisiones_1nov_imputacion.sql. Hoy hay 0 contratos de tipo adenda (medido 13-oct).
 --    No se excluyen: una adenda firmada con precio es «un cambio en el contrato» y tiene que mover la comisión.
+--  * MONEDA (consulta de Administración, 13-oct-2026): bases y cobros se cuentan SOLO en la moneda de la raíz (un
+--    contrato o un recibí en otra moneda no suma). Si la familia tiene contratos firmados (no liberados) en más de una
+--    moneda, _comisiones_bases_firmadas lo marca (multimoneda) y el motor y el reconciliador NO tocan los tramos con base
+--    o disparo «firmado» de esa raíz (raise warning con la raíz; no hay patrón ultimo_error en el motor: el aviso queda
+--    en el log de Postgres). Medido 13-oct: 0 familias multimoneda, 0 recibís en moneda distinta de su contrato → no
+--    cambia ningún número.
 --  * Disparos nuevos pct_cobrado_suelo_firmado / pct_cobrado_obra_firmada: denominador = la base firmada de esa parte;
 --    numerador = lo cobrado imputado con «PRIMERO PARCELA, LUEGO OBRA» (owner, 13-oct-2026, decisión cerrada, tras medir
 --    que 9 de las 54 ventas firmadas tenían el cobro de la parcela en la carta y RP00047/RP00133 pasaban del 100 %):
@@ -45,20 +54,32 @@
 --    Carta liberada después de disparar: el reconciliador mueve importes por cambio de BASE y la carta no está en
 --    ninguna; lo que cubre ese caso es la anulación del recibí (_comisiones_marca_disputa_por_recibi, trigger de
 --    facturas). Medido 13-oct: las 5 cartas liberadas tienen 0 cobrado vivo (contrato_cobrado = 0).
+--    DECISIONES POR DEFECTO de este bloque: desborde RP→obra, adendas en OBRA (ver ADENDAS), sin parcela firmada no hay
+--    desborde, lo cobrado en obra no sube a parcela, carta liberada tras disparar solo la deshace anular el recibí.
+--    ACEPTADO: CEO por defecto 13-oct-2026; el owner lo confirma en la ventana (fila L6 de para_el_owner_a_su_vuelta.md)
 --    El cobro sale de _contrato_cobrado_interno: misma fórmula que contrato_cobrado SIN su puerta de rol (el motor es
 --    interno; con la puerta, un recibí metido por un rol no agente dejaba el cobro en 0 sin avisar).
---    contrato_cobrado pasa a llamar a la interna: una sola fórmula.
+--    contrato_cobrado pasa a llamar a la interna: una sola fórmula. Con p_moneda (lo pasan las bases: la moneda de la
+--    raíz) solo cuentan recibís y facturas en esa moneda; contrato_cobrado la llama sin moneda y no cambia.
 --  * Motor (comisiones_evaluar_contrato): v_base se calcula DENTRO del bucle de tramos con la base efectiva; F8
---    (closer de equipo por plantilla) compara manager y closer tramo a tramo por base efectiva; snapshot y concepto
---    llevan la base del tramo.
+--    (closer de equipo por plantilla) compara el CONJUNTO ordenado de bases efectivas distintas del manager y del closer
+--    (con una sola base, o sin tramos, es exactamente la comparación viva de base de condición: un manager de 1 tramo y
+--    un closer de 2 con la misma base siguen casando); snapshot y concepto llevan la base del tramo.
 --  * comisiones_reconciliar: usa la base efectiva de CADA devengo (antes saltaba todo lo que no fuera precio_total
 --    de la condición: con 'por_tramo' habría saltado, y con 'precio_total' habría pagado el 10 % del total).
---  * Edición de tramos (_condicion_tramos_pone, condicion_tramos_reemplaza): aceptan base_calculo por tramo; si la
---    clave falta (editor viejo) CONSERVAN la base que había en ese orden. _condicion_comision_guarda_en compara la
---    base del tramo al decidir si «cambian las cifras». valida_suma_tramos_comision: 100 por base efectiva; 'por_tramo'
+--  * Edición de tramos (_condicion_tramos_pone, la que usa condicion_comision_guarda): acepta base_calculo por tramo;
+--    si la clave falta (editor viejo) CONSERVA la base que había en ese orden. condicion_tramos_reemplaza SE QUITA: sin
+--    llamador desde el 27-sep (ni SQL ni JS en el repo, ni otra función en pg_proc; solo EXECUTE de postgres y
+--    service_role, proacl {postgres=X/postgres,service_role=X/postgres}). Vuelta atrás: su definición viva en
+--    supabase/vivo/20261013_comisiones_1nov/condicion_tramos_reemplaza.sql + ese grant.
+--    _condicion_comision_guarda_en compara la base del tramo al decidir si «cambian las cifras». valida_suma_tramos_comision: 100 por base efectiva; 'por_tramo'
 --    exige base en cada tramo; importe fijo no admite base de tramo; también al cambiar la base de la condición.
 --  * Lecturas: condiciones_comision_datos, mi_condicion_comision (+ columna tramos), comision_trazabilidad (base del
 --    tramo y «falta por firmar» por parte) y comision_de_solicitud_datos devuelven la base del tramo.
+--  * Snapshot recortado en el SERVIDOR: comisiones_reparto_datos (la única RPC de authenticated que devuelve
+--    disparado_por_snapshot; comision_trazabilidad no lo devuelve) quita las 7 cifras nuevas de la operación
+--    (precio_*_firmad*, cobrado_*_firmad*, cobrado_directo_*, cobrado_cartas) a quien no tiene la vista completa, con
+--    la MISMA regla que decide `completa` en comision_trazabilidad, ahora en un solo sitio: _comision_vista_completa.
 --
 -- REDEFINICIONES desde la definición VIVA del 13-oct-2026 (pg_get_functiondef), guardada como vuelta atrás en
 -- supabase/vivo/20261013_comisiones_1nov/. Ninguna de las redefinidas es CRLF en la base. El bloque 0 para si
@@ -71,9 +92,9 @@
 -- destructivo-ok: (necesita además la marca del owner ~/.axisworks/destructivo-ok; tools/no_destruir.py). Lo único que
 -- la válvula abre aquí, y nada más: (1b) se quitan y reponen AMPLIADOS tres CHECK —condiciones_comision.base_calculo,
 -- condicion_tramos.disparador_tipo y condicion_tramos_umbral_coherente— con la lista vieja más los valores nuevos;
--- (6) _condicion_tramos_pone y condicion_tramos_reemplaza se redefinen y sus cuerpos conservan el DELETE de los tramos
--- que ya traían (borran y reponen los tramos de UNA condición, sin devengos); (10b) mi_condicion_comision se quita y se
--- crea para añadirle la columna tramos. Ningún dato se borra ni se sobrescribe.
+-- (6) _condicion_tramos_pone se redefine y su cuerpo conserva el DELETE de los tramos que ya traía (borra y repone los
+-- tramos de UNA condición) y condicion_tramos_reemplaza se QUITA (drop function: sin llamador, vuelta atrás guardada);
+-- (10b) mi_condicion_comision se quita y se crea para añadirle la columna tramos. Ningún dato se borra ni se sobrescribe.
 
 -- 0 · guarda: las funciones a redefinir son las que se fotografiaron (solo en la primera aplicación)
 do $$
@@ -94,6 +115,7 @@ begin
       ('public.comision_trazabilidad(uuid)', 'ff6399cf578171a83ca5ce5ee996843d'),
       ('public.comision_de_solicitud_datos(uuid)', '2a36889bfefc2cd46f2cd68907d84a43'),
       ('public.contrato_cobrado(uuid)', '644391725cb6a32f4ca6450f09b8abd7'),
+      ('public.comisiones_reparto_datos()', 'd7eb53f49eeb6ecc3ce425c9f49c2a2a'),
       ('public._condicion_comision_guarda_en(uuid,jsonb,jsonb,text,text)', '283a288773288a67e26215a7a9c8dbb7')
     ) x(f, h)
   loop
@@ -131,14 +153,15 @@ alter table public.condicion_tramos add constraint condicion_tramos_umbral_coher
       and umbral is not null and umbral >= 0 and umbral <= 100));
 
 -- 2 · cobrado de un contrato: una sola fórmula, con y sin puerta de rol
-create or replace function public._contrato_cobrado_interno(p_contrato_id uuid)
+create or replace function public._contrato_cobrado_interno(p_contrato_id uuid, p_moneda text default null)
  returns numeric
  language sql
  stable security definer
  set search_path to ''
 as $function$
-  -- Fórmula única del cobrado de un contrato (13-oct-2026). contrato_cobrado() la llama tras su puerta de rol;
-  -- el motor de comisiones la llama directa (es interno y SECURITY DEFINER).
+  -- Fórmula única del cobrado de un contrato (13-oct-2026). contrato_cobrado() la llama tras su puerta de rol y SIN
+  -- moneda (no cambia nada); las bases de comisión la llaman con la moneda de la raíz: un recibí (o la factura a la que
+  -- se aplica) en otra moneda no suma (consulta de Administración, 13-oct-2026; medido: 0 casos hoy).
   select coalesce((
       select sum(ra.importe_aplicado)
         from public.recibi_aplicaciones ra
@@ -147,6 +170,7 @@ as $function$
        where f.contrato_id = p_contrato_id
          and not coalesce(r.anulada, false)
          and not coalesce(f.anulada, false)
+         and (p_moneda is null or (r.moneda is not distinct from p_moneda and f.moneda is not distinct from p_moneda))
     ), 0)
     + coalesce((
       select sum(
@@ -162,6 +186,7 @@ as $function$
        where r.tipo = 'recibi'
          and r.contrato_id = p_contrato_id
          and not coalesce(r.anulada, false)
+         and (p_moneda is null or r.moneda is not distinct from p_moneda)
     ), 0);
 $function$;
 
@@ -184,9 +209,21 @@ end;
 $function$;
 
 -- 3 · bases firmadas (fuente única de las dos bases nuevas y de su % cobrado)
+-- 3a · de qué parte es un contrato para la comisión (UN sitio: bases, trazabilidad y comisiones_1nov_imputacion.sql).
+--      Obra = su tipo es de obra en contrato_tipo_etapa, o es una ADENDA (decisión por defecto del CEO, 13-oct-2026:
+--      en parcela, una adenda firmada tras disparar la parcela pagaría construcción por adelantado; en obra solo retrasa).
+create or replace function public._comisiones_parte_obra(p_tipo text, p_es_obra boolean)
+ returns boolean
+ language sql
+ immutable
+ set search_path to ''
+as $function$
+  select coalesce(p_es_obra, false) or coalesce(p_tipo, '') like 'adenda%';
+$function$;
+
 create or replace function public._comisiones_bases_firmadas(p_raiz uuid)
  returns table(suelo_firmado numeric, obra_firmada numeric, cobrado_suelo_firmado numeric, cobrado_obra_firmada numeric,
-               cobrado_directo_suelo numeric, cobrado_directo_obra numeric, cobrado_cartas numeric)
+               cobrado_directo_suelo numeric, cobrado_directo_obra numeric, cobrado_cartas numeric, multimoneda boolean)
  language sql
  stable security definer
  set search_path to ''
@@ -205,17 +242,26 @@ as $function$
   --   * Sin parcela firmada (precio 0) no hay desborde: la carta es la señal de una parcela que aún no existe, y si
   --     el sobrante disparara la obra, al firmarse la RP ese dinero volvería a la parcela con el devengo de obra ya
   --     pagado (no se puede deshacer). Ese dinero cuenta en cuanto se firma la parcela.
-  -- Las tres últimas columnas son el cobrado en bruto (para el snapshot y la trazabilidad: auditar la imputación).
-  with x as (
-    select c.id, coalesce(c.precio_total, 0) as precio, coalesce(e.es_obra, false) as es_obra,
-           coalesce(c.tipo, '') like 'carta_reserva%' as es_carta
+  -- Columnas 5–7: el cobrado en bruto (para el snapshot y la trazabilidad: auditar la imputación).
+  -- MONEDA (13-oct-2026): solo cuentan contratos y cobros en la moneda de la raíz; multimoneda = la familia tiene algún
+  -- contrato firmado no liberado en otra moneda (el motor y el reconciliador no tocan entonces los tramos «firmados»).
+  -- PARTE: _comisiones_parte_obra (adenda = obra).
+  with r as (
+    select c.moneda from public.contratos c where c.id = p_raiz
+  ), fam as (
+    select c.id, c.tipo, c.moneda, c.precio_total
       from public.contratos c
-      left join public.contrato_tipo_etapa e on e.tipo = c.tipo
      where (c.id = p_raiz or c.contrato_padre_id = p_raiz)
        and coalesce(c.bloqueado, false)
        and c.liberado_en is null
+  ), x as (
+    select f.id, coalesce(f.precio_total, 0) as precio, public._comisiones_parte_obra(f.tipo, e.es_obra) as es_obra,
+           coalesce(f.tipo, '') like 'carta_reserva%' as es_carta
+      from fam f
+      left join public.contrato_tipo_etapa e on e.tipo = f.tipo
+     where f.moneda is not distinct from (select r.moneda from r)
   ), y as (
-    select x.precio, x.es_obra, x.es_carta, public._contrato_cobrado_interno(x.id) as cobrado from x
+    select x.precio, x.es_obra, x.es_carta, public._contrato_cobrado_interno(x.id, (select r.moneda from r)) as cobrado from x
   ), s as (
     select coalesce(sum(y.precio)  filter (where not y.es_carta and not y.es_obra), 0) as p,
            coalesce(sum(y.precio)  filter (where not y.es_carta and y.es_obra), 0)     as o,
@@ -228,7 +274,8 @@ as $function$
   )
   select i.p, i.o, i.ip,
          greatest(least(i.o, i.co + case when i.p > 0 then greatest(i.cp + i.cc - i.ip, 0) else 0 end), 0),
-         i.cp, i.co, i.cc
+         i.cp, i.co, i.cc,
+         exists (select 1 from fam f where f.moneda is distinct from (select r.moneda from r))
     from i;
 $function$;
 
@@ -250,10 +297,12 @@ as $function$
    where t.condicion_id = p_condicion;
 $function$;
 
-revoke all on function public._contrato_cobrado_interno(uuid) from public, anon, authenticated;
+revoke all on function public._contrato_cobrado_interno(uuid, text) from public, anon, authenticated;
+revoke all on function public._comisiones_parte_obra(text, boolean) from public, anon, authenticated;
 revoke all on function public._comisiones_bases_firmadas(uuid) from public, anon, authenticated;
 revoke all on function public._condicion_tramos_resumen(uuid) from public, anon, authenticated;
-grant execute on function public._contrato_cobrado_interno(uuid) to service_role;
+grant execute on function public._contrato_cobrado_interno(uuid, text) to service_role;
+grant execute on function public._comisiones_parte_obra(text, boolean) to service_role;
 grant execute on function public._comisiones_bases_firmadas(uuid) to service_role;
 grant execute on function public._condicion_tramos_resumen(uuid) to service_role;
 
@@ -363,41 +412,12 @@ begin
     from jsonb_array_elements(p_tramos) with ordinality as x(t, ord);
 end $function$;
 
-create or replace function public.condicion_tramos_reemplaza(p_condicion uuid, p_tramos jsonb)
- returns integer
- language plpgsql
- set search_path to ''
-as $function$
-declare
-  v_n integer;
-  v_viejas jsonb;
-begin
-  if exists (select 1 from public.comisiones_devengadas d where d.condicion_id = p_condicion) then
-    raise exception 'Esta condición ya ha devengado comisiones: sus tramos no se cambian. Desactívala y crea otra.'
-      using errcode = '23514';
-  end if;
-  if jsonb_typeof(p_tramos) <> 'array' or jsonb_array_length(p_tramos) = 0 then
-    raise exception 'Hacen falta tramos' using errcode = '23514';
-  end if;
-
-  -- 13-oct-2026: misma regla que _condicion_tramos_pone (clave ausente = conserva la base del mismo orden)
-  select coalesce(jsonb_object_agg(t.orden::text, t.base_calculo), '{}'::jsonb) into v_viejas
-    from public.condicion_tramos t where t.condicion_id = p_condicion;
-
-  delete from public.condicion_tramos where condicion_id = p_condicion;
-
-  insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo, base_calculo)
-  select p_condicion, ord,
-         t->>'disparador_tipo',
-         case when (t->>'disparador_tipo') like 'pct_cobrado_%' then (t->>'umbral')::numeric end,
-         (t->>'pct_tramo')::numeric,
-         case when t ? 'base_calculo' then nullif(btrim(t->>'base_calculo'), '') else v_viejas->>(ord::text) end
-    from jsonb_array_elements(p_tramos) with ordinality as x(t, ord);
-
-  get diagnostics v_n = row_count;
-  return v_n;
-end;
-$function$;
+-- 6b · condicion_tramos_reemplaza se QUITA (revisión de código 13-oct-2026, hallazgo 6): sin llamador desde el 27-sep
+--      (revocada a authenticated en 20260927004500; ni SQL ni JS del repo ni otra función la llaman, medido en pg_proc
+--      el 13-oct). Ampliarla para la base por tramo era mantener una puerta sin uso. Vuelta atrás: crearla con
+--      supabase/vivo/20261013_comisiones_1nov/condicion_tramos_reemplaza.sql y `revoke all … from public, anon,
+--      authenticated; grant execute … to service_role` (proacl medido: {postgres=X/postgres,service_role=X/postgres}).
+drop function if exists public.condicion_tramos_reemplaza(uuid, jsonb);
 
 -- 7 · guarda de la condición: «cambian las cifras» mira también la base del tramo (parche por marca de UNA línea
 --     sobre la viva: la función es de 17 KB y solo cambian dos líneas)
@@ -447,6 +467,7 @@ declare
   v_cob_dir_suelo        numeric := 0;   -- cobrado en bruto (auditoría de «primero parcela, luego obra»)
   v_cob_dir_obra         numeric := 0;
   v_cob_cartas           numeric := 0;
+  v_multimoneda          boolean := false;
   v_closer_email         text;
   v_fecha_venta          date;
   v_equipo_id            uuid;
@@ -483,8 +504,8 @@ declare
   v_man_id               uuid;
   v_man_pct              numeric;
   v_man_base             text;
-  v_man_bases            text;
-  v_clo_bases            text;
+  v_man_bases            text[];
+  v_clo_bases            text[];
   v_empresa              text;
 begin
   if p_contrato_id is null then
@@ -527,10 +548,11 @@ begin
 
   -- 13-oct-2026: bases firmadas por parte (parcela / construcción) y su % cobrado sobre el mismo conjunto
   select b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
-         b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas
+         b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas, b.multimoneda
     into v_suelo_firm, v_obra_firm, v_cob_suelo_firm, v_cob_obra_firm,
-         v_cob_dir_suelo, v_cob_dir_obra, v_cob_cartas
+         v_cob_dir_suelo, v_cob_dir_obra, v_cob_cartas, v_multimoneda
     from public._comisiones_bases_firmadas(v_raiz_id) b;
+  v_multimoneda := coalesce(v_multimoneda, false);
 
   select k.closer_email, k.fecha_venta into v_closer_email, v_fecha_venta
     from public.contrato_closer k
@@ -778,11 +800,18 @@ begin
         end if;
         select c.pct_comision, c.base_calculo into v_man_pct, v_man_base
           from public.condiciones_comision c where c.id = v_man_id;
-        -- 13-oct-2026: la base se compara tramo a tramo (base efectiva por orden), no solo la de la condición
-        select string_agg(t.orden || ':' || coalesce(t.base_calculo, v_man_base), ',' order by t.orden) into v_man_bases
-          from public.condicion_tramos t where t.condicion_id = v_man_id;
-        select string_agg(t.orden || ':' || coalesce(t.base_calculo, v_condicion.base_calculo), ',' order by t.orden) into v_clo_bases
-          from public.condicion_tramos t where t.condicion_id = v_condicion.id;
+        -- 13-oct-2026: se compara el CONJUNTO ordenado de bases efectivas distintas (no tramo a tramo: un manager de 1
+        -- tramo y un closer de 2 con la misma base casaban antes y siguen casando). Sin tramos o con todas heredadas es
+        -- {base de la condición}: exactamente la comparación viva. Importe fijo nunca casa con un % (como antes).
+        select coalesce(array_agg(distinct x.b order by x.b), array[v_man_base])
+          into v_man_bases
+          from (select case when v_man_base = 'importe_fijo' then 'importe_fijo'
+                            else coalesce(t.base_calculo, v_man_base) end as b
+                  from public.condicion_tramos t where t.condicion_id = v_man_id) x;
+        select coalesce(array_agg(distinct x.b order by x.b), array[v_condicion.base_calculo])
+          into v_clo_bases
+          from (select coalesce(t.base_calculo, v_condicion.base_calculo) as b
+                  from public.condicion_tramos t where t.condicion_id = v_condicion.id) x;
         if v_man_pct is null or v_man_bases is distinct from v_clo_bases then
           raise warning 'comisiones_evaluar_contrato: la condicion manager del equipo % no casa con la de closer (base o falta); se usa la condicion de closer (raiz %)', v_equipo_id, v_raiz_id;
           v_plt_pct := null;
@@ -808,6 +837,14 @@ begin
         when 'precio_obra_firmada'  then v_obra_firm
         else null
       end;
+
+      -- 13-oct-2026 (Administración): familia con contratos firmados en más de una moneda → ningún tramo «firmado»
+      -- (base o disparo) devenga hasta que se resuelva; el aviso lleva la raíz
+      if v_multimoneda and (v_base_ef in ('precio_suelo_firmado', 'precio_obra_firmada')
+                            or v_tramo.disparador_tipo in ('pct_cobrado_suelo_firmado', 'pct_cobrado_obra_firmada')) then
+        raise warning 'comisiones_evaluar_contrato: la venta (raiz %) tiene contratos firmados en mas de una moneda; el tramo % de la condicion % no devenga', v_raiz_id, v_tramo.orden, v_condicion.id;
+        continue;
+      end if;
 
       v_prev := null;
       select * into v_prev
@@ -991,6 +1028,7 @@ declare
   v_hoy text := to_char(now() at time zone 'Asia/Makassar', 'DD-MM-YYYY');
   v_eq_id uuid; v_fecha_venta date; v_mismo_equipo boolean;   -- AXW-98 / B3c, por devengo
   v_precio_total numeric; v_suelo_firm numeric; v_obra_firm numeric;   -- 13-oct-2026: base por tramo
+  v_multimoneda boolean;                                                -- 13-oct-2026: familia en más de una moneda
 begin
   if p_raiz is null then return; end if;
   perform pg_advisory_xact_lock(hashtext('comisiones:' || p_raiz::text));
@@ -999,7 +1037,7 @@ begin
     into v_es_raiz, v_moneda, v_num
     from public.contratos c where c.id = p_raiz;
   v_precio_total := public._comisiones_precio_total(p_raiz);
-  select b.suelo_firmado, b.obra_firmada into v_suelo_firm, v_obra_firm
+  select b.suelo_firmado, b.obra_firmada, b.multimoneda into v_suelo_firm, v_obra_firm, v_multimoneda
     from public._comisiones_bases_firmadas(p_raiz) b;
 
   for r in
@@ -1015,6 +1053,12 @@ begin
   loop
     -- solo las bases que se mueven con el contrato; una base desconocida (o nula) no se toca: falla cerrado
     continue when r.base_ef is null or r.base_ef not in ('precio_total', 'precio_suelo_firmado', 'precio_obra_firmada');
+    -- 13-oct-2026 (Administración): con contratos firmados en más de una moneda las bases «firmadas» no se mueven (igual
+    -- que el motor no devenga): ni diferencia ni actualización hasta que se resuelva
+    if coalesce(v_multimoneda, false) and r.base_ef in ('precio_suelo_firmado', 'precio_obra_firmada') then
+      raise warning 'comisiones_reconciliar: la venta (raiz %) tiene contratos firmados en mas de una moneda; el devengo % no se reconcilia', p_raiz, r.id;
+      continue;
+    end if;
     v_base := case r.base_ef
                 when 'precio_total'         then v_precio_total
                 when 'precio_suelo_firmado' then v_suelo_firm
@@ -1276,6 +1320,24 @@ begin
   return jsonb_build_object('comision', case when v_n = 1 then v_lista -> 0 end);
 end $function$;
 
+-- 10a · quién ve la operación COMPLETA de un devengo: UNA regla (era la línea `v_completa` de comision_trazabilidad,
+--       sin cambiar), que usan comision_trazabilidad y comisiones_reparto_datos para recortar el snapshot. Dueño
+--       postgres: las lecturas de condiciones_comision y contrato_closer no pasan por la RLS del que llama (si pasaran
+--       y volvieran null, es_manager_de_equipo(null) le ocultaría los datos a un SM que hoy sí los ve).
+create or replace function public._comision_vista_completa(p_nivel text, p_condicion uuid, p_raiz uuid)
+ returns boolean
+ language sql
+ stable security definer
+ set search_path to ''
+as $function$
+  select coalesce(public.puede_reparto_de(public._empresa_de_contrato_int(p_raiz)), false)
+      or (p_nivel in ('closer', 'setter', 'team_lead') and (
+            coalesce(public.es_manager_de_equipo((select c.equipo_id from public.condiciones_comision c where c.id = p_condicion)), false)
+         or coalesce(public.es_manager_de_equipo((select k.equipo_id from public.contrato_closer k where k.contrato_id = p_raiz)), false)));
+$function$;
+revoke all on function public._comision_vista_completa(text, uuid, uuid) from public, anon, authenticated;
+grant execute on function public._comision_vista_completa(text, uuid, uuid) to lw_lector, service_role;
+
 create or replace function public.comision_trazabilidad(p_devengo uuid)
  returns jsonb
  language plpgsql
@@ -1294,10 +1356,7 @@ begin
   if not found or not public.comision_visible(d.nivel, d.beneficiario_email, d.condicion_id, d.contrato_raiz_id) then
     raise exception 'No encuentro esa comisión entre las que puedes ver' using errcode = '42501';
   end if;
-  v_completa := public.puede_reparto_de(public._empresa_de_contrato_int(d.contrato_raiz_id))
-                or (d.nivel in ('closer', 'setter', 'team_lead') and (
-                      public.es_manager_de_equipo((select c.equipo_id from public.condiciones_comision c where c.id = d.condicion_id))
-                   or public.es_manager_de_equipo((select k.equipo_id from public.contrato_closer k where k.contrato_id = d.contrato_raiz_id))));
+  v_completa := public._comision_vista_completa(d.nivel, d.condicion_id, d.contrato_raiz_id);
 
   -- 13-oct-2026: la base es la del TRAMO del devengo (precio total, parcela firmada u obra firmada)
   select case when c.base_calculo = 'importe_fijo' then 'importe_fijo' else coalesce(t.base_calculo, c.base_calculo) end
@@ -1356,7 +1415,7 @@ begin
                and not coalesce(c.bloqueado, false) and c.liberado_en is null
                and c.moneda is not distinct from d.moneda
                and coalesce(c.tipo, '') not like 'carta_reserva%'
-               and coalesce(e.es_obra, false) = v_parte_obra
+               and public._comisiones_parte_obra(c.tipo, e.es_obra) = v_parte_obra
                and not exists (select 1 from public.contratos s
                                 where (s.id = d.contrato_raiz_id or s.contrato_padre_id = d.contrato_raiz_id)
                                   and s.tipo = c.tipo and coalesce(s.bloqueado, false) and s.liberado_en is null)
@@ -1385,8 +1444,9 @@ begin
                'cuenta_en_base', case
                  when v_base_ef in ('precio_suelo_firmado', 'precio_obra_firmada') then
                    coalesce(c.bloqueado, false) and c.liberado_en is null
+                   and c.moneda is not distinct from d.moneda
                    and coalesce(c.tipo, '') not like 'carta_reserva%'
-                   and coalesce(e.es_obra, false) = v_parte_obra
+                   and public._comisiones_parte_obra(c.tipo, e.es_obra) = v_parte_obra
                  else coalesce(c.bloqueado, false) and c.liberado_en is null
                       and not (c.contrato_padre_id is not null and c.tipo like 'carta_reserva%')
                end)
@@ -1431,6 +1491,84 @@ begin
   );
 end
 $function$;
+
+-- 10c · comisiones_reparto_datos (definición viva del 13-oct + recorte del snapshot, hallazgo 7 de la revisión):
+--       CREATE OR REPLACE conserva el dueño lw_lector y sus permisos; se comprueba al final como en 20261010101716.
+create or replace function public.comisiones_reparto_datos()
+ returns jsonb
+ language plpgsql
+ stable security definer
+ set search_path to ''
+as $function$
+declare
+  v_de jsonb; v_nde int; v_di jsonb; v_ndi int;
+begin
+  if public.uid_sesion() is null then
+    raise exception 'comisiones_reparto_datos: sin sesión' using errcode = '42501';
+  end if;
+  -- 13-oct-2026: las 7 cifras nuevas de la operación del snapshot (parte firmada y su cobro en bruto) solo para quien ve
+  -- la operación completa; misma regla que `completa` de comision_trazabilidad (_comision_vista_completa)
+  select coalesce(jsonb_agg(jsonb_build_object('id', d.id, 'contrato_raiz_id', d.contrato_raiz_id,
+                                               'beneficiario_email', d.beneficiario_email, 'nivel', d.nivel,
+                                               'importe', d.importe, 'importe_ajustado', d.importe_ajustado,
+                                               'ajuste_motivo', d.ajuste_motivo, 'anulado_motivo', d.anulado_motivo,
+                                               'moneda', d.moneda, 'estado', d.estado, 'disparado_en', d.disparado_en,
+                                               'pagado_por', d.pagado_por, 'pagado_en', d.pagado_en,
+                                               'disparado_por_snapshot', case when public._comision_vista_completa(d.nivel, d.condicion_id, d.contrato_raiz_id)
+                                                                              then d.disparado_por_snapshot
+                                                                              else d.disparado_por_snapshot - array['precio_suelo_firmado', 'precio_obra_firmada',
+                                                                                     'cobrado_suelo_firmado', 'cobrado_obra_firmada', 'cobrado_directo_suelo',
+                                                                                     'cobrado_directo_obra', 'cobrado_cartas'] end)
+                            order by d.rn) filter (where d.rn <= 20000), '[]'::jsonb), count(*)::int
+    into v_de, v_nde
+    from (select x.id, x.contrato_raiz_id, x.beneficiario_email, x.nivel, x.importe, x.importe_ajustado, x.ajuste_motivo,
+                 x.anulado_motivo, x.moneda, x.estado, x.disparado_en, x.pagado_por, x.pagado_en,
+                 x.disparado_por_snapshot, x.condicion_id,
+                 row_number() over (order by x.disparado_en desc, x.id) as rn
+            from public.comisiones_devengadas x
+           where x.nivel in ('closer', 'setter', 'team_lead')
+           order by x.disparado_en desc, x.id limit 20001) d;
+  -- el devengo de cada diferencia se lee con la RLS de comisiones_devengadas (como el embebido de PostgREST):
+  -- si el lector no lo ve, sale null.
+  select coalesce(jsonb_agg(jsonb_build_object('id', f.id, 'numero', f.numero, 'devengo_id', f.devengo_id,
+                                               'importe', f.importe, 'estado', f.estado, 'motivo', f.motivo,
+                                               'created_at', f.created_at,
+                                               'devengo', case when f.d_id is not null then
+                                                 jsonb_build_object('nivel', f.d_nivel,
+                                                                    'beneficiario_email', f.d_benef,
+                                                                    'contrato_raiz_id', f.d_raiz,
+                                                                    'moneda', f.d_moneda) end)
+                            order by f.rn) filter (where f.rn <= 5000), '[]'::jsonb), count(*)::int
+    into v_di, v_ndi
+    from (select x.id, x.numero, x.devengo_id, x.importe, x.estado, x.motivo, x.created_at,
+                 d.id as d_id, d.nivel as d_nivel, d.beneficiario_email as d_benef, d.contrato_raiz_id as d_raiz,
+                 d.moneda as d_moneda,
+                 row_number() over (order by x.created_at desc, x.id) as rn
+            from public.comisiones_diferencias x
+            left join public.comisiones_devengadas d on d.id = x.devengo_id
+           order by x.created_at desc, x.id limit 5001) f;
+  return jsonb_build_object('devengadas', v_de, 'diferencias', v_di,
+                            'recortado', (select coalesce(jsonb_agg(k), '[]'::jsonb) from (
+                                            select 'devengadas' k where v_nde > 20000
+                                            union all select 'diferencias' where v_ndi > 5000) r));
+end $function$;
+
+do $$
+declare v_dueno text; v_secdef boolean;
+begin
+  select pg_get_userbyid(p.proowner), p.prosecdef into v_dueno, v_secdef
+    from pg_proc p where p.oid = 'public.comisiones_reparto_datos()'::regprocedure;
+  if v_dueno <> 'lw_lector' or not v_secdef then
+    raise exception 'comisiones_reparto_datos: dueño % / definer % (se esperaba lw_lector, definer)', v_dueno, v_secdef;
+  end if;
+  if not has_function_privilege('authenticated', 'public.comisiones_reparto_datos()', 'execute')
+     or has_function_privilege('anon', 'public.comisiones_reparto_datos()', 'execute')
+     or has_function_privilege('service_role', 'public.comisiones_reparto_datos()', 'execute')
+     or not has_function_privilege('lw_lector', 'public._comision_vista_completa(text,uuid,uuid)', 'execute')
+     or has_function_privilege('authenticated', 'public._comision_vista_completa(text,uuid,uuid)', 'execute') then
+    raise exception 'comisiones_reparto_datos: permisos cambiados';
+  end if;
+end $$;
 
 -- 10b · mi_condicion_comision: + columna tramos (VÁLVULA: cambiar RETURNS TABLE obliga a quitarla y crearla; se
 --       reponen los permisos de la viva: postgres, service_role y authenticated)
@@ -1563,7 +1701,7 @@ grant execute on function public.mi_condicion_comision() to authenticated, servi
 --      vigente_hasta: ponérsela la volvería elegible) ni las ya cerradas.
 do $$
 declare
-  v record; c public.condiciones_comision; n public.condiciones_comision; v_hechas int := 0;
+  v record; c public.condiciones_comision; n public.condiciones_comision; v_hechas int := 0; v_ult date;
 begin
   for v in select * from (values
       ('22de941a-7d34-4894-8b79-cafbe05d1d56'::uuid, 'c0a11010-1101-4a10-8000-000000000001'::uuid, 'c0a11010-1101-4b10-8000-000000000101'::uuid, 'c0a11010-1101-4b10-8000-000000000102'::uuid),
@@ -1588,6 +1726,14 @@ begin
     if not found or not c.activo or c.vigente_hasta is not null or c.closer_email is not null
        or c.pct_comision <= 0 or c.base_calculo <> 'precio_total' or c.vigente_desde > date '2026-10-31' then
       raise exception 'comisiones 1-nov: la condición % ya no está como se midió el 13-oct (abierta, genérica, %% > 0, precio_total)', v.viejo;
+    end if;
+    -- misma comprobación que _condicion_comision_guarda_en: si la migración se aplica después del 1-nov y la condición
+    -- vieja ya devengó una venta de noviembre, cerrarla el 31-oct dejaría ese devengo fijado a una condición cerrada
+    -- (con el 10 % del total en vez de la regla nueva). Se para: esa venta se resuelve a mano antes de aplicar.
+    v_ult := public._condicion_ultima_venta_devengada(v.viejo);
+    if v_ult is not null and v_ult > date '2026-10-31' then
+      raise exception 'comisiones 1-nov: la condición % ya ha devengado una venta del % (posterior al 31-oct); no se puede cerrar el 31-oct sin resolver antes esa venta',
+        v.viejo, to_char(v_ult, 'DD-MM-YYYY');
     end if;
 
     update public.condiciones_comision set vigente_hasta = date '2026-10-31' where id = v.viejo;
