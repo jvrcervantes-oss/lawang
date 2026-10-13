@@ -87,12 +87,14 @@ async function enviaEnlace(email: string, enlace: string): Promise<'ok' | 'fallo
       signal: ac.signal,
     });
     const cuerpo = await r.text().catch(() => '');
+    // El corte pudo llegar leyendo el cuerpo: el aviso del temporizador es la única prueba de 'agotado'.
+    if (ac.signal.aborted) { console.error('portal-invitar envio agotado @' + dominio(email)); return 'agotado'; }
     const ok = r.ok && cuerpo.includes('"ok":true');
     if (!ok) console.error('portal-invitar envio http_' + r.status + ' @' + dominio(email));
     return ok ? 'ok' : 'fallo';
   } catch (e) {
-    // Solo aborta nuestro temporizador: AbortError = se acabó la espera, no «no salió».
-    if ((e as Error)?.name === 'AbortError') { console.error('portal-invitar envio agotado @' + dominio(email)); return 'agotado'; }
+    // Solo aborta nuestro temporizador: con su señal disparada, se acabó la espera, no «no salió».
+    if (ac.signal.aborted) { console.error('portal-invitar envio agotado @' + dominio(email)); return 'agotado'; }
     console.error('portal-invitar envio excepcion @' + dominio(email) + ': ' + String((e as Error)?.name ?? 'error').slice(0, 40));
     return 'fallo';
   } finally {

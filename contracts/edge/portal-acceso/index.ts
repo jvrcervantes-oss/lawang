@@ -147,12 +147,14 @@ async function enviaEnlace(email: string, enlace: string): Promise<'ok' | 'fallo
       signal: ac.signal,
     });
     const cuerpo = await r.text().catch(() => '');
+    // El corte pudo llegar leyendo el cuerpo: el aviso del temporizador es la única prueba de 'agotado'.
+    if (ac.signal.aborted) { console.error('portal-acceso envio agotado @' + dominio(email)); return 'agotado'; }
     const ok = r.ok && cuerpo.includes('"ok":true');
     if (!ok) console.error('portal-acceso envio http_' + r.status + ' @' + dominio(email));
     return ok ? 'ok' : 'fallo';
   } catch (e) {
-    // Solo aborta nuestro temporizador: AbortError = se acabó la espera, no «no salió».
-    if ((e as Error)?.name === 'AbortError') { console.error('portal-acceso envio agotado @' + dominio(email)); return 'agotado'; }
+    // Solo aborta nuestro temporizador: con su señal disparada, se acabó la espera, no «no salió».
+    if (ac.signal.aborted) { console.error('portal-acceso envio agotado @' + dominio(email)); return 'agotado'; }
     console.error('portal-acceso envio excepcion @' + dominio(email) + ': ' + limpia((e as Error)?.name ?? e));
     return 'fallo';
   } finally {
@@ -303,7 +305,9 @@ export async function manejador(req: Request): Promise<Response> {
     const enviado = await enviaEnlace(email, PORTAL_URL + '#th=' + encodeURIComponent(th));
     if (enviado !== 'ok') {
       if (enviado === 'fallo') await libera();   // 'agotado': el correo pudo salir, el hueco se queda gastado
-      return json({ ok: true, reintentar: true });
+      // `lento`: la página dice «está tardando, si no llega vuelve a pedirlo» y no «no hemos podido». Solo llega aquí un
+      // correo con derecho que pasó el freno, igual que a `reintentar`, así que no delata nada nuevo.
+      return json(enviado === 'agotado' ? { ok: true, reintentar: true, lento: true } : { ok: true, reintentar: true });
     }
     anota('enlace_enviado');
     return json({ ok: true });

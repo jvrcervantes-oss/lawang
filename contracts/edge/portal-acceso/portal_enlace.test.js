@@ -221,10 +221,15 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   // 4b. (13-oct) se acaba la espera a envia-correo → reintentar, pero el hueco NO se devuelve: el correo pudo salir y un segundo
   //     envío inmediato invalidaría ese enlace; el siguiente intento inmediato queda frenado (misma respuesta, sin correo).
   avanza(61);
-  const agota = () => { const e = new Error('The signal has been aborted'); e.name = 'AbortError'; throw e; };
+  // El temporizador de 20 s de la edge se captura (setTimeout con 20000 ms) y el doble de fetch lo dispara: la señal queda
+  // abortada de verdad, como cuando se acaba la espera, y fetch lanza lo que lanzaría Deno.
+  const setTOriginal = globalThis.setTimeout;
+  let temporizadorEnvio = null;
+  globalThis.setTimeout = (f, ms, ...a) => { if (ms === 20000) { temporizadorEnvio = f; return 0; } return setTOriginal(f, ms, ...a); };
+  const agota = () => { temporizadorEnvio(); throw new DOMException('The signal has been aborted', 'AbortError'); };
   prepara({ correo: agota });
   const ag = await llama(ACCESO, { email: 'quinto@cliente-prueba.com' });
-  igual([ag.cuerpo, llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true).length], [{ ok: true, reintentar: true }, 0], 'acceso: espera agotada → reintentar sin devolver el hueco');
+  igual([ag.cuerpo, llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true).length], [{ ok: true, reintentar: true, lento: true }, 0], 'acceso: espera agotada (temporizador de 20 s) → reintentar + lento, sin devolver el hueco');
   ok(ag.logs.some((l) => l.includes('envio agotado @cliente-prueba.com')), 'acceso: espera agotada deja su línea propia, solo con el dominio');
   est.correo = () => ({ status: 200, cuerpo: '{"ok":true}' });
   const tras = await llama(ACCESO, { email: 'quinto@cliente-prueba.com' });
@@ -339,9 +344,10 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   igual(llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true).length, 1, 'invitar: devuelve el hueco');
   // c2. (13-oct) espera agotada → mismo aviso, el hueco NO se devuelve
   avanza(61);
-  prepara({ correo: () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; } });
+  prepara({ correo: agota });
   const fa = await llama(INVITAR, { accion: 'reenviar', email: EMAIL }, ADMIN);
   igual([fa.cuerpo, llamo('rpc:portal_enlace_freno').filter((t) => t.args.p_libera === true).length], [{ ok: true, aviso: 'acceso_creado_pero_email_no_enviado' }, 0], 'invitar: espera agotada → aviso sin devolver el hueco');
+  globalThis.setTimeout = setTOriginal;
   // d. correo del equipo → 400 de siempre, sin freno, enlace ni correo
   prepara({ equipo: true });
   const eq = await llama(INVITAR, { accion: 'invitar', email: EMAIL, client_ids: ['c1'] }, ADMIN);
