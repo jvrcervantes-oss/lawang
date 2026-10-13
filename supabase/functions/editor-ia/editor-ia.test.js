@@ -55,7 +55,7 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
           }
           if (n === 'editor_ia_reserva') {
             reg.reservas++; reg.ultimaReserva = a;
-            if (o.apagado) return { data: null, error: { code: '55000', hint: 'apagado', message: 'Asistente apagado: Falta configurar en Ajustes → Servicios de AxisWorks: el margen sobre el coste.' } };
+            if (o.apagado) return { data: null, error: { code: '55000', hint: 'apagado', details: o.detalle || 'sin_configurar', message: 'Asistente apagado: Falta configurar en Ajustes → Servicios de AxisWorks: el margen sobre el coste.' } };
             if (o.tope) return { data: null, error: { code: 'P0001', hint: 'tope_empresa', message: 'tope' } };
             if (o.motorSinTarifa) return { data: null, error: { code: '55000', hint: 'no_configurado', message: 'Ese motor no esta configurado' } };
             return { data: { uso: 'uso-1', coste_max_usd: 0.352, gasto_usd: 16.4, tope_usd: 20, aviso: true }, error: null };
@@ -65,6 +65,7 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
       }),
       servicio: { rpc: async (n, a) => {
         if (n === 'editor_ia_cierra') { reg.cierres.push(a); return { data: !o.cierreCaducado, error: null }; }
+        if (n === 'editor_ia_rechazada') { (reg.rechazos = reg.rechazos || []).push(a); return { data: true, error: null }; }
         if (n === 'editor_ia_enviada') { reg.enviadas = (reg.enviadas || 0) + 1; reg.enviadaAntes = reg.fetch.length === 0; return { data: true, error: null }; }
         return { data: null, error: { message: 'x' } }; } },
       fetch: async (url, init) => {
@@ -108,6 +109,8 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
   // ── 2. apagado, topes y sin clave: no se llama a nadie ──
   { const { h, reg } = montaje({ apagado: true, proveedor: modelo(cambia) }); const r = await pide(h, propone());
     ok(r.s === 403 && r.j.error === 'apagado' && /^Falta configurar en Ajustes → Servicios de AxisWorks: el margen/.test(r.j.motivo) && !reg.fetch.length && !reg.cierres.length, 'apagado (sin margen): 403 con el motivo en llano, sin llamar ni cerrar', r); }
+  { const { h } = montaje({ apagado: true, detalle: 'suspendido' }); const r = await pide(h, propone()); ok(r.j.motivo_clave === 'suspendido', 'apagado: la clave del motivo viaja para traducirla en pantalla', r.j); }
+  { const { h } = montaje({ apagado: true, detalle: '<b>x</b>' }); const r = await pide(h, propone()); ok(r.j.motivo_clave === 'apagado', 'apagado: una clave desconocida no pasa tal cual', r.j); }
   { const { h, reg } = montaje({ tope: true, proveedor: modelo(cambia) }); const r = await pide(h, propone()); ok(r.s === 429 && r.j.error === 'tope_empresa' && !reg.fetch.length, 'tope de la empresa: 429', r); }
   { const { h, reg } = montaje({ sinClave: true, proveedor: modelo(cambia) }); const r = await pide(h, propone());
     ok(r.s === 503 && r.j.error === 'no_configurado' && !reg.fetch.length && reg.cierres.length === 1 && reg.cierres[0].p_ok === false, 'sin clave: 503, cierra el apunte como fallo sin enviar (no pesa ni se factura)', r); }
@@ -179,6 +182,10 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
   { const { h, reg } = montaje({ proveedor: modelo(cambia, { stop_reason: 'refusal' }) }); const r = await pide(h, propone());
     ok(r.s === 502 && r.j.error === 'modelo_no_disponible' && reg.cierres[0].p_ok === false && reg.cierres[0].p_entrada === 321, 'rechazo del modelo: 502, créditos devueltos, tokens anotados', r.j); }
   { const { h, reg } = montaje({ proveedor: async () => ({ ok: false, json: async () => ({}) }) }); const r = await pide(h, propone()); ok(r.s === 502 && reg.cierres[0].p_ok === false, 'proveedor caído: 502 y devolución', r.j); }
+  { const { h, reg } = montaje({ proveedor: async () => ({ ok: false, status: 529, json: async () => ({}) }) }); const r = await pide(h, propone());
+    ok(r.s === 502 && !reg.cierres.length && reg.rechazos && reg.rechazos[0].p_http === 529 && reg.rechazos[0].p_uso === 'uso-1', 'el proveedor contesta 529: rechazo a coste 0, no cierre al peor caso', reg); }
+  { const { h, reg } = montaje({ proveedor: async () => { throw new Error('tiempo agotado'); } }); const r = await pide(h, propone());
+    ok(r.s === 500 && reg.cierres.length === 1 && !reg.rechazos, 'corte sin respuesta: cierre normal (pesa al peor caso), nunca «rechazada»', reg); }
   { const { h, reg } = montaje({ proveedor: modelo((rec) => rec) }); const r = await pide(h, propone({ instruccion: 'traduce al chino' }));
     ok(r.s === 200 && r.j.sin_cambios === true && reg.cierres[0].p_ok === true, 'sin cambios: se dice y cuenta como uso', r.j); }
 
@@ -236,6 +243,9 @@ function ok(cond, nombre, detalle) { total++; if (!cond) { fallos++; console.log
      && M.datoReal('USD 25.000', true) === 'importe' && M.datoReal('1.500.000', true) === 'importe' && M.datoReal('5.000.000', false) === null, 'datos reales: NIK, teléfono, importe; un plazo no');
   ok(M.validaTexto('El plazo es de {{dias}} días', 'El plazo es de {{dias}} días hábiles') === null && M.validaTexto('Sin campo', 'Con {{campo}}') === 'avisos', 'validaTexto: mismo campo vale, perderlo no');
 
+  ok(M.cabeEntrada('propone', 'x'.repeat(3000), 'y'.repeat(5000)) === true && M.cabeEntrada('propone', 'x'.repeat(3000), 'y'.repeat(14000)) === false
+     && M.cabeEntrada('traduce_ia', 'x'.repeat(3000), 'y'.repeat(25000)) === true && M.cabeEntrada('traduce_ia', 'x'.repeat(3000), 'y'.repeat(32000)) === false
+     && M.cabeEntrada('traduce_deepl', '', '') === false, 'entrada: lo que se manda cabe en los tokens que la base aparta (2 letras por token)');
   console.log((fallos ? 'FALLOS=' + fallos : 'OK') + ' — editor-ia: ' + (total - fallos) + ' de ' + total + ' casos');
   process.exit(fallos ? 1 : 0);
 })().catch((e) => { console.log('FALLA  la prueba reventó: ' + (e && e.stack)); process.exit(1); });
