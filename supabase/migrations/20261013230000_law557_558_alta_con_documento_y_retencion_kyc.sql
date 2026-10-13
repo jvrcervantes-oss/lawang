@@ -39,7 +39,8 @@
 --   · `kyc_retencion` borra filas de `documents` de tipos borrables (nunca signed_contract) de clientes sin reserva,
 --     factura, contrato ni portal, inactivos 12 meses. Hoy no hay NINGUNO posible (el cliente más antiguo es del
 --     28-jul-2026, medido el 13-oct).
---   · `cliente_alta_con_documentos`, `kyc_alta_descarta` y `kyc_barrido` borran filas de `kyc_altas_pendientes`.
+--   · `cliente_alta_con_documentos`, `kyc_alta_descarta`, `kyc_barrido` y `kyc_alta_reserva` (en el tope de 3, la
+--     abierta vacía o de más de 1 hora del mismo usuario) borran filas de `kyc_altas_pendientes`.
 --   · Los ficheros los borra la edge, nunca esta migración.
 -- destructivo-ok: LAW-558 decisión del owner 13-oct-2026 (retención 12 meses, solo copias) y LAW-557 (alta en una operación)
 --
@@ -292,12 +293,16 @@ begin
     perform pg_advisory_xact_lock(hashtext('kyc_alta:' || p_uid::text));
     if (select count(*) from public.kyc_altas_pendientes k
          where k.uid = p_uid and k.creado_en > now() - interval '24 hours') >= 3 then
-      -- en el tope, la más antigua SIN ningún fichero se suelta y deja sitio (revisor, 13-oct: quien recarga la página a
-      -- mitad de tres altas no puede cerrarlas y se quedaría 24 h sin dar altas). Una con ficheros no se toca: es trabajo.
+      -- en el tope se suelta la más antigua que esté vacía (sin ningún fichero) o que lleve más de 1 hora abierta, y deja
+      -- sitio (revisor, 13-oct: quien recarga la página a mitad de tres altas no puede cerrarlas y se quedaría 24 h sin
+      -- dar altas; y la abandonada casi siempre ya tiene fichero, porque se sube nada más elegirlo). Un alta de verdad
+      -- dura minutos: una con ficheros de menos de 1 hora es trabajo en marcha y no se toca. Sus ficheros, ya sin
+      -- pendiente, los recoge kyc_barrido a las 36 h.
       delete from public.kyc_altas_pendientes k
        where k.id = (select k2.id from public.kyc_altas_pendientes k2
                       where k2.uid = p_uid and k2.creado_en > now() - interval '24 hours'
-                        and not exists (select 1 from storage.objects o where o.bucket_id = 'kyc' and o.name like k2.id::text || '/%')
+                        and (k2.creado_en < now() - interval '1 hour'
+                             or not exists (select 1 from storage.objects o where o.bucket_id = 'kyc' and o.name like k2.id::text || '/%'))
                       order by k2.creado_en, k2.id limit 1);
       if not found then
         raise exception 'demasiadas_altas_abiertas' using errcode = 'PT409';

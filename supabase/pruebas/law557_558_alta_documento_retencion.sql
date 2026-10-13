@@ -141,13 +141,22 @@ begin
   -- tope de 3 abiertas por usuario (abiertas en plazo ahora: al2, con fichero; al5 caducada no cuenta)
   al3 := pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a))::uuid;
   al4 := pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a))::uuid;
-  update public.kyc_altas_pendientes set creado_en = now() - interval '2 hours' where id = al3;   -- al3, la vacía más antigua
+  -- al2 (con fichero) es la MÁS antigua pero de menos de 1 hora; al3, vacía y algo más nueva: se suelta al3, no al2
+  update public.kyc_altas_pendientes set creado_en = now() - interval '30 minutes' where id = al2;
+  update public.kyc_altas_pendientes set creado_en = now() - interval '20 minutes' where id = al3;
   alx := pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a))::uuid;
   r := r || pg_temp.ok((select count(*)::text from public.kyc_altas_pendientes where id = al3) || '/' || (select count(*) from public.kyc_altas_pendientes where id in (al2, al4, alx)),
-                       '0/3', '1.42 en el tope, la 4.ª suelta la vacía más antigua (al3) y nunca la que tiene ficheros (al2)');
+                       '0/3', '1.42 en el tope, la 4.ª suelta la vacía (al3) y no la más antigua con ficheros de menos de 1 h (al2)');
   insert into storage.objects (bucket_id, name) values ('kyc', al4 || '/' || gen_random_uuid() || '.pdf'), ('kyc', alx || '/' || gen_random_uuid() || '.pdf');
-  r := r || pg_temp.ok(pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a)), 'PT409:demasiadas_altas_abiertas', '1.43 con las 3 con ficheros: demasiadas_altas_abiertas');
+  r := r || pg_temp.ok(pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a)), 'PT409:demasiadas_altas_abiertas', '1.43 con las 3 con ficheros y de menos de 1 h: demasiadas_altas_abiertas');
   r := r || pg_temp.ok((select count(*)::text from public.kyc_altas_pendientes where uid = a and creado_en > now() - interval '24 hours'), '3', '1.43b ... y quedan exactamente 3 abiertas');
+  -- abandonada tras recargar: con fichero pero de más de 1 hora → se suelta
+  update public.kyc_altas_pendientes set creado_en = now() - interval '2 hours' where id = al2;
+  al3 := pg_temp.como('service_role', a, ea, format('select public.kyc_alta_reserva(%L::uuid)::text', a))::uuid;
+  r := r || pg_temp.ok((select count(*)::text from public.kyc_altas_pendientes where id = al2) || '/' || (select count(*) from public.kyc_altas_pendientes where id in (al3, al4, alx)),
+                       '0/3', '1.43c la abierta con ficheros de más de 1 h se suelta (abandonada al recargar); sus ficheros, al barrido');
+  -- 1.44 de abajo mira al2 ya sin pendiente: se le devuelve una viva para que siga probando lo suyo
+  insert into public.kyc_altas_pendientes (id, uid) values (al2, a);
   -- kyc_sueltos_de: una carpeta con pendiente viva no es suelta
   r := r || pg_temp.ok((select count(*)::text from public.kyc_sueltos_de(al2)), '0', '1.44 kyc_sueltos_de no ve los ficheros de una alta pendiente viva');
 
