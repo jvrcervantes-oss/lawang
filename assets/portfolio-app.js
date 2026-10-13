@@ -404,45 +404,11 @@
   // el bloque #process dentro del overlay duplicaría el id y una sección entera de la home.
   function footerHTML(){ return stepsHTML() + footerCoreHTML(); }
 
+  // El pie es el de la home (owner, 13-oct-2026): fuente única en assets/lawang-pie.js, que
+  // thecollection.php carga antes que este fichero. Antes vivía aquí una copia que se había
+  // desviado de la home (fondo verde, enlaces de Company viejos).
   function footerCoreHTML(){
-    var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
-    var email=(L.SETTINGS&&L.SETTINGS.email)||'sales@lawangproperties.com';
-    var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(t("reserve.msg")||"Hello LAWANG");
-    var tel='+'+waNum.replace(/^(\d{2})(\d{3})(\d{4})(\d+)$/,'$1 $2-$3-$4');
-    var icoPhone='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
-    var icoMail='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>';
-    // Franja "discover beyond… / ask why investors stay" eliminada (revisión cliente 23-jul).
-    // El teléfono/email siguen en la parte baja del footer (lw-ft-bottom) y en la burbuja de WhatsApp.
-    return '<footer class="pf-footer">'
-      +   '<div class="lw-ft">'
-      +     '<div class="lw-ft-grid">'
-      +       '<div>'
-      +         '<img class="lw-ft-logo-img" src="assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">'
-      +         '<div class="lw-ft-sub" style="margin-top:10px">Tropical Properties</div>'
-      +         '<p class="lw-ft-tag">Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.</p>'
-      +       '</div>'
-      +       '<div class="lw-ft-col"><h5>Portfolio</h5>'
-      +         '<a href="#signature">Signature</a><a href="#land">Land</a><a href="#villas">Villas</a><a href="#resorts">Resorts</a></div>'
-      +       '<div class="lw-ft-col"><h5>Company</h5>'
-      +         '<a href="/#expedition">The Soul</a><a href="/#the-services">What We Do</a><a href="/">The Estate</a><a href="#all">Choose your Legacy</a></div>'
-      +       '<div class="lw-ft-col"><h5>Divisions</h5>'
-      +         '<a href="#all">Tepi Sungai</a><a href="#all">Balian Hills</a><a href="#signature">Riverfront II®</a></div>'
-      +     '</div>'
-      +   '</div>'
-      +   '<div class="lw-ft-bottom">'
-      +     '<span class="lw-ft-copy">© 2026 Lawang Tropical Properties · Indonesia</span>'
-      +     '<div class="lw-ft-contact">'
-      +       '<a class="lw-ft-cti" href="tel:+'+waNum+'">'+icoPhone+tel+'</a>'
-      +       '<a class="lw-ft-cti" href="mailto:'+esc(email)+'">'+icoMail+esc(email)+'</a>'
-      +     '</div>'
-      +     '<div class="lw-ft-legal">'
-      +       '<a class="lw-ft-tc" href="/legal#terms">Terms &amp; Conditions</a>'
-      +       '<a class="lw-ft-tc" href="/legal#privacy">Privacy Policy</a>'
-      +       '<a class="lw-ft-tc" href="#" onclick="event.preventDefault();window.lwConsentReopen&amp;&amp;window.lwConsentReopen()">Cookie Settings</a>'
-      +       '<a class="lw-ft-tc" href="/accessibility">Accessibility</a>'
-      +     '</div>'
-      +   '</div>'
-      + '</footer>';
+    return window.lwPieHome ? window.lwPieHome({ cookies:true }) : '';
   }
 
   // ════ FICHA — sub-bloques ════

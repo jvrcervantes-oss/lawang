@@ -210,26 +210,7 @@ window.LW_I18N_HOME = {
     id: "Ada dua jalur. <b>PT&nbsp;PMA</b> — perusahaan Indonesia bermodal asing — adalah wadah yang dapat memegang Freehold HGB, menjalankan penyewaan secara legal, merepatriasi pendapatan, dan menopang izin tinggal Anda (KITAS); inilah yang kami sarankan bagi investor yang menginginkan hak terkuat dan imbal hasil nyata. Berinvestasi <b>atas nama pribadi</b> (lewat leasehold atau Hak Pakai dengan izin tinggal) lebih sederhana dan lebih murah, tetapi lebih lemah dari sisi kekuatan hak dan penggunaan usaha. Kami menyiapkan struktur yang tepat untuk tujuan Anda bersama notaris dan mitra hukum kami."
   },
 
-  /* ── Pie ───────────────────────────────────────────────────────────────── */
-  "ft.tag": {
-    en: "Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.",
-    es: "Inversión, estructuración y desarrollo de activos estratégicos en Indonesia. Bali · Sumba.",
-    id: "Investasi, penataan struktur, dan pengembangan aset strategis di Indonesia. Bali · Sumba."
-  },
-  "ft.h.portfolio": { en: "Portfolio", es: "Portafolio", id: "Portofolio" },
-  "ft.h.company":   { en: "Company",   es: "Compañía",   id: "Perusahaan" },
-  "ft.h.divisions": { en: "Divisions", es: "Divisiones", id: "Divisi" },
-  "ft.signature":   { en: "Signature", es: "Signature",  id: "Signature" },
-  "ft.land":        { en: "Land",      es: "Terrenos",   id: "Tanah" },
-  "ft.villas":      { en: "Villas",    es: "Villas",     id: "Villa" },
-  "ft.resorts":     { en: "Resorts",   es: "Resorts",    id: "Resort" },
-  "ft.soul":        { en: "The Soul",       es: "La Esencia",        id: "Jiwa" },
-  "ft.whatwedo":    { en: "What We Do",     es: "Qué hacemos",       id: "Apa yang Kami Lakukan" },
-  "ft.expedition":  { en: "The Expedition", es: "La Expedición",     id: "Ekspedisi" },
-  "ft.choose":      { en: "Choose your Legacy", es: "Elige tu legado", id: "Pilih Warisan Anda" },
-  "ft.terms":       { en: "Terms &amp; Conditions", es: "Términos y Condiciones", id: "Syarat &amp; Ketentuan" },
-  "ft.privacy":     { en: "Privacy Policy",  es: "Política de Privacidad", id: "Kebijakan Privasi" },
-  "ft.cookies":     { en: "Cookie Settings", es: "Preferencias de cookies", id: "Pengaturan Cookie" },
+  /* ── Pie: sus textos viven en assets/lawang-pie.js (variante «home»), 13-oct-2026. ── */
 
   /* ── WhatsApp flotante ─────────────────────────────────────────────────── */
   /* El clic al WhatsApp es el evento de conversión de la página. Hasta hoy el

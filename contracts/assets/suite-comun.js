@@ -191,6 +191,11 @@ window.lwErrorHumano = function (error, prefijo) {
   } else {
     texto = 'Algo ha fallado';
   }
+  /* Las frases de arriba las escribe esta función en español: salen por el
+     diccionario en el idioma de la pantalla. Lo que ya venía escrito (`msg`) no
+     se toca. En español lwT devuelve la misma frase. Sin esto, una instancia en
+     inglés enseñaba «No se pudo cargar…: Algo ha fallado» (bbm, 13-oct). */
+  if (texto !== msg && typeof window.lwT === 'function') texto = window.lwT(texto);
   try { console.error('[lawang]', prefijo || '', error); } catch (_) { /* consola cerrada */ }
   /* El prefijo puede venir con su «: » de antes (`lwT('No se pudo guardar: ')`):
      la clave de traducción de lwT es la frase exacta, así que no se toca la

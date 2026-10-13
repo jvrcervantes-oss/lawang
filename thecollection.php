@@ -950,36 +950,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 .sidebar-cta { transition:transform .16s var(--ease-press),background .22s,color .22s,border-color .22s,opacity .22s !important; }
 .sidebar-cta:active { transform:scale(0.97) !important; }
 
-/* ── Footer completo (portado de index.html; tokens traducidos a los de portfolio) ── */
-/* margin-top 0: la franja de contacto (guía Collection) va pegada encima del footer */
-.pf-footer { background:var(--tg); color:var(--bone); margin-top:0; }
-.pf-footer .lw-ft { max-width:var(--wrap); margin:0 auto; padding:clamp(2.6rem,5vh,3.6rem) var(--gut) 2rem; }
-.lw-ft-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:2.4rem; }
-.lw-ft-logo-img { height:34px; width:auto; display:block; }
-.lw-ft-sub { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); letter-spacing:.3em; text-transform:uppercase; color:#E2DCCF; }
-.lw-ft-tag { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:#DDE0D2; line-height:1.7; max-width:34ch; margin-top:14px; }
-.lw-ft-col h5 { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#E2DCCF; margin-bottom:14px; }
-.lw-ft-col a { display:block; font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:#E4E2D6; padding:5px 0; margin-bottom:2px; transition:color .2s; text-decoration:none; }
-.lw-ft-col a:hover { color:#fff; }
-.pf-footer .lw-ft-bottom { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; max-width:var(--wrap); margin:0 auto; padding:1.5rem var(--gut); border-top:1px solid rgba(245,240,230,.1); }
-.lw-ft-copy { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:#DDE0D2; letter-spacing:.04em; }
-.lw-ft-contact { display:flex; gap:1.6rem; flex-wrap:wrap; align-items:center; }
-.lw-ft-cti { display:inline-flex; align-items:center; gap:8px; font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:rgba(245,240,230,.82); text-decoration:none; letter-spacing:.04em; transition:color .2s; }
-.lw-ft-cti:hover { color:#fff; }
-.lw-ft-cti svg { width:15px; height:15px; flex:none; opacity:.9; }
-.lw-ft-legal { display:flex; gap:1.4rem; flex-wrap:wrap; }
-.lw-ft-tc { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#E4E2D6; text-decoration:none; cursor:pointer; padding:9px 18px; border:1px solid rgba(245,240,230,.22); border-radius:999px; transition:all .25s; }
-.lw-ft-tc:hover { color:#0A0C09; background:var(--rl); border-color:var(--rl); }
-@media(max-width:900px){ .lw-ft-grid { grid-template-columns:1fr 1fr; } }
-@media(max-width:560px){
-  /* Footer compacto en móvil */
-  .pf-footer .lw-ft { padding-top:1.6rem; padding-bottom:1rem; }
-  .lw-ft-grid { gap:1.4rem 1rem; }
-  .lw-ft-tag { margin-top:8px; }
-  .lw-ft-col h5 { margin-bottom:8px; }
-  .lw-ft-col a { margin-bottom:6px; }
-  .pf-footer .lw-ft-bottom { padding-top:1rem; gap:.7rem; }
-}
+/* Pie: el de la home, desde assets/lawang-pie.js (variante «home», owner 13-oct-2026); trae su propio CSS (.lwh). */
 
 /* ═══ Bloque «Availability» de la ficha (F7, 6-oct-2026; lámina F6 aprobada). Solo existe con datos en vivo
    (portfolio-app.js availabilityHTML). Misma gramática que los pines del masterplan; cada estado se distingue
@@ -1261,7 +1232,8 @@ window.LW_COLECCION_PRELOAD=<?= json_encode(lw_coleccion_para_navegador($doc), J
 </script>
 <?php endif; ?>
 <script src="assets/lawang-card.js?v=20261006171014"></script>
-<script src="assets/portfolio-app.js?v=20261012191448"></script>
+<script src="/assets/lawang-pie.js?v=20261013143910"></script>
+<script src="assets/portfolio-app.js?v=20261013143910"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
