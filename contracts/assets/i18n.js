@@ -4651,6 +4651,14 @@
     'sin equipo': 'no team',
     'solo sale quien no está en ningún equipo; entra con fecha de hoy y administración recibe un aviso': 'only people in no team are listed; they join with today\'s date and admin is notified',
     '— elige a alguien sin equipo —': '— choose someone with no team —',
+    // comisiones con base por tramo (desde el 1-nov-2026): opciones de la base y datos de la comisión vinculada
+    'Precio firmado de la parcela': 'Signed plot price',
+    'Precio firmado de la construcción': 'Signed construction price',
+    'Según cada tramo': 'Set per instalment',
+    '«Según cada tramo»: cada pago dice sobre qué precio se calcula (p. ej. el 10 % del precio firmado de la parcela al cobrar el 50 % de la parcela, y el 10 % del de la construcción al cobrar el 25 % de la construcción)':
+      '“Set per instalment”: each payment says which price it is worked out on (e.g. 10% of the signed plot price once 50% of the plot is collected, and 10% of the signed construction price once 25% of the construction is collected)',
+    'Calculada sobre': 'Worked out on',
+    'Momento del pago': 'When it is paid',
     // Asistente de Nuevo contrato (F7, 30-sep-2026): contracts/assets/asistente-contrato.js
     'Al guardarlo vuelves aquí con él elegido.': 'Once saved you come back here with them selected.',
     'Atrás': 'Back',
