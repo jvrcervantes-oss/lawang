@@ -1962,7 +1962,7 @@
     modal('Registrar avance técnico', [
       { k: '_ctx', tipo: 'lectura', label: 'Unidad', valor: u.codigo + ' · ' + (u.proyecto || '—') },
       { k: 'fase', label: 'Fase actual', tipo: 'select', valor: u.obra_fase || '',
-        opciones: [['', '— sin empezar —']].concat(fases.map(function (f) { return [f.clave, f.orden + '. ' + f.es]; })) },
+        opciones: [['', '— sin empezar —']].concat(fases.map(function (f) { return [f.clave, f.orden + '. ' + (window.lwNombreFase ? window.lwNombreFase(f) : f.es)]; })) },
       { k: 'fecha', label: 'Entrega estimada', tipo: 'date', valor: u.obra_fecha_entrega || '' },
       { k: 'fotos', tipo: 'custom', render: function (d) { montaFotosObra(d, sb, u.id); } }
     ], 'Guardar', function (v) {
@@ -7438,7 +7438,10 @@
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudieron leer las unidades: ' + rs[0].error.message, '#93000a');
           var us = rs[0].data || [], fases = rs[1].data || [];
-          var ops = us.map(function (u) { return [u.id, u.codigo + ' · ' + (u.proyecto || '—') + (u.obra_fase ? ' · ' + u.obra_fase : '')]; });
+          // en inglés la fase por su nombre; en español, la clave como hasta hoy (español idéntico)
+          var faseDe = {}; fases.forEach(function (f) { faseDe[f.clave] = f; });
+          var verFase = function (k) { return window.LW_IDIOMA === 'en' && faseDe[k] && window.lwNombreFase ? window.lwNombreFase(faseDe[k]) : k; };
+          var ops = us.map(function (u) { return [u.id, u.codigo + ' · ' + (u.proyecto || '—') + (u.obra_fase ? ' · ' + verFase(u.obra_fase) : '')]; });
           // paso 1: elegir unidad — paso 2 (abajo) abre YA con su fase/fecha actuales y sus fotos,
           // igual que clicar una fila en /intranet/obra/ (aquí no hay tabla clicable todavía)
           modal('Registrar avance técnico', [
