@@ -27,7 +27,8 @@
      4. Servidor: la definición vigente de contrato_guarda enlaza por esa clave
         a un reserva_parcela sin mirar el tipo del contrato que se guarda.
      5. Operaciones: un nieto (Poder → Hak Sewa → Bloqueo) cuelga de la raíz y
-        no desaparece de la lista.
+        no desaparece de la lista; y lo que ACOMPAÑA a la venta (Hak Sewa,
+        Poder, Adenda) no decide su etapa ni pinta «Falta precio».
    ═══════════════════════════════════════════════════════════════════════════ */
 const fs = require('fs');
 const path = require('path');
@@ -108,6 +109,18 @@ async function main() {
   ok('estado guardado antes de hoy (sin padre): «comprobando», no «sin Bloqueo»', o && /Comprobando/.test(o.off || ''));
   o = hsDe({ ...cc, contrato_padre_id: undefined }, { padre: { invisible: true } });
   ok('…y si esa Construcción ya no se ve, lo dice (no «recarga la página» para siempre)', o && /ya no está entre los contratos que ves/.test(o.off || ''));
+
+  // «Venta nueva»: el paso «tipo» NO deja avanzar con el Hak Sewa (se ejecuta el listo() real); el Bloqueo sí
+  {
+    const listoSrc = trozo(asi, '  function listo(k) {', '  function opcionesExistente()', 'asistente');
+    const c8 = Object.assign({}, ctx, { SIGUE_A_VENTA: sigue });
+    vm.createContext(c8);
+    vm.runInContext(listoSrc + '\nthis.listo = listo; this.opcionesExistente = function () { return []; };', c8);
+    c8.S = { camino: 'nueva', slug: 'hak_sewa_notario' };
+    ok('venta nueva: el Hak Sewa no pasa el paso «tipo»', c8.listo('tipo') === false);
+    c8.S = { camino: 'nueva', slug: 'ppjb_parcela' };
+    ok('venta nueva: el Bloqueo de Parcela sí lo pasa', c8.listo('tipo') === true);
+  }
 
   ok('desde una Carta no se ofrece (antes pasa a Bloqueo)', !hsDe({ id: 'c', numero: 'CR1', tipo: 'carta_reserva' }, {}));
   ok('desde un Poder no se ofrece', !hsDe({ id: 'p', numero: 'PA1', tipo: 'poa' }, {}));
@@ -240,6 +253,51 @@ async function main() {
   const hsSolo = { tipo: 'hak_sewa_notario', bloqueado: true, created_at: '1', hijos: [] };
   c6.cuentaGrupo = () => ({ precio: null, pendiente: null });
   ok('un Hak Sewa suelto firmado (sin precio de venta) no queda «cobro pendiente» para siempre', c6.piezaActiva(hsSolo) === hsSolo && c6.etapaOperacion(hsSolo) === 'cobro_ok');
+
+  // Los otros dos que acompañan (Poder, Adenda) tampoco deciden; la venta sigue en su pieza de dinero
+  c6.cuentaGrupo = () => ({ precio: 100, pendiente: 40 });
+  const pa = { tipo: 'poa', bloqueado: false, created_at: '4', firmas: [] }, ad = { tipo: 'adenda', bloqueado: false, created_at: '5', firmas: [] };
+  rp.hijos = [cc, hs, pa, ad];
+  ok('Poder y Adenda en borrador, detrás de la obra firmada: la pieza activa sigue siendo la obra', c6.piezaActiva(rp) === cc && c6.etapaOperacion(rp) === 'cobro_pend');
+  c6.cuentaGrupo = () => ({ precio: 100, pendiente: 0 });
+  ok('…y con todo cobrado la venta es «Cobro completo» aunque el Hak Sewa siga en borrador', c6.etapaOperacion(rp) === 'cobro_ok');
+  // una obra sin firmar SÍ decide (es pieza de dinero): un Hak Sewa ya firmado no la tapa
+  const ccBorr = { tipo: 'construccion', bloqueado: false, created_at: '2', firmas: [{ estado: 'pendiente', expira_en: null }] },
+        hsFirm = { tipo: 'hak_sewa_notario', bloqueado: true, created_at: '3' };
+  rp.hijos = [ccBorr, hsFirm];
+  ok('obra con firma enviada y Hak Sewa firmado: manda la obra («Firma enviada»)', c6.piezaActiva(rp) === ccBorr && c6.etapaOperacion(rp) === 'firma_viva');
+  // la obra liberada (anulada) deja de contar; manda el Bloqueo vivo, no el Hak Sewa
+  const ccLib = { tipo: 'construccion', bloqueado: true, created_at: '2', liberado_en: '2026-10-01' };
+  rp.hijos = [ccLib, hs];
+  c6.cuentaGrupo = () => ({ precio: 100, pendiente: 40 });
+  ok('obra liberada + Hak Sewa en borrador: la pieza activa es el Bloqueo vivo', c6.piezaActiva(rp) === rp && c6.etapaOperacion(rp) === 'cobro_pend');
+  // venta entera liberada: un documento que la acompaña no la resucita
+  const rpLib = { tipo: 'reserva_parcela', bloqueado: true, created_at: '1', liberado_en: '2026-10-01' };
+  rpLib.hijos = [ccLib, hs];
+  ok('Bloqueo y obra liberados: la venta sale «liberada» aunque quede un Hak Sewa colgando', c6.etapaOperacion(rpLib) === 'liberada');
+  // solo documentos que acompañan (Hak Sewa suelto en borrador, con un Poder): deciden ellos, el último vivo
+  const hsSuelto = { tipo: 'hak_sewa_notario', bloqueado: false, created_at: '1', firmas: [] };
+  hsSuelto.hijos = [{ tipo: 'poa', bloqueado: true, created_at: '2' }];
+  ok('sin pieza de dinero en la cadena: decide el último documento vivo', c6.piezaActiva(hsSuelto) === hsSuelto.hijos[0]);
+
+  // etapa() de UNA pieza (tablero clásico) usa la misma lista
+  const fnEtapa = trozo(opsSrc, 'function etapa(o){', '\n\n/* ---------- la OPERACIÓN', 'operaciones-cuentas');
+  const c7 = { cuenta: () => ({ precio: null, pendiente: null }) };
+  vm.createContext(c7);
+  vm.runInContext(fnEtapa + '\n' + fn + '\nthis.etapa = etapa;', c7);
+  ok('etapa(): Hak Sewa firmado sin precio = «Cobro completo»', c7.etapa({ tipo: 'hak_sewa_notario', bloqueado: true }) === 'cobro_ok');
+  ok('etapa(): Adenda firmada sin precio = «Cobro completo»', c7.etapa({ tipo: 'adenda', bloqueado: true }) === 'cobro_ok');
+  ok('etapa(): una Construcción firmada sin precio sigue «Cobro pendiente» (no se afirma cobrado)', c7.etapa({ tipo: 'construccion', bloqueado: true }) === 'cobro_pend');
+  c7.cuenta = () => ({ precio: 500, pendiente: 100 });
+  ok('etapa(): un Hak Sewa CON precio y pendiente cae al flujo normal', c7.etapa({ tipo: 'hak_sewa_notario', bloqueado: true }) === 'cobro_pend');
+
+  // datos.js (Operaciones v4): «Falta precio» no se pinta para lo que acompaña, y la lista es la de operaciones-cuentas.js
+  const datos = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'assets', 'datos.js'), 'utf8');
+  ok('datos.js: «Falta precio» excluye PIEZAS_ACOMPANAN (con el Poder de reserva si no cargó)',
+    /if \(p\.bloqueado && !cg\.precio && \(typeof PIEZAS_ACOMPANAN !== 'undefined' \? PIEZAS_ACOMPANAN : \['poa'\]\)\.indexOf\(p\.tipo\) === -1\) out\.push\(\[T\('Falta precio'\)/.test(datos));
+  const pagOps = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'operaciones', 'index.html'), 'utf8');
+  const iOc = pagOps.indexOf('/contracts/assets/operaciones-cuentas.js'), iDa = pagOps.indexOf('../assets/datos.js');
+  ok('Operaciones v4 carga operaciones-cuentas.js ANTES que datos.js (si no, la lista sería la de reserva)', iOc > 0 && iDa > iOc);
 }
 
 console.log('hak_sewa_vinculo.test.js: ' + n + ' comprobaciones en verde');
