@@ -1,3 +1,6 @@
+-- SUSTITUIDA el mismo día por 20261013062019_cadena_saldo_tope_se_queda_estrecho (2.º code-review): contar una pieza
+-- CON precio inflaba el tope (app.html:536-543: una Adenda no lleva precio; el Hak Sewa lo lleva en hsn_precio_rp, en
+-- IDR) y sumar un hijo en otra moneda lo mezclaba. Lo de abajo es el relato de lo que se aplicó entonces.
 -- _cadena_saldo, corrección de 20261013060855 el mismo día (13-oct-2026): una pieza que acompaña (Poder, Hak Sewa,
 -- Adenda) SIN precio no deja la cadena «sin precio», pero si TIENE precio, cuenta. Y se quita la guarda de moneda.
 --

@@ -1,6 +1,6 @@
--- SUSTITUIDA el mismo día por 20261013061519_cadena_saldo_pieza_con_precio_cuenta (code-review): sacar del precio una
--- pieza CON precio rompía el tope de una Adenda que sube lo pactado y divergía de cuentaGrupo, y la guarda de moneda era
--- casi código muerto. Lo de abajo es el relato de lo que se aplicó entonces; la regla vigente y su porqué, en 061519.
+-- SUSTITUIDA el mismo día: primero por 20261013061519 y luego por 20261013062019_cadena_saldo_tope_se_queda_estrecho,
+-- que es la regla vigente y explica el porqué (su guarda de moneda apagaba el tope en vez de dejarlo estrecho).
+-- Lo de abajo es el relato de lo que se aplicó entonces.
 -- _cadena_saldo: lo que acompaña a la venta (Poder, Hak Sewa, Adenda) no cuenta en el precio de la cadena (13-oct-2026).
 --
 -- Por qué. Orden del owner del 13-oct: el Hak Sewa sigue a la venta (1 Bloqueo · 2 Construcción · 3 Hak Sewa · 4 Poder)
