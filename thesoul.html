@@ -611,13 +611,10 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
   .soulnav ul{display:none;position:absolute;top:100%;left:0;right:0;height:auto;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0;padding:4px 0 8px;overflow:visible;-webkit-mask-image:none;mask-image:none;background:#1B3B05;box-shadow:0 14px 24px -14px rgba(0,0,0,.5)}
   .soulnav.open ul{display:flex}
   .soulnav ul a{display:block;padding:13px 16px;font-size:12px}
-  /* motion del submenú (13-oct-2026, owner): la etiqueta de la banda cambia con efecto al pasar de una sección a otra
-     y las entradas del desplegable entran en cascada. Variante en html[data-menu] (a rodillo · b barrido · c letras · d desenfoque) */
+  /* motion del submenú (13-oct-2026, owner): al pasar de una sección a otra la etiqueta de la banda rueda como un marcador
+     (sale por arriba y entra la siguiente por abajo; al subir, al revés) y las entradas del desplegable caen en cascada */
   .sn-t{position:relative;flex:1;align-self:stretch;overflow:hidden}
   .sn-t > span{position:absolute;left:0;top:calc(50% - 8px);line-height:16px;white-space:nowrap}
-  .sn-t > span .ch{display:inline-block;white-space:pre}
-  .sn-pg{position:absolute;left:0;bottom:0;height:2px;width:100%;background:#F6F4F0;opacity:.85;transform-origin:left;transform:scaleX(0);transition:transform .55s cubic-bezier(.2,.8,.2,1);pointer-events:none}
-  html:not([data-menu=b]) .sn-pg{display:none}
   .soulnav.open ul li{animation:snli .38s cubic-bezier(.2,.8,.2,1) both}
   .soulnav.open ul li:nth-child(2){animation-delay:.04s}.soulnav.open ul li:nth-child(3){animation-delay:.08s}
   .soulnav.open ul li:nth-child(4){animation-delay:.12s}.soulnav.open ul li:nth-child(5){animation-delay:.16s}
@@ -674,7 +671,6 @@ html[data-lang=es] .opt .s,html[data-lang=id] .opt .s{letter-spacing:.08em;font-
 <!-- ════════ SUBMENÚ DE THE SOUL (solo esta página) ════════ -->
 <nav class="soulnav" aria-label="The Soul">
   <button type="button" class="sn-cur" aria-expanded="false" aria-controls="sn-list"><span class="sn-t"></span><i class="sn-c" aria-hidden="true"></i></button>
-  <span class="sn-pg" aria-hidden="true"></span>
   <ul id="sn-list">
     <li><a href="#who" data-s="who" data-i18n="bn.who">Who we are</a></li>
     <li><a href="#indonesia" data-s="why" data-i18n="bn.why">Why Indonesia</a></li>
@@ -1656,13 +1652,11 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
   var secs = [].slice.call(snap.querySelectorAll('section'));
   var navUl = document.querySelector('.soulnav ul'), navPrev = null;
   var navBox = document.querySelector('.soulnav'), navBtn = navBox.querySelector('.sn-cur'), navTxt = navBox.querySelector('.sn-t');
-  // Motion de la etiqueta al cambiar de sección. La variante sale de ?menu= (vista previa) o de MENU_FX.
-  var MENU_FX = 'a', fxq = (location.search.match(/[?&]menu=([0abcd])\b/) || [])[1];
-  var fx = fxq || MENU_FX, quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document.documentElement.setAttribute('data-menu', fx);
-  var navPg = navBox.querySelector('.sn-pg'), navIdx = 0, navLbl = document.createElement('span');
+  // Etiqueta de la banda en móvil: al cambiar de sección rueda (la vieja sale, la nueva entra; al subir, al revés).
+  // Misma entrada con otro texto = cambio de idioma: se cambia sin efecto. Con «reducir movimiento», fundido corto.
+  var quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var navIdx = 0, navLbl = document.createElement('span');
   navLbl.textContent = (navBox.querySelector('a') || {}).textContent || ''; navTxt.appendChild(navLbl);
-  var EZ = 'cubic-bezier(.2,.8,.2,1)';
   function etiqueta(t, i) {
     if (navLbl.textContent === t) return;
     var dir = i === navIdx ? 0 : i > navIdx ? 1 : -1, viejo = navLbl, nuevo = document.createElement('span'); navIdx = i;
@@ -1670,26 +1664,11 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
     [].slice.call(navTxt.children).forEach(function (c) { if (c !== viejo) c.remove(); });
     var quita = function () { if (viejo.parentNode) viejo.remove(); };
     navTxt.appendChild(nuevo);
-    // misma entrada con otro texto = cambio de idioma: sin efecto
-    if (fx === '0' || !viejo.animate || window.innerWidth > 640 || dir === 0) return quita();
+    if (!viejo.animate || window.innerWidth > 640 || dir === 0) return quita();
     if (quieto) { nuevo.animate([{ opacity: 0 }, { opacity: 1 }], 180); viejo.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' }).onfinish = quita; return; }
-    if (fx === 'a') {
-      viejo.animate([{ transform: 'none' }, { transform: 'translateY(' + (-140 * dir) + '%)' }], { duration: 480, easing: EZ, fill: 'forwards' }).onfinish = quita;
-      nuevo.animate([{ transform: 'translateY(' + (140 * dir) + '%)' }, { transform: 'none' }], { duration: 480, easing: EZ });
-    } else if (fx === 'b') {
-      viejo.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }).onfinish = quita;
-      nuevo.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 560, delay: 120, easing: EZ, fill: 'backwards' });
-    } else if (fx === 'c') {
-      viejo.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-40%)' }], { duration: 220, fill: 'forwards' }).onfinish = quita;
-      nuevo.textContent = ''; nuevo.setAttribute('aria-label', t);
-      t.split('').forEach(function (c, k) {
-        var ch = document.createElement('span'); ch.className = 'ch'; ch.setAttribute('aria-hidden', 'true'); ch.textContent = c; nuevo.appendChild(ch);
-        ch.animate([{ opacity: 0, transform: 'translateY(90%)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: 90 + k * 22, easing: EZ, fill: 'backwards' });
-      });
-    } else if (fx === 'd') {
-      viejo.animate([{ opacity: 1, filter: 'blur(0)', letterSpacing: '.06em' }, { opacity: 0, filter: 'blur(5px)', letterSpacing: '.18em' }], { duration: 320, fill: 'forwards' }).onfinish = quita;
-      nuevo.animate([{ opacity: 0, filter: 'blur(5px)', letterSpacing: '.3em' }, { opacity: 1, filter: 'blur(0)', letterSpacing: '.06em' }], { duration: 650, delay: 80, easing: EZ, fill: 'backwards' });
-    }
+    var ez = 'cubic-bezier(.2,.8,.2,1)';
+    viejo.animate([{ transform: 'none' }, { transform: 'translateY(' + (-140 * dir) + '%)' }], { duration: 480, easing: ez, fill: 'forwards' }).onfinish = quita;
+    nuevo.animate([{ transform: 'translateY(' + (140 * dir) + '%)' }, { transform: 'none' }], { duration: 480, easing: ez });
   }
   function spy() {
     var y = snap.scrollTop + snap.clientHeight * 0.4, cur = null;
@@ -1706,7 +1685,6 @@ window.lwLangInit(SOUL_I18N, { despues: function () {
       }
     });
     if (!hit) etiqueta(first, 0);
-    if (navPg) { var pos = 0, y2 = snap.scrollTop + snap.clientHeight * 0.4; secs.forEach(function (x, j) { if (x.offsetTop <= y2) pos = j; }); navPg.style.transform = 'scaleX(' + (secs.length > 1 ? pos / (secs.length - 1) : 0) + ')'; }
   }
   navBtn.addEventListener('click', function (e) { e.stopPropagation(); var o = !navBox.classList.contains('open'); navBox.classList.toggle('open', o); navBtn.setAttribute('aria-expanded', o); });
   function navClose() { navBox.classList.remove('open'); navBtn.setAttribute('aria-expanded', 'false'); }
