@@ -2353,27 +2353,9 @@
       'This is one of the older records left without an author: for now only an administrator can edit it.',
     'Pasar la ficha a': 'Hand the record over to',
     'Traspasar': 'Hand over',
-    'Quien la reciba podrá abrirla y corregirla (mientras no cuelgue de un contrato firmado); los demás la seguirán viendo en el directorio, solo de consulta. Sin marcar la casilla de arriba, los contratos y las facturas NO se mueven: el traspaso es solo de la ficha.':
-      'Whoever receives it will be able to open and correct it (as long as it does not hang off a signed contract); everyone else will keep seeing it in the directory, read-only. Without ticking the box above, contracts and invoices do NOT move: only the record changes hands.',
-    'Pasar la ficha de %n a %d': 'Hand the record of %n over to %d',
-    'Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.':
-      'They will be able to open and correct it. Their contracts and invoices do not move.',
-    'Esa ficha ya es suya.': 'That record is already theirs.',
-    'No se pudo traspasar: ': 'Could not hand it over: ',
-    'Ficha traspasada a ': 'Record handed over to ',
-    /* Arrastrar contratos/facturas en el traspaso — 17-sep-2026, solo super_admin. */
-    'Arrastrar también sus contratos y facturas (solo los que sean de %n)':
-      'Also drag along their contracts and invoices (only the ones that belong to %n)',
     'Ej. Ana deja el equipo, sus clientes pasan a Carmen': 'E.g. Ana is leaving the team, her clients move to Carmen',
     'Escribe el motivo: es lo que explica el traspaso dentro de un año.':
       'Write the reason: it is what explains the transfer a year from now.',
-    'Se traspasarán también los contratos y las facturas de %n. Lo que ya sea de otra persona, o esté firmado o anulado, no se mueve y queda a la vista para revisarlo a mano.':
-      'The contracts and invoices of %n will also be transferred. Anything that already belongs to someone else, or is signed or voided, does not move and stays visible to review by hand.',
-    'Traspaso de %n': 'Transfer of %n',
-    'Contratos: %m movidos · %f firmados sin tocar · %o de otro autor · %s sin autor.':
-      'Contracts: %m moved · %f signed, left untouched · %o belong to someone else · %s have no author.',
-    'Facturas y recibís: %m movidas (%a anuladas incluidas) · %o de otro autor · %s sin autor.':
-      'Invoices and receipts: %m moved (including %a voided) · %o belong to someone else · %s have no author.',
     'Contratos, pagos, facturas, documentos y portal de esta persona NO se muestran aquí: son del compañero que lleva la ficha. Que no aparezcan no significa que no existan.':
       'This person’s contracts, payments, invoices, documents and portal are NOT shown here: they belong to the colleague who owns the record. Their absence does not mean they do not exist.',
     'de otro': 'someone else’s',
@@ -5650,15 +5632,24 @@
     'Contratos (%n)': 'Contracts (%n)',
     'Operaciones (%n) · %m contratos': 'Deals (%n) · %m contracts',
     'Nadie · ficha antigua, solo la corrige un administrador': 'Nobody · old record, only an administrator can correct it',
-    'Arrastrar también sus contratos y facturas (solo los de %p)': 'Also move their contracts and invoices (only those by %p)',
-    'Quien la reciba podrá editarla. Contratos y facturas no se mueven sin la casilla.': 'Whoever receives it will be able to edit it. Contracts and invoices do not move without the checkbox.',
     'Pasar la ficha de %n a %m': 'Hand over the record of %n to %m',
     'Ficha traspasada a %n': 'Record handed over to %n',
+    /* Traspaso que siempre arrastra (13-oct-2026): resumen y avisos. */
+    'Quien la reciba se lleva también sus contratos, facturas y recibís, firmados y anulados incluidos. Los que están a nombre de otro comprador no se mueven.':
+      'Whoever receives it also takes their contracts, invoices and receipts, signed and voided ones included. Those in another buyer’s name do not move.',
+    '%m se lleva la ficha, todos sus contratos (también los que comparte con otros compradores) y sus facturas y recibís: los de cualquier autor, los firmados y los anulados. Las facturas y recibís a nombre de otro comprador se quedan con quien los lleva. Queda apuntado quién lo hizo, cuándo y el motivo.':
+      '%m takes the record, all of its contracts (including those shared with other buyers) and its invoices and receipts: by any author, signed and voided ones included. Invoices and receipts in another buyer’s name stay with whoever handles them. Who did it, when and why is recorded.',
+    'Las comisiones no cambian: siguen siendo de quien cerró cada venta.': 'Commissions do not change: they still belong to whoever closed each sale.',
+    'Contratos movidos: %a.': 'Contracts moved: %a.',
+    'Facturas y recibís movidos: %a (%b anulados).': 'Invoices and receipts moved: %a (%b voided).',
+    '%n contratos firmados no se han movido.': '%n signed contracts were not moved.',
+    '%n contratos de otro autor no se han movido.': '%n contracts by another author were not moved.',
+    '%n contratos sin autor no se han movido.': '%n contracts without an author were not moved.',
+    '%n facturas o recibís a nombre de otro comprador del mismo contrato se quedan con quien los lleva.': '%n invoices or receipts in the name of another buyer on the same contract stay with whoever handles them.',
+    '%n facturas o recibís sin autor no se han movido.': '%n invoices or receipts without an author were not moved.',
+    '%n facturas emitidas se quedan con su autor (una emitida no se reasigna).': '%n issued invoices keep their author (an issued invoice is not reassigned).',
+    'No se ha podido confirmar el traspaso: recarga la ficha para ver de quién es antes de repetirlo.': 'The handover could not be confirmed: reload the record to see who owns it before trying again.',
     'No se pudo traspasar': 'Could not hand over',
-    'No se ha traspasado: la base no te ha dejado tocar esta ficha. Habla con un administrador — recargar no lo arregla.': 'Not handed over: the database did not let you change this record. Talk to an administrator — reloading will not fix it.',
-    'Contratos: %a movidos · %b firmados sin tocar · %c de otro autor · %d sin autor.': 'Contracts: %a moved · %b signed, left as they were · %c by another author · %d without author.',
-    'Facturas y recibís: %a movidas (%b anuladas incluidas) · %c de otro autor · %d sin autor': 'Invoices and receipts: %a moved (%b voided included) · %c by another author · %d without author',
-    '%n emitidas sin tocar (su autor no cambia)': '%n issued, left as they were (their author does not change)',
     'Borrar la ficha de %n': 'Delete the record of %n',
     'Se borra la ficha y sus documentos KYC del archivo privado, si los tuviera.': 'The record is deleted, along with its KYC documents in the private archive, if any.',
     'Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide y te dice cuál — esta acción es para %b.': 'If it is linked to a contract or has portal access, the system blocks it and tells you which — this action is for %b.',
