@@ -1,13 +1,13 @@
 <!DOCTYPE html><html lang="es" style=""><head>
-<meta name="lw-version" content="cccae0597d6e">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/roles.js?v=11d9478b"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=8384087b" data-herramienta="unidades"></script>
+<meta name="lw-version" content="88697065582e">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/roles.js?v=11d9478b"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=4ed893fe"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=8384087b" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=f4de81db" defer></script>
-<script src="/contracts/assets/dinero.js?v=0f73a5db" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=9088e0f9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=6a1e784c" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=82d90529" defer></script><script src="/contracts/assets/docs_contrato.js?v=73e7152b" defer></script><script src="/contracts/assets/mapa.js?v=6344d6d9" defer></script><script src="../assets/datos.js?v=26343ece" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/i18n.js?v=16b69743" defer></script>
+<script src="/contracts/assets/dinero.js?v=0f73a5db" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=d347fb01" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=9088e0f9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=6a1e784c" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=82d90529" defer></script><script src="/contracts/assets/docs_contrato.js?v=73e7152b" defer></script><script src="/contracts/assets/mapa.js?v=6344d6d9" defer></script><script src="../assets/datos.js?v=0968ff7a" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=e7a7356c" defer></script>
 <link href="../assets/shell.css?v=eac636db" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=06451b87" defer></script><script src="../assets/editores.js?v=3f5384d8" defer></script><script src="../assets/reclamo-pago.js?v=b397dac0" defer></script><script src="../assets/maqueta.js?v=660010ce" defer></script><script src="../assets/ficha_publica.js?v=b6dd6829" defer></script>
+<script src="/contracts/assets/dialogo.js?v=06451b87" defer></script><script src="../assets/editores.js?v=5f1d8f4c" defer></script><script src="../assets/reclamo-pago.js?v=b397dac0" defer></script><script src="../assets/maqueta.js?v=660010ce" defer></script><script src="../assets/ficha_publica.js?v=b6dd6829" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, aquí solo se engancha, nunca se reescribe. Depende de
@@ -179,12 +179,12 @@
 <div class="lw-cabecera flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-warm-border">
 <div class="flex flex-col gap-1.5">
 <div class="flex items-center gap-2">
-<span class="font-body-sm text-[11px] text-soft-canopy uppercase tracking-widest font-semibold">Base de Datos</span>
+<span class="font-body-sm text-[11px] text-soft-canopy uppercase tracking-widest font-semibold" data-lwt>Base de Datos</span>
 <span class="w-1.5 h-1.5 rounded-full bg-soft-canopy"></span>
-<span class="font-body-sm text-[11px] text-outline tracking-wider uppercase">Inventario &amp; Cuentas</span>
+<span class="font-body-sm text-[11px] text-outline tracking-wider uppercase" data-lwt>Inventario &amp; Cuentas</span>
 </div>
-<h1 class="font-headline-lg text-[36px] text-deep-lagoon tracking-tight leading-tight">Inventario de Proyectos &amp; Suelo</h1>
-<p class="font-body-md text-[15px] text-on-surface-variant max-w-3xl">
+<h1 class="font-headline-lg text-[36px] text-deep-lagoon tracking-tight leading-tight" data-lwt>Inventario de Proyectos &amp; Suelo</h1>
+<p class="font-body-md text-[15px] text-on-surface-variant max-w-3xl" data-lwt>
             Parcelas y villas por desarrollo, con el volumen de cartera y lo cobrado hasta hoy.
           </p>
 </div>
@@ -203,11 +203,11 @@
 </button>
 <button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-lowest text-deep-lagoon border border-warm-border hover:bg-surface-container-high transition-all font-label-md text-[14px] font-semibold shadow-sm" id="btn-nueva-unidad" type="button">
 <span class="material-symbols-outlined text-[18px]">domain_add</span>
-<span class="">Nueva unidad</span>
+<span class="" data-lwt>Nueva unidad</span>
 </button>
 <button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-deep-lagoon text-surface-bright hover:bg-opacity-95 transition-all font-label-md text-[14px] font-semibold shadow-sm" id="btn-nuevo-proyecto" type="button">
 <span class="material-symbols-outlined text-[18px]">add</span>
-<span class="">+ Nuevo proyecto</span>
+<span class="" data-lwt>+ Nuevo proyecto</span>
 </button>
 </div>
 </div>
@@ -239,7 +239,7 @@
 <!-- KPI 3 -->
 <div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
 <div class="flex items-center justify-between text-outline mb-2">
-<span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Pendiente de Cobro</span>
+<span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline" data-lwt>Pendiente de Cobro</span>
 <span class="material-symbols-outlined text-secondary text-[19px]">schedule</span>
 </div>
 <div class="font-kpi-number text-[clamp(19px,1.7vw,26px)] leading-tight text-volcanic-ash whitespace-nowrap tabular-nums font-bold" data-lw="k-pendiente">—</div>
@@ -248,7 +248,7 @@
 <!-- KPI 4 -->
 <div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
 <div class="flex items-center justify-between text-outline mb-2">
-<span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Valoración Suelo vs Obra</span>
+<span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline" data-lwt>Valoración Suelo vs Obra</span>
 <span class="material-symbols-outlined text-deep-lagoon text-[19px]">pie_chart</span>
 </div>
 <!-- 23-sep-2026 (owner: «mejora su visual, quita decimales»): antes eran dos
@@ -280,7 +280,7 @@
 <div class="bg-surface-container-lowest rounded-xl p-3.5 border border-warm-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
 <div class="relative w-full md:w-64 shrink-0">
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]">search</span>
-<input class="w-full pl-9 pr-4 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[13px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-territorial-green" id="project-search" placeholder="Filtrar por nombre, isla o lote..." type="text">
+<input class="w-full pl-9 pr-4 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[13px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-territorial-green" id="project-search" data-lwt-ph placeholder="Filtrar por nombre, isla o lote..." type="text">
 </div>
 <!-- Pastillas de estado requeridas -->
 <span class="font-body-sm text-[11px] text-outline uppercase tracking-wider shrink-0 self-center">Proyectos</span>
@@ -407,7 +407,7 @@
      pero pendiente de cobro. Los anchos los pone datos.js con FIRM_P/COB_P. -->
 <div class="flex flex-col gap-2">
 <div class="flex items-baseline justify-between gap-2">
-<span class="text-[11px] font-semibold uppercase tracking-wider text-outline">Recaudación</span>
+<span class="text-[11px] font-semibold uppercase tracking-wider text-outline" data-lwt>Recaudación</span>
 <span class="text-[13px] font-kpi-number text-fiduciary-green font-bold whitespace-nowrap" data-lw="pct">—</span>
 </div>
 <div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
@@ -779,7 +779,7 @@
 <div class="flex items-center gap-2 flex-wrap">
 <div class="relative flex-1 min-w-[180px]">
 <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px]">search</span>
-<input data-lw="buscador" class="w-full pl-8 pr-3 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:ring-1 focus:ring-territorial-green" id="d-unidades-buscar" placeholder="Buscar código, modelo, cliente o contrato…" type="text">
+<input data-lw="buscador" class="w-full pl-8 pr-3 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:ring-1 focus:ring-territorial-green" id="d-unidades-buscar" data-lwt-ph placeholder="Buscar código, modelo, cliente o contrato…" type="text">
 </div>
 <select class="pl-2.5 pr-8 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] border border-warm-border/60 focus:outline-none" id="d-unidades-orden">
 <option value="codigo">Orden: código</option>

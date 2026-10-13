@@ -6,7 +6,8 @@
      1. los propios se piden por empresa, una empresa fuera de alcance (42501) no rompe a las demás y se guardan {slug: nombre};
      2. `tipoC` enseña el nombre del propio y deja el vocabulario de los 17 como está;
      3. el formulario de permisos suma los propios, conserva marcado lo que la persona ya tiene y no se ofrece, y avisa de la regla de «solo quien lo tiene»;
-     4. el alta (edge admin-usuarios, que filtra por los 17) no promete lo que descartaría. */
+     4. el alta (13-oct-2026: la edge admin-usuarios ya acepta los propios que existen, preguntando a la base) los ofrece frescos y
+        avisa de lo que la edge no dio (`tipos_no_dados`); antes los descartaba en silencio y el alta decía «se conceden después». */
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -76,10 +77,16 @@ function ctx() {
   ok(/' — no disponible ahora'/.test(editores), 'lo que la persona ya tiene y no se ofrece se enseña marcado (guardar no se lo quita en silencio)');
   ok(/solo los puede conceder quien ya los tiene/.test(editores), 'avisa de la regla de la base (nadie concede lo que no tiene)');
   ok(/\(u\.empresas \|\| \[\]\)\.length \|\| u\.empresas\.indexOf\(f\.empresa\) !== -1/.test(editores), 'con empresas marcadas, solo los propios de esas empresas');
-  // 4. el alta no promete lo que la edge descartaría
-  const alta = editores.slice(editores.indexOf("{ k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck', opciones: tiposCatAlta"));
-  ok(/se conceden después, en los permisos de la persona/.test(alta.slice(0, 700)), 'el alta dice que los propios se conceden después');
-  ok(!/propios/.test(editores.slice(editores.indexOf('var tiposCatAlta'), editores.indexOf('var tiposErp'))), 'el alta no ofrece propios (la edge admin-usuarios filtra por los 17)');
+  // 4. el alta ofrece los propios (la edge los acepta desde el 13-oct) y no calla lo que la edge no dio
+  const iAlta = editores.indexOf("var btnAlta = ata('invitar-miembro'");
+  assert.ok(iAlta > 0, 'no encuentro el botón de alta');
+  const btnAlta = editores.slice(iAlta, editores.indexOf("if (btnAlta && new URLSearchParams", iAlta));
+  ok(/cargaTiposPropios\(sb, true\)/.test(btnAlta), 'el alta pide los propios frescos (un propio recién activado sale sin recargar)');
+  ok(/ops\.push\(\[f\.slug,[^\n]*contrato propio/.test(btnAlta), 'el alta suma los propios a las casillas, marcados «contrato propio»');
+  ok(/return conPropios\(\[\]\)/.test(btnAlta), 'si no se pueden leer, el alta se abre con los 17 (no se bloquea)');
+  const guardaAlta = editores.slice(editores.indexOf("accion: 'crear', email: email"), editores.indexOf('history.replaceState(null', editores.indexOf("accion: 'crear', email: email")));
+  ok(/d\.tipos_no_dados/.test(guardaAlta), 'tras crear, avisa de los tipos que la edge no dio (tipos_no_dados)');
+  ok(!/se conceden después, en los permisos de la persona/.test(editores), 'el alta ya no dice que los propios se conceden después');
 
   console.log('OK propios_permisos.test.js — ' + n + ' comprobaciones');
 })().catch(e => { console.error(e); process.exit(1); });

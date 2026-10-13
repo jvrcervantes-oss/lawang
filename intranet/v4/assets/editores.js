@@ -466,6 +466,8 @@
         if (!opts.sinRecarga) location.reload();
       }, function (e) {
         btn.disabled = false; btn.textContent = tS(textoBoton || 'Guardar');
+        // `e.silencioso`: quien llama cancela a propósito («Todavía no» del recibí) — nada que mostrar; mismo contrato que modal()
+        if (e && e.silencioso) return;
         muestraError(tS('No se pudo guardar: ') + (e && e.message || e));
       });
     });
@@ -1960,7 +1962,7 @@
     modal('Registrar avance técnico', [
       { k: '_ctx', tipo: 'lectura', label: 'Unidad', valor: u.codigo + ' · ' + (u.proyecto || '—') },
       { k: 'fase', label: 'Fase actual', tipo: 'select', valor: u.obra_fase || '',
-        opciones: [['', '— sin empezar —']].concat(fases.map(function (f) { return [f.clave, f.orden + '. ' + f.es]; })) },
+        opciones: [['', '— sin empezar —']].concat(fases.map(function (f) { return [f.clave, f.orden + '. ' + (window.lwNombreFase ? window.lwNombreFase(f) : f.es)]; })) },
       { k: 'fecha', label: 'Entrega estimada', tipo: 'date', valor: u.obra_fecha_entrega || '' },
       { k: 'fotos', tipo: 'custom', render: function (d) { montaFotosObra(d, sb, u.id); } }
     ], 'Guardar', function (v) {
@@ -4070,6 +4072,23 @@
     }, function (e) { toastMal(edT('No se ha podido comprobar si la ficha del cliente dice otra cosa: ') + (e && e.message || e)); });
   }
 
+  /* La pregunta de antes de emitir un recibí (13-oct-2026). Devuelve una promesa a true/false. El foco
+     arranca en «Todavía no» (lwConfirmar), así que un Enter de inercia no emite. Si la página no cargó
+     dialogo.js, el confirm del navegador: sin pregunta no se emite. */
+  function confirmaLlegadaDinero(importeTxt) {
+    var p1 = tH('Vas a emitir un recibí por %i.', { i: importeTxt });
+    var p2 = edT('Antes, comprueba en el banco que ese importe ya está abonado en la cuenta de la sociedad que cobra.');
+    var p3 = edT('El justificante de transferencia solo prueba que el dinero ha salido, no que haya llegado: una transferencia puede tardar días, quedarse retenida o ser devuelta.');
+    var p4 = edT('El recibí certifica al cliente que su pago está cobrado. Si aún no lo ves en la cuenta, no lo emitas.');
+    if (typeof lwConfirmar !== 'function') return Promise.resolve(window.confirm(edT('¿Ha llegado ya el dinero?') + '\n\n' + p1 + ' ' + p2 + '\n\n' + p3));
+    return lwConfirmar({
+      titulo: '¿Ha llegado ya el dinero?',
+      cuerpo: '<p>' + tH('Vas a emitir un recibí por %i.', { i: '<b>' + esc(importeTxt) + '</b>' }) + ' <b>' + esc(p2) + '</b></p>' +
+        '<p>' + esc(p3) + '</p><p>' + esc(p4) + '</p>',
+      confirmar: 'Sí, ya está en la cuenta', cancelar: 'Todavía no'
+    }).then(function (ok) { return ok === true; });
+  }
+
   /* ---------- Recibí de cobro: crear o editar ---------- */
   function abrirEditorRecibiDoc(pre) {
     pre = pre || {};
@@ -4087,7 +4106,7 @@
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
           listaContratosLigeraDoc(sb),
           esEdicion
-            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos,justificantes').eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos,justificantes').eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
             : Promise.resolve({ data: null }),
           reglaContratoDoc(sb)
         ]);
@@ -4574,8 +4593,23 @@
             // Sin contrato, el recibí va a nombre del cliente; guardar_recibi comprueba que quien lo emite lo ve.
             if (!estadoContrato.id) pFactura.client_id = estadoContrato.clienteId;
             var pAplicaciones = aplicaciones.map(function (a) { return { factura_id: a.factura_id, importe: lwParseImporte(a.importe) }; });
-            return sb.rpc('guardar_recibi', { p_id: (existente && existente.id) || null, p_factura: pFactura, p_aplicaciones: pAplicaciones })
-              .then(function (res) {
+            /* ¿HA LLEGADO EL DINERO? (13-oct-2026, petición del cliente vía owner): antes de EMITIR, el agente
+               confirma que el importe ya está abonado en la cuenta, no solo que el cliente lo haya enviado.
+               Va después de todas las validaciones (solo pregunta por un recibí que se puede guardar). Al EDITAR uno
+               guardado y sin enviar (guardar_recibi lo deja reescribir) pregunta otra vez si cambia el importe o la
+               moneda: lo confirmado al emitir era otra cifra (revisor, 13-oct). Si no cambian, no molesta.
+               «Todavía no» deja el formulario intacto (`silencioso`: modalClasico() suelta el botón sin pintar
+               error). Es una pregunta a la persona, no un candado: el servidor no puede saber si el dinero llegó, y
+               quién emitió ya queda registrado en el recibí. Interruptor por instancia (`recibi_confirma_llegada`,
+               instancia.js), como el documento del alta: la petición es de este cliente. */
+            var cambiaCifra = !existente || Math.abs((Number(existente.total) || 0) - (Number(t.total) || 0)) > 0.005
+              || (((existente.datos && existente.datos.fields && existente.datos.fields.moneda) || 'EUR') !== (d.moneda || 'EUR'));
+            var preguntaLlegada = !!(window.LW_INSTANCIA && window.LW_INSTANCIA.recibi_confirma_llegada === true) && cambiaCifra;
+            var llegada = preguntaLlegada ? confirmaLlegadaDinero(fmtMoneda(t.total, d.moneda)) : Promise.resolve(true);
+            return llegada.then(function (ok) {
+              if (!ok) throw { silencioso: true };
+              return sb.rpc('guardar_recibi', { p_id: (existente && existente.id) || null, p_factura: pFactura, p_aplicaciones: pAplicaciones });
+            }).then(function (res) {
                 if (res.error) return { error: res.error };
                 toast(tH(existente ? 'Actualizado como %n' : 'Guardado como %n', { n: res.data.numero }));
                 abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
@@ -7404,7 +7438,10 @@
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudieron leer las unidades: ' + rs[0].error.message, '#93000a');
           var us = rs[0].data || [], fases = rs[1].data || [];
-          var ops = us.map(function (u) { return [u.id, u.codigo + ' · ' + (u.proyecto || '—') + (u.obra_fase ? ' · ' + u.obra_fase : '')]; });
+          // en inglés la fase por su nombre; en español, la clave como hasta hoy (español idéntico)
+          var faseDe = {}; fases.forEach(function (f) { faseDe[f.clave] = f; });
+          var verFase = function (k) { return window.LW_IDIOMA === 'en' && faseDe[k] && window.lwNombreFase ? window.lwNombreFase(faseDe[k]) : k; };
+          var ops = us.map(function (u) { return [u.id, u.codigo + ' · ' + (u.proyecto || '—') + (u.obra_fase ? ' · ' + verFase(u.obra_fase) : '')]; });
           // paso 1: elegir unidad — paso 2 (abajo) abre YA con su fase/fecha actuales y sus fotos,
           // igual que clicar una fila en /intranet/obra/ (aquí no hay tabla clicable todavía)
           modal('Registrar avance técnico', [
@@ -7438,9 +7475,11 @@
 
         Promise.all([
           sb.from('proyectos').select('id,nombre,estado').eq('estado', 'en_construccion').order('nombre'),
-          sb.from('obra_fases').select('clave,es,orden').order('orden')
+          sb.from('obra_fases').select('clave,es,en,orden').order('orden')
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudieron leer los proyectos: ' + rs[0].error.message, '#93000a');
+          // Sin las fases, el paso 2 decía «sin empezar · ya terminado» en todos los tramos y luego «no hay paso siguiente».
+          if (rs[1].error) return aviso('No se pudieron leer las fases de obra: ' + rs[1].error.message, '#93000a');
           var proys = rs[0].data || [], fases = rs[1].data || [];
           // Sin proyectos en construcción no hay nada que avanzar, y el motivo
           // no es obvio: se dice entero, con el camino para resolverlo.
@@ -7457,6 +7496,12 @@
         });
       });
 
+      // Frases del parte montadas con datos: por el diccionario con sus huecos (en español salen tal cual).
+      function trParte(s, h) {
+        if (window.lwT) return window.lwT(s, h);
+        return s.replace(/%([a-z])/g, function (m, k) { return h && h[k] != null ? String(h[k]) : m; });
+      }
+
       /* Paso 2 — qué cubo del masterplan avanza, y a qué fase.
          La fase siguiente NO se elige: la base solo admite avanzar un paso
          (obra_fases.orden + 1), así que ofrecerla sería ofrecer un error. */
@@ -7467,6 +7512,8 @@
             .eq('proyecto_id', proy.id)
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudieron leer las parcelas: ' + rs[0].error.message, '#93000a');
+          // Sin el avance, todos los tramos salían «sin empezar» y se proponía la primera fase: la base lo rechaza tarde.
+          if (rs[1].error) return aviso('No se pudo leer el avance de la obra: ' + rs[1].error.message, '#93000a');
           var uds = rs[0].data || [], prog = rs[1].data || [];
 
           // Cubos reales del proyecto. Una parcela sin fase o sin zona queda
@@ -7490,7 +7537,8 @@
           prog.forEach(function (r) { porCubo[JSON.stringify([r.fase_masterplan, r.zona_masterplan])] = r.obra_fase_actual; });
 
           var etiqueta = {}, siguiente = {};
-          fases.forEach(function (f) { etiqueta[f.clave] = f.es || f.clave; });
+          // Nombre de la fase en el idioma de la interfaz (13-oct-2026, demo en inglés): en español, el de siempre.
+          fases.forEach(function (f) { etiqueta[f.clave] = window.lwNombreFase ? window.lwNombreFase(f) : (f.es || f.clave); });
 
           var ops = claves.map(function (k) {
             var partes = JSON.parse(k);
@@ -7503,9 +7551,9 @@
               }
             }
             siguiente[k] = sig;
-            var texto = 'Fase ' + partes[0] + ' · ' + partes[1] + ' · ' + cubos[k] + ' parcelas · ' +
-              (actual ? 'ahora en ' + (etiqueta[actual] || actual) : 'sin empezar') +
-              (sig ? ' → ' + (etiqueta[sig] || sig) : ' · ya terminado');
+            var texto = trParte('Fase %f · %z · %n parcelas', { f: partes[0], z: partes[1], n: cubos[k] }) + ' · ' +
+              (actual ? trParte('ahora en %e', { e: etiqueta[actual] || actual }) : trParte('sin empezar')) +
+              (sig ? ' → ' + (etiqueta[sig] || sig) : ' · ' + trParte('ya terminado'));
             return [k, texto];
           });
 
@@ -7527,7 +7575,7 @@
          Enseña los contratos que van a recibir fecha de cobro Y los que se
          quedan fuera con su motivo: un contrato excluido en silencio es
          exactamente el fallo que esta pantalla tiene que evitar. */
-      function previaAvance(sb, proy, fase, zona, faseNueva, faseNuevaEs) {
+      function previaAvance(sb, proy, fase, zona, faseNueva, faseNuevaNombre) {
         Promise.all([
           sb.rpc('obra_contratos_afectados', {
             p_proyecto_id: proy.id, p_fase_masterplan: fase,
@@ -7580,8 +7628,8 @@
             }).join('  ·  ');
 
             var campos = [
-              { tipo: 'lectura', medio: 1, label: 'Tramo', valor: 'Fase ' + fase + ' · ' + zona },
-              { tipo: 'lectura', medio: 1, label: 'Pasa a', valor: faseNuevaEs },
+              { tipo: 'lectura', medio: 1, label: 'Tramo', valor: trParte('Fase %f · %z', { f: fase, z: zona }) },
+              { tipo: 'lectura', medio: 1, label: 'Pasa a', valor: faseNuevaNombre },
               { tipo: 'custom', label: 'Lo que se va a cobrar', render: function (d) {
                   d.style.cssText = 'display:grid;gap:8px;background:#f5f4ee;border:1px solid ' + CAJ.borde +
                     ';border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.4;color:' + CAJ.apagado;
@@ -7833,6 +7881,40 @@
         };
         var soloEmp = ' <span class="las-etq-sec">' + esc(tS('(Solo empresa)')) + '</span>';
 
+        /* DOCUMENTO DE IDENTIDAD EN EL ALTA (13-oct-2026, petición del cliente vía owner: «que para dar de
+           alta nuevos clientes pida adjuntar una imagen como pasaporte, parecido a los recibís»). Se elige aquí
+           y se sube al archivo privado KYC con la MISMA pieza que la pestaña Documentos de la ficha
+           (`lwKycSube`, guard.js): la ruta la pone el servidor y al registrar mira los bytes. Como esa pieza
+           necesita la ficha ya creada, el orden es: cliente_guarda → subir. Si la subida falla, la ficha ya
+           existe: el cajón NO se cierra, se queda en «reintentar la subida» (sin volver a crear la ficha).
+           Solo al CREAR, como los seis datos: las fichas antiguas sin pasaporte no se bloquean.
+           Interruptor por instancia (`alta_exige_documento` en instancia.js): este fichero lo comparten las
+           instancias del ERP y la petición es de este cliente; sin la clave, el alta es la de siempre. */
+        var exigeDoc = !!(window.LW_INSTANCIA && window.LW_INSTANCIA.alta_exige_documento === true);
+        var DOC_ALTA = {
+          persona: { etq: 'Foto del pasaporte', tipo: 'passport', falta: 'Adjunta la foto del pasaporte.',
+            ayuda: 'La página de datos, que se lea bien: foto o escaneo (JPG, PNG, WEBP, HEIC o PDF, hasta 20 MB). Si es un DNI o una tarjeta, sube las dos caras.' },
+          empresa: { etq: 'Documento de identificación de la empresa', tipo: 'other', falta: 'Adjunta el documento de identificación de la empresa.',
+            ayuda: 'El que lleva su número fiscal o de registro (NPWP, escritura, certificado del registro…): foto o escaneo, hasta 20 MB.' }
+        };
+        var DOC_EXT = /\.(pdf|jpe?g|png|webp|hei[cf])$/i, DOC_MAX = 4;
+        /* El aviso al titular (Legal, 13-oct-2026: condición para pedir la copia) es dato de la instancia —sociedad y
+           correo del cliente—, no de este fichero. Se enseña en los tres idiomas a la vez: es para el comprador, no
+           para el agente, y no sigue el idioma de la pantalla. */
+        var avisoDoc = exigeDoc && window.LW_INSTANCIA.aviso_documento_alta && window.LW_INSTANCIA.aviso_documento_alta.es
+          ? window.LW_INSTANCIA.aviso_documento_alta : null;
+        var bloqueDoc = !exigeDoc ? '' :
+          '<div class="las-fila">' +
+          '<div class="las-campo" data-req="doc_identidad"><label for="las-doc_identidad" class="las-etq"><span data-p="doc-etq">' + esc(tS(DOC_ALTA.persona.etq)) + '</span> <span class="las-rojo">*</span></label>' +
+          '<label class="las-in las-file">' + icoBase(ICO_BASE.subir) + '<span class="las-file-t" data-p="doc-nombre">' + esc(tS('Elegir fichero')) + '</span>' +
+          '<input id="las-doc_identidad" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,application/pdf" aria-describedby="las-doc_identidad-a"></label>' +
+          '<p id="las-doc_identidad-a" class="las-ayuda" data-p="doc-ayuda">' + esc(tS(DOC_ALTA.persona.ayuda)) + '</p>' +
+          (!avisoDoc ? '' : '<button type="button" data-e="aviso-doc" style="all:unset;cursor:pointer;justify-self:start;margin-top:4px;font-size:12px;font-weight:600;color:var(--las-lago);text-decoration:underline">' +
+          esc(tS('Aviso de privacidad para el cliente')) + '</button>') +
+          '<p class="las-msg" role="alert"></p></div>' +
+          campo('doc_caduca', 'Caduca el', { tipo: 'date', ayuda: 'Opcional. Con la fecha, la ficha avisa 60 días antes de que caduque.' }) +
+          '</div>';
+
         var w = document.createElement('div');
         w.id = 'lw-editor';
         w.innerHTML =
@@ -7853,9 +7935,9 @@
           '<p class="las-nombre" data-p="nombre">' + esc(tS('Sin titular asignado')) + '</p><p class="las-sub" data-p="tipo">' + esc(tS('Persona física')) + ' • ' + esc(tS('Español')) + '</p></div></div>' +
           '<div class="las-datos"><div><span class="las-dato-etq">' + esc(tS('Identificación')) + '</span><span class="las-dato las-mono" data-p="doc">—</span></div>' +
           '<div class="las-min0"><span class="las-dato-etq">' + esc(tS('Contacto rápido')) + '</span><span class="las-dato las-trunca" data-p="tel">—</span></div></div></article>' +
-          '<article class="las-card"><h2 class="las-cinta las-card-h"><span>' + esc(tS('Documentos KYC')) + '</span><span class="las-fase">' + esc(tS('Después del alta')) + '</span></h2>' +
+          '<article class="las-card"><h2 class="las-cinta las-card-h"><span>' + esc(tS('Documentos KYC')) + '</span><span class="las-fase">' + esc(tS(exigeDoc ? 'El pasaporte, en el alta' : 'Después del alta')) + '</span></h2>' +
           '<ul class="las-lista">' +
-          '<li><span class="las-num">1</span><div><p class="las-li-t">' + esc(tS('Pasaporte')) + '</p><p class="las-li-s">' + esc(tS('Se sube desde la ficha, una vez creada. Si caduca, la ficha avisa 60 días antes.')) + '</p></div></li>' +
+          '<li><span class="las-num">1</span><div><p class="las-li-t">' + esc(tS('Pasaporte')) + '</p><p class="las-li-s">' + esc(tS(exigeDoc ? 'Se adjunta ya en el alta. Si caduca, la ficha avisa 60 días antes.' : 'Se sube desde la ficha, una vez creada. Si caduca, la ficha avisa 60 días antes.')) + '</p></div></li>' +
           '<li><span class="las-num">2</span><div><p class="las-li-t">NPWP</p><p class="las-li-s">' + esc(tS('El número fiscal indonesio, si el cliente lo tiene.')) + '</p></div></li>' +
           '<li><span class="las-num">3</span><div><p class="las-li-t">' + esc(tS('Justificante de fondos')) + '</p><p class="las-li-s">' + esc(tS('Origen del dinero de la compra. Tiene que estar en la ficha antes de firmar.')) + '</p></div></li>' +
           '</ul></article>' +
@@ -7881,7 +7963,7 @@
           '</div><div class="las-fila">' +
           campo('nationality', 'Nacionalidad', { req: 1, ico: I.globo, ph: 'Elige el país', ayuda: 'Pulsa para elegir el país.' }) +
           campo('passport_number', 'Pasaporte / NPWP', { req: 1, ico: I.doc, mono: 1, cls: 'las-mayus', ph: 'Nº del documento', ayuda: 'Es lo que se imprime en el contrato.', auto: 'off' }) +
-          '</div>' +
+          '</div>' + bloqueDoc +
           campo('idioma_comunicacion', 'Idioma de comunicación', { select: '<option value="es">' + esc(tS('Español')) + '</option><option value="en">English</option><option value="id">Bahasa Indonesia</option>' }) +
           '</section>' +
           '<div class="las-emp-caja" data-emp-caja><section class="las-bloque las-emp" data-emp><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n las-n-verde">02</span><div>' +
@@ -7914,6 +7996,25 @@
         var OBLIG = (typeof CAMPOS_ALTA_COMPRADOR !== 'undefined' ? CAMPOS_ALTA_COMPRADOR.map(function (x) { return x[0]; })
           : ['full_name', 'email', 'prefijo', 'telefono', 'nationality', 'passport_number']);
 
+        var docIn = $('#las-doc_identidad');
+        function docsElegidos() { return docIn && docIn.files ? Array.prototype.slice.call(docIn.files) : []; }
+        if (docIn) docIn.addEventListener('change', function () {
+          var fs = docsElegidos();
+          $('[data-p="doc-nombre"]').textContent = !fs.length ? tS('Elegir fichero') : fs.length === 1 ? fs[0].name : tH('%n ficheros', { n: fs.length });
+          docIn.closest('.las-campo').classList.toggle('las-file-on', !!fs.length);
+        });
+
+        var btnAviso = $('[data-e="aviso-doc"]');
+        if (btnAviso) btnAviso.addEventListener('click', function () {
+          var bloque = function (etq, txt) { return txt ? '<p><b>' + esc(etq) + '</b><br>' + esc(txt) + '</p>' : ''; };
+          // Los tres idiomas no caben en una pantalla de portátil (medido a 1440×900): el texto se desplaza dentro y el
+          // título y el botón quedan siempre a la vista.
+          var cuerpo = '<div style="max-height:min(56vh,520px);overflow:auto;padding-right:6px">' +
+            bloque('Español', avisoDoc.es) + bloque('English', avisoDoc.en) + bloque('Bahasa Indonesia', avisoDoc.id) + '</div>';
+          if (typeof lwConfirmar === 'function') lwConfirmar({ titulo: 'Aviso de privacidad para el cliente', cuerpo: cuerpo, confirmar: 'Cerrar', cancelar: false });
+          else window.alert(avisoDoc.es);
+        });
+
         // La ficha de la izquierda se escribe sola mientras se rellena la derecha.
         function resumen() {
           var n = val('full_name').toUpperCase();
@@ -7923,8 +8024,8 @@
           $('[data-p="tipo"]').textContent = tS(tipoInput.value === 'empresa' ? 'Persona jurídica' : 'Persona física') + ' • ' + (IDIOMA[val('idioma_comunicacion')] || tS('Español'));
           $('[data-p="doc"]').textContent = val('passport_number').toUpperCase() || '—';
           $('[data-p="tel"]').textContent = val('telefono') ? (val('prefijo') + ' ' + val('telefono')).trim() : '—';
-          var faltan = OBLIG.filter(function (k) { return !val(k); }).length;
-          $('[data-p="faltan"]').textContent = faltan ? tH('Faltan %n de %m datos obligatorios', { n: faltan, m: OBLIG.length }) : tS('Listo para dar de alta');
+          var faltan = OBLIG.filter(function (k) { return !val(k); }).length + (exigeDoc && !docsElegidos().length ? 1 : 0);
+          $('[data-p="faltan"]').textContent = faltan ? tH('Faltan %n de %m datos obligatorios', { n: faltan, m: OBLIG.length + (exigeDoc ? 1 : 0) }) : tS('Listo para dar de alta');
           $('[data-p="punto"]').classList.toggle('las-listo', !faltan);
         }
         function ponTipo(t) {
@@ -7937,6 +8038,11 @@
           empCaja.classList.toggle('las-abierta', esEmp);
           empCaja.setAttribute('aria-hidden', String(!esEmp));
           emp.querySelectorAll('input').forEach(function (i) { i.tabIndex = esEmp ? 0 : -1; if (!esEmp) i.value = ''; });
+          if (exigeDoc) {
+            var dd = DOC_ALTA[esEmp ? 'empresa' : 'persona'];
+            $('[data-p="doc-etq"]').textContent = tS(dd.etq);
+            $('[data-p="doc-ayuda"]').textContent = tS(dd.ayuda);
+          }
           resumen();
         }
         w.querySelectorAll('.las-pildora').forEach(function (b) { b.addEventListener('click', function () { ponTipo(b.getAttribute('data-tipo')); }); });
@@ -7959,16 +8065,20 @@
            dejaba Escape muerto tras el primer picker. El listener se suelta en
            w._alCerrar, que cierraModal() ejecuta en TODAS las salidas (también si
            otro editor lo cierra) — si no, un Escape posterior tiraría ese otro. */
-        var teclas = function (e) { if (e.key === 'Escape') cierraModal(); };
-        var cerrar = function () { cierraModal(); };
+        /* Con el alta o la subida en marcha no se cierra (revisor, 13-oct): una recarga entre la subida y el registro
+           dejaría el fichero suelto en el archivo, sin ficha que lo nombre. */
+        var ocupado = function () { return !!w.querySelector('[data-e="guardar"].las-guardando'); };
+        var teclas = function (e) { if (e.key === 'Escape' && !ocupado()) cierraModal(); };
+        var cerrar = function () { if (!ocupado()) cierraModal(); };
         document.addEventListener('keydown', teclas);
-        w._alCerrar = function () { document.removeEventListener('keydown', teclas); };
+        w._alCerrar = function () { document.removeEventListener('keydown', teclas); if (w._alCerrarAlta) w._alCerrarAlta(); };
         $('[data-e="cerrar"]').addEventListener('click', cerrar);
         $('[data-e="cancelar"]').addEventListener('click', cerrar);
         fondo.addEventListener('click', cerrar);
 
         var btn = $('[data-e="guardar"]'), caja = $('[data-e="error"]');
         var error = function (msg) { caja.textContent = msg; caja.hidden = false; caja.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+        var creadoId = null;   // con el documento obligatorio: la ficha ya existe y falta subir el documento (reintento)
         form.addEventListener('submit', function (ev) {
           ev.preventDefault();
           caja.hidden = true;
@@ -7976,8 +8086,12 @@
           w.querySelectorAll('[data-k]').forEach(function (el) { v[el.getAttribute('data-k')] = el.value.trim(); });
           // Los que faltan se marcan en su sitio: tiemblan, rojo y su mensaje debajo.
           var malos = [];
-          OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
-          if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', tS('No parece una dirección de correo válida.')]);
+          if (!creadoId) {
+            OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
+            if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', tS('No parece una dirección de correo válida.')]);
+          }
+          var docMal = exigeDoc ? problemaDocs(docsPendientes()) : '';
+          if (docMal) malos.push(['doc_identidad', docMal]);
           w.querySelectorAll('.las-campo.las-mal').forEach(function (c) { c.classList.remove('las-mal'); });
           if (malos.length) {
             malos.forEach(function (m) {
@@ -7985,17 +8099,69 @@
               c.querySelector('.las-msg').textContent = m[1];
               c.classList.add('las-mal'); c.classList.remove('las-tiembla'); void c.offsetWidth; c.classList.add('las-tiembla');
             });
-            var primero = $('[data-req="' + malos[0][0] + '"] .las-in');
+            // `input` antes que `.las-in`: en el del documento, `.las-in` es la etiqueta que lo envuelve y no coge el foco
+            var primero = $('[data-req="' + malos[0][0] + '"] input') || $('[data-req="' + malos[0][0] + '"] .las-in');
             if (primero) { primero.focus({ preventScroll: true }); primero.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
             return;
           }
           btn.classList.add('las-guardando'); btn.disabled = true;
-          Promise.resolve(guardaAltaComprador(v)).then(function (r) {
+          Promise.resolve(creadoId ? { data: creadoId } : guardaAltaComprador(v)).then(function (r) {
             if (r && r.error) {
               btn.classList.remove('las-guardando'); btn.disabled = false;
               return error(tS('No se pudo dar de alta:') + ' ' + (r.error.message || r.error) +
                 (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — ' + tS('tu usuario no tiene ese permiso.') : ''));
             }
+            if (!exigeDoc) return listo(r);
+            var id = r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data) ? r.data : null;
+            if (!id) {   // no debería pasar (cliente_guarda devuelve el uuid); si pasa, se dice dónde terminar
+              toastMal(tS('La ficha se ha creado, pero no se ha podido adjuntar el documento: súbelo desde la ficha del cliente → Documentación KYC.'));
+              return listo(r);
+            }
+            creadoId = id;
+            return subeDocs(id, v.doc_caduca || null).then(function () { docOk = true; listo(r); }, function (e) {
+              btn.classList.remove('las-guardando'); btn.disabled = false;
+              modoReintento();
+              error(tS(subidos.length ? 'La ficha se ha creado, pero una parte del documento no se ha subido:' : 'La ficha se ha creado, pero el documento no se ha subido:') + ' ' + (typeof lwErrorHumano === 'function' ? lwErrorHumano(e) : String(e && e.message || e)) + '. ' +
+                tS('Pulsa «Reintentar la subida» (puedes elegir otro fichero). Si cierras, súbelo desde la ficha del cliente → Documentación KYC.'));
+            });
+          }, function (e) {
+            btn.classList.remove('las-guardando'); btn.disabled = false;
+            error(tS('No se pudo dar de alta:') + ' ' + (e && e.message || e));
+          });
+        });
+
+        /* Lo que el documento tiene que cumplir ANTES de crear la ficha: si se comprobara después, la ficha
+           ya estaría hecha. Tipo y tamaño son los del archivo KYC (la edge vuelve a mirar el tipo por los bytes). */
+        function problemaDocs(fs) {
+          if (!fs.length) return tS(DOC_ALTA[tipoInput.value === 'empresa' ? 'empresa' : 'persona'].falta);
+          if (fs.length > DOC_MAX) return tH('Como mucho %n ficheros.', { n: DOC_MAX });
+          for (var i = 0; i < fs.length; i++) {
+            if (!DOC_EXT.test(fs[i].name)) return tH('%f: sube una foto (JPG, PNG, WEBP, HEIC) o un PDF.', { f: fs[i].name });
+            if (fs[i].size > 20 * 1024 * 1024) return tH('%f supera los 20 MB.', { f: fs[i].name });
+          }
+          return '';
+        }
+        /* Uno detrás de otro; el que sube se apunta, para que un reintento no lo duplique. Si se vuelve a
+           elegir fichero, los File son otros y suben todos los nuevos. */
+        var subidos = [];
+        function docsPendientes() { return docsElegidos().filter(function (f) { return subidos.indexOf(f) < 0; }); }
+        var docOk = false;   // todo lo elegido subió y quedó registrado (no depende de lo que haya ahora en el selector)
+        function subeDocs(id, caduca) {
+          var tipoDoc = DOC_ALTA[tipoInput.value === 'empresa' ? 'empresa' : 'persona'].tipo;
+          return docsPendientes().reduce(function (p, f) {
+            return p.then(function () {
+              return window.lwKycSube(sb, id, f, tipoDoc, caduca).then(function () { subidos.push(f); });
+            });
+          }, Promise.resolve());
+        }
+        /* Ficha ya creada y documento pendiente: los datos no se pueden tocar aquí (la ficha existe; se corrige
+           desde ella) y el botón solo sube lo que falta. */
+        function modoReintento() {
+          w.querySelectorAll('[data-k], .las-pildora').forEach(function (el) { el.disabled = true; });
+          $('[data-p="faltan"]').textContent = tS('Ficha creada · falta subir el documento');
+          btn.querySelector('.las-txt').innerHTML = esc(tS('Reintentar la subida')) + svg(I.flecha, 'las-ico las-flecha');
+        }
+        function listo(r) {
             btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
             /* Vuelta al asistente de Nuevo contrato (F7, 30-sep-2026): quien llegó
                desde su paso «cliente» (`?volver=asistente`) vuelve allí con la
@@ -8009,11 +8175,18 @@
               if (vuelta) location.href = '/contracts/app.html?nuevo=1&asistente=1&asistente_cliente=' + encodeURIComponent(r.data);
               else location.reload();
             }, 750);
-          }, function (e) {
-            btn.classList.remove('las-guardando'); btn.disabled = false;
-            error(tS('No se pudo dar de alta:') + ' ' + (e && e.message || e));
-          });
-        });
+        }
+        /* Una ficha creada con el documento sin subir no se pierde de vista al cerrar: se recarga la lista
+           (sale ya la ficha nueva) con el aviso en rojo de qué falta. */
+        w._alCerrarAlta = function () {
+          if (!creadoId || docOk) return;
+          var msg = subidos.length
+            ? tH('La ficha se ha creado, pero el documento de identidad solo se ha subido en parte (%n de %m ficheros): sube el resto desde la ficha del cliente → Documentación KYC.', { n: subidos.length, m: subidos.length + docsPendientes().length })
+            : tS('La ficha se ha creado sin el documento de identidad: súbelo desde la ficha del cliente → Documentación KYC.');
+          Promise.resolve(typeof lwConfirmar === 'function'
+            ? lwConfirmar({ titulo: 'Falta el documento de identidad', cuerpo: '<p>' + esc(msg) + '</p>', confirmar: 'Entendido', cancelar: false })
+            : window.alert(msg)).then(function () { location.reload(); });
+        };
 
         // Nacionalidad como picker de nombre completo (geo.js + dialogo.js), igual que el resto de la suite.
         if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {
@@ -8296,7 +8469,7 @@
             valor: ((typeof LW_HERR_POR_ROL === 'object' && LW_HERR_POR_ROL[rolInicial]) || []).filter(puedoDarAlta),
             ayuda: 'Preselección según el rol elegido arriba — editable. Solo aparecen las herramientas que tienes tú.' },
           { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck', opciones: tiposCatAlta,
-            valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol — vacío marcado del todo equivale a "todos". Los contratos propios de una empresa se conceden después, en los permisos de la persona.' }
+            valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol. Solo limita a los agentes: un agente sin ninguno marcado no puede emitir ningún contrato (la base lo bloquea); los demás niveles emiten todos. Los contratos propios (marcados «contrato propio») solo salen si tienen una versión activa.' }
         ], 'Crear usuario', function (v) {
           var email = (v.email || '').trim().toLowerCase();
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: { message: 'email no válido' } };
@@ -8330,10 +8503,14 @@
               // Confirmación en los DOS sentidos (17-sep-2026 en la clásica,
               // misma regla aquí): el éxito también habla, no solo el fallo —
               // sin esto quien da de alta no sabe si el correo salió o no.
+              /* 13-oct-2026: lo que la edge no ha dado (un contrato propio que ya no existe o que tú no tienes) vuelve en
+                 `tipos_no_dados`; antes se tiraba en silencio y la persona nacía sin ese permiso sin que nadie lo supiera. */
+              var noDados = Array.isArray(d.tipos_no_dados) && d.tipos_no_dados.length
+                ? ' Sin estos contratos (no existen o no los tienes tú): ' + d.tipos_no_dados.map(function (k) { return (window.LW_V4 && window.LW_V4.tiposPropios && window.LW_V4.tiposPropios[k]) || k; }).join(', ') + '.' : '';
               if (d.email_enviado === false) {
-                aviso('Usuario creado: ' + email + '. Aviso: no se pudo enviar el correo de bienvenida — dale la contraseña a mano.', '#8A6A34');
+                aviso('Usuario creado: ' + email + '. Aviso: no se pudo enviar el correo de bienvenida — dale la contraseña a mano.' + noDados, '#8A6A34');
               } else {
-                aviso('Usuario creado: ' + email + ' — correo de bienvenida enviado.');
+                aviso('Usuario creado: ' + email + ' — correo de bienvenida enviado.' + noDados, noDados ? '#8A6A34' : undefined);
               }
               // ?u=<email> es lo que hace que la recarga de abajo reabra la
               // ficha del recién creado — mismo mecanismo que ya usa abreFicha
@@ -8367,7 +8544,21 @@
         });
       };
       var btnAlta = ata('invitar-miembro', function () {
-        if (!window.AXW_NUCLEO_OPERACION) return abreAlta(tiposCatAlta);
+        /* 13-oct-2026: el alta también ofrece los contratos PROPIOS activos de las empresas de mi alcance (como «Guardar
+           permisos»); la edge los acepta preguntando a la base y la base decide si se pueden dar. Si no se pueden leer, el
+           alta se abre con los de siempre. */
+        if (!window.AXW_NUCLEO_OPERACION) {
+          var conPropios = function (propios) {
+            var ops = tiposCatAlta.slice();
+            (propios || []).forEach(function (f) {
+              if (!ops.some(function (o) { return o[0] === f.slug; })) ops.push([f.slug, f.nombre + (f.empresaNombre ? ' · ' + f.empresaNombre : '') + ' (contrato propio)']);
+            });
+            return abreAlta(ops);
+          };
+          return (window.LW_V4 && window.LW_V4.cargaTiposPropios)
+            ? window.LW_V4.cargaTiposPropios(sb, true).then(conPropios, function () { return conPropios([]); })
+            : conPropios([]);
+        }
         /* ERP: si el catálogo no se lee, el alta NO se abre. «Contratos que puede hacer» vacío significa TODOS:
            un formulario sin opciones daría acceso a todo sin que nadie lo decidiera. */
         tiposErp().then(function (t) {
@@ -8514,7 +8705,9 @@
                  coherente con su etiqueta; vaciar el campo se sigue pudiendo
                  hacer a mano, casilla a casilla, con el riesgo a la vista. */
               atajos: [{ texto: 'Marcar todos', valor: true }],
-              ayuda: 'Vacío = TODOS (al revés que Proyectos, arriba): no marcar nada aquí no bloquea, lo abre todo.'
+              /* 13-oct-2026: la ayuda decía «Vacío = TODOS», y desde el 24-sep es al revés para un agente (trigger
+                 contratos_tipo_permitido: sin ninguno no emite nada); a los demás niveles esta lista no les limita. */
+              ayuda: 'Solo limita a los agentes: un agente sin ninguno marcado no puede emitir ningún contrato (la base lo bloquea); los demás niveles emiten todos.'
                 + (propios.length ? ' Los contratos propios de una empresa (marcados «contrato propio») solo los puede conceder quien ya los tiene.' : '') }
           );
           modal(tH('Permisos de %n', { n: u.nombre || u.email }), campos, 'Guardar permisos', function (v) {
