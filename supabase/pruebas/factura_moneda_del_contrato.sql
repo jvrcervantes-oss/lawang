@@ -183,14 +183,15 @@ begin
     exception when others then out := out || case when sqlstate = '23514' and sqlerrm like '%precio acordado%' then 'OK ' else 'MAL ' end
                                          || 'a12 proforma de 600 pasada a factura con 500 de 1.000 facturados: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
   exception when others then out := out || 'MAL a12 montaje (proforma): ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
+  -- a13: la MISMA proforma de a12 (solo puede haber una proforma viva por contrato: facturas_proforma_activa_por_contrato)
+  -- pasada a factura por 300: 500+300 de 1.000, pasa. La conversión no gasta número (set_factura_numero solo en INSERT).
   begin
-    select id into v_pro from public.factura_guarda(null, jsonb_build_object('tipo', 'proforma', 'sociedad', v_soc, 'contrato_id', v_e, 'moneda', 'EUR', 'total', '300',
-                 'datos', jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object('descripcion', 'x', 'importe', '300')), 'fields', '{}'::jsonb)));
+    if v_pro is null then raise exception 'sin la proforma de a12'; end if;
     perform public.factura_guarda(v_pro, jsonb_build_object('tipo', 'factura', 'sociedad', v_soc, 'contrato_id', v_e, 'moneda', 'EUR', 'total', '300',
                  'datos', jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object('descripcion', 'x', 'importe', '300')), 'fields', '{}'::jsonb)));
     out := out || case when (select tipo from public.facturas where id = v_pro) = 'factura' then 'OK ' else 'MAL ' end
                || E'a13 proforma de 300 pasada a factura dentro del tope (500+300 de 1.000): pasa\n';
-  exception when others then out := out || 'MAL a13 proforma de 300 pasada a factura: ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
+  exception when others then out := out || 'MAL a13 proforma pasada a factura por 300: ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
 
   -- b1: recibí del agente sobre su venta EUR mandando IDR → para (trigger, camino de guardar_recibi; la RPC exige al
   -- menos una factura que saldar, así que se aplica a la de a3)
@@ -273,17 +274,18 @@ begin
     out := out || E'MAL c2 robot sobre el tope (800+900 sobre 1.000): PASA\n';
   exception when others then out := out || case when sqlstate = '23514' and sqlerrm like '%precio acordado%' then 'OK ' else 'MAL ' end
                                        || 'c2 robot sobre el tope: ' || sqlstate || ' ' || left(sqlerrm, 80) || E'\n'; end;
-  -- c3: caso POSITIVO del robot (DEFINER desde 20261013074408). Dentro del tope (500+300 de a3/a13, +100) y con la
+  -- c3: caso POSITIVO del robot (DEFINER desde 20261013074408). Dentro del tope (500+300 de a3/a13, +50 y +50: sin
+  -- llegar a 1.000, porque saldar la venta dispara un aviso 'operacion_saldada' más y la comparación saldría falsa) y con la
   -- moneda buena: inserta y marca el vencimiento. Y deja lo mismo que la versión INVOKER de antes (copia de arriba,
   -- otro vencimiento del mismo contrato): creado_por (fija_autor devuelve la fila sin tocar con auth.role() =
   -- 'service_role'; el default auth.email() es null), created_at = now(), y los mismos avisos de los triggers AFTER.
   select count(*) into v_n0 from public.notificaciones where contrato_id = v_e;
   begin
     select id into v_c3 from public.factura_vencimiento_emite(v_venc, jsonb_build_object('tipo', 'factura', 'sociedad', v_soc, 'contrato_numero', 'ZZ-L553-E',
-                 'total', 100, 'moneda', 'EUR', 'fecha_emision', current_date, 'datos', jsonb_build_object('totales', jsonb_build_object('subtotal', 100))));
+                 'total', 50, 'moneda', 'EUR', 'fecha_emision', current_date, 'datos', jsonb_build_object('totales', jsonb_build_object('subtotal', 50))));
     select count(*) into v_n1 from public.notificaciones where contrato_id = v_e;
     select id into v_c3i from public.zz_l553_venc_invoker(v_venc2, jsonb_build_object('tipo', 'factura', 'sociedad', v_soc, 'contrato_numero', 'ZZ-L553-E',
-                 'total', 100, 'moneda', 'EUR', 'fecha_emision', current_date, 'datos', jsonb_build_object('totales', jsonb_build_object('subtotal', 100))));
+                 'total', 50, 'moneda', 'EUR', 'fecha_emision', current_date, 'datos', jsonb_build_object('totales', jsonb_build_object('subtotal', 50))));
     select count(*) into v_n2 from public.notificaciones where contrato_id = v_e;
   exception when others then out := out || 'MAL c3 robot dentro del tope: ' || sqlstate || ' ' || left(sqlerrm, 100) || E'\n'; end;
   execute 'reset role';
