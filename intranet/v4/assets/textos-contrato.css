@@ -217,3 +217,20 @@
 .tc-paso{padding:3px 12px;border-radius:999px;border:1px solid var(--tc-linea2);font-size:12px;color:var(--tc-mute)}
 .tc-paso.on{background:var(--tc-acento-suave);border-color:var(--tc-acento);color:var(--tc-tinta)}
 .tc-nv-paso{display:flex;flex-direction:column;gap:12px}
+/* asistente IA del editor (textos-contrato-ia.js, 13-oct-2026): caja bajo el párrafo abierto, «Traducir», marca «sin revisar» y la pestaña de precios */
+.tc-ia-caja{margin:6px 0 14px;padding:10px 12px;border-left:2px solid var(--tc-linea2);font-family:var(--tc-ui);display:flex;flex-direction:column;gap:6px}
+.tc-ia-caja:empty{display:none}
+.tc-ia-caja p{margin:0}
+.tc-ia-input{flex:1 1 220px;min-width:0;padding:8px 12px;border:1px solid var(--tc-linea2);border-radius:999px;background:var(--tc-fondo);font:inherit;font-size:14px;color:var(--tc-tinta);min-height:36px}
+.tc-ia-input:focus-visible{outline:2px solid var(--tc-acento);outline-offset:2px}
+.tc-ia-et{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--tc-mute)}
+.tc-ia-antes,.tc-ia-despues{font-family:var(--tc-doc-fuente);font-size:15px;line-height:1.5;color:var(--tc-tinta2);padding:6px 8px;background:var(--tc-fondo2)}
+.tc-ia-despues{background:var(--tc-verde-suave);color:var(--tc-tinta)}
+.tc-ia-traduce{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:10px 0 4px;font-family:var(--tc-ui)}
+.tc-ia-malla{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px 16px;margin:10px 0}
+.tc-ia-campo{display:flex;flex-direction:column;gap:4px}
+.tc-ia-campo select,.tc-ia-campo input{padding:8px 12px;border:1px solid var(--tc-linea2);border-radius:999px;background:var(--tc-fondo);font:inherit;font-size:14px;color:var(--tc-tinta);min-height:36px}
+.tc-ia-empresa{padding:12px 0;border-top:1px solid var(--tc-linea)}
+.tc-ia-empresa h3{margin:0 0 4px;font-size:15px;font-weight:500;color:var(--tc-tinta)}
+#tc-ia-ajustes .tc-seccion{margin-bottom:20px}
+#tc-ia-ajustes h2{font-size:17px;font-weight:500;margin:0 0 6px;color:var(--tc-tinta)}
