@@ -186,6 +186,15 @@ def t_main_identicos():   # caso de control: verde antes y despues
     ok(rc == 0 and n == 0, 'identicos: 0 y sin preguntar: %r' % (rc,))
 
 
+def t_main_solo_no_visibles():
+    # La regla es una sola: si el fichero difiere, hace falta el numero, aunque sea 0.
+    l = doc([ficha('uno'), ficha('dos'), ficha('tres'), ficha('oculta', visible=False, nota=1)])
+    rc, sal, n, _, _ = corre(l, [])
+    ok(not isinstance(rc, NoToques) and rc not in (0, None) and n == 0, 'solo cambian fichas no visibles: tampoco se pregunta sin numero: %r' % (rc,))
+    rc, sal, n, _, _ = corre(l, ['--cambian', '0'], teclado='no')
+    ok(n == 1 and rc == 1, 'con --cambian 0 (nada visible cambia) si se llega a la pregunta: %r' % (rc,))
+
+
 def t_main_verificar():
     rc, sal, n, _, _ = corre(VIEJO, ['--verificar'])
     ok(rc == 1 and n == 0, '--verificar con diferencias devuelve 1 sin preguntar: %r' % (rc,))
