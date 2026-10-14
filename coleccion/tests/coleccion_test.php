@@ -2,6 +2,8 @@
 /**
  * Autochequeo de la lectura unica de The Collection:  php coleccion/tests/coleccion_test.php
  * (lo corre tools/test.py: tests/*_test.php, sale con 1 si algo falla). Solo CLI.
+ * Sin data.json en la raiz (cualquier copia de sesion) el apartado 7b NO corre: lo dice con nombre y sale con 0;
+ * con `--exige-catalogo` sale con 3, para quien necesite distinguir «verde» de «verde sin mirar datos reales».
  *
  * Afirma HECHOS contra TODOS los sitios donde viven, no funciones sueltas — el fallo caro de
  * este estudio es el mismo dato en varios sitios que se separan:
@@ -305,6 +307,7 @@ if (is_array($resp)) {
 }
 // (b) si hay un data.json local (produccion o copia), TODAS las claves de sus visibles estan en la lista blanca
 $real = $RAIZ . '/data.json';
+$sinCatalogo = false;
 if (is_file($real)) {
     $dj = json_decode((string) file_get_contents($real), true);
     $con = lw_coleccion_contrato($RAIZ . '/coleccion/contrato_publico.json');
@@ -318,7 +321,13 @@ if (is_file($real)) {
     $real_ids = ids(lw_coleccion_carga(cfg($tmp, ['datajson' => $real, 'cache' => $tmp . '/real_cache.json'])));
     ok($real_ids === $esperadoReal, 'con el data.json real, lw_coleccion() devuelve exactamente sus visibles');
 } else {
-    echo "(sin data.json local: se salta la comprobacion contra datos reales)\n";
+    // 14-oct-2026. Este apartado es el unico que mira datos reales, y sin catalogo no corre. Hasta hoy lo decia
+    // entre parentesis y la prueba acababa en el mismo «OK» de siempre: en el control (tools/test.py solo ensena la
+    // salida de lo que falla) se leia igual que haberlo comprobado. Las copias de sesion NO tienen data.json
+    // (esta en .gitignore), asi que ahi esto es lo normal y no puede ser un rojo: se dice con nombre aqui y en la
+    // ultima linea, y el codigo de salida solo lo distingue (3) si se pide con --exige-catalogo.
+    $sinCatalogo = true;
+    echo "AVISO sin catalogo: apartado de datos reales NO ejecutado (7b: no hay data.json en la raiz del proyecto).\n";
 }
 
 // ── 8. F7: estado de unidades, v2 sin credenciales de base, noscript y JSON-LD desde lw_coleccion ──────────
@@ -390,4 +399,8 @@ foreach (array_merge(glob($tmp . '/*') ?: [], glob($tmp . '/.*') ?: []) as $f) i
 @rmdir($tmp);
 
 if ($fallos) { echo "\n$fallos FALLO(S)\n"; exit(1); }
+if ($sinCatalogo) {
+    echo "OK PARCIAL: lo demas en verde; sin catalogo: apartado de datos reales NO ejecutado.\n";
+    exit(in_array('--exige-catalogo', $argv, true) ? 3 : 0);
+}
 echo "OK: lectura unica de The Collection (contrato, niveles, fuente envenenada, ids en los tres sitios).\n";
