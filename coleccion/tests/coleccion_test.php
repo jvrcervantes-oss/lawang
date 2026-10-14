@@ -215,9 +215,25 @@ $r = $guarda('[]', false);
 ok($r['codigo'] === 401 && strpos($r['crudo'], 'Invalid catalogue') === false, 'save.php: sin sesion no se dice nada de la forma del catalogo: ' . $r['crudo']);
 $r = $guarda($bueno, true, 'GET');
 ok($r['codigo'] === 405 && $r['escrito'] === $ANTES, 'save.php: GET sigue siendo 405: ' . $r['crudo']);
-foreach (['/api/config.php', '/api/save.php', '/api/.passhash', '/api/corre_save.php', '/coleccion/lib.php', '/data.json', '/cuerpo.json'] as $x) @unlink($sitio . $x);
-foreach (glob($sitio . '/sesiones/*') ?: [] as $x) @unlink($x);
-foreach (['/sesiones', '/api', '/coleccion', ''] as $d) @rmdir($sitio . $d);
+// El disco falla al final (data.json es una carpeta: el rename no puede): 500, nunca «ok», y sin dejar el .tmp.
+// Antes el resultado del rename no se miraba y el panel decia «publicado» con el catalogo viejo en la web.
+@unlink($sitio . '/data.json');
+mkdir($sitio . '/data.json');
+file_put_contents($sitio . '/cuerpo.json', $bueno);
+$out = corre([$sitio . '/api/corre_save.php', $sitio . '/cuerpo.json', '1', 'POST'], null, $sitio . '/api');
+ok(strpos($out, '"ok":false') !== false && strpos($out, '"ok":true') === false && substr($out, -4) === '#500',
+   'save.php: si no se puede dejar el fichero en su sitio responde 500, no ok: ' . substr($out, -160));
+ok(!file_exists($sitio . '/data.json.tmp') && is_dir($sitio . '/data.json'), 'save.php: tras ese fallo no queda un data.json.tmp');
+// limpieza del arbol temporal, tambien si un caso de arriba fallo y dejo algo a medias (un .tmp, la carpeta data.json)
+$borra = function ($ruta) use (&$borra) {
+    if (is_dir($ruta) && !is_link($ruta)) {
+        foreach (array_diff(scandir($ruta) ?: [], ['.', '..']) as $x) $borra($ruta . '/' . $x);
+        @rmdir($ruta);
+    } else {
+        @unlink($ruta);
+    }
+};
+$borra($sitio);
 
 // ── 2. Claves prohibidas: la fuente FALLA, a cualquier profundidad, sin importar mayusculas ─
 $prohibidas = ['notas', 'contrato_id', 'iban', 'email', 'comprador', 'agente', 'precio_suelo', 'precio_construccion',

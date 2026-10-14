@@ -47,6 +47,7 @@ $tmp  = DATA_FILE . '.tmp';
 // `$json === false` (no se pudo codificar) escribiria un fichero VACIO, y un rename que falla dejaba el catalogo
 // viejo mientras se respondia «ok»: en los dos casos el panel decia «publicado» sin serlo. Ahora dan 500.
 if ($json === false || file_put_contents($tmp, $json) === false || !rename($tmp, DATA_FILE)) {
+    @unlink($tmp); // que no quede un data.json.tmp a medias en la raiz de la web
     http_response_code(500);
     echo json_encode(['ok' => false, 'error' => 'Could not write file']);
     exit;
