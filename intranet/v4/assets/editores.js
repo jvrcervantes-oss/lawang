@@ -4255,7 +4255,9 @@
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
           listaContratosLigeraDoc(sb),
           esEdicion
-            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos,justificantes').eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos,justificantes' +
+                // LAW-40 (fallo 1, 14-oct-2026): la marca de histórico sin justificante, solo en Lawang (el maestro no tiene la columna)
+                (window.AXW_NUCLEO_OPERACION ? '' : ',historico_sin_justificante')).eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
             : Promise.resolve({ data: null }),
           reglaContratoDoc(sb)
         ]);
@@ -4702,10 +4704,8 @@
           var secJust = seccionFijaDoc(host, 'Justificante de pago (obligatorio)');
           getJustificantes = montaJustificantesDoc(secJust, sb, existente && Array.isArray(existente.justificantes) ? existente.justificantes : []);
 
-          var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', false);
-          campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
-          campoSimpleDoc(secImp, { k: 'imp_pct', label: 'Impuesto — porcentaje', valor: f0.imp_pct || '' });
-
+          /* Sin «Impuesto» (14-oct-2026, bloque A3): el total guardado de un recibí no lo sumaba y el papel sí; un recibí
+             cobra lo que salda sus facturas. guardar_recibi quita imp_pct e imp_etiqueta aunque lleguen. */
           var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', false);
           campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
 
@@ -4719,7 +4719,8 @@
             if (!aplicaciones.length) return { error: { message: 'Elige al menos una factura que salde este recibí.' } };
             if (!v.sociedad) return { error: { message: 'Falta «Sociedad que cobra».' } };
             var justificantes = getJustificantes ? getJustificantes() : [];
-            if (!justificantes.length) return { error: { message: 'Adjunta el justificante de pago.' } };
+            // un recibí histórico (LAW-40) se guarda sin justificante; la marca la mira también guardar_recibi en la fila guardada
+            if (!justificantes.length && !(existente && existente.historico_sin_justificante)) return { error: { message: 'Adjunta el justificante de pago.' } };
             for (var i = 0; i < aplicaciones.length; i++) {
               var imp = lwParseImporte(aplicaciones[i].importe);
               if (!imp || imp <= 0) return { error: { message: tH('Falta el importe aplicado a %n', { n: aplicaciones[i].numero }) } };
