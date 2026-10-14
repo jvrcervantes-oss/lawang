@@ -53,7 +53,7 @@ const LW_HERRAMIENTAS = [
      de Seguridad en la revisión previa). */
   { grupo:'Seguimiento', nombre:'Ranking de closers', icon:'ph-trophy', href:'/intranet/leads/?v=closers', herr:'ranking',
     soloPermiso:true,
-    para:'Cuánto firma y cuánto cobra cada comercial, y a quién se atribuye cada venta.',
+    para:'Cuánto firma y cuánto cobra cada agente, y a quién se atribuye cada venta.',
     claves:'ranking closers comerciales comisiones rendimiento estadisticas atribucion ventas leaderboard closers reps commissions performance stats attribution sales' },
   /* `closers` REPUESTO el 11-sep-2026 por el owner, y conviene dejar claro el malentendido
      para que no se repita: cuando dijo «quita Agenda de cierre del menú» quería quitar el

@@ -1648,7 +1648,6 @@
     'abre los datos de contacto de las personas que dejan su teléfono;':
       'opens the contact details of the people who leave their phone number;',
     'Ranking': 'Leaderboard',
-    ', las cifras de cada comercial;': ', each rep’s figures;',
     'Reparto': 'Routing',
     ', quién atiende cada campaña;': ', who handles each campaign;',
     'Agenda': 'Calendar',
@@ -1748,8 +1747,6 @@
     '%n documentos borrados guardados en la caja negra': '%n deleted documents kept in the black box',
     've el tablero y los datos de contacto de los leads': 'see the board and the leads’ contact details',
     'ver el tablero y los datos de contacto de los leads': 'see the board and the leads’ contact details',
-    'ver y corregir cuánto firma y cobra cada comercial':
-      'see and correct how much each rep signs and earns',
     'decidir qué closers atienden cada campaña': 'decide which closers handle each campaign',
     'la agenda de llamadas de venta': 'the sales-call calendar',
 
@@ -2128,8 +2125,8 @@
     /* descripciones del catálogo (`para`) */
     'Los leads que entran por Meta y por la web: en qué punto está cada uno y quién lo lleva.':
       'The leads coming in from Meta and from the website: where each one stands and who owns it.',
-    'Cuánto firma y cuánto cobra cada comercial, y a quién se atribuye cada venta.':
-      'How much each rep signs and earns, and who each sale is credited to.',
+    'Cuánto firma y cuánto cobra cada agente, y a quién se atribuye cada venta.':
+      'How much each agent signs and earns, and who each sale is credited to.',
     'Que closers atienden cada campana, su tope de leads sin contactar y el reparto automatico.':
       'Which closers handle each campaign, their cap on uncontacted leads, and automatic routing.',
     'La agenda de llamadas de venta del closer, dentro del CRM.':
