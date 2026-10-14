@@ -3298,7 +3298,7 @@
                      20261013150901) y, desde el 14-oct, las de los contratos
                      compartidos con otro agente, que cuenta
                      `contratos_omitidos_otro_autor` (migración 20261014000241;
-                     en el maestro vale 0 hasta su gemelo); en el maestro, `facturas_omitidas_emitidas`
+                     su gemelo del maestro, 20261014070000, lleva la misma regla); en el maestro, `facturas_omitidas_emitidas`
                      las emitidas en serie fiscal (AXW-39). El resto vale 0 hoy,
                      pero si la base devuelve algo, se enseña. */
                   var omitidos = [
