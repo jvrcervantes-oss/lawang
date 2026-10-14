@@ -4070,8 +4070,8 @@
     /* noticia de comisiones desde el 1-nov (novedades.js, 13-oct-2026) */
     'Comisiones desde el 1 de noviembre': 'Commissions from 1 November',
     'Desde el 1 de noviembre de 2026, la comisión de cada venta se paga en dos momentos:': 'From 1 November 2026, the commission on each sale is paid at two points:',
-    'Parcela: el 10\u00a0% de su valor, cuando el cliente ha pagado el 50\u00a0% de la parcela.': 'Plot: 10% of its value, once the client has paid 50% of the plot.',
-    'Construcción: el 10\u00a0% de su valor, cuando el cliente ha pagado el 25\u00a0% de la construcción.': 'Construction: 10% of its value, once the client has paid 25% of the construction.',
+    'Parcela: el 100\u00a0% de la comisión correspondiente cuando el cliente ha pagado el 50\u00a0% de la parcela.': 'Plot: 100% of the corresponding commission once the client has paid 50% of the plot.',
+    'Construcción: el 100\u00a0% de la comisión correspondiente cuando el cliente ha pagado el 25\u00a0% de la construcción.': 'Construction: 100% of the corresponding commission once the client has paid 25% of the construction.',
     'Tu parte dentro del equipo no cambia. Las ventas anteriores al 1 de noviembre siguen con la regla de hoy.': 'Your share within the team does not change. Sales made before 1 November keep today\'s rule.',
     'al cobrar el %p': 'once %p is paid',
     /* noticia de la foto del pasaporte en el alta de cliente (novedades.js, 14-oct-2026) */

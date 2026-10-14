@@ -19,7 +19,7 @@
   window.__lwNovedades = true;
   if (location.pathname.indexOf('/intranet/v4/') === -1) return;
 
-  var NOV_ID = '20261013';
+  var NOV_ID = '20261014';
   var Q = 'lw-novedades:visto:';
 
   function T(s, h) { return window.lwT ? window.lwT(s, h) : (h ? s.replace(/%(\w+)/g, function (m, k) { return h[k] != null ? h[k] : m; }) : s); }
@@ -46,8 +46,8 @@
       texto: function () { return T('Desde el 1 de noviembre de 2026, la comisión de cada venta se paga en dos momentos:'); },
       lista: function () {
         return [
-          T('Parcela: el 10\u00a0% de su valor, cuando el cliente ha pagado el 50\u00a0% de la parcela.'),
-          T('Construcción: el 10\u00a0% de su valor, cuando el cliente ha pagado el 25\u00a0% de la construcción.')
+          T('Parcela: el 100\u00a0% de la comisión correspondiente cuando el cliente ha pagado el 50\u00a0% de la parcela.'),
+          T('Construcción: el 100\u00a0% de la comisión correspondiente cuando el cliente ha pagado el 25\u00a0% de la construcción.')
         ];
       },
       nota: function () { return T('Tu parte dentro del equipo no cambia. Las ventas anteriores al 1 de noviembre siguen con la regla de hoy.'); },
@@ -94,7 +94,7 @@
       var f = el('div', 'lwn-com-f');
       var cab = el('div', 'lwn-com-cab');
       cab.appendChild(el('span', '', p[0]));
-      cab.appendChild(el('b', '', '10\u00a0%'));
+      cab.appendChild(el('b', '', '100\u00a0%'));
       f.appendChild(cab);
       var barra = el('div', 'lwn-com-barra');
       var lleno = el('i');
