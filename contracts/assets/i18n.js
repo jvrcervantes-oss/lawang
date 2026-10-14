@@ -4762,6 +4762,19 @@
     'No se han podido leer los proyectos. Recarga la página.': 'Could not read the projects. Reload the page.',
     'No se han podido leer los techos de este modelo: se elige en el editor.': 'Could not read this model\'s roofs: choose it in the editor.',
     'No tienes ningún proyecto asignado. Pídeselo a un administrador.': 'You have no project assigned. Ask an administrator.',
+    /* Bloque B (14-oct-2026): borrar con cobros, cerrar firmado a mano y anular lo cobrado o enviado, solo admin de la empresa */
+    'Borrar una operación exige la herramienta Contratos: pídesela a un administrador en Usuarios.': 'Deleting a deal requires the Contracts tool: ask an administrator for it in Users.',
+    'Esta operación tiene un recibí vigente o un documento ya enviado al cliente: solo la puede borrar un administrador de su empresa. Pídeselo a un administrador.':
+      'This deal has a valid receipt or a document already sent to the client: only an administrator of its company can delete it. Ask an administrator.',
+    'Solo un administrador de la empresa puede anular un recibí o un documento ya enviado al cliente.': 'Only an administrator of the company can void a receipt or a document already sent to the client.',
+    'Solo un administrador de la empresa del contrato puede cerrarlo como firmado a mano. Pídeselo a un administrador.':
+      'Only an administrator of the contract\'s company can close it as signed by hand. Ask an administrator.',
+    'Ese contrato no existe o no tienes acceso a él.': 'That contract does not exist or you have no access to it.',
+    'El contrato ya está cerrado: recarga la página.': 'The contract is already closed: reload the page.',
+    'Este contrato ya tuvo un PDF firmado: lo firmado no se pisa.': 'This contract already had a signed PDF: what is signed is never overwritten.',
+    'El PDF no ha llegado al almacén: vuelve a subirlo.': 'The PDF did not reach storage: upload it again.',
+    'El archivo subido no es un PDF válido.': 'The uploaded file is not a valid PDF.',
+    'No se pudo preparar la subida: vuelve a intentarlo.': 'Could not prepare the upload: try again.',
     'Nombre, email o pasaporte…': 'Name, email or passport…',
     'Nuevo contrato': 'New contract',
     'Nuevo o existente': 'New or existing',
