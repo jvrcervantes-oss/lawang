@@ -105,10 +105,8 @@ begin
     r := r || pg_temp.l((select proyecto_nombre from public.facturas where id = f2) = pLn || c_par, 'T3 alta sin proyecto_id: la columna sale del contrato: ' || coalesce((select proyecto_nombre from public.facturas where id = f2), 'null'));
     update public.facturas set proyecto_nombre = 'Texto libre — C5' where id = f2;
     r := r || pg_temp.l((select proyecto_nombre from public.facturas where id = f2) = pLn || c_par, 'T3b un texto libre al editar se recompone desde el enlace');
-    -- sin contrato: el nombre a secas aunque llegue «— C5» (decision por defecto del 15-oct)
-    insert into public.facturas (tipo, numero, sociedad, contrato_id, proyecto_id, proyecto_nombre, total, moneda, creado_por, cliente_nombre, datos)
-      values ('factura', 'ZZ-PN-F5', 'zz_pn', null, pL, pLn || c_par, 10, 'EUR', a.em, 'ZZ-PN', '{"fields": {}}'::jsonb) returning id into f5;
-    r := r || pg_temp.l((select proyecto_nombre from public.facturas where id = f5) = pLn, 'T4 sin contrato enlazado, el nombre del proyecto a secas');
+    -- (sin contrato no hay caso que probar: facturas_contrato_obligatorio lo exige a todo documento desde el 12-ago-2026;
+    --  solo los historicos de antes pueden ir sin contrato, y la rama no los tiene. Medido en la rama del 15-oct: 23514.)
     -- de «X largo» a «X» (el caso MEDIA del revisor): sin restos del largo
     insert into public.facturas (tipo, numero, sociedad, contrato_id, proyecto_id, proyecto_nombre, total, moneda, creado_por, cliente_nombre, datos)
       values ('factura', 'ZZ-PN-FX', 'zz_pn', kX, pX, 'x', 10, 'EUR', a.em, 'ZZ-PN', jsonb_build_object('fields', jsonb_build_object('proyecto_nombre', pXn || ' — Z9')))

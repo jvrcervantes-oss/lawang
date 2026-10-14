@@ -17,8 +17,9 @@
 --   La 1.a version tocaba ademas renombrar_proyecto: SOBRABA (trg_proyecto_renombrado ya renombra por proyecto_id) y con un
 --   nombre que alarga el viejo duplicaba el sufijo. Ya no se toca.
 -- CAMBIO DE COMPORTAMIENTO (decision por defecto del CEO, 15-oct, reversible con la vuelta): un documento SIN contrato enlazado
---   pero con proyecto guarda el nombre a secas aunque se escriba «— C5» a mano (antes sobrevivia en el alta). Cuantos hay asi:
---   SIN MEDIR (la lectura de produccion la denego el clasificador el 15-oct).
+--   pero con proyecto guarda el nombre a secas aunque se escriba «— C5» a mano. Solo puede pasarle a un documento ANTERIOR al
+--   12-ago-2026 que se vuelva a guardar: desde entonces el CHECK facturas_contrato_obligatorio exige contrato a todo documento
+--   (comprobado en la rama del 15-oct: 23514). Cuantos historicos hay asi: SIN MEDIR (lectura de produccion denegada el 15-oct).
 -- LO QUE NO HACE: no rellena los ~40 que ya perdieron la parcela (decision por defecto del orquestador, 15-oct: los vivos se
 --   rehacen al siguiente guardado; las enviadas y anuladas se quedan sin ella en la columna, su papel si la lleva; rellenarlos
 --   es un UPDATE que dispara el recalculo de comisiones y lo decide el owner tras la congelacion).
