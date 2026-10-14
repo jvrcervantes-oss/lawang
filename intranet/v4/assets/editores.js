@@ -7931,7 +7931,7 @@
           /* cabecera */
           '<header class="las-cab"><div class="las-cab-izq"><span class="las-barra"></span><div>' +
           '<div class="las-miga"><span>' + esc(tS('Base de datos')) + ' • ' + esc(tS('Clientes')) + '</span><span class="las-sep">/</span><span class="las-estado">' + esc(tS('Ficha nueva')) + '</span></div>' +
-          '<h1 id="las-titulo" class="las-h1">' + esc(tS('Alta de cliente')) + '</h1></div></div>' +
+          '<h1 id="las-titulo" class="las-h1">' + esc(tS('Nuevo cliente')) + '</h1></div></div>' +
           '<button type="button" data-e="cerrar" class="las-cerrar" title="' + esc(tS('Cerrar panel')) + '" aria-label="' + esc(tS('Cerrar')) + '">' + svg(I.x) + '</button></header>' +
           '<div class="las-cuerpo">' +
           /* columna izquierda: la ficha tal como va quedando */
