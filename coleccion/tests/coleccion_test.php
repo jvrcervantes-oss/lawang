@@ -2,8 +2,20 @@
 /**
  * Autochequeo de la lectura unica de The Collection:  php coleccion/tests/coleccion_test.php
  * (lo corre tools/test.py: tests/*_test.php, sale con 1 si algo falla). Solo CLI.
- * Sin data.json en la raiz (cualquier copia de sesion) el apartado 7b NO corre: lo dice con nombre y sale con 0;
- * con `--exige-catalogo` sale con 3, para quien necesite distinguir «verde» de «verde sin mirar datos reales».
+ *
+ * QUE NO COMPRUEBA SIN CATALOGO (14-oct-2026). data.json esta en .gitignore: no lo tienen ni las copias de sesion
+ * ni la copia que monta el control (tools/test.py), asi que EN EL CONTROL el apartado 7b no corre NUNCA. Sin el,
+ * este verde NO dice:
+ *   · que la lista blanca (contrato_publico.json) cubra todas las claves de las fichas visibles publicadas hoy
+ *     (una clave nueva escrita desde el panel se recortaria en silencio y cambiaria un render);
+ *   · que lw_coleccion() devuelva exactamente las visibles del catalogo real.
+ * Todo lo demas (contrato, niveles, fuente envenenada, ids en los tres sitios) corre con datos sinteticos y con
+ * el respaldo versionado. Sin catalogo acaba en «OK PARCIAL» y sale con 0: no puede ser un rojo donde lo normal
+ * es no tener el fichero. Con `--exige-catalogo` sale con 3. ESA OPCION HOY NO LA LLAMA NADIE: esta para un
+ * trabajo CON RED y fuera del control de push, que baje el data.json publicado y corra esto contra el. Para
+ * eso falta ademas que 7b lea el catalogo de una ruta configurable (hoy solo mira la raiz del proyecto). Y el
+ * data.json del clon principal NO vale como dato real: el 14-oct era una copia del 7-ago (por eso existe el
+ * freno de publicar_data.py).
  *
  * Afirma HECHOS contra TODOS los sitios donde viven, no funciones sueltas — el fallo caro de
  * este estudio es el mismo dato en varios sitios que se separan:
@@ -400,7 +412,8 @@ foreach (array_merge(glob($tmp . '/*') ?: [], glob($tmp . '/.*') ?: []) as $f) i
 
 if ($fallos) { echo "\n$fallos FALLO(S)\n"; exit(1); }
 if ($sinCatalogo) {
-    echo "OK PARCIAL: lo demas en verde; sin catalogo: apartado de datos reales NO ejecutado.\n";
+    echo "OK PARCIAL: lo demas en verde; sin catalogo: apartado de datos reales NO ejecutado "
+       . "(no se ha comprobado que la lista blanca cubra las fichas publicadas hoy, ni que lw_coleccion() devuelva sus visibles).\n";
     exit(in_array('--exige-catalogo', $argv, true) ? 3 : 0);
 }
 echo "OK: lectura unica de The Collection (contrato, niveles, fuente envenenada, ids en los tres sitios).\n";
