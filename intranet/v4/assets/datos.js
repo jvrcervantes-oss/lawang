@@ -5053,7 +5053,7 @@
             // la base no da. El cobrado SÍ es la cifra exacta —
             // cobrado_suelo/cobrado_obra vienen partidos de
             // unidad_cobro_reparto, no se reparten aquí.
-            var barraUnidad = function (f, clave, cartera, cobrado, firmado, moneda, carta) {
+            var barraUnidad = function (f, clave, cartera, cobrado, firmado, moneda, carta, provisional) {
               var firmPct = cartera ? (firmado ? 100 : 0) : 0;
               /* Carta de Reserva firmada (24-sep-2026, owner, S1-H9 Horizon): el
                  tramo «firmado» del suelo se encendía igual que con una
@@ -5084,7 +5084,8 @@
                  € al lado (fmtConEstimado, arriba). */
               pon('u-' + clave + '-txt', !cartera ? 'sin cartera'
                 : noVisible ? 'cobro no visible · ' + fmtConEstimado(cartera, moneda)
-                : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda) + (porCarta ? ' · con Carta' : ''), f);
+                : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda) + (porCarta ? ' · con Carta' : '')
+                  + (provisional ? ' · precio provisional' : ''), f);
             };
             uu.forEach(function (u, idxUnidad) {
               var f = base.cloneNode(true);
@@ -5141,7 +5142,7 @@
                 if (u.contrato_numero) { elK.href = '/intranet/v4/contratos/?contrato=' + encodeURIComponent(u.contrato_numero); elK.target = '_blank'; }
                 else { elK.removeAttribute('href'); elK.removeAttribute('target'); elK.style.cursor = 'default'; elK.style.textDecoration = 'none'; }
               }
-              barraUnidad(f, 'suelo', precioParte(u, 'suelo') || 0, u.cobrado_suelo, !!u.contrato_firmado, u.moneda, u.contrato_es_carta);
+              barraUnidad(f, 'suelo', precioParte(u, 'suelo') || 0, u.cobrado_suelo, !!u.contrato_firmado, u.moneda, u.contrato_es_carta, sueloProvisional(u));
               barraUnidad(f, 'obra', precioParte(u, 'obra') || 0, u.cobrado_obra, !!u.obra_firmada, u.moneda);
               // Agente que creó el contrato (11-sep-2026, encargo del owner: ver
               // de un vistazo qué agente hizo el contrato de cada unidad). Sin
@@ -5233,6 +5234,14 @@
          (`suelo_pactado` / `obra_pactada`: el Bloqueo de Parcela y los contratos de obra), y si no el de
          catálogo. Owner, 14-oct-2026: «usa el precio del contrato, el precio final, no el del catálogo».
          La base ya devuelve el de catálogo cuando la venta aún no tiene contrato con precio. */
+      /* El precio de la parcela sale de un Bloqueo SIN firmar y no es el de catálogo: se enseña (es lo pactado hasta
+         ahora), pero es provisional — el agente aún puede cambiarlo, y por eso el estado de la parcela y las
+         comisiones NO se fían de él (migración 20261014032925). Sin rótulo, la tarjeta podía decir «parcela cobrada»
+         con la parcela todavía en «bloqueada» (consulta de Administración, 14-oct-2026). */
+      function sueloProvisional(u) {
+        return !u.contrato_firmado && u.suelo_pactado != null && u.precio_suelo != null
+          && Number(u.suelo_pactado) !== Number(u.precio_suelo);
+      }
       function precioParte(u, parte) {
         var pactado = parte === 'suelo' ? u.suelo_pactado : u.obra_pactada;
         var catalogo = parte === 'suelo' ? u.precio_suelo : u.precio_construccion;
@@ -5307,7 +5316,9 @@
         // abajo, las tres cifras de la ficha no sumaban. Sin las dos partes, el precio de la parcela de siempre.
         var dpTotal = (dpSuelo != null && dpObra != null) ? dpSuelo + dpObra : u.precio;
         pon('dp-total', dpTotal != null ? fmt(dpTotal, u.moneda || 'EUR') : '—');
-        pon('dp-suelo', dpSuelo != null ? fmt(dpSuelo, u.moneda || 'EUR') + (u.cobrado_suelo == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_suelo, u.moneda || 'EUR')) : '—');
+        pon('dp-suelo', dpSuelo != null ? fmt(dpSuelo, u.moneda || 'EUR')
+          + (sueloProvisional(u) ? ' (provisional: Bloqueo sin firmar)' : '')
+          + (u.cobrado_suelo == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_suelo, u.moneda || 'EUR')) : '—');
         pon('dp-suelo-m2', (u.precio_suelo != null && u.superficie_m2) ? fmt(u.precio_suelo / u.superficie_m2, u.moneda || 'EUR') + '/m²' : '—');
         pon('dp-obra', dpObra != null ? fmt(dpObra, u.moneda || 'EUR') + (u.cobrado_obra == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_obra, u.moneda || 'EUR')) : 'sin construcción asociada');
         /* El proyecto NO se oculta (23-sep-2026, owner): la parcela abre en un panel
