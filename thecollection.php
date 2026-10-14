@@ -38,7 +38,7 @@ if ($LIVE) header('Cache-Control: no-store'); // lleva estado de unidades inline
 
 if (isset($_GET['property']) && $_GET['property'] !== '') {
     $slug = (string) $_GET['property'];
-    if (preg_match('/^[A-Za-z0-9-]+$/', $slug)) {
+    if (lw_coleccion_id_valido($slug)) { // la misma expresión que filtra las fichas (coleccion/lib.php)
         // El filtro visible===true vive en lw_coleccion() y SOLO alli: un id oculto no
         // llega a esta pagina, asi que cae en el mismo 404 que un id inexistente.
         $prop = lw_coleccion_ficha($slug, $FUENTE);
@@ -1231,9 +1231,9 @@ window.LW_COLECCION_PRELOAD=<?= json_encode(lw_coleccion_para_navegador($doc), J
 <?php if ($V2): ?>window.LW_COLECCION_V2=true; /* ruta de prueba: las fichas se abren con #property/<id> en esta misma URL */<?php endif; ?>
 </script>
 <?php endif; ?>
-<script src="assets/lawang-card.js?v=20261006171014"></script>
+<script src="assets/lawang-card.js?v=20261014111926"></script>
 <script src="/assets/lawang-pie.js?v=20261013140551"></script>
-<script src="assets/portfolio-app.js?v=20261013140551"></script>
+<script src="assets/portfolio-app.js?v=20261014111926"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

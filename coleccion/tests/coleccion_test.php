@@ -78,6 +78,28 @@ ok(array_keys($r['settings']) === ['rates', 'whatsapp', 'email'] || array_diff(a
 ok(!isset($r['settings']['clave_interna']), 'una clave de settings fuera de contrato se descarta');
 ok(array_keys($r) === ['properties', 'settings', 'downloads'], 'la salida es solo {properties, settings, downloads}');
 
+// ── 1b. QUE FICHA SE PUBLICA y QUE ID VALE: la tabla comun (14-oct-2026) ───────────────────
+// La MISMA tabla la afirman assets/lawang-card.test.js (LawangCard.publicada y esPublicada de admin.html) y
+// coleccion/tests/test_publicar_data.py (ID_VALIDO y _visibles): una regla, cuatro implementaciones. Antes el
+// navegador pintaba «todo lo que no sea false» y aqui «solo true»; y el `$` de PCRE aceptaba "cube\n".
+$vis = json_decode((string) file_get_contents(__DIR__ . '/visibles_esperados.json'), true);
+ok(is_array($vis) && count($vis['fichas'] ?? []) >= 15 && count($vis['ids'] ?? []) >= 15 && strlen($vis['id_permitidos'] ?? '') === 63,
+   'la tabla comun de visibles (visibles_esperados.json) se lee y trae sus casos');
+$esperadas = [];
+foreach ($vis['fichas'] as $c) {
+    ok(lw_coleccion_publicada($c['ficha']) === $c['publicada'], "publicada ({$c['nota']}): dio " . var_export(lw_coleccion_publicada($c['ficha']), true));
+    if ($c['publicada']) $esperadas[] = $c['ficha']['id'];
+}
+foreach ($vis['ids'] as $c) {
+    ok(lw_coleccion_id_valido($c['id']) === $c['valido'], 'id ' . json_encode($c['id']) . ' valido=' . var_export($c['valido'], true));
+}
+for ($n = 0; $n < 256; $n++) {
+    ok(lw_coleccion_id_valido('a' . chr($n) . 'b') === (strpos($vis['id_permitidos'], chr($n)) !== false), "caracter $n dentro de un id");
+}
+// y el filtro real (lo que sale por lw_coleccion) deja pasar exactamente las que la tabla dice
+$r = lw_coleccion_aplica_contrato(['properties' => array_map(function ($c) { return $c['ficha']; }, $vis['fichas'])], cfg($tmp)['contrato']);
+ok(ids($r) === $esperadas && count($esperadas) === 2, 'lw_coleccion_aplica_contrato publica solo las de la tabla: ' . json_encode(ids($r)));
+
 // ── 2. Claves prohibidas: la fuente FALLA, a cualquier profundidad, sin importar mayusculas ─
 $prohibidas = ['notas', 'contrato_id', 'iban', 'email', 'comprador', 'agente', 'precio_suelo', 'precio_construccion',
                'cuota_reserva', 'cuotaMensual', 'comision', 'comision_pct', 'Notas', 'IBAN'];

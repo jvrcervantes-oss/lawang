@@ -264,11 +264,12 @@
     var lineDescs = { signature:"line.signature.d", land:"line.land.d", villa:"line.villa.d", resorts:"line.resorts.d" };
     // Featured por línea: cada línea puede tener su propia propiedad destacada.
     // En vista "Todas" se muestra el primer featured (Signature por orden de precio).
-    var featCands = L.PROPERTIES.filter(function(p){return p.featured && p.visible!==false && (S.region==="all"||p.regionKey===S.region);});
+    // L.PROPERTIES ya trae SOLO las fichas publicadas (se filtra una vez, al cargar: ver fetchDataResilient).
+    var featCands = L.PROPERTIES.filter(function(p){return p.featured && (S.region==="all"||p.regionKey===S.region);});
     var featList = (S.line==="all") ? featCands : featCands.filter(function(p){return p.line===S.line;});
     if(S.featIdx >= featList.length) S.featIdx = 0;
     var featured = featList[S.featIdx];
-    var filtered = L.PROPERTIES.filter(function(p){ return p.visible!==false && (S.line==="all"||p.line===S.line) && (S.region==="all"||p.regionKey===S.region); });
+    var filtered = L.PROPERTIES.filter(function(p){ return (S.line==="all"||p.line===S.line) && (S.region==="all"||p.regionKey===S.region); });
 
     // Portada: 4 categorías destacadas con foto de fondo (Signature / Land / Villas / Resorts).
     // Guía Collection (jul-2026): imágenes ecommerce_card_* · nombre de línea fino arriba,
@@ -312,7 +313,9 @@
     var pageItems = filtered.slice(pageStart, pageStart + PER_PAGE);
     var cards = pageItems.map(function(p){ return window.LawangCard.render(p, cardOpts({ hrefBase:"" })); }).join("");
     var emptyState = '<div style="grid-column:1/-1;padding:60px 24px;text-align:center;color:var(--ink-2)">'
-      + (L.PROPERTIES.length===0
+      // «No se pudo cargar» solo si el documento NO llegó (DATA_AT sigue a 0). Un catálogo que llegó y no tiene
+      // ninguna ficha publicada es «no hay nada», no «no he podido mirar».
+      + (DATA_AT===0
           ? '<p style="font-size:15px;margin:0 0 6px">'+(S.lang==="es"?"No se pudieron cargar las propiedades.":"Properties could not be loaded.")+'</p>'
             + '<p style="font-size:13px;opacity:.7;margin:0">'+(S.lang==="es"?"Abre la página servida por HTTP (no como archivo local) o reintenta.":"Open the page over HTTP (not as a local file) or try again.")+'</p>'
           : '<p style="font-size:15px;margin:0">'+(S.lang==="es"?"No hay propiedades con estos filtros.":"No properties match these filters.")+'</p>')
@@ -1368,7 +1371,7 @@
     var hasConfigurator = !isSignature && !!(cfg.landOptions||cfg.models||cfg.extrasList);
     // "More in this line": si no queda nada más en la misma línea, no se deja el hueco vacío —
     // se enseñan otros proyectos de la web, los de la misma isla primero (revisión cliente 24-jul).
-    var visible = L.PROPERTIES.filter(function(x){ return x.visible!==false && x.id!==p.id; });
+    var visible = L.PROPERTIES.filter(function(x){ return x.id!==p.id; });   // las demás fichas publicadas
     var sameLine = visible.filter(function(x){ return x.line===p.line; });
     var alsoIsFallback = sameLine.length===0;
     var also = (alsoIsFallback
@@ -1850,7 +1853,13 @@
   }
   fetchDataResilient().then(function(data){
     DATA_LIVE = data.live===true; DATA_STALE = data.stale===true; DATA_AT = Date.now();
-    if(data.properties) L.PROPERTIES = data.properties;
+    // QUÉ FICHAS SE VEN: se decide AQUÍ, una vez, con la regla única (LawangCard.publicada, gemela de
+    // lw_coleccion_publicada en servidor: `visible` exactamente true e id válido). Todo lo de abajo —rejilla,
+    // destacada, «más en esta línea» y la ficha abierta por URL o por #property/<id>— lee L.PROPERTIES, así que
+    // una ficha oculta no existe para la página. Antes se filtraba en tres sitios con «todo lo que no sea false»
+    // y la ficha abierta por #property/<id> no se filtraba: con data.json (que trae también las ocultas) se
+    // podía abrir un borrador que /property/<id> responde con 404.
+    if(data.properties) L.PROPERTIES = data.properties.filter(window.LawangCard.publicada);
     if(data.downloads)  L.DOWNLOADS  = data.downloads;
     // merge sobre los defaults: si data.json trae solo USD/AUD, IDR conserva su tasa por defecto
     // Merge, no overwrite: SETTINGS lleva defaults inline (whatsapp, supabaseUrl/Key) que

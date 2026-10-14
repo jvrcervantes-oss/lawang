@@ -513,7 +513,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 #nav{transition:background .3s,opacity .3s}
 </style>
 <link rel="stylesheet" href="assets/lawang-card.css?v=20261006155431">
-<script src="assets/lawang-card.js?v=20261006171014" defer></script>
+<script src="assets/lawang-card.js?v=20261014111926" defer></script>
 <style>
 /* ════ Ajustes de maquetacion por idioma (8-sep-2026) ════════════════════════
    Va al final del <head> a proposito: mismas especificidades que las reglas que
@@ -829,7 +829,9 @@ onScroll();
         var d = JSON.parse(txt);
         if(!d || !Array.isArray(d.properties)) throw new Error('truncado/invalido (' + txt.length + ' bytes)');
         var live = d.live === true, stale = d.stale === true;
-        var ps = d.properties.filter(function(p){ return p.visible !== false; });
+        // Sin filtro aquí: api/coleccion.php ya devuelve SOLO las fichas publicadas (lw_coleccion, la regla única de
+        // coleccion/lib.php). Una segunda regla en esta página era la copia que se podía separar (14-oct-2026).
+        var ps = d.properties;
         // The Collection = grid 3×3: los marcados "inCollection" en el admin (máx 9); si no hay ninguno, las 9 primeras visibles
         var coll = ps.filter(function(p){ return p.inCollection; });
         var pick = (coll.length ? coll : ps).slice(0, 9);

@@ -19,7 +19,9 @@ ok(i0 > 0 && !/<\?/.test(datos), 'el bloque de datos de thecollection.php se ext
 const rpc = JSON.parse(leer('coleccion/tests/rpc_real_20261006.json')).properties;
 const palm = () => JSON.parse(JSON.stringify(rpc.find(p => p.id === 'palm-field-bali')));
 
-function arranca(doc, { hash = '' } = {}) {
+// `datajson: true` = la fuente de hoy en produccion: SIN documento precargado; la SPA baja data.json en crudo (el stub
+// de fetch lo sirve), que trae TODAS las fichas, tambien las ocultas.
+function arranca(doc, { hash = '', datajson = false } = {}) {
   const llamadas = [];
   const el = () => ({ style: {}, classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } }, setAttribute() {}, addEventListener() {}, querySelector() { return null; }, querySelectorAll() { return []; } });
   const root = Object.assign(el(), { innerHTML: '' });
@@ -27,15 +29,19 @@ function arranca(doc, { hash = '' } = {}) {
   let off = 0;
   const Dt = { now: () => ahora + off };
   const win = {
-    LW_COLECCION_PRELOAD: doc, LW_COLECCION_V2: true, LW_LANG: 'en', addEventListener() {}, scrollTo() {}, scrollY: 0,
-    location: { pathname: '/thecollection-v2', hash, search: '' }, history: { pushState() {}, replaceState() {} },
+    LW_COLECCION_PRELOAD: datajson ? undefined : doc, LW_COLECCION_V2: !datajson, LW_LANG: 'en', addEventListener() {}, scrollTo() {}, scrollY: 0,
+    location: { pathname: datajson ? '/thecollection' : '/thecollection-v2', hash, search: '' }, history: { pushState() {}, replaceState() {} },
     sessionStorage: { getItem() { return null; }, setItem() {} }, localStorage: { getItem() { return null; }, setItem() {} },
     requestAnimationFrame: f => f(), performance: { getEntriesByType: () => [] }
   };
   const documento = Object.assign(el(), { getElementById: id => (id === 'portfolio-root' ? root : null), documentElement: el(), body: el(), readyState: 'complete', title: '',
     querySelectorAll: () => [], querySelector: () => null, addEventListener() {} });
   win.document = documento; win.window = win;
-  win.fetch = u => { llamadas.push(String(u)); return Promise.resolve({ ok: true, json: () => Promise.resolve({ result: 'x' }), text: () => Promise.resolve('') }); };
+  win.fetch = u => {
+    llamadas.push(String(u));
+    const cuerpo = datajson && /^data\.json/.test(String(u)) ? JSON.stringify(doc) : '';
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ result: 'x' }), text: () => Promise.resolve(cuerpo) });
+  };
   const ctx = vm.createContext(Object.assign(win, { Date: Object.assign(function () { return new Date(Dt.now()); }, { now: Dt.now }), console, setTimeout, clearTimeout, encodeURIComponent, JSON, Math, Object, Array, String, Number, Promise, parseInt, isFinite, isNaN, RegExp, Error }));
   vm.runInContext(datos, ctx);
   vm.runInContext(leer('assets/lawang-card.js'), ctx);
@@ -93,6 +99,40 @@ function arranca(doc, { hash = '' } = {}) {
   ok(!/class="avail/.test(r.html), 'sin unidades: la ficha no pinta bloque Availability');
   ok(!/0 ?\/ ?0|0 of 0/.test(r.html), 'sin unidades: ningun «0/0» ni «0 of 0»');
 
+  // 6. QUE FICHAS SE VEN (14-oct-2026), con la fuente de hoy (data.json en crudo, que trae tambien las ocultas).
+  //    Solo `visible: true` con id valido. Antes la rejilla pintaba todo lo que no fuera exactamente false (una ficha
+  //    sin la clave, con null, con "false" en texto...) y la ficha abierta por #property/<id> no se filtraba: un
+  //    borrador oculto se abria por su enlace mientras /property/<id> respondia 404.
+  const f = (id, visible, extra) => Object.assign({ id, line: 'villa', region: 'Bali', regionKey: 'bali', priceEUR: 100000,
+    title: { en: 'TITULO-' + id }, sub: { en: 's' }, desc: { en: 'd' }, images: [] }, visible === undefined ? {} : { visible }, extra || {});
+  const crudo = { settings: {}, downloads: {}, properties: [
+    f('vista-a', true), f('vista-b', true, { featured: true }),
+    f('oculta', false, { featured: true }), f('sin-clave'), f('nula', null), f('texto-true', 'true'), f('texto-false', 'false'),
+    f('uno-num', 1), f('cero-num', 0), f('mal id', true) ] };
+  const NO = ['oculta', 'sin-clave', 'nula', 'texto-true', 'texto-false', 'uno-num', 'cero-num', 'mal id'];
+  r = await arranca(crudo, { datajson: true });
+  ok(r.llamadas.some(u => /^data\.json/.test(u)), 'datajson: la SPA baja data.json');
+  ok(/TITULO-vista-a/.test(r.html) && /TITULO-vista-b/.test(r.html), 'datajson: las dos fichas publicadas salen en la rejilla');
+  for (const id of NO) ok(!r.html.includes('TITULO-' + id), 'datajson: «' + id + '» NO sale en la rejilla ni como destacada');
+  ok((r.html.match(/<article class="lw-prop/g) || []).length === 2, 'datajson: 2 tarjetas en la rejilla, las 2 publicadas: ' + (r.html.match(/<article class="lw-prop/g) || []).length);
+  for (const id of ['oculta', 'sin-clave', 'nula', 'texto-true']) {
+    r = await arranca(crudo, { datajson: true, hash: '#property/' + id });
+    ok(/Property not found\./.test(r.html) && !r.html.includes('TITULO-' + id), 'datajson: #property/' + id + ' no abre una ficha que no esta publicada');
+  }
+  r = await arranca(crudo, { datajson: true, hash: '#property/vista-a' });
+  ok(r.html.includes('TITULO-vista-a') && !/Property not found\./.test(r.html), 'datajson: #property/vista-a abre la ficha publicada');
+  ok(r.html.includes('TITULO-vista-b'), 'datajson: «mas en esta linea» enseña la otra publicada');
+  for (const id of NO) ok(!r.html.includes('TITULO-' + id), 'datajson: «mas en esta linea» no enseña «' + id + '»');
+  // catalogo que llega pero sin ninguna ficha publicada: «no hay nada», no «no se pudo cargar»
+  r = await arranca({ settings: {}, downloads: {}, properties: [f('oculta', false)] }, { datajson: true });
+  ok(/No properties match these filters\./.test(r.html) && !/could not be loaded/.test(r.html), 'catalogo sin fichas publicadas: «no hay», no «no se pudo cargar»');
+  const errorDeConsola = console.error;
+  const avisos = [];
+  console.error = (...a) => avisos.push(a.join(' '));   // la SPA avisa por consola de que no pudo cargar: se recoge, no se imprime
+  try { r = await arranca('esto no es un catalogo', { datajson: true }); } finally { console.error = errorDeConsola; }
+  ok(/Properties could not be loaded\./.test(r.html), 'data.json ilegible: «no se pudo cargar»');
+  ok(avisos.length === 1 && /no se pudo cargar data\.json/.test(avisos[0]), 'data.json ilegible: lo dice por consola una vez: ' + JSON.stringify(avisos));
+
   if (fallos) { console.log(fallos + ' FALLO(S)'); process.exit(1); }
-  console.log('OK: SPA en vivo (fresco pinta estado; stale y dato viejo nunca afirman disponible; sin llamadas a Supabase).');
+  console.log('OK: SPA en vivo (fresco pinta estado; stale y dato viejo nunca afirman disponible; sin llamadas a Supabase) y regla unica de fichas visibles.');
 })();

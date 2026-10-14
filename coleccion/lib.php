@@ -123,6 +123,30 @@ function lw_coleccion_busca_prohibidas($v, array $c, $donde) {
 }
 
 /**
+ * El id de una ficha: letras, cifras y guion. UNA expresión en PHP para esta lectura, para el slug de
+ * thecollection.php y para lo que acepta guardar api/save.php. Sus gemelas fuera de PHP: ID_VALIDO en
+ * publicar_data.py y LawangCard.publicada en assets/lawang-card.js; los tres tests afirman la MISMA tabla
+ * (coleccion/tests/visibles_esperados.json), carácter a carácter: si una cambia y las otras no, el gate falla.
+ * `\z` y no `$` (14-oct-2026): en PCRE `$` casa también justo antes de un salto de línea final, así que
+ * "cube\n" era un id válido aquí y no lo era ni en Python (fullmatch) ni en JavaScript.
+ */
+const LW_COLECCION_ID_RE = '/^[A-Za-z0-9-]+\z/';
+
+function lw_coleccion_id_valido($id) {
+    return is_string($id) && preg_match(LW_COLECCION_ID_RE, $id) === 1;
+}
+
+/**
+ * ¿Se publica esta ficha? LA regla de «qué se ve», una sola (14-oct-2026): `visible` exactamente true Y un id
+ * válido. Ni "true", ni 1, ni la clave ausente: lo que no dice que sí, no sale. Su gemela en el navegador es
+ * LawangCard.publicada (la rejilla de /thecollection y el panel de admin.html), que hasta ese día pintaba todo
+ * lo que no fuera exactamente `false`; las dos afirman coleccion/tests/visibles_esperados.json.
+ */
+function lw_coleccion_publicada($p) {
+    return is_array($p) && ($p['visible'] ?? null) === true && lw_coleccion_id_valido($p['id'] ?? null);
+}
+
+/**
  * Filtra un documento al contrato público. Entrada: {properties, settings, downloads, ...}.
  * Salida: solo {properties (visible===true, solo claves de la lista blanca), settings (solo las
  * permitidas), downloads}. Lanza RuntimeException si hay claves prohibidas o la forma no vale.
@@ -136,9 +160,8 @@ function lw_coleccion_aplica_contrato($doc, $rutaContrato = null) {
     $blanca = array_flip($c['ficha']);
     $props = [];
     foreach ($doc['properties'] as $p) {
-        if (!is_array($p) || ($p['visible'] ?? null) !== true) continue; // el UNICO filtro de visibilidad
-        $id = $p['id'] ?? '';
-        if (!is_string($id) || !preg_match('/^[A-Za-z0-9-]+$/', $id)) continue; // misma regla que acepta thecollection.php
+        if (!lw_coleccion_publicada($p)) continue; // el UNICO filtro de visibilidad (visible === true e id válido)
+        $id = $p['id'];
         lw_coleccion_busca_prohibidas($p, $c, 'ficha ' . $id);
         $props[] = array_intersect_key($p, $blanca);
     }
