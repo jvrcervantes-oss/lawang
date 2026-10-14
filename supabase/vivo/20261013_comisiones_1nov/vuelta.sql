@@ -1,4 +1,4 @@
--- VUELTA ATRÁS de supabase/migrations/20261013230000_comisiones_regla_1nov.sql (comisiones desde el 1-nov-2026).
+-- VUELTA ATRÁS de supabase/migrations/20261014012527_comisiones_regla_1nov.sql (comisiones desde el 1-nov-2026).
 -- Deja el esquema y los datos de comisiones como estaban el 13-oct-2026 antes de aplicarla: misma definición (md5) de
 -- las 11 funciones que fotografió su bloque 0, mismos CHECK, sin la columna condicion_tramos.base_calculo, sin el
 -- trigger condiciones_comision_tramos_suma, sin las 5 funciones nuevas, y las 12 condiciones genéricas abiertas otra vez.
