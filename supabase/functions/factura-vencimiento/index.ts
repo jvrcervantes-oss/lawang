@@ -238,17 +238,37 @@ Deno.serve(async (req) => {
       if (!moneda) { revisar(etiqueta + ': ni el contrato ni su venta tienen moneda — ponla en el contrato'); continue; }
 
       // ── lo pendiente DE VERDAD: la cascada del contrato entero ──────────
-      const [vencs, cobradoPropio, hijos] = await Promise.all([
+      // Lo cobrado es el de la VENTA con la regla «primero la parcela, luego la obra» (owner, 14-oct-2026; F5 del
+      // encargo de la agencia 20261014_lawang_cobro_primero_parcela): _contrato_cobrado_venta reparte lo cobrado en
+      // toda la venta y le da a este contrato su parte. Por documento, un recibí colgado del Bloqueo dejaba la obra a 0
+      // y este robot facturaba un hito de obra con el dinero ya en caja (SH-1: 41.620 en una parcela de 25.000).
+      // Si la venta no se reparte, la función ya devuelve lo de siempre (lo suyo + sus Cartas).
+      // Una instancia del ERP sin la función (PGRST202: bbm, demo) cae a lo de siempre calculado aquí. Cualquier
+      // otro error NO cae a 0: con cobrado 0 se facturaría el hito bruto, el fallo del 11-ago.
+      const [vencs, cobVenta] = await Promise.all([
         sb.from('contrato_vencimientos').select('id, orden, pct, monto, fecha').eq('contrato_id', v.contrato_id),
-        sb.rpc('contrato_cobrado', { p_contrato_id: v.contrato_id }),
-        sb.from('contratos').select('id, tipo').eq('contrato_padre_id', v.contrato_id),
+        sb.rpc('_contrato_cobrado_venta', { p_contrato: v.contrato_id }),
       ]);
       if (vencs.error) throw new Error('vencimientos del contrato: ' + vencs.error.message);
-      let cobrado = Number(cobradoPropio.data) || 0;
-      for (const h of (hijos.data ?? [])) {
-        if (!C.lwEsPreliminar(h.tipo)) continue;   // solo la señal de su Carta descuenta aquí
-        const r = await sb.rpc('contrato_cobrado', { p_contrato_id: h.id });
-        cobrado += Number(r.data) || 0;
+      let cobrado: number;
+      if (!cobVenta.error) {
+        cobrado = Number(cobVenta.data) || 0;
+      } else if ((cobVenta.error as any).code === 'PGRST202') {
+        const [cobradoPropio, hijos] = await Promise.all([
+          sb.rpc('contrato_cobrado', { p_contrato_id: v.contrato_id }),
+          sb.from('contratos').select('id, tipo').eq('contrato_padre_id', v.contrato_id),
+        ]);
+        if (cobradoPropio.error) throw new Error('lo cobrado del contrato: ' + cobradoPropio.error.message);
+        if (hijos.error) throw new Error('los hijos del contrato: ' + hijos.error.message);
+        cobrado = Number(cobradoPropio.data) || 0;
+        for (const h of (hijos.data ?? [])) {
+          if (!C.lwEsPreliminar(h.tipo)) continue;   // solo la señal de su Carta descuenta aquí
+          const r = await sb.rpc('contrato_cobrado', { p_contrato_id: h.id });
+          if (r.error) throw new Error('lo cobrado de la Carta ' + h.id + ': ' + r.error.message);
+          cobrado += Number(r.data) || 0;
+        }
+      } else {
+        throw new Error('lo cobrado de la venta: ' + cobVenta.error.message);
       }
       const anotados = C.cascada(vencs.data ?? [], { ...ct, moneda }, cobrado, hoy);
       const yo = anotados.find((x: any) => x.id === v.id);
