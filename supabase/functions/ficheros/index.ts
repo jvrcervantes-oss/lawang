@@ -42,6 +42,17 @@
 //                        pantalla; si no es un JPEG se borra. Sin `borra`: lo que se queda sin usar lo recoge el barrido
 //                        (contracts/tools/anexos_barrido.py). Funciones puras en anexo.mjs (anexo.test.js).
 //
+// 14-oct-2026 (revisor de 9ace890af en la agencia; la publicación de bbm salía en rojo):
+//   justificante_cobro → bucket `justificantes` (privado). El justificante OBLIGATORIO de un recibí. Vivía en ficheros-contrato
+//                        (acción justificante_url), que es del módulo «contratos»: una instancia con facturas y recibos
+//                        encendidos y contratos apagado (bbm) no podía emitir un recibí, porque el navegador cortaba esa edge
+//                        con un 404. Se MUEVE sin cambiar nada: misma ruta (`<uuid>.<ext>` en la raíz, la que ya tienen los
+//                        recibís guardados), mismas extensiones y mismo permiso (solo el equipo; el `puede('facturas')` lo
+//                        exige guardar_recibi, que además comprueba que el objeto exista en el bucket). Solo `subida_url`:
+//                        sin `registra` ni `borra`, como antes. La pantalla llega por lwFicheros('justificante_url') de
+//                        guard.js, que ahora apunta aquí; la acción vieja de ficheros-contrato se quita cuando ese guard.js
+//                        esté servido en Lawang y en bbm.
+//
 // RETIRADA la clase `sociedad_logo` (11-oct-2026, AXW-253; revisión previa de Seguridad #264). Subía el logo de una sociedad
 // emisora al bucket `sociedades` y devolvía su URL PÚBLICA, pero el bucket es privado en Lawang y en las instancias del ERP
 // (medido el 11-oct: public=false, 0 objetos), así que una subida «salía bien» y dejaba guardada una URL que no abre: logo roto
@@ -66,7 +77,7 @@
 //
 // verify_jwt=false por el mismo motivo que ficheros-contrato (CORS del preflight); el JWT se valida a mano.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { TIPOS, bytesCuadran } from '../ficheros-kyc/firma.mjs';
+import { TIPOS, bytesCuadran, esAdmisible } from '../ficheros-kyc/firma.mjs';
 import { TOPE_PAGINA, anexoIdOk, dimsJpeg, esJpeg, hex, nPagina, rutaAnexo, rutaAnexoOk } from './anexo.mjs';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
@@ -120,6 +131,15 @@ type Clase = {
 
 const esAdmin = async (u: Usuario) => (await u.rpc('es_admin')).data === true;
 const rpcSi = async (u: Usuario, fn: string, args: Record<string, unknown>) => (await u.rpc(fn, args)).data === true;
+// ¿Alguna fila de `tabla` cita este path en su `justificantes` (jsonb, array de {path,…})? (14-oct-2026, revisor) Antes
+// era `.contains('justificantes', [{ path }])`: postgrest-js convierte un ARRAY en literal de Postgres (`cs.{[object Object]}`),
+// nunca casaba y `filaDe` decía «sin fila», así que un `registra` que fallaba podía borrar un justificante que una fila SÍ
+// usa. Como JSON en texto va `cs.[{"path":…}]`. Si la consulta falla se responde «sí»: un fichero suelto se barre, uno
+// borrado de más no vuelve.
+const citaJustificante = async (tabla: string, path: string) => {
+  const { data, error } = await admin.from(tabla).select('id').contains('justificantes', JSON.stringify([{ path }])).limit(1).maybeSingle();
+  return !!data || !!error;
+};
 const IMAGEN_OK = (_ext: string, b: Uint8Array) => IMAGENES.some((e) => bytesCuadran(e, b));
 
 // Documentación: además de PDF e imagen, Office, CSV, CAD y ZIP (la lista que ya ofrecía la v4). El tipo lo pone
@@ -294,7 +314,7 @@ const CLASES: Record<string, Clase> = {
     registra: (uid, body, path) => admin.rpc('gasto_justificante_registra', {
       p_uid: uid, p_gasto: String(body.gasto_id ?? ''), p_path: path, p_nombre: String(body.nombre ?? '').slice(0, 300),
     }),
-    filaDe: async (path) => !!(await admin.from('gastos').select('id').contains('justificantes', [{ path }]).maybeSingle()).data,
+    filaDe: (path) => citaJustificante('gastos', path),
   },
   creatividad: {
     bucket: 'creatividades',
@@ -311,6 +331,14 @@ const CLASES: Record<string, Clase> = {
     bytesOk: (_ext, b) => esJpeg(b),
     carpeta: async () => ({ error: 'accion_desconocida', status: 400 }), // tiene su propio camino (abajo)
     filaDe: async (path) => !!(await admin.from('contrato_anexo_paginas').select('id').eq('path', path).maybeSingle()).data,
+  },
+  // Movida de ficheros-contrato (14-oct-2026, ver cabecera): solo `subida_url`, ruta en la raíz como siempre.
+  justificante_cobro: {
+    bucket: 'justificantes',
+    exts: ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'],   // = EXT_JUSTIF de ficheros-contrato
+    bytesOk: esAdmisible,   // sin `registra` no se usa hoy; si un día lo tiene, la misma regla que KYC (admite HEIC)
+    carpeta: async () => '',
+    filaDe: (path) => citaJustificante('facturas', path),
   },
 };
 
