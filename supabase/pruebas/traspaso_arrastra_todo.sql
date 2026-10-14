@@ -2,7 +2,7 @@
 -- 20261013150447_traspaso_receptor_ve_lo_que_recibe 20261013150901_traspaso_solo_lo_del_cliente 20261013153444_traspaso_bloquea_lo_que_mueve y 20261013154657_traspaso_parada_sin_numero
 -- y las de 14-oct 20261014000241_traspaso_compartidos_otro_agente, 20261014001411_traspaso_facturas_comprador_del_nuevo y la de
 -- bloqueo de candidatos + contrato ya del nuevo dueno, 20261014003639_traspaso_bloquea_candidatos_compartido_ya_del_nuevo, y el receptor
--- de la empresa de los compartidos, 20261014090000_traspaso_receptor_empresa_de_compartidos).
+-- de la empresa de los compartidos, 20261014013939_traspaso_receptor_empresa_de_compartidos).
 -- Casos del revisor (13-oct): K* cocomprador con factura de otro client_id (no se mueve), R7 admin_empresa sin la empresa de una factura
 -- sin cliente colgada de su contrato, R8 receptor de otra empresa con un admin GLOBAL, M* la marca puesta como authenticated.
 -- Casos del owner (14-oct): N* un contrato compartido con un comprador de OTRO agente no se mueve (ni sus facturas) y se cuenta; con un
@@ -340,7 +340,7 @@ begin
                         || ' (' || left(v, 220) || ')');
   end if;
 
-  -- V (revisor 14-oct, migracion 20261014090000): un contrato COMPARTIDO con la ficha de otro agente (G) que es de Sandal Woods no se mueve,
+  -- V (revisor 14-oct, migracion 20261014013939): un contrato COMPARTIDO con la ficha de otro agente (G) que es de Sandal Woods no se mueve,
   -- pero la ficha si se moveria y su dueno la ve entera con su KYC (cliente_visible). El admin GLOBAL (la puerta exclusiva de A pararia antes
   -- con 42501) no la traspasa a R, que solo es de Lawang: 22023 con el texto de los compartidos, y no se mueve nada.
   insert into public.clients (full_name) values ('PRB Compartido Sandal Woods') returning id into clV;
