@@ -131,6 +131,15 @@ type Clase = {
 
 const esAdmin = async (u: Usuario) => (await u.rpc('es_admin')).data === true;
 const rpcSi = async (u: Usuario, fn: string, args: Record<string, unknown>) => (await u.rpc(fn, args)).data === true;
+// ¿Alguna fila de `tabla` cita este path en su `justificantes` (jsonb, array de {path,…})? (14-oct-2026, revisor) Antes
+// era `.contains('justificantes', [{ path }])`: postgrest-js convierte un ARRAY en literal de Postgres (`cs.{[object Object]}`),
+// nunca casaba y `filaDe` decía «sin fila», así que un `registra` que fallaba podía borrar un justificante que una fila SÍ
+// usa. Como JSON en texto va `cs.[{"path":…}]`. Si la consulta falla se responde «sí»: un fichero suelto se barre, uno
+// borrado de más no vuelve.
+const citaJustificante = async (tabla: string, path: string) => {
+  const { data, error } = await admin.from(tabla).select('id').contains('justificantes', JSON.stringify([{ path }])).limit(1).maybeSingle();
+  return !!data || !!error;
+};
 const IMAGEN_OK = (_ext: string, b: Uint8Array) => IMAGENES.some((e) => bytesCuadran(e, b));
 
 // Documentación: además de PDF e imagen, Office, CSV, CAD y ZIP (la lista que ya ofrecía la v4). El tipo lo pone
@@ -305,7 +314,7 @@ const CLASES: Record<string, Clase> = {
     registra: (uid, body, path) => admin.rpc('gasto_justificante_registra', {
       p_uid: uid, p_gasto: String(body.gasto_id ?? ''), p_path: path, p_nombre: String(body.nombre ?? '').slice(0, 300),
     }),
-    filaDe: async (path) => !!(await admin.from('gastos').select('id').contains('justificantes', [{ path }]).maybeSingle()).data,
+    filaDe: (path) => citaJustificante('gastos', path),
   },
   creatividad: {
     bucket: 'creatividades',
@@ -329,7 +338,7 @@ const CLASES: Record<string, Clase> = {
     exts: ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'],   // = EXT_JUSTIF de ficheros-contrato
     bytesOk: esAdmisible,   // sin `registra` no se usa hoy; si un día lo tiene, la misma regla que KYC (admite HEIC)
     carpeta: async () => '',
-    filaDe: async (path) => !!(await admin.from('facturas').select('id').contains('justificantes', [{ path }]).limit(1).maybeSingle()).data,
+    filaDe: (path) => citaJustificante('facturas', path),
   },
 };
 
