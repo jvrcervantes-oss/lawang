@@ -2693,7 +2693,7 @@
     document.head.appendChild(s);
   }
   function descHitoDoc(h) {
-    return [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ') + (h.timing ? ' — ' + h.timing : '');
+    return [h.texto, h.pct ? '(' + lwTextoPct(h.pct) + '% del precio acordado)' : ''].filter(Boolean).join(' ') + (h.timing ? ' — ' + h.timing : '');
   }
   function hitosDeDoc(crudos, precio, moneda) {
     return (crudos || []).map(function (h, idx) {

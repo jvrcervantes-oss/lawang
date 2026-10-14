@@ -4,7 +4,9 @@
 --  (a) Motivo: solo lo exigía la pantalla; descuento_comercial_suelo_valido sí lo exige en la base, construccion_valido no.
 --  (b) Sin techo: v_base queda NULL y `v_base > 0` dejaba pasar cualquier descuento sin tope (62 de 107 contratos de
 --      Construcción no tienen techo). Ahora el tope se mide sobre precio_total + descuento (el precio antes de rebajar),
---      con el mismo % por rol y la misma exención del super.
+--      con el mismo % por rol y la misma exención del super. Limitación sabida: sin techo no hay precio de lista, y
+--      precio_total lo manda la pantalla (en esos contratos ya se podía cambiar libremente antes de hoy); el tope
+--      acota el descuento al 15 % de precio_total + descuento, no a un precio de referencia. Mejor que ninguno.
 -- Medido el 14-oct: los 21 contratos de Construcción con descuento tienen motivo y techo; ninguno queda bloqueado.
 -- destructivo-ok: create or replace de una funcion; sin borrar datos
 -- REVERTIR: el mismo parche al reves (las dos frases nuevas por las viejas).
@@ -22,7 +24,9 @@ select pg_temp.parchea('public.descuento_comercial_construccion_valido()'::regpr
   $q$      or new.datos->'extras' is distinct from old.datos->'extras';
     if v_dc_cambia and v_base > 0$q$,
   $q$      or new.datos->'extras' is distinct from old.datos->'extras';
-    if v_dc_cambia and nullif(btrim(coalesce(new.datos->'fields'->>'descuento_comercial_motivo', '')), '') is null then
+    -- también si solo se toca el motivo: vaciarlo en una segunda escritura no puede dejar un descuento sin él
+    if (v_dc_cambia or (new.datos->'fields'->>'descuento_comercial_motivo') is distinct from (old.datos->'fields'->>'descuento_comercial_motivo'))
+       and nullif(btrim(coalesce(new.datos->'fields'->>'descuento_comercial_motivo', '')), '') is null then
       raise exception 'Un descuento comercial necesita su motivo.' using errcode = '23514';
     end if;
     if v_dc_cambia and v_base > 0$q$);

@@ -510,7 +510,7 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
 
   const compradores = C.compradoresDeContrato(f, o.ct.extras);
   const hoy = new Date().toISOString().slice(0, 10);
-  const descripcion = [h.es || h.en || 'Primer pago', pct ? '(' + pct + '% del precio acordado)' : '']
+  const descripcion = [h.es || h.en || 'Primer pago', pct ? '(' + C.lwTextoPct(pct) + '% del precio acordado)' : '']
     .filter(Boolean).join(' ') + (h.timing ? ' — ' + h.timing : '');
   const lineas = [{ descripcion, importe: String(monto) }];
 

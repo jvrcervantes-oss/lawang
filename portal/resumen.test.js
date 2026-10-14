@@ -16,6 +16,7 @@ const RAIZ = path.join(__dirname, '..');
    guardrail ES el bug que el guardrail viene a cazar. */
 const dinero = require(path.join(RAIZ, 'contracts', 'assets', 'dinero.js'));
 global.lwParseImporte = dinero.lwParseImporte;
+global.lwTextoPct = dinero.lwTextoPct;
 const voc = fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'vocabulario.js'), 'utf8');
 new Function(voc + '; globalThis.lwEsPreliminar = lwEsPreliminar;')();
 

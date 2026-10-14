@@ -177,7 +177,9 @@ function estaSustituido(x, contratos){
 function descHito(h){
   if (!h) return '';
   const pct = _imp(h.pct);
-  return [h.es || h.en || '', pct ? '(' + pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
+  // lwTextoPct (dinero.js, 14-oct-2026): un % sacado de una cantidad (hasta 12 decimales) sale a 2, igual que en
+  // descHito() de /intranet/facturas/; con 2 o menos, el mismo número de siempre.
+  return [h.es || h.en || '', pct ? '(' + lwTextoPct(pct) + '% del precio acordado)' : ''].filter(Boolean).join(' ')
        + (h.timing ? ' — ' + h.timing : '');
 }
 /* De qué contrato es una línea: la que trajo un hito del contrato VINCULADO lleva `origen_contrato_id` (y la

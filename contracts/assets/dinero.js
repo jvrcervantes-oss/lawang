@@ -49,6 +49,38 @@ function lwParseImporte(v){
   return negativo ? -n : n;
 }
 
+/* % de un hito como TEXTO (14-oct-2026). Desde hoy un % puede salir de una
+   cantidad tecleada en el calendario de pagos y llevar hasta 12 decimales
+   (pctDesdeImporte, hitos_fechas.js). Lo que lo enseña al cliente —la línea de
+   la factura «(N% del precio acordado)», el portal, el PDF— lo redondea a 2.
+   Con 2 decimales o menos devuelve el texto TAL CUAL se guardó («62.50» sigue
+   siendo «62.50»): el portal empareja la factura de un hito por esa línea
+   exacta, y las ya emitidas no pueden dejar de casar. */
+function lwTextoPct(v){
+  const s = String(v == null ? '' : v).trim();
+  return /\.\d{3,}$/.test(s) ? String(parseFloat(parseFloat(s).toFixed(2))) : s;
+}
+
+/* % de un hito sacado de una CANTIDAD (14-oct-2026, owner: «% o cantidad, uno u
+   otro» en el calendario de pagos). Lo guardado sigue siendo el %, y la base
+   (contrato_calendario_reparte) rehace la cantidad con round(precio·pct)/100, así
+   que el % tiene que reproducirla al céntimo: hasta 12 decimales. Medido contra
+   esa función el 14-oct con 10 casos: con 2 decimales 10.000 sobre 287.500 salía
+   9.976,25; con 8, un precio en IDR de 5.000 millones fallaba por céntimos; con
+   12, 10 de 10 exactos.
+   ⚠️ NUNCA exactamente 3 decimales: lwParseImporte('12.123') y la base
+   (public.lw_importe) lo leen como 12123 —miles—. lwPctSeguro le añade un 0, y la
+   base rechaza los de 3 (migración 20261014193100). */
+function lwPctSeguro(v){
+  const s = String(v == null ? '' : v).trim();
+  return /^\d+\.\d{3}$/.test(s) ? s + '0' : s;
+}
+// null si no se puede: sin precio total, cantidad no numérica, negativa o mayor que el total.
+function lwPctDeImporte(importe, total){
+  if(!(total > 0) || !(importe >= 0) || importe > total) return null;
+  return lwPctSeguro((importe * 100 / total).toFixed(12).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''));
+}
+
 /* ============================================================================
    ESCRIBIR UN IMPORTE — la otra mitad, 17-ago-2026 (auditoría)
    ============================================================================
@@ -266,4 +298,5 @@ function lwDescuentoBloqueo(lista, tope, st){
 if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwParseImporte, lwFormatoImporte, lwImporteCanonico, LW_DECIMALES,
                      lwSumaPorMoneda, lwSumaTexto, lwMonedaPrincipal, lwDescuentoCascada,
-                     lwFacturaQueCuenta, lwFacturaCuentaEnSuFecha, lwDescuentoBloqueo };
+                     lwFacturaQueCuenta, lwFacturaCuentaEnSuFecha, lwDescuentoBloqueo, lwTextoPct,
+                     lwPctSeguro, lwPctDeImporte };

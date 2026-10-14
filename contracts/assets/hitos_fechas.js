@@ -419,25 +419,15 @@ function refreshHitos(){ const b=$('[data-sec="pagos"] .hitos-body'); if(b) b.in
    mismo instante. */
 /* % O CANTIDAD (14-oct-2026, owner). El dato sigue siendo el % (la base,
    contrato_calendario_reparte, rehace la cantidad desde él al guardar), así
-   que una cantidad tecleada se convierte en el % que la reproduce al céntimo:
-   hasta 12 decimales (con 2, 10.000 sobre 287.500 salía 9.976,25; con 8, un
-   precio en IDR de 5.000 millones fallaba por céntimos — medido el 14-oct
-   contra la función de la base con 10 casos, 10 exactos con 12).
-   ⚠️ NUNCA exactamente 3 decimales: public.lw_importe('12.123') = 12123 (lo
-   lee como miles) mientras aquí parseFloat da 12.123. pctSeguro() le añade un
-   0 («12.1230»), que la base lee bien. */
-function pctSeguro(v){
-  const s = String(v == null ? '' : v).trim();
-  return /^\d+\.\d{3}$/.test(s) ? s + '0' : s;
-}
+   que una cantidad tecleada se convierte en el % que la reproduce al céntimo.
+   La cuenta, sus 12 decimales y el porqué de «nunca 3» viven en dinero.js
+   (lwPctDeImporte / lwPctSeguro), con su test en calendario_pagos.test.js. */
+function pctSeguro(v){ return lwPctSeguro(v); }
 // '' si se vació, null si no se puede (sin precio total, o la cantidad no cabe en él).
 function pctDesdeImporte(texto){
   if(String(texto || '').trim() === '') return '';
   const elP = document.querySelector('[name="precio_total"]');
-  const total = elP ? parseImporte(elP.value) : 0;
-  const imp = parseImporte(texto);
-  if(!(total > 0) || !(imp >= 0) || imp > total) return null;
-  return pctSeguro((imp * 100 / total).toFixed(12).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''));
+  return lwPctDeImporte(parseImporte(texto), elP ? parseImporte(elP.value) : 0);
 }
 function recalcularMontosHitos(){
   if(!Array.isArray(HITOS) || !HITOS.some(h=>h.calculado)) return;
@@ -569,7 +559,7 @@ function hitosRowsHTML(){
     // cerrado (la reserva) sin porcentaje del total que lo represente.
     // Un % sacado de una cantidad lleva hasta 12 decimales (pctDesdeImporte): el
     // documento lo imprime a 2; lo que obliga es la cantidad. Con 2 o menos, tal cual.
-    const pctTxt = /\.\d{3,}$/.test(String(h.pct||'').trim()) ? String(parseFloat(parseFloat(h.pct).toFixed(2))) : String(h.pct);
+    const pctTxt = lwTextoPct(h.pct);
     const pct = (descontado || String(h.pct||'').trim()==='' || parseFloat(h.pct)===0) ? '' : esc(pctTxt)+'%';
     /* La celda de timing imprime la FECHA de vencimiento cuando el hito la tiene
        (18-ago-2026: los pagos se controlan por fecha de calendario, no por texto

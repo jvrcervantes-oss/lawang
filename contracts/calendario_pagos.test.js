@@ -117,5 +117,33 @@ for(const cal of ['', 'unico_obra', 'unico_firma']){
 ok(!/<!--if:clausula_pago/.test(motorApp(tpl, {}).replace(/<!--if:clausula_pago=[a-z_]*-->[\s\S]*?<!--\/if:clausula_pago-->/g, '')),
    'no queda ningún <!--if:clausula_pago--> sin cerrar');
 
+// ── 4. % o cantidad (14-oct-2026): la cantidad tecleada vuelve EXACTA desde su % ──
+// La base rehace la cantidad con round(precio · pct) / 100 (contrato_calendario_reparte). Aquí se repite en
+// enteros (BigInt), sin coma flotante: céntimos = round(P·Q / 10^(2+dec)), P = precio en céntimos.
+const dinero = require('./assets/dinero.js');
+const escala = s => { const [e, d = ''] = String(s).split('.'); return { n: BigInt(e + d), dec: d.length }; };
+const centimosBase = (precio, pct) => {
+  const P = escala(precio), Q = escala(pct);
+  const den = 10n ** BigInt(P.dec + Q.dec);                 // precio·pct, y /100 · 100 céntimos se anulan
+  return (P.n * Q.n * 2n + den) / (2n * den);                // redondeo half-up (todo positivo)
+};
+const aCent = s => { const [e, d = ''] = String(s).split('.'); return BigInt(e + (d + '00').slice(0, 2)); };
+// los 10 casos medidos contra la función viva el 14-oct (10/10 exactos con 12 decimales)
+for(const [precio, imp] of [['333333','10000'],['287500.5','10000'],['287500','12345.67'],['5250000000','1000000000'],
+    ['4987654321','123456789'],['150000','37500'],['99999.99','0.01'],['1000','1'],['9876543210','1234567890.12'],['3150000000','787500000']]){
+  const pct = dinero.lwPctDeImporte(parseFloat(imp), parseFloat(precio));
+  ok(pct !== null && centimosBase(precio, pct) === aCent(imp), `${imp} sobre ${precio}: el % ${pct} devuelve la cantidad exacta (dio ${pct === null ? 'null' : centimosBase(precio, pct)} céntimos)`);
+  ok(pct === null || !/\.\d{3}$/.test(pct), `${imp} sobre ${precio}: el % ${pct} no tiene exactamente 3 decimales`);
+}
+ok(dinero.lwPctDeImporte(150000, 0) === null, 'sin precio total no hay %');
+ok(dinero.lwPctDeImporte(200000, 150000) === null, 'una cantidad mayor que el precio no cabe');
+ok(dinero.lwPctDeImporte(-1, 150000) === null && dinero.lwPctDeImporte(NaN, 150000) === null, 'negativa o no numérica: null');
+ok(dinero.lwPctDeImporte(18187.5, 145500) === '12.5', '«12.5», sin ceros de cola');
+ok(dinero.lwPctSeguro('12.123') === '12.1230' && dinero.lwPctSeguro('12.12') === '12.12' && dinero.lwPctSeguro('12.1234') === '12.1234',
+   'lwPctSeguro solo toca los de exactamente 3 decimales');
+ok(dinero.lwParseImporte(dinero.lwPctSeguro('12.123')) === 12.123, 'y así el parser común lo lee como 12.123, no como 12123');
+ok(dinero.lwTextoPct('62.50') === '62.50' && dinero.lwTextoPct(62.5) === '62.5' && dinero.lwTextoPct('3.478254820426') === '3.48',
+   'lwTextoPct: con 2 decimales o menos, tal cual; con más, a 2');
+
 if(fallos){ console.error(`\n${fallos} fallo(s) en calendario_pagos.test.js`); process.exit(1); }
 console.log('calendario_pagos.test.js: todo ok');

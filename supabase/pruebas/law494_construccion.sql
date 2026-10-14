@@ -23,6 +23,15 @@
 --   T8c descuento > 50 % como admin                                           RECHAZA
 --   T8b descuento 62,5 % como super_admin                                     PASA     [PASA: exención del 29-sep]
 --   T9  descuento 2.000 y total 46.000                                        PASA     [PASA]
+--   (14-oct-2026: desde 20261014193200 el motivo es obligatorio en la base; T8-T9 llevan motivo)
+--   T10  descuento sin motivo                                                 RECHAZA  [PASA: hueco (a)]
+--   T10b motivo vaciado en una segunda escritura                              RECHAZA  [PASA]
+--   T11  sin techo (CC00096), descuento > 50 % de total+descuento, admin      RECHAZA  [PASA: hueco (b)]
+--   T11b sin techo, descuento dentro del tope                                 PASA
+--   T12  agente, descuento justo 15 %                                         PASA     [RECHAZA: rol, antes de 193000]
+--   T12b agente, descuento > 15 %                                             RECHAZA
+--   T13  calendario libre con un % de 3 decimales                             RECHAZA  [PASA: se leía como miles]
+--   T13b el mismo con 4 decimales                                             PASA
 -- CC00107 (LAW-267) no entra: tiene una firma en curso y lo para contrato_no_editable_en_firma antes que este trigger.
 -- Datos de producción del 7-oct (CC00120 48.000 sin extras; CC00122 con extra y descuento; CC00096 sin techo).
 do $t$
@@ -31,12 +40,14 @@ declare
   u_ad uuid; u_sa uuid; e_ad text; e_sa text;
   c120 public.contratos%rowtype; c122 public.contratos%rowtype; c096 public.contratos%rowtype;
   d jsonb; r jsonb;
-  claims_ad text; claims_sa text;
+  claims_ad text; claims_sa text; u_ag uuid; e_ag text; claims_ag text;
 begin
-  select user_id, email into u_ad, e_ad from public.usuarios where activo and rol = 'admin' and email like 'p@p%' limit 1;
+  select user_id, email into u_ad, e_ad from public.usuarios where activo and rol = 'admin' order by email limit 1;  -- 14-oct: el admin «p@p…» ya no existe; sin él todo corría sin sesión
   select user_id, email into u_sa, e_sa from public.usuarios where activo and rol = 'super_admin' order by email limit 1;
   claims_ad := json_build_object('sub', u_ad, 'role', 'authenticated', 'email', e_ad)::text;
   claims_sa := json_build_object('sub', u_sa, 'role', 'authenticated', 'email', e_sa)::text;
+  select user_id, email into u_ag, e_ag from public.usuarios where activo and rol = 'agente' order by email limit 1;
+  claims_ag := json_build_object('sub', u_ag, 'role', 'authenticated', 'email', e_ag)::text;
   select * into c120 from public.contratos where numero = 'CC00120';
   select * into c122 from public.contratos where numero = 'CC00122';
   select * into c096 from public.contratos where numero = 'CC00096';
@@ -160,7 +171,7 @@ begin
   esp := 'PASA';
   begin
     perform set_config('request.jwt.claims', claims_ad, true);
-    update public.contratos set datos = jsonb_set(datos, '{fields,descuento_comercial}', to_jsonb('9000'::text)), precio_total = 39000 where id = c120.id;
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', '"prueba"'), '{fields,descuento_comercial}', to_jsonb('9000'::text)), precio_total = 39000 where id = c120.id;
     raise exception '__PASO__';
   exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
   out := out || 'T8   ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'
@@ -169,7 +180,7 @@ begin
   esp := 'PASA';
   begin
     perform set_config('request.jwt.claims', claims_ad, true);
-    update public.contratos set datos = jsonb_set(datos, '{fields,descuento_comercial}', to_jsonb('24000'::text)), precio_total = 24000 where id = c120.id;
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', '"prueba"'), '{fields,descuento_comercial}', to_jsonb('24000'::text)), precio_total = 24000 where id = c120.id;
     raise exception '__PASO__';
   exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
   out := out || 'T8a  ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'
@@ -178,7 +189,7 @@ begin
   esp := 'RECHAZA';
   begin
     perform set_config('request.jwt.claims', claims_ad, true);
-    update public.contratos set datos = jsonb_set(datos, '{fields,descuento_comercial}', to_jsonb('24500'::text)), precio_total = 23500 where id = c120.id;
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', '"prueba"'), '{fields,descuento_comercial}', to_jsonb('24500'::text)), precio_total = 23500 where id = c120.id;
     raise exception '__PASO__';
   exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
   out := out || 'T8c  ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'
@@ -187,7 +198,7 @@ begin
   esp := 'PASA';
   begin
     perform set_config('request.jwt.claims', claims_sa, true);
-    update public.contratos set datos = jsonb_set(datos, '{fields,descuento_comercial}', to_jsonb('30000'::text)), precio_total = 18000 where id = c120.id;
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', '"prueba"'), '{fields,descuento_comercial}', to_jsonb('30000'::text)), precio_total = 18000 where id = c120.id;
     raise exception '__PASO__';
   exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
   out := out || 'T8b  ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'
@@ -196,10 +207,79 @@ begin
   esp := 'PASA';
   begin
     perform set_config('request.jwt.claims', claims_ad, true);
-    update public.contratos set datos = jsonb_set(datos, '{fields,descuento_comercial}', to_jsonb('2000'::text)), precio_total = 46000 where id = c120.id;
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', '"prueba"'), '{fields,descuento_comercial}', to_jsonb('2000'::text)), precio_total = 46000 where id = c120.id;
     raise exception '__PASO__';
   exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
   out := out || 'T9  ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
+
+  -- T10
+  esp := 'RECHAZA';
+  begin
+    perform set_config('request.jwt.claims', claims_ad, true);
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', to_jsonb(''::text)), '{fields,descuento_comercial}', to_jsonb('2000'::text)), precio_total = 46000 where id = c120.id;
+    raise exception '__PASO__';
+  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
+  out := out || 'T10  ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
+  -- T10b
+  esp := 'RECHAZA';
+  begin
+    begin
+    perform set_config('request.jwt.claims', claims_ad, true);
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', to_jsonb('prueba'::text)), '{fields,descuento_comercial}', to_jsonb('2000'::text)), precio_total = 46000 where id = c120.id;
+    exception when others then raise exception '__PASO1_FALLA__ %', left(sqlerrm, 120);
+    end;
+    update public.contratos set datos = jsonb_set(datos, '{fields,descuento_comercial_motivo}', '""') where id = c120.id;
+    raise exception '__PASO__';
+  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' when sqlerrm like '\_\_PASO1%' then 'PREPARACION' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
+  out := out || 'T10b ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
+  -- T11
+  esp := 'RECHAZA';
+  begin
+    perform set_config('request.jwt.claims', claims_ad, true);
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', to_jsonb('prueba'::text)), '{fields,descuento_comercial}', to_jsonb('5000'::text)), precio_total = 1000 where id = c096.id;
+    raise exception '__PASO__';
+  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
+  out := out || 'T11  ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
+  -- T11b
+  esp := 'PASA';
+  begin
+    perform set_config('request.jwt.claims', claims_ad, true);
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', to_jsonb('prueba'::text)), '{fields,descuento_comercial}', to_jsonb('1000'::text)), precio_total = 5000 where id = c096.id;
+    raise exception '__PASO__';
+  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
+  out := out || 'T11b ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
+  -- T12
+  esp := 'PASA';
+  begin
+    perform set_config('request.jwt.claims', claims_ag, true);
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', to_jsonb('prueba'::text)), '{fields,descuento_comercial}', to_jsonb('7200'::text)), precio_total = 40800 where id = c120.id;
+    raise exception '__PASO__';
+  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
+  out := out || 'T12  ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
+  -- T12b
+  esp := 'RECHAZA';
+  begin
+    perform set_config('request.jwt.claims', claims_ag, true);
+    update public.contratos set datos = jsonb_set(jsonb_set(datos, '{fields,descuento_comercial_motivo}', to_jsonb('prueba'::text)), '{fields,descuento_comercial}', to_jsonb('7300'::text)), precio_total = 40700 where id = c120.id;
+    raise exception '__PASO__';
+  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
+  out := out || 'T12b ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
+  -- T13
+  esp := 'RECHAZA';
+  begin
+    perform set_config('request.jwt.claims', claims_ad, true);
+    perform public.contrato_calendario_aplica(jsonb_build_object('calendario', 'libre', 'hitos', jsonb_build_array(jsonb_build_object('pct', '12.123', 'es', 'A'), jsonb_build_object('pct', '87.877', 'es', 'B'))), jsonb_build_object('calendario', 'libre', 'hitos', '[]'::jsonb), 100000, current_date, c120.id);
+    raise exception '__PASO__';
+  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
+  out := out || 'T13  ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
+  -- T13b
+  esp := 'PASA';
+  begin
+    perform set_config('request.jwt.claims', claims_ad, true);
+    perform public.contrato_calendario_aplica(jsonb_build_object('calendario', 'libre', 'hitos', jsonb_build_array(jsonb_build_object('pct', '12.1230', 'es', 'A'), jsonb_build_object('pct', '87.8770', 'es', 'B'))), jsonb_build_object('calendario', 'libre', 'hitos', '[]'::jsonb), 100000, current_date, c120.id);
+    raise exception '__PASO__';
+  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
+  out := out || 'T13b ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
 
   raise exception E'RESULTADOS (fallos: %)\n%', fallos, out;
 end $t$;
