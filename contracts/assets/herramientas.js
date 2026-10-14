@@ -216,7 +216,7 @@ const LW_HERRAMIENTAS = [
      vea nadie ahora mismo»). Compartir 'operaciones' hacía imposible quitarla
      sin quitar Operaciones. Nace concedida a NADIE: solo la ve un super_admin. */
   { grupo:'Finanzas', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/v4/comisiones/', herr:'comisiones',
-    para:'Pagos que piden los comerciales — comisiones y acordados: quién pide qué, y en qué quedó cada uno.',
+    para:'Pagos que piden los agentes — comisiones y acordados: quién pide qué, y en qué quedó cada uno.',
     claves:'solicitudes pago pagos comisiones comerciales agentes pedir comision payment requests commissions agents reps payout',
     estado:d => d.solicitudesVivas == null ? null
       : [d.solicitudesVivas ? hT('%n por resolver o pagar', { n: d.solicitudesVivas }) : hT('Sin solicitudes en vuelo'),

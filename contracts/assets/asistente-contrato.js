@@ -407,7 +407,7 @@
   }
   function modoTxt() {
     if (S.camino === 'existente') return T('Equipo o por su cuenta: se hereda de la venta');
-    if (!RT.equipo || (!RT.equipo.en && !RT.equipo.fallo)) return T('Sin equipo');
+    if (!RT.equipo || (!RT.equipo.en && !RT.equipo.fallo)) return T('No estás en ningún equipo de venta');
     if (S.modo === 'equipo') return T('Con mi equipo') + (smVisible() ? ' · ' + smVisible() : '');
     if (S.modo === 'propia') return T('Por mi cuenta');
     return '';
@@ -495,7 +495,7 @@
          previsualización. Se avisa aquí de lo que puede pasar, y el resultado llega al guardar. */
       if (S.camino === 'nueva' && S.modo === 'propia' && RT.equipo && RT.equipo.en)
         h += aviso('info', 'info', e(T('Por tu cuenta: al guardar se comprueba este cliente contra los leads de tu equipo. Si es un lead que te asignó tu Sales Manager, la venta no podrá ser por tu cuenta; si vino de campañas o lo llevaba otra persona del equipo, tu Sales Manager recibe el aviso.')));
-      h += '<div class="asi-alta"><button type="button" class="asi-btn fantasma" data-asi="alta-cliente"><span data-ico="person_add" aria-hidden="true"></span>' + e(T('Dar de alta un cliente nuevo')) + '</button>' +
+      h += '<div class="asi-alta"><button type="button" class="asi-btn fantasma" data-asi="alta-cliente"><span data-ico="person_add" aria-hidden="true"></span>' + e(T('Nuevo cliente')) + '</button>' +
         '<span>' + e(T('Al guardarlo vuelves aquí con él elegido.')) + '</span></div>';
       return h;
     },
@@ -719,12 +719,12 @@
           (hecho ? ' data-asi="salta" data-v="' + n + '"' : ' disabled') + (n === S.paso ? ' aria-current="step"' : '') +
           '><span class="asi-d">' + (hecho ? '<span data-ico="check" aria-hidden="true"></span>' : (n + 1)) + '</span>' + e(p[1]) + '</button>';
       }).join('') +
-      '<div class="asi-pie-lado">' + (!S.montado ? '<button type="button" class="asi-link" data-asi="saltar">' + e(T('Saltar el asistente')) + '</button>' : '') +
+      '<div class="asi-pie-lado">' + (!S.montado ? '<button type="button" class="asi-link" data-asi="saltar">' + e(T('Saltar la guía')) + '</button>' : '') +
       '<span>' + e(T('Lo que contestes se guarda si cierras y vuelves.')) + '</span></div></nav>' +
-      '<div class="asi-main"><div class="asi-top"><span class="asi-ctx">' + e(T('Paso')) + ' ' + (S.paso + 1) + ' ' + e(T('de')) + ' ' + ps.length +
+      '<div class="asi-main"><div class="asi-top"><span class="asi-ctx">' + e(T('Paso')) + ' ' + (S.paso + 1) + (ps.length > 1 ? ' ' + e(T('de')) + ' ' + ps.length : '') +   // al abrir solo se conoce el primer paso: «Paso 1 de 1» despistaba (14-oct-2026)
       (S.paso > 0 && modoTxt() ? ' · ' + e(modoTxt()) : '') + '</span>' +
       // la misma salida en el móvil, donde el riel de pasos no se ve (suite-v4-generador.css)
-      (!S.montado ? '<button type="button" class="asi-link asi-saltar-movil" data-asi="saltar">' + e(T('Saltar el asistente')) + '</button>' : '') +
+      (!S.montado ? '<button type="button" class="asi-link asi-saltar-movil" data-asi="saltar">' + e(T('Saltar la guía')) + '</button>' : '') +
       '<button type="button" class="asi-x" data-asi="cierra" aria-label="' + e(T('Cerrar')) + '"><span data-ico="close" aria-hidden="true"></span></button></div>' +
       '<div class="asi-cuerpo">' + P[k]() + '</div>' +
       '<div class="asi-pie"><button type="button" class="asi-btn fantasma" data-asi="atras"' + (S.paso === 0 ? ' disabled' : '') + '><span data-ico="arrow_back" aria-hidden="true"></span>' + e(T('Atrás')) + '</button>' +
@@ -1175,7 +1175,7 @@
     var d = document.createElement('div');
     d.className = 'asi-banda';
     d.setAttribute('data-asi-banda', '1');
-    d.innerHTML = '<span data-ico="auto_awesome" aria-hidden="true"></span><span class="asi-banda-t">' + e(T('Montado con el asistente.')) + '</span>' +
+    d.innerHTML = '<span data-ico="auto_awesome" aria-hidden="true"></span><span class="asi-banda-t">' + e(T('Montado con la guía.')) + '</span>' +
       (modoTxt() ? '<span class="asi-chip"' + (RT.oblig === true ? '' : ' title="' + e(T('Prueba: esta respuesta todavía no se guarda en el contrato. Se activará cuando el servidor la compruebe.')) + '"') + '>' +
         e(modoTxt()) + (S.camino === 'nueva' && S.modo && RT.oblig !== true ? ' · ' + e(T('prueba')) : '') + '</span>' : '') +
       '<button type="button" class="asi-btn fantasma" data-accion="asistente-cambiar-tipo"><span data-ico="swap_horiz" aria-hidden="true"></span>' + e(T('Cambiar tipo')) + '</button>' +

@@ -132,6 +132,68 @@ MENU.forEach(s => s.entradas.forEach(e => {
   Object.keys(dePanel).forEach(k => { if (!dePanel[k]) errores.push(`PANEL_CONTROL_SUPER: «${k}» no lleva solo: la vería un super de empresa`); });
   if (!/function veSolo\(solo, ficha\)[\s\S]*esPropietario[\s\S]*esSuperGlobal/.test(nav)) errores.push('nav.js: falta veSolo con esPropietario y esSuperGlobal');
 }
+/* «Clientes» junto a «Contratos» (14-oct-2026, owner): es por donde empieza una venta y al final del menú no se veía sin bajar.
+   El orden vive en MENU_V4 y recablea() mueve el enlace que dibuja cada página (subeClientes): las dos mitades, o vuelve abajo. */
+{
+  const sec = MENU.filter(s => s.entradas.some(e => e.path === 'compradores'))[0];
+  const i = sec ? sec.entradas.findIndex(e => e.path === 'compradores') : -1;
+  if (!sec || !sec.entradas[i + 1] || sec.entradas[i + 1].path !== 'contratos') errores.push('MENU_V4: «Clientes» tiene que ir justo antes de «Contratos»');
+  if (!/forEach\(subeClientes\)/.test(nav)) errores.push('nav.js: recablea() ya no llama a subeClientes (el menú volvería a pintar «Clientes» al final)');
+}
+/* …y subeClientes hace lo que dice, EJECUTADA sobre un DOM mínimo (14-oct-2026, lo echó en falta el revisor): la prueba de
+   arriba solo miraba que se la llamara. Mueve el enlace que ya dibujó la página (no lo clona), lo deja justo delante de
+   «Contratos», no hace nada la segunda vez, y sin su vecino (o sin ella) deja el menú como estaba. */
+{
+  const i = nav.indexOf('var TRAS_CLIENTES = (function () {'), j = nav.indexOf('function injertaNuevas(aside)', i);
+  assert.ok(i > 0 && j > i, 'nav.js: no encuentro TRAS_CLIENTES + subeClientes');
+  const cx = { MENU_V4: MENU };
+  vm.createContext(cx);
+  vm.runInContext(nav.slice(i, j), cx);
+  const sube = vm.runInContext('subeClientes', cx);
+  if (vm.runInContext('TRAS_CLIENTES', cx) !== 'contratos') errores.push('nav.js: TRAS_CLIENTES ya no es «contratos»');
+  const aside = grupos => {
+    const a = { movs: 0, gs: grupos.map(ps => ({ hijos: ps.slice() })) };
+    const enlace = (g, p) => ({
+      path: p, g,
+      get previousElementSibling() { const k = this.g.hijos.indexOf(this); return k > 0 ? this.g.hijos[k - 1] : null; },
+      insertAdjacentElement(donde, el) {
+        assert.strictEqual(donde, 'beforebegin');
+        el.g.hijos.splice(el.g.hijos.indexOf(el), 1);          // un nodo del DOM solo vive en un sitio: mover lo quita del anterior
+        this.g.hijos.splice(this.g.hijos.indexOf(this), 0, el);
+        el.g = this.g; a.movs++;
+        return el;
+      },
+    });
+    a.gs.forEach(g => { g.hijos = g.hijos.map(p => enlace(g, p)); });
+    a.querySelector = sel => {
+      const m = sel.match(/^nav a\[data-path="([\w-]+)"\]$/);
+      assert.ok(m, 'subeClientes busca por algo que no es data-path: ' + sel);
+      for (const g of a.gs) for (const x of g.hijos) if (x.path === m[1]) return x;
+      return null;
+    };
+    a.orden = () => a.gs.map(g => g.hijos.map(x => x.path).join(' '));
+    return a;
+  };
+  // como la dibuja cada página: «Clientes» al final de «Base de Datos»
+  let a = aside([['home', 'leads'], ['contratos', 'asistente'], ['proyectos', 'modelos', 'obra', 'compradores']]);
+  sube(a);
+  assert.deepStrictEqual(a.orden(), ['home leads', 'compradores contratos asistente', 'proyectos modelos obra'], 'subeClientes: «Clientes» tiene que quedar justo delante de «Contratos» y salir de «Base de Datos»');
+  assert.strictEqual(a.movs, 1, 'subeClientes: un solo movimiento');
+  sube(a); sube(a);
+  assert.deepStrictEqual(a.orden(), ['home leads', 'compradores contratos asistente', 'proyectos modelos obra'], 'subeClientes: llamarla otra vez no cambia nada');
+  assert.strictEqual(a.movs, 1, 'subeClientes: recablea() corre varias veces; ya colocada no se vuelve a mover');
+  // sin «Contratos» en la página (quien no la tiene): se queda donde estaba
+  a = aside([['home'], ['asistente'], ['proyectos', 'compradores']]);
+  sube(a);
+  assert.deepStrictEqual(a.orden(), ['home', 'asistente', 'proyectos compradores'], 'subeClientes: sin su vecino no se mueve');
+  // sin «Clientes» (quien no tiene la casilla y la poda la quitó): nada que mover, y no revienta
+  a = aside([['home'], ['contratos', 'asistente'], ['proyectos']]);
+  sube(a);
+  assert.deepStrictEqual(a.orden(), ['home', 'contratos asistente', 'proyectos'], 'subeClientes: sin «Clientes» no toca nada');
+  // un menú vacío
+  a = aside([]); sube(a);
+  assert.strictEqual(a.movs, 0);
+}
 const dup = enMenu.filter((k, i) => enMenu.indexOf(k) !== i);
 if (dup.length) errores.push('MENU_V4: casillas en dos sitios del menú: ' + dup.join(', '));
 PERMISOS.filter(k => enMenu.indexOf(k) === -1).forEach(k => errores.push(`«${k}» existe en LW_PERMISOS y MENU_V4 no la sitúa: en Usuarios saldría en «Otras»`));

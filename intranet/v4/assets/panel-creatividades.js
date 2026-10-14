@@ -100,9 +100,9 @@
   }
 
   var CONFIRMA = {
-    aprobada: ['¿Aprobar «', 'Al aprobarla, los comerciales con acceso la pueden descargar y enviar. Ya no se podrá editar: un cambio será una copia nueva.', 'Aprobar', ''],
-    archivada: ['¿Archivar «', 'Deja de estar disponible para los comerciales. Las copias que ya se descargaron no se pueden retirar: si es por un motivo legal, avísales.', 'Archivar', 'peligro'],
-    borrador: ['¿Devolver «', 'Vuelve a borrador para que se corrija y se envíe otra vez. Los comerciales no la ven.', 'Devolver', '']
+    aprobada: ['¿Aprobar «', 'Al aprobarla, los agentes con acceso la pueden descargar y enviar. Ya no se podrá editar: un cambio será una copia nueva.', 'Aprobar', ''],
+    archivada: ['¿Archivar «', 'Deja de estar disponible para los agentes. Las copias que ya se descargaron no se pueden retirar: si es por un motivo legal, avísales.', 'Archivar', 'peligro'],
+    borrador: ['¿Devolver «', 'Vuelve a borrador para que se corrija y se envíe otra vez. Los agentes no la ven.', 'Devolver', '']
   };
   async function cambia(c, destino, btn) {
     var k = CONFIRMA[destino];

@@ -59,7 +59,7 @@
          Aviso pedido por el owner el 14-oct. La ve quien puede dar de alta clientes. */
       id: 'pasaporte-alta', roles: ['agente', 'sales_manager'], herr: 'compradores',
       titulo: function () { return T('Foto del pasaporte, obligatoria'); },
-      texto: function () { return T('Para dar de alta un cliente nuevo hay que adjuntar la foto de su pasaporte.'); },
+      texto: function () { return T('Para dar de alta un cliente («Nuevo cliente») hay que adjuntar la foto de su pasaporte y escribir su número.'); },
       lista: function () {
         return [
           T('Vale una foto o un escaneo (JPG, PNG, WEBP, HEIC o PDF, hasta 20 MB). Si es un DNI o una tarjeta, sube las dos caras.'),
