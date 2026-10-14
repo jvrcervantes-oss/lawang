@@ -10482,6 +10482,9 @@
               return null;
             });
           }, { sinRecarga: true });
+        }).then(null, function (e) {
+          // SC-33: sin esto, un fallo al abrir el alta solo se veía como «error de código» sin decir dónde
+          toastMal(lwErrorHumano(e, edT('No se pudo abrir el alta de la cuenta')));
         });
       });
       // `hidden` de salida en el HTML: solo se destapa para super_admin — un

@@ -158,9 +158,23 @@
       if (!ev || !ev.message || ev.message === 'Script error.' || (f && f.indexOf(location.origin) !== 0)) return;
       apunta('codigo', ev.message + (f ? ' (' + f.slice(location.origin.length).split('?')[0] + ':' + ev.lineno + ')' : ''));
     });
+    /* Una promesa rechazada no trae fichero, como sí trae el «error» de arriba: lo trae su pila (SC-33, 15-oct-2026:
+       «reading 'M_ID'» dos veces en Home, una propiedad que ninguna versión de la intranet ni de supabase-js ha
+       leído nunca; no se pudo decir de dónde venía). Si TODA la pila es de una extensión del navegador, no es
+       nuestro y no se apunta, la misma regla que el «error» con fichero ajeno. Si trae una línea del propio
+       dominio, se apunta con ella, para que el aviso diga dónde. Sin pila (un `throw` de texto, un error de
+       supabase), como antes. */
+    var EXTENSION = /^(chrome-extension|moz-extension|safari-extension|safari-web-extension|webkit-masked-url):/;
     window.addEventListener('unhandledrejection', function (ev) {
       var r = ev && ev.reason;
-      apunta('codigo', r && r.message ? r.message : r);
+      var urls = String((r && r.stack) || '').match(/[a-z][a-z-]*:\/\/[^\s()]+/g) || [];
+      if (urls.length && urls.every(function (u) { return EXTENSION.test(u); })) return;
+      var donde = '';
+      for (var i = 0; i < urls.length && !donde; i++) {
+        var m = urls[i].indexOf(location.origin + '/') === 0 && urls[i].slice(location.origin.length).match(/^([^?#:]+)(?:[?#][^:]*)?:(\d+)/);
+        if (m) donde = ' (' + m[1] + ':' + m[2] + ')';
+      }
+      apunta('codigo', (r && r.message ? r.message : r) + donde);
     });
     function vigila(n) {
       new MutationObserver(function () {

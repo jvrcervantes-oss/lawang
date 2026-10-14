@@ -381,6 +381,7 @@
     'Esa creatividad no existe o no tienes acceso a ella.': 'That creative does not exist or you do not have access to it.',
     'Dossier': 'Dossier',
     'No se pudo abrir el justificante': 'Could not open the receipt',
+    'No se pudo abrir el alta de la cuenta': 'Could not open the new account form',   // SC-33, 15-oct-2026
     'No se pudo anotar el justificante': 'Could not record the receipt',
     'No se pudo anular': 'Could not void',
     'No se pudo guardar': 'Could not save',
