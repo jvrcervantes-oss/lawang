@@ -47,15 +47,19 @@ with raices as (
     from raices rz left join cob on cob.raiz = rz.raiz
    group by rz.raiz, rz.numero
 ), guarda as (
-  -- F3 (14-oct-2026): Bloqueo de Parcela vivo sin firmar en la familia (raíz o hijo)
+  -- F3 (14-oct-2026): contrato vivo sin firmar en la familia (raíz o hijo); desde el 15-oct (20261015071000) de la misma
+  -- clase que `p`: moneda de la raíz, ni carta ni obra (antes solo tipo = 'reserva_parcela')
   select rz.raiz, exists (select 1 from public.contratos c
+                            left join public.contrato_tipo_etapa e on e.tipo = c.tipo
                            where (c.id = rz.raiz or c.contrato_padre_id = rz.raiz)
-                             and c.tipo = 'reserva_parcela' and not coalesce(c.bloqueado, false)
-                             and c.liberado_en is null) as bloqueo_sin_firmar
+                             and not coalesce(c.bloqueado, false) and c.liberado_en is null
+                             and c.moneda is not distinct from rz.moneda
+                             and not coalesce(c.tipo, '') like 'carta_reserva%'
+                             and not public._comisiones_parte_obra(c.tipo, e.es_obra)) as bloqueo_sin_firmar
     from raices rz
 ), esperado as (
   -- F3 (14-oct-2026): bolsa única de la familia firmada (parcela + cartas + obra); primero la parcela, el resto a obra.
-  -- Sin parcela firmada: la obra cuenta lo cobrado en obra, salvo con un Bloqueo vivo sin firmar (entonces 0).
+  -- Sin parcela firmada: la obra cuenta lo cobrado en obra, salvo con un contrato de parcela vivo sin firmar (entonces 0).
   select v.*,
          case when v.p > 0 then greatest(least(v.p, v.cp + v.cc + v.co), 0) else 0 end as ip,
          greatest(least(v.o, case when v.p > 0 then v.cp + v.cc + v.co - greatest(least(v.p, v.cp + v.cc + v.co), 0)

@@ -10,6 +10,8 @@
 --   le pasa a prueba_comisiones_recalculo.sql desde el freno del 11-oct. Con la marca abierta, el envío por MCP lleva
 --   además como primera línea `-- destructivo-ok: <motivo>` (tools/no_destruir.py exige las dos en Lawang).
 --   Última pasada: 14-oct-2026 tras F3 (20261014133241), 33/33 ok, series sin mover.
+--   15-oct-2026: G4b invertido y G4c nuevo con 20261015071000 (guarda con la clase de la parcela): SIN PASADA todavía
+--   (congelación de aplicar en producción del owner, 15-oct); con esa migración aplicada deben salir 34/34.
 --
 -- SERIES (LAW-217): ninguna prueba consume números. El motor crea una solicitud de pago (serie SP, identity) por cada
 -- devengo de manager/estándar/propia; aquí se desactivan los usuarios dentro de la transacción, así el motor no resuelve
@@ -27,7 +29,7 @@
 --   con CC00085 a 36.000, o 22,7 % de 88.000).
 --   La carta hija CR00051 (64.000, 5.000 cobrados) se deja SIN FIRMAR en el montaje (la carta nunca suma en la BASE,
 --   pero su cobro sí es pago). Los casos C1–C5 la firman para probar esa imputación; comparan las cifras de
---   _comisiones_bases_firmadas como números (no como texto) y el devengo que sale. G4a/G4b prueban la guarda de F3.
+--   _comisiones_bases_firmadas como números (no como texto) y el devengo que sale. G4a/G4b/G4c prueban la guarda de F3.
 -- Condiciones sucesoras del equipo (lawang): manager c0a11010-…-04 (10 %), closer genérico c0a11010-…-03 (2,5 %,
 -- plantilla del SM: closer 25 %).
 -- G1/G3 van por condicion_comision_guarda, la RPC real de la pantalla (condicion_tramos_reemplaza no tiene llamador y
@@ -652,12 +654,35 @@ begin
     r := r || 'G4a guarda Bloqueo sin firmar=' || sqlerrm || case when sqlerrm = 'R:bases ok|-' then ' ok; ' else ' FALLO; ' end;
   end;
 
-  -- G4b · CONTRAPRUEBA de G4a: la misma venta con una raíz que NO es Bloqueo de Parcela (contrato_general sin firmar) →
-  --       sin Bloqueo vivo la guarda no aplica: la obra cuenta sus 20.000 (25 %) y devenga su tramo. Prueba que lo que
-  --       frena en G4a es la guarda y no otra cosa.
+  -- G4b · La misma venta con una raíz contrato_general SIN firmar (15-oct-2026, revisor sobre 72e994303, ALTA): la guarda
+  --       mira la misma clase que la parcela de la regla (ni carta ni obra), así que también frena aquí: obra 0 y ningún
+  --       devengo. Hasta el 15-oct este caso decía lo contrario (la obra contaba sus 20.000 y devengaba manager:2:8000.00),
+  --       y al firmarse esa raíz la bolsa habría pasado entera a la parcela con la obra ya pagada.
   begin
     execute 'set local session_replication_role = replica';
     update public.contratos set bloqueado = false, tipo = 'contrato_general' where id = v_raiz;
+    update public.contratos set precio_total = 36000 where id = v_cc85;
+    execute 'set local session_replication_role = origin';
+    select (b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+            b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas) = (0, 80000, 0, 0, 0, 20000, 0),
+           concat_ws('/', b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+                     b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas)
+      into v_ok, v_b from public._comisiones_bases_firmadas(v_raiz) b;
+    perform public.comisiones_evaluar_contrato(v_raiz);
+    select coalesce(string_agg(d.nivel || ':' || t.orden || ':' || d.importe, ',' order by d.nivel, t.orden), '-') into v_t
+      from public.comisiones_devengadas d join public.condicion_tramos t on t.id = d.tramo_id where d.contrato_raiz_id = v_raiz;
+    raise exception 'R:%|%', case when v_ok then 'bases ok' else 'bases ' || v_b end, v_t;
+  exception when others then
+    r := r || 'G4b raiz contrato_general sin firmar frena=' || sqlerrm || case when sqlerrm = 'R:bases ok|-' then ' ok; ' else ' FALLO; ' end;
+  end;
+
+  -- G4c · CONTRAPRUEBA de G4a/G4b: raíz CARTA de reserva sin firmar (la carta hija CR00051 también lo está). Una carta no
+  --       entra nunca en la parcela de la regla, así que la guarda no aplica: la obra cuenta sus 20.000 (25 %) y devenga
+  --       su tramo. Prueba que lo que frena en G4a/G4b es la guarda y no otra cosa.
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.contratos set bloqueado = false, tipo = 'carta_reserva'
+     where id = v_raiz;
     update public.contratos set precio_total = 36000 where id = v_cc85;
     execute 'set local session_replication_role = origin';
     select (b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
@@ -670,7 +695,7 @@ begin
       from public.comisiones_devengadas d join public.condicion_tramos t on t.id = d.tramo_id where d.contrato_raiz_id = v_raiz;
     raise exception 'R:%|%', case when v_ok then 'bases ok' else 'bases ' || v_b end, v_t;
   exception when others then
-    r := r || 'G4b sin Bloqueo la obra cuenta=' || sqlerrm || case when sqlerrm = 'R:bases ok|manager:2:8000.00' then ' ok; ' else ' FALLO; ' end;
+    r := r || 'G4c raiz carta sin firmar la obra cuenta=' || sqlerrm || case when sqlerrm = 'R:bases ok|manager:2:8000.00' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- V · validación de tramos: 100 por base efectiva; 'por_tramo' exige base en cada tramo
