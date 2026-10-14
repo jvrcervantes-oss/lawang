@@ -1068,6 +1068,7 @@
        concatena después; sin él la frase en inglés quedaría sin puntuación. */
     'No se pudo guardar: ': 'Could not save: ',
     'No se pudo guardar:': 'Could not save:',
+    'Revisa este campo': 'Check this field',
     'No se pudo borrar: ': 'Could not delete: ',
     'No se pudo borrar:': 'Could not delete:',
     'No se pudo enviar: ': 'Could not send: ',

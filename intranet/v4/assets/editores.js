@@ -427,10 +427,32 @@
       amo.addEventListener('change', aplica);
       aplica();
     });
+    /* El aviso vive al final del cuerpo y, en los editores de documento, el botón de guardar sube a la barra
+       fija de la vista previa: un error que no se lleva a la vista es un «Guardar no hace nada» (INV00213,
+       14-oct-2026). Se lleva a la vista y se repite en un toast si la página lo tiene. */
     var muestraError = function (msg) {
       var e = w.querySelector('[data-e="error"]');
       e.textContent = msg; e.style.display = 'block';
+      try { e.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { e.scrollIntoView(false); }
+      if (typeof window.toastMal === 'function') window.toastMal(msg);
     };
+    /* Un campo que el navegador rechaza (un email mal formado traído de la ficha) dentro de una sección
+       plegada no se puede enfocar: el navegador cancela el envío y solo lo dice en la consola (14-oct-2026).
+       Se despliega su sección, se enfoca y se dice qué campo es. */
+    var ultimoInvalido = 0;
+    w.querySelector('[data-e="form"]').addEventListener('invalid', function (ev) {
+      var el = ev.target;
+      if (Date.now() - ultimoInvalido < 400) return;   // un aviso por intento, el del primer campo
+      ultimoInvalido = Date.now();
+      for (var n = el.parentElement; n && n !== w; n = n.parentElement) {
+        var cab = n.previousElementSibling;
+        if (n.style.display === 'none' && cab && cab.getAttribute('data-lw-plegable')) cab.click();
+      }
+      var caja = el.closest('label') || el.parentElement;
+      var nombre = (caja && caja !== el && (caja.textContent || '').replace(el.value || '', '').trim().split('\n')[0]) || el.getAttribute('data-k') || '';
+      setTimeout(function () { try { el.focus(); } catch (_) {} }, 0);
+      muestraError(tS('Revisa este campo') + (nombre ? ' «' + nombre.slice(0, 60) + '»' : '') + ': ' + (el.validationMessage || ''));
+    }, true);
     w.querySelector('[data-e="cerrar"]').addEventListener('click', cierraModal);
     w.querySelector('[data-e="cancelar"]').addEventListener('click', cierraModal);
     w.querySelector('[data-e="fondo"]').addEventListener('click', cierraModal);
@@ -5458,7 +5480,7 @@
           // — mismo patrón que ya usa el resto de esta pantalla más abajo
           // (`facturas_equipo` en el `Promise.all` principal).
           sb.rpc('contratos_equipo').select('id,proyecto_nombre'),
-          sb.rpc('facturas_equipo').select('id,proyecto_nombre')
+          sb.rpc('facturas_equipo').select('id,proyecto_nombre,proyecto_id')
         ]).then(function (rs) {
           /* Sin el radio de impacto NO se pide confirmar (B10a): antes un conteo que fallaba daba 0 y el diálogo
              decía «No hay nada vinculado» sobre un proyecto lleno. Falla en voz alta y no renombra. */
@@ -5470,7 +5492,11 @@
           var v = rs[0].data || {};
           var uds = v.unidades || 0;
           var con = (rs[1].data || []).filter(function (c) { return c.proyecto_nombre === p.nombre; }).length;
-          var fac = (rs[2].data || []).filter(function (f) { return f.proyecto_nombre === p.nombre; }).length;
+          // «<proyecto> — <parcela>» de ese proyecto también se renombra (renombrar_proyecto, 14-oct-2026): se cuenta
+          var fac = (rs[2].data || []).filter(function (f) {
+            return f.proyecto_nombre === p.nombre ||
+              (p.id && f.proyecto_id === p.id && String(f.proyecto_nombre || '').indexOf(p.nombre + ' ') === 0);
+          }).length;
           var doc = v.documentos || 0, mod = v.modelos_villa || 0;
           var radio = [
             uds ? uds + ' unidad(es)' : '', con ? con + ' contrato(s)' : '',
