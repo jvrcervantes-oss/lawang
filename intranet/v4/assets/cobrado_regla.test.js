@@ -45,6 +45,11 @@ const movidosPorRegla = new Function('esPreliminar', saca(src, 'movidosPorRegla'
   const csCarta = [{ id: 'b', tipo: 'reserva_parcela' }, { id: 'cr', tipo: 'carta_reserva', contrato_padre_id: 'b' }];
   assert.deepStrictEqual(movidosPorRegla(conCarta, csCarta), { cr: 2000 },
     'el Bloqueo enseñaba ya 5.000 + 2.000 de su Carta: no se marca; la Carta sí cambia (su dinero pasa al Bloqueo)');
+  // venta que la regla no reparte (o que el usuario no ve entera): la base devuelve lo de documento → nada marcado
+  // (revisor, 2.ª vuelta: con la comparación anterior salía {b: 5000})
+  const sinRepartir = { porRegla: true, doc: { b: 5000, cr: 2000 },
+    filas: [{ contrato_id: 'b', cobrado: 5000 }, { contrato_id: 'cr', cobrado: 2000 }] };
+  assert.deepStrictEqual(movidosPorRegla(sinRepartir, csCarta), {});
   assert.deepStrictEqual(movidosPorRegla({ porRegla: null, doc: {}, filas: [] }, cs), {});
   assert.deepStrictEqual(movidosPorRegla(null, cs), {});
 

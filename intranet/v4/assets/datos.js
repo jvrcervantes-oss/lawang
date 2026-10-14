@@ -658,19 +658,26 @@
       });
     });
   }
-  /* Contratos cuya cifra cambia de verdad con la regla → lo suyo por documento. Se compara con lo que la pantalla
-     enseñaba antes, que ya sumaba sus Cartas hijas (cobradoEfectivo de vencimientos/logica.js): comparar solo con
-     el documento marcaba todo Bloqueo con Carta cobrada aunque lo cubierto no cambiara (revisor, 14-oct). */
+  /* Contratos cuya cifra en pantalla cambia de verdad con la regla → lo suyo por documento. La pantalla enseña lo
+     del contrato más sus Cartas hijas (cobradoEfectivo de vencimientos/logica.js), así que se compara eso mismo
+     antes (por documento) y ahora (con la regla). Comparar con el documento solo marcaba todo Bloqueo con Carta
+     cobrada, y comparar la cifra sola con lo de antes lo marcaba en las ventas que la regla no reparte (revisor, 14-oct). */
   function movidosPorRegla(cb, contratos) {
     var movidos = {};
     if (!cb || cb.porRegla !== true) return movidos;
-    var antes = {};
-    Object.keys(cb.doc).forEach(function (id) { antes[id] = cb.doc[id]; });
+    var antes = {}, ahora = {};
+    cb.filas.forEach(function (x) { antes[x.contrato_id] = cb.doc[x.contrato_id] || 0; ahora[x.contrato_id] = Number(x.cobrado) || 0; });
+    var regla = {};
+    Object.keys(ahora).forEach(function (id) { regla[id] = ahora[id]; });
     (contratos || []).forEach(function (c) {
-      if (c.contrato_padre_id && esPreliminar(c)) antes[c.contrato_padre_id] = (antes[c.contrato_padre_id] || 0) + (cb.doc[c.id] || 0);
+      var p = c.contrato_padre_id;
+      if (p && esPreliminar(c) && antes.hasOwnProperty(p)) {
+        antes[p] += cb.doc[c.id] || 0;
+        ahora[p] += regla[c.id] || 0;
+      }
     });
-    cb.filas.forEach(function (x) {
-      if (Math.abs((Number(x.cobrado) || 0) - (antes[x.contrato_id] || 0)) > 0.005) movidos[x.contrato_id] = cb.doc[x.contrato_id] || 0;
+    Object.keys(antes).forEach(function (id) {
+      if (Math.abs(ahora[id] - antes[id]) > 0.005) movidos[id] = cb.doc[id] || 0;
     });
     return movidos;
   }
