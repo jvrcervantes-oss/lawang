@@ -638,24 +638,41 @@
 
   /* Lo cobrado POR CONTRATO con la regla «primero la parcela, luego la obra» (owner, 14-oct-2026; F2): la base lo da ya
      repartido (contratos_cobrado_regla_equipo) — en el navegador no se recalcula. Lo usan las pantallas que deciden
-     cobro o deuda (Vencimientos). Si la RPC no existe (el maestro del ERP aún no tiene la regla) o falla, se cae a lo
-     cobrado por documento, nunca a 0, y `porRegla` lo dice para que la pantalla lo rotule. Devuelve null solo si fallan
-     las dos. `movidos`: contrato → lo suyo por documento, donde la regla cambia la cifra. */
+     cobro o deuda (Vencimientos). Se cae a lo cobrado por documento, nunca a 0, en dos casos que se distinguen:
+     la base no tiene la función (instancias del ERP: el maestro aún no tiene la regla, [regla-parcela-maestro] en pendientes) → `porRegla: null`,
+     callado, porque ahí es lo normal; o la función falla → `porRegla: false`, y la pantalla lo rotula. Devuelve
+     null solo si fallan las dos. `doc`: contrato → lo suyo por documento (para movidosPorRegla). */
+  function faltaRpc(e) { return !!e && (e.code === 'PGRST202' || e.code === '42883'); }
   function cobradoConRegla(sb) {
     return vig(sb.rpc('contratos_cobrado_regla_equipo')).then(function (r) {
       if (!r.error) {
-        var movidos = {};
-        (r.data || []).forEach(function (x) {
-          if (Math.abs((Number(x.cobrado) || 0) - (Number(x.cobrado_doc) || 0)) > 0.005) movidos[x.contrato_id] = Number(x.cobrado_doc) || 0;
-        });
-        return { filas: r.data || [], porRegla: true, movidos: movidos };
+        var doc = {};
+        (r.data || []).forEach(function (x) { doc[x.contrato_id] = Number(x.cobrado_doc) || 0; });
+        return { filas: r.data || [], porRegla: true, doc: doc };
       }
-      console.warn('[cobrado] sin la regla de la parcela, por contrato:', r.error);
+      var falta = faltaRpc(r.error);
+      if (!falta) console.warn('[cobrado] sin la regla de la parcela, por contrato:', r.error);
       return vig(sb.rpc('contratos_cobrado_equipo')).then(function (r2) {
         if (r2.error) { fallo('cobrado', r2.error); return null; }
-        return { filas: r2.data || [], porRegla: false, movidos: {} };
+        return { filas: r2.data || [], porRegla: falta ? null : false, doc: {} };
       });
     });
+  }
+  /* Contratos cuya cifra cambia de verdad con la regla → lo suyo por documento. Se compara con lo que la pantalla
+     enseñaba antes, que ya sumaba sus Cartas hijas (cobradoEfectivo de vencimientos/logica.js): comparar solo con
+     el documento marcaba todo Bloqueo con Carta cobrada aunque lo cubierto no cambiara (revisor, 14-oct). */
+  function movidosPorRegla(cb, contratos) {
+    var movidos = {};
+    if (!cb || cb.porRegla !== true) return movidos;
+    var antes = {};
+    Object.keys(cb.doc).forEach(function (id) { antes[id] = cb.doc[id]; });
+    (contratos || []).forEach(function (c) {
+      if (c.contrato_padre_id && esPreliminar(c)) antes[c.contrato_padre_id] = (antes[c.contrato_padre_id] || 0) + (cb.doc[c.id] || 0);
+    });
+    cb.filas.forEach(function (x) {
+      if (Math.abs((Number(x.cobrado) || 0) - (antes[x.contrato_id] || 0)) > 0.005) movidos[x.contrato_id] = cb.doc[x.contrato_id] || 0;
+    });
+    return movidos;
   }
 
   function q(p, nombre, cont) {
@@ -4105,7 +4122,7 @@
       var MONEDA = 'EUR', FILTRO = 'atencion', PAGINA = 0;
       var POR_PAGINA = 25;
       var RAW = null, MODELO = null, FACTURAS = [];
-      // REGLA: lo cobrado viene con la regla de la parcela; MOVIDOS: contrato → su cobrado por documento, si la regla lo cambia.
+      // REGLA: true con la regla de la parcela, null si esta base no la tiene, false si falló; MOVIDOS: movidosPorRegla.
       var REGLA = true, MOVIDOS = {};
 
       // Mismos 5 tramos que la clásica (index.html:586-591) — pura lectura de
@@ -4145,7 +4162,7 @@
           var cobradoPorId = {};
           ((cb && cb.filas) || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
           REGLA = cb ? cb.porRegla : true;
-          MOVIDOS = (cb && cb.movidos) || {};
+          MOVIDOS = movidosPorRegla(cb, cs);
           // la rectificativa (ERP maestro) hereda la fecha de vencimiento de su original, pero no es algo que cobrar
           FACTURAS = (fs || []).filter(function (f) { return !f.anulada && !f.rectifica_id && f.venc && f.tipo !== 'recibi'; });
           RAW = { hoyISO: hoy, contratos: cs, cobradoPorId: cobradoPorId, vencimientos: vs };
@@ -4348,7 +4365,7 @@
         var filas = m.filas.filter(entrada[2]);
         var titulo = document.getElementById('venc-tabla-titulo');
         if (titulo) titulo.textContent = ts(entrada[1]) + ' · ' + filas.length
-          + (REGLA ? '' : ' · ' + ts('cobrado por contrato, sin la regla de la parcela'));
+          + (REGLA === false ? ' · ' + ts('cobrado por contrato, sin la regla de la parcela') : '');
         var tbody = document.getElementById('venc-tbody');
         var pager = document.getElementById('venc-pager');
         var resumen = document.getElementById('venc-resumen');

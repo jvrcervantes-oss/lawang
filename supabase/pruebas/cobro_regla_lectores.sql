@@ -16,6 +16,7 @@
 --       empresa, más de cero: es el control de que la regla llega); un comprador del portal no recibe nada
 --   L6  permisos: las dos internas solo postgres y service_role; la RPC además authenticated, sin anon
 --   L7  obra_datos_cobro y la previsión leen la regla (_contrato_cobrado_venta), sin el campo carta_cobrado_importe
+--   L8  ninguna venta repartida empieza en una Carta con el Bloqueo colgando de ella (dejaría el Bloqueo a 0)
 do $t$
 declare
   out text := ''; fallos int := 0; n int; m int; k int; v_t text; v_lin text := '';
@@ -106,7 +107,7 @@ begin
       fallos := fallos + 1; v_lin := v_lin || ' (FALLO: el admin no ve ninguna venta movida)';
     end if;
     if perf.perfil = 'portal' then
-      select count(*) into k from public.contratos_cobrado_regla_equipo();
+      select count(*) into k from (select 1) z cross join lateral public.contratos_cobrado_regla_equipo() x;
       v_lin := v_lin || ' [' || k || ' filas]';
       if k > 0 then fallos := fallos + 1; end if;
     end if;
@@ -135,6 +136,17 @@ begin
    where s.nspname = 'public' and p.proname in ('obra_datos_cobro', 'comision_admin_prevision');
   if n > 0 or m > 0 then fallos := fallos + 1; end if;
   out := out || E'\nL7 obra y previsión leen la regla' || (case when n = 0 and m = 0 then ' ok' else ' FALLO' end);
+
+  -- L8 (revisor, 14-oct): una venta que empieza en una Carta con el Bloqueo colgando de ella. La regla le da el suelo
+  -- a la raíz, que aquí es la Carta, y dejaría el Bloqueo a 0 con sus hitos vencidos y el dinero en caja. El 14-oct
+  -- no hay ninguna; si aparece una, se decide antes si esa venta se reparte o se deja por documento.
+  select count(*), string_agg(r.numero || '>' || b.numero, ' ') into n, v_t
+    from public.contratos r
+    join public.contratos b on b.contrato_padre_id = r.id and b.tipo = 'reserva_parcela' and b.liberado_en is null
+   where r.contrato_padre_id is null and r.liberado_en is null and r.tipo like 'carta_reserva%'
+     and exists (select 1 from public._venta_cobro_atribuido(r.id) a where a.atribuida);
+  if n > 0 then fallos := fallos + 1; end if;
+  out := out || E'\nL8 Carta raíz con Bloqueo hijo repartida: ' || n || coalesce(' (' || v_t || ')', '') || (case when n = 0 then ' ok' else ' FALLO' end);
 
   raise exception E'cobro_regla_lectores: % fallo(s)%', fallos, out;
 end
