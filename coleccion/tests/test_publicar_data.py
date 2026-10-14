@@ -92,20 +92,22 @@ class Red:
 
 
 class Resp:
-    def __init__(self, cuerpo):
-        self.ok, self.status_code, self.text, self._c = True, 200, json.dumps(cuerpo), cuerpo
+    def __init__(self, cuerpo, codigo=200):
+        self.ok, self.status_code, self.text, self._c = codigo < 400, codigo, json.dumps(cuerpo), cuerpo
 
     def json(self):
         return self._c
 
 
 class Sesion:
-    def __init__(self, entra=True, guarda=True):
-        self.headers, self.posts, self._entra, self._guarda = {}, [], entra, guarda
+    def __init__(self, entra=True, guarda=True, codigo_guardar=200):
+        self.headers, self.posts, self._entra, self._guarda, self._codigo = {}, [], entra, guarda, codigo_guardar
 
     def post(self, url, **k):
         self.posts.append((url, k.get('data')))
-        return Resp({'ok': self._guarda if url.endswith('/api/save.php') else self._entra})
+        if url.endswith('/api/save.php'):
+            return Resp({'ok': self._guarda}, self._codigo)
+        return Resp({'ok': self._entra})
 
     def guardados(self):
         return [d for u, d in self.posts if u.endswith('/api/save.php')]
@@ -451,9 +453,15 @@ def t_codigos_fallo_antes_de_escribir():
 
 
 def t_codigos_fallo_guardando():
-    s = Sesion(guarda=False)
+    s = Sesion(guarda=False, codigo_guardar=500)
     rc, sal, n, _, _ = corre(VIEJO, ['--cambian', '3'], teclado='publicar', clave='x', sesion=s)
-    ok(rc == 5 and 'NO se sabe que hay publicado' in sal, 'save.php dice que no: 5 y dice que no se sabe que hay publicado: %r' % (rc,))
+    ok(rc == 5 and 'NO se sabe que hay publicado' in sal, 'save.php falla con 500: 5 y dice que no se sabe que hay publicado: %r' % (rc,))
+    # Un 4xx de save.php llega ANTES de tocar el disco (sesion, origen, JSON, forma: 422): no se escribio nada -> 4 (code-review)
+    for codigo in (400, 401, 403, 422):
+        s = Sesion(guarda=False, codigo_guardar=codigo)
+        rc, sal, n, _, _ = corre(VIEJO, ['--cambian', '3'], teclado='publicar', clave='x', sesion=s)
+        ok(rc == 4 and 'No se ha escrito nada' in sal and 'NO se sabe' not in sal and len(s.guardados()) == 1,
+           'save.php rechaza con %d: 4 y dice que no se escribio nada: %r' % (codigo, rc))
     s = Sesion()
     rc, sal, n, _, _ = corre(VIEJO, ['--cambian', '3'], teclado='publicar', clave='x', sesion=s, guardado_se_ve=False)
     ok(rc == 5 and len(s.guardados()) == 1 and 'OK publicado' not in sal, 'save.php dice ok pero produccion no sirve el local: 5, nunca «OK publicado»: %r' % (rc,))

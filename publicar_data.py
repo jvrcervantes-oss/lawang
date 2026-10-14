@@ -51,7 +51,8 @@ CODIGOS DE SALIDA
   3  FRENADO: falta o no coincide --cambian, antiguedad sin --restaurar-antiguo, catalogo que no se puede
      contar, o lo publicado cambio mientras se confirmaba. No se escribio nada
   4  FALLO antes de escribir: red, respuesta invalida o truncada, data.json local ilegible, login
-     rechazado, o cualquier excepcion. No se escribio nada
+     rechazado, save.php que rechaza con 4xx (p. ej. 422: el catalogo no tiene forma de catalogo), o cualquier
+     excepcion. No se escribio nada
   5  FALLO al guardar o al comprobar lo guardado: NO se sabe que hay publicado. Mirarlo con --verificar
 Requiere `pip install requests`.
 """
@@ -323,6 +324,11 @@ def _corre(args):
     ESTADO['guardando'] = True   # desde aqui, cualquier fallo es «no se sabe que hay publicado»
     r = s.post(f'{HOST}/api/save.php', data=crudo_local,
                headers={'Content-Type': 'application/json'}, timeout=60)
+    if 400 <= r.status_code < 500:
+        # save.php responde 4xx ANTES de tocar el disco (sesion, origen, JSON, forma del catalogo: 422): sabemos que
+        # no se escribio nada, asi que es un 4 y no el 5 de «no se sabe que hay publicado» (code-review, 14-oct-2026).
+        ESTADO['guardando'] = False
+        raise Fallo(f'save.php rechazo el catalogo sin escribir nada: {r.status_code} {r.text[:200]}')
     if not (r.ok and r.json().get('ok')):
         raise Fallo(f'save.php fallo: {r.status_code} {r.text[:200]}')
 
