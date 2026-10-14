@@ -3,6 +3,9 @@
 -- las tres funciones nuevas. Antes de lanzarla, las pantallas tienen que haber vuelto a contratos_cobrado_equipo (si
 -- no, Vencimientos y Finanzas caen solas a ella: el fallo de la RPC nueva ya está previsto en datos.js).
 -- Retirar funciones es «destruir» para el guardia del estudio: necesita la marca del owner.
+-- La otra migración de F2, 20261014104259_cobro_primero_parcela_carta_por_etapa (la cascada con «Carta» por etapa), se
+-- deshace volviendo a aplicar _unidad_cobro_cascada tal como la deja supabase/migrations/20261014042207_cobro_primero_parcela_obra_firmada.sql
+-- (la última definición anterior, comprobado el 14-oct). Ese día no cambiaba ninguna cifra (0 de 565 unidades).
 
 CREATE OR REPLACE FUNCTION public.comision_admin_prevision()
  RETURNS jsonb
