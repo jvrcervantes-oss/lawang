@@ -7023,6 +7023,66 @@
          el ultimo mensaje del hilo y la prioridad se sustituye por la categoria.
          Responder es fase C: va por la RPC portal_enviar_mensaje y cada mensaje
          dispara un email real al comprador, asi que aqui NI SE TOCA. */
+
+      /* ── Soporte: piezas sin red (las ejecuta soporte.test.js) ── */
+      /* Qué se enseña cuando no hay conversación que abrir (14-oct-2026). Dos estados que NO pueden leerse igual:
+         `hs == null` = la base no contestó («no he podido mirar»); sin hilo elegido = no hay ninguno («no hay nada»).
+         Antes el cuadro de respuesta decía «Cuando un cliente escriba…» también con la base caída. Devuelve los dos textos
+         ya traducidos (`tx` se recibe: la prueba pasa la identidad) o null si hay hilo. */
+      function sinHiloTextos(hs, el, tx) {
+        if (hs == null) return { fallo: true, texto: tx('No se han podido leer las conversaciones. Recarga la página.'),
+          placeholder: tx('No se han podido leer las conversaciones. Recarga la página.') };
+        if (!el) return { fallo: false, texto: tx('Sin conversaciones todavía.'),
+          placeholder: tx('Cuando un cliente escriba desde su área, la conversación saldrá aquí.') };
+        return null;
+      }
+      // Primera y última palabra saltando partículas (Ni, I, de, van…). Misma regla en portal/index.html (inicialesDe), intranet/v4/assets/datos.js, intranet/leads/leads.js y contracts/assets/asistente-contrato.js.
+      function inicialesDe(n, sinNombre) {
+        var p = String(n || '').trim().split(/\s+/).filter(Boolean);
+        var q = p.filter(function (w) { return ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'].indexOf(w.toLowerCase()) < 0; });
+        if (q.length) p = q;
+        return p.length ? (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() : sinNombre;
+      }
+      /* Avatar de quien contesta por el equipo. `autor` es su CORREO (portal_enviar_mensaje guarda auth.email()), una sola
+         «palabra»: salía con una letra. Las iniciales salen de la parte de antes de la arroba, partida por `.` `_` `-`
+         (nombre.apellido → NA); con una sola parte, sus dos primeras letras. No se busca el nombre en ningún sitio ni se
+         inventa: solo letras que están en el correo. Sin letras, «EQ». */
+      function inicialesEquipo(autor) {
+        var s = String(autor || '').trim();
+        if (s.indexOf('@') === -1) return inicialesDe(s, 'EQ');
+        var letras = function (w) { return w.replace(/[^A-Za-zÀ-ɏ]/g, ''); };
+        var p = s.split('@')[0].split(/[._-]+/).map(letras).filter(Boolean);
+        if (!p.length) return 'EQ';
+        var ini = inicialesDe(p.join(' '), 'EQ');
+        return ini.length > 1 ? ini : p[0].slice(0, 2).toUpperCase();
+      }
+      /* Apaga DE VERDAD todo lo que actúa sobre un hilo (14-oct-2026): con 0 hilos, «Marcar resuelto», «Ver perfil» y
+         «WhatsApp» seguían encendidos y no hacían nada. Un botón: `disabled`. Un enlace no tiene `disabled`: se le quita
+         el `href` (deja de ser enlace y de recibir el foco) y se marca `aria-disabled`. Por `data-accion`, no por rótulo. */
+      function apagaHilo(doc, est) {
+        var cv = doc.getElementById('convo');
+        if (cv) {
+          cv.textContent = '';
+          var pv = doc.createElement('p');
+          pv.className = 'font-body-sm text-on-surface-variant';
+          pv.style.cssText = 'margin:0;text-align:center';
+          pv.setAttribute('role', 'status');
+          pv.textContent = est.texto;
+          cv.appendChild(pv);
+        }
+        ['enviar-respuesta', 'estado-hilo', 'ver-perfil', 'abrir-whatsapp'].forEach(function (acc) {
+          var b = doc.querySelector('[data-accion="' + acc + '"]');
+          if (!b) return;
+          if (b.tagName === 'A') { b.removeAttribute('href'); b.setAttribute('tabindex', '-1'); }
+          else b.disabled = true;
+          b.setAttribute('aria-disabled', 'true');
+          b.style.opacity = '.45'; b.style.cursor = 'not-allowed';
+        });
+        var tav = doc.querySelector('textarea');
+        if (tav) { tav.disabled = true; tav.placeholder = est.placeholder; }
+      }
+      /* ── fin de las piezas sin red de Soporte ── */
+
       Promise.all([
         // sin `limit`: la viva carga todos los hilos y aquí 80 → 25 pintados dejaba
         // tickets fuera sin decirlo (auditoría 19-sep-2026)
@@ -7054,23 +7114,9 @@
         var hs = r[0], cs = r[1] || [], ms = r[2] || [];
         /* Sin conversación que enseñar (14-oct-2026, recorrido de un agente de prueba): con 0 hilos el panel dejaba a la vista la
            conversación de muestra del diseño y «Enviar respuesta» encendido. Ahora lo dice y apaga el envío. «No hay nada» y «no he
-           podido mirar» son dos textos distintos (hs == null: la base no contestó, ya avisado por q()). */
-        var sinHilo = function (msg) {
-          var cv = document.getElementById('convo');
-          if (cv) {
-            cv.textContent = '';
-            var pv = document.createElement('p');
-            pv.className = 'font-body-sm text-on-surface-variant';
-            pv.style.cssText = 'margin:0;text-align:center';
-            pv.textContent = msg;
-            cv.appendChild(pv);
-          }
-          var bt = document.querySelector('[data-accion="enviar-respuesta"]');
-          if (bt) { bt.disabled = true; bt.setAttribute('aria-disabled', 'true'); bt.style.opacity = '.45'; bt.style.cursor = 'not-allowed'; }
-          var tav = document.querySelector('textarea');
-          if (tav) { tav.disabled = true; tav.placeholder = tx('Cuando un cliente escriba desde su área, la conversación saldrá aquí.'); }
-        };
-        if (hs == null) { sinHilo(tx('No se han podido leer las conversaciones. Recarga la página.')); return; }
+           podido mirar» son dos textos distintos (hs == null: la base no contestó, ya avisado por q()), en el panel Y en el cuadro
+           de respuesta: sinHiloTextos / apagaHilo, arriba. */
+        if (hs == null) { apagaHilo(document, sinHiloTextos(null, null, tx)); return; }
         var refDe = {};
         var rr = r[3] || { rs: [], f: {}, c: {} };
         rr.rs.forEach(function (h) {
@@ -7233,7 +7279,7 @@
         if (selOrden) selOrden.addEventListener('change', aplicarSoporte);
         aplicarSoporte();
 
-        if (!el) { sinHilo(tx('Sin conversaciones todavía.')); return; }
+        if (!el) { apagaHilo(document, sinHiloTextos(hs, el, tx)); return; }
         var c = cli[el.client_id] || {};
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.hilo = el; window.LW_V4.hiloCliente = c;
         var msgs = (deHilo[el.id] || deHilo[el.client_id] || []).slice().reverse();
@@ -7247,15 +7293,14 @@
         pon2('h-toggle-estado', el.estado === 'abierto' ? 'Marcar resuelto' : 'Reabrir');
         var ta = document.querySelector('textarea');
         if (ta) ta.placeholder = 'Escribe la respuesta para ' + (c.full_name || 'el cliente') + '… (se envía desde la herramienta: cada mensaje manda un email real)';
-        // «Ver perfil» → la ficha real; «WhatsApp» solo si hay teléfono (norma wa.me)
-        var enlaces = document.querySelectorAll('a[href="#"]');
-        for (var i2 = 0; i2 < enlaces.length; i2++) {
-          var t2 = (enlaces[i2].textContent || '').trim();
-          if (/Ver perfil/.test(t2)) enlaces[i2].href = '/intranet/v4/compradores/?id=' + el.client_id;
-          else if (/WhatsApp/.test(t2)) {
-            if (c.phone) enlaces[i2].href = 'https://wa.me/' + String(c.phone).replace(/[^0-9]/g, '');
-            else enlaces[i2].style.display = 'none';
-          }
+        // «Ver perfil» → la ficha real; «WhatsApp» solo si hay teléfono (norma wa.me). Por `data-accion`, no por el rótulo
+        // (hasta el 14-oct-2026 se buscaban por su texto: en inglés «View profile» no casaba y el enlace se quedaba en `#`).
+        var aPerfil = document.querySelector('[data-accion="ver-perfil"]');
+        if (aPerfil) aPerfil.href = '/intranet/v4/compradores/?id=' + el.client_id;
+        var aWa = document.querySelector('[data-accion="abrir-whatsapp"]');
+        if (aWa) {
+          if (c.phone) aWa.href = 'https://wa.me/' + String(c.phone).replace(/[^0-9]/g, '');
+          else aWa.style.display = 'none';
         }
 
         var convo = document.getElementById('convo');
@@ -7271,14 +7316,7 @@
           convo.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0;text-align:center">Este hilo no tiene mensajes.</p>';
           return;
         }
-        // Primera y última palabra saltando partículas (Ni, I, de, van…). Misma regla en portal/index.html (inicialesDe), intranet/v4/assets/datos.js, intranet/leads/leads.js y contracts/assets/asistente-contrato.js.
-        var inicialesDe = function (n, sinNombre) {
-          var p = String(n || '').trim().split(/\s+/).filter(Boolean);
-          var q = p.filter(function (w) { return ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'].indexOf(w.toLowerCase()) < 0; });
-          if (q.length) p = q;
-          return p.length ? (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() : sinNombre;
-        };
-        var iniciales = inicialesDe(c.full_name, 'C');
+        var iniciales = inicialesDe(c.full_name, 'C');   // inicialesDe / inicialesEquipo: arriba, con las piezas sin red
         msgs.forEach(function (msg) {
           var esEquipo = msg.de === 'equipo';
           var b = (esEquipo ? moldeDer : moldeIzq);
@@ -7290,7 +7328,7 @@
           var hora = f.querySelector('span[class*="text-[11px]"]');
           if (hora) hora.textContent = fFecha(msg.creado_en) + ' · ' + (esEquipo ? (msg.autor || 'Equipo') : 'Cliente');
           var avatar = f.querySelector('div[class*="rounded-full"]');
-          if (avatar) avatar.textContent = esEquipo ? inicialesDe(msg.autor, 'EQ') : iniciales;   // el del equipo: su autor, o «EQ»
+          if (avatar) avatar.textContent = esEquipo ? inicialesEquipo(msg.autor) : iniciales;   // el del equipo: de su correo, o «EQ»
           convo.appendChild(f);
         });
       });
