@@ -7315,8 +7315,64 @@
   };
   var DISPARADOR = {
     pct_cobrado_suelo: 'cobrado del suelo', pct_cobrado_obra: 'cobrado de la obra', pct_cobrado_total: 'cobrado del total',
-    obra_firmada: 'al firmar la obra', contrato_firmado: 'al firmar el contrato'
+    obra_firmada: 'al firmar la obra', contrato_firmado: 'al firmar el contrato',
+    // comisiones desde el 1-nov-2026: el % cobrado se mide sobre lo FIRMADO de esa parte
+    pct_cobrado_suelo_firmado: 'cobrado de la parcela firmada', pct_cobrado_obra_firmada: 'cobrado de la construcción firmada'
   };
+  /* Vocabulario de las condiciones de comisión: UNA lista, aquí. editores.js la lee por window.LW_V4 (con una copia
+     de respaldo) y comision_vocabulario.test.js obliga a que las cuatro formas (estas dos listas, DISPARADOR,
+     BASE_LLANO y la copia de editores.js) cubran las mismas claves. Las del 1-nov-2026 (base por tramo) se
+     ofrecen solo si la base las sabe guardar: lo decide editores.js con LW_V4.COMISION_BASE_POR_TRAMO. */
+  var DISPARADORES_LISTA = [
+    ['contrato_firmado', 'Al firmar el contrato'],
+    ['obra_firmada', 'Al firmar la obra'],
+    ['pct_cobrado_suelo', '% cobrado del suelo'],
+    ['pct_cobrado_obra', '% cobrado de la obra'],
+    ['pct_cobrado_total', '% cobrado del total'],
+    ['pct_cobrado_suelo_firmado', '% cobrado de la parcela firmada'],
+    ['pct_cobrado_obra_firmada', '% cobrado de la construcción firmada']
+  ];
+  var BASES_LISTA = [
+    ['precio_total', 'Precio total'],
+    ['precio_suelo', 'Precio de suelo'],
+    ['precio_construccion', 'Precio de construcción'],
+    ['precio_suelo_firmado', 'Precio firmado de la parcela'],
+    ['precio_obra_firmada', 'Precio firmado de la construcción'],
+    ['por_tramo', 'Según cada tramo'],
+    ['importe_fijo', 'Importe fijo']
+  ];
+  // la base dentro de una frase («10 % del precio firmado de la parcela»)
+  var BASE_LLANO = {
+    precio_total: 'precio total', precio_suelo: 'precio de suelo', precio_construccion: 'precio de construcción',
+    precio_suelo_firmado: 'precio firmado de la parcela', precio_obra_firmada: 'precio firmado de la construcción',
+    por_tramo: 'precio de cada tramo', importe_fijo: 'importe fijo'
+  };
+  function baseLlano(b) { return BASE_LLANO[b] || (b ? String(b).replace(/_/g, ' ') : 'precio'); }
+  function numComa(n) { return String(Math.round(Number(n) * 100) / 100).replace('.', ','); }
+  /* Un tramo en una línea, para la tabla de condiciones: «100 % al 50 % cobrado de la parcela firmada · s/ precio
+     firmado de la parcela». La base solo si el tramo lleva la suya (si no, es la de la condición, que ya se ve). */
+  function textoTramo(x, baseCond) {
+    var d = DISPARADOR[x.disparador_tipo] || String(x.disparador_tipo || '—');
+    var cuando = /^pct_cobrado_/.test(x.disparador_tipo || '') && x.umbral != null ? 'al ' + numComa(x.umbral) + ' % ' + d : d;
+    return numComa(x.pct_tramo) + ' % ' + cuando + (baseCond !== 'importe_fijo' && x.base_calculo ? ' · s/ ' + baseLlano(x.base_calculo) : '');
+  }
+  // el momento del pago dicho para el comercial («cuando se haya cobrado el 50 % de la parcela»); %u = el umbral.
+  // También va a la par del resto del vocabulario (comision_vocabulario.test.js).
+  var MOMENTO = {
+    contrato_firmado: 'al firmar el contrato', obra_firmada: 'al firmar la obra',
+    pct_cobrado_suelo: 'cuando se haya cobrado el %u del suelo',
+    pct_cobrado_obra: 'cuando se haya cobrado el %u de la obra',
+    pct_cobrado_total: 'cuando se haya cobrado el %u del total',
+    pct_cobrado_suelo_firmado: 'cuando se haya cobrado el %u de la parcela',
+    pct_cobrado_obra_firmada: 'cuando se haya cobrado el %u de la construcción'
+  };
+  function momentoLlano(x) {
+    var u = x.umbral != null && x.umbral !== '' ? numComa(x.umbral) + ' %' : 'umbral';
+    var m = MOMENTO[x.disparador_tipo];
+    return m ? m.replace('%u', u) : String(x.disparador_tipo || '').replace(/_/g, ' ');
+  }
+  window.LW_V4 = window.LW_V4 || {};
+  window.LW_V4.textoTramo = textoTramo;   // lo usa también «Editar condición» (editores.js)
   // roles de equipo que cobran del manager (24-sep-2026: Setter y Team Lead se suman al Closer)
   var ROL_EQ = { closer: 'Closer', setter: 'Setter', team_lead: 'Team Lead' };
 
@@ -7611,6 +7667,9 @@
                   html = H.seccion('Comisión vinculada',
                     H.dato('Estado en comisiones_devengadas', H.tag(cd.estado, tonoCd), { html: 1 }) +
                     H.dato('Calculado por el motor', fmt(cd.importe, cd.moneda || 'EUR')) +
+                    // sobre qué y en qué momento (comisiones desde el 1-nov-2026); sin las claves, no sale
+                    (cd.base_calculo && cd.base_calculo !== 'importe_fijo' ? H.dato('Calculada sobre', baseLlano(cd.base_calculo) + (cd.base_valor != null ? ' · ' + fmt(cd.base_valor, cd.moneda || monedaBase()) : '')) : '') +
+                    (cd.disparador_tipo ? H.dato('Momento del pago', (cd.tramo_orden != null ? 'pago ' + cd.tramo_orden + ' · ' : '') + momentoLlano(cd)) : '') +
                     (cd.importe_ajustado != null ? H.dato('Ajustado a mano', fmt(cd.importe_ajustado, cd.moneda || 'EUR')) : '') +
                     (diverge
                       ? H.nota('⚠ Diverge de esta solicitud: nada sincroniza los dos estados automáticamente al marcar esta pagada. Si ya se pagó por un lado, revisa el otro a mano.')
@@ -7939,18 +7998,45 @@
               '<span class="font-kpi-number text-[26px] text-volcanic-ash">' + esc(v) + '</span>' +
               '<span class="font-body-sm text-body-sm text-outline" data-lw-mio-pie>' + esc(pie) + '</span></div>';
           };
-          var BASES = { precio_total: 'precio total', precio_suelo: 'precio de suelo', precio_construccion: 'precio de construcción' };
-          var txt = function (c) {
-            var v = c.importe_fijo != null ? fmt(c.importe_fijo, 'EUR') + ' fijos' : String(c.pct_comision).replace('.', ',') + ' % del ' + (BASES[c.base_calculo] || 'precio');
+          // `En` = al principio de la frase («En todos los proyectos, en 2 pagos:»); si no, detrás de la cifra
+          var alcance = function (c, En) {
             // con condiciones en dos empresas se dice de cuál es cada una; con una sola, como siempre
             var distintas = {}; conds.forEach(function (x) { if (x.empresa) distintas[x.empresa] = 1; });
             var deEmp = evMi && c.empresa && Object.keys(distintas).length > 1 ? ' · ' + evMi.nombre(c.empresa) : '';
-            return v + (c.proyecto_id ? ' en ' + (nomP[c.proyecto_id] || 'un proyecto') : ' en todos los proyectos') + (c.personal ? ' (solo para ti)' : '') + deEmp;
+            var en = En ? 'En ' : ' en ';
+            return (c.proyecto_id ? en + (nomP[c.proyecto_id] || 'un proyecto') : en + 'todos los proyectos') + (c.personal ? ' (solo para ti)' : '') + deEmp;
+          };
+          var txt = function (c) {
+            var v = c.importe_fijo != null ? fmt(c.importe_fijo, monedaBase()) + ' fijos' : numComa(c.pct_comision) + ' % del ' + baseLlano(c.base_calculo);
+            return v + alcance(c);
+          };
+          /* Los momentos del pago (comisiones desde el 1-nov-2026, owner): mi_condicion_comision trae los tramos y se
+             dicen en llano, cada uno con su base: «10 % del precio firmado de la parcela, cuando se haya cobrado el 50 %
+             de la parcela». Sin la columna (ERP maestro, o antes de la migración) se enseña como siempre. */
+          var momentos = function (c) {
+            return (Array.isArray(c.tramos) ? c.tramos.slice() : []).sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); })
+              .map(function (t) {
+                var parte = c.importe_fijo != null
+                  ? fmt(Number(c.importe_fijo) * Number(t.pct_tramo) / 100, monedaBase())
+                  : numComa(Number(c.pct_comision) * Number(t.pct_tramo) / 100) + ' % del ' + baseLlano(t.base_efectiva || t.base_calculo || c.base_calculo);
+                return parte + ', ' + momentoLlano(t);
+              });
+          };
+          var item = function (c) {
+            var m = momentos(c);
+            if (!m.length) return '<li>' + esc(txt(c)) + '</li>';
+            // «según cada tramo»: el % va en cada pago (sobre bases distintas); arriba solo el dónde, para que no se lea como un total
+            var cab = c.base_calculo === 'por_tramo' && c.importe_fijo == null
+              ? alcance(c, true)
+              : (c.importe_fijo != null ? fmt(c.importe_fijo, monedaBase()) + ' fijos' : numComa(c.pct_comision) + ' %') + alcance(c);
+            cab += (m.length === 1 ? ', en un pago:' : ', en ' + m.length + ' pagos:');
+            return '<li data-lw-mi-cond-tramos>' + esc(cab) + '<ul style="margin:2px 0 0;padding-left:16px;list-style:circle">' +
+              m.map(function (s) { return '<li class="font-body-sm text-body-sm text-on-surface-variant">' + esc(s) + '</li>'; }).join('') + '</ul></li>';
           };
           var condHtml = errCond ? '<span class="font-body-md text-body-md text-outline">No se ha podido leer tu condición.</span>'
             : !conds.length ? '<span class="font-body-md text-body-md text-outline">Sin condición activa: pregunta a tu manager.</span>'
             : '<ul class="font-body-md text-body-md text-on-surface" style="margin:0;padding-left:18px">' +
-                conds.slice(0, 6).map(function (c) { return '<li>' + esc(txt(c)) + '</li>'; }).join('') + '</ul>';
+                conds.slice(0, 6).map(item).join('') + '</ul>';
           caja.innerHTML =
             '<p class="font-body-md text-body-md text-on-surface-variant">' +
               (eqHoy ? 'Estás en el equipo <b class="text-on-surface">' + esc(eqHoy.nombre) + '</b>' + (manager ? '. Te paga <b class="text-on-surface">' + esc(manager) + '</b>, tu manager — no ' + lwMarca('%marca') + '.' : '.')
@@ -8022,10 +8108,15 @@
           // Quien no ve la operación completa recibe solo falta_algo, sin cifras.
           var falta = Number(t.falta_por_firmar) || 0;
           var hFalta = '';
+          /* Base del TRAMO (13-oct-2026): desde el 1-nov la comisión de parcela se calcula sobre el precio firmado de la
+             parcela y la de construcción sobre el de la construcción; base_hoy y falta_por_firmar ya vienen de esa
+             parte. Sin la clave (ERP maestro, o antes de la migración) manda la del cálculo, como antes. */
+          var baseT = t.base_calculo || snap.base_calculo || 'precio_total';
+          var baseFirmada = ['precio_total', 'precio_suelo_firmado', 'precio_obra_firmada'].indexOf(baseT) !== -1;
           if (t.falta_algo) {
             var pctC = snap.pct_comision != null ? Number(snap.pct_comision) : NaN;
             var pctT = snap.pct_tramo != null ? Number(snap.pct_tramo) : 100;
-            var extra = (falta > 0 && pctC > 0 && isFinite(pctT) && (snap.base_calculo || 'precio_total') === 'precio_total')
+            var extra = (falta > 0 && pctC > 0 && isFinite(pctT) && baseFirmada)
               ? Math.round(falta * pctC / 100 * pctT / 100 * 100) / 100 : null;
             var queFalta = (t.por_firmar || []).map(function (c) {
               return linea(esc(c.numero) + ' · ' + esc(tipoC(c.tipo)) + ' <span style="font-size:12px">(sin firmar)</span>', esc(fmt(c.precio_total, c.moneda || mon)));
@@ -8039,16 +8130,31 @@
           }
           var hOperacion = bloque('La operación',
             '<div style="margin-bottom:8px">Parcela ' + parcelasT + '</div>' + ops +
-            linea('<b>Base de la comisión hoy</b> <span style="font-size:12px">(solo contratos firmados)</span>', '<b>' + esc(fmt(t.base_hoy, mon)) + '</b>') + hFalta);
+            linea('<b>Base de la comisión hoy</b> <span style="font-size:12px">(' +
+              (baseT === 'precio_suelo_firmado' ? 'precio firmado de la parcela: solo sus contratos firmados'
+                : baseT === 'precio_obra_firmada' ? 'precio firmado de la construcción: solo sus contratos firmados'
+                : 'solo contratos firmados') + ')</span>', '<b>' + esc(fmt(t.base_hoy, mon)) + '</b>') + hFalta);
 
           // 2 · cómo se calculó
           var hCalculo = bloque('Cómo se calculó',
             linea('Se generó', esc(fFecha(x.disparado_en))) +
-            linea('Condición', esc((snap.pct_comision != null ? String(snap.pct_comision).replace('.', ',') + ' %' : '—') + ' sobre ' + String(snap.base_calculo || 'precio total').replace(/_/g, ' '))) +
-            linea('Tramo', esc((snap.pct_tramo != null ? snap.pct_tramo + ' % de la comisión' : '—') + (snap.disparador_tipo ? ' · ' + (snap.umbral != null ? snap.umbral + ' % ' : '') + (DISPARADOR[snap.disparador_tipo] || snap.disparador_tipo) : ''))) +
+            /* Desde el 13-oct el devengo guarda las dos: base_calculo_condicion (la de la condición, p. ej. «según cada
+               tramo») y base_calculo (la del TRAMO, sobre la que se calculó este pago). Sin la primera (devengos de
+               antes), base_calculo era la de la condición, como siempre. */
+            linea('Condición', esc((snap.pct_comision != null ? numComa(snap.pct_comision) + ' %' : '—') + ' sobre el ' +
+              baseLlano(snap.base_calculo_condicion || snap.base_calculo || baseT))) +
+            linea('Tramo', esc((snap.tramo_orden != null ? 'pago ' + snap.tramo_orden + ' · ' : '') + (snap.pct_tramo != null ? numComa(snap.pct_tramo) + ' % de la comisión' : '—') +
+              (snap.disparador_tipo ? ' · ' + (snap.umbral != null ? numComa(snap.umbral) + ' % ' : '') + (DISPARADOR[snap.disparador_tipo] || snap.disparador_tipo) : '') +
+              (snap.base_calculo_condicion && snap.base_calculo && snap.base_calculo !== snap.base_calculo_condicion ? ' · sobre el ' + baseLlano(snap.base_calculo) : ''))) +
             linea('Base al generarse', esc(fmt(snap.base_original != null ? snap.base_original : snap.base_valor, mon))) +
             (snap.importe_motor_original != null ? linea('Importe original', esc(fmt(snap.importe_motor_original, mon))) + linea('Base actual (recalculada ' + esc(fFecha(snap.recalculado_en)) + ')', esc(fmt(snap.base_valor, mon))) : '') +
-            linea('Cobrado al generarse', esc(fmt(snap.cobrado_total, mon)) + (snap.cobrado_suelo != null ? ' <span style="font-size:12px">(suelo ' + esc(fmt(snap.cobrado_suelo, mon)) + ')</span>' : '')) +
+            linea('Cobrado al generarse', esc(fmt(snap.cobrado_total, mon)) + (snap.cobrado_suelo != null ? ' <span style="font-size:12px">(suelo ' + esc(fmt(snap.cobrado_suelo, mon)) + ')</span>' : '') +
+              // las partes firmadas (comisiones desde el 1-nov): solo si el devengo las trae y la sesión ve la operación
+              // completa (comision_trazabilidad le quita las cifras de la operación a quien no la ve entera)
+              (t.completa && snap.cobrado_suelo_firmado != null ? '<br><span style="font-size:12px">parcela firmada: cobrado ' + esc(fmt(snap.cobrado_suelo_firmado, mon)) +
+                (snap.precio_suelo_firmado != null ? ' de ' + esc(fmt(snap.precio_suelo_firmado, mon)) : '') + '</span>' : '') +
+              (t.completa && snap.cobrado_obra_firmada != null ? '<br><span style="font-size:12px">construcción firmada: cobrado ' + esc(fmt(snap.cobrado_obra_firmada, mon)) +
+                (snap.precio_obra_firmada != null ? ' de ' + esc(fmt(snap.precio_obra_firmada, mon)) : '') + '</span>' : '')) +
             (t.solicitud ? linea('Solicitud de pago', 'SP-' + esc(t.solicitud.numero) + ' · ' + esc(t.solicitud.estado) + ' · ' + esc(fmt(t.solicitud.importe, t.solicitud.moneda || mon))) : ''));
 
           // 3 · diferencias por cambio de contrato
@@ -8872,19 +8978,8 @@
     var miEmailC = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
     // vocabulario compartido con editores.js (montaTramos, el select de la base
     // de cálculo): una sola lista, aquí, leída por window.LW_V4 — Regla 0.
-    window.LW_V4.DISPARADORES = [
-      ['contrato_firmado', 'Al firmar el contrato'],
-      ['obra_firmada', 'Al firmar la obra'],
-      ['pct_cobrado_suelo', '% cobrado del suelo'],
-      ['pct_cobrado_obra', '% cobrado de la obra'],
-      ['pct_cobrado_total', '% cobrado del total']
-    ];
-    window.LW_V4.BASES_CALCULO = [
-      ['precio_total', 'Precio total'],
-      ['precio_suelo', 'Precio de suelo'],
-      ['precio_construccion', 'Precio de construcción'],
-      ['importe_fijo', 'Importe fijo']
-    ];
+    window.LW_V4.DISPARADORES = DISPARADORES_LISTA;   // definidas arriba, junto a DISPARADOR (13-oct-2026)
+    window.LW_V4.BASES_CALCULO = BASES_LISTA;
 
     var cuerpo = document.getElementById('lw-condiciones-filas');
     var selEquipo = document.getElementById('lw-co-equipo');
@@ -8923,6 +9018,12 @@
       var proyectoDe = {}; proyectos.forEach(function (p) { proyectoDe[p.id] = p.nombre; });
       var nombrePorEmail = {}; usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });
       var tramosDe = {}; tramos.forEach(function (t) { (tramosDe[t.condicion_id] = tramosDe[t.condicion_id] || []).push(t); });
+      /* ¿La base ya sabe guardar la base POR TRAMO (comisiones desde el 1-nov-2026)? Lo dice la propia lectura: sus
+         tramos traen base_calculo/base_efectiva, o hay condiciones «según cada tramo». En el ERP maestro y en Lawang
+         antes de la migración no: el editor no ofrece lo nuevo (su CHECK lo rechazaría), pero conserva lo guardado. */
+      window.LW_V4.COMISION_BASE_POR_TRAMO = tramos.some(function (t) {
+        return t && (Object.prototype.hasOwnProperty.call(t, 'base_efectiva') || Object.prototype.hasOwnProperty.call(t, 'base_calculo'));
+      }) || conds.some(function (c) { return c && c.base_calculo === 'por_tramo'; });
       window.LW_V4.condicionesLista = {}; conds.forEach(function (c) { window.LW_V4.condicionesLista[c.id] = c; });
       window.LW_V4.tramosDe = tramosDe;   // los lee «Editar condición» (editores.js) para precargar los tramos
 
@@ -8967,8 +9068,9 @@
         var fila = function (c) {
           var est = estadoCond(c);
           var t = (tramosDe[c.id] || []).slice().sort(function (a, b) { return a.orden - b.orden; });
+          // con el umbral y, si el tramo lleva la suya, su base (13-oct-2026: «100 % al 50 % cobrado de la parcela firmada · s/ …»)
           var resumenTramos = t.length
-            ? t.map(function (x) { return x.pct_tramo + '% ' + etiquetaDe(window.LW_V4.DISPARADORES, x.disparador_tipo); }).join(' · ')
+            ? t.map(function (x) { return textoTramo(x, c.base_calculo); }).join(' · ')
             : '—';
           /* Estándar de Lawang (22-sep-2026, owner): equipo NULL = se aplica a
              quien cierra sin equipo, la paga Lawang; proyecto NULL = todos. */
