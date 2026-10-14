@@ -140,7 +140,34 @@ function firmaDe(C: Record<string, any>, clave: string): string {
   return razon;
 }
 
-const b64 = (u8: Uint8Array) => {
+/* Lo cobrado que descuenta un contrato: el de su VENTA con la regla «primero la parcela, luego la obra» (owner, 14-oct-2026;
+   F5 del encargo de la agencia 20261014_lawang_cobro_primero_parcela). _contrato_cobrado_venta reparte lo cobrado en toda
+   la venta y le da a este contrato su parte; si la venta no se reparte, devuelve lo de siempre (lo suyo + sus Cartas). Por
+   documento, un recibí colgado del Bloqueo dejaba la obra a 0 y este robot facturaba un hito de obra con el dinero ya en
+   caja (SH-1: 41.620 en una parcela de 25.000). Una instancia del ERP sin la función (PGRST202: bbm, demo) cae a lo de
+   siempre calculado aquí, y `regla: false` lo deja ver en la respuesta. Cualquier otro error NO cae a 0: con cobrado 0
+   se facturaría el hito bruto, el fallo del 11-ago. Prueba: contracts/edge/factura-vencimiento/cobrado_venta.test.js. */
+async function cobradoDe(sb: any, C: Record<string, any>, contratoId: string): Promise<{ cobrado: number; regla: boolean }> {
+  const cobVenta = await sb.rpc('_contrato_cobrado_venta', { p_contrato: contratoId });
+  if (!cobVenta.error) return { cobrado: Number(cobVenta.data) || 0, regla: true };
+  if (cobVenta.error.code !== 'PGRST202') throw new Error('lo cobrado de la venta: ' + cobVenta.error.message);
+  const [propio, hijos] = await Promise.all([
+    sb.rpc('contrato_cobrado', { p_contrato_id: contratoId }),
+    sb.from('contratos').select('id, tipo').eq('contrato_padre_id', contratoId),
+  ]);
+  if (propio.error) throw new Error('lo cobrado del contrato: ' + propio.error.message);
+  if (hijos.error) throw new Error('los hijos del contrato: ' + hijos.error.message);
+  let cobrado = Number(propio.data) || 0;
+  for (const h of (hijos.data ?? [])) {
+    if (!C.lwEsPreliminar(h.tipo)) continue;   // solo la señal de su Carta descuenta aquí
+    const r = await sb.rpc('contrato_cobrado', { p_contrato_id: h.id });
+    if (r.error) throw new Error('lo cobrado de la Carta ' + h.id + ': ' + r.error.message);
+    cobrado += Number(r.data) || 0;
+  }
+  return { cobrado, regla: false };
+}
+
+const b64 =(u8: Uint8Array) => {
   let s = '';
   for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000));
   return btoa(s);
@@ -213,6 +240,7 @@ Deno.serve(async (req) => {
 
   const emitidas: string[] = [], saltadas: string[] = [], paraRevisar: string[] = [];
   const revisar = (m: string) => { saltadas.push(m); paraRevisar.push(m); };
+  let sinRegla = 0;   // hitos calculados con lo cobrado por documento: la base no tiene _contrato_cobrado_venta
 
   for (const v of (cands ?? [])) {
     if (emitidas.length >= TOPE_POR_EJECUCION) {
@@ -238,18 +266,14 @@ Deno.serve(async (req) => {
       if (!moneda) { revisar(etiqueta + ': ni el contrato ni su venta tienen moneda — ponla en el contrato'); continue; }
 
       // ── lo pendiente DE VERDAD: la cascada del contrato entero ──────────
-      const [vencs, cobradoPropio, hijos] = await Promise.all([
+      // Lo cobrado de la VENTA con la regla «primero la parcela» (cobradoDe; sin la función, lo de siempre).
+      const [vencs, cob] = await Promise.all([
         sb.from('contrato_vencimientos').select('id, orden, pct, monto, fecha').eq('contrato_id', v.contrato_id),
-        sb.rpc('contrato_cobrado', { p_contrato_id: v.contrato_id }),
-        sb.from('contratos').select('id, tipo').eq('contrato_padre_id', v.contrato_id),
+        cobradoDe(sb, C, v.contrato_id),
       ]);
       if (vencs.error) throw new Error('vencimientos del contrato: ' + vencs.error.message);
-      let cobrado = Number(cobradoPropio.data) || 0;
-      for (const h of (hijos.data ?? [])) {
-        if (!C.lwEsPreliminar(h.tipo)) continue;   // solo la señal de su Carta descuenta aquí
-        const r = await sb.rpc('contrato_cobrado', { p_contrato_id: h.id });
-        cobrado += Number(r.data) || 0;
-      }
+      const cobrado = cob.cobrado;
+      if (!cob.regla) sinRegla++;
       const anotados = C.cascada(vencs.data ?? [], { ...ct, moneda }, cobrado, hoy);
       const yo = anotados.find((x: any) => x.id === v.id);
       if (!yo || yo.importe == null) { revisar(etiqueta + ': importe no calculable (ni monto ni pct sobre precio) — lo revisa una persona'); continue; }
@@ -382,6 +406,6 @@ Deno.serve(async (req) => {
   }
 
   console.log('factura-vencimiento', dry ? '[DRY]' : '', 'emitidas:', emitidas.length, '· saltadas:', saltadas.length,
-              '· para revisar:', paraRevisar.length, aviso ? '· aviso: ' + aviso : '');
-  return json({ ok: true, dry, hoy, emitidas, saltadas, para_revisar: paraRevisar, aviso });
+              '· para revisar:', paraRevisar.length, sinRegla ? '· sin la regla de la parcela: ' + sinRegla : '', aviso ? '· aviso: ' + aviso : '');
+  return json({ ok: true, dry, hoy, emitidas, saltadas, para_revisar: paraRevisar, cobrado_sin_regla: sinRegla, aviso });
 });

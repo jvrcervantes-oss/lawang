@@ -116,5 +116,36 @@ function mundo(o = {}) {
     const av2 = await ok2.m.fijaVersionPlantilla('c1', true);
     ok(av2 === '' && ok2.sel.hidden === true, '3: guardado sin error, el selector se oculta');
   }
+  /* ── 4. (14-oct-2026) el fichero publicado va sin notas de autor y la semilla de la base las lleva: el mismo texto no es «otra empresa» ── */
+  {
+    // 4a. la expresión del navegador es la de `_plantilla_sin_notas` (la base), leída de la migración: si una cambia, esto falla
+    const mig = fs.readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', '20261009010000_f2_plantillas_s7_1_pantalla.sql'), 'utf8');
+    const reSql = /regexp_replace\(p_cuerpo,\s*'(<!--\(\?!.*?\)\.\*\?-->)'/s.exec(mig);
+    const reJs = /const RE_NOTAS_AUTOR = \/(.*)\/g;/.exec(codigo);
+    ok(reSql && reJs, '4a: encuentro las dos expresiones (SQL y app.html)');
+    ok(reJs[1].replace(/\\\//g, '/') === reSql[1].replace('.*?-->', '[\\s\\S]*?-->'), '4a: RE_NOTAS_AUTOR es la misma expresión que _plantilla_sin_notas');
+    const fichero = '<p>Texto</p><!--if:x-->a<!--/if:x--><!--opt:y-->b<!--/opt:y-->';
+    const semilla = '<p>Texto</p><!-- NOTA de autor:\n varias lineas --><!--if:x-->a<!--/if:x--><!--opt:y-->b<!--/opt:y-->';
+    // 4b. texto base en pantalla (sin versión), el proyecto trae la semilla = fichero + notas: ni aviso ni borrado
+    let mu = mundo({ revision: '', tocado: true, html: fichero, ver: null, texto: async () => ({ html: semilla, ver: { empresa: 'E1', hash: 'h-sem', version_id: 'S1' } }) });
+    mu.proy.dataset.previo = ''; mu.proy.value = 'Alfa';
+    await mu.m.cambioDeProyectoYTexto(mu.proy);
+    ok(mu.w.confirms.length === 0 && mu.w.resets === 0, '4b: la semilla con notas no avisa de otra empresa: ' + JSON.stringify(mu.w.confirms));
+    ok(mu.m.VER && mu.m.VER.version_id === 'S1', '4b: se anota de qué versión sale el texto');
+    // 4c. si el texto difiere de verdad y en pantalla estaba el texto base, avisa, pero sin decir «otra empresa»
+    mu = mundo({ revision: '', tocado: true, html: fichero, ver: null, texto: async () => ({ html: '<p>Otro</p>', ver: { empresa: 'E1', hash: 'h-o', version_id: 'S2' } }) });
+    mu.proy.dataset.previo = ''; mu.proy.value = 'Alfa';
+    await mu.m.cambioDeProyectoYTexto(mu.proy);
+    ok(mu.w.confirms.length === 1 && !/otra empresa/.test(mu.w.confirms[0]), '4c: texto distinto desde el texto base → un aviso, sin «otra empresa»: ' + JSON.stringify(mu.w.confirms));
+    // 4d. con la empresa cambiando de verdad, el aviso sí dice «otra empresa» (2c lo cubre con revisión; aquí sin ella)
+    mu = mundo({ revision: '', tocado: true, html: '<a>', ver: { empresa: 'E1', hash: 'h1', version_id: 'V1' }, texto: async () => ({ html: '<b>', ver: { empresa: 'E2', hash: 'h2', version_id: 'W1' } }) });
+    mu.proy.dataset.previo = 'Alfa'; mu.proy.value = 'Gamma';
+    await mu.m.cambioDeProyectoYTexto(mu.proy);
+    ok(mu.w.confirms.length === 1 && /otra empresa/.test(mu.w.confirms[0]), '4d: empresa distinta → aviso de «otra empresa»');
+    // 4e. al guardar sin versión en pantalla, la semilla con notas se fija (antes salía «se guardó SIN fijar la versión»)
+    mu = mundo({ revision: '', html: fichero, ver: null, base: () => ({ html: semilla, ver: { empresa: 'E1', hash: 'h-sem', version_id: 'S1' } }) });
+    const av = await mu.m.fijaVersionPlantilla('c1', true);
+    ok(av === '' && mu.w.rpcs.some(([nom, ar]) => nom === 'plantilla_contrato_fija' && ar.p_version === 'S1'), '4e: se fija la semilla: «' + av + '»');
+  }
   console.log('revision_texto.test.js: OK (' + n + ' comprobaciones)');
 })().catch((e) => { console.error('FALLA:', e.message); process.exit(1); });
