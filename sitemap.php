@@ -5,7 +5,7 @@
  * con renders. Antes era un XML estatico con 5 URLs fijas que nunca listaba una sola
  * propiedad — hallazgo de la auditoria SEO del 31-ago-2026.
  */
-require __DIR__ . '/modelo/lib.php'; // lw_modelo_imgs()
+require __DIR__ . '/modelo/lib.php'; // lw_modelo_get(), lw_modelo_indexable()
 require __DIR__ . '/coleccion/lib.php'; // lw_coleccion_ids()
 
 header('Content-Type: application/xml; charset=UTF-8');
@@ -37,11 +37,11 @@ if (file_exists($modelosFile)) {
         // lw_modelo_imgs a pelo) — sin esto, un modelo con renders_pendientes queda
         // indexable (tiene precio, no noindex) pero invisible en el sitemap. Cazado por
         // Desarrollo en la capa 1 del pivote australiano (2-sep): pasaba con Trinity/Temple.
-        // 14-oct-2026: y ademas CON precio cerrado, que es la condicion con la que
-        // modelo/index.php no pone noindex (`!$precio`). Sin esto una ficha sin precio
-        // (ese dia, Loftbung) salia aqui pidiendo a la vez que no se la indexara.
-        $mm = lw_modelo_get($id, $MODELOS);
-        if ($mm && lw_precio_fmt(lw_modelo_precio_desde($mm)) !== null) {
+        // 14-oct-2026: y ademas CON precio cerrado. La condicion entera es
+        // lw_modelo_indexable() (modelo/lib.php), la MISMA funcion con la que
+        // modelo/index.php decide si pone noindex: no se repite aqui. Sin el precio, una
+        // ficha sin el (ese dia, Loftbung) salia aqui pidiendo a la vez que no se la indexara.
+        if (lw_modelo_indexable(lw_modelo_get($id, $MODELOS))) {
             $urls[] = ['loc' => $SITE . '/modelo/' . rawurlencode($id), 'lastmod' => $today, 'freq' => 'weekly', 'pri' => '0.7'];
         }
     }

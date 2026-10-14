@@ -18,7 +18,8 @@
  * propio commit 79ecf0340 lo situaba en la v1) y las fichas publicadas pidieron a Google
  * no salir hasta el 14-oct-2026 (owner: arreglarlo). Regla vigente, la de siempre desde
  * el 30-jul: solo lleva noindex la ficha SIN precio cerrado. La canonica no cambia.
- * sitemap.php lista las mismas (con precio): si cambia una condicion, cambia la otra.
+ * La condicion ya no se escribe aqui: es lw_modelo_indexable() (modelo/lib.php), la MISMA
+ * funcion con la que sitemap.php decide que fichas lista. Se cambia alli, una vez.
  *
  * --- docblock original de index.php ---
  * Landing de modelo de villa — /modelo/<id> (regla de reescritura en .htaccess).
@@ -295,7 +296,7 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and price, configured live.">
-<?php if (!$precio): /* sin precio cerrado no se indexa; con precio SI (14-oct-2026, ver cabecera) */ ?>
+<?php if (!lw_modelo_indexable($m)): /* sin precio cerrado no se indexa; con precio SI. La regla vive en lib.php y es la misma del sitemap */ ?>
 <meta name="robots" content="noindex, nofollow">
 <?php endif; ?>
 <link rel="canonical" href="https://lawangproperties.com/<?= lw_e($slugPath) ?>">
