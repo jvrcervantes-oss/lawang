@@ -28,6 +28,8 @@
 --   salieron rojas por el MONTAJE, no por la migracion: dos fichas no pueden compartir pasaporte (N10 va por correo);
 --   T5-T6 le dejaban a A sin contrato_general; y la factura pide contrato, moneda y sociedad, y el refresco de antes
 --   del cierre se salta las facturas de un contrato con compradores[] (N0 usa un contrato de B con un solo comprador).
+-- 3.a vuelta (regla del autor = cliente_visible, casos N7c, N7d y Q1-Q3): MEDIDO en rama el 14-oct-2026 13:16 Bali
+--   (prueba-lawang-20261014131636-22944, borrada), con las mismas 7 migraciones delante: 75/75, y espejo_vuelta.py 26/26.
 --   En esa rama session_user = postgres y el dueno de contrato_guarda es postgres con bypassrls (lo imprime P0).
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);
@@ -58,12 +60,17 @@ $f$;
 -- Correos en minusculas: cliente_visible compara propietario = auth.email() sin lower().
 insert into _tp values ('jv', gen_random_uuid(), 'zz-espejo-super@prueba.invalid'),
                        ('A',  gen_random_uuid(), 'zz-espejo-agente-a@prueba.invalid'),
-                       ('B',  gen_random_uuid(), 'zz-espejo-agente-b@prueba.invalid');
+                       ('B',  gen_random_uuid(), 'zz-espejo-agente-b@prueba.invalid'),
+                       -- 3.a vuelta: autores que NO son agentes, para la regla del autor (_espejo_autor_ve) y su equivalencia
+                       ('PM', gen_random_uuid(), 'zz-espejo-pm@prueba.invalid'),      -- supervisa el proyecto
+                       ('PM2', gen_random_uuid(), 'zz-espejo-pm2@prueba.invalid'),    -- PM que no supervisa nada
+                       ('AE', gen_random_uuid(), 'zz-espejo-ae@prueba.invalid'),      -- admin de la empresa
+                       ('SM', gen_random_uuid(), 'zz-espejo-sm@prueba.invalid');      -- sales manager sin equipo
 
 do $todo$
 declare
   r text := ''; v text; n bigint; g boolean;
-  jv _tp; a _tp; b _tp;
+  jv _tp; a _tp; b _tp; pm _tp; pm2 _tp; ae _tp; sm _tp; nd bigint; ns bigint;
   pL uuid; pLn text; cA uuid; cB uuid; cB2 uuid; cA2 uuid; kA text; kB text; k6 text; k7 text; kO text; kR text; kF uuid; v2 text; kBf text;
   c_guarda constant text := 'otra empresa o de otro comercial';
   c_emp    constant text := 'zz_espejo';
@@ -73,6 +80,8 @@ begin
     raise exception 'FIN DE PRUEBAS ESPEJO CLIENTE VISIBLE:%', E'\nP0 esta prueba crea contratos (gasta numeracion): solo corre en rama → FALLA';
   end if;
   select * into jv from _tp where et = 'jv'; select * into a from _tp where et = 'A'; select * into b from _tp where et = 'B';
+  select * into pm from _tp where et = 'PM'; select * into pm2 from _tp where et = 'PM2';
+  select * into ae from _tp where et = 'AE'; select * into sm from _tp where et = 'SM';
 
   -- ============================================================ P. montaje del fixture propio (como postgres, SIN sesion)
   -- Sin cambio de rol aqui dentro: el sub-bloque con exception solo sirve para que un montaje roto salga en UNA linea con su error.
@@ -84,13 +93,21 @@ begin
     insert into auth.users (id, instance_id, email, aud, role) values
       (jv.uid, '00000000-0000-0000-0000-000000000000', jv.em, 'authenticated', 'authenticated'),
       (a.uid,  '00000000-0000-0000-0000-000000000000', a.em,  'authenticated', 'authenticated'),
-      (b.uid,  '00000000-0000-0000-0000-000000000000', b.em,  'authenticated', 'authenticated');
+      (b.uid,  '00000000-0000-0000-0000-000000000000', b.em,  'authenticated', 'authenticated'),
+      (pm.uid, '00000000-0000-0000-0000-000000000000', pm.em, 'authenticated', 'authenticated'),
+      (pm2.uid, '00000000-0000-0000-0000-000000000000', pm2.em, 'authenticated', 'authenticated'),
+      (ae.uid, '00000000-0000-0000-0000-000000000000', ae.em, 'authenticated', 'authenticated'),
+      (sm.uid, '00000000-0000-0000-0000-000000000000', sm.em, 'authenticated', 'authenticated');
     -- valores FINALES en el alta (nada de update despues: cambiar `empresas` con sesion lo hace solo el propietario).
     -- Dos agentes ACOTADOS a la empresa (ambito global + empresas, como los agentes reales), con Contratos, el proyecto y un solo tipo.
     insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo) values
       (jv.uid, jv.em, 'ZZ-ESPEJO Super admin', 'super_admin', 'global', '{}'::text[],   '{}'::uuid[], '{}'::uuid[], '{}'::text[],          '{}'::text[],                 true),
       (a.uid,  a.em,  'ZZ-ESPEJO Agente A',    'agente',      'global', array[c_emp],   array[pL],    '{}'::uuid[], '{contratos}'::text[], '{contrato_general}'::text[], true),
-      (b.uid,  b.em,  'ZZ-ESPEJO Agente B',    'agente',      'global', array[c_emp],   array[pL],    '{}'::uuid[], '{contratos}'::text[], '{contrato_general}'::text[], true);
+      (b.uid,  b.em,  'ZZ-ESPEJO Agente B',    'agente',      'global', array[c_emp],   array[pL],    '{}'::uuid[], '{contratos}'::text[], '{contrato_general}'::text[], true),
+      (pm.uid, pm.em, 'ZZ-ESPEJO PM',          'project_manager', 'global', array[c_emp], '{}'::uuid[], array[pL],  '{contratos}'::text[], '{}'::text[], true),
+      (pm2.uid, pm2.em, 'ZZ-ESPEJO PM sin proyecto', 'project_manager', 'global', array[c_emp], '{}'::uuid[], '{}'::uuid[], '{contratos}'::text[], '{}'::text[], true),
+      (ae.uid, ae.em, 'ZZ-ESPEJO Admin empresa', 'admin_empresa', 'empresa', array[c_emp], '{}'::uuid[], '{}'::uuid[], '{contratos}'::text[], '{}'::text[], true),
+      (sm.uid, sm.em, 'ZZ-ESPEJO SM sin equipo', 'sales_manager', 'global', array[c_emp], '{}'::uuid[], '{}'::uuid[], '{contratos}'::text[], '{}'::text[], true);
     -- Fichas ZZ-: una de A, dos de B
     insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
       values ('ZZ-ESPEJO Cliente de A', a.em, 'ZZESPEJOA1', 'zz-espejo-a@ejemplo.invalid', '+00 000 0001', 'ZZ-domicilio A', 'ZZ') returning id into cA;
@@ -293,6 +310,11 @@ begin
     insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
       values ('factura', 'ZZ-ESPEJO-FB', 'zz_espejo', cB, kBf::uuid, 10,
               (select c.moneda from public.contratos c where c.id::text = kBf), b.em, 'ZZ-ESPEJO factura de B', '{"fields": {}}'::jsonb);
+    insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+      values ('factura', 'ZZ-ESPEJO-FAE', 'zz_espejo', cB, kBf::uuid, 10,
+              (select c.moneda from public.contratos c where c.id::text = kBf), ae.em, 'ZZ-ESPEJO factura de AE', '{"fields": {}}'::jsonb),
+             ('factura', 'ZZ-ESPEJO-FPM2', 'zz_espejo', cB, kBf::uuid, 10,
+              (select c.moneda from public.contratos c where c.id::text = kBf), pm2.em, 'ZZ-ESPEJO factura de PM2', '{"fields": {}}'::jsonb);
   exception when others then
     r := r || pg_temp.l(false, 'N0 montaje de dos facturas sin enviar (A y B) con el cliente de B: ' || sqlstate || ' ' || left(sqlerrm, 200));
   end;
@@ -310,6 +332,12 @@ begin
   select count(*) into n from public.facturas f where f.client_id = cB and f.creado_por = b.em
      and f.datos->'fields'->>'cliente_domicilio' = 'ZZ-domicilio B nuevo' and f.cliente_nombre = 'ZZ-ESPEJO Cliente de B renombrado';
   r := r || pg_temp.l(n = 1, 'N7b ENTRA: ... y SI en la de B');
+  select count(*) into n from public.facturas f where f.numero = 'ZZ-ESPEJO-FAE'
+     and f.datos->'fields'->>'cliente_domicilio' = 'ZZ-domicilio B nuevo' and f.cliente_nombre = 'ZZ-ESPEJO Cliente de B renombrado';
+  r := r || pg_temp.l(n = 1, 'N7c ENTRA (3.a vuelta): ... y SI en la del admin de la empresa, que ve la ficha (antes solo pasaba el propietario)');
+  select count(*) into n from public.facturas f where f.numero = 'ZZ-ESPEJO-FPM2'
+     and coalesce(f.datos->'fields'->>'cliente_domicilio', '') <> 'ZZ-domicilio B nuevo' and f.cliente_nombre = 'ZZ-ESPEJO factura de PM2';
+  r := r || pg_temp.l(n = 1, 'N7d NIEGA (3.a vuelta): ... pero NO en la de un PM que no supervisa el proyecto (no la ve)');
   perform set_config('request.jwt.claims', json_build_object('sub', jv.uid, 'role', 'authenticated', 'email', jv.em)::text, true);
   update public.contratos set datos = jsonb_set(datos, '{fields,proyecto_nombre}', to_jsonb(pLn)) where id::text = kA;
   perform set_config('request.jwt.claims', '', true);
@@ -364,6 +392,27 @@ begin
   r := r || pg_temp.l(pg_temp.err(v) = '42501' and v ~ 'permission denied', 'N13 la regla del autor no se llama desde el navegador: 42501 del GRANT (' || pg_temp.e(v) || ')');
   v := pg_temp.val(a.uid, a.em, format('select public.espeja_comprador(%L::jsonb)::text', jsonb_build_object('adq1_client_id', cB, 'fields', '{}'::jsonb)));
   r := r || pg_temp.l(pg_temp.err(v) = '42501' and v ~ 'permission denied', 'N13b ... ni el espejo (' || pg_temp.e(v) || ')');
+
+  -- ============================================================ Q. la regla del autor = cliente_visible (3.a vuelta)
+  -- Para cada persona del montaje y cada ficha ZZ-: _espejo_autor_ve(ficha, su correo) SIN sesion da lo mismo que cliente_visible()
+  -- ejecutada COMO esa persona. Amarra las dos definiciones: si una cambia y la otra no, esto se pone rojo.
+  perform set_config('request.jwt.claims', '', true);
+  select count(*), count(*) filter (where q.regla is distinct from q.cv), count(*) filter (where q.regla), string_agg(case when q.regla is distinct from q.cv then q.et || ':' || q.nom end, ', ')
+    into n, nd, ns, v
+    from (select t.et, cl.full_name as nom, public._espejo_autor_ve(cl.id, t.em) as regla,
+                 (pg_temp.val(t.uid, t.em, format('select public.cliente_visible(%L, %L::uuid)::text', cl.propietario, cl.id)))::boolean as cv
+            from _tp t cross join public.clients cl where cl.full_name like 'ZZ-ESPEJO%') q;
+  r := r || pg_temp.l(n >= 30 and nd = 0 and ns between 1 and n - 1,
+         'Q1 la regla del autor coincide con cliente_visible en ' || n || ' pares persona x ficha (' || ns || ' en si; distintos: ' || coalesce(v, 'ninguno') || ')');
+  r := r || pg_temp.l(not public._espejo_autor_ve(cB, upper(pm2.em)) and public._espejo_autor_ve(cB, upper(pm.em)) and not public._espejo_autor_ve(cB, sm.em),
+         'Q2 sin sesion: el PM del proyecto ve la ficha de B (aunque el correo llegue en mayusculas), el PM sin proyecto y el SM sin equipo no');
+  perform set_config('request.jwt.claims', json_build_object('sub', jv.uid, 'role', 'authenticated', 'email', jv.em)::text, true);
+  update public.usuarios set activo = false where user_id = pm.uid;
+  perform set_config('request.jwt.claims', '', true);
+  r := r || pg_temp.l(not public._espejo_autor_ve(cB, pm.em), 'Q3 un autor inactivo nunca pasa');
+  perform set_config('request.jwt.claims', json_build_object('sub', jv.uid, 'role', 'authenticated', 'email', jv.em)::text, true);
+  update public.usuarios set activo = true where user_id = pm.uid;
+  perform set_config('request.jwt.claims', '', true);
 
   -- ============================================================ X. exposicion
   select count(*) into n from pg_proc p

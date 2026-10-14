@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68). El maestro lleva las MISMAS piezas (espeja_comprador,
---   sincronizar_compradores, contratos_tipo_permitido en su linea_base): el porte queda diagnosticado en el informe de Backend del 14-oct.
+--   sincronizar_compradores, contratos_tipo_permitido en su linea_base): el porte va por LAW-595 (contexto/pendientes.md de la agencia).
 -- ESPEJO DEL COMPRADOR SOLO SOBRE FICHAS QUE QUIEN GUARDA PUEDE VER + TIPO PERMITIDO TAMBIEN AL EDITAR (14-oct-2026, Backend).
 -- Hallazgo vivo de Seguridad (revision previa del 14-oct, solo catalogo), CONFIRMADO leyendo los cuerpos vivos ese dia:
 --   · contrato_guarda (DEFINER) acepta en datos.adq1_client_id y en datos.compradores[].client_id el id de CUALQUIER ficha;
@@ -28,14 +28,15 @@
 --      trg_sincronizar_compradores, que se traga las excepciones; por eso el 42501 vive en contrato_guarda.
 --   5) contratos_tipo_permitido salta tambien en UPDATE OF tipo, solo si el tipo CAMBIA. Sigue aplicando solo a rol = 'agente':
 --      sales_manager y project_manager quedan SIN limite de tipos, como hoy (no se cambia; lo decide el CEO/owner).
---   Sin sesion (auth.uid() nulo: service_role, edges, cron) 3) y 4) se comportan como hoy, igual que contratos_tipo_permitido: esos
---   caminos tienen su propia puerta, y `authenticated` no tiene EXECUTE sobre espeja_comprador/sincronizar_compradores ni escritura
+--   Sin sesion (auth.uid() nulo: service_role, edges, cron) la puerta de 3) no salta y el enlace de 4) se hace como hoy, igual que
+--   contratos_tipo_permitido: esos caminos tienen su propia puerta; el ESPEJO, en cambio, desde 6) mira al autor tambien sin sesion, y `authenticated` no tiene EXECUTE sobre espeja_comprador/sincronizar_compradores ni escritura
 --   directa en `contratos` (solo SELECT, medido el 14-oct).
 --   6) 2.a tanda (14-oct, tras CAMBIOS del revisor y la revision previa de Seguridad): un solo parser de ids (22023 a lo no canonico),
 --      la puerta tras el permiso sobre p_id, el oraculo del enlace cerrado (misma salida que «no casa» y la regla dentro de la
 --      busqueda), la excepcion del enlace por contrato y no por rol, y el espejo que mira tambien al AUTOR (2b): ni el refresco al
---      editar la ficha, ni un renombrado, ni un manager copian la ficha en el borrador de un autor que no es su dueno; lo mismo para
---      el nombre/documento/domicilio de sus facturas sin enviar.
+--      editar la ficha, ni un renombrado, ni un manager copian la ficha en el borrador de un autor que no la VE (3.a vuelta: segun su
+--      fila de `usuarios`, la misma cadena de cliente_visible; antes solo pasaba el propietario); lo mismo para el
+--      nombre/documento/domicilio de sus facturas sin enviar.
 -- LO QUE NO HACE (queda dicho en el informe): no toca los contratos ni las facturas existentes ni sus enlaces: lo ya copiado se queda;
 --   limpiarlo es cambiar datos y lo decide el owner con Legal.
 -- ENSAYADA EN RAMA: migracion, prueba (supabase/pruebas/espejo_cliente_visible.sql) y reversion (espejo_vuelta.py) se ejecutan en una
@@ -43,8 +44,9 @@
 --   comprueban ademas contra el vivo en solo lectura (una coincidencia cada una, sin retornos de carro).
 -- contrato_guarda (8,5 KB) y comprador_ficha se PARCHEAN sobre su definicion viva con marca de codigo y raise si no la encuentra
 --   (el repo no coincide con el vivo en esas dos, md5 medido el 14-oct); las otras tres si coinciden y van enteras.
--- destructivo-ok: reemplaza funciones (mismo tipo de retorno) y un trigger; el unico delete es de contrato_compradores DENTRO de
---   sincronizar_compradores (retira el enlace de un rol cuando el documento ya nombra a otra persona que no se puede enlazar)
+-- destructivo-ok: reemplaza funciones (mismo tipo de retorno) y un trigger; el unico delete es el de contrato_compradores que ya
+--   tenia sincronizar_compradores (retira las filas de enlace que el documento ya no nombra); desde 6) un enlace que no se puede
+--   rehacer ya no se borra.
 -- REVERTIR: supabase/reversion_espejo_cliente_visible/REVERSION_espejo_cliente_visible.sql (reabre el hallazgo: solo con OK del owner)
 -- Prueba: supabase/pruebas/espejo_cliente_visible.sql — crea contratos: SOLO en rama (`erp/rama_prueba.py lawang --lawang <copia>
 --   --aplica 20261014101500_espejo_cliente_visible.sql --prueba espejo_cliente_visible.sql`), nunca en la base viva.
@@ -103,8 +105,12 @@ begin
   -- UN solo parser (revisor y Seguridad M1, 14-oct): la columna generada adq1_client_id y sincronizar_compradores leen con
   -- ::uuid, que acepta el id sin guiones o entre llaves; la regex de abajo y la de espeja_comprador, no. Asi, un id ajeno sin
   -- guiones saltaba esta puerta y quedaba en la columna. Ahora todo client_id no vacio que no este en la forma 8-4-4-4-12 se
-  -- rechaza: con sesion solo se guardan ids canonicos y las tres lecturas ven lo mismo. Medido el 14-oct: 0 contratos guardan hoy
-  -- un id no canonico (adq1 ni compradores[]), y la pantalla manda el id de la ficha tal cual (contracts/app.html:5077, :5745, :5757).
+  -- rechaza, salvo un id que el contrato YA tenia (heredado): ese puede quedar guardado en otra forma; la columna y el enlace lo leen
+  -- y el espejo no (su regex no casa), que es lo seguro: es justo la ficha que el autor no ve (caso N5 de la prueba). Medido el
+  -- 14-oct: 0 contratos guardan hoy un id no canonico (adq1 ni compradores[]), y la pantalla manda el id de la ficha tal cual
+  -- (contracts/app.html:5077, :5745, :5757).
+  -- ACEPTADO (Seguridad, BAJA, 14-oct): queda un oraculo de EXISTENCIA. Un uuid que existe y no se ve da 42501; uno que no existe se
+  -- guarda sin aviso (y no enlaza ni copia nada). Solo le sirve a quien ya tiene el uuid de una ficha, que no se lista ni se adivina.
   for v_txt in
     select distinct t.x
       from (select btrim(coalesce(p_datos->>'adq1_client_id', '')) as x
@@ -166,16 +172,22 @@ $function$;
 -- editaba, un admin renombraba el proyecto (renombrar_proyecto / trg_proyecto_renombrado reescriben `datos`), se recalculaba la carta
 -- (carta_cobrado_recalcula), se archivaban anexos (contrato_anexos_pasa_a_archivo, sin sesion) o un manager guardaba el contrato del
 -- agente, la ficha entera volvia a caer en el borrador de un autor que no la ve (revisor MEDIA 2, Seguridad M2).
--- Regla, cerrada por defecto y sin una segunda copia de cliente_visible (toda su cadena depende de auth.uid()): se copia solo si
---   (a) hay sesion y quien guarda ES el autor (y entonces espeja_comprador exige ademas que la vea: la regla de siempre), o
---   (b) el autor es el propietario de la ficha (y, si hay sesion, espeja_comprador exige que quien guarda tambien la vea).
--- Coste, medido el 14-oct (solo columnas): 17 borradores sin firmar cuyo autor no es el propietario de alguna ficha enlazada (agente 4,
--- project_manager 3, sales_manager 6, super_admin 1, super_admin_empresa 2, sin usuario 2) y 71 facturas sin enviar en el mismo caso:
--- dejan de refrescarse SOLOS cuando cambia la ficha; se refrescan cuando su autor vuelve a guardar. Nada se borra: la copia ya guardada
--- se queda (lo decide el dueno con Legal).
--- El autor NO es un parametro de ninguna funcion que se pueda llamar: lo leen los disparadores de la fila (new.creado_por, f.creado_por).
--- creado_por: default auth.email(); `authenticated` no escribe `contratos` (solo SELECT) y contrato_guarda no lo toca; solo lo cambian
--- reasigna_autor (super admin) y traspasar_cliente_con_documentos (admin), ambos con registro en correcciones_datos.
+-- Regla (3.a vuelta del revisor, 14-oct: la de la 2.a tanda solo dejaba pasar al PROPIETARIO de la ficha, y dejaba sin refrescar los
+-- documentos de managers y admins que SI la ven). Se copia si el autor, segun SU fila de `usuarios` (por correo, activa), veria la ficha
+-- con cliente_visible(). Es la misma cadena de cliente_visible traducida de «la sesion» a «el usuario u»: cliente_visible solo sabe
+-- contestar para quien llama (auth.uid()) y el refresco lo dispara otro (el dueno que edita, un admin, un cron). Ramas, en su orden:
+--   propietario de la ficha · admin global (es_admin) · admin de empresa con un companero propietario y ningun documento del cliente
+--   fuera de sus empresas · admin de empresa con un contrato del cliente en un proyecto de sus empresas · gestor (PM/SM) o manager de un
+--   equipo activo con un contrato del cliente que supervisa (PM) o de la venta de su equipo (_sm_ve_venta) y dentro de sus empresas.
+-- Un autor inactivo o sin fila en `usuarios` nunca pasa; un documento sin autor tampoco (medido 14-oct: 2 contratos y 1 factura).
+-- La prueba amarra las dos definiciones: para cada usuario del montaje, esta regla sin sesion = cliente_visible ejecutada como el.
+-- Ademas, con sesion y si quien guarda ES el autor, pasa (espeja_comprador exige entonces que la vea: la regla de siempre).
+-- Medido el 14-oct en vivo (solo lectura; la rama del equipo de ventas no se pudo ejecutar con el rol de lectura, «permission denied
+-- for function _venta_equipo», pero ningun autor de los casos en «no» es manager de un equipo activo): de los documentos vivos cuyo
+-- autor NO es el propietario de la ficha, siguen refrescandose 51 facturas y 4 contratos de admins y managers que la ven; dejan de
+-- refrescarse 12 borradores y 20 facturas sin enviar (agentes; P2, inactiva; PM y SM que no la ven), los 8 + 11 del incidente entre ellos.
+-- Lo ya copiado no se toca (decision del dueno, 14-oct). Una factura no se re-copia al volver a guardarla: factura_guarda toma la
+-- identidad que manda la pantalla, que la saca del contrato.
 create or replace function public._espejo_autor_ve(p_client uuid, p_autor text)
  returns boolean
  language sql
@@ -184,8 +196,50 @@ create or replace function public._espejo_autor_ve(p_client uuid, p_autor text)
 as $function$
   select p_client is not null and coalesce(btrim(p_autor), '') <> '' and (
            ((select auth.uid()) is not null and lower(btrim(p_autor)) = lower(btrim(coalesce((select auth.email()), ''))))
-        or exists (select 1 from public.clients c
-                    where c.id = p_client and lower(btrim(coalesce(c.propietario, ''))) = lower(btrim(p_autor))))
+        or exists (
+             select 1 from public.usuarios u
+              where lower(btrim(u.email)) = lower(btrim(p_autor)) and u.activo
+                and (
+                      exists (select 1 from public.clients c
+                               where c.id = p_client and lower(btrim(coalesce(c.propietario, ''))) = lower(btrim(p_autor)))
+                   or u.rol in ('super_admin', 'admin')
+                   or (u.ambito = 'empresa' and u.rol in ('admin_empresa', 'super_admin_empresa')
+                       and exists (select 1 from public.clients c
+                                     join public.usuarios pr on lower(pr.email) = lower(c.propietario) and pr.activo and pr.empresas && u.empresas
+                                    where c.id = p_client)
+                       and not exists (select 1 from public.contrato_compradores cc
+                                         join public.contratos k on k.id = cc.contrato_id
+                                         join public.proyectos pr on pr.id = k.proyecto_id
+                                        where cc.client_id = p_client and pr.empresa is not null
+                                          and not coalesce(pr.empresa = any (u.empresas), false))
+                       and not exists (select 1 from public.facturas f
+                                         left join public.proyectos pr on pr.id = f.proyecto_id
+                                         left join public.empresas e on e.sociedad_clave = f.sociedad
+                                        where f.client_id = p_client and coalesce(pr.empresa, e.clave) is not null
+                                          and not coalesce(coalesce(pr.empresa, e.clave) = any (u.empresas), false)))
+                   or (u.ambito = 'empresa' and u.rol in ('admin_empresa', 'super_admin_empresa')
+                       and exists (select 1 from public.contrato_compradores cc
+                                     join public.contratos k on k.id = cc.contrato_id
+                                     join public.proyectos pr on pr.id = k.proyecto_id
+                                    where cc.client_id = p_client and pr.empresa = any (u.empresas)))
+                   or ((u.rol in ('sales_manager', 'project_manager')
+                        or exists (select 1 from public.equipos_venta ev
+                                    where ev.activo and lower(ev.manager_email) = lower(btrim(u.email))))
+                       and exists (
+                             select 1 from public.contrato_compradores cc
+                               join public.contratos k on k.id = cc.contrato_id
+                               left join public.proyectos pr on pr.id = k.proyecto_id
+                              where cc.client_id = p_client
+                                and (   (u.rol = 'project_manager' and k.proyecto_id = any (u.proyectos_supervisados))
+                                     or (u.ambito = 'empresa' and u.rol in ('admin_empresa', 'super_admin_empresa')
+                                         and pr.empresa = any (u.empresas))
+                                     or exists (select 1 from public.equipos_venta ev
+                                                 where ev.activo and ev.id = public._venta_equipo(k.id)
+                                                   and lower(ev.manager_email) = lower(btrim(u.email))))
+                                and not (   (u.ambito = 'global' and cardinality(u.empresas) > 0
+                                             and not coalesce(pr.empresa = any (u.empresas), false))
+                                         or (u.ambito = 'empresa' and not coalesce(pr.empresa = any (u.empresas), false)))))
+                )))
 $function$;
 revoke all on function public._espejo_autor_ve(uuid, text) from public, anon, authenticated;
 
