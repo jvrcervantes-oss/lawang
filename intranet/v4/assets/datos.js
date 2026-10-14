@@ -7073,7 +7073,8 @@
         ['enviar-respuesta', 'estado-hilo', 'ver-perfil', 'abrir-whatsapp'].forEach(function (acc) {
           var b = doc.querySelector('[data-accion="' + acc + '"]');
           if (!b) return;
-          if (b.tagName === 'A') { b.removeAttribute('href'); b.setAttribute('tabindex', '-1'); }
+          // sin `href` un <a> pierde su papel de enlace y el lector de pantalla ya no anuncia el aria-disabled: se lo deja dicho
+          if (b.tagName === 'A') { b.removeAttribute('href'); b.setAttribute('role', 'link'); b.setAttribute('tabindex', '-1'); }
           else b.disabled = true;
           b.setAttribute('aria-disabled', 'true');
           b.style.opacity = '.45'; b.style.cursor = 'not-allowed';

@@ -88,6 +88,7 @@ function documento(sin) {
   ['ver-perfil', 'abrir-whatsapp'].forEach(k => {
     ok(!d.els[k].hasAttribute('href'), nombre + ': «' + k + '» deja de ser un enlace (sin href)');
     eq(d.els[k].getAttribute('aria-disabled'), 'true', nombre + ': «' + k + '» lleva aria-disabled');
+    eq(d.els[k].getAttribute('role'), 'link', nombre + ': «' + k + '» sigue diciéndose enlace (sin href pierde el papel y el aria-disabled no se anuncia)');
     eq(d.els[k].getAttribute('tabindex'), '-1', nombre + ': «' + k + '» sale del orden del tabulador');
   });
   Object.keys(d.els).forEach(k => ok(d.els[k].style.cursor === 'not-allowed' && d.els[k].style.opacity === '.45', nombre + ': «' + k + '» se VE apagado'));
