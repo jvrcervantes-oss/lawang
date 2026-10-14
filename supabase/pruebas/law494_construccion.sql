@@ -30,7 +30,7 @@
 --   T11b sin techo, descuento dentro del tope                                 PASA
 --   T12  agente, descuento justo 15 %                                         PASA     [RECHAZA: rol, antes de 193000]
 --   T12b agente, descuento > 15 %                                             RECHAZA
---   T13  calendario libre con un % de 3 decimales                             RECHAZA  [PASA: se leía como miles]
+--   T13  calendario libre con un % de 3 decimales                             RECHAZA  [OTRA: «no suman 100», leído como miles]
 --   T13b el mismo con 4 decimales                                             PASA
 -- CC00107 (LAW-267) no entra: tiene una firma en curso y lo para contrato_no_editable_en_firma antes que este trigger.
 -- Datos de producción del 7-oct (CC00120 48.000 sin extras; CC00122 con extra y descuento; CC00096 sin techo).
@@ -270,7 +270,8 @@ begin
     perform set_config('request.jwt.claims', claims_ad, true);
     perform public.contrato_calendario_aplica(jsonb_build_object('calendario', 'libre', 'hitos', jsonb_build_array(jsonb_build_object('pct', '12.123', 'es', 'A'), jsonb_build_object('pct', '87.877', 'es', 'B'))), jsonb_build_object('calendario', 'libre', 'hitos', '[]'::jsonb), 100000, current_date, c120.id);
     raise exception '__PASO__';
-  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' else 'RECHAZA' end; extra := left(sqlerrm, 140); end;
+  -- Solo cuenta como RECHAZA el de la regla nueva: leídos como miles tampoco suman 100, y esa otra regla ya lo paraba
+  exception when others then res := case when sqlerrm like '\_\_PASO\_\_%' then 'PASA' when sqlerrm like '%3 decimales%' then 'RECHAZA' else 'OTRA' end; extra := left(sqlerrm, 140); end;
   out := out || 'T13  ' || case when res = esp then 'ok   ' else 'FALLO' end || ' ' || res || ' · ' || extra || E'\n'; fallos := fallos + (res <> esp)::int;
   -- T13b
   esp := 'PASA';
