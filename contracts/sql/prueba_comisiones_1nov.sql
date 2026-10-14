@@ -7,7 +7,9 @@
 -- ⚠ NECESITA LA VÁLVULA DEL OWNER EN CADA EJECUCIÓN (~/.axisworks/destructivo-ok, tools/no_destruir.py): el montaje
 --   usa session_replication_role = replica (para mover precios, firmas y el closer de una venta real sin que salten
 --   sus triggers) y borra, dentro de la transacción que se deshace, los devengos de la venta de laboratorio. Lo mismo
---   le pasa a prueba_comisiones_recalculo.sql desde el freno del 11-oct.
+--   le pasa a prueba_comisiones_recalculo.sql desde el freno del 11-oct. Con la marca abierta, el envío por MCP lleva
+--   además como primera línea `-- destructivo-ok: <motivo>` (tools/no_destruir.py exige las dos en Lawang).
+--   Última pasada: 14-oct-2026 tras F3 (20261014133241), 33/33 ok, series sin mover.
 --
 -- SERIES (LAW-217): ninguna prueba consume números. El motor crea una solicitud de pago (serie SP, identity) por cada
 -- devengo de manager/estándar/propia; aquí se desactivan los usuarios dentro de la transacción, así el motor no resuelve

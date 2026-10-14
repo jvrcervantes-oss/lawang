@@ -1,3 +1,7 @@
+-- APLICADA el 14-oct-2026 (versión 20261014133241, apply_migration, ventana del owner). Batería prueba_comisiones_1nov
+-- 33/33 antes (ensayo deshecho) y después; comisiones_1nov_imputacion 0 desacuerdos; vuelta: supabase/vivo/
+-- 20261014_cobro_primero_parcela/vuelta_f3.sql.
+--
 -- F3 de «primero la parcela, luego la obra» (encargo 20261014_lawang_cobro_primero_parcela): la regla de comisiones de
 -- las ventas desde el 1-nov-2026 (_comisiones_bases_firmadas). Las únicas condiciones que leen lo cobrado por parte
 -- (tramos pct_cobrado_suelo_firmado / pct_cobrado_obra_firmada) rigen desde el 1-nov (medido el 14-oct: 12 sucesoras
