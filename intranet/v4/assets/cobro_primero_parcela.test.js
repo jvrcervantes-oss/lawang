@@ -28,9 +28,9 @@ function extrae(nombre) {
 
 const ctx = { RAIZ_C: {} };
 vm.createContext(ctx);
-vm.runInContext(extrae('precioParte') + '\n' + extrae('repartoPorRegla') + '\n' + extrae('sueloProvisional')
-  + '\n;this.precioParte = precioParte; this.repartoPorRegla = repartoPorRegla; this.sueloProvisional = sueloProvisional;', ctx);
-const { precioParte, repartoPorRegla, sueloProvisional } = ctx;
+vm.runInContext(extrae('precioParte') + '\n' + extrae('repartoPorRegla') + '\n' + extrae('sueloSinFirmar')
+  + '\n;this.precioParte = precioParte; this.repartoPorRegla = repartoPorRegla; this.sueloSinFirmar = sueloSinFirmar;', ctx);
+const { precioParte, repartoPorRegla, sueloSinFirmar } = ctx;
 const igual = (a, b, m) => assert.deepStrictEqual(JSON.parse(JSON.stringify(a)), b, m);
 // Una venta tal como la monta datos.js: lo cobrado por familia, lo de contratos sin familia (`otros`: una Carta de
 // Reserva) y si la venta tiene ya Bloqueo o Construcción (`conFamilia`).
@@ -48,12 +48,12 @@ assert.strictEqual(precioParte({ precio_construccion: 40250 }, 'obra'), 40250, '
 assert.strictEqual(precioParte({}, 'suelo'), null, 'sin ningún precio: null, no 0');
 assert.strictEqual(precioParte({ suelo_pactado: 0, precio_suelo: 18750 }, 'suelo'), 0, 'un 0 de la base es un dato, no un hueco');
 
-// --- sueloProvisional: el precio de un Bloqueo SIN firmar se rotula; el de uno firmado, o el de catálogo, no ---
-assert.strictEqual(sueloProvisional({ contrato_firmado: false, suelo_pactado: 23275, precio_suelo: 30625 }), true, 'borrador distinto del catálogo: provisional');
-assert.strictEqual(sueloProvisional({ contrato_firmado: true, suelo_pactado: 15000, precio_suelo: 18750 }), false, 'Bloqueo firmado: no es provisional');
-assert.strictEqual(sueloProvisional({ contrato_firmado: false, suelo_pactado: '25000.00', precio_suelo: 25000 }), false, 'borrador igual al catálogo: nada que avisar');
-assert.strictEqual(sueloProvisional({ contrato_firmado: false, suelo_pactado: null, precio_suelo: 25000 }), false, 'sin precio pactado (sin permiso o sin contrato): nada que avisar');
-assert.ok(src.includes('sueloProvisional(u));') && src.includes('(provisional: Bloqueo sin firmar)'), 'tarjeta y ficha rotulan el precio provisional');
+// --- sueloSinFirmar: el precio de un Bloqueo SIN firmar se rotula; el de uno firmado, o el de catálogo, no ---
+assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: 23275, precio_suelo: 30625 }), true, 'borrador distinto del catálogo: se rotula');
+assert.strictEqual(sueloSinFirmar({ contrato_firmado: true, suelo_pactado: 15000, precio_suelo: 18750 }), false, 'Bloqueo firmado: no se rotula');
+assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: '25000.00', precio_suelo: 25000 }), false, 'borrador igual al catálogo: nada que avisar');
+assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: null, precio_suelo: 25000 }), false, 'sin precio pactado (sin permiso o sin contrato): nada que avisar');
+assert.ok(src.includes('sueloSinFirmar(u));') && src.includes("' (Bloqueo sin firmar)'") && src.includes("' · Bloqueo sin firmar'"), 'tarjeta y ficha rotulan el Bloqueo sin firmar');
 
 // --- repartoPorRegla ---
 // SH-1 (medido el 14-oct): 41.620 cobrados contra el Bloqueo (25.000) y la Construcción a 0.

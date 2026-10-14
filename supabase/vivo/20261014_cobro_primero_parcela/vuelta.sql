@@ -1,5 +1,8 @@
--- VUELTA ATRÁS de supabase/migrations/20261014024234_cobro_primero_parcela.sql y de su 2.ª parte,
--- 20261014032925_cobro_primero_parcela_contrato.sql («primero la parcela, luego la obra»).
+-- VUELTA ATRÁS de supabase/migrations/20261014024234_cobro_primero_parcela.sql, de su 2.ª parte,
+-- 20261014032925_cobro_primero_parcela_contrato.sql, y de la 3.ª, 20261014040310_cobro_primero_parcela_borrador.sql
+-- («primero la parcela, luego la obra»). La 3.ª no añade nada que reponer aparte: vuelve a escribir la cascada (que
+-- aquí se queda sin llamador), la puerta unidad_cobro_reparto (que aquí se cierra), el disparador (que aquí se
+-- neutraliza, también en los borrados) y cambia la marca de comisiones (que aquí se busca con su texto de la 3.ª).
 -- ENSAYADA EN PARTE el 14-oct-2026 en producción, dentro de un DO que acaba en raise: los permisos, el disparador
 -- neutralizado, la vista y el parche inverso de comisiones. Después de eso un admin lee unidades_estado con el rol
 -- authenticated (565 filas con su cobro), lw_lector la lee sin error y unidad_cobro_reparto queda cerrada (42501).
@@ -18,7 +21,10 @@
 --     obliga a borrarla y volver a darle permisos. La pantalla, sin ellas, usa el precio de catálogo.
 --   * _unidad_cobro_cascada y unidad_cobro_reparto se quedan sin llamador y cerradas; el trigger
 --     trg_zz_revalua_unidad_por_contrato se queda puesto pero sin efecto. Retirarlos es un drop aparte.
---   * Los estados de parcela y los devengos de comisión que la regla nueva haya movido NO vuelven solos: son datos.
+--   * Los devengos de comisión que la regla nueva haya creado NO vuelven solos: son datos (y uno pagado no se revierte).
+--   * Los estados de parcela vuelven, pero uno a uno y no al ejecutar esto: con la regla vieja repuesta, una parcela
+--     «vendida» con Bloqueo FIRMADO que ya no cumpla baja a «bloqueada» (LAW-497c) en su siguiente cobro o cambio de
+--     precio de catálogo; sin Bloqueo firmado no baja (Backend, 14-oct-2026).
 --     Antes de ejecutar esto, listar qué cambió desde el 14-oct (unidades_estado_historial y comisiones_devengadas con
 --     disparado_en >= '2026-10-14') y decidir con el owner qué se hace con cada uno.
 begin;
@@ -204,7 +210,7 @@ create or replace function public.trg_revalua_unidad_por_contrato()
  set search_path to ''
 as $function$
 begin
-  return new;   -- neutralizado por vuelta.sql
+  return coalesce(new, old);   -- neutralizado por vuelta.sql (también en los borrados: la 3.ª parte añadió DELETE)
 end;
 $function$;
 
@@ -260,7 +266,7 @@ declare
   v_def text;
   m1 text := 'public._unidad_cobro_cascada(u.id) cp';
   r1 text := 'public.unidad_parte_cobrada_interno(u.id) cp';
-  m2 text := 'coalesce(sum(case when cp.suelo_de_contrato then cp.suelo_precio else u.precio_suelo end), 0)';   -- la de la 2.ª parte
+  m2 text := 'coalesce(sum(case when cp.suelo_de_contrato and v_contrato_firmado then cp.suelo_precio else u.precio_suelo end), 0)';   -- la de la 3.ª parte
   r2 text := 'coalesce(sum(u.precio_suelo), 0)';
   m3 text := 'coalesce(sum(coalesce(cp.obra_precio, u.precio_construccion)), 0)';
   r3 text := 'coalesce(sum(u.precio_construccion), 0)';

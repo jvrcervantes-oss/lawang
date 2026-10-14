@@ -1,5 +1,5 @@
 -- Prueba de «primero la parcela, luego la obra» (owner, 14-oct-2026; migraciones 20261014024234_cobro_primero_parcela.sql
--- y 20261014032925_cobro_primero_parcela_contrato.sql). Lo que ESCRIBE (firmar, cambiar un precio) se prueba aparte, en
+-- , 20261014032925_cobro_primero_parcela_contrato.sql y 20261014040310_cobro_primero_parcela_borrador.sql). Lo que ESCRIBE (firmar, cambiar un precio) se prueba aparte, en
 -- cobro_primero_parcela_contrato.sql.
 -- SOLO LECTURA: se ejecuta por execute_sql y TERMINA CON UN RAISE a propósito (no deja rastro; el cambio de rol y los
 -- claims se deshacen con él). No da de alta nada, no gasta series y no llama a comisiones_evaluar_contrato (LAW-217).
@@ -14,10 +14,11 @@
 --       tope: si pasa, es un dato que arreglar, no una regla nueva)
 --   T5  las tres lecturas dan lo mismo: _interno (estados, comisiones) = cascada; unidad_cobro_reparto, con un admin,
 --       = cascada. Es lo que evita que vuelva a haber dos copias del reparto
---   T6  «vendida» se mide contra el precio del Bloqueo FIRMADO cuando lo hay: unidad_cumple_estado = (precio > 0 y suelo
---       cobrado >= precio); y `suelo_de_contrato` solo es cierto si la venta tiene un Bloqueo de Parcela firmado con precio
+--   T6  «vendida» se mide contra el precio del Bloqueo de la venta, firmado o no (owner, 14-oct; 20261014040310):
+--       unidad_cumple_estado = (precio > 0 y suelo cobrado >= precio); y `suelo_de_contrato` solo es cierto si la RAÍZ
+--       de la venta es un Bloqueo de Parcela sin liberar y con precio (un Bloqueo hijo no cuenta)
 --   T7  sin permiso, unidad_cobro_reparto devuelve NULL (no 0) y la cascada no es llamable por authenticated / anon
---   T8  el motor de comisiones lee la cascada y mide contra el precio de contrato
+--   T8  el motor de comisiones lee la cascada y mide el suelo contra el precio de contrato solo si está FIRMADO
 --   T9  la vista unidades_estado sigue siendo security_invoker y trae suelo_pactado / obra_pactada
 --   T10 el caso que lo destapó: SH-1 (Sumba Hills), 41.620 cobrados contra una parcela de 25.000 → 25.000 + 16.620
 do $t$
@@ -87,8 +88,8 @@ begin
     from public.unidades u cross join lateral public._unidad_cobro_cascada(u.id) x
     cross join lateral (select coalesce(c0.contrato_padre_id, c0.id) as id from public.contratos c0 where c0.id = u.contrato_id limit 1) rz
    where u.contrato_id is not null and x.suelo_de_contrato
-     and not exists (select 1 from public.contratos b where (b.id = rz.id or b.contrato_padre_id = rz.id)
-                        and b.tipo = 'reserva_parcela' and coalesce(b.bloqueado, false) and b.liberado_en is null and coalesce(b.precio_total, 0) > 0);
+     and not exists (select 1 from public.contratos b where b.id = rz.id
+                        and b.tipo = 'reserva_parcela' and b.liberado_en is null and coalesce(b.precio_total, 0) > 0);
   if n > 0 then fallos := fallos + 1; end if;
   out := out || E'\nT6 «vendida» contra el precio de contrato: ' || (case when n = 0 then 'ok' else 'FALLO en ' || n end);
 
@@ -96,7 +97,7 @@ begin
   select count(*) into n from pg_proc p
    where p.pronamespace = 'public'::regnamespace and p.proname = 'comisiones_evaluar_contrato'
      and position('public._unidad_cobro_cascada(u.id) cp' in p.prosrc) > 0
-     and position('coalesce(cp.suelo_precio, u.precio_suelo)' in p.prosrc) > 0
+     and position('case when cp.suelo_de_contrato and v_contrato_firmado then cp.suelo_precio else u.precio_suelo end' in p.prosrc) > 0
      and position('coalesce(cp.obra_precio, u.precio_construccion)' in p.prosrc) > 0
      and position('unidad_parte_cobrada_interno' in p.prosrc) = 0;
   if n <> 1 then fallos := fallos + 1; end if;
