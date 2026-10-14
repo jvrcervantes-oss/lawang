@@ -313,9 +313,10 @@
     var pageItems = filtered.slice(pageStart, pageStart + PER_PAGE);
     var cards = pageItems.map(function(p){ return window.LawangCard.render(p, cardOpts({ hrefBase:"" })); }).join("");
     var emptyState = '<div style="grid-column:1/-1;padding:60px 24px;text-align:center;color:var(--ink-2)">'
-      // «No se pudo cargar» solo si el documento NO llegó (DATA_AT sigue a 0). Un catálogo que llegó y no tiene
-      // ninguna ficha publicada es «no hay nada», no «no he podido mirar».
-      + (DATA_AT===0
+      // «No se pudo cargar» si el documento NO llegó (DATA_AT sigue a 0) o si llegó vacío y viejo (el servidor no pudo
+      // leer la fuente, ni su caché ni el respaldo: stale). Un catálogo fresco sin ninguna ficha publicada es «no hay
+      // nada», no «no he podido mirar».
+      + (DATA_AT===0 || (DATA_STALE && L.PROPERTIES.length===0)
           ? '<p style="font-size:15px;margin:0 0 6px">'+(S.lang==="es"?"No se pudieron cargar las propiedades.":"Properties could not be loaded.")+'</p>'
             + '<p style="font-size:13px;opacity:.7;margin:0">'+(S.lang==="es"?"Abre la página servida por HTTP (no como archivo local) o reintenta.":"Open the page over HTTP (not as a local file) or try again.")+'</p>'
           : '<p style="font-size:15px;margin:0">'+(S.lang==="es"?"No hay propiedades con estos filtros.":"No properties match these filters.")+'</p>')
@@ -1852,6 +1853,9 @@
     return attempt();
   }
   fetchDataResilient().then(function(data){
+    // Se filtra ANTES de dar el documento por llegado: si el filtro fallara (lawang-card.js sin cargar), DATA_AT sigue
+    // a 0 y la página dice «no se pudo cargar», no «no hay propiedades con estos filtros».
+    var publicadas = data.properties ? data.properties.filter(window.LawangCard.publicada) : null;
     DATA_LIVE = data.live===true; DATA_STALE = data.stale===true; DATA_AT = Date.now();
     // QUÉ FICHAS SE VEN: se decide AQUÍ, una vez, con la regla única (LawangCard.publicada, gemela de
     // lw_coleccion_publicada en servidor: `visible` exactamente true e id válido). Todo lo de abajo —rejilla,
@@ -1859,7 +1863,7 @@
     // una ficha oculta no existe para la página. Antes se filtraba en tres sitios con «todo lo que no sea false»
     // y la ficha abierta por #property/<id> no se filtraba: con data.json (que trae también las ocultas) se
     // podía abrir un borrador que /property/<id> responde con 404.
-    if(data.properties) L.PROPERTIES = data.properties.filter(window.LawangCard.publicada);
+    if(publicadas) L.PROPERTIES = publicadas;
     if(data.downloads)  L.DOWNLOADS  = data.downloads;
     // merge sobre los defaults: si data.json trae solo USD/AUD, IDR conserva su tasa por defecto
     // Merge, no overwrite: SETTINGS lleva defaults inline (whatsapp, supabaseUrl/Key) que

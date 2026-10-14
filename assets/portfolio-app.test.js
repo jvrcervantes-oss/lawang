@@ -126,6 +126,9 @@ function arranca(doc, { hash = '', datajson = false } = {}) {
   // catalogo que llega pero sin ninguna ficha publicada: «no hay nada», no «no se pudo cargar»
   r = await arranca({ settings: {}, downloads: {}, properties: [f('oculta', false)] }, { datajson: true });
   ok(/No properties match these filters\./.test(r.html) && !/could not be loaded/.test(r.html), 'catalogo sin fichas publicadas: «no hay», no «no se pudo cargar»');
+  // el servidor no pudo leer nada (fuente, cache y respaldo caidos): precarga vacia y vieja = «no se pudo cargar» (code-review)
+  r = await arranca({ properties: [], settings: {}, downloads: [], live: true, stale: true });
+  ok(/Properties could not be loaded\./.test(r.html) && !/No properties match/.test(r.html), 'precarga vacia y stale: «no se pudo cargar», no «no hay con estos filtros»');
   const errorDeConsola = console.error;
   const avisos = [];
   console.error = (...a) => avisos.push(a.join(' '));   // la SPA avisa por consola de que no pudo cargar: se recoge, no se imprime
