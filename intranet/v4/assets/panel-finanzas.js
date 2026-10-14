@@ -68,11 +68,17 @@
      construye la consulta de cero cada vez (un builder de supabase-js no se
      reutiliza). Orden por id: sin orden estable, dos páginas pueden repetir o
      saltarse filas. */
-  function todas(hacer, que, col) {
+  function todas(hacer, que, col, puedeFaltar) {
     var filas = [];
     function pag(desde) {
       return hacer().order(col || 'id', { ascending: true }).range(desde, desde + PAGINA - 1).then(function (r) {
-        if (r.error) { console.error('[finanzas] ' + que + ':', r.error); throw new Error(que); }
+        if (r.error) {
+          /* `puedeFaltar`: una función que esta base puede no tener (una instancia del ERP sin la regla de la
+             parcela). Si es eso, sin ruido y el error lo dice (`falta`); cualquier otro fallo, como siempre. */
+          var falta = !!puedeFaltar && (r.error.code === 'PGRST202' || r.error.code === '42883');
+          if (!falta) console.error('[finanzas] ' + que + ':', r.error);
+          var e = new Error(que); e.falta = falta; throw e;
+        }
         filas = filas.concat(r.data || []);
         return (r.data || []).length === PAGINA && desde < 20000 ? pag(desde + PAGINA) : filas;
       });
@@ -104,7 +110,15 @@
     }) : Promise.resolve({});
     var fuentes = {
       contratos: todas(function () { return sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at,liberado_en'); }, 'contratos'),
-      cobrado: todas(function () { return sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado'); }, 'cobrado por contrato', 'contrato_id'),
+      /* Con la regla «primero la parcela, luego la obra» (owner, 14-oct-2026; F2): la base lo da ya repartido por
+         contrato. Si esta base no tiene la función (instancias del ERP: el maestro aún no tiene la regla, [regla-parcela-maestro] en pendientes),
+         lo cobrado por documento sin decir nada (porRegla null); si la función falla, lo mismo y el pie de la
+         cartera lo dice (porRegla false). Nunca 0. Mismo criterio que cobradoConRegla de datos.js. */
+      cobrado: todas(function () { return sb.rpc('contratos_cobrado_regla_equipo').select('contrato_id,cobrado'); }, 'cobrado por contrato con la regla', 'contrato_id', true)
+        .then(function (f) { return { filas: f, porRegla: true }; }, function (e) {
+          return todas(function () { return sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado'); }, 'cobrado por contrato', 'contrato_id')
+            .then(function (f) { return { filas: f, porRegla: e && e.falta ? null : false }; });
+        }),
       vencimientos: todas(function () { return sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,no_facturar'); }, 'calendario de pagos'),
       facturas: todas(function () { return sb.rpc('facturas_equipo').select('id,numero,tipo,sociedad,total,moneda,anulada,fecha_emision,created_at,contrato_id,proyecto_nombre,cuenta:datos->fields->>cuenta,venc:datos->fields->>fecha_vencimiento' + (window.AXW_NUCLEO_OPERACION ? ',rectifica_id' : '')); }, 'facturas'),
       /* De quién es cada cuenta (LAW-305): la lee cualquier sesión. Si falla,
@@ -134,7 +148,7 @@
 
   function normaliza(d, hoy) {
     var cobradoPorId = {};
-    (d.cobrado || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
+    ((d.cobrado && d.cobrado.filas) || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
     var pend = {};
     (d.pendiente || []).forEach(function (x) { pend[x.factura_id] = Number(x.pendiente) || 0; });
     var facturas = d.facturas || [];
@@ -218,7 +232,8 @@
     } else {
       pon('k-pendiente', fmt(car.pendiente, m));
       var p = pct(car.cobradoFirmado, car.cartera);
-      pon('k-pendiente-pie', T('de') + ' ' + fmt(car.cartera, m) + ' ' + T(MODELO_ACTUAL && MODELO_ACTUAL.incluirSinFirmar ? 'contratados' : 'firmados') + (p != null ? ' · ' + String(p).replace('.', ',') + ' % ' + T('cobrado') : ''));
+      pon('k-pendiente-pie', T('de') + ' ' + fmt(car.cartera, m) + ' ' + T(MODELO_ACTUAL && MODELO_ACTUAL.incluirSinFirmar ? 'contratados' : 'firmados') + (p != null ? ' · ' + String(p).replace('.', ',') + ' % ' + T('cobrado') : '')
+        + (d.cobrado && d.cobrado.porRegla === false ? ' · ' + T('cobrado por contrato, sin la regla de la parcela') : ''));
       var dg = car.desglose;
       pon('k-vencido', dg ? fmt(dg.vencido, m) : '—');
       pon('k-vencido-pie', dg ? (dg.nVencido ? num(dg.nVencido) + ' ' + T(dg.nVencido === 1 ? 'hito con la fecha pasada' : 'hitos con la fecha pasada') : T('Ningún hito con la fecha pasada')) : '');

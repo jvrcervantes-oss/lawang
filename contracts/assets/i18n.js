@@ -1998,6 +1998,11 @@
     'El sistema ya emitió y envió la factura de este vencimiento':
       'The system already issued and sent the invoice for this payment',
     'Sin auto': 'No auto',
+    'Reasignado por la regla': 'Reassigned by the rule',
+    'Cobrado en este contrato': 'Collected on this contract',
+    'Cobrado en este contrato (recibís aplicados a este documento): %c. Lo cubierto sigue la regla: primero la parcela, luego la obra.':
+      'Collected on this contract (receipts applied to this document): %c. What is covered follows the rule: the plot first, then the build.',
+    'cobrado por contrato, sin la regla de la parcela': 'collected per contract, without the plot-first rule',
     'Este vencimiento no recibe factura automática': 'This payment gets no automatic invoice',
     'Nueva fecha de vencimiento': 'New due date',
     'Vencimiento el %f': 'Due on %f',
