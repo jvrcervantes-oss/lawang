@@ -48,10 +48,10 @@ assert.strictEqual(precioParte({ precio_construccion: 40250 }, 'obra'), 40250, '
 assert.strictEqual(precioParte({}, 'suelo'), null, 'sin ningún precio: null, no 0');
 assert.strictEqual(precioParte({ suelo_pactado: 0, precio_suelo: 18750 }, 'suelo'), 0, 'un 0 de la base es un dato, no un hueco');
 
-// --- sueloSinFirmar: el precio de un Bloqueo SIN firmar se rotula; el de uno firmado, o el de catálogo, no ---
+// --- sueloSinFirmar: se rotula por la FIRMA del contrato, no por si su precio difiere del de catálogo ---
 assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: 23275, precio_suelo: 30625 }), true, 'borrador distinto del catálogo: se rotula');
 assert.strictEqual(sueloSinFirmar({ contrato_firmado: true, suelo_pactado: 15000, precio_suelo: 18750 }), false, 'Bloqueo firmado: no se rotula');
-assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: '25000.00', precio_suelo: 25000 }), false, 'borrador igual al catálogo: nada que avisar');
+assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: '25000.00', precio_suelo: 25000 }), true, 'sin firmar aunque el precio sea el de catálogo: se rotula (caso RP00050)');
 assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: null, precio_suelo: 25000 }), false, 'sin precio pactado (sin permiso o sin contrato): nada que avisar');
 assert.ok(src.includes('sueloSinFirmar(u));') && src.includes("' (Bloqueo sin firmar)'") && src.includes("' · Bloqueo sin firmar'"), 'tarjeta y ficha rotulan el Bloqueo sin firmar');
 

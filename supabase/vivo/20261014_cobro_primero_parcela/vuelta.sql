@@ -1,6 +1,7 @@
 -- VUELTA ATRÁS de supabase/migrations/20261014024234_cobro_primero_parcela.sql, de su 2.ª parte,
--- 20261014032925_cobro_primero_parcela_contrato.sql, y de la 3.ª, 20261014040310_cobro_primero_parcela_borrador.sql
--- («primero la parcela, luego la obra»). La 3.ª no añade nada que reponer aparte: vuelve a escribir la cascada (que
+-- 20261014032925_cobro_primero_parcela_contrato.sql, de la 3.ª, 20261014040310_cobro_primero_parcela_borrador.sql, y de
+-- la 4.ª, 20261014042207_cobro_primero_parcela_obra_firmada.sql («primero la parcela, luego la obra»). La 3.ª y la 4.ª
+-- no añaden nada que reponer aparte: vuelve a escribir la cascada (que
 -- aquí se queda sin llamador), la puerta unidad_cobro_reparto (que aquí se cierra), el disparador (que aquí se
 -- neutraliza, también en los borrados) y cambia la marca de comisiones (que aquí se busca con su texto de la 3.ª).
 -- ENSAYADA EN PARTE el 14-oct-2026 en producción, dentro de un DO que acaba en raise: los permisos, el disparador
@@ -268,7 +269,7 @@ declare
   r1 text := 'public.unidad_parte_cobrada_interno(u.id) cp';
   m2 text := 'coalesce(sum(case when cp.suelo_de_contrato and v_contrato_firmado then cp.suelo_precio else u.precio_suelo end), 0)';   -- la de la 3.ª parte
   r2 text := 'coalesce(sum(u.precio_suelo), 0)';
-  m3 text := 'coalesce(sum(coalesce(cp.obra_precio, u.precio_construccion)), 0)';
+  m3 text := 'coalesce(sum(case when cp.obra_firmada then cp.obra_precio else u.precio_construccion end), 0)';   -- la de la 4.ª parte
   r3 text := 'coalesce(sum(u.precio_construccion), 0)';
 begin
   select pg_get_functiondef(p.oid) into v_def

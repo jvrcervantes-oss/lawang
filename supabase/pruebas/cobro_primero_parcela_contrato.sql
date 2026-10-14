@@ -1,5 +1,6 @@
 -- Prueba de «el estado de la parcela se revisa cuando cambia su contrato» y de lo que manda el precio del contrato
--- (migraciones 20261014032925_cobro_primero_parcela_contrato.sql y 20261014040310_cobro_primero_parcela_borrador.sql).
+-- (migraciones 20261014032925_cobro_primero_parcela_contrato.sql, 20261014040310_cobro_primero_parcela_borrador.sql y
+-- 20261014042207_cobro_primero_parcela_obra_firmada.sql).
 -- ESCRIBE dentro de la transacción y TERMINA CON UN RAISE a propósito: se deshace entera. No da de alta nada, no gasta
 -- series y no llama a comisiones_evaluar_contrato (LAW-217). Los avisos que disparan los cambios de estado y la firma
 -- van por tablas y se deshacen con el resto. Lanzar como postgres (MCP o SQL Editor).
@@ -14,8 +15,8 @@
 --       contrato»), pero la firma sigue siendo la puerta del estado: bajado a 1 €, la parcela «cumple vendida» y aun
 --       así no se mueve de «bloqueada»
 --   C4  una unidad sin contrato: 0 cobrado y ningún precio por unidad_cobro_reparto (el de catálogo lo da la vista)
---   C5  el disparador existe y mira también los borrados, su función no es llamable por la API, y comisiones mide el
---       «% cobrado del suelo» contra el precio del Bloqueo solo si está FIRMADO
+--   C5  el disparador existe y mira también los borrados, su función no es llamable por la API, y comisiones mide
+--       suelo y obra contra el precio de contrato solo si está FIRMADO (si no, catálogo)
 --   C6  un Bloqueo colgado como hijo de otro Bloqueo no mueve el precio de la parcela: o la base no deja crearlo, o la
 --       cascada no lo cuenta
 --   C7  unidad_cobro_reparto no es más ancha que la RLS de `contratos`: perfil a perfil (cuenta desactivada, agente de
@@ -93,7 +94,8 @@ begin
      and (t.tgtype & 8) <> 0;
   select count(*) into m from pg_proc p
    where p.pronamespace = 'public'::regnamespace and p.proname = 'comisiones_evaluar_contrato'
-     and position('case when cp.suelo_de_contrato and v_contrato_firmado then cp.suelo_precio else u.precio_suelo end' in p.prosrc) > 0;
+     and position('case when cp.suelo_de_contrato and v_contrato_firmado then cp.suelo_precio else u.precio_suelo end' in p.prosrc) > 0
+     and position('case when cp.obra_firmada then cp.obra_precio else u.precio_construccion end' in p.prosrc) > 0;
   v_b := has_function_privilege('authenticated', 'public.trg_revalua_unidad_por_contrato()', 'execute')
       or has_function_privilege('anon', 'public.trg_revalua_unidad_por_contrato()', 'execute');
   if n <> 1 or m <> 1 or v_b then fallos := fallos + 1; end if;

@@ -5234,13 +5234,13 @@
          (`suelo_pactado` / `obra_pactada`: el Bloqueo de Parcela y los contratos de obra), y si no el de
          catálogo. Owner, 14-oct-2026: «usa el precio del contrato, el precio final, no el del catálogo».
          La base ya devuelve el de catálogo cuando la venta aún no tiene contrato con precio. */
-      /* El precio de la parcela sale de un Bloqueo SIN firmar y no es el de catálogo. Es el que manda en el reparto
-         (owner, 14-oct-2026: «aunque no estén firmados, coge el precio del contrato»), pero la parcela no pasa de
-         «bloqueada» ni hay comisión hasta que el Bloqueo se firma (migración 20261014040310). Sin rótulo, la tarjeta
-         podía decir «parcela cobrada» con la parcela todavía en «bloqueada» (consulta de Administración). */
+      /* El contrato de la parcela está SIN firmar. Su precio es el que manda en el reparto (owner, 14-oct-2026:
+         «aunque no estén firmados, coge el precio del contrato»), pero la parcela no pasa de «bloqueada» ni hay
+         comisión hasta que se firma (migración 20261014040310). Se rotula por la FIRMA, no por si el precio difiere
+         del catálogo: sin rótulo la tarjeta podía decir «parcela cobrada» con la parcela todavía en «bloqueada»
+         (consulta de Administración; revisor, 2.ª vuelta). `suelo_pactado` nulo = sin contrato o sin permiso. */
       function sueloSinFirmar(u) {
-        return !u.contrato_firmado && u.suelo_pactado != null && u.precio_suelo != null
-          && Number(u.suelo_pactado) !== Number(u.precio_suelo);
+        return !u.contrato_firmado && u.suelo_pactado != null;
       }
       function precioParte(u, parte) {
         var pactado = parte === 'suelo' ? u.suelo_pactado : u.obra_pactada;
