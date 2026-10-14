@@ -1093,6 +1093,7 @@
        agente en inglés. */
     'se ha descontado': 'deducted',
     'Esa fecha no existe (¿31 de un mes de 30 días?): el hito se queda sin vencimiento hasta que la corrijas': 'That date does not exist (the 31st of a 30-day month?): the milestone has no due date until you fix it',
+    'Esa cantidad no cabe en el precio total (o falta el precio): se deja el % que había.': 'That amount does not fit in the total price (or the price is missing): the previous % is kept.',
     'ya cobrado en': 'already paid under',
     'sobran': 'left over:',
     'cobrados en la Carta que este Bloqueo no puede absorber': 'paid under the Letter, which this Deed cannot absorb',
@@ -4714,7 +4715,7 @@
     'El descuento comercial no puede superar el 15% del precio del suelo.': 'The commercial discount cannot exceed 15% of the land price.',
     'El descuento comercial no puede superar el 50% del precio del suelo.': 'The commercial discount cannot exceed 50% of the land price.',
     'El descuento comercial no puede superar el 50% del precio de techo + extras.': 'The commercial discount cannot exceed 50% of the roof + extras price.',
-    'El descuento comercial solo lo ponen un Sales Manager o administración.': 'Only a Sales Manager or admin can set a commercial discount.',
+    'El descuento comercial solo lo ponen un agente, un Sales Manager o administración.': 'Only an agent, a Sales Manager or admin can set a commercial discount.',
     'El precio es el del suelo en el inventario. Un descuento comercial resta de él.': 'The price is the land price in the inventory. A commercial discount is taken off it.',
     'Empezar una venta nueva': 'Start a new sale',
     'En una frase': 'In one sentence',

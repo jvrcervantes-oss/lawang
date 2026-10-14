@@ -539,16 +539,16 @@
         var h2 = '<h2 id="asi-h">' + e(T('Condiciones del Bloqueo')) + '</h2>';
         if (S.camino === 'existente') h2 += aviso('ok', 'check_circle', e(T('Lo ya cobrado con la Carta se descontará solo al guardar el Bloqueo.')));
         h2 += '<p class="asi-q">' + e(T('El precio es el del suelo en el inventario. Un descuento comercial resta de él.')) + '</p>';
-        var puede = typeof puedeFijosEstudio === 'function' && puedeFijosEstudio();
+        var puede = typeof puedeDescuento === 'function' && puedeDescuento();
         var tope = ES_SUPER ? '' : ' · ' + T('máximo') + ' ' + topeDescuentoPct();
         h2 += '<div class="asi-dos"><div class="asi-fld"><label for="asi-pct">' + e(T('Descuento (%)')) + e(tope) + '</label><input id="asi-pct" inputmode="decimal" data-asi-campo="pct" value="' + e(S.bloqueo.pct) + '"' +
-          (puede ? '' : ' disabled title="' + e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>' +
+          (puede ? '' : ' disabled title="' + e(T('El descuento comercial solo lo ponen un agente, un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>' +
           '<div class="asi-fld"><label for="asi-imp">' + e(T('Descuento (importe)')) + '</label><input id="asi-imp" inputmode="decimal" data-asi-campo="imp" value="' + e(S.bloqueo.ult === 'pct' ? (listaDelBloqueo() && importeDescuento() > 0 ? fmtImporte(importeDescuento()) : '') : S.bloqueo.imp) + '"' +
-          (puede && listaDelBloqueo() ? '' : ' disabled title="' + e(T(puede ? 'Falta el precio del suelo de la parcela en el inventario: pon el descuento en %.' : 'El descuento comercial solo lo ponen un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>';
+          (puede && listaDelBloqueo() ? '' : ' disabled title="' + e(T(puede ? 'Falta el precio del suelo de la parcela en el inventario: pon el descuento en %.' : 'El descuento comercial solo lo ponen un agente, un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>';
         var pct = pctDescuento();
         if (pct > 0) h2 += '<div class="asi-fld"><label for="asi-motivo">' + e(T('Motivo del descuento')) + '</label><select id="asi-motivo" data-asi-campo="motivo">' + opcionesMotivo(S.bloqueo.motivo) + '</select></div>';
         h2 += '</div>';
-        if (!puede) h2 += aviso('info', 'info', e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')));
+        if (!puede) h2 += aviso('info', 'info', e(T('El descuento comercial solo lo ponen un agente, un Sales Manager o administración.')));
         if (descuentoFueraDeTope()) h2 += aviso('mal', 'block', e(T(topeDescuentoPct() === 50 ? 'El descuento comercial no puede superar el 50% del precio del suelo.' : 'El descuento comercial no puede superar el 15% del precio del suelo.')));
         return h2;
       }
@@ -1034,7 +1034,7 @@
     }
     if (t === 'reserva_parcela') {
       var pct = pctDescuento();
-      if (pct > 0 && typeof puedeFijosEstudio === 'function' && puedeFijosEstudio()) {
+      if (pct > 0 && typeof puedeDescuento === 'function' && puedeDescuento()) {
         var lista = listaSueloVigente();
         if (lista == null) avisaMal(T('No se ha podido aplicar el descuento: falta el precio del suelo de la parcela en el inventario. Ponlo en el editor.'));
         else {

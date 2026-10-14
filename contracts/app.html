@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="299d37285bb2">
+<meta name="lw-version" content="34f70b0a490a">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=229d406d"></script>
+<script src="/contracts/assets/i18n.js?v=8ed1c976"></script>
 <script src="/contracts/assets/herramientas.js?v=5658fcc3"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -83,13 +83,13 @@
 <script src="assets/documento_diseno.js?v=511c0b25"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
 <script src="assets/documento_anexos.js?v=7d79edb0"></script>
-<script src="assets/parcela_inventario.js?v=2413c162"></script>
+<script src="assets/parcela_inventario.js?v=6002d1b4"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d86e607e"></script>
-<script src="assets/hitos_fechas.js?v=b3debfd2"></script>
+<script src="assets/hitos_fechas.js?v=41496c21"></script>
 <script src="assets/entidades_pago.js?v=d97c3dd5"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -113,7 +113,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=a5e3a8f7"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=dc899366"></script>
 <script src="/intranet/v4/assets/nav.js?v=c840941e" defer></script>
 </head>
 <body>
@@ -2332,7 +2332,7 @@ function fieldHTML(f){
   /* Descuento comercial (21-sep-2026, ver CAMPOS_DESCUENTO_COMERCIAL): se
      pinta SIEMPRE bloqueado, igual que FIJOS_ESTUDIO — el rol todavía no se
      conoce en este punto de buildForm(). updateSaveButton() lo abre para
-     ROLES_FIJOS_ESTUDIO en cuanto MI_ROL ya está resuelto. */
+     ROLES_DESCUENTO en cuanto MI_ROL ya está resuelto. */
   const fijadoDescuentoComercial = typeof CAMPOS_DESCUENTO_COMERCIAL !== 'undefined'
     && CAMPOS_DESCUENTO_COMERCIAL.includes(key);
   const marca = fijado ? ' readonly data-fijo-super class="dato-fijo"' +
@@ -2340,7 +2340,7 @@ function fieldHTML(f){
     : fijadoPrecioConstruccion ? ' readonly data-fijo-techo class="dato-fijo"' +
     ' title="Lo calcula el techo y los extras elegidos — no se edita a mano"'
     : fijadoDescuentoComercial ? ' readonly data-fijo-descuento class="dato-fijo"' +
-    ' title="Solo lo cambian dirección y los sales managers"' : marcaTecho;
+    ' title="Solo lo cambian dirección, los sales managers y los agentes"' : marcaTecho;
   const avisoPrecioConstruccion = fijadoPrecioConstruccion
     ? `<p class="mini">🔒 ${L({es:'Lo calcula el techo y los extras elegidos. No se edita a mano.',en:'Set by the chosen roof and extras. Not editable by hand.',id:'Dihitung dari atap dan ekstra yang dipilih. Tidak bisa diubah manual.'})}</p>`
     : '';
@@ -2402,6 +2402,12 @@ const puedeHitosFijos = () => ROLES_HITOS_FIJOS.includes(MI_ROL);
    29-sep-2026, owner: el super_admin no tiene tope del 15% (pantalla y
    triggers *_valido); para admin y sales_manager el tope sigue. */
 const CAMPOS_DESCUENTO_COMERCIAL = ['descuento_comercial', 'descuento_comercial_motivo'];
+/* 14-oct-2026, owner («abrirlo como sales manager»): el agente también pone
+   descuento, con el mismo tope (15%) y motivo obligatorio. Lista propia y no
+   ROLES_FIJOS_ESTUDIO: esa abre además validez_dias, que sigue cerrado al
+   agente. El candado de la base (descuento_comercial_rol) lleva la misma lista. */
+const ROLES_DESCUENTO = [...ROLES_FIJOS_ESTUDIO, 'agente'];
+const puedeDescuento = () => ROLES_DESCUENTO.includes(MI_ROL);
 /* Mínimo pactado por el estudio para la reserva (11-sep-2026). Va junto a lo
    anterior para que nadie cambie el default sin ver el mínimo. */
 const VALIDEZ_DIAS_MINIMO = 15;
@@ -4782,7 +4788,7 @@ function updateSaveButton(){
     const esBloqueo = CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela';
     const muestraDescuento = (CONTRACT_TIPO[CURRENT.slug] === 'construccion' && !!TECHO_ELEGIDO)
       || (esBloqueo && typeof listaSueloVigente === 'function' && listaSueloVigente() != null);
-    const abreDescuento = puedeFijosEstudio();
+    const abreDescuento = puedeDescuento();
     CAMPOS_DESCUENTO_COMERCIAL.forEach(k=>{
       const caja = document.querySelector('.field[data-key="' + k + '"]');
       if(caja) caja.style.display = muestraDescuento ? '' : 'none';
@@ -4801,7 +4807,7 @@ function updateSaveButton(){
       el.title = abreDescuento
         ? (esBloqueo ? 'Descuento comercial sobre el precio del suelo' + (ES_SUPER ? '' : ' — máx. ' + topeDescuentoPct() + '%') + '. Necesita motivo.'
                      : 'Descuento comercial sobre el precio de techo+extras' + (ES_SUPER ? '' : ' — máx. ' + topeDescuentoPct() + '%') + '. Necesita motivo.')
-        : 'Solo lo cambian dirección y los sales managers.';
+        : 'Solo lo cambian dirección, los sales managers y los agentes.';
     });
   }
   /* Cláusulas negociadas REV03 (2-oct-2026, owner): un selector de Parcela y

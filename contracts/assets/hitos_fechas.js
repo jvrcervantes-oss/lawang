@@ -291,9 +291,18 @@ function hitosBodyHTML(){
     // abre después si toca. `data-fijo-hito` es lo que esa función busca.
     const lockPct = fijo ? ` readonly data-fijo-hito class="dato-fijo"` : '';
     const lockTxt = fijo ? ` readonly data-fijo-hito class="dato-fijo"` : '';
-    // Cantidad calculada: sin excepción de rol, así que no necesita esperar
-    // a updateSaveButton() — se pinta bloqueada y se queda así siempre.
-    const lockMonto = calculado ? ` readonly class="dato-fijo" title="${escAttr(L({es:'Lo calcula el % sobre el precio total del proyecto. No se edita a mano.',en:'Calculated from the % of the total project price. Not editable by hand.',id:'Dihitung dari % harga total proyek. Tidak bisa diubah manual.'}))}"` : '';
+    /* Cantidad de un hito calculado (14-oct-2026, owner: «% o cantidad, uno u
+       otro»): se escribe el % o la cantidad y el otro se calcula; lo que se
+       guarda sigue siendo el % (ver pctDesdeImporte). Mismo candado que su %:
+       en un hito de fábrica solo la abre updateSaveButton() a admin
+       (data-fijo-hito), si no un agente cambiaría el 25/25/25/20/5 tecleando
+       importes. Cerrados siempre: el `resto` (la base le pone precio − lo
+       repartido) y el que absorbió la Carta de Reserva (`descontado`). */
+    const lockMonto = !calculado ? ''
+      : h.resto ? ` readonly class="dato-fijo" title="${escAttr(L({es:'Se lleva lo que falta hasta el precio total. No se edita a mano.',en:'Takes whatever is left up to the total price. Not editable by hand.',id:'Mengambil sisa hingga harga total. Tidak bisa diubah manual.'}))}"`
+      : h.descontado ? ` readonly class="dato-fijo" title="${escAttr(L({es:'Ya descuenta lo cobrado con la Carta de Reserva. No se edita a mano.',en:'Already deducts what was paid under the Reservation Letter. Not editable by hand.',id:'Sudah dikurangi pembayaran Surat Reservasi. Tidak bisa diubah manual.'}))}"`
+      : fijo ? ` readonly data-fijo-hito class="dato-fijo" title="${escAttr(L({es:'Escribe el % o la cantidad: el otro se calcula sobre el precio total.',en:'Type the % or the amount: the other is worked out from the total price.',id:'Isi % atau jumlah: yang lain dihitung dari harga total.'}))}"`
+      : ` title="${escAttr(L({es:'Escribe el % o la cantidad: el otro se calcula sobre el precio total.',en:'Type the % or the amount: the other is worked out from the total price.',id:'Isi % atau jumlah: yang lain dihitung dari harga total.'}))}"`;
     // Quitar un hito de fábrica, o añadir uno nuevo, reparte de nuevo el
     // 100% oficial de la obra: si este contrato tiene calendario de fábrica
     // se pinta oculto de fábrica y updateSaveButton() lo revela solo a quien
@@ -326,7 +335,7 @@ function hitosBodyHTML(){
           title="${escAttr(L({es:'Concepto en inglés y bahasa',en:'Concept in English and Bahasa',id:'Konsep dalam bahasa Inggris dan Indonesia'}))}">EN·ID ▸</button></div></td>
     </tr>
     <tr class="hito-fila" data-hito="${i}">
-      <td class="pct"><div class="field"><input id="${hid(i,'pct')}" type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"${lockPct}
+      <td class="pct"><div class="field"><input id="${hid(i,'pct')}" type="number" step="any" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"${lockPct}
         aria-label="% ${L({es:'del hito',en:'of milestone',id:'tahap'})} ${i+1}"></div></td>
       <td class="monto"><div class="field hito-monto-grupo"><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"${lockMonto}
         aria-label="${escAttr(L({es:'Cantidad, hito',en:'Amount, milestone',id:'Jumlah, tahap'}))} ${i+1}"><span class="hito-moneda">${esc(monedaDoc)}</span></div></td>
@@ -389,7 +398,7 @@ function hitosBodyHTML(){
   <div class="dz-row" style="margin-top:10px">
     ${btnAdd}
     <span class="spacer" style="flex:1"></span>
-    <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${total}%</span>
+    <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${Math.round(total*100)/100}%</span>
   </div>${avisoAdmin}${avisoCartaCobrado}`;
 }
 /* Repinta también las tarjetas de forma de pago (solo si cambia lo que enseñan): abrir un contrato guardado, derivarlo, guardarlo o cambiar de
@@ -408,6 +417,28 @@ function refreshHitos(){ const b=$('[data-sec="pagos"] .hitos-body'); if(b) b.in
    sitio si ya está pintado, nunca `refreshHitos()`: eso reconstruye toda la
    sección y machaca lo que el agente esté tecleando en OTRO hito en ese
    mismo instante. */
+/* % O CANTIDAD (14-oct-2026, owner). El dato sigue siendo el % (la base,
+   contrato_calendario_reparte, rehace la cantidad desde él al guardar), así
+   que una cantidad tecleada se convierte en el % que la reproduce al céntimo:
+   hasta 12 decimales (con 2, 10.000 sobre 287.500 salía 9.976,25; con 8, un
+   precio en IDR de 5.000 millones fallaba por céntimos — medido el 14-oct
+   contra la función de la base con 10 casos, 10 exactos con 12).
+   ⚠️ NUNCA exactamente 3 decimales: public.lw_importe('12.123') = 12123 (lo
+   lee como miles) mientras aquí parseFloat da 12.123. pctSeguro() le añade un
+   0 («12.1230»), que la base lee bien. */
+function pctSeguro(v){
+  const s = String(v == null ? '' : v).trim();
+  return /^\d+\.\d{3}$/.test(s) ? s + '0' : s;
+}
+// '' si se vació, null si no se puede (sin precio total, o la cantidad no cabe en él).
+function pctDesdeImporte(texto){
+  if(String(texto || '').trim() === '') return '';
+  const elP = document.querySelector('[name="precio_total"]');
+  const total = elP ? parseImporte(elP.value) : 0;
+  const imp = parseImporte(texto);
+  if(!(total > 0) || !(imp >= 0) || imp > total) return null;
+  return pctSeguro((imp * 100 / total).toFixed(12).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''));
+}
 function recalcularMontosHitos(){
   if(!Array.isArray(HITOS) || !HITOS.some(h=>h.calculado)) return;
   const elP = document.querySelector('[name="precio_total"]');
@@ -536,7 +567,10 @@ function hitosRowsHTML(){
     const monto = (h.monto||'') ? `<span class="mny">${esc(String(h.monto))}</span> {{moneda}}${descontado ? ' (*)' : ''}` : '';
     // % vacío o 0 → celda en blanco, sin "0%". Un hito puede ser un importe
     // cerrado (la reserva) sin porcentaje del total que lo represente.
-    const pct = (descontado || String(h.pct||'').trim()==='' || parseFloat(h.pct)===0) ? '' : esc(String(h.pct))+'%';
+    // Un % sacado de una cantidad lleva hasta 12 decimales (pctDesdeImporte): el
+    // documento lo imprime a 2; lo que obliga es la cantidad. Con 2 o menos, tal cual.
+    const pctTxt = /\.\d{3,}$/.test(String(h.pct||'').trim()) ? String(parseFloat(parseFloat(h.pct).toFixed(2))) : String(h.pct);
+    const pct = (descontado || String(h.pct||'').trim()==='' || parseFloat(h.pct)===0) ? '' : esc(pctTxt)+'%';
     /* La celda de timing imprime la FECHA de vencimiento cuando el hito la tiene
        (18-ago-2026: los pagos se controlan por fecha de calendario, no por texto
        libre). Con espacios por idioma, porque "09/03/2026" en inglés se lee como

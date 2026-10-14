@@ -839,8 +839,32 @@ function buildForm(){
         if(el.hasAttribute('data-fijo-hito') && typeof calendarioPasaAManual === 'function') calendarioPasaAManual();
         // Un % de fábrica editado a mano (admin/super_admin) recalcula su
         // propia Cantidad al momento, sin esperar a que cambie precio_total.
-        if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
+        // La Cantidad de un hito calculado NO: se está tecleando, y recalcular
+        // la pisaría con la del % viejo; su % lo saca el 'change' de abajo.
+        if(!(el.dataset.hkey === 'monto' && h.calculado) && typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
         renderDebounced(); } });
+    /* % o cantidad (14-oct-2026, owner): al salir del campo. Un % con 3
+       decimales se guarda con 4 (pctSeguro, hitos_fechas.js); una cantidad de
+       un hito calculado se convierte en su % y la cantidad se recalcula desde él. */
+    form.addEventListener('change', e=>{
+      const el = e.target.closest && e.target.closest('[data-hkey="pct"],[data-hkey="monto"]'); if(!el || el.readOnly) return;
+      const i = +el.dataset.hi, h = HITOS[i]; if(!h) return;
+      if(el.dataset.hkey === 'pct'){
+        const v = pctSeguro(el.value);
+        if(v !== el.value){ el.value = v; h.pct = v; renderDebounced(); }
+        return;
+      }
+      if(!h.calculado || h.resto || h.descontado) return;   // un importe a mano se queda como se tecleó
+      const v = pctDesdeImporte(el.value);
+      if(v === null) toastMal(lwT('Esa cantidad no cabe en el precio total (o falta el precio): se deja el % que había.'));
+      else {
+        h.pct = v;
+        const elPct = document.getElementById(hid(i, 'pct')); if(elPct) elPct.value = v;
+        if(el.hasAttribute('data-fijo-hito') && typeof calendarioPasaAManual === 'function') calendarioPasaAManual();
+      }
+      // Parchea en sitio (no refreshHitos): repintar la tabla en el 'change' se llevaría el foco del campo al que se pasa.
+      recalcularMontosHitos(); renderDebounced();
+    });
     /* Fecha imposible (24-sep-2026, RP00198: alguien tecleó 31/09). El <input
        type="date"> la rechaza SIN avisar: value se queda en '' y el hito sale
        sin vencimiento en el documento. Al salir del campo se dice, y el campo
