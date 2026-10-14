@@ -1,11 +1,15 @@
 <?php
 /**
  * sitemap.php — genera /sitemap.xml (rewrite interno en .htaccess) desde las fuentes reales:
- * coleccion/lib.php (lw_coleccion) para las propiedades visibles y modelo/modelos.php para las landings de modelo
- * con renders. Antes era un XML estatico con 5 URLs fijas que nunca listaba una sola
+ * coleccion/lib.php (lw_coleccion) para las propiedades visibles y modelo/modelos.php para las fichas de modelo
+ * que se indexan: las publicables (con renders, o con renders_pendientes) Y con precio cerrado. Esa
+ * condicion es lw_modelo_indexable() (modelo/lib.php), la misma con la que modelo/index.php decide si
+ * pone noindex: una ficha sin precio lleva noindex y por eso no sale aqui (14-oct-2026).
+ * Antes era un XML estatico con 5 URLs fijas que nunca listaba una sola
  * propiedad — hallazgo de la auditoria SEO del 31-ago-2026.
+ * Los `lastmod` de las paginas fijas van a mano: al cambiar el contenido de una, se cambia el suyo.
  */
-require __DIR__ . '/modelo/lib.php'; // lw_modelo_imgs()
+require __DIR__ . '/modelo/lib.php'; // lw_modelo_get(), lw_modelo_indexable()
 require __DIR__ . '/coleccion/lib.php'; // lw_coleccion_ids()
 
 header('Content-Type: application/xml; charset=UTF-8');
@@ -16,7 +20,7 @@ $urls = [
     ['loc' => $SITE . '/thecollection', 'lastmod' => '2026-07-28', 'freq' => 'weekly', 'pri' => '0.9'],
     ['loc' => $SITE . '/thesoul',       'lastmod' => '2026-10-08', 'freq' => 'monthly', 'pri' => '0.7'],
     ['loc' => $SITE . '/portfolio',     'lastmod' => '2026-09-23', 'freq' => 'weekly', 'pri' => '0.8'],
-    ['loc' => $SITE . '/legal',         'lastmod' => '2026-07-28', 'freq' => 'yearly', 'pri' => '0.3'],
+    ['loc' => $SITE . '/legal',         'lastmod' => '2026-10-14', 'freq' => 'yearly', 'pri' => '0.3'],
     ['loc' => $SITE . '/legal-es',      'lastmod' => '2026-08-05', 'freq' => 'yearly', 'pri' => '0.3'],
     ['loc' => $SITE . '/accessibility', 'lastmod' => '2026-07-28', 'freq' => 'yearly', 'pri' => '0.3'],
 ];
@@ -37,7 +41,11 @@ if (file_exists($modelosFile)) {
         // lw_modelo_imgs a pelo) — sin esto, un modelo con renders_pendientes queda
         // indexable (tiene precio, no noindex) pero invisible en el sitemap. Cazado por
         // Desarrollo en la capa 1 del pivote australiano (2-sep): pasaba con Trinity/Temple.
-        if (lw_modelo_get($id, $MODELOS)) {
+        // 14-oct-2026: y ademas CON precio cerrado. La condicion entera es
+        // lw_modelo_indexable() (modelo/lib.php), la MISMA funcion con la que
+        // modelo/index.php decide si pone noindex: no se repite aqui. Sin el precio, una
+        // ficha sin el (ese dia, Loftbung) salia aqui pidiendo a la vez que no se la indexara.
+        if (lw_modelo_indexable(lw_modelo_get($id, $MODELOS))) {
             $urls[] = ['loc' => $SITE . '/modelo/' . rawurlencode($id), 'lastmod' => $today, 'freq' => 'weekly', 'pri' => '0.7'];
         }
     }
