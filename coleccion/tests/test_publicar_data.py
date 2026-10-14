@@ -19,8 +19,7 @@ aviso «DIFIEREN» y el servidor solo habia que teclear «publicar» y la contra
   · si lo publicado cambia mientras se confirma, no se guarda;
   · cada salida tiene su codigo (0 a 5, cabecera de publicar_data.py): un fallo de red no se lee como «difieren».
 
-No lo corre el control todavia: `tools/test.py` solo descubre en Lawang `*.test.js` y `tests/*_test.php`
-(PY_DE_PROYECTO no tiene a Lawang). Se lanza a mano tras tocar publicar_data.py.
+La corre el gate de la agencia via `PY_DE_PROYECTO` (Lawang → coleccion/tests).
 """
 import contextlib
 import copy
