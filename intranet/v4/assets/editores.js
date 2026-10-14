@@ -4701,7 +4701,10 @@
           btnAdd.addEventListener('click', abreBuscador);
           repinta();
 
-          var secJust = seccionFijaDoc(host, 'Justificante de pago (obligatorio)');
+          /* Un recibí histórico sin justificante (LAW-40) no lo exige si se guarda con su mismo importe (15-oct-2026): el
+             rótulo no dice «obligatorio» ahí. Manda guardar_recibi, que mira la marca y el total de la fila guardada. */
+          var esHistSinJust = !!(existente && existente.historico_sin_justificante);
+          var secJust = seccionFijaDoc(host, esHistSinJust ? 'Justificante de pago (histórico: no se exige si no cambia el importe)' : 'Justificante de pago (obligatorio)');
           getJustificantes = montaJustificantesDoc(secJust, sb, existente && Array.isArray(existente.justificantes) ? existente.justificantes : []);
 
           /* Sin «Impuesto» (14-oct-2026, bloque A3): el total guardado de un recibí no lo sumaba y el papel sí; un recibí
@@ -4734,6 +4737,9 @@
             d.proyecto_nombre = v.proyecto_nombre || estadoContrato.proyectoNombre;
             d.contrato_numero = estadoContrato.numero;
             var t = calcTotales(lineas, d.moneda, {});
+            // el histórico sin justificante solo se guarda con su mismo importe (guardar_recibi lo exige igual, 15-oct-2026)
+            if (!justificantes.length && Math.abs((Number(existente.total) || 0) - (Number(t.total) || 0)) > 0.005)
+              return { error: { message: 'Este recibí histórico no tiene justificante: solo se puede aplicar por su importe guardado. Para cambiar el importe, adjunta el justificante.' } };
             var pFactura = {
               sociedad: d.sociedad, cliente_nombre: d.cliente_nombre || null, proyecto_nombre: d.proyecto_nombre || null,
               contrato_numero: d.contrato_numero || null, contrato_id: estadoContrato.id,

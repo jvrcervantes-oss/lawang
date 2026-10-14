@@ -1,6 +1,10 @@
 -- Prueba de guardar_recibi del 14-oct-2026 (migracion 20261014223000_recibi_total_suma_y_exento): total = suma de lo aplicado (A4),
 -- importes en texto con el parser (A2), una factura repetida se rechaza, al editar el pendiente excluye lo del propio recibi (A1),
 -- sin impuesto (A3), cuenta «otros» solo admin de la empresa (C3) y el recibi historico se guarda sin justificante (fallo 1, LAW-40).
+-- 2.a vuelta del revisor (15-oct): el papel lo escribe el servidor (L: lineas, totales, impuesto, tipo y moneda fabricados se
+-- ignoran), el historico sin justificante solo con su mismo total (H5), la moneda y la tolerancia se miran antes de numerar (M:
+-- la serie facturas_recibi_seq NO se mueve en un rechazo; con el codigo de antes la frenaba el disparador con el numero gastado),
+-- repetidas comparadas como uuid (A1d).
 -- Rol REAL: cada llamada va con `set local role authenticated` y los claims de la persona (pg_temp.val, armazon de
 -- cf_borrar_cierre_anula.sql). Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- !! CREA CONTRATOS Y DOCUMENTOS (gasta numeracion): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
@@ -29,6 +33,11 @@ create or replace function pg_temp.rec(p_contrato uuid, p_total jsonb, p_just js
            'contrato_numero', 'ZZ-RT-K1', 'total', p_total, 'moneda', 'EUR', 'fecha_emision', '2026-10-14',
            'justificantes', p_just, 'datos', jsonb_build_object('fields', p_fields, 'lineas', '[]'::jsonb))
 $f$;
+-- donde esta la serie de los recibis (trg_set_factura_numero hace nextval de facturas_recibi_seq; nextval no se deshace con
+-- el rollback): si un rechazo la mueve, se gasto un numero. Se lee como postgres, fuera de la sesion de la persona.
+create or replace function pg_temp.serie() returns text language sql volatile as $f$
+  select last_value::text || '/' || is_called::text from public.facturas_recibi_seq
+$f$;
 -- guardar_recibi con la sesion de quien se dice: el id del recibi, o el error
 create or replace function pg_temp.guarda(p_uid uuid, p_email text, p_id uuid, p_fac jsonb, p_apl jsonb) returns text language sql as $f$
   select pg_temp.val(p_uid, p_email, format('select (public.guardar_recibi(%L::uuid, %L::jsonb, %L::jsonb))->>''id''', p_id, p_fac, p_apl))
@@ -39,9 +48,10 @@ insert into _tp values ('A',  gen_random_uuid(), 'zz-rt-agente@prueba.invalid'),
 
 do $todo$
 declare
-  r text := ''; v text; n bigint;
+  r text := ''; v text; n bigint; s0 text;
   a _tp; ae _tp;
-  pL uuid; k1 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; r1 uuid; rh uuid; ro uuid;
+  pL uuid; k1 uuid; k2 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f8 uuid; r1 uuid; rh uuid; rh2 uuid; ro uuid;
+  d jsonb;
   j  constant jsonb := '[{"path": "zz-rt/justificante.pdf"}]';
   c_emp constant text := 'zz_rt';
   c_fin constant text := 'FIN DE PRUEBAS RECIBI TOTAL SUMA Y EXENTO (se deshace todo):%';
@@ -82,6 +92,15 @@ begin
     -- (los CHECK solo admiten la marca y la falta de justificante en recibis de antes del 11-ago-2026)
     insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos, historico_sin_justificante, created_at)
       values ('recibi', 'ZZ-RT-RH', 'zz_rt', k1, 400, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb, true, '2026-07-01 10:00+00') returning id into rh;
+    -- 2.a vuelta: otro historico (para inflarlo), una factura EUR mas, y un contrato en IDR con su factura de 1000
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos, historico_sin_justificante, created_at)
+      values ('recibi', 'ZZ-RT-RH2', 'zz_rt', k1, 400, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb, true, '2026-07-01 10:00+00') returning id into rh2;
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+      values ('factura', 'ZZ-RT-F8', 'zz_rt', k1, 600, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f8;
+    insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
+      values ('ZZ-RT-K2', 'contrato_general', pL, 'IDR', 100000, '{"hitos":[]}', a.em) returning id into k2;
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+      values ('factura', 'ZZ-RT-F6', 'zz_rt', k2, 1000, 'IDR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f6;
   exception when others then
     raise exception using message = replace(c_fin, '%', pg_temp.l(false, 'P0 montaje: ' || sqlstate || ' ' || left(sqlerrm, 300)));
   end;
@@ -97,10 +116,12 @@ begin
   end if;
   -- A1 · un rechazo no deja fila (validacion antes del insert)
   select count(*) into n from public.facturas where tipo = 'recibi' and contrato_id = k1;
+  s0 := pg_temp.serie();
   v := pg_temp.guarda(a.uid, a.em, null, pg_temp.rec(k1, '1', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f1, 'importe', 1)));
   r := r || pg_temp.l(v like 'ERR23514:la factura ZZ-RT-F1 solo tiene%'
-                      and (select count(*) from public.facturas where tipo = 'recibi' and contrato_id = k1) = n,
-                      'A1a aplicar 1 a una factura ya cobrada se rechaza y no deja fila (' || left(v, 70) || ')');
+                      and (select count(*) from public.facturas where tipo = 'recibi' and contrato_id = k1) = n
+                      and pg_temp.serie() = s0,
+                      'A1a aplicar 1 a una factura ya cobrada se rechaza, no deja fila y no gasta numero (' || left(v, 70) || ')');
   -- A1 · al editar, lo aplicado por el propio recibi no cuenta como cobrado de antes
   if r1 is not null then
     v := pg_temp.guarda(a.uid, a.em, r1, pg_temp.rec(k1, '300', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f1, 'importe', 300)));
@@ -110,6 +131,12 @@ begin
   v := pg_temp.guarda(a.uid, a.em, null, pg_temp.rec(k1, '200', j, '{}'),
          jsonb_build_array(jsonb_build_object('factura_id', f2, 'importe', 100), jsonb_build_object('factura_id', f2, 'importe', 100)));
   r := r || pg_temp.l(v like 'ERR23514:la misma factura aparece dos veces%', 'A1c la misma factura dos veces se rechaza (' || left(v, 70) || ')');
+  -- el mismo uuid en mayusculas es la misma factura (como texto contaba como dos: entraban dos lineas de la misma factura)
+  s0 := pg_temp.serie();
+  v := pg_temp.guarda(a.uid, a.em, null, pg_temp.rec(k1, '100', j, '{}'),
+         jsonb_build_array(jsonb_build_object('factura_id', f2, 'importe', 50), jsonb_build_object('factura_id', upper(f2::text), 'importe', 50)));
+  r := r || pg_temp.l(v like 'ERR23514:la misma factura aparece dos veces%' and pg_temp.serie() = s0,
+                      'A1d la misma factura con el uuid en mayusculas se rechaza sin gastar numero (' || left(v, 70) || ')');
 
   -- ============================================================ A2 · importes en texto
   v := pg_temp.guarda(a.uid, a.em, null, pg_temp.rec(k1, '"90.000"', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f3, 'importe', '90.000')));
@@ -143,6 +170,57 @@ begin
   r := r || pg_temp.l(v !~ '^ERR' and not ((select datos->'fields' from public.facturas where id = nullif(v, '')::uuid) ? 'banco_titular'),
                       'C3e sin «otros», los banco_* que mande un agente se descartan (' || left(v, 60) || ')');
 
+  -- ============================================================ L · el papel lo escribe el servidor (lineas, totales, impuesto)
+  -- llamada fabricada: aplica 20 a F4 y manda lineas de 999.999, totales de 999.999, impuesto del catalogo, tipo factura y USD
+  v := pg_temp.guarda(a.uid, a.em, null,
+         jsonb_set(pg_temp.rec(k1, '20', j, '{}'), '{datos}', jsonb_build_object(
+           'fields', jsonb_build_object('imp_pct', '11', 'imp_etiqueta', 'PPN', 'tipo', 'factura', 'moneda', 'USD', 'notas', 'zz-l1',
+                       'impuestos_sel', jsonb_build_array(jsonb_build_object('id', 'x', 'nombre', 'IVA 21', 'clase', 'suma', 'porcentaje', 21, 'coef_base', 1)),
+                       'rectifica_numero', 'ZZ-RT-R1',
+                       'lineas', jsonb_build_array(jsonb_build_object('descripcion', 'Villa entera', 'importe', '999.999'))),
+           'lineas', jsonb_build_array(jsonb_build_object('descripcion', 'Villa entera', 'importe', '999.999')),
+           'totales', jsonb_build_object('subtotal', 999999, 'pct', 11, 'impuesto', 109999.89, 'total', 1109998.89))),
+         jsonb_build_array(jsonb_build_object('factura_id', f4, 'importe', 20)));
+  if v ~ '^ERR' then
+    r := r || pg_temp.l(false, 'L1 la llamada fabricada (aplica 20) entra (' || left(v, 90) || ')');
+  else
+    select datos into d from public.facturas where id = v::uuid;
+    r := r || pg_temp.l(jsonb_array_length(d->'lineas') = 1
+                        and d->'lineas'->0->>'descripcion' = 'Cobro de la factura ZZ-RT-F4 · Payment of invoice ZZ-RT-F4'
+                        and (d->'lineas'->0->>'importe')::numeric = 20,
+                        'L1 datos.lineas = la aplicada (1 linea de 20 con el texto de conceptoCobroRecibi), no la fabricada (' || left(d->>'lineas', 110) || ')');
+    r := r || pg_temp.l(d->'fields'->'lineas' = d->'lineas', 'L2 datos.fields.lineas (la que prefiere el portal) es la misma');
+    r := r || pg_temp.l((d->'totales'->>'total')::numeric = 20 and (d->'totales'->>'subtotal')::numeric = 20
+                        and (d->'totales'->>'impuesto')::numeric = 0 and (d->'totales'->>'pct')::numeric = 0,
+                        'L3 datos.totales = {20, pct 0, impuesto 0, 20} (' || left(d->>'totales', 90) || ')');
+    r := r || pg_temp.l(not ((d->'fields') ?| array['imp_pct', 'imp_etiqueta', 'impuestos_sel', 'rectifica_numero'])
+                        and d->'fields'->>'notas' = 'zz-l1',
+                        'L4 sin imp_pct, imp_etiqueta, impuestos_sel ni rectifica_*, y lo demas se queda');
+    r := r || pg_temp.l(d->'fields'->>'tipo' = 'recibi' and d->'fields'->>'moneda' = 'EUR',
+                        'L5 fields.tipo = recibi y fields.moneda = la del recibi (EUR), no las mandadas (' || coalesce(d->'fields'->>'tipo', '-') || ' ' || coalesce(d->'fields'->>'moneda', '-') || ')');
+  end if;
+  -- datos que no es un objeto: el servidor lo arma igual
+  v := pg_temp.guarda(a.uid, a.em, null, jsonb_set(pg_temp.rec(k1, '5', j, '{}'), '{datos}', '"basura"'::jsonb),
+         jsonb_build_array(jsonb_build_object('factura_id', f4, 'importe', 5)));
+  r := r || pg_temp.l(v !~ '^ERR' and (select jsonb_array_length(datos->'lineas') = 1 and datos->'fields'->>'tipo' = 'recibi'
+                                         from public.facturas where id = nullif(v, '')::uuid),
+                      'L6 con datos que no es un objeto entra y el papel lo arma el servidor (' || left(v, 60) || ')');
+
+  -- ============================================================ M · moneda y tolerancia antes de numerar
+  s0 := pg_temp.serie();
+  v := pg_temp.guarda(a.uid, a.em, null, pg_temp.rec(k1, '10', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f6, 'importe', 10)));
+  r := r || pg_temp.l(v like 'ERR23514:la factura ZZ-RT-F6 va en IDR y el recib% en EUR%' and pg_temp.serie() = s0,
+                      'M1 un recibi EUR que aplica a una factura IDR se rechaza con el mensaje de guardar_recibi y sin gastar numero (' || left(v, 80) || ')');
+  s0 := pg_temp.serie();
+  v := pg_temp.guarda(a.uid, a.em, null, pg_temp.rec(k2, '1001', j, '{}') || '{"moneda": "IDR"}',
+         jsonb_build_array(jsonb_build_object('factura_id', f6, 'importe', 1001)));
+  r := r || pg_temp.l(v like 'ERR23514:la factura ZZ-RT-F6 solo tiene%' and pg_temp.serie() = s0,
+                      'M2 en IDR, aplicar 1001 a una de 1000 se rechaza antes de numerar (tolerancia 0,01 como el disparador) (' || left(v, 80) || ')');
+  v := pg_temp.guarda(a.uid, a.em, null, pg_temp.rec(k2, '1000', j, '{}') || '{"moneda": "IDR"}',
+         jsonb_build_array(jsonb_build_object('factura_id', f6, 'importe', 1000)));
+  r := r || pg_temp.l(v !~ '^ERR' and (select total from public.facturas where id = nullif(v, '')::uuid) = 1000,
+                      'M3 en IDR, aplicar 1000 a una de 1000 entra (' || left(v, 70) || ')');
+
   -- ============================================================ fallo 1 · el historico sin justificante se aplica (LAW-40)
   v := pg_temp.guarda(a.uid, a.em, rh, pg_temp.rec(k1, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f5, 'importe', 400)));
   r := r || pg_temp.l(v = rh::text, 'H1 el recibi historico se aplica sin justificante (' || left(v, 90) || ')');
@@ -155,6 +233,15 @@ begin
   r := r || pg_temp.l(v like 'ERR23514:el recibi necesita al menos una factura%'
                       and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh) = 400,
                       'H4 el historico no se puede dejar a 0: sin aplicaciones se rechaza y sigue con sus 400 (' || left(v, 60) || ')');
+  -- la exencion tiene limite (15-oct): un historico sin justificante no se infla
+  v := pg_temp.guarda(a.uid, a.em, rh2, pg_temp.rec(k1, '500', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f8, 'importe', 500)));
+  r := r || pg_temp.l(v like 'ERR23514:el recib% hist%rico ZZ-RT-RH2 no tiene justificante%'
+                      and (select total from public.facturas where id = rh2) = 400
+                      and not exists (select 1 from public.recibi_aplicaciones where recibi_id = rh2),
+                      'H5 inflar un historico sin justificante (400 -> 500) se rechaza y sigue en 400 sin aplicar (' || left(v, 70) || ')');
+  v := pg_temp.guarda(a.uid, a.em, rh2, pg_temp.rec(k1, '500', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f8, 'importe', 500)));
+  r := r || pg_temp.l(v = rh2::text and (select total from public.facturas where id = rh2) = 500,
+                      'H6 con justificante el mismo historico si cambia a 500 (' || left(v, 70) || ')');
 
   raise exception using message = replace(c_fin, '%', r);
 end $todo$;

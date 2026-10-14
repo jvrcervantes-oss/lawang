@@ -1,6 +1,9 @@
 -- REVERSION de 20261014223000_recibi_total_suma_y_exento (14-oct-2026): el texto vivo de antes, tal cual (leido del vivo en la
 --   sesion 1014-2159, md5 43a4c655711c0ef218b670ebe01c1585). Vuelve a dejar el total libre, numerar antes de validar y exigir
---   justificante a los historicos: solo con OK del owner y avisando a Seguridad.
+--   justificante a los historicos; y (2.a vuelta, 15-oct) el papel (datos.lineas, datos.totales, impuesto, tipo y moneda de
+--   datos.fields) vuelve a ser el que mande la pantalla, la moneda de la factura y la tolerancia vuelve a mirarlas solo el
+--   disparador (con el numero ya gastado) y las repetidas se comparan como texto. Solo con OK del owner y avisando a Seguridad.
+--   Los recibis guardados mientras estuvo la migracion conservan el datos que les escribio el servidor (no hace falta tocarlos).
 set local lock_timeout = '5s';
 CREATE OR REPLACE FUNCTION public.guardar_recibi(p_id uuid, p_factura jsonb, p_aplicaciones jsonb)
  RETURNS jsonb
