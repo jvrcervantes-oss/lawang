@@ -85,7 +85,16 @@ RedirectMatch 404 (?i)/(supabase|contracts/edge)/
 RedirectMatch 404 (?i)^/tailwind/
 RedirectMatch 404 (?i)\.(ts|mjs|toml)$
 RedirectMatch 404 (?i)\.test\.js$
-<FilesMatch "(?i)(\.(ts|mjs|toml|py[co]?)|\.test\.js)$">
+# 14-oct-2026 (auditoria de Calidad, C1; medido en produccion: los seis respondian 200). excel/ es la herramienta
+# local que genera el plan financiero de un proyecto (build_plan.py + las hojas, con porcentajes a nombre de
+# personas); ninguna pagina ni guion la pide (grep del repo y de las paginas servidas, 14-oct). Igual el arnes de
+# node de Ajustes (.cjs), la configuracion de PHP-FPM (api/.user.ini: PHP la lee del disco, no por URL) y el zip
+# de maquetas de la intranet. Cierre de verdad de excel/: excel/.htaccess. Los .zip de docs/ (subidas del admin,
+# api/upload-doc.php) son descargas publicas y NO entran: el cierre de .zip va solo bajo /intranet/.
+RedirectMatch 404 (?i)^/excel/
+RedirectMatch 404 (?i)\.(cjs|ini)$
+RedirectMatch 404 (?i)/intranet/.*\.zip$
+<FilesMatch "(?i)(\.(ts|mjs|toml|py[co]?|cjs|ini)|\.test\.js)$">
   Order allow,deny
   Deny from all
 </FilesMatch>
