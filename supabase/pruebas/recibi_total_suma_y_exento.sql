@@ -77,6 +77,11 @@ begin
       (ae.uid, ae.em, 'ZZ-RT Admin empresa', 'admin_empresa', 'empresa', array[c_emp], '{}'::uuid[], '{}'::uuid[], '{contratos,facturas}'::text[], '{}'::text[], true);
     insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
       values ('ZZ-RT-K1', 'contrato_general', pL, 'EUR', 100000, '{"hitos":[]}', a.em) returning id into k1;
+    -- la rama nace de la ESTRUCTURA del volcado: storage.buckets viene sin filas (el bucket lo creo 20260811034859, un dato).
+    -- Se crea aqui como en esa migracion si falta; en la viva ya existe y el «on conflict» no toca nada (rama del 15-oct: 23503).
+    insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+      values ('justificantes', 'justificantes', false, 10485760, array['image/jpeg','image/png','image/webp','application/pdf'])
+      on conflict (id) do nothing;
     insert into storage.objects (bucket_id, name) values ('justificantes', 'zz-rt/justificante.pdf');
     insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
       values ('factura', 'ZZ-RT-F1', 'zz_rt', k1, 300, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f1;
