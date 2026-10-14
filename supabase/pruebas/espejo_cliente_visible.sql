@@ -9,6 +9,18 @@
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA».
 -- No imprime lo que devuelve contrato_guarda (lleva `fields`): solo codigos de error y booleanos. Las fichas y textos de prueba van
 -- marcados ZZ-. Todo se deshace con el raise final (personas, fichas, contratos y enlaces).
+-- FIXTURE PROPIO (14-oct-2026, 2.a version): la rama recibe SOLO la estructura, sin una fila; la 1.a version «escogia» un super admin,
+--   dos agentes y un proyecto de los que hubiera y dio 14/44 (todo «Sin sesion»: no habia nadie). Ahora la prueba monta lo suyo, como
+--   postgres y SIN sesion (asi pasa el candado de alta de `usuarios`, que exige session_user postgres para dar una empresa):
+--     · empresa zz_espejo y proyecto activo «ZZ-ESPEJO Proyecto» de esa empresa;
+--     · 3 personas (fila en auth.users + usuarios): un super_admin global y dos agentes ACOTADOS a esa empresa (ambito global con
+--       empresas = {zz_espejo}, como los agentes reales), con la herramienta contratos, ese proyecto y un solo tipo (contrato_general);
+--     · 3 fichas de cliente (una de A, dos de B).
+--   No siembra parcela ni catalogos: contrato_general no lleva parcela (contrato_tipo_etapa: «contrato», no «reserva»), los tres tipos
+--   que se usan (contrato_general, adenda, carta_reserva) estan en la lista fija de _trg_contrato_tipo_valido / set_contrato_numero /
+--   _plantilla_slug_de_tipo, y con comisiones_interruptor sin fila _venta_modo_declara no pide la clave `venta` (en el vivo SI esta
+--   encendido: ese tramo no lo cubre esta prueba, ni lo toca la migracion).
+--   Antes de los casos van las aserciones P*/S0: si el montaje, una puerta o la sesion no valen, la prueba PARA ahi y lo dice en una linea.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
@@ -34,42 +46,84 @@ create or replace function pg_temp.pago(p_tipo text, p_proy text, p_adq1 uuid, p
            'fields', jsonb_build_object('proyecto_nombre', p_proy, 'adq1_nombre', 'ZZ-ESPEJO lo que manda la pantalla') || coalesce(p_fields, '{}'::jsonb))))
 $f$;
 
-insert into _tp
-  select 'jv', user_id, email from public.usuarios where activo and rol = 'super_admin' order by coalesce(es_propietario, false) desc, email limit 1;
-insert into _tp
-  select (array['A', 'B'])[rn], user_id, email
-    from (select user_id, email, row_number() over (order by email) rn
-            from (select user_id, email from public.usuarios where activo and rol = 'agente' order by email limit 2) q) z;
+-- Personas SINTETICAS: el id y el correo se fijan aqui; las filas (auth.users + usuarios) se crean dentro del bloque, tras la guardia de rama.
+-- Correos en minusculas: cliente_visible compara propietario = auth.email() sin lower().
+insert into _tp values ('jv', gen_random_uuid(), 'zz-espejo-super@prueba.invalid'),
+                       ('A',  gen_random_uuid(), 'zz-espejo-agente-a@prueba.invalid'),
+                       ('B',  gen_random_uuid(), 'zz-espejo-agente-b@prueba.invalid');
 
 do $todo$
 declare
-  r text := ''; v text; n bigint;
+  r text := ''; v text; n bigint; g boolean;
   jv _tp; a _tp; b _tp;
   pL uuid; pLn text; cA uuid; cB uuid; cB2 uuid; kA text; kB text; k6 text; k7 text;
   c_guarda constant text := 'otra empresa o de otro comercial';
+  c_emp    constant text := 'zz_espejo';
+  c_fin    constant text := 'FIN DE PRUEBAS ESPEJO CLIENTE VISIBLE (se deshace todo):%';
 begin
   if coalesce(current_setting('erp.en_rama', true), '') <> 'si' then
     raise exception 'FIN DE PRUEBAS ESPEJO CLIENTE VISIBLE:%', E'\nP0 esta prueba crea contratos (gasta numeracion): solo corre en rama → FALLA';
   end if;
   select * into jv from _tp where et = 'jv'; select * into a from _tp where et = 'A'; select * into b from _tp where et = 'B';
-  r := r || pg_temp.l(jv.uid is not null and a.uid is not null and b.uid is not null, 'P0 hay un super admin y 2 agentes con los que montar las personas');
-  select id, nombre into pL, pLn from public.proyectos where activo and public.empresa_de_proyecto(id) = 'lawang' order by nombre limit 1;
-  r := r || pg_temp.l(pL is not null, 'P1 hay proyecto activo de Lawang');
 
-  -- Personas (las deshace el raise final), fijadas con la sesion del super admin como en contrato_propio_permiso_agente.sql:
-  -- dos agentes ACOTADOS a Lawang (como los 19 agentes reales el 14-oct), con Contratos y un solo tipo permitido.
+  -- ============================================================ P. montaje del fixture propio (como postgres, SIN sesion)
+  -- Sin cambio de rol aqui dentro: el sub-bloque con exception solo sirve para que un montaje roto salga en UNA linea con su error.
+  perform set_config('request.jwt.claims', '', true);
+  begin
+    insert into public.empresas (clave, nombre) values (c_emp, 'ZZ-ESPEJO Empresa');
+    insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-ESPEJO Proyecto', 'zz-espejo-proyecto', c_emp, true)
+      returning id, nombre into pL, pLn;
+    insert into auth.users (id, instance_id, email, aud, role) values
+      (jv.uid, '00000000-0000-0000-0000-000000000000', jv.em, 'authenticated', 'authenticated'),
+      (a.uid,  '00000000-0000-0000-0000-000000000000', a.em,  'authenticated', 'authenticated'),
+      (b.uid,  '00000000-0000-0000-0000-000000000000', b.em,  'authenticated', 'authenticated');
+    -- valores FINALES en el alta (nada de update despues: cambiar `empresas` con sesion lo hace solo el propietario).
+    -- Dos agentes ACOTADOS a la empresa (ambito global + empresas, como los agentes reales), con Contratos, el proyecto y un solo tipo.
+    insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo) values
+      (jv.uid, jv.em, 'ZZ-ESPEJO Super admin', 'super_admin', 'global', '{}'::text[],   '{}'::uuid[], '{}'::uuid[], '{}'::text[],          '{}'::text[],                 true),
+      (a.uid,  a.em,  'ZZ-ESPEJO Agente A',    'agente',      'global', array[c_emp],   array[pL],    '{}'::uuid[], '{contratos}'::text[], '{contrato_general}'::text[], true),
+      (b.uid,  b.em,  'ZZ-ESPEJO Agente B',    'agente',      'global', array[c_emp],   array[pL],    '{}'::uuid[], '{contratos}'::text[], '{contrato_general}'::text[], true);
+    -- Fichas ZZ-: una de A, dos de B
+    insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
+      values ('ZZ-ESPEJO Cliente de A', a.em, 'ZZESPEJOA1', 'zz-espejo-a@ejemplo.invalid', '+00 000 0001', 'ZZ-domicilio A', 'ZZ') returning id into cA;
+    insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
+      values ('ZZ-ESPEJO Cliente de B', b.em, 'ZZESPEJOB1', 'zz-espejo-b@ejemplo.invalid', '+00 000 0002', 'ZZ-domicilio B', 'ZZ') returning id into cB;
+    insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
+      values ('ZZ-ESPEJO Segundo de B', b.em, 'ZZESPEJOB2', 'zz-espejo-b2@ejemplo.invalid', '+00 000 0003', 'ZZ-domicilio B2', 'ZZ') returning id into cB2;
+  exception when others then
+    raise exception using message = replace(c_fin, '%', pg_temp.l(false, 'P0 montaje del fixture propio: ' || sqlstate || ' ' || left(sqlerrm, 300)
+                                                               || ' [session_user=' || session_user || ']'));
+  end;
+  r := r || pg_temp.l(pL is not null and cA is not null and cB is not null and cB2 is not null
+         and (select count(*) from public.usuarios u where u.user_id in (jv.uid, a.uid, b.uid) and u.activo) = 3
+         and (select count(*) from public.clients c where c.id in (cA, cB, cB2) and c.propietario in (a.em, b.em)) = 3,
+       'P0 fixture propio montado: empresa, proyecto activo, 3 personas (auth.users + usuarios) y 3 fichas con su dueno [session_user=' || session_user
+       || ', dueno de contrato_guarda=' || coalesce((select pg_get_userbyid(p.proowner) || ' bypassrls=' || (select rolbypassrls from pg_roles where oid = p.proowner)::text
+                                                       from pg_proc p where p.oid = 'public.contrato_guarda(uuid,jsonb)'::regprocedure), '?') || ']');
+
+  -- Las puertas EXACTAS de contrato_guarda y de la regla, medidas una a una con los claims de A (como postgres: son DEFINER y solo leen auth.uid()).
+  perform set_config('request.jwt.claims', json_build_object('sub', a.uid, 'role', 'authenticated', 'email', a.em)::text, true);
+  g := public.es_agente();                                      r := r || pg_temp.l(g, 'P1 A es agente activo (es_agente)');
+  g := public._puede_herr_o_super_empresa('contratos');         r := r || pg_temp.l(g, 'P2 A tiene la herramienta contratos');
+  g := public.proyecto_visible(pL);                             r := r || pg_temp.l(g, 'P3 A ve el proyecto ZZ (proyecto_visible: su empresa y su lista de proyectos)');
+  g := public.alcance_restringido() and not public.es_admin();  r := r || pg_temp.l(g, 'P4 A tiene el alcance ACOTADO y no es admin (de eso dependen F2, E2, E3, E6, M1 y H4)');
+  g := public.cliente_visible(a.em, cA) and not public.cliente_visible(b.em, cB);
+                                                                r := r || pg_temp.l(g, 'P5 cliente_visible (la regla de siempre, sin tocar): A ve su ficha y no la de B');
   perform set_config('request.jwt.claims', json_build_object('sub', jv.uid, 'role', 'authenticated', 'email', jv.em)::text, true);
-  update public.usuarios set rol = 'agente', ambito = 'global', empresas = '{lawang}', proyectos = array[pL], proyectos_supervisados = '{}',
-         herramientas = '{contratos}', tipos_contrato = '{contrato_general}' where user_id in (a.uid, b.uid);
+  g := public.es_admin() and public.cliente_visible(b.em, cB);  r := r || pg_temp.l(g, 'P6 el super admin ZZ es admin y ve la ficha de B');
   perform set_config('request.jwt.claims', '', true);
 
-  -- Fichas ZZ-: una de A, dos de B
-  insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
-    values ('ZZ-ESPEJO Cliente de A', a.em, 'ZZESPEJOA1', 'zz-espejo-a@ejemplo.invalid', '+00 000 0001', 'ZZ-domicilio A', 'ZZ') returning id into cA;
-  insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
-    values ('ZZ-ESPEJO Cliente de B', b.em, 'ZZESPEJOB1', 'zz-espejo-b@ejemplo.invalid', '+00 000 0002', 'ZZ-domicilio B', 'ZZ') returning id into cB;
-  insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
-    values ('ZZ-ESPEJO Segundo de B', b.em, 'ZZESPEJOB2', 'zz-espejo-b2@ejemplo.invalid', '+00 000 0003', 'ZZ-domicilio B2', 'ZZ') returning id into cB2;
+  -- S0, la sesion simulada POR EL CAMINO REAL (rol authenticated + claims, por pg_temp.val): una llamada sin datos a contrato_guarda no
+  -- escribe ni gasta numero. Sin sesion reconocida da 42501 «Sin sesion» (lo que dio la 1.a version en 30 lineas); con ella pasa la puerta
+  -- de sesion y la de permiso y cae en la validacion: 22023 «Contrato sin datos».
+  v := pg_temp.val(a.uid, a.em, $q$select public.contrato_guarda(null, '{}'::jsonb)::text$q$);
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v ~ 'Contrato sin datos', 'S0 la sesion simulada se reconoce: contrato_guarda sin datos pasa la sesion y el permiso y da 22023, no «Sin sesion» (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, 'select (select auth.uid())::text || ''|'' || (select auth.email()) || ''|'' || current_user');
+  r := r || pg_temp.l(v = a.uid::text || '|' || a.em || '|authenticated', 'S0b ... con auth.uid(), auth.email() y el rol authenticated de A (' || pg_temp.e(v) || ')');
+
+  if r ~ 'FALLA' then
+    raise exception using message = replace(c_fin, '%', r || pg_temp.l(false, 'PARADA: el fixture o la sesion no valen; los casos F/E/M/T/H/X no se corren (arreglar lo de arriba antes)'));
+  end if;
 
   -- ============================================================ F. la regla es la de comprador_ficha (y sigue dando lo mismo)
   v := pg_temp.val(a.uid, a.em, format('select count(*) from public.comprador_ficha(%L)', cA));
