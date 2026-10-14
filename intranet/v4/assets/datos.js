@@ -5085,7 +5085,7 @@
               pon('u-' + clave + '-txt', !cartera ? 'sin cartera'
                 : noVisible ? 'cobro no visible · ' + fmtConEstimado(cartera, moneda)
                 : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda) + (porCarta ? ' · con Carta' : '')
-                  + (sinFirmar ? ' · Bloqueo sin firmar' : ''), f);
+                  + (sinFirmar ? ' · contrato sin firmar' : ''), f);
             };
             uu.forEach(function (u, idxUnidad) {
               var f = base.cloneNode(true);
@@ -5238,7 +5238,9 @@
          «aunque no estén firmados, coge el precio del contrato»), pero la parcela no pasa de «bloqueada» ni hay
          comisión hasta que se firma (migración 20261014040310). Se rotula por la FIRMA, no por si el precio difiere
          del catálogo: sin rótulo la tarjeta podía decir «parcela cobrada» con la parcela todavía en «bloqueada»
-         (consulta de Administración; revisor, 2.ª vuelta). `suelo_pactado` nulo = sin contrato o sin permiso. */
+         (consulta de Administración; revisor, 2.ª vuelta). `suelo_pactado` nulo = sin contrato o sin permiso. Dice
+         «contrato» y no «Bloqueo» porque la raíz de la venta puede ser otro contrato (una Carta, una Construcción
+         suelta): la vista no trae su tipo, y lo cierto en todos los casos es que está sin firmar (revisor, 3.ª). */
       function sueloSinFirmar(u) {
         return !u.contrato_firmado && u.suelo_pactado != null;
       }
@@ -5317,7 +5319,7 @@
         var dpTotal = (dpSuelo != null && dpObra != null) ? dpSuelo + dpObra : u.precio;
         pon('dp-total', dpTotal != null ? fmt(dpTotal, u.moneda || 'EUR') : '—');
         pon('dp-suelo', dpSuelo != null ? fmt(dpSuelo, u.moneda || 'EUR')
-          + (sueloSinFirmar(u) ? ' (Bloqueo sin firmar)' : '')
+          + (sueloSinFirmar(u) ? ' (contrato sin firmar)' : '')
           + (u.cobrado_suelo == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_suelo, u.moneda || 'EUR')) : '—');
         pon('dp-suelo-m2', (u.precio_suelo != null && u.superficie_m2) ? fmt(u.precio_suelo / u.superficie_m2, u.moneda || 'EUR') + '/m²' : '—');
         pon('dp-obra', dpObra != null ? fmt(dpObra, u.moneda || 'EUR') + (u.cobrado_obra == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_obra, u.moneda || 'EUR')) : 'sin construcción asociada');

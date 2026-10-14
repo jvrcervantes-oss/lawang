@@ -1,7 +1,7 @@
 -- VUELTA ATRÁS de supabase/migrations/20261014024234_cobro_primero_parcela.sql, de su 2.ª parte,
 -- 20261014032925_cobro_primero_parcela_contrato.sql, de la 3.ª, 20261014040310_cobro_primero_parcela_borrador.sql, y de
--- la 4.ª, 20261014042207_cobro_primero_parcela_obra_firmada.sql («primero la parcela, luego la obra»). La 3.ª y la 4.ª
--- no añaden nada que reponer aparte: vuelve a escribir la cascada (que
+-- la 4.ª, 20261014042207_cobro_primero_parcela_obra_firmada.sql, y de la 5.ª, 20261014043156_cobro_primero_parcela_
+-- obra_sin_bloqueo.sql («primero la parcela, luego la obra»). De la 3.ª a la 5.ª no añaden nada que reponer aparte: vuelve a escribir la cascada (que
 -- aquí se queda sin llamador), la puerta unidad_cobro_reparto (que aquí se cierra), el disparador (que aquí se
 -- neutraliza, también en los borrados) y cambia la marca de comisiones (que aquí se busca con su texto de la 3.ª).
 -- ENSAYADA EN PARTE el 14-oct-2026 en producción, dentro de un DO que acaba en raise: los permisos, el disparador
@@ -271,19 +271,22 @@ declare
   r2 text := 'coalesce(sum(u.precio_suelo), 0)';
   m3 text := 'coalesce(sum(case when cp.obra_firmada then cp.obra_precio else u.precio_construccion end), 0)';   -- la de la 4.ª parte
   r3 text := 'coalesce(sum(u.precio_construccion), 0)';
+  m4 text := 'v_precio_construccion > 0 and (v_contrato_firmado or not exists (select 1 from public.contratos rz where rz.id = v_raiz_id and rz.tipo = ''reserva_parcela'')) and (v_cobrado_obra / v_precio_construccion * 100) >= v_tramo.umbral';   -- la de la 5.ª parte
+  r4 text := 'v_precio_construccion > 0 and (v_cobrado_obra / v_precio_construccion * 100) >= v_tramo.umbral';
 begin
   select pg_get_functiondef(p.oid) into v_def
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'comisiones_evaluar_contrato';
-  if position(m1 in v_def) = 0 and position(m2 in v_def) = 0 and position(m3 in v_def) = 0 then
+  if position(m1 in v_def) = 0 and position(m2 in v_def) = 0 and position(m3 in v_def) = 0 and position(m4 in v_def) = 0 then
     return;   -- ya estaba como antes
   end if;
   if (length(v_def) - length(replace(v_def, m1, ''))) / length(m1) <> 1
      or (length(v_def) - length(replace(v_def, m2, ''))) / length(m2) <> 1
-     or (length(v_def) - length(replace(v_def, m3, ''))) / length(m3) <> 1 then
-    raise exception 'vuelta cobro_primero_parcela: comisiones_evaluar_contrato no tiene las tres marcas una vez cada una; revisar a mano';
+     or (length(v_def) - length(replace(v_def, m3, ''))) / length(m3) <> 1
+     or (length(v_def) - length(replace(v_def, m4, ''))) / length(m4) <> 1 then
+    raise exception 'vuelta cobro_primero_parcela: comisiones_evaluar_contrato no tiene las cuatro marcas una vez cada una; revisar a mano';
   end if;
-  execute replace(replace(replace(v_def, m1, r1), m2, r2), m3, r3);
+  execute replace(replace(replace(replace(v_def, m1, r1), m2, r2), m3, r3), m4, r4);
 end
 $parche$;
 

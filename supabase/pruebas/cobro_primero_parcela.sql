@@ -18,7 +18,8 @@
 --       unidad_cumple_estado = (precio > 0 y suelo cobrado >= precio); y `suelo_de_contrato` solo es cierto si la RAÍZ
 --       de la venta es un Bloqueo de Parcela sin liberar y con precio (un Bloqueo hijo no cuenta)
 --   T7  sin permiso, unidad_cobro_reparto devuelve NULL (no 0) y la cascada no es llamable por authenticated / anon
---   T8  el motor de comisiones lee la cascada y mide suelo y obra contra el precio de contrato solo si está FIRMADO
+--   T8  el motor de comisiones lee la cascada, mide suelo y obra contra el precio de contrato solo si está FIRMADO, y
+--       «% cobrado de obra» no dispara con el Bloqueo raíz sin firmar
 --   T9  la vista unidades_estado sigue siendo security_invoker y trae suelo_pactado / obra_pactada
 --   T10 el caso que lo destapó: SH-1 (Sumba Hills), 41.620 cobrados contra una parcela de 25.000 → 25.000 + 16.620
 do $t$
@@ -99,6 +100,7 @@ begin
      and position('public._unidad_cobro_cascada(u.id) cp' in p.prosrc) > 0
      and position('case when cp.suelo_de_contrato and v_contrato_firmado then cp.suelo_precio else u.precio_suelo end' in p.prosrc) > 0
      and position('case when cp.obra_firmada then cp.obra_precio else u.precio_construccion end' in p.prosrc) > 0
+     and position('v_contrato_firmado or not exists (select 1 from public.contratos rz where rz.id = v_raiz_id' in p.prosrc) > 0
      and position('unidad_parte_cobrada_interno' in p.prosrc) = 0;
   if n <> 1 then fallos := fallos + 1; end if;
   out := out || E'\nT8 comisiones lee la cascada: ' || (case when n = 1 then 'ok' else 'FALLO' end);
