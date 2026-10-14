@@ -1,9 +1,20 @@
 -- Prueba «el traspaso SIEMPRE arrastra todo» (13-oct-2026, migraciones 20261013143832_traspaso_cliente_arrastra_todo,
--- 20261013150447_traspaso_receptor_ve_lo_que_recibe 20261013150901_traspaso_solo_lo_del_cliente 20261013153444_traspaso_bloquea_lo_que_mueve y 20261013154657_traspaso_parada_sin_numero).
+-- 20261013150447_traspaso_receptor_ve_lo_que_recibe 20261013150901_traspaso_solo_lo_del_cliente 20261013153444_traspaso_bloquea_lo_que_mueve y 20261013154657_traspaso_parada_sin_numero
+-- y las de 14-oct 20261014000241_traspaso_compartidos_otro_agente, 20261014001411_traspaso_facturas_comprador_del_nuevo y la de
+-- bloqueo de candidatos + contrato ya del nuevo dueno, 20261014003639_traspaso_bloquea_candidatos_compartido_ya_del_nuevo, y el receptor
+-- de la empresa de los compartidos, 20261014013939_traspaso_receptor_empresa_de_compartidos).
 -- Casos del revisor (13-oct): K* cocomprador con factura de otro client_id (no se mueve), R7 admin_empresa sin la empresa de una factura
 -- sin cliente colgada de su contrato, R8 receptor de otra empresa con un admin GLOBAL, M* la marca puesta como authenticated.
+-- Casos del owner (14-oct): N* un contrato compartido con un comprador de OTRO agente no se mueve (ni sus facturas) y se cuenta; con un
+-- comprador SIN dueno (c1) o que ya es del NUEVO dueno (c5) se mueve. Q* la pareja del mismo agente traspasada en dos pasos: desde
+-- 20261014001411 (14-oct) la factura a nombre del primero pasa con el contrato en el segundo paso.
+-- Revisor (14-oct): N5/U* un contrato compartido con otro agente que YA es del nuevo dueno no se cuenta ni dispara el 22023, y sus
+-- facturas del cliente se mueven (c6, y la ficha clU); U3 consecuencia: al entrar en el conjunto pasa por la puerta por documento.
+-- L1 TODOS los contratos candidatos quedan bloqueados (tambien el excluido c4): su xmax cambia en la llamada.
+-- V* un contrato compartido-excluido de Sandal Woods: el admin global no pasa la ficha a quien solo es de Lawang (22023, nada se mueve);
+-- con el receptor de las dos empresas, si (control).
 -- Se pega DESPUES de la migracion en la MISMA peticion (ensayo), o sola cuando ya esta aplicada. Sin rastro: acaba en raise y todo se deshace.
--- Debe terminar con «FALLOS=0». Unico rastro que el rollback no deshace: dos numeros de la secuencia CLI- de clients (las fichas de prueba);
+-- Debe terminar con «FALLOS=0». Unico rastro que el rollback no deshace: ocho numeros de la secuencia CLI- de clients (las fichas de prueba);
 -- contratos y facturas llevan numero PRB- explicito y no tocan sus secuencias fiscales.
 -- Reproduce el caso real (RP00261 de IVAN REBOLLO MARCAS): ficha con dueno NULL, un contrato de OTRO autor, uno FIRMADO y una factura SIN autor;
 -- lo hace un admin_empresa (antes solo super) con SU sesion, y se comprueba como el receptor (puede_ver_contrato y la policy real de facturas).
@@ -40,7 +51,9 @@ declare
   r text := ''; v text; n bigint; fallos int; f0 jsonb; f1 jsonb; tocadas text;
   jv _tp; a _tp; b _tp; rc _tp; x _tp; g _tp;
   pL uuid; pLn text; soc text; cl uuid; cl2 uuid; c1 uuid; c2 uuid; c3 uuid; fa uuid; fb uuid; fc uuid; fs uuid; res record;
-  pS uuid; socS text; kR uuid; clR uuid; fR uuid; autR text;
+  pS uuid; socS text; kR uuid; clR uuid; fR uuid; autR text; exclR boolean; autK text;
+  cl3 uuid; cl4 uuid; c4 uuid; c5 uuid; f4 uuid; f4s uuid; f5 uuid; qa uuid; qb uuid; kq uuid; fq uuid;
+  c6 uuid; f6 uuid; clU uuid; kU uuid; fU uuid; xm0 text; xm1 text; mueveR boolean; clV uuid; kV uuid; kV2 uuid;
 begin
   select * into jv from _tp where et = 'jv'; select * into a from _tp where et = 'A'; select * into b from _tp where et = 'B';
   select * into rc from _tp where et = 'R'; select * into x from _tp where et = 'X'; select * into g from _tp where et = 'G';
@@ -56,10 +69,11 @@ begin
   update public.usuarios set rol = 'agente', ambito = 'global', empresas = '{lawang}', proyectos = array[pL], proyectos_supervisados = '{}', herramientas = '{contratos,facturas}' where user_id in (rc.uid, x.uid, g.uid);
   perform set_config('request.jwt.claims', '', true);
 
-  -- Fixture: la ficha SIN dueno, otra ficha que comparte c1, c1 de OTRO autor (X), c2 FIRMADO (de X), fa SIN autor (sobre c1), fb recibi ANULADO (de X, sobre c2)
+  -- Fixture: la ficha SIN dueno, otra ficha SIN dueno que comparte c1 (14-oct: asi c1 se mueve), c1 de OTRO autor (X), c2 FIRMADO (de X),
+  -- fa SIN autor (sobre c1), fb recibi ANULADO (de X, sobre c2)
   insert into public.clients (full_name) values ('PRB Traspaso Arrastra') returning id into cl;
-  insert into public.clients (full_name, propietario) values ('PRB Cocomprador', x.em) returning id into cl2;
-  update public.clients set propietario = null where id = cl;
+  insert into public.clients (full_name) values ('PRB Cocomprador') returning id into cl2;
+  update public.clients set propietario = null where id in (cl, cl2);
   insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
   values ('contrato_general', 'PRB-TR-C1', pL, pLn, 'IDR', x.em, false, jsonb_build_object('fields', jsonb_build_object('proyecto_nombre', pLn))) returning id into c1;
   insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
@@ -86,6 +100,35 @@ begin
   r := r || pg_temp.l((select client_id from public.facturas where id = fs) is null and public.empresa_de_factura(fs) = 'sandal_woods'
                       and (select client_id from public.facturas where id = fc) = cl2,
                       'P3 fixture: fc del cocomprador sobre c1; fs sin cliente sobre c3 y de Sandal Woods (' || coalesce(public.empresa_de_factura(fs), '∅') || ')');
+  -- 14-oct: c4 compartido con cl3, ficha de OTRO agente (G) → no se mueve. Cuelgan de el f4 (del PROPIO cliente) y f4s (sin cliente y de
+  -- Sandal Woods: si c4 entrara en el conjunto, la puerta por documento pararia al admin de Lawang y el receptor no podria verla).
+  -- c5 compartido con cl4, ficha que YA es del nuevo dueno (R) → se mueve, con su factura f5.
+  insert into public.clients (full_name, propietario) values ('PRB Cocomprador de G', g.em) returning id into cl3;
+  insert into public.clients (full_name, propietario) values ('PRB Cocomprador de R', rc.em) returning id into cl4;
+  insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
+  values ('contrato_general', 'PRB-TR-C4', pL, pLn, 'IDR', x.em, false, jsonb_build_object('fields', jsonb_build_object('proyecto_nombre', pLn))) returning id into c4;
+  insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
+  values ('contrato_general', 'PRB-TR-C5', pL, pLn, 'IDR', x.em, false, jsonb_build_object('fields', jsonb_build_object('proyecto_nombre', pLn))) returning id into c5;
+  -- f4s ANTES de los compradores: con un adquiriente_1 en el contrato, un trigger le pone su client_id y dejaria de ser «sin cliente»
+  insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, proyecto_id, total, moneda, datos, creado_por, anulada, justificante_path)
+  values ('recibi', 'PRB-TR-F4S', socS, null, c4, pS, 2, (select moneda from public.contratos where id = c4), '{}', x.em, true, 'prb/traspaso4.pdf') returning id into f4s;
+  insert into public.contrato_compradores (contrato_id, client_id, rol) values (c4, cl, 'adquiriente_1'), (c4, cl3, 'adquiriente_2'), (c5, cl, 'adquiriente_1'), (c5, cl4, 'adquiriente_2');
+  insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, proyecto_id, total, moneda, datos, creado_por)
+  values ('proforma', 'PRB-TR-F4', soc, cl, c4, pL, 4, (select moneda from public.contratos where id = c4), '{}', x.em) returning id into f4;
+  insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, proyecto_id, total, moneda, datos, creado_por)
+  values ('proforma', 'PRB-TR-F5', soc, cl, c5, pL, 6, (select moneda from public.contratos where id = c5), '{}', x.em) returning id into f5;
+  r := r || pg_temp.l(public.empresa_de_factura(f4s) = 'sandal_woods' and (select client_id from public.facturas where id = f4s) is null and lower((select propietario from public.clients where id = cl3)) = lower(g.em)
+                      and lower((select propietario from public.clients where id = cl4)) = lower(rc.em),
+                      'P4 fixture: c4 compartido con la ficha de G (f4 del cliente, f4s sin cliente de Sandal Woods); c5 compartido con la ficha de R (f5)');
+  -- Revisor 14-oct: c6 YA es del receptor (R) y lo comparte con la ficha de G; f6 (del propio cliente) es de X. No es «compartido-excluido»:
+  -- no se cuenta y f6 pasa al receptor.
+  insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
+  values ('contrato_general', 'PRB-TR-C6', pL, pLn, 'IDR', rc.em, false, jsonb_build_object('fields', jsonb_build_object('proyecto_nombre', pLn))) returning id into c6;
+  insert into public.contrato_compradores (contrato_id, client_id, rol) values (c6, cl, 'adquiriente_1'), (c6, cl3, 'adquiriente_2');
+  insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, proyecto_id, total, moneda, datos, creado_por)
+  values ('proforma', 'PRB-TR-F6', soc, cl, c6, pL, 9, (select moneda from public.contratos where id = c6), '{}', x.em) returning id into f6;
+  r := r || pg_temp.l((select creado_por from public.contratos where id = c6) = rc.em and (select creado_por from public.facturas where id = f6) = x.em,
+                      'P5 fixture: c6 ya del receptor, compartido con la ficha de G; f6 del cliente, de X');
 
   -- ANTES: el receptor no ve nada de esto
   v := pg_temp.val(rc.uid, rc.em, format('select (public.puede_ver_contrato(%L) or public.puede_ver_contrato(%L))::text', c1, c2));
@@ -134,19 +177,22 @@ begin
 
   -- EL TRASPASO: lo hace el admin_empresa de Lawang, con el email del receptor en MAYUSCULAS
   f0 := pg_temp.foto();
+  xm0 := (select xmax::text from public.contratos where id = c4);
   v := pg_temp.val(a.uid, a.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB Ariadna lleva este cliente'') t', cl, upper(rc.em)));
+  xm1 := (select xmax::text from public.contratos where id = c4);
   f1 := pg_temp.foto();
   r := r || pg_temp.l(v !~ '^ERR', 'T0 el admin_empresa de Lawang traspasa con su sesion (' || left(v, 330) || ')');
   if v !~ '^ERR' then
-    r := r || pg_temp.l((v::jsonb ->> 'contratos_movidos')::int = 2 and (v::jsonb ->> 'facturas_movidas')::int = 2
+    r := r || pg_temp.l((v::jsonb ->> 'contratos_movidos')::int = 3 and (v::jsonb ->> 'facturas_movidas')::int = 4
                         and (v::jsonb ->> 'facturas_movidas_anuladas')::int = 1 and (v::jsonb ->> 'propietario_anterior') is null
-                        and (v::jsonb ->> 'contratos_omitidos_firmados')::int + (v::jsonb ->> 'contratos_omitidos_otro_autor')::int + (v::jsonb ->> 'contratos_omitidos_sin_autor')::int
+                        and (v::jsonb ->> 'contratos_omitidos_firmados')::int + (v::jsonb ->> 'contratos_omitidos_sin_autor')::int
                           + (v::jsonb ->> 'facturas_omitidas_sin_autor')::int = 0
-                        and (v::jsonb ->> 'facturas_omitidas_otro_autor')::int = 1,
-                        'T1 la devolucion (mismas columnas que antes): 2 contratos, 2 documentos (1 anulado), dueno anterior NULL, 1 factura de otro comprador omitida');
+                        and (v::jsonb ->> 'contratos_omitidos_otro_autor')::int = 1
+                        and (v::jsonb ->> 'facturas_omitidas_otro_autor')::int = 3,
+                        'T1 la devolucion (mismas columnas que antes): 3 contratos (c1, c2, c5; c6 ya era suyo), 4 documentos (1 anulado; f6), dueno anterior NULL, 1 contrato compartido con otro agente (c4, no c6) y 3 facturas omitidas (fc de otro comprador; f4 y f4s del compartido)');
   end if;
   r := r || pg_temp.l((select creado_por from public.facturas where id = fc) = x.em, 'K1 la factura del COCOMPRADOR (client_id de otro) sigue con su autor');
-  r := r || pg_temp.l((select creado_por from public.contratos where id = c1) = lower(rc.em), 'K2 ... aunque el contrato compartido c1 si se ha movido');
+  r := r || pg_temp.l((select creado_por from public.contratos where id = c1) = lower(rc.em), 'K2 ... aunque el contrato c1, compartido con un comprador SIN dueno, si se ha movido');
   r := r || pg_temp.l(not exists (select 1 from public.correcciones_datos where fila_id = fc and motivo = 'PRB Ariadna lleva este cliente'), 'K3 ... y no deja rastro de traspaso');
   select count(*) into n from public.contratos where id in (c1, c2) and creado_por = lower(rc.em);
   r := r || pg_temp.l(n = 2, 'T2 c1 (de otro autor) y c2 (FIRMADO) son ahora del receptor, en minusculas (' || n || ')');
@@ -157,6 +203,26 @@ begin
    where (tabla, fila_id, campo) in (('clients', cl, 'propietario'), ('contratos', c1, 'creado_por'), ('contratos', c2, 'creado_por'), ('facturas', fa, 'creado_por'), ('facturas', fb, 'creado_por'))
      and motivo = 'PRB Ariadna lleva este cliente' and corregido_por = a.em and valor_nuevo = lower(rc.em);
   r := r || pg_temp.l(n = 5, 'T5 una fila de rastro por cada cosa movida, con motivo y quien (' || n || ')');
+  -- N: el compartido con OTRO agente se queda, con sus facturas, sin rastro; el compartido con el NUEVO dueno se mueve
+  r := r || pg_temp.l((select creado_por from public.contratos where id = c4) = x.em
+                      and (select count(*) from public.facturas where id in (f4, f4s) and creado_por = x.em) = 2,
+                      'N1 c4 (compartido con la ficha de G) sigue de X, y f4 (del propio cliente) y f4s (sin cliente) se quedan con el');
+  r := r || pg_temp.l(not exists (select 1 from public.correcciones_datos where fila_id in (c4, f4, f4s) and motivo = 'PRB Ariadna lleva este cliente'),
+                      'N2 ... sin rastro de traspaso');
+  r := r || pg_temp.l((select creado_por from public.contratos where id = c5) = lower(rc.em) and (select creado_por from public.facturas where id = f5) = lower(rc.em),
+                      'N3 c5 (compartido con una ficha que ya es del nuevo dueno) y su factura f5 pasan al receptor');
+  -- N4: T0 salio bien (v sigue siendo su resultado) aunque f4s es de una empresa de la que A no es admin y R no es: no estaba en el conjunto
+  perform set_config('request.jwt.claims', json_build_object('sub', a.uid, 'role', 'authenticated', 'email', a.em)::text, true);
+  r := r || pg_temp.l(v !~ '^ERR' and not public.es_admin_de(public.empresa_de_factura(f4s)) and not public.usuario_en_empresa(lower(rc.em), public.empresa_de_factura(f4s)),
+                      'N4 f4s (sin cliente, de Sandal Woods; A no es su admin y R no es de ella) colgaba del excluido c4 y no paro el traspaso');
+  perform set_config('request.jwt.claims', '', true);
+  r := r || pg_temp.l((select creado_por from public.contratos where id = c6) = rc.em and (select creado_por from public.facturas where id = f6) = lower(rc.em)
+                      and not exists (select 1 from public.correcciones_datos where fila_id = c6 and motivo = 'PRB Ariadna lleva este cliente'),
+                      'N5 c6 (compartido con G pero YA del receptor) no se reescribe ni se cuenta, y f6 (del cliente) pasa al receptor');
+  -- L1: el excluido c4 no se escribe, pero queda bloqueado FOR UPDATE por la llamada: su xmax cambia (al subxid de pg_temp.val o a un multixact
+  -- con el FOR KEY SHARE que ya tenia de los inserts del fixture). pg_locks no ensena los bloqueos de fila de la propia transaccion.
+  r := r || pg_temp.l(xm0 is distinct from xm1 and (select creado_por from public.contratos where id = c4) = x.em,
+                      'L1 el contrato excluido c4 queda bloqueado por el traspaso sin escribirse (xmax ' || coalesce(xm0, '-') || ' -> ' || coalesce(xm1, '-') || ')');
   select count(*) into n from public.correcciones_datos
    where ((fila_id = c1 and valor_anterior = x.em) or (fila_id = fa and valor_anterior is null) or (fila_id = cl and valor_anterior is null)) and motivo = 'PRB Ariadna lleva este cliente';
   r := r || pg_temp.l(n = 3, 'T6 el rastro guarda el autor REAL de antes (X en c1, nadie en la factura y en la ficha) (' || n || ')');
@@ -175,7 +241,8 @@ begin
 
   -- REPETIR: todo ya es suyo → 22023; y si queda algo de otro (ficha ya suya), lo arrastra sin tocar la ficha
   v := pg_temp.val(a.uid, a.em, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''PRB otra vez'')).contratos_movidos::text', cl, rc.em));
-  r := r || pg_temp.l(pg_temp.err(v) = '22023', 'S1 si ficha y documentos ya son todos suyos: 22023 (' || left(v, 90) || ')');
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%1 contratos compartidos con un comprador de otro agente no se mueven%',
+                      'S1 si la ficha y lo que se puede mover ya son suyos: 22023 que nombra el compartido que se queda (' || left(v, 200) || ')');
   update public.contratos set creado_por = x.em where id = c1;
   v := pg_temp.val(a.uid, a.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB recupera lo que falta'') t', cl, rc.em));
   r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'propietario_anterior') = lower(rc.em) and (v::jsonb ->> 'contratos_movidos')::int = 1
@@ -183,6 +250,13 @@ begin
                       and not exists (select 1 from public.correcciones_datos where fila_id = cl and motivo = 'PRB recupera lo que falta'),
                       'S2 con la ficha ya suya, arrastra lo que faltaba (1 contrato) sin tocar la ficha (' || left(v, 260) || ')');
 
+  -- U3 (consecuencia del arreglo del revisor, decision por defecto 14-oct): traspasar cl a X, autor de c4 -> c4 ya no es compartido-excluido,
+  -- entra en el conjunto y con el f4s (sin cliente, de Sandal Woods): la puerta por documento para al admin de Lawang, aunque f4s ya es de X.
+  v := pg_temp.val(a.uid, a.em, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''PRB a X'')).contratos_movidos::text', cl, x.em));
+  r := r || pg_temp.l(pg_temp.err(v) = '42501' and v like '%PRB-TR-F4S%sandal_woods%',
+                      'U3 un contrato ya del nuevo dueno entra en el conjunto: su factura sin cliente de Sandal Woods para al admin de Lawang (' || left(v, 160) || ')');
+  -- para W*: c4 pasa a G (sigue compartido-excluido para X) y deja de arrastrar f4s
+  update public.contratos set creado_por = g.em where id = c4;
   -- cliente_traspasa (pantalla vieja): envoltorio, arrastra lo mismo
   v := pg_temp.val(a.uid, a.em, format('select (public.cliente_traspasa(%L, %L, null) = %L)::text', cl, x.em, cl));
   r := r || pg_temp.l(v = 'true', 'W1 cliente_traspasa (pantalla vieja, sin motivo) sigue funcionando (' || left(v, 90) || ')');
@@ -191,6 +265,46 @@ begin
   r := r || pg_temp.l(n = 4 and (select propietario from public.clients where id = cl) = lower(x.em), 'W2 ... y tambien arrastra contratos y facturas (' || n || ')');
   v := pg_temp.val(g.uid, g.em, format('select public.cliente_traspasa(%L, %L, ''PRB'')::text', cl, rc.em));
   r := r || pg_temp.l(pg_temp.err(v) = '42501', 'W3 cliente_traspasa conserva la puerta: un agente, 42501 (' || left(v, 90) || ')');
+
+  -- Q (14-oct): una pareja del MISMO agente (G) que comparte kq, con la factura fq a nombre de qa, traspasada a R en dos pasos.
+  -- Paso 1: kq y fq se quedan con G. Paso 2: kq se mueve y fq (a nombre de qa, cuya ficha ya es de R) va con el. Un tercero no mueve nada.
+  insert into public.clients (full_name, propietario) values ('PRB Pareja A', g.em) returning id into qa;
+  insert into public.clients (full_name, propietario) values ('PRB Pareja B', g.em) returning id into qb;
+  insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
+  values ('contrato_general', 'PRB-TR-CQ', pL, pLn, 'IDR', g.em, false, jsonb_build_object('fields', jsonb_build_object('proyecto_nombre', pLn))) returning id into kq;
+  insert into public.contrato_compradores (contrato_id, client_id, rol) values (kq, qa, 'adquiriente_1'), (kq, qb, 'adquiriente_2');
+  insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, proyecto_id, total, moneda, datos, creado_por)
+  values ('proforma', 'PRB-TR-FQ', soc, qa, kq, pL, 8, (select moneda from public.contratos where id = kq), '{}', g.em) returning id into fq;
+  v := pg_temp.val(a.uid, a.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB pareja 1'') t', qa, rc.em));
+  r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'contratos_omitidos_otro_autor')::int = 1 and (v::jsonb ->> 'facturas_omitidas_otro_autor')::int = 1
+                      and (select creado_por from public.contratos where id = kq) = g.em and (select creado_por from public.facturas where id = fq) = g.em
+                      and lower((select propietario from public.clients where id = qa)) = lower(rc.em),
+                      'Q1 paso 1 (qa a R): la ficha pasa, kq y fq se quedan con G y se cuentan (' || left(v, 260) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB pareja 2'') t', qb, rc.em));
+  r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'contratos_movidos')::int = 1
+                      and (select creado_por from public.contratos where id = kq) = lower(rc.em) and (select creado_por from public.facturas where id = fq) = lower(rc.em)
+                      and (v::jsonb ->> 'facturas_movidas')::int = 1 and (v::jsonb ->> 'facturas_omitidas_otro_autor')::int = 0,
+                      'Q2 paso 2 (qb a R): kq se mueve y fq (a nombre de qa, ficha ya de R) pasa con el; nada omitido (' || left(v, 260) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB pareja 3'') t', qa, rc.em));
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%ya son de esa persona%' and v not like '%compartidos%',
+                      'Q3 paso 3 (qa a R otra vez): ya no queda nada que mover, 22023 sin compartidos (' || left(v, 200) || ')');
+
+  -- U (revisor 14-oct): la ficha clU ya es de R, su unico contrato kU ya es de R y lo comparte con la ficha de G; fU (de clU) es de X.
+  -- Antes: kU contaba como compartido, fU se quedaba y salia el 22023 «revisalos a mano». Ahora: fU pasa a R, nada omitido, sin error.
+  insert into public.clients (full_name, propietario) values ('PRB Ya de R', rc.em) returning id into clU;
+  insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
+  values ('contrato_general', 'PRB-TR-CU', pL, pLn, 'IDR', rc.em, false, jsonb_build_object('fields', jsonb_build_object('proyecto_nombre', pLn))) returning id into kU;
+  insert into public.contrato_compradores (contrato_id, client_id, rol) values (kU, clU, 'adquiriente_1'), (kU, cl3, 'adquiriente_2');
+  insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, proyecto_id, total, moneda, datos, creado_por)
+  values ('proforma', 'PRB-TR-FU', soc, clU, kU, pL, 11, (select moneda from public.contratos where id = kU), '{}', x.em) returning id into fU;
+  v := pg_temp.val(a.uid, a.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB ya de R'') t', clU, rc.em));
+  r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'contratos_omitidos_otro_autor')::int = 0 and (v::jsonb ->> 'facturas_movidas')::int = 1
+                      and (v::jsonb ->> 'contratos_movidos')::int = 0 and (v::jsonb ->> 'facturas_omitidas_otro_autor')::int = 0
+                      and (select creado_por from public.facturas where id = fU) = lower(rc.em) and (select creado_por from public.contratos where id = kU) = rc.em,
+                      'U1 contrato compartido con G pero ya de R: no se cuenta, no hay 22023 y fU pasa a R (' || left(v, 260) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''PRB ya de R 2'')).contratos_movidos::text', clU, rc.em));
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%ya son de esa persona%' and v not like '%compartidos%',
+                      'U2 repetido: 22023 «todo ya es de esa persona», sin hablar de compartidos (' || left(v, 200) || ')');
 
   -- CASO REAL (13-oct): PRO00218 cuelga de RP00208 con el client_id de OTRO comprador. Se traspasa un comprador de RP00208 que no es el de PRO00218
   -- (lo hace el propietario, admin global, a si mismo: ese comprador tambien tiene CC00117 de Sandal Woods, y R solo es de Lawang, asi que
@@ -201,12 +315,62 @@ begin
   if clR is null then
     r := r || pg_temp.l(false, 'K4 PRO00218 / RP00208 ya no tiene el caso (factura de otro comprador): revisar la prueba');
   else
+    -- 14-oct: lo esperado sale de los duenos REALES de hoy (regla del owner), no escrito a mano
+    select creado_por into autK from public.contratos where id = kR;
+    exclR := lower(coalesce(autK, '')) <> lower(jv.em)
+             and exists (select 1 from public.contrato_compradores o join public.clients oc on oc.id = o.client_id
+                          where o.contrato_id = kR and o.client_id <> clR and nullif(btrim(oc.propietario), '') is not null
+                            and lower(btrim(oc.propietario)) <> lower(jv.em));
+    -- 14-oct (revisor): PRO00218 va con RP00208 si el contrato se mueve y la ficha de SU comprador ya es del receptor (20261014001411);
+    -- si no, se queda con su autor. La etiqueta dice cual de las dos ramas se ha comprobado.
+    mueveR := not exclR and exists (select 1 from public.contrato_compradores o join public.clients oc on oc.id = o.client_id
+                                     join public.facturas f on f.id = fR
+                                    where o.contrato_id = kR and o.client_id = f.client_id and lower(btrim(oc.propietario)) = lower(jv.em));
     v := pg_temp.val(jv.uid, jv.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB caso real'') t', clR, jv.em));
-    r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'facturas_omitidas_otro_autor')::int >= 1
-                        and (select creado_por from public.facturas where id = fR) is not distinct from autR
-                        and (select lower(creado_por) from public.contratos where id = kR) = lower(jv.em),
-                        'K4 caso real: RP00208 pasa al receptor y PRO00218 (de otro comprador) se queda con su autor (' || left(v, 200) || ')');
+    r := r || pg_temp.l(v !~ '^ERR' and (mueveR or (v::jsonb ->> 'facturas_omitidas_otro_autor')::int >= 1)
+                        and case when mueveR
+                              then (select lower(creado_por) from public.facturas where id = fR) = lower(jv.em)
+                              else (select creado_por from public.facturas where id = fR) is not distinct from autR end
+                        and case when exclR
+                              then (select creado_por from public.contratos where id = kR) is not distinct from autK
+                                   and (v::jsonb ->> 'contratos_omitidos_otro_autor')::int >= 1
+                              else (select lower(creado_por) from public.contratos where id = kR) = lower(jv.em) end,
+                        'K4 caso real: RP00208 ' || case when exclR then 'se QUEDA (comparte con la ficha de otro agente)' else 'pasa al receptor' end
+                        || ' y PRO00218 (de otro comprador) ' || case when mueveR then 'pasa con el (la ficha de su comprador ya es del receptor)' else 'se queda con su autor' end
+                        || ' (' || left(v, 220) || ')');
   end if;
+
+  -- V (revisor 14-oct, migracion 20261014013939): un contrato COMPARTIDO con la ficha de otro agente (G) que es de Sandal Woods no se mueve,
+  -- pero la ficha si se moveria y su dueno la ve entera con su KYC (cliente_visible). El admin GLOBAL (la puerta exclusiva de A pararia antes
+  -- con 42501) no la traspasa a R, que solo es de Lawang: 22023 con el texto de los compartidos, y no se mueve nada.
+  insert into public.clients (full_name) values ('PRB Compartido Sandal Woods') returning id into clV;
+  update public.clients set propietario = null where id = clV;
+  insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
+  values ('contrato_general', 'PRB-TR-CV', pS, (select nombre from public.proyectos where id = pS), 'IDR', x.em, false,
+          jsonb_build_object('fields', jsonb_build_object('proyecto_nombre', (select nombre from public.proyectos where id = pS)))) returning id into kV;
+  insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
+  values ('contrato_general', 'PRB-TR-CV2', pL, pLn, 'IDR', x.em, false, jsonb_build_object('fields', jsonb_build_object('proyecto_nombre', pLn))) returning id into kV2;
+  insert into public.contrato_compradores (contrato_id, client_id, rol) values (kV, clV, 'adquiriente_1'), (kV, cl3, 'adquiriente_2'), (kV2, clV, 'adquiriente_1');
+  r := r || pg_temp.l(public.empresa_de_contrato(kV) = 'sandal_woods' and public.empresa_de_contrato(kV2) = 'lawang'
+                      and lower((select propietario from public.clients where id = cl3)) = lower(g.em)
+                      and not public.usuario_en_empresa(lower(rc.em), 'sandal_woods') and public.usuario_en_empresa(lower(rc.em), 'lawang'),
+                      'V0 fixture: clV con kV (Sandal Woods, compartido con la ficha de G) y kV2 (Lawang); R solo es de Lawang');
+  v := pg_temp.val(jv.uid, jv.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB compartido SW'') t', clV, rc.em));
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%contrato PRB-TR-CV de la empresa «sandal_woods», compartido con un comprador de otro agente%',
+                      'V1 admin global NO traspasa a quien solo es de Lawang la ficha con un contrato compartido de Sandal Woods: 22023 que lo nombra (' || left(v, 200) || ')');
+  r := r || pg_temp.l((select propietario from public.clients where id = clV) is null
+                      and (select count(*) from public.contratos where id in (kV, kV2) and creado_por = x.em) = 2
+                      and not exists (select 1 from public.correcciones_datos where fila_id in (clV, kV, kV2) and motivo = 'PRB compartido SW'),
+                      'V2 ... la ficha sigue sin dueno, kV y kV2 siguen de X y no hay rastro');
+  -- V3 control: el MISMO traspaso con R de las dos empresas pasa (lo que paraba era la empresa, no otra puerta); kV se queda con X
+  perform set_config('request.jwt.claims', json_build_object('sub', jv.uid, 'role', 'authenticated', 'email', jv.em)::text, true);
+  update public.usuarios set empresas = '{lawang,sandal_woods}' where user_id = rc.uid;
+  perform set_config('request.jwt.claims', '', true);
+  v := pg_temp.val(jv.uid, jv.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB compartido SW 2'') t', clV, rc.em));
+  r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'contratos_movidos')::int = 1 and (v::jsonb ->> 'contratos_omitidos_otro_autor')::int = 1
+                      and (select propietario from public.clients where id = clV) = lower(rc.em)
+                      and (select creado_por from public.contratos where id = kV) = x.em and (select creado_por from public.contratos where id = kV2) = lower(rc.em),
+                      'V3 control: con R de Lawang y Sandal Woods pasa; la ficha y kV2 son de R, kV se queda con X (' || left(v, 260) || ')');
 
   -- EXPOSICION
   select count(*) into n from pg_proc p
