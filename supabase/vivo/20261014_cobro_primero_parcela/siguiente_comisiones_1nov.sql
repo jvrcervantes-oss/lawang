@@ -1,30 +1,27 @@
--- NO APLICADA (14-oct-2026). Segundo paso de «primero la parcela, luego la obra»: la regla de comisiones de las ventas
--- desde el 1-nov (_comisiones_bases_firmadas). Hoy no hay ninguna venta con esa fecha: aplicar esto no mueve dinero
--- hasta noviembre, y por eso espera a poder probarse bien.
+-- F3 de «primero la parcela, luego la obra» (encargo 20261014_lawang_cobro_primero_parcela): la regla de comisiones de
+-- las ventas desde el 1-nov-2026 (_comisiones_bases_firmadas). Las únicas condiciones que leen lo cobrado por parte
+-- (tramos pct_cobrado_suelo_firmado / pct_cobrado_obra_firmada) rigen desde el 1-nov (medido el 14-oct: 12 sucesoras
+-- c0a11010-…-01..12, todas vigente_desde 2026-11-01). Las BASES (columnas 1–2, precios firmados) no cambian: el
+-- reconciliador y la trazabilidad, que solo leen bases, no mueven ningún devengo ya generado.
 --
--- POR QUÉ ESPERA. Su batería (contracts/sql/prueba_comisiones_1nov.sql) solo corre con la válvula del owner abierta
--- (monta el laboratorio con session_replication_role = replica) y varios de sus casos fijan la regla anterior: hay que
--- reescribir sus cifras esperadas Y verla en verde antes de aplicar. Aplicar sin esa batería sería dinero sin probar.
--- Tiene que estar aplicada ANTES del 1-nov-2026.
---
--- QUÉ CAMBIA respecto a lo que hay en producción desde el 14-oct (migración 20261014012527):
---   1. «Lo cobrado en un contrato de obra no sube a la parcela» deja de valer (owner, 14-oct: la regla general manda
---      también en comisiones). Bolsa = todo lo cobrado en los contratos FIRMADOS de la familia: parcela + cartas + obra.
+-- QUÉ CAMBIA respecto a la migración 20261014012527_comisiones_regla_1nov:
+--   1. «Lo cobrado en un contrato de obra no sube a la parcela» deja de valer (owner, 14-oct-2026: la regla general de
+--      _unidad_cobro_cascada manda también en comisiones). Bolsa = todo lo cobrado en los contratos FIRMADOS de la
+--      familia: parcela + cartas + obra.
 --        parcela = least(precio parcela firmada, bolsa)
 --        obra    = least(precio obra firmada, bolsa - parcela)
 --   2. Solo cuentan contratos FIRMADOS, como hasta ahora (owner, 28-sep: «no se paga comisión sin contrato firmado»;
---      revisión previa de Administración, 14-oct). Con el Bloqueo firmado y el dinero apuntado en una Construcción aún
---      sin firmar, la parcela no avanza hasta que se firme la Construcción: lento, pero no se puede deshacer al revés.
---   3. GUARDA NUEVA (Administración, 14-oct): si la venta tiene un Bloqueo de Parcela vivo SIN firmar, lo cobrado en
---      obra NO cuenta todavía como obra. Sin ella, una Construcción firmada con el 25 % cobrado devengaría, y al firmarse
---      el Bloqueo ese dinero pasaría a llenar la parcela con la comisión de obra ya pagada (un devengo pagado no se
---      revierte). Hoy hay 0 ventas en ese estado. Una venta sin ningún Bloqueo (obra suelta) sigue como hasta ahora.
---   Se mantienen: la carta no suma en ninguna base, adenda = obra, sin parcela firmada no hay cascada.
---
--- AL APLICARLA: copiarla a supabase/migrations/<fecha>_comisiones_1nov_primero_parcela.sql, actualizar
--- contracts/sql/prueba_comisiones_1nov.sql (casos 1–10 y C1–C5: con la bolsa única la parcela del laboratorio pasa de
--- 29.500 a 49.500 cobrados; C4b cambia de sentido; caso nuevo para la guarda) y contracts/sql/comisiones_1nov_imputacion.sql
--- (la regla «a mano» de su CTE `esperado`), y pasar las dos.
+--      confirmado por el owner el 14-oct para F3, recomendación de Administración). Con el Bloqueo firmado y el dinero
+--      apuntado en una Construcción aún sin firmar, la parcela no avanza hasta que se firme la Construcción: lento, pero
+--      un devengo pagado no se puede deshacer y al revés sí se recupera.
+--   3. GUARDA NUEVA (Administración, 14-oct): sin parcela firmada, si la venta tiene un Bloqueo de Parcela VIVO SIN
+--      FIRMAR (raíz o hijo, no liberado), lo cobrado en obra NO cuenta todavía como obra. Sin ella, una Construcción
+--      firmada con el 25 % cobrado devengaría, y al firmarse el Bloqueo ese dinero pasaría a llenar la parcela con la
+--      comisión de obra ya pagada. Mira cualquier Bloqueo de la familia (no solo la raíz, como la cascada) a propósito:
+--      aquí solo puede FRENAR un pago, nunca adelantarlo. Una venta sin ningún Bloqueo (obra suelta, raíz carta sin
+--      Bloqueo) sigue como hasta ahora: su obra cuenta lo cobrado en obra.
+--   Se mantienen: la carta no suma en ninguna BASE (su cobro sí es pago), adenda = obra (_comisiones_parte_obra), sin
+--   parcela firmada no hay cascada (la carta no desborda a obra), solo la moneda de la raíz, multimoneda = bandera.
 
 create or replace function public._comisiones_bases_firmadas(p_raiz uuid)
  returns table(suelo_firmado numeric, obra_firmada numeric, cobrado_suelo_firmado numeric, cobrado_obra_firmada numeric,
@@ -33,6 +30,20 @@ create or replace function public._comisiones_bases_firmadas(p_raiz uuid)
  stable security definer
  set search_path to ''
 as $function$
+  -- Regla del owner del 13-oct-2026 (ventas desde el 1-nov), con «primero la parcela» del 14-oct-2026 (F3).
+  -- Conjunto = familia de la raíz (raíz + hijos) FIRMADOS (bloqueados) y no liberados. Parte = _comisiones_parte_obra
+  -- (contrato_tipo_etapa.es_obra; adenda = obra; tipo sin fila = no obra).
+  -- BASES: las cartas de reserva (raíz o hija) no suman en ninguna («la carta no devenga comisiones»).
+  -- COBRADO (14-oct-2026, misma regla que _unidad_cobro_cascada):
+  --   bolsa   = cobrado en TODOS los contratos firmados de la familia (parcela + cartas + obra)
+  --   parcela = least(precio parcela firmada, bolsa)                 -- nunca > 100 %
+  --   obra    = least(precio obra firmada, bolsa - parcela)          -- nunca > 100 %
+  --   * Sin parcela firmada (precio 0) no hay cascada: la obra cuenta solo lo cobrado en obra (la carta es la señal de
+  --     una parcela que aún no existe), y además, si hay un Bloqueo de Parcela vivo SIN firmar en la familia, la obra
+  --     cuenta 0 (guarda F3): al firmarse, ese dinero llenaría la parcela con el devengo de obra ya pagado.
+  -- Columnas 5–7: el cobrado en bruto (para el snapshot y la trazabilidad: auditar la imputación).
+  -- MONEDA (13-oct-2026): solo cuentan contratos y cobros en la moneda de la raíz; multimoneda = la familia tiene algún
+  -- contrato firmado no liberado en otra moneda (el motor y el reconciliador no tocan entonces los tramos «firmados»).
   with r as (
     select c.moneda from public.contratos c where c.id = p_raiz
   ), fam as (

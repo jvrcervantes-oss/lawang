@@ -5,6 +5,10 @@
 -- Devuelve filas SOLO cuando algo está mal: la función no coincide con la regla, o alguna parte pasa del 100 %.
 -- Lo que se esperaba el 13-oct (cambia si entran cobros): 54 ventas, parcela >= 50 % = 20, obra >= 25 % = 4,
 -- imputado total 703.429,79 (consulta comentada al final).
+-- F3 (14-oct-2026): bolsa única (lo cobrado en obra también llena primero la parcela) y guarda del Bloqueo sin firmar.
+-- Medido el 14-oct con la regla nueva antes de aplicarla: 57 ventas, parcela >= 50 % = 21, obra >= 25 % = 3, imputado
+-- 703.429,79, 0 desacuerdos; solo RP00132 cambia de reparto (parcela 5.000 → 25.000, obra 20.000 → 0) y 0 ventas en el
+-- estado de la guarda (sin parcela firmada, con Bloqueo vivo sin firmar y obra firmada).
 -- 13-oct-2026 (consulta de Administración): parte = public._comisiones_parte_obra (adenda = obra, fuente única) y solo
 -- cuentan contratos, recibís y facturas en la moneda de la raíz; una venta multimoneda sale como fila (no debería haber).
 with raices as (
@@ -42,13 +46,22 @@ with raices as (
          coalesce(sum(cob.cobrado) filter (where cob.es_carta), 0)                         as cc
     from raices rz left join cob on cob.raiz = rz.raiz
    group by rz.raiz, rz.numero
+), guarda as (
+  -- F3 (14-oct-2026): Bloqueo de Parcela vivo sin firmar en la familia (raíz o hijo)
+  select rz.raiz, exists (select 1 from public.contratos c
+                           where (c.id = rz.raiz or c.contrato_padre_id = rz.raiz)
+                             and c.tipo = 'reserva_parcela' and not coalesce(c.bloqueado, false)
+                             and c.liberado_en is null) as bloqueo_sin_firmar
+    from raices rz
 ), esperado as (
+  -- F3 (14-oct-2026): bolsa única de la familia firmada (parcela + cartas + obra); primero la parcela, el resto a obra.
+  -- Sin parcela firmada: la obra cuenta lo cobrado en obra, salvo con un Bloqueo vivo sin firmar (entonces 0).
   select v.*,
-         case when v.p > 0 then greatest(least(v.p, v.cp + v.cc), 0) else 0 end as ip,
-         greatest(least(v.o, v.co + case when v.p > 0
-                                         then greatest(v.cp + v.cc - greatest(least(v.p, v.cp + v.cc), 0), 0)
-                                         else 0 end), 0) as io
-    from v
+         case when v.p > 0 then greatest(least(v.p, v.cp + v.cc + v.co), 0) else 0 end as ip,
+         greatest(least(v.o, case when v.p > 0 then v.cp + v.cc + v.co - greatest(least(v.p, v.cp + v.cc + v.co), 0)
+                                  when g.bloqueo_sin_firmar then 0
+                                  else v.co end), 0) as io
+    from v join guarda g on g.raiz = v.raiz
 )
 select x.numero, x.p, x.o, x.ip as esperado_parcela, x.io as esperado_obra,
        b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada
