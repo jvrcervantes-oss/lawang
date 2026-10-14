@@ -8403,11 +8403,15 @@
                ficha recién creada elegida. Solo ese valor fijo y una ruta escrita
                aquí —nunca una URL que venga en la barra (redirección abierta)—, y
                en la URL solo viaja el uuid que devuelve el servidor. */
-            var vuelta = new URLSearchParams(location.search).get('volver') === 'asistente'
-              && r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data);
+            var nuevoId = r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data) ? r.data : null;
+            var vuelta = new URLSearchParams(location.search).get('volver') === 'asistente' && nuevoId;
             setTimeout(function () {
               cerrar();
-              if (vuelta) location.href = '/contracts/app.html?nuevo=1&asistente=1&asistente_cliente=' + encodeURIComponent(r.data);
+              if (vuelta) location.href = '/contracts/app.html?nuevo=1&asistente=1&asistente_cliente=' + encodeURIComponent(nuevoId);
+              /* Si no, se abre la ficha recién creada (`?id=` de Clientes la abre sola): es la señal de que el alta salió
+                 bien. Antes la página volvía a la lista sin decir nada y un agente podía repetir el alta (recorrido de
+                 un agente de prueba, 14-oct-2026). Misma página, solo el uuid que devuelve el servidor. */
+              else if (nuevoId) location.href = location.pathname + '?id=' + encodeURIComponent(nuevoId);
               else location.reload();
             }, 750);
         }
