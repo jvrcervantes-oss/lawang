@@ -132,6 +132,14 @@ MENU.forEach(s => s.entradas.forEach(e => {
   Object.keys(dePanel).forEach(k => { if (!dePanel[k]) errores.push(`PANEL_CONTROL_SUPER: «${k}» no lleva solo: la vería un super de empresa`); });
   if (!/function veSolo\(solo, ficha\)[\s\S]*esPropietario[\s\S]*esSuperGlobal/.test(nav)) errores.push('nav.js: falta veSolo con esPropietario y esSuperGlobal');
 }
+/* «Clientes» junto a «Contratos» (14-oct-2026, owner): es por donde empieza una venta y al final del menú no se veía sin bajar.
+   El orden vive en MENU_V4 y recablea() mueve el enlace que dibuja cada página (subeClientes): las dos mitades, o vuelve abajo. */
+{
+  const sec = MENU.filter(s => s.entradas.some(e => e.path === 'compradores'))[0];
+  const i = sec ? sec.entradas.findIndex(e => e.path === 'compradores') : -1;
+  if (!sec || !sec.entradas[i + 1] || sec.entradas[i + 1].path !== 'contratos') errores.push('MENU_V4: «Clientes» tiene que ir justo antes de «Contratos»');
+  if (!/forEach\(subeClientes\)/.test(nav)) errores.push('nav.js: recablea() ya no llama a subeClientes (el menú volvería a pintar «Clientes» al final)');
+}
 const dup = enMenu.filter((k, i) => enMenu.indexOf(k) !== i);
 if (dup.length) errores.push('MENU_V4: casillas en dos sitios del menú: ' + dup.join(', '));
 PERMISOS.filter(k => enMenu.indexOf(k) === -1).forEach(k => errores.push(`«${k}» existe en LW_PERMISOS y MENU_V4 no la sitúa: en Usuarios saldría en «Otras»`));
