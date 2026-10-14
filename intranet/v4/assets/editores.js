@@ -3467,7 +3467,9 @@
        archivado como enviado. Se compara con lo GUARDADO (el total de la fila y, en la factura, sus líneas: concepto e importe)
        y, si difiere, los dos se apagan hasta guardar. No se compara con «lo que había al abrir»: la barra se monta antes que
        los campos y el contrato se recarga después. El arreglo de fondo (el PDF del correo hecho en el servidor desde la fila
-       guardada) va aparte. */
+       guardada) va aparte: LAW-354, edge send-contract-email pintando desde la fila. En un documento de SOLO LECTURA no se
+       calcula (15-oct, revisor): no se puede guardar nada, y una factura vieja con el total calculado antes del 26-sep
+       apagaba PDF y correo para siempre. */
     function firmaLineas(ls) {
       return JSON.stringify((ls || []).map(function (l) {
         return [String((l && l.descripcion) || '').trim(), Number(lwParseImporte(l && l.importe)) || 0];
@@ -3475,7 +3477,7 @@
     }
     function repasa() {
       var vals = ctx.getVals(), total = totalDoc(vals), num = !!(ctx.saved && ctx.saved.numero);
-      var sucio = num && (
+      var sucio = num && !ctx.soloLectura && (
         (ctx.totalGuardado != null && Math.abs((Number(total) || 0) - (Number(ctx.totalGuardado) || 0)) > 0.005) ||
         (ctx.monedaGuardada != null && String(vals.moneda || '') !== String(ctx.monedaGuardada)) ||
         (Array.isArray(ctx.lineasGuardadas) && firmaLineas(vals.lineas) !== firmaLineas(ctx.lineasGuardadas)));
@@ -3966,7 +3968,7 @@
           // Sobre un documento NUEVO todos explican que primero hay que
           // emitir: las acciones reales llegan en el visor que abre «Emitir».
           repasaBarra = montaBarraDoc(piezas, {
-            sb: sb, getVals: recogeVals, esRecibi: false,
+            sb: sb, getVals: recogeVals, esRecibi: false, soloLectura: !!pre.soloLectura,
             // lo guardado, para apagar PDF y correo con cambios sin guardar (14-oct-2026)
             totalGuardado: existente ? existente.total : null,   // `total` en el select (15-oct, revisor: sin él no se comparaba)
             lineasGuardadas: existente && existente.datos && Array.isArray(existente.datos.lineas) ? existente.datos.lineas : null,
@@ -4440,7 +4442,7 @@
           // Barra de la previa del clásico (22-sep-2026): PDF, email y
           // registro; «Crear recibí» no, que de un recibí no sale otro.
           repasaBarra = montaBarraDoc(piezas, {
-            sb: sb, getVals: recogeVals, esRecibi: true,
+            sb: sb, getVals: recogeVals, esRecibi: true, soloLectura: !!pre.soloLectura,
             // lo guardado, para apagar PDF y correo con cambios sin guardar (14-oct-2026): en un recibí, su total
             totalGuardado: existente ? existente.total : null,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
@@ -5515,7 +5517,7 @@
           var v = rs[0].data || {};
           var uds = v.unidades || 0;
           var con = (rs[1].data || []).filter(function (c) { return c.proyecto_nombre === p.nombre; }).length;
-          // «<proyecto> — <parcela>» de ese proyecto también se renombra (renombrar_proyecto, 14-oct-2026): se cuenta
+          // «<proyecto> — <parcela>» de ese proyecto también se renombra (lo hace trg_proyecto_renombrado por proyecto_id): se cuenta
           var fac = (rs[2].data || []).filter(function (f) {
             return f.proyecto_nombre === p.nombre ||
               (p.id && f.proyecto_id === p.id && String(f.proyecto_nombre || '').indexOf(p.nombre + ' ') === 0);
