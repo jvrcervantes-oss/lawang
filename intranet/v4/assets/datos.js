@@ -636,6 +636,28 @@
     return p;
   }
 
+  /* Lo cobrado POR CONTRATO con la regla «primero la parcela, luego la obra» (owner, 14-oct-2026; F2): la base lo da ya
+     repartido (contratos_cobrado_regla_equipo) — en el navegador no se recalcula. Lo usan las pantallas que deciden
+     cobro o deuda (Vencimientos). Si la RPC no existe (el maestro del ERP aún no tiene la regla) o falla, se cae a lo
+     cobrado por documento, nunca a 0, y `porRegla` lo dice para que la pantalla lo rotule. Devuelve null solo si fallan
+     las dos. `movidos`: contrato → lo suyo por documento, donde la regla cambia la cifra. */
+  function cobradoConRegla(sb) {
+    return vig(sb.rpc('contratos_cobrado_regla_equipo')).then(function (r) {
+      if (!r.error) {
+        var movidos = {};
+        (r.data || []).forEach(function (x) {
+          if (Math.abs((Number(x.cobrado) || 0) - (Number(x.cobrado_doc) || 0)) > 0.005) movidos[x.contrato_id] = Number(x.cobrado_doc) || 0;
+        });
+        return { filas: r.data || [], porRegla: true, movidos: movidos };
+      }
+      console.warn('[cobrado] sin la regla de la parcela, por contrato:', r.error);
+      return vig(sb.rpc('contratos_cobrado_equipo')).then(function (r2) {
+        if (r2.error) { fallo('cobrado', r2.error); return null; }
+        return { filas: r2.data || [], porRegla: false, movidos: {} };
+      });
+    });
+  }
+
   function q(p, nombre, cont) {
     return vig(p).then(function (r) {
       if (r.error) { fallo(nombre, r.error, cont); return null; }
@@ -1387,7 +1409,10 @@
         H.paso('Siguiente paso', sigPaso), 'resumen');
       if (hayCadena) {
         cuerpo += H.seccion(tx('Contratos de esta venta (%n)', { n: piezas.length }),
-          H.tabla(['Contrato', 'Tipo', 'Estado', 'Precio', 'Cobrado'], piezas.map(function (x) {
+          /* «Cobrado en este contrato»: son los recibís colgados de CADA documento. La venta la reparte la regla
+             (primero la parcela, luego la obra) y Proyectos enseña ese reparto; sin el rótulo, en una venta como SH-1
+             (41.620 en un Bloqueo de 25.000) esta tabla y Proyectos parecían contradecirse (Administración, F2). */
+          H.tabla(['Contrato', 'Tipo', 'Estado', 'Precio', 'Cobrado en este contrato'], piezas.map(function (x) {
             var st = estadoPieza(x), esEste = x.id === c.id;
             return [esEste ? '<b>' + esc(x.numero || '—') + '</b> <span style="font-size:11px;color:#8A8474">' + esc(tx('esta ficha')) + '</span>'
                            : '<a href="#" data-lw-ficha-contrato="' + esc(x.id) + '" style="color:#104C4F;font-weight:600;text-decoration:underline">' + esc(x.numero || '—') + '</a>',
@@ -3677,7 +3702,8 @@
               var cts = r[0].data || [];
               var facs = (r[1] && r[1].data) || [];
               var docs = (r[2] && r[2].data) || [];
-              var tContratos = cts.length ? H.tabla(['Nº', 'Tipo', 'Estado', 'Precio', 'Cobrado'], cts.map(function (x) {
+              // Por documento a propósito (F2, 14-oct-2026): ver «Contratos de esta venta» en la ficha del contrato.
+              var tContratos = cts.length ? H.tabla(['Nº', 'Tipo', 'Estado', 'Precio', 'Cobrado en este contrato'], cts.map(function (x) {
                 return [esc(x.numero || tx('borrador')), esc(tipoC(x.tipo)), esc(x.bloqueado ? tx('Firmado') : tx('Borrador')),
                   (!esPre(x.tipo) && x.precio_total != null) ? esc(fmt(Number(x.precio_total), x.moneda)) : '—',
                   esc(fmt(cobId[x.id] || 0, x.moneda))];
@@ -4079,6 +4105,8 @@
       var MONEDA = 'EUR', FILTRO = 'atencion', PAGINA = 0;
       var POR_PAGINA = 25;
       var RAW = null, MODELO = null, FACTURAS = [];
+      // REGLA: lo cobrado viene con la regla de la parcela; MOVIDOS: contrato → su cobrado por documento, si la regla lo cambia.
+      var REGLA = true, MOVIDOS = {};
 
       // Mismos 5 tramos que la clásica (index.html:586-591) — pura lectura de
       // `f`, sin aritmética nueva.
@@ -4102,7 +4130,9 @@
           return Promise.all([
             // `soc`: la sociedad firmante guardada en el contrato, igual que la clásica (index.html:335).
             q(sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at,soc:datos_fields->>sociedad_firmante').limit(1000), 'contratos'),
-            vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { if (r.error) { fallo('cobrado', r.error); return null; } return r.data || []; }),
+            // Con la regla «primero la parcela» (F2, 14-oct-2026): sin ella, SH-1 salía con 41.620 en un Bloqueo de 25.000
+            // y los hitos de su Construcción «vencidos» con el dinero en caja.
+            cobradoConRegla(sb),
             q(sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota,factura_id,no_facturar').limit(3000), 'vencimientos'),
             // Facturas con vencimiento propio (criterio S15): mismo `venc` calculado que la clásica (index.html:338).
             q(sb.rpc('facturas_equipo').select('numero,tipo,sociedad,cliente_nombre,total,moneda,anulada,created_at,venc:datos->fields->>fecha_vencimiento' + colsSerie()).limit(1000), 'facturas de vencimiento propio')
@@ -4113,7 +4143,9 @@
           var cs = r[0], cb = r[1], vs = r[2], fs = r[3];
           if (!cs || !vs) return;
           var cobradoPorId = {};
-          (cb || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
+          ((cb && cb.filas) || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
+          REGLA = cb ? cb.porRegla : true;
+          MOVIDOS = (cb && cb.movidos) || {};
           // la rectificativa (ERP maestro) hereda la fecha de vencimiento de su original, pero no es algo que cobrar
           FACTURAS = (fs || []).filter(function (f) { return !f.anulada && !f.rectifica_id && f.venc && f.tipo !== 'recibi'; });
           RAW = { hoyISO: hoy, contratos: cs, cobradoPorId: cobradoPorId, vencimientos: vs };
@@ -4315,7 +4347,8 @@
         var entrada = FILTROS.filter(function (x) { return x[0] === FILTRO; })[0] || FILTROS[4];
         var filas = m.filas.filter(entrada[2]);
         var titulo = document.getElementById('venc-tabla-titulo');
-        if (titulo) titulo.textContent = ts(entrada[1]) + ' · ' + filas.length;
+        if (titulo) titulo.textContent = ts(entrada[1]) + ' · ' + filas.length
+          + (REGLA ? '' : ' · ' + ts('cobrado por contrato, sin la regla de la parcela'));
         var tbody = document.getElementById('venc-tbody');
         var pager = document.getElementById('venc-pager');
         var resumen = document.getElementById('venc-resumen');
@@ -4343,7 +4376,12 @@
           var tag = ESTADO_TAG[f.estado] || [f.estado, ''];
           var estadoHtml = pill(tag[0], tag[1])
             + (f.factura_id ? ' ' + pill('Facturada', 'ok') : '')
-            + (f.no_facturar ? ' ' + pill('Sin auto', '') : '');
+            + (f.no_facturar ? ' ' + pill('Sin auto', '') : '')
+            /* La regla movió lo cobrado de este contrato: lo cubierto no es lo que dicen sus recibís (Administración,
+               revisión #335). Se dice en la fila para que nadie lo lea como un error de la factura. */
+            + (MOVIDOS.hasOwnProperty(f.contrato.id)
+                ? ' <span title="' + esc(tx('Cobrado en este contrato (recibís aplicados a este documento): %c. Lo cubierto sigue la regla: primero la parcela, luego la obra.', { c: fmt(MOVIDOS[f.contrato.id], MONEDA) })) + '">' + pill('Reasignado por la regla', '') + '</span>'
+                : '');
           var cubiertoHtml = f.cubierto ? esc(fmt(f.cubierto, MONEDA)) : '<span class="text-control-border">—</span>';
           var fechaTxt = f.fecha ? esc(fFecha(f.fecha)) : '<span class="text-control-border">' + esc(ts('sin fecha')) + '</span>';
           return '<tr class="hover:bg-surface-container-low/70 transition-colors border-t border-surface-container-high/40 cursor-pointer" data-vid="' + esc(f.id) + '">'
