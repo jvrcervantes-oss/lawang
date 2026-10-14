@@ -4469,6 +4469,9 @@
       // firmado combinado por proyecto (para la barra sencilla de la tarjeta).
       // COVER_P: URL firmada de la foto de portada, si hay una subida.
       var FAM_P = {}, FIRM_P = {}, COVER_P = {};
+      // RAIZ_C: contrato -> raíz de su venta (el padre, o él mismo). Lo usa el cajón para casar cada
+      // parcela con la cadena de FAM_P de la que cuelga (14-oct-2026, «primero la parcela»).
+      var RAIZ_C = {};
       // COMPRADOR_ID_POR_CONTRATO: contrato_id -> client_id del Adquiriente I,
       // para el enlace directo a /compradores/ de cada parcela (11-sep-2026).
       var COMPRADOR_ID_POR_CONTRATO = {};
@@ -4807,7 +4810,7 @@
            `unidades` (catálogo, venda o no); `fam.parcela/obra` son lo firmado
            y lo cobrado por contratos de esa familia. Dos colores en la misma
            barra: oscuro = cobrado, claro = firmado sin cobrar todavía. */
-        var fam = FAM_P[elegido.nombre] || { parcela: { firmado: 0, cobrado: 0 }, obra: { firmado: 0, cobrado: 0 }, sinAtribuir: 0 };
+        var fam = FAM_P[elegido.nombre] || { parcela: { firmado: 0, cobrado: 0 }, obra: { firmado: 0, cobrado: 0 }, sinAtribuir: 0, cadenas: {} };
         var tieneSplit = (d.suelo || 0) + (d.obra || 0) > 0;
         var cajaDoble = document.getElementById('cajon-recaudacion-doble');
         var cajaSimple = document.getElementById('cajon-recaudacion-simple');
@@ -5000,9 +5003,13 @@
 
         /* La lista de unidades del cajón, con datos reales del proyecto
            elegido. `unidades_estado` es la vista que ya trae el contrato, el
-           comprador y el cobrado partido en suelo/obra (unidad_parte_cobrada_split,
+           comprador y el cobrado partido en suelo/obra (unidad_cobro_reparto,
            11-sep-2026) — no se vuelve a cruzar ni repartir aquí a mano. */
-        q(sb.from('unidades_estado').select('id,codigo,proyecto,tipo,modelo,estado,precio,precio_guardado,precio_suelo,precio_construccion,superficie_m2,moneda,notas,fase_masterplan,zona_masterplan,contrato_id,contrato_numero,comprador_nombre,contrato_firmado,contrato_es_carta,cobrado_suelo,cobrado_obra,obra_firmada,contrato_creado_por')
+        /* `*` y no la lista de columnas (14-oct-2026): la vista trae además `suelo_pactado` y `obra_pactada`
+           (el precio de CONTRATO de cada parte) solo en las bases que ya tienen la regla «primero la parcela».
+           Esta pantalla es común a varias bases: nombrarlas haría fallar la consulta entera donde aún no
+           existen. Sin ellas se cae al precio de catálogo, como antes (precioParte). */
+        q(sb.from('unidades_estado').select('*')
             // `codigo_orden` (16-sep-2026): orden NATURAL calculado por la base (columna
             // generada de `unidades`). `.order('codigo')` era orden de texto —SH-10 antes
             // que SH-2— y con `.limit(60)` sobre 228 parcelas Postgres devolvía las 60
@@ -5033,7 +5040,7 @@
             // familia entera como comprometida, sin inventar un prorrateo que
             // la base no da. El cobrado SÍ es la cifra exacta —
             // cobrado_suelo/cobrado_obra vienen partidos de
-            // unidad_parte_cobrada_split, no se reparten aquí.
+            // unidad_cobro_reparto, no se reparten aquí.
             var barraUnidad = function (f, clave, cartera, cobrado, firmado, moneda, carta) {
               var firmPct = cartera ? (firmado ? 100 : 0) : 0;
               /* Carta de Reserva firmada (24-sep-2026, owner, S1-H9 Horizon): el
@@ -5122,8 +5129,8 @@
                 if (u.contrato_numero) { elK.href = '/intranet/v4/contratos/?contrato=' + encodeURIComponent(u.contrato_numero); elK.target = '_blank'; }
                 else { elK.removeAttribute('href'); elK.removeAttribute('target'); elK.style.cursor = 'default'; elK.style.textDecoration = 'none'; }
               }
-              barraUnidad(f, 'suelo', Number(u.precio_suelo) || 0, u.cobrado_suelo, !!u.contrato_firmado, u.moneda, u.contrato_es_carta);
-              barraUnidad(f, 'obra', Number(u.precio_construccion) || 0, u.cobrado_obra, !!u.obra_firmada, u.moneda);
+              barraUnidad(f, 'suelo', precioParte(u, 'suelo') || 0, u.cobrado_suelo, !!u.contrato_firmado, u.moneda, u.contrato_es_carta);
+              barraUnidad(f, 'obra', precioParte(u, 'obra') || 0, u.cobrado_obra, !!u.obra_firmada, u.moneda);
               // Agente que creó el contrato (11-sep-2026, encargo del owner: ver
               // de un vistazo qué agente hizo el contrato de cada unidad). Sin
               // ficha en `usuarios` (cuentas legacy) se enseña el email a secas.
@@ -5131,6 +5138,18 @@
               f.setAttribute('data-unidad-id', u.id);
               caja.appendChild(f);
             });
+            /* Barras Parcela / Construcción del PROYECTO con la regla «primero la parcela, luego la obra»
+               (owner, 14-oct-2026). Arriba se pintaron repartiendo lo cobrado por el TIPO del contrato que
+               lleva el recibí; ese reparto es justo lo que la regla corrige (un recibí colgado de la
+               Construcción paga antes la parcela). La regla vive en la base (_unidad_cobro_cascada) y aquí NO
+               se recalcula: de cada venta se toma el `cobrado_suelo` que la base ya dio a sus parcelas, y el
+               resto de lo cobrado en esa venta es obra. El total de la venta no cambia, solo su reparto. Una
+               venta sin parcela en esta lista (o con el cobro no visible) se queda repartida por tipo. */
+            if (tieneSplit && window.LW_V4.proyecto && window.LW_V4.proyecto.id === elegido.id) {
+              var reparto = repartoPorRegla(fam, uu);
+              barraFamilia('parcela', d.suelo || 0, { firmado: fam.parcela.firmado, cobrado: reparto.parcela });
+              barraFamilia('obra', d.obra || 0, { firmado: fam.obra.firmado, cobrado: reparto.obra });
+            }
             /* Socio de cada parcela (28-sep-2026, owner: «identificar al dueño de cada parcela»). SOLO admin: el
                reparto entre socios es interno y la base lo cierra a todo lo demás (socios_parcelas da 42501 a
                quien no es admin; tablas sin grants — migración 20260928013142). Por eso ni se pide si la ficha
@@ -5190,6 +5209,36 @@
       window.LW_V4.proyEstados = PROY_ESTADO_ETIQUETA;
       window.LW_V4.proyEstadoEtiqueta = etiquetaProyEstado;
 
+      /* Precio de una parte (suelo u obra) de una parcela: el de CONTRATO si la base lo da
+         (`suelo_pactado` / `obra_pactada`: el Bloqueo de Parcela y los contratos de obra), y si no el de
+         catálogo. Owner, 14-oct-2026: «usa el precio del contrato, el precio final, no el del catálogo».
+         La base ya devuelve el de catálogo cuando la venta aún no tiene contrato con precio. */
+      function precioParte(u, parte) {
+        var pactado = parte === 'suelo' ? u.suelo_pactado : u.obra_pactada;
+        var catalogo = parte === 'suelo' ? u.precio_suelo : u.precio_construccion;
+        var v = pactado != null ? pactado : catalogo;
+        return v != null ? Number(v) : null;
+      }
+      /* Lo cobrado del proyecto por familia, venta a venta. `fam.cadenas[raíz]` = lo cobrado en esa venta
+         según el tipo de contrato; `uu` = las parcelas con el `cobrado_suelo` que ya decidió la base. */
+      function repartoPorRegla(fam, uu) {
+        var cadenas = (fam && fam.cadenas) || {}, sueloDe = {};
+        (uu || []).forEach(function (u) {
+          if (!u.contrato_id || u.cobrado_suelo == null) return;
+          var r = RAIZ_C[u.contrato_id] || u.contrato_id;
+          if (!cadenas[r]) return;
+          sueloDe[r] = (sueloDe[r] || 0) + (Number(u.cobrado_suelo) || 0);
+        });
+        var out = { parcela: 0, obra: 0 };
+        Object.keys(cadenas).forEach(function (r) {
+          var total = cadenas[r].parcela + cadenas[r].obra;
+          if (sueloDe[r] == null) { out.parcela += cadenas[r].parcela; out.obra += cadenas[r].obra; return; }
+          var s = Math.min(sueloDe[r], total);
+          out.parcela += s; out.obra += total - s;
+        });
+        return out;
+      }
+
       /* Vista de detalle de UNA parcela, DENTRO del mismo cajón — patrón
          maestro→detalle, no un cajón anidado (Diseño, revisión previa
          16-sep-2026). Reutiliza la fila ya cacheada en UNIDADES_CAJON: la
@@ -5229,9 +5278,11 @@
           ? [u.fase_masterplan ? 'Fase ' + u.fase_masterplan : null, u.zona_masterplan ? 'Zona ' + u.zona_masterplan : null].filter(Boolean).join(' · ')
           : 'sin registrar');
         pon('dp-total', u.precio != null ? fmt(u.precio, u.moneda || 'EUR') : '—');
-        pon('dp-suelo', u.precio_suelo != null ? fmt(u.precio_suelo, u.moneda || 'EUR') + (u.cobrado_suelo == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_suelo, u.moneda || 'EUR')) : '—');
+        // Precio de CONTRATO de cada parte (14-oct-2026); el €/m² de abajo sigue siendo el de catálogo.
+        var dpSuelo = precioParte(u, 'suelo'), dpObra = precioParte(u, 'obra');
+        pon('dp-suelo', dpSuelo != null ? fmt(dpSuelo, u.moneda || 'EUR') + (u.cobrado_suelo == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_suelo, u.moneda || 'EUR')) : '—');
         pon('dp-suelo-m2', (u.precio_suelo != null && u.superficie_m2) ? fmt(u.precio_suelo / u.superficie_m2, u.moneda || 'EUR') + '/m²' : '—');
-        pon('dp-obra', u.precio_construccion != null ? fmt(u.precio_construccion, u.moneda || 'EUR') + (u.cobrado_obra == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_obra, u.moneda || 'EUR')) : 'sin construcción asociada');
+        pon('dp-obra', dpObra != null ? fmt(dpObra, u.moneda || 'EUR') + (u.cobrado_obra == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_obra, u.moneda || 'EUR')) : 'sin construcción asociada');
         /* El proyecto NO se oculta (23-sep-2026, owner): la parcela abre en un panel
            estrecho encima (estilo en proyectos/index.html) y el parcelario sigue
            detrás, en su sitio. Solo se sube el scroll del PANEL, no el del proyecto. */
@@ -6052,11 +6103,12 @@
           return null;
         }
         var cobPorId = {}; cobPorContrato.forEach(function (x) { cobPorId[x.contrato_id] = Number(x.cobrado) || 0; });
-        FAM_P = {}; FIRM_P = {};
+        FAM_P = {}; FIRM_P = {}; RAIZ_C = {};
         cts.forEach(function (c) {
+          RAIZ_C[c.id] = c.contrato_padre_id || c.id;
           if ((c.moneda || 'EUR') !== 'EUR') return;
           var k = c.proyecto_nombre || '';
-          var f = FAM_P[k] = FAM_P[k] || { parcela: { firmado: 0, cobrado: 0 }, obra: { firmado: 0, cobrado: 0 }, sinAtribuir: 0 };
+          var f = FAM_P[k] = FAM_P[k] || { parcela: { firmado: 0, cobrado: 0 }, obra: { firmado: 0, cobrado: 0 }, sinAtribuir: 0, cadenas: {} };
           var fam = familiaDe(c);
           var esPre = (typeof lwEsPreliminar === 'function') && lwEsPreliminar(c.tipo);
           var cobradoC = cobPorId[c.id] || 0;
@@ -6066,6 +6118,10 @@
               FIRM_P[k] = (FIRM_P[k] || 0) + (Number(c.precio_total) || 0);
             }
             f[fam].cobrado += cobradoC;
+            /* Lo mismo, por VENTA (raíz): el cajón lo necesita para aplicar «primero la parcela» venta a
+               venta cuando llegan las parcelas (repartoPorRegla). */
+            var cad = f.cadenas[RAIZ_C[c.id]] = f.cadenas[RAIZ_C[c.id]] || { parcela: 0, obra: 0 };
+            cad[fam] += cobradoC;
           } else {
             f.sinAtribuir += cobradoC;
           }
