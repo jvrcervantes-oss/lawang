@@ -5149,6 +5149,14 @@
               var reparto = repartoPorRegla(fam, uu);
               barraFamilia('parcela', d.suelo || 0, { firmado: fam.parcela.firmado, cobrado: reparto.parcela });
               barraFamilia('obra', d.obra || 0, { firmado: fam.obra.firmado, cobrado: reparto.obra });
+              var notaSin2 = document.getElementById('cajon-nota-sin-atribuir');
+              var sinAtr = Math.max(0, (fam.sinAtribuir || 0) - reparto.absorbido);
+              if (notaSin2) {
+                if (sinAtr > 0.005) {
+                  notaSin2.classList.remove('hidden');
+                  pon('d-sin-atribuir', fmt(sinAtr, 'EUR') + ' cobrados sin Bloqueo de Parcela o Construcción asociado todavía (p. ej. una Carta de Reserva suelta) — no entran en las barras de arriba.');
+                } else notaSin2.classList.add('hidden');
+              }
             }
             /* Socio de cada parcela (28-sep-2026, owner: «identificar al dueño de cada parcela»). SOLO admin: el
                reparto entre socios es interno y la base lo cierra a todo lo demás (socios_parcelas da 42501 a
@@ -5226,15 +5234,19 @@
         (uu || []).forEach(function (u) {
           if (!u.contrato_id || u.cobrado_suelo == null) return;
           var r = RAIZ_C[u.contrato_id] || u.contrato_id;
-          if (!cadenas[r]) return;
+          if (!cadenas[r] || !cadenas[r].conFamilia) return;
           sueloDe[r] = (sueloDe[r] || 0) + (Number(u.cobrado_suelo) || 0);
         });
-        var out = { parcela: 0, obra: 0 };
+        /* `absorbido` = lo que estaba en «sin atribuir» y la regla ya reparte (la Carta de una venta con Bloqueo):
+           quien pinta el aviso de «sin atribuir» lo descuenta, para no contarlo dos veces. */
+        var out = { parcela: 0, obra: 0, absorbido: 0 };
         Object.keys(cadenas).forEach(function (r) {
-          var total = cadenas[r].parcela + cadenas[r].obra;
+          if (!cadenas[r].conFamilia) return;   // venta solo con Carta: sigue en «sin atribuir»
           if (sueloDe[r] == null) { out.parcela += cadenas[r].parcela; out.obra += cadenas[r].obra; return; }
+          var otros = cadenas[r].otros || 0;
+          var total = cadenas[r].parcela + cadenas[r].obra + otros;
           var s = Math.min(sueloDe[r], total);
-          out.parcela += s; out.obra += total - s;
+          out.parcela += s; out.obra += total - s; out.absorbido += otros;
         });
         return out;
       }
@@ -5277,9 +5289,12 @@
         pon('dp-fase-zona', (u.fase_masterplan || u.zona_masterplan)
           ? [u.fase_masterplan ? 'Fase ' + u.fase_masterplan : null, u.zona_masterplan ? 'Zona ' + u.zona_masterplan : null].filter(Boolean).join(' · ')
           : 'sin registrar');
-        pon('dp-total', u.precio != null ? fmt(u.precio, u.moneda || 'EUR') : '—');
         // Precio de CONTRATO de cada parte (14-oct-2026); el €/m² de abajo sigue siendo el de catálogo.
         var dpSuelo = precioParte(u, 'suelo'), dpObra = precioParte(u, 'obra');
+        // El Total es la suma de las dos partes que se enseñan debajo: con el de catálogo arriba y los de contrato
+        // abajo, las tres cifras de la ficha no sumaban. Sin las dos partes, el precio de la parcela de siempre.
+        var dpTotal = (dpSuelo != null && dpObra != null) ? dpSuelo + dpObra : u.precio;
+        pon('dp-total', dpTotal != null ? fmt(dpTotal, u.moneda || 'EUR') : '—');
         pon('dp-suelo', dpSuelo != null ? fmt(dpSuelo, u.moneda || 'EUR') + (u.cobrado_suelo == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_suelo, u.moneda || 'EUR')) : '—');
         pon('dp-suelo-m2', (u.precio_suelo != null && u.superficie_m2) ? fmt(u.precio_suelo / u.superficie_m2, u.moneda || 'EUR') + '/m²' : '—');
         pon('dp-obra', dpObra != null ? fmt(dpObra, u.moneda || 'EUR') + (u.cobrado_obra == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_obra, u.moneda || 'EUR')) : 'sin construcción asociada');
@@ -6120,10 +6135,15 @@
             f[fam].cobrado += cobradoC;
             /* Lo mismo, por VENTA (raíz): el cajón lo necesita para aplicar «primero la parcela» venta a
                venta cuando llegan las parcelas (repartoPorRegla). */
-            var cad = f.cadenas[RAIZ_C[c.id]] = f.cadenas[RAIZ_C[c.id]] || { parcela: 0, obra: 0 };
+            var cad = f.cadenas[RAIZ_C[c.id]] = f.cadenas[RAIZ_C[c.id]] || { parcela: 0, obra: 0, otros: 0, conFamilia: false };
             cad[fam] += cobradoC;
+            cad.conFamilia = true;
           } else {
             f.sinAtribuir += cobradoC;
+            /* Lo cobrado en un contrato sin familia (una Carta de Reserva) de una venta: si esa venta tiene ya su
+               Bloqueo o su Construcción, la base lo cuenta en su reparto y el cajón también (repartoPorRegla). */
+            var cadO = f.cadenas[RAIZ_C[c.id]] = f.cadenas[RAIZ_C[c.id]] || { parcela: 0, obra: 0, otros: 0, conFamilia: false };
+            cadO.otros += cobradoC;
           }
         });
 

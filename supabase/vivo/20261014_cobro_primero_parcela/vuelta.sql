@@ -1,4 +1,14 @@
--- VUELTA ATRÁS de supabase/migrations/20261014024234_cobro_primero_parcela.sql («primero la parcela, luego la obra»).
+-- VUELTA ATRÁS de supabase/migrations/20261014024234_cobro_primero_parcela.sql y de su 2.ª parte,
+-- 20261014032925_cobro_primero_parcela_contrato.sql («primero la parcela, luego la obra»).
+-- ENSAYADA EN PARTE el 14-oct-2026 en producción, dentro de un DO que acaba en raise: los permisos, el disparador
+-- neutralizado, la vista y el parche inverso de comisiones. Después de eso un admin lee unidades_estado con el rol
+-- authenticated (565 filas con su cobro), lw_lector la lee sin error y unidad_cobro_reparto queda cerrada (42501).
+-- Antes de ese ensayo este fichero dejaba la vista con 42501 para todo el equipo: unidad_parte_cobrada_split se
+-- quedaba sin permiso (revisor de código).
+-- LO QUE NO SE ENSAYÓ: los tres cuerpos antiguos de abajo (unidad_parte_cobrada_interno, _split y
+-- unidad_cumple_estado). Son el texto literal de pg_get_functiondef de esa mañana, pero el guardia del estudio no
+-- deja pasarlos por el MCP porque leen `contratos` por join. Ejecutar este fichero de verdad pide, por lo mismo, la
+-- marca del owner; y deshacer una regla de negocio en producción es decisión suya de todos modos.
 -- Deja el reparto de lo cobrado como estaba el 14-oct-2026 por la mañana: el recibí cuenta como «suelo» si cuelga del
 -- contrato raíz y como «obra» si cuelga de un hijo. Las cuatro funciones se reponen con el texto que devolvía
 -- pg_get_functiondef ese día (copiado aquí: este fichero no depende de leer otro).
@@ -6,7 +16,8 @@
 -- Qué NO deshace, y por qué:
 --   * Las dos columnas nuevas de la vista (suelo_pactado, obra_pactada) se quedan, vacías: quitar columnas a una vista
 --     obliga a borrarla y volver a darle permisos. La pantalla, sin ellas, usa el precio de catálogo.
---   * _unidad_cobro_cascada y unidad_cobro_reparto se quedan sin llamador (inofensivas). Retirarlas es un drop aparte.
+--   * _unidad_cobro_cascada y unidad_cobro_reparto se quedan sin llamador y cerradas; el trigger
+--     trg_zz_revalua_unidad_por_contrato se queda puesto pero sin efecto. Retirarlos es un drop aparte.
 --   * Los estados de parcela y los devengos de comisión que la regla nueva haya movido NO vuelven solos: son datos.
 --     Antes de ejecutar esto, listar qué cambió desde el 14-oct (unidades_estado_historial y comisiones_devengadas con
 --     disparado_en >= '2026-10-14') y decidir con el owner qué se hace con cada uno.
@@ -177,6 +188,26 @@ as $function$
   end;
 $function$;
 
+-- PERMISOS. La migración quitó a unidad_parte_cobrada_split el permiso de authenticated y lw_lector, y
+-- `create or replace` conserva la ACL: sin devolvérselo, la vista (security_invoker) da 42501 a todo el equipo.
+grant execute on function public.unidad_parte_cobrada_split(uuid) to authenticated, lw_lector;
+-- unidad_cobro_reparto se queda sin llamador: cerrada.
+revoke execute on function public.unidad_cobro_reparto(uuid) from authenticated, lw_lector;
+
+-- EL DISPARADOR de la 2.ª parte se neutraliza (su función pasa a no hacer nada): con el estado medido otra vez
+-- contra el catálogo, quien revisa la parcela es trg_revalua_unidad_por_precio, como antes. Quitar el trigger del
+-- todo es un borrado aparte.
+create or replace function public.trg_revalua_unidad_por_contrato()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+begin
+  return new;   -- neutralizado por vuelta.sql
+end;
+$function$;
+
 -- La vista vuelve a leer unidad_parte_cobrada_split; las dos columnas nuevas se quedan, vacías.
 create or replace view public.unidades_estado with (security_invoker = true) as
  SELECT u.id,
@@ -229,7 +260,7 @@ declare
   v_def text;
   m1 text := 'public._unidad_cobro_cascada(u.id) cp';
   r1 text := 'public.unidad_parte_cobrada_interno(u.id) cp';
-  m2 text := 'coalesce(sum(coalesce(cp.suelo_precio, u.precio_suelo)), 0)';
+  m2 text := 'coalesce(sum(case when cp.suelo_de_contrato then cp.suelo_precio else u.precio_suelo end), 0)';   -- la de la 2.ª parte
   r2 text := 'coalesce(sum(u.precio_suelo), 0)';
   m3 text := 'coalesce(sum(coalesce(cp.obra_precio, u.precio_construccion)), 0)';
   r3 text := 'coalesce(sum(u.precio_construccion), 0)';
