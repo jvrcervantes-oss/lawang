@@ -86,6 +86,7 @@ $TELEFONOS = [
 
 $portada  = $DALI['thumb'];
 $ogImg    = $portada ?? '/assets/img/lugar/costa.webp';
+$ogImgAbs = (strpos($ogImg, 'http') === 0) ? $ogImg : 'https://lawangproperties.com' . $ogImg;
 
 // Payload del configurador. Lista blanca campo a campo, con los precios YA resueltos en
 // servidor: el JS pinta, no calcula precios de catálogo (revisión previa Seguridad+Diseño,
@@ -130,7 +131,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <meta property="og:title" content="100% Freehold Architectural Villas in Bali &amp; Sumba">
 <meta property="og:description" content="Turnkey villas in Bali &amp; Sumba. Fixed price, land ready, permits cleared. From <?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?>.">
 <meta property="og:url" content="https://lawangproperties.com/dali">
-<meta property="og:image" content="https://lawangproperties.com<?= lw_e($ogImg) ?>">
+<meta property="og:image" content="<?= lw_e($ogImgAbs) ?>">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 
