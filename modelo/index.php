@@ -13,7 +13,12 @@
  * Cambia: la piel, y tres cosas deliberadas del <script> — urlBase apunta a /modelo/v2/<id>
  * (el motor hace replaceState sobre esa ruta), NO se dispara ViewContent (una pagina de prueba
  * no debe contaminar las metricas de la campaña) y la barra se vuelve solida al bajar.
- * SEO: noindex SIEMPRE y la canonica apunta a la ficha de verdad (/modelo/<id>).
+ * SEO (solo de aquella v2 de prueba): noindex SIEMPRE y canonica a la ficha de verdad.
+ * YA NO APLICA. Al publicarla el 24-sep ese noindex fijo se arrastro sin querer (el
+ * propio commit 79ecf0340 lo situaba en la v1) y las fichas publicadas pidieron a Google
+ * no salir hasta el 14-oct-2026 (owner: arreglarlo). Regla vigente, la de siempre desde
+ * el 30-jul: solo lleva noindex la ficha SIN precio cerrado. La canonica no cambia.
+ * sitemap.php lista las mismas (con precio): si cambia una condicion, cambia la otra.
  *
  * --- docblock original de index.php ---
  * Landing de modelo de villa — /modelo/<id> (regla de reescritura en .htaccess).
@@ -290,7 +295,9 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and price, configured live.">
+<?php if (!$precio): /* sin precio cerrado no se indexa; con precio SI (14-oct-2026, ver cabecera) */ ?>
 <meta name="robots" content="noindex, nofollow">
+<?php endif; ?>
 <link rel="canonical" href="https://lawangproperties.com/<?= lw_e($slugPath) ?>">
 <link rel="icon" href="/favicon.png">
 <meta property="og:title" content="<?= lw_e($villa) ?> · Turnkey villa in Bali">
