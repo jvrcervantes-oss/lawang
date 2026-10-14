@@ -11,7 +11,7 @@
 --   · sincronizar_compradores enlazaba por id sin comprobar, o por pasaporte/correo en toda `clients`.
 --   La pantalla YA no lo ofrece desde el 7-oct (comprador_ficha vacio -> «Esa ficha es de otra empresa o de otro comercial»): esto
 --   pone en el servidor la regla que la pantalla ya aplica. Recuento sin datos personales (14-oct): 291 contratos con cliente enlazado
---   y autor con usuario; 30 con cliente de otro propietario; 7 cuyo cliente su autor ACTIVO no ve hoy (5 de 3 agentes, 2 de 1 project
+--   y autor con usuario; 29 con cliente de otro propietario; 7 cuyo cliente su autor ACTIVO no ve hoy (5 de 3 agentes, 2 de 1 project
 --   manager); desde el 7-oct, 0 de agentes.
 -- QUE HACE (variante A, la recomendada por Seguridad; la B, «contratar al cliente de otro con tope y registro», esta escrita aparte y
 --   SIN aplicar en supabase/reversion_espejo_cliente_visible/VARIANTE_B_contratar_ajeno_con_registro.sql: la regla la decide el owner):
