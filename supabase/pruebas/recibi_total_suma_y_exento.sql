@@ -110,8 +110,14 @@ begin
       values ('ZZ-RT-K2', 'contrato_general', pL, 'IDR', 100000, '{"hitos":[]}', a.em) returning id into k2;
     insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
       values ('factura', 'ZZ-RT-F6', 'zz_rt', k2, 1000, 'IDR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f6;
-    -- Seguridad (15-oct): dos contratos EUR del MISMO comprador (mismo adq1_email, contrato_identificadores), un historico sin
-    -- justificante en K3, una factura en K3 (F10) y otra en K4 (F9)
+  exception when others then
+    raise exception using message = replace(c_fin, '%', pg_temp.l(false, 'P0 montaje: ' || sqlstate || ' ' || left(sqlerrm, 300)));
+  end;
+
+  -- Seguridad (15-oct): montaje de H8 en su propio bloque (contratos con datos.fields.adq1_email, que ningun otro contrato de
+  -- esta prueba lleva): si falla, solo caen H8*, no la bateria. Dos contratos EUR del MISMO comprador (contrato_identificadores),
+  -- un historico sin justificante en K3, una factura en K3 (F10) y otra en K4 (F9)
+  begin
     insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
       values ('ZZ-RT-K3', 'contrato_general', pL, 'EUR', 100000, '{"hitos":[], "fields": {"adq1_email": "zz-rt-comprador@prueba.invalid"}}', a.em) returning id into k3;
     insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
@@ -123,7 +129,8 @@ begin
     insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
       values ('factura', 'ZZ-RT-F9', 'zz_rt', k4, 400, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f9;
   exception when others then
-    raise exception using message = replace(c_fin, '%', pg_temp.l(false, 'P0 montaje: ' || sqlstate || ' ' || left(sqlerrm, 300)));
+    k3 := null;
+    r := r || pg_temp.l(false, 'P1 montaje de H8: ' || sqlstate || ' ' || left(sqlerrm, 300));
   end;
 
   -- ============================================================ A4 · el total es la suma de lo aplicado
@@ -273,22 +280,24 @@ begin
                       'H7 un historico que ya tiene justificante no se guarda sin el: se rechaza y sigue con su justificante y sus 500 (' || left(v, 70) || ')');
 
   -- Seguridad (15-oct), cambio 2: un historico sin justificante solo salda facturas de SU contrato
-  r := r || pg_temp.l(k3 <> k4 and public.contratos_mismo_comprador(k3, k4),
-                      'H8pre K3 y K4 son contratos distintos del MISMO comprador (si no, H8 probaria la rama de otro comprador)');
-  s0 := pg_temp.serie();
-  v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f9, 'importe', 400)));
-  r := r || pg_temp.l(v like 'ERR23514:el recib% hist%rico ZZ-RT-RH3 no tiene justificante%sobre facturas de su contrato%'
-                      and not exists (select 1 from public.recibi_aplicaciones where recibi_id = rh3)
-                      and pg_temp.serie() = s0,
-                      'H8 un historico sin justificante no salda una factura de OTRO contrato del mismo comprador: se rechaza, no aplica nada y no gasta numero (' || left(v, 70) || ')');
-  v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f10, 'importe', 400)));
-  r := r || pg_temp.l(v = rh3::text
-                      and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh3 and factura_id = f10) = 400,
-                      'H8b el mismo historico sin justificante, a una factura de SU contrato, entra (' || left(v, 70) || ')');
-  v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f9, 'importe', 400)));
-  r := r || pg_temp.l(v = rh3::text
-                      and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh3 and factura_id = f9) = 400,
-                      'H8c con justificante, el otro contrato del mismo comprador sigue entrando (' || left(v, 70) || ')');
+  if k3 is not null then
+    r := r || pg_temp.l(k3 <> k4 and public.contratos_mismo_comprador(k3, k4),
+                        'H8pre K3 y K4 son contratos distintos del MISMO comprador (si no, H8 probaria la rama de otro comprador)');
+    s0 := pg_temp.serie();
+    v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f9, 'importe', 400)));
+    r := r || pg_temp.l(v like 'ERR23514:el recib% hist%rico ZZ-RT-RH3 no tiene justificante%sobre facturas de su contrato%'
+                        and not exists (select 1 from public.recibi_aplicaciones where recibi_id = rh3)
+                        and pg_temp.serie() = s0,
+                        'H8 un historico sin justificante no salda una factura de OTRO contrato del mismo comprador: se rechaza, no aplica nada y no gasta numero (' || left(v, 70) || ')');
+    v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f10, 'importe', 400)));
+    r := r || pg_temp.l(v = rh3::text
+                        and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh3 and factura_id = f10) = 400,
+                        'H8b el mismo historico sin justificante, a una factura de SU contrato, entra (' || left(v, 70) || ')');
+    v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f9, 'importe', 400)));
+    r := r || pg_temp.l(v = rh3::text
+                        and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh3 and factura_id = f9) = 400,
+                        'H8c con justificante, el otro contrato del mismo comprador sigue entrando (' || left(v, 70) || ')');
+  end if;
 
   raise exception using message = replace(c_fin, '%', r);
 end $todo$;

@@ -27,7 +27,10 @@
 --         cuenta por f.contrato_id: creaba cobrado sin evidencia en el otro contrato (puede marcar la parcela vendida y mover
 --         comisiones). La misma marca cierra, con la exencion activa, los caminos de super_admin a factura huerfana y a otro
 --         comprador (v_factura_contrato null o distinto tambien es «otro contrato»). Con justificante esos caminos siguen igual.
---         Caso H8 (y H8b, su SI). El rechazo va antes del insert/update; la exencion solo existe al EDITAR (p_id), que no numera.
+--         Caso H8 (y H8b, su SI; H8c con justificante). El rechazo va antes del update, y la exencion solo existe al EDITAR
+--         (v_exento solo se pone con p_id), que no numera: trg_set_factura_numero es BEFORE INSERT
+--         (20260922170000_rescate_objetos_sin_migracion.sql:409) y set_factura_numero solo numera si numero is null
+--         (20260917082716_facturas_emisor_congelado_y_permisos.sql:57). H8 lo mide igual (la serie no se mueve).
 --   A1 · NUMERACION: TODAS las aplicaciones se validan antes del insert, para que un rechazo no gaste numero (nextval de
 --     facturas_recibi_seq en trg_set_factura_numero, 20260917082716_facturas_emisor_congelado_y_permisos.sql:60). Reduce los
 --     huecos, no los evita (nextval se gasta igual si falla algo despues). registra_privilegio va despues de escribir (necesita el
@@ -70,20 +73,26 @@
 --   (authenticated si, anon no, service_role si, medido el 14-oct); el bloque $cierre$ lo comprueba.
 -- ANTES DE APLICAR EN LA VIVA (pendiente: congelacion del owner del 15-oct; las dos en SOLO LECTURA, columnas acotadas, nunca
 --   contratos entero):
---   (a) REC00015 cuelga del contrato de INV00212 (RP00025). Con el cambio (2) el historico sin justificante solo salda facturas
---       de su contrato: si no coinciden, la operacion LAW-614 que eligio el owner (REC00015 -> INV00212, 39.220) se rechazaria.
+--   (a) HIPOTESIS SIN MEDIR: REC00015 e INV00212 cuelgan del MISMO contrato (RP00025). Con el cambio (2) el historico sin
+--       justificante solo salda facturas de su contrato: si no coinciden, la operacion LAW-614 que eligio el owner
+--       (REC00015 -> INV00212, 39.220) se rechazaria. Lo que decide es mismo_contrato; las otras dos solo identifican:
 --         select (select contrato_id from public.facturas where numero = 'REC00015' and tipo = 'recibi')
+--              = (select contrato_id from public.facturas where numero = 'INV00212' and tipo = 'factura') as mismo_contrato,
+--                (select contrato_id from public.facturas where numero = 'REC00015' and tipo = 'recibi')
 --              = (select id from public.contratos where numero = 'RP00025') as rec_en_rp25,
 --                (select contrato_id from public.facturas where numero = 'INV00212' and tipo = 'factura')
 --              = (select id from public.contratos where numero = 'RP00025') as inv_en_rp25;
---       Las dos tienen que dar true. Si no: NO se aplica tal cual; la alternativa es, en vez de rechazar, dejar pasar el otro
+--       mismo_contrato tiene que dar true (y el recibi seguir con justificantes = '[]', cambio (1)). Si no: NO se aplica tal cual; la alternativa es, en vez de rechazar, dejar pasar el otro
 --       contrato del mismo comprador con rastro: registra_privilegio(v_contrato_id, 'cobro_historico_otro_contrato', ...) (y
 --       decide el owner si eso vale solo para super_admin).
 --   (b) La escritura directa sobre facturas sigue cerrada (la exencion se fia de la fila guardada; si un usuario pudiera
 --       vaciar justificantes o cambiar contrato_id por PostgREST, se saltaria guardar_recibi entero):
---         select has_table_privilege('authenticated', 'public.facturas', 'INSERT') as ins,
---                has_table_privilege('authenticated', 'public.facturas', 'UPDATE') as upd,
---                has_table_privilege('authenticated', 'public.facturas', 'DELETE') as del;   -- las tres false
+--       (revocada en 20260926092317_facturas_cierra_escritura_directa.sql:7; por columnas, has_table_privilege daria un falso
+--       verde, por eso has_any_column_privilege)
+--         select r, has_any_column_privilege(r, 'public.facturas', 'INSERT') as ins,
+--                   has_any_column_privilege(r, 'public.facturas', 'UPDATE') as upd,
+--                   has_table_privilege(r, 'public.facturas', 'DELETE') as del
+--           from unnest(array['anon', 'authenticated']) r;   -- todo false
 --         select policyname, cmd, roles from pg_policies
 --          where schemaname = 'public' and tablename = 'facturas' and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL'); -- 0 filas
 --       Si alguna da true o hay politica de escritura: se para y se cierra antes (Seguridad).
