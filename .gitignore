@@ -9,6 +9,13 @@ api/.passhash
 private/*
 !private/.htaccess
 
+# Compilados de Python (14-oct-2026): importar un .py de la raiz (publicar_data.py desde su prueba, sin -B) deja
+# un __pycache__/ dentro de la web. Sin esto un `git add` lo sube y el servidor lo sirve. OJO: ignorar no
+# desversiona: intranet/dossier/tools/__pycache__/pon_renders.cpython-314.pyc sigue versionado hasta que se
+# quite con `git rm --cached` (borrado: lo decide el owner); mientras, lo cierra el .htaccess (\.py[co]?$).
+__pycache__/
+*.py[co]
+
 # Local only
 Backups/
 Marketing and Design/

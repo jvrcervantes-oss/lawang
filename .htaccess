@@ -48,7 +48,12 @@ RedirectMatch 404 (?i)/\.git
 # Las herramientas .py del proyecto (build_seo.py, publicar_data.py) viajan en el repo pero
 # el servidor no las ejecuta: las servia como text/plain, o sea el codigo fuente descargable
 # por cualquiera. No hay secretos dentro, pero regala los endpoints internos y la logica.
-RedirectMatch 404 (?i)\.py$
+# 14-oct-2026 (revisor): `\.py$` no casaba con el COMPILADO. Python deja `__pycache__/<nombre>.cpython-NNN.pyc`
+# al importar un .py, y uno versionado (intranet/dossier/tools/__pycache__/pon_renders.cpython-314.pyc) respondia
+# 200 en produccion mientras su .py daba 404: el mismo codigo, por la puerta de al lado. Por EXTENSION (.py,
+# .pyc, .pyo) y por CARPETA, para que el proximo nazca cubierto; el cierre de verdad, el <FilesMatch> de abajo.
+RedirectMatch 404 (?i)\.py[co]?$
+RedirectMatch 404 (?i)/__pycache__/
 
 # coleccion/ es la lectura de servidor de The Collection (2-oct-2026, F5a): ni su lib.php, ni el
 # contrato, ni el respaldo, ni sus tests se sirven por URL. Se consumen por require, nunca por
@@ -80,7 +85,7 @@ RedirectMatch 404 (?i)/(supabase|contracts/edge)/
 RedirectMatch 404 (?i)^/tailwind/
 RedirectMatch 404 (?i)\.(ts|mjs|toml)$
 RedirectMatch 404 (?i)\.test\.js$
-<FilesMatch "(?i)(\.(ts|mjs|toml)|\.test\.js)$">
+<FilesMatch "(?i)(\.(ts|mjs|toml|py[co]?)|\.test\.js)$">
   Order allow,deny
   Deny from all
 </FilesMatch>
@@ -91,6 +96,10 @@ RedirectMatch 404 (?i)\.test\.js$
 # El cierre de verdad es el <FilesMatch> de abajo, que casa el fichero resuelto y por tanto
 # tambien el PATH_INFO; estos RedirectMatch solo dan el 404 bonito en la ruta normal.
 RedirectMatch 404 (?i)/modelo/(lib|modelos|datos)\.php$
+# modelo/tests/ (14-oct-2026): las pruebas de la landing de modelo, cerradas enteras igual que coleccion/. Nada
+# publico cuelga de ahi: /modelo/<id> lo reescribe la regla 3 de abajo (un solo segmento, sin punto) y no existe
+# ningun modelo «tests». Lo nuevo nace cerrado; el cierre de verdad de sus .php, el <FilesMatch> de los arneses.
+RedirectMatch 404 (?i)^/modelo/tests/
 
 # Catalogo de modelos: `catalogo.php` y sus respaldos `catalogo*_respaldo.json` los lee PHP
 # (require_once / file_get_contents), nunca el navegador: caian con 200 (auditoria 30-sep-2026;
@@ -105,7 +114,11 @@ RedirectMatch 404 (?i)/modelo/catalogo[^/]*\.(php|json)$
 # Arneses de prueba, en cualquier carpeta y por patron. Antes iban por nombre en la linea
 # de arriba y el que llego despues (api/test_ghl.php) respondio 200 en produccion desde el
 # primer despliegue: la lista a mano ERA el bug, igual que en el hook de cache-bust.
+# 14-oct-2026 (revisor): el patron solo cubria el prefijo `test_`. Las pruebas que corre el control se llaman
+# al reves, `tests/<algo>_test.php` (coleccion/tests/coleccion_test.php, cerrada por su carpeta; la proxima, no).
+# Los dos nombres, aqui y en el <FilesMatch> de abajo.
 RedirectMatch 404 (?i)/test_[^/]+\.php$
+RedirectMatch 404 (?i)/[^/]*_test\.php$
 
 # Dobles de diagnostico (`_diag_portal.html`): una pagina del portal con un payload
 # congelado para reproducir un fallo en local. Viaja en el repo y el servidor la servia
@@ -120,7 +133,7 @@ RedirectMatch 404 (?i)/_diag_
 # /modelo/modelos.php/x devolvian 200 pese a la regla de la linea 16. `Files` casa el
 # fichero YA resuelto, que es lo que de verdad se ejecuta, y aplica a las subcarpetas.
 # Se deja tambien el RedirectMatch: da el 404 bonito en la ruta normal. Este es el cierre.
-<FilesMatch "(?i)^(test_[^/]+|lib|modelos|datos)\.php$">
+<FilesMatch "(?i)^(test_[^/]+|[^/]*_test|lib|modelos|datos)\.php$">
   Order allow,deny
   Deny from all
 </FilesMatch>
