@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- VUELTA ATRAS de la migracion 20261014101500 «espejo_cliente_visible» (14-oct-2026, Backend).
+-- VUELTA ATRAS de la migracion 20261014102257 «espejo_cliente_visible» (14-oct-2026, Backend).
 -- REABRE el hallazgo vivo de Seguridad (un agente con la herramienta de contratos recibe la ficha entera de cualquier cliente guardando
 -- un borrador) y deja el tipo de contrato sin comprobar al editar: SOLO con OK del owner, y avisando a Seguridad.
 -- Deja espeja_comprador, sincronizar_compradores y contratos_tipo_permitido con el texto EXACTO que tenian (el de las migraciones

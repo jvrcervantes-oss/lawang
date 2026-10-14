@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Prueba de la VUELTA ATRAS de la migracion 20261014101500 «espejo_cliente_visible» (14-oct-2026, Backend).
+Prueba de la VUELTA ATRAS de la migracion 20261014102257 «espejo_cliente_visible» (14-oct-2026, Backend).
 
 SOLO EN RAMA: la llama erp/rama_prueba.py (de la agencia) con la rama de esa ejecucion y la migracion YA aplicada:
 
-    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014101500_espejo_cliente_visible.sql \
+    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014102257_espejo_cliente_visible.sql \
            --prueba espejo_cliente_visible.sql,espejo_vuelta.py
 
 Por que es un .py y no un .sql: `--aplica` solo busca en supabase/migrations y corre ANTES de las pruebas, asi que la reversion

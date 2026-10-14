@@ -1,10 +1,10 @@
 -- Prueba «el espejo del comprador solo sobre fichas que quien guarda puede ver, y el tipo permitido tambien al editar»
--- (14-oct-2026, migracion 20261014101500_espejo_cliente_visible). Rol REAL: cada llamada va con `set local role authenticated` y los
+-- (14-oct-2026, migracion 20261014102257_espejo_cliente_visible). Rol REAL: cada llamada va con `set local role authenticated` y los
 -- claims (sub + email) de la persona, puestos FUERA del bloque con `exception` (pg_temp.val), para que el rol no se deshaga.
 -- Un caso que ENTRA por cada caso que se NIEGA. El 42501 de la guarda se distingue del de un GRANT por el mensaje.
 --
 -- !! CREA CONTRATOS por contrato_guarda (gasta numeracion, que un rollback no devuelve): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014101500_espejo_cliente_visible.sql --prueba espejo_cliente_visible.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014102257_espejo_cliente_visible.sql --prueba espejo_cliente_visible.sql
 --    Fuera de una rama (sin `erp.en_rama = si`, que pone rama_prueba) se niega a empezar, antes de tocar nada.
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA».
 -- No imprime lo que devuelve contrato_guarda (lleva `fields`): solo codigos de error y booleanos. Las fichas y textos de prueba van

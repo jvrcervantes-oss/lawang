@@ -4,7 +4,7 @@
 --   sincronizar_compradores, que ahora tiene tres (abortaria). Si el owner elige B, se reescribe entera sobre la migracion aplicada.
 -- VARIANTE B — NO ES UNA MIGRACION, NO ESTA APLICADA NI PROBADA (14-oct-2026, Backend). Sin numero a proposito.
 -- Solo se usa si el owner decide que «un agente puede hacer un contrato al cliente que dio de alta otra persona» es un uso
--- legitimo. Va ENCIMA de la migracion 20261014101500_espejo_cliente_visible (variante A), nunca en su lugar. Antes de aplicarla:
+-- legitimo. Va ENCIMA de la migracion 20261014102257_espejo_cliente_visible (variante A), nunca en su lugar. Antes de aplicarla:
 -- revision previa de Seguridad y Legal, numero de migracion, su prueba (los casos E2, E3 y M1 de supabase/pruebas/
 -- espejo_cliente_visible.sql pasan de NIEGA a ENTRA-con-registro y hay que reescribirlos) y cambio de pantalla (ver punto 5).
 --
