@@ -30,6 +30,9 @@
 --   del cierre se salta las facturas de un contrato con compradores[] (N0 usa un contrato de B con un solo comprador).
 -- 3.a vuelta (regla del autor = cliente_visible, casos N7c, N7d y Q1-Q3): MEDIDO en rama el 14-oct-2026 13:16 Bali
 --   (prueba-lawang-20261014131636-22944, borrada), con las mismas 7 migraciones delante: 75/75, y espejo_vuelta.py 26/26.
+-- Notas de las consultas (Backend: el comprador de un documento que no se espeja no lo decide la pantalla, H2 nuevo; lock_timeout;
+--   Seguridad: el autor por su acceso, auth.users): MEDIDO en rama el 14-oct-2026 13:42 Bali (prueba-lawang-20261014134228-40444,
+--   borrada): 75/75 y espejo_vuelta.py 26/26.
 --   En esa rama session_user = postgres y el dueno de contrato_guarda es postgres con bypassrls (lo imprime P0).
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);
@@ -264,8 +267,13 @@ begin
   v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(%L, %L::jsonb)::text', kA,
          pg_temp.pago('contrato_general', pLn, cB, jsonb_build_object('adq1_domicilio', 'ZZ-domicilio que manda la pantalla'), null)));
   r := r || pg_temp.l(v !~ '^ERR', 'H1 ENTRA: A sigue pudiendo guardar el borrador que YA tenia ese cliente (la fila no se congela) (' || pg_temp.e(v) || ')');
-  select count(*) into n from public.contratos where id::text = kA and datos->'fields'->>'adq1_domicilio' = 'ZZ-domicilio que manda la pantalla';
-  r := r || pg_temp.l(n = 1, 'H2 NIEGA: ... pero ya NO se re-espeja la ficha que no ve (queda lo que mando la pantalla)');
+  select count(*) into n from public.contratos where id::text = kA
+     and coalesce(datos->'fields'->>'adq1_domicilio', '') <> 'ZZ-domicilio que manda la pantalla'
+     and coalesce(datos->'fields'->>'adq1_domicilio', '') <> 'ZZ-domicilio B'
+     and datos->'fields'->>'adq1_pasaporte' = 'ZZ-copia heredada';
+  select coalesce(datos->'fields'->>'adq1_domicilio', '-') || ' / ' || coalesce(datos->'fields'->>'adq1_pasaporte', '-') || ' / ' || coalesce(datos->>'adq1_client_id', '-')
+    into v2 from public.contratos where id::text = kA;
+  r := r || pg_temp.l(n = 1, 'H2 NIEGA: ... pero ni se re-espeja la ficha que no ve NI se acepta el comprador que manda la pantalla: queda la copia que tenia (Backend, 14-oct) [' || v2 || ']');
   select count(*) into n from public.contrato_compradores where contrato_id::text = kA and rol = 'adquiriente_1' and client_id = cB;
   r := r || pg_temp.l(n = 1, 'H3 ... y el enlace que ya existia se conserva (no se toca lo existente)');
   v := pg_temp.val(a.uid, a.em, format('select count(*) from public.comprador_ficha(%L)', cB));

@@ -51,6 +51,10 @@
 -- Prueba: supabase/pruebas/espejo_cliente_visible.sql — crea contratos: SOLO en rama (`erp/rama_prueba.py lawang --lawang <copia>
 --   --aplica 20261014101500_espejo_cliente_visible.sql --prueba espejo_cliente_visible.sql`), nunca en la base viva.
 
+-- Backend (consulta, BAJA, 14-oct): el create or replace trigger sobre contratos toma ShareRowExclusive hasta el commit; si hay un
+-- escritor colgado, mejor fallar limpio a los 5 s que dejar en cola cada contrato_guarda detras.
+set local lock_timeout = '5s';
+
 -- ============================================================ 1. La regla, en un solo sitio
 -- La misma de comprador_ficha (que desde esta migracion la llama). Identidad solo de auth.uid()/auth.email(), via cliente_visible,
 -- alcance_restringido y puede_ver_contrato. Si cambia quien ve una ficha, cambia aqui (o en cliente_visible) y vale para las dos.
@@ -180,6 +184,13 @@ $function$;
 --   fuera de sus empresas · admin de empresa con un contrato del cliente en un proyecto de sus empresas · gestor (PM/SM) o manager de un
 --   equipo activo con un contrato del cliente que supervisa (PM) o de la venta de su equipo (_sm_ve_venta) y dentro de sus empresas.
 -- Un autor inactivo o sin fila en `usuarios` nunca pasa; un documento sin autor tampoco (medido 14-oct: 2 contratos y 1 factura).
+-- ACEPTADO (Backend, BAJA, 14-oct): 4 borradores editables con cliente ya no se re-espejan nunca (2 sin autor, 2 de autor
+-- inactivo) y la rama «contrato visible» de _cliente_ficha_visible no se traduce (1 usuario global activo sin empresas: su borrador
+-- se refresca solo cuando lo guarda el). Que la copia vieja se vea antes de enviar: LAW-605. Que esta regla y cliente_visible no se
+-- separen fuera de la rama (la prueba Q1 las amarra solo alli): LAW-606.
+-- El autor se identifica como lo hace cliente_visible: por su usuario de ACCESO (auth.users.email = creado_por, que es auth.email()
+-- al crear) y su fila de `usuarios` por user_id, no por usuarios.email (Seguridad, BAJA, 14-oct: 1 fila de usuarios tiene un correo
+-- distinto del de su acceso, y ese correo es el de OTRO acceso sin fila; por correo se le prestarian sus permisos).
 -- La prueba amarra las dos definiciones: para cada usuario del montaje, esta regla sin sesion = cliente_visible ejecutada como el.
 -- Ademas, con sesion y si quien guarda ES el autor, pasa (espeja_comprador exige entonces que la vea: la regla de siempre).
 -- Medido el 14-oct en vivo (solo lectura; la rama del equipo de ventas no se pudo ejecutar con el rol de lectura, «permission denied
@@ -188,6 +199,9 @@ $function$;
 -- refrescarse 12 borradores y 20 facturas sin enviar (agentes; P2, inactiva; PM y SM que no la ven), los 8 + 11 del incidente entre ellos.
 -- Lo ya copiado no se toca (decision del dueno, 14-oct). Una factura no se re-copia al volver a guardarla: factura_guarda toma la
 -- identidad que manda la pantalla, que la saca del contrato.
+-- Administracion (consulta, 14-oct, sin objecion): una factura sin enviar de un autor que no ve la ficha CONSERVA el receptor con el
+-- que se creo; si la ficha cambia despues puede salir con el dato viejo y, si se emite con un dato erroneo, va rectificativa. Ya pasa
+-- hoy (de esas 20, 9 tienen ya un documento distinto del de su ficha y 5 un nombre): el aviso en la pantalla de factura es LAW-605.
 create or replace function public._espejo_autor_ve(p_client uuid, p_autor text)
  returns boolean
  language sql
@@ -198,7 +212,8 @@ as $function$
            ((select auth.uid()) is not null and lower(btrim(p_autor)) = lower(btrim(coalesce((select auth.email()), ''))))
         or exists (
              select 1 from public.usuarios u
-              where lower(btrim(u.email)) = lower(btrim(p_autor)) and u.activo
+               join auth.users au on au.id = u.user_id
+              where lower(btrim(au.email)) = lower(btrim(p_autor)) and u.activo
                 and (
                       exists (select 1 from public.clients c
                                where c.id = p_client and lower(btrim(coalesce(c.propietario, ''))) = lower(btrim(p_autor)))
@@ -224,7 +239,7 @@ as $function$
                                     where cc.client_id = p_client and pr.empresa = any (u.empresas)))
                    or ((u.rol in ('sales_manager', 'project_manager')
                         or exists (select 1 from public.equipos_venta ev
-                                    where ev.activo and lower(ev.manager_email) = lower(btrim(u.email))))
+                                    where ev.activo and lower(ev.manager_email) = lower(btrim(au.email))))
                        and exists (
                              select 1 from public.contrato_compradores cc
                                join public.contratos k on k.id = cc.contrato_id
@@ -235,7 +250,7 @@ as $function$
                                          and pr.empresa = any (u.empresas))
                                      or exists (select 1 from public.equipos_venta ev
                                                  where ev.activo and ev.id = public._venta_equipo(k.id)
-                                                   and lower(ev.manager_email) = lower(btrim(u.email))))
+                                                   and lower(ev.manager_email) = lower(btrim(au.email))))
                                 and not (   (u.ambito = 'global' and cardinality(u.empresas) > 0
                                              and not coalesce(pr.empresa = any (u.empresas), false))
                                          or (u.ambito = 'empresa' and not coalesce(pr.empresa = any (u.empresas), false)))))
@@ -249,17 +264,34 @@ create or replace function public.trg_espejo_comprador()
  security definer
  set search_path to ''
 as $function$
+declare
+  c_campos constant text[] := array['adq1_nombre', 'adq1_pasaporte', 'adq1_email', 'adq1_telefono', 'adq1_domicilio', 'adq1_nacionalidad',
+                                    'adq1_forma_juridica', 'adq1_registro', 'adq1_rep_nombre', 'adq1_rep_cargo', 'adq1_tipo'];
+  v_txt text := btrim(coalesce(new.datos->>'adq1_client_id', ''));
+  v_id  uuid;
 begin
   if coalesce(new.bloqueado, false) then return new; end if;
   if exists (select 1 from public.contrato_firmas cf where cf.contrato_id = new.id) then return new; end if;
-  -- 14-oct-2026 (M2): ademas de quien guarda, el AUTOR (ver 2b de 20261014101500_espejo_cliente_visible).
-  if not public._espejo_autor_ve(
-           case when btrim(coalesce(new.datos->>'adq1_client_id', '')) ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
-                then btrim(new.datos->>'adq1_client_id')::uuid end,
-           new.creado_por) then
+  if v_txt ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' then v_id := v_txt::uuid; end if;
+  -- Se copia la ficha SOLO si: existe, la ve el AUTOR (2b, M2) y, con sesion, la ve tambien quien guarda (la regla de siempre; es la
+  -- misma condicion con la que espeja_comprador copia o no).
+  if v_id is not null
+     and exists (select 1 from public.clients c where c.id = v_id)
+     and public._espejo_autor_ve(v_id, new.creado_por)
+     and ((select auth.uid()) is null or public._cliente_ficha_visible(v_id)) then
+    new.datos := public.espeja_comprador(new.datos);
     return new;
   end if;
-  new.datos := public.espeja_comprador(new.datos);
+  -- Backend (consulta, MEDIA, 14-oct): si NO se copia, `datos.fields.adq1_*` quedaria tal cual lo manda el navegador y el documento
+  -- seguiria enlazado a la ficha real (otro nombre o pasaporte enviado a firma con el enlace bueno). Si la ficha enlazada no cambia,
+  -- el comprador se queda con lo que ya tenia (los 11 campos que copia espeja_comprador). Si cambia, ya lo comprobo
+  -- _contrato_clientes_comprueba con quien guarda. No filtra nada: es lo que el documento ya llevaba.
+  if tg_op = 'UPDATE' and v_txt <> '' and v_txt = btrim(coalesce(old.datos->>'adq1_client_id', '')) then
+    new.datos := jsonb_set(coalesce(new.datos, '{}'::jsonb), '{fields}',
+                   (coalesce(new.datos->'fields', '{}'::jsonb) - c_campos)
+                   || coalesce((select jsonb_object_agg(k, old.datos->'fields'->k)
+                                  from unnest(c_campos) k where (old.datos->'fields') ? k), '{}'::jsonb));
+  end if;
   return new;
 end $function$;
 revoke all on function public.trg_espejo_comprador() from public, anon, authenticated;
