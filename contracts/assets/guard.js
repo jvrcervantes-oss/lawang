@@ -139,7 +139,13 @@
     fichero_no_borrado: 'El fichero no se pudo quitar del archivo', error_interno: 'Error del servidor: prueba otra vez en un momento',
     accion_desconocida: 'Petición no válida: recarga la página', metodo: 'Petición no válida: recarga la página',
     solo_equipo: 'Tu usuario no es del equipo',
-    sin_sesion: 'Tu sesión ha caducado: vuelve a entrar', sesion_invalida: 'Tu sesión ha caducado: vuelve a entrar'
+    sin_sesion: 'Tu sesión ha caducado: vuelve a entrar', sesion_invalida: 'Tu sesión ha caducado: vuelve a entrar',
+    // LAW-557 (13-oct-2026): alta de cliente con su documento en UNA operación (acciones alta_*)
+    alta_no_disponible: 'El servidor todavía no admite el alta con documento: avisa a administración. No se ha creado nada',
+    alta_no_valida: 'Esta alta ha caducado o no es tuya: vuelve a pulsar «Dar de alta» (los ficheros se suben otra vez)',
+    demasiadas_altas_abiertas: 'Tienes demasiadas altas a medias abiertas (en otras pestañas o sin terminar): termina o cierra alguna y vuelve a probar',
+    demasiados_ficheros: 'Se han subido demasiados ficheros en esta alta: vuelve a pulsar «Dar de alta» (los ficheros se suben otra vez)',
+    faltan_ficheros: 'Falta el documento de identidad: elige el fichero y vuelve a probar'
   };
   fija('lwKyc', function (sb, accion, datos) {
     return sb.auth.getSession().then(function (s) {
@@ -149,9 +155,15 @@
         body: JSON.stringify(Object.assign({ accion: accion }, datos || {})) });
     }).then(function (r) {
       sospechaVersion(r.status);
-      return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
+      return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor', _sinJson: true }; });
     }).then(function (d) {
-      if (!d.ok) { var e = new Error(KYC_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; throw e; }
+      /* `.clave` = el código crudo del servidor y `.path` = el fichero al que se refiere (LAW-557): la pantalla decide por
+         ellos, nunca por el texto traducido. `.respondio`: el servidor contestó con su JSON (una respuesta, aunque sea un
+         no); sin él, la petición pudo llegar o no y la pantalla tiene que tratarlo como duda. Los textos de KYC_ERR salen
+         por el diccionario (en español, iguales); el mensaje de la base va tal cual. */
+      var txt = Object.prototype.hasOwnProperty.call(KYC_ERR, d.error) ? KYC_ERR[d.error] : null;
+      if (txt && typeof window.lwT === 'function') txt = window.lwT(txt);
+      if (!d.ok) { var e = new Error(txt || d.error || 'error del servidor'); e.code = d.code; e.clave = d.error; e.path = d.path; e.respondio = !d._sinJson; throw e; }
       return d;
     });
   });
@@ -166,6 +178,29 @@
       return sb.storage.from('kyc').uploadToSignedUrl(u.path, u.token, conTipo, { contentType: u.content_type }).then(function (up) {
         if (up.error) throw up.error;
         return window.lwKyc(sb, 'registra', { client_id: clientId, path: u.path, doc_type: tipoDoc, caduca_el: caduca || null });
+      });
+    });
+  });
+  /* ALTA DE CLIENTE CON SU DOCUMENTO, en una sola operación (LAW-557, 13-oct-2026, owner: «alta y pasaporte juntos»).
+     Antes la ficha se creaba y DESPUÉS se subía el documento, y entre las dos cabía una ficha sin pasaporte. Ahora:
+       1. lwKycAltaSube — cada fichero va a una carpeta de «alta pendiente» que crea el SERVIDOR (sin `altaId`, la base
+          genera el id; nunca se manda uno inventado). Devuelve {alta_id, path}; la pantalla guarda el alta_id para el
+          siguiente fichero y el path para no volver a subir lo ya subido.
+       2. lwKyc(sb, 'alta', {alta_id, datos, paths, caduca_el}) — el servidor mira los bytes, crea la ficha y registra
+          los documentos en la MISMA transacción: entran los dos o ninguno. Reenviarlo con el mismo alta_id es seguro
+          (si ya se creó, responde la misma ficha).
+       3. lwKyc(sb, 'alta_descarta', {alta_id}) — al cerrar sin terminar: borra la pendiente y sus ficheros (nunca nada si
+          la ficha ya existe). Qué tipo de documento es lo decide el servidor por `datos.tipo`, no esta pantalla. */
+  fija('lwKycAltaSube', function (sb, altaId, f) {
+    var ext = (String(f.name).match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+    var pide = { ext: ext };
+    if (altaId) pide.alta_id = altaId;
+    return window.lwKyc(sb, 'alta_subida_url', pide).then(function (u) {
+      // Con un File, supabase-js manda el tipo QUE TRAE EL FICHERO e ignora `contentType` (ver lwKycSube)
+      var conTipo = new File([f], f.name, { type: u.content_type });
+      return sb.storage.from('kyc').uploadToSignedUrl(u.path, u.token, conTipo, { contentType: u.content_type }).then(function (up) {
+        if (up.error) { var e = up.error; e.altaId = u.alta_id; throw e; }   // la pendiente ya existe aunque este fichero no subiera
+        return { alta_id: u.alta_id, path: u.path };
       });
     });
   });

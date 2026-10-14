@@ -508,6 +508,10 @@
       '.lwp-mas:hover{background:#fafaf9}.lwp-mas:active{transform:scale(.97)}',
       '.lwp-tramo{display:grid;grid-template-columns:minmax(0,1fr) 100px 92px 26px;gap:8px;align-items:center}',
       '@media (max-width:640px){.lwp-tramo{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 26px}.lwp-tramo > select{grid-column:1/-1}}',
+      // base del tramo (comisiones 1-nov, 13-oct-2026): su propia línea bajo el disparador; en móvil, a todo el ancho
+      '.lwp-tramo > [data-lw-tramo-base]{grid-column:1/4}',
+      // con dos líneas por tramo, una raya fina separa un tramo del siguiente (si no, la base parecía del de abajo)
+      '.lwp-tramo.lwp-con-base{padding-bottom:8px;border-bottom:1px dashed #E7E4DC}',
       /* Fila de un campo de plantilla (Plantillas, 28-sep-2026): clave · etiqueta · tipo · obligatorio · quitar.
          En móvil, la etiqueta ocupa su línea y la cabecera de columnas se esconde (a 390 px las cinco columnas
          dejaban la clave y la etiqueta sin ancho). */
@@ -1655,28 +1659,114 @@
      con un error legible); el trigger es el tirante (si algo se escapa, la
      base lo rechaza igual — verificado con sesión admin real, suma 90 vs
      100, revisión previa Datos+Seguridad). */
+  // copia de respaldo de LW_V4.DISPARADORES / LW_V4.BASES_CALCULO (datos.js): comision_vocabulario.test.js las obliga a ir a la par
   var DISPARADORES_TRAMO_FALLBACK = [
     ['contrato_firmado', 'Al firmar el contrato'],
     ['obra_firmada', 'Al firmar la obra'],
     ['pct_cobrado_suelo', '% cobrado del suelo'],
     ['pct_cobrado_obra', '% cobrado de la obra'],
-    ['pct_cobrado_total', '% cobrado del total']
+    ['pct_cobrado_total', '% cobrado del total'],
+    ['pct_cobrado_suelo_firmado', '% cobrado de la parcela firmada'],
+    ['pct_cobrado_obra_firmada', '% cobrado de la construcción firmada']
   ];
   var BASES_CALCULO_FALLBACK = [
     ['precio_total', 'Precio total'],
     ['precio_suelo', 'Precio de suelo'],
     ['precio_construccion', 'Precio de construcción'],
+    ['precio_suelo_firmado', 'Precio firmado de la parcela'],
+    ['precio_obra_firmada', 'Precio firmado de la construcción'],
+    ['por_tramo', 'Según cada tramo'],
     ['importe_fijo', 'Importe fijo']
   ];
+  /* Comisiones desde el 1-nov-2026 (base POR TRAMO): cada tramo puede llevar su propia base —la sucesora paga el
+     10 % del precio firmado de la parcela al cobrar el 50 % de la parcela y el 10 % del de la construcción al cobrar
+     el 25 % de la construcción—. Lo nuevo solo se OFRECE si la base ya lo sabe guardar (datos.js lo detecta en
+     condiciones_comision_datos: sus tramos traen base_calculo/base_efectiva); el ERP maestro y Lawang antes de la
+     migración no lo tienen y su CHECK lo rechazaría. Lo que ya está guardado se conserva SIEMPRE, se ofrezca o no. */
+  var BASES_DE_TRAMO = ['precio_total', 'precio_suelo', 'precio_construccion', 'precio_suelo_firmado', 'precio_obra_firmada'];   // CHECK condicion_tramos_base_calculo_check
+  var BASES_NUEVAS_1NOV = ['precio_suelo_firmado', 'precio_obra_firmada', 'por_tramo'];
+  var DISPARADORES_NUEVOS_1NOV = ['pct_cobrado_suelo_firmado', 'pct_cobrado_obra_firmada'];
+  function basePorTramoSoportada() { return !!(window.LW_V4 && window.LW_V4.COMISION_BASE_POR_TRAMO); }
+  function listaDisparadores() { return (window.LW_V4 && window.LW_V4.DISPARADORES) || DISPARADORES_TRAMO_FALLBACK; }
+  function listaBases() { return (window.LW_V4 && window.LW_V4.BASES_CALCULO) || BASES_CALCULO_FALLBACK; }
+  // lo que se ofrece para elegir: sin lo del 1-nov si la base aún no lo sabe guardar
+  function ofreciblesComision(lista, nuevas, soporta) {
+    return (lista || []).filter(function (o) { return soporta || nuevas.indexOf(o[0]) === -1; });
+  }
+  /* RIESGO que esto cierra: un <select> cuyo valor guardado no está entre sus opciones cae en la PRIMERA opción, y
+     al guardar se manda otra base u otro disparador sin que nadie lo vea. El valor guardado entra siempre como
+     opción (con su etiqueta si se conoce, si no tal cual). */
+  function conValorGuardado(lista, valor, etiquetas) {
+    var l = (lista || []).slice();
+    if (valor == null || valor === '') return l;
+    var v = String(valor);
+    if (!l.some(function (o) { return String(o[0]) === v; })) {
+      var conocida = (etiquetas || []).filter(function (o) { return String(o[0]) === v; })[0];
+      l.push([v, conocida ? conocida[1] : v]);
+    }
+    return l;
+  }
+  function etiquetaComision(lista, valor) {
+    var f = (lista || []).filter(function (o) { return o[0] === valor; })[0];
+    return f ? f[1] : String(valor || '');
+  }
+  /* Suma de los tramos POR BASE EFECTIVA (misma regla que valida_suma_tramos_comision en la base): la base de un
+     tramo es la suya o, si no lleva, la de la condición; con importe fijo, ninguna. [{base, suma}] en orden. */
+  function sumasPorBase(baseCond, tramos) {
+    var orden = [], suma = {};
+    (tramos || []).forEach(function (t) {
+      var ef = baseCond === 'importe_fijo' ? 'importe_fijo' : ((t && t.base_calculo) || baseCond || '');
+      if (!(ef in suma)) { suma[ef] = 0; orden.push(ef); }
+      suma[ef] += Number(t && t.pct_tramo) || 0;
+    });
+    return orden.map(function (b) { return { base: b, suma: Math.round(suma[b] * 100) / 100 }; });
+  }
+  // null si los tramos casan con la base de la condición; si no, el mensaje en llano
+  function validaTramosPorBase(baseCond, tramos) {
+    var etq = function (b) { return etiquetaComision(listaBases(), b) || b; };
+    for (var i = 0; i < (tramos || []).length; i++) {
+      var b = tramos[i] && tramos[i].base_calculo;
+      if (baseCond === 'importe_fijo') continue;   // con importe fijo la base del tramo no se manda (null)
+      if (b === 'importe_fijo' || b === 'por_tramo') return 'El tramo ' + (i + 1) + ' no puede calcularse sobre «' + etq(b) + '»: elige un precio.';
+      if (baseCond === 'por_tramo' && !b) return 'El tramo ' + (i + 1) + ' necesita su base: con «' + etq('por_tramo') + '» cada pago dice sobre qué precio se calcula.';
+    }
+    var g = sumasPorBase(baseCond, tramos || []);
+    var mal = g.filter(function (x) { return Math.abs(x.suma - 100) > 0.01; });
+    if (!mal.length) return null;
+    if (g.length === 1) return 'Los tramos suman ' + mal[0].suma + '% — deben sumar exactamente 100% antes de guardar.';
+    return mal.map(function (x) { return 'Los tramos sobre «' + etq(x.base) + '» suman ' + x.suma + '%'; }).join('; ') +
+      ' — cada base tiene que sumar exactamente 100%.';
+  }
+  /* Los tramos como los pide condicion_comision_guarda. base_calculo va SIEMPRE explícita (su valor o null): en la
+     base, que falte la clave significa «conserva la que tenía ese orden», y al quitar una fila del medio los
+     órdenes se corren y la base se pegaría al tramo equivocado. Con importe fijo, null (la base lo exige). */
+  function tramosParaServidor(tramos, baseCond) {
+    return (tramos || []).map(function (t) {
+      return {
+        disparador_tipo: t.disparador_tipo,
+        umbral: /^pct_cobrado_/.test(t.disparador_tipo || '') ? Number(t.umbral) : null,
+        pct_tramo: Number(t.pct_tramo),
+        base_calculo: baseCond === 'importe_fijo' ? null : (t.base_calculo || null)
+      };
+    });
+  }
   /* `iniciales` (22-sep-2026): tramos ya guardados, para EDITAR una condición.
-     Sin ellos arranca con dos filas vacías, como siempre. */
-  function montaTramos(host, iniciales) {
-    var opciones = (window.LW_V4 && window.LW_V4.DISPARADORES) || DISPARADORES_TRAMO_FALLBACK;
+     Sin ellos arranca con dos filas vacías, como siempre.
+     `cfg` (13-oct-2026): { conBase, baseInicial }. conBase pinta en cada tramo el selector de su base; baseInicial
+     es la base de la condición al abrir (luego se sigue al select data-k="base_calculo" del mismo formulario). */
+  function montaTramos(host, iniciales, cfg) {
+    cfg = cfg || {};
+    var soporta = basePorTramoSoportada();
+    var opciones = ofreciblesComision(listaDisparadores(), DISPARADORES_NUEVOS_1NOV, soporta);
+    var opcionesBase = ofreciblesComision(listaBases(), BASES_NUEVAS_1NOV, soporta)
+      .filter(function (o) { return BASES_DE_TRAMO.indexOf(o[0]) !== -1; });
+    var conBase = !!cfg.conBase;
+    var modoBase = cfg.baseInicial || '';
     var filas = [];
     var wrap = document.createElement('div');
     wrap.style.cssText = 'display:grid;gap:8px';
     var cab = document.createElement('div');
-    cab.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px';
+    cab.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px';
     var tituloCab = document.createElement('span');
     tituloCab.textContent = 'Qué dispara cada pago, y qué % le toca';
     tituloCab.className = 'lwp-etq';
@@ -1698,12 +1788,40 @@
     wrap.appendChild(btnAdd);
     host.appendChild(wrap);
 
+    function leeFilas() {
+      return filas.map(function (f) {
+        return { disparador_tipo: f.disp.value, umbral: f.umbral.value, pct_tramo: f.pct.value,
+                 base_calculo: f.base && modoBase !== 'importe_fijo' ? (f.base.value || null) : null };
+      });
+    }
+    // la suma va POR BASE (13-oct-2026): con dos bases, cada una tiene que llegar a 100
     function actualizaSuma() {
-      var s = filas.reduce(function (acc, f) { return acc + (Number(f.pct.value) || 0); }, 0);
-      var s2 = Math.round(s * 100) / 100;
-      var ok = Math.abs(s - 100) <= 0.01;
-      sumaBadge.textContent = 'Suma: ' + s2 + '%' + (ok ? ' ✓' : ' — deben sumar 100%');
+      var g = sumasPorBase(modoBase, leeFilas());
+      // con «según cada tramo», un tramo sin base cae en el grupo 'por_tramo': ese grupo nunca está bien (lo mismo que exige guardar)
+      var bien = function (x) { return x.base !== 'por_tramo' && Math.abs(x.suma - 100) <= 0.01; };
+      var ok = g.length > 0 && g.every(bien);
+      // con dos bases el texto es largo: se deja partir (a 390 px, en una línea, empujaba el formulario fuera)
+      sumaBadge.style.whiteSpace = g.length <= 1 ? 'nowrap' : 'normal';
+      if (g.length <= 1 && !(g[0] && g[0].base === 'por_tramo')) {
+        var s2 = g.length ? g[0].suma : 0;
+        sumaBadge.textContent = 'Suma: ' + s2 + '%' + (ok ? ' ✓' : ' — deben sumar 100%');
+      } else {
+        sumaBadge.textContent = g.map(function (x) {
+          return (x.base && x.base !== 'por_tramo' ? etiquetaComision(listaBases(), x.base) : 'Sin precio elegido') + ': ' + x.suma + '%' + (bien(x) ? ' ✓' : '');
+        }).join(' · ') + (ok ? '' : ' — cada precio, 100%');
+      }
       sumaBadge.style.color = ok ? '#2E5B3E' : '#9E2F26';
+    }
+    // la base de la condición manda: con importe fijo no hay base por tramo; con «según cada tramo» es obligatoria
+    function aplicaModo() {
+      filas.forEach(function (f) {
+        if (!f.base) return;
+        f.base.style.display = modoBase === 'importe_fijo' ? 'none' : '';
+        f.base.options[0].textContent = modoBase === 'por_tramo' ? '— elige sobre qué precio se calcula —' : 'Sobre la base de la condición';
+      });
+      errLinea.textContent = 'El umbral (%) solo aplica a los disparadores «% cobrado…».' +
+        (conBase && modoBase === 'por_tramo' ? ' Con «' + etiquetaComision(listaBases(), 'por_tramo') + '», cada tramo dice sobre qué precio se calcula, y cada precio suma 100%.' : '');
+      actualizaSuma();
     }
 
     function quitaFila(fila) {
@@ -1716,11 +1834,25 @@
     function nuevaFila(valores) {
       var el = document.createElement('div');
       el.className = 'lwp-tramo';
+      var esTramo = valores && typeof valores === 'object' && !(valores instanceof Event);
       var selDisp = document.createElement('select');
       selDisp.className = 'lwp-in lwp-comp';
-      opciones.forEach(function (o) {
+      selDisp.setAttribute('data-lw-tramo-disp', '1');
+      selDisp.setAttribute('aria-label', 'Qué dispara este pago');
+      // el disparador guardado entra como opción aunque no se ofrezca: nunca cae en la primera
+      conValorGuardado(opciones, esTramo ? valores.disparador_tipo : null, listaDisparadores()).forEach(function (o) {
         var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selDisp.appendChild(op);
       });
+      var selBase = null;
+      if (conBase) {
+        selBase = document.createElement('select');
+        selBase.className = 'lwp-in lwp-comp';
+        selBase.setAttribute('data-lw-tramo-base', '1');
+        selBase.setAttribute('aria-label', 'Sobre qué precio se calcula este pago');
+        [['', '']].concat(conValorGuardado(opcionesBase, esTramo ? valores.base_calculo : null, listaBases())).forEach(function (o) {
+          var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selBase.appendChild(op);
+        });
+      }
       var inpUmbral = document.createElement('input');
       inpUmbral.type = 'number'; inpUmbral.step = '0.01'; inpUmbral.min = '0'; inpUmbral.max = '100';
       inpUmbral.placeholder = 'umbral %'; inpUmbral.className = 'lwp-in lwp-comp';
@@ -1731,12 +1863,13 @@
       btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar tramo';
       btnDel.className = 'lwp-quita';
 
-      var fila = { el: el, disp: selDisp, umbral: inpUmbral, pct: inpPct };
+      var fila = { el: el, disp: selDisp, umbral: inpUmbral, pct: inpPct, base: selBase };
       // el botón «+ Añadir tramo» llama a nuevaFila con el evento: no es un tramo
-      if (valores && typeof valores === 'object' && !(valores instanceof Event)) {
+      if (esTramo) {
         if (valores.disparador_tipo) selDisp.value = valores.disparador_tipo;
         if (valores.umbral != null) inpUmbral.value = valores.umbral;
         if (valores.pct_tramo != null) inpPct.value = valores.pct_tramo;
+        if (selBase && valores.base_calculo) selBase.value = valores.base_calculo;
       }
 
       function actualizaUmbral() {
@@ -1748,24 +1881,40 @@
       selDisp.addEventListener('change', actualizaUmbral);
       actualizaUmbral();
       inpPct.addEventListener('input', actualizaSuma);
+      if (selBase) selBase.addEventListener('change', actualizaSuma);
       btnDel.addEventListener('click', function () { quitaFila(fila); });
 
       el.appendChild(selDisp); el.appendChild(inpUmbral); el.appendChild(inpPct); el.appendChild(btnDel);
+      // la base va en su propia línea, debajo (grid-column en .lwp-tramo > [data-lw-tramo-base])
+      if (selBase) { el.appendChild(selBase); el.className += ' lwp-con-base'; }
       lista.appendChild(el);
       filas.push(fila);
-      actualizaSuma();
+      if (!montando) aplicaModo();
     }
 
     btnAdd.addEventListener('click', nuevaFila);
+    var montando = true;   // al montar, un solo aplicaModo al final (no uno por fila)
     if (Array.isArray(iniciales) && iniciales.length) iniciales.forEach(nuevaFila);
     else { nuevaFila(); nuevaFila(); }   // arranca con dos: lo habitual es 2+ tramos
+    montando = false;
+    aplicaModo();
+
+    /* El select de la base de la condición vive en el mismo formulario, pero cuando el modal llama a render(d) la
+       caja aún no está colgada: se engancha en cuanto termina de montarse (microtarea), por su data-k, nunca por
+       su rótulo; si no cuelga de un <form>, se busca en el editor abierto (#lw-editor). Sin él (no debería pasar)
+       se queda la baseInicial, y aun así tramosParaServidor quita las bases si la condición es de importe fijo. */
+    Promise.resolve().then(function () {
+      var form = host.closest ? host.closest('form') : null;
+      var selCond = (form && form.querySelector('[data-k="base_calculo"]')) ||
+        (typeof document.querySelector === 'function' ? document.querySelector('#lw-editor [data-k="base_calculo"]') : null);
+      if (!selCond) return;
+      modoBase = selCond.value;
+      selCond.addEventListener('change', function () { modoBase = selCond.value; aplicaModo(); });
+      aplicaModo();
+    });
 
     // getter que `onGuardar` llama para recoger el estado ACTUAL del formulario
-    return function () {
-      return filas.map(function (f) {
-        return { disparador_tipo: f.disp.value, umbral: f.umbral.value, pct_tramo: f.pct.value };
-      });
-    };
+    return leeFilas;
   }
 
   /* ---------- Entrega estimada del proyecto, en trimestres (16-sep-2026) ----------
@@ -7823,22 +7972,28 @@
           var faltan = faltanDatosComprador(v);
           if (faltan.length) return Promise.resolve({ error: { message: 'faltan datos obligatorios — ' + faltan.join(', ') } });
         }
-        var telAlta = v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null);
+        var telAlta = telefonoAlta(v);
         return telefonoRepetidoSigue(telAlta, null).then(function (sigue) {
           if (sigue !== true) return sigue;
           // Por el servidor (27-sep-2026, LAW-336 bloque 2): cliente_guarda comprueba los datos del alta y
           // pone el dueño de la ficha; nombre y pasaporte en MAYÚSCULAS los deja él.
-          return sb.rpc('cliente_guarda', { p_id: null, p_datos: {
-            full_name: v.full_name.trim().toUpperCase(), email: v.email || null,
-            phone: telAlta,
-            nationality: v.nationality || null, passport_number: v.passport_number ? v.passport_number.toUpperCase() : null,
-            tipo: v.tipo, idioma_comunicacion: v.idioma_comunicacion || 'es',
-            forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica || null) : null,
-            registro_num: v.tipo === 'empresa' ? (v.registro_num || null) : null,
-            rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre || null) : null,
-            rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo || null) : null
-          } }).then(errorClienteHumano);
+          return sb.rpc('cliente_guarda', { p_id: null, p_datos: datosAltaComprador(v, telAlta) }).then(errorClienteHumano);
         });
+      }
+      /* Los datos de un alta, UNA vez: los mandan igual el alta de siempre (cliente_guarda) y el alta con documento
+         (edge ficheros-kyc, acción `alta`, LAW-557). Dos copias de este objeto acabarían mandando cosas distintas. */
+      function telefonoAlta(v) { return v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null); }
+      function datosAltaComprador(v, telAlta) {
+        return {
+          full_name: v.full_name.trim().toUpperCase(), email: v.email || null,
+          phone: telAlta,
+          nationality: v.nationality || null, passport_number: v.passport_number ? v.passport_number.toUpperCase() : null,
+          tipo: v.tipo, idioma_comunicacion: v.idioma_comunicacion || 'es',
+          forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica || null) : null,
+          registro_num: v.tipo === 'empresa' ? (v.registro_num || null) : null,
+          rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre || null) : null,
+          rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo || null) : null
+        };
       }
 
       /* ALTA DE COMPRADOR — cajón en dos columnas (24-sep-2026, diseño de Stitch
@@ -7882,11 +8037,12 @@
         var soloEmp = ' <span class="las-etq-sec">' + esc(tS('(Solo empresa)')) + '</span>';
 
         /* DOCUMENTO DE IDENTIDAD EN EL ALTA (13-oct-2026, petición del cliente vía owner: «que para dar de
-           alta nuevos clientes pida adjuntar una imagen como pasaporte, parecido a los recibís»). Se elige aquí
-           y se sube al archivo privado KYC con la MISMA pieza que la pestaña Documentos de la ficha
-           (`lwKycSube`, guard.js): la ruta la pone el servidor y al registrar mira los bytes. Como esa pieza
-           necesita la ficha ya creada, el orden es: cliente_guarda → subir. Si la subida falla, la ficha ya
-           existe: el cajón NO se cierra, se queda en «reintentar la subida» (sin volver a crear la ficha).
+           alta nuevos clientes pida adjuntar una imagen como pasaporte, parecido a los recibís»). Desde LAW-557
+           (13-oct-2026, owner: «alta y pasaporte juntos») la ficha y su documento entran en UNA operación del
+           servidor: se valida todo aquí, se sube cada fichero a una carpeta de alta pendiente (`lwKycAltaSube`,
+           guard.js) y la acción `alta` de la edge mira los bytes, crea la ficha y registra los documentos juntos
+           — o nada. Ya no existe «ficha creada, falta el documento». La máquina de los casos raros (reintento,
+           fichero rechazado, sin respuesta, cerrar a medias) está escrita junto a `altaConDocumento`, más abajo.
            Solo al CREAR, como los seis datos: las fichas antiguas sin pasaporte no se bloquean.
            Interruptor por instancia (`alta_exige_documento` en instancia.js): este fichero lo comparten las
            instancias del ERP y la petición es de este cliente; sin la clave, el alta es la de siempre. */
@@ -8065,20 +8221,18 @@
            dejaba Escape muerto tras el primer picker. El listener se suelta en
            w._alCerrar, que cierraModal() ejecuta en TODAS las salidas (también si
            otro editor lo cierra) — si no, un Escape posterior tiraría ese otro. */
-        /* Con el alta o la subida en marcha no se cierra (revisor, 13-oct): una recarga entre la subida y el registro
-           dejaría el fichero suelto en el archivo, sin ficha que lo nombre. */
+        /* Con el alta o la subida en marcha no se cierra (revisor, 13-oct): a medias no se sabría qué ha entrado. */
         var ocupado = function () { return !!w.querySelector('[data-e="guardar"].las-guardando'); };
         var teclas = function (e) { if (e.key === 'Escape' && !ocupado()) cierraModal(); };
         var cerrar = function () { if (!ocupado()) cierraModal(); };
         document.addEventListener('keydown', teclas);
-        w._alCerrar = function () { document.removeEventListener('keydown', teclas); if (w._alCerrarAlta) w._alCerrarAlta(); };
+        w._alCerrar = function () { document.removeEventListener('keydown', teclas); if (exigeDoc) alCerrarAlta(); };
         $('[data-e="cerrar"]').addEventListener('click', cerrar);
         $('[data-e="cancelar"]').addEventListener('click', cerrar);
         fondo.addEventListener('click', cerrar);
 
         var btn = $('[data-e="guardar"]'), caja = $('[data-e="error"]');
         var error = function (msg) { caja.textContent = msg; caja.hidden = false; caja.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
-        var creadoId = null;   // con el documento obligatorio: la ficha ya existe y falta subir el documento (reintento)
         form.addEventListener('submit', function (ev) {
           ev.preventDefault();
           caja.hidden = true;
@@ -8086,52 +8240,41 @@
           w.querySelectorAll('[data-k]').forEach(function (el) { v[el.getAttribute('data-k')] = el.value.trim(); });
           // Los que faltan se marcan en su sitio: tiemblan, rojo y su mensaje debajo.
           var malos = [];
-          if (!creadoId) {
-            OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
-            if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', tS('No parece una dirección de correo válida.')]);
-          }
-          var docMal = exigeDoc ? problemaDocs(docsPendientes()) : '';
+          OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
+          if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', tS('No parece una dirección de correo válida.')]);
+          var docMal = exigeDoc ? problemaDocs(docsElegidos()) : '';
           if (docMal) malos.push(['doc_identidad', docMal]);
           w.querySelectorAll('.las-campo.las-mal').forEach(function (c) { c.classList.remove('las-mal'); });
           if (malos.length) {
-            malos.forEach(function (m) {
-              var c = $('[data-req="' + m[0] + '"]'); if (!c) return;
-              c.querySelector('.las-msg').textContent = m[1];
-              c.classList.add('las-mal'); c.classList.remove('las-tiembla'); void c.offsetWidth; c.classList.add('las-tiembla');
-            });
+            malos.forEach(function (m) { marcaCampo(m[0], m[1]); });
             // `input` antes que `.las-in`: en el del documento, `.las-in` es la etiqueta que lo envuelve y no coge el foco
             var primero = $('[data-req="' + malos[0][0] + '"] input') || $('[data-req="' + malos[0][0] + '"] .las-in');
             if (primero) { primero.focus({ preventScroll: true }); primero.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
             return;
           }
           btn.classList.add('las-guardando'); btn.disabled = true;
-          Promise.resolve(creadoId ? { data: creadoId } : guardaAltaComprador(v)).then(function (r) {
+          // Sin el interruptor, el alta de siempre (cliente_guarda), intacta. Con él, ficha y documento juntos.
+          Promise.resolve(exigeDoc ? altaConDocumento(v) : guardaAltaComprador(v)).then(function (r) {
             if (r && r.error) {
               btn.classList.remove('las-guardando'); btn.disabled = false;
+              if (r.error.duda) return error(r.error.message);
               return error(tS('No se pudo dar de alta:') + ' ' + (r.error.message || r.error) +
                 (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — ' + tS('tu usuario no tiene ese permiso.') : ''));
             }
-            if (!exigeDoc) return listo(r);
-            var id = r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data) ? r.data : null;
-            if (!id) {   // no debería pasar (cliente_guarda devuelve el uuid); si pasa, se dice dónde terminar
-              toastMal(tS('La ficha se ha creado, pero no se ha podido adjuntar el documento: súbelo desde la ficha del cliente → Documentación KYC.'));
-              return listo(r);
-            }
-            creadoId = id;
-            return subeDocs(id, v.doc_caduca || null).then(function () { docOk = true; listo(r); }, function (e) {
-              btn.classList.remove('las-guardando'); btn.disabled = false;
-              modoReintento();
-              error(tS(subidos.length ? 'La ficha se ha creado, pero una parte del documento no se ha subido:' : 'La ficha se ha creado, pero el documento no se ha subido:') + ' ' + (typeof lwErrorHumano === 'function' ? lwErrorHumano(e) : String(e && e.message || e)) + '. ' +
-                tS('Pulsa «Reintentar la subida» (puedes elegir otro fichero). Si cierras, súbelo desde la ficha del cliente → Documentación KYC.'));
-            });
+            listo(r);
           }, function (e) {
             btn.classList.remove('las-guardando'); btn.disabled = false;
             error(tS('No se pudo dar de alta:') + ' ' + (e && e.message || e));
           });
         });
+        function marcaCampo(k, msg) {
+          var c = $('[data-req="' + k + '"]'); if (!c) return;
+          c.querySelector('.las-msg').textContent = msg;
+          c.classList.add('las-mal'); c.classList.remove('las-tiembla'); void c.offsetWidth; c.classList.add('las-tiembla');
+        }
 
-        /* Lo que el documento tiene que cumplir ANTES de crear la ficha: si se comprobara después, la ficha
-           ya estaría hecha. Tipo y tamaño son los del archivo KYC (la edge vuelve a mirar el tipo por los bytes). */
+        /* Lo que el documento tiene que cumplir ANTES de subir nada. Tipo y tamaño son los del archivo KYC (la edge
+           vuelve a mirar el tipo por los bytes). */
         function problemaDocs(fs) {
           if (!fs.length) return tS(DOC_ALTA[tipoInput.value === 'empresa' ? 'empresa' : 'persona'].falta);
           if (fs.length > DOC_MAX) return tH('Como mucho %n ficheros.', { n: DOC_MAX });
@@ -8141,25 +8284,117 @@
           }
           return '';
         }
-        /* Uno detrás de otro; el que sube se apunta, para que un reintento no lo duplique. Si se vuelve a
-           elegir fichero, los File son otros y suben todos los nuevos. */
-        var subidos = [];
-        function docsPendientes() { return docsElegidos().filter(function (f) { return subidos.indexOf(f) < 0; }); }
-        var docOk = false;   // todo lo elegido subió y quedó registrado (no depende de lo que haya ahora en el selector)
-        function subeDocs(id, caduca) {
-          var tipoDoc = DOC_ALTA[tipoInput.value === 'empresa' ? 'empresa' : 'persona'].tipo;
-          return docsPendientes().reduce(function (p, f) {
-            return p.then(function () {
-              return window.lwKycSube(sb, id, f, tipoDoc, caduca).then(function () { subidos.push(f); });
-            });
-          }, Promise.resolve());
+
+        /* ALTA CON DOCUMENTO — la máquina (LAW-557, 13-oct-2026). Escrita antes que el código, como manda la lección
+           del 12-oct (bbm P13: cada «¿se creó o no?» mal pensado abrió un camino a un duplicado).
+           Estado:  altaId  = la carpeta pendiente que dio el servidor (la primera subida la crea).
+                    subidos = [{clave, path}] lo ya subido a esa carpeta; la clave es nombre|tamaño|fecha|tipo, así que
+                              volver a elegir EL MISMO fichero no lo sube otra vez.
+                    enDuda  = `alta` salió y no volvió una respuesta del servidor: la ficha pudo crearse o no.
+                    hecho   = el servidor dijo que sí: hay ficha con su documento.
+           Salidas de `alta`:
+             · ok                              → listo (con `?volver=asistente`, al asistente con la ficha).
+             · error de la ficha (code 22023…) → no se creó nada; la pendiente y lo subido SIGUEN. Se corrige el dato
+                                                 en el mismo panel y se reenvía con el mismo alta_id y los mismos paths.
+             · el_fichero_no_es_lo_que_dice_ser → el servidor ya borró ESE fichero: sale de `subidos` y se pide otro.
+             · el_fichero_no_ha_llegado        → sale de `subidos`: al reenviar se sube de nuevo.
+             · alta_no_valida / ruta_invalida / demasiados_ficheros / faltan_ficheros → esa carpeta ya no sirve: se olvida
+                                                 (descartándola si aún es nuestra) y el reenvío empieza un alta limpia.
+             · sin respuesta (red, 5xx sin JSON) → DUDA: se reenvía con el mismo alta_id y paths, que es seguro (si ya se
+                                                 creó, el servidor devuelve la misma ficha). Mientras dura, el fichero no
+                                                 se puede cambiar (otra carpeta = otra ficha posible).
+           Si se cambia de fichero después de subir (y no hay duda), lo subido que ya no está elegido sobraría en la
+           carpeta del cliente: se descarta esa alta y se empieza otra. Cerrar sin terminar → `alta_descarta` (best
+           effort: el barrido de 36 h del servidor limpia lo que quede); si había duda, además se recarga la lista. */
+        var altaId = null, subidos = [], enDuda = false, hecho = false, telConfirmado = null;
+        function claveFichero(f) { return [f.name, f.size, f.lastModified, f.type].join('|'); }
+        function pathDe(f) {
+          var k = claveFichero(f);
+          for (var i = 0; i < subidos.length; i++) if (subidos[i].clave === k) return subidos[i].path;
+          return null;
         }
-        /* Ficha ya creada y documento pendiente: los datos no se pueden tocar aquí (la ficha existe; se corrige
-           desde ella) y el botón solo sube lo que falta. */
-        function modoReintento() {
-          w.querySelectorAll('[data-k], .las-pildora').forEach(function (el) { el.disabled = true; });
-          $('[data-p="faltan"]').textContent = tS('Ficha creada · falta subir el documento');
-          btn.querySelector('.las-txt').innerHTML = esc(tS('Reintentar la subida')) + svg(I.flecha, 'las-ico las-flecha');
+        function quitaSubido(path) { subidos = subidos.filter(function (s) { return s.path !== path; }); }
+        function nombreDe(path) {
+          var fs = docsElegidos();
+          for (var i = 0; i < fs.length; i++) if (pathDe(fs[i]) === path) return fs[i].name;
+          return '';
+        }
+        function ponDuda(si) { enDuda = si; if (docIn) docIn.disabled = si; }
+        function descartaAlta() {
+          if (!altaId || hecho) return Promise.resolve();
+          var id = altaId; altaId = null; subidos = [];
+          return window.lwKyc(sb, 'alta_descarta', { alta_id: id }).then(function () { return null; }, function (e) {
+            /* MUDO A PROPOSITO: descartar es limpieza best effort de una carpeta pendiente; si falla, el barrido diario
+               del servidor (pendientes de más de 36 h) borra sus ficheros. Nada que decirle al agente. */
+            try { console.error('[lawang] alta_descarta', e); } catch (_) { /* consola cerrada */ }
+            return null;
+          });
+        }
+        function alCerrarAlta() {
+          if (hecho || !altaId) return;
+          var duda = enDuda;
+          descartaAlta();   // con la ficha ya creada no borra nada (lo garantiza el servidor)
+          if (!duda) return;
+          var msg = tS('No ha llegado la respuesta del servidor y no se sabe si la ficha se creó. Se recarga la lista: búscala antes de darla de alta otra vez.');
+          Promise.resolve(typeof lwConfirmar === 'function'
+            ? lwConfirmar({ titulo: 'No se sabe si la ficha se creó', cuerpo: '<p>' + esc(msg) + '</p>', confirmar: 'Entendido', cancelar: false })
+            : window.alert(msg)).then(function () { location.reload(); });
+        }
+        function altaConDocumento(v) {
+          // Los seis datos (lista de compradores.js) y el teléfono repetido, ANTES de subir nada: igual que el alta de siempre.
+          if (typeof faltanDatosComprador === 'function') {
+            var faltan = faltanDatosComprador(v);
+            if (faltan.length) return Promise.resolve({ error: { message: 'faltan datos obligatorios — ' + faltan.join(', ') } });
+          }
+          var telAlta = telefonoAlta(v);
+          // Si el agente ya dijo «Guardar igualmente» a ESTE teléfono y reenvía por otro motivo, no se le vuelve a preguntar.
+          var tel = telConfirmado !== null && telConfirmado === telAlta ? Promise.resolve(true) : telefonoRepetidoSigue(telAlta, null);
+          return tel.then(function (sigue) {
+            if (sigue !== true) return sigue;
+            telConfirmado = telAlta;
+            var fs = docsElegidos();
+            var sobran = subidos.some(function (s) { return !fs.some(function (f) { return claveFichero(f) === s.clave; }); });
+            return (sobran && !enDuda ? descartaAlta() : Promise.resolve()).then(function () {
+              // Uno detrás de otro: el primero trae el alta_id que usan los siguientes.
+              return fs.reduce(function (p, f) {
+                return p.then(function () {
+                  if (pathDe(f)) return null;
+                  return window.lwKycAltaSube(sb, altaId, f).then(function (u) {
+                    altaId = u.alta_id; subidos.push({ clave: claveFichero(f), path: u.path });
+                  }, function (e) { if (e && e.altaId) altaId = e.altaId; throw e; });
+                });
+              }, Promise.resolve());
+            }).then(function () {
+              var pide = { alta_id: altaId, datos: datosAltaComprador(v, telAlta), paths: fs.map(pathDe) };
+              if (v.doc_caduca) pide.caduca_el = v.doc_caduca;
+              ponDuda(true);
+              return window.lwKyc(sb, 'alta', pide).then(function (d) {
+                ponDuda(false); hecho = true;
+                return { data: d.id || altaId };   // id = alta_id = el uuid del cliente (interfaz LAW-557)
+              });
+            }).catch(falloAlta);
+          });
+        }
+        function falloAlta(e) {
+          var clave = e && e.respondio ? e.clave : null;
+          if (enDuda && !clave) {   // `alta` salió y no volvió respuesta: no se sabe; reenviar es seguro
+            return { error: { duda: true, message: tS('No ha llegado la respuesta del servidor y no se sabe si la ficha se ha creado. Vuelve a pulsar «Dar de alta»: es seguro, no la duplica.') } };
+          }
+          ponDuda(false);
+          if (clave === 'el_fichero_no_es_lo_que_dice_ser' || clave === 'el_fichero_no_ha_llegado') {
+            var nombre = e.path ? nombreDe(e.path) : '';
+            if (e.path) quitaSubido(e.path);
+            var m = (nombre ? nombre + ': ' : '') + e.message +
+              (clave === 'el_fichero_no_es_lo_que_dice_ser' ? '. ' + tS('Elige otro fichero.') : '. ' + tS('Vuelve a pulsar «Dar de alta».'));
+            marcaCampo('doc_identidad', m);
+            return { error: { message: m } };
+          }
+          if (clave === 'alta_no_valida') { altaId = null; subidos = []; }
+          else if (clave === 'ruta_invalida' || clave === 'demasiados_ficheros' || clave === 'faltan_ficheros') descartaAlta();
+          if (clave && !/^[a-z_]+$/.test(clave)) {   // un mensaje de la base sobre la ficha (falta un dato, correo repetido…)
+            return errorClienteHumano({ error: { message: e.message, code: e.code } });
+          }
+          return { error: { message: typeof lwErrorHumano === 'function' ? lwErrorHumano(e) : String(e && e.message || e) } };
         }
         function listo(r) {
             btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
@@ -8167,26 +8402,19 @@
                desde su paso «cliente» (`?volver=asistente`) vuelve allí con la
                ficha recién creada elegida. Solo ese valor fijo y una ruta escrita
                aquí —nunca una URL que venga en la barra (redirección abierta)—, y
-               en la URL solo viaja el uuid que devuelve cliente_guarda. */
-            var vuelta = new URLSearchParams(location.search).get('volver') === 'asistente'
-              && r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data);
+               en la URL solo viaja el uuid que devuelve el servidor. */
+            var nuevoId = r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data) ? r.data : null;
+            var vuelta = new URLSearchParams(location.search).get('volver') === 'asistente' && nuevoId;
             setTimeout(function () {
               cerrar();
-              if (vuelta) location.href = '/contracts/app.html?nuevo=1&asistente=1&asistente_cliente=' + encodeURIComponent(r.data);
+              if (vuelta) location.href = '/contracts/app.html?nuevo=1&asistente=1&asistente_cliente=' + encodeURIComponent(nuevoId);
+              /* Si no, se abre la ficha recién creada (`?id=` de Clientes la abre sola): es la señal de que el alta salió
+                 bien. Antes la página volvía a la lista sin decir nada y un agente podía repetir el alta (recorrido de
+                 un agente de prueba, 14-oct-2026). Misma página, solo el uuid que devuelve el servidor. */
+              else if (nuevoId) location.href = location.pathname + '?id=' + encodeURIComponent(nuevoId);
               else location.reload();
             }, 750);
         }
-        /* Una ficha creada con el documento sin subir no se pierde de vista al cerrar: se recarga la lista
-           (sale ya la ficha nueva) con el aviso en rojo de qué falta. */
-        w._alCerrarAlta = function () {
-          if (!creadoId || docOk) return;
-          var msg = subidos.length
-            ? tH('La ficha se ha creado, pero el documento de identidad solo se ha subido en parte (%n de %m ficheros): sube el resto desde la ficha del cliente → Documentación KYC.', { n: subidos.length, m: subidos.length + docsPendientes().length })
-            : tS('La ficha se ha creado sin el documento de identidad: súbelo desde la ficha del cliente → Documentación KYC.');
-          Promise.resolve(typeof lwConfirmar === 'function'
-            ? lwConfirmar({ titulo: 'Falta el documento de identidad', cuerpo: '<p>' + esc(msg) + '</p>', confirmar: 'Entendido', cancelar: false })
-            : window.alert(msg)).then(function () { location.reload(); });
-        };
 
         // Nacionalidad como picker de nombre completo (geo.js + dialogo.js), igual que el resto de la suite.
         if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {
@@ -9237,7 +9465,6 @@
         if (!v.vigente_desde || !/^\d{4}-\d{2}-\d{2}$/.test(String(v.vigente_desde))) return err('Falta la fecha «Vigente desde».');
         if (v.nivel === 'manager' && v.closer_email) return err('El override individual solo aplica con nivel «Closer».');
         if (!tramos.length) return err('Añade al menos un tramo de pago.');
-        var suma = 0;
         for (var i = 0; i < tramos.length; i++) {
           var t = tramos[i], pct = Number(t.pct_tramo);
           if (!t.disparador_tipo) return err('Falta el disparador del tramo ' + (i + 1) + '.');
@@ -9245,29 +9472,23 @@
           if (/^pct_cobrado_/.test(t.disparador_tipo) && (t.umbral === '' || t.umbral == null)) {
             return err('El tramo ' + (i + 1) + ' necesita un umbral (%) para ese disparador.');
           }
-          suma += pct;
         }
-        if (Math.abs(suma - 100) > 0.01) {
-          return err('Los tramos suman ' + (Math.round(suma * 100) / 100) + '% — deben sumar exactamente 100% antes de guardar.');
-        }
+        // 100 por BASE efectiva (13-oct-2026), la misma regla que valida_suma_tramos_comision
+        var malBase = validaTramosPorBase(v.base_calculo, tramos);
+        if (malBase) return err(malBase);
         if (v.base_calculo === 'importe_fijo' && !(Number(v.importe_fijo) > 0)) return err('La base «Importe fijo» exige un importe mayor que 0.');
         if (v.base_calculo !== 'importe_fijo' && v.importe_fijo) return err('El importe fijo solo aplica cuando la base es «Importe fijo».');
         return null;
       }
-      function filasTramos(condId, tramos) {
-        return tramos.map(function (t, i) {
-          return {
-            condicion_id: condId, orden: i + 1, disparador_tipo: t.disparador_tipo,
-            umbral: /^pct_cobrado_/.test(t.disparador_tipo) ? Number(t.umbral) : null,
-            pct_tramo: Number(t.pct_tramo)
-          };
-        });
+      // los tramos como los pide el servidor: tramosParaServidor(), arriba junto a montaTramos (13-oct-2026)
+      // se miran al abrir el formulario, no al cargar: COMISION_BASE_POR_TRAMO lo pone datos.js cuando llegan los datos
+      function opcionesBaseCond(valorGuardado) {
+        return conValorGuardado(ofreciblesComision(listaBases(), BASES_NUEVAS_1NOV, basePorTramoSoportada()), valorGuardado, listaBases());
       }
-      // los tramos como los pide el servidor (condicion_comision_guarda): sin id de condición
-      function tramosParaServidor(tramos) {
-        return filasTramos('00000000-0000-0000-0000-000000000000', tramos).map(function (f) {
-          return { disparador_tipo: f.disparador_tipo, umbral: f.umbral, pct_tramo: f.pct_tramo };
-        });
+      function ayudaBaseCond() {
+        return basePorTramoSoportada()
+          ? '«' + etiquetaComision(listaBases(), 'por_tramo') + '»: cada pago dice sobre qué precio se calcula (p. ej. el 10 % del precio firmado de la parcela al cobrar el 50 % de la parcela, y el 10 % del de la construcción al cobrar el 25 % de la construcción)'
+          : undefined;
       }
 
       ata('nueva-condicion', function () {
@@ -9315,11 +9536,11 @@
               ayuda: '«todo el equipo» aplica a cualquiera del equipo en ese rol; una persona concreta manda sobre eso' },
             { k: 'pct_comision', label: '% de comisión', tipo: 'number', paso: '0.01', req: 1, medio: 1 },
             { k: 'base_calculo', label: 'Base de cálculo', tipo: 'select', req: 1, medio: 1,
-              opciones: (window.LW_V4.BASES_CALCULO || BASES_CALCULO_FALLBACK) },
+              opciones: opcionesBaseCond(null), ayuda: ayudaBaseCond() },
             { k: 'importe_fijo', label: 'Importe fijo', tipo: 'number', paso: '0.01', medio: 1,
               visibleSi: { k: 'base_calculo', valores: ['importe_fijo'] } },
             { k: 'tramos', label: 'Tramos de pago (deben sumar 100%)', tipo: 'custom',
-              render: function (d) { getTramos = montaTramos(d); } }
+              render: function (d) { getTramos = montaTramos(d, null, { conBase: basePorTramoSoportada() }); } }
           ], 'Crear condición', function (v) {
             v.equipo_id = v.equipo_id || null;
             v.proyecto_id = v.proyecto_id || null;
@@ -9349,7 +9570,7 @@
                 importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
                 vigente_desde: v.vigente_desde
               },
-              p_tramos: tramosParaServidor(tramos)
+              p_tramos: tramosParaServidor(tramos, v.base_calculo)
             });
           }, { sinRecarga: true });   // recarga guardaCondicionConfirmada, que puede abrir antes la confirmación
         });
@@ -9469,11 +9690,17 @@
               valor: (cond.vigente_desde && cond.vigente_desde > '1900-01-01') ? cond.vigente_desde : '1900-01-01',
               ayuda: 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha; 1900-01-01 = sin corte' },
             { k: 'pct_comision', label: '% de comisión', tipo: 'number', paso: '0.01', req: 1, medio: 1, valor: cond.pct_comision },
+            // la base guardada entra como opción aunque hoy no se ofrezca: nunca cae en «Precio total» al guardar
             { k: 'base_calculo', label: 'Base de cálculo', tipo: 'select', req: 1, medio: 1, valor: cond.base_calculo,
-              opciones: (window.LW_V4.BASES_CALCULO || BASES_CALCULO_FALLBACK) },
+              opciones: opcionesBaseCond(cond.base_calculo), ayuda: ayudaBaseCond() },
             { k: 'importe_fijo', label: 'Importe fijo', tipo: 'number', paso: '0.01', medio: 1,
               valor: cond.importe_fijo == null ? '' : cond.importe_fijo,
               visibleSi: { k: 'base_calculo', valores: ['importe_fijo'] } });
+          // selector de base por tramo si la base lo sabe guardar, o si esta condición ya trae bases por tramo
+          var conBaseE = basePorTramoSoportada() || tramosAct.some(function (t) { return !!(t && t.base_calculo); }) || cond.base_calculo === 'por_tramo';
+          var txtTramo = (window.LW_V4 && window.LW_V4.textoTramo) || function (t) {
+            return t.pct_tramo + '% ' + t.disparador_tipo + (t.umbral != null ? ' ' + t.umbral + '%' : '') + (t.base_calculo ? ' · ' + t.base_calculo : '');
+          };
           if (n && !admin) {
             return modal('Condición con comisiones — ' + etq, [
               { tipo: 'nota', label: 'Esta condición ya ha generado ' + n + (n === 1 ? ' comisión' : ' comisiones') + ': no se cambian sus cifras. Desactívala y crea una nueva con las condiciones que quieras desde hoy.' }
@@ -9488,10 +9715,10 @@
             campos.push({ tipo: 'nota', label: 'Esta condición ya ha devengado ' + n + (n === 1 ? ' comisión' : ' comisiones') +
               ': sus tramos no se tocan, porque cada devengo lleva su importe congelado sobre ellos. ' +
               'Para otro calendario de pago, desactívala y crea una nueva. Tramos actuales: ' +
-              tramosAct.map(function (t) { return t.pct_tramo + '% ' + t.disparador_tipo + (t.umbral != null ? ' ' + t.umbral + '%' : ''); }).join(' · ') });
+              tramosAct.map(function (t) { return txtTramo(t, cond.base_calculo); }).join(' · ') });
           } else {
             campos.push({ k: 'tramos', label: 'Tramos de pago (deben sumar 100%)', tipo: 'custom',
-              render: function (d) { getTramos = montaTramos(d, tramosAct); } });
+              render: function (d) { getTramos = montaTramos(d, tramosAct, { conBase: conBaseE, baseInicial: cond.base_calculo }); } });
           }
           modal('Editar condición — ' + etq, campos, 'Guardar cambios', function (v) {
             v.nivel = cond.nivel; v.equipo_id = cond.equipo_id; v.proyecto_id = cond.proyecto_id;
@@ -9509,7 +9736,7 @@
                 vigente_desde: v.vigente_desde,
                 closer_email: esPersonal && alcanceLibre ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : cond.closer_email
               },
-              p_tramos: tramosParaServidor(tramos),
+              p_tramos: tramosParaServidor(tramos, v.base_calculo),
               p_motivo: (v.motivo || '').trim() || null
             });
           }, { sinRecarga: true });   // recarga guardaCondicionConfirmada

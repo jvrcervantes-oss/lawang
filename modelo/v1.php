@@ -250,9 +250,9 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and price, configured live.">
-<?php if (!$precio): ?>
+<?php /* Archivada: noindex SIEMPRE, tenga o no precio (14-oct-2026). Es un duplicado de
+         /modelo/<id>, que es la que se indexa; aqui solo se guarda para restaurarla. */ ?>
 <meta name="robots" content="noindex, nofollow">
-<?php endif; ?>
 <link rel="canonical" href="https://lawangproperties.com/<?= lw_e($slugPath) ?>">
 <link rel="icon" href="/favicon.png">
 <meta property="og:title" content="<?= lw_e($villa) ?> · Turnkey villa in Bali">

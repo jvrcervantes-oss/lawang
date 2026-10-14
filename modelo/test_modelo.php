@@ -158,9 +158,13 @@ foreach (['cliff', 'ricefield', 'riverfront', 'sumba', 'otras'] as $zona) {
 }
 ok(lw_parcela_tarifa_m2('luna') === null, 'una zona desconocida no debe devolver una tarifa inventada');
 
-// Las fotos reales del sitio: si faltan, la seccion "La costa, no el render" sale rota.
-foreach (['costa', 'rio'] as $f) {
-    ok(is_file(dirname(__DIR__) . "/assets/img/lugar/$f.jpg"), "falta la foto real $f.jpg");
+// Las fotos reales del sitio. costa.webp es la imagen de respaldo (og:image y fondo) de
+// modelo/index.php, modelo/v1.php, dali/index.php y portfolio.php cuando un modelo no trae
+// portada: si falta, esas paginas salen sin imagen.
+// 14-oct-2026: aqui se pedia costa.jpg, borrado el 1-oct (b656fe021) al pasar a WebP; este
+// fichero estuvo 13 dias en rojo sin que nadie lo viera porque ningun control lo lanza.
+foreach (['costa.webp', 'rio.jpg'] as $f) {
+    ok(is_file(dirname(__DIR__) . "/assets/img/lugar/$f"), "falta la foto real $f");
 }
 
 // El pliego que se publica tiene que estar completo por los dos lados (solo Dali lo tiene
