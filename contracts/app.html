@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="69b8e5a5d60e">
+<meta name="lw-version" content="6e514b097e01">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=2c3eb832"></script>
+<script src="/contracts/assets/i18n.js?v=94f2a95f"></script>
 <script src="/contracts/assets/herramientas.js?v=5658fcc3"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -113,7 +113,7 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=a5e3a8f7"></script>
+<script src="/contracts/assets/asistente-contrato.js?v=8a46105b"></script>
 <script src="/intranet/v4/assets/nav.js?v=2968e88d" defer></script>
 </head>
 <body>
@@ -1571,7 +1571,7 @@ function fichaResumen(c){
    texto llega a los dos a la vez.
 
    Dos estados, los mismos en los dos sitios:
-     · con ficha  → el chip, con «Ver en Compradores» y «Cambiar de cliente»
+     · con ficha  → el chip, con «Ver en Clientes» y «Cambiar de cliente»
      · sin ficha  → el recuadro de búsqueda, con el enlace al alta
 
    `o.marca` es el id de la fila del adquiriente (COMPRADORES) o vacío para el
@@ -1587,7 +1587,7 @@ function bloqueElegirComprador(o){
         : L({es:'Ficha',en:'Client',id:'Klien'})}</span>
       <b>${esc(o.ficha.full_name || '—')}</b>
       <span class="cli-sub">${esc(fichaResumen(o.ficha))}${fichaDeQuien(o.ficha)}</span>
-      <a class="tb-link" href="/intranet/v4/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>
+      <a class="tb-link" href="/intranet/v4/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Clientes',en:'Open in Clients',id:'Buka di Klien'})}</a>
       ${cambiar}
     </div>`;
   }
@@ -1607,7 +1607,7 @@ function bloqueElegirComprador(o){
       <input type="search" id="${o.idInput}"${o.marca ? ` data-cli-buscar="${escAttr(o.marca)}"` : ''} autocomplete="off" placeholder="${L({es:'Nombre, email o pasaporte…',en:'Name, email or passport…',id:'Nama, email, atau paspor…'})}">
       <div class="cli-resultados" id="${o.idResultados}" hidden></div>
     </div>
-    <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Compradores, no aquí.',en:'Not registered yet? New clients are created in Buyers, not here.',id:'Belum terdaftar? Klien baru dibuat di Pembeli, bukan di sini.'})}</span>
+    <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Clientes, no aquí.',en:'Not registered yet? New clients are created in Clients, not here.',id:'Belum terdaftar? Klien baru dibuat di Klien, bukan di sini.'})}</span>
       <a class="tb-link"${o.idNuevo ? ` id="${o.idNuevo}"` : ''} href="/intranet/v4/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
     </div>
   </div>`;
