@@ -162,7 +162,7 @@ function lwCsvAnaliza(texto, ctx){
     const tipo = (d.tipo || 'parcela').toLowerCase().trim();
     if(!codigo) errores.push('sin código');
     if(!proyectoCsv) errores.push('sin proyecto');
-    else if(!proyectoCat) errores.push(`proyecto "${proyectoCsv}" no está en el catálogo — créalo primero con «+ Nuevo proyecto»`);
+    else if(!proyectoCat) errores.push(`proyecto "${proyectoCsv}" no está en el catálogo — créalo primero con «Nuevo proyecto»`);
     if(!tiposOk.has(tipo)) errores.push(`tipo "${tipo}" no está en el catálogo`);
     const precioSuelo = num(d.precio_suelo), precioConstruccion = num(d.precio_construccion);
     /* El total es SIEMPRE suelo + construcción cuando el CSV trae los dos

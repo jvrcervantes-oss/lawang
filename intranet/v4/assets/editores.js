@@ -6586,7 +6586,7 @@
           if (rs[1].error) return aviso('No se pudo abrir: ' + rs[1].error.message, '#ba1a1a');
           var proyectos = ((rs[0] && rs[0].data) || []).map(function (p) { return p.nombre; });
           var tipos = ((rs[1] && rs[1].data) || []).map(function (t) { return [t.clave, t.etiqueta]; });
-          if (!proyectos.length) return aviso('No hay ningún proyecto dado de alta todavía — crea uno con «+ Nuevo proyecto» primero.', '#8A6A34');
+          if (!proyectos.length) return aviso('No hay ningún proyecto dado de alta todavía — crea uno con «Nuevo proyecto» primero.', '#8A6A34');
           var actual = proyectoObj();
           var proyectoDefecto = (actual && actual.nombre) || proyectos[0];
           var cat = rs[2] || { catalogo: [], villas: [] };

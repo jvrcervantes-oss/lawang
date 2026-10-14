@@ -495,7 +495,7 @@
          previsualización. Se avisa aquí de lo que puede pasar, y el resultado llega al guardar. */
       if (S.camino === 'nueva' && S.modo === 'propia' && RT.equipo && RT.equipo.en)
         h += aviso('info', 'info', e(T('Por tu cuenta: al guardar se comprueba este cliente contra los leads de tu equipo. Si es un lead que te asignó tu Sales Manager, la venta no podrá ser por tu cuenta; si vino de campañas o lo llevaba otra persona del equipo, tu Sales Manager recibe el aviso.')));
-      h += '<div class="asi-alta"><button type="button" class="asi-btn fantasma" data-asi="alta-cliente"><span data-ico="person_add" aria-hidden="true"></span>' + e(T('Dar de alta un cliente nuevo')) + '</button>' +
+      h += '<div class="asi-alta"><button type="button" class="asi-btn fantasma" data-asi="alta-cliente"><span data-ico="person_add" aria-hidden="true"></span>' + e(T('Nuevo cliente')) + '</button>' +
         '<span>' + e(T('Al guardarlo vuelves aquí con él elegido.')) + '</span></div>';
       return h;
     },
