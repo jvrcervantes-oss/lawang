@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="6cc2905b57c8">
+<meta name="lw-version" content="ad2d426cef8f">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=d87dd36b"></script>
+<script src="/contracts/assets/i18n.js?v=48701d10"></script>
 <script src="/contracts/assets/herramientas.js?v=5658fcc3"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -3946,7 +3946,7 @@ async function fijaVersionPlantilla(contratoId, eraNuevo){
   try{
     const r = await textoPlantillaBase(CURRENT.slug, null, pid, REVISION_ELEGIDA || null);   // la MISMA revisión que se ve en pantalla
     if(!r) return '';   // la empresa del proyecto no tiene texto en la base: sigue con el fichero
-    if(!PLANTILLA_VER ? r.html !== templateHTML : r.ver.hash !== PLANTILLA_VER.hash)
+    if(!PLANTILLA_VER ? !mismoTexto(r.html, templateHTML) : r.ver.hash !== PLANTILLA_VER.hash)
       return ' · OJO: el texto del contrato en pantalla no es el de la empresa de este proyecto; se guardó SIN fijar la versión del texto. Revísalo.';
     const { error } = await sb.rpc('plantilla_contrato_fija', { p_contrato: contratoId, p_version: r.ver.version_id });
     if(error) throw error;
@@ -3960,8 +3960,13 @@ async function fijaVersionPlantilla(contratoId, eraNuevo){
     return ' · OJO: se guardó, pero no se pudo fijar la versión del texto (' + m + ').';
   }finally{ ocultaRevisiones(); }   // ya guardado, el texto no se cambia desde aquí
 }
+/* El fichero publicado va SIN notas de autor (8-oct-2026) y las semillas v1 de la base las conservan: comparados tal cual, dos textos
+   iguales salían distintos y el cambio de proyecto avisaba de «otra empresa» con un proyecto de Lawang (14-oct-2026). Se comparan sin
+   notas, con la MISMA expresión que `_plantilla_sin_notas` (migración 20261009010000; revision_texto.test.js frena que se separen). */
+const RE_NOTAS_AUTOR = /<!--(?!if:|\/if:|opt:|\/opt:|seccion-hitos-->|\/seccion-hitos-->|seccion-extras-construccion-->|\/seccion-extras-construccion-->|extra-clauses-->|firmas-adquirientes-->|compradores-extra-->|datos-bancarios-->|datos-bancarios-sin-titulo-->|hitos-->|extras-construccion-->|cuenta:|bloque-fijo:|\/bloque-fijo:)[\s\S]*?-->/g;
+const mismoTexto = (x, y) => typeof x === 'string' && typeof y === 'string' && x.replace(RE_NOTAS_AUTOR, '') === y.replace(RE_NOTAS_AUTOR, '');
 /* Cambiar el proyecto de un contrato SIN guardar puede cambiar de empresa y, con ella, el texto. Si el texto de la
-   empresa nueva es idéntico al de pantalla (hoy: las dos tienen la semilla v1, copia del mismo fichero) solo se
+   empresa nueva es idéntico al de pantalla (hoy Lawang: su semilla v1, copia del fichero con las notas de autor que el publicado ya no lleva; ver mismoTexto) solo se
    anota de qué versión sale, sin tocar nada. Si difiere hay que rehacer el formulario, que pierde lo escrito: con
    algo escrito se pregunta antes y, si se dice que no, el proyecto vuelve al anterior. Un contrato ya guardado no
    se toca: su texto es el que fijó. */
@@ -3976,8 +3981,13 @@ async function cambioDeProyectoYTexto(sel){
   /* Con una revisión elegida, el texto de pantalla NUNCA es igual al estándar que se acaba de pedir: se compara la EMPRESA, que es lo que decide
      si hay otro texto. Misma empresa = las mismas revisiones: se conserva la elegida y no se pregunta ni se borra nada. */
   if(revPrevia && r.ver && PLANTILLA_VER && r.ver.empresa && r.ver.empresa === PLANTILLA_VER.empresa){ REVISION_ELEGIDA = revPrevia; sel.dataset.previo = nombre; return; }
-  if(r.html === templateHTML && !revPrevia){ PLANTILLA_VER = r.ver; sel.dataset.previo = nombre; await cargaRevisiones(r.ver); return; }
-  if(PLANTILLA_TOCADO && !window.confirm(lwT('Ese proyecto es de otra empresa y su contrato usa otro texto. Cambiarlo borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?'))){
+  if(mismoTexto(r.html, templateHTML) && !revPrevia){ PLANTILLA_VER = r.ver; sel.dataset.previo = nombre; await cargaRevisiones(r.ver); return; }
+  /* «Otra empresa» solo si la empresa cambió de verdad; si en pantalla estaba el texto base (sin empresa) y el proyecto trae el propio de su empresa, se dice eso. */
+  const otraEmpresa = !!(PLANTILLA_VER && PLANTILLA_VER.empresa && r.ver && r.ver.empresa && r.ver.empresa !== PLANTILLA_VER.empresa);
+  const aviso = otraEmpresa
+    ? lwT('Ese proyecto es de otra empresa y su contrato usa otro texto. Cambiarlo borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?')
+    : lwT('La empresa de ese proyecto tiene su propio texto para este contrato, distinto del que ves. Cambiarlo borra lo que llevas escrito en este borrador sin guardar. ¿Continuar?');
+  if(PLANTILLA_TOCADO && !window.confirm(aviso)){
     sel.value = previo; REVISION_ELEGIDA = revPrevia; return;
   }
   if(typeof confirmaSoltarPendientes === 'function' && !confirmaSoltarPendientes()){ sel.value = previo; REVISION_ELEGIDA = revPrevia; return; }
