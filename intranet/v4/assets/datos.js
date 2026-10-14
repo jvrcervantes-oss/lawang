@@ -3079,7 +3079,7 @@
             // Motivo siempre visible y obligatorio (la base lo exige: 3 caracteres o más)
             controles += '<div data-tr-caja><div class="las-campo"><label class="las-etq" for="' + idSel + '-m">' + esc(tx('Motivo')) + '</label>' +
               '<input type="text" id="' + idSel + '-m" data-tr-motivo maxlength="180" required class="las-in" placeholder="' + esc(tx('Ej. Ana deja el equipo, sus clientes pasan a Carmen')) + '"></div></div>';
-            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">' + esc(tx('Quien la reciba se lleva también sus contratos, facturas y recibís, firmados y anulados incluidos. Los que están a nombre de otro comprador no se mueven.')) + '</p></div></div>';
+            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">' + esc(tx('Quien la reciba se lleva también sus contratos, facturas y recibís, firmados y anulados incluidos. No se mueven los contratos que comparte con un comprador de otro agente, ni lo que está a nombre de otro comprador.')) + '</p></div></div>';
             return base + controles;
           }
           /* Una fila por OPERACIÓN (26-sep-2026, owner: «¿hay forma de unificar
@@ -3266,8 +3266,12 @@
                 titulo: tx('Pasar la ficha de %n a %m', { n: c2.full_name || '—', m: nombreNuevo }),
                 /* 13-oct (revisor): las facturas y recibís a nombre de OTRO
                    comprador del mismo contrato no se mueven (son del agente de
-                   ese comprador); el texto no puede prometerlas. */
-                cuerpo: '<p>' + esc(tx('%m se lleva la ficha, todos sus contratos (también los que comparte con otros compradores) y sus facturas y recibís: los de cualquier autor, los firmados y los anulados. Las facturas y recibís a nombre de otro comprador se quedan con quien los lleva. Queda apuntado quién lo hizo, cuándo y el motivo.', { m: nombreNuevo })) + '</p>' +
+                   ese comprador); el texto no puede prometerlas.
+                   14-oct (owner): tampoco un contrato compartido con un
+                   comprador cuya ficha es de otro agente (migración
+                   20261014000241); el texto deja de prometer «los que comparte
+                   con otros compradores». */
+                cuerpo: '<p>' + esc(tx('%m se lleva la ficha, sus contratos y sus facturas y recibís: los de cualquier autor, los firmados y los anulados. Los contratos que comparte con un comprador de otro agente se quedan como están, con sus facturas y recibís, y lo que está a nombre de otro comprador se queda con quien lo lleva. Queda apuntado quién lo hizo, cuándo y el motivo.', { m: nombreNuevo })) + '</p>' +
                   '<p>' + esc(tx('Las comisiones no cambian: siguen siendo de quien cerró cada venta.')) + '</p>',
                 confirmar: 'Traspasar'
               }).then(function (ok) {
@@ -3286,14 +3290,17 @@
                   /* Lo que NO se ha movido, con su número y su porqué (13-oct,
                      revisor). En Lawang `facturas_omitidas_otro_autor` cuenta las
                      de OTRO comprador del mismo contrato (migración
-                     20261013150901); en el maestro, `facturas_omitidas_emitidas`
+                     20261013150901) y, desde el 14-oct, las de los contratos
+                     compartidos con otro agente, que cuenta
+                     `contratos_omitidos_otro_autor` (migración 20261014000241;
+                     en el maestro vale 0 hasta su gemelo); en el maestro, `facturas_omitidas_emitidas`
                      las emitidas en serie fiscal (AXW-39). El resto vale 0 hoy,
                      pero si la base devuelve algo, se enseña. */
                   var omitidos = [
                     ['contratos_omitidos_firmados', '%n contratos firmados no se han movido.'],
-                    ['contratos_omitidos_otro_autor', '%n contratos de otro autor no se han movido.'],
+                    ['contratos_omitidos_otro_autor', '%n contratos compartidos con un comprador de otro agente no se han movido: revísalos a mano.'],
                     ['contratos_omitidos_sin_autor', '%n contratos sin autor no se han movido.'],
-                    ['facturas_omitidas_otro_autor', '%n facturas o recibís a nombre de otro comprador del mismo contrato se quedan con quien los lleva.'],
+                    ['facturas_omitidas_otro_autor', '%n facturas o recibís no se han movido: están a nombre de otro comprador o cuelgan de un contrato compartido que se queda.'],
                     ['facturas_omitidas_sin_autor', '%n facturas o recibís sin autor no se han movido.'],
                     ['facturas_omitidas_emitidas', '%n facturas emitidas se quedan con su autor (una emitida no se reasigna).']
                   ].filter(function (o) { return Number(res[o[0]]) > 0; }).map(function (o) {

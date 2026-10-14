@@ -5635,17 +5635,17 @@
     'Pasar la ficha de %n a %m': 'Hand over the record of %n to %m',
     'Ficha traspasada a %n': 'Record handed over to %n',
     /* Traspaso que siempre arrastra (13-oct-2026): resumen y avisos. */
-    'Quien la reciba se lleva también sus contratos, facturas y recibís, firmados y anulados incluidos. Los que están a nombre de otro comprador no se mueven.':
-      'Whoever receives it also takes their contracts, invoices and receipts, signed and voided ones included. Those in another buyer’s name do not move.',
-    '%m se lleva la ficha, todos sus contratos (también los que comparte con otros compradores) y sus facturas y recibís: los de cualquier autor, los firmados y los anulados. Las facturas y recibís a nombre de otro comprador se quedan con quien los lleva. Queda apuntado quién lo hizo, cuándo y el motivo.':
-      '%m takes the record, all of its contracts (including those shared with other buyers) and its invoices and receipts: by any author, signed and voided ones included. Invoices and receipts in another buyer’s name stay with whoever handles them. Who did it, when and why is recorded.',
+    'Quien la reciba se lleva también sus contratos, facturas y recibís, firmados y anulados incluidos. No se mueven los contratos que comparte con un comprador de otro agente, ni lo que está a nombre de otro comprador.':
+      'Whoever receives it also takes their contracts, invoices and receipts, signed and voided ones included. Contracts shared with a buyer handled by another agent do not move, nor does anything in another buyer’s name.',
+    '%m se lleva la ficha, sus contratos y sus facturas y recibís: los de cualquier autor, los firmados y los anulados. Los contratos que comparte con un comprador de otro agente se quedan como están, con sus facturas y recibís, y lo que está a nombre de otro comprador se queda con quien lo lleva. Queda apuntado quién lo hizo, cuándo y el motivo.':
+      '%m takes the record, its contracts and its invoices and receipts: by any author, signed and voided ones included. Contracts shared with a buyer handled by another agent stay as they are, with their invoices and receipts, and anything in another buyer’s name stays with whoever handles it. Who did it, when and why is recorded.',
     'Las comisiones no cambian: siguen siendo de quien cerró cada venta.': 'Commissions do not change: they still belong to whoever closed each sale.',
     'Contratos movidos: %a.': 'Contracts moved: %a.',
     'Facturas y recibís movidos: %a (%b anulados).': 'Invoices and receipts moved: %a (%b voided).',
     '%n contratos firmados no se han movido.': '%n signed contracts were not moved.',
-    '%n contratos de otro autor no se han movido.': '%n contracts by another author were not moved.',
+    '%n contratos compartidos con un comprador de otro agente no se han movido: revísalos a mano.': '%n contracts shared with a buyer handled by another agent were not moved: review them manually.',
     '%n contratos sin autor no se han movido.': '%n contracts without an author were not moved.',
-    '%n facturas o recibís a nombre de otro comprador del mismo contrato se quedan con quien los lleva.': '%n invoices or receipts in the name of another buyer on the same contract stay with whoever handles them.',
+    '%n facturas o recibís no se han movido: están a nombre de otro comprador o cuelgan de un contrato compartido que se queda.': '%n invoices or receipts were not moved: they are in another buyer’s name or belong to a shared contract that stays.',
     '%n facturas o recibís sin autor no se han movido.': '%n invoices or receipts without an author were not moved.',
     '%n facturas emitidas se quedan con su autor (una emitida no se reasigna).': '%n issued invoices keep their author (an issued invoice is not reassigned).',
     'No se ha podido confirmar el traspaso: recarga la ficha para ver de quién es antes de repetirlo.': 'The handover could not be confirmed: reload the record to see who owns it before trying again.',
