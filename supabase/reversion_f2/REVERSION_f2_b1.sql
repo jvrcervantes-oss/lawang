@@ -174,8 +174,11 @@ select pg_temp.parchea('public.unidad_socio_asigna(uuid,uuid,text)'::regprocedur
     raise exception 'Ese socio no esta asignado todavia en tus empresas: la primera asignacion la hace un administrador global' using errcode = '42501';
   end if;$q$,
   $q$if length(v_nota) > 500 then raise exception 'La nota no puede pasar de 500 caracteres' using errcode = '22023'; end if;$q$);
-select pg_temp.parchea('public.unidad_parte_cobrada_split(uuid)'::regprocedure,
-  $q$or public.es_admin_de(public.empresa_de_unidad(p_unidad))) as ok$q$, $q$or public.es_admin()) as ok$q$);
+-- YA NO APLICA (14-oct-2026): unidad_parte_cobrada_split se reescribió en 20261014024234 (el texto que parcheaba
+-- desapareció; su puerta vive ahora en unidad_cobro_reparto) y se borró en 20261014130410 (F6/LAW-590). Sin comentar,
+-- el ::regprocedure tumbaría la transacción entera de esta vuelta atrás.
+-- select pg_temp.parchea('public.unidad_parte_cobrada_split(uuid)'::regprocedure,
+--   $q$or public.es_admin_de(public.empresa_de_unidad(p_unidad))) as ok$q$, $q$or public.es_admin()) as ok$q$);
 select pg_temp.parchea('public.trg_valida_unidad_id_contrato()'::regprocedure,
   $q$and not public.es_admin_de(public.empresa_de_contrato(new.id)) then$q$, $q$and not public.es_admin() then$q$);
 

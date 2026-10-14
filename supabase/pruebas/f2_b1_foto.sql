@@ -1,7 +1,7 @@
 -- Foto de no-regresion del BLOQUE 1 del cierre de empresas (8-oct-2026): lo que cada uno de los usuarios reales ve/puede, en md5, ANTES y DESPUES de cada migracion de f2_b1.
 -- Complementa a f2_foto_ids.sql (que cubre proyectos, unidades, contratos, facturas...). Aqui: las tablas hijas de contratos que cambian de policy (eventos, firmas, prorrogas, paginas de anexo)
 -- y el resultado de las funciones convertidas que NO piden argumentos de escritura (es_manager_de sobre todos los proyectos, _puede_editar_proyectos, es_admin_de/es_super_admin_de sobre la empresa de cada proyecto,
--- ventas_por_su_cuenta_cuota/equipo, unidad_parte_cobrada_split sobre todas las parcelas, proyecto_vinculos_datos sobre todos los proyectos).
+-- ventas_por_su_cuenta_cuota/equipo, unidad_cobro_reparto sobre todas las parcelas (hasta el 14-oct-2026 era unidad_parte_cobrada_split, borrada en F6/LAW-590: el trozo |upc de una foto anterior no es comparable con uno posterior), proyecto_vinculos_datos sobre todos los proyectos).
 -- Con JWT simulado (con email) + set local role authenticated. Termina en raise (sin rastro). El md5 de los 34 usuarios reales debe ser IDENTICO antes y despues.
 -- destructivo-ok: solo lectura; termina en raise
 do $t$
@@ -26,7 +26,7 @@ begin
     -- segundo bloque: como postgres con los mismos claims, sobre TODAS las filas
     o := u.email||'|pe'||public._puede_editar_proyectos()::text;
     begin select md5(coalesce(string_agg(x, ',' order by x),'')) into h from (select s.cobrado_suelo::text||'/'||s.cobrado_obra::text||'/'||s.obra_firmada::text||':'||un.id::text x
-          from public.unidades un cross join lateral public.unidad_parte_cobrada_split(un.id) s) q; o := o||'|upc'||left(h,6);
+          from public.unidades un cross join lateral public.unidad_cobro_reparto(un.id) s) q; o := o||'|upc'||left(h,6);
     exception when others then o := o||'|ERRupc'||sqlstate; end;
     begin select md5(coalesce(string_agg(x, ',' order by x),'')) into h from (select p.id::text||':'||(public.proyecto_vinculos_datos(p.nombre))::text x from public.proyectos p) q; o := o||'|vin'||left(h,6);
     exception when others then o := o||'|ERRvin'||sqlstate; end;

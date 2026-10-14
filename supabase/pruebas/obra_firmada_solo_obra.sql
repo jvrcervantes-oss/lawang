@@ -4,6 +4,8 @@
 -- Para probar una migración ANTES de aplicarla: pegar su cuerpo delante de este bloque en el MISMO
 -- execute_sql (el raise final deshace también la migración).
 -- Cada línea dice `ok` o `FALLO`; la última cuenta los fallos.
+-- 14-oct-2026: «_split» de los casos es ahora unidad_cobro_reparto (mismas columnas; unidad_parte_cobrada_split solo
+-- la envolvía y se borró en 20261014130410, F6/LAW-590). Pasada ese día en producción tras el cambio: 9/9, 0 fallos.
 --
 -- No da de alta contratos ni llama a contrato_guarda ni a comisiones_evaluar_contrato (LAW-217: nada que
 -- gaste series; comisiones inserta devengos y solicitudes de pago). Por eso trabaja sobre filas reales y
@@ -41,26 +43,26 @@ begin
    order by h.numero limit 1;
 
   -- T1
-  select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_sh) i, public.unidad_parte_cobrada_split(u_sh) s;
+  select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_sh) i, public.unidad_cobro_reparto(u_sh) s;
   res := coalesce(a::text, 'null') || '/' || coalesce(b::text, 'null'); esp := 'false/false';
   out := out || 'T1 ' || case when res = esp then 'ok   ' else 'FALLO' end || ' SH-144 ' || res || E'\n'; fallos := fallos + (res <> esp)::int;
   -- T2
-  select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_b2) i, public.unidad_parte_cobrada_split(u_b2) s;
+  select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_b2) i, public.unidad_cobro_reparto(u_b2) s;
   res := coalesce(a::text, 'null') || '/' || coalesce(b::text, 'null'); esp := 'false/false';
   out := out || 'T2 ' || case when res = esp then 'ok   ' else 'FALLO' end || ' B2 Mejan ' || res || E'\n'; fallos := fallos + (res <> esp)::int;
   -- T3
-  select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_cc) i, public.unidad_parte_cobrada_split(u_cc) s;
+  select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_cc) i, public.unidad_cobro_reparto(u_cc) s;
   res := coalesce(a::text, 'null') || '/' || coalesce(b::text, 'null'); esp := 'true/true';
   out := out || 'T3 ' || case when res = esp then 'ok   ' else 'FALLO' end || ' construccion ' || res || E'\n'; fallos := fallos + (res <> esp)::int;
   -- T4
-  select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_tim) i, public.unidad_parte_cobrada_split(u_tim) s;
+  select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_tim) i, public.unidad_cobro_reparto(u_tim) s;
   res := coalesce(a::text, 'null') || '/' || coalesce(b::text, 'null'); esp := 'true/true';
   out := out || 'T4 ' || case when res = esp then 'ok   ' else 'FALLO' end || ' cc00014_timon ' || res || E'\n'; fallos := fallos + (res <> esp)::int;
   -- T5
   esp := 'true/true';
   begin
     update public.contrato_tipo_etapa set es_obra = true where tipo = 'poa';
-    select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_sh) i, public.unidad_parte_cobrada_split(u_sh) s;
+    select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_sh) i, public.unidad_cobro_reparto(u_sh) s;
     raise exception '__R__%', coalesce(a::text, 'null') || '/' || coalesce(b::text, 'null');
   exception when others then res := case when sqlerrm like '\_\_R\_\_%' then substr(sqlerrm, 6) else 'ERROR ' || left(sqlerrm, 120) end; end;
   out := out || 'T5 ' || case when res = esp then 'ok   ' else 'FALLO' end || ' poa marcado como obra ' || res || E'\n'; fallos := fallos + (res <> esp)::int;
@@ -68,7 +70,7 @@ begin
   esp := 'false/false';
   begin
     update public.contrato_tipo_etapa set es_obra = false where tipo = 'construccion';
-    select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_cc) i, public.unidad_parte_cobrada_split(u_cc) s;
+    select i.obra_firmada, s.obra_firmada into a, b from public.unidad_parte_cobrada_interno(u_cc) i, public.unidad_cobro_reparto(u_cc) s;
     raise exception '__R__%', coalesce(a::text, 'null') || '/' || coalesce(b::text, 'null');
   exception when others then res := case when sqlerrm like '\_\_R\_\_%' then substr(sqlerrm, 6) else 'ERROR ' || left(sqlerrm, 120) end; end;
   out := out || 'T6 ' || case when res = esp then 'ok   ' else 'FALLO' end || ' construccion desmarcada ' || res || E'\n'; fallos := fallos + (res <> esp)::int;
@@ -87,7 +89,7 @@ begin
   out := out || 'T8 ' || case when res = esp then 'ok   ' else 'FALLO' end || ' comisiones (raices con obra / lee catalogo) ' || res || E'\n'; fallos := fallos + (res <> esp)::int;
   -- T9
   select count(*) filter (where i.obra_firmada), count(*) filter (where s.obra_firmada) into n, m
-    from public.unidades x, public.unidad_parte_cobrada_interno(x.id) i, public.unidad_parte_cobrada_split(x.id) s;
+    from public.unidades x, public.unidad_parte_cobrada_interno(x.id) i, public.unidad_cobro_reparto(x.id) s;
   res := n::text || '/' || m::text || '/' || (select count(*) from public.unidades x join public.contratos c on c.id = x.contrato_id
     where exists (select 1 from public.contratos h join public.contrato_tipo_etapa e on e.tipo = h.tipo and e.es_obra
                    where h.contrato_padre_id = coalesce(c.contrato_padre_id, c.id) and h.bloqueado
