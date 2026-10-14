@@ -115,6 +115,7 @@ $validos = [
     'ficha sin la clave visible'    => json_encode(['properties' => [$f('uno')]]),
     'sin propiedades (el panel lo publica a proposito, tras confirmar)' => '{"properties":[]}',
     'el respaldo versionado'        => (string) file_get_contents(dirname(__DIR__) . '/respaldo.json'),
+    'clave prohibida en una ficha OCULTA (nunca se publica)' => json_encode(['properties' => [$f('uno', ['visible' => true]), $f('dos', ['visible' => false, 'notas' => $SECRETO])]]),
 ];
 foreach ($validos as $nombre => $json) ok($forma($json) === null, "save: «$nombre» es un catalogo valido: " . var_export($forma($json), true));
 $invalidos = [
@@ -135,6 +136,10 @@ $invalidos = [
     'visible null'                  => [json_encode(['properties' => [$f('uno', ['visible' => null])]]), '#1: "visible" must be true or false'],
     'visible 1'                     => [json_encode(['properties' => [$f('uno'), $f('dos', ['visible' => 1])]]), '#2: "visible" must be true or false'],
     'visible 0'                     => [json_encode(['properties' => [$f('uno', ['visible' => 0])]]), '#1: "visible" must be true or false'],
+    // lo que la lectura publica rechazaria entero (la web se quedaria en cache vieja diciendo el panel «publicado»)
+    'clave prohibida en una ficha publicada' => [json_encode(['properties' => [$f('uno', ['visible' => true, 'notas' => $SECRETO])]]), 'must never be public'],
+    'clave prohibida anidada'       => [json_encode(['properties' => [$f('uno', ['visible' => true, 'extras' => [['name' => 'x', 'comision_pct' => $SECRETO]]])]]), 'must never be public'],
+    'clave prohibida en downloads'  => [json_encode(['properties' => [$f('uno', ['visible' => true])], 'downloads' => ['x' => [['iban' => $SECRETO]]]]), 'must never be public'],
 ];
 foreach ($tablaVis['ids'] as $c) {   // los ids de la tabla comun: lo que la web no publicaria, save.php no lo guarda
     $json = json_encode(['properties' => [['id' => $c['id'], 'visible' => true]]]);
@@ -155,6 +160,7 @@ foreach (['/api', '/coleccion', '/sesiones'] as $d) @mkdir($sitio . $d, 0777, tr
 copy($RAIZ . '/api/config.php', $sitio . '/api/config.php');
 copy($RAIZ . '/api/save.php', $sitio . '/api/save.php');
 copy($RAIZ . '/coleccion/lib.php', $sitio . '/coleccion/lib.php');
+copy($RAIZ . '/coleccion/contrato_publico.json', $sitio . '/coleccion/contrato_publico.json'); // sin el, save.php rechaza todo (falla cerrado)
 file_put_contents($sitio . '/api/.passhash', '$2y$10$hashdementirasolovaleparaqueconfigphpnocorte');
 $ANTES = '{"properties":[{"id":"antes","visible":true}]}';
 file_put_contents($sitio . '/api/corre_save.php', <<<'PHP'
@@ -191,7 +197,7 @@ $guarda = function ($cuerpo, $sesion = true, $metodo = 'POST') use ($sitio, $ANT
     $out = corre([$sitio . '/api/corre_save.php', $sitio . '/cuerpo.json', $sesion ? '1' : '0', $metodo], null, $sitio . '/api');
     $p = strrpos($out, "\n#");
     return ['resp' => json_decode(substr($out, 0, (int) $p), true), 'codigo' => (int) substr($out, (int) $p + 2), 'crudo' => $out,
-            'escrito' => (string) file_get_contents($sitio . '/data.json'), 'tmp' => file_exists($sitio . '/data.json.tmp')];
+            'escrito' => (string) file_get_contents($sitio . '/data.json'), 'tmp' => (bool) glob($sitio . '/data.json*.tmp')];
 };
 $bueno = json_encode(['settings' => ['whatsapp' => '62811'], 'properties' => [$f('uno', ['visible' => true]), $f('dos', ['visible' => false])], 'downloads' => []]);
 $r = $guarda($bueno);
@@ -199,7 +205,7 @@ ok(($r['resp']['ok'] ?? null) === true && $r['codigo'] !== 422, 'save.php: un ca
 ok(json_decode($r['escrito'], true) === json_decode($bueno, true) && !$r['tmp'], 'save.php: lo escrito es el catalogo enviado, sin dejar el .tmp');
 $r = $guarda('{"properties":[]}');
 ok(($r['resp']['ok'] ?? null) === true && json_decode($r['escrito'], true) === ['properties' => []], 'save.php: «sin propiedades» se sigue pudiendo publicar: ' . $r['crudo']);
-foreach (['lista vacia `[]`', 'un numero', 'objeto sin properties', 'id repetido', 'visible "true" en texto', 'ficha sin id', 'id "uno\n"'] as $nombre) {
+foreach (['lista vacia `[]`', 'un numero', 'objeto sin properties', 'id repetido', 'visible "true" en texto', 'ficha sin id', 'id "uno\n"', 'clave prohibida en una ficha publicada'] as $nombre) {
     ok(isset($invalidos[$nombre]), "save.php: el caso «$nombre» existe en la lista de invalidos");
     $r = $guarda($invalidos[$nombre][0]);
     ok($r['codigo'] === 422 && ($r['resp']['ok'] ?? null) === false && strpos((string) ($r['resp']['error'] ?? ''), 'Invalid catalogue: ') === 0,
@@ -223,7 +229,7 @@ file_put_contents($sitio . '/cuerpo.json', $bueno);
 $out = corre([$sitio . '/api/corre_save.php', $sitio . '/cuerpo.json', '1', 'POST'], null, $sitio . '/api');
 ok(strpos($out, '"ok":false') !== false && strpos($out, '"ok":true') === false && substr($out, -4) === '#500',
    'save.php: si no se puede dejar el fichero en su sitio responde 500, no ok: ' . substr($out, -160));
-ok(!file_exists($sitio . '/data.json.tmp') && is_dir($sitio . '/data.json'), 'save.php: tras ese fallo no queda un data.json.tmp');
+ok(!glob($sitio . '/data.json*.tmp') && is_dir($sitio . '/data.json'), 'save.php: tras ese fallo no queda ningun data.json.*.tmp');
 // limpieza del arbol temporal, tambien si un caso de arriba fallo y dejo algo a medias (un .tmp, la carpeta data.json)
 $borra = function ($ruta) use (&$borra) {
     if (is_dir($ruta) && !is_link($ruta)) {

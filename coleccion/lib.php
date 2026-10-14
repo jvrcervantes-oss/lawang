@@ -181,6 +181,14 @@ function lw_coleccion_forma_invalida($doc) {
             return "property #$n: \"visible\" must be true or false";
         }
     }
+    // Lo que la lectura publica rechazaria entero (code-review, 14-oct-2026): una clave PROHIBIDA (notas, email,
+    // iban…) en una ficha publicada o en downloads hace fallar la fuente y la web se queda sirviendo cache vieja o
+    // el respaldo, sin fecha de fin, mientras el panel dice «publicado». Se rechaza aqui, con el mismo contrato.
+    try {
+        lw_coleccion_aplica_contrato($doc);
+    } catch (RuntimeException $e) {
+        return 'a published property or the downloads carry a field that must never be public (see coleccion/contrato_publico.json)';
+    }
     return null;
 }
 
