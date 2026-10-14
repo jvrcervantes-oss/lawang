@@ -1,10 +1,11 @@
 -- Prueba «el traspaso SIEMPRE arrastra todo» (13-oct-2026, migraciones 20261013143832_traspaso_cliente_arrastra_todo,
 -- 20261013150447_traspaso_receptor_ve_lo_que_recibe 20261013150901_traspaso_solo_lo_del_cliente 20261013153444_traspaso_bloquea_lo_que_mueve y 20261013154657_traspaso_parada_sin_numero
--- y la de 14-oct «compartidos con otro agente», ver el nombre en supabase/migrations/*_traspaso_compartidos_otro_agente.sql).
+-- y las de 14-oct 20261014000241_traspaso_compartidos_otro_agente y 20261014001411_traspaso_facturas_comprador_del_nuevo).
 -- Casos del revisor (13-oct): K* cocomprador con factura de otro client_id (no se mueve), R7 admin_empresa sin la empresa de una factura
 -- sin cliente colgada de su contrato, R8 receptor de otra empresa con un admin GLOBAL, M* la marca puesta como authenticated.
 -- Casos del owner (14-oct): N* un contrato compartido con un comprador de OTRO agente no se mueve (ni sus facturas) y se cuenta; con un
--- comprador SIN dueno (c1) o que ya es del NUEVO dueno (c5) se mueve. Q* la pareja del mismo agente traspasada en dos pasos (lo que queda).
+-- comprador SIN dueno (c1) o que ya es del NUEVO dueno (c5) se mueve. Q* la pareja del mismo agente traspasada en dos pasos: desde
+-- 20261014001411 (14-oct) la factura a nombre del primero pasa con el contrato en el segundo paso.
 -- Se pega DESPUES de la migracion en la MISMA peticion (ensayo), o sola cuando ya esta aplicada. Sin rastro: acaba en raise y todo se deshace.
 -- Debe terminar con «FALLOS=0». Unico rastro que el rollback no deshace: seis numeros de la secuencia CLI- de clients (las fichas de prueba);
 -- contratos y facturas llevan numero PRB- explicito y no tocan sus secuencias fiscales.
@@ -233,7 +234,7 @@ begin
   r := r || pg_temp.l(pg_temp.err(v) = '42501', 'W3 cliente_traspasa conserva la puerta: un agente, 42501 (' || left(v, 90) || ')');
 
   -- Q (14-oct): una pareja del MISMO agente (G) que comparte kq, con la factura fq a nombre de qa, traspasada a R en dos pasos.
-  -- Lo que se mide es lo que queda en cada paso: fq solo llega a R con un TERCER traspaso (de qa otra vez).
+  -- Paso 1: kq y fq se quedan con G. Paso 2: kq se mueve y fq (a nombre de qa, cuya ficha ya es de R) va con el. Un tercero no mueve nada.
   insert into public.clients (full_name, propietario) values ('PRB Pareja A', g.em) returning id into qa;
   insert into public.clients (full_name, propietario) values ('PRB Pareja B', g.em) returning id into qb;
   insert into public.contratos (tipo, numero, proyecto_id, proyecto_nombre, moneda, creado_por, bloqueado, datos)
@@ -247,12 +248,13 @@ begin
                       and lower((select propietario from public.clients where id = qa)) = lower(rc.em),
                       'Q1 paso 1 (qa a R): la ficha pasa, kq y fq se quedan con G y se cuentan (' || left(v, 260) || ')');
   v := pg_temp.val(a.uid, a.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB pareja 2'') t', qb, rc.em));
-  r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'contratos_movidos')::int = 1 and (v::jsonb ->> 'facturas_omitidas_otro_autor')::int = 1
-                      and (select creado_por from public.contratos where id = kq) = lower(rc.em) and (select creado_por from public.facturas where id = fq) = g.em,
-                      'Q2 paso 2 (qb a R): kq ya se mueve, pero fq (a nombre de qa) se queda con G y se cuenta como de otro comprador (' || left(v, 260) || ')');
+  r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'contratos_movidos')::int = 1
+                      and (select creado_por from public.contratos where id = kq) = lower(rc.em) and (select creado_por from public.facturas where id = fq) = lower(rc.em)
+                      and (v::jsonb ->> 'facturas_movidas')::int = 1 and (v::jsonb ->> 'facturas_omitidas_otro_autor')::int = 0,
+                      'Q2 paso 2 (qb a R): kq se mueve y fq (a nombre de qa, ficha ya de R) pasa con el; nada omitido (' || left(v, 260) || ')');
   v := pg_temp.val(a.uid, a.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB pareja 3'') t', qa, rc.em));
-  r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'facturas_movidas')::int = 1 and (select creado_por from public.facturas where id = fq) = lower(rc.em),
-                      'Q3 paso 3 (qa a R otra vez, con la ficha ya suya): fq llega a R (' || left(v, 260) || ')');
+  r := r || pg_temp.l(pg_temp.err(v) = '22023' and v like '%ya son de esa persona%' and v not like '%compartidos%',
+                      'Q3 paso 3 (qa a R otra vez): ya no queda nada que mover, 22023 sin compartidos (' || left(v, 200) || ')');
 
   -- CASO REAL (13-oct): PRO00218 cuelga de RP00208 con el client_id de OTRO comprador. Se traspasa un comprador de RP00208 que no es el de PRO00218
   -- (lo hace el propietario, admin global, a si mismo: ese comprador tambien tiene CC00117 de Sandal Woods, y R solo es de Lawang, asi que
@@ -270,7 +272,11 @@ begin
     select creado_por into autK from public.contratos where id = kR;
     v := pg_temp.val(jv.uid, jv.em, format('select row_to_json(t)::text from public.traspasar_cliente_con_documentos(%L, %L, ''PRB caso real'') t', clR, jv.em));
     r := r || pg_temp.l(v !~ '^ERR' and (v::jsonb ->> 'facturas_omitidas_otro_autor')::int >= 1
-                        and (select creado_por from public.facturas where id = fR) is not distinct from autR
+                        and case when not exclR and exists (select 1 from public.contrato_compradores o join public.clients oc on oc.id = o.client_id
+                                                             join public.facturas f on f.id = fR
+                                                            where o.contrato_id = kR and o.client_id = f.client_id and lower(btrim(oc.propietario)) = lower(jv.em))
+                              then (select lower(creado_por) from public.facturas where id = fR) = lower(jv.em)
+                              else (select creado_por from public.facturas where id = fR) is not distinct from autR end
                         and case when exclR
                               then (select creado_por from public.contratos where id = kR) is not distinct from autK
                                    and (v::jsonb ->> 'contratos_omitidos_otro_autor')::int >= 1
