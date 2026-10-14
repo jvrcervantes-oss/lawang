@@ -3279,6 +3279,11 @@
                 bTr.disabled = true;
                 sb.rpc('traspasar_cliente_con_documentos', { p_client_id: c2.id, p_nuevo_propietario: nuevo, p_motivo: motivo }).then(function (r) {
                   bTr.disabled = false;
+                  /* 40P01 (14-oct, CEO por defecto): dos traspasos a la vez de dos
+                     compradores de un mismo contrato; Postgres aborta uno
+                     (migración 20261014003639). No hay reintento en servidor:
+                     se le dice en llano que espere y repita. */
+                  if (r.error && r.error.code === '40P01') { toastMal('Otra persona está traspasando a otro comprador de un mismo contrato. Espera unos segundos y repítelo.'); return; }
                   if (r.error) { toastMal(lwErrorHumano(r.error, 'No se pudo traspasar')); return; }
                   /* La RPC devuelve UNA fila o falla; sin fila es que algo se ha
                      comido la respuesta: no se dice «hecho» sin pruebas. */
@@ -3298,7 +3303,7 @@
                      pero si la base devuelve algo, se enseña. */
                   var omitidos = [
                     ['contratos_omitidos_firmados', '%n contratos firmados no se han movido.'],
-                    ['contratos_omitidos_otro_autor', '%n contratos compartidos con un comprador de otro agente no se han movido: revísalos a mano.'],
+                    ['contratos_omitidos_otro_autor', '%n contratos compartidos con un comprador de otro agente no se han movido. Para moverlos, traspasa también la ficha de ese otro comprador, o pásalos a mano desde el contrato.'],
                     ['contratos_omitidos_sin_autor', '%n contratos sin autor no se han movido.'],
                     ['facturas_omitidas_otro_autor', '%n facturas o recibís no se han movido: están a nombre de otro comprador o cuelgan de un contrato compartido que se queda.'],
                     ['facturas_omitidas_sin_autor', '%n facturas o recibís sin autor no se han movido.'],

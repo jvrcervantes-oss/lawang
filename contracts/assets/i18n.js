@@ -5643,13 +5643,16 @@
     'Contratos movidos: %a.': 'Contracts moved: %a.',
     'Facturas y recibís movidos: %a (%b anulados).': 'Invoices and receipts moved: %a (%b voided).',
     '%n contratos firmados no se han movido.': '%n signed contracts were not moved.',
-    '%n contratos compartidos con un comprador de otro agente no se han movido: revísalos a mano.': '%n contracts shared with a buyer handled by another agent were not moved: review them manually.',
+    '%n contratos compartidos con un comprador de otro agente no se han movido. Para moverlos, traspasa también la ficha de ese otro comprador, o pásalos a mano desde el contrato.':
+      '%n contracts shared with a buyer handled by another agent were not moved. To move them, also hand over that other buyer’s record, or reassign them manually from the contract.',
     '%n contratos sin autor no se han movido.': '%n contracts without an author were not moved.',
     '%n facturas o recibís no se han movido: están a nombre de otro comprador o cuelgan de un contrato compartido que se queda.': '%n invoices or receipts were not moved: they are in another buyer’s name or belong to a shared contract that stays.',
     '%n facturas o recibís sin autor no se han movido.': '%n invoices or receipts without an author were not moved.',
     '%n facturas emitidas se quedan con su autor (una emitida no se reasigna).': '%n issued invoices keep their author (an issued invoice is not reassigned).',
     'No se ha podido confirmar el traspaso: recarga la ficha para ver de quién es antes de repetirlo.': 'The handover could not be confirmed: reload the record to see who owns it before trying again.',
     'No se pudo traspasar': 'Could not hand over',
+    'Otra persona está traspasando a otro comprador de un mismo contrato. Espera unos segundos y repítelo.':
+      'Someone else is handing over another buyer of the same contract. Wait a few seconds and try again.',
     'Borrar la ficha de %n': 'Delete the record of %n',
     'Se borra la ficha y sus documentos KYC del archivo privado, si los tuviera.': 'The record is deleted, along with its KYC documents in the private archive, if any.',
     'Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide y te dice cuál — esta acción es para %b.': 'If it is linked to a contract or has portal access, the system blocks it and tells you which — this action is for %b.',
