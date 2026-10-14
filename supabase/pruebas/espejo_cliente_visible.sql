@@ -22,7 +22,12 @@
 --   encendido: ese tramo no lo cubre esta prueba, ni lo toca la migracion).
 --   Antes de los casos van las aserciones P*/S0: si el montaje, una puerta o la sesion no valen, la prueba PARA ahi y lo dice en una linea.
 -- MEDIDO en rama el 14-oct-2026 11:04-11:08 (1.a tanda, volcado lawang_20261014_0931): 51/51. 2.a tanda (casos N, S1 nuevo, X1 de 8,
---   X3b): ver la linea de abajo cuando se mida.
+--   X3b): MEDIDO en rama el 14-oct-2026 12:46-12:51 Bali (rama prueba-lawang-20261014124616-28384, borrada): 70/70, y
+--   espejo_vuelta.py 26/26. Volcado de las 01:31 UTC, asi que la rama lleva DELANTE, con el texto aplicado en vivo, las 7
+--   migraciones posteriores (013939, 024234, 032925, 040310, 042207, 043156, 043848). Las tres primeras rondas
+--   salieron rojas por el MONTAJE, no por la migracion: dos fichas no pueden compartir pasaporte (N10 va por correo);
+--   T5-T6 le dejaban a A sin contrato_general; y la factura pide contrato, moneda y sociedad, y el refresco de antes
+--   del cierre se salta las facturas de un contrato con compradores[] (N0 usa un contrato de B con un solo comprador).
 --   En esa rama session_user = postgres y el dueno de contrato_guarda es postgres con bypassrls (lo imprime P0).
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);
@@ -59,7 +64,7 @@ do $todo$
 declare
   r text := ''; v text; n bigint; g boolean;
   jv _tp; a _tp; b _tp;
-  pL uuid; pLn text; cA uuid; cB uuid; cB2 uuid; cA2 uuid; kA text; kB text; k6 text; k7 text; kO text; kR text; kF uuid; v2 text;
+  pL uuid; pLn text; cA uuid; cB uuid; cB2 uuid; cA2 uuid; kA text; kB text; k6 text; k7 text; kO text; kR text; kF uuid; v2 text; kBf text;
   c_guarda constant text := 'otra empresa o de otro comercial';
   c_emp    constant text := 'zz_espejo';
   c_fin    constant text := 'FIN DE PRUEBAS ESPEJO CLIENTE VISIBLE (se deshace todo):%';
@@ -272,10 +277,22 @@ begin
 
   -- N6-N8 (M2): el dueno de la ficha la edita (con su sesion): refresca SUS documentos, no el borrador heredado de A ni su factura.
   begin
-    insert into public.facturas (sociedad, client_id, creado_por, cliente_nombre, datos)
-      values ('ZZ-ESPEJO', cB, a.em, 'ZZ-ESPEJO factura de A', '{"fields": {}}'::jsonb) returning id into kF;
-    insert into public.facturas (sociedad, client_id, creado_por, cliente_nombre, datos)
-      values ('ZZ-ESPEJO', cB, b.em, 'ZZ-ESPEJO factura de B', '{"fields": {}}'::jsonb);
+    -- (desde el 12-ago toda factura lleva contrato; moneda la del contrato; sociedad una activa de la siembra)
+    -- Contrato propio de B con UN solo comprador: el refresco de facturas (de antes del cierre) se salta las de un
+    -- contrato con compradores[] (kB tiene dos), asi que colgarlas de kB no probaria nada.
+    v := pg_temp.val(b.uid, b.em, format('select public.contrato_guarda(null, %L::jsonb)::text', pg_temp.pago('contrato_general', pLn, cB, null, null)));
+    kBf := case when v !~ '^ERR' then (v::jsonb) ->> 'id' end;
+    update public.contratos set moneda = 'EUR' where id::text = kBf and moneda is null;
+    -- la rama nace sin filas: sin una sociedad activa, trg_congela_emisor no deja emitir (una propia ZZ-, como el resto)
+    insert into public.sociedades (clave, label, razon, domicilio) values ('zz_espejo', 'ZZ-ESPEJO', 'ZZ-ESPEJO PT', 'ZZ-domicilio')
+      on conflict (clave) do nothing;
+    update public.empresas set sociedad_clave = 'zz_espejo' where clave = c_emp and sociedad_clave is null;
+    insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+      values ('factura', 'ZZ-ESPEJO-FA', 'zz_espejo', cB, kBf::uuid, 10,
+              (select c.moneda from public.contratos c where c.id::text = kBf), a.em, 'ZZ-ESPEJO factura de A', '{"fields": {}}'::jsonb) returning id into kF;
+    insert into public.facturas (tipo, numero, sociedad, client_id, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+      values ('factura', 'ZZ-ESPEJO-FB', 'zz_espejo', cB, kBf::uuid, 10,
+              (select c.moneda from public.contratos c where c.id::text = kBf), b.em, 'ZZ-ESPEJO factura de B', '{"fields": {}}'::jsonb);
   exception when others then
     r := r || pg_temp.l(false, 'N0 montaje de dos facturas sin enviar (A y B) con el cliente de B: ' || sqlstate || ' ' || left(sqlerrm, 200));
   end;
@@ -300,6 +317,10 @@ begin
   r := r || pg_temp.l(n = 1, 'N8 NIEGA (M2): un super admin reescribe `datos` del borrador de A (como renombrar_proyecto) y la ficha de B no cae en el');
 
   -- N9-N10: el oraculo. Con el rol ya enlazado, un pasaporte tecleado que es de una ficha ajena deja lo MISMO que uno que no es de nadie.
+  -- (T5-T6 le dejaron a A solo carta_reserva: se le devuelve contrato_general para poder dar de alta)
+  perform set_config('request.jwt.claims', json_build_object('sub', jv.uid, 'role', 'authenticated', 'email', jv.em)::text, true);
+  update public.usuarios set tipos_contrato = '{contrato_general}' where user_id = a.uid;
+  perform set_config('request.jwt.claims', '', true);
   v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
          pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('client_id', cA2, 'nombre', 'ZZ-ESPEJO Segundo de A')))));
   kO := case when v !~ '^ERR' then (v::jsonb) ->> 'id' end;
@@ -311,13 +332,15 @@ begin
   select string_agg(x.rol || '=' || x.client_id::text, ',' order by x.rol) into v2 from public.contrato_compradores x where x.contrato_id::text = kO;
   r := r || pg_temp.l(kO is not null and v = v2 and v ~ ('adquiriente_2=' || cA2::text),
          'N9 el oraculo: pasaporte de una ficha ajena y pasaporte de nadie dejan los MISMOS enlaces (y el que habia se queda)');
-  insert into public.clients (full_name, propietario, passport_number, email, nationality)
-    values ('ZZ-ESPEJO Tercero de A (mismo pasaporte que uno de B)', a.em, 'ZZESPEJOB2', 'zz-espejo-a3@ejemplo.invalid', 'ZZ') returning id into kF;
+  -- El pasaporte es unico (clients_pasaporte_uniq); el correo solo por tipo (clients_email_tipo_key), y la busqueda
+  -- por correo prefiere la ficha 'persona': la de B (persona) iba primero y, al no verla A, dejaba al comprador sin enlace.
+  insert into public.clients (full_name, propietario, email, nationality, tipo)
+    values ('ZZ-ESPEJO Tercero de A (empresa, mismo correo que el Segundo de B)', a.em, 'zz-espejo-b2@ejemplo.invalid', 'ZZ', 'empresa') returning id into kF;
   v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
-         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('nombre', 'ZZ-ESPEJO tecleado', 'pasaporte', 'ZZESPEJOB2')))));
+         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('nombre', 'ZZ-ESPEJO tecleado', 'email', 'zz-espejo-b2@ejemplo.invalid')))));
   select count(*) into n from public.contrato_compradores x where x.contrato_id::text = (case when v !~ '^ERR' then (v::jsonb) ->> 'id' end)
      and x.rol = 'adquiriente_2' and x.client_id = kF;
-  r := r || pg_temp.l(n = 1, 'N10 ENTRA: si el pasaporte lo comparten una ficha que A no ve y otra suya, se enlaza la SUYA (' || pg_temp.e(v) || ')');
+  r := r || pg_temp.l(n = 1, 'N10 ENTRA: si el correo lo comparten una ficha que A no ve (persona, iba primero) y otra suya (empresa), se enlaza la SUYA (' || pg_temp.e(v) || ')');
 
   -- N11: reordenar cocompradores en un heredado no deja a la persona sin enlace (excepcion por contrato, no por rol)
   v := pg_temp.val(jv.uid, jv.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
