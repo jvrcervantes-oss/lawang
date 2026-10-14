@@ -7002,7 +7002,7 @@
 
              «Cobrado de esta unidad» NO es el total cobrado del contrato: con un
              contrato de varias parcelas es LA PARTE de esta, ya partida por la
-             base (unidad_parte_cobrada_split). Decirlo en el sitio evita que se
+             base (unidad_cobro_reparto). Decirlo en el sitio evita que se
              sume dos veces el mismo dinero, que es un fallo que ya paso. */
           var cob = (Number(u.cobrado_suelo) || 0) + (Number(u.cobrado_obra) || 0);
           var pct = totalDerivado ? Math.min(100, Math.round(cob / totalDerivado * 100)) : null;
