@@ -142,6 +142,19 @@ ok(dinero.lwPctDeImporte(18187.5, 145500) === '12.5', '«12.5», sin ceros de co
 ok(dinero.lwPctSeguro('12.123') === '12.1230' && dinero.lwPctSeguro('12.12') === '12.12' && dinero.lwPctSeguro('12.1234') === '12.1234',
    'lwPctSeguro solo toca los de exactamente 3 decimales');
 ok(dinero.lwParseImporte(dinero.lwPctSeguro('12.123')) === 12.123, 'y así el parser común lo lee como 12.123, no como 12123');
+// La columna impresa suma 100 (resto mayor), y lo de 2 decimales o menos no cambia
+const suma = l => Math.round(l.reduce((t, s) => t + parseFloat(s || 0), 0) * 100) / 100;
+{
+  const precio = 287500, imps = [10000, 10000, 10000];
+  const pcts = imps.map(x => dinero.lwPctDeImporte(x, precio));
+  const lista = pcts.concat([String(100 - pcts.reduce((t, p) => t + parseFloat(p), 0))]);   // el resto, a mano
+  const imp = dinero.lwPctImpresos(lista);
+  ok(suma(lista.map(p => parseFloat(p).toFixed(2))) !== 100, 'el caso de prueba SÍ descuadra redondeando uno a uno (si no, no prueba nada)');
+  ok(suma(imp) === 100, `la columna impresa suma 100 (dio ${imp.join(' + ')})`);
+  ok(imp.every((s, i) => Math.abs(parseFloat(s) - parseFloat(lista[i])) < 0.01 + 1e-9), 'cada % impreso está a menos de una centésima del real');
+}
+ok(JSON.stringify(dinero.lwPctImpresos(['25', '25', '25', '20', '5'])) === '["25","25","25","20","5"]', 'los 5 de fábrica salen tal cual');
+ok(JSON.stringify(dinero.lwPctImpresos(['62.50', '37.5', ''])) === '["62.50","37.5",""]', 'con 2 decimales o menos, ni una letra cambia');
 ok(dinero.lwTextoPct('62.50') === '62.50' && dinero.lwTextoPct(62.5) === '62.5' && dinero.lwTextoPct('3.478254820426') === '3.48',
    'lwTextoPct: con 2 decimales o menos, tal cual; con más, a 2');
 

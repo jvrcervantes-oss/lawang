@@ -81,6 +81,29 @@ function lwPctDeImporte(importe, total){
   return lwPctSeguro((importe * 100 / total).toFixed(12).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''));
 }
 
+/* La columna % del calendario impreso (14-oct-2026, decisión por defecto del CEO tras el revisor): redondear
+   cada % sacado de una cantidad a 2 decimales por separado podía dejar la columna en 99,99 % o 100,01 %
+   con las cantidades cuadrando al céntimo. Resto mayor: cada % largo baja a la centésima y las centésimas
+   que faltan para el total redondeado van a los que más perdieron. Un % de 2 decimales o menos sale tal
+   cual (lwTextoPct): los contratos de antes no cambian ni una letra. Devuelve un texto por % recibido. */
+function lwPctImpresos(lista){
+  const largos = [];
+  const out = (lista || []).map((v, i) => {
+    const s = String(v == null ? '' : v).trim();
+    if(!/\.\d{3,}$/.test(s)) return lwTextoPct(s);
+    const cent = parseFloat(s) * 100;
+    largos.push({ i, base: Math.floor(cent + 1e-9), resto: cent - Math.floor(cent + 1e-9) });
+    return null;
+  });
+  if(!largos.length) return out;
+  const sumaCent = (lista || []).reduce((t, v) => t + (parseFloat(v) || 0), 0) * 100;
+  const fijos = out.reduce((t, s) => t + (s == null ? 0 : Math.round((parseFloat(s) || 0) * 100)), 0);
+  let faltan = Math.round(sumaCent) - fijos - largos.reduce((t, x) => t + x.base, 0);
+  largos.slice().sort((a, b) => b.resto - a.resto).forEach(x => { if(faltan > 0){ x.base++; faltan--; } });
+  largos.forEach(x => { out[x.i] = String(x.base / 100); });
+  return out;
+}
+
 /* ============================================================================
    ESCRIBIR UN IMPORTE — la otra mitad, 17-ago-2026 (auditoría)
    ============================================================================
@@ -299,4 +322,4 @@ if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwParseImporte, lwFormatoImporte, lwImporteCanonico, LW_DECIMALES,
                      lwSumaPorMoneda, lwSumaTexto, lwMonedaPrincipal, lwDescuentoCascada,
                      lwFacturaQueCuenta, lwFacturaCuentaEnSuFecha, lwDescuentoBloqueo, lwTextoPct,
-                     lwPctSeguro, lwPctDeImporte };
+                     lwPctSeguro, lwPctDeImporte, lwPctImpresos };

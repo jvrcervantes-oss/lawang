@@ -545,6 +545,8 @@ function hitoTraduccionPendiente(){ return HITOS.findIndex(h => HITO_TRAD_PENDIE
 function hitosRowsHTML(){
   // {{moneda}} literal: se resuelve en el pase genérico de marcadores que buildDoc()
   // corre justo después de insertar estas filas (ver buildDoc: hitos → luego {{...}}).
+  // La columna % impresa suma lo mismo que los % guardados aunque alguno salga de una cantidad (lwPctImpresos).
+  const pctImpreso = lwPctImpresos(HITOS.map(h => h.pct));
   return HITOS.map((h,i)=>{
     // .mny marca "esto es un importe" para que idrEquiv() le añada la equivalencia en IDR
     // Hito DESCONTADO (22-sep-2026): su importe ya no es el % del precio porque
@@ -557,9 +559,7 @@ function hitosRowsHTML(){
     const monto = (h.monto||'') ? `<span class="mny">${esc(String(h.monto))}</span> {{moneda}}${descontado ? ' (*)' : ''}` : '';
     // % vacío o 0 → celda en blanco, sin "0%". Un hito puede ser un importe
     // cerrado (la reserva) sin porcentaje del total que lo represente.
-    // Un % sacado de una cantidad lleva hasta 12 decimales (pctDesdeImporte): el
-    // documento lo imprime a 2; lo que obliga es la cantidad. Con 2 o menos, tal cual.
-    const pctTxt = lwTextoPct(h.pct);
+    const pctTxt = pctImpreso[i];
     const pct = (descontado || String(h.pct||'').trim()==='' || parseFloat(h.pct)===0) ? '' : esc(pctTxt)+'%';
     /* La celda de timing imprime la FECHA de vencimiento cuando el hito la tiene
        (18-ago-2026: los pagos se controlan por fecha de calendario, no por texto
