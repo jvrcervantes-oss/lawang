@@ -11,7 +11,11 @@
 --   contrato compartido de otra empresa. No se mueve nada (ni ficha, ni contratos, ni facturas, ni rastro): el error esta antes de los UPDATE.
 --   Rama aparte y no dentro de docs: si entrara en docs, la ficha cuyo unico contrato es compartido dejaria de comprobar las empresas del
 --   dueno anterior (rama «not exists docs»); asi se suman las dos restricciones y no se quita ninguna. Orden: primero lo que se mueve
---   (texto de siempre, R8 de traspaso_arrastra_todo), despues los compartidos.
+--   (texto de siempre, R8 de traspaso_arrastra_todo), despues los compartidos. La empresa del compartido se lee de proyectos directamente
+--   (no con empresa_de_contrato, que devuelve null a quien no pasa es_agente(): ese null se confundiria con «proyecto sin empresa»).
+-- LO QUE DEJA DE PODERSE HACER: la comprobacion salta tambien cuando la ficha YA es del receptor; en ese caso tampoco se puede mover lo que
+--   le quede si tiene un compartido de una empresa de la que el receptor no es (antes si). Se acepta: ese estado ya seria la fuga que esto
+--   cierra, y medido el 14-oct hay 0 de 151 fichas en el (consulta de MEDIDO, abajo).
 -- QUE NO CAMBIA: la puerta del que traspasa (admin_de_cliente(p_client_id, true) es exclusiva: ya exige ser admin de las empresas de TODOS
 --   los contratos del cliente, compartidos incluidos, y la puerta por documento solo mira lo que se mueve, que es lo que reescribe); firma,
 --   columnas devueltas, bloqueos, rastro, marca app.via_traspaso_autor y el resto del cuerpo (= 20261014003639 byte a byte).
@@ -140,8 +144,8 @@ begin
      where not exists (select 1 from docs) and lower(u.email) = lower(coalesce(v_anterior, ''))
     union all
     select x.empresa, min(x.numero), true
-      from (select public.empresa_de_contrato(k.id) as empresa, coalesce(k.numero, k.id::text) as numero
-              from public.contratos k where k.id = any (v_compartidos)) x
+      from (select pr.empresa, coalesce(k.numero, k.id::text) as numero
+              from public.contratos k join public.proyectos pr on pr.id = k.proyecto_id where k.id = any (v_compartidos)) x
      where x.empresa is not null group by x.empresa
   )
   select c.empresa, c.numero, c.compartido into v_falta from conjunto c where not public.usuario_en_empresa(v_nuevo, c.empresa)
