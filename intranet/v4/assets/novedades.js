@@ -19,7 +19,7 @@
   window.__lwNovedades = true;
   if (location.pathname.indexOf('/intranet/v4/') === -1) return;
 
-  var NOV_ID = '20261013';
+  var NOV_ID = '20261014';
   var Q = 'lw-novedades:visto:';
 
   function T(s, h) { return window.lwT ? window.lwT(s, h) : (h ? s.replace(/%(\w+)/g, function (m, k) { return h[k] != null ? h[k] : m; }) : s); }
@@ -46,24 +46,55 @@
       texto: function () { return T('Desde el 1 de noviembre de 2026, la comisión de cada venta se paga en dos momentos:'); },
       lista: function () {
         return [
-          T('Parcela: el 10\u00a0% de su valor, cuando el cliente ha pagado el 50\u00a0% de la parcela.'),
-          T('Construcción: el 10\u00a0% de su valor, cuando el cliente ha pagado el 25\u00a0% de la construcción.')
+          T('Parcela: el 100\u00a0% de la comisión correspondiente cuando el cliente ha pagado el 50\u00a0% de la parcela.'),
+          T('Construcción: el 100\u00a0% de la comisión correspondiente cuando el cliente ha pagado el 25\u00a0% de la construcción.')
         ];
       },
       nota: function () { return T('Tu parte dentro del equipo no cambia. Las ventas anteriores al 1 de noviembre siguen con la regla de hoy.'); },
       cta: function () { return null; },
       arte: arteComision
+    },
+    {
+      /* En producción desde el 13-oct-2026 (alta de cliente en editores.js: «Foto del pasaporte»).
+         Aviso pedido por el owner el 14-oct. La ve quien puede dar de alta clientes. */
+      id: 'pasaporte-alta', roles: ['agente', 'sales_manager'], herr: 'compradores',
+      titulo: function () { return T('Foto del pasaporte, obligatoria'); },
+      texto: function () { return T('Para dar de alta un cliente nuevo hay que adjuntar la foto de su pasaporte.'); },
+      lista: function () {
+        return [
+          T('Vale una foto o un escaneo (JPG, PNG, WEBP, HEIC o PDF, hasta 20 MB). Si es un DNI o una tarjeta, sube las dos caras.'),
+          T('Si el cliente es una empresa, se pide su documento de identificación: NPWP, escritura o certificado del registro.'),
+          T('La foto queda guardada en la Documentación KYC de su ficha.')
+        ];
+      },
+      nota: function () { return T('Las fichas que ya existían no cambian. Junto al campo tienes el aviso de privacidad para enseñárselo al cliente.'); },
+      cta: function () { return null; },
+      arte: artePasaporte
     }
   ];
 
   /* Ilustraciones: marcado fijo de este fichero, con textos por T(); ningún dato. */
+  function artePasaporte() {
+    var m = el('div', 'lwn-com');
+    var f = el('div', 'lwn-com-f');
+    var cab = el('div', 'lwn-com-cab');
+    cab.appendChild(el('span', '', T('Foto del pasaporte')));
+    cab.appendChild(el('i', 'lwn-pas-ob', T('Obligatoria')));
+    f.appendChild(cab);
+    var caja = el('div', 'lwn-pas-caja');
+    caja.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">badge</span>';   // marcado fijo, sin datos
+    caja.appendChild(el('span', '', T('Adjunta la foto del pasaporte.')));
+    f.appendChild(caja);
+    m.appendChild(f);
+    return m;
+  }
   function arteComision() {
     var m = el('div', 'lwn-com');
     [[T('Parcela'), 50], [T('Construcción'), 25]].forEach(function (p) {
       var f = el('div', 'lwn-com-f');
       var cab = el('div', 'lwn-com-cab');
       cab.appendChild(el('span', '', p[0]));
-      cab.appendChild(el('b', '', '10\u00a0%'));
+      cab.appendChild(el('b', '', '100\u00a0%'));
       f.appendChild(cab);
       var barra = el('div', 'lwn-com-barra');
       var lleno = el('i');
@@ -114,6 +145,10 @@
     '#lw-novedades .lwn-com-barra{height:6px;border-radius:3px;background:#E4DCCB;overflow:hidden}' +
     '#lw-novedades .lwn-com-barra i{display:block;height:100%;background:#104C4F}' +
     '#lw-novedades .lwn-com-pie{font-size:12px;color:#75786e;font-variant-numeric:tabular-nums}' +
+    /* ilustración: el campo del pasaporte en el alta de cliente */
+    '#lw-novedades .lwn-pas-ob{font-style:normal;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9E2F26}' +
+    '#lw-novedades .lwn-pas-caja{display:flex;align-items:center;gap:10px;border:1px dashed #104C4F;border-radius:10px;padding:16px 14px;font-size:14px;color:#2E3437}' +
+    '#lw-novedades .lwn-pas-caja .material-symbols-outlined{font-size:26px;color:#104C4F}' +
     '@media (max-width:480px){#lw-novedades .lwn-arte{height:190px}#lw-novedades .lwn-not,#lw-novedades .lwn-nav{padding-left:18px;padding-right:18px}#lw-novedades .lwn-cab{padding-left:18px}}' +
     '@media (prefers-reduced-motion:no-preference){#lw-novedades .lwn-not.on{animation:lwnEntra .28s ease-out}@keyframes lwnEntra{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}}' +
     '@media print{#lw-novedades{display:none}}';

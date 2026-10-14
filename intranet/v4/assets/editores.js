@@ -7972,22 +7972,28 @@
           var faltan = faltanDatosComprador(v);
           if (faltan.length) return Promise.resolve({ error: { message: 'faltan datos obligatorios — ' + faltan.join(', ') } });
         }
-        var telAlta = v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null);
+        var telAlta = telefonoAlta(v);
         return telefonoRepetidoSigue(telAlta, null).then(function (sigue) {
           if (sigue !== true) return sigue;
           // Por el servidor (27-sep-2026, LAW-336 bloque 2): cliente_guarda comprueba los datos del alta y
           // pone el dueño de la ficha; nombre y pasaporte en MAYÚSCULAS los deja él.
-          return sb.rpc('cliente_guarda', { p_id: null, p_datos: {
-            full_name: v.full_name.trim().toUpperCase(), email: v.email || null,
-            phone: telAlta,
-            nationality: v.nationality || null, passport_number: v.passport_number ? v.passport_number.toUpperCase() : null,
-            tipo: v.tipo, idioma_comunicacion: v.idioma_comunicacion || 'es',
-            forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica || null) : null,
-            registro_num: v.tipo === 'empresa' ? (v.registro_num || null) : null,
-            rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre || null) : null,
-            rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo || null) : null
-          } }).then(errorClienteHumano);
+          return sb.rpc('cliente_guarda', { p_id: null, p_datos: datosAltaComprador(v, telAlta) }).then(errorClienteHumano);
         });
+      }
+      /* Los datos de un alta, UNA vez: los mandan igual el alta de siempre (cliente_guarda) y el alta con documento
+         (edge ficheros-kyc, acción `alta`, LAW-557). Dos copias de este objeto acabarían mandando cosas distintas. */
+      function telefonoAlta(v) { return v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null); }
+      function datosAltaComprador(v, telAlta) {
+        return {
+          full_name: v.full_name.trim().toUpperCase(), email: v.email || null,
+          phone: telAlta,
+          nationality: v.nationality || null, passport_number: v.passport_number ? v.passport_number.toUpperCase() : null,
+          tipo: v.tipo, idioma_comunicacion: v.idioma_comunicacion || 'es',
+          forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica || null) : null,
+          registro_num: v.tipo === 'empresa' ? (v.registro_num || null) : null,
+          rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre || null) : null,
+          rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo || null) : null
+        };
       }
 
       /* ALTA DE COMPRADOR — cajón en dos columnas (24-sep-2026, diseño de Stitch
@@ -8031,11 +8037,12 @@
         var soloEmp = ' <span class="las-etq-sec">' + esc(tS('(Solo empresa)')) + '</span>';
 
         /* DOCUMENTO DE IDENTIDAD EN EL ALTA (13-oct-2026, petición del cliente vía owner: «que para dar de
-           alta nuevos clientes pida adjuntar una imagen como pasaporte, parecido a los recibís»). Se elige aquí
-           y se sube al archivo privado KYC con la MISMA pieza que la pestaña Documentos de la ficha
-           (`lwKycSube`, guard.js): la ruta la pone el servidor y al registrar mira los bytes. Como esa pieza
-           necesita la ficha ya creada, el orden es: cliente_guarda → subir. Si la subida falla, la ficha ya
-           existe: el cajón NO se cierra, se queda en «reintentar la subida» (sin volver a crear la ficha).
+           alta nuevos clientes pida adjuntar una imagen como pasaporte, parecido a los recibís»). Desde LAW-557
+           (13-oct-2026, owner: «alta y pasaporte juntos») la ficha y su documento entran en UNA operación del
+           servidor: se valida todo aquí, se sube cada fichero a una carpeta de alta pendiente (`lwKycAltaSube`,
+           guard.js) y la acción `alta` de la edge mira los bytes, crea la ficha y registra los documentos juntos
+           — o nada. Ya no existe «ficha creada, falta el documento». La máquina de los casos raros (reintento,
+           fichero rechazado, sin respuesta, cerrar a medias) está escrita junto a `altaConDocumento`, más abajo.
            Solo al CREAR, como los seis datos: las fichas antiguas sin pasaporte no se bloquean.
            Interruptor por instancia (`alta_exige_documento` en instancia.js): este fichero lo comparten las
            instancias del ERP y la petición es de este cliente; sin la clave, el alta es la de siempre. */
@@ -8214,20 +8221,18 @@
            dejaba Escape muerto tras el primer picker. El listener se suelta en
            w._alCerrar, que cierraModal() ejecuta en TODAS las salidas (también si
            otro editor lo cierra) — si no, un Escape posterior tiraría ese otro. */
-        /* Con el alta o la subida en marcha no se cierra (revisor, 13-oct): una recarga entre la subida y el registro
-           dejaría el fichero suelto en el archivo, sin ficha que lo nombre. */
+        /* Con el alta o la subida en marcha no se cierra (revisor, 13-oct): a medias no se sabría qué ha entrado. */
         var ocupado = function () { return !!w.querySelector('[data-e="guardar"].las-guardando'); };
         var teclas = function (e) { if (e.key === 'Escape' && !ocupado()) cierraModal(); };
         var cerrar = function () { if (!ocupado()) cierraModal(); };
         document.addEventListener('keydown', teclas);
-        w._alCerrar = function () { document.removeEventListener('keydown', teclas); if (w._alCerrarAlta) w._alCerrarAlta(); };
+        w._alCerrar = function () { document.removeEventListener('keydown', teclas); if (exigeDoc) alCerrarAlta(); };
         $('[data-e="cerrar"]').addEventListener('click', cerrar);
         $('[data-e="cancelar"]').addEventListener('click', cerrar);
         fondo.addEventListener('click', cerrar);
 
         var btn = $('[data-e="guardar"]'), caja = $('[data-e="error"]');
         var error = function (msg) { caja.textContent = msg; caja.hidden = false; caja.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
-        var creadoId = null;   // con el documento obligatorio: la ficha ya existe y falta subir el documento (reintento)
         form.addEventListener('submit', function (ev) {
           ev.preventDefault();
           caja.hidden = true;
@@ -8235,52 +8240,41 @@
           w.querySelectorAll('[data-k]').forEach(function (el) { v[el.getAttribute('data-k')] = el.value.trim(); });
           // Los que faltan se marcan en su sitio: tiemblan, rojo y su mensaje debajo.
           var malos = [];
-          if (!creadoId) {
-            OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
-            if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', tS('No parece una dirección de correo válida.')]);
-          }
-          var docMal = exigeDoc ? problemaDocs(docsPendientes()) : '';
+          OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
+          if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', tS('No parece una dirección de correo válida.')]);
+          var docMal = exigeDoc ? problemaDocs(docsElegidos()) : '';
           if (docMal) malos.push(['doc_identidad', docMal]);
           w.querySelectorAll('.las-campo.las-mal').forEach(function (c) { c.classList.remove('las-mal'); });
           if (malos.length) {
-            malos.forEach(function (m) {
-              var c = $('[data-req="' + m[0] + '"]'); if (!c) return;
-              c.querySelector('.las-msg').textContent = m[1];
-              c.classList.add('las-mal'); c.classList.remove('las-tiembla'); void c.offsetWidth; c.classList.add('las-tiembla');
-            });
+            malos.forEach(function (m) { marcaCampo(m[0], m[1]); });
             // `input` antes que `.las-in`: en el del documento, `.las-in` es la etiqueta que lo envuelve y no coge el foco
             var primero = $('[data-req="' + malos[0][0] + '"] input') || $('[data-req="' + malos[0][0] + '"] .las-in');
             if (primero) { primero.focus({ preventScroll: true }); primero.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
             return;
           }
           btn.classList.add('las-guardando'); btn.disabled = true;
-          Promise.resolve(creadoId ? { data: creadoId } : guardaAltaComprador(v)).then(function (r) {
+          // Sin el interruptor, el alta de siempre (cliente_guarda), intacta. Con él, ficha y documento juntos.
+          Promise.resolve(exigeDoc ? altaConDocumento(v) : guardaAltaComprador(v)).then(function (r) {
             if (r && r.error) {
               btn.classList.remove('las-guardando'); btn.disabled = false;
+              if (r.error.duda) return error(r.error.message);
               return error(tS('No se pudo dar de alta:') + ' ' + (r.error.message || r.error) +
                 (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — ' + tS('tu usuario no tiene ese permiso.') : ''));
             }
-            if (!exigeDoc) return listo(r);
-            var id = r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data) ? r.data : null;
-            if (!id) {   // no debería pasar (cliente_guarda devuelve el uuid); si pasa, se dice dónde terminar
-              toastMal(tS('La ficha se ha creado, pero no se ha podido adjuntar el documento: súbelo desde la ficha del cliente → Documentación KYC.'));
-              return listo(r);
-            }
-            creadoId = id;
-            return subeDocs(id, v.doc_caduca || null).then(function () { docOk = true; listo(r); }, function (e) {
-              btn.classList.remove('las-guardando'); btn.disabled = false;
-              modoReintento();
-              error(tS(subidos.length ? 'La ficha se ha creado, pero una parte del documento no se ha subido:' : 'La ficha se ha creado, pero el documento no se ha subido:') + ' ' + (typeof lwErrorHumano === 'function' ? lwErrorHumano(e) : String(e && e.message || e)) + '. ' +
-                tS('Pulsa «Reintentar la subida» (puedes elegir otro fichero). Si cierras, súbelo desde la ficha del cliente → Documentación KYC.'));
-            });
+            listo(r);
           }, function (e) {
             btn.classList.remove('las-guardando'); btn.disabled = false;
             error(tS('No se pudo dar de alta:') + ' ' + (e && e.message || e));
           });
         });
+        function marcaCampo(k, msg) {
+          var c = $('[data-req="' + k + '"]'); if (!c) return;
+          c.querySelector('.las-msg').textContent = msg;
+          c.classList.add('las-mal'); c.classList.remove('las-tiembla'); void c.offsetWidth; c.classList.add('las-tiembla');
+        }
 
-        /* Lo que el documento tiene que cumplir ANTES de crear la ficha: si se comprobara después, la ficha
-           ya estaría hecha. Tipo y tamaño son los del archivo KYC (la edge vuelve a mirar el tipo por los bytes). */
+        /* Lo que el documento tiene que cumplir ANTES de subir nada. Tipo y tamaño son los del archivo KYC (la edge
+           vuelve a mirar el tipo por los bytes). */
         function problemaDocs(fs) {
           if (!fs.length) return tS(DOC_ALTA[tipoInput.value === 'empresa' ? 'empresa' : 'persona'].falta);
           if (fs.length > DOC_MAX) return tH('Como mucho %n ficheros.', { n: DOC_MAX });
@@ -8290,25 +8284,117 @@
           }
           return '';
         }
-        /* Uno detrás de otro; el que sube se apunta, para que un reintento no lo duplique. Si se vuelve a
-           elegir fichero, los File son otros y suben todos los nuevos. */
-        var subidos = [];
-        function docsPendientes() { return docsElegidos().filter(function (f) { return subidos.indexOf(f) < 0; }); }
-        var docOk = false;   // todo lo elegido subió y quedó registrado (no depende de lo que haya ahora en el selector)
-        function subeDocs(id, caduca) {
-          var tipoDoc = DOC_ALTA[tipoInput.value === 'empresa' ? 'empresa' : 'persona'].tipo;
-          return docsPendientes().reduce(function (p, f) {
-            return p.then(function () {
-              return window.lwKycSube(sb, id, f, tipoDoc, caduca).then(function () { subidos.push(f); });
-            });
-          }, Promise.resolve());
+
+        /* ALTA CON DOCUMENTO — la máquina (LAW-557, 13-oct-2026). Escrita antes que el código, como manda la lección
+           del 12-oct (bbm P13: cada «¿se creó o no?» mal pensado abrió un camino a un duplicado).
+           Estado:  altaId  = la carpeta pendiente que dio el servidor (la primera subida la crea).
+                    subidos = [{clave, path}] lo ya subido a esa carpeta; la clave es nombre|tamaño|fecha|tipo, así que
+                              volver a elegir EL MISMO fichero no lo sube otra vez.
+                    enDuda  = `alta` salió y no volvió una respuesta del servidor: la ficha pudo crearse o no.
+                    hecho   = el servidor dijo que sí: hay ficha con su documento.
+           Salidas de `alta`:
+             · ok                              → listo (con `?volver=asistente`, al asistente con la ficha).
+             · error de la ficha (code 22023…) → no se creó nada; la pendiente y lo subido SIGUEN. Se corrige el dato
+                                                 en el mismo panel y se reenvía con el mismo alta_id y los mismos paths.
+             · el_fichero_no_es_lo_que_dice_ser → el servidor ya borró ESE fichero: sale de `subidos` y se pide otro.
+             · el_fichero_no_ha_llegado        → sale de `subidos`: al reenviar se sube de nuevo.
+             · alta_no_valida / ruta_invalida / demasiados_ficheros / faltan_ficheros → esa carpeta ya no sirve: se olvida
+                                                 (descartándola si aún es nuestra) y el reenvío empieza un alta limpia.
+             · sin respuesta (red, 5xx sin JSON) → DUDA: se reenvía con el mismo alta_id y paths, que es seguro (si ya se
+                                                 creó, el servidor devuelve la misma ficha). Mientras dura, el fichero no
+                                                 se puede cambiar (otra carpeta = otra ficha posible).
+           Si se cambia de fichero después de subir (y no hay duda), lo subido que ya no está elegido sobraría en la
+           carpeta del cliente: se descarta esa alta y se empieza otra. Cerrar sin terminar → `alta_descarta` (best
+           effort: el barrido de 36 h del servidor limpia lo que quede); si había duda, además se recarga la lista. */
+        var altaId = null, subidos = [], enDuda = false, hecho = false, telConfirmado = null;
+        function claveFichero(f) { return [f.name, f.size, f.lastModified, f.type].join('|'); }
+        function pathDe(f) {
+          var k = claveFichero(f);
+          for (var i = 0; i < subidos.length; i++) if (subidos[i].clave === k) return subidos[i].path;
+          return null;
         }
-        /* Ficha ya creada y documento pendiente: los datos no se pueden tocar aquí (la ficha existe; se corrige
-           desde ella) y el botón solo sube lo que falta. */
-        function modoReintento() {
-          w.querySelectorAll('[data-k], .las-pildora').forEach(function (el) { el.disabled = true; });
-          $('[data-p="faltan"]').textContent = tS('Ficha creada · falta subir el documento');
-          btn.querySelector('.las-txt').innerHTML = esc(tS('Reintentar la subida')) + svg(I.flecha, 'las-ico las-flecha');
+        function quitaSubido(path) { subidos = subidos.filter(function (s) { return s.path !== path; }); }
+        function nombreDe(path) {
+          var fs = docsElegidos();
+          for (var i = 0; i < fs.length; i++) if (pathDe(fs[i]) === path) return fs[i].name;
+          return '';
+        }
+        function ponDuda(si) { enDuda = si; if (docIn) docIn.disabled = si; }
+        function descartaAlta() {
+          if (!altaId || hecho) return Promise.resolve();
+          var id = altaId; altaId = null; subidos = [];
+          return window.lwKyc(sb, 'alta_descarta', { alta_id: id }).then(function () { return null; }, function (e) {
+            /* MUDO A PROPOSITO: descartar es limpieza best effort de una carpeta pendiente; si falla, el barrido diario
+               del servidor (pendientes de más de 36 h) borra sus ficheros. Nada que decirle al agente. */
+            try { console.error('[lawang] alta_descarta', e); } catch (_) { /* consola cerrada */ }
+            return null;
+          });
+        }
+        function alCerrarAlta() {
+          if (hecho || !altaId) return;
+          var duda = enDuda;
+          descartaAlta();   // con la ficha ya creada no borra nada (lo garantiza el servidor)
+          if (!duda) return;
+          var msg = tS('No ha llegado la respuesta del servidor y no se sabe si la ficha se creó. Se recarga la lista: búscala antes de darla de alta otra vez.');
+          Promise.resolve(typeof lwConfirmar === 'function'
+            ? lwConfirmar({ titulo: 'No se sabe si la ficha se creó', cuerpo: '<p>' + esc(msg) + '</p>', confirmar: 'Entendido', cancelar: false })
+            : window.alert(msg)).then(function () { location.reload(); });
+        }
+        function altaConDocumento(v) {
+          // Los seis datos (lista de compradores.js) y el teléfono repetido, ANTES de subir nada: igual que el alta de siempre.
+          if (typeof faltanDatosComprador === 'function') {
+            var faltan = faltanDatosComprador(v);
+            if (faltan.length) return Promise.resolve({ error: { message: 'faltan datos obligatorios — ' + faltan.join(', ') } });
+          }
+          var telAlta = telefonoAlta(v);
+          // Si el agente ya dijo «Guardar igualmente» a ESTE teléfono y reenvía por otro motivo, no se le vuelve a preguntar.
+          var tel = telConfirmado !== null && telConfirmado === telAlta ? Promise.resolve(true) : telefonoRepetidoSigue(telAlta, null);
+          return tel.then(function (sigue) {
+            if (sigue !== true) return sigue;
+            telConfirmado = telAlta;
+            var fs = docsElegidos();
+            var sobran = subidos.some(function (s) { return !fs.some(function (f) { return claveFichero(f) === s.clave; }); });
+            return (sobran && !enDuda ? descartaAlta() : Promise.resolve()).then(function () {
+              // Uno detrás de otro: el primero trae el alta_id que usan los siguientes.
+              return fs.reduce(function (p, f) {
+                return p.then(function () {
+                  if (pathDe(f)) return null;
+                  return window.lwKycAltaSube(sb, altaId, f).then(function (u) {
+                    altaId = u.alta_id; subidos.push({ clave: claveFichero(f), path: u.path });
+                  }, function (e) { if (e && e.altaId) altaId = e.altaId; throw e; });
+                });
+              }, Promise.resolve());
+            }).then(function () {
+              var pide = { alta_id: altaId, datos: datosAltaComprador(v, telAlta), paths: fs.map(pathDe) };
+              if (v.doc_caduca) pide.caduca_el = v.doc_caduca;
+              ponDuda(true);
+              return window.lwKyc(sb, 'alta', pide).then(function (d) {
+                ponDuda(false); hecho = true;
+                return { data: d.id || altaId };   // id = alta_id = el uuid del cliente (interfaz LAW-557)
+              });
+            }).catch(falloAlta);
+          });
+        }
+        function falloAlta(e) {
+          var clave = e && e.respondio ? e.clave : null;
+          if (enDuda && !clave) {   // `alta` salió y no volvió respuesta: no se sabe; reenviar es seguro
+            return { error: { duda: true, message: tS('No ha llegado la respuesta del servidor y no se sabe si la ficha se ha creado. Vuelve a pulsar «Dar de alta»: es seguro, no la duplica.') } };
+          }
+          ponDuda(false);
+          if (clave === 'el_fichero_no_es_lo_que_dice_ser' || clave === 'el_fichero_no_ha_llegado') {
+            var nombre = e.path ? nombreDe(e.path) : '';
+            if (e.path) quitaSubido(e.path);
+            var m = (nombre ? nombre + ': ' : '') + e.message +
+              (clave === 'el_fichero_no_es_lo_que_dice_ser' ? '. ' + tS('Elige otro fichero.') : '. ' + tS('Vuelve a pulsar «Dar de alta».'));
+            marcaCampo('doc_identidad', m);
+            return { error: { message: m } };
+          }
+          if (clave === 'alta_no_valida') { altaId = null; subidos = []; }
+          else if (clave === 'ruta_invalida' || clave === 'demasiados_ficheros' || clave === 'faltan_ficheros') descartaAlta();
+          if (clave && !/^[a-z_]+$/.test(clave)) {   // un mensaje de la base sobre la ficha (falta un dato, correo repetido…)
+            return errorClienteHumano({ error: { message: e.message, code: e.code } });
+          }
+          return { error: { message: typeof lwErrorHumano === 'function' ? lwErrorHumano(e) : String(e && e.message || e) } };
         }
         function listo(r) {
             btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
@@ -8316,7 +8402,7 @@
                desde su paso «cliente» (`?volver=asistente`) vuelve allí con la
                ficha recién creada elegida. Solo ese valor fijo y una ruta escrita
                aquí —nunca una URL que venga en la barra (redirección abierta)—, y
-               en la URL solo viaja el uuid que devuelve cliente_guarda. */
+               en la URL solo viaja el uuid que devuelve el servidor. */
             var vuelta = new URLSearchParams(location.search).get('volver') === 'asistente'
               && r && typeof r.data === 'string' && /^[0-9a-f-]{36}$/i.test(r.data);
             setTimeout(function () {
@@ -8325,17 +8411,6 @@
               else location.reload();
             }, 750);
         }
-        /* Una ficha creada con el documento sin subir no se pierde de vista al cerrar: se recarga la lista
-           (sale ya la ficha nueva) con el aviso en rojo de qué falta. */
-        w._alCerrarAlta = function () {
-          if (!creadoId || docOk) return;
-          var msg = subidos.length
-            ? tH('La ficha se ha creado, pero el documento de identidad solo se ha subido en parte (%n de %m ficheros): sube el resto desde la ficha del cliente → Documentación KYC.', { n: subidos.length, m: subidos.length + docsPendientes().length })
-            : tS('La ficha se ha creado sin el documento de identidad: súbelo desde la ficha del cliente → Documentación KYC.');
-          Promise.resolve(typeof lwConfirmar === 'function'
-            ? lwConfirmar({ titulo: 'Falta el documento de identidad', cuerpo: '<p>' + esc(msg) + '</p>', confirmar: 'Entendido', cancelar: false })
-            : window.alert(msg)).then(function () { location.reload(); });
-        };
 
         // Nacionalidad como picker de nombre completo (geo.js + dialogo.js), igual que el resto de la suite.
         if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {

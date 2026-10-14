@@ -11,6 +11,11 @@ declare r text := ''; v_new uuid; fd record; sd record; v_n int; v_tot int; v_j 
   A text := '{"sub":"1cd031f2-c7da-455e-975f-c4e8708e36fb","email":"dortegag@gmail.com","role":"authenticated"}';
   ADM text := '{"sub":"24257595-aee2-4daa-8170-d268f46b9981","email":"p@pabloglobal.es","role":"authenticated"}';
 begin
+  -- LAW-557 (13-oct-2026): los casos 1-3 dan de alta con cliente_guarda(null), que con `alta_exige_documento` encendido se
+  -- niega. Se apaga DENTRO de la transacción (el raise final lo revierte); el alta nueva, por la edge, la prueba
+  -- supabase/pruebas/law557_558_alta_documento_retencion.sql.
+  insert into public.config_instancia (clave, valor) values ('alta_exige_documento', 'false'::jsonb)
+  on conflict (clave) do update set valor = excluded.valor;
   select d.id, d.storage_path, d.client_id into fd from documents d join clients c on c.id=d.client_id
    where c.propietario <> 'dortegag@gmail.com' and not public.cliente_con_contrato_firmado(c.id) and d.storage_path like d.client_id::text||'/%' limit 1;
   select d.id, d.client_id into sd from documents d where public.cliente_con_contrato_firmado(d.client_id) limit 1;

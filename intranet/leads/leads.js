@@ -1310,12 +1310,22 @@ async function dialogoHaciaContrato(l){
     `<div class="aviso rojo" style="margin:0 0 10px"><b>${lwT('Este lead no dejó email.')}</b>
      ${lwT('Una ficha de cliente necesita un identificador, así que hay que darla de alta a mano en')} <a href="/intranet/v4/compradores/?nuevo=1" target="_blank" rel="noopener">${lwT('Clientes')}</a>.</div>`);
 
+  /* Alta con documento (LAW-557, 13-oct-2026): con el interruptor de la instancia, una ficha NUEVA nace en Clientes
+     con el pasaporte adjunto, en una sola operación; desde aquí no se puede adjuntar, así que este paso ya no crea
+     (la base también se niega). Si el correo ya tiene ficha, se usa esa, como siempre. En la URL no viaja nada del lead. */
+  const altaEnClientes = !!(window.LW_INSTANCIA && window.LW_INSTANCIA.alta_exige_documento === true)
+    && d.email && !d.ficha_existente;
+  if(altaEnClientes) avisos.push(
+    `<div class="aviso oro" style="margin:0 0 10px"><b>${lwT('Este lead todavía no tiene ficha de cliente.')}</b>
+     ${lwT('Se da de alta en Clientes, con este mismo correo y la foto del pasaporte (o el documento de la empresa) adjunta. Después, vuelve aquí y pulsa «Crear contrato para este lead»: se usará esa ficha.')}</div>`);
+
   caja.innerHTML = avisos.join('') + `
     <div class="dato"><span>${lwT('Nombre')}</span><b>${esc(d.nombre || 'sin nombre')}</b></div>
     <div class="dato"><span>${lwT('Email')}</span><b>${esc(d.email || 'no dejó')}</b></div>
     <div class="dato"><span>${lwT('Teléfono')}</span><b>${esc(d.whatsapp || 'no dejó')}</b></div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      ${d.email ? `<button class="btn pri" id="hcSeguir"><i class="ph ph-arrow-right"></i>${
+      ${altaEnClientes ? `<a class="btn pri" href="/intranet/v4/compradores/?nuevo=1" target="_blank" rel="noopener"><i class="ph ph-user-plus"></i>${lwT('Dar de alta en Clientes')}</a>`
+        : d.email ? `<button class="btn pri" id="hcSeguir"><i class="ph ph-arrow-right"></i>${
         d.ficha_existente ? 'Usar esa ficha y abrir el contrato' : 'Crear ficha y abrir el contrato'}</button>` : ''}
       <button class="btn" id="hcCancelar">${lwT('Cancelar')}</button>
     </div>`;

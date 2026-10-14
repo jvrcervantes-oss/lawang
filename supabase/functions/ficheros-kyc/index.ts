@@ -17,6 +17,17 @@
 //   borra_comprador {client_id}                             → resultado de borrar_comprador + ficheros quitados
 //   limpia_comprador {client_id}                            → {borrados}  reintento, ficha ya borrada
 //
+// Alta CON documento (LAW-557, 13-oct-2026, «alta y pasaporte juntos»: la ficha y su documento entran los dos o
+// ninguno). Van ANTES del bloque que exige client_id: la ficha aún no existe.
+//   alta_subida_url {alta_id?, ext}                  → {alta_id, path, token, content_type}  (sin alta_id la BASE crea
+//                                                       la pendiente; nunca se acepta un id del cuerpo para crear)
+//   alta            {alta_id, datos, paths[1-4], caduca_el?} → {id}  (id = alta_id = el uuid del cliente)
+//   alta_descarta   {alta_id}                        → {borrados}  best effort al cerrar el panel sin terminar
+// Errores fijos: alta_no_disponible (la base no tiene la vía: instancia sin migrar) · alta_no_valida ·
+// demasiadas_altas_abiertas · demasiados_ficheros · faltan_ficheros · ruta_invalida · tipo_de_fichero_no_admitido ·
+// el_fichero_no_ha_llegado / el_fichero_no_es_lo_que_dice_ser (+ path). Un dato de la ficha que no valida vuelve con
+// el mensaje de la base tal cual y code 22023; la pendiente y los ficheros SIGUEN para el reintento.
+//
 // verify_jwt=false por el mismo motivo que ficheros-contrato (CORS del preflight); el JWT se valida a mano.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -105,6 +116,96 @@ Deno.serve(async (req) => {
         if (eRm) aviso = 'fichero_no_borrado';
       }
       return json({ ok: true, conservado: res.conservado, kyc_vuelve_a_revision: res.kyc_vuelve_a_revision, aviso });
+    }
+
+    // ── alta CON documento (LAW-557) ─────────────────────────────────────
+    // Quién es dueño de la alta y qué se puede hacer lo decide la base (RPC solo service_role, actuando como el
+    // usuario de la sesión). Las RPC devuelven tokens fijos; 22023 es solo la validación de la ficha.
+    // Códigos HTTP: ni 401/403/404 para lo que es de la alta (la pantalla los lee como «versión vieja»).
+    if (accion === 'alta_subida_url' || accion === 'alta' || accion === 'alta_descarta') {
+      const TOKENS = new Set(['alta_no_valida', 'demasiadas_altas_abiertas', 'demasiados_ficheros', 'faltan_ficheros', 'ruta_invalida']);
+      const errAlta = (e: { message?: string; code?: string } | null) => {
+        const msg = String(e?.message ?? '');
+        if (e?.code === 'PGRST202' || e?.code === '42883') return json({ ok: false, error: 'alta_no_disponible' }, 501);
+        if (TOKENS.has(msg)) return json({ ok: false, error: msg }, msg === 'alta_no_valida' ? 409 : 400);
+        if (e?.code === '22023') return json({ ok: false, error: msg, code: '22023' }, 400);
+        return errRpc(e);
+      };
+      const altaId = body.alta_id == null || body.alta_id === '' ? null : String(body.alta_id).toLowerCase();
+      if (altaId !== null && !esUuid(altaId)) return json({ ok: false, error: 'alta_no_valida' }, 409);
+      const quita = async (rutas: unknown) => {
+        // solo lo que devuelve la base y solo dentro de la carpeta de ESTA alta
+        const lista = (Array.isArray(rutas) ? rutas : []).map(String).filter((p) => altaId && p.startsWith(altaId + '/'));
+        if (!lista.length) return 0;
+        const { error: eRm } = await admin.storage.from(BUCKET).remove(lista);
+        return eRm ? 0 : lista.length;
+      };
+
+      // preparar una subida: sin alta_id la base crea la pendiente (el id es suyo, nunca del cuerpo)
+      if (accion === 'alta_subida_url') {
+        const ext = String(body.ext ?? '').toLowerCase();
+        const tipo = TIPOS_[ext];
+        if (!tipo) return json({ ok: false, error: 'tipo_de_fichero_no_admitido' }, 400);
+        const { data: id, error } = await admin.rpc('kyc_alta_reserva', { p_uid: quien.user.id, p_alta: altaId });
+        if (error || typeof id !== 'string' || !esUuid(id)) return errAlta(error);
+        const path = `${id}/${crypto.randomUUID()}${ext}`;
+        const { data, error: eUp } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
+        if (eUp || !data) return json({ ok: false, error: 'no_se_pudo_preparar_la_subida' }, 500);
+        return json({ ok: true, alta_id: id, path, token: data.token, content_type: tipo });
+      }
+
+      if (!altaId) return json({ ok: false, error: 'alta_no_valida' }, 409);
+
+      // descartar: nunca borra nada si no es tuya o si la ficha ya existe (lo decide la base)
+      if (accion === 'alta_descarta') {
+        const { data: rutas, error } = await admin.rpc('kyc_alta_descarta', { p_uid: quien.user.id, p_alta: altaId });
+        if (error) return errAlta(error);
+        return json({ ok: true, borrados: await quita(rutas) });
+      }
+
+      // crear la ficha con sus documentos
+      const paths = Array.isArray(body.paths) ? body.paths.map(String) : [];
+      if (!paths.length) return json({ ok: false, error: 'faltan_ficheros' }, 400);
+      if (paths.length > 4) return json({ ok: false, error: 'demasiados_ficheros' }, 400);
+      const reRuta = new RegExp('^' + altaId + '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\\.[a-z]+)$');
+      const exts: string[] = [];
+      for (const p of paths) {
+        const m = reRuta.exec(p);
+        if (!m || !TIPOS_[m[1]]) return json({ ok: false, error: 'ruta_invalida' }, 400);
+        exts.push(m[1]);
+      }
+      if (new Set(paths).size !== paths.length) return json({ ok: false, error: 'ruta_invalida' }, 400);
+      const caduca = body.caduca_el ? String(body.caduca_el) : null;
+      if (caduca && !/^\d{4}-\d{2}-\d{2}$/.test(caduca)) return json({ ok: false, error: 'fecha_de_caducidad_invalida' }, 400);
+      const datos = body.datos && typeof body.datos === 'object' && !Array.isArray(body.datos) ? body.datos : null;
+      if (!datos) return json({ ok: false, error: 'Datos de la ficha no válidos', code: '22023' }, 400);
+
+      // ANTES de mirar bytes o borrar nada: ¿es tuya? (así un agente no toca los ficheros de la alta de otro)
+      const { data: estado, error: eEst } = await admin.rpc('kyc_alta_estado', { p_uid: quien.user.id, p_alta: altaId });
+      if (eEst) return errAlta(eEst);
+      if (estado === 'creado') return json({ ok: true, id: altaId });          // reintento tras confirmar: idempotente
+      if (estado !== 'pendiente') return json({ ok: false, error: 'alta_no_valida' }, 409);
+
+      for (let i = 0; i < paths.length; i++) {
+        const cab = await cabecera(paths[i]);
+        if (!cab) return json({ ok: false, error: 'el_fichero_no_ha_llegado', path: paths[i] }, 409);
+        if (!esAdmisible(exts[i], cab)) {
+          // solo ESE fichero, y solo si nadie lo registró (dentro de una alta pendiente no puede estarlo)
+          const { data: ya } = await admin.from('documents').select('id').eq('storage_path', paths[i]).maybeSingle();
+          if (!ya) await admin.storage.from(BUCKET).remove([paths[i]]);
+          return json({ ok: false, error: 'el_fichero_no_es_lo_que_dice_ser', path: paths[i] }, 400);
+        }
+      }
+
+      const { data: r, error } = await admin.rpc('cliente_alta_con_documentos', {
+        p_uid: quien.user.id, p_alta: altaId, p_datos: datos, p_paths: paths, p_caduca: caduca,
+      });
+      // un dato que no valida: NO se borra nada (la pendiente y los ficheros siguen para reenviar)
+      if (error) return errAlta(error);
+      const res = (r ?? {}) as { id?: string; sobrantes?: unknown };
+      // lo subido en esta alta y descartado en pantalla: con la ficha creada nadie más lo vería
+      await quita(res.sobrantes);
+      return json({ ok: true, id: res.id ?? altaId });
     }
 
     const clientId = String(body.client_id ?? '');
