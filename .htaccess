@@ -94,7 +94,17 @@ RedirectMatch 404 (?i)\.test\.js$
 RedirectMatch 404 (?i)^/excel/
 RedirectMatch 404 (?i)\.(cjs|ini)$
 RedirectMatch 404 (?i)/intranet/.*\.zip$
-<FilesMatch "(?i)(\.(ts|mjs|toml|py[co]?|cjs|ini)|\.test\.js)$">
+# 14-oct-2026 (lawang-cola, auditoria semanal): y por EXTENSION, hojas, volcados y notas (.xls/.xlsx/.csv/.md/
+# .bak/.log), para que lo proximo que se copie al hosting por error nazca cerrado como nacio excel/. Ninguna
+# pagina ni guion los pide por URL (grep del repo, 14-oct): los .csv del servidor (leads, CRM, citas) viven en
+# private/; docs/ solo admite pdf/doc/docx/zip (api/upload-doc.php) y las imagenes jpg/png/webp; los .csv de la
+# intranet se generan en el navegador (exportaCSV / descargaCsv) y nunca se piden al servidor.
+RedirectMatch 404 (?i)\.(xlsx?|csv|md|bak|log)$
+# contracts/templates/templates.json: manifiesto de referencia que ninguna pieza lee (su propia _nota lo dice y
+# git grep no da llamador, 14-oct); sin llamador no se sirve. Sus vecinos SI se piden: texto_cambiado.json (el bot
+# bot-agentes, por URL), las plantillas .html (app.html) y contracts/tokens.json.
+RedirectMatch 404 (?i)^/contracts/templates/templates\.json$
+<FilesMatch "(?i)(\.(ts|mjs|toml|py[co]?|cjs|ini|xlsx?|csv|md|bak|log)|\.test\.js)$">
   Order allow,deny
   Deny from all
 </FilesMatch>

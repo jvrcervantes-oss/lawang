@@ -42,6 +42,9 @@ const CERRADAS = [
   '/excel/', '/excel/Lamborghini_Sumba_Phase_I_Financial_Plan.xlsx', '/excel/salida/Lamborghini_Sumba_Phase_I.xlsx',
   '/excel/inbox/datos.json', '/excel/schema.json', '/excel/README.md', '/EXCEL/build_plan.py',
   '/intranet/v4/assets/ajustes_correo.harness.cjs', '/api/.user.ini', '/intranet/Lawang Properties UI mockups.zip',
+  // 14-oct-2026 (auditoria semanal): por extension, hojas, volcados y notas copiados al hosting en cualquier carpeta
+  '/Plan_Financiero.XLSX', '/docs/presupuesto.xls', '/export/leads.csv', '/README.md', '/intranet/NOTAS.md',
+  '/data.json.bak', '/api/error.log', '/contracts/templates/templates.json',
 ];
 const PUBLICAS = [
   '/', '/index.html', '/thecollection', '/thecollection.php', '/property/tirta-hikari', '/data.json',
@@ -52,6 +55,9 @@ const PUBLICAS = [
   '/assets/portfolio-app.js', '/assets/lawang-card.js', '/assets/python.js', '/assets/copy.css', '/assets/img/pyc.webp',
   // los .zip de docs/ son las subidas del admin (api/upload-doc.php): descargas publicas
   '/docs/1739000000_dossier.zip', '/excelente', '/assets/excel.js', '/intranet/v4/assets/ajustes.js',
+  '/docs/1739000000_contrato.pdf', '/docs/1739000000_anexo.docx', '/assets/markdown.js', '/assets/img/csv-icon.webp',
+  '/legal-es', '/catalogo.mdx-no',
+  '/contracts/templates/texto_cambiado.json', '/contracts/templates/adenda.html', '/contracts/tokens.json',
 ];
 
 const errores = [];
@@ -59,7 +65,7 @@ if (redir.length < 10 || files.length < 3) errores.push(`solo se han leido ${red
 for (const r of CERRADAS) if (!cierra(r).length) errores.push(`${r} deberia dar 404 y ninguna regla la cierra`);
 for (const r of PUBLICAS) { const c = cierra(r); if (c.length) errores.push(`${r} es publica y la cierra ${c.join(' ; ')}`); }
 // El compilado no puede depender solo del 404 «bonito»: el cierre de verdad es el <FilesMatch> (nombre resuelto).
-for (const n of ['x.py', 'x.pyc', 'x.cpython-314.pyc', 'algo_test.php', 'test_algo.php', 'x.harness.cjs', '.user.ini']) {
+for (const n of ['x.py', 'x.pyc', 'x.cpython-314.pyc', 'algo_test.php', 'test_algo.php', 'x.harness.cjs', '.user.ini', 'Plan.xlsx', 'x.xls', 'leads.csv', 'README.md', 'data.json.bak', 'error.log']) {
   if (!files.some(p => regla(p).test(n))) errores.push(`ningun <FilesMatch> con Deny cierra el fichero ${n}`);
 }
 

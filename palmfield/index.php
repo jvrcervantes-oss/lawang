@@ -174,6 +174,7 @@ $IMG_2      = '/assets/img/properties/palm-field-2.jpg';
 $IMG_3      = '/assets/img/properties/palm-field-3.jpg';
 $IMG_PLANO  = '/assets/img/properties/palm-field-4.jpg';
 $ogImg      = $IMG_AEREA;
+$ogImgAbs   = lw_url_abs($ogImg);
 
 // Foto hero en vivo (vivo.php): sustituye la primera del mosaico SOLO si la intranet ya
 // tiene una marcada uso='hero' para el proyecto. Hoy no hay ninguna — las 4 fotos que
@@ -231,7 +232,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <meta property="og:title" content="Palm Field — Villas in Balian Hills, Bali · Freehold (HGB) or Hak Sewa">
 <meta property="og:description" content="Plots five minutes from the beach — Freehold (HGB) via PT PMA or Hak Sewa. Land ready, five villa models. From <?= lw_e(lw_aud_fmt($desdeTotal)) ?>.">
 <meta property="og:url" content="https://lawangproperties.com/palmfield">
-<meta property="og:image" content="https://lawangproperties.com<?= lw_e($ogImg) ?>">
+<meta property="og:image" content="<?= lw_e($ogImgAbs) ?>">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 

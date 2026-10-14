@@ -236,7 +236,7 @@ $WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode("Hi, I'm intere
 // siendo una ruta relativa del propio sitio. Sin esta rama, el prefijo de dominio de abajo
 // duplicaba el esquema ("lawangproperties.comhttps://...supabase.co/..."), un og:image roto.
 $ogImg = $portada ?? '/assets/img/lugar/costa.webp';
-$ogImgAbs = (strpos($ogImg, 'http') === 0) ? $ogImg : 'https://lawangproperties.com' . $ogImg;
+$ogImgAbs = lw_url_abs($ogImg);
 $slugPath = lw_modelo_url_path($m['id']);
 
 // Etiqueta real del snapshot financiero (nombre del proyecto de ejemplo, nunca "este modelo").
