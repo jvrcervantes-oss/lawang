@@ -100,6 +100,27 @@
     var o = permisosPorMenu(function (x) { return x === k; }).filter(Array.isArray)[0];
     return o ? o[1] : k;
   };
+  /* El ORDEN de `herramientas` que viaja al guardar es el GUARDADO, no el de la pantalla (14-oct-2026, revisor).
+     Porqué: el trigger usuarios_bloquea_cambio_rol_herramientas compara la lista con `is distinct from`, que cuenta el
+     orden, y a quien no es super admin solo le deja pasar si sale IDÉNTICA. Las casillas se recogen en orden de menú
+     (permisosPorMenu), así que mover una entrada de MENU_V4 —«Clientes», ese día— hacía que cambiar solo el nombre,
+     los proyectos o el activo de alguien diera «Solo un super_admin puede cambiar el rol o las herramientas».
+     · primero lo guardado, en su orden, si sigue marcado O si la pantalla no lo ofrece (una clave sin casilla no se
+       ha podido desmarcar: viaja tal cual, ni se enseña ni se quita; es lo que el build de las instancias ya hacía
+       con los módulos apagados);
+     · después lo recién marcado, en el orden de la pantalla. Nunca añade una clave que no esté en una de las dos.
+     `opciones` son las del multicheck: string, par [clave, …] o fila sin casilla (objeto), que no cuenta. Sin
+     `opciones` no se conserva lo no ofrecido. Función pura: la prueba contracts/propios_permisos.test.js §5. */
+  function ordenHerramientas(guardadas, marcadas, opciones) {
+    guardadas = guardadas || []; marcadas = marcadas || [];
+    var ofrecidas = !opciones ? null : opciones.map(function (o) {
+      return typeof o === 'string' ? o : (Array.isArray(o) ? o[0] : null);
+    });
+    var sigue = function (k) { return marcadas.indexOf(k) !== -1 || (!!ofrecidas && ofrecidas.indexOf(k) === -1); };
+    return guardadas.filter(sigue).concat(marcadas.filter(function (k, i) {
+      return guardadas.indexOf(k) === -1 && marcadas.indexOf(k) === i;
+    }));
+  }
   function slugDe(n) {
     return String(n || '').toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -8939,6 +8960,7 @@
                 + (propios.length ? ' Los contratos propios de una empresa (marcados «contrato propio») solo los puede conceder quien ya los tiene.' : '') }
           );
           modal(tH('Permisos de %n', { n: u.nombre || u.email }), campos, 'Guardar permisos', function (v) {
+            v.herramientas = ordenHerramientas(u.herramientas, v.herramientas, ops);   // orden guardado, no el de la pantalla: ver ordenHerramientas
             var patch = {
               nombre: v.nombre.trim() || null, herramientas: v.herramientas,
               tipos_contrato: v.tipos_contrato

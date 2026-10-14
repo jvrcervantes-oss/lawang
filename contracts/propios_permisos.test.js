@@ -88,5 +88,46 @@ function ctx() {
   ok(/d\.tipos_no_dados/.test(guardaAlta), 'tras crear, avisa de los tipos que la edge no dio (tipos_no_dados)');
   ok(!/se conceden después, en los permisos de la persona/.test(editores), 'el alta ya no dice que los propios se conceden después');
 
+  /* 5. `herramientas` viaja en el orden GUARDADO, no en el de la pantalla (14-oct-2026). El trigger
+     usuarios_bloquea_cambio_rol_herramientas compara con `is distinct from` (cuenta el orden): a quien no es super admin
+     solo le deja guardar nombre, proyectos o activo si la lista sale IDÉNTICA. Mover «Clientes» en MENU_V4 cambió el
+     orden de las casillas y lo habría roto. Se ejecuta la función real de editores.js. */
+  const iOrd = editores.indexOf('function ordenHerramientas(');
+  assert.ok(iOrd > 0, 'no encuentro ordenHerramientas en editores.js');
+  const cOrd = {};
+  vm.createContext(cOrd);
+  vm.runInContext(editores.slice(iOrd, editores.indexOf('function slugDe(', iOrd)), cOrd);
+  const ord = (g, m, o) => vm.runInContext('ordenHerramientas', cOrd)(g, m, o);
+  // las casillas como las da permisosPorMenu tras subir «Clientes»: secciones y filas sin casilla (objetos) entre los pares
+  const menu = [{ seccion: 'Seguimiento' }, ['leads', 'CRM'], ['operaciones', 'Operaciones'], { seccion: 'Documentación' },
+    ['compradores', 'Clientes'], ['contratos', 'Contratos'], ['asistente', 'Asistente'], { info: 'Resumen', nota: 'según rol' },
+    ['facturas', 'Cobros · Facturas'], ['unidades', 'Proyectos'], ['modelos', 'Modelos de casas'], ['obra', 'Obra']];
+  const enPantalla = marcadas => menu.filter(Array.isArray).map(o => o[0]).filter(k => marcadas.indexOf(k) !== -1);   // lo que recoge el modal
+  const guardado = ['contratos', 'facturas', 'unidades', 'modelos', 'obra', 'compradores'];   // orden de antes: Clientes al final
+  eq(enPantalla(guardado), ['compradores', 'contratos', 'facturas', 'unidades', 'modelos', 'obra'], 'el caso es real: la pantalla ya no recoge en el orden guardado');
+  eq(ord(guardado, enPantalla(guardado), menu), guardado, 'sin tocar casillas, la lista sale idéntica a la guardada (mismo orden)');
+  eq(ord(guardado, enPantalla(guardado.filter(k => k !== 'unidades')), menu), ['contratos', 'facturas', 'modelos', 'obra', 'compradores'], 'desmarcar una: el resto, en el orden guardado');
+  eq(ord(guardado, enPantalla(guardado.concat(['leads', 'asistente'])), menu), guardado.concat(['leads', 'asistente']), 'marcar nuevas: al final, en el orden de la pantalla');
+  eq(ord(['contratos', 'retirada', 'compradores'], ['compradores', 'contratos'], menu), ['contratos', 'retirada', 'compradores'], 'una clave guardada que la pantalla no ofrece viaja tal cual, en su sitio (no se ha podido desmarcar)');
+  eq(ord(['contratos', 'retirada'], ['contratos'], menu.concat([['retirada', 'Otra']])), ['contratos'], 'si la pantalla SÍ la ofrece (en «Otras») y se desmarca, se quita');
+  eq(ord(['contratos', 'retirada'], ['contratos', 'retirada'], menu.concat([['retirada', 'Otra']])), ['contratos', 'retirada'], '…y si sigue marcada, se conserva en su sitio');
+  eq(ord(['contratos'], ['contratos'], menu).indexOf('retirada'), -1, 'no inventa claves que no están ni guardadas ni marcadas');
+  eq(ord(null, ['compradores', 'contratos'], menu), ['compradores', 'contratos'], 'sin nada guardado (null): lo marcado, en el orden de la pantalla');
+  eq(ord([], [], menu), [], 'vacío y nada marcado: vacío');
+  eq(ord(guardado, [], menu), [], 'desmarcarlo todo lo quita todo (todas tenían casilla)');
+  eq(ord(guardado, null, menu), [], 'sin lista de marcadas (null) no revienta');
+  eq(ord(['contratos', 'compradores'], ['compradores', 'contratos', 'leads']), ['contratos', 'compradores', 'leads'], 'sin opciones: orden guardado y lo nuevo al final, sin conservar lo no ofrecido');
+  eq(ord(['contratos', 'retirada'], ['contratos']), ['contratos'], 'sin opciones, lo que no viene marcado no viaja');
+  eq(ord(['obra', 'contratos'], ['contratos', 'obra'], ['contratos', 'obra', 'leads']), ['obra', 'contratos'], 'las opciones también pueden ser strings (la rama sin catálogo, que ordena alfabéticamente)');
+  eq(ord(['contratos'], ['leads', 'leads', 'contratos'], menu), ['contratos', 'leads'], 'una marcada repetida entra una vez');
+  const una = ord(['contratos', 'retirada', 'compradores'], ['compradores', 'leads'], menu);
+  eq(ord(['contratos', 'retirada', 'compradores'], una, menu), una, 'aplicarla sobre su propio resultado no cambia nada (el build de las instancias vuelve a ordenar encima)');
+  // el cableado: se ordena ANTES de montar el patch, y la línea que el build de las instancias reescribe sigue tal cual y una sola vez
+  const ANCLA_BUILD = '              nombre: v.nombre.trim() || null, herramientas: v.herramientas,\n';
+  eq(editores.split(ANCLA_BUILD).length - 1, 1, 'la línea de `herramientas` del patch es un ancla de demo-erp/build.py (AxisWorks): tiene que aparecer exactamente una vez');
+  const iPatch = editores.indexOf(ANCLA_BUILD), iAsigna = editores.indexOf('v.herramientas = ordenHerramientas(u.herramientas, v.herramientas, ops);');
+  ok(iAsigna > 0 && iAsigna < iPatch && iPatch - iAsigna < 400, 'el modal de permisos ordena `v.herramientas` justo antes de montar el patch');
+  eq(editores.split("sb.rpc('usuario_guarda_permisos'").length - 1, 1, 'solo un sitio guarda permisos: si aparece otro, tiene que ordenar igual');
+
   console.log('OK propios_permisos.test.js — ' + n + ' comprobaciones');
 })().catch(e => { console.error(e); process.exit(1); });
