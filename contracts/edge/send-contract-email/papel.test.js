@@ -6,7 +6,8 @@
 // SMTP falsos, y compara el HTML que llega al render con el que pinta LA PANTALLA (los ficheros fuente de /facturas/, con los
 // cargadores reales de entities.js). Casos: factura, proforma, recibí, rectificativa (la de Lawang, que no existe y se borra;
 // la del ERP, desde rectifica_id), cuenta «otros», sin emisor congelado; y los cortes 409 (cuenta sin verificar o inexistente,
-// emisor de otra sociedad, total que no cuadra, impuestos colados, líneas que no son lista, sociedad que no existe). Contraprueba:
+// emisor de otra sociedad, total que no cuadra, impuestos colados, líneas que no son lista, sociedad que no existe, cuenta de
+// una empresa que quien envía no ve —la clave la escribe el navegador: revisor, 15-oct—). Contraprueba:
 // con html/pdf/contrato_id hostiles en el cuerpo, al render llega el HTML de la fila y al registro el contrato de la fila.
 // Corre con: node contracts/edge/send-contract-email/papel.test.js
 'use strict';
@@ -61,7 +62,15 @@ function montaEdge(filas, opc = {}) {
         async rpc(nom, a) { r.rpc.push(['admin', nom, a]); return { data: { modo: 'directo' }, error: null }; },
         storage: { from: () => ({ async upload(ruta) { r.copias.push(ruta); return { error: null }; } }) } }
     : { from: (t) => consulta('usuario', t),
-        async rpc(nom, a) { r.rpc.push(['usuario', nom, a]); return { data: true, error: null }; } };
+        async rpc(nom, a) {
+          r.rpc.push(['usuario', nom, a]);
+          // empresa_en_alcance(p_empresa): la de Lawang (20261007001600). opc.alcance = empresas que ve el usuario (sin él, todas).
+          if (nom === 'empresa_en_alcance') {
+            if (opc.alcanceFalla) return { data: null, error: { message: 'function public.empresa_en_alcance(text) does not exist' } };
+            return { data: !opc.alcance || opc.alcance.includes(a.p_empresa), error: null };
+          }
+          return { data: true, error: null };
+        } };
   const env = { SUPABASE_URL: 'https://prueba.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'svc', SUPABASE_ANON_KEY: 'anon',
                 RENDER_SECRET: 'rs', SITIO_URL: SITIO, RENDER_URL: 'https://render.test' };
   let manejador = null;
@@ -119,6 +128,15 @@ const CTA = [
   { clave: 'vieja', label: 'Vieja', titular: 'PT TEPI SUNGAI', banco: 'Mandiri', cuenta: '777000777', codigo: 'BMRI', direccion: '', extra: '',
     verificada_en: '2026-08-01T00:00:00Z', activa: false, es_escrow: false, orden: 3 },
 ];
+// Filas con la columna `empresa` (forma de Lawang; las de arriba no la traen = forma del ERP maestro, sin alcance por empresa).
+const CTA_EMPRESA = [
+  { clave: 'sdw_danamon', label: 'SDW Danamon', titular: 'PT SAN DAL WOODS', banco: 'Danamon', cuenta: '3600000036', codigo: 'BDINIDJA',
+    direccion: 'Badung', extra: '', verificada_en: '2026-09-26T00:00:00Z', activa: true, es_escrow: false, orden: 4, empresa: 'sandal_woods' },
+  { clave: 'tepi_ocbc', label: 'Tepi OCBC', titular: 'PT TEPI SUNGAI', banco: 'OCBC', cuenta: '4400000044', codigo: 'NISPIDJA',
+    direccion: 'Denpasar', extra: '', verificada_en: '2026-09-26T00:00:00Z', activa: true, es_escrow: false, orden: 5, empresa: 'lawang' },
+  { clave: 'notario_bni', label: 'Notario BNI', titular: 'Notaris Sandy', banco: 'BNI', cuenta: '5500000055', codigo: 'BNINIDJA',
+    direccion: 'Sumba', extra: '', verificada_en: '2026-09-26T00:00:00Z', activa: true, es_escrow: true, orden: 6, empresa: null },
+];
 const EMISOR = { clave: 'tepi_sungai', razon: 'PT TEPI SUNGAI', marca: 'Lawang', npwp: '01.234.567', npwp_label: 'NPWP', nib: 'NIB-1',
   domicilio: 'Jl. Raya 1, Bali', rep: 'I Wayan', congelado_en: '2026-10-14T08:00:00Z' };
 const campos = (o = {}) => ({ tipo: 'factura', sociedad: 'tepi_sungai', cuenta: 'bca_tepi', fecha_emision: '2026-10-14', fecha_vencimiento: '2026-10-30',
@@ -130,21 +148,22 @@ const factura = (o = {}, fields = {}, datos = {}) => {
     proyecto_nombre: 'Tamarind Rise — L12', cliente_nombre: 'Ana Pérez', contrato_id: C1, total: 1100, anulada: false, enviada: false,
     ...o, datos: { fields: campos(fields), lineas, emisor: EMISOR, ...datos } };
 };
-const base = (fila, extra = {}) => ({ facturas: [fila, ...(extra.facturas || [])], sociedades: SOC, cuentas_bancarias: CTA, config_instancia: [], contratos: [] });
+const base = (fila, extra = {}) => ({ facturas: [fila, ...(extra.facturas || [])], sociedades: SOC, cuentas_bancarias: CTA.concat(CTA_EMPRESA),
+  config_instancia: [], contratos: [] });
 const envia = (o = {}) => ({ to: 'ana@cliente.test', subject: 'Factura INV-00157', message: 'Adjunto', filename: 'INV-00157.pdf', factura_id: F1, ...o });
 
-async function igualQuePantalla(nombre, fila, extra = {}) {
-  const e = montaEdge(base(fila, extra));
+async function igualQuePantalla(nombre, fila, extra = {}, opc = {}) {
+  const e = montaEdge(base(fila, extra), opc);
   const res = await e.pide(envia({ factura_id: fila.id }));
   ok(res.s === 200 && res.o.ok === true && res.o.marcada === true, nombre + ': 200, enviada y marcada');
   ok(e.r.render.length === 1, nombre + ': un render');
-  const esperado = await pantalla(fila, SOC.filter((s) => s.activa), CTA.filter((c) => c.activa));
+  const esperado = await pantalla(fila, SOC.filter((s) => s.activa), CTA.concat(CTA_EMPRESA).filter((c) => c.activa));
   ok(e.r.render[0] === esperado, nombre + ': el HTML del render es EL MISMO que pinta la pantalla');
   ok(e.r.envio.length === 1 && e.r.envio[0].cuerpo.pdf_base64 === Buffer.from('%PDF-1.4 de la fila').toString('base64'), nombre + ': sale el PDF del render');
   return { e, html: e.r.render[0] };
 }
-async function corta(nombre, fila, codigo, cuerpo = {}) {
-  const e = montaEdge(base(fila));
+async function corta(nombre, fila, codigo, cuerpo = {}, opc = {}) {
+  const e = montaEdge(base(fila), opc);
   const res = await e.pide(envia(cuerpo));
   ok(res.s === 409 && res.o.ok === false && res.o.codigo === codigo, nombre + ': 409 ' + codigo + ' (fue ' + res.s + ' ' + JSON.stringify(res.o) + ')');
   ok(typeof res.o.error === 'string' && !/_/.test(res.o.error), nombre + ': el error es una frase para la pantalla');
@@ -219,6 +238,31 @@ async function corta(nombre, fila, codigo, cuerpo = {}) {
   { const fila = factura(); fila.datos.fields = 'texto'; await corta('campos que no son objeto', fila, 'documento_incoherente'); }
   await corta('sociedad que ya no existe', factura({ sociedad: 'borrada' }, {}, { emisor: { ...EMISOR, clave: 'borrada' } }), 'sociedad_desconocida');
   await corta('tipo desconocido', factura({ tipo: 'albaran' }), 'documento_incoherente');
+  // ── 3b. la clave de la cuenta la escribe el navegador: alcance por empresa (revisor, 15-oct) ─────────────────────────
+  // El ataque: un agente que solo ve la empresa lawang guarda su factura con la clave (adivinada) de una cuenta verificada
+  // de sandal_woods. La policy «cuentas: agentes» no le deja verla; la edge la lee con service role, así que la comprueba.
+  { const e = await corta('cuenta verificada de otra empresa', factura({}, { cuenta: 'sdw_danamon' }), 'cuenta_no_verificada', {}, { alcance: ['lawang'] });
+    ok(e.r.rpc.some(([q, nom, a]) => q === 'usuario' && nom === 'empresa_en_alcance' && a.p_empresa === 'sandal_woods'),
+      'cuenta de otra empresa: el alcance se pregunta con la sesión del usuario y la empresa de la cuenta');
+    ok(!e.r.errores.concat(e.r.logs).some((l) => /sdw_danamon|3600000036|SAN DAL/.test(l)), 'cuenta de otra empresa: el log no lleva la clave ni la cuenta'); }
+  { // misma respuesta que «no existe»: no confirma que la clave exista en otra empresa
+    const a = montaEdge(base(factura({}, { cuenta: 'sdw_danamon' })), { alcance: ['lawang'] });
+    const b = montaEdge(base(factura({}, { cuenta: 'no_existe' })), { alcance: ['lawang'] });
+    const ra = await a.pide(envia()), rb = await b.pide(envia());
+    ok(ra.s === 409 && ra.s === rb.s && JSON.stringify(ra.o) === JSON.stringify(rb.o), 'cuenta de otra empresa y cuenta inexistente: respuesta idéntica (sin oráculo de claves)'); }
+  await igualQuePantalla('cuenta de su propia empresa', factura({}, { cuenta: 'tepi_ocbc' }), {}, { alcance: ['lawang'] });
+  { const { e } = await igualQuePantalla('cuenta de otra empresa que SÍ ve (alcance de las dos)', factura({}, { cuenta: 'sdw_danamon' }), {},
+      { alcance: ['lawang', 'sandal_woods'] });
+    ok(e.r.render[0].includes('3600000036'), 'alcance de las dos: imprime la cuenta (lo mismo que le ofrece su pantalla)'); }
+  { const { e } = await igualQuePantalla('cuenta sin empresa (tercero/notario)', factura({}, { cuenta: 'notario_bni' }), {}, { alcance: ['lawang'] });
+    ok(!e.r.rpc.some(([, nom]) => nom === 'empresa_en_alcance'), 'cuenta sin empresa: visible para todos, como la policy (sin preguntar alcance)'); }
+  { const { e } = await igualQuePantalla('cuenta sin columna empresa (forma del ERP)', factura(), {}, { alcance: [] });
+    ok(!e.r.rpc.some(([, nom]) => nom === 'empresa_en_alcance'), 'ERP: sin columna empresa no se llama a empresa_en_alcance (allí no existe)'); }
+  { const e = montaEdge(base(factura({}, { cuenta: 'sdw_danamon' })), { alcanceFalla: true });
+    const res = await e.pide(envia());
+    ok(res.s === 500 && !e.r.render.length && !e.r.envio.length && !e.r.inserts.length && !e.r.copias.length,
+      'alcance sin comprobar (la función falla): 500 y no sale nada'); }
+
   // una caída leyendo el catálogo no envía nada
   { const e = montaEdge(base(factura()), { caida: 'cuentas_bancarias' });
     const res = await e.pide(envia());

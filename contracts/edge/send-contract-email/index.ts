@@ -135,6 +135,18 @@ async function encolaAvisoAnulacion(contratoId: string, to: string): Promise<{ d
    · La cuenta del catálogo se acepta si `verificada_en is not null` (no se mira `activa`: una factura emitida con una
      cuenta que hoy está desactivada se sigue reimprimiendo con ella). Clave informada (≠ 'otros') que no existe o sin
      verificar → 409. 'otros' sigue imprimiendo los banco_* escritos a mano: deuda declarada aparte (#350).
+   · La clave de la cuenta NO es de la factura: está en datos.fields, la escribe el navegador y ni factura_guarda ni
+     guardar_recibi la atan a nada. Que la factura sea visible no dice nada de la cuenta. Por eso la cuenta se lee con
+     service role (en el ERP la tabla se cierra a authenticated: AXW-299, erp/por_aplicar/cuentas_paso3_lectura_cerrada.sql)
+     y se le pasa la MISMA regla de alcance que la policy «cuentas: agentes» de Lawang (20261007001600):
+     `es_agente()` (ya exigido arriba) y `empresa_en_alcance(empresa)`, preguntada con la SESIÓN DEL USUARIO. Si la
+     cuenta es de una empresa que quien envía no ve → 409 con el mismo código y la misma frase que «no existe»: otra
+     frase le confirmaría que esa clave existe en otra empresa (las claves se adivinan). Solo hay alcance si la fila
+     trae la columna `empresa` (Lawang); el maestro no la tiene y allí toda cuenta es del único negocio. Revisor, 15-oct.
+     NO se exige además que la empresa de la cuenta sea la de la sociedad del documento: quien ve las dos empresas puede
+     elegir hoy esa cuenta en su pantalla (pintarSelectCuentas de /facturas/ ofrece todas las visibles) y hay contratos
+     que la pactan así (cc00014_timon lo firma PT TEPI SUN GAI y cobra también en sandalwoods_danamon_eur, de
+     sandal_woods: 20260914022754). Exigirlo aquí cortaría el envío de facturas que la propia pantalla deja guardar.
    · `datos.emisor` (congelado por congela_emisor_factura) tiene que ser de la sociedad de la fila (condición 2b).
    · Rectificativa (2d): en Lawang `rectifica_numero` lo puede escribir el navegador (factura_guarda guarda datos.fields
      tal cual, salvo banco_de_servidor) y no hay columna que lo respalde → se borra. Solo si la fila trae
@@ -145,7 +157,6 @@ async function encolaAvisoAnulacion(contratoId: string, to: string): Promise<{ d
    las verían dos peticiones a la vez. Evaluar el paquete cuesta milisegundos; el botón lo pulsa una persona. */
 const esObjeto = (v: any) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const COLS_SOCIEDAD = 'clave,label,razon,marca,domicilio,npwp,npwp_label,nib,rep,logo,logo_alto,emisor_debajo,folio,tinta';
-const COLS_CUENTA = 'clave,label,titular,banco,cuenta,codigo,direccion,extra,verificada_en';
 const CAMPOS_RECTIFICA = ['rectifica_numero', 'rectifica_fecha', 'rectificacion_motivo', 'rectificacion_tipo'];
 const NO_CUADRA = 'Este documento no cuadra con lo que hay guardado y no se envía. Ábrelo, revísalo, guárdalo de nuevo y vuelve a enviarlo.';
 
@@ -157,21 +168,31 @@ function cajaCompartidos(): any {
 }
 
 /** Lo que el papel necesita del catálogo, leído ANTES de pintar (todo lo asíncrono va aquí; el pintado es síncrono).
- *  null = la base no respondió (500, no se envía). Lectura con service role de UNA clave cada vez: la factura ya es
- *  visible para quien envía, y su sociedad y su cuenta van impresas en ella. */
-async function leeCatalogoPapel(fila: any): Promise<any> {
+ *  null = la base no respondió (500, no se envía). Lectura con service role de UNA clave cada vez. La sociedad y la
+ *  rectificada salen de COLUMNAS de la factura (visible por RLS para quien envía); la cuenta no: su clave la escribió el
+ *  navegador, así que se comprueba aparte que quien envía puede verla (`cuentaAjena`, ver la cabecera de arriba). */
+async function leeCatalogoPapel(fila: any, usuario: any): Promise<any> {
   const datos = esObjeto(fila?.datos) ? fila.datos : {};
   const fields = esObjeto(datos.fields) ? datos.fields : {};
   const clave = String(fields.cuenta ?? '').trim();
   const nada = Promise.resolve({ data: null, error: null });
   const [s, c, o]: any[] = await Promise.all([
     admin.from('sociedades').select(COLS_SOCIEDAD).eq('clave', String(fila?.sociedad ?? '')).maybeSingle(),
-    clave && clave !== 'otros' ? admin.from('cuentas_bancarias').select(COLS_CUENTA).eq('clave', clave).maybeSingle() : nada,
+    // `*`: la columna `empresa` existe en Lawang y no en el maestro (pedirla por nombre rompería la lectura en el ERP).
+    clave && clave !== 'otros' ? admin.from('cuentas_bancarias').select('*').eq('clave', clave).maybeSingle() : nada,
     fila?.rectifica_id ? admin.from('facturas').select('numero, fecha_emision').eq('id', fila.rectifica_id).maybeSingle() : nada,
   ]);
   const e = s.error || c.error || o.error;
   if (e) { console.error('papel: no se pudo leer el catálogo: ' + String(e.message ?? e).slice(0, 200)); return null; }
-  return { soc: s.data, cuenta: c.data, original: o.data };
+  // Alcance por empresa de la cuenta, con la sesión del usuario (la misma función que usa la policy). Error → null → 500:
+  // nunca se da por visible una cuenta que no se ha podido comprobar.
+  let cuentaAjena = false;
+  if (esObjeto(c.data) && Object.prototype.hasOwnProperty.call(c.data, 'empresa') && c.data.empresa != null) {
+    const { data: ve, error: eA } = await usuario.rpc('empresa_en_alcance', { p_empresa: String(c.data.empresa) });
+    if (eA) { console.error('papel: no se pudo comprobar el alcance de la cuenta: ' + String(eA.message ?? eA).slice(0, 200)); return null; }
+    cuentaAjena = ve !== true;
+  }
+  return { soc: s.data, cuenta: c.data, original: o.data, cuentaAjena };
 }
 
 /** El papel de la factura, SÍNCRONO y sin E/S. Devuelve { ok:true, html } o { ok:false, codigo, error } (→ 409). */
@@ -202,7 +223,12 @@ function papelFactura(C: any, fila: any, cat: any, base: string): any {
   if (!esObjeto(cat?.soc)) return mal('sociedad_desconocida', 'La empresa emisora de este documento ya no está dada de alta: no se envía. Avisa al administrador.');
   const clave = String(d.cuenta ?? '').trim();
   const cta = cat?.cuenta;
-  if (clave && clave !== 'otros' && !(esObjeto(cta) && cta.clave === clave && cta.verificada_en)) {
+  const ajena = clave !== '' && clave !== 'otros' && cat?.cuentaAjena !== false;   // sin comprobar = ajena (falla cerrado)
+  if (ajena) {
+    // Mismo código y frase que «no existe» (ver cabecera); el motivo real solo al log, sin la clave ni datos de la cuenta.
+    console.error('papel: la factura ' + String(fila.id) + ' lleva una cuenta de una empresa fuera del alcance de quien envía');
+  }
+  if (clave && clave !== 'otros' && (ajena || !(esObjeto(cta) && cta.clave === clave && cta.verificada_en))) {
     return mal('cuenta_no_verificada', 'La cuenta de cobro de este documento no está dada de alta o no está verificada: no se envía. Elige una cuenta verificada, guarda y vuelve a enviar.');
   }
 
@@ -358,7 +384,7 @@ Deno.serve(async (req) => {
     // El papel de la factura, desde la fila, ANTES de render, copia, SMTP, registro y marca (#350).
     let htmlRender = html;
     if (filaFactura) {
-      const cat = await leeCatalogoPapel(filaFactura);
+      const cat = await leeCatalogoPapel(filaFactura, usuario);
       if (!cat) return json({ ok: false, error: 'no_se_pudo_generar_el_pdf' }, 500);
       const papel = papelFactura(cajaCompartidos(), filaFactura, cat, SITIO);
       if (!papel.ok) return json({ ok: false, codigo: papel.codigo, error: papel.error }, 409);

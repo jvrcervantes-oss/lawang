@@ -2809,6 +2809,16 @@
     'Este documento está anulado: no se envía al cliente. Si hace falta, emite otro.':
       'This document is voided: it is not sent to the client. If needed, issue a new one.',
     'Este documento está anulado: no se envía al cliente.': 'This document is voided: it is not sent to the client.',
+    // Papel del correo compuesto en el servidor desde la fila (15-oct-2026): frases nuevas de los 409 de send-contract-email
+    // (la pantalla las pasa por edT). Solo ES/EN: la suite no tiene interfaz en indonesio.
+    'Este documento no cuadra con lo que hay guardado y no se envía. Ábrelo, revísalo, guárdalo de nuevo y vuelve a enviarlo.':
+      'This document does not match what is saved and is not sent. Open it, check it, save it again and send it again.',
+    'La empresa que figura en este documento no es la de su ficha: no se envía. Avisa al administrador.':
+      'The company shown on this document is not the one in its record: it is not sent. Tell the administrator.',
+    'La empresa emisora de este documento ya no está dada de alta: no se envía. Avisa al administrador.':
+      'The issuing company of this document is no longer registered: it is not sent. Tell the administrator.',
+    'La cuenta de cobro de este documento no está dada de alta o no está verificada: no se envía. Elige una cuenta verificada, guarda y vuelve a enviar.':
+      'The payment account on this document is not registered or not verified: it is not sent. Choose a verified account, save and send again.',
     'Este PDF pesa más de 25 MB y no se puede mandar por correo. Se entrega por el portal del comprador (o desde la intranet, si es para el estudio).':
       'This PDF is over 25 MB and cannot be sent by email. It is delivered through the buyer portal (or from the intranet, if it is for the studio).',
     'Guarda el documento para ver su registro': 'Save the document to see its log',
