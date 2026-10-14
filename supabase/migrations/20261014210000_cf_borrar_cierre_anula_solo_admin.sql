@@ -90,6 +90,7 @@ declare
   n_devengos int;
   n_solic    int;
   bloqueado_ajeno text;
+  bloqueado_id uuid;
   d_blindado_id uuid;
   solicitudes_a_purgar uuid[];
 begin
@@ -117,19 +118,27 @@ begin
     raise exception 'Esa operación no existe o no tienes acceso a ella.' using errcode = 'P0002';
   end if;
 
-  -- 3. Autoria, como hasta el 14-oct-2026 (mismo texto).
+  -- Cerrojo de los documentos de la cadena (revisor, 14-oct-2026): la regla 4 mira recibis y enviadas;
+  -- sin el cerrojo, un recibi o un envio que se cuela entre la regla y el borrado no se ve.
+  perform 1 from public.facturas f where f.contrato_id = any (ids) for update;
+
+  -- 3. Autoria, como hasta el 14-oct-2026 (mismo texto). El numero del contrato solo se dice si
+  --    el llamador ve ese contrato (revisor, 14-oct-2026: un hijo ajeno no se nombra).
   if not (public.es_super_admin() or not exists (
        select 1 from public.contratos c2 left join public.proyectos p2 on p2.id = c2.proyecto_id
         where c2.id = any (ids) and not public.es_super_admin_de(p2.empresa))) then
-    select c.numero into bloqueado_ajeno
+    select c.id, c.numero into bloqueado_id, bloqueado_ajeno
       from public.contratos c
      where c.id = any(ids)
        and (coalesce(c.bloqueado,false) = true
             or c.creado_por is null
             or c.creado_por <> (select auth.email()))
      limit 1;
-    if bloqueado_ajeno is not null then
-      raise exception 'El contrato % esta firmado o es de otra persona: esta operacion solo la puede borrar un super admin', bloqueado_ajeno;
+    if bloqueado_id is not null then
+      if bloqueado_ajeno is not null and public.puede_ver_contrato(bloqueado_id) then
+        raise exception 'El contrato % esta firmado o es de otra persona: esta operacion solo la puede borrar un super admin', bloqueado_ajeno;
+      end if;
+      raise exception 'Un contrato de esta operacion esta firmado o es de otra persona: esta operacion solo la puede borrar un super admin';
     end if;
   end if;
 

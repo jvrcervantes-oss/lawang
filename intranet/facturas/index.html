@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="c7cab4c373d5">
+<meta name="lw-version" content="a2179fe84ebe">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -3155,7 +3155,12 @@ function pintarListado(){
           ? `<button class="sui-tag alerta" data-diverge="${f.id}" title="Dice algo distinto de la ficha del cliente">Ficha ≠</button>` : ''}
         ${f.tipo === 'recibi' && nJustif(f)
           ? `<button class="btn" data-justif="${f.id}" title="Ver ${nJustif(f) === 1 ? 'el justificante de pago adjunto' : 'los ' + nJustif(f) + ' justificantes de pago adjuntos'}">📎${nJustif(f) > 1 ? ' ' + nJustif(f) : ''}</button>` : ''}
-        ${f.anulada ? '' : `<button class="btn secundaria" data-anular="${f.id}">${lwT('Anular')}</button>`}
+        ${f.anulada ? '' : ((f.tipo === 'recibi' || f.enviada) && !ES_ADMIN
+          /* 14-oct-2026 (bloque B, regla doble LAW-51 p.5): factura_anula reserva un recibí o un documento enviado al admin
+             de su empresa; a quien no es admin de ninguna se le apaga con el motivo. Un admin de otra empresa lo sigue viendo
+             y la base se lo niega con su texto. Mismo criterio que intranet/v4/assets/datos.js (acciones de la ficha). */
+          ? `<button class="btn secundaria" data-anular="${f.id}" disabled title="${esc(lwT('Solo un administrador de la empresa puede anular un recibí o un documento ya enviado al cliente.'))}">${lwT('Anular')}</button>`
+          : `<button class="btn secundaria" data-anular="${f.id}">${lwT('Anular')}</button>`)}
         ${ES_ADMIN ? `<button class="btn borrar secundaria" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}</td>
     </tr>`;
   }
@@ -3207,6 +3212,7 @@ function pintarListado(){
     const an = e.target.closest('[data-anular]');
     if(an){
       e.stopPropagation();
+      if(an.disabled){ toastMal(an.title); return; }
       if(!await lwConfirmar({ titulo:'Anular la factura ' + ((data.find(x=>x.id===an.dataset.anular)||{}).numero || ''),
         cuerpo:'<p>' + lwT('El número') + ' <b>' + lwT('no se reutiliza') + '</b> ' + lwT('y ya no se podrá editar.') + '</p>'
              + '<p>' + lwT('La factura se queda en el registro marcada como anulada, así que el rastro no se pierde.') + '</p>',
