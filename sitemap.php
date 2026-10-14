@@ -37,7 +37,11 @@ if (file_exists($modelosFile)) {
         // lw_modelo_imgs a pelo) — sin esto, un modelo con renders_pendientes queda
         // indexable (tiene precio, no noindex) pero invisible en el sitemap. Cazado por
         // Desarrollo en la capa 1 del pivote australiano (2-sep): pasaba con Trinity/Temple.
-        if (lw_modelo_get($id, $MODELOS)) {
+        // 14-oct-2026: y ademas CON precio cerrado, que es la condicion con la que
+        // modelo/index.php no pone noindex (`!$precio`). Sin esto una ficha sin precio
+        // (ese dia, Loftbung) salia aqui pidiendo a la vez que no se la indexara.
+        $mm = lw_modelo_get($id, $MODELOS);
+        if ($mm && lw_precio_fmt(lw_modelo_precio_desde($mm)) !== null) {
             $urls[] = ['loc' => $SITE . '/modelo/' . rawurlencode($id), 'lastmod' => $today, 'freq' => 'weekly', 'pri' => '0.7'];
         }
     }
