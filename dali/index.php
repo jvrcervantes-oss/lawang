@@ -86,7 +86,7 @@ $TELEFONOS = [
 
 $portada  = $DALI['thumb'];
 $ogImg    = $portada ?? '/assets/img/lugar/costa.webp';
-$ogImgAbs = (strpos($ogImg, 'http') === 0) ? $ogImg : 'https://lawangproperties.com' . $ogImg;
+$ogImgAbs = lw_url_abs($ogImg);
 
 // Payload del configurador. Lista blanca campo a campo, con los precios YA resueltos en
 // servidor: el JS pinta, no calcula precios de catálogo (revisión previa Seguridad+Diseño,

@@ -174,7 +174,7 @@ $IMG_2      = '/assets/img/properties/palm-field-2.jpg';
 $IMG_3      = '/assets/img/properties/palm-field-3.jpg';
 $IMG_PLANO  = '/assets/img/properties/palm-field-4.jpg';
 $ogImg      = $IMG_AEREA;
-$ogImgAbs   = (strpos($ogImg, 'http') === 0) ? $ogImg : 'https://lawangproperties.com' . $ogImg;
+$ogImgAbs   = lw_url_abs($ogImg);
 
 // Foto hero en vivo (vivo.php): sustituye la primera del mosaico SOLO si la intranet ya
 // tiene una marcada uso='hero' para el proyecto. Hoy no hay ninguna — las 4 fotos que
