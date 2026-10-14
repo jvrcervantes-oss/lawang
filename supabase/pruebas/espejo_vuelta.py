@@ -21,6 +21,10 @@ Que afirma (una linea «→ ok» / «→ FALLA» cada una), para las 5 funciones
   - que los permisos quedan como en el vivo, rol por rol (no comparando proacl: revoke + grant lo reordena);
 y ademas que el trigger de tipo vuelve a saltar solo en INSERT, que las 2 funciones nuevas ya no existen y que el espejo responde.
 No toca datos. No necesita filas (la rama no trae ninguna).
+
+MEDIDO en rama el 14-oct-2026 11:04-11:08 (estructura del volcado lawang_20261014_0931, migracion aplicada, rama borrada): 20/20.
+Lo que NO prueba: la reversion sobre una base con contratos guardados mientras la migracion estuvo aplicada (no toca datos, pero
+aqui no hay ninguno), ni volver a aplicar la migracion despues de revertir.
 """
 import os
 import tempfile

@@ -21,6 +21,8 @@
 --   _plantilla_slug_de_tipo, y con comisiones_interruptor sin fila _venta_modo_declara no pide la clave `venta` (en el vivo SI esta
 --   encendido: ese tramo no lo cubre esta prueba, ni lo toca la migracion).
 --   Antes de los casos van las aserciones P*/S0: si el montaje, una puerta o la sesion no valen, la prueba PARA ahi y lo dice en una linea.
+-- MEDIDO en rama el 14-oct-2026 11:04-11:08 (estructura del volcado lawang_20261014_0931, migracion aplicada, rama borrada): 51/51.
+--   En esa rama session_user = postgres y el dueno de contrato_guarda es postgres con bypassrls (lo imprime P0).
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
