@@ -104,6 +104,10 @@ ok(!/balian/i.test(inst), 'instancia.js: sin el rastro que aborta el build de in
      'el aviso (es/en/id) dice los mismos meses que siembra la base (' + m[1] + ')');
   ok(/la copia no se borra automáticamente/.test(aviso) && /the copy is not deleted automatically/.test(aviso) && /salinan tidak dihapus secara otomatis/.test(aviso),
      'el aviso cubre el caso en que hay registros y no se borra (Legal, 13-oct)'); }
+ok(/else if \(nuevoId\) location\.href = location\.pathname \+ '\?id=' \+ encodeURIComponent\(nuevoId\);/.test(alta),
+   'alta: al terminar se abre la ficha recién creada (?id=), no la lista sin aviso (recorrido de un agente, 14-oct)');
+ok(/var nuevoId = r && typeof r\.data === 'string' && \/\^\[0-9a-f-\]\{36\}\$\/i\.test\(r\.data\) \? r\.data : null;/.test(alta),
+   'alta: a la URL solo va el uuid que devolvió el servidor');
 ok(!/lawangproperties|Lawang Properties/.test(ed.slice(ed.indexOf('function abreAltaComprador() {'), ed.indexOf('/* EDITAR una ficha, desde su cajon'))), 'alta: el nombre y el correo del cliente no viven en editores.js');
 
 // ── Interruptores y textos ──────────────────────────────────────────────────────────────────────────────────────────
