@@ -29,7 +29,12 @@ ok(/data-anular="\$\{f\.id\}"/.test(fac) && /id="btnMail"/.test(fac), 'facturas:
 // ── v4 (editores.js) ────────────────────────────────────────────────────────────────────────────────────────────
 { const i = ed.indexOf('function enviaDocMail('), g = ed.indexOf('if (saved.anulada) return aviso(', i), f = ed.indexOf("window.lwEdge('send-contract-email')", i);
   ok(i > 0 && g > i && g < f, 'v4: enviaDocMail se corta con un anulado antes de la edge (cubre a todos los que llaman)'); }
-ok(/razon\(bMail, !anulada && total > 0 && num( && !sucio)?, anulada \? 'Este documento está anulado/.test(ed), 'v4: el botón de la barra se desactiva con su motivo');
+ok(/razon\(bMail, !anulada && total > 0 && num && !sucio, anulada \? 'Este documento está anulado/.test(ed), 'v4: el botón de la barra se desactiva con su motivo');
+// D1 (14/15-oct-2026, revisor): con cambios sin guardar, PDF y correo se apagan. La factura comparaba un total que no pedía.
+ok(/razon\(bPdf, total > 0 && num && !sucio,/.test(ed), 'v4 D1: el PDF se apaga con cambios sin guardar');
+ok(/sb\.from\('facturas'\)\.select\('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos'/.test(ed), 'v4 D1: el editor de FACTURA pide `total` (sin él totalGuardado era undefined y no comparaba)');
+ok(/totalGuardado: existente \? existente\.total : null,[^\n]*\n\s*lineasGuardadas:[^\n]*\n\s*monedaGuardada:/.test(ed), 'v4 D1: la factura pasa total, líneas y moneda guardados a la barra');
+ok(/\(ctx\.monedaGuardada != null && String\(vals\.moneda \|\| ''\) !== String\(ctx\.monedaGuardada\)\)/.test(ed), 'v4 D1: cambiar la moneda sin guardar también cuenta como cambio');
 ok(/var anulada = !!\(ctx\.saved && ctx\.saved\.anulada\);/.test(ed), 'v4: la barra lee saved.anulada');
 ok((ed.match(/emisor: existente\.datos && existente\.datos\.emisor, anulada: !!existente\.anulada \}/g) || []).length === 2,
    'v4: los dos editores (documento y recibí) pasan anulada a la barra');

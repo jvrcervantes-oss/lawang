@@ -3477,6 +3477,7 @@
       var vals = ctx.getVals(), total = totalDoc(vals), num = !!(ctx.saved && ctx.saved.numero);
       var sucio = num && (
         (ctx.totalGuardado != null && Math.abs((Number(total) || 0) - (Number(ctx.totalGuardado) || 0)) > 0.005) ||
+        (ctx.monedaGuardada != null && String(vals.moneda || '') !== String(ctx.monedaGuardada)) ||
         (Array.isArray(ctx.lineasGuardadas) && firmaLineas(vals.lineas) !== firmaLineas(ctx.lineasGuardadas)));
       razon(bPdf, total > 0 && num && !sucio, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
         : !num ? 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.'
@@ -3858,7 +3859,7 @@
           listaContratosLigeraDoc(sb),
           esEdicion
             // emitida_en / rectifica_id: solo existen en el ERP maestro (serie fiscal, AXW-39)
-            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos' + (window.AXW_NUCLEO_OPERACION ? ',emitida_en,rectifica_id' : '')).eq('id', pre.id).maybeSingle()
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos' + (window.AXW_NUCLEO_OPERACION ? ',emitida_en,rectifica_id' : '')).eq('id', pre.id).maybeSingle()
             : pre.copia_de
               // la anulada pudo emitirla otro del equipo: facturas_equipo, rpc + eq, sin order
               ? sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,client_id,datos').eq('id', pre.copia_de).maybeSingle()
@@ -3967,8 +3968,9 @@
           repasaBarra = montaBarraDoc(piezas, {
             sb: sb, getVals: recogeVals, esRecibi: false,
             // lo guardado, para apagar PDF y correo con cambios sin guardar (14-oct-2026)
-            totalGuardado: existente ? existente.total : null,
+            totalGuardado: existente ? existente.total : null,   // `total` en el select (15-oct, revisor: sin él no se comparaba)
             lineasGuardadas: existente && existente.datos && Array.isArray(existente.datos.lineas) ? existente.datos.lineas : null,
+            monedaGuardada: existente && existente.datos && existente.datos.fields ? (existente.datos.fields.moneda || null) : null,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: existente.tipo, contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor, anulada: !!existente.anulada }
