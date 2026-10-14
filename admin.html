@@ -939,6 +939,14 @@ function gotoPropPage(n) {
   renderProperties();
 }
 
+// «Publicada» = la casilla «Visible in marketplace» marcada: `visible` exactamente true. Es la MISMA regla con la
+// que la web decide qué enseña (LawangCard.publicada en assets/lawang-card.js y lw_coleccion_publicada en
+// coleccion/lib.php; assets/lawang-card.test.js afirma las tres contra la misma tabla). Hasta el 14-oct-2026 el
+// panel daba por publicada toda ficha que no dijera exactamente «false»: una sin la clave salía aquí sin la
+// etiqueta «hidden» y la web no la enseñaba. El panel sigue LISTANDO todas las fichas, también las ocultas, para
+// poder editarlas: esto solo decide la etiqueta «hidden» y cómo nace la casilla al abrir una ficha.
+function esPublicada(p) { return !!p && p.visible === true; }
+
 function renderProperties() {
   var el = document.getElementById('properties-list');
   if (!DATA.properties || !DATA.properties.length) {
@@ -954,7 +962,7 @@ function renderProperties() {
 
   var rows = pageItems.map(function(p) {
     var name = (p.title && p.title.en) || p.id;
-    var hidden = p.visible === false;
+    var hidden = !esPublicada(p);
     return '<div class="prop-row' + (hidden ? ' is-hidden' : '') + '">' +
       '<div><div class="prop-name">' + esc(name) + (hidden ? '<span class="prop-hidden-badge">hidden</span>' : '') + (p.inCollection ? '<span class="prop-hidden-badge" style="background:var(--be);color:#fff">COLL</span>' : '') + (p.homeFeatured ? '<span class="prop-hidden-badge" style="background:var(--tg);color:#fff">HOME</span>' : '') + '</div><div class="prop-region">' + esc(p.region||'') + '</div></div>' +
       '<div><span class="line-badge line-' + esc(p.line) + '">' + esc(p.line) + '</span></div>' +
@@ -1015,7 +1023,8 @@ function propertyToForm(p) {
     var el = document.getElementById(id); if (!el) return;
     if (el.type === 'checkbox') el.checked = !!val; else el.value = val == null ? '' : val;
   }
-  set('f-visible',     p.visible !== false);
+  // Ficha que ya existe: la casilla dice lo que hay publicado. Alta nueva (sin id todavía): nace marcada, como siempre.
+  set('f-visible',     p.id ? esPublicada(p) : true);
   set('f-line',        p.line        || 'signature');
   set('f-regionKey',   p.regionKey   || 'bali');
   set('f-region',      p.region      || '');

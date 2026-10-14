@@ -9,8 +9,12 @@
 --   1:con_bloqueo_baja 2:bajada_apuntada_con_motivo 3:vuelve_a_subir_al_reactivar
 --   4:cobro_que_no_rompe_el_suelo_no_toca 5:sin_bloqueo_no_baja(Tamarind x3) 6:sin_contrato_no_baja(Mejan A2)
 --   7a:recibi_movido_baja_el_origen 7b:vuelve_y_sube 7c:recibi_borrado_baja 8:cobrada_sin_cobro_baja
---   9:funciones_sin_permiso_anon 10a/10b:precio_suelo 11/11b:factura_anulada_revisa 12:sin_ver_el_cobro_no_baja
+--   9:funciones_sin_permiso_anon 10a:catalogo_sube_y_manda_el_contrato 10b:precio_devuelto_sube 11/11b:factura_anulada_revisa 12:sin_ver_el_cobro_no_baja
 -- (8 y 10-12 desde LAW-497d, migracion 20261007..._law497d)
+-- 10a cambio el 14-oct-2026 (migracion 20261014024234_cobro_primero_parcela): con Bloqueo de Parcela con precio, el
+-- suelo se mide contra el precio de CONTRATO, asi que subir el de catalogo ya NO baja la parcela (owner: «usa el
+-- precio del contrato, no el del catalogo»). Pasada ese dia en produccion sin el paso 7 (lleva DELETE y necesita la
+-- marca del owner): todo lo demas como se espera.
 
 do $$
 declare
@@ -63,10 +67,11 @@ begin
   select estado into v_est from public.unidades where proyecto = 'Mejan Village S7' and codigo = 'A2';
   v_res := v_res || case when v_est = 'vendida' then '6:sin_contrato_no_baja ' else '6:MAL(' || coalesce(v_est, 'null') || ') ' end;
 
-  -- 10 (LAW-497d): subir el precio del suelo por encima de lo cobrado la baja; devolverlo la sube
+  -- 10 (LAW-497d, cambiado el 14-oct): C5 tiene Bloqueo con precio (RP00140, 41.200) y manda ese: subir el precio de
+  -- CATALOGO por encima de lo cobrado ya no la baja. Devolverlo la deja igual.
   update public.unidades set precio_suelo = 41201 where id = v_c5;
   select estado into v_est from public.unidades where id = v_c5;
-  v_res := v_res || case when v_est = 'bloqueada' then '10a:precio_suelo_sube_y_baja ' else '10a:MAL(' || v_est || ') ' end;
+  v_res := v_res || case when v_est = 'vendida' then '10a:catalogo_sube_y_manda_el_contrato ' else '10a:MAL(' || v_est || ') ' end;
   update public.unidades set precio_suelo = 41200 where id = v_c5;
   select estado into v_est from public.unidades where id = v_c5;
   v_res := v_res || case when v_est = 'vendida' then '10b:precio_devuelto_sube ' else '10b:MAL(' || v_est || ') ' end;

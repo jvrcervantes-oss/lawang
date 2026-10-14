@@ -1,0 +1,4 @@
+# Herramienta local del plan financiero (build_plan.py, plantillas y hojas generadas, con porcentajes a nombre
+# de personas). Se usa en el ordenador del estudio; la web nunca la pide. Nunca servible por web (14-oct-2026,
+# auditoria de Calidad C1: el plan respondia 200 desde el 29-jun).
+Require all denied

@@ -25,20 +25,23 @@ contrasena. Desde hoy, ANTES de preguntar nada:
     hoy): por eso el freno que manda es el numero, y este va encima;
   · justo antes de guardar se vuelve a bajar lo publicado: si cambio mientras se confirmaba, no se guarda.
 
-QUE ES «LO QUE SE VE» (14-oct-2026, revisor). Hoy el mismo catalogo lo pintan DOS reglas, y el freno cuenta
-con la mas amplia: una ficha cuenta como visible salvo que su `visible` sea exactamente `false`.
-  · coleccion/lib.php (cabecera, JSON-LD, sitemap, /property/<id>, la home por api/coleccion.php): `=== true`
-    y un id que case con ^[A-Za-z0-9-]+$;
-  · la rejilla de /thecollection (assets/portfolio-app.js, que con la fuente `datajson` baja data.json en
-    crudo): `!== false`, sin mirar el id. Pinta tambien una ficha sin la clave, con `null`, `"false"` o `0`.
-Con lo publicado hoy las dos dan lo mismo (44 fichas, 12 visibles, todo booleanos, ids unicos: medido el
-14-oct). Solo se separan con un catalogo mal formado, y un catalogo mal formado NO se cuenta: se frena.
-Se frena, sin opcion que lo salte (se arregla el fichero), si:
+QUE ES «LO QUE SE VE» (14-oct-2026). UNA regla, la misma en toda la web: una ficha se publica si su `visible`
+es exactamente `true` y su id casa con ^[A-Za-z0-9-]+$ (entero: sin salto de linea final).
+  · servidor: lw_coleccion_publicada() en coleccion/lib.php (cabecera, JSON-LD, sitemap, /property/<id>, la home
+    por api/coleccion.php);
+  · navegador: LawangCard.publicada() en assets/lawang-card.js (la rejilla de /thecollection, que con la fuente
+    `datajson` baja data.json en crudo y lo filtra una vez, al cargar);
+  · aqui: `_visibles`. Las tres afirman la MISMA tabla, coleccion/tests/visibles_esperados.json.
+Hasta ese dia eran dos: la rejilla pintaba todo lo que no fuera exactamente `false` (tambien una ficha sin la
+clave, con `null`, `"false"` o `0`) y este freno contaba con esa, la mas amplia. Con lo publicado daban lo mismo
+(44 fichas, 12 visibles, todo booleanos, ids unicos: medido el 14-oct antes y despues de unificar).
+Un catalogo mal formado NO se cuenta: se frena, sin opcion que lo salte (se arregla el fichero), si:
   · en el local o en lo publicado hay una entrada que no es una ficha, una ficha sin id de texto o un id
     repetido (no se puede decir que ficha es cual: el numero seria mentira);
-  · en el LOCAL una ficha no trae `visible` como true/false, o su id no casa con ^[A-Za-z0-9-]+$ (saldria
-    en la rejilla y su pagina daria 404). En lo publicado esto no frena, para poder arreglarlo desde aqui:
-    se cuenta con la regla amplia.
+  · en el LOCAL una ficha no trae `visible` como true/false, o su id no casa con la expresion: la web no la
+    publicaria, y api/save.php rechaza el catalogo entero (422) por un id asi o por un `visible` que no sea
+    booleano. En lo publicado esto no frena, para poder arreglarlo desde aqui: una ficha asi no se ve en la
+    web y cuenta como no visible.
 Prueba sin red: coleccion/tests/test_publicar_data.py.
 
 CODIGOS DE SALIDA
@@ -48,7 +51,8 @@ CODIGOS DE SALIDA
   3  FRENADO: falta o no coincide --cambian, antiguedad sin --restaurar-antiguo, catalogo que no se puede
      contar, o lo publicado cambio mientras se confirmaba. No se escribio nada
   4  FALLO antes de escribir: red, respuesta invalida o truncada, data.json local ilegible, login
-     rechazado, o cualquier excepcion. No se escribio nada
+     rechazado, save.php que rechaza con 4xx (p. ej. 422: el catalogo no tiene forma de catalogo), o cualquier
+     excepcion. No se escribio nada
   5  FALLO al guardar o al comprobar lo guardado: NO se sabe que hay publicado. Mirarlo con --verificar
 Requiere `pip install requests`.
 """
@@ -74,7 +78,10 @@ CANCELADO = 1                             # mismo codigo a proposito: en los dos
 FRENADO = 3
 FALLO = 4
 FALLO_GUARDANDO = 5
-ID_VALIDO = re.compile(r'[A-Za-z0-9-]+')  # la misma que coleccion/lib.php, thecollection.php y /property/<id>
+# El id de una ficha, con fullmatch. Gemela de LW_COLECCION_ID_RE en coleccion/lib.php (la que usan la lectura,
+# thecollection.php y api/save.php) y de LawangCard.publicada. La prueba las ata por comportamiento (tabla comun,
+# caracter a caracter) y por texto (lee la constante de lib.php): si una cambia sola, falla.
+ID_VALIDO = re.compile(r'[A-Za-z0-9-]+')
 ULTIMA_BAJADA = {'last_modified': None}   # cabecera Last-Modified de la ultima bajada de produccion
 ESTADO = {'guardando': False}             # True desde justo antes del POST a save.php: separa el 4 del 5
 _FALTA = object()                         # distingue «la clave no esta» de «la clave vale null»
@@ -134,11 +141,14 @@ def anomalias(d, es_local):
         else:
             vistos[i] = n
             if es_local and not ID_VALIDO.fullmatch(i):
-                out.append(f'el id «{i}» no casa con ^[A-Za-z0-9-]+$: saldria en la rejilla y su pagina daria 404')
+                out.append(f'el id «{i}» no casa con ^[A-Za-z0-9-]+$: la web no publica una ficha con ese id '
+                           f'(ni en la rejilla ni en /property/<id>), diga lo que diga su `visible`, y api/save.php '
+                           f'rechaza el catalogo entero')
         if es_local and not isinstance(p.get('visible', _FALTA), bool):
             v = p.get('visible', _FALTA)
             out.append(f'la ficha {_nombre(p, n)} no dice `visible` como true/false '
-                       f'({"falta la clave" if v is _FALTA else repr(v)}): la rejilla la pintaria y el resto de la web no')
+                       f'({"falta la clave" if v is _FALTA else repr(v)}): la web solo publica las que dicen '
+                       f'`visible: true`, asi que no saldria; escribe true o false')
     return out
 
 
@@ -146,11 +156,17 @@ def _fichas(d):
     return [p for p in d.get('properties') or [] if isinstance(p, dict)]
 
 
+def publicada(p):
+    """¿Publica la web esta ficha? LA regla (ver «QUE ES LO QUE SE VE»): `visible` exactamente true e id valido.
+
+    `is True` y no `== True`: en Python 1 == True, y la web NO publica un `visible: 1`. Gemela de
+    lw_coleccion_publicada (coleccion/lib.php) y de LawangCard.publicada (assets/lawang-card.js). Pura."""
+    return (isinstance(p, dict) and p.get('visible') is True
+            and isinstance(p.get('id'), str) and ID_VALIDO.fullmatch(p['id']) is not None)
+
+
 def _visibles(d):
-    # La regla MAS AMPLIA de las dos que pintan el catalogo: todo lo que no sea exactamente `false` (el
-    # `!== false` de assets/portfolio-app.js). `is not False` y no `!= False`: en Python 0 == False, y la
-    # rejilla SI pinta un `visible: 0`. Lo que pinta coleccion/lib.php (`=== true`) queda dentro.
-    return {p.get('id'): p for p in _fichas(d) if p.get('visible') is not False}
+    return {p['id']: p for p in _fichas(d) if publicada(p)}
 
 
 def cambios_publicados(d_local, d_prod):
@@ -164,7 +180,7 @@ def cambios_publicados(d_local, d_prod):
     ocultas    fichas no visibles en ninguno de los dos que difieren: se informa, no cuenta
     total      retiradas + cambiadas + nuevas + bloques + (1 si cambia el orden) — el N de `--cambian`
 
-    «Visible» es la regla amplia de `_visibles`. Lanza ValueError si en alguno de los dos no se puede decir
+    «Visible» es la regla unica de la web (`publicada`). Lanza ValueError si en alguno de los dos no se puede decir
     que ficha es cual (entrada que no es ficha, id ausente o repetido): con eso el total seria mentira.
     """
     for rotulo, d in (('local', d_local), ('lo publicado', d_prod)):
@@ -308,6 +324,11 @@ def _corre(args):
     ESTADO['guardando'] = True   # desde aqui, cualquier fallo es «no se sabe que hay publicado»
     r = s.post(f'{HOST}/api/save.php', data=crudo_local,
                headers={'Content-Type': 'application/json'}, timeout=60)
+    if 400 <= r.status_code < 500:
+        # save.php responde 4xx ANTES de tocar el disco (sesion, origen, JSON, forma del catalogo: 422): sabemos que
+        # no se escribio nada, asi que es un 4 y no el 5 de «no se sabe que hay publicado» (code-review, 14-oct-2026).
+        ESTADO['guardando'] = False
+        raise Fallo(f'save.php rechazo el catalogo sin escribir nada: {r.status_code} {r.text[:200]}')
     if not (r.ok and r.json().get('ok')):
         raise Fallo(f'save.php fallo: {r.status_code} {r.text[:200]}')
 

@@ -38,6 +38,10 @@ const CERRADAS = [
   // piezas internas que ya estaban cerradas: que sigan
   '/coleccion/lib.php', '/modelo/lib.php', '/modelo/datos.php', '/modelo/catalogo_respaldo.json',
   '/supabase/migrations/x.sql', '/assets/portfolio-app.test.js', '/private/leads.csv', '/.git/config',
+  // 14-oct-2026 (auditoria C1): el plan financiero de excel/, el arnes .cjs, la configuracion de PHP-FPM y el zip de maquetas
+  '/excel/', '/excel/Lamborghini_Sumba_Phase_I_Financial_Plan.xlsx', '/excel/salida/Lamborghini_Sumba_Phase_I.xlsx',
+  '/excel/inbox/datos.json', '/excel/schema.json', '/excel/README.md', '/EXCEL/build_plan.py',
+  '/intranet/v4/assets/ajustes_correo.harness.cjs', '/api/.user.ini', '/intranet/Lawang Properties UI mockups.zip',
 ];
 const PUBLICAS = [
   '/', '/index.html', '/thecollection', '/thecollection.php', '/property/tirta-hikari', '/data.json',
@@ -46,6 +50,8 @@ const PUBLICAS = [
   '/api/coleccion.php', '/api/save.php', '/api/auth.php', '/api/contest.php', '/api/latest.php',
   '/sitemap.xml', '/sitemap.php', '/robots.txt', '/admin.html', '/intranet/v4/home/', '/intranet/dossier/',
   '/assets/portfolio-app.js', '/assets/lawang-card.js', '/assets/python.js', '/assets/copy.css', '/assets/img/pyc.webp',
+  // los .zip de docs/ son las subidas del admin (api/upload-doc.php): descargas publicas
+  '/docs/1739000000_dossier.zip', '/excelente', '/assets/excel.js', '/intranet/v4/assets/ajustes.js',
 ];
 
 const errores = [];
@@ -53,8 +59,14 @@ if (redir.length < 10 || files.length < 3) errores.push(`solo se han leido ${red
 for (const r of CERRADAS) if (!cierra(r).length) errores.push(`${r} deberia dar 404 y ninguna regla la cierra`);
 for (const r of PUBLICAS) { const c = cierra(r); if (c.length) errores.push(`${r} es publica y la cierra ${c.join(' ; ')}`); }
 // El compilado no puede depender solo del 404 «bonito»: el cierre de verdad es el <FilesMatch> (nombre resuelto).
-for (const n of ['x.py', 'x.pyc', 'x.cpython-314.pyc', 'algo_test.php', 'test_algo.php']) {
+for (const n of ['x.py', 'x.pyc', 'x.cpython-314.pyc', 'algo_test.php', 'test_algo.php', 'x.harness.cjs', '.user.ini']) {
   if (!files.some(p => regla(p).test(n))) errores.push(`ningun <FilesMatch> con Deny cierra el fichero ${n}`);
+}
+
+// excel/ no depende del 404 de la URL: su cierre de verdad es su propio .htaccess (PATH_INFO y doble barra incluidos)
+const htExcel = path.join(__dirname, 'excel', '.htaccess');
+if (!fs.existsSync(htExcel) || !/^[ 	]*Require all denied[ 	]*$/m.test(fs.readFileSync(htExcel, 'utf8'))) {
+  errores.push('excel/.htaccess no existe o no lleva `Require all denied`');
 }
 
 assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
