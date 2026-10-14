@@ -82,5 +82,45 @@ for (const id of ['riverfront-iii', 'rurung-anyar']) {
   }
 }
 
+// 7. QUE FICHA SE PUBLICA (14-oct-2026): UNA regla. La misma tabla que afirma el servidor (coleccion_test.php contra
+//    lw_coleccion_publicada) y publicar_data.py (test_publicar_data.py): coleccion/tests/visibles_esperados.json.
+//    Hasta ese dia el navegador pintaba «todo lo que no sea false» y el servidor «solo true».
+const vis = JSON.parse(fs.readFileSync(path.join(raiz, 'coleccion/tests/visibles_esperados.json'), 'utf8'));
+ok(vis.fichas.length >= 15 && vis.ids.length >= 15 && vis.id_permitidos.length === 63, 'la tabla comun de visibles trae sus casos');
+for (const c of vis.fichas) ok(C.publicada(c.ficha) === c.publicada, 'publicada (' + c.nota + '): dio ' + C.publicada(c.ficha));
+for (const c of vis.ids) ok(C.publicada({ id: c.id, visible: true }) === c.valido, 'id ' + JSON.stringify(c.id) + ' valido=' + c.valido);
+for (let n = 0; n < 256; n++) {
+  const ch = String.fromCharCode(n);
+  ok(C.publicada({ id: 'a' + ch + 'b', visible: true }) === vis.id_permitidos.includes(ch), 'caracter ' + n + ' dentro de un id');
+}
+// admin.html no carga este modulo: su `esPublicada` (la casilla y la etiqueta «hidden») se ejecuta aqui contra la misma
+// tabla, en las fichas con un id valido (el panel solo crea ids con su slugify).
+const adminHtml = fs.readFileSync(path.join(raiz, 'admin.html'), 'utf8');
+const fnAdmin = adminHtml.match(/function esPublicada\(p\) \{[^}]*\}/);
+ok(!!fnAdmin, 'admin.html define esPublicada(p)');
+if (fnAdmin) {
+  const esPublicada = vm.runInNewContext('(' + fnAdmin[0] + ')');
+  let comparadas = 0;
+  for (const c of vis.fichas) {
+    const f = c.ficha;
+    if (!f || typeof f !== 'object' || Array.isArray(f) || !C.publicada({ id: f.id, visible: true })) continue;
+    comparadas++;
+    ok(esPublicada(f) === c.publicada, 'admin.html esPublicada (' + c.nota + '): dio ' + esPublicada(f));
+  }
+  ok(comparadas >= 9, 'esPublicada de admin.html se compara con ' + comparadas + ' casos de la tabla');
+  ok(esPublicada(null) === false && esPublicada(undefined) === false, 'esPublicada de admin.html no revienta sin ficha');
+}
+// Ninguna otra comparacion de `visible` con false en lo que corre en el navegador: es justo la copia de la regla que
+// se separo. Quien necesite saber si una ficha se publica llama a LawangCard.publicada (o a esPublicada en el panel).
+const COMPARA_FALSE = /\bvisible\s*[!=]==?\s*false\b|\bfalse\s*[!=]==?\s*[\w.$\]\[]*\bvisible\b/;
+const enNavegador = fs.readdirSync(raiz).filter(f => /\.(html|php)$/.test(f))
+  .concat(fs.readdirSync(__dirname).filter(f => /\.js$/.test(f) && !/\.test\.js$/.test(f)).map(f => 'assets/' + f));
+ok(['admin.html', 'index.html', 'thecollection.php', 'assets/portfolio-app.js', 'assets/lawang-card.js'].every(f => enNavegador.includes(f)),
+  'el barrido de comparaciones de `visible` mira las paginas y los JS del catalogo');
+for (const f of enNavegador) {
+  const linea = fs.readFileSync(path.join(raiz, f), 'utf8').split('\n').findIndex(l => COMPARA_FALSE.test(l));
+  ok(linea < 0, f + ':' + (linea + 1) + ' compara `visible` con false: la regla es LawangCard.publicada (visible === true), no «todo lo que no sea false»');
+}
+
 if (fallos) { console.log(fallos + ' FALLO(S)'); process.exit(1); }
-console.log('OK: lawang-card (estado = tabla unica, v1 intacta, stale nunca afirma).');
+console.log('OK: lawang-card (estado = tabla unica, v1 intacta, stale nunca afirma; publicada = tabla unica de visibles).');

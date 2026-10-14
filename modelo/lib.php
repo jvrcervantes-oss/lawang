@@ -84,6 +84,9 @@ function lw_precio_fmt($eur) {
 }
 
 function lw_e($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
+// URL absoluta para og:image / twitter:image: las redes no resuelven una ruta relativa, y una que ya trae
+// http(s) no se toca (antes cada pagina llevaba su copia de esta linea; 14-oct-2026).
+function lw_url_abs($u) { $u = (string) $u; return (strpos($u, 'http') === 0) ? $u : 'https://lawangproperties.com' . $u; }
 
 /**
  * Pivote a mercado australiano (2-sep): la página pasa a ser solo inglés. Se mantiene esta

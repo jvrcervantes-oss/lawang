@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once dirname(__DIR__) . '/coleccion/lib.php'; // lw_coleccion_forma_invalida(): qué es un catálogo que se puede guardar
 session_start();
 lawang_require_same_origin();  // el 401 de abajo mira la sesion; esto mira DE DONDE viene la peticion
 header('Content-Type: application/json');
@@ -26,14 +27,33 @@ if ($data === null) {
     exit;
 }
 
-$json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-$tmp  = DATA_FILE . '.tmp';
+// JSON valido no es un catalogo (14-oct-2026). Lo que se guarda aqui SUSTITUYE el catalogo entero de la web, y
+// hasta hoy solo se rechazaba lo que no decodificaba: `[]`, un numero o un objeto sin `properties` se escribian
+// tal cual y dejaban la web sin fichas. La sesion no lo cubre: quien tiene el navegador manda lo que quiere
+// (un panel con una carga a medias, un script, publicar_data.py con un fichero equivocado). Se valida la FORMA
+// de lo mismo que se escribe ($data) y ANTES de tocar el disco. El 422 dice que ficha y que regla, por su
+// posicion; nunca devuelve contenido. La regla y sus casos: lw_coleccion_forma_invalida en coleccion/lib.php,
+// probada en coleccion/tests/coleccion_test.php (que ademas ejecuta este fichero entero).
+$forma = lw_coleccion_forma_invalida($data);
+if ($forma !== null) {
+    http_response_code(422);
+    echo json_encode(['ok' => false, 'error' => 'Invalid catalogue: ' . $forma]);
+    exit;
+}
 
-if (file_put_contents($tmp, $json) === false) {
+$json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+// Un temporal POR PETICION (code-review, 14-oct-2026): con un nombre fijo, dos guardados a la vez (el panel y
+// publicar_data.py) escribian el mismo .tmp y podian publicar uno a medias. Mismo patron que lw_coleccion_escribe.
+$tmp  = DATA_FILE . '.' . getmypid() . '.' . bin2hex(random_bytes(4)) . '.tmp';
+
+// `$json === false` (no se pudo codificar) escribiria un fichero VACIO; una escritura PARCIAL (disco o cuota llenos)
+// devuelve un numero y no false; y un rename que falla dejaba el catalogo viejo mientras se respondia «ok». En los
+// tres casos el panel decia «publicado» sin serlo. Ahora dan 500 y el catalogo publicado no se toca.
+if ($json === false || file_put_contents($tmp, $json) !== strlen($json) || !rename($tmp, DATA_FILE)) {
+    @unlink($tmp); // que no quede un data.json.tmp a medias en la raiz de la web
     http_response_code(500);
     echo json_encode(['ok' => false, 'error' => 'Could not write file']);
     exit;
 }
 
-rename($tmp, DATA_FILE);
 echo json_encode(['ok' => true]);

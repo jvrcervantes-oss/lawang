@@ -85,7 +85,26 @@ RedirectMatch 404 (?i)/(supabase|contracts/edge)/
 RedirectMatch 404 (?i)^/tailwind/
 RedirectMatch 404 (?i)\.(ts|mjs|toml)$
 RedirectMatch 404 (?i)\.test\.js$
-<FilesMatch "(?i)(\.(ts|mjs|toml|py[co]?)|\.test\.js)$">
+# 14-oct-2026 (auditoria de Calidad, C1; medido en produccion: los seis respondian 200). excel/ es la herramienta
+# local que genera el plan financiero de un proyecto (build_plan.py + las hojas, con porcentajes a nombre de
+# personas); ninguna pagina ni guion la pide (grep del repo y de las paginas servidas, 14-oct). Igual el arnes de
+# node de Ajustes (.cjs), la configuracion de PHP-FPM (api/.user.ini: PHP la lee del disco, no por URL) y el zip
+# de maquetas de la intranet. Cierre de verdad de excel/: excel/.htaccess. Los .zip de docs/ (subidas del admin,
+# api/upload-doc.php) son descargas publicas y NO entran: el cierre de .zip va solo bajo /intranet/.
+RedirectMatch 404 (?i)^/excel/
+RedirectMatch 404 (?i)\.(cjs|ini)$
+RedirectMatch 404 (?i)/intranet/.*\.zip$
+# 14-oct-2026 (lawang-cola, auditoria semanal): y por EXTENSION, hojas, volcados y notas (.xls/.xlsx/.csv/.md/
+# .bak/.log), para que lo proximo que se copie al hosting por error nazca cerrado como nacio excel/. Ninguna
+# pagina ni guion los pide por URL (grep del repo, 14-oct): los .csv del servidor (leads, CRM, citas) viven en
+# private/; docs/ solo admite pdf/doc/docx/zip (api/upload-doc.php) y las imagenes jpg/png/webp; los .csv de la
+# intranet se generan en el navegador (exportaCSV / descargaCsv) y nunca se piden al servidor.
+RedirectMatch 404 (?i)\.(xlsx?|csv|md|bak|log)$
+# contracts/templates/templates.json: manifiesto de referencia que ninguna pieza lee (su propia _nota lo dice y
+# git grep no da llamador, 14-oct); sin llamador no se sirve. Sus vecinos SI se piden: texto_cambiado.json (el bot
+# bot-agentes, por URL), las plantillas .html (app.html) y contracts/tokens.json.
+RedirectMatch 404 (?i)^/contracts/templates/templates\.json$
+<FilesMatch "(?i)(\.(ts|mjs|toml|py[co]?|cjs|ini|xlsx?|csv|md|bak|log)|\.test\.js)$">
   Order allow,deny
   Deny from all
 </FilesMatch>
