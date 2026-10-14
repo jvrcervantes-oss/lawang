@@ -58,6 +58,19 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   rechaza('texto suelto');
   rechaza({ message: 'JWT expired', code: 'PGRST301' });
   ok(B.length === 2 && B[0].msg === 'texto suelto' && B[1].msg === 'JWT expired', 'sin pila se apunta el mensaje tal cual');
+  rechaza(undefined); rechaza(null); rechaza('  ');
+  ok(B.length === 2, 'un reject() sin valor (undefined, null, vacío) no se apunta, como antes (revisor, 1.ª vuelta)');
+}
+{ // (4) el «(ruta:línea)» sobrevive a un mensaje largo, y una URL nuestra citada en el mensaje no cuenta como pila
+  const { B, rechaza } = monta();
+  const largo = new Error('x'.repeat(400));
+  largo.stack = 'Error: ' + largo.message + '\n    at https://lawangproperties.com/intranet/v4/assets/datos.js?v=1:77:3';
+  rechaza(largo);
+  ok(B.length === 1 && B[0].msg.length <= 300 && / \(\/intranet\/v4\/assets\/datos\.js:77\)$/.test(B[0].msg), 'mensaje largo: conserva el final «(ruta:línea)»');
+  const cita = new TypeError('Failed to fetch https://lawangproperties.com/rest/v1/x');
+  cita.stack = 'TypeError: Failed to fetch https://lawangproperties.com/rest/v1/x\n    at chrome-extension://abc/bg.js:9:9';
+  rechaza(cita);
+  ok(B.length === 1, 'una URL nuestra citada en el texto de una extensión no hace «nuestro» el rechazo');
 }
 { // la pantalla del alta de cuenta ya no deja el fallo sin decir
   const ed = fs.readFileSync(path.join(__dirname, 'editores.js'), 'utf8');

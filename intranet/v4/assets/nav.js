@@ -167,14 +167,21 @@
     var EXTENSION = /^(chrome-extension|moz-extension|safari-extension|safari-web-extension|webkit-masked-url):/;
     window.addEventListener('unhandledrejection', function (ev) {
       var r = ev && ev.reason;
-      var urls = String((r && r.stack) || '').match(/[a-z][a-z-]*:\/\/[^\s()]+/g) || [];
+      var msg = r && r.message ? r.message : r;
+      if (msg == null || String(msg).trim() === '') return;   // un reject() sin valor no dice nada (antes tampoco se apuntaba)
+      msg = String(msg).replace(/\s+/g, ' ').trim();
+      // las URLs se buscan en la pila SIN el mensaje: un texto que cite una dirección nuestra no la hace «nuestra»
+      var pila = String((r && r.stack) || '');
+      var k = r && r.message ? pila.indexOf(String(r.message)) : -1;   // solo la 1.ª vez: la de la cabecera «Error: …»
+      if (k !== -1) pila = pila.slice(0, k) + ' ' + pila.slice(k + String(r.message).length);
+      var urls = pila.match(/[a-z][a-z-]*:\/\/[^\s()]+/g) || [];
       if (urls.length && urls.every(function (u) { return EXTENSION.test(u); })) return;
       var donde = '';
       for (var i = 0; i < urls.length && !donde; i++) {
         var m = urls[i].indexOf(location.origin + '/') === 0 && urls[i].slice(location.origin.length).match(/^([^?#:]+)(?:[?#][^:]*)?:(\d+)/);
         if (m) donde = ' (' + m[1] + ':' + m[2] + ')';
       }
-      apunta('codigo', (r && r.message ? r.message : r) + donde);
+      apunta('codigo', msg.slice(0, 300 - donde.length) + donde);   // el tope de apunta() no se come el «(ruta:línea)»
     });
     function vigila(n) {
       new MutationObserver(function () {
