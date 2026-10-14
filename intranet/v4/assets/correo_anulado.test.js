@@ -29,7 +29,7 @@ ok(/data-anular="\$\{f\.id\}"/.test(fac) && /id="btnMail"/.test(fac), 'facturas:
 // ── v4 (editores.js) ────────────────────────────────────────────────────────────────────────────────────────────
 { const i = ed.indexOf('function enviaDocMail('), g = ed.indexOf('if (saved.anulada) return aviso(', i), f = ed.indexOf("window.lwEdge('send-contract-email')", i);
   ok(i > 0 && g > i && g < f, 'v4: enviaDocMail se corta con un anulado antes de la edge (cubre a todos los que llaman)'); }
-ok(/razon\(bMail, !anulada && total > 0 && num, anulada \? 'Este documento está anulado/.test(ed), 'v4: el botón de la barra se desactiva con su motivo');
+ok(/razon\(bMail, !anulada && total > 0 && num( && !sucio)?, anulada \? 'Este documento está anulado/.test(ed), 'v4: el botón de la barra se desactiva con su motivo');
 ok(/var anulada = !!\(ctx\.saved && ctx\.saved\.anulada\);/.test(ed), 'v4: la barra lee saved.anulada');
 ok((ed.match(/emisor: existente\.datos && existente\.datos\.emisor, anulada: !!existente\.anulada \}/g) || []).length === 2,
    'v4: los dos editores (documento y recibí) pasan anulada a la barra');

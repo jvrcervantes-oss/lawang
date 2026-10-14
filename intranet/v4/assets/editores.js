@@ -3462,14 +3462,30 @@
     var bMail = btn('Enviar por email', function () { enviaDocMail(ctx.sb, ctx.getVals(), ctx.saved, ctx.alEnviado); });
     var bRec = ctx.esRecibi ? null : btn('Crear recibí', function () { creaRecibiDesdeDoc(ctx.saved); });
     var bReg = btn('📨 Registro', function () { registroEnviosDoc(ctx.sb, ctx.saved); });
+    /* Cambios sin guardar (14-oct-2026, punto 3 de la revisión de Contratos y Facturas): el PDF y el correo salen de lo que
+       hay en el formulario; con una línea cambiada y sin guardar, el cliente recibía el número real con otro importe y quedaba
+       archivado como enviado. Se compara con lo GUARDADO (el total de la fila y, en la factura, sus líneas: concepto e importe)
+       y, si difiere, los dos se apagan hasta guardar. No se compara con «lo que había al abrir»: la barra se monta antes que
+       los campos y el contrato se recarga después. El arreglo de fondo (el PDF del correo hecho en el servidor desde la fila
+       guardada) va aparte. */
+    function firmaLineas(ls) {
+      return JSON.stringify((ls || []).map(function (l) {
+        return [String((l && l.descripcion) || '').trim(), Number(lwParseImporte(l && l.importe)) || 0];
+      }));
+    }
     function repasa() {
       var vals = ctx.getVals(), total = totalDoc(vals), num = !!(ctx.saved && ctx.saved.numero);
-      razon(bPdf, total > 0 && num, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
-        : 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
+      var sucio = num && (
+        (ctx.totalGuardado != null && Math.abs((Number(total) || 0) - (Number(ctx.totalGuardado) || 0)) > 0.005) ||
+        (Array.isArray(ctx.lineasGuardadas) && firmaLineas(vals.lineas) !== firmaLineas(ctx.lineasGuardadas)));
+      razon(bPdf, total > 0 && num && !sucio, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
+        : !num ? 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.'
+        : 'Tienes cambios sin guardar: guarda antes, para que el PDF salga igual que lo guardado.');
       var anulada = !!(ctx.saved && ctx.saved.anulada);   // LAW-37: un anulado no se ofrece enviar
-      razon(bMail, !anulada && total > 0 && num, anulada ? 'Este documento está anulado: no se envía al cliente. Desde su ficha se puede emitir una copia.'
+      razon(bMail, !anulada && total > 0 && num && !sucio, anulada ? 'Este documento está anulado: no se envía al cliente. Desde su ficha se puede emitir una copia.'
         : !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
-        : 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.');
+        : !num ? 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.'
+        : 'Tienes cambios sin guardar: guarda antes de enviar, o el cliente recibiría importes distintos de los guardados.');
       razon(bRec, vals.tipo === 'factura' && num, vals.tipo !== 'factura' ? 'Solo se crea un recibí a partir de una factura.' : 'Guarda primero esta factura.');
       bReg.style.display = (ctx.saved && ctx.saved.id) ? '' : 'none';
     }
@@ -3950,6 +3966,9 @@
           // emitir: las acciones reales llegan en el visor que abre «Emitir».
           repasaBarra = montaBarraDoc(piezas, {
             sb: sb, getVals: recogeVals, esRecibi: false,
+            // lo guardado, para apagar PDF y correo con cambios sin guardar (14-oct-2026)
+            totalGuardado: existente ? existente.total : null,
+            lineasGuardadas: existente && existente.datos && Array.isArray(existente.datos.lineas) ? existente.datos.lineas : null,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: existente.tipo, contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor, anulada: !!existente.anulada }
@@ -4420,6 +4439,8 @@
           // registro; «Crear recibí» no, que de un recibí no sale otro.
           repasaBarra = montaBarraDoc(piezas, {
             sb: sb, getVals: recogeVals, esRecibi: true,
+            // lo guardado, para apagar PDF y correo con cambios sin guardar (14-oct-2026): en un recibí, su total
+            totalGuardado: existente ? existente.total : null,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: 'recibi', contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor, anulada: !!existente.anulada }
