@@ -283,16 +283,18 @@ begin
   if k3 is not null then
     r := r || pg_temp.l(k3 <> k4 and public.contratos_mismo_comprador(k3, k4),
                         'H8pre K3 y K4 son contratos distintos del MISMO comprador (si no, H8 probaria la rama de otro comprador)');
-    s0 := pg_temp.serie();
-    v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f9, 'importe', 400)));
-    r := r || pg_temp.l(v like 'ERR23514:el recib% hist%rico ZZ-RT-RH3 no tiene justificante%sobre facturas de su contrato%'
-                        and not exists (select 1 from public.recibi_aplicaciones where recibi_id = rh3)
-                        and pg_temp.serie() = s0,
-                        'H8 un historico sin justificante no salda una factura de OTRO contrato del mismo comprador: se rechaza, no aplica nada y no gasta numero (' || left(v, 70) || ')');
+    -- H8b primero (SI): el historico sin justificante, a una factura de SU contrato, entra; asi H8 parte de un recibi CON
+    -- aplicaciones y puede comprobar que el rechazo no las toca (code-review 15-oct: con RH3 vacio no se podia ver)
     v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f10, 'importe', 400)));
     r := r || pg_temp.l(v = rh3::text
                         and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh3 and factura_id = f10) = 400,
-                        'H8b el mismo historico sin justificante, a una factura de SU contrato, entra (' || left(v, 70) || ')');
+                        'H8b el historico sin justificante, a una factura de SU contrato, entra (' || left(v, 70) || ')');
+    v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f9, 'importe', 400)));
+    r := r || pg_temp.l(v like 'ERR23514:el recib% hist%rico ZZ-RT-RH3 no tiene justificante%sobre facturas de su contrato%'
+                        and (select count(*) from public.recibi_aplicaciones where recibi_id = rh3) = 1
+                        and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh3 and factura_id = f10) = 400
+                        and not exists (select 1 from public.recibi_aplicaciones where factura_id = f9),
+                        'H8 un historico sin justificante no se mueve a una factura de OTRO contrato del mismo comprador: se rechaza y sigue aplicado a F10 (' || left(v, 70) || ')');
     v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f9, 'importe', 400)));
     r := r || pg_temp.l(v = rh3::text
                         and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh3 and factura_id = f9) = 400,

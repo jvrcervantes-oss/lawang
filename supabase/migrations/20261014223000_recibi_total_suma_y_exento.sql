@@ -30,7 +30,8 @@
 --         Caso H8 (y H8b, su SI; H8c con justificante). El rechazo va antes del update, y la exencion solo existe al EDITAR
 --         (v_exento solo se pone con p_id), que no numera: trg_set_factura_numero es BEFORE INSERT
 --         (20260922170000_rescate_objetos_sin_migracion.sql:409) y set_factura_numero solo numera si numero is null
---         (20260917082716_facturas_emisor_congelado_y_permisos.sql:57). H8 lo mide igual (la serie no se mueve).
+--         (20260917082716_facturas_emisor_congelado_y_permisos.sql:57). H8 parte de un RH3 ya aplicado (H8b) y comprueba que
+--         el rechazo deja sus aplicaciones como estaban.
 --   A1 · NUMERACION: TODAS las aplicaciones se validan antes del insert, para que un rechazo no gaste numero (nextval de
 --     facturas_recibi_seq en trg_set_factura_numero, 20260917082716_facturas_emisor_congelado_y_permisos.sql:60). Reduce los
 --     huecos, no los evita (nextval se gasta igual si falla algo despues). registra_privilegio va despues de escribir (necesita el
@@ -71,31 +72,20 @@
 --   sesion 1014-2159 (solo lectura): guardar_recibi(uuid,jsonb,jsonb) 43a4c655711c0ef218b670ebe01c1585. Si ya no tiene ese md5 ni
 --   lleva este arreglo, el bloque $antes$ lanza y no se aplica NADA. Idempotente. create or replace conserva dueno y permisos
 --   (authenticated si, anon no, service_role si, medido el 14-oct); el bloque $cierre$ lo comprueba.
--- ANTES DE APLICAR EN LA VIVA (pendiente: congelacion del owner del 15-oct; las dos en SOLO LECTURA, columnas acotadas, nunca
---   contratos entero):
---   (a) HIPOTESIS SIN MEDIR: REC00015 e INV00212 cuelgan del MISMO contrato (RP00025). Con el cambio (2) el historico sin
+-- GUARDAS DE DATOS (code-review del 15-oct: estaban solo en comentario; ahora el bloque $antes$ LANZA y no se aplica nada).
+--   Solo leen, por id/numero y por las aplicaciones de los historicos marcados, nunca contratos entero. En una rama sin filas
+--   salen vacias y no paran.
+--   (a) REC00015 e INV00212 en el MISMO contrato (sin medir aun; se esperaba RP00025). Con el cambio (2) un historico sin
 --       justificante solo salda facturas de su contrato: si no coinciden, la operacion LAW-614 que eligio el owner
---       (REC00015 -> INV00212, 39.220) se rechazaria. Lo que decide es mismo_contrato; las otras dos solo identifican:
---         select (select contrato_id from public.facturas where numero = 'REC00015' and tipo = 'recibi')
---              = (select contrato_id from public.facturas where numero = 'INV00212' and tipo = 'factura') as mismo_contrato,
---                (select contrato_id from public.facturas where numero = 'REC00015' and tipo = 'recibi')
---              = (select id from public.contratos where numero = 'RP00025') as rec_en_rp25,
---                (select contrato_id from public.facturas where numero = 'INV00212' and tipo = 'factura')
---              = (select id from public.contratos where numero = 'RP00025') as inv_en_rp25;
---       mismo_contrato tiene que dar true (y el recibi seguir con justificantes = '[]', cambio (1)). Si no: NO se aplica tal cual; la alternativa es, en vez de rechazar, dejar pasar el otro
---       contrato del mismo comprador con rastro: registra_privilegio(v_contrato_id, 'cobro_historico_otro_contrato', ...) (y
---       decide el owner si eso vale solo para super_admin).
---   (b) La escritura directa sobre facturas sigue cerrada (la exencion se fia de la fila guardada; si un usuario pudiera
---       vaciar justificantes o cambiar contrato_id por PostgREST, se saltaria guardar_recibi entero):
---       (revocada en 20260926092317_facturas_cierra_escritura_directa.sql:7; por columnas, has_table_privilege daria un falso
---       verde, por eso has_any_column_privilege)
---         select r, has_any_column_privilege(r, 'public.facturas', 'INSERT') as ins,
---                   has_any_column_privilege(r, 'public.facturas', 'UPDATE') as upd,
---                   has_table_privilege(r, 'public.facturas', 'DELETE') as del
---           from unnest(array['anon', 'authenticated']) r;   -- todo false
---         select policyname, cmd, roles from pg_policies
---          where schemaname = 'public' and tablename = 'facturas' and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL'); -- 0 filas
---       Si alguna da true o hay politica de escritura: se para y se cierra antes (Seguridad).
+--       (REC00015 -> INV00212, 39.220) se rechazaria. Si lanza: la alternativa es dejar pasar el otro contrato del mismo
+--       comprador con rastro (registra_privilegio 'cobro_historico_otro_contrato'), y lo decide el owner.
+--   (a2) Ningun historico marcado y aun sin justificante tiene YA aplicaciones a facturas de otro contrato: si las tuviera,
+--       el cambio (2) lo dejaria sin poder re-guardarse (ni para cambiar la fecha) sin adjuntar justificante. Si lanza, da
+--       cuantos; se decide antes de aplicar.
+--   (b) La escritura directa sobre facturas sigue cerrada para anon y authenticated (la exencion se fia de la fila guardada;
+--       si se pudiera vaciar justificantes o cambiar contrato_id por PostgREST, se saltaria guardar_recibi entero). Revocada en
+--       20260926092317_facturas_cierra_escritura_directa.sql:7; has_any_column_privilege porque un grant por columnas daria
+--       un falso verde con has_table_privilege. Se mira en $antes$ y otra vez en $cierre$.
 -- REVERTIR: supabase/reversion_recibi_total_suma_y_exento/REVERSION.sql (el texto vivo de antes, tal cual).
 -- Prueba: supabase/pruebas/recibi_total_suma_y_exento.sql (crea contratos y documentos: SOLO en rama):
 --   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261014223000_recibi_total_suma_y_exento.sql
@@ -104,10 +94,35 @@
 set local lock_timeout = '5s';
 
 do $antes$
+declare n int;
 begin
   if md5(replace(pg_get_functiondef('public.guardar_recibi(uuid,jsonb,jsonb)'::regprocedure), chr(13), '')) <> '43a4c655711c0ef218b670ebe01c1585'
      and position('v_exento' in pg_get_functiondef('public.guardar_recibi(uuid,jsonb,jsonb)'::regprocedure)) = 0 then
     raise exception 'recibi_total_suma_y_exento: guardar_recibi no es la definicion viva leida el 14-oct (md5 distinto) ni lleva ya el arreglo; no se aplica nada';
+  end if;
+  -- (a) LAW-614: REC00015 e INV00212 en el mismo contrato (si existen los dos)
+  if exists (select 1 from public.facturas r, public.facturas i
+              where r.numero = 'REC00015' and r.tipo = 'recibi' and i.numero = 'INV00212' and i.tipo = 'factura'
+                and r.contrato_id is distinct from i.contrato_id) then
+    raise exception 'recibi_total_suma_y_exento: REC00015 e INV00212 no son del mismo contrato; con este cambio LAW-614 se rechazaria. No se aplica nada: lo decide el owner';
+  end if;
+  -- (a2) historicos sin justificante ya aplicados fuera de su contrato
+  select count(distinct rc.id) into n
+    from public.facturas rc
+    join public.recibi_aplicaciones ra on ra.recibi_id = rc.id
+    join public.facturas f on f.id = ra.factura_id
+   where rc.tipo = 'recibi' and rc.historico_sin_justificante and not coalesce(rc.anulada, false)
+     and rc.justificantes = '[]'::jsonb and nullif(rc.justificante_path, '') is null
+     and f.contrato_id is distinct from rc.contrato_id;
+  if n > 0 then
+    raise exception 'recibi_total_suma_y_exento: % recibi(s) historico(s) sin justificante ya aplicados a facturas de otro contrato; con este cambio no se podrian re-guardar. No se aplica nada', n;
+  end if;
+  -- (b) escritura directa sobre facturas cerrada
+  if exists (select 1 from unnest(array['anon', 'authenticated']) r
+              where has_any_column_privilege(r, 'public.facturas', 'INSERT')
+                 or has_any_column_privilege(r, 'public.facturas', 'UPDATE')
+                 or has_table_privilege(r, 'public.facturas', 'DELETE')) then
+    raise exception 'recibi_total_suma_y_exento: anon o authenticated pueden escribir directamente en facturas; la exencion no se puede fiar de la fila guardada. No se aplica nada';
   end if;
 end $antes$;
 
@@ -410,5 +425,11 @@ begin
      or has_function_privilege('anon', 'public.guardar_recibi(uuid,jsonb,jsonb)', 'execute')
      or not has_function_privilege('service_role', 'public.guardar_recibi(uuid,jsonb,jsonb)', 'execute') then
     raise exception 'recibi_total_suma_y_exento: los permisos de guardar_recibi cambiaron; no se aplica';
+  end if;
+  if exists (select 1 from unnest(array['anon', 'authenticated']) r
+              where has_any_column_privilege(r, 'public.facturas', 'INSERT')
+                 or has_any_column_privilege(r, 'public.facturas', 'UPDATE')
+                 or has_table_privilege(r, 'public.facturas', 'DELETE')) then
+    raise exception 'recibi_total_suma_y_exento: anon o authenticated pueden escribir directamente en facturas; no se aplica';
   end if;
 end $cierre$;
