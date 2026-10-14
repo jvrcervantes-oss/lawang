@@ -38,6 +38,11 @@ declare
   cs2 uuid; e_cs2 text; rutas2 text[]; csf uuid; cse uuid; kse uuid;
   x text; hs text := '{comisiones,leads,ranking,reparto,comunicacion,compradores,usuarios}';
 begin
+  -- LAW-557 (13-oct-2026): esta sección prueba el alta de cliente_guarda(null), que con `alta_exige_documento` encendido
+  -- se niega (el alta va por la edge, supabase/pruebas/law557_558_alta_documento_retencion.sql). Se apaga DENTRO de la
+  -- transacción para seguir probando lo de siempre; el raise final lo revierte.
+  insert into public.config_instancia (clave, valor) values ('alta_exige_documento', 'false'::jsonb)
+  on conflict (clave) do update set valor = excluded.valor;
   select user_id into jv from public.usuarios where email='jvr.cervantes@gmail.com';
   select user_id, email into ya, e_ya from public.usuarios where email='yanayjefferson@gmail.com';
   select user_id, email into cr, e_cr from public.usuarios where email='cris.blueiestates@gmail.com';
