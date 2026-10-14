@@ -21,7 +21,19 @@
 // (incluido el preflight OPTIONS) antes de que corra el código de aquí abajo,
 // así que las cabeceras CORS nunca se aplican — mismo motivo que
 // admin-usuarios/portal-invitar. Se valida el JWT a mano.
+//
+// EL PAPEL DE UNA FACTURA LO PINTA ESTA EDGE DESDE LA FILA (15-oct-2026, revisión previa #350, Seguridad):
+// con `factura_id`, el `html` y el `pdf_base64` que manda el navegador se IGNORAN (queda una línea de log sin
+// contenido para saber cuándo quitarlos de la pantalla). El documento sale de `facturas` leída con la sesión del
+// usuario, pintado con el MISMO documento.js de /facturas/ (compartidos.generated.ts, generado por
+// tools/empaqueta_edge.py) y con el catálogo de la base. Antes, el agente que enviaba podía mandar al comprador
+// cualquier papel —otra cuenta, otro importe— y el sistema lo registraba como «la factura enviada». Ver papelFactura().
+// ⚠️ DESPLEGAR = DOS FICHEROS. El CLI empaqueta `index.ts` y `compartidos.generated.ts` (entrypoint en config.toml).
+//    Verificación tras cada despliegue: `get_edge_function send-contract-email` tiene que devolver el sha256 de
+//    `contracts/edge/send-contract-email/index.ts` Y el de `contracts/edge/send-contract-email/compartidos.generated.ts`.
+//    Comparar solo el index.ts deja pasar un maquetador viejo.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { FUENTES, EXPORTA } from './compartidos.generated.ts';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -108,6 +120,123 @@ async function encolaAvisoAnulacion(contratoId: string, to: string): Promise<{ d
   }
 }
 
+/* ══ EL PAPEL DE LA FACTURA, DESDE LA FILA (15-oct-2026, revisión previa #350) ═══════════════════════════════════════
+   El dato tiene un dueño: el papel es una COPIA de la fila de `facturas` (columnas + datos.fields/lineas/emisor) y del
+   catálogo (`sociedades`, `cuentas_bancarias`). Aquí no se guarda nada: se lee lo de hoy y se pinta.
+   Reglas (cada una con su porqué):
+   · Las columnas mandan sobre datos.fields en tipo, sociedad, moneda, fecha, contrato, proyecto y cliente: son lo que
+     ve la base, el portal y los listados; el papel no puede decir otra cosa.
+   · datos.lineas tiene que ser una lista de objetos: documento.js hace `d.lineas.map(l => l.descripcion…)` y con otra
+     cosa revienta. Se corta con 409, nunca con excepción.
+   · `banco_de_servidor` se BORRA siempre (condición 2c): en Lawang `guardar_recibi` no la quita al guardar, y con ella
+     el papel imprimiría los banco_* escritos por el navegador como si los hubiera puesto el servidor. Sin la marca, la
+     cuenta del catálogo se pinta desde `cuentas_bancarias`, y una cuenta verificada ya no cambia de datos
+     (trigger _cuenta_bancaria_blinda, en Lawang y en el maestro), así que en el ERP sale lo mismo que su copia.
+   · La cuenta del catálogo se acepta si `verificada_en is not null` (no se mira `activa`: una factura emitida con una
+     cuenta que hoy está desactivada se sigue reimprimiendo con ella). Clave informada (≠ 'otros') que no existe o sin
+     verificar → 409. 'otros' sigue imprimiendo los banco_* escritos a mano: deuda declarada aparte (#350).
+   · `datos.emisor` (congelado por congela_emisor_factura) tiene que ser de la sociedad de la fila (condición 2b).
+   · Rectificativa (2d): en Lawang `rectifica_numero` lo puede escribir el navegador (factura_guarda guarda datos.fields
+     tal cual, salvo banco_de_servidor) y no hay columna que lo respalde → se borra. Solo si la fila trae
+     `rectifica_id` (esquema del ERP maestro) se rellena desde la factura original y la columna rectificacion_motivo.
+   · Cuadre: calcTotales del papel contra `facturas.total`, con la tolerancia de factura_guarda (1 unidad mínima de la
+     moneda). Si no cuadra → 409 antes de render, SMTP, registro y marca: el papel que sale es el que se registra.
+   Caja NUEVA por petición: el catálogo cambia y las globales SOCIEDADES/CUENTAS_BANCARIAS de una caja compartida
+   las verían dos peticiones a la vez. Evaluar el paquete cuesta milisegundos; el botón lo pulsa una persona. */
+const esObjeto = (v: any) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const COLS_SOCIEDAD = 'clave,label,razon,marca,domicilio,npwp,npwp_label,nib,rep,logo,logo_alto,emisor_debajo,folio,tinta';
+const COLS_CUENTA = 'clave,label,titular,banco,cuenta,codigo,direccion,extra,verificada_en';
+const CAMPOS_RECTIFICA = ['rectifica_numero', 'rectifica_fecha', 'rectificacion_motivo', 'rectificacion_tipo'];
+const NO_CUADRA = 'Este documento no cuadra con lo que hay guardado y no se envía. Ábrelo, revísalo, guárdalo de nuevo y vuelve a enviarlo.';
+
+function cajaCompartidos(): any {
+  const caja: any = {};
+  new Function('caja', FUENTES.join('\n;\n') +
+    '\n;Object.assign(caja,{' + EXPORTA.concat(['impuestoDelDocumento', 'DECIMALES']).join(',') + '});')(caja);
+  return caja;
+}
+
+/** Lo que el papel necesita del catálogo, leído ANTES de pintar (todo lo asíncrono va aquí; el pintado es síncrono).
+ *  null = la base no respondió (500, no se envía). Lectura con service role de UNA clave cada vez: la factura ya es
+ *  visible para quien envía, y su sociedad y su cuenta van impresas en ella. */
+async function leeCatalogoPapel(fila: any): Promise<any> {
+  const datos = esObjeto(fila?.datos) ? fila.datos : {};
+  const fields = esObjeto(datos.fields) ? datos.fields : {};
+  const clave = String(fields.cuenta ?? '').trim();
+  const nada = Promise.resolve({ data: null, error: null });
+  const [s, c, o]: any[] = await Promise.all([
+    admin.from('sociedades').select(COLS_SOCIEDAD).eq('clave', String(fila?.sociedad ?? '')).maybeSingle(),
+    clave && clave !== 'otros' ? admin.from('cuentas_bancarias').select(COLS_CUENTA).eq('clave', clave).maybeSingle() : nada,
+    fila?.rectifica_id ? admin.from('facturas').select('numero, fecha_emision').eq('id', fila.rectifica_id).maybeSingle() : nada,
+  ]);
+  const e = s.error || c.error || o.error;
+  if (e) { console.error('papel: no se pudo leer el catálogo: ' + String(e.message ?? e).slice(0, 200)); return null; }
+  return { soc: s.data, cuenta: c.data, original: o.data };
+}
+
+/** El papel de la factura, SÍNCRONO y sin E/S. Devuelve { ok:true, html } o { ok:false, codigo, error } (→ 409). */
+function papelFactura(C: any, fila: any, cat: any, base: string): any {
+  const mal = (codigo: string, error: string) => ({ ok: false, codigo, error });
+  const datos = esObjeto(fila?.datos) ? fila.datos : null;
+  if (!datos || !esObjeto(datos.fields)) return mal('documento_incoherente', NO_CUADRA);
+  if (!Array.isArray(datos.lineas) || !datos.lineas.every(esObjeto)) return mal('documento_incoherente', NO_CUADRA);
+  if (!['factura', 'proforma', 'recibi'].includes(fila.tipo)) return mal('documento_incoherente', NO_CUADRA);
+
+  const d: any = { ...datos.fields, lineas: datos.lineas };
+  delete d.banco_de_servidor;
+  for (const k of CAMPOS_RECTIFICA) delete d[k];
+  if (fila.rectifica_id) {
+    if (!cat?.original?.numero) return mal('documento_incoherente', NO_CUADRA);
+    d.rectifica_numero = cat.original.numero;
+    d.rectifica_fecha = cat.original.fecha_emision ?? '';
+    d.rectificacion_motivo = fila.rectificacion_motivo ?? '';
+  }
+  for (const k of ['tipo', 'sociedad', 'moneda', 'fecha_emision', 'contrato_numero', 'proyecto_nombre', 'cliente_nombre']) {
+    d[k] = fila[k] ?? '';
+  }
+
+  const emisor = datos.emisor ?? null;
+  if (emisor !== null && (!esObjeto(emisor) || String(emisor.clave ?? '') !== String(fila.sociedad ?? ''))) {
+    return mal('emisor_no_coincide', 'La empresa que figura en este documento no es la de su ficha: no se envía. Avisa al administrador.');
+  }
+  if (!esObjeto(cat?.soc)) return mal('sociedad_desconocida', 'La empresa emisora de este documento ya no está dada de alta: no se envía. Avisa al administrador.');
+  const clave = String(d.cuenta ?? '').trim();
+  const cta = cat?.cuenta;
+  if (clave && clave !== 'otros' && !(esObjeto(cta) && cta.clave === clave && cta.verificada_en)) {
+    return mal('cuenta_no_verificada', 'La cuenta de cobro de este documento no está dada de alta o no está verificada: no se envía. Elige una cuenta verificada, guarda y vuelve a enviar.');
+  }
+
+  // Igual que cargarSociedades / cargarCuentasBancarias de entities.js: el papel tiene que salir idéntico al de la pantalla.
+  const r = cat.soc;
+  C.SOCIEDADES[fila.sociedad] = {
+    label: r.label, razon: r.razon, marca: r.marca || '', domicilio: r.domicilio, npwp: r.npwp, rep: r.rep,
+    ...(r.npwp_label && r.npwp_label !== 'NPWP' ? { npwpLabel: r.npwp_label } : {}),
+    ...(r.nib ? { nib: r.nib } : {}),
+    logo: r.logo, logoAlto: r.logo_alto,
+    ...(r.emisor_debajo ? { emisorDebajo: true } : {}),
+    folio: r.folio, ...(r.tinta ? { tinta: r.tinta } : {}),
+  };
+  if (clave && clave !== 'otros') {
+    C.CUENTAS_BANCARIAS[clave] = { label: cta.label, titular: cta.titular, banco: cta.banco, cuenta: cta.cuenta,
+      codigo: cta.codigo, direccion: cta.direccion, extra: cta.extra };
+  }
+
+  try {
+    const t = C.calcTotales(d.lineas, d.moneda, C.impuestoDelDocumento(d));
+    const dec = Number(C.DECIMALES[d.moneda] ?? 2);
+    const total = Number(fila.total);
+    if (fila.total == null || !Number.isFinite(total) || !Number.isFinite(t.total)
+        || Math.round(Math.abs(t.total - total) * Math.pow(10, dec)) > 1) {
+      console.error('papel: la factura ' + String(fila.id) + ' no cuadra (líneas ' + t.total + ' / total ' + String(fila.total) + ')');
+      return mal('documento_incoherente', NO_CUADRA);
+    }
+    return { ok: true, html: C.documentoPagina(d, { numero: fila.numero || '', emisor, base }) };
+  } catch (e) {
+    console.error('papel: no se pudo pintar la factura ' + String(fila.id) + ': ' + String((e as Error)?.message ?? e).slice(0, 200));
+    return mal('documento_incoherente', NO_CUADRA);
+  }
+}
+
 // ponytail: cooldown en memoria del propio isolate, no una tabla — el botón
 // lo usa un puñado de personas del equipo con sesión válida, esto solo acota
 // un doble-click o un bucle accidental. Se resetea en cada cold start; si
@@ -163,7 +292,8 @@ Deno.serve(async (req) => {
     // un envío SIN ancla se rechaza más abajo; un fallo al escribir el registro, en cambio,
     // nunca veta un correo que ya salió (se devuelve `registrado:false`).
     const esUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-    const contratoId = esUuid(String(body.contrato_id ?? '')) ? String(body.contrato_id) : null;
+    // Con factura, el contrato del registro sale de la FILA (más abajo), no de lo que diga el navegador.
+    let contratoId = esUuid(String(body.contrato_id ?? '')) ? String(body.contrato_id) : null;
     const facturaId  = esUuid(String(body.factura_id ?? ''))  ? String(body.factura_id)  : null;
     // Correo de SOLO TEXTO (`attach:false`) y `via` (26-sep-2026, LAW-336 pieza 5, paso E):
     // el enlace de firma, el aviso de anulación y la copia del firmado sin PDF salían del
@@ -183,12 +313,16 @@ Deno.serve(async (req) => {
     // Una factura va SIEMPRE con su PDF: marcarla enviada fija número, emisor y la fecha que cuenta
     // para plazos de cobro — no puede hacerlo un correo que no la llevaba (Administración, capa 1, 26-sep).
     if (soloTexto && facturaId) return json({ ok: false, error: 'factura_requiere_pdf' }, 400);
-    if (!soloTexto && !html && !pdfManual) return json({ ok: false, error: 'falta_html_o_pdf' }, 400);
+    // Con factura el papel lo pinta esta edge desde la fila: no hace falta (ni se usa) html ni pdf del navegador.
+    if (!soloTexto && !facturaId && !html && !pdfManual) return json({ ok: false, error: 'falta_html_o_pdf' }, 400);
     // La factura tiene que ser SUYA (visible por RLS) ANTES de enviar: más abajo se
     // apunta el envío y se marca `enviada` con ese id, y `enviada=true` congela número
     // y emisor y veta el borrado — no puede hacerlo quien no puede ver la factura.
+    // Se lee la fila ENTERA con esa misma sesión: de ella sale el papel (papelFactura). `*` y no una lista porque el
+    // esquema del ERP maestro añade `rectifica_id`/`rectificacion_motivo`, que en Lawang no existen.
+    let filaFactura: any = null;
     if (facturaId) {
-      const { data: fv, error: eF } = await usuario.from('facturas').select('id, anulada').eq('id', facturaId).maybeSingle();
+      const { data: fv, error: eF } = await usuario.from('facturas').select('*').eq('id', facturaId).maybeSingle();
       if (eF || !fv) return json({ ok: false, error: 'factura_no_visible' }, 403);
       // LAW-37 (11-oct-2026): un documento anulado no sale al cliente. Antes se renderizaba y se
       // enviaba, y solo fallaba después la marca (factura_marca_enviada rechaza anulados desde la
@@ -198,11 +332,19 @@ Deno.serve(async (req) => {
         return json({ ok: false, codigo: 'documento_anulado',
           error: 'Este documento está anulado: no se envía al cliente. Si hace falta, emite otro.' }, 409);
       }
+      filaFactura = fv;
+    }
+    if (filaFactura) {
+      // El registro de envíos se cuelga del contrato de la FILA: un contrato_id del navegador no puede apuntar el envío
+      // de esta factura en otro contrato. Al venir de la fila (visible por RLS) no se vuelve a comprobar abajo.
+      contratoId = esUuid(String(filaFactura.contrato_id ?? '')) ? String(filaFactura.contrato_id) : null;
+      // Sin contenido: solo para saber cuándo deja la pantalla de mandarlo y se puede quitar de ella (#350).
+      if (html || pdfManual) console.log('send-contract-email: factura con ' + (html ? 'html' : 'pdf_base64') + ' del navegador, ignorado');
     }
     // Y el contrato igual: el registro de envíos se lee como «quién lo tiene» y lo
     // escribe el service role — sin esto, cualquiera del equipo dejaba un envío falso
     // en un contrato que no puede ver (code-review, 26-sep-2026).
-    if (contratoId) {
+    if (contratoId && !filaFactura) {
       const { data: cv, error: eC } = await usuario.from('contratos').select('id').eq('id', contratoId).maybeSingle();
       if (eC || !cv) return json({ ok: false, error: 'contrato_no_visible' }, 403);
     }
@@ -213,25 +355,36 @@ Deno.serve(async (req) => {
       if (enc) return json({ ok: true, encolado: true, duplicado: enc.duplicado });
     }
 
+    // El papel de la factura, desde la fila, ANTES de render, copia, SMTP, registro y marca (#350).
+    let htmlRender = html;
+    if (filaFactura) {
+      const cat = await leeCatalogoPapel(filaFactura);
+      if (!cat) return json({ ok: false, error: 'no_se_pudo_generar_el_pdf' }, 500);
+      const papel = papelFactura(cajaCompartidos(), filaFactura, cat, SITIO);
+      if (!papel.ok) return json({ ok: false, codigo: papel.codigo, error: papel.error }, 409);
+      htmlRender = papel.html;
+    }
+
     let pdfB64 = '';
     if (soloTexto) {
       // nada que renderizar
-    } else if (html) {
+    } else if (htmlRender || filaFactura) {
       if (!RENDER_SECRET) return json({ ok: false, error: 'render_no_configurado' }, 500);
       try {
         const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
-          body: JSON.stringify({ html }),
+          body: JSON.stringify({ html: htmlRender }),
         });
         if (!rr.ok) throw new Error('render http ' + rr.status);
         pdfB64 = b64(new Uint8Array(await rr.arrayBuffer()));
       } catch (e) {
-        // El render falló: si hay un PDF adjuntado a mano de respaldo, se usa;
+        // El render falló: si hay un PDF adjuntado a mano de respaldo, se usa —solo en un contrato: el PDF de una
+        // factura del navegador NO se acepta nunca (#350), así que ahí es 502 y no sale nada—;
         // si no, se corta aquí con un error explícito. Mandar el email sin
         // adjunto y sin avisar sería peor que el 403 — el usuario creería que
         // el contrato salió y no salió nada.
-        if (pdfManual) { pdfB64 = pdfManual; }
+        if (pdfManual && !filaFactura) { pdfB64 = pdfManual; }
         else {
           console.error('render: ' + String((e as Error)?.message ?? e));
           return json({ ok: false, error: 'no_se_pudo_generar_el_pdf' }, 502);

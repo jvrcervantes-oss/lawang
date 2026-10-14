@@ -11,4 +11,8 @@ Esta carpeta existe solo para que `python tools/aterriza.py <id> --edge send-con
   fichero de texto con la ruta, y un despliegue desde esa máquina habría publicado ESE texto. Por eso se cambió por `entrypoint`,
   como portal-acceso y portal-invitar.
 - Verificación tras cada despliegue: `get_edge_function send-contract-email` debe devolver el mismo sha256 que
-  `contracts/edge/send-contract-email/index.ts`.
+  `contracts/edge/send-contract-email/index.ts` **y** que `contracts/edge/send-contract-email/compartidos.generated.ts`.
+  Desde el 15-oct-2026 (revisión previa #350) la edge pinta ella el papel de una factura con ese compartido (generado por
+  `python tools/empaqueta_edge.py`, que lo cubre en su `--check`): comparar solo el `index.ts` deja pasar un maquetador viejo.
+  Y cada vez que `empaqueta_edge.py` lo regenere (cambio en documento.js, totales.js, entities.js…) hay que redesplegar ESTA
+  edge además de firma-submit y factura-vencimiento.
