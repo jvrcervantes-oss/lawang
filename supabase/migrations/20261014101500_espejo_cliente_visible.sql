@@ -14,7 +14,7 @@
 --   y autor con usuario; 29 con cliente de otro propietario; 7 cuyo cliente su autor ACTIVO no ve hoy (5 de 3 agentes, 2 de 1 project
 --   manager); desde el 7-oct, 0 de agentes.
 -- QUE HACE (variante A, la recomendada por Seguridad; la B, «contratar al cliente de otro con tope y registro», esta escrita aparte y
---   SIN aplicar en supabase/reversion_espejo_cliente_visible/VARIANTE_B_contratar_ajeno_con_registro.sql: la regla la decide el owner):
+--   SIN aplicar en supabase/propuestas/VARIANTE_B_contratar_ajeno_con_registro.sql: la regla la decide el owner):
 --   1) _cliente_ficha_visible(uuid): LA regla de comprador_ficha en un solo sitio (es_agente + cliente_visible, o contrato enlazado
 --      visible para quien no tiene alcance acotado). comprador_ficha pasa a llamarla: «la misma regla» lo es por construccion.
 --      NO toca cliente_visible ni nada del traspaso.
@@ -31,11 +31,16 @@
 --   Sin sesion (auth.uid() nulo: service_role, edges, cron) 3) y 4) se comportan como hoy, igual que contratos_tipo_permitido: esos
 --   caminos tienen su propia puerta, y `authenticated` no tiene EXECUTE sobre espeja_comprador/sincronizar_compradores ni escritura
 --   directa en `contratos` (solo SELECT, medido el 14-oct).
--- LO QUE NO HACE (queda dicho en el informe): no toca los contratos existentes ni sus enlaces; trg_cliente_actualizado sigue refrescando
---   la ficha en los borradores que YA la tienen enlazada cuando su dueno la edita (como mucho 6 borradores hoy); limpiar esos enlaces
---   es borrar datos y lo decide el owner con Legal.
--- NO COMPILADA: no se ejecuta DDL en la base viva sin orden y el ensayo en un Postgres local no se pudo lanzar. Las marcas del
---   parche SI se comprobaron contra el vivo (solo lectura). Su primera ejecucion es la de la rama.
+--   6) 2.a tanda (14-oct, tras CAMBIOS del revisor y la revision previa de Seguridad): un solo parser de ids (22023 a lo no canonico),
+--      la puerta tras el permiso sobre p_id, el oraculo del enlace cerrado (misma salida que «no casa» y la regla dentro de la
+--      busqueda), la excepcion del enlace por contrato y no por rol, y el espejo que mira tambien al AUTOR (2b): ni el refresco al
+--      editar la ficha, ni un renombrado, ni un manager copian la ficha en el borrador de un autor que no es su dueno; lo mismo para
+--      el nombre/documento/domicilio de sus facturas sin enviar.
+-- LO QUE NO HACE (queda dicho en el informe): no toca los contratos ni las facturas existentes ni sus enlaces: lo ya copiado se queda;
+--   limpiarlo es cambiar datos y lo decide el owner con Legal.
+-- ENSAYADA EN RAMA: migracion, prueba (supabase/pruebas/espejo_cliente_visible.sql) y reversion (espejo_vuelta.py) se ejecutan en una
+--   rama de Supabase con la estructura del ultimo volcado; lo medido va en la cabecera de la prueba. Las marcas del parche se
+--   comprueban ademas contra el vivo en solo lectura (una coincidencia cada una, sin retornos de carro).
 -- contrato_guarda (8,5 KB) y comprador_ficha se PARCHEAN sobre su definicion viva con marca de codigo y raise si no la encuentra
 --   (el repo no coincide con el vivo en esas dos, md5 medido el 14-oct); las otras tres si coinciden y van enteras.
 -- destructivo-ok: reemplaza funciones (mismo tipo de retorno) y un trigger; el unico delete es de contrato_compradores DENTRO de
@@ -75,6 +80,7 @@ create or replace function public._contrato_clientes_comprueba(p_id uuid, p_dato
 as $function$
 declare
   v_id uuid;
+  v_txt text;
   v_ya uuid[] := '{}'::uuid[];
   c_uuid constant text := '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
 begin
@@ -87,23 +93,34 @@ begin
             union
             select c.adq1_client_id from public.contratos c where c.id = p_id
             union
-            select case when btrim(coalesce(e.v->>'client_id', '')) ~ c_uuid then btrim(e.v->>'client_id')::uuid end
+            select case when pg_input_is_valid(btrim(coalesce(e.v->>'client_id', '')), 'uuid') then btrim(e.v->>'client_id')::uuid end
               from public.contratos c
              cross join lateral jsonb_array_elements(case when jsonb_typeof(c.datos->'compradores') = 'array'
                                                           then c.datos->'compradores' else '[]'::jsonb end) e(v)
              where c.id = p_id) q
      where q.x is not null;
   end if;
-  for v_id in
+  -- UN solo parser (revisor y Seguridad M1, 14-oct): la columna generada adq1_client_id y sincronizar_compradores leen con
+  -- ::uuid, que acepta el id sin guiones o entre llaves; la regex de abajo y la de espeja_comprador, no. Asi, un id ajeno sin
+  -- guiones saltaba esta puerta y quedaba en la columna. Ahora todo client_id no vacio que no este en la forma 8-4-4-4-12 se
+  -- rechaza: con sesion solo se guardan ids canonicos y las tres lecturas ven lo mismo. Medido el 14-oct: 0 contratos guardan hoy
+  -- un id no canonico (adq1 ni compradores[]), y la pantalla manda el id de la ficha tal cual (contracts/app.html:5077, :5745, :5757).
+  for v_txt in
     select distinct t.x
-      from (select case when btrim(coalesce(p_datos->>'adq1_client_id', '')) ~ c_uuid
-                        then btrim(p_datos->>'adq1_client_id')::uuid end as x
+      from (select btrim(coalesce(p_datos->>'adq1_client_id', '')) as x
             union all
-            select case when btrim(coalesce(e.v->>'client_id', '')) ~ c_uuid then btrim(e.v->>'client_id')::uuid end
+            select btrim(coalesce(e.v->>'client_id', ''))
               from jsonb_array_elements(case when jsonb_typeof(p_datos->'compradores') = 'array'
                                              then p_datos->'compradores' else '[]'::jsonb end) e(v)) t
-     where t.x is not null
+     where t.x <> ''
   loop
+    if v_txt !~ c_uuid then
+      -- salvo que sea, en otra forma, un id que el contrato YA tenia (borrador heredado: LAW-51 p.4; Seguridad, revision previa)
+      continue when pg_input_is_valid(v_txt, 'uuid') and v_txt::uuid = any (v_ya);
+      raise exception 'El identificador de la ficha de cliente no es valido: vuelve a elegir el cliente.'
+        using errcode = '22023';
+    end if;
+    v_id := v_txt::uuid;
     continue when v_id = any (v_ya);
     if exists (select 1 from public.clients c where c.id = v_id) and not public._cliente_ficha_visible(v_id) then
       raise exception 'Esa ficha es de otra empresa o de otro comercial: no puedes usarla en un contrato desde tu cuenta. Pídele a un administrador que lo haga.'
@@ -143,6 +160,117 @@ as $function$
                     then btrim(p_datos->>'adq1_client_id')::uuid end
    and ((select auth.uid()) is null or public._cliente_ficha_visible(cl.id));
 $function$;
+
+-- ============================================================ 2b. El espejo mira tambien al AUTOR del contrato (M2)
+-- La copia de `datos.fields` la lee el autor (creado_por), no quien dispara la escritura. Hasta ahora, cuando el dueno de la ficha la
+-- editaba, un admin renombraba el proyecto (renombrar_proyecto / trg_proyecto_renombrado reescriben `datos`), se recalculaba la carta
+-- (carta_cobrado_recalcula), se archivaban anexos (contrato_anexos_pasa_a_archivo, sin sesion) o un manager guardaba el contrato del
+-- agente, la ficha entera volvia a caer en el borrador de un autor que no la ve (revisor MEDIA 2, Seguridad M2).
+-- Regla, cerrada por defecto y sin una segunda copia de cliente_visible (toda su cadena depende de auth.uid()): se copia solo si
+--   (a) hay sesion y quien guarda ES el autor (y entonces espeja_comprador exige ademas que la vea: la regla de siempre), o
+--   (b) el autor es el propietario de la ficha (y, si hay sesion, espeja_comprador exige que quien guarda tambien la vea).
+-- Coste, medido el 14-oct (solo columnas): 17 borradores sin firmar cuyo autor no es el propietario de alguna ficha enlazada (agente 4,
+-- project_manager 3, sales_manager 6, super_admin 1, super_admin_empresa 2, sin usuario 2) y 71 facturas sin enviar en el mismo caso:
+-- dejan de refrescarse SOLOS cuando cambia la ficha; se refrescan cuando su autor vuelve a guardar. Nada se borra: la copia ya guardada
+-- se queda (lo decide el dueno con Legal).
+-- El autor NO es un parametro de ninguna funcion que se pueda llamar: lo leen los disparadores de la fila (new.creado_por, f.creado_por).
+-- creado_por: default auth.email(); `authenticated` no escribe `contratos` (solo SELECT) y contrato_guarda no lo toca; solo lo cambian
+-- reasigna_autor (super admin) y traspasar_cliente_con_documentos (admin), ambos con registro en correcciones_datos.
+create or replace function public._espejo_autor_ve(p_client uuid, p_autor text)
+ returns boolean
+ language sql
+ stable security definer
+ set search_path to ''
+as $function$
+  select p_client is not null and coalesce(btrim(p_autor), '') <> '' and (
+           ((select auth.uid()) is not null and lower(btrim(p_autor)) = lower(btrim(coalesce((select auth.email()), ''))))
+        or exists (select 1 from public.clients c
+                    where c.id = p_client and lower(btrim(coalesce(c.propietario, ''))) = lower(btrim(p_autor))))
+$function$;
+revoke all on function public._espejo_autor_ve(uuid, text) from public, anon, authenticated;
+
+create or replace function public.trg_espejo_comprador()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+begin
+  if coalesce(new.bloqueado, false) then return new; end if;
+  if exists (select 1 from public.contrato_firmas cf where cf.contrato_id = new.id) then return new; end if;
+  -- 14-oct-2026 (M2): ademas de quien guarda, el AUTOR (ver 2b de 20261014101500_espejo_cliente_visible).
+  if not public._espejo_autor_ve(
+           case when btrim(coalesce(new.datos->>'adq1_client_id', '')) ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+                then btrim(new.datos->>'adq1_client_id')::uuid end,
+           new.creado_por) then
+    return new;
+  end if;
+  new.datos := public.espeja_comprador(new.datos);
+  return new;
+end $function$;
+revoke all on function public.trg_espejo_comprador() from public, anon, authenticated;
+
+-- El refresco al editar la ficha: un solo punto de copia. Ya no llama a espeja_comprador: deja `datos` igual (set datos = c.datos dispara
+-- igualmente el BEFORE UPDATE OF datos, como antes) y la copia la hace trg_espejo_comprador con la regla del autor. Solo toca contratos y
+-- facturas cuyo autor pasa la regla, asi que tampoco cambia `comprador_nombre` ni el nombre/documento/domicilio de la factura de un autor
+-- que no ve la ficha (Seguridad: comprador_nombre filtraba el nombre aunque el espejo no copiara; Legal: la hermana de facturas).
+create or replace function public.trg_cliente_actualizado()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+begin
+  if new.full_name is not distinct from old.full_name
+     and new.passport_number is not distinct from old.passport_number
+     and new.email          is not distinct from old.email
+     and new.phone          is not distinct from old.phone
+     and new.address        is not distinct from old.address
+     and new.nationality    is not distinct from old.nationality
+     and new.forma_juridica is not distinct from old.forma_juridica
+     and new.registro_num   is not distinct from old.registro_num
+     and new.rep_nombre     is not distinct from old.rep_nombre
+     and new.rep_cargo      is not distinct from old.rep_cargo
+     and new.tipo           is not distinct from old.tipo then
+    return new;
+  end if;
+
+  -- adq1_client_id es COLUMNA generada (espejo de datos->>'adq1_client_id'):
+  -- filtrar por la rama del jsonb descomprimía todos los contratos (timeout).
+  update public.contratos c
+     set datos = c.datos,
+         comprador_nombre = case
+           when jsonb_typeof(c.datos->'compradores') = 'array'
+                and jsonb_array_length(c.datos->'compradores') > 0
+             then c.comprador_nombre
+           else new.full_name end
+   where c.adq1_client_id = new.id
+     and not coalesce(c.bloqueado, false)
+     and not exists (select 1 from public.contrato_firmas cf where cf.contrato_id = c.id)
+     and public._espejo_autor_ve(new.id, c.creado_por);
+
+  update public.facturas f
+     set cliente_nombre = new.full_name,
+         datos = jsonb_set(f.datos, '{fields}',
+                   coalesce(f.datos->'fields','{}'::jsonb) ||
+                   jsonb_strip_nulls(jsonb_build_object(
+                     'cliente_nombre',    new.full_name,
+                     'cliente_documento', new.passport_number,
+                     'cliente_email',     new.email,
+                     'cliente_domicilio', new.address)))
+   where f.client_id = new.id
+     and not coalesce(f.anulada, false) and not coalesce(f.enviada, false)
+     and coalesce(f.cliente_nombre,'') not like '%' || chr(183) || '%'
+     and not exists (
+       select 1 from public.contratos c
+        where c.id = f.contrato_id
+          and jsonb_typeof(c.datos->'compradores') = 'array'
+          and jsonb_array_length(c.datos->'compradores') > 0)
+     and public._espejo_autor_ve(new.id, f.creado_por);
+
+  return new;
+end $function$;
+revoke all on function public.trg_cliente_actualizado() from public, anon, authenticated;
 
 -- ============================================================ 3. El enlace: igual
 create or replace function public.sincronizar_compradores(p_contrato uuid)
@@ -213,27 +341,35 @@ begin
         v_sin_id := v_sin_id || v_nombre;
         continue;
       end if;
+      -- 14-oct-2026 (Seguridad, revision previa): la regla va DENTRO de la busqueda. Buscar primero y mirar despues dejaba
+      -- un oraculo: si una ficha que no se ve salia antes que una visible con el mismo dato, la visible no se enlazaba.
       if v_pas is not null then
-        select id into v_client from public.clients
-         where lower(btrim(passport_number)) = lower(v_pas) limit 1;
+        select k.id into v_client from public.clients k
+         where lower(btrim(k.passport_number)) = lower(v_pas)
+           and ((select auth.uid()) is null or public._cliente_ficha_visible(k.id)
+                or exists (select 1 from public.contrato_compradores x where x.contrato_id = p_contrato and x.client_id = k.id))
+         limit 1;
       end if;
       if v_client is null and v_mail is not null then
-        select id into v_client from public.clients
-         where lower(email) = v_mail
-         order by (tipo = 'persona') desc, created_at
+        select k.id into v_client from public.clients k
+         where lower(k.email) = v_mail
+           and ((select auth.uid()) is null or public._cliente_ficha_visible(k.id)
+                or exists (select 1 from public.contrato_compradores x where x.contrato_id = p_contrato and x.client_id = k.id))
+         order by (k.tipo = 'persona') desc, k.created_at
          limit 1;
       end if;
     end if;
 
     -- 14-oct-2026: con sesion, una ficha que quien guarda NO ve no se enlaza, ni por id ni por pasaporte/correo.
-    -- Se trata igual que «sin ficha» (mismo aviso, ningun dato: distinguirlo confirmaria pasaportes ajenos).
-    -- El enlace que YA existia a esa misma ficha se conserva (contratos anteriores al cierre); si el rol
-    -- estaba enlazado a OTRA persona, ese enlace se retira: el documento ya no la nombra.
+    -- Se trata EXACTAMENTE igual que «no casa con ninguna ficha»: mismo aviso, ningun dato y el enlace que el rol ya
+    -- tuviera se queda como esta (revisor, MEDIA 3: borrarlo solo en este caso confirmaba, leyendo contrato_compradores,
+    -- que ese pasaporte o correo es cliente de otro). La excepcion va por CONTRATO, como la puerta de contrato_guarda: una
+    -- ficha que el contrato ya tenia enlazada en CUALQUIER rol se sigue enlazando aunque cambie de rol (revisor, MEDIA 4:
+    -- quitar o reordenar cocompradores en un borrador heredado dejaba a esa persona sin enlace).
     if v_client is not null and (select auth.uid()) is not null
        and not exists (select 1 from public.contrato_compradores x
-                        where x.contrato_id = p_contrato and x.rol = v_rol and x.client_id = v_client)
+                        where x.contrato_id = p_contrato and x.client_id = v_client)
        and not public._cliente_ficha_visible(v_client) then
-      delete from public.contrato_compradores x where x.contrato_id = p_contrato and x.rol = v_rol;
       v_client := null;
     end if;
 
@@ -274,16 +410,28 @@ end $function$;
 do $parche$
 declare
   v_def text;
-  c_marca constant text := 'v_f := v_datos->''fields'';';
+  c_alta  constant text := 'insert into public.contratos (tipo, comprador_nombre, proyecto_nombre, precio_total, moneda, fecha_firma,';
+  c_edic  constant text := '(v_old\.proyecto_nombre, v_old\.proyecto_id\)\)\) then\s+raise exception ''No tienes permiso para guardar este contrato\.'' using errcode = ''42501'';\s+end if;)';
   c_ficha constant text := 'if not exists \(\s*select 1 from public\.clients c0.*?then\s+return;\s+end if;';
 begin
-  -- contrato_guarda: la comprobacion va tras validar que hay datos y tipo, ANTES de cualquier escritura
+  -- contrato_guarda: la comprobacion va ANTES de cualquier escritura y, al editar, DESPUES del permiso sobre p_id (USING de la policy
+  -- con la fila de antes): con el id de un contrato ajeno no se llega a la puerta, asi que su mensaje no dice si ese contrato nombra a
+  -- un cliente (revisor, BAJA 6). En el alta va justo antes del insert.
   select pg_get_functiondef('public.contrato_guarda(uuid,jsonb)'::regprocedure) into v_def;
   if position('_contrato_clientes_comprueba' in v_def) = 0 then
-    if (length(v_def) - length(replace(v_def, c_marca, ''))) / length(c_marca) <> 1 then
-      raise exception 'espejo_cliente_visible: la marca de contrato_guarda no aparece exactamente una vez; no se aplica nada';
+    if (length(v_def) - length(replace(v_def, c_alta, ''))) / length(c_alta) <> 1 then
+      raise exception 'espejo_cliente_visible: la marca del alta de contrato_guarda no aparece exactamente una vez; no se aplica nada';
     end if;
-    execute replace(v_def, c_marca, c_marca || E'\n  perform public._contrato_clientes_comprueba(p_id, v_datos);');
+    if (select count(*) from regexp_matches(v_def, c_edic, 'g')) <> 1 then
+      raise exception 'espejo_cliente_visible: la marca de la edicion de contrato_guarda no aparece exactamente una vez; no se aplica nada';
+    end if;
+    v_def := replace(v_def, c_alta, 'perform public._contrato_clientes_comprueba(p_id, v_datos);' || E'\n    ' || c_alta);
+    v_def := regexp_replace(v_def, c_edic, E'\\1\n    perform public._contrato_clientes_comprueba(p_id, v_datos);');
+    if (length(v_def) - length(replace(v_def, 'perform public._contrato_clientes_comprueba(p_id, v_datos);', '')))
+         / length('perform public._contrato_clientes_comprueba(p_id, v_datos);') <> 2 then
+      raise exception 'espejo_cliente_visible: contrato_guarda no queda con la puerta en el alta y en la edicion; no se aplica nada';
+    end if;
+    execute v_def;
   end if;
 
   -- comprador_ficha: su condicion pasa a ser la funcion unica (mismo texto, ahora en un solo sitio)
@@ -359,3 +507,21 @@ create or replace trigger trg_contratos_tipo_permitido before insert or update o
   for each row execute function public.contratos_tipo_permitido();
 -- funcion de trigger: nadie la llama a mano (hoy tenia EXECUTE para authenticated; se retira, no se abre nada)
 revoke all on function public.contratos_tipo_permitido() from public, anon, authenticated;
+
+-- ============================================================ 6. Comprobacion final: nada de lo que crea o reescribe queda abierto
+-- Una funcion NUEVA nace con EXECUTE para PUBLIC (en Lawang no hay privilegios por defecto globales para funciones: Seguridad,
+-- revision previa del 14-oct). Si alguna de las ocho queda llamable por anon, authenticated o public, no se aplica NADA.
+do $cierre$
+begin
+  if (select count(*) from pg_proc p
+       where p.oid in ('public._cliente_ficha_visible(uuid)'::regprocedure, 'public._contrato_clientes_comprueba(uuid,jsonb)'::regprocedure,
+                       'public._espejo_autor_ve(uuid,text)'::regprocedure, 'public.espeja_comprador(jsonb)'::regprocedure,
+                       'public.sincronizar_compradores(uuid)'::regprocedure, 'public.contratos_tipo_permitido()'::regprocedure,
+                       'public.trg_espejo_comprador()'::regprocedure, 'public.trg_cliente_actualizado()'::regprocedure)
+         and p.prosecdef and 'search_path=""' = any (p.proconfig)
+         and not has_function_privilege('anon', p.oid, 'execute')
+         and not has_function_privilege('authenticated', p.oid, 'execute')
+         and not has_function_privilege('public', p.oid, 'execute')) <> 8 then
+    raise exception 'espejo_cliente_visible: alguna funcion nueva o reescrita queda abierta o sin DEFINER/search_path; no se aplica nada';
+  end if;
+end $cierre$;

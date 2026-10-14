@@ -21,7 +21,8 @@
 --   _plantilla_slug_de_tipo, y con comisiones_interruptor sin fila _venta_modo_declara no pide la clave `venta` (en el vivo SI esta
 --   encendido: ese tramo no lo cubre esta prueba, ni lo toca la migracion).
 --   Antes de los casos van las aserciones P*/S0: si el montaje, una puerta o la sesion no valen, la prueba PARA ahi y lo dice en una linea.
--- MEDIDO en rama el 14-oct-2026 11:04-11:08 (estructura del volcado lawang_20261014_0931, migracion aplicada, rama borrada): 51/51.
+-- MEDIDO en rama el 14-oct-2026 11:04-11:08 (1.a tanda, volcado lawang_20261014_0931): 51/51. 2.a tanda (casos N, S1 nuevo, X1 de 8,
+--   X3b): ver la linea de abajo cuando se mida.
 --   En esa rama session_user = postgres y el dueno de contrato_guarda es postgres con bypassrls (lo imprime P0).
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);
@@ -58,7 +59,7 @@ do $todo$
 declare
   r text := ''; v text; n bigint; g boolean;
   jv _tp; a _tp; b _tp;
-  pL uuid; pLn text; cA uuid; cB uuid; cB2 uuid; kA text; kB text; k6 text; k7 text;
+  pL uuid; pLn text; cA uuid; cB uuid; cB2 uuid; cA2 uuid; kA text; kB text; k6 text; k7 text; kO text; kR text; kF uuid; v2 text;
   c_guarda constant text := 'otra empresa o de otro comercial';
   c_emp    constant text := 'zz_espejo';
   c_fin    constant text := 'FIN DE PRUEBAS ESPEJO CLIENTE VISIBLE (se deshace todo):%';
@@ -92,6 +93,8 @@ begin
       values ('ZZ-ESPEJO Cliente de B', b.em, 'ZZESPEJOB1', 'zz-espejo-b@ejemplo.invalid', '+00 000 0002', 'ZZ-domicilio B', 'ZZ') returning id into cB;
     insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
       values ('ZZ-ESPEJO Segundo de B', b.em, 'ZZESPEJOB2', 'zz-espejo-b2@ejemplo.invalid', '+00 000 0003', 'ZZ-domicilio B2', 'ZZ') returning id into cB2;
+    insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
+      values ('ZZ-ESPEJO Segundo de A', a.em, 'ZZESPEJOA2', 'zz-espejo-a2@ejemplo.invalid', '+00 000 0004', 'ZZ-domicilio A2', 'ZZ') returning id into cA2;
   exception when others then
     raise exception using message = replace(c_fin, '%', pg_temp.l(false, 'P0 montaje del fixture propio: ' || sqlstate || ' ' || left(sqlerrm, 300)
                                                                || ' [session_user=' || session_user || ']'));
@@ -224,12 +227,18 @@ begin
   r := r || pg_temp.l(n = 1, 'T8 sigue aplicando SOLO a rol = agente: sales_manager y project_manager, sin limite de tipos, como antes');
 
   -- ============================================================ H. borrador heredado (enlazado a una ficha ajena ANTES del cierre)
-  -- Se simula por el camino de servidor (sin sesion), que no cambia: espeja y enlaza como hoy.
-  update public.contratos set datos = jsonb_set(datos, '{adq1_client_id}', to_jsonb(cB::text)) where id::text = kA;
-  select count(*) into n from public.contratos where id::text = kA and adq1_client_id = cB and datos->'fields'->>'adq1_pasaporte' = 'ZZESPEJOB1';
-  r := r || pg_temp.l(n = 1, 'S1 sin sesion (servidor) el espejo se comporta como antes: copia la ficha');
+  -- Se simula por el camino de servidor (sin sesion): el enlace se hace como siempre, pero desde la 2.a tanda (M2) el espejo ya NO
+  -- copia la ficha de B en un contrato cuyo autor (A) no es su dueno, ni sin sesion (contrato_anexos_pasa_a_archivo, cron, edges).
+  -- La copia «de antes del cierre» se simula escribiendola a mano en `fields`.
+  update public.contratos set datos = jsonb_set(jsonb_set(datos, '{adq1_client_id}', to_jsonb(cB::text)),
+                                                '{fields,adq1_pasaporte}', '"ZZ-copia heredada"') where id::text = kA;
+  select count(*) into n from public.contratos where id::text = kA and adq1_client_id = cB and datos->'fields'->>'adq1_pasaporte' = 'ZZ-copia heredada';
+  r := r || pg_temp.l(n = 1, 'S1 NIEGA (M2): sin sesion, el espejo ya no copia la ficha de B en un contrato cuyo autor no es su dueno');
   select count(*) into n from public.contrato_compradores where contrato_id::text = kA and rol = 'adquiriente_1' and client_id = cB;
-  r := r || pg_temp.l(n = 1, 'S1b ... y enlaza');
+  r := r || pg_temp.l(n = 1, 'S1b ... y el enlace sin sesion se hace como siempre (heredado)');
+  update public.contratos set datos = jsonb_set(datos, '{fields,adq1_domicilio}', '"ZZ-domicilio viejo"') where id::text = kB;
+  select count(*) into n from public.contratos where id::text = kB and datos->'fields'->>'adq1_domicilio' = 'ZZ-domicilio B';
+  r := r || pg_temp.l(n = 1, 'S1c ENTRA: sin sesion, en un contrato cuyo autor ES el dueno de la ficha, el espejo copia como antes');
   v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(%L, %L::jsonb)::text', kA,
          pg_temp.pago('contrato_general', pLn, cB, jsonb_build_object('adq1_domicilio', 'ZZ-domicilio que manda la pantalla'), null)));
   r := r || pg_temp.l(v !~ '^ERR', 'H1 ENTRA: A sigue pudiendo guardar el borrador que YA tenia ese cliente (la fila no se congela) (' || pg_temp.e(v) || ')');
@@ -240,14 +249,109 @@ begin
   v := pg_temp.val(a.uid, a.em, format('select count(*) from public.comprador_ficha(%L)', cB));
   r := r || pg_temp.l(v = '0', 'H4 NIEGA: ni con el enlace heredado recibe A la ficha de B (agente con alcance acotado) (' || pg_temp.e(v) || ')');
 
+  -- ============================================================ N. 2.a tanda (14-oct): un solo parser, M2 (autor), oraculo, reordenacion
+  -- N1-N5: el id de la ficha en otra forma que la columna generada SI lee (sin guiones, entre llaves): 22023, salvo heredado.
+  v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
+         jsonb_set(pg_temp.pago('contrato_general', pLn, null, null, null), '{datos,adq1_client_id}', to_jsonb(replace(cB::text, '-', '')))));
+  r := r || pg_temp.l(pg_temp.err(v) = '22023', 'N1 NIEGA: A manda el id de la ficha de B SIN guiones como Adquiriente I: 22023 (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
+         jsonb_set(pg_temp.pago('contrato_general', pLn, null, null, null), '{datos,adq1_client_id}', to_jsonb('{' || cB::text || '}'))));
+  r := r || pg_temp.l(pg_temp.err(v) = '22023', 'N2 NIEGA: ... ENTRE LLAVES: 22023 (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
+         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('client_id', replace(cB2::text, '-', ''), 'nombre', 'ZZ-ESPEJO Segundo')))));
+  r := r || pg_temp.l(pg_temp.err(v) = '22023', 'N3 NIEGA: ... sin guiones como segundo comprador (compradores[]): 22023 (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
+         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('client_id', '{' || cB2::text || '}', 'nombre', 'ZZ-ESPEJO Segundo')))));
+  r := r || pg_temp.l(pg_temp.err(v) = '22023', 'N4 NIEGA: ... entre llaves en compradores[]: 22023 (' || pg_temp.e(v) || ')');
+  select count(*) into n from public.contratos where lower(creado_por) = lower(a.em) and id::text <> kA
+     and (adq1_client_id in (cB, cB2) or exists (select 1 from public.contrato_compradores x where x.contrato_id = contratos.id and x.client_id in (cB, cB2)));
+  r := r || pg_temp.l(n = 0, 'N4b ... y no queda ningun contrato de A (fuera del heredado) con fichas de B (' || n || ')');
+  v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(%L, %L::jsonb)::text', kA,
+         jsonb_set(pg_temp.pago('contrato_general', pLn, null, null, null), '{datos,adq1_client_id}', to_jsonb('{' || cB::text || '}'))));
+  r := r || pg_temp.l(v !~ '^ERR', 'N5 ENTRA: el heredado (que YA tenia la ficha de B) se sigue guardando aunque llegue el id en otra forma (' || pg_temp.e(v) || ')');
+
+  -- N6-N8 (M2): el dueno de la ficha la edita (con su sesion): refresca SUS documentos, no el borrador heredado de A ni su factura.
+  begin
+    insert into public.facturas (sociedad, client_id, creado_por, cliente_nombre, datos)
+      values ('ZZ-ESPEJO', cB, a.em, 'ZZ-ESPEJO factura de A', '{"fields": {}}'::jsonb) returning id into kF;
+    insert into public.facturas (sociedad, client_id, creado_por, cliente_nombre, datos)
+      values ('ZZ-ESPEJO', cB, b.em, 'ZZ-ESPEJO factura de B', '{"fields": {}}'::jsonb);
+  exception when others then
+    r := r || pg_temp.l(false, 'N0 montaje de dos facturas sin enviar (A y B) con el cliente de B: ' || sqlstate || ' ' || left(sqlerrm, 200));
+  end;
+  perform set_config('request.jwt.claims', json_build_object('sub', b.uid, 'role', 'authenticated', 'email', b.em)::text, true);
+  update public.clients set full_name = 'ZZ-ESPEJO Cliente de B renombrado', address = 'ZZ-domicilio B nuevo' where id = cB;
+  perform set_config('request.jwt.claims', '', true);
+  select count(*) into n from public.contratos where id::text = kA
+     and coalesce(datos->'fields'->>'adq1_domicilio', '') <> 'ZZ-domicilio B nuevo' and coalesce(comprador_nombre, '') <> 'ZZ-ESPEJO Cliente de B renombrado';
+  r := r || pg_temp.l(n = 1, 'N6 NIEGA (M2): B edita su ficha y NO se copia en el borrador heredado de A (ni el domicilio ni el nombre del comprador)');
+  select count(*) into n from public.contratos where id::text = kB and datos->'fields'->>'adq1_domicilio' = 'ZZ-domicilio B nuevo';
+  r := r || pg_temp.l(n = 1, 'N6b ENTRA: ... y SI en el contrato de B, que es su dueno');
+  select count(*) into n from public.facturas f where f.id = kF
+     and coalesce(f.datos->'fields'->>'cliente_domicilio', '') <> 'ZZ-domicilio B nuevo' and f.cliente_nombre = 'ZZ-ESPEJO factura de A';
+  r := r || pg_temp.l(kF is not null and n = 1, 'N7 NIEGA (hermana de facturas): ni en la factura sin enviar de A con ese cliente');
+  select count(*) into n from public.facturas f where f.client_id = cB and f.creado_por = b.em
+     and f.datos->'fields'->>'cliente_domicilio' = 'ZZ-domicilio B nuevo' and f.cliente_nombre = 'ZZ-ESPEJO Cliente de B renombrado';
+  r := r || pg_temp.l(n = 1, 'N7b ENTRA: ... y SI en la de B');
+  perform set_config('request.jwt.claims', json_build_object('sub', jv.uid, 'role', 'authenticated', 'email', jv.em)::text, true);
+  update public.contratos set datos = jsonb_set(datos, '{fields,proyecto_nombre}', to_jsonb(pLn)) where id::text = kA;
+  perform set_config('request.jwt.claims', '', true);
+  select count(*) into n from public.contratos where id::text = kA and coalesce(datos->'fields'->>'adq1_pasaporte', '') <> 'ZZESPEJOB1';
+  r := r || pg_temp.l(n = 1, 'N8 NIEGA (M2): un super admin reescribe `datos` del borrador de A (como renombrar_proyecto) y la ficha de B no cae en el');
+
+  -- N9-N10: el oraculo. Con el rol ya enlazado, un pasaporte tecleado que es de una ficha ajena deja lo MISMO que uno que no es de nadie.
+  v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
+         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('client_id', cA2, 'nombre', 'ZZ-ESPEJO Segundo de A')))));
+  kO := case when v !~ '^ERR' then (v::jsonb) ->> 'id' end;
+  v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(%L, %L::jsonb)::text', kO,
+         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('nombre', 'ZZ-ESPEJO tecleado', 'pasaporte', 'ZZESPEJOB2')))));
+  select string_agg(x.rol || '=' || x.client_id::text, ',' order by x.rol) into v from public.contrato_compradores x where x.contrato_id::text = kO;
+  v2 := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(%L, %L::jsonb)::text', kO,
+         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('nombre', 'ZZ-ESPEJO tecleado', 'pasaporte', 'ZZ-NO-ES-DE-NADIE')))));
+  select string_agg(x.rol || '=' || x.client_id::text, ',' order by x.rol) into v2 from public.contrato_compradores x where x.contrato_id::text = kO;
+  r := r || pg_temp.l(kO is not null and v = v2 and v ~ ('adquiriente_2=' || cA2::text),
+         'N9 el oraculo: pasaporte de una ficha ajena y pasaporte de nadie dejan los MISMOS enlaces (y el que habia se queda)');
+  insert into public.clients (full_name, propietario, passport_number, email, nationality)
+    values ('ZZ-ESPEJO Tercero de A (mismo pasaporte que uno de B)', a.em, 'ZZESPEJOB2', 'zz-espejo-a3@ejemplo.invalid', 'ZZ') returning id into kF;
+  v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
+         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('nombre', 'ZZ-ESPEJO tecleado', 'pasaporte', 'ZZESPEJOB2')))));
+  select count(*) into n from public.contrato_compradores x where x.contrato_id::text = (case when v !~ '^ERR' then (v::jsonb) ->> 'id' end)
+     and x.rol = 'adquiriente_2' and x.client_id = kF;
+  r := r || pg_temp.l(n = 1, 'N10 ENTRA: si el pasaporte lo comparten una ficha que A no ve y otra suya, se enlaza la SUYA (' || pg_temp.e(v) || ')');
+
+  -- N11: reordenar cocompradores en un heredado no deja a la persona sin enlace (excepcion por contrato, no por rol)
+  v := pg_temp.val(jv.uid, jv.em, format('select public.contrato_guarda(null, %L::jsonb)::text',
+         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('client_id', cA2, 'nombre', 'ZZ-ESPEJO Segundo de A'),
+                                                                         jsonb_build_object('client_id', cB2, 'nombre', 'ZZ-ESPEJO Segundo de B')))));
+  kR := case when v !~ '^ERR' then (v::jsonb) ->> 'id' end;
+  update public.contratos set creado_por = a.em where id::text = kR;   -- como reasigna_autor (sin sesion)
+  v := pg_temp.val(a.uid, a.em, format('select public.contrato_guarda(%L, %L::jsonb)::text', kR,
+         pg_temp.pago('contrato_general', pLn, cA, null, jsonb_build_array(jsonb_build_object('client_id', cB2, 'nombre', 'ZZ-ESPEJO Segundo de B')))));
+  select count(*) into n from public.contrato_compradores x where x.contrato_id::text = kR and x.client_id = cB2 and x.rol = 'adquiriente_2';
+  r := r || pg_temp.l(kR is not null and v !~ '^ERR' and n = 1
+                      and not exists (select 1 from public.contrato_compradores x where x.contrato_id::text = kR and x.rol = 'adquiriente_3'),
+         'N11 ENTRA: en un heredado, quitar el cocomprador de delante pasa la ficha de B a adquiriente_2 sin perder su enlace (' || pg_temp.e(v) || ')');
+
+  -- N12-N13: el autor con mayusculas sigue siendo el dueno; y la regla del autor no se llama desde el navegador
+  update public.contratos set creado_por = upper(b.em) where id::text = kB;
+  update public.contratos set datos = jsonb_set(datos, '{fields,adq1_domicilio}', '"ZZ-domicilio viejo"') where id::text = kB;
+  select count(*) into n from public.contratos where id::text = kB and datos->'fields'->>'adq1_domicilio' = 'ZZ-domicilio B nuevo';
+  r := r || pg_temp.l(n = 1, 'N12 ENTRA: el autor escrito en MAYUSCULAS sigue contando como dueno de la ficha (lower/btrim en los dos lados)');
+  v := pg_temp.val(a.uid, a.em, format('select public._espejo_autor_ve(%L, %L)::text', cB, b.em));
+  r := r || pg_temp.l(pg_temp.err(v) = '42501' and v ~ 'permission denied', 'N13 la regla del autor no se llama desde el navegador: 42501 del GRANT (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select public.espeja_comprador(%L::jsonb)::text', jsonb_build_object('adq1_client_id', cB, 'fields', '{}'::jsonb)));
+  r := r || pg_temp.l(pg_temp.err(v) = '42501' and v ~ 'permission denied', 'N13b ... ni el espejo (' || pg_temp.e(v) || ')');
+
   -- ============================================================ X. exposicion
   select count(*) into n from pg_proc p
    where p.oid in ('public._cliente_ficha_visible(uuid)'::regprocedure, 'public._contrato_clientes_comprueba(uuid,jsonb)'::regprocedure,
                    'public.espeja_comprador(jsonb)'::regprocedure, 'public.sincronizar_compradores(uuid)'::regprocedure,
-                   'public.contratos_tipo_permitido()'::regprocedure)
+                   'public.contratos_tipo_permitido()'::regprocedure, 'public._espejo_autor_ve(uuid,text)'::regprocedure,
+                   'public.trg_espejo_comprador()'::regprocedure, 'public.trg_cliente_actualizado()'::regprocedure)
      and p.prosecdef and 'search_path=""' = any (p.proconfig)
-     and not has_function_privilege('authenticated', p.oid, 'execute') and not has_function_privilege('anon', p.oid, 'execute');
-  r := r || pg_temp.l(n = 5, 'X1 las 2 nuevas, el espejo, el enlace y el trigger de tipo: DEFINER, search_path vacio, sin EXECUTE para anon ni authenticated (' || n || ')');
+     and not has_function_privilege('authenticated', p.oid, 'execute') and not has_function_privilege('anon', p.oid, 'execute')
+     and not has_function_privilege('public', p.oid, 'execute');
+  r := r || pg_temp.l(n = 8, 'X1 las 3 nuevas, el espejo, el enlace, el trigger de tipo y los dos disparadores del espejo: DEFINER, search_path vacio, sin EXECUTE para anon, authenticated ni public (' || n || ')');
   select count(*) into n from pg_proc p
    where p.oid in ('public.contrato_guarda(uuid,jsonb)'::regprocedure, 'public.comprador_ficha(uuid)'::regprocedure)
      and p.prosecdef and 'search_path=""' = any (p.proconfig)
@@ -255,7 +359,13 @@ begin
   r := r || pg_temp.l(n = 2, 'X2 contrato_guarda y comprador_ficha conservan DEFINER, search_path y permisos (authenticated si, anon no) (' || n || ')');
   select count(*) into n from pg_proc p where p.oid = 'public.contrato_guarda(uuid,jsonb)'::regprocedure
      and position('perform public._contrato_clientes_comprueba(p_id, v_datos);' in p.prosrc) between 1 and position('insert into public.contratos' in p.prosrc);
-  r := r || pg_temp.l(n = 1, 'X3 en contrato_guarda la comprobacion va ANTES de la primera escritura');
+  r := r || pg_temp.l(n = 1, 'X3 en contrato_guarda la comprobacion va ANTES de la primera escritura (alta: antes del insert)');
+  select count(*) into n from pg_proc p where p.oid = 'public.contrato_guarda(uuid,jsonb)'::regprocedure
+     and (length(p.prosrc) - length(replace(p.prosrc, 'perform public._contrato_clientes_comprueba(p_id, v_datos);', '')))
+         / length('perform public._contrato_clientes_comprueba(p_id, v_datos);') = 2
+     and strpos(substr(p.prosrc, strpos(p.prosrc, 'v_old.proyecto_nombre, v_old.proyecto_id))) then')), 'perform public._contrato_clientes_comprueba(p_id, v_datos);')
+         between 1 and strpos(substr(p.prosrc, strpos(p.prosrc, 'v_old.proyecto_nombre, v_old.proyecto_id))) then')), 'update public.contratos c');
+  r := r || pg_temp.l(n = 1, 'X3b ... y en la edicion va DESPUES del permiso sobre p_id (USING) y antes del update (B6)');
 
   raise exception 'FIN DE PRUEBAS ESPEJO CLIENTE VISIBLE (se deshace todo):%', r;
 end $todo$;

@@ -13,13 +13,13 @@ Por que es un .py y no un .sql: `--aplica` solo busca en supabase/migrations y c
 que se probaria la copia y no el fichero que se ejecutaria de verdad. Este modulo LEE el fichero real y lo ejecuta, en una sola
 transaccion que termina en raise (rollback): la rama se queda con la migracion aplicada, como estaba.
 
-Que afirma (una linea «→ ok» / «→ FALLA» cada una), para las 5 funciones que toca la migracion:
+Que afirma (una linea «→ ok» / «→ FALLA» cada una), para las 7 funciones que toca la migracion:
   - que la migracion estaba aplicada (su texto no era el del vivo): si no, la reversion no probaria nada;
   - que tras la reversion md5(pg_get_functiondef) es EL DEL VIVO SIN MIGRAR. Los md5 de abajo se leyeron del catalogo vivo de Lawang
     el 14-oct-2026 (solo lectura; Postgres 17.6, cuerpos en LF). Si alguien cambia una de esas funciones en el vivo despues de esa
     fecha, el md5 de aqui queda viejo: se vuelve a leer, no se «arregla» la reversion;
   - que los permisos quedan como en el vivo, rol por rol (no comparando proacl: revoke + grant lo reordena);
-y ademas que el trigger de tipo vuelve a saltar solo en INSERT, que las 2 funciones nuevas ya no existen y que el espejo responde.
+y ademas que el trigger de tipo vuelve a saltar solo en INSERT, que las 3 funciones nuevas ya no existen y que el espejo responde.
 No toca datos. No necesita filas (la rama no trae ninguna).
 
 MEDIDO en rama el 14-oct-2026 11:04-11:08 (estructura del volcado lawang_20261014_0931, migracion aplicada, rama borrada): 20/20.
@@ -33,13 +33,15 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 REVERSION = os.path.normpath(os.path.join(AQUI, '..', 'reversion_espejo_cliente_visible', 'REVERSION_espejo_cliente_visible.sql'))
 
 # (funcion, md5 de pg_get_functiondef en el vivo SIN la migracion, authenticated tiene EXECUTE en el vivo)
-# Leidos el 14-oct-2026; anon y public sin EXECUTE y service_role con EXECUTE en las cinco.
+# Leidos el 14-oct-2026; anon y public sin EXECUTE y service_role con EXECUTE en las siete.
 VIVO = [
     ('public.espeja_comprador(jsonb)',        'cc92681173d7d1d32211f7b3c3d277ff', False),
     ('public.sincronizar_compradores(uuid)',  '5d728f296ae1668fea3eedeca38129d2', False),
     ('public.contratos_tipo_permitido()',     '62b3e49068ea2432e5297b3864cf9481', True),
     ('public.contrato_guarda(uuid,jsonb)',    '0e498f541c55d71651882c6866caaac7', True),
     ('public.comprador_ficha(uuid)',          '509282e58c3f2c22aec3af25bfdac67c', True),
+    ('public.trg_espejo_comprador()',         'bbe93a24dd78b50f42e8f1ebb34c0ecb', False),
+    ('public.trg_cliente_actualizado()',      'dafee300019a9954d0ce507c8dd4bf8a', False),
 ]
 
 ANTES = r"""-- Prueba de la vuelta atras de espejo_cliente_visible (montada por espejo_vuelta.py): foto de ANTES, la reversion REAL y las comprobaciones.
@@ -79,10 +81,11 @@ begin
    where t.tgrelid = 'public.contratos'::regclass and t.tgname = 'trg_contratos_tipo_permitido' and t.tgenabled = 'O';
   r := r || pg_temp.l(d ~ 'BEFORE INSERT ON public\.contratos FOR EACH ROW' and d !~ 'UPDATE',
          'V4 el trigger de tipo vuelve a saltar solo en INSERT (' || coalesce(d, 'no existe o esta apagado') || ')');
-  r := r || pg_temp.l(to_regprocedure('public._cliente_ficha_visible(uuid)') is null and to_regprocedure('public._contrato_clientes_comprueba(uuid,jsonb)') is null,
-         'V5 las 2 funciones que creo la migracion ya no existen');
+  r := r || pg_temp.l(to_regprocedure('public._cliente_ficha_visible(uuid)') is null and to_regprocedure('public._contrato_clientes_comprueba(uuid,jsonb)') is null
+                      and to_regprocedure('public._espejo_autor_ve(uuid,text)') is null,
+         'V5 las 3 funciones que creo la migracion ya no existen');
   r := r || pg_temp.l((select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace
-                        and (p.prosrc ~ '_cliente_ficha_visible' or p.prosrc ~ '_contrato_clientes_comprueba')) = 0,
+                        and (p.prosrc ~ '_cliente_ficha_visible' or p.prosrc ~ '_contrato_clientes_comprueba' or p.prosrc ~ '_espejo_autor_ve')) = 0,
          'V6 ninguna funcion de public las nombra ya (no queda una llamada colgando)');
   r := r || pg_temp.l(public.espeja_comprador('{"fields": {"adq1_nombre": "ZZ-VUELTA"}}'::jsonb) = '{"fields": {"adq1_nombre": "ZZ-VUELTA"}}'::jsonb,
          'V7 el espejo restaurado responde (sin ficha devuelve los datos tal cual)');

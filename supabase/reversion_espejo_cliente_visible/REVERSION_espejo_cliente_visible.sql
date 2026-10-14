@@ -4,10 +4,11 @@
 -- un borrador) y deja el tipo de contrato sin comprobar al editar: SOLO con OK del owner, y avisando a Seguridad.
 -- Deja espeja_comprador, sincronizar_compradores y contratos_tipo_permitido con el texto EXACTO que tenian (el de las migraciones
 -- 20260819150732, 20260824111810 y 20260827000855, md5 igual al vivo el 14-oct), el trigger de tipo solo en INSERT, y quita de
--- contrato_guarda y comprador_ficha la linea que anadio el parche. Despues borra las dos funciones nuevas.
+-- contrato_guarda (las dos lineas: alta y edicion) y comprador_ficha la linea que anadio el parche, devuelve trg_espejo_comprador y
+-- trg_cliente_actualizado a su texto vivo, y despues borra las tres funciones nuevas.
 -- No toca datos: los contratos y enlaces guardados mientras estuvo aplicada se quedan como estan.
--- NO ensayada (no se ejecuta DDL en la base viva sin orden): se ensaya en la misma rama que la migracion, despues de su prueba.
--- destructivo-ok: reemplaza funciones y un trigger, y borra las 2 funciones que creo la migracion (sin datos)
+-- Ensayada en la misma rama que la migracion, despues de su prueba (supabase/pruebas/espejo_vuelta.py compara con el vivo).
+-- destructivo-ok: reemplaza funciones y un trigger, y borra las 3 funciones que creo la migracion (sin datos)
 
 create or replace function public.espeja_comprador(p_datos jsonb)
  returns jsonb
@@ -192,15 +193,22 @@ grant execute on function public.contratos_tipo_permitido() to authenticated;
 do $vuelta$
 declare
   v_def text;
-  c_linea constant text := E'\n  perform public._contrato_clientes_comprueba(p_id, v_datos);';
+  c_alta  constant text := 'perform public._contrato_clientes_comprueba(p_id, v_datos);' || E'\n    '
+                            || 'insert into public.contratos (tipo, comprador_nombre, proyecto_nombre, precio_total, moneda, fecha_firma,';
+  c_edic  constant text := E'\n    perform public._contrato_clientes_comprueba(p_id, v_datos);';
   c_nueva constant text := 'if not public\._cliente_ficha_visible\(p_id\) then\s+return;\s+end if;';
 begin
   select pg_get_functiondef('public.contrato_guarda(uuid,jsonb)'::regprocedure) into v_def;
   if position('_contrato_clientes_comprueba' in v_def) > 0 then
-    if position(c_linea in v_def) = 0 then
-      raise exception 'vuelta atras: contrato_guarda nombra _contrato_clientes_comprueba pero no con la linea del parche; se revisa a mano';
+    if position(c_alta in v_def) = 0 or position(c_edic in v_def) = 0 then
+      raise exception 'vuelta atras: contrato_guarda nombra _contrato_clientes_comprueba pero no con las dos lineas del parche; se revisa a mano';
     end if;
-    execute replace(v_def, c_linea, '');
+    v_def := replace(v_def, c_alta, 'insert into public.contratos (tipo, comprador_nombre, proyecto_nombre, precio_total, moneda, fecha_firma,');
+    v_def := replace(v_def, c_edic, '');
+    if position('_contrato_clientes_comprueba' in v_def) > 0 then
+      raise exception 'vuelta atras: contrato_guarda sigue nombrando _contrato_clientes_comprueba tras quitar el parche; se revisa a mano';
+    end if;
+    execute v_def;
   end if;
 
   select pg_get_functiondef('public.comprador_ficha(uuid)'::regprocedure) into v_def;
@@ -221,5 +229,76 @@ begin
   end if;
 end $vuelta$;
 
+-- Los dos disparadores del espejo, con el texto EXACTO del vivo del 14-oct (md5 bbe93a24dd78b50f42e8f1ebb34c0ecb y
+-- dafee300019a9954d0ce507c8dd4bf8a); sus permisos ya eran solo postgres y service_role, como los deja la migracion.
+create or replace function public.trg_espejo_comprador()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+begin
+  if coalesce(new.bloqueado, false) then return new; end if;
+  if exists (select 1 from public.contrato_firmas cf where cf.contrato_id = new.id) then return new; end if;
+  new.datos := public.espeja_comprador(new.datos);
+  return new;
+end $function$;
+
+create or replace function public.trg_cliente_actualizado()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+begin
+  if new.full_name is not distinct from old.full_name
+     and new.passport_number is not distinct from old.passport_number
+     and new.email          is not distinct from old.email
+     and new.phone          is not distinct from old.phone
+     and new.address        is not distinct from old.address
+     and new.nationality    is not distinct from old.nationality
+     and new.forma_juridica is not distinct from old.forma_juridica
+     and new.registro_num   is not distinct from old.registro_num
+     and new.rep_nombre     is not distinct from old.rep_nombre
+     and new.rep_cargo      is not distinct from old.rep_cargo
+     and new.tipo           is not distinct from old.tipo then
+    return new;
+  end if;
+
+  -- adq1_client_id es COLUMNA generada (espejo de datos->>'adq1_client_id'):
+  -- filtrar por la rama del jsonb descomprimía todos los contratos (timeout).
+  update public.contratos c
+     set datos = public.espeja_comprador(c.datos),
+         comprador_nombre = case
+           when jsonb_typeof(c.datos->'compradores') = 'array'
+                and jsonb_array_length(c.datos->'compradores') > 0
+             then c.comprador_nombre
+           else new.full_name end
+   where c.adq1_client_id = new.id
+     and not coalesce(c.bloqueado, false)
+     and not exists (select 1 from public.contrato_firmas cf where cf.contrato_id = c.id);
+
+  update public.facturas f
+     set cliente_nombre = new.full_name,
+         datos = jsonb_set(f.datos, '{fields}',
+                   coalesce(f.datos->'fields','{}'::jsonb) ||
+                   jsonb_strip_nulls(jsonb_build_object(
+                     'cliente_nombre',    new.full_name,
+                     'cliente_documento', new.passport_number,
+                     'cliente_email',     new.email,
+                     'cliente_domicilio', new.address)))
+   where f.client_id = new.id
+     and not coalesce(f.anulada, false) and not coalesce(f.enviada, false)
+     and coalesce(f.cliente_nombre,'') not like '%' || chr(183) || '%'
+     and not exists (
+       select 1 from public.contratos c
+        where c.id = f.contrato_id
+          and jsonb_typeof(c.datos->'compradores') = 'array'
+          and jsonb_array_length(c.datos->'compradores') > 0);
+
+  return new;
+end $function$;
+
+drop function if exists public._espejo_autor_ve(uuid, text);
 drop function if exists public._contrato_clientes_comprueba(uuid, jsonb);
 drop function if exists public._cliente_ficha_visible(uuid);
