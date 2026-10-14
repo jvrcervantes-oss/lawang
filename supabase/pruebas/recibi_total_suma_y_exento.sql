@@ -187,8 +187,8 @@ begin
     select datos into d from public.facturas where id = v::uuid;
     r := r || pg_temp.l(jsonb_array_length(d->'lineas') = 1
                         and d->'lineas'->0->>'descripcion' = 'Cobro de la factura ZZ-RT-F4 · Payment of invoice ZZ-RT-F4'
-                        and (d->'lineas'->0->>'importe')::numeric = 20,
-                        'L1 datos.lineas = la aplicada (1 linea de 20 con el texto de conceptoCobroRecibi), no la fabricada (' || left(d->>'lineas', 110) || ')');
+                        and d->'lineas'->0->>'importe' = '20.00' and jsonb_typeof(d->'lineas'->0->'importe') = 'string',
+                        'L1 datos.lineas = la aplicada (1 linea de «20.00» en texto con el texto de conceptoCobroRecibi), no la fabricada (' || left(d->>'lineas', 110) || ')');
     r := r || pg_temp.l(d->'fields'->'lineas' = d->'lineas', 'L2 datos.fields.lineas (la que prefiere el portal) es la misma');
     r := r || pg_temp.l((d->'totales'->>'total')::numeric = 20 and (d->'totales'->>'subtotal')::numeric = 20
                         and (d->'totales'->>'impuesto')::numeric = 0 and (d->'totales'->>'pct')::numeric = 0,

@@ -34,7 +34,8 @@
 --     el impuesto de datos.fields (documento.js:131 y :149; el portal prefiere fields.lineas, portal/index.html:5174). Todo eso
 --     llegaba del navegador: se podia guardar un recibi de 50 cuyo papel dijera 999.999. Ahora lo ESCRIBE el servidor desde lo
 --     aplicado: datos.lineas = datos.fields.lineas = una linea por factura con el texto de conceptoCobroRecibi (documento.js:40) y
---     el importe aplicado como numero ya redondeado; datos.totales = {subtotal, pct 0, impuesto 0, total} (la forma de
+--     el importe aplicado como TEXTO con los decimales de la moneda («100.50», «39220»: la pantalla clasica hace .trim() del
+--     importe, intranet/facturas/index.html:2325); datos.totales = {subtotal, pct 0, impuesto 0, total} (la forma de
 --     calcTotales, totales.js:98); fields.tipo = 'recibi' (sin eso el papel se titula «Factura») y fields.moneda = la del recibi.
 --     Lo que la pantalla mande en esas claves se ignora.
 --   A3 · IMPUESTO: un recibi no lleva impuesto: se quitan imp_pct, imp_etiqueta e impuestos_sel (el del catalogo, que
@@ -259,7 +260,9 @@ begin
     v_lineas := v_lineas || jsonb_build_array(jsonb_build_object(
       'descripcion', case when nullif(btrim(coalesce(v_factura_numero, '')), '') is null then 'Cobro · Payment'
                           else 'Cobro de la factura ' || btrim(v_factura_numero) || ' · Payment of invoice ' || btrim(v_factura_numero) end,
-      'importe', v_importe_aplic));
+      -- texto (no numero JSON): la pantalla clasica hace (l.importe || '').trim() (intranet/facturas/index.html:2325) y
+      -- con la escala ya fijada a los decimales de la moneda («100.50», «39220») lwParseImporte no lo lee como miles
+      'importe', v_importe_aplic::text));
   end loop;
 
   -- A4 (14-oct-2026): el total del recibi es la suma de lo que aplica; el de la pantalla solo se compara
