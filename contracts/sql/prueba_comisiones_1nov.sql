@@ -124,7 +124,9 @@ begin
 
   -- MONTAJE común (se deshace al final con todo lo demás)
   execute 'set local session_replication_role = replica';
-  update public.usuarios set activo = false where activo = true;
+  -- 14-oct-2026: el propietario no puede quedar inactivo (usuarios_propietario_check); se le quita la marca en la
+  -- misma transacción, que se deshace entera. Si quedara activo, el motor lo usaría de creado_por y gastaría la serie SP.
+  update public.usuarios set activo = false, es_propietario = false where activo = true;
   delete from public.comisiones_devengadas where contrato_raiz_id = v_raiz;
   delete from public.contrato_roles_equipo where contrato_raiz_id = v_raiz;
   update public.contratos set contrato_padre_id = v_raiz where id = v_cc84;
@@ -323,7 +325,10 @@ begin
   end;
 
   -- 10 · PRUEBA ROJA: con todo cuadrado el reconciliador no saca nada (si usara el precio total sacaría dos filas);
-  --      al alterar la condición (12 %) y la base del tramo de obra, TIENE que sacar diferencias
+  --      al alterar la condición (12 %) TIENE que sacar diferencias, cada una sobre SU base (7.080 parcela, 9.600 obra;
+  --      sobre el total serían iguales). Cambiar después la base VIVA del tramo de obra NO mueve el devengo que ya existe:
+  --      manda la base congelada en su snapshot (consulta de Backend, 13-oct; migración, apartado del reconciliador).
+  --      Corregido el 14-oct en el ensayo de la ventana: la expectativa vieja (7080,7080) era de antes de esa decisión.
   begin
     execute 'set local session_replication_role = replica';
     update public.contratos set precio_total = 36000 where id = v_cc85;
@@ -344,7 +349,7 @@ begin
     raise exception 'R:%', v_t;
   exception when others then
     r := r || '10 prueba roja=' || sqlerrm
-         || case when sqlerrm = 'R:cuadrado=0 | al 12%: 7080.00,9600.00 | obra sobre parcela: 7080.00,7080.00' then ' ok; ' else ' FALLO; ' end;
+         || case when sqlerrm = 'R:cuadrado=0 | al 12%: 7080.00,9600.00 | obra sobre parcela: 7080.00,9600.00' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- F8b · (revisión 13-oct, hallazgo 4) manager con 1 tramo y closer con 2, MISMA base (precio_total) → la plantilla
@@ -443,7 +448,8 @@ begin
       (select coalesce(ultimo_error like 'venta en mas de una moneda%' || v_raiz || ')', false) from public.comisiones_interruptor);
   exception when others then
     r := r || 'M2 contrato firmado en otra moneda=' || sqlerrm
-         || case when sqlerrm = 'R:59000/44000 cob 29500/0 multi=true|0|aviso=true' then ' ok; ' else ' FALLO; ' end;
+         -- `raise … %` escribe un boolean como «t» (salida de tipo), no «true»: corregido el 14-oct en el ensayo de la ventana
+         || case when sqlerrm = 'R:59000/44000 cob 29500/0 multi=true|0|aviso=t' then ' ok; ' else ' FALLO; ' end;
   end;
   -- M3 · (consulta de Backend, 13-oct) el aviso multimoneda NO tapa un error distinto sin resolver en ultimo_error
   begin

@@ -10,7 +10,9 @@ declare v_sp0 bigint; v_n int := 0; v_r uuid; v_h text; v_c int; v_det text;
 begin
   select last_value into v_sp0 from public.solicitudes_pago_numero_seq;
   execute 'set local session_replication_role = replica';
-  update public.usuarios set activo = false where activo = true;
+  -- 14-oct-2026: el propietario no puede quedar inactivo (usuarios_propietario_check); se le quita la marca en la
+  -- misma transacción, que se deshace entera. Si quedara activo, el motor lo usaría de creado_por y gastaría la serie SP.
+  update public.usuarios set activo = false, es_propietario = false where activo = true;
   execute 'set local session_replication_role = origin';
   create temp table _antes_ev on commit drop as select id from public.comisiones_devengadas;
   for v_r in select c.id from public.contratos c join public.contrato_closer k on k.contrato_id = c.id
