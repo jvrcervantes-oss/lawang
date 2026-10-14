@@ -19,6 +19,10 @@
  *
  * Afirma HECHOS contra TODOS los sitios donde viven, no funciones sueltas — el fallo caro de
  * este estudio es el mismo dato en varios sitios que se separan:
+ *   · que ficha se publica y que id vale: la tabla comun visibles_esperados.json, la misma que afirman
+ *     assets/lawang-card.test.js (navegador) y test_publicar_data.py (14-oct-2026)
+ *   · api/save.php no guarda lo que no tiene forma de catalogo: la regla a solas y el fichero ENTERO ejecutado en
+ *     un arbol temporal (422 sin tocar data.json; 400, 401 y 405 como antes) (14-oct-2026)
  *   · ids de lw_coleccion() == ids del sitemap == ids que thecollection.php acepta (404 al resto)
  *   · con la fuente caida: cache vieja (stale) y luego respaldo (stale); nunca fatal
  *   · una clave prohibida hace FALLAR la fuente (log ruidoso) y no llega a la salida
@@ -77,6 +81,165 @@ ok(isset($r['properties'][0]['priceEUR'], $r['properties'][0]['extras']), 'las c
 ok(array_keys($r['settings']) === ['rates', 'whatsapp', 'email'] || array_diff(array_keys($r['settings']), ['rates', 'whatsapp', 'email']) === [], 'settings solo con claves permitidas');
 ok(!isset($r['settings']['clave_interna']), 'una clave de settings fuera de contrato se descarta');
 ok(array_keys($r) === ['properties', 'settings', 'downloads'], 'la salida es solo {properties, settings, downloads}');
+
+// ── 1b. QUE FICHA SE PUBLICA y QUE ID VALE: la tabla comun (14-oct-2026) ───────────────────
+// La MISMA tabla la afirman assets/lawang-card.test.js (LawangCard.publicada y esPublicada de admin.html) y
+// coleccion/tests/test_publicar_data.py (ID_VALIDO y _visibles): una regla, cuatro implementaciones. Antes el
+// navegador pintaba «todo lo que no sea false» y aqui «solo true»; y el `$` de PCRE aceptaba "cube\n".
+$tablaVis = json_decode((string) file_get_contents(__DIR__ . '/visibles_esperados.json'), true);
+ok(is_array($tablaVis) &&count($tablaVis['fichas'] ?? []) >= 15 && count($tablaVis['ids'] ?? []) >= 15 && strlen($tablaVis['id_permitidos'] ?? '') === 63,
+   'la tabla comun de visibles (visibles_esperados.json) se lee y trae sus casos');
+$esperadas = [];
+foreach ($tablaVis['fichas'] as $c) {
+    ok(lw_coleccion_publicada($c['ficha']) === $c['publicada'], "publicada ({$c['nota']}): dio " . var_export(lw_coleccion_publicada($c['ficha']), true));
+    if ($c['publicada']) $esperadas[] = $c['ficha']['id'];
+}
+foreach ($tablaVis['ids'] as $c) {
+    ok(lw_coleccion_id_valido($c['id']) === $c['valido'], 'id ' . json_encode($c['id']) . ' valido=' . var_export($c['valido'], true));
+}
+for ($n = 0; $n < 256; $n++) {
+    ok(lw_coleccion_id_valido('a' . chr($n) . 'b') === (strpos($tablaVis['id_permitidos'], chr($n)) !== false), "caracter $n dentro de un id");
+}
+// y el filtro real (lo que sale por lw_coleccion) deja pasar exactamente las que la tabla dice
+$r = lw_coleccion_aplica_contrato(['properties' => array_map(function ($c) { return $c['ficha']; }, $tablaVis['fichas'])], cfg($tmp)['contrato']);
+ok(ids($r) === $esperadas && count($esperadas) === 2, 'lw_coleccion_aplica_contrato publica solo las de la tabla: ' . json_encode(ids($r)));
+
+// ── 1c. api/save.php: la FORMA del catalogo, ANTES de escribir (14-oct-2026) ───────────────
+// Hasta ese dia solo rechazaba lo que no era JSON: `[]`, un numero o un objeto sin `properties` se guardaban como
+// catalogo y dejaban la web sin fichas. (a) la regla, a solas; (b) api/save.php ENTERO, en un arbol temporal.
+$SECRETO = 'CONTENIDO-QUE-NO-DEBE-SALIR';
+$f = function ($id, array $extra = []) use ($SECRETO) { return ['id' => $id, 'title' => ['en' => $SECRETO]] + $extra; };
+$forma = function ($json) { return lw_coleccion_forma_invalida(json_decode($json, true)); }; // como save.php: decodifica y valida
+$validos = [
+    'catalogo normal'               => json_encode(['settings' => [], 'properties' => [$f('uno', ['visible' => true]), $f('dos', ['visible' => false])], 'downloads' => []]),
+    'ficha sin la clave visible'    => json_encode(['properties' => [$f('uno')]]),
+    'sin propiedades (el panel lo publica a proposito, tras confirmar)' => '{"properties":[]}',
+    'el respaldo versionado'        => (string) file_get_contents(dirname(__DIR__) . '/respaldo.json'),
+    'clave prohibida en una ficha OCULTA (nunca se publica)' => json_encode(['properties' => [$f('uno', ['visible' => true]), $f('dos', ['visible' => false, 'notas' => $SECRETO])]]),
+];
+foreach ($validos as $nombre => $json) ok($forma($json) === null, "save: «$nombre» es un catalogo valido: " . var_export($forma($json), true));
+$invalidos = [
+    'lista vacia `[]`'              => ['[]', 'properties'],
+    'un numero'                     => ['5', 'properties'],
+    'un texto'                      => ['"hola"', 'properties'],
+    'true'                          => ['true', 'properties'],
+    'objeto sin properties'         => ['{"settings":{},"downloads":{}}', 'properties'],
+    'una lista de catalogos'        => ['[{"properties":[]}]', 'properties'],
+    'properties null'               => ['{"properties":null}', 'must be a list'],
+    'properties texto'              => ['{"properties":"no"}', 'must be a list'],
+    'properties objeto con nombres' => [json_encode(['properties' => ['uno' => $f('uno')]]), 'must be a list'],
+    'una entrada que no es ficha'   => [json_encode(['properties' => [$f('uno'), 'texto']]), '#2 is not an object'],
+    'ficha sin id'                  => [json_encode(['properties' => [['title' => ['en' => $SECRETO]]]]), '#1 has no valid id'],
+    'ficha que es una lista'        => ['{"properties":[[1,2]]}', '#1 has no valid id'],
+    'id repetido'                   => [json_encode(['properties' => [$f('uno'), $f('dos'), $f('uno')]]), '#3 repeats the id of property #1'],
+    'visible "true" en texto'       => [json_encode(['properties' => [$f('uno', ['visible' => 'true'])]]), '#1: "visible" must be true or false'],
+    'visible null'                  => [json_encode(['properties' => [$f('uno', ['visible' => null])]]), '#1: "visible" must be true or false'],
+    'visible 1'                     => [json_encode(['properties' => [$f('uno'), $f('dos', ['visible' => 1])]]), '#2: "visible" must be true or false'],
+    'visible 0'                     => [json_encode(['properties' => [$f('uno', ['visible' => 0])]]), '#1: "visible" must be true or false'],
+    // lo que la lectura publica rechazaria entero (la web se quedaria en cache vieja diciendo el panel «publicado»)
+    'clave prohibida en una ficha publicada' => [json_encode(['properties' => [$f('uno', ['visible' => true, 'notas' => $SECRETO])]]), 'must never be public'],
+    'clave prohibida anidada'       => [json_encode(['properties' => [$f('uno', ['visible' => true, 'extras' => [['name' => 'x', 'comision_pct' => $SECRETO]]])]]), 'must never be public'],
+    'clave prohibida en downloads'  => [json_encode(['properties' => [$f('uno', ['visible' => true])], 'downloads' => ['x' => [['iban' => $SECRETO]]]]), 'must never be public'],
+];
+foreach ($tablaVis['ids'] as $c) {   // los ids de la tabla comun: lo que la web no publicaria, save.php no lo guarda
+    $json = json_encode(['properties' => [['id' => $c['id'], 'visible' => true]]]);
+    if ($c['valido']) ok($forma($json) === null, 'save: id ' . json_encode($c['id']) . ' se acepta');
+    else $invalidos['id ' . json_encode($c['id'])] = [$json, '#1 has no valid id'];
+}
+foreach ($invalidos as $nombre => $caso) {
+    $e = $forma($caso[0]);
+    ok(is_string($e) && strpos($e, $caso[1]) !== false, "save: «$nombre» se rechaza diciendo «{$caso[1]}»: " . var_export($e, true));
+    ok(is_string($e) && strpos($e, $SECRETO) === false && strpos($e, 'mal id') === false, "save: el rechazo de «$nombre» no vuelca contenido");
+}
+
+// (b) api/save.php de verdad: copia de api/config.php + api/save.php + coleccion/lib.php en un arbol temporal, con su
+// .passhash de mentira y su data.json. Sin servidor ni red: un proceso php por caso con la cabecera de origen, la sesion
+// y php://input simulados. Afirma lo que importa: QUE responde y SI el data.json cambio.
+$sitio = $tmp . '/sitio';
+foreach (['/api', '/coleccion', '/sesiones'] as $d) @mkdir($sitio . $d, 0777, true);
+copy($RAIZ . '/api/config.php', $sitio . '/api/config.php');
+copy($RAIZ . '/api/save.php', $sitio . '/api/save.php');
+copy($RAIZ . '/coleccion/lib.php', $sitio . '/coleccion/lib.php');
+copy($RAIZ . '/coleccion/contrato_publico.json', $sitio . '/coleccion/contrato_publico.json'); // sin el, save.php rechaza todo (falla cerrado)
+file_put_contents($sitio . '/api/.passhash', '$2y$10$hashdementirasolovaleparaqueconfigphpnocorte');
+$ANTES = '{"properties":[{"id":"antes","visible":true}]}';
+file_put_contents($sitio . '/api/corre_save.php', <<<'PHP'
+<?php
+// Arnes de coleccion_test.php: ejecuta api/save.php con una peticion simulada. argv: cuerpo.json, 1|0 (con sesion), metodo.
+class EntradaFalsa {   // php://input en CLI esta vacio: se sustituye el envoltorio `php` por el cuerpo de la prueba
+    public static $cuerpo = ''; public $context; private $pos = 0;
+    public function stream_open() { $this->pos = 0; return true; }
+    public function stream_read($n) { $r = substr(self::$cuerpo, $this->pos, $n); $this->pos += strlen($r); return $r; }
+    public function stream_eof() { return $this->pos >= strlen(self::$cuerpo); }
+    public function stream_stat() { return []; }
+}
+EntradaFalsa::$cuerpo = (string) file_get_contents($argv[1]);
+ini_set('session.save_path', dirname(__DIR__) . '/sesiones');
+if ($argv[2] === '1') {   // una sesion ya iniciada, como la deja api/auth.php tras el login
+    session_id('lwpruebasave');
+    session_start();
+    $_SESSION['lawang_auth'] = true;
+    session_write_close();
+}
+$_SERVER['REQUEST_METHOD'] = $argv[3];
+$_SERVER['HTTP_HOST'] = 'lawang.test';
+$_SERVER['HTTP_ORIGIN'] = 'https://lawang.test';
+$_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/save.php';
+register_shutdown_function(function () { echo "\n#", (int) http_response_code(); });
+stream_wrapper_unregister('php');
+stream_wrapper_register('php', 'EntradaFalsa');
+require __DIR__ . '/save.php';
+PHP
+);
+$guarda = function ($cuerpo, $sesion = true, $metodo = 'POST') use ($sitio, $ANTES) {
+    file_put_contents($sitio . '/data.json', $ANTES);
+    file_put_contents($sitio . '/cuerpo.json', $cuerpo);
+    $out = corre([$sitio . '/api/corre_save.php', $sitio . '/cuerpo.json', $sesion ? '1' : '0', $metodo], null, $sitio . '/api');
+    $p = strrpos($out, "\n#");
+    return ['resp' => json_decode(substr($out, 0, (int) $p), true), 'codigo' => (int) substr($out, (int) $p + 2), 'crudo' => $out,
+            'escrito' => (string) file_get_contents($sitio . '/data.json'), 'tmp' => (bool) glob($sitio . '/data.json*.tmp')];
+};
+$bueno = json_encode(['settings' => ['whatsapp' => '62811'], 'properties' => [$f('uno', ['visible' => true]), $f('dos', ['visible' => false])], 'downloads' => []]);
+$r = $guarda($bueno);
+ok(($r['resp']['ok'] ?? null) === true && $r['codigo'] !== 422, 'save.php: un catalogo valido se guarda (ok): ' . $r['crudo']);
+ok(json_decode($r['escrito'], true) === json_decode($bueno, true) && !$r['tmp'], 'save.php: lo escrito es el catalogo enviado, sin dejar el .tmp');
+$r = $guarda('{"properties":[]}');
+ok(($r['resp']['ok'] ?? null) === true && json_decode($r['escrito'], true) === ['properties' => []], 'save.php: «sin propiedades» se sigue pudiendo publicar: ' . $r['crudo']);
+foreach (['lista vacia `[]`', 'un numero', 'objeto sin properties', 'id repetido', 'visible "true" en texto', 'ficha sin id', 'id "uno\n"', 'clave prohibida en una ficha publicada'] as $nombre) {
+    ok(isset($invalidos[$nombre]), "save.php: el caso «$nombre» existe en la lista de invalidos");
+    $r = $guarda($invalidos[$nombre][0]);
+    ok($r['codigo'] === 422 && ($r['resp']['ok'] ?? null) === false && strpos((string) ($r['resp']['error'] ?? ''), 'Invalid catalogue: ') === 0,
+       "save.php: «$nombre» responde 422 con su motivo: " . $r['crudo']);
+    ok($r['escrito'] === $ANTES && !$r['tmp'], "save.php: «$nombre» NO toca data.json ni deja un .tmp");
+    ok(strpos($r['crudo'], $SECRETO) === false, "save.php: el 422 de «$nombre» no vuelca contenido");
+}
+$r = $guarda('esto no es json');
+ok($r['codigo'] === 400 && $r['escrito'] === $ANTES, 'save.php: lo que no es JSON sigue siendo 400 y no se escribe: ' . $r['crudo']);
+$r = $guarda($bueno, false);
+ok($r['codigo'] === 401 && $r['escrito'] === $ANTES, 'save.php: sin sesion sigue siendo 401 y no se escribe (la validacion no se adelanta a la sesion): ' . $r['crudo']);
+$r = $guarda('[]', false);
+ok($r['codigo'] === 401 && strpos($r['crudo'], 'Invalid catalogue') === false, 'save.php: sin sesion no se dice nada de la forma del catalogo: ' . $r['crudo']);
+$r = $guarda($bueno, true, 'GET');
+ok($r['codigo'] === 405 && $r['escrito'] === $ANTES, 'save.php: GET sigue siendo 405: ' . $r['crudo']);
+// El disco falla al final (data.json es una carpeta: el rename no puede): 500, nunca «ok», y sin dejar el .tmp.
+// Antes el resultado del rename no se miraba y el panel decia «publicado» con el catalogo viejo en la web.
+@unlink($sitio . '/data.json');
+mkdir($sitio . '/data.json');
+file_put_contents($sitio . '/cuerpo.json', $bueno);
+$out = corre([$sitio . '/api/corre_save.php', $sitio . '/cuerpo.json', '1', 'POST'], null, $sitio . '/api');
+ok(strpos($out, '"ok":false') !== false && strpos($out, '"ok":true') === false && substr($out, -4) === '#500',
+   'save.php: si no se puede dejar el fichero en su sitio responde 500, no ok: ' . substr($out, -160));
+ok(!glob($sitio . '/data.json*.tmp') && is_dir($sitio . '/data.json'), 'save.php: tras ese fallo no queda ningun data.json.*.tmp');
+// limpieza del arbol temporal, tambien si un caso de arriba fallo y dejo algo a medias (un .tmp, la carpeta data.json)
+$borra = function ($ruta) use (&$borra) {
+    if (is_dir($ruta) && !is_link($ruta)) {
+        foreach (array_diff(scandir($ruta) ?: [], ['.', '..']) as $x) $borra($ruta . '/' . $x);
+        @rmdir($ruta);
+    } else {
+        @unlink($ruta);
+    }
+};
+$borra($sitio);
 
 // ── 2. Claves prohibidas: la fuente FALLA, a cualquier profundidad, sin importar mayusculas ─
 $prohibidas = ['notas', 'contrato_id', 'iban', 'email', 'comprador', 'agente', 'precio_suelo', 'precio_construccion',

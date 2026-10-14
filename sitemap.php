@@ -21,7 +21,7 @@ $urls = [
     ['loc' => $SITE . '/thesoul',       'lastmod' => '2026-10-08', 'freq' => 'monthly', 'pri' => '0.7'],
     ['loc' => $SITE . '/portfolio',     'lastmod' => '2026-09-23', 'freq' => 'weekly', 'pri' => '0.8'],
     ['loc' => $SITE . '/legal',         'lastmod' => '2026-10-14', 'freq' => 'yearly', 'pri' => '0.3'],
-    ['loc' => $SITE . '/legal-es',      'lastmod' => '2026-10-13', 'freq' => 'yearly', 'pri' => '0.3'],
+    ['loc' => $SITE . '/legal-es',      'lastmod' => '2026-10-14', 'freq' => 'yearly', 'pri' => '0.3'],
     ['loc' => $SITE . '/accessibility', 'lastmod' => '2026-07-28', 'freq' => 'yearly', 'pri' => '0.3'],
 ];
 

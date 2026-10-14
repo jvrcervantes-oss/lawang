@@ -82,6 +82,21 @@
   }
   function pick(obj, lang) { return obj ? (obj[lang] || obj.en) : ''; }
 
+  /* ── ¿Se publica esta ficha? (14-oct-2026) ───────────────────────────────────────────────────
+     LA regla de «qué se ve», una sola: `visible` exactamente true Y un id de letras, cifras y guion. Ni "true",
+     ni 1, ni la clave ausente: lo que no dice que sí, no sale. Su gemela en servidor es lw_coleccion_publicada()
+     (coleccion/lib.php) y los dos tests afirman la MISMA tabla (coleccion/tests/visibles_esperados.json).
+     Hasta ese día el navegador pintaba todo lo que no fuera exactamente false (tres sitios de portfolio-app.js,
+     index.html y admin.html) y el servidor solo lo que era true: coincidían porque el catálogo publicado estaba
+     bien formado. Ahora portfolio-app.js filtra UNA vez, al cargar, con esta función; index.html no filtra (su
+     endpoint, api/coleccion.php, ya sale filtrado del servidor) y admin.html tiene su `esPublicada` para la
+     casilla. assets/lawang-card.test.js falla si reaparece una comparación de `visible` con false en el
+     navegador o si la de admin.html se separa de esta. */
+  var ID_FICHA = /^[A-Za-z0-9-]+$/;   // en JS (sin bandera m) `$` es el final de verdad: "cube\n" no pasa
+  function publicada(p) {
+    return !!p && typeof p === 'object' && p.visible === true && typeof p.id === 'string' && ID_FICHA.test(p.id);
+  }
+
   /* ── Estado de unidades (F7, 6-oct-2026) ─────────────────────────────────────────────────────
      UNA regla, derivada SOLO de p.parcelas (la lista del dueño, tiempo casi real). Su gemela en servidor es
      lw_coleccion_estado() (coleccion/lib.php); los dos tests afirman la MISMA tabla (estados_esperados.json).
@@ -191,5 +206,5 @@
   }
 
   window.LawangCard = { render: render, themeFor: themeFor, money: money, viewFor: viewFor, VIEW_LABEL: VIEW_LABEL,
-    estado: estado, chipInfo: chipInfo, stTxt: stTxt, showFrom: showFrom };
+    estado: estado, chipInfo: chipInfo, stTxt: stTxt, showFrom: showFrom, publicada: publicada };
 })();

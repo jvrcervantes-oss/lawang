@@ -123,6 +123,76 @@ function lw_coleccion_busca_prohibidas($v, array $c, $donde) {
 }
 
 /**
+ * El id de una ficha: letras, cifras y guion. UNA expresión en PHP para esta lectura, para el slug de
+ * thecollection.php y para lo que acepta guardar api/save.php. Sus gemelas fuera de PHP: ID_VALIDO en
+ * publicar_data.py y LawangCard.publicada en assets/lawang-card.js; los tres tests afirman la MISMA tabla
+ * (coleccion/tests/visibles_esperados.json), carácter a carácter: si una cambia y las otras no, el gate falla.
+ * `\z` y no `$` (14-oct-2026): en PCRE `$` casa también justo antes de un salto de línea final, así que
+ * "cube\n" era un id válido aquí y no lo era ni en Python (fullmatch) ni en JavaScript.
+ */
+const LW_COLECCION_ID_RE = '/^[A-Za-z0-9-]+\z/';
+
+function lw_coleccion_id_valido($id) {
+    return is_string($id) && preg_match(LW_COLECCION_ID_RE, $id) === 1;
+}
+
+/**
+ * ¿Se publica esta ficha? LA regla de «qué se ve», una sola (14-oct-2026): `visible` exactamente true Y un id
+ * válido. Ni "true", ni 1, ni la clave ausente: lo que no dice que sí, no sale. Su gemela en el navegador es
+ * LawangCard.publicada (la rejilla de /thecollection y el panel de admin.html), que hasta ese día pintaba todo
+ * lo que no fuera exactamente `false`; las dos afirman coleccion/tests/visibles_esperados.json.
+ */
+function lw_coleccion_publicada($p) {
+    return is_array($p) && ($p['visible'] ?? null) === true && lw_coleccion_id_valido($p['id'] ?? null);
+}
+
+/**
+ * ¿Tiene este documento la FORMA de un catálogo que se puede guardar? Devuelve null si la tiene, o una frase (en
+ * inglés: la enseña el panel de admin.html) que dice QUÉ ficha, por su posición, y QUÉ regla incumple. Nunca
+ * devuelve contenido del documento. La llama api/save.php ANTES de escribir data.json (14-oct-2026): hasta ese
+ * día solo rechazaba lo que no era JSON, así que `[]`, un número o un objeto sin `properties` se guardaban como
+ * catálogo y dejaban la web sin fichas.
+ *   · el documento es un objeto con `properties`, y `properties` es una lista. Vacía vale: el panel publica «sin
+ *     propiedades» a propósito, tras confirmarlo;
+ *   · cada entrada es una ficha con un id que cumple lw_coleccion_id_valido (la misma regla que la publica);
+ *   · `visible`, si viene, es true o false. Ni null, ni "true", ni 1: la web solo publica true, y una ficha así
+ *     quedaría oculta sin que nadie lo hubiera decidido;
+ *   · no hay dos fichas con el mismo id (no se sabría cuál es cuál: ni el panel, ni /property/<id>).
+ * Recibe el documento decodificado como ARRAY (json_decode($body, true)), que es exactamente lo que save.php
+ * vuelve a codificar y escribe: se valida lo que se guarda, no otra lectura del cuerpo. Función pura.
+ */
+function lw_coleccion_forma_invalida($doc) {
+    if (!is_array($doc) || !array_key_exists('properties', $doc)) {
+        return 'the catalogue must be an object with a "properties" list';
+    }
+    if (!is_array($doc['properties'])) return '"properties" must be a list';
+    $n = 0;
+    $vistos = [];
+    foreach ($doc['properties'] as $k => $p) {
+        if ($k !== $n) return '"properties" must be a list'; // claves 0,1,2… en orden: una lista, no un objeto con nombres
+        $n++;
+        if (!is_array($p)) return "property #$n is not an object";
+        if (!lw_coleccion_id_valido($p['id'] ?? null)) {
+            return "property #$n has no valid id (letters, digits and hyphens only)";
+        }
+        if (isset($vistos[$p['id']])) return "property #$n repeats the id of property #" . $vistos[$p['id']];
+        $vistos[$p['id']] = $n;
+        if (array_key_exists('visible', $p) && !is_bool($p['visible'])) {
+            return "property #$n: \"visible\" must be true or false";
+        }
+    }
+    // Lo que la lectura publica rechazaria entero (code-review, 14-oct-2026): una clave PROHIBIDA (notas, email,
+    // iban…) en una ficha publicada o en downloads hace fallar la fuente y la web se queda sirviendo cache vieja o
+    // el respaldo, sin fecha de fin, mientras el panel dice «publicado». Se rechaza aqui, con el mismo contrato.
+    try {
+        lw_coleccion_aplica_contrato($doc);
+    } catch (RuntimeException $e) {
+        return 'a published property or the downloads carry a field that must never be public (see coleccion/contrato_publico.json)';
+    }
+    return null;
+}
+
+/**
  * Filtra un documento al contrato público. Entrada: {properties, settings, downloads, ...}.
  * Salida: solo {properties (visible===true, solo claves de la lista blanca), settings (solo las
  * permitidas), downloads}. Lanza RuntimeException si hay claves prohibidas o la forma no vale.
@@ -136,9 +206,8 @@ function lw_coleccion_aplica_contrato($doc, $rutaContrato = null) {
     $blanca = array_flip($c['ficha']);
     $props = [];
     foreach ($doc['properties'] as $p) {
-        if (!is_array($p) || ($p['visible'] ?? null) !== true) continue; // el UNICO filtro de visibilidad
-        $id = $p['id'] ?? '';
-        if (!is_string($id) || !preg_match('/^[A-Za-z0-9-]+$/', $id)) continue; // misma regla que acepta thecollection.php
+        if (!lw_coleccion_publicada($p)) continue; // el UNICO filtro de visibilidad (visible === true e id válido)
+        $id = $p['id'];
         lw_coleccion_busca_prohibidas($p, $c, 'ficha ' . $id);
         $props[] = array_intersect_key($p, $blanca);
     }
