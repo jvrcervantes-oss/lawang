@@ -14,6 +14,20 @@
 --     inflar sin justificante (revisor, 15-oct). La exencion sale SOLO de la fila guardada y bloqueada (v_viejo), nunca del payload
 --     ni de una fecha. Un recibi nuevo sigue exigiendo justificante. Medido el 14-oct: 12 recibis vivos con la marca y sin
 --     justificante. Por eso la comprobacion de «sin justificante» va DESPUES de calcular el total (A4).
+--     CAMBIOS DE SEGURIDAD (consulta de deploy, 15-oct-2026), dos huecos de la exencion:
+--     (1) La exencion exige ademas que la fila guardada SIGA sin justificante (justificantes = '[]' y justificante_path vacio).
+--         Hueco: con un justificante adjunto la comprobacion de «sin justificante» no corre, asi que se podian cambiar total,
+--         contrato y moneda (caso H6); una 2.a llamada SIN justificante con esos valores nuevos coincidia con la fila guardada y
+--         pasaba -> un recibi inflado o movido de contrato que se queda sin justificante y con la marca LAW-40. LAW-40 solo marco
+--         filas con justificante_path is null (20261010163654:131-132) y justificantes es jsonb not null default '[]'
+--         (20260824101413:9); el espejo trg_espejo_justificante (20260824101413:20-22) no borra justificante_path cuando
+--         justificantes vuelve a '[]', por eso se miran los dos. Caso H7.
+--     (2) Un historico SIN justificante solo salda facturas de SU contrato (v_otro_contrato). Hueco: por la rama
+--         contratos_mismo_comprador podia saldar facturas de otro contrato del mismo comprador, y _contrato_cobrado_interno
+--         cuenta por f.contrato_id: creaba cobrado sin evidencia en el otro contrato (puede marcar la parcela vendida y mover
+--         comisiones). La misma marca cierra, con la exencion activa, los caminos de super_admin a factura huerfana y a otro
+--         comprador (v_factura_contrato null o distinto tambien es «otro contrato»). Con justificante esos caminos siguen igual.
+--         Caso H8 (y H8b, su SI). El rechazo va antes del insert/update; la exencion solo existe al EDITAR (p_id), que no numera.
 --   A1 · NUMERACION: TODAS las aplicaciones se validan antes del insert, para que un rechazo no gaste numero (nextval de
 --     facturas_recibi_seq en trg_set_factura_numero, 20260917082716_facturas_emisor_congelado_y_permisos.sql:60). Reduce los
 --     huecos, no los evita (nextval se gasta igual si falla algo despues). registra_privilegio va despues de escribir (necesita el
@@ -54,6 +68,25 @@
 --   sesion 1014-2159 (solo lectura): guardar_recibi(uuid,jsonb,jsonb) 43a4c655711c0ef218b670ebe01c1585. Si ya no tiene ese md5 ni
 --   lleva este arreglo, el bloque $antes$ lanza y no se aplica NADA. Idempotente. create or replace conserva dueno y permisos
 --   (authenticated si, anon no, service_role si, medido el 14-oct); el bloque $cierre$ lo comprueba.
+-- ANTES DE APLICAR EN LA VIVA (pendiente: congelacion del owner del 15-oct; las dos en SOLO LECTURA, columnas acotadas, nunca
+--   contratos entero):
+--   (a) REC00015 cuelga del contrato de INV00212 (RP00025). Con el cambio (2) el historico sin justificante solo salda facturas
+--       de su contrato: si no coinciden, la operacion LAW-614 que eligio el owner (REC00015 -> INV00212, 39.220) se rechazaria.
+--         select (select contrato_id from public.facturas where numero = 'REC00015' and tipo = 'recibi')
+--              = (select id from public.contratos where numero = 'RP00025') as rec_en_rp25,
+--                (select contrato_id from public.facturas where numero = 'INV00212' and tipo = 'factura')
+--              = (select id from public.contratos where numero = 'RP00025') as inv_en_rp25;
+--       Las dos tienen que dar true. Si no: NO se aplica tal cual; la alternativa es, en vez de rechazar, dejar pasar el otro
+--       contrato del mismo comprador con rastro: registra_privilegio(v_contrato_id, 'cobro_historico_otro_contrato', ...) (y
+--       decide el owner si eso vale solo para super_admin).
+--   (b) La escritura directa sobre facturas sigue cerrada (la exencion se fia de la fila guardada; si un usuario pudiera
+--       vaciar justificantes o cambiar contrato_id por PostgREST, se saltaria guardar_recibi entero):
+--         select has_table_privilege('authenticated', 'public.facturas', 'INSERT') as ins,
+--                has_table_privilege('authenticated', 'public.facturas', 'UPDATE') as upd,
+--                has_table_privilege('authenticated', 'public.facturas', 'DELETE') as del;   -- las tres false
+--         select policyname, cmd, roles from pg_policies
+--          where schemaname = 'public' and tablename = 'facturas' and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL'); -- 0 filas
+--       Si alguna da true o hay politica de escritura: se para y se cierra antes (Seguridad).
 -- REVERTIR: supabase/reversion_recibi_total_suma_y_exento/REVERSION.sql (el texto vivo de antes, tal cual).
 -- Prueba: supabase/pruebas/recibi_total_suma_y_exento.sql (crea contratos y documentos: SOLO en rama):
 --   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261014223000_recibi_total_suma_y_exento.sql
@@ -95,6 +128,7 @@ declare
   v_viejo public.facturas%rowtype;
   -- 14-oct-2026 (bloque A + C3 + fallo 1) y 15-oct-2026 (2.a vuelta del revisor)
   v_exento boolean := false;
+  v_otro_contrato boolean := false;   -- 15-oct-2026 (Seguridad): alguna factura no es del contrato del recibi
   v_moneda text := p_factura->>'moneda';
   v_dec int := public.lw_decimales(p_factura->>'moneda');
   v_total numeric := 0;
@@ -153,8 +187,11 @@ begin
         coalesce(v_viejo.numero, '?') using errcode = '23514';
     end if;
     -- LAW-40 (fallo 1, 14-oct-2026): la exencion de justificante sale SOLO de la marca de la fila guardada; abajo, tras
-    -- calcular el total, solo vale si total, contrato y moneda son los guardados (15-oct-2026)
-    v_exento := coalesce(v_viejo.historico_sin_justificante, false);
+    -- calcular el total, solo vale si total, contrato y moneda son los guardados (15-oct-2026), y solo mientras la fila
+    -- guardada SIGA sin justificante (15-oct-2026, Seguridad: si ya se le adjunto uno, ya no es el historico de LAW-40)
+    v_exento := coalesce(v_viejo.historico_sin_justificante, false)
+                and v_viejo.justificantes = '[]'::jsonb
+                and nullif(v_viejo.justificante_path, '') is null;
   end if;
 
   v_justificantes := case when jsonb_typeof(p_factura->'justificantes') = 'array'
@@ -243,6 +280,11 @@ begin
           using errcode = '23514';
       end if;
     end if;
+    -- 15-oct-2026 (Seguridad): huerfana, otro comprador u otro contrato del mismo comprador. Un historico SIN justificante
+    -- no salda nada fuera de su contrato (se mira abajo, junto al resto de la exencion)
+    if v_factura_contrato is distinct from v_contrato_id then
+      v_otro_contrato := true;
+    end if;
 
     -- al editar, lo ya aplicado por ESTE recibi no cuenta como cobrado de antes
     select f.total - coalesce((select sum(ra.importe_aplicado) from public.recibi_aplicaciones ra
@@ -275,15 +317,17 @@ begin
       coalesce(v_total_pantalla::text, 'vacío'), v_total using errcode = '23514';
   end if;
 
-  -- Fallo 1 (LAW-40), con limite (15-oct-2026): sin justificante solo un historico que se guarda con SU total, contrato y moneda
+  -- Fallo 1 (LAW-40), con limite (15-oct-2026): sin justificante solo un historico que se guarda con SU total, contrato y moneda,
+  -- y sobre facturas de SU contrato (Seguridad, 15-oct-2026)
   if jsonb_array_length(v_justificantes) = 0 then
     if not v_exento then
       raise exception 'el recibi necesita un justificante de pago adjunto' using errcode = '23514';
     end if;
     if round(v_viejo.total, v_dec) is distinct from v_total
        or v_viejo.contrato_id is distinct from v_contrato_id
-       or v_viejo.moneda is distinct from v_moneda then
-      raise exception 'el recibí histórico % no tiene justificante: solo se puede aplicar por su total guardado (% %) y en su contrato. Para cambiar el importe, adjunta el justificante.',
+       or v_viejo.moneda is distinct from v_moneda
+       or v_otro_contrato then
+      raise exception 'el recibí histórico % no tiene justificante: solo se puede aplicar por su total guardado (% %) y sobre facturas de su contrato. Para cambiar el importe o aplicarlo a otro contrato, adjunta el justificante.',
         coalesce(v_viejo.numero, '?'), v_viejo.total, coalesce(v_viejo.moneda, '') using errcode = '23514';
     end if;
   end if;

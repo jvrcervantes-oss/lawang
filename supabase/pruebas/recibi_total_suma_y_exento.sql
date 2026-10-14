@@ -5,6 +5,10 @@
 -- ignoran), el historico sin justificante solo con su mismo total (H5), la moneda y la tolerancia se miran antes de numerar (M:
 -- la serie facturas_recibi_seq NO se mueve en un rechazo; con el codigo de antes la frenaba el disparador con el numero gastado),
 -- repetidas comparadas como uuid (A1d).
+-- Cambios de Seguridad (consulta de deploy, 15-oct): la exencion solo mientras la fila guardada SIGA sin justificante (H7: tras
+-- H6, que le adjunta uno y la sube a 500, guardarla sin justificante con 500 se rechaza) y un historico sin justificante solo
+-- salda facturas de SU contrato (H8: otro contrato del MISMO comprador se rechaza; H8b su SI con una factura de su contrato;
+-- H8c con justificante el otro contrato del mismo comprador sigue entrando).
 -- Rol REAL: cada llamada va con `set local role authenticated` y los claims de la persona (pg_temp.val, armazon de
 -- cf_borrar_cierre_anula.sql). Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- !! CREA CONTRATOS Y DOCUMENTOS (gasta numeracion): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
@@ -50,7 +54,7 @@ do $todo$
 declare
   r text := ''; v text; n bigint; s0 text;
   a _tp; ae _tp;
-  pL uuid; k1 uuid; k2 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f8 uuid; r1 uuid; rh uuid; rh2 uuid; ro uuid;
+  pL uuid; k1 uuid; k2 uuid; k3 uuid; k4 uuid; f9 uuid; f10 uuid; rh3 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f8 uuid; r1 uuid; rh uuid; rh2 uuid; ro uuid;
   d jsonb;
   j  constant jsonb := '[{"path": "zz-rt/justificante.pdf"}]';
   c_emp constant text := 'zz_rt';
@@ -106,6 +110,18 @@ begin
       values ('ZZ-RT-K2', 'contrato_general', pL, 'IDR', 100000, '{"hitos":[]}', a.em) returning id into k2;
     insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
       values ('factura', 'ZZ-RT-F6', 'zz_rt', k2, 1000, 'IDR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f6;
+    -- Seguridad (15-oct): dos contratos EUR del MISMO comprador (mismo adq1_email, contrato_identificadores), un historico sin
+    -- justificante en K3, una factura en K3 (F10) y otra en K4 (F9)
+    insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
+      values ('ZZ-RT-K3', 'contrato_general', pL, 'EUR', 100000, '{"hitos":[], "fields": {"adq1_email": "zz-rt-comprador@prueba.invalid"}}', a.em) returning id into k3;
+    insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
+      values ('ZZ-RT-K4', 'contrato_general', pL, 'EUR', 100000, '{"hitos":[], "fields": {"adq1_email": "zz-rt-comprador@prueba.invalid"}}', a.em) returning id into k4;
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos, historico_sin_justificante, created_at)
+      values ('recibi', 'ZZ-RT-RH3', 'zz_rt', k3, 400, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb, true, '2026-07-01 10:00+00') returning id into rh3;
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+      values ('factura', 'ZZ-RT-F10', 'zz_rt', k3, 400, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f10;
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+      values ('factura', 'ZZ-RT-F9', 'zz_rt', k4, 400, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f9;
   exception when others then
     raise exception using message = replace(c_fin, '%', pg_temp.l(false, 'P0 montaje: ' || sqlstate || ' ' || left(sqlerrm, 300)));
   end;
@@ -247,6 +263,32 @@ begin
   v := pg_temp.guarda(a.uid, a.em, rh2, pg_temp.rec(k1, '500', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f8, 'importe', 500)));
   r := r || pg_temp.l(v = rh2::text and (select total from public.facturas where id = rh2) = 500,
                       'H6 con justificante el mismo historico si cambia a 500 (' || left(v, 70) || ')');
+  -- Seguridad (15-oct), cambio 1: tras H6 la fila ya tiene justificante; guardarla SIN el con los valores nuevos (500) coincidia
+  -- con la fila guardada y pasaba (recibi inflado que se quedaba sin justificante y con la marca LAW-40)
+  v := pg_temp.guarda(a.uid, a.em, rh2, pg_temp.rec(k1, '500', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f8, 'importe', 500)));
+  r := r || pg_temp.l(v like 'ERR23514:el recibi necesita un justificante%'
+                      and (select total from public.facturas where id = rh2) = 500
+                      and (select jsonb_array_length(justificantes) from public.facturas where id = rh2) = 1
+                      and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh2) = 500,
+                      'H7 un historico que ya tiene justificante no se guarda sin el: se rechaza y sigue con su justificante y sus 500 (' || left(v, 70) || ')');
+
+  -- Seguridad (15-oct), cambio 2: un historico sin justificante solo salda facturas de SU contrato
+  r := r || pg_temp.l(k3 <> k4 and public.contratos_mismo_comprador(k3, k4),
+                      'H8pre K3 y K4 son contratos distintos del MISMO comprador (si no, H8 probaria la rama de otro comprador)');
+  s0 := pg_temp.serie();
+  v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f9, 'importe', 400)));
+  r := r || pg_temp.l(v like 'ERR23514:el recib% hist%rico ZZ-RT-RH3 no tiene justificante%sobre facturas de su contrato%'
+                      and not exists (select 1 from public.recibi_aplicaciones where recibi_id = rh3)
+                      and pg_temp.serie() = s0,
+                      'H8 un historico sin justificante no salda una factura de OTRO contrato del mismo comprador: se rechaza, no aplica nada y no gasta numero (' || left(v, 70) || ')');
+  v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f10, 'importe', 400)));
+  r := r || pg_temp.l(v = rh3::text
+                      and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh3 and factura_id = f10) = 400,
+                      'H8b el mismo historico sin justificante, a una factura de SU contrato, entra (' || left(v, 70) || ')');
+  v := pg_temp.guarda(a.uid, a.em, rh3, pg_temp.rec(k3, '400', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f9, 'importe', 400)));
+  r := r || pg_temp.l(v = rh3::text
+                      and (select coalesce(sum(importe_aplicado), 0) from public.recibi_aplicaciones where recibi_id = rh3 and factura_id = f9) = 400,
+                      'H8c con justificante, el otro contrato del mismo comprador sigue entrando (' || left(v, 70) || ')');
 
   raise exception using message = replace(c_fin, '%', r);
 end $todo$;
