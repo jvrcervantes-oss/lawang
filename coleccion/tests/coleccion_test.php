@@ -3,6 +3,20 @@
  * Autochequeo de la lectura unica de The Collection:  php coleccion/tests/coleccion_test.php
  * (lo corre tools/test.py: tests/*_test.php, sale con 1 si algo falla). Solo CLI.
  *
+ * QUE NO COMPRUEBA SIN CATALOGO (14-oct-2026). data.json esta en .gitignore: no lo tienen ni las copias de sesion
+ * ni la copia que monta el control (tools/test.py), asi que EN EL CONTROL el apartado 7b no corre NUNCA. Sin el,
+ * este verde NO dice:
+ *   · que la lista blanca (contrato_publico.json) cubra todas las claves de las fichas visibles publicadas hoy
+ *     (una clave nueva escrita desde el panel se recortaria en silencio y cambiaria un render);
+ *   · que lw_coleccion() devuelva exactamente las visibles del catalogo real.
+ * Todo lo demas (contrato, niveles, fuente envenenada, ids en los tres sitios) corre con datos sinteticos y con
+ * el respaldo versionado. Sin catalogo acaba en «OK PARCIAL» y sale con 0: no puede ser un rojo donde lo normal
+ * es no tener el fichero. Con `--exige-catalogo` sale con 3. ESA OPCION HOY NO LA LLAMA NADIE: esta para un
+ * trabajo CON RED y fuera del control de push, que baje el data.json publicado y corra esto contra el. Para
+ * eso falta ademas que 7b lea el catalogo de una ruta configurable (hoy solo mira la raiz del proyecto). Y el
+ * data.json del clon principal NO vale como dato real: el 14-oct era una copia del 7-ago (por eso existe el
+ * freno de publicar_data.py).
+ *
  * Afirma HECHOS contra TODOS los sitios donde viven, no funciones sueltas — el fallo caro de
  * este estudio es el mismo dato en varios sitios que se separan:
  *   · ids de lw_coleccion() == ids del sitemap == ids que thecollection.php acepta (404 al resto)
@@ -305,6 +319,7 @@ if (is_array($resp)) {
 }
 // (b) si hay un data.json local (produccion o copia), TODAS las claves de sus visibles estan en la lista blanca
 $real = $RAIZ . '/data.json';
+$sinCatalogo = false;
 if (is_file($real)) {
     $dj = json_decode((string) file_get_contents($real), true);
     $con = lw_coleccion_contrato($RAIZ . '/coleccion/contrato_publico.json');
@@ -318,7 +333,13 @@ if (is_file($real)) {
     $real_ids = ids(lw_coleccion_carga(cfg($tmp, ['datajson' => $real, 'cache' => $tmp . '/real_cache.json'])));
     ok($real_ids === $esperadoReal, 'con el data.json real, lw_coleccion() devuelve exactamente sus visibles');
 } else {
-    echo "(sin data.json local: se salta la comprobacion contra datos reales)\n";
+    // 14-oct-2026. Este apartado es el unico que mira datos reales, y sin catalogo no corre. Hasta hoy lo decia
+    // entre parentesis y la prueba acababa en el mismo «OK» de siempre: en el control (tools/test.py solo ensena la
+    // salida de lo que falla) se leia igual que haberlo comprobado. Las copias de sesion NO tienen data.json
+    // (esta en .gitignore), asi que ahi esto es lo normal y no puede ser un rojo: se dice con nombre aqui y en la
+    // ultima linea, y el codigo de salida solo lo distingue (3) si se pide con --exige-catalogo.
+    $sinCatalogo = true;
+    echo "AVISO sin catalogo: apartado de datos reales NO ejecutado (7b: no hay data.json en la raiz del proyecto).\n";
 }
 
 // ── 8. F7: estado de unidades, v2 sin credenciales de base, noscript y JSON-LD desde lw_coleccion ──────────
@@ -390,4 +411,9 @@ foreach (array_merge(glob($tmp . '/*') ?: [], glob($tmp . '/.*') ?: []) as $f) i
 @rmdir($tmp);
 
 if ($fallos) { echo "\n$fallos FALLO(S)\n"; exit(1); }
+if ($sinCatalogo) {
+    echo "OK PARCIAL: lo demas en verde; sin catalogo: apartado de datos reales NO ejecutado "
+       . "(no se ha comprobado que la lista blanca cubra las fichas publicadas hoy, ni que lw_coleccion() devuelva sus visibles).\n";
+    exit(in_array('--exige-catalogo', $argv, true) ? 3 : 0);
+}
 echo "OK: lectura unica de The Collection (contrato, niveles, fuente envenenada, ids en los tres sitios).\n";

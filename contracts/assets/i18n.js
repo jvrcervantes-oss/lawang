@@ -4644,6 +4644,14 @@
     'sin equipo': 'no team',
     'solo sale quien no está en ningún equipo; entra con fecha de hoy y administración recibe un aviso': 'only people in no team are listed; they join with today\'s date and admin is notified',
     '— elige a alguien sin equipo —': '— choose someone with no team —',
+    // comisiones con base por tramo (desde el 1-nov-2026): opciones de la base y datos de la comisión vinculada
+    'Precio firmado de la parcela': 'Signed plot price',
+    'Precio firmado de la construcción': 'Signed construction price',
+    'Según cada tramo': 'Set per instalment',
+    '«Según cada tramo»: cada pago dice sobre qué precio se calcula (p. ej. el 10 % del precio firmado de la parcela al cobrar el 50 % de la parcela, y el 10 % del de la construcción al cobrar el 25 % de la construcción)':
+      '“Set per instalment”: each payment says which price it is worked out on (e.g. 10% of the signed plot price once 50% of the plot is collected, and 10% of the signed construction price once 25% of the construction is collected)',
+    'Calculada sobre': 'Worked out on',
+    'Momento del pago': 'When it is paid',
     // Asistente de Nuevo contrato (F7, 30-sep-2026): contracts/assets/asistente-contrato.js
     'Al guardarlo vuelves aquí con él elegido.': 'Once saved you come back here with them selected.',
     'Atrás': 'Back',
@@ -5652,21 +5660,24 @@
     'Pasar la ficha de %n a %m': 'Hand over the record of %n to %m',
     'Ficha traspasada a %n': 'Record handed over to %n',
     /* Traspaso que siempre arrastra (13-oct-2026): resumen y avisos. */
-    'Quien la reciba se lleva también sus contratos, facturas y recibís, firmados y anulados incluidos. Los que están a nombre de otro comprador no se mueven.':
-      'Whoever receives it also takes their contracts, invoices and receipts, signed and voided ones included. Those in another buyer’s name do not move.',
-    '%m se lleva la ficha, todos sus contratos (también los que comparte con otros compradores) y sus facturas y recibís: los de cualquier autor, los firmados y los anulados. Las facturas y recibís a nombre de otro comprador se quedan con quien los lleva. Queda apuntado quién lo hizo, cuándo y el motivo.':
-      '%m takes the record, all of its contracts (including those shared with other buyers) and its invoices and receipts: by any author, signed and voided ones included. Invoices and receipts in another buyer’s name stay with whoever handles them. Who did it, when and why is recorded.',
+    'Quien la reciba se lleva también sus contratos, facturas y recibís, firmados y anulados incluidos. No se mueven los contratos que comparte con un comprador de otro agente, ni lo que está a nombre de otro comprador.':
+      'Whoever receives it also takes their contracts, invoices and receipts, signed and voided ones included. Contracts shared with a buyer handled by another agent do not move, nor does anything in another buyer’s name.',
+    '%m se lleva la ficha, sus contratos y sus facturas y recibís: los de cualquier autor, los firmados y los anulados. Los contratos que comparte con un comprador de otro agente se quedan como están, con sus facturas y recibís, y lo que está a nombre de otro comprador se queda con quien lo lleva. Queda apuntado quién lo hizo, cuándo y el motivo.':
+      '%m takes the record, its contracts and its invoices and receipts: by any author, signed and voided ones included. Contracts shared with a buyer handled by another agent stay as they are, with their invoices and receipts, and anything in another buyer’s name stays with whoever handles it. Who did it, when and why is recorded.',
     'Las comisiones no cambian: siguen siendo de quien cerró cada venta.': 'Commissions do not change: they still belong to whoever closed each sale.',
     'Contratos movidos: %a.': 'Contracts moved: %a.',
     'Facturas y recibís movidos: %a (%b anulados).': 'Invoices and receipts moved: %a (%b voided).',
     '%n contratos firmados no se han movido.': '%n signed contracts were not moved.',
-    '%n contratos de otro autor no se han movido.': '%n contracts by another author were not moved.',
+    '%n contratos compartidos con un comprador de otro agente no se han movido. Para moverlos, traspasa también la ficha de ese otro comprador, o pásalos a mano desde el contrato.':
+      '%n contracts shared with a buyer handled by another agent were not moved. To move them, also hand over that other buyer’s record, or reassign them manually from the contract.',
     '%n contratos sin autor no se han movido.': '%n contracts without an author were not moved.',
-    '%n facturas o recibís a nombre de otro comprador del mismo contrato se quedan con quien los lleva.': '%n invoices or receipts in the name of another buyer on the same contract stay with whoever handles them.',
+    '%n facturas o recibís no se han movido: están a nombre de otro comprador o cuelgan de un contrato compartido que se queda.': '%n invoices or receipts were not moved: they are in another buyer’s name or belong to a shared contract that stays.',
     '%n facturas o recibís sin autor no se han movido.': '%n invoices or receipts without an author were not moved.',
     '%n facturas emitidas se quedan con su autor (una emitida no se reasigna).': '%n issued invoices keep their author (an issued invoice is not reassigned).',
     'No se ha podido confirmar el traspaso: recarga la ficha para ver de quién es antes de repetirlo.': 'The handover could not be confirmed: reload the record to see who owns it before trying again.',
     'No se pudo traspasar': 'Could not hand over',
+    'Otra persona está traspasando a otro comprador de un mismo contrato. Espera unos segundos y repítelo.':
+      'Someone else is handing over another buyer of the same contract. Wait a few seconds and try again.',
     'Borrar la ficha de %n': 'Delete the record of %n',
     'Se borra la ficha y sus documentos KYC del archivo privado, si los tuviera.': 'The record is deleted, along with its KYC documents in the private archive, if any.',
     'Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide y te dice cuál — esta acción es para %b.': 'If it is linked to a contract or has portal access, the system blocks it and tells you which — this action is for %b.',

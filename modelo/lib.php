@@ -151,6 +151,27 @@ function lw_modelo_precio_desde(array $m, $proyecto = null) {
 }
 
 /**
+ * ¿Se indexa la ficha /modelo/<id>? LA regla, una sola vez (14-oct-2026): se indexa la ficha
+ * publicable que tiene precio cerrado; sin precio no hay nada que un buscador deba enseñar.
+ *
+ * La leen los DOS sitios que tienen que decir lo mismo y que antes la repetían cada uno a su
+ * manera, unidos solo por un comentario:
+ *   · modelo/index.php — si es false, pinta `<meta name="robots" content="noindex, nofollow">`;
+ *   · sitemap.php      — solo lista las fichas para las que es true.
+ * (modelo/v1.php no la usa: la ficha archivada lleva noindex fijo, tenga o no precio.)
+ * Porqué: un noindex fijo arrastrado al publicar la v2 tuvo 20 días a las fichas pidiendo a
+ * Google no salir mientras el sitemap las listaba, y nada lo detectó. Lo afirma contra los
+ * tres sitios `modelo/tests/indexable_test.php` (lo lanza el control: tests/*_test.php).
+ *
+ * $m = lo que devuelve lw_modelo_get(); null (modelo que no se puede publicar) nunca es
+ * indexable. El precio es el mismo «desde» que enseña la ficha: lw_modelo_precio_desde()
+ * sin proyecto, es decir, solo techos que una página genérica puede ofrecer.
+ */
+function lw_modelo_indexable(?array $m) {
+    return $m !== null && lw_precio_fmt(lw_modelo_precio_desde($m)) !== null;
+}
+
+/**
  * La frase «N precios completos, no un suplemento» de la sección de techos y del paso del
  * configurador. Con 2 techos devuelve EXACTAMENTE el texto de siempre (i18n-landing.js lo
  * traduce por su literal); con otro número, una frase que no cuenta — decir «Two» con tres
