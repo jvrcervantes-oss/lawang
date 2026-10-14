@@ -14,7 +14,8 @@
 -- 10a cambio el 14-oct-2026 (migracion 20261014024234_cobro_primero_parcela): con Bloqueo de Parcela con precio, el
 -- suelo se mide contra el precio de CONTRATO, asi que subir el de catalogo ya NO baja la parcela (owner: «usa el
 -- precio del contrato, no el del catalogo»). Pasada ese dia en produccion sin el paso 7 (lleva DELETE y necesita la
--- marca del owner): todo lo demas como se espera.
+-- marca del owner): todo lo demas como se espera. El 14-oct a las ~21:50, con la marca y el permiso del owner, pasada
+-- ENTERA en produccion (paso 7 incluido): 16 de 16 sin MAL; despues REC00158 vivo, C5 «vendida», SH-189 «cobrada».
 
 do $$
 declare
