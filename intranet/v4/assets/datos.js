@@ -3213,7 +3213,7 @@
               }).join('');
               sc.insertAdjacentHTML('beforeend',
                 H.nota(tx('Esta persona tiene %n contratos en total; aquí ves %m.', { n: '<b>' + todos.length + '</b>', m: '<b>' + (todos.length - ajenos.length) + '</b>' }) + ' ' +
-                       esc(tx('Los que no ves son de otro comercial: sus cifras no entran en esta ficha.')), true) +
+                       esc(tx('Los que no ves son de otro agente: sus cifras no entran en esta ficha.')), true) +
                 '<ul style="margin:0 0 0 18px;padding:0;font-size:12.5px;color:#2E3437;display:grid;gap:4px">' + lis + '</ul>' +
                 (ajenos.some(function (x) { return x.bloqueado; })
                   ? H.nota('Un contrato firmado, sea de quien sea, congela esta ficha: desde entonces solo la corrige un administrador.')
@@ -3222,7 +3222,7 @@
             var h4 = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > h4');
             if (h4) h4.textContent = tx('Estado de cuentas de tus contratos');
             var scu = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > div');
-            if (scu) scu.insertAdjacentHTML('afterbegin', H.nota('Solo suma tus contratos: los de otros comerciales no entran en estas cifras.'));
+            if (scu) scu.insertAdjacentHTML('afterbegin', H.nota('Solo suma tus contratos: los de otros agentes no entran en estas cifras.'));
           });
 
           /* Traspaso: wiring de los controles que seccionResponsable() acaba de

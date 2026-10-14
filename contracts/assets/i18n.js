@@ -641,7 +641,6 @@
     'Las fotos se suben desde Proyectos. «Solo render» se puede usar, pero la pieza sale marcada como imagen ilustrativa.': 'Photos are uploaded from Projects. «Render only» can be used, but the piece is marked as an illustrative image.',
     'Las páginas actuales se reemplazan por las que salen de la base. Si quieres conservarlas, guárdalo antes.': 'The current pages are replaced by the ones built from the database. To keep them, save it first.',
     'Las páginas salen de lo dado de alta en la intranet: fotos del proyecto, parcelas disponibles, modelos con su precio «desde» y la página «Cómo se compra» de Legal. Sustituye el dossier abierto.': 'The pages come from what is in the intranet: project photos, available plots, models with their «from» price and Legal\'s «How to buy» page. It replaces the open dossier.',
-    'Las piezas y los dossiers guardados, con su estado. Lo aprobado lo descargan los comerciales.': 'Saved pieces and dossiers, with their status. Sales agents download what is approved.',
     'Material por proyecto': 'Material by project',
     'Modelos que se ofrecen': 'Models on offer',
     'Montar': 'Build',
@@ -657,7 +656,6 @@
     'Página «Cómo se compra» añadida ✓': '«How to buy» page added ✓',
     'Parcela marcada sobre la aérea': 'Plot marked on the aerial',
     'Piezas': 'Pieces',
-    'Piezas para redes y dossiers de cada proyecto, hechos con las fotos y los datos dados de alta en la intranet. Lo aprobado lo pueden descargar los comerciales.': 'Social pieces and dossiers for each project, made with the photos and data in the intranet. Sales agents can download what is approved.',
     'Plano anotado': 'Annotated plan',
     'Portada': 'Cover',
     'proyectos sin una foto real': 'projects without a real photo',
@@ -1193,7 +1191,7 @@
     'Falta precio': 'Price missing',
     'Firma caduca en < 48 h': 'Signature expires in < 48 h',
     'liberada': 'released',
-    'en firma': 'out for signature',
+    'en firma': 'out for signing',
     'reabierto': 'reopened',
     'Todavía no hay operaciones.': 'No operations yet.',
     'A cuenta del cliente': 'On account of the client',
@@ -2077,7 +2075,7 @@
     'Enlace sin enviar': 'Link not sent',
     'Aviso de anulación sin enviar': 'Cancellation notice not sent',
     'El enlace de firma existe pero su correo no ha salido. Para mandarlo ya: «Enviar a firma» → Enviar por email.':
-      'The signing link exists but its email has not gone out. To send it now: "Send for signature" → Send by email.',
+      'The signing link exists but its email has not gone out. To send it now: "Send for signing" → Send by email.',
     'aviso más': 'more alert',
     'avisos más': 'more alerts',
     'Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.':
@@ -2143,8 +2141,8 @@
     'Facturas, proformas y recibís, cada tipo con su serie.':
       'Invoices, proformas and receipts, each type with its own series.',
     'Justificantes de pago y señales.': 'Proof of payment and deposits.',
-    'Pagos que piden los comerciales — comisiones y acordados: quién pide qué, y en qué quedó cada uno.':
-      'Payments the reps request — commissions and agreed payments: who asked for what, and how each one ended.',
+    'Pagos que piden los agentes — comisiones y acordados: quién pide qué, y en qué quedó cada uno.':
+      'Payments the agents request — commissions and agreed payments: who asked for what, and how each one ended.',
     'Inventario de parcelas y villas con su estado de venta, por proyecto.':
       'Inventory of plots and villas with their sales status, by project.',
     'La misma base de parcelas y villas, en tarjetas por proyecto con el estado de cuentas. En pruebas junto a Proyectos.':
@@ -2161,10 +2159,8 @@
     /* ---------- Operaciones (el seguimiento de cada venta) ----------
        «Operación» aquí es UNA VENTA con todo lo que cuelga de ella: contrato,
        facturas, firmas y obra. En inglés es «deal», no «operation». */
-    'Buscar cliente, proyecto, operador o nº…': 'Search client, project, agent or no.…',
     'Tabla': 'Table',
     'Embudo': 'Funnel',
-    'Operador': 'Agent',
     'Precio': 'Price',
     'Precio pactado': 'Agreed price',
     'Situación': 'Where it stands',
@@ -2384,12 +2380,12 @@
     // comprador compartido entre closers (22-sep-2026): la ficha dice lo que no enseña
     'Estado de cuentas de tus contratos': 'Account status of your contracts',
     'Esta persona tiene %n contratos en total; aquí ves %v.': 'This person has %n contracts in total; you can see %v here.',
-    'Los que no ves son de otro comercial: sus cifras no entran en esta ficha.': 'The ones you can’t see belong to another agent: their figures are not part of this record.',
+    'Los que no ves son de otro agente: sus cifras no entran en esta ficha.': 'The ones you can’t see belong to another agent: their figures are not part of this record.',
     'de %a': 'by %a',
     'No se pudo leer la ficha del comprador: ': 'Could not read the buyer’s record: ',
     // directorio de clientes global (7-oct-2026): ficha básica en solo lectura
-    'Esa ficha es de otra empresa o de otro comercial: no puedes usarla en un contrato desde tu cuenta. Pídele a un administrador que lo haga.': 'That record belongs to another company or another agent: you can’t use it in a contract from your account. Ask an administrator to do it.',
-    'Esa ficha ya no existe o no está a tu alcance (es de otra empresa o de otro comercial): empieza el contrato buscando a otro cliente': 'That record no longer exists or is out of your reach (it belongs to another company or another agent): start the contract by searching for another client',
+    'Esa ficha es de otra empresa o de otro agente: no puedes usarla en un contrato desde tu cuenta. Pídele a un administrador que lo haga.': 'That record belongs to another company or another agent: you can’t use it in a contract from your account. Ask an administrator to do it.',
+    'Esa ficha ya no existe o no está a tu alcance (es de otra empresa o de otro agente): empieza el contrato buscando a otro cliente': 'That record no longer exists or is out of your reach (it belongs to another company or another agent): start the contract by searching for another client',
     'Ficha básica': 'Basic record',
     'Ficha básica de cliente': 'Basic client record',
     'Ficha básica de empresa cliente': 'Basic company-client record',
@@ -2400,7 +2396,7 @@
     'sin identificación': 'no ID',
     'Nadie · ficha antigua': 'Nobody · old record',
     'nadie (sin autor)': 'nobody (no author)',
-    'Solo suma tus contratos: los de otros comerciales no entran en estas cifras.': 'Adds up only your contracts: other agents’ contracts are not included in these figures.',
+    'Solo suma tus contratos: los de otros agentes no entran en estas cifras.': 'Adds up only your contracts: other agents’ contracts are not included in these figures.',
     'Un contrato firmado, sea de quien sea, congela esta ficha: desde entonces solo la corrige un administrador.': 'A signed contract, whoever made it, freezes this record: from then on only an administrator can correct it.',
     'Contrato · unidad': 'Contract · unit',
     'Avance de pago por proyecto': 'Payment progress by project',
@@ -2473,7 +2469,6 @@
     'Rejilla': 'Grid',
     'Carpetas': 'Folders',
     'Todavía no hay proyectos': 'No projects yet',
-    'Da de alta uno con «+ Nuevo proyecto», arriba.': 'Create one with “+ New project”, above.',
     'Créala con «+ Nueva unidad», o cárgalas de la tabla de precios del proyecto.':
       'Create one with “+ New unit”, or load them from the project’s price table.',
     'sin modelo': 'no model',
@@ -2543,9 +2538,6 @@
     'El código no puede quedar vacío': 'The code cannot be empty',
     'Ya hay una unidad con ese código en ese proyecto.': 'There is already a unit with that code in that project.',
     'no tienes permiso para guardar unidades': 'you have no permission to save units',
-    'Elige un proyecto (o da uno de alta con «+ Nuevo proyecto…»)':
-      'Choose a project (or create one with “+ New project…”)',
-    '+ Nuevo proyecto…': '+ New project…',
     '+ Nuevo tipo…': '+ New type…',
     'Da de alta el tipo nuevo antes de guardar': 'Create the new type before saving',
     'Nombre del proyecto': 'Project name',
@@ -4786,7 +4778,6 @@
     'Arrendamiento del terreno ante notario.': 'Land lease before a notary.',
     'Con un colaborador o una agencia.': 'With a collaborator or an agency.',
     'Sin descuento': 'No discount',
-    'Sin equipo': 'No team',
     'No estás en ningún equipo de venta': 'You are not in any sales team',
     'Solo salen las ventas que puedes ver. Cliente y parcela se heredan.': 'Only the sales you can see are listed. Client and plot are inherited.',
     'Solo ves los tipos que tienes permitidos.': 'You only see the types you are allowed to issue.',
@@ -5600,7 +5591,7 @@
     'Abrir calendario de tesorería': 'Open treasury calendar',
     'Firmas pendientes': 'Pending signatures',
     'contratos esperando la firma del cliente': 'contracts awaiting the client’s signature',
-    '+%n con el enlace caducado: ya no cuentan como «en firma»': '+%n with an expired link: no longer counted as «out for signature»',
+    '+%n con el enlace caducado: ya no cuentan como «en firma»': '+%n with an expired link: no longer counted as «out for signing»',
     'Verlos en Operaciones': 'See them in Operations',
     'Facturación & Proformas': 'Invoicing & Pro formas',
     // Clientes (lista y ficha)
@@ -5838,7 +5829,7 @@
     'Anuladas': 'Voided',
     'Anular %n': 'Void %n',
     'Autor reasignado a %n': 'Author reassigned to %n',
-    'Borrador: falta enviarlo a firma.': 'Draft: it still has to be sent for signature.',
+    'Borrador: falta enviarlo a firma.': 'Draft: it still has to be sent for signing.',
     'Borrar %n': 'Delete %n',
     'Borrar de todos modos': 'Delete anyway',
     'Borrarla deja un %b que habrá que explicarle a un contable. No hay papelera.': 'Deleting it leaves a %b that will have to be explained to an accountant. There is no recycle bin.',
@@ -5896,7 +5887,7 @@
     'Firma a medias: ya firmó %h (%f de %t), pero el siguiente no tiene enlace de firma vivo. Genera su enlace desde el contrato.': 'Half signed: %h already signed (%f of %t), but the next signer has no live signing link. Generate their link from the contract.',
     'Este contrato tiene %n parcelas reservadas a la vez (%l). Liberar una marcaría el contrato entero como liberado y dejaría el resto sin forma de soltarlas. Este caso no está cubierto todavía — pide a Desarrollo que la libere a mano.': 'This contract has %n plots reserved at once (%l). Releasing one would mark the whole contract as released and leave no way to free the rest. This case is not covered yet — ask Development to release it by hand.',
     'Este documento ya se envió': 'This document was already sent',
-    'Este enlace no se guardó (es anterior al 1-sep): genéralo de nuevo desde «Enviar a firma» en la herramienta de contratos.': 'This link was not saved (it is from before 1 Sep): generate it again from «Send for signature» in the contracts tool.',
+    'Este enlace no se guardó (es anterior al 1-sep): genéralo de nuevo desde «Enviar a firma» en la herramienta de contratos.': 'This link was not saved (it is from before 1 Sep): generate it again from «Send for signing» in the contracts tool.',
     'Este recibí no tiene justificante adjunto. Se adjunta desde la herramienta viva.': 'This receipt has no proof of payment attached. It is attached from the live tool.',
     'Facturas y recibís (%n)': 'Invoices and receipts (%n)',
     'Fecha de firma': 'Signing date',
@@ -5954,7 +5945,7 @@
     'Reserva prorrogada: ahora vence el %f.': 'Reservation extended: it now expires on %f.',
     'Resumen de la venta': 'Sale summary',
     'Se emitirá una factura rectificativa que anula esta. Las dos quedan en el registro con su número, y la rectificativa es el documento que hay que enviar al cliente.': 'A credit note that voids this one will be issued. Both stay in the register with their number, and the credit note is the document to send to the client.',
-    'Se reabrió después de firmarse: hay que volver a enviarlo a firma.': 'It was reopened after being signed: it has to be sent for signature again.',
+    'Se reabrió después de firmarse: hay que volver a enviarlo a firma.': 'It was reopened after being signed: it has to be sent for signing again.',
     'Siguiente firmante': 'Next signer',
     'Siguiente paso': 'Next step',
     'Sin calendario de pagos registrado.': 'No payment schedule recorded.',
