@@ -1,6 +1,6 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
 -- Descuento comercial de Construcción: dos huecos de la base que encontró Seguridad (14-oct-2026) al abrir el descuento
--- al agente (20261014193000). Ya existían con sales_manager; ahora los alcanza cualquier agente.
+-- al agente (20261014120710). Ya existían con sales_manager; ahora los alcanza cualquier agente.
 --  (a) Motivo: solo lo exigía la pantalla; descuento_comercial_suelo_valido sí lo exige en la base, construccion_valido no.
 --  (b) Sin techo: v_base queda NULL y `v_base > 0` dejaba pasar cualquier descuento sin tope (62 de 107 contratos de
 --      Construcción no tienen techo). Ahora el tope se mide sobre precio_total + descuento (el precio antes de rebajar),

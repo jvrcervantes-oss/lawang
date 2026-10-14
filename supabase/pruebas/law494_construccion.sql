@@ -23,7 +23,7 @@
 --   T8c descuento > 50 % como admin                                           RECHAZA
 --   T8b descuento 62,5 % como super_admin                                     PASA     [PASA: exención del 29-sep]
 --   T9  descuento 2.000 y total 46.000                                        PASA     [PASA]
---   (14-oct-2026: desde 20261014193200 el motivo es obligatorio en la base; T8-T9 llevan motivo)
+--   (14-oct-2026: desde 20261014120726 el motivo es obligatorio en la base; T8-T9 llevan motivo)
 --   T10  descuento sin motivo                                                 RECHAZA  [PASA: hueco (a)]
 --   T10b motivo vaciado en una segunda escritura                              RECHAZA  [PASA]
 --   T11  sin techo (CC00096), descuento > 50 % de total+descuento, admin      RECHAZA  [PASA: hueco (b)]

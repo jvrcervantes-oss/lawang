@@ -70,7 +70,7 @@ function lwTextoPct(v){
    12, 10 de 10 exactos.
    ⚠️ NUNCA exactamente 3 decimales: lwParseImporte('12.123') y la base
    (public.lw_importe) lo leen como 12123 —miles—. lwPctSeguro le añade un 0, y la
-   base rechaza los de 3 (migración 20261014193100). */
+   base rechaza los de 3 (migración 20261014120717). */
 function lwPctSeguro(v){
   const s = String(v == null ? '' : v).trim();
   return /^\d+\.\d{3}$/.test(s) ? s + '0' : s;
