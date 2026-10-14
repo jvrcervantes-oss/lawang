@@ -64,4 +64,5 @@ export const EXPORTA: string[] = [
   "cascada",
   "lwSociedadContrato",
   "SOCIEDAD_DEFAULT",
+  "lwTextoPct",
 ];
