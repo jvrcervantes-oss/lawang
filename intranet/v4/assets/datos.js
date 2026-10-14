@@ -6291,9 +6291,9 @@
         pon('k-total', String(ms.length));
         pon('k-activos-pie', enlazadas + ' unidades enlazadas a un modelo');
         pon('k-publicados', String(publicados));
-        pon('k-publicados-pie', publicados ? 'los unicos que ve un cliente en la web' : 'ninguno visible fuera');
+        pon('k-publicados-pie', publicados ? 'los únicos que ve un cliente en la web' : 'ninguno visible fuera');
         pon('k-sinficha', String(faltan));
-        pon('k-sinficha-pie', faltan ? 'sin dormitorios, banos ni superficie: no pueden heredar nada' : 'todos con ficha completa');
+        pon('k-sinficha-pie', faltan ? 'sin dormitorios, baños ni superficie: no pueden heredar nada' : 'todos con ficha completa');
         pon('k-sinrender', String(sinRender));
         pon('k-sinrender-pie', sinRender ? 'sin ninguna foto en el deck' : 'todos tienen fotos');
         var bExp = boton('exportar-catalogo');
