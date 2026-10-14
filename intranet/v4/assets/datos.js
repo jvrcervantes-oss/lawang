@@ -7040,7 +7040,25 @@
         })
       ]).then(function (r) {
         var hs = r[0], cs = r[1] || [], ms = r[2] || [];
-        if (hs == null) return;
+        /* Sin conversación que enseñar (14-oct-2026, recorrido de un agente de prueba): con 0 hilos el panel dejaba a la vista la
+           conversación de muestra del diseño y «Enviar respuesta» encendido. Ahora lo dice y apaga el envío. «No hay nada» y «no he
+           podido mirar» son dos textos distintos (hs == null: la base no contestó, ya avisado por q()). */
+        var sinHilo = function (msg) {
+          var cv = document.getElementById('convo');
+          if (cv) {
+            cv.textContent = '';
+            var pv = document.createElement('p');
+            pv.className = 'font-body-sm text-on-surface-variant';
+            pv.style.cssText = 'margin:0;text-align:center';
+            pv.textContent = msg;
+            cv.appendChild(pv);
+          }
+          var bt = document.querySelector('[data-accion="enviar-respuesta"]');
+          if (bt) { bt.disabled = true; bt.setAttribute('aria-disabled', 'true'); bt.style.opacity = '.45'; bt.style.cursor = 'not-allowed'; }
+          var tav = document.querySelector('textarea');
+          if (tav) { tav.disabled = true; tav.placeholder = tx('Cuando un cliente escriba desde su área, la conversación saldrá aquí.'); }
+        };
+        if (hs == null) { sinHilo(tx('No se han podido leer las conversaciones. Recarga la página.')); return; }
         var refDe = {};
         var rr = r[3] || { rs: [], f: {}, c: {} };
         rr.rs.forEach(function (h) {
@@ -7203,7 +7221,7 @@
         if (selOrden) selOrden.addEventListener('change', aplicarSoporte);
         aplicarSoporte();
 
-        if (!el) return;
+        if (!el) { sinHilo(tx('Sin conversaciones todavía.')); return; }
         var c = cli[el.client_id] || {};
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.hilo = el; window.LW_V4.hiloCliente = c;
         var msgs = (deHilo[el.id] || deHilo[el.client_id] || []).slice().reverse();
@@ -7242,23 +7260,25 @@
           return;
         }
         // Primera y última palabra saltando partículas (Ni, I, de, van…). Misma regla en portal/index.html (inicialesDe), intranet/v4/assets/datos.js, intranet/leads/leads.js y contracts/assets/asistente-contrato.js.
-        var iniciales = (function (n) {
+        var inicialesDe = function (n, sinNombre) {
           var p = String(n || '').trim().split(/\s+/).filter(Boolean);
           var q = p.filter(function (w) { return ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'].indexOf(w.toLowerCase()) < 0; });
           if (q.length) p = q;
-          return p.length ? (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() : 'C';
-        })(c.full_name);
+          return p.length ? (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() : sinNombre;
+        };
+        var iniciales = inicialesDe(c.full_name, 'C');
         msgs.forEach(function (msg) {
           var esEquipo = msg.de === 'equipo';
           var b = (esEquipo ? moldeDer : moldeIzq);
           if (!b) return;
           var f = b.cloneNode(true);
+          f.style.display = '';                             // el molde vive oculto en la página (14-oct-2026)
           var burbuja = f.querySelector('[class*="rounded-2xl"]');
-          if (burbuja) burbuja.textContent = msg.texto;     // pisa tambien los adjuntos mock
+          if (burbuja) burbuja.textContent = msg.texto;
           var hora = f.querySelector('span[class*="text-[11px]"]');
           if (hora) hora.textContent = fFecha(msg.creado_en) + ' · ' + (esEquipo ? (msg.autor || 'Equipo') : 'Cliente');
           var avatar = f.querySelector('div[class*="rounded-full"]');
-          if (avatar && !esEquipo) avatar.textContent = iniciales;
+          if (avatar) avatar.textContent = esEquipo ? inicialesDe(msg.autor, 'EQ') : iniciales;   // el del equipo: su autor, o «EQ»
           convo.appendChild(f);
         });
       });

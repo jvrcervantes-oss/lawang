@@ -2994,6 +2994,8 @@
       '%marca’s WhatsApp bot, live. Pausing stops the AI for that lead: from then on a person replies.',
     'Elige una conversación': 'Choose a conversation',
     'Sin conversaciones todavía.': 'No conversations yet.',
+    'No se han podido leer las conversaciones. Recarga la página.': 'The conversations could not be loaded. Reload the page.',
+    'Cuando un cliente escriba desde su área, la conversación saldrá aquí.': 'When a client writes from their area, the conversation will appear here.',
     'Sin mensajes.': 'No messages.',
     'No se pudo leer la conversación.': 'Could not read the conversation.',
     'La IA está atendiendo esta conversación.': 'The AI is handling this conversation.',

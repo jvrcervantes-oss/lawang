@@ -2263,11 +2263,6 @@ video {
   color: rgb(var(--tema-on-primary) / var(--tw-text-opacity, 1));
 }
 
-.text-on-primary-container {
-  --tw-text-opacity: 1;
-  color: rgb(var(--tema-on-primary-container) / var(--tw-text-opacity, 1));
-}
-
 .text-on-primary-fixed {
   --tw-text-opacity: 1;
   color: rgb(var(--tema-on-primary-fixed) / var(--tw-text-opacity, 1));
