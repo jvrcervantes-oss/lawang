@@ -1,9 +1,13 @@
 <?php
 /**
  * sitemap.php — genera /sitemap.xml (rewrite interno en .htaccess) desde las fuentes reales:
- * coleccion/lib.php (lw_coleccion) para las propiedades visibles y modelo/modelos.php para las landings de modelo
- * con renders. Antes era un XML estatico con 5 URLs fijas que nunca listaba una sola
+ * coleccion/lib.php (lw_coleccion) para las propiedades visibles y modelo/modelos.php para las fichas de modelo
+ * que se indexan: las publicables (con renders, o con renders_pendientes) Y con precio cerrado. Esa
+ * condicion es lw_modelo_indexable() (modelo/lib.php), la misma con la que modelo/index.php decide si
+ * pone noindex: una ficha sin precio lleva noindex y por eso no sale aqui (14-oct-2026).
+ * Antes era un XML estatico con 5 URLs fijas que nunca listaba una sola
  * propiedad — hallazgo de la auditoria SEO del 31-ago-2026.
+ * Los `lastmod` de las paginas fijas van a mano: al cambiar el contenido de una, se cambia el suyo.
  */
 require __DIR__ . '/modelo/lib.php'; // lw_modelo_get(), lw_modelo_indexable()
 require __DIR__ . '/coleccion/lib.php'; // lw_coleccion_ids()
@@ -16,7 +20,7 @@ $urls = [
     ['loc' => $SITE . '/thecollection', 'lastmod' => '2026-07-28', 'freq' => 'weekly', 'pri' => '0.9'],
     ['loc' => $SITE . '/thesoul',       'lastmod' => '2026-10-08', 'freq' => 'monthly', 'pri' => '0.7'],
     ['loc' => $SITE . '/portfolio',     'lastmod' => '2026-09-23', 'freq' => 'weekly', 'pri' => '0.8'],
-    ['loc' => $SITE . '/legal',         'lastmod' => '2026-07-28', 'freq' => 'yearly', 'pri' => '0.3'],
+    ['loc' => $SITE . '/legal',         'lastmod' => '2026-10-14', 'freq' => 'yearly', 'pri' => '0.3'],
     ['loc' => $SITE . '/legal-es',      'lastmod' => '2026-08-05', 'freq' => 'yearly', 'pri' => '0.3'],
     ['loc' => $SITE . '/accessibility', 'lastmod' => '2026-07-28', 'freq' => 'yearly', 'pri' => '0.3'],
 ];
