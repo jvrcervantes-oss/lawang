@@ -62,6 +62,8 @@ begin
    where exists (select 1 from public.contrato_compradores cc where cc.client_id=c.id)
      and not exists (select 1 from public.contrato_compradores cc join public.contratos k on k.id=cc.contrato_id left join public.proyectos pr on pr.id=k.proyecto_id where cc.client_id=c.id and pr.empresa is distinct from 'sandal_woods')
      and not exists (select 1 from public.facturas f where f.client_id=c.id and public.empresa_de_factura(f.id) is distinct from 'sandal_woods')
+     -- (13-oct) sin un dueno que Lawang vea: el primero por id paso a ser de hello@ (global sin empresas) y ya lo veia por su dueno, no por un fallo
+     and (c.propietario is null or not public.usuario_en_empresa(c.propietario, 'lawang'))
    order by c.id limit 1;
   select cc.client_id into cb from public.contrato_compradores cc join public.contratos k on k.id=cc.contrato_id join public.proyectos p on p.id=k.proyecto_id
    group by cc.client_id having count(distinct p.empresa) filter (where p.empresa in ('lawang','sandal_woods'))=2
@@ -100,7 +102,8 @@ begin
   r := r || pg_temp.t(ya, e_ya, format('select (public.cliente_traspasa(%L, %L, ''prueba'') is not null)::text', cl, e_cr), '22023', 'ya NO traspasa a una persona solo de Sandal Woods') || E'\n';
   r := r || pg_temp.t(ya, e_ya, format('select (public.cliente_traspasa(%L, %L, ''prueba'') is not null)::text', cb, e_ad4), '42501', 'ya NO traspasa el cliente compartido (exclusivo)') || E'\n';
   r := r || pg_temp.t(ya, e_ya, format('select (public.cliente_traspasa(%L, %L, ''prueba'') is not null)::text', cs, e_ad4), '42501', 'ya NO traspasa el cliente de la otra empresa') || E'\n';
-  r := r || pg_temp.t(adm, e_adm, format('select (public.cliente_traspasa(%L, %L, ''prueba'') is not null)::text', cb, e_ya), 'true', 'admin global traspasa el compartido como siempre') || E'\n';
+  r := r || pg_temp.t(adm, e_adm, format('select (public.cliente_traspasa(%L, %L, ''prueba'') is not null)::text', cb, e_ya), '22023', 'admin global NO traspasa el compartido a quien solo es de Lawang: no veria lo de Sandal Woods (13-oct, 20261013150447)') || E'\n';
+  r := r || pg_temp.t(adm, e_adm, format('select (public.cliente_traspasa(%L, %L, ''prueba'') is not null)::text', cb, e_ad4), 'true', 'admin global traspasa el compartido a quien es de las dos empresas') || E'\n';
   r := r || pg_temp.t(ctl, e_ctl, format('select (public.cliente_traspasa(%L, %L, ''prueba'') is not null)::text', cl, e_ya), '42501', 'agente de control sigue sin traspasar') || E'\n';
   -- retirar documentos KYC (solo service_role, con p_uid)
   if dl is not null then
@@ -117,10 +120,10 @@ begin
   r := r || pg_temp.t(cr, e_cr, format('select (public.borrar_comprador(%L)->>''borrado'')', cn), '42501', 'cr (super de otra empresa) NO borra la ficha vacia de p4', 'service_role') || E'\n';
   r := r || pg_temp.t(p4, e_p4, format('select (public.borrar_comprador(%L)->>''borrado'')', cn), 'true', 'p4 (super de Lawang) borra una ficha vacia suya', 'service_role') || E'\n';
   -- traspaso con documentos
-  r := r || pg_temp.t(ya, e_ya, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas::text', cl, e_ad4), '42501', 'ya (admin) NO traspasa con documentos: es de super') || E'\n';
+  r := r || pg_temp.t(ya, e_ya, format('select ((public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null)::text', cl, e_p4), 'true', 'ya (admin_empresa) SI traspasa con documentos desde el 13-oct (owner: los admins gestionan su negocio)') || E'\n';
   r := r || pg_temp.t(cr, e_cr, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas::text', cl, e_ad4), '42501', 'cr NO traspasa un cliente de Lawang con documentos') || E'\n';
-  r := r || pg_temp.t(p4, e_p4, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null', cl, e_cr), '23514', 'p4 NO traspasa a una persona solo de Sandal Woods') || E'\n';
-  r := r || pg_temp.t(p4, e_p4, format('select ((public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null)::text', cl, e_ya), 'true', 'p4 traspasa con documentos un cliente de Lawang a ya (la ficha ya era de ad4)') || E'\n';
+  r := r || pg_temp.t(p4, e_p4, format('select (public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null', cl, e_cr), '22023', 'p4 NO traspasa a una persona solo de Sandal Woods') || E'\n';
+  r := r || pg_temp.t(p4, e_p4, format('select ((public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null)::text', cl, e_ya), 'true', 'p4 traspasa con documentos un cliente de Lawang a ya (la ficha era de p4)') || E'\n';
   r := r || pg_temp.t(p4, e_p4, format('select ((public.traspasar_cliente_con_documentos(%L, %L, ''prueba'')).facturas_movidas is not null)::text', cb, e_ad4), '42501', 'p4 NO traspasa con documentos el cliente compartido') || E'\n';
   -- directorio: comprador_ficha y comprador_buscar
   r := r || pg_temp.t(ya, e_ya, format('select count(*)::text from public.comprador_ficha(%L)', cl), '1', 'ya abre la ficha de su cliente') || E'\n';
