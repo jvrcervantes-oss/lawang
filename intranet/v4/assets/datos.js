@@ -3460,7 +3460,10 @@
                 var quien = n.autor_id ? (nombreEquipo[mail] || n.autor_email || tx('alguien del equipo')) : '';
                 var meta = [fFechaHoraCorta(n.creado_en), quien, n.origen !== 'nota' && ORIGEN[n.origen] ? tx(ORIGEN[n.origen]) : '']
                   .filter(Boolean).join(' · ');
-                var puede = (n.autor_id && mail && mail === yo) || !!window.LW_V4.esAdmin;
+                // solo para enseñar el botón: quien decide es cliente_nota_retira (autor, es_admin o admin_de_cliente). El admin
+                // de empresa también lo ve (revisor, 15-oct); si la ficha no es de su empresa, el servidor lo rechaza y se dice.
+                var rolN = window.LW_ROL ? LW_ROL.efectivo(window.LW_V4 && window.LW_V4.ficha) : '';
+                var puede = (n.autor_id && mail && mail === yo) || !!window.LW_V4.esAdmin || rolN === 'admin' || rolN === 'super_admin';
                 return '<article class="lwc-nota" data-nota="' + esc(String(n.id)) + '" style="padding:9px 0;border-bottom:1px solid rgb(var(--tema-outline-variant))">' +
                   '<p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(n.texto) + '</p>' +
                   '<p style="margin:4px 0 0;font-size:11.5px;' + GRIS + '">' + esc(meta) +

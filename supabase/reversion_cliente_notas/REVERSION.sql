@@ -16,6 +16,32 @@ begin
 end $pre$;
 
 drop trigger if exists trg_clients_notas_a_historial on public.clients;
+-- _sc_referencias_cliente vuelve LITERAL a la viva del 15-oct (md5(prosrc) 6c0b820ddfaa73c8ac166a892e048627)
+CREATE OR REPLACE FUNCTION public._sc_referencias_cliente(p_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  r record;
+  n bigint;
+  v jsonb := '{}'::jsonb;
+begin
+  for r in
+    select c.conrelid::regclass::text as tabla, a.attname as col
+      from pg_constraint c
+      join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+     where c.contype = 'f' and c.confrelid = 'public.clients'::regclass
+  loop
+    execute format('select count(*) from %s where %I = $1', r.tabla, r.col) into n using p_id;
+    if n > 0 then v := v || jsonb_build_object(r.tabla, n); end if;
+  end loop;
+  select count(*) into n from public.contratos where adq1_client_id = p_id;
+  if n > 0 then v := v || jsonb_build_object('contratos', n); end if;
+  return v;
+end
+$function$;
 drop trigger if exists trg_clients_notas_al_borrar on public.clients;
 
 update public.clients c

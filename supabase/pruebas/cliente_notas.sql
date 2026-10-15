@@ -8,6 +8,7 @@
 -- autor la retira y su texto DESAPARECE (la traza no tiene columna de texto), un admin retira la de otro. N8 cuenta desactivada
 -- no añade. N9 todo lo que escriba en clients.notes pasa al historial (alta y edicion) y la columna queda vacia. N10 borrar la
 -- ficha borra sus notas y deja traza «ficha_borrada». N11 una nota NO bloquea la retencion KYC: cuenta como actividad.
+-- N12 una nota SIN autor solo la retira un admin. N13 las notas no impiden pedir el borrado de la ficha ni cambian su huella.
 -- XSS: el texto se guarda tal cual (la pantalla lo pinta con esc); aqui se comprueba que llega intacto, no que se ejecute.
 -- !! CREA FICHAS, USUARIOS Y NOTAS: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015170000_cliente_notas.sql --prueba cliente_notas.sql
@@ -140,6 +141,29 @@ begin
   exception when others then
     r := r || pg_temp.l(sqlstate = '42501', 'N7f la traza es de solo añadir (' || sqlstate || ')');
   end;
+
+  -- ============================================================ N12 nota SIN autor (revisor de código, 15-oct)
+  -- con autor_id nulo, «null = v_uid» daba NULL y el «if not» no lanzaba: cualquiera que viera la ficha la borraba
+  perform set_config('request.jwt.claims', '', true);
+  update public.clients set notes = 'ZZ-CN entra sin sesión' where id = c1;
+  select max(cn.id) into n from public.cliente_notas cn where cn.client_id = c1 and cn.autor_id is null;
+  v := pg_temp.val(a.uid, a.em, format('select (public.cliente_nota_retira(%s, %L))::text', n, 'otro'));
+  r := r || pg_temp.l(n is not null and v like 'ERR42501:%' and exists (select 1 from public.cliente_notas where id = n),
+                      'N12 un agente que ve la ficha NO retira una nota sin autor y la nota sigue (' || left(v, 60) || ')');
+  v := pg_temp.val(ad.uid, ad.em, format('select (public.cliente_nota_retira(%s, %L))::text', n, 'otro'));
+  r := r || pg_temp.l(v like '%"ok": true%' and not exists (select 1 from public.cliente_notas where id = n),
+                      'N12b un admin sí la retira (' || left(v, 40) || ')');
+
+  -- ============================================================ N13 pedir borrar la ficha (revisor de código, 15-oct)
+  -- _trg_solicitud_cambio_alta rechaza el borrado si _sc_huella('borrar_comprador') trae referencias; las notas no cuentan
+  v := pg_temp.val(a.uid, a.em, format('select (public.cliente_nota_agrega(%L, %L))::text', c1, 'ZZ-CN antes de pedir borrarla'));
+  r := r || pg_temp.l(exists (select 1 from public.cliente_notas where client_id = c1)
+                      and (public._sc_huella('borrar_comprador', c1)->'referencias') = '{}'::jsonb,
+                      'N13 una ficha con notas no tiene «cosas enlazadas» para pedir su borrado (' || coalesce((public._sc_huella('borrar_comprador', c1)->'referencias')::text, 'null') || ')');
+  v := public._sc_huella('borrar_comprador', c1)::text;
+  perform pg_temp.val(a.uid, a.em, format('select (public.cliente_nota_agrega(%L, %L))::text', c1, 'ZZ-CN mientras espera'));
+  r := r || pg_temp.l(public._sc_huella('borrar_comprador', c1)::text = v,
+                      'N13b añadir una nota mientras la petición espera no cambia su huella');
 
   -- ============================================================ N8 desactivado
   v := pg_temp.val(x.uid, x.em, format('select (public.cliente_nota_agrega(%L, %L))::text', c1, 'de baja'));

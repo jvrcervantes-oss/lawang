@@ -34,6 +34,10 @@ begin
        where p.oid = 'public._kyc_retencion_candidato(uuid,timestamptz)'::regprocedure) <> '206cb44b7784b6142164499c62b9696d' then
     raise exception '_kyc_retencion_candidato viva no es la del 15-oct (md5 206cb44b…): alguien la cambió después; revisar a mano';
   end if;
+  if (select md5(p.prosrc) from pg_proc p
+       where p.oid = 'public._sc_referencias_cliente(uuid)'::regprocedure) <> '6c0b820ddfaa73c8ac166a892e048627' then
+    raise exception '_sc_referencias_cliente viva no es la del 15-oct (md5 6c0b820d…): alguien la cambió después; revisar a mano';
+  end if;
   if to_regclass('public.cliente_notas') is not null then
     raise exception 'cliente_notas ya existe: esta migración ya se aplicó';
   end if;
@@ -188,7 +192,9 @@ begin
   if not found or not public._cliente_ficha_ve(v_n.client_id) then
     raise exception 'Esa nota no existe' using errcode = 'P0002';
   end if;
-  if not (v_n.autor_id = v_uid or public.es_admin() or public.admin_de_cliente(v_n.client_id, true)) then
+  -- coalesce: con autor_id nulo (notas antiguas, o las que entran sin sesión) «null = v_uid» es NULL y «if not NULL» no
+  -- lanzaba: cualquier agente que viera la ficha la borraba (revisor de código, 15-oct)
+  if not (coalesce(v_n.autor_id = v_uid, false) or public.es_admin() or public.admin_de_cliente(v_n.client_id, true)) then
     raise exception 'Solo su autor o un administrador puede retirar esta nota' using errcode = '42501';
   end if;
   perform set_config('cliente_notas.borra', 'on', true);
@@ -243,6 +249,38 @@ end $f$;
 revoke all on function public._clients_notas_al_borrar() from public, anon, authenticated, service_role;
 create trigger trg_clients_notas_al_borrar before delete on public.clients
   for each row execute function public._clients_notas_al_borrar();
+
+-- ── 8b. pedir borrar la ficha: sus notas no son «cosas enlazadas» (revisor de código, 15-oct) ──────────────────────
+-- _sc_referencias_cliente cuenta TODO lo que apunta a clients leyendo el catálogo: con cliente_notas dentro,
+-- _trg_solicitud_cambio_alta rechazaba con 23503 pedir el borrado de cualquier ficha con nota, y una nota añadida mientras la
+-- solicitud espera cambiaba la huella (resolver_solicitud_cambio: «cambió algo»). Las notas se borran con la ficha y dejan
+-- traza (trg_clients_notas_al_borrar), así que no frenan nada. Cuerpo anterior literal en la REVERSION.
+create or replace function public._sc_referencias_cliente(p_id uuid)
+ returns jsonb
+ language plpgsql
+ stable security definer
+ set search_path to ''
+as $function$
+declare
+  r record;
+  n bigint;
+  v jsonb := '{}'::jsonb;
+begin
+  for r in
+    select c.conrelid::regclass::text as tabla, a.attname as col
+      from pg_constraint c
+      join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+     where c.contype = 'f' and c.confrelid = 'public.clients'::regclass
+       and c.conrelid is distinct from to_regclass('public.cliente_notas')   -- 15-oct: se borran con la ficha, con traza
+  loop
+    execute format('select count(*) from %s where %I = $1', r.tabla, r.col) into n using p_id;
+    if n > 0 then v := v || jsonb_build_object(r.tabla, n); end if;
+  end loop;
+  select count(*) into n from public.contratos where adq1_client_id = p_id;
+  if n > 0 then v := v || jsonb_build_object('contratos', n); end if;
+  return v;
+end
+$function$;
 
 -- ── 9. retención KYC: una nota es actividad, no un bloqueo para siempre ──────────────────────────────────────────
 create or replace function public._kyc_retencion_candidato(p_id uuid, p_corte timestamptz)
