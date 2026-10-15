@@ -37,8 +37,14 @@ begin
   insert into _f values (c1, null, null) returning * into f;
   r := r || pg_temp.l(f.client_id = k1 and f.proyecto_id = p1, 'H1 alta sin cliente: hereda adquiriente_1 y proyecto del contrato');
 
+  -- sin triggers (replica): ni contrato_guarda ni trg_sincronizar_compradores deben tocar la fila de la tabla ni dar un 42501 sin
+  -- sesión; la columna generada adq1_client_id se recalcula igual (es generada, no trigger)
+  execute 'set local session_replication_role = replica';
   update public.contratos set datos = jsonb_set(coalesce(datos, '{}'::jsonb), '{adq1_client_id}', to_jsonb(k2::text)) where id = c1;
-  update public.contrato_compradores set client_id = k1 where contrato_id = c1 and rol = 'adquiriente_1';   -- por si un trigger la movió
+  execute 'set local session_replication_role = origin';
+  r := r || pg_temp.l((select adq1_client_id from public.contratos where id = c1) = k2
+                      and (select client_id from public.contrato_compradores where contrato_id = c1 and rol = 'adquiriente_1') = k1,
+                      'H2a montaje: la copia del jsonb dice otra ficha y la tabla sigue con la suya');
   insert into _f values (c1, null, null) returning * into f;
   r := r || pg_temp.l(f.client_id = k1, 'H2 la copia del jsonb apunta a otra ficha: manda contrato_compradores');
 

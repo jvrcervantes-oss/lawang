@@ -8,8 +8,9 @@
 --
 -- ¿Cambia el cliente de alguna factura? El trigger solo rellena client_id cuando llega NULL (alta, o un update que lo pone a
 -- null: 2159 lo hace al mover un recibí de contrato). El resultado nuevo solo difiere del viejo en un contrato con
--- adq1_client_id relleno y SIN fila adquiriente_1. La guarda de abajo mide eso y, si hay alguno, PARA: con 0, ninguna factura
--- (presente o futura de esos contratos) cambia de cliente. Ninguna fila existente se reescribe.
+-- adq1_client_id relleno y SIN fila adquiriente_1. La guarda de abajo mide eso y, si hay alguno, PARA: con 0, ningún contrato que
+-- exista al aplicar da otro cliente a sus facturas. Ninguna fila existente se reescribe. Un contrato que se desajuste DESPUÉS (copia
+-- en el jsonb sin fila adquiriente_1) dará facturas sin cliente: es lo buscado (sin dueño del dato no se hereda una copia).
 -- Medir antes, en la viva (solo lectura): la misma select de la guarda.
 --
 -- Prueba: supabase/pruebas/factura_hereda_cliente_sin_copia.sql (rama). Reversión: volver a 20260822021026 (create or replace).
