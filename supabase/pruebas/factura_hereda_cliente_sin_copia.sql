@@ -7,8 +7,8 @@
 -- H4 cliente puesto a mano: se respeta. H5 sin contrato: no toca nada. H6 el trigger real de facturas sigue en esta función,
 -- antes de insert y de update de contrato_id/client_id/proyecto_id. H7 la función ya no lee la copia. H8 nadie de fuera la
 -- ejecuta. H9 cuenta lo que mide la guarda (en la rama, que no trae datos, sale 0 sin medir nada: el número de verdad es el
--- de la guarda al aplicar en la viva). Montaje propio con replica (la rama de Lawang es solo estructura): fichas ZZ-FH A y B,
--- proyecto y contrato ZZ-FH-K1 con A de adquiriente_1 y de copia.
+-- de la guarda al aplicar en la viva). Montaje propio (la rama de Lawang es solo estructura): fichas ZZ-FH A y B con triggers,
+-- y con replica el proyecto y el contrato ZZ-FH-K1 con A de adquiriente_1 y de copia.
 -- !! Da de alta y toca filas dentro de la transacción: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015200000_factura_hereda_cliente_sin_copia.sql --prueba factura_hereda_cliente_sin_copia.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA».
@@ -32,9 +32,11 @@ begin
   -- numeración, ni sincronización de compradores, ni claves ajenas de empresa; la columna generada adq1_client_id sí se calcula.
   -- Ficha A = adquiriente_1 y copia del jsonb; ficha B = la otra. Todo marcado ZZ-FH.
   begin
-    execute 'set local session_replication_role = replica';
+    -- las fichas, CON triggers: numero_cliente es NOT NULL y solo lo pone trg_clients_numero_cliente (revisor de 4e65cd2fa);
+    -- propietario explícito porque sin sesión trg_clients_pone_dueno caería a auth.email(), null (como recibi_total_suma_y_exento)
     insert into public.clients (full_name, propietario) values ('ZZ-FH Cliente A', 'zz-fh@prueba.invalid') returning id into k1;
     insert into public.clients (full_name, propietario) values ('ZZ-FH Cliente B', 'zz-fh@prueba.invalid') returning id into k2;
+    execute 'set local session_replication_role = replica';
     insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-FH Proyecto', 'zz-fh-proyecto', 'zz_fh', true) returning id into p1;
     insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
       values ('ZZ-FH-K1', 'contrato_general', p1, 'EUR', 1000, jsonb_build_object('fields', '{}'::jsonb, 'adq1_client_id', k1::text),
