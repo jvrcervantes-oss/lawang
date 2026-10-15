@@ -68,12 +68,35 @@
 --   CONTRATO DEL PAPEL (15-oct-2026, code-review hallazgo 2; patron ENLACE + ESPEJO de contexto/patrones_tecnicos.md): contrato_numero
 --     se copiaba de lo que mandaba el navegador, asi que el papel podia decir un contrato mientras el dinero iba a otro. Ahora la
 --     columna contrato_numero y datos.fields.contrato_numero (lo que imprime el papel, documento.js:179) salen de contratos.numero
---     del contrato ya comprobado; lo mandado se ignora. Igual proyecto_nombre (columna y fields, documento.js:201) cuando el contrato
---     tiene proyecto: el alcance restringido ya lo hacia asi; ahora tambien quien no lo tiene. Ademas del papel, ese nombre decide
---     el proyecto_id del recibi nuevo (trg_espejo_proyecto lo busca por nombre) y _empresa_doc prefiere el proyecto al contrato, asi
---     que un nombre ajeno cambiaba que admin de empresa podia editarlo. Se lee despues de la puerta de visibilidad (DEFINER: antes
---     seria un oraculo). Sin proyecto en el contrato, el nombre que llega se queda como antes. La pantalla ya manda los valores del
---     contrato (editores.js, recogeVals y pFactura): el uso normal no cambia.
+--     del contrato ya comprobado; lo mandado se ignora.
+--   PROYECTO DEL RECIBI (15-oct-2026, code-review 3.a vuelta, hallazgo 1 y BAJA 5): el proyecto sale SOLO del contrato comprobado.
+--     Se lee despues de la puerta de visibilidad (DEFINER: antes seria un oraculo), junto al numero, en una sola consulta.
+--     - proyecto_id = contratos.proyecto_id, escrito en el INSERT y en el UPDATE SIEMPRE, tambien cuando es null. Antes el UPDATE
+--       no lo tocaba: al editar un recibi y pasarlo a un contrato de otro proyecto (la pantalla lo hace, editores.js cambioContrato)
+--       se quedaba el proyecto_id viejo, porque trg_espejo_proyecto parte de new.proyecto_id y factura_hereda_cliente solo lo
+--       rellena si esta vacio. Con el, _empresa_doc daba la empresa vieja (decide que admin edita) y comision_admin_lineas copiaba
+--       el proyecto viejo. Y al crear, el id salia de buscar el NOMBRE (_contrato_proyecto_de, limit 1, proyectos.nombre sin
+--       indice unico). Con el id puesto, el espejo ya no busca por nombre.
+--     - proyecto_nombre (columna y datos.fields.proyecto_nombre, documento.js:201) = «<nombre del proyecto del contrato> — <unidad
+--       del contrato>», con la unidad de datos.fields del contrato: parcela_codigo, si no villa_nombre, si no tipologia_villa. Es
+--       la MISMA formula que el espejo de 20261014220000_facturas_conservan_parcela (trg_espejo_proyecto en facturas) y lo mismo
+--       que ya mandaba la pantalla (editores.js:2625, aplicaContratoDoc). La version anterior de este arreglo guardaba el nombre
+--       a secas tambien en el papel: el recibi perdia la parcela impresa. Decision por defecto (Backend, 15-oct, reversible:
+--       volver al nombre a secas es quitar la unidad de la formula).
+--       La columna la reescribe despues trg_espejo_proyecto: CON 20261014220000 aplicada (va antes, 220000 < 223000) da el mismo
+--       texto, columna = papel; SIN ella (el espejo vivo del 13-oct) la columna queda con el nombre a secas y el papel con la
+--       parcela, que es el fallo 4 que arregla 220000, no este. El proyecto_id es el del contrato en los dos casos. Para que
+--       no pase, la guarda (d) del bloque $antes$ exige 220000 aplicada.
+--     - Contrato SIN proyecto: proyecto_id null y proyecto_nombre null (columna y papel sin «Proyecto»). Lo que mande la pantalla
+--       se ignora: con proyecto_id null, trg_espejo_proyecto busca el proyecto por ese nombre y se lo pondria al recibi (y con el
+--       una empresa). Es lo que ya hacia el alcance restringido. Alternativa descartada: copiar contratos.proyecto_nombre (si un
+--       proyecto se creara despues con ese nombre, el espejo lo enlazaria al recibi y no al contrato). factura_hereda_cliente
+--       tampoco lo rellena: copia contratos.proyecto_id, que es null.
+--     - El proyecto_nombre que mande la pantalla (en el payload y en datos.fields) se ignora SIEMPRE, con o sin alcance
+--       restringido. El alcance restringido ya tomaba id y nombre del contrato; lo unico que cambia para el es que el nombre
+--       ahora lleva la unidad.
+--     Prueba: K1b/K3 (recibi nuevo con proyecto ajeno), K4 (editar hacia un contrato de otro proyecto: proyecto_id, columna y
+--     papel) y K5 (contrato sin proyecto).
 --     NO se tocan cliente_nombre ni sociedad: su fuente en el contrato no es inequivoca y factura_guarda tampoco los saca del
 --     contrato (20261013074408, insert y update: los toma del payload; sociedad solo se ata para el alcance restringido, como aqui).
 --     cliente_nombre: un contrato puede tener varios compradores (comprador_nombre compuesto con «·») y la pantalla deja escribir
@@ -101,6 +124,11 @@
 --       un falso verde con has_table_privilege. Se mira en $antes$ y otra vez en $cierre$.
 --   (c) Ningun recibi vivo lleva impuesto en el papel (A3; consulta de Administracion del 15-oct: la medida del 14-oct era
 --       solo un comentario). Si lanza, da cuantos; que hacer con ellos (anular y emitir otro, nota, asesor) se decide antes.
+--   (d) 20261014220000_facturas_conservan_parcela ya esta aplicada (su marca en trg_espejo_proyecto). Va antes por orden, pero
+--       si esta se aplicara sola, el espejo del 13-oct dejaria la columna con el nombre a secas y el papel con la parcela
+--       (columna <> papel). No es de seguridad, pero rompe lo que esta cabecera promete; mejor parar que divergir. Decision por
+--       defecto (Backend, 15-oct, reversible: quitar el bloque (d) del $antes$).
+-- ACEPTADO (orquestador agencia-c0 y sesión lawang-cola-2, 15-oct-2026, por la congelación del owner): las pruebas que montan sobre datos reales no corren en rama. Antes de aplicar esta migración en la viva se corren con ROLLBACK: factura_moneda_del_contrato b1, facturas_tope_cadena_y_recibi_pendiente, f2_b2_empresas A42-A45, f2_foto_b2 / f2_foto_b2_ab y tools/flujos_lawang.py.
 -- REVERTIR: supabase/reversion_recibi_total_suma_y_exento/REVERSION.sql (el texto vivo de antes, tal cual).
 -- Prueba: supabase/pruebas/recibi_total_suma_y_exento.sql (crea contratos y documentos: SOLO en rama):
 --   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261014223000_recibi_total_suma_y_exento.sql
@@ -152,6 +180,10 @@ begin
   if n > 0 then
     raise exception 'recibi_total_suma_y_exento: % recibi(s) vivo(s) llevan impuesto en el papel; con A3 lo perderian al re-guardarse. No se aplica nada: se decide antes que hacer con ellos (Administracion recomienda anular y emitir otro sin impuesto)', n;
   end if;
+  -- (d) el espejo de facturas ya es el de 20261014220000 (columna = papel: «<proyecto> — <unidad>»)
+  if position('espejo desde el enlace (15-oct-2026)' in pg_get_functiondef('public.trg_espejo_proyecto()'::regprocedure)) = 0 then
+    raise exception 'recibi_total_suma_y_exento: falta 20261014220000_facturas_conservan_parcela (trg_espejo_proyecto sin su marca); se aplica antes. No se aplica nada';
+  end if;
 end $antes$;
 
 CREATE OR REPLACE FUNCTION public.guardar_recibi(p_id uuid, p_factura jsonb, p_aplicaciones jsonb)
@@ -175,7 +207,7 @@ declare
   v_pend_factura numeric;
   v_moneda_factura text;
   v_rest boolean := public.alcance_restringido() and not public.es_admin();
-  v_pnombre text := p_factura->>'proyecto_nombre';
+  v_pnombre text;              -- 15-oct-2026 (3.a vuelta): del contrato comprobado, nunca del navegador
   v_pid uuid; v_emp text; v_emp_fac text;
   v_viejo public.facturas%rowtype;
   -- 14-oct-2026 (bloque A + C3 + fallo 1) y 15-oct-2026 (2.a vuelta del revisor)
@@ -194,6 +226,7 @@ declare
   v_admin boolean;
   v_contrato_numero text;      -- 15-oct-2026 (code-review, hallazgo 2): sale del contrato comprobado, no del navegador
   v_pnombre_contrato text;     -- 15-oct-2026: el proyecto del contrato comprobado
+  v_unidad text;               -- 15-oct-2026 (3.a vuelta): la unidad del contrato (la misma formula que 20261014220000)
   c_banco constant text[] := array['banco_titular', 'banco_nombre', 'banco_cuenta', 'banco_codigo', 'banco_direccion', 'banco_extra'];
   c_fuera constant text[] := array['imp_pct', 'imp_etiqueta', 'impuestos_sel', 'banco_de_servidor',
                                    'rectifica_numero', 'rectifica_fecha', 'rectificacion_motivo'];
@@ -213,18 +246,21 @@ begin
     raise exception 'No puedes emitir un recibí sobre un contrato que no ves' using errcode = '42501';
   end if;
 
-  -- 15-oct-2026 (code-review, hallazgo 2): numero de contrato y proyecto salen del contrato YA comprobado (enlace manda,
-  -- texto espejo). Se leen DESPUES de la puerta: la funcion es DEFINER y antes seria un oraculo del numero de un contrato
-  -- ajeno. Si el contrato no tiene proyecto, el nombre que llega se queda como hoy (el alcance restringido lo vacia abajo).
-  select c.numero, pr.nombre into v_contrato_numero, v_pnombre_contrato
+  -- 15-oct-2026 (code-review, hallazgo 2 y 3.a vuelta): numero de contrato, proyecto_id y proyecto salen del contrato YA
+  -- comprobado (enlace manda, texto espejo). Se leen DESPUES de la puerta: la funcion es DEFINER y antes seria un oraculo.
+  -- El texto es «<proyecto> — <unidad>», la formula de trg_espejo_proyecto en facturas (20261014220000). Sin proyecto en el
+  -- contrato: id y nombre null (con el nombre del navegador, el espejo buscaria un proyecto por nombre).
+  select c.numero, c.proyecto_id, pr.nombre,
+         coalesce(nullif(btrim(c.datos #>> '{fields,parcela_codigo}'), ''),
+                  nullif(btrim(c.datos #>> '{fields,villa_nombre}'), ''),
+                  nullif(btrim(c.datos #>> '{fields,tipologia_villa}'), ''))
+    into v_contrato_numero, v_pid, v_pnombre_contrato, v_unidad
     from public.contratos c left join public.proyectos pr on pr.id = c.proyecto_id
    where c.id = v_contrato_id;
-  v_pnombre := coalesce(v_pnombre_contrato, v_pnombre);
+  v_pnombre := v_pnombre_contrato || coalesce(' — ' || v_unidad, '');
 
   v_emp := public._empresa_doc(null::uuid, v_contrato_id);
   if v_rest then
-    select c.proyecto_id into v_pid from public.contratos c where c.id = v_contrato_id;
-    select pr.nombre into v_pnombre from public.proyectos pr where pr.id = v_pid;
     if v_emp is null or not public.puede_empresa(v_emp) then
       raise exception 'Ese recibí no es de ninguna de tus empresas' using errcode = '42501';
     end if;
@@ -414,7 +450,8 @@ begin
   end if;
   v_campos := v_campos || jsonb_build_object('tipo', 'recibi', 'moneda', v_moneda, 'lineas', v_lineas);
   -- 15-oct-2026 (hallazgo 2): el papel imprime fields.contrato_numero y fields.proyecto_nombre (documento.js:179 y :201): los
-  -- mismos que la fila. Si el contrato no tiene numero (o no hay proyecto), la clave se quita: el papel no imprime uno inventado
+  -- mismos que la fila (con 20261014220000; ver cabecera). Si el contrato no tiene numero (o no hay proyecto), la clave se
+  -- quita: el papel no imprime uno inventado
   v_campos := (v_campos - array['contrato_numero', 'proyecto_nombre'])
               || jsonb_strip_nulls(jsonb_build_object('contrato_numero', v_contrato_numero, 'proyecto_nombre', v_pnombre));
   v_datos := v_datos || jsonb_build_object(
@@ -424,17 +461,17 @@ begin
 
   if p_id is null then
     insert into public.facturas
-      (tipo, sociedad, cliente_nombre, proyecto_nombre, contrato_numero, contrato_id,
+      (tipo, sociedad, cliente_nombre, proyecto_id, proyecto_nombre, contrato_numero, contrato_id,
        total, moneda, fecha_emision, justificantes, datos)
     values
-      ('recibi', p_factura->>'sociedad', p_factura->>'cliente_nombre', v_pnombre,
+      ('recibi', p_factura->>'sociedad', p_factura->>'cliente_nombre', v_pid, v_pnombre,
        v_contrato_numero, v_contrato_id, v_total, v_moneda,
        nullif(p_factura->>'fecha_emision','')::date, v_justificantes, v_datos)
     returning id, numero into v_id, v_numero;
   else
     update public.facturas set
       sociedad = p_factura->>'sociedad', cliente_nombre = p_factura->>'cliente_nombre',
-      proyecto_nombre = v_pnombre, contrato_numero = v_contrato_numero,
+      proyecto_id = v_pid, proyecto_nombre = v_pnombre, contrato_numero = v_contrato_numero,
       contrato_id = v_contrato_id, total = v_total, moneda = v_moneda,
       fecha_emision = nullif(p_factura->>'fecha_emision','')::date, justificantes = v_justificantes,
       datos = v_datos

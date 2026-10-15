@@ -12,6 +12,11 @@
 -- Hallazgo 2 del code-review (15-oct): el numero de contrato y el proyecto del papel salen del contrato comprobado (K1: un
 -- recibi nuevo que manda el numero y el proyecto de OTRO contrato se guarda con los suyos, en la columna y en datos.fields, y su
 -- proyecto_id es el del contrato; K2: al editar, un numero inventado tampoco entra; M3b: el SI, en otro contrato, guarda el suyo).
+-- 3.a vuelta del code-review (15-oct, hallazgo 1 y BAJA 5): el proyecto sale SOLO del contrato comprobado, tambien al EDITAR.
+-- K4: un recibi de K1 (proyecto 1) se edita y pasa a ZZ-RT-K5 (proyecto 2, parcela ZZ-C5): proyecto_id = proyecto 2 (antes el
+-- UPDATE no lo tocaba y se quedaba el 1), columna y papel = «ZZ-RT Proyecto 2 — ZZ-C5» exactamente (sin « — ZZ-C5» doble
+-- aunque la pantalla ya lo mande con la parcela). K5: contrato SIN proyecto que manda el nombre de un proyecto real: proyecto_id
+-- y proyecto_nombre null y el papel sin proyecto (antes el espejo lo enlazaba por nombre). Se ensaya con 20261014220000 aplicada.
 -- Rol REAL: cada llamada va con `set local role authenticated` y los claims de la persona (pg_temp.val, armazon de
 -- cf_borrar_cierre_anula.sql). Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- !! CREA CONTRATOS Y DOCUMENTOS (gasta numeracion): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
@@ -63,7 +68,7 @@ do $todo$
 declare
   r text := ''; v text; n bigint; s0 text;
   a _tp; ae _tp; ad _tp;
-  pL uuid; p2 uuid; rk uuid; k1 uuid; k2 uuid; k3 uuid; k4 uuid; f9 uuid; f10 uuid; rh3 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f8 uuid; r1 uuid; rh uuid; rh2 uuid; ro uuid;
+  pL uuid; p2 uuid; rk uuid; rk4 uuid; k5 uuid; k6 uuid; f11 uuid; f12 uuid; k1 uuid; k2 uuid; k3 uuid; k4 uuid; f9 uuid; f10 uuid; rh3 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f8 uuid; r1 uuid; rh uuid; rh2 uuid; ro uuid;
   d jsonb;
   j  constant jsonb := '[{"path": "zz-rt/justificante.pdf"}]';
   c_emp constant text := 'zz_rt';
@@ -314,6 +319,78 @@ begin
                              from public.facturas f where f.id = v::uuid),
                           'K3 el admin global (sin alcance restringido) manda K2 y «ZZ-RT Proyecto 2»: se guardan K1, su proyecto y su proyecto_id (' ||
                           coalesce((select coalesce(f.contrato_numero, '-') || ' / ' || coalesce(f.proyecto_nombre, '-') from public.facturas f where f.id = v::uuid), '-') || ')');
+    end if;
+
+    -- K4 (3.a vuelta, hallazgo 1): EDITAR un recibi y pasarlo a un contrato de OTRO proyecto (editores.js, cambioContrato).
+    -- Hasta el 15-oct el UPDATE no tocaba proyecto_id: trg_espejo_proyecto parte de new.proyecto_id y factura_hereda_cliente
+    -- solo lo rellena si esta vacio, asi que se quedaba el proyecto 1 (y con el la empresa de _empresa_doc). Montaje en su
+    -- bloque: si falla, solo cae K4. Lo hace el admin global (ve los dos proyectos; crea el recibi, asi es_suyo cubre editarlo).
+    begin
+      insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
+        values ('ZZ-RT-K5', 'contrato_general', p2, 'EUR', 100000, '{"hitos":[], "fields": {"parcela_codigo": "ZZ-C5"}}', a.em) returning id into k5;
+      insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+        values ('factura', 'ZZ-RT-F11', 'zz_rt', k5, 400, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f11;
+    exception when others then
+      k5 := null;
+      r := r || pg_temp.l(false, 'K4 montaje (contrato ZZ-RT-K5 en el proyecto 2 con parcela ZZ-C5): ' || sqlstate || ' ' || left(sqlerrm, 300));
+    end;
+    if k5 is not null then
+      v := pg_temp.guarda(ad.uid, ad.em, null, pg_temp.rec(k1, '10', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f4, 'importe', 10)));
+      if v ~ '^ERR' then
+        r := r || pg_temp.l(false, 'K4pre el admin global crea un recibi de K1 (' || left(v, 90) || ')');
+      else
+        rk4 := v::uuid;
+        r := r || pg_temp.l((select f.proyecto_id = pL and f.proyecto_nombre = 'ZZ-RT Proyecto' from public.facturas f where f.id = rk4),
+                            'K4pre el recibi nace en K1 con el proyecto 1 (si no, K4 no probaria el cambio)');
+        -- lo que manda la pantalla al elegir el contrato: el proyecto CON la parcela (editores.js, aplicaContratoDoc)
+        v := pg_temp.guarda(ad.uid, ad.em, rk4,
+               pg_temp.rec(k5, '10', j, '{"proyecto_nombre": "ZZ-RT Proyecto 2 — ZZ-C5"}') || '{"proyecto_nombre": "ZZ-RT Proyecto 2 — ZZ-C5"}',
+               jsonb_build_array(jsonb_build_object('factura_id', f11, 'importe', 10)));
+        if v is distinct from rk4::text then
+          r := r || pg_temp.l(false, 'K4 el admin global pasa el recibi de K1 a K5 (' || left(coalesce(v, '-'), 90) || ')');
+        else
+          select datos into d from public.facturas where id = rk4;
+          r := r || pg_temp.l((select f.proyecto_id = p2 from public.facturas f where f.id = rk4),
+                              'K4 al pasar el recibi a un contrato del proyecto 2, su proyecto_id pasa a ser el 2 (antes se quedaba el 1)');
+          r := r || pg_temp.l((select f.proyecto_nombre = 'ZZ-RT Proyecto 2 — ZZ-C5' from public.facturas f where f.id = rk4)
+                              and d->'fields'->>'proyecto_nombre' = 'ZZ-RT Proyecto 2 — ZZ-C5',
+                              'K4b columna y papel = «ZZ-RT Proyecto 2 — ZZ-C5», iguales y sin la parcela doble (' ||
+                              coalesce((select f.proyecto_nombre from public.facturas f where f.id = rk4), '-') || ' / ' || coalesce(d->'fields'->>'proyecto_nombre', '-') || ')');
+          r := r || pg_temp.l((select f.contrato_id = k5 and f.contrato_numero = 'ZZ-RT-K5' from public.facturas f where f.id = rk4)
+                              and d->'fields'->>'contrato_numero' = 'ZZ-RT-K5'
+                              and (select count(*) = 1 and bool_and(ra.factura_id = f11) from public.recibi_aplicaciones ra where ra.recibi_id = rk4),
+                              'K4c contrato_id, contrato_numero (columna y papel) y la aplicacion son los de K5');
+        end if;
+      end if;
+    end if;
+
+    -- K5 (BAJA 5): contrato SIN proyecto. Lo que mande la pantalla como proyecto se ignora: proyecto_id y proyecto_nombre null
+    -- y el papel sin «Proyecto». Antes, con proyecto_id null, trg_espejo_proyecto buscaba el proyecto por el nombre mandado y
+    -- se lo ponia al recibi (y con el una empresa). Montaje en su bloque.
+    begin
+      insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
+        values ('ZZ-RT-K6', 'contrato_general', null, 'EUR', 100000, '{"hitos":[], "fields": {"parcela_codigo": "ZZ-C6"}}', a.em) returning id into k6;
+      insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+        values ('factura', 'ZZ-RT-F12', 'zz_rt', k6, 400, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f12;
+    exception when others then
+      k6 := null;
+      r := r || pg_temp.l(false, 'K5 montaje (contrato ZZ-RT-K6 sin proyecto): ' || sqlstate || ' ' || left(sqlerrm, 300));
+    end;
+    if k6 is not null then
+      r := r || pg_temp.l((select c.proyecto_id is null from public.contratos c where c.id = k6),
+                          'K5pre el contrato ZZ-RT-K6 no tiene proyecto (si no, K5 no probaria nada)');
+      v := pg_temp.guarda(ad.uid, ad.em, null,
+             pg_temp.rec(k6, '10', j, '{"proyecto_nombre": "ZZ-RT Proyecto 2"}') || '{"proyecto_nombre": "ZZ-RT Proyecto 2"}',
+             jsonb_build_array(jsonb_build_object('factura_id', f12, 'importe', 10)));
+      if v ~ '^ERR' then
+        r := r || pg_temp.l(false, 'K5 el admin global guarda un recibi de un contrato sin proyecto (' || left(v, 90) || ')');
+      else
+        r := r || pg_temp.l((select f.proyecto_id is null and f.proyecto_nombre is null and f.contrato_numero = 'ZZ-RT-K6'
+                                    and not ((f.datos->'fields') ? 'proyecto_nombre')
+                               from public.facturas f where f.id = v::uuid),
+                            'K5 contrato sin proyecto y «ZZ-RT Proyecto 2» mandado: proyecto_id y proyecto_nombre null, papel sin proyecto (' ||
+                            coalesce((select coalesce(f.proyecto_id::text, '-') || ' / ' || coalesce(f.proyecto_nombre, '-') from public.facturas f where f.id = v::uuid), '-') || ')');
+      end if;
     end if;
   end if;
 
