@@ -11,12 +11,16 @@
 
    QUIÉN DECIDE QUÉ. La pantalla no decide nada: quién lee, quién escribe y quién retira lo dice la base. Cada nota llega
    con `autor_nombre` y `puede_retirar` calculados en el servidor; el botón «Retirar» sale solo si `puede_retirar` es
-   true, y si aun así el servidor lo rechaza, se dice. Por eso esta pieza no mira LW_V4, LW_ROL ni el correo de nadie.
+   true (null o false: no), y si aun así el servidor lo rechaza, se dice. Por eso esta pieza no mira LW_V4, LW_ROL ni el
+   correo de nadie. Única tolerancia: una respuesta SIN esas claves (un cliente_notas_datos anterior a 20261015210000,
+   si la pantalla llega antes que la base) enseña `autor_email` y ofrece «Retirar», y el servidor decide.
 
    API. `LW_NOTAS.monta(contenedor, cfg) → { abre(id), cierra() }`. Una sola escucha delegada por contenedor; el id
    abierto vive en el controlador y cada `abre` es un TURNO: una respuesta de un turno viejo no pinta, no limpia el
-   borrador y no repinta la lista de la ficha nueva. Lo escrito y no enviado se guarda por id, en memoria: cerrar y
-   reabrir la misma ficha lo devuelve; otra ficha nunca lo ve. cfg:
+   borrador y no repinta la lista de la ficha nueva. Lo escrito y no enviado y los «Añadir» sin respuesta se guardan
+   por (funciones, id) en memoria de la PÁGINA, no del controlador: la ficha del cliente monta uno nuevo cada vez que se
+   abre el cajón, y cerrar y reabrir no puede encender otra vez el botón (doble envío) ni perder lo escrito. Otra ficha
+   nunca ve el borrador de esta. cfg:
      sb        el cliente de Supabase, una promesa de él o una función que lo devuelve (LW_AUTH es asíncrono);
      rpc       { datos, agrega, retira }: nombres de las funciones de la base;
      argId     el nombre del argumento del id ('p_client' | 'p_unidad');
@@ -86,36 +90,49 @@
 
   var GRIS = 'color:rgb(var(--tema-on-surface-variant))';
   var serie = 0;
+  /* Estado de la página, por juego de funciones (rpc.agrega) e id: borradores, envíos en vuelo y el aviso de un envío
+     que acabó mientras su ficha no estaba a la vista. VIVOS: los controladores montados, para avisar al que tenga esa
+     ficha abierta cuando llega una respuesta (sea cual sea el controlador que envió). */
+  var ESTADO = {};
+  var VIVOS = [];
+  function estadoDe(clave) { return ESTADO[clave] || (ESTADO[clave] = { borradores: {}, enVuelo: {}, pendiente: {} }); }
+  function vivo(c) { return !c.muerto && c.cont.isConnected !== false; }
 
   function monta(cont, cfg) {
     cfg = cfg || {};
     var C = cfg.clases || {}, rpc = cfg.rpc || {}, ORIGEN = cfg.origenes || {}, MOTIVOS = cfg.motivos || [];
+    var E = estadoDe(String(rpc.agrega));
     /* tok: turno de la ficha abierta (lo sube cada abre/cierra). lect: la última lectura pedida (Reintentar y la recarga
-       tras añadir comparten turno: solo pinta la más reciente). borradores: lo escrito y no enviado, por id y en memoria
-       (cerrar y volver a abrir la misma ficha no lo pierde; nunca pasa a otra). enVuelo: ids con un «Añadir» sin respuesta
-       (reabrir esa ficha no vuelve a dejar el botón encendido: sería un doble envío). */
-    var st = { id: null, tok: 0, lect: 0, borradores: {}, enVuelo: {} };
+       tras añadir comparten turno: solo pinta la más reciente). El id se guarda como texto: '7' y 7 son la misma ficha. */
+    var st = { id: null, tok: 0, lect: 0 };
     var idAviso = 'lwn-aviso-' + (++serie);
+    var yo = { cont: cont, clave: String(rpc.agrega), muerto: false };
 
     /* cfg.sb puede ser el cliente, una promesa de él o una función que devuelve cualquiera de los dos. Con el cliente a
-       mano la llamada sale en el acto (el botón y la base ven el mismo orden de pulsaciones). */
+       mano la llamada sale en el acto (el botón y la base ven el mismo orden de pulsaciones). `noSalio`: no hay cliente o
+       la llamada lanzó antes de enviarse; entonces es seguro que no se hizo. */
     function llama(nombre, a) {
       var salio = false;
       return lee(function () {
         var s = typeof cfg.sb === 'function' ? cfg.sb() : cfg.sb;
         var pide = function (x) {
           if (!x || typeof x.rpc !== 'function') throw new Error(tx('Sin sesión'));
+          var p = x.rpc(nombre, a);   // si lanza aquí, no ha salido
           salio = true;
-          return x.rpc(nombre, a);
+          return p;
         };
         return s && typeof s.then === 'function' ? s.then(pide) : pide(s);
-      }).then(function (r) { if (r.error && !salio) r.noSalio = true; return r; });   // no salió: seguro que no se hizo
+      }).then(function (r) { if (r.error && !salio) r.noSalio = true; return r; });
     }
+    function q(k) { return cont.querySelector('[data-lw="' + k + '"]'); }
     function boton() { return cont.querySelector('[data-accion="nota-agrega"]'); }
-    function guardaBorrador() { var ta = q('nota-texto'); if (st.id != null && ta) st.borradores[st.id] = ta.value; }
+    function guardaBorrador() {
+      var ta = q('nota-texto');
+      if (st.id == null || !ta) return;
+      if (ta.value.trim()) E.borradores[st.id] = ta.value; else delete E.borradores[st.id];
+    }
     function args(id, extra) { var a = {}; a[cfg.argId] = id; for (var k in extra) a[k] = extra[k]; return a; }
     function aviso(estado) { if (typeof cfg.alEstado === 'function') cfg.alEstado(estado); }
-    function q(k) { return cont.querySelector('[data-lw="' + k + '"]'); }
 
     function htmlCaja() {
       return '<div style="margin-top:10px">' +
@@ -127,15 +144,14 @@
         '<p data-lw="nota-estado" style="margin:6px 0 0;font-size:11.5px"></p></div>';
     }
     function htmlNota(n) {
-      /* `autor_email` y un `puede_retirar` ausente solo llegan de un cliente_notas_datos anterior a 20261015210000: con él
-         se sigue viendo quién la escribió y se ofrece «Retirar» (el servidor decide y, si no deja, lo dice). */
-      var quien = n.origen === 'antigua' ? '' : (n.autor_nombre || n.autor_email || (n.autor_id ? tx('alguien del equipo') : tx('sin autor')));
+      var vieja = !('autor_nombre' in n) && !('puede_retirar' in n);   // cliente_notas_datos anterior a la migración
+      var quien = n.origen === 'antigua' ? '' : (n.autor_nombre || (vieja && n.autor_email) || (n.autor_id ? tx('alguien del equipo') : tx('sin autor')));
       var origen = n.origen && n.origen !== 'nota' && ORIGEN[n.origen] ? tx(ORIGEN[n.origen]) : '';
       var meta = [fechaHora(n.creado_en), quien, origen].filter(Boolean).join(' · ');
       return '<article data-lw="nota" data-nota="' + esc(String(n.id)) + '" style="padding:9px 0;border-bottom:1px solid rgb(var(--tema-outline-variant))">' +
         '<p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(n.texto) + '</p>' +
         '<p style="margin:4px 0 0;font-size:11.5px;' + GRIS + '">' + esc(meta) +
-        (n.puede_retirar !== false ? ' · <button type="button" class="' + esc(C.btn2 || '') + '" data-accion="nota-retira">' + esc(tx('Retirar')) + '</button>' : '') +
+        (n.puede_retirar === true || vieja ? ' · <button type="button" class="' + esc(C.btn2 || '') + '" data-accion="nota-retira">' + esc(tx('Retirar')) + '</button>' : '') +
         '</p></article>';
     }
     function gris(txt, lw) { return '<p data-lw="' + lw + '" style="margin:0;font-size:12.5px;' + GRIS + '">' + esc(txt) + '</p>'; }
@@ -167,81 +183,100 @@
     }
 
     function carga() {
+      if (yo.muerto || st.id == null) return null;
       var id = st.id, tok = st.tok, n = ++st.lect;
       return llama(rpc.datos, args(id))
-        .then(function (r) { if (tok === st.tok && n === st.lect) pintaLista(r); });
+        .then(function (r) { if (!yo.muerto && tok === st.tok && n === st.lect) pintaLista(r); });
     }
 
     function abre(id) {
+      if (yo.muerto) return null;
       guardaBorrador();
-      st.id = id;
+      st.id = id == null ? null : String(id);
       st.tok++;
       cont.innerHTML = '<div data-lw="notas-lista">' + gris(tx('Cargando las notas…'), 'notas-cargando') + '</div>' +
         '<div data-lw="notas-caja" hidden>' + htmlCaja() + '</div>';
-      if (st.borradores[id]) q('nota-texto').value = st.borradores[id];
-      if (st.enVuelo[id]) boton().disabled = true;
+      if (E.borradores[st.id]) q('nota-texto').value = E.borradores[st.id];
+      if (E.enVuelo[st.id]) boton().disabled = true;
+      var pend = E.pendiente[st.id];
+      if (pend) { delete E.pendiente[st.id]; (pend[0] === 'mal' ? mal : bien)(pend[1], q('nota-estado')); }
       aviso('cargando');
       return carga();
     }
     function cierra() { guardaBorrador(); st.id = null; st.tok++; cont.innerHTML = ''; }
 
-    function agrega(b) {
-      var ta = q('nota-texto'), linea = q('nota-estado');
+    /* Lo que hace la ficha `id` (esté en el controlador que esté) cuando llega la respuesta de un envío suyo. */
+    function alLlegar(id, fn) {
+      VIVOS = VIVOS.filter(vivo);
+      var abiertos = VIVOS.filter(function (c) { return c.clave === yo.clave && c.idAbierto() === id; });
+      abiertos.forEach(function (c) { fn(c); });
+      return abiertos.length;
+    }
+    function avisa(id, tipo, m) {
+      // con toast se ve siempre; sin él, en la caja de la ficha abierta o, si no está a la vista, al volver a abrirla
+      var n = alLlegar(id, function (c) { (tipo === 'mal' ? mal : bien)(m, c.linea()); });
+      if (!n && typeof toast !== 'function') E.pendiente[id] = [tipo, m];   // eslint-disable-line no-undef
+      else if (!n) (tipo === 'mal' ? mal : bien)(m, null);
+    }
+
+    function agrega() {
+      var ta = q('nota-texto');
       var t = String((ta && ta.value) || '').trim();
-      if (!t) return mal(tx('Escribe la nota antes de añadirla.'), linea);
+      if (!t) return mal(tx('Escribe la nota antes de añadirla.'), q('nota-estado'));
       var id = st.id;
-      if (id == null || st.enVuelo[id]) return null;
-      st.enVuelo[id] = true;
-      b.disabled = true;
+      if (id == null || E.enVuelo[id]) return null;
+      E.enVuelo[id] = true;
+      alLlegar(id, function (c) { c.apaga(true); });
       return llama(rpc.agrega, args(id, { p_texto: t }))
         .then(function (r) {
-          delete st.enVuelo[id];
-          b.disabled = false;
-          var mismo = id === st.id, bA = mismo ? boton() : null, lA = mismo ? q('nota-estado') : null;
-          if (bA) bA.disabled = false;
-          if (r.error && (conCodigo(r.error) || r.noSalio)) return mal(errTxt(r.error, tx('No se ha guardado la nota')), lA);
+          delete E.enVuelo[id];
+          alLlegar(id, function (c) { c.apaga(false); });
+          if (r.error && (conCodigo(r.error) || r.noSalio)) return avisa(id, 'mal', errTxt(r.error, tx('No se ha guardado la nota')));
           if (r.error) {
             // sin respuesta: no se sabe si se guardó. Se conserva el borrador y se recarga la lista para mirarlo.
-            mal(tx('No ha llegado la respuesta del servidor y no se sabe si la nota se ha guardado. Mira la lista antes de volver a añadirla.'), lA);
-            return mismo ? carga() : null;
+            avisa(id, 'mal', tx('No ha llegado la respuesta del servidor y no se sabe si la nota se ha guardado. Mira la lista antes de volver a añadirla.'));
+            return alLlegar(id, function (c) { c.recarga(); });
           }
-          bien(tx('Nota añadida'), lA);
-          // Lo enviado ya está guardado: se vacía donde siga (la caja de esta ficha o su borrador), si nadie lo ha cambiado.
-          if (mismo) {
-            var taA = q('nota-texto');
-            if (taA && taA.value.trim() === t) taA.value = '';
-            return carga();
-          }
-          if (String(st.borradores[id] || '').trim() === t) delete st.borradores[id];
-          return null;
+          // Lo enviado ya está guardado: se vacía donde siga (la caja abierta de esa ficha y su borrador), si nadie lo cambió.
+          if (String(E.borradores[id] || '').trim() === t) delete E.borradores[id];
+          avisa(id, 'bien', tx('Nota añadida'));
+          return alLlegar(id, function (c) { c.vaciaSi(t); c.recarga(); });
         });
     }
     function retira(b, art) {
-      var linea = q('nota-estado');
       var motivo = (art.querySelector('[data-lw="nota-motivo"]') || {}).value || '';
-      if (!motivo) return mal(tx('Elige por qué se retira.'), linea);
+      if (!motivo) return mal(tx('Elige por qué se retira.'), q('nota-estado'));
       var id = st.id, nota = Number(art.getAttribute('data-nota'));
       b.disabled = true;
       return llama(rpc.retira, { p_nota: nota, p_motivo: motivo })
         .then(function (r) {
           b.disabled = false;
-          var mismo = id === st.id, lA = mismo ? q('nota-estado') : null;
-          if (r.error && (conCodigo(r.error) || r.noSalio)) return mal(errTxt(r.error, tx('No se ha retirado la nota')), lA);
-          if (r.error) mal(tx('No ha llegado la respuesta del servidor y no se sabe si la nota se ha retirado. Mira la lista.'), lA);
-          else bien(tx('Nota retirada'), lA);
-          return mismo ? carga() : null;
+          if (r.error && (conCodigo(r.error) || r.noSalio)) return avisa(id, 'mal', errTxt(r.error, tx('No se ha retirado la nota')));
+          if (r.error) avisa(id, 'mal', tx('No ha llegado la respuesta del servidor y no se sabe si la nota se ha retirado. Mira la lista.'));
+          else avisa(id, 'bien', tx('Nota retirada'));
+          return alLlegar(id, function (c) { c.recarga(); });
         });
     }
 
-    /* Una sola escucha por contenedor: si alguien vuelve a montar en el mismo, la anterior se quita (dos escuchas = dos
-       envíos por pulsación). */
-    if (typeof cont.__lwNotasQuita === 'function') cont.__lwNotasQuita();
+    yo.idAbierto = function () { return st.id; };
+    yo.linea = function () { return q('nota-estado'); };
+    yo.apaga = function (si) { var b = boton(); if (b) b.disabled = si; };
+    yo.recarga = carga;
+    yo.vaciaSi = function (t) { var ta = q('nota-texto'); if (ta && ta.value.trim() === t) ta.value = ''; };
+
+    /* Una sola escucha por contenedor: si alguien vuelve a montar en el mismo, el controlador anterior MUERE (sin escucha,
+       y sus respuestas pendientes ya no tocan este contenedor). Dos escuchas = dos envíos por pulsación. */
+    if (cont.__lwNotas) {
+      cont.__lwNotas.muerto = true;
+      cont.removeEventListener('click', cont.__lwNotas.alPulsar);
+      cont.removeEventListener('input', cont.__lwNotas.alEscribir);
+    }
     var alPulsar = function (e) {
       var b = e.target && e.target.closest ? e.target.closest('[data-accion]') : null;
       if (!b || !cont.contains(b) || b.disabled) return;
       var acc = b.getAttribute('data-accion');
       var art = b.closest('[data-lw="nota"]');
-      if (acc === 'nota-agrega') agrega(b);
+      if (acc === 'nota-agrega') agrega();
       else if (acc === 'notas-reintenta') {
         var l = q('notas-lista');
         if (l) l.innerHTML = gris(tx('Cargando las notas…'), 'notas-cargando');
@@ -261,13 +296,19 @@
         if (cajaR) cajaR.remove();
       } else if (acc === 'nota-retira-ok' && art) retira(b, art);
     };
+    // lo que se teclea se guarda al momento: la ficha del cliente no llama a cierra() (su cajón se tira entero)
+    var alEscribir = function (e) { if (e.target && e.target.getAttribute && e.target.getAttribute('data-lw') === 'nota-texto') guardaBorrador(); };
+    yo.alPulsar = alPulsar;
+    yo.alEscribir = alEscribir;
     cont.addEventListener('click', alPulsar);
-    cont.__lwNotasQuita = function () { cont.removeEventListener('click', alPulsar); };
+    cont.addEventListener('input', alEscribir);
+    cont.__lwNotas = yo;
+    VIVOS = VIVOS.filter(vivo).concat([yo]);
 
     return { abre: abre, cierra: cierra };
   }
 
-  var api = { monta: monta };
+  var api = { monta: monta, _reinicia: function () { ESTADO = {}; VIVOS = []; } };   // _reinicia: solo para las pruebas
   if (root) root.LW_NOTAS = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

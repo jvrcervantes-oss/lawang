@@ -433,8 +433,8 @@
     }
     if (!notas) notas = root.LW_NOTAS.monta(cuerpo, notasCfg(notasEstado));
     // Otra parcela: la tarjeta de la anterior se esconde hasta saber si esta se puede ver (sin «Cargando» de otra).
-    if (id !== notasId) muestra(q('fp-notas'), false);
-    notasId = id;
+    if (String(id) !== notasId) muestra(q('fp-notas'), false);
+    notasId = String(id);
     notas.abre(id);
   }
   /* Cerrar no tira lo escrito: la pieza guarda el borrador por parcela (en memoria) y vuelve al reabrirla. */

@@ -89,6 +89,7 @@ const espera = () => new Promise((r) => setImmediate(r));
 async function vacia() { for (let i = 0; i < 6; i++) await espera(); }
 const RPC = { datos: 'unidad_notas_datos', agrega: 'unidad_nota_agrega', retira: 'unidad_nota_retira' };
 function monta(sb, extra) {
+  NH._reinicia();   // el estado de la página es compartido: cada bloque empieza limpio
   const cont = new El('div'), estados = [];
   const ctl = NH.monta(cont, Object.assign({ sb, rpc: RPC, argId: 'p_unidad', motivos: [['rectificacion', 'Es incorrecta'], ['otro', 'Otro motivo']],
     origenes: { campo_notas: 'del editor de la parcela o de una importación' }, aviso: 'No escribas aquí datos de compradores (nombres, contacto, importes): van en su ficha.',
@@ -376,6 +377,114 @@ const resp = (notas, x) => ({ data: Object.assign({ notas, recortado: false }, x
     await vacia();
     ok(/ana@x/.test(t.cont.textContent) && t.acc('nota-retira').length === 1,
       'cliente_notas_datos anterior a la migración: se ve el correo del autor y se ofrece «Retirar» (decide el servidor)');
+  }
+
+  // 6c · segunda revisión (code-review sobre 058fa1b00): estado de la página y no del controlador
+  const escribe = (cont, ta, v) => { ta.value = v; (cont.oyentes.input || []).forEach((f) => f({ target: ta })); };
+  {
+    // la ficha del cliente: un controlador NUEVO por cada apertura del cajón, y nunca llama a cierra()
+    NH._reinicia(); avisos.length = 0;
+    const sb = sbFalso(), cfg = { sb, rpc: RPC, argId: 'p_unidad', motivos: [], origenes: {}, clases: {} };
+    const c1 = new El('div'), k1 = NH.monta(c1, cfg);
+    k1.abre('X');
+    sb.cola.unidad_notas_datos[0].ok(resp([]));
+    await vacia();
+    escribe(c1, c1.querySelector('[data-lw="nota-texto"]'), 'nota de X');
+    c1.querySelector('[data-accion="nota-agrega"]').click();
+    c1.isConnected = false;                                // el cajón se cierra (se tira entero)
+    const c2 = new El('div'), k2 = NH.monta(c2, cfg);
+    k2.abre('X');
+    const b2 = c2.querySelector('[data-accion="nota-agrega"]');
+    ok(b2.disabled && c2.querySelector('[data-lw="nota-texto"]').value === 'nota de X', 'otro cajón de la misma ficha con el envío en vuelo: botón apagado y lo escrito a la vista');
+    b2.disabled = false; b2.click();
+    ok(sb.llamadas.filter((l) => l[0] === 'unidad_nota_agrega').length === 1, 'ni forzando el botón sale un segundo envío');
+    sb.cola.unidad_notas_datos[1].ok(resp([]));
+    sb.cola.unidad_nota_agrega[0].ok({ data: { id: 5 }, error: null });
+    await vacia();
+    ok(!b2.disabled && c2.querySelector('[data-lw="nota-texto"]').value === '' && avisos.pop()[1] === 'Nota añadida', 'la respuesta llega al cajón nuevo: botón encendido y caja vacía');
+    ok(sb.llamadas.filter((l) => l[0] === 'unidad_notas_datos').length === 3, 'y solo el cajón vivo recarga la lista');
+    c2.isConnected = false;
+    const c3 = new El('div'); NH.monta(c3, cfg).abre('X');
+    ok(c3.querySelector('[data-lw="nota-texto"]').value === '', 'lo enviado no vuelve como borrador');
+  }
+  {
+    // un remontaje sobre el mismo contenedor mata al anterior: su respuesta pendiente no toca el DOM del nuevo
+    NH._reinicia(); avisos.length = 0;
+    const sb = sbFalso(), cfg = { sb, rpc: RPC, argId: 'p_unidad', motivos: [], origenes: {}, clases: {} };
+    const c = new El('div'), k1 = NH.monta(c, cfg);
+    k1.abre('Y');
+    sb.cola.unidad_notas_datos[0].ok(resp([]));
+    await vacia();
+    escribe(c, c.querySelector('[data-lw="nota-texto"]'), 'uno');
+    c.querySelector('[data-accion="nota-agrega"]').click();
+    const k2 = NH.monta(c, cfg);
+    k2.abre('Y');
+    ok(c.querySelector('[data-accion="nota-agrega"]').disabled, 'el montaje nuevo hereda el «en vuelo»');
+    k1.abre('Z');
+    ok(sb.llamadas.filter((l) => l[0] === 'unidad_notas_datos' && l[1].p_unidad === 'Z').length === 0 && c.querySelector('[data-accion="nota-agrega"]').disabled,
+      'el controlador muerto ya no abre nada ni repinta el contenedor');
+    sb.cola.unidad_notas_datos[1].ok(resp([]));
+    sb.cola.unidad_nota_agrega[0].ok({ data: { id: 6 }, error: null });
+    await vacia();
+    ok(!c.querySelector('[data-accion="nota-agrega"]').disabled && sb.llamadas.filter((l) => l[0] === 'unidad_notas_datos').length === 3, 'responde el vivo: botón encendido y una sola recarga');
+  }
+  {
+    // el mismo id como número o como texto es la misma ficha
+    const sb = sbFalso(), t = monta(sb);
+    t.ctl.abre(7);
+    sb.cola.unidad_notas_datos[0].ok(resp([]));
+    await vacia();
+    escribe(t.cont, t.q('nota-texto'), 'siete');
+    t.ctl.cierra();
+    t.ctl.abre('7');
+    ok(t.q('nota-texto').value === 'siete' && sb.llamadas[1][1].p_unidad === '7', '7 y «7» son la misma ficha');
+    sb.cola.unidad_notas_datos[1].ok(resp([]));
+    await vacia();
+    t.ctl.abre(8);
+    sb.cola.unidad_notas_datos[2].ok(resp([]));
+    await vacia();
+    t.q('nota-texto').value = 'ocho';
+    t.acc('nota-agrega')[0].click();
+    t.ctl.abre('8');                                       // la misma ficha, con el id como texto
+    sb.cola.unidad_nota_agrega[0].ok({ data: { id: 1 }, error: null });
+    await vacia();
+    ok(!t.acc('nota-agrega')[0].disabled && t.q('nota-texto').value === '', 'la respuesta de 8 la recibe la ficha «8»');
+  }
+  {
+    // puede_retirar null no enseña «Retirar»; con la función nueva el correo no sale aunque falte el nombre
+    const sb = sbFalso(), t = monta(sb);
+    t.ctl.abre('U1');
+    sb.cola.unidad_notas_datos[0].ok(resp([nota({ id: 1, puede_retirar: null }), nota({ id: 2, autor_nombre: null, autor_email: 'ana@x', puede_retirar: false })]));
+    await vacia();
+    ok(t.acc('nota-retira').length === 0, 'puede_retirar null: sin botón (solo true lo enseña)');
+    ok(!/ana@x/.test(t.cont.textContent) && /alguien del equipo/.test(t.cont.textContent), 'con la función nueva no se enseña el correo');
+  }
+  {
+    // la llamada lanza antes de salir: «no se ha guardado», no «no se sabe»
+    avisos.length = 0;
+    const t = monta({ rpc: (n) => { if (n === 'unidad_nota_agrega') throw new Error('argumento malo'); return Promise.resolve(resp([])); } });
+    t.ctl.abre('U1');
+    await vacia();
+    t.q('nota-texto').value = 'z';
+    t.acc('nota-agrega')[0].click();
+    await vacia();
+    ok(avisos.pop()[1] === 'No se ha guardado la nota: argumento malo', 'un throw de rpc() es «no se ha guardado»');
+  }
+  {
+    // sin toast y con la ficha cerrada: el resultado espera a que se vuelva a abrir
+    const tb = global.toast, tm = global.toastMal; delete global.toast; delete global.toastMal;
+    const sb = sbFalso(), t = monta(sb);
+    t.ctl.abre('A1');
+    sb.cola.unidad_notas_datos[0].ok(resp([]));
+    await vacia();
+    t.q('nota-texto').value = 'q';
+    t.acc('nota-agrega')[0].click();
+    t.ctl.abre('B1');
+    sb.cola.unidad_nota_agrega[0].ok({ data: null, error: { code: 'P0001', message: 'tope' } });
+    await vacia();
+    t.ctl.abre('A1');
+    ok(/No se ha guardado la nota: tope/.test(t.q('nota-estado').textContent), 'el «no se ha guardado» no se pierde: sale al volver a la ficha');
+    global.toast = tb; global.toastMal = tm;
   }
 
   // 7 · sin toastMal (otra pantalla): el aviso va a la línea de estado de la caja
