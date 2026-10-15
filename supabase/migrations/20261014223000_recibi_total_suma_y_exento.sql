@@ -96,8 +96,16 @@
 --       restringido. El alcance restringido ya tomaba id y nombre del contrato; lo unico que cambia para el es que el nombre
 --       ahora lleva la unidad.
 --     Prueba: K1b/K3 (recibi nuevo con proyecto ajeno), K4 (editar hacia un contrato de otro proyecto: proyecto_id, columna y
---     papel) y K5 (contrato sin proyecto).
---     NO se tocan cliente_nombre ni sociedad: su fuente en el contrato no es inequivoca y factura_guarda tampoco los saca del
+--     papel; y hacia un contrato de OTRA empresa: _empresa_doc da la empresa 2 y el admin de la empresa 1, que no es autor,
+--     ya no lo edita, K4d-K4f) y K5 (contrato sin proyecto).
+--   CLIENTE DEL RECIBI (15-oct-2026, Seguridad, 4.a vuelta de la consulta de deploy): al EDITAR, si cambia el contrato, client_id
+--     se pone a null en el UPDATE y trg_factura_hereda_cliente (20260822021026: before update of contrato_id, client_id,
+--     proyecto_id; rellena solo si llega null, del adquiriente_1 de contrato_compradores y si no de datos.adq1_client_id) lo
+--     saca del contrato NUEVO. Antes se quedaba el client_id del comprador A al mover el recibi al contrato de B: la vista
+--     documentos_desactualizados ofrecia meter nombre/pasaporte/email de A en el recibi de B, y el traspaso de cliente
+--     (20261013150447:116, x.client_id = p_client_id) cambiaba el autor del recibi de B al traspasar A. Mismo contrato: se
+--     conserva. Prueba: K6 (el recibi con el cliente A pasa a un contrato cuyo adquiriente_1 es B: client_id = B).
+--     NO se tocan cliente_nombre ni sociedad (client_id si, ver «CLIENTE DEL RECIBI»): su fuente en el contrato no es inequivoca y factura_guarda tampoco los saca del
 --     contrato (20261013074408, insert y update: los toma del payload; sociedad solo se ata para el alcance restringido, como aqui).
 --     cliente_nombre: un contrato puede tener varios compradores (comprador_nombre compuesto con «·») y la pantalla deja escribir
 --     la razon social; sociedad: la elige un admin, y al editar el alcance restringido conserva la de la fila.
@@ -129,6 +137,8 @@
 --       (columna <> papel). No es de seguridad, pero rompe lo que esta cabecera promete; mejor parar que divergir. Decision por
 --       defecto (Backend, 15-oct, reversible: quitar el bloque (d) del $antes$).
 -- ACEPTADO (orquestador agencia-c0 y sesión lawang-cola-2, 15-oct-2026, por la congelación del owner): las pruebas que montan sobre datos reales no corren en rama. Antes de aplicar esta migración en la viva se corren con ROLLBACK: factura_moneda_del_contrato b1, facturas_tope_cadena_y_recibi_pendiente, f2_b2_empresas A42-A45, f2_foto_b2 / f2_foto_b2_ab y tools/flujos_lawang.py.
+--   4.a vuelta de Seguridad (15-oct-2026): al cambiar de contrato client_id se vuelve a heredar del contrato nuevo (prueba K6) y
+--   K4 pasa ademas el recibi a un contrato de OTRA empresa (K4d-K4f: el admin de la empresa 1 ya no lo edita, 42501).
 -- REVERTIR: supabase/reversion_recibi_total_suma_y_exento/REVERSION.sql (el texto vivo de antes, tal cual).
 -- Prueba: supabase/pruebas/recibi_total_suma_y_exento.sql (crea contratos y documentos: SOLO en rama):
 --   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261014220000_facturas_conservan_parcela.sql,20261014223000_recibi_total_suma_y_exento.sql
@@ -473,6 +483,10 @@ begin
   else
     update public.facturas set
       sociedad = p_factura->>'sociedad', cliente_nombre = p_factura->>'cliente_nombre',
+      -- 15-oct-2026 (Seguridad, 4.a vuelta): a la derecha del SET, contrato_id es el VIEJO. Si cambia el contrato, client_id
+      -- queda null y trg_factura_hereda_cliente (update of contrato_id, client_id, proyecto_id; 20260822021026) lo vuelve a
+      -- sacar del adquiriente_1 del contrato nuevo. Mismo contrato: se conserva
+      client_id = case when contrato_id = v_contrato_id then client_id end,
       proyecto_id = v_pid, proyecto_nombre = v_pnombre, contrato_numero = v_contrato_numero,
       contrato_id = v_contrato_id, total = v_total, moneda = v_moneda,
       fecha_emision = nullif(p_factura->>'fecha_emision','')::date, justificantes = v_justificantes,

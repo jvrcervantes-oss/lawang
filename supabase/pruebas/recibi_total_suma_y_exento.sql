@@ -17,6 +17,10 @@
 -- UPDATE no lo tocaba y se quedaba el 1), columna y papel = «ZZ-RT Proyecto 2 — ZZ-C5» exactamente, la parcela del contrato
 -- aunque la pantalla mande otra (« — ZZ-OTRA») y sin parcela doble. K5: contrato SIN proyecto que manda el nombre de un proyecto real: proyecto_id
 -- y proyecto_nombre null y el papel sin proyecto (antes el espejo lo enlazaba por nombre). Se ensaya con 20261014220000 aplicada.
+-- 4.a vuelta de Seguridad (15-oct): K6: el recibi de K4 lleva el cliente A (K6pre) y al pasar a ZZ-RT-K5, cuyo adquiriente_1 es B,
+-- su client_id pasa a ser B (antes se quedaba A). K4d-K4f: el recibi pasa despues a ZZ-RT-K7, de un proyecto de OTRA empresa
+-- (zz_rt2): _empresa_doc da la empresa 2 y el admin de la empresa 1, que no es su autor, recibe 42501 de la fila bloqueada (K4d,
+-- su SI, edita mientras el recibi es de su empresa). Antes, con el proyecto_id viejo, la empresa seguia siendo la 1 y si editaba.
 -- Rol REAL: cada llamada va con `set local role authenticated` y los claims de la persona (pg_temp.val, armazon de
 -- cf_borrar_cierre_anula.sql). Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- !! CREA CONTRATOS Y DOCUMENTOS (gasta numeracion): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
@@ -69,7 +73,7 @@ do $todo$
 declare
   r text := ''; v text; n bigint; s0 text;
   a _tp; ae _tp; ad _tp;
-  pL uuid; p2 uuid; rk uuid; rk4 uuid; k5 uuid; k6 uuid; f11 uuid; f12 uuid; k1 uuid; k2 uuid; k3 uuid; k4 uuid; f9 uuid; f10 uuid; rh3 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f8 uuid; r1 uuid; rh uuid; rh2 uuid; ro uuid;
+  pL uuid; p2 uuid; p3 uuid; k7 uuid; f13 uuid; cA uuid; cB uuid; rk uuid; rk4 uuid; k5 uuid; k6 uuid; f11 uuid; f12 uuid; k1 uuid; k2 uuid; k3 uuid; k4 uuid; f9 uuid; f10 uuid; rh3 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f8 uuid; r1 uuid; rh uuid; rh2 uuid; ro uuid;
   d jsonb;
   j  constant jsonb := '[{"path": "zz-rt/justificante.pdf"}]';
   c_emp constant text := 'zz_rt';
@@ -335,6 +339,18 @@ begin
       k5 := null;
       r := r || pg_temp.l(false, 'K4 montaje (contrato ZZ-RT-K5 en el proyecto 2 con parcela ZZ-C5): ' || sqlstate || ' ' || left(sqlerrm, 300));
     end;
+    -- K6 (Seguridad, 4.a vuelta): dos compradores; B es el adquiriente_1 de ZZ-RT-K5. En su bloque: si falla, cae K6 (K6pre en
+    -- FALLA) y K4 sigue. propietario explicito: sin sesion, trg_clients_pone_dueno caeria a auth.email(), que aqui es null
+    if k5 is not null then
+      begin
+        insert into public.clients (full_name, propietario) values ('ZZ-RT Cliente A', a.em) returning id into cA;
+        insert into public.clients (full_name, propietario) values ('ZZ-RT Cliente B', a.em) returning id into cB;
+        insert into public.contrato_compradores (contrato_id, client_id, rol) values (k5, cB, 'adquiriente_1');
+      exception when others then
+        cA := null; cB := null;
+        r := r || pg_temp.l(false, 'K6 montaje (clientes A y B, B adquiriente_1 de ZZ-RT-K5): ' || sqlstate || ' ' || left(sqlerrm, 300));
+      end;
+    end if;
     if k5 is not null then
       v := pg_temp.guarda(ad.uid, ad.em, null, pg_temp.rec(k1, '10', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f4, 'importe', 10)));
       if v ~ '^ERR' then
@@ -343,6 +359,11 @@ begin
         rk4 := v::uuid;
         r := r || pg_temp.l((select f.proyecto_id = pL and f.proyecto_nombre = 'ZZ-RT Proyecto' from public.facturas f where f.id = rk4),
                             'K4pre el recibi nace en K1 con el proyecto 1 (si no, K4 no probaria el cambio)');
+        -- K6pre: el recibi lleva el cliente A, como uno ya heredado del comprador de su contrato (ZZ-RT-K1 no tiene comprador:
+        -- sin esto client_id seria null, el disparador lo rellenaria igual con B y K6 pasaria tambien con el codigo de antes)
+        if cA is not null then update public.facturas set client_id = cA where id = rk4; end if;
+        r := r || pg_temp.l((select f.client_id = cA from public.facturas f where f.id = rk4),
+                            'K6pre el recibi de K1 lleva el cliente A antes de cambiarlo de contrato (si no, K6 no probaria nada)');
         -- la pantalla manda el proyecto CON la parcela (editores.js, aplicaContratoDoc); aqui con OTRA parcela (ZZ-OTRA), para
         -- que la linea distinga «sale del contrato» de «se copia lo mandado» y vea que no se dobla
         v := pg_temp.guarda(ad.uid, ad.em, rk4,
@@ -362,6 +383,51 @@ begin
                               and d->'fields'->>'contrato_numero' = 'ZZ-RT-K5'
                               and (select count(*) = 1 and bool_and(ra.factura_id = f11) from public.recibi_aplicaciones ra where ra.recibi_id = rk4),
                               'K4c contrato_id, contrato_numero (columna y papel) y la aplicacion son los de K5');
+          -- K6 (Seguridad, 4.a vuelta): al cambiar de contrato, el cliente se vuelve a heredar del contrato NUEVO. Antes el UPDATE
+          -- dejaba el client_id de A (no null: trg_factura_hereda_cliente no lo tocaba) en el recibi ya del contrato de B
+          r := r || pg_temp.l((select f.client_id = cB and f.client_id is distinct from cA from public.facturas f where f.id = rk4),
+                              'K6 el recibi del cliente A pasa a ZZ-RT-K5 (adquiriente_1 = B) y su client_id pasa a ser B, no A (' ||
+                              coalesce((select case f.client_id when cA then 'A' when cB then 'B' else coalesce(f.client_id::text, 'null') end
+                                          from public.facturas f where f.id = rk4), '-') || ')');
+
+          -- K4d-K4f (Seguridad, 4.a vuelta): el recibi pasa a un contrato de OTRA empresa y el admin de la empresa 1, que no es su
+          -- autor, ya no lo edita. Con el UPDATE de antes (proyecto_id viejo) _empresa_doc seguia dando la empresa 1 y si podia.
+          -- Montaje en su bloque: si falla, solo caen K4d-K4f
+          begin
+            insert into public.empresas (clave, nombre) values ('zz_rt2', 'ZZ-RT Empresa 2');
+            insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-RT Proyecto 3', 'zz-rt-proyecto-3', 'zz_rt2', true) returning id into p3;
+            insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
+              values ('ZZ-RT-K7', 'contrato_general', p3, 'EUR', 100000, '{"hitos":[], "fields": {"parcela_codigo": "ZZ-C7"}}', a.em) returning id into k7;
+            insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+              values ('factura', 'ZZ-RT-F13', 'zz_rt', k7, 400, 'EUR', a.em, 'ZZ-RT', '{"fields": {}}'::jsonb) returning id into f13;
+          exception when others then
+            k7 := null;
+            r := r || pg_temp.l(false, 'K4d montaje (empresa zz_rt2, proyecto 3, contrato ZZ-RT-K7): ' || sqlstate || ' ' || left(sqlerrm, 300));
+          end;
+          if k7 is not null then
+            -- pre: ae es admin de la empresa 1 y no de la 2, y no es el autor del recibi (si lo fuera, es_suyo le dejaria editar)
+            v := pg_temp.val(ae.uid, ae.em, 'select public.es_admin_de(''zz_rt'')::text || ''/'' || public.es_admin_de(''zz_rt2'')::text');
+            r := r || pg_temp.l(v = 'true/false' and (select lower(coalesce(f.creado_por, '')) <> lower(ae.em) from public.facturas f where f.id = rk4),
+                                'K4dpre el admin de la empresa 1 lo es de zz_rt y no de zz_rt2, y no es el autor del recibi (' || coalesce(v, '-') || ')');
+            -- SI: mientras el recibi es de la empresa 1, ae lo edita (mismo contrato ZZ-RT-K5: el cliente B se conserva)
+            v := pg_temp.guarda(ae.uid, ae.em, rk4, pg_temp.rec(k5, '10', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f11, 'importe', 10)));
+            r := r || pg_temp.l(v = rk4::text and (select f.client_id = cB from public.facturas f where f.id = rk4),
+                                'K4d SI el admin de la empresa 1 edita el recibi mientras es de su empresa, y en el mismo contrato el cliente B se queda (' || left(coalesce(v, '-'), 70) || ')');
+            -- el admin global lo pasa a ZZ-RT-K7 (empresa 2)
+            v := pg_temp.guarda(ad.uid, ad.em, rk4, pg_temp.rec(k7, '10', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f13, 'importe', 10)));
+            r := r || pg_temp.l(v = rk4::text
+                                and (select f.contrato_id = k7 and f.proyecto_id = p3 and public._empresa_doc(f.proyecto_id, f.contrato_id) = 'zz_rt2'
+                                       from public.facturas f where f.id = rk4),
+                                'K4e el admin global lo pasa a ZZ-RT-K7 y _empresa_doc(proyecto_id, contrato_id) da la empresa 2 (' ||
+                                left(coalesce(v, '-'), 40) || ' / ' || coalesce((select public._empresa_doc(f.proyecto_id, f.contrato_id) from public.facturas f where f.id = rk4), '-') || ')');
+            -- NO: ae manda un contrato que SI ve (ZZ-RT-K1), para que lo pare la fila bloqueada con su filtro de autoria y no la
+            -- puerta de «contrato que no ves»
+            v := pg_temp.guarda(ae.uid, ae.em, rk4, pg_temp.rec(k1, '10', j, '{}'), jsonb_build_array(jsonb_build_object('factura_id', f4, 'importe', 10)));
+            r := r || pg_temp.l(v like 'ERR42501:no se pudo actualizar%'
+                                and (select f.contrato_id = k7 from public.facturas f where f.id = rk4)
+                                and (select count(*) = 1 and bool_and(ra.factura_id = f13) from public.recibi_aplicaciones ra where ra.recibi_id = rk4),
+                                'K4f NO el admin de la empresa 1 ya no edita el recibi de la empresa 2: 42501 y sigue en ZZ-RT-K7 con su aplicacion (' || left(coalesce(v, '-'), 70) || ')');
+          end if;
         end if;
       end if;
     end if;
