@@ -79,11 +79,11 @@
 --       indice unico). Con el id puesto, el espejo ya no busca por nombre.
 --     - proyecto_nombre (columna y datos.fields.proyecto_nombre, documento.js:201) = «<nombre del proyecto del contrato> — <unidad
 --       del contrato>», con la unidad de datos.fields del contrato: parcela_codigo, si no villa_nombre, si no tipologia_villa. Es
---       la MISMA formula que el espejo de 20261014220000_facturas_conservan_parcela (trg_espejo_proyecto en facturas) y lo mismo
+--       la MISMA formula que el espejo de 20261015055003_facturas_conservan_parcela (trg_espejo_proyecto en facturas) y lo mismo
 --       que ya mandaba la pantalla (editores.js:2625, aplicaContratoDoc). La version anterior de este arreglo guardaba el nombre
 --       a secas tambien en el papel: el recibi perdia la parcela impresa. Decision por defecto (Backend, 15-oct, reversible:
 --       volver al nombre a secas es quitar la unidad de la formula).
---       La columna la reescribe despues trg_espejo_proyecto: CON 20261014220000 aplicada (va antes, 220000 < 223000) da el mismo
+--       La columna la reescribe despues trg_espejo_proyecto: CON 20261015055003 aplicada (va antes) da el mismo
 --       texto, columna = papel; SIN ella (el espejo vivo del 13-oct) la columna queda con el nombre a secas y el papel con la
 --       parcela, que es el fallo 4 que arregla 220000, no este. El proyecto_id es el del contrato en los dos casos. Para que
 --       no pase, la guarda (d) del bloque $antes$ exige 220000 aplicada.
@@ -100,7 +100,7 @@
 --     ya no lo edita, K4d-K4f) y K5 (contrato sin proyecto).
 --   CLIENTE DEL RECIBI (15-oct-2026, Seguridad, 4.a vuelta de la consulta de deploy): al EDITAR, si cambia el contrato, client_id
 --     se pone a null en el UPDATE y trg_factura_hereda_cliente (20260822021026: before update of contrato_id, client_id,
---     proyecto_id; rellena solo si llega null, del adquiriente_1 de contrato_compradores y si no de datos.adq1_client_id) lo
+--     proyecto_id; rellena solo si llega null, del adquiriente_1 de contrato_compradores; desde 20261015101518 ya no cae a datos.adq1_client_id) lo
 --     saca del contrato NUEVO. Antes se quedaba el client_id del comprador A al mover el recibi al contrato de B: la vista
 --     documentos_desactualizados ofrecia meter nombre/pasaporte/email de A en el recibi de B, y el traspaso de cliente
 --     (20261013150447:116, x.client_id = p_client_id) cambiaba el autor del recibi de B al traspasar A. Mismo contrato: se
@@ -132,7 +132,7 @@
 --       un falso verde con has_table_privilege. Se mira en $antes$ y otra vez en $cierre$.
 --   (c) Ningun recibi vivo lleva impuesto en el papel (A3; consulta de Administracion del 15-oct: la medida del 14-oct era
 --       solo un comentario). Si lanza, da cuantos; que hacer con ellos (anular y emitir otro, nota, asesor) se decide antes.
---   (d) 20261014220000_facturas_conservan_parcela ya esta aplicada (su marca en trg_espejo_proyecto). Va antes por orden, pero
+--   (d) 20261015055003_facturas_conservan_parcela ya esta aplicada (su marca en trg_espejo_proyecto). Va antes por orden, pero
 --       si esta se aplicara sola, el espejo del 13-oct dejaria la columna con el nombre a secas y el papel con la parcela
 --       (columna <> papel). No es de seguridad, pero rompe lo que esta cabecera promete; mejor parar que divergir. Decision por
 --       defecto (Backend, 15-oct, reversible: quitar el bloque (d) del $antes$).
@@ -141,7 +141,7 @@
 --   K4 pasa ademas el recibi a un contrato de OTRA empresa (K4d-K4f: el admin de la empresa 1 ya no lo edita, 42501).
 -- REVERTIR: supabase/reversion_recibi_total_suma_y_exento/REVERSION.sql (el texto vivo de antes, tal cual).
 -- Prueba: supabase/pruebas/recibi_total_suma_y_exento.sql (crea contratos y documentos: SOLO en rama):
---   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261014220000_facturas_conservan_parcela.sql,20261014223000_recibi_total_suma_y_exento.sql
+--   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261015055003_facturas_conservan_parcela.sql,20261015223236_recibi_total_suma_y_exento.sql
 --          --prueba recibi_total_suma_y_exento.sql
 --   (desde la 3.a vuelta, 15-oct, 220000 va en --aplica: la guarda (d) y K4b la necesitan, y la rama solo aplica lo que se le
 --   lista sobre el ultimo volcado; la copia tiene que traer ese fichero de main)

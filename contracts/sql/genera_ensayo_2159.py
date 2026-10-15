@@ -13,7 +13,9 @@ import subprocess
 import sys
 
 COPIA, AGENCIA = sys.argv[1], sys.argv[2]
-MIG = 'supabase/migrations/20261014223000_recibi_total_suma_y_exento.sql'
+# 16-oct-2026: 2159 ya está APLICADA (20261015223236). Este generador queda como historia: sus guardas $antes$ PARAN
+# contra la viva y el sha de abajo es el del fichero tal como se ensayó y aplicó (antes de corregir sus comentarios).
+MIG = 'supabase/migrations/20261015223236_recibi_total_suma_y_exento.sql'
 MIG_SHA = '08c84d8112cfe3f545f86f99c819ab5d0e756062a20ccfd10f17b82013be3c75'
 PRUEBAS = ['factura_moneda_del_contrato', 'facturas_tope_cadena_y_recibi_pendiente', 'f2_b2_empresas']
 FOTO = 'f2_foto_b2'

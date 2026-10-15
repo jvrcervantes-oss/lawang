@@ -1,4 +1,4 @@
--- REVERSION de 20261014223000_recibi_total_suma_y_exento (14-oct-2026): el texto vivo de antes, tal cual (leido del vivo en la
+-- REVERSION de 20261015223236_recibi_total_suma_y_exento (escrita como 20261014223000 el 14-oct-2026; aplicada el 16-oct): el texto vivo de antes, tal cual (leido del vivo en la
 --   sesion 1014-2159, md5 43a4c655711c0ef218b670ebe01c1585). Vuelve a dejar el total libre, numerar antes de validar y exigir
 --   justificante a los historicos; y (2.a vuelta, 15-oct) el papel (datos.lineas, datos.totales, impuesto, tipo y moneda de
 --   datos.fields) vuelve a ser el que mande la pantalla, la moneda de la factura y la tolerancia vuelve a mirarlas solo el
