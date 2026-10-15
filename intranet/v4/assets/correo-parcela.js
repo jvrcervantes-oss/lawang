@@ -77,7 +77,7 @@
   function notaLimpia(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
   function notaError(t) {
     var n = notaLimpia(t);
-    if (n.length > NOTA_MAX) return cpT('La nota admite hasta 300 caracteres.');
+    if (Array.from(n).length > NOTA_MAX) return cpT('La nota admite hasta 300 caracteres.');   // por caracteres, como char_length de la base (un emoji = 1)
     if (/http|www\.|@/i.test(n) || /[a-z0-9-]\.[a-z]{2,}/i.test(n)) return cpT('La nota no puede llevar enlaces ni direcciones de correo.');
     if (/[0-9]{6,}/.test(n)) return cpT('La nota no puede llevar números largos (cuentas, teléfonos).');
     return null;
@@ -185,6 +185,9 @@
         var d = res[0], h = res[1];
         if (d.error) {
           if (sinPermiso(d.error)) return;                // quien no administra la empresa no ve el bloque
+          // Front publicado antes que su migración: sin las funciones no hay nada que enseñar (revisor 15-oct: el orden de
+          // llegada de front y base deja de importar, en vez de un error rojo en cada parcela).
+          if (funcionNoExiste(d.error)) return;
           r.bloque.classList.remove('hidden');
           r.estado.innerHTML = '<p class="rp-mal" role="alert" data-lw="' + P + '-error">' +
             esc(cpT('No se pudo comprobar a quién se puede escribir: %e. Cierra la parcela y ábrela de nuevo para reintentar.', { e: d.error.message || d.error.code || '—' })) + '</p>';

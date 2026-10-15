@@ -108,6 +108,7 @@ const STUB = `(function(){
     /* «Invitar al portal» (15-oct-2026): solo con ?tipo=invitacion; sin él, sus RPC caen en q() y el bloque no se pinta,
        así los casos de Reclamar pago de arriba corren igual que antes del núcleo compartido. */
     if (q0.get('tipo') === 'invitacion') {
+      if (q0.get('sinbase') === '1' && /^invitacion_portal_/.test(n)) return mal('Could not find the function public.' + n, null, 'PGRST202');
       if (n === 'invitacion_portal_destinatarios') return ok(IP_DEST);
       if (n === 'invitacion_portal_historial') return ok(IP_HIST);
       if (n === 'invitacion_portal_encolar') {
@@ -457,6 +458,15 @@ const esperaPanel = (page) => page.waitForTimeout(500);
     ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), 'invitación móvil 390: sin scroll horizontal de página');
     if (PNG) await page.screenshot({ path: PNG + '_ip_movil.png' });
     ok(errores.length === 0, 'invitación móvil: sin errores de consola');
+    await ctx.close();
+  }
+  /* ── M. el front llega antes que su migración: el bloque no se pinta y Reclamar pago sigue igual ── */
+  {
+    const { ctx, page, errores } = await nueva(browser, 1440, 900, 'c=base&tipo=invitacion&sinbase=1', idi);
+    await abreParcela(page, 'SH-1'); await esperaPanel(page);
+    ok(!(await ipVisible(page)) && !(await page.locator('[data-lw="ip-error"]').count()), 'sin migración: ni bloque de invitación ni error rojo');
+    ok(await bloqueVisible(page) && await botonVisible(page), 'sin migración: Reclamar pago sigue funcionando');
+    ok(errores.length === 0, 'sin migración: sin errores de consola');
     await ctx.close();
   }
 
