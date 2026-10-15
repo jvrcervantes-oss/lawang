@@ -38,6 +38,7 @@ class El {
   remove() { const p = this.parentNode; if (p) p.children = p.children.filter((c) => c !== this); this.parentNode = null; }
   contains(x) { for (let e = x; e; e = e.parentNode) if (e === this) return true; return false; }
   addEventListener(t, f) { (this.oyentes[t] = this.oyentes[t] || []).push(f); }
+  removeEventListener(t, f) { this.oyentes[t] = (this.oyentes[t] || []).filter((g) => g !== f); }
   closest(sel) { for (let e = this; e && e instanceof El; e = e.parentNode) if (casa(e, sel)) return e; return null; }
   todos(sel, out = []) { this.children.forEach((c) => { if (c instanceof El) { if (casa(c, sel)) out.push(c); c.todos(sel, out); } }); return out; }
   querySelector(sel) { return this.todos(sel)[0] || null; }
@@ -287,6 +288,96 @@ const resp = (notas, x) => ({ data: Object.assign({ notas, recortado: false }, x
     await vacia();
     ok(t.cont.children.length === 0, 'una respuesta que llega tras cerrar no pinta');
   }
+  // 6b · revisión (code-review, 15-oct): reabrir la misma ficha con un «Añadir» en vuelo, sin sesión, lecturas que se
+  // cruzan, cerrar y volver, caída con borrador, doble montaje, función vieja del cliente
+  {
+    avisos.length = 0;
+    const sb = sbFalso(), t = monta(sb);
+    t.ctl.abre('P');
+    sb.cola.unidad_notas_datos[0].ok(resp([]));
+    await vacia();
+    t.q('nota-texto').value = 'la misma';
+    t.acc('nota-agrega')[0].click();
+    t.ctl.abre('P');                                       // la ficha se vuelve a abrir con el envío en vuelo
+    ok(t.acc('nota-agrega')[0].disabled && t.q('nota-texto').value === 'la misma', 'reabrir con el envío en vuelo: botón apagado y borrador a la vista');
+    t.acc('nota-agrega')[0].click();
+    ok(sb.llamadas.filter((l) => l[0] === 'unidad_nota_agrega').length === 1, 'no hay segundo envío del mismo texto');
+    sb.cola.unidad_notas_datos[1].ok(resp([]));            // la lectura de la reapertura, anterior al alta
+    sb.cola.unidad_nota_agrega[0].ok({ data: { id: 3 }, error: null });
+    await vacia();
+    ok(!t.acc('nota-agrega')[0].disabled && t.q('nota-texto').value === '', 'al llegar la respuesta: botón encendido y caja vacía');
+    const ultima = sb.llamadas[sb.llamadas.length - 1];
+    ok(ultima[0] === 'unidad_notas_datos' && ultima[1].p_unidad === 'P', 'y la lista de la misma ficha se recarga');
+    sb.cola.unidad_notas_datos[2].ok(resp([nota({ id: 3, texto: 'la misma' })]));
+    await vacia();
+    ok(t.cont.querySelectorAll('[data-lw="nota"]').length === 1, 'la nota nueva se ve');
+
+    // dos lecturas del mismo turno (Reintentar + recarga): la vieja no pinta encima de la nueva
+    t.acc('nota-agrega')[0].click();   // vacía: no envía
+    t.q('nota-texto').value = 'x';
+    t.acc('nota-agrega')[0].click();
+    sb.cola.unidad_nota_agrega[1].ko(new TypeError('Failed to fetch'));
+    await vacia();
+    const nDat = sb.cola.unidad_notas_datos.length;            // recarga tras la duda
+    t.cont.querySelector('[data-lw="notas-lista"]').innerHTML = '<div data-lw="notas-caida"><button data-accion="notas-reintenta">r</button></div>';
+    t.acc('notas-reintenta')[0].click();
+    sb.cola.unidad_notas_datos[nDat].ok(resp([nota({ id: 3 }), nota({ id: 4, texto: 'nueva' })]));   // la más reciente llega antes
+    await vacia();
+    sb.cola.unidad_notas_datos[nDat - 1].ok(resp([nota({ id: 3 })]));                             // la vieja, después
+    await vacia();
+    ok(/nueva/.test(t.cont.textContent), 'la lectura vieja no tapa a la nueva');
+
+    // cerrar y volver a abrir la misma ficha conserva lo escrito; otra ficha no lo ve
+    t.q('nota-texto').value = 'sin enviar';
+    t.ctl.cierra();
+    t.ctl.abre('Q');
+    ok(t.q('nota-texto').value === '', 'otra ficha no ve el borrador');
+    t.ctl.abre('P');
+    ok(t.q('nota-texto').value === 'sin enviar', 'cerrar y reabrir la misma ficha conserva el borrador');
+    // caída con borrador: la caja no se esconde
+    sb.cola.unidad_notas_datos[sb.cola.unidad_notas_datos.length - 1].ok({ data: null, error: { code: 'XX000', message: 'caída' } });
+    await vacia();
+    ok(t.q('notas-caida') && !t.q('notas-caja').hidden, 'caída con borrador: lo escrito sigue a la vista');
+  }
+  {
+    avisos.length = 0;
+    let quiere = { rpc: () => { throw new Error('no debería llamarse'); } };
+    const t = monta(() => Promise.reject(new Error('Sin sesión')));
+    t.ctl.abre('U1');
+    await vacia();
+    t.q('notas-caja').hidden = false;
+    t.q('nota-texto').value = 'algo';
+    t.acc('nota-agrega')[0].click();
+    await vacia();
+    ok(avisos.pop()[1] === 'No se ha guardado la nota: Sin sesión', 'sin sesión el envío no salió: «no se ha guardado», no «no se sabe»');
+    const t2 = monta(null);
+    t2.ctl.abre('U1');
+    await vacia();
+    ok(t2.q('notas-caida') && /Sin sesión/.test(t2.cont.textContent), 'sin cliente: caída con «Sin sesión», no un TypeError');
+    void quiere;
+  }
+  {
+    const sb = sbFalso(), cont = new El('div');
+    const cfg = { sb, rpc: RPC, argId: 'p_unidad', motivos: [], origenes: {}, clases: {} };
+    NH.monta(cont, cfg);
+    const ctl = NH.monta(cont, cfg);                        // segundo montaje sobre el mismo contenedor
+    ctl.abre('U1');
+    sb.cola.unidad_notas_datos[0].ok(resp([]));
+    await vacia();
+    cont.querySelector('[data-lw="nota-texto"]').value = 'una';
+    cont.querySelector('[data-accion="nota-agrega"]').click();
+    const envios = sb.llamadas.filter((l) => l[0] === 'unidad_nota_agrega');
+    ok(envios.length === 1 && envios[0][1].p_unidad === 'U1', 'dos montajes en el mismo contenedor: una pulsación, un envío, del montaje vivo');
+  }
+  {
+    const sb = sbFalso(), t = monta(sb);
+    t.ctl.abre('U1');
+    sb.cola.unidad_notas_datos[0].ok(resp([{ id: 1, texto: 'vieja', origen: 'nota', creado_en: '2026-10-15T08:00:00Z', autor_id: 'u1', autor_email: 'ana@x' }]));
+    await vacia();
+    ok(/ana@x/.test(t.cont.textContent) && t.acc('nota-retira').length === 1,
+      'cliente_notas_datos anterior a la migración: se ve el correo del autor y se ofrece «Retirar» (decide el servidor)');
+  }
+
   // 7 · sin toastMal (otra pantalla): el aviso va a la línea de estado de la caja
   {
     const tm = global.toastMal; delete global.toastMal;

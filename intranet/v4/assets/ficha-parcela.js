@@ -416,7 +416,7 @@
   function q(k) { return document.querySelector('[data-lw="' + k + '"]'); }
   function muestra(el, si) { if (el) el.classList.toggle('hidden', !si); }
   var cur = { id: null, tok: 0 };
-  var notas = null, notasReloj = null;
+  var notas = null, notasReloj = null, notasId = null;
 
   function notasEstado(e) {
     clearTimeout(notasReloj);
@@ -432,9 +432,13 @@
       return;
     }
     if (!notas) notas = root.LW_NOTAS.monta(cuerpo, notasCfg(notasEstado));
+    // Otra parcela: la tarjeta de la anterior se esconde hasta saber si esta se puede ver (sin «Cargando» de otra).
+    if (id !== notasId) muestra(q('fp-notas'), false);
+    notasId = id;
     notas.abre(id);
   }
-  function notasCierra() { clearTimeout(notasReloj); if (notas) notas.cierra(); muestra(q('fp-notas'), false); }
+  /* Cerrar no tira lo escrito: la pieza guarda el borrador por parcela (en memoria) y vuelve al reabrirla. */
+  function notasCierra() { clearTimeout(notasReloj); if (notas) notas.cierra(); notasId = null; muestra(q('fp-notas'), false); }
 
   function limpia() {
     ['fp-contratos', 'fp-pendientes', 'fp-docs', 'fp-obra'].forEach(function (k) { muestra(q(k), false); });
