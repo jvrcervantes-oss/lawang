@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="es" style=""><head>
-<meta name="lw-version" content="c595dd293d69">
+<meta name="lw-version" content="8a93b5810c2d">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/roles.js?v=11d9478b"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=33f2980c"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=5e4decfa" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=8ba85bcb" defer></script>
@@ -44,7 +44,7 @@
       #cajon-vista-proyecto:not(.hidden) { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 28px; height: 100%; }
       #cajon-col-info, #cajon-col-parcelas { overflow-y: auto; min-height: 0; padding-right: 6px; }
       #cajon-col-parcelas { padding-left: 28px; border-left: 1px solid #E4DCCB; }
-      #cajon-vista-parcela { height: 100%; overflow-y: auto; max-width: 760px; }
+      #cajon-vista-parcela { height: 100%; overflow-y: auto; max-width: 880px; }
     }
     /* Columna izquierda de la ficha en Raw linen (23-sep-2026, owner: «ponle un
        color de fondo Raw linen para destacarlo sobre el fondo»). Sus cajas eran
@@ -111,11 +111,12 @@
     .lw-vista-btn[aria-pressed="true"] { background: #fff; color: #104C4F; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
     /* Ficha de UNA parcela = panel estrecho a la derecha, por ENCIMA del proyecto
        (owner 23-sep-2026: «al abrir una parcela en detalle se abre entero y debería
-       abrirse un poquito»). El proyecto sigue a pantalla completa detrás, con el
+       abrirse un poquito»). Ancho 880 px (owner 16-oct-2026: «necesita más ancho, la info está muy
+       apelotonada, quizás un 100 % más»; antes 440). El proyecto sigue a pantalla completa detrás, con el
        parcelario a la vista: se pincha otra parcela y el panel cambia de ficha.
        `fixed` dentro del cajón (que lleva transform) se ancla al cajón, que ocupa
        toda la pantalla: a efectos prácticos, al borde derecho de la ventana. */
-    #cajon-vista-parcela { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 92vw);
+    #cajon-vista-parcela { position: fixed; top: 0; right: 0; bottom: 0; width: min(880px, 92vw);
       z-index: 5; overflow-y: auto; padding: 20px 24px 32px; background: #FBF8F2;
       border-left: 1px solid #E4DCCB; box-shadow: -18px 0 40px -12px rgba(0,0,0,.22);
       animation: lw-parcela-entra .22s ease-out; }
