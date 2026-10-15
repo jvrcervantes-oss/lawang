@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Prueba de la VUELTA ATRAS de la migracion 20261014210000 «cf_borrar_cierre_anula_solo_admin» (14-oct-2026, Backend, bloque B).
+Prueba de la VUELTA ATRAS de la migracion 20261015065220 «cf_borrar_cierre_anula_solo_admin» (14-oct-2026, Backend, bloque B).
 
 SOLO EN RAMA: la llama erp/rama_prueba.py (de la agencia) con la rama de esa ejecucion y la migracion YA aplicada:
 
-    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014210000_cf_borrar_cierre_anula_solo_admin.sql \
+    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015065220_cf_borrar_cierre_anula_solo_admin.sql \
            --prueba cf_borrar_cierre_anula.sql,cf_vuelta.py
 
 Calcada de espejo_vuelta.py (mismo porque): `--aplica` solo busca en supabase/migrations, y un .sql tendria que llevar una COPIA de la

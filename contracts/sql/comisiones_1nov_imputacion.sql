@@ -50,7 +50,7 @@ with raices as (
     from raices rz left join cob on cob.raiz = rz.raiz
    group by rz.raiz, rz.numero
 ), guarda as (
-  -- F3 (14-oct-2026): contrato vivo sin firmar en la familia (raíz o hijo); desde el 15-oct (20261015071000) de la misma
+  -- F3 (14-oct-2026): contrato vivo sin firmar en la familia (raíz o hijo); desde el 15-oct (20261015065609) de la misma
   -- clase que `p`: moneda de la raíz, ni carta ni obra (antes solo tipo = 'reserva_parcela')
   select rz.raiz, exists (select 1 from public.contratos c
                             left join public.contrato_tipo_etapa e on e.tipo = c.tipo

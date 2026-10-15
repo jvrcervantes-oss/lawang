@@ -1,11 +1,11 @@
 -- Prueba «borrar una operacion con cobros, cerrar firmado a mano y anular lo enviado o cobrado: solo admin de la empresa»
--- (14-oct-2026, migracion 20261014210000_cf_borrar_cierre_anula_solo_admin, bloque B). Rol REAL: cada llamada va con
+-- (14-oct-2026, migracion 20261015065220_cf_borrar_cierre_anula_solo_admin, bloque B). Rol REAL: cada llamada va con
 -- `set local role authenticated` y los claims (sub + email) de la persona, puestos FUERA del bloque con `exception` (pg_temp.val,
 -- el mismo armazon que espejo_cliente_visible.sql). Cada NO lleva al lado un SI que solo cambia en la condicion que se prueba.
 -- Los 42501 nuevos se distinguen por su texto de los de siempre («No puedes anular», autoria, GRANT).
 --
 -- !! CREA CONTRATOS por contrato_guarda (gasta numeracion, que un rollback no devuelve): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014210000_cf_borrar_cierre_anula_solo_admin.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015065220_cf_borrar_cierre_anula_solo_admin.sql
 --           --prueba cf_borrar_cierre_anula.sql,cf_vuelta.py
 --    Fuera de una rama (sin `erp.en_rama = si`, que pone rama_prueba) se niega a empezar, antes de tocar nada.
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». No imprime lo que
