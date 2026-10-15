@@ -42,6 +42,11 @@
 //    `datos.emisor.clave` distinto de la sociedad; `fields` que no es objeto o `lineas` que no es lista de objetos;
 //    total nulo o distinto de factura_totales(lineas, moneda, imp_pct), recibís incluidos; `rectifica_numero` en los
 //    campos; filas con `banco_de_servidor`; sociedades fuera de las regex de sociedad_guarda y del logo.
+//    Y en la viva, solo lectura (Seguridad, consulta de deploy del 15-oct: la equivalencia con la policy se comprobó
+//    contra el repo, y el historial de migraciones de Lawang está desincronizado): `pg_policies.qual` de «cuentas:
+//    agentes» = es_agente() AND empresa_en_alcance(empresa); pg_get_functiondef de empresa_en_alcance y _ve_empresa
+//    iguales a 20261007001600:13-23 y 20261007001400:11-18; has_function_privilege('authenticated',
+//    'public.empresa_en_alcance(text)','execute') = true (si no, todo envío con cuenta de empresa da 500).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { FUENTES, EXPORTA } from './compartidos.generated.ts';
 
