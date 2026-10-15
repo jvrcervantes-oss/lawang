@@ -5,7 +5,7 @@
 --
 -- !! SIEMBRA contratos, fichas y personas: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015101500_invitacion_portal_parcela.sql
---           --prueba invitacion_portal.sql,reclamo_pago.sql
+--           --prueba invitacion_portal.sql,invitacion_portal_reversion.sql,reclamo_pago.sql
 --    Fuera de una rama (sin `erp.en_rama = si`, que pone rama_prueba) se niega a empezar, antes de tocar nada.
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». No imprime lo que
 -- devuelven las llamadas que entran (contadores, códigos de error y booleanos). Todo lo de prueba va marcado ZZ-IP.

@@ -375,6 +375,7 @@
     });
   };
 
-  /* Para las configuraciones: el mismo escape, sin copiarlo. */
+  /* Para las configuraciones: el mismo escape y la misma fecha, sin copiarlos. */
   window.lwCorreoParcela.esc = esc;
+  window.lwCorreoParcela.fecha = fechaTxt;
 })();

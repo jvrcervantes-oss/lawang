@@ -73,7 +73,7 @@
     /* Lo que ayuda a decidir: si ya ha entrado alguna vez (portal_accesos por client_id) y si es copropietario. */
     filaExtra: function (f) {
       var dentro = f.ultimo_acceso
-        ? ipT('Ya ha entrado al portal (última vez: %f)', { f: new Date(f.ultimo_acceso).toLocaleDateString(window.lwLocale ? window.lwLocale() : 'es-ES') })
+        ? ipT('Ya ha entrado al portal (última vez: %f)', { f: window.lwCorreoParcela.fecha(f.ultimo_acceso) })
         : ipT('Aún no ha entrado al portal');
       return '<div class="rp-meta" data-lw="ip-portal">' + esc(dentro) + '</div>' +
         (f.firmado === false ? '<div class="rp-meta" data-lw="ip-sin-firmar">' + esc(ipT('Su contrato aún no está firmado: lo verá como pendiente de firma.')) + '</div>' : '');
