@@ -10,9 +10,10 @@
 -- DESAPARECE, el admin de la empresa retira la de otro, una nota sin autor solo la retira un admin; puede_retirar coincide
 -- con lo que hace la llamada real. U7c autor_nombre de un admin global visto por un admin de empresa (RLS de usuarios).
 -- U8-U10 la columna vieja: unidad_guarda (edicion y alta) y unidades_importa (actualizacion y alta) con «notas» dejan una
--- nota «campo_notas» firmada y la columna vacia; sin «notas» no crean nada. U11 check (notas is null) aunque se salten los
+-- nota «campo_notas» firmada y la columna vacia; sin «notas» no crean nada; U9c-e un texto que la parcela YA tiene (pestaña
+-- vieja, CSV exportado antes) no se duplica y uno distinto si entra. U11 check (notas is null) aunque se salten los
 -- disparadores. U12 borrar_unidad borra las notas y deja traza «ficha_borrada». U13 (Legal, #376) las filas NUEVAS de
--- unidades_log (alta, ficha, csv) llevan notas null. U14 tope: 30 en 10 minutos por agrega, por unidad_guarda, y una
+-- unidades_log (alta, ficha, csv, y U13d las diferidas que se escriben al confirmar) llevan notas null. U14 tope: 30 en 10 minutos por agrega, por unidad_guarda, y una
 -- importacion de 31 filas con notas aborta ENTERA (0 notas y 0 parcelas). U15/U16 cliente_notas_datos: conserva sus claves
 -- de antes (autor_email) y añade autor_nombre y puede_retirar, que coincide con cliente_nota_retira real (autor si, agente no
 -- autor no, admin de empresa si, admin global si).
@@ -331,6 +332,22 @@ begin
          jsonb_build_object('fila', 1, 'codigo', 'ZZ-UN-3', 'proyecto', pPn, 'zona_masterplan', 'Z1'))));
   r := r || pg_temp.l(v like '%"actualizadas": 1%' and (select count(*) from public.unidad_notas where unidad_id = u3) = n,
                       'U9b importar sin la columna notas no crea notas (' || left(v, 80) || ')');
+  -- U9c pestaña vieja / CSV exportado antes de aplicar: reenvían el texto que la parcela ya tiene en su historial
+  n := (select count(*) from public.unidad_notas where unidad_id = u3);
+  v := pg_temp.val(pm.uid, pm.em, format('select public.unidades_importa(%L::jsonb)::text', jsonb_build_array(
+         jsonb_build_object('fila', 1, 'codigo', 'ZZ-UN-3', 'proyecto', pPn, 'notas', '  ZZ-UN por csv '))));
+  r := r || pg_temp.l(v like '%"actualizadas": 1%' and (select count(*) from public.unidad_notas where unidad_id = u3) = n,
+                      'U9c reimportar una nota que la parcela ya tiene no la duplica (' || left(v, 80) || ')');
+  v := pg_temp.val(pm.uid, pm.em, format('select public.unidades_importa(%L::jsonb)::text', jsonb_build_array(
+         jsonb_build_object('fila', 1, 'codigo', 'ZZ-UN-3', 'proyecto', pPn, 'notas', 'ZZ-UN por csv, corregida'))));
+  r := r || pg_temp.l(v like '%"actualizadas": 1%' and (select count(*) from public.unidad_notas where unidad_id = u3) = n + 1,
+                      'U9d un texto distinto si entra como nota nueva (' || left(v, 80) || ')');
+  n := (select count(*) from public.unidad_notas where unidad_id = u1);
+  v := pg_temp.val(pm.uid, pm.em, format('select public.unidad_guarda(%L, %L::jsonb, null)::text', u1,
+                                         jsonb_build_object('codigo', 'ZZ-UN-1', 'proyecto', pPn, 'notas', 'ZZ-UN por el editor')));
+  r := r || pg_temp.l(v = u1::text and (select count(*) from public.unidad_notas where unidad_id = u1) = n
+                      and (select notas from public.unidades where id = u1) is null,
+                      'U9e guardar la parcela desde una pestaña vieja con la misma nota no la duplica y deja la columna vacia (' || left(v, 60) || ')');
 
   -- ============================================================ U10 la columna vieja por un UPDATE directo (service_role, procesos)
   perform set_config('request.jwt.claims', json_build_object('sub', ae.uid, 'role', 'authenticated', 'email', ae.em)::text, true);
@@ -441,6 +458,21 @@ begin
                                           jsonb_build_object('codigo', 'ZZ-UN-1', 'proyecto', pPn, 'notas', 'ZZ-UN la 31 por el editor')));
   r := r || pg_temp.l(v like 'ERR54000:%' and v2 like 'ERR54000:%' and not exists (select 1 from public.unidad_notas where texto like 'ZZ-UN la 31%'),
                       'U14b pasado el tope de 30 en 10 minutos, ni unidad_nota_agrega ni unidad_guarda con notas escriben (' || left(v, 40) || ' / ' || left(v2, 40) || ')');
+
+  -- ============================================================ U13d (Legal, #376) tambien lo que se escribe al confirmar
+  -- trg_unidad_estado_al_historial es diferido: escribe su fila de unidades_log al confirmar, y las U13 de arriba no la ven.
+  -- Se dispara ahora (AL FINAL: en modo inmediato un alta con notas no podria crear su nota antes de existir la parcela).
+  begin
+    set constraints all immediate;
+    r := r || pg_temp.l(exists (select 1 from public.unidades_log l where l.unidad_id = u1 and l.via = 'sql directo')
+                        and not exists (select 1 from public.unidades_log l
+                                         where (l.unidad_id in (select u.id from public.unidades u where u.codigo like 'ZZ-UN-%') or l.unidad_id = u2)
+                                           and (coalesce(l.despues->'notas', 'null'::jsonb) <> 'null'::jsonb
+                                                or coalesce(l.antes->'notas', 'null'::jsonb) <> 'null'::jsonb)),
+                        'U13d disparados los diferidos, ninguna fila de unidades_log de las parcelas de la prueba lleva notas');
+  exception when others then
+    r := r || pg_temp.l(false, 'U13d al disparar los diferidos: ' || sqlstate || ' ' || left(sqlerrm, 200));
+  end;
 
   raise exception using message = replace(c_fin, '%', r);
 end $todo$;

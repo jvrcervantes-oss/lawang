@@ -22,9 +22,11 @@
 --  · `autor_nombre` sale por la RLS de usuarios para lw_lector («el equipo se ve entre sí»): si quien lee no puede ver la
 --    ficha del autor sale null y la pantalla dice «sin autor». Prueba U7c: un admin de empresa ve el nombre de un admin global.
 --  · TODOS los que escriben `unidades.notas` (unidad_guarda alta y edición, unidades_importa alta y actualización) quedan
---    cerrados con un disparador: lo que llegue pasa al historial (origen 'campo_notas', autor = quien llama, mismo tope de 30
---    en 10 minutos que unidad_nota_agrega: una pestaña vieja que reimporte un CSV con notas aborta limpio en vez de
---    duplicarlas) y la columna queda null. Y `check (notas is null)` en unidades: no hay dos sitios con el mismo texto.
+--    cerrados con un disparador: lo que llegue pasa al historial (origen 'campo_notas', autor = quien llama) y la columna
+--    queda null. Una pestaña abierta antes de aplicar, o un CSV exportado antes, reenvía las notas viejas: un texto que la
+--    parcela YA tiene en su historial no se vuelve a añadir (las 19 son menos que el tope, que por sí solo no lo frenaba);
+--    lo nuevo pasa con el mismo tope de 30 en 10 minutos que unidad_nota_agrega (más de 30 en una importación: aborta
+--    entera). Y `check (notas is null)` en unidades: no hay dos sitios con el mismo texto.
 --  · Borrar una parcela (borrar_unidad, único borrador) borra sus notas con traza 'ficha_borrada'. Clave ajena diferible,
 --    no cascade: el borrado lo hace el disparador con traza, nunca en silencio.
 --  · unidades_log NO se toca (18 filas con textos viejos; reescribir un registro de auditoría es destruir datos). Desde
@@ -339,13 +341,18 @@ begin
     if char_length(v_t) > 4000 then
       raise exception 'La nota es demasiado larga (máximo 4000 caracteres).' using errcode = '22023';
     end if;
-    -- el mismo tope que unidad_nota_agrega: una pestaña vieja que reimporta un CSV con notas aborta entera, no las duplica
-    if v_uid is not null and (select count(*) from public.unidad_notas n
-                               where n.autor_id = v_uid and n.creado_en > now() - interval '10 minutes') >= 30 then
-      raise exception 'Demasiadas notas seguidas: espera unos minutos' using errcode = '54000';
+    -- el texto que la parcela YA tiene en su historial no se duplica: una pestaña abierta antes de esta migración reenvía la
+    -- nota vieja al guardar la parcela, y un CSV exportado antes la trae en su columna «Notas» (las 19 son menos que el
+    -- tope: sin esto se duplicarían todas). Decisión por defecto del 15-oct; revertir = quitar este `if not exists`.
+    if not exists (select 1 from public.unidad_notas n where n.unidad_id = new.id and n.texto = v_t) then
+      -- el mismo tope que unidad_nota_agrega: una importación vieja con más de 30 notas nuevas aborta entera
+      if v_uid is not null and (select count(*) from public.unidad_notas n
+                                 where n.autor_id = v_uid and n.creado_en > now() - interval '10 minutes') >= 30 then
+        raise exception 'Demasiadas notas seguidas: espera unos minutos' using errcode = '54000';
+      end if;
+      insert into public.unidad_notas (unidad_id, texto, autor_id, origen)
+           values (new.id, v_t, (select u.user_id from public.usuarios u where u.user_id = v_uid), 'campo_notas');
     end if;
-    insert into public.unidad_notas (unidad_id, texto, autor_id, origen)
-         values (new.id, v_t, (select u.user_id from public.usuarios u where u.user_id = v_uid), 'campo_notas');
   end if;
   new.notas := null;
   return new;
