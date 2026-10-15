@@ -72,8 +72,9 @@ begin
       (ao.uid,  ao.em,  'ZZ-IP Admin otra',  'admin_empresa', 'empresa', array['zz_ip_otra'], '{}'::uuid[], '{}'::uuid[], '{unidades,compradores}'::text[], '{}'::text[], true),
       (ag.uid,  ag.em,  'ZZ-IP Agente',      'agente',        'global',  array['zz_ip'],      array[pL],    '{}'::uuid[], '{unidades}'::text[], '{contrato_general}'::text[], true),
       (eq2.uid, eq2.em, 'ZZ-IP Equipo dos',  'agente',        'global',  array['zz_ip'],      array[pL],    '{}'::uuid[], '{unidades}'::text[], '{contrato_general}'::text[], true);
-    -- la rama nace de la ESTRUCTURA del volcado: los catálogos que siembran las migraciones vienen vacíos (ensayo del 15-oct:
-    -- 23503 unidades_tipo_fkey). Las mismas filas que la viva; en ella el «on conflict» no toca nada
+    -- la rama nace de la ESTRUCTURA del volcado: los catálogos que siembran las migraciones vienen vacíos. El 23503 de
+    -- unidades_tipo_fkey (ensayo del 15-oct) lo quita el modo replica de abajo; tipos_vivienda se siembra para que la parcela
+    -- quede válida igualmente, y la plantilla SÍ hace falta (la cola se escribe ya en origin). Mismas filas que la viva
     insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
     insert into public.correo_plantillas (clave, activa, variables, version)   -- como 20261010070000 (la cola la exige por FK: D3, E5)
     values ('reclamo_pago', false,
@@ -84,7 +85,8 @@ begin
     insert into public.clients (full_name, email) values ('ZZ-IP Tres', ag.em) returning id into c3;
     insert into public.clients (full_name, email) values ('ZZ-IP Cuatro', null) returning id into c4;
     insert into public.clients (full_name, email) values ('ZZ-IP Cinco', 'zz-ip-cinco@prueba.invalid') returning id into c5;
-    insert into public.clients (full_name, email) values ('ZZ-IP Zeta', 'zz-ip-uno@prueba.invalid') returning id into c6;
+    -- mismo correo que C1 (B7, correo_repetido): clients_email_tipo_key solo deja repetirlo con otro tipo (una sociedad compradora)
+    insert into public.clients (full_name, email, tipo) values ('ZZ-IP Zeta', 'zz-ip-uno@prueba.invalid', 'empresa') returning id into c6;
     insert into public.clients (full_name, email) values ('ZZ-IP Siete', c_eq2_auth) returning id into c7;
     insert into public.clients (full_name, email) values ('ZZ-IP Ocho', 'zz-ip-ocho@prueba.invalid') returning id into c8;
     insert into public.clients (full_name, email) values ('ZZ-IP Nueve', 'zz-ip-nueve@prueba.invalid') returning id into c9;
@@ -262,7 +264,7 @@ begin
   -- ============================================================ E. la cola: vigencia al enviar, datos, FK, cierre
   r := r || pg_temp.l(public._reclamo_pago_vigente(i1), 'E1 la invitación del titular está vigente');
   r := r || pg_temp.l(public._reclamo_pago_vigente(i2), 'E2 la del COPROPIETARIO también (no hereda la condición adq1/firma/sociedad del reclamo)');
-  update public.clients set email = ag.em where id = c1;
+  update public.clients set email = eq2.em where id = c1;   -- eq2.em, no ag.em: C3 ya lo tiene (clients_email_tipo_key)
   r := r || pg_temp.l(not public._reclamo_pago_vigente(i1), 'E3 si la ficha pasa a un correo del equipo mientras espera, ya no está vigente (se cancela al enviar)');
   update public.clients set email = 'zz-ip-uno@prueba.invalid' where id = c1;
   r := r || pg_temp.l(public._reclamo_pago_vigente(i1), 'E3b y vuelve con la ficha buena');
