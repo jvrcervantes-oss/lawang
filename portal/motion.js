@@ -92,6 +92,9 @@
     capa.setAttribute('aria-hidden', 'true');
     capa.style.color = cs.color;
     capa.style.textAlign = cs.textAlign;
+    // la capa ocupa la caja de relleno del contador: con su mismo relleno, la cifra que sube cae donde el dato (chips px-2 py-0.5)
+    capa.style.paddingTop = cs.paddingTop; capa.style.paddingRight = cs.paddingRight;
+    capa.style.paddingBottom = cs.paddingBottom; capa.style.paddingLeft = cs.paddingLeft;
     capa.setAttribute('data-v', fmt(0, moneda));
     if (!/^(relative|absolute|fixed|sticky)$/.test(cs.position)) el.style.position = 'relative';
     el.style.fontVariantNumeric = 'tabular-nums';
@@ -101,7 +104,10 @@
       if (hecho) return;
       hecho = true;
       if (capa.parentNode) capa.parentNode.removeChild(capa);
-      el.style.color = antes.color; el.style.position = antes.position; el.style.fontVariantNumeric = antes.num;
+      // se repone solo lo que sigue como lo dejó cuenta(): si otro script cambió un estilo entretanto, manda el suyo
+      if (el.style.color === 'transparent') el.style.color = antes.color;
+      if (el.style.position === 'relative' && antes.position !== 'relative') el.style.position = antes.position;
+      if (el.style.fontVariantNumeric === 'tabular-nums') el.style.fontVariantNumeric = antes.num;
       root.document.removeEventListener('visibilitychange', alOcultar);
     }
     function alOcultar() { if (root.document.hidden) termina(); }
