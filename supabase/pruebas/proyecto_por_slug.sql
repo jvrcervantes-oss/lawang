@@ -172,7 +172,7 @@ begin
   insert into public.deck_faq (proyecto_id, pregunta, respuesta, orden, publicado) values
     (pA, '{"en":"q1"}', '{"en":"a1"}', 1, true), (pA, '{"en":"q2"}', '{"en":"a2"}', 2, false), (pC, '{"en":"qc"}', '{"en":"ac"}', 1, true);
   insert into public.deck_forecast_proyecto (proyecto_id, pct_gestion, pct_mantenimiento, pct_impuesto, publicado) values
-    (pA, 20, 5, 10, true), (pC, 20, 5, 10, true);
+    (pA, 0.20, 0.05, 0.10, true), (pC, 0.20, 0.05, 0.10, true);   -- fracciones: CHECK deck_forecast_pct_suma (suma < 1), ensayo 16-oct
   insert into public.deck_forecast (proyecto_id, modelo_id, adr_medio, adr_optimo, ocupacion_media, ocupacion_optima, inversion_base, moneda, publicado, orden) values
     (pA, m1, 150, 200, 0.6, 0.8, 250000, 'EUR', true, 1), (pA, m2, 180, 220, 0.6, 0.8, 300000, 'EUR', true, 1),
     (pC, m2, 150, 200, 0.6, 0.8, 250000, 'EUR', true, 1);

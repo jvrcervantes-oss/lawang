@@ -185,8 +185,13 @@ begin
     select md5(public.carta_cobrado_calcula(c.id, c.datos, c.proyecto_nombre)::text), md5(privado.carta_cobrado_calcula_por_id(c.id, c.datos, c.proyecto_id)::text)
       into v, v2 from public.contratos c where c.id = b1;
     r := r || pg_temp.l(v = v2, 'C3 para ese Bloqueo, vieja y gemela devuelven los mismos datos (' || v || ' / ' || v2 || ')');
+    -- carta_cobrado_recalcula NO tiene llamador: 20260927140000 le quitó EXECUTE a authenticated (viva 16-oct: solo postgres y
+    -- service_role). C4a: el CREATE OR REPLACE no la abre (un admin con sesión sigue fuera). C4b: el cuerpo recableado, con la sesión
+    -- del admin pero como postgres (el único que puede llamarla con un auth.uid()), da el mismo abono por id. Ensayo 16-oct ROJO por esto.
     v := pg_temp.val(ad, c_ad, format('select public.carta_cobrado_recalcula(%L)::text', b1));
-    r := r || pg_temp.l(v !~ '^ERR' and public.lw_importe(v::jsonb ->> 'carta_cobrado_importe') = 5000, 'C4 carta_cobrado_recalcula (admin) da el mismo abono (' || left(v, 120) || ')');
+    r := r || pg_temp.l(pg_temp.err(v) = '42501' and v ~ 'permission denied', 'C4a carta_cobrado_recalcula sigue sin EXECUTE para authenticated, ni siquiera un admin (' || left(v, 120) || ')');
+    v := pg_temp.val(ad, c_ad, format('select public.carta_cobrado_recalcula(%L)::text', b1), 'postgres');
+    r := r || pg_temp.l(v !~ '^ERR' and public.lw_importe(v::jsonb ->> 'carta_cobrado_importe') = 5000, 'C4b carta_cobrado_recalcula (cuerpo recableado, sesión de admin) da el mismo abono (' || left(v, 120) || ')');
   end if;
   -- el camino del disparador ANTES del espejo, sin pantalla: proyecto_id null y el nombre en la columna
   v := pg_temp.x(format($q$insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, datos, creado_por)
