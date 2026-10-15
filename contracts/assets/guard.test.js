@@ -197,5 +197,30 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
   // y quien tiene ficha de equipo entra aunque lleve la marca de portal (manda la ficha)
   r = await puerta({}, AGENTE, { portal: true });
   assert.ok(r.entra && !r.salidas.length, 'con ficha de equipo entra aunque lleve la marca de portal: ' + JSON.stringify(r));
+  // 14-oct-2026: el justificante del recibí va a la edge de base `ficheros` (clase justificante_cobro); el resto de
+  // acciones de lwFicheros sigue en ficheros-contrato (bbm: recibos encendidos, contratos apagado)
+  const llamadas = [];
+  const ctxF = { console, location: { hostname: 'x', search: '', pathname: '/', replace() {} },
+    document: { readyState: 'complete', currentScript: { getAttribute: () => null }, documentElement: { style: {}, appendChild() {} },
+      createElement: () => ({ style: {}, appendChild() {}, set innerHTML(v) {} }), addEventListener() {} },
+    URLSearchParams, Promise,
+    fetch: (u, o) => { llamadas.push({ u, cuerpo: JSON.parse(o.body), auth: o.headers.authorization });
+      return Promise.resolve({ status: 200, json: () => Promise.resolve({ ok: true, path: 'p.pdf', token: 't' }) }); } };
+  ctxF.window = ctxF;
+  ctxF.supabase = { createClient: () => ({ auth: { getSession: () => new Promise(() => {}) } }) };
+  vm.createContext(ctxF);
+  vm.runInContext(INSTANCIA, ctxF); vm.runInContext(ROLES, ctxF); vm.runInContext(CODIGO, ctxF);
+  const sbF = { auth: { getSession: () => Promise.resolve({ data: { session: { access_token: 'jwt1' } } }) } };
+  const d = await ctxF.lwFicheros(sbF, 'justificante_url', { ext: '.pdf' });
+  assert.strictEqual(d.path, 'p.pdf');
+  assert.ok(/\/functions\/v1\/ficheros$/.test(llamadas[0].u), 'el justificante va a la edge ficheros: ' + llamadas[0].u);
+  assert.deepStrictEqual(llamadas[0].cuerpo, { ext: '.pdf', accion: 'subida_url', clase: 'justificante_cobro' });
+  assert.strictEqual(llamadas[0].auth, 'Bearer jwt1');
+  // una pantalla no puede colar otra clase ni otra acción por los datos: las pone guard.js después
+  await ctxF.lwFicheros(sbF, 'justificante_url', { ext: '.pdf', clase: 'deck_foto', accion: 'borra' });
+  assert.deepStrictEqual(llamadas[1].cuerpo, { ext: '.pdf', accion: 'subida_url', clase: 'justificante_cobro' });
+  await ctxF.lwFicheros(sbF, 'limpia_borradores', {});
+  assert.ok(/\/functions\/v1\/ficheros-contrato$/.test(llamadas[2].u), 'lo demás sigue en ficheros-contrato: ' + llamadas[2].u);
+  assert.deepStrictEqual(llamadas[2].cuerpo, { accion: 'limpia_borradores' });
   console.log('guard.test.js OK');
 })().catch(e => { console.error(e); process.exit(1); });

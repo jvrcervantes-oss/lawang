@@ -9,8 +9,8 @@
  *  · Que algo se quede oculto o a medias. Las entradas solo usan `fill: backwards` mientras esperan su turno: al acabar
  *    manda el CSS. Lo único con `forwards` son las copias que se desvanecen al filtrar, y se borran solas al terminar. Si este fichero no carga, el portal funciona igual, sin movimiento (el CSS no depende de él salvo la
  *    clase `lw-mov` que él mismo pone: sin la clase, el item activo del menú sigue con su fondo propio).
- *  · Que un importe quede mal. La cifra YA está escrita en el HTML; aquí solo se recorre desde 0 y siempre se
- *    restaura el valor exacto al terminar o si el nodo desaparece.
+ *  · Que un importe quede mal. La cifra YA está escrita en el HTML y su texto no se toca nunca: lo que se recorre desde 0
+ *    es una capa aria-hidden encima, que se quita al terminar, si el nodo desaparece o si la pestaña se oculta (15-oct).
  *  · Que repinte lo que no cambió. `pantalla()` solo se llama cuando cambia la sección o la carpeta; un repintado por
  *    idioma o por recarga de datos no anima (lo decide index.html con la clave «sección|carpeta»).
  *  · Molestar a quien pidió menos movimiento: con `prefers-reduced-motion` o sin la API `animate`, no se hace nada.
@@ -64,23 +64,66 @@
   }
   function vistas() { try { return JSON.parse(sesion(CLAVE_VISTAS) || '[]'); } catch (e) { return []; } }
 
-  /* El dinero que se recorre: el formateo es el del portal (idioma, divisa), no uno propio. */
+  /* El dinero que se recorre: el formateo es el del portal (idioma, divisa), no uno propio.
+     La cifra que CUENTA es un adorno encima, nunca el dato (15-oct-2026, Calidad; el mismo arreglo que cuenta() de
+     intranet/v4/assets/motion.js). El texto del importe no se toca: lo leen los lectores de pantalla y quien copia. La
+     cifra que sube va en una capa aria-hidden pintada con ::after y el texto real solo se vuelve transparente mientras la
+     capa existe. Antes se escribía fmt(0) en el propio texto: el importe de un cliente decía 0 hasta el primer fotograma
+     y, con la pestaña oculta (sin rAF), hasta el temporizador de seguridad. Con la pestaña oculta no se anima. */
+  var ESTILO_CIFRA = false;
+  function estiloCifra() {
+    if (ESTILO_CIFRA) return;
+    ESTILO_CIFRA = true;
+    var st = root.document.createElement('style');
+    st.textContent = '.lw-cifra-capa{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;white-space:nowrap}' +
+      '.lw-cifra-capa::after{content:attr(data-v)}';
+    root.document.head.appendChild(st);
+  }
   function cuenta(el, retraso) {
     var fin = Number(el.getAttribute('data-cuenta')), moneda = el.getAttribute('data-moneda') || '';
     var fmt = M.formatoDinero;
-    if (!isFinite(fin) || typeof fmt !== 'function') return;
-    var final = el.textContent, t0 = null, DUR = 800;
+    if (!isFinite(fin) || typeof fmt !== 'function' || root.document.hidden) return;
+    var final = el.textContent, t0 = null, DUR = 800, hecho = false;
+    estiloCifra();
+    var cs = root.getComputedStyle(el);
+    var antes = { color: el.style.color, position: el.style.position, num: el.style.fontVariantNumeric };
+    var capa = root.document.createElement('span');
+    capa.className = 'lw-cifra-capa';
+    capa.setAttribute('aria-hidden', 'true');
+    capa.style.color = cs.color;
+    capa.style.textAlign = cs.textAlign;
+    // la capa ocupa la caja de relleno del contador: con su mismo relleno, la cifra que sube cae donde el dato (chips con relleno)
+    capa.style.paddingTop = cs.paddingTop; capa.style.paddingRight = cs.paddingRight;
+    capa.style.paddingBottom = cs.paddingBottom; capa.style.paddingLeft = cs.paddingLeft;
+    capa.setAttribute('data-v', fmt(0, moneda));
+    if (!/^(relative|absolute|fixed|sticky)$/.test(cs.position)) el.style.position = 'relative';
+    el.style.fontVariantNumeric = 'tabular-nums';
+    el.style.color = 'transparent';
+    el.appendChild(capa);
+    function termina() {
+      if (hecho) return;
+      hecho = true;
+      if (capa.parentNode) capa.parentNode.removeChild(capa);
+      // se repone solo lo que sigue como lo dejó cuenta(): si otro script cambió un estilo entretanto, manda el suyo
+      if (el.style.color === 'transparent') el.style.color = antes.color;
+      if (el.style.position === 'relative' && antes.position !== 'relative') el.style.position = antes.position;
+      if (el.style.fontVariantNumeric === 'tabular-nums') el.style.fontVariantNumeric = antes.num;
+      root.document.removeEventListener('visibilitychange', alOcultar);
+    }
+    function alOcultar() { if (root.document.hidden) termina(); }
+    root.document.addEventListener('visibilitychange', alOcultar);
     function paso(t) {
-      if (!el.isConnected) return;
+      if (hecho) return;
+      if (!capa.isConnected || el.textContent !== final) return termina();   // desapareció o alguien lo repintó: manda lo nuevo
       if (t0 === null) t0 = t;
       var k = Math.min(1, (t - t0) / DUR);
-      el.textContent = k >= 1 ? final : fmt(valorCuenta(fin, k), moneda);
-      if (k < 1) root.requestAnimationFrame(paso);
+      if (k >= 1) return termina();
+      capa.setAttribute('data-v', fmt(valorCuenta(fin, k), moneda));
+      root.requestAnimationFrame(paso);
     }
-    el.textContent = fmt(0, moneda);
-    root.setTimeout(function () { if (el.isConnected) root.requestAnimationFrame(paso); else el.textContent = final; }, retraso);
-    // si nadie lo repinta ni lo cuenta hasta el final, el valor exacto vuelve igualmente
-    root.setTimeout(function () { if (el.isConnected) el.textContent = final; }, retraso + DUR + 200);
+    root.setTimeout(function () { if (!hecho) root.requestAnimationFrame(paso); }, retraso);
+    // si rAF no llega (pestaña congelada, navegador sin fotogramas), el dato se destapa igualmente
+    root.setTimeout(termina, retraso + DUR + 1500);
   }
 
   /* Entrada de una pantalla. `c` es #content: se animan SUS hijos directos, no el marcado de cada pantalla. */

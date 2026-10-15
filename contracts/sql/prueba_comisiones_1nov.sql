@@ -1,4 +1,5 @@
--- PRUEBA — comisiones desde el 1-nov-2026 (migración comisiones_regla_1nov, owner 13-oct-2026).
+-- PRUEBA — comisiones desde el 1-nov-2026 (migración comisiones_regla_1nov, owner 13-oct-2026; cifras de F3 «primero la
+-- parcela, luego la obra» con bolsa única y guarda del Bloqueo sin firmar, 14-oct-2026).
 -- Se ejecuta entera con execute_sql (MCP) como postgres, DESPUÉS de aplicar la migración. NO ESCRIBE NADA: cada caso
 -- va en un sub-bloque que acaba en excepción y el bloque entero termina en `raise exception 'RES: …'`.
 -- Cada caso debe decir «ok»; un «FALLO» es dinero mal calculado.
@@ -6,7 +7,19 @@
 -- ⚠ NECESITA LA VÁLVULA DEL OWNER EN CADA EJECUCIÓN (~/.axisworks/destructivo-ok, tools/no_destruir.py): el montaje
 --   usa session_replication_role = replica (para mover precios, firmas y el closer de una venta real sin que salten
 --   sus triggers) y borra, dentro de la transacción que se deshace, los devengos de la venta de laboratorio. Lo mismo
---   le pasa a prueba_comisiones_recalculo.sql desde el freno del 11-oct.
+--   le pasa a prueba_comisiones_recalculo.sql desde el freno del 11-oct. Con la marca abierta, el envío por MCP lleva
+--   además como primera línea `-- destructivo-ok: <motivo>` (tools/no_destruir.py exige las dos en Lawang).
+--   Última pasada: 14-oct-2026 tras F3 (20261014133241), 33/33 ok, series sin mover.
+--   15-oct-2026: G4b invertido y G4c nuevo con 20261015071000 (guarda con la clase de la parcela): SIN PASADA todavía
+--   (congelación de aplicar en producción del owner, 15-oct); con esa migración aplicada deben salir 34/34.
+--   15-oct-2026 (BAJA 4 del revisor): G4d–G4g, la pieza sin firmar es una HIJA (contrato_general y Hak Sewa frenan; en
+--   otra moneda o liberada no). SIN PASADA todavía; con 20261015071000 aplicada deben salir 38/38. Se corre en la viva
+--   con ROLLBACK justo antes de aplicar 20261015071000 (y otra vez después), siempre antes del 1-nov-2026.
+--   «ANTES DE APLICAR» = ENSAYO DESHECHO, como con 133241: la migración y esta batería en la misma llamada, y el `RES`
+--   final lo deshace todo. Esta batería SOLA contra la función de 133241 da 35/38 POR DISEÑO (G4b, G4d y G4e en FALLO:
+--   la guarda vieja solo mira reserva_parcela); el resultado empieza entonces por «AVISO: 20261015071000 sin aplicar».
+--   G4d y G4e (frenan) solo prueban algo si G4c, G4f y G4g (no frenan) salen ok: si un Poder suelto frena G4c, los
+--   que frenan salen ok sin probar nada.
 --
 -- SERIES (LAW-217): ninguna prueba consume números. El motor crea una solicitud de pago (serie SP, identity) por cada
 -- devengo de manager/estándar/propia; aquí se desactivan los usuarios dentro de la transacción, así el motor no resuelve
@@ -15,13 +28,16 @@
 --
 -- LABORATORIO: la venta real RP00133 (Lawang, equipo «Gus Abellán», closer gusabellan con condición propia al 0 %).
 -- Dentro de la transacción: se le borran sus devengos, se le cuelga CC00084 (de RP00132: 44.000, 20.000 cobrados), su
--- RP pasa a 59.000 (29.500 cobrados = 50 % justo) y la venta pasa al 5-nov-2026 con el equipo congelado. Queda:
---   parcela firmada = RP00133 59.000 (cobrado 29.500)
---   obra firmada    = CC00085 44.000 (0) + CC00084 44.000 (20.000) = 88.000, 22,7 % cobrado
---   la carta hija CR00051 (64.000, 5.000 cobrados) se deja SIN FIRMAR en el montaje: los casos 1–10 miden la parcela
---   sola (la carta nunca suma en la BASE, pero desde el 13-oct su cobro sí cuenta como pago: «primero parcela, luego
---   obra»). Los casos C1–C5 la firman para probar esa imputación; comparan las cifras de _comisiones_bases_firmadas
---   como números (no como texto) y el devengo que sale.
+-- RP pasa a 99.000 y la venta pasa al 5-nov-2026 con el equipo congelado. Desde F3 (14-oct-2026, «primero la parcela,
+-- luego la obra»: la bolsa es todo lo cobrado en la familia FIRMADA) queda:
+--   bolsa           = RP00133 29.500 + CC00084 20.000 = 49.500
+--   parcela firmada = RP00133 99.000 → cobrado 49.500 = 50 % justo
+--   obra firmada    = CC00085 44.000 + CC00084 44.000 = 88.000 → cobrado 0 (la bolsa no pasa de la parcela)
+--   Los casos que necesitan los dos tramos ponen la RP a 29.500: parcela 29.500 / 29.500 y obra 20.000 (25 % de 80.000
+--   con CC00085 a 36.000, o 22,7 % de 88.000).
+--   La carta hija CR00051 (64.000, 5.000 cobrados) se deja SIN FIRMAR en el montaje (la carta nunca suma en la BASE,
+--   pero su cobro sí es pago). Los casos C1–C5 la firman para probar esa imputación; comparan las cifras de
+--   _comisiones_bases_firmadas como números (no como texto) y el devengo que sale. G4a–G4g prueban la guarda de F3.
 -- Condiciones sucesoras del equipo (lawang): manager c0a11010-…-04 (10 %), closer genérico c0a11010-…-03 (2,5 %,
 -- plantilla del SM: closer 25 %).
 -- G1/G3 van por condicion_comision_guarda, la RPC real de la pantalla (condicion_tramos_reemplaza no tiene llamador y
@@ -45,6 +61,13 @@ begin
                   where table_schema = 'public' and table_name = 'condicion_tramos' and column_name = 'base_calculo')
      or not exists (select 1 from public.condiciones_comision where id = c_man) then
     raise exception 'RES: la migración comisiones_regla_1nov no está aplicada';
+  end if;
+  -- 15-oct-2026: sin 20261015071000 (guarda con la clase de la parcela) G4b, G4d y G4e salen FALLO por diseño; se avisa
+  -- delante para que esos FALLO no se lean como dinero mal calculado ni se acostumbre uno a ignorarlos
+  if position('and not public._comisiones_parte_obra(c.tipo, e.es_obra)) as bloqueo_sin_firmar'
+              in (select p.prosrc from pg_catalog.pg_proc p
+                   where p.oid = to_regprocedure('public._comisiones_bases_firmadas(uuid)'))) = 0 then
+    r := 'AVISO: 20261015071000 sin aplicar (G4b, G4d y G4e saldrán FALLO por diseño); ';
   end if;
   select last_value into v_sp0  from public.solicitudes_pago_numero_seq;
   select last_value into v_dif0 from public.comisiones_diferencias_seq;
@@ -130,7 +153,7 @@ begin
   delete from public.comisiones_devengadas where contrato_raiz_id = v_raiz;
   delete from public.contrato_roles_equipo where contrato_raiz_id = v_raiz;
   update public.contratos set contrato_padre_id = v_raiz where id = v_cc84;
-  update public.contratos set precio_total = 59000 where id = v_raiz;
+  update public.contratos set precio_total = 99000 where id = v_raiz;   -- F3: 49.500 de bolsa = 50 % justo
   update public.contratos set bloqueado = false where id = v_cr51;   -- carta sin firmar: su cobro no cuenta (C1–C5 la firman)
   update public.contrato_closer
      set closer_email = 'gusabellan@gmail.com', fecha_venta = date '2026-11-05', equipo_id = v_gus,
@@ -141,9 +164,9 @@ begin
   -- B · bases de la familia: la carta hija (64.000, sin firmar en el montaje) no suma en ninguna
   select b.suelo_firmado || '/' || b.obra_firmada || ' cob ' || b.cobrado_suelo_firmado || '/' || b.cobrado_obra_firmada
     into v_t from public._comisiones_bases_firmadas(v_raiz) b;
-  r := r || 'B bases sin la carta hija=' || v_t || case when v_t = '59000/88000 cob 29500/20000' then ' ok; ' else ' FALLO; ' end;
+  r := r || 'B bases sin la carta hija=' || v_t || case when v_t = '99000/88000 cob 49500/0' then ' ok; ' else ' FALLO; ' end;
 
-  -- 1 · parcela al 50 % justo → 10 % de la parcela firmada; obra al 22,7 % → nada; closer Gus al 0 % → nada
+  -- 1 · parcela al 50 % justo (bolsa 49.500 / 99.000) → 10 % de la parcela firmada; obra a 0 → nada; closer Gus al 0 % → nada
   begin
     perform public.comisiones_evaluar_contrato(v_raiz);
     select coalesce(string_agg(d.nivel || ':' || t.orden || ':' || d.importe || ':' || (d.disparado_por_snapshot->>'base_calculo'), ','
@@ -151,13 +174,13 @@ begin
       from public.comisiones_devengadas d join public.condicion_tramos t on t.id = d.tramo_id where d.contrato_raiz_id = v_raiz;
     raise exception 'R:%', v_t;
   exception when others then
-    r := r || '1 parcela 50%=' || sqlerrm || case when sqlerrm = 'R:manager:1:5900.00:precio_suelo_firmado' then ' ok; ' else ' FALLO; ' end;
+    r := r || '1 parcela 50%=' || sqlerrm || case when sqlerrm = 'R:manager:1:9900.00:precio_suelo_firmado' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- 1b · un céntimo por debajo del 50 % → nada
   begin
     execute 'set local session_replication_role = replica';
-    update public.contratos set precio_total = 59000.02 where id = v_raiz;
+    update public.contratos set precio_total = 99000.02 where id = v_raiz;
     execute 'set local session_replication_role = origin';
     perform public.comisiones_evaluar_contrato(v_raiz);
     raise exception 'R:%', (select count(*) from public.comisiones_devengadas where contrato_raiz_id = v_raiz);
@@ -165,9 +188,11 @@ begin
     r := r || '1b parcela 49,99%=' || sqlerrm || case when sqlerrm = 'R:0' then ' ok; ' else ' FALLO; ' end;
   end;
 
-  -- 2 · obra al 25 % justo (CC00085 a 36.000 → obra 80.000) → 10 % de la obra firmada; el closer Gus (0 %) sigue sin nada
+  -- 2 · RP a 29.500 (parcela al 100 %) y obra al 25 % justo (20.000 sobrantes, CC00085 a 36.000 → obra 80.000) → 10 %
+  --     de cada parte firmada; el closer Gus (0 %) sigue sin nada
   begin
     execute 'set local session_replication_role = replica';
+    update public.contratos set precio_total = 29500 where id = v_raiz;
     update public.contratos set precio_total = 36000 where id = v_cc85;
     execute 'set local session_replication_role = origin';
     perform public.comisiones_evaluar_contrato(v_raiz);
@@ -177,12 +202,13 @@ begin
     raise exception 'R:%', v_t;
   exception when others then
     r := r || '2 obra 25% y closer 0%=' || sqlerrm
-         || case when sqlerrm = 'R:manager:1:5900.00:precio_suelo_firmado,manager:2:8000.00:precio_obra_firmada' then ' ok; ' else ' FALLO; ' end;
+         || case when sqlerrm = 'R:manager:1:2950.00:precio_suelo_firmado,manager:2:8000.00:precio_obra_firmada' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- 3 · obra sin firmar → solo el tramo de parcela y ninguna fila del de obra; al firmarse devenga una vez
   begin
     execute 'set local session_replication_role = replica';
+    update public.contratos set precio_total = 29500 where id = v_raiz;   -- F3: sin la obra firmada, la bolsa es la RP
     update public.contratos set bloqueado = false where id in (v_cc84, v_cc85);
     execute 'set local session_replication_role = origin';
     perform public.comisiones_evaluar_contrato(v_raiz);
@@ -244,6 +270,7 @@ begin
   begin
     execute 'set local session_replication_role = replica';
     update public.contrato_closer set closer_email = 'santidavidse@gmail.com' where contrato_id = v_raiz;
+    update public.contratos set precio_total = 29500 where id = v_raiz;
     update public.contratos set precio_total = 36000 where id = v_cc85;
     execute 'set local session_replication_role = origin';
     perform public.comisiones_evaluar_contrato(v_raiz);
@@ -253,7 +280,7 @@ begin
     raise exception 'R:%', v_t;
   exception when others then
     r := r || '7 closer por plantilla=' || sqlerrm
-         || case when sqlerrm = 'R:closer:1:1475.00:25.00,closer:2:2000.00:25.00,manager:1:5900.00:-,manager:2:8000.00:-' then ' ok; ' else ' FALLO; ' end;
+         || case when sqlerrm = 'R:closer:1:737.50:25.00,closer:2:2000.00:25.00,manager:1:2950.00:-,manager:2:8000.00:-' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- W · el reconciliador ESCRIBIENDO (el camino del recálculo automático, encendido): desde el estado del caso 7, sube la
@@ -263,6 +290,7 @@ begin
   begin
     execute 'set local session_replication_role = replica';
     update public.contrato_closer set closer_email = 'santidavidse@gmail.com' where contrato_id = v_raiz;
+    update public.contratos set precio_total = 29500 where id = v_raiz;
     update public.contratos set precio_total = 36000 where id = v_cc85;
     execute 'set local session_replication_role = origin';
     perform public.comisiones_evaluar_contrato(v_raiz);
@@ -281,7 +309,7 @@ begin
     raise exception 'R:%', v_t;
   exception when others then
     r := r || 'W reconciliar escribe=' || sqlerrm
-         || case when sqlerrm = 'R:t1=1475.00 t2=2250.00 base=90000 total=149000 t1_recalculado=false' then ' ok; ' else ' FALLO; ' end;
+         || case when sqlerrm = 'R:t1=737.50 t2=2250.00 base=90000 total=119500 t1_recalculado=false' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- 8 · raíz carta de reserva de noviembre → la carta no suma: sin tramo de parcela; la obra firmada sí paga su tramo
@@ -301,6 +329,9 @@ begin
 
   -- 9 · cambio de precio de la obra: lo devengado de la parcela no se mueve; el de obra sí (diferencia o actualización)
   begin
+    execute 'set local session_replication_role = replica';
+    update public.contratos set precio_total = 29500 where id = v_raiz;
+    execute 'set local session_replication_role = origin';
     perform public.comisiones_evaluar_contrato(v_raiz);                          -- solo parcela (obra al 22,7 %)
     execute 'set local session_replication_role = replica';
     update public.contratos set precio_total = 50000 where id = v_cc85;
@@ -325,12 +356,14 @@ begin
   end;
 
   -- 10 · PRUEBA ROJA: con todo cuadrado el reconciliador no saca nada (si usara el precio total sacaría dos filas);
-  --      al alterar la condición (12 %) TIENE que sacar diferencias, cada una sobre SU base (7.080 parcela, 9.600 obra;
+  --      al alterar la condición (12 %) TIENE que sacar diferencias, cada una sobre SU base (3.540 parcela desde F3, 9.600 obra;
   --      sobre el total serían iguales). Cambiar después la base VIVA del tramo de obra NO mueve el devengo que ya existe:
   --      manda la base congelada en su snapshot (consulta de Backend, 13-oct; migración, apartado del reconciliador).
   --      Corregido el 14-oct en el ensayo de la ventana: la expectativa vieja (7080,7080) era de antes de esa decisión.
+  --      F3 (14-oct): con la RP a 29.500 la parcela es 3.540 al 12 % (antes 7.080 sobre 59.000).
   begin
     execute 'set local session_replication_role = replica';
+    update public.contratos set precio_total = 29500 where id = v_raiz;
     update public.contratos set precio_total = 36000 where id = v_cc85;
     execute 'set local session_replication_role = origin';
     perform public.comisiones_evaluar_contrato(v_raiz);
@@ -349,7 +382,7 @@ begin
     raise exception 'R:%', v_t;
   exception when others then
     r := r || '10 prueba roja=' || sqlerrm
-         || case when sqlerrm = 'R:cuadrado=0 | al 12%: 7080.00,9600.00 | obra sobre parcela: 7080.00,9600.00' then ' ok; ' else ' FALLO; ' end;
+         || case when sqlerrm = 'R:cuadrado=0 | al 12%: 3540.00,9600.00 | obra sobre parcela: 3540.00,9600.00' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- F8b · (revisión 13-oct, hallazgo 4) manager con 1 tramo y closer con 2, MISMA base (precio_total) → la plantilla
@@ -358,6 +391,7 @@ begin
   begin
     execute 'set local session_replication_role = replica';
     update public.contrato_closer set closer_email = 'santidavidse@gmail.com' where contrato_id = v_raiz;
+    update public.contratos set precio_total = 29500 where id = v_raiz;
     update public.contratos set precio_total = 36000 where id = v_cc85;
     update public.condiciones_comision set base_calculo = 'precio_total' where id in (c_man, c_clo);
     update public.condicion_tramos set base_calculo = null where condicion_id in (c_man, c_clo);
@@ -383,6 +417,7 @@ begin
   begin
     execute 'set local session_replication_role = replica';
     update public.contrato_closer set closer_email = 'santidavidse@gmail.com' where contrato_id = v_raiz;
+    update public.contratos set precio_total = 29500 where id = v_raiz;
     update public.contratos set precio_total = 36000 where id = v_cc85;
     execute 'set local session_replication_role = origin';
     perform public.comisiones_evaluar_contrato(v_raiz);
@@ -408,7 +443,7 @@ begin
 
   -- AD · (consulta de Administración, 13-oct) una ADENDA con precio cuenta en la base de OBRA aunque su tipo diga
   --      es_obra = false: CC00084 pasa a tipo 'adenda' → mismas bases que B (con la clasificación por es_obra saldría
-  --      103000/44000: la adenda en la parcela).
+  --      143000/44000: la adenda en la parcela).
   begin
     execute 'set local session_replication_role = replica';
     update public.contratos set tipo = 'adenda' where id = v_cc84;
@@ -417,11 +452,11 @@ begin
       into v_t from public._comisiones_bases_firmadas(v_raiz) b;
     raise exception 'R:%', v_t;
   exception when others then
-    r := r || 'AD adenda en obra=' || sqlerrm || case when sqlerrm = 'R:59000/88000 cob 29500/20000' then ' ok; ' else ' FALLO; ' end;
+    r := r || 'AD adenda en obra=' || sqlerrm || case when sqlerrm = 'R:99000/88000 cob 49500/0' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- M · (consulta de Administración, 13-oct) MONEDA. M1: los recibís (y facturas) de la RP en IDR (la venta es EUR) no suman →
-  --     parcela cobrada 0 y sin devengo. M2: CC00084 firmada en IDR → no suma en la base de obra, la familia queda
+  --     lo cobrado directo en la parcela es 0 y la parcela solo recibe los 20.000 de la obra (F3): 20 %, sin devengo. M2: CC00084 firmada en IDR → no suma en la base de obra, la familia queda
   --     multimoneda y el motor no devenga ningún tramo «firmado» aunque la parcela esté al 50 % (sin la guarda saldría
   --     manager:1:5900.00). El `raise warning` con la raíz no se puede capturar aquí: se comprueba la bandera.
   begin
@@ -433,11 +468,12 @@ begin
     perform public.comisiones_evaluar_contrato(v_raiz);
     raise exception 'R:%|%', v_t, (select count(*) from public.comisiones_devengadas where contrato_raiz_id = v_raiz);
   exception when others then
-    r := r || 'M1 recibí en otra moneda=' || sqlerrm || case when sqlerrm = 'R:0/0 multi=false|0' then ' ok; ' else ' FALLO; ' end;
+    r := r || 'M1 recibí en otra moneda=' || sqlerrm || case when sqlerrm = 'R:0/20000 multi=false|0' then ' ok; ' else ' FALLO; ' end;
   end;
   begin
     execute 'set local session_replication_role = replica';
     update public.contratos set moneda = 'IDR' where id = v_cc84;
+    update public.contratos set precio_total = 59000 where id = v_raiz;   -- F3: sin CC00084 la bolsa es 29.500 = 50 % justo
     update public.comisiones_interruptor set ultimo_error = null, ultimo_error_en = null where id;   -- M2 parte de vacío
     execute 'set local session_replication_role = origin';
     select b.suelo_firmado || '/' || b.obra_firmada || ' cob ' || b.cobrado_suelo_firmado || '/' || b.cobrado_obra_firmada
@@ -464,21 +500,21 @@ begin
          || case when sqlerrm = 'R:recalculo fallido (prueba M3)' then ' ok; ' else ' FALLO; ' end;
   end;
 
-  -- C · «PRIMERO PARCELA, LUEGO OBRA» (owner, 13-oct-2026). Cada caso compara las 7 cifras de _comisiones_bases_firmadas
+  -- C · «PRIMERO PARCELA, LUEGO OBRA» (owner, 13-oct-2026; bolsa única con lo cobrado en obra desde F3, 14-oct). Cada caso compara las 7 cifras de _comisiones_bases_firmadas
   --     (suelo, obra, cobrado suelo, cobrado obra | bruto: directo suelo, directo obra, cartas) y el devengo. Con la
   --     fórmula anterior (solo lo cobrado en la base) fallan C1 (no devengaba), C2 y C3 (sin tramo de obra) y C4/C4b
   --     (cifras distintas). C1b es la frontera del 50 % y C5 prueba que NO hay desborde sin parcela firmada: los dos
   --     daban lo mismo con la fórmula anterior; son rojos frente a una imputación mal hecha, no frente a la vieja.
-  -- C1 · todo el cobro en la carta hija (se le pasan las facturas de la RP: 29.500 + 5.000 = 34.500) y parcela 69.000
-  --      → 50 % justo → 10 % de la parcela; el snapshot guarda lo cobrado en cartas
+  -- C1 · todo el cobro de parcela en la carta hija (se le pasan las facturas de la RP: 29.500 + 5.000 = 34.500), más los
+  --      20.000 de obra, y parcela 109.000 → 54.500 = 50 % justo → 10 % de la parcela; el snapshot guarda lo cobrado en cartas
   begin
     execute 'set local session_replication_role = replica';
     update public.contratos set bloqueado = true where id = v_cr51;
     update public.facturas set contrato_id = v_cr51 where contrato_id = v_raiz and tipo <> 'proforma';
-    update public.contratos set precio_total = 69000 where id = v_raiz;
+    update public.contratos set precio_total = 109000 where id = v_raiz;
     execute 'set local session_replication_role = origin';
     select (b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
-            b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas) = (69000, 88000, 34500, 20000, 0, 20000, 34500),
+            b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas) = (109000, 88000, 54500, 0, 0, 20000, 34500),
            concat_ws('/', b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
                      b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas)
       into v_ok, v_b from public._comisiones_bases_firmadas(v_raiz) b;
@@ -490,15 +526,15 @@ begin
     raise exception 'R:%|%', case when v_ok then 'bases ok' else 'bases ' || v_b end, v_t;
   exception when others then
     r := r || 'C1 cobro solo en la carta al 50%=' || sqlerrm
-         || case when sqlerrm = 'R:bases ok|manager:1:6900.00:precio_suelo_firmado:cartas=true' then ' ok; ' else ' FALLO; ' end;
+         || case when sqlerrm = 'R:bases ok|manager:1:10900.00:precio_suelo_firmado:cartas=true' then ' ok; ' else ' FALLO; ' end;
   end;
 
-  -- C1b · lo mismo con la parcela a 69.000,02 (un céntimo por debajo del 50 %) → nada
+  -- C1b · lo mismo con la parcela a 109.000,02 (un céntimo por debajo del 50 %) → nada
   begin
     execute 'set local session_replication_role = replica';
     update public.contratos set bloqueado = true where id = v_cr51;
     update public.facturas set contrato_id = v_cr51 where contrato_id = v_raiz and tipo <> 'proforma';
-    update public.contratos set precio_total = 69000.02 where id = v_raiz;
+    update public.contratos set precio_total = 109000.02 where id = v_raiz;
     execute 'set local session_replication_role = origin';
     perform public.comisiones_evaluar_contrato(v_raiz);
     raise exception 'R:%', (select count(*) from public.comisiones_devengadas where contrato_raiz_id = v_raiz);
@@ -572,21 +608,23 @@ begin
          || case when sqlerrm = 'R:bases ok|manager:1:1000.00,manager:2:1000.00' then ' ok; ' else ' FALLO; ' end;
   end;
 
-  -- C4b · el exceso cobrado en OBRA no sube a la parcela: CC00085 sin firmar, CC00084 a 10.000 con 20.000 cobrados
-  --       → obra 10.000 / 10.000 y la parcela sigue en 29.500 (no 39.500)
+  -- C4b · (cambia de sentido con F3, 14-oct) lo cobrado en OBRA llena PRIMERO la parcela: CC00085 sin firmar, CC00084 a
+  --       10.000 con 20.000 cobrados, RP a 39.500 → bolsa 49.500: parcela 39.500 / 39.500 (29.500 suyos + 10.000 de la
+  --       obra) y obra 10.000 / 10.000. Con la regla del 13-oct la parcela se quedaba en 29.500.
   begin
     execute 'set local session_replication_role = replica';
     update public.contratos set bloqueado = false where id = v_cc85;
     update public.contratos set precio_total = 10000 where id = v_cc84;
+    update public.contratos set precio_total = 39500 where id = v_raiz;
     execute 'set local session_replication_role = origin';
     select (b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
-            b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas) = (59000, 10000, 29500, 10000, 29500, 20000, 0),
+            b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas) = (39500, 10000, 39500, 10000, 29500, 20000, 0),
            concat_ws('/', b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
                      b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas)
       into v_ok, v_b from public._comisiones_bases_firmadas(v_raiz) b;
     raise exception 'R:%', case when v_ok then 'bases ok' else 'bases ' || v_b end;
   exception when others then
-    r := r || 'C4b obra no sube a parcela=' || sqlerrm || case when sqlerrm = 'R:bases ok' then ' ok; ' else ' FALLO; ' end;
+    r := r || 'C4b obra llena primero la parcela=' || sqlerrm || case when sqlerrm = 'R:bases ok' then ' ok; ' else ' FALLO; ' end;
   end;
 
   -- C5 · sin parcela firmada no hay desborde: raíz convertida en carta (29.500) + CR00051 firmada (5.000) → la obra
@@ -608,6 +646,117 @@ begin
   exception when others then
     r := r || 'C5 sin parcela no desborda=' || sqlerrm || case when sqlerrm = 'R:bases ok|-' then ' ok; ' else ' FALLO; ' end;
   end;
+
+  -- G4a · GUARDA F3 (Administración, 14-oct): Bloqueo de Parcela (la raíz) vivo SIN FIRMAR y obra firmada al 25 %
+  --       (CC00085 a 36.000, 20.000 / 80.000) → lo cobrado en obra NO cuenta: obra 0 y ningún devengo. El motor no sale
+  --       antes por la raíz sin firmar (comisiones_evaluar_contrato, medido el 14-oct): sin la guarda devengaría
+  --       manager:2:8000.00 (lo enseña G4b).
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.contratos set bloqueado = false where id = v_raiz;
+    update public.contratos set precio_total = 36000 where id = v_cc85;
+    execute 'set local session_replication_role = origin';
+    select (b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+            b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas) = (0, 80000, 0, 0, 0, 20000, 0),
+           concat_ws('/', b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+                     b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas)
+      into v_ok, v_b from public._comisiones_bases_firmadas(v_raiz) b;
+    perform public.comisiones_evaluar_contrato(v_raiz);
+    select coalesce(string_agg(d.nivel || ':' || t.orden || ':' || d.importe, ',' order by d.nivel, t.orden), '-') into v_t
+      from public.comisiones_devengadas d join public.condicion_tramos t on t.id = d.tramo_id where d.contrato_raiz_id = v_raiz;
+    raise exception 'R:%|%', case when v_ok then 'bases ok' else 'bases ' || v_b end, v_t;
+  exception when others then
+    r := r || 'G4a guarda Bloqueo sin firmar=' || sqlerrm || case when sqlerrm = 'R:bases ok|-' then ' ok; ' else ' FALLO; ' end;
+  end;
+
+  -- G4b · La misma venta con una raíz contrato_general SIN firmar (15-oct-2026, revisor sobre 72e994303, ALTA): la guarda
+  --       mira la misma clase que la parcela de la regla (ni carta ni obra), así que también frena aquí: obra 0 y ningún
+  --       devengo. Hasta el 15-oct este caso decía lo contrario (la obra contaba sus 20.000 y devengaba manager:2:8000.00),
+  --       y al firmarse esa raíz la bolsa habría pasado entera a la parcela con la obra ya pagada.
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.contratos set bloqueado = false, tipo = 'contrato_general' where id = v_raiz;
+    update public.contratos set precio_total = 36000 where id = v_cc85;
+    execute 'set local session_replication_role = origin';
+    select (b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+            b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas) = (0, 80000, 0, 0, 0, 20000, 0),
+           concat_ws('/', b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+                     b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas)
+      into v_ok, v_b from public._comisiones_bases_firmadas(v_raiz) b;
+    perform public.comisiones_evaluar_contrato(v_raiz);
+    select coalesce(string_agg(d.nivel || ':' || t.orden || ':' || d.importe, ',' order by d.nivel, t.orden), '-') into v_t
+      from public.comisiones_devengadas d join public.condicion_tramos t on t.id = d.tramo_id where d.contrato_raiz_id = v_raiz;
+    raise exception 'R:%|%', case when v_ok then 'bases ok' else 'bases ' || v_b end, v_t;
+  exception when others then
+    r := r || 'G4b raiz contrato_general sin firmar frena=' || sqlerrm || case when sqlerrm = 'R:bases ok|-' then ' ok; ' else ' FALLO; ' end;
+  end;
+
+  -- G4c · CONTRAPRUEBA de G4a/G4b: raíz CARTA de reserva sin firmar (la carta hija CR00051 también lo está). Una carta no
+  --       entra nunca en la parcela de la regla, así que la guarda no aplica: la obra cuenta sus 20.000 (25 %) y devenga
+  --       su tramo. Prueba que lo que frena en G4a/G4b es la guarda y no otra cosa.
+  begin
+    execute 'set local session_replication_role = replica';
+    update public.contratos set bloqueado = false, tipo = 'carta_reserva'
+     where id = v_raiz;
+    update public.contratos set precio_total = 36000 where id = v_cc85;
+    execute 'set local session_replication_role = origin';
+    select (b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+            b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas) = (0, 80000, 0, 20000, 0, 20000, 0),
+           concat_ws('/', b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+                     b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas)
+      into v_ok, v_b from public._comisiones_bases_firmadas(v_raiz) b;
+    perform public.comisiones_evaluar_contrato(v_raiz);
+    select coalesce(string_agg(d.nivel || ':' || t.orden || ':' || d.importe, ',' order by d.nivel, t.orden), '-') into v_t
+      from public.comisiones_devengadas d join public.condicion_tramos t on t.id = d.tramo_id where d.contrato_raiz_id = v_raiz;
+    raise exception 'R:%|%', case when v_ok then 'bases ok' else 'bases ' || v_b end, v_t;
+  exception when others then
+    r := r || 'G4c raiz carta sin firmar la obra cuenta=' || sqlerrm || case when sqlerrm = 'R:bases ok|manager:2:8000.00' then ' ok; ' else ' FALLO; ' end;
+  end;
+
+  -- G4d–G4g · La pieza sin firmar es un HIJO (15-oct-2026, BAJA 4 del revisor: comisiones_1nov_imputacion repite la guarda
+  --       y su «0 desacuerdos» sale por construcción; esto la prueba de forma independiente). Montaje de G4c (raíz carta
+  --       sin firmar, que no frena, y CC00085 a 36.000) y solo cambia la hija CR00051, que ya está sin firmar:
+  --   G4d · CR00051 pasa a contrato_general → entra en la clase de `p` al firmarse → frena: obra 0, ningún devengo.
+  --   G4e · CR00051 pasa a hak_sewa_notario (es_obra = false en contrato_tipo_etapa, 20261013023737) → frena igual.
+  --   G4f · CR00051 contrato_general en OTRA moneda que la raíz → fuera de la clase (no entraría en `p`) → no frena:
+  --         como G4c. La bandera multimoneda sigue en false porque solo mira contratos FIRMADOS.
+  --   G4g · CR00051 contrato_general LIBERADO (liberado_en puesto, liberado_motivo 'desistida') → no frena: como G4c.
+  -- Si G4f/G4g salen «-» en vez de manager:2:8000.00, mirar primero si RP00133 tiene otro hijo vivo sin firmar que no sea
+  -- carta ni obra (BAJA 5 del revisor, igual que G4c).
+  for v_n in 1..4 loop
+    begin
+      execute 'set local session_replication_role = replica';
+      update public.contratos set bloqueado = false, tipo = 'carta_reserva' where id = v_raiz;
+      update public.contratos set precio_total = 36000 where id = v_cc85;
+      update public.contratos
+         set tipo = case when v_n = 2 then 'hak_sewa_notario' else 'contrato_general' end,
+             moneda = case when v_n = 3 then (select case when rz.moneda = 'IDR' then 'EUR' else 'IDR' end
+                                                from public.contratos rz where rz.id = v_raiz)
+                           else moneda end,
+             liberado_en = case when v_n = 4 then now() else liberado_en end,
+             liberado_motivo = case when v_n = 4 then 'desistida' else liberado_motivo end
+       where id = v_cr51 and not coalesce(bloqueado, false);
+      get diagnostics v_m = row_count;
+      execute 'set local session_replication_role = origin';
+      select (b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+              b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas, b.multimoneda)
+             = (0, 80000, 0, case when v_n <= 2 then 0 else 20000 end, 0, 20000, 0, false),
+             concat_ws('/', b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+                       b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas, b.multimoneda)
+        into v_ok, v_b from public._comisiones_bases_firmadas(v_raiz) b;
+      perform public.comisiones_evaluar_contrato(v_raiz);
+      select coalesce(string_agg(d.nivel || ':' || t.orden || ':' || d.importe, ',' order by d.nivel, t.orden), '-') into v_t
+        from public.comisiones_devengadas d join public.condicion_tramos t on t.id = d.tramo_id where d.contrato_raiz_id = v_raiz;
+      raise exception 'R:%|%', case when v_m <> 1 then 'montaje CR00051 no sin firmar'
+                                    when v_ok then 'bases ok' else 'bases ' || v_b end, v_t;
+    exception when others then
+      r := r || (array['G4d hija contrato_general sin firmar frena=', 'G4e hija Hak Sewa sin firmar frena=',
+                       'G4f hija sin firmar en otra moneda no frena=', 'G4g hija sin firmar liberada no frena='])[v_n]
+           || sqlerrm
+           || case when sqlerrm = case when v_n <= 2 then 'R:bases ok|-' else 'R:bases ok|manager:2:8000.00' end
+                   then ' ok; ' else ' FALLO; ' end;
+    end;
+  end loop;
 
   -- V · validación de tramos: 100 por base efectiva; 'por_tramo' exige base en cada tramo
   begin

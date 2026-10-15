@@ -53,7 +53,7 @@ const LW_HERRAMIENTAS = [
      de Seguridad en la revisión previa). */
   { grupo:'Seguimiento', nombre:'Ranking de closers', icon:'ph-trophy', href:'/intranet/leads/?v=closers', herr:'ranking',
     soloPermiso:true,
-    para:'Cuánto firma y cuánto cobra cada comercial, y a quién se atribuye cada venta.',
+    para:'Cuánto firma y cuánto cobra cada agente, y a quién se atribuye cada venta.',
     claves:'ranking closers comerciales comisiones rendimiento estadisticas atribucion ventas leaderboard closers reps commissions performance stats attribution sales' },
   /* `closers` REPUESTO el 11-sep-2026 por el owner, y conviene dejar claro el malentendido
      para que no se repita: cuando dijo «quita Agenda de cierre del menú» quería quitar el
@@ -216,7 +216,7 @@ const LW_HERRAMIENTAS = [
      vea nadie ahora mismo»). Compartir 'operaciones' hacía imposible quitarla
      sin quitar Operaciones. Nace concedida a NADIE: solo la ve un super_admin. */
   { grupo:'Finanzas', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/v4/comisiones/', herr:'comisiones',
-    para:'Pagos que piden los comerciales — comisiones y acordados: quién pide qué, y en qué quedó cada uno.',
+    para:'Pagos que piden los agentes — comisiones y acordados: quién pide qué, y en qué quedó cada uno.',
     claves:'solicitudes pago pagos comisiones comerciales agentes pedir comision payment requests commissions agents reps payout',
     estado:d => d.solicitudesVivas == null ? null
       : [d.solicitudesVivas ? hT('%n por resolver o pagar', { n: d.solicitudesVivas }) : hT('Sin solicitudes en vuelo'),

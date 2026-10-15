@@ -11,7 +11,8 @@ assert.strictEqual(corre({ axwModuloActivo: () => false }), true, 'sin bandera N
 assert.strictEqual(corre({ AXW_NUCLEO_OPERACION: true }), true, 'maestro sin helper aún: falla abierto');
 assert.strictEqual(corre({ AXW_NUCLEO_OPERACION: true, axwModuloActivo: (k) => k !== 'contratos' }), false, 'maestro con contratos apagado: false');
 assert.strictEqual(corre({ AXW_NUCLEO_OPERACION: true, axwModuloActivo: (k) => k === 'contratos' }), true, 'maestro con contratos encendido: true');
-assert.ok(/if \(contratosActivo\(\)\) acciones\.push\(\{ texto: 'Borrar operación'/.test(src), 'falta la guarda del botón Borrar operación');
+// 14-oct-2026 (bloque B): el botón va dentro de un bloque `if (contratosActivo()) { … }` que además lo apaga sin la herramienta Contratos
+assert.ok(/if \(contratosActivo\(\)\) \{[^}]{0,600}?acciones\.push\(\{ texto: 'Borrar operación'/.test(src), 'falta la guarda del botón Borrar operación');
 assert.ok(/if \(a && c && contratosActivo\(\)\)/.test(src), 'falta la guarda del clic en la ficha de factura');
 assert.ok(/c \? \(contratosActivo\(\) \? enlaceFichaContrato\(c\)/.test(src), 'falta la guarda del enlace en la ficha de factura');
 assert.strictEqual((src.match(/data-lw-ficha-contrato/g) || []).length, 11, 'el selector data-lw-ficha-contrato no debe cambiar (11: 10 de siempre + la mención del comentario de contratosActivo)');

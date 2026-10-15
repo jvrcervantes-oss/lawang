@@ -261,8 +261,8 @@ begin
   end if;
   -- borrar una operacion: super de empresa si es de su empresa y toda la cadena; admin_empresa como un admin global (solo lo suyo sin firmar)
   g := pg_temp.corre(cr, e_cr, format('select public.borrar_operacion(%L)', cs_rp)); r := r || pg_temp.espera('cr borra una operacion de su empresa', g, 'ok');
-  g := pg_temp.corre(cr, e_cr, format('select public.borrar_operacion(%L)', cl_rp)); r := r || pg_temp.espera('cr NO borra una operacion de la otra empresa', g, '~P0001|El contrato%');
-  g := pg_temp.corre(ya, e_ya, format('select public.borrar_operacion(%L)', cl_rp)); r := r || pg_temp.espera('ya (admin) borra como un admin global: lo ajeno no', g, '~P0001|El contrato%');
+  g := pg_temp.corre(cr, e_cr, format('select public.borrar_operacion(%L)', cl_rp)); r := r || pg_temp.espera('cr NO borra una operacion de la otra empresa (no la ve: P0002 desde el bloque B, 14-oct)', g, '~P0002|%');
+  g := pg_temp.corre(ya, e_ya, format('select public.borrar_operacion(%L)', cl_rp)); r := r || pg_temp.espera('ya (admin) borra como un admin global: lo ajeno no', g, '~P0001|%esta firmado o es de otra persona%');
   g := pg_temp.corre(jv, 'jvr.cervantes@gmail.com', format('select public.borrar_operacion(%L)', cl_rp)); r := r || pg_temp.espera('super global borra en cualquier empresa', g, 'ok');
   -- lectura: cada uno ve lo de su empresa en las tablas hijas de contratos y los eventos completos solo el super de empresa
   x := pg_temp.valor(cr, e_cr, 'select count(*)::text from public.contrato_eventos');

@@ -1034,7 +1034,7 @@
       var contratos = (rc.data && rc.data.length) ? rc.data : [{ id: c0.id, numero: c0.numero }];
       var ids = contratos.map(function (x) { return x.id; });
       Promise.all([
-        sb.rpc('facturas_equipo').select('id,anulada').in('contrato_id', ids),
+        sb.rpc('facturas_equipo').select('id,anulada,tipo,enviada').in('contrato_id', ids),
         sb.rpc('contrato_firmas_equipo').select('id,contrato_id,estado,snapshot_path').in('contrato_id', ids).in('estado', ['pendiente', 'procesando']),
         /* LAW-338 L3 (10-oct-2026): las comisiones de la operación por el servidor (operacion_comisiones_datos). */
         window.lwDatos('operacion_comisiones_datos', { p_contratos: ids }).then(function (rr) {
@@ -1046,6 +1046,16 @@
         var comisiones = r[2].error ? [] : (r[2].data || []);
         /* Si algo no se pudo leer, se dice: el diálogo no puede prometer «no hay nada» sin haberlo mirado. */
         var sinMirar = ['facturas', 'enlaces de firma', 'comisiones'].filter(function (_, i) { return r[i].error; });
+        /* Bloque B (14-oct-2026): con un recibí vigente o un documento ya enviado (aunque esté anulado) solo borra un admin de
+           su empresa (borrar_operacion, regla 4). Si quien pulsa no es admin de ninguna, no se le abre el diálogo de confirmar
+           algo que la base va a rechazar: se le dice por qué. Solo cuando SE VE alguno: la lectura va con la RLS de la sesión y
+           no ver ninguno no prueba que no los haya (ese caso, y el admin de otra empresa, los decide la base con este texto). */
+        var conCobroOEnvio = r[0].error ? 0 : (r[0].data || []).filter(function (f) { return (f.tipo === 'recibi' && !f.anulada) || f.enviada; }).length;
+        var fSes = window.LW_V4 && window.LW_V4.ficha;
+        if (conCobroOEnvio && fSes && !LW_ROL.esAdmin(fSes)) {
+          toastMal(tx('Esta operación tiene un recibí vigente o un documento ya enviado al cliente: solo la puede borrar un administrador de su empresa. Pídeselo a un administrador.'));
+          return;
+        }
         var yaPagadas = comisiones.filter(function (x) { return x.estado === 'pagada'; }).length;
         var detalle = [];
         detalle.push(contratos.length > 1
@@ -1263,10 +1273,18 @@
     // «Ver en Operaciones» (antes «Expediente», 22-sep-2026): la fila de la
     // operación entera —cadena y dinero de toda ella— con esta ficha abierta.
     if (!opts.sinExpediente) acciones.push({ texto: 'Ver en Operaciones', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
-    // Borrar operación (S13, 22-sep-2026): mismo botón que la clásica
-    // (intranet/operaciones/index.html:967, id="btnBorrarOp") — nunca oculto
-    // por rol, el gate de verdad es el propio RPC (es_agente / es_super_admin).
-    if (contratosActivo()) acciones.push({ texto: 'Borrar operación', tono: 'peligro', onClick: function () { borrarOperacionV4(sb, c0); } });
+    // Borrar operación (S13, 22-sep-2026). Hasta el 14-oct-2026 se ofrecía a todos y decidía el RPC. Desde el bloque B
+    // (regla doble, LAW-51 p.5: lo que el servidor prohíbe, la pantalla no lo ofrece) borrar_operacion exige la herramienta
+    // Contratos (_puede_herr: la casilla, o ser super admin global o de empresa) y, con un recibí vigente o un documento
+    // enviado en la cadena, ser admin de su empresa. Lo primero se sabe aquí y apaga el botón con su motivo; lo segundo
+    // necesita las facturas y se mira al pulsar (borrarOperacionV4). Sin ficha legible se ofrece: decide la base.
+    if (contratosActivo()) {
+      var fBorra = window.LW_V4 && window.LW_V4.ficha;
+      var sinHerrBorra = !!fBorra && !(LW_ROL.puedeHerr(fBorra, 'contratos') || fBorra.rol === 'super_admin_empresa');
+      acciones.push({ texto: 'Borrar operación', tono: 'peligro', disabled: sinHerrBorra,
+        title: sinHerrBorra ? tx('Borrar una operación exige la herramienta Contratos: pídesela a un administrador en Usuarios.') : '',
+        onClick: function () { borrarOperacionV4(sb, c0); } });
+    }
     acciones.push({ texto: 'Cerrar', cerrar: true });
     /* Trazabilidad en la barra (22-sep-2026, owner): en /v4/contratos/ la ficha
        abierta se refleja como `?contrato=NUM` — lo mismo que el listado ya sabe
@@ -1994,12 +2012,19 @@
     acciones.push({ texto: 'Descargar PDF', onClick: V4acc('imprimirDocumento', f0.id) });
     if (!f0.anulada) acciones.push({ texto: 'Enviar por email', onClick: V4acc('enviarDocumento', f0.id) });
     acciones.push({ texto: '📨 Registro', onClick: V4acc('registroEnvios', f0.id) });
-    // Anular (S14): se ofrece a cualquiera que vea el documento — la RLS es la
-    // que de verdad decide (autor o admin, con la herramienta 'facturas');
-    // esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
+    // Anular (S14): se ofrece a quien vea el documento — la base decide (autor, manager o admin, con la herramienta
+    // 'facturas'); esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
+    // Desde el 14-oct-2026 (bloque B, regla doble LAW-51 p.5) factura_anula reserva un RECIBÍ o un documento ENVIADO al
+    // admin de su empresa: a quien no es admin de ninguna se le apaga con el motivo. Un admin de otra empresa lo sigue viendo
+    // y la base se lo niega con su texto; un borrador, como siempre.
     // ERP maestro (AXW-39): una rectificativa no se anula (se emite otra factura), y
     // lo EMITIDO en serie fiscal no se reactiva ni se borra — la base lo rechaza.
-    if (!f0.anulada && !f0.rectifica_id) acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () { anularDocumento(sb, f0); } });
+    if (!f0.anulada && !f0.rectifica_id) {
+      var anulaSoloAdmin = (f0.tipo === 'recibi' || !!f0.enviada) && !!V4.ficha && !LW_ROL.esAdmin(V4.ficha);
+      acciones.push({ texto: 'Anular', tono: 'peligro', disabled: anulaSoloAdmin,
+        title: anulaSoloAdmin ? tx('Solo un administrador de la empresa puede anular un recibí o un documento ya enviado al cliente.') : '',
+        onClick: function () { anularDocumento(sb, f0); } });
+    }
     if (f0.anulada && !f0.enviada && !f0.fecha_envio && !f0.emitida_en && V4.esSuperAdmin) acciones.push({ texto: 'Reactivar', onClick: function () { reactivarDocumento(sb, f0); } });
     // Borrar (S14): desde el 21-sep NI SIQUIERA super_admin borra un documento
     // ya enviado — coincide con la policy que Datos aplica en paralelo
@@ -2800,9 +2825,10 @@
          son blobs). Todo lo demas de esta pantalla vuelve en milisegundos. Y
          el velo de carga se rinde a los 12 s (shell.css, `lw-rendirse`), asi
          que justo antes de llegar los datos destapaba la maqueta de Stitch.
-         Ahora la vista se pide DESPUES de pintar, fuera del contador del velo,
-         y su aviso «Ficha ≠» aparece cuando llega. La vista en si no se toca
-         aqui: queda como pendiente de Datos (una columna materializada). */
+         Desde el 15-oct-2026 esta lista ya NO la pide: cada ficha pide solo las
+         divergencias de SU cliente (por client_id) después de pintarse
+         (pintaFicha). La vista en si no se toca aqui: queda como pendiente de
+         Datos (una columna materializada). */
       var t = tablaPor('tabla-clientes');
       var conContratos = true;   // se decide al arrancar la carga (abajo): en el maestro espera a saber qué módulos hay
       var cargaClientes = function () {
@@ -3006,7 +3032,7 @@
             ? '<div style="margin-top:10px">' + H.tabla(['Proyecto', 'Precio', 'Cobrado', 'Pendiente'], nombresProy.map(function (k) {
                 var p = porProy[k];
                 return [esc(k), esc(fmt(p.precio, moneda)), esc(fmt(p.cobrado, moneda)), esc(fmt(p.precio - p.cobrado, moneda))];
-              })) + '</div>'
+              }), { apila: 1 }) + '</div>'
             : '';
           // cifras con la pieza del cajón (25-sep-2026); cobrado en verde, lo que se debe en rojo
           return H.cifras(['Precio pactado', 'Cobrado', 'Pendiente'].map(function (etq, i) {
@@ -3180,7 +3206,7 @@
               }))
             : H.nota('Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.');
           var cuerpo =
-            H.seccion('Identidad', identidad) +
+            H.seccion('Identidad', identidad, 'identidad') +
             H.seccion('Responsable de la ficha', seccionResponsable(), 'responsable') +
             /* Con contratos o soporte apagados la sección NO se pinta (ni «Ninguno enlazado», que mentiría: no es que no
                haya, es que aquí no se mide). Las facturas y los envíos de la ficha cuelgan de los contratos del cliente. */
@@ -3262,7 +3288,7 @@
               }).join('');
               sc.insertAdjacentHTML('beforeend',
                 H.nota(tx('Esta persona tiene %n contratos en total; aquí ves %m.', { n: '<b>' + todos.length + '</b>', m: '<b>' + (todos.length - ajenos.length) + '</b>' }) + ' ' +
-                       esc(tx('Los que no ves son de otro comercial: sus cifras no entran en esta ficha.')), true) +
+                       esc(tx('Los que no ves son de otro agente: sus cifras no entran en esta ficha.')), true) +
                 '<ul style="margin:0 0 0 18px;padding:0;font-size:12.5px;color:#2E3437;display:grid;gap:4px">' + lis + '</ul>' +
                 (ajenos.some(function (x) { return x.bloqueado; })
                   ? H.nota('Un contrato firmado, sea de quien sea, congela esta ficha: desde entonces solo la corrige un administrador.')
@@ -3271,7 +3297,38 @@
             var h4 = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > h4');
             if (h4) h4.textContent = tx('Estado de cuentas de tus contratos');
             var scu = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > div');
-            if (scu) scu.insertAdjacentHTML('afterbegin', H.nota('Solo suma tus contratos: los de otros comerciales no entran en estas cifras.'));
+            if (scu) scu.insertAdjacentHTML('afterbegin', H.nota('Solo suma tus contratos: los de otros agentes no entran en estas cifras.'));
+          });
+          /* «Ficha ≠» DE ESTE CLIENTE (15-oct-2026, el owner preguntó qué era el aviso «46 documentos difieren de la ficha»).
+             La misma vista que los listados (documentos_desactualizados: la comparación vive en la base), filtrada por el id del
+             cliente y pedida DESPUÉS de pintar. Vivo = se pone al día abriéndolo; congelado (firmado, enviado o anulado) = no
+             se toca, si el dato importa se reemite (suite_lawang.md → «Un documento vivo no puede contradecir a su ficha»).
+             Si no se puede mirar se DICE: «ninguna diferencia» no puede leerse igual que «no he podido mirar». */
+          if (conC) sb.from('documentos_desactualizados').select('tipo,id,numero,congelado,diferencias').eq('client_id', c2.id).then(function (rd) {
+            /* lwCajon rehace el cuerpo en cada apertura: si entretanto se abrió otra ficha, este cuerpo ya no está en la
+               página y la respuesta de ESTE cliente no se pinta en la del siguiente */
+            var sid = cj.cuerpo && cj.cuerpo.isConnected && cj.cuerpo.querySelector('[data-cajon-sec="identidad"] > div');
+            if (!sid) return;
+            if (rd.error) {
+              console.error('[v4 datos] ficha≠ del cliente', rd.error);
+              sid.insertAdjacentHTML('beforeend', H.nota('No se ha podido comprobar si sus contratos y facturas dicen lo mismo que esta ficha.'));
+              return;
+            }
+            var dif = (rd.data || []).filter(function (x) { return Array.isArray(x.diferencias) && x.diferencias.length; });
+            if (!dif.length) return;
+            var CAMPO = { nombre: 'Nombre', identidad: 'Pasaporte / NPWP', email: 'Email', telefono: 'Teléfono', pais: 'Nacionalidad' };
+            var fila = function (x) {
+              var num = x.numero || tx('sin nº');
+              var enl = x.tipo === 'factura' ? H.enlace('/intranet/v4/facturas/?id=' + encodeURIComponent(x.id), num)
+                : (x.numero ? H.enlace('/intranet/v4/contratos/?contrato=' + encodeURIComponent(x.numero), num) : esc(num));
+              var qu = x.diferencias.map(function (d) { return tx(CAMPO[d.campo] || d.campo); }).join(', ');
+              return '<li>' + enl + ' <span style="font-size:11.5px;color:#75786e">' + esc(tx(x.tipo === 'factura' ? 'Factura' : 'Contrato')) + ' · ' + esc(qu) + '</span></li>';
+            };
+            var ul = function (xs) { return '<ul style="margin:0 0 0 18px;padding:0;font-size:12.5px;color:#2E3437;display:grid;gap:4px">' + xs.map(fila).join('') + '</ul>'; };
+            var vivos = dif.filter(function (x) { return !x.congelado; }), cerrados = dif.filter(function (x) { return x.congelado; });
+            sid.insertAdjacentHTML('beforeend',
+              (vivos.length ? H.nota(tx('%n documento(s) sin cerrar dicen algo distinto de esta ficha: ábrelos y trae los datos de la ficha para ponerlos al día.', { n: '<b>' + vivos.length + '</b>' }), true) + ul(vivos) : '') +
+              (cerrados.length ? H.nota(tx('%n documento(s) ya cerrados (firmados, enviados o anulados) dicen algo distinto de esta ficha. No se tocan: si el dato importa, se reemiten.', { n: '<b>' + cerrados.length + '</b>' }), true) + ul(cerrados) : ''));
           });
 
           /* Traspaso: wiring de los controles que seccionResponsable() acaba de
@@ -3848,14 +3905,11 @@
         var pedido = new URLSearchParams(location.search).get('id');
         if (pedido && porId[pedido]) cuandoCajon(function () { setTimeout(function () { abreFicha(porId[pedido]); }, 0); });
 
-        /* Ficha≠: el control de divergencia de la suite. Se pide AL FINAL y
-           fuera de `vig()` (ver cabecera: 12,7 s en la base) — la pantalla ya
-           esta pintada y usable cuando llega. */
-        sb.from('documentos_desactualizados').select('congelado,diferencias').limit(1000).then(function (rv) {
-          if (rv.error) { console.error('[v4 datos] ficha≠', rv.error); return; }
-          var difN = (rv.data || []).filter(function (x) { return x.diferencias && x.diferencias.length; }).length;
-          if (difN) bandaNota('Ficha ≠: ' + difN + ' documento(s) emitidos difieren de la ficha del cliente — el detalle vive en la herramienta clásica (/intranet/compradores/).', '#C06C47');
-        });
+        /* Ficha≠ (15-oct-2026): aquí ya NO se pide la vista entera. Se pedía para escribir en la consola «N documentos difieren
+           de la ficha — el detalle vive en la herramienta clásica»: una cifra de TODOS los documentos (no del cliente abierto),
+           que nadie veía en pantalla, que apuntaba a /intranet/compradores/ (retirada) y que costaba la consulta más lenta de la
+           pantalla en cada carga. Ahora cada ficha pide los SUYOS por su id (pintaFicha) y los listados de Contratos y Facturas
+           siguen marcando «Ficha ≠» por fila (fichaDistinta). */
       });
     },
     operaciones: function (sb) {
@@ -6454,9 +6508,9 @@
         pon('k-total', String(ms.length));
         pon('k-activos-pie', enlazadas + ' unidades enlazadas a un modelo');
         pon('k-publicados', String(publicados));
-        pon('k-publicados-pie', publicados ? 'los unicos que ve un cliente en la web' : 'ninguno visible fuera');
+        pon('k-publicados-pie', publicados ? 'los únicos que ve un cliente en la web' : 'ninguno visible fuera');
         pon('k-sinficha', String(faltan));
-        pon('k-sinficha-pie', faltan ? 'sin dormitorios, banos ni superficie: no pueden heredar nada' : 'todos con ficha completa');
+        pon('k-sinficha-pie', faltan ? 'sin dormitorios, baños ni superficie: no pueden heredar nada' : 'todos con ficha completa');
         pon('k-sinrender', String(sinRender));
         pon('k-sinrender-pie', sinRender ? 'sin ninguna foto en el deck' : 'todos tienen fotos');
         var bExp = boton('exportar-catalogo');
@@ -7174,6 +7228,67 @@
          el ultimo mensaje del hilo y la prioridad se sustituye por la categoria.
          Responder es fase C: va por la RPC portal_enviar_mensaje y cada mensaje
          dispara un email real al comprador, asi que aqui NI SE TOCA. */
+
+      /* ── Soporte: piezas sin red (las ejecuta soporte.test.js) ── */
+      /* Qué se enseña cuando no hay conversación que abrir (14-oct-2026). Dos estados que NO pueden leerse igual:
+         `hs == null` = la base no contestó («no he podido mirar»); sin hilo elegido = no hay ninguno («no hay nada»).
+         Antes el cuadro de respuesta decía «Cuando un cliente escriba…» también con la base caída. Devuelve los dos textos
+         ya traducidos (`tx` se recibe: la prueba pasa la identidad) o null si hay hilo. */
+      function sinHiloTextos(hs, el, tx) {
+        if (hs == null) return { fallo: true, texto: tx('No se han podido leer las conversaciones. Recarga la página.'),
+          placeholder: tx('No se han podido leer las conversaciones. Recarga la página.') };
+        if (!el) return { fallo: false, texto: tx('Sin conversaciones todavía.'),
+          placeholder: tx('Cuando un cliente escriba desde su área, la conversación saldrá aquí.') };
+        return null;
+      }
+      // Primera y última palabra saltando partículas (Ni, I, de, van…). Misma regla en portal/index.html (inicialesDe), intranet/v4/assets/datos.js, intranet/leads/leads.js y contracts/assets/asistente-contrato.js.
+      function inicialesDe(n, sinNombre) {
+        var p = String(n || '').trim().split(/\s+/).filter(Boolean);
+        var q = p.filter(function (w) { return ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'].indexOf(w.toLowerCase()) < 0; });
+        if (q.length) p = q;
+        return p.length ? (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() : sinNombre;
+      }
+      /* Avatar de quien contesta por el equipo. `autor` es su CORREO (portal_enviar_mensaje guarda auth.email()), una sola
+         «palabra»: salía con una letra. Las iniciales salen de la parte de antes de la arroba, partida por `.` `_` `-`
+         (nombre.apellido → NA); con una sola parte, sus dos primeras letras. No se busca el nombre en ningún sitio ni se
+         inventa: solo letras que están en el correo. Sin letras, «EQ». */
+      function inicialesEquipo(autor) {
+        var s = String(autor || '').trim();
+        if (s.indexOf('@') === -1) return inicialesDe(s, 'EQ');
+        var letras = function (w) { return w.replace(/[^A-Za-zÀ-ɏ]/g, ''); };
+        var p = s.split('@')[0].split(/[._-]+/).map(letras).filter(Boolean);
+        if (!p.length) return 'EQ';
+        var ini = inicialesDe(p.join(' '), 'EQ');
+        return ini.length > 1 ? ini : p[0].slice(0, 2).toUpperCase();
+      }
+      /* Apaga DE VERDAD todo lo que actúa sobre un hilo (14-oct-2026): con 0 hilos, «Marcar resuelto», «Ver perfil» y
+         «WhatsApp» seguían encendidos y no hacían nada. Un botón: `disabled`. Un enlace no tiene `disabled`: se le quita
+         el `href` (deja de ser enlace y de recibir el foco) y se marca `aria-disabled`. Por `data-accion`, no por rótulo. */
+      function apagaHilo(doc, est) {
+        var cv = doc.getElementById('convo');
+        if (cv) {
+          cv.textContent = '';
+          var pv = doc.createElement('p');
+          pv.className = 'font-body-sm text-on-surface-variant';
+          pv.style.cssText = 'margin:0;text-align:center';
+          pv.setAttribute('role', 'status');
+          pv.textContent = est.texto;
+          cv.appendChild(pv);
+        }
+        ['enviar-respuesta', 'estado-hilo', 'ver-perfil', 'abrir-whatsapp'].forEach(function (acc) {
+          var b = doc.querySelector('[data-accion="' + acc + '"]');
+          if (!b) return;
+          // sin `href` un <a> pierde su papel de enlace y el lector de pantalla ya no anuncia el aria-disabled: se lo deja dicho
+          if (b.tagName === 'A') { b.removeAttribute('href'); b.setAttribute('role', 'link'); b.setAttribute('tabindex', '-1'); }
+          else b.disabled = true;
+          b.setAttribute('aria-disabled', 'true');
+          b.style.opacity = '.45'; b.style.cursor = 'not-allowed';
+        });
+        var tav = doc.querySelector('textarea');
+        if (tav) { tav.disabled = true; tav.placeholder = est.placeholder; }
+      }
+      /* ── fin de las piezas sin red de Soporte ── */
+
       Promise.all([
         // sin `limit`: la viva carga todos los hilos y aquí 80 → 25 pintados dejaba
         // tickets fuera sin decirlo (auditoría 19-sep-2026)
@@ -7203,7 +7318,11 @@
         })
       ]).then(function (r) {
         var hs = r[0], cs = r[1] || [], ms = r[2] || [];
-        if (hs == null) return;
+        /* Sin conversación que enseñar (14-oct-2026, recorrido de un agente de prueba): con 0 hilos el panel dejaba a la vista la
+           conversación de muestra del diseño y «Enviar respuesta» encendido. Ahora lo dice y apaga el envío. «No hay nada» y «no he
+           podido mirar» son dos textos distintos (hs == null: la base no contestó, ya avisado por q()), en el panel Y en el cuadro
+           de respuesta: sinHiloTextos / apagaHilo, arriba. */
+        if (hs == null) { apagaHilo(document, sinHiloTextos(null, null, tx)); return; }
         var refDe = {};
         var rr = r[3] || { rs: [], f: {}, c: {} };
         rr.rs.forEach(function (h) {
@@ -7366,7 +7485,7 @@
         if (selOrden) selOrden.addEventListener('change', aplicarSoporte);
         aplicarSoporte();
 
-        if (!el) return;
+        if (!el) { apagaHilo(document, sinHiloTextos(hs, el, tx)); return; }
         var c = cli[el.client_id] || {};
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.hilo = el; window.LW_V4.hiloCliente = c;
         var msgs = (deHilo[el.id] || deHilo[el.client_id] || []).slice().reverse();
@@ -7380,15 +7499,14 @@
         pon2('h-toggle-estado', el.estado === 'abierto' ? 'Marcar resuelto' : 'Reabrir');
         var ta = document.querySelector('textarea');
         if (ta) ta.placeholder = 'Escribe la respuesta para ' + (c.full_name || 'el cliente') + '… (se envía desde la herramienta: cada mensaje manda un email real)';
-        // «Ver perfil» → la ficha real; «WhatsApp» solo si hay teléfono (norma wa.me)
-        var enlaces = document.querySelectorAll('a[href="#"]');
-        for (var i2 = 0; i2 < enlaces.length; i2++) {
-          var t2 = (enlaces[i2].textContent || '').trim();
-          if (/Ver perfil/.test(t2)) enlaces[i2].href = '/intranet/v4/compradores/?id=' + el.client_id;
-          else if (/WhatsApp/.test(t2)) {
-            if (c.phone) enlaces[i2].href = 'https://wa.me/' + String(c.phone).replace(/[^0-9]/g, '');
-            else enlaces[i2].style.display = 'none';
-          }
+        // «Ver perfil» → la ficha real; «WhatsApp» solo si hay teléfono (norma wa.me). Por `data-accion`, no por el rótulo
+        // (hasta el 14-oct-2026 se buscaban por su texto: en inglés «View profile» no casaba y el enlace se quedaba en `#`).
+        var aPerfil = document.querySelector('[data-accion="ver-perfil"]');
+        if (aPerfil) aPerfil.href = '/intranet/v4/compradores/?id=' + el.client_id;
+        var aWa = document.querySelector('[data-accion="abrir-whatsapp"]');
+        if (aWa) {
+          if (c.phone) aWa.href = 'https://wa.me/' + String(c.phone).replace(/[^0-9]/g, '');
+          else aWa.style.display = 'none';
         }
 
         var convo = document.getElementById('convo');
@@ -7404,24 +7522,19 @@
           convo.innerHTML = '<p style="font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0;text-align:center">Este hilo no tiene mensajes.</p>';
           return;
         }
-        // Primera y última palabra saltando partículas (Ni, I, de, van…). Misma regla en portal/index.html (inicialesDe), intranet/v4/assets/datos.js, intranet/leads/leads.js y contracts/assets/asistente-contrato.js.
-        var iniciales = (function (n) {
-          var p = String(n || '').trim().split(/\s+/).filter(Boolean);
-          var q = p.filter(function (w) { return ['ni','i','de','del','la','las','los','y','van','von','der','den','da','di','du'].indexOf(w.toLowerCase()) < 0; });
-          if (q.length) p = q;
-          return p.length ? (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() : 'C';
-        })(c.full_name);
+        var iniciales = inicialesDe(c.full_name, 'C');   // inicialesDe / inicialesEquipo: arriba, con las piezas sin red
         msgs.forEach(function (msg) {
           var esEquipo = msg.de === 'equipo';
           var b = (esEquipo ? moldeDer : moldeIzq);
           if (!b) return;
           var f = b.cloneNode(true);
+          f.style.display = '';                             // el molde vive oculto en la página (14-oct-2026)
           var burbuja = f.querySelector('[class*="rounded-2xl"]');
-          if (burbuja) burbuja.textContent = msg.texto;     // pisa tambien los adjuntos mock
+          if (burbuja) burbuja.textContent = msg.texto;
           var hora = f.querySelector('span[class*="text-[11px]"]');
           if (hora) hora.textContent = fFecha(msg.creado_en) + ' · ' + (esEquipo ? (msg.autor || 'Equipo') : 'Cliente');
           var avatar = f.querySelector('div[class*="rounded-full"]');
-          if (avatar && !esEquipo) avatar.textContent = iniciales;
+          if (avatar) avatar.textContent = esEquipo ? inicialesEquipo(msg.autor) : iniciales;   // el del equipo: de su correo, o «EQ»
           convo.appendChild(f);
         });
       });

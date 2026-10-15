@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="5709739222bd">
+<meta name="lw-version" content="f82db57dcbc4">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,8 +40,8 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=06e83d71"></script>
-<script src="/contracts/assets/herramientas.js?v=5658fcc3"></script>
+<script src="/contracts/assets/i18n.js?v=0c996b62"></script>
+<script src="/contracts/assets/herramientas.js?v=b3b6465e"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -56,7 +56,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/roles.js?v=11d9478b"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=33f2980c"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=0b15868b"></script>
+<script src="/contracts/assets/roles.js?v=11d9478b"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=33f2980c"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=5e4decfa"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -113,8 +113,8 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=dc899366"></script>
-<script src="/intranet/v4/assets/nav.js?v=c840941e" defer></script>
+<script src="/contracts/assets/asistente-contrato.js?v=34a3a0a1"></script>
+<script src="/intranet/v4/assets/nav.js?v=0bcfbadd" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -1571,7 +1571,7 @@ function fichaResumen(c){
    texto llega a los dos a la vez.
 
    Dos estados, los mismos en los dos sitios:
-     · con ficha  → el chip, con «Ver en Compradores» y «Cambiar de cliente»
+     · con ficha  → el chip, con «Ver en Clientes» y «Cambiar de cliente»
      · sin ficha  → el recuadro de búsqueda, con el enlace al alta
 
    `o.marca` es el id de la fila del adquiriente (COMPRADORES) o vacío para el
@@ -1587,7 +1587,7 @@ function bloqueElegirComprador(o){
         : L({es:'Ficha',en:'Client',id:'Klien'})}</span>
       <b>${esc(o.ficha.full_name || '—')}</b>
       <span class="cli-sub">${esc(fichaResumen(o.ficha))}${fichaDeQuien(o.ficha)}</span>
-      <a class="tb-link" href="/intranet/v4/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>
+      <a class="tb-link" href="/intranet/v4/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Clientes',en:'Open in Clients',id:'Buka di Klien'})}</a>
       ${cambiar}
     </div>`;
   }
@@ -1607,7 +1607,7 @@ function bloqueElegirComprador(o){
       <input type="search" id="${o.idInput}"${o.marca ? ` data-cli-buscar="${escAttr(o.marca)}"` : ''} autocomplete="off" placeholder="${L({es:'Nombre, email o pasaporte…',en:'Name, email or passport…',id:'Nama, email, atau paspor…'})}">
       <div class="cli-resultados" id="${o.idResultados}" hidden></div>
     </div>
-    <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Compradores, no aquí.',en:'Not registered yet? New clients are created in Buyers, not here.',id:'Belum terdaftar? Klien baru dibuat di Pembeli, bukan di sini.'})}</span>
+    <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Clientes, no aquí.',en:'Not registered yet? New clients are created in Clients, not here.',id:'Belum terdaftar? Klien baru dibuat di Klien, bukan di sini.'})}</span>
       <a class="tb-link"${o.idNuevo ? ` id="${o.idNuevo}"` : ''} href="/intranet/v4/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
     </div>
   </div>`;
@@ -1737,7 +1737,7 @@ async function buscarClientes(q, res, onPick, input){
     const { data: c, error: eF } = await sb.rpc('comprador_ficha', { p_id: elegido.id }).maybeSingle();
     if(eF){ toastMal(lwT('No se pudo leer la ficha del comprador: ') + eF.message); return; }
     /* Sin error y sin fila: el directorio lista a todo el equipo (7-oct-2026) pero la ficha ENTERA (pasaporte, direccion) solo la da la base a quien ve sus contratos. */
-    if(!c){ toastMal(lwT('Esa ficha es de otra empresa o de otro comercial: no puedes usarla en un contrato desde tu cuenta. Pídele a un administrador que lo haga.')); return; }
+    if(!c){ toastMal(lwT('Esa ficha es de otra empresa o de otro agente: no puedes usarla en un contrato desde tu cuenta. Pídele a un administrador que lo haga.')); return; }
     onPick({ nombre:c.full_name||'', nacionalidad:c.nationality||'', pasaporte:c.passport_number||'',
       telefono:c.phone||'', email:c.email||'' }, c);
     if(input) input.value='';
@@ -4485,7 +4485,12 @@ function pintaAcciones(){
                             && plantillasOfrecidas().some(t => t.slug === 'ppjb_construccion'),
                           guardado ? '' : sinGuardar],
     ['btnEnviarFirma',    !!tipo, guardado ? cerrado : sinGuardar],
-    ['btnLockUpload',     !!tipo, guardado ? (cerrado || (PDF_SALIO ? '' : pdfNoSalio)) : sinGuardar],
+    /* «Subir firmado» = cerrar como firmado a mano: desde el 14-oct-2026 (owner, bloque B) solo un admin de la empresa del
+       contrato (agente_escribe_fichero_contrato → es_admin_de). Por el ROL se oculta (regla doble, LAW-51 p.5): a quien no es
+       admin de ninguna empresa no se le ofrece. Un admin de OTRA empresa lo sigue viendo —esta ficha no trae sus empresas— y
+       la base se lo niega con su motivo (ver mensajes de subirPdfFirmado). Sin ficha legible se ofrece: decide la base. */
+    ['btnLockUpload',     !!tipo && (!MI_FICHA || LW_ROL.esAdmin(MI_FICHA)),
+                          guardado ? (cerrado || (PDF_SALIO ? '' : pdfNoSalio)) : sinGuardar],
     ['btnFacturar',       true,   guardado ? '' : sinGuardar],
     ['btnRegistro',       true,   guardado ? '' : lwT('Aún no hay registro: el contrato no está guardado')],
     ['btnDownloadSigned', true,   (LOCKED && LOCKED_PDF_PATH) ? '' : lwT('Aún no hay PDF firmado')],
@@ -4935,6 +4940,22 @@ function updateSaveButton(){
   aplicarEstadoFirma();
 }
 
+/* Los códigos de la edge ficheros-contrato (pdf_manual_url / cierra_manual) en llano (14-oct-2026, bloque B). Antes se pintaba
+   el código crudo («sin_permiso_sobre_este_contrato»). Al llegar a ese código la edge ya comprobó que el contrato se ve y no
+   está cerrado: lo que falla es ser admin de su empresa. Lo que no está aquí (un error de Storage, de red) sale tal cual. */
+const CIERRE_MANUAL_MOTIVO = {
+  sin_permiso_sobre_este_contrato: 'Solo un administrador de la empresa del contrato puede cerrarlo como firmado a mano. Pídeselo a un administrador.',
+  contrato_no_visible: 'Ese contrato no existe o no tienes acceso a él.',
+  contrato_ya_cerrado: 'El contrato ya está cerrado: recarga la página.',
+  ya_tiene_pdf_firmado: 'Este contrato ya tuvo un PDF firmado: lo firmado no se pisa.',
+  falta_el_pdf: 'El PDF no ha llegado al almacén: vuelve a subirlo.',
+  no_es_un_pdf: 'El archivo subido no es un PDF válido.',
+  no_se_pudo_preparar_la_subida: 'No se pudo preparar la subida: vuelve a intentarlo.',
+};
+function motivoCierreManual(err){
+  const m = String((err && err.message) || err || '');
+  return CIERRE_MANUAL_MOTIVO[m] ? lwT(CIERRE_MANUAL_MOTIVO[m]) : m;
+}
 async function subirPdfFirmado(file){
   if(!sb || !SAVED_CONTRACT){ toastMal(lwT('Guarda el contrato antes de subir el firmado')); return; }
   if(file.type!=='application/pdf'){ toastMal(lwT('El archivo debe ser un PDF')); return; }
@@ -4963,7 +4984,7 @@ async function subirPdfFirmado(file){
     if(typeof refreshFormaPago === 'function') refreshFormaPago();   // tarjetas cerradas y con su aviso de firmado
     updateSaveButton();
     cerrado = true;
-  }catch(err){ toastMal(lwT('No se pudo bloquear: ') + (err.message || err)); }
+  }catch(err){ toastMal(lwT('No se pudo bloquear: ') + motivoCierreManual(err)); }
   // Ni `disabled=false` a mano: con el contrato ya bloqueado eso volvía a
   // ofrecer «Subir firmado» y un segundo clic pisaba el PDF firmado del bucket
   // (consulta de deploy 74c1cdd6). Lo decide pintaAcciones(), como todo.
@@ -7546,7 +7567,7 @@ async function init(){
       // arrancar un contrato para una ficha ajena — ver buscarClientes().
       const { data: fc } = await sb.rpc('comprador_ficha', { p_id: idCliente }).maybeSingle();
       if(fc){ enlazarFicha(fc); toast(lwT('Contrato nuevo para ') + (fc.full_name || 'el cliente elegido')); }
-      else toastMal(lwT('Esa ficha ya no existe o no está a tu alcance (es de otra empresa o de otro comercial): empieza el contrato buscando a otro cliente'));
+      else toastMal(lwT('Esa ficha ya no existe o no está a tu alcance (es de otra empresa o de otro agente): empieza el contrato buscando a otro cliente'));
     }
     /* `?lead=` — entrada desde el CRM de leads (11-sep-2026). Va DESPUÉS de resetBorrador,
        que es quien lo pone a null: al revés se borraría justo después de asignarlo.

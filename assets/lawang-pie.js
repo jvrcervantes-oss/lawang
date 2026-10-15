@@ -192,6 +192,9 @@
     hPort: { en: 'Portfolio', es: 'Portafolio', id: 'Portofolio' },
     hComp: { en: 'Company',   es: 'Compañía',   id: 'Perusahaan' },
     hDiv:  { en: 'Divisions', es: 'Divisiones', id: 'Divisi' },
+    // ES igual que EN: es el nombre del producto (el deck se titula así) y «Dosieres de
+    // inversión» no cabía en la columna a 390 px.
+    hDeck: { en: 'Investor Decks', es: 'Investor Decks', id: 'Deck Investor' },
     signature:  { en: 'Signature', es: 'Signature', id: 'Signature' },
     land:       { en: 'Land',      es: 'Terrenos',  id: 'Tanah' },
     villas:     { en: 'Villas',    es: 'Villas',    id: 'Villa' },
@@ -207,6 +210,18 @@
   };
   function th(k, lang) { var e = TH[k]; return e[lang] || e.en; }
 
+  /* Investor decks activos (owner, 15-oct-2026). Solo el nombre del proyecto, sin el código
+     de parcela (S1, W5…): así lo pidió el owner. El slug es el de deck_config_publico; un deck
+     que se retire se quita de aquí, o el enlace abre «deck no disponible». */
+  var DECKS = [
+    ['Horizon',        'horizon-s1'],
+    ['Palm Field',     'palmfield'],
+    ['Bonian Village', 'bonian-village'],
+    ['Mejan Village',  'mejan-village'],
+    ['Tamarind Rise',  'tamarind-rise'],
+    ['Sari Village',   'sari-village']
+  ];
+
   var F = '/assets/fonts/NeueKabel-';
   var CSS_HOME =
     "@font-face{font-family:'LWH Kabel';src:url('" + F + "Book.otf') format('opentype');font-weight:400;font-display:swap}" +
@@ -220,7 +235,7 @@
     '.lwh *{box-sizing:border-box}:where(.lwh) h5,:where(.lwh) p{margin:0}' +
     '.lwh__totem{position:absolute;right:-1%;bottom:0;height:clamp(420px,84vh,760px);width:auto;opacity:.07;pointer-events:none;z-index:0}' +
     '.lwh__in{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:clamp(2.6rem,5vh,3.6rem) var(--lwh-pd) 2rem}' +
-    '.lwh__grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:2.4rem}' +
+    '.lwh__grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;gap:2.4rem}' +
     '.lwh__logo{height:34px;width:auto;display:block}' +
     '.lwh__sub{font-size:var(--lwh-fs);letter-spacing:.3em;text-transform:uppercase;color:#BEB3A5;margin-top:10px}' +
     '.lwh__tag{font-size:var(--lwh-fs);opacity:.5;line-height:1.7;max-width:34ch;margin-top:14px}' +
@@ -240,7 +255,9 @@
     '.lwh__tc:hover{color:#0A0C09;background:#F5F0E6;border-color:#F5F0E6}' +
     '.lwh__nota{display:block;position:relative;z-index:1;max-width:1280px;margin:1.2rem auto 0;padding:0 var(--lwh-pd);' +
       'font-size:var(--lwh-fs);line-height:1.6;color:rgba(245,240,230,.4)}' +
-    '@media(max-width:980px){.lwh__grid{grid-template-columns:1fr 1fr}}' +
+    // Con 5 columnas: por debajo de 1100 la marca ocupa su fila y las cuatro listas van 2×2
+    // (a 980 «INVESTOR DECKS» se partía en dos líneas hacia los 1000 px; medido 15-oct).
+    '@media(max-width:1100px){.lwh__grid{grid-template-columns:1fr 1fr}.lwh__grid>div:first-child{grid-column:1/-1}}' +
     '@media(max-width:560px){.lwh__grid{grid-template-columns:1fr 1fr;gap:1.6rem 1.2rem}.lwh__grid>div:first-child{grid-column:1/-1}' +
       '.lwh__in{padding-top:1.6rem;padding-bottom:1rem}.lwh__tag{margin-top:8px}.lwh__col h5{margin-bottom:8px}.lwh__col a{margin-bottom:6px}' +
       '.lwh__bottom{margin-top:1.2rem;padding-top:1rem;gap:.7rem}.lwh{padding-bottom:1rem}}';
@@ -291,6 +308,8 @@
         '<div class="lwh__col"><h5>' + esc(th('hDiv', lang)) + '</h5>' +
           n('/thecollection', 'Tepi Sungai') + n('/thecollection', 'Balian Hills') +
           n('/thecollection#signature', 'Riverfront II®') + '</div>' +
+        '<div class="lwh__col"><h5>' + esc(th('hDeck', lang)) + '</h5>' +
+          DECKS.map(function (d) { return n('/investor-deck/' + d[1] + '/', d[0]); }).join('') + '</div>' +
       '</div></div>' +
       '<div class="lwh__bottom">' +
         '<span class="lwh__copy">© 2026 Lawang Tropical Properties · Indonesia</span>' +

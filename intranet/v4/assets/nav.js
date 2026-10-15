@@ -55,6 +55,12 @@
       { path: 'operaciones', texto: 'Operaciones', clave: 'operaciones' },
       { path: 'reservas', texto: 'Reservas', clave: 'reservas' }] },
     { seccion: 'Documentación', entradas: [
+      /* Clientes va ANTES de Contratos (14-oct-2026, owner, tras el recorrido de un agente de prueba): es por donde empieza toda
+         venta y era la última línea del menú, fuera de la vista a 1440×900 y en el móvil. El `<aside>` de cada página la sigue
+         dibujando en «Base de Datos»: la mueve `subeClientes`, que lee el orden de AQUÍ (la entrada que le sigue). Antes y no
+         después de Contratos: Emitir, Plantillas y Asistente se cuelgan `afterend` de Contratos y la empujarían hacia abajo.
+         La casilla es la misma (`compradores`); en /v4/usuarios/ pasa a salir bajo «Documentación». */
+      { path: 'compradores', texto: 'Clientes', clave: 'compradores' },
       { path: 'contratos', texto: 'Contratos', clave: 'contratos' },
       /* Plantillas (AxisWorks ERP, 28-sep-2026, subtarea 6b): solo con AXW_NUCLEO_OPERACION, como Productos.
          Junto a Contratos y no en el Panel de control: la usa quien hace contratos (es su materia prima), no
@@ -97,8 +103,7 @@
       { path: 'proyectos', texto: 'Proyectos', clave: 'unidades', extra: [
         { clave: 'documentacion', texto: 'documentación (enlaces, FAQ y ficheros)' }] },
       { path: 'modelos', texto: 'Modelos de casas', clave: 'modelos', alias: 'Modelos' },   // «Modelos» hasta el 12-oct-2026 (owner: «se puede renombrar a 'Modelos de casas'»)
-      { path: 'obra', texto: 'Obra', clave: 'obra' },
-      { path: 'compradores', texto: 'Clientes', clave: 'compradores' }] },
+      { path: 'obra', texto: 'Obra', clave: 'obra' }] },
     { seccion: 'Panel de control', entradas: [
       { path: 'usuarios', texto: 'Usuarios', clave: 'usuarios', rol: 'admin' },
       /* Textos de contrato vive en Documentación, como «Plantillas», desde el 12-oct-2026 (ver arriba). */
@@ -158,9 +163,30 @@
       if (!ev || !ev.message || ev.message === 'Script error.' || (f && f.indexOf(location.origin) !== 0)) return;
       apunta('codigo', ev.message + (f ? ' (' + f.slice(location.origin.length).split('?')[0] + ':' + ev.lineno + ')' : ''));
     });
+    /* Una promesa rechazada no trae fichero, como sí trae el «error» de arriba: lo trae su pila (SC-33, 15-oct-2026:
+       «reading 'M_ID'» dos veces en Home, una propiedad que ninguna versión de la intranet ni de supabase-js ha
+       leído nunca; no se pudo decir de dónde venía). Si TODA la pila es de una extensión del navegador, no es
+       nuestro y no se apunta, la misma regla que el «error» con fichero ajeno. Si trae una línea del propio
+       dominio, se apunta con ella, para que el aviso diga dónde. Sin pila (un `throw` de texto, un error de
+       supabase), como antes. */
+    var EXTENSION = /^(chrome-extension|moz-extension|safari-extension|safari-web-extension|webkit-masked-url):/;
     window.addEventListener('unhandledrejection', function (ev) {
       var r = ev && ev.reason;
-      apunta('codigo', r && r.message ? r.message : r);
+      var msg = r && r.message ? r.message : r;
+      if (msg == null || String(msg).trim() === '') return;   // un reject() sin valor no dice nada (antes tampoco se apuntaba)
+      msg = String(msg).replace(/\s+/g, ' ').trim();
+      // las URLs se buscan en la pila SIN el mensaje: un texto que cite una dirección nuestra no la hace «nuestra»
+      var pila = String((r && r.stack) || '');
+      var k = r && r.message ? pila.indexOf(String(r.message)) : -1;   // solo la 1.ª vez: la de la cabecera «Error: …»
+      if (k !== -1) pila = pila.slice(0, k) + ' ' + pila.slice(k + String(r.message).length);
+      var urls = pila.match(/[a-z][a-z-]*:\/\/[^\s()]+/g) || [];
+      if (urls.length && urls.every(function (u) { return EXTENSION.test(u); })) return;
+      var donde = '';
+      for (var i = 0; i < urls.length && !donde; i++) {
+        var m = urls[i].indexOf(location.origin + '/') === 0 && urls[i].slice(location.origin.length).match(/^([^?#:]+)(?:[?#][^:]*)?:(\d+)/);
+        if (m) donde = ' (' + m[1] + ':' + m[2] + ')';
+      }
+      apunta('codigo', msg.slice(0, 300 - donde.length) + donde);   // el tope de apunta() no se come el «(ruta:línea)»
     });
     function vigila(n) {
       new MutationObserver(function () {
@@ -205,7 +231,7 @@
      motion.js anima el primer lote que pinte su script (modo tardío). Con
      «reducir movimiento» en el sistema, ni marca ni motion.js. MOTION_V = 8 primeros del sha1 de
      motion.js con fin de línea LF (lo desplegado): nav.test.js falla si no casan, porque sella_assets no lo sella. */
-  var MOTION_V = '114a104b';
+  var MOTION_V = '92fedc21';
   (function () {
     try {
       /* Solo en /intranet/v4/ (27-sep-2026): la entrada anima `main` cuando datos.js
@@ -840,6 +866,22 @@
     g.style.display = g.querySelector('a[data-path]') ? '' : 'none';
   }
 
+  /* «Clientes» sube junto a «Contratos» (14-oct-2026). El sitio sale de MENU_V4: se coloca delante de la entrada que allí la
+     sigue. Se MUEVE el enlace que ya dibujó la página (con su data-path, su traducción y su marca de activa), no se clona.
+     Sin ese vecino en la página se queda donde estaba; quién la ve lo siguen decidiendo su casilla y la poda. */
+  var TRAS_CLIENTES = (function () {
+    var p = '';
+    MENU_V4.forEach(function (s) {
+      s.entradas.forEach(function (e, i) { if (e.path === 'compradores' && s.entradas[i + 1]) p = s.entradas[i + 1].path || ''; });
+    });
+    return p;
+  })();
+  function subeClientes(aside) {
+    var c = aside.querySelector('nav a[data-path="compradores"]');
+    var vecino = TRAS_CLIENTES && aside.querySelector('nav a[data-path="' + TRAS_CLIENTES + '"]');
+    if (c && vecino && vecino.previousElementSibling !== c) vecino.insertAdjacentElement('beforebegin', c);
+  }
+
   function injertaNuevas(aside) {
     injerta(aside, { path: 'modelos', tras: 'proyectos', icono: 'villa', texto: 'Modelos de casas' });
     INJERTOS.forEach(function (spec) { if (!spec.nucleo || window.AXW_NUCLEO_OPERACION) injerta(aside, spec); });
@@ -902,6 +944,7 @@
     document.querySelectorAll('aside').forEach(retiraDocumentacion);
     document.querySelectorAll('aside').forEach(function (aside) { ordenaFinanzas(aside, false); });
     document.querySelectorAll('aside').forEach(ordenaComunicacion);
+    document.querySelectorAll('aside').forEach(subeClientes);
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
       // 1º por data-path (cáscara canónica); 2º por texto (páginas sin él)
       var dp = a.getAttribute('data-path');

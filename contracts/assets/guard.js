@@ -107,13 +107,19 @@
   });
   /* Ficheros de contratos y cobros por la edge ficheros-contrato (26-sep-2026, LAW-336 pieza 5): la ruta
      la decide el servidor y la subida va por URL firmada; borrar borradores de firma, también el servidor.
-     Una sola copia para toda la suite (facturas, operaciones, v4). Devuelve la respuesta o lanza con el error. */
+     Una sola copia para toda la suite (facturas, operaciones, v4). Devuelve la respuesta o lanza con el error.
+     14-oct-2026: el justificante de un recibí (`justificante_url`) va a la edge de base `ficheros`, clase
+     `justificante_cobro`, con la misma respuesta {path, token}. ficheros-contrato es del módulo «contratos» y una
+     instancia con recibos encendidos y contratos apagado (bbm) no la tiene: el recibí no se podía emitir. */
   fija('lwFicheros', function (sb, accion, datos) {
+    var cobro = accion === 'justificante_url';
     return sb.auth.getSession().then(function (s) {
       var t = s && s.data && s.data.session && s.data.session.access_token;
-      return fetch(URL_SB + '/functions/v1/ficheros-contrato', { method: 'POST',
+      // las dos URLs escritas enteras: erp/contrato_front.py las lee del código para saber qué edges llama el front
+      return fetch(cobro ? URL_SB + '/functions/v1/ficheros' : URL_SB + '/functions/v1/ficheros-contrato', { method: 'POST',
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
-        body: JSON.stringify(Object.assign({ accion: accion }, datos || {})) });
+        body: JSON.stringify(cobro ? Object.assign({}, datos || {}, { accion: 'subida_url', clase: 'justificante_cobro' })
+                                   : Object.assign({ accion: accion }, datos || {})) });
     }).then(function (r) {
       sospechaVersion(r.status);
       return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
