@@ -4294,6 +4294,15 @@
         };
         // ¿Ya se sabe de quién es el cobro? Por contrato, o por cliente en el modo sin contrato.
         function hayOrigen() { return !!(estadoContrato.id || (estadoContrato.sinContrato && estadoContrato.clienteId)); }
+        /* Recibí histórico sin justificante (LAW-40) que todavía se libra de adjuntarlo: el mismo límite que guardar_recibi
+           (Seguridad, 15-oct-2026): la marca, ningún justificante guardado y su propio contrato. Si ya lo tuvo, o se lleva a
+           una factura de otro contrato (eso cambia estadoContrato.id), se pide como a cualquier recibí. El servidor manda:
+           esto solo evita que el usuario se entere por su error. */
+        function histSinJustExento() {
+          return !!(existente && existente.historico_sin_justificante
+            && !(Array.isArray(existente.justificantes) && existente.justificantes.length)
+            && existente.contrato_id && estadoContrato.id === existente.contrato_id);
+        }
         var aplicaciones = [];   // [{factura_id, numero, pendiente, importe}]
         var facturasAbiertasCache = [], facturasOtraMoneda = 0, delC = null;
         var getJustificantes = null;
@@ -4703,7 +4712,7 @@
 
           /* Un recibí histórico sin justificante (LAW-40) no lo exige si se guarda con su mismo importe (15-oct-2026): el
              rótulo no dice «obligatorio» ahí. Manda guardar_recibi, que mira la marca y el total de la fila guardada. */
-          var esHistSinJust = !!(existente && existente.historico_sin_justificante);
+          var esHistSinJust = histSinJustExento();
           var secJust = seccionFijaDoc(host, esHistSinJust ? 'Justificante de pago (histórico: no se exige si no cambia el importe)' : 'Justificante de pago (obligatorio)');
           getJustificantes = montaJustificantesDoc(secJust, sb, existente && Array.isArray(existente.justificantes) ? existente.justificantes : []);
 
@@ -4723,7 +4732,7 @@
             if (!v.sociedad) return { error: { message: 'Falta «Sociedad que cobra».' } };
             var justificantes = getJustificantes ? getJustificantes() : [];
             // un recibí histórico (LAW-40) se guarda sin justificante; la marca la mira también guardar_recibi en la fila guardada
-            if (!justificantes.length && !(existente && existente.historico_sin_justificante)) return { error: { message: 'Adjunta el justificante de pago.' } };
+            if (!justificantes.length && !histSinJustExento()) return { error: { message: 'Adjunta el justificante de pago.' } };
             for (var i = 0; i < aplicaciones.length; i++) {
               var imp = lwParseImporte(aplicaciones[i].importe);
               if (!imp || imp <= 0) return { error: { message: tH('Falta el importe aplicado a %n', { n: aplicaciones[i].numero }) } };
