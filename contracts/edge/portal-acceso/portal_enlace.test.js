@@ -67,12 +67,26 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
       frenoError: !!o.frenoError,
       anotaError: !!o.anotaError,   // portal_freno_anota caída (20261015201000): la respuesta no cambia
       equipoUid: !!o.equipoUid,   // la cuenta de Auth es del equipo aunque `usuarios` tenga OTRO correo
+      // freno de ANTES de la regla (20261015202000): 20 por cubo (3 primeros hex del hash; sin IP, el 4096) y cortacircuitos de
+      // 1000 que solo cuenta lo que pasó su IP. Se reinicia en cada prepara() (una prepara = una hora de ese freno).
+      pet: { cubos: {}, global: o.peticionesGlobal || 0 },
+      peticionError: !!o.peticionError,   // portal_peticion_freno caída o sin aplicar
     };
     globalThis.__sb = {
       traza: est.traza,
       rpc: (nombre, a) => {
         if (nombre === 'portal_autoservicio') return { data: { elegible: est.elegible, motivo: est.elegible ? null : 'sin_ficha' }, error: null };
         if (nombre === 'portal_puede_gestionar') return { data: true, error: null };
+        if (nombre === 'portal_peticion_freno') {
+          if (est.peticionError) return { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } };
+          const h = a.p_ip_hash;
+          if (h !== null && !/^[0-9a-f]{64}$/.test(h)) return { data: null, error: { code: '22023', message: 'hash no válido' } };
+          const cubo = h === null ? 4096 : parseInt(h.slice(0, 3), 16);
+          est.pet.cubos[cubo] = (est.pet.cubos[cubo] || 0) + 1;
+          if (est.pet.cubos[cubo] > 20) return { data: 'ip', error: null };
+          est.pet.global += 1;
+          return { data: est.pet.global > 1000 ? 'global' : 'pasa', error: null };
+        }
         if (nombre === 'portal_enlace_freno') {
           if (est.frenoError) return { data: null, error: { code: 'XX000', message: 'boom ' + a.p_email } };
           const e = a.p_email.trim().toLowerCase();
@@ -306,11 +320,12 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   ok(sextaIp.logs.some((l) => l.includes('frenado:ip @cliente-prueba.com')), 'acceso: IP, el log dice el motivo');
   ok(!sextaIp.logs.some((l) => l.includes('frenado_tope_global')), 'acceso: IP no se confunde con el tope global');
   igual(llamo('rpc:portal_freno_anota').map((t) => t.args), [{ p_motivo: 'ip' }], 'acceso: frenazo por IP → se anota como ip (y los 5 que salieron no)');
-  // la última entrada de x-forwarded-for (la del proxy) es la misma IP: también frena; la primera (la que pone el cliente) no cuenta
-  const xff = await llama(ACCESO, { email: 'ip7@cliente-prueba.com' }, { 'x-forwarded-for': '198.51.100.1, ' + IP });
-  igual([xff.crudo, est.envios.length], [exito.crudo, 5], 'acceso: x-forwarded-for, cuenta la última entrada');
-  const otraIp = await llama(ACCESO, { email: 'ip8@cliente-prueba.com' }, { 'x-forwarded-for': IP + ', 198.51.100.2' });
-  igual([otraIp.crudo, est.envios.length], [exito.crudo, 6], 'acceso: otra IP (la del proxy es otra) sí sale');
+  // x-forwarded-for no se mira nunca (15-oct, resto 6: lo escribe el cliente): con cf-connecting-ip frenada, un x-forwarded-for
+  // inventado no la libra; y solo con x-forwarded-for (la IP frenada dentro) cuenta como «sin IP», no como esa IP
+  const xff = await llama(ACCESO, { email: 'ip7@cliente-prueba.com' }, { ...deIp, 'x-forwarded-for': '198.51.100.1' });
+  igual([xff.crudo, est.envios.length], [exito.crudo, 5], 'acceso: un x-forwarded-for inventado no libra a la IP frenada');
+  const otraIp = await llama(ACCESO, { email: 'ip8@cliente-prueba.com' }, { 'x-forwarded-for': '198.51.100.2, ' + IP });
+  igual([otraIp.crudo, est.envios.length, llamo('rpc:portal_enlace_freno').slice(-1)[0].args.p_ip_hash], [exito.crudo, 6, null], 'acceso: solo x-forwarded-for = sin IP (no se lee)');
   // envío fallido desde una IP: el hueco de la IP también se devuelve
   avanza(61);
   const IP2 = '203.0.113.88';
@@ -326,10 +341,76 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   const sinIp = await llama(ACCESO, { email: 'ip10@cliente-prueba.com' });
   igual([sinIp.crudo, est.envios.length, llamo('rpc:portal_enlace_freno')[0].args.p_ip_hash], [exito.crudo, 1, null], 'acceso: sin IP sale con p_ip_hash null');
   ok(sinIp.logs.some((l) => l.includes('sin_ip @cliente-prueba.com')), 'acceso: sin IP queda en el log');
-  // ip_fuente (15-oct, resto 6): una línea por petición con el NOMBRE de la cabecera de la que saldría la IP, nunca la IP
-  igual(sinIp.logs.filter((l) => l.startsWith('portal-acceso ip_fuente:')), ['portal-acceso ip_fuente:ninguna'], 'acceso: ip_fuente ninguna');
-  igual(sextaIp.logs.filter((l) => l.startsWith('portal-acceso ip_fuente:')), ['portal-acceso ip_fuente:cf'], 'acceso: ip_fuente cf');
-  igual(xff.logs.filter((l) => l.startsWith('portal-acceso ip_fuente:')), ['portal-acceso ip_fuente:xff'], 'acceso: ip_fuente xff');
+
+  // 13. freno de ANTES de la regla (15-oct, resto 6, 20261015202000; revisión previa #373)
+  // a. va antes de portal_autoservicio, con un hash de 64 hex de etiqueta propia (≠ el del freno del enlace)
+  avanza(3601);
+  prepara();
+  await llama(ACCESO, { email: 'orden@cliente-prueba.com' }, { 'cf-connecting-ip': '203.0.113.90' });
+  const orden13 = est.traza.map((t) => t.que);
+  ok(orden13.indexOf('rpc:portal_peticion_freno') >= 0 && orden13.indexOf('rpc:portal_peticion_freno') < orden13.indexOf('rpc:portal_autoservicio'), 'peticion: el freno va antes de la regla');
+  const hPet = llamo('rpc:portal_peticion_freno')[0].args.p_ip_hash;
+  const hEnl = llamo('rpc:portal_enlace_freno')[0].args.p_ip_hash;
+  ok(/^[0-9a-f]{64}$/.test(hPet) && /^[0-9a-f]{64}$/.test(hEnl) && hPet !== hEnl, 'peticion: hash de 64 hex con etiqueta propia, distinto del del enlace');
+  // b. 21 desde la misma IP con correos sin derecho: 20 mudas, la 21.ª 429 ocupado sin llamar a la regla ni a usuarios
+  prepara({ elegible: false });
+  const IP3 = { 'cf-connecting-ip': '203.0.113.91' };
+  for (let i = 1; i <= 20; i++) igual((await llama(ACCESO, { email: 'p' + i + '@otro-dominio.com' }, IP3)).crudo, exito.crudo, 'peticion: la ' + i + '.ª pasa al freno');
+  const auto20 = llamo('rpc:portal_autoservicio').length;
+  const trazaAntes = est.traza.length;
+  const oc = await llama(ACCESO, { email: 'p21@otro-dominio.com' }, IP3);
+  igual([oc.status, oc.cuerpo], [429, { error: 'ocupado' }], 'peticion: la 21.ª desde la misma IP → 429 ocupado');
+  igual([llamo('rpc:portal_autoservicio').length, est.traza.slice(trazaAntes).map((t) => t.que)], [auto20, ['rpc:portal_peticion_freno']], 'peticion: frenada no llama a nada más (ni regla ni usuarios)');
+  ok(oc.logs.includes('portal-acceso peticion_frenada:ip'), 'peticion: el log dice el motivo, sin correo');
+  // c. misma respuesta para un comprador con derecho que para uno sin él
+  est.elegible = true;
+  const ocC = await llama(ACCESO, { email: EMAIL }, IP3);
+  igual([ocC.status, ocC.crudo], [oc.status, oc.crudo], 'peticion: frenada, idéntica para un comprador y para uno sin derecho');
+  // d. cambiar x-forwarded-for en cada petición no libra a la IP
+  for (let i = 0; i < 3; i++) {
+    const r = await llama(ACCESO, { email: 'x' + i + '@otro-dominio.com' }, { ...IP3, 'x-forwarded-for': '198.51.100.' + (10 + i) });
+    igual(r.status, 429, 'peticion: x-forwarded-for distinto (' + i + ') sigue frenado');
+  }
+  // e. sin IP: su propio cubo de 20, que no frena a las que traen IP
+  prepara({ elegible: false });
+  for (let i = 1; i <= 20; i++) await llama(ACCESO, { email: 's' + i + '@otro-dominio.com' });
+  igual((await llama(ACCESO, { email: 's21@otro-dominio.com' })).status, 429, 'peticion: sin IP, la 21.ª → 429');
+  igual(llamo('rpc:portal_peticion_freno').slice(-1)[0].args.p_ip_hash, null, 'peticion: sin IP va con hash null (cubo propio en la base)');
+  igual((await llama(ACCESO, { email: 's22@otro-dominio.com' }, IP3)).status, 200, 'peticion: el cubo sin IP lleno no frena a una con IP');
+  // f. IPv6 por su /64; IPv4 mapeada = IPv4; basura → sin IP
+  igual(ACCESO.claveIp('2001:DB8:1:2::1'), '2001:db8:1:2::/64', 'claveIp: IPv6 comprimida → su /64');
+  igual(ACCESO.claveIp('2001:db8:0001:0002:ffff:aaaa:bbbb:cccc'), '2001:db8:1:2::/64', 'claveIp: otra del mismo /64 → la misma clave');
+  ok(ACCESO.claveIp('2001:db8:1:3::1') !== ACCESO.claveIp('2001:db8:1:2::1'), 'claveIp: otro /64 → otra clave');
+  igual(ACCESO.claveIp('::ffff:203.0.113.5'), '203.0.113.5', 'claveIp: IPv4 mapeada → la IPv4');
+  igual(ACCESO.claveIp('::ffff:cb00:7105'), '203.0.113.5', 'claveIp: IPv4 mapeada en hex → la IPv4');
+  igual(ACCESO.claveIp('203.0.113.5'), '203.0.113.5', 'claveIp: IPv4 tal cual');
+  // la MISMA ipDe y claveIp en alta-colaborador (las edges no comparten módulo): si una cambia, este test lo dice
+  const fs = require('fs');
+  const fuente = (f) => fs.readFileSync(path.join(__dirname, '..', '..', '..', f), 'utf8');
+  const cuerpoDe = (txt, nombre) => { const i = txt.indexOf('function ' + nombre + '('); return i < 0 ? null : txt.slice(i, txt.indexOf('\n}\n', i)); };
+  const acc = fuente('contracts/edge/portal-acceso/index.ts');
+  for (const alta of ['supabase/functions/alta-colaborador/index.ts', 'contracts/edge/alta-colaborador/index.ts']) {
+    for (const fn of ['ipDe', 'claveIp']) {
+      const a = cuerpoDe(acc, fn);
+      ok(a && a === cuerpoDe(fuente(alta), fn), 'claveIp: ' + fn + ' es la misma en ' + alta);
+    }
+  }
+  for (const malo of ['', '1:2:3', '1::2::3', '999.1.1.1.1', 'abc', '1:2:3:4:5:6:7:8:9', '::ffff:300.1.1.1']) igual(ACCESO.claveIp(malo), '', 'claveIp: «' + malo + '» → sin IP');
+  prepara({ elegible: false });
+  await llama(ACCESO, { email: 'v6a@otro-dominio.com' }, { 'cf-connecting-ip': '2001:db8:1:2::1' });
+  await llama(ACCESO, { email: 'v6b@otro-dominio.com' }, { 'cf-connecting-ip': '2001:db8:1:2:9::7' });
+  const v6 = llamo('rpc:portal_peticion_freno').map((t) => t.args.p_ip_hash);
+  igual(v6[0], v6[1], 'peticion: dos IPv6 del mismo /64 → el mismo hash');
+  // g. cortacircuitos global: 429 y su línea propia
+  prepara({ elegible: false, peticionesGlobal: 1000 });
+  const gl = await llama(ACCESO, { email: 'g@otro-dominio.com' }, { 'cf-connecting-ip': '203.0.113.92' });
+  igual([gl.status, gl.cuerpo, llamo('rpc:portal_autoservicio').length], [429, { error: 'ocupado' }, 0], 'peticion: cortacircuitos global → 429 sin regla');
+  ok(gl.logs.includes('portal-acceso peticion_tope_global'), 'peticion: el cortacircuitos deja su línea propia (para avisar)');
+  // h. el freno no contesta (o la migración no está aplicada) → cerrado: 500 sin llamar a la regla
+  prepara({ peticionError: true });
+  const pe = await llama(ACCESO, { email: EMAIL }, IP3);
+  igual([pe.status, pe.cuerpo, llamo('rpc:portal_autoservicio').length, est.envios.length], [500, { error: 'no_disponible' }, 0, 0], 'peticion: freno caído → 500 no_disponible, sin regla ni correo');
+  ok(!pe.logs.join(' ').includes(LOCAL), 'peticion: el error no deja la dirección en el log');
 
   /* ════════ portal-invitar ════════ */
   freno.global = [];

@@ -52,6 +52,11 @@
 // salieron (SMTP por defecto de Supabase, ~4 correos/hora) mientras la pantalla
 // decía «enviado». Decirle a alguien que revise un buzón donde no hay nada es la
 // avería que estamos arreglando; no se puede reintroducir aquí.
+//
+// La otra excepción (15-oct-2026, resto 6, revisión previa #373): el freno de ANTES de la regla (`portal_peticion_freno`)
+// contesta 429 {error:'ocupado'}. No delata nada porque decide solo con la IP (y la cuenta global), nunca con el correo, y
+// contesta igual para cualquier correo; y no puede ser {ok:true} por lo mismo de arriba: «enviado» sin correo. El freno de
+// DESPUÉS de la regla (`portal_enlace_freno`) sí sigue siendo uniforme: allí solo llega alguien con derecho.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
@@ -107,26 +112,58 @@ const dominio = (email: string) => { const i = email.lastIndexOf('@'); return i 
 /** Texto de error para el log sin direcciones de correo ni cadenas largas (un token, una URL con token). */
 const limpia = (s: unknown) => String(s ?? '').replace(/[^\s@<>]+@[^\s@<>]+/g, '[correo]').replace(/[A-Za-z0-9_\-]{24,}/g, '[…]').slice(0, 120);
 
-/** IP de quien llama, como alta-colaborador: cf-connecting-ip la pone el proxy y el cliente no la puede falsear; si falta,
- *  la ÚLTIMA entrada de x-forwarded-for (la añade el proxy), nunca la primera. '' si no hay ninguna. */
+/** IP de quien llama: SOLO cf-connecting-ip, con forma de IP; '' si falta. La pone el borde de Supabase (medido el 15-oct-2026:
+ *  llega en todas las peticiones). x-forwarded-for no se mira nunca: lo escribe el cliente, y con él cada petición estrenaba IP y
+ *  ningún tope por IP saltaba (Seguridad, revisión previa #373). MISMA función en alta-colaborador. */
 function ipDe(req: Request): string {
-  const xff = (req.headers.get('x-forwarded-for') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
-  return ((req.headers.get('cf-connecting-ip') ?? '').trim() || xff[xff.length - 1] || '').slice(0, 64);
+  const v = (req.headers.get('cf-connecting-ip') ?? '').trim();
+  return /^[0-9a-fA-F:.]{3,45}$/.test(v) ? v : '';
 }
-/** De qué cabecera saldría la IP (15-oct-2026, resto 6 de «Invitar al portal»): medida desde DENTRO de la edge antes de leer la IP
- *  solo de cf-connecting-ip (x-forwarded-for lo escribe el cliente). Si saliera algo distinto de 'cf', todas las peticiones caerían
- *  en un cubo común. Solo el nombre de la fuente, nunca la IP. */
-function ipFuente(req: Request): 'cf' | 'xff' | 'ninguna' {
-  if ((req.headers.get('cf-connecting-ip') ?? '').trim()) return 'cf';
-  return (req.headers.get('x-forwarded-for') ?? '').trim() ? 'xff' : 'ninguna';
+/** La clave del cubo de una IP: una IPv4, tal cual; una IPv6, su /64 (una máquina tiene el bloque entero y estrenaría una
+ *  dirección en cada petición); una IPv4 mapeada en IPv6 (::ffff:a.b.c.d), la IPv4. '' si no se puede leer.
+ *  MISMA función en alta-colaborador (15-oct-2026): si cambia, en las dos (las edges no comparten módulo). */
+export function claveIp(ip: string): string {
+  const s = (ip ?? '').trim().toLowerCase();
+  if (!s) return '';
+  if (!s.includes(':')) return /^\d{1,3}(\.\d{1,3}){3}$/.test(s) ? s : '';
+  const v4 = (t: string) => {
+    const o = t.split('.').map(Number);
+    return o.length === 4 && o.every((x) => Number.isInteger(x) && x >= 0 && x <= 255)
+      ? [((o[0] << 8) | o[1]).toString(16), ((o[2] << 8) | o[3]).toString(16)] : null;
+  };
+  const partes = s.split('::');
+  if (partes.length > 2) return '';
+  const trozos = (p: string) => {
+    if (!p) return [] as string[];
+    const g = p.split(':');
+    const ult = g[g.length - 1];
+    if (ult.includes('.')) { const h = v4(ult); if (!h) return null; g.splice(g.length - 1, 1, ...h); }
+    return g;
+  };
+  const cab = trozos(partes[0]);
+  const col = partes.length === 2 ? trozos(partes[1]) : [];
+  if (!cab || !col) return '';
+  const faltan = 8 - cab.length - col.length;
+  if (partes.length === 2 ? faltan < 1 : faltan !== 0) return '';
+  const g = [...cab, ...Array(faltan).fill('0'), ...col];
+  if (!g.every((x) => /^[0-9a-f]{1,4}$/.test(x))) return '';
+  const n = g.map((x) => parseInt(x, 16));
+  if (n.slice(0, 5).every((x) => x === 0) && n[5] === 0xffff) {
+    return [n[6] >> 8, n[6] & 255, n[7] >> 8, n[7] & 255].join('.');
+  }
+  return n.slice(0, 4).map((x) => x.toString(16)).join(':') + '::/64';
 }
-/** HMAC-SHA256 de la IP, en hex (64). Clave = la service_role de la edge, con etiqueta propia: un sha256 sin clave de una
- *  IPv4 se deshace probando las ~4.300 millones de IPs. Si la clave rota, solo se reinician los contadores. null sin IP. */
-async function hashIp(ip: string): Promise<string | null> {
+/** Etiquetas del HMAC, una por freno (Seguridad #373.4): el cubo del freno de antes de la regla no se puede cruzar con el hash que
+ *  guarda portal_enlaces_ip. */
+const ETIQ_ENLACE = 'lawang-portal-acceso-ip:';
+const ETIQ_PETICION = 'lawang-portal-peticion-ip:';
+/** HMAC-SHA256 de la clave de la IP, en hex (64). Clave = la service_role de la edge, con etiqueta propia: un sha256 sin clave de
+ *  una IPv4 se deshace probando las ~4.300 millones de IPs. Si la clave rota, solo se reinician los contadores. null sin IP. */
+async function hashIp(ip: string, etiqueta: string): Promise<string | null> {
   if (!ip) return null;
   const enc = new TextEncoder();
   const k = await crypto.subtle.importKey('raw', enc.encode(SERVICE), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const firma = new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode('lawang-portal-acceso-ip:' + ip)));
+  const firma = new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(etiqueta + ip)));
   return Array.from(firma, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
@@ -176,7 +213,6 @@ export async function manejador(req: Request): Promise<Response> {
 
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
-  console.log('portal-acceso ip_fuente:' + ipFuente(req));
 
   let email = '';
   let ipHash: string | null = null;
@@ -198,6 +234,27 @@ export async function manejador(req: Request): Promise<Response> {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       console.log('portal-acceso email_invalido');
       return json({ ok: true });
+    }
+
+    // ── freno ANTES de la regla (15-oct-2026, resto 6 de «Invitar al portal», migración 20261015202000) ──
+    // Toda petición con correo bien formado, tenga o no derecho: 20/h por cubo de IP (sin IP, su propio cubo) y un cortacircuitos
+    // de 1000/h que solo cuenta lo que pasó su tope de IP. Decide con la IP, nunca con el correo: la respuesta frenada es la misma
+    // para cualquier correo y no delata a nadie. Por eso NO es {ok:true}: un comprador leería «enviado» y no le llegaría nada (la
+    // avería de la cabecera). Si el freno falla: cerrado, el mismo 500 que rpc_fallo, sin llamar a la regla.
+    const ip = claveIp(ipDe(req));
+    if (!ip) anota('sin_ip');
+    ipHash = await hashIp(ip, ETIQ_ENLACE);
+    const { data: paso, error: ePaso } = await admin.rpc('portal_peticion_freno', { p_ip_hash: await hashIp(ip, ETIQ_PETICION) });
+    if (ePaso) {
+      console.error('portal-acceso peticion_freno_fallo: ' + limpia(ePaso.code ?? ePaso.message));
+      return json({ error: 'no_disponible' }, 500);
+    }
+    if (paso !== 'pasa') {
+      const m = ['ip', 'global'].includes(String(paso)) ? String(paso) : 'desconocido';
+      console.log('portal-acceso peticion_frenada:' + m);
+      // Línea fija para avisar: el cortacircuitos global deja fuera también a compradores con derecho.
+      if (m === 'global') console.warn('portal-acceso peticion_tope_global');
+      return json({ error: 'ocupado' }, 429);
     }
 
     const { data: veredicto, error: eRpc } = await admin.rpc('portal_autoservicio', { p_email: email });
@@ -227,9 +284,7 @@ export async function manejador(req: Request): Promise<Response> {
     // ── freno: antes de tocar la cuenta y de generar el enlace ──────────
     // Por correo (60 s, 5/h), por IP (5/h) y techo global (30/h), todo en la misma llamada y con el mismo candado.
     // Sin IP legible (no debería pasar detrás del proxy de Supabase) no se inventa un cubo común: cuenta el correo y el
-    // global, y queda en el log.
-    ipHash = await hashIp(ipDe(req));
-    if (!ipHash) anota('sin_ip');
+    // global, y queda en el log («sin_ip», arriba). ipHash ya está calculado arriba, con la IP de cf-connecting-ip y su /64.
     const { data: motivo, error: eFreno } = await admin.rpc('portal_enlace_freno', { p_email: email, p_origen: 'autoservicio', p_ip_hash: ipHash });
     if (eFreno) {
       console.error('portal-acceso freno_fallo @' + dominio(email) + ': ' + limpia(eFreno.code ?? eFreno.message));
