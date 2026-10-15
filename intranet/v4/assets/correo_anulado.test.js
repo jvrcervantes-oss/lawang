@@ -51,4 +51,9 @@ for (const cod of ['documento_anulado', 'pdf_demasiado_grande']) {
   ok(i18n.includes("'" + m[1] + "':"), 'i18n tiene la frase de ' + cod + ' tal cual la manda la edge');
 }
 ok(i18n.includes("'Este documento está anulado: no se envía al cliente.':"), 'i18n tiene el aviso de la pantalla');
+// D1 y solo lectura (15-oct-2026): un documento abierto solo para consultarlo no cuenta como «con cambios sin guardar»,
+// así que su PDF y su correo siguen activos. Las dos barras (factura y recibí) reciben la marca.
+ok(/var sucio = num && !ctx\.soloLectura && \(/.test(ed), 'D1 no marca sucio un documento en solo lectura');
+ok((ed.match(/getVals: recogeVals, esRecibi: (false|true), soloLectura: !!pre\.soloLectura,/g) || []).length === 2,
+  'la factura y el recibí pasan soloLectura a su barra');
 console.log('OK correo_anulado.test.js — ' + n + ' comprobaciones: facturas y v4 no ofrecen enviar un anulado, cortan antes de la edge, y las frases de la edge están en el diccionario');
