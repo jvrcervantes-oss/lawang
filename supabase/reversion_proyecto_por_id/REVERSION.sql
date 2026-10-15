@@ -219,7 +219,7 @@ begin
 end $function$;
 
 drop function public.borrar_proyecto_por_id(uuid);
-drop function public.proyecto_vinculos_datos_por_id(uuid);
+drop function public.proyecto_vinculos_por_id_datos(uuid);
 drop function public.renombrar_proyecto_por_id(uuid, text);
 drop function public.parcela_traspaso_estado_por_unidad(uuid, text[]);
 drop function privado.carta_cobrado_calcula_por_id(uuid, jsonb, uuid);

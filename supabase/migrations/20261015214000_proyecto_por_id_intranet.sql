@@ -9,9 +9,11 @@
 --     PROYECTO), mismas comprobaciones de lo que cuelga (por espejo de nombre O por id, el nombre leído de la fila: falla cerrado si
 --     el espejo se desalinea) y el mismo apunte en proyectos_borrados. Id inexistente: solo un super global pasa el listón y recibe
 --     «no existe»; el resto, 42501 (no revela si existe).
---   · proyecto_vinculos_datos_por_id(uuid): el recuento previo a renombrar y a borrar. La vieja solo miraba la sesión (Seguridad #381:
+--   · proyecto_vinculos_por_id_datos(uuid): el recuento previo a renombrar y a borrar. La vieja solo miraba la sesión (Seguridad #381:
 --     cualquier usuario del equipo, también el portal, contaba lo de cualquier proyecto); la gemela exige admin de la empresa del
 --     proyecto, el listón de renombrar (borrar ya exige más). Dueño lw_lector, como la vieja.
+--     Acaba en _datos (no en _por_id) porque la pantalla la pide por window.lwDatos, que solo deja salir nombres *_datos
+--     (contracts/assets/guard.js).
 --   · renombrar_proyecto_por_id(uuid, text): la de renombrar_proyecto(p_antiguo, p_nuevo), que se escapaba del chequeo 7.x porque su
 --     argumento no se llama p_nombre. El proyecto por id; el resto (contratos y facturas sin firmar ni enviar), igual.
 --   · parcela_traspaso_estado_por_unidad(uuid, text[]): la parcela por SU id (el formulario de contratos no tiene a mano el id del
@@ -102,7 +104,7 @@ begin
 end;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.proyecto_vinculos_datos_por_id(p_proyecto_id uuid)
+CREATE OR REPLACE FUNCTION public.proyecto_vinculos_por_id_datos(p_proyecto_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
@@ -112,15 +114,15 @@ declare
   v_id uuid := p_proyecto_id; v_nombre text;
 begin
   if public.uid_sesion() is null then
-    raise exception 'proyecto_vinculos_datos_por_id: sin sesión' using errcode = '42501';
+    raise exception 'proyecto_vinculos_por_id_datos: sin sesión' using errcode = '42501';
   end if;
   if p_proyecto_id is null then
-    raise exception 'proyecto_vinculos_datos_por_id: falta el proyecto' using errcode = '22023';
+    raise exception 'proyecto_vinculos_por_id_datos: falta el proyecto' using errcode = '22023';
   end if;
   -- Seguridad #381: la vieja solo miraba la sesión. Lo pide la ficha del proyecto para renombrar (admin) y para borrar (super):
   -- el mismo listón que renombrar_proyecto_por_id, el más bajo de los dos.
   if not public.es_admin_de(public.empresa_de_proyecto(p_proyecto_id)) then
-    raise exception 'proyecto_vinculos_datos_por_id: sin permiso sobre este proyecto' using errcode = '42501';
+    raise exception 'proyecto_vinculos_por_id_datos: sin permiso sobre este proyecto' using errcode = '42501';
   end if;
   select p.nombre into v_nombre from public.proyectos p where p.id = p_proyecto_id;
   -- mismo criterio que borrar_proyecto (nombre O id): el aviso previo tiene que coincidir con quien decide
@@ -361,23 +363,23 @@ $function$;
 do $g$
 declare f text;
 begin
-  foreach f in array array['public.borrar_proyecto_por_id(uuid)', 'public.proyecto_vinculos_datos_por_id(uuid)',
+  foreach f in array array['public.borrar_proyecto_por_id(uuid)', 'public.proyecto_vinculos_por_id_datos(uuid)',
                            'public.renombrar_proyecto_por_id(uuid, text)', 'public.parcela_traspaso_estado_por_unidad(uuid, text[])',
                            'privado.carta_cobrado_calcula_por_id(uuid, jsonb, uuid)'] loop
     execute format('revoke all on function %s from public, anon, authenticated, service_role', f);
   end loop;
   -- la llama la intranet con la sesión de quien está dentro (editores.js, parcela_inventario.js); calcula: solo DEFINER internos
-  foreach f in array array['public.borrar_proyecto_por_id(uuid)', 'public.proyecto_vinculos_datos_por_id(uuid)',
+  foreach f in array array['public.borrar_proyecto_por_id(uuid)', 'public.proyecto_vinculos_por_id_datos(uuid)',
                            'public.renombrar_proyecto_por_id(uuid, text)', 'public.parcela_traspaso_estado_por_unidad(uuid, text[])'] loop
     execute format('grant execute on function %s to authenticated', f);
   end loop;
 end $g$;
--- proyecto_vinculos_datos_por_id: dueño lw_lector, como su vieja (patrón LAW-338; mismo baile que 20261015075011)
+-- proyecto_vinculos_por_id_datos: dueño lw_lector, como su vieja (patrón LAW-338; mismo baile que 20261015075011)
 grant create on schema public to lw_lector;
-alter function public.proyecto_vinculos_datos_por_id(uuid) owner to lw_lector;
+alter function public.proyecto_vinculos_por_id_datos(uuid) owner to lw_lector;
 revoke create on schema public from lw_lector;
-revoke all on function public.proyecto_vinculos_datos_por_id(uuid) from public, anon, service_role;
-grant execute on function public.proyecto_vinculos_datos_por_id(uuid) to authenticated;
+revoke all on function public.proyecto_vinculos_por_id_datos(uuid) from public, anon, service_role;
+grant execute on function public.proyecto_vinculos_por_id_datos(uuid) to authenticated;
 
 -- ── recableadas (create or replace conserva dueño y permisos) ──
 CREATE OR REPLACE FUNCTION public.carta_cobrado_al_bloquear()

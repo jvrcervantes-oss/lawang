@@ -2,7 +2,7 @@
 -- Cada gemela, con la SESIÓN del rol real (`set local role authenticated` + claims, como la pantalla), contra su vieja por nombre:
 --   B1-B4  borrar_proyecto_por_id: el agente no borra (42501, la fila sigue); el super admin de la empresa borra uno vacío; uno con
 --          parcelas no se borra (23503); un id que no existe da 42501 al super de empresa (no revela si existe).
---   V1-V4  proyecto_vinculos_datos_por_id: el admin recibe lo mismo que la vieja; el agente ya NO (42501; la vieja sí se lo daba,
+--   V1-V4  proyecto_vinculos_por_id_datos: el admin recibe lo mismo que la vieja; el agente ya NO (42501; la vieja sí se lo daba,
 --          Seguridad #381); anon no la ejecuta; dueño lw_lector.
 --   R1-R4  renombrar_proyecto_por_id: el agente no renombra; el admin sí, por id (proyectos.nombre cambia y el espejo de unidades le
 --          sigue); id inexistente = P0002; mismo nombre = sin_cambios.
@@ -121,16 +121,16 @@ begin
                       and exists (select 1 from public.proyectos_borrados where nombre = 'ZZ-PI Vacio'),
                       'B4 el super admin de la empresa borra el vacío, con su apunte en proyectos_borrados (' || left(v, 90) || ')');
 
-  -- ============================================================ V. proyecto_vinculos_datos_por_id
-  v  := pg_temp.val(ad, c_ad, format('select public.proyecto_vinculos_datos_por_id(%L)::text', p1));
+  -- ============================================================ V. proyecto_vinculos_por_id_datos
+  v  := pg_temp.val(ad, c_ad, format('select public.proyecto_vinculos_por_id_datos(%L)::text', p1));
   v2 := pg_temp.val(ad, c_ad, format('select public.proyecto_vinculos_datos(%L)::text', c_p1));
   r := r || pg_temp.l(v = v2 and v !~ '^ERR' and (v::jsonb ->> 'unidades') = '3', 'V1 admin: gemela = vieja (' || left(v, 90) || ' / ' || left(v2, 60) || ')');
-  v  := pg_temp.val(ag, c_ag, format('select public.proyecto_vinculos_datos_por_id(%L)::text', p1));
+  v  := pg_temp.val(ag, c_ag, format('select public.proyecto_vinculos_por_id_datos(%L)::text', p1));
   v2 := pg_temp.val(ag, c_ag, format('select public.proyecto_vinculos_datos(%L)::text', c_p1));
   r := r || pg_temp.l(pg_temp.err(v) = '42501' and v2 !~ '^ERR', 'V2 el agente ya no cuenta lo de un proyecto (la vieja sí se lo daba) (' || left(v, 90) || ')');
-  v := pg_temp.val(null, null, format('select public.proyecto_vinculos_datos_por_id(%L)::text', p1), 'anon');
+  v := pg_temp.val(null, null, format('select public.proyecto_vinculos_por_id_datos(%L)::text', p1), 'anon');
   r := r || pg_temp.l(pg_temp.err(v) = '42501', 'V3 anon no la ejecuta (' || left(v, 90) || ')');
-  r := r || pg_temp.l((select pg_get_userbyid(proowner) from pg_proc where oid = 'public.proyecto_vinculos_datos_por_id(uuid)'::regprocedure) = 'lw_lector',
+  r := r || pg_temp.l((select pg_get_userbyid(proowner) from pg_proc where oid = 'public.proyecto_vinculos_por_id_datos(uuid)'::regprocedure) = 'lw_lector',
                       'V4 dueño lw_lector, como la vieja');
 
   -- ============================================================ R. renombrar_proyecto_por_id
@@ -204,7 +204,7 @@ begin
   -- ============================================================ P. permisos
   select string_agg(f || ':' || has_function_privilege('authenticated', f, 'execute') || '/' || has_function_privilege('anon', f, 'execute')
                     || '/' || has_function_privilege('service_role', f, 'execute'), ' ') into v
-    from unnest(array['public.borrar_proyecto_por_id(uuid)', 'public.proyecto_vinculos_datos_por_id(uuid)',
+    from unnest(array['public.borrar_proyecto_por_id(uuid)', 'public.proyecto_vinculos_por_id_datos(uuid)',
                       'public.renombrar_proyecto_por_id(uuid, text)', 'public.parcela_traspaso_estado_por_unidad(uuid, text[])']) f;
   r := r || pg_temp.l(v !~ 'true/true' and v !~ '/true' and v !~ ':false', 'P1 las 4 de la intranet: authenticated sí, anon y service_role no (' || v || ')');
   select string_agg(rl || '=' || has_function_privilege(rl, 'privado.carta_cobrado_calcula_por_id(uuid, jsonb, uuid)', 'execute'), ' ') into v
