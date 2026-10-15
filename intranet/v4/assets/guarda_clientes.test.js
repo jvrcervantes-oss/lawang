@@ -40,7 +40,7 @@ function el(clave, reg) {
   return e;
 }
 function mundo(opts) {
-  const calls = [], elementos = {}, cajones = [];
+  const calls = [], elementos = {}, cajones = [], eqs = [];
   const reg = (k) => (elementos[k] = elementos[k] || el(k, reg));
   const cabecera = { cells: Array.from({ length: 9 }, () => ({ style: {} })) };
   const tabla = { rows: [cabecera], tBodies: [{}] };
@@ -55,10 +55,11 @@ function mundo(opts) {
   const mk = (kind, name) => {
     calls.push(kind + ':' + name);
     const b = {
-      select() { return b; }, eq() { return b; }, in() { return b; }, or() { return b; }, order() { return b; }, limit() { return b; },
+      select() { return b; }, eq(k, v) { eqs.push(name + ':' + k + '=' + v); return b; }, in() { return b; }, or() { return b; }, order() { return b; }, limit() { return b; },
       maybeSingle() { b._u = true; return b; },
       then(ok, ko) {
         let data = fx[kind + ':' + name]; if (data === undefined) data = [];
+        if (data && data.__error) return Promise.resolve({ data: null, error: { message: data.__error } }).then(ok, ko);
         if (b._u) data = Array.isArray(data) ? (data[0] || null) : data;
         return Promise.resolve({ data, error: null }).then(ok, ko);
       }
@@ -68,10 +69,11 @@ function mundo(opts) {
   const sb = { rpc: (n) => mk('rpc', n), from: (n) => mk('from', n), auth: { getSession: () => Promise.resolve({ data: { session: null } }) } };
   const H = {};
   ['dato', 'nota', 'tag', 'enlace', 'tabla', 'cifras'].forEach((k) => { H[k] = () => ''; });
+  if (opts.notas) { H.nota = (t) => '[nota:' + t + ']'; H.enlace = (h, t) => '[a:' + h + '|' + t + ']'; }
   H.seccion = (titulo, html, id) => '[sec:' + id + ']';
   const win = Object.assign({
     LW_V4: { esSuperAdmin: false, esAdmin: false, miEmail: 'a@x.es' }, lwCajonHtml: H,
-    lwCajon(o) { cajones.push(o); return { cuerpo: el('cuerpo', reg), cierra() {} }; }
+    lwCajon(o) { cajones.push(o); return { cuerpo: opts.cuerpo ? opts.cuerpo() : el('cuerpo', reg), cierra() {} }; }
   }, opts.win || {});
   const S = {
     LW_ROL: { esEmpresa: () => false, esAdmin: () => false, esGlobal: () => true, esSuperGlobal: () => false, esSuperAdmin: () => false, efectivo: (f) => (f && f.rol) || '', empresas: () => [] },   // guard.js lo publica en la página real
@@ -97,9 +99,10 @@ function mundo(opts) {
     has: () => true,
     get(t, k) { if (k === Symbol.unscopables) return undefined; if (k in t) return t[k]; if (reales.has(k)) return globalThis[k]; return function () { return undefined; }; }
   });
+  if (opts.s) Object.assign(S, opts.s);
   const fabrica = new Function('S', 'with (S) { ' + apoyo + '\n return ({' + bloque + '}); }');
   const reg4 = fabrica(proxy);
-  return { reg: reg4, sb, calls, tabla, cabecera, elementos, cajones, win };
+  return { reg: reg4, sb, calls, eqs, tabla, cabecera, elementos, cajones, win };
 }
 const espera = (ms) => new Promise((r) => setTimeout(r, ms || 15));
 const CONTRACTUALES = ['rpc:contratos_equipo', 'from:contrato_compradores', 'rpc:contratos_cobrado_equipo', 'rpc:contrato_firmas_equipo'];
@@ -107,11 +110,12 @@ const ORDEN_LAWANG = ['rpc:compradores_lista'].concat(CONTRACTUALES, ['from:usua
 const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none');
 
 (async function () {
-  // 1) Lawang: sin bandera. El orden de las llamadas es el de ANTES del corte (7 y luego la vista de divergencias).
+  // 1) Lawang: sin bandera. El orden de las llamadas es el de ANTES del corte (7 y luego qué fichas ve enteras). La vista de
+  //    divergencias ya NO se pide en la lista (15-oct-2026): solo pintaba el total de todos en la consola; la pide cada ficha.
   let w = mundo({});
   w.reg.compradores(w.sb); await espera();
   assert.deepStrictEqual(w.calls.slice(0, 7), ORDEN_LAWANG, 'Lawang: las 7 primeras llamadas, en su orden de siempre');
-  assert.deepStrictEqual(w.calls.slice(7), ['from:clients', 'from:documentos_desactualizados'], 'Lawang: tras las siete, solo qué fichas ve enteras (clients) y la vista de divergencias');
+  assert.deepStrictEqual(w.calls.slice(7), ['from:clients'], 'Lawang: tras las siete, solo qué fichas ve enteras (clients); la vista de divergencias no se pide en la lista');
   assert.strictEqual(w.tabla.rows.length, 2, 'cabecera + 1 fila');
   w.tabla.rows.forEach((fl) => assert.deepStrictEqual(ocultas(fl), [false, false, false], 'Lawang: columnas visibles'));
   assert.ok(!w.elementos['[data-lw-tarjeta="capital"]'] || w.elementos['[data-lw-tarjeta="capital"]'].style.display !== 'none', 'Lawang: la tarjeta de capital se ve');
@@ -121,13 +125,49 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   ['contratos', 'cuentas', 'facturas', 'envios', 'soporte', 'docs', 'portal'].forEach((s) => assert.ok(cuerpo.indexOf('[sec:' + s + ']') > -1, 'Lawang: la ficha pinta ' + s));
   assert.deepStrictEqual(w.cajones[0].lado, ['cuentas'], 'Lawang: «cuentas» en la columna lateral');
   assert.ok(w.cajones[0].acciones.some((a) => a.texto === 'Crear contrato'), 'Lawang: ofrece Crear contrato');
-  ['rpc:comprador_contratos_resumen', 'from:mensajes_comprador', 'from:hilo_soporte', 'rpc:facturas_equipo', 'from:correos_enviados'].forEach((c) => assert.ok(w.calls.indexOf(c) > -1, 'Lawang: la ficha pide ' + c));
+  ['rpc:comprador_contratos_resumen', 'from:mensajes_comprador', 'from:hilo_soporte', 'rpc:facturas_equipo', 'from:correos_enviados', 'from:documentos_desactualizados'].forEach((c) => assert.ok(w.calls.indexOf(c) > -1, 'Lawang: la ficha pide ' + c));
+  assert.ok(w.eqs.indexOf('documentos_desactualizados:client_id=c1') > -1, 'Lawang: la ficha pide SUS divergencias, por el id del cliente');
 
   // 2) Maestro con todo encendido: idéntico a Lawang (la bandera sola no cambia nada)
   w = mundo({ win: { AXW_NUCLEO_OPERACION: true, axwModuloActivo: () => true, AXW_MODULOS_LISTOS: Promise.resolve(true) } });
   w.reg.compradores(w.sb); await espera();
   assert.deepStrictEqual(w.calls.slice(0, 7), ORDEN_LAWANG, 'maestro con todo encendido: mismas llamadas, mismo orden');
   w.tabla.rows.forEach((fl) => assert.deepStrictEqual(ocultas(fl), [false, false, false]));
+
+  // 2b) «Ficha ≠» DE ESTE CLIENTE (15-oct-2026): vivos y cerrados en dos notas, «no he podido mirar» distinto de «ninguno»,
+  //     y nada se pinta en una ficha que ya no está abierta.
+  const pintado = [];
+  const sitio = { insertAdjacentHTML(_d, h) { pintado.push(h); } };
+  let conectado = true;
+  const cuerpoFicha = () => ({ get isConnected() { return conectado; }, querySelector: (s) => (s === '[data-cajon-sec="identidad"] > div' ? sitio : null), querySelectorAll: () => [], insertAdjacentHTML() {} });
+  const txS = { tx: (t, h) => { let v = String(t); for (const k in (h || {})) v = v.split('%' + k).join(h[k]); return v; } };
+  const difs = [
+    { tipo: 'contrato', id: 'k1', numero: 'N1', congelado: false, diferencias: [{ campo: 'email', documento: 'a@y.es', ficha: 'a@x.es' }] },
+    { tipo: 'factura', id: 'f9', numero: 'F-9', congelado: true, diferencias: [{ campo: 'nombre', documento: 'Ana B', ficha: 'Ana' }] },
+    { tipo: 'factura', id: 'f8', numero: 'F-8', congelado: false, diferencias: [] }
+  ];
+  w = mundo({ notas: true, cuerpo: cuerpoFicha, s: txS, fx: { 'from:documentos_desactualizados': difs } });
+  w.reg.compradores(w.sb); await espera();
+  w.win.LW_V4.abreFichaComprador('c1'); await espera();
+  assert.strictEqual(pintado.length, 1, 'Ficha ≠: se pinta una vez en Identidad');
+  assert.ok(pintado[0].indexOf('[nota:<b>1</b> documento(s) sin cerrar') > -1 && pintado[0].indexOf('[nota:<b>1</b> documento(s) ya cerrados') > -1, 'Ficha ≠: una nota de vivos y otra de cerrados, cada una con su cuenta (el que no difiere no cuenta)');
+  assert.ok(pintado[0].indexOf('[a:/intranet/v4/contratos/?contrato=N1|N1]') > -1 && pintado[0].indexOf('[a:/intranet/v4/facturas/?id=f9|F-9]') > -1, 'Ficha ≠: enlace al contrato por número y a la factura por id');
+  assert.ok(pintado[0].indexOf('F-8') === -1, 'Ficha ≠: un documento sin diferencias no sale');
+  pintado.length = 0;
+  w = mundo({ notas: true, cuerpo: cuerpoFicha, s: txS, fx: { 'from:documentos_desactualizados': { __error: 'x' } } });
+  w.reg.compradores(w.sb); await espera();
+  w.win.LW_V4.abreFichaComprador('c1'); await espera();
+  assert.ok(pintado.length === 1 && pintado[0].indexOf('No se ha podido comprobar') > -1, 'Ficha ≠: si la consulta falla, lo DICE');
+  pintado.length = 0;
+  w = mundo({ notas: true, cuerpo: cuerpoFicha, s: txS, fx: { 'from:documentos_desactualizados': [] } });
+  w.reg.compradores(w.sb); await espera();
+  w.win.LW_V4.abreFichaComprador('c1'); await espera();
+  assert.strictEqual(pintado.length, 0, 'Ficha ≠: sin diferencias no se pinta nada');
+  conectado = false;
+  w = mundo({ notas: true, cuerpo: cuerpoFicha, s: txS, fx: { 'from:documentos_desactualizados': difs } });
+  w.reg.compradores(w.sb); await espera();
+  w.win.LW_V4.abreFichaComprador('c1'); await espera();
+  assert.strictEqual(pintado.length, 0, 'Ficha ≠: en una ficha que ya no está en la página no se pinta');
 
   // 3) Maestro con contratos y soporte APAGADOS
   w = mundo({ win: { AXW_NUCLEO_OPERACION: true, axwModuloActivo: (m) => m !== 'contratos' && m !== 'soporte', AXW_MODULOS_LISTOS: Promise.resolve(true) } });

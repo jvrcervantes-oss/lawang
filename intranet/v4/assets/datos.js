@@ -2825,9 +2825,10 @@
          son blobs). Todo lo demas de esta pantalla vuelve en milisegundos. Y
          el velo de carga se rinde a los 12 s (shell.css, `lw-rendirse`), asi
          que justo antes de llegar los datos destapaba la maqueta de Stitch.
-         Ahora la vista se pide DESPUES de pintar, fuera del contador del velo,
-         y su aviso «Ficha ≠» aparece cuando llega. La vista en si no se toca
-         aqui: queda como pendiente de Datos (una columna materializada). */
+         Desde el 15-oct-2026 esta lista ya NO la pide: cada ficha pide solo las
+         divergencias de SU cliente (por client_id) después de pintarse
+         (pintaFicha). La vista en si no se toca aqui: queda como pendiente de
+         Datos (una columna materializada). */
       var t = tablaPor('tabla-clientes');
       var conContratos = true;   // se decide al arrancar la carga (abajo): en el maestro espera a saber qué módulos hay
       var cargaClientes = function () {

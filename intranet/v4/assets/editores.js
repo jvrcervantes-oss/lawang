@@ -814,7 +814,8 @@
          ficha de cliente, que vive en la columna lateral de 212-322 px). `tabla(…, { apila: 1 })`: los importes no parten
          línea y, si la caja mide menos de 440 px, cada fila pasa a tarjeta «rótulo … importe» en vez de cortar columnas.
          El contenedor es la caja, no la pantalla: la misma tabla cabe entera a 1024 y se apila a 1920 en la columna lateral. */
-      '.lwc-apila{container-type:inline-size;overflow-x:visible;margin:0}',
+      // overflow-x:auto de reserva: entre 441 px y el ancho mínimo de la tabla (importes IDR largos) se desplaza en vez de salirse
+      '.lwc-apila{container-type:inline-size;overflow-x:auto;margin:0}',
       '.lwc-apila .lwc-tabla td:not(:first-child),.lwc-apila .lwc-tabla th:not(:first-child){white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}',
       '@container (max-width:440px){',
       '.lwc-apila .lwc-tabla thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}',
