@@ -1,6 +1,8 @@
 """Genera contracts/sql/ensayo_2159_viva.sql: el ensayo deshecho de 20261014223000 en la viva de Lawang en UNA llamada.
 
-Uso: python genera_ensayo_2159.py <copia Lawang> <agencia>   (escribe el fichero en la copia e imprime las huellas)
+Uso: python genera_ensayo_2159.py <copia Lawang> <agencia> [<nombre de salida>]   (escribe el fichero en la copia e imprime las huellas)
+El nombre de salida (opcional, en contracts/sql/) existe para volver a pasar las baterías arregladas sin tocar ensayo_2159_viva.sql,
+que es el ensayado y sellado (15-oct-2026: deriva de f2_b2_empresas y C8 corregida en las baterías).
 Para (sys.exit) si: un texto incrustado no es idéntico a su fuente, una etiqueta del envoltorio aparece dentro de un texto,
 queda un begin;/commit/rollback de nivel superior, o pglast no parsea un bloque o el fichero entero.
 """
@@ -17,7 +19,7 @@ PRUEBAS = ['factura_moneda_del_contrato', 'facturas_tope_cadena_y_recibi_pendien
 FOTO = 'f2_foto_b2'
 # Series de documentos (LAW-217): las mismas que mide prueba_comisiones_1nov.sql y las tres de set_factura_numero (20260917082716:59-61)
 SERIES = ['facturas_seq', 'facturas_recibi_seq', 'facturas_proforma_seq', 'solicitudes_pago_numero_seq', 'comisiones_diferencias_seq']
-SALIDA = os.path.join(COPIA, 'contracts', 'sql', 'ensayo_2159_viva.sql')
+SALIDA = os.path.join(COPIA, 'contracts', 'sql', sys.argv[3] if len(sys.argv) > 3 else 'ensayo_2159_viva.sql')
 
 
 def lee(rel):
