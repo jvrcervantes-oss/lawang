@@ -10,9 +10,10 @@
 -- revoke → borrado, con la válvula del owner).
 --
 -- QUÉ CREA
---   · deck_proyecto_abierto_por_id(uuid): el deck de un proyecto está abierto si tiene alguna unidad publicada. Auxiliar: sin grant a nadie
---     (sus llamadoras son DEFINER de postgres).
---   · _proyecto_deck_abierto_de_slug(text): el id del proyecto de ese slug SI su deck está abierto; null si no existe o está cerrado
+--   · privado.deck_proyecto_abierto_por_id(uuid): el deck de un proyecto está abierto si tiene alguna unidad publicada. Auxiliar en
+--     `privado`, esquema que la API no expone (consulta de Seguridad sobre este diff, MEDIA), y sin grant a nadie (sus llamadoras son
+--     DEFINER de postgres). Las ramas de ensayo restauran `privado` desde el 15-oct (erp/rama_prueba.py, restaura_privado).
+--   · privado.deck_abierto_de_slug(text): el id del proyecto de ese slug SI su deck está abierto; null si no existe o está cerrado
 --     (Seguridad #152: un slug es un identificador, no una credencial: toda gemela anon exige deck abierto). Auxiliar sin grant.
 --   · 8 gemelas anon: investor_deck_{documentos,faq,forecast,fotos,modelos,parcelas}_por_slug, deck_ubicacion_publica_por_slug y
 --     parcelas_tamanos_disponibles_por_slug. Mismos RETURNS que su vieja; cuerpo = el de la vieja con la resolución por id. Grant solo anon:
@@ -35,25 +36,25 @@
 set local lock_timeout = '5s';
 
 -- ── auxiliares (sin grant) ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-create function public.deck_proyecto_abierto_por_id(p_proyecto_id uuid)
+create function privado.deck_proyecto_abierto_por_id(p_proyecto_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
   select exists (
     select 1 from public.unidades u
      where u.proyecto_id = p_proyecto_id and u.publicado_investor_deck
   );
 $$;
-revoke all on function public.deck_proyecto_abierto_por_id(uuid) from public, anon, authenticated, service_role;
-comment on function public.deck_proyecto_abierto_por_id(uuid) is
+revoke all on function privado.deck_proyecto_abierto_por_id(uuid) from public, anon, authenticated, service_role;
+comment on function privado.deck_proyecto_abierto_por_id(uuid) is
   'Deck del proyecto abierto = alguna unidad publicada (por proyecto_id). Gemela por id de deck_proyecto_abierto(text); sin grant: la llaman DEFINER de postgres. LAW-428, 20261015213000.';
 
-create function public._proyecto_deck_abierto_de_slug(p_slug text)
+create function privado.deck_abierto_de_slug(p_slug text)
 returns uuid language sql stable security definer set search_path = '' as $$
   select p.id from public.proyectos p
    where p.slug = p_slug
-     and public.deck_proyecto_abierto_por_id(p.id);
+     and privado.deck_proyecto_abierto_por_id(p.id);
 $$;
-revoke all on function public._proyecto_deck_abierto_de_slug(text) from public, anon, authenticated, service_role;
-comment on function public._proyecto_deck_abierto_de_slug(text) is
+revoke all on function privado.deck_abierto_de_slug(text) from public, anon, authenticated, service_role;
+comment on function privado.deck_abierto_de_slug(text) is
   'Id del proyecto de ese slug si su deck está abierto; null si no existe o está cerrado (no se distingue). Sin grant. LAW-428, 20261015213000.';
 
 -- ── recableo de las que se quedan ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ returns text language sql stable security definer set search_path = '' as $$
            when p_ambito = 'proyecto' then
              case coalesce((select t.abrir from public.deck_transiciones t
                              where t.proyecto_id = p_ref and t.desde > now() - interval '15 minutes'),
-                           public.deck_proyecto_abierto_por_id(p_ref))
+                           privado.deck_proyecto_abierto_por_id(p_ref))
                when true then 'deck' else 'deck-privado' end
          end;
 $$;
@@ -79,7 +80,7 @@ language sql stable security definer set search_path = '' as $$
     join public.deck_config_proyecto c on c.proyecto_id = p.id
     left join public.modelos m on m.id = c.modelo_destacado_id
    where p.slug = p_slug
-     and public.deck_proyecto_abierto_por_id(p.id);
+     and privado.deck_proyecto_abierto_por_id(p.id);
 $$;
 
 create or replace function public.deck_fotos_desajustes(p_proyecto_id uuid default null)
@@ -104,7 +105,7 @@ language sql stable security definer set search_path = '' as $$
              when e.ambito is null then case when e.creado > now() - interval '1 hour' then null else 'deck-privado' end
              when e.ambito = 'modelo' then 'deck'
              when e.t_abrir is not null then case when e.t_abrir then 'deck' else 'deck-privado' end
-             when public.deck_proyecto_abierto_por_id(e.proyecto_id) then 'deck'
+             when privado.deck_proyecto_abierto_por_id(e.proyecto_id) then 'deck'
              else 'deck-privado'
            end as debido
       from est e
@@ -126,7 +127,7 @@ returns boolean language sql stable security definer set search_path = '' as $$
   select coalesce(d.publicado_investor_deck, false)
      and d.confidencial = false             -- cinturon y tirantes: publicado nunca gana a confidencial
      and d.categoria <> 'faq'               -- 'faq' son notas INTERNAS; la publica vive en deck_faq
-     and public.deck_proyecto_abierto_por_id(d.proyecto_id)
+     and privado.deck_proyecto_abierto_por_id(d.proyecto_id)
      and (
        coalesce(d.url, '') <> ''            -- enlace (Drive): igual que antes
        or (
@@ -150,7 +151,7 @@ language sql stable security definer set search_path = '' as $$
          case when coalesce(d.url, '') <> '' then d.url_i18n else '{}'::jsonb end,
          d.categoria
     from public.documentos_proyecto d
-   where d.proyecto_id = public._proyecto_deck_abierto_de_slug(p_slug)
+   where d.proyecto_id = privado.deck_abierto_de_slug(p_slug)
      and public.investor_deck_documento_visible(d)
    order by d.creado_en desc;
 $$;
@@ -160,7 +161,7 @@ returns table(pregunta jsonb, respuesta jsonb, orden integer)
 language sql stable security definer set search_path = '' as $$
   select q.pregunta, q.respuesta, q.orden
     from public.deck_faq q
-   where q.proyecto_id = public._proyecto_deck_abierto_de_slug(p_slug)
+   where q.proyecto_id = privado.deck_abierto_de_slug(p_slug)
      and q.publicado
    order by q.orden, q.creado_en;
 $$;
@@ -184,7 +185,7 @@ language sql stable security definer set search_path = '' as $$
     join public.deck_forecast_proyecto c on c.proyecto_id = f.proyecto_id
     left join public.modelos_villa mv
            on mv.modelo_id = f.modelo_id and mv.proyecto_id = f.proyecto_id
-   where f.proyecto_id = public._proyecto_deck_abierto_de_slug(p_slug)
+   where f.proyecto_id = privado.deck_abierto_de_slug(p_slug)
      and f.publicado
      and c.publicado
    order by f.orden, m.nombre;
@@ -193,7 +194,7 @@ $$;
 create function public.investor_deck_fotos_por_slug(p_slug text)
 returns table(uso text, tipo text, path text, pie jsonb, orden integer, modelo_slug text)
 language sql stable security definer set search_path = '' as $$
-  with v as (select public._proyecto_deck_abierto_de_slug(p_slug) as id)
+  with v as (select privado.deck_abierto_de_slug(p_slug) as id)
   select f.uso, f.tipo, f.path, f.pie, f.orden, m.slug
     from v
     join public.deck_fotos f
@@ -217,7 +218,7 @@ language sql stable security definer set search_path = '' as $$
            m.moneda               as moneda_catalogo
       from public.modelos_villa mv
       join public.modelos m on m.id = mv.modelo_id
-     where mv.proyecto_id = public._proyecto_deck_abierto_de_slug(p_slug)
+     where mv.proyecto_id = privado.deck_abierto_de_slug(p_slug)
        and m.publicado and m.activo
   )
   select b.slug, b.nombre, b.dormitorios, b.banos, b.villa_m2, b.terraza_m2,
@@ -240,7 +241,7 @@ language sql stable security definer set search_path = '' as $$
          u.cuota_reserva_investor_deck as cuota_reserva,
          u.moneda
     from public.unidades u
-   where u.proyecto_id = public._proyecto_deck_abierto_de_slug(p_slug)
+   where u.proyecto_id = privado.deck_abierto_de_slug(p_slug)
      and u.publicado_investor_deck = true
    order by u.codigo;
 $$;
@@ -250,7 +251,7 @@ returns table(superficie_m2 numeric)
 language sql stable security definer set search_path = '' as $$
   select distinct u.superficie_m2
     from public.unidades u
-   where u.proyecto_id = public._proyecto_deck_abierto_de_slug(p_slug)
+   where u.proyecto_id = privado.deck_abierto_de_slug(p_slug)
      and u.estado = 'disponible'
      and u.publicado_investor_deck = true
    order by u.superficie_m2;
@@ -263,7 +264,7 @@ returns text language sql stable security definer set search_path = '' as $$
            when btrim(p.ubicacion_maps) ~* '^https://([a-z0-9-]+\.)*(google\.[a-z.]+|goo\.gl)/[^\s<>"'']*$' then btrim(p.ubicacion_maps)
          end
     from public.proyectos p
-   where p.id = public._proyecto_deck_abierto_de_slug(p_slug);
+   where p.id = privado.deck_abierto_de_slug(p_slug);
 $$;
 
 do $g$

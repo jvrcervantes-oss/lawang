@@ -5,7 +5,7 @@
 --   G9     slug de un proyecto con deck cerrado y slug inexistente: 0 filas / null en las 8 (no se distingue si existe), como la vieja.
 --   G10    anon llama cada gemela con el slug abierto y recibe las mismas filas (camino real: clave publicable, sin token).
 --   G11    authenticated NO ejecuta las gemelas (como las viejas: nadie del front las llama con sesión).
---   G12    los dos auxiliares no los ejecuta anon, authenticated, service_role ni lw_lector.
+--   G12    los dos auxiliares (en `privado`) no los ejecuta anon, authenticated, service_role ni lw_lector.
 --   G13    proacl EXACTO de cada gemela {postgres, anon}; DEFINER; search_path ''; dueño postgres.
 --   G14    recableo antes = después: copia literal del cuerpo vivo del 15-oct en pg_temp («viejo_*») frente a la recableada, para
 --          cada foto (deck_bucket_debido), cada slug (deck_config_publico), cada documento (documento_visible y documento_ruta) y
@@ -207,8 +207,8 @@ begin
   end loop;
 
   -- ============================================================ G12-G13 permisos y forma
-  foreach f in array array['deck_proyecto_abierto_por_id(uuid)', '_proyecto_deck_abierto_de_slug(text)'] loop
-    select string_agg(rl || '=' || has_function_privilege(rl, 'public.' || f, 'execute'), ' ') into v
+  foreach f in array array['deck_proyecto_abierto_por_id(uuid)', 'deck_abierto_de_slug(text)'] loop
+    select string_agg(rl || '=' || has_function_privilege(rl, 'privado.' || f, 'execute'), ' ') into v
       from unnest(array['anon', 'authenticated', 'service_role', 'lw_lector']) rl;
     r := r || pg_temp.l(v !~ '=true', 'G12 nadie ejecuta el auxiliar ' || f || ' (' || v || ')');
   end loop;

@@ -116,5 +116,5 @@ drop function public.investor_deck_modelos_por_slug(text);
 drop function public.investor_deck_parcelas_por_slug(text);
 drop function public.parcelas_tamanos_disponibles_por_slug(text);
 drop function public.deck_ubicacion_publica_por_slug(text);
-drop function public._proyecto_deck_abierto_de_slug(text);
-drop function public.deck_proyecto_abierto_por_id(uuid);
+drop function privado.deck_abierto_de_slug(text);
+drop function privado.deck_proyecto_abierto_por_id(uuid);
