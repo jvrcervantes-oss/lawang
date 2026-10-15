@@ -125,7 +125,7 @@ begin
                   has_function_privilege('anon', p.oid, 'execute') anon, has_function_privilege('authenticated', p.oid, 'execute') auth,
                   has_function_privilege('public', p.oid, 'execute') pub
              from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('normaliza_busqueda','contratos_busca','clientes_busca') loop
-    r := r || pg_temp.l(x.proconfig @> array['search_path=""'] and not x.anon and not x.pub and x.auth and not x.prosecdef
+    r := r || pg_temp.l(x.proconfig @> array['search_path=""']::text[] and not x.anon and not x.pub and x.auth and not x.prosecdef
                         and (x.proname <> 'normaliza_busqueda' or x.provolatile = 'i'),
                         'N ' || x.proname || ' volatil=' || x.provolatile || ' definer=' || x.prosecdef || ' anon=' || x.anon || ' public=' || x.pub || ' authenticated=' || x.auth);
   end loop;
