@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261015150000_contrato_sociedad_del_proyecto.sql (15-oct-2026, sesion sociedad-por-proyecto).
+-- REVERSION de 20261015073823_contrato_sociedad_del_proyecto.sql (15-oct-2026, sesion sociedad-por-proyecto).
 -- ORDEN: da igual respecto al front (contracts/app.html sigue bloqueando el campo en pantalla aunque la base deje de exigirlo);
 -- si se revierte todo, primero el front (git revert) y luego ESTE fichero, en una transaccion.
 -- contrato_sociedad_existe vuelve LITERAL a la viva del 15-oct (pg_get_functiondef, md5(prosrc) 9656f0750eb354e2a0992473bbd2ed69);
@@ -10,7 +10,7 @@ set local lock_timeout = '5s';
 do $pre$
 begin
   if position('la del proyecto (15-oct-2026)' in pg_get_functiondef('public.contrato_sociedad_existe()'::regprocedure)) = 0 then
-    raise exception 'contrato_sociedad_existe viva no es la que dejo 20261015150000: alguien la cambio despues; revertir a mano';
+    raise exception 'contrato_sociedad_existe viva no es la que dejo 20261015073823: alguien la cambio despues; revertir a mano';
   end if;
 end $pre$;
 

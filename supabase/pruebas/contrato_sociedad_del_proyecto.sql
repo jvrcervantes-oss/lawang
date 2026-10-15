@@ -1,4 +1,4 @@
--- Prueba de contrato_sociedad_existe del 15-oct-2026 (migracion 20261015150000_contrato_sociedad_del_proyecto): la sociedad
+-- Prueba de contrato_sociedad_existe del 15-oct-2026 (migracion 20261015073823_contrato_sociedad_del_proyecto): la sociedad
 -- firmante de un contrato es la de la empresa de su proyecto, y la base lo exige solo cuando cambia la sociedad o el proyecto.
 -- Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- S1/S2 alta con la del proyecto entra; con otra se rechaza. S3 alta sin sociedad entra y NO se rellena (decision por defecto).
@@ -12,7 +12,7 @@
 -- factura de otra sociedad no se cambia a la del proyecto (S10), se puede cambiar de proyecto sin tocarla (S10b), y con la
 -- factura anulada vuelve a mandar el proyecto (S10c entra, S10d se rechaza).
 -- !! CREA CONTRATOS (gasta numeracion) Y MONTA CASOS VIEJOS CON session_replication_role = replica: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015150000_contrato_sociedad_del_proyecto.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015073823_contrato_sociedad_del_proyecto.sql
 --           --prueba contrato_sociedad_del_proyecto.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-SP.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
