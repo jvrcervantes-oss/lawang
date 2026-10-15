@@ -10,7 +10,7 @@
 --   de la migracion no cabe CONCURRENTLY) con lock_timeout: si una tabla esta ocupada, falla limpio a los 5 s y no se aplica nada.
 -- LO QUE NO HACE: no toca datos ni cuerpos de funciones.
 -- REVERTIR: supabase/reversion_permisos_e_indices_cf/REVERSION.sql (grant de vuelta y drop de los indices nuevos).
--- Prueba: el bloque $cierre$ comprueba los permisos despues; la rama de 20261014220000 la aplica con --aplica a la vez.
+-- Prueba: el bloque $cierre$ comprueba los permisos despues; la rama de 20261015055003 la aplica con --aplica a la vez.
 
 set local lock_timeout = '5s';
 

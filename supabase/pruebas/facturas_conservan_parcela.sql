@@ -1,10 +1,10 @@
--- Prueba «las facturas guardan "<proyecto> — <parcela>" desde el enlace» (14/15-oct-2026, migracion 20261014220000_facturas_conservan_parcela,
+-- Prueba «las facturas guardan "<proyecto> — <parcela>" desde el enlace» (14/15-oct-2026, migracion 20261015055003_facturas_conservan_parcela,
 -- 2.a version tras el revisor: espejo construido en el servidor desde contrato y proyecto; renombrar_proyecto no se toca).
 -- Rol REAL donde hay camino de usuario: factura_guarda como el agente autor y renombrar_proyecto como el admin de la empresa, con
 -- `set local role authenticated` y sus claims (pg_temp.val, el armazon de cf_borrar_cierre_anula.sql). El trigger, ademas, se mira
 -- como postgres (T3-T6): es lo que corre en cualquier UPDATE, venga de donde venga.
 -- !! CREA CONTRATOS Y FACTURAS (gasta numeracion de facturas): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014220000_facturas_conservan_parcela.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015055003_facturas_conservan_parcela.sql
 --           --prueba facturas_conservan_parcela.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-PN.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama

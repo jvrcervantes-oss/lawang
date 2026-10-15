@@ -16,7 +16,7 @@
 -- K4: un recibi de K1 (proyecto 1) se edita y pasa a ZZ-RT-K5 (proyecto 2, parcela ZZ-C5): proyecto_id = proyecto 2 (antes el
 -- UPDATE no lo tocaba y se quedaba el 1), columna y papel = «ZZ-RT Proyecto 2 — ZZ-C5» exactamente, la parcela del contrato
 -- aunque la pantalla mande otra (« — ZZ-OTRA») y sin parcela doble. K5: contrato SIN proyecto que manda el nombre de un proyecto real: proyecto_id
--- y proyecto_nombre null y el papel sin proyecto (antes el espejo lo enlazaba por nombre). Se ensaya con 20261014220000 aplicada.
+-- y proyecto_nombre null y el papel sin proyecto (antes el espejo lo enlazaba por nombre). Se ensaya con 20261015055003 aplicada.
 -- 4.a vuelta de Seguridad (15-oct): K6: el recibi de K4 lleva el cliente A (K6pre) y al pasar a ZZ-RT-K5, cuyo adquiriente_1 es B,
 -- su client_id pasa a ser B (antes se quedaba A). K4d-K4f: el recibi pasa despues a ZZ-RT-K7, de un proyecto de OTRA empresa
 -- (zz_rt2): _empresa_doc da la empresa 2 y el admin de la empresa 1, que no es su autor, recibe 42501 de la fila bloqueada (K4d,
@@ -24,7 +24,7 @@
 -- Rol REAL: cada llamada va con `set local role authenticated` y los claims de la persona (pg_temp.val, armazon de
 -- cf_borrar_cierre_anula.sql). Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- !! CREA CONTRATOS Y DOCUMENTOS (gasta numeracion): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014220000_facturas_conservan_parcela.sql,20261014223000_recibi_total_suma_y_exento.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015055003_facturas_conservan_parcela.sql,20261014223000_recibi_total_suma_y_exento.sql
 --           --prueba recibi_total_suma_y_exento.sql
 --    (220000 en --aplica desde la 3.a vuelta: K4b y la guarda (d) de la migracion la necesitan)
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-RT.

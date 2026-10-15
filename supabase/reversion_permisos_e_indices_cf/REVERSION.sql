@@ -1,6 +1,6 @@
--- REVERSION de 20261014224000_permisos_e_indices_cf (14-oct-2026): vuelve a dar EXECUTE a authenticated en las dos funciones de
+-- REVERSION de 20261015055028_permisos_e_indices_cf (14-oct-2026): vuelve a dar EXECUTE a authenticated en las dos funciones de
 --   trigger (como estaban medidas el 14-oct: anon no, authenticated si, service_role si) y quita los ocho indices nuevos.
--- destructivo-ok: solo quita los ocho indices que crea 20261014224000 (no hay datos en un indice); se aplica a mano para revertir
+-- destructivo-ok: solo quita los ocho indices que crea 20261015055028 (no hay datos en un indice); se aplica a mano para revertir
 set local lock_timeout = '5s';
 grant execute on function public._documents_kyc_firmado() to authenticated;
 grant execute on function public._trg_contrato_bloqueado_aviso_manager() to authenticated;
