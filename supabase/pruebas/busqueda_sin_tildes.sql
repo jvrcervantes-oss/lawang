@@ -157,16 +157,17 @@ begin
       values ('ZZ-BUSCA José María Muñoz', a.em, 'ZZBUSCAA1', 'zz-busca-a@ejemplo.invalid', '+00 000 0101', 'ZZ-domicilio A', 'ZZ') returning id into cA;
     insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
       values ('ZZ-BUSCA Siobhán O’Brien', b.em, 'ZZBUSCAB1', 'zz-busca-b@ejemplo.invalid', '+00 000 0102', 'ZZ-domicilio B', 'ZZ') returning id into cB;
+    -- adq1_client_id es GENERADA (datos->>'adq1_client_id'): el comprador entra por `datos`, como en la app
     alter table public.contratos disable trigger user;
-    insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
-      values ('contrato_general', 'ZZB-0001', 'ZZ-BUSCA José María Muñoz', cA, pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '3 minutes') returning id into kA1;
-    insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
-      values ('contrato_general', 'ZZB-0002', 'ZZ-BUSCA Copia Antigua', cA, pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '2 minutes') returning id into kA2;
-    insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
-      values ('contrato_general', 'ZZB-0003', 'ZZ-BUSCA Siobhán O’Brien', cB, pL, 'ZZ-BUSCA Proyecto', b.em, now() - interval '1 minute') returning id into kB1;
+    insert into public.contratos (tipo, numero, comprador_nombre, datos, proyecto_id, proyecto_nombre, creado_por, created_at)
+      values ('contrato_general', 'ZZB-0001', 'ZZ-BUSCA José María Muñoz', jsonb_build_object('adq1_client_id', cA), pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '3 minutes') returning id into kA1;
+    insert into public.contratos (tipo, numero, comprador_nombre, datos, proyecto_id, proyecto_nombre, creado_por, created_at)
+      values ('contrato_general', 'ZZB-0002', 'ZZ-BUSCA Copia Antigua', jsonb_build_object('adq1_client_id', cA), pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '2 minutes') returning id into kA2;
+    insert into public.contratos (tipo, numero, comprador_nombre, datos, proyecto_id, proyecto_nombre, creado_por, created_at)
+      values ('contrato_general', 'ZZB-0003', 'ZZ-BUSCA Siobhán O’Brien', jsonb_build_object('adq1_client_id', cB), pL, 'ZZ-BUSCA Proyecto', b.em, now() - interval '1 minute') returning id into kB1;
     -- contrato que A VE (lo creo A) cuya ficha de comprador es la de B, que A NO ve (Seguridad, 15-oct: el join no debe enseñarla)
-    insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
-      values ('contrato_general', 'ZZB-0004', 'ZZ-BUSCA Copia de Ficha Ajena', cB, pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '10 minutes') returning id into kA3;
+    insert into public.contratos (tipo, numero, comprador_nombre, datos, proyecto_id, proyecto_nombre, creado_por, created_at)
+      values ('contrato_general', 'ZZB-0004', 'ZZ-BUSCA Copia de Ficha Ajena', jsonb_build_object('adq1_client_id', cB), pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '10 minutes') returning id into kA3;
     alter table public.contratos enable trigger user;
   exception when others then
     raise exception using message = replace(c_fin, '%', r || pg_temp.l(false, 'P0 montaje del fixture propio: ' || sqlstate || ' ' || left(sqlerrm, 300)
