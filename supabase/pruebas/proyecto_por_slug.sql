@@ -265,6 +265,24 @@ begin
   insert into public.deck_transiciones (proyecto_id, abrir, desde) values (pC, true, now());
   v := pg_temp.viejo_deck_bucket_debido('proyecto', pC); v2 := public.deck_bucket_debido('proyecto', pC);
   r := r || pg_temp.l(v = v2 and v2 = 'deck', format('G14i con transición «abrir» reciente, C → %s (antes %s)', v2, v));
+  -- G14j con la SESIÓN de quien la llama de verdad (consulta de Backend, 15-oct; lección 16): la edge ficheros, deck-sincroniza y
+  -- deck-documento entran como service_role, el deck público como anon. Mismo resultado que el de arriba y sin «permission denied».
+  -- La huella va escrita en línea (no pg_temp.h): con el rol puesto no se depende de poder ejecutar lo de pg_temp.
+  v := pg_temp.val(format('select public.deck_bucket_debido(''proyecto'', %L)', pA), 'service_role');
+  v2 := pg_temp.val(format('select public.deck_bucket_debido(''modelo'', %L)', (select modelo_id from public.deck_fotos where id = fM1)), 'service_role');
+  r := r || pg_temp.l(v = public.deck_bucket_debido('proyecto', pA)
+                      and v2 = public.deck_bucket_debido('modelo', (select modelo_id from public.deck_fotos where id = fM1)),
+                      format('G14j deck_bucket_debido como service_role (edge ficheros): A %s, M1 %s', v, v2));
+  v := pg_temp.val($q$select count(*) || ':' || coalesce(md5(string_agg(x::text, '|' order by x::text)), '-') from public.deck_fotos_desajustes() x$q$, 'service_role');
+  v2 := pg_temp.h('select * from public.deck_fotos_desajustes()');
+  r := r || pg_temp.l(v = v2, format('G14k deck_fotos_desajustes() como service_role (deck-sincroniza) %s = %s', v, v2));
+  v := pg_temp.val(format($q$select count(*) || ':' || coalesce(md5(string_agg(x::text, '|' order by x::text)), '-') from public.investor_deck_documento_ruta(%L) x$q$, dA1), 'service_role');
+  r := r || pg_temp.l(v = '0:-', format('G14l investor_deck_documento_ruta como service_role (deck-documento) %s', v));
+  foreach f in array array[c_sa, c_sc, 'zz-slug-no-existe'] loop
+    v := pg_temp.val(format($q$select count(*) || ':' || coalesce(md5(string_agg(x::text, '|' order by x::text)), '-') from public.deck_config_publico(%L) x$q$, f), 'anon');
+    v2 := pg_temp.h(format('select * from public.deck_config_publico(%L)', f));
+    r := r || pg_temp.l(v = v2, format('G14m deck_config_publico(%s) como anon (el deck) %s = %s', f, v, v2));
+  end loop;
 
   -- ============================================================ G15 investor_deck_reservar cerrada
   select string_agg(rl || '=' || has_function_privilege(rl, 'public.investor_deck_reservar(text, text, text, text, text, text, text, text)', 'execute'), ' ') into v
