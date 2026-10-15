@@ -99,6 +99,8 @@
 --       si se pudiera vaciar justificantes o cambiar contrato_id por PostgREST, se saltaria guardar_recibi entero). Revocada en
 --       20260926092317_facturas_cierra_escritura_directa.sql:7; has_any_column_privilege porque un grant por columnas daria
 --       un falso verde con has_table_privilege. Se mira en $antes$ y otra vez en $cierre$.
+--   (c) Ningun recibi vivo lleva impuesto en el papel (A3; consulta de Administracion del 15-oct: la medida del 14-oct era
+--       solo un comentario). Si lanza, da cuantos; que hacer con ellos (anular y emitir otro, nota, asesor) se decide antes.
 -- REVERTIR: supabase/reversion_recibi_total_suma_y_exento/REVERSION.sql (el texto vivo de antes, tal cual).
 -- Prueba: supabase/pruebas/recibi_total_suma_y_exento.sql (crea contratos y documentos: SOLO en rama):
 --   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261014223000_recibi_total_suma_y_exento.sql
@@ -136,6 +138,19 @@ begin
                  or has_any_column_privilege(r, 'public.facturas', 'UPDATE')
                  or has_table_privilege(r, 'public.facturas', 'DELETE')) then
     raise exception 'recibi_total_suma_y_exento: anon o authenticated pueden escribir directamente en facturas; la exencion no se puede fiar de la fila guardada. No se aplica nada';
+  end if;
+  -- (c) A3 da por hecho «0 recibis con impuesto» (medido el 14-oct): si hay alguno vivo, al re-guardarlo su papel bajaria
+  --     el importe en silencio, y uno enviado ya no se corrige re-guardando. Texto con regex, sin cast (imp_pct es texto libre).
+  select count(*) into n
+    from public.facturas
+   where tipo = 'recibi' and not coalesce(anulada, false)
+     and (   coalesce(datos #>> '{fields,imp_pct}', '')   ~ '[1-9]'
+          or coalesce(datos #>> '{totales,impuesto}', '') ~ '[1-9]'
+          or coalesce(datos #>> '{totales,pct}', '')      ~ '[1-9]'
+          or (jsonb_typeof(datos #> '{fields,impuestos_sel}') = 'array'
+              and jsonb_array_length(datos #> '{fields,impuestos_sel}') > 0));
+  if n > 0 then
+    raise exception 'recibi_total_suma_y_exento: % recibi(s) vivo(s) llevan impuesto en el papel; con A3 lo perderian al re-guardarse. No se aplica nada: se decide antes que hacer con ellos (Administracion recomienda anular y emitir otro sin impuesto)', n;
   end if;
 end $antes$;
 
