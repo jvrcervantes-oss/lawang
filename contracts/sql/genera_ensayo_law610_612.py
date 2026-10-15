@@ -69,10 +69,12 @@ begin
   v := v || (select format(' · por contrato: precio %s, sin precio %s, facturado %s (cadena %s)', s.precio, s.sin_precio,
                            s.facturado, s.raiz_numero)
                from public._cadena_saldo_en('93d557dc-814b-48df-b127-adc34f6f191e', 'EUR') s);
-  v := v || ' · comisiones RP00079 (devengos, diferencias, error del recálculo) tras forzar la reconciliación: '
-         || case when pg_temp.e612_comisiones_rp00079() = current_setting('ensayo_law610_612.com79', true) then 'IGUALES'
-                 else 'CAMBIAN (FALLA): antes «' || left(current_setting('ensayo_law610_612.com79', true), 400)
-                      || '» después «' || left(pg_temp.e612_comisiones_rp00079(), 400) || '»' end;
+  -- si cambian, el ensayo PARA aquí y no llega al RES: el lanzador sale con 1 sin que haya que leer el texto (revisor, 2.ª vuelta)
+  if pg_temp.e612_comisiones_rp00079() is distinct from current_setting('ensayo_law610_612.com79', true) then
+    raise exception 'PARADA ensayo LAW-610: cambian las comisiones de RP00079 al forzar la reconciliación. Antes «%» después «%»',
+      left(current_setting('ensayo_law610_612.com79', true), 400), left(pg_temp.e612_comisiones_rp00079(), 400);
+  end if;
+  v := v || ' · comisiones RP00079 (devengos, diferencias, error del recálculo) tras forzar la reconciliación: IGUALES';
   -- LAW-611
   select u.id, u.estado, x.cobrado_suelo, x.suelo_precio into r
     from public.unidades u cross join lateral public._unidad_cobro_cascada_v2(u.id) x

@@ -49,7 +49,11 @@ begin
   -- Comisiones (revisor, 15-oct): el cambio de precio dispara zz_comisiones_reconcilia_cambio, DIFERIDO (corre al confirmar,
   -- fuera de este bloque) y que se traga sus errores: una foto antes/después aquí no vería nada. La base de comisión solo suma
   -- contratos FIRMADOS (_comisiones_bases_firmadas, _comisiones_precio_total): con CC00040 sin firmar, su precio no entra en
-  -- ninguna base y la reconciliación no tiene nada que mover. Por eso se exige sin firmar; firmado, PARA (y se decide aparte).
+  -- esas bases y la reconciliación no mueve ningún importe ya devengado. Por eso se exige sin firmar; firmado, PARA (y se
+  -- decide aparte). Donde SÍ entra (revisor, 2.ª vuelta): _comisiones_precio_total_todos, que suma también lo sin firmar y es
+  -- el denominador del disparador pct_cobrado_total (20261014012527_comisiones_regla_1nov.sql:895). Hoy ese % de RP00079 se
+  -- mide sobre 25.000; con el precio, sobre 69.000 (el precio real de la venta): un tramo por % cobrado del total llegará más
+  -- tarde. Es el efecto buscado (sin precio, el % salía inflado); los devengos ya hechos no cambian.
   if exists (select 1 from public.contratos c where c.id = c_contrato and coalesce(c.bloqueado, false)) then
     raise exception 'PARADA LAW-610: CC00040 está firmado: su precio entraría en la base de comisión de RP00079';
   end if;

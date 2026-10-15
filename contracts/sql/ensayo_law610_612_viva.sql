@@ -25,7 +25,7 @@ begin
   perform set_config('ensayo_law610_612.antes', v, true);
   perform set_config('ensayo_law610_612.com79', pg_temp.e612_comisiones_rp00079(), true);
 end $antes$;
--- ── 20261015210000_law610_cc00040_precio.sql · sha256 bb15a22c49db31c8135f936d585c1a1532bd4867e2b8d434adedfa98ddf32137 ──
+-- ── 20261015210000_law610_cc00040_precio.sql · sha256 1f4c05a2b0494f45b9f0ea86fcbff686df3bd2d07ca94285abf950c07a1a9828 ──
 -- LAW-610 · CC00040 lleva 44.000 € — 15-oct-2026, sesión lawang-cola-2 (orquestador agencia-c0). Cambio de DATOS, una fila.
 --
 -- Qué pasa: el contrato de construcción CC00040 (venta RP00079, parcela SH-3 de Sumba Hills) no tiene precio, y sin precio no
@@ -77,7 +77,11 @@ begin
   -- Comisiones (revisor, 15-oct): el cambio de precio dispara zz_comisiones_reconcilia_cambio, DIFERIDO (corre al confirmar,
   -- fuera de este bloque) y que se traga sus errores: una foto antes/después aquí no vería nada. La base de comisión solo suma
   -- contratos FIRMADOS (_comisiones_bases_firmadas, _comisiones_precio_total): con CC00040 sin firmar, su precio no entra en
-  -- ninguna base y la reconciliación no tiene nada que mover. Por eso se exige sin firmar; firmado, PARA (y se decide aparte).
+  -- esas bases y la reconciliación no mueve ningún importe ya devengado. Por eso se exige sin firmar; firmado, PARA (y se
+  -- decide aparte). Donde SÍ entra (revisor, 2.ª vuelta): _comisiones_precio_total_todos, que suma también lo sin firmar y es
+  -- el denominador del disparador pct_cobrado_total (20261014012527_comisiones_regla_1nov.sql:895). Hoy ese % de RP00079 se
+  -- mide sobre 25.000; con el precio, sobre 69.000 (el precio real de la venta): un tramo por % cobrado del total llegará más
+  -- tarde. Es el efecto buscado (sin precio, el % salía inflado); los devengos ya hechos no cambian.
   if exists (select 1 from public.contratos c where c.id = c_contrato and coalesce(c.bloqueado, false)) then
     raise exception 'PARADA LAW-610: CC00040 está firmado: su precio entraría en la base de comisión de RP00079';
   end if;
@@ -314,10 +318,12 @@ begin
   v := v || (select format(' · por contrato: precio %s, sin precio %s, facturado %s (cadena %s)', s.precio, s.sin_precio,
                            s.facturado, s.raiz_numero)
                from public._cadena_saldo_en('93d557dc-814b-48df-b127-adc34f6f191e', 'EUR') s);
-  v := v || ' · comisiones RP00079 (devengos, diferencias, error del recálculo) tras forzar la reconciliación: '
-         || case when pg_temp.e612_comisiones_rp00079() = current_setting('ensayo_law610_612.com79', true) then 'IGUALES'
-                 else 'CAMBIAN (FALLA): antes «' || left(current_setting('ensayo_law610_612.com79', true), 400)
-                      || '» después «' || left(pg_temp.e612_comisiones_rp00079(), 400) || '»' end;
+  -- si cambian, el ensayo PARA aquí y no llega al RES: el lanzador sale con 1 sin que haya que leer el texto (revisor, 2.ª vuelta)
+  if pg_temp.e612_comisiones_rp00079() is distinct from current_setting('ensayo_law610_612.com79', true) then
+    raise exception 'PARADA ensayo LAW-610: cambian las comisiones de RP00079 al forzar la reconciliación. Antes «%» después «%»',
+      left(current_setting('ensayo_law610_612.com79', true), 400), left(pg_temp.e612_comisiones_rp00079(), 400);
+  end if;
+  v := v || ' · comisiones RP00079 (devengos, diferencias, error del recálculo) tras forzar la reconciliación: IGUALES';
   -- LAW-611
   select u.id, u.estado, x.cobrado_suelo, x.suelo_precio into r
     from public.unidades u cross join lateral public._unidad_cobro_cascada_v2(u.id) x
