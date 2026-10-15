@@ -743,7 +743,7 @@
      el listado no carga cobros, hitos ni firmas de 200 contratos para pintar
      una tabla que no los enseña (hallazgo de Seguridad del 18-sep en
      Compradores, misma familia). */
-  var CAMPOS_CONTRATO = 'id,numero,tipo,nombre_contrato,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,pdf_firmado_hash,creado_por,created_at,contrato_padre_id,liberado_en,liberado_motivo';
+  var CAMPOS_CONTRATO = 'id,numero,tipo,nombre_contrato,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,pdf_firmado_hash,creado_por,created_at,contrato_padre_id,liberado_en,liberado_motivo,unidad_id';
   function URL_FACTURA(id) { return '/intranet/v4/facturas/?id=' + encodeURIComponent(id); }
   function tipoDoc(t) { return tx(t === 'recibi' ? 'Recibí' : t === 'proforma' ? 'Proforma' : 'Factura'); }
   /* Una solicitud de firma «pendiente» con `expira_en` pasado ya no la puede usar el
@@ -1314,7 +1314,7 @@
       sb.from('contrato_vencimientos').select('orden,descripcion,pct,monto,fecha,factura_id,no_facturar').eq('contrato_id', id).order('orden'),
       sb.rpc('contrato_firmas_equipo').select('firmante_nombre,firmante_rol,estado,creado_en,firmado_en,expira_en').eq('contrato_id', id).order('creado_en'),
       sb.from('contrato_compradores').select('client_id,rol').eq('contrato_id', id),
-      sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,bloqueado,contrato_padre_id,created_at,liberado_en,pdf_firmado_path').or(familia),
+      sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,bloqueado,contrato_padre_id,created_at,liberado_en,pdf_firmado_path,unidad_id').or(familia),
       // SIN filtro de contrato (S13, 22-sep-2026): el estado de cuenta
       // CONSOLIDADO de la cadena (más abajo) necesita lo cobrado de la raíz Y
       // de cada hijo, no solo de `id`. Mismo coste que ya paga el listado
