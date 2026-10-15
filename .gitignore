@@ -30,6 +30,8 @@ Marketing/
 !supabase/functions/portal-invitar/README.md
 # send-contract-email (11-oct-2026): igual (el symlink se cambio por `entrypoint`).
 !supabase/functions/send-contract-email/README.md
+# asistente-peticiones (15-oct-2026, busqueda sin tildes): igual (la segunda copia del index.ts se cambio por `entrypoint`).
+!supabase/functions/asistente-peticiones/README.md
 brand_identity.md
 inventario_assets.md
 PRODUCT.md

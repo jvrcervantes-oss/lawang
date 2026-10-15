@@ -1034,7 +1034,7 @@
       var contratos = (rc.data && rc.data.length) ? rc.data : [{ id: c0.id, numero: c0.numero }];
       var ids = contratos.map(function (x) { return x.id; });
       Promise.all([
-        sb.rpc('facturas_equipo').select('id,anulada').in('contrato_id', ids),
+        sb.rpc('facturas_equipo').select('id,anulada,tipo,enviada').in('contrato_id', ids),
         sb.rpc('contrato_firmas_equipo').select('id,contrato_id,estado,snapshot_path').in('contrato_id', ids).in('estado', ['pendiente', 'procesando']),
         /* LAW-338 L3 (10-oct-2026): las comisiones de la operación por el servidor (operacion_comisiones_datos). */
         window.lwDatos('operacion_comisiones_datos', { p_contratos: ids }).then(function (rr) {
@@ -1046,6 +1046,16 @@
         var comisiones = r[2].error ? [] : (r[2].data || []);
         /* Si algo no se pudo leer, se dice: el diálogo no puede prometer «no hay nada» sin haberlo mirado. */
         var sinMirar = ['facturas', 'enlaces de firma', 'comisiones'].filter(function (_, i) { return r[i].error; });
+        /* Bloque B (14-oct-2026): con un recibí vigente o un documento ya enviado (aunque esté anulado) solo borra un admin de
+           su empresa (borrar_operacion, regla 4). Si quien pulsa no es admin de ninguna, no se le abre el diálogo de confirmar
+           algo que la base va a rechazar: se le dice por qué. Solo cuando SE VE alguno: la lectura va con la RLS de la sesión y
+           no ver ninguno no prueba que no los haya (ese caso, y el admin de otra empresa, los decide la base con este texto). */
+        var conCobroOEnvio = r[0].error ? 0 : (r[0].data || []).filter(function (f) { return (f.tipo === 'recibi' && !f.anulada) || f.enviada; }).length;
+        var fSes = window.LW_V4 && window.LW_V4.ficha;
+        if (conCobroOEnvio && fSes && !LW_ROL.esAdmin(fSes)) {
+          toastMal(tx('Esta operación tiene un recibí vigente o un documento ya enviado al cliente: solo la puede borrar un administrador de su empresa. Pídeselo a un administrador.'));
+          return;
+        }
         var yaPagadas = comisiones.filter(function (x) { return x.estado === 'pagada'; }).length;
         var detalle = [];
         detalle.push(contratos.length > 1
@@ -1263,10 +1273,18 @@
     // «Ver en Operaciones» (antes «Expediente», 22-sep-2026): la fila de la
     // operación entera —cadena y dinero de toda ella— con esta ficha abierta.
     if (!opts.sinExpediente) acciones.push({ texto: 'Ver en Operaciones', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
-    // Borrar operación (S13, 22-sep-2026): mismo botón que la clásica
-    // (intranet/operaciones/index.html:967, id="btnBorrarOp") — nunca oculto
-    // por rol, el gate de verdad es el propio RPC (es_agente / es_super_admin).
-    if (contratosActivo()) acciones.push({ texto: 'Borrar operación', tono: 'peligro', onClick: function () { borrarOperacionV4(sb, c0); } });
+    // Borrar operación (S13, 22-sep-2026). Hasta el 14-oct-2026 se ofrecía a todos y decidía el RPC. Desde el bloque B
+    // (regla doble, LAW-51 p.5: lo que el servidor prohíbe, la pantalla no lo ofrece) borrar_operacion exige la herramienta
+    // Contratos (_puede_herr: la casilla, o ser super admin global o de empresa) y, con un recibí vigente o un documento
+    // enviado en la cadena, ser admin de su empresa. Lo primero se sabe aquí y apaga el botón con su motivo; lo segundo
+    // necesita las facturas y se mira al pulsar (borrarOperacionV4). Sin ficha legible se ofrece: decide la base.
+    if (contratosActivo()) {
+      var fBorra = window.LW_V4 && window.LW_V4.ficha;
+      var sinHerrBorra = !!fBorra && !(LW_ROL.puedeHerr(fBorra, 'contratos') || fBorra.rol === 'super_admin_empresa');
+      acciones.push({ texto: 'Borrar operación', tono: 'peligro', disabled: sinHerrBorra,
+        title: sinHerrBorra ? tx('Borrar una operación exige la herramienta Contratos: pídesela a un administrador en Usuarios.') : '',
+        onClick: function () { borrarOperacionV4(sb, c0); } });
+    }
     acciones.push({ texto: 'Cerrar', cerrar: true });
     /* Trazabilidad en la barra (22-sep-2026, owner): en /v4/contratos/ la ficha
        abierta se refleja como `?contrato=NUM` — lo mismo que el listado ya sabe
@@ -1325,7 +1343,7 @@
       sb.rpc('reserva_vence_el', { p_contrato_id: id }),
       sb.from('contrato_prorrogas').select('n,dias,desde,hasta,motivo,comunicado_al_comprador,quien,creado_en').eq('contrato_id', id).order('n'),
       // los topes de la prórroga y los días de gracia los pone el owner en /v4/ajustes/ (22-sep)
-      sb.from('parametros').select('clave,valor').like('clave', 'reservas.%')
+      sb.from('parametros').select('clave,valor').like('clave', 'reservas.%')   // BUSQUEDA A PROPOSITO: prefijo fijo de una clave tecnica, no un buscador
     ]).then(function (r) {
       if (!document.getElementById('lw-cajon')) return;   // la cerraron antes de que llegara
       var c = r[0].data || c0;
@@ -1994,12 +2012,19 @@
     acciones.push({ texto: 'Descargar PDF', onClick: V4acc('imprimirDocumento', f0.id) });
     if (!f0.anulada) acciones.push({ texto: 'Enviar por email', onClick: V4acc('enviarDocumento', f0.id) });
     acciones.push({ texto: '📨 Registro', onClick: V4acc('registroEnvios', f0.id) });
-    // Anular (S14): se ofrece a cualquiera que vea el documento — la RLS es la
-    // que de verdad decide (autor o admin, con la herramienta 'facturas');
-    // esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
+    // Anular (S14): se ofrece a quien vea el documento — la base decide (autor, manager o admin, con la herramienta
+    // 'facturas'); esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
+    // Desde el 14-oct-2026 (bloque B, regla doble LAW-51 p.5) factura_anula reserva un RECIBÍ o un documento ENVIADO al
+    // admin de su empresa: a quien no es admin de ninguna se le apaga con el motivo. Un admin de otra empresa lo sigue viendo
+    // y la base se lo niega con su texto; un borrador, como siempre.
     // ERP maestro (AXW-39): una rectificativa no se anula (se emite otra factura), y
     // lo EMITIDO en serie fiscal no se reactiva ni se borra — la base lo rechaza.
-    if (!f0.anulada && !f0.rectifica_id) acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () { anularDocumento(sb, f0); } });
+    if (!f0.anulada && !f0.rectifica_id) {
+      var anulaSoloAdmin = (f0.tipo === 'recibi' || !!f0.enviada) && !!V4.ficha && !LW_ROL.esAdmin(V4.ficha);
+      acciones.push({ texto: 'Anular', tono: 'peligro', disabled: anulaSoloAdmin,
+        title: anulaSoloAdmin ? tx('Solo un administrador de la empresa puede anular un recibí o un documento ya enviado al cliente.') : '',
+        onClick: function () { anularDocumento(sb, f0); } });
+    }
     if (f0.anulada && !f0.enviada && !f0.fecha_envio && !f0.emitida_en && V4.esSuperAdmin) acciones.push({ texto: 'Reactivar', onClick: function () { reactivarDocumento(sb, f0); } });
     // Borrar (S14): desde el 21-sep NI SIQUIERA super_admin borra un documento
     // ya enviado — coincide con la policy que Datos aplica en paralelo
@@ -2195,7 +2220,7 @@
         var s = estado[grupos[i]];
         if (s && s.valor !== '*' && tr.getAttribute('data-lw-' + s.attr) !== s.valor) ok = false;
       }
-      if (ok && texto && (tr.getAttribute('data-lw-pajar') || '').indexOf(texto) === -1) ok = false;
+      if (ok && !lwBusca(tr.getAttribute('data-lw-pajar'), texto)) ok = false;
       tr.style.display = ok ? '' : 'none';
       if (ok) n++;
     });
@@ -2221,9 +2246,9 @@
   function buscadorDe(aplicar, alCambiar) {
     var inp = document.querySelector('[data-lw="buscador"]');
     if (!inp) return;
-    inp.addEventListener('input', function () { alCambiar(inp.value.trim().toLowerCase()); aplicar(); });
+    inp.addEventListener('input', function () { alCambiar(lwNormaliza(inp.value)); aplicar(); });   // sin tildes ni mayúsculas, como el pajar (vocabulario.js, 15-oct)
     var q0 = new URLSearchParams(location.search).get('q');
-    if (q0) { inp.value = q0; alCambiar(q0.trim().toLowerCase()); aplicar(); }
+    if (q0) { inp.value = q0; alCambiar(lwNormaliza(q0)); aplicar(); }
   }
 
   var REG = {
@@ -2405,7 +2430,7 @@
             tr.setAttribute('data-lw-tipo', c.tipo || '');
             tr.setAttribute('data-lw-estado', estadoC(c));
             tr.setAttribute('data-lw-mio', miEmail && c.creado_por === miEmail ? '1' : '0');
-            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, nombreAutor(AUT, c.creado_por), c.parcela_codigo, tipoC(c.tipo), c.rev03 === 'si' ? 'rev03' : c.rev03 === 'rev04' ? 'rev04' : ''].join(' ').toLowerCase());
+            tr.setAttribute('data-lw-pajar', lwNormaliza([c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, nombreAutor(AUT, c.creado_por), c.parcela_codigo, tipoC(c.tipo), c.rev03 === 'si' ? 'rev03' : c.rev03 === 'rev04' ? 'rev04' : ''].join(' ')));
             var tds = tr.querySelectorAll('td');
             if (tds[6]) tds[6].innerHTML = htmlAutor(AUT, c.creado_por);
             if (tds[7]) tds[7].innerHTML = pill(etqC(c)[0], etqC(c)[1]) + FD.tag(c.id) +
@@ -2552,7 +2577,7 @@
               tr.setAttribute('data-lw-tipo', f.tipo === 'proforma' ? 'proforma' : 'factura');
               tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.enviada ? 'enviada' : 'emitida'));
               var cobro = cobroDe(f); tr.setAttribute('data-lw-cobro', cobro);
-              tr.setAttribute('data-lw-pajar', [op ? op.referencia : '', f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre, f.creado_por, nombreAutor(AUT, f.creado_por)].join(' ').toLowerCase());
+              tr.setAttribute('data-lw-pajar', lwNormaliza([op ? op.referencia : '', f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre, f.creado_por, nombreAutor(AUT, f.creado_por)].join(' ')));
               if (grupo) tr.setAttribute('data-lw-grupo', grupo);
               var tds = tr.querySelectorAll('td');
               if (tds[6]) {
@@ -2740,7 +2765,7 @@
               tr.setAttribute('data-lw-moneda', m);
               tr.setAttribute('data-lw-estado', r.anulada ? 'anulado' : 'emitido');
               tr.setAttribute('data-lw-just', estadoJustRecibo(r));
-              tr.setAttribute('data-lw-pajar', [r.numero, r.cliente_nombre, r.contrato_numero, r.proyecto_nombre, salda, r.creado_por, nombreAutor(AUT, r.creado_por)].join(' ').toLowerCase());
+              tr.setAttribute('data-lw-pajar', lwNormaliza([r.numero, r.cliente_nombre, r.contrato_numero, r.proyecto_nombre, salda, r.creado_por, nombreAutor(AUT, r.creado_por)].join(' ')));
               var tds = tr.querySelectorAll('td');
               if (tds[6] && !nj && !r.anulada) tds[6].innerHTML = r.historico_sin_justificante ? pill('histórico', 'neutro') : pill('sin justificante', 'espera');
               if (tds[8]) tds[8].innerHTML = htmlAutor(AUT, r.creado_por);
@@ -2800,9 +2825,10 @@
          son blobs). Todo lo demas de esta pantalla vuelve en milisegundos. Y
          el velo de carga se rinde a los 12 s (shell.css, `lw-rendirse`), asi
          que justo antes de llegar los datos destapaba la maqueta de Stitch.
-         Ahora la vista se pide DESPUES de pintar, fuera del contador del velo,
-         y su aviso «Ficha ≠» aparece cuando llega. La vista en si no se toca
-         aqui: queda como pendiente de Datos (una columna materializada). */
+         Desde el 15-oct-2026 esta lista ya NO la pide: cada ficha pide solo las
+         divergencias de SU cliente (por client_id) después de pintarse
+         (pintaFicha). La vista en si no se toca aqui: queda como pendiente de
+         Datos (una columna materializada). */
       var t = tablaPor('tabla-clientes');
       var conContratos = true;   // se decide al arrancar la carga (abajo): en el maestro espera a saber qué módulos hay
       var cargaClientes = function () {
@@ -3006,7 +3032,7 @@
             ? '<div style="margin-top:10px">' + H.tabla(['Proyecto', 'Precio', 'Cobrado', 'Pendiente'], nombresProy.map(function (k) {
                 var p = porProy[k];
                 return [esc(k), esc(fmt(p.precio, moneda)), esc(fmt(p.cobrado, moneda)), esc(fmt(p.precio - p.cobrado, moneda))];
-              })) + '</div>'
+              }), { apila: 1 }) + '</div>'
             : '';
           // cifras con la pieza del cajón (25-sep-2026); cobrado en verde, lo que se debe en rojo
           return H.cifras(['Precio pactado', 'Cobrado', 'Pendiente'].map(function (etq, i) {
@@ -3180,7 +3206,7 @@
               }))
             : H.nota('Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.');
           var cuerpo =
-            H.seccion('Identidad', identidad) +
+            H.seccion('Identidad', identidad, 'identidad') +
             H.seccion('Responsable de la ficha', seccionResponsable(), 'responsable') +
             /* Con contratos o soporte apagados la sección NO se pinta (ni «Ninguno enlazado», que mentiría: no es que no
                haya, es que aquí no se mide). Las facturas y los envíos de la ficha cuelgan de los contratos del cliente. */
@@ -3272,6 +3298,37 @@
             if (h4) h4.textContent = tx('Estado de cuentas de tus contratos');
             var scu = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > div');
             if (scu) scu.insertAdjacentHTML('afterbegin', H.nota('Solo suma tus contratos: los de otros agentes no entran en estas cifras.'));
+          });
+          /* «Ficha ≠» DE ESTE CLIENTE (15-oct-2026, el owner preguntó qué era el aviso «46 documentos difieren de la ficha»).
+             La misma vista que los listados (documentos_desactualizados: la comparación vive en la base), filtrada por el id del
+             cliente y pedida DESPUÉS de pintar. Vivo = se pone al día abriéndolo; congelado (firmado, enviado o anulado) = no
+             se toca, si el dato importa se reemite (suite_lawang.md → «Un documento vivo no puede contradecir a su ficha»).
+             Si no se puede mirar se DICE: «ninguna diferencia» no puede leerse igual que «no he podido mirar». */
+          if (conC) sb.from('documentos_desactualizados').select('tipo,id,numero,congelado,diferencias').eq('client_id', c2.id).then(function (rd) {
+            /* lwCajon rehace el cuerpo en cada apertura: si entretanto se abrió otra ficha, este cuerpo ya no está en la
+               página y la respuesta de ESTE cliente no se pinta en la del siguiente */
+            var sid = cj.cuerpo && cj.cuerpo.isConnected && cj.cuerpo.querySelector('[data-cajon-sec="identidad"] > div');
+            if (!sid) return;
+            if (rd.error) {
+              console.error('[v4 datos] ficha≠ del cliente', rd.error);
+              sid.insertAdjacentHTML('beforeend', H.nota('No se ha podido comprobar si sus contratos y facturas dicen lo mismo que esta ficha.'));
+              return;
+            }
+            var dif = (rd.data || []).filter(function (x) { return Array.isArray(x.diferencias) && x.diferencias.length; });
+            if (!dif.length) return;
+            var CAMPO = { nombre: 'Nombre', identidad: 'Pasaporte / NPWP', email: 'Email', telefono: 'Teléfono', pais: 'Nacionalidad' };
+            var fila = function (x) {
+              var num = x.numero || tx('sin nº');
+              var enl = x.tipo === 'factura' ? H.enlace('/intranet/v4/facturas/?id=' + encodeURIComponent(x.id), num)
+                : (x.numero ? H.enlace('/intranet/v4/contratos/?contrato=' + encodeURIComponent(x.numero), num) : esc(num));
+              var qu = x.diferencias.map(function (d) { return tx(CAMPO[d.campo] || d.campo); }).join(', ');
+              return '<li>' + enl + ' <span style="font-size:11.5px;color:#75786e">' + esc(tx(x.tipo === 'factura' ? 'Factura' : 'Contrato')) + ' · ' + esc(qu) + '</span></li>';
+            };
+            var ul = function (xs) { return '<ul style="margin:0 0 0 18px;padding:0;font-size:12.5px;color:#2E3437;display:grid;gap:4px">' + xs.map(fila).join('') + '</ul>'; };
+            var vivos = dif.filter(function (x) { return !x.congelado; }), cerrados = dif.filter(function (x) { return x.congelado; });
+            sid.insertAdjacentHTML('beforeend',
+              (vivos.length ? H.nota(tx('%n documento(s) sin cerrar dicen algo distinto de esta ficha: ábrelos y trae los datos de la ficha para ponerlos al día.', { n: '<b>' + vivos.length + '</b>' }), true) + ul(vivos) : '') +
+              (cerrados.length ? H.nota(tx('%n documento(s) ya cerrados (firmados, enviados o anulados) dicen algo distinto de esta ficha. No se tocan: si el dato importa, se reemiten.', { n: '<b>' + cerrados.length + '</b>' }), true) + ul(cerrados) : ''));
           });
 
           /* Traspaso: wiring de los controles que seccionResponsable() acaba de
@@ -3834,11 +3891,10 @@
            comprador tecleando 687959509 (closer, 23-sep-2026). */
         var busca = document.getElementById('buyerSearch');
         if (busca) busca.addEventListener('input', function () {
-          var qq = busca.value.trim().toLowerCase();
+          var qq = lwNormaliza(busca.value);   // sin tildes: «jose» encuentra «José» (15-oct)
           pl.tbody.querySelectorAll('tr[data-id]').forEach(function (tr) {
             var c2 = porId[tr.getAttribute('data-id')] || {};
-            var pajar = [c2.full_name, c2.email, c2.nationality, c2.phone, c2.numero_cliente].join(' ').toLowerCase();
-            var casa = !qq || pajar.indexOf(qq) !== -1 || (typeof telefonoCasa === 'function' && telefonoCasa(c2.phone, qq));
+            var casa = lwBuscaEn([c2.full_name, c2.email, c2.nationality, c2.phone, c2.numero_cliente], qq) || (typeof telefonoCasa === 'function' && telefonoCasa(c2.phone, qq));
             tr.style.display = casa ? '' : 'none';
           });
         });
@@ -3848,14 +3904,11 @@
         var pedido = new URLSearchParams(location.search).get('id');
         if (pedido && porId[pedido]) cuandoCajon(function () { setTimeout(function () { abreFicha(porId[pedido]); }, 0); });
 
-        /* Ficha≠: el control de divergencia de la suite. Se pide AL FINAL y
-           fuera de `vig()` (ver cabecera: 12,7 s en la base) — la pantalla ya
-           esta pintada y usable cuando llega. */
-        sb.from('documentos_desactualizados').select('congelado,diferencias').limit(1000).then(function (rv) {
-          if (rv.error) { console.error('[v4 datos] ficha≠', rv.error); return; }
-          var difN = (rv.data || []).filter(function (x) { return x.diferencias && x.diferencias.length; }).length;
-          if (difN) bandaNota('Ficha ≠: ' + difN + ' documento(s) emitidos difieren de la ficha del cliente — el detalle vive en la herramienta clásica (/intranet/compradores/).', '#C06C47');
-        });
+        /* Ficha≠ (15-oct-2026): aquí ya NO se pide la vista entera. Se pedía para escribir en la consola «N documentos difieren
+           de la ficha — el detalle vive en la herramienta clásica»: una cifra de TODOS los documentos (no del cliente abierto),
+           que nadie veía en pantalla, que apuntaba a /intranet/compradores/ (retirada) y que costaba la consulta más lenta de la
+           pantalla en cada carga. Ahora cada ficha pide los SUYOS por su id (pintaFicha) y los listados de Contratos y Facturas
+           siguen marcando «Ficha ≠» por fila (fichaDistinta). */
       });
     },
     operaciones: function (sb) {
@@ -3984,7 +4037,7 @@
           return '<tr data-lw-fila data-lw-id="' + esc(o.id) + '" data-lw-etapa="' + esc(e) + '" data-lw-firmada="' + (firmada ? 1 : 0) +
             '" data-lw-sinfactura="' + (firmada && !facturaViva(o) ? 1 : 0) + '" data-lw-faltaficha="' + (faltaFicha(o) ? 1 : 0) +
             '" data-lw-proyecto="' + esc(o.proyecto_nombre || '') +
-            '" data-lw-pajar="' + esc(((op ? op.referencia + ' ' : '') + piezas.map(function (c) { return [c.numero, c.comprador_nombre, c.proyecto_nombre, c.parcela_codigo, tipoC(c.tipo), c.creado_por, operadorDe(c)].join(' '); }).join(' ')).toLowerCase()) +
+            '" data-lw-pajar="' + esc(lwNormaliza((op ? op.referencia + ' ' : '') + piezas.map(function (c) { return [c.numero, c.comprador_nombre, c.proyecto_nombre, c.parcela_codigo, tipoC(c.tipo), c.creado_por, operadorDe(c)].join(' '); }).join(' '))) +
             '" class="hover:bg-surface-alt/50 transition-colors cursor-pointer align-top">' +
             (op
               ? '<td class="py-3 px-4 font-label-md font-bold text-deep-lagoon whitespace-nowrap">' + esc(op.referencia) +
@@ -4715,8 +4768,7 @@
           if (EST.chipP === 'estudio' && d.t) return false;
           if (EST.chipU !== 'todas' && !((d.porEstado || {})[EST.chipU] > 0)) return false;
           if (EST.q) {
-            var hay = (p.nombre || '').toLowerCase().indexOf(EST.q) !== -1 ||
-                      (p.resort || '').toLowerCase().indexOf(EST.q) !== -1;
+            var hay = lwBuscaEn([p.nombre, p.resort], EST.q);
             if (!hay) return false;
           }
           return true;
@@ -5730,7 +5782,7 @@
         if (!caja || !buscador || !orden) return;
         var textoDeFila = function (f) {
           var t = function (k) { var e = f.querySelector('[data-lw="' + k + '"]'); return e ? e.textContent : ''; };
-          return (t('u-codigo') + ' ' + t('u-tipo') + ' ' + t('u-comprador-link') + ' ' + t('u-contrato-link') + ' ' + t('u-agente') + ' ' + t('u-socio')).toLowerCase();
+          return lwNormaliza(t('u-codigo') + ' ' + t('u-tipo') + ' ' + t('u-comprador-link') + ' ' + t('u-contrato-link') + ' ' + t('u-agente') + ' ' + t('u-socio'));
         };
         /* Chips de estado del cajón (27-sep-2026, owner: ver las disponibles o
            reservadas DENTRO del proyecto). Se cuentan de las filas pintadas —
@@ -5775,11 +5827,11 @@
           });
         };
         var aplicaFiltro = function () {
-          var q2 = buscador.value.toLowerCase().trim();
+          var q2 = lwNormaliza(buscador.value);
           Array.prototype.forEach.call(caja.children, function (f) {
             if (!f.querySelector) return;
             var fueraEstado = estadoSel !== 'todas' && claveEstado(f.getAttribute('data-estado')) !== estadoSel;
-            f.classList.toggle('hidden', fueraEstado || (!!q2 && textoDeFila(f).indexOf(q2) === -1));
+            f.classList.toggle('hidden', fueraEstado || !lwBusca(textoDeFila(f), q2));
           });
         };
         if (chipsEst) chipsEst.addEventListener('click', function (ev) {
@@ -5998,7 +6050,7 @@
         });
         var buscador = document.getElementById('project-search');
         if (buscador) buscador.addEventListener('input', function () {
-          EST.q = buscador.value.toLowerCase().trim(); EST.pag = 1; renderizar();
+          EST.q = lwNormaliza(buscador.value); EST.pag = 1; renderizar();
         });
         /* Rejilla / Tabla / Carpetas (23-sep-2026). Mismo patrón que los chips:
            las clases de activo/inactivo se leen del propio HTML. */
@@ -6512,10 +6564,10 @@
           c.setAttribute('data-publicados', m.publicado ? '1' : '0');
           c.setAttribute('data-sinficha', sinFicha(m) ? '1' : '0');
           c.setAttribute('data-sinrender', sinFotos(m) ? '1' : '0');
-          // Buscador (S12): nombre/slug en minúsculas, listos para comparar
-          // sin normalizar en cada tecla.
-          c.setAttribute('data-nombre', (m.nombre || '').toLowerCase());
-          c.setAttribute('data-slug', (m.slug || '').toLowerCase());
+          // Buscador (S12): nombre/slug ya normalizados (sin tildes ni
+          // mayúsculas, lwNormaliza), listos para comparar sin rehacerlo en cada tecla.
+          c.setAttribute('data-nombre', lwNormaliza(m.nombre));
+          c.setAttribute('data-slug', lwNormaliza(m.slug));
           var fs = fotosModelo[m.id] || [];
           var cab = c.firstElementChild;
           if (fs.length && cab) {
@@ -6570,12 +6622,12 @@
         var buscadorModelos = document.querySelector('input[type="search"]');
         var chipActivaModelos = 'todos';
         var aplicaFiltroModelos = function () {
-          var texto = ((buscadorModelos && buscadorModelos.value) || '').trim().toLowerCase();
+          var texto = lwNormaliza(buscadorModelos && buscadorModelos.value);
           Array.prototype.forEach.call(grid.children, function (fila) {
             if (!fila.getAttribute) return;
             var chipOk = chipActivaModelos === 'todos' || fila.getAttribute('data-' + chipActivaModelos) === '1';
             var nombre = fila.getAttribute('data-nombre') || '', slug = fila.getAttribute('data-slug') || '';
-            var textoOk = !texto || nombre.indexOf(texto) !== -1 || slug.indexOf(texto) !== -1;
+            var textoOk = lwBuscaEn([nombre, slug], texto);
             fila.style.display = (chipOk && textoOk) ? '' : 'none';
           });
         };
@@ -7009,9 +7061,9 @@
           // el buscador de la cabecera de la tabla: filtra por nombre, email o rol
           var busca = document.getElementById('userSearchInput');
           if (busca) busca.addEventListener('input', function () {
-            var qq = busca.value.trim().toLowerCase();
+            var qq = busca.value;
             pl.tbody.querySelectorAll('tr[data-email]').forEach(function (tr) {
-              tr.style.display = (!qq || tr.textContent.toLowerCase().indexOf(qq) !== -1) ? '' : 'none';
+              tr.style.display = lwBusca(tr.textContent, qq) ? '' : 'none';
             });
           });
         }
@@ -7360,7 +7412,7 @@
           f.setAttribute('data-ts', h.actualizado_en || '');
           f.setAttribute('data-nombre', c.full_name || '');
           f.setAttribute('data-cat', h.categoria || '');
-          f.setAttribute('data-lw-pajar', [c.full_name, c.email, h.categoria, u && u.texto].join(' ').toLowerCase());
+          f.setAttribute('data-lw-pajar', lwNormaliza([c.full_name, c.email, h.categoria, u && u.texto].join(' ')));
           f.style.cursor = 'pointer';
           f.addEventListener('click', function () { location.search = '?hilo=' + encodeURIComponent(h.id); });
           lista.appendChild(f);
@@ -7382,7 +7434,7 @@
         var selOrden = document.querySelector('[data-lw="orden-hilos"]');
         if (inpS && buscaCli) inpS.value = buscaCli;
         function aplicarSoporte() {
-          var v = inpS ? inpS.value.trim().toLowerCase() : '';
+          var v = inpS ? lwNormaliza(inpS.value) : '';
           var modo = selOrden ? selOrden.value : 'reciente';
           var filas = Array.prototype.slice.call(lista.querySelectorAll('[data-estado-hilo]'));
           filas.sort(function (a, b) {
@@ -7397,7 +7449,7 @@
           filas.forEach(function (f) {
             var e = f.getAttribute('data-estado-hilo') || '';
             var okE = estadoF === 'todos' || (estadoF === 'abiertos' ? e === 'abierto' : e === 'resuelto');
-            var okQ = !v || (f.getAttribute('data-lw-pajar') || '').indexOf(v) !== -1;
+            var okQ = lwBusca(f.getAttribute('data-lw-pajar'), v);
             f.style.display = (okE && okQ) ? '' : 'none';
             if (okE && okQ) vistas++;
             lista.insertBefore(f, vacioF);
@@ -7919,7 +7971,7 @@
             ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:#104C4F;color:#fff;font:600 10.5px \'Neue Kabel\',sans-serif;text-transform:uppercase;letter-spacing:.04em"><span class="material-symbols-outlined" style="font-size:13px;line-height:1">bolt</span>Automática</span>'
             : '<span style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474">Manual</span>';
           var venta = c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '';
-          var pajar = ['SP-' + x.numero, x.concepto, quienCobra(x), venta, x.contrato_id ? parcelas(x.contrato_id) : ''].join(' ').toLowerCase();
+          var pajar = lwNormaliza(['SP-' + x.numero, x.concepto, quienCobra(x), venta, x.contrato_id ? parcelas(x.contrato_id) : ''].join(' '));
           return '<tr class="border-b border-outline-variant/30" style="cursor:pointer" data-id="' + esc(x.id) + '" data-estado="' + esc(x.estado) + '" data-creado-por="' + esc(claveCobra(x)) + '" data-pajar="' + esc(pajar) + '">' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap"><b>SP-' + esc(x.numero) + '</b></td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(quienCobra(x)) + '</td>' +
@@ -7950,13 +8002,13 @@
         var filtroEstado = 'todas', filtroAgente = '';
         function aplicaFiltrosLawang() {
           var buscadorEl = document.getElementById('lw-buscar');
-          var qTxt = ((buscadorEl && buscadorEl.value) || '').toLowerCase();
+          var qTxt = lwNormaliza(buscadorEl && buscadorEl.value);
           tabla.querySelectorAll('tr[data-id]').forEach(function (tr) {
             var okEstado = filtroEstado === 'todas' ? true
               : filtroEstado === 'resueltas' ? RESUELTAS.indexOf(tr.getAttribute('data-estado')) >= 0
               : tr.getAttribute('data-estado') === filtroEstado;
             var okAgente = !filtroAgente || tr.getAttribute('data-creado-por') === filtroAgente;
-            var okTexto = !qTxt || (tr.getAttribute('data-pajar') || '').indexOf(qTxt) !== -1;
+            var okTexto = lwBusca(tr.getAttribute('data-pajar'), qTxt);
             tr.style.display = (okEstado && okAgente && okTexto) ? '' : 'none';
           });
         }
@@ -8440,12 +8492,12 @@
         tablaEq.setAttribute('data-filtros-listos', '1');
         var filtroEstado = 'todos';
         function aplica() {
-          var q = (buscar && buscar.value || '').toLowerCase();
+          var q = buscar ? buscar.value : '';
           var eq = selEq ? selEq.value : '';
           tablaEq.querySelectorAll('tr[data-eq-estado]').forEach(function (tr) {
             var okEstado = filtroEstado === 'todos' || tr.getAttribute('data-eq-estado') === filtroEstado;
             var okEquipo = !eq || tr.getAttribute('data-eq-equipo') === eq;
-            var okTexto = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+            var okTexto = lwBusca(tr.textContent, q);
             tr.style.display = (okEstado && okEquipo && okTexto) ? '' : 'none';
             // la trazabilidad abierta sigue a su fila
             var sig = tr.nextElementSibling;
@@ -10265,10 +10317,10 @@
         }
       }
       function pinta() {
-        var t = (buscar && buscar.value || '').trim().toLowerCase();
+        var t = buscar ? buscar.value : '';
         var vis = orden.filter(function (c) {
           if (agente !== '*' && (c.autor || '') !== agente) return false;
-          return !t || [c.numero, c.comprador, c.proyecto, c.parcelas.join(' '), c.autor, nombreAutor(AUT, c.autor)].join(' ').toLowerCase().indexOf(t) !== -1;
+          return lwBuscaEn([c.numero, c.comprador, c.proyecto, c.parcelas.join(' '), c.autor, nombreAutor(AUT, c.autor)], t);
         });
         if (!orden.length) { lista.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">' + esc(T('No hay Cartas de Reserva vivas pendientes de Bloqueo.')) + '</p>'; return; }
         if (!vis.length) { lista.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">' + esc(T('Nada coincide con la búsqueda.')) + '</p>'; return; }
@@ -10702,9 +10754,9 @@
 
     var filas = [], impDe = null;
     function pinta() {
-      var t = (buscar && buscar.value || '').trim().toLowerCase();
+      var t = buscar ? buscar.value : '';
       var vis = filas.filter(function (p) {
-        return !t || [p.numero_producto, p.nombre, p.referencia, p.descripcion].join(' ').toLowerCase().indexOf(t) !== -1;
+        return lwBuscaEn([p.numero_producto, p.nombre, p.referencia, p.descripcion], t);
       });
       var cols = puede ? 7 : 6;
       if (!filas.length) { cuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Todavía no hay ningún producto en el catálogo.')) + '</td></tr>'; return; }

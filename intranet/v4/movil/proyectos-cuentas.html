@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 
 <html lang="es"><head>
-<meta name="lw-version" content="5f443e28b9cc">
+<meta name="lw-version" content="bc28e98865ca">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/roles.js?v=11d9478b"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=33f2980c"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=5e4decfa"></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
-<script src="../assets/nav.js?v=bf48e732" defer></script>
+<script src="/contracts/assets/vocabulario.js?v=10909e19"></script>
+<script src="../assets/nav.js?v=ba6e0c78" defer></script>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Inventario de Proyectos &amp; Suelo — Lawang Intranet</title>
@@ -24,7 +25,7 @@
     .tabular-nums { font-variant-numeric: tabular-nums; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
   </style>
-<link href="../assets/tw-movil-pc.css?v=e03e7ac9" rel="stylesheet">
+<link href="../assets/tw-movil-pc.css?v=afbbec82" rel="stylesheet">
 </head>
 <body class="bg-surface-alt font-body-md text-on-surface antialiased overflow-x-hidden">
 <!-- SIDEBAR -->
@@ -847,11 +848,11 @@
 
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
+        const query = e.target.value;   // se compara sin tildes ni mayúsculas (lwBuscaEn, vocabulario.js, 15-oct)
         cards.forEach(card => {
-          const title = card.querySelector('h3')?.textContent.toLowerCase() || '';
-          const subtitle = card.querySelector('span')?.textContent.toLowerCase() || '';
-          if (title.includes(query) || subtitle.includes(query)) {
+          const title = card.querySelector('h3')?.textContent || '';
+          const subtitle = card.querySelector('span')?.textContent || '';
+          if (lwBuscaEn([title, subtitle], query)) {
             card.style.display = 'flex';
           } else {
             card.style.display = 'none';

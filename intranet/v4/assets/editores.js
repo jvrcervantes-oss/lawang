@@ -448,10 +448,32 @@
       amo.addEventListener('change', aplica);
       aplica();
     });
+    /* El aviso vive al final del cuerpo y, en los editores de documento, el botón de guardar sube a la barra
+       fija de la vista previa: un error que no se lleva a la vista es un «Guardar no hace nada» (INV00213,
+       14-oct-2026). Se lleva a la vista y se repite en un toast si la página lo tiene. */
     var muestraError = function (msg) {
       var e = w.querySelector('[data-e="error"]');
       e.textContent = msg; e.style.display = 'block';
+      try { e.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { e.scrollIntoView(false); }
+      if (typeof window.toastMal === 'function') window.toastMal(msg);
     };
+    /* Un campo que el navegador rechaza (un email mal formado traído de la ficha) dentro de una sección
+       plegada no se puede enfocar: el navegador cancela el envío y solo lo dice en la consola (14-oct-2026).
+       Se despliega su sección, se enfoca y se dice qué campo es. */
+    var ultimoInvalido = 0;
+    w.querySelector('[data-e="form"]').addEventListener('invalid', function (ev) {
+      var el = ev.target;
+      if (Date.now() - ultimoInvalido < 400) return;   // un aviso por intento, el del primer campo
+      ultimoInvalido = Date.now();
+      for (var n = el.parentElement; n && n !== w; n = n.parentElement) {
+        var cab = n.previousElementSibling;
+        if (n.style.display === 'none' && cab && cab.getAttribute('data-lw-plegable')) cab.click();
+      }
+      var caja = el.closest('label') || el.parentElement;
+      var nombre = (caja && caja !== el && (caja.textContent || '').replace(el.value || '', '').trim().split('\n')[0]) || el.getAttribute('data-k') || '';
+      setTimeout(function () { try { el.focus(); } catch (_) {} }, 0);
+      muestraError(tS('Revisa este campo') + (nombre ? ' «' + nombre.slice(0, 60) + '»' : '') + ': ' + (el.validationMessage || ''));
+    }, true);
     w.querySelector('[data-e="cerrar"]').addEventListener('click', cierraModal);
     w.querySelector('[data-e="cancelar"]').addEventListener('click', cierraModal);
     w.querySelector('[data-e="fondo"]').addEventListener('click', cierraModal);
@@ -787,12 +809,33 @@
       '.lwc-tabla th{text-align:left;padding:0 10px 10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#a8a29e;white-space:nowrap}',
       '.lwc-tabla td{padding:11px 10px;border-top:1px solid #f5f5f4;color:#44403c;vertical-align:middle}',
       '.lwc-tabla tbody tr:hover td{background:#FBF9F4}',
+      '.lwc-tabla td.lwc-num{white-space:nowrap;font-variant-numeric:tabular-nums}',
+      /* Tabla de cifras que APILA en estrecho (15-oct-2026, owner: «se amontonan los números» en el Estado de cuentas de la
+         ficha de cliente, que vive en la columna lateral de 212-322 px). `tabla(…, { apila: 1 })`: los importes no parten
+         línea y, si la caja mide menos de 440 px, cada fila pasa a tarjeta «rótulo … importe» en vez de cortar columnas.
+         El contenedor es la caja, no la pantalla: la misma tabla cabe entera a 1024 y se apila a 1920 en la columna lateral. */
+      // overflow-x:auto de reserva: entre 441 px y el ancho mínimo de la tabla (importes IDR largos) se desplaza en vez de salirse
+      '.lwc-apila{container-type:inline-size;overflow-x:auto;margin:0}',
+      '.lwc-apila .lwc-tabla td:not(:first-child),.lwc-apila .lwc-tabla th:not(:first-child){white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}',
+      '@container (max-width:440px){',
+      '.lwc-apila .lwc-tabla thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}',
+      '.lwc-apila .lwc-tabla tr{display:block;padding:10px 0;border-top:1px solid #f5f5f4}',
+      '.lwc-apila .lwc-tabla td{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:2px 0;border:0}',
+      '.lwc-apila .lwc-tabla td::before{content:attr(data-th);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#a8a29e;text-align:left;white-space:normal}',
+      '.lwc-apila .lwc-tabla td:first-child{display:block;padding-bottom:4px;font-weight:600;color:var(--las-tinta);overflow-wrap:break-word}',
+      '.lwc-apila .lwc-tabla td:first-child::before{content:none}',
+      '.lwc-apila .lwc-tabla tbody tr:hover td{background:none}',
+      '}',
       '.lwc-chips{display:flex;flex-wrap:wrap;gap:8px}',
       '.lwc-chips span{font-size:13px;padding:4px 12px;border-radius:9999px;background:#F3F0E8;color:#44403c}',
       '#lw-cajon .las-aviso{padding:12px 14px}',
-      '.lwc-cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:18px 16px}',
-      '.lwc-cifra{min-width:0}',
-      '.lwc-cifra b{display:block;margin-top:2px;font:600 20px/1.2 Jost,system-ui,sans-serif;color:var(--las-lago);overflow-wrap:anywhere}',
+      /* Cifra e importe NUNCA parten línea (15-oct-2026, owner: «se amontonan los números»). Antes: rejilla de 130 px por
+         cifra + `overflow-wrap:anywhere`, que partía «69.000 / EUR» en la columna lateral y empujaba la tarjeta. Ahora cada
+         cifra mide lo que su importe y baja a la línea siguiente cuando no cabe; en una caja muy estrecha la letra baja. */
+      '.lwc-cifras{display:flex;flex-wrap:wrap;gap:18px 24px;container-type:inline-size}',
+      '.lwc-cifra{flex:1 1 auto;min-width:0}',
+      '.lwc-cifra b{display:block;margin-top:2px;font:600 20px/1.2 Jost,system-ui,sans-serif;color:var(--las-lago);white-space:nowrap;font-variant-numeric:tabular-nums}',
+      '@container (max-width:230px){.lwc-cifra b{font-size:17px}}',
       '.lwc-cifra b .lwc-tag{font-size:13px}',
       '.lwc-cifra small{display:block;margin-top:2px;font-size:11px;color:#a8a29e}',
       '.lwc-paso{background:#F2F8F8;border-color:#CFE3E3;color:#104C4F}',
@@ -814,7 +857,8 @@
       '.lwc-split{grid-template-columns:minmax(260px,34%) minmax(0,1fr);grid-template-rows:repeat(var(--lwc-filas,1),auto)}',
       '.lwc-split > *{grid-column:2}',
       '.lwc-split > .lwc-ladocol{grid-column:1;grid-row:1/-1;align-self:start;position:sticky;top:0;display:grid;gap:20px;min-width:0}',
-      '.lwc-ladocol .lwc-sec > div{grid-template-columns:1fr}',
+      // minmax(0,1fr) y no 1fr (15-oct-2026): `1fr` es minmax(auto,1fr) y la pista crecía hasta lo más ancho de dentro (una tabla), sacando de la tarjeta el texto y las cifras
+      '.lwc-ladocol .lwc-sec > div{grid-template-columns:minmax(0,1fr)}',
       '@media (max-width:1279px){.lwc-split{grid-template-columns:minmax(0,1fr);grid-template-rows:none}.lwc-split > *,.lwc-split > .lwc-ladocol{grid-column:auto;grid-row:auto;position:static}}',
       '@media (max-width:640px){.lwc-cuerpo{padding:20px}.lwc-sec{padding:18px}.lwc-sec > div{grid-template-columns:1fr}#lw-cajon .las-pie > .lwc-peligro{margin-right:0}}'
     ].join('\n');
@@ -1286,7 +1330,9 @@
       if (abierto) selCierra(rel);
     } else if (e.key.length === 1 && /\S/.test(e.key)) {
       clearTimeout(selBuscaT); selBusca += e.key.toLowerCase(); selBuscaT = setTimeout(function () { selBusca = ''; }, 600);
-      var hit = ops.filter(function (x) { return x.textContent.trim().toLowerCase().indexOf(selBusca) === 0; })[0];
+      var pre = lwNormaliza(selBusca);   // teclear «e» salta a «España» igual que a «Estonia» (vocabulario.js, 15-oct)
+      // Una tecla que se pliega a nada (apostrofo, guion, punto volado) no salta: el vacio casaria con la primera opcion.
+      var hit = pre && ops.filter(function (x) { return lwNormaliza(x.textContent).indexOf(pre) === 0; })[0];
       if (hit) { if (!abierto) selAbre(rel); selMarca(lista, hit); }
     }
   });
@@ -1500,6 +1546,7 @@
      HTML ya escapado: el texto entra crudo y sale seguro. `html:1` en `dato`
      es la unica puerta para meter marcado (una etiqueta de estado, un
      enlace), y quien la usa escapa el mismo. */
+  var ES_IMPORTE = /^-?[\d.,]+(?: |&nbsp;| )[A-Z]{3}$/;
   var CAJON_HTML = {
     // Bloque del alta. `> h4` y `> div` son ganchos de datos.js (retitular,
     // rellenar después): la estructura section > h4 + div no se cambia.
@@ -1511,10 +1558,17 @@
       var v = (valor == null || valor === '') ? '<span class="lwc-apagado">—</span>' : ((opts && opts.html) ? valor : esc(valor));
       return '<div class="lwc-dato"><span class="las-etq">' + esc(tS(etq)) + '</span><span class="lwc-val">' + v + '</span></div>';
     },
-    tabla: function (cabeceras, filas) {
-      return '<div class="lwc-tabla-caja"><table class="lwc-tabla"><thead><tr>' +
-        cabeceras.map(function (h) { return '<th>' + esc(tS(h)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
-        filas.map(function (f) { return '<tr>' + f.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') +
+    // `opts.apila`: tabla de cifras que en estrecho pasa a tarjetas (cada celda lleva su rótulo en data-th; CSS `.lwc-apila`)
+    tabla: function (cabeceras, filas, opts) {
+      var apila = !!(opts && opts.apila);
+      var rot = cabeceras.map(function (h) { return esc(tS(h)); });
+      return '<div class="lwc-tabla-caja' + (apila ? ' lwc-apila' : '') + '"><table class="lwc-tabla"><thead><tr>' +
+        rot.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        filas.map(function (f) { return '<tr>' + f.map(function (c, i) {
+          // una celda que es SOLO un importe («1.250.000 EUR», lo que da fmt) no parte línea en ninguna tabla del cajón
+          var num = typeof c === 'string' && ES_IMPORTE.test(c);
+          return '<td' + (num ? ' class="lwc-num"' : '') + (apila ? ' data-th="' + (rot[i] || '') + '"' : '') + '>' + c + '</td>';
+        }).join('') + '</tr>'; }).join('') +
         '</tbody></table></div>';
     },
     tag: function (texto, tono) {
@@ -3461,14 +3515,33 @@
     var bMail = btn('Enviar por email', function () { enviaDocMail(ctx.sb, ctx.getVals(), ctx.saved, ctx.alEnviado); });
     var bRec = ctx.esRecibi ? null : btn('Crear recibí', function () { creaRecibiDesdeDoc(ctx.saved); });
     var bReg = btn('📨 Registro', function () { registroEnviosDoc(ctx.sb, ctx.saved); });
+    /* Cambios sin guardar (14-oct-2026, punto 3 de la revisión de Contratos y Facturas): el PDF y el correo salen de lo que
+       hay en el formulario; con una línea cambiada y sin guardar, el cliente recibía el número real con otro importe y quedaba
+       archivado como enviado. Se compara con lo GUARDADO (el total de la fila y, en la factura, sus líneas: concepto e importe)
+       y, si difiere, los dos se apagan hasta guardar. No se compara con «lo que había al abrir»: la barra se monta antes que
+       los campos y el contrato se recarga después. El arreglo de fondo (el PDF del correo hecho en el servidor desde la fila
+       guardada) va aparte: LAW-354, edge send-contract-email pintando desde la fila. En un documento de SOLO LECTURA no se
+       calcula (15-oct, revisor): no se puede guardar nada, y una factura vieja con el total calculado antes del 26-sep
+       apagaba PDF y correo para siempre. */
+    function firmaLineas(ls) {
+      return JSON.stringify((ls || []).map(function (l) {
+        return [String((l && l.descripcion) || '').trim(), Number(lwParseImporte(l && l.importe)) || 0];
+      }));
+    }
     function repasa() {
       var vals = ctx.getVals(), total = totalDoc(vals), num = !!(ctx.saved && ctx.saved.numero);
-      razon(bPdf, total > 0 && num, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
-        : 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
+      var sucio = num && !ctx.soloLectura && (
+        (ctx.totalGuardado != null && Math.abs((Number(total) || 0) - (Number(ctx.totalGuardado) || 0)) > 0.005) ||
+        (ctx.monedaGuardada != null && String(vals.moneda || '') !== String(ctx.monedaGuardada)) ||
+        (Array.isArray(ctx.lineasGuardadas) && firmaLineas(vals.lineas) !== firmaLineas(ctx.lineasGuardadas)));
+      razon(bPdf, total > 0 && num && !sucio, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
+        : !num ? 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.'
+        : 'Tienes cambios sin guardar: guarda antes, para que el PDF salga igual que lo guardado.');
       var anulada = !!(ctx.saved && ctx.saved.anulada);   // LAW-37: un anulado no se ofrece enviar
-      razon(bMail, !anulada && total > 0 && num, anulada ? 'Este documento está anulado: no se envía al cliente. Desde su ficha se puede emitir una copia.'
+      razon(bMail, !anulada && total > 0 && num && !sucio, anulada ? 'Este documento está anulado: no se envía al cliente. Desde su ficha se puede emitir una copia.'
         : !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
-        : 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.');
+        : !num ? 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.'
+        : 'Tienes cambios sin guardar: guarda antes de enviar, o el cliente recibiría importes distintos de los guardados.');
       razon(bRec, vals.tipo === 'factura' && num, vals.tipo !== 'factura' ? 'Solo se crea un recibí a partir de una factura.' : 'Guarda primero esta factura.');
       bReg.style.display = (ctx.saved && ctx.saved.id) ? '' : 'none';
     }
@@ -3841,7 +3914,7 @@
           listaContratosLigeraDoc(sb),
           esEdicion
             // emitida_en / rectifica_id: solo existen en el ERP maestro (serie fiscal, AXW-39)
-            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos' + (window.AXW_NUCLEO_OPERACION ? ',emitida_en,rectifica_id' : '')).eq('id', pre.id).maybeSingle()
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos' + (window.AXW_NUCLEO_OPERACION ? ',emitida_en,rectifica_id' : '')).eq('id', pre.id).maybeSingle()
             : pre.copia_de
               // la anulada pudo emitirla otro del equipo: facturas_equipo, rpc + eq, sin order
               ? sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,client_id,datos').eq('id', pre.copia_de).maybeSingle()
@@ -3948,7 +4021,11 @@
           // Sobre un documento NUEVO todos explican que primero hay que
           // emitir: las acciones reales llegan en el visor que abre «Emitir».
           repasaBarra = montaBarraDoc(piezas, {
-            sb: sb, getVals: recogeVals, esRecibi: false,
+            sb: sb, getVals: recogeVals, esRecibi: false, soloLectura: !!pre.soloLectura,
+            // lo guardado, para apagar PDF y correo con cambios sin guardar (14-oct-2026)
+            totalGuardado: existente ? existente.total : null,   // `total` en el select (15-oct, revisor: sin él no se comparaba)
+            lineasGuardadas: existente && existente.datos && Array.isArray(existente.datos.lineas) ? existente.datos.lineas : null,
+            monedaGuardada: existente && existente.datos && existente.datos.fields ? (existente.datos.fields.moneda || null) : null,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: existente.tipo, contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor, anulada: !!existente.anulada }
@@ -4276,7 +4353,9 @@
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
           listaContratosLigeraDoc(sb),
           esEdicion
-            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos,justificantes').eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos,justificantes' +
+                // LAW-40 (fallo 1, 14-oct-2026): la marca de histórico sin justificante, solo en Lawang (el maestro no tiene la columna)
+                (window.AXW_NUCLEO_OPERACION ? '' : ',historico_sin_justificante')).eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
             : Promise.resolve({ data: null }),
           reglaContratoDoc(sb)
         ]);
@@ -4313,6 +4392,15 @@
         };
         // ¿Ya se sabe de quién es el cobro? Por contrato, o por cliente en el modo sin contrato.
         function hayOrigen() { return !!(estadoContrato.id || (estadoContrato.sinContrato && estadoContrato.clienteId)); }
+        /* Recibí histórico sin justificante (LAW-40) que todavía se libra de adjuntarlo: el mismo límite que guardar_recibi
+           (Seguridad, 15-oct-2026): la marca, ningún justificante guardado y su propio contrato. Si ya lo tuvo, o se lleva a
+           una factura de otro contrato (eso cambia estadoContrato.id), se pide como a cualquier recibí. El servidor manda:
+           esto solo evita que el usuario se entere por su error. */
+        function histSinJustExento() {
+          return !!(existente && existente.historico_sin_justificante
+            && !(Array.isArray(existente.justificantes) && existente.justificantes.length)
+            && existente.contrato_id && estadoContrato.id === existente.contrato_id);
+        }
         var aplicaciones = [];   // [{factura_id, numero, pendiente, importe}]
         var facturasAbiertasCache = [], facturasOtraMoneda = 0, delC = null;
         var getJustificantes = null;
@@ -4418,7 +4506,9 @@
           // Barra de la previa del clásico (22-sep-2026): PDF, email y
           // registro; «Crear recibí» no, que de un recibí no sale otro.
           repasaBarra = montaBarraDoc(piezas, {
-            sb: sb, getVals: recogeVals, esRecibi: true,
+            sb: sb, getVals: recogeVals, esRecibi: true, soloLectura: !!pre.soloLectura,
+            // lo guardado, para apagar PDF y correo con cambios sin guardar (14-oct-2026): en un recibí, su total
+            totalGuardado: existente ? existente.total : null,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: 'recibi', contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor, anulada: !!existente.anulada }
@@ -4720,13 +4810,14 @@
           btnAdd.addEventListener('click', abreBuscador);
           repinta();
 
-          var secJust = seccionFijaDoc(host, 'Justificante de pago (obligatorio)');
+          /* Un recibí histórico sin justificante (LAW-40) no lo exige si se guarda con su mismo importe (15-oct-2026): el
+             rótulo no dice «obligatorio» ahí. Manda guardar_recibi, que mira la marca y el total de la fila guardada. */
+          var esHistSinJust = histSinJustExento();
+          var secJust = seccionFijaDoc(host, esHistSinJust ? 'Justificante de pago (histórico: no se exige si no cambia el importe)' : 'Justificante de pago (obligatorio)');
           getJustificantes = montaJustificantesDoc(secJust, sb, existente && Array.isArray(existente.justificantes) ? existente.justificantes : []);
 
-          var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', false);
-          campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
-          campoSimpleDoc(secImp, { k: 'imp_pct', label: 'Impuesto — porcentaje', valor: f0.imp_pct || '' });
-
+          /* Sin «Impuesto» (14-oct-2026, bloque A3): el total guardado de un recibí no lo sumaba y el papel sí; un recibí
+             cobra lo que salda sus facturas. guardar_recibi quita imp_pct e imp_etiqueta aunque lleguen. */
           var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', false);
           campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
 
@@ -4740,7 +4831,8 @@
             if (!aplicaciones.length) return { error: { message: 'Elige al menos una factura que salde este recibí.' } };
             if (!v.sociedad) return { error: { message: 'Falta «Sociedad que cobra».' } };
             var justificantes = getJustificantes ? getJustificantes() : [];
-            if (!justificantes.length) return { error: { message: 'Adjunta el justificante de pago.' } };
+            // un recibí histórico (LAW-40) se guarda sin justificante; la marca la mira también guardar_recibi en la fila guardada
+            if (!justificantes.length && !histSinJustExento()) return { error: { message: 'Adjunta el justificante de pago.' } };
             for (var i = 0; i < aplicaciones.length; i++) {
               var imp = lwParseImporte(aplicaciones[i].importe);
               if (!imp || imp <= 0) return { error: { message: tH('Falta el importe aplicado a %n', { n: aplicaciones[i].numero }) } };
@@ -4754,6 +4846,9 @@
             d.proyecto_nombre = v.proyecto_nombre || estadoContrato.proyectoNombre;
             d.contrato_numero = estadoContrato.numero;
             var t = calcTotales(lineas, d.moneda, {});
+            // el histórico sin justificante solo se guarda con su mismo importe (guardar_recibi lo exige igual, 15-oct-2026)
+            if (!justificantes.length && Math.abs((Number(existente.total) || 0) - (Number(t.total) || 0)) > 0.005)
+              return { error: { message: 'Este recibí histórico no tiene justificante: solo se puede aplicar por su importe guardado. Para cambiar el importe, adjunta el justificante.' } };
             var pFactura = {
               sociedad: d.sociedad, cliente_nombre: d.cliente_nombre || null, proyecto_nombre: d.proyecto_nombre || null,
               contrato_numero: d.contrato_numero || null, contrato_id: estadoContrato.id,
@@ -5479,7 +5574,7 @@
           // — mismo patrón que ya usa el resto de esta pantalla más abajo
           // (`facturas_equipo` en el `Promise.all` principal).
           sb.rpc('contratos_equipo').select('id,proyecto_nombre'),
-          sb.rpc('facturas_equipo').select('id,proyecto_nombre')
+          sb.rpc('facturas_equipo').select('id,proyecto_nombre,proyecto_id')
         ]).then(function (rs) {
           /* Sin el radio de impacto NO se pide confirmar (B10a): antes un conteo que fallaba daba 0 y el diálogo
              decía «No hay nada vinculado» sobre un proyecto lleno. Falla en voz alta y no renombra. */
@@ -5491,7 +5586,11 @@
           var v = rs[0].data || {};
           var uds = v.unidades || 0;
           var con = (rs[1].data || []).filter(function (c) { return c.proyecto_nombre === p.nombre; }).length;
-          var fac = (rs[2].data || []).filter(function (f) { return f.proyecto_nombre === p.nombre; }).length;
+          // «<proyecto> — <parcela>» de ese proyecto también se renombra (lo hace trg_proyecto_renombrado por proyecto_id): se cuenta
+          var fac = (rs[2].data || []).filter(function (f) {
+            return f.proyecto_nombre === p.nombre ||
+              (p.id && f.proyecto_id === p.id && String(f.proyecto_nombre || '').indexOf(p.nombre + ' ') === 0);
+          }).length;
           var doc = v.documentos || 0, mod = v.modelos_villa || 0;
           var radio = [
             uds ? uds + ' unidad(es)' : '', con ? con + ' contrato(s)' : '',

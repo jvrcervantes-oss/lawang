@@ -14,7 +14,7 @@ ok(ini > 0, 'no se encuentra el bloque que comprueba la factura antes de enviar'
 const fin = src.indexOf('\n    }\n', ini);
 const bloque = src.slice(ini, fin + 6);
 const corre = new Function('usuario', 'json', 'facturaId',
-  'return (async () => {\n' + bloque + '\n  return "sigue";\n})();');
+  'return (async () => {\n  let filaFactura = null;\n' + bloque + '\n  return "sigue";\n})();');
 const base = (fila, error = null) => {
   const pedido = {};
   return { pedido, usuario: { from(t) { pedido.tabla = t; return {
@@ -27,7 +27,8 @@ const json = (o, s = 200) => ({ o, s });
     const r = await corre(b.usuario, json, 'f1');
     ok(r && r.s === 409 && r.o.ok === false && r.o.codigo === 'documento_anulado', 'anulada: 409 documento_anulado');
     ok(/anulado/.test(r.o.error) && !/_/.test(r.o.error), 'el error es una frase para la pantalla, no un código');
-    ok(/\banulada\b/.test(b.pedido.cols) && b.pedido.tabla === 'facturas', 'lee `anulada` en la MISMA consulta (con la sesión del usuario)'); }
+    // 15-oct (#350): la fila se lee ENTERA (`*`), porque de ella sale también el papel; `anulada` va dentro
+    ok((b.pedido.cols === '*' || /\banulada\b/.test(b.pedido.cols)) && b.pedido.tabla === 'facturas', 'lee `anulada` en la MISMA consulta (con la sesión del usuario)'); }
   ok((await corre(base({ id: 'f1', anulada: false }).usuario, json, 'f1')) === 'sigue', 'no anulada: sigue al envío');
   ok((await corre(base({ id: 'f1', anulada: null }).usuario, json, 'f1')) === 'sigue', 'anulada nula (histórico): sigue, como antes');
   { const r = await corre(base(null).usuario, json, 'f1'); ok(r.s === 403 && r.o.error === 'factura_no_visible', 'no visible: el 403 de siempre, sin decir si está anulada'); }

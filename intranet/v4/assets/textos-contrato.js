@@ -151,7 +151,7 @@
     papel.addEventListener('scroll', function () { if (pendiente) return; pendiente = true; window.requestAnimationFrame(function () { pendiente = false; marcaIndiceActivo(); }); });
     $('tc-buscar').addEventListener('input', function () {
       if (!commitEdicion()) return;
-      E.filtro = this.value.trim().toLowerCase(); E.hi = 0; pintaDocumento(false); if (E.hits.length) { E.hi = -1; irAHit(1); }
+      E.filtro = this.value.trim(); E.hi = 0; /* se compara sin tildes ni mayúsculas: lwBusca / lwCoincidencias, vocabulario.js (15-oct) */ pintaDocumento(false); if (E.hits.length) { E.hi = -1; irAHit(1); }
     });
     $('tc-f-cambios').addEventListener('change', function () { if (commitEdicion()) pintaDocumento(false); else this.checked = !this.checked; });
     $('tc-f-sin-sens').addEventListener('change', function () { if (commitEdicion()) pintaDocumento(false); else this.checked = !this.checked; });
@@ -412,16 +412,16 @@
     var lab = etiqueta(k), ej = TC.muestra(k, E.cxEj), s = el('span', 'tc-marca', lab);
     s.setAttribute('data-tc-marca', k); s.setAttribute('contenteditable', 'false'); s.tabIndex = 0; s.setAttribute('data-ej', ej);
     s.setAttribute('aria-label', lab + '. ' + T('Campo que se rellena solo al emitir el contrato. Ejemplo: ') + ej);
-    if (q && lab.toLowerCase().indexOf(q) !== -1) s.classList.add('tc-marca-hit');
+    if (q && lwBusca(lab, q)) s.classList.add('tc-marca-hit');
     return s;
   }
   function resalta(nodo, v, q) {
     if (!q) { nodo.appendChild(nodoTexto(v)); return; }
-    var low = v.toLowerCase(), i = 0, j;
-    while ((j = low.indexOf(q, i)) !== -1) {
-      if (j > i) nodo.appendChild(nodoTexto(v.slice(i, j)));
-      nodo.appendChild(el('mark', null, v.slice(j, j + q.length))); i = j + q.length;
-    }
+    var i = 0;
+    lwCoincidencias(v, q).forEach(function (r) {   // posiciones en el texto original: el <mark> conserva la tilde que se ve
+      if (r[0] > i) nodo.appendChild(nodoTexto(v.slice(i, r[0])));
+      nodo.appendChild(el('mark', null, v.slice(r[0], r[1]))); i = r[1];
+    });
     if (i < v.length) nodo.appendChild(nodoTexto(v.slice(i)));
   }
   function rellena(nodo, txt, q) {
@@ -540,7 +540,7 @@
   /* ── buscar: «3 de 12» ───────────────────────────────────────────────────────────────────────────────────────────────────────── */
   function buscaHits() {
     var q = E.filtro; E.hits = [];
-    if (q) E.pars.filter(pasaFiltros).forEach(function (p) { if (p.vis.toLowerCase().indexOf(q) !== -1) E.hits.push(p.key); });
+    if (q) E.pars.filter(pasaFiltros).forEach(function (p) { if (lwBusca(p.vis, q)) E.hits.push(p.key); });
     if (E.hi >= E.hits.length) E.hi = 0;
   }
   function pintaContador() {

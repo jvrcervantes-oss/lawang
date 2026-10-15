@@ -1097,6 +1097,9 @@
        concatena después; sin él la frase en inglés quedaría sin puntuación. */
     'No se pudo guardar: ': 'Could not save: ',
     'No se pudo guardar:': 'Could not save:',
+    'Revisa este campo': 'Check this field',
+    'Tienes cambios sin guardar: guarda antes, para que el PDF salga igual que lo guardado.': 'You have unsaved changes: save first, so the PDF matches what is saved.',
+    'Tienes cambios sin guardar: guarda antes de enviar, o el cliente recibiría importes distintos de los guardados.': 'You have unsaved changes: save before sending, or the client would receive amounts different from the saved ones.',
     'No se pudo borrar: ': 'Could not delete: ',
     'No se pudo borrar:': 'Could not delete:',
     'No se pudo enviar: ': 'Could not send: ',
@@ -2727,6 +2730,8 @@
     'Lo que se ha cobrado': 'What has been collected',
     'Importe cobrado': 'Amount collected',
     'Justificante de pago (obligatorio)': 'Proof of payment (required)',
+    'Justificante de pago (histórico: no se exige si no cambia el importe)': 'Proof of payment (historical: not required if the amount does not change)',
+    'Este recibí histórico no tiene justificante: solo se puede aplicar por su importe guardado. Para cambiar el importe, adjunta el justificante.': 'This historical receipt has no proof of payment: it can only be applied for its saved amount. To change the amount, attach the proof of payment.',
     'Adjunta el justificante de pago': 'Attach the proof of payment',
     'Sin justificante': 'No proof of payment',
     'Histórico': 'Historical',
@@ -2839,6 +2844,16 @@
     'Este documento está anulado: no se envía al cliente. Si hace falta, emite otro.':
       'This document is voided: it is not sent to the client. If needed, issue a new one.',
     'Este documento está anulado: no se envía al cliente.': 'This document is voided: it is not sent to the client.',
+    // Papel del correo compuesto en el servidor desde la fila (15-oct-2026): frases nuevas de los 409 de send-contract-email
+    // (la pantalla las pasa por edT). Solo ES/EN: la suite no tiene interfaz en indonesio.
+    'Este documento no cuadra con lo que hay guardado y no se envía. Ábrelo, revísalo, guárdalo de nuevo y vuelve a enviarlo.':
+      'This document does not match what is saved and is not sent. Open it, check it, save it again and send it again.',
+    'La empresa que figura en este documento no es la de su ficha: no se envía. Avisa al administrador.':
+      'The company shown on this document is not the one in its record: it is not sent. Tell the administrator.',
+    'La empresa emisora de este documento ya no está dada de alta: no se envía. Avisa al administrador.':
+      'The issuing company of this document is no longer registered: it is not sent. Tell the administrator.',
+    'La cuenta de cobro de este documento no está dada de alta o no está verificada: no se envía. Elige una cuenta verificada, guarda y vuelve a enviar.':
+      'The payment account on this document is not registered or not verified: it is not sent. Choose a verified account, save and send again.',
     'Este PDF pesa más de 25 MB y no se puede mandar por correo. Se entrega por el portal del comprador (o desde la intranet, si es para el estudio).':
       'This PDF is over 25 MB and cannot be sent by email. It is delivered through the buyer portal (or from the intranet, if it is for the studio).',
     'Guarda el documento para ver su registro': 'Save the document to see its log',
@@ -4784,6 +4799,19 @@
     'No se han podido leer los proyectos. Recarga la página.': 'Could not read the projects. Reload the page.',
     'No se han podido leer los techos de este modelo: se elige en el editor.': 'Could not read this model\'s roofs: choose it in the editor.',
     'No tienes ningún proyecto asignado. Pídeselo a un administrador.': 'You have no project assigned. Ask an administrator.',
+    /* Bloque B (14-oct-2026): borrar con cobros, cerrar firmado a mano y anular lo cobrado o enviado, solo admin de la empresa */
+    'Borrar una operación exige la herramienta Contratos: pídesela a un administrador en Usuarios.': 'Deleting a deal requires the Contracts tool: ask an administrator for it in Users.',
+    'Esta operación tiene un recibí vigente o un documento ya enviado al cliente: solo la puede borrar un administrador de su empresa. Pídeselo a un administrador.':
+      'This deal has a valid receipt or a document already sent to the client: only an administrator of its company can delete it. Ask an administrator.',
+    'Solo un administrador de la empresa puede anular un recibí o un documento ya enviado al cliente.': 'Only an administrator of the company can void a receipt or a document already sent to the client.',
+    'Solo un administrador de la empresa del contrato puede cerrarlo como firmado a mano. Pídeselo a un administrador.':
+      'Only an administrator of the contract\'s company can close it as signed by hand. Ask an administrator.',
+    'Ese contrato no existe o no tienes acceso a él.': 'That contract does not exist or you have no access to it.',
+    'El contrato ya está cerrado: recarga la página.': 'The contract is already closed: reload the page.',
+    'Este contrato ya tuvo un PDF firmado: lo firmado no se pisa.': 'This contract already had a signed PDF: what is signed is never overwritten.',
+    'El PDF no ha llegado al almacén: vuelve a subirlo.': 'The PDF did not reach storage: upload it again.',
+    'El archivo subido no es un PDF válido.': 'The uploaded file is not a valid PDF.',
+    'No se pudo preparar la subida: vuelve a intentarlo.': 'Could not prepare the upload: try again.',
     'Nombre, email o pasaporte…': 'Name, email or passport…',
     'Nuevo contrato': 'New contract',
     'Nuevo o existente': 'New or existing',
@@ -5715,6 +5743,10 @@
     'No se pudo leer la ficha completa: se enseña lo que hay en el listado.': 'Could not read the full record: showing what the list has.',
     'El editor aún no ha cargado — prueba de nuevo en un segundo.': 'The editor has not loaded yet — try again in a second.',
     'Esta persona tiene %n contratos en total; aquí ves %m.': 'This person has %n contracts in total; you see %m here.',
+    // «Ficha ≠» de un cliente, en su ficha (15-oct-2026)
+    '%n documento(s) sin cerrar dicen algo distinto de esta ficha: ábrelos y trae los datos de la ficha para ponerlos al día.': '%n open document(s) say something different from this record: open them and bring in the record\'s details to update them.',
+    '%n documento(s) ya cerrados (firmados, enviados o anulados) dicen algo distinto de esta ficha. No se tocan: si el dato importa, se reemiten.': '%n closed document(s) (signed, sent or cancelled) say something different from this record. They are not edited: if the detail matters, they are reissued.',
+    'No se ha podido comprobar si sus contratos y facturas dicen lo mismo que esta ficha.': 'Could not check whether their contracts and invoices match this record.',
     'Sus contratos están en monedas distintas (%l): no hay una sola cifra. El detalle por contrato está arriba.': 'Their contracts are in different currencies (%l): there is no single figure. The detail per contract is above.',
     'Solo tiene Carta(s) de Reserva: el precio final de la villa lo fija el contrato que la sustituya. Lo exigible hoy es la cuota de reserva.': 'Only has Reservation Letter(s): the final villa price is set by the contract that replaces it. What is due today is the reservation fee.',
     'El precio no cuenta las Cartas de Reserva.': 'The price does not include Reservation Letters.',

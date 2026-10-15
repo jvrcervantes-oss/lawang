@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="17df6f80b239">
+<meta name="lw-version" content="6bc7cae608f1">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=eae1c35b"></script>
+<script src="/contracts/assets/i18n.js?v=0a68fa2e"></script>
 <script src="/contracts/assets/herramientas.js?v=b3b6465e"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -64,9 +64,9 @@
 <script src="assets/entities.js?v=65021341"></script>
 <script src="assets/geo.js?v=cc6b09b2"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
-<script src="assets/vocabulario.js?v=fd814f9b"></script>
+<script src="assets/vocabulario.js?v=10909e19"></script>
 <script src="assets/dinero.js?v=3a926fda"></script>
-<script src="assets/dialogo.js?v=06451b87"></script>
+<script src="assets/dialogo.js?v=0c18d745"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
      la operación tiene que decir lo mismo en las dos herramientas (19-ago-2026). -->
 <script src="assets/compradores.js?v=be8f79e8"></script>
@@ -113,8 +113,8 @@
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=34a3a0a1"></script>
-<script src="/intranet/v4/assets/nav.js?v=bf48e732" defer></script>
+<script src="/contracts/assets/asistente-contrato.js?v=1aef8254"></script>
+<script src="/intranet/v4/assets/nav.js?v=ba6e0c78" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -4485,7 +4485,12 @@ function pintaAcciones(){
                             && plantillasOfrecidas().some(t => t.slug === 'ppjb_construccion'),
                           guardado ? '' : sinGuardar],
     ['btnEnviarFirma',    !!tipo, guardado ? cerrado : sinGuardar],
-    ['btnLockUpload',     !!tipo, guardado ? (cerrado || (PDF_SALIO ? '' : pdfNoSalio)) : sinGuardar],
+    /* «Subir firmado» = cerrar como firmado a mano: desde el 14-oct-2026 (owner, bloque B) solo un admin de la empresa del
+       contrato (agente_escribe_fichero_contrato → es_admin_de). Por el ROL se oculta (regla doble, LAW-51 p.5): a quien no es
+       admin de ninguna empresa no se le ofrece. Un admin de OTRA empresa lo sigue viendo —esta ficha no trae sus empresas— y
+       la base se lo niega con su motivo (ver mensajes de subirPdfFirmado). Sin ficha legible se ofrece: decide la base. */
+    ['btnLockUpload',     !!tipo && (!MI_FICHA || LW_ROL.esAdmin(MI_FICHA)),
+                          guardado ? (cerrado || (PDF_SALIO ? '' : pdfNoSalio)) : sinGuardar],
     ['btnFacturar',       true,   guardado ? '' : sinGuardar],
     ['btnRegistro',       true,   guardado ? '' : lwT('Aún no hay registro: el contrato no está guardado')],
     ['btnDownloadSigned', true,   (LOCKED && LOCKED_PDF_PATH) ? '' : lwT('Aún no hay PDF firmado')],
@@ -4935,6 +4940,22 @@ function updateSaveButton(){
   aplicarEstadoFirma();
 }
 
+/* Los códigos de la edge ficheros-contrato (pdf_manual_url / cierra_manual) en llano (14-oct-2026, bloque B). Antes se pintaba
+   el código crudo («sin_permiso_sobre_este_contrato»). Al llegar a ese código la edge ya comprobó que el contrato se ve y no
+   está cerrado: lo que falla es ser admin de su empresa. Lo que no está aquí (un error de Storage, de red) sale tal cual. */
+const CIERRE_MANUAL_MOTIVO = {
+  sin_permiso_sobre_este_contrato: 'Solo un administrador de la empresa del contrato puede cerrarlo como firmado a mano. Pídeselo a un administrador.',
+  contrato_no_visible: 'Ese contrato no existe o no tienes acceso a él.',
+  contrato_ya_cerrado: 'El contrato ya está cerrado: recarga la página.',
+  ya_tiene_pdf_firmado: 'Este contrato ya tuvo un PDF firmado: lo firmado no se pisa.',
+  falta_el_pdf: 'El PDF no ha llegado al almacén: vuelve a subirlo.',
+  no_es_un_pdf: 'El archivo subido no es un PDF válido.',
+  no_se_pudo_preparar_la_subida: 'No se pudo preparar la subida: vuelve a intentarlo.',
+};
+function motivoCierreManual(err){
+  const m = String((err && err.message) || err || '');
+  return CIERRE_MANUAL_MOTIVO[m] ? lwT(CIERRE_MANUAL_MOTIVO[m]) : m;
+}
 async function subirPdfFirmado(file){
   if(!sb || !SAVED_CONTRACT){ toastMal(lwT('Guarda el contrato antes de subir el firmado')); return; }
   if(file.type!=='application/pdf'){ toastMal(lwT('El archivo debe ser un PDF')); return; }
@@ -4963,7 +4984,7 @@ async function subirPdfFirmado(file){
     if(typeof refreshFormaPago === 'function') refreshFormaPago();   // tarjetas cerradas y con su aviso de firmado
     updateSaveButton();
     cerrado = true;
-  }catch(err){ toastMal(lwT('No se pudo bloquear: ') + (err.message || err)); }
+  }catch(err){ toastMal(lwT('No se pudo bloquear: ') + motivoCierreManual(err)); }
   // Ni `disabled=false` a mano: con el contrato ya bloqueado eso volvía a
   // ofrecer «Subir firmado» y un segundo clic pisaba el PDF firmado del bucket
   // (consulta de deploy 74c1cdd6). Lo decide pintaAcciones(), como todo.

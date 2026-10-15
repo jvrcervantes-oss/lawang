@@ -231,7 +231,7 @@
      motion.js anima el primer lote que pinte su script (modo tardío). Con
      «reducir movimiento» en el sistema, ni marca ni motion.js. MOTION_V = 8 primeros del sha1 de
      motion.js con fin de línea LF (lo desplegado): nav.test.js falla si no casan, porque sella_assets no lo sella. */
-  var MOTION_V = '114a104b';
+  var MOTION_V = '92fedc21';
   (function () {
     try {
       /* Solo en /intranet/v4/ (27-sep-2026): la entrada anima `main` cuando datos.js
@@ -1053,7 +1053,7 @@
       return out;
     }
     function nombre(a) { var s = a.querySelectorAll('span'); return normaliza((s[1] || a).textContent); }
-    function sinTildes(t) { return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+    function sinTildes(t) { return lwNormaliza(t); }   // la pieza comun (contracts/assets/vocabulario.js, 15-oct)
     function cierra() { if (caja) { caja.remove(); caja = null; document.removeEventListener('click', fuera, true); } }
     function fuera(ev) { if (caja && !caja.contains(ev.target) && !lupa.contains(ev.target)) cierra(); }
     function abre() {
@@ -1073,7 +1073,7 @@
       function pinta() {
         var q = sinTildes(inp.value.trim());
         lista.innerHTML = '';
-        var hay = enlaces().filter(function (a) { return !q || sinTildes(a.nombre).indexOf(q) !== -1 || (a.alias && sinTildes(a.alias).indexOf(q) !== -1); });
+        var hay = enlaces().filter(function (a) { return lwBuscaEn([a.nombre, a.alias], q); });
         if (!hay.length) {
           var p = document.createElement('p'); p.textContent = T('Ninguna herramienta con ese nombre.');
           p.style.cssText = 'margin:6px 8px;font:400 13px Jost,system-ui,sans-serif;color:#a8a29e;font-style:italic'; lista.appendChild(p); return;

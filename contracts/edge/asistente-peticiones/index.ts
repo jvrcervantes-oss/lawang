@@ -132,11 +132,13 @@ Deno.serve(async (req) => {
     if (accion === 'editar_comprador' || accion === 'borrar_comprador') {
       const q = s(inp.comprador, 120);
       if (q.length < 2) return json({ tipo: 'no_encontrado', accion, mensaje: 'No dices de qué comprador se trata.' });
-      let consulta = sb.from('clients').select('id, full_name, email, phone').limit(6);
       const digitos = q.replace(/\D/g, '');
-      if (q.includes('@')) consulta = consulta.ilike('email', q);
-      else if (digitos.length >= 6 && digitos.length >= q.replace(/\s/g, '').length - 2) consulta = consulta.ilike('phone', '%' + digitos.slice(-6) + '%');
-      else consulta = consulta.or(`full_name.ilike.%${q.replace(/[%,()*]/g, ' ')}%,passport_number.ilike.${q.replace(/[%,()*]/g, '')}`);
+      // Por nombre o pasaporte, sin tildes (15-oct-2026): clientes_busca normaliza en el servidor (INVOKER: la RLS de quien pide).
+      // Correo y telefono no son texto con tildes: siguen igual.
+      let consulta;
+      if (q.includes('@')) consulta = sb.from('clients').select('id, full_name, email, phone').limit(6).ilike('email', q); // BUSQUEDA A PROPOSITO: correo entero sin mayusculas, como antes
+      else if (digitos.length >= 6 && digitos.length >= q.replace(/\s/g, '').length - 2) consulta = sb.from('clients').select('id, full_name, email, phone').limit(6).ilike('phone', '%' + digitos.slice(-6) + '%'); // BUSQUEDA A PROPOSITO: ultimos 6 digitos del telefono
+      else consulta = sb.rpc('clientes_busca', { p_q: q });
       const { data: cs, error } = await consulta;
       if (error) return json({ error: 'no_se_pudo_buscar' }, 500);
       let nuevos: Json | null = null;
@@ -160,7 +162,7 @@ Deno.serve(async (req) => {
       const q = s(inp.numero, 40).replace(/[%,()*]/g, '');
       if (!q) return json({ tipo: 'no_encontrado', accion, mensaje: 'No dices el número del documento.' });
       const { data: fs, error } = await sb.from('facturas')
-        .select('id, numero, tipo, total, moneda, fecha_emision, cliente_nombre, anulada').ilike('numero', q).limit(5);
+        .select('id, numero, tipo, total, moneda, fecha_emision, cliente_nombre, anulada').ilike('numero', q.replace(/[\\_]/g, '\\$&')).limit(5); // BUSQUEDA A PROPOSITO: numero de documento entero, sin mayusculas y sin comodines
       if (error) return json({ error: 'no_se_pudo_buscar' }, 500);
       const verbo = accion === 'anular_documento' ? 'Anular' : 'Borrar';
       const fmt = (n: unknown) => (typeof n === 'number' ? n.toLocaleString('es-ES') : String(n ?? ''));
@@ -177,7 +179,7 @@ Deno.serve(async (req) => {
     const q = s(inp.contrato, 40).replace(/[%,()*]/g, '');
     if (!q) return json({ tipo: 'no_encontrado', accion, mensaje: 'No dices el número de contrato.' });
     const { data: ks, error } = await sb.from('contratos')
-      .select('id, numero, tipo, comprador_nombre, proyecto_nombre').ilike('numero', q).limit(5);
+      .select('id, numero, tipo, comprador_nombre, proyecto_nombre').ilike('numero', q.replace(/[\\_]/g, '\\$&')).limit(5); // BUSQUEDA A PROPOSITO: numero de contrato entero, sin mayusculas y sin comodines
     if (error) return json({ error: 'no_se_pudo_buscar' }, 500);
     const opciones = (ks ?? []).map((k: Json) => ({
       fila_id: k.id,

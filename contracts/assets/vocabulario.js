@@ -143,21 +143,97 @@ const lwViaCorreo = v => (LW_VIA_CORREO[v] ? vocT(LW_VIA_CORREO[v]) : v) || '—
 
    Vive aqui y no en `suite-comun.js` por el mismo motivo que el resto de este
    fichero: `contracts/app.html` NO puede cargar aquel (su `esc()` local
-   chocaria), y app.html tambien busca. */
-function lwNormaliza(s){
+   chocaria), y app.html tambien busca.
+
+   15-oct-2026, owner: "que no haga falta poner la tilde en los buscadores de
+   Lawang y en todo lo que hagamos". Regla y porque: contexto/patrones_tecnicos.md
+   de la agencia -> "Busqueda sin tildes". lwNormaliza es LA pieza del
+   navegador; en el servidor su gemela es `public.normaliza_busqueda(text)` y
+   aplica EL MISMO algoritmo paso a paso (no unaccent: Idiomas midio 827 de sus
+   1.650 reglas distintas de NFD, 15-oct). Lo prueba contracts/busqueda.test.js
+   con la tabla de casos contracts/busqueda_casos.json, que es tambien la de
+   supabase/pruebas/busqueda_sin_tildes.sql.
+
+   EL ALGORITMO (identico en las dos capas; si se toca uno, se toca el otro):
+     1. NFD y fuera los combinantes U+0300-036F (tildes, dieresis, la virgulilla
+        de la enye: "munoz" encuentra "Munoz" con enye, decision de Idiomas
+        15-oct, porque los teclados ingles e indonesio y la zona MRZ del
+        pasaporte no la tienen).
+     2. Minusculas.
+     3. Letras que NFD no descompone, por lista (LW_PLIEGA_LETRAS), en
+        minuscula y en mayuscula para no depender de la collation de la base.
+     4. Apostrofos y el punto volado catalan se quitan ("obrien" encuentra
+        "O'Brien" escrito con el apostrofo curvo del iPhone; "collell"
+        encuentra el Col-l-ell con punto volado).
+     5. Guiones a espacio, y cualquier racha de espacios (tambien el duro
+        U+00A0 y el estrecho U+202F) a uno solo; recorte de los extremos.
+   Solo para COMPARAR en un buscador: nunca se guarda ni se muestra plegado.
+   Unica excepcion escrita: lwClaveProyecto desempata el orden de proyectos
+   con lwNormaliza (29 proyectos, sin efecto visible).
+   Fuera de alcance a proposito (Idiomas): el orden de las palabras ("maria
+   lopez" no encuentra "Maria Garcia Lopez"), u-dieresis a "ue", ortografia
+   indonesia antigua (Soekarno/Sukarno) y abreviaturas del KTP. */
+const LW_PLIEGA_LETRAS = {
+  'ø':'o', 'Ø':'o', 'æ':'ae', 'Æ':'ae', 'œ':'oe', 'Œ':'oe',
+  'ł':'l', 'Ł':'l', 'đ':'d', 'Đ':'d', 'ð':'d', 'Ð':'d',
+  'þ':'th', 'Þ':'th', 'ħ':'h', 'Ħ':'h', 'ĳ':'ij', 'Ĳ':'ij',
+  'ŀ':'l', 'Ŀ':'l', 'ŋ':'n', 'Ŋ':'n', 'ŧ':'t', 'Ŧ':'t',
+  'ſ':'s', 'ß':'ss', 'ẞ':'ss', 'ı':'i', 'ª':'a', 'º':'o'
+};
+const LW_RE_LETRAS = /[øØæÆœŒłŁđĐðÐþÞħĦĳĲŀĿŋŊŧŦſßẞıªº]/g;
+const LW_RE_FUERA = /['’‘ʼ`´·]/g;                          // apostrofos y punto volado: se quitan
+const LW_RE_ESPACIO = /[-‐‑–— \t\n\r  ]+/g;          // guiones y espacios: uno solo
+/* Pasos 1-5 SIN recortar los extremos: lwCoincidencias lo aplica letra a letra. */
+function lwPliegaTexto(s){
   return String(s == null ? '' : s)
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
-    .trim();
+    .replace(LW_RE_LETRAS, c => LW_PLIEGA_LETRAS[c])
+    .replace(LW_RE_FUERA, '')
+    .replace(LW_RE_ESPACIO, ' ');
 }
-/* `q` ya viene normalizado o no: da igual, se normaliza aqui. Vacio = todo pasa,
-   que es lo que espera un buscador con el campo en blanco. */
+function lwNormaliza(s){
+  return lwPliegaTexto(s).trim();
+}
+/* Donde casa `q` dentro de `texto`, en posiciones del texto ORIGINAL: para
+   resaltar con <mark> sin perder la tilde que se ve (buscar "jose" marca el
+   "Jose" con tilde tal como esta escrito). Normalizar el texto entero y cortar
+   por esas posiciones no vale: la eszett se pliega a dos letras, una tilde
+   suelta o un apostrofo a ninguna y una racha de espacios a uno, asi que las
+   posiciones se corren. Devuelve [[desde, hasta), ...] sin solaparse. */
+function lwCoincidencias(texto, q){
+  const aguja = lwNormaliza(q), out = [];
+  if(!aguja) return out;
+  const s = String(texto == null ? '' : texto);
+  let plano = ''; const origen = [];
+  for(let k = 0; k < s.length; k++){
+    const p = lwPliegaTexto(s[k]);
+    for(let m = 0; m < p.length; m++){
+      if(p[m] === ' ' && plano[plano.length - 1] === ' ') continue;   // la racha de espacios cuenta como uno, igual que en la aguja
+      plano += p[m]; origen.push(k);
+    }
+  }
+  let i = 0, j;
+  while((j = plano.indexOf(aguja, i)) !== -1){
+    let fin = origen[j + aguja.length - 1] + 1;
+    while(fin < s.length && /[̀-ͯ]/.test(s[fin])) fin++;   // solo la tilde SUELTA que va detras de la letra entra en el resaltado
+    const prev = out[out.length - 1];
+    if(!prev || origen[j] >= prev[1]) out.push([origen[j], fin]);   // media eszett ya marcada: no se solapa
+    i = j + aguja.length;
+  }
+  return out;
+}
+/* `q` ya viene normalizado o no: da igual, se normaliza aqui (normalizar dos
+   veces da lo mismo). Vacio = todo pasa, que es lo que espera un buscador con
+   el campo en blanco. Toda comparacion de un buscador pasa por aqui, tambien
+   la de un pajar ya normalizado: si un dia cambia como se casa (p. ej. el
+   orden de las palabras), es una linea. */
 function lwBusca(texto, q){
   const aguja = lwNormaliza(q);
   return !aguja || lwNormaliza(texto).includes(aguja);
 }
-/* Varios campos de una misma fila: «alguno de estos casa». Evita repetir el
+/* Varios campos de una misma fila: "alguno de estos casa". Evita repetir el
    `.some(...)` en once sitios y, sobre todo, evita que uno de los once se
    escriba sin normalizar. */
 function lwBuscaEn(campos, q){
