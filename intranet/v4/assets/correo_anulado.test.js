@@ -39,7 +39,7 @@ ok(/var anulada = !!\(ctx\.saved && ctx\.saved\.anulada\);/.test(ed), 'v4: la ba
 ok((ed.match(/emisor: existente\.datos && existente\.datos\.emisor, anulada: !!existente\.anulada \}/g) || []).length === 2,
    'v4: los dos editores (documento y recibí) pasan anulada a la barra');
 ok(/sb\.from\('facturas'\)\.select\('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,/.test(ed), 'v4: el editor de documento lee anulada');
-ok(/\.eq\('tipo', 'recibi'\)/.test(ed) && /select\('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos,justificantes'\)/.test(ed), 'v4: el editor de recibí lee anulada');
+ok(/\.eq\('tipo', 'recibi'\)/.test(ed) && /select\('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos,justificantes'/.test(ed), 'v4: el editor de recibí lee anulada');
 ok(/facturas_equipo'\)\.select\('id,numero,tipo,contrato_id,cliente_nombre,anulada,datos'\)/.test(ed) && /anulada: !!f\.anulada \} \};/.test(ed),
    'v4: cargaDocGuardado (ficha y visor) lee y pasa anulada');
 ok(/toastMal\(res && res\.error \? edT\(res\.error\)/.test(ed), 'v4: la frase de la edge pasa por lwT');

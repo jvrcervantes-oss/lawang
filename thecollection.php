@@ -1232,7 +1232,7 @@ window.LW_COLECCION_PRELOAD=<?= json_encode(lw_coleccion_para_navegador($doc), J
 </script>
 <?php endif; ?>
 <script src="assets/lawang-card.js?v=20261014134553"></script>
-<script src="/assets/lawang-pie.js?v=20261015095917"></script>
+<script src="/assets/lawang-pie.js?v=20261015113330"></script>
 <script src="assets/portfolio-app.js?v=20261014134553"></script>
 
 <script>

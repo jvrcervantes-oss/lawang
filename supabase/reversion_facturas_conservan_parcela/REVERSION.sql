@@ -1,4 +1,4 @@
--- REVERSION de 20261014220000_facturas_conservan_parcela (14/15-oct-2026): el texto vivo de antes de trg_espejo_proyecto, tal cual
+-- REVERSION de 20261015055003_facturas_conservan_parcela (14/15-oct-2026): el texto vivo de antes de trg_espejo_proyecto, tal cual
 --   (leido del vivo en la sesion 1014-2147, md5 6ddd6fbe892437e14c8d5af6347f196a). Vuelve a pisar la parcela al editar.
 --   renombrar_proyecto ya no lo toca la migracion (2.a version, 15-oct): no hay nada que revertir de ella.
 set local lock_timeout = '5s';

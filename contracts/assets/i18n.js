@@ -2700,6 +2700,8 @@
     'Lo que se ha cobrado': 'What has been collected',
     'Importe cobrado': 'Amount collected',
     'Justificante de pago (obligatorio)': 'Proof of payment (required)',
+    'Justificante de pago (histórico: no se exige si no cambia el importe)': 'Proof of payment (historical: not required if the amount does not change)',
+    'Este recibí histórico no tiene justificante: solo se puede aplicar por su importe guardado. Para cambiar el importe, adjunta el justificante.': 'This historical receipt has no proof of payment: it can only be applied for its saved amount. To change the amount, attach the proof of payment.',
     'Adjunta el justificante de pago': 'Attach the proof of payment',
     'Sin justificante': 'No proof of payment',
     'Histórico': 'Historical',

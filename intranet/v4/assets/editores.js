@@ -4353,7 +4353,9 @@
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
           listaContratosLigeraDoc(sb),
           esEdicion
-            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos,justificantes').eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos,justificantes' +
+                // LAW-40 (fallo 1, 14-oct-2026): la marca de histórico sin justificante, solo en Lawang (el maestro no tiene la columna)
+                (window.AXW_NUCLEO_OPERACION ? '' : ',historico_sin_justificante')).eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
             : Promise.resolve({ data: null }),
           reglaContratoDoc(sb)
         ]);
@@ -4390,6 +4392,15 @@
         };
         // ¿Ya se sabe de quién es el cobro? Por contrato, o por cliente en el modo sin contrato.
         function hayOrigen() { return !!(estadoContrato.id || (estadoContrato.sinContrato && estadoContrato.clienteId)); }
+        /* Recibí histórico sin justificante (LAW-40) que todavía se libra de adjuntarlo: el mismo límite que guardar_recibi
+           (Seguridad, 15-oct-2026): la marca, ningún justificante guardado y su propio contrato. Si ya lo tuvo, o se lleva a
+           una factura de otro contrato (eso cambia estadoContrato.id), se pide como a cualquier recibí. El servidor manda:
+           esto solo evita que el usuario se entere por su error. */
+        function histSinJustExento() {
+          return !!(existente && existente.historico_sin_justificante
+            && !(Array.isArray(existente.justificantes) && existente.justificantes.length)
+            && existente.contrato_id && estadoContrato.id === existente.contrato_id);
+        }
         var aplicaciones = [];   // [{factura_id, numero, pendiente, importe}]
         var facturasAbiertasCache = [], facturasOtraMoneda = 0, delC = null;
         var getJustificantes = null;
@@ -4799,13 +4810,14 @@
           btnAdd.addEventListener('click', abreBuscador);
           repinta();
 
-          var secJust = seccionFijaDoc(host, 'Justificante de pago (obligatorio)');
+          /* Un recibí histórico sin justificante (LAW-40) no lo exige si se guarda con su mismo importe (15-oct-2026): el
+             rótulo no dice «obligatorio» ahí. Manda guardar_recibi, que mira la marca y el total de la fila guardada. */
+          var esHistSinJust = histSinJustExento();
+          var secJust = seccionFijaDoc(host, esHistSinJust ? 'Justificante de pago (histórico: no se exige si no cambia el importe)' : 'Justificante de pago (obligatorio)');
           getJustificantes = montaJustificantesDoc(secJust, sb, existente && Array.isArray(existente.justificantes) ? existente.justificantes : []);
 
-          var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', false);
-          campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
-          campoSimpleDoc(secImp, { k: 'imp_pct', label: 'Impuesto — porcentaje', valor: f0.imp_pct || '' });
-
+          /* Sin «Impuesto» (14-oct-2026, bloque A3): el total guardado de un recibí no lo sumaba y el papel sí; un recibí
+             cobra lo que salda sus facturas. guardar_recibi quita imp_pct e imp_etiqueta aunque lleguen. */
           var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', false);
           campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
 
@@ -4819,7 +4831,8 @@
             if (!aplicaciones.length) return { error: { message: 'Elige al menos una factura que salde este recibí.' } };
             if (!v.sociedad) return { error: { message: 'Falta «Sociedad que cobra».' } };
             var justificantes = getJustificantes ? getJustificantes() : [];
-            if (!justificantes.length) return { error: { message: 'Adjunta el justificante de pago.' } };
+            // un recibí histórico (LAW-40) se guarda sin justificante; la marca la mira también guardar_recibi en la fila guardada
+            if (!justificantes.length && !histSinJustExento()) return { error: { message: 'Adjunta el justificante de pago.' } };
             for (var i = 0; i < aplicaciones.length; i++) {
               var imp = lwParseImporte(aplicaciones[i].importe);
               if (!imp || imp <= 0) return { error: { message: tH('Falta el importe aplicado a %n', { n: aplicaciones[i].numero }) } };
@@ -4833,6 +4846,9 @@
             d.proyecto_nombre = v.proyecto_nombre || estadoContrato.proyectoNombre;
             d.contrato_numero = estadoContrato.numero;
             var t = calcTotales(lineas, d.moneda, {});
+            // el histórico sin justificante solo se guarda con su mismo importe (guardar_recibi lo exige igual, 15-oct-2026)
+            if (!justificantes.length && Math.abs((Number(existente.total) || 0) - (Number(t.total) || 0)) > 0.005)
+              return { error: { message: 'Este recibí histórico no tiene justificante: solo se puede aplicar por su importe guardado. Para cambiar el importe, adjunta el justificante.' } };
             var pFactura = {
               sociedad: d.sociedad, cliente_nombre: d.cliente_nombre || null, proyecto_nombre: d.proyecto_nombre || null,
               contrato_numero: d.contrato_numero || null, contrato_id: estadoContrato.id,

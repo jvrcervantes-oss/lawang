@@ -36,7 +36,7 @@ ok(/var preguntaLlegada = !!\(window\.LW_INSTANCIA && window\.LW_INSTANCIA\.reci
    'recibí: va tras el interruptor de la instancia');
 ok(/var cambiaCifra = !existente \|\| Math\.abs\(\(Number\(existente\.total\) \|\| 0\) - \(Number\(t\.total\) \|\| 0\)\) > 0\.005/.test(guardado),
    'recibí: al editar pregunta otra vez si cambia el importe');
-ok(/creado_por,anulada,enviada,total,datos,justificantes'\)\.eq\('id', pre\.id\)\.eq\('tipo', 'recibi'\)/.test(ed), 'recibí: el editor lee el total guardado para comparar');
+ok(/creado_por,anulada,enviada,total,datos,justificantes'[\s\S]{0,300}?\)\.eq\('id', pre\.id\)\.eq\('tipo', 'recibi'\)/.test(ed), 'recibí: el editor lee el total guardado para comparar');
 
 const mClasico = tramo('function modalClasico(', '\n  function ');
 ok(/if \(e && e\.silencioso\) return;\n\s+muestraError\(tS\('No se pudo guardar: '\)/.test(mClasico), 'modalClasico: una cancelación a propósito no pinta error');

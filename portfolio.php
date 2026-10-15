@@ -244,7 +244,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
 
 <!-- Pie = el de la home (variante «home» de lawang-pie.js), owner 13-oct-2026. -->
 <footer data-lw-pie="home" data-cookies></footer>
-<script src="/assets/lawang-pie.js?v=20261015095917"></script>
+<script src="/assets/lawang-pie.js?v=20261015113330"></script>
 <script>
 (function () {
   'use strict';
