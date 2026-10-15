@@ -305,7 +305,7 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
   };
   // El propio comprobador caza lo que tiene que cazar (si no, un verde no diría nada).
   ok(fugasIdioma('<div><span class="lw-u-lbl">Pactado</span></div>').length === 1, 'el comprobador caza una etiqueta sin data-lwt');
-  ok(fugasIdioma('<span data-lwt>Esto no está en el diccionario</span>').length === 1, 'y una marcada sin entrada');
+  ok(fugasIdioma('<span data-lwt>Esto no está en el diccionario</span>').length === 1, 'y una marcada sin entrada');   // predeploy-ok: frase trampa del comprobador, sin inglés a propósito
   ok(fugasIdioma('<button aria-label="Editar unidad"><span class="material-symbols-outlined">edit</span></button>').length === 1, 'y un aria-label sin marcar (el icono no cuenta)');
   ok(fugasIdioma('<span data-lwt>Contrato <b>x</b></span>').some((s) => /aplanaría/.test(s)), 'y un data-lwt con hijos');
   ok(fugasIdioma('<p data-lwt-nodos>Cerrar · volver a <span data-lw="dp-proyecto">este proyecto</span></p>').length === (enDic('Cerrar · volver a') ? 0 : 1), 'data-lwt-nodos con un dato dentro vale');
