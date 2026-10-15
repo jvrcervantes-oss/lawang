@@ -27,7 +27,9 @@
 --   V8  tiempo de `select * from unidades_estado` antes (la vista vieja reconstruida con la cascada y la puerta de antes en
 --       pg_temp) y después, con las claims del admin; mismas filas y mismo cobrado. Con las filas de montaje el número NO
 --       se compara con los 0,6 → 2,2 s de la viva: solo dice que no se dispara.
--- Rol REAL en cada llamada (`set local role authenticated` + claims; pg_temp.val de cliente_notas.sql).
+-- Rol REAL en cada llamada (`set local role authenticated` + claims; pg_temp.val de cliente_notas.sql), SALVO V6b y V8:
+-- corren como postgres con las claims del admin (V6b compara la vieja, que authenticated ya no ejecuta; V8 mide la vista
+-- vieja reconstruida en pg_temp). La puerta mira las claims, no el rol.
 -- !! CREA CONTRATOS, FACTURAS Y USUARIOS (gasta numeración): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015171500_precio_cadena_vigente.sql --prueba precio_cadena_vigente.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-PV.

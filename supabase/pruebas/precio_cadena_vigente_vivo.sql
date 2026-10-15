@@ -528,10 +528,12 @@ begin
   end if;
   -- W5c el tope, SIN DDL y sin factura_guarda (Seguridad, 15-oct): la función del tope directamente, como postgres (su único
   -- EXECUTE) y con las claims de la identidad, que no es super admin (W5a). Si no se puede asegurar que no lo es, no se
-  -- llama: el super admin pasa el tope apuntando el privilegio (registra_privilegio escribe) y no daría 23514.
+  -- llama: el super admin pasa el tope apuntando el privilegio (registra_privilegio escribe) y no daría 23514. El canario
+  -- se evalúa EXACTAMENTE como lo evalúa el tope: como postgres y con las mismas claims (_empresa_doc solo la ejecutan
+  -- postgres y service_role; por pg_temp.val, que cambia a authenticated, daría 42501 y un falso FALLA).
+  perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated', 'email', v_mail)::text, true);
   if v_rp101 is not null and v_uid is not null
-     and pg_temp.val(v_uid, v_mail, format('select public.es_super_admin_de(public._empresa_doc(null::uuid, %L::uuid))::text', v_rp101)) = 'false' then
-    perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated', 'email', v_mail)::text, true);
+     and public.es_super_admin_de(public._empresa_doc(null::uuid, v_rp101)) is false then
     begin
       perform public._factura_tope_cadena(null::uuid, v_rp101, 'EUR', 1::numeric, 'factura');
       v := 'sin error';
@@ -541,6 +543,7 @@ begin
     r := r || pg_temp.l(v like 'ERR23514:%Quedan 0%',
                         'W5c _factura_tope_cadena(null, RP00101, EUR, 1, factura) con las claims de la identidad: 23514 (' || left(v, 120) || ')');
   else
+    perform set_config('request.jwt.claims', '', true);
     r := r || pg_temp.l(false, 'W5c no se llama al tope: sin RP00101, sin identidad o la identidad es super admin de la empresa (pasaría apuntando el privilegio)');
   end if;
 
