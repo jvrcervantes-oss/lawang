@@ -32,6 +32,11 @@
 //    Verificación tras cada despliegue: `get_edge_function send-contract-email` tiene que devolver el sha256 de
 //    `contracts/edge/send-contract-email/index.ts` Y el de `contracts/edge/send-contract-email/compartidos.generated.ts`.
 //    Comparar solo el index.ts deja pasar un maquetador viejo.
+// ⚠️ NO DESPLEGAR ANTES DE TENER APLICADA EN LA VIVA 20261014223000_recibi_total_suma_y_exento (orquestador agencia-c0 y
+//    sesión lawang-cola-2, 15-oct-2026, revisor del papel del correo). Por qué: en un recibí el cuadre de esta edge solo
+//    comprueba que el documento sea coherente consigo mismo, y hasta esa migración `guardar_recibi` guarda el total
+//    que manda el navegador, así que líneas y total vienen los dos de él. Antes de desplegar, mide también en cada
+//    instancia cuántos documentos cortarían los 409 nuevos (lista en el relevo de lawang-cola-2 y en tools/README).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { FUENTES, EXPORTA } from './compartidos.generated.ts';
 
