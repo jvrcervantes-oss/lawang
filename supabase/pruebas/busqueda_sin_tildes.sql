@@ -1,11 +1,11 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
 -- Prueba de BUSQUEDA SIN TILDES (15-oct-2026, owner: «que no haga falta poner la tilde en los buscadores de Lawang y en todo lo que hagamos»),
--- migracion 20261015130000_busqueda_sin_tildes. Rol REAL: cada llamada va con `set local role authenticated` (o anon) y los claims de la
+-- migracion 20261015062313_busqueda_sin_tildes. Rol REAL: cada llamada va con `set local role authenticated` (o anon) y los claims de la
 -- persona (pg_temp.val). Un caso que ENTRA por cada caso que se NIEGA.
 --
 -- !! SOLO EN RAMA: monta empresa, proyecto, personas, fichas y contratos, y apaga los disparadores de usuario de `contratos` dentro de
 --    la transaccion (la prueba mide la busqueda, no el alta: sin numeracion gastada ni comisiones, unidades o avisos arrastrados).
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015130000_busqueda_sin_tildes.sql --prueba busqueda_sin_tildes.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015062313_busqueda_sin_tildes.sql --prueba busqueda_sin_tildes.sql
 --    Fuera de una rama (sin `erp.en_rama = si`, que pone rama_prueba) se niega a empezar, antes de tocar nada.
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo se deshace con el raise final.
 -- La tabla de casos (T) la GENERA el estudio desde contracts/busqueda_casos.json, la misma que prueba el navegador en
@@ -117,7 +117,7 @@ begin
     ('', 'ubud', false)
   ) v(texto, aguja, casa) loop
     r := r || pg_temp.l((public.normaliza_busqueda(x.aguja) = '' or strpos(public.normaliza_busqueda(x.texto), public.normaliza_busqueda(x.aguja)) > 0) = x.casa,
-                        'T busca «' || x.aguja || '» en «' || x.texto || '» = ' || x.casa);
+                        'T busca «' || x.aguja || '» en «' || x.texto || '» = ' || x.casa::text);
   end loop;
 
   -- ============================================================ N. como nacen: inmutable la que pliega, INVOKER las que leen, cerradas a anon
@@ -125,12 +125,12 @@ begin
                   has_function_privilege('anon', p.oid, 'execute') anon, has_function_privilege('authenticated', p.oid, 'execute') auth,
                   has_function_privilege('public', p.oid, 'execute') pub
              from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('normaliza_busqueda','contratos_busca','clientes_busca') loop
-    r := r || pg_temp.l(x.proconfig @> array['search_path=""'] and not x.anon and not x.pub and x.auth and not x.prosecdef
+    r := r || pg_temp.l(x.proconfig @> array['search_path=""']::text[] and not x.anon and not x.pub and x.auth and not x.prosecdef
                         and (x.proname <> 'normaliza_busqueda' or x.provolatile = 'i'),
-                        'N ' || x.proname || ' volatil=' || x.provolatile || ' definer=' || x.prosecdef || ' anon=' || x.anon || ' public=' || x.pub || ' authenticated=' || x.auth);
+                        'N ' || x.proname::text || ' volatil=' || x.provolatile::text || ' definer=' || x.prosecdef::text || ' anon=' || x.anon::text || ' public=' || x.pub::text || ' authenticated=' || x.auth::text);
   end loop;
   select count(*) into n from pg_proc where pronamespace = 'public'::regnamespace and proname in ('normaliza_busqueda','contratos_busca','clientes_busca');
-  r := r || pg_temp.l(n = 3, 'N existen las 3 funciones nuevas [' || n || ']');
+  r := r || pg_temp.l(n = 3, 'N existen las 3 funciones nuevas [' || n::text || ']');
   r := r || pg_temp.l(char_length(public.normaliza_busqueda(repeat('a', 5000))) = 1000,
                       'N la pieza corta su entrada a 1.000 caracteres (se puede llamar por la API: excepcion en seguridad_2026 §7)');
   v := pg_get_functiondef('public.comprador_buscar(text)'::regprocedure);
@@ -157,23 +157,24 @@ begin
       values ('ZZ-BUSCA José María Muñoz', a.em, 'ZZBUSCAA1', 'zz-busca-a@ejemplo.invalid', '+00 000 0101', 'ZZ-domicilio A', 'ZZ') returning id into cA;
     insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
       values ('ZZ-BUSCA Siobhán O’Brien', b.em, 'ZZBUSCAB1', 'zz-busca-b@ejemplo.invalid', '+00 000 0102', 'ZZ-domicilio B', 'ZZ') returning id into cB;
+    -- adq1_client_id es GENERADA (datos->>'adq1_client_id'): el comprador entra por `datos`, como en la app
     alter table public.contratos disable trigger user;
-    insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
-      values ('contrato_general', 'ZZB-0001', 'ZZ-BUSCA José María Muñoz', cA, pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '3 minutes') returning id into kA1;
-    insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
-      values ('contrato_general', 'ZZB-0002', 'ZZ-BUSCA Copia Antigua', cA, pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '2 minutes') returning id into kA2;
-    insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
-      values ('contrato_general', 'ZZB-0003', 'ZZ-BUSCA Siobhán O’Brien', cB, pL, 'ZZ-BUSCA Proyecto', b.em, now() - interval '1 minute') returning id into kB1;
+    insert into public.contratos (tipo, numero, comprador_nombre, datos, proyecto_id, proyecto_nombre, creado_por, created_at)
+      values ('contrato_general', 'ZZB-0001', 'ZZ-BUSCA José María Muñoz', jsonb_build_object('adq1_client_id', cA), pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '3 minutes') returning id into kA1;
+    insert into public.contratos (tipo, numero, comprador_nombre, datos, proyecto_id, proyecto_nombre, creado_por, created_at)
+      values ('contrato_general', 'ZZB-0002', 'ZZ-BUSCA Copia Antigua', jsonb_build_object('adq1_client_id', cA), pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '2 minutes') returning id into kA2;
+    insert into public.contratos (tipo, numero, comprador_nombre, datos, proyecto_id, proyecto_nombre, creado_por, created_at)
+      values ('contrato_general', 'ZZB-0003', 'ZZ-BUSCA Siobhán O’Brien', jsonb_build_object('adq1_client_id', cB), pL, 'ZZ-BUSCA Proyecto', b.em, now() - interval '1 minute') returning id into kB1;
     -- contrato que A VE (lo creo A) cuya ficha de comprador es la de B, que A NO ve (Seguridad, 15-oct: el join no debe enseñarla)
-    insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
-      values ('contrato_general', 'ZZB-0004', 'ZZ-BUSCA Copia de Ficha Ajena', cB, pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '10 minutes') returning id into kA3;
+    insert into public.contratos (tipo, numero, comprador_nombre, datos, proyecto_id, proyecto_nombre, creado_por, created_at)
+      values ('contrato_general', 'ZZB-0004', 'ZZ-BUSCA Copia de Ficha Ajena', jsonb_build_object('adq1_client_id', cB), pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '10 minutes') returning id into kA3;
     alter table public.contratos enable trigger user;
   exception when others then
     raise exception using message = replace(c_fin, '%', r || pg_temp.l(false, 'P0 montaje del fixture propio: ' || sqlstate || ' ' || left(sqlerrm, 300)
-                                                                 || ' [session_user=' || session_user || ']'));
+                                                                 || ' [session_user=' || session_user::text || ']'));
   end;
   rp := rp || pg_temp.l(pL is not null and cA is not null and cB is not null and kA1 is not null and kA2 is not null and kB1 is not null and kA3 is not null,
-                        'P0 fixture propio montado: empresa, proyecto, 4 personas, 2 fichas y 4 contratos [session_user=' || session_user || ']');
+                        'P0 fixture propio montado: empresa, proyecto, 4 personas, 2 fichas y 4 contratos [session_user=' || session_user::text || ']');
   perform set_config('request.jwt.claims', json_build_object('sub', a.uid, 'role', 'authenticated', 'email', a.em)::text, true);
   rp := rp || pg_temp.l(public.es_agente(), 'P1 A es agente activo (es_agente)');
   rp := rp || pg_temp.l(public.alcance_restringido() and not public.es_admin(), 'P2 A tiene el alcance ACOTADO y no es admin');
@@ -186,7 +187,7 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', fx.uid, 'role', 'authenticated', 'email', fx.em)::text, true);
   rp := rp || pg_temp.l(not public.es_agente(), 'P6 X no es del equipo (es_agente = false)');
   perform set_config('request.jwt.claims', '', true);
-  v := pg_temp.val(a.uid, a.em, 'select (select auth.uid())::text || ''|'' || (select auth.email()) || ''|'' || current_user');
+  v := pg_temp.val(a.uid, a.em, 'select (select auth.uid())::text || ''|'' || (select auth.email())::text || ''|'' || current_user::text');
   rp := rp || pg_temp.l(v = a.uid::text || '|' || a.em || '|authenticated', 'S0 la sesion simulada es la de A con el rol authenticated (' || pg_temp.e(v) || ')');
   r := r || rp;
   if rp ~ 'FALLA' then

@@ -111,6 +111,11 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
     const f2 = est.rpcs.find((x) => x.nombre === 'correo_cola_fallo'); ok(f2 && f2.args.p_terminal === true && f2.args.p_error === 'reclamo_sin_sociedad', 'reclamo_pago sin sociedad: fallo terminal visible');
   }
 
+  // invitacion_portal: al motor solo van el id de la fila (como `invitacion`) y el contrato; sin sociedad y sin pedir reclamo_pago_datos
+  est = prepara({ tandas: [[fila({ ...RECL, clave: 'invitacion_portal' })]] }); r = await pasa();
+  igual(est.envios[0].cuerpo, { to: DIR, plantilla: 'invitacion_portal', attach: false, contrato_id: C, vars: { invitacion: Q } }, 'invitacion_portal: to del dueño, vars solo {invitacion}, sin sociedad');
+  ok(!est.rpcs.some((x) => x.nombre === 'reclamo_pago_datos'), 'invitacion_portal: no lee los datos del reclamo');
+
   // clave que la edge no sabe resolver → terminal visible, no se envía
   est = prepara({ tandas: [[fila({ clave: 'factura_vencimiento', contrato_id: null, firma_id: null, factura_id: C })]] }); r = await pasa();
   igual(est.envios.length, 0, 'clave no soportada: nada sale');
@@ -191,10 +196,12 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
   const plantillasTodas = [...valida.matchAll(/^  ([a-z_]+):\s+\{ adjunto: (true|false),\s+ids: \[([^\]]*)\]/gm)].map((m) => ({ clave: m[1], adjunto: m[2] === 'true', ids: [...m[3].matchAll(/'(\w+)'/g)].map((x) => x[1]) }));
   // «Reclamar pago» (8-oct-2026) es la 9ª: su regla vive en la migración 20261010070000 (ancla propia, soportada=false A PROPÓSITO para que
   // correo_encolar la rechace) y la edge SÍ la resuelve; se comprueba aparte abajo. Las 8 de siempre siguen cruzadas como antes.
-  const plantillas = plantillasTodas.filter((x) => x.clave !== 'reclamo_pago');
-  igual(plantillasTodas.map((x) => x.clave).sort(), [...plantillas.map((x) => x.clave), 'reclamo_pago'].sort(), 'PLANTILLAS = las 8 + reclamo_pago');
+  // «Invitar al portal» (15-oct-2026) es la 10ª, con el mismo trato que reclamo_pago (migración 20261015071004): las dos de la ficha de parcela.
+  const DE_PARCELA = ['reclamo_pago', 'invitacion_portal'];
+  const plantillas = plantillasTodas.filter((x) => !DE_PARCELA.includes(x.clave));
+  igual(plantillasTodas.map((x) => x.clave).sort(), [...plantillas.map((x) => x.clave), ...DE_PARCELA].sort(), 'PLANTILLAS = las 8 + las 2 de la ficha de parcela');
   igual(reglas.map((x) => x.clave).sort(), plantillas.map((x) => x.clave).sort(), '_correo_cola_regla lista las mismas 8 claves que PLANTILLAS de valida.ts');
-  igual(reglas.filter((x) => x.soportada).map((x) => x.clave).concat(['reclamo_pago']).sort(), Object.keys(IDS).sort(), 'las claves soportadas en SQL (+ reclamo_pago, aparte) son las que resuelve la edge');
+  igual(reglas.filter((x) => x.soportada).map((x) => x.clave).concat(DE_PARCELA).sort(), Object.keys(IDS).sort(), 'las claves soportadas en SQL (+ las 2 de parcela, aparte) son las que resuelve la edge');
   for (const r2 of reglas.filter((x) => x.soportada)) {
     const p = plantillas.find((x) => x.clave === r2.clave);
     igual(p.adjunto, false, r2.clave + ': sin adjunto (la edge manda attach:false)');
@@ -212,6 +219,18 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
     ok(/editables: \['reclamo'\]/.test(valida.match(/reclamo_pago:[^\n]*/)[0]), 'reclamo_pago: la única variable editable es el id del reclamo (nada de datos del correo)');
     ok(mr.includes("'" + fila[6] + "'") && mr.split("correos_enviados_via_check check")[1].includes("'reclamo_pago'"), 'la vía reclamo_pago está en el CHECK de correos_enviados');
     ok(mr.includes('reclamo_pago_datos'), 'la RPC que lee la edge existe en la migración');
+  }
+  // invitacion_portal: lo mismo, cruzado con su migración
+  {
+    const mi = leer('supabase', 'migrations', '20261015071004_invitacion_portal_parcela.sql');
+    const fila = /\('invitacion_portal',\s*'(reclamo_id)',\s*(true|false),\s*(\d+),\s*(\d)::smallint,\s*(\d+),\s*'([a-z_]+)'/.exec(mi);
+    ok(fila, 'regla SQL de invitacion_portal');
+    igual(fila[2], 'false', 'invitacion_portal: soportada=false en SQL (solo invitacion_portal_encolar la crea)');
+    const pi = plantillasTodas.find((x) => x.clave === 'invitacion_portal');
+    igual(pi.adjunto, false, 'invitacion_portal: sin adjunto'); igual([...IDS.invitacion_portal].sort(), [...pi.ids].sort(), 'invitacion_portal: ids de la edge = ids que pide el motor');
+    ok(/editables: \['invitacion'\]/.test(valida.match(/invitacion_portal:[^\n]*/)[0]), 'invitacion_portal: la única variable editable es el id de la fila');
+    ok(mi.split('correos_enviados_via_check check')[1].includes("'" + fila[6] + "'"), 'la vía invitacion_portal está en el CHECK de correos_enviados');
+    ok(mi.includes('function public.invitacion_portal_datos'), 'la RPC que lee la edge existe en la migración');
   }
   // las vías de correos_enviados que usa la cola existen en su CHECK
   const viasCola = [...mig.matchAll(/^\s*\('[a-z_]+',\s*'[a-z_]+',\s*(?:true|false),\s*\d+,\s*\d::smallint,\s*\d+,\s*'([a-z_]+)'/gm)].map((m) => m[1]);

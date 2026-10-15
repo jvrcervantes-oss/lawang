@@ -68,6 +68,15 @@ const STUB = `(function(){
     { reclamo_id: 'r1', creado_en: '2026-10-01T09:30:00Z', creado_por: 'admin.uno@prueba.test', client_id: 'k-ana', nombre: 'Ana Sol <b>X</b>', estado: 'enviado', enviado_en: '2026-10-01T09:31:00Z', error: null, nota: 'Quedan 2.000 EUR <i>hoy</i>' },
     { reclamo_id: 'r2', creado_en: '2026-09-20T09:30:00Z', creado_por: 'otra@prueba.test', client_id: 'k-ben', nombre: 'Ben Ocean', estado: 'error', enviado_en: null, error: 'buzon lleno', nota: null }
   ];
+  var IP_DEST = [
+    { contrato_id: 'c1', contrato_numero: 'PPJB-1', client_id: 'k-ana', nombre: 'Ana Sol <b>X</b>', email_oculto: 'a***@correo.test', rol: 'adquiriente_1', firmado: true, seleccionable: true, motivo: null, parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: '2026-10-02T09:30:00Z', ultimo_estado: 'enviado', ultimo_acceso: '2026-10-05T10:00:00Z' },
+    { contrato_id: 'c1', contrato_numero: 'PPJB-1', client_id: 'k-ben', nombre: 'Ben Ocean', email_oculto: 'b***@mail.test', rol: 'adquiriente_2', firmado: false, seleccionable: true, motivo: null, parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: null, ultimo_estado: null, ultimo_acceso: null },
+    { contrato_id: 'c1', contrato_numero: 'PPJB-1', client_id: 'k-eva', nombre: 'Eva Equipo', email_oculto: 'e***@lawang.test', rol: 'adquiriente_3', firmado: true, seleccionable: false, motivo: 'correo_equipo', parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: null, ultimo_estado: null, ultimo_acceso: null },
+    { contrato_id: 'c1', contrato_numero: 'PPJB-1', client_id: 'k-fede', nombre: 'Fede Revocado', email_oculto: 'f***@mail.test', rol: 'adquiriente_4', firmado: true, seleccionable: false, motivo: 'acceso_revocado', parcela: 'SH-1', proyecto: 'Sumba Hills', ultimo_reclamo_en: null, ultimo_estado: null, ultimo_acceso: null }
+  ];
+  var IP_HIST = [
+    { reclamo_id: 'i1', creado_en: '2026-10-02T09:30:00Z', creado_por: 'admin.uno@prueba.test', client_id: 'k-ana', nombre: 'Ana Sol <b>X</b>', estado: 'enviado', enviado_en: '2026-10-02T09:31:00Z', error: null, nota: null }
+  ];
   function rpc(n, a){
     window.__RPC.push({ n: n, a: JSON.parse(JSON.stringify(a || {})) });
     if (n === 'reclamo_pago_destinatarios') {
@@ -95,6 +104,18 @@ const STUB = `(function(){
     if (n === 'reclamo_pago_prueba') {
       if (q0.get('prueba') === 'falta') return mal('Could not find the function public.reclamo_pago_prueba', null, 'PGRST202');
       return ok('admin.uno@prueba.test');
+    }
+    /* «Invitar al portal» (15-oct-2026): solo con ?tipo=invitacion; sin él, sus RPC caen en q() y el bloque no se pinta,
+       así los casos de Reclamar pago de arriba corren igual que antes del núcleo compartido. */
+    if (q0.get('tipo') === 'invitacion') {
+      if (q0.get('sinbase') === '1' && /^invitacion_portal_/.test(n)) return mal('Could not find the function public.' + n, null, 'PGRST202');
+      if (n === 'invitacion_portal_destinatarios') return ok(IP_DEST);
+      if (n === 'invitacion_portal_historial') return ok(IP_HIST);
+      if (n === 'invitacion_portal_encolar') {
+        if (q0.get('ienc') === 'tope') return mal('x', 'tope_hora');
+        return ok({ n: a.p_clients.length, invitaciones: [] });
+      }
+      if (n === 'invitacion_portal_prueba') return ok('admin.uno@prueba.test');
     }
     return q(n);
   }
@@ -362,6 +383,90 @@ const esperaPanel = (page) => page.waitForTimeout(500);
     ok(!desborda, 'móvil 390: sin scroll horizontal de página');
     if (PNG) await page.screenshot({ path: PNG + '_movil.png' });
     ok(errores.length === 0, 'móvil: sin errores de consola');
+    await ctx.close();
+  }
+
+  /* ── K. «Invitar al portal» (15-oct-2026): mismo núcleo, otro bloque. Los dos a la vez sin mezclarse. ── */
+  const ipVisible = (page) => page.locator('[data-lw="ip-bloque"]').evaluate(el => !el.classList.contains('hidden') && el.offsetParent !== null).catch(() => false);
+  for (const idioma of ['es', 'en']) {
+    const t = 'invitación ' + idioma + ': ';
+    const { ctx, page, errores } = await nueva(browser, 1440, 900, 'c=base&tipo=invitacion', idioma);
+    await abreParcela(page, 'SH-1'); await esperaPanel(page);
+    ok(await bloqueVisible(page) && await ipVisible(page), t + 'los dos bloques se ven a la vez');
+    ok((await page.locator('[data-accion="invitar-portal"]').textContent()).trim() === T('Invitar al portal', 'Invite to the portal', idioma), t + 'el botón dice «' + T('Invitar al portal', 'Invite to the portal', idioma) + '»');
+    ok(/(Portal del cliente|Client portal)/.test(await page.locator('[data-lw="ip-bloque"]').textContent()), t + 'el bloque se titula «Portal del cliente»');
+    const dest = await rpcs(page, 'invitacion_portal_destinatarios');
+    ok(dest.length === 1 && Object.keys(dest[0].a).join() === 'p_unidad' && dest[0].a.p_unidad === 'u-a', t + 'destinatarios: solo manda la parcela');
+    ok((await page.locator('[data-lw="ip-hist-fila"]').count()) === 1 && (await page.locator('[data-lw="rp-hist-fila"]').count()) === 2, t + 'cada historial con lo suyo (1 invitación, 2 recordatorios)');
+    ok((await page.locator('[data-lw="ip-historial"] b').count()) === 0, t + 'historial de invitaciones escapa el nombre');
+    if (PNG) await page.screenshot({ path: PNG + '_ip_panel_' + idioma + '.png' });
+
+    await page.locator('[data-accion="invitar-portal"]').click();
+    await page.waitForSelector('#lw-editor [data-lw="ip-destinatarios"]', { timeout: 8000 });
+    await page.waitForTimeout(500);
+    ok((await page.locator('#lw-editor [data-ip-cliente]').count()) === 2 && (await page.locator('#lw-editor [data-rp-cliente]').count()) === 0, t + 'dos casillas de invitación y ninguna de recordatorio');
+    ok((await page.locator('#lw-editor [data-lw="rp-idioma"], #lw-editor [data-lw="rp-sociedad"]').count()) === 0, t + 'sin aviso de idioma ni sociedad (el correo es bilingüe y firma Lawang)');
+    const portal = await page.locator('#lw-editor [data-lw="ip-portal"]').allTextContents();
+    ok(portal.length === 2 && /(Ya ha entrado|Has already signed in)/.test(portal[0]) && /(Aún no ha entrado|Has not signed in)/.test(portal[1]), t + 'dice quién ya ha entrado al portal y quién no');
+    ok((await page.locator('#lw-editor [data-lw="ip-sin-firmar"]').count()) === 1, t + 'aviso de contrato sin firmar solo en el copropietario sin firmar');
+    const noSel = await page.locator('#lw-editor [data-lw="ip-dest-no"]').allTextContents();
+    ok(noSel.length === 2 && noSel.some(x => /Eva/.test(x) && /(del equipo|on the team)/.test(x)) && noSel.some(x => /Fede/.test(x) && /(revocado|revoked)/.test(x)), t + 'equipo y revocado salen sin casilla y con su motivo');
+    ok(/(no da acceso nuevo|does not grant new access)/.test(await page.locator('#lw-editor').textContent()), t + 'avisa de que la invitación no da acceso nuevo');
+    ok((await page.locator('#lw-editor b').count()) === 0, t + 'el nombre con etiquetas del diálogo sale como texto');
+    if (PNG) await page.screenshot({ path: PNG + '_ip_dialogo_' + idioma + '.png' });
+
+    await page.locator('#lw-editor [data-ip="nota"]').fill('llámame al 600123456');
+    ok(await page.locator('#lw-editor [data-ip="nota-error"]').isVisible(), t + 'nota con número largo: aviso en rojo');
+    await page.locator('#lw-editor [data-ip="nota"]').fill('Bienvenida, Ana');
+    ok(!(await page.locator('#lw-editor [data-ip="nota-error"]').isVisible()), t + 'una nota normal quita el aviso');
+    await page.locator('#lw-editor [data-accion="invitacion-prueba"]').click();
+    await page.waitForSelector('#lw-editor [data-ip="prueba-msg"]:not([hidden])', { timeout: 4000 });
+    const pr = await rpcs(page, 'invitacion_portal_prueba');
+    ok(pr.length === 1 && Object.keys(pr[0].a).sort().join() === 'p_nota,p_unidad' && (await rpcs(page, 'reclamo_pago_prueba')).length === 0, t + 'la prueba va a la RPC de invitación con parcela y nota, no a la de recordatorio');
+
+    await page.locator('#lw-editor [data-ip-cliente="k-ana"]').check();
+    await page.locator('#lw-editor [data-ip-cliente="k-ben"]').check();
+    await page.locator('#lw-editor [data-e="guardar"]').click();
+    await page.waitForSelector('.lw-dlg-fondo', { timeout: 4000 });
+    const conf = await page.locator('.lw-dlg-fondo').first().textContent();
+    ok(/Ana Sol/.test(conf) && /Ben Ocean/.test(conf) && !/Eva/.test(conf) && /(no se puede retirar|cannot be withdrawn)/.test(conf), t + 'la confirmación nombra a los marcados y avisa de que no se retira');
+    await page.locator('.lw-dlg-fondo button').filter({ hasText: /^(Enviar a 2 personas|Send to 2 people)$/ }).click();
+    await page.waitForFunction(() => window.__RPC.some(x => x.n === 'invitacion_portal_encolar'), null, { timeout: 4000 });
+    const en = (await rpcs(page, 'invitacion_portal_encolar'))[0];
+    ok(en && en.a.p_unidad === 'u-a' && JSON.stringify(en.a.p_clients) === JSON.stringify(['k-ana', 'k-ben']) && en.a.p_nota === 'Bienvenida, Ana' && Object.keys(en.a).sort().join() === 'p_clients,p_nota,p_unidad', t + 'el envío manda solo unidad, ids de cliente y nota');
+    ok((await rpcs(page, 'reclamo_pago_encolar')).length === 0, t + 'invitar no dispara un recordatorio');
+    await page.waitForTimeout(900);
+    ok(!(await page.locator('#lw-editor').count()), t + 'tras enviar el diálogo se cierra');
+    ok((await rpcs(page, 'invitacion_portal_historial')).length === 2 && (await rpcs(page, 'reclamo_pago_historial')).length === 1, t + 'se recarga el historial de invitaciones, no el de recordatorios');
+    ok(await page.evaluate(() => window.__ESCRITURAS.length) === 0, t + 'ninguna escritura directa a tablas desde el navegador');
+    ok(errores.length === 0, t + 'sin errores de consola' + (errores.length ? ': ' + errores.join(' | ') : ''));
+    await ctx.close();
+  }
+  /* ── L. tope por hora de la base, y los dos bloques en móvil ── */
+  {
+    const { ctx, page, errores } = await nueva(browser, 390, 780, 'c=base&tipo=invitacion&ienc=tope', idi);
+    await abreParcela(page, 'SH-1'); await esperaPanel(page);
+    await page.locator('[data-accion="invitar-portal"]').scrollIntoViewIfNeeded();
+    await page.locator('[data-accion="invitar-portal"]').click();
+    await page.waitForSelector('#lw-editor [data-ip-cliente]');
+    await page.locator('#lw-editor [data-ip-cliente="k-ana"]').check();
+    await page.locator('#lw-editor [data-e="guardar"]').click();
+    await page.waitForSelector('.lw-dlg-fondo');
+    await page.locator('.lw-dlg-fondo button').filter({ hasText: /^Enviar a 1 persona$/ }).click();
+    await page.waitForFunction(() => /\S/.test((document.querySelector('#lw-editor [data-e="error"]') || {}).textContent || ''), null, { timeout: 4000 });
+    ok(/muchas invitaciones en la última hora/.test(await page.locator('#lw-editor [data-e="error"]').textContent()), 'invitación tope_hora: se dice en llano');
+    ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), 'invitación móvil 390: sin scroll horizontal de página');
+    if (PNG) await page.screenshot({ path: PNG + '_ip_movil.png' });
+    ok(errores.length === 0, 'invitación móvil: sin errores de consola');
+    await ctx.close();
+  }
+  /* ── M. el front llega antes que su migración: el bloque no se pinta y Reclamar pago sigue igual ── */
+  {
+    const { ctx, page, errores } = await nueva(browser, 1440, 900, 'c=base&tipo=invitacion&sinbase=1', idi);
+    await abreParcela(page, 'SH-1'); await esperaPanel(page);
+    ok(!(await ipVisible(page)) && !(await page.locator('[data-lw="ip-error"]').count()), 'sin migración: ni bloque de invitación ni error rojo');
+    ok(await bloqueVisible(page) && await botonVisible(page), 'sin migración: Reclamar pago sigue funcionando');
+    ok(errores.length === 0, 'sin migración: sin errores de consola');
     await ctx.close();
   }
 

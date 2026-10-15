@@ -49,7 +49,7 @@ import {
   LIMITES, type Peticion, type Fallo, esFallo, leePeticion, validaTextos, validaEnvio, deduceCta,
   esDominioPropio, normalizaDominio, decodificaBase64, esPdf, esEmail, ctaPermitida, tieneControl,
   TEXTO_PAUSA, saneaLlamante, viaServicio, viaAviso, describeFalloSmtp,
-  VIAS_PLANTILLA, validaPlantillaPeticion, limpiaValor, catalogoDe, validaTextoPlantilla, componeCorreo, CTA_PORTAL_TEXTO,
+  VIAS_PLANTILLA, PLANTILLAS, validaPlantillaPeticion, limpiaValor, catalogoDe, validaTextoPlantilla, componeCorreo, CTA_PORTAL_TEXTO,
   type TextoPlantilla,
 } from './valida.ts';
 import { remitenteEfectivo, replyToEfectivo, buzonAvisoValido, PUERTO_SMTP } from './smtp.ts';
@@ -450,6 +450,10 @@ export async function manejador(req: Request): Promise<Response> {
     // reenviarlo a mano ni sale firmado con la marca de Lawang por descuido.
     if (p.plantilla === 'reclamo_pago' && ((via !== 'servicio' && via !== 'servicio-render') || !sociedad)) {
       return { error: 'reclamo_pago exige el secreto del servicio y la sociedad', status: 400 };
+    }
+    // Las demás plantillas que solo pide la cola (soloServicio, p. ej. invitacion_portal): sin el secreto del servicio, no.
+    if (PLANTILLAS[p.plantilla]?.soloServicio && via !== 'servicio' && via !== 'servicio-render') {
+      return { error: p.plantilla + ' solo la pide la cola con el secreto del servicio', status: 400 };
     }
     const r = await componePlantilla(p, cfg, portal);
     if (esFallo(r)) return r;

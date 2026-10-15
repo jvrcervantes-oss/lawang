@@ -14,7 +14,8 @@
 //     partir de los ids. Del llamante solo llega `nombre` (con quién se saluda), nunca un importe, un total ni un enlace.
 //   · el catálogo de variables permitidas/obligatorias de cada clave vive SELLADO en `correo_plantillas.variables` (migración
 //     20261002100000); este fichero tiene que producir todas las permitidas (lo comprueba plantillas_fabrica.test.js).
-import { type Fallo, CTA_FIRMA_TEXTO, ctaPermitida, tieneControl } from './valida.ts';
+import { type Fallo, CTA_FIRMA_TEXTO, ctaPermitida } from './valida.ts';
+import { notaCorreoValida } from './nota_correo.ts';
 
 export type Vars = Record<string, string>;
 export type Ids = { contrato_id: string; factura_id: string; firma_id: string };
@@ -90,6 +91,28 @@ const TEXTOS: Record<string, TextoFabrica> = {
       '\n\nUn abrazo,\n{{firma}}',
     cuerpo_alt: null,
   },
+  // «Invitar al portal» (15-oct-2026): texto APROBADO por el owner, bilingüe en un solo correo (inglés primero, como la invitación de
+  // portal-invitar). La última frase de cada idioma la añadió Seguridad (#357: con DMARC en p=none una invitación falsa es trivial).
+  // El enlace visible y el del botón son el mismo {{enlace}} (comun.portal): nunca un dominio escrito a mano.
+  invitacion_portal: {
+    asunto: 'Your Lawang client portal invitation · Tu invitación al portal de cliente de Lawang',
+    cuerpo: '{{nota}}{{saludo_en}},\n\nHere is your invitation to your Lawang client portal. There you can see the contract for your plot {{parcela}} in ' +
+      '{{proyecto}}, your payments and your documents.' +
+      '\n\nTo sign in, open {{enlace}} and enter this same email address: we\'ll send you an access link right away. If it doesn\'t arrive within ' +
+      'a few minutes, just request it again a little later.' +
+      '\n\nPlease take a moment to check that everything is correct. If anything looks wrong, just reply to this email and we\'ll fix it. ' +
+      'We will never ask you for your password or card details by email.' +
+      '\n\nWarm regards,\nThe Lawang team' +
+      '\n\n—\n\n' +
+      '{{saludo_es}}:\n\nAquí tienes la invitación a tu portal de cliente de Lawang. Ahí puedes ver el contrato de tu parcela {{parcela}} en ' +
+      '{{proyecto}}, tus pagos y tus documentos.' +
+      '\n\nPara entrar, abre {{enlace}} y escribe este mismo correo: te enviaremos al momento un enlace de acceso. Si no te llega en unos minutos, ' +
+      'vuelve a pedirlo un poco más tarde.' +
+      '\n\nRevisa con calma que todo esté bien. Si ves algo que no cuadra, respóndenos a este correo y lo corregimos. ' +
+      'Nunca te pediremos tu contraseña ni datos de tarjeta por correo.' +
+      '\n\nUn abrazo,\nEl equipo de Lawang',
+    cuerpo_alt: null,
+  },
 };
 
 export function textoFabrica(clave: string): TextoFabrica | null {
@@ -119,10 +142,11 @@ export async function resuelve(clave: string, ids: Ids, to: string, vars: Vars, 
   const saludo = (n: unknown) => 'Hola' + (primero(n) ? ' ' + primero(n) : '');
   // Solo reclamo_pago (owner, 8-oct-2026): el nombre de la ficha viene a veces en MAYÚSCULAS («VICTOR»). Primer nombre, inicial en
   // mayúscula y el resto en minúscula (tildes y ñ incluidas); vacío = «Hola». Las otras plantillas siguen con `saludo` tal cual.
-  const saludoNombre = (n: unknown) => {
+  const nombrePila = (n: unknown) => {
     const p = primero(n).toLocaleLowerCase('es');
-    return 'Hola' + (p ? ' ' + p.charAt(0).toLocaleUpperCase('es') + p.slice(1) : '');
+    return p ? p.charAt(0).toLocaleUpperCase('es') + p.slice(1) : '';
   };
+  const saludoNombre = (n: unknown) => 'Hola' + (nombrePila(n) ? ' ' + nombrePila(n) : '');
   const marca = comun.marca;
 
   if (clave === 'enlace_firma_cadena') {
@@ -201,9 +225,27 @@ export async function resuelve(clave: string, ids: Ids, to: string, vars: Vars, 
     // la nota ya llega validada de la base (texto plano, sin enlaces ni correos, <= 300); aquí se vuelve a comprobar y NO se escapa:
     // plantillaHtml la escapa entera al pintarla (comillas dobles y simples incluidas)
     const nota = String(d.nota ?? '').replace(/\s+/g, ' ').trim();
-    if ([...nota].length > 300 || tieneControl(nota)) return mal('La nota del reclamo no es válida');
+    if (!notaCorreoValida(nota)) return mal('La nota del reclamo no es válida');
     return { vars: { saludo: saludoNombre(d.nombre), parcela, proyecto, empresa, nota: nota ? nota + '\n\n' : '', enlace: comun.portal,
                      marca, firma: 'El equipo de ' + empresa }, variante: 'principal', cta: null };
+  }
+
+  if (clave === 'invitacion_portal') {
+    // Igual que reclamo_pago: todo sale de la base por el id de la fila de la cola (`vars.invitacion`). Sin sociedad: firma la marca.
+    const id = String(vars.invitacion ?? '');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return mal('Invitación no válida');
+    const d = await uno('rpc/invitacion_portal_datos?p_cola=' + id);
+    if (!d) return mal('Invitación no encontrada');
+    if (String(d.para ?? '').trim().toLowerCase() !== to.toLowerCase()) return mal('El destinatario no es el de la invitación');
+    if (d.contrato_id !== ids.contrato_id) return mal('La invitación no es de ese contrato');
+    const parcela = linea(d.parcela), proyecto = linea(d.proyecto);
+    if (!parcela || !proyecto) return mal('A la invitación le faltan la parcela o el proyecto');
+    const nota = String(d.nota ?? '').replace(/\s+/g, ' ').trim();
+    if (!notaCorreoValida(nota)) return mal('La nota de la invitación no es válida');
+    const pila = nombrePila(d.nombre);
+    // cta null: el botón por defecto es el del portal («Entrar · Sign in»), el mismo {{enlace}} que se lee en el texto
+    return { vars: { saludo_en: pila ? 'Hi ' + pila : 'Hello', saludo_es: pila ? 'Hola ' + pila : 'Hola', parcela, proyecto,
+                     nota: nota ? nota + '\n\n' : '', enlace: comun.portal }, variante: 'principal', cta: null };
   }
 
   return mal('Plantilla no reconocida');
