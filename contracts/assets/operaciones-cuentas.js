@@ -109,7 +109,32 @@ function cuentaGrupo(op){
      raíz con ella) no suma: precio y facturado van en la misma moneda (`is distinct from`, nulos incluidos). */
   const raiz = grupo[0];
   const otraMoneda = o => o !== raiz && (o.moneda || null) !== (raiz.moneda || null);
-  const sumables = grupo.filter(o => !lwEsPreliminar(o.tipo) && !(o !== raiz && PIEZAS_ACOMPANAN.indexOf(o.tipo) !== -1) && !otraMoneda(o));
+  /* Solo la obra VIGENTE suma (15-oct-2026). Gemela de public._venta_obras_vigentes, la regla del servidor que pone el
+     precio de la venta y el tope de facturar (migración 20261015171500): un contrato de obra (construccion,
+     cc00014_timon, adenda…; los tipos con es_obra del catálogo contrato_tipo_etapa) solo cuenta si es el vigente de su
+     parcela: los FIRMADOS si hay alguno; si no, el borrador más reciente. Liberados, sin precio y de otra moneda, fuera.
+     Sin esto, un borrador sustituido sumaba dos veces la obra: RP00101 (CC00062 borrador + CC00102 firmada) decía
+     113.000 de precio cuando son 69.000. Las obras sin unidad forman su propio grupo. Diferencia con el servidor: allí se
+     agrupa por las parcelas DE ESTA VENTA (una obra que apunta a la parcela de otra va al grupo sin parcela); aquí no hay
+     inventario y se agrupa por unidad_id tal cual (el 15-oct no hay ninguna así). Si la pieza no trae unidad_id (una
+     consulta que no lo pide), no se puede agrupar y la obra cuenta como antes: mejor de más que una parcela de menos. */
+  const esObra = o => o.tipo === 'construccion' || o.tipo === 'cc00014_timon' || /^adenda/.test(o.tipo || '');
+  const vigentes = new Set();
+  const porParcela = {};
+  grupo.forEach(o => {
+    if(!esObra(o) || o.liberado_en || !((parseImporte(o.precio_total) || 0) > 0) || (o.moneda || null) !== (raiz.moneda || null)) return;
+    if(!('unidad_id' in o)){ vigentes.add(o); return; }
+    const k = o.unidad_id || '-';
+    (porParcela[k] = porParcela[k] || []).push(o);
+  });
+  Object.keys(porParcela).forEach(k => {
+    const firmadas = porParcela[k].filter(o => o.bloqueado);
+    if(firmadas.length){ firmadas.forEach(o => vigentes.add(o)); return; }
+    vigentes.add(porParcela[k].slice().sort((x, y) =>
+      String(y.created_at || '').localeCompare(String(x.created_at || '')) || String(y.id || '').localeCompare(String(x.id || '')))[0]);
+  });
+  const obraNoVigente = o => esObra(o) && !vigentes.has(o);
+  const sumables = grupo.filter(o => !lwEsPreliminar(o.tipo) && !(o !== raiz && PIEZAS_ACOMPANAN.indexOf(o.tipo) !== -1) && !otraMoneda(o) && !obraNoVigente(o));
   const base = sumables.length ? sumables : grupo;
   const precio = base.reduce((a, o) => a + (parseImporte(o.precio_total) || 0), 0) || null;
   // el cobrado sí cuenta TODO el grupo: un recibí contra la Carta es dinero real
@@ -261,7 +286,7 @@ async function lwOperacionesCargar(SB, avisar){
     // directo: desde que la RLS de SELECT filtra por autor, una lectura directa
     // dejaría a un agente normal viendo solo SUS contratos aquí — y Operaciones
     // existe justo para cruzar los de todo el equipo. Mismo dato, sin el filtro.
-    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,liberado_en' + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).order('created_at',{ascending:false}).limit(TOPE_CONTRATOS + 1),
+    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,liberado_en,unidad_id' + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).order('created_at',{ascending:false}).limit(TOPE_CONTRATOS + 1),
     // `created_at` va en el select aunque no se pinte: PostgREST exige que la
     // columna del `order` esté proyectada cuando el origen es una función (a
     // diferencia de una tabla/vista, donde ordenar por una columna no
