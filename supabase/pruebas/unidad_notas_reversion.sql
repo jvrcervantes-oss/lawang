@@ -49,6 +49,21 @@ begin
   if to_regclass('public.unidad_notas') is null then
     raise exception 'unidad_notas no existe: no hay nada que revertir';
   end if;
+  -- reponer cliente_notas_datos solo si sigue siendo la de esta migración: si alguien la cambió después, reponer la del
+  -- 15-oct borraría ese cambio sin avisar (Base de datos, consulta de deploy 15-oct). Sin \r por si se aplicó desde Windows.
+  if (select md5(replace(p.prosrc, E'\r', '')) from pg_proc p
+       where p.oid = 'public.cliente_notas_datos(uuid)'::regprocedure) <> '13d9b562da34fd5fbe627a7c6efe273f' then
+    raise exception 'cliente_notas_datos viva no es la de 20261015210000 (md5 13d9b562…): alguien la cambió después; revisar a mano';
+  end if;
+  -- devolver el texto a unidades.notas dispara trg_unidad_precio_suma en cada parcela con notas: si alguna tuviera precio
+  -- distinto de suelo + construcción, revertir se lo recalcularía sin avisar (Backend, consulta de deploy 15-oct; misma guarda
+  -- que la ida)
+  if exists (select 1 from public.unidades u
+              where exists (select 1 from public.unidad_notas n where n.unidad_id = u.id)
+                and (u.precio_suelo is not null or u.precio_construccion is not null)
+                and u.precio is distinct from coalesce(u.precio_suelo, 0) + coalesce(u.precio_construccion, 0)) then
+    raise exception 'hay parcelas con notas cuyo precio no es suelo + construcción: devolverles las notas lo recalcularía';
+  end if;
 end $pre$;
 
 alter table public.unidades drop constraint if exists unidades_notas_al_historial;

@@ -441,6 +441,14 @@ begin
                       and (select pg_get_userbyid(p.proowner) from pg_proc p where p.oid = 'public.cliente_notas_datos(uuid)'::regprocedure) = 'lw_lector'
                       and (select pg_get_userbyid(p.proowner) from pg_proc p where p.oid = 'public._unidad_notas_editor(uuid)'::regprocedure) = 'postgres',
                       'U17b las lecturas siguen con dueño lw_lector y el permiso de editor con dueño postgres');
+  -- secuencias: el ACL por defecto de postgres da rwU a authenticated sobre las nuevas; y lw_lector sin CREATE en public
+  -- tras los alter owner (Seguridad, consulta de deploy 15-oct)
+  r := r || pg_temp.l(not exists (
+         select 1 from (values ('public.unidad_notas_id_seq'), ('public.unidad_notas_retiradas_id_seq')) s(s)
+         cross join pg_roles ro where ro.rolname in ('anon', 'authenticated', 'service_role')
+           and has_sequence_privilege(ro.oid, s.s, 'usage, select, update'))
+      and not has_schema_privilege('lw_lector', 'public', 'create'),
+      'U17c secuencias cerradas para anon/authenticated/service_role y lw_lector sin CREATE en public');
 
   -- ============================================================ U14 tope (al final: deja a los autores sin cupo)
   n := (select count(*) from public.unidades where codigo like 'ZZ-UN-T%');
