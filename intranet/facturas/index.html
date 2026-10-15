@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="1a6b73588d30">
+<meta name="lw-version" content="553d0486c5bb">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1313,6 +1313,14 @@ function toggleTipoRecibi(){
   const esRecibi = $('#selTipo').value === 'recibi';
   $('#fsConceptos').hidden = esRecibi;
   $('#fsAplicaciones').hidden = !esRecibi;
+  /* Un recibí no lleva impuesto (15-oct-2026, A3 de guardar_recibi; Administración: el PPN va en la factura que salda y
+     sumarlo aquí lo contaría dos veces). El servidor lo quita al guardar; esto evita que la vista previa enseñe un total
+     con impuesto que no se guarda. */
+  const dtImp = $('#dtImpuesto');
+  if(dtImp){
+    dtImp.hidden = esRecibi;
+    if(esRecibi) ['imp_etiqueta', 'imp_pct'].forEach(n => { const i = $('[name="' + n + '"]'); if(i) i.value = ''; });
+  }
   /* El campo es el mismo control; lo que cambia es QUÉ se elige en él. Decirlo
      en el rótulo evita el paso en falso de buscar un contrato en un recibí. */
   const lab = document.querySelector('label[for="btnContrato"]');
