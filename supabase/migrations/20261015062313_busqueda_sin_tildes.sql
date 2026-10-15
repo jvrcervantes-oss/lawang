@@ -5,6 +5,9 @@
 -- funcion con chr(160)/chr(8239) y md5(prosrc) de las 4 funciones = cuerpos de este fichero. Verificado en vivo con el rol
 -- authenticated (scratchpad verifica_mcp.sql): tabla de casos 0/29 y 0/27 fallos, U+00A0 y U+202F, tope, las tres
 -- busquedas encuentran sin tildes una ficha y un contrato reales, «%%%» = 0.
+-- NO REAPLICAR ESTE FICHERO CON EL MCP (apply_migration / execute_sql): vuelve a convertir U+00A0 y U+202F en espacios
+-- normales y normaliza_busqueda deja de partir por ellos SIN ningun error. Si hay que rehacerla, con la CLI de Supabase o
+-- escribiendo esos dos caracteres como chr(160)/chr(8239), y despues md5(prosrc) contra este fichero.
 -- BUSQUEDA SIN TILDES EN EL SERVIDOR (15-oct-2026, sesion busqueda-tildes; owner: «que no haga falta poner la tilde en
 -- los buscadores de Lawang y en todo lo que hagamos»). Regla: contexto/patrones_tecnicos.md de la agencia -> «Busqueda sin tildes».
 --

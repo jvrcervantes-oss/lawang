@@ -63,7 +63,15 @@ async function main() {
   ok('Construcción, Poder y Adenda siguen donde estaban', ['construccion', 'poa', 'adenda'].every(t => sigue.includes(t)));
   ok('el texto de «venta nueva» ya no nombra el Hak Sewa', !/'Carta de Reserva, Bloqueo de Parcela directo, Hak Sewa/.test(asi));
   ok('el texto de «seguir una venta» sí lo nombra', asi.includes("T('Construcción de un Bloqueo, Hak Sewa tras la Construcción, pasar una Carta a Bloqueo, Poder Notarial o Adenda.')"));
-  ok('buscaVentas trae el padre de cada venta', /buscaVentas[\s\S]{0,400}\.select\('[^']*contrato_padre_id/.test(asi));
+  // Desde el 15-oct-2026 (busqueda sin tildes) buscaVentas pide las ventas al servidor con contratos_busca: el padre lo
+  // tiene que devolver ESA funcion (su `returns table` en la migracion vigente que la define), no un .select de la pantalla.
+  const defsBusca = fs.readdirSync(path.join(__dirname, '..', 'supabase', 'migrations')).sort()
+    .filter(f => /create or replace function public\.contratos_busca\(/i.test(fs.readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', f), 'utf8')));
+  const sqlBusca = defsBusca.length ? fs.readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', defsBusca[defsBusca.length - 1]), 'utf8') : '';
+  const retBusca = (sqlBusca.match(/function public\.contratos_busca\([\s\S]*?returns table\(([\s\S]*?)\)\s*\n/i) || [])[1] || '';
+  ok('buscaVentas trae el padre de cada venta',
+     (/buscaVentas[\s\S]{0,400}\.select\('[^']*contrato_padre_id/.test(asi))
+     || (/buscaVentas[\s\S]{0,600}sb\.rpc\('contratos_busca'/.test(asi) && /\bcontrato_padre_id\s+uuid\b/.test(retBusca)));
 
   const codigo = trozo(asi, '  function opcionesExistente()', '  /* ── pintar', 'asistente');
   const ctx = {
