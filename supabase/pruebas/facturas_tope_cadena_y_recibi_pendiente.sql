@@ -9,14 +9,16 @@ declare out text := ''; u record; c1 uuid; c2 uuid; f1 uuid; f2 uuid; soc text; 
 begin
   -- La identidad, por ROL y no por correo fijo (15-oct-2026, ensayo de 2159: el admin «p@p…» del 5-oct hoy es super_admin_empresa y
   -- la prueba corría sin sesión, con todos los «bloqueado» dados por la falta de permiso). Si no hay ningún admin global activo, se
-  -- convierte el agente activo más antiguo en admin global DENTRO de la transacción (se deshace con el raise final), con los claims
-  -- del super_admin más antiguo para hacer el cambio, como f2_b2_empresas.
-  select user_id, email into u from public.usuarios where activo and rol = 'admin' and ambito = 'global' order by creado_en limit 1;
+  -- convierte el agente activo más antiguo en admin global con la casilla facturas DENTRO de la transacción (se deshace con el raise
+  -- final), con los claims del PROPIETARIO (solo él cambia rol y ámbito: trigger usuarios_bloquea_cambio_rol_herramientas), como f2_b2.
+  select user_id, email into u from public.usuarios where activo and rol = 'admin' and ambito = 'global' and 'facturas' = any(coalesce(herramientas, '{}'))
+   order by creado_en, user_id limit 1;
   if u.user_id is null then
-    select user_id, email into u from public.usuarios where activo and rol = 'super_admin' order by creado_en limit 1;
+    select user_id, email into u from public.usuarios where es_propietario and activo order by creado_en, user_id limit 1;
     perform set_config('request.jwt.claims', json_build_object('sub',u.user_id,'role','authenticated','email',u.email)::text, true);
-    update public.usuarios set rol = 'admin', ambito = 'global', empresas = '{}'
-     where user_id = (select x.user_id from public.usuarios x where x.activo and x.rol = 'agente' order by x.creado_en limit 1)
+    update public.usuarios set rol = 'admin', ambito = 'global', empresas = '{}',
+           herramientas = case when 'facturas' = any(coalesce(herramientas, '{}')) then herramientas else array_append(coalesce(herramientas, '{}'), 'facturas') end
+     where user_id = (select x.user_id from public.usuarios x where x.activo and x.rol = 'agente' order by x.creado_en, x.user_id limit 1)
      returning user_id, email into u;
   end if;
   perform set_config('request.jwt.claims', json_build_object('sub',u.user_id,'role','authenticated','email',u.email)::text, true);

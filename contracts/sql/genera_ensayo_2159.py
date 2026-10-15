@@ -93,9 +93,10 @@ def seccion(nombre, fase):
     """Una prueba en su sub-bloque; su resumen va al RES y a `malas` (fase 'control' o 'tras') para comparar al final."""
     return ("  begin\n%s    execute (select t from _e2159_txt where nombre = '%s');\n    v := 'sin raise final (FALLA)';\n"
             "  exception when others then v := sqlstate || ' ' || sqlerrm;\n  end;\n"
+            "  if '%s' = 'tras' then crudos := crudos || jsonb_build_object('%s', v); end if;\n"
             "  v := pg_temp.e2159_resume(v);\n"
             "  malas := jsonb_set(malas, array['%s'], coalesce(malas->'%s', '{}') || jsonb_build_object('%s', v));\n"
-            "  res := res || E'\\n== %s (%s)\\n' || v;\n") % (NUM, nombre, fase, fase, nombre, nombre, fase)
+            "  res := res || E'\\n== %s (%s)\\n' || v;\n") % (NUM, nombre, fase, nombre, fase, fase, nombre, nombre, fase)
 
 
 def flujos_sec(fase):
@@ -107,8 +108,9 @@ def flujos_sec(fase):
             "  exception when others then\n"
             "    if sqlerrm <> 'deshaz_flujos' then v := 'FALLA ' || pg_temp.e2159_resume(sqlstate || ' ' || sqlerrm); end if;\n"
             "  end;\n"
+            "  if '%s' = 'tras' then crudos := crudos || jsonb_build_object('flujos_lawang', v); end if;\n"
             "  malas := jsonb_set(malas, array['%s'], coalesce(malas->'%s', '{}') || jsonb_build_object('flujos_lawang', v));\n"
-            "  res := res || E'\\n== flujos_lawang (%s) ' || v;\n") % (MOTOR, fase, fase, fase)
+            "  res := res || E'\\n== flujos_lawang (%s) ' || v;\n") % (MOTOR, fase, fase, fase, fase)
 
 
 def foto(destino):
@@ -140,7 +142,19 @@ cuerpo.append("  -- 4 · la misma foto DESPUÉS\n" + foto('despues') +
 cuerpo.append("  -- 5 · lo que la migración AÑADE: líneas malas tras ella que no estaban en el control\n"
               "  select string_agg(k || ': ' || coalesce(nullif(pg_temp.e2159_nuevas(malas->'control'->>k, malas->'tras'->>k), ''), 'ninguna → ok'), E'\\n' order by k)\n"
               "    into v from jsonb_object_keys(malas->'tras') k;\n"
-              "  res := res || E'\\n== NUEVAS tras la migración\\n' || coalesce(v, 'SIN SECCIONES (FALLA)');\n")
+              "  res := res || E'\\n== NUEVAS tras la migración\\n' || coalesce(v, 'SIN SECCIONES (FALLA)');\n"
+              "  -- 5b · MÍNIMOS de la pasada «tras» (revisor de d37887fd8): una prueba que no llegó a medir nada sale igual en el control y\n"
+              "  -- NUEVAS no la ve; aquí se exige siempre que cada una llegó a su final y con identidad\n"
+              "  v := concat_ws(E'\\n',\n"
+              "    case when coalesce(crudos->>'factura_moneda_del_contrato', '') !~ '^P0001 RESULTADOS' then 'factura_moneda no llegó a su final' end,\n"
+              "    case when coalesce(crudos->>'facturas_tope_cadena_y_recibi_pendiente', '') !~ '^P0001 RESULTADOS' then 'facturas_tope no llegó a su final' end,\n"
+              "    case when coalesce(crudos->>'facturas_tope_cadena_y_recibi_pendiente', '') !~ 'P0 identidad: admin global con facturas, ok' then 'facturas_tope sin identidad' end,\n"
+              "    case when coalesce(substring(crudos->>'f2_b2_empresas' from '\\(([0-9]+) casos ejecutados\\)')::int, 0) = 0 then 'f2_b2 sin casos ejecutados' end,\n"
+              "    case when coalesce(crudos->>'f2_b2_empresas', '') !~ 'FALLOS=' then 'f2_b2 sin su línea FALLOS=' end,\n"
+              "    case when coalesce(crudos->>'f2_b2_empresas', '') ~ 'FALLO \\[P0\\]' then 'f2_b2 con FALLO [P0]' end,\n"
+              "    case when coalesce(crudos->>'flujos_lawang', '') !~ '^[1-9][0-9]*/[0-9]+' then 'flujos no corrió sus casos' end);\n"
+              "  res := res || E'\\n== MÍNIMOS tras la migración: ' || case when coalesce(v, '') = '' then 'todas llegaron a medir → ok'\n"
+              "                                                             else 'FALLA ' || replace(v, E'\\n', ' · ') end;\n")
 cuerpo.append("  -- 6 · series: ninguna secuencia de documentos puede haberse movido\n"
               "  select coalesce(jsonb_object_agg(sequencename, last_value), '{}') into seq1 from pg_sequences where schemaname = 'public';\n"
               "  select string_agg(a.key || ' ' || coalesce(a.value, 'null') || '→' || coalesce(b.value, 'null')\n"
@@ -168,6 +182,8 @@ cabecera = """-- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; t
 -- APLICAR solo si el RES dice TODO esto (cualquier otra cosa = PARAR y pasar el RES entero a lawang-cola-2):
 --   == sesión antes / tras la migración: las dos líneas iguales (la migración no deja rol, claims ni replica puestos).
 --   == NUEVAS tras la migración: «ninguna → ok» en las cuatro (factura_moneda, facturas_tope, f2_b2_empresas, flujos_lawang).
+--   == MÍNIMOS tras la migración: «todas llegaron a medir → ok» (cada prueba llegó a su final, facturas_tope con identidad, f2_b2
+--      con casos ejecutados, su FALLOS= y sin FALLO [P0], flujos con casos). Si dice FALLA, el ensayo no midió: PARAR.
 --   == factura_moneda_del_contrato (tras): ninguna línea empieza por «MAL» ni dice «ERR», las del canario C0 incluidas; «PENDIENTE»
 --      solo en g3, g4, g5 y h1 (cualquier otro PENDIENTE = PARAR).
 --   == facturas_tope_cadena_y_recibi_pendiente (tras): la línea «P0 identidad» cuenta como ok (si sale «P0 identidad: MAL» no hay
@@ -197,17 +213,20 @@ resume = """create or replace function pg_temp.e2159_resume(t text) returns text
       || coalesce((select string_agg(x, E'\\n') from c where mala or not buena), '')
 $r$;
 create or replace function pg_temp.e2159_nuevas(a text, b text) returns text language sql as $r$
-  -- las líneas MALAS de b (tras la migración) que no están en a (el control). Sin el «N ok · » con que el resumen pega la primera
-  -- línea (el número de buenas cambia entre las dos pasadas y haría «nueva» una línea que no lo es).
-  with mb as (select regexp_replace(x, '^[0-9]+ ok · ', '') x from regexp_split_to_table(coalesce(b, ''), E'\\n') x),
-       ma as (select regexp_replace(x, '^[0-9]+ ok · ', '') x from regexp_split_to_table(coalesce(a, ''), E'\\n') x)
-  select coalesce(string_agg(x, E'\\n'), '') from mb
-   where x ~ '(FALLA|FALLO|\\mMAL\\M|\\mERR\\M|PASO \\(MAL\\)|PENDIENTE)' and x not in (select x from ma)
+  -- las líneas de b (resumen tras la migración) que no están en a (el control). El resumen ya solo deja las malas y las que no son
+  -- buenas: se comparan TODAS (revisor de d37887fd8: un 42883 o un 42501 sin «ERR» se perdía). Sin el «N ok · » que el resumen pega
+  -- a la primera línea (el número de buenas cambia entre pasadas) ni el MOTIVO de un «bloqueado/bloqueada» (2159 cambia qué regla
+  -- para primero; que siga bloqueado lo exige el criterio de facturas_tope).
+  with mb as (select regexp_replace(regexp_replace(x, '^[0-9]+ ok · ', ''), ' (bloquead[oa]):.*$', ' \\1') x
+                from regexp_split_to_table(coalesce(b, ''), E'\\n') x where btrim(x) <> ''),
+       ma as (select regexp_replace(regexp_replace(x, '^[0-9]+ ok · ', ''), ' (bloquead[oa]):.*$', ' \\1') x
+                from regexp_split_to_table(coalesce(a, ''), E'\\n') x where btrim(x) <> '')
+  select coalesce(string_agg(x, E'\\n'), '') from mb where btrim(x) <> '' and x not in (select x from ma)
 $r$;
 """
 
 fichero = (cabecera + resume
-           + "do %s\ndeclare res text := ''; v text; antes text; despues text; n_ok int; n_tot int; seq0 jsonb; seq1 jsonb; malas jsonb := '{}';\nbegin\n" % ETQ['ens']
+           + "do %s\ndeclare res text := ''; v text; antes text; despues text; n_ok int; n_tot int; seq0 jsonb; seq1 jsonb; malas jsonb := '{}'; crudos jsonb := '{}';\nbegin\n" % ETQ['ens']
            + ''.join(cuerpo)
            + "  raise exception E'RES 2159%%', res;\nend %s;\n" % ETQ['ens'])
 

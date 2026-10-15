@@ -25,15 +25,16 @@ declare
   pay_l text; pay_s text;
 begin
   -- Personas por ROL, nunca por correo fijo (15-oct-2026, ensayo de 2159 en la viva: los correos del 8-oct habían cambiado de rol
-  -- —el «admin global» ya era admin_empresa— y caían todos sus casos). jv = el super_admin activo más antiguo; ctl = el agente activo
+  -- —el «admin global» ya era admin_empresa— y caían todos sus casos). jv = el PROPIETARIO (es_propietario: solo él cambia ámbito, empresas y roles de empresa, trigger
+  -- usuarios_bloquea_cambio_rol_herramientas; revisor de d37887fd8); ctl = el agente activo
   -- más antiguo SIN las casillas gastos ni bancos (no se toca); el resto, agentes activos por antigüedad, cada uno distinto, que se
   -- CONVIERTEN dentro del rollback: ya, cr, ad4, ad0 como siempre, ar con empresas={lawang} y gad en admin global no super con casillas.
-  select user_id, email into jv, mail from public.usuarios where activo and rol = 'super_admin' order by creado_en limit 1;
+  select user_id, email into jv, mail from public.usuarios where es_propietario and activo order by creado_en, user_id limit 1;
   perform set_config('request.jwt.claims', json_build_object('sub', jv, 'role', 'authenticated', 'email', mail)::text, true);
   per := per || jsonb_build_object('jv', jsonb_build_object('sub', jv, 'email', mail));
   select user_id, email into ctl, mail from public.usuarios
    where activo and rol = 'agente' and not ('gastos' = any(coalesce(herramientas, '{}'))) and not ('bancos' = any(coalesce(herramientas, '{}')))
-   order by creado_en limit 1;
+   order by creado_en, user_id limit 1;
   per := per || jsonb_build_object('ctl', jsonb_build_object('sub', ctl, 'email', mail));
   for pe in select * from (values
       ('ya',  'admin_empresa',       'empresa', '{lawang}',              '{facturas,gastos,bancos,comisiones}'),
@@ -45,7 +46,7 @@ begin
     select u2.user_id into uid from public.usuarios u2
      where u2.activo and u2.rol = 'agente' and u2.user_id is distinct from jv and u2.user_id is distinct from ctl
        and not exists (select 1 from jsonb_each(per) x where x.value->>'sub' = u2.user_id::text)
-     order by u2.creado_en limit 1;
+     order by u2.creado_en, u2.user_id limit 1;   -- desempate: la carga inicial dio el mismo creado_en a todos
     if pe.rol is null then   -- ar: solo el alcance restringido, el resto de su ficha como está
       update public.usuarios set empresas = pe.emps::text[] where user_id = uid returning user_id, email into uid, mail;
     else

@@ -15,6 +15,8 @@
 -- APLICAR solo si el RES dice TODO esto (cualquier otra cosa = PARAR y pasar el RES entero a lawang-cola-2):
 --   == sesión antes / tras la migración: las dos líneas iguales (la migración no deja rol, claims ni replica puestos).
 --   == NUEVAS tras la migración: «ninguna → ok» en las cuatro (factura_moneda, facturas_tope, f2_b2_empresas, flujos_lawang).
+--   == MÍNIMOS tras la migración: «todas llegaron a medir → ok» (cada prueba llegó a su final, facturas_tope con identidad, f2_b2
+--      con casos ejecutados, su FALLOS= y sin FALLO [P0], flujos con casos). Si dice FALLA, el ensayo no midió: PARAR.
 --   == factura_moneda_del_contrato (tras): ninguna línea empieza por «MAL» ni dice «ERR», las del canario C0 incluidas; «PENDIENTE»
 --      solo en g3, g4, g5 y h1 (cualquier otro PENDIENTE = PARAR).
 --   == facturas_tope_cadena_y_recibi_pendiente (tras): la línea «P0 identidad» cuenta como ok (si sale «P0 identidad: MAL» no hay
@@ -32,7 +34,7 @@
 --   Un 55P03 (lock_timeout) en cualquier sección = tabla ocupada: REINTENTAR más tarde, no es un fallo.
 -- f2_foto_b2_ab NO va (decisión por defecto, revertible añadiéndola como sección): compara funciones de gastos contra una instantánea,
 -- no guardar_recibi; el A/B de 2159 es la foto antes/después de las secciones 0 y 4 y el control de la 1.
--- Huellas: migración 08c84d8112cfe3f545f86f99c819ab5d0e756062a20ccfd10f17b82013be3c75 · flujos 13152abb8a05f84d3397d15e6f80b9bace6d05c2742b6b09665042b34bb22c03 · factura_moneda_del_contrato b7704baee9072e77 · facturas_tope_cadena_y_recibi_pendiente f2e6428cdbb7ac0c · f2_b2_empresas 0af135bdb7188693 · f2_foto_b2 07b5a8f511b0844c
+-- Huellas: migración 08c84d8112cfe3f545f86f99c819ab5d0e756062a20ccfd10f17b82013be3c75 · flujos 13152abb8a05f84d3397d15e6f80b9bace6d05c2742b6b09665042b34bb22c03 · factura_moneda_del_contrato b7704baee9072e77 · facturas_tope_cadena_y_recibi_pendiente 72a3b8889bd41089 · f2_b2_empresas f95fc211b2b37fc8 · f2_foto_b2 07b5a8f511b0844c
 create or replace function pg_temp.e2159_resume(t text) returns text language sql as $r$
   -- cuenta las líneas buenas y deja TODAS las demás (el RES entero de 140 KB lo corta el cliente). Una línea con FALLA, FALLO, MAL,
   -- ERR o «PASO (MAL)» nunca se cuenta como buena aunque también diga ok (revisor de dff7e40ef: «FALLO … (esperado ok)» se perdía).
@@ -42,15 +44,18 @@ create or replace function pg_temp.e2159_resume(t text) returns text language sq
       || coalesce((select string_agg(x, E'\n') from c where mala or not buena), '')
 $r$;
 create or replace function pg_temp.e2159_nuevas(a text, b text) returns text language sql as $r$
-  -- las líneas MALAS de b (tras la migración) que no están en a (el control). Sin el «N ok · » con que el resumen pega la primera
-  -- línea (el número de buenas cambia entre las dos pasadas y haría «nueva» una línea que no lo es).
-  with mb as (select regexp_replace(x, '^[0-9]+ ok · ', '') x from regexp_split_to_table(coalesce(b, ''), E'\n') x),
-       ma as (select regexp_replace(x, '^[0-9]+ ok · ', '') x from regexp_split_to_table(coalesce(a, ''), E'\n') x)
-  select coalesce(string_agg(x, E'\n'), '') from mb
-   where x ~ '(FALLA|FALLO|\mMAL\M|\mERR\M|PASO \(MAL\)|PENDIENTE)' and x not in (select x from ma)
+  -- las líneas de b (resumen tras la migración) que no están en a (el control). El resumen ya solo deja las malas y las que no son
+  -- buenas: se comparan TODAS (revisor de d37887fd8: un 42883 o un 42501 sin «ERR» se perdía). Sin el «N ok · » que el resumen pega
+  -- a la primera línea (el número de buenas cambia entre pasadas) ni el MOTIVO de un «bloqueado/bloqueada» (2159 cambia qué regla
+  -- para primero; que siga bloqueado lo exige el criterio de facturas_tope).
+  with mb as (select regexp_replace(regexp_replace(x, '^[0-9]+ ok · ', ''), ' (bloquead[oa]):.*$', ' \1') x
+                from regexp_split_to_table(coalesce(b, ''), E'\n') x where btrim(x) <> ''),
+       ma as (select regexp_replace(regexp_replace(x, '^[0-9]+ ok · ', ''), ' (bloquead[oa]):.*$', ' \1') x
+                from regexp_split_to_table(coalesce(a, ''), E'\n') x where btrim(x) <> '')
+  select coalesce(string_agg(x, E'\n'), '') from mb where btrim(x) <> '' and x not in (select x from ma)
 $r$;
 do $ens2159$
-declare res text := ''; v text; antes text; despues text; n_ok int; n_tot int; seq0 jsonb; seq1 jsonb; malas jsonb := '{}';
+declare res text := ''; v text; antes text; despues text; n_ok int; n_tot int; seq0 jsonb; seq1 jsonb; malas jsonb := '{}'; crudos jsonb := '{}';
 begin
   perform set_config('lock_timeout', '5s', true);
   -- series: foto de TODAS las secuencias de public antes de nada (se compara al final)
@@ -457,14 +462,16 @@ declare out text := ''; u record; c1 uuid; c2 uuid; f1 uuid; f2 uuid; soc text; 
 begin
   -- La identidad, por ROL y no por correo fijo (15-oct-2026, ensayo de 2159: el admin «p@p…» del 5-oct hoy es super_admin_empresa y
   -- la prueba corría sin sesión, con todos los «bloqueado» dados por la falta de permiso). Si no hay ningún admin global activo, se
-  -- convierte el agente activo más antiguo en admin global DENTRO de la transacción (se deshace con el raise final), con los claims
-  -- del super_admin más antiguo para hacer el cambio, como f2_b2_empresas.
-  select user_id, email into u from public.usuarios where activo and rol = 'admin' and ambito = 'global' order by creado_en limit 1;
+  -- convierte el agente activo más antiguo en admin global con la casilla facturas DENTRO de la transacción (se deshace con el raise
+  -- final), con los claims del PROPIETARIO (solo él cambia rol y ámbito: trigger usuarios_bloquea_cambio_rol_herramientas), como f2_b2.
+  select user_id, email into u from public.usuarios where activo and rol = 'admin' and ambito = 'global' and 'facturas' = any(coalesce(herramientas, '{}'))
+   order by creado_en, user_id limit 1;
   if u.user_id is null then
-    select user_id, email into u from public.usuarios where activo and rol = 'super_admin' order by creado_en limit 1;
+    select user_id, email into u from public.usuarios where es_propietario and activo order by creado_en, user_id limit 1;
     perform set_config('request.jwt.claims', json_build_object('sub',u.user_id,'role','authenticated','email',u.email)::text, true);
-    update public.usuarios set rol = 'admin', ambito = 'global', empresas = '{}'
-     where user_id = (select x.user_id from public.usuarios x where x.activo and x.rol = 'agente' order by x.creado_en limit 1)
+    update public.usuarios set rol = 'admin', ambito = 'global', empresas = '{}',
+           herramientas = case when 'facturas' = any(coalesce(herramientas, '{}')) then herramientas else array_append(coalesce(herramientas, '{}'), 'facturas') end
+     where user_id = (select x.user_id from public.usuarios x where x.activo and x.rol = 'agente' order by x.creado_en, x.user_id limit 1)
      returning user_id, email into u;
   end if;
   perform set_config('request.jwt.claims', json_build_object('sub',u.user_id,'role','authenticated','email',u.email)::text, true);
@@ -527,15 +534,16 @@ declare
   pay_l text; pay_s text;
 begin
   -- Personas por ROL, nunca por correo fijo (15-oct-2026, ensayo de 2159 en la viva: los correos del 8-oct habían cambiado de rol
-  -- —el «admin global» ya era admin_empresa— y caían todos sus casos). jv = el super_admin activo más antiguo; ctl = el agente activo
+  -- —el «admin global» ya era admin_empresa— y caían todos sus casos). jv = el PROPIETARIO (es_propietario: solo él cambia ámbito, empresas y roles de empresa, trigger
+  -- usuarios_bloquea_cambio_rol_herramientas; revisor de d37887fd8); ctl = el agente activo
   -- más antiguo SIN las casillas gastos ni bancos (no se toca); el resto, agentes activos por antigüedad, cada uno distinto, que se
   -- CONVIERTEN dentro del rollback: ya, cr, ad4, ad0 como siempre, ar con empresas={lawang} y gad en admin global no super con casillas.
-  select user_id, email into jv, mail from public.usuarios where activo and rol = 'super_admin' order by creado_en limit 1;
+  select user_id, email into jv, mail from public.usuarios where es_propietario and activo order by creado_en, user_id limit 1;
   perform set_config('request.jwt.claims', json_build_object('sub', jv, 'role', 'authenticated', 'email', mail)::text, true);
   per := per || jsonb_build_object('jv', jsonb_build_object('sub', jv, 'email', mail));
   select user_id, email into ctl, mail from public.usuarios
    where activo and rol = 'agente' and not ('gastos' = any(coalesce(herramientas, '{}'))) and not ('bancos' = any(coalesce(herramientas, '{}')))
-   order by creado_en limit 1;
+   order by creado_en, user_id limit 1;
   per := per || jsonb_build_object('ctl', jsonb_build_object('sub', ctl, 'email', mail));
   for pe in select * from (values
       ('ya',  'admin_empresa',       'empresa', '{lawang}',              '{facturas,gastos,bancos,comisiones}'),
@@ -547,7 +555,7 @@ begin
     select u2.user_id into uid from public.usuarios u2
      where u2.activo and u2.rol = 'agente' and u2.user_id is distinct from jv and u2.user_id is distinct from ctl
        and not exists (select 1 from jsonb_each(per) x where x.value->>'sub' = u2.user_id::text)
-     order by u2.creado_en limit 1;
+     order by u2.creado_en, u2.user_id limit 1;   -- desempate: la carga inicial dio el mismo creado_en a todos
     if pe.rol is null then   -- ar: solo el alcance restringido, el resto de su ficha como está
       update public.usuarios set empresas = pe.emps::text[] where user_id = uid returning user_id, email into uid, mail;
     else
@@ -1376,6 +1384,7 @@ $fl2159$);
     v := 'sin raise final (FALLA)';
   exception when others then v := sqlstate || ' ' || sqlerrm;
   end;
+  if 'control' = 'tras' then crudos := crudos || jsonb_build_object('factura_moneda_del_contrato', v); end if;
   v := pg_temp.e2159_resume(v);
   malas := jsonb_set(malas, array['control'], coalesce(malas->'control', '{}') || jsonb_build_object('factura_moneda_del_contrato', v));
   res := res || E'\n== factura_moneda_del_contrato (control)\n' || v;
@@ -1389,6 +1398,7 @@ $fl2159$);
     v := 'sin raise final (FALLA)';
   exception when others then v := sqlstate || ' ' || sqlerrm;
   end;
+  if 'control' = 'tras' then crudos := crudos || jsonb_build_object('facturas_tope_cadena_y_recibi_pendiente', v); end if;
   v := pg_temp.e2159_resume(v);
   malas := jsonb_set(malas, array['control'], coalesce(malas->'control', '{}') || jsonb_build_object('facturas_tope_cadena_y_recibi_pendiente', v));
   res := res || E'\n== facturas_tope_cadena_y_recibi_pendiente (control)\n' || v;
@@ -1402,6 +1412,7 @@ $fl2159$);
     v := 'sin raise final (FALLA)';
   exception when others then v := sqlstate || ' ' || sqlerrm;
   end;
+  if 'control' = 'tras' then crudos := crudos || jsonb_build_object('f2_b2_empresas', v); end if;
   v := pg_temp.e2159_resume(v);
   malas := jsonb_set(malas, array['control'], coalesce(malas->'control', '{}') || jsonb_build_object('f2_b2_empresas', v));
   res := res || E'\n== f2_b2_empresas (control)\n' || v;
@@ -1416,6 +1427,7 @@ $fl2159$);
   exception when others then
     if sqlerrm <> 'deshaz_flujos' then v := 'FALLA ' || pg_temp.e2159_resume(sqlstate || ' ' || sqlerrm); end if;
   end;
+  if 'control' = 'tras' then crudos := crudos || jsonb_build_object('flujos_lawang', v); end if;
   malas := jsonb_set(malas, array['control'], coalesce(malas->'control', '{}') || jsonb_build_object('flujos_lawang', v));
   res := res || E'\n== flujos_lawang (control) ' || v;
   -- 2 · la migración, FUERA de sub-bloque: si su $antes$ o una guarda lanza, para todo (sha256 08c84d8112cfe3f5)
@@ -1963,6 +1975,7 @@ $mig2159$;
     v := 'sin raise final (FALLA)';
   exception when others then v := sqlstate || ' ' || sqlerrm;
   end;
+  if 'tras' = 'tras' then crudos := crudos || jsonb_build_object('factura_moneda_del_contrato', v); end if;
   v := pg_temp.e2159_resume(v);
   malas := jsonb_set(malas, array['tras'], coalesce(malas->'tras', '{}') || jsonb_build_object('factura_moneda_del_contrato', v));
   res := res || E'\n== factura_moneda_del_contrato (tras)\n' || v;
@@ -1976,6 +1989,7 @@ $mig2159$;
     v := 'sin raise final (FALLA)';
   exception when others then v := sqlstate || ' ' || sqlerrm;
   end;
+  if 'tras' = 'tras' then crudos := crudos || jsonb_build_object('facturas_tope_cadena_y_recibi_pendiente', v); end if;
   v := pg_temp.e2159_resume(v);
   malas := jsonb_set(malas, array['tras'], coalesce(malas->'tras', '{}') || jsonb_build_object('facturas_tope_cadena_y_recibi_pendiente', v));
   res := res || E'\n== facturas_tope_cadena_y_recibi_pendiente (tras)\n' || v;
@@ -1989,6 +2003,7 @@ $mig2159$;
     v := 'sin raise final (FALLA)';
   exception when others then v := sqlstate || ' ' || sqlerrm;
   end;
+  if 'tras' = 'tras' then crudos := crudos || jsonb_build_object('f2_b2_empresas', v); end if;
   v := pg_temp.e2159_resume(v);
   malas := jsonb_set(malas, array['tras'], coalesce(malas->'tras', '{}') || jsonb_build_object('f2_b2_empresas', v));
   res := res || E'\n== f2_b2_empresas (tras)\n' || v;
@@ -2003,6 +2018,7 @@ $mig2159$;
   exception when others then
     if sqlerrm <> 'deshaz_flujos' then v := 'FALLA ' || pg_temp.e2159_resume(sqlstate || ' ' || sqlerrm); end if;
   end;
+  if 'tras' = 'tras' then crudos := crudos || jsonb_build_object('flujos_lawang', v); end if;
   malas := jsonb_set(malas, array['tras'], coalesce(malas->'tras', '{}') || jsonb_build_object('flujos_lawang', v));
   res := res || E'\n== flujos_lawang (tras) ' || v;
   -- 4 · la misma foto DESPUÉS
@@ -2025,6 +2041,18 @@ $mig2159$;
   select string_agg(k || ': ' || coalesce(nullif(pg_temp.e2159_nuevas(malas->'control'->>k, malas->'tras'->>k), ''), 'ninguna → ok'), E'\n' order by k)
     into v from jsonb_object_keys(malas->'tras') k;
   res := res || E'\n== NUEVAS tras la migración\n' || coalesce(v, 'SIN SECCIONES (FALLA)');
+  -- 5b · MÍNIMOS de la pasada «tras» (revisor de d37887fd8): una prueba que no llegó a medir nada sale igual en el control y
+  -- NUEVAS no la ve; aquí se exige siempre que cada una llegó a su final y con identidad
+  v := concat_ws(E'\n',
+    case when coalesce(crudos->>'factura_moneda_del_contrato', '') !~ '^P0001 RESULTADOS' then 'factura_moneda no llegó a su final' end,
+    case when coalesce(crudos->>'facturas_tope_cadena_y_recibi_pendiente', '') !~ '^P0001 RESULTADOS' then 'facturas_tope no llegó a su final' end,
+    case when coalesce(crudos->>'facturas_tope_cadena_y_recibi_pendiente', '') !~ 'P0 identidad: admin global con facturas, ok' then 'facturas_tope sin identidad' end,
+    case when coalesce(substring(crudos->>'f2_b2_empresas' from '\(([0-9]+) casos ejecutados\)')::int, 0) = 0 then 'f2_b2 sin casos ejecutados' end,
+    case when coalesce(crudos->>'f2_b2_empresas', '') !~ 'FALLOS=' then 'f2_b2 sin su línea FALLOS=' end,
+    case when coalesce(crudos->>'f2_b2_empresas', '') ~ 'FALLO \[P0\]' then 'f2_b2 con FALLO [P0]' end,
+    case when coalesce(crudos->>'flujos_lawang', '') !~ '^[1-9][0-9]*/[0-9]+' then 'flujos no corrió sus casos' end);
+  res := res || E'\n== MÍNIMOS tras la migración: ' || case when coalesce(v, '') = '' then 'todas llegaron a medir → ok'
+                                                             else 'FALLA ' || replace(v, E'\n', ' · ') end;
   -- 6 · series: ninguna secuencia de documentos puede haberse movido
   select coalesce(jsonb_object_agg(sequencename, last_value), '{}') into seq1 from pg_sequences where schemaname = 'public';
   select string_agg(a.key || ' ' || coalesce(a.value, 'null') || '→' || coalesce(b.value, 'null')
