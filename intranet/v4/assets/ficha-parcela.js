@@ -68,6 +68,9 @@
     if (CACHE.obra) return Promise.resolve({ data: CACHE.obra });
     return lee(sb.from('contrato_tipo_etapa').select('tipo,es_obra')).then(function (r) {
       if (r.error) return r;
+      /* Vacío no es «ningún tipo es de obra»: la base se lo devuelve vacío a quien no es agente (revisor, 15-oct). Sin
+         catálogo no se sabe cuál es la construcción ni cuál es de otra parcela: se trata como «sin permiso». */
+      if (!(r.data || []).length) return { data: null, error: { code: '42501', message: 'catálogo de tipos vacío' } };
       var o = {};
       (r.data || []).forEach(function (t) { if (t.es_obra) o[t.tipo] = true; });
       CACHE.obra = o;
@@ -150,6 +153,8 @@
       /* La fila dice que hay construcción (firmada, o con precio de contrato) y la lectura no trae ninguna: existe y
          este usuario no la ve. «No hay» sería mentira. */
       m.obraOculta = !hayObraViva && (u.obra_firmada === true || u.obra_de_contrato === true);
+      // La parcela tiene venta y la lectura no la trae: existe y no se ve («no tiene contratos» sería mentira).
+      m.ventaOculta = !!R && !m.contratos.some(function (c) { return c.raiz; });
     }
 
     /* Pactado por cobrar: las cifras de la fila, restadas. Sin cobro visible no se calcula. */
@@ -232,7 +237,9 @@
   /* ---------- HTML ---------- */
   var ESTADO = { firmado: ['Firmado', 'background:#E7EFE3;color:#2F5D3A'], reabierto: ['Reabierto', 'background:#FBF3E4;color:#8A6A34'],
                  borrador: ['Sin firmar', 'background:#f5f4ee;color:#75786e'], liberado: ['Liberado', 'background:#F6E1DE;color:#9E2F26'] };
-  function tipoTxt(t) { return root && typeof root.lwTipoContrato === 'function' ? root.lwTipoContrato(t) : t; }
+  /* `lwTipoContrato` es un `const` de vocabulario.js: está en el ámbito global de los scripts, no en `window`
+     (revisor, 15-oct). Se pregunta por el nombre, como datos.js. */
+  function tipoTxt(t) { return typeof lwTipoContrato === 'function' ? lwTipoContrato(t) : t; }   // eslint-disable-line no-undef
   function pastilla(txt, estilo, lw) {
     return '<span data-lw="' + lw + '" style="flex:0 0 auto;padding:1px 8px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;' + estilo + '">' + esc(txt) + '</span>';
   }
@@ -252,11 +259,13 @@
   }
 
   function htmlContratos(m) {
+    if (m.contratosError && sinPermiso(m.contratosError)) return aviso(T('No tienes permiso para ver los contratos de esta parcela. Los ve un administrador de la empresa.'), 'fp-contratos-sin-permiso');
     if (m.contratosError) return mal(T('No se pudieron leer los contratos de la parcela: %e', { e: errTxt(m.contratosError) }), 'fp-contratos-error');
     var out = '';
     if (m.venta && m.venta.parcelas > 1)
       out += '<p data-lw="fp-venta" style="margin:0;color:#75786e">' + esc(T('Venta %v · %n parcelas', { v: m.venta.numero, n: m.venta.parcelas })) + '</p>';
-    if (!m.contratos.length && !m.obraOculta) out += '<p data-lw="fp-sin-contratos" style="margin:0;color:#75786e">' + esc(T('Esta parcela no tiene contratos.')) + '</p>';
+    if (m.ventaOculta) out += aviso(T('Esta parcela tiene un contrato de venta que no puedes ver. Lo ve un administrador de la empresa.'), 'fp-venta-oculta');
+    if (!m.contratos.length && !m.obraOculta && !m.ventaOculta) out += '<p data-lw="fp-sin-contratos" style="margin:0;color:#75786e">' + esc(T('Esta parcela no tiene contratos.')) + '</p>';
     if (m.contratos.length) out += '<ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">' + m.contratos.map(function (c) {
       var e = ESTADO[c.estado];
       var meta = [tipoTxt(c.tipo)];   // el tipo ya dice «Construcción» (o el nombre de su modelo): no se repite
@@ -398,8 +407,8 @@
   function abre(id) {
     var V4 = root.LW_V4 || {}, u = V4.unidades && V4.unidades[id];
     limpia();
+    var tok = ++cur.tok;                                  // antes de cualquier salida: una carga vieja nunca pinta aquí
     if (!u || !q('fp-contratos')) return;
-    var tok = ++cur.tok;
     var c = q('fp-contratos-cuerpo');
     if (c) c.innerHTML = '<p style="margin:0;color:#75786e">' + esc(T('Trayendo los contratos…')) + '</p>';
     muestra(q('fp-contratos'), true);

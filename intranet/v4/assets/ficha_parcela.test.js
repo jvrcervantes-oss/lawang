@@ -128,6 +128,17 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
     const { m } = await corre(fila(), { contratos: { data: [raizC, obra('ol', 'CCL', { liberado_en: '2026-09-01' })] }, facturas: { data: [] }, saldo: { [R]: saldoOk() } });
     ok(m.obraOculta && m.contratos.find((c) => c.numero === 'CCL').estado === 'liberado', 'liberada a la vista + vigente oculta = aviso');
   }
+  // 3d · revisor 15-oct: venta que no se ve, catálogo vacío y el nombre del tipo
+  {
+    const a = await corre(fila({ obra_firmada: false, obra_de_contrato: false }), { contratos: { data: [] }, facturas: { data: [] } });
+    ok(a.m.ventaOculta && /fp-venta-oculta/.test(FP.fpHTML.contratos(a.m)) && !/no tiene contratos/.test(FP.fpHTML.contratos(a.m)), 'venta que no llega: «no puedes ver», no «no hay»');
+    const b = await corre(fila(), { contratos: { data: [raizC] }, tipos: { data: [] } });
+    ok(b.m.contratosError && /fp-contratos-sin-permiso/.test(FP.fpHTML.contratos(b.m)), 'catálogo vacío (no agente) = sin permiso, no «ningún tipo es obra»');
+    global.lwTipoContrato = (t) => (t === 'reserva_parcela' ? 'Bloqueo de Parcela' : t);
+    const c = await corre(fila(), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk() } });
+    ok(/Bloqueo de Parcela/.test(FP.fpHTML.contratos(c.m)) && !/reserva_parcela/.test(FP.fpHTML.contratos(c.m)), 'el tipo sale con su nombre (lwTipoContrato es un const global, no de window)');
+    delete global.lwTipoContrato;
+  }
   // 4 · cobro no visible: no se calcula ni se pinta 0
   {
     const { m } = await corre(fila({ cobrado_suelo: null, cobrado_obra: null }), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk() } });
