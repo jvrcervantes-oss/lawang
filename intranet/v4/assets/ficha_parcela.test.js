@@ -149,6 +149,9 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
     const v = await corre(fila({ contrato_id: null, estado: 'vendida', cobrado_suelo: null, cobrado_obra: null, obra_de_contrato: false, obra_firmada: null }),
       { contratos: { data: [] }, facturas: { data: [] }, saldo: {} });
     ok(v.m.pactado && v.m.pactado.noVisible, 'vendida sin contrato_id en la fila (sin permiso): «no visible», no nada');
+    const b = await corre(fila({ contrato_id: null, contrato_numero: null, estado: 'bloqueada', cobrado_suelo: 0, cobrado_obra: 0, suelo_pactado: null, obra_pactada: null,
+      obra_de_contrato: false, obra_firmada: null, suelo_de_contrato: false }), { contratos: { data: [] }, facturas: { data: [] }, saldo: {} });
+    ok(b.m.pactado == null, 'bloqueada a mano, sin contrato y con el cobro visible: sin «por cobrar» (SH-128)');
     ok(/sin permiso para ver el cobro/.test(FP.fpHTML.pendientes(m)), 'lo dice');
   }
   // 5 · una lectura que falla lo dice en su bloque

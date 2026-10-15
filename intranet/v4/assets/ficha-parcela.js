@@ -162,10 +162,12 @@
        «la venta» (Calidad, 15-oct-2026: SH-128 enseñaba «Por cobrar del precio 260.875 EUR»). */
     var suelo = h.precioParte(u, 'suelo'), obra = h.precioParte(u, 'obra');
     // Con algo cobrado sí se calcula aunque la fila no traiga la venta: el resto (o lo cobrado de más) no se esconde.
-    // Y una parcela reservada, bloqueada o vendida tiene venta aunque la fila no traiga `contrato_id` (sin permiso):
-    // ahí sale «no visible», no nada (revisor, 15-oct-2026).
+    // Y con el cobro NO visible (sin permiso), una parcela reservada, bloqueada, vendida o cobrada se trata como con
+    // venta aunque la fila no traiga `contrato_id`: sale «no visible», no nada. Solo entonces: «bloqueada» se puede
+    // poner a mano en una parcela sin contrato, y con el cobro visible eso volvería a enseñar un «por cobrar» sin
+    // venta (SH-128; revisor, 15-oct-2026).
     var conVenta = !!R || u.obra_de_contrato === true || u.obra_firmada === true ||
-      ['reservada', 'bloqueada', 'vendida', 'cobrada'].indexOf(u.estado) >= 0 ||
+      ((u.cobrado_suelo == null || u.cobrado_obra == null) && ['reservada', 'bloqueada', 'vendida', 'cobrada'].indexOf(u.estado) >= 0) ||
       (Number(u.cobrado_suelo) || 0) + (Number(u.cobrado_obra) || 0) > 0;
     if (conVenta && (suelo != null || obra != null)) {
       if (u.cobrado_suelo == null || u.cobrado_obra == null) m.pactado = { noVisible: true };
