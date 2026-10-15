@@ -53,7 +53,7 @@ assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: 2327
 assert.strictEqual(sueloSinFirmar({ contrato_firmado: true, suelo_pactado: 15000, precio_suelo: 18750 }), false, 'Bloqueo firmado: no se rotula');
 assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: '25000.00', precio_suelo: 25000 }), true, 'sin firmar aunque el precio sea el de catálogo: se rotula (caso RP00050)');
 assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: null, precio_suelo: 25000 }), false, 'sin precio pactado (sin permiso o sin contrato): nada que avisar');
-assert.ok(src.includes('sueloSinFirmar(u));') && src.includes("' (contrato sin firmar)'") && src.includes("' · contrato sin firmar'"), 'tarjeta y ficha rotulan el contrato sin firmar');
+assert.ok(src.includes('sueloSinFirmar(u));') && src.includes("' (' + tx('contrato sin firmar') + ')'") && src.includes("' · ' + tx('contrato sin firmar')"), 'tarjeta y ficha rotulan el contrato sin firmar');
 
 // --- repartoPorRegla ---
 // SH-1 (medido el 14-oct): 41.620 cobrados contra el Bloqueo (25.000) y la Construcción a 0.
@@ -120,8 +120,8 @@ assert.ok(/from\('unidades_estado'\)\s*\.select\('\*'\)/.test(src),
   'el cajón tiene que pedir unidades_estado con select(*): las columnas suelo_pactado / obra_pactada no existen en todas las bases que comparten esta pantalla');
 assert.ok(src.includes("precioParte(u, 'suelo')") && src.includes("precioParte(u, 'obra')"), 'tarjeta y ficha pintan el precio con precioParte');
 assert.ok(src.includes('repartoPorRegla(fam, uu)'), 'las barras del proyecto usan repartoPorRegla');
-assert.ok(src.includes('var dpTotal = (dpSuelo != null && dpObra != null) ? dpSuelo + dpObra : u.precio;'),
-  'el Total de la ficha es la suma de las dos partes que enseña');
+assert.ok(src.includes('var dpTotal = precioTotal(u);') && src.includes("pon('u-total', fmtConEstimado(precioTotal(u), u.moneda), f);"),
+  'el Total de la ficha y el Pactado de la tarjeta son la misma cuenta (precioTotal = suelo + obra, 15-oct-2026)');
 assert.ok(src.includes('(fam.sinAtribuir || 0) - reparto.absorbido'), 'el aviso de «sin atribuir» descuenta lo que la regla ya repartió');
 assert.ok(src.includes('cad.conFamilia = true') && src.includes('cadO.otros += cobradoC'), 'las ventas se montan con conFamilia y otros');
 assert.ok(!/Math\.min\([^)]*precio_suelo/.test(src), 'datos.js no recalcula la cascada contra precio_suelo: la regla vive en la base');
