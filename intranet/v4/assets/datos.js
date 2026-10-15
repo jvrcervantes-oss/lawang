@@ -1034,7 +1034,7 @@
       var contratos = (rc.data && rc.data.length) ? rc.data : [{ id: c0.id, numero: c0.numero }];
       var ids = contratos.map(function (x) { return x.id; });
       Promise.all([
-        sb.rpc('facturas_equipo').select('id,anulada').in('contrato_id', ids),
+        sb.rpc('facturas_equipo').select('id,anulada,tipo,enviada').in('contrato_id', ids),
         sb.rpc('contrato_firmas_equipo').select('id,contrato_id,estado,snapshot_path').in('contrato_id', ids).in('estado', ['pendiente', 'procesando']),
         /* LAW-338 L3 (10-oct-2026): las comisiones de la operación por el servidor (operacion_comisiones_datos). */
         window.lwDatos('operacion_comisiones_datos', { p_contratos: ids }).then(function (rr) {
@@ -1046,6 +1046,16 @@
         var comisiones = r[2].error ? [] : (r[2].data || []);
         /* Si algo no se pudo leer, se dice: el diálogo no puede prometer «no hay nada» sin haberlo mirado. */
         var sinMirar = ['facturas', 'enlaces de firma', 'comisiones'].filter(function (_, i) { return r[i].error; });
+        /* Bloque B (14-oct-2026): con un recibí vigente o un documento ya enviado (aunque esté anulado) solo borra un admin de
+           su empresa (borrar_operacion, regla 4). Si quien pulsa no es admin de ninguna, no se le abre el diálogo de confirmar
+           algo que la base va a rechazar: se le dice por qué. Solo cuando SE VE alguno: la lectura va con la RLS de la sesión y
+           no ver ninguno no prueba que no los haya (ese caso, y el admin de otra empresa, los decide la base con este texto). */
+        var conCobroOEnvio = r[0].error ? 0 : (r[0].data || []).filter(function (f) { return (f.tipo === 'recibi' && !f.anulada) || f.enviada; }).length;
+        var fSes = window.LW_V4 && window.LW_V4.ficha;
+        if (conCobroOEnvio && fSes && !LW_ROL.esAdmin(fSes)) {
+          toastMal(tx('Esta operación tiene un recibí vigente o un documento ya enviado al cliente: solo la puede borrar un administrador de su empresa. Pídeselo a un administrador.'));
+          return;
+        }
         var yaPagadas = comisiones.filter(function (x) { return x.estado === 'pagada'; }).length;
         var detalle = [];
         detalle.push(contratos.length > 1
@@ -1263,10 +1273,18 @@
     // «Ver en Operaciones» (antes «Expediente», 22-sep-2026): la fila de la
     // operación entera —cadena y dinero de toda ella— con esta ficha abierta.
     if (!opts.sinExpediente) acciones.push({ texto: 'Ver en Operaciones', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
-    // Borrar operación (S13, 22-sep-2026): mismo botón que la clásica
-    // (intranet/operaciones/index.html:967, id="btnBorrarOp") — nunca oculto
-    // por rol, el gate de verdad es el propio RPC (es_agente / es_super_admin).
-    if (contratosActivo()) acciones.push({ texto: 'Borrar operación', tono: 'peligro', onClick: function () { borrarOperacionV4(sb, c0); } });
+    // Borrar operación (S13, 22-sep-2026). Hasta el 14-oct-2026 se ofrecía a todos y decidía el RPC. Desde el bloque B
+    // (regla doble, LAW-51 p.5: lo que el servidor prohíbe, la pantalla no lo ofrece) borrar_operacion exige la herramienta
+    // Contratos (_puede_herr: la casilla, o ser super admin global o de empresa) y, con un recibí vigente o un documento
+    // enviado en la cadena, ser admin de su empresa. Lo primero se sabe aquí y apaga el botón con su motivo; lo segundo
+    // necesita las facturas y se mira al pulsar (borrarOperacionV4). Sin ficha legible se ofrece: decide la base.
+    if (contratosActivo()) {
+      var fBorra = window.LW_V4 && window.LW_V4.ficha;
+      var sinHerrBorra = !!fBorra && !(LW_ROL.puedeHerr(fBorra, 'contratos') || fBorra.rol === 'super_admin_empresa');
+      acciones.push({ texto: 'Borrar operación', tono: 'peligro', disabled: sinHerrBorra,
+        title: sinHerrBorra ? tx('Borrar una operación exige la herramienta Contratos: pídesela a un administrador en Usuarios.') : '',
+        onClick: function () { borrarOperacionV4(sb, c0); } });
+    }
     acciones.push({ texto: 'Cerrar', cerrar: true });
     /* Trazabilidad en la barra (22-sep-2026, owner): en /v4/contratos/ la ficha
        abierta se refleja como `?contrato=NUM` — lo mismo que el listado ya sabe
@@ -1994,12 +2012,19 @@
     acciones.push({ texto: 'Descargar PDF', onClick: V4acc('imprimirDocumento', f0.id) });
     if (!f0.anulada) acciones.push({ texto: 'Enviar por email', onClick: V4acc('enviarDocumento', f0.id) });
     acciones.push({ texto: '📨 Registro', onClick: V4acc('registroEnvios', f0.id) });
-    // Anular (S14): se ofrece a cualquiera que vea el documento — la RLS es la
-    // que de verdad decide (autor o admin, con la herramienta 'facturas');
-    // esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
+    // Anular (S14): se ofrece a quien vea el documento — la base decide (autor, manager o admin, con la herramienta
+    // 'facturas'); esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
+    // Desde el 14-oct-2026 (bloque B, regla doble LAW-51 p.5) factura_anula reserva un RECIBÍ o un documento ENVIADO al
+    // admin de su empresa: a quien no es admin de ninguna se le apaga con el motivo. Un admin de otra empresa lo sigue viendo
+    // y la base se lo niega con su texto; un borrador, como siempre.
     // ERP maestro (AXW-39): una rectificativa no se anula (se emite otra factura), y
     // lo EMITIDO en serie fiscal no se reactiva ni se borra — la base lo rechaza.
-    if (!f0.anulada && !f0.rectifica_id) acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () { anularDocumento(sb, f0); } });
+    if (!f0.anulada && !f0.rectifica_id) {
+      var anulaSoloAdmin = (f0.tipo === 'recibi' || !!f0.enviada) && !!V4.ficha && !LW_ROL.esAdmin(V4.ficha);
+      acciones.push({ texto: 'Anular', tono: 'peligro', disabled: anulaSoloAdmin,
+        title: anulaSoloAdmin ? tx('Solo un administrador de la empresa puede anular un recibí o un documento ya enviado al cliente.') : '',
+        onClick: function () { anularDocumento(sb, f0); } });
+    }
     if (f0.anulada && !f0.enviada && !f0.fecha_envio && !f0.emitida_en && V4.esSuperAdmin) acciones.push({ texto: 'Reactivar', onClick: function () { reactivarDocumento(sb, f0); } });
     // Borrar (S14): desde el 21-sep NI SIQUIERA super_admin borra un documento
     // ya enviado — coincide con la policy que Datos aplica en paralelo
