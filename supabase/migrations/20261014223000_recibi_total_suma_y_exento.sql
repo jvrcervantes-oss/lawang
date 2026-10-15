@@ -131,8 +131,10 @@
 -- ACEPTADO (orquestador agencia-c0 y sesión lawang-cola-2, 15-oct-2026, por la congelación del owner): las pruebas que montan sobre datos reales no corren en rama. Antes de aplicar esta migración en la viva se corren con ROLLBACK: factura_moneda_del_contrato b1, facturas_tope_cadena_y_recibi_pendiente, f2_b2_empresas A42-A45, f2_foto_b2 / f2_foto_b2_ab y tools/flujos_lawang.py.
 -- REVERTIR: supabase/reversion_recibi_total_suma_y_exento/REVERSION.sql (el texto vivo de antes, tal cual).
 -- Prueba: supabase/pruebas/recibi_total_suma_y_exento.sql (crea contratos y documentos: SOLO en rama):
---   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261014223000_recibi_total_suma_y_exento.sql
+--   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261014220000_facturas_conservan_parcela.sql,20261014223000_recibi_total_suma_y_exento.sql
 --          --prueba recibi_total_suma_y_exento.sql
+--   (desde la 3.a vuelta, 15-oct, 220000 va en --aplica: la guarda (d) y K4b la necesitan, y la rama solo aplica lo que se le
+--   lista sobre el ultimo volcado; la copia tiene que traer ese fichero de main)
 
 set local lock_timeout = '5s';
 

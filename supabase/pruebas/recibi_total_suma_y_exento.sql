@@ -14,14 +14,15 @@
 -- proyecto_id es el del contrato; K2: al editar, un numero inventado tampoco entra; M3b: el SI, en otro contrato, guarda el suyo).
 -- 3.a vuelta del code-review (15-oct, hallazgo 1 y BAJA 5): el proyecto sale SOLO del contrato comprobado, tambien al EDITAR.
 -- K4: un recibi de K1 (proyecto 1) se edita y pasa a ZZ-RT-K5 (proyecto 2, parcela ZZ-C5): proyecto_id = proyecto 2 (antes el
--- UPDATE no lo tocaba y se quedaba el 1), columna y papel = «ZZ-RT Proyecto 2 — ZZ-C5» exactamente (sin « — ZZ-C5» doble
--- aunque la pantalla ya lo mande con la parcela). K5: contrato SIN proyecto que manda el nombre de un proyecto real: proyecto_id
+-- UPDATE no lo tocaba y se quedaba el 1), columna y papel = «ZZ-RT Proyecto 2 — ZZ-C5» exactamente, la parcela del contrato
+-- aunque la pantalla mande otra (« — ZZ-OTRA») y sin parcela doble. K5: contrato SIN proyecto que manda el nombre de un proyecto real: proyecto_id
 -- y proyecto_nombre null y el papel sin proyecto (antes el espejo lo enlazaba por nombre). Se ensaya con 20261014220000 aplicada.
 -- Rol REAL: cada llamada va con `set local role authenticated` y los claims de la persona (pg_temp.val, armazon de
 -- cf_borrar_cierre_anula.sql). Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- !! CREA CONTRATOS Y DOCUMENTOS (gasta numeracion): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014223000_recibi_total_suma_y_exento.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261014220000_facturas_conservan_parcela.sql,20261014223000_recibi_total_suma_y_exento.sql
 --           --prueba recibi_total_suma_y_exento.sql
+--    (220000 en --aplica desde la 3.a vuelta: K4b y la guarda (d) de la migracion la necesitan)
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-RT.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);
@@ -342,9 +343,10 @@ begin
         rk4 := v::uuid;
         r := r || pg_temp.l((select f.proyecto_id = pL and f.proyecto_nombre = 'ZZ-RT Proyecto' from public.facturas f where f.id = rk4),
                             'K4pre el recibi nace en K1 con el proyecto 1 (si no, K4 no probaria el cambio)');
-        -- lo que manda la pantalla al elegir el contrato: el proyecto CON la parcela (editores.js, aplicaContratoDoc)
+        -- la pantalla manda el proyecto CON la parcela (editores.js, aplicaContratoDoc); aqui con OTRA parcela (ZZ-OTRA), para
+        -- que la linea distinga «sale del contrato» de «se copia lo mandado» y vea que no se dobla
         v := pg_temp.guarda(ad.uid, ad.em, rk4,
-               pg_temp.rec(k5, '10', j, '{"proyecto_nombre": "ZZ-RT Proyecto 2 — ZZ-C5"}') || '{"proyecto_nombre": "ZZ-RT Proyecto 2 — ZZ-C5"}',
+               pg_temp.rec(k5, '10', j, '{"proyecto_nombre": "ZZ-RT Proyecto 2 — ZZ-OTRA"}') || '{"proyecto_nombre": "ZZ-RT Proyecto 2 — ZZ-OTRA"}',
                jsonb_build_array(jsonb_build_object('factura_id', f11, 'importe', 10)));
         if v is distinct from rk4::text then
           r := r || pg_temp.l(false, 'K4 el admin global pasa el recibi de K1 a K5 (' || left(coalesce(v, '-'), 90) || ')');
@@ -354,7 +356,7 @@ begin
                               'K4 al pasar el recibi a un contrato del proyecto 2, su proyecto_id pasa a ser el 2 (antes se quedaba el 1)');
           r := r || pg_temp.l((select f.proyecto_nombre = 'ZZ-RT Proyecto 2 — ZZ-C5' from public.facturas f where f.id = rk4)
                               and d->'fields'->>'proyecto_nombre' = 'ZZ-RT Proyecto 2 — ZZ-C5',
-                              'K4b columna y papel = «ZZ-RT Proyecto 2 — ZZ-C5», iguales y sin la parcela doble (' ||
+                              'K4b manda «… — ZZ-OTRA» y columna y papel = «ZZ-RT Proyecto 2 — ZZ-C5» (la parcela del contrato), iguales y sin parcela doble (' ||
                               coalesce((select f.proyecto_nombre from public.facturas f where f.id = rk4), '-') || ' / ' || coalesce(d->'fields'->>'proyecto_nombre', '-') || ')');
           r := r || pg_temp.l((select f.contrato_id = k5 and f.contrato_numero = 'ZZ-RT-K5' from public.facturas f where f.id = rk4)
                               and d->'fields'->>'contrato_numero' = 'ZZ-RT-K5'
