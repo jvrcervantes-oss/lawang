@@ -24,8 +24,9 @@
 --    la del alta: Legal/Backend, exactitud). Un admin de Lawang las repasa una vez por si llevan datos sensibles.
 -- destructivo-ok: vacía `clients.notes` SOLO después de copiar cada texto al historial en la misma transacción (4 filas
 --   medidas el 15-oct); el resto solo crea tablas, funciones y disparadores nuevos y reemplaza _kyc_retencion_candidato.
--- REVERTIR: supabase/reversion_cliente_notas/REVERSION.sql (devuelve cada nota 'antigua'/'campo_notas' a clients.notes
---   antes de borrar las tablas, y repone _kyc_retencion_candidato literal).
+-- REVERTIR: supabase/reversion_cliente_notas/REVERSION.sql (devuelve TODAS las notas, de cualquier origen, a clients.notes
+--   antes de borrar las tablas, y repone literal _kyc_retencion_candidato, _sc_referencias_cliente y _sc_columnas_clients).
+--   Ensayada en rama: supabase/pruebas/cliente_notas_reversion.sql.
 set local lock_timeout = '5s';
 
 do $pre$

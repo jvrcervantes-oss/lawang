@@ -28,6 +28,9 @@ end $siembra$;
 -- tabla (no tiene texto). _kyc_retencion_candidato vuelve LITERAL a la viva del 15-oct (md5(prosrc) 206cb44b7784b6142164499c62b9696d).
 -- destructivo-ok: borra las tablas y funciones que creo la migracion despues de devolver su texto a clients.notes
 set local lock_timeout = '5s';
+-- la FK de cliente_notas.client_id es diferible: si en esta misma transacción quedan comprobaciones pendientes, DROP TABLE
+-- falla («pending trigger events»; lo cazó la prueba de la vuelta atrás, 15-oct). Se resuelven ahora.
+set constraints all immediate;
 
 do $pre$
 begin

@@ -8,7 +8,7 @@
 -- autor la retira y su texto DESAPARECE (la traza no tiene columna de texto), un admin retira la de otro. N8 cuenta desactivada
 -- no añade. N9 todo lo que escriba en clients.notes pasa al historial (alta y edicion) y la columna queda vacia. N10 borrar la
 -- ficha borra sus notas y deja traza «ficha_borrada». N11 una nota NO bloquea la retencion KYC: cuenta como actividad.
--- N14 mas de 4000 por el campo viejo se rechaza. N12 una nota SIN autor solo la retira un admin. N13 las notas no impiden pedir el borrado de la ficha ni cambian su huella.
+-- N16 por cliente_guarda con el rol real (sin notes nada; con notes una nota firmada; el tope tambien). N14 mas de 4000 por el campo viejo se rechaza. N12 una nota SIN autor solo la retira un admin. N13 las notas no impiden pedir el borrado de la ficha ni cambian su huella.
 -- XSS: el texto se guarda tal cual (la pantalla lo pinta con esc); aqui se comprueba que llega intacto, no que se ejecute.
 -- !! CREA FICHAS, USUARIOS Y NOTAS: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015170000_cliente_notas.sql --prueba cliente_notas.sql
@@ -223,6 +223,24 @@ begin
   exception when others then
     r := r || pg_temp.l(sqlstate = '22023', 'N14 una nota de 4001 caracteres por clients.notes se rechaza, no se recorta (' || sqlstate || ')');
   end;
+
+  -- ============================================================ N16 por cliente_guarda, con el rol real (consulta de Backend, 15-oct)
+  -- cliente_guarda pone `notes` en su SET siempre (case … else c.notes): el disparador salta en cada guardado de ficha
+  v := pg_temp.val(a.uid, a.em, format('select public.cliente_guarda(%L, %L::jsonb)::text', c1, '{"phone": "+34 600 000 016"}'));
+  n := (select count(*) from public.cliente_notas where client_id = c1);
+  r := r || pg_temp.l(v = c1::text and (select notes from public.clients where id = c1) is null,
+                      'N16 guardar la ficha sin notes no crea nota ni deja texto en la columna (' || left(v, 80) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select public.cliente_guarda(%L, %L::jsonb)::text', c1, '{"notes": "ZZ-CN por cliente_guarda"}'));
+  r := r || pg_temp.l(v = c1::text and (select notes from public.clients where id = c1) is null
+                      and exists (select 1 from public.cliente_notas where client_id = c1 and origen = 'campo_notas'
+                                    and texto = 'ZZ-CN por cliente_guarda' and autor_id = a.uid)
+                      and (select count(*) from public.cliente_notas where client_id = c1) = n + 1,
+                      'N16b cliente_guarda con notes crea UNA nota «campo_notas» firmada por quien guarda (' || left(v, 80) || ')');
+  insert into public.cliente_notas (client_id, texto, autor_id, origen)
+    select c1, 'ZZ-CN tope ' || g, a.uid, 'nota' from generate_series(1, 30) g;
+  v := pg_temp.val(a.uid, a.em, format('select public.cliente_guarda(%L, %L::jsonb)::text', c1, '{"notes": "ZZ-CN la 31"}'));
+  r := r || pg_temp.l(v like 'ERR54000:%' and not exists (select 1 from public.cliente_notas where texto = 'ZZ-CN la 31'),
+                      'N16c pasado el tope de 30 en 10 minutos, cliente_guarda con notes también se frena (' || left(v, 80) || ')');
 
   raise exception using message = replace(c_fin, '%', r);
 end $todo$;
