@@ -126,6 +126,7 @@ begin
   r := r || pg_temp.l(n = 10, 'P1 los 10 compradores siguen enlazados tras el montaje (' || n || ')');
 
   -- ============================================================ A. permisos por perfil (un SÍ y un NO por perfil)
+  begin
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select count(*)::text from public.invitacion_portal_destinatarios(%L)', u1));
   r := r || pg_temp.l(v = '8', 'A1 admin de la empresa: ve a las 8 personas de la parcela, copropietarios incluidos (' || v || ')');
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select count(*)::text from public.invitacion_portal_historial(%L)', u1));
@@ -177,8 +178,12 @@ begin
      and not exists (select 1 from aclexplode(p.proacl) a where a.grantee = 0 or a.grantee in (select oid from pg_roles where rolname in ('anon', 'lw_lector')))
      and exists (select 1 from aclexplode(p.proacl) a where a.grantee = (select oid from pg_roles where rolname = 'authenticated'));
   r := r || pg_temp.l(n = 4, 'A11 las 4 de pantalla: DEFINER, authenticated sí, anon/public no (' || n || ' de 4)');
+  exception when others then   -- la sección se deshace sola; el error sale como línea en rojo y la prueba sigue
+    r := r || pg_temp.l(false, 'A sección cortada: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
 
   -- ============================================================ B. a quién se puede invitar y por qué no
+  begin
   perform set_config('request.jwt.claims', json_build_object('sub', ae.uid, 'role', 'authenticated', 'email', ae.em)::text, true);
   select jsonb_object_agg(d.client_id::text, jsonb_build_object('s', d.seleccionable, 'm', d.motivo, 'f', d.firmado, 'r', d.rol, 'a', d.ultimo_acceso is not null, 'e', d.email_oculto))
     into j from public.invitacion_portal_destinatarios(u1) d;
@@ -193,8 +198,12 @@ begin
   r := r || pg_temp.l(j->c7::text->>'m' = 'correo_equipo', 'B8 correo de una cuenta de Auth del equipo con otro correo en usuarios: correo_equipo');
   r := r || pg_temp.l((j->c8::text->>'s')::boolean and not (j->c8::text->>'f')::boolean, 'B9 contrato sin firmar: invitable, firmado=false como dato');
   r := r || pg_temp.l(j->c1::text->>'e' = 'z***@prueba.invalid' and position('zz-ip-uno' in j::text) = 0, 'B10 el correo sale enmascarado y el completo no llega al navegador');
+  exception when others then   -- la sección se deshace sola; el error sale como línea en rojo y la prueba sigue
+    r := r || pg_temp.l(false, 'B sección cortada: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
 
   -- ============================================================ C. encolar
+  begin
   select count(*) into n from public.reclamos_pago;
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select public.invitacion_portal_encolar(%L, array[%L, %L]::uuid[], %L)::text', u1, c1, c2, 'Hola, revisa todo, por favor'));
   r := r || pg_temp.l(v not like 'ERR%' and (v::jsonb->>'n') = '2', 'C1 invitar a titular y copropietario: 2 en cola (' || left(v, 40) || ')');
@@ -248,8 +257,12 @@ begin
     from public.reclamos_pago r2 where r2.cola_id = q.id and r2.unidad_id = u1 and r2.client_id = c8 and r2.tipo = 'invitacion_portal';
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select public.invitacion_portal_encolar(%L, array[%L]::uuid[], null)::text', u1, c8));
   r := r || pg_temp.l(v not like 'ERR%', 'C10b si la anterior falló, se puede volver a invitar (' || left(v, 30) || ')');
+  exception when others then   -- la sección se deshace sola; el error sale como línea en rojo y la prueba sigue
+    r := r || pg_temp.l(false, 'C sección cortada: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
 
   -- ============================================================ D. «Enviarme una prueba»
+  begin
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select public.invitacion_portal_prueba(%L, null)', u1));
   r := r || pg_temp.l(v = 'z***@prueba.invalid', 'D1 la prueba va a quien pulsa, enmascarado (' || v || ')');
   select cola_id into qp from public.reclamos_pago where unidad_id = u1 and prueba and tipo = 'invitacion_portal' order by creado_en desc limit 1;
@@ -260,8 +273,12 @@ begin
   r := r || pg_temp.l(v = 'ERR22023:tope_pruebas', 'D2 la sexta prueba en una hora: tope_pruebas (' || v || ')');
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select public.reclamo_pago_prueba(%L, null)', u1));
   r := r || pg_temp.l(v = 'z***@prueba.invalid', 'D3 el tope es por correo: Reclamar pago tiene el suyo y su prueba sale (' || v || ')');
+  exception when others then   -- la sección se deshace sola; el error sale como línea en rojo y la prueba sigue
+    r := r || pg_temp.l(false, 'D sección cortada: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
 
   -- ============================================================ E. la cola: vigencia al enviar, datos, FK, cierre
+  begin
   r := r || pg_temp.l(public._reclamo_pago_vigente(i1), 'E1 la invitación del titular está vigente');
   r := r || pg_temp.l(public._reclamo_pago_vigente(i2), 'E2 la del COPROPIETARIO también (no hereda la condición adq1/firma/sociedad del reclamo)');
   update public.clients set email = eq2.em where id = c1;   -- eq2.em, no ag.em: C3 ya lo tiene (clients_email_tipo_key)
@@ -291,8 +308,12 @@ begin
   b := public.correo_cola_ok(qp, ae.em, 'f:12345678');
   select count(*) into n2 from public.correos_enviados where contrato_id = k1;
   r := r || pg_temp.l(b and n2 = n + 1, 'E8 cerrar ok una prueba no deja registro de «correo enviado» en el contrato');
+  exception when others then   -- la sección se deshace sola; el error sale como línea en rojo y la prueba sigue
+    r := r || pg_temp.l(false, 'E sección cortada: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
 
   -- ============================================================ F. el login del portal no cambia (Seguridad #357 punto 2)
+  begin
   -- universo: clients ∪ usuarios ∪ portal_accesos ∪ casos sintéticos; se compara con los tres rechazos copiados LETRA A LETRA de
   -- 20260908013953 (antes de esta migración). Sin escribir: la función que escribe (portal_autoservicio) va en F3, aparte.
   select count(*) into n from (
@@ -300,10 +321,11 @@ begin
                    union select unnest(array[null, '', '   ', 'ZZ-IP-AGENTE@PRUEBA.INVALID', '  zz-ip-cinco@prueba.invalid ', 'sin-arroba', 'a@b',
                                              'a@b.c', 'zz ip@prueba.invalid', c_eq2_auth])) u) x
    where public._portal_rechazo(x.e) is distinct from (
-     with v as (select lower(btrim(coalesce(x.e, ''))) as v)
-     select case when (select v from v) !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then 'email_invalido'
-                 when exists (select 1 from public.usuarios u where lower(btrim(u.email)) = (select v from v)) then 'equipo'
-                 when exists (select 1 from public.portal_accesos pa where pa.email = (select v from v) and not pa.activo) then 'revocado' end);
+     -- «w.em» y no «v»: v es variable de este bloque y PL/pgSQL no sabe si es la columna o la variable (rama del 15-oct)
+     with w as (select lower(btrim(coalesce(x.e, ''))) as em)
+     select case when (select w.em from w) !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then 'email_invalido'
+                 when exists (select 1 from public.usuarios u where lower(btrim(u.email)) = (select w.em from w)) then 'equipo'
+                 when exists (select 1 from public.portal_accesos pa where pa.email = (select w.em from w) and not pa.activo) then 'revocado' end);
   r := r || pg_temp.l(n = 0, 'F1 _portal_rechazo da lo mismo que los tres rechazos de antes en todo el universo (' || n || ' diferencias)');
   select count(*) into n from (select email as e from public.clients union select email from public.usuarios union select email from public.portal_accesos) u
    where public._portal_rechazo(u.e) is not null and public.portal_elegible(u.e, k1);
@@ -317,8 +339,12 @@ begin
   select count(*) into n from pg_proc p where p.oid = 'public.portal_autoservicio(text)'::regprocedure and p.prosecdef
      and position('_portal_rechazo' in p.prosrc) > 0 and position('public.usuarios' in p.prosrc) = 0 and position('not pa.activo' in p.prosrc) = 0;
   r := r || pg_temp.l(n = 1, 'F4 portal_autoservicio ya no lleva su copia de los rechazos: llama al helper');
+  exception when others then   -- la sección se deshace sola; el error sale como línea en rojo y la prueba sigue
+    r := r || pg_temp.l(false, 'F sección cortada: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
 
   -- ============================================================ G. todas las lectoras del libro, conocidas (Base de datos #357 punto 3)
+  begin
   select string_agg(p.proname, ',' order by p.proname) into v from pg_proc p
    where p.pronamespace = 'public'::regnamespace and p.prosrc ilike '%reclamos_pago%'
      and p.proname not in ('_reclamo_pago_destino', '_reclamo_pago_vigente', 'correo_cola_reclamar', 'correo_cola_ok',
@@ -333,8 +359,12 @@ begin
                        'invitacion_portal_historial', 'invitacion_portal_prueba')
      and position('tipo' in p.prosrc) = 0;
   r := r || pg_temp.l(v is null, 'G2 las que leen un tipo concreto lo filtran (' || coalesce(v, 'todas') || ')');
+  exception when others then   -- la sección se deshace sola; el error sale como línea en rojo y la prueba sigue
+    r := r || pg_temp.l(false, 'G sección cortada: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
 
   -- ============================================================ H. Reclamar pago saca el titular de contrato_compradores (Base de datos #357 punto 4)
+  begin
   -- (sin tocar el contrato: un update dispararía la resincronización de compradores desde datos, que no los trae)
   select count(*) into n from public.contratos where id = k3 and adq1_client_id is null;
   r := r || pg_temp.l(n = 1, 'H0 K3 tiene adq1_client_id vacío (la copia que antes leía Reclamar pago)');
@@ -342,6 +372,9 @@ begin
   r := r || pg_temp.l(n = 1, 'H1 un contrato firmado con su titular en contrato_compradores y adq1_client_id vacío: el titular se puede reclamar');
   select count(*) into n from public._reclamo_pago_candidatos(u1) c where c.client_id in (c2, c3, c4) ;
   r := r || pg_temp.l(n = 0, 'H2 Reclamar pago sigue yendo SOLO al titular (adquiriente_1), no a los copropietarios');
+  exception when others then   -- la sección se deshace sola; el error sale como línea en rojo y la prueba sigue
+    r := r || pg_temp.l(false, 'H sección cortada: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
 
   raise exception 'FIN DE PRUEBAS INVITACION PORTAL (se deshace todo):%', r;
 end $todo$;
