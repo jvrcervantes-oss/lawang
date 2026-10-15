@@ -1,4 +1,4 @@
--- Prueba de 20261015200000_factura_hereda_cliente_sin_copia (15-oct-2026, sesión lawang-cola-2).
+-- Prueba de 20261015101518_factura_hereda_cliente_sin_copia (15-oct-2026, sesión lawang-cola-2).
 -- El trigger se prueba ENTERO sin dar de alta facturas reales: se engancha la función real a una tabla temporal con las tres
 -- columnas que lee (contrato_id, client_id, proyecto_id). Así no se gasta la serie fiscal ni se pasa por topes y cadenas.
 -- H1 alta sin cliente: hereda el adquiriente_1 de contrato_compradores y el proyecto del contrato. H2 la copia del jsonb
@@ -10,7 +10,7 @@
 -- de la guarda al aplicar en la viva). Montaje propio (la rama de Lawang es solo estructura): fichas ZZ-FH A y B con triggers,
 -- y con replica el proyecto y el contrato ZZ-FH-K1 con A de adquiriente_1 y de copia.
 -- !! Da de alta y toca filas dentro de la transacción: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015200000_factura_hereda_cliente_sin_copia.sql --prueba factura_hereda_cliente_sin_copia.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015101518_factura_hereda_cliente_sin_copia.sql --prueba factura_hereda_cliente_sin_copia.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA».
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
@@ -28,8 +28,9 @@ begin
   if coalesce(current_setting('erp.en_rama', true), '') <> 'si' then
     raise exception 'FIN DE PRUEBAS FACTURA HEREDA CLIENTE SIN COPIA:%', E'\nP0 esta prueba toca contratos: solo corre en rama → FALLA';
   end if;
-  -- montaje PROPIO (la rama de Lawang es solo estructura, sin datos: Backend, consulta de 844225609). Sin triggers (replica): ni
-  -- numeración, ni sincronización de compradores, ni claves ajenas de empresa; la columna generada adq1_client_id sí se calcula.
+  -- montaje PROPIO (la rama de Lawang es solo estructura, sin datos: Backend, consulta de 844225609). Las fichas, CON triggers (abajo);
+  -- proyecto, contrato y comprador, sin triggers (replica): ni numeración, ni sincronización de compradores, ni claves ajenas de
+  -- empresa; la columna generada adq1_client_id sí se calcula.
   -- Ficha A = adquiriente_1 y copia del jsonb; ficha B = la otra. Todo marcado ZZ-FH.
   begin
     -- las fichas, CON triggers: numero_cliente es NOT NULL y solo lo pone trg_clients_numero_cliente (revisor de 4e65cd2fa);
