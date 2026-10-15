@@ -72,9 +72,13 @@ begin
       (ao.uid,  ao.em,  'ZZ-IP Admin otra',  'admin_empresa', 'empresa', array['zz_ip_otra'], '{}'::uuid[], '{}'::uuid[], '{unidades,compradores}'::text[], '{}'::text[], true),
       (ag.uid,  ag.em,  'ZZ-IP Agente',      'agente',        'global',  array['zz_ip'],      array[pL],    '{}'::uuid[], '{unidades}'::text[], '{contrato_general}'::text[], true),
       (eq2.uid, eq2.em, 'ZZ-IP Equipo dos',  'agente',        'global',  array['zz_ip'],      array[pL],    '{}'::uuid[], '{unidades}'::text[], '{contrato_general}'::text[], true);
-    insert into public.unidades (codigo, proyecto) values ('ZZ-IP-1', 'ZZ-IP Proyecto') returning id into u1;
-    insert into public.unidades (codigo, proyecto) values ('ZZ-IP-2', 'ZZ-IP Proyecto') returning id into u2;
-    insert into public.unidades (codigo, proyecto) values ('ZZ-IP-O', 'ZZ-IP Proyecto otra') returning id into uo;
+    -- la rama nace de la ESTRUCTURA del volcado: los catálogos que siembran las migraciones vienen vacíos (ensayo del 15-oct:
+    -- 23503 unidades_tipo_fkey). Las mismas filas que la viva; en ella el «on conflict» no toca nada
+    insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
+    insert into public.correo_plantillas (clave, activa, variables, version)   -- como 20261010070000 (la cola la exige por FK: D3, E5)
+    values ('reclamo_pago', false,
+            '{"permitidas":["saludo","parcela","proyecto","empresa","nota","enlace","marca","firma"],"obligatorias":{"asunto":["parcela"],"cuerpo":["parcela","enlace"],"cuerpo_alt":[]},"variantes":1}'::jsonb, 0)
+    on conflict (clave) do nothing;
     insert into public.clients (full_name, email) values ('ZZ-IP Uno', 'zz-ip-uno@prueba.invalid') returning id into c1;
     insert into public.clients (full_name, email) values ('ZZ-IP Dos', 'zz-ip-dos@prueba.invalid') returning id into c2;
     insert into public.clients (full_name, email) values ('ZZ-IP Tres', ag.em) returning id into c3;
@@ -85,14 +89,27 @@ begin
     insert into public.clients (full_name, email) values ('ZZ-IP Ocho', 'zz-ip-ocho@prueba.invalid') returning id into c8;
     insert into public.clients (full_name, email) values ('ZZ-IP Nueve', 'zz-ip-nueve@prueba.invalid') returning id into c9;
     insert into public.clients (full_name, email) values ('ZZ-IP Otra', 'zz-ip-otra@prueba.invalid') returning id into co;
-    insert into public.contratos (tipo, proyecto_id, unidad_id, fecha_firma, datos)
-      values ('contrato_general', pL, u1, current_date, '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto", "sociedad_firmante": "zz_ip"}}'::jsonb) returning id into k1;
-    insert into public.contratos (tipo, proyecto_id, unidad_id, fecha_firma, datos)
-      values ('contrato_general', pL, u1, null, '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto", "sociedad_firmante": "zz_ip"}}'::jsonb) returning id into k2;
-    insert into public.contratos (tipo, proyecto_id, unidad_id, fecha_firma, datos)
-      values ('contrato_general', pL, u2, current_date, '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto", "sociedad_firmante": "zz_ip"}}'::jsonb) returning id into k3;
-    insert into public.contratos (tipo, proyecto_id, unidad_id, fecha_firma, datos)
-      values ('contrato_general', pOt, uo, current_date, '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto otra"}}'::jsonb) returning id into ko;
+    -- parcelas y contratos SIN disparadores (como facturas_conservan_parcela.sql): en la rama no hay inventario, precios ni cobros
+    -- con los que los disparadores de unidades/contratos cuadren, y aquí solo importan las columnas que leen los candidatos.
+    -- Lo que esos disparadores rellenarían va a mano: unidades.proyecto_id (resuelve_proyecto_id), contratos.numero
+    -- (set_contrato_numero), proyecto_nombre (espejo) y datos_fields (de él sale sociedad_firmante, 20260926210000)
+    execute 'set local session_replication_role = replica';
+    insert into public.unidades (codigo, proyecto, proyecto_id, tipo) values ('ZZ-IP-1', 'ZZ-IP Proyecto', pL, 'parcela') returning id into u1;
+    insert into public.unidades (codigo, proyecto, proyecto_id, tipo) values ('ZZ-IP-2', 'ZZ-IP Proyecto', pL, 'parcela') returning id into u2;
+    insert into public.unidades (codigo, proyecto, proyecto_id, tipo) values ('ZZ-IP-O', 'ZZ-IP Proyecto otra', pOt, 'parcela') returning id into uo;
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, unidad_id, fecha_firma, datos, datos_fields)
+      select 'ZZ-IP-K1', 'contrato_general', pL, 'ZZ-IP Proyecto', u1, current_date, d, d -> 'fields'
+        from (select '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto", "sociedad_firmante": "zz_ip"}}'::jsonb as d) x returning id into k1;
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, unidad_id, fecha_firma, datos, datos_fields)
+      select 'ZZ-IP-K2', 'contrato_general', pL, 'ZZ-IP Proyecto', u1, null, d, d -> 'fields'
+        from (select '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto", "sociedad_firmante": "zz_ip"}}'::jsonb as d) x returning id into k2;
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, unidad_id, fecha_firma, datos, datos_fields)
+      select 'ZZ-IP-K3', 'contrato_general', pL, 'ZZ-IP Proyecto', u2, current_date, d, d -> 'fields'
+        from (select '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto", "sociedad_firmante": "zz_ip"}}'::jsonb as d) x returning id into k3;
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, unidad_id, fecha_firma, datos, datos_fields)
+      select 'ZZ-IP-KO', 'contrato_general', pOt, 'ZZ-IP Proyecto otra', uo, current_date, d, d -> 'fields'
+        from (select '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto otra"}}'::jsonb as d) x returning id into ko;
+    execute 'set local session_replication_role = origin';
     -- los compradores DESPUÉS de los contratos (trg_compradores_desde_datos sincroniza al guardar el contrato, que ya no se toca)
     insert into public.contrato_compradores (contrato_id, client_id, rol) values
       (k1, c1, 'adquiriente_1'), (k1, c2, 'adquiriente_2'), (k1, c3, 'adquiriente_3'), (k1, c4, 'adquiriente_4'),
