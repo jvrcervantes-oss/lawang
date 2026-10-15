@@ -255,8 +255,9 @@
     '.lwh__tc:hover{color:#0A0C09;background:#F5F0E6;border-color:#F5F0E6}' +
     '.lwh__nota{display:block;position:relative;z-index:1;max-width:1280px;margin:1.2rem auto 0;padding:0 var(--lwh-pd);' +
       'font-size:var(--lwh-fs);line-height:1.6;color:rgba(245,240,230,.4)}' +
-    // Con 5 columnas: por debajo de 980 la marca ocupa su fila y las cuatro listas van 2×2.
-    '@media(max-width:980px){.lwh__grid{grid-template-columns:1fr 1fr}.lwh__grid>div:first-child{grid-column:1/-1}}' +
+    // Con 5 columnas: por debajo de 1100 la marca ocupa su fila y las cuatro listas van 2×2
+    // (a 980 «INVESTOR DECKS» se partía en dos líneas hacia los 1000 px; medido 15-oct).
+    '@media(max-width:1100px){.lwh__grid{grid-template-columns:1fr 1fr}.lwh__grid>div:first-child{grid-column:1/-1}}' +
     '@media(max-width:560px){.lwh__grid{grid-template-columns:1fr 1fr;gap:1.6rem 1.2rem}.lwh__grid>div:first-child{grid-column:1/-1}' +
       '.lwh__in{padding-top:1.6rem;padding-bottom:1rem}.lwh__tag{margin-top:8px}.lwh__col h5{margin-bottom:8px}.lwh__col a{margin-bottom:6px}' +
       '.lwh__bottom{margin-top:1.2rem;padding-top:1rem;gap:.7rem}.lwh{padding-bottom:1rem}}';
