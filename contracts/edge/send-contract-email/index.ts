@@ -36,7 +36,12 @@
 //    sesión lawang-cola-2, 15-oct-2026, revisor del papel del correo). Por qué: en un recibí el cuadre de esta edge solo
 //    comprueba que el documento sea coherente consigo mismo, y hasta esa migración `guardar_recibi` guarda el total
 //    que manda el navegador, así que líneas y total vienen los dos de él. Antes de desplegar, mide también en cada
-//    instancia cuántos documentos cortarían los 409 nuevos (lista en el relevo de lawang-cola-2 y en tools/README).
+//    instancia (Lawang, bbm, axisworks-demo), en solo lectura, cuántos documentos cortarían los 409 nuevos: campos
+//    de `datos.fields` distintos de su columna en tipo/sociedad/moneda/fecha/contrato/proyecto/cliente; cuenta
+//    'otros'; cuenta informada que no existe, sin verificar o de una empresa fuera del alcance de quien envía;
+//    `datos.emisor.clave` distinto de la sociedad; `fields` que no es objeto o `lineas` que no es lista de objetos;
+//    total nulo o distinto de factura_totales(lineas, moneda, imp_pct), recibís incluidos; `rectifica_numero` en los
+//    campos; filas con `banco_de_servidor`; sociedades fuera de las regex de sociedad_guarda y del logo.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { FUENTES, EXPORTA } from './compartidos.generated.ts';
 
