@@ -29,7 +29,7 @@ const PREGUNTAS = [
     const borrador = String(j.borrador || '');
     const fuentesPl = (j.fuentes || []).filter((f) => /^plantilla/.test(f.tabla));
     const deEmpresa = fuentesPl.every((f) => f.tabla === 'plantilla_web' || String(f.campo || '').includes(' · ' + EMPRESA + ' · '));
-    const mezcla = OTRA.filter((f) => borrador.toLowerCase().includes(f.toLowerCase()));
+    const mezcla = OTRA.filter((f) => borrador.toLowerCase().includes(f.toLowerCase()));   // BUSQUEDA A PROPOSITO: bateria del bot que busca frases fijas de otro idioma, no un buscador
     const ok = r.status === 200 && j.plantilla_lectura !== 'error' && fuentesPl.length > 0 && deEmpresa && mezcla.length === 0;
     if (!ok) fallos++;
     console.log((ok ? 'OK    ' : 'FALLA ') + (i + 1) + ' http=' + r.status + ' contrato=' + contrato_id.slice(0, 8) + ' fuentes_plantilla=' + fuentesPl.map((f) => f.tabla).join(',') + ' frases_de_la_otra=' + mezcla.length);

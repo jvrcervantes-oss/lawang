@@ -190,8 +190,7 @@ var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta 
      encontrar «España» y «México». Es el fallo clásico de un buscador de países
      en español, y aquí las dos listas son de países. */
   function llano(v){
-    return String(v == null ? '' : v).toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return lwNormaliza(v);   // la pieza comun de la suite (vocabulario.js, 15-oct): navegador y servidor pliegan igual
   }
   function normaliza(o){
     return (o || []).map(function(x){
@@ -230,7 +229,7 @@ var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta 
     items.forEach(function(it){
       var t = llano(it.texto) + ' ' + llano(it.valor) + ' ' + llano(it.nota);
       if(t.indexOf(q) === 0 || llano(it.valor).indexOf(q) === 0) a.push(it);
-      else if(t.indexOf(q) >= 0) b.push(it);
+      else if(lwBusca(t, q)) b.push(it);
     });
     return a.concat(b);
   }

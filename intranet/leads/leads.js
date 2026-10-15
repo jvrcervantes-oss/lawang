@@ -514,13 +514,12 @@ const esMio = l => !!l.dueno && l.dueno.toLowerCase() === yoSoy();
 let FILTRO_DUENO = 'todos';
 
 function visibles(){
-  const q = BUSCA.trim().toLowerCase();
+  const q = lwNormaliza(BUSCA);   // sin tildes ni mayúsculas (contracts/assets/vocabulario.js, 15-oct)
   return LEADS.filter(l => {
     if(CANAL && l.source !== CANAL) return false;
     if(FILTRO_DUENO === 'mios' && !esMio(l)) return false;
     if(FILTRO_DUENO === 'libres' && l.dueno) return false;
-    if(!q) return true;
-    return (l.name || '').toLowerCase().includes(q);
+    return lwBusca(l.name, q);
   });
 }
 
@@ -1425,11 +1424,11 @@ async function guardarNota(l){
    movió y qué notas ha dejado el equipo.
    ========================================================================== */
 function bandejaFiltrada(){
-  const q = BUSCA_B.trim().toLowerCase();
+  const q = lwNormaliza(BUSCA_B);
   return LEADS.filter(l => {
     if(FILTRO_B === 'sintocar' && l.estado !== 'nuevo') return false;
     if(FILTRO_B === 'parados' && !(dias(l.estado_desde) >= DIAS_VIEJO)) return false;
-    if(q && !(l.name || '').toLowerCase().includes(q)) return false;
+    if(!lwBusca(l.name, q)) return false;
     return true;
   }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }

@@ -1330,7 +1330,9 @@
       if (abierto) selCierra(rel);
     } else if (e.key.length === 1 && /\S/.test(e.key)) {
       clearTimeout(selBuscaT); selBusca += e.key.toLowerCase(); selBuscaT = setTimeout(function () { selBusca = ''; }, 600);
-      var hit = ops.filter(function (x) { return x.textContent.trim().toLowerCase().indexOf(selBusca) === 0; })[0];
+      var pre = lwNormaliza(selBusca);   // teclear «e» salta a «España» igual que a «Estonia» (vocabulario.js, 15-oct)
+      // Una tecla que se pliega a nada (apostrofo, guion, punto volado) no salta: el vacio casaria con la primera opcion.
+      var hit = pre && ops.filter(function (x) { return lwNormaliza(x.textContent).indexOf(pre) === 0; })[0];
       if (hit) { if (!abierto) selAbre(rel); selMarca(lista, hit); }
     }
   });
