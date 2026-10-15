@@ -7,7 +7,14 @@
 --   solo trae el nombre todavía no tiene proyecto_id.
 -- Solo se rechaza cuando CAMBIA la sociedad o el proyecto: el trigger salta en cada UPDATE (firma-submit, edges, bloqueo) y un
 --   contrato viejo descuadrado no puede reventar al firmarse. Medidos el 15-oct: 15 sin firmar y 5 firmados descuadrados; no se
---   tocan aquí (owner, «corregir al reabrir»: la pantalla les pone la del proyecto al abrirlos y así se guardan).
+--   tocan aquí (owner, «corregir al reabrir»: la pantalla les pone la que toca al abrirlos y así se guardan).
+-- PRECEDENCIA (la misma que la pantalla; revisor de código y owner, 15-oct):
+--   1) Documentos vivos del contrato (facturas, proformas, recibís sin anular): la sociedad no se cambia a otra que la suya
+--      (owner: 12 de los 15 descuadrados tienen documentos de Tepi Sun Gai y se quedan así; cambiarla obliga a anular y
+--      reemitir). Con documentos no aplica la regla del proyecto: mandan ellos.
+--   2) El contrato del que cuelga, si tiene sociedad (regla del padre, ya existía). Con padre tampoco aplica la del proyecto:
+--      sin esto un hijo de un padre descuadrado no se podía guardar de ninguna forma, y con el padre firmado no había salida.
+--   3) El proyecto.
 -- Una sociedad VACÍA no se rellena (decisión por defecto del CEO, 15-oct): rellenarla cambiaría con qué sociedad salen las
 --   proformas de las plantillas que no tienen el campo (lwSociedadContrato cae a SOCIEDAD_DEFAULT). Revertir: añadir el relleno.
 -- Proyecto sin empresa o empresa sin sociedad: no se exige nada (no hay con qué comparar), como antes.
@@ -34,6 +41,8 @@ declare
   v_proy     uuid;
   v_proy_nom text;
   v_soc_proy text;
+  v_ndocs    int := 0;
+  v_soc_doc  text;
 begin
   if tg_op = 'UPDATE' then
     v_old := nullif(btrim(coalesce(old.datos->'fields'->>'sociedad_firmante','')), '');
@@ -64,9 +73,17 @@ begin
       raise exception 'La sociedad firmante «%» está desactivada: elige una activa.', v_clave using errcode = '23514';
     end if;
 
-    -- la del proyecto (15-oct-2026): solo si cambia la sociedad o el proyecto
+    -- la del proyecto (15-oct-2026): solo si cambia la sociedad o el proyecto, y con la precedencia de la cabecera
     v_proy := public._contrato_proyecto_de(new.proyecto_id, new.proyecto_nombre);
-    if v_proy is not null and (v_cambia or v_proy is distinct from old.proyecto_id) then
+    if tg_op = 'UPDATE' and (v_cambia or v_proy is distinct from old.proyecto_id) then
+      select count(distinct f.sociedad), min(f.sociedad) into v_ndocs, v_soc_doc
+        from public.facturas f where f.contrato_id = new.id and not f.anulada;
+      if v_ndocs > 0 and v_cambia and (v_ndocs > 1 or v_clave <> v_soc_doc) then
+        raise exception 'La sociedad firmante «%» no es la de sus facturas o recibís emitidos («%»): para cambiarla hay que anularlos y reemitirlos.',
+          v_clave, v_soc_doc using errcode = '23514';
+      end if;
+    end if;
+    if v_ndocs = 0 and v_padre is null and v_proy is not null and (v_cambia or v_proy is distinct from old.proyecto_id) then
       select p.nombre, e.sociedad_clave into v_proy_nom, v_soc_proy
         from public.proyectos p join public.empresas e on e.clave = p.empresa
        where p.id = v_proy;

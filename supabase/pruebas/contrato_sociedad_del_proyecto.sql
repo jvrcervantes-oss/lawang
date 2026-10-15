@@ -6,8 +6,11 @@
 -- S5 cambiar la sociedad a otra se rechaza. S6 cambiar de proyecto a uno de otra empresa con la sociedad vieja se rechaza; con la
 -- del proyecto nuevo entra. S7 un contrato viejo descuadrado (montado con el trigger apagado) se sigue pudiendo tocar (precio,
 -- bloqueo) sin que reviente, y corregirlo a la del proyecto entra («corregir al reabrir»). S8 proyecto de una empresa sin
--- sociedad: no se exige nada. S9 hijo de una reserva descuadrada con la del proyecto: lo frena la regla del padre (ya existia).
--- !! CREA CONTRATOS (gasta numeracion) Y APAGA UN TRIGGER DENTRO DE LA TRANSACCION: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
+-- sociedad: no se exige nada. S9 hijo de una reserva descuadrada: manda el padre (con la del proyecto se rechaza, con la del
+-- padre entra, vacio hereda la del padre, y con el padre ya FIRMADO sigue entrando). S10 documentos vivos mandan: con una
+-- factura de otra sociedad no se cambia a la del proyecto (S10), se puede cambiar de proyecto sin tocarla (S10b), y con la
+-- factura anulada vuelve a mandar el proyecto (S10c entra, S10d se rechaza).
+-- !! CREA CONTRATOS (gasta numeracion) Y MONTA CASOS VIEJOS CON session_replication_role = replica: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015150000_contrato_sociedad_del_proyecto.sql
 --           --prueba contrato_sociedad_del_proyecto.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-SP.
@@ -40,12 +43,12 @@ end $f$;
 do $todo$
 declare
   r text := ''; v text;
-  p1 uuid; p2 uuid; p3 uuid; k1 uuid; k3 uuid; k6 uuid; k7 uuid; kp uuid;
+  p1 uuid; p1b uuid; p2 uuid; p3 uuid; k1 uuid; k3 uuid; k6 uuid; k7 uuid; kp uuid; k10 uuid; f10 uuid;
   c_fin constant text := 'FIN DE PRUEBAS SOCIEDAD DEL PROYECTO (se deshace todo):%';
   c_rech constant text := 'ERR23514:La sociedad firmante «%» no es la del proyecto%';
 begin
   if coalesce(current_setting('erp.en_rama', true), '') <> 'si' then
-    raise exception 'FIN DE PRUEBAS SOCIEDAD DEL PROYECTO:%', E'\nP0 esta prueba crea contratos y apaga un trigger: solo corre en rama → FALLA';
+    raise exception 'FIN DE PRUEBAS SOCIEDAD DEL PROYECTO:%', E'\nP0 esta prueba crea contratos y monta casos sin disparadores: solo corre en rama → FALLA';
   end if;
 
   -- ============================================================ P. montaje (como postgres)
@@ -57,6 +60,7 @@ begin
     update public.empresas set sociedad_clave = 'zz_sp1' where clave = 'zz_sp_e1';
     update public.empresas set sociedad_clave = 'zz_sp2' where clave = 'zz_sp_e2';   -- zz_sp_e3 se queda SIN sociedad (S8)
     insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-SP Proyecto 1', 'zz-sp-proyecto-1', 'zz_sp_e1', true) returning id into p1;
+    insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-SP Proyecto 1b', 'zz-sp-proyecto-1b', 'zz_sp_e1', true) returning id into p1b;
     insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-SP Proyecto 2', 'zz-sp-proyecto-2', 'zz_sp_e2', true) returning id into p2;
     insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-SP Proyecto 3', 'zz-sp-proyecto-3', 'zz_sp_e3', true) returning id into p3;
     r := r || pg_temp.l(true, 'P montaje: 2 sociedades, 3 empresas (la 3 sin sociedad), 3 proyectos');
@@ -100,9 +104,9 @@ begin
 
   -- ============================================================ S7 contrato viejo descuadrado
   begin
-    alter table public.contratos disable trigger trg_contrato_sociedad_existe;
+    set local session_replication_role = replica;   -- montaje de un caso viejo sin disparadores (ALTER TABLE choca con los diferidos pendientes)
     v := pg_temp.alta('ZZ-SP-K7', p1, null, '{"sociedad_firmante": "zz_sp2"}');
-    alter table public.contratos enable trigger trg_contrato_sociedad_existe;
+    set local session_replication_role = origin;
     if v !~ '^ERR' then k7 := v::uuid; end if;
   exception when others then
     r := r || pg_temp.l(false, 'S7 montaje del descuadrado: ' || sqlstate || ' ' || left(sqlerrm, 200));
@@ -122,9 +126,9 @@ begin
 
   -- ============================================================ S9 hijo de una reserva descuadrada
   begin
-    alter table public.contratos disable trigger trg_contrato_sociedad_existe;
+    set local session_replication_role = replica;   -- montaje de un caso viejo sin disparadores (ALTER TABLE choca con los diferidos pendientes)
     v := pg_temp.alta('ZZ-SP-KP', p1, null, '{"sociedad_firmante": "zz_sp2"}');
-    alter table public.contratos enable trigger trg_contrato_sociedad_existe;
+    set local session_replication_role = origin;
     if v !~ '^ERR' then kp := v::uuid; end if;
   exception when others then
     r := r || pg_temp.l(false, 'S9 montaje del padre: ' || sqlstate || ' ' || left(sqlerrm, 200));
@@ -132,10 +136,49 @@ begin
   if kp is not null then
     v := pg_temp.alta('ZZ-SP-K9', p1, null, '{"sociedad_firmante": "zz_sp1"}', kp);
     r := r || pg_temp.l(v like 'ERR23514:La sociedad firmante «zz_sp1» no coincide con la del contrato del que cuelga%',
-                        'S9 hijo con la del proyecto de un padre descuadrado: lo frena la regla del padre; se corrige antes el padre (' || left(v, 120) || ')');
-    v := pg_temp.x(format($q$update public.contratos set datos = jsonb_set(datos, '{fields,sociedad_firmante}', '"zz_sp1"') where id = %L$q$, kp));
-    v := v || ' / ' || pg_temp.alta('ZZ-SP-K9b', p1, null, '{"sociedad_firmante": "zz_sp1"}', kp);
-    r := r || pg_temp.l(v ~ '^OK / [0-9a-f-]{36}$', 'S9b corregido el padre, el hijo entra (' || left(v, 90) || ')');
+                        'S9 hijo con la del proyecto de un padre descuadrado: manda el padre y se rechaza (' || left(v, 120) || ')');
+    v := pg_temp.alta('ZZ-SP-K9b', p1, null, '{"sociedad_firmante": "zz_sp2"}', kp);
+    r := r || pg_temp.l(v !~ '^ERR', 'S9b hijo con la sociedad de su padre entra aunque no sea la del proyecto: con padre no aplica la del proyecto (' || left(v, 90) || ')');
+    v := pg_temp.alta('ZZ-SP-K9c', p1, null, '{}', kp);
+    r := r || pg_temp.l(v !~ '^ERR' and (select c.datos->'fields'->>'sociedad_firmante' from public.contratos c where c.id::text = v) = 'zz_sp2',
+                        'S9c hijo sin sociedad hereda la del padre y entra (' || left(v, 90) || ')');
+    -- el mismo padre ya FIRMADO (bloqueado): sigue habiendo salida para sus hijos
+    begin
+      set local session_replication_role = replica;
+      update public.contratos set bloqueado = true where id = kp;
+      set local session_replication_role = origin;
+    exception when others then
+      r := r || pg_temp.l(false, 'S9d montaje del padre firmado: ' || sqlstate || ' ' || left(sqlerrm, 200));
+    end;
+    v := pg_temp.alta('ZZ-SP-K9d', p1, null, '{"sociedad_firmante": "zz_sp2"}', kp);
+    r := r || pg_temp.l(v !~ '^ERR', 'S9d hijo de un padre FIRMADO y descuadrado, con la sociedad del padre, entra (' || left(v, 90) || ')');
+  end if;
+
+  -- ============================================================ S10 documentos vivos mandan
+  begin
+    set local session_replication_role = replica;   -- montaje de un caso viejo sin disparadores (ALTER TABLE choca con los diferidos pendientes)
+    v := pg_temp.alta('ZZ-SP-K10', p1, null, '{"sociedad_firmante": "zz_sp2"}');
+    set local session_replication_role = origin;
+    if v !~ '^ERR' then k10 := v::uuid; end if;
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, total, moneda, creado_por, cliente_nombre, datos)
+      values ('factura', 'ZZ-SP-F10', 'zz_sp2', k10, 1000, 'EUR', 'zz-sp@prueba.invalid', 'ZZ-SP', '{"fields": {}}'::jsonb) returning id into f10;
+  exception when others then
+    r := r || pg_temp.l(false, 'S10 montaje (contrato descuadrado con factura): ' || sqlstate || ' ' || left(sqlerrm, 200));
+  end;
+  if f10 is not null then
+    v := pg_temp.x(format($q$update public.contratos set datos = jsonb_set(datos, '{fields,sociedad_firmante}', '"zz_sp1"') where id = %L$q$, k10));
+    r := r || pg_temp.l(v like 'ERR23514:La sociedad firmante «zz_sp1» no es la de sus facturas o recib%',
+                        'S10 con una factura viva de zz_sp2, pasarlo a la sociedad del proyecto se rechaza (' || left(v, 120) || ')');
+    -- a otro proyecto de la MISMA empresa 1 (zz_sp1), sin tocar la sociedad zz_sp2: sin documentos lo frenaría la regla del proyecto
+    v := pg_temp.x(format($q$update public.contratos set proyecto_id = %L, proyecto_nombre = 'ZZ-SP Proyecto 1b' where id = %L$q$, p1b, k10));
+    r := r || pg_temp.l(v = 'OK', 'S10b con documentos mandan ellos: cambiar a otro proyecto de zz_sp1 sin tocar su zz_sp2 entra (' || left(v, 90) || ')');
+    set local session_replication_role = replica;   -- anular a pelo, sin el flujo de anulación (no es lo que se prueba)
+    update public.facturas set anulada = true where id = f10;
+    set local session_replication_role = origin;
+    v := pg_temp.x(format($q$update public.contratos set datos = jsonb_set(datos, '{fields,sociedad_firmante}', '"zz_sp1"') where id = %L$q$, k10));
+    r := r || pg_temp.l(v = 'OK', 'S10c con la factura anulada, pasarlo a la sociedad de su proyecto entra (' || left(v, 90) || ')');
+    v := pg_temp.x(format($q$update public.contratos set datos = jsonb_set(datos, '{fields,sociedad_firmante}', '"zz_sp2"') where id = %L$q$, k10));
+    r := r || pg_temp.l(v like c_rech, 'S10d y sin documentos vivos vuelve a mandar el proyecto: devolverlo a zz_sp2 se rechaza (' || left(v, 120) || ')');
   end if;
 
   raise exception using message = replace(c_fin, '%', r);
