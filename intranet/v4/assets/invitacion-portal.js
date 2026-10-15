@@ -56,6 +56,7 @@
   function errorPropio(h) {
     switch (h) {
       case 'doble_clic': return ipT('Ya se invitó a una de las personas marcadas hace unos segundos: no se repite.');
+      case 'ya_invitado': return ipT('Una de las personas marcadas ya recibió una invitación en las últimas 24 horas: no se repite. Desmárcala y vuelve a enviar.');
       case 'sin_identidad': return ipT('No se pudo identificar quién envía la invitación. Vuelve a entrar.');
       case 'tope_hora': return ipT('Ya se han enviado muchas invitaciones en la última hora. Espera un poco: así a todos les llega el enlace de acceso del portal.');
       case 'sin_contrato_valido': return ipT('Esta parcela no tiene a nadie a quien se pueda invitar: no se puede componer la prueba.');

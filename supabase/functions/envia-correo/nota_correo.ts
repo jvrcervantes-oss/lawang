@@ -5,9 +5,20 @@
 // y el maestro no tiene estos correos.
 import { tieneControl } from './valida.ts';
 
-/** Texto plano de hasta 300 caracteres, sin @, http, www, nada con forma de dominio (Gmail lo convierte en enlace), 6 dígitos
- *  seguidos (cuentas, teléfonos) ni caracteres de control. Se le pasa la nota ya normalizada (espacios colapsados, recortada). */
+/** Cuenta o teléfono escondido: 6 dígitos o más aunque vayan separados por espacio, punto, guion o barra («BCA 123 456 7890»,
+ *  «0812-3456-7890»: Seguridad 15-oct, la regla de «6 seguidos» se saltaba con separadores). Antes se apartan las fechas
+ *  (15/10/2026, 15-10-26) y los importes con los miles agrupados (25.000.000, 1.500,50), para que Reclamar pago siga admitiendo
+ *  «quedan 25.000.000 IDR». Residual aceptado: un número escrito como importe agrupado pasa. Las mismas tres expresiones que la base. */
+export function numeroLargo(nota: string): boolean {
+  const d = nota
+    .replace(/(^|[^0-9])[0-9]{1,2}[\/.-][0-9]{1,2}[\/.-]((19|20)[0-9]{2}|[0-9]{2})(?![0-9])/g, '$1#')
+    .replace(/(^|[^0-9])[0-9]{1,3}([.,][0-9]{3})+([.,][0-9]{1,2})?(?![0-9])/g, '$1#');
+  return /[0-9]([ .\/-]?[0-9]){5,}/.test(d);
+}
+
+/** Texto plano de hasta 300 caracteres, sin @, http, www, nada con forma de dominio (Gmail lo convierte en enlace), ningún número
+ *  largo (numeroLargo) ni caracteres de control. Se le pasa la nota ya normalizada (espacios colapsados, recortada). */
 export function notaCorreoValida(nota: string): boolean {
   return [...nota].length <= 300 && !tieneControl(nota) && !/(http|www\.|@)/i.test(nota) &&
-    !/[a-z0-9-]\.[a-z]{2,}/i.test(nota) && !/[0-9]{6,}/.test(nota);
+    !/[a-z0-9-]\.[a-z]{2,}/i.test(nota) && !numeroLargo(nota);
 }

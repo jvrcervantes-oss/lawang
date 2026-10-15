@@ -103,14 +103,22 @@ grant  execute on function public.portal_autoservicio(text) to service_role;
 
 -- ── 2. la nota del admin: UNA regla ──────────────────────────────────────────
 -- Texto plano de hasta 300 caracteres. Fuera: @, http, www, cualquier cosa con forma de dominio (Gmail la convierte en enlace),
--- 6 dígitos seguidos o más (cuentas, teléfonos: el fraude típico del sector) y caracteres de control. Devuelve la nota
--- normalizada (o null si viene vacía); si no vale, error con hint nota_invalida. Espejo en envia-correo/plantillas_fabrica.ts.
+-- números largos (cuentas, teléfonos: el fraude típico del sector) y caracteres de control. Devuelve la nota
+-- normalizada (o null si viene vacía); si no vale, error con hint nota_invalida. Espejo en envia-correo/nota_correo.ts y en la
+-- pantalla (correo-parcela.js).
+-- Número largo = 6 dígitos o más AUNQUE vayan separados por espacio, punto, guion o barra («BCA 123 456 7890», «0812-3456-7890»:
+-- Seguridad 15-oct, «6 seguidos» se saltaba con separadores). Antes se apartan las fechas (15/10/2026, 15-10-26) y los importes con
+-- los miles agrupados (25.000.000, 1.500,50): Reclamar pago tiene que seguir admitiendo «quedan 25.000.000 IDR». Residual aceptado:
+-- un número escrito como importe agrupado pasa. Medido en Postgres el 15-oct con 18 casos, igual que en JS (invitacion_portal.test.js).
 create or replace function public._nota_correo_limpia(p_nota text)
 returns text language plpgsql immutable security invoker set search_path = '' as $$
-declare v text;
+declare v text; d text;
 begin
   v := nullif(btrim(regexp_replace(coalesce(p_nota, ''), '[[:space:]]+', ' ', 'g')), '');
-  if v is not null and (char_length(v) > 300 or v ~* '(http|www\.|@)' or v ~* '[a-z0-9-]\.[a-z]{2,}' or v ~ '[0-9]{6,}'
+  d := regexp_replace(regexp_replace(coalesce(v, ''),
+         '(^|[^0-9])[0-9]{1,2}[/.-][0-9]{1,2}[/.-]((19|20)[0-9]{2}|[0-9]{2})(?![0-9])', '\1#', 'g'),
+         '(^|[^0-9])[0-9]{1,3}([.,][0-9]{3})+([.,][0-9]{1,2})?(?![0-9])', '\1#', 'g');
+  if v is not null and (char_length(v) > 300 or v ~* '(http|www\.|@)' or v ~* '[a-z0-9-]\.[a-z]{2,}' or d ~ '[0-9]([ ./-]?[0-9]){5,}'
                         or v ~ '[[:cntrl:]]') then
     raise exception 'La nota admite hasta 300 caracteres de texto, sin enlaces, direcciones de correo ni números largos.'
       using errcode = '22023', hint = 'nota_invalida';
@@ -130,7 +138,7 @@ alter table public.correos_cola validate constraint correos_cola_reclamo_tipo_fk
 comment on table public.reclamos_pago is
   'Libro de los correos que se mandan desde la ficha de parcela (8-oct «Reclamar pago»; 15-oct «Invitar al portal», columna tipo). Una fila por persona y pulsación: quién lo pidió (de la sesión, nunca del navegador), cuándo, a quién (ids; el correo vive en clients) y la nota. El estado del envío lo da correos_cola vía cola_id. Solo se escribe desde reclamo_pago_encolar/_prueba e invitacion_portal_encolar/_prueba. prueba=true: «Enviarme una prueba» (el destinatario es creado_por, nunca el comprador).';
 comment on column public.reclamos_pago.tipo is
-  'reclamo_pago | invitacion_portal. Debe coincidir con correos_cola.clave de su fila (FK compuesta correos_cola_reclamo_tipo_fk). Toda lectura del libro filtra por tipo.';
+  'reclamo_pago | invitacion_portal. Debe coincidir con correos_cola.clave de su fila (FK compuesta correos_cola_reclamo_tipo_fk). Las lecturas de pantalla y de datos de cada tipo filtran por tipo. EXCEPCIONES a propósito, neutras al tipo (solo leen prueba, contrato_id y el correo por id; Base de datos 15-oct): _reclamo_pago_destino, correo_cola_reclamar y correo_cola_ok. Quien las cambie para leer algo propio de un tipo tiene que filtrar por tipo.';
 comment on column public.correos_cola.reclamo_id is
   'Ancla de los correos de la ficha de parcela (libro reclamos_pago, cualquiera de sus tipos). Con clave forma la FK compuesta al (id, tipo) del libro.';
 
@@ -652,6 +660,17 @@ begin
                   and r.creado_en > clock_timestamp() - interval '10 seconds') then
       raise exception 'Ya se ha invitado a una de las personas marcadas hace unos segundos: no se repite.'
         using errcode = '22023', hint = 'doble_clic';
+    end if;
+    -- Freno por persona (Seguridad 15-oct): una invitación por persona y parcela cada 24 h. Sin él, el tope global dejaba
+    -- llegar 15 a la misma persona en una hora, y no se retiran. Solo libera un envío fallido o cancelado: en cola, enviado
+    -- o ya archivado (la fila de cola se purgó) cuenta como invitada.
+    if exists (select 1 from public.reclamos_pago r
+                 left join public.correos_cola q on q.id = r.cola_id
+                where r.unidad_id = p_unidad and r.tipo = 'invitacion_portal' and r.client_id = v_id and not r.prueba
+                  and r.creado_en > now() - interval '24 hours'
+                  and (q.id is null or q.estado in ('pendiente', 'enviando', 'ok'))) then
+      raise exception 'Una de las personas marcadas ya recibió una invitación en las últimas 24 horas: no se repite.'
+        using errcode = '22023', hint = 'ya_invitado';
     end if;
   end loop;
 

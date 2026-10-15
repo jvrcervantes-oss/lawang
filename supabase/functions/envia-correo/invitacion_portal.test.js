@@ -80,8 +80,17 @@ const path = require('path');
     ok(!N.notaCorreoValida(mala.replace(/\s+/g, ' ').trim()), 'notaCorreoValida la rechaza: ' + JSON.stringify(mala.slice(0, 20)));
   }
   for (const buena of ['Quedan 2.000 EUR pendientes', 'x'.repeat(300), 'Hola, ¿qué tal? Firma el 12/10.']) ok(N.notaCorreoValida(buena), 'nota válida: ' + buena.slice(0, 20));
-  // la regla es la misma que la de la base: sus cinco piezas están en la migración
-  for (const pieza of ["'(http|www\\.|@)'", "'[a-z0-9-]\\.[a-z]{2,}'", "'[0-9]{6,}'", "'[[:cntrl:]]'", 'char_length(v) > 300'])
+  // número largo aunque vaya separado (Seguridad 15-oct): los 18 casos medidos el 15-oct en el Postgres de Lawang, con su resultado allí
+  const MEDIDO_EN_POSTGRES = [['BCA 123 456 7890', true], ['0812-3456-7890', true], ['IBAN ES12 3456 7890 1234', true], ['25000000', true],
+    ['+62 812 3456 789', true], ['1234567', true], ['Quedan 25.000.000 IDR', false], ['Quedan 2.000 EUR', false],
+    ['Rp150.000.000 antes del 15/10/2026', false], ['vence el 15-10-2026, son 1.500,50 EUR', false], ['cuota 3 de 12', false],
+    ['12 34 56', true], ['pagos de 1.000 y 2.000', false], ['123.456.789.012', false], ['12-34-5678', true], ['tel 812.3456.789', true],
+    ['1.000.000.', false], ['15.10.26 y 0812 345 678', true]];
+  for (const [t, largo] of MEDIDO_EN_POSTGRES) igual(N.numeroLargo(t), largo, 'número largo como en Postgres: ' + t);
+  // la regla es la misma que la de la base: sus piezas están en la migración, letra a letra
+  for (const pieza of ["'(http|www\\.|@)'", "'[a-z0-9-]\\.[a-z]{2,}'", "'[[:cntrl:]]'", 'char_length(v) > 300',
+                       "'(^|[^0-9])[0-9]{1,2}[/.-][0-9]{1,2}[/.-]((19|20)[0-9]{2}|[0-9]{2})(?![0-9])'",
+                       "'(^|[^0-9])[0-9]{1,3}([.,][0-9]{3})+([.,][0-9]{1,2})?(?![0-9])'", "'[0-9]([ ./-]?[0-9]){5,}'"])
     ok(mig.includes(pieza), 'la base aplica ' + pieza);
 
   // ── 4 · el destinatario y el contrato salen de la base ───────────────────────────────────────────────

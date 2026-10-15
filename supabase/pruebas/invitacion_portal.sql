@@ -198,11 +198,13 @@ begin
   r := r || pg_temp.l(v = 'ERR22023:demasiados_destinatarios', 'C5 11 personas: demasiados_destinatarios (' || v || ')');
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select public.invitacion_portal_encolar(%L, array[]::uuid[], null)::text', u1));
   r := r || pg_temp.l(v = 'ERR22023:sin_destinatarios', 'C6 nadie marcado: sin_destinatarios (' || v || ')');
-  foreach v in array array['paga en evil.ly', 'cuenta 1234567', 'a@b', 'mira http://x', 'en www.algo', repeat('x', 301)] loop
+  foreach v in array array['paga en evil.ly', 'cuenta 1234567', 'a@b', 'mira http://x', 'en www.algo', repeat('x', 301),
+                           'BCA 123 456 7890', 'llama al 0812-3456-7890', 'IBAN ES12 3456 7890 1234'] loop
     r := r || pg_temp.l(pg_temp.val('authenticated', ae.uid, ae.em, format('select public.invitacion_portal_encolar(%L, array[%L]::uuid[], %L)::text', u1, c8, v))
                         = 'ERR22023:nota_invalida', 'C7 nota rechazada: ' || left(v, 20));
   end loop;
   r := r || pg_temp.l(public._nota_correo_limpia('  Quedan 2.000 EUR   pendientes ') = 'Quedan 2.000 EUR pendientes', 'C7b una nota normal pasa, normalizada');
+  r := r || pg_temp.l(public._nota_correo_limpia('Quedan 25.000.000 IDR antes del 15/10/2026') is not null, 'C7c importe con miles agrupados y fecha pasan');
   -- Reclamar pago no ve las invitaciones (Base de datos #357 punto 3)
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select (select ultimo_reclamo_en is null from public.reclamo_pago_destinatarios(%L) where client_id = %L)::text', u1, c1));
   r := r || pg_temp.l(v = 'true', 'C8a «último recordatorio» de Reclamar pago no cuenta la invitación del titular (' || coalesce(v, 'null') || ')');
@@ -219,6 +221,14 @@ begin
   delete from public.reclamos_pago where unidad_id = u2 and tipo = 'invitacion_portal';
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select public.invitacion_portal_encolar(%L, array[%L]::uuid[], null)::text', u1, c8));
   r := r || pg_temp.l(v not like 'ERR%', 'C9b por debajo del tope vuelve a dejar (' || left(v, 30) || ')');
+  -- freno por persona (Seguridad 15-oct): pasados los 10 s del doble clic, la misma persona sigue frenada 24 h; un envío fallido la libera
+  update public.reclamos_pago set creado_en = now() - interval '1 minute' where unidad_id = u1 and client_id = c8 and tipo = 'invitacion_portal';
+  v := pg_temp.val('authenticated', ae.uid, ae.em, format('select public.invitacion_portal_encolar(%L, array[%L]::uuid[], null)::text', u1, c8));
+  r := r || pg_temp.l(v = 'ERR22023:ya_invitado', 'C10 la misma persona al minuto: ya_invitado (24 h por persona y parcela) (' || v || ')');
+  update public.correos_cola q set estado = 'error', error = 'prueba de rama'
+    from public.reclamos_pago r2 where r2.cola_id = q.id and r2.unidad_id = u1 and r2.client_id = c8 and r2.tipo = 'invitacion_portal';
+  v := pg_temp.val('authenticated', ae.uid, ae.em, format('select public.invitacion_portal_encolar(%L, array[%L]::uuid[], null)::text', u1, c8));
+  r := r || pg_temp.l(v not like 'ERR%', 'C10b si la anterior falló, se puede volver a invitar (' || left(v, 30) || ')');
 
   -- ============================================================ D. «Enviarme una prueba»
   v := pg_temp.val('authenticated', ae.uid, ae.em, format('select public.invitacion_portal_prueba(%L, null)', u1));

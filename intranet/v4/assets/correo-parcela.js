@@ -75,11 +75,18 @@
 
   /* La nota: mismas reglas que la base (public._nota_correo_limpia), para no mandar lo que va a rechazar. */
   function notaLimpia(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  /* 6 dígitos o más aunque vayan separados (BCA 123 456 7890), apartando antes fechas e importes con miles agrupados:
+     las mismas tres expresiones que public._nota_correo_limpia y envia-correo/nota_correo.ts. */
+  function numeroLargo(n) {
+    var d = n.replace(/(^|[^0-9])[0-9]{1,2}[\/.-][0-9]{1,2}[\/.-]((19|20)[0-9]{2}|[0-9]{2})(?![0-9])/g, '$1#')
+      .replace(/(^|[^0-9])[0-9]{1,3}([.,][0-9]{3})+([.,][0-9]{1,2})?(?![0-9])/g, '$1#');
+    return /[0-9]([ .\/-]?[0-9]){5,}/.test(d);
+  }
   function notaError(t) {
     var n = notaLimpia(t);
     if (Array.from(n).length > NOTA_MAX) return cpT('La nota admite hasta 300 caracteres.');   // por caracteres, como char_length de la base (un emoji = 1)
     if (/http|www\.|@/i.test(n) || /[a-z0-9-]\.[a-z]{2,}/i.test(n)) return cpT('La nota no puede llevar enlaces ni direcciones de correo.');
-    if (/[0-9]{6,}/.test(n)) return cpT('La nota no puede llevar números largos (cuentas, teléfonos).');
+    if (numeroLargo(n)) return cpT('La nota no puede llevar números largos (cuentas, teléfonos). Los importes, con los miles separados: 25.000.000.');
     return null;
   }
 
