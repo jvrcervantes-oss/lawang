@@ -1,11 +1,11 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
 -- Prueba de BUSQUEDA SIN TILDES (15-oct-2026, owner: «que no haga falta poner la tilde en los buscadores de Lawang y en todo lo que hagamos»),
--- migracion 20261015130000_busqueda_sin_tildes. Rol REAL: cada llamada va con `set local role authenticated` (o anon) y los claims de la
+-- migracion 20261015062313_busqueda_sin_tildes. Rol REAL: cada llamada va con `set local role authenticated` (o anon) y los claims de la
 -- persona (pg_temp.val). Un caso que ENTRA por cada caso que se NIEGA.
 --
 -- !! SOLO EN RAMA: monta empresa, proyecto, personas, fichas y contratos, y apaga los disparadores de usuario de `contratos` dentro de
 --    la transaccion (la prueba mide la busqueda, no el alta: sin numeracion gastada ni comisiones, unidades o avisos arrastrados).
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015130000_busqueda_sin_tildes.sql --prueba busqueda_sin_tildes.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015062313_busqueda_sin_tildes.sql --prueba busqueda_sin_tildes.sql
 --    Fuera de una rama (sin `erp.en_rama = si`, que pone rama_prueba) se niega a empezar, antes de tocar nada.
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo se deshace con el raise final.
 -- La tabla de casos (T) la GENERA el estudio desde contracts/busqueda_casos.json, la misma que prueba el navegador en

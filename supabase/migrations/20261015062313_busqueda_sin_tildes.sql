@@ -1,4 +1,10 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
+-- APLICADA en vivo el 15-oct-2026 por agencia-c0 con el MCP (version registrada 20261015062313; en el repo se llamaba
+-- 20261015130000), tras ensayo VERDE en rama lawang-202610151422-89f2b94a (105/105). Incidencia: al pasar el fichero por el
+-- MCP, los U+00A0 y U+202F de la clase de espacios de normaliza_busqueda llegaron como espacios normales; se rehizo SOLO esa
+-- funcion con chr(160)/chr(8239) y md5(prosrc) de las 4 funciones = cuerpos de este fichero. Verificado en vivo con el rol
+-- authenticated (scratchpad verifica_mcp.sql): tabla de casos 0/29 y 0/27 fallos, U+00A0 y U+202F, tope, las tres
+-- busquedas encuentran sin tildes una ficha y un contrato reales, «%%%» = 0.
 -- BUSQUEDA SIN TILDES EN EL SERVIDOR (15-oct-2026, sesion busqueda-tildes; owner: «que no haga falta poner la tilde en
 -- los buscadores de Lawang y en todo lo que hagamos»). Regla: contexto/patrones_tecnicos.md de la agencia -> «Busqueda sin tildes».
 --
@@ -42,7 +48,7 @@
 -- PRUEBA (solo en rama, fixture propio): supabase/pruebas/busqueda_sin_tildes.sql: la tabla de casos de
 -- contracts/busqueda_casos.json y, con el rol real, un caso que entra y otro que se niega por cada funcion (C: comprador_buscar,
 -- K: contratos_busca, L: clientes_busca; anon y quien no es del equipo, nada).
---   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261015130000_busqueda_sin_tildes.sql --prueba busqueda_sin_tildes.sql
+--   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261015062313_busqueda_sin_tildes.sql --prueba busqueda_sin_tildes.sql
 -- REVERTIR: supabase/reversion_busqueda_sin_tildes/REVERSION.sql (orden inverso: front y edge viejos primero).
 -- destructivo-ok: crea 3 funciones y reemplaza comprador_buscar con el MISMO tipo de retorno; no toca tablas ni datos
 set local lock_timeout = '5s';

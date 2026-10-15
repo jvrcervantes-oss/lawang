@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261015130000_busqueda_sin_tildes.sql (15-oct-2026, sesion busqueda-tildes).
+-- REVERSION de 20261015062313_busqueda_sin_tildes.sql (15-oct-2026, sesion busqueda-tildes).
 -- ORDEN (inverso al de publicar): 1) front de asistente-contrato.js y edge asistente-peticiones a su version anterior
 -- (git revert del commit de la tanda 2 + redesplegar la edge), 2) ESTE fichero, en una transaccion.
 -- En otro orden, el buscador de ventas y el asistente se rompen entre medias (llamarian a funciones que ya no existen).
@@ -13,7 +13,7 @@ do $pre$
 declare d text := pg_get_functiondef('public.comprador_buscar(text)'::regprocedure);
 begin
   if position('el servidor normaliza lo que llega' in d) = 0 or position('normaliza_busqueda' in d) = 0 or d ~* 'ilike' then
-    raise exception 'comprador_buscar viva no es la que dejo 20261015130000: alguien la cambio despues; revertir a mano';
+    raise exception 'comprador_buscar viva no es la que dejo 20261015062313: alguien la cambio despues; revertir a mano';
   end if;
 end $pre$;
 
