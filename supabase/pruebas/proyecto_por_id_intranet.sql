@@ -96,7 +96,7 @@ begin
   update public.unidades set contrato_id = k, estado = 'reservada' where id = u1;
   update public.unidades set contrato_id = k2, estado = 'reservada' where id = u3;
   execute format($s$create or replace function public._contrato_cobrado_interno(p_contrato_id uuid, p_moneda text default null)
-                    returns numeric language sql stable as 'select case when p_contrato_id in (%L::uuid, %L::uuid) then 5000::numeric else 0::numeric end'$s$, k, k2);
+                    returns numeric language sql stable as $b$select case when p_contrato_id in (%L::uuid, %L::uuid) then 5000::numeric else 0::numeric end$b$$s$, k, k2);
   insert into auth.users (id, instance_id, email, aud, role) values
     (su, '00000000-0000-0000-0000-000000000000', c_su, 'authenticated', 'authenticated'),
     (ad, '00000000-0000-0000-0000-000000000000', c_ad, 'authenticated', 'authenticated'),
