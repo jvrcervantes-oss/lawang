@@ -4,7 +4,7 @@
 --   foto de las secuencias de public · 0. f2_foto_b2 antes · 1. la migración 20261014223000 tal cual (sha256 08c84d8112cfe3f5) · 2. tres pruebas
 --   en sub-bloques que capturan su resultado · 4. f2_foto_b2 después · 5. flujos_lawang · 6. secuencias otra vez.
 -- Cada sub-bloque pone su trigger de numeración (trg_00_zz_e2159_num, antes de trg_set_factura_numero) y apaga el motor de comisiones
--- (comisiones_evaluar_contrato devuelve 0 sin crear nada): ningún alta toca INV/REC/PRO ni crea solicitudes SP o diferencias DIF.
+-- (comisiones_evaluar_contrato devuelve 0 sin crear nada; también en flujos): ningún alta toca INV/REC/PRO ni crea SP o DIF.
 -- Se lanza en un momento tranquilo: f2_b2_empresas bloquea filas reales de usuarios mientras dura la llamada.
 --
 -- APLICAR solo si el RES dice TODO esto (cualquier otra cosa = PARAR y pasar el RES entero a lawang-cola-2):
@@ -21,7 +21,7 @@
 --      su propia instantánea: un cambio real de otro usuario entre las dos fotos lo da); DISTINTO otra vez = PARAR.
 --   == flujos_lawang N/N → ok, con N > 0.
 --   == series: «ninguna secuencia movida → ok», o solo líneas «(id interno)» o «serie visible no
---      fiscal (apuntar)» (número de contrato o de cliente: flujos da de alta un cliente por pasada; deja un hueco, no frena). Una «SERIE FISCAL MOVIDA» = PARAR y avisar YA: el
+--      fiscal (apuntar)» (número de contrato, cliente, usuario, socio o SC: flujos da de alta un cliente por pasada; deja un hueco, no frena). Una «SERIE FISCAL MOVIDA» = PARAR y avisar YA: el
 --      ensayo gastó números (o entró un documento real a la vez: mirar si existe el número siguiente en facturas / solicitudes_pago).
 --   Un 55P03 (lock_timeout) en cualquier sección = tabla ocupada: REINTENTAR más tarde, no es un fallo.
 -- f2_foto_b2_ab NO va (decisión por defecto, revertible añadiéndola como sección): compara funciones de gastos contra una instantánea,
@@ -45,9 +45,9 @@ begin
   begin
     execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
       if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
-      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num();
-      create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer language plpgsql
-        as $nf$ begin return 0; end $nf$$num2159$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
+    execute $num2159$create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer
+      language plpgsql as $nf$ begin return 0; end $nf$$num2159$;
     execute $p2159_3$-- Foto del bloque 2 (DINERO) de la Fase 2 (8-oct-2026): para CADA usuario (los 34 de hoy), con su JWT (email) y `set local role authenticated`,
 --   (a) md5 de lo que ve de cada tabla del bloque (gastos, proveedores, bancos_*, categorias, aplicaciones, retenciones, logs, cuentas...),
 --   (b) md5 del resultado de cada RPC de lectura del bloque, o el sqlstate si falla,
@@ -665,9 +665,9 @@ $mig2159$;
   begin
     execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
       if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
-      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num();
-      create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer language plpgsql
-        as $nf$ begin return 0; end $nf$$num2159$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
+    execute $num2159$create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer
+      language plpgsql as $nf$ begin return 0; end $nf$$num2159$;
     execute $p2159_0$-- Prueba de LAW-553 (13-oct-2026): la moneda de un documento la decide su contrato, el tope de una venta se mide por
 -- cadena Y moneda, y la moneda de un contrato con documentos no cambia por debajo. Migración:
 -- supabase/migrations/20261013074408_factura_moneda_del_contrato.sql, con 20261013081849_factura_tope_proforma_y_reactiva
@@ -1066,9 +1066,9 @@ $p2159_0$;
   begin
     execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
       if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
-      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num();
-      create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer language plpgsql
-        as $nf$ begin return 0; end $nf$$num2159$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
+    execute $num2159$create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer
+      language plpgsql as $nf$ begin return 0; end $nf$$num2159$;
     execute $p2159_1$-- Prueba de facturas_tope_cadena_y_recibi_pendiente (5-oct-2026). Se ejecuta DESPUÉS de aplicar la migración, por
 -- execute_sql: termina con un raise a propósito, así que no deja rastro (las altas, los recibís y el fichero de
 -- prueba en storage se deshacen). Resultado del 5-oct: alta de 30.000 sobre CC00118 bloqueada, alta de 100 pasa,
@@ -1117,9 +1117,9 @@ end $t$;$p2159_1$;
   begin
     execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
       if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
-      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num();
-      create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer language plpgsql
-        as $nf$ begin return 0; end $nf$$num2159$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
+    execute $num2159$create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer
+      language plpgsql as $nf$ begin return 0; end $nf$$num2159$;
     execute $p2159_2$-- Prueba del bloque 2 (DINERO) de la Fase 2 (8-oct-2026): facturas, recibis, proformas, solicitudes de pago y retenciones, gastos, proveedores, bancos, cuentas de cobro y sociedades por empresa.
 -- (Los documentos de fixture llevan created_at de enero: la regla «una factura nueva exige contrato» solo vale para las creadas desde el 12-ago; asi se pueden crear sin contrato dentro del rollback.)
 -- Se ejecuta DESPUES de las migraciones 20261008200000..206000 (o pegada tras ellas en la misma peticion para ensayarlas sin rastro). Todo dentro de una transaccion que acaba en raise (rollback).
@@ -1470,9 +1470,9 @@ $p2159_2$;
   begin
     execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
       if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
-      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num();
-      create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer language plpgsql
-        as $nf$ begin return 0; end $nf$$num2159$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
+    execute $num2159$create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer
+      language plpgsql as $nf$ begin return 0; end $nf$$num2159$;
     execute $p2159_3$-- Foto del bloque 2 (DINERO) de la Fase 2 (8-oct-2026): para CADA usuario (los 34 de hoy), con su JWT (email) y `set local role authenticated`,
 --   (a) md5 de lo que ve de cada tabla del bloque (gastos, proveedores, bancos_*, categorias, aplicaciones, retenciones, logs, cuentas...),
 --   (b) md5 del resultado de cada RPC de lectura del bloque, o el sqlstate si falla,
@@ -1561,6 +1561,8 @@ $p2159_3$;
          else 'MD5 DISTINTO antes/despues (FALLA salvo dato real cambiado entre las dos: repetir una vez)' end;
   -- 5 · flujos críticos (tools/flujos_lawang.py --sql, sha256 13152abb8a05f84d): se leen las filas de _arnes antes de deshacer
   begin
+    execute $num2159$create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer
+      language plpgsql as $nf$ begin return 0; end $nf$$num2159$;
     execute $fl2159$-- destructivo-ok: arnés de flujos críticos (tools/flujos_lawang.py); TODO dentro de una transacción que acaba en ROLLBACK
 create temporary table _arnes(caso text, ok boolean, detalle text) on commit drop;
 grant all on _arnes to authenticated, anon;
@@ -1988,7 +1990,7 @@ $fl2159$;
   select coalesce(jsonb_object_agg(sequencename, last_value), '{}') into seq1 from pg_sequences where schemaname = 'public';
   select string_agg(a.key || ' ' || coalesce(a.value, 'null') || '→' || coalesce(b.value, 'null')
                     || case when a.key in ('facturas_seq', 'facturas_recibi_seq', 'facturas_proforma_seq', 'solicitudes_pago_numero_seq', 'comisiones_diferencias_seq') then ' SERIE FISCAL MOVIDA (FALLA)'
-                            when a.key ~ '^(contratos_.*_seq|clients_numero_cliente_seq)$' then ' serie visible no fiscal (apuntar)'
+                            when a.key ~ '^(contratos_.*_seq|clients_numero_cliente_seq|usuarios_numero_usuario_seq|socios_numero_seq|solicitudes_cambio_.*seq)$' then ' serie visible no fiscal (apuntar)'
                             else ' (id interno)' end, E'\n' order by a.key)
     into v from jsonb_each_text(seq0) a join jsonb_each_text(seq1) b using (key) where a.value is distinct from b.value;
   res := res || E'\n== series: ' || coalesce(E'\n' || v, 'ninguna secuencia movida → ok');

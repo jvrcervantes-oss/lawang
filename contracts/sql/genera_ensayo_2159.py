@@ -68,15 +68,18 @@ for nombre, t in list(textos.items()) + [('migracion', mig)]:
 # Y el motor de comisiones apagado en el mismo sub-bloque (revisor de 9a839d3ce, 15-oct): un recibí o un alta sobre un contrato real
 # dispara comisiones_evaluar_contrato (triggers de recibi_aplicaciones y facturas), que puede insertar una solicitud de pago (serie SP,
 # identity) o, vía _comision_devengo_reponer, una diferencia (serie DIF, default con nextval): el número se toma al formar la fila,
-# antes de cualquier BEFORE, así que el trigger de numeración no lo evita. Es el único camino desde estas altas (comisiones_reconciliar,
-# el otro que crea SP/DIF, solo lo llama una migración puntual). El create or replace se deshace con el sub-bloque: las demás sesiones
-# siguen viendo la versión buena porque nunca se confirma. Ninguna de las tres pruebas mide devengos nuevos (f2_b2 resuelve solicitudes
-# que ya existen). La sección 6 queda como red de seguridad.
+# antes de cualquier BEFORE, así que el trigger de numeración no lo evita. Es el camino que ALCANZAN estas altas; hay otros que crean
+# SP/DIF y aquí no se tocan: comisiones_reconciliar (solo la llama una migración puntual), solicitud_pago_guarda(null, …) (la foto la
+# llama con un id inexistente) y _venta_modo_aplica (no se llama). El create or replace se deshace con el sub-bloque: las demás sesiones
+# siguen viendo la versión buena porque nunca se confirma. Ninguna de las tres pruebas ni flujos mide devengos nuevos (f2_b2 resuelve
+# solicitudes que ya existen); flujos lo lleva también (revisor de 8885c9032: hoy sus datos no pasan las comprobaciones del motor,
+# pero eso es suerte, no garantía). La sección 6 queda como red de seguridad.
+MOTOR = ("    execute $num2159$create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer\n"
+         "      language plpgsql as $nf$ begin return 0; end $nf$$num2159$;\n")
 NUM = ("    execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin\n"
        "      if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;\n"
-       "      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num();\n"
-       "      create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer language plpgsql\n"
-       "        as $nf$ begin return 0; end $nf$$num2159$;\n")
+       "      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;\n"
+       + MOTOR)
 
 
 def seccion(nombre, etq, texto):
@@ -108,7 +111,7 @@ cuerpo.append("  -- 4 · la misma foto DESPUÉS\n" + foto('despues') +
               "         when substring(antes from 'MD5=([0-9a-f]{32})') = substring(despues from 'MD5=([0-9a-f]{32})') then 'MD5 igual antes y despues → ok'\n"
               "         else 'MD5 DISTINTO antes/despues (FALLA salvo dato real cambiado entre las dos: repetir una vez)' end;\n")
 cuerpo.append("  -- 5 · flujos críticos (tools/flujos_lawang.py --sql, sha256 %s): se leen las filas de _arnes antes de deshacer\n"
-              "  begin\n    execute %s%s%s;\n"
+              "  begin\n%s    execute %s%s%s;\n"
               "    execute $q$select count(*) filter (where ok), count(*), coalesce(string_agg(caso || ' → FALLA ' || coalesce(detalle, ''), E'\\n' order by caso)\n"
               "                filter (where not ok), '') from _arnes$q$ into n_ok, n_tot, v;\n"
               "    res := res || E'\\n== flujos_lawang ' || n_ok || '/' || n_tot || case when n_tot > 0 and n_ok = n_tot then ' → ok'\n"
@@ -116,12 +119,12 @@ cuerpo.append("  -- 5 · flujos críticos (tools/flujos_lawang.py --sql, sha256 
               "    raise exception 'deshaz_flujos';\n"
               "  exception when others then\n"
               "    if sqlerrm <> 'deshaz_flujos' then res := res || E'\\n== flujos_lawang: ' || pg_temp.e2159_resume(sqlstate || ' ' || sqlerrm); end if;\n"
-              "  end;\n" % (sha(flujos)[:16], ETQ['fl'], flujos, ETQ['fl']))
+              "  end;\n" % (sha(flujos)[:16], MOTOR, ETQ['fl'], flujos, ETQ['fl']))
 cuerpo.append("  -- 6 · series: ninguna secuencia de documentos puede haberse movido\n"
               "  select coalesce(jsonb_object_agg(sequencename, last_value), '{}') into seq1 from pg_sequences where schemaname = 'public';\n"
               "  select string_agg(a.key || ' ' || coalesce(a.value, 'null') || '→' || coalesce(b.value, 'null')\n"
               "                    || case when a.key in (%s) then ' SERIE FISCAL MOVIDA (FALLA)'\n"
-              "                            when a.key ~ '^(contratos_.*_seq|clients_numero_cliente_seq)$' then ' serie visible no fiscal (apuntar)'\n"
+              "                            when a.key ~ '^(contratos_.*_seq|clients_numero_cliente_seq|usuarios_numero_usuario_seq|socios_numero_seq|solicitudes_cambio_.*seq)$' then ' serie visible no fiscal (apuntar)'\n"
               "                            else ' (id interno)' end, E'\\n' order by a.key)\n"
               "    into v from jsonb_each_text(seq0) a join jsonb_each_text(seq1) b using (key) where a.value is distinct from b.value;\n"
               "  res := res || E'\\n== series: ' || coalesce(E'\\n' || v, 'ninguna secuencia movida → ok');\n"
@@ -133,7 +136,7 @@ cabecera = """-- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; t
 --   foto de las secuencias de public · 0. f2_foto_b2 antes · 1. la migración 20261014223000 tal cual (sha256 %s) · 2. tres pruebas
 --   en sub-bloques que capturan su resultado · 4. f2_foto_b2 después · 5. flujos_lawang · 6. secuencias otra vez.
 -- Cada sub-bloque pone su trigger de numeración (trg_00_zz_e2159_num, antes de trg_set_factura_numero) y apaga el motor de comisiones
--- (comisiones_evaluar_contrato devuelve 0 sin crear nada): ningún alta toca INV/REC/PRO ni crea solicitudes SP o diferencias DIF.
+-- (comisiones_evaluar_contrato devuelve 0 sin crear nada; también en flujos): ningún alta toca INV/REC/PRO ni crea SP o DIF.
 -- Se lanza en un momento tranquilo: f2_b2_empresas bloquea filas reales de usuarios mientras dura la llamada.
 --
 -- APLICAR solo si el RES dice TODO esto (cualquier otra cosa = PARAR y pasar el RES entero a lawang-cola-2):
@@ -150,7 +153,7 @@ cabecera = """-- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; t
 --      su propia instantánea: un cambio real de otro usuario entre las dos fotos lo da); DISTINTO otra vez = PARAR.
 --   == flujos_lawang N/N → ok, con N > 0.
 --   == series: «ninguna secuencia movida → ok», o solo líneas «(id interno)» o «serie visible no
---      fiscal (apuntar)» (número de contrato o de cliente: flujos da de alta un cliente por pasada; deja un hueco, no frena). Una «SERIE FISCAL MOVIDA» = PARAR y avisar YA: el
+--      fiscal (apuntar)» (número de contrato, cliente, usuario, socio o SC: flujos da de alta un cliente por pasada; deja un hueco, no frena). Una «SERIE FISCAL MOVIDA» = PARAR y avisar YA: el
 --      ensayo gastó números (o entró un documento real a la vez: mirar si existe el número siguiente en facturas / solicitudes_pago).
 --   Un 55P03 (lock_timeout) en cualquier sección = tabla ocupada: REINTENTAR más tarde, no es un fallo.
 -- f2_foto_b2_ab NO va (decisión por defecto, revertible añadiéndola como sección): compara funciones de gastos contra una instantánea,
