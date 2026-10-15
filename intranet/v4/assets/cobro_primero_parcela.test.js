@@ -53,7 +53,7 @@ assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: 2327
 assert.strictEqual(sueloSinFirmar({ contrato_firmado: true, suelo_pactado: 15000, precio_suelo: 18750 }), false, 'Bloqueo firmado: no se rotula');
 assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: '25000.00', precio_suelo: 25000 }), true, 'sin firmar aunque el precio sea el de catálogo: se rotula (caso RP00050)');
 assert.strictEqual(sueloSinFirmar({ contrato_firmado: false, suelo_pactado: null, precio_suelo: 25000 }), false, 'sin precio pactado (sin permiso o sin contrato): nada que avisar');
-assert.ok(src.includes('sueloSinFirmar(u));') && src.includes("' (' + tx('contrato sin firmar') + ')'") && src.includes("' · contrato sin firmar'"), 'tarjeta y ficha rotulan el contrato sin firmar');
+assert.ok(src.includes('sueloSinFirmar(u));') && src.includes("' (' + tx('contrato sin firmar') + ')'") && src.includes("' · ' + tx('contrato sin firmar')"), 'tarjeta y ficha rotulan el contrato sin firmar');
 
 // --- repartoPorRegla ---
 // SH-1 (medido el 14-oct): 41.620 cobrados contra el Bloqueo (25.000) y la Construcción a 0.

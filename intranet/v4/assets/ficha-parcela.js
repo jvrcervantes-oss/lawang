@@ -262,7 +262,8 @@
     if (m.contratosError && sinPermiso(m.contratosError)) return aviso(T('No tienes permiso para ver los contratos de esta parcela. Los ve un administrador de la empresa.'), 'fp-contratos-sin-permiso');
     if (m.contratosError) return mal(T('No se pudieron leer los contratos de la parcela: %e', { e: errTxt(m.contratosError) }), 'fp-contratos-error');
     var out = '';
-    if (m.venta && m.venta.parcelas > 1)
+    // Si la venta no se ve, su número tampoco: el aviso de abajo basta.
+    if (m.venta && m.venta.parcelas > 1 && !m.ventaOculta)
       out += '<p data-lw="fp-venta" style="margin:0;color:#75786e">' + esc(T('Venta %v · %n parcelas', { v: m.venta.numero, n: m.venta.parcelas })) + '</p>';
     if (m.ventaOculta) out += aviso(T('Esta parcela tiene un contrato de venta que no puedes ver. Lo ve un administrador de la empresa.'), 'fp-venta-oculta');
     if (!m.contratos.length && !m.obraOculta && !m.ventaOculta) out += '<p data-lw="fp-sin-contratos" style="margin:0;color:#75786e">' + esc(T('Esta parcela no tiene contratos.')) + '</p>';

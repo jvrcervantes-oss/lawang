@@ -132,6 +132,7 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
   {
     const a = await corre(fila({ obra_firmada: false, obra_de_contrato: false }), { contratos: { data: [] }, facturas: { data: [] } });
     ok(a.m.ventaOculta && /fp-venta-oculta/.test(FP.fpHTML.contratos(a.m)) && !/no tiene contratos/.test(FP.fpHTML.contratos(a.m)), 'venta que no llega: «no puedes ver», no «no hay»');
+    ok(!/fp-venta"/.test(FP.fpHTML.contratos(Object.assign({}, a.m, { venta: { numero: 'CC00999', parcelas: 3 } }))), 'venta oculta: no se pinta su número');
     const b = await corre(fila(), { contratos: { data: [raizC] }, tipos: { data: [] } });
     ok(b.m.contratosError && /fp-contratos-sin-permiso/.test(FP.fpHTML.contratos(b.m)), 'catálogo vacío (no agente) = sin permiso, no «ningún tipo es obra»');
     global.lwTipoContrato = (t) => (t === 'reserva_parcela' ? 'Bloqueo de Parcela' : t);

@@ -5286,9 +5286,9 @@
                  respeta la moneda real y, si no es EUR, se añade el estimado en
                  € al lado (fmtConEstimado, arriba). */
               pon('u-' + clave + '-txt', !cartera ? 'sin cartera'
-                : noVisible ? 'cobro no visible · ' + fmtConEstimado(cartera, moneda)
+                : noVisible ? tx('cobro no visible') + ' · ' + fmtConEstimado(cartera, moneda)
                 : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda) + (porCarta ? ' · con Carta' : '')
-                  + (sinFirmar ? ' · contrato sin firmar' : ''), f);
+                  + (sinFirmar ? ' · ' + tx('contrato sin firmar') : ''), f);
             };
             uu.forEach(function (u, idxUnidad) {
               var f = base.cloneNode(true);
