@@ -113,6 +113,13 @@ function ipDe(req: Request): string {
   const xff = (req.headers.get('x-forwarded-for') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
   return ((req.headers.get('cf-connecting-ip') ?? '').trim() || xff[xff.length - 1] || '').slice(0, 64);
 }
+/** De qué cabecera saldría la IP (15-oct-2026, resto 6 de «Invitar al portal»): medida desde DENTRO de la edge antes de leer la IP
+ *  solo de cf-connecting-ip (x-forwarded-for lo escribe el cliente). Si saliera algo distinto de 'cf', todas las peticiones caerían
+ *  en un cubo común. Solo el nombre de la fuente, nunca la IP. */
+function ipFuente(req: Request): 'cf' | 'xff' | 'ninguna' {
+  if ((req.headers.get('cf-connecting-ip') ?? '').trim()) return 'cf';
+  return (req.headers.get('x-forwarded-for') ?? '').trim() ? 'xff' : 'ninguna';
+}
 /** HMAC-SHA256 de la IP, en hex (64). Clave = la service_role de la edge, con etiqueta propia: un sha256 sin clave de una
  *  IPv4 se deshace probando las ~4.300 millones de IPs. Si la clave rota, solo se reinician los contadores. null sin IP. */
 async function hashIp(ip: string): Promise<string | null> {
@@ -169,6 +176,7 @@ export async function manejador(req: Request): Promise<Response> {
 
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
+  console.log('portal-acceso ip_fuente:' + ipFuente(req));
 
   let email = '';
   let ipHash: string | null = null;
@@ -232,6 +240,13 @@ export async function manejador(req: Request): Promise<Response> {
       anota('frenado:' + m);
       // Línea fija para avisar: 30 enlaces en una hora desde el formulario = alguien martillea o el techo se queda corto.
       if (m === 'global') console.warn('portal-acceso frenado_tope_global');
+      // 'global' e 'ip' llegan aquí con un comprador CON DERECHO que va a leer «enviado» sin recibir nada: se anota para la
+      // vigilancia del estudio (privado.portal_frenos, migración 20261015201000). Si la anotación falla, el log lo dice y la
+      // respuesta no cambia (uniforme a propósito).
+      if (m === 'global' || m === 'ip') {
+        const { error: eAnota } = await admin.rpc('portal_freno_anota', { p_motivo: m });
+        if (eAnota) console.error('portal-acceso anota_fallo ' + m + ': ' + limpia(eAnota.code ?? eAnota.message));
+      }
       return json({ ok: true });
     }
     reservado = true;

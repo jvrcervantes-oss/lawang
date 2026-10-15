@@ -53,7 +53,7 @@
 -- REVERTIR: supabase/reversion_cf_borrar_cierre_anula/REVERSION.sql (los tres textos vivos de antes, tal cual; reabre el oraculo y
 --   deja a un agente borrar y anular lo cobrado o enviado: solo con OK del owner y avisando a Seguridad).
 -- Prueba: supabase/pruebas/cf_borrar_cierre_anula.sql (crea contratos: SOLO en rama) y cf_vuelta.py (la reversion real, en rama):
---   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261014210000_cf_borrar_cierre_anula_solo_admin.sql
+--   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261015065220_cf_borrar_cierre_anula_solo_admin.sql
 --          --prueba cf_borrar_cierre_anula.sql,cf_vuelta.py
 
 -- create or replace function no toma cerrojo de tabla, pero si espera a quien este ejecutando la funcion: mejor fallar limpio a los 5 s.

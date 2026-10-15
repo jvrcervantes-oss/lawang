@@ -10,14 +10,14 @@
 --   le pasa a prueba_comisiones_recalculo.sql desde el freno del 11-oct. Con la marca abierta, el envío por MCP lleva
 --   además como primera línea `-- destructivo-ok: <motivo>` (tools/no_destruir.py exige las dos en Lawang).
 --   Última pasada: 14-oct-2026 tras F3 (20261014133241), 33/33 ok, series sin mover.
---   15-oct-2026: G4b invertido y G4c nuevo con 20261015071000 (guarda con la clase de la parcela): SIN PASADA todavía
+--   15-oct-2026: G4b invertido y G4c nuevo con 20261015065609 (guarda con la clase de la parcela): SIN PASADA todavía
 --   (congelación de aplicar en producción del owner, 15-oct); con esa migración aplicada deben salir 34/34.
 --   15-oct-2026 (BAJA 4 del revisor): G4d–G4g, la pieza sin firmar es una HIJA (contrato_general y Hak Sewa frenan; en
---   otra moneda o liberada no). SIN PASADA todavía; con 20261015071000 aplicada deben salir 38/38. Se corre en la viva
---   con ROLLBACK justo antes de aplicar 20261015071000 (y otra vez después), siempre antes del 1-nov-2026.
+--   otra moneda o liberada no). SIN PASADA todavía; con 20261015065609 aplicada deben salir 38/38. Se corre en la viva
+--   con ROLLBACK justo antes de aplicar 20261015065609 (y otra vez después), siempre antes del 1-nov-2026.
 --   «ANTES DE APLICAR» = ENSAYO DESHECHO, como con 133241: la migración y esta batería en la misma llamada, y el `RES`
 --   final lo deshace todo. Esta batería SOLA contra la función de 133241 da 35/38 POR DISEÑO (G4b, G4d y G4e en FALLO:
---   la guarda vieja solo mira reserva_parcela); el resultado empieza entonces por «AVISO: 20261015071000 sin aplicar».
+--   la guarda vieja solo mira reserva_parcela); el resultado empieza entonces por «AVISO: 20261015065609 sin aplicar».
 --   G4d y G4e (frenan) solo prueban algo si G4c, G4f y G4g (no frenan) salen ok: si un Poder suelto frena G4c, los
 --   que frenan salen ok sin probar nada.
 --
@@ -62,12 +62,12 @@ begin
      or not exists (select 1 from public.condiciones_comision where id = c_man) then
     raise exception 'RES: la migración comisiones_regla_1nov no está aplicada';
   end if;
-  -- 15-oct-2026: sin 20261015071000 (guarda con la clase de la parcela) G4b, G4d y G4e salen FALLO por diseño; se avisa
+  -- 15-oct-2026: sin 20261015065609 (guarda con la clase de la parcela) G4b, G4d y G4e salen FALLO por diseño; se avisa
   -- delante para que esos FALLO no se lean como dinero mal calculado ni se acostumbre uno a ignorarlos
   if position('and not public._comisiones_parte_obra(c.tipo, e.es_obra)) as bloqueo_sin_firmar'
               in (select p.prosrc from pg_catalog.pg_proc p
                    where p.oid = to_regprocedure('public._comisiones_bases_firmadas(uuid)'))) = 0 then
-    r := 'AVISO: 20261015071000 sin aplicar (G4b, G4d y G4e saldrán FALLO por diseño); ';
+    r := 'AVISO: 20261015065609 sin aplicar (G4b, G4d y G4e saldrán FALLO por diseño); ';
   end if;
   select last_value into v_sp0  from public.solicitudes_pago_numero_seq;
   select last_value into v_dif0 from public.comisiones_diferencias_seq;

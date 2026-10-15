@@ -1,12 +1,12 @@
--- VUELTA de 20261015071000_comisiones_guarda_f3_misma_clase: deja _comisiones_bases_firmadas como la dejó
+-- VUELTA de 20261015065609_comisiones_guarda_f3_misma_clase: deja _comisiones_bases_firmadas como la dejó
 -- 20261014133241 (guarda F3 solo con tipo = 'reserva_parcela'). Una sola transacción. No toca filas.
--- GUARDA CONTRA LO VIVO (revisor, 15-oct), el espejo de la de 20261015071000:
+-- GUARDA CONTRA LO VIVO (revisor, 15-oct), el espejo de la de 20261015065609:
 --   * ya vuelta (el cuerpo vivo lleva la marca de la guarda vieja, o su md5 es el de 133241) → no hace nada;
---   * md5(prosrc) vivo distinto del cuerpo de 20261015071000 → lanza y no toca nada;
+--   * md5(prosrc) vivo distinto del cuerpo de 20261015065609 → lanza y no toca nada;
 --   * si no, crea la función con `execute` dentro del mismo `do`.
 --   md5 calculados en local (sin lectura de producción, congelación del 15-oct) sobre el texto exacto entre los dos
---   delimitadores de dólar del blob de git, con LF y con CRLF; de dónde sale cada uno, en la cabecera de 20261015071000:
---     20261015071000 (partida): 4d78770774ef0c79bd7537ed7e886a6c (LF) · 38763b027fa87bc537065dcaf97ff135 (CRLF)
+--   delimitadores de dólar del blob de git, con LF y con CRLF; de dónde sale cada uno, en la cabecera de 20261015065609:
+--     20261015065609 (partida): 4d78770774ef0c79bd7537ed7e886a6c (LF) · 38763b027fa87bc537065dcaf97ff135 (CRLF)
 --     20261014133241 (destino): f56d8196d59cabfa556af88ff9da8c16 (LF) · b5d6a8badb2b4047a20001f692209f39 (CRLF)
 --   Antes de pasarla, confirmar en la viva con una lectura:
 --     select md5(prosrc) from pg_proc where oid = 'public._comisiones_bases_firmadas(uuid)'::regprocedure;
@@ -29,7 +29,7 @@ begin
     return;
   end if;
   if v_md5 not in ('4d78770774ef0c79bd7537ed7e886a6c', '38763b027fa87bc537065dcaf97ff135') then
-    raise exception 'vuelta_f3b: _comisiones_bases_firmadas no es el cuerpo de 20261015071000 (md5 %); revisar a mano', v_md5;
+    raise exception 'vuelta_f3b: _comisiones_bases_firmadas no es el cuerpo de 20261015065609 (md5 %); revisar a mano', v_md5;
   end if;
   execute $ddl$
 create or replace function public._comisiones_bases_firmadas(p_raiz uuid)

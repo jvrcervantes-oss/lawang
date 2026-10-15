@@ -1,5 +1,5 @@
 -- SOLO LECTURA. Medición de la guarda F3 de comisiones (Administración, consulta de deploy del 15-oct-2026 sobre
--- 20261015071000_comisiones_guarda_f3_misma_clase; LAW-627). Se lanza al levantar la congelación del owner, ANTES de
+-- 20261015065609_comisiones_guarda_f3_misma_clase; LAW-627). Se lanza al levantar la congelación del owner, ANTES de
 -- decidir el refinamiento de la guarda; no cambia nada. Rol: el que puede llamar a _contrato_cobrado_interno
 -- (service_role / editor SQL). Sin json_agg de contratos enteros.
 -- No exige raíz firmada: comisiones_1nov_imputacion.sql (línea 19) filtra `bloqueado` en la raíz y por eso nunca ve
