@@ -380,22 +380,23 @@ begin
   end;
 
   -- ============================================================ U12 borrar la parcela (borrar_unidad, su llamador real)
-  -- borrar_unidad está cerrada a authenticated desde 20260930100100: la llama tools/flujos_lawang.py como postgres, sin sesión
-  -- (ensayo 16-oct lawang-202610160636-09e9ffb4: con sesión de super_admin daba 42501). Sin sesión, la traza queda con
-  -- retirada_por_id null, como dice la columna.
+  -- borrar_unidad está cerrada a authenticated desde 20260930100100 y dentro exige super_admin: su llamador real
+  -- (tools/flujos_lawang.py, C5) es postgres CON las claims del super admin puestas. Ensayos 16-oct: con rol authenticated
+  -- 42501 de permiso (09e9ffb4); sin claims, «solo un super_admin puede borrar una parcela» (d1555280).
   n := (select count(*) from public.unidad_notas where unidad_id = u2);
-  perform set_config('request.jwt.claims', '', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa.uid, 'role', 'authenticated', 'email', sa.em)::text, true);
   begin
     perform public.borrar_unidad(u2);
     v := 'ok';
   exception when others then
     v := 'ERR' || sqlstate || ':' || sqlerrm;
   end;
+  perform set_config('request.jwt.claims', '', true);
   r := r || pg_temp.l(n > 0 and v not like 'ERR%' and not exists (select 1 from public.unidades where id = u2)
                       and not exists (select 1 from public.unidad_notas where unidad_id = u2)
                       and (select count(*) from public.unidad_notas_retiradas where unidad_id = u2 and motivo = 'ficha_borrada'
-                             and retirada_por_id is null) = n,
-                      'U12 borrar_unidad (postgres, sin sesión) borra sus ' || n || ' nota(s) y deja traza «ficha_borrada» sin quien (' || left(v, 60) || ')');
+                             and retirada_por_id = sa.uid) = n,
+                      'U12 borrar_unidad (postgres con claims de super_admin) borra sus ' || n || ' nota(s) y deja traza «ficha_borrada» con quien la borró (' || left(v, 60) || ')');
 
   -- ============================================================ U15/U16 cliente_notas_datos: claves de antes + autor_nombre + puede_retirar
   v := pg_temp.val(ag.uid, ag.em, format('select (public.cliente_nota_agrega(%L, %L))->>''id''', c1, 'ZZ-UN nota del agente'));
