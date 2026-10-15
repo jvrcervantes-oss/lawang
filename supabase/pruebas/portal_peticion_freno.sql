@@ -2,11 +2,12 @@
 -- B1 solo service_role ejecuta portal_peticion_freno (anon llamándola de verdad: 42501). B2 las dos tablas en privado, con RLS y sin
 -- permisos para anon, authenticated ni service_role. B3 hash mal formado (mayúsculas, 63 hex, vacío, texto) = 22023 y no escribe.
 -- B4 el mismo cubo × 1000: 20 'pasa' y 980 'ip', y el global (n de la hora) sube SOLO 20 — una IP frenada no gasta el global
--- (Seguridad #373.1); frenadas_ip = 980 y max_ip = 1000. B5 otro hash con los mismos 3 primeros hex comparte cubo (frenado); uno con
+-- (Seguridad #373.1); frenadas_ip = 1 y max_ip = 21: el cubo cuenta una vez, al cruzar su tope, y las 979 frenadas
+-- siguientes no tocan la fila de la hora (B4b, por ctid; consulta de deploy del 16-oct). B5 otro hash con los mismos 3 primeros hex comparte cubo (frenado); uno con
 -- otro cubo pasa. B6 sin IP: su propio cubo de 20 (la 21.ª 'ip') y no frena a las que traen IP. B7 cortacircuitos: con n = 999 en la
 -- hora, la siguiente pasa (1000) y la otra es 'global' con frenadas_global = 1; una frenada por IP no suma frenadas_global. B8 anillo:
 -- la fila del cubo y la ranura de la hora con una hora vieja se REINICIAN. B9 columnas: ni correo, ni IP, ni hash. B10 DEFINER con
--- search_path vacío y sin candado consultivo.
+-- search_path vacío, lock_timeout de 200 ms y sin candado consultivo.
 -- La rama de Lawang es solo estructura: las tablas nacen vacías y todo se siembra aquí. Si quedan menos de 40 s para el cambio de
 -- hora se espera a la siguiente (las cuentas son por hora); si aun así cambiara, la última línea lo dice con «→ FALLA» y se repite.
 -- Sin serial ni identity: no gasta ninguna serie. Siembra filas en privado: SOLO EN RAMA.
@@ -92,11 +93,17 @@ begin
   end loop;
   select * into f from privado.portal_peticiones_hora where ranura = (v_h % 768)::int;
   r := r || pg_temp.l(pasa = 20 and ip = 980, 'B4 el mismo cubo × 1000: ' || pasa || ' pasa y ' || ip || ' ip (20 y 980)');
-  r := r || pg_temp.l(f.n = 20 and f.frenadas_ip = 980 and f.max_ip = 1000 and f.frenadas_global = 0 and f.hora = h0,
+  r := r || pg_temp.l(f.n = 20 and f.frenadas_ip = 1 and f.max_ip = 21 and f.frenadas_global = 0 and f.hora = h0,
                       'B4 el global solo suma las 20 que pasaron su IP (n ' || f.n || ', frenadas_ip ' || f.frenadas_ip || ', max_ip '
                       || f.max_ip || ', frenadas_global ' || f.frenadas_global || ')');
   r := r || pg_temp.l((select n from privado.portal_peticiones_ip where cubo = 2748 and franja = (v_h % 2)::smallint) = 1000,
                       'B4 el cubo abc (2748) sigue contando frenado: 1000');
+  -- B4b una frenada más no reescribe la fila de la hora (misma ctid y mismos valores)
+  select ctid::text || '|' || n || '|' || frenadas_ip || '|' || max_ip into v from privado.portal_peticiones_hora where ranura = (v_h % 768)::int;
+  r := r || pg_temp.l(pg_temp.frena(pg_temp.h('abc')) = 'ip'
+                      and v = (select ctid::text || '|' || n || '|' || frenadas_ip || '|' || max_ip
+                                 from privado.portal_peticiones_hora where ranura = (v_h % 768)::int),
+                      'B4b una petición ya frenada no escribe la fila de la hora (' || v || ')');
 
   -- B5 mismo cubo con otro hash; otro cubo
   r := r || pg_temp.l(pg_temp.frena(pg_temp.h('abc', 'f')) = 'ip', 'B5 otro hash con los mismos 3 primeros hex comparte cubo: frenado');
@@ -121,8 +128,9 @@ begin
   v_n := f.frenadas_ip;
   r := r || pg_temp.l(pg_temp.frena(pg_temp.h('abc')) = 'ip', 'B7 con el global agotado, una IP frenada sigue siendo ip');
   select * into f from privado.portal_peticiones_hora where ranura = (v_h % 768)::int;
-  r := r || pg_temp.l(f.n = 1001 and f.frenadas_global = 1 and f.frenadas_ip = v_n + 1,
-                      'B7 la frenada por IP no suma a n ni a frenadas_global (n ' || f.n || ', global ' || f.frenadas_global || ')');
+  r := r || pg_temp.l(f.n = 1001 and f.frenadas_global = 1 and f.frenadas_ip = v_n,
+                      'B7 la frenada por IP no suma a n, ni a frenadas_global, ni vuelve a contar su cubo (n ' || f.n || ', global '
+                      || f.frenadas_global || ', ip ' || f.frenadas_ip || ')');
 
   -- B8 anillo: cubo y ranura con una hora vieja se reinician
   update privado.portal_peticiones_ip set hora = h0 - interval '2 hours', n = 500 where cubo = 2748 and franja = (v_h % 2)::smallint;
@@ -145,9 +153,10 @@ begin
                       'B9 columnas: solo cubo, hora y cuentas (' || v || ')');
 
   -- B10
-  r := r || pg_temp.l((select prosecdef and proconfig = array['search_path=""'] and prosrc !~* 'advisory' from pg_proc
+  r := r || pg_temp.l((select prosecdef and proconfig @> array['search_path=""', 'lock_timeout=200ms'] and cardinality(proconfig) = 2
+                               and prosrc !~* 'advisory' from pg_proc
                         where oid = 'public.portal_peticion_freno(text)'::regprocedure),
-                      'B10 DEFINER, search_path vacío y sin candado consultivo');
+                      'B10 DEFINER, search_path vacío, lock_timeout 200ms y sin candado consultivo');
 
   r := r || pg_temp.l(date_trunc('hour', clock_timestamp(), 'UTC') = h0, 'P1 toda la prueba dentro de la misma hora (si no, repetir)');
   raise exception using message = replace(c_fin, '%', r);

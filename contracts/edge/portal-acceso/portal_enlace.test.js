@@ -65,7 +65,7 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
       correo: o.correo || (() => ({ status: 200, cuerpo: '{"ok":true}' })),
       linkUid: o.linkUid || UID,
       frenoError: !!o.frenoError,
-      anotaError: !!o.anotaError,   // portal_freno_anota caída (20261015201000): la respuesta no cambia
+      anotaError: !!o.anotaError,   // portal_freno_anota caída (20261015230956): la respuesta no cambia
       equipoUid: !!o.equipoUid,   // la cuenta de Auth es del equipo aunque `usuarios` tenga OTRO correo
       // freno de ANTES de la regla (20261015202000): 20 por cubo (3 primeros hex del hash; sin IP, el 4096) y cortacircuitos de
       // 1000 que solo cuenta lo que pasó su IP. Se reinicia en cada prepara() (una prepara = una hora de ese freno).

@@ -16,8 +16,10 @@
 -- Si el tope global salta igualmente, la salida para un comprador es que un admin le invite desde portal-invitar (no pasa por aquí).
 --
 -- Mide además el tráfico real (Backend #373.3): privado.portal_peticiones_hora guarda por hora cuántas peticiones pasaron su tope de
--- IP (n = la demanda), cuántas frenó cada tope y la IP más activa (max_ip). Lo lee la vigilancia del estudio (erp/salud_instancia.py,
--- chequeo «portal»): un frenazo global es ROJO (puede dejar fuera a compradores), uno por IP es solo informativo.
+-- IP (n = la demanda), cuántos cubos de IP cruzaron su tope (frenadas_ip, una vez por cubo y hora), cuántas frenó el global y el
+-- mayor recuento de un cubo visto al escribir (max_ip, como mucho tope + 1; el de verdad está en portal_peticiones_ip, 2 h). Lo lee
+-- la vigilancia del estudio (erp/salud_instancia.py, chequeo «portal»; ese chequeo de esta tabla aterriza DESPUÉS de aplicar esta
+-- migración, consulta de deploy del 16-oct): un frenazo global en 48 h es ROJO (puede dejar fuera a compradores); por IP, informativo.
 --
 -- Por qué así:
 --   · sin delete: tools/no_destruir.py para cualquier delete en Lawang sin la válvula del owner. Las dos tablas son anillos que se
@@ -25,6 +27,10 @@
 --     privado.portal_frenos). Una fila con otra hora se reinicia al volver a usarse;
 --   · sin pg_advisory_xact_lock (Seguridad #373.5): bajo una inundación pondría todas las llamadas en fila y el freno sería el DoS de
 --     la base. Cada contador es un upsert de UNA fila con returning;
+--   · la fila de la hora es la misma para todos, así que una petición YA frenada por su IP no la toca (solo una vez por cubo y hora,
+--     al cruzar su tope): una IP que inunda hace cola en la fila de SU cubo, no en la de todos. Y la función lleva
+--     lock_timeout = 200ms: si aun así espera un cerrojo, falla, la edge contesta 500 (cerrado) y no deja conexiones de PostgREST
+--     esperando; cae el formulario, no la intranet (consulta de deploy de Base de datos y Backend, 16-oct-2026);
 --   · la misma llamada anota sus negativas: no hay segunda RPC por petición frenada (Backend #373.4);
 --   · el cubo se calcula AQUÍ a partir de un hash validado (64 hex), no lo manda la edge: nadie elige su cubo.
 --
@@ -63,11 +69,12 @@ alter table privado.portal_peticiones_hora enable row level security;
 revoke all on table privado.portal_peticiones_hora from public, anon, authenticated, service_role;
 comment on table privado.portal_peticiones_hora is
   'Formulario del portal por hora: n = peticiones dentro de su tope de IP (la demanda y el contador del cortacircuitos global), '
-  'frenadas por cada tope y la IP más activa. Anillo de 768 ranuras = 32 días, sin borrados. Escribe solo public.portal_peticion_freno; '
+  'cubos de IP que cruzaron su tope (frenadas_ip, una vez por cubo y hora), frenadas por el global y el mayor recuento de cubo '
+  'visto al escribir (max_ip, como mucho tope + 1). Anillo de 768 ranuras = 32 días, sin borrados. Escribe solo public.portal_peticion_freno; '
   'lee la vigilancia del estudio (axw_lectura). 20261015202000.';
 
 create or replace function public.portal_peticion_freno(p_ip_hash text)
-returns text language plpgsql security definer set search_path = '' as $$
+returns text language plpgsql security definer set search_path = '' set lock_timeout = '200ms' as $$
 declare
   c_tope_ip     constant int := 20;      -- por cubo de IP y hora (revisar el 15-nov-2026; no bajar: CGNAT)
   c_tope_global constant int := 1000;    -- cortacircuitos por hora, no el control (revisar el 15-nov-2026)
@@ -97,20 +104,34 @@ begin
   returning n into v_nip;
   v_frena := v_nip > c_tope_ip;
 
-  -- 2. la hora: una IP frenada NO suma a n (no gasta el global); en el mismo upsert, las negativas y la IP más activa
+  -- 2. una IP frenada NO toca la fila de la hora (es la misma para todos), salvo UNA vez por cubo y hora, al cruzar su tope
+  --    (v_nip = tope + 1), para contar que ese cubo se frenó. Nunca suma a n (no gasta el global).
+  if v_frena then
+    if v_nip = c_tope_ip + 1 then
+      insert into privado.portal_peticiones_hora as h (ranura, hora, n, frenadas_ip, frenadas_global, max_ip)
+      values ((v_h % 768)::int, v_hora, 0, 1, 0, v_nip)
+      on conflict (ranura) do update
+         set n               = case when h.hora = excluded.hora then h.n else 0 end,
+             frenadas_ip     = case when h.hora = excluded.hora then least(h.frenadas_ip, 1000000000) else 0 end + 1,
+             frenadas_global = case when h.hora = excluded.hora then h.frenadas_global else 0 end,
+             max_ip          = greatest(case when h.hora = excluded.hora then h.max_ip else 0 end, excluded.max_ip),
+             hora            = excluded.hora;
+    end if;
+    return 'ip';
+  end if;
+
+  -- 3. la hora: lo que pasó su tope de IP suma a n; si pasa del cortacircuitos, cuenta una frenada global
   insert into privado.portal_peticiones_hora as h (ranura, hora, n, frenadas_ip, frenadas_global, max_ip)
-  values ((v_h % 768)::int, v_hora, case when v_frena then 0 else 1 end, case when v_frena then 1 else 0 end, 0, v_nip)
+  values ((v_h % 768)::int, v_hora, 1, 0, 0, v_nip)
   on conflict (ranura) do update
-     set n               = case when h.hora = excluded.hora then least(h.n, 1000000000) else 0 end + excluded.n,
-         frenadas_ip     = case when h.hora = excluded.hora then least(h.frenadas_ip, 1000000000) else 0 end + excluded.frenadas_ip,
+     set n               = case when h.hora = excluded.hora then least(h.n, 1000000000) else 0 end + 1,
+         frenadas_ip     = case when h.hora = excluded.hora then h.frenadas_ip else 0 end,
          frenadas_global = case when h.hora = excluded.hora then least(h.frenadas_global, 1000000000) else 0 end
-                           + case when excluded.n = 1 and case when h.hora = excluded.hora then h.n else 0 end + 1 > c_tope_global
-                                  then 1 else 0 end,
+                           + case when case when h.hora = excluded.hora then h.n else 0 end + 1 > c_tope_global then 1 else 0 end,
          max_ip          = greatest(case when h.hora = excluded.hora then h.max_ip else 0 end, excluded.max_ip),
          hora            = excluded.hora
   returning n into v_ng;
 
-  if v_frena then return 'ip'; end if;
   if v_ng > c_tope_global then return 'global'; end if;
   return 'pasa';
 end
