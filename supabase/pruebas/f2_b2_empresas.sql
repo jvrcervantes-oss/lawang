@@ -24,25 +24,42 @@ declare
   hoy text := to_char(current_date, 'YYYY-MM-DD');
   pay_l text; pay_s text;
 begin
-  select user_id into jv from public.usuarios where email = 'jvr.cervantes@gmail.com';
-  perform set_config('request.jwt.claims', json_build_object('sub', jv, 'role', 'authenticated', 'email', 'jvr.cervantes@gmail.com')::text, true);
+  -- Personas por ROL, nunca por correo fijo (15-oct-2026, ensayo de 2159 en la viva: los correos del 8-oct habían cambiado de rol
+  -- —el «admin global» ya era admin_empresa— y caían todos sus casos). jv = el super_admin activo más antiguo; ctl = el agente activo
+  -- más antiguo SIN las casillas gastos ni bancos (no se toca); el resto, agentes activos por antigüedad, cada uno distinto, que se
+  -- CONVIERTEN dentro del rollback: ya, cr, ad4, ad0 como siempre, ar con empresas={lawang} y gad en admin global no super con casillas.
+  select user_id, email into jv, mail from public.usuarios where activo and rol = 'super_admin' order by creado_en limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub', jv, 'role', 'authenticated', 'email', mail)::text, true);
+  per := per || jsonb_build_object('jv', jsonb_build_object('sub', jv, 'email', mail));
+  select user_id, email into ctl, mail from public.usuarios
+   where activo and rol = 'agente' and not ('gastos' = any(coalesce(herramientas, '{}'))) and not ('bancos' = any(coalesce(herramientas, '{}')))
+   order by creado_en limit 1;
+  per := per || jsonb_build_object('ctl', jsonb_build_object('sub', ctl, 'email', mail));
   for pe in select * from (values
-      ('ya',  'yanayjefferson@gmail.com',      'admin_empresa',       'empresa', '{lawang}',              '{facturas,gastos,bancos,comisiones}'),
-      ('cr',  'cris.blueiestates@gmail.com',   'super_admin_empresa', 'empresa', '{sandal_woods}',        '{}'),
-      ('ad4', 'adenovit.b@gmail.com',          'admin_empresa',       'empresa', '{lawang,sandal_woods}', '{facturas,gastos,bancos,comisiones}'),
-      ('ad0', 'dortegag@gmail.com',            'admin_empresa',       'empresa', '{lawang}',              '{}')) v(k, email, rol, amb, emps, herr) loop
-    update public.usuarios set rol = pe.rol, ambito = pe.amb, empresas = pe.emps::text[], proyectos = '{}', proyectos_supervisados = '{}',
-           herramientas = pe.herr::text[], tipos_contrato = '{}' where email = pe.email returning user_id into uid;
-    per := per || jsonb_build_object(pe.k, jsonb_build_object('sub', uid, 'email', pe.email));
+      ('ya',  'admin_empresa',       'empresa', '{lawang}',              '{facturas,gastos,bancos,comisiones}'),
+      ('cr',  'super_admin_empresa', 'empresa', '{sandal_woods}',        '{}'),
+      ('ad4', 'admin_empresa',       'empresa', '{lawang,sandal_woods}', '{facturas,gastos,bancos,comisiones}'),
+      ('ad0', 'admin_empresa',       'empresa', '{lawang}',              '{}'),
+      ('ar',  null,                  null,      '{lawang}',              null),
+      ('gad', 'admin',               'global',  '{}',                    '{facturas,gastos,bancos,comisiones}')) v(k, rol, amb, emps, herr) loop
+    select u2.user_id into uid from public.usuarios u2
+     where u2.activo and u2.rol = 'agente' and u2.user_id is distinct from jv and u2.user_id is distinct from ctl
+       and not exists (select 1 from jsonb_each(per) x where x.value->>'sub' = u2.user_id::text)
+     order by u2.creado_en limit 1;
+    if pe.rol is null then   -- ar: solo el alcance restringido, el resto de su ficha como está
+      update public.usuarios set empresas = pe.emps::text[] where user_id = uid returning user_id, email into uid, mail;
+    else
+      update public.usuarios set rol = pe.rol, ambito = pe.amb, empresas = pe.emps::text[], proyectos = '{}', proyectos_supervisados = '{}',
+             herramientas = pe.herr::text[], tipos_contrato = '{}' where user_id = uid returning user_id, email into uid, mail;
+    end if;
+    per := per || jsonb_build_object(pe.k, jsonb_build_object('sub', uid, 'email', mail));
   end loop;
-  select user_id into ctl from public.usuarios where email = 'eduxzone@gmail.com';
-  select user_id into ar from public.usuarios where email = 'santiator97@gmail.com';
-  update public.usuarios set empresas = '{lawang}' where user_id = ar;
-  select user_id into gad from public.usuarios where email = 'balianhills@gmail.com';
-  per := per || jsonb_build_object('ctl', jsonb_build_object('sub', ctl, 'email', 'eduxzone@gmail.com'),
-                                    'ar',  jsonb_build_object('sub', ar,  'email', 'santiator97@gmail.com'),
-                                    'gad', jsonb_build_object('sub', gad, 'email', 'balianhills@gmail.com'),
-                                    'jv',  jsonb_build_object('sub', jv,  'email', 'jvr.cervantes@gmail.com'));
+  ya := (per->'ya'->>'sub')::uuid; cr := (per->'cr'->>'sub')::uuid; ad4 := (per->'ad4'->>'sub')::uuid; ad0 := (per->'ad0'->>'sub')::uuid;
+  ar := (per->'ar'->>'sub')::uuid; gad := (per->'gad'->>'sub')::uuid;
+  -- sin una persona la prueba no mide sus casos: cuenta como fallo, nunca como verde
+  select string_agg(k, ',') into sub from unnest(array['jv', 'ctl', 'ya', 'cr', 'ad4', 'ad0', 'ar', 'gad']) k
+   where coalesce(per->k->>'sub', '') = '';
+  if sub is not null then r := r || 'FALLO [P0] personas sin usuario (no hay agentes activos de sobra): ' || sub || E'\n'; fallos := fallos + 1; end if;
 
   select e2.sociedad_clave into soc_l from public.empresas e2 where e2.clave = 'lawang';
   select e2.sociedad_clave into soc_s from public.empresas e2 where e2.clave = 'sandal_woods';
