@@ -16,6 +16,8 @@ begin
   perform set_config('request.jwt.claims', '', true);
   insert into public.empresas (clave, nombre) values ('zz_ur', 'ZZ-UR Empresa');
   insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-UR Proyecto', 'zz-ur-proyecto', 'zz_ur', true) returning id into p;
+  -- catálogos vacíos en la rama (estructura del volcado): sin esta fila, unidades_tipo_fkey da 23503 (ensayo 16-oct)
+  insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
   insert into public.unidades (codigo, proyecto, proyecto_id, tipo, estado, notas)
     values ('ZZ-UR-1', 'ZZ-UR Proyecto', p, 'parcela', 'disponible', 'ZZ-UR primera') returning id into u1;
   update public.unidades set notas = 'ZZ-UR segunda' where id = u1;

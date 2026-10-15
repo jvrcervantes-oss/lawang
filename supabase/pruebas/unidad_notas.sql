@@ -93,6 +93,9 @@ begin
       (ad.uid,  ad.em,  'ZZ-UN Admin',            'admin',               'global',  '{}'::text[],  '{}'::uuid[],  '{}'::uuid[],  '{unidades,compradores}'::text[], '{}'::text[], true),
       (sa.uid,  sa.em,  'ZZ-UN Super admin',      'super_admin',         'global',  '{}'::text[],  '{}'::uuid[],  '{}'::uuid[],  '{}'::text[],                     '{}'::text[], true),
       (x.uid,   x.em,   'ZZ-UN PM de baja',       'project_manager',     'global',  array[c_emp],  array[pP],     array[pP],     '{unidades}'::text[],             '{}'::text[], false);
+    -- la rama nace de la ESTRUCTURA del volcado (catálogos vacíos): sin esta fila, unidades_tipo_fkey da 23503 (ensayo 16-oct,
+    -- lawang-202610160618-47b9a37a). Misma fila que la viva, como invitacion_portal.sql y precio_cadena_vigente.sql
+    insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
     insert into public.unidades (codigo, proyecto, proyecto_id, tipo, estado) values ('ZZ-UN-1', pPn, pP, 'parcela', 'disponible') returning id into u1;
     insert into public.unidades (codigo, proyecto, proyecto_id, tipo, estado) values ('ZZ-UN-2', pPn, pP, 'parcela', 'disponible') returning id into u2;
     insert into public.unidades (codigo, proyecto, proyecto_id, tipo, estado) values ('ZZ-UN-3', pPn, pP, 'parcela', 'disponible') returning id into u3;
