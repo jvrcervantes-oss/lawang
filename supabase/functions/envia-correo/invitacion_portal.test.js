@@ -1,6 +1,6 @@
 /* node invitacion_portal.test.js — la plantilla «invitacion_portal» («Invitar al portal» desde la ficha de parcela), 15-oct-2026.
    SOLO en Lawang (el maestro no tiene reclamos_pago; plantillas_arnes.mjs → SOLO_LAWANG la saca de las pruebas comunes).
-   Migración 20261015101500_invitacion_portal_parcela.sql. Con el index.ts REAL, sin red, sin enviar nada.
+   Migración 20261015071004_invitacion_portal_parcela.sql. Con el index.ts REAL, sin red, sin enviar nada.
    1. Fábrica ⇔ catálogo sellado de la migración (el catálogo es legible, el texto cumple sus reglas, resuelve produce TODAS las permitidas).
    2. Texto aprobado, bilingüe (inglés primero) palabra por palabra; saludo con el nombre de pila (y sin nombre, «Hello» / «Hola»).
    3. El enlace es el del portal (texto y botón, el mismo) y NUNCA lleva token ni #th= (no es un enlace mágico).
@@ -21,7 +21,7 @@ const path = require('path');
   const ok = (c, m) => { assert.ok(c, m); n++; };
   const igual = (a, b, m) => { assert.deepStrictEqual(a, b, m); n++; };
 
-  const mig = fs.readFileSync(path.join(__dirname, '..', '..', 'migrations', '20261015101500_invitacion_portal_parcela.sql'), 'utf8');
+  const mig = fs.readFileSync(path.join(__dirname, '..', '..', 'migrations', '20261015071004_invitacion_portal_parcela.sql'), 'utf8');
   const cat = V.catalogoDe(JSON.parse(/values \('invitacion_portal', false,\s*'(\{"permitidas".*?\})'::jsonb/s.exec(mig)[1]));
   ok(cat, 'el catálogo sembrado se lee (catalogoDe != null: lleva cuerpo_alt y variantes)');
 

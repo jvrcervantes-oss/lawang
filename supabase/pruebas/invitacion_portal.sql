@@ -1,10 +1,10 @@
--- Prueba «Invitar al portal» desde la ficha de parcela (15-oct-2026, migración 20261015101500_invitacion_portal_parcela.sql).
+-- Prueba «Invitar al portal» desde la ficha de parcela (15-oct-2026, migración 20261015071004_invitacion_portal_parcela.sql).
 -- Pliega la revisión previa #357: Seguridad (perfiles con cuenta desactivada, oráculo de _portal_rechazo, revalidación al enviar,
 -- topes, nota, equivalencia del login sin fiarse de un recorrido corto) y Base de datos (FK compuesta tipo↔clave, todas las
 -- lectoras del libro filtran tipo, Reclamar pago saca el titular de contrato_compradores, copropietarios vigentes).
 --
 -- !! SIEMBRA contratos, fichas y personas: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015101500_invitacion_portal_parcela.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015071004_invitacion_portal_parcela.sql
 --           --prueba invitacion_portal.sql,invitacion_portal_reversion.sql,reclamo_pago.sql
 --    Fuera de una rama (sin `erp.en_rama = si`, que pone rama_prueba) se niega a empezar, antes de tocar nada.
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». No imprime lo que

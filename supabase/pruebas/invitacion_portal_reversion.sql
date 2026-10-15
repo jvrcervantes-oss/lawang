@@ -1,6 +1,6 @@
 -- Prueba de la REVERSION de «Invitar al portal» (15-oct-2026). GENERADA junto con supabase/reversion_invitacion_portal/REVERSION.sql
--- por el mismo guion (copia literal: si cambia la reversion, se regeneran las dos). Corre tras aplicar 20261015101500 en la rama:
---    python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261015101500_invitacion_portal_parcela.sql
+-- por el mismo guion (copia literal: si cambia la reversion, se regeneran las dos). Corre tras aplicar 20261015071004 en la rama:
+--    python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261015071004_invitacion_portal_parcela.sql
 --           --prueba invitacion_portal.sql,invitacion_portal_reversion.sql,reclamo_pago.sql
 -- Aplica la reversion DENTRO de la transaccion de corre.py y comprueba que las 9 funciones vuelven con el md5 que tenian en
 -- produccion el 15-oct-2026 antes de aplicar, que lo nuevo ya no existe y que el libro recupera su indice. Formato corre.py.
@@ -14,14 +14,14 @@ do $g$ begin
   end if;
 end $g$;
 
--- destructivo-ok: REVERSION de 20261015101500_invitacion_portal_parcela.sql («Invitar al portal», 15-oct-2026). Borra SOLO lo que esa
+-- destructivo-ok: REVERSION de 20261015071004_invitacion_portal_parcela.sql («Invitar al portal», 15-oct-2026). Borra SOLO lo que esa
 -- migracion creo (filas de cola y del libro de tipo invitacion_portal, la plantilla invitacion_portal, la columna tipo y su FK compuesta, los
 -- indices nuevos, las funciones nuevas) y restaura las definiciones anteriores de 9 funciones COPIADAS LITERALMENTE de sus migraciones
 -- (20261010070000 y 20260908013953), que el 15-oct-2026 coincidian con produccion (pg_get_functiondef, md5 abajo); de reclamo_pago_encolar
 -- y reclamo_pago_prueba se quitan las lineas de comentario del cuerpo, porque la viva se aplico sin ellas. Los correos YA enviados
 -- quedan en correos_enviados: se reetiquetan a 'manual' antes de estrechar el CHECK, no se borran.
--- ANTES DE APLICAR: comprobar que la viva sigue con las definiciones de 20261015101500 (si otra migracion las toco despues, esta reversion
--- las pisaria). md5(pg_get_functiondef) en produccion el 15-oct-2026, ANTES de aplicar 20261015101500:
+-- ANTES DE APLICAR: comprobar que la viva sigue con las definiciones de 20261015071004 (si otra migracion las toco despues, esta reversion
+-- las pisaria). md5(pg_get_functiondef) en produccion el 15-oct-2026, ANTES de aplicar 20261015071004:
 --   _correo_cola_regla 129f9cbd1e372ac082d9a6d29e1cbe46 · _reclamo_pago_candidatos d6102130b500c796870033251f6cb0a2
 --   _reclamo_pago_vigente 451c462b80e8558582d7cdcf480d45cc · portal_autoservicio feebfff511b8df06d12f00c440ba0ba6
 --   reclamo_pago_datos dc4d0950b3b2192f46fd909bcf3f7992 · reclamo_pago_destinatarios 35554096720304368d204f85d9859c7a
