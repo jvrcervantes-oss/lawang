@@ -20,6 +20,20 @@ MIGRACIONES = ['20261015210000_law610_cc00040_precio.sql',
                '20261015210200_law612_inv00173_rec00130_a_cc00088.sql']
 SALIDA = os.path.join(AQUI, 'ensayo_law610_612_viva.sql')
 
+INICIO = """
+-- ── ANTES (solo lee; lo guarda en una variable de la transacción para el resumen) ───────────────────────────────────────
+do $antes$
+declare v text;
+begin
+  select format('CC00040 por contrato: precio %s, sin precio %s, facturado %s', s.precio, s.sin_precio, s.facturado) into v
+    from public._cadena_saldo_en('93d557dc-814b-48df-b127-adc34f6f191e', 'EUR') s;
+  v := v || ' · bases 1-nov RP00026 (suelo/obra cobrados firmados · directo suelo/obra): ' ||
+       (select b.cobrado_suelo_firmado || '/' || b.cobrado_obra_firmada || ' · ' || b.cobrado_directo_suelo || '/' || b.cobrado_directo_obra
+          from public._comisiones_bases_firmadas('f0d47af2-5749-46eb-ad82-00415a95ef4d') b);
+  perform set_config('ensayo_law610_612.antes', v, true);
+end $antes$;
+"""
+
 FINAL = """
 -- ── RESUMEN (solo lee) ──────────────────────────────────────────────────────────────────────────────────────────────────
 do $res$
@@ -27,6 +41,9 @@ declare
   v text := '';
   r record;
 begin
+  -- los disparadores diferidos (historial de unidades) corren aquí y no al confirmar, que en un ensayo no llega
+  execute 'set constraints all immediate';
+  v := 'ANTES · ' || current_setting('ensayo_law610_612.antes', true) || E'\\n';
   -- LAW-610
   select c.precio_total, c.datos->'fields'->>'precio_total' as campo,
          (select count(*) from public.contrato_vencimientos v where v.contrato_id = c.id) as venc
@@ -37,6 +54,9 @@ begin
    where u.contrato_id = '637f9a44-cd31-47eb-a636-5fe33255eab3';
   v := v || format(' · SH-3 %s precio %s = %s + %s · obra cascada %s (de contrato %s)', r.estado, r.precio, r.precio_suelo,
                    r.precio_construccion, r.obra_precio, r.obra_de_contrato);
+  v := v || (select format(' · por contrato: precio %s, sin precio %s, facturado %s (cadena %s)', s.precio, s.sin_precio,
+                           s.facturado, s.raiz_numero)
+               from public._cadena_saldo_en('93d557dc-814b-48df-b127-adc34f6f191e', 'EUR') s);
   -- LAW-611
   select u.id, u.estado, x.cobrado_suelo, x.suelo_precio into r
     from public.unidades u cross join lateral public._unidad_cobro_cascada_v2(u.id) x
@@ -57,6 +77,13 @@ begin
   v := v || ' · cobrado por contrato: ' || (select string_agg(c.numero || ' ' || public._contrato_cobrado_interno(c.id), ', ' order by c.numero)
                                              from public.contratos c
                                             where c.id in ('f0d47af2-5749-46eb-ad82-00415a95ef4d', '54030d81-972f-4da1-9e16-643d033c5fe8'));
+  v := v || ' · bases 1-nov: ' ||
+       (select b.cobrado_suelo_firmado || '/' || b.cobrado_obra_firmada || ' · ' || b.cobrado_directo_suelo || '/' || b.cobrado_directo_obra
+          from public._comisiones_bases_firmadas('f0d47af2-5749-46eb-ad82-00415a95ef4d') b);
+  v := v || ' · línea admin de REC00130: ' ||
+       coalesce((select string_agg(l.tipo_linea || ' ' || l.importe || ' contrato ' || coalesce(c.numero, '?') || case when l.anulada then ' anulada' else '' end, ', ')
+                   from public.comision_admin_lineas l left join public.contratos c on c.id = l.contrato_id
+                  where l.recibi_id = 'c0babc5f-7dea-47b4-8cdf-65dad9a0e9e3'), '(ninguna)');
   v := v || ' · comisiones: ' || coalesce((select string_agg(d.nivel || ' ' || d.estado || ' ' || d.importe || ' ' || d.moneda, ', ')
                                             from public.comisiones_devengadas d
                                            where d.contrato_raiz_id = 'f0d47af2-5749-46eb-ad82-00415a95ef4d'), '(ninguna)');
@@ -68,7 +95,8 @@ end $res$;
 def main():
     partes = ['-- ENSAYO DESHECHO de LAW-610, LAW-611 y LAW-612 en la viva de Lawang (15-oct-2026, lawang-cola-2).\n'
               '-- GENERADO por contracts/sql/genera_ensayo_law610_612.py: no se edita a mano.\n'
-              '-- Se lanza con tools/lanza_ensayo_viva.py (begin … rollback, nunca confirma), marca «RES LAW610-612».\n']
+              '-- Se lanza con tools/lanza_ensayo_viva.py (begin … rollback, nunca confirma), marca «RES LAW610-612».\n',
+              INICIO]
     for m in MIGRACIONES:
         datos = open(os.path.join(RAIZ, 'supabase', 'migrations', m), 'rb').read()
         partes.append('-- ── %s · sha256 %s ──\n' % (m, hashlib.sha256(datos).hexdigest()))

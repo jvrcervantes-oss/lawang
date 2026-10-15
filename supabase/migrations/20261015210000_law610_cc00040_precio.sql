@@ -11,7 +11,10 @@
 -- datos.fields.precio_total = '44000' (contrato_guarda recalcula precio_total desde ese campo en cada guardado de un contrato
 -- sin firmar: sin él, el próximo guardado lo volvería a dejar sin precio). Si el papel ya trae OTRO precio, PARA.
 -- Guardas: el contrato por id exacto, su número, su padre, sin precio, EUR y sin liberar; SH-3 a 69.000 = 25.000 + 44.000
--- antes y después, y su estado sin cambiar. Cualquier desajuste PARA y no escribe nada (es un solo bloque).
+-- antes y después, y su estado sin cambiar; las comisiones de la venta (comisiones_devengadas) sin un cambio. Cualquier
+-- desajuste PARA y no escribe nada (es un solo bloque).
+-- Efecto que se ve: por contrato, CC00040 queda con 69.000 facturados sobre 44.000 de precio (25.000 de más, que son de la
+-- parcela); el tope de la VENTA cuadra (69.000 de 69.000). El ensayo lo enseña con _cadena_saldo_en.
 -- Lo prueba el ensayo deshecho contracts/sql/ensayo_law610_612_viva.sql (lanza_ensayo_viva.py, marca «RES LAW610-612»).
 -- Reversión: update public.contratos set precio_total = null (y, si se escribió, datos #- '{fields,precio_total}') where id =
 -- '93d557dc-814b-48df-b127-adc34f6f191e'.
@@ -21,6 +24,7 @@ declare
   c_raiz     constant uuid := '637f9a44-cd31-47eb-a636-5fe33255eab3';   -- RP00079
   c_precio   constant numeric := 44000;
   v_c record; v_u record; v_u2 record; v_n int; v_campo text; v_firmas int; v_obra numeric;
+  v_com_antes text; v_com_despues text;
 begin
   select c.id, c.numero, c.contrato_padre_id, c.precio_total, c.moneda, c.liberado_en, c.datos->'fields'->>'precio_total' as campo
     into v_c from public.contratos c where c.id = c_contrato for update;
@@ -42,6 +46,10 @@ begin
       v_n, v_u.codigo, v_u.precio, v_u.precio_suelo, v_u.precio_construccion;
   end if;
 
+  -- el cambio de precio dispara la reconciliación de comisiones de la venta: no tiene que mover ninguna
+  select coalesce(string_agg(to_jsonb(d)::text, '|' order by d.id), '') into v_com_antes
+    from public.comisiones_devengadas d where d.contrato_raiz_id in (c_raiz, c_contrato);
+
   select count(*) into v_firmas from public.contrato_firmas f where f.contrato_id = c_contrato and f.estado in ('pendiente', 'firmado');
   if v_campo is null and v_firmas = 0 then
     update public.contratos c
@@ -58,6 +66,12 @@ begin
      or v_obra is distinct from c_precio then
     raise exception 'PARADA LAW-610: tras el cambio SH-3 queda en precio %, obra %, estado % (antes %), obra de la cascada %',
       v_u2.precio, v_u2.precio_construccion, v_u2.estado, v_u.estado, v_obra;
+  end if;
+  select coalesce(string_agg(to_jsonb(d)::text, '|' order by d.id), '') into v_com_despues
+    from public.comisiones_devengadas d where d.contrato_raiz_id in (c_raiz, c_contrato);
+  if v_com_despues is distinct from v_com_antes then
+    raise exception 'PARADA LAW-610: cambian las comisiones de la venta RP00079. Antes: %. Después: %',
+      left(v_com_antes, 900), left(v_com_despues, 900);
   end if;
   raise notice 'LAW-610 ok: CC00040 precio_total 44000 (papel %), SH-3 % en 69000, obra de la cascada %',
     case when v_campo is null and v_firmas = 0 then 'escrito' when v_campo is not null then 'ya lo traía' else 'en firma, sin tocar' end,

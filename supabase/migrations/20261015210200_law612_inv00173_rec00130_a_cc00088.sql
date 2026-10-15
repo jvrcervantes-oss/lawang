@@ -17,9 +17,11 @@
 -- Guardas (todo antes de escribir): las dos filas por id exacto, con su número, tipo, total, moneda, sociedad, sin anular y
 -- colgando de RP00026; la aplicación única REC00130 -> INV00173 por 10.625; CC00088 hijo de RP00026, EUR, sin liberar, de la
 -- misma sociedad y del mismo comprador; D4 «vendida» con 15.625 de suelo cobrado y cumpliendo «vendida».
--- Después: D4 igual (suelo cobrado 15.625, cumple «vendida», sigue «vendida»), el reparto por contrato igual, y las comisiones
--- de la venta (comisiones_devengadas) y las de administración del recibí (comision_admin_lineas) sin un solo cambio. Si algo
--- cambia, PARA y no queda nada escrito (es un solo bloque).
+-- Después: D4 igual (suelo cobrado 15.625, cumple «vendida», sigue «vendida»), el reparto por contrato igual, la base de
+-- comisión del 1-nov (_comisiones_bases_firmadas) igual, y las comisiones de la venta (comisiones_devengadas) y las de
+-- administración del recibí (comision_admin_lineas) sin un solo cambio. Si algo cambia, PARA y no queda nada escrito.
+-- La línea de comisión de administración de REC00130 guarda su contrato_id del día del devengo (RP00026) y no se toca: es la
+-- foto del devengo (como recibi_numero); comision_admin_descuadres no mira el contrato. Decisión por defecto, reversible.
 -- Lo prueba el ensayo deshecho contracts/sql/ensayo_law610_612_viva.sql (marca «RES LAW610-612»).
 -- Reversión: update public.facturas set contrato_id = 'f0d47af2-5749-46eb-ad82-00415a95ef4d' (y contrato_numero al valor de
 -- antes, que da el NOTICE) where id in (las dos de abajo).
@@ -33,6 +35,7 @@ declare
   v_inv record; v_rec record; v_obra record; v_n int; v_u record; v_cli uuid; v_soc_obra text;
   v_cas_antes record; v_cas_despues record; v_estado text;
   v_com_antes text; v_com_despues text; v_adm_antes text; v_adm_despues text; v_atr_antes text; v_atr_despues text;
+  v_bas_antes text; v_bas_despues text;
 begin
   select f.numero, f.tipo, f.total, f.moneda, f.sociedad, f.contrato_id, f.contrato_numero, f.client_id,
          coalesce(f.anulada, false) as anulada
@@ -81,6 +84,10 @@ begin
     from public.comision_admin_lineas l where l.recibi_id = c_rec;
   select coalesce(string_agg(a.contrato_id::text || '=' || a.cobrado_regla::text, '|' order by a.contrato_id), '') into v_atr_antes
     from public._venta_cobro_atribuido(c_raiz) a;
+  -- bases de comisión de la regla del 1-nov: también juntan lo cobrado y llenan primero el suelo (least(suelo, todo)); las
+  -- columnas «directo» son solo trazabilidad y sí cambian (5.000 / 10.625)
+  select b.cobrado_suelo_firmado::text || '/' || b.cobrado_obra_firmada::text into v_bas_antes
+    from public._comisiones_bases_firmadas(c_raiz) b;
 
   update public.facturas f set contrato_id = c_obra, contrato_numero = 'CC00088' where f.id in (c_inv, c_rec);
 
@@ -105,6 +112,12 @@ begin
     from public._venta_cobro_atribuido(c_raiz) a;
   if v_atr_despues is distinct from v_atr_antes then
     raise exception 'PARADA LAW-612: cambia el reparto del cobro por contrato. Antes: %. Después: %', v_atr_antes, v_atr_despues;
+  end if;
+  select b.cobrado_suelo_firmado::text || '/' || b.cobrado_obra_firmada::text into v_bas_despues
+    from public._comisiones_bases_firmadas(c_raiz) b;
+  if v_bas_despues is distinct from v_bas_antes then
+    raise exception 'PARADA LAW-612: cambia la base de comisión del 1-nov (suelo/obra cobrados firmados). Antes: %. Después: %',
+      v_bas_antes, v_bas_despues;
   end if;
   raise notice 'LAW-612 ok: INV00173 y REC00130 cuelgan de CC00088 (contrato_numero antes: % y %); D4 vendida con suelo cobrado % (obra % -> %); comisiones y reparto sin cambios',
     v_inv.contrato_numero, v_rec.contrato_numero, v_cas_despues.cobrado_suelo, v_cas_antes.cobrado_obra, v_cas_despues.cobrado_obra;

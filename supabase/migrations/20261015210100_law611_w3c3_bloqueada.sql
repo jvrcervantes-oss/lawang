@@ -10,8 +10,9 @@
 --     excepción app.unidad_estado_excepcion (y no se usa: su historial diría «excepcion decidida por el owner» sin el porqué).
 --   · trg_protege_liberado_contrato es de contratos (que no se toque liberado_en fuera de libera_reserva): aquí no se toca ningún
 --     contrato.
---   · trg_unidad_estado_al_historial no escribe su fila si ya hay una de esta transacción (mismo en = now(), mismo antes y
---     después): la fila con el motivo de LAW-611 se escribe ANTES del update y la suya se omite.
+--   · trg_unidad_estado_al_historial (diferido: corre al confirmar) no escribe su fila si ya hay una de esta transacción
+--     (mismo en = now(), mismo antes y después): la fila con el motivo de LAW-611 se escribe aquí y la suya se omite. El ensayo
+--     lo comprueba forzando los diferidos (set constraints all immediate) antes de contar.
 --   · avanza_unidad_por_cobro deja una «bloqueada» como está mientras su Bloqueo no esté firmado: no la vuelve a subir.
 --   · trg_unidad_estado_aviso_manager avisa a los managers del proyecto («Unidad W3 - C3 — bloqueada»): es el aviso interno de
 --     siempre en un cambio de estado.
