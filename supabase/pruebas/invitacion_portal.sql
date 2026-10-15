@@ -46,7 +46,7 @@ declare
   r text := ''; v text; n bigint; n2 bigint; b boolean; j jsonb;
   ae _tp; ao _tp; ag _tp; eq2 _tp; po _tp;
   c_eq2_auth constant text := 'zz-ip-equipo-dos-auth@prueba.invalid';
-  pL uuid; pO uuid; u1 uuid; u2 uuid; uo uuid; k1 uuid; k2 uuid; k3 uuid; ko uuid;
+  pL uuid; pOt uuid; u1 uuid; u2 uuid; uo uuid; k1 uuid; k2 uuid; k3 uuid; ko uuid;
   c1 uuid; c2 uuid; c3 uuid; c4 uuid; c5 uuid; c6 uuid; c7 uuid; c8 uuid; c9 uuid; co uuid;
   i1 uuid; i2 uuid; q1 uuid; qp uuid; rr uuid; qr uuid; rx uuid;
   c_fin constant text := 'FIN DE PRUEBAS INVITACION PORTAL (se deshace todo):%';
@@ -64,7 +64,7 @@ begin
     insert into public.sociedades (clave, label, razon, domicilio) values ('zz_ip', 'ZZ-IP', 'ZZ-IP PT', 'ZZ-domicilio') on conflict (clave) do nothing;
     update public.empresas set sociedad_clave = 'zz_ip' where clave = 'zz_ip';
     insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-IP Proyecto', 'zz-ip-proyecto', 'zz_ip', true) returning id into pL;
-    insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-IP Proyecto otra', 'zz-ip-proyecto-otra', 'zz_ip_otra', true) returning id into pO;
+    insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-IP Proyecto otra', 'zz-ip-proyecto-otra', 'zz_ip_otra', true) returning id into pOt;
     insert into auth.users (id, instance_id, email, aud, role)
       select t.uid, '00000000-0000-0000-0000-000000000000', case when t.et = 'EQ2' then c_eq2_auth else t.em end, 'authenticated', 'authenticated' from _tp t;
     insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo) values
@@ -92,7 +92,7 @@ begin
     insert into public.contratos (tipo, proyecto_id, unidad_id, fecha_firma, datos)
       values ('contrato_general', pL, u2, current_date, '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto", "sociedad_firmante": "zz_ip"}}'::jsonb) returning id into k3;
     insert into public.contratos (tipo, proyecto_id, unidad_id, fecha_firma, datos)
-      values ('contrato_general', pO, uo, current_date, '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto otra"}}'::jsonb) returning id into ko;
+      values ('contrato_general', pOt, uo, current_date, '{"fields": {"proyecto_nombre": "ZZ-IP Proyecto otra"}}'::jsonb) returning id into ko;
     -- los compradores DESPUÉS de los contratos (trg_compradores_desde_datos sincroniza al guardar el contrato, que ya no se toca)
     insert into public.contrato_compradores (contrato_id, client_id, rol) values
       (k1, c1, 'adquiriente_1'), (k1, c2, 'adquiriente_2'), (k1, c3, 'adquiriente_3'), (k1, c4, 'adquiriente_4'),

@@ -1,7 +1,8 @@
 -- destructivo-ok: REVERSION de 20261015101500_invitacion_portal_parcela.sql («Invitar al portal», 15-oct-2026). Borra SOLO lo que esa
 -- migracion creo (filas de cola y del libro de tipo invitacion_portal, la plantilla invitacion_portal, la columna tipo y su FK compuesta, los
 -- indices nuevos, las funciones nuevas) y restaura las definiciones anteriores de 9 funciones COPIADAS LITERALMENTE de sus migraciones
--- (20261010070000 y 20260908013953), que el 15-oct-2026 coincidian con produccion (pg_get_functiondef, md5 abajo). Los correos YA enviados
+-- (20261010070000 y 20260908013953), que el 15-oct-2026 coincidian con produccion (pg_get_functiondef, md5 abajo); de reclamo_pago_encolar
+-- y reclamo_pago_prueba se quitan las lineas de comentario del cuerpo, porque la viva se aplico sin ellas. Los correos YA enviados
 -- quedan en correos_enviados: se reetiquetan a 'manual' antes de estrechar el CHECK, no se borran.
 -- ANTES DE APLICAR: comprobar que la viva sigue con las definiciones de 20261015101500 (si otra migracion las toco despues, esta reversion
 -- las pisaria). md5(pg_get_functiondef) en produccion el 15-oct-2026, ANTES de aplicar 20261015101500:
@@ -153,7 +154,6 @@ declare
   v_cola  uuid;
   v_out   jsonb := '[]'::jsonb;
 begin
-  -- 1. permiso: la empresa sale de la parcela (nunca de un parametro)
   select p.empresa, e.sociedad_clave into v_emp, v_soc
     from public.unidades u join public.proyectos p on p.id = u.proyecto_id
     left join public.empresas e on e.clave = p.empresa
@@ -170,7 +170,6 @@ begin
       using errcode = '22023', hint = 'sociedad_proyecto_sin_definir';
   end if;
 
-  -- 2. lote: sin repetidos, entre 1 y 10
   select coalesce(array_agg(x order by x), '{}') into v_ids from (select distinct u from unnest(coalesce(p_clients, '{}')) u where u is not null) d(x);
   if cardinality(v_ids) = 0 then
     raise exception 'Marca al menos una persona.' using errcode = '22023', hint = 'sin_destinatarios';
@@ -179,19 +178,16 @@ begin
     raise exception 'Como máximo 10 personas por envío.' using errcode = '22023', hint = 'demasiados_destinatarios';
   end if;
 
-  -- 3. nota: texto plano, recortado, sin enlaces ni correos
   v_nota := nullif(btrim(regexp_replace(coalesce(p_nota, ''), '[[:space:]]+', ' ', 'g')), '');
   if v_nota is not null and (char_length(v_nota) > 300 or v_nota ~* 'http|www\.|@|[a-z0-9-]\.(com|net|org|info|biz|io|co|id|es|app|xyz|top|link|click|online|site|ru|cn|me)([^a-z]|$)' or v_nota ~ '[[:cntrl:]]') then
     raise exception 'La nota admite hasta 300 caracteres de texto, sin enlaces ni direcciones de correo.'
       using errcode = '22023', hint = 'nota_invalida';
   end if;
 
-  -- 4. anti doble clic: un candado por (parcela, persona), en orden fijo para no cruzarse
   foreach v_id in array v_ids loop
     perform pg_advisory_xact_lock(hashtextextended('reclamo_pago:' || p_unidad::text || ':' || v_id::text, 0));
   end loop;
 
-  -- 5. cada persona debe ser un destinatario valido de ESTA parcela; si una no cuadra, se rechaza el lote entero
   foreach v_id in array v_ids loop
     select * into v_c from public._reclamo_pago_candidatos(p_unidad) c where c.client_id = v_id and c.orden = 1;
     if not found then
@@ -214,14 +210,12 @@ begin
     end if;
   end loop;
 
-  -- 6. quien lo pide: de la sesion
   v_quien := lower(coalesce(nullif(btrim(coalesce(auth.email(), '')), ''),
                             (select u.email from public.usuarios u where u.user_id = (select auth.uid()))));
   if v_quien is null then
     raise exception 'No se pudo identificar quién envía el recordatorio.' using errcode = '42501', hint = 'sin_identidad';
   end if;
 
-  -- 7. libro + cola (una fila de cada una por persona; un correo por persona, sin CC)
   foreach v_id in array v_ids loop
     select * into v_c from public._reclamo_pago_candidatos(p_unidad) c where c.client_id = v_id and c.orden = 1;
     insert into public.reclamos_pago (unidad_id, contrato_id, client_id, nota, creado_por, creado_por_uid)
@@ -306,7 +300,6 @@ begin
       using errcode = '22023', hint = 'nota_invalida';
   end if;
 
-  -- sociedad: la del primer contrato valido de la parcela
   select * into v_c from public._reclamo_pago_candidatos(p_unidad) c
    where c.orden = 1 and c.seleccionable order by c.contrato_id limit 1;
   if not found then
