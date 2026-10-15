@@ -146,6 +146,8 @@ begin
 
   -- ============================================================ montaje: A con deck abierto, C cerrado (mismos tipos de fila en los dos)
   insert into public.empresas (clave, nombre) values (c_emp, 'ZZ-SLUG Empresa');
+  -- catálogos que la rama trae VACÍOS (se restaura sin filas) y el montaje necesita: las claves REALES de la viva (15-oct)
+  insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
   insert into public.proyectos (nombre, slug, empresa, activo, ubicacion_maps) values (c_a, c_sa, c_emp, true, '-8.5123, 115.2634') returning id into pA;
   insert into public.proyectos (nombre, slug, empresa, activo, ubicacion_maps) values (c_c, c_sc, c_emp, true, '-8.6, 115.3') returning id into pC;
   insert into public.unidades (codigo, proyecto, proyecto_id, tipo, superficie_m2, precio, precio_suelo, moneda, estado, publicado_investor_deck) values

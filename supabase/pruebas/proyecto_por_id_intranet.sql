@@ -70,6 +70,10 @@ begin
   end if;
 
   -- ============================================================ montaje (como postgres)
+  -- catálogos que la rama trae VACÍOS (se restaura sin filas) y el montaje necesita: las claves REALES de la viva (15-oct)
+  insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
+  insert into public.contrato_tipo_etapa (tipo, etapa, nota) values ('reserva_parcela', 'reserva', 'Reserva de parcela'),
+    ('carta_reserva', 'reserva', 'Carta de Reserva (serie CR)') on conflict (tipo) do nothing;
   insert into public.sociedades (clave, label, razon, domicilio) values ('zz_pi1', 'ZZ-PI 1', 'ZZ-PI PT 1', 'ZZ-domicilio') on conflict (clave) do nothing;
   insert into public.empresas (clave, nombre) values ('zz_pi_e1', 'ZZ-PI Empresa 1');
   update public.empresas set sociedad_clave = 'zz_pi1' where clave = 'zz_pi_e1';
