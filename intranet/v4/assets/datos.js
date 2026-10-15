@@ -4766,8 +4766,8 @@
       function etiquetaEstado(e) { return ESTADO_ETIQUETA[claveEstado(e)] || (e || '—'); }
       /* El estado tal como se ENSEÑA en esta pantalla, en el idioma de la interfaz (15-oct-2026: con la intranet en
          inglés la tarjeta y la ficha decían «RESERVADA»). etiquetaEstado se queda en español porque el editor la
-         mete dentro de frases suyas aún sin traducir («Marcada como …»). ts(): un estado desconocido es un dato y
-         sale tal cual, sin apuntarse como falta. */
+         mete dentro de frases suyas aún sin traducir («Marcada como …»). ts(): un estado desconocido sale tal cual
+         y queda apuntado en LW_T_MISSES, que es justo el aviso de que a ese estado nuevo le falta su nombre. */
       function estadoVisible(e) { return ts(etiquetaEstado(e)); }
       function colorProyEstado(e) { return PROY_ESTADO_COLOR[claveEstado(e)] || '#75786e'; }
       function etiquetaProyEstado(e) { return PROY_ESTADO_ETIQUETA[claveEstado(e)] || (e || '—'); }
@@ -5363,7 +5363,9 @@
             /* Las tarjetas son clones de MOLDE_UNIDAD, que se copió del DOM: según llegue esta respuesta antes o
                después de que nav.js traduzca la página, el molde está en español o en inglés. Se traducen aquí, al
                pintarlas (las claves quedan en `data-lwt`, así que repetirlo no busca la frase ya en inglés). */
-            if (typeof lwIdiomaAplicar === 'function') lwIdiomaAplicar(caja);
+            if (typeof lwIdiomaAplicar === 'function') {
+              try { lwIdiomaAplicar(caja); } catch (_) { /* MUDO A PROPOSITO: traducir no tumba el parcelario; si falla, las etiquetas se quedan en español, que se ve */ }
+            }
             /* Barras Parcela / Construcción del PROYECTO con la regla «primero la parcela, luego la obra»
                (owner, 14-oct-2026). Arriba se pintaron repartiendo lo cobrado por el TIPO del contrato que
                lleva el recibí; ese reparto es justo lo que la regla corrige (un recibí colgado de la

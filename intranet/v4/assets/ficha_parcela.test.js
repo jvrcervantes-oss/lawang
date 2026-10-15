@@ -212,6 +212,9 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
     ok(m.pactado === null && !/fp-pactado/.test(FP.fpHTML.pendientes(m)), 'sin venta no se pinta «Por cobrar del precio»');
     const b = await corre(fila({ contrato_id: null, contrato_numero: null, obra_firmada: false, obra_de_contrato: false, cobrado_suelo: null, cobrado_obra: null }), { contratos: { data: [] }, facturas: { data: [] } });
     ok(b.m.pactado === null, 'ni «sin permiso para ver el cobro» en una parcela sin venta');
+    const c = await corre(fila({ contrato_id: null, contrato_numero: null, obra_firmada: false, obra_de_contrato: false, suelo_pactado: null, obra_pactada: null,
+      precio_suelo: 60875, precio_construccion: null, cobrado_suelo: 5000, cobrado_obra: 0 }), { contratos: { data: [] }, facturas: { data: [] } });
+    ok(c.m.pactado && c.m.pactado.importe === 55875, 'con algo cobrado sí se enseña lo que falta aunque la fila no traiga la venta');
   }
   // 12 · «Pactado» de la tarjeta = «Precio total» de la ficha = suelo + obra de CONTRATO (Calidad 15-oct, owner 14-oct)
   {
@@ -309,10 +312,14 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
 
   /* Lo que pinta el JS de la tarjeta y de la ficha (datos.js): cada tx('…') tiene su inglés, y los textos que se
      escapaban del diccionario el 15-oct ya no salen como literal suelto. */
-  const jsT = datos.slice(datos.indexOf('var barraUnidad = function'), datos.indexOf('function volverAProyecto'));
-  ok(jsT.length > 1000, 'tramo de datos.js de la tarjeta y la ficha');
+  // El cajón entero (abrirCajon → volverAProyecto: recuento, aviso vacío, tarjetas, socios, ficha) y los chips de estado.
+  const desde = (a, b) => { const i = datos.indexOf(a); return datos.slice(i, datos.indexOf(b, i)); };
+  const jsT = desde('function abrirCajon(', 'function volverAProyecto') + desde('function wireFiltroUnidadesCajon(', 'chipsEst.appendChild(b);');
+  ok(jsT.length > 10000 && /'Todas'/.test(jsT) && /'d-uds-n'/.test(jsT), 'tramo de datos.js del cajón, la tarjeta, la ficha y los chips');
   const sinEn = [];
   jsT.replace(/\btx\('((?:[^'\\]|\\.)*)'/g, (y, k) => { if (!enDic(k)) sinEn.push(k); return y; });
+  // y las dos ramas de un tx(cond ? 'a' : 'b')
+  jsT.replace(/\btx\([^()']*\?\s*'((?:[^'\\]|\\.)*)'\s*:\s*'((?:[^'\\]|\\.)*)'/g, (y, a, b) => { [a, b].forEach((k) => { if (!enDic(k)) sinEn.push(k); }); return y; });
   ok(!sinEn.length, 'cada tx() de la tarjeta y la ficha tiene inglés; faltan: ' + sinEn.join(' | '));
   ['sin cartera', 'con Carta', 'Sin socio', 'sin contrato', 'Reservada con Carta de Reserva firmada: aún no es compraventa', 'Editar ', 'Socio: ', 'Arquitecto: ', ' unidad', ' unidades']
     .forEach((lit) => {

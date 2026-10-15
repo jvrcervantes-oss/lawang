@@ -161,7 +161,9 @@
        no tiene contrato) no hay nada por cobrar: el precio de catálogo no se le debe a nadie y la ayuda hablaría de
        «la venta» (Calidad, 15-oct-2026: SH-128 enseñaba «Por cobrar del precio 260.875 EUR»). */
     var suelo = h.precioParte(u, 'suelo'), obra = h.precioParte(u, 'obra');
-    var conVenta = !!R || u.obra_de_contrato === true || u.obra_firmada === true;
+    // Con algo cobrado sí se calcula aunque la fila no traiga la venta: el resto (o lo cobrado de más) no se esconde.
+    var conVenta = !!R || u.obra_de_contrato === true || u.obra_firmada === true ||
+      (Number(u.cobrado_suelo) || 0) + (Number(u.cobrado_obra) || 0) > 0;
     if (conVenta && (suelo != null || obra != null)) {
       if (u.cobrado_suelo == null || u.cobrado_obra == null) m.pactado = { noVisible: true };
       else {
