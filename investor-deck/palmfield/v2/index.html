@@ -1374,7 +1374,7 @@
 
   // El codigo de parcela lo teclea el equipo en la intranet: para usarlo en un id
   // o en un href se queda solo con [A-Za-z0-9-].
-  function idParcela(codigo){ return String(codigo == null ? '' : codigo).replace(/[^A-Za-z0-9-]/g, ''); }
+  function idParcela(codigo){ return String(codigo == null ? '' : codigo).replace(/\./g, '_').replace(/[^A-Za-z0-9_-]/g, ''); }  // el punto pasa a _ antes de limpiar: «B1.1» no puede chocar con «B11» (revisor, 15-oct)
 
   // Clic en el plano → su fila del inventario: centrada DENTRO de la lista (que
   // scrollea sola en escritorio) y, si la fila queda fuera de pantalla (movil, lista

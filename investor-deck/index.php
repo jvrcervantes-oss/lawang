@@ -1148,7 +1148,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     return [x/(3*a), y/(3*a)];
   }
   // El codigo lo teclea el equipo: para un id o un href se queda solo con [A-Za-z0-9-].
-  function idParcela(codigo){ return String(codigo == null ? '' : codigo).replace(/[^A-Za-z0-9-]/g, ''); }
+  function idParcela(codigo){ return String(codigo == null ? '' : codigo).replace(/\./g, '_').replace(/[^A-Za-z0-9_-]/g, ''); }  // el punto pasa a _ antes de limpiar: «B1.1» no puede chocar con «B11» (revisor, 15-oct)
 
   // Toda parcela del plano es clicable y lleva a su fila del inventario (v3, owner
   // 22-sep): el contacto vive en la fila, un solo sitio donde se actua sobre una parcela.
