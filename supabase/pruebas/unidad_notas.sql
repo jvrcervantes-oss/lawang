@@ -12,7 +12,7 @@
 -- U8-U10 la columna vieja: unidad_guarda (edicion y alta) y unidades_importa (actualizacion y alta) con «notas» dejan una
 -- nota «campo_notas» firmada y la columna vacia; sin «notas» no crean nada; U9c-e un texto que la parcela YA tiene (pestaña
 -- vieja, CSV exportado antes) no se duplica y uno distinto si entra. U11 check (notas is null) aunque se salten los
--- disparadores. U12 borrar_unidad borra las notas y deja traza «ficha_borrada». U13 (Legal, #376) las filas NUEVAS de
+-- disparadores. U12 borrar_unidad (como postgres: está cerrada a authenticated) borra las notas y deja traza «ficha_borrada». U13 (Legal, #376) las filas NUEVAS de
 -- unidades_log (alta, ficha, csv, y U13d las diferidas que se escriben al confirmar) llevan notas null. U14 tope: 30 en 10 minutos por agrega, por unidad_guarda, y una
 -- importacion de 31 filas con notas aborta ENTERA (0 notas y 0 parcelas). U15/U16 cliente_notas_datos: conserva sus claves
 -- de antes (autor_email) y añade autor_nombre y puede_retirar, que coincide con cliente_nota_retira real (autor si, agente no
@@ -379,14 +379,23 @@ begin
                         'U11 check (notas is null): ni saltándose los disparadores entra texto en la columna (' || sqlstate || ')');
   end;
 
-  -- ============================================================ U12 borrar la parcela (borrar_unidad, rol real de super_admin)
+  -- ============================================================ U12 borrar la parcela (borrar_unidad, su llamador real)
+  -- borrar_unidad está cerrada a authenticated desde 20260930100100: la llama tools/flujos_lawang.py como postgres, sin sesión
+  -- (ensayo 16-oct lawang-202610160636-09e9ffb4: con sesión de super_admin daba 42501). Sin sesión, la traza queda con
+  -- retirada_por_id null, como dice la columna.
   n := (select count(*) from public.unidad_notas where unidad_id = u2);
-  v := pg_temp.val(sa.uid, sa.em, format('select public.borrar_unidad(%L)::text', u2));
+  perform set_config('request.jwt.claims', '', true);
+  begin
+    perform public.borrar_unidad(u2);
+    v := 'ok';
+  exception when others then
+    v := 'ERR' || sqlstate || ':' || sqlerrm;
+  end;
   r := r || pg_temp.l(n > 0 and v not like 'ERR%' and not exists (select 1 from public.unidades where id = u2)
                       and not exists (select 1 from public.unidad_notas where unidad_id = u2)
                       and (select count(*) from public.unidad_notas_retiradas where unidad_id = u2 and motivo = 'ficha_borrada'
-                             and retirada_por_id = sa.uid) = n,
-                      'U12 borrar_unidad borra sus ' || n || ' nota(s) y deja traza «ficha_borrada» con quien la borró (' || left(v, 60) || ')');
+                             and retirada_por_id is null) = n,
+                      'U12 borrar_unidad (postgres, sin sesión) borra sus ' || n || ' nota(s) y deja traza «ficha_borrada» sin quien (' || left(v, 60) || ')');
 
   -- ============================================================ U15/U16 cliente_notas_datos: claves de antes + autor_nombre + puede_retirar
   v := pg_temp.val(ag.uid, ag.em, format('select (public.cliente_nota_agrega(%L, %L))->>''id''', c1, 'ZZ-UN nota del agente'));
