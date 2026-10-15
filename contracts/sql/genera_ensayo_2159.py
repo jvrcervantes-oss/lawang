@@ -65,9 +65,18 @@ for nombre, t in list(textos.items()) + [('migracion', mig)]:
 # un rollback no devuelve el número. Este trigger corre ANTES (nombre «trg_00_» < «trg_00a_» < «trg_set_»: los BEFORE van por orden
 # alfabético) y pone un número de prueba. Va DENTRO de cada sub-bloque: se deshace con él y el bloqueo de public.facturas se suelta al
 # abortarlo, en vez de durar toda la llamada. Mismo truco que tools/flujos_lawang.py y factura_moneda_del_contrato.sql.
+# Y el motor de comisiones apagado en el mismo sub-bloque (revisor de 9a839d3ce, 15-oct): un recibí o un alta sobre un contrato real
+# dispara comisiones_evaluar_contrato (triggers de recibi_aplicaciones y facturas), que puede insertar una solicitud de pago (serie SP,
+# identity) o, vía _comision_devengo_reponer, una diferencia (serie DIF, default con nextval): el número se toma al formar la fila,
+# antes de cualquier BEFORE, así que el trigger de numeración no lo evita. Es el único camino desde estas altas (comisiones_reconciliar,
+# el otro que crea SP/DIF, solo lo llama una migración puntual). El create or replace se deshace con el sub-bloque: las demás sesiones
+# siguen viendo la versión buena porque nunca se confirma. Ninguna de las tres pruebas mide devengos nuevos (f2_b2 resuelve solicitudes
+# que ya existen). La sección 6 queda como red de seguridad.
 NUM = ("    execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin\n"
        "      if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;\n"
-       "      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;\n")
+       "      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num();\n"
+       "      create or replace function public.comisiones_evaluar_contrato(p_contrato_id uuid) returns integer language plpgsql\n"
+       "        as $nf$ begin return 0; end $nf$$num2159$;\n")
 
 
 def seccion(nombre, etq, texto):
@@ -111,24 +120,28 @@ cuerpo.append("  -- 5 · flujos críticos (tools/flujos_lawang.py --sql, sha256 
 cuerpo.append("  -- 6 · series: ninguna secuencia de documentos puede haberse movido\n"
               "  select coalesce(jsonb_object_agg(sequencename, last_value), '{}') into seq1 from pg_sequences where schemaname = 'public';\n"
               "  select string_agg(a.key || ' ' || coalesce(a.value, 'null') || '→' || coalesce(b.value, 'null')\n"
-              "                    || case when a.key in (%s) then ' SERIE FISCAL MOVIDA (FALLA)' else ' (id interno)' end, E'\\n' order by a.key)\n"
+              "                    || case when a.key in (%s) then ' SERIE FISCAL MOVIDA (FALLA)'\n"
+              "                            when a.key ~ '^(contratos_.*_seq|clients_numero_cliente_seq)$' then ' serie visible no fiscal (apuntar)'\n"
+              "                            else ' (id interno)' end, E'\\n' order by a.key)\n"
               "    into v from jsonb_each_text(seq0) a join jsonb_each_text(seq1) b using (key) where a.value is distinct from b.value;\n"
               "  res := res || E'\\n== series: ' || coalesce(E'\\n' || v, 'ninguna secuencia movida → ok');\n"
               % ', '.join("'%s'" % s for s in SERIES))
 
-cabecera = """-- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; todo termina en raise (rollback) y no gasta números de serie
+cabecera = """-- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; todo termina en raise (rollback) y no gasta números de serie fiscales (INV, REC, PRO, SP, DIF)
 -- ENSAYO DE 2159 EN UNA LLAMADA (15-oct-2026, lawang-cola-2, generado por contracts/sql/genera_ensayo_2159.py; NO se edita a mano).
 -- Qué hace, en UNA transacción que acaba en `raise exception 'RES 2159 …'` (se deshace todo):
 --   foto de las secuencias de public · 0. f2_foto_b2 antes · 1. la migración 20261014223000 tal cual (sha256 %s) · 2. tres pruebas
 --   en sub-bloques que capturan su resultado · 4. f2_foto_b2 después · 5. flujos_lawang · 6. secuencias otra vez.
--- Cada sub-bloque pone su trigger de numeración (trg_00_zz_e2159_num, antes de trg_set_factura_numero): ningún alta toca la serie.
+-- Cada sub-bloque pone su trigger de numeración (trg_00_zz_e2159_num, antes de trg_set_factura_numero) y apaga el motor de comisiones
+-- (comisiones_evaluar_contrato devuelve 0 sin crear nada): ningún alta toca INV/REC/PRO ni crea solicitudes SP o diferencias DIF.
 -- Se lanza en un momento tranquilo: f2_b2_empresas bloquea filas reales de usuarios mientras dura la llamada.
 --
 -- APLICAR solo si el RES dice TODO esto (cualquier otra cosa = PARAR y pasar el RES entero a lawang-cola-2):
---   == factura_moneda_del_contrato: ninguna línea empieza por «MAL»; las dos del canario C0 dicen OK; «PENDIENTE» solo en g3, g4,
+--   == factura_moneda_del_contrato: ninguna línea empieza por «MAL» ni dice «ERR», las del canario C0 incluidas (el
+--      resumen solo imprime lo que no es bueno: un C0 correcto se cuenta y NO sale); «PENDIENTE» solo en g3, g4,
 --      g5 y h1 (cualquier otro PENDIENTE = PARAR).
---   == facturas_tope_cadena_y_recibi_pendiente: ninguna línea con «PASO (MAL)»; «RECIBI pend: ok» (si «pendiente INV00184=0» esa
---      línea no aplica). Las tres negativas del recibí (pend+500, 0, «1 sobre cobrada») tienen que decir «bloqueado», con cualquier
+--   == facturas_tope_cadena_y_recibi_pendiente: ninguna línea con «PASO (MAL)»; ninguna línea «RECIBI pend» con MAL o ERR (la buena,
+--      «RECIBI pend: ok», se cuenta y no se imprime; si «pendiente INV00184=0» la prueba no aplica). Las tres negativas del recibí (pend+500, 0, «1 sobre cobrada») tienen que decir «bloqueado», con cualquier
 --      motivo: con 2159 las para la suma del recibí antes que la regla que nombran, así que el MOTIVO aquí no se prueba.
 --      Las líneas de facturas (ALTA, RP00106, otra moneda, proforma, SALDO) y la de privilegios son de la migración del 5-oct, no de
 --      2159, y montan sobre datos de ese día: un «ERR» en ellas no frena 2159, se apunta y se pasa a lawang-cola-2.
@@ -136,7 +149,8 @@ cabecera = """-- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; t
 --   == f2_foto_b2: «MD5 igual antes y despues → ok». Si sale DISTINTO, repetir la llamada UNA vez (en READ COMMITTED cada sentencia ve
 --      su propia instantánea: un cambio real de otro usuario entre las dos fotos lo da); DISTINTO otra vez = PARAR.
 --   == flujos_lawang N/N → ok, con N > 0.
---   == series: «ninguna secuencia movida → ok», o solo líneas «(id interno)». Una «SERIE FISCAL MOVIDA» = PARAR y avisar YA: el
+--   == series: «ninguna secuencia movida → ok», o solo líneas «(id interno)» o «serie visible no
+--      fiscal (apuntar)» (número de contrato o de cliente: flujos da de alta un cliente por pasada; deja un hueco, no frena). Una «SERIE FISCAL MOVIDA» = PARAR y avisar YA: el
 --      ensayo gastó números (o entró un documento real a la vez: mirar si existe el número siguiente en facturas / solicitudes_pago).
 --   Un 55P03 (lock_timeout) en cualquier sección = tabla ocupada: REINTENTAR más tarde, no es un fallo.
 -- f2_foto_b2_ab NO va (decisión por defecto, revertible añadiéndola como sección): compara funciones de gastos contra una instantánea,
