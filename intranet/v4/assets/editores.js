@@ -8664,7 +8664,7 @@
           { k: 'registro_num', label: 'Nº de registro mercantil (solo empresa)', medio: 1, valor: c.registro_num || '' },
           { k: 'rep_nombre', label: 'Representante legal (solo empresa)', medio: 1, valor: c.rep_nombre || '' },
           { k: 'rep_cargo', label: 'Cargo del representante (solo empresa)', medio: 1, valor: c.rep_cargo || '' },
-          // «Notas» ya no es un campo: es la sección de notas de la ficha, con autor y fecha (20261015170000_cliente_notas)
+          // «Notas» ya no es un campo: es la sección de notas de la ficha, con autor y fecha (20261015075011_cliente_notas)
           { tipo: 'nota', label: 'Si esta ficha cuelga de un contrato ya FIRMADO, su pasaporte y domicilio están impresos en ese documento y la base rechazará el cambio: es cosa de un administrador.' }
         ];
         if (pedir) {

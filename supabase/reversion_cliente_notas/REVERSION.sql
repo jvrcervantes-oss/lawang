@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261015170000_cliente_notas.sql (15-oct-2026, sesion notas-cliente).
+-- REVERSION de 20261015075011_cliente_notas.sql (15-oct-2026, sesion notas-cliente).
 -- ORDEN: 1) front de la ficha a su version anterior (git revert del commit de las notas: vuelve el campo «Notas» al editor),
 -- 2) ESTE fichero, en una transaccion. Al reves, la pantalla llamaria a funciones que ya no existen.
 -- Antes de borrar las tablas, cada ficha recupera en clients.notes sus notas (todas las que tenga, la mas reciente arriba,

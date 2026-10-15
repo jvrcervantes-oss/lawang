@@ -1,4 +1,4 @@
--- Prueba de las notas de la ficha del cliente del 15-oct-2026 (migracion 20261015170000_cliente_notas).
+-- Prueba de las notas de la ficha del cliente del 15-oct-2026 (migracion 20261015075011_cliente_notas).
 -- Cada llamada va con el rol REAL (`set local role authenticated` + las claims de la persona, armazon de recibi_total_suma_y_exento.sql)
 -- y cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- N1 el dueño de la ficha añade: autor y fecha los pone el servidor. N2 otro agente (no ve la ficha) no añade y nada cambia.
@@ -11,7 +11,7 @@
 -- N16 por cliente_guarda con el rol real (sin notes nada; con notes una nota firmada; el tope tambien). N14 mas de 4000 por el campo viejo se rechaza. N12 una nota SIN autor solo la retira un admin. N13 las notas no impiden pedir el borrado de la ficha ni cambian su huella.
 -- XSS: el texto se guarda tal cual (la pantalla lo pinta con esc); aqui se comprueba que llega intacto, no que se ejecute.
 -- !! CREA FICHAS, USUARIOS Y NOTAS: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015170000_cliente_notas.sql --prueba cliente_notas.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015075011_cliente_notas.sql --prueba cliente_notas.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-CN.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);

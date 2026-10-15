@@ -1,8 +1,8 @@
--- Prueba de la VUELTA ATRAS de 20261015170000_cliente_notas (15-oct-2026; la pidio Base de datos: nunca se habia ejecutado).
+-- Prueba de la VUELTA ATRAS de 20261015075011_cliente_notas (15-oct-2026; la pidio Base de datos: nunca se habia ejecutado).
 -- Siembra fichas con notas, ejecuta el texto de supabase/reversion_cliente_notas/REVERSION.sql TAL CUAL (copiado abajo por
 -- el autor; si la REVERSION cambia, se vuelve a copiar) y comprueba: las notas vuelven a clients.notes, las tablas y funciones
 -- nuevas desaparecen y las tres funciones reescritas vuelven a su md5 de la viva del 15-oct.
---    python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261015170000_cliente_notas.sql --prueba cliente_notas_reversion.sql
+--    python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261015075011_cliente_notas.sql --prueba cliente_notas_reversion.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-CR.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _cr (et text primary key, id uuid);
@@ -20,7 +20,7 @@ end $siembra$;
 
 -- ======================== desde aqui, copia literal de supabase/reversion_cliente_notas/REVERSION.sql ========================
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261015170000_cliente_notas.sql (15-oct-2026, sesion notas-cliente).
+-- REVERSION de 20261015075011_cliente_notas.sql (15-oct-2026, sesion notas-cliente).
 -- ORDEN: 1) front de la ficha a su version anterior (git revert del commit de las notas: vuelve el campo «Notas» al editor),
 -- 2) ESTE fichero, en una transaccion. Al reves, la pantalla llamaria a funciones que ya no existen.
 -- Antes de borrar las tablas, cada ficha recupera en clients.notes sus notas (todas las que tenga, la mas reciente arriba,

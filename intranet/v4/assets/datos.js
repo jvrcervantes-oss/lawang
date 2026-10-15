@@ -3437,7 +3437,7 @@
           /* Notas de la ficha (15-oct-2026, owner: «crea un apartado de notas en la ficha del cliente»). Un historial:
              cada nota con su autor y su fecha, que pone el servidor; ninguna se edita. Se RETIRA con motivo y su texto se
              borra de verdad (queda solo constancia de quién, cuándo y por qué: UU PDP, Legal). Lee cliente_notas_datos y
-             escribe por cliente_nota_agrega / cliente_nota_retira (supabase/migrations/20261015170000_cliente_notas.sql):
+             escribe por cliente_nota_agrega / cliente_nota_retira (supabase/migrations/20261015075011_cliente_notas.sql):
              quién las ve es quien ve esta ficha completa, y quién puede retirar lo decide el servidor. El botón «Retirar»
              solo sale a su autor y a un administrador; si se equivoca, el servidor lo dice. El texto de una nota va SIEMPRE
              por esc() y con white-space:pre-wrap: nunca como HTML ni convertido en enlace (Seguridad). */
