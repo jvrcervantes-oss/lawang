@@ -1,27 +1,49 @@
--- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; todo termina en raise (rollback), nada queda escrito
+-- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; todo termina en raise (rollback) y no gasta números de serie
 -- ENSAYO DE 2159 EN UNA LLAMADA (15-oct-2026, lawang-cola-2, generado por contracts/sql/genera_ensayo_2159.py; NO se edita a mano).
 -- Qué hace, en UNA transacción que acaba en `raise exception 'RES 2159 …'` (se deshace todo):
---   0. f2_foto_b2 antes · 1. la migración 20261014223000 tal cual (sha256 08c84d8112cfe3f5) · 2. tres pruebas en sub-bloques que
---   capturan su resultado · 4. f2_foto_b2 después (mismo MD5 = la migración no cambia lo que ve nadie) · 5. flujos_lawang.
--- ESPERADO para aplicar (cualquier otra cosa = PARAR y pasar el RES entero a lawang-cola-2):
---   factura_moneda_del_contrato: ninguna línea con FALLA (b1 incluido) · facturas_tope_cadena_y_recibi_pendiente: resultados sin error
---   f2_b2_empresas: FALLOS=0 · f2_foto_b2: «MD5 igual antes y despues → ok» · flujos_lawang N/N → ok
+--   foto de las secuencias de public · 0. f2_foto_b2 antes · 1. la migración 20261014223000 tal cual (sha256 08c84d8112cfe3f5) · 2. tres pruebas
+--   en sub-bloques que capturan su resultado · 4. f2_foto_b2 después · 5. flujos_lawang · 6. secuencias otra vez.
+-- Cada sub-bloque pone su trigger de numeración (trg_00_zz_e2159_num, antes de trg_set_factura_numero): ningún alta toca la serie.
+-- Se lanza en un momento tranquilo: f2_b2_empresas bloquea filas reales de usuarios mientras dura la llamada.
+--
+-- APLICAR solo si el RES dice TODO esto (cualquier otra cosa = PARAR y pasar el RES entero a lawang-cola-2):
+--   == factura_moneda_del_contrato: ninguna línea empieza por «MAL»; las dos del canario C0 dicen OK; «PENDIENTE» solo en g3, g4,
+--      g5 y h1 (cualquier otro PENDIENTE = PARAR).
+--   == facturas_tope_cadena_y_recibi_pendiente: ninguna línea con «PASO (MAL)»; «RECIBI pend: ok» (si «pendiente INV00184=0» esa
+--      línea no aplica). Las tres negativas del recibí (pend+500, 0, «1 sobre cobrada») tienen que decir «bloqueado», con cualquier
+--      motivo: con 2159 las para la suma del recibí antes que la regla que nombran, así que el MOTIVO aquí no se prueba.
+--      Las líneas de facturas (ALTA, RP00106, otra moneda, proforma, SALDO) y la de privilegios son de la migración del 5-oct, no de
+--      2159, y montan sobre datos de ese día: un «ERR» en ellas no frena 2159, se apunta y se pasa a lawang-cola-2.
+--   == f2_b2_empresas: «FALLOS=0».
+--   == f2_foto_b2: «MD5 igual antes y despues → ok». Si sale DISTINTO, repetir la llamada UNA vez (en READ COMMITTED cada sentencia ve
+--      su propia instantánea: un cambio real de otro usuario entre las dos fotos lo da); DISTINTO otra vez = PARAR.
+--   == flujos_lawang N/N → ok, con N > 0.
+--   == series: «ninguna secuencia movida → ok», o solo líneas «(id interno)». Una «SERIE FISCAL MOVIDA» = PARAR y avisar YA: el
+--      ensayo gastó números (o entró un documento real a la vez: mirar si existe el número siguiente en facturas / solicitudes_pago).
 --   Un 55P03 (lock_timeout) en cualquier sección = tabla ocupada: REINTENTAR más tarde, no es un fallo.
 -- f2_foto_b2_ab NO va (decisión por defecto, revertible añadiéndola como sección): compara funciones de gastos contra una instantánea,
--- no guardar_recibi; el A/B de 2159 es la foto antes/después de la sección 0/4, en la misma transacción.
+-- no guardar_recibi; el A/B de 2159 es la foto antes/después de las secciones 0 y 4.
 -- Huellas: migración 08c84d8112cfe3f545f86f99c819ab5d0e756062a20ccfd10f17b82013be3c75 · flujos 13152abb8a05f84d3397d15e6f80b9bace6d05c2742b6b09665042b34bb22c03 · factura_moneda_del_contrato b7704baee9072e77 · facturas_tope_cadena_y_recibi_pendiente ac3b0473052d539b · f2_b2_empresas a98d61e5bf2faf8f · f2_foto_b2 07b5a8f511b0844c
-select set_config('lock_timeout', '5s', true);
 create or replace function pg_temp.e2159_resume(t text) returns text language sql as $r$
-  -- cuenta las líneas y deja solo las que no dicen ok (el RES entero de 140 KB lo corta el cliente)
-  select (select count(*) from regexp_split_to_table(coalesce(t, ''), E'\n') l where l ~ '(→ ok|: ok|\mok\M)')::text || ' ok · '
-      || coalesce((select string_agg(l, E'\n') from regexp_split_to_table(coalesce(t, ''), E'\n') l
-                    where l !~ '(→ ok|: ok|\mok\M)' and btrim(l) <> ''), '')
+  -- cuenta las líneas buenas y deja TODAS las demás (el RES entero de 140 KB lo corta el cliente). Una línea con FALLA, FALLO, MAL,
+  -- ERR o «PASO (MAL)» nunca se cuenta como buena aunque también diga ok (revisor de dff7e40ef: «FALLO … (esperado ok)» se perdía).
+  with l as (select x from regexp_split_to_table(coalesce(t, ''), E'\n') x where btrim(x) <> ''),
+       c as (select x, x ~ '(FALLA|FALLO|\mMAL\M|\mERR\M|PASO \(MAL\)|PENDIENTE)' as mala, x ~* '(→ ok|: ok|\mok\M)' as buena from l)
+  select (select count(*) from c where buena and not mala)::text || ' ok · '
+      || coalesce((select string_agg(x, E'\n') from c where mala or not buena), '')
 $r$;
 do $ens2159$
-declare res text := ''; v text; antes text; despues text; n_ok int; n_tot int;
+declare res text := ''; v text; antes text; despues text; n_ok int; n_tot int; seq0 jsonb; seq1 jsonb;
 begin
-  -- 0 · foto de lo que ve cada usuario ANTES de la migración (misma transacción: no hay datos que cambien entre las dos)
-  begin execute $p2159_3$-- Foto del bloque 2 (DINERO) de la Fase 2 (8-oct-2026): para CADA usuario (los 34 de hoy), con su JWT (email) y `set local role authenticated`,
+  perform set_config('lock_timeout', '5s', true);
+  -- series: foto de TODAS las secuencias de public antes de nada (se compara al final)
+  select coalesce(jsonb_object_agg(sequencename, last_value), '{}') into seq0 from pg_sequences where schemaname = 'public';
+  -- 0 · foto de lo que ve cada usuario ANTES de la migración
+  begin
+    execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
+      if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
+    execute $p2159_3$-- Foto del bloque 2 (DINERO) de la Fase 2 (8-oct-2026): para CADA usuario (los 34 de hoy), con su JWT (email) y `set local role authenticated`,
 --   (a) md5 de lo que ve de cada tabla del bloque (gastos, proveedores, bancos_*, categorias, aplicaciones, retenciones, logs, cuentas...),
 --   (b) md5 del resultado de cada RPC de lectura del bloque, o el sqlstate si falla,
 --   (c) sqlstate de cada RPC de ESCRITURA llamada con ids que no existen (nada se toca; ademas todo acaba en rollback).
@@ -98,7 +120,10 @@ begin
   end loop;
   raise exception E'FOTOB2\nMD5=%\n%', md5(out), case when current_setting('f2b2.v', true) = '1' then out else '(lineas por usuario: ejecutar con set local f2b2.v = ''1'' delante)' end;
 end $t$;
-$p2159_3$; exception when others then antes := sqlstate || ' ' || sqlerrm; end;
+$p2159_3$;
+    antes := 'sin raise final';
+  exception when others then antes := sqlstate || ' ' || sqlerrm;
+  end;
   -- 1 · la migración, FUERA de sub-bloque: si su $antes$ o una guarda lanza, para todo (sha256 08c84d8112cfe3f5)
   execute $mig2159$-- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68). El maestro tiene su propio guardar_recibi (sin la columna
 --   historico_sin_justificante, que es solo de Lawang, LAW-40); llevar A1-A4 y C3 al maestro va en su fila de pendientes (AXW-333).
@@ -633,6 +658,9 @@ end $cierre$;
 $mig2159$;
   -- factura_moneda_del_contrato (sha256 b7704baee9072e77)
   begin
+    execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
+      if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
     execute $p2159_0$-- Prueba de LAW-553 (13-oct-2026): la moneda de un documento la decide su contrato, el tope de una venta se mide por
 -- cadena Y moneda, y la moneda de un contrato con documentos no cambia por debajo. Migración:
 -- supabase/migrations/20261013074408_factura_moneda_del_contrato.sql, con 20261013081849_factura_tope_proforma_y_reactiva
@@ -1023,12 +1051,15 @@ begin
   raise exception E'RESULTADOS\n%', out;
 end $t$;
 $p2159_0$;
-    v := 'sin raise final';
+    v := 'sin raise final (FALLA)';
   exception when others then v := sqlstate || ' ' || sqlerrm;
   end;
   res := res || E'\n== factura_moneda_del_contrato\n' || pg_temp.e2159_resume(v);
   -- facturas_tope_cadena_y_recibi_pendiente (sha256 ac3b0473052d539b)
   begin
+    execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
+      if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
     execute $p2159_1$-- Prueba de facturas_tope_cadena_y_recibi_pendiente (5-oct-2026). Se ejecuta DESPUÉS de aplicar la migración, por
 -- execute_sql: termina con un raise a propósito, así que no deja rastro (las altas, los recibís y el fichero de
 -- prueba en storage se deshacen). Resultado del 5-oct: alta de 30.000 sobre CC00118 bloqueada, alta de 100 pasa,
@@ -1069,12 +1100,15 @@ begin
   out := out||'privilegios: tope anon='||has_function_privilege('anon','public._factura_tope_cadena(uuid,uuid,text,numeric,text)','execute')||' auth='||has_function_privilege('authenticated','public._factura_tope_cadena(uuid,uuid,text,numeric,text)','execute')||' cadena auth='||has_function_privilege('authenticated','public._cadena_saldo(uuid,uuid)','execute')||' saldo anon='||has_function_privilege('anon','public.contrato_saldo(uuid)','execute')||' saldo auth='||has_function_privilege('authenticated','public.contrato_saldo(uuid)','execute');
   raise exception E'RESULTADOS\n%', out;
 end $t$;$p2159_1$;
-    v := 'sin raise final';
+    v := 'sin raise final (FALLA)';
   exception when others then v := sqlstate || ' ' || sqlerrm;
   end;
   res := res || E'\n== facturas_tope_cadena_y_recibi_pendiente\n' || pg_temp.e2159_resume(v);
   -- f2_b2_empresas (sha256 a98d61e5bf2faf8f)
   begin
+    execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
+      if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
     execute $p2159_2$-- Prueba del bloque 2 (DINERO) de la Fase 2 (8-oct-2026): facturas, recibis, proformas, solicitudes de pago y retenciones, gastos, proveedores, bancos, cuentas de cobro y sociedades por empresa.
 -- (Los documentos de fixture llevan created_at de enero: la regla «una factura nueva exige contrato» solo vale para las creadas desde el 12-ago; asi se pueden crear sin contrato dentro del rollback.)
 -- Se ejecuta DESPUES de las migraciones 20261008200000..206000 (o pegada tras ellas en la misma peticion para ensayarlas sin rastro). Todo dentro de una transaccion que acaba en raise (rollback).
@@ -1417,12 +1451,16 @@ begin
   raise exception E'\n%FALLOS=%', r, fallos;
 end $t$;
 $p2159_2$;
-    v := 'sin raise final';
+    v := 'sin raise final (FALLA)';
   exception when others then v := sqlstate || ' ' || sqlerrm;
   end;
   res := res || E'\n== f2_b2_empresas\n' || pg_temp.e2159_resume(v);
   -- 4 · la misma foto DESPUÉS
-  begin execute $p2159_3$-- Foto del bloque 2 (DINERO) de la Fase 2 (8-oct-2026): para CADA usuario (los 34 de hoy), con su JWT (email) y `set local role authenticated`,
+  begin
+    execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin
+      if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;
+      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;
+    execute $p2159_3$-- Foto del bloque 2 (DINERO) de la Fase 2 (8-oct-2026): para CADA usuario (los 34 de hoy), con su JWT (email) y `set local role authenticated`,
 --   (a) md5 de lo que ve de cada tabla del bloque (gastos, proveedores, bancos_*, categorias, aplicaciones, retenciones, logs, cuentas...),
 --   (b) md5 del resultado de cada RPC de lectura del bloque, o el sqlstate si falla,
 --   (c) sqlstate de cada RPC de ESCRITURA llamada con ids que no existen (nada se toca; ademas todo acaba en rollback).
@@ -1499,10 +1537,15 @@ begin
   end loop;
   raise exception E'FOTOB2\nMD5=%\n%', md5(out), case when current_setting('f2b2.v', true) = '1' then out else '(lineas por usuario: ejecutar con set local f2b2.v = ''1'' delante)' end;
 end $t$;
-$p2159_3$; exception when others then despues := sqlstate || ' ' || sqlerrm; end;
-  res := res || E'\n== f2_foto_b2: ' || case when antes is null or despues is null then 'SIN FOTO (FALLA)'
+$p2159_3$;
+    despues := 'sin raise final';
+  exception when others then despues := sqlstate || ' ' || sqlerrm;
+  end;
+  res := res || E'\n== f2_foto_b2: ' || case
+         when substring(antes from 'MD5=([0-9a-f]{32})') is null or substring(despues from 'MD5=([0-9a-f]{32})') is null
+           then 'SIN FOTO (FALLA) · antes: ' || left(coalesce(antes, '-'), 160) || ' · despues: ' || left(coalesce(despues, '-'), 160)
          when substring(antes from 'MD5=([0-9a-f]{32})') = substring(despues from 'MD5=([0-9a-f]{32})') then 'MD5 igual antes y despues → ok'
-         else 'MD5 DISTINTO antes/despues → FALLA' end;
+         else 'MD5 DISTINTO antes/despues (FALLA salvo dato real cambiado entre las dos: repetir una vez)' end;
   -- 5 · flujos críticos (tools/flujos_lawang.py --sql, sha256 13152abb8a05f84d): se leen las filas de _arnes antes de deshacer
   begin
     execute $fl2159$-- destructivo-ok: arnés de flujos críticos (tools/flujos_lawang.py); TODO dentro de una transacción que acaba en ROLLBACK
@@ -1922,10 +1965,17 @@ reset role;
 $fl2159$;
     execute $q$select count(*) filter (where ok), count(*), coalesce(string_agg(caso || ' → FALLA ' || coalesce(detalle, ''), E'\n' order by caso)
                 filter (where not ok), '') from _arnes$q$ into n_ok, n_tot, v;
-    res := res || E'\n== flujos_lawang ' || n_ok || '/' || n_tot || case when n_ok = n_tot then ' → ok' else E'\n' || v end;
+    res := res || E'\n== flujos_lawang ' || n_ok || '/' || n_tot || case when n_tot > 0 and n_ok = n_tot then ' → ok'
+                                                                     when n_tot = 0 then ' → FALLA (ningún caso)' else E'\n' || v end;
     raise exception 'deshaz_flujos';
   exception when others then
     if sqlerrm <> 'deshaz_flujos' then res := res || E'\n== flujos_lawang: ' || pg_temp.e2159_resume(sqlstate || ' ' || sqlerrm); end if;
   end;
+  -- 6 · series: ninguna secuencia de documentos puede haberse movido
+  select coalesce(jsonb_object_agg(sequencename, last_value), '{}') into seq1 from pg_sequences where schemaname = 'public';
+  select string_agg(a.key || ' ' || coalesce(a.value, 'null') || '→' || coalesce(b.value, 'null')
+                    || case when a.key in ('facturas_seq', 'facturas_recibi_seq', 'facturas_proforma_seq', 'solicitudes_pago_numero_seq', 'comisiones_diferencias_seq') then ' SERIE FISCAL MOVIDA (FALLA)' else ' (id interno)' end, E'\n' order by a.key)
+    into v from jsonb_each_text(seq0) a join jsonb_each_text(seq1) b using (key) where a.value is distinct from b.value;
+  res := res || E'\n== series: ' || coalesce(E'\n' || v, 'ninguna secuencia movida → ok');
   raise exception E'RES 2159%', res;
 end $ens2159$;

@@ -15,6 +15,8 @@ MIG = 'supabase/migrations/20261014223000_recibi_total_suma_y_exento.sql'
 MIG_SHA = '08c84d8112cfe3f545f86f99c819ab5d0e756062a20ccfd10f17b82013be3c75'
 PRUEBAS = ['factura_moneda_del_contrato', 'facturas_tope_cadena_y_recibi_pendiente', 'f2_b2_empresas']
 FOTO = 'f2_foto_b2'
+# Series de documentos (LAW-217): las mismas que mide prueba_comisiones_1nov.sql y las tres de set_factura_numero (20260917082716:59-61)
+SERIES = ['facturas_seq', 'facturas_recibi_seq', 'facturas_proforma_seq', 'solicitudes_pago_numero_seq', 'comisiones_diferencias_seq']
 SALIDA = os.path.join(COPIA, 'contracts', 'sql', 'ensayo_2159_viva.sql')
 
 
@@ -49,7 +51,7 @@ textos['flujos'] = flujos
 
 ETQ = {'ens': '$ens2159$', 'mig': '$mig2159$', 'fl': '$fl2159$'}
 ETQ.update({p: '$p2159_%d$' % i for i, p in enumerate(PRUEBAS + [FOTO])})
-ETQ.update({'q': '$q$', 'r': '$r$'})   # las del propio envoltorio (lectura de _arnes y pg_temp.e2159_resume)
+ETQ.update({'q': '$q$', 'r': '$r$', 'num': '$num2159$', 'nf': '$nf$'})   # las del propio envoltorio
 for nombre, t in list(textos.items()) + [('migracion', mig)]:
     for e in ETQ.values():
         if e in t:
@@ -59,61 +61,101 @@ for nombre, t in list(textos.items()) + [('migracion', mig)]:
         para('%s trae un begin;/commit/rollback/end; de nivel superior' % nombre)
 
 
+# Numeración propia (revisor de dff7e40ef, 15-oct): un alta sin número dispara nextval de la serie fiscal en trg_set_factura_numero y
+# un rollback no devuelve el número. Este trigger corre ANTES (nombre «trg_00_» < «trg_00a_» < «trg_set_»: los BEFORE van por orden
+# alfabético) y pone un número de prueba. Va DENTRO de cada sub-bloque: se deshace con él y el bloqueo de public.facturas se suelta al
+# abortarlo, en vez de durar toda la llamada. Mismo truco que tools/flujos_lawang.py y factura_moneda_del_contrato.sql.
+NUM = ("    execute $num2159$create function public.zz_e2159_num() returns trigger language plpgsql as $nf$ begin\n"
+       "      if new.numero is null then new.numero := 'ZZ-E2159-' || left(gen_random_uuid()::text, 8); end if; return new; end $nf$;\n"
+       "      create trigger trg_00_zz_e2159_num before insert on public.facturas for each row execute function public.zz_e2159_num()$num2159$;\n")
+
+
 def seccion(nombre, etq, texto):
     return ("  -- %s (sha256 %s)\n"
-            "  begin\n    execute %s%s%s;\n    v := 'sin raise final';\n"
+            "  begin\n%s    execute %s%s%s;\n    v := 'sin raise final (FALLA)';\n"
             "  exception when others then v := sqlstate || ' ' || sqlerrm;\n  end;\n"
-            "  res := res || E'\\n== %s\\n' || pg_temp.e2159_resume(v);\n") % (nombre, sha(texto)[:16], etq, texto, etq, nombre)
+            "  res := res || E'\\n== %s\\n' || pg_temp.e2159_resume(v);\n") % (nombre, sha(texto)[:16], NUM, etq, texto, etq, nombre)
+
+
+def foto(destino):
+    return ("  begin\n%s    execute %s%s%s;\n    %s := 'sin raise final';\n"
+            "  exception when others then %s := sqlstate || ' ' || sqlerrm;\n  end;\n"
+            % (NUM, ETQ[FOTO], textos[FOTO], ETQ[FOTO], destino, destino))
 
 
 cuerpo = []
-cuerpo.append("  -- 0 · foto de lo que ve cada usuario ANTES de la migración (misma transacción: no hay datos que cambien entre las dos)\n"
-              "  begin execute %s%s%s; exception when others then antes := sqlstate || ' ' || sqlerrm; end;\n"
-              % (ETQ[FOTO], textos[FOTO], ETQ[FOTO]))
+cuerpo.append("  perform set_config('lock_timeout', '5s', true);\n"
+              "  -- series: foto de TODAS las secuencias de public antes de nada (se compara al final)\n"
+              "  select coalesce(jsonb_object_agg(sequencename, last_value), '{}') into seq0 from pg_sequences where schemaname = 'public';\n")
+cuerpo.append("  -- 0 · foto de lo que ve cada usuario ANTES de la migración\n" + foto('antes'))
 cuerpo.append("  -- 1 · la migración, FUERA de sub-bloque: si su $antes$ o una guarda lanza, para todo (sha256 %s)\n"
               "  execute %s%s%s;\n" % (MIG_SHA[:16], ETQ['mig'], mig, ETQ['mig']))
 for p in PRUEBAS:
     cuerpo.append(seccion(p, ETQ[p], textos[p]))
-cuerpo.append("  -- 4 · la misma foto DESPUÉS\n"
-              "  begin execute %s%s%s; exception when others then despues := sqlstate || ' ' || sqlerrm; end;\n"
-              "  res := res || E'\\n== f2_foto_b2: ' || case when antes is null or despues is null then 'SIN FOTO (FALLA)'\n"
+cuerpo.append("  -- 4 · la misma foto DESPUÉS\n" + foto('despues') +
+              "  res := res || E'\\n== f2_foto_b2: ' || case\n"
+              "         when substring(antes from 'MD5=([0-9a-f]{32})') is null or substring(despues from 'MD5=([0-9a-f]{32})') is null\n"
+              "           then 'SIN FOTO (FALLA) · antes: ' || left(coalesce(antes, '-'), 160) || ' · despues: ' || left(coalesce(despues, '-'), 160)\n"
               "         when substring(antes from 'MD5=([0-9a-f]{32})') = substring(despues from 'MD5=([0-9a-f]{32})') then 'MD5 igual antes y despues → ok'\n"
-              "         else 'MD5 DISTINTO antes/despues → FALLA' end;\n"
-              % (ETQ[FOTO], textos[FOTO], ETQ[FOTO]))
+              "         else 'MD5 DISTINTO antes/despues (FALLA salvo dato real cambiado entre las dos: repetir una vez)' end;\n")
 cuerpo.append("  -- 5 · flujos críticos (tools/flujos_lawang.py --sql, sha256 %s): se leen las filas de _arnes antes de deshacer\n"
               "  begin\n    execute %s%s%s;\n"
               "    execute $q$select count(*) filter (where ok), count(*), coalesce(string_agg(caso || ' → FALLA ' || coalesce(detalle, ''), E'\\n' order by caso)\n"
               "                filter (where not ok), '') from _arnes$q$ into n_ok, n_tot, v;\n"
-              "    res := res || E'\\n== flujos_lawang ' || n_ok || '/' || n_tot || case when n_ok = n_tot then ' → ok' else E'\\n' || v end;\n"
+              "    res := res || E'\\n== flujos_lawang ' || n_ok || '/' || n_tot || case when n_tot > 0 and n_ok = n_tot then ' → ok'\n"
+              "                                                                     when n_tot = 0 then ' → FALLA (ningún caso)' else E'\\n' || v end;\n"
               "    raise exception 'deshaz_flujos';\n"
               "  exception when others then\n"
               "    if sqlerrm <> 'deshaz_flujos' then res := res || E'\\n== flujos_lawang: ' || pg_temp.e2159_resume(sqlstate || ' ' || sqlerrm); end if;\n"
               "  end;\n" % (sha(flujos)[:16], ETQ['fl'], flujos, ETQ['fl']))
+cuerpo.append("  -- 6 · series: ninguna secuencia de documentos puede haberse movido\n"
+              "  select coalesce(jsonb_object_agg(sequencename, last_value), '{}') into seq1 from pg_sequences where schemaname = 'public';\n"
+              "  select string_agg(a.key || ' ' || coalesce(a.value, 'null') || '→' || coalesce(b.value, 'null')\n"
+              "                    || case when a.key in (%s) then ' SERIE FISCAL MOVIDA (FALLA)' else ' (id interno)' end, E'\\n' order by a.key)\n"
+              "    into v from jsonb_each_text(seq0) a join jsonb_each_text(seq1) b using (key) where a.value is distinct from b.value;\n"
+              "  res := res || E'\\n== series: ' || coalesce(E'\\n' || v, 'ninguna secuencia movida → ok');\n"
+              % ', '.join("'%s'" % s for s in SERIES))
 
-cabecera = """-- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; todo termina en raise (rollback), nada queda escrito
+cabecera = """-- destructivo-ok: ensayo deshecho de 20261014223000 en la viva; todo termina en raise (rollback) y no gasta números de serie
 -- ENSAYO DE 2159 EN UNA LLAMADA (15-oct-2026, lawang-cola-2, generado por contracts/sql/genera_ensayo_2159.py; NO se edita a mano).
 -- Qué hace, en UNA transacción que acaba en `raise exception 'RES 2159 …'` (se deshace todo):
---   0. f2_foto_b2 antes · 1. la migración 20261014223000 tal cual (sha256 %s) · 2. tres pruebas en sub-bloques que
---   capturan su resultado · 4. f2_foto_b2 después (mismo MD5 = la migración no cambia lo que ve nadie) · 5. flujos_lawang.
--- ESPERADO para aplicar (cualquier otra cosa = PARAR y pasar el RES entero a lawang-cola-2):
---   factura_moneda_del_contrato: ninguna línea con FALLA (b1 incluido) · facturas_tope_cadena_y_recibi_pendiente: resultados sin error
---   f2_b2_empresas: FALLOS=0 · f2_foto_b2: «MD5 igual antes y despues → ok» · flujos_lawang N/N → ok
+--   foto de las secuencias de public · 0. f2_foto_b2 antes · 1. la migración 20261014223000 tal cual (sha256 %s) · 2. tres pruebas
+--   en sub-bloques que capturan su resultado · 4. f2_foto_b2 después · 5. flujos_lawang · 6. secuencias otra vez.
+-- Cada sub-bloque pone su trigger de numeración (trg_00_zz_e2159_num, antes de trg_set_factura_numero): ningún alta toca la serie.
+-- Se lanza en un momento tranquilo: f2_b2_empresas bloquea filas reales de usuarios mientras dura la llamada.
+--
+-- APLICAR solo si el RES dice TODO esto (cualquier otra cosa = PARAR y pasar el RES entero a lawang-cola-2):
+--   == factura_moneda_del_contrato: ninguna línea empieza por «MAL»; las dos del canario C0 dicen OK; «PENDIENTE» solo en g3, g4,
+--      g5 y h1 (cualquier otro PENDIENTE = PARAR).
+--   == facturas_tope_cadena_y_recibi_pendiente: ninguna línea con «PASO (MAL)»; «RECIBI pend: ok» (si «pendiente INV00184=0» esa
+--      línea no aplica). Las tres negativas del recibí (pend+500, 0, «1 sobre cobrada») tienen que decir «bloqueado», con cualquier
+--      motivo: con 2159 las para la suma del recibí antes que la regla que nombran, así que el MOTIVO aquí no se prueba.
+--      Las líneas de facturas (ALTA, RP00106, otra moneda, proforma, SALDO) y la de privilegios son de la migración del 5-oct, no de
+--      2159, y montan sobre datos de ese día: un «ERR» en ellas no frena 2159, se apunta y se pasa a lawang-cola-2.
+--   == f2_b2_empresas: «FALLOS=0».
+--   == f2_foto_b2: «MD5 igual antes y despues → ok». Si sale DISTINTO, repetir la llamada UNA vez (en READ COMMITTED cada sentencia ve
+--      su propia instantánea: un cambio real de otro usuario entre las dos fotos lo da); DISTINTO otra vez = PARAR.
+--   == flujos_lawang N/N → ok, con N > 0.
+--   == series: «ninguna secuencia movida → ok», o solo líneas «(id interno)». Una «SERIE FISCAL MOVIDA» = PARAR y avisar YA: el
+--      ensayo gastó números (o entró un documento real a la vez: mirar si existe el número siguiente en facturas / solicitudes_pago).
 --   Un 55P03 (lock_timeout) en cualquier sección = tabla ocupada: REINTENTAR más tarde, no es un fallo.
 -- f2_foto_b2_ab NO va (decisión por defecto, revertible añadiéndola como sección): compara funciones de gastos contra una instantánea,
--- no guardar_recibi; el A/B de 2159 es la foto antes/después de la sección 0/4, en la misma transacción.
+-- no guardar_recibi; el A/B de 2159 es la foto antes/después de las secciones 0 y 4.
 -- Huellas: migración %s · flujos %s · %s
 """ % (MIG_SHA[:16], MIG_SHA, sha(flujos), ' · '.join('%s %s' % (p, sha(textos[p])[:16]) for p in PRUEBAS + [FOTO]))
 
 resume = """create or replace function pg_temp.e2159_resume(t text) returns text language sql as $r$
-  -- cuenta las líneas y deja solo las que no dicen ok (el RES entero de 140 KB lo corta el cliente)
-  select (select count(*) from regexp_split_to_table(coalesce(t, ''), E'\\n') l where l ~ '(→ ok|: ok|\\mok\\M)')::text || ' ok · '
-      || coalesce((select string_agg(l, E'\\n') from regexp_split_to_table(coalesce(t, ''), E'\\n') l
-                    where l !~ '(→ ok|: ok|\\mok\\M)' and btrim(l) <> ''), '')
+  -- cuenta las líneas buenas y deja TODAS las demás (el RES entero de 140 KB lo corta el cliente). Una línea con FALLA, FALLO, MAL,
+  -- ERR o «PASO (MAL)» nunca se cuenta como buena aunque también diga ok (revisor de dff7e40ef: «FALLO … (esperado ok)» se perdía).
+  with l as (select x from regexp_split_to_table(coalesce(t, ''), E'\\n') x where btrim(x) <> ''),
+       c as (select x, x ~ '(FALLA|FALLO|\\mMAL\\M|\\mERR\\M|PASO \\(MAL\\)|PENDIENTE)' as mala, x ~* '(→ ok|: ok|\\mok\\M)' as buena from l)
+  select (select count(*) from c where buena and not mala)::text || ' ok · '
+      || coalesce((select string_agg(x, E'\\n') from c where mala or not buena), '')
 $r$;
 """
 
-fichero = (cabecera + "select set_config('lock_timeout', '5s', true);\n" + resume
-           + "do %s\ndeclare res text := ''; v text; antes text; despues text; n_ok int; n_tot int;\nbegin\n" % ETQ['ens']
+fichero = (cabecera + resume
+           + "do %s\ndeclare res text := ''; v text; antes text; despues text; n_ok int; n_tot int; seq0 jsonb; seq1 jsonb;\nbegin\n" % ETQ['ens']
            + ''.join(cuerpo)
            + "  raise exception E'RES 2159%%', res;\nend %s;\n" % ETQ['ens'])
 
