@@ -7,9 +7,25 @@
 do $t$
 declare out text := ''; u record; c1 uuid; c2 uuid; f1 uuid; f2 uuid; soc text; j jsonb; pend numeric; r jsonb;
 begin
-  select user_id, email into u from public.usuarios where activo and rol='admin' and email like 'p@p%' limit 1;
+  -- La identidad, por ROL y no por correo fijo (15-oct-2026, ensayo de 2159: el admin «p@p…» del 5-oct hoy es super_admin_empresa y
+  -- la prueba corría sin sesión, con todos los «bloqueado» dados por la falta de permiso). Si no hay ningún admin global activo, se
+  -- convierte el agente activo más antiguo en admin global con la casilla facturas DENTRO de la transacción (se deshace con el raise
+  -- final), con los claims del PROPIETARIO (solo él cambia rol y ámbito: trigger usuarios_bloquea_cambio_rol_herramientas), como f2_b2.
+  select user_id, email into u from public.usuarios where activo and rol = 'admin' and ambito = 'global' and 'facturas' = any(coalesce(herramientas, '{}'))
+   order by creado_en, user_id limit 1;
+  if u.user_id is null then
+    select user_id, email into u from public.usuarios where es_propietario and activo order by creado_en, user_id limit 1;
+    perform set_config('request.jwt.claims', json_build_object('sub',u.user_id,'role','authenticated','email',u.email)::text, true);
+    update public.usuarios set rol = 'admin', ambito = 'global', empresas = '{}',
+           herramientas = case when 'facturas' = any(coalesce(herramientas, '{}')) then herramientas else array_append(coalesce(herramientas, '{}'), 'facturas') end
+     where user_id = (select x.user_id from public.usuarios x where x.activo and x.rol = 'agente' order by x.creado_en, x.user_id limit 1)
+     returning user_id, email into u;
+  end if;
   perform set_config('request.jwt.claims', json_build_object('sub',u.user_id,'role','authenticated','email',u.email)::text, true);
   out := out || 'es_admin='||public.es_admin()||' es_agente='||public.es_agente()||' puede_fact='||public.puede('facturas')||E'\n';
+  -- sin identidad la prueba no mide nada: los «bloqueado» serían la falta de permiso (la línea lleva MAL para que el resumen la cuente mala)
+  out := out || case when u.user_id is not null and public.es_admin() and public.puede('facturas') then 'P0 identidad: admin global con facturas, ok'
+                     else 'P0 identidad: MAL (sin admin con facturas: la prueba no mide nada)' end || E'\n';
   select id into c1 from public.contratos where numero='CC00118';
   begin out := out || 'SALDO CC00118: '||left(public.contrato_saldo(c1)::text,420)||E'\n'; exception when others then out := out||'SALDO ERR '||sqlerrm||E'\n'; end;
   select sociedad into soc from public.facturas where numero='INV00184';

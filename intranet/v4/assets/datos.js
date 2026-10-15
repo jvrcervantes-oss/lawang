@@ -4764,6 +4764,11 @@
       function claveEstado(e) { return String(e || '').trim().toLowerCase().replace(/\s+/g, '_'); }
       function colorEstado(e) { return ESTADO_COLOR[claveEstado(e)] || '#75786e'; }
       function etiquetaEstado(e) { return ESTADO_ETIQUETA[claveEstado(e)] || (e || '—'); }
+      /* El estado tal como se ENSEÑA en esta pantalla, en el idioma de la interfaz (15-oct-2026: con la intranet en
+         inglés la tarjeta y la ficha decían «RESERVADA»). etiquetaEstado se queda en español porque el editor la
+         mete dentro de frases suyas aún sin traducir («Marcada como …»). ts(): un estado desconocido sale tal cual
+         y queda apuntado en LW_T_MISSES, que es justo el aviso de que a ese estado nuevo le falta su nombre. */
+      function estadoVisible(e) { return ts(etiquetaEstado(e)); }
       function colorProyEstado(e) { return PROY_ESTADO_COLOR[claveEstado(e)] || '#75786e'; }
       function etiquetaProyEstado(e) { return PROY_ESTADO_ETIQUETA[claveEstado(e)] || (e || '—'); }
 
@@ -4987,7 +4992,7 @@
               if (!n) return '';
               return '<span style="display:inline-flex;align-items:center;gap:5px;font:600 11px \'Neue Kabel\',sans-serif;color:#44483f">' +
                 '<span style="width:7px;height:7px;border-radius:999px;flex:0 0 auto;background:' + colorEstado(clave) + '"></span>' +
-                n + ' ' + etiquetaEstado(clave).toLowerCase() + '</span>';
+                n + ' ' + esc(estadoVisible(clave).toLowerCase()) + '</span>';
             }).join('');
           }
         }
@@ -5239,12 +5244,12 @@
             var base = MOLDE_UNIDAD.cloneNode(true);
             caja.innerHTML = '';
             UNIDADES_CAJON = {}; window.LW_V4.unidades = UNIDADES_CAJON;
-            pon('d-uds-n', uu.length + (uu.length === 1 ? ' unidad' : ' unidades'));
+            pon('d-uds-n', tx(uu.length === 1 ? '%n unidad' : '%n unidades', { n: uu.length }));
             if (!uu.length) {
               // grid-column entera: dentro de una rejilla, un aviso suelto se
               // quedaria encogido en la primera columna como si fuera una tarjeta.
               caja.innerHTML = '<p style="grid-column:1/-1;font:500 13px/1.5 \'Neue Kabel\',sans-serif;color:#75786e;margin:0">' +
-                'Este proyecto no tiene unidades dadas de alta.</p>';
+                esc(tx('Este proyecto no tiene unidades dadas de alta.')) + '</p>';
               // Sin filas no hay chips: vacía los del proyecto anterior.
               if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS(elegido.nombre);
               return;
@@ -5278,16 +5283,16 @@
               if (elFir) {
                 elFir.style.width = Math.max(0, firmPct - cobPct) + '%';
                 elFir.style.backgroundColor = porCarta ? ESTADO_COLOR.reservada : '';
-                elFir.title = porCarta ? 'Reservada con Carta de Reserva firmada: aún no es compraventa' : '';
+                elFir.title = porCarta ? tx('Reservada con Carta de Reserva firmada: aún no es compraventa') : '';
               }
               /* 21-sep-2026: esto pintaba SIEMPRE "EUR" sin mirar `moneda` — las
                  diez parcelas de Riverfront (en IDR de verdad, ver migración
                  20260826124756) se leían como "2.759.500.000,00 EUR". Ahora se
                  respeta la moneda real y, si no es EUR, se añade el estimado en
                  € al lado (fmtConEstimado, arriba). */
-              pon('u-' + clave + '-txt', !cartera ? 'sin cartera'
+              pon('u-' + clave + '-txt', !cartera ? tx('sin cartera')
                 : noVisible ? tx('cobro no visible') + ' · ' + fmtConEstimado(cartera, moneda)
-                : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda) + (porCarta ? ' · con Carta' : '')
+                : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda) + (porCarta ? ' · ' + tx('con Carta') : '')
                   + (sinFirmar ? ' · ' + tx('contrato sin firmar') : ''), f);
             };
             uu.forEach(function (u, idxUnidad) {
@@ -5314,7 +5319,7 @@
                  única de arriba, la misma que pinta el punto de los chips. */
               var estadoColor = colorEstado(u.estado);
               var nota = f.querySelector('[data-lw="u-nota"]');
-              if (nota) nota.textContent = etiquetaEstado(u.estado).toUpperCase();
+              if (nota) nota.textContent = estadoVisible(u.estado).toUpperCase();
               /* Tarjeta «B · banda de estado» (23-sep-2026, owner): el color del
                  estado pinta la cabecera entera, no una pastilla + filo. Todos los
                  colores de ESTADO_COLOR son oscuros: el texto blanco se lee. */
@@ -5327,8 +5332,9 @@
                  que el formulario escribe. */
               UNIDADES_CAJON[u.id] = u;
               var bEd = f.querySelector('[data-lw-accion="editar-unidad"]');
-              if (bEd) { bEd.setAttribute('data-uid', u.id); bEd.title = 'Editar ' + (u.codigo || 'unidad'); }
-              pon('u-total', fmtConEstimado(u.precio, u.moneda), f);
+              if (bEd) { bEd.setAttribute('data-uid', u.id); bEd.title = u.codigo ? tx('Editar %c', { c: u.codigo }) : tx('Editar unidad'); }
+              // «Pactado» = suelo + obra de contrato, la misma cuenta que el «Precio total» de la ficha (15-oct-2026).
+              pon('u-total', fmtConEstimado(precioTotal(u), u.moneda), f);
               // Enlaces directos a la ficha del comprador y al contrato
               // (11-sep-2026, encargo del owner). Sin ficha/contrato detrás no
               // se pone href — un enlace a "#" es peor que texto sin subrayar.
@@ -5341,7 +5347,7 @@
               }
               var elK = f.querySelector('[data-lw="u-contrato-link"]');
               if (elK) {
-                elK.textContent = u.contrato_numero || 'sin contrato';
+                elK.textContent = u.contrato_numero || tx('sin contrato');
                 if (u.contrato_numero) { elK.href = '/intranet/v4/contratos/?contrato=' + encodeURIComponent(u.contrato_numero); elK.target = '_blank'; }
                 else { elK.removeAttribute('href'); elK.removeAttribute('target'); elK.style.cursor = 'default'; elK.style.textDecoration = 'none'; }
               }
@@ -5354,6 +5360,12 @@
               f.setAttribute('data-unidad-id', u.id);
               caja.appendChild(f);
             });
+            /* Las tarjetas son clones de MOLDE_UNIDAD, que se copió del DOM: según llegue esta respuesta antes o
+               después de que nav.js traduzca la página, el molde está en español o en inglés. Se traducen aquí, al
+               pintarlas (las claves quedan en `data-lwt`, así que repetirlo no busca la frase ya en inglés). */
+            if (typeof lwIdiomaAplicar === 'function') {
+              try { lwIdiomaAplicar(caja); } catch (_) { /* MUDO A PROPOSITO: traducir no tumba el parcelario; si falla, las etiquetas se quedan en español, que se ve */ }
+            }
             /* Barras Parcela / Construcción del PROYECTO con la regla «primero la parcela, luego la obra»
                (owner, 14-oct-2026). Arriba se pintaron repartiendo lo cobrado por el TIPO del contrato que
                lleva el recibí; ese reparto es justo lo que la regla corrige (un recibí colgado de la
@@ -5394,8 +5406,9 @@
                   if (!el) return;
                   var a = porUnidad[f.getAttribute('data-unidad-id')], so = a && porId[a.socio_id];
                   // Un socio dado de baja con parcelas sigue siendo su socio: se dice «de baja», nunca «Sin socio».
-                  el.textContent = so ? (so.tipo === 'arquitecto' ? 'Arquitecto: ' : 'Socio: ') + so.nombre +
-                    (so.activo === false ? ' (de baja)' : '') : 'Sin socio';
+                  var quien = so ? (so.activo === false ? tx('%s (de baja)', { s: so.nombre }) : so.nombre) : '';
+                  el.textContent = !so ? tx('Sin socio')
+                    : so.tipo === 'arquitecto' ? tx('Arquitecto: %s', { s: quien }) : tx('Socio: %s', { s: quien });
                   el.style.color = so ? '#104C4F' : '#8A8474';
                   el.style.fontWeight = so ? '600' : '500';
                   el.classList.remove('hidden');
@@ -5453,6 +5466,16 @@
         var v = pactado != null ? pactado : catalogo;
         return v != null ? Number(v) : null;
       }
+      /* Precio total de una parcela = suelo + obra, cada parte con precioParte (la de contrato si la hay, si no la de
+         catálogo), igual que hace la base con el de catálogo (`precio` = suelo + construcción, migración 20260828034349).
+         Una sola cuenta para el «Pactado» de la tarjeta y el «Precio total» de la ficha: el 15-oct Calidad midió que la
+         tarjeta enseñaba el de catálogo (C5 Mejan Village S7: 65.000) y la ficha el de contrato (26.000 + 49.000 =
+         75.000). Sin ninguna de las dos partes, el precio de la parcela tal cual. */
+      function precioTotal(u) {
+        var s = precioParte(u, 'suelo'), o = precioParte(u, 'obra');
+        if (s == null && o == null) return u.precio != null ? Number(u.precio) : null;
+        return (s || 0) + (o || 0);
+      }
       // ficha-parcela.js resta «Pactado por cobrar» con el MISMO precio que enseña «Precio y cobro» (15-oct-2026).
       window.LW_V4.precioParte = precioParte;
       window.LW_V4.sueloSinFirmar = sueloSinFirmar;
@@ -5495,7 +5518,7 @@
         pon('dp-proyecto', u.proyecto || tx('este proyecto'));
         pon('dp-codigo', u.codigo || '—');
         var nota = document.querySelector('[data-lw="dp-nota"]');
-        if (nota) { nota.textContent = etiquetaEstado(u.estado).toUpperCase(); nota.style.background = colorEstado(u.estado); }
+        if (nota) { nota.textContent = estadoVisible(u.estado).toUpperCase(); nota.style.background = colorEstado(u.estado); }
         pon('dp-tipo', u.modelo || tipoUnidad(u));
         pon('dp-agente', u.contrato_creado_por ? (EQUIPO_NOMBRE[u.contrato_creado_por] || u.contrato_creado_por) : '—');
         var elC = document.querySelector('[data-lw="dp-comprador-link"]');
@@ -5511,7 +5534,7 @@
           if (u.contrato_numero) { elK.href = '/intranet/v4/contratos/?contrato=' + encodeURIComponent(u.contrato_numero); elK.target = '_blank'; }
           else { elK.removeAttribute('href'); elK.removeAttribute('target'); elK.style.cursor = 'default'; elK.style.textDecoration = 'none'; }
         }
-        pon('dp-superficie', u.superficie_m2 != null ? Number(u.superficie_m2).toLocaleString('es-ES') + ' m²' : '—');
+        pon('dp-superficie', u.superficie_m2 != null ? Number(u.superficie_m2).toLocaleString(loc()) + ' m²' : '—');
         // fase_masterplan/zona_masterplan (sector del PLANO) — no confundir con
         // obra_fase (catálogo obra_fases, avance de CONSTRUCCIÓN): son dos
         // conceptos distintos, ver hallazgo de Desarrollo en la revisión previa.
@@ -5520,9 +5543,9 @@
           : tx('sin registrar'));
         // Precio de CONTRATO de cada parte (14-oct-2026); el €/m² de abajo sigue siendo el de catálogo.
         var dpSuelo = precioParte(u, 'suelo'), dpObra = precioParte(u, 'obra');
-        // El Total es la suma de las dos partes que se enseñan debajo: con el de catálogo arriba y los de contrato
-        // abajo, las tres cifras de la ficha no sumaban. Sin las dos partes, el precio de la parcela de siempre.
-        var dpTotal = (dpSuelo != null && dpObra != null) ? dpSuelo + dpObra : u.precio;
+        // El Total es la suma de las dos partes que se enseñan debajo, con la MISMA función que el «Pactado» de la
+        // tarjeta (precioTotal): con dos cuentas, tarjeta y ficha daban cifras distintas de la misma parcela.
+        var dpTotal = precioTotal(u);
         pon('dp-total', dpTotal != null ? fmt(dpTotal, u.moneda || 'EUR') : '—');
         pon('dp-suelo', dpSuelo != null ? fmt(dpSuelo, u.moneda || 'EUR')
           + (sueloSinFirmar(u) ? ' (' + tx('contrato sin firmar') + ')' : '')
@@ -5910,7 +5933,7 @@
               b.appendChild(punto);
             }
             var et = document.createElement('span');
-            et.textContent = k === 'todas' ? 'Todas' : etiquetaEstado(k);
+            et.textContent = k === 'todas' ? tx('Todas') : estadoVisible(k);
             var cu = document.createElement('span');
             cu.className = 'text-[11px] font-kpi-number opacity-70';
             cu.textContent = k === 'todas' ? total : n[k];
