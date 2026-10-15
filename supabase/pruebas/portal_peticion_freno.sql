@@ -32,7 +32,7 @@ $f$;
 
 do $todo$
 declare
-  r text := ''; v text; n bigint; k int; pasa int; ip int;
+  r text := ''; v text; v_n bigint; k int; pasa int; ip int;
   h0 timestamptz; v_h bigint; f record;
   c_fin constant text := 'FIN DE PRUEBAS PORTAL PETICION FRENO (se deshace todo):%';
 begin
@@ -62,14 +62,14 @@ begin
   r := r || pg_temp.l(v = '42501', 'B1b anon llamándola de verdad: 42501 (' || v || ')');
 
   -- B2
-  select count(*) into n
+  select count(*) into v_n
     from (values ('anon'), ('authenticated'), ('service_role')) x(rol),
          (values ('privado.portal_peticiones_ip'), ('privado.portal_peticiones_hora')) t(tabla),
          (values ('select'), ('insert'), ('update'), ('delete')) p(priv)
    where has_table_privilege(x.rol, t.tabla, p.priv);
-  r := r || pg_temp.l(n = 0 and (select bool_and(relrowsecurity) from pg_class
+  r := r || pg_temp.l(v_n = 0 and (select bool_and(relrowsecurity) from pg_class
                                   where oid in ('privado.portal_peticiones_ip'::regclass, 'privado.portal_peticiones_hora'::regclass)),
-                      'B2 las dos tablas con RLS y sin permisos para anon, authenticated ni service_role (' || n || ')');
+                      'B2 las dos tablas con RLS y sin permisos para anon, authenticated ni service_role (' || v_n || ')');
 
   -- B3 hash mal formado: 22023 y no escribe
   foreach v in array array[upper(pg_temp.h('abc', 'f')), pg_temp.h('abc') || '0', left(pg_temp.h('abc'), 63), '', 'una ip en claro'] loop
@@ -118,10 +118,10 @@ begin
   r := r || pg_temp.l(pg_temp.frena(pg_temp.h('b02')) = 'global', 'B7 la 1001 es global');
   select * into f from privado.portal_peticiones_hora where ranura = (v_h % 768)::int;
   r := r || pg_temp.l(f.n = 1001 and f.frenadas_global = 1, 'B7 n ' || f.n || ' y frenadas_global ' || f.frenadas_global || ' (1001 y 1)');
-  n := f.frenadas_ip;
+  v_n := f.frenadas_ip;
   r := r || pg_temp.l(pg_temp.frena(pg_temp.h('abc')) = 'ip', 'B7 con el global agotado, una IP frenada sigue siendo ip');
   select * into f from privado.portal_peticiones_hora where ranura = (v_h % 768)::int;
-  r := r || pg_temp.l(f.n = 1001 and f.frenadas_global = 1 and f.frenadas_ip = n + 1,
+  r := r || pg_temp.l(f.n = 1001 and f.frenadas_global = 1 and f.frenadas_ip = v_n + 1,
                       'B7 la frenada por IP no suma a n ni a frenadas_global (n ' || f.n || ', global ' || f.frenadas_global || ')');
 
   -- B8 anillo: cubo y ranura con una hora vieja se reinician
