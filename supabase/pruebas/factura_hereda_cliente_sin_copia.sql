@@ -6,8 +6,10 @@
 -- cliente (antes heredaba la copia; es el único caso que cambia, y la guarda de la migración exige que no exista en la viva).
 -- H4 cliente puesto a mano: se respeta. H5 sin contrato: no toca nada. H6 el trigger real de facturas sigue en esta función,
 -- antes de insert y de update de contrato_id/client_id/proyecto_id. H7 la función ya no lee la copia. H8 nadie de fuera la
--- ejecuta. H9 la guarda: 0 contratos con copia y sin adquiriente_1.
--- !! H2 y H3 tocan contrato_compradores y contratos dentro de la transacción: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
+-- ejecuta. H9 cuenta lo que mide la guarda (en la rama, que no trae datos, sale 0 sin medir nada: el número de verdad es el
+-- de la guarda al aplicar en la viva). Montaje propio con replica (la rama de Lawang es solo estructura): fichas ZZ-FH A y B,
+-- proyecto y contrato ZZ-FH-K1 con A de adquiriente_1 y de copia.
+-- !! Da de alta y toca filas dentro de la transacción: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015200000_factura_hereda_cliente_sin_copia.sql --prueba factura_hereda_cliente_sin_copia.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA».
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
@@ -26,13 +28,26 @@ begin
   if coalesce(current_setting('erp.en_rama', true), '') <> 'si' then
     raise exception 'FIN DE PRUEBAS FACTURA HEREDA CLIENTE SIN COPIA:%', E'\nP0 esta prueba toca contratos: solo corre en rama → FALLA';
   end if;
-  -- un contrato real con adquiriente_1 en la tabla y la copia rellena e igual; y otra ficha cualquiera
-  select c.id, c.proyecto_id, cc.client_id into c1, p1, k1
-    from public.contratos c join public.contrato_compradores cc on cc.contrato_id = c.id and cc.rol = 'adquiriente_1'
-   where c.adq1_client_id = cc.client_id and c.proyecto_id is not null
-   order by c.id limit 1;
-  select id into k2 from public.clients where id is distinct from k1 limit 1;
-  r := r || pg_temp.l(c1 is not null and k2 is not null, 'P0 hay contrato con adquiriente_1 y copia iguales, y otra ficha');
+  -- montaje PROPIO (la rama de Lawang es solo estructura, sin datos: Backend, consulta de 844225609). Sin triggers (replica): ni
+  -- numeración, ni sincronización de compradores, ni claves ajenas de empresa; la columna generada adq1_client_id sí se calcula.
+  -- Ficha A = adquiriente_1 y copia del jsonb; ficha B = la otra. Todo marcado ZZ-FH.
+  begin
+    execute 'set local session_replication_role = replica';
+    insert into public.clients (full_name, propietario) values ('ZZ-FH Cliente A', 'zz-fh@prueba.invalid') returning id into k1;
+    insert into public.clients (full_name, propietario) values ('ZZ-FH Cliente B', 'zz-fh@prueba.invalid') returning id into k2;
+    insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-FH Proyecto', 'zz-fh-proyecto', 'zz_fh', true) returning id into p1;
+    insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
+      values ('ZZ-FH-K1', 'contrato_general', p1, 'EUR', 1000, jsonb_build_object('fields', '{}'::jsonb, 'adq1_client_id', k1::text),
+              'zz-fh@prueba.invalid') returning id into c1;
+    insert into public.contrato_compradores (contrato_id, client_id, rol) values (c1, k1, 'adquiriente_1');
+    execute 'set local session_replication_role = origin';
+  exception when others then
+    r := r || pg_temp.l(false, 'P0 montaje (fichas A y B, proyecto y contrato ZZ-FH-K1): ' || sqlstate || ' ' || left(sqlerrm, 300));
+    raise exception using message = replace(c_fin, '%', r);
+  end;
+  r := r || pg_temp.l((select adq1_client_id from public.contratos where id = c1) = k1
+                      and (select client_id from public.contrato_compradores where contrato_id = c1 and rol = 'adquiriente_1') = k1,
+                      'P0 montaje: ZZ-FH-K1 con A como adquiriente_1 y como copia del jsonb');
 
   insert into _f values (c1, null, null) returning * into f;
   r := r || pg_temp.l(f.client_id = k1 and f.proyecto_id = p1, 'H1 alta sin cliente: hereda adquiriente_1 y proyecto del contrato');
@@ -75,7 +90,8 @@ begin
   select count(*) into n from public.contratos c
    where c.id <> c1 and c.adq1_client_id is not null
      and not exists (select 1 from public.contrato_compradores cc where cc.contrato_id = c.id and cc.rol = 'adquiriente_1');
-  r := r || pg_temp.l(n = 0, 'H9 contratos (fuera del de H3) con copia y sin adquiriente_1: ' || n);
+  r := r || pg_temp.l(n = 0, 'H9 contratos (fuera del de H3) con copia y sin adquiriente_1: ' || n
+                      || ' (en rama sin datos no mide: lo mide la guarda al aplicar)');
 
   raise exception using message = replace(c_fin, '%', r);
 end $todo$;
