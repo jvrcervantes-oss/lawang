@@ -36,6 +36,15 @@ begin
    where activo and rol = 'agente' and not ('gastos' = any(coalesce(herramientas, '{}'))) and not ('bancos' = any(coalesce(herramientas, '{}')))
    order by creado_en, user_id limit 1;
   per := per || jsonb_build_object('ctl', jsonb_build_object('sub', ctl, 'email', mail));
+  -- Las solicitudes de los casos B se eligen ANTES que las personas, y las personas se eligen sin el beneficiario ni quien cambió el
+  -- importe de esas dos (15-oct-2026, deriva del ensayo de 2159: la pendiente de Sandal Woods era a nombre del agente que la prueba
+  -- convertía en «cr», y «nadie aprueba una solicitud a su propio nombre» paraba B4; elegir la solicitud por las personas dejaba a
+  -- Sandal Woods sin ninguna, porque sus 3 pendientes eran de agentes de la prueba). El beneficiario se guarda por correo: se resuelve
+  -- a su fila de usuarios y la persona se excluye por user_id.
+  select s.id into s_l from public.solicitudes_pago s join public.contratos c1 on c1.id = s.contrato_id join public.proyectos pr on pr.id = c1.proyecto_id
+   where s.estado = 'pendiente' and pr.empresa = 'lawang' order by s.creado_en, s.id limit 1;
+  select s.id into s_s from public.solicitudes_pago s join public.contratos c1 on c1.id = s.contrato_id join public.proyectos pr on pr.id = c1.proyecto_id
+   where s.estado = 'pendiente' and pr.empresa = 'sandal_woods' order by s.creado_en, s.id limit 1;
   for pe in select * from (values
       ('ya',  'admin_empresa',       'empresa', '{lawang}',              '{facturas,gastos,bancos,comisiones}'),
       ('cr',  'super_admin_empresa', 'empresa', '{sandal_woods}',        '{}'),
@@ -46,6 +55,10 @@ begin
     select u2.user_id into uid from public.usuarios u2
      where u2.activo and u2.rol = 'agente' and u2.user_id is distinct from jv and u2.user_id is distinct from ctl
        and not exists (select 1 from jsonb_each(per) x where x.value->>'sub' = u2.user_id::text)
+       and not exists (select 1 from public.solicitudes_pago s
+                        where s.id in (s_l, s_s)
+                          and (s.importe_editado_por = u2.user_id
+                               or s.beneficiario_email is not null and lower(s.beneficiario_email) = lower(u2.email)))
      order by u2.creado_en, u2.user_id limit 1;   -- desempate: la carga inicial dio el mismo creado_en a todos
     if pe.rol is null then   -- ar: solo el alcance restringido, el resto de su ficha como está
       update public.usuarios set empresas = pe.emps::text[] where user_id = uid returning user_id, email into uid, mail;
@@ -103,25 +116,17 @@ begin
   insert into public.facturas (numero, tipo, sociedad, proyecto_id, total, moneda, fecha_emision, creado_por, created_at) values
     ('TESTB2-FS2', 'factura', soc_s, ps, 62, 'EUR', current_date, 'ajeno@test.b2', '2026-01-01') returning id into f_fs2;
 
-  -- Ninguna persona de la prueba puede ser beneficiaria de la solicitud ni quien cambió su importe (15-oct-2026, deriva del ensayo
-  -- de 2159: la pendiente más antigua de Sandal Woods era a nombre del agente que la prueba convierte en «cr», y «nadie aprueba una
-  -- solicitud a su propio nombre» paraba B4 con 42501). Las personas se cruzan por user_id; el beneficiario de la solicitud se guarda
-  -- por correo, así que se resuelve a su user_id en usuarios.
-  select s.id into s_l from public.solicitudes_pago s join public.contratos c1 on c1.id = s.contrato_id join public.proyectos pr on pr.id = c1.proyecto_id
-   where s.estado = 'pendiente' and pr.empresa = 'lawang'
-     and not exists (select 1 from public.usuarios u, jsonb_each(per) x
-                      where u.user_id = (x.value->>'sub')::uuid
-                        and (lower(u.email) = lower(s.beneficiario_email) or u.user_id = s.importe_editado_por))
-   order by s.creado_en, s.id limit 1;
-  select s.id into s_s from public.solicitudes_pago s join public.contratos c1 on c1.id = s.contrato_id join public.proyectos pr on pr.id = c1.proyecto_id
-   where s.estado = 'pendiente' and pr.empresa = 'sandal_woods'
-     and not exists (select 1 from public.usuarios u, jsonb_each(per) x
-                      where u.user_id = (x.value->>'sub')::uuid
-                        and (lower(u.email) = lower(s.beneficiario_email) or u.user_id = s.importe_editado_por))
-   order by s.creado_en, s.id limit 1;
+  -- Las solicitudes de los casos B (elegidas arriba, antes que las personas): sin una, o si a pesar de todo una persona que la
+  -- aprueba es su beneficiaria o editó su importe, los casos B no miden y es un fallo, nunca un verde.
   if s_l is null or s_s is null then
-    r := r || 'FALLO [P0] sin solicitud pendiente ajena a las personas de la prueba en ' || concat_ws(',', case when s_l is null then 'lawang' end,
+    r := r || 'FALLO [P0] sin solicitud pendiente en ' || concat_ws(',', case when s_l is null then 'lawang' end,
          case when s_s is null then 'sandal_woods' end) || E': los casos B no miden\n';
+    fallos := fallos + 1;
+  end if;
+  if exists (select 1 from public.solicitudes_pago s join public.usuarios u on u.user_id in (ya, cr, ad4, gad)
+              where s.id in (s_l, s_s)
+                and (s.importe_editado_por = u.user_id or lower(s.beneficiario_email) = lower(u.email))) then
+    r := r || E'FALLO [P0] una persona que aprueba en los casos B es beneficiaria o editó el importe de su solicitud\n';
     fallos := fallos + 1;
   end if;
 
