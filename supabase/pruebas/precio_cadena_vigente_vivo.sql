@@ -1,30 +1,42 @@
 -- Prueba en la BASE VIVA de precio-cadena-vigente (15-oct-2026, migración 20261015171500_precio_cadena_vigente.sql).
 -- SE LANZA DESPUÉS DE APLICAR, por execute_sql (o el SQL Editor), y TERMINA CON UN RAISE a propósito: no deja rastro (las
--- funciones pg_temp, el disparador auxiliar de numeración, el cambio de rol y los claims se deshacen con él). No gasta números
--- de la serie: si factura_guarda llegara a insertar (no debe), el disparador trg_00a_zz_pv_num le pone un número ZZ antes que
--- trg_set_factura_numero (mismo truco que factura_moneda_del_contrato.sql y tools/flujos_lawang.py).
+-- funciones pg_temp, el cambio de rol y los claims se deshacen con él).
 -- «Antes» y «después» EN EL MISMO INSTANTE: las funciones de antes de la migración van aquí como pg_temp, con su cuerpo literal
 -- (el de supabase/reversion_precio_cadena_vigente/REVERSION.sql, md5 comprobado en la guarda de la migración), y se comparan
 -- con las vivas sobre TODAS las unidades y TODAS las raíces.
 --   W1  la cascada nueva (v2 y su envoltorio) = la de antes, columna a columna, en todas las unidades
+--   W1c la puerta de la v2 (Seguridad): un `sub` que no es agente pide una unidad sin contrato y recibe todo NULL (antes
+--       (0,0,f,…)); W1d SI: la identidad de W5 pide una unidad sin contrato que ve y recibe (0,0,f,null,null,f,f)
 --   W2  el reparto del cobro (_venta_cobro_atribuido) = el de antes en todas las raíces
 --   W3  el precio de la cadena solo cambia en las ventas con una obra no vigente (medido el 15-oct: RP00045, RP00101,
 --       RP00197, RP00209, RP00255, RP00259) y NINGÚN documento sale: sin_precio, facturado, total y cobrado iguales
---   W4  el invariante de las 141 ventas: precio de la cadena = suelo + obra de contrato de la cascada (y, aparte, cuántas
---       ventas tienen una obra sin parcela que la cascada no reparte: 0 el 15-oct)
 --   W3b sin depender de la función vieja: en cada raíz, facturado = suma de subtotales y cobrado = suma de lo aplicado de las
 --       facturas VIVAS de la raíz y sus hijos en su moneda (ningún documento vivo sale, sea de un contrato vigente o no)
+--   W4  el invariante de las 141 ventas: precio de la cadena = suelo + obra de contrato de la cascada (y, aparte, cuántas
+--       ventas tienen una obra sin parcela que la cascada no reparte: 0 el 15-oct)
 --   W5  RP00101 por la RPC y con el rol real (el agente que creó la venta, o el admin global si no está activo): contrato_saldo
---       da precio 69.000 y facturado_de_mas 25.000, y factura_guarda de 1 EUR se rechaza (23514). Posible falso FALLA en W5c:
---       la sociedad del documento se toma de una factura viva de RP00101; si no es la de la empresa de la identidad,
---       factura_guarda corta con 42501 ANTES del tope. Si sale 42501, el tope no está probado: mirar W5b y la prueba de rama V3.
+--       da precio 69.000 y facturado_de_mas 25.000. W5c, el tope, SIN DDL (Seguridad, 15-oct): se llama directamente a
+--       public._factura_tope_cadena(null, RP00101, 'EUR', 1, 'factura') como postgres (es la única que la ejecuta) con las
+--       claims de esa identidad, y tiene que dar 23514. Ya no pasa por factura_guarda: ni disparador de numeración temporal
+--       ni el falso 42501 de la sociedad. Solo se llama si el canario W5a dice que la identidad NO es super admin de la
+--       empresa (si lo fuera, el tope apuntaría el privilegio con registra_privilegio, que escribe, y no daría 23514).
 --   W6  RP00025: a_cuenta = 39.220 por contrato_saldo con el rol real
 --   W7  la vista: las dos columnas nuevas al final, security_invoker y SELECT solo para authenticated
+--   W7b la identidad de W5 lee unidades_estado sin error y con tantas filas como `unidades` con el mismo rol (la vista es
+--       security_invoker sobre unidades: el «mismo número que antes» de un fichero que corre después de aplicar), ya sin
+--       permiso sobre la vieja unidad_cobro_reparto; y obra_cifras_datos() (DEFINER de lw_lector, lee la vista) responde:
+--       la cadena vista → v2 funciona con authenticated y con lw_lector
+--   W8  tiempo de `select * from unidades_estado`: la vista vieja (cascada y puerta de antes en pg_temp) y la de ahora,
+--       con las claims del admin, en la viva; mismas filas y mismo cobrado
+--   W9  ninguna serie se movió: foto de pg_sequences (esquema public) al principio y al final. Una venta real que se emita
+--       en esos segundos movería su serie: si W9 falla, mirar cuál antes de dar nada por roto.
 -- Identidades resueltas desde la base (ningún uid ni email en el fichero: el repo de Lawang es público).
 -- Cada línea acaba en «→ ok» o «→ FALLA»; la última es «FIN DE PRUEBAS».
--- NO ES SOLO LECTURA: W5 crea la función public.zz_pv_num() y un disparador sobre public.facturas (DDL en producción),
--- y el cerrojo de facturas dura hasta el raise del final, que lo deshace todo. Se lanza con turno, en un momento tranquilo.
--- destructivo-ok: prueba en transacción que termina en raise (rollback); crea y deshace una función y un disparador auxiliares
+-- NO ESCRIBE EN LA BASE (comprobado con grep el 15-oct): los únicos CREATE son funciones pg_temp de la sesión; no hay
+-- insert, update, delete ni alter. Lo único que retiene: el cerrojo consultivo del tope sobre RP00101
+-- (pg_advisory_xact_lock en _factura_tope_cadena) hasta el raise del final; una factura de RP00101 que se emita en esos
+-- segundos espera. Se lanza con turno.
+-- destructivo-ok: prueba en transacción que termina en raise (rollback); solo funciones pg_temp
 
 -- ============================================================ las funciones de ANTES (cuerpo literal, como pg_temp)
 CREATE OR REPLACE FUNCTION pg_temp.casc_vieja(p_unidad uuid)
@@ -203,6 +215,36 @@ begin
 end
 $function$;
 
+CREATE OR REPLACE FUNCTION pg_temp.reparto_viejo(p_unidad uuid)
+ RETURNS TABLE(cobrado_suelo numeric, cobrado_obra numeric, obra_firmada boolean, suelo_precio numeric, obra_precio numeric)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+#variable_conflict use_column
+declare
+  v_ok boolean; v_existe boolean := false; v_contrato uuid;
+begin
+  select true, u0.contrato_id,
+         (u0.contrato_id is null
+          or public.puede_ver_contrato(u0.contrato_id)
+          or public.es_admin_de(public.empresa_de_unidad(p_unidad)))
+    into v_existe, v_contrato, v_ok
+    from public.unidades u0
+   where u0.id = p_unidad;
+  if not coalesce(v_existe, false) or not coalesce(v_ok, false) then
+    -- «no he podido mirar», no «0 cobrado» (LAW-186)
+    return query select null::numeric, null::numeric, null::boolean, null::numeric, null::numeric;
+  elsif v_contrato is null then
+    -- Sin contrato: 0 cobrado y NINGÚN precio (el de catálogo lo da la vista, que sí pasa por la RLS).
+    return query select 0::numeric, 0::numeric, false, null::numeric, null::numeric;
+  else
+    return query select x.cobrado_suelo, x.cobrado_obra, x.obra_firmada, x.suelo_precio, x.obra_precio
+                   from pg_temp.casc_vieja(p_unidad) x;
+  end if;
+end
+$function$;
+
 CREATE OR REPLACE FUNCTION pg_temp.atr_viejo(p_raiz uuid)
  RETURNS TABLE(contrato_id uuid, cobrado_doc numeric, cobrado_regla numeric, atribuida boolean)
  LANGUAGE plpgsql
@@ -343,11 +385,22 @@ end $f$;
 do $todo$
 declare
   r text := ''; v text; s jsonb; n bigint; m bigint;
-  v_uid uuid; v_mail text; v_rp101 uuid; v_rp25 uuid;
+  v_uid uuid; v_mail text; v_rp101 uuid; v_rp25 uuid; v_libre uuid; v_ad uuid; v_ad_mail text;
+  v_seq0 jsonb; v_seq1 jsonb; t0 timestamptz; ms_antes numeric; ms_despues numeric;
+  n_antes bigint; n_despues bigint; s_antes numeric; s_despues numeric;
   c_fin constant text := 'FIN DE PRUEBAS PRECIO CADENA VIGENTE EN LA VIVA (se deshace todo):%';
 begin
+  -- W9 (foto inicial): todas las series de public; al final tienen que seguir igual
+  select coalesce(jsonb_object_agg(s.sequencename, s.last_value), '{}'::jsonb) into v_seq0 from pg_sequences s where s.schemaname = 'public';
   select c.id into v_rp101 from public.contratos c where c.numero = 'RP00101' and c.contrato_padre_id is null;
   select c.id into v_rp25 from public.contratos c where c.numero = 'RP00025' and c.contrato_padre_id is null;
+  -- la identidad de W5 (y de W1d y W7b): el agente que creó RP00101, o el admin global más antiguo si no está activo
+  select u.user_id, u.email into v_uid, v_mail
+    from public.usuarios u
+   where u.activo and 'facturas' = any(u.herramientas)
+     and (u.email = (select c.creado_por from public.contratos c where c.id = v_rp101) or u.rol = 'admin')
+   order by (u.email = (select c.creado_por from public.contratos c where c.id = v_rp101)) desc, u.creado_en
+   limit 1;
 
   -- ============================================================ W1 la cascada, antes y después
   select count(*), count(*) filter (where (a.cobrado_suelo, a.cobrado_obra, a.obra_firmada, a.suelo_precio, a.obra_precio, a.suelo_de_contrato)
@@ -364,6 +417,26 @@ begin
    where (a.cobrado_suelo, a.cobrado_obra, a.obra_firmada, a.suelo_precio, a.obra_precio, a.suelo_de_contrato)
          is distinct from (b.cobrado_suelo, b.cobrado_obra, b.obra_firmada, b.suelo_precio, b.obra_precio, b.suelo_de_contrato);
   r := r || pg_temp.l(n = 0, 'W1b el envoltorio _unidad_cobro_cascada = la v2 (' || n || ' distintas)');
+
+  -- W1c / W1d la puerta de la v2: una unidad sin contrato que la identidad de W5 ve (claims puestas como postgres, sin
+  -- cambiar de rol: solo para elegirla)
+  perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated', 'email', v_mail)::text, true);
+  select u.id into v_libre from public.unidades u
+   where u.contrato_id is null and public.es_agente() and public.unidad_visible(u.proyecto_id)
+   order by u.id limit 1;
+  perform set_config('request.jwt.claims', '', true);
+  v := pg_temp.val(gen_random_uuid(), null, format(
+         'select public.es_agente()::text || ''|'' || concat_ws(''|'', coalesce(x.cobrado_suelo::text, ''null''), coalesce(x.cobrado_obra::text, ''null''),'
+         || ' coalesce(x.obra_firmada::text, ''null''), coalesce(x.suelo_precio::text, ''null''), coalesce(x.obra_precio::text, ''null''),'
+         || ' coalesce(x.suelo_de_contrato::text, ''null''), coalesce(x.obra_de_contrato::text, ''null'')) from public.unidad_cobro_reparto_v2(%L::uuid) x', v_libre));
+  r := r || pg_temp.l(v_libre is not null and v = 'false|null|null|null|null|null|null|null',
+                      'W1c un sub que no es agente (es_agente false) pide una unidad sin contrato: todo NULL, ya no (0,0,f,…) (' || left(coalesce(v, 'sin unidad libre'), 60) || ')');
+  v := pg_temp.val(v_uid, v_mail, format(
+         'select concat_ws(''|'', coalesce(x.cobrado_suelo::text, ''null''), coalesce(x.cobrado_obra::text, ''null''), coalesce(x.obra_firmada::text, ''null''),'
+         || ' coalesce(x.suelo_precio::text, ''null''), coalesce(x.obra_precio::text, ''null''), coalesce(x.suelo_de_contrato::text, ''null''),'
+         || ' coalesce(x.obra_de_contrato::text, ''null'')) from public.unidad_cobro_reparto_v2(%L::uuid) x', v_libre));
+  r := r || pg_temp.l(v = '0|0|false|null|null|false|false',
+                      'W1d SI: la identidad de W5 (agente que ve el proyecto) pide la misma unidad: (0,0,f,null,null,f,f) (' || left(coalesce(v, 'null'), 60) || ')');
 
   -- ============================================================ W2 el reparto del cobro, antes y después
   select count(*), count(*) filter (where exists ((select * from public._venta_cobro_atribuido(c.id)) except (select * from pg_temp.atr_viejo(c.id)))
@@ -441,12 +514,6 @@ begin
   r := r || pg_temp.l(n = 0, 'W4b ventas con obra sin parcela y TODAS sus parcelas con obra propia (la cascada no la reparte): ' || n);
 
   -- ============================================================ W5 RP00101 por la RPC, con el rol real
-  select u.user_id, u.email into v_uid, v_mail
-    from public.usuarios u
-   where u.activo and 'facturas' = any(u.herramientas)
-     and (u.email = (select c.creado_por from public.contratos c where c.id = v_rp101) or u.rol = 'admin')
-   order by (u.email = (select c.creado_por from public.contratos c where c.id = v_rp101)) desc, u.creado_en
-   limit 1;
   v := pg_temp.val(v_uid, v_mail, format('select (public.es_super_admin_de(public.empresa_de_contrato(%L::uuid)) or not public.puede_ver_contrato(%L::uuid))::text', v_rp101, v_rp101));
   r := r || pg_temp.l(v_rp101 is not null and v = 'false', 'W5a canario: la identidad ve RP00101 y NO es super admin de su empresa (' || coalesce(v, 'sin identidad') || ')');
   v := pg_temp.val(v_uid, v_mail, format('select public.contrato_saldo(%L::uuid)::text', v_rp101));
@@ -459,22 +526,28 @@ begin
                         'W5b contrato_saldo(RP00101): precio ' || coalesce(s->>'precio', 'null') || ', facturado ' || coalesce(s->>'facturado', 'null')
                         || ', facturado_de_mas ' || coalesce(s->>'facturado_de_mas', 'null') || ', por_facturar ' || coalesce(s->>'por_facturar', 'null'));
   end if;
-  create function public.zz_pv_num() returns trigger language plpgsql as $f$ begin
-    if new.numero is null then new.numero := 'ZZ-PV-N' || left(gen_random_uuid()::text, 8); end if; return new; end $f$;
-  execute 'create trigger trg_00a_zz_pv_num before insert on public.facturas for each row execute function public.zz_pv_num()';
-  select count(*) into m from public.facturas f where f.contrato_id = v_rp101;
-  v := pg_temp.val(v_uid, v_mail, format('select (select g.id from public.factura_guarda(null, %L::jsonb) g)::text',
-         jsonb_build_object('tipo', 'factura', 'sociedad', (select f.sociedad from public.facturas f where f.contrato_id = v_rp101 and f.tipo = 'factura' and not coalesce(f.anulada, false) limit 1),
-                            'contrato_id', v_rp101, 'moneda', 'EUR', 'total', '1', 'cliente_nombre', 'ZZ-PV',
-                            'contrato_numero', 'RP00101', 'fecha_emision', current_date::text,
-                            'datos', jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object('descripcion', 'ZZ-PV', 'importe', '1')), 'fields', '{}'::jsonb))));
-  r := r || pg_temp.l(v like 'ERR23514:%Quedan 0%' and (select count(*) from public.facturas f where f.contrato_id = v_rp101) = m,
-                      'W5c factura_guarda de 1 EUR sobre RP00101: se rechaza y no entra nada (' || left(v, 120) || ')');
+  -- W5c el tope, SIN DDL y sin factura_guarda (Seguridad, 15-oct): la función del tope directamente, como postgres (su único
+  -- EXECUTE) y con las claims de la identidad, que no es super admin (W5a). Si no se puede asegurar que no lo es, no se
+  -- llama: el super admin pasa el tope apuntando el privilegio (registra_privilegio escribe) y no daría 23514.
+  if v_rp101 is not null and v_uid is not null
+     and pg_temp.val(v_uid, v_mail, format('select public.es_super_admin_de(public._empresa_doc(null::uuid, %L::uuid))::text', v_rp101)) = 'false' then
+    perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated', 'email', v_mail)::text, true);
+    begin
+      perform public._factura_tope_cadena(null::uuid, v_rp101, 'EUR', 1::numeric, 'factura');
+      v := 'sin error';
+    exception when others then v := 'ERR' || sqlstate || ':' || left(sqlerrm, 200);
+    end;
+    perform set_config('request.jwt.claims', '', true);
+    r := r || pg_temp.l(v like 'ERR23514:%Quedan 0%',
+                        'W5c _factura_tope_cadena(null, RP00101, EUR, 1, factura) con las claims de la identidad: 23514 (' || left(v, 120) || ')');
+  else
+    r := r || pg_temp.l(false, 'W5c no se llama al tope: sin RP00101, sin identidad o la identidad es super admin de la empresa (pasaría apuntando el privilegio)');
+  end if;
 
   -- ============================================================ W6 RP00025: a cuenta
-  select u.user_id, u.email into v_uid, v_mail from public.usuarios u
+  select u.user_id, u.email into v_ad, v_ad_mail from public.usuarios u
    where u.activo and u.rol = 'admin' order by u.creado_en limit 1;
-  v := pg_temp.val(v_uid, v_mail, format('select (public.contrato_saldo(%L::uuid))->>''a_cuenta'' ', v_rp25));
+  v := pg_temp.val(v_ad, v_ad_mail, format('select (public.contrato_saldo(%L::uuid))->>''a_cuenta'' ', v_rp25));
   r := r || pg_temp.l(v ~ '^[0-9.]+$' and v::numeric = 39220, 'W6 a_cuenta de RP00025 por contrato_saldo con el admin: ' || left(v, 80));
 
   -- ============================================================ W7 la vista
@@ -489,6 +562,57 @@ begin
                       and not has_table_privilege('anon', 'public.unidades_estado', 'select')
                       and not has_table_privilege('authenticated', 'public.unidades_estado', 'truncate'),
                       'W7 vista: las dos columnas nuevas al final, security_invoker, SELECT solo para authenticated');
+  -- W7b la cadena vista → v2 sin el permiso viejo: la identidad de W5 lee la vista entera (el lateral corre con SU permiso)
+  -- y obtiene tantas filas como `unidades` con el mismo rol (la vista es security_invoker sobre unidades)
+  v := pg_temp.val(v_uid, v_mail,
+         'select (select count(*) from (select * from public.unidades_estado) e)::text || ''/'' || (select count(*) from public.unidades)::text'
+         || ' || ''/'' || (select count(*) from public.unidades_estado e where e.obra_fecha_entrega is not null)::text');
+  n := case when v ~ '^\d+/\d+/\d+$' then split_part(v, '/', 3)::bigint end;
+  r := r || pg_temp.l(v ~ '^\d+/\d+/\d+$' and split_part(v, '/', 1) = split_part(v, '/', 2) and split_part(v, '/', 1)::bigint > 0
+                      and not has_function_privilege('authenticated', 'public.unidad_cobro_reparto(uuid)', 'execute'),
+                      'W7b la identidad de W5 lee unidades_estado sin error, tantas filas como unidades con su rol (vista/unidades/con entrega: ' || left(v, 80) || '), sin EXECUTE sobre la vieja');
+  -- W7c el camino de lw_lector: obra_cifras_datos() es DEFINER de lw_lector y cuenta filas de la vista
+  v := pg_temp.val(v_uid, v_mail, 'select public.obra_cifras_datos()->>''entregas_con_fecha''');
+  r := r || pg_temp.l(v ~ '^\d+$' and v::bigint = n,
+                      'W7c obra_cifras_datos() (lw_lector → vista → v2) responde con la identidad de W5 y cuenta lo mismo que la vista: ' || left(v, 80) || ' / ' || coalesce(n::text, 'null'));
+
+  -- ============================================================ W8 tiempo de la vista, antes y después (viva)
+  -- Como postgres con las claims del admin (postgres no pasa por la RLS: igual en los dos lados). «Antes» = la vista vieja,
+  -- con la cascada y la puerta de antes en pg_temp. Cada consulta corre dos veces y se mide la segunda.
+  perform set_config('request.jwt.claims', json_build_object('sub', v_ad, 'role', 'authenticated', 'email', v_ad_mail)::text, true);
+  for i in 1..2 loop
+    t0 := clock_timestamp();
+    select count(*), coalesce(sum(coalesce(q.cobrado_suelo, 0) + coalesce(q.cobrado_obra, 0) + coalesce(q.suelo_pactado, 0) + coalesce(q.obra_pactada, 0)), 0)
+      into n_antes, s_antes
+      from (SELECT u.id, u.codigo, u.proyecto, u.tipo, u.superficie_m2,
+                   COALESCE(u.precio, NULLIF((COALESCE(u.precio_suelo, (0)::numeric) + COALESCE(u.precio_construccion, (0)::numeric)), (0)::numeric)) AS precio,
+                   u.moneda, u.estado, u.contrato_id, u.notas, u.created_at, u.precio_suelo, u.precio_construccion, u.modelo, u.obra_fase,
+                   u.obra_fecha_entrega, u.obra_actualizado, c.numero AS contrato_numero, c.comprador_nombre, c.bloqueado AS contrato_firmado,
+                   (cp.cobrado_suelo + cp.cobrado_obra) AS facturado,
+                   u.fase_masterplan, u.zona_masterplan, u.precio AS precio_guardado, c.creado_por AS contrato_creado_por,
+                   cp.cobrado_suelo, cp.cobrado_obra, cp.obra_firmada, u.codigo_orden,
+                   ((c.id IS NOT NULL) AND (EXISTS (SELECT 1 FROM public.contrato_tipo_etapa e
+                      WHERE ((e.tipo = c.tipo) AND (e.etapa = 'reserva'::text) AND (e.tipo <> 'reserva_parcela'::text))))) AS contrato_es_carta,
+                   u.proyecto_id, cp.suelo_precio AS suelo_pactado, cp.obra_precio AS obra_pactada
+              FROM ((public.unidades u
+                LEFT JOIN public.contratos c ON ((c.id = u.contrato_id)))
+                LEFT JOIN LATERAL pg_temp.reparto_viejo(u.id) cp(cobrado_suelo, cobrado_obra, obra_firmada, suelo_precio, obra_precio) ON (true))) q;
+    ms_antes := round(extract(epoch from clock_timestamp() - t0) * 1000, 1);
+    t0 := clock_timestamp();
+    select count(*), coalesce(sum(coalesce(e.cobrado_suelo, 0) + coalesce(e.cobrado_obra, 0) + coalesce(e.suelo_pactado, 0) + coalesce(e.obra_pactada, 0)), 0)
+      into n_despues, s_despues
+      from (select * from public.unidades_estado) e;
+    ms_despues := round(extract(epoch from clock_timestamp() - t0) * 1000, 1);
+  end loop;
+  perform set_config('request.jwt.claims', '', true);
+  r := r || pg_temp.l(n_antes = n_despues and n_antes > 0 and s_antes = s_despues,
+                      format('W8 select * from unidades_estado en la viva: antes %s ms, después %s ms (%s filas; cobrado+pactado %s / %s)',
+                             ms_antes, ms_despues, n_despues, s_antes, s_despues));
+
+  -- ============================================================ W9 ninguna serie se movió
+  select coalesce(jsonb_object_agg(s.sequencename, s.last_value), '{}'::jsonb) into v_seq1 from pg_sequences s where s.schemaname = 'public';
+  select string_agg(k, ', ') into v from jsonb_object_keys(v_seq0 || v_seq1) k where v_seq0 -> k is distinct from v_seq1 -> k;
+  r := r || pg_temp.l(v is null, 'W9 pg_sequences de public igual al principio y al final (' || (select count(*) from jsonb_object_keys(v_seq0)) || ' series; movidas: ' || coalesce(v, 'ninguna') || ')');
 
   raise exception using message = replace(c_fin, '%', r);
 end $todo$;

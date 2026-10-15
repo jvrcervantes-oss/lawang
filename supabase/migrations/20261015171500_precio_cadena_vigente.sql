@@ -18,18 +18,34 @@
 --      factura, con la fórmula de _contrato_cobrado_interno (RP00025: 39.220 EUR).
 --   4. La cascada pasa a _unidad_cobro_cascada_v2 y la puerta a unidad_cobro_reparto_v2, que devuelven además
 --      `obra_de_contrato` (y `suelo_de_contrato` hasta la vista). Las de siempre quedan como ENVOLTORIOS con sus columnas
---      de siempre: cambiar las columnas de salida obligaba a borrar y recrear funciones y vista. Quitar las viejas, si un
---      día no tienen llamador, es otra subtarea.
+--      de siempre: cambiar las columnas de salida obligaba a borrar y recrear funciones y vista. La vieja
+--      unidad_cobro_reparto se queda SIN LLAMADOR (la vista pasa a la v2; fuera de la base no la llama nadie, medido por
+--      Seguridad el 15-oct; dentro, 0 funciones la nombran en pg_proc): se le quita EXECUTE a todos (revisor, 15-oct;
+--      precedente: unidad_parte_cobrada_split, 20261014024234:248). Borrarla es un DROP y es del owner.
 --   5. unidades_estado: dos columnas AL FINAL, `suelo_de_contrato` y `obra_de_contrato` (true = el precio de esa parte
 --      sale de un contrato; false = del catálogo; null = sin permiso). La ficha las usará para no rotular «pactado» lo
 --      que es de catálogo. security_invoker y permisos repuestos.
+--   6. La PUERTA de unidad_cobro_reparto_v2 (Seguridad, 15-oct): una unidad sin contrato ya no responde a cualquier
+--      authenticated. Antes un comprador del portal recibía (0,0,f,…) si la unidad existía sin vender y todo NULL si no
+--      existía: un oráculo de qué unidades hay libres. Ahora la rama «sin contrato» exige lo mismo que la policy SELECT de
+--      `unidades` (es_agente() and unidad_visible(proyecto_id)); la vista no cambia, porque toda fila que enseña ya cumple
+--      esa policy (es la única de SELECT en unidades, para authenticated y lw_lector). service_role pierde EXECUTE en la v2:
+--      no tiene llamador con nombre (ninguna edge de Lawang ni el panel leen la vista con la clave de servicio).
+-- ESQUEMA: _venta_obras_vigentes y _unidad_cobro_cascada_v2 se quedan en `public`, cerradas a todos los roles (y el bloque
+--   $post$ del final lo comprueba), y no en `privado` como propuso Seguridad, porque las ramas de ensayo de Lawang
+--   restauran SOLO `-n public` (erp/rama_prueba.py:2443): las funciones de public que las llaman se quedarían en cada rama
+--   futura llamando a algo que no existe. Además el canon (erp/pruebas/canon_invariantes.sql:218, :278, :291) y el
+--   catálogo (erp/modulos.py:2837) solo miran public: en privado dejarían de verse las comprobaciones que hoy prueban que
+--   siguen cerradas y con search_path fijo; y el maestro no tiene esquema privado (ningún `create schema privado` en erp/).
 -- LO QUE NO CAMBIA (medido el 15-oct con las funciones nuevas en pg_temp contra la viva): la cascada y el reparto del
---   cobro dan lo mismo, columna a columna, en todas las unidades y todas las raíces.
+--   cobro dan lo mismo, columna a columna, en todas las unidades y todas las raíces. Lo único que cambia en la v2 es la
+--   puerta (punto 6): quien no es agente o no ve el proyecto recibe todo NULL también en una unidad sin contrato.
 -- DUEÑO DEL DATO: el precio de cada parte es del CONTRATO vigente (owner, 14-oct: «manda el contrato»); el catálogo es
 --   guía. Nada se copia: todo se lee de contratos por su id en cada llamada.
 -- REVERTIR: supabase/reversion_precio_cadena_vigente/REVERSION.sql (cuerpos anteriores literales, md5 comprobado).
--- PRUEBAS: supabase/pruebas/precio_cadena_vigente.sql (rama, rol real) y precio_cadena_vigente_vivo.sql (viva, solo
---   lectura, tras aplicar).
+-- PRUEBAS: supabase/pruebas/precio_cadena_vigente.sql (rama, rol real) y precio_cadena_vigente_vivo.sql (viva, tras
+--   aplicar). La viva no escribe en la base: sus únicos CREATE son funciones pg_temp de la sesión, no hay insert, update,
+--   delete ni alter, y termina en raise. Lo que sí hace: toma el cerrojo consultivo del tope de RP00101 hasta el raise.
 set local lock_timeout = '5s';
 
 do $pre$
@@ -290,15 +306,18 @@ AS $function$
 declare
   v_ok boolean; v_existe boolean := false; v_contrato uuid;
 begin
+  -- Puerta (Seguridad, 15-oct-2026): una unidad SIN contrato solo responde a quien la puede leer en `unidades` (la misma
+  -- condición que su policy SELECT). Antes respondía a cualquier authenticated, y la diferencia entre (0,0,f,…) y todo
+  -- NULL le decía a un comprador del portal qué unidades existen y están sin vender.
   select true, u0.contrato_id,
-         (u0.contrato_id is null
+         ((u0.contrato_id is null and public.es_agente() and public.unidad_visible(u0.proyecto_id))
           or public.puede_ver_contrato(u0.contrato_id)
           or public.es_admin_de(public.empresa_de_unidad(p_unidad)))
     into v_existe, v_contrato, v_ok
     from public.unidades u0
    where u0.id = p_unidad;
   if not coalesce(v_existe, false) or not coalesce(v_ok, false) then
-    -- «no he podido mirar», no «0 cobrado» (LAW-186)
+    -- «no he podido mirar», no «0 cobrado» (LAW-186); igual si no existe que si no la puedes ver
     return query select null::numeric, null::numeric, null::boolean, null::numeric, null::numeric, null::boolean, null::boolean;
   elsif v_contrato is null then
     -- Sin contrato: 0 cobrado y NINGÚN precio (el de catálogo lo da la vista, que sí pasa por la RLS).
@@ -313,16 +332,26 @@ $function$;
 
 -- Permisos. Una función nueva nace con EXECUTE para PUBLIC (y los privilegios por defecto de Supabase la abren a anon y
 -- authenticated): se cierran en la misma migración. _venta_obras_vigentes y la cascada v2 no tienen llamador fuera de
--- funciones DEFINER del dueño. unidad_cobro_reparto_v2 la lee la vista (security_invoker): los mismos que la vieja.
+-- funciones DEFINER del dueño. unidad_cobro_reparto_v2 la lee la vista (security_invoker), así que la ejecuta quien lee
+-- la vista: authenticated y lw_lector (obra_cifras_datos, DEFINER de lw_lector, cuenta filas de la vista). service_role
+-- no: no tiene llamador con nombre (Seguridad, 15-oct); los privilegios por defecto se lo dan al crearla, por eso se nombra.
 revoke all on function public._venta_obras_vigentes(uuid, text) from public, anon, authenticated, service_role;
 revoke all on function public._unidad_cobro_cascada_v2(uuid) from public, anon, authenticated, service_role;
-revoke all on function public.unidad_cobro_reparto_v2(uuid) from public, anon;
-grant execute on function public.unidad_cobro_reparto_v2(uuid) to authenticated, service_role;
+revoke all on function public.unidad_cobro_reparto_v2(uuid) from public, anon, service_role;
+grant execute on function public.unidad_cobro_reparto_v2(uuid) to authenticated;
 do $g$ begin
   if exists (select 1 from pg_roles where rolname = 'lw_lector') then
+    execute 'revoke all on function public._venta_obras_vigentes(uuid, text) from lw_lector';
+    execute 'revoke all on function public._unidad_cobro_cascada_v2(uuid) from lw_lector';
     execute 'grant execute on function public.unidad_cobro_reparto_v2(uuid) to lw_lector';
   end if;
 end $g$;
+comment on function public.unidad_cobro_reparto_v2(uuid) is
+  'Reparto de lo cobrado de una unidad (primero parcela, luego obra) con su precio de contrato y de dónde sale cada precio, tras la puerta de permiso (sin contrato: es_agente y unidad_visible, como la policy de unidades). Llamador: la vista unidades_estado (15-oct-2026).';
+comment on function public._venta_obras_vigentes(uuid, text) is
+  'La regla única de qué contrato de obra de una venta cuenta (por parcela: los firmados; si no, el borrador más reciente). INVOKER y cerrada a todos: solo la llaman funciones DEFINER del dueño (15-oct-2026).';
+comment on function public._unidad_cobro_cascada_v2(uuid) is
+  'Cascada de lo cobrado de una unidad (primero parcela, luego obra) con suelo_de_contrato y obra_de_contrato. Sin puerta de permiso: cerrada a todos, solo la llaman funciones DEFINER (15-oct-2026).';
 
 CREATE OR REPLACE FUNCTION public._unidad_cobro_cascada(p_unidad uuid)
  RETURNS TABLE(cobrado_suelo numeric, cobrado_obra numeric, obra_firmada boolean, suelo_precio numeric, obra_precio numeric, suelo_de_contrato boolean)
@@ -601,3 +630,47 @@ do $g$ begin
     execute 'grant select on public.unidades_estado to lw_lector';
   end if;
 end $g$;
+
+-- La vieja unidad_cobro_reparto, ya sin llamador (la vista lee la v2): cerrada a todos, como unidad_parte_cobrada_split
+-- (20261014024234:248). Sigue existiendo como envoltorio de la v2 para quien la llame desde una función DEFINER del dueño
+-- (hoy nadie); devolverle el permiso es la REVERSION. Borrarla es un DROP y es del owner.
+revoke execute on function public.unidad_cobro_reparto(uuid) from public, anon, authenticated, service_role;
+do $g$ begin
+  if exists (select 1 from pg_roles where rolname = 'lw_lector') then
+    execute 'revoke execute on function public.unidad_cobro_reparto(uuid) from lw_lector';
+  end if;
+end $g$;
+comment on function public.unidad_cobro_reparto(uuid) is
+  'Envoltorio de unidad_cobro_reparto_v2 (las 5 primeras columnas). SIN LLAMADOR desde el 15-oct-2026 (la vista unidades_estado lee la v2) y cerrada a todos los roles; retirarla es un DROP del owner.';
+
+do $post$
+declare v_mal text;
+begin
+  -- Lo que esta migración promete de permisos, comprobado al final (revisor, 15-oct). Los roles salen de pg_roles: en las
+  -- ramas de ensayo lw_lector no existe, y has_function_privilege con un rol que no existe aborta (un filtro en el WHERE
+  -- no garantiza el orden de evaluación; una fila que no está, sí).
+  select string_agg(x.que, '; ') into v_mal from (
+    select 'la vieja unidad_cobro_reparto la ejecuta ' || r.rolname as que
+      from pg_roles r where r.rolname in ('authenticated', 'anon', 'service_role', 'lw_lector')
+       and has_function_privilege(r.oid, 'public.unidad_cobro_reparto(uuid)'::regprocedure, 'execute')
+    union all
+    select 'unidad_cobro_reparto_v2 NO la ejecuta ' || r.rolname
+      from pg_roles r where r.rolname in ('authenticated', 'lw_lector')
+       and not has_function_privilege(r.oid, 'public.unidad_cobro_reparto_v2(uuid)'::regprocedure, 'execute')
+    union all
+    select 'unidad_cobro_reparto_v2 la ejecuta ' || r.rolname
+      from pg_roles r where r.rolname in ('anon', 'service_role')
+       and has_function_privilege(r.oid, 'public.unidad_cobro_reparto_v2(uuid)'::regprocedure, 'execute')
+    union all
+    select f.f::text || ' la ejecuta ' || r.rolname
+      from (values ('public._venta_obras_vigentes(uuid,text)'::regprocedure), ('public._unidad_cobro_cascada_v2(uuid)'::regprocedure)) f(f)
+     cross join pg_roles r
+     where r.rolname in ('anon', 'authenticated', 'service_role', 'lw_lector')
+       and has_function_privilege(r.oid, f.f, 'execute')
+    union all
+    select 'falta el rol authenticated' where not exists (select 1 from pg_roles where rolname = 'authenticated')
+  ) x;
+  if v_mal is not null then
+    raise exception 'precio-cadena-vigente: permisos que no son los prometidos: %', v_mal;
+  end if;
+end $post$;

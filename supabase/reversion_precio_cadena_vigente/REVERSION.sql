@@ -5,7 +5,8 @@
 -- sumar todas las obras, contrato_saldo pierde facturado_de_mas y a_cuenta, y la cascada vuelve a ser la de antes.
 -- La vista vuelve a leer unidad_cobro_reparto; sus dos columnas nuevas NO se pueden quitar sin borrarla (CREATE OR
 -- REPLACE VIEW no quita columnas), así que quedan AL FINAL como NULL. Las tres funciones nuevas quedan sin llamador y
--- cerradas (se les quita el permiso); borrarlas, si hace falta, es otro paso (DROP: pide al owner).
+-- cerradas (se les quita el permiso); borrarlas, si hace falta, es otro paso (DROP: pide al owner). La vieja
+-- unidad_cobro_reparto recupera EXECUTE (authenticated, service_role, lw_lector) y su COMMENT de antes, ANTES de la vista.
 -- ORDEN: si la ficha ya usa suelo_de_contrato/obra_de_contrato, NULL la deja como antes de esta migración (sin rótulo).
 -- Precondición: que la viva sea la que dejó la migración (md5 de sus cuerpos), para no pisar un cambio posterior.
 set local lock_timeout = '5s';
@@ -231,6 +232,18 @@ begin
   end if;
 end
 $function$;
+
+-- La migración le quitó EXECUTE a la vieja (sin llamador mientras la vista leía la v2). Se le devuelve ANTES de reponer la
+-- vista: la vista es security_invoker y el lateral corre con el permiso de quien la lee; sin esto, la pantalla de
+-- Proyectos caería con «permission denied for function unidad_cobro_reparto» en plena vuelta atrás. Los de antes del 15-oct.
+grant execute on function public.unidad_cobro_reparto(uuid) to authenticated, service_role;
+do $g$ begin
+  if exists (select 1 from pg_roles where rolname = 'lw_lector') then
+    execute 'grant execute on function public.unidad_cobro_reparto(uuid) to lw_lector';
+  end if;
+end $g$;
+comment on function public.unidad_cobro_reparto(uuid) is
+  'Reparto de lo cobrado de una unidad (primero parcela, luego obra) con su precio de contrato, tras la puerta de permiso. Llamador: la vista unidades_estado.';
 
 CREATE OR REPLACE FUNCTION public._venta_cobro_atribuido(p_raiz uuid)
  RETURNS TABLE(contrato_id uuid, cobrado_doc numeric, cobrado_regla numeric, atribuida boolean)
@@ -469,5 +482,11 @@ begin
          and p.proname in ('_cadena_saldo_en', 'contrato_saldo', '_unidad_cobro_cascada', '_venta_cobro_atribuido', 'unidad_cobro_reparto'))
      <> 'b094521e67c8fd736dbf77e8ef18c2a6,69b0bf975b030fa77e08a966a0b8c133,0d66c0ba123bd8ebdaf11aa9cfe92d7a,2370617522d53c7d3b006e19b1283f89,26c727388896032ddc0094e67cde6351' then
     raise exception 'REVERSION precio-cadena-vigente: los cuerpos repuestos no son los del 15-oct (md5)';
+  end if;
+  -- la vista vuelve a la vieja: quien lee la vista tiene que poder ejecutarla (roles sacados de pg_roles: en una rama
+  -- lw_lector no existe)
+  if exists (select 1 from pg_roles r where r.rolname in ('authenticated', 'lw_lector')
+               and not has_function_privilege(r.oid, 'public.unidad_cobro_reparto(uuid)'::regprocedure, 'execute')) then
+    raise exception 'REVERSION precio-cadena-vigente: la vieja unidad_cobro_reparto no la ejecuta authenticated o lw_lector, y la vista la llama';
   end if;
 end $post$;
