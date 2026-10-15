@@ -836,9 +836,9 @@ if ($slug === '') { http_response_code(404); exit; }
           .catch(function(){ ZONAS = null; });
       }
 
-      fotosListo = fetch(SB_URL + '/rest/v1/rpc/investor_deck_fotos', {
+      fotosListo = fetch(SB_URL + '/rest/v1/rpc/investor_deck_fotos_por_slug', {
         method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-        body: JSON.stringify({ p_proyecto: PROYECTO })
+        body: JSON.stringify({ p_slug: SLUG })
       }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
         .then(function(rows){
           var porModelo = {}; var proyecto = [];
@@ -856,9 +856,9 @@ if ($slug === '') { http_response_code(404); exit; }
         })
         .catch(function(){ fotosVacias(); return {}; });
 
-      fetch(SB_URL + '/rest/v1/rpc/investor_deck_documentos', {
+      fetch(SB_URL + '/rest/v1/rpc/investor_deck_documentos_por_slug', {
         method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-        body: JSON.stringify({ p_proyecto: PROYECTO })
+        body: JSON.stringify({ p_slug: SLUG })
       }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
         .then(function(docs){
           if(!docs || !docs.length) return;
@@ -874,9 +874,9 @@ if ($slug === '') { http_response_code(404); exit; }
         })
         .catch(function(){});
 
-      fetch(SB_URL + '/rest/v1/rpc/investor_deck_modelos', {
+      fetch(SB_URL + '/rest/v1/rpc/investor_deck_modelos_por_slug', {
         method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-        body: JSON.stringify({ p_proyecto: PROYECTO })
+        body: JSON.stringify({ p_slug: SLUG })
       }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
         .then(function(rows){
           if(!rows || !rows.length) throw new Error('vacio');
@@ -884,23 +884,23 @@ if ($slug === '') { http_response_code(404); exit; }
         })
         .catch(modelosCaidos);
 
-      fetch(SB_URL + '/rest/v1/rpc/investor_deck_forecast', {
+      fetch(SB_URL + '/rest/v1/rpc/investor_deck_forecast_por_slug', {
         method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-        body: JSON.stringify({ p_proyecto: PROYECTO })
+        body: JSON.stringify({ p_slug: SLUG })
       }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
         .then(function(rows){ if(!rows || !rows.length) throw new Error('vacio'); pintaForecast(rows); })
         .catch(forecastCaido);
 
-      fetch(SB_URL + '/rest/v1/rpc/investor_deck_faq', {
+      fetch(SB_URL + '/rest/v1/rpc/investor_deck_faq_por_slug', {
         method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-        body: JSON.stringify({ p_proyecto: PROYECTO })
+        body: JSON.stringify({ p_slug: SLUG })
       }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
         .then(function(rows){ if(!rows || !rows.length) throw new Error('vacio'); pintaFaq(rows); })
         .catch(faqCaida);
 
-      fetch(SB_URL + '/rest/v1/rpc/investor_deck_parcelas', {
+      fetch(SB_URL + '/rest/v1/rpc/investor_deck_parcelas_por_slug', {
         method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-        body: JSON.stringify({ p_proyecto: PROYECTO })
+        body: JSON.stringify({ p_slug: SLUG })
       }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
         .then(pintaListaParcelas)
         .catch(function(){
