@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- VUELTA ATRAS de la migracion 20261014210000 «cf_borrar_cierre_anula_solo_admin» (14-oct-2026, Backend, bloque B).
+-- VUELTA ATRAS de la migracion 20261015065220 «cf_borrar_cierre_anula_solo_admin» (14-oct-2026, Backend, bloque B).
 -- REABRE lo que cerro: un agente sin la herramienta Contratos vuelve a poder borrar su operacion; el «no existe» frente al «es de
 -- otra persona» con su numero vuelve a ser un oraculo; un agente vuelve a borrar una operacion con recibis o documentos enviados,
 -- a cerrar un contrato como «firmado a mano» y a anular un recibi o un documento enviado; y «ya está anulado» vuelve a salir antes

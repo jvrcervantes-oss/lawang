@@ -39,7 +39,7 @@
 --     20261014133241 (partida): f56d8196d59cabfa556af88ff9da8c16 (LF) · b5d6a8badb2b4047a20001f692209f39 (CRLF). Cuerpo
 --       de supabase/vivo/20261014_cobro_primero_parcela/siguiente_comisiones_1nov.sql en d175a50c0, el último commit
 --       antes de aplicarla (versión 133241 = 21:32 +0800 del 14-oct), idéntico byte a byte al de su migración.
---     20261015071000 (este):    4d78770774ef0c79bd7537ed7e886a6c (LF) · 38763b027fa87bc537065dcaf97ff135 (CRLF).
+--     20261015065609 (este):    4d78770774ef0c79bd7537ed7e886a6c (LF) · 38763b027fa87bc537065dcaf97ff135 (CRLF).
 --   AL LEVANTAR LA CONGELACIÓN, antes de aplicar, confirmar en la viva con una lectura:
 --     select md5(prosrc) from pg_proc where oid = 'public._comisiones_bases_firmadas(uuid)'::regprocedure;
 --   Tiene que salir uno de los dos de 133241. Si sale otro, alguien la cambió: mirar qué hay vivo, no tocar los md5.
