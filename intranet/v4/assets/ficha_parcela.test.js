@@ -19,8 +19,10 @@ const trozo = (nombre) => {
   for (; k < datos.length; k++) { if (datos[k] === '{') d++; else if (datos[k] === '}' && --d === 0) break; }
   return datos.slice(i, k + 1);
 };
-const H = new Function(trozo('precioParte') + '\n' + trozo('sueloSinFirmar') + '\nreturn { precioParte: precioParte, sueloSinFirmar: sueloSinFirmar };')();
-ok(/window\.LW_V4\.precioParte = precioParte;/.test(datos) && /window\.LW_V4\.sueloSinFirmar = sueloSinFirmar;/.test(datos), 'datos.js publica las dos funciones');
+const H = new Function(trozo('precioParte') + '\n' + trozo('precioTotal') + '\n' + trozo('sueloSinFirmar') +
+  '\nreturn { precioParte: precioParte, precioTotal: precioTotal, sueloSinFirmar: sueloSinFirmar };')();
+ok(/window\.LW_V4\.precioParte = precioParte;/.test(datos) && /window\.LW_V4\.sueloSinFirmar = sueloSinFirmar;/.test(datos) &&
+   /window\.LW_V4\.precioTotal = precioTotal;/.test(datos), 'datos.js publica las tres funciones');
 
 // ── sb falso ────────────────────────────────────────────────────────────────────────────────────────────────────
 function sbFalso(t) {
@@ -83,7 +85,7 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
     ok(m.docs.grupos.factura.length === 1 && m.docs.grupos.recibi.length === 1 && m.docs.grupos.proforma.length === 0, 'los anulados no cuentan');
     const h = pinta(m);
     ok(/Pactado por cobrar/.test(h) && /Facturado sin cobrar/.test(h) && /Ya está dentro de «Pactado por cobrar»: no se suman\./.test(h), 'los dos pendientes, rotulados distinto');
-    ok(/Sin facturar/.test(h) && /1 facturas · 1 recibís · 0 proformas/.test(FP.fpHTML.docsResumen(m)), 'Documentos plegado con el recuento y «Sin facturar»');
+    ok(/Sin facturar/.test(h) && /1 factura · 1 recibí · 0 proformas/.test(FP.fpHTML.docsResumen(m)), 'Documentos plegado con el recuento (singular con 1) y «Sin facturar»');
     ok(/facturas\/\?q=RP00101/.test(h), '«Ver en Facturas» busca por el contrato del que cuelgan los documentos');
   }
   // 2 · obra que no se ve: la fila dice que hay obra firmada y la lectura no la trae
@@ -202,6 +204,27 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
     ok(sb.llamadas.some((l) => l[0] === 'from' && l[1] === 'obra_fases'), 'lee obra_fases');
   }
 
+  // 11 · parcela sin venta (SH-128, Calidad 15-oct): sin contrato no hay nada «por cobrar»
+  {
+    const { m } = await corre(fila({ contrato_id: null, contrato_numero: null, contrato_firmado: false, suelo_pactado: null, obra_pactada: null,
+      suelo_de_contrato: false, obra_de_contrato: false, obra_firmada: false, precio_suelo: 60875, precio_construccion: 200000, cobrado_suelo: 0, cobrado_obra: 0 }),
+      { contratos: { data: [] }, facturas: { data: [] } });
+    ok(m.pactado === null && !/fp-pactado/.test(FP.fpHTML.pendientes(m)), 'sin venta no se pinta «Por cobrar del precio»');
+    const b = await corre(fila({ contrato_id: null, contrato_numero: null, obra_firmada: false, obra_de_contrato: false, cobrado_suelo: null, cobrado_obra: null }), { contratos: { data: [] }, facturas: { data: [] } });
+    ok(b.m.pactado === null, 'ni «sin permiso para ver el cobro» en una parcela sin venta');
+  }
+  // 12 · «Pactado» de la tarjeta = «Precio total» de la ficha = suelo + obra de CONTRATO (Calidad 15-oct, owner 14-oct)
+  {
+    // C5 · Mejan Village S7, medido en la viva: la tarjeta daba 65.000 (catálogo) y el desglose 26.000 + 49.000.
+    ok(H.precioTotal({ precio: 65000, precio_suelo: 25000, precio_construccion: 40000, suelo_pactado: 26000, obra_pactada: 49000 }) === 75000, 'C5: 26.000 + 49.000 = 75.000');
+    ok(H.precioTotal({ precio: 75000, precio_suelo: 25000, precio_construccion: 50000, suelo_pactado: null, obra_pactada: null }) === 75000, 'sin contrato: el de catálogo, parte a parte');
+    ok(H.precioTotal({ precio: 30000, precio_suelo: 30000, precio_construccion: null, suelo_pactado: 32000, obra_pactada: null }) === 32000, 'solo suelo: el pactado, no el catálogo de la parcela');
+    ok(H.precioTotal({ precio: 41000, precio_suelo: null, precio_construccion: null, suelo_pactado: null, obra_pactada: null }) === 41000, 'sin partes: el precio de la parcela');
+    ok(H.precioTotal({ precio: null, precio_suelo: null, precio_construccion: null }) === null, 'sin nada: null, no 0');
+    ok(!/fmtConEstimado\(u\.precio\b/.test(datos) && /pon\('u-total', fmtConEstimado\(precioTotal\(u\)/.test(datos), 'la tarjeta usa precioTotal');
+    ok(/var dpTotal = precioTotal\(u\);/.test(datos), 'la ficha usa precioTotal');
+  }
+
   // ── cableado ─────────────────────────────────────────────────────────────────────────────────────────────────
   const html = leer('intranet', 'v4', 'proyectos', 'index.html');
   ok(/<script src="\.\.\/assets\/ficha-parcela\.js(\?v=[0-9a-f]+)?" defer><\/script>/.test(html), 'proyectos carga ficha-parcela.js');
@@ -218,8 +241,87 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
   i18n.replace(/^\s*'((?:[^'\\]|\\.)*)'\s*:/gm, (x, k) => { claves.add(k.replace(/\\'/g, "'")); return x; });
   const frases = new Set();
   fp.replace(/\bT\('((?:[^'\\]|\\.)*)'/g, (x, k) => { frases.add(k); return x; });
-  ['Firmado', 'Reabierto', 'Sin firmar', 'Liberado', 'Facturas', 'Recibís', 'Proformas', 'Contratos de la parcela', 'Avance de obra'].forEach((k) => frases.add(k));
+  ['Firmado', 'Reabierto', 'Sin firmar', 'Liberado', 'Facturas', 'Recibís', 'Proformas', 'Contratos de la parcela', 'Avance de obra',
+   '%n factura', '%n facturas', '%n recibí', '%n recibís', '%n proforma', '%n proformas'].forEach((k) => frases.add(k));
   const faltan = [...frases].filter((k) => !claves.has(k));
   ok(!faltan.length, 'todas las frases tienen inglés; faltan: ' + faltan.join(' | '));
+
+  /* ── inglés de la tarjeta y de la ficha (Calidad, 15-oct-2026) ──────────────────────────────────────────────────
+     Con la interfaz en inglés salían en español «Pactado», «Precio y cobro», «Cerrar · volver a…»: el marcado
+     estático no llevaba `data-lwt` y nada lo comprobaba. Esto recorre la plantilla de la tarjeta (con la cabecera de
+     la vista Lista) y la de la ficha: todo texto visible con letras va marcado (`data-lwt` en su elemento, o
+     `data-lwt-nodos` si comparte elemento con un dato) y su clave existe en el diccionario; lo mismo para
+     aria-label/title/placeholder. Se saltan los iconos (ligaduras de material-symbols) y los huecos `data-lw` que
+     rellena el JS. Una etiqueta nueva sin traducir pone esto en rojo. */
+  const EN = (() => { const w = {}; new Function('window', i18n)(w); return w.LW_EN; })();
+  const enDic = (k) => Object.prototype.hasOwnProperty.call(EN, k);
+  const tramo = (desde, hasta) => {
+    const a = html.indexOf(desde), b = html.indexOf(hasta, a);
+    ok(a > 0 && b > a, 'index.html tiene el tramo ' + desde);
+    return html.slice(a, b);
+  };
+  const ent = (s) => s.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+  const attr = (a, nombre) => { const x = new RegExp('\\s' + nombre + '(?:="([^"]*)")?(?=\\s|$)').exec(a); return x ? (x[1] == null ? '' : ent(x[1])) : null; };
+  const fugasIdioma = (frag) => {
+    const out = [], pila = [];
+    const VACIO = /^(input|img|br|hr|meta|link|source|path|circle|rect|line|polyline|polygon)$/i;
+    const re = /<(\/?)([a-zA-Z][\w-]*)((?:[^>"']|"[^"]*"|'[^']*')*?)(\/?)>|([^<]+)/g;
+    let x;
+    frag = frag.replace(/<!--[\s\S]*?-->/g, '');
+    while ((x = re.exec(frag))) {
+      if (x[5] != null) {
+        const t = ent(x[5]).trim();
+        if (!/\p{L}/u.test(t)) continue;
+        if (pila.some((e) => /material-symbols/.test(e.a))) continue;   // icono: el nombre de la ligadura no se traduce
+        const p = pila[pila.length - 1] || { a: '' };
+        if (attr(p.a, 'data-lw') != null) continue;                       // hueco: lo rellena el JS (con tx)
+        const k = attr(p.a, 'data-lwt');
+        if (k != null) { if (!enDic(k || t)) out.push('sin inglés: «' + (k || t) + '»'); }
+        else if (attr(p.a, 'data-lwt-nodos') != null) { if (!enDic(t)) out.push('sin inglés: «' + t + '»'); }
+        else out.push('sin data-lwt: «' + t + '»');
+        continue;
+      }
+      const [, cierra, tag, a, solo] = x;
+      if (cierra) { while (pila.length && pila.pop().t !== tag.toLowerCase()); continue; }
+      if (pila.some((e) => attr(e.a, 'data-lwt') != null)) out.push('data-lwt con un elemento dentro (lo aplanaría): <' + tag + '>');
+      [['aria-label', 'data-lwt-aria'], ['title', 'data-lwt-title'], ['placeholder', 'data-lwt-ph']].forEach(([n0, marca]) => {
+        const v = attr(a, n0);
+        if (!v || !/\p{L}/u.test(v)) return;
+        if (attr(a, marca) == null) out.push(n0 + ' sin ' + marca + ': «' + v + '»');
+        else if (!enDic(attr(a, marca) || v)) out.push('sin inglés: «' + v + '»');
+      });
+      if (!solo && !VACIO.test(tag)) pila.push({ t: tag.toLowerCase(), a: a });
+    }
+    return out;
+  };
+  // El propio comprobador caza lo que tiene que cazar (si no, un verde no diría nada).
+  ok(fugasIdioma('<div><span class="lw-u-lbl">Pactado</span></div>').length === 1, 'el comprobador caza una etiqueta sin data-lwt');
+  ok(fugasIdioma('<span data-lwt>Esto no está en el diccionario</span>').length === 1, 'y una marcada sin entrada');
+  ok(fugasIdioma('<button aria-label="Editar unidad"><span class="material-symbols-outlined">edit</span></button>').length === 1, 'y un aria-label sin marcar (el icono no cuenta)');
+  ok(fugasIdioma('<span data-lwt>Contrato <b>x</b></span>').some((s) => /aplanaría/.test(s)), 'y un data-lwt con hijos');
+  ok(fugasIdioma('<p data-lwt-nodos>Cerrar · volver a <span data-lw="dp-proyecto">este proyecto</span></p>').length === (enDic('Cerrar · volver a') ? 0 : 1), 'data-lwt-nodos con un dato dentro vale');
+  const tarjeta = tramo('<div id="d-unidades-cab"', '</div><!-- /d-parcelario-lista -->');
+  const ficha = tramo('<div id="cajon-vista-parcela"', '</div><!-- /cajon-vista-parcela -->');
+  ok(/data-lw-accion="abrir-detalle-unidad"/.test(tarjeta) && /data-lw="dp-total"/.test(ficha), 'los tramos son la tarjeta y la ficha');
+  const fT = fugasIdioma(tarjeta), fF = fugasIdioma(ficha);
+  ok(!fT.length, 'tarjeta del parcelario en inglés; fugas: ' + fT.join(' | '));
+  ok(!fF.length, 'ficha de la parcela en inglés; fugas: ' + fF.join(' | '));
+
+  /* Lo que pinta el JS de la tarjeta y de la ficha (datos.js): cada tx('…') tiene su inglés, y los textos que se
+     escapaban del diccionario el 15-oct ya no salen como literal suelto. */
+  const jsT = datos.slice(datos.indexOf('var barraUnidad = function'), datos.indexOf('function volverAProyecto'));
+  ok(jsT.length > 1000, 'tramo de datos.js de la tarjeta y la ficha');
+  const sinEn = [];
+  jsT.replace(/\btx\('((?:[^'\\]|\\.)*)'/g, (y, k) => { if (!enDic(k)) sinEn.push(k); return y; });
+  ok(!sinEn.length, 'cada tx() de la tarjeta y la ficha tiene inglés; faltan: ' + sinEn.join(' | '));
+  ['sin cartera', 'con Carta', 'Sin socio', 'sin contrato', 'Reservada con Carta de Reserva firmada: aún no es compraventa', 'Editar ', 'Socio: ', 'Arquitecto: ', ' unidad', ' unidades']
+    .forEach((lit) => {
+      const sueltos = jsT.split("'" + lit + "'").length - jsT.split("tx('" + lit + "'").length;
+      ok(sueltos === 0, '«' + lit + '» pasa por tx() en la tarjeta y la ficha');
+    });
+  ok(/function estadoVisible\(e\) \{ return ts\(etiquetaEstado\(e\)\); \}/.test(datos) && !/textContent = etiquetaEstado\(/.test(datos),
+     'la pastilla de estado (tarjeta, ficha y chips) sale en el idioma de la interfaz');
+  ok(['Disponible', 'Reservada', 'Bloqueada', 'Vendida', 'Cobrada', 'No disponible', 'Todas'].every(enDic), 'los seis estados y «Todas» tienen inglés');
+  ok(/lwIdiomaAplicar\(caja\)/.test(jsT), 'las tarjetas clonadas se traducen al pintarlas (no dependen de cuándo corrió nav.js)');
   console.log('ficha_parcela.test.js: ' + n + ' comprobaciones OK');
 })().catch((e) => { console.error(e); process.exit(1); });
