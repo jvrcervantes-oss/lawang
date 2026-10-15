@@ -18,6 +18,8 @@
 
    LO QUE PONE CADA CONFIGURACIÓN (cfg):
      p, accion, accionPrueba          prefijo y data-accion del botón del panel y del de prueba
+     botonPrueba(txt)                 el <button> de prueba con su data-accion ESCRITO TAL CUAL (el gate de
+                                      enganche busca el literal: un id montado aquí con cfg daba «botón muerto»)
      rpc: {destinatarios, historial, encolar, prueba}
      T(s, h)                          su puente al diccionario (los literales viven en su fichero)
      txt(clave, h)                    sus frases (ver CLAVES abajo)
@@ -279,7 +281,7 @@
             '<textarea class="rp-area" data-' + P + '="nota" maxlength="' + NOTA_MAX + '" rows="3" aria-label="' + esc(cpT('Nota para el comprador (opcional)')) + '"></textarea>' +
             '<div class="rp-pie"><span>' + esc(cpT('No escribas datos de pago, cuentas ni enlaces.')) + '</span><span data-' + P + '="cuenta">' + esc(cpT('%n de 300', { n: 0 })) + '</span></div>' +
             '<p class="rp-mal" role="alert" data-' + P + '="nota-error" hidden></p>' +
-            '<div><button type="button" class="rp-btn2" data-accion="' + cfg.accionPrueba + '">' + esc(cpT('Enviarme una prueba')) + '</button>' +
+            '<div>' + cfg.botonPrueba(esc(cpT('Enviarme una prueba'))) +
             '<p class="rp-txt" style="margin-top:6px">' + esc(cpT('Te llega un correo de prueba solo a ti, con este mismo texto. No se envía a ningún comprador.')) + '</p>' +
             '<p class="rp-txt" role="status" data-' + P + '="prueba-msg" hidden></p></div></div>';
           var area = d.querySelector(NOTA);

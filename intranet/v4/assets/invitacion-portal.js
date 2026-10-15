@@ -68,6 +68,7 @@
 
   window.lwCorreoParcela({
     p: 'ip', accion: 'invitar-portal', accionPrueba: 'invitacion-prueba',
+    botonPrueba: function (txt) { return '<button type="button" class="rp-btn2" data-accion="invitacion-prueba">' + txt + '</button>'; },
     rpc: { destinatarios: 'invitacion_portal_destinatarios', historial: 'invitacion_portal_historial',
            encolar: 'invitacion_portal_encolar', prueba: 'invitacion_portal_prueba' },
     txt: txt, motivoTxt: motivoTxt, errorPropio: errorPropio,

@@ -90,6 +90,7 @@
 
   window.lwCorreoParcela({
     p: 'rp', accion: 'reclamar-pago', accionPrueba: 'reclamo-prueba',
+    botonPrueba: function (txt) { return '<button type="button" class="rp-btn2" data-accion="reclamo-prueba">' + txt + '</button>'; },
     rpc: { destinatarios: 'reclamo_pago_destinatarios', historial: 'reclamo_pago_historial',
            encolar: 'reclamo_pago_encolar', prueba: 'reclamo_pago_prueba' },
     txt: txt, motivoTxt: motivoTxt, errorPropio: errorPropio,
