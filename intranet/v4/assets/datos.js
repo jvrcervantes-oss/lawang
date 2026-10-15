@@ -5492,7 +5492,7 @@
         var vp = document.getElementById('cajon-vista-proyecto');
         var vd = document.getElementById('cajon-vista-parcela');
         if (!vp || !vd) return;
-        pon('dp-proyecto', u.proyecto || 'este proyecto');
+        pon('dp-proyecto', u.proyecto || tx('este proyecto'));
         pon('dp-codigo', u.codigo || '—');
         var nota = document.querySelector('[data-lw="dp-nota"]');
         if (nota) { nota.textContent = etiquetaEstado(u.estado).toUpperCase(); nota.style.background = colorEstado(u.estado); }
@@ -5507,7 +5507,7 @@
         }
         var elK = document.querySelector('[data-lw="dp-contrato-link"]');
         if (elK) {
-          elK.textContent = u.contrato_numero || 'sin contrato';
+          elK.textContent = u.contrato_numero || tx('sin contrato');
           if (u.contrato_numero) { elK.href = '/intranet/v4/contratos/?contrato=' + encodeURIComponent(u.contrato_numero); elK.target = '_blank'; }
           else { elK.removeAttribute('href'); elK.removeAttribute('target'); elK.style.cursor = 'default'; elK.style.textDecoration = 'none'; }
         }
@@ -5516,8 +5516,8 @@
         // obra_fase (catálogo obra_fases, avance de CONSTRUCCIÓN): son dos
         // conceptos distintos, ver hallazgo de Desarrollo en la revisión previa.
         pon('dp-fase-zona', (u.fase_masterplan || u.zona_masterplan)
-          ? [u.fase_masterplan ? 'Fase ' + u.fase_masterplan : null, u.zona_masterplan ? 'Zona ' + u.zona_masterplan : null].filter(Boolean).join(' · ')
-          : 'sin registrar');
+          ? [u.fase_masterplan ? tx('Fase %f', { f: u.fase_masterplan }) : null, u.zona_masterplan ? tx('Zona %z', { z: u.zona_masterplan }) : null].filter(Boolean).join(' · ')
+          : tx('sin registrar'));
         // Precio de CONTRATO de cada parte (14-oct-2026); el €/m² de abajo sigue siendo el de catálogo.
         var dpSuelo = precioParte(u, 'suelo'), dpObra = precioParte(u, 'obra');
         // El Total es la suma de las dos partes que se enseñan debajo: con el de catálogo arriba y los de contrato
@@ -5525,10 +5525,10 @@
         var dpTotal = (dpSuelo != null && dpObra != null) ? dpSuelo + dpObra : u.precio;
         pon('dp-total', dpTotal != null ? fmt(dpTotal, u.moneda || 'EUR') : '—');
         pon('dp-suelo', dpSuelo != null ? fmt(dpSuelo, u.moneda || 'EUR')
-          + (sueloSinFirmar(u) ? ' (contrato sin firmar)' : '')
-          + (u.cobrado_suelo == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_suelo, u.moneda || 'EUR')) : '—');
+          + (sueloSinFirmar(u) ? ' (' + tx('contrato sin firmar') + ')' : '')
+          + (u.cobrado_suelo == null ? ' · ' + tx('cobro no visible') : ' · ' + tx('cobrado %a', { a: fmt(u.cobrado_suelo, u.moneda || 'EUR') })) : '—');
         pon('dp-suelo-m2', (u.precio_suelo != null && u.superficie_m2) ? fmt(u.precio_suelo / u.superficie_m2, u.moneda || 'EUR') + '/m²' : '—');
-        pon('dp-obra', dpObra != null ? fmt(dpObra, u.moneda || 'EUR') + (u.cobrado_obra == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_obra, u.moneda || 'EUR')) : 'sin construcción asociada');
+        pon('dp-obra', dpObra != null ? fmt(dpObra, u.moneda || 'EUR') + (u.cobrado_obra == null ? ' · ' + tx('cobro no visible') : ' · ' + tx('cobrado %a', { a: fmt(u.cobrado_obra, u.moneda || 'EUR') })) : tx('sin construcción asociada'));
         /* El proyecto NO se oculta (23-sep-2026, owner): la parcela abre en un panel
            estrecho encima (estilo en proyectos/index.html) y el parcelario sigue
            detrás, en su sitio. Solo se sube el scroll del PANEL, no el del proyecto. */

@@ -6689,6 +6689,14 @@
     'incluye contrato sin firmar': 'includes an unsigned contract',
     'sin permiso para ver el cobro': 'no permission to see payments',
     'La venta %v tiene facturado %a más que su precio: algún documento sobra. Revísalo en Facturas y anula el que no corresponda.': 'Sale %v has %a more invoiced than its price: a document is left over. Check it in Invoices and cancel the one that does not belong.',
+    /* ── Precio y cobro de la ficha de la parcela (datos.js abrirDetalleUnidad, 15-oct-2026). ── */
+    'este proyecto': 'this project',
+    'sin construcción asociada': 'no construction linked',
+    'Fase %f': 'Phase %f',
+    'Zona %z': 'Zone %z',
+    'contrato sin firmar': 'unsigned contract',
+    'cobro no visible': 'payments not visible',
+    'cobrado %a': 'collected %a',
   };
 
   window.LW_EN = EN;
