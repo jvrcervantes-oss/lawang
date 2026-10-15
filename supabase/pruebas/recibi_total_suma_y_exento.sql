@@ -305,12 +305,16 @@ begin
            pg_temp.rec(k1, '10', j, '{"contrato_numero": "ZZ-RT-K2", "proyecto_nombre": "ZZ-RT Proyecto 2"}')
              || '{"contrato_numero": "ZZ-RT-K2", "proyecto_nombre": "ZZ-RT Proyecto 2"}',
            jsonb_build_array(jsonb_build_object('factura_id', f4, 'importe', 10)));
-    r := r || pg_temp.l(v !~ '^ERR'
-                        and (select f.contrato_numero = 'ZZ-RT-K1' and f.proyecto_nombre = 'ZZ-RT Proyecto' and f.proyecto_id = pL
-                                    and f.datos->'fields'->>'contrato_numero' = 'ZZ-RT-K1' and f.datos->'fields'->>'proyecto_nombre' = 'ZZ-RT Proyecto'
-                               from public.facturas f where f.id = nullif(v, '')::uuid),
-                        'K3 el admin global (sin alcance restringido) manda K2 y «ZZ-RT Proyecto 2»: se guardan K1, su proyecto y su proyecto_id (' ||
-                        coalesce((select f.contrato_numero || ' / ' || coalesce(f.proyecto_nombre, '-') from public.facturas f where f.id = nullif(v, '')::uuid), left(v, 70)) || ')');
+    -- si entra con ERR, la etiqueta no puede convertir v a uuid (rompería la batería entera): rama aparte, como K1
+    if v ~ '^ERR' then
+      r := r || pg_temp.l(false, 'K3 el admin global guarda un recibi de K1 (necesita _puede_herr, puede_ver_contrato y documento_visible de F4) (' || left(v, 90) || ')');
+    else
+      r := r || pg_temp.l((select f.contrato_numero = 'ZZ-RT-K1' and f.proyecto_nombre = 'ZZ-RT Proyecto' and f.proyecto_id = pL
+                                  and f.datos->'fields'->>'contrato_numero' = 'ZZ-RT-K1' and f.datos->'fields'->>'proyecto_nombre' = 'ZZ-RT Proyecto'
+                             from public.facturas f where f.id = v::uuid),
+                          'K3 el admin global (sin alcance restringido) manda K2 y «ZZ-RT Proyecto 2»: se guardan K1, su proyecto y su proyecto_id (' ||
+                          coalesce((select coalesce(f.contrato_numero, '-') || ' / ' || coalesce(f.proyecto_nombre, '-') from public.facturas f where f.id = v::uuid), '-') || ')');
+    end if;
   end if;
 
   -- ============================================================ fallo 1 · el historico sin justificante se aplica (LAW-40)
