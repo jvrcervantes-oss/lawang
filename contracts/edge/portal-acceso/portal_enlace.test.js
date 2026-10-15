@@ -65,6 +65,7 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
       correo: o.correo || (() => ({ status: 200, cuerpo: '{"ok":true}' })),
       linkUid: o.linkUid || UID,
       frenoError: !!o.frenoError,
+      anotaError: !!o.anotaError,   // portal_freno_anota caída (20261015201000): la respuesta no cambia
       equipoUid: !!o.equipoUid,   // la cuenta de Auth es del equipo aunque `usuarios` tenga OTRO correo
     };
     globalThis.__sb = {
@@ -95,6 +96,10 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
           if (cuentaGlobal) freno.global = [...glob, reloj];
           if (ip) freno.ip[ip] = [...deIp, reloj];
           return { data: 'pasa', error: null };
+        }
+        if (nombre === 'portal_freno_anota') {
+          if (est.anotaError) return { data: null, error: { code: 'XX000', message: 'boom anota' } };
+          return { data: null, error: null };
         }
         throw new Error('rpc no prevista: ' + nombre);
       },
@@ -274,6 +279,12 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   igual([glob.crudo, est.envios.length], [exito.crudo, 0], 'acceso: tope global → misma respuesta y no sale');
   ok(glob.logs.includes('portal-acceso frenado_tope_global'), 'acceso: el tope global deja su línea propia (para avisar)');
   ok(glob.logs.some((l) => l.includes('frenado:global @cliente-prueba.com')), 'acceso: y el motivo con solo el dominio');
+  igual(llamo('rpc:portal_freno_anota').map((t) => t.args), [{ p_motivo: 'global' }], 'acceso: tope global → se anota para la vigilancia (una vez, sin correo ni IP)');
+  // si la anotación falla, la respuesta sigue siendo la misma y el log lo dice
+  prepara({ anotaError: true });
+  const globKo = await llama(ACCESO, { email: 'nuevo-global-2@cliente-prueba.com' });
+  igual([globKo.crudo, est.envios.length], [exito.crudo, 0], 'acceso: tope global con la anotación caída → misma respuesta');
+  ok(globKo.logs.some((l) => l.includes('portal-acceso anota_fallo global')), 'acceso: la anotación caída deja su línea');
   // 11. método y correo inválido
   prepara();
   igual((await llama(ACCESO, { email: 'no-es-correo' })).crudo, exito.crudo, 'acceso: correo mal formado → misma respuesta');
@@ -294,6 +305,7 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   igual([sextaIp.status, sextaIp.crudo, est.envios.length], [200, exito.crudo, 5], 'acceso: 6.º desde la misma IP → misma respuesta y no sale');
   ok(sextaIp.logs.some((l) => l.includes('frenado:ip @cliente-prueba.com')), 'acceso: IP, el log dice el motivo');
   ok(!sextaIp.logs.some((l) => l.includes('frenado_tope_global')), 'acceso: IP no se confunde con el tope global');
+  igual(llamo('rpc:portal_freno_anota').map((t) => t.args), [{ p_motivo: 'ip' }], 'acceso: frenazo por IP → se anota como ip (y los 5 que salieron no)');
   // la última entrada de x-forwarded-for (la del proxy) es la misma IP: también frena; la primera (la que pone el cliente) no cuenta
   const xff = await llama(ACCESO, { email: 'ip7@cliente-prueba.com' }, { 'x-forwarded-for': '198.51.100.1, ' + IP });
   igual([xff.crudo, est.envios.length], [exito.crudo, 5], 'acceso: x-forwarded-for, cuenta la última entrada');
