@@ -109,6 +109,25 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
     ok(/de toda la venta, sin parcela asignada/.test(pinta(m)), 'rótulo de la obra de la venta');
     ok((pinta(m).match(/data-obra="1" style="[^"]*border-left/g) || []).length === 4, 'las construcciones llevan su filete');
   }
+  // 3b · lo de otra parcela de la misma venta no entra en Documentos ni se le pide saldo (revisión del 15-oct)
+  {
+    const { m, sb } = await corre(fila(), {
+      contratos: { data: [raizC, obra('o1', 'CC1', { bloqueado: true }), obra('ox', 'CCX', { unidad_id: 'otra' })] },
+      facturas: { data: [{ id: 'fx', numero: 'INVX', tipo: 'factura', total: 9, moneda: 'EUR', contrato_id: 'ox' },
+                         { id: 'f1', numero: 'INV1', tipo: 'factura', total: 5, moneda: 'EUR', contrato_id: 'o1' }] },
+      saldo: { [R]: saldoOk(), o1: saldoOk(), ox: saldoOk({ facturas: [{ id: 'fx', numero: 'INVX', total: 9, cobrado: 0 }] }) }
+    });
+    ok(m.docs.grupos.factura.map((f) => f.numero).join() === 'INV1', 'la factura de la obra de otra parcela no sale');
+    ok(!sb.llamadas.some((l) => l[0] === 'rpc' && l[1] === 'contrato_saldo' && l[2].p_contrato === 'ox'), 'ni se pide su saldo');
+    ok(!sb.llamadas.some((l) => l[0] === 'in' && l[2].indexOf('ox') !== -1), 'ni sus documentos');
+    ok(!m.abiertas.some((a) => a.numero === 'INVX'), 'ni sus facturas abiertas');
+    ok(/q=CC1/.test(FP.fpHTML.docsCuerpo(m)) && !/q=RP00101/.test(FP.fpHTML.docsCuerpo(m)), '«Ver en Facturas» solo de los contratos con documentos');
+  }
+  // 3c · una obra liberada no tapa a la vigente que no se ve
+  {
+    const { m } = await corre(fila(), { contratos: { data: [raizC, obra('ol', 'CCL', { liberado_en: '2026-09-01' })] }, facturas: { data: [] }, saldo: { [R]: saldoOk() } });
+    ok(m.obraOculta && m.contratos.find((c) => c.numero === 'CCL').estado === 'liberado', 'liberada a la vista + vigente oculta = aviso');
+  }
   // 4 · cobro no visible: no se calcula ni se pinta 0
   {
     const { m } = await corre(fila({ cobrado_suelo: null, cobrado_obra: null }), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk() } });
@@ -139,6 +158,8 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
     const { m } = await corre(fila(), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk() } }, { parcelasDeVenta: 3 });
     const h = pinta(m);
     ok(/Venta RP00101 · 3 parcelas/.test(h) && /Es de toda la venta \(3 parcelas\)\./.test(h) && /Facturado sin cobrar · venta RP00101/.test(h), 'venta de 3 parcelas rotulada');
+    ok(!/Sin facturar/.test(FP.fpHTML.docsResumen(m)) && /Sin facturar · venta RP00101/.test(FP.fpHTML.docsCuerpo(m)), '«Sin facturar» de la venta, no de la parcela');
+    ok(!/no se suman/.test(h), 'en una venta de varias parcelas no se dice «ya está dentro»');
   }
   // 8 · precio de catálogo: no se rotula «pactado»
   {
@@ -156,6 +177,9 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
   {
     const { m } = await corre(fila(), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk({ facturado_de_mas: 25000, por_facturar: 0 }) } });
     ok(/fp-facturado-de-mas/.test(FP.fpHTML.pendientes(m)) && /anula el que no corresponda/.test(FP.fpHTML.pendientes(m)), 'el exceso se ve aunque «por facturar» sea 0');
+    ok(!/no se suman/.test(FP.fpHTML.pendientes(m)), 'con exceso no se afirma «ya está dentro»');
+    const b = await corre(fila(), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk({ facturas: [{ id: 'f1', numero: 'INV1', total: 121, subtotal: 100, cobrado: 0 }] }) } });
+    ok(/Con impuestos: no se resta del precio pactado\./.test(FP.fpHTML.pendientes(b.m)) && !/no se suman/.test(FP.fpHTML.pendientes(b.m)), 'con impuestos tampoco');
   }
   // 10 · avance de obra con su nombre del catálogo
   {

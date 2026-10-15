@@ -6664,7 +6664,7 @@
     'Los totales de la venta incluyen documentos que no puedes abrir.': 'The sale totals include documents you cannot open.',
     'No se pudieron leer los contratos de la parcela: %e': 'The plot contracts could not be read: %e',
     'No se pudo leer lo facturado de %c: %e': 'What was invoiced for %c could not be read: %e',
-    'No se pudo leer': 'Could not be read',
+    'Con impuestos: no se resta del precio pactado.': 'Including tax: it is not taken from the agreed price.',
     'Pactado por cobrar': 'Agreed, not collected',
     'Por cobrar del precio': 'Price not yet collected',
     'Precio de la venta menos lo ya facturado, sin impuestos.': 'Sale price minus what has been invoiced, before tax.',

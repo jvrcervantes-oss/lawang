@@ -50,9 +50,10 @@
   }
   function r2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
   function sinPermiso(e) { return !!e && (e.code === '42501' || e.hint === 'sin_permiso'); }
+  /* Sin prefijo: la frase de cada bloque («No se pudieron leer los contratos…: %e») ya lo pone. */
   function errTxt(e) {
-    if (root && typeof root.lwErrorHumano === 'function') return root.lwErrorHumano(e, T('No se pudo leer'));
-    return T('No se pudo leer') + ': ' + ((e && (e.message || e.code)) || '—');
+    if (root && typeof root.lwErrorHumano === 'function') return root.lwErrorHumano(e);
+    return (e && (e.message || e.code)) || '—';
   }
 
   /* Una lectura → {data, error}, también si la promesa revienta (red caída). */
@@ -81,6 +82,12 @@
     });
   }
 
+  /* Los contratos que son de ESTA parcela: el filtro por `contrato_padre_id` trae también la construcción de otra
+     parcela de la misma venta (7 ventas de varias parcelas, 15-oct), y ni ella ni sus documentos son de esta. */
+  function dePropia(cs, esObra, U) {
+    return (cs || []).filter(function (c) { return !(esObra[c.tipo] && c.unidad_id && c.unidad_id !== U); });
+  }
+
   /* ---------- carga: dos vueltas a la base ----------
      1.ª: los contratos de la parcela, el catálogo de obra y las fases.
      2.ª: los documentos de esos contratos y el saldo de cada uno (su lista de facturas con lo cobrado; las cifras de
@@ -94,8 +101,8 @@
       u.obra_fase ? leeFases(sb) : Promise.resolve({ data: null })
     ]).then(function (v) {
       var out = { contratos: v[0], obra: v[1], fases: v[2], facturas: { data: [] }, saldos: {} };
-      if (v[0].error) return out;
-      var cs = v[0].data || [];
+      if (v[0].error || v[1].error) return out;           // sin el catálogo no se sabe cuáles son de esta parcela
+      var cs = dePropia(v[0].data, v[1].data || {}, U);
       if (!cs.length) return out;
       var ids = cs.map(function (c) { return c.id; });
       return Promise.all([lee(sb.rpc('facturas_equipo').select(COLS_F).in('contrato_id', ids))].concat(
@@ -128,9 +135,8 @@
     if (carga.contratos.error) m.contratosError = carga.contratos.error;
     else if (carga.obra.error) m.contratosError = carga.obra.error;   // sin el catálogo no se sabe cuál es la construcción
     else {
-      (carga.contratos.data || []).forEach(function (c) {
+      dePropia(carga.contratos.data, esObra, U).forEach(function (c) {
         var obra = !!esObra[c.tipo];
-        if (obra && c.unidad_id && c.unidad_id !== U) return;
         m.contratos.push({ id: c.id, numero: c.numero, tipo: c.tipo, obra: obra, raiz: c.id === R,
           deLaVenta: obra && !c.unidad_id, estado: estadoContrato(c), fechaFirma: c.fecha_firma,
           importe: c.precio_total, moneda: c.moneda, creado: c.created_at });
@@ -139,7 +145,8 @@
       m.contratos.sort(function (a, b) {
         return (peso(a) - peso(b)) || String(a.fechaFirma || a.creado || '').localeCompare(String(b.fechaFirma || b.creado || ''));
       });
-      var hayObraViva = m.contratos.some(function (c) { return c.obra; });
+      // Una obra LIBERADA no tapa a la vigente que no se ve.
+      var hayObraViva = m.contratos.some(function (c) { return c.obra && c.estado !== 'liberado'; });
       /* La fila dice que hay construcción (firmada, o con precio de contrato) y la lectura no trae ninguna: existe y
          este usuario no la ve. «No hay» sería mentira. */
       m.obraOculta = !hayObraViva && (u.obra_firmada === true || u.obra_de_contrato === true);
@@ -168,8 +175,9 @@
     }
 
     /* Por venta: el saldo de la cadena se toma una vez (todas las llamadas de una venta devuelven las mismas cifras). */
-    var vistas = {}, abiertas = [], docsPorId = {};
-    var fs = carga.facturas.error ? [] : (carga.facturas.data || []).filter(function (f) { return !f.anulada; });
+    var vistas = {}, abiertas = [], docsPorId = {}, mios = {};
+    m.contratos.forEach(function (c) { mios[c.id] = 1; });
+    var fs = carga.facturas.error ? [] : (carga.facturas.data || []).filter(function (f) { return !f.anulada && mios[f.contrato_id]; });
     fs.forEach(function (f) { docsPorId[f.id] = f; });
     m.contratos.forEach(function (c) {
       var s = carga.saldos[c.id];
@@ -180,11 +188,15 @@
         return;
       }
       var d = s.data || {};
+      /* Con impuestos, «Facturado sin cobrar» (total de las facturas) ya no es parte del precio pactado (sin impuestos):
+         la ayuda «ya está dentro» deja de ser verdad. Medido el 15-oct: 0 de 175 facturas vivas llevan impuesto. */
+      var conImpuesto = (d.facturas || []).some(function (f) { return f.subtotal != null && Math.abs((Number(f.total) || 0) - (Number(f.subtotal) || 0)) > 0.005; });
+      if (d.cadena && vistas[d.cadena] && conImpuesto) m.cadenas.forEach(function (x) { if (x.numero === d.cadena) x.conImpuesto = true; });
       if (d.cadena && !vistas[d.cadena]) {
         vistas[d.cadena] = 1;
         m.cadenas.push({ numero: d.cadena, moneda: d.moneda, porCobrar: Number(d.por_cobrar) || 0,
           porFacturar: d.por_facturar == null ? null : Number(d.por_facturar), sinPrecio: !!d.sin_precio,
-          deMas: Number(d.facturado_de_mas) > 0.005 ? Number(d.facturado_de_mas) : 0 });
+          deMas: Number(d.facturado_de_mas) > 0.005 ? Number(d.facturado_de_mas) : 0, conImpuesto: conImpuesto });
       }
       (d.facturas || []).forEach(function (f) {
         var pend = r2((Number(f.total) || 0) - (Number(f.cobrado) || 0));
@@ -281,8 +293,10 @@
     buenas.forEach(function (x) {
       var varias = buenas.length > 1 || (m.venta && m.venta.parcelas > 1);
       var k = varias ? T('Facturado sin cobrar · venta %v', { v: x.numero }) : T('Facturado sin cobrar');
+      // «Ya está dentro» solo si es verdad: una parcela, sin exceso facturado y sin impuestos en las facturas.
       var ayuda = (m.venta && m.venta.parcelas > 1) ? T('Es de toda la venta (%n parcelas).', { n: m.venta.parcelas })
-        : m.pactado && !m.pactado.noVisible ? T('Ya está dentro de «%k»: no se suman.', { k: et }) : '';
+        : x.conImpuesto ? T('Con impuestos: no se resta del precio pactado.')
+        : m.pactado && !m.pactado.noVisible && !x.deMas ? T('Ya está dentro de «%k»: no se suman.', { k: et }) : '';
       out += fila(k, esc(fmt(x.porCobrar, x.moneda)), ayuda, 'fp-facturado-sin-cobrar');
       /* `facturado_de_mas` (contrato_saldo, 15-oct-2026): «por facturar» se queda en 0 y no enseña el exceso. */
       if (x.deMas) out += aviso(T('La venta %v tiene facturado %a más que su precio: algún documento sobra. Revísalo en Facturas y anula el que no corresponda.',
@@ -309,7 +323,9 @@
     if (m.docs.error) return esc(T('Documentos'));
     var g = m.docs.grupos, partes = [T('%n facturas', { n: g.factura.length }), T('%n recibís', { n: g.recibi.length }), T('%n proformas', { n: g.proforma.length })];
     var sf = m.cadenas.filter(function (x) { return !x.error && !x.noVisible; });
-    if (sf.length === 1) partes.push(sf[0].porFacturar == null ? T('Sin facturar —') : T('Sin facturar %a', { a: fmt(sf[0].porFacturar, sf[0].moneda) }));
+    // En una venta de varias parcelas «Sin facturar» es de la venta: se dice en el cuerpo, no en el resumen.
+    if (sf.length === 1 && !(m.venta && m.venta.parcelas > 1))
+      partes.push(sf[0].porFacturar == null ? T('Sin facturar —') : T('Sin facturar %a', { a: fmt(sf[0].porFacturar, sf[0].moneda) }));
     return esc(T('Documentos')) + ' <span style="font-weight:500;text-transform:none;letter-spacing:0;color:#75786e">· ' + esc(partes.join(' · ')) + '</span>';
   }
   function htmlDocsCuerpo(m) {
@@ -318,7 +334,7 @@
     var g = m.docs.grupos, out = '';
     var sf = m.cadenas.filter(function (x) { return !x.error && !x.noVisible; });
     sf.forEach(function (x) {
-      out += fila(sf.length > 1 ? T('Sin facturar · venta %v', { v: x.numero }) : T('Sin facturar'),
+      out += fila(sf.length > 1 || (m.venta && m.venta.parcelas > 1) ? T('Sin facturar · venta %v', { v: x.numero }) : T('Sin facturar'),
         x.porFacturar == null ? '—' : esc(fmt(x.porFacturar, x.moneda)),
         x.sinPrecio ? T('Algún contrato de esta venta no tiene precio fijado: sin precio no se puede calcular.') : T('Precio de la venta menos lo ya facturado, sin impuestos.'), 'fp-sin-facturar');
     });
