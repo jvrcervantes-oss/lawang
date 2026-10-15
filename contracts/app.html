@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="d00baf3d3c3c">
+<meta name="lw-version" content="4750fba2fdf3">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=0c996b62"></script>
+<script src="/contracts/assets/i18n.js?v=c2e905a8"></script>
 <script src="/contracts/assets/herramientas.js?v=b3b6465e"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -1915,6 +1915,7 @@ function limpiarOverrides(slug){
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = ''; PDF_SALIO = false;
+  SOC_GUARDADA = null;
   OBRA_ES_GUARDADA = false; OBRA_VINCULO_HECHO = null;   // borrador nuevo: su obra sí se precarga
   TECHO_LEGADO_SIN = false;
   /* HITOS también se reinicia (auditoría 19-ago): faltaba en esta lista y «+
@@ -2493,6 +2494,7 @@ function aplicarReglasCampos(){
   // cuentas ofrece este contrato (cascada proyecto → tipo → general)
   syncCuentasProyecto();
   syncBloqueoFichaProyecto();
+  syncSociedadProyecto();   // después del aviso de sociedad no indonesia de arriba, que limpia la nota del campo en cada pasada
   syncApoderadoHakSewa();
   syncPoaVinculado();
   syncPrecioObraVinculada();
@@ -2736,6 +2738,45 @@ function syncBloqueoFichaProyecto(){
       else el.readOnly = bloquear;
       el.title = bloquear ? 'Viene de la ficha del proyecto (Proyectos) — se edita ahí.' : '';
     });
+}
+
+/* Sociedad firmante = la de la empresa del proyecto (15-oct-2026, owner: «si selecciono un proyecto la sociedad
+   firmante debe quedar bloqueada»). Proyecto → `proyectos.empresa` → `empresas.sociedad_clave`: la misma cadena que
+   ya usa un contrato propio (sociedadDePropio). La base exige lo mismo (contrato_sociedad_existe, migración
+   20261015150000); esto es para verlo antes de guardar, no el candado.
+   · Sin proyecto, o sin poder resolver su sociedad (EMPRESAS_CAT vacío, empresa sin sociedad): el campo queda libre
+     como antes y manda la base. No se adivina.
+   · Un contrato firmado o en ronda de firma no se toca: su sociedad es la del papel.
+   · Un contrato guardado con otra sociedad (15 sin firmar, medidos el 15-oct) se CORRIGE al reabrirlo y se dice en el
+     propio campo hasta guardarlo (owner, «corregir al reabrir»). Si cuelga de una reserva que sigue con la otra
+     sociedad, la base no deja guardarlo: se corrige antes la reserva. */
+let SOC_GUARDADA = null;   // { valor, cerrado } del contrato abierto; null = borrador sin guardar
+function sociedadDelProyecto(){
+  const sel  = document.querySelector('[name="proyecto_nombre"]');
+  const proy = sel && sel.value && (PROYECTOS_DB || []).find(p => p.nombre === sel.value);
+  const emp  = proy && (EMPRESAS_CAT || []).find(e => e.clave === proy.empresa);
+  const k    = emp && emp.sociedad_clave;
+  return (k && typeof SOCIEDADES !== 'undefined' && SOCIEDADES[k]) ? k : '';
+}
+function syncSociedadProyecto(){
+  const el = document.querySelector('[name="sociedad_firmante"]');
+  if(!el || !CURRENT || CURRENT.propio) return;
+  if(LOCKED || (SOC_GUARDADA && SOC_GUARDADA.cerrado) || (EN_FIRMA.vivas + EN_FIRMA.firmadas) > 0) return;
+  const k = sociedadDelProyecto();
+  el.disabled = !!k;
+  el.title = k ? lwT('Es la sociedad de la empresa del proyecto: cambia si cambias de proyecto.') : '';
+  if(k && el.value !== k){
+    // no ofrecida (p. ej. marcada solo para facturas): se añade, como un valor huérfano de fieldHTML, en vez de dejar el campo en blanco
+    if(![...el.options].some(o => o.value === k))
+      el.insertAdjacentHTML('beforeend', `<option value="${escAttr(k)}">${esc(SOCIEDADES[k].label || k)}</option>`);
+    el.value = k;
+    renderDebounced();
+  }
+  const antes = SOC_GUARDADA && SOC_GUARDADA.valor;
+  if(k && antes && antes !== k){
+    const nom = c => (SOCIEDADES[c] && SOCIEDADES[c].label) || c;
+    marcarCampoAviso(el, lwT('Este contrato estaba guardado con %antes, pero su proyecto es de %ahora: al guardarlo queda con %ahora.', { antes: nom(antes), ahora: nom(k) }));
+  }
 }
 
 /* Apoderado (Primera Parte) del Hak Sewa notarial (10-ago): el nombre es un
@@ -5618,6 +5659,7 @@ async function guardarContrato(){
     if(fila.moneda) payload.moneda = fila.moneda;
     const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.fields, hitos:fila.hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
+    SOC_GUARDADA = { valor: String((fila.fields && fila.fields.sociedad_firmante) || ''), cerrado: false };   // lo que quedó en la base: apaga el aviso de «estaba guardado con…»
     avisoMigracion += await fijaVersionPlantilla(data.id, eraNuevo);   // S5: la versión del texto queda escrita con el contrato
     rebuildAnnex();   // un contrato recién creado ya admite anexos: el panel se pintó cuando aún no tenía fila (2-oct-2026)
     /* Construcción (28-sep-2026): el calendario lo monta el servidor —importes incluidos— y puede diferir de lo
@@ -5983,6 +6025,8 @@ async function openSavedContract(id){
   // antes de loadTemplate: deriveSections() monta el desplegable ahí dentro
   PROYECTO_ABIERTO = String((data.datos && data.datos.fields && data.datos.fields.proyecto_nombre)
                             || data.proyecto_nombre || '').trim();
+  // ANTES de buildForm/populateForm: syncSociedadProyecto corre dentro y LOCKED todavía es el del contrato anterior
+  SOC_GUARDADA = { valor: String((data.datos && data.datos.fields && data.datos.fields.sociedad_firmante) || ''), cerrado: !!data.bloqueado };
   await loadTemplate(slug, { contratoId: id });   // el texto que ESE contrato fijó (o el fichero, si no tiene vínculo)
   $('#tplPick').value = slug;
   // ANTES de buildForm: pintarFichaComprador() corre dentro y, con la ficha del
@@ -6394,6 +6438,7 @@ async function derivarContrato(slug){
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; TECHO_LEGADO_SIN = false; PDF_SALIO = false;
+  SOC_GUARDADA = null;
   OBRA_ES_GUARDADA = false; OBRA_VINCULO_HECHO = null;   // el derivado es nuevo: su obra sí se precarga
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
