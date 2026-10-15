@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261015171500_precio_cadena_vigente.sql (15-oct-2026).
+-- REVERSION de 20261015101833_precio_cadena_vigente.sql (15-oct-2026).
 -- Vuelve LITERAL a los cuerpos vivos del 15-oct (md5(prosrc) en la guarda de la migración) de _cadena_saldo_en,
 -- contrato_saldo, _unidad_cobro_cascada, _venta_cobro_atribuido y unidad_cobro_reparto: el precio de la venta vuelve a
 -- sumar todas las obras, contrato_saldo pierde facturado_de_mas y a_cuenta, y la cascada vuelve a ser la de antes.

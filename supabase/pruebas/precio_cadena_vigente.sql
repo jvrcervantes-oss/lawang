@@ -1,4 +1,4 @@
--- Prueba de precio-cadena-vigente (15-oct-2026, migración 20261015171500_precio_cadena_vigente.sql).
+-- Prueba de precio-cadena-vigente (15-oct-2026, migración 20261015101833_precio_cadena_vigente.sql).
 -- El precio de una venta solo suma la obra VIGENTE de cada parcela (la regla única de _venta_obras_vigentes); las facturas no
 -- se tocan; contrato_saldo da facturado_de_mas y a_cuenta; la vista unidades_estado trae suelo_de_contrato y obra_de_contrato.
 --   V1  R1 (la forma de RP00101): Bloqueo 25.000 + obra borrador 44.000 sustituida por otra firmada de 44.000, y la parcela
@@ -31,7 +31,7 @@
 -- corren como postgres con las claims del admin (V6b compara la vieja, que authenticated ya no ejecuta; V8 mide la vista
 -- vieja reconstruida en pg_temp). La puerta mira las claims, no el rol.
 -- !! CREA CONTRATOS, FACTURAS Y USUARIOS (gasta numeración): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015171500_precio_cadena_vigente.sql --prueba precio_cadena_vigente.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015101833_precio_cadena_vigente.sql --prueba precio_cadena_vigente.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-PV.
 -- destructivo-ok: prueba en transacción que termina en raise (rollback); solo en rama
 -- ============================================================ las funciones de ANTES, para medir la vista vieja (V8)

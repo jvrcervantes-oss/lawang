@@ -5,7 +5,7 @@
    POR QUÉ EXISTE. El precio de una venta sumaba también los contratos de obra
    ya sustituidos: RP00101 tenía la obra CC00062 en borrador y la CC00102
    firmada (las dos de 44.000) y el precio salía 113.000 en vez de 69.000. Lo
-   arregla en el servidor la migración 20261015171500_precio_cadena_vigente
+   arregla en el servidor la migración 20261015101833_precio_cadena_vigente
    (public._venta_obras_vigentes, una sola regla). La lista de Operaciones, el
    Saldo y la ficha suman en el navegador con `cuentaGrupo`
    (assets/operaciones-cuentas.js), que es su gemela y tiene que decir lo mismo.

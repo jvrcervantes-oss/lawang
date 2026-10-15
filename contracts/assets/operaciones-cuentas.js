@@ -110,7 +110,7 @@ function cuentaGrupo(op){
   const raiz = grupo[0];
   const otraMoneda = o => o !== raiz && (o.moneda || null) !== (raiz.moneda || null);
   /* Solo la obra VIGENTE suma (15-oct-2026). Gemela de public._venta_obras_vigentes, la regla del servidor que pone el
-     precio de la venta y el tope de facturar (migración 20261015171500): un contrato de obra (construccion,
+     precio de la venta y el tope de facturar (migración 20261015101833): un contrato de obra (construccion,
      cc00014_timon, adenda…; los tipos con es_obra del catálogo contrato_tipo_etapa) solo cuenta si es el vigente de su
      parcela: los FIRMADOS si hay alguno; si no, el borrador más reciente. Liberados, sin precio y de otra moneda, fuera.
      Sin esto, un borrador sustituido sumaba dos veces la obra: RP00101 (CC00062 borrador + CC00102 firmada) decía

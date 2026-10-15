@@ -1,4 +1,4 @@
--- Prueba en la BASE VIVA de precio-cadena-vigente (15-oct-2026, migración 20261015171500_precio_cadena_vigente.sql).
+-- Prueba en la BASE VIVA de precio-cadena-vigente (15-oct-2026, migración 20261015101833_precio_cadena_vigente.sql).
 -- SE LANZA DESPUÉS DE APLICAR, por execute_sql (o el SQL Editor), y TERMINA CON UN RAISE a propósito: no deja rastro (las
 -- funciones pg_temp, el cambio de rol y los claims se deshacen con él).
 -- «Antes» y «después» EN EL MISMO INSTANTE: las funciones de antes de la migración van aquí como pg_temp, con su cuerpo literal
