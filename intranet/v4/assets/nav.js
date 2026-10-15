@@ -231,7 +231,7 @@
      motion.js anima el primer lote que pinte su script (modo tardío). Con
      «reducir movimiento» en el sistema, ni marca ni motion.js. MOTION_V = 8 primeros del sha1 de
      motion.js con fin de línea LF (lo desplegado): nav.test.js falla si no casan, porque sella_assets no lo sella. */
-  var MOTION_V = 'c057328a';
+  var MOTION_V = '095deca9';
   (function () {
     try {
       /* Solo en /intranet/v4/ (27-sep-2026): la entrada anima `main` cuando datos.js

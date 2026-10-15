@@ -143,7 +143,9 @@
     capa.style.color = cs.color;                         // el texto real queda transparente: la capa lleva su color
     capa.style.textAlign = cs.textAlign;
     capa.setAttribute('data-v', fmt(0));
-    if (cs.position === 'static') el.style.position = 'relative';
+    // la capa se ancla al contador; se compara con las cuatro que ya son clases de Tailwind (la palabra suelta de la
+    // quinta metía una regla nueva en las cuatro hojas compiladas, que escanean este fichero)
+    if (!/^(relative|absolute|fixed|sticky)$/.test(cs.position)) el.style.position = 'relative';
     el.style.fontVariantNumeric = 'tabular-nums';       // que el ancho no baile mientras cuenta
     el.style.color = 'transparent';
     el.appendChild(capa);
