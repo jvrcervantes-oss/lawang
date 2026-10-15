@@ -200,11 +200,13 @@ begin
   end loop;
 
   -- ============================================================ G10-G11 por el rol real
+  -- `where x::text is not null` obliga a evaluar la fila: sin él, en la escalar (deck_ubicacion) el planificador quitaba la llamada a la
+  -- función estable que nadie lee, no comprobaba el EXECUTE y G11.8 contaba 1 fila (ensayo lawang-202610160657-5f651f52)
   for i in 1 .. array_length(pares, 1) loop
     v  := pg_temp.h(format(pares[i][3], c_sa));
-    v2 := pg_temp.val(format('select count(*)::text from (%s) x', format(pares[i][3], c_sa)), 'anon');
+    v2 := pg_temp.val(format('select count(*)::text from (%s) x where x::text is not null', format(pares[i][3], c_sa)), 'anon');
     r := r || pg_temp.l(v2 = split_part(v, ':', 1), format('G10.%s anon llama %s_por_slug: %s filas (esperadas %s)', i, pares[i][1], v2, split_part(v, ':', 1)));
-    v2 := pg_temp.val(format('select count(*)::text from (%s) x', format(pares[i][3], c_sa)), 'authenticated');
+    v2 := pg_temp.val(format('select count(*)::text from (%s) x where x::text is not null', format(pares[i][3], c_sa)), 'authenticated');
     r := r || pg_temp.l(pg_temp.err(v2) = '42501', format('G11.%s authenticated NO llama %s_por_slug (%s)', i, pares[i][1], left(v2, 60)));
   end loop;
 
@@ -222,7 +224,8 @@ begin
                   has_function_privilege('service_role', p.oid, 'execute'), has_function_privilege('lw_lector', p.oid, 'execute'),
                   coalesce(p.proacl::text, '(defecto)') ~ '(^\{|,)=X/') into v
       from pg_proc p where p.oid = to_regprocedure('public.' || f);
-    r := r || pg_temp.l(v = 'postgres|true|{"search_path=\"\""}|anon=true auth=false srv=false lwl=false public=false',
+    -- format('%s', boolean) escribe t/f (salida de boolout), no true/false: el ensayo lawang-202610160657-5f651f52 dio la forma buena en rojo
+    r := r || pg_temp.l(v = 'postgres|t|{"search_path=\"\""}|anon=t auth=f srv=f lwl=f public=f',
                         'G13 forma de ' || f || ' (' || coalesce(v, 'NO EXISTE') || ')');
     select pg_get_function_arguments(to_regprocedure('public.' || f)) into v;
     r := r || pg_temp.l(v !~* '\m(p_proyecto|p_proyecto_nombre|p_nombre) text\M', 'G16 ' || f || ' no recibe un nombre (' || v || ')');
