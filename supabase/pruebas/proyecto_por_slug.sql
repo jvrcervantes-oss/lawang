@@ -213,9 +213,15 @@ begin
     r := r || pg_temp.l(v !~ '=true', 'G12 nadie ejecuta el auxiliar ' || f || ' (' || v || ')');
   end loop;
   foreach f in array gemelas loop
-    select format('%s|%s|%s|%s', pg_get_userbyid(p.proowner), p.prosecdef, p.proconfig::text, p.proacl::text) into v
+    -- por privilegio efectivo, no por el texto de proacl (el orden y los defaults de la rama pueden variar): anon sí; authenticated,
+    -- service_role y lw_lector no; y ninguna entrada de PUBLIC («=X/» al principio de un elemento del aclitem[])
+    select format('%s|%s|%s|anon=%s auth=%s srv=%s lwl=%s public=%s', pg_get_userbyid(p.proowner), p.prosecdef, p.proconfig::text,
+                  has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'),
+                  has_function_privilege('service_role', p.oid, 'execute'), has_function_privilege('lw_lector', p.oid, 'execute'),
+                  coalesce(p.proacl::text, '(defecto)') ~ '(^\{|,)=X/') into v
       from pg_proc p where p.oid = to_regprocedure('public.' || f);
-    r := r || pg_temp.l(v = 'postgres|true|{"search_path=\"\""}|{postgres=X/postgres,anon=X/postgres}', 'G13 forma de ' || f || ' (' || coalesce(v, 'NO EXISTE') || ')');
+    r := r || pg_temp.l(v = 'postgres|true|{"search_path=\"\""}|anon=true auth=false srv=false lwl=false public=false',
+                        'G13 forma de ' || f || ' (' || coalesce(v, 'NO EXISTE') || ')');
     select pg_get_function_arguments(to_regprocedure('public.' || f)) into v;
     r := r || pg_temp.l(v !~* '\m(p_proyecto|p_proyecto_nombre|p_nombre) text\M', 'G16 ' || f || ' no recibe un nombre (' || v || ')');
   end loop;
