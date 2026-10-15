@@ -3,6 +3,7 @@
 -- Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- S1/S2 alta con la del proyecto entra; con otra se rechaza. S3 alta sin sociedad entra y NO se rellena (decision por defecto).
 -- S4 alta que solo trae el NOMBRE del proyecto (este trigger corre antes que trg_espejo_proyecto): se rechaza igual.
+-- S12 por contrato_guarda como authenticated (pantalla de antes rebota, la de ahora guarda; sin la clave se conserva, vacía se rechaza).
 -- S5 cambiar la sociedad a otra se rechaza. S6 cambiar de proyecto a uno de otra empresa con la sociedad vieja se rechaza; con la
 -- del proyecto nuevo entra. S7 un contrato viejo descuadrado (montado con el trigger apagado) se sigue pudiendo tocar (precio,
 -- bloqueo) sin que reviente, y corregirlo a la del proyecto entra («corregir al reabrir»). S8 proyecto de una empresa sin
@@ -26,6 +27,26 @@ begin
 exception when others then
   return 'ERR' || sqlstate || ':' || left(sqlerrm, 200);
 end $f$;
+-- ejecuta p_sql con la sesion de quien se dice (rol authenticated): el resultado en texto, o el error
+create or replace function pg_temp.val(p_uid uuid, p_email text, p_sql text, p_rol text default 'authenticated') returns text language plpgsql as $f$
+declare t text;
+begin
+  perform set_config('request.jwt.claims', case when p_uid is null then '' else
+          json_build_object('sub', p_uid, 'role', p_rol, 'email', p_email)::text end, true);
+  execute 'set local role ' || p_rol;
+  begin execute p_sql into t;
+  exception when others then t := 'ERR' || sqlstate || ':' || left(sqlerrm, 200); end;
+  execute 'reset role';
+  perform set_config('request.jwt.claims', '', true);
+  return coalesce(t, '(null)');
+end $f$;
+-- el p_contrato que manda la pantalla a contrato_guarda (contracts/app.html, contractPayload): tipo + datos.fields
+create or replace function pg_temp.envio(p_proy_nombre text, p_soc text) returns jsonb language sql as $f$
+  select jsonb_build_object('tipo', 'contrato_general',
+           'datos', jsonb_build_object('hitos', '[]'::jsonb,
+                      'fields', jsonb_strip_nulls(jsonb_build_object('proyecto_nombre', p_proy_nombre, 'sociedad_firmante', p_soc,
+                                                                     'adq1_nombre', 'ZZ-SP Comprador'))))
+$f$;
 -- un contrato de prueba: id, o el error
 create or replace function pg_temp.alta(p_num text, p_proy uuid, p_nombre text, p_fields jsonb, p_padre uuid default null) returns text
 language plpgsql as $f$
@@ -44,6 +65,7 @@ do $todo$
 declare
   r text := ''; v text;
   p1 uuid; p1b uuid; p2 uuid; p3 uuid; k1 uuid; k3 uuid; k6 uuid; k7 uuid; kp uuid; k10 uuid; f10 uuid;
+  ad uuid := gen_random_uuid(); c_ad constant text := 'zz-sp-admin@prueba.invalid'; k12 uuid;
   c_fin constant text := 'FIN DE PRUEBAS SOCIEDAD DEL PROYECTO (se deshace todo):%';
   c_rech constant text := 'ERR23514:La sociedad firmante «%» no es la del proyecto%';
 begin
@@ -182,7 +204,37 @@ begin
     v := pg_temp.x(format($q$update public.contratos set datos = jsonb_set(datos, '{fields,sociedad_firmante}', '""') where id = %L$q$, k10));
     r := r || pg_temp.l(v like 'ERR23514:La sociedad firmante no se puede dejar vacía (era «zz_sp1»)%', 'S11 vaciar la sociedad de un contrato que la tenia se rechaza (' || left(v, 120) || ')');
     v := pg_temp.x(format($q$update public.contratos set datos = datos #- '{fields,sociedad_firmante}' where id = %L$q$, k10));
-    r := r || pg_temp.l(v like 'ERR23514:La sociedad firmante no se puede dejar vacía%', 'S11b quitar la clave sociedad_firmante del contrato tambien se rechaza (' || left(v, 120) || ')');
+    r := r || pg_temp.l(v = 'OK' and (select c.datos->'fields'->>'sociedad_firmante' from public.contratos c where c.id = k10) = 'zz_sp1',
+                        'S11b si la clave sociedad_firmante ni llega (plantilla sin el campo) se conserva la de antes (' || left(v, 120) || ')');
+  end if;
+
+  -- ============================================================ S12 por contrato_guarda, como authenticated (lo que hace la pantalla)
+  -- contrato_guarda reescribe proyecto_nombre pero NO proyecto_id: la fila sigue en su proyecto (consulta de Backend, 15-oct).
+  -- La pantalla, en un contrato guardado, manda el proyecto de la FILA y su sociedad (syncProyectoGuardado): eso tiene que entrar.
+  begin
+    insert into auth.users (id, instance_id, email, aud, role)
+      values (ad, '00000000-0000-0000-0000-000000000000', c_ad, 'authenticated', 'authenticated');
+    insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo)
+      values (ad, c_ad, 'ZZ-SP Admin', 'admin', 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{contratos}'::text[], '{}'::text[], true);
+    v := pg_temp.val(ad, c_ad, format('select (public.contrato_guarda(null, %L::jsonb))->>''id''', pg_temp.envio('ZZ-SP Proyecto 1', 'zz_sp1')));
+  exception when others then
+    v := 'ERR' || sqlstate || ':' || left(sqlerrm, 200);
+  end;
+  r := r || pg_temp.l(v !~ '^ERR', 'S12 alta por contrato_guarda (admin, authenticated) en el proyecto 1 con su sociedad entra (' || left(v, 120) || ')');
+  if v !~ '^ERR' then
+    k12 := v::uuid;
+    r := r || pg_temp.l((select c.proyecto_id from public.contratos c where c.id = k12) = p1, 'S12a la base lo deja en el proyecto 1 (por el nombre, en el alta)');
+    v := pg_temp.val(ad, c_ad, format('select (public.contrato_guarda(%L, %L::jsonb))->>''id''', k12, pg_temp.envio('ZZ-SP Proyecto 2', 'zz_sp2')));
+    r := r || pg_temp.l(v like c_rech and (select c.proyecto_id from public.contratos c where c.id = k12) = p1,
+                        'S12b la pantalla de antes (proyecto 2 en el desplegable y su sociedad) rebota: proyecto_id no cambia por el nombre (' || left(v, 120) || ')');
+    v := pg_temp.val(ad, c_ad, format('select (public.contrato_guarda(%L, %L::jsonb))->>''id''', k12, pg_temp.envio('ZZ-SP Proyecto 1', 'zz_sp1')));
+    r := r || pg_temp.l(v = k12::text, 'S12c la pantalla de ahora (el proyecto de la fila y su sociedad) vuelve a guardar sin problema (' || left(v, 120) || ')');
+    v := pg_temp.val(ad, c_ad, format('select (public.contrato_guarda(%L, %L::jsonb))->>''id''', k12, pg_temp.envio('ZZ-SP Proyecto 1', null)));
+    r := r || pg_temp.l(v = k12::text and (select c.datos->'fields'->>'sociedad_firmante' from public.contratos c where c.id = k12) = 'zz_sp1',
+                        'S12d por contrato_guarda sin la clave de la sociedad: guarda y la conserva (' || left(v, 120) || ')');
+    v := pg_temp.val(ad, c_ad, format('select (public.contrato_guarda(%L, %L::jsonb))->>''id''', k12, pg_temp.envio('ZZ-SP Proyecto 1', '')));
+    r := r || pg_temp.l(v like 'ERR23514:La sociedad firmante no se puede dejar vacía%',
+                        'S12e por contrato_guarda con la sociedad vacía se rechaza (' || left(v, 120) || ')');
   end if;
 
   raise exception using message = replace(c_fin, '%', r);

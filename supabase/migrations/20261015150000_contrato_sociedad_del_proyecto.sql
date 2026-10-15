@@ -15,7 +15,7 @@
 --   2) El contrato del que cuelga, si tiene sociedad (regla del padre, ya existía). Con padre tampoco aplica la del proyecto:
 --      sin esto un hijo de un padre descuadrado no se podía guardar de ninguna forma, y con el padre firmado no había salida.
 --   3) El proyecto.
--- Una sociedad que ya tenía valor no se puede VACIAR (23514; Seguridad, 15-oct). Una sociedad VACÍA no se rellena (decisión por defecto del CEO, 15-oct): rellenarla cambiaría con qué sociedad salen las
+-- Una sociedad que ya tenía valor no se puede VACIAR (23514; Seguridad, 15-oct); si la clave ni llega, se conserva. Una sociedad VACÍA no se rellena (decisión por defecto del CEO, 15-oct): rellenarla cambiaría con qué sociedad salen las
 --   proformas de las plantillas que no tienen el campo (lwSociedadContrato cae a SOCIEDAD_DEFAULT). Revertir: añadir el relleno.
 -- Proyecto sin empresa o empresa sin sociedad: no se exige nada (no hay con qué comparar), como antes.
 -- destructivo-ok: solo cambia el cuerpo de una función de trigger; no toca filas, permisos ni triggers.
@@ -47,12 +47,20 @@ begin
   if tg_op = 'UPDATE' then
     v_old := nullif(btrim(coalesce(old.datos->'fields'->>'sociedad_firmante','')), '');
   end if;
-  v_cambia := (tg_op = 'INSERT') or v_clave is distinct from v_old;
   -- vaciar una sociedad que ya tenía valor se saltaba las reglas de abajo (todo cuelga de v_clave not null) y las proformas
-  -- siguientes salían con SOCIEDAD_DEFAULT: se rechaza (consulta de Seguridad, 15-oct). Lo que nació vacío sigue pudiendo serlo.
+  -- siguientes salían con SOCIEDAD_DEFAULT (consulta de Seguridad, 15-oct). Lo que nació vacío sigue pudiendo serlo.
+  --   · la clave NO llega (plantilla sin el campo; p. ej. un hijo al que este trigger le puso la del padre en el alta y la
+  --     pantalla aún no lo sabe): se conserva la de antes, como hace la pantalla con CAMPOS_HEREDADOS.
+  --   · la clave llega VACÍA: se rechaza.
   if tg_op = 'UPDATE' and v_old is not null and v_clave is null then
-    raise exception 'La sociedad firmante no se puede dejar vacía (era «%»).', v_old using errcode = '23514';
+    if jsonb_typeof(new.datos->'fields') = 'object' and not (new.datos->'fields' ? 'sociedad_firmante') then
+      new.datos := jsonb_set(new.datos, '{fields,sociedad_firmante}', to_jsonb(v_old));
+      v_clave := v_old;
+    else
+      raise exception 'La sociedad firmante no se puede dejar vacía (era «%»).', v_old using errcode = '23514';
+    end if;
   end if;
+  v_cambia := (tg_op = 'INSERT') or v_clave is distinct from v_old;
 
   -- herencia: una construcción/carta colgada de una reserva con sociedad explícita
   if new.contrato_padre_id is not null and jsonb_typeof(new.datos->'fields') = 'object' then
