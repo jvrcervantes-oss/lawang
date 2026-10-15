@@ -43,9 +43,9 @@ begin
   select f.numero, f.tipo, f.total, f.moneda, f.sociedad, f.contrato_id, f.contrato_numero, f.client_id,
          coalesce(f.anulada, false) as anulada, coalesce(f.enviada, false) as enviada
     into v_rec from public.facturas f where f.id = c_rec for update;
-  if v_inv.numero is distinct from 'INV00173' or v_inv.tipo <> 'factura' or v_inv.total <> 10625 or v_inv.moneda <> 'EUR'
+  if v_inv.numero is distinct from 'INV00173' or v_inv.tipo <> 'factura' or v_inv.total <> 10625 or v_inv.moneda is distinct from 'EUR'
      or v_inv.anulada or v_inv.contrato_id is distinct from c_raiz
-     or v_rec.numero is distinct from 'REC00130' or v_rec.tipo <> 'recibi' or v_rec.total <> 10625 or v_rec.moneda <> 'EUR'
+     or v_rec.numero is distinct from 'REC00130' or v_rec.tipo <> 'recibi' or v_rec.total <> 10625 or v_rec.moneda is distinct from 'EUR'
      or v_rec.anulada or v_rec.contrato_id is distinct from c_raiz or v_rec.sociedad is distinct from v_inv.sociedad then
     raise exception 'PARADA LAW-612: INV00173/REC00130 no están como se midió el 15-oct (% % % %, % % % %)',
       v_inv.numero, v_inv.total, v_inv.contrato_id, v_inv.anulada, v_rec.numero, v_rec.total, v_rec.contrato_id, v_rec.anulada;
@@ -59,7 +59,7 @@ begin
   select c.numero, c.contrato_padre_id, c.moneda, c.liberado_en,
          nullif(btrim(coalesce(c.datos_fields->>'sociedad_firmante', '')), '') as sociedad
     into v_obra from public.contratos c where c.id = c_obra;
-  if v_obra.numero is distinct from 'CC00088' or v_obra.contrato_padre_id is distinct from c_raiz or v_obra.moneda <> 'EUR'
+  if v_obra.numero is distinct from 'CC00088' or v_obra.contrato_padre_id is distinct from c_raiz or v_obra.moneda is distinct from 'EUR'
      or v_obra.liberado_en is not null or (v_obra.sociedad is not null and v_obra.sociedad <> v_inv.sociedad) then
     raise exception 'PARADA LAW-612: CC00088 no sirve de destino (numero %, padre %, moneda %, liberado %, sociedad % frente a %)',
       v_obra.numero, v_obra.contrato_padre_id, v_obra.moneda, v_obra.liberado_en, v_obra.sociedad, v_inv.sociedad;

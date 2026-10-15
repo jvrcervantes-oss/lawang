@@ -11,7 +11,8 @@
 --   · trg_protege_liberado_contrato es de contratos (que no se toque liberado_en fuera de libera_reserva): aquí no se toca ningún
 --     contrato.
 --   · trg_unidad_estado_al_historial (diferido: corre al confirmar) no escribe su fila si ya hay una de esta transacción
---     (mismo en = now(), mismo antes y después): la fila con el motivo de LAW-611 se escribe aquí y la suya se omite. El ensayo
+--     (mismo en = now(), mismo antes y después): la fila con el motivo de LAW-611 se escribe aquí, tras el update y con la
+--     fila tal como queda, y la suya se omite (corre después, al confirmar). El ensayo
 --     lo comprueba forzando los diferidos (set constraints all immediate) antes de contar.
 --   · avanza_unidad_por_cobro deja una «bloqueada» como está mientras su Bloqueo no esté firmado: no la vuelve a subir.
 --   · trg_unidad_estado_aviso_manager avisa a los managers del proyecto («Unidad W3 - C3 — bloqueada»): es el aviso interno de
@@ -45,16 +46,16 @@ begin
     raise exception 'PARADA LAW-611: W3 - C3 ya cumple «vendida» (el suelo está cobrado): no se baja';
   end if;
 
-  v_despues := jsonb_set(to_jsonb(v_u), '{estado}', to_jsonb('bloqueada'::text));
+  update public.unidades u set estado = 'bloqueada' where u.id = v_u.id;
+  -- «después» = la fila tal como queda (tras los disparadores BEFORE de unidades), no una copia armada a mano
+  select to_jsonb(u), u.estado into v_despues, v_estado from public.unidades u where u.id = v_u.id;
   insert into public.unidades_log (unidad_id, antes, despues, motivo, via, por)
   values (v_u.id, to_jsonb(v_u), v_despues,
           'LAW-611: vuelve a bloqueada por decisión del owner (15-oct-2026): figuraba vendida con el Bloqueo RP00070 sin firmar '
           || 'y el suelo sin cobrar entero',
           'sql directo', 'migración LAW-611');
-  update public.unidades u set estado = 'bloqueada' where u.id = v_u.id;
 
-  select u.estado into v_estado from public.unidades u where u.id = v_u.id;
-  if v_estado <> 'bloqueada' then
+  if v_estado is distinct from 'bloqueada' then
     raise exception 'PARADA LAW-611: tras el cambio W3 - C3 queda en «%»', v_estado;
   end if;
   raise notice 'LAW-611 ok: W3 - C3 vendida -> bloqueada, con su fila de historial';

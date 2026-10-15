@@ -21,6 +21,17 @@ MIGRACIONES = ['20261015210000_law610_cc00040_precio.sql',
 SALIDA = os.path.join(AQUI, 'ensayo_law610_612_viva.sql')
 
 INICIO = """
+-- Foto de las comisiones de la venta RP00079 (devengos, sus diferencias y el último error del recálculo automático): la
+-- reconciliación que dispara LAW-610 es DIFERIDA, así que se compara antes y después de forzarla en el resumen (revisor, 15-oct).
+create or replace function pg_temp.e612_comisiones_rp00079() returns text language sql as $f$
+  select coalesce((select string_agg(to_jsonb(d)::text, '|' order by d.id) from public.comisiones_devengadas d
+                    where d.contrato_raiz_id in ('637f9a44-cd31-47eb-a636-5fe33255eab3', '93d557dc-814b-48df-b127-adc34f6f191e')), '')
+      || ' # ' || coalesce((select string_agg(to_jsonb(x)::text, '|' order by x.id) from public.comisiones_diferencias x
+                            join public.comisiones_devengadas d on d.id = x.devengo_id
+                           where d.contrato_raiz_id = '637f9a44-cd31-47eb-a636-5fe33255eab3'), '')
+      || ' # ' || coalesce((select string_agg(coalesce(i.ultimo_error_en::text, '-'), ',') from public.comisiones_interruptor i), '')
+$f$;
+
 -- ── ANTES (solo lee; lo guarda en una variable de la transacción para el resumen) ───────────────────────────────────────
 do $antes$
 declare v text;
@@ -31,6 +42,7 @@ begin
        (select b.cobrado_suelo_firmado || '/' || b.cobrado_obra_firmada || ' · ' || b.cobrado_directo_suelo || '/' || b.cobrado_directo_obra
           from public._comisiones_bases_firmadas('f0d47af2-5749-46eb-ad82-00415a95ef4d') b);
   perform set_config('ensayo_law610_612.antes', v, true);
+  perform set_config('ensayo_law610_612.com79', pg_temp.e612_comisiones_rp00079(), true);
 end $antes$;
 """
 
@@ -57,6 +69,10 @@ begin
   v := v || (select format(' · por contrato: precio %s, sin precio %s, facturado %s (cadena %s)', s.precio, s.sin_precio,
                            s.facturado, s.raiz_numero)
                from public._cadena_saldo_en('93d557dc-814b-48df-b127-adc34f6f191e', 'EUR') s);
+  v := v || ' · comisiones RP00079 (devengos, diferencias, error del recálculo) tras forzar la reconciliación: '
+         || case when pg_temp.e612_comisiones_rp00079() = current_setting('ensayo_law610_612.com79', true) then 'IGUALES'
+                 else 'CAMBIAN (FALLA): antes «' || left(current_setting('ensayo_law610_612.com79', true), 400)
+                      || '» después «' || left(pg_temp.e612_comisiones_rp00079(), 400) || '»' end;
   -- LAW-611
   select u.id, u.estado, x.cobrado_suelo, x.suelo_precio into r
     from public.unidades u cross join lateral public._unidad_cobro_cascada_v2(u.id) x

@@ -2,6 +2,17 @@
 -- GENERADO por contracts/sql/genera_ensayo_law610_612.py: no se edita a mano.
 -- Se lanza con tools/lanza_ensayo_viva.py (begin … rollback, nunca confirma), marca «RES LAW610-612».
 
+-- Foto de las comisiones de la venta RP00079 (devengos, sus diferencias y el último error del recálculo automático): la
+-- reconciliación que dispara LAW-610 es DIFERIDA, así que se compara antes y después de forzarla en el resumen (revisor, 15-oct).
+create or replace function pg_temp.e612_comisiones_rp00079() returns text language sql as $f$
+  select coalesce((select string_agg(to_jsonb(d)::text, '|' order by d.id) from public.comisiones_devengadas d
+                    where d.contrato_raiz_id in ('637f9a44-cd31-47eb-a636-5fe33255eab3', '93d557dc-814b-48df-b127-adc34f6f191e')), '')
+      || ' # ' || coalesce((select string_agg(to_jsonb(x)::text, '|' order by x.id) from public.comisiones_diferencias x
+                            join public.comisiones_devengadas d on d.id = x.devengo_id
+                           where d.contrato_raiz_id = '637f9a44-cd31-47eb-a636-5fe33255eab3'), '')
+      || ' # ' || coalesce((select string_agg(coalesce(i.ultimo_error_en::text, '-'), ',') from public.comisiones_interruptor i), '')
+$f$;
+
 -- ── ANTES (solo lee; lo guarda en una variable de la transacción para el resumen) ───────────────────────────────────────
 do $antes$
 declare v text;
@@ -12,8 +23,9 @@ begin
        (select b.cobrado_suelo_firmado || '/' || b.cobrado_obra_firmada || ' · ' || b.cobrado_directo_suelo || '/' || b.cobrado_directo_obra
           from public._comisiones_bases_firmadas('f0d47af2-5749-46eb-ad82-00415a95ef4d') b);
   perform set_config('ensayo_law610_612.antes', v, true);
+  perform set_config('ensayo_law610_612.com79', pg_temp.e612_comisiones_rp00079(), true);
 end $antes$;
--- ── 20261015210000_law610_cc00040_precio.sql · sha256 406f634ce9fc69791406eefa20dc5d97bb9e2cadb7b61045a556de292db517a4 ──
+-- ── 20261015210000_law610_cc00040_precio.sql · sha256 bb15a22c49db31c8135f936d585c1a1532bd4867e2b8d434adedfa98ddf32137 ──
 -- LAW-610 · CC00040 lleva 44.000 € — 15-oct-2026, sesión lawang-cola-2 (orquestador agencia-c0). Cambio de DATOS, una fila.
 --
 -- Qué pasa: el contrato de construcción CC00040 (venta RP00079, parcela SH-3 de Sumba Hills) no tiene precio, y sin precio no
@@ -27,8 +39,9 @@ end $antes$;
 -- datos.fields.precio_total = '44000' (contrato_guarda recalcula precio_total desde ese campo en cada guardado de un contrato
 -- sin firmar: sin él, el próximo guardado lo volvería a dejar sin precio). Si el papel ya trae OTRO precio, PARA.
 -- Guardas: el contrato por id exacto, su número, su padre, sin precio, EUR y sin liberar; SH-3 a 69.000 = 25.000 + 44.000
--- antes y después, y su estado sin cambiar; las comisiones de la venta (comisiones_devengadas) sin un cambio. Cualquier
--- desajuste PARA y no escribe nada (es un solo bloque).
+-- antes y después, y su estado sin cambiar; CC00040 SIN FIRMAR (si no, su precio entraría en la base de comisión de la venta:
+-- ver el bloque). Cualquier desajuste PARA y no escribe nada (es un solo bloque). El ensayo fuerza la reconciliación diferida
+-- de comisiones y enseña las de RP00079 antes y después.
 -- Efecto que se ve: por contrato, CC00040 queda con 69.000 facturados sobre 44.000 de precio (25.000 de más, que son de la
 -- parcela); el tope de la VENTA cuadra (69.000 de 69.000). El ensayo lo enseña con _cadena_saldo_en.
 -- Lo prueba el ensayo deshecho contracts/sql/ensayo_law610_612_viva.sql (lanza_ensayo_viva.py, marca «RES LAW610-612»).
@@ -40,7 +53,6 @@ declare
   c_raiz     constant uuid := '637f9a44-cd31-47eb-a636-5fe33255eab3';   -- RP00079
   c_precio   constant numeric := 44000;
   v_c record; v_u record; v_u2 record; v_n int; v_campo text; v_firmas int; v_obra numeric;
-  v_com_antes text; v_com_despues text;
 begin
   select c.id, c.numero, c.contrato_padre_id, c.precio_total, c.moneda, c.liberado_en, c.datos->'fields'->>'precio_total' as campo
     into v_c from public.contratos c where c.id = c_contrato for update;
@@ -62,9 +74,13 @@ begin
       v_n, v_u.codigo, v_u.precio, v_u.precio_suelo, v_u.precio_construccion;
   end if;
 
-  -- el cambio de precio dispara la reconciliación de comisiones de la venta: no tiene que mover ninguna
-  select coalesce(string_agg(to_jsonb(d)::text, '|' order by d.id), '') into v_com_antes
-    from public.comisiones_devengadas d where d.contrato_raiz_id in (c_raiz, c_contrato);
+  -- Comisiones (revisor, 15-oct): el cambio de precio dispara zz_comisiones_reconcilia_cambio, DIFERIDO (corre al confirmar,
+  -- fuera de este bloque) y que se traga sus errores: una foto antes/después aquí no vería nada. La base de comisión solo suma
+  -- contratos FIRMADOS (_comisiones_bases_firmadas, _comisiones_precio_total): con CC00040 sin firmar, su precio no entra en
+  -- ninguna base y la reconciliación no tiene nada que mover. Por eso se exige sin firmar; firmado, PARA (y se decide aparte).
+  if exists (select 1 from public.contratos c where c.id = c_contrato and coalesce(c.bloqueado, false)) then
+    raise exception 'PARADA LAW-610: CC00040 está firmado: su precio entraría en la base de comisión de RP00079';
+  end if;
 
   select count(*) into v_firmas from public.contrato_firmas f where f.contrato_id = c_contrato and f.estado in ('pendiente', 'firmado');
   if v_campo is null and v_firmas = 0 then
@@ -83,17 +99,11 @@ begin
     raise exception 'PARADA LAW-610: tras el cambio SH-3 queda en precio %, obra %, estado % (antes %), obra de la cascada %',
       v_u2.precio, v_u2.precio_construccion, v_u2.estado, v_u.estado, v_obra;
   end if;
-  select coalesce(string_agg(to_jsonb(d)::text, '|' order by d.id), '') into v_com_despues
-    from public.comisiones_devengadas d where d.contrato_raiz_id in (c_raiz, c_contrato);
-  if v_com_despues is distinct from v_com_antes then
-    raise exception 'PARADA LAW-610: cambian las comisiones de la venta RP00079. Antes: %. Después: %',
-      left(v_com_antes, 900), left(v_com_despues, 900);
-  end if;
   raise notice 'LAW-610 ok: CC00040 precio_total 44000 (papel %), SH-3 % en 69000, obra de la cascada %',
     case when v_campo is null and v_firmas = 0 then 'escrito' when v_campo is not null then 'ya lo traía' else 'en firma, sin tocar' end,
     v_u2.estado, v_obra;
 end $law610$;
--- ── 20261015210100_law611_w3c3_bloqueada.sql · sha256 4db05a51fe6d64adbcc9b1da8d80462b397a50298b34e53e6c05b5b86e8354b6 ──
+-- ── 20261015210100_law611_w3c3_bloqueada.sql · sha256 920a4e1fddecd3f2cd59999df0c5e549f55edf81fc3289285c1d009586988661 ──
 -- LAW-611 · W3 - C3 (RP00070) pasa de «vendida» a «bloqueada» — 15-oct-2026, sesión lawang-cola-2 (orquestador agencia-c0).
 -- Cambio de DATOS, una fila de unidades y su fila de historial.
 --
@@ -107,7 +117,8 @@ end $law610$;
 --   · trg_protege_liberado_contrato es de contratos (que no se toque liberado_en fuera de libera_reserva): aquí no se toca ningún
 --     contrato.
 --   · trg_unidad_estado_al_historial (diferido: corre al confirmar) no escribe su fila si ya hay una de esta transacción
---     (mismo en = now(), mismo antes y después): la fila con el motivo de LAW-611 se escribe aquí y la suya se omite. El ensayo
+--     (mismo en = now(), mismo antes y después): la fila con el motivo de LAW-611 se escribe aquí, tras el update y con la
+--     fila tal como queda, y la suya se omite (corre después, al confirmar). El ensayo
 --     lo comprueba forzando los diferidos (set constraints all immediate) antes de contar.
 --   · avanza_unidad_por_cobro deja una «bloqueada» como está mientras su Bloqueo no esté firmado: no la vuelve a subir.
 --   · trg_unidad_estado_aviso_manager avisa a los managers del proyecto («Unidad W3 - C3 — bloqueada»): es el aviso interno de
@@ -141,21 +152,21 @@ begin
     raise exception 'PARADA LAW-611: W3 - C3 ya cumple «vendida» (el suelo está cobrado): no se baja';
   end if;
 
-  v_despues := jsonb_set(to_jsonb(v_u), '{estado}', to_jsonb('bloqueada'::text));
+  update public.unidades u set estado = 'bloqueada' where u.id = v_u.id;
+  -- «después» = la fila tal como queda (tras los disparadores BEFORE de unidades), no una copia armada a mano
+  select to_jsonb(u), u.estado into v_despues, v_estado from public.unidades u where u.id = v_u.id;
   insert into public.unidades_log (unidad_id, antes, despues, motivo, via, por)
   values (v_u.id, to_jsonb(v_u), v_despues,
           'LAW-611: vuelve a bloqueada por decisión del owner (15-oct-2026): figuraba vendida con el Bloqueo RP00070 sin firmar '
           || 'y el suelo sin cobrar entero',
           'sql directo', 'migración LAW-611');
-  update public.unidades u set estado = 'bloqueada' where u.id = v_u.id;
 
-  select u.estado into v_estado from public.unidades u where u.id = v_u.id;
-  if v_estado <> 'bloqueada' then
+  if v_estado is distinct from 'bloqueada' then
     raise exception 'PARADA LAW-611: tras el cambio W3 - C3 queda en «%»', v_estado;
   end if;
   raise notice 'LAW-611 ok: W3 - C3 vendida -> bloqueada, con su fila de historial';
 end $law611$;
--- ── 20261015210200_law612_inv00173_rec00130_a_cc00088.sql · sha256 28f6cd8694bb7cd1a799521925e12b726ac16ffeb797e23524b051326c386dd7 ──
+-- ── 20261015210200_law612_inv00173_rec00130_a_cc00088.sql · sha256 a31f80e506f72bc6239d68e84fb27f695f184789309421c1926be45c0c735199 ──
 -- LAW-612 · INV00173 y REC00130 pasan a colgar de CC00088 — 15-oct-2026, sesión lawang-cola-2 (orquestador agencia-c0).
 -- Cambio de DATOS, dos filas de facturas.
 --
@@ -201,9 +212,9 @@ begin
   select f.numero, f.tipo, f.total, f.moneda, f.sociedad, f.contrato_id, f.contrato_numero, f.client_id,
          coalesce(f.anulada, false) as anulada, coalesce(f.enviada, false) as enviada
     into v_rec from public.facturas f where f.id = c_rec for update;
-  if v_inv.numero is distinct from 'INV00173' or v_inv.tipo <> 'factura' or v_inv.total <> 10625 or v_inv.moneda <> 'EUR'
+  if v_inv.numero is distinct from 'INV00173' or v_inv.tipo <> 'factura' or v_inv.total <> 10625 or v_inv.moneda is distinct from 'EUR'
      or v_inv.anulada or v_inv.contrato_id is distinct from c_raiz
-     or v_rec.numero is distinct from 'REC00130' or v_rec.tipo <> 'recibi' or v_rec.total <> 10625 or v_rec.moneda <> 'EUR'
+     or v_rec.numero is distinct from 'REC00130' or v_rec.tipo <> 'recibi' or v_rec.total <> 10625 or v_rec.moneda is distinct from 'EUR'
      or v_rec.anulada or v_rec.contrato_id is distinct from c_raiz or v_rec.sociedad is distinct from v_inv.sociedad then
     raise exception 'PARADA LAW-612: INV00173/REC00130 no están como se midió el 15-oct (% % % %, % % % %)',
       v_inv.numero, v_inv.total, v_inv.contrato_id, v_inv.anulada, v_rec.numero, v_rec.total, v_rec.contrato_id, v_rec.anulada;
@@ -217,7 +228,7 @@ begin
   select c.numero, c.contrato_padre_id, c.moneda, c.liberado_en,
          nullif(btrim(coalesce(c.datos_fields->>'sociedad_firmante', '')), '') as sociedad
     into v_obra from public.contratos c where c.id = c_obra;
-  if v_obra.numero is distinct from 'CC00088' or v_obra.contrato_padre_id is distinct from c_raiz or v_obra.moneda <> 'EUR'
+  if v_obra.numero is distinct from 'CC00088' or v_obra.contrato_padre_id is distinct from c_raiz or v_obra.moneda is distinct from 'EUR'
      or v_obra.liberado_en is not null or (v_obra.sociedad is not null and v_obra.sociedad <> v_inv.sociedad) then
     raise exception 'PARADA LAW-612: CC00088 no sirve de destino (numero %, padre %, moneda %, liberado %, sociedad % frente a %)',
       v_obra.numero, v_obra.contrato_padre_id, v_obra.moneda, v_obra.liberado_en, v_obra.sociedad, v_inv.sociedad;
@@ -303,6 +314,10 @@ begin
   v := v || (select format(' · por contrato: precio %s, sin precio %s, facturado %s (cadena %s)', s.precio, s.sin_precio,
                            s.facturado, s.raiz_numero)
                from public._cadena_saldo_en('93d557dc-814b-48df-b127-adc34f6f191e', 'EUR') s);
+  v := v || ' · comisiones RP00079 (devengos, diferencias, error del recálculo) tras forzar la reconciliación: '
+         || case when pg_temp.e612_comisiones_rp00079() = current_setting('ensayo_law610_612.com79', true) then 'IGUALES'
+                 else 'CAMBIAN (FALLA): antes «' || left(current_setting('ensayo_law610_612.com79', true), 400)
+                      || '» después «' || left(pg_temp.e612_comisiones_rp00079(), 400) || '»' end;
   -- LAW-611
   select u.id, u.estado, x.cobrado_suelo, x.suelo_precio into r
     from public.unidades u cross join lateral public._unidad_cobro_cascada_v2(u.id) x
