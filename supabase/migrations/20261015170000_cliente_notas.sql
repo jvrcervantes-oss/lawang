@@ -38,6 +38,13 @@ begin
        where p.oid = 'public._sc_referencias_cliente(uuid)'::regprocedure) <> '6c0b820ddfaa73c8ac166a892e048627' then
     raise exception '_sc_referencias_cliente viva no es la del 15-oct (md5 6c0b820d…): alguien la cambió después; revisar a mano';
   end if;
+  if (select md5(p.prosrc) from pg_proc p
+       where p.oid = 'public._sc_columnas_clients()'::regprocedure) <> '76cb573a409cda72958757444ba0dcc5' then
+    raise exception '_sc_columnas_clients viva no es la del 15-oct (md5 76cb573a…): alguien la cambió después; revisar a mano';
+  end if;
+  if exists (select 1 from public.solicitudes_cambio s where s.estado = 'pendiente' and s.nuevos ? 'notes') then
+    raise exception 'hay solicitudes de cambio pendientes que tocan notes: resolverlas antes (sus notas no pasarían)';
+  end if;
   if to_regclass('public.cliente_notas') is not null then
     raise exception 'cliente_notas ya existe: esta migración ya se aplicó';
   end if;
@@ -223,8 +230,17 @@ declare
   v_uid uuid := public.uid_sesion();
 begin
   if v_t is not null and (tg_op = 'INSERT' or new.notes is distinct from old.notes) then
+    -- como cliente_nota_agrega: de más se rechaza, no se recorta en silencio (Base de datos, 15-oct)
+    if char_length(v_t) > 4000 then
+      raise exception 'La nota es demasiado larga (máximo 4000 caracteres).' using errcode = '22023';
+    end if;
+    -- el mismo tope que cliente_nota_agrega: cliente_guarda y el alta aún aceptan la clave notes (Seguridad, 15-oct)
+    if v_uid is not null and (select count(*) from public.cliente_notas n
+                               where n.autor_id = v_uid and n.creado_en > now() - interval '10 minutes') >= 30 then
+      raise exception 'Demasiadas notas seguidas: espera unos minutos' using errcode = '54000';
+    end if;
     insert into public.cliente_notas (client_id, texto, autor_id, origen)
-         values (new.id, left(v_t, 4000), (select u.user_id from public.usuarios u where u.user_id = v_uid), 'campo_notas');
+         values (new.id, v_t, (select u.user_id from public.usuarios u where u.user_id = v_uid), 'campo_notas');
   end if;
   new.notes := null;
   return new;
@@ -249,6 +265,20 @@ end $f$;
 revoke all on function public._clients_notas_al_borrar() from public, anon, authenticated, service_role;
 create trigger trg_clients_notas_al_borrar before delete on public.clients
   for each row execute function public._clients_notas_al_borrar();
+
+-- ── 8a. las solicitudes de cambio ya no llevan notas (Seguridad, 15-oct) ──────────────────────────────────────────
+-- Una nota que entraba por una solicitud dejaba su texto en solicitudes_cambio.nuevos (y en el aviso) hasta la purga de
+-- 90 días: retirarla no la borraba del todo. Las notas se escriben solo en el apartado Notas (cliente_nota_agrega). La edge
+-- asistente-peticiones deja de ofrecer el campo en el mismo aterrizaje. Cuerpo anterior literal en la REVERSION.
+create or replace function public._sc_columnas_clients()
+ returns text[]
+ language sql
+ immutable
+ set search_path to ''
+as $function$
+  select array['tipo','kyc_status','full_name','email','phone','nationality','passport_number',
+               'idioma_comunicacion','forma_juridica','registro_num','rep_nombre','rep_cargo']
+$function$;
 
 -- ── 8b. pedir borrar la ficha: sus notas no son «cosas enlazadas» (revisor de código, 15-oct) ──────────────────────
 -- _sc_referencias_cliente cuenta TODO lo que apunta a clients leyendo el catálogo: con cliente_notas dentro,
@@ -302,7 +332,8 @@ begin
   select greatest(c.created_at, c.kyc_verificado_el,
                   (select max(d.uploaded_at) from public.documents d where d.client_id = c.id),
                   (select max(cd.corregido_en) from public.correcciones_datos cd where cd.tabla = 'clients' and cd.fila_id = c.id),
-                  (select max(n.creado_en) from public.cliente_notas n where n.client_id = c.id))   -- 15-oct: una nota es actividad
+                  (select max(n.creado_en) from public.cliente_notas n
+                    where n.client_id = c.id and n.origen <> 'antigua'))   -- 15-oct: una nota es actividad; pasarlas hoy al historial, no
     into v_ult from public.clients c where c.id = p_id;
   if v_ult is null or v_ult >= p_corte then return false; end if;
   -- 15-oct: las notas tampoco bloquean (antes, una clave ajena nueva hacia clients dejaba la ficha fuera de la retención para siempre)

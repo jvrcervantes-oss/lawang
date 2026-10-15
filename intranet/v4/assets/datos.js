@@ -3448,7 +3448,7 @@
             var MOTIVOS = [['rectificacion', 'Es incorrecta'], ['dato_sensible', 'Lleva un dato sensible'],
                            ['oposicion', 'El comprador se opone a que se guarde'], ['autoridad', 'Lo pide una autoridad'], ['otro', 'Otro motivo']];
             var ORIGEN = { campo_notas: 'escrita en el campo «Notas» de la ficha', antigua: 'nota anterior al historial, sin autor ni fecha de origen' };
-            var yo = String(window.LW_V4.miEmail || '').toLowerCase();
+            var yoId = String(window.LW_V4.miId || '');   // por id, no por email (todo apunta por ID; revisor, 15-oct)
             var caja = '<div style="margin-top:10px">' +
               '<textarea class="las-in" data-lw="nota-texto" rows="3" maxlength="4000" aria-label="' + esc(tx('Nueva nota')) + '" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>' +
               '<p style="margin:4px 0 8px;font-size:11.5px;' + GRIS + '">' + esc(tx('No escribas pasaporte/NIK, datos bancarios, salud, religión ni datos de menores. Escribe como si el comprador fuera a leerla: puede pedir una copia.')) + '</p>' +
@@ -3463,7 +3463,7 @@
                 // solo para enseñar el botón: quien decide es cliente_nota_retira (autor, es_admin o admin_de_cliente). El admin
                 // de empresa también lo ve (revisor, 15-oct); si la ficha no es de su empresa, el servidor lo rechaza y se dice.
                 var rolN = window.LW_ROL ? LW_ROL.efectivo(window.LW_V4 && window.LW_V4.ficha) : '';
-                var puede = (n.autor_id && mail && mail === yo) || !!window.LW_V4.esAdmin || rolN === 'admin' || rolN === 'super_admin';
+                var puede = (n.autor_id && yoId && String(n.autor_id) === yoId) || !!window.LW_V4.esAdmin || rolN === 'admin' || rolN === 'super_admin';
                 return '<article class="lwc-nota" data-nota="' + esc(String(n.id)) + '" style="padding:9px 0;border-bottom:1px solid rgb(var(--tema-outline-variant))">' +
                   '<p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(n.texto) + '</p>' +
                   '<p style="margin:4px 0 0;font-size:11.5px;' + GRIS + '">' + esc(meta) +
@@ -3498,15 +3498,17 @@
                 });
               } else if (acc === 'nota-retira') {
                 if (!art || art.querySelector('[data-lw="nota-motivo"]')) return;
-                art.insertAdjacentHTML('beforeend',
+                art.insertAdjacentHTML('beforeend', '<div data-lw="nota-retira-caja">' +
                   '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
                   '<select class="las-in" data-lw="nota-motivo" aria-label="' + esc(tx('Por qué se retira')) + '"><option value="">' + esc(tx('¿Por qué se retira?')) + '</option>' +
                   MOTIVOS.map(function (m) { return '<option value="' + m[0] + '">' + esc(tx(m[1])) + '</option>'; }).join('') + '</select>' +
                   '<button type="button" class="las-btn1" data-accion="nota-retira-ok">' + esc(tx('Retirar nota')) + '</button>' +
                   '<button type="button" class="las-btn2" data-accion="nota-retira-no">' + esc(tx('Cancelar')) + '</button></div>' +
-                  '<p style="margin:6px 0 0;font-size:11.5px;' + GRIS + '">' + esc(tx('Al retirarla, su texto se borra y no se puede recuperar. Queda constancia de quién la retiró, cuándo y por qué.')) + '</p>');
+                  '<p style="margin:6px 0 0;font-size:11.5px;' + GRIS + '">' + esc(tx('Al retirarla, su texto se borra y no se puede recuperar. Queda constancia de quién la retiró, cuándo y por qué.')) + '</p></div>');
               } else if (acc === 'nota-retira-no') {
-                carga();
+                // solo se quita el bloque del motivo: recargar la sección borraba lo escrito en la caja de nota nueva
+                var cajaR = art && art.querySelector('[data-lw="nota-retira-caja"]');
+                if (cajaR) cajaR.remove();
               } else if (acc === 'nota-retira-ok' && art) {
                 var motivo = (art.querySelector('[data-lw="nota-motivo"]') || {}).value || '';
                 if (!motivo) { toastMal(tx('Elige por qué se retira.')); return; }

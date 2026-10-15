@@ -16,6 +16,16 @@ begin
 end $pre$;
 
 drop trigger if exists trg_clients_notas_a_historial on public.clients;
+-- _sc_columnas_clients vuelve LITERAL a la viva del 15-oct (md5(prosrc) 76cb573a409cda72958757444ba0dcc5)
+CREATE OR REPLACE FUNCTION public._sc_columnas_clients()
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO ''
+AS $function$
+  select array['tipo','kyc_status','full_name','email','phone','nationality','passport_number',
+               'idioma_comunicacion','forma_juridica','registro_num','rep_nombre','rep_cargo','notes']
+$function$;
 -- _sc_referencias_cliente vuelve LITERAL a la viva del 15-oct (md5(prosrc) 6c0b820ddfaa73c8ac166a892e048627)
 CREATE OR REPLACE FUNCTION public._sc_referencias_cliente(p_id uuid)
  RETURNS jsonb

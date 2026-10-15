@@ -8,7 +8,7 @@
 -- autor la retira y su texto DESAPARECE (la traza no tiene columna de texto), un admin retira la de otro. N8 cuenta desactivada
 -- no añade. N9 todo lo que escriba en clients.notes pasa al historial (alta y edicion) y la columna queda vacia. N10 borrar la
 -- ficha borra sus notas y deja traza «ficha_borrada». N11 una nota NO bloquea la retencion KYC: cuenta como actividad.
--- N12 una nota SIN autor solo la retira un admin. N13 las notas no impiden pedir el borrado de la ficha ni cambian su huella.
+-- N14 mas de 4000 por el campo viejo se rechaza. N12 una nota SIN autor solo la retira un admin. N13 las notas no impiden pedir el borrado de la ficha ni cambian su huella.
 -- XSS: el texto se guarda tal cual (la pantalla lo pinta con esc); aqui se comprueba que llega intacto, no que se ejecute.
 -- !! CREA FICHAS, USUARIOS Y NOTAS: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015170000_cliente_notas.sql --prueba cliente_notas.sql
@@ -197,17 +197,31 @@ begin
     set local session_replication_role = origin;
     insert into public.documents (client_id, doc_type, storage_path, uploaded_at) values (c3, 'passport', 'zz-cn/pasaporte.pdf', '2024-01-01');
     v := public._kyc_retencion_candidato(c3, now() - interval '12 months')::text;
-    insert into public.cliente_notas (client_id, texto, origen) values (c3, 'nota antigua', 'antigua');
+    insert into public.cliente_notas (client_id, texto, origen) values (c3, 'nota vieja', 'campo_notas');
     set local session_replication_role = replica;
     update public.cliente_notas set creado_en = '2024-02-01' where client_id = c3;
     set local session_replication_role = origin;
     v := v || '/' || public._kyc_retencion_candidato(c3, now() - interval '12 months')::text;
-    insert into public.cliente_notas (client_id, texto, origen) values (c3, 'nota de hoy', 'antigua');
+    insert into public.cliente_notas (client_id, texto, origen) values (c3, 'pasada hoy al historial', 'antigua');
     v := v || '/' || public._kyc_retencion_candidato(c3, now() - interval '12 months')::text;
-    r := r || pg_temp.l(v = 'true/true/false',
-                        'N11 sin notas es candidata; con una nota vieja SIGUE siéndolo; una nota reciente la retrasa (' || v || ')');
+    insert into public.cliente_notas (client_id, texto, origen) values (c3, 'nota de hoy', 'campo_notas');
+    v := v || '/' || public._kyc_retencion_candidato(c3, now() - interval '12 months')::text;
+    r := r || pg_temp.l(v = 'true/true/true/false',
+                        'N11 sin notas es candidata; con una nota vieja SIGUE siéndolo; una «antigua» pasada hoy no cuenta como actividad; una nota reciente la retrasa (' || v || ')');
   exception when others then
     r := r || pg_temp.l(false, 'N11 retencion KYC: ' || sqlstate || ' ' || left(sqlerrm, 200));
+  end;
+
+  -- ============================================================ N15 las solicitudes de cambio ya no llevan notas (Seguridad, 15-oct)
+  r := r || pg_temp.l(not ('notes' = any(public._sc_columnas_clients())) and 'phone' = any(public._sc_columnas_clients()),
+                      'N15 _sc_columnas_clients ya no admite notes (y sigue admitiendo el resto)');
+
+  -- ============================================================ N14 de más de 4000 por el campo viejo: se rechaza, no se recorta
+  begin
+    update public.clients set notes = repeat('x', 4001) where id = c1;
+    r := r || pg_temp.l(false, 'N14 una nota de 4001 caracteres por clients.notes debería rechazarse');
+  exception when others then
+    r := r || pg_temp.l(sqlstate = '22023', 'N14 una nota de 4001 caracteres por clients.notes se rechaza, no se recorta (' || sqlstate || ')');
   end;
 
   raise exception using message = replace(c_fin, '%', r);

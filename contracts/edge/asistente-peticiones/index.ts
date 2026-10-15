@@ -34,18 +34,20 @@ const corsFor = (req: Request) => {
 
 // Misma lista blanca que _sc_columnas_clients() en la base (la base es la que manda).
 const CAMPOS_COMPRADOR = ['tipo', 'kyc_status', 'full_name', 'email', 'phone', 'nationality', 'passport_number',
-  'idioma_comunicacion', 'forma_juridica', 'registro_num', 'rep_nombre', 'rep_cargo', 'notes'];
+  'idioma_comunicacion', 'forma_juridica', 'registro_num', 'rep_nombre', 'rep_cargo'];
+// `notes` salió el 15-oct-2026: las notas se escriben en el apartado Notas de la ficha (cliente_nota_agrega), con autor.
+// Por una solicitud su texto quedaba copiado en solicitudes_cambio hasta la purga y retirarla no lo borraba (Seguridad).
 const ETIQUETA: Record<string, string> = {
   tipo: 'tipo de comprador', kyc_status: 'estado KYC', full_name: 'nombre', email: 'email', phone: 'teléfono',
   nationality: 'nacionalidad', passport_number: 'pasaporte / NPWP', idioma_comunicacion: 'idioma',
   forma_juridica: 'forma jurídica', registro_num: 'nº de registro', rep_nombre: 'representante legal',
-  rep_cargo: 'cargo del representante', notes: 'notas',
+  rep_cargo: 'cargo del representante',
 };
 const TIPO_DOC: Record<string, string> = { factura: 'factura', recibi: 'recibí', proforma: 'proforma' };
 
 const ref = (desc: string) => ({ type: 'string', description: desc });
 const HERRAMIENTAS = [
-  { name: 'editar_comprador', description: 'Cambiar uno o varios datos de la ficha de un comprador (teléfono, email, nombre, pasaporte, nacionalidad, notas, estado KYC…).',
+  { name: 'editar_comprador', description: 'Cambiar uno o varios datos de la ficha de un comprador (teléfono, email, nombre, pasaporte, nacionalidad, estado KYC…). Las notas no: se añaden en el apartado Notas de la ficha.',
     input_schema: { type: 'object', required: ['comprador', 'campos'], properties: {
       comprador: ref('Cómo lo nombra la persona: nombre, email, teléfono o pasaporte, copiado tal cual.'),
       campos: { type: 'object', description: 'Solo los campos que hay que cambiar, con su valor nuevo tal como lo escribió. Claves permitidas: ' + CAMPOS_COMPRADOR.join(', '),
@@ -145,7 +147,7 @@ Deno.serve(async (req) => {
       if (accion === 'editar_comprador') {
         const campos = (inp.campos ?? {}) as Json;
         nuevos = {};
-        for (const k of CAMPOS_COMPRADOR) if (typeof campos[k] === 'string') nuevos[k] = s(campos[k], k === 'notes' ? 4000 : 300);
+        for (const k of CAMPOS_COMPRADOR) if (typeof campos[k] === 'string') nuevos[k] = s(campos[k], 300);
         if (!Object.keys(nuevos).length) return json({ tipo: 'no_encontrado', accion, mensaje: 'No queda claro qué dato hay que cambiar.' });
       }
       const cambios = nuevos ? Object.entries(nuevos).map(([k, v]) => `${ETIQUETA[k]} → ${v || '(vacío)'}`).join(' · ') : '';
