@@ -42,7 +42,7 @@ do $todo$
 declare
   r text := ''; rp text := ''; v text; v2 text; n bigint; g boolean; x record;
   jv _tp; a _tp; b _tp; fx _tp;
-  pL uuid; cA uuid; cB uuid; kA1 uuid; kA2 uuid; kB1 uuid;
+  pL uuid; cA uuid; cB uuid; kA1 uuid; kA2 uuid; kB1 uuid; kA3 uuid;
   c_emp constant text := 'zz_busca';
   c_fin constant text := 'FIN DE PRUEBAS BUSQUEDA SIN TILDES (se deshace todo):%';
 begin
@@ -131,11 +131,13 @@ begin
   end loop;
   select count(*) into n from pg_proc where pronamespace = 'public'::regnamespace and proname in ('normaliza_busqueda','contratos_busca','clientes_busca');
   r := r || pg_temp.l(n = 3, 'N existen las 3 funciones nuevas [' || n || ']');
+  r := r || pg_temp.l(char_length(public.normaliza_busqueda(repeat('a', 5000))) = 1000,
+                      'N la pieza corta su entrada a 1.000 caracteres (se puede llamar por la API: excepcion en seguridad_2026 §7)');
   v := pg_get_functiondef('public.comprador_buscar(text)'::regprocedure);
   r := r || pg_temp.l((select prosecdef from pg_proc where oid = 'public.comprador_buscar(text)'::regprocedure) and v ~ 'normaliza_busqueda' and v !~* 'ilike',
                       'N comprador_buscar sigue DEFINER, compara con normaliza_busqueda y sin ilike');
   v := pg_get_functiondef('public.contratos_busca(text)'::regprocedure);
-  r := r || pg_temp.l(v ~ 'limit 10' and v !~* 'ilike', 'N contratos_busca devuelve como mucho 10 y no usa ilike');
+  r := r || pg_temp.l(v ~* 'limit 10' and v !~* 'ilike', 'N contratos_busca devuelve como mucho 10 y no usa ilike');
 
   -- ============================================================ P. montaje del fixture propio (como postgres, SIN sesion)
   perform set_config('request.jwt.claims', '', true);
@@ -162,19 +164,23 @@ begin
       values ('contrato_general', 'ZZB-0002', 'ZZ-BUSCA Copia Antigua', cA, pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '2 minutes') returning id into kA2;
     insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
       values ('contrato_general', 'ZZB-0003', 'ZZ-BUSCA Siobhán O’Brien', cB, pL, 'ZZ-BUSCA Proyecto', b.em, now() - interval '1 minute') returning id into kB1;
+    -- contrato que A VE (lo creo A) cuya ficha de comprador es la de B, que A NO ve (Seguridad, 15-oct: el join no debe enseñarla)
+    insert into public.contratos (tipo, numero, comprador_nombre, adq1_client_id, proyecto_id, proyecto_nombre, creado_por, created_at)
+      values ('contrato_general', 'ZZB-0004', 'ZZ-BUSCA Copia de Ficha Ajena', cB, pL, 'ZZ-BUSCA Proyecto', a.em, now() - interval '10 minutes') returning id into kA3;
     alter table public.contratos enable trigger user;
   exception when others then
     raise exception using message = replace(c_fin, '%', r || pg_temp.l(false, 'P0 montaje del fixture propio: ' || sqlstate || ' ' || left(sqlerrm, 300)
                                                                  || ' [session_user=' || session_user || ']'));
   end;
-  rp := rp || pg_temp.l(pL is not null and cA is not null and cB is not null and kA1 is not null and kA2 is not null and kB1 is not null,
-                        'P0 fixture propio montado: empresa, proyecto, 4 personas, 2 fichas y 3 contratos [session_user=' || session_user || ']');
+  rp := rp || pg_temp.l(pL is not null and cA is not null and cB is not null and kA1 is not null and kA2 is not null and kB1 is not null and kA3 is not null,
+                        'P0 fixture propio montado: empresa, proyecto, 4 personas, 2 fichas y 4 contratos [session_user=' || session_user || ']');
   perform set_config('request.jwt.claims', json_build_object('sub', a.uid, 'role', 'authenticated', 'email', a.em)::text, true);
   rp := rp || pg_temp.l(public.es_agente(), 'P1 A es agente activo (es_agente)');
   rp := rp || pg_temp.l(public.alcance_restringido() and not public.es_admin(), 'P2 A tiene el alcance ACOTADO y no es admin');
   rp := rp || pg_temp.l(public.cliente_visible(a.em, cA) and not public.cliente_visible(b.em, cB), 'P3 A ve su ficha y no la de B (cliente_visible)');
-  rp := rp || pg_temp.l(kA1 = any (public.mis_contratos_visibles()) and kA2 = any (public.mis_contratos_visibles()) and not kB1 = any (public.mis_contratos_visibles()),
-                        'P4 A ve sus dos contratos y no el de B (mis_contratos_visibles)');
+  rp := rp || pg_temp.l(kA1 = any (public.mis_contratos_visibles()) and kA2 = any (public.mis_contratos_visibles()) and kA3 = any (public.mis_contratos_visibles())
+                        and not kB1 = any (public.mis_contratos_visibles()),
+                        'P4 A ve sus tres contratos (tambien el de la ficha ajena) y no el de B (mis_contratos_visibles)');
   perform set_config('request.jwt.claims', json_build_object('sub', jv.uid, 'role', 'authenticated', 'email', jv.em)::text, true);
   rp := rp || pg_temp.l(public.es_admin(), 'P5 el super admin ZZ es admin');
   perform set_config('request.jwt.claims', json_build_object('sub', fx.uid, 'role', 'authenticated', 'email', fx.em)::text, true);
@@ -225,9 +231,9 @@ begin
   v := pg_temp.val(jv.uid, jv.em, format('select count(*) from public.contratos_busca(%L) where id = %L', 'siobhan obrien', kB1));
   r := r || pg_temp.l(v = '1', 'K6 ENTRA: el super admin si la recibe (' || pg_temp.e(v) || ')');
   v := pg_temp.val(a.uid, a.em, 'select string_agg(numero, '','' order by created_at desc) from public.contratos_busca('''')');
-  r := r || pg_temp.l(v = 'ZZB-0002,ZZB-0001', 'K7 vacio: las ultimas de A, la mas nueva primero (' || pg_temp.e(v) || ')');
+  r := r || pg_temp.l(v = 'ZZB-0002,ZZB-0001,ZZB-0004', 'K7 vacio: las ultimas de A, la mas nueva primero (' || pg_temp.e(v) || ')');
   v := pg_temp.val(a.uid, a.em, 'select string_agg(numero, '','' order by created_at desc) from public.contratos_busca(''j'')');
-  r := r || pg_temp.l(v = 'ZZB-0002,ZZB-0001', 'K8 una letra cuenta como vacio, como antes (' || pg_temp.e(v) || ')');
+  r := r || pg_temp.l(v = 'ZZB-0002,ZZB-0001,ZZB-0004', 'K8 una letra cuenta como vacio, como antes (' || pg_temp.e(v) || ')');
   v  := pg_temp.val(a.uid, a.em, 'select string_agg(id::text, '','' order by id) from public.contratos_busca(''zz busca'')');
   v2 := pg_temp.val(a.uid, a.em, 'select string_agg(id::text, '','' order by id) from public.contratos where numero is not null');
   r := r || pg_temp.l(v = v2 and v <> 'null', 'K9 lo que devuelve a A es exactamente lo que A lee de contratos con su RLS');
@@ -235,6 +241,10 @@ begin
   r := r || pg_temp.l(v = '0', 'K10 NIEGA: quien no es del equipo no recibe nada (' || pg_temp.e(v) || ')');
   v := pg_temp.val(null, null, 'select count(*) from public.contratos_busca(''jose'')', 'anon');
   r := r || pg_temp.l(pg_temp.err(v) = '42501', 'K11 NIEGA: anon no puede llamarla (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select count(*) from public.contratos_busca(%L) where id = %L', 'siobhan obrien', kA3));
+  r := r || pg_temp.l(v = '0', 'K12 NIEGA: el contrato que A ve NO sale por el nombre de una ficha que A no ve (el join respeta la RLS de clients) (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select count(*) from public.contratos_busca(%L) where id = %L', 'copia de ficha ajena', kA3));
+  r := r || pg_temp.l(v = '1', 'K13 ENTRA: ese mismo contrato si sale por su copia del nombre (' || pg_temp.e(v) || ')');
 
   -- ============================================================ L. clientes_busca (edge asistente-peticiones; INVOKER)
   v := pg_temp.val(a.uid, a.em, format('select count(*) from public.clientes_busca(%L) where id = %L', 'jose maria', cA));
@@ -256,7 +266,7 @@ begin
   v := pg_temp.val(null, null, 'select public.normaliza_busqueda(''José'')', 'anon');
   r := r || pg_temp.l(pg_temp.err(v) = '42501', 'L9 NIEGA: anon tampoco llama a normaliza_busqueda (' || pg_temp.e(v) || ')');
   v := pg_temp.val(a.uid, a.em, 'select public.normaliza_busqueda(''José'')');
-  r := r || pg_temp.l(v = 'jose', 'L10 ENTRA: authenticated si (' || pg_temp.e(v) || ')');
+  r := r || pg_temp.l(v = 'jose', 'L10 ENTRA: authenticated si (la necesitan las dos INVOKER) (' || pg_temp.e(v) || ')');
 
   raise exception 'FIN DE PRUEBAS BUSQUEDA SIN TILDES (se deshace todo):%', r;
 end $todo$;

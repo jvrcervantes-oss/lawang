@@ -24,12 +24,19 @@
 --      decide que ve quien pide (el asistente no debe proponer editar o borrar una ficha que la persona no ve; por eso no
 --      se usa comprador_buscar, que es el directorio global). Mismas columnas que pedia la edge (id, full_name, email,
 --      phone), 6 filas, minimo 2 letras.
--- Volumen (15-oct): 228 clientes y 315 contratos, sin indice (seq scan). Umbral para poner un GIN pg_trgm sobre
--- normaliza_busqueda(col): >20.000 filas o >50 ms en EXPLAIN ANALYZE. Sin limite de uso ni registro propio a proposito:
--- lecturas acotadas por la RLS, 10/8/6 filas, y la pantalla espera 280 ms entre teclas (asistente-contrato.js).
+-- Volumen (15-oct): 228 clientes y 315 contratos, sin indice (seq scan; Backend midio <50 ms). Umbral para poner un GIN
+-- pg_trgm sobre normaliza_busqueda(col): >20.000 filas o >50 ms en EXPLAIN ANALYZE. Sin limite de uso propio: lo que lo
+-- acota esta en el SERVIDOR (es_agente, la RLS en las dos INVOKER, 10/8/6 filas, minimo de letras medido ya normalizado,
+-- sin comodines y 200 caracteres de tope), nunca en la espera de la pantalla. Que el directorio global de comprador_buscar
+-- se pueda recorrer de 8 en 8 ya pasaba antes de este cambio: deuda escrita con dueño en contexto/seguridad_2026.md §7 de la
+-- agencia (consulta de Seguridad, 15-oct).
 -- PERMISOS: lo nuevo nace cerrado: revoke de PUBLIC y anon, grant execute solo a authenticated (llamadores con nombre:
--- asistente-contrato.js -> contratos_busca; edge asistente-peticiones con el JWT de quien pide -> clientes_busca; las tres
--- INVOKER y comprador_buscar (DEFINER, dueño postgres) -> normaliza_busqueda).
+-- asistente-contrato.js -> contratos_busca; edge asistente-peticiones con el JWT de quien pide -> clientes_busca; las dos
+-- INVOKER, que corren como authenticated, y comprador_buscar (DEFINER, dueño postgres) -> normaliza_busqueda).
+-- normaliza_busqueda se queda en `public` aunque no tenga llamador por la API (Seguridad pedia `privado`, 15-oct): las ramas
+-- de ensayo restauran solo `-n public` (erp/rama_prueba.py) y, con la pieza en privado, desde el siguiente volcado ninguna
+-- rama de Lawang podria crear las dos INVOKER. Es pura e IMMUTABLE, no lee datos y corta su entrada a 1.000 caracteres;
+-- excepcion escrita con dueño en contexto/seguridad_2026.md §7 de la agencia.
 -- ORDEN DE PUBLICACION: esta migracion ANTES que el front (asistente-contrato.js) y la edge que la llaman. Por eso van en un
 -- commit APARTE que no se aterriza hasta verla aplicada en vivo (revisor, 15-oct: el orden no puede vivir solo en un mensaje).
 -- PRUEBA (solo en rama, fixture propio): supabase/pruebas/busqueda_sin_tildes.sql: la tabla de casos de
@@ -47,7 +54,10 @@ begin
   end if;
 end $pre$;
 
--- 1 · la pieza: el MISMO algoritmo que lwNormaliza, paso a paso (si se toca uno, se toca el otro y la tabla de casos)
+-- 1 · la pieza: el MISMO algoritmo que lwNormaliza, paso a paso (si se toca uno, se toca el otro y la tabla de casos).
+--     Corta la entrada a 1.000 caracteres: se puede llamar por la API (ver PERMISOS) y nada de lo que se busca es tan
+--     largo (medido el 15-oct: el mas largo de lo que se compara es una copia de nombre en contratos, 91; ficha 35, correo
+--     37, numero 7). La paridad con lwNormaliza vale para todo texto de menos de 1.000.
 create or replace function public.normaliza_busqueda(p_texto text)
  returns text
  language plpgsql
@@ -55,7 +65,7 @@ create or replace function public.normaliza_busqueda(p_texto text)
  set search_path = ''
 as $f$
 declare
-  s text := coalesce(p_texto, '');
+  s text := left(coalesce(p_texto, ''), 1000);
 begin
   -- 1. NFD y fuera los combinantes (tildes, dieresis, la virgulilla de la enye)
   s := pg_catalog.regexp_replace(pg_catalog.normalize(s, 'NFD'), '[̀-ͯ]', '', 'g');
