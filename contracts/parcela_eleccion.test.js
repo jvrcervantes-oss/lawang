@@ -83,14 +83,14 @@ ctx.CURRENT = { slug: 'ppjb_parcela' };
 
 // 3 · Carta de otro agente: por_comprobar hasta que la base contesta, y con la clave de quien preguntó
 (async () => {
-  const oculta = () => ({ id: 'u-b20', codigo: 'B-20', estado: 'reservada', contrato_id: 'ajeno', ocupante: null, ocupanteOculto: true });
+  const oculta = () => ({ codigo: 'B-20', estado: 'reservada', contrato_id: 'ajeno', ocupante: null, ocupanteOculto: true });
   let u = oculta();
   ok('oculta sin preguntar → por_comprobar, y NO bloquea (se pregunta al elegirla)',
     el(u, anna).modo === 'por_comprobar' && !el(u, anna).bloqueada);
   let pedido = null;
   ctx.sb = { rpc: (nombre, args) => { pedido = { nombre, args }; return Promise.resolve({ data: { numero: 'CR00950', estado: args.p_ids.includes('x123') ? 'ok' : 'otro' }, error: null }); } };
   ok('la base dice ok para ANNA', await consultarTraspasoRemoto(u, 'PRB Village', identificadoresDeFicha(anna)) === 'ok');
-  ok('pregunta por ESA parcela, por su id y sin el nombre del proyecto (LAW-428)', pedido.nombre === 'parcela_traspaso_estado_por_unidad' && pedido.args.p_unidad_id === 'u-b20' && !('p_proyecto' in pedido.args) && !('p_codigo' in pedido.args));
+  ok('pregunta por ESA parcela y ese proyecto', pedido.nombre === 'parcela_traspaso_estado' && pedido.args.p_codigo === 'B-20' && pedido.args.p_proyecto === 'PRB Village');
   ok('oculta comprobada para ANNA → se ofrece', el(u, anna).modo === 'ok' && !el(u, anna).bloqueada);
   ok('la misma respuesta no vale para TOM → por_comprobar otra vez', el(u, tom).modo === 'por_comprobar');
   u = oculta();

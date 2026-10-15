@@ -129,7 +129,7 @@ async function leerInventarioProyecto(proyecto){
   if(!sb || !proyecto) return r;
   try{
     const { data, error } = await sb.from('unidades')
-      .select('id, codigo, modelo, superficie_m2, precio_suelo, precio, moneda, estado, contrato_id')
+      .select('codigo, modelo, superficie_m2, precio_suelo, precio, moneda, estado, contrato_id')
       .eq('proyecto', proyecto).order('codigo_orden');
     /* 21-ago-2026: el error se GUARDA. Antes se descartaba con un `if(!error)` y
        el catch de abajo estaba vacío, así que un inventario ilegible dejaba la
@@ -331,7 +331,7 @@ function pintarSelectorParcela(){
    es donde escuchan sync/preview (patrón del teléfono). */
 /* Carta de Reserva de OTRO agente (25-sep-2026, owner; revisión previa #91,
    Seguridad): el navegador no puede leerla, así que se pregunta a la base por
-   ESA parcela (parcela_traspaso_estado_por_unidad) si el comprador del formulario es el
+   ESA parcela (parcela_traspaso_estado) si el comprador del formulario es el
    de la Carta. Responde número + estado, ningún dato personal, y usa la misma
    regla que el trigger al guardar (traspaso_carta_estado): lo que aquí se deja
    elegir es lo que la base va a aceptar. Devuelve true si se puede traspasar. */
@@ -341,13 +341,10 @@ function pintarSelectorParcela(){
    Nuevo contrato, que pinta el motivo en la propia parcela. Lanza si la base no
    contesta: «no se ha podido comprobar» no es «de otro comprador».
    Devuelve el estado ('ok' | 'otro' | 'sin_datos') o 'no' si no la ocupa una Carta. */
-/* LAW-428 (15-oct-2026): se pregunta por el id de ESA parcela, nunca por el nombre del proyecto + código. `proyecto`
-   se queda en la firma para no tocar a quien llama; ya no se manda. Sin id, «no se ha podido comprobar». */
 async function consultarTraspasoRemoto(u, proyecto, ids){
   const clave = ids.join('|');
-  if(!u || !u.id) throw new Error(lwT('la parcela no trae su id'));
-  const { data: d, error } = await sb.rpc('parcela_traspaso_estado_por_unidad',
-    { p_unidad_id: u.id, p_ids: ids });
+  const { data: d, error } = await sb.rpc('parcela_traspaso_estado',
+    { p_proyecto: proyecto, p_codigo: u.codigo, p_ids: ids });
   if(error) throw error;
   if(!d){
     // No la ocupa una Carta: es de otro Bloqueo/Construcción — no se traspasa.
