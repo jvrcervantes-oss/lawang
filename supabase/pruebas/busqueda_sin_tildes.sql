@@ -117,7 +117,7 @@ begin
     ('', 'ubud', false)
   ) v(texto, aguja, casa) loop
     r := r || pg_temp.l((public.normaliza_busqueda(x.aguja) = '' or strpos(public.normaliza_busqueda(x.texto), public.normaliza_busqueda(x.aguja)) > 0) = x.casa,
-                        'T busca «' || x.aguja || '» en «' || x.texto || '» = ' || x.casa);
+                        'T busca «' || x.aguja || '» en «' || x.texto || '» = ' || x.casa::text);
   end loop;
 
   -- ============================================================ N. como nacen: inmutable la que pliega, INVOKER las que leen, cerradas a anon
@@ -127,10 +127,10 @@ begin
              from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('normaliza_busqueda','contratos_busca','clientes_busca') loop
     r := r || pg_temp.l(x.proconfig @> array['search_path=""']::text[] and not x.anon and not x.pub and x.auth and not x.prosecdef
                         and (x.proname <> 'normaliza_busqueda' or x.provolatile = 'i'),
-                        'N ' || x.proname || ' volatil=' || x.provolatile || ' definer=' || x.prosecdef || ' anon=' || x.anon || ' public=' || x.pub || ' authenticated=' || x.auth);
+                        'N ' || x.proname::text || ' volatil=' || x.provolatile::text || ' definer=' || x.prosecdef::text || ' anon=' || x.anon::text || ' public=' || x.pub::text || ' authenticated=' || x.auth::text);
   end loop;
   select count(*) into n from pg_proc where pronamespace = 'public'::regnamespace and proname in ('normaliza_busqueda','contratos_busca','clientes_busca');
-  r := r || pg_temp.l(n = 3, 'N existen las 3 funciones nuevas [' || n || ']');
+  r := r || pg_temp.l(n = 3, 'N existen las 3 funciones nuevas [' || n::text || ']');
   r := r || pg_temp.l(char_length(public.normaliza_busqueda(repeat('a', 5000))) = 1000,
                       'N la pieza corta su entrada a 1.000 caracteres (se puede llamar por la API: excepcion en seguridad_2026 §7)');
   v := pg_get_functiondef('public.comprador_buscar(text)'::regprocedure);
@@ -170,10 +170,10 @@ begin
     alter table public.contratos enable trigger user;
   exception when others then
     raise exception using message = replace(c_fin, '%', r || pg_temp.l(false, 'P0 montaje del fixture propio: ' || sqlstate || ' ' || left(sqlerrm, 300)
-                                                                 || ' [session_user=' || session_user || ']'));
+                                                                 || ' [session_user=' || session_user::text || ']'));
   end;
   rp := rp || pg_temp.l(pL is not null and cA is not null and cB is not null and kA1 is not null and kA2 is not null and kB1 is not null and kA3 is not null,
-                        'P0 fixture propio montado: empresa, proyecto, 4 personas, 2 fichas y 4 contratos [session_user=' || session_user || ']');
+                        'P0 fixture propio montado: empresa, proyecto, 4 personas, 2 fichas y 4 contratos [session_user=' || session_user::text || ']');
   perform set_config('request.jwt.claims', json_build_object('sub', a.uid, 'role', 'authenticated', 'email', a.em)::text, true);
   rp := rp || pg_temp.l(public.es_agente(), 'P1 A es agente activo (es_agente)');
   rp := rp || pg_temp.l(public.alcance_restringido() and not public.es_admin(), 'P2 A tiene el alcance ACOTADO y no es admin');
@@ -186,7 +186,7 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', fx.uid, 'role', 'authenticated', 'email', fx.em)::text, true);
   rp := rp || pg_temp.l(not public.es_agente(), 'P6 X no es del equipo (es_agente = false)');
   perform set_config('request.jwt.claims', '', true);
-  v := pg_temp.val(a.uid, a.em, 'select (select auth.uid())::text || ''|'' || (select auth.email()) || ''|'' || current_user');
+  v := pg_temp.val(a.uid, a.em, 'select (select auth.uid())::text || ''|'' || (select auth.email())::text || ''|'' || current_user::text');
   rp := rp || pg_temp.l(v = a.uid::text || '|' || a.em || '|authenticated', 'S0 la sesion simulada es la de A con el rol authenticated (' || pg_temp.e(v) || ')');
   r := r || rp;
   if rp ~ 'FALLA' then
