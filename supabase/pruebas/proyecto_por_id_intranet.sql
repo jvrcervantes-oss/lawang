@@ -14,7 +14,8 @@
 --          Bloqueo sin proyecto resoluble no entra; carta_cobrado_recalcula (admin) devuelve el mismo abono.
 --   O1-O2  obra_contratos_afectados / obra_datos_cobro: el admin pasa el permiso (puede_proyecto_id), el agente de fuera no (42501).
 --   G1-G3  proyecto_guarda: cambiar el slug se rechaza antes de tocar nada (22023); mandar el mismo slug con otro cambio guarda.
---   P1-P2  permisos: las 4 de la intranet, authenticated sí y anon/service_role no; privado.carta_cobrado_calcula_por_id, nadie.
+--   P1-P2  permisos: las 4 de la intranet nacen sin EXECUTE (P1 mide antes del grant que la prueba se da para B/V/R/T, como hará
+--          2M); privado.carta_cobrado_calcula_por_id, nadie.
 -- MONTAJE: filas propias marcadas ZZ-PI. Lo cobrado de la Carta se fija sustituyendo, SOLO dentro de esta transacción de rama,
 -- _contrato_cobrado_interno por una que da 5.000 a esa Carta y 0 al resto (el cálculo de lo cobrado no es lo que se prueba aquí).
 -- En rama los números de serie no importan (la rama se borra); no corre en la viva (guardia erp.en_rama).
@@ -109,6 +110,16 @@ begin
     (fx, c_fx, 'ZZ-PI Fuera', 'agente', 'global', '{}', '{}'::uuid[], '{}'::uuid[], '{contratos,obra}', '{reserva_parcela,carta_reserva}', true);
   r := r || pg_temp.l(true, 'P montaje: empresa con sociedad, 3 proyectos, parcelas ZZPI-1 y ZZPI-3 con su Carta (5.000 cobrados cada una), 4 personas');
 
+  -- ============================================================ P1 permisos tal como los deja la migración: NADIE (nacen cerradas hasta 2M)
+  select string_agg(f || ':' || has_function_privilege('authenticated', f, 'execute') || '/' || has_function_privilege('anon', f, 'execute')
+                    || '/' || has_function_privilege('service_role', f, 'execute'), ' ') into v
+    from unnest(array['public.borrar_proyecto_por_id(uuid)', 'public.proyecto_vinculos_por_id_datos(uuid)',
+                      'public.renombrar_proyecto_por_id(uuid, text)', 'public.parcela_traspaso_estado_por_unidad(uuid, text[])']) f;
+  r := r || pg_temp.l(v !~ 'true', 'P1 las 4 de la intranet nacen sin EXECUTE para authenticated, anon ni service_role (' || v || ')');
+  -- lo que hará 2M al aterrizar su front, SOLO dentro de esta transacción de rama: así B, V, R y T prueban la regla de cada una
+  grant execute on function public.borrar_proyecto_por_id(uuid), public.proyecto_vinculos_por_id_datos(uuid),
+                            public.renombrar_proyecto_por_id(uuid, text), public.parcela_traspaso_estado_por_unidad(uuid, text[]) to authenticated;
+
   -- ============================================================ B. borrar_proyecto_por_id
   v := pg_temp.val(ag, c_ag, format('select public.borrar_proyecto_por_id(%L)::text', pv));
   r := r || pg_temp.l(pg_temp.err(v) = '42501' and exists (select 1 from public.proyectos where id = pv), 'B1 el agente no borra y el proyecto sigue (' || left(v, 90) || ')');
@@ -202,11 +213,6 @@ begin
   r := r || pg_temp.l(v !~ '^ERR' and (select resort from public.proyectos where id = p1) = 'ZZ Resort 2', 'G3 sin slug guarda (' || left(v, 100) || ')');
 
   -- ============================================================ P. permisos
-  select string_agg(f || ':' || has_function_privilege('authenticated', f, 'execute') || '/' || has_function_privilege('anon', f, 'execute')
-                    || '/' || has_function_privilege('service_role', f, 'execute'), ' ') into v
-    from unnest(array['public.borrar_proyecto_por_id(uuid)', 'public.proyecto_vinculos_por_id_datos(uuid)',
-                      'public.renombrar_proyecto_por_id(uuid, text)', 'public.parcela_traspaso_estado_por_unidad(uuid, text[])']) f;
-  r := r || pg_temp.l(v !~ 'true/true' and v !~ '/true' and v !~ ':false', 'P1 las 4 de la intranet: authenticated sí, anon y service_role no (' || v || ')');
   select string_agg(rl || '=' || has_function_privilege(rl, 'privado.carta_cobrado_calcula_por_id(uuid, jsonb, uuid)', 'execute'), ' ') into v
     from unnest(array['anon', 'authenticated', 'service_role', 'lw_lector']) rl;
   r := r || pg_temp.l(v !~ '=true', 'P2 privado.carta_cobrado_calcula_por_id no la ejecuta nadie del API (' || v || ')');

@@ -24,6 +24,8 @@
 --     Medido el 15-oct en solo lectura: en los 140 Bloqueos, las unidades casadas por nombre (hoy) y por id (gemela) son las mismas
 --     (0 distintos, 0 sin proyecto). Cambio declarado: hoy manda datos.fields.proyecto_nombre (lo escribe el navegador) sobre la
 --     columna; ahora manda la columna (máxima 3). 1 de 140 difiere en el nombre (RP00024) y no tiene Cartas: ningún importe cambia.
+-- LAS 4 PÚBLICAS NACEN SIN EXECUTE: su front (editores.js, parcela_inventario.js) también se construye en las instancias del
+--   maestro, que no las tienen (contrato_front bbm: +3 RPC). Front + grant a authenticated llegan con 2M (decisión 15-oct).
 -- RECABLEADAS: carta_cobrado_al_bloquear (trigger del alta de Bloqueo) y carta_cobrado_recalcula → carta_cobrado_calcula_por_id;
 --   obra_contratos_afectados y obra_datos_cobro → puede_proyecto_id(p_proyecto_id) (ya recibían el id y buscaban su nombre para
 --   preguntar por nombre; puede_proyecto_id = la misma regla, proyecto_visible); proyecto_guarda pierde la rama del slug (revisor
@@ -368,18 +370,15 @@ begin
                            'privado.carta_cobrado_calcula_por_id(uuid, jsonb, uuid)'] loop
     execute format('revoke all on function %s from public, anon, authenticated, service_role', f);
   end loop;
-  -- la llama la intranet con la sesión de quien está dentro (editores.js, parcela_inventario.js); calcula: solo DEFINER internos
-  foreach f in array array['public.borrar_proyecto_por_id(uuid)', 'public.proyecto_vinculos_por_id_datos(uuid)',
-                           'public.renombrar_proyecto_por_id(uuid, text)', 'public.parcela_traspaso_estado_por_unidad(uuid, text[])'] loop
-    execute format('grant execute on function %s to authenticated', f);
-  end loop;
+  -- NACEN SIN EXECUTE (lo nuevo nace cerrado): su llamador (editores.js, parcela_inventario.js) se construye también en las
+  -- instancias del maestro (erp/despliegues/<inst>/assets), que aún no las tienen; el front y el `grant execute … to
+  -- authenticated` llegan juntos con 2M. calcula: solo DEFINER internos, nunca grant.
 end $g$;
 -- proyecto_vinculos_por_id_datos: dueño lw_lector, como su vieja (patrón LAW-338; mismo baile que 20261015075011)
 grant create on schema public to lw_lector;
 alter function public.proyecto_vinculos_por_id_datos(uuid) owner to lw_lector;
 revoke create on schema public from lw_lector;
-revoke all on function public.proyecto_vinculos_por_id_datos(uuid) from public, anon, service_role;
-grant execute on function public.proyecto_vinculos_por_id_datos(uuid) to authenticated;
+revoke all on function public.proyecto_vinculos_por_id_datos(uuid) from public, anon, authenticated, service_role;
 
 -- ── recableadas (create or replace conserva dueño y permisos) ──
 CREATE OR REPLACE FUNCTION public.carta_cobrado_al_bloquear()
