@@ -3304,7 +3304,9 @@
              se toca, si el dato importa se reemite (suite_lawang.md → «Un documento vivo no puede contradecir a su ficha»).
              Si no se puede mirar se DICE: «ninguna diferencia» no puede leerse igual que «no he podido mirar». */
           if (conC) sb.from('documentos_desactualizados').select('tipo,id,numero,congelado,diferencias').eq('client_id', c2.id).then(function (rd) {
-            var sid = cj.cuerpo && cj.cuerpo.querySelector('[data-cajon-sec="identidad"] > div');
+            /* lwCajon rehace el cuerpo en cada apertura: si entretanto se abrió otra ficha, este cuerpo ya no está en la
+               página y la respuesta de ESTE cliente no se pinta en la del siguiente */
+            var sid = cj.cuerpo && cj.cuerpo.isConnected && cj.cuerpo.querySelector('[data-cajon-sec="identidad"] > div');
             if (!sid) return;
             if (rd.error) {
               console.error('[v4 datos] ficha≠ del cliente', rd.error);
