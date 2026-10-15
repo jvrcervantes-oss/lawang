@@ -179,6 +179,10 @@ begin
     r := r || pg_temp.l(v = 'OK', 'S10c con la factura anulada, pasarlo a la sociedad de su proyecto entra (' || left(v, 90) || ')');
     v := pg_temp.x(format($q$update public.contratos set datos = jsonb_set(datos, '{fields,sociedad_firmante}', '"zz_sp2"') where id = %L$q$, k10));
     r := r || pg_temp.l(v like c_rech, 'S10d y sin documentos vivos vuelve a mandar el proyecto: devolverlo a zz_sp2 se rechaza (' || left(v, 120) || ')');
+    v := pg_temp.x(format($q$update public.contratos set datos = jsonb_set(datos, '{fields,sociedad_firmante}', '""') where id = %L$q$, k10));
+    r := r || pg_temp.l(v like 'ERR23514:La sociedad firmante no se puede dejar vacía (era «zz_sp1»)%', 'S11 vaciar la sociedad de un contrato que la tenia se rechaza (' || left(v, 120) || ')');
+    v := pg_temp.x(format($q$update public.contratos set datos = datos #- '{fields,sociedad_firmante}' where id = %L$q$, k10));
+    r := r || pg_temp.l(v like 'ERR23514:La sociedad firmante no se puede dejar vacía%', 'S11b quitar la clave sociedad_firmante del contrato tambien se rechaza (' || left(v, 120) || ')');
   end if;
 
   raise exception using message = replace(c_fin, '%', r);
