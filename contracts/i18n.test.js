@@ -173,10 +173,6 @@ assert.strictEqual(t1.nodeValue, LW_EN['Los'] + ' ', 'el blanco de los lados se 
 assert.strictEqual(t2.nodeValue, ' ' + LW_EN['últimos documentos emitidos · la fila abre la ficha']);
 assert.strictEqual(hijo.textContent, '8', 'el hijo (el dato) queda intacto');
 assert.strictEqual(LW_T_MISSES.size, 0, 'repetir la pasada no apunta faltas');
-global.document.title = 'Lawang · Contracts';   // ya en inglés: una pasada de un trozo no lo vuelve a buscar (15-oct-2026)
-win.lwIdiomaAplicar(raiz);
-assert.strictEqual(global.document.title, 'Lawang · Contracts', 'con raíz no se toca el título');
-assert.strictEqual(LW_T_MISSES.size, 0, 'ni se apunta como falta');
 delete global.document;
 
 console.log('OK i18n.test.js — ' + claves.length +

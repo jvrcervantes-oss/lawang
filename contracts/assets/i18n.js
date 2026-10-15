@@ -7036,12 +7036,7 @@
        «Lawang · ⟨herramienta⟩», así que basta traducir el último tramo — y
        el nombre de cada herramienta ya está en el diccionario porque lo
        necesita el menú. Sin esto, con ocho pestañas abiertas en inglés
-       todas siguen rotuladas en español, que es justo donde se distinguen.
-       Solo en la pasada de la página entera (sin `raiz`): quien traduce un
-       trozo recién pintado (las tarjetas del parcelario, 15-oct-2026) no
-       vuelve a pasar el título, que ya está en inglés y se apuntaría como
-       falta. */
-    if (raiz) return;
+       todas siguen rotuladas en español, que es justo donde se distinguen. */
     if (document.title.indexOf(' · ') !== -1) {
       var tramos = document.title.split(' · ');
       var ultimo = tramos.pop();
