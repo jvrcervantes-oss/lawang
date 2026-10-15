@@ -5560,11 +5560,11 @@
          El aviso de «tokens.json no se actualiza solo» se retiró el 11-oct-2026
          (LAW-36): tokens.json ya no guarda proyectos; Contratos los lee de la tabla. */
       function confirmaYRenombraProyecto(p, nuevo) {
-        // unidades/modelos/documentos: proyecto_vinculos_datos (B10a, 28-sep). Cuenta con el criterio de borrar_proyecto
+        // unidades/modelos/documentos: proyecto_vinculos_por_id_datos (B10a, 28-sep; por id desde LAW-428). Cuenta con el criterio de borrar_proyecto
         // (nombre O proyecto_id); renombrar_proyecto solo reescribe las filas que llevan el nombre, así que el texto
         // dice «vinculado», no «se actualizará» (code-review 28-sep: una fila con solo el id contaría sin cambiarse).
         return Promise.all([
-          window.lwDatos('proyecto_vinculos_datos', { p_nombre: p.nombre }),
+          window.lwDatos('proyecto_vinculos_por_id_datos', { p_proyecto_id: p.id }),   // por id (LAW-428): el nombre es lo que cambia
           // contratos/facturas: RPC "equipo", NUNCA `.from()` a pelo (hallazgo
           // de code-review, 22-sep-2026) — la RLS de esas dos tablas escala
           // por `es_suyo()` (ver la cabecera de este fichero, líneas 5-7: "aun
@@ -5607,7 +5607,7 @@
           });
         }).then(function (ok) {
           if (!ok) return { error: { message: 'Cancelado: el proyecto conserva su nombre.' } };
-          return sb.rpc('renombrar_proyecto', { p_antiguo: p.nombre, p_nuevo: nuevo });
+          return sb.rpc('renombrar_proyecto_por_id', { p_proyecto_id: p.id, p_nuevo: nuevo });
         }, function (e) {
           // sin radio de impacto: el guardado se para con el motivo a la vista (el que llama pinta `error.message`)
           if (e && e.sinRadio) return { error: { message: e.message } };
@@ -6451,10 +6451,10 @@
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         if (!esSuper) return aviso('Borrar un proyecto es solo para super_admin.', '#8A6A34');
-        /* Recuento previo por proyecto_vinculos_datos (B10a, 28-sep): mismo criterio que borrar_proyecto (nombre O id).
+        /* Recuento previo por proyecto_vinculos_por_id_datos (B10a, 28-sep; por id desde LAW-428): mismo criterio que borrar_proyecto_por_id (nombre O id).
            Si NO contesta, se para y se dice: antes un conteo fallido daba 0 y el diálogo invitaba a borrar «sin nada
            colgando» (el RPC lo habría rechazado igual, pero la pantalla mentía). */
-        window.lwDatos('proyecto_vinculos_datos', { p_nombre: p.nombre }).then(function (rv) {
+        window.lwDatos('proyecto_vinculos_por_id_datos', { p_proyecto_id: p.id }).then(function (rv) {
           if (!rv || rv.error || !rv.data) {
             aviso('No se ha podido comprobar qué cuelga del proyecto (' + ((rv && rv.error && rv.error.message) || 'sin respuesta') + '): no se borra. Recarga y prueba otra vez.', '#ba1a1a');
             return false;
@@ -6475,7 +6475,7 @@
           });
         }).then(function (ok) {
           if (!ok) return;
-          sb.rpc('borrar_proyecto', { p_nombre: p.nombre }).then(function (r) {
+          sb.rpc('borrar_proyecto_por_id', { p_proyecto_id: p.id }).then(function (r) {
             if (r.error) return aviso('No se pudo borrar: ' + r.error.message, '#ba1a1a');
             aviso('Proyecto borrado');
             setTimeout(function () { location.href = '/intranet/v4/proyectos/'; }, 1200);
