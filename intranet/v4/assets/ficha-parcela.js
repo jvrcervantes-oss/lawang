@@ -11,6 +11,10 @@
          «Facturado sin cobrar» = `contrato_saldo` de la venta (la misma cuenta con la que la base hace valer el tope).
      · «Documentos» plegado: facturas, recibís y proformas de los contratos que el usuario ve, y «Sin facturar».
      · «Avance de obra» (obra_fase del catálogo obra_fases), que no es la «Fase / zona del masterplan».
+     · «Notas» (15-oct, owner: «en detalle de parcela mete unas notas»): el historial de la pieza común
+       contracts/assets/notas-historial.js (LW_NOTAS), que este módulo abre y cierra en su ciclo (no un tercer escuchador).
+       Las lee y escribe solo quien puede editar la parcela: con 42501 la tarjeta se queda OCULTA (a un agente no se le
+       dice «sin permiso» en cada parcela); una caída sí se ve, con su Reintentar.
    Orden y rótulos: revisión previa de Experiencia (15-oct).
 
    QUIÉN DECIDE QUÉ. Solo LEE, y solo lo que el usuario ya puede ver: `contratos_equipo` y `facturas_equipo` (la RLS
@@ -383,10 +387,54 @@
       (o.actualizado ? '<p style="margin:0;color:#75786e;font-size:11px">' + esc(T('Actualizado el %f', { f: fecha(o.actualizado) })) + '</p>' : '');
   }
 
+  /* ---------- notas ----------
+     Lo que la parcela le pasa a LW_NOTAS. Los rótulos van en español: la pieza los traduce con lwT. Las clases son las
+     del panel de Proyectos (Tailwind compilado: tienen que estar escritas enteras aquí para que el compilador las vea). */
+  function notasCfg(alEstado) {
+    return {
+      sb: function () { return root.LW_AUTH ? root.LW_AUTH.then(function (a) { return a.sb; }) : Promise.reject(new Error(T('Sin sesión'))); },
+      argId: 'p_unidad',
+      rpc: { datos: 'unidad_notas_datos', agrega: 'unidad_nota_agrega', retira: 'unidad_nota_retira' },
+      motivos: [['rectificacion', 'Es incorrecta'], ['dato_sensible', 'Lleva un dato sensible'],
+                ['oposicion', 'Alguien que aparece en ella se opone a que se guarde'], ['autoridad', 'Lo pide una autoridad'], ['otro', 'Otro motivo']],
+      origenes: { campo_notas: 'del editor de la parcela o de una importación', antigua: 'nota anterior al historial, sin autor ni fecha de origen' },
+      aviso: 'No escribas aquí datos de compradores (nombres, contacto, importes): van en su ficha.',
+      clases: {
+        in: 'w-full px-3 py-2 bg-surface-container-lowest rounded-lg text-on-surface font-body-md text-[12px] border border-warm-border/60 focus:outline-none focus:ring-1 focus:ring-territorial-green',
+        btn1: 'py-2 px-4 rounded-xl bg-deep-lagoon text-surface-bright hover:bg-opacity-95 transition-all font-label-md text-[13px] font-semibold disabled:opacity-40',
+        btn2: 'px-3 py-1 rounded-md text-outline hover:text-on-surface font-label-md text-[11px] font-semibold whitespace-nowrap'
+      },
+      alEstado: alEstado
+    };
+  }
+  /* La tarjeta se enseña cuando hay algo que decir: lista, vacía o caída. Cargando se queda oculta (si no, parpadearía en
+     cada parcela para quien no la ve) salvo que tarde más de ESPERA_NOTAS ms: entonces se ve su «Cargando las notas…». */
+  function notasVisible(estado) { return estado === 'lista' || estado === 'vacio' || estado === 'caida'; }
+  var ESPERA_NOTAS = 4000;
+
   /* ---------- DOM ---------- */
   function q(k) { return document.querySelector('[data-lw="' + k + '"]'); }
   function muestra(el, si) { if (el) el.classList.toggle('hidden', !si); }
   var cur = { id: null, tok: 0 };
+  var notas = null, notasReloj = null;
+
+  function notasEstado(e) {
+    clearTimeout(notasReloj);
+    if (e === 'cargando') notasReloj = setTimeout(function () { muestra(q('fp-notas'), true); }, ESPERA_NOTAS);
+    else muestra(q('fp-notas'), notasVisible(e));
+  }
+  function notasAbre(id) {
+    var cuerpo = q('fp-notas-cuerpo');
+    if (!cuerpo) return;
+    if (!root.LW_NOTAS) {                                 // la pieza no ha cargado: se dice, no se calla
+      cuerpo.innerHTML = mal(T('No se han podido cargar las notas: %e', { e: T('falta un fichero de la página, recárgala') }), 'fp-notas-error');
+      muestra(q('fp-notas'), true);
+      return;
+    }
+    if (!notas) notas = root.LW_NOTAS.monta(cuerpo, notasCfg(notasEstado));
+    notas.abre(id);
+  }
+  function notasCierra() { clearTimeout(notasReloj); if (notas) notas.cierra(); muestra(q('fp-notas'), false); }
 
   function limpia() {
     ['fp-contratos', 'fp-pendientes', 'fp-docs', 'fp-obra'].forEach(function (k) { muestra(q(k), false); });
@@ -412,7 +460,9 @@
     var V4 = root.LW_V4 || {}, u = V4.unidades && V4.unidades[id];
     limpia();
     var tok = ++cur.tok;                                  // antes de cualquier salida: una carga vieja nunca pinta aquí
-    if (!u || !q('fp-contratos')) return;
+    if (!u) return notasCierra();
+    notasAbre(id);                                        // las notas no dependen de los contratos: van por su cuenta
+    if (!q('fp-contratos')) return;
     var c = q('fp-contratos-cuerpo');
     if (c) c.innerHTML = '<p style="margin:0;color:#75786e">' + esc(T('Trayendo los contratos…')) + '</p>';
     muestra(q('fp-contratos'), true);
@@ -432,7 +482,8 @@
   }
 
   var api = { fpCarga: fpCarga, fpModelo: fpModelo, fpHTML: { contratos: htmlContratos, pendientes: htmlPendientes,
-    docsResumen: htmlDocsResumen, docsCuerpo: htmlDocsCuerpo, obra: htmlObra }, _reinicia: function () { CACHE = {}; } };
+    docsResumen: htmlDocsResumen, docsCuerpo: htmlDocsCuerpo, obra: htmlObra }, notasCfg: notasCfg, notasVisible: notasVisible,
+    _reinicia: function () { CACHE = {}; } };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
 
   document.addEventListener('lw:parcela-abierta', function (ev) {
@@ -440,5 +491,5 @@
     cur.id = d.id || null;
     if (cur.id) abre(cur.id);
   });
-  document.addEventListener('lw:parcela-cerrada', function () { cur.id = null; cur.tok++; limpia(); });
+  document.addEventListener('lw:parcela-cerrada', function () { cur.id = null; cur.tok++; limpia(); notasCierra(); });
 })(typeof window !== 'undefined' ? window : this);

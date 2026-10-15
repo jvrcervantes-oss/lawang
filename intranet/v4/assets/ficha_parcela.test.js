@@ -208,11 +208,32 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
   const pos = (s) => html.indexOf(s);
   ok(pos('data-lw="dp-fase-zona"') < pos('data-lw="fp-contratos"') && pos('data-lw="fp-contratos"') < pos('>Precio y cobro<') &&
      pos('data-lw="dp-obra"') < pos('data-lw="fp-pendientes"') && pos('data-lw="fp-pendientes"') < pos('data-lw="fp-docs"') &&
-     pos('data-lw="fp-docs"') < pos('data-lw="fp-obra"') && pos('data-lw="fp-obra"') < pos('data-lw="rp-bloque"'),
-     'orden: datos → contratos → precio y cobro (con pendientes) → documentos → avance de obra → recordatorio');
+     pos('data-lw="fp-docs"') < pos('data-lw="fp-obra"') && pos('data-lw="fp-obra"') < pos('data-lw="fp-notas"') &&
+     pos('data-lw="fp-notas"') < pos('data-lw="rp-bloque"'),
+     'orden: datos → contratos → precio y cobro (con pendientes) → documentos → avance de obra → notas → recordatorio');
   const fp = leer('intranet', 'v4', 'assets', 'ficha-parcela.js');
-  ['fp-contratos', 'fp-contratos-cuerpo', 'fp-pendientes', 'fp-docs', 'fp-docs-resumen', 'fp-docs-cuerpo', 'fp-obra', 'fp-obra-cuerpo']
+  ['fp-contratos', 'fp-contratos-cuerpo', 'fp-pendientes', 'fp-docs', 'fp-docs-resumen', 'fp-docs-cuerpo', 'fp-obra', 'fp-obra-cuerpo', 'fp-notas', 'fp-notas-cuerpo']
     .forEach((k) => ok(html.indexOf('data-lw="' + k + '"') > 0, 'contenedor ' + k));
+  ok(/class="hidden [^"]*" data-lw="fp-notas"/.test(html), 'la tarjeta de notas nace oculta (con 42501 se queda así)');
+  const sNotas = html.search(/<script src="\/contracts\/assets\/notas-historial\.js(\?v=[0-9a-f]+)?" defer><\/script>/);
+  ok(sNotas > 0 && sNotas < html.search(/<script src="\.\.\/assets\/ficha-parcela\.js/), 'notas-historial.js carga antes que ficha-parcela.js');
+
+  // ── notas de la parcela (15-oct-2026): lo que se le pasa a la pieza común y cuándo se ve la tarjeta ─────────────
+  {
+    const c = FP.notasCfg(() => {});
+    ok(c.argId === 'p_unidad' && c.rpc.datos === 'unidad_notas_datos' && c.rpc.agrega === 'unidad_nota_agrega' && c.rpc.retira === 'unidad_nota_retira',
+      'notas: las tres funciones de la unidad con p_unidad');
+    ok(c.aviso === 'No escribas aquí datos de compradores (nombres, contacto, importes): van en su ficha.', 'aviso de Legal (#376), texto fijo');
+    ok(c.motivos.map((m) => m[0]).join() === 'rectificacion,dato_sensible,oposicion,autoridad,otro', 'los cinco motivos que valida la base');
+    ok(c.origenes.campo_notas === 'del editor de la parcela o de una importación', 'rótulo del origen campo_notas en la parcela');
+    ok(/\bdisabled:opacity-40\b/.test(c.clases.btn1) && /\bfocus:ring-1\b/.test(c.clases.in), 'clases del panel de Proyectos, con su estado deshabilitado y su foco');
+    ok(['lista', 'vacio', 'caida'].every(FP.notasVisible) && !FP.notasVisible('sin_permiso') && !FP.notasVisible('cargando'),
+      'se ve con lista, vacía o caída; con 42501 (o cargando) no');
+    // sin LW_AUTH: el sb es una promesa rechazada (la pieza lo pinta como caída), nunca una excepción suelta
+    const p = c.sb();
+    ok(p && typeof p.then === 'function', 'sb() devuelve una promesa');
+    await p.then(() => ok(false, 'sin sesión no puede resolverse'), (e) => ok(/Sin sesión/.test(e.message), 'sin LW_AUTH: «Sin sesión»'));
+  }
   const i18n = leer('contracts', 'assets', 'i18n.js');
   const claves = new Set();
   i18n.replace(/^\s*'((?:[^'\\]|\\.)*)'\s*:/gm, (x, k) => { claves.add(k.replace(/\\'/g, "'")); return x; });
