@@ -3031,7 +3031,7 @@
             ? '<div style="margin-top:10px">' + H.tabla(['Proyecto', 'Precio', 'Cobrado', 'Pendiente'], nombresProy.map(function (k) {
                 var p = porProy[k];
                 return [esc(k), esc(fmt(p.precio, moneda)), esc(fmt(p.cobrado, moneda)), esc(fmt(p.precio - p.cobrado, moneda))];
-              })) + '</div>'
+              }), { apila: 1 }) + '</div>'
             : '';
           // cifras con la pieza del cajón (25-sep-2026); cobrado en verde, lo que se debe en rojo
           return H.cifras(['Precio pactado', 'Cobrado', 'Pendiente'].map(function (etq, i) {
@@ -3205,7 +3205,7 @@
               }))
             : H.nota('Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.');
           var cuerpo =
-            H.seccion('Identidad', identidad) +
+            H.seccion('Identidad', identidad, 'identidad') +
             H.seccion('Responsable de la ficha', seccionResponsable(), 'responsable') +
             /* Con contratos o soporte apagados la sección NO se pinta (ni «Ninguno enlazado», que mentiría: no es que no
                haya, es que aquí no se mide). Las facturas y los envíos de la ficha cuelgan de los contratos del cliente. */
@@ -3297,6 +3297,35 @@
             if (h4) h4.textContent = tx('Estado de cuentas de tus contratos');
             var scu = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > div');
             if (scu) scu.insertAdjacentHTML('afterbegin', H.nota('Solo suma tus contratos: los de otros agentes no entran en estas cifras.'));
+          });
+          /* «Ficha ≠» DE ESTE CLIENTE (15-oct-2026, el owner preguntó qué era el aviso «46 documentos difieren de la ficha»).
+             La misma vista que los listados (documentos_desactualizados: la comparación vive en la base), filtrada por el id del
+             cliente y pedida DESPUÉS de pintar. Vivo = se pone al día abriéndolo; congelado (firmado, enviado o anulado) = no
+             se toca, si el dato importa se reemite (suite_lawang.md → «Un documento vivo no puede contradecir a su ficha»).
+             Si no se puede mirar se DICE: «ninguna diferencia» no puede leerse igual que «no he podido mirar». */
+          if (conC) sb.from('documentos_desactualizados').select('tipo,id,numero,congelado,diferencias').eq('client_id', c2.id).then(function (rd) {
+            var sid = cj.cuerpo && cj.cuerpo.querySelector('[data-cajon-sec="identidad"] > div');
+            if (!sid) return;
+            if (rd.error) {
+              console.error('[v4 datos] ficha≠ del cliente', rd.error);
+              sid.insertAdjacentHTML('beforeend', H.nota('No se ha podido comprobar si sus contratos y facturas dicen lo mismo que esta ficha.'));
+              return;
+            }
+            var dif = (rd.data || []).filter(function (x) { return Array.isArray(x.diferencias) && x.diferencias.length; });
+            if (!dif.length) return;
+            var CAMPO = { nombre: 'Nombre', identidad: 'Pasaporte / NPWP', email: 'Email', telefono: 'Teléfono', pais: 'Nacionalidad' };
+            var fila = function (x) {
+              var num = x.numero || tx('sin nº');
+              var enl = x.tipo === 'factura' ? H.enlace('/intranet/v4/facturas/?id=' + encodeURIComponent(x.id), num)
+                : (x.numero ? H.enlace('/intranet/v4/contratos/?contrato=' + encodeURIComponent(x.numero), num) : esc(num));
+              var qu = x.diferencias.map(function (d) { return tx(CAMPO[d.campo] || d.campo); }).join(', ');
+              return '<li>' + enl + ' <span style="font-size:11.5px;color:#75786e">' + esc(tx(x.tipo === 'factura' ? 'Factura' : 'Contrato')) + ' · ' + esc(qu) + '</span></li>';
+            };
+            var ul = function (xs) { return '<ul style="margin:0 0 0 18px;padding:0;font-size:12.5px;color:#2E3437;display:grid;gap:4px">' + xs.map(fila).join('') + '</ul>'; };
+            var vivos = dif.filter(function (x) { return !x.congelado; }), cerrados = dif.filter(function (x) { return x.congelado; });
+            sid.insertAdjacentHTML('beforeend',
+              (vivos.length ? H.nota(tx('%n documento(s) sin cerrar dicen algo distinto de esta ficha: ábrelos y trae los datos de la ficha para ponerlos al día.', { n: '<b>' + vivos.length + '</b>' }), true) + ul(vivos) : '') +
+              (cerrados.length ? H.nota(tx('%n documento(s) ya cerrados (firmados, enviados o anulados) dicen algo distinto de esta ficha. No se tocan: si el dato importa, se reemiten.', { n: '<b>' + cerrados.length + '</b>' }), true) + ul(cerrados) : ''));
           });
 
           /* Traspaso: wiring de los controles que seccionResponsable() acaba de
@@ -3873,14 +3902,11 @@
         var pedido = new URLSearchParams(location.search).get('id');
         if (pedido && porId[pedido]) cuandoCajon(function () { setTimeout(function () { abreFicha(porId[pedido]); }, 0); });
 
-        /* Ficha≠: el control de divergencia de la suite. Se pide AL FINAL y
-           fuera de `vig()` (ver cabecera: 12,7 s en la base) — la pantalla ya
-           esta pintada y usable cuando llega. */
-        sb.from('documentos_desactualizados').select('congelado,diferencias').limit(1000).then(function (rv) {
-          if (rv.error) { console.error('[v4 datos] ficha≠', rv.error); return; }
-          var difN = (rv.data || []).filter(function (x) { return x.diferencias && x.diferencias.length; }).length;
-          if (difN) bandaNota('Ficha ≠: ' + difN + ' documento(s) emitidos difieren de la ficha del cliente — el detalle vive en la herramienta clásica (/intranet/compradores/).', '#C06C47');
-        });
+        /* Ficha≠ (15-oct-2026): aquí ya NO se pide la vista entera. Se pedía para escribir en la consola «N documentos difieren
+           de la ficha — el detalle vive en la herramienta clásica»: una cifra de TODOS los documentos (no del cliente abierto),
+           que nadie veía en pantalla, que apuntaba a /intranet/compradores/ (retirada) y que costaba la consulta más lenta de la
+           pantalla en cada carga. Ahora cada ficha pide los SUYOS por su id (pintaFicha) y los listados de Contratos y Facturas
+           siguen marcando «Ficha ≠» por fila (fichaDistinta). */
       });
     },
     operaciones: function (sb) {

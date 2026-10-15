@@ -809,12 +809,32 @@
       '.lwc-tabla th{text-align:left;padding:0 10px 10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#a8a29e;white-space:nowrap}',
       '.lwc-tabla td{padding:11px 10px;border-top:1px solid #f5f5f4;color:#44403c;vertical-align:middle}',
       '.lwc-tabla tbody tr:hover td{background:#FBF9F4}',
+      '.lwc-tabla td.lwc-num{white-space:nowrap;font-variant-numeric:tabular-nums}',
+      /* Tabla de cifras que APILA en estrecho (15-oct-2026, owner: «se amontonan los números» en el Estado de cuentas de la
+         ficha de cliente, que vive en la columna lateral de 212-322 px). `tabla(…, { apila: 1 })`: los importes no parten
+         línea y, si la caja mide menos de 440 px, cada fila pasa a tarjeta «rótulo … importe» en vez de cortar columnas.
+         El contenedor es la caja, no la pantalla: la misma tabla cabe entera a 1024 y se apila a 1920 en la columna lateral. */
+      '.lwc-apila{container-type:inline-size;overflow-x:visible;margin:0}',
+      '.lwc-apila .lwc-tabla td:not(:first-child),.lwc-apila .lwc-tabla th:not(:first-child){white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}',
+      '@container (max-width:440px){',
+      '.lwc-apila .lwc-tabla thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}',
+      '.lwc-apila .lwc-tabla tr{display:block;padding:10px 0;border-top:1px solid #f5f5f4}',
+      '.lwc-apila .lwc-tabla td{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:2px 0;border:0}',
+      '.lwc-apila .lwc-tabla td::before{content:attr(data-th);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#a8a29e;text-align:left;white-space:normal}',
+      '.lwc-apila .lwc-tabla td:first-child{display:block;padding-bottom:4px;font-weight:600;color:var(--las-tinta);overflow-wrap:break-word}',
+      '.lwc-apila .lwc-tabla td:first-child::before{content:none}',
+      '.lwc-apila .lwc-tabla tbody tr:hover td{background:none}',
+      '}',
       '.lwc-chips{display:flex;flex-wrap:wrap;gap:8px}',
       '.lwc-chips span{font-size:13px;padding:4px 12px;border-radius:9999px;background:#F3F0E8;color:#44403c}',
       '#lw-cajon .las-aviso{padding:12px 14px}',
-      '.lwc-cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:18px 16px}',
-      '.lwc-cifra{min-width:0}',
-      '.lwc-cifra b{display:block;margin-top:2px;font:600 20px/1.2 Jost,system-ui,sans-serif;color:var(--las-lago);overflow-wrap:anywhere}',
+      /* Cifra e importe NUNCA parten línea (15-oct-2026, owner: «se amontonan los números»). Antes: rejilla de 130 px por
+         cifra + `overflow-wrap:anywhere`, que partía «69.000 / EUR» en la columna lateral y empujaba la tarjeta. Ahora cada
+         cifra mide lo que su importe y baja a la línea siguiente cuando no cabe; en una caja muy estrecha la letra baja. */
+      '.lwc-cifras{display:flex;flex-wrap:wrap;gap:18px 24px;container-type:inline-size}',
+      '.lwc-cifra{flex:1 1 auto;min-width:0}',
+      '.lwc-cifra b{display:block;margin-top:2px;font:600 20px/1.2 Jost,system-ui,sans-serif;color:var(--las-lago);white-space:nowrap;font-variant-numeric:tabular-nums}',
+      '@container (max-width:230px){.lwc-cifra b{font-size:17px}}',
       '.lwc-cifra b .lwc-tag{font-size:13px}',
       '.lwc-cifra small{display:block;margin-top:2px;font-size:11px;color:#a8a29e}',
       '.lwc-paso{background:#F2F8F8;border-color:#CFE3E3;color:#104C4F}',
@@ -836,7 +856,8 @@
       '.lwc-split{grid-template-columns:minmax(260px,34%) minmax(0,1fr);grid-template-rows:repeat(var(--lwc-filas,1),auto)}',
       '.lwc-split > *{grid-column:2}',
       '.lwc-split > .lwc-ladocol{grid-column:1;grid-row:1/-1;align-self:start;position:sticky;top:0;display:grid;gap:20px;min-width:0}',
-      '.lwc-ladocol .lwc-sec > div{grid-template-columns:1fr}',
+      // minmax(0,1fr) y no 1fr (15-oct-2026): `1fr` es minmax(auto,1fr) y la pista crecía hasta lo más ancho de dentro (una tabla), sacando de la tarjeta el texto y las cifras
+      '.lwc-ladocol .lwc-sec > div{grid-template-columns:minmax(0,1fr)}',
       '@media (max-width:1279px){.lwc-split{grid-template-columns:minmax(0,1fr);grid-template-rows:none}.lwc-split > *,.lwc-split > .lwc-ladocol{grid-column:auto;grid-row:auto;position:static}}',
       '@media (max-width:640px){.lwc-cuerpo{padding:20px}.lwc-sec{padding:18px}.lwc-sec > div{grid-template-columns:1fr}#lw-cajon .las-pie > .lwc-peligro{margin-right:0}}'
     ].join('\n');
@@ -1522,6 +1543,7 @@
      HTML ya escapado: el texto entra crudo y sale seguro. `html:1` en `dato`
      es la unica puerta para meter marcado (una etiqueta de estado, un
      enlace), y quien la usa escapa el mismo. */
+  var ES_IMPORTE = /^-?[\d.,]+(?: |&nbsp;| )[A-Z]{3}$/;
   var CAJON_HTML = {
     // Bloque del alta. `> h4` y `> div` son ganchos de datos.js (retitular,
     // rellenar después): la estructura section > h4 + div no se cambia.
@@ -1533,10 +1555,17 @@
       var v = (valor == null || valor === '') ? '<span class="lwc-apagado">—</span>' : ((opts && opts.html) ? valor : esc(valor));
       return '<div class="lwc-dato"><span class="las-etq">' + esc(tS(etq)) + '</span><span class="lwc-val">' + v + '</span></div>';
     },
-    tabla: function (cabeceras, filas) {
-      return '<div class="lwc-tabla-caja"><table class="lwc-tabla"><thead><tr>' +
-        cabeceras.map(function (h) { return '<th>' + esc(tS(h)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
-        filas.map(function (f) { return '<tr>' + f.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') +
+    // `opts.apila`: tabla de cifras que en estrecho pasa a tarjetas (cada celda lleva su rótulo en data-th; CSS `.lwc-apila`)
+    tabla: function (cabeceras, filas, opts) {
+      var apila = !!(opts && opts.apila);
+      var rot = cabeceras.map(function (h) { return esc(tS(h)); });
+      return '<div class="lwc-tabla-caja' + (apila ? ' lwc-apila' : '') + '"><table class="lwc-tabla"><thead><tr>' +
+        rot.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        filas.map(function (f) { return '<tr>' + f.map(function (c, i) {
+          // una celda que es SOLO un importe («1.250.000 EUR», lo que da fmt) no parte línea en ninguna tabla del cajón
+          var num = typeof c === 'string' && ES_IMPORTE.test(c);
+          return '<td' + (num ? ' class="lwc-num"' : '') + (apila ? ' data-th="' + (rot[i] || '') + '"' : '') + '>' + c + '</td>';
+        }).join('') + '</tr>'; }).join('') +
         '</tbody></table></div>';
     },
     tag: function (texto, tono) {

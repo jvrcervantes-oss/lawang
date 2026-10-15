@@ -5711,6 +5711,10 @@
     'No se pudo leer la ficha completa: se enseña lo que hay en el listado.': 'Could not read the full record: showing what the list has.',
     'El editor aún no ha cargado — prueba de nuevo en un segundo.': 'The editor has not loaded yet — try again in a second.',
     'Esta persona tiene %n contratos en total; aquí ves %m.': 'This person has %n contracts in total; you see %m here.',
+    // «Ficha ≠» de un cliente, en su ficha (15-oct-2026)
+    '%n documento(s) sin cerrar dicen algo distinto de esta ficha: ábrelos y trae los datos de la ficha para ponerlos al día.': '%n open document(s) say something different from this record: open them and bring in the record\'s details to update them.',
+    '%n documento(s) ya cerrados (firmados, enviados o anulados) dicen algo distinto de esta ficha. No se tocan: si el dato importa, se reemiten.': '%n closed document(s) (signed, sent or cancelled) say something different from this record. They are not edited: if the detail matters, they are reissued.',
+    'No se ha podido comprobar si sus contratos y facturas dicen lo mismo que esta ficha.': 'Could not check whether their contracts and invoices match this record.',
     'Sus contratos están en monedas distintas (%l): no hay una sola cifra. El detalle por contrato está arriba.': 'Their contracts are in different currencies (%l): there is no single figure. The detail per contract is above.',
     'Solo tiene Carta(s) de Reserva: el precio final de la villa lo fija el contrato que la sustituya. Lo exigible hoy es la cuota de reserva.': 'Only has Reservation Letter(s): the final villa price is set by the contract that replaces it. What is due today is the reservation fee.',
     'El precio no cuenta las Cartas de Reserva.': 'The price does not include Reservation Letters.',

@@ -2455,6 +2455,10 @@ select {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
 }
 
+.\@container {
+  container-type: inline-size;
+}
+
 .\[background-size\:16px_16px\] {
   background-size: 16px 16px;
 }
