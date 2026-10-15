@@ -9,7 +9,12 @@
 --
 -- A QUIÉN AFECTA HOY. A nadie todavía: las únicas condiciones que leen lo cobrado por parte (pct_cobrado_suelo_firmado /
 -- pct_cobrado_obra_firmada) rigen desde el 1-nov-2026 (medido por la sesión de F3 el 14-oct: 12 sucesoras, todas
--- vigente_desde 2026-11-01). Las BASES (columnas 1–2) no cambian. Solo puede FRENAR un devengo, nunca adelantarlo.
+-- vigente_desde 2026-11-01). Las BASES (columnas 1–2) no cambian. Respecto a 133241 frena MÁS casos (toda la clase de
+-- `p`) con UNA excepción: un Bloqueo sin firmar en OTRA moneda que la raíz frenaba antes y ya no (al firmarse tampoco
+-- entraría en `p`; Administración, consulta del 15-oct). Lo cuantifica la clase 3 de contracts/sql/comisiones_1nov_guarda_f3_medicion.sql.
+-- Decisiones abiertas (LAW-627, por defecto «se queda así y se mide»): piezas sin precio por diseño (Poder, Hak Sewa,
+-- oferta) que frenan sin mover `p`; definición de parcela distinta de _unidad_cobro_cascada; borrar el contrato que
+-- frena no recalcula comisiones (no hay trigger after delete en contratos).
 --
 -- PRUEBA: contracts/sql/prueba_comisiones_1nov.sql (38 casos): G4b invertido (raíz contrato_general sin firmar → obra 0,
 -- ningún devengo), G4c nuevo (raíz carta sin firmar → la guarda no aplica, devenga manager:2:8000.00) y G4d–G4g (la pieza
