@@ -65,6 +65,19 @@
 --     recibis) solo puede guardar si la cuenta y todos sus banco_* quedan exactamente igual. Con otra cuenta, sus banco_* se descartan
 --     (el papel solo los imprime con «otros», documento.js:64).
 --   registra_privilegio guarda el importe ya leido (v_importe_aplic), no el texto que mando la pantalla.
+--   CONTRATO DEL PAPEL (15-oct-2026, code-review hallazgo 2; patron ENLACE + ESPEJO de contexto/patrones_tecnicos.md): contrato_numero
+--     se copiaba de lo que mandaba el navegador, asi que el papel podia decir un contrato mientras el dinero iba a otro. Ahora la
+--     columna contrato_numero y datos.fields.contrato_numero (lo que imprime el papel, documento.js:179) salen de contratos.numero
+--     del contrato ya comprobado; lo mandado se ignora. Igual proyecto_nombre (columna y fields, documento.js:201) cuando el contrato
+--     tiene proyecto: el alcance restringido ya lo hacia asi; ahora tambien quien no lo tiene. Ademas del papel, ese nombre decide
+--     el proyecto_id del recibi nuevo (trg_espejo_proyecto lo busca por nombre) y _empresa_doc prefiere el proyecto al contrato, asi
+--     que un nombre ajeno cambiaba que admin de empresa podia editarlo. Se lee despues de la puerta de visibilidad (DEFINER: antes
+--     seria un oraculo). Sin proyecto en el contrato, el nombre que llega se queda como antes. La pantalla ya manda los valores del
+--     contrato (editores.js, recogeVals y pFactura): el uso normal no cambia.
+--     NO se tocan cliente_nombre ni sociedad: su fuente en el contrato no es inequivoca y factura_guarda tampoco los saca del
+--     contrato (20261013074408, insert y update: los toma del payload; sociedad solo se ata para el alcance restringido, como aqui).
+--     cliente_nombre: un contrato puede tener varios compradores (comprador_nombre compuesto con «·») y la pantalla deja escribir
+--     la razon social; sociedad: la elige un admin, y al editar el alcance restringido conserva la de la fila.
 -- LO QUE NO HACE: no toca datos (REC00015 lo aplica el orquestador por la pantalla, con el OK del owner). Si el owner aplica
 --   REC00015 a INV00212 (39.220 = 39.220) entra la aplicacion entera o nada: todo va en la misma transaccion. Los recibis ya
 --   guardados conservan sus datos.lineas/totales hasta que alguien los vuelva a guardar.
@@ -164,6 +177,8 @@ declare
   v_datos jsonb;
   v_campos jsonb;
   v_admin boolean;
+  v_contrato_numero text;      -- 15-oct-2026 (code-review, hallazgo 2): sale del contrato comprobado, no del navegador
+  v_pnombre_contrato text;     -- 15-oct-2026: el proyecto del contrato comprobado
   c_banco constant text[] := array['banco_titular', 'banco_nombre', 'banco_cuenta', 'banco_codigo', 'banco_direccion', 'banco_extra'];
   c_fuera constant text[] := array['imp_pct', 'imp_etiqueta', 'impuestos_sel', 'banco_de_servidor',
                                    'rectifica_numero', 'rectifica_fecha', 'rectificacion_motivo'];
@@ -182,6 +197,14 @@ begin
                       where c.id = v_contrato_id and public.puede_ver_contrato(c.id)) then
     raise exception 'No puedes emitir un recibí sobre un contrato que no ves' using errcode = '42501';
   end if;
+
+  -- 15-oct-2026 (code-review, hallazgo 2): numero de contrato y proyecto salen del contrato YA comprobado (enlace manda,
+  -- texto espejo). Se leen DESPUES de la puerta: la funcion es DEFINER y antes seria un oraculo del numero de un contrato
+  -- ajeno. Si el contrato no tiene proyecto, el nombre que llega se queda como hoy (el alcance restringido lo vacia abajo).
+  select c.numero, pr.nombre into v_contrato_numero, v_pnombre_contrato
+    from public.contratos c left join public.proyectos pr on pr.id = c.proyecto_id
+   where c.id = v_contrato_id;
+  v_pnombre := coalesce(v_pnombre_contrato, v_pnombre);
 
   v_emp := public._empresa_doc(null::uuid, v_contrato_id);
   if v_rest then
@@ -375,6 +398,10 @@ begin
     end if;
   end if;
   v_campos := v_campos || jsonb_build_object('tipo', 'recibi', 'moneda', v_moneda, 'lineas', v_lineas);
+  -- 15-oct-2026 (hallazgo 2): el papel imprime fields.contrato_numero y fields.proyecto_nombre (documento.js:179 y :201): los
+  -- mismos que la fila. Si el contrato no tiene numero (o no hay proyecto), la clave se quita: el papel no imprime uno inventado
+  v_campos := (v_campos - array['contrato_numero', 'proyecto_nombre'])
+              || jsonb_strip_nulls(jsonb_build_object('contrato_numero', v_contrato_numero, 'proyecto_nombre', v_pnombre));
   v_datos := v_datos || jsonb_build_object(
     'fields', v_campos,
     'lineas', v_lineas,
@@ -386,13 +413,13 @@ begin
        total, moneda, fecha_emision, justificantes, datos)
     values
       ('recibi', p_factura->>'sociedad', p_factura->>'cliente_nombre', v_pnombre,
-       p_factura->>'contrato_numero', v_contrato_id, v_total, v_moneda,
+       v_contrato_numero, v_contrato_id, v_total, v_moneda,
        nullif(p_factura->>'fecha_emision','')::date, v_justificantes, v_datos)
     returning id, numero into v_id, v_numero;
   else
     update public.facturas set
       sociedad = p_factura->>'sociedad', cliente_nombre = p_factura->>'cliente_nombre',
-      proyecto_nombre = v_pnombre, contrato_numero = p_factura->>'contrato_numero',
+      proyecto_nombre = v_pnombre, contrato_numero = v_contrato_numero,
       contrato_id = v_contrato_id, total = v_total, moneda = v_moneda,
       fecha_emision = nullif(p_factura->>'fecha_emision','')::date, justificantes = v_justificantes,
       datos = v_datos

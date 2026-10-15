@@ -9,6 +9,9 @@
 -- H6, que le adjunta uno y la sube a 500, guardarla sin justificante con 500 se rechaza) y un historico sin justificante solo
 -- salda facturas de SU contrato (H8: otro contrato del MISMO comprador se rechaza; H8b su SI con una factura de su contrato;
 -- H8c con justificante el otro contrato del mismo comprador sigue entrando).
+-- Hallazgo 2 del code-review (15-oct): el numero de contrato y el proyecto del papel salen del contrato comprobado (K1: un
+-- recibi nuevo que manda el numero y el proyecto de OTRO contrato se guarda con los suyos, en la columna y en datos.fields, y su
+-- proyecto_id es el del contrato; K2: al editar, un numero inventado tampoco entra; M3b: el SI, en otro contrato, guarda el suyo).
 -- Rol REAL: cada llamada va con `set local role authenticated` y los claims de la persona (pg_temp.val, armazon de
 -- cf_borrar_cierre_anula.sql). Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- !! CREA CONTRATOS Y DOCUMENTOS (gasta numeracion): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
@@ -31,10 +34,15 @@ begin
   perform set_config('request.jwt.claims', '', true);
   return t;
 end $f$;
--- el p_factura de la pantalla: total, justificantes y datos.fields (cuenta, banco_*, impuesto) los pone quien llama
-create or replace function pg_temp.rec(p_contrato uuid, p_total jsonb, p_just jsonb, p_fields jsonb) returns jsonb language sql immutable as $f$
-  select jsonb_build_object('contrato_id', p_contrato, 'sociedad', 'zz_rt', 'cliente_nombre', 'ZZ-RT', 'proyecto_nombre', 'ZZ-RT Proyecto',
-           'contrato_numero', 'ZZ-RT-K1', 'total', p_total, 'moneda', 'EUR', 'fecha_emision', '2026-10-14',
+-- el p_factura de la pantalla: total, justificantes y datos.fields (cuenta, banco_*, impuesto) los pone quien llama.
+-- Numero de contrato y proyecto: los del contrato que se pasa, como hace la pantalla (editores.js, pFactura con
+-- estadoContrato.numero). Hasta el 15-oct ponia siempre 'ZZ-RT-K1' y escondia que guardar_recibi copiaba el del navegador
+-- (code-review, hallazgo 2): M2/M3 (K2) y H8* (K3) guardaban «ZZ-RT-K1» sin que nada lo mirara. Lee tablas: stable.
+create or replace function pg_temp.rec(p_contrato uuid, p_total jsonb, p_just jsonb, p_fields jsonb) returns jsonb language sql stable as $f$
+  select jsonb_build_object('contrato_id', p_contrato, 'sociedad', 'zz_rt', 'cliente_nombre', 'ZZ-RT',
+           'proyecto_nombre', (select pr.nombre from public.contratos c join public.proyectos pr on pr.id = c.proyecto_id where c.id = p_contrato),
+           'contrato_numero', (select c.numero from public.contratos c where c.id = p_contrato),
+           'total', p_total, 'moneda', 'EUR', 'fecha_emision', '2026-10-14',
            'justificantes', p_just, 'datos', jsonb_build_object('fields', p_fields, 'lineas', '[]'::jsonb))
 $f$;
 -- donde esta la serie de los recibis (trg_set_factura_numero hace nextval de facturas_recibi_seq; nextval no se deshace con
@@ -48,13 +56,14 @@ create or replace function pg_temp.guarda(p_uid uuid, p_email text, p_id uuid, p
 $f$;
 
 insert into _tp values ('A',  gen_random_uuid(), 'zz-rt-agente@prueba.invalid'),
-                       ('AE', gen_random_uuid(), 'zz-rt-admin-empresa@prueba.invalid');
+                       ('AE', gen_random_uuid(), 'zz-rt-admin-empresa@prueba.invalid'),
+                       ('AD', gen_random_uuid(), 'zz-rt-admin-global@prueba.invalid');   -- 15-oct: sin alcance restringido (K3)
 
 do $todo$
 declare
   r text := ''; v text; n bigint; s0 text;
-  a _tp; ae _tp;
-  pL uuid; k1 uuid; k2 uuid; k3 uuid; k4 uuid; f9 uuid; f10 uuid; rh3 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f8 uuid; r1 uuid; rh uuid; rh2 uuid; ro uuid;
+  a _tp; ae _tp; ad _tp;
+  pL uuid; p2 uuid; rk uuid; k1 uuid; k2 uuid; k3 uuid; k4 uuid; f9 uuid; f10 uuid; rh3 uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f8 uuid; r1 uuid; rh uuid; rh2 uuid; ro uuid;
   d jsonb;
   j  constant jsonb := '[{"path": "zz-rt/justificante.pdf"}]';
   c_emp constant text := 'zz_rt';
@@ -64,7 +73,7 @@ begin
   if coalesce(current_setting('erp.en_rama', true), '') <> 'si' then
     raise exception 'FIN DE PRUEBAS RECIBI TOTAL SUMA Y EXENTO:%', E'\nP0 esta prueba crea contratos y documentos: solo corre en rama → FALLA';
   end if;
-  select * into a from _tp where et = 'A'; select * into ae from _tp where et = 'AE';
+  select * into a from _tp where et = 'A'; select * into ae from _tp where et = 'AE'; select * into ad from _tp where et = 'AD';
 
   -- ============================================================ P. montaje (como postgres, SIN sesion)
   perform set_config('request.jwt.claims', '', true);
@@ -78,7 +87,8 @@ begin
       select t.uid, '00000000-0000-0000-0000-000000000000', t.em, 'authenticated', 'authenticated' from _tp t;
     insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo) values
       (a.uid,  a.em,  'ZZ-RT Agente',        'agente',        'global',  array[c_emp], array[pL],    '{}'::uuid[], '{contratos,facturas}'::text[], '{contrato_general}'::text[], true),
-      (ae.uid, ae.em, 'ZZ-RT Admin empresa', 'admin_empresa', 'empresa', array[c_emp], '{}'::uuid[], '{}'::uuid[], '{contratos,facturas}'::text[], '{}'::text[], true);
+      (ae.uid, ae.em, 'ZZ-RT Admin empresa', 'admin_empresa', 'empresa', array[c_emp], '{}'::uuid[], '{}'::uuid[], '{contratos,facturas}'::text[], '{}'::text[], true),
+      (ad.uid, ad.em, 'ZZ-RT Admin global',  'admin',         'global',  '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{contratos,facturas}'::text[], '{}'::text[], true);
     insert into public.contratos (numero, tipo, proyecto_id, moneda, precio_total, datos, creado_por)
       values ('ZZ-RT-K1', 'contrato_general', pL, 'EUR', 100000, '{"hitos":[]}', a.em) returning id into k1;
     -- la rama nace de la ESTRUCTURA del volcado: storage.buckets viene sin filas (el bucket lo creo 20260811034859, un dato).
@@ -248,6 +258,60 @@ begin
          jsonb_build_array(jsonb_build_object('factura_id', f6, 'importe', 1000)));
   r := r || pg_temp.l(v !~ '^ERR' and (select total from public.facturas where id = nullif(v, '')::uuid) = 1000,
                       'M3 en IDR, aplicar 1000 a una de 1000 entra (' || left(v, 70) || ')');
+  -- M3b (15-oct, hallazgo 2): el recibi de K2 dice K2 (con el rec() de antes se guardaba «ZZ-RT-K1» y nada lo miraba)
+  r := r || pg_temp.l(v !~ '^ERR' and (select f.contrato_numero = 'ZZ-RT-K2' and f.datos->'fields'->>'contrato_numero' = 'ZZ-RT-K2'
+                                         from public.facturas f where f.id = nullif(v, '')::uuid),
+                      'M3b el recibi de K2 guarda «ZZ-RT-K2» en la columna y en el papel (' || left(v, 60) || ')');
+
+  -- ============================================================ K · el contrato del papel sale del contrato (hallazgo 2, 15-oct)
+  -- otro proyecto con nombre real: si guardar_recibi se creyera el nombre mandado, trg_espejo_proyecto le pondria su proyecto_id
+  begin
+    insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-RT Proyecto 2', 'zz-rt-proyecto-2', c_emp, true) returning id into p2;
+  exception when others then
+    r := r || pg_temp.l(false, 'K0 montaje del proyecto 2: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
+  if p2 is not null then
+    -- K1 (NO): recibi NUEVO de K1 que manda el numero de K2, otro proyecto, y lo mismo en datos.fields (lo que imprime el papel)
+    v := pg_temp.guarda(a.uid, a.em, null,
+           pg_temp.rec(k1, '10', j, '{"contrato_numero": "ZZ-RT-K2", "proyecto_nombre": "ZZ-RT Proyecto 2", "notas": "zz-k1"}')
+             || '{"contrato_numero": "ZZ-RT-K2", "proyecto_nombre": "ZZ-RT Proyecto 2"}',
+           jsonb_build_array(jsonb_build_object('factura_id', f4, 'importe', 10)));
+    if v ~ '^ERR' then
+      r := r || pg_temp.l(false, 'K1 el recibi con numero y proyecto ajenos entra (con los suyos) (' || left(v, 90) || ')');
+    else
+      rk := v::uuid;
+      select datos into d from public.facturas where id = rk;
+      r := r || pg_temp.l((select f.contrato_numero from public.facturas f where f.id = rk) = 'ZZ-RT-K1'
+                          and d->'fields'->>'contrato_numero' = 'ZZ-RT-K1',
+                          'K1 manda «ZZ-RT-K2» y se guarda «ZZ-RT-K1» en la columna y en datos.fields (' ||
+                          coalesce((select f.contrato_numero from public.facturas f where f.id = rk), '-') || ' / ' || coalesce(d->'fields'->>'contrato_numero', '-') || ')');
+      r := r || pg_temp.l((select f.proyecto_nombre = 'ZZ-RT Proyecto' and f.proyecto_id = pL from public.facturas f where f.id = rk)
+                          and d->'fields'->>'proyecto_nombre' = 'ZZ-RT Proyecto' and d->'fields'->>'notas' = 'zz-k1',
+                          'K1b el proyecto es el del contrato (nombre, proyecto_id y papel), no «ZZ-RT Proyecto 2», y lo demas se queda (el agente tiene alcance restringido: eso ya lo hacia; el NO que discrimina es K3)');
+      -- K2 (NO, al editar): el mismo recibi con un numero inventado en la columna y en el papel
+      v := pg_temp.guarda(a.uid, a.em, rk,
+             pg_temp.rec(k1, '10', j, '{"contrato_numero": "ZZ-RT-FALSO"}') || '{"contrato_numero": "ZZ-RT-FALSO"}',
+             jsonb_build_array(jsonb_build_object('factura_id', f4, 'importe', 10)));
+      r := r || pg_temp.l(v = rk::text
+                          and (select f.contrato_numero = 'ZZ-RT-K1' and f.datos->'fields'->>'contrato_numero' = 'ZZ-RT-K1'
+                                 from public.facturas f where f.id = rk),
+                          'K2 al editar, «ZZ-RT-FALSO» no entra: sigue «ZZ-RT-K1» en la columna y en el papel (' || left(v, 60) || ')');
+    end if;
+    -- K3 (NO, sin alcance restringido): hasta el 15-oct el admin global guardaba el proyecto mandado, y con el su proyecto_id
+    -- (trg_espejo_proyecto lo busca por nombre) y la empresa que _empresa_doc le atribuye al recibi
+    v := pg_temp.val(ad.uid, ad.em, 'select (public.alcance_restringido() and not public.es_admin())::text');
+    r := r || pg_temp.l(v = 'false', 'K3pre el admin global NO tiene alcance restringido (v_rest falso; si no, K3 no probaria nada) (' || coalesce(v, '-') || ')');
+    v := pg_temp.guarda(ad.uid, ad.em, null,
+           pg_temp.rec(k1, '10', j, '{"contrato_numero": "ZZ-RT-K2", "proyecto_nombre": "ZZ-RT Proyecto 2"}')
+             || '{"contrato_numero": "ZZ-RT-K2", "proyecto_nombre": "ZZ-RT Proyecto 2"}',
+           jsonb_build_array(jsonb_build_object('factura_id', f4, 'importe', 10)));
+    r := r || pg_temp.l(v !~ '^ERR'
+                        and (select f.contrato_numero = 'ZZ-RT-K1' and f.proyecto_nombre = 'ZZ-RT Proyecto' and f.proyecto_id = pL
+                                    and f.datos->'fields'->>'contrato_numero' = 'ZZ-RT-K1' and f.datos->'fields'->>'proyecto_nombre' = 'ZZ-RT Proyecto'
+                               from public.facturas f where f.id = nullif(v, '')::uuid),
+                        'K3 el admin global (sin alcance restringido) manda K2 y «ZZ-RT Proyecto 2»: se guardan K1, su proyecto y su proyecto_id (' ||
+                        coalesce((select f.contrato_numero || ' / ' || coalesce(f.proyecto_nombre, '-') from public.facturas f where f.id = nullif(v, '')::uuid), left(v, 70)) || ')');
+  end if;
 
   -- ============================================================ fallo 1 · el historico sin justificante se aplica (LAW-40)
   v := pg_temp.guarda(a.uid, a.em, rh, pg_temp.rec(k1, '400', '[]', '{}'), jsonb_build_array(jsonb_build_object('factura_id', f5, 'importe', 400)));
