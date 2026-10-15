@@ -52,5 +52,5 @@
 -- con «Invitar al portal» de la ficha de parcela desde el 15-oct-2026)
 -- Fuente (la ultima es la vigente):
 --   supabase/migrations/20260908013953_portal_autoservicio.sql
---   supabase/migrations/20261015101500_invitacion_portal_parcela.sql
+--   supabase/migrations/20261015071004_invitacion_portal_parcela.sql
 -- ============================================================================

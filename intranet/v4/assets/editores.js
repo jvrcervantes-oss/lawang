@@ -8664,7 +8664,7 @@
           { k: 'registro_num', label: 'Nº de registro mercantil (solo empresa)', medio: 1, valor: c.registro_num || '' },
           { k: 'rep_nombre', label: 'Representante legal (solo empresa)', medio: 1, valor: c.rep_nombre || '' },
           { k: 'rep_cargo', label: 'Cargo del representante (solo empresa)', medio: 1, valor: c.rep_cargo || '' },
-          { k: 'notes', label: 'Notas', tipo: 'textarea', valor: c.notes || '' },
+          // «Notas» ya no es un campo: es la sección de notas de la ficha, con autor y fecha (20261015075011_cliente_notas)
           { tipo: 'nota', label: 'Si esta ficha cuelga de un contrato ya FIRMADO, su pasaporte y domicilio están impresos en ese documento y la base rechazará el cambio: es cosa de un administrador.' }
         ];
         if (pedir) {
@@ -8688,12 +8688,8 @@
             forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica.trim() || null) : null,
             registro_num: v.tipo === 'empresa' ? (v.registro_num.trim() || null) : null,
             rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre.trim() || null) : null,
-            rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo.trim() || null) : null,
-            notes: v.notes.trim() || null
+            rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo.trim() || null) : null
           };
-          // La ficha abierta desde el directorio no trae `notes`: mandarla vacía las borraría sin que nadie
-          // lo haya querido. cliente_guarda solo toca las claves que llegan.
-          if (!('notes' in c)) delete patch.notes;
           // El estado KYC solo viaja si la persona lo CAMBIÓ en el formulario: con el objeto de la ficha
           // abierta (que no se recarga tras retirar un documento) un admin re-aprobaba sin querer al
           // guardar otra cosa (consulta de deploy, Desarrollo, 27-sep-2026).
