@@ -308,6 +308,9 @@
         : m.pactado && !m.pactado.noVisible && !x.deMas ? T('Ya está dentro de «%k»: no se suman.', { k: et }) : '';
       out += fila(k, esc(fmt(x.porCobrar, x.moneda)), ayuda, 'fp-facturado-sin-cobrar');
       /* `facturado_de_mas` (contrato_saldo, 15-oct-2026): «por facturar» se queda en 0 y no enseña el exceso. */
+      /* Sin precio no hay tope: la base deja facturar sin freno (RP00079, 15-oct). Una fila de pendientes no la ve nadie
+         desde aquí; el aviso sí (consulta de Administración). */
+      if (x.sinPrecio) out += aviso(T('La venta %v no tiene tope de facturación: a uno de sus contratos le falta el precio. Ponlo en el contrato.', { v: x.numero }), 'fp-sin-tope');
       if (x.deMas) out += aviso(T('La venta %v tiene facturado %a más que su precio: algún documento sobra. Revísalo en Facturas y anula el que no corresponda.',
         { v: x.numero, a: fmt(x.deMas, x.moneda) }), 'fp-facturado-de-mas');
     });

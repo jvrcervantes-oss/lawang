@@ -189,6 +189,8 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
     const { m } = await corre(fila(), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk({ facturado_de_mas: 25000, por_facturar: 0 }) } });
     ok(/fp-facturado-de-mas/.test(FP.fpHTML.pendientes(m)) && /anula el que no corresponda/.test(FP.fpHTML.pendientes(m)), 'el exceso se ve aunque «por facturar» sea 0');
     ok(!/no se suman/.test(FP.fpHTML.pendientes(m)), 'con exceso no se afirma «ya está dentro»');
+    const st = await corre(fila(), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk({ sin_precio: true, por_facturar: null, precio: null }) } });
+    ok(/fp-sin-tope/.test(FP.fpHTML.pendientes(st.m)) && /no tiene tope de facturación/.test(FP.fpHTML.pendientes(st.m)), 'venta sin precio: aviso de «sin tope» (Administración, RP00079)');
     const b = await corre(fila(), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk({ facturas: [{ id: 'f1', numero: 'INV1', total: 121, subtotal: 100, cobrado: 0 }] }) } });
     ok(/Con impuestos: no se resta del precio pactado\./.test(FP.fpHTML.pendientes(b.m)) && !/no se suman/.test(FP.fpHTML.pendientes(b.m)), 'con impuestos tampoco');
   }

@@ -6666,6 +6666,7 @@
     'No se pudo leer lo facturado de %c: %e': 'What was invoiced for %c could not be read: %e',
     'No tienes permiso para ver los contratos de esta parcela. Los ve un administrador de la empresa.': 'You do not have permission to see this plot\'s contracts. A company administrator can see them.',
     'Esta parcela tiene un contrato de venta que no puedes ver. Lo ve un administrador de la empresa.': 'This plot has a sale contract you cannot see. A company administrator can see it.',
+    'La venta %v no tiene tope de facturación: a uno de sus contratos le falta el precio. Ponlo en el contrato.': 'Sale %v has no invoicing limit: one of its contracts has no price. Set it in the contract.',
     'Con impuestos: no se resta del precio pactado.':'Including tax: it is not taken from the agreed price.',
     'Pactado por cobrar': 'Agreed, not collected',
     'Por cobrar del precio': 'Price not yet collected',
