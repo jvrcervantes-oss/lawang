@@ -30,7 +30,8 @@
 -- PERMISOS: lo nuevo nace cerrado: revoke de PUBLIC y anon, grant execute solo a authenticated (llamadores con nombre:
 -- asistente-contrato.js -> contratos_busca; edge asistente-peticiones con el JWT de quien pide -> clientes_busca; las tres
 -- INVOKER y comprador_buscar (DEFINER, dueño postgres) -> normaliza_busqueda).
--- ORDEN DE PUBLICACION: esta migracion ANTES que el front (asistente-contrato.js) y la edge que la llaman.
+-- ORDEN DE PUBLICACION: esta migracion ANTES que el front (asistente-contrato.js) y la edge que la llaman. Por eso van en un
+-- commit APARTE que no se aterriza hasta verla aplicada en vivo (revisor, 15-oct: el orden no puede vivir solo en un mensaje).
 -- PRUEBA (solo en rama, fixture propio): supabase/pruebas/busqueda_sin_tildes.sql: la tabla de casos de
 -- contracts/busqueda_casos.json y, con el rol real, un caso que entra y otro que se niega por cada funcion (C: comprador_buscar,
 -- K: contratos_busca, L: clientes_busca; anon y quien no es del equipo, nada).
@@ -90,8 +91,9 @@ declare
 begin
   if not public.es_agente() then return; end if;
   if length(btrim(coalesce(p_q,''))) < 3 then return; end if;
-  v_q := public.normaliza_busqueda(p_q);   -- el servidor normaliza lo que llega: no se fia de que la pantalla lo hiciera
-  if v_q = '' then return; end if;         -- solo apostrofos o espacios: nada que buscar
+  v_q := public.normaliza_busqueda(left(p_q, 200));   -- el servidor normaliza lo que llega: no se fia de que la pantalla lo hiciera
+  -- el minimo de 3 se mide YA NORMALIZADO: «a''» pasaba el de arriba y, plegado a «a», devolvia 8 fichas cualesquiera
+  if char_length(v_q) < 3 then return; end if;
   return query
     select c.id, c.full_name, c.email, case when c.passport_number is null then null else '…' || right(c.passport_number, 4) end,
            c.tipo, c.propietario
@@ -111,7 +113,7 @@ create or replace function public.contratos_busca(p_q text)
  stable
  set search_path = ''
 as $f$
-  with q as (select public.normaliza_busqueda(p_q) as v)
+  with q as (select public.normaliza_busqueda(left(p_q, 200)) as v)   -- tope en el servidor: la pantalla corta a 120, el servidor no se fia
   select c.id, c.numero, c.tipo, c.comprador_nombre, c.proyecto_nombre, c.parcela_codigo,
          c.bloqueado, c.liberado_en, c.fecha_firma, c.created_at,
          c.contrato_padre_id, c.datos_fields->>'clausulas_negociadas'
@@ -139,7 +141,7 @@ create or replace function public.clientes_busca(p_q text)
  stable
  set search_path = ''
 as $f$
-  with q as (select public.normaliza_busqueda(p_q) as v)
+  with q as (select public.normaliza_busqueda(left(p_q, 200)) as v)   -- tope en el servidor (la edge corta a 120)
   select c.id, c.full_name, c.email, c.phone
     from public.clients c
     cross join q

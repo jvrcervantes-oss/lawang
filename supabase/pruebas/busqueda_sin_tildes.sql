@@ -125,7 +125,7 @@ begin
                   has_function_privilege('anon', p.oid, 'execute') anon, has_function_privilege('authenticated', p.oid, 'execute') auth,
                   has_function_privilege('public', p.oid, 'execute') pub
              from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('normaliza_busqueda','contratos_busca','clientes_busca') loop
-    r := r || pg_temp.l(x.proconfig = '{search_path=""}' and not x.anon and not x.pub and x.auth and not x.prosecdef
+    r := r || pg_temp.l(x.proconfig @> array['search_path=""'] and not x.anon and not x.pub and x.auth and not x.prosecdef
                         and (x.proname <> 'normaliza_busqueda' or x.provolatile = 'i'),
                         'N ' || x.proname || ' volatil=' || x.provolatile || ' definer=' || x.prosecdef || ' anon=' || x.anon || ' public=' || x.pub || ' authenticated=' || x.auth);
   end loop;
@@ -206,6 +206,10 @@ begin
   r := r || pg_temp.l(v = '0', 'C8 NIEGA: el pasaporte de una ficha que A no ve no la devuelve (alcance) (' || pg_temp.e(v) || ')');
   v := pg_temp.val(fx.uid, fx.em, 'select count(*) from public.comprador_buscar(''jose maria'')');
   r := r || pg_temp.l(v = '0', 'C9 NIEGA: quien no es del equipo no recibe nada (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select count(*) from public.comprador_buscar(%L)', 'z'''''));
+  r := r || pg_temp.l(v = '0', 'C10 NIEGA: «z» con dos apostrofos pasa el corte de 3 pero plegado es 1 letra: nada (Seguridad, 15-oct) (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select count(*) from public.comprador_buscar(%L) where id = %L', repeat('x', 5000) || 'jose', cA));
+  r := r || pg_temp.l(v = '0', 'C11 un texto enorme se corta a 200 en el servidor y no rompe (' || pg_temp.e(v) || ')');
 
   -- ============================================================ K. contratos_busca (buscador de ventas del asistente de contrato; INVOKER)
   v := pg_temp.val(a.uid, a.em, format('select count(*) from public.contratos_busca(%L) where id = %L', 'jose maria munoz', kA1));
@@ -220,9 +224,9 @@ begin
   r := r || pg_temp.l(v = '0', 'K5 NIEGA: A no recibe la venta de B (la RLS de contratos decide) (' || pg_temp.e(v) || ')');
   v := pg_temp.val(jv.uid, jv.em, format('select count(*) from public.contratos_busca(%L) where id = %L', 'siobhan obrien', kB1));
   r := r || pg_temp.l(v = '1', 'K6 ENTRA: el super admin si la recibe (' || pg_temp.e(v) || ')');
-  v := pg_temp.val(a.uid, a.em, 'select string_agg(numero, '','') from public.contratos_busca('''')');
+  v := pg_temp.val(a.uid, a.em, 'select string_agg(numero, '','' order by created_at desc) from public.contratos_busca('''')');
   r := r || pg_temp.l(v = 'ZZB-0002,ZZB-0001', 'K7 vacio: las ultimas de A, la mas nueva primero (' || pg_temp.e(v) || ')');
-  v := pg_temp.val(a.uid, a.em, 'select string_agg(numero, '','') from public.contratos_busca(''j'')');
+  v := pg_temp.val(a.uid, a.em, 'select string_agg(numero, '','' order by created_at desc) from public.contratos_busca(''j'')');
   r := r || pg_temp.l(v = 'ZZB-0002,ZZB-0001', 'K8 una letra cuenta como vacio, como antes (' || pg_temp.e(v) || ')');
   v  := pg_temp.val(a.uid, a.em, 'select string_agg(id::text, '','' order by id) from public.contratos_busca(''zz busca'')');
   v2 := pg_temp.val(a.uid, a.em, 'select string_agg(id::text, '','' order by id) from public.contratos where numero is not null');
