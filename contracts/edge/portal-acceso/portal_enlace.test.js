@@ -326,6 +326,10 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
   const sinIp = await llama(ACCESO, { email: 'ip10@cliente-prueba.com' });
   igual([sinIp.crudo, est.envios.length, llamo('rpc:portal_enlace_freno')[0].args.p_ip_hash], [exito.crudo, 1, null], 'acceso: sin IP sale con p_ip_hash null');
   ok(sinIp.logs.some((l) => l.includes('sin_ip @cliente-prueba.com')), 'acceso: sin IP queda en el log');
+  // ip_fuente (15-oct, resto 6): una línea por petición con el NOMBRE de la cabecera de la que saldría la IP, nunca la IP
+  igual(sinIp.logs.filter((l) => l.startsWith('portal-acceso ip_fuente:')), ['portal-acceso ip_fuente:ninguna'], 'acceso: ip_fuente ninguna');
+  igual(sextaIp.logs.filter((l) => l.startsWith('portal-acceso ip_fuente:')), ['portal-acceso ip_fuente:cf'], 'acceso: ip_fuente cf');
+  igual(xff.logs.filter((l) => l.startsWith('portal-acceso ip_fuente:')), ['portal-acceso ip_fuente:xff'], 'acceso: ip_fuente xff');
 
   /* ════════ portal-invitar ════════ */
   freno.global = [];
