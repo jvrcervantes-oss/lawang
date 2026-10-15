@@ -169,14 +169,14 @@
 
   /* ── FILTROS Y LISTA ───────────────────────────────────────────────────── */
   function filtrados() {
-    var b = ($('lw-ban-buscar').value || '').trim().toLowerCase();
+    var b = lwNormaliza($('lw-ban-buscar').value);   // sin tildes ni mayúsculas (vocabulario.js, 15-oct)
     var fc = $('lw-ban-f-cuenta').value, fe = $('lw-ban-f-estado').value, fm = $('lw-ban-f-mes').value;
     return D.movs.filter(function (m) {
       if (fc && m.cuenta_clave !== fc) return false;
       if (fe === 'abiertos' && m.estado !== 'pendiente' && m.estado !== 'parcial') return false;
       if (fe && fe !== 'abiertos' && m.estado !== fe) return false;
       if (fm && String(m.fecha).slice(0, 7) !== fm) return false;
-      if (b && ((m.concepto || '') + ' ' + (m.referencia || '')).toLowerCase().indexOf(b) === -1) return false;
+      if (!lwBuscaEn([m.concepto, m.referencia], b)) return false;
       return true;
     });
   }

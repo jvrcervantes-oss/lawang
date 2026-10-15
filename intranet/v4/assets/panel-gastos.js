@@ -118,7 +118,7 @@
 
   /* ── FILTROS Y LISTA ───────────────────────────────────────────────────── */
   function filtrados() {
-    var b = ($('lw-gas-buscar').value || '').trim().toLowerCase();
+    var b = lwNormaliza($('lw-gas-buscar').value);   // sin tildes ni mayúsculas (vocabulario.js, 15-oct)
     var fs = $('lw-gas-f-sociedad').value, fp = $('lw-gas-f-proyecto').value, fc = $('lw-gas-f-categoria').value, fe = $('lw-gas-f-estado').value, fm = $('lw-gas-f-mes').value;
     return D.gastos.filter(function (g) {
       if (fs && g.sociedad !== fs) return false;
@@ -131,7 +131,7 @@
       if (fm && String(g.fecha).slice(0, 7) !== fm) return false;
       if (b) {
         var prov = g.proveedor_id && provPorId[g.proveedor_id] ? provPorId[g.proveedor_id].nombre : '';
-        if ((g.concepto + ' ' + (g.referencia || '') + ' ' + prov).toLowerCase().indexOf(b) === -1) return false;
+        if (!lwBuscaEn([g.concepto, g.referencia, prov], b)) return false;
       }
       return true;
     });

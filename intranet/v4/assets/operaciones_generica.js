@@ -145,8 +145,7 @@
     return E.lista.filter(function (o) {
       if (est !== '*' && o.estado !== est) return false;
       if (!t) return true;
-      var pajar = [o.referencia, nombreDe(o), o.tipo, o.creado_por].join(' ').toLowerCase();
-      return pajar.indexOf(t) !== -1;
+      return lwBuscaEn([o.referencia, nombreDe(o), o.tipo, o.creado_por], t);   // sin tildes ni mayúsculas (vocabulario.js, 15-oct)
     });
   }
 
@@ -352,7 +351,7 @@
     });
     sec.addEventListener('input', function (ev) {
       var i = ev.target;
-      if (i && i.hasAttribute && i.hasAttribute('data-opsg-buscar')) { E.texto = String(i.value || '').trim().toLowerCase(); pintaLista(); }
+      if (i && i.hasAttribute && i.hasAttribute('data-opsg-buscar')) { E.texto = lwNormaliza(i.value); pintaLista(); }
     });
   }
 
