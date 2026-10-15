@@ -1,4 +1,4 @@
--- Prueba de 20261015201000_portal_freno_aviso (15-oct-2026, sesión lawang-cola-2; revisión previa #371 con Backend y Seguridad).
+-- Prueba de 20261015230956_portal_freno_aviso (aplicada el 16-oct-2026; escrita como 20261015201000) (15-oct-2026, sesión lawang-cola-2; revisión previa #371 con Backend y Seguridad).
 -- A1 nadie de fuera ejecuta portal_freno_anota (anon, authenticated) y service_role sí. A2 la tabla vive en privado, con RLS, y
 -- ni anon, ni authenticated, ni service_role la leen o escriben (has_table_privilege: «0 filas» no prueba nada). A3 dos 'global'
 -- suman 2 a n_global en la hora en curso, con UNA fila. A4 'ip' suma a n_ip y no a n_global. A5 motivo no válido o null = 22023 y no
@@ -6,7 +6,7 @@
 -- IP ni hash. A8 la función es DEFINER con search_path vacío. A3 y A6 dependen de no cruzar el cambio de hora durante la llamada: si
 -- se cruza, salen «→ ok (sin medir: cambio de hora)» y se repite.
 -- Sin serial ni identity: no gasta ninguna serie. Siembra filas en privado.portal_frenos: SOLO EN RAMA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015201000_portal_freno_aviso.sql --prueba portal_freno_aviso.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015230956_portal_freno_aviso.sql --prueba portal_freno_aviso.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA».
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
