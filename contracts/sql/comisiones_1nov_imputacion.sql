@@ -9,6 +9,9 @@
 -- Medido el 14-oct con la regla nueva antes de aplicarla: 57 ventas, parcela >= 50 % = 21, obra >= 25 % = 3, imputado
 -- 703.429,79, 0 desacuerdos; solo RP00132 cambia de reparto (parcela 5.000 → 25.000, obra 20.000 → 0) y 0 ventas en el
 -- estado de la guarda (sin parcela firmada, con Bloqueo vivo sin firmar y obra firmada).
+-- OJO (15-oct-2026, BAJA 4 del revisor): la CTE `guarda` de aquí repite la de la función, así que su acuerdo sale por
+-- construcción y NO prueba la guarda. La prueba independiente son G4a–G4g de prueba_comisiones_1nov.sql (raíz y HIJA sin
+-- firmar: contrato_general, Hak Sewa, otra moneda, liberada), con cifras escritas a mano. Esto solo vigila el resto.
 -- 13-oct-2026 (consulta de Administración): parte = public._comisiones_parte_obra (adenda = obra, fuente única) y solo
 -- cuentan contratos, recibís y facturas en la moneda de la raíz; una venta multimoneda sale como fila (no debería haber).
 with raices as (

@@ -12,6 +12,9 @@
 --   Última pasada: 14-oct-2026 tras F3 (20261014133241), 33/33 ok, series sin mover.
 --   15-oct-2026: G4b invertido y G4c nuevo con 20261015071000 (guarda con la clase de la parcela): SIN PASADA todavía
 --   (congelación de aplicar en producción del owner, 15-oct); con esa migración aplicada deben salir 34/34.
+--   15-oct-2026 (BAJA 4 del revisor): G4d–G4g, la pieza sin firmar es una HIJA (contrato_general y Hak Sewa frenan; en
+--   otra moneda o liberada no). SIN PASADA todavía; con 20261015071000 aplicada deben salir 38/38. Se corre en la viva
+--   con ROLLBACK justo antes de aplicar 20261015071000 (y otra vez después), siempre antes del 1-nov-2026.
 --
 -- SERIES (LAW-217): ninguna prueba consume números. El motor crea una solicitud de pago (serie SP, identity) por cada
 -- devengo de manager/estándar/propia; aquí se desactivan los usuarios dentro de la transacción, así el motor no resuelve
@@ -29,7 +32,7 @@
 --   con CC00085 a 36.000, o 22,7 % de 88.000).
 --   La carta hija CR00051 (64.000, 5.000 cobrados) se deja SIN FIRMAR en el montaje (la carta nunca suma en la BASE,
 --   pero su cobro sí es pago). Los casos C1–C5 la firman para probar esa imputación; comparan las cifras de
---   _comisiones_bases_firmadas como números (no como texto) y el devengo que sale. G4a/G4b/G4c prueban la guarda de F3.
+--   _comisiones_bases_firmadas como números (no como texto) y el devengo que sale. G4a–G4g prueban la guarda de F3.
 -- Condiciones sucesoras del equipo (lawang): manager c0a11010-…-04 (10 %), closer genérico c0a11010-…-03 (2,5 %,
 -- plantilla del SM: closer 25 %).
 -- G1/G3 van por condicion_comision_guarda, la RPC real de la pantalla (condicion_tramos_reemplaza no tiene llamador y
@@ -697,6 +700,51 @@ begin
   exception when others then
     r := r || 'G4c raiz carta sin firmar la obra cuenta=' || sqlerrm || case when sqlerrm = 'R:bases ok|manager:2:8000.00' then ' ok; ' else ' FALLO; ' end;
   end;
+
+  -- G4d–G4g · La pieza sin firmar es un HIJO (15-oct-2026, BAJA 4 del revisor: comisiones_1nov_imputacion repite la guarda
+  --       y su «0 desacuerdos» sale por construcción; esto la prueba de forma independiente). Montaje de G4c (raíz carta
+  --       sin firmar, que no frena, y CC00085 a 36.000) y solo cambia la hija CR00051, que ya está sin firmar:
+  --   G4d · CR00051 pasa a contrato_general → entra en la clase de `p` al firmarse → frena: obra 0, ningún devengo.
+  --   G4e · CR00051 pasa a hak_sewa_notario (es_obra = false en contrato_tipo_etapa, 20261013023737) → frena igual.
+  --   G4f · CR00051 contrato_general en OTRA moneda que la raíz → fuera de la clase (no entraría en `p`) → no frena:
+  --         como G4c. La bandera multimoneda sigue en false porque solo mira contratos FIRMADOS.
+  --   G4g · CR00051 contrato_general LIBERADO (liberado_en puesto, liberado_motivo 'desistida') → no frena: como G4c.
+  -- Si G4f/G4g salen «-» en vez de manager:2:8000.00, mirar primero si RP00133 tiene otro hijo vivo sin firmar que no sea
+  -- carta ni obra (BAJA 5 del revisor, igual que G4c).
+  for v_n in 1..4 loop
+    begin
+      execute 'set local session_replication_role = replica';
+      update public.contratos set bloqueado = false, tipo = 'carta_reserva' where id = v_raiz;
+      update public.contratos set precio_total = 36000 where id = v_cc85;
+      update public.contratos
+         set tipo = case when v_n = 2 then 'hak_sewa_notario' else 'contrato_general' end,
+             moneda = case when v_n = 3 then (select case when rz.moneda = 'IDR' then 'EUR' else 'IDR' end
+                                                from public.contratos rz where rz.id = v_raiz)
+                           else moneda end,
+             liberado_en = case when v_n = 4 then now() else liberado_en end,
+             liberado_motivo = case when v_n = 4 then 'desistida' else liberado_motivo end
+       where id = v_cr51 and not coalesce(bloqueado, false);
+      get diagnostics v_m = row_count;
+      execute 'set local session_replication_role = origin';
+      select (b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+              b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas, b.multimoneda)
+             = (0, 80000, 0, case when v_n <= 2 then 0 else 20000 end, 0, 20000, 0, false),
+             concat_ws('/', b.suelo_firmado, b.obra_firmada, b.cobrado_suelo_firmado, b.cobrado_obra_firmada,
+                       b.cobrado_directo_suelo, b.cobrado_directo_obra, b.cobrado_cartas, b.multimoneda)
+        into v_ok, v_b from public._comisiones_bases_firmadas(v_raiz) b;
+      perform public.comisiones_evaluar_contrato(v_raiz);
+      select coalesce(string_agg(d.nivel || ':' || t.orden || ':' || d.importe, ',' order by d.nivel, t.orden), '-') into v_t
+        from public.comisiones_devengadas d join public.condicion_tramos t on t.id = d.tramo_id where d.contrato_raiz_id = v_raiz;
+      raise exception 'R:%|%', case when v_m <> 1 then 'montaje CR00051 no sin firmar'
+                                    when v_ok then 'bases ok' else 'bases ' || v_b end, v_t;
+    exception when others then
+      r := r || (array['G4d hija contrato_general sin firmar frena=', 'G4e hija Hak Sewa sin firmar frena=',
+                       'G4f hija sin firmar en otra moneda no frena=', 'G4g hija sin firmar liberada no frena='])[v_n]
+           || sqlerrm
+           || case when sqlerrm = case when v_n <= 2 then 'R:bases ok|-' else 'R:bases ok|manager:2:8000.00' end
+                   then ' ok; ' else ' FALLO; ' end;
+    end;
+  end loop;
 
   -- V · validación de tramos: 100 por base efectiva; 'por_tramo' exige base en cada tramo
   begin

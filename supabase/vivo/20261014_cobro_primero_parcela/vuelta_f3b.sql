@@ -1,6 +1,37 @@
 -- VUELTA de 20261015071000_comisiones_guarda_f3_misma_clase: deja _comisiones_bases_firmadas como la dejó
 -- 20261014133241 (guarda F3 solo con tipo = 'reserva_parcela'). Una sola transacción. No toca filas.
+-- GUARDA CONTRA LO VIVO (revisor, 15-oct), el espejo de la de 20261015071000:
+--   * ya vuelta (el cuerpo vivo lleva la marca de la guarda vieja, o su md5 es el de 133241) → no hace nada;
+--   * md5(prosrc) vivo distinto del cuerpo de 20261015071000 → lanza y no toca nada;
+--   * si no, crea la función con `execute` dentro del mismo `do`.
+--   md5 calculados en local (sin lectura de producción, congelación del 15-oct) sobre el texto exacto entre los dos
+--   delimitadores de dólar del blob de git, con LF y con CRLF; de dónde sale cada uno, en la cabecera de 20261015071000:
+--     20261015071000 (partida): 4d78770774ef0c79bd7537ed7e886a6c (LF) · 38763b027fa87bc537065dcaf97ff135 (CRLF)
+--     20261014133241 (destino): f56d8196d59cabfa556af88ff9da8c16 (LF) · b5d6a8badb2b4047a20001f692209f39 (CRLF)
+--   Antes de pasarla, confirmar en la viva con una lectura:
+--     select md5(prosrc) from pg_proc where oid = 'public._comisiones_bases_firmadas(uuid)'::regprocedure;
+--   El cuerpo de abajo es byte a byte el de 20261014133241: no se retoca, ni un comentario.
 begin;
+do $vuelta$
+declare
+  v_fn  regprocedure := to_regprocedure('public._comisiones_bases_firmadas(uuid)');
+  v_src text;
+  v_md5 text;
+begin
+  if v_fn is null then
+    raise exception 'vuelta_f3b: no existe public._comisiones_bases_firmadas(uuid)';
+  end if;
+  select p.prosrc into v_src from pg_catalog.pg_proc p where p.oid = v_fn;
+  v_md5 := md5(v_src);
+  if position('c.tipo = ''reserva_parcela'' and not coalesce(c.bloqueado, false)' in v_src) > 0
+     or v_md5 in ('f56d8196d59cabfa556af88ff9da8c16', 'b5d6a8badb2b4047a20001f692209f39') then
+    raise notice 'vuelta_f3b: ya está como 20261014133241 (md5 %), no hace nada', v_md5;
+    return;
+  end if;
+  if v_md5 not in ('4d78770774ef0c79bd7537ed7e886a6c', '38763b027fa87bc537065dcaf97ff135') then
+    raise exception 'vuelta_f3b: _comisiones_bases_firmadas no es el cuerpo de 20261015071000 (md5 %); revisar a mano', v_md5;
+  end if;
+  execute $ddl$
 create or replace function public._comisiones_bases_firmadas(p_raiz uuid)
  returns table(suelo_firmado numeric, obra_firmada numeric, cobrado_suelo_firmado numeric, cobrado_obra_firmada numeric,
                cobrado_directo_suelo numeric, cobrado_directo_obra numeric, cobrado_cartas numeric, multimoneda boolean)
@@ -60,5 +91,8 @@ as $function$
          i.cp, i.co, i.cc,
          exists (select 1 from fam f where f.moneda is distinct from (select r.moneda from r))
     from i;
-$function$;
+$function$
+$ddl$;
+end
+$vuelta$;
 commit;

@@ -11,12 +11,62 @@
 -- pct_cobrado_obra_firmada) rigen desde el 1-nov-2026 (medido por la sesión de F3 el 14-oct: 12 sucesoras, todas
 -- vigente_desde 2026-11-01). Las BASES (columnas 1–2) no cambian. Solo puede FRENAR un devengo, nunca adelantarlo.
 --
--- PRUEBA: contracts/sql/prueba_comisiones_1nov.sql, G4b invertido (raíz contrato_general sin firmar → obra 0, ningún
--- devengo) y G4c nuevo (raíz carta sin firmar → la guarda no aplica, devenga manager:2:8000.00). Corre sobre la venta real
--- RP00133 dentro de una transacción que se deshace y necesita la válvula del owner: NO corre en una rama vacía.
--- VUELTA: supabase/vivo/20261014_cobro_primero_parcela/vuelta_f3b.sql (la definición de 20261014133241).
+-- PRUEBA: contracts/sql/prueba_comisiones_1nov.sql (38 casos): G4b invertido (raíz contrato_general sin firmar → obra 0,
+-- ningún devengo), G4c nuevo (raíz carta sin firmar → la guarda no aplica, devenga manager:2:8000.00) y G4d–G4g (la pieza
+-- sin firmar es un HIJO: contrato_general y Hak Sewa frenan; en otra moneda o liberado no frenan). Corre sobre la venta
+-- real RP00133 dentro de una transacción que se deshace y necesita la válvula del owner: NO corre en una rama vacía.
+-- ACEPTADO: la prueba contracts/sql/prueba_comisiones_1nov.sql (38 casos) monta sobre la venta real RP00133 con la
+-- válvula del owner y no corre en rama; se corre en la viva con ROLLBACK justo antes de aplicar esta migración, que tiene
+-- que aplicarse ANTES DEL 1-NOV-2026 (desde esa fecha los tramos cobrados empiezan a contar y el ALTA tendría efecto).
+-- ACEPTADO: orquestador agencia-c0 / sesión lawang-cola-2, 15-oct, por la congelación del owner.
+-- SI G4c (o G4f/G4g) FALLA, mirar el DATO antes que la función (BAJA 5 del revisor): esos casos solo salen bien si RP00133
+-- no tiene otro hijo vivo sin firmar, en su moneda, que no sea carta ni obra (un Poder, un Hak Sewa): con uno así la
+-- guarda frena con razón y el caso devuelve «-» en vez de manager:2:8000.00.
+--
+-- GUARDA CONTRA LO VIVO (revisor, 15-oct, MEDIA). Se aplicará tarde (congelación) y hay varias sesiones tocando
+-- comisiones, así que el bloque `do` no reemplaza a ciegas:
+--   * ya aplicada (el cuerpo vivo lleva la marca de la guarda nueva, o su md5 es el de este cuerpo) → no hace nada;
+--   * md5(prosrc) vivo distinto del cuerpo de 20261014133241 → lanza y no aplica nada;
+--   * si no, crea la función con `execute` dentro del mismo `do` (todo o nada, se aplique como se aplique).
+--   Los md5 NO salen de la base (lectura de producción congelada el 15-oct): se calcularon en local sobre el texto exacto
+--   entre los dos delimitadores de dólar del blob de git (= prosrc: salto de línea inicial y final incluidos, UTF-8),
+--   con LF y con CRLF, porque no se sabe cómo viajó el texto desde Windows al aplicarse:
+--     20261014133241 (partida): f56d8196d59cabfa556af88ff9da8c16 (LF) · b5d6a8badb2b4047a20001f692209f39 (CRLF). Cuerpo
+--       de supabase/vivo/20261014_cobro_primero_parcela/siguiente_comisiones_1nov.sql en d175a50c0, el último commit
+--       antes de aplicarla (versión 133241 = 21:32 +0800 del 14-oct), idéntico byte a byte al de su migración.
+--     20261015071000 (este):    4d78770774ef0c79bd7537ed7e886a6c (LF) · 38763b027fa87bc537065dcaf97ff135 (CRLF).
+--   AL LEVANTAR LA CONGELACIÓN, antes de aplicar, confirmar en la viva con una lectura:
+--     select md5(prosrc) from pg_proc where oid = 'public._comisiones_bases_firmadas(uuid)'::regprocedure;
+--   Tiene que salir uno de los dos de 133241. Si sale otro, alguien la cambió: mirar qué hay vivo, no tocar los md5.
+--   Cualquier retoque DENTRO del cuerpo de abajo (también en un comentario) cambia su md5 y rompe vuelta_f3b.sql.
+--
+-- 20261014133241 se aplicó el 14-oct-2026 (apply_migration, ventana del owner): batería prueba_comisiones_1nov 33/33
+-- antes (ensayo deshecho) y después, comisiones_1nov_imputacion 0 desacuerdos, vuelta vuelta_f3.sql. Esa nota se añadió a
+-- la cabecera de 133241 después de aplicarla; se trae aquí para que aquel fichero sea el texto aplicado (BAJA 6).
+-- VUELTA: supabase/vivo/20261014_cobro_primero_parcela/vuelta_f3b.sql (la definición de 20261014133241, con la misma
+-- guarda contra lo vivo al revés).
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68); el maestro no tiene comisiones por cobrado por parte.
 
+do $parche$
+declare
+  v_fn  regprocedure := to_regprocedure('public._comisiones_bases_firmadas(uuid)');
+  v_src text;
+  v_md5 text;
+begin
+  if v_fn is null then
+    raise exception 'comisiones_guarda_f3b: no existe public._comisiones_bases_firmadas(uuid)';
+  end if;
+  select p.prosrc into v_src from pg_catalog.pg_proc p where p.oid = v_fn;
+  v_md5 := md5(v_src);
+  if position('and not public._comisiones_parte_obra(c.tipo, e.es_obra)) as bloqueo_sin_firmar' in v_src) > 0
+     or v_md5 in ('4d78770774ef0c79bd7537ed7e886a6c', '38763b027fa87bc537065dcaf97ff135') then
+    raise notice 'comisiones_guarda_f3b: ya aplicada (md5 %), no hace nada', v_md5;
+    return;
+  end if;
+  if v_md5 not in ('f56d8196d59cabfa556af88ff9da8c16', 'b5d6a8badb2b4047a20001f692209f39') then
+    raise exception 'comisiones_guarda_f3b: _comisiones_bases_firmadas no es el cuerpo de 20261014133241 (md5 %); revisar a mano', v_md5;
+  end if;
+  execute $ddl$
 create or replace function public._comisiones_bases_firmadas(p_raiz uuid)
  returns table(suelo_firmado numeric, obra_firmada numeric, cobrado_suelo_firmado numeric, cobrado_obra_firmada numeric,
                cobrado_directo_suelo numeric, cobrado_directo_obra numeric, cobrado_cartas numeric, multimoneda boolean)
@@ -87,4 +137,7 @@ as $function$
          i.cp, i.co, i.cc,
          exists (select 1 from fam f where f.moneda is distinct from (select r.moneda from r))
     from i;
-$function$;
+$function$
+$ddl$;
+end
+$parche$;
