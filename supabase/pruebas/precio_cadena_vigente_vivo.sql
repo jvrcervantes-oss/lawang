@@ -12,13 +12,19 @@
 --       RP00197, RP00209, RP00255, RP00259) y NINGÚN documento sale: sin_precio, facturado, total y cobrado iguales
 --   W4  el invariante de las 141 ventas: precio de la cadena = suelo + obra de contrato de la cascada (y, aparte, cuántas
 --       ventas tienen una obra sin parcela que la cascada no reparte: 0 el 15-oct)
+--   W3b sin depender de la función vieja: en cada raíz, facturado = suma de subtotales y cobrado = suma de lo aplicado de las
+--       facturas VIVAS de la raíz y sus hijos en su moneda (ningún documento vivo sale, sea de un contrato vigente o no)
 --   W5  RP00101 por la RPC y con el rol real (el agente que creó la venta, o el admin global si no está activo): contrato_saldo
---       da precio 69.000 y facturado_de_mas 25.000, y factura_guarda de 1 EUR se rechaza (23514)
+--       da precio 69.000 y facturado_de_mas 25.000, y factura_guarda de 1 EUR se rechaza (23514). Posible falso FALLA en W5c:
+--       la sociedad del documento se toma de una factura viva de RP00101; si no es la de la empresa de la identidad,
+--       factura_guarda corta con 42501 ANTES del tope. Si sale 42501, el tope no está probado: mirar W5b y la prueba de rama V3.
 --   W6  RP00025: a_cuenta = 39.220 por contrato_saldo con el rol real
 --   W7  la vista: las dos columnas nuevas al final, security_invoker y SELECT solo para authenticated
 -- Identidades resueltas desde la base (ningún uid ni email en el fichero: el repo de Lawang es público).
 -- Cada línea acaba en «→ ok» o «→ FALLA»; la última es «FIN DE PRUEBAS».
--- destructivo-ok: prueba en transacción que termina en raise (rollback); solo lee la viva
+-- NO ES SOLO LECTURA: W5 crea la función public.zz_pv_num() y un disparador sobre public.facturas (DDL en producción),
+-- y el cerrojo de facturas dura hasta el raise del final, que lo deshace todo. Se lanza con turno, en un momento tranquilo.
+-- destructivo-ok: prueba en transacción que termina en raise (rollback); crea y deshace una función y un disparador auxiliares
 
 -- ============================================================ las funciones de ANTES (cuerpo literal, como pg_temp)
 CREATE OR REPLACE FUNCTION pg_temp.casc_vieja(p_unidad uuid)
@@ -387,6 +393,28 @@ begin
          count(*) filter (where (pv is distinct from pn and not hay_no_vigente) or sv is distinct from sn or docs)
     into v, n from d;
   r := r || pg_temp.l(n = 0, 'W3 precio distinto solo con obra no vigente; sin_precio y documentos iguales: ' || v);
+  -- W3b: facturado y cobrado contra las facturas vivas de la venta, sin la función vieja
+  with d as (
+    select c.numero, s.facturado, s.cobrado,
+           (select coalesce(sum(coalesce(nullif(f.datos->'totales'->>'subtotal', '')::numeric, f.total)), 0)
+              from public.facturas f join public.contratos h on h.id = f.contrato_id
+             where (h.id = c.id or h.contrato_padre_id = c.id) and f.tipo = 'factura' and not coalesce(f.anulada, false)
+               and f.moneda is not distinct from c.moneda) as fact_docs,
+           (select coalesce(sum(ra.importe_aplicado), 0)
+              from public.recibi_aplicaciones ra
+              join public.facturas rc on rc.id = ra.recibi_id
+              join public.facturas f on f.id = ra.factura_id
+              join public.contratos h on h.id = f.contrato_id
+             where (h.id = c.id or h.contrato_padre_id = c.id) and f.tipo = 'factura' and not coalesce(f.anulada, false)
+               and not coalesce(rc.anulada, false) and f.moneda is not distinct from c.moneda) as cobr_docs
+      from public.contratos c
+      cross join lateral public._cadena_saldo_en(c.id, c.moneda, null) s
+     where c.contrato_padre_id is null
+  )
+  select count(*) filter (where facturado <> fact_docs or cobrado <> cobr_docs),
+         coalesce(string_agg(numero, ',') filter (where facturado <> fact_docs or cobrado <> cobr_docs), '-')
+    into n, v from d;
+  r := r || pg_temp.l(n = 0, 'W3b facturado y cobrado = facturas vivas de la raíz y sus hijos, en todas las raíces (distintas: ' || v || ')');
 
   -- ============================================================ W4 el invariante de las 141 ventas
   with por_venta as (
