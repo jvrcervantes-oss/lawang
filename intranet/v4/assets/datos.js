@@ -1343,7 +1343,7 @@
       sb.rpc('reserva_vence_el', { p_contrato_id: id }),
       sb.from('contrato_prorrogas').select('n,dias,desde,hasta,motivo,comunicado_al_comprador,quien,creado_en').eq('contrato_id', id).order('n'),
       // los topes de la prórroga y los días de gracia los pone el owner en /v4/ajustes/ (22-sep)
-      sb.from('parametros').select('clave,valor').like('clave', 'reservas.%')
+      sb.from('parametros').select('clave,valor').like('clave', 'reservas.%')   // BUSQUEDA A PROPOSITO: prefijo fijo de una clave tecnica, no un buscador
     ]).then(function (r) {
       if (!document.getElementById('lw-cajon')) return;   // la cerraron antes de que llegara
       var c = r[0].data || c0;

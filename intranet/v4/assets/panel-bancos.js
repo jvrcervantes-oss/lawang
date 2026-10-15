@@ -122,7 +122,7 @@
     var c = cuentaPorClave[clave]; if (!c) return clave;
     var l = c.label || c.clave;
     // «Statrys HK · Statrys»: el banco solo se añade si la etiqueta no lo dice ya
-    return l + (c.banco && l.toLowerCase().indexOf(String(c.banco).toLowerCase()) === -1 ? ' · ' + c.banco : '');
+    return l + (c.banco && l.toLowerCase().indexOf(String(c.banco).toLowerCase()) === -1 ? ' · ' + c.banco : '');   // BUSQUEDA A PROPOSITO: evita repetir el banco en el rotulo, no es un buscador
   }
   function cuentasImportables() { return D.cuentas.filter(function (c) { return c.es_propia === true && !c.es_escrow && c.activa !== false; }); }
   function restante(m) { return r2(Number(m.importe) - Number(m.conciliado || 0)); }
