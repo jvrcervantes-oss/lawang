@@ -25,7 +25,7 @@ begin
   perform set_config('ensayo_law610_612.antes', v, true);
   perform set_config('ensayo_law610_612.com79', pg_temp.e612_comisiones_rp00079(), true);
 end $antes$;
--- ── 20261015210000_law610_cc00040_precio.sql · sha256 1f4c05a2b0494f45b9f0ea86fcbff686df3bd2d07ca94285abf950c07a1a9828 ──
+-- ── 20261015115056_law610_cc00040_precio.sql · sha256 1f4c05a2b0494f45b9f0ea86fcbff686df3bd2d07ca94285abf950c07a1a9828 ──
 -- LAW-610 · CC00040 lleva 44.000 € — 15-oct-2026, sesión lawang-cola-2 (orquestador agencia-c0). Cambio de DATOS, una fila.
 --
 -- Qué pasa: el contrato de construcción CC00040 (venta RP00079, parcela SH-3 de Sumba Hills) no tiene precio, y sin precio no
@@ -107,7 +107,7 @@ begin
     case when v_campo is null and v_firmas = 0 then 'escrito' when v_campo is not null then 'ya lo traía' else 'en firma, sin tocar' end,
     v_u2.estado, v_obra;
 end $law610$;
--- ── 20261015210100_law611_w3c3_bloqueada.sql · sha256 920a4e1fddecd3f2cd59999df0c5e549f55edf81fc3289285c1d009586988661 ──
+-- ── 20261015115121_law611_w3c3_bloqueada.sql · sha256 920a4e1fddecd3f2cd59999df0c5e549f55edf81fc3289285c1d009586988661 ──
 -- LAW-611 · W3 - C3 (RP00070) pasa de «vendida» a «bloqueada» — 15-oct-2026, sesión lawang-cola-2 (orquestador agencia-c0).
 -- Cambio de DATOS, una fila de unidades y su fila de historial.
 --
@@ -170,7 +170,7 @@ begin
   end if;
   raise notice 'LAW-611 ok: W3 - C3 vendida -> bloqueada, con su fila de historial';
 end $law611$;
--- ── 20261015210200_law612_inv00173_rec00130_a_cc00088.sql · sha256 a31f80e506f72bc6239d68e84fb27f695f184789309421c1926be45c0c735199 ──
+-- ── 20261015115201_law612_inv00173_rec00130_a_cc00088.sql · sha256 a31f80e506f72bc6239d68e84fb27f695f184789309421c1926be45c0c735199 ──
 -- LAW-612 · INV00173 y REC00130 pasan a colgar de CC00088 — 15-oct-2026, sesión lawang-cola-2 (orquestador agencia-c0).
 -- Cambio de DATOS, dos filas de facturas.
 --

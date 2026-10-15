@@ -15,9 +15,9 @@ import os
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(os.path.dirname(AQUI))
-MIGRACIONES = ['20261015210000_law610_cc00040_precio.sql',
-               '20261015210100_law611_w3c3_bloqueada.sql',
-               '20261015210200_law612_inv00173_rec00130_a_cc00088.sql']
+MIGRACIONES = ['20261015115056_law610_cc00040_precio.sql',
+               '20261015115121_law611_w3c3_bloqueada.sql',
+               '20261015115201_law612_inv00173_rec00130_a_cc00088.sql']
 SALIDA = os.path.join(AQUI, 'ensayo_law610_612_viva.sql')
 
 INICIO = """
