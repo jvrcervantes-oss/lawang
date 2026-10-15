@@ -142,7 +142,7 @@
     capa.setAttribute('aria-hidden', 'true');
     capa.style.color = cs.color;                         // el texto real queda transparente: la capa lleva su color
     capa.style.textAlign = cs.textAlign;
-    // la capa ocupa la caja de relleno del contador: con su mismo relleno, la cifra que sube cae donde el dato (chips px-2 py-0.5)
+    // la capa ocupa la caja de relleno del contador: con su mismo relleno, la cifra que sube cae donde el dato (chips con relleno)
     capa.style.paddingTop = cs.paddingTop; capa.style.paddingRight = cs.paddingRight;
     capa.style.paddingBottom = cs.paddingBottom; capa.style.paddingLeft = cs.paddingLeft;
     capa.setAttribute('data-v', fmt(0));
