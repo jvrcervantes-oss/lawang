@@ -827,12 +827,10 @@
   var tVenta = null;
   function buscaVentas(texto) {
     RT.qVenta = texto;
-    var limpio = String(texto || '').replace(/[%_,()*\\]/g, '').trim();
-    var consulta = sb.rpc('contratos_equipo')
-      .select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,bloqueado,liberado_en,fecha_firma,created_at,contrato_padre_id,rev03:datos_fields->>clausulas_negociadas');
-    if (limpio.length >= 2) consulta = consulta.or('numero.ilike.%' + limpio + '%,comprador_nombre.ilike.%' + limpio + '%');
+    // Busqueda sin tildes (15-oct-2026): el servidor normaliza y compara (contratos_busca, INVOKER: la RLS decide que se ve);
+    // tambien encuentra por el nombre de hoy de la ficha. Con menos de 2 letras devuelve las 10 ultimas, como antes.
     var yo = texto;
-    Promise.resolve(consulta.not('numero', 'is', null).order('created_at', { ascending: false }).limit(10)).then(function (r) {
+    Promise.resolve(sb.rpc('contratos_busca', { p_q: String(texto || '').slice(0, 120) })).then(function (r) {
       if (RT.qVenta !== yo) return;
       RT.ventas = r.error ? { fallo: true } : { lista: r.data || [] };
       var caja = q('#asi-res-venta'); if (caja) caja.innerHTML = resultadosVenta(); else pinta();
