@@ -1067,6 +1067,9 @@
        concatena después; sin él la frase en inglés quedaría sin puntuación. */
     'No se pudo guardar: ': 'Could not save: ',
     'No se pudo guardar:': 'Could not save:',
+    'Revisa este campo': 'Check this field',
+    'Tienes cambios sin guardar: guarda antes, para que el PDF salga igual que lo guardado.': 'You have unsaved changes: save first, so the PDF matches what is saved.',
+    'Tienes cambios sin guardar: guarda antes de enviar, o el cliente recibiría importes distintos de los guardados.': 'You have unsaved changes: save before sending, or the client would receive amounts different from the saved ones.',
     'No se pudo borrar: ': 'Could not delete: ',
     'No se pudo borrar:': 'Could not delete:',
     'No se pudo enviar: ': 'Could not send: ',

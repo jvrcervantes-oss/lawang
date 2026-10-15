@@ -448,10 +448,32 @@
       amo.addEventListener('change', aplica);
       aplica();
     });
+    /* El aviso vive al final del cuerpo y, en los editores de documento, el botón de guardar sube a la barra
+       fija de la vista previa: un error que no se lleva a la vista es un «Guardar no hace nada» (INV00213,
+       14-oct-2026). Se lleva a la vista y se repite en un toast si la página lo tiene. */
     var muestraError = function (msg) {
       var e = w.querySelector('[data-e="error"]');
       e.textContent = msg; e.style.display = 'block';
+      try { e.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { e.scrollIntoView(false); }
+      if (typeof window.toastMal === 'function') window.toastMal(msg);
     };
+    /* Un campo que el navegador rechaza (un email mal formado traído de la ficha) dentro de una sección
+       plegada no se puede enfocar: el navegador cancela el envío y solo lo dice en la consola (14-oct-2026).
+       Se despliega su sección, se enfoca y se dice qué campo es. */
+    var ultimoInvalido = 0;
+    w.querySelector('[data-e="form"]').addEventListener('invalid', function (ev) {
+      var el = ev.target;
+      if (Date.now() - ultimoInvalido < 400) return;   // un aviso por intento, el del primer campo
+      ultimoInvalido = Date.now();
+      for (var n = el.parentElement; n && n !== w; n = n.parentElement) {
+        var cab = n.previousElementSibling;
+        if (n.style.display === 'none' && cab && cab.getAttribute('data-lw-plegable')) cab.click();
+      }
+      var caja = el.closest('label') || el.parentElement;
+      var nombre = (caja && caja !== el && (caja.textContent || '').replace(el.value || '', '').trim().split('\n')[0]) || el.getAttribute('data-k') || '';
+      setTimeout(function () { try { el.focus(); } catch (_) {} }, 0);
+      muestraError(tS('Revisa este campo') + (nombre ? ' «' + nombre.slice(0, 60) + '»' : '') + ': ' + (el.validationMessage || ''));
+    }, true);
     w.querySelector('[data-e="cerrar"]').addEventListener('click', cierraModal);
     w.querySelector('[data-e="cancelar"]').addEventListener('click', cierraModal);
     w.querySelector('[data-e="fondo"]').addEventListener('click', cierraModal);
@@ -3461,14 +3483,33 @@
     var bMail = btn('Enviar por email', function () { enviaDocMail(ctx.sb, ctx.getVals(), ctx.saved, ctx.alEnviado); });
     var bRec = ctx.esRecibi ? null : btn('Crear recibí', function () { creaRecibiDesdeDoc(ctx.saved); });
     var bReg = btn('📨 Registro', function () { registroEnviosDoc(ctx.sb, ctx.saved); });
+    /* Cambios sin guardar (14-oct-2026, punto 3 de la revisión de Contratos y Facturas): el PDF y el correo salen de lo que
+       hay en el formulario; con una línea cambiada y sin guardar, el cliente recibía el número real con otro importe y quedaba
+       archivado como enviado. Se compara con lo GUARDADO (el total de la fila y, en la factura, sus líneas: concepto e importe)
+       y, si difiere, los dos se apagan hasta guardar. No se compara con «lo que había al abrir»: la barra se monta antes que
+       los campos y el contrato se recarga después. El arreglo de fondo (el PDF del correo hecho en el servidor desde la fila
+       guardada) va aparte: LAW-354, edge send-contract-email pintando desde la fila. En un documento de SOLO LECTURA no se
+       calcula (15-oct, revisor): no se puede guardar nada, y una factura vieja con el total calculado antes del 26-sep
+       apagaba PDF y correo para siempre. */
+    function firmaLineas(ls) {
+      return JSON.stringify((ls || []).map(function (l) {
+        return [String((l && l.descripcion) || '').trim(), Number(lwParseImporte(l && l.importe)) || 0];
+      }));
+    }
     function repasa() {
       var vals = ctx.getVals(), total = totalDoc(vals), num = !!(ctx.saved && ctx.saved.numero);
-      razon(bPdf, total > 0 && num, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
-        : 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
+      var sucio = num && !ctx.soloLectura && (
+        (ctx.totalGuardado != null && Math.abs((Number(total) || 0) - (Number(ctx.totalGuardado) || 0)) > 0.005) ||
+        (ctx.monedaGuardada != null && String(vals.moneda || '') !== String(ctx.monedaGuardada)) ||
+        (Array.isArray(ctx.lineasGuardadas) && firmaLineas(vals.lineas) !== firmaLineas(ctx.lineasGuardadas)));
+      razon(bPdf, total > 0 && num && !sucio, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
+        : !num ? 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.'
+        : 'Tienes cambios sin guardar: guarda antes, para que el PDF salga igual que lo guardado.');
       var anulada = !!(ctx.saved && ctx.saved.anulada);   // LAW-37: un anulado no se ofrece enviar
-      razon(bMail, !anulada && total > 0 && num, anulada ? 'Este documento está anulado: no se envía al cliente. Desde su ficha se puede emitir una copia.'
+      razon(bMail, !anulada && total > 0 && num && !sucio, anulada ? 'Este documento está anulado: no se envía al cliente. Desde su ficha se puede emitir una copia.'
         : !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
-        : 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.');
+        : !num ? 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.'
+        : 'Tienes cambios sin guardar: guarda antes de enviar, o el cliente recibiría importes distintos de los guardados.');
       razon(bRec, vals.tipo === 'factura' && num, vals.tipo !== 'factura' ? 'Solo se crea un recibí a partir de una factura.' : 'Guarda primero esta factura.');
       bReg.style.display = (ctx.saved && ctx.saved.id) ? '' : 'none';
     }
@@ -3841,7 +3882,7 @@
           listaContratosLigeraDoc(sb),
           esEdicion
             // emitida_en / rectifica_id: solo existen en el ERP maestro (serie fiscal, AXW-39)
-            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos' + (window.AXW_NUCLEO_OPERACION ? ',emitida_en,rectifica_id' : '')).eq('id', pre.id).maybeSingle()
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,total,datos' + (window.AXW_NUCLEO_OPERACION ? ',emitida_en,rectifica_id' : '')).eq('id', pre.id).maybeSingle()
             : pre.copia_de
               // la anulada pudo emitirla otro del equipo: facturas_equipo, rpc + eq, sin order
               ? sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,client_id,datos').eq('id', pre.copia_de).maybeSingle()
@@ -3948,7 +3989,11 @@
           // Sobre un documento NUEVO todos explican que primero hay que
           // emitir: las acciones reales llegan en el visor que abre «Emitir».
           repasaBarra = montaBarraDoc(piezas, {
-            sb: sb, getVals: recogeVals, esRecibi: false,
+            sb: sb, getVals: recogeVals, esRecibi: false, soloLectura: !!pre.soloLectura,
+            // lo guardado, para apagar PDF y correo con cambios sin guardar (14-oct-2026)
+            totalGuardado: existente ? existente.total : null,   // `total` en el select (15-oct, revisor: sin él no se comparaba)
+            lineasGuardadas: existente && existente.datos && Array.isArray(existente.datos.lineas) ? existente.datos.lineas : null,
+            monedaGuardada: existente && existente.datos && existente.datos.fields ? (existente.datos.fields.moneda || null) : null,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: existente.tipo, contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor, anulada: !!existente.anulada }
@@ -4418,7 +4463,9 @@
           // Barra de la previa del clásico (22-sep-2026): PDF, email y
           // registro; «Crear recibí» no, que de un recibí no sale otro.
           repasaBarra = montaBarraDoc(piezas, {
-            sb: sb, getVals: recogeVals, esRecibi: true,
+            sb: sb, getVals: recogeVals, esRecibi: true, soloLectura: !!pre.soloLectura,
+            // lo guardado, para apagar PDF y correo con cambios sin guardar (14-oct-2026): en un recibí, su total
+            totalGuardado: existente ? existente.total : null,
             principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: 'recibi', contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor, anulada: !!existente.anulada }
@@ -5479,7 +5526,7 @@
           // — mismo patrón que ya usa el resto de esta pantalla más abajo
           // (`facturas_equipo` en el `Promise.all` principal).
           sb.rpc('contratos_equipo').select('id,proyecto_nombre'),
-          sb.rpc('facturas_equipo').select('id,proyecto_nombre')
+          sb.rpc('facturas_equipo').select('id,proyecto_nombre,proyecto_id')
         ]).then(function (rs) {
           /* Sin el radio de impacto NO se pide confirmar (B10a): antes un conteo que fallaba daba 0 y el diálogo
              decía «No hay nada vinculado» sobre un proyecto lleno. Falla en voz alta y no renombra. */
@@ -5491,7 +5538,11 @@
           var v = rs[0].data || {};
           var uds = v.unidades || 0;
           var con = (rs[1].data || []).filter(function (c) { return c.proyecto_nombre === p.nombre; }).length;
-          var fac = (rs[2].data || []).filter(function (f) { return f.proyecto_nombre === p.nombre; }).length;
+          // «<proyecto> — <parcela>» de ese proyecto también se renombra (lo hace trg_proyecto_renombrado por proyecto_id): se cuenta
+          var fac = (rs[2].data || []).filter(function (f) {
+            return f.proyecto_nombre === p.nombre ||
+              (p.id && f.proyecto_id === p.id && String(f.proyecto_nombre || '').indexOf(p.nombre + ' ') === 0);
+          }).length;
           var doc = v.documentos || 0, mod = v.modelos_villa || 0;
           var radio = [
             uds ? uds + ' unidad(es)' : '', con ? con + ' contrato(s)' : '',
