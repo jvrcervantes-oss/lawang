@@ -48,7 +48,9 @@
 -- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
 -- aqui queda el porque (arriba) y el indice de donde esta el codigo:
 --
--- Objetos: portal_autoservicio
+-- Objetos: portal_autoservicio, _portal_rechazo (sus tres rechazos, compartidos
+-- con «Invitar al portal» de la ficha de parcela desde el 15-oct-2026)
 -- Fuente (la ultima es la vigente):
 --   supabase/migrations/20260908013953_portal_autoservicio.sql
+--   supabase/migrations/20261015071004_invitacion_portal_parcela.sql
 -- ============================================================================

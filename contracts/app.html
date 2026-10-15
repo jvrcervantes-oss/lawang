@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="c646c1adc539">
+<meta name="lw-version" content="8d3ae4cd9e41">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=888c8aa1"></script>
+<script src="/contracts/assets/i18n.js?v=0ddff6b2"></script>
 <script src="/contracts/assets/herramientas.js?v=b3b6465e"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -1915,6 +1915,7 @@ function limpiarOverrides(slug){
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = ''; PDF_SALIO = false;
+  SOC_GUARDADA = null; Object.keys(SOC_LEIDA).forEach(k => delete SOC_LEIDA[k]);   // otro contrato: sus lecturas de padre y documentos no valen
   OBRA_ES_GUARDADA = false; OBRA_VINCULO_HECHO = null;   // borrador nuevo: su obra sí se precarga
   TECHO_LEGADO_SIN = false;
   /* HITOS también se reinicia (auditoría 19-ago): faltaba en esta lista y «+
@@ -2476,6 +2477,7 @@ function aplicarReglasCampos(){
   // misma pasada, no en la siguiente.
   syncTipologiaModelos();
   syncAutoAnnex();
+  syncProyectoGuardado();   // antes que todo lo que sale del proyecto (resort, isla, cuentas, sociedad)
   syncParcelaMaster();
   syncResort();
   syncUbicacionProyecto();
@@ -2493,6 +2495,7 @@ function aplicarReglasCampos(){
   // cuentas ofrece este contrato (cascada proyecto → tipo → general)
   syncCuentasProyecto();
   syncBloqueoFichaProyecto();
+  syncSociedadProyecto();   // después del aviso de sociedad no indonesia de arriba, que limpia la nota del campo en cada pasada
   syncApoderadoHakSewa();
   syncPoaVinculado();
   syncPrecioObraVinculada();
@@ -2736,6 +2739,142 @@ function syncBloqueoFichaProyecto(){
       else el.readOnly = bloquear;
       el.title = bloquear ? 'Viene de la ficha del proyecto (Proyectos) — se edita ahí.' : '';
     });
+}
+
+/* Sociedad firmante = la de la empresa del proyecto (15-oct-2026, owner: «si selecciono un proyecto la sociedad
+   firmante debe quedar bloqueada»). Proyecto → `proyectos.empresa` → `empresas.sociedad_clave`: la misma cadena que
+   ya usa un contrato propio (sociedadDePropio). La base exige lo mismo (contrato_sociedad_existe, migración
+   20261015073823); esto es para verlo antes de guardar, no el candado.
+   · Sin proyecto, o sin poder resolver su sociedad (EMPRESAS_CAT vacío, empresa sin sociedad): el campo queda libre
+     como antes y manda la base. No se adivina.
+   · Un contrato firmado o en ronda de firma no se toca: su sociedad es la del papel. Uno guardado no se toca HASTA
+     saber que no está en firma (cargarEstadoFirma corre después de pintar el formulario; si falla, no se toca nunca):
+     forzar antes dejaba «Email» mandando al comprador otra sociedad de la que firma (revisor de código, 15-oct).
+   · Precedencia, la misma que la base: (1) los documentos vivos del contrato (facturas, proformas, recibís): se queda
+     con la sociedad con la que se facturó (owner, 15-oct: cambiarla obliga a anular y reemitir); (2) el contrato del
+     que cuelga, si tiene sociedad (la regla del padre ya existía: una construcción firma con la de su reserva); (3) el
+     proyecto. Lo que no se sabe todavía (o no se puede leer) no se fuerza: el campo queda libre y manda la base.
+   · Un contrato guardado con otra sociedad y SIN documentos se corrige al reabrirlo y lo dice el campo hasta guardarlo
+     (owner, «corregir al reabrir»; 3 de los 15 descuadrados del 15-oct). Uno con documentos de otra sociedad que la de
+     su proyecto se queda como está y lo dice el campo (12 de 15, en pendientes para Lawang). */
+let SOC_GUARDADA = null;   // { id, valor, cerrado, firmaLeida, proyecto } del contrato abierto; null = borrador sin guardar
+const SOC_LEIDA = {};      // 'p:<id>' padre / 'd:<id>' documentos → clave ('' = no tiene; '*' = documentos de varias); undefined = pedida; null = no se pudo leer
+function sociedadDelProyecto(){
+  const sel  = document.querySelector('[name="proyecto_nombre"]');
+  // guardado: el proyecto de la FILA (el que usa la base), no el del desplegable; ver syncProyectoGuardado
+  const proy = (SOC_GUARDADA && SOC_GUARDADA.proyecto) ? (PROYECTOS_DB || []).find(p => p.id === SOC_GUARDADA.proyecto)
+             : sel && sel.value && (PROYECTOS_DB || []).find(p => p.nombre === sel.value);
+  const emp  = proy && (EMPRESAS_CAT || []).find(e => e.clave === proy.empresa);
+  const k    = emp && emp.sociedad_clave;
+  return (k && typeof SOCIEDADES !== 'undefined' && SOCIEDADES[k]) ? k : '';
+}
+/* El padre que mandará contractPayload (los mismos dos desplegables) o, si no, el padre real de la fila guardada. */
+function padreActual(){
+  const val = n => String((document.querySelector(`[name="${n}"]`) || {}).value || '');
+  const v = (VINCULABLES || []).find(c => c.numero === val('num_reserva_vinculada'))
+         || (VINCULABLES_POA || []).find(c => c.numero === val('poa_hs_vinculado'));
+  return (v && v.id) || (SAVED_CONTRACT && SAVED_CONTRACT.padre) || '';
+}
+/* Una lectura por id y por contrato abierto, y se repinta al llegar. `datos_fields` (la copia de los campos) y no `datos`:
+   `datos` arrastra los anexos en base64 (ver cargarVinculables). */
+function sociedadLeida(clave, pedir){
+  if(!(clave in SOC_LEIDA)){
+    SOC_LEIDA[clave] = undefined;
+    pedir().then(k => { SOC_LEIDA[clave] = k; syncSociedadProyecto(); }, () => { SOC_LEIDA[clave] = null; });
+  }
+  return SOC_LEIDA[clave];
+}
+const socValida = k => (k && SOCIEDADES[k]) ? k : null;
+function sociedadDelPadre(pid){
+  return sociedadLeida('p:' + pid, async () => {
+    const { data, error } = await sb.from('contratos').select('id,soc:datos_fields->>sociedad_firmante').eq('id', pid).maybeSingle();
+    if(error || !data) return null;
+    const k = String(data.soc || '').trim();
+    return k ? socValida(k) : '';
+  });
+}
+function sociedadDeDocumentos(cid){
+  return sociedadLeida('d:' + cid, async () => {
+    const { data, error } = await sb.from('facturas').select('sociedad').eq('contrato_id', cid).eq('anulada', false).limit(50);
+    if(error) return null;
+    const ks = [...new Set((data || []).map(f => String(f.sociedad || '').trim()).filter(Boolean))];
+    return !ks.length ? '' : ks.length > 1 ? '*' : socValida(ks[0]);
+  });
+}
+/* El proyecto de un contrato YA GUARDADO no se cambia desde aquí (15-oct-2026, consulta de Backend sobre la sociedad por
+   proyecto). contrato_guarda reescribe el nombre pero no `proyecto_id`, y la fila se queda en su proyecto (manda el id:
+   _contrato_proyecto_de); cambioDeProyectoYTexto tampoco recarga el texto en uno guardado. Elegir otro en el desplegable
+   nunca llegó a la base, y con la sociedad atada al proyecto acababa en «no se puede guardar». Así que se enseña el
+   proyecto de la FILA y el desplegable queda bloqueado. Si el documento decía otro (13 contratos el 15-oct, todos de la
+   misma empresa) se corrige al guardar y el campo lo avisa; firmado o en firma no se toca el papel.
+   Decisión por defecto del CEO. Revertir: que contrato_guarda acepte proyecto_id (como unidad_id) y rechace el cambio con
+   documentos vivos, y quitar esta función. Devuelve true si cambió el valor (el que llama repasa las reglas). */
+function syncProyectoGuardado(){
+  const sel = document.querySelector('[name="proyecto_nombre"]');
+  const pid = SOC_GUARDADA && SOC_GUARDADA.proyecto;
+  const p   = pid && (PROYECTOS_DB || []).find(x => x.id === pid);
+  if(!sel || !p) return false;   // borrador, o proyecto sin cargar/inactivo: no se adivina
+  sel.disabled = true;
+  sel.title = lwT('Es el proyecto con el que se guardó el contrato: no se cambia aquí.');
+  const caja = sel.closest('.field');
+  if(sel.value === p.nombre){
+    if(caja && caja.dataset.avisoProyecto){ caja.classList.remove('campo-aviso'); const n = caja.querySelector('.aviso-campo'); if(n) n.remove(); delete caja.dataset.avisoProyecto; }
+    return false;
+  }
+  if(LOCKED || SOC_GUARDADA.cerrado || !SOC_GUARDADA.firmaLeida || (EN_FIRMA.vivas + EN_FIRMA.firmadas) > 0) return false;
+  const antes = sel.value;
+  if(![...sel.options].some(o => o.value === p.nombre))
+    sel.insertAdjacentHTML('beforeend', `<option value="${escAttr(p.nombre)}">${esc(p.nombre)}</option>`);
+  sel.value = p.nombre; sel.dataset.previo = p.nombre;
+  renderDebounced();
+  if(antes && caja){
+    marcarCampoAviso(sel, lwT('El documento decía %antes, pero el contrato está guardado en %ahora: queda así al guardarlo.', { antes, ahora: p.nombre }));
+    caja.dataset.avisoProyecto = '1';
+  }
+  return true;
+}
+function syncSociedadProyecto(){
+  const el = document.querySelector('[name="sociedad_firmante"]');
+  if(!el || !CURRENT || CURRENT.propio || !sb) return;
+  if(LOCKED || (SOC_GUARDADA && (SOC_GUARDADA.cerrado || !SOC_GUARDADA.firmaLeida)) || (EN_FIRMA.vivas + EN_FIRMA.firmadas) > 0) return;
+  const libre = () => { el.disabled = false; el.title = ''; };
+  const nom = c => (SOCIEDADES[c] && SOCIEDADES[c].label) || c;
+  const kProy = sociedadDelProyecto();
+  let k = '', por = '';
+  if(SOC_GUARDADA){
+    const kd = sociedadDeDocumentos(SOC_GUARDADA.id);
+    if(kd === undefined || kd === null) return libre();
+    if(kd === '*'){
+      libre();
+      return marcarCampoAviso(el, lwT('Este contrato tiene documentos emitidos por sociedades distintas: revisa con administración cuál firma.'));
+    }
+    if(kd){ k = kd; por = 'docs'; }
+  }
+  const pid = !k && padreActual();
+  if(pid){
+    const kp = sociedadDelPadre(pid);
+    if(kp === undefined || kp === null) return libre();
+    if(kp){ k = kp; por = 'padre'; }
+  }
+  if(!k && kProy){ k = kProy; por = 'proyecto'; }
+  if(!k) return libre();
+  el.disabled = true;
+  el.title = por === 'docs'    ? lwT('Es la sociedad con la que se han emitido sus facturas o recibís.')
+           : por === 'padre'   ? lwT('Es la sociedad del contrato del que cuelga.')
+           : (SOC_GUARDADA && SOC_GUARDADA.proyecto) ? lwT('Es la sociedad de la empresa del proyecto del contrato.')
+           :                     lwT('Es la sociedad de la empresa del proyecto: cambia si cambias de proyecto.');
+  if(el.value !== k){
+    // no ofrecida (p. ej. marcada solo para facturas): se añade, como un valor huérfano de fieldHTML, en vez de dejar el campo en blanco
+    if(![...el.options].some(o => o.value === k))
+      el.insertAdjacentHTML('beforeend', `<option value="${escAttr(k)}">${esc(nom(k))}</option>`);
+    el.value = k;
+    renderDebounced();
+  }
+  const antes = SOC_GUARDADA && SOC_GUARDADA.valor;
+  if(antes && antes !== k)
+    marcarCampoAviso(el, lwT('Este contrato estaba guardado con %antes y queda con %ahora al guardarlo.', { antes: nom(antes), ahora: nom(k) }));
+  else if(por === 'docs' && kProy && kProy !== k)
+    marcarCampoAviso(el, lwT('No es la sociedad de su proyecto (%proy): tiene facturas o recibís emitidos por %ahora. Cambiarla obliga a anularlos y reemitirlos.', { proy: nom(kProy), ahora: nom(k) }));
 }
 
 /* Apoderado (Primera Parte) del Hak Sewa notarial (10-ago): el nombre es un
@@ -4559,6 +4698,11 @@ async function cargarEstadoFirma(){
     filas,
   };
   aplicarEstadoFirma();
+  // ya se sabe si está en firma: la sociedad firmante puede seguir a sus documentos, su padre o su proyecto (syncSociedadProyecto)
+  if(SOC_GUARDADA && SAVED_CONTRACT && SAVED_CONTRACT.id === idPedido && SOC_GUARDADA.id === idPedido){
+    SOC_GUARDADA.firmaLeida = true;
+    aplicarReglasCampos();   // la pasada entera: si el proyecto pasa al de la fila, cambian con él resort, isla, cuentas y sociedad
+  }
 }
 
 /* El aviso al comprador (owner, 18-ago). Al anular, el firmante se queda con un
@@ -5618,6 +5762,10 @@ async function guardarContrato(){
     if(fila.moneda) payload.moneda = fila.moneda;
     const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.fields, hitos:fila.hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
+    // lo que quedó en la base: apaga el aviso de «estaba guardado con…». Se acaba de guardar, así que no está en firma (la base no lo deja)
+    // el proyecto: en el alta lo fija la base por el nombre elegido; después ya no cambia (syncProyectoGuardado)
+    const proyGuardado = eraNuevo ? (proyectoIdActual() || null) : ((SOC_GUARDADA && SOC_GUARDADA.proyecto) || null);
+    SOC_GUARDADA = { id: data.id, valor: String((fila.fields && fila.fields.sociedad_firmante) || ''), cerrado: false, firmaLeida: true, proyecto: proyGuardado };
     avisoMigracion += await fijaVersionPlantilla(data.id, eraNuevo);   // S5: la versión del texto queda escrita con el contrato
     rebuildAnnex();   // un contrato recién creado ya admite anexos: el panel se pintó cuando aún no tenía fila (2-oct-2026)
     /* Construcción (28-sep-2026): el calendario lo monta el servidor —importes incluidos— y puede diferir de lo
@@ -5983,6 +6131,9 @@ async function openSavedContract(id){
   // antes de loadTemplate: deriveSections() monta el desplegable ahí dentro
   PROYECTO_ABIERTO = String((data.datos && data.datos.fields && data.datos.fields.proyecto_nombre)
                             || data.proyecto_nombre || '').trim();
+  // ANTES de buildForm/populateForm: syncSociedadProyecto corre dentro y LOCKED todavía es el del contrato anterior
+  SOC_GUARDADA = { id: data.id, valor: String((data.datos && data.datos.fields && data.datos.fields.sociedad_firmante) || ''), cerrado: !!data.bloqueado, firmaLeida: false, proyecto: data.proyecto_id || null };
+  Object.keys(SOC_LEIDA).forEach(k => delete SOC_LEIDA[k]);   // sus documentos o su padre pueden haber cambiado desde la última vez que se abrió
   await loadTemplate(slug, { contratoId: id });   // el texto que ESE contrato fijó (o el fichero, si no tiene vínculo)
   $('#tplPick').value = slug;
   // ANTES de buildForm: pintarFichaComprador() corre dentro y, con la ficha del
@@ -6394,6 +6545,7 @@ async function derivarContrato(slug){
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; TECHO_LEGADO_SIN = false; PDF_SALIO = false;
+  SOC_GUARDADA = null; Object.keys(SOC_LEIDA).forEach(k => delete SOC_LEIDA[k]);   // el derivado es nuevo: se relee la sociedad de su padre
   OBRA_ES_GUARDADA = false; OBRA_VINCULO_HECHO = null;   // el derivado es nuevo: su obra sí se precarga
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;

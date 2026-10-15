@@ -274,7 +274,8 @@ export function describeFalloSmtp(e: unknown): FalloSmtp {
 // Del llamante solo se admiten las variables de texto declaradas en `editables` (hoy: el nombre con el que saludar). Lo editable
 // por el cliente es el TEXTO (tabla `correo_plantillas`, escrita solo por la edge `plantillas-guardar`): texto plano con
 // `{{variable}}`, sin HTML ni URLs, y las variables obligatorias de cada clave —catálogo sellado en la propia fila— no se pueden quitar.
-export type SpecPlantilla = { adjunto: boolean; ids: string[]; editables: string[] };
+// soloServicio: la plantilla solo la pide la cola con el secreto del servicio (ni una sesión del equipo puede mandarla a mano).
+export type SpecPlantilla = { adjunto: boolean; ids: string[]; editables: string[]; soloServicio?: boolean };
 export const PLANTILLAS: Record<string, SpecPlantilla> = {
   enlace_firma_cadena:     { adjunto: false, ids: ['contrato_id', 'firma_id'], editables: [] },
   copia_firmada_comprador: { adjunto: true,  ids: ['contrato_id'], editables: ['nombre'] },
@@ -286,7 +287,10 @@ export const PLANTILLAS: Record<string, SpecPlantilla> = {
   factura_vencimiento:     { adjunto: true,  ids: ['factura_id'], editables: ['nombre'] },
   // 9ª (8-oct-2026, «Reclamar pago»): solo la pide la cola con el secreto del servicio; `reclamo` = id de la fila de la cola, con él resuelve los datos
   // (destinatario, parcela, empresa, nota) en la base. Nada de eso viaja en vars. Solo Lawang la sirve (el maestro no tiene reclamos_pago).
-  reclamo_pago:            { adjunto: false, ids: ['contrato_id'], editables: ['reclamo'] },
+  reclamo_pago:            { adjunto: false, ids: ['contrato_id'], editables: ['reclamo'], soloServicio: true },
+  // 10ª (15-oct-2026, «Invitar al portal» desde la ficha de parcela): como reclamo_pago, `invitacion` = id de la fila de la cola; sin sociedad
+  // (la invitación es al portal de la instancia, firma la marca). Solo Lawang la sirve (el maestro no tiene reclamos_pago).
+  invitacion_portal:       { adjunto: false, ids: ['contrato_id'], editables: ['invitacion'], soloServicio: true },
 };
 export const LIMITES_PLANTILLA = { asunto: 200, cuerpo: 5000, valor: 300 };
 /** Vías que pueden usar una plantilla: la de aviso interno (sin sesión) y cualquier otra no. */
