@@ -22,7 +22,7 @@ const trozo = (nombre) => {
 const H = new Function(trozo('precioParte') + '\n' + trozo('precioTotal') + '\n' + trozo('sueloSinFirmar') +
   '\nreturn { precioParte: precioParte, precioTotal: precioTotal, sueloSinFirmar: sueloSinFirmar };')();
 ok(/window\.LW_V4\.precioParte = precioParte;/.test(datos) && /window\.LW_V4\.sueloSinFirmar = sueloSinFirmar;/.test(datos) &&
-   /window\.LW_V4\.precioTotal = precioTotal;/.test(datos), 'datos.js publica las tres funciones');
+   !/window\.LW_V4\.precioTotal/.test(datos), 'datos.js publica las dos que usa la ficha (precioTotal no: sin llamador fuera)');
 
 // ── sb falso ────────────────────────────────────────────────────────────────────────────────────────────────────
 function sbFalso(t) {
@@ -146,6 +146,9 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
   {
     const { m } = await corre(fila({ cobrado_suelo: null, cobrado_obra: null }), { contratos: { data: [raizC] }, facturas: { data: [] }, saldo: { [R]: saldoOk() } });
     ok(m.pactado.noVisible, 'sin cobro visible no hay resta');
+    const v = await corre(fila({ contrato_id: null, estado: 'vendida', cobrado_suelo: null, cobrado_obra: null, obra_de_contrato: false, obra_firmada: null }),
+      { contratos: { data: [] }, facturas: { data: [] }, saldo: {} });
+    ok(v.m.pactado && v.m.pactado.noVisible, 'vendida sin contrato_id en la fila (sin permiso): «no visible», no nada');
     ok(/sin permiso para ver el cobro/.test(FP.fpHTML.pendientes(m)), 'lo dice');
   }
   // 5 · una lectura que falla lo dice en su bloque

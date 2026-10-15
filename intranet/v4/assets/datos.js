@@ -5478,7 +5478,6 @@
       }
       // ficha-parcela.js resta «Pactado por cobrar» con el MISMO precio que enseña «Precio y cobro» (15-oct-2026).
       window.LW_V4.precioParte = precioParte;
-      window.LW_V4.precioTotal = precioTotal;
       window.LW_V4.sueloSinFirmar = sueloSinFirmar;
       /* Lo cobrado del proyecto por familia, venta a venta. `fam.cadenas[raíz]` = lo cobrado en esa venta
          según el tipo de contrato; `uu` = las parcelas con el `cobrado_suelo` que ya decidió la base. */
