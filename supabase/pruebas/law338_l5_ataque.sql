@@ -1,5 +1,6 @@
 -- LAW-338 L5 (16-oct-2026): el CIERRE (supabase/migrations/20261016112502_law338_l5_revoke.sql) probado como ATAQUE, en rama y con el cierre ya puesto.
---   python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica por_aplicar:law338_l5_revoke.sql --prueba law338_l5_ataque.sql
+--   python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261016112502_law338_l5_revoke.sql --prueba law338_l5_ataque.sql
+--   (aplicado en la viva el 16-oct-2026: con un volcado posterior el cierre ya viene puesto y sobra el --aplica)
 -- (sobre un volcado que ya trae 20261016063536; la paridad de las RPC contra la lectura directa de antes la midió el ensayo
 --  lawang-202610161424-3802d033 con law338_l5_paridad.sql, y esta prueba enlaza con ella: lo que dan las RPC con el cierre = lo que dan sin él).
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». Todo en una transacción que
@@ -135,7 +136,7 @@ begin
   perform set_config('request.jwt.claims', '', true);
   -- el cierre tiene que estar puesto: sin él P1 saldría «[]» y no 42501
   if has_table_privilege('authenticated', 'public.clients', 'select') then
-    raise exception 'FIN DE PRUEBAS LAW-338 L5 ataque:%', pg_temp.l(false, 'P0 el cierre no está aplicado en la rama (authenticated lee clients): falta --aplica por_aplicar:law338_l5_revoke.sql');
+    raise exception 'FIN DE PRUEBAS LAW-338 L5 ataque:%', pg_temp.l(false, 'P0 el cierre no está aplicado en la rama (authenticated lee clients): falta --aplica 20261016112502_law338_l5_revoke.sql o un volcado posterior a su aplicación');
   end if;
 
   -- ── P0 montaje del fixture propio (como postgres, sin sesión): el mismo de law338_l5_paridad.sql ─────────────────────────
