@@ -396,7 +396,8 @@ begin
                         'L1 purga: se van los tokens y peticiones caducados hace más de un día; ia_llamadas intacta');
     if exists (select 1 from pg_extension where extname = 'pg_cron') then   -- sin pg_cron, cron.job no existe ni para planificar
       execute 'select count(*) from cron.job where jobname = ''ia-purga-diaria'' and command = ''select privado.ia_purga()''' into n;
-      r := r || pg_temp.l(n = 1, 'L2 purga programada cada día');
+      r := r || pg_temp.l(n = 1 and has_function_privilege('postgres', 'privado.ia_purga()', 'execute'),
+                          'L2 purga programada cada día y postgres (quien corre el cron) puede ejecutarla');
     end if;
   end if;
 

@@ -122,6 +122,8 @@ create table public.ia_conexiones (
   creada_en       timestamptz not null default now(),
   expira_en       timestamptz not null,
   revocada_en     timestamptz,
+  -- 'contrasena' = cambió la huella de acceso (contraseña, correo, bloqueo, baja o factores MFA): el código no se renombra,
+  -- lo leen intranet/v4/assets/ia-conexiones.js y su prueba; el texto que ve la persona se cambia allí
   revocada_motivo text check (revocada_motivo in ('persona', 'admin', 'asistente', 'reuso_codigo', 'reuso_refresco',
                                                   'contrasena', 'permiso', 'apagado', 'usuario_inactivo', 'cliente'))
 );
@@ -525,8 +527,8 @@ end $$;
 -- La llama la edge `mcp` con la sesión RECIÉN creada en la página de conexión (contraseña puesta otra vez); la edge hace el 302
 -- y el JavaScript de la intranet no ve el código. El PKCE NO protege aquí: quien llama a `pide` elige el verificador, así que
 -- un tercero con la sesión de la persona podría pedir y autorizar su propia conexión. La barrera real es la contraseña puesta
--- hace ≤120 s (y el segundo factor si lo tiene). Ojo: la conexión sobrevive a cerrar sesión, a «cerrar todas las sesiones» y
--- a cambios de MFA (la huella solo cubre contraseña y baneo); por eso el aviso por correo de cada conexión nueva es condición
+-- hace ≤120 s (y el segundo factor si lo tiene). Ojo: la conexión sobrevive a cerrar sesión y a «cerrar todas las sesiones»
+-- (la huella cubre correo, bloqueo, baja y factores MFA, y la contraseña con la propuesta 140000); por eso el aviso por correo de cada conexión nueva es condición
 -- para abrir el puente (Seguridad, 16-oct; pendientes).
 create or replace function public.ia_conexion_autoriza(p_peticion text)
 returns jsonb
