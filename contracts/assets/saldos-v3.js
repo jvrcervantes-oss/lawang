@@ -89,7 +89,8 @@ async function cargar(SB){
       grupo.forEach(function(g){
         (g.compradores || []).forEach(function(v){
           var cl = v.clients; if(!cl) return;
-          [cl.email, cl.passport_number].forEach(function(k){
+          // solo por correo: operaciones_compradores_datos no trae el pasaporte (LAW-338 L5, #396.3)
+          [cl.email].forEach(function(k){
             if(!k) return;
             k = String(k).trim().toLowerCase();
             if(!k) return;

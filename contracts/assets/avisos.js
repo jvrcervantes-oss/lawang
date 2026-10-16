@@ -232,9 +232,13 @@ function lwAvisos(sb, opts) {
   /* Se piden más filas de las que se enseñan (LW_AVISOS_FILAS): un admin
      recibe de la base una copia por manager de cada aviso, y se agrupan en
      lwAvisosArmar — con 40 filas crudas apenas cabían 5 sucesos. */
-  var q = sb.from('notificaciones')
-    .select('tipo,titulo,detalle,enlace,creado_en,destinatario')
-    .order('creado_en', { ascending: false }).limit(LW_AVISOS_FILAS);
+  /* LAW-338 L5 (16-oct-2026): por el servidor (notificaciones_datos, la misma regla de la tabla; máximo 400 en servidor).
+     Misma forma {data, error} que la lectura directa de antes: lwAvisosArmar no cambia. Sin el transporte, cuenta como fallo. */
+  var q = typeof window.lwDatos !== 'function'
+    ? Promise.resolve({ data: null, error: { message: 'lwDatos no cargado' } })
+    : Promise.resolve(window.lwDatos('notificaciones_datos', { p_limite: LW_AVISOS_FILAS })).then(function (x) {
+        return x.error ? x : { data: (x.data && x.data.notificaciones) || [], error: null };
+      });
   // Vencimientos: facturas con fecha puesta y sin anular. `venc` vive dentro
   // del jsonb, igual que en Operaciones — no hay columna propia.
   /* El filtro va EN la consulta (Administración, 23-sep-2026): antes era un

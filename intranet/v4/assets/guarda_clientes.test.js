@@ -29,7 +29,9 @@ const bloque = src.slice(b0, b1);
 ['contrato_firmas_equipo', 'contratos_cobrado_equipo', 'contrato_compradores'].forEach(function (o) {
   assert.ok(apoyo.indexOf(o) > -1, 'clientesContratosCarga ya no pide ' + o);
 });
-assert.ok(apoyo.indexOf('hilo_soporte') > -1 && apoyo.indexOf('mensajes_comprador') > -1, 'clientesSoporteResumen ya no pide el soporte');
+// LAW-338 L5 (16-oct-2026): el resumen de soporte se pide al servidor (comprador_ficha_datos, parte «soporte»)
+assert.ok(/comprador_ficha_datos[^\n]*p_partes: \['soporte'\]/.test(apoyo), 'clientesSoporteResumen ya no pide el soporte');
+assert.ok(bloque.indexOf("p_partes: ['soporte']") === -1, 'el bloque compradores pide el soporte por su cuenta: debe vivir solo en clientesSoporteResumen');
 
 // ── DOM y base de mentira
 function el(clave, reg) {
@@ -71,7 +73,26 @@ function mundo(opts) {
   ['dato', 'nota', 'tag', 'enlace', 'tabla', 'cifras'].forEach((k) => { H[k] = () => ''; });
   if (opts.notas) { H.nota = (t) => '[nota:' + t + ']'; H.enlace = (h, t) => '[a:' + h + '|' + t + ']'; }
   H.seccion = (titulo, html, id) => '[sec:' + id + ']';
+  /* LAW-338 L5: las lecturas `*_datos` (window.lwDatos). Se apuntan como 'rpc:<nombre>' (la ficha, con sus partes: 'rpc:comprador_ficha_datos:soporte')
+     y se contestan con las mismas fixtures que antes servían la tabla. */
+  const fxDe = (k) => { const d = fx[k]; return d && d.__error ? { error: { message: d.__error } } : { data: d === undefined ? [] : d }; };
+  const lwDatos = (n, a) => {
+    calls.push('rpc:' + n + (a && a.p_partes ? ':' + a.p_partes.join(',') : ''));
+    if (a && a.p_client) eqs.push(n + ':p_client=' + a.p_client);
+    let r;
+    if (n === 'clientes_lista_datos') { const x = fxDe('from:clients'); r = x.error ? x : { data: { clientes: x.data, recortado: [] } }; }
+    else if (n === 'comprador_ficha_datos') {
+      const x = fxDe('from:clients');
+      // como el servidor: si la ficha no se ve entera, solo {ve:false} (sin ninguna parte)
+      r = x.error ? x : (!x.data.length ? { data: { ve: false, recortado: [] } }
+        : { data: { ve: true, recortado: [], ficha: x.data[0], documento: x.data[0], documentos: [], portal: [], soporte: { ultimo: null, hilos: [] } } });
+    } else if (n === 'documentos_desactualizados_datos') { const x = fxDe('from:documentos_desactualizados'); r = x.error ? x : { data: { documentos: x.data, recortado: [] } }; }
+    else if (n === 'correos_registro_datos') r = { data: { correos: [], recortado: [] } };
+    else r = { data: {} };
+    return Promise.resolve(Object.assign({ data: null, error: null }, r));
+  };
   const win = Object.assign({
+    lwDatos,
     LW_V4: { esSuperAdmin: false, esAdmin: false, miEmail: 'a@x.es' }, lwCajonHtml: H,
     lwCajon(o) { cajones.push(o); return { cuerpo: opts.cuerpo ? opts.cuerpo() : el('cuerpo', reg), cierra() {} }; }
   }, opts.win || {});
@@ -115,7 +136,7 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   let w = mundo({});
   w.reg.compradores(w.sb); await espera();
   assert.deepStrictEqual(w.calls.slice(0, 7), ORDEN_LAWANG, 'Lawang: las 7 primeras llamadas, en su orden de siempre');
-  assert.deepStrictEqual(w.calls.slice(7), ['from:clients'], 'Lawang: tras las siete, solo qué fichas ve enteras (clients); la vista de divergencias no se pide en la lista');
+  assert.deepStrictEqual(w.calls.slice(7), ['rpc:clientes_lista_datos'], 'Lawang: tras las siete, solo qué fichas ve enteras (clientes_lista_datos); la vista de divergencias no se pide en la lista');
   assert.strictEqual(w.tabla.rows.length, 2, 'cabecera + 1 fila');
   w.tabla.rows.forEach((fl) => assert.deepStrictEqual(ocultas(fl), [false, false, false], 'Lawang: columnas visibles'));
   assert.ok(!w.elementos['[data-lw-tarjeta="capital"]'] || w.elementos['[data-lw-tarjeta="capital"]'].style.display !== 'none', 'Lawang: la tarjeta de capital se ve');
@@ -125,8 +146,8 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   ['contratos', 'cuentas', 'facturas', 'envios', 'soporte', 'docs', 'portal'].forEach((s) => assert.ok(cuerpo.indexOf('[sec:' + s + ']') > -1, 'Lawang: la ficha pinta ' + s));
   assert.deepStrictEqual(w.cajones[0].lado, ['cuentas'], 'Lawang: «cuentas» en la columna lateral');
   assert.ok(w.cajones[0].acciones.some((a) => a.texto === 'Crear contrato'), 'Lawang: ofrece Crear contrato');
-  ['rpc:comprador_contratos_resumen', 'from:mensajes_comprador', 'from:hilo_soporte', 'rpc:facturas_equipo', 'from:correos_enviados', 'from:documentos_desactualizados'].forEach((c) => assert.ok(w.calls.indexOf(c) > -1, 'Lawang: la ficha pide ' + c));
-  assert.ok(w.eqs.indexOf('documentos_desactualizados:client_id=c1') > -1, 'Lawang: la ficha pide SUS divergencias, por el id del cliente');
+  ['rpc:comprador_contratos_resumen', 'rpc:comprador_ficha_datos:soporte', 'rpc:facturas_equipo', 'rpc:correos_registro_datos', 'rpc:documentos_desactualizados_datos'].forEach((c) => assert.ok(w.calls.indexOf(c) > -1, 'Lawang: la ficha pide ' + c));
+  assert.ok(w.eqs.indexOf('documentos_desactualizados_datos:p_client=c1') > -1, 'Lawang: la ficha pide SUS divergencias, por el id del cliente');
 
   // 2) Maestro con todo encendido: idéntico a Lawang (la bandera sola no cambia nada)
   w = mundo({ win: { AXW_NUCLEO_OPERACION: true, axwModuloActivo: () => true, AXW_MODULOS_LISTOS: Promise.resolve(true) } });
@@ -185,7 +206,7 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   ['docs', 'portal', 'responsable'].forEach((s) => assert.ok(cuerpo.indexOf('[sec:' + s + ']') > -1, 'apagado: la ficha sí pinta ' + s));
   assert.strictEqual(w.cajones[0].lado, undefined, 'apagado: sin columna lateral de cuentas');
   assert.ok(!w.cajones[0].acciones.some((a) => a.texto === 'Crear contrato'), 'apagado: no ofrece Crear contrato');
-  ['rpc:comprador_contratos_resumen', 'from:mensajes_comprador', 'from:hilo_soporte', 'rpc:facturas_equipo', 'from:correos_enviados'].forEach((c) => assert.ok(w.calls.indexOf(c) === -1, 'apagado: la ficha NO pide ' + c));
+  ['rpc:comprador_contratos_resumen', 'rpc:comprador_ficha_datos:soporte', 'rpc:facturas_equipo', 'rpc:correos_registro_datos'].forEach((c) => assert.ok(w.calls.indexOf(c) === -1, 'apagado: la ficha NO pide ' + c));
 
   // 3b) Solo soporte apagado: contratos sigue igual que en Lawang
   w = mundo({ win: { AXW_NUCLEO_OPERACION: true, axwModuloActivo: (m) => m !== 'soporte', AXW_MODULOS_LISTOS: Promise.resolve(true) } });
@@ -193,7 +214,7 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   assert.deepStrictEqual(w.calls.slice(0, 7), ORDEN_LAWANG, 'solo soporte apagado: la carga es la de siempre');
   w.win.LW_V4.abreFichaComprador('c1'); await espera();
   assert.ok(w.cajones[0].cuerpo.indexOf('[sec:soporte]') === -1 && w.cajones[0].cuerpo.indexOf('[sec:contratos]') > -1, 'solo soporte apagado: sin Soporte, con Contratos');
-  assert.ok(w.calls.indexOf('from:hilo_soporte') === -1 && w.calls.indexOf('rpc:comprador_contratos_resumen') > -1);
+  assert.ok(w.calls.indexOf('rpc:comprador_ficha_datos:soporte') === -1 && w.calls.indexOf('rpc:comprador_contratos_resumen') > -1);
 
   // 4) Maestro sin saber aún qué hay encendido: espera y luego decide (no pide lo contractual «por si acaso»)
   let listo; let sabe = false;
@@ -222,7 +243,8 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   ['contratos', 'cuentas', 'facturas', 'envios', 'soporte', 'docs', 'portal', 'responsable'].forEach((s) => assert.ok(cuerpo.indexOf('[sec:' + s + ']') === -1, 'ficha básica: NO pinta ' + s));
   assert.ok(!w.cajones[0].acciones.some((a) => ['Editar datos', 'Pedir borrado', 'Borrar la ficha'].indexOf(a.texto) > -1), 'ficha básica: ningún botón de escribir');
   assert.ok(!w.cajones[0].acciones.some((a) => a.texto === 'Crear contrato'), 'ficha básica, sin alcance acotado: sin Crear contrato (LAW-E55: comprador_ficha ya no le da la ficha entera)');
-  ['rpc:comprador_contratos_resumen', 'from:mensajes_comprador', 'from:hilo_soporte', 'rpc:facturas_equipo', 'from:correos_enviados', 'from:documents'].forEach((c) => assert.ok(w.calls.indexOf(c) === -1, 'ficha básica: NO pide ' + c));
+  ['rpc:comprador_contratos_resumen', 'rpc:comprador_ficha_datos:soporte', 'rpc:facturas_equipo', 'rpc:correos_registro_datos', 'rpc:comprador_ficha_datos:documentos', 'rpc:comprador_ficha_datos:portal'].forEach((c) => assert.ok(w.calls.indexOf(c) === -1, 'ficha básica: NO pide ' + c));
+  assert.ok(w.calls.indexOf('rpc:comprador_ficha_datos:ficha') > -1, 'ficha básica: la ficha sí se pide (y el servidor dice ve=false)');
   assert.strictEqual(w.win.LW_V4.comprador, null, 'ficha básica: ningún editor hereda una ficha');
   // con alcance acotado (empresas marcadas) tampoco: la ficha entera no se le da y el botón acabaría en error
   w = mundo({ fx: sinFilas, win: { LW_V4: { esSuperAdmin: false, esAdmin: false, miEmail: 'a@x.es', ficha: { ambito: 'empresa', empresas: ['lawang'] } } } });
@@ -231,9 +253,9 @@ const ocultas = (fl) => [3, 4, 5].map((i) => fl.cells[i].style.display === 'none
   assert.ok(!w.cajones[0].acciones.some((a) => a.texto === 'Crear contrato'), 'ficha básica, alcance acotado: sin Crear contrato');
   assert.strictEqual(w.cajones[0].acciones.length, 1, 'ficha básica: solo «Cerrar»');
   // si la lectura de las fichas visibles FALLA no se marca ninguna ni se oculta nada
-  w = mundo({ fx: sinFilas });
-  const sbMalo = Object.assign({}, w.sb, { from: (n) => { const b = w.sb.from(n); if (n !== 'clients') return b; return { select() { return { then(ok, ko) { return Promise.resolve({ data: null, error: { message: 'x' } }).then(ok, ko); } }; } }; } });
-  w.reg.compradores(sbMalo); await espera();
+  w = mundo({ fx: { 'from:clients': { __error: 'x' } } });
+  w.reg.compradores(w.sb); await espera();
+  assert.ok(w.calls.indexOf('rpc:clientes_lista_datos') > -1, 'la lectura de fichas visibles va por clientes_lista_datos');
   assert.strictEqual(w.tabla.rows.length, 2, 'si falla la lectura de fichas visibles: la lista se pinta igual');
 
   console.log('OK guarda_clientes.test.js');

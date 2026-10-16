@@ -134,14 +134,10 @@ Deno.serve(async (req) => {
     if (accion === 'editar_comprador' || accion === 'borrar_comprador') {
       const q = s(inp.comprador, 120);
       if (q.length < 2) return json({ tipo: 'no_encontrado', accion, mensaje: 'No dices de qué comprador se trata.' });
-      const digitos = q.replace(/\D/g, '');
-      // Por nombre o pasaporte, sin tildes (15-oct-2026): clientes_busca normaliza en el servidor (INVOKER: la RLS de quien pide).
-      // Correo y telefono no son texto con tildes: siguen igual.
-      let consulta;
-      if (q.includes('@')) consulta = sb.from('clients').select('id, full_name, email, phone').limit(6).ilike('email', q); // BUSQUEDA A PROPOSITO: correo entero sin mayusculas, como antes
-      else if (digitos.length >= 6 && digitos.length >= q.replace(/\s/g, '').length - 2) consulta = sb.from('clients').select('id, full_name, email, phone').limit(6).ilike('phone', '%' + digitos.slice(-6) + '%'); // BUSQUEDA A PROPOSITO: ultimos 6 digitos del telefono
-      else consulta = sb.rpc('clientes_busca', { p_q: q });
-      const { data: cs, error } = await consulta;
+      // Por nombre, pasaporte, correo o teléfono (LAW-338 L5, 16-oct-2026): todo en clientes_busca, que decide el modo en el
+      // servidor con la RLS de quien pide (DEFINER-lw_lector). El correo se compara entero (antes `ilike` con la entrada: un
+      // `%@%` listaba fichas) y el teléfono por sus 6 últimos dígitos.
+      const { data: cs, error } = await sb.rpc('clientes_busca', { p_q: q });
       if (error) return json({ error: 'no_se_pudo_buscar' }, 500);
       let nuevos: Json | null = null;
       if (accion === 'editar_comprador') {

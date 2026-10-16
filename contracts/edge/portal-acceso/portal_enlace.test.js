@@ -77,6 +77,8 @@ const ADMIN_UID = 'bbbbbbbb-1111-2222-3333-444444444444';
       rpc: (nombre, a) => {
         if (nombre === 'portal_autoservicio') return { data: { elegible: est.elegible, motivo: est.elegible ? null : 'sin_ficha' }, error: null };
         if (nombre === 'portal_puede_gestionar') return { data: true, error: null };
+        // LAW-338 L5: «¿ve todas esas fichas?» por la lectura del servidor (antes `.from('clients')`); el doble las ve todas
+        if (nombre === 'clientes_lista_datos') return { data: { clientes: (a.p_ids || []).map((id) => ({ id, full_name: 'x' })), recortado: [] }, error: null };
         if (nombre === 'portal_peticion_freno') {
           if (est.peticionError) return { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } };
           const h = a.p_ip_hash;
