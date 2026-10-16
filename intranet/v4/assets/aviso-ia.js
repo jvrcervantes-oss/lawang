@@ -14,6 +14,9 @@
  *
  * Lo inyecta nav.js tras LW_AUTH, como novedades.js, y se sella a mano con AVISO_IA_V (sella_assets no ve un script inyectado).
  * En una instancia del ERP no nace (las ia_* solo existen en Lawang). En /v4/ia/ no sale: ya está allí.
+ * Sale en TODA cabecera de la suite con campana (v4, contratos, leads, obra…), no solo en /intranet/v4/ como novedades.js: el
+ * asistente lee lo de Dirección y Contabilidad, que también se trabaja en contratos. Decisión por defecto (16-oct, mcp-aviso; el
+ * revisor la preguntó). Cómo revertir: en arranca(), salir si location.pathname no contiene '/intranet/v4/'.
  *
  * Dos recuerdos, los dos COMODIDAD y no dato de verdad (como el «visto» de novedades.js; sin almacenamiento, sale y ya):
  *  · la respuesta de la base, 3 min en sessionStorage, para no preguntar en cada carga. Entrar en /v4/ia/ la borra.

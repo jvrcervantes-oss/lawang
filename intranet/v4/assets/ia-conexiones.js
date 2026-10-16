@@ -168,8 +168,15 @@
     return f;
   }
 
+  /* Qué bloques enseña «Cómo se conecta»: con la lista de la base, solo los asistentes activos; sin ella, los dos (decisión del owner del 15-oct). */
+  function bloques(d) {
+    var clientes = Array.isArray(d && d.clientes) ? d.clientes : null;
+    var de = function (a) { return clientes ? clientes.filter(function (k) { return k && k.asistente === a; }) : null; };
+    return { conLista: !!clientes, claude: de('claude'), chatgpt: de('chatgpt'), vacio: !!clientes && !clientes.length };
+  }
+
   raiz.LW_IA = {
-    asistenteTexto: asistenteTexto, motivoTexto: motivoTexto, estado: estado, separa: separa, aviso: aviso, fecha: fecha,
+    asistenteTexto: asistenteTexto, motivoTexto: motivoTexto, estado: estado, separa: separa, aviso: aviso, fecha: fecha, bloques: bloques,
     urlConector: urlConector, textoError: textoError, cortar: cortar,
     el: el, boton: boton, pastilla: pastilla, seccion: seccion, copiable: copiable, esc: esc, T: T, bien: bien, mal: mal,
     MOTIVOS: MOTIVOS
@@ -178,7 +185,7 @@
 
   /* ── la pantalla /v4/ia/ ────────────────────────────────────────────────────────────────────────────────────────────── */
   if (typeof document === 'undefined') return;
-  var sb = null, esSuperSesion = false;
+  var sb = null, esSuperSesion = false, lectura = 0;
 
   function tarjeta(c, encendido, pintar) {
     var e = estado(c, encendido);
@@ -241,12 +248,6 @@
       f.textContent = T('Está en Ajustes › IA: pídeselo al super admin.');
     }
     return f;
-  }
-  /* Qué bloques enseña: con la lista de la base, solo los asistentes activos; sin ella, los dos (decisión del owner del 15-oct). */
-  function bloques(d) {
-    var clientes = Array.isArray(d && d.clientes) ? d.clientes : null;
-    var de = function (a) { return clientes ? clientes.filter(function (k) { return k && k.asistente === a; }) : null; };
-    return { conLista: !!clientes, claude: de('claude'), chatgpt: de('chatgpt'), vacio: !!clientes && !clientes.length };
   }
   function comoConectar(c, d, esSuper) {
     var b = bloques(d);
@@ -333,7 +334,10 @@
 
   function carga() {
     var r = document.getElementById('lw-ia-apps'); if (!r || !sb) return Promise.resolve();
+    /* Al volver a la pestaña puede haber dos lecturas en vuelo: solo pinta la última, nunca una respuesta vieja encima de la nueva. */
+    var n = ++lectura;
     return sb.rpc('ia_mis_conexiones').then(function (res) {
+      if (n !== lectura) return;
       var e = textoError(res, null);
       if (e || !res.data || !Array.isArray(res.data.conexiones)) {
         r.textContent = '';
@@ -344,6 +348,7 @@
       }
       pinta(res.data, esSuperSesion);
     }, function (x) {
+      if (n !== lectura) return;
       r.textContent = '';
       var p = el('p', 'font-body-md text-body-md text-error', T('No se han podido leer tus conexiones: %m. Esto no quiere decir que no tengas ninguna: recarga la página.', { m: (x && x.message) || T('sin respuesta') }));
       p.setAttribute('role', 'alert'); p.setAttribute('data-ia-error', '');

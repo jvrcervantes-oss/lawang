@@ -106,6 +106,13 @@ igual(IA.motivoTexto('persona'), 'la cortaste tú', 'motivo en llano');
 igual(IA.motivoTexto('otro'), 'cortada', 'motivo desconocido: «cortada» a secas');
 igual(IA.asistenteTexto('chatgpt'), 'ChatGPT', 'nombre del asistente');
 igual(IA.urlConector(), '', 'sin guard.js (lwEdge) no se inventa la dirección del conector');
+const bl = (d) => { const b = IA.bloques(d); return [b.conLista, b.vacio, b.claude && b.claude.map((k) => k.id), b.chatgpt && b.chatgpt.map((k) => k.id)]; };
+igual(bl({ conexiones: [] }), [false, false, null, null], 'bloques sin lista de la base: los dos asistentes, sin identificador');
+igual(bl(null), [false, false, null, null], 'bloques sin datos no revienta');
+igual(bl({ clientes: [] }), [true, true, [], []], 'bloques con la lista vacía: ningún asistente activo');
+igual(bl({ clientes: [{ id: 'c1', asistente: 'claude' }] }), [true, false, ['c1'], []], 'bloques solo con Claude: no enseña ChatGPT');
+igual(bl({ clientes: [{ id: 'g1', asistente: 'chatgpt' }, null] }), [true, false, [], ['g1']], 'bloques solo con ChatGPT (y una fila nula ignorada)');
+igual(bl({ clientes: [{ id: 'c1', asistente: 'claude' }, { id: 'g1', asistente: 'chatgpt' }, { id: 'c2', asistente: 'claude' }] }), [true, false, ['c1', 'c2'], ['g1']], 'bloques con los dos: cada identificador en su asistente');
 
 /* ── 5. frontera y pintado ── */
 [['ia-conexiones.js', comun], ['ajustes-ia.js', aj]].forEach(([n, js]) => {
