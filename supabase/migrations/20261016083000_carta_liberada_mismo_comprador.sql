@@ -52,6 +52,25 @@
 
 set local lock_timeout = '5s';
 
+-- ── precondición (falla cerrado): los tres cuerpos que se re-emiten tienen que ser EXACTAMENTE los del 16-oct de los que se generaron
+-- (o ya llevar la regla, si se reaplica). Si otro cambio los tocó entre medias, re-emitirlos lo pisaría en silencio: se para y se
+-- regenera desde la viva (scratchpad gen_carta.py de la sesión carta-liberada-comprador, reemplazos de recuento exacto).
+do $pre$
+declare f text; m text; esperado text;
+begin
+  for f, esperado in values ('privado.carta_cobrado_calcula_por_id(uuid,jsonb,uuid)', '41be932a47f00beb4b4264df69b36d31'),
+                            ('public.carta_cobrado_calcula(uuid,jsonb,text)', 'ddf75635712cbec45b1d55d6cb630cc8'),
+                            ('public.sincroniza_unidad_contrato()', '524feef3b661037e3b444615c8eeb6af') loop
+    if to_regprocedure(f) is null then
+      raise exception 'carta imputable: falta % (¿LAW-428 2B sin aplicar?)', f;
+    end if;
+    m := md5(pg_get_functiondef(f::regprocedure));
+    if m <> esperado and position('carta_imputable' in pg_get_functiondef(f::regprocedure)) = 0 then
+      raise exception 'carta imputable: % cambió desde el 16-oct (md5 % y no %): regenerar desde la viva antes de aplicar', f, m, esperado;
+    end if;
+  end loop;
+end $pre$;
+
 -- ── ayudantes (privado, sin EXECUTE para el API; los llaman los DEFINER de postgres) ──
 create or replace function privado.carta_cobrado_clientes_de(p_datos jsonb)
  returns uuid[]
