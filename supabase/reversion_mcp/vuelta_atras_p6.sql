@@ -9,6 +9,15 @@
 begin;
 set local lock_timeout = '5s';
 
+-- 0. la condición de arriba, comprobada: con la IA encendida y la entrada abierta a anon no se quita el aviso (Seguridad, 2.ª vuelta)
+do $g$
+begin
+  if coalesce((select encendido from public.ia_ajustes where id), false)
+     and has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
+    raise exception 'vuelta_atras_p6: primero apagar la IA (Ajustes › IA) o deshacer la 20261016140000; no se aplica nada';
+  end if;
+end $g$;
+
 -- 1. lo que quedaba por enviar se cancela; el disparador de P6 corta su conexión
 update public.correos_cola q set estado = 'cancelado', error = 'vuelta_atras_p6', reclamado_hasta = null
  where q.ia_conexion_id is not null and q.estado in ('pendiente', 'enviando');

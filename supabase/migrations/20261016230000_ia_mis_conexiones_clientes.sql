@@ -1,7 +1,7 @@
 -- MCP de Lawang · «apps conectadas» dice también CON QUÉ se conecta (16-oct-2026, sesión mcp-aviso; revisión previa #403).
--- Va DESPUÉS de 20261016073530 (crea public.ia_mis_conexiones) y de 20261016080111. PROPUESTA: no se aplica desde la sesión que
--- la escribe; la revisa la sesión del puente (mcp-abre) y la aplica agencia-cd en su turno. Hasta entonces vive aquí, fuera de
--- migrations/, y la web ya funciona sin ella (ver «Sin esta propuesta»).
+-- Va DESPUÉS de 20261016073530 (crea public.ia_mis_conexiones) y de 20261016080111. Pasó de propuestas/ a migrations/ en la
+-- sesión del puente (mcp-abre, 16-oct), que la revisó y la ensayó en rama con P6 y la 140000; la aplica agencia-cd en su turno.
+-- La web funciona también sin ella (ver «Sin esta propuesta»).
 --
 -- QUÉ CAMBIA (solo construye: create or replace de UNA lectura que ya existe; no crea tablas, no toca datos ni permisos):
 --   public.ia_mis_conexiones() devuelve, además de lo que ya devolvía:
@@ -32,7 +32,8 @@
 -- Seguridad dio por aceptable enseñar el id a quien tiene permiso con la IA encendida (la vuelta tiene que estar en
 -- redirect_uris y el canje exige PKCE S256: el id solo sirve para que esa persona se conecte ella).
 --
--- VUELTA ATRÁS (no destruye nada): volver a crear public.ia_mis_conexiones() tal como está en 20261016073530 (sección 2). La web
+-- VUELTA ATRÁS (no destruye nada): supabase/reversion_mcp/vuelta_atras_mis_conexiones.sql, que vuelve a crear
+-- public.ia_mis_conexiones() con el texto vivo del 16-oct (md5 10ef7d0dd885301fa142208a764b1f2d) y lo comprueba. La web
 -- vuelve sola a «dónde está el identificador» y a la invitación solo para el super admin.
 
 set local lock_timeout = '5s';   -- local: sin él se queda en la sesión del pooler tras apply_migration (mcp-abre, 16-oct)

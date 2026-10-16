@@ -206,15 +206,18 @@ volatile
 security definer
 set search_path = ''
 as $$
-declare c public.ia_conexiones; a public.ia_ajustes; u jsonb;
+declare c public.ia_conexiones; a public.ia_ajustes; u jsonb; h integer;
 begin
   select * into c from public.ia_conexiones where id = p_conexion;
   if c.id is null then return 'sin_conexion'; end if;
   if c.revocada_en is not null then return 'revocada'; end if;
   if c.expira_en <= now() then return 'caducada'; end if;
-  if c.avisada_en is null
-     and c.creada_en < now() - make_interval(hours => (select r.tope_horas from public._correo_cola_regla('aviso_ia_conexion') r)) then
-    perform privado.ia_revoca(c.id, 'sin_aviso'); return 'sin_aviso';
+  if c.avisada_en is null then
+    -- sin la regla de la clave (una redefinición futura que la pierda) se corta: sin tope no hay aviso que esperar (Seguridad, 2.ª vuelta)
+    select r.tope_horas into h from public._correo_cola_regla('aviso_ia_conexion') r;
+    if h is null or c.creada_en < now() - make_interval(hours => h) then
+      perform privado.ia_revoca(c.id, 'sin_aviso'); return 'sin_aviso';
+    end if;
   end if;
   select * into a from public.ia_ajustes where id;
   if not coalesce(a.encendido, false) then return 'apagado'; end if;
