@@ -103,6 +103,7 @@ create table public.ia_peticiones (
   usada_en       timestamptz
 );
 create index ia_peticiones_caduca on public.ia_peticiones (caduca_en);
+create index ia_peticiones_cliente on public.ia_peticiones (cliente_id);
 
 create table public.ia_conexiones (
   id              uuid primary key default gen_random_uuid(),
@@ -117,7 +118,9 @@ create table public.ia_conexiones (
   revocada_motivo text check (revocada_motivo in ('persona', 'admin', 'asistente', 'reuso_codigo', 'reuso_refresco',
                                                   'contrasena', 'permiso', 'apagado', 'usuario_inactivo', 'cliente'))
 );
-create index ia_conexiones_usuario on public.ia_conexiones (usuario_id) where revocada_en is null;
+-- índices sin filtro: también los usa la cascada al borrar a la persona o al cliente (Base de datos, 16-oct)
+create index ia_conexiones_usuario on public.ia_conexiones (usuario_id);
+create index ia_conexiones_cliente on public.ia_conexiones (cliente_id);
 
 create table public.ia_tokens (
   hash           bytea primary key,
@@ -136,7 +139,7 @@ create index ia_tokens_caduca on public.ia_tokens (caduca_en);
 create table public.ia_llamadas (
   id          bigint generated always as identity primary key,
   conexion_id uuid references public.ia_conexiones(id) on delete set null,
-  usuario_id  uuid references public.usuarios(user_id) on delete set null,
+  usuario_id  uuid,   -- sin-fk-ok: registro de auditoría; quién consultó sobrevive al borrado de la persona (Base de datos, 16-oct)
   herramienta text not null check (length(herramienta) <= 60),
   argumentos  jsonb not null default '{}'::jsonb check (pg_column_size(argumentos) <= 2048),
   resultado   text not null check (resultado in ('ok', 'sin_conexion', 'caducada', 'revocada', 'apagado', 'cliente',
@@ -148,6 +151,7 @@ create table public.ia_llamadas (
 );
 create index ia_llamadas_usuario on public.ia_llamadas (usuario_id, creado_en desc);
 create index ia_llamadas_creado on public.ia_llamadas (creado_en);
+create index ia_llamadas_conexion on public.ia_llamadas (conexion_id, creado_en);   -- «Apps conectadas» (ia_mis_conexiones) y la cascada
 
 -- Cerradas a todos: el GRANT por defecto de Supabase da ALL a anon/authenticated en cada tabla nueva (lección 14-sep).
 do $$
@@ -303,7 +307,7 @@ begin
   end if;
   insert into public.ia_llamadas (conexion_id, usuario_id, herramienta, argumentos, resultado)
   values (case when v_res = 'sin_conexion' then null else v_con end,
-          -- con conexión, v_uid es su usuario_id (FK a usuarios); sin ella, el uid de los claims no se apunta (ia_puente_rol no lee usuarios)
+          -- con conexión, v_uid es su usuario_id (el de la conexión); sin ella, el uid de los claims no se apunta (ia_puente_rol no lee usuarios)
           case when v_res = 'sin_conexion' then null else v_uid end,
           left(coalesce(p_herramienta, ''), 60),
           case when pg_column_size(coalesce(p_argumentos, '{}'::jsonb)) <= 2048 then coalesce(p_argumentos, '{}'::jsonb)
@@ -487,10 +491,9 @@ begin
       -- La herramienta lanzó (o el tiempo de la API la cortó): su fila de ia_llamadas y el contador del tope se deshicieron con
       -- ella. Se apuntan aquí: si no, forzar errores daría llamadas sin rastro y fuera del tope (revisor, 16-oct).
       insert into public.ia_llamadas (conexion_id, usuario_id, herramienta, argumentos, resultado)
-      values (c.id, c.usuario_id, left(coalesce(d ->> 'herramienta', ''), 60),
-              case when pg_column_size(coalesce(d -> 'argumentos', '{}'::jsonb)) <= 2048 then coalesce(d -> 'argumentos', '{}'::jsonb)
-                   else jsonb_build_object('recortado', true) end,
-              'error');
+      -- argumentos '{}': aquí aún no están tipados (texto libre del asistente); solo las puertas de P2 guardan los suyos, ya
+      -- tipados (Base de datos, 16-oct: «argumentos (solo ids)» del encargo)
+      values (c.id, c.usuario_id, left(coalesce(d ->> 'herramienta', ''), 60), '{}'::jsonb, 'error');
       insert into public.ia_uso (usuario_id, dia, n) values (c.usuario_id, (now() at time zone 'Asia/Makassar')::date, 1)
       on conflict (usuario_id, dia) do update set n = public.ia_uso.n + 1;
       v_res := jsonb_build_object('error', 'server_error');

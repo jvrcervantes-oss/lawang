@@ -90,6 +90,8 @@ returns jsonb language sql stable security definer set search_path = '' as $$
                                 'devengada_id', q.e->>'id', 'contrato_raiz_id', q.e->>'contrato_raiz_id',
                                 'beneficiario_usuario_id', q.uid, 'nivel', q.e->>'nivel',
                                 'importe', (q.e->>'importe')::numeric, 'importe_ajustado', (q.e->>'importe_ajustado')::numeric,
+                                -- lo que suma la pantalla (datos.js: coalesce(importe_ajustado, importe)); Administración, 16-oct
+                                'importe_efectivo', coalesce((q.e->>'importe_ajustado')::numeric, (q.e->>'importe')::numeric),
                                 'moneda', q.e->>'moneda', 'disparado_en', q.e->>'disparado_en') order by q.o)
                                 from q where q.rn <= 500), '[]'::jsonb),
            'recortado', (select count(*) from q) > 500 or coalesce((select r.j->'recortado' from r), '[]'::jsonb) ? 'devengadas',
@@ -101,7 +103,7 @@ returns jsonb language sql stable security definer set search_path = '' as $$
   select jsonb_build_object(
            'datos', coalesce(jsonb_agg(jsonb_build_object('proyecto_id', z.proyecto_id, 'moneda', z.moneda,
                                                           'cobrado_mes', z.cobrado, 'recibis_mes', z.n_recibis,
-                                                          'pendiente_hoy', z.pendiente) order by z.rn) filter (where z.rn <= 500), '[]'::jsonb),
+                                                          'facturado_sin_cobrar_hoy', z.pendiente) order by z.rn) filter (where z.rn <= 500), '[]'::jsonb),
            'recortado', count(*) > 500,
            'filas', least(count(*), 500))
     from (select x.proyecto_id, x.moneda, sum(x.cobrado) as cobrado, sum(x.es_recibi)::int as n_recibis,
@@ -116,7 +118,7 @@ returns jsonb language sql stable security definer set search_path = '' as $$
                   select f.proyecto_id, f.moneda, 0, 0, pe.pendiente
                     from public.facturas_pendiente_equipo() pe
                     join public.facturas f on f.id = pe.factura_id
-                   where coalesce(pe.pendiente, 0) <> 0) x
+                   where pe.pendiente > 0) x   -- como finFacturadoSinCobrar (> 0): un saldo negativo no resta
            group by x.proyecto_id, x.moneda) z
 $$;
 
@@ -144,29 +146,46 @@ $$;
 
 create or replace function public.mcp_resumen_semana_lee(p_desde date, p_hasta date)
 returns jsonb language sql stable security definer set search_path = '' as $$
-  with m as (
-    select x.moneda, sum(x.n_ventas)::int as n_ventas, sum(x.imp_ventas) as imp_ventas, sum(x.cobrado) as cobrado
-      from (select c.moneda, 1 as n_ventas, coalesce(c.precio_total, 0) as imp_ventas, 0::numeric as cobrado
-              from public.contratos c
-             where coalesce(c.bloqueado, false) and c.fecha_firma between p_desde and p_hasta
-            union all
-            select r.moneda, 0, 0, r.total
-              from public.facturas r
-             where r.tipo = 'recibi' and not coalesce(r.anulada, false)
-               and coalesce(r.fecha_emision, (r.created_at at time zone 'Asia/Makassar')::date) between p_desde and p_hasta) x
-     group by x.moneda)
+  -- «Firmado» con el criterio de Finanzas (finanzas.js finPorCloser/finCartera, Administración 16-oct): bloqueado, no liberado y no
+  -- preliminar (las 5 Cartas de Reserva de vocabulario.js LW_TIPOS_PRELIMINARES: su precio repite el del Bloqueo). La pieza se fecha
+  -- por fecha_firma (la única fecha de firma que hay; «firmado» es bloqueado, nunca fecha_firma sola). Operaciones = raíces distintas
+  -- subiendo por contrato_padre_id (como finPorCloser; con la RLS de la persona, la raíz es la más alta que ve).
+  with recursive f as (
+    select c.id, c.contrato_padre_id, c.moneda, coalesce(c.precio_total, 0) as precio
+      from public.contratos c
+     where coalesce(c.bloqueado, false) and c.liberado_en is null
+       and c.tipo not in ('carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa', 'carta_reserva_pma',
+                          'carta_reserva_investor_deck')
+       and c.fecha_firma between p_desde and p_hasta),
+  sube as (
+    select f.id as hoja, f.id, f.contrato_padre_id as padre, 0 as n from f
+    union all
+    select s.hoja, p.id, p.contrato_padre_id, s.n + 1 from sube s join public.contratos p on p.id = s.padre where s.n < 10),
+  raiz as (select distinct on (s.hoja) s.hoja, s.id as raiz_id from sube s order by s.hoja, s.n desc),
+  v as (select f.moneda, count(distinct r.raiz_id)::int as n_ops, count(*)::int as n_piezas, sum(f.precio) as imp
+          from f join raiz r on r.hoja = f.id group by f.moneda),
+  co as (select r.moneda, sum(r.total) as cobrado
+           from public.facturas r
+          where r.tipo = 'recibi' and not coalesce(r.anulada, false)
+            and coalesce(r.fecha_emision, (r.created_at at time zone 'Asia/Makassar')::date) between p_desde and p_hasta
+          group by r.moneda),
+  m as (select coalesce(v.moneda, co.moneda) as moneda, coalesce(v.n_ops, 0) as n_ops, coalesce(v.n_piezas, 0) as n_piezas,
+               coalesce(v.imp, 0) as imp, coalesce(co.cobrado, 0) as cobrado
+          from v full join co on co.moneda = v.moneda)
   select jsonb_build_object(
            'datos', jsonb_build_object(
-              'por_moneda', coalesce((select jsonb_agg(jsonb_build_object('moneda', m.moneda, 'ventas_firmadas', m.n_ventas,
-                                                                         'ventas_firmadas_importe', m.imp_ventas, 'cobrado', m.cobrado)
+              'por_moneda', coalesce((select jsonb_agg(jsonb_build_object('moneda', m.moneda, 'operaciones_firmadas', m.n_ops,
+                                                                         'piezas_firmadas', m.n_piezas, 'importe_firmado', m.imp,
+                                                                         'cobrado', m.cobrado)
                                                        order by m.moneda) from m), '[]'::jsonb),
-              'reservas_caidas', (select count(*) from public.contrato_eventos e
-                                   where e.evento = 'reserva_liberada'
-                                     and e.creado_en >= (p_desde::timestamp at time zone 'Asia/Makassar')
-                                     and e.creado_en < ((p_hasta + 1)::timestamp at time zone 'Asia/Makassar')),
+              -- el estado de HOY (liberado_en), como finCartera: una liberación deshecha después ya no cuenta
+              'reservas_caidas', (select count(*) from public.contratos c
+                                   where c.liberado_en >= (p_desde::timestamp at time zone 'Asia/Makassar')
+                                     and c.liberado_en < ((p_hasta + 1)::timestamp at time zone 'Asia/Makassar')),
+              -- totales de siempre, NO de la semana: son las dos cifras de Obra (obra_cifras_datos) y el nombre lo dice
               'obra', jsonb_build_object(
-                 'entregas_con_fecha', (select count(*) from public.unidades u where u.obra_fecha_entrega is not null),
-                 'partes', (select count(*) from public.obra_partes_trabajo o))),
+                 'entregas_con_fecha_total', (select count(*) from public.unidades u where u.obra_fecha_entrega is not null),
+                 'partes_total', (select count(*) from public.obra_partes_trabajo o))),
            'recortado', (select count(*) from m) > 500,
            'filas', (select count(*) from m))
 $$;
@@ -228,14 +247,20 @@ returns jsonb language sql stable security definer set search_path = '' as $$
        and (p_sociedad is null or g.sociedad = p_sociedad)
      group by g.sociedad, g.moneda),
   co as (
-    select y.soc as sociedad, y.moneda, count(*)::int as n, sum(y.importe_mov) as t
+    -- importe_mov lleva signo (entra > 0, sale < 0; 20260924101052): entradas y salidas por separado, como Tesorería, y fuera los
+    -- traspasos entre cuentas propias (naturaleza 'interno'). Sociedad: la del recibí o el gasto conciliado; el resto (comisión,
+    -- traspaso, comisión bancaria…) va con sociedad null (Administración, 16-oct).
+    select y.soc as sociedad, y.moneda, count(*)::int as n,
+           coalesce(sum(y.importe_mov) filter (where y.importe_mov > 0), 0) as entradas,
+           coalesce(sum(-y.importe_mov) filter (where y.importe_mov < 0), 0) as salidas
       from (select c.importe_mov, m.moneda,
                    case when c.tipo = 'recibi' then (select f.sociedad from public.facturas f where f.id = c.ref_id)
                         when c.tipo in ('gasto', 'pph') then (select g.sociedad from public.gastos g where g.id = c.ref_id)
                    end as soc
               from public.bancos_conciliacion c
               join public.bancos_movimientos m on m.id = c.movimiento_id
-             where p_bancos and c.anulado_en is null and m.fecha >= p_desde and m.fecha < p_hasta) y
+             where p_bancos and c.anulado_en is null and m.fecha >= p_desde and m.fecha < p_hasta
+               and c.naturaleza is distinct from 'interno') y
      where p_sociedad is null or y.soc = p_sociedad
      group by y.soc, y.moneda)
   select jsonb_build_object(
@@ -247,7 +272,7 @@ returns jsonb language sql stable security definer set search_path = '' as $$
               'gastos', case when p_gastos then coalesce((select jsonb_agg(jsonb_build_object('sociedad_id', s.sociedad, 'moneda', s.moneda,
                                      'numero', s.n, 'importe', s.t) order by s.sociedad, s.moneda) from (select * from ga order by 1, 2 limit 500) s), '[]'::jsonb) end,
               'conciliados', case when p_bancos then coalesce((select jsonb_agg(jsonb_build_object('sociedad_id', s.sociedad, 'moneda', s.moneda,
-                                     'numero', s.n, 'importe', s.t) order by s.sociedad nulls last, s.moneda) from (select * from co order by 1 nulls last, 2 limit 500) s), '[]'::jsonb) end,
+                                     'numero', s.n, 'entradas', s.entradas, 'salidas', s.salidas) order by s.sociedad nulls last, s.moneda) from (select * from co order by 1 nulls last, 2 limit 500) s), '[]'::jsonb) end,
               'sin_permiso', to_jsonb(array_remove(array[case when not p_facturas then 'facturas' end,
                                                          case when not p_recibis then 'recibis' end,
                                                          case when not p_gastos then 'gastos' end,
@@ -301,8 +326,8 @@ end $$;
 --      usuario no puede ver esa ficha, sale null). Solo estado = 'pendiente'. La función solo trae los niveles del
 --      reparto (closer, setter, team_lead): las de manager/estándar/propia son otra pantalla («Pagos de %marca»).
 --    Medido: 0,2 ms la tabla (27 devengadas en la viva; la función no la ejecuta axw_lectura).
---    Devuelve por devengada_id: contrato_raiz_id, beneficiario_usuario_id, nivel, importe, importe_ajustado, moneda,
---    disparado_en.
+--    Devuelve por devengada_id: contrato_raiz_id, beneficiario_usuario_id, nivel, importe, importe_ajustado,
+--    importe_efectivo (coalesce(importe_ajustado, importe): lo que suma la pantalla), moneda, disparado_en.
 -- ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 create or replace function privado.mcp_comisiones_pendientes()
 returns jsonb language plpgsql security definer set search_path = '' as $$
@@ -333,8 +358,9 @@ end $$;
 --    Esa pantalla saca el pendiente de facturas_pendiente_equipo() (intranet/v4/assets/panel-finanzas.js) y el cobrado
 --    de contratos_cobrado_equipo(), que es por contrato y de siempre, no por mes: el cobrado del mes sale de los
 --    recibís vivos con fecha_emision (o, sin ella, el día de alta en Makassar) dentro del mes, con la RLS de facturas.
---    Medido: 1,8 ms. Devuelve por proyecto_id y moneda: cobrado_mes, recibis_mes y pendiente_hoy (facturas vivas sin
---    cobrar a hoy, la cifra del Resumen; no depende del mes).
+--    Medido: 1,8 ms. Devuelve por proyecto_id y moneda: cobrado_mes, recibis_mes y facturado_sin_cobrar_hoy (facturas vivas
+--    con pendiente > 0 a hoy, como finFacturadoSinCobrar; no depende del mes). OJO: no es la columna «Por cobrar» del
+--    Resumen por proyecto, que es firmado menos cobrado (cartera); por eso no se llama así.
 -- ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 create or replace function privado.mcp_cobros_por_proyecto_mes(p_mes date default null)
 returns jsonb language plpgsql security definer set search_path = '' as $$
@@ -482,9 +508,10 @@ end $$;
 --    obra_partes_trabajo (cuerpo vivo, 16-oct); la vista es unidades ⟕ contratos por id ⟕ LATERAL … ON true, que no
 --    cambia el número de filas, así que contar en public.unidades con la misma RLS da EXACTAMENTE la misma cifra sin
 --    pagar el LATERAL por parcela (0,6-2,2 s, ver parcelas_libres), que con el resto se acercaría a los 3 s.
---    Cifras por moneda (con la RLS de cada tabla): ventas firmadas (contratos con bloqueado y fecha_firma en la semana:
---    número e importe de precio_total), cobrado (recibís vivos con fecha en la semana) y, aparte, reservas caídas
---    (eventos reserva_liberada en la semana) y obra.
+--    Cifras por moneda (con la RLS de cada tabla): lo firmado en la semana con el criterio de Finanzas (bloqueado, no
+--    liberado, no Carta de Reserva; operaciones = raíces distintas, piezas y su importe), cobrado (recibís vivos con fecha
+--    en la semana) y, aparte, reservas caídas (contratos con liberado_en en la semana, estado de hoy) y obra (los dos
+--    totales de la pantalla de Obra, no de la semana: las claves terminan en _total).
 --    Medido: 0,9 ms (+0,2 ms los dos conteos de obra).
 -- ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 create or replace function privado.mcp_resumen_semana(p_hasta date default null)
@@ -674,7 +701,8 @@ end $$;
 --    facturas.sociedad; 'gasto' y 'pph' → gastos.sociedad (ref_id); el resto de tipos (comision, traspaso,
 --    comision_bancaria, retencion_sufrida, otro) no tiene documento con sociedad y sale con sociedad_id null (y no
 --    sale si se pide una sociedad). Medido: 0,7 ms (hoy 0 gastos y 0 movimientos en la viva).
---    Devuelve por sociedad_id y moneda del mes: facturas (número e importe), recibís, gastos y movimientos conciliados;
+--    Devuelve por sociedad_id y moneda del mes: facturas (número e importe), recibís, gastos y movimientos conciliados
+--    (entradas y salidas por separado, sin traspasos entre cuentas propias);
 --    nunca el concepto bancario.
 -- ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 create or replace function privado.mcp_movimientos_mes_sociedad(p_mes date default null, p_sociedad text default null)

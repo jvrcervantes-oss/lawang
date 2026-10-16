@@ -17,12 +17,12 @@ export const HERRAMIENTAS = [
   },
   {
     name: 'comisiones_pendientes',
-    description: 'Comisiones devengadas y pendientes de pago: contrato, beneficiario (id), nivel e importe.' + NOTA,
+    description: 'Comisiones devengadas y pendientes de pago: contrato, beneficiario (id), nivel e importe; para sumar usa importe_efectivo (el ajustado si lo hay).' + NOTA,
     inputSchema: SIN_ARGS,
   },
   {
     name: 'cobros_por_proyecto_mes',
-    description: 'Cobrado en el mes y pendiente de cobro hoy, por proyecto y moneda.' + NOTA,
+    description: 'Cobrado en el mes y facturado sin cobrar a hoy, por proyecto y moneda (no es la cartera «por cobrar» de lo firmado).' + NOTA,
     inputSchema: { type: 'object', properties: { mes: fecha('Cualquier día del mes (AAAA-MM-DD); sin él, el mes en curso (hora de Bali).') }, additionalProperties: false },
   },
   {
@@ -37,7 +37,7 @@ export const HERRAMIENTAS = [
   },
   {
     name: 'resumen_semana',
-    description: 'Resumen de 7 días por moneda: ventas firmadas, cobrado, reservas caídas y cifras de obra.' + NOTA,
+    description: 'Resumen de 7 días por moneda: operaciones firmadas (sin Cartas de Reserva ni ventas liberadas), su importe, cobrado, reservas caídas y los totales de obra (no de la semana).' + NOTA,
     inputSchema: { type: 'object', properties: { hasta: fecha('Último día de la semana (AAAA-MM-DD); sin él, hoy.') }, additionalProperties: false },
   },
   {
@@ -57,7 +57,7 @@ export const HERRAMIENTAS = [
   },
   {
     name: 'movimientos_mes_sociedad',
-    description: 'Movimientos del mes por sociedad: facturas, recibís, gastos y movimientos bancarios conciliados (sin concepto bancario).' + NOTA,
+    description: 'Movimientos del mes por sociedad: facturas, recibís, gastos y movimientos bancarios conciliados en entradas y salidas, sin traspasos entre cuentas propias (sin concepto bancario).' + NOTA,
     inputSchema: { type: 'object', properties: { mes: fecha('Cualquier día del mes (AAAA-MM-DD); sin él, el mes en curso.'), sociedad }, additionalProperties: false },
   },
 ].map((h) => ({ ...h, annotations: lectura }));

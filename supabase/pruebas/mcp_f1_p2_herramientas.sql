@@ -99,7 +99,7 @@ do $todo$
 declare
   r text := ''; v text; j jsonb; n bigint; h record; t0 timestamptz; ms numeric; cebo text;
   sa _tp; ag _tp; agn _tp;
-  pM uuid; pX uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid; r2 uuid;
+  pM uuid; pX uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid; r2 uuid; m2 uuid; m3 uuid;
   v_hoy date := (now() at time zone 'Asia/Makassar')::date;
   c_fin constant text := 'FIN DE PRUEBAS MCP F1-P2 (se deshace todo):%';
 begin
@@ -181,6 +181,26 @@ begin
       values ('zz_mcp_c', v_hoy, 'ZZ-SECRETO concepto bancario', 400, 'EUR', 'zz-mcp-1', 'conciliado') returning id into m1;
     insert into public.bancos_conciliacion (movimiento_id, tipo, ref_id, importe_mov, importe_doc, moneda_doc, nota)
       values (m1, 'recibi', r1, 400, 400, 'EUR', 'ZZ-SECRETO nota');
+    -- trampas de Administración (16-oct): una salida (el gasto G1 pagado, -77) va aparte de la entrada, y un traspaso entre
+    -- cuentas propias (naturaleza interno, -1.000) no cuenta
+    insert into public.bancos_movimientos (cuenta_clave, fecha, concepto, importe, moneda, huella, estado)
+      values ('zz_mcp_c', v_hoy, 'ZZ-SECRETO pago', -77, 'EUR', 'zz-mcp-2', 'conciliado') returning id into m2;
+    insert into public.bancos_conciliacion (movimiento_id, tipo, ref_id, importe_mov, importe_doc, moneda_doc, nota)
+      values (m2, 'gasto', g1, -77, 77, 'EUR', 'ZZ-SECRETO nota');
+    insert into public.bancos_movimientos (cuenta_clave, fecha, concepto, importe, moneda, huella, estado)
+      values ('zz_mcp_c', v_hoy, 'ZZ-SECRETO traspaso', -1000, 'EUR', 'zz-mcp-3', 'conciliado') returning id into m3;
+    insert into public.bancos_conciliacion (movimiento_id, tipo, ref_id, importe_mov, naturaleza, nota)
+      values (m3, 'traspaso', gen_random_uuid(), -1000, 'interno', 'ZZ-SECRETO nota');
+    -- trampas de ventas (Administración, 16-oct): una Carta de Reserva firmada hoy (su precio repite el del Bloqueo: no suma)
+    -- y una reserva firmada hoy y liberada hoy (venta caída: no suma; sí cuenta en reservas_caidas)
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, bloqueado, fecha_firma,
+                                  comprador_nombre, datos, creado_por, created_at)
+      values ('ZZ-MCP-C3', 'carta_reserva', pM, 'ZZ-MCP Proyecto', 'EUR', 5000, true, v_hoy, 'ZZ-SECRETO Comprador 3',
+              '{"fields":{}}'::jsonb, sa.em, now() - interval '1 day');
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, bloqueado, fecha_firma,
+                                  liberado_en, comprador_nombre, datos, creado_por, created_at)
+      values ('ZZ-MCP-C4', 'reserva_parcela', pM, 'ZZ-MCP Proyecto', 'EUR', 7000, true, v_hoy, now(), 'ZZ-SECRETO Comprador 4',
+              '{"fields":{}}'::jsonb, sa.em, now() - interval '1 day');
     execute 'set local session_replication_role = origin';
     r := r || pg_temp.l(true, 'P montaje: SA (super admin), AG (agente con casillas, su proyecto pX), AGN (agente sin casillas); pM con U1 libre, U2 reservada por C1 (sin firmar), C2 firmada hoy, F1/R1, comisión, log, eventos, gasto y movimiento conciliado; pX con U3 libre');
   exception when others then
@@ -219,11 +239,11 @@ begin
       when 'comisiones_pendientes' then
         r := r || pg_temp.l(exists (select 1 from jsonb_array_elements(j->'datos') e where e->>'devengada_id' = cd1::text
                                       and e->>'beneficiario_usuario_id' = sa.uid::text and (e->>'importe')::numeric = 100
-                                      and e->>'contrato_raiz_id' = c1::text),
-                            'S2 comisiones_pendientes: la comisión de C1, beneficiario como usuario_id (no correo), 100 EUR');
+                                      and (e->>'importe_efectivo')::numeric = 100 and e->>'contrato_raiz_id' = c1::text),
+                            'S2 comisiones_pendientes: la comisión de C1, beneficiario como usuario_id (no correo), 100 EUR (efectivo 100, sin ajuste)');
       when 'cobros_por_proyecto_mes' then
         r := r || pg_temp.l(exists (select 1 from jsonb_array_elements(j->'datos') e where e->>'proyecto_id' = pM::text and e->>'moneda' = 'EUR'
-                                      and (e->>'cobrado_mes')::numeric = 400 and (e->>'pendiente_hoy')::numeric = 850
+                                      and (e->>'cobrado_mes')::numeric = 400 and (e->>'facturado_sin_cobrar_hoy')::numeric = 850
                                       and (e->>'recibis_mes')::int = 1),
                             'S3 cobros_por_proyecto_mes: pM/EUR cobrado este mes 400 (R1), pendiente hoy 850 (F1 1.000 - 150)');
       when 'cambios_estado_semana' then
@@ -243,11 +263,11 @@ begin
                             'S5 contratos_sin_firmar: C1 con 1 firma pendiente y ~3 días; C2 (firmada) no sale');
       when 'resumen_semana' then
         r := r || pg_temp.l(exists (select 1 from jsonb_array_elements(j->'datos'->'por_moneda') e where e->>'moneda' = 'EUR'
-                                      and (e->>'ventas_firmadas')::int = 1 and (e->>'ventas_firmadas_importe')::numeric = 5000
-                                      and (e->>'cobrado')::numeric = 400)
+                                      and (e->>'operaciones_firmadas')::int = 1 and (e->>'piezas_firmadas')::int = 1
+                                      and (e->>'importe_firmado')::numeric = 5000 and (e->>'cobrado')::numeric = 400)
                             and (j->'datos'->>'reservas_caidas')::int = 1
-                            and (j->'datos'->'obra'->>'entregas_con_fecha')::int = 1,
-                            'S6 resumen_semana: EUR 1 venta firmada (5.000), cobrado 400, 1 reserva caída, 1 entrega con fecha');
+                            and (j->'datos'->'obra'->>'entregas_con_fecha_total')::int = 1,
+                            'S6 resumen_semana: EUR 1 operación firmada (C2, 5.000; ni la Carta C3 ni la liberada C4), cobrado 400, 1 reserva caída (C4), 1 entrega con fecha (' || left(j::text, 160) || ')');
       when 'facturas_no_cobradas' then
         r := r || pg_temp.l(exists (select 1 from jsonb_array_elements(j->'datos') e where e->>'factura_id' = f1::text
                                       and e->>'sociedad_id' = 'zz_mcp' and (e->>'pendiente')::numeric = 850
@@ -279,9 +299,11 @@ begin
         r := r || pg_temp.l(exists (select 1 from jsonb_array_elements(j->'datos'->'facturas') e where e->>'sociedad_id' = 'zz_mcp' and (e->>'importe')::numeric = 1000)
                             and exists (select 1 from jsonb_array_elements(j->'datos'->'recibis') e where e->>'sociedad_id' = 'zz_mcp' and (e->>'importe')::numeric = 400)
                             and exists (select 1 from jsonb_array_elements(j->'datos'->'gastos') e where e->>'sociedad_id' = 'zz_mcp' and (e->>'importe')::numeric = 77)
-                            and exists (select 1 from jsonb_array_elements(j->'datos'->'conciliados') e where e->>'sociedad_id' = 'zz_mcp' and (e->>'importe')::numeric = 400)
+                            and exists (select 1 from jsonb_array_elements(j->'datos'->'conciliados') e where e->>'sociedad_id' = 'zz_mcp'
+                                         and (e->>'entradas')::numeric = 400 and (e->>'salidas')::numeric = 77)
+                            and not exists (select 1 from jsonb_array_elements(j->'datos'->'conciliados') e where (e->>'salidas')::numeric >= 1000)
                             and jsonb_array_length(j->'datos'->'sin_permiso') = 0,
-                            'S10 movimientos_mes_sociedad: zz_mcp este mes facturas 1.000, recibís 400, gastos 77, conciliado 400');
+                            'S10 movimientos_mes_sociedad: zz_mcp este mes facturas 1.000, recibís 400, gastos 77, conciliado entra 400 / sale 77, el traspaso interno no cuenta (' || left(j::text, 200) || ')');
     end case;
   end loop;
 
