@@ -172,6 +172,8 @@ igual([AV.fresco({ t: ahora - 60000, aviso: 'conecta' }, ahora), AV.fresco({ t: 
   igual(/querySelector\('header \[data-lw="k-avisos"\]'\)/.test(sin) && /'data-accion', 'aviso-ia-abrir'/.test(sin) && /'data-accion', 'aviso-ia-cerrar'/.test(sin), true, 'aviso-ia.js se engancha por la campana y lleva data-accion');
   igual(/raiz\.AXW_NUCLEO_OPERACION/.test(sin) && /\/intranet\/v4\/ia\//.test(sin), true, 'aviso-ia.js no nace en una instancia ni en /v4/ia/');
   igual(/#[0-9A-Fa-f]{3,8}\b/.test(sin), false, 'aviso-ia.js no lleva un hex suelto: color por token');
+  igual(/@media \(max-width:639px\)\{\.lw-aviso-ia\{display:none\}\}/.test(sin), true,
+    'aviso-ia.js no sale por debajo de 640 px (le quitaba una línea al nombre de la cabecera: medido el 16-oct)');
 }
 igual(/var AVISO_IA_V = '\d{8}[a-z]?';/.test(nav) && /aut && aut\.ficha && !window\.AXW_NUCLEO_OPERACION\) \{\s+var sa = document\.createElement\('script'\);\s+sa\.src = ROOT \+ 'assets\/aviso-ia\.js\?v=' \+ AVISO_IA_V;/.test(nav), true,
   'nav.js inyecta aviso-ia.js tras LW_AUTH, con su sello AVISO_IA_V y nunca en una instancia del ERP');

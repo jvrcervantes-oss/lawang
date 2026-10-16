@@ -21,13 +21,17 @@
 --
 -- Dueño y permisos: CREATE OR REPLACE conserva dueño (ia_puente_rol) y EXECUTE (authenticated); postgres puede reemplazarla
 -- porque es miembro de ia_puente_rol (20261016073011). El guardián «el puente MCP sigue cerrado» (tools/salud_lawang.py) no
--- cambia: misma firma, mismo dueño, mismos grants. Cuerpo idéntico al de la 073530 salvo las dos claves nuevas.
+-- cambia: misma firma, mismo dueño, mismos grants. El cuerpo NO es idéntico al de la 073530: se reestructura con dos CTE (`yo`:
+-- uid de privado.ia_pantalla_uid(), encendido y duración; `puede`: el permiso) para calcular el permiso una sola vez y usarlo en
+-- `clientes`. Es equivalente en lo que ya devolvía: la misma privado.ia_pantalla_uid() (que sigue fallando sin sesión o desde una
+-- llamada del asistente: B6/B7), los mismos filtros de conexiones (las de la persona, últimos 30 días) y las mismas claves;
+-- comparado con la viva por mcp-abre el 16-oct (prosrc; dueño ia_puente_rol; acl authenticated=X).
 -- Prueba: G2 y G3 de supabase/pruebas/mcp_f1_p4_ajustes.sql (corren solo con esta propuesta aplicada).
 --
 -- VUELTA ATRÁS (no destruye nada): volver a crear public.ia_mis_conexiones() tal como está en 20261016073530 (sección 2). La web
 -- vuelve sola a «dónde está el identificador» y a la invitación solo para el super admin.
 
-set lock_timeout = '5s';
+set local lock_timeout = '5s';   -- local: sin él se queda en la sesión del pooler tras apply_migration (mcp-abre, 16-oct)
 
 create or replace function public.ia_mis_conexiones()
 returns jsonb

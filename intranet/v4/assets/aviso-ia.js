@@ -54,8 +54,11 @@
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
 
   /* Estilo propio y por token (las salidas de Tailwind de cada pantalla no llevan estas clases): el alto de los botones redondos
-     de la cabecera (36 px), filete de 1 px, sin sombra. Por debajo de 640 px el texto largo deja paso a «IA», y la × conserva
-     una diana de 44 px aunque se dibuje de 28. */
+     de la cabecera (36 px), filete de 1 px, sin sombra; la × conserva una diana de 44 px aunque se dibuje de 28.
+     Por debajo de 640 px NO sale. Decisión por defecto (16-oct, mcp-aviso), medida a 390 y 360 px: la cabecera del móvil va
+     llena y cualquier forma de la invitación (píldora «IA», solo icono, círculo de 36 px, a la derecha o junto a la hamburguesa)
+     le quita una línea al nombre de la persona; desde 640 px no le quita nada. Conectar se hace en claude.ai desde el ordenador
+     (pegar dirección e identificador), y /v4/ia/ sigue en el menú. Cómo revertir: quitar la regla @media de abajo. */
   var CSS =
     '.lw-aviso-ia{display:inline-flex;align-items:center;height:36px;border:1px solid rgb(var(--tema-outline-variant, 196 200 186));' +
     'border-radius:999px;background:rgb(var(--tema-surface-container-lowest, 255 255 255));color:rgb(var(--tema-deep-lagoon, 16 76 79));' +
@@ -63,15 +66,13 @@
     '.lw-aviso-ia a{display:inline-flex;align-items:center;gap:8px;height:100%;padding:0 4px 0 12px;color:inherit;text-decoration:none;border-radius:999px 0 0 999px}' +
     '.lw-aviso-ia a:hover{background:rgb(var(--tema-surface-alt, 241 235 221))}' +
     '.lw-aviso-ia .material-symbols-outlined{font-size:18px}' +
-    '.lw-aviso-ia [data-lw-aviso-ia-corto]{display:none}' +
     '.lw-aviso-ia button{position:relative;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin:0 4px 0 2px;' +
     'border:0;border-radius:999px;background:transparent;color:rgb(var(--tema-on-surface-variant, 68 72 63));cursor:pointer}' +
     '.lw-aviso-ia button::after{content:"";position:absolute;inset:-8px}' +
     '.lw-aviso-ia button:hover{background:rgb(var(--tema-surface-alt, 241 235 221))}' +
     '.lw-aviso-ia button .material-symbols-outlined{font-size:16px}' +
     '.lw-aviso-ia a:focus-visible,.lw-aviso-ia button:focus-visible{outline:2px solid rgb(var(--tema-deep-lagoon, 16 76 79));outline-offset:2px}' +
-    '@media (max-width:639px){.lw-aviso-ia [data-lw-aviso-ia-texto]{display:none}.lw-aviso-ia [data-lw-aviso-ia-corto]{display:inline}' +
-    '.lw-aviso-ia a{gap:4px;padding:0 0 0 10px}}';
+    '@media (max-width:639px){.lw-aviso-ia{display:none}}';
 
   function pinta(uid, aviso) {
     var campana = document.querySelector('header [data-lw="k-avisos"]');
@@ -92,8 +93,7 @@
     a.title = T('Claude o ChatGPT consultan la intranet con tu usuario y ven solo lo que tú ves. Te explicamos cómo en Apps conectadas.');
     var ic = el('span', 'material-symbols-outlined', 'auto_awesome'); ic.setAttribute('aria-hidden', 'true');
     var tx = el('span', null, largo); tx.setAttribute('data-lw-aviso-ia-texto', ''); tx.setAttribute('aria-hidden', 'true');
-    var co = el('span', null, T('IA')); co.setAttribute('data-lw-aviso-ia-corto', ''); co.setAttribute('aria-hidden', 'true');
-    a.appendChild(ic); a.appendChild(tx); a.appendChild(co);
+    a.appendChild(ic); a.appendChild(tx);
     var x = el('button'); x.type = 'button';
     x.setAttribute('data-accion', 'aviso-ia-cerrar');
     x.setAttribute('data-real', '');

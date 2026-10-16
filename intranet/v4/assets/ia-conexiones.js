@@ -262,7 +262,7 @@
       : T('Tu asistente podrá LEER, con tu usuario, lo que tú ves en la intranet de Dirección y Contabilidad. No ve pasaportes ni documentos de los compradores. Cada consulta queda registrada y la conexión caduca sola: la fecha sale junto a cada una.')));
 
     if (!b.conLista || b.claude.length) {
-      var h = el('h3', 'font-label-md text-label-md text-on-surface uppercase tracking-[0.12em] pt-2', T('En Claude'));
+      var h = el('h3', 'font-label-md text-label-md text-on-surface pt-2', T('En Claude'));
       h.setAttribute('data-ia-pasos', 'claude');
       c.appendChild(h);
       var ol = el('ol', 'flex flex-col gap-4');
@@ -276,10 +276,10 @@
       ol.appendChild(p3.li);
       ol.appendChild(paso(4, T('Pulsa «Conectar». Claude te trae a Lawang para que entres con tu usuario y tu contraseña; al volver, la conexión sale arriba, en esta página.')).li);
       c.appendChild(ol);
-      c.appendChild(el('p', C_PEQ, T('Si no ves «Añadir conector personalizado», tu plan de Claude o quien administra tu organización en Claude no lo permite.')));
+      c.appendChild(el('p', 'font-body-sm text-body-sm text-on-surface-variant', T('Si no ves «Añadir conector personalizado», tu plan de Claude o quien administra tu organización en Claude no lo permite.')));
     }
     if (!b.conLista || b.chatgpt.length) {
-      var g = el('h3', 'font-label-md text-label-md text-on-surface uppercase tracking-[0.12em] pt-2', T('En ChatGPT'));
+      var g = el('h3', 'font-label-md text-label-md text-on-surface pt-2', T('En ChatGPT'));
       g.setAttribute('data-ia-pasos', 'chatgpt');
       c.appendChild(g);
       c.appendChild(el('p', 'font-body-md text-body-md text-on-surface-variant', T('Solo con un plan Business o Enterprise de ChatGPT, que no entrenan con tus datos. Se añade como conector con la misma dirección y el identificador de ChatGPT, y después entras con tu usuario de Lawang igual que en Claude.')));
