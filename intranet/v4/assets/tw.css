@@ -1381,6 +1381,10 @@ select {
   overflow-wrap: break-word;
 }
 
+.break-all {
+  word-break: break-all;
+}
+
 .rounded {
   border-radius: 0.25rem;
 }
@@ -1942,6 +1946,10 @@ select {
   font-family: Neue Kabel;
 }
 
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 .text-\[10px\] {
   font-size: 10px;
 }
@@ -2405,6 +2413,10 @@ select {
   border-width: 0px;
 }
 
+.last\:border-b-0:last-child {
+  border-bottom-width: 0px;
+}
+
 .hover\:border-deep-lagoon:hover {
   --tw-border-opacity: 1;
   border-color: rgb(var(--tema-deep-lagoon) / var(--tw-border-opacity, 1));
@@ -2647,6 +2659,10 @@ select {
   .md\:px-8 {
     padding-left: 2rem;
     padding-right: 2rem;
+  }
+
+  .md\:pt-8 {
+    padding-top: 2rem;
   }
 }
 

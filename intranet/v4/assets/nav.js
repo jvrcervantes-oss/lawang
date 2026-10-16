@@ -887,6 +887,28 @@
     INJERTOS.forEach(function (spec) { if (!spec.nucleo || window.AXW_NUCLEO_OPERACION) injerta(aside, spec); });
   }
 
+  /* «APPS CONECTADAS» (MCP de Lawang F1-P4, 16-oct-2026): los asistentes de IA que la persona ha conectado con SU usuario.
+     Es de cada persona, no una herramienta del negocio: va en el pie de la barra, junto a «Idioma» y «Cerrar Sesión» (lo que es de
+     la cuenta), y por eso NO está en MENU_V4 ni lleva casilla — en /v4/usuarios/ no hay nada que conceder (el permiso de IA lo da el
+     super admin en Ajustes › IA) y la página la abre cualquier ficha (su guard.js va sin data-herramienta ni data-rol).
+     Se clona el enlace de salida (mismas clases) y va encima de él. En una instancia del ERP no nace: las ia_* solo existen en Lawang. */
+  function injertaCuenta(aside) {
+    if (window.AXW_NUCLEO_OPERACION || aside.querySelector('a[data-path="ia"]')) return;
+    var salir = aside.querySelector('a[data-path="login"]');
+    var spans = salir && salir.querySelectorAll('span');
+    if (!salir || !spans || spans.length < 2) return;
+    var a = salir.cloneNode(true);              // sin los listeners de cableaSalir: cloneNode no los copia
+    a.setAttribute('data-path', 'ia');
+    a.removeAttribute('title');
+    desmarca(a);
+    var s = a.querySelectorAll('span');
+    s[0].textContent = 'apps';                  // ligadura de material-symbols
+    s[s.length - 1].textContent = 'Apps conectadas';
+    a.href = ROOT + 'ia/';                      // href propio: recablea() ya no lo toca
+    if (location.pathname.indexOf('/intranet/v4/ia/') !== -1) marcaActiva(a);
+    salir.insertAdjacentElement('beforebegin', a);
+  }
+
   /* Rol de la sesion -> se enteran solo cuando `window.LW_AUTH` resuelve, que
      en la practica ya ha pasado para cuando la pagina se hace visible (guard.js
      quita `visibility:hidden` justo despues de resolver la promesa), asi que no
@@ -941,6 +963,7 @@
   function recablea() {
     var aqui = location.pathname;
     document.querySelectorAll('aside').forEach(injertaNuevas);
+    document.querySelectorAll('aside').forEach(injertaCuenta);
     document.querySelectorAll('aside').forEach(retiraDocumentacion);
     document.querySelectorAll('aside').forEach(function (aside) { ordenaFinanzas(aside, false); });
     document.querySelectorAll('aside').forEach(ordenaComunicacion);

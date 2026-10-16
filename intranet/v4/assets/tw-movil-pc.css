@@ -1323,6 +1323,14 @@ select {
   white-space: nowrap;
 }
 
+.break-words {
+  overflow-wrap: break-word;
+}
+
+.break-all {
+  word-break: break-all;
+}
+
 .rounded {
   border-radius: 0.25rem;
 }
@@ -2416,6 +2424,10 @@ select {
   border-width: 0px;
 }
 
+.last\:border-b-0:last-child {
+  border-bottom-width: 0px;
+}
+
 .hover\:bg-deep-lagoon:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(var(--tema-deep-lagoon) / var(--tw-bg-opacity, 1));
@@ -2611,6 +2623,15 @@ select {
 
   .md\:items-center {
     align-items: center;
+  }
+
+  .md\:px-8 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .md\:pt-8 {
+    padding-top: 2rem;
   }
 }
 
