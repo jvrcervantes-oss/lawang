@@ -201,6 +201,18 @@ begin
                                   liberado_en, comprador_nombre, datos, creado_por, created_at)
       values ('ZZ-MCP-C4', 'reserva_parcela', pM, 'ZZ-MCP Proyecto', 'EUR', 7000, true, v_hoy, now(), 'ZZ-SECRETO Comprador 4',
               '{"fields":{}}'::jsonb, sa.em, now() - interval '1 day');
+    -- más trampas (revisor, 16-oct): una Carta firmada y liberada hoy y una reserva SIN firmar liberada hoy (ninguna es una
+    -- reserva caída, como en finCartera) y una pieza hija de C2 firmada hoy (sube a la raíz: 1 operación, 2 piezas)
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, bloqueado, fecha_firma,
+                                  liberado_en, comprador_nombre, datos, creado_por, created_at)
+      values ('ZZ-MCP-C5', 'carta_reserva', pM, 'ZZ-MCP Proyecto', 'EUR', 7000, true, v_hoy, now(), 'ZZ-SECRETO Comprador 4',
+              '{"fields":{}}'::jsonb, sa.em, now() - interval '1 day'),
+             ('ZZ-MCP-C6', 'reserva_parcela', pM, 'ZZ-MCP Proyecto', 'EUR', 3000, false, null, now(), 'ZZ-SECRETO Comprador 5',
+              '{"fields":{}}'::jsonb, sa.em, now() - interval '1 day');
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, bloqueado, fecha_firma,
+                                  contrato_padre_id, comprador_nombre, datos, creado_por, created_at)
+      values ('ZZ-MCP-C7', 'reserva_parcela', pM, 'ZZ-MCP Proyecto', 'EUR', 1000, true, v_hoy, c2, 'ZZ-SECRETO Comprador 2',
+              '{"fields":{}}'::jsonb, sa.em, now() - interval '1 day');
     execute 'set local session_replication_role = origin';
     r := r || pg_temp.l(true, 'P montaje: SA (super admin), AG (agente con casillas, su proyecto pX), AGN (agente sin casillas); pM con U1 libre, U2 reservada por C1 (sin firmar), C2 firmada hoy, F1/R1, comisión, log, eventos, gasto y movimiento conciliado; pX con U3 libre');
   exception when others then
@@ -263,11 +275,11 @@ begin
                             'S5 contratos_sin_firmar: C1 con 1 firma pendiente y ~3 días; C2 (firmada) no sale');
       when 'resumen_semana' then
         r := r || pg_temp.l(exists (select 1 from jsonb_array_elements(j->'datos'->'por_moneda') e where e->>'moneda' = 'EUR'
-                                      and (e->>'operaciones_firmadas')::int = 1 and (e->>'piezas_firmadas')::int = 1
-                                      and (e->>'importe_firmado')::numeric = 5000 and (e->>'cobrado')::numeric = 400)
+                                      and (e->>'operaciones_firmadas')::int = 1 and (e->>'piezas_firmadas')::int = 2
+                                      and (e->>'importe_firmado')::numeric = 6000 and (e->>'cobrado')::numeric = 400)
                             and (j->'datos'->>'reservas_caidas')::int = 1
                             and (j->'datos'->'obra'->>'entregas_con_fecha_total')::int = 1,
-                            'S6 resumen_semana: EUR 1 operación firmada (C2, 5.000; ni la Carta C3 ni la liberada C4), cobrado 400, 1 reserva caída (C4), 1 entrega con fecha (' || left(j::text, 160) || ')');
+                            'S6 resumen_semana: EUR 1 operación (C2 + su hija C7: 2 piezas, 6.000; ni la Carta C3 ni la liberada C4), cobrado 400, 1 reserva caída (C4; ni la Carta C5 ni la sin firmar C6), 1 entrega con fecha (' || left(j::text, 160) || ')');
       when 'facturas_no_cobradas' then
         r := r || pg_temp.l(exists (select 1 from jsonb_array_elements(j->'datos') e where e->>'factura_id' = f1::text
                                       and e->>'sociedad_id' = 'zz_mcp' and (e->>'pendiente')::numeric = 850

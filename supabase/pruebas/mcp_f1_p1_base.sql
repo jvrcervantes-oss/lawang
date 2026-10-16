@@ -83,8 +83,11 @@ begin
     insert into public.ia_permisos (usuario_id) values (a.uid);
     -- la entrada (anon) y el «sí» de la persona (authenticated) se abren JUNTOS (propuestas/20261016140000): o los dos o ninguno
     r := r || pg_temp.l(has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute')
-                        = has_function_privilege('authenticated', 'public.ia_conexion_autoriza(text)', 'execute'),
-                        'A0 ia_puente (anon) e ia_conexion_autoriza (authenticated) abiertos a la vez o cerrados a la vez');
+                        = has_function_privilege('authenticated', 'public.ia_conexion_autoriza(text)', 'execute')
+                        and (to_regprocedure('public.ia_peticion_datos(text)') is null
+                             or has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute')
+                                = has_function_privilege('authenticated', to_regprocedure('public.ia_peticion_datos(text)'), 'execute')),
+                        'A0 ia_puente (anon), ia_conexion_autoriza e ia_peticion_datos (authenticated) abiertos a la vez o cerrados a la vez');
     if not has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
       grant execute on function public.ia_puente(text, jsonb) to anon;   -- propuestas/20261016140000 lo hace en la viva con el OK del owner
     end if;
@@ -231,6 +234,10 @@ begin
                       and exists (select 1 from public.ia_tokens x where x.hash = sha256(convert_to(ref2, 'UTF8'))
                                      and x.usado_en is not null and x.caduca_en <= now()),
                       'G5 R1 otra vez en ≤10 s con R2 sin usar → R3 nuevo y R2 muerto (' || coalesce(j ->> 'error', 'par') || ')');
+  j := pg_temp.edge('llama', jsonb_build_object('access_token', acc2, 'recurso', rec, 'herramienta', 'zz_quien'));
+  r := r || pg_temp.l(j ->> 'error' = 'invalid_token', 'G5b el access que salió con R2 muere con él → ' || j::text);
+  j := pg_temp.edge('llama', jsonb_build_object('access_token', acc3, 'recurso', rec, 'herramienta', 'zz_quien'));
+  r := r || pg_temp.l((j ->> 'uid')::uuid = a.uid, 'G5c el access nuevo (de R3) sí llama → ' || j::text);
   -- el hijo matado vuelve a aparecer: es reúso, se revoca todo (nunca dos cadenas vivas: Seguridad, 16-oct)
   j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref2, 'cliente_id', cli));
   select count(*) into n from public.ia_conexiones where id = con and revocada_motivo = 'reuso_refresco';

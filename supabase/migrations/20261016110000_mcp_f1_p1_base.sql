@@ -451,6 +451,10 @@ begin
       select * into hijo from public.ia_tokens where hash = t.sustituido_por for update;
       if t.usado_en > now() - interval '10 seconds' and hijo.hash is not null and hijo.usado_en is null then
         update public.ia_tokens set caduca_en = least(caduca_en, now()), usado_en = now() where hash = hijo.hash;
+        -- y el access que salió con ese hijo (no hay enlace hijo→access: mueren todos los access vivos de la conexión; el
+        -- asistente se queda con el par nuevo). Sin esto, el access del hijo matado valía hasta 1 h (revisor, 16-oct).
+        update public.ia_tokens set caduca_en = now()
+         where conexion_id = c.id and tipo = 'acceso' and caduca_en > now();
       else
         perform privado.ia_revoca(c.id, 'reuso_refresco');
         return jsonb_build_object('error', 'invalid_grant');

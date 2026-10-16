@@ -178,9 +178,13 @@ returns jsonb language sql stable security definer set search_path = '' as $$
                                                                          'piezas_firmadas', m.n_piezas, 'importe_firmado', m.imp,
                                                                          'cobrado', m.cobrado)
                                                        order by m.moneda) from m), '[]'::jsonb),
-              -- el estado de HOY (liberado_en), como finCartera: una liberación deshecha después ya no cuenta
+              -- el estado de HOY (liberado_en) y el MISMO filtro que finCartera: solo lo que estaba firmado (bloqueado) y no es una
+              -- Carta de Reserva (su Bloqueo ya cuenta; sin esto una venta liberada contaba dos). Una liberación deshecha ya no cuenta
               'reservas_caidas', (select count(*) from public.contratos c
-                                   where c.liberado_en >= (p_desde::timestamp at time zone 'Asia/Makassar')
+                                   where coalesce(c.bloqueado, false)
+                                     and c.tipo not in ('carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa',
+                                                        'carta_reserva_pma', 'carta_reserva_investor_deck')
+                                     and c.liberado_en >= (p_desde::timestamp at time zone 'Asia/Makassar')
                                      and c.liberado_en < ((p_hasta + 1)::timestamp at time zone 'Asia/Makassar')),
               -- totales de siempre, NO de la semana: son las dos cifras de Obra (obra_cifras_datos) y el nombre lo dice
               'obra', jsonb_build_object(
