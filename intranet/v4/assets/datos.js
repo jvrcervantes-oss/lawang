@@ -1706,7 +1706,10 @@
           var cad = !peor ? '' : (peor.dd < 0
             ? ' · ' + H.tag(tx('%t caducado hace %n d', { t: peor.tipo, n: -peor.dd }), 'mal')
             : (peor.dd <= 60 ? ' · ' + H.tag(tx('%t caduca en %n d', { t: peor.tipo, n: peor.dd }), 'espera') : ''));
-          lineaDocs = H.dato('Documentación', esc(tx(docs.length === 1 ? '%n documento' : '%n documentos', { n: docs.length })) + cad + enlaceFicha, { html: 1 });
+          // tope del servidor (1000): si llega recortada, la cifra es «al menos» y la caducidad puede no ser la peor
+          var recorte = ((ro.data && ro.data.recortado) || []).indexOf('documentos') > -1
+            ? ' · ' + H.tag(tx('lista recortada: mira la ficha'), 'espera') : '';
+          lineaDocs = H.dato('Documentación', esc(tx(docs.length === 1 ? '%n documento' : '%n documentos', { n: docs.length })) + cad + recorte + enlaceFicha, { html: 1 });
         })();
         var ponDocs = function () { if (sec && lineaDocs) sec.insertAdjacentHTML('beforeend', lineaDocs); };
         if (sec && !vins.length) ponDocs();
@@ -3062,7 +3065,7 @@
         function abreFicha(c0) {
           var H = window.lwCajonHtml;
           if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
-          /* LAW-338 L5 (16-oct-2026): la ficha la da el servidor (comprador_ficha_datos, parte «ficha»: los campos de siempre + domicilio);
+          /* LAW-338 L5 (16-oct-2026): la ficha la da el servidor (comprador_ficha_datos, parte «ficha»: los campos de siempre, sin el domicilio, que solo trae la parte «documento»);
              `ficha` null = la base no te deja verla entera, igual que antes la fila vacía. */
           Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: c0.id, p_partes: ['ficha'] })).then(function (r0) {
             var r = r0.error ? r0 : { data: (r0.data && r0.data.ficha) || null };

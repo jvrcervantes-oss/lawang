@@ -4192,6 +4192,7 @@
     'No se pudieron leer las operaciones: ': 'Could not read the deals: ',
     // LAW-338 L5 (16-oct): el selector de cliente del editor de documentos cuando el servidor recorta la lista (tope 5000)
     'La lista de clientes no cabe entera: busca por nombre y, si no sale, avisa.': 'The client list does not fit in full: search by name and, if it does not show up, let us know.',
+    'lista recortada: mira la ficha': 'list cut short: open the profile',   // cajón de la operación, documentación por encima del tope (1000)
     'Bloqueo~contrato': 'Plot Hold',   // la píldora de Reservas (datos.js); «Bloqueo» a secas es la moto retenida de Reservas de producto
     'Bloqueo creado · no visible para ti': 'Plot Hold created · not visible to you',
     'Bloqueo: no leído': 'Plot Hold: not read',

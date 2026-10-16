@@ -252,6 +252,8 @@
     // LAW-338 L5 (16-oct-2026): por el servidor (clientes_lista_datos, la regla de clients, tope 5000 por nombre)
     clientesP = Promise.resolve(window.lwDatos('clientes_lista_datos', {})).then(function (r) {
       if (r.error) throw r.error;
+      // más de 5000 visibles: la lista llega recortada por nombre; se dice, no se pinta a medias en silencio
+      if (((r.data && r.data.recortado) || []).length) mal(T('La lista de clientes no cabe entera: busca por nombre y, si no sale, avisa.'));
       return { lista: (r.data && r.data.clientes) || [] };
     }).catch(function (e) {
       console.error('[emitir] clientes', e);

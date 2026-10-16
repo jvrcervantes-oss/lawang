@@ -69,7 +69,8 @@ declare
   fdd uuid;
   c_emp constant text := 'zz_l5'; pL uuid; kZ uuid; hZ uuid; cA uuid; cA2 uuid; cB uuid; cB2 uuid;
   uS uuid := gen_random_uuid(); uA uuid := gen_random_uuid(); uB uuid := gen_random_uuid(); uE uuid := gen_random_uuid();
-  uP uuid := gen_random_uuid(); fZ uuid := gen_random_uuid();
+  uP uuid := gen_random_uuid(); fZ uuid := gen_random_uuid(); uM uuid := gen_random_uuid();
+  eM constant text := 'zz-l5-pm@prueba.invalid';
   eS constant text := 'zz-l5-super@prueba.invalid'; eA constant text := 'zz-l5-a@prueba.invalid';
   eB constant text := 'zz-l5-b@prueba.invalid'; eE constant text := 'zz-l5-ae@prueba.invalid';
   eP constant text := 'zz-l5-portal@prueba.invalid';
@@ -89,13 +90,16 @@ begin
       (uA, '00000000-0000-0000-0000-000000000000', eA, 'authenticated', 'authenticated'),
       (uB, '00000000-0000-0000-0000-000000000000', eB, 'authenticated', 'authenticated'),
       (uE, '00000000-0000-0000-0000-000000000000', eE, 'authenticated', 'authenticated'),
-      (uP, '00000000-0000-0000-0000-000000000000', eP, 'authenticated', 'authenticated');
+      (uP, '00000000-0000-0000-0000-000000000000', eP, 'authenticated', 'authenticated'),
+      (uM, '00000000-0000-0000-0000-000000000000', eM, 'authenticated', 'authenticated');
     -- A con el asistente (busca clientes), B sin él (P4c); el admin de empresa ve por la empresa de quien es dueño de la ficha
     insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo) values
       (uS, eS, 'ZZ-L5 Super admin', 'super_admin', 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{}'::text[], '{}'::text[], true),
       (uA, eA, 'ZZ-L5 Agente A', 'agente', 'global', array[c_emp], array[pL], '{}'::uuid[], '{contratos,asistente}'::text[], '{contrato_general}'::text[], true),
       (uB, eB, 'ZZ-L5 Agente B', 'agente', 'global', array[c_emp], array[pL], '{}'::uuid[], '{contratos}'::text[], '{contrato_general}'::text[], true),
-      (uE, eE, 'ZZ-L5 Admin empresa', 'admin_empresa', 'empresa', array[c_emp], '{}'::uuid[], '{}'::uuid[], '{contratos}'::text[], '{}'::text[], true);
+      (uE, eE, 'ZZ-L5 Admin empresa', 'admin_empresa', 'empresa', array[c_emp], '{}'::uuid[], '{}'::uuid[], '{contratos}'::text[], '{}'::text[], true),
+      -- el manager: la rama «el manager lo de su proyecto» de la RLS (supervisa el proyecto del contrato)
+      (uM, eM, 'ZZ-L5 PM', 'project_manager', 'global', array[c_emp], '{}'::uuid[], array[pL], '{contratos}'::text[], '{}'::text[], true);
     insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality, kyc_status)
       values ('ZZ-L5 Ana de A', eA, 'ZZL5A1', 'zz-l5-ana@ejemplo.invalid', '+00 000 0101', 'ZZ-domicilio A1', 'ZZ', 'pending') returning id into cA;
     insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
@@ -105,9 +109,14 @@ begin
     insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
       values ('ZZ-L5 Segundo de B', eB, 'ZZL5B2', 'zz-l5-b2@ejemplo.invalid', '+00 000 0202', 'ZZ-domicilio B2', 'ZZ') returning id into cB2;
     set local session_replication_role = replica;
+    -- LAW-124 de bot_pendientes: la cuenta de cobro a nombre de otro que la sociedad firmante (lee sociedades.clave/razon: el grant de columnas)
+    insert into public.sociedades (clave, label, razon, domicilio) values ('zz_l5_soc', 'ZZ-L5 Soc', 'ZZ-L5 Sociedad SA', 'ZZ-domicilio soc');
+    insert into public.cuentas_bancarias (clave, label, banco, cuenta, titular, empresa)
+      values ('zz_l5_cta', 'ZZ-L5 Cuenta', 'ZZ Banco', '000-L5', 'ZZ-L5 Otro Titular', c_emp);
     -- contrato de A con dos compradores; el adquiriente_1 firmó con otro nombre → fila de documentos_desactualizados
     insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, fecha_firma, datos, datos_fields)
-      values ('ZZ-L5-001', 'contrato_general', pL, 'ZZ-L5 Proyecto', current_date, '{}'::jsonb,
+      values ('ZZ-L5-001', 'contrato_general', pL, 'ZZ-L5 Proyecto', current_date,
+              jsonb_build_object('fields', jsonb_build_object('cuenta_bancaria', 'zz_l5_cta', 'sociedad_firmante', 'zz_l5_soc')),
               jsonb_build_object('adq1_nombre', 'ZZ-L5 Ana Antigua', 'adq1_pasaporte', 'ZZL5A1', 'adq1_email', 'zz-l5-ana@ejemplo.invalid'))
       returning id into kZ;
     insert into public.contrato_compradores (contrato_id, client_id, rol) values (kZ, cA, 'adquiriente_1'), (kZ, cB, 'adquiriente_2');
@@ -283,13 +292,19 @@ begin
   select count(*), count(*) filter (where not r.ok), count(*) filter (where r.lleno), count(*) filter (where r.err is not null)
     into n_u, dif, llenos, errs from _r r where r.chk = 'contratos_busca';
   res := res || pg_temp.l(dif = 0 and errs = 0 and llenos > 0, format('P5a contratos_busca(''''): %s sesiones, dif=%s, llenos=%s, err=%s', n_u, dif, llenos, errs));
+  -- P5b bot_pendientes: el cuerpo de hoy (INVOKER) leído directo como cada persona contra la RPC (DEFINER-lw_lector), y en el
+  -- contrato del fixture salen las DOS ramas: LAW-124 (cuenta ≠ sociedad, lee sociedades.clave/razon) y «no coincide con la ficha»
+  for u in select * from _u w where not w.portal loop
+    perform pg_temp.par('bot_pendientes', u,
+      format('select coalesce(jsonb_agg(jsonb_build_object(''motivo'', b.motivo, ''ref'', b.ref) order by b.ref nulls last, b.motivo), ''[]'') from (select ''La cuenta de cobro está a nombre de '' || cb.titular || '' y el contrato lo firma '' || s.razon || '': quién cobra está pendiente de confirmación del promotor.'' as motivo, ''LAW-124''::text as ref from public.contratos c join public.cuentas_bancarias cb on cb.clave = c.datos->''fields''->>''cuenta_bancaria'' join public.sociedades s on s.clave = c.datos->''fields''->>''sociedad_firmante'' where c.id = %1$L and lower(regexp_replace(btrim(cb.titular), ''[[:space:]]+'', '' '', ''g'')) <> lower(regexp_replace(btrim(s.razon), ''[[:space:]]+'', '' '', ''g'')) union all select ''El documento impreso no coincide con la ficha: '' || (select string_agg(e->>''campo'', '', '' order by e->>''campo'') from jsonb_array_elements(d.diferencias) e), null::text from public.documentos_desactualizados d where d.tipo = ''contrato'' and d.id = %1$L and jsonb_typeof(d.diferencias) = ''array'' and jsonb_array_length(d.diferencias) > 0) b', k),
+      format('select coalesce(jsonb_agg(jsonb_build_object(''motivo'', b.motivo, ''ref'', b.ref) order by b.ref nulls last, b.motivo), ''[]'') from public.bot_pendientes(%L) b', k));
+  end loop;
+  select count(*), count(*) filter (where not r.ok), count(*) filter (where r.lleno), count(*) filter (where r.err is not null)
+    into n_u, dif, llenos, errs from _r r where r.chk = 'bot_pendientes';
   select * into u from _u w where not w.portal and w.rol in ('super_admin', 'admin') order by w.rol desc, w.uid limit 1;
-  select d.id into x from public.documentos_desactualizados d where d.tipo = 'contrato' and jsonb_typeof(d.diferencias) = 'array'
-     and jsonb_array_length(d.diferencias) > 0 limit 1;
-  v := pg_temp.q(u.uid, u.em, format('select coalesce(jsonb_agg(to_jsonb(b)), ''[]'') from public.bot_pendientes(%L) b', coalesce(x, k)));
-  res := res || pg_temp.l(not coalesce(v ? '__err', true) and (x is null or jsonb_array_length(v) > 0),
-    'P5b bot_pendientes como authenticated sin error' || case when x is null then ' (sin contrato que difiera: solo sin error)' else ' y con su motivo' end
-    || ' (' || left(v::text, 60) || ')');
+  v := pg_temp.q(u.uid, u.em, format('select coalesce(jsonb_agg(b.ref), ''[]'') from public.bot_pendientes(%L) b', k));
+  res := res || pg_temp.l(dif = 0 and errs = 0 and llenos > 0 and v @> '["LAW-124"]'::jsonb and v @> '[null]'::jsonb,
+    format('P5b bot_pendientes: %s sesiones, dif=%s, llenos=%s, err=%s; el super_admin ve las dos ramas (LAW-124 y ficha): %s', n_u, dif, llenos, errs, v));
 
   -- ── P6 tiempo de documentos_desactualizados_datos (7 seguidas; la 6.ª y la 7.ª ya pueden ir con plan genérico) ──────────
   for i in 1..7 loop
