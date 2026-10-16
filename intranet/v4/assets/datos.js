@@ -10550,7 +10550,8 @@
     function campo(r) {
       var t = RES_TEXTOS[r.clave], esNum = typeof r.valor === 'number';
       var ayuda = t ? (t[1] ? tx(t[1]) : '') : (r.ayuda ? tx(r.ayuda) : '');
-      var rango = esNum && r.minimo != null && r.maximo != null ? tx('Entre %a y %b.', { a: r.minimo, b: r.maximo }) : '';
+      var rango = !esNum ? '' : r.minimo != null && r.maximo != null ? tx('Entre %a y %b.', { a: r.minimo, b: r.maximo })
+        : r.minimo != null ? tx('Desde %a.', { a: r.minimo }) : r.maximo != null ? tx('Hasta %b.', { b: r.maximo }) : '';
       var id = 'lw-res-in-' + String(r.clave).replace(/[^a-z0-9_]/gi, '-');
       var cambio = r.actualizado_en ? (r.actualizado_por ? tx('Último cambio: %f, por %q.', { f: fFechaHora(r.actualizado_en), q: r.actualizado_por }) : tx('Último cambio') + ': ' + fFechaHora(r.actualizado_en)) : '';
       return '<div class="flex flex-col md:flex-row md:items-start gap-3 md:gap-8 py-4" data-clave="' + esc(r.clave) + '">' +
