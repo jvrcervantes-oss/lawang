@@ -50,8 +50,9 @@ begin
     exception when insufficient_privilege then null; end;
     reset role;
   end loop;
+  -- solo quedan exentas las funciones trigger (no se pueden llamar por la API); las 5 heredadas salieron el 16-oct (20261016211600 y L5)
   if exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace
-               and (p.proname like 'bot\_%' or p.proname like '\_bot\_%') and p.proname not in ('bot_copia_frena','bot_faq_aprobar','bot_faq_frena','bot_faq_inmutable','bot_faq_retirar','bot_fuentes_versiona','bot_pendientes','bot_respuesta_copiada','bot_temas_resumen','bot_temas_valida_patron')
+               and (p.proname like 'bot\_%' or p.proname like '\_bot\_%') and p.proname not in ('bot_copia_frena','bot_faq_frena','bot_faq_inmutable','bot_fuentes_versiona','bot_temas_valida_patron')
                and has_function_privilege('service_role', p.oid, 'execute')) then
     raise exception 'PRUEBA FALLA: service_role puede ejecutar una funcion del bot (solo bot_lawang)';
   end if;
