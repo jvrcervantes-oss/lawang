@@ -1,5 +1,5 @@
 -- MCP de Lawang · F1 · abre la entrada del puente: la edge `mcp` (anon) y la página de conexión (authenticated) (16-oct-2026,
--- sesión mcp-lawang). Va DESPUÉS de 20261016080000: ia_peticion_ver nace en la 073530 como ia_peticion_datos y se renombra allí.
+-- sesión mcp-lawang). Va DESPUÉS de 20261016080111: ia_peticion_ver nace en la 073530 como ia_peticion_datos y se renombra allí.
 -- PARADA DEL OWNER: abre una función a `anon` (CLAUDE.md, Política de autonomía; departamentos/backend/prompt.md → Supabase).
 -- No se aplica en la viva sin su OK escrito; hasta entonces vive en supabase/propuestas/ (fuera de migrations/: revisor, 16-oct) y
 -- con el OK pasa a migrations/. Sale JUNTO con el despliegue de la edge `mcp` y la página intranet/v4/ia/conectar/: sin ellos

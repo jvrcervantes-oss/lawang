@@ -380,7 +380,7 @@
 
   function carga() {
     var raiz = document.getElementById('lw-ia-aj'); if (!raiz) return Promise.resolve();
-    var p = sb.rpc('ia_ajustes_ver');   // no es una *_datos de lw_lector: lwDatos no la admite (20261016080000)
+    var p = sb.rpc('ia_ajustes_ver');   // no es una *_datos de lw_lector: lwDatos no la admite (20261016080111)
     return Promise.resolve(p).then(function (r) {
       var e = IA.textoError(r, null);
       if (e || !r.data || !r.data.ajustes) {

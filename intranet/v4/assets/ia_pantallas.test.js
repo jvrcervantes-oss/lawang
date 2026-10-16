@@ -23,7 +23,7 @@ const comun = leer('intranet', 'v4', 'assets', 'ia-conexiones.js');
 const aj = leer('intranet', 'v4', 'assets', 'ajustes-ia.js');
 const p1 = leer('supabase', 'migrations', '20261016073011_mcp_f1_p1_base.sql');
 const p4 = leer('supabase', 'migrations', '20261016073530_mcp_f1_p4_ajustes.sql');
-const nombres = leer('supabase', 'migrations', '20261016080000_mcp_f1_p4_nombres.sql');
+const nombres = leer('supabase', 'migrations', '20261016080111_mcp_f1_p4_nombres.sql');
 // la base de hoy: P1 + P4 con los renombres de 080000 aplicados (ALTER ... RENAME conserva cuerpo y grants)
 let mig = p1 + '\n' + p4;
 const renombres = [...nombres.matchAll(/^alter function public\.([a-z_]+)\([^)]*\) rename to ([a-z_]+);/gm)];
