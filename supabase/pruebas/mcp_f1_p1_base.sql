@@ -227,7 +227,10 @@ begin
   r := r || pg_temp.l(v like 'ERR42501%', 'H1 B revoca la conexión de A → 42501 (' || left(v, 60) || ')');
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_revoca(%L)::text', con));
   j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'zz_quien'));
-  r := r || pg_temp.l(j ->> 'error' = 'invalid_token' and j ->> 'motivo' = 'revocada', 'H2 A la revoca desde «apps conectadas» → el access muere en el acto (' || j::text || ')');
+  -- revocar caduca sus tokens en el acto: la llamada cae en «token caducado» (sin motivo) antes de mirar la conexión
+  r := r || pg_temp.l(j ->> 'error' = 'invalid_token'
+                      and exists (select 1 from public.ia_conexiones x where x.id = con and x.revocada_motivo = 'persona'),
+                      'H2 A la revoca desde «apps conectadas» → el access muere en el acto y queda revocada por la persona (' || j::text || ')');
 
   -- ============================================================ I. caducidad, contraseña, permiso, apagado (una conexión cada vez)
   -- I1 día 8

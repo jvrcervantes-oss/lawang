@@ -302,7 +302,8 @@ begin
   end if;
   insert into public.ia_llamadas (conexion_id, usuario_id, herramienta, argumentos, resultado)
   values (case when v_res = 'sin_conexion' then null else v_con end,
-          case when exists (select 1 from public.usuarios x where x.user_id = v_uid) then v_uid end,
+          -- con conexión, v_uid es su usuario_id (FK a usuarios); sin ella, el uid de los claims no se apunta (ia_puente_rol no lee usuarios)
+          case when v_res = 'sin_conexion' then null else v_uid end,
           left(coalesce(p_herramienta, ''), 60),
           case when pg_column_size(coalesce(p_argumentos, '{}'::jsonb)) <= 2048 then coalesce(p_argumentos, '{}'::jsonb)
                else jsonb_build_object('recortado', true) end,

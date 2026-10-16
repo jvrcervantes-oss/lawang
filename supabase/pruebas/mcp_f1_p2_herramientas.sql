@@ -20,6 +20,9 @@
 -- destructivo-ok: prueba en transacción que termina en raise (rollback); solo en rama
 --
 -- ── 0. STUB DE P1 ─────────────────────────────────────────────────────────────────────────────────────── stub de prueba: lo sustituye P1
+-- (16-oct, tras la 1.ª rama: P1 ya existe; el doble se queda porque aquí se miden los CUERPOS de las mcp_*, no la puerta, que
+-- tiene su prueba-trampa en mcp_f1_p1_base.sql. Misma firma que P1, nombres y valores por defecto incluidos: create or replace
+-- no deja cambiarlos.)
 -- Mientras P1 no exista: privado.mcp_puerta (siempre ok, llamada 1), privado.mcp_cierra (no hace nada), el rol
 -- ia_puente_rol y su USAGE en `privado`. NINGUNO escribe. OJO: la migración P2 hace `grant … to ia_puente_rol`, así que
 -- sin P1 este bloque tiene que correr ANTES de la migración (pegado delante en la misma petición); en cuanto exista P1
@@ -30,9 +33,9 @@ begin
     create role ia_puente_rol nologin noinherit nobypassrls;                       -- stub de prueba: lo sustituye P1
   end if;
 end $stub$;
-create or replace function privado.mcp_puerta(p_herramienta text, p_args jsonb)  -- stub de prueba: lo sustituye P1
+create or replace function privado.mcp_puerta(p_herramienta text, p_argumentos jsonb default '{}'::jsonb)  -- stub de prueba: lo sustituye P1
 returns jsonb language sql security definer set search_path = '' as $f$ select jsonb_build_object('ok', true, 'llamada', 1) $f$;
-create or replace function privado.mcp_cierra(p_llamada bigint, p_filas int, p_resultado text)  -- stub de prueba: lo sustituye P1
+create or replace function privado.mcp_cierra(p_llamada bigint, p_filas integer, p_resultado text default 'ok')  -- stub de prueba: lo sustituye P1
 returns void language plpgsql security definer set search_path = '' as $f$ begin null; end $f$;
 revoke all on function privado.mcp_puerta(text, jsonb), privado.mcp_cierra(bigint, int, text) from public, anon, authenticated, service_role;  -- stub
 grant usage on schema privado to ia_puente_rol;                                                                                  -- stub
@@ -364,9 +367,9 @@ begin
   -- Puerta y cierre que NO escriben, solo para R (SE QUEDA aunque exista P1: la puerta real escribe el registro y aquí
   -- daría 25006 a propósito; lo que R mide es que los CUERPOS no escriben fuera de la puerta). Exige que la de P1 tenga
   -- esta misma firma y dueño postgres; create or replace conserva dueño y permisos, y el raise final lo deshace.
-  create or replace function privado.mcp_puerta(p_herramienta text, p_args jsonb)
+  create or replace function privado.mcp_puerta(p_herramienta text, p_argumentos jsonb default '{}'::jsonb)
   returns jsonb language sql security definer set search_path = '' as $r$ select jsonb_build_object('ok', true, 'llamada', 1) $r$;
-  create or replace function privado.mcp_cierra(p_llamada bigint, p_filas int, p_resultado text)
+  create or replace function privado.mcp_cierra(p_llamada bigint, p_filas integer, p_resultado text default 'ok')
   returns void language plpgsql security definer set search_path = '' as $r$ begin null; end $r$;
   perform set_config('transaction_read_only', 'on', true);
   for h in select * from _h order by herr loop
