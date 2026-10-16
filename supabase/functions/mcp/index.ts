@@ -27,7 +27,7 @@ async function rpc(nombre: string, cuerpo: unknown, bearer = PUBLICA) {
 Deno.serve(crea({
   recurso: EMISOR,
   emisor: EMISOR,
-  conectar: INTRANET + '/intranet/ia/conectar/',
+  conectar: INTRANET + '/intranet/v4/ia/conectar/',
   origenIntranet: INTRANET,
   herramientas: HERRAMIENTAS,
   puente: (accion: string, datos: unknown) => rpc('ia_puente', { p_accion: accion, p_datos: datos }),

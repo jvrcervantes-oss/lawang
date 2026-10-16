@@ -110,7 +110,8 @@ export function crea(cfg) {
       await cfg.cierraSesion(sesion).catch(() => {});
     }
     if (!r || r.error || !r.code || !r.redirect_uri) {
-      return redirige(cfg.origenIntranet + '/intranet/ia/conectar/?error=' + encodeURIComponent(r?.error || 'error'));
+      // vuelve a la misma página con el motivo y la petición (si no se gastó, la persona puede reintentar dentro de sus 5 minutos)
+      return redirige(cfg.conectar + '?error=' + encodeURIComponent(r?.error || 'error') + '&p=' + encodeURIComponent(peticion));
     }
     const vuelta = new URL(r.redirect_uri);
     vuelta.searchParams.set('code', r.code);

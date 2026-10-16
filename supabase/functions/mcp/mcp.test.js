@@ -17,7 +17,7 @@ function monta(respuestas = {}) {
   const llamadas = [];
   const cerradas = [];
   const atiende = crea({
-    recurso: EMISOR, emisor: EMISOR, conectar: INTRANET + '/intranet/ia/conectar/', origenIntranet: INTRANET,
+    recurso: EMISOR, emisor: EMISOR, conectar: INTRANET + '/intranet/v4/ia/conectar/', origenIntranet: INTRANET,
     herramientas: [{ name: 'facturas_no_cobradas', description: 'x', inputSchema: { type: 'object', properties: {} } }],
     puente: async (accion, datos) => {
       llamadas.push({ accion, datos });
@@ -55,7 +55,7 @@ test('/authorize: la buena va a la página de conexión; un error NUNCA redirige
   let { atiende, llamadas } = monta({ pide: { peticion: 'P'.repeat(43) } });
   let r = await atiende(pide('/authorize?response_type=code&client_id=c&redirect_uri=https%3A%2F%2Fclaude.ai%2Fapi%2Fmcp%2Fauth_callback&code_challenge=x&code_challenge_method=S256&state=s'));
   assert.equal(r.status, 302);
-  assert.equal(r.headers.get('location'), INTRANET + '/intranet/ia/conectar/?p=' + 'P'.repeat(43));
+  assert.equal(r.headers.get('location'), INTRANET + '/intranet/v4/ia/conectar/?p=' + 'P'.repeat(43));
   assert.equal(llamadas[0].datos.recurso, EMISOR, 'sin resource, el recurso es el propio');
   ({ atiende } = monta({ pide: { error: 'invalid_redirect_uri' } }));
   r = await atiende(pide('/authorize?response_type=code&client_id=c&redirect_uri=https%3A%2F%2Fmalo.example'));
@@ -84,7 +84,7 @@ test('/conectar con error vuelve a la intranet, no al asistente, y también cier
   const { atiende, cerradas } = monta({ autoriza: { error: 'contrasena_no_reciente' } });
   const r = await atiende(pide('/conectar', { method: 'POST', headers: { origin: INTRANET, 'content-type': 'application/x-www-form-urlencoded' }, body: 'peticion=P&sesion=JWT' }));
   assert.equal(r.status, 302);
-  assert.equal(r.headers.get('location'), INTRANET + '/intranet/ia/conectar/?error=contrasena_no_reciente');
+  assert.equal(r.headers.get('location'), INTRANET + '/intranet/v4/ia/conectar/?error=contrasena_no_reciente&p=P');
   assert.deepEqual(cerradas, ['JWT']);
 });
 
