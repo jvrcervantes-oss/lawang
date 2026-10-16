@@ -16,7 +16,7 @@
 --      cambiar desde que se conectó, 7 días, tope diario con contador atómico, y registro en ia_llamadas. Una denegación
 --      DEVUELVE el resultado y confirma la transacción (no lanza: el registro se perdería). Sin EXECUTE para nadie: las llaman
 --      las puertas privado.mcp_<x> de P2, con dueño postgres, que las alcanza por pertenencia a ia_puente_rol.
---   5. public.ia_puente(accion, datos): la entrada de la edge. pide · canjea (PKCE S256 dentro de la base) · refresca (rotación,
+--   5. public.ia_puente(accion, datos): la entrada de la edge. pide · deniega (la persona dice «no»: access_denied) · canjea (PKCE S256 dentro de la base) · refresca (rotación,
 --      reuso = revoca) · revoca · comprueba · llama (fija claims del usuario y despacha). Los tokens llegan EN CLARO y se
 --      convierten en hash aquí (un hash de un volcado no sirve para llamar). Rechaza GET y cualquier `Prefer: tx=`.
 --   6. public.ia_conexion_autoriza(peticion) y public.ia_conexion_revoca(conexion): RPC de authenticated (la primera la llama la
@@ -391,6 +391,16 @@ begin
     insert into public.ia_peticiones (id_hash, cliente_id, redirect_uri, code_challenge, recurso, estado)
     values (privado.ia_hash(v), v_cli, d ->> 'redirect_uri', d ->> 'code_challenge', a.recurso, left(d ->> 'estado', 500));
     return jsonb_build_object('peticion', v);
+
+  elsif p_accion = 'deniega' then
+    -- La persona dice «no» (o no puede) en la página de conexión: el asistente recibe error=access_denied (RFC 6749 §4.1.2.1)
+    -- en vez de esperar a que caduque. Gasta la petición; la dirección de vuelta es la que se validó en `pide`.
+    select * into p from public.ia_peticiones where id_hash = privado.ia_hash(d ->> 'peticion') for update;
+    if p.id_hash is null or p.usada_en is not null or p.caduca_en <= now() then
+      return jsonb_build_object('error', 'peticion_invalida');
+    end if;
+    update public.ia_peticiones set usada_en = now() where id_hash = p.id_hash;
+    return jsonb_build_object('redirect_uri', p.redirect_uri, 'state', p.estado);
 
   elsif p_accion = 'canjea' then
     select * into t from public.ia_tokens where hash = privado.ia_hash(d ->> 'codigo') and tipo = 'codigo';

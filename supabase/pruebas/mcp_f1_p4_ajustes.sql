@@ -167,7 +167,9 @@ begin
   v := pg_temp.sesion(a.uid, a.em, 'select public.ia_peticion_datos(''corta'')::text');
   r := r || pg_temp.l(pg_temp.js(v) ->> 'error' = 'peticion_invalida', 'F2 petición con forma rara → ' || v);
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_peticion_datos(%L)::text', pet));
-  r := r || pg_temp.l(pg_temp.js(v) ->> 'asistente' = 'claude' and (pg_temp.js(v) ->> 'puede')::boolean, 'F3 A con permiso → ' || v);
+  r := r || pg_temp.l(pg_temp.js(v) ->> 'asistente' = 'claude' and (pg_temp.js(v) ->> 'puede')::boolean
+                      and pg_temp.js(v) ->> 'destino' = 'claude.ai' and (pg_temp.js(v) ->> 'quedan_s')::integer between 1 and 300,
+                      'F3 A con permiso, con el dominio de vuelta y los segundos que le quedan → ' || v);
   delete from public.ia_permisos where usuario_id = b.uid;
   v := pg_temp.sesion(b.uid, b.em, format('select public.ia_peticion_datos(%L)::text', pet));
   r := r || pg_temp.l(not (pg_temp.js(v) ->> 'puede')::boolean and pg_temp.js(v) ->> 'motivo' = 'sin_permiso', 'F4 B sin permiso → ' || v);

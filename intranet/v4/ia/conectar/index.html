@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="e5011527e1bd">
+<meta name="lw-version" content="5d7650c9f3ff">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://vtulllundrfennhjddhc.supabase.co; form-action 'self' https://vtulllundrfennhjddhc.supabase.co https://claude.ai https://claude.com https://chatgpt.com https://chat.openai.com; base-uri 'none'; object-src 'none'">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -22,7 +22,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/instancia.js?v=33f2980c"></script>
 <script src="/contracts/assets/version.js?v=19c524f3"></script>
-<script src="/intranet/v4/assets/ia-conectar.js?v=2a7f0021" defer></script>
+<script src="/intranet/v4/assets/ia-conectar.js?v=b79e6d10" defer></script>
 <link href="/intranet/v4/assets/tw.css?v=9634168f" rel="stylesheet">
 <link href="/intranet/v4/assets/ia-conectar.css?v=b0b4eac3" rel="stylesheet">
 </head>
@@ -110,6 +110,7 @@
       <h1 class="ic-titulo" data-k="consentir_titulo">¿Permitir el acceso?</h1>
       <p class="ic-texto ic-destacado" data-ic-consentimiento></p>
       <p class="ic-texto ic-suave" data-ic-cuenta></p>
+      <p class="ic-texto ic-suave" data-ic-destino></p>
       <p class="ic-reloj" data-ic-reloj></p>
       <div class="ic-botones">
         <button class="ic-boton ic-principal" type="button" data-accion="permitir" data-k="permitir">Permitir</button>
@@ -134,6 +135,10 @@
   <form data-ic-envio method="post" action="https://vtulllundrfennhjddhc.supabase.co/functions/v1/mcp/conectar" enctype="application/x-www-form-urlencoded" autocomplete="off" hidden>
     <input type="hidden" name="peticion" value="">
     <input type="hidden" name="sesion" value="">
+  </form>
+  <!-- «Cancelar» en el consentimiento: solo la petición (sin sesión); la edge devuelve error=access_denied al asistente -->
+  <form data-ic-deniega method="post" action="https://vtulllundrfennhjddhc.supabase.co/functions/v1/mcp/deniega" enctype="application/x-www-form-urlencoded" autocomplete="off" hidden>
+    <input type="hidden" name="peticion" value="">
   </form>
 </main>
 </body>

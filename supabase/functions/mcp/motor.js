@@ -120,6 +120,22 @@ export function crea(cfg) {
     return redirige(vuelta.toString());
   }
 
+  async function deniega(req) {
+    // «No permitir» (o no puede) en la página de conexión: el asistente recibe error=access_denied (RFC 6749 §4.1.2.1).
+    // Sin sesión: basta la petición (secreto de 256 bits que solo tiene ese navegador). Mismo Origin exacto que /conectar.
+    if (req.headers.get('origin') !== cfg.origenIntranet) return texto('Origen no permitido', 403);
+    const f = await formulario(req);
+    const peticion = f?.get('peticion');
+    if (!peticion) return texto('Faltan datos', 400);
+    const r = await cfg.puente('deniega', { peticion });
+    if (!r || r.error || !r.redirect_uri) return texto('Esta petición ya no vale: vuelve al asistente.', 400);
+    const vuelta = new URL(r.redirect_uri);
+    vuelta.searchParams.set('error', 'access_denied');
+    if (r.state != null) vuelta.searchParams.set('state', r.state);
+    vuelta.searchParams.set('iss', cfg.emisor);
+    return redirige(vuelta.toString());
+  }
+
   async function mcp(req) {
     const origen = req.headers.get('origin');
     if (origen && !ORIGENES_MCP.includes(origen)) return texto('Origen no permitido', 403);   // sin Origin: llamada de servidor
@@ -183,6 +199,7 @@ export function crea(cfg) {
       if (req.method === 'GET' && (ruta === '/.well-known/oauth-authorization-server' || ruta === '/.well-known/openid-configuration')) return json(metaServidor());
       if (req.method === 'GET' && ruta === '/authorize') return await autorizar(url);
       if (req.method === 'POST' && ruta === '/conectar') return await conectar(req);
+      if (req.method === 'POST' && ruta === '/deniega') return await deniega(req);
       if (req.method === 'POST' && ruta === '/token') return await token(req);
       if (req.method === 'POST' && ruta === '/revoke') {
         const f = await formulario(req);

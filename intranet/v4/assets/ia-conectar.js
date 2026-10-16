@@ -67,6 +67,7 @@
       dias_1: '1 día',
       dias_n: '%n días',
       cuenta: 'Has entrado como %correo.',
+      destino: 'Al responder, volverás a %dominio.',
       reloj: 'Confirma en los próximos %s segundos.',
       permitir: 'Permitir',
       cancelar: 'Cancelar',
@@ -124,6 +125,7 @@
       dias_1: '1 day',
       dias_n: '%n days',
       cuenta: 'Signed in as %correo.',
+      destino: 'When you answer, you will go back to %dominio.',
       reloj: 'Confirm within the next %s seconds.',
       permitir: 'Allow',
       cancelar: 'Cancel',
@@ -181,6 +183,7 @@
       dias_1: '1 hari',
       dias_n: '%n hari',
       cuenta: 'Masuk sebagai %correo.',
+      destino: 'Setelah menjawab, Anda akan kembali ke %dominio.',
       reloj: 'Konfirmasi dalam %s detik ke depan.',
       permitir: 'Izinkan',
       cancelar: 'Batal',
@@ -229,6 +232,8 @@
     sinVuelta: 0,         // temporizador de «la vuelta al asistente no ha llegado»
     vuelta: 0,            // sube en cada cierre de sesión: descarta respuestas de un intento anterior
     cerrando: null,       // el signOut en curso: un inicio nuevo lo espera
+    destino: '',          // dominio al que vuelve el código (ia_peticion_datos.destino), se enseña al consentir
+    finPeticion: null,    // performance.now() en que caduca la petición, medido con los segundos que da la base (quedan_s)
     reloj: 0
   };
   var sb = null;
@@ -252,7 +257,7 @@
     var d = TXT[estado.idioma] || TXT.es;
     var s = d[clave] != null ? d[clave] : (TXT.es[clave] != null ? TXT.es[clave] : clave);
     var v = vars || {};
-    return s.replace(/%(marca|nombre|correo|duracion|n|s)\b/g, function (m, k) {
+    return s.replace(/%(marca|nombre|correo|duracion|dominio|n|s)\b/g, function (m, k) {
       if (k === 'marca') return MARCA;
       return v[k] != null ? String(v[k]) : m;
     });
@@ -306,6 +311,7 @@
     var vars = { nombre: nombreAsistente(), duracion: duracion() };
     pintaFrase($('[data-ic-consentimiento]'), t(vars.duracion ? 'consentimiento' : 'consentimiento_sin_dias'), vars, ['nombre']);
     $('[data-ic-cuenta]').textContent = estado.correo ? t('cuenta', { correo: estado.correo }) : '';
+    $('[data-ic-destino]').textContent = estado.destino ? t('destino', { dominio: estado.destino }) : '';
     $('[data-ic-enviando]').textContent = t('enviando', { nombre: nombreAsistente() });
     pintaReloj();
   }
@@ -334,7 +340,12 @@
   function fin() { muestra(null); }        // solo queda el aviso de arriba: no hay nada que hacer desde aquí
 
   /* ── los 120 s ────────────────────────────────────────────────────────────────────────────────── */
-  function restante() { return estado.t0 == null ? 0 : PLAZO_MS - (performance.now() - estado.t0); }
+  // el menor de los dos plazos: los 120 s de la contraseña y lo que le queda a la petición (5 min desde que la pidió el asistente)
+  function restante() {
+    if (estado.t0 == null) return 0;
+    var r = PLAZO_MS - (performance.now() - estado.t0);
+    return estado.finPeticion == null ? r : Math.min(r, estado.finPeticion - performance.now());
+  }
   function caducado() { return restante() <= 0; }
   function pintaReloj() {
     var s = Math.max(0, Math.ceil(restante() / 1000));
@@ -549,6 +560,11 @@
       if (caducado()) { caduca(); return; }
       estado.nombre = typeof d.nombre === 'string' ? d.nombre.trim().slice(0, 80) : '';
       estado.dias = typeof d.duracion_dias === 'number' ? d.duracion_dias : Number(d.duracion_dias);
+      estado.destino = typeof d.destino === 'string' && /^[a-z0-9.-]{1,100}$/i.test(d.destino) ? d.destino : '';
+      // 3 s de margen para el viaje del formulario
+      if (typeof d.quedan_s === 'number' && isFinite(d.quedan_s)) estado.finPeticion = performance.now() + (d.quedan_s - 3) * 1000;
+      if (caducado()) { caduca(); return; }
+      aplicaTextos();
       $$('[data-accion="permitir"],[data-accion="cancelar"]').forEach(function (b) { b.disabled = false; });
       muestra('consentir');
       arrancaReloj();
@@ -593,13 +609,25 @@
   }
 
   // Cancelar está en el código, en «no se ha podido comprobar» y en el consentimiento: nadie se queda esperando al reloj.
+  // En el consentimiento la petición está comprobada: «Cancelar» se lo dice al asistente (error=access_denied, edge /deniega)
+  // para que no se quede esperando. Antes se cierra la sesión: la navegación cortaría un signOut a medias.
   function cancelar() {
     if (estado.enviado) return;
+    var avisa = estado.paso === 'consentir';
     $$('[data-accion="permitir"],[data-accion="cancelar"]').forEach(function (b) { b.disabled = true; });
     paraReloj();
-    cierraSesion();
+    var cierre = cierraSesion();
     estado.aviso = null;
     muestra('cancelado');
+    if (!avisa) return;
+    estado.enviado = true;
+    cierre.then(function () {
+      var f = $('[data-ic-deniega]');
+      f.action = String(INST.sb_url).replace(/\/+$/, '') + '/functions/v1/mcp/deniega';
+      f.elements.peticion.value = peticion;
+      f.submit();
+      f.elements.peticion.value = '';
+    });
   }
 
   /* ── arranque ─────────────────────────────────────────────────────────────────────────────────── */

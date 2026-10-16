@@ -292,5 +292,19 @@ begin
   j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'zz_quien', 'relleno', repeat('x', 5000)));
   r := r || pg_temp.l(j ->> 'error' = 'invalid_request', 'J4 cuerpo de más de 4 KB → ' || j::text);
 
+  -- ============================================================ K deniega («No permitir» en la página de conexión)
+  update public.ia_ajustes set encendido = true where id;
+  insert into public.ia_permisos (usuario_id) values (a.uid) on conflict do nothing;   -- I3 se lo quitó: K4 debe caer por la petición
+  j := pg_temp.edge('pide', jsonb_build_object('cliente_id', cli, 'redirect_uri', red, 'code_challenge', cha, 'code_challenge_method', 'S256', 'recurso', rec, 'estado', 'k-st'));
+  pet := j ->> 'peticion';
+  j := pg_temp.edge('deniega', jsonb_build_object('peticion', pg_temp.b64(extensions.gen_random_bytes(32))));
+  r := r || pg_temp.l(j ->> 'error' = 'peticion_invalida', 'K1 deniega con una petición inventada → ' || j::text);
+  j := pg_temp.edge('deniega', jsonb_build_object('peticion', pet));
+  r := r || pg_temp.l(j ->> 'redirect_uri' = red and j ->> 'state' = 'k-st', 'K2 deniega la buena → su dirección de vuelta y su state (' || j::text || ')');
+  j := pg_temp.edge('deniega', jsonb_build_object('peticion', pet));
+  r := r || pg_temp.l(j ->> 'error' = 'peticion_invalida', 'K3 la misma otra vez → ' || j::text);
+  v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', pet));
+  r := r || pg_temp.l(v like '%peticion_invalida%', 'K4 tras denegar, ya no sirve para conectar → ' || v);
+
   raise exception using message = replace(c_fin, '%', r);
 end $todo$;

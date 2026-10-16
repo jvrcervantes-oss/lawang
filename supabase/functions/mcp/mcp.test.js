@@ -80,6 +80,25 @@ test('/conectar: solo desde la intranet; devuelve code+state+iss al asistente y 
   assert.deepEqual(cerradas, ['JWT']);
 });
 
+test('/deniega: el asistente recibe access_denied con su state e iss; de otro origen o con petición gastada, nada', async () => {
+  const { atiende, llamadas } = monta({ deniega: { redirect_uri: 'https://claude.ai/api/mcp/auth_callback', state: 'xyz' } });
+  const forma = { 'content-type': 'application/x-www-form-urlencoded' };
+  const r = await atiende(pide('/deniega', { method: 'POST', headers: { origin: INTRANET, ...forma }, body: 'peticion=P' }));
+  assert.equal(r.status, 302);
+  const u = new URL(r.headers.get('location'));
+  assert.equal(u.origin + u.pathname, 'https://claude.ai/api/mcp/auth_callback');
+  assert.equal(u.searchParams.get('error'), 'access_denied');
+  assert.equal(u.searchParams.get('state'), 'xyz');
+  assert.equal(u.searchParams.get('iss'), EMISOR);
+  assert.deepEqual(llamadas.map((l) => l.accion), ['deniega']);
+  const otro = await atiende(pide('/deniega', { method: 'POST', headers: { origin: 'https://evil.example', ...forma }, body: 'peticion=P' }));
+  assert.equal(otro.status, 403);
+  const { atiende: a2 } = monta({ deniega: { error: 'peticion_invalida' } });
+  const gastada = await a2(pide('/deniega', { method: 'POST', headers: { origin: INTRANET, ...forma }, body: 'peticion=P' }));
+  assert.equal(gastada.status, 400);
+  assert.equal(gastada.headers.get('location'), null);
+});
+
 test('/conectar con error vuelve a la intranet, no al asistente, y también cierra la sesión', async () => {
   const { atiende, cerradas } = monta({ autoriza: { error: 'contrasena_no_reciente' } });
   const r = await atiende(pide('/conectar', { method: 'POST', headers: { origin: INTRANET, 'content-type': 'application/x-www-form-urlencoded' }, body: 'peticion=P&sesion=JWT' }));

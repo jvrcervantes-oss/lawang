@@ -100,7 +100,11 @@ begin
     when not exists (select 1 from public.ia_permisos x where x.usuario_id = v_uid) then 'sin_permiso'
     when v_vivas >= a.max_conexiones then 'demasiadas_conexiones'
   end;
+  -- destino: el dominio al que volverá el código (la pantalla de consentimiento lo enseña); quedan_s: segundos de vida de la
+  -- petición medidos con el reloj de la base (el del navegador no es de fiar)
   return jsonb_build_object('asistente', k.asistente, 'nombre', k.nombre, 'caduca_en', p.caduca_en,
+                            'quedan_s', greatest(0, floor(extract(epoch from p.caduca_en - now())))::integer,
+                            'destino', substring(p.redirect_uri from '^https://([^/]+)/'),
                             'duracion_dias', a.duracion_dias, 'puede', v_motivo is null, 'motivo', v_motivo);
 end $$;
 
