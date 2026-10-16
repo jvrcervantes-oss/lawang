@@ -7178,12 +7178,9 @@
               codigo: v.codigo.trim(), proyecto: v.proyecto, tipo: v.tipo,
               modelo: txt(v.modelo), superficie_m2: supGuardar,
               precio_construccion: num(v.precio_construccion),
-              moneda: v.moneda,
-              // `notas` ya no se edita aquí (es el historial de la ficha), pero se REENVÍA tal cual: unidad_guarda escribe
-              // `notas = p_datos->>'notas'` sin mirar si viene la clave, y sin ella una edición borraba la nota en silencio si
-              // esta pantalla salía antes que la migración unidad_notas (revisor, 15-oct). Después de la migración llega null
-              // y el disparador no hace nada; un texto viejo de una lista cargada antes tampoco se duplica (el disparador lo mira).
-              notas: u.notas == null ? null : u.notas
+              moneda: v.moneda
+              // Sin `notas` (16-oct-2026): desde 20261016001810 la columna está vacía por un check y las notas son el historial
+              // de la ficha (unidad_nota_agrega). unidad_guarda escribe null cuando falta la clave, que es lo único que admite.
               // `precio` no va aqui a proposito — ver la cabecera de esta funcion.
             };
             // `precio_suelo` SOLO si se tocó superficie o €/m² (ver pm2Inicial arriba)

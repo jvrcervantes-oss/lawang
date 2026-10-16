@@ -220,10 +220,9 @@ ok('la plantilla: cada columna la reconoce el importador, y las filas de editore
   // Y el editor de la parcela tampoco manda `notas` a unidad_guarda (Nueva unidad y Editar parcela).
   assert.ok(!/notas:\s*(v\.notas|txt\(v\.notas\))/.test(ed) && !/k: 'notas', label: 'Notas', tipo: 'textarea'(, valor: n0\(u\.notas\))? \}/.test(ed),
     'ni campo «Notas» ni clave notas en el envío de la unidad');
-  // Editar parcela REENVÍA la nota que ya tiene la fila (nunca algo tecleado): unidad_guarda la pisaría con null si esta
-  // pantalla saliera antes que la migración unidad_notas (revisor, 15-oct).
-  assert.strictEqual((ed.match(/notas: u\.notas == null \? null : u\.notas/g) || []).length, 1,
-    'Editar parcela reenvía u.notas tal cual, una sola vez');
+  // El reenvío de la nota que protegía contra publicar la pantalla antes que la base se quitó al aplicar
+  // 20261016001810 (16-oct): la columna ya solo admite null y ninguna pantalla manda la clave.
+  assert.ok(!/notas:\s*u\.notas/.test(ed), 'Editar parcela ya no reenvía u.notas');
 });
 
 console.log(fallos ? `\n${fallos} fallo(s)` : '\nOK proyectos_csv.test.js — las reglas del import se sostienen');

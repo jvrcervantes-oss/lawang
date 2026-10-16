@@ -1,7 +1,9 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
 -- REVERSION de 20261016001810_unidad_notas.sql (15-oct-2026, sesion notas-parcela).
 -- ORDEN: 1) front a su version anterior (git revert de los commits de la pantalla: vuelve el campo «Notas» al editor de la
--- parcela, a la importacion y a la plantilla CSV, y la ficha del cliente vuelve a su codigo propio), 2) ESTE fichero, en una
+-- parcela, a la importacion y a la plantilla CSV, y la ficha del cliente vuelve a su codigo propio; incluido el commit del
+-- 16-oct que quita el reenvio `notas: u.notas` de Editar parcela: sin el, con la columna devuelta, editar una parcela
+-- borraria su nota, porque unidad_guarda escribe null cuando falta la clave), 2) ESTE fichero, en una
 -- transaccion. Al reves, la pantalla llamaria a funciones que ya no existen.
 -- Antes de borrar las tablas, cada parcela recupera en unidades.notas sus notas (todas las que tenga, la mas reciente arriba,
 -- separadas por una linea en blanco): ninguna nota escrita entre medias se pierde. La traza de retiradas se pierde con su
