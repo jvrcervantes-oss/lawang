@@ -1,4 +1,4 @@
--- Prueba de proyecto-por-id en la intranet (15-oct-2026, LAW-428 fase 2B, migración 20261015214000_proyecto_por_id_intranet.sql).
+-- Prueba de proyecto-por-id en la intranet (15-oct-2026, LAW-428 fase 2B, migración 20261016002630_proyecto_por_id_intranet.sql).
 -- Cada gemela, con la SESIÓN del rol real (`set local role authenticated` + claims, como la pantalla), contra su vieja por nombre:
 --   B1-B4  borrar_proyecto_por_id: el agente no borra (42501, la fila sigue); el super admin de la empresa borra uno vacío; uno con
 --          parcelas no se borra (23503); un id que no existe da 42501 al super de empresa (no revela si existe).
