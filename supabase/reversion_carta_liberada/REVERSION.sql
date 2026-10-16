@@ -1,6 +1,7 @@
 -- VUELTA ATRÁS de 20261016083000_carta_liberada_mismo_comprador.sql (16-oct-2026, Backend).
 -- Devuelve los TRES cuerpos vivos de antes de la migración, byte a byte (pg_get_functiondef de la viva del 16-oct, md5 al lado de cada uno),
--- devuelve EXECUTE de public.carta_cobrado_calcula a service_role y borra los 3 ayudantes de privado (después de que nada los llame).
+-- NO devuelve el EXECUTE de public.carta_cobrado_calcula a service_role (0 llamadores, §1.ter; Seguridad, consulta de deploy del 16-oct)
+-- y borra los 3 ayudantes de privado (después de que nada los llame).
 -- OJO: revertir REABRE el agujero (la Carta liberada y la que ocupa la parcela vuelven a decidirse por el pasaporte/correo del navegador).
 -- Solo si la regla nueva rompe un alta legítima que no se arregla eligiendo la ficha del comprador; y entonces se avisa a Seguridad.
 -- No toca filas: carta_cobrado_aplicado y contrato_eventos quedan como estén (un evento carta_liberada_imputada es historia, no se borra).
@@ -472,8 +473,6 @@ begin
 end;
 $function$
 ;
-
-grant execute on function public.carta_cobrado_calcula(uuid, jsonb, text) to service_role;
 
 drop function privado.carta_imputable(uuid, uuid[], text);
 drop function privado.contrato_fichas(uuid);
