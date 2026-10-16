@@ -50,13 +50,13 @@ create or replace function pg_temp.bloqueo(p_codigo text, p_pasaporte text, p_cl
                                                    'adq1_nombre', 'ZZ-CL Comprador', 'adq1_pasaporte', p_pasaporte))))
 $f$;
 -- una Carta de Reserva YA LIBERADA (dinero retenido), con su ficha en datos.adq1_client_id: el AFTER la enlaza en contrato_compradores
-create or replace function pg_temp.carta(p_numero text, p_proy uuid, p_proy_nombre text, p_client uuid, p_pasaporte text) returns uuid language sql as $f$
+create or replace function pg_temp.carta(p_numero text, p_proy uuid, p_proy_nombre text, p_soc text, p_client uuid, p_pasaporte text) returns uuid language sql as $f$
   insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, datos, creado_por, liberado_en, liberado_motivo)
   values (p_numero, 'carta_reserva', p_proy, p_proy_nombre, 'EUR', 5000,
           jsonb_build_object('hitos', '[]'::jsonb, 'adq1_client_id', p_client::text,
-            'fields', jsonb_build_object('proyecto_nombre', p_proy_nombre, 'moneda', 'EUR', 'sociedad_firmante', 'zz_cl1',
+            'fields', jsonb_build_object('proyecto_nombre', p_proy_nombre, 'moneda', 'EUR', 'sociedad_firmante', p_soc,
                                          'adq1_nombre', 'ZZ-CL Comprador', 'adq1_pasaporte', p_pasaporte)),
-          'zz-cl@prueba.invalid', now(), 'ZZ-CL prueba')
+          'zz-cl@prueba.invalid', now(), 'desistida')
   returning id
 $f$;
 -- los apuntes de un Bloqueo, legibles: «numero=importe» ordenados
@@ -101,10 +101,10 @@ begin
   insert into public.clients (full_name, passport_number, numero_cliente, propietario) values ('ZZ-CL A', 'ZZCLA0001', 'ZZCL-A', c_ag) returning id into fa;
   insert into public.clients (full_name, passport_number, numero_cliente, propietario) values ('ZZ-CL V', 'ZZCLV0001', 'ZZCL-V', c_ag) returning id into fv;
   insert into public.clients (full_name, passport_number, numero_cliente, propietario) values ('ZZ-CL Z', 'ZZCLZ0001', 'ZZCL-Z', 'zz-cl-otra@prueba.invalid') returning id into fz;
-  ka  := pg_temp.carta('ZZCL-CRA',  p1, 'ZZ-CL Proyecto 1', fa, 'ZZCLA0001');
-  kv1 := pg_temp.carta('ZZCL-CRV1', p1, 'ZZ-CL Proyecto 1', fv, 'ZZCLV0001');
-  kv2 := pg_temp.carta('ZZCL-CRV2', p2, 'ZZ-CL Proyecto 2', fv, 'ZZCLV0001');
-  kz  := pg_temp.carta('ZZCL-CRZ',  p2, 'ZZ-CL Proyecto 2', fz, 'ZZCLZ0001');
+  ka  := pg_temp.carta('ZZCL-CRA',  p1, 'ZZ-CL Proyecto 1', 'zz_cl1', fa, 'ZZCLA0001');
+  kv1 := pg_temp.carta('ZZCL-CRV1', p1, 'ZZ-CL Proyecto 1', 'zz_cl1', fv, 'ZZCLV0001');
+  kv2 := pg_temp.carta('ZZCL-CRV2', p2, 'ZZ-CL Proyecto 2', 'zz_cl2', fv, 'ZZCLV0001');
+  kz  := pg_temp.carta('ZZCL-CRZ',  p2, 'ZZ-CL Proyecto 2', 'zz_cl2', fz, 'ZZCLZ0001');
   -- la Carta NO liberada de V que OCUPA la parcela ZZCL-5 (la hermana: el dinero expuesto el 16-oct estaba en esta forma)
   insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, datos, creado_por)
   values ('ZZCL-CRO', 'carta_reserva', p1, 'ZZ-CL Proyecto 1', 'EUR', 5000,
@@ -182,8 +182,10 @@ begin
 
   -- ============================================================ T6 un id de ficha ajena escrito a mano
   v := pg_temp.val(ag, c_ag, format('select (public.contrato_guarda(null, %L::jsonb))->>''id''', pg_temp.bloqueo('ZZCL-4', 'ZZCLZ0001', fz, null)));
-  r := r || pg_temp.l(pg_temp.err(v) = '42501' and not exists (select 1 from public.carta_cobrado_aplicado where carta_id = kz),
-                      'T6 la ficha de otra empresa que el agente no ve: contrato_guarda la rechaza y la Carta Z queda intacta (' || left(v, 110) || ')');
+  -- lo que se prueba es el DINERO: con la ficha Z escrita a mano, la Carta liberada de Z (otra empresa) no aporta nada. Si además
+  -- contrato_guarda rechaza la ficha (42501, no la ve), mejor; si la ve (agente global), el alta entra sin abono.
+  r := r || pg_temp.l((pg_temp.err(v) = '42501' or v !~ '^ERR') and not exists (select 1 from public.carta_cobrado_aplicado where carta_id = kz),
+                      'T6 la ficha de una Carta liberada de OTRA empresa escrita a mano: la Carta Z no aporta nada (' || left(v, 110) || ')');
 
   -- ============================================================ TA ataque a la parcela ocupada (co-comprador sin ficha con el pasaporte de V)
   v := pg_temp.val(ag, c_ag, format('select (public.contrato_guarda(null, %L::jsonb))->>''id''',
