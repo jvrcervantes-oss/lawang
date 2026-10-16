@@ -51,7 +51,7 @@
     return ({ margen_pct: T('Margen sobre el coste (%)'), aviso_pct: T('Avisar al llegar al (%) del tope'), tope_usd_defecto: T('Tope por empresa y mes (USD de coste)'),
       tope_instancia_usd: T('Tope de toda la intranet y mes (USD de coste)'), tarifa_entrada_usd_mtok: T('Tarifa de entrada del proveedor'),
       tarifa_salida_usd_mtok: T('Tarifa de salida del proveedor'), tarifa_deepl_usd_mcar: T('Tarifa de DeepL'), tope_usd: T('Tope propio (USD de coste al mes)'),
-      editor_ia: T('Asistente de textos'), suspendido: T('Suspendida por impago') })[k] || k;
+      editor_ia: T('Asistente de textos'), suspendido: T('Suspendida por impago') })[k] || null;   // null = no es un ajuste (actualizado_por, actualizado_en…): no se enseña
   }
   function valorTxt(k, v) {
     if (v === null || v === undefined || v === '') return T('vacío');
@@ -147,7 +147,7 @@
       b.disabled = false;
       if (r.error) { aviso(T('No se ha guardado: %m', { m: r.error.message || T('sin detalle') })); return; }
       aviso(T('Guardado.'));
-      carga(capturaPendiente(bloque));
+      carga(capturaPendiente(extra ? null : bloque));   // un interruptor no guarda el tope de su tarjeta: lo escrito ahí también se conserva
     });
   }
 
@@ -190,7 +190,7 @@
     var b = el('div', 'h-1.5 w-full rounded-full bg-surface-container overflow-hidden');
     var r = el('div', 'h-full rounded-full ' + (alta ? 'bg-burnt-earth' : 'bg-primary-container')); r.style.width = pct + '%';
     b.appendChild(r);
-    b.setAttribute('role', 'img'); b.setAttribute('aria-label', T('%p % del tope gastado', { p: pct }));
+    b.setAttribute('role', 'img'); b.setAttribute('aria-label', T('%p % del tope gastado', { p: pct })); b.setAttribute('data-srv-barra', alta ? 'aviso' : 'normal');
     return b;
   }
   function cifra(etq, valor, sub) {
@@ -255,7 +255,7 @@
     g2.appendChild(campoNum('aviso_pct', T('Avisar al llegar al (%) del tope'), I.aviso_pct, T('La empresa ve un aviso cuando ha gastado este tanto por ciento de su tope.'), '1'));
     p2.c.appendChild(g2);
     function maximo() {
-      var a = p2.c.querySelector('[data-srv-ayuda="tope_usd_defecto"]'), t = Number(p2.c.querySelector('[data-srv-in="tope_usd_defecto"]').value);
+      var a = p2.c.querySelector('[data-srv-ayuda="tope_usd_defecto"]'), ti = p2.c.querySelector('[data-srv-in="tope_usd_defecto"]'), t = ti && ti.value !== '' ? Number(ti.value) : NaN;
       var mi = p1.c.querySelector('[data-srv-in="margen_pct"]'), m = mi && mi.value !== '' ? Number(mi.value) : NaN;
       oculta(a, !(isFinite(m) && isFinite(t)));
       a.textContent = a.hidden ? '' : T('Máximo facturable por empresa y mes: %f (tope × (1 + margen)).', { f: usd(t * (1 + m / 100)) });
@@ -378,10 +378,10 @@
     var lista = el('ul', 'flex flex-col'); r.c.appendChild(lista);
     reg.forEach(function (l) {
       var li = el('li', 'flex flex-col gap-1 py-3 border-b border-outline-variant/30');
-      var amb = l.ambito === 'instancia' ? T('Toda la intranet') : ((empresas.filter(function (e) { return e.clave === l.ambito; })[0] || {}).nombre || l.ambito || '—');
+      var amb = l.ambito === 'instancia' ? T('Toda la intranet') : l.ambito === 'tarifas' ? T('Lo que cobra el proveedor') : ((empresas.filter(function (e) { return e.clave === l.ambito; })[0] || {}).nombre || l.ambito || '—');
       li.appendChild(el('span', 'font-label-md text-label-md text-on-surface', amb + (l.motivo ? ' · «' + l.motivo + '»' : '')));
       var antes = l.antes || {}, despues = l.despues || {}, cambios = [];
-      Object.keys(despues).forEach(function (k) { if (JSON.stringify(antes[k]) !== JSON.stringify(despues[k])) cambios.push(nombreCampo(k) + ': ' + valorTxt(k, antes[k]) + ' → ' + valorTxt(k, despues[k])); });
+      Object.keys(despues).forEach(function (k) { if (nombreCampo(k) && JSON.stringify(antes[k]) !== JSON.stringify(despues[k])) cambios.push(nombreCampo(k) + ': ' + valorTxt(k, antes[k]) + ' → ' + valorTxt(k, despues[k])); });
       if (cambios.length) li.appendChild(el('span', 'font-body-sm text-body-sm text-on-surface-variant', cambios.join(' · ')));
       li.appendChild(el('span', C_PEQ, fecha(l.fecha) + ' · ' + (l.autor || '—')));
       lista.appendChild(li);

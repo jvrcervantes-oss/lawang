@@ -29,14 +29,15 @@ const FALSO = `/* Supabase FALSO para capturas de Ajustes (datos inventados). gu
       instancia: { margen_pct: 30, tope_usd_defecto: 20, tope_instancia_usd: 100, aviso_pct: 80, gasto_usd: 12.4, actualizado_por: 'persona@ejemplo.test', actualizado_en: '2026-10-14T09:12:00Z' },
       tarifas: { modelo: 'claude-opus-5-5', tarifa_entrada_usd_mtok: 4, tarifa_salida_usd_mtok: 20, tarifa_deepl_usd_mcar: null },
       empresas: [
-        { clave: 'emp_a', nombre: 'Empresa Uno', editor_ia: true, suspendido: false, tope_usd: null, tope_efectivo_usd: 20, gasto_usd: 8.1, falta: null },
+        { clave: 'emp_a', nombre: 'Empresa Uno', editor_ia: true, suspendido: false, tope_usd: null, tope_efectivo_usd: 20, gasto_usd: 17, falta: null },
         { clave: 'emp_b', nombre: 'Empresa Dos', editor_ia: false, suspendido: false, tope_usd: 5, tope_efectivo_usd: 5, gasto_usd: 0, falta: null },
         { clave: 'emp_c', nombre: 'Empresa Tres', editor_ia: true, suspendido: true, tope_usd: null, tope_efectivo_usd: 20, gasto_usd: 4.3, falta: null }],
       extracto: [
         { periodo: per, empresa: 'emp_a', hechas: 14, fallidas: 1, en_vuelo: 0, coste_proveedor_usd: 8.1, coste_no_repercutido_usd: 0.4, coste_facturable_usd: 7.7, margen_usd: 2.31, total_sin_impuestos_usd: 10.01, margenes_pct: [30], coste_incompleto: false },
         { periodo: per, empresa: 'emp_c', hechas: 6, fallidas: 0, en_vuelo: 0, coste_proveedor_usd: 4.3, coste_no_repercutido_usd: 0, coste_facturable_usd: 4.3, margen_usd: 1.29, total_sin_impuestos_usd: 5.59, margenes_pct: [30], coste_incompleto: true }],
       registro: [{ ambito: 'instancia', antes: { tope_instancia_usd: 80 }, despues: { tope_instancia_usd: 100 }, motivo: 'Subo el tope de la intranet', autor: 'persona@ejemplo.test', fecha: '2026-10-14T09:12:00Z' },
-                 { ambito: 'emp_c', antes: {}, despues: {}, motivo: 'Factura de septiembre sin pagar', autor: 'persona@ejemplo.test', fecha: '2026-10-10T03:40:00Z' }]
+                 { ambito: 'tarifas', antes: { tarifa_entrada_usd_mtok: 3 }, despues: { tarifa_entrada_usd_mtok: 4 }, motivo: 'Nuevo precio del proveedor', autor: 'persona@ejemplo.test', fecha: '2026-10-12T03:40:00Z' },
+                 { ambito: 'emp_c', antes: { suspendido: false, actualizado_por: 'otra@ejemplo.test', actualizado_en: '2026-09-01T00:00:00Z' }, despues: { suspendido: true, actualizado_por: 'persona@ejemplo.test', actualizado_en: '2026-10-10T03:40:00Z' }, motivo: 'Factura de septiembre sin pagar', autor: 'persona@ejemplo.test', fecha: '2026-10-10T03:40:00Z' }]
     }
   };
   function cadena(tabla) {
@@ -133,8 +134,13 @@ srv.listen(0, async () => {
     const g = (await n0()) > antes ? await ultimo() : null;
     res.pasos.push({ paso: accion + ' ' + empresa, pideMotivoEnElPaso: pide, enviado: g, toast });
   }
+  // (revisor 16-oct, 1) un interruptor recarga: el tope escrito y sin guardar en SU MISMA tarjeta también sobrevive
+  await pg.locator('[data-srv-empresa-fila="emp_a"] [data-srv-in="tope_usd"]').fill('6');
   await interruptor('servicios-editor_ia', 'emp_b', true);
   await interruptor('servicios-suspendido', 'emp_a');
+  const quedaA = await pg.evaluate(() => { const i = document.querySelector('[data-srv-empresa-fila="emp_a"] [data-srv-in="tope_usd"]'); return i ? i.value : null; });
+  res.conservaMismaTarjeta = quedaA;
+  if (quedaA !== '6') res.fallos.push('SE PIERDE LO ESCRITO EN LA MISMA TARJETA: el tope a medias de Empresa Uno quedó en «' + quedaA + '» al suspenderla');
   // lo escrito y sin guardar en OTRO bloque sobrevive a guardar uno: tope propio de Empresa Tres a medias, se guarda el margen
   await pg.locator('[data-srv-empresa-fila="emp_c"] [data-srv-in="tope_usd"]').fill('9');
   await cambia('margen_pct', 33);
@@ -143,9 +149,22 @@ srv.listen(0, async () => {
   res.conserva = queda;
   if (queda !== '9') res.fallos.push('SE PIERDE LO ESCRITO: el tope a medias de Empresa Tres quedó en «' + queda + '» al guardar el margen');
   // la trampa: suspender sin motivo previo tiene que acabar en un envío con motivo, no en confirmar y luego rechazar
-  const s = res.pasos[res.pasos.length - 1];
+  const s = res.pasos.find(p => p.paso === 'servicios-suspendido emp_a') || {};   // por su nombre: el último paso es «cambia margen»
   if (!s.enviado) res.fallos.push('TRAMPA: suspender por impago sin motivo previo se confirma y no se guarda');
   res.pasos.filter(p => p.paso.startsWith('cambia') && !p.enviado).forEach(p => res.fallos.push('no se guardó: ' + p.paso + ' (' + p.ok + ')'));
+  // (revisor 16-oct, 4) la barra de una empresa por encima del aviso sale en aviso, y la de una por debajo no
+  const barras = await pg.evaluate(() => ['emp_a', 'emp_b'].map(e => { const b = document.querySelector('[data-srv-empresa-fila="' + e + '"] [data-srv-barra]'); return b ? b.getAttribute('data-srv-barra') : null; }));
+  res.barras = barras;
+  if (barras[0] !== 'aviso' || barras[1] !== 'normal') res.fallos.push('BARRA DE AVISO: Empresa Uno (85 %) «' + barras[0] + '», Empresa Dos (0 %) «' + barras[1] + '»');
+  // (revisor 16-oct, 2) el registro no enseña nombres de la base (actualizado_por, ámbito «tarifas»…)
+  const crudo = await pg.evaluate(() => (document.getElementById('lw-srv').innerText.match(/actualizado_(por|en)|\btarifas\b|tarifa_entrada_usd_mtok/g) || []));
+  res.registroCrudo = crudo;
+  if (crudo.length) res.fallos.push('REGISTRO CON NOMBRES DE LA BASE: ' + crudo.join(', '));
+  // (revisor 16-oct, 3) con el tope por empresa vacío no hay «Máximo facturable 0,00»: no hay dato
+  await pg.locator('[data-srv-in="tope_usd_defecto"]:not([data-srv-empresa-fila] *)').fill(''); await pg.locator('[data-srv-in="tope_usd_defecto"]:not([data-srv-empresa-fila] *)').dispatchEvent('input');
+  const maxi = await pg.evaluate(() => { const a = document.querySelector('[data-srv-ayuda="tope_usd_defecto"]'); return a && a.offsetParent ? a.textContent : ''; });
+  res.maximoVacio = maxi;
+  if (maxi) res.fallos.push('MÁXIMO CON EL TOPE VACÍO: «' + maxi + '»');
   res.errs = errs;
   if (SALIDA) fs.writeFileSync(SALIDA, JSON.stringify(res, null, 1));
   console.log(JSON.stringify(res, null, 1));
