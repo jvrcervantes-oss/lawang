@@ -367,8 +367,8 @@ begin
   -- (revisor, 16-oct): R2 lo creó AG en su proyecto pX (lo ve por creado_por) y se aplicó 300 a F1 (pM, de SA: AG no la ve,
   -- bloque A). «Aplicado» tiene que salir 300, como en contrato_saldo, no 0 por la RLS del agente.
   execute 'set local session_replication_role = replica';
-  insert into public.facturas (tipo, numero, sociedad, contrato_id, proyecto_id, total, moneda, fecha_emision, creado_por, cliente_nombre, datos)
-    values ('recibi', 'ZZ-MCP-R2', 'zz_mcp', c1, pX, 500, 'EUR', v_hoy, ag.em, 'ZZ-MCP Cliente', '{"fields":{}}'::jsonb)
+  insert into public.facturas (tipo, numero, sociedad, contrato_id, proyecto_id, total, moneda, fecha_emision, creado_por, cliente_nombre, datos, justificante_path)
+    values ('recibi', 'ZZ-MCP-R2', 'zz_mcp', c1, pX, 500, 'EUR', v_hoy, ag.em, 'ZZ-MCP Cliente', '{"fields":{}}'::jsonb, 'zz-mcp/justificante2.pdf')
     returning id into r2;
   insert into public.recibi_aplicaciones (recibi_id, factura_id, importe_aplicado) values (r2, f1, 300);
   execute 'set local session_replication_role = origin';

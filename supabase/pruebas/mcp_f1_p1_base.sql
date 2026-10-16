@@ -205,7 +205,7 @@ begin
   r := r || pg_temp.l(j ->> 'error' = 'tope' and n = 1, 'F1 la llamada de más → «tope» y queda su fila (' || j::text || ')');
   update public.ia_ajustes set tope_dia = 100 where id;
   -- F2 una herramienta que lanza: su fila y su cuenta se deshacen con ella; el puente las apunta igual (revisor, 16-oct)
-  select n into n2 from public.ia_uso where usuario_id = a.uid and dia = (now() at time zone 'Asia/Makassar')::date;
+  select x.n into n2 from public.ia_uso x where x.usuario_id = a.uid and x.dia = (now() at time zone 'Asia/Makassar')::date;
   j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'zz_falla'));
   select count(*) into n from public.ia_llamadas where usuario_id = a.uid and herramienta = 'zz_falla' and resultado = 'error';
   r := r || pg_temp.l(j ->> 'error' = 'server_error' and n = 1
