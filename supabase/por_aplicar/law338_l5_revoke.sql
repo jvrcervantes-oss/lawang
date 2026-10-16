@@ -113,9 +113,9 @@ alter policy "agentes ven accesos del portal" on public.portal_accesos to lw_lec
 
 -- los comentarios de 20261015062313 decían «INVOKER: la RLS de quien pide»; desde 20261016063536 son DEFINER-lw_lector
 comment on function public.contratos_busca(text) is
-  'Busqueda sin tildes (15-oct-2026): ventas para el asistente de contrato (asistente-contrato.js). DEFINER de lw_lector desde LAW-338 L5 (16-oct-2026): decide la RLS de lw_lector con uid_sesion() de quien pide. Menos de 2 letras = las 10 ultimas.';
+  'Busqueda sin tildes (15-oct-2026): ventas para el asistente de contrato (asistente-contrato.js). DEFINER de lw_lector desde LAW-338 L5 (16-oct-2026): es_agente() y la RLS de lw_lector deciden con las claims de quien pide; sin sesion, 0 filas. Menos de 2 letras = las 10 ultimas.';
 comment on function public.clientes_busca(text) is
-  'Busqueda sin tildes (15-oct-2026): clientes por nombre, pasaporte, correo o telefono para la edge asistente-peticiones. DEFINER de lw_lector desde LAW-338 L5 (16-oct-2026): decide la RLS de lw_lector con uid_sesion() de quien pide.';
+  'Busqueda sin tildes (15-oct-2026): clientes por nombre, pasaporte, correo o telefono para la edge asistente-peticiones. DEFINER de lw_lector desde LAW-338 L5 (16-oct-2026): exige sesion (uid_sesion) y la herramienta del asistente (42501 si falta); es_agente() y la RLS de lw_lector deciden con las claims de quien pide.';
 
 do $$
 declare t text;
@@ -135,4 +135,25 @@ begin
       raise exception 'L5 revoke: queda una policy de lectura TO authenticated/public en %', t;
     end if;
   end loop;
+end $$;
+
+-- LECTORES CIEGOS (revisor del 16-oct): con las policies solo para lw_lector, un rol que entra (LOGIN), lee estas tablas y NO se
+-- salta la RLS se quedaría con 0 filas y sin error; la copia diaria (axw_lectura) saldría vacía sin aviso. Se mide aquí, en la
+-- base donde se aplica: la rama recrea los roles propios nologin nobypassrls (erp/respaldo_instancia.py), así que allí no dice
+-- nada de la viva. Medido en la viva el 16-oct: axw_lectura, postgres, supabase_etl_admin y supabase_read_only_user son bypassrls,
+-- supabase_admin superusuario. El dueño de la tabla sin FORCE RLS no la sufre. Copia letra a letra en law338_l5_ataque.sql (P1c).
+do $$
+declare v_n int; v_lista text;
+begin
+  select count(*), string_agg(distinct r.rolname, ', ') into v_n, v_lista
+    from pg_roles r cross join pg_class c
+   where c.relnamespace = 'public'::regnamespace
+     and c.relname = any(array['clients', 'documents', 'hilo_soporte', 'mensajes_comprador', 'portal_accesos', 'notificaciones',
+                               'correos_enviados', 'documentos_desactualizados'])
+     and r.rolcanlogin and not r.rolsuper and not r.rolbypassrls
+     and not (r.oid = c.relowner and not c.relforcerowsecurity)
+     and has_any_column_privilege(r.oid, c.oid, 'select');
+  if v_n > 0 then
+    raise exception 'L5 revoke: roles con LOGIN que leen estas tablas sin saltarse la RLS (se quedarían a cero sin error): %', v_lista;
+  end if;
 end $$;

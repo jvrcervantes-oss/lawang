@@ -7,6 +7,9 @@
 -- Qué mide:
 --  P1 ATAQUE usuario × tabla: cada sesión (usuarios activos y portal, con sus claims completas) y anon leen directo las 8 → 42501, no `[]`
 --     (un `[]` sería la RLS filtrando: el cierre no estaría puesto). Se comprueba el rol EN EJECUCIÓN (current_user) en cada intento.
+--     Solo vale «42501 permission denied for table|view» (revisor 16-oct): otro 42501 (una función que se niega) no es el cierre.
+--  P1c LECTORES CIEGOS: el último bloque del cierre, ejecutado aquí tal cual. Sin control no salta; con un rol LOGIN nobypassrls que
+--     lee clients, salta y lo nombra (si no saltase, la guarda no protegería la copia diaria en la viva).
 --  P2 las 11 RPC con el cierre puesto: ninguna da «permission denied for table/view» (una DEFINER que hubiese perdido la lectura) y cada
 --     una devuelve algo a alguien (llenos > 0: un «igual» sobre vacíos no prueba nada).
 --  P3 los roles que no son authenticated/anon y leen estas tablas (copia diaria axw_lectura, service_role, supabase_read_only_user,
@@ -111,7 +114,7 @@ end $f$;
 
 do $todo$
 declare
-  u _u; t text; v jsonb; res text := ''; n_tot int; n_ok int; v_mal text; v_n int;
+  u _u; t text; v jsonb; res text := ''; n_tot int; n_ok int; v_mal text; v_n int; v_g text;
   tablas constant text[] := array['clients', 'documents', 'hilo_soporte', 'mensajes_comprador', 'portal_accesos', 'notificaciones',
                                   'correos_enviados', 'documentos_desactualizados'];
   c_emp constant text := 'zz_l5'; pL uuid; kZ uuid; hZ uuid; cA uuid; cA2 uuid; cB uuid; cB2 uuid;
@@ -206,17 +209,54 @@ begin
     foreach t in array tablas loop
       v := pg_temp.q(u.uid, u.em, format('select to_jsonb(count(*)) from public.%I', t), u.portal);
       n_tot := n_tot + 1;
-      if coalesce(v->>'__err', '') like '42501%' and v->>'__rol' = 'authenticated' then n_ok := n_ok + 1;
+      if coalesce(v->>'__err', '') ~ '^42501 permission denied for (table|view) ' and v->>'__rol' = 'authenticated' then n_ok := n_ok + 1;
       else v_mal := coalesce(v_mal || '; ', '') || u.rol || '×' || t || '=' || left(v::text, 60); end if;
     end loop;
   end loop;
   foreach t in array tablas loop
     v := pg_temp.q(null, null, format('select to_jsonb(count(*)) from public.%I', t), false, 'anon');
     n_tot := n_tot + 1;
-    if coalesce(v->>'__err', '') like '42501%' and v->>'__rol' = 'anon' then n_ok := n_ok + 1;
+    if coalesce(v->>'__err', '') ~ '^42501 permission denied for (table|view) ' and v->>'__rol' = 'anon' then n_ok := n_ok + 1;
     else v_mal := coalesce(v_mal || '; ', '') || 'anon×' || t || '=' || left(v::text, 60); end if;
   end loop;
   res := res || pg_temp.l(n_ok = n_tot and n_tot > 0, format('P1 ataque directo a las 8 (sesiones × tablas + anon): %s/%s → 42501%s', n_ok, n_tot, coalesce(' (' || left(v_mal, 300) || ')', '')));
+
+  -- ── P1c LECTORES CIEGOS: el último bloque de law338_l5_revoke.sql, letra a letra (P4 hace lo mismo con la vuelta atrás) ──
+  v_g := $g$
+do $$
+declare v_n int; v_lista text;
+begin
+  select count(*), string_agg(distinct r.rolname, ', ') into v_n, v_lista
+    from pg_roles r cross join pg_class c
+   where c.relnamespace = 'public'::regnamespace
+     and c.relname = any(array['clients', 'documents', 'hilo_soporte', 'mensajes_comprador', 'portal_accesos', 'notificaciones',
+                               'correos_enviados', 'documentos_desactualizados'])
+     and r.rolcanlogin and not r.rolsuper and not r.rolbypassrls
+     and not (r.oid = c.relowner and not c.relforcerowsecurity)
+     and has_any_column_privilege(r.oid, c.oid, 'select');
+  if v_n > 0 then
+    raise exception 'L5 revoke: roles con LOGIN que leen estas tablas sin saltarse la RLS (se quedarían a cero sin error): %', v_lista;
+  end if;
+end $$;
+$g$;
+  v_mal := null;
+  begin execute v_g; exception when others then v_mal := sqlstate || ' ' || sqlerrm; end;
+  res := res || pg_temp.l(v_mal is null, 'P1c la guarda de lectores ciegos no salta con los roles de la rama' || coalesce(' (' || left(v_mal, 200) || ')', ''));
+  v_mal := null;
+  begin
+    create role zz_l5_ciego login nobypassrls;
+    grant select on public.clients to zz_l5_ciego;
+  exception when others then v_mal := 'montaje del control: ' || sqlstate || ' ' || left(sqlerrm, 160); end;
+  if v_mal is null then
+    begin execute v_g; v_mal := 'no saltó';
+    exception when others then
+      v_mal := case when strpos(sqlerrm, 'roles con LOGIN que leen estas tablas sin saltarse la RLS') > 0
+                         and sqlerrm ~ ': zz_l5_ciego$' then null else sqlstate || ' ' || sqlerrm end;
+    end;
+    revoke select on public.clients from zz_l5_ciego;
+    drop role zz_l5_ciego;
+  end if;
+  res := res || pg_temp.l(v_mal is null, 'P1c con un rol LOGIN nobypassrls que lee clients, la guarda salta y lo nombra' || coalesce(' (' || left(v_mal, 200) || ')', ''));
 
   -- ── P2 las 11 RPC con el cierre puesto ────────────────────────────────────────────────────────────────────────────────
   for u in select * from _u loop perform pg_temp.rpcs('cerrado', u, fichas, kZ, cs, fZ); end loop;
