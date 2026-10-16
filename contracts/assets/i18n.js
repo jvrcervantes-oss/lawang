@@ -116,6 +116,7 @@
     'se cortó porque se apagó la IA en la intranet': 'cut off because AI was switched off in the intranet',
     'se cortó porque el usuario está desactivado': 'cut off because the user is deactivated',
     'se cortó porque el super admin apagó ese asistente': 'cut off because the super admin switched that assistant off',
+    'se cortó por seguridad: no pudimos enviarte el correo que avisa de la conexión': 'cut off for security: we could not send you the email announcing the connection',
     'Esa conexión ya no existe. Recarga la página.': 'That connection no longer exists. Reload the page.',
     '(sin nombre)': '(no name)',
     'Usuario fuera del equipo activo (%i…)': 'User outside the active team (%i…)',

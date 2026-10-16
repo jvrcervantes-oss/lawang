@@ -1,5 +1,5 @@
 -- Prueba de la base del puente MCP (16-oct-2026, migración 20261016073011_mcp_f1_p1_base.sql; se corre también con
--- supabase/propuestas/20261016140000_mcp_f1_abre_conexion.sql (pendiente del OK del owner) aplicada o sin ella: si anon no tiene EXECUTE, la prueba se lo da DENTRO de la
+-- migrations/20261016140000_mcp_f1_abre_conexion.sql (OK del owner del 16-oct, LAW-642) aplicada o sin ella: si anon no tiene EXECUTE, la prueba se lo da DENTRO de la
 -- transacción, que se deshace). Solo en rama: siembra usuarios en auth.users. Termina en raise: no deja rastro.
 -- Lo que prueba (prueba-trampa de #394/#395, cada línea con su resultado):
 --   A  default-deny: anon/authenticated sin nada en las 8 tablas ia_*; las funciones del puente con su EXECUTE exacto (aclexplode)
@@ -40,6 +40,11 @@ create or replace function pg_temp.sesion(p_uid uuid, p_email text, p_sql text, 
 language plpgsql as $f$
 declare t text;
 begin
+  -- Tope de altas de P6 (5 por persona y hora, 20261016135900): esta prueba crea más de 5 conexiones de A en UNA transacción (now()
+  -- fijo). Se envejecen las anteriores para que el tope no se cuele en lo que prueba P1; el tope lo prueba mcp_f1_p6_aviso_conexion.sql.
+  if exists (select 1 from pg_trigger where tgname = 'ia_conexiones_aviso') then
+    update public.ia_conexiones set creada_en = creada_en - interval '2 hours' where creada_en > now() - interval '2 hours';
+  end if;
   perform set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated', 'email', p_email, 'aal', 'aal1',
           'amr', json_build_array(json_build_object('method', 'password', 'timestamp', extract(epoch from now())::bigint - p_hace)))::text, true);
   perform set_config('request.jwt.claim.sub', p_uid::text, true);
@@ -78,11 +83,12 @@ begin
     insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo) values
       (a.uid, a.em, 'ZZ-MCP A', 'super_admin', 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{}'::text[], '{}'::text[], true),
       (b.uid, b.em, 'ZZ-MCP B', 'agente', 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{}'::text[], '{}'::text[], true);
+    insert into public.ia_ajustes default values on conflict do nothing;   -- la fila única que siembra 073011 (una rama sin filas no la trae)
     update public.ia_ajustes set encendido = true, tope_dia = 3 where id;
     select recurso into rec from public.ia_ajustes where id;
     insert into public.ia_clientes (asistente, nombre, redirect_uris, activo) values ('claude', 'Claude', array[red], true) returning id into cli;
     insert into public.ia_permisos (usuario_id) values (a.uid);
-    -- la entrada (anon) y el «sí» de la persona (authenticated) se abren JUNTOS (propuestas/20261016140000): o los dos o ninguno
+    -- la entrada (anon) y el «sí» de la persona (authenticated) se abren JUNTOS (20261016140000): o los dos o ninguno
     r := r || pg_temp.l(has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute')
                         = has_function_privilege('authenticated', 'public.ia_conexion_autoriza(text)', 'execute')
                         and (to_regprocedure('public.ia_peticion_ver(text)') is null
@@ -90,7 +96,7 @@ begin
                                 = has_function_privilege('authenticated', to_regprocedure('public.ia_peticion_ver(text)'), 'execute')),
                         'A0 ia_puente (anon), ia_conexion_autoriza e ia_peticion_ver (authenticated) abiertos a la vez o cerrados a la vez');
     if not has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
-      grant execute on function public.ia_puente(text, jsonb) to anon;   -- propuestas/20261016140000 lo hace en la viva con el OK del owner
+      grant execute on function public.ia_puente(text, jsonb) to anon;   -- 20261016140000 lo hace en la viva (OK del owner, LAW-642)
     end if;
     if not has_function_privilege('authenticated', 'public.ia_conexion_autoriza(text)', 'execute') then
       grant execute on function public.ia_conexion_autoriza(text) to authenticated;   -- ídem

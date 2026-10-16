@@ -80,9 +80,14 @@ igual(ERR_CORTAR.slice().sort(), codigos('ia_conexion_revoca'), 'Cortar: una fra
 igual(/falta_tope/.test(codigos('ia_ajustes_guarda').join()), true, 'la base sigue rechazando encender con tope 0 (falta_tope)');
 
 /* ── 3. motivos de corte: los del CHECK, ni uno más ni uno menos ── */
-const check = /revocada_motivo text check \(revocada_motivo in \(([^)]*)\)\)/.exec(p1);
+// el ÚLTIMO que lo define manda: P1 lo crea en la columna y P6 (aviso de conexión, 16-oct) lo sustituye con 'sin_aviso'
+let check = /revocada_motivo text check \(revocada_motivo in \(([^)]*)\)\)/.exec(p1);
+for (const f of fs.readdirSync(path.join(RAIZ, 'supabase', 'migrations')).filter((x) => x.endsWith('.sql')).sort()) {
+  const m = /add constraint ia_conexiones_revocada_motivo_check\s+check \(revocada_motivo in \(([^)]*)\)\)/.exec(leer('supabase', 'migrations', f));
+  if (m) check = m;
+}
 const delCheck = check ? [...check[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort() : [];
-igual(delCheck.length, 10, 'se lee el CHECK de revocada_motivo');
+igual(delCheck.length, 11, 'se lee el CHECK de revocada_motivo (los 10 de P1 + sin_aviso de P6)');
 igual(clavesDe(bloque(comun, 'MOTIVOS')).sort(), delCheck, 'MOTIVOS tiene una frase por cada motivo del CHECK');
 
 /* ── 4. lógica (sin navegador) ── */

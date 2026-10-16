@@ -1,4 +1,4 @@
-// plantillas_fabrica.ts (LAWANG) — textos de fábrica de las 8 plantillas de correo + lectura de los datos de cada una.
+// plantillas_fabrica.ts (LAWANG) — textos de fábrica de las plantillas de correo + lectura de los datos de cada una.
 // Encargo encargos/20260930_erp_ajustes_pantalla.md → «Plan de S5», S5.2 (2-oct-2026).
 //
 // FUERA del canon (.canon_hash solo cubre index.ts y valida.ts): los TEXTOS son de cada cliente y las consultas son de su
@@ -113,7 +113,33 @@ const TEXTOS: Record<string, TextoFabrica> = {
       '\n\nUn abrazo,\nEl equipo de Lawang',
     cuerpo_alt: null,
   },
+  // MCP (16-oct-2026, P6): aviso de seguridad a la persona en cada conexión nueva de un asistente. Asunto fijo (el nombre del
+  // asistente nunca va en el asunto). aviso_en / aviso_es son frases fijas de la edge y obligatorias en el catálogo: un texto
+  // editado en Ajustes › Correo no puede quitar el «si no has sido tú».
+  aviso_ia_conexion: {
+    asunto: 'An assistant was connected to your Lawang account · Se ha conectado un asistente a tu cuenta de Lawang',
+    cuerpo: '{{saludo_en}},\n\n{{asistente}} was connected to your Lawang account on {{cuando}} (Bali time). From now on it can look up ' +
+      'intranet data on your behalf, with your permissions.' +
+      '\n\nYou can see your connected assistants and remove any of them at any time in Connected apps: {{enlace}}' +
+      '\n\n{{aviso_en}}' +
+      '\n\nThe Lawang team' +
+      '\n\n—\n\n' +
+      '{{saludo_es}}:\n\nSe ha conectado {{asistente}} a tu cuenta de Lawang el {{cuando}} (hora de Bali). Desde ahora puede consultar ' +
+      'datos de la intranet en tu nombre, con tus permisos.' +
+      '\n\nPuedes ver tus asistentes conectados y quitar cualquiera cuando quieras en Apps conectadas: {{enlace}}' +
+      '\n\n{{aviso_es}}' +
+      '\n\nEl equipo de Lawang',
+    cuerpo_alt: null,
+  },
 };
+
+// Las frases de seguridad del aviso de conexión (variables obligatorias, no editables). «Cambia tu contraseña» es verdad porque la
+// huella de la conexión incluye la contraseña (migración *_mcp_f1_abre_conexion): supabase/pruebas/mcp_f1_p6_aviso_conexion.sql lo comprueba.
+const AVISO_IA = {
+  en: 'If it wasn\'t you, remove it now in Connected apps and change your password: changing it cuts off every connected assistant.',
+  es: 'Si no has sido tú, quítala ahora en Apps conectadas y cambia tu contraseña: al cambiarla se cortan todos los asistentes conectados.',
+};
+const ASISTENTES: Record<string, string> = { claude: 'Claude', chatgpt: 'ChatGPT' };   // lista cerrada de ia_clientes.asistente
 
 export function textoFabrica(clave: string): TextoFabrica | null {
   return Object.prototype.hasOwnProperty.call(TEXTOS, clave) ? TEXTOS[clave] : null;
@@ -246,6 +272,31 @@ export async function resuelve(clave: string, ids: Ids, to: string, vars: Vars, 
     // cta null: el botón por defecto es el del portal («Entrar · Sign in»), el mismo {{enlace}} que se lee en el texto
     return { vars: { saludo_en: pila ? 'Hi ' + pila : 'Hello', saludo_es: pila ? 'Hola ' + pila : 'Hola', parcela, proyecto,
                      nota: nota ? nota + '\n\n' : '', enlace: comun.portal }, variante: 'principal', cta: null };
+  }
+
+  if (clave === 'aviso_ia_conexion') {
+    // Todo sale de la base por el id de la fila de la cola (`vars.aviso`): destinatario (correo de Auth de la persona), asistente y
+    // hora. Sin sociedad: firma la marca. El botón lleva a «Apps conectadas» de la misma intranet que el portal.
+    const id = String(vars.aviso ?? '');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return mal('Aviso no válido');
+    const d = await uno('rpc/ia_aviso_conexion_datos?p_cola=' + id);
+    if (!d) return mal('Aviso no encontrado');
+    if (String(d.para ?? '').trim().toLowerCase() !== to.toLowerCase()) return mal('El destinatario no es el de la conexión');
+    const tipo = ASISTENTES[String(d.asistente ?? '')];
+    if (!tipo) return mal('Asistente no reconocido');
+    const propio = linea(d.nombre_asistente);
+    const asistente = propio && propio.toLowerCase() !== tipo.toLowerCase() ? tipo + ' (' + propio + ')' : tipo;
+    const t = new Date(String(d.creada_en ?? ''));
+    if (isNaN(t.getTime())) return mal('A la conexión le falta la fecha');
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Makassar', day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(t).map((x) => [x.type, x.value]));
+    const cuando = p.day + '/' + p.month + '/' + p.year + ' ' + p.hour + ':' + p.minute;
+    const enlace = new URL('/intranet/v4/ia/', comun.portal).href;
+    if (!ctaPermitida(enlace, comun.dominio)) return mal('El enlace de Apps conectadas no es válido');
+    const pila = nombrePila(d.nombre);
+    return { vars: { saludo_en: pila ? 'Hi ' + pila : 'Hello', saludo_es: pila ? 'Hola ' + pila : 'Hola', asistente, cuando, enlace,
+                     aviso_en: AVISO_IA.en, aviso_es: AVISO_IA.es },
+             variante: 'principal', cta: { url: enlace, texto: 'Apps conectadas · Connected apps' } };
   }
 
   return mal('Plantilla no reconocida');

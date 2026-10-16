@@ -197,11 +197,12 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
   // «Reclamar pago» (8-oct-2026) es la 9ª: su regla vive en la migración 20261010070000 (ancla propia, soportada=false A PROPÓSITO para que
   // correo_encolar la rechace) y la edge SÍ la resuelve; se comprueba aparte abajo. Las 8 de siempre siguen cruzadas como antes.
   // «Invitar al portal» (15-oct-2026) es la 10ª, con el mismo trato que reclamo_pago (migración 20261015071004): las dos de la ficha de parcela.
-  const DE_PARCELA = ['reclamo_pago', 'invitacion_portal'];
+  // El aviso de asistente conectado (16-oct-2026, MCP P6) es la 11ª, con el mismo trato (ancla propia ia_conexion_id, migración 20261016135900).
+  const DE_PARCELA = ['reclamo_pago', 'invitacion_portal', 'aviso_ia_conexion'];
   const plantillas = plantillasTodas.filter((x) => !DE_PARCELA.includes(x.clave));
-  igual(plantillasTodas.map((x) => x.clave).sort(), [...plantillas.map((x) => x.clave), ...DE_PARCELA].sort(), 'PLANTILLAS = las 8 + las 2 de la ficha de parcela');
+  igual(plantillasTodas.map((x) => x.clave).sort(), [...plantillas.map((x) => x.clave), ...DE_PARCELA].sort(), 'PLANTILLAS = las 8 + las 2 de la ficha de parcela + el aviso de conexión');
   igual(reglas.map((x) => x.clave).sort(), plantillas.map((x) => x.clave).sort(), '_correo_cola_regla lista las mismas 8 claves que PLANTILLAS de valida.ts');
-  igual(reglas.filter((x) => x.soportada).map((x) => x.clave).concat(DE_PARCELA).sort(), Object.keys(IDS).sort(), 'las claves soportadas en SQL (+ las 2 de parcela, aparte) son las que resuelve la edge');
+  igual(reglas.filter((x) => x.soportada).map((x) => x.clave).concat(DE_PARCELA).sort(), Object.keys(IDS).sort(), 'las claves soportadas en SQL (+ las 3 aparte) son las que resuelve la edge');
   for (const r2 of reglas.filter((x) => x.soportada)) {
     const p = plantillas.find((x) => x.clave === r2.clave);
     igual(p.adjunto, false, r2.clave + ': sin adjunto (la edge manda attach:false)');
@@ -231,6 +232,22 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
     ok(/editables: \['invitacion'\]/.test(valida.match(/invitacion_portal:[^\n]*/)[0]), 'invitacion_portal: la única variable editable es el id de la fila');
     ok(mi.split('correos_enviados_via_check check')[1].includes("'" + fila[6] + "'"), 'la vía invitacion_portal está en el CHECK de correos_enviados');
     ok(mi.includes('function public.invitacion_portal_datos'), 'la RPC que lee la edge existe en la migración');
+  }
+  // aviso_ia_conexion: su regla, su ancla y que NO entra en correos_enviados (no tiene contrato ni factura), cruzado con su migración
+  {
+    // por el final del nombre: la versión la pone apply_migration al aplicarla (una sola, si no la prueba falla)
+    const p6 = fs.readdirSync(path.join(raiz, 'supabase', 'migrations')).filter((f) => f.endsWith('_mcp_f1_p6_aviso_conexion.sql'));
+    igual(p6.length, 1, 'una sola migración *_mcp_f1_p6_aviso_conexion.sql');
+    const ma = leer('supabase', 'migrations', p6[0]);
+    const fila = /\('aviso_ia_conexion',\s*'(ia_conexion_id)',\s*(true|false),\s*(\d+),\s*(\d)::smallint,\s*(\d+),\s*'([a-z_]+)'/.exec(ma);
+    ok(fila, 'regla SQL de aviso_ia_conexion');
+    igual(fila[2], 'false', 'aviso_ia_conexion: soportada=false en SQL (solo el trigger del alta de la conexión la crea)');
+    const pa = plantillasTodas.find((x) => x.clave === 'aviso_ia_conexion');
+    igual(pa.adjunto, false, 'aviso_ia_conexion: sin adjunto'); igual([...IDS.aviso_ia_conexion].sort(), [...pa.ids].sort(), 'aviso_ia_conexion: ids de la edge = ids que pide el motor (ninguno)');
+    ok(/editables: \['aviso'\]/.test(valida.match(/aviso_ia_conexion:[^\n]*/)[0]), 'aviso_ia_conexion: la única variable editable es el id de la fila');
+    ok(/if r\.ia_conexion_id is not null then\s+update public\.ia_conexiones c set avisada_en = now\(\)[^;]*;\s+return true;/.test(ma), 'correo_cola_ok: el aviso marca avisada_en y sale antes de correos_enviados');
+    ok(!/correos_enviados_via_check/.test(ma), 'y no toca el CHECK de vías de correos_enviados');
+    ok(ma.includes('function public.ia_aviso_conexion_datos'), 'la RPC que lee la edge existe en la migración');
   }
   // las vías de correos_enviados que usa la cola existen en su CHECK
   const viasCola = [...mig.matchAll(/^\s*\('[a-z_]+',\s*'[a-z_]+',\s*(?:true|false),\s*\d+,\s*\d::smallint,\s*\d+,\s*'([a-z_]+)'/gm)].map((m) => m[1]);

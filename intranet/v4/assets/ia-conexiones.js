@@ -26,7 +26,7 @@
   var ASISTENTES = { claude: 'Claude', chatgpt: 'ChatGPT' };   // la lista cerrada de la base (ia_clientes.asistente)
   function asistenteTexto(a) { return ASISTENTES[a] || String(a || '—'); }
 
-  /* revocada_motivo: los 10 valores del CHECK de ia_conexiones. Uno que no esté aquí se enseña como «cortada» a secas. */
+  /* revocada_motivo: los 11 valores del CHECK de ia_conexiones. Uno que no esté aquí se enseña como «cortada» a secas. */
   var MOTIVOS = {
     persona: 'la cortaste tú',
     admin: 'la cortó el super admin',
@@ -37,7 +37,8 @@
     permiso: 'se cortó porque se quitó el permiso para conectar asistentes',
     apagado: 'se cortó porque se apagó la IA en la intranet',
     usuario_inactivo: 'se cortó porque el usuario está desactivado',
-    cliente: 'se cortó porque el super admin apagó ese asistente'
+    cliente: 'se cortó porque el super admin apagó ese asistente',
+    sin_aviso: 'se cortó por seguridad: no pudimos enviarte el correo que avisa de la conexión'
   };
   function motivoTexto(m) { return MOTIVOS[m] ? T(MOTIVOS[m]) : T('cortada'); }
 

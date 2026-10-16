@@ -80,6 +80,11 @@ begin
     values ('reclamo_pago', false,
             '{"permitidas":["saludo","parcela","proyecto","empresa","nota","enlace","marca","firma"],"obligatorias":{"asunto":["parcela"],"cuerpo":["parcela","enlace"],"cuerpo_alt":[]},"variantes":1}'::jsonb, 0)
     on conflict (clave) do nothing;
+    -- y la suya, como 20261015071004 (16-oct: con 071004 ya en el volcado, la rama trae la estructura sin la fila que siembra)
+    insert into public.correo_plantillas (clave, activa, variables, version)
+    values ('invitacion_portal', false,
+            '{"permitidas":["saludo_en","saludo_es","parcela","proyecto","nota","enlace"],"obligatorias":{"asunto":[],"cuerpo":["enlace"],"cuerpo_alt":[]},"variantes":1}'::jsonb, 0)
+    on conflict (clave) do nothing;
     insert into public.clients (full_name, email) values ('ZZ-IP Uno', 'zz-ip-uno@prueba.invalid') returning id into c1;
     insert into public.clients (full_name, email) values ('ZZ-IP Dos', 'zz-ip-dos@prueba.invalid') returning id into c2;
     insert into public.clients (full_name, email) values ('ZZ-IP Tres', ag.em) returning id into c3;
