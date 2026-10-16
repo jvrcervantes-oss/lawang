@@ -1,5 +1,5 @@
 -- Prueba de privado.carta_imputable en el alta de un Bloqueo de Parcela (16-oct-2026, migración
--- 20261016083000_carta_liberada_mismo_comprador.sql). La regla nueva: una Carta (liberada, la que ocupa la parcela o la colgada)
+-- 20261016121257_carta_liberada_mismo_comprador.sql). La regla nueva: una Carta (liberada, la que ocupa la parcela o la colgada)
 -- solo aporta dinero o parcela al Bloqueo si comparten una FICHA (client_id que guardó el servidor) y son de la MISMA empresa; el
 -- pasaporte o el correo que escribe el navegador ya no deciden. Revisión previa #397 (Seguridad). Con dinero REAL reclamable en cada Carta (si no, «0 abono» no probaría nada) y el alta por contrato_guarda
 -- con la sesión del agente, como la pantalla (lección de Backend 11-oct: la prueba va por la RPC y el rol reales).

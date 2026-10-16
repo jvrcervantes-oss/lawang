@@ -16,7 +16,7 @@
 --   G1-G3  proyecto_guarda: cambiar el slug se rechaza antes de tocar nada (22023); mandar el mismo slug con otro cambio guarda.
 --   P1-P2  permisos: las 4 de la intranet nacen sin EXECUTE (P1 mide antes del grant que la prueba se da para B/V/R/T, como hará
 --          2M); privado.carta_cobrado_calcula_por_id, nadie.
--- 16-oct-2026 (20261016083000_carta_liberada_mismo_comprador): una Carta solo aporta dinero o parcela a un Bloqueo con una FICHA en
+-- 16-oct-2026 (20261016121257_carta_liberada_mismo_comprador): una Carta solo aporta dinero o parcela a un Bloqueo con una FICHA en
 -- común (ya no por el pasaporte), así que el comprador ZZ-PI es una ficha (ZZ-PI Comprador, del agente) y las Cartas y el Bloqueo la
 -- llevan en datos.adq1_client_id, como la pantalla. pg_temp.bloqueo la lee de la variable de transacción zz.pi_ficha.
 -- MONTAJE: filas propias marcadas ZZ-PI. Lo cobrado de la Carta se fija sustituyendo, SOLO dentro de esta transacción de rama,
