@@ -82,9 +82,9 @@ as $$
                'llamadas', (select count(*) from public.ia_llamadas l where l.conexion_id = c.id and l.resultado = 'ok'))
              order by c.creada_en desc)
         from public.ia_conexiones c join public.ia_clientes k on k.id = c.cliente_id
-             -- la misma regla que privado.ia_conexion_motivo (P6 §7b): sin aviso pasadas tope_horas (o sin regla) ya no puede
+             -- la misma regla y el mismo orden que privado.ia_conexion_motivo (P6 §7b; caducada va antes): sin aviso pasadas tope_horas (o sin regla) ya no puede
              -- consultar y su siguiente uso la corta; aquí se enseña ya cortada, sin escribir (esta lectura es STABLE)
-             cross join lateral (select c.revocada_en is null and c.avisada_en is null
+             cross join lateral (select c.revocada_en is null and c.expira_en > now() and c.avisada_en is null
                                         and (p.tope_aviso is null or c.creada_en < now() - make_interval(hours => p.tope_aviso)) as sin_aviso) m
        where c.usuario_id = p.uid and c.creada_en > now() - interval '30 days'), '[]'::jsonb))
     from puede p;

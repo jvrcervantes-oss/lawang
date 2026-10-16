@@ -186,7 +186,7 @@ begin
   update public.ia_conexiones set creada_en = now() - interval '25 hours' where id = con2;
   update public.correos_cola set encolado_en = now() - interval '25 hours' where ia_conexion_id = con2;
   -- «apps conectadas» (20261016230000) ya la enseña cortada antes de su siguiente uso, sin escribir nada
-  if pg_get_functiondef('public.ia_mis_conexiones()'::regprocedure) like '%sin_aviso%' then
+  if position('sin_aviso' in pg_get_functiondef('public.ia_mis_conexiones()'::regprocedure)) > 0 then
     v := pg_temp.sesion(b.uid, b.em, 'select public.ia_mis_conexiones()::text');
     select x into j from jsonb_array_elements(case when v like '{%' then v::jsonb -> 'conexiones' else '[]'::jsonb end) x where x ->> 'id' = con2::text;
     r := r || pg_temp.l(j ->> 'viva' = 'false' and j ->> 'revocada_motivo' = 'sin_aviso' and j ->> 'revocada_en' is not null
