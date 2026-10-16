@@ -422,6 +422,12 @@ verify_jwt = false
 
 # bot-api (S4 del encargo bot de Lawang, 9-oct-2026): la llama el servicio lawang-bot (Railway), servidor a servidor, con X-Bot-Secret (un secreto por ruta).
 # Sin JWT del gateway; la puerta es el secreto, y sin secretos configurados responde 401 a todo. Se despliega con --no-verify-jwt; esta entrada fija el valor.
+# mcp (MCP de Lawang F1-P3, 16-oct-2026, encargos/20261015_erp_mcp.md): el puente que deja a Claude o ChatGPT LEER con el usuario de la
+# persona. verify_jwt=false porque el asistente trae un token OPACO del puente (no un JWT de Supabase) y el 401 con su WWW-Authenticate
+# tiene que salir de la funcion. Sin llaves: solo la clave publicable; todo el control (PKCE, tope, registro, 7 dias) vive en public.ia_puente.
+[functions.mcp]
+verify_jwt = false
+
 [functions.bot-api]
 verify_jwt = false
 

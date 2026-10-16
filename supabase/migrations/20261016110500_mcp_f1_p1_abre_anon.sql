@@ -1,0 +1,13 @@
+-- MCP de Lawang · F1-P1b · abre la entrada del puente a anon (16-oct-2026, sesión mcp-lawang).
+-- PARADA DEL OWNER: abre una función a `anon` (CLAUDE.md, Política de autonomía; departamentos/backend/prompt.md → Supabase).
+-- No se aplica en la viva sin su OK escrito; se ensaya en rama junto a 20261016110000 y 20261016120000.
+--
+-- Por qué a anon. La edge `mcp` no tiene llaves (ni service_role ni secretos): llega a la base solo con la clave publicable, es
+-- decir, como anon. public.ia_puente solo hace algo si le llega un token, un código o una petición válidos (256 bits aleatorios,
+-- comprobados por su hash dentro de la base); con cualquier otra cosa devuelve error sin escribir (prueba J3 de
+-- supabase/pruebas/mcp_f1_p1_base.sql). Pública con motivo escrito: contexto/seguridad_2026.md §1.ter. Llamador: la edge `mcp`.
+-- Cualquiera con la clave publicable puede llamarla también sin la edge; por eso PKCE, recurso, tope y registro viven dentro
+-- de la base, no en la edge (#394/#395).
+--
+-- VUELTA ATRÁS (no destruye nada): revoke execute on function public.ia_puente(text, jsonb) from anon;
+grant execute on function public.ia_puente(text, jsonb) to anon;
