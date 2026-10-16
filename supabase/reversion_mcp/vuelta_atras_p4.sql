@@ -1,4 +1,4 @@
--- destructivo-ok: VUELTA ATRÁS de 20261016130000_mcp_f1_p4_ajustes.sql (funciones de las pantallas del MCP de Lawang).
+-- destructivo-ok: VUELTA ATRÁS de 20261016073530_mcp_f1_p4_ajustes.sql (funciones de las pantallas del MCP de Lawang).
 -- No borra datos: P4 no crea tablas. Las pantallas dejan de funcionar; apagar la IA sin esto: Ajustes › IA o
 -- `update public.ia_ajustes set encendido = false`. Va ANTES de vuelta_atras_p1.sql si se quita todo.
 begin;

@@ -1,6 +1,6 @@
 /* Ajustes › IA (MCP de Lawang F1-P4, 16-oct-2026): el interruptor mínimo para que el super admin encienda la conexión con asistentes
  * de IA sin el estudio (máxima 2: nada del ERP fuera de su base). Encargo: encargos/20261015_erp_mcp.md (agencia), fila «Lawang F1-P4».
- * Servidor: supabase/migrations/20261016130000_mcp_f1_p4_ajustes.sql.
+ * Servidor: supabase/migrations/20261016073530_mcp_f1_p4_ajustes.sql.
  *
  * Qué hace esta pieza (y solo esto), solo para el super administrador GLOBAL:
  *  · lee todo de una vez por `ia_ajustes_datos` (interruptor y topes, asistentes, equipo con su permiso y su uso de hoy, conexiones vivas);

@@ -1,4 +1,4 @@
--- Prueba de las funciones de las pantallas del MCP (16-oct-2026, migración 20261016130000_mcp_f1_p4_ajustes.sql, sobre P1).
+-- Prueba de las funciones de las pantallas del MCP (16-oct-2026, migración 20261016073530_mcp_f1_p4_ajustes.sql, sobre P1).
 -- Solo en rama: siembra usuarios en auth.users. Termina en raise: no deja rastro.
 -- Lo que prueba (cada línea con su resultado):
 --   A  default-deny: anon sin EXECUTE en las 6; authenticated sin EXECUTE en los ayudantes privado.ia_*

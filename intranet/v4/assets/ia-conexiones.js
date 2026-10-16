@@ -1,6 +1,6 @@
 /* «Apps conectadas» y lo común de las conexiones de IA (MCP de Lawang F1-P4, 16-oct-2026).
- * Encargo: encargos/20261015_erp_mcp.md (agencia), fila «Lawang F1-P4». Servidor: supabase/migrations/20261016130000_mcp_f1_p4_ajustes.sql
- * (ia_mis_conexiones) y 20261016110000_mcp_f1_p1_base.sql (ia_conexion_revoca).
+ * Encargo: encargos/20261015_erp_mcp.md (agencia), fila «Lawang F1-P4». Servidor: supabase/migrations/20261016073530_mcp_f1_p4_ajustes.sql
+ * (ia_mis_conexiones) y 20261016073011_mcp_f1_p1_base.sql (ia_conexion_revoca).
  *
  * Dos usos, un solo fichero (Regla 0 de la suite: lo que usan dos pantallas nace compartido):
  *  · window.LW_IA — lo que comparten /v4/ia/ (las conexiones de la persona) y Ajustes › IA (ajustes-ia.js, las de todos):

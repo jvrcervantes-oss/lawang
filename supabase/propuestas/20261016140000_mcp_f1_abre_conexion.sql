@@ -1,5 +1,5 @@
 -- MCP de Lawang · F1 · abre la entrada del puente: la edge `mcp` (anon) y la página de conexión (authenticated) (16-oct-2026,
--- sesión mcp-lawang). Va DESPUÉS de 20261016130000 (P4): ia_peticion_datos nace allí.
+-- sesión mcp-lawang). Va DESPUÉS de 20261016073530 (P4): ia_peticion_datos nace allí.
 -- PARADA DEL OWNER: abre una función a `anon` (CLAUDE.md, Política de autonomía; departamentos/backend/prompt.md → Supabase).
 -- No se aplica en la viva sin su OK escrito; hasta entonces vive en supabase/propuestas/ (fuera de migrations/: revisor, 16-oct) y
 -- con el OK pasa a migrations/. Sale JUNTO con el despliegue de la edge `mcp` y la página intranet/v4/ia/conectar/: sin ellos
@@ -30,7 +30,7 @@
 --   revoke execute on function public.ia_puente(text, jsonb) from anon;
 --   revoke execute on function public.ia_conexion_autoriza(text) from authenticated;
 --   revoke execute on function public.ia_peticion_datos(text) from authenticated;
---   y volver a crear privado.ia_auth_usuario tal como está en 20261016110000 (corta las conexiones que haya: falla cerrado).
+--   y volver a crear privado.ia_auth_usuario tal como está en 20261016073011 (corta las conexiones que haya: falla cerrado).
 create or replace function privado.ia_auth_usuario(p_uid uuid)
 returns jsonb
 language sql

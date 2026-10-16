@@ -1,4 +1,4 @@
--- destructivo-ok: VUELTA ATRÁS de 20261016120000_mcp_f1_p2_herramientas.sql (las 10 herramientas de lectura del MCP de Lawang).
+-- destructivo-ok: VUELTA ATRÁS de 20261016073333_mcp_f1_p2_herramientas.sql (las 10 herramientas de lectura del MCP de Lawang).
 -- No borra datos: P2 solo crea funciones. Antes, retirar la edge `mcp` o apagar en Ajustes › IA. Deja privado.ia_despacha
 -- como el stub de P1 (ninguna herramienta), con su dueño y su ACL vacía. Va ANTES de vuelta_atras_p1.sql si se quita todo.
 begin;

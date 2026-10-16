@@ -21,8 +21,8 @@ const igual = (a, b, m) => { if (JSON.stringify(a) !== JSON.stringify(b)) falla(
 
 const comun = leer('intranet', 'v4', 'assets', 'ia-conexiones.js');
 const aj = leer('intranet', 'v4', 'assets', 'ajustes-ia.js');
-const p1 = leer('supabase', 'migrations', '20261016110000_mcp_f1_p1_base.sql');
-const p4 = leer('supabase', 'migrations', '20261016130000_mcp_f1_p4_ajustes.sql');
+const p1 = leer('supabase', 'migrations', '20261016073011_mcp_f1_p1_base.sql');
+const p4 = leer('supabase', 'migrations', '20261016073530_mcp_f1_p4_ajustes.sql');
 const mig = p1 + '\n' + p4;
 
 /* ── el cuerpo de una función de la migración (la ÚLTIMA definición, por si se redefine) ── */

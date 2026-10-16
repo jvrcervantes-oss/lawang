@@ -1,4 +1,4 @@
--- Prueba de MCP F1-P2 (16-oct-2026, migración 20261016120000_mcp_f1_p2_herramientas.sql): las 10 `privado.mcp_*`.
+-- Prueba de MCP F1-P2 (16-oct-2026, migración 20261016073333_mcp_f1_p2_herramientas.sql): las 10 `privado.mcp_*`.
 -- Encargo: encargos/20261015_erp_mcp.md (Lawang F1-P2). Armazón de precio_cadena_vigente.sql / contrato_propio_permiso_agente.sql.
 --   C   canarios: el rol del puente surte efecto, la sesión simulada llega a auth.uid(), e ia_puente_rol no lee una tabla
 --       ni llama a un lector `public.mcp_*_lee` (solo las 10 puertas).
@@ -15,7 +15,7 @@
 -- raw_app_meta_data del usuario sembrado), aal:'aal1'} + request.jwt.claim.sub/email/role, todo con is_local = true, y
 -- `set local role ia_puente_rol`.
 -- !! CREA USUARIOS, CONTRATOS, FACTURAS Y GASTOS: SOLO EN RAMA, NUNCA EN LA BASE VIVA (P0 lo comprueba).
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261016110000_mcp_f1_p1_base.sql,20261016120000_mcp_f1_p2_herramientas.sql --prueba mcp_f1_p2_herramientas.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261016073011_mcp_f1_p1_base.sql,20261016073333_mcp_f1_p2_herramientas.sql --prueba mcp_f1_p2_herramientas.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-MCP.
 -- destructivo-ok: prueba en transacción que termina en raise (rollback); solo en rama
 --

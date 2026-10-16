@@ -1,6 +1,6 @@
 // mcp/herramientas.js — 16-oct-2026. Lo que el asistente ve de cada herramienta (tools/list). Las descripciones viven en el CÓDIGO,
 // nunca en la base (plan F0 §4: lo que se lee de la base es dato, no instrucciones). Los nombres y las claves de argumentos son los de
-// privado.ia_despacha (20261016120000_mcp_f1_p2_herramientas.sql): una clave de más la rechaza la base sin contar en el tope.
+// privado.ia_despacha (20261016073333_mcp_f1_p2_herramientas.sql): una clave de más la rechaza la base sin contar en el tope.
 // Todas son de LECTURA y devuelven solo ids, códigos, importes, monedas y fechas: nunca datos de comprador ni textos libres.
 const SIN_ARGS = { type: 'object', properties: {}, additionalProperties: false };
 const fecha = (d) => ({ type: 'string', format: 'date', pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: d });

@@ -1,4 +1,4 @@
--- Prueba de la base del puente MCP (16-oct-2026, migración 20261016110000_mcp_f1_p1_base.sql; se corre también con
+-- Prueba de la base del puente MCP (16-oct-2026, migración 20261016073011_mcp_f1_p1_base.sql; se corre también con
 -- supabase/propuestas/20261016140000_mcp_f1_abre_conexion.sql (pendiente del OK del owner) aplicada o sin ella: si anon no tiene EXECUTE, la prueba se lo da DENTRO de la
 -- transacción, que se deshace). Solo en rama: siembra usuarios en auth.users. Termina en raise: no deja rastro.
 -- Lo que prueba (prueba-trampa de #394/#395, cada línea con su resultado):
