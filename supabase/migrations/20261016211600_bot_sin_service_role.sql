@@ -3,8 +3,9 @@
 -- bot_*, alcance A de BOT-S1; fila «sonda viva de proacl para bot_*» de contexto/seguridad_2026.md §7 de la agencia).
 --
 -- MEDIDO el 16-oct en la base de Lawang, en solo lectura (erp/sql.py lawang, con permiso del owner), con la consulta del bloque `bot`: las
--- cuatro salen ejecutables por service_role, que ninguna migración les dio (las de 20260927150000 y 20260927171000 conceden solo a
--- authenticated): viene de los permisos por defecto del esquema al crearlas.
+-- cuatro salen ejecutables por service_role. bot_temas_resumen lo tenía CONCEDIDO a mano (20260922210000_bot_faq_temas.sql:429, «to
+-- authenticated, service_role»); las otras tres lo heredan de los permisos por defecto del esquema al crearlas (sus migraciones,
+-- 20260927150000 y 20260927171000, conceden solo a authenticated).
 --
 -- POR QUÉ NO TIENEN LLAMADOR CON service_role (búsqueda del 16-oct en Lawang, el ERP, AxisWorks y todas las ramas de bot-whatsapp):
 --   · bot_faq_aprobar y bot_faq_retirar: solo la edge bot-agentes, con el JWT del usuario (createClient(URL_SB, ANON, Authorization: Bearer
@@ -30,6 +31,9 @@ begin
                            'public.bot_respuesta_copiada(uuid, text)', 'public.bot_temas_resumen(integer)'] loop
     if has_function_privilege('service_role', f::regprocedure, 'execute') then
       raise exception '% sigue ejecutable por service_role (¿lo da PUBLIC o un rol del que es miembro?)', f;
+    end if;
+    if has_function_privilege('anon', f::regprocedure, 'execute') then
+      raise exception '% la ejecuta anon: el bot de agentes nunca va sin sesión', f;
     end if;
     if not has_function_privilege('authenticated', f::regprocedure, 'execute') then
       raise exception '% ya no la ejecuta authenticated: la pantalla o la edge que la llama se quedaría sin ella', f;
