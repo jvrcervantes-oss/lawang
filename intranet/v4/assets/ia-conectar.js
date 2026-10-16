@@ -13,7 +13,8 @@
    SEGURIDAD. El token de esta sesión vive solo en la memoria del cliente de Supabase y en el campo oculto `sesion` desde el
    clic de Permitir hasta que se envía (se vacía en el acto). Nunca en la URL, en consola ni en almacenamiento. Lo que llega
    de la base o de la URL se pinta con textContent; un ?error= que no está en la lista cerrada da el mensaje genérico.
-   Cancelar, «no puede» y el tiempo agotado cierran la sesión en el servidor (signOut local = revoca su refresco).
+   Cancelar, «no puede» y el tiempo agotado cierran la sesión en el servidor (signOut local: revoca su refresco; el access
+   token ya emitido sigue valiendo hasta que caduca, pero solo vivía en la memoria de esta página).
 
    IDIOMAS. Diccionario propio (es/en/id) y atributo data-k: la suite solo tiene es/en (idioma.js recorta a esos dos) y esta
    página no debe tocar ni ensuciar el diccionario común. Lee la elección de la suite (lawang_idioma_ui) pero no la escribe. */
@@ -73,6 +74,7 @@
       cancelado_titulo: 'No se ha conectado nada',
       cancelado_texto: 'Has cancelado. Puedes cerrar esta pestaña y volver a tu asistente.',
       asistente: 'El asistente',
+      sin_vuelta: 'La conexión no ha terminado de abrirse. Vuelve a pedirla desde tu asistente.',
       error_contrasena_no_reciente: 'Ha pasado demasiado tiempo desde que escribiste la contraseña. Escríbela otra vez y confirma en menos de dos minutos.',
       error_apagado: 'La conexión de asistentes está apagada en %marca. Si la necesitas, pídele a un administrador que la encienda.',
       error_sin_permiso: 'Tu usuario no tiene permiso para conectar asistentes. Pídeselo a un administrador.',
@@ -129,6 +131,7 @@
       cancelado_titulo: 'Nothing was connected',
       cancelado_texto: 'You cancelled. You can close this tab and go back to your assistant.',
       asistente: 'The assistant',
+      sin_vuelta: 'The connection did not finish opening. Request it again from your assistant.',
       error_contrasena_no_reciente: 'Too much time has passed since you entered your password. Enter it again and confirm within two minutes.',
       error_apagado: 'Assistant connections are turned off in %marca. If you need one, ask an administrator to turn them on.',
       error_sin_permiso: 'Your user is not allowed to connect assistants. Ask an administrator.',
@@ -185,6 +188,7 @@
       cancelado_titulo: 'Tidak ada yang terhubung',
       cancelado_texto: 'Anda membatalkan. Anda dapat menutup tab ini dan kembali ke asisten Anda.',
       asistente: 'Asisten',
+      sin_vuelta: 'Koneksi belum selesai dibuka. Minta lagi dari asisten Anda.',
       error_contrasena_no_reciente: 'Sudah terlalu lama sejak Anda memasukkan kata sandi. Masukkan lagi dan konfirmasi dalam waktu dua menit.',
       error_apagado: 'Koneksi asisten dimatikan di %marca. Jika Anda membutuhkannya, minta administrator untuk menyalakannya.',
       error_sin_permiso: 'Pengguna Anda tidak memiliki izin untuk menghubungkan asisten. Mintalah kepada administrator.',
@@ -222,6 +226,9 @@
     ocupado: false,
     enviado: false,
     reintento: null,      // qué vuelve a probar «Intentar otra vez»
+    sinVuelta: 0,         // temporizador de «la vuelta al asistente no ha llegado»
+    vuelta: 0,            // sube en cada cierre de sesión: descarta respuestas de un intento anterior
+    cerrando: null,       // el signOut en curso: un inicio nuevo lo espera
     reloj: 0
   };
   var sb = null;
@@ -307,7 +314,6 @@
     el.hidden = !clave;
     el.textContent = clave ? t(clave) : '';
   }
-  function ponAviso(clave) { estado.aviso = clave; aplicaTextos(); }
 
   /* ── pasos ────────────────────────────────────────────────────────────────────────────────────── */
   function muestra(paso) {
@@ -360,16 +366,29 @@
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'lw-ia-conectar' }
     });
   }
+  // Toda llamada a Supabase pasa por aquí: nunca rechaza, devuelve { error } (y status 0 si no hubo respuesta).
+  function seguro(fn) {
+    var p;
+    try { p = fn(); } catch (err) { return Promise.resolve({ error: err, status: 0 }); }
+    return Promise.resolve(p).then(function (r) { return r || {}; }, function (err) { return { error: err, status: 0 }; });
+  }
+  /* VUELTAS (revisión de código, 16-oct): cada cierre de sesión abre una vuelta nueva. Una respuesta que llega de una vuelta
+     anterior (el código que se envió en el segundo 104, la petición que contesta tras «Cancelar») se descarta: si no, podía
+     volver a cerrar la sesión de un intento nuevo o pintar un paso que ya no toca. */
+  function vigente(v) { return v === estado.vuelta; }
   function cierraSesion() {
+    estado.vuelta++;
     estado.t0 = null;
     estado.factorId = null;
     if (!sb) return Promise.resolve();
-    // El mismo cliente sirve para el siguiente intento: signOut vacía su memoria y un inicio nuevo la pisa igualmente
-    // (crear otro con la misma storageKey hace que supabase-js avise de «Multiple GoTrueClient instances»).
-    return sb.auth.signOut({ scope: 'local' }).then(function () {}, function () {
-      /* MUDO A PROPOSITO: si el cierre no llega, el token solo vivía en la memoria de esta página (ya descartada) y caduca
-         solo en la hora de vida del access token; la persona no puede hacer nada distinto con un aviso */
+    // El mismo cliente sirve para el siguiente intento (otro con la misma storageKey hace avisar a supabase-js de «Multiple
+    // GoTrueClient instances»); por eso un inicio nuevo ESPERA a que este cierre termine (estado.cerrando): si no, el cierre
+    // lento borraría la sesión recién creada. signOut local revoca en el servidor esta sesión (su refresco); el access
+    // token ya emitido sigue siendo válido hasta que caduca (1 h), pero solo vivía en la memoria de esta página.
+    estado.cerrando = seguro(function () { return sb.auth.signOut({ scope: 'local' }); }).then(function () {
+      /* el resultado no cambia nada: si el cierre no llega, no hay otra cosa que la persona pueda hacer */
     });
+    return estado.cerrando;
   }
   function vuelveAEntrar(clave) {
     estado.ocupado = false;
@@ -379,16 +398,19 @@
     estado.aviso = clave || null;
     $('#ic-clave').value = '';
     $('#ic-codigo').value = '';
-    var be = $('[data-accion="entrar"]');
-    be.disabled = false;
+    $('[data-accion="entrar"]').disabled = false;
+    $('[data-accion="verificar"]').disabled = false;
+    $$('[data-accion="cancelar"]').forEach(function (b) { b.disabled = false; });
     muestra('entrar');
   }
 
-  function claseErrorLogin(err) {
-    var st = err && err.status, cod = (err && err.code) || '', msg = (err && err.message) || '';
+  function claseErrorLogin(r) {
+    var err = r && r.error;
+    var st = (err && err.status) || (r && r.status), cod = (err && err.code) || '', msg = (err && err.message) || '';
     if (cod === 'invalid_credentials' || /invalid login credentials/i.test(msg)) return 'login_credenciales';
     if (st === 429 || cod === 'over_request_rate_limit') return 'login_demasiados';
     if (!st || (err && err.name === 'AuthRetryableFetchError') || st >= 500) return 'login_red';
+    if (st === 401 || st === 403) return 'sesion_rota';
     return 'login_otro';
   }
 
@@ -408,51 +430,51 @@
     var boton = $('[data-accion="entrar"]');
     boton.disabled = true;
     aplicaTextos();
-    var antes = performance.now();
-    sb.auth.signInWithPassword({ email: correo, password: clave }).then(function (r) { return r; }, function (err) {
-      return { error: err };
+    var v = estado.vuelta, antes = 0;
+    (estado.cerrando || Promise.resolve()).then(function () {
+      if (!vigente(v)) return null;
+      antes = performance.now();
+      return seguro(function () { return sb.auth.signInWithPassword({ email: correo, password: clave }); });
     }).then(function (r) {
+      if (!r || !vigente(v)) return;
       $('#ic-clave').value = '';
+      estado.ocupado = false;
+      boton.disabled = false;
       if (r.error || !r.data || !r.data.session) {
-        estado.ocupado = false;
-        boton.disabled = false;
-        estado.errEntrar = claseErrorLogin(r.error);
+        var c = claseErrorLogin(r);
+        estado.errEntrar = c === 'sesion_rota' ? 'login_otro' : c;
         aplicaTextos();
         $('#ic-clave').focus();
         return;
       }
       estado.t0 = antes;                 // desde ANTES de pedirlo: el reloj de la base arranca al autenticar
       estado.correo = (r.data.user && r.data.user.email) || correo;
-      estado.ocupado = false;
-      boton.disabled = false;
       segundoFactor();
     });
   }
 
   function segundoFactor() {
     if (caducado()) { caduca(); return; }
-    sb.auth.mfa.getAuthenticatorAssuranceLevel().then(function (r) { return r; }, function (err) {
-      return { error: err };
-    }).then(function (r) {
+    var v = estado.vuelta;
+    seguro(function () { return sb.auth.mfa.getAuthenticatorAssuranceLevel(); }).then(function (r) {
+      if (!vigente(v)) return;
       if (r.error || !r.data) { muestraSinMirar(segundoFactor); return; }
-      if (r.data.nextLevel === 'aal2' && r.data.currentLevel !== 'aal2') {
-        return sb.auth.mfa.listFactors().then(function (f) { return f; }, function (err) { return { error: err }; })
-          .then(function (f) {
-            if (f.error || !f.data) { muestraSinMirar(segundoFactor); return; }
-            var totp = (f.data.totp || []).filter(function (x) { return x.status === 'verified'; })[0];
-            if (!totp) {
-              cierraSesion();
-              estado.aviso = 'mfa_sin_totp';
-              fin();
-              return;
-            }
-            estado.factorId = totp.id;
-            estado.errCodigo = null;
-            muestra('codigo');
-            arrancaReloj();
-          });
-      }
-      comprueba();
+      if (!(r.data.nextLevel === 'aal2' && r.data.currentLevel !== 'aal2')) { comprueba(); return; }
+      seguro(function () { return sb.auth.mfa.listFactors(); }).then(function (f) {
+        if (!vigente(v)) return;
+        if (f.error || !f.data) { muestraSinMirar(segundoFactor); return; }
+        var totp = (f.data.totp || []).filter(function (x) { return x.status === 'verified'; })[0];
+        if (!totp) {
+          cierraSesion();
+          estado.aviso = 'mfa_sin_totp';
+          fin();
+          return;
+        }
+        estado.factorId = totp.id;
+        estado.errCodigo = null;
+        muestra('codigo');
+        arrancaReloj();
+      });
     });
   }
 
@@ -460,7 +482,8 @@
     e.preventDefault();
     if (estado.ocupado) return;
     if (caducado()) { caduca(); return; }
-    var codigo = $('#ic-codigo').value.replace(/\s+/g, '');
+    // se quitan espacios y guiones: las apps copian «123 456»; el campo no corta (sin maxlength 6) para no perder una cifra
+    var codigo = $('#ic-codigo').value.replace(/[\s-]+/g, '');
     if (!/^[0-9]{6}$/.test(codigo)) {
       estado.errCodigo = 'codigo_formato';
       aplicaTextos();
@@ -472,14 +495,16 @@
     var boton = $('[data-accion="verificar"]');
     boton.disabled = true;
     aplicaTextos();
-    sb.auth.mfa.challengeAndVerify({ factorId: estado.factorId, code: codigo }).then(function (r) { return r; }, function (err) {
-      return { error: err };
-    }).then(function (r) {
+    var v = estado.vuelta;
+    seguro(function () { return sb.auth.mfa.challengeAndVerify({ factorId: estado.factorId, code: codigo }); }).then(function (r) {
+      if (!vigente(v)) return;
       estado.ocupado = false;
       boton.disabled = false;
       $('#ic-codigo').value = '';
       if (r.error) {
-        var c = claseErrorLogin(r.error);
+        var c = claseErrorLogin(r);
+        // 401/403: la sesión temporal ya no vale (revocada, rota). Ningún código servirá: se vuelve a la contraseña.
+        if (c === 'sesion_rota') { cierraSesion(); vuelveAEntrar('error_falta_segundo_factor'); return; }
         estado.errCodigo = (c === 'login_demasiados' || c === 'login_red') ? c : 'codigo_mal';
         aplicaTextos();
         $('#ic-codigo').focus();
@@ -497,9 +522,9 @@
   function comprueba() {
     if (caducado()) { caduca(); return; }
     muestra('comprobando');
-    sb.rpc('ia_peticion_datos', { p_peticion: peticion }).then(function (r) { return r; }, function (err) {
-      return { error: err, status: 0 };
-    }).then(function (r) {
+    var v = estado.vuelta;
+    seguro(function () { return sb.rpc('ia_peticion_datos', { p_peticion: peticion }); }).then(function (r) {
+      if (!vigente(v)) return;
       if (r.error) {
         // sin respuesta o el servidor caído = «no he podido mirar»; cualquier otro rechazo de la base es un error de verdad
         if (!r.status || r.status >= 500) { muestraSinMirar(comprueba); return; }
@@ -524,8 +549,7 @@
       if (caducado()) { caduca(); return; }
       estado.nombre = typeof d.nombre === 'string' ? d.nombre.trim().slice(0, 80) : '';
       estado.dias = typeof d.duracion_dias === 'number' ? d.duracion_dias : Number(d.duracion_dias);
-      $('[data-accion="permitir"]').disabled = false;
-      $('[data-accion="cancelar"]').disabled = false;
+      $$('[data-accion="permitir"],[data-accion="cancelar"]').forEach(function (b) { b.disabled = false; });
       muestra('consentir');
       arrancaReloj();
     });
@@ -535,9 +559,10 @@
     if (estado.enviado) return;           // la petición vale UNA vez: un doble clic acabaría en peticion_invalida
     if (caducado()) { caduca(); return; }
     estado.enviado = true;
-    $('[data-accion="permitir"]').disabled = true;
-    $('[data-accion="cancelar"]').disabled = true;
-    sb.auth.getSession().then(function (r) { return r; }, function (err) { return { error: err }; }).then(function (r) {
+    $$('[data-accion="permitir"],[data-accion="cancelar"]').forEach(function (b) { b.disabled = true; });
+    var v = estado.vuelta;
+    seguro(function () { return sb.auth.getSession(); }).then(function (r) {
+      if (!vigente(v)) { estado.enviado = false; return; }
       var s = r && r.data && r.data.session;
       if (!s || !s.access_token || caducado()) {
         estado.enviado = false;
@@ -555,15 +580,25 @@
       f.submit();                          // el navegador ya ha copiado los campos: se vacían en el acto
       f.elements.sesion.value = '';
       f.elements.peticion.value = '';
+      // «Conectando…» no puede quedarse para siempre: si la vuelta al asistente no llega (red, o una dirección de vuelta
+      // fuera del form-action de la CSP), se dice. La petición ya puede estar gastada: hay que pedirla otra vez.
+      estado.sinVuelta = setTimeout(sinVuelta, 20000);
     });
   }
+  function sinVuelta() {
+    if (estado.paso !== 'enviando') return;
+    clearTimeout(estado.sinVuelta);
+    estado.aviso = 'sin_vuelta';
+    fin();
+  }
 
+  // Cancelar está en el código, en «no se ha podido comprobar» y en el consentimiento: nadie se queda esperando al reloj.
   function cancelar() {
     if (estado.enviado) return;
-    $('[data-accion="permitir"]').disabled = true;
-    $('[data-accion="cancelar"]').disabled = true;
+    $$('[data-accion="permitir"],[data-accion="cancelar"]').forEach(function (b) { b.disabled = true; });
     paraReloj();
     cierraSesion();
+    estado.aviso = null;
     muestra('cancelado');
   }
 
@@ -599,7 +634,11 @@
     $('[data-ic-paso="entrar"]').addEventListener('submit', entrar);
     $('[data-ic-paso="codigo"]').addEventListener('submit', verificar);
     $('[data-accion="permitir"]').addEventListener('click', permitir);
-    $('[data-accion="cancelar"]').addEventListener('click', cancelar);
+    $$('[data-accion="cancelar"]').forEach(function (b) { b.addEventListener('click', cancelar); });
+    document.addEventListener('securitypolicyviolation', function (e) {
+      if ((e.effectiveDirective || e.violatedDirective) === 'form-action') sinVuelta();
+    });
+    window.addEventListener('pagehide', function () { clearTimeout(estado.sinVuelta); });
     $('[data-accion="reintentar"]').addEventListener('click', function () {
       var f = estado.reintento || comprueba;
       estado.reintento = null;
