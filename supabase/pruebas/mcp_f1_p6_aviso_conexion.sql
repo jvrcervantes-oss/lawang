@@ -192,6 +192,13 @@ begin
     r := r || pg_temp.l(j ->> 'viva' = 'false' and j ->> 'revocada_motivo' = 'sin_aviso' and j ->> 'revocada_en' is not null
                         and (select revocada_en is null from public.ia_conexiones where id = con2),
                         'C3b «apps conectadas» la enseña cortada (sin_aviso) y la fila aún no está revocada → ' || left(coalesce(j::text, v), 90));
+    -- si además ya caducó, manda «caducada» (el mismo orden que ia_conexion_motivo): sin motivo ni hora de corte
+    update public.ia_conexiones set expira_en = expira_en - interval '400 days' where id = con2;
+    v := pg_temp.sesion(b.uid, b.em, 'select public.ia_mis_conexiones()::text');
+    select x into j from jsonb_array_elements(case when v like '{%' then v::jsonb -> 'conexiones' else '[]'::jsonb end) x where x ->> 'id' = con2::text;
+    r := r || pg_temp.l(j is not null and j ->> 'viva' = 'false' and j ->> 'revocada_motivo' is null and j ->> 'revocada_en' is null,
+                        'C3c caducada y sin aviso: «apps conectadas» la da por caducada, no por sin_aviso → ' || left(coalesce(j::text, v), 90));
+    update public.ia_conexiones set expira_en = expira_en + interval '400 days' where id = con2;
   else
     r := r || pg_temp.l(false, 'C3b «apps conectadas» OMITIDA: la 20261016230000 no está aplicada en esta rama');
   end if;
