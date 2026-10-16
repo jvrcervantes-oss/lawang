@@ -1,4 +1,4 @@
--- destructivo-ok: VUELTA ATRÁS de 20261016110000_mcp_f1_p1_base.sql y 20261016110500_mcp_f1_p1_abre_anon.sql (puente MCP de Lawang).
+-- destructivo-ok: VUELTA ATRÁS de 20261016110000_mcp_f1_p1_base.sql y, si se llegó a aplicar, supabase/propuestas/20261016110500_mcp_f1_p1_abre_anon.sql (puente MCP de Lawang).
 -- Solo a mano, con OK del owner y su válvula (tools/no_destruir.py), y con copia previa:
 --   python erp/respaldo_instancia.py lawang --previa "antes de revertir el puente MCP P1"
 -- PASO 1 — PARAR (no borra nada; basta casi siempre): `update public.ia_ajustes set encendido = false` (Ajustes › IA) y, si hace

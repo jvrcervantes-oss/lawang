@@ -1,6 +1,7 @@
 -- MCP de Lawang · F1-P1b · abre la entrada del puente a anon (16-oct-2026, sesión mcp-lawang).
 -- PARADA DEL OWNER: abre una función a `anon` (CLAUDE.md, Política de autonomía; departamentos/backend/prompt.md → Supabase).
--- No se aplica en la viva sin su OK escrito; se ensaya en rama junto a 20261016110000 y 20261016120000.
+-- No se aplica en la viva sin su OK escrito; hasta entonces vive en supabase/propuestas/ (fuera de migrations/: revisor, 16-oct) y
+-- con el OK pasa a migrations/ con este mismo nombre. Se ensaya en rama junto a 20261016110000 y 20261016120000.
 --
 -- Por qué a anon. La edge `mcp` no tiene llaves (ni service_role ni secretos): llega a la base solo con la clave publicable, es
 -- decir, como anon. public.ia_puente solo hace algo si le llega un token, un código o una petición válidos (256 bits aleatorios,

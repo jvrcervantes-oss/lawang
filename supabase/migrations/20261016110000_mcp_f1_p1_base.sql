@@ -4,7 +4,7 @@
 -- supabase»). Revisiones previas #393, #394 y #395 (Seguridad + Backend), incorporadas.
 --
 -- QUÉ CONSTRUYE (solo construye: no toca Auth, ni edges, ni nada existente; NO abre nada a anon — eso va aparte en
--- 20261016110500_mcp_f1_p1_abre_anon.sql, que es parada del owner):
+-- supabase/propuestas/20261016110500_mcp_f1_p1_abre_anon.sql, parada del owner: fuera de migrations/ hasta su OK):
 --   1. Rol `ia_puente_rol` NOLOGIN NOINHERIT NOBYPASSRLS. Es dueño de las tablas ia_* y de las funciones del puente, y de nada
 --      más: es la ÚNICA pieza que actúa como una persona (fija sus claims y llama a una mcp_* de lista cerrada). Sin escritura
 --      fuera de ia_*. Llamador con nombre: la edge `mcp` (vía public.ia_puente) y la página de conexión de la intranet.
@@ -140,7 +140,8 @@ create table public.ia_llamadas (
   herramienta text not null check (length(herramienta) <= 60),
   argumentos  jsonb not null default '{}'::jsonb check (pg_column_size(argumentos) <= 2048),
   resultado   text not null check (resultado in ('ok', 'sin_conexion', 'caducada', 'revocada', 'apagado', 'cliente',
-                                                 'permiso', 'usuario_inactivo', 'contrasena', 'tope', 'sin_permiso')),
+                                                 'permiso', 'usuario_inactivo', 'contrasena', 'tope', 'sin_permiso',
+                                                 'argumento_invalido', 'error')),
   filas       integer,
   ms          integer,
   creado_en   timestamptz not null default now()
@@ -322,7 +323,7 @@ as $$
   update public.ia_llamadas
      set filas = greatest(coalesce(p_filas, 0), 0),
          ms = (extract(epoch from clock_timestamp() - creado_en) * 1000)::integer,
-         resultado = case when p_resultado = 'sin_permiso' then 'sin_permiso' else resultado end
+         resultado = case when p_resultado in ('sin_permiso', 'argumento_invalido') then p_resultado else resultado end
    where id = p_llamada and filas is null
      and conexion_id::text = nullif(current_setting('axw.ia_conexion', true), '')
 $$;
@@ -385,8 +386,12 @@ begin
       return jsonb_build_object('error', 'invalid_request', 'detalle', 'PKCE S256');
     end if;
     if (d ->> 'recurso') is distinct from a.recurso then return jsonb_build_object('error', 'invalid_target'); end if;
+    -- tope por cliente (100) y global (400): quien llene las de un asistente no bloquea al otro (revisor, 16-oct). Llenarlas
+    -- sigue siendo posible con el client_id público; caducan en 5 min y la purga diaria las borra.
+    select count(*) into v_vivas from public.ia_peticiones where caduca_en > now() and usada_en is null and cliente_id = v_cli;
+    if v_vivas >= 100 then return jsonb_build_object('error', 'temporarily_unavailable'); end if;
     select count(*) into v_vivas from public.ia_peticiones where caduca_en > now() and usada_en is null;
-    if v_vivas >= 200 then return jsonb_build_object('error', 'temporarily_unavailable'); end if;
+    if v_vivas >= 400 then return jsonb_build_object('error', 'temporarily_unavailable'); end if;
     v := privado.ia_b64url(privado.ia_aleatorio());
     insert into public.ia_peticiones (id_hash, cliente_id, redirect_uri, code_challenge, recurso, estado)
     values (privado.ia_hash(v), v_cli, d ->> 'redirect_uri', d ->> 'code_challenge', a.recurso, left(d ->> 'estado', 500));
@@ -476,7 +481,20 @@ begin
     perform set_config('request.jwt.claim.email', coalesce(u ->> 'email', ''), true);
     perform set_config('request.jwt.claim.role', 'authenticated', true);
     perform set_config('axw.ia_conexion', c.id::text, true);
-    v_res := privado.ia_despacha(d ->> 'herramienta', coalesce(d -> 'argumentos', '{}'::jsonb));
+    begin
+      v_res := privado.ia_despacha(d ->> 'herramienta', coalesce(d -> 'argumentos', '{}'::jsonb));
+    exception when others or query_canceled then
+      -- La herramienta lanzó (o el tiempo de la API la cortó): su fila de ia_llamadas y el contador del tope se deshicieron con
+      -- ella. Se apuntan aquí: si no, forzar errores daría llamadas sin rastro y fuera del tope (revisor, 16-oct).
+      insert into public.ia_llamadas (conexion_id, usuario_id, herramienta, argumentos, resultado)
+      values (c.id, c.usuario_id, left(coalesce(d ->> 'herramienta', ''), 60),
+              case when pg_column_size(coalesce(d -> 'argumentos', '{}'::jsonb)) <= 2048 then coalesce(d -> 'argumentos', '{}'::jsonb)
+                   else jsonb_build_object('recortado', true) end,
+              'error');
+      insert into public.ia_uso (usuario_id, dia, n) values (c.usuario_id, (now() at time zone 'Asia/Makassar')::date, 1)
+      on conflict (usuario_id, dia) do update set n = public.ia_uso.n + 1;
+      v_res := jsonb_build_object('error', 'server_error');
+    end;
     perform set_config('axw.ia_conexion', '', true);
     return v_res;
   end if;
@@ -484,8 +502,10 @@ begin
 end $$;
 
 -- ── 7. RPC de la persona (authenticated) ──────────────────────────────────────────────────────────────────────────────────
--- La llama la edge `mcp` con la sesión RECIÉN creada en la página de conexión (contraseña puesta otra vez). El código vuelve a
--- la edge, que hace el 302: nunca pasa por el JavaScript de la intranet (#395, punto 7).
+-- La llama la edge `mcp` con la sesión RECIÉN creada en la página de conexión (contraseña puesta otra vez); la edge hace el 302
+-- y el JavaScript de la intranet no ve el código. No es una frontera de seguridad: es de authenticated y la llamaría también
+-- cualquier sesión con la contraseña recién puesta, pero el código no sirve sin el verificador PKCE, que solo tiene el
+-- asistente que pidió la conexión (revisor, 16-oct).
 create or replace function public.ia_conexion_autoriza(p_peticion text)
 returns jsonb
 language plpgsql
@@ -593,7 +613,7 @@ end $$;
 -- la página de conexión (vía la edge) y «apps conectadas»
 grant execute on function public.ia_conexion_autoriza(text) to authenticated;
 grant execute on function public.ia_conexion_revoca(uuid) to authenticated;
--- public.ia_puente: SIN grant a anon aquí. Lo abre 20261016110500_mcp_f1_p1_abre_anon.sql, con el OK del owner.
+-- public.ia_puente: SIN grant a anon aquí. Lo abre supabase/propuestas/20261016110500_mcp_f1_p1_abre_anon.sql, que pasa a migrations/ con el OK del owner.
 
 revoke create on schema public from ia_puente_rol;
 revoke create on schema privado from ia_puente_rol;

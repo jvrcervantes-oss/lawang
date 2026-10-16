@@ -1,5 +1,5 @@
 -- Prueba de la base del puente MCP (16-oct-2026, migración 20261016110000_mcp_f1_p1_base.sql; se corre también con
--- 20261016110500_mcp_f1_p1_abre_anon.sql aplicada o sin ella: si anon no tiene EXECUTE, la prueba se lo da DENTRO de la
+-- supabase/propuestas/20261016110500_mcp_f1_p1_abre_anon.sql (pendiente del OK del owner) aplicada o sin ella: si anon no tiene EXECUTE, la prueba se lo da DENTRO de la
 -- transacción, que se deshace). Solo en rama: siembra usuarios en auth.users. Termina en raise: no deja rastro.
 -- Lo que prueba (prueba-trampa de #394/#395, cada línea con su resultado):
 --   A  default-deny: anon/authenticated sin nada en las 8 tablas ia_*; las funciones del puente con su EXECUTE exacto (aclexplode)
@@ -81,7 +81,7 @@ begin
     insert into public.ia_clientes (asistente, nombre, redirect_uris, activo) values ('claude', 'Claude', array[red], true) returning id into cli;
     insert into public.ia_permisos (usuario_id) values (a.uid);
     if not has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
-      grant execute on function public.ia_puente(text, jsonb) to anon;   -- la 110500 lo hace en la viva con el OK del owner
+      grant execute on function public.ia_puente(text, jsonb) to anon;   -- propuestas/20261016110500 lo hace en la viva con el OK del owner
     end if;
     -- herramienta de prueba: dueño postgres, como las puertas privado.mcp_<x> de P2; devuelve quién es la persona dentro
     grant create on schema privado to ia_puente_rol;
@@ -101,6 +101,7 @@ begin
     begin
       case p_herramienta
         when 'zz_quien' then return privado.mcp_zz_quien();
+        when 'zz_falla' then perform privado.mcp_puerta('zz_falla', '{}'::jsonb); raise exception 'zz: la herramienta lanza';
         else return jsonb_build_object('error', 'herramienta_desconocida');
       end case;
     end $q$;
@@ -203,6 +204,13 @@ begin
   select count(*) into n from public.ia_llamadas where usuario_id = a.uid and resultado = 'tope';
   r := r || pg_temp.l(j ->> 'error' = 'tope' and n = 1, 'F1 la llamada de más → «tope» y queda su fila (' || j::text || ')');
   update public.ia_ajustes set tope_dia = 100 where id;
+  -- F2 una herramienta que lanza: su fila y su cuenta se deshacen con ella; el puente las apunta igual (revisor, 16-oct)
+  select n into n2 from public.ia_uso where usuario_id = a.uid and dia = (now() at time zone 'Asia/Makassar')::date;
+  j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'zz_falla'));
+  select count(*) into n from public.ia_llamadas where usuario_id = a.uid and herramienta = 'zz_falla' and resultado = 'error';
+  r := r || pg_temp.l(j ->> 'error' = 'server_error' and n = 1
+                      and (select x.n from public.ia_uso x where x.usuario_id = a.uid and x.dia = (now() at time zone 'Asia/Makassar')::date) = n2 + 1,
+                      'F2 la herramienta lanza → server_error, una fila «error» y cuenta en el tope (' || j::text || ')');
 
   -- ============================================================ G. refresca
   j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref, 'cliente_id', cli));

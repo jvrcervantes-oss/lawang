@@ -99,7 +99,7 @@ do $todo$
 declare
   r text := ''; v text; j jsonb; n bigint; h record; t0 timestamptz; ms numeric; cebo text;
   sa _tp; ag _tp; agn _tp;
-  pM uuid; pX uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid;
+  pM uuid; pX uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid; r2 uuid;
   v_hoy date := (now() at time zone 'Asia/Makassar')::date;
   c_fin constant text := 'FIN DE PRUEBAS MCP F1-P2 (se deshace todo):%';
 begin
@@ -362,6 +362,26 @@ begin
     select 'usage de ' || rr || ' en privado' from unnest(array['anon', 'authenticated', 'service_role', 'lw_lector']) rr
      where has_schema_privilege(rr, 'privado', 'usage')) q;
   r := r || pg_temp.l(v is null, 'E5 salud «lw_lector es un lector» (d)+(e) sin filas tras la migración (' || coalesce(left(v, 200), 'ninguna') || ')');
+
+  -- ============================================================ G. recibí que el agente ve, aplicado a una factura que NO ve
+  -- (revisor, 16-oct): R2 lo creó AG en su proyecto pX (lo ve por creado_por) y se aplicó 300 a F1 (pM, de SA: AG no la ve,
+  -- bloque A). «Aplicado» tiene que salir 300, como en contrato_saldo, no 0 por la RLS del agente.
+  execute 'set local session_replication_role = replica';
+  insert into public.facturas (tipo, numero, sociedad, contrato_id, proyecto_id, total, moneda, fecha_emision, creado_por, cliente_nombre, datos)
+    values ('recibi', 'ZZ-MCP-R2', 'zz_mcp', c1, pX, 500, 'EUR', v_hoy, ag.em, 'ZZ-MCP Cliente', '{"fields":{}}'::jsonb)
+    returning id into r2;
+  insert into public.recibi_aplicaciones (recibi_id, factura_id, importe_aplicado) values (r2, f1, 300);
+  execute 'set local session_replication_role = origin';
+  v := pg_temp.mcp(ag.uid, ag.em, ag.app, 'select privado.mcp_recibis_sin_aplicar()::text');
+  j := pg_temp.js(v);
+  r := r || pg_temp.l(exists (select 1 from jsonb_array_elements(j->'datos') e where e->>'recibi_id' = r2::text
+                                and (e->>'aplicado')::numeric = 300 and (e->>'sin_aplicar')::numeric = 200)
+                      and not exists (select 1 from jsonb_array_elements(j->'datos') e where e->>'recibi_id' = r1::text),
+                      'G1 recibis_sin_aplicar (AG): su R2 con aplicado 300 aunque no vea F1 (sin aplicar 200), y R1 (no suyo) no sale (' || left(v, 120) || ')');
+  execute 'set local session_replication_role = replica';
+  delete from public.recibi_aplicaciones where recibi_id = r2;
+  delete from public.facturas where id = r2;
+  execute 'set local session_replication_role = origin';
 
   -- ============================================================ R. solo lectura (AL FINAL: no hay vuelta a escritura)
   -- Puerta y cierre que NO escriben, solo para R (SE QUEDA aunque exista P1: la puerta real escribe el registro y aquí

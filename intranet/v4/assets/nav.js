@@ -903,7 +903,7 @@
     desmarca(a);
     var s = a.querySelectorAll('span');
     s[0].textContent = 'apps';                  // ligadura de material-symbols
-    s[s.length - 1].textContent = 'Apps conectadas';
+    s[s.length - 1].textContent = 'Apps conectadas';   // en español a propósito: traduceSidebar() la pasa por lwT después (corre tras recablea)
     a.href = ROOT + 'ia/';                      // href propio: recablea() ya no lo toca
     if (location.pathname.indexOf('/intranet/v4/ia/') !== -1) marcaActiva(a);
     salir.insertAdjacentElement('beforebegin', a);

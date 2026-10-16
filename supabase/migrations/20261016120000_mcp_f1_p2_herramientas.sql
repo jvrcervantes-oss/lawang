@@ -191,27 +191,14 @@ returns jsonb language sql stable security definer set search_path = '' as $$
              and (p_sociedad is null or f.sociedad = p_sociedad)) z
 $$;
 
+-- Solo QUÉ recibís ve la persona (su RLS): la cifra «aplicado» la calcula la puerta como postgres (revisor, 16-oct: con la RLS
+-- de un agente que ve el recibí y no la factura a la que se aplicó, salía más «sin aplicar» que en contrato_saldo).
 create or replace function public.mcp_recibis_sin_aplicar_lee(p_sociedad text)
 returns jsonb language sql stable security definer set search_path = '' as $$
-  select jsonb_build_object(
-           'datos', coalesce(jsonb_agg(jsonb_build_object(
-                      'recibi_id', z.id, 'numero', z.numero, 'sociedad_id', z.sociedad, 'contrato_id', z.contrato_id,
-                      'moneda', z.moneda, 'total', z.total, 'aplicado', z.aplicado, 'sin_aplicar', z.total - z.aplicado,
-                      'fecha_emision', z.fecha_emision) order by z.rn) filter (where z.rn <= 500), '[]'::jsonb),
-           'recortado', count(*) > 500,
-           'filas', least(count(*), 500))
-    from (select y.*, row_number() over (order by y.sociedad, y.fecha_emision, y.numero, y.id) as rn
-            from (select r.id, r.numero, r.sociedad, r.contrato_id, r.moneda, r.total, r.fecha_emision,
-                         coalesce((select sum(ra.importe_aplicado)
-                                     from public.recibi_aplicaciones ra
-                                     join public.facturas f2 on f2.id = ra.factura_id
-                                    where ra.recibi_id = r.id
-                                      and f2.contrato_id is not null
-                                      and not coalesce(f2.anulada, false)), 0) as aplicado
-                    from public.facturas r
-                   where r.tipo = 'recibi' and not coalesce(r.anulada, false)
-                     and (p_sociedad is null or r.sociedad = p_sociedad)) y
-           where y.total - y.aplicado > 0) z
+  select coalesce(jsonb_agg(r.id), '[]'::jsonb)
+    from public.facturas r
+   where r.tipo = 'recibi' and not coalesce(r.anulada, false)
+     and (p_sociedad is null or r.sociedad = p_sociedad)
 $$;
 
 create or replace function public.mcp_movimientos_mes_sociedad_lee(p_desde date, p_hasta date, p_sociedad text,
@@ -564,16 +551,16 @@ end $$;
 --    «Sin aplicar» = el `a_cuenta` de contrato_saldo (cuerpo vivo, 16-oct; mismo sumando que _contrato_cobrado_interno):
 --    total del recibí menos lo aplicado a facturas CON contrato y sin anular. Aquí por recibí y no por venta, y sin
 --    llamar a contrato_saldo por cada venta.
---    Leído con la RLS de facturas y recibi_aplicaciones: para un admin la cifra es la de contrato_saldo. Para un agente
---    que ve el recibí pero NO la factura a la que se aplicó, esa aplicación no se resta (sale más «sin aplicar» que en
---    contrato_saldo, que es DEFINER de postgres): ver el informe de P2.
+--    QUÉ recibís: los que la persona ve con su RLS (el lector, de lw_lector). CUÁNTO aplicado: lo calcula esta puerta como
+--    postgres sobre esos ids, igual que contrato_saldo (DEFINER de postgres): un agente que ve el recibí y no la factura a la
+--    que se aplicó recibe la cifra buena (revisor, 16-oct; caso G1 de la prueba). Solo salen campos del propio recibí.
 --    Medido: 1,3 ms. Devuelve por recibi_id: número, sociedad_id, contrato_id, moneda, total, aplicado, sin_aplicar,
 --    fecha_emision. Solo sin_aplicar > 0.
 -- ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 create or replace function privado.mcp_recibis_sin_aplicar(p_sociedad text default null)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
-  v_p jsonb; v_l bigint; v_r jsonb;
+  v_p jsonb; v_l bigint; v_r jsonb; v_ids jsonb;
 begin
   v_p := privado.mcp_puerta('recibis_sin_aplicar', jsonb_build_object('p_sociedad', p_sociedad));
   if not coalesce((v_p->>'ok')::boolean, false) then
@@ -588,7 +575,26 @@ begin
     perform privado.mcp_cierra(v_l, 0, 'sin_permiso');
     return jsonb_build_object('error', 'sin_permiso');
   end if;
-  v_r := public.mcp_recibis_sin_aplicar_lee(p_sociedad);
+  v_ids := public.mcp_recibis_sin_aplicar_lee(p_sociedad);
+  select jsonb_build_object(
+           'datos', coalesce(jsonb_agg(jsonb_build_object(
+                      'recibi_id', z.id, 'numero', z.numero, 'sociedad_id', z.sociedad, 'contrato_id', z.contrato_id,
+                      'moneda', z.moneda, 'total', z.total, 'aplicado', z.aplicado, 'sin_aplicar', z.total - z.aplicado,
+                      'fecha_emision', z.fecha_emision) order by z.rn) filter (where z.rn <= 500), '[]'::jsonb),
+           'recortado', count(*) > 500,
+           'filas', least(count(*), 500))
+    into v_r
+    from (select y.*, row_number() over (order by y.sociedad, y.fecha_emision, y.numero, y.id) as rn
+            from (select r.id, r.numero, r.sociedad, r.contrato_id, r.moneda, r.total, r.fecha_emision,
+                         coalesce((select sum(ra.importe_aplicado)
+                                     from public.recibi_aplicaciones ra
+                                     join public.facturas f2 on f2.id = ra.factura_id
+                                    where ra.recibi_id = r.id
+                                      and f2.contrato_id is not null
+                                      and not coalesce(f2.anulada, false)), 0) as aplicado
+                    from public.facturas r
+                   where r.id in (select x::uuid from jsonb_array_elements_text(v_ids) x)) y
+           where y.total - y.aplicado > 0) z;
   perform privado.mcp_cierra(v_l, (v_r->>'filas')::int, 'ok');
   return v_r - 'filas';
 end $$;
