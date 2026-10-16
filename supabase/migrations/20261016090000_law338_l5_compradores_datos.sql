@@ -39,7 +39,7 @@ create or replace function public.clientes_lista_datos(p_ids uuid[] default null
 returns jsonb
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare v jsonb; n int;
@@ -70,7 +70,7 @@ create or replace function public.comprador_ficha_datos(p_client uuid, p_partes 
 returns jsonb
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare r jsonb; v jsonb; n int;
@@ -137,7 +137,7 @@ create or replace function public.operacion_compradores_datos(p_contrato uuid, p
 returns jsonb
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare v_cl jsonb; v_do jsonb; n int;
@@ -170,7 +170,7 @@ create or replace function public.operaciones_compradores_datos()
 returns jsonb
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare v_vi jsonb; n_vi int; v_do jsonb; n_do int;
@@ -209,7 +209,7 @@ create or replace function public.soporte_datos()
 returns jsonb
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare v_hi jsonb; n_hi int; v_ms jsonb; v_cl jsonb;
@@ -246,7 +246,7 @@ create or replace function public.notificaciones_datos(p_limite int)
 returns jsonb
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare v jsonb; n int; lim int := least(greatest(coalesce(p_limite, 30), 1), 400);
@@ -269,7 +269,7 @@ create or replace function public.correos_registro_datos(p_contratos uuid[], p_f
 returns jsonb
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare v jsonb; n int;
@@ -298,7 +298,7 @@ create or replace function public.documentos_desactualizados_datos(p_tipo text, 
 returns jsonb
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare v jsonb; n int;
@@ -379,15 +379,12 @@ begin
      limit 6;
 end
 $function$;
-alter function public.clientes_busca(text) security definer;
 -- las dos búsquedas llaman normaliza_busqueda (INVOKER, inmutable); como dueño lw_lector necesitan su EXECUTE (medido 16-oct: no lo tenía)
 grant execute on function public.normaliza_busqueda(text) to lw_lector;
-alter function public.contratos_busca(text) security definer;
 -- bot_pendientes (Backend #396.1): INVOKER que lee documentos_desactualizados (vista invoker sobre clients) y la llama la edge
 -- bot-agentes con el JWT de la persona (index.ts:686; si falla, 500 no_se_pudo_leer_contexto). Con el revoke de clients el bot
 -- de agentes caería en cada contrato → DEFINER-lw_lector, cuerpo intacto. Lee sociedades(clave, razon), que authenticated tiene por
 -- permiso de COLUMNA y lw_lector no (medido 16-oct en attacl): se le dan esas dos columnas, ni una más.
-alter function public.bot_pendientes(uuid) security definer;
 grant select (clave, razon) on public.sociedades to lw_lector;
 
 -- ── dueño, ACL ───────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -429,3 +426,19 @@ revoke all on function public.bot_pendientes(uuid) from public, anon, service_ro
 grant execute on function public.clientes_busca(text) to authenticated;
 grant execute on function public.contratos_busca(text) to authenticated;
 grant execute on function public.bot_pendientes(uuid) to authenticated;
+
+-- ── DEFINER AL FINAL (Seguridad, consulta del 16-oct) ─────────────────────────────────────────────────────────────────────
+-- Las 11 llegan aquí INVOKER, ya con dueño lw_lector y solo authenticated. Si este fichero no corriera en una transacción y
+-- se cortara antes de esta línea, ninguna quedaría como DEFINER de postgres (BYPASSRLS) expuesta: lo peor es una INVOKER
+-- (la RLS de quien llama, como hoy).
+alter function public.clientes_lista_datos(uuid[]) security definer;
+alter function public.comprador_ficha_datos(uuid, text[]) security definer;
+alter function public.operacion_compradores_datos(uuid, uuid[]) security definer;
+alter function public.operaciones_compradores_datos() security definer;
+alter function public.soporte_datos() security definer;
+alter function public.notificaciones_datos(int) security definer;
+alter function public.correos_registro_datos(uuid[], uuid) security definer;
+alter function public.documentos_desactualizados_datos(text, uuid, uuid) security definer;
+alter function public.clientes_busca(text) security definer;
+alter function public.contratos_busca(text) security definer;
+alter function public.bot_pendientes(uuid) security definer;

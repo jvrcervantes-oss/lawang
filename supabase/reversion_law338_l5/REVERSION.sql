@@ -18,6 +18,10 @@ drop function if exists public.notificaciones_datos(int);
 drop function if exists public.correos_registro_datos(uuid[], uuid);
 drop function if exists public.documentos_desactualizados_datos(text, uuid, uuid);
 
+-- primero INVOKER y después dueño postgres (Seguridad, 16-oct): nunca una DEFINER de postgres, ni un instante
+alter function public.clientes_busca(text) security invoker;
+alter function public.contratos_busca(text) security invoker;
+alter function public.bot_pendientes(uuid) security invoker;
 alter function public.clientes_busca(text) owner to postgres;
 alter function public.contratos_busca(text) owner to postgres;
 alter function public.bot_pendientes(uuid) owner to postgres;
@@ -38,8 +42,6 @@ as $function$
           or lower(c.passport_number) = lower(btrim(p_q)))
    limit 6
 $function$;
-alter function public.contratos_busca(text) security invoker;
-alter function public.bot_pendientes(uuid) security invoker;
 revoke all on function public.clientes_busca(text) from public, anon;
 revoke all on function public.contratos_busca(text) from public, anon;
 revoke all on function public.bot_pendientes(uuid) from public, anon;
