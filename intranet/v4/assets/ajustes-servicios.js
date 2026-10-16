@@ -25,6 +25,8 @@
   function T(s, h) { if (window.lwT) return window.lwT(s, h); var v = String(s); for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) v = v.split('%' + k).join(h[k]); return v; }
   function aviso(t) { if (typeof toast === 'function') toast(t); }
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  // Esta página no carga lawang.css (su [hidden]{display:none!important}): una clase flex le gana a [hidden]. Ocultar SIEMPRE por aquí.
+  function oculta(n, si) { n.hidden = !!si; n.style.display = si ? 'none' : ''; }
   function usd(n) {
     var x = Number(n);
     if (n === null || n === undefined || n === '' || !isFinite(x)) return '—';
@@ -65,7 +67,7 @@
     var i = el('input', C_INPUT); i.type = 'number'; i.step = paso || 'any'; i.min = '0'; i.inputMode = 'decimal';
     i.value = valor == null ? '' : String(valor); i.setAttribute('data-srv-in', clave); i.setAttribute('data-srv-antes', i.value);
     f.appendChild(i);
-    var a = el('span', C_PEQ, ayuda || ''); a.setAttribute('data-srv-ayuda', clave); if (!ayuda) a.hidden = true;
+    var a = el('span', C_PEQ, ayuda || ''); a.setAttribute('data-srv-ayuda', clave); if (!ayuda) oculta(a, true);
     f.appendChild(a);
     return f;
   }
@@ -90,7 +92,7 @@
   }
   // La fila «motivo + Guardar» de un bloque: escondida hasta que el bloque tiene un cambio (el motivo no cuenta como campo en reposo).
   function filaMotivo(bloque, empresa) {
-    var f = el('div', 'flex flex-col gap-2 pt-4 border-t border-outline-variant/40'); f.setAttribute('data-srv-guardar-fila', '1'); f.hidden = true;
+    var f = el('div', 'flex flex-col gap-2 pt-4 border-t border-outline-variant/40'); f.setAttribute('data-srv-guardar-fila', '1'); oculta(f, true);
     var id = 'lw-srv-mot-' + (empresa || bloque.getAttribute('data-srv-bloque'));
     var lab = el('label', 'font-label-md text-label-md text-on-surface', T('¿Por qué lo cambias?')); lab.htmlFor = id;
     f.appendChild(lab);
@@ -105,7 +107,7 @@
     return f;
   }
   function vigila(bloque) {
-    function mira() { var f = bloque.querySelector('[data-srv-guardar-fila]'); if (f) f.hidden = !hayCambio(bloque); }
+    function mira() { var f = bloque.querySelector('[data-srv-guardar-fila]'); if (f) oculta(f, !hayCambio(bloque)); }
     bloque.addEventListener('input', mira); bloque.addEventListener('change', mira);
     bloque.__srvMira = mira;
   }
@@ -254,7 +256,7 @@
     function maximo() {
       var a = p2.c.querySelector('[data-srv-ayuda="tope_usd_defecto"]'), t = Number(p2.c.querySelector('[data-srv-in="tope_usd_defecto"]').value);
       var mi = p1.c.querySelector('[data-srv-in="margen_pct"]'), m = mi && mi.value !== '' ? Number(mi.value) : NaN;
-      a.hidden = !(isFinite(m) && isFinite(t));
+      oculta(a, !(isFinite(m) && isFinite(t)));
       a.textContent = a.hidden ? '' : T('Máximo facturable por empresa y mes: %f (tope × (1 + margen)).', { f: usd(t * (1 + m / 100)) });
     }
     p2.c.appendChild(filaMotivo(p2.s, null));
@@ -296,9 +298,9 @@
       if (e.falta && e.editor_ia && !e.suspendido) fila.appendChild(el('p', 'font-body-sm text-body-sm text-error', e.falta));
 
       var botones = el('div', 'flex flex-wrap gap-2');
-      var paso = el('div', 'rounded-xl bg-surface-container-low px-5 py-4 flex flex-col gap-3'); paso.setAttribute('data-srv-paso', e.clave); paso.hidden = true;
+      var paso = el('div', 'rounded-xl bg-surface-container-low px-5 py-4 flex flex-col gap-3'); paso.setAttribute('data-srv-paso', e.clave); oculta(paso, true);
       function abrePaso(clave, valor, titulo, efecto, boton) {
-        paso.textContent = ''; paso.hidden = false;
+        paso.textContent = ''; oculta(paso, false);
         paso.appendChild(el('span', 'font-label-md text-label-md text-on-surface', titulo));
         paso.appendChild(el('p', 'font-body-sm text-body-sm text-on-surface-variant', efecto));
         var id = 'lw-srv-paso-' + e.clave;
@@ -310,7 +312,7 @@
         var ok = el('button', C_BTN, boton); ok.type = 'button'; ok.setAttribute('data-accion', 'servicios-confirmar'); ok.setAttribute('data-real', '1'); ok.setAttribute('data-srv-empresa', e.clave);
         var no = el('button', C_BTN2, T('Cancelar')); no.type = 'button'; no.setAttribute('data-accion', 'servicios-cancelar');
         ok.addEventListener('click', function (ev) { ev.stopPropagation(); var c = {}; c[clave] = valor; guarda(fila, e.clave, m, ok, c); });
-        no.addEventListener('click', function (ev) { ev.stopPropagation(); paso.hidden = true; paso.textContent = ''; });
+        no.addEventListener('click', function (ev) { ev.stopPropagation(); oculta(paso, true); paso.textContent = ''; });
         acc.appendChild(ok); acc.appendChild(no); paso.appendChild(acc);
         m.focus();
       }

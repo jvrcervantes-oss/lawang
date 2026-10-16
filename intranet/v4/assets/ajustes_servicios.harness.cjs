@@ -35,7 +35,7 @@ const FALSO = `/* Supabase FALSO para capturas de Ajustes (datos inventados). gu
       extracto: [
         { periodo: per, empresa: 'emp_a', hechas: 14, fallidas: 1, en_vuelo: 0, coste_proveedor_usd: 8.1, coste_no_repercutido_usd: 0.4, coste_facturable_usd: 7.7, margen_usd: 2.31, total_sin_impuestos_usd: 10.01, margenes_pct: [30], coste_incompleto: false },
         { periodo: per, empresa: 'emp_c', hechas: 6, fallidas: 0, en_vuelo: 0, coste_proveedor_usd: 4.3, coste_no_repercutido_usd: 0, coste_facturable_usd: 4.3, margen_usd: 1.29, total_sin_impuestos_usd: 5.59, margenes_pct: [30], coste_incompleto: true }],
-      registro: [{ ambito: 'instancia', antes: {}, despues: {}, motivo: 'Subo el tope de la intranet', autor: 'persona@ejemplo.test', fecha: '2026-10-14T09:12:00Z' },
+      registro: [{ ambito: 'instancia', antes: { tope_instancia_usd: 80 }, despues: { tope_instancia_usd: 100 }, motivo: 'Subo el tope de la intranet', autor: 'persona@ejemplo.test', fecha: '2026-10-14T09:12:00Z' },
                  { ambito: 'emp_c', antes: {}, despues: {}, motivo: 'Factura de septiembre sin pagar', autor: 'persona@ejemplo.test', fecha: '2026-10-10T03:40:00Z' }]
     }
   };
@@ -87,6 +87,10 @@ srv.listen(0, async () => {
     if (SALIDA) fs.writeFileSync(SALIDA, JSON.stringify(res, null, 1)); console.log(JSON.stringify(res));
     await b.close(); srv.close(); process.exitCode = res.fallos.length ? 1 : 0; return;
   }
+  // en reposo no se ve ninguna caja de motivo ni ningún paso (16-oct: una clase flex le ganaba a [hidden] y salían todas)
+  const enReposo = await pg.evaluate(() => [].filter.call(document.querySelectorAll('#lw-srv [data-srv-guardar-fila], #lw-srv [data-srv-paso]'), n => n.offsetParent !== null).length);
+  res.enReposo = enReposo;
+  if (enReposo) res.fallos.push('EN REPOSO se ven ' + enReposo + ' cajas de motivo o pasos que deberían estar ocultos');
   const n0 = () => pg.evaluate(() => window.__GUARDADOS.length);
   const ultimo = () => pg.evaluate(() => window.__GUARDADOS[window.__GUARDADOS.length - 1] || null);
   // abre lo plegado (si lo hay) para poder escribir
