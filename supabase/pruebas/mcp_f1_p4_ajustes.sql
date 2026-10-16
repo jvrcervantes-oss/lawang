@@ -9,7 +9,7 @@
 --   E  ia_permiso_guarda: usuario inactivo → error; conceder → permiso; quitar → sin permiso y conexiones revocadas en el acto
 --   F  ia_peticion_ver: petición inventada → error; buena → asistente y «puede»; sin permiso → puede=false; no gasta la petición
 --   G  ia_mis_conexiones: cada persona ve solo las suyas; con la propuesta 20261016230000, los identificadores de los clientes
---      activos solo a quien puede conectar (G2/G3)
+--      activos solo a quien puede conectar y con la IA encendida (G2-G4; sin la propuesta, una línea roja «OMITIDAS»)
 -- destructivo-ok: prueba en transacción que termina en raise (rollback)
 create temp table _tp (et text primary key, uid uuid, em text, rol text, activo boolean);
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
@@ -188,7 +188,7 @@ begin
                       and exists (select 1 from jsonb_array_elements(j -> 'conexiones') x where x ->> 'id' = con_b::text)
                       and not (j ->> 'permiso')::boolean,
                       'G1 B ve solo las suyas y que no tiene permiso (' || jsonb_array_length(j -> 'conexiones') || ' conexiones)');
-  -- G2/G3 con qué se conecta: solo con la propuesta 20261016230000 aplicada (allí nacen `clientes` y `duracion_dias`)
+  -- G2-G4 con qué se conecta: solo con la propuesta 20261016230000 aplicada (allí nacen `clientes` y `duracion_dias`)
   if pg_get_functiondef('public.ia_mis_conexiones()'::regprocedure) like '%''clientes''%' then
     r := r || pg_temp.l(jsonb_typeof(j -> 'clientes') = 'array' and jsonb_array_length(j -> 'clientes') = 0,
                         'G2 B sin permiso: ningún identificador de cliente (' || coalesce(j ->> 'clientes', 'null') || ')');
@@ -199,6 +199,15 @@ begin
                         and (j ->> 'duracion_dias')::integer = (select duracion_dias from public.ia_ajustes where id),
                         'G3 A con permiso: solo el cliente activo (Claude, no el ChatGPT apagado), sin sus direcciones de vuelta, y la duración → '
                         || left(coalesce(j ->> 'clientes', 'null'), 120));
+    update public.ia_ajustes set encendido = false where id;
+    v := pg_temp.sesion(a.uid, a.em, 'select public.ia_mis_conexiones()::text');
+    j := pg_temp.js(v);
+    r := r || pg_temp.l(jsonb_typeof(j -> 'clientes') = 'array' and jsonb_array_length(j -> 'clientes') = 0,
+                        'G4 A con permiso pero la IA apagada: ningún identificador de cliente (' || coalesce(j ->> 'clientes', 'null') || ')');
+    update public.ia_ajustes set encendido = true where id;
+  else
+    -- sin la propuesta aplicada G2-G4 no se pueden medir: sale en rojo, para que un «no medido» nunca parezca un aprobado (Seguridad, 16-oct)
+    r := r || pg_temp.l(false, 'G2-G4 OMITIDAS: la propuesta 20261016230000 no está aplicada en esta rama');
   end if;
 
   raise exception using message = replace(c_fin, '%', r);

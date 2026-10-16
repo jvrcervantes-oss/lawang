@@ -26,7 +26,11 @@
 -- `clientes`. Es equivalente en lo que ya devolvía: la misma privado.ia_pantalla_uid() (que sigue fallando sin sesión o desde una
 -- llamada del asistente: B6/B7), los mismos filtros de conexiones (las de la persona, últimos 30 días) y las mismas claves;
 -- comparado con la viva por mcp-abre el 16-oct (prosrc; dueño ia_puente_rol; acl authenticated=X).
--- Prueba: G2 y G3 de supabase/pruebas/mcp_f1_p4_ajustes.sql (corren solo con esta propuesta aplicada).
+-- Prueba: G2, G3 y G4 de supabase/pruebas/mcp_f1_p4_ajustes.sql (sin esta propuesta aplicada salen en rojo como OMITIDAS).
+-- ANTES DE APLICAR EN LA VIVA (Seguridad, 16-oct, MEDIA): una rama con 073530 y esta propuesta aplicadas, y esa prueba entera
+-- en verde, con B6, B7, G1, G2, G3 y G4. Leer el código no es haberlo probado: es una DEFINER abierta a authenticated.
+-- Seguridad dio por aceptable enseñar el id a quien tiene permiso con la IA encendida (la vuelta tiene que estar en
+-- redirect_uris y el canje exige PKCE S256: el id solo sirve para que esa persona se conecte ella).
 --
 -- VUELTA ATRÁS (no destruye nada): volver a crear public.ia_mis_conexiones() tal como está en 20261016073530 (sección 2). La web
 -- vuelve sola a «dónde está el identificador» y a la invitación solo para el super admin.
