@@ -1,9 +1,9 @@
--- Prueba de la VUELTA ATRAS de 20261015210000_unidad_notas (15-oct-2026; calco de cliente_notas_reversion.sql).
+-- Prueba de la VUELTA ATRAS de 20261016001810_unidad_notas (15-oct-2026; calco de cliente_notas_reversion.sql).
 -- Siembra parcelas con notas, ejecuta el texto de supabase/reversion_unidad_notas/REVERSION.sql TAL CUAL (copiado abajo por
 -- el autor; si la REVERSION cambia, se vuelve a copiar) y comprueba: las notas vuelven a unidades.notas (la mas reciente
 -- arriba), el check y los disparadores de unidades desaparecen, las tablas y funciones nuevas tambien, y cliente_notas_datos
 -- vuelve a su md5 de la viva del 15-oct con su dueño y su permiso.
---    python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261015210000_unidad_notas.sql --prueba unidad_notas_reversion.sql
+--    python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261016001810_unidad_notas.sql --prueba unidad_notas_reversion.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-UR.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _ur (et text primary key, id uuid);
@@ -30,7 +30,7 @@ end $siembra$;
 
 -- ======================== desde aqui, copia literal de supabase/reversion_unidad_notas/REVERSION.sql ========================
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261015210000_unidad_notas.sql (15-oct-2026, sesion notas-parcela).
+-- REVERSION de 20261016001810_unidad_notas.sql (15-oct-2026, sesion notas-parcela).
 -- ORDEN: 1) front a su version anterior (git revert de los commits de la pantalla: vuelve el campo «Notas» al editor de la
 -- parcela, a la importacion y a la plantilla CSV, y la ficha del cliente vuelve a su codigo propio), 2) ESTE fichero, en una
 -- transaccion. Al reves, la pantalla llamaria a funciones que ya no existen.
@@ -55,7 +55,7 @@ begin
   -- 15-oct borraría ese cambio sin avisar (Base de datos, consulta de deploy 15-oct). Sin \r por si se aplicó desde Windows.
   if (select md5(replace(p.prosrc, E'\r', '')) from pg_proc p
        where p.oid = 'public.cliente_notas_datos(uuid)'::regprocedure) <> '13d9b562da34fd5fbe627a7c6efe273f' then
-    raise exception 'cliente_notas_datos viva no es la de 20261015210000 (md5 13d9b562…): alguien la cambió después; revisar a mano';
+    raise exception 'cliente_notas_datos viva no es la de 20261016001810 (md5 13d9b562…): alguien la cambió después; revisar a mano';
   end if;
   -- devolver el texto a unidades.notas dispara trg_unidad_precio_suma en cada parcela con notas: si alguna tuviera precio
   -- distinto de suelo + construcción, revertir se lo recalcularía sin avisar (Backend, consulta de deploy 15-oct; misma guarda

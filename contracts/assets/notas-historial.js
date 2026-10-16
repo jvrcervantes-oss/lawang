@@ -12,7 +12,7 @@
    QUIÉN DECIDE QUÉ. La pantalla no decide nada: quién lee, quién escribe y quién retira lo dice la base. Cada nota llega
    con `autor_nombre` y `puede_retirar` calculados en el servidor; el botón «Retirar» sale solo si `puede_retirar` es
    true (null o false: no), y si aun así el servidor lo rechaza, se dice. Por eso esta pieza no mira LW_V4, LW_ROL ni el
-   correo de nadie. Única tolerancia: una respuesta SIN esas claves (un cliente_notas_datos anterior a 20261015210000,
+   correo de nadie. Única tolerancia: una respuesta SIN esas claves (un cliente_notas_datos anterior a 20261016001810,
    si la pantalla llega antes que la base) enseña `autor_email` y ofrece «Retirar», y el servidor decide.
 
    API. `LW_NOTAS.monta(contenedor, cfg) → { abre(id), cierra() }`. Una sola escucha delegada por contenedor; el id

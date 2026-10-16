@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261015210000_unidad_notas.sql (15-oct-2026, sesion notas-parcela).
+-- REVERSION de 20261016001810_unidad_notas.sql (15-oct-2026, sesion notas-parcela).
 -- ORDEN: 1) front a su version anterior (git revert de los commits de la pantalla: vuelve el campo «Notas» al editor de la
 -- parcela, a la importacion y a la plantilla CSV, y la ficha del cliente vuelve a su codigo propio), 2) ESTE fichero, en una
 -- transaccion. Al reves, la pantalla llamaria a funciones que ya no existen.
@@ -24,7 +24,7 @@ begin
   -- 15-oct borraría ese cambio sin avisar (Base de datos, consulta de deploy 15-oct). Sin \r por si se aplicó desde Windows.
   if (select md5(replace(p.prosrc, E'\r', '')) from pg_proc p
        where p.oid = 'public.cliente_notas_datos(uuid)'::regprocedure) <> '13d9b562da34fd5fbe627a7c6efe273f' then
-    raise exception 'cliente_notas_datos viva no es la de 20261015210000 (md5 13d9b562…): alguien la cambió después; revisar a mano';
+    raise exception 'cliente_notas_datos viva no es la de 20261016001810 (md5 13d9b562…): alguien la cambió después; revisar a mano';
   end if;
   -- devolver el texto a unidades.notas dispara trg_unidad_precio_suma en cada parcela con notas: si alguna tuviera precio
   -- distinto de suelo + construcción, revertir se lo recalcularía sin avisar (Backend, consulta de deploy 15-oct; misma guarda

@@ -1,4 +1,4 @@
--- Prueba de las notas de la ficha de la parcela del 15-oct-2026 (migracion 20261015210000_unidad_notas).
+-- Prueba de las notas de la ficha de la parcela del 15-oct-2026 (migracion 20261016001810_unidad_notas).
 -- Cada llamada va con el rol REAL (`set local role authenticated` + las claims de la persona, armazon de cliente_notas.sql)
 -- por la RPC que usa la pantalla (lecciones de Backend 11 y 13-oct), y cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- U1 el PM del proyecto añade (autor y fecha del servidor). U2 leer: PM, admin global y admin de la empresa leen, con
@@ -19,7 +19,7 @@
 -- autor no, admin de empresa si, admin global si).
 -- XSS: el texto se guarda tal cual (la pantalla lo pinta escapado); aqui se comprueba que llega intacto.
 -- !! CREA EMPRESAS, PROYECTOS, PARCELAS, USUARIOS, FICHAS Y NOTAS: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015210000_unidad_notas.sql --prueba unidad_notas.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261016001810_unidad_notas.sql --prueba unidad_notas.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-UN.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama (usa session_replication_role para U11)
 create temp table _tp (et text primary key, uid uuid, em text);
