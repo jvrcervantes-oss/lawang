@@ -82,7 +82,8 @@ begin
     r := r || pg_temp.l(not has_function_privilege('anon', f, 'execute') and has_function_privilege('authenticated', f, 'execute'),
                         'A1 ' || f || ': anon no, authenticated sí');
   end loop;
-  foreach f in array array['privado.ia_pantalla_uid()', 'privado.ia_gestor_uid()', 'privado.ia_redirect_valida(text,text)'] loop
+  foreach f in array array['privado.ia_pantalla_uid()', 'privado.ia_gestor_uid()', 'privado.ia_redirect_valida(text,text)',
+                           'privado.ia_equipo()'] loop
     r := r || pg_temp.l(not has_function_privilege('authenticated', f, 'execute') and not has_function_privilege('anon', f, 'execute'),
                         'A2 ' || f || ': ni anon ni authenticated');
   end loop;

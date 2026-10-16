@@ -57,6 +57,23 @@ begin
   return v_uid;
 end $$;
 
+-- El equipo activo para Ajustes › IA (id, nombre y rol). ia_puente_rol no lee public.usuarios (no tiene grant y la tabla tiene RLS):
+-- como en P1 (ia_auth_usuario), lo que necesita de fuera de ia_* se lo da un ayudante de postgres, estrecho y solo de lectura.
+create or replace function privado.ia_equipo()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object('user_id', u.user_id, 'nombre', u.nombre, 'rol', u.rol) order by u.nombre), '[]'::jsonb)
+    from public.usuarios u
+   where u.activo
+$$;
+alter function privado.ia_equipo() owner to postgres;
+revoke all on function privado.ia_equipo() from public, anon, authenticated, service_role;
+grant execute on function privado.ia_equipo() to ia_puente_rol;
+
 -- ── 1. Página de conexión ─────────────────────────────────────────────────────────────────────────────────────────────────
 create or replace function public.ia_peticion_datos(p_peticion text)
 returns jsonb
@@ -130,14 +147,11 @@ begin
                                             order by k.asistente, k.creado_en)
                             from public.ia_clientes k), '[]'::jsonb),
     -- el equipo activo, para elegir quién puede conectar (nombre y rol: lo que ya ve el super admin en Usuarios)
-    'usuarios', coalesce((select jsonb_agg(jsonb_build_object('user_id', u.user_id, 'nombre', u.nombre, 'rol', u.rol,
-                                                               'permiso', p.usuario_id is not null,
-                                                               'uso_hoy', coalesce(s.n, 0))
-                                            order by p.usuario_id is null, u.nombre)
-                            from public.usuarios u
-                            left join public.ia_permisos p on p.usuario_id = u.user_id
-                            left join public.ia_uso s on s.usuario_id = u.user_id and s.dia = v_dia
-                           where u.activo), '[]'::jsonb),
+    'usuarios', coalesce((select jsonb_agg(e || jsonb_build_object('permiso', p.usuario_id is not null, 'uso_hoy', coalesce(s.n, 0))
+                                            order by p.usuario_id is null, e ->> 'nombre')
+                            from jsonb_array_elements(privado.ia_equipo()) e
+                            left join public.ia_permisos p on p.usuario_id = (e ->> 'user_id')::uuid
+                            left join public.ia_uso s on s.usuario_id = (e ->> 'user_id')::uuid and s.dia = v_dia), '[]'::jsonb),
     'conexiones', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'usuario_id', c.usuario_id, 'cliente_id', c.cliente_id,
                                                                  'creada_en', c.creada_en, 'expira_en', c.expira_en, 'aal', c.aal)
                                               order by c.creada_en desc)
@@ -245,7 +259,8 @@ declare v_uid uuid := privado.ia_gestor_uid(); c uuid;
 begin
   if p_usuario is null or p_concede is null then return jsonb_build_object('error', 'datos_invalidos'); end if;
   if p_concede then
-    if not exists (select 1 from public.usuarios u where u.user_id = p_usuario and u.activo) then
+    -- activo = public.usuarios.activo, leído por el ayudante de P1 (ia_puente_rol no lee usuarios)
+    if not coalesce((privado.ia_auth_usuario(p_usuario) ->> 'activo')::boolean, false) then
       return jsonb_build_object('error', 'usuario_inactivo');
     end if;
     insert into public.ia_permisos (usuario_id, concedido_por) values (p_usuario, v_uid) on conflict (usuario_id) do nothing;

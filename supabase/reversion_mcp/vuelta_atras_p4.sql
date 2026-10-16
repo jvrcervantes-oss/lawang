@@ -11,4 +11,5 @@ drop function if exists public.ia_peticion_datos(text);
 drop function if exists privado.ia_redirect_valida(text, text);
 drop function if exists privado.ia_gestor_uid();
 drop function if exists privado.ia_pantalla_uid();
+drop function if exists privado.ia_equipo();
 commit;
