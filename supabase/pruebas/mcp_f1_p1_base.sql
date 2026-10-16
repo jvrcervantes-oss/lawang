@@ -11,8 +11,9 @@
 --   G  refresca: rota R1→R2; R1 en ≤10 s con R2 sin usar → R3 y R2 muerto; R2 vuelve → revocada; R1 en ≤10 s con R2 ya usado
 --      → revocada; R1 otra vez pasados 10 s → invalid_grant, conexión revocada y su access ya no llama
 --   H  revocar: otro usuario → 42501; la persona → ok y el access muere en el acto
---   I  día 8 → invalid_token · contraseña cambiada → invalid_token y revocada · permiso quitado → invalid_token · apagado → no llama
+--   I  día 8 → invalid_token · correo cambiado (y contraseña, con la 140000) → invalid_token y revocada · permiso quitado → invalid_token · apagado → no llama
 --   J  GET y Prefer tx=rollback → rechazados · 300 tokens inventados → 0 escrituras · herramienta fuera de lista → error
+--   K  «No permitir» · L  purga de caducados (solo con la propuesta 20261016150000 aplicada)
 -- destructivo-ok: prueba en transacción que termina en raise (rollback)
 create temp table _tp (et text primary key, uid uuid, em text);
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
@@ -309,19 +310,33 @@ begin
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', j ->> 'peticion'));
   j := pg_temp.edge('canjea', jsonb_build_object('codigo', v::jsonb ->> 'code', 'code_verifier', ver, 'cliente_id', cli, 'redirect_uri', red, 'recurso', rec));
   acc := j ->> 'access_token';
-  update auth.users set encrypted_password = '$2a$10$zzmcpotra' where id = a.uid;
+  -- la contraseña entra en la huella con la propuesta 140000 (su prueba va con ella); aquí, el correo (paso típico de un robo de cuenta)
+  update auth.users set email = 'zz-mcp-otro-' || a.uid || '@x.invalid' where id = a.uid;
   j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'zz_quien'));
   select count(*) into n from public.ia_conexiones where usuario_id = a.uid and revocada_motivo = 'contrasena';
-  r := r || pg_temp.l(j ->> 'motivo' = 'contrasena' and n = 1, 'I2 contraseña cambiada → no llama y la conexión queda revocada (' || j::text || ')');
+  r := r || pg_temp.l(j ->> 'motivo' = 'contrasena' and n = 1, 'I2 correo de la cuenta cambiado → no llama y la conexión queda revocada (' || j::text || ')');
+  update auth.users set email = a.em where id = a.uid;
+  -- I2b contraseña cambiada: solo con la propuesta 140000 aplicada (allí entra la contraseña en la huella)
+  if pg_get_functiondef('privado.ia_auth_usuario(uuid)'::regprocedure) like '%encrypted_password%' then
+    j := pg_temp.edge('pide', jsonb_build_object('cliente_id', cli, 'redirect_uri', red, 'code_challenge', cha, 'code_challenge_method', 'S256', 'recurso', rec));
+    v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', j ->> 'peticion'));
+    j := pg_temp.edge('canjea', jsonb_build_object('codigo', v::jsonb ->> 'code', 'code_verifier', ver, 'cliente_id', cli, 'redirect_uri', red, 'recurso', rec));
+    acc := j ->> 'access_token';
+    select count(*) into n from public.ia_conexiones where usuario_id = a.uid and revocada_motivo = 'contrasena';
+    update auth.users set encrypted_password = '$2a$10$zzmcpotra' where id = a.uid;
+    j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'zz_quien'));
+    select count(*) into n2 from public.ia_conexiones where usuario_id = a.uid and revocada_motivo = 'contrasena';
+    r := r || pg_temp.l(j ->> 'motivo' = 'contrasena' and n2 = n + 1, 'I2b contraseña cambiada (propuesta 140000) → no llama y la conexión queda revocada (' || j::text || ')');
+  end if;
   -- I3 permiso quitado
   j := pg_temp.edge('pide', jsonb_build_object('cliente_id', cli, 'redirect_uri', red, 'code_challenge', cha, 'code_challenge_method', 'S256', 'recurso', rec));
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', j ->> 'peticion'));
   j := pg_temp.edge('canjea', jsonb_build_object('codigo', v::jsonb ->> 'code', 'code_verifier', ver, 'cliente_id', cli, 'redirect_uri', red, 'recurso', rec));
   acc := j ->> 'access_token';
-  delete from public.ia_permisos where usuario_id = a.uid;
+  update public.ia_permisos set quitado_en = now() where usuario_id = a.uid;
   j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'zz_quien'));
   r := r || pg_temp.l(j ->> 'motivo' = 'permiso', 'I3 permiso de IA quitado → ' || j::text);
-  insert into public.ia_permisos (usuario_id) values (a.uid);
+  update public.ia_permisos set quitado_en = null where usuario_id = a.uid;
   -- I4 apagado
   j := pg_temp.edge('pide', jsonb_build_object('cliente_id', cli, 'redirect_uri', red, 'code_challenge', cha, 'code_challenge_method', 'S256', 'recurso', rec));
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', j ->> 'peticion'));
@@ -354,7 +369,8 @@ begin
 
   -- ============================================================ K deniega («No permitir» en la página de conexión)
   update public.ia_ajustes set encendido = true where id;
-  insert into public.ia_permisos (usuario_id) values (a.uid) on conflict do nothing;   -- I3 se lo quitó: K4 debe caer por la petición
+  insert into public.ia_permisos (usuario_id) values (a.uid)
+    on conflict (usuario_id) do update set quitado_en = null, quitado_por = null;   -- I3 se lo quitó: K4 debe caer por la petición
   j := pg_temp.edge('pide', jsonb_build_object('cliente_id', cli, 'redirect_uri', red, 'code_challenge', cha, 'code_challenge_method', 'S256', 'recurso', rec, 'estado', 'k-st'));
   pet := j ->> 'peticion';
   j := pg_temp.edge('deniega', jsonb_build_object('peticion', pg_temp.b64(extensions.gen_random_bytes(32))));
@@ -365,6 +381,24 @@ begin
   r := r || pg_temp.l(j ->> 'error' = 'peticion_invalida', 'K3 la misma otra vez → ' || j::text);
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', pet));
   r := r || pg_temp.l(v like '%peticion_invalida%', 'K4 tras denegar, ya no sirve para conectar → ' || v);
+
+  -- ============================================================ L purga (solo con la propuesta 150000 aplicada)
+  if to_regprocedure('privado.ia_purga()') is not null then
+    update public.ia_tokens set caduca_en = now() - interval '2 days' where conexion_id = con;
+    update public.ia_peticiones set caduca_en = now() - interval '2 days' where id_hash = privado.ia_hash(pet);
+    select (select count(*) from public.ia_tokens) + (select count(*) from public.ia_peticiones) into n;
+    select count(*) into n2 from public.ia_llamadas;
+    perform privado.ia_purga();
+    r := r || pg_temp.l(not exists (select 1 from public.ia_tokens where caduca_en < now() - interval '1 day')
+                        and not exists (select 1 from public.ia_peticiones where caduca_en < now() - interval '1 day')
+                        and (select (select count(*) from public.ia_tokens) + (select count(*) from public.ia_peticiones)) < n
+                        and (select count(*) from public.ia_llamadas) = n2,
+                        'L1 purga: se van los tokens y peticiones caducados hace más de un día; ia_llamadas intacta');
+    if exists (select 1 from pg_extension where extname = 'pg_cron') then   -- sin pg_cron, cron.job no existe ni para planificar
+      execute 'select count(*) from cron.job where jobname = ''ia-purga-diaria'' and command = ''select privado.ia_purga()''' into n;
+      r := r || pg_temp.l(n = 1, 'L2 purga programada cada día');
+    end if;
+  end if;
 
   raise exception using message = replace(c_fin, '%', r);
 end $todo$;

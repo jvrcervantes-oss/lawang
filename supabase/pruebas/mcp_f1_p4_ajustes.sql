@@ -158,11 +158,12 @@ begin
   r := r || pg_temp.l(pg_temp.js(v) ->> 'error' = 'usuario_inactivo', 'E2 permiso a un id inventado → ' || v);
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_permiso_guarda(%L, false)::text', b.uid));
   select count(*) into n from public.ia_conexiones where id = con_b and revocada_motivo = 'permiso';
-  r := r || pg_temp.l(pg_temp.js(v) ->> 'ok' = 'true' and n = 1 and not exists (select 1 from public.ia_permisos where usuario_id = b.uid),
-                      'E3 quitar el permiso a B → sin permiso y su conexión revocada en el acto');
+  r := r || pg_temp.l(pg_temp.js(v) ->> 'ok' = 'true' and n = 1 and not exists (select 1 from public.ia_permisos where usuario_id = b.uid and quitado_en is null)
+                      and exists (select 1 from public.ia_permisos where usuario_id = b.uid and quitado_por = a.uid),
+                      'E3 quitar el permiso a B → sin permiso, la fila guarda quién se lo quitó y su conexión revocada en el acto');
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_permiso_guarda(%L, true)::text', b.uid));
-  select count(*) into n from public.ia_permisos where usuario_id = b.uid and concedido_por = a.uid;
-  r := r || pg_temp.l(n = 1, 'E4 volver a darle permiso → con quién lo concedió');
+  select count(*) into n from public.ia_permisos where usuario_id = b.uid and concedido_por = a.uid and quitado_en is null and quitado_por is null;
+  r := r || pg_temp.l(n = 1, 'E4 volver a darle permiso → con quién lo concedió y sin la marca de quitado');
 
   -- ============================================================ F página de conexión
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_peticion_datos(%L)::text', repeat('Q', 43)));
@@ -173,7 +174,7 @@ begin
   r := r || pg_temp.l(pg_temp.js(v) ->> 'asistente' = 'claude' and (pg_temp.js(v) ->> 'puede')::boolean
                       and pg_temp.js(v) ->> 'destino' = 'claude.ai' and (pg_temp.js(v) ->> 'quedan_s')::integer between 1 and 300,
                       'F3 A con permiso, con el dominio de vuelta y los segundos que le quedan → ' || v);
-  delete from public.ia_permisos where usuario_id = b.uid;
+  update public.ia_permisos set quitado_en = now() where usuario_id = b.uid;
   v := pg_temp.sesion(b.uid, b.em, format('select public.ia_peticion_datos(%L)::text', pet));
   r := r || pg_temp.l(not (pg_temp.js(v) ->> 'puede')::boolean and pg_temp.js(v) ->> 'motivo' = 'sin_permiso', 'F4 B sin permiso → ' || v);
   select count(*) into n from public.ia_peticiones where id_hash = privado.ia_hash(pet) and usada_en is null;

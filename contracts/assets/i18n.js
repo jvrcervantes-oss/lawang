@@ -111,7 +111,7 @@
     'la desconectó el propio asistente': 'the assistant itself disconnected it',
     'se cortó por seguridad: alguien intentó usar dos veces el mismo código de entrada': 'cut off for security: someone tried to use the same sign-in code twice',
     'se cortó por seguridad: alguien intentó usar una credencial ya gastada': 'cut off for security: someone tried to use a credential that was already spent',
-    'se cortó porque cambió la contraseña': 'cut off because the password changed',
+    'se cortó porque cambiaron los datos de acceso de la cuenta (contraseña, correo o doble factor)': 'cut off because the account sign-in details changed (password, email or two-factor)',
     'se cortó porque se quitó el permiso para conectar asistentes': 'cut off because the permission to connect assistants was removed',
     'se cortó porque se apagó la IA en la intranet': 'cut off because AI was switched off in the intranet',
     'se cortó porque el usuario está desactivado': 'cut off because the user is deactivated',

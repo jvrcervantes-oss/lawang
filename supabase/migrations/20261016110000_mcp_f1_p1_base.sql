@@ -12,8 +12,8 @@
 --      sin policies y sin grants a anon/authenticated: solo las tocan funciones DEFINER de ia_puente_rol (su dueño).
 --   3. Ayudantes de postgres, estrechos y con EXECUTE solo a ia_puente_rol: privado.ia_auth_usuario (lee auth.users y factores
 --      MFA; NO escribe en auth) y privado.ia_aleatorio (32 bytes de pgcrypto).
---   4. privado.mcp_puerta / privado.mcp_cierra: encendido, cliente activo, permiso, usuario activo, sin ban, contraseña sin
---      cambiar desde que se conectó, 7 días, tope diario con contador atómico, y registro en ia_llamadas. Una denegación
+--   4. privado.mcp_puerta / privado.mcp_cierra: encendido, cliente activo, permiso, usuario activo, sin ban, acceso sin
+--      cambiar desde que se conectó (huella), 7 días, tope diario con contador atómico, y registro en ia_llamadas. Una denegación
 --      DEVUELVE el resultado y confirma la transacción (no lanza: el registro se perdería). Sin EXECUTE para nadie: las llaman
 --      las puertas privado.mcp_<x> de P2, con dueño postgres, que las alcanza por pertenencia a ia_puente_rol.
 --   5. public.ia_puente(accion, datos): la entrada de la edge. pide · deniega (la persona dice «no»: access_denied) · canjea (PKCE S256 dentro de la base) · refresca (rotación,
@@ -23,14 +23,16 @@
 --      edge con la sesión RECIÉN creada por la página de conexión, y su EXECUTE lo da la propuesta 140000 con el OK del owner;
 --      la segunda, «apps conectadas» y Ajustes, ya aquí).
 --   7. privado.ia_despacha: STUB que P2 (20261016120000_mcp_f1_p2_herramientas.sql) sustituye por la lista CASE literal.
---   8. privado.ia_purga() y su cron diario: borra peticiones y tokens caducados. ia_llamadas NO se purga aquí: su retención la
---      fijan Legal y el owner (fila en el encargo).
+--   La purga de peticiones y tokens caducados NO va aquí: borra filas, así que vive en supabase/propuestas/
+--   20261016150000_mcp_f1_purga.sql y sale con el OK del owner a abrir el puente (sin conexiones no hay nada que purgar).
 --
 -- DUEÑO DEL DATO («El dato tiene un dueño», contexto/patrones_tecnicos.md):
 --   ia_ajustes, ia_clientes, ia_permisos: el super admin, desde Ajustes › IA (P4). El resto lo escribe solo el puente.
 --   ia_conexiones.usuario_id / ia_permisos.usuario_id → public.usuarios(user_id) por id. ia_clientes.id es el client_id
---   público del asistente. La huella de contraseña es una COPIA congelada al conectar (sha256 del hash de Auth + ban): si cambia,
---   la conexión se revoca en la siguiente llamada (#395, punto 7).
+--   público del asistente. La huella de acceso es una COPIA congelada al conectar (sha256 de correo, bloqueo, baja y los ids de
+--   los factores MFA verificados): si cambia, la conexión se revoca en la siguiente llamada (#395, punto 7). La contraseña entra
+--   en la huella en la propuesta 140000, junto al grant que deja crear conexiones: aquí no se lee ninguna credencial de Auth
+--   (tools/no_destruir.py; Seguridad, 16-oct: así nunca nace una conexión con la huella sin contraseña).
 --
 -- VUELTA ATRÁS: supabase/reversion_mcp/vuelta_atras_p1.sql (destructiva: drop de lo creado aquí; con filas en ia_llamadas
 -- PARA y pregunta). Apagar sin borrar: `update public.ia_ajustes set encendido = false` (lo hace el super admin en Ajustes).
@@ -82,7 +84,11 @@ create table public.ia_clientes (
 create table public.ia_permisos (
   usuario_id    uuid primary key references public.usuarios(user_id) on delete cascade,
   concedido_por uuid references public.usuarios(user_id) on delete set null,
-  concedido_en  timestamptz not null default now()
+  concedido_en  timestamptz not null default now(),
+  -- quitar el permiso NO borra la fila: queda quién y cuándo (auditoría, y sin DELETE en la base de un cliente: 16-oct).
+  -- Tiene permiso = existe la fila Y quitado_en is null.
+  quitado_en    timestamptz,
+  quitado_por   uuid references public.usuarios(user_id) on delete set null
 );
 
 create table public.ia_uso (
@@ -191,7 +197,11 @@ as $$
            'email', u.email,
            'app_metadata', coalesce(u.raw_app_meta_data, '{}'::jsonb),
            'baneado', coalesce(u.banned_until > now(), false),
-           'huella', encode(sha256(convert_to(coalesce(u.encrypted_password, '') || '|' || coalesce(u.banned_until::text, ''), 'UTF8')), 'hex'),
+           -- correo · bloqueo · baja · factores verificados por id (sus ids no cambian; updated_at sí se mueve: no se usa)
+           'huella', encode(sha256(convert_to(coalesce(u.email, '') || '|' || coalesce(u.banned_until::text, '') || '|'
+                                              || coalesce(u.deleted_at::text, '') || '|'
+                                              || coalesce((select string_agg(f.id::text, ',' order by f.id) from auth.mfa_factors f
+                                                            where f.user_id = u.id and f.status = 'verified'), ''), 'UTF8')), 'hex'),
            'factores', (select count(*) from auth.mfa_factors f where f.user_id = u.id and f.status = 'verified'),
            'activo', coalesce((select x.activo from public.usuarios x where x.user_id = u.id), false))
     from auth.users u
@@ -267,7 +277,7 @@ begin
   if not exists (select 1 from public.ia_clientes k where k.id = c.cliente_id and k.activo) then
     perform privado.ia_revoca(c.id, 'cliente'); return 'cliente';
   end if;
-  if not exists (select 1 from public.ia_permisos p where p.usuario_id = c.usuario_id) then
+  if not exists (select 1 from public.ia_permisos p where p.usuario_id = c.usuario_id and p.quitado_en is null) then
     perform privado.ia_revoca(c.id, 'permiso'); return 'permiso';
   end if;
   u := privado.ia_auth_usuario(c.usuario_id);
@@ -543,7 +553,7 @@ begin
   end if;
   select * into a from public.ia_ajustes where id;
   if not coalesce(a.encendido, false) then return jsonb_build_object('error', 'apagado'); end if;
-  if not exists (select 1 from public.ia_permisos x where x.usuario_id = v_uid) then
+  if not exists (select 1 from public.ia_permisos x where x.usuario_id = v_uid and x.quitado_en is null) then
     return jsonb_build_object('error', 'sin_permiso');
   end if;
   u := privado.ia_auth_usuario(v_uid);
@@ -595,19 +605,7 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
--- ── 8. Purga diaria de lo operativo (no de ia_llamadas) ────────────────────────────────────────────────────────────────────
-create or replace function privado.ia_purga()
-returns void
-language sql
-volatile
-security definer
-set search_path = ''
-as $$
-  delete from public.ia_peticiones where caduca_en < now() - interval '1 day';
-  delete from public.ia_tokens where caduca_en < now() - interval '1 day';
-$$;
-
--- ── 9. Dueños y permisos (default-deny: cada EXECUTE con su llamador) ──────────────────────────────────────────────────────
+-- ── 8. Dueños y permisos (default-deny: cada EXECUTE con su llamador) ──────────────────────────────────────────────────────
 do $$
 declare f text;
 begin
@@ -616,7 +614,7 @@ begin
                            'privado.ia_conexion_motivo(uuid)', 'privado.mcp_puerta(text,jsonb)',
                            'privado.mcp_cierra(bigint,integer,text)', 'privado.ia_despacha(text,jsonb)',
                            'public.ia_puente(text,jsonb)', 'public.ia_conexion_autoriza(text)',
-                           'public.ia_conexion_revoca(uuid)', 'privado.ia_purga()'] loop
+                           'public.ia_conexion_revoca(uuid)'] loop
     execute format('alter function %s owner to ia_puente_rol', f);
     execute format('revoke all on function %s from public, anon, authenticated, service_role', f);
   end loop;
@@ -630,12 +628,3 @@ grant execute on function public.ia_conexion_revoca(uuid) to authenticated;
 
 revoke create on schema public from ia_puente_rol;
 revoke create on schema privado from ia_puente_rol;
-
--- Purga diaria (03:17 UTC). pg_cron corre como postgres: ejecuta la función de por sí. En una rama de ensayo sin pg_cron no se
--- programa (la viva sí lo tiene: 13 trabajos, medido el 16-oct).
-do $$
-begin
-  if exists (select 1 from pg_extension where extname = 'pg_cron') then
-    perform cron.schedule('ia-purga-diaria', '17 3 * * *', 'select privado.ia_purga()');
-  end if;
-end $$;

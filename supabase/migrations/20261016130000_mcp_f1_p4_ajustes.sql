@@ -98,7 +98,7 @@ begin
   v_motivo := case
     when not coalesce(a.encendido, false) then 'apagado'
     when not coalesce(k.activo, false) then 'cliente'
-    when not exists (select 1 from public.ia_permisos x where x.usuario_id = v_uid) then 'sin_permiso'
+    when not exists (select 1 from public.ia_permisos x where x.usuario_id = v_uid and x.quitado_en is null) then 'sin_permiso'
     when v_vivas >= a.max_conexiones then 'demasiadas_conexiones'
   end;
   -- destino: el dominio al que volverá el código (la pantalla de consentimiento lo enseña); quedan_s: segundos de vida de la
@@ -119,7 +119,7 @@ set search_path = ''
 as $$
   select jsonb_build_object(
     'encendido', coalesce((select encendido from public.ia_ajustes where id), false),
-    'permiso', exists (select 1 from public.ia_permisos x where x.usuario_id = privado.ia_pantalla_uid()),
+    'permiso', exists (select 1 from public.ia_permisos x where x.usuario_id = privado.ia_pantalla_uid() and x.quitado_en is null),
     'conexiones', coalesce((
       select jsonb_agg(jsonb_build_object(
                'id', c.id, 'asistente', k.asistente, 'nombre', k.nombre, 'creada_en', c.creada_en, 'expira_en', c.expira_en,
@@ -155,7 +155,7 @@ begin
     'usuarios', coalesce((select jsonb_agg(e || jsonb_build_object('permiso', p.usuario_id is not null, 'uso_hoy', coalesce(s.n, 0))
                                             order by p.usuario_id is null, e ->> 'nombre')
                             from jsonb_array_elements(privado.ia_equipo()) e
-                            left join public.ia_permisos p on p.usuario_id = (e ->> 'user_id')::uuid
+                            left join public.ia_permisos p on p.usuario_id = (e ->> 'user_id')::uuid and p.quitado_en is null
                             left join public.ia_uso s on s.usuario_id = (e ->> 'user_id')::uuid and s.dia = v_dia), '[]'::jsonb),
     'conexiones', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'usuario_id', c.usuario_id, 'cliente_id', c.cliente_id,
                                                                  'creada_en', c.creada_en, 'expira_en', c.expira_en, 'aal', c.aal)
@@ -268,9 +268,15 @@ begin
     if not coalesce((privado.ia_auth_usuario(p_usuario) ->> 'activo')::boolean, false) then
       return jsonb_build_object('error', 'usuario_inactivo');
     end if;
-    insert into public.ia_permisos (usuario_id, concedido_por) values (p_usuario, v_uid) on conflict (usuario_id) do nothing;
+    -- volver a conceder uno quitado: la fila revive con quién y cuándo nuevos (un permiso vivo no se toca)
+    insert into public.ia_permisos (usuario_id, concedido_por) values (p_usuario, v_uid)
+    on conflict (usuario_id) do update set concedido_por = excluded.concedido_por, concedido_en = now(),
+                                           quitado_en = null, quitado_por = null
+     where public.ia_permisos.quitado_en is not null;
   else
-    delete from public.ia_permisos where usuario_id = p_usuario;
+    -- quitar no borra: queda quién y cuándo (sin DELETE en la base de un cliente, 16-oct)
+    update public.ia_permisos set quitado_en = now(), quitado_por = v_uid
+     where usuario_id = p_usuario and quitado_en is null;
     for c in select x.id from public.ia_conexiones x where x.usuario_id = p_usuario and x.revocada_en is null loop
       perform privado.ia_revoca(c, 'permiso');
     end loop;

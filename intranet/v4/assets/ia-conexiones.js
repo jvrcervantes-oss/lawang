@@ -33,7 +33,7 @@
     asistente: 'la desconectó el propio asistente',
     reuso_codigo: 'se cortó por seguridad: alguien intentó usar dos veces el mismo código de entrada',
     reuso_refresco: 'se cortó por seguridad: alguien intentó usar una credencial ya gastada',
-    contrasena: 'se cortó porque cambió la contraseña',
+    contrasena: 'se cortó porque cambiaron los datos de acceso de la cuenta (contraseña, correo o doble factor)',
     permiso: 'se cortó porque se quitó el permiso para conectar asistentes',
     apagado: 'se cortó porque se apagó la IA en la intranet',
     usuario_inactivo: 'se cortó porque el usuario está desactivado',
