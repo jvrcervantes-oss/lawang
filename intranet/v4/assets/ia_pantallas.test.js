@@ -48,7 +48,8 @@ const codigos = (f) => [...new Set([...(funcion(f) || { cuerpo: '' }).cuerpo.mat
 
 /* ── 1. RPC: la pantalla ↔ la migración ── */
 const abiertas = new Set([...mig.matchAll(/grant execute on function public\.([a-z_]+)\([^)]*\) to authenticated;/g)].map((m) => m[1]));
-const rpcDe = (js) => [...new Set([...js.matchAll(/(?:rpc|lwDatos)\('([a-z_]+)'/g)].map((m) => m[1]))].sort();
+// las escrituras de Ajustes › IA pasan por guarda('ia_…', {…}), el camino común de ajustes-ia.js (16-oct)
+const rpcDe = (js) => [...new Set([...js.matchAll(/(?:rpc|lwDatos|\bguarda)\('([a-z_]+)'/g)].map((m) => m[1]))].sort();
 igual(rpcDe(comun), ['ia_conexion_revoca', 'ia_mis_conexiones'], 'ia-conexiones.js llama solo a ia_mis_conexiones e ia_conexion_revoca');
 igual(rpcDe(aj), ['ia_ajustes_datos', 'ia_ajustes_guarda', 'ia_cliente_guarda', 'ia_permiso_guarda'], 'ajustes-ia.js llama solo a las cuatro de Ajustes › IA (cortar va por LW_IA)');
 [...rpcDe(comun), ...rpcDe(aj)].forEach((f) => {
@@ -56,7 +57,7 @@ igual(rpcDe(aj), ['ia_ajustes_datos', 'ia_ajustes_guarda', 'ia_cliente_guarda', 
   if (!funcion(f)) falla(f + ' no está definida en las migraciones de P1/P4');
 });
 // los parámetros que manda cada llamada son los que declara la función (un nombre mal escrito da 404 de PostgREST, no un error legible)
-const llamadas = [...(comun + aj).matchAll(/\.rpc\('([a-z_]+)', \{([^}]*)\}/g)];
+const llamadas = [...(comun + aj).matchAll(/(?:\.rpc|\bguarda)\('([a-z_]+)', \{([^}]*)\}/g)];
 igual(llamadas.map((m) => m[1]).sort(), ['ia_ajustes_guarda', 'ia_cliente_guarda', 'ia_conexion_revoca', 'ia_permiso_guarda'], 'se leen las cuatro llamadas con parámetros');
 llamadas.forEach(([, f, args]) => {
   const declarados = (funcion(f) || { params: '' }).params.split(',').map((x) => x.trim().split(/\s+/)[0]).filter(Boolean).sort();

@@ -46,15 +46,27 @@
     i.value = valor == null ? '' : String(valor); i.setAttribute('data-ia-tope', clave); i.setAttribute('data-ia-antes', i.value);
     return i;
   }
-  function usuarioPorId() { var m = {}; (D.usuarios || []).forEach(function (u) { m[u.user_id] = u; }); return m; }
+  var UM = {};   // usuarios por id: se construye UNA vez por carga (pinta), no en cada fila
   function clientePorId() { var m = {}; (D.clientes || []).forEach(function (k) { m[k.id] = k; }); return m; }
   function nombrePersona(id) {
-    var u = usuarioPorId()[id];
+    var u = UM[id];
     return u ? (u.nombre || T('(sin nombre)')) : T('Usuario fuera del equipo activo (%i…)', { i: String(id || '').slice(0, 8) });
   }
   function vivasDe(campoId, id) { return (D.conexiones || []).filter(function (c) { return c[campoId] === id; }).length; }
 
-  /* ── guardar ───────────────────────────────────────────────────────────────────────────────────────────────────────── */
+  /* ── guardar: un solo camino para las tres escrituras (botón quieto mientras va, frase de la base, recarga) ─────────── */
+  function guarda(rpc, args, err, b, hecho, prefijo) {
+    if (b) b.disabled = true;
+    var no = function (m) { if (b) b.disabled = false; IA.mal(T(prefijo || 'No se ha guardado: %m', { m: m })); return false; };
+    return sb.rpc(rpc, args).then(function (r) {
+      var e = IA.textoError(r, err);
+      if (e) return no(e);
+      if (b) b.disabled = false;
+      IA.bien(hecho || T('Guardado.'));
+      carga();
+      return true;
+    }, function (x) { return no((x && x.message) || T('sin respuesta')); });
+  }
   function guardaAjustes(datos, b) {
     var ERR = {
       campo_desconocido: function (d) { return T('La base no reconoce el campo «%c».', { c: String(d.campo || '') }); },
@@ -64,19 +76,7 @@
         ? 'Fija primero cuántas consultas al día por persona: con 0 no se puede encender.'
         : 'Con la IA encendida el tope de consultas al día no puede ser 0: pon un número o apágala antes.'
     };
-    if (b) b.disabled = true;
-    return sb.rpc('ia_ajustes_guarda', { p_datos: datos }).then(function (r) {
-      if (b) b.disabled = false;
-      var e = IA.textoError(r, ERR);
-      if (e) { IA.mal(T('No se ha guardado: %m', { m: e })); return false; }
-      IA.bien(T('Guardado.'));
-      carga();
-      return true;
-    }, function (x) {
-      if (b) b.disabled = false;
-      IA.mal(T('No se ha guardado: %m', { m: (x && x.message) || T('sin respuesta') }));
-      return false;
-    });
+    return guarda('ia_ajustes_guarda', { p_datos: datos }, ERR, b);
   }
 
   var ERR_CLIENTE = {
@@ -89,19 +89,7 @@
     no_existe: 'Ese asistente ya no existe. Recarga la página.'
   };
   function guardaCliente(id, asistente, nombre, uris, activo, b, hecho) {
-    if (b) b.disabled = true;
-    return sb.rpc('ia_cliente_guarda', { p_id: id, p_asistente: asistente, p_nombre: nombre, p_redirect_uris: uris, p_activo: activo }).then(function (r) {
-      if (b) b.disabled = false;
-      var e = IA.textoError(r, ERR_CLIENTE);
-      if (e) { IA.mal(T('No se ha guardado: %m', { m: e })); return false; }
-      IA.bien(hecho || T('Guardado.'));
-      carga();
-      return true;
-    }, function (x) {
-      if (b) b.disabled = false;
-      IA.mal(T('No se ha guardado: %m', { m: (x && x.message) || T('sin respuesta') }));
-      return false;
-    });
+    return guarda('ia_cliente_guarda', { p_id: id, p_asistente: asistente, p_nombre: nombre, p_redirect_uris: uris, p_activo: activo }, ERR_CLIENTE, b, hecho);
   }
   /* Una dirección por línea: se quitan los blancos y las líneas vacías. Lo demás (https, dominio, longitud) lo decide la base. */
   function lineas(txt) { return String(txt || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean); }
@@ -173,10 +161,12 @@
         if (malo) return;
         var v = i.value.trim();
         if (v === i.getAttribute('data-ia-antes')) return;
-        if ((i.validity && i.validity.badInput) || !/^\d+$/.test(v)) { malo = i; return; }   // vacío, decimales o letras: no se manda
+        // vacío, decimales o letras: no se manda. Hasta 6 cifras: más desborda el integer de la base y volvería como
+        // datos_invalidos («sin decimales»), que no es el motivo; con 6 la base dice fuera_de_rango, que sí lo es.
+        if ((i.validity && i.validity.badInput) || !/^\d{1,6}$/.test(v)) { malo = i; return; }
         c[i.getAttribute('data-ia-tope')] = Number(v); n++;
       });
-      if (malo) { IA.mal(T('Escribe un número entero en este campo; no se ha guardado nada.')); malo.focus(); return; }
+      if (malo) { IA.mal(T('Escribe un número entero dentro de su rango; no se ha guardado nada.')); malo.focus(); return; }
       if (!n) { IA.mal(T('No has cambiado nada.')); return; }
       guardaAjustes(c, b);
     });
@@ -284,7 +274,7 @@
     if (!(D.clientes || []).length) lista.appendChild(el('p', 'font-body-md text-body-md text-on-surface-variant', T('Todavía no hay ningún cliente. Crea uno para Claude, para ChatGPT o para los dos.')));
     (D.clientes || []).forEach(function (k) { lista.appendChild(bloqueCliente(k)); });
     s.c.appendChild(lista);
-    var caja = el('div', 'flex'); caja.appendChild(botonNuevo(caja));
+    var caja = el('div', 'w-full'); caja.appendChild(botonNuevo(caja));   // bloque, no fila flex: el formulario ocupa el ancho de la sección
     s.c.appendChild(caja);
     raiz.appendChild(s.s);
   }
@@ -299,7 +289,7 @@
     f.setAttribute('data-ia-usuario-fila', u.user_id);
     var izq = el('div', 'flex flex-col min-w-0');
     izq.appendChild(el('span', 'font-label-md text-label-md text-on-surface break-words', u.nombre || T('(sin nombre)')));
-    var linea = String(u.rol || '—');
+    var linea = u.rol ? T(window.LW_ROL ? LW_ROL.etiqueta(u.rol) : u.rol) : '—';
     if (u.permiso) linea += ' · ' + (Number(u.uso_hoy) === 1 ? T('hoy, 1 consulta') : T('hoy, %n consultas', { n: Number(u.uso_hoy) || 0 }));
     izq.appendChild(el('span', C_PEQ, linea));
     f.appendChild(izq);
@@ -314,18 +304,8 @@
         confirmar: T('Sí, quitar'), tono: 'peligro'
       }) : Promise.resolve(false));
       q.then(function (si) {
-        if (!si) return;
-        b.disabled = true;
-        sb.rpc('ia_permiso_guarda', { p_usuario: u.user_id, p_concede: !u.permiso }).then(function (r) {
-          b.disabled = false;
-          var e = IA.textoError(r, ERR_PERMISO);
-          if (e) { IA.mal(T('No se ha cambiado el permiso: %m', { m: e })); return; }
-          IA.bien(u.permiso ? T('Permiso quitado.') : T('Permiso concedido.'));
-          carga();
-        }, function (x) {
-          b.disabled = false;
-          IA.mal(T('No se ha cambiado el permiso: %m', { m: (x && x.message) || T('sin respuesta') }));
-        });
+        if (si) guarda('ia_permiso_guarda', { p_usuario: u.user_id, p_concede: !u.permiso }, ERR_PERMISO, b,
+          u.permiso ? T('Permiso quitado.') : T('Permiso concedido.'), 'No se ha cambiado el permiso: %m');
       });
     });
     f.appendChild(b);
@@ -390,6 +370,7 @@
   function pinta() {
     var raiz = document.getElementById('lw-ia-aj'); if (!raiz) return;
     raiz.textContent = '';
+    UM = {}; (D.usuarios || []).forEach(function (u) { UM[u.user_id] = u; });
     bloqueInterruptor(raiz);
     bloqueTopes(raiz);
     bloqueClientes(raiz);

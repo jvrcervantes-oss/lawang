@@ -8729,7 +8729,7 @@
       var sb = aut.sb;
       // mismos 5 roles que /intranet/usuarios/ (ROLES) — antes solo llevaba
       // agente/admin/super_admin y sales_manager/project_manager no aparecían.
-      var ETIQ_ROL = { agente: 'Agente', sales_manager: 'Sales manager', project_manager: 'Project manager', admin: 'Administrador', super_admin: 'Super admin', admin_empresa: 'Admin de empresa', super_admin_empresa: 'Super admin de empresa' };
+      var ETIQ_ROL = (window.LW_ROL && LW_ROL.ETIQUETAS) || {};   // la lista vive en contracts/assets/roles.js (16-oct-2026)
       var ROLES_ED = ['agente', 'sales_manager', 'project_manager', 'admin'].concat(aut.ficha.rol === 'super_admin' ? ['super_admin'] : []);
       var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       window.LW_V4 = window.LW_V4 || {};

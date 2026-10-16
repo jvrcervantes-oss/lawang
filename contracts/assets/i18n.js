@@ -136,6 +136,7 @@
     'Apagar la IA': 'Switch AI off',
     'Encender la IA': 'Switch AI on',
     'Fija primero cuántas consultas al día por persona: con 0 no se puede encender.': 'First set how many queries a day per person: with 0 it cannot be switched on.',
+    'Escribe un número entero dentro de su rango; no se ha guardado nada.': 'Enter a whole number within its range; nothing has been saved.',
     '¿Apagar la IA?': 'Switch AI off?',
     'Desde ahora ningún asistente podrá consultar nada. Las conexiones no se borran: si la vuelves a encender antes de que caduquen, siguen funcionando. Para cortar una del todo, usa «Cortar» en Conexiones vivas.': 'From now on no assistant will be able to query anything. Connections are not deleted: if you switch it back on before they expire, they keep working. To cut one off for good, use “Cut off” in Live connections.',
     'Sí, apagar': 'Yes, switch off',
@@ -6926,11 +6927,16 @@
       }
     }
 
+    /* Los huecos se rellenan en UNA pasada (16-oct-2026, code-review de Ajustes › IA): antes era un split/join por hueco, y un dato
+       que traía «%a» dentro (el nombre de una persona) se volvía a rellenar con el hueco siguiente. El más largo primero, para que
+       `%nombre` no lo coja `%n`. Lo que se mete ya no se vuelve a mirar. */
     if (huecos) {
-      for (var k in huecos) {
-        if (Object.prototype.hasOwnProperty.call(huecos, k)) {
-          visible = visible.split('%' + k).join(huecos[k]);
-        }
+      var ks = [];
+      for (var k in huecos) if (Object.prototype.hasOwnProperty.call(huecos, k)) ks.push(k);
+      if (ks.length) {
+        ks.sort(function (a, b) { return b.length - a.length; });
+        var re = new RegExp('%(' + ks.map(function (x) { return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')', 'g');
+        visible = visible.replace(re, function (m, x) { return String(huecos[x]); });
       }
     }
     return visible;
