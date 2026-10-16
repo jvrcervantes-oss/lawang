@@ -1007,6 +1007,10 @@ video {
   border-bottom-width: calc(1px * var(--tw-divide-y-reverse));
 }
 
+.divide-outline-variant\/30 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(var(--tema-outline-variant) / 0.3);
+}
+
 .self-start {
   align-self: flex-start;
 }
@@ -1854,6 +1858,10 @@ video {
 }
 
 @media (min-width: 768px) {
+  .md\:w-24 {
+    width: 6rem;
+  }
+
   .md\:w-40 {
     width: 10rem;
   }
@@ -1864,6 +1872,10 @@ video {
 
   .md\:w-96 {
     width: 24rem;
+  }
+
+  .md\:flex-1 {
+    flex: 1 1 0%;
   }
 
   .md\:grid-cols-2 {
@@ -1882,8 +1894,20 @@ video {
     flex-direction: row;
   }
 
+  .md\:items-start {
+    align-items: flex-start;
+  }
+
   .md\:items-center {
     align-items: center;
+  }
+
+  .md\:justify-end {
+    justify-content: flex-end;
+  }
+
+  .md\:gap-8 {
+    gap: 2rem;
   }
 
   .md\:px-8 {

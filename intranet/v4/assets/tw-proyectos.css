@@ -1362,6 +1362,10 @@ select {
   border-bottom-width: calc(1px * var(--tw-divide-y-reverse));
 }
 
+.divide-outline-variant\/30 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(var(--tema-outline-variant) / 0.3);
+}
+
 .divide-warm-border\/60 > :not([hidden]) ~ :not([hidden]) {
   border-color: rgb(var(--tema-warm-border) / 0.6);
 }
@@ -2681,6 +2685,10 @@ select {
 }
 
 @media (min-width: 768px) {
+  .md\:w-24 {
+    width: 6rem;
+  }
+
   .md\:w-40 {
     width: 10rem;
   }
@@ -2701,6 +2709,10 @@ select {
     width: auto;
   }
 
+  .md\:flex-1 {
+    flex: 1 1 0%;
+  }
+
   .md\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2717,12 +2729,24 @@ select {
     flex-direction: row;
   }
 
+  .md\:items-start {
+    align-items: flex-start;
+  }
+
   .md\:items-end {
     align-items: flex-end;
   }
 
   .md\:items-center {
     align-items: center;
+  }
+
+  .md\:justify-end {
+    justify-content: flex-end;
+  }
+
+  .md\:gap-8 {
+    gap: 2rem;
   }
 
   .md\:px-8 {
