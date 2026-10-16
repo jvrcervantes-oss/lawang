@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261015213000_proyecto_por_slug_deck.sql (15-oct-2026, sesion proyecto-por-id, LAW-428 fase 2 tanda A).
+-- REVERSION de 20261016000442_proyecto_por_slug_deck.sql (15-oct-2026, sesion proyecto-por-id, LAW-428 fase 2 tanda A).
 -- ORDEN: 1) el front del deck a su version anterior si ya llama a las *_por_slug (fase 3), 2) ESTE fichero, en una transaccion.
 -- Devuelve LITERALES las 4 recableadas a su cuerpo vivo del 15-oct (md5(prosrc) anotado en cada una; pg_get_functiondef del volcado
 -- de ese dia), devuelve a service_role el EXECUTE de investor_deck_reservar y borra las 10 funciones nuevas (nadie mas las llama).

@@ -1,4 +1,4 @@
--- Prueba de proyecto-por-slug (15-oct-2026, LAW-428 fase 2 tanda A, migración 20261015213000_proyecto_por_slug_deck.sql).
+-- Prueba de proyecto-por-slug (15-oct-2026, LAW-428 fase 2 tanda A, migración 20261016000442_proyecto_por_slug_deck.sql).
 -- El deck público pregunta por slug y cruza por proyecto_id; las 4 que se quedan (deck_bucket_debido, deck_config_publico,
 -- deck_fotos_desajustes, investor_deck_documento_visible) dan LO MISMO que antes del recableo.
 --   G1-G8  por cada gemela, sobre un proyecto con deck abierto: count + md5 (filas ordenadas por su texto) = su vieja por nombre, y > 0.
