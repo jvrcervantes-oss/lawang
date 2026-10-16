@@ -1029,6 +1029,14 @@ video {
   white-space: nowrap;
 }
 
+.break-words {
+  overflow-wrap: break-word;
+}
+
+.break-all {
+  word-break: break-all;
+}
+
 .rounded {
   border-radius: 0.25rem;
 }
@@ -1384,6 +1392,10 @@ video {
   font-family: "Neue Kabel", sans-serif;
 }
 
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 .font-sans {
   font-family: Neue Kabel, system-ui, sans-serif;
 }
@@ -1699,6 +1711,10 @@ video {
   border-width: 0px;
 }
 
+.last\:border-b-0:last-child {
+  border-bottom-width: 0px;
+}
+
 .hover\:border-accent-gold:hover {
   --tw-border-opacity: 1;
   border-color: rgb(var(--tema-accent-gold) / var(--tw-border-opacity, 1));
@@ -1844,6 +1860,15 @@ video {
 
   .md\:items-center {
     align-items: center;
+  }
+
+  .md\:px-8 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .md\:pt-8 {
+    padding-top: 2rem;
   }
 }
 

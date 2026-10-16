@@ -1,0 +1,175 @@
+/* Página de conexión del MCP (F1-P4, 16-oct-2026). Colores por TOKEN del tema (las variables --tema-* de tw.css), con
+   su valor de respaldo por si tw.css no llegara: en una instancia del ERP la piel los cambia sin tocar esto.
+   Clases propias con prefijo ic- (no Tailwind): esta página no está en tailwind.json a propósito, para no tocar la salida
+   compartida mientras otro agente trabaja en paralelo. */
+[hidden] { display: none !important; }
+
+.ic-cuerpo {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: rgb(var(--tema-raw-linen, 245 240 230));
+  color: rgb(var(--tema-on-surface, 27 28 25));
+  font-family: 'Neue Kabel', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ic-marco {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+@media (min-width: 768px) {
+  .ic-marco { padding-top: 12vh; }
+}
+
+.ic-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.ic-marca {
+  font-weight: 600;
+  letter-spacing: .14em;
+  color: rgb(var(--tema-deep-lagoon, 16 76 79));
+}
+
+.ic-idiomas {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgb(var(--tema-surface-container, 239 238 232));
+}
+.ic-idioma {
+  min-width: 40px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(var(--tema-on-surface-variant, 68 72 63));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ic-idioma[aria-pressed="true"] {
+  background: rgb(var(--tema-deep-lagoon, 16 76 79));
+  color: rgb(var(--tema-on-primary, 255 255 255));
+}
+
+.ic-tarjeta {
+  box-sizing: border-box;
+  background: rgb(var(--tema-surface-container-lowest, 255 255 255));
+  border: 1px solid rgb(var(--tema-outline-variant, 197 200 188) / .6);
+  border-radius: 16px;
+  padding: 28px 24px;
+  box-shadow: 0 1px 8px rgb(0 0 0 / .04);
+}
+@media (max-width: 380px) {
+  .ic-tarjeta { padding: 22px 16px; }
+}
+
+.ic-titulo {
+  margin: 0 0 8px;
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 600;
+  color: rgb(var(--tema-deep-lagoon, 16 76 79));
+  overflow-wrap: anywhere;
+}
+.ic-texto {
+  margin: 0 0 16px;
+  color: rgb(var(--tema-on-surface, 27 28 25));
+  overflow-wrap: anywhere;
+}
+.ic-suave { color: rgb(var(--tema-on-surface-variant, 68 72 63)); }
+.ic-destacado { font-size: 17px; }
+.ic-destacado strong { font-weight: 600; }
+
+.ic-campo { margin-bottom: 16px; }
+.ic-etiqueta {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.ic-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid rgb(var(--tema-control-border, 138 132 116));
+  border-radius: 10px;
+  background: rgb(var(--tema-surface-container-lowest, 255 255 255));
+  color: inherit;
+  font: inherit;
+  font-size: 16px;   /* 16 px: por debajo, Safari en iPhone hace zoom al enfocar */
+}
+.ic-input:focus-visible {
+  outline: 2px solid rgb(var(--tema-deep-lagoon, 16 76 79));
+  outline-offset: 1px;
+}
+.ic-cifras { letter-spacing: .3em; font-variant-numeric: tabular-nums; }
+
+.ic-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.ic-boton {
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ic-boton:focus-visible {
+  outline: 2px solid rgb(var(--tema-deep-lagoon, 16 76 79));
+  outline-offset: 2px;
+}
+.ic-boton[disabled] { opacity: .6; cursor: default; }
+.ic-principal {
+  border: 0;
+  background: rgb(var(--tema-primary-container, 72 91 55));
+  color: rgb(var(--tema-on-primary, 255 255 255));
+}
+form .ic-principal { width: 100%; }
+.ic-secundario {
+  border: 1px solid rgb(var(--tema-outline, 117 120 110));
+  background: transparent;
+  color: rgb(var(--tema-on-surface, 27 28 25));
+}
+.ic-botones .ic-boton { flex: 1 1 140px; }
+
+.ic-reloj {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: rgb(var(--tema-on-surface-variant, 68 72 63));
+  font-variant-numeric: tabular-nums;
+}
+.ic-reloj:empty { display: none; }
+
+.ic-error {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: rgb(var(--tema-error, 186 26 26));
+}
+
+.ic-aviso {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgb(var(--tema-error-container, 255 218 214));
+  color: rgb(var(--tema-on-error-container, 147 0 10));
+}
+.ic-aviso-texto { margin: 0; font-size: 15px; overflow-wrap: anywhere; }

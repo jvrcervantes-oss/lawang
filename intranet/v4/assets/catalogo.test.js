@@ -110,7 +110,9 @@ const pathsDe = nombre => {
 };
 const SOLO_ADMIN = pathsDe('PANEL_CONTROL').concat(['usuarios']);   // Usuarios se MUEVE al Panel (injertaPanelControl)
 const SOLO_SUPER = pathsDe('PANEL_CONTROL_SUPER');
-const SIN_PUERTA_PROPIA = { home: 'el inicio: lo ve todo el equipo, y cada tarjeta enlaza a una puerta con su clave' };
+const SIN_PUERTA_PROPIA = { home: 'el inicio: lo ve todo el equipo, y cada tarjeta enlaza a una puerta con su clave',
+  // MCP F1-P4 (16-oct-2026): cada persona ve y corta SOLO sus conexiones de IA; la base filtra por auth.uid() (ia_mis_conexiones)
+  ia: 'apps conectadas: cada persona, solo las suyas (lo filtra la base)' };
 
 for (const d of fs.readdirSync(V4, { withFileTypes: true })) {
   if (!d.isDirectory() || d.name === 'assets') continue;

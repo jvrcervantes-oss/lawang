@@ -425,6 +425,12 @@ verify_jwt = false
 [functions.bot-api]
 verify_jwt = false
 
+# mcp (MCP de Lawang F1-P3, 16-oct-2026, encargos/20261015_erp_mcp.md): el puente que deja a Claude o ChatGPT LEER con el usuario de la
+# persona. verify_jwt=false porque el asistente trae un token OPACO del puente (no un JWT de Supabase) y el 401 con su WWW-Authenticate
+# tiene que salir de la funcion. Sin llaves: solo la clave publicable; todo el control (PKCE, tope, registro, 7 dias) vive en public.ia_puente.
+[functions.mcp]
+verify_jwt = false
+
 # Fijado el 10-oct-2026 (autorizacion expresa del owner): anota el verify_jwt MEDIDO en produccion (list_edge_functions) de las edges que no tenian entrada.
 # No cambia nada desplegado; evita que un despliegue sin --no-verify-jwt las deje en true (el defecto).
 [functions.admin-usuarios]

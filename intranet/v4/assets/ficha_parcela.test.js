@@ -336,6 +336,15 @@ const corre = async (u, t, h) => { FP._reinicia(); const sb = sbFalso(t); const 
   const fT = fugasIdioma(tarjeta), fF = fugasIdioma(ficha);
   ok(!fT.length, 'tarjeta del parcelario en inglés; fugas: ' + fT.join(' | '));
   ok(!fF.length, 'ficha de la parcela en inglés; fugas: ' + fF.join(' | '));
+  /* Plantillas nuevas de la v4 en el mismo recorrido (lección de Frontend, 15-oct): «Apps conectadas» (/v4/ia/, su <main>) y la
+     pestaña IA de Ajustes con su panel (MCP de Lawang F1-P4, 16-oct-2026). Lo que pinta su JS lo comprueba ia_pantallas.test.js. */
+  const corta = (s, desde, hasta, quien) => { const a = s.indexOf(desde), b = s.indexOf(hasta, a); ok(a > 0 && b > a, quien + ' tiene el tramo ' + desde); return s.slice(a, b); };
+  const iaH = leer('intranet', 'v4', 'ia', 'index.html'), ajH = leer('intranet', 'v4', 'ajustes', 'index.html');
+  const fIa = fugasIdioma(corta(iaH, '<main', '</main>', 'ia/index.html'));
+  const fAj = fugasIdioma(corta(ajH, ajH.slice(ajH.lastIndexOf('<button', ajH.indexOf('data-lw-tab="ia"'))).split('>')[0], '</button>', 'ajustes/index.html') + '</button>' +
+    corta(ajH, '<div id="lw-panel-ia"', '</div></div>', 'ajustes/index.html') + '</div></div>');
+  ok(!fIa.length, '«Apps conectadas» en inglés; fugas: ' + fIa.join(' | '));
+  ok(!fAj.length, 'Ajustes › IA en inglés; fugas: ' + fAj.join(' | '));
 
   /* Lo que pinta el JS de la tarjeta y de la ficha (datos.js): cada tx('…') tiene su inglés, y los textos que se
      escapaban del diccionario el 15-oct ya no salen como literal suelto. */

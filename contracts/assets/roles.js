@@ -36,6 +36,10 @@ var LW_ROL = {
   esGlobal: function (f) { return !!f && !LW_ROL.esEmpresa(f); },
   empresas: function (f) { return (f && Array.isArray(f.empresas)) ? f.empresas : []; },
   puedeHerr: function (f, h) { return !!f && (f.rol === 'super_admin' || (f.herramientas || []).indexOf(h) !== -1); },
+  /* El nombre visible de cada rol, una sola lista (16-oct-2026: vivía en editores.js como ETIQ_ROL y solo existía donde corre el
+     editor de Usuarios; Ajustes › IA la necesita también). Clave = el rol de la base; quien la pinta la pasa por lwT. */
+  ETIQUETAS: { agente: 'Agente', sales_manager: 'Sales manager', project_manager: 'Project manager', admin: 'Administrador', super_admin: 'Super admin', admin_empresa: 'Admin de empresa', super_admin_empresa: 'Super admin de empresa' },
+  etiqueta: function (r) { return LW_ROL.ETIQUETAS[r] || r || ''; },
   /* ── Empresas para ELEGIR (selectores de las pantallas) ─────────────────────────────────────────────────────────
      catalogo()          las empresas activas [{clave, nombre}], leídas una vez por página
      misEmpresas(f)      las que puede elegir esta persona: las de su ficha, o todas si no está acotada (Promise)

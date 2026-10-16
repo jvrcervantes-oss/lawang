@@ -1304,6 +1304,14 @@ video {
   white-space: nowrap;
 }
 
+.break-words {
+  overflow-wrap: break-word;
+}
+
+.break-all {
+  word-break: break-all;
+}
+
 .rounded {
   border-radius: 0.25rem;
 }
@@ -2021,6 +2029,10 @@ video {
   font-family: Neue Kabel;
 }
 
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 .text-\[10\.5px\] {
   font-size: 10.5px;
 }
@@ -2536,6 +2548,10 @@ video {
   border-width: 0px;
 }
 
+.last\:border-b-0:last-child {
+  border-bottom-width: 0px;
+}
+
 .hover\:bg-deep-lagoon\/90:hover {
   background-color: rgb(var(--tema-deep-lagoon) / 0.9);
 }
@@ -2848,6 +2864,15 @@ video {
 
   .md\:self-end {
     align-self: flex-end;
+  }
+
+  .md\:px-8 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .md\:pt-8 {
+    padding-top: 2rem;
   }
 }
 

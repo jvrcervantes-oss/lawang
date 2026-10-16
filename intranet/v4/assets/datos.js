@@ -11088,7 +11088,7 @@
   /* Pantallas de la v4 que pintan con su PROPIO script (panel-*.js,
      comunicacion.js, el asistente) y no tienen handler aqui: tambien nacian en
      «—» y sin velo. Se tapan igual; el destape lo decide el contador de red. */
-  var PROPIAS = { finanzas: 1, gastos: 1, bancos: 1, comunicacion: 1, asistente: 1, 'asistente-correos': 1 };
+  var PROPIAS = { finanzas: 1, gastos: 1, bancos: 1, comunicacion: 1, asistente: 1, 'asistente-correos': 1, ia: 1 };   // ia: «Apps conectadas» (ia-conexiones.js)
   if (REG[seg] || PROPIAS[seg]) ponVelo();
   /* Una pantalla de la v4 que cargue shell.css y NO tenga handler nace oculta
      por la regla de arriba y nadie la destaparia hasta el rescate de los 12 s.

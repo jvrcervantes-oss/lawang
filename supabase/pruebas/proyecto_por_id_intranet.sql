@@ -16,6 +16,9 @@
 --   G1-G3  proyecto_guarda: cambiar el slug se rechaza antes de tocar nada (22023); mandar el mismo slug con otro cambio guarda.
 --   P1-P2  permisos: las 4 de la intranet nacen sin EXECUTE (P1 mide antes del grant que la prueba se da para B/V/R/T, como hará
 --          2M); privado.carta_cobrado_calcula_por_id, nadie.
+-- 16-oct-2026 (20261016083000_carta_liberada_mismo_comprador): una Carta solo aporta dinero o parcela a un Bloqueo con una FICHA en
+-- común (ya no por el pasaporte), así que el comprador ZZ-PI es una ficha (ZZ-PI Comprador, del agente) y las Cartas y el Bloqueo la
+-- llevan en datos.adq1_client_id, como la pantalla. pg_temp.bloqueo la lee de la variable de transacción zz.pi_ficha.
 -- MONTAJE: filas propias marcadas ZZ-PI. Lo cobrado de la Carta se fija sustituyendo, SOLO dentro de esta transacción de rama,
 -- _contrato_cobrado_interno por una que da 5.000 a esa Carta y 0 al resto (el cálculo de lo cobrado no es lo que se prueba aquí).
 -- En rama los números de serie no importan (la rama se borra); no corre en la viva (guardia erp.en_rama).
@@ -48,7 +51,7 @@ create or replace function pg_temp.err(t text) returns text language sql immutab
 -- el p_contrato que manda la pantalla a contrato_guarda (contracts/app.html, contractPayload) para un Bloqueo de Parcela
 create or replace function pg_temp.bloqueo(p_proy_nombre text, p_codigo text) returns jsonb language sql as $f$
   select jsonb_build_object('tipo', 'reserva_parcela',
-           'datos', jsonb_build_object('hitos', '[]'::jsonb,
+           'datos', jsonb_build_object('hitos', '[]'::jsonb, 'adq1_client_id', nullif(current_setting('zz.pi_ficha', true), ''),
                       'fields', jsonb_build_object('proyecto_nombre', p_proy_nombre, 'parcela_codigo', p_codigo, 'moneda', 'EUR',
                                                    'precio_total', '20000', 'sociedad_firmante', 'zz_pi1',
                                                    'adq1_nombre', 'ZZ-PI Comprador', 'adq1_pasaporte', 'ZZPI0001')))
@@ -57,7 +60,7 @@ $f$;
 do $todo$
 declare
   r text := ''; v text; v2 text; n bigint;
-  p1 uuid; pv uuid; pr uuid; u1 uuid; u2 uuid; u3 uuid; k uuid; k2 uuid; b1 uuid;
+  p1 uuid; pv uuid; pr uuid; u1 uuid; u2 uuid; u3 uuid; k uuid; k2 uuid; b1 uuid; fpi uuid;
   su uuid := gen_random_uuid(); c_su constant text := 'zz-pi-super@prueba.invalid';
   ad uuid := gen_random_uuid(); c_ad constant text := 'zz-pi-admin@prueba.invalid';
   ag uuid := gen_random_uuid(); c_ag constant text := 'zz-pi-agente@prueba.invalid';
@@ -88,14 +91,17 @@ begin
        values ('ZZPI-3', c_p1, p1, 'parcela', 300, 20000, 20000, 'EUR', 'disponible') returning id into u3;
   insert into public.unidades (codigo, proyecto, proyecto_id, tipo, superficie_m2, precio_suelo, precio, moneda, estado)
        values ('ZZPI-R', 'ZZ-PI Renombrar', pr, 'parcela', 300, 20000, 20000, 'EUR', 'disponible');
+  insert into public.clients (full_name, passport_number, numero_cliente, propietario)
+       values ('ZZ-PI Comprador', 'ZZPI0001', 'ZZPI-C1', c_ag) returning id into fpi;
+  perform set_config('zz.pi_ficha', fpi::text, true);
   insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, datos, creado_por)
        values ('ZZPI-CR1', 'carta_reserva', p1, c_p1, 'EUR', 5000,
-               jsonb_build_object('hitos', '[]'::jsonb, 'fields', jsonb_build_object('proyecto_nombre', c_p1, 'parcela_codigo', 'ZZPI-1',
+               jsonb_build_object('hitos', '[]'::jsonb, 'adq1_client_id', fpi::text, 'fields', jsonb_build_object('proyecto_nombre', c_p1, 'parcela_codigo', 'ZZPI-1',
                  'moneda', 'EUR', 'sociedad_firmante', 'zz_pi1', 'adq1_nombre', 'ZZ-PI Comprador', 'adq1_pasaporte', 'ZZPI0001')),
                'zz-pi@prueba.invalid') returning id into k;
   insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, datos, creado_por)
        values ('ZZPI-CR2', 'carta_reserva', p1, c_p1, 'EUR', 5000,
-               jsonb_build_object('hitos', '[]'::jsonb, 'fields', jsonb_build_object('proyecto_nombre', c_p1, 'parcela_codigo', 'ZZPI-3',
+               jsonb_build_object('hitos', '[]'::jsonb, 'adq1_client_id', fpi::text, 'fields', jsonb_build_object('proyecto_nombre', c_p1, 'parcela_codigo', 'ZZPI-3',
                  'moneda', 'EUR', 'sociedad_firmante', 'zz_pi1', 'adq1_nombre', 'ZZ-PI Comprador', 'adq1_pasaporte', 'ZZPI0001')),
                'zz-pi@prueba.invalid') returning id into k2;
   update public.unidades set contrato_id = k, estado = 'reservada' where id = u1;
