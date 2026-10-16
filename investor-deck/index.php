@@ -1401,11 +1401,11 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     if(u.embed){ document.getElementById('ubic-mapa').src = u.embed; document.getElementById('ubic-marco').hidden = false; }
     sec.hidden = false;
   }
-      rpc('deck_ubicacion_publica', { p_proyecto: PROYECTO }).then(pintaUbicacion, function(){});
+      rpc('deck_ubicacion_publica_por_slug', { p_slug: SLUG }).then(pintaUbicacion, function(){});
 
       // Resuelve siempre (nunca rechaza): modelos y forecast esperan este resultado
       // para saber la foto de cada villa, y un fallo aqui no puede tumbarlos.
-      var fotosListo = rpc('investor_deck_fotos', { p_proyecto: PROYECTO })
+      var fotosListo = rpc('investor_deck_fotos_por_slug', { p_slug: SLUG })
         .then(function(rows){
           // El RPC mezcla fotos DEL PROYECTO (sin modelo_slug) y de CADA MODELO: la hero y
           // la galeria son del sitio; las de modelo van a su tarjeta.
@@ -1425,7 +1425,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
         })
         .catch(function(){ fotosVacias(); return {}; });
 
-      var docsListo = rpc('investor_deck_documentos', { p_proyecto: PROYECTO })
+      var docsListo = rpc('investor_deck_documentos_por_slug', { p_slug: SLUG })
         .then(function(docs){
           if(!docs || !docs.length) return;          // sin nada publicado, ni boton ni bloque
           pintaDocs(docs);
@@ -1442,21 +1442,21 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
              publicado'. No se promete ninguna descarga que luego falle. Lo que si tiene que
              verse (modelos, parcelas, forecast) tiene su propio aviso. */ });
 
-      rpc('investor_deck_modelos', { p_proyecto: PROYECTO })
+      rpc('investor_deck_modelos_por_slug', { p_slug: SLUG })
         .then(function(rows){
           if(!rows || !rows.length){ ocultaSeccion('modelos'); return; }   // sin dato: se omite
           return fotosListo.then(function(porModelo){ pintaModelos(rows, porModelo || {}); });
         })
         .catch(modelosCaidos);
 
-      rpc('investor_deck_forecast', { p_proyecto: PROYECTO })
+      rpc('investor_deck_forecast_por_slug', { p_slug: SLUG })
         .then(function(rows){
           if(!rows || !rows.length){ ocultaSeccion('rendimientos'); return; }   // sin dato: se omite
           return fotosListo.then(function(porModelo){ pintaForecast(rows, porModelo || {}); });
         })
         .catch(forecastCaido);
 
-      var faqListo = rpc('investor_deck_faq', { p_proyecto: PROYECTO })
+      var faqListo = rpc('investor_deck_faq_por_slug', { p_slug: SLUG })
         .then(function(rows){
           if(!rows || !rows.length){
             // Sin preguntas publicadas: fuera el bloque y el enlace «FAQ» del menu (y su
@@ -1477,7 +1477,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
         $('vision').classList.add('sin-panel');
       });
 
-      rpc('investor_deck_parcelas', { p_proyecto: PROYECTO })
+      rpc('investor_deck_parcelas_por_slug', { p_slug: SLUG })
         .then(pintaListaParcelas)
         .catch(function(){
           $('plots-wrap').innerHTML = '<div class="inv-vacio">We could not load live plot data right now. Please contact <a class="enlace" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';

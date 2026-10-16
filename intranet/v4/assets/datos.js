@@ -3455,92 +3455,27 @@
           };
 
           /* Notas de la ficha (15-oct-2026, owner: «crea un apartado de notas en la ficha del cliente»). Un historial:
-             cada nota con su autor y su fecha, que pone el servidor; ninguna se edita. Se RETIRA con motivo y su texto se
-             borra de verdad (queda solo constancia de quién, cuándo y por qué: UU PDP, Legal). Lee cliente_notas_datos y
-             escribe por cliente_nota_agrega / cliente_nota_retira (supabase/migrations/20261015075011_cliente_notas.sql):
-             quién las ve es quien ve esta ficha completa, y quién puede retirar lo decide el servidor. El botón «Retirar»
-             solo sale a su autor y a un administrador; si se equivoca, el servidor lo dice. El texto de una nota va SIEMPRE
-             por esc() y con white-space:pre-wrap: nunca como HTML ni convertido en enlace (Seguridad). */
+             cada nota con su autor y su fecha, que pone el servidor; ninguna se edita; se RETIRA con motivo y su texto se
+             borra de verdad (UU PDP, Legal). Lo pinta y lo conduce la pieza común contracts/assets/notas-historial.js
+             (LW_NOTAS), la misma que la ficha de la parcela: aquí solo se dice qué funciones de la base usa y con qué
+             rótulos. Quién las ve, quién escribe y quién retira lo decide el servidor (cliente_notas_datos devuelve
+             autor_nombre y puede_retirar por nota). Sin la pieza cargada la ficha se pinta igual y la sección lo dice. */
           (function () {
             var sec = cj.cuerpo.querySelector('[data-cajon-sec="notas"] > div');
             if (!sec) return;
-            var GRIS = 'color:rgb(var(--tema-on-surface-variant))';
-            var MOTIVOS = [['rectificacion', 'Es incorrecta'], ['dato_sensible', 'Lleva un dato sensible'],
-                           ['oposicion', 'El comprador se opone a que se guarde'], ['autoridad', 'Lo pide una autoridad'], ['otro', 'Otro motivo']];
-            var ORIGEN = { campo_notas: 'escrita en el campo «Notas» de la ficha', antigua: 'nota anterior al historial, sin autor ni fecha de origen' };
-            var yoId = String(window.LW_V4.miId || '');   // por id, no por email (todo apunta por ID; revisor, 15-oct)
-            var caja = '<div style="margin-top:10px">' +
-              '<textarea class="las-in" data-lw="nota-texto" rows="3" maxlength="4000" aria-label="' + esc(tx('Nueva nota')) + '" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>' +
-              '<p style="margin:4px 0 8px;font-size:11.5px;' + GRIS + '">' + esc(tx('No escribas pasaporte/NIK, datos bancarios, salud, religión ni datos de menores. Escribe como si el comprador fuera a leerla: puede pedir una copia.')) + '</p>' +
-              '<button type="button" class="las-btn1" data-accion="nota-agrega">' + esc(tx('Añadir nota')) + '</button></div>';
-            function lista(notas, recortado) {
-              if (!notas.length) return '<p style="margin:0;font-size:12.5px;' + GRIS + '">' + esc(tx('Sin notas todavía.')) + '</p>';
-              return notas.map(function (n) {
-                var mail = String(n.autor_email || '').toLowerCase();
-                var quien = n.autor_id ? (nombreEquipo[mail] || n.autor_email || tx('alguien del equipo')) : '';
-                var meta = [fFechaHoraCorta(n.creado_en), quien, n.origen !== 'nota' && ORIGEN[n.origen] ? tx(ORIGEN[n.origen]) : '']
-                  .filter(Boolean).join(' · ');
-                // solo para enseñar el botón: quien decide es cliente_nota_retira (autor, es_admin o admin_de_cliente). El admin
-                // de empresa también lo ve (revisor, 15-oct); si la ficha no es de su empresa, el servidor lo rechaza y se dice.
-                var rolN = window.LW_ROL ? LW_ROL.efectivo(window.LW_V4 && window.LW_V4.ficha) : '';
-                var puede = (n.autor_id && yoId && String(n.autor_id) === yoId) || !!window.LW_V4.esAdmin || rolN === 'admin' || rolN === 'super_admin';
-                return '<article class="lwc-nota" data-nota="' + esc(String(n.id)) + '" style="padding:9px 0;border-bottom:1px solid rgb(var(--tema-outline-variant))">' +
-                  '<p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(n.texto) + '</p>' +
-                  '<p style="margin:4px 0 0;font-size:11.5px;' + GRIS + '">' + esc(meta) +
-                  (puede ? ' · <button type="button" class="las-btn2" data-accion="nota-retira" style="padding:2px 10px;font-size:11.5px">' + esc(tx('Retirar')) + '</button>' : '') +
-                  '</p></article>';
-              }).join('') + (recortado ? '<p style="margin:8px 0 0;font-size:11.5px;' + GRIS + '">' + esc(tx('Se enseñan las 500 más recientes.')) + '</p>' : '');
+            if (!window.LW_NOTAS) {
+              sec.innerHTML = H.nota(esc(tx('No se han podido cargar las notas: %e', { e: tx('falta un fichero de la página, recárgala') })), true);
+              return;
             }
-            function carga() {
-              sb.rpc('cliente_notas_datos', { p_client: c2.id }).then(function (r) {
-                if (r.error) {
-                  console.error('[v4 datos] notas de la ficha', r.error);
-                  sec.innerHTML = H.nota(esc(tx('No se han podido cargar las notas: %e', { e: r.error.message })), true);
-                  return;
-                }
-                var d = r.data || {};
-                sec.innerHTML = lista(d.notas || [], !!d.recortado) + caja;
-              });
-            }
-            sec.addEventListener('click', function (e) {
-              var b = e.target.closest('[data-accion]'); if (!b || !sec.contains(b)) return;
-              var acc = b.getAttribute('data-accion');
-              var art = b.closest('.lwc-nota');
-              if (acc === 'nota-agrega') {
-                var ta = sec.querySelector('[data-lw="nota-texto"]');
-                var t = String((ta && ta.value) || '').trim();
-                if (!t) { toastMal(tx('Escribe la nota antes de añadirla.')); return; }
-                b.disabled = true;
-                sb.rpc('cliente_nota_agrega', { p_client: c2.id, p_texto: t }).then(function (r) {
-                  b.disabled = false;
-                  if (r.error) { toastMal(lwErrorHumano(r.error, tx('No se ha guardado la nota'))); return; }
-                  toast(tx('Nota añadida')); carga();
-                });
-              } else if (acc === 'nota-retira') {
-                if (!art || art.querySelector('[data-lw="nota-motivo"]')) return;
-                art.insertAdjacentHTML('beforeend', '<div data-lw="nota-retira-caja">' +
-                  '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
-                  '<select class="las-in" data-lw="nota-motivo" aria-label="' + esc(tx('Por qué se retira')) + '"><option value="">' + esc(tx('¿Por qué se retira?')) + '</option>' +
-                  MOTIVOS.map(function (m) { return '<option value="' + m[0] + '">' + esc(tx(m[1])) + '</option>'; }).join('') + '</select>' +
-                  '<button type="button" class="las-btn1" data-accion="nota-retira-ok">' + esc(tx('Retirar nota')) + '</button>' +
-                  '<button type="button" class="las-btn2" data-accion="nota-retira-no">' + esc(tx('Cancelar')) + '</button></div>' +
-                  '<p style="margin:6px 0 0;font-size:11.5px;' + GRIS + '">' + esc(tx('Al retirarla, su texto se borra y no se puede recuperar. Queda constancia de quién la retiró, cuándo y por qué.')) + '</p></div>');
-              } else if (acc === 'nota-retira-no') {
-                // solo se quita el bloque del motivo: recargar la sección borraba lo escrito en la caja de nota nueva
-                var cajaR = art && art.querySelector('[data-lw="nota-retira-caja"]');
-                if (cajaR) cajaR.remove();
-              } else if (acc === 'nota-retira-ok' && art) {
-                var motivo = (art.querySelector('[data-lw="nota-motivo"]') || {}).value || '';
-                if (!motivo) { toastMal(tx('Elige por qué se retira.')); return; }
-                b.disabled = true;
-                sb.rpc('cliente_nota_retira', { p_nota: Number(art.getAttribute('data-nota')), p_motivo: motivo }).then(function (r) {
-                  b.disabled = false;
-                  if (r.error) { toastMal(lwErrorHumano(r.error, tx('No se ha retirado la nota'))); return; }
-                  toast(tx('Nota retirada')); carga();
-                });
-              }
-            });
-            carga();
+            window.LW_NOTAS.monta(sec, {
+              sb: sb, argId: 'p_client',
+              rpc: { datos: 'cliente_notas_datos', agrega: 'cliente_nota_agrega', retira: 'cliente_nota_retira' },
+              motivos: [['rectificacion', 'Es incorrecta'], ['dato_sensible', 'Lleva un dato sensible'],
+                        ['oposicion', 'El comprador se opone a que se guarde'], ['autoridad', 'Lo pide una autoridad'], ['otro', 'Otro motivo']],
+              origenes: { campo_notas: 'escrita en el campo «Notas» de la ficha', antigua: 'nota anterior al historial, sin autor ni fecha de origen' },
+              aviso: 'No escribas pasaporte/NIK, datos bancarios, salud, religión ni datos de menores. Escribe como si el comprador fuera a leerla: puede pedir una copia.',
+              clases: { in: 'las-in', btn1: 'las-btn1', btn2: 'las-btn2' }
+            }).abre(c2.id);
           })();
           var ids = vins.map(function (v) { return v.contrato_id; });
 

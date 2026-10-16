@@ -1,4 +1,4 @@
--- Prueba de 20261015202000_portal_peticion_freno (15-oct-2026, sesión lawang-cola-2, resto 6; revisión previa #373 Backend + Seguridad).
+-- Prueba de 20261015235325_portal_peticion_freno (aplicada el 16-oct-2026; escrita como 20261015202000) (15-oct-2026, sesión lawang-cola-2, resto 6; revisión previa #373 Backend + Seguridad).
 -- B1 solo service_role ejecuta portal_peticion_freno (anon llamándola de verdad: 42501). B2 las dos tablas en privado, con RLS y sin
 -- permisos para anon, authenticated ni service_role. B3 hash mal formado (mayúsculas, 63 hex, vacío, texto) = 22023 y no escribe.
 -- B4 el mismo cubo × 1000: 20 'pasa' y 980 'ip', y el global (n de la hora) sube SOLO 20 — una IP frenada no gasta el global
@@ -11,7 +11,7 @@
 -- La rama de Lawang es solo estructura: las tablas nacen vacías y todo se siembra aquí. Si quedan menos de 40 s para el cambio de
 -- hora se espera a la siguiente (las cuentas son por hora); si aun así cambiara, la última línea lo dice con «→ FALLA» y se repite.
 -- Sin serial ni identity: no gasta ninguna serie. Siembra filas en privado: SOLO EN RAMA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015202000_portal_peticion_freno.sql --prueba portal_peticion_freno.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015235325_portal_peticion_freno.sql --prueba portal_peticion_freno.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA».
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
