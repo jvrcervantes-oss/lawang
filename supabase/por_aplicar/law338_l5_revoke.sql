@@ -50,12 +50,6 @@ begin
                        'clientes_busca', 'contratos_busca', 'bot_pendientes');
   if v_n <> 11 then raise exception 'L5 revoke: faltan las RPC de 20261016063536 (DEFINER-lw_lector: % de 11)', v_n; end if;
 
-  select count(*), string_agg(schemaname || '.' || tablename || '.' || policyname, ', ') into v_n, v_lista
-    from pg_policies
-   where (coalesce(qual, '') || ' ' || coalesce(with_check, '')) ~ ('(from|join)\s+(public\.)?' || re || '\M')
-     and not (schemaname = 'public' and tablename = any(tablas))
-     and not (schemaname = 'public' and tablename = 'cliente_notas' and policyname = 'notas: las de las fichas que ves');
-  if v_n > 0 then raise exception 'L5 revoke: % policies de otras tablas o de storage consultan estas tablas: %', v_n, v_lista; end if;
   if has_table_privilege('authenticated', 'public.cliente_notas', 'select')
      or has_any_column_privilege('authenticated', 'public.cliente_notas', 'select') then
     raise exception 'L5 revoke: authenticated lee cliente_notas (su policy consulta clients)';
@@ -63,13 +57,13 @@ begin
 
   select count(*), string_agg(schemaname || '.' || viewname, ', ') into v_n, v_lista
     from pg_views where schemaname not in ('pg_catalog', 'information_schema') and viewname <> 'documentos_desactualizados'
-     and definition ~ ('\m' || re || '\M');
+     and definition ~* ('\m' || re || '\M');
   if v_n > 0 then raise exception 'L5 revoke: vistas que leen estas tablas: %', v_lista; end if;
 
   select count(*), string_agg(p.proname, ', ') into v_n, v_lista
     from pg_proc p
    where p.pronamespace not in ('pg_catalog'::regnamespace, 'information_schema'::regnamespace) and not p.prosecdef
-     and p.prosrc ~ ('\m' || re || '\M') and p.proname <> '_portal_rechazo';
+     and p.prosrc ~* ('\m' || re || '\M') and p.proname <> '_portal_rechazo';
   if v_n > 0 then raise exception 'L5 revoke: funciones INVOKER que leen estas tablas (se romperían): %', v_lista; end if;
   if exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = '_portal_rechazo'
               and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))) then
@@ -80,7 +74,7 @@ begin
     from pg_proc p
    where p.pronamespace not in ('pg_catalog'::regnamespace, 'information_schema'::regnamespace) and p.prosecdef
      and pg_get_userbyid(p.proowner) not in ('postgres', 'supabase_admin', 'lw_lector')
-     and p.prosrc ~ ('\m' || re || '\M');
+     and p.prosrc ~* ('\m' || re || '\M');
   if v_n > 0 then raise exception 'L5 revoke: funciones DEFINER de otro dueño que leen estas tablas: %', v_lista; end if;
 
   select count(*), string_agg(c.relname, ', ') into v_n, v_lista
@@ -95,6 +89,22 @@ begin
      and (not p.prosecdef or pg_get_userbyid(p.proowner) not in ('postgres', 'supabase_admin'))
      and p.prosrc ~* 'execute\s+format' and p.prosrc ~* '%I';
   if v_n > 0 then raise exception 'L5 revoke: SQL dinámico fuera de DEFINER de postgres (no se puede descartar que lea estas tablas): %', v_lista; end if;
+end $$;
+
+-- POLICIES CRUZADAS, en bloque propio para que la prueba de ataque lo ejecute letra a letra (P1d). Sin distinguir mayúsculas y sin exigir
+-- FROM/JOIN delante: Postgres guarda la policy reescrita («FROM» en mayúsculas, alias, esquema entre comillas), y la versión con
+-- `~ '(from|join)\s'` no veía ninguna (0 de 25 en la viva; con ~*, 25). Revisión previa de L6, Backend, 16-oct-2026.
+do $$
+declare v_n int; v_lista text;
+begin
+  select count(*), string_agg(schemaname || '.' || tablename || '.' || policyname, ', ') into v_n, v_lista
+    from pg_policies
+   where (coalesce(qual, '') || ' ' || coalesce(with_check, ''))
+         ~* '\m(clients|documents|hilo_soporte|mensajes_comprador|portal_accesos|notificaciones|correos_enviados|documentos_desactualizados)\M'
+     and not (schemaname = 'public' and tablename = any(array['clients', 'documents', 'hilo_soporte', 'mensajes_comprador', 'portal_accesos',
+                                                             'notificaciones', 'correos_enviados', 'documentos_desactualizados']))
+     and not (schemaname = 'public' and tablename = 'cliente_notas' and policyname = 'notas: las de las fichas que ves');
+  if v_n > 0 then raise exception 'L5 revoke: % policies de otras tablas o de storage consultan estas tablas: %', v_n, v_lista; end if;
 end $$;
 
 revoke select on public.clients, public.documents, public.hilo_soporte, public.mensajes_comprador, public.portal_accesos,

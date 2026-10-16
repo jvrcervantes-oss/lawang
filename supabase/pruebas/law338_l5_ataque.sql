@@ -10,6 +10,9 @@
 --     Solo vale «42501 permission denied for table|view» (revisor 16-oct): otro 42501 (una función que se niega) no es el cierre.
 --  P1c LECTORES CIEGOS: el último bloque del cierre, ejecutado aquí tal cual. Sin control no salta; con un rol LOGIN nobypassrls que
 --     lee clients, salta y lo nombra (si no saltase, la guarda no protegería la copia diaria en la viva).
+--  P1d POLICIES CRUZADAS: el bloque de policies del cierre, ejecutado aquí tal cual. Sin control no salta; con dos policies de una tabla
+--     de control que leen clients como las reescribe Postgres (esquema entre comillas, alias, subconsulta con IN; «FROM» en mayúsculas
+--     en pg_policies, se comprueba), salta y nombra las dos. La versión con `~ '(from|join)\s'` no las veía (revisión previa de L6, 16-oct).
 --  P2 las 11 RPC con el cierre puesto: ninguna da «permission denied for table/view» (una DEFINER que hubiese perdido la lectura) y cada
 --     una devuelve algo a alguien (llenos > 0: un «igual» sobre vacíos no prueba nada).
 --  P3 los roles que no son authenticated/anon y leen estas tablas (copia diaria axw_lectura, service_role, supabase_read_only_user,
@@ -114,7 +117,7 @@ end $f$;
 
 do $todo$
 declare
-  u _u; t text; v jsonb; res text := ''; n_tot int; n_ok int; v_mal text; v_n int; v_g text;
+  u _u; t text; v jsonb; res text := ''; n_tot int; n_ok int; v_mal text; v_n int; v_g text; v_p text;
   tablas constant text[] := array['clients', 'documents', 'hilo_soporte', 'mensajes_comprador', 'portal_accesos', 'notificaciones',
                                   'correos_enviados', 'documentos_desactualizados'];
   c_emp constant text := 'zz_l5'; pL uuid; kZ uuid; hZ uuid; cA uuid; cA2 uuid; cB uuid; cB2 uuid;
@@ -257,6 +260,49 @@ $g$;
     drop role zz_l5_ciego;
   end if;
   res := res || pg_temp.l(v_mal is null, 'P1c con un rol LOGIN nobypassrls que lee clients, la guarda salta y lo nombra' || coalesce(' (' || left(v_mal, 200) || ')', ''));
+
+  -- ── P1d POLICIES CRUZADAS: el bloque de policies de law338_l5_revoke.sql, letra a letra ──
+  v_p := $p$
+do $$
+declare v_n int; v_lista text;
+begin
+  select count(*), string_agg(schemaname || '.' || tablename || '.' || policyname, ', ') into v_n, v_lista
+    from pg_policies
+   where (coalesce(qual, '') || ' ' || coalesce(with_check, ''))
+         ~* '\m(clients|documents|hilo_soporte|mensajes_comprador|portal_accesos|notificaciones|correos_enviados|documentos_desactualizados)\M'
+     and not (schemaname = 'public' and tablename = any(array['clients', 'documents', 'hilo_soporte', 'mensajes_comprador', 'portal_accesos',
+                                                             'notificaciones', 'correos_enviados', 'documentos_desactualizados']))
+     and not (schemaname = 'public' and tablename = 'cliente_notas' and policyname = 'notas: las de las fichas que ves');
+  if v_n > 0 then raise exception 'L5 revoke: % policies de otras tablas o de storage consultan estas tablas: %', v_n, v_lista; end if;
+end $$;
+$p$;
+  v_mal := null;
+  begin execute v_p; exception when others then v_mal := sqlstate || ' ' || sqlerrm; end;
+  res := res || pg_temp.l(v_mal is null, 'P1d la guarda de policies cruzadas no salta en la rama (solo cliente_notas, exceptuada)' || coalesce(' (' || left(v_mal, 200) || ')', ''));
+  v_mal := null;
+  begin
+    create table public.zz_l5_cruce (id uuid);
+    alter table public.zz_l5_cruce enable row level security;
+    create policy "zz cruce comillas" on public.zz_l5_cruce for select to authenticated
+      using (exists (select 1 from "public"."clients" c where c.id = zz_l5_cruce.id));
+    create policy "zz cruce subconsulta" on public.zz_l5_cruce for select to authenticated
+      using (id in (select k.id from public.clients k));
+  exception when others then v_mal := 'montaje del control: ' || sqlstate || ' ' || left(sqlerrm, 160); end;
+  if v_mal is null and not exists (select 1 from pg_policies where tablename = 'zz_l5_cruce' and policyname = 'zz cruce comillas'
+                                                               and qual ~ 'FROM' and qual !~ 'from') then
+    v_mal := 'el control no reproduce la forma guardada («FROM» en mayúsculas): ' || coalesce((select left(qual, 160) from pg_policies
+              where tablename = 'zz_l5_cruce' and policyname = 'zz cruce comillas'), 'sin policy');
+  end if;
+  if v_mal is null then
+    begin execute v_p; v_mal := 'no saltó';
+    exception when others then
+      v_mal := case when strpos(sqlerrm, 'policies de otras tablas o de storage consultan estas tablas') > 0
+                         and strpos(sqlerrm, 'public.zz_l5_cruce.zz cruce comillas') > 0
+                         and strpos(sqlerrm, 'public.zz_l5_cruce.zz cruce subconsulta') > 0 then null else sqlstate || ' ' || sqlerrm end;
+    end;
+  end if;
+  drop table if exists public.zz_l5_cruce;
+  res := res || pg_temp.l(v_mal is null, 'P1d con dos policies cruzadas como las guarda Postgres, la guarda salta y nombra las dos' || coalesce(' (' || left(v_mal, 200) || ')', ''));
 
   -- ── P2 las 11 RPC con el cierre puesto ────────────────────────────────────────────────────────────────────────────────
   for u in select * from _u loop perform pg_temp.rpcs('cerrado', u, fichas, kZ, cs, fZ); end loop;
