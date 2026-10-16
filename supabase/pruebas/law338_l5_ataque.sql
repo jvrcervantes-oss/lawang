@@ -1,4 +1,4 @@
--- LAW-338 L5 (16-oct-2026): el CIERRE (supabase/por_aplicar/law338_l5_revoke.sql) probado como ATAQUE, en rama y con el cierre ya puesto.
+-- LAW-338 L5 (16-oct-2026): el CIERRE (supabase/migrations/20261016112502_law338_l5_revoke.sql) probado como ATAQUE, en rama y con el cierre ya puesto.
 --   python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica por_aplicar:law338_l5_revoke.sql --prueba law338_l5_ataque.sql
 -- (sobre un volcado que ya trae 20261016063536; la paridad de las RPC contra la lectura directa de antes la midió el ensayo
 --  lawang-202610161424-3802d033 con law338_l5_paridad.sql, y esta prueba enlaza con ella: lo que dan las RPC con el cierre = lo que dan sin él).

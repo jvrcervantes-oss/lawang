@@ -1,6 +1,7 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
 -- LAW-338 L5 — CIERRE al navegador de clients, documents, hilo_soporte, mensajes_comprador, portal_accesos, notificaciones,
--- correos_enviados y la vista documentos_desactualizados. SIN APLICAR (escrito el 16-oct-2026, sesión lecturas-servidor-2).
+-- correos_enviados y la vista documentos_desactualizados. APLICADA en la viva el 16-oct-2026 como 20261016112502 (apply_migration de
+-- agencia-cd con la válvula del owner, sha256 a0f2231a del fichero tal cual; escrita por la sesión lecturas-servidor-2).
 -- QUITA ACCESO: se aplica SOLO con la válvula del owner (la gestiona agencia-c0), como L1-L3.
 -- ORDEN (lección B3-B5; condición del revisor del 16-oct en el encargo):
 --   1. migración aditiva 20261016063536_law338_l5_compradores_datos APLICADA en la viva (las 8 *_datos + las 3 búsquedas DEFINER)
