@@ -67,7 +67,7 @@ declare
   u _u; x uuid; k uuid; ks uuid[]; cs uuid[]; f uuid; res text := ''; v jsonb; t0 timestamptz; ms int[] := '{}';
   v_chk text; n_u int; dif int; llenos int; errs int; agente _u; nove uuid; fichas uuid[];
   fdd uuid;
-  c_emp constant text := 'zz-l5'; pL uuid; kZ uuid; hZ uuid; cA uuid; cA2 uuid; cB uuid; cB2 uuid;
+  c_emp constant text := 'zz_l5'; pL uuid; kZ uuid; hZ uuid; cA uuid; cA2 uuid; cB uuid; cB2 uuid;
   uS uuid := gen_random_uuid(); uA uuid := gen_random_uuid(); uB uuid := gen_random_uuid(); uE uuid := gen_random_uuid();
   uP uuid := gen_random_uuid(); fZ uuid := gen_random_uuid();
   eS constant text := 'zz-l5-super@prueba.invalid'; eA constant text := 'zz-l5-a@prueba.invalid';
