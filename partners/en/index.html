@@ -1758,7 +1758,7 @@ h1 .nk,h2 .nk,h3 .nk{font-weight:inherit} /* la palabra pasada a Neue Kabel va e
     return rpc('deck_config_publico', { p_slug: slug }).then(function (rows) {
       if (!rows || !rows.length) return null;               // deck desactivado: sin tarjeta
       var nombre = rows[0].proyecto;
-      return rpc('investor_deck_fotos', { p_proyecto: nombre })
+      return rpc('investor_deck_fotos_por_slug', { p_slug: slug })
         .then(function (f) { return { slug: slug, nombre: nombre, foto: portada(f || []) }; },
               function () { return { slug: slug, nombre: nombre, foto: null }; });
     }, function () { return null; });

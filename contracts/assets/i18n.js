@@ -6813,6 +6813,17 @@
     'Elige por qué se retira.': 'Choose why it is withdrawn.',
     'No se ha retirado la nota': 'The note was not withdrawn',
     'Nota retirada': 'Note withdrawn',
+    /* ── Notas de la parcela y pieza común notas-historial.js (15-oct-2026). ── */
+    'No tienes permiso para ver las notas.': 'You do not have permission to see the notes.',
+    'Cargando las notas…': 'Loading the notes…',
+    'la respuesta no trae la lista de notas': 'the reply does not include the list of notes',
+    'sin autor': 'no author',
+    'No ha llegado la respuesta del servidor y no se sabe si la nota se ha guardado. Mira la lista antes de volver a añadirla.': 'The server\'s reply did not arrive, so it is not known whether the note was saved. Check the list before adding it again.',
+    'No ha llegado la respuesta del servidor y no se sabe si la nota se ha retirado. Mira la lista.': 'The server\'s reply did not arrive, so it is not known whether the note was withdrawn. Check the list.',
+    'falta un fichero de la página, recárgala': 'a file of the page is missing, reload it',
+    'Alguien que aparece en ella se opone a que se guarde': 'Someone mentioned in it objects to it being kept',
+    'del editor de la parcela o de una importación': 'from the plot editor or from an import',
+    'No escribas aquí datos de compradores (nombres, contacto, importes): van en su ficha.': 'Don\'t write buyer details here (names, contact, amounts): they belong in the buyer\'s record.',
     /* ── Ficha de la parcela: contratos, pendientes, documentos y avance de obra (ficha-parcela.js, 15-oct-2026). ── */
     'Contratos de la parcela': 'Plot contracts',
     'Avance de obra': 'Construction progress',

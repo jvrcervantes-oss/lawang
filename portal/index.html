@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="3e29d391f245">
+<meta name="lw-version" content="0a9bbf53861b">
 <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer"><!-- LAW-1 S3 (11-oct-2026): el enlace de entrada llega como #th=<token>; ninguna petición de la página manda la dirección en el Referer, ni mientras se quita de la barra -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -2897,8 +2897,9 @@
      indicador y «Enviando el enlace…», queda deshabilitado y PIDIENDO corta un segundo envío (Enter repetido, doble
      clic): cada envío que pasa el freno genera un enlace nuevo e invalida el anterior. Tope propio de 35 s en el
      navegador, por encima de lo que la edge espera al correo, para que el botón nunca se quede girando: si salta, es
-     «está tardando más de lo normal» (no «no hemos podido»: la edge pudo acabar mandándolo). El freno antiabuso contesta igual que un envío a propósito (no delata qué correos
-     tienen acceso), así que la página no lo distingue: el texto de «enviado» avisa de que pedir otro anula el anterior. */
+     «está tardando más de lo normal» (no «no hemos podido»: la edge pudo acabar mandándolo). El freno antiabuso de DESPUÉS de la regla contesta igual que un envío a propósito (no
+     delata qué correos tienen acceso), así que la página no lo distingue: el texto de «enviado» avisa de que pedir otro anula el anterior. El de ANTES de la regla
+     (demasiadas peticiones desde la misma IP, 15-oct-2026) contesta {error:'ocupado'} y sale como «no hemos podido», con el correo de ventas como salida. */
   var PIDIENDO = false;
   document.getElementById('fLogin').addEventListener('submit', function(e){
     e.preventDefault();

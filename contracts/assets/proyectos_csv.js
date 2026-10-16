@@ -39,7 +39,10 @@ const LW_CSV_MAX_FILAS = 5000;
    (con preposición), que no casaban con ningún alias. Añadidos.
    `fase`/`zone` van a `fase_masterplan`/`zona_masterplan`, NUNCA a `obra_fase`:
    esa es la fase de OBRA de una unidad concreta, un concepto distinto que por
-   casualidad se llama igual en el lenguaje del negocio. */
+   casualidad se llama igual en el lenguaje del negocio.
+   15-oct-2026 — `notas` ya no es una columna: las notas de una parcela son un
+   historial con autor y fecha (unidad_nota_agrega). Un CSV viejo que la traiga
+   la ve en «columnas ignoradas»; nunca se manda. */
 const LW_CSV_COLUMNAS = {
   codigo:'codigo', proyecto:'proyecto', tipo:'tipo', modelo:'modelo', type:'modelo', modelo_de_villa:'modelo',
   superficie:'superficie_m2', superficie_m2:'superficie_m2', m2:'superficie_m2',
@@ -47,7 +50,7 @@ const LW_CSV_COLUMNAS = {
   precio_construccion:'precio_construccion', construccion:'precio_construccion', villa:'precio_construccion',
   precio_de_construccion:'precio_construccion',
   precio:'precio', precio_total:'precio', total:'precio',
-  moneda:'moneda', notas:'notas',
+  moneda:'moneda',
   fase:'fase_masterplan', zone:'zona_masterplan', zona:'zona_masterplan',
 };
 
@@ -56,7 +59,7 @@ const LW_CSV_COLUMNAS = {
    esta lista al lado. Cada nombre TIENE que ser una clave de LW_CSV_COLUMNAS:
    se comprueba con `node contracts/proyectos_csv.test.js`. */
 const LW_CSV_PLANTILLA_COLS = ['codigo','proyecto','tipo','modelo','superficie_m2','precio_suelo',
-  'precio_construccion','precio','moneda','notas','fase','zona'];
+  'precio_construccion','precio','moneda','fase','zona'];
 
 /* Quita acentos y todo lo que no sea letra/número: «Superficie (m2)» y
    «superficie_m2» casan igual. De la puntuación exacta no puede depender que una
@@ -183,7 +186,6 @@ function lwCsvAnaliza(texto, ctx){
       // celda vacía = no se toca (27-sep, Administración): antes pasaba a EUR y una parcela en IDR
       // se leía en euros. En un alta sin moneda, EUR lo pone lwCsvFilaParaGuardar.
       moneda: d.moneda ? String(d.moneda).trim().toUpperCase() : null,
-      notas: d.notas ? lwCsvAntiFormula(d.notas) : null,
       fase_masterplan: d.fase_masterplan ? lwCsvAntiFormula(d.fase_masterplan) : null,
       zona_masterplan: d.zona_masterplan ? lwCsvAntiFormula(d.zona_masterplan) : null,
       esAlta: codigo && proyecto ? !existentes.has(proyecto + ' ' + codigo) : null,
@@ -220,7 +222,7 @@ function lwCsvAnaliza(texto, ctx){
      así que un alta sin esa columna necesita algo que insertar; una
      actualización sin ella no toca el tipo que la unidad ya tenía. */
 const LW_CSV_ESCRIBIBLES = ['modelo','superficie_m2','precio_suelo','precio_construccion',
-                            'precio','notas','fase_masterplan','zona_masterplan'];
+                            'precio','fase_masterplan','zona_masterplan'];
 
 function lwCsvFilaParaGuardar(f, presentes){
   const fila = { codigo: f.codigo, proyecto: f.proyecto };
@@ -278,5 +280,5 @@ function lwCsvLotesParaGuardar(validas, camposPresentes){
 
 if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwCsvParse, lwCsvSeparador, lwCsvNormCab, lwCsvAntiFormula, lwCsvAnaliza,
-                     lwCsvLotesParaGuardar, LW_CSV_COLUMNAS, LW_CSV_ESCRIBIBLES,
+                     lwCsvLotesParaGuardar, LW_CSV_COLUMNAS, LW_CSV_ESCRIBIBLES, LW_CSV_PLANTILLA_COLS,
                      LW_CSV_MAX_BYTES, LW_CSV_MAX_FILAS };

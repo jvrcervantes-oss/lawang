@@ -6893,8 +6893,9 @@
             { tipo: 'lectura', label: 'Precio de suelo', medio: 1, dataMostrar: 'precio-suelo-calc', valor: 'rellena la superficie primero' },
             { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', medio: 1 },
             { tipo: 'nota', label: 'Precio de suelo = superficie × precio por m². Precio total = suelo + construcción. Ninguno de los dos se escribe a mano: los calcula siempre la base.' },
-            { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: 'EUR' },
-            { k: 'notas', label: 'Notas', tipo: 'textarea' }
+            { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: 'EUR' }
+            // Sin «Notas» (15-oct-2026): las notas de una parcela son su historial en la ficha (unidad_nota_agrega), con
+            // autor y fecha; el campo suelto de la fila ya no existe (la base lo deja siempre vacío).
           );
           modal('Nueva unidad', camposU, 'Crear unidad', function (v) {
             // Campos `type:'number'` nativos: el valor ya llega en punto decimal
@@ -6908,7 +6909,7 @@
               tipo: v.tipo, modelo: v.modelo ? v.modelo.trim() : null, superficie_m2: supNueva,
               precio_suelo: (supNueva && pm2Nueva != null) ? Math.round(supNueva * pm2Nueva * 100) / 100 : null,
               precio_construccion: num(v.precio_construccion),
-              moneda: v.moneda, notas: v.notas.trim() || null
+              moneda: v.moneda
             };
             if (v.fase_masterplan) fila.fase_masterplan = v.fase_masterplan.trim();
             if (v.zona_masterplan) fila.zona_masterplan = v.zona_masterplan.trim();
@@ -7112,7 +7113,7 @@
           } else {
             SOC = null;
           }
-          campos.push({ k: 'notas', label: 'Notas', tipo: 'textarea', valor: n0(u.notas) });
+          // Sin campo «Notas» (15-oct-2026): van en el historial de la ficha de la parcela (notas-historial.js).
 
           /* El bloque de SOLO LECTURA que corona el panel. Es de solo lectura a
              proposito, igual que en la herramienta viva: el vinculo con el
@@ -7177,7 +7178,9 @@
               codigo: v.codigo.trim(), proyecto: v.proyecto, tipo: v.tipo,
               modelo: txt(v.modelo), superficie_m2: supGuardar,
               precio_construccion: num(v.precio_construccion),
-              moneda: v.moneda, notas: txt(v.notas)
+              moneda: v.moneda
+              // Sin `notas` (16-oct-2026): desde 20261016001810 la columna está vacía por un check y las notas son el historial
+              // de la ficha (unidad_nota_agrega). unidad_guarda escribe null cuando falta la clave, que es lo único que admite.
               // `precio` no va aqui a proposito — ver la cabecera de esta funcion.
             };
             // `precio_suelo` SOLO si se tocó superficie o €/m² (ver pm2Inicial arriba)
@@ -7463,16 +7466,16 @@
         aviso('Preparando la plantilla de ' + p.nombre + '…');
         if (typeof LW_CSV_PLANTILLA_COLS === 'undefined') return aviso('El importador no ha cargado (proyectos_csv.js). Recarga la página.', '#ba1a1a');
         var cols = LW_CSV_PLANTILLA_COLS;
-        sb.from('unidades').select('codigo,tipo,modelo,superficie_m2,precio_suelo,precio_construccion,precio,moneda,notas,fase_masterplan,zona_masterplan')
+        sb.from('unidades').select('codigo,tipo,modelo,superficie_m2,precio_suelo,precio_construccion,precio,moneda,fase_masterplan,zona_masterplan')
           .eq('proyecto_id', p.id).order('codigo_orden').range(0, 999).then(function (r) {
             if (r.error) return aviso('No se pudo preparar la plantilla: ' + r.error.message, '#ba1a1a');
             var us = r.data || [];
             var v = function (x) { return x == null ? '' : x; };
             var filas = us.length
               ? us.map(function (u) {
-                  return [u.codigo, p.nombre, v(u.tipo), v(u.modelo), v(u.superficie_m2), v(u.precio_suelo), v(u.precio_construccion), v(u.precio), v(u.moneda), v(u.notas), v(u.fase_masterplan), v(u.zona_masterplan)];
+                  return [u.codigo, p.nombre, v(u.tipo), v(u.modelo), v(u.superficie_m2), v(u.precio_suelo), v(u.precio_construccion), v(u.precio), v(u.moneda), v(u.fase_masterplan), v(u.zona_masterplan)];
                 })
-              : [['P-01', p.nombre, 'parcela', '', '', '', '', '', 'EUR', '', '', '']];
+              : [['P-01', p.nombre, 'parcela', '', '', '', '', '', 'EUR', '', '']];
             descargaCsv(slugDe(lwMarca('%marca')) + '-' + slugDe(p.nombre) + '-plantilla-parcelario.csv', cols, filas);
             aviso(us.length
               ? 'Plantilla con las ' + us.length + ' unidades actuales' + (us.length >= 1000 ? ' (tope de 1.000: si hay más, no salen todas)' : '') + '. Edita y vuelve a importarla.'
