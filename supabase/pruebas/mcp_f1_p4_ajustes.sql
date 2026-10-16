@@ -7,7 +7,7 @@
 --   D  ia_cliente_guarda: dirección ajena, http, con consulta o de OTRO asistente → error; la buena → cliente; apagarlo → sus
 --      conexiones vivas quedan revocadas en el acto
 --   E  ia_permiso_guarda: usuario inactivo → error; conceder → permiso; quitar → sin permiso y conexiones revocadas en el acto
---   F  ia_peticion_datos: petición inventada → error; buena → asistente y «puede»; sin permiso → puede=false; no gasta la petición
+--   F  ia_peticion_ver: petición inventada → error; buena → asistente y «puede»; sin permiso → puede=false; no gasta la petición
 --   G  ia_mis_conexiones: cada persona ve solo las suyas
 -- destructivo-ok: prueba en transacción que termina en raise (rollback)
 create temp table _tp (et text primary key, uid uuid, em text, rol text, activo boolean);
@@ -62,8 +62,8 @@ begin
       select t.uid, t.em, 'ZZ-MCP4 ' || t.et, t.rol, 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{}'::text[], '{}'::text[], t.activo
         from _tp t;
     update public.ia_ajustes set encendido = false, tope_dia = 0 where id;
-    if not has_function_privilege('authenticated', 'public.ia_peticion_datos(text)', 'execute') then
-      grant execute on function public.ia_peticion_datos(text) to authenticated;   -- propuestas/20261016140000 lo hace en la viva con el OK del owner
+    if not has_function_privilege('authenticated', 'public.ia_peticion_ver(text)', 'execute') then
+      grant execute on function public.ia_peticion_ver(text) to authenticated;   -- propuestas/20261016140000 lo hace en la viva con el OK del owner
     end if;
     insert into public.ia_clientes (asistente, nombre, redirect_uris, activo) values ('claude', 'Claude', array[red], true) returning id into cli;
     insert into public.ia_permisos (usuario_id) values (a.uid), (b.uid);
@@ -79,7 +79,7 @@ begin
   end;
 
   -- ============================================================ A default-deny
-  foreach f in array array['public.ia_peticion_datos(text)', 'public.ia_mis_conexiones()', 'public.ia_ajustes_datos()',
+  foreach f in array array['public.ia_peticion_ver(text)', 'public.ia_mis_conexiones()', 'public.ia_ajustes_ver()',
                            'public.ia_ajustes_guarda(jsonb)', 'public.ia_cliente_guarda(uuid,text,text,text[],boolean)',
                            'public.ia_permiso_guarda(uuid,boolean)'] loop
     r := r || pg_temp.l(not has_function_privilege('anon', f, 'execute') and has_function_privilege('authenticated', f, 'execute'),
@@ -92,7 +92,7 @@ begin
   end loop;
 
   -- ============================================================ B quién
-  v := pg_temp.sesion(b.uid, b.em, 'select public.ia_ajustes_datos()::text');
+  v := pg_temp.sesion(b.uid, b.em, 'select public.ia_ajustes_ver()::text');
   r := r || pg_temp.l(v like 'ERR42501%', 'B1 agente lee Ajustes › IA → ' || left(v, 80));
   v := pg_temp.sesion(b.uid, b.em, 'select public.ia_ajustes_guarda(''{"tope_dia":50}'')::text');
   r := r || pg_temp.l(v like 'ERR42501%', 'B2 agente guarda el tope → ' || left(v, 80));
@@ -121,7 +121,7 @@ begin
   v := pg_temp.sesion(a.uid, a.em, 'select public.ia_ajustes_guarda(''{"encendido":true,"tope_dia":40,"max_conexiones":3}'')::text');
   select count(*) into n from public.ia_ajustes where id and encendido and tope_dia = 40 and max_conexiones = 3 and actualizado_por = a.uid;
   r := r || pg_temp.l(pg_temp.js(v) ->> 'ok' = 'true' and n = 1, 'C6 encender con tope 40 → ' || v || ', guardado con quién');
-  v := pg_temp.sesion(a.uid, a.em, 'select public.ia_ajustes_datos()::text');
+  v := pg_temp.sesion(a.uid, a.em, 'select public.ia_ajustes_ver()::text');
   j := pg_temp.js(v);
   r := r || pg_temp.l((j -> 'ajustes' ->> 'tope_dia') = '40' and jsonb_array_length(j -> 'conexiones') >= 2
                       and exists (select 1 from jsonb_array_elements(j -> 'usuarios') x where x ->> 'user_id' = b.uid::text and (x ->> 'permiso')::boolean)
@@ -166,16 +166,16 @@ begin
   r := r || pg_temp.l(n = 1, 'E4 volver a darle permiso → con quién lo concedió y sin la marca de quitado');
 
   -- ============================================================ F página de conexión
-  v := pg_temp.sesion(a.uid, a.em, format('select public.ia_peticion_datos(%L)::text', repeat('Q', 43)));
+  v := pg_temp.sesion(a.uid, a.em, format('select public.ia_peticion_ver(%L)::text', repeat('Q', 43)));
   r := r || pg_temp.l(pg_temp.js(v) ->> 'error' = 'peticion_invalida', 'F1 petición inventada → ' || v);
-  v := pg_temp.sesion(a.uid, a.em, 'select public.ia_peticion_datos(''corta'')::text');
+  v := pg_temp.sesion(a.uid, a.em, 'select public.ia_peticion_ver(''corta'')::text');
   r := r || pg_temp.l(pg_temp.js(v) ->> 'error' = 'peticion_invalida', 'F2 petición con forma rara → ' || v);
-  v := pg_temp.sesion(a.uid, a.em, format('select public.ia_peticion_datos(%L)::text', pet));
+  v := pg_temp.sesion(a.uid, a.em, format('select public.ia_peticion_ver(%L)::text', pet));
   r := r || pg_temp.l(pg_temp.js(v) ->> 'asistente' = 'claude' and (pg_temp.js(v) ->> 'puede')::boolean
                       and pg_temp.js(v) ->> 'destino' = 'claude.ai' and (pg_temp.js(v) ->> 'quedan_s')::integer between 1 and 300,
                       'F3 A con permiso, con el dominio de vuelta y los segundos que le quedan → ' || v);
   update public.ia_permisos set quitado_en = now() where usuario_id = b.uid;
-  v := pg_temp.sesion(b.uid, b.em, format('select public.ia_peticion_datos(%L)::text', pet));
+  v := pg_temp.sesion(b.uid, b.em, format('select public.ia_peticion_ver(%L)::text', pet));
   r := r || pg_temp.l(not (pg_temp.js(v) ->> 'puede')::boolean and pg_temp.js(v) ->> 'motivo' = 'sin_permiso', 'F4 B sin permiso → ' || v);
   select count(*) into n from public.ia_peticiones where id_hash = privado.ia_hash(pet) and usada_en is null;
   r := r || pg_temp.l(n = 1, 'F5 consultar la petición no la gasta');

@@ -1,5 +1,5 @@
 -- MCP de Lawang · F1 · abre la entrada del puente: la edge `mcp` (anon) y la página de conexión (authenticated) (16-oct-2026,
--- sesión mcp-lawang). Va DESPUÉS de 20261016073530 (P4): ia_peticion_datos nace allí.
+-- sesión mcp-lawang). Va DESPUÉS de 20261016080000: ia_peticion_ver nace en la 073530 como ia_peticion_datos y se renombra allí.
 -- PARADA DEL OWNER: abre una función a `anon` (CLAUDE.md, Política de autonomía; departamentos/backend/prompt.md → Supabase).
 -- No se aplica en la viva sin su OK escrito; hasta entonces vive en supabase/propuestas/ (fuera de migrations/: revisor, 16-oct) y
 -- con el OK pasa a migrations/. Sale JUNTO con el despliegue de la edge `mcp` y la página intranet/v4/ia/conectar/: sin ellos
@@ -15,7 +15,7 @@
 -- supabase/pruebas/mcp_f1_p1_base.sql). Pública con motivo escrito: contexto/seguridad_2026.md §1.ter. Llamador: la edge `mcp`.
 -- Cualquiera con la clave publicable puede llamarla también sin la edge; por eso PKCE, recurso, tope y registro viven dentro
 -- de la base, no en la edge (#394/#395).
--- Por qué a authenticated. ia_peticion_datos (qué asistente pide entrar) e ia_conexion_autoriza (la persona acepta, con la
+-- Por qué a authenticated. ia_peticion_ver (qué asistente pide entrar) e ia_conexion_autoriza (la persona acepta, con la
 -- contraseña puesta hace ≤120 s) las llama la página de conexión con la sesión de la persona; cada una lo comprueba todo por dentro.
 -- La contraseña entra aquí en la huella de acceso, en el MISMO fichero que el grant que deja crear conexiones (Seguridad,
 -- 16-oct): la 110000 ya no lee ninguna credencial de Auth, así que nunca nace una conexión con la huella sin contraseña. Si el
@@ -29,7 +29,7 @@
 -- VUELTA ATRÁS (no destruye nada):
 --   revoke execute on function public.ia_puente(text, jsonb) from anon;
 --   revoke execute on function public.ia_conexion_autoriza(text) from authenticated;
---   revoke execute on function public.ia_peticion_datos(text) from authenticated;
+--   revoke execute on function public.ia_peticion_ver(text) from authenticated;
 --   y volver a crear privado.ia_auth_usuario tal como está en 20261016073011 (corta las conexiones que haya: falla cerrado).
 create or replace function privado.ia_auth_usuario(p_uid uuid)
 returns jsonb
@@ -58,4 +58,4 @@ grant execute on function privado.ia_auth_usuario(uuid) to ia_puente_rol;
 
 grant execute on function public.ia_puente(text, jsonb) to anon;
 grant execute on function public.ia_conexion_autoriza(text) to authenticated;
-grant execute on function public.ia_peticion_datos(text) to authenticated;
+grant execute on function public.ia_peticion_ver(text) to authenticated;

@@ -4,7 +4,7 @@
      1. correo + contraseña con un cliente de Supabase PROPIO, sin guardar la sesión (memoria) y con storageKey propio: no
         pisa la sesión normal de la intranet de esta misma persona;
      2. si la cuenta tiene un segundo factor verificado, el código (aal2);
-     3. ia_peticion_datos(p): qué asistente pide entrar y si esta persona puede conectarlo (no gasta la petición);
+     3. ia_peticion_ver(p): qué asistente pide entrar y si esta persona puede conectarlo (no gasta la petición);
      4. consentimiento: qué podrá leer y cuánto dura;
      5. Permitir = formulario de PRIMER NIVEL (no fetch) a la edge mcp/conectar con `peticion` y `sesion`; la edge
         comprueba el Origin exacto, cierra esta sesión y responde 302 al asistente;
@@ -232,7 +232,7 @@
     sinVuelta: 0,         // temporizador de «la vuelta al asistente no ha llegado»
     vuelta: 0,            // sube en cada cierre de sesión: descarta respuestas de un intento anterior
     cerrando: null,       // el signOut en curso: un inicio nuevo lo espera
-    destino: '',          // dominio al que vuelve el código (ia_peticion_datos.destino), se enseña al consentir
+    destino: '',          // dominio al que vuelve el código (ia_peticion_ver.destino), se enseña al consentir
     finPeticion: null,    // performance.now() en que caduca la petición, medido con los segundos que da la base (quedan_s)
     reloj: 0
   };
@@ -534,7 +534,7 @@
     if (caducado()) { caduca(); return; }
     muestra('comprobando');
     var v = estado.vuelta;
-    seguro(function () { return sb.rpc('ia_peticion_datos', { p_peticion: peticion }); }).then(function (r) {
+    seguro(function () { return sb.rpc('ia_peticion_ver', { p_peticion: peticion }); }).then(function (r) {
       if (!vigente(v)) return;
       if (r.error) {
         // sin respuesta o el servidor caído = «no he podido mirar»; cualquier otro rechazo de la base es un error de verdad

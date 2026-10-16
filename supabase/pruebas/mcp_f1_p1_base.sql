@@ -85,10 +85,10 @@ begin
     -- la entrada (anon) y el «sí» de la persona (authenticated) se abren JUNTOS (propuestas/20261016140000): o los dos o ninguno
     r := r || pg_temp.l(has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute')
                         = has_function_privilege('authenticated', 'public.ia_conexion_autoriza(text)', 'execute')
-                        and (to_regprocedure('public.ia_peticion_datos(text)') is null
+                        and (to_regprocedure('public.ia_peticion_ver(text)') is null
                              or has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute')
-                                = has_function_privilege('authenticated', to_regprocedure('public.ia_peticion_datos(text)'), 'execute')),
-                        'A0 ia_puente (anon), ia_conexion_autoriza e ia_peticion_datos (authenticated) abiertos a la vez o cerrados a la vez');
+                                = has_function_privilege('authenticated', to_regprocedure('public.ia_peticion_ver(text)'), 'execute')),
+                        'A0 ia_puente (anon), ia_conexion_autoriza e ia_peticion_ver (authenticated) abiertos a la vez o cerrados a la vez');
     if not has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
       grant execute on function public.ia_puente(text, jsonb) to anon;   -- propuestas/20261016140000 lo hace en la viva con el OK del owner
     end if;

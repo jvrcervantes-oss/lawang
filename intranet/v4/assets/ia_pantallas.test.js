@@ -23,7 +23,12 @@ const comun = leer('intranet', 'v4', 'assets', 'ia-conexiones.js');
 const aj = leer('intranet', 'v4', 'assets', 'ajustes-ia.js');
 const p1 = leer('supabase', 'migrations', '20261016073011_mcp_f1_p1_base.sql');
 const p4 = leer('supabase', 'migrations', '20261016073530_mcp_f1_p4_ajustes.sql');
-const mig = p1 + '\n' + p4;
+const nombres = leer('supabase', 'migrations', '20261016080000_mcp_f1_p4_nombres.sql');
+// la base de hoy: P1 + P4 con los renombres de 080000 aplicados (ALTER ... RENAME conserva cuerpo y grants)
+let mig = p1 + '\n' + p4;
+const renombres = [...nombres.matchAll(/^alter function public\.([a-z_]+)\([^)]*\) rename to ([a-z_]+);/gm)];
+igual(renombres.map((m) => m[1] + '>' + m[2]), ['ia_ajustes_datos>ia_ajustes_ver', 'ia_peticion_datos>ia_peticion_ver'], 'se leen los dos renombres de 080000');
+renombres.forEach(([, de, a]) => { mig = mig.replace(new RegExp('public\\.' + de + '\\(', 'g'), 'public.' + a + '('); });
 
 /* ── el cuerpo de una función de la migración (la ÚLTIMA definición, por si se redefine) ── */
 function funcion(nombre) {
@@ -51,7 +56,7 @@ const abiertas = new Set([...mig.matchAll(/grant execute on function public\.([a
 // las escrituras de Ajustes › IA pasan por guarda('ia_…', {…}), el camino común de ajustes-ia.js (16-oct)
 const rpcDe = (js) => [...new Set([...js.matchAll(/(?:rpc|lwDatos|\bguarda)\('([a-z_]+)'/g)].map((m) => m[1]))].sort();
 igual(rpcDe(comun), ['ia_conexion_revoca', 'ia_mis_conexiones'], 'ia-conexiones.js llama solo a ia_mis_conexiones e ia_conexion_revoca');
-igual(rpcDe(aj), ['ia_ajustes_datos', 'ia_ajustes_guarda', 'ia_cliente_guarda', 'ia_permiso_guarda'], 'ajustes-ia.js llama solo a las cuatro de Ajustes › IA (cortar va por LW_IA)');
+igual(rpcDe(aj), ['ia_ajustes_guarda', 'ia_ajustes_ver', 'ia_cliente_guarda', 'ia_permiso_guarda'], 'ajustes-ia.js llama solo a las cuatro de Ajustes › IA (cortar va por LW_IA)');
 [...rpcDe(comun), ...rpcDe(aj)].forEach((f) => {
   if (!abiertas.has(f)) falla(f + ' no se abre a authenticated en las migraciones');
   if (!funcion(f)) falla(f + ' no está definida en las migraciones de P1/P4');
@@ -64,7 +69,7 @@ llamadas.forEach(([, f, args]) => {
   const mandados = [...args.matchAll(/\b(p_[a-z_]+):/g)].map((m) => m[1]).sort();
   igual(mandados, declarados, 'la llamada a ' + f + ' manda los parámetros que declara la función');
 });
-igual(/lwDatos\('ia_ajustes_datos'\)/.test(aj) && !/lwDatos\('ia_mis_conexiones'/.test(comun), true, 'lwDatos solo para la *_datos (guard.js lanza con otro nombre)');
+igual(/lwDatos\(/.test(aj) || /lwDatos\(/.test(comun) || /_datos'/.test(aj + comun), false, 'ninguna pantalla del puente usa lwDatos ni una *_datos: son lecturas de ia_puente_rol, no de lw_lector (080000)');
 
 /* ── 2. códigos de error → frase ── */
 const ERR = clavesDe(bloque(aj, 'ERR')), ERR_CLIENTE = clavesDe(bloque(aj, 'ERR_CLIENTE')), ERR_PERMISO = clavesDe(bloque(aj, 'ERR_PERMISO')), ERR_CORTAR = clavesDe(bloque(comun, 'ERR_CORTAR'));

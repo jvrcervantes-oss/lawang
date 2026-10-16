@@ -70,7 +70,7 @@
   }
 
   /* La dirección del conector es la de la edge `mcp` de ESTA instalación: la construye guard.js (lwEdge) con su sb_url, nunca un
-     literal aquí. (El valor que la base guarda es ia_ajustes.recurso; ia_ajustes_datos no lo devuelve todavía.) */
+     literal aquí. (El valor que la base guarda es ia_ajustes.recurso; ia_ajustes_ver no lo devuelve todavía.) */
   function urlConector() {
     try { return typeof raiz.lwEdge === 'function' ? raiz.lwEdge('mcp') : ''; }
     catch (e) { return ''; }   // MUDO A PROPÓSITO: sin guard.js no hay dirección que enseñar; quien la pinta dice «no disponible»

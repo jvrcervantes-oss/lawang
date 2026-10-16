@@ -3,7 +3,7 @@
  * Servidor: supabase/migrations/20261016073530_mcp_f1_p4_ajustes.sql.
  *
  * Qué hace esta pieza (y solo esto), solo para el super administrador GLOBAL:
- *  · lee todo de una vez por `ia_ajustes_datos` (interruptor y topes, asistentes, equipo con su permiso y su uso de hoy, conexiones vivas);
+ *  · lee todo de una vez por `ia_ajustes_ver` (interruptor y topes, asistentes, equipo con su permiso y su uso de hoy, conexiones vivas);
  *  · encender/apagar y los tres topes → `ia_ajustes_guarda` (solo lo que cambió: la base admite un subconjunto);
  *  · un cliente por asistente (Claude, ChatGPT) con sus direcciones de vuelta → `ia_cliente_guarda`; nace APAGADO (lo nuevo nace cerrado);
  *  · quién puede conectar → `ia_permiso_guarda` (quitarlo corta sus conexiones en el acto: se avisa ANTES);
@@ -380,7 +380,7 @@
 
   function carga() {
     var raiz = document.getElementById('lw-ia-aj'); if (!raiz) return Promise.resolve();
-    var p = typeof window.lwDatos === 'function' ? window.lwDatos('ia_ajustes_datos') : sb.rpc('ia_ajustes_datos');
+    var p = sb.rpc('ia_ajustes_ver');   // no es una *_datos de lw_lector: lwDatos no la admite (20261016080000)
     return Promise.resolve(p).then(function (r) {
       var e = IA.textoError(r, null);
       if (e || !r.data || !r.data.ajustes) {
