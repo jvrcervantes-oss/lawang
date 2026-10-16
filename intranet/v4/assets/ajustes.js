@@ -1036,7 +1036,9 @@
       if (ev.key !== 'Enter' || ev.isComposing || !t || !t.closest) return;
       var base = t.hasAttribute('data-ajuste');
       var fila = base ? t.closest('[data-ajuste-fila]') : t.hasAttribute('data-ajuste-correo') ? t.closest('[data-correo-fila]') : null;
-      var b = fila && fila.querySelector(base ? '[data-accion="ajuste-guardar"]' : '[data-accion="correo-ajuste-pedir"]');
+      // En una dirección, Intro solo pide el código: el botón de su fila de acciones y únicamente si es el de pedir (con el código pedido, no hace nada).
+      var b = fila && fila.querySelector(base ? '[data-accion="ajuste-guardar"]' : '[data-correo-acciones] [data-real]');
+      if (b && !base && b.getAttribute('data-accion') !== 'correo-ajuste-pedir') b = null;
       if (b && !b.disabled && b.offsetParent !== null) { ev.preventDefault(); b.click(); }
     });
     cablePestanas();
