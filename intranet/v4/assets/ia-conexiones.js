@@ -178,7 +178,7 @@
 
   /* ── la pantalla /v4/ia/ ────────────────────────────────────────────────────────────────────────────────────────────── */
   if (typeof document === 'undefined') return;
-  var sb = null;
+  var sb = null, esSuperSesion = false;
 
   function tarjeta(c, encendido, pintar) {
     var e = estado(c, encendido);
@@ -211,14 +211,83 @@
     return t;
   }
 
-  function comoConectar(c) {
-    c.appendChild(el('p', 'font-body-md text-body-md text-on-surface-variant',
-      T('Se conecta desde el propio asistente, no desde aquí: en Claude o en ChatGPT, añade un conector personalizado con esta dirección y el identificador del cliente (OAuth Client ID) que te dé el super admin. El asistente te mandará a Lawang para entrar con tu usuario y tu contraseña; al volver, la conexión aparece en esta lista.')));
-    c.appendChild(copiable(T('Dirección del conector'), urlConector(), 'ia-copiar-conector'));
-    c.appendChild(el('p', C_PEQ, T('El asistente solo puede consultar lo que tú ves en la intranet, y cada consulta queda registrada.')));
+  /* «Cómo se conecta» en pasos (16-oct-2026, sesión mcp-aviso; lo abre la invitación de la cabecera, aviso-ia.js). Los pasos son
+     de Claude, por la decisión del owner del 15-oct (Claude desde el principio; ChatGPT solo en planes Business o Enterprise).
+     El identificador del cliente (ia_clientes.id): si la base dice qué asistentes están activos (`clientes`, propuesta
+     supabase/propuestas/20261016230000_ia_mis_conexiones_clientes.sql), sale aquí con su botón Copiar y solo se enseñan los
+     pasos de los asistentes activos; mientras no lo diga, se dice dónde está (Ajustes › IA), con el enlace si quien mira es el
+     super admin. Nada de rutas de menú de ChatGPT sin comprobar. */
+  function paso(n, texto) {
+    var f = el('li', 'flex gap-3');
+    var num = el('span', 'shrink-0 w-7 h-7 rounded-full bg-surface-container flex items-center justify-center font-label-md text-label-md text-deep-lagoon', String(n));
+    num.setAttribute('aria-hidden', 'true');
+    var cuerpo = el('div', 'flex flex-col gap-2 min-w-0 flex-1 pt-1');
+    cuerpo.appendChild(el('p', 'font-body-md text-body-md text-on-surface', texto));
+    f.appendChild(num); f.appendChild(cuerpo);
+    return { li: f, c: cuerpo };
+  }
+  /* Mientras la base no devuelva los asistentes activos: dónde está el identificador, nunca un dato inventado. */
+  function dondeIdentificador(esSuper) {
+    var f = el('p', 'font-body-sm text-body-sm text-on-surface-variant');
+    f.setAttribute('data-ia-identificador', 'ajustes');
+    if (esSuper) {
+      f.appendChild(document.createTextNode(T('Lo tienes en Ajustes › IA, en la lista de asistentes.') + ' '));
+      var a = el('a', 'text-deep-lagoon underline', T('Abrir Ajustes › IA'));
+      a.href = '/intranet/v4/ajustes/#ia';
+      a.setAttribute('data-accion', 'ia-abrir-ajustes');
+      a.setAttribute('data-real', '');
+      f.appendChild(a);
+    } else {
+      f.textContent = T('Está en Ajustes › IA: pídeselo al super admin.');
+    }
+    return f;
+  }
+  /* Qué bloques enseña: con la lista de la base, solo los asistentes activos; sin ella, los dos (decisión del owner del 15-oct). */
+  function bloques(d) {
+    var clientes = Array.isArray(d && d.clientes) ? d.clientes : null;
+    var de = function (a) { return clientes ? clientes.filter(function (k) { return k && k.asistente === a; }) : null; };
+    return { conLista: !!clientes, claude: de('claude'), chatgpt: de('chatgpt'), vacio: !!clientes && !clientes.length };
+  }
+  function comoConectar(c, d, esSuper) {
+    var b = bloques(d);
+    if (b.vacio) {
+      var nada = el('p', 'font-body-md text-body-md text-on-surface-variant', T('Todavía no hay ningún asistente activado para conectar. Lo activa el super admin en Ajustes › IA.'));
+      nada.setAttribute('data-ia-sin-clientes', '');
+      c.appendChild(nada);
+      return;
+    }
+    var dias = Number(d && d.duracion_dias) > 0 ? Number(d.duracion_dias) : 0;
+    c.appendChild(el('p', 'font-body-md text-body-md text-on-surface-variant', dias
+      ? T('Tu asistente podrá LEER, con tu usuario, lo que tú ves en la intranet de Dirección y Contabilidad. No ve pasaportes ni documentos de los compradores. Cada consulta queda registrada y la conexión dura %n días.', { n: dias })
+      : T('Tu asistente podrá LEER, con tu usuario, lo que tú ves en la intranet de Dirección y Contabilidad. No ve pasaportes ni documentos de los compradores. Cada consulta queda registrada y la conexión caduca sola: la fecha sale junto a cada una.')));
+
+    if (!b.conLista || b.claude.length) {
+      var h = el('h3', 'font-label-md text-label-md text-on-surface uppercase tracking-[0.12em] pt-2', T('En Claude'));
+      h.setAttribute('data-ia-pasos', 'claude');
+      c.appendChild(h);
+      var ol = el('ol', 'flex flex-col gap-4');
+      ol.appendChild(paso(1, T('En Claude, abre Ajustes › Conectores y pulsa «Añadir conector personalizado».')).li);
+      var p2 = paso(2, T('Ponle un nombre (por ejemplo, Lawang) y pega esta dirección:'));
+      p2.c.appendChild(copiable(T('Dirección del conector'), urlConector(), 'ia-copiar-conector'));
+      ol.appendChild(p2.li);
+      var p3 = paso(3, T('En la configuración avanzada, pega el identificador del cliente (OAuth Client ID):'));
+      if (b.conLista) b.claude.forEach(function (k) { p3.c.appendChild(copiable(T('Identificador de %n', { n: k.nombre || 'Claude' }), String(k.id || ''), 'ia-copiar-cliente')); });
+      else p3.c.appendChild(dondeIdentificador(esSuper));
+      ol.appendChild(p3.li);
+      ol.appendChild(paso(4, T('Pulsa «Conectar». Claude te trae a Lawang para que entres con tu usuario y tu contraseña; al volver, la conexión sale arriba, en esta página.')).li);
+      c.appendChild(ol);
+      c.appendChild(el('p', C_PEQ, T('Si no ves «Añadir conector personalizado», tu plan de Claude o quien administra tu organización en Claude no lo permite.')));
+    }
+    if (!b.conLista || b.chatgpt.length) {
+      var g = el('h3', 'font-label-md text-label-md text-on-surface uppercase tracking-[0.12em] pt-2', T('En ChatGPT'));
+      g.setAttribute('data-ia-pasos', 'chatgpt');
+      c.appendChild(g);
+      c.appendChild(el('p', 'font-body-md text-body-md text-on-surface-variant', T('Solo con un plan Business o Enterprise de ChatGPT, que no entrenan con tus datos. Se añade como conector con la misma dirección y el identificador de ChatGPT, y después entras con tu usuario de Lawang igual que en Claude.')));
+      if (b.conLista) b.chatgpt.forEach(function (k) { c.appendChild(copiable(T('Identificador de %n', { n: k.nombre || 'ChatGPT' }), String(k.id || ''), 'ia-copiar-cliente')); });
+    }
   }
 
-  function pinta(d) {
+  function pinta(d, esSuper) {
     var r = document.getElementById('lw-ia-apps'); if (!r) return;
     r.textContent = '';
     var a = aviso(d);
@@ -249,7 +318,7 @@
     if (!a) {
       var cc = seccion(null, T('Cómo se conecta'), null);
       cc.s.setAttribute('data-ia-bloque', 'como');
-      comoConectar(cc.c);
+      comoConectar(cc.c, d, esSuper);
       r.appendChild(cc.s);
     }
     if (p.pasadas.length) {
@@ -273,7 +342,7 @@
         r.appendChild(p);
         return;
       }
-      pinta(res.data);
+      pinta(res.data, esSuperSesion);
     }, function (x) {
       r.textContent = '';
       var p = el('p', 'font-body-md text-body-md text-error', T('No se han podido leer tus conexiones: %m. Esto no quiere decir que no tengas ninguna: recarga la página.', { m: (x && x.message) || T('sin respuesta') }));
@@ -287,7 +356,10 @@
     raiz.LW_AUTH.then(function (aut) {
       if (!aut || !aut.sb) return;
       sb = aut.sb;
+      esSuperSesion = !!(aut.ficha && (raiz.LW_ROL && raiz.LW_ROL.esSuperGlobal ? raiz.LW_ROL.esSuperGlobal(aut.ficha) : aut.ficha.rol === 'super_admin'));
       carga();
+      /* Quien conecta lo hace en la pestaña de su asistente: al volver aquí, la lista se lee otra vez sin recargar (#403). */
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') carga(); });
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca); else arranca();
