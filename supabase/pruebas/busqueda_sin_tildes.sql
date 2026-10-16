@@ -266,7 +266,7 @@ begin
   v := pg_temp.val(fx.uid, fx.em, 'select count(*) from public.clientes_busca(''jose maria'')');
   r := r || pg_temp.l(v = '0' or pg_temp.err(v) = '42501', 'L7 NIEGA: quien no es del equipo no recibe nada (' || pg_temp.e(v) || ')');
   v := pg_temp.val(b.uid, b.em, 'select count(*) from public.clientes_busca(''siobhan'')');
-  r := r || pg_temp.l(pg_temp.err(v) = '42501', 'L10 NIEGA: un agente sin la herramienta del asistente, ni su propia ficha (' || pg_temp.e(v) || ')');
+  r := r || pg_temp.l(pg_temp.err(v) = '42501', 'L11 NIEGA: un agente sin la herramienta del asistente, ni su propia ficha (' || pg_temp.e(v) || ')');
   v := pg_temp.val(null, null, 'select count(*) from public.clientes_busca(''jose'')', 'anon');
   r := r || pg_temp.l(pg_temp.err(v) = '42501', 'L8 NIEGA: anon no puede llamarla (' || pg_temp.e(v) || ')');
   v := pg_temp.val(null, null, 'select public.normaliza_busqueda(''José'')', 'anon');
