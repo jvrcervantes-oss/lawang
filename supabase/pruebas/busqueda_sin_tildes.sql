@@ -6,7 +6,7 @@
 -- !! SOLO EN RAMA: monta empresa, proyecto, personas, fichas y contratos, y apaga los disparadores de usuario de `contratos` dentro de
 --    la transaccion (la prueba mide la busqueda, no el alta: sin numeracion gastada ni comisiones, unidades o avisos arrastrados).
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015062313_busqueda_sin_tildes.sql --prueba busqueda_sin_tildes.sql
---    Desde LAW-338 L5 (16-oct) corre también con --aplica 20261016090000_law338_l5_compradores_datos.sql (las búsquedas pasan a DEFINER-lw_lector).
+--    Desde LAW-338 L5 (16-oct) corre también con --aplica 20261016063536_law338_l5_compradores_datos.sql (las búsquedas pasan a DEFINER-lw_lector).
 --    Fuera de una rama (sin `erp.en_rama = si`, que pone rama_prueba) se niega a empezar, antes de tocar nada.
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo se deshace con el raise final.
 -- La tabla de casos (T) la GENERA el estudio desde contracts/busqueda_casos.json, la misma que prueba el navegador en
@@ -122,7 +122,7 @@ begin
   end loop;
 
   -- ============================================================ N. como nacen: inmutable la que pliega, cerradas a anon. Desde LAW-338 L5
-  -- (20261016090000) las dos que leen son DEFINER de lw_lector (sin BYPASSRLS: la RLS de quien llama sigue decidiendo, lo miden K y L)
+  -- (20261016063536) las dos que leen son DEFINER de lw_lector (sin BYPASSRLS: la RLS de quien llama sigue decidiendo, lo miden K y L)
   for x in select p.proname, p.provolatile, p.prosecdef, p.proconfig, pg_get_userbyid(p.proowner) dueno,
                   has_function_privilege('anon', p.oid, 'execute') anon, has_function_privilege('authenticated', p.oid, 'execute') auth,
                   has_function_privilege('public', p.oid, 'execute') pub

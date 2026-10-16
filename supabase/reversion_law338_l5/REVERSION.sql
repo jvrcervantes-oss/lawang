@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261016090000_law338_l5_compradores_datos.sql (16-oct-2026, sesión lecturas-servidor-2, LAW-338 L5).
+-- REVERSION de 20261016063536_law338_l5_compradores_datos.sql (16-oct-2026, sesión lecturas-servidor-2, LAW-338 L5).
 -- ORDEN: 1) si ya se aplicó el revoke (law338_l5_revoke), primero devolver el SELECT de authenticated a las 7 tablas y a la vista
 --    (lo trae su propia vuelta atrás); 2) front de L5 a su versión anterior (git revert del commit del front y las 3 edges, con
 --    `aterriza.py --edge ficheros-kyc,portal-invitar,asistente-peticiones`); 3) ESTE fichero, en una transacción. Al revés, la

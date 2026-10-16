@@ -3,7 +3,7 @@
 -- correos_enviados y la vista documentos_desactualizados. SIN APLICAR (escrito el 16-oct-2026, sesión lecturas-servidor-2).
 -- QUITA ACCESO: se aplica SOLO con la válvula del owner (la gestiona agencia-c0), como L1-L3.
 -- ORDEN (lección B3-B5; condición del revisor del 16-oct en el encargo):
---   1. migración aditiva 20261016090000_law338_l5_compradores_datos APLICADA en la viva (las 8 *_datos + las 3 búsquedas DEFINER)
+--   1. migración aditiva 20261016063536_law338_l5_compradores_datos APLICADA en la viva (las 8 *_datos + las 3 búsquedas DEFINER)
 --      y supabase_fetch_seguro.py → 2. front y edges aterrizados (`aterriza.py --edge ficheros-kyc,portal-invitar,asistente-peticiones`)
 --   → 3. get_edge_function de las 3 edges con el código nuevo (sha de contracts/edge/*/index.ts y supabase/functions/ficheros-kyc) y curl
 --      de datos.js, editores.js, emitir.js, avisos.js, operaciones-cuentas.js, ficha_divergencia.js, contracts/app.html e
@@ -19,7 +19,7 @@
 --   · edges: avisos-manager, libera-reservas-vencidas, portal-invitar y ficheros-kyc (`admin`) leen con service_role: no se tocan.
 --   · policies de OTRAS tablas que consultan estas: solo «notas: las de las fichas que ves» de cliente_notas (→ clients), que evalúa
 --     únicamente lw_lector (cliente_notas no tiene GRANT a authenticated). Ninguna de storage. Ninguna vista ajena.
---   · INVOKER que las nombran: bot_pendientes, clientes_busca y contratos_busca (DEFINER-lw_lector desde 20261016090000; la guarda
+--   · INVOKER que las nombran: bot_pendientes, clientes_busca y contratos_busca (DEFINER-lw_lector desde 20261016063536; la guarda
 --     de abajo lo exige) y _portal_rechazo (sin EXECUTE para authenticated ni anon: se exceptúa y se comprueba su ACL).
 --   · escrituras: authenticated no escribe en ninguna de las 7 (medido): todas van por DEFINER de postgres.
 -- VUELTA ATRÁS (exacta):
@@ -48,7 +48,7 @@ begin
      and p.proname in ('clientes_lista_datos', 'comprador_ficha_datos', 'operacion_compradores_datos', 'operaciones_compradores_datos',
                        'soporte_datos', 'notificaciones_datos', 'correos_registro_datos', 'documentos_desactualizados_datos',
                        'clientes_busca', 'contratos_busca', 'bot_pendientes');
-  if v_n <> 11 then raise exception 'L5 revoke: faltan las RPC de 20261016090000 (DEFINER-lw_lector: % de 11)', v_n; end if;
+  if v_n <> 11 then raise exception 'L5 revoke: faltan las RPC de 20261016063536 (DEFINER-lw_lector: % de 11)', v_n; end if;
 
   select count(*), string_agg(schemaname || '.' || tablename || '.' || policyname, ', ') into v_n, v_lista
     from pg_policies

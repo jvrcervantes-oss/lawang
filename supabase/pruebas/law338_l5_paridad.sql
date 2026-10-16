@@ -1,6 +1,6 @@
 -- LAW-338 L5 (16-oct-2026): PARIDAD de las 8 lecturas nuevas contra la lectura directa de hoy, usuario a usuario, con el rol real.
--- Migración: 20261016090000_law338_l5_compradores_datos.sql. Revisión previa #396 (Seguridad 2 y 3, Backend 4 y 5).
---   python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261016090000_law338_l5_compradores_datos.sql --prueba law338_l5_paridad.sql
+-- Migración: 20261016063536_law338_l5_compradores_datos.sql. Revisión previa #396 (Seguridad 2 y 3, Backend 4 y 5).
+--   python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261016063536_law338_l5_compradores_datos.sql --prueba law338_l5_paridad.sql
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». Solo LEE (todo en una
 -- transacción que acaba en raise = rollback); va en rama porque crea funciones temporales y las RPC aún no están en la viva.
 -- Qué mide:
