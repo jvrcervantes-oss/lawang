@@ -1,4 +1,4 @@
--- Prueba de guardar_recibi del 14-oct-2026 (migracion 20261014223000_recibi_total_suma_y_exento): total = suma de lo aplicado (A4),
+-- Prueba de guardar_recibi del 14-oct-2026 (migracion 20261015223236_recibi_total_suma_y_exento, aplicada el 16-oct-2026; escrita como 20261014223000): total = suma de lo aplicado (A4),
 -- importes en texto con el parser (A2), una factura repetida se rechaza, al editar el pendiente excluye lo del propio recibi (A1),
 -- sin impuesto (A3), cuenta «otros» solo admin de la empresa (C3) y el recibi historico se guarda sin justificante (fallo 1, LAW-40).
 -- 2.a vuelta del revisor (15-oct): el papel lo escribe el servidor (L: lineas, totales, impuesto, tipo y moneda fabricados se
@@ -24,7 +24,7 @@
 -- Rol REAL: cada llamada va con `set local role authenticated` y los claims de la persona (pg_temp.val, armazon de
 -- cf_borrar_cierre_anula.sql). Cada NO lleva al lado un SI que solo cambia en lo que se prueba.
 -- !! CREA CONTRATOS Y DOCUMENTOS (gasta numeracion): SOLO EN RAMA, NUNCA EN LA BASE VIVA.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015055003_facturas_conservan_parcela.sql,20261014223000_recibi_total_suma_y_exento.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261015055003_facturas_conservan_parcela.sql,20261015223236_recibi_total_suma_y_exento.sql
 --           --prueba recibi_total_suma_y_exento.sql
 --    (220000 en --aplica desde la 3.a vuelta: K4b y la guarda (d) de la migracion la necesitan)
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-RT.
