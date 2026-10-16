@@ -11,6 +11,9 @@
 --     jwt), index.ts ~434), es decir authenticated; el cliente `admin` de esa edge (clave de servicio) no las llama.
 --   · bot_respuesta_copiada y bot_temas_resumen: solo intranet/v4/asistente-correos (sb.rpc con la sesión del usuario: authenticated).
 --   · contracts/bot/arnes_faq.sql las prueba con `set local role authenticated`, no con service_role.
+--   · EDGES (`git grep` de las cuatro en supabase/functions y contracts/edge, 16-oct): solo bot-agentes (las dos copias son idénticas), líneas
+--     452 y 510, las dos dentro de administraFaq(), cuyo cliente es `createClient(URL_SB, ANON, Authorization: Bearer jwt)` (línea ~434).
+--   · CRON (cron.job de la viva, solo lectura, 16-oct): 13 trabajos y NINGUNO nombra ninguna de las cuatro.
 -- La propia prueba del bot (supabase/pruebas/bot_s3.sql) ya decía «service_role sin EXECUTE en las funciones del bot (solo bot_lawang)», y estas
 -- cuatro y bot_pendientes estaban en su lista de excepciones; con esto salen de ella (las funciones trigger se quedan).
 -- «Reducir la exposición»: sin llamador con nombre, se revoca. authenticated NO se toca: es su llamador. Cierra acceso, no abre nada ni borra datos.
