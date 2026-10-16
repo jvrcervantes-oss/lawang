@@ -97,7 +97,7 @@
   /* ── 1. interruptor ──────────────────────────────────────────────────────────────────────────────────────────────── */
   function bloqueInterruptor(raiz) {
     var A = D.ajustes || {};
-    var s = IA.seccion(T('IA'), T('Conexión con asistentes de IA'),
+    var s = IA.seccion('', T('Conexión con asistentes de IA'),
       T('Encendida, las personas con permiso pueden consultar Lawang desde Claude o ChatGPT: cada una ve solo lo que ya ve en la intranet, y cada consulta queda registrada. Apagada, ningún asistente puede consultar nada.'));
     s.s.setAttribute('data-ia-bloque', 'interruptor');
     var enc = A.encendido === true;
@@ -147,7 +147,7 @@
   /* ── 2. topes (tres campos, un paso) ──────────────────────────────────────────────────────────────────────────────── */
   function bloqueTopes(raiz) {
     var A = D.ajustes || {};
-    var s = IA.seccion(T('IA'), T('Topes'), T('Cuánto puede usar cada persona. Se guardan solo los que cambies.'));
+    var s = IA.seccion('', T('Topes'), T('Cuánto puede usar cada persona. Se guardan solo los que cambies.'));
     s.s.setAttribute('data-ia-bloque', 'topes');
     var malla = el('div', 'grid grid-cols-1 md:grid-cols-3 gap-5');
     malla.appendChild(campo(T('Consultas al día por persona'), T('De 0 a 5000. Con 0 nadie puede consultar, y la IA no se enciende.'), numero('tope_dia', A.tope_dia, 0, 5000)));
@@ -171,6 +171,14 @@
       guardaAjustes(c, b);
     });
     var pie = el('div', 'flex'); pie.appendChild(b); s.c.appendChild(pie);
+    // En reposo no hay nada que guardar: el botón sale al cambiar un tope y se va si vuelve a su valor (ajustes-ux, 17-oct-2026).
+    // Va con display, no con [hidden]: la clase flex de Tailwind le gana a [hidden] en esta página.
+    var mira = function () {
+      var cambia = [].some.call(s.c.querySelectorAll('[data-ia-tope]'), function (i) { return i.value.trim() !== i.getAttribute('data-ia-antes'); });
+      pie.hidden = !cambia; pie.style.display = cambia ? '' : 'none';
+    };
+    s.c.addEventListener('input', mira);
+    mira();
     raiz.appendChild(s.s);
   }
 
@@ -229,8 +237,9 @@
     var t = el('div', 'flex flex-col gap-3 py-4 border-b border-outline-variant/30');
     t.setAttribute('data-ia-cliente', k.id);
     var cab = el('div', 'flex flex-wrap items-center gap-2');
-    cab.appendChild(el('span', 'font-label-md text-label-md text-on-surface break-words', k.nombre || IA.asistenteTexto(k.asistente)));
-    cab.appendChild(el('span', C_PEQ, IA.asistenteTexto(k.asistente)));
+    var tipo = IA.asistenteTexto(k.asistente), nom = k.nombre || tipo;
+    cab.appendChild(el('span', 'font-label-md text-label-md text-on-surface break-words', nom));
+    if (String(nom).trim().toLowerCase() !== String(tipo).trim().toLowerCase()) cab.appendChild(el('span', C_PEQ, tipo));   // sin «Claude Claude»
     var pa = el('span', 'inline-flex items-center px-3 py-1 rounded-full font-label-md text-[12px] ' + (k.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container text-on-surface-variant'),
       k.activo ? T('Encendido') : T('Apagado'));
     cab.appendChild(pa);
@@ -266,7 +275,7 @@
     return t;
   }
   function bloqueClientes(raiz) {
-    var s = IA.seccion(T('IA'), T('Asistentes'),
+    var s = IA.seccion('', T('Asistentes'),
       T('Un cliente por asistente. Para conectar, cada persona pega en Claude o en ChatGPT la dirección del conector y el identificador del cliente (OAuth Client ID). Un cliente apagado no deja conectar a nadie.'));
     s.s.setAttribute('data-ia-bloque', 'clientes');
     s.c.appendChild(IA.copiable(T('Dirección del conector'), IA.urlConector(), 'ia-copiar-conector'));
@@ -324,7 +333,7 @@
   function bloquePermisos(raiz) {
     var us = D.usuarios || [];
     var con = us.filter(function (u) { return u.permiso; }).length;
-    var s = IA.seccion(T('IA'), T('Quién puede conectar'),
+    var s = IA.seccion('', T('Quién puede conectar'),
       T('Solo quien tenga permiso puede conectar un asistente, y el asistente ve solo lo que esa persona ve. Quitar el permiso corta en el acto sus conexiones.'));
     s.s.setAttribute('data-ia-bloque', 'permisos');
     s.c.appendChild(el('p', C_PEQ, T('%n de %t personas del equipo pueden conectar.', { n: con, t: us.length })));
@@ -340,7 +349,7 @@
 
   /* ── 5. conexiones vivas (de todos) ────────────────────────────────────────────────────────────────────────────────── */
   function bloqueConexiones(raiz) {
-    var s = IA.seccion(T('IA'), T('Conexiones vivas'), T('Las de todo el equipo que todavía no han caducado ni se han cortado.'));
+    var s = IA.seccion('', T('Conexiones vivas'), T('Las de todo el equipo que todavía no han caducado ni se han cortado.'));
     s.s.setAttribute('data-ia-bloque', 'conexiones');
     var cs = D.conexiones || [], K = clientePorId();
     if (!cs.length) s.c.appendChild(el('p', 'font-body-md text-body-md text-on-surface-variant', T('Ninguna conexión viva ahora mismo.')));
