@@ -36,6 +36,7 @@
 require_once __DIR__ . '/../modelo/catalogo.php'; // LW_SB_URL, LW_SB_KEY
 
 const LW_PF_PROYECTO = 'Palm Field W5';
+const LW_PF_SLUG_RPC = 'palmfield';   // id público del proyecto (LAW-428): las RPC preguntan por él, nunca por el nombre
 const LW_PF_TTL       = 300; // segundos, igual que catalogo.php
 
 function lw_pf_cache_path($nombre) {
@@ -98,7 +99,7 @@ function lw_pf_dato($cacheNombre, $fn, array $params) {
 /** Tamaños de parcela disponibles HOY, ordenados y sin duplicados. null si nunca se
  *  pudo leer nada (el llamador cae al array estático). Nunca se usa para dinero. */
 function lw_pf_tamanos_disponibles() {
-    $rows = lw_pf_dato('lw_pf_tamanos.json', 'parcelas_tamanos_disponibles', ['p_proyecto' => LW_PF_PROYECTO]);
+    $rows = lw_pf_dato('lw_pf_tamanos.json', 'parcelas_tamanos_disponibles_por_slug', ['p_slug' => LW_PF_SLUG_RPC]);
     if ($rows === null) return null;
     $tam = [];
     foreach ($rows as $r) {
@@ -113,7 +114,7 @@ function lw_pf_tamanos_disponibles() {
  *  leyó bien pero no hay ninguna (el caso de hoy) -- el llamador sigue con las 4
  *  imágenes estáticas curadas. */
 function lw_pf_fotos_hero() {
-    $rows = lw_pf_dato('lw_pf_fotos.json', 'investor_deck_fotos', ['p_proyecto' => LW_PF_PROYECTO]);
+    $rows = lw_pf_dato('lw_pf_fotos.json', 'investor_deck_fotos_por_slug', ['p_slug' => LW_PF_SLUG_RPC]);
     if ($rows === null) return [];
     $hero = [];
     foreach ($rows as $r) {

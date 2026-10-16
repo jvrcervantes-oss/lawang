@@ -1233,7 +1233,7 @@ window.LW_COLECCION_PRELOAD=<?= json_encode(lw_coleccion_para_navegador($doc), J
 <?php endif; ?>
 <script src="assets/lawang-card.js?v=20261014134553"></script>
 <script src="/assets/lawang-pie.js?v=20261015144632"></script>
-<script src="assets/portfolio-app.js?v=20261014134553"></script>
+<script src="assets/portfolio-app.js?v=20261016090055"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

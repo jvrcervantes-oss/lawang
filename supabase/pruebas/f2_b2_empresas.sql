@@ -24,25 +24,56 @@ declare
   hoy text := to_char(current_date, 'YYYY-MM-DD');
   pay_l text; pay_s text;
 begin
-  select user_id into jv from public.usuarios where email = 'jvr.cervantes@gmail.com';
-  perform set_config('request.jwt.claims', json_build_object('sub', jv, 'role', 'authenticated', 'email', 'jvr.cervantes@gmail.com')::text, true);
+  -- Personas por ROL, nunca por correo fijo (15-oct-2026, ensayo de 2159 en la viva: los correos del 8-oct habían cambiado de rol
+  -- —el «admin global» ya era admin_empresa— y caían todos sus casos). jv = el PROPIETARIO (es_propietario: solo él cambia ámbito, empresas y roles de empresa, trigger
+  -- usuarios_bloquea_cambio_rol_herramientas; revisor de d37887fd8); ctl = el agente activo
+  -- más antiguo SIN las casillas gastos ni bancos (no se toca); el resto, agentes activos por antigüedad, cada uno distinto, que se
+  -- CONVIERTEN dentro del rollback: ya, cr, ad4, ad0 como siempre, ar con empresas={lawang} y gad en admin global no super con casillas.
+  select user_id, email into jv, mail from public.usuarios where es_propietario and activo order by creado_en, user_id limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub', jv, 'role', 'authenticated', 'email', mail)::text, true);
+  per := per || jsonb_build_object('jv', jsonb_build_object('sub', jv, 'email', mail));
+  select user_id, email into ctl, mail from public.usuarios
+   where activo and rol = 'agente' and not ('gastos' = any(coalesce(herramientas, '{}'))) and not ('bancos' = any(coalesce(herramientas, '{}')))
+   order by creado_en, user_id limit 1;
+  per := per || jsonb_build_object('ctl', jsonb_build_object('sub', ctl, 'email', mail));
+  -- Las solicitudes de los casos B se eligen ANTES que las personas, y las personas se eligen sin el beneficiario ni quien cambió el
+  -- importe de esas dos (15-oct-2026, deriva del ensayo de 2159: la pendiente de Sandal Woods era a nombre del agente que la prueba
+  -- convertía en «cr», y «nadie aprueba una solicitud a su propio nombre» paraba B4; elegir la solicitud por las personas dejaba a
+  -- Sandal Woods sin ninguna, porque sus 3 pendientes eran de agentes de la prueba). El beneficiario se guarda por correo: se resuelve
+  -- a su fila de usuarios y la persona se excluye por user_id.
+  select s.id into s_l from public.solicitudes_pago s join public.contratos c1 on c1.id = s.contrato_id join public.proyectos pr on pr.id = c1.proyecto_id
+   where s.estado = 'pendiente' and pr.empresa = 'lawang' order by s.creado_en, s.id limit 1;
+  select s.id into s_s from public.solicitudes_pago s join public.contratos c1 on c1.id = s.contrato_id join public.proyectos pr on pr.id = c1.proyecto_id
+   where s.estado = 'pendiente' and pr.empresa = 'sandal_woods' order by s.creado_en, s.id limit 1;
   for pe in select * from (values
-      ('ya',  'yanayjefferson@gmail.com',      'admin_empresa',       'empresa', '{lawang}',              '{facturas,gastos,bancos,comisiones}'),
-      ('cr',  'cris.blueiestates@gmail.com',   'super_admin_empresa', 'empresa', '{sandal_woods}',        '{}'),
-      ('ad4', 'adenovit.b@gmail.com',          'admin_empresa',       'empresa', '{lawang,sandal_woods}', '{facturas,gastos,bancos,comisiones}'),
-      ('ad0', 'dortegag@gmail.com',            'admin_empresa',       'empresa', '{lawang}',              '{}')) v(k, email, rol, amb, emps, herr) loop
-    update public.usuarios set rol = pe.rol, ambito = pe.amb, empresas = pe.emps::text[], proyectos = '{}', proyectos_supervisados = '{}',
-           herramientas = pe.herr::text[], tipos_contrato = '{}' where email = pe.email returning user_id into uid;
-    per := per || jsonb_build_object(pe.k, jsonb_build_object('sub', uid, 'email', pe.email));
+      ('ya',  'admin_empresa',       'empresa', '{lawang}',              '{facturas,gastos,bancos,comisiones}'),
+      ('cr',  'super_admin_empresa', 'empresa', '{sandal_woods}',        '{}'),
+      ('ad4', 'admin_empresa',       'empresa', '{lawang,sandal_woods}', '{facturas,gastos,bancos,comisiones}'),
+      ('ad0', 'admin_empresa',       'empresa', '{lawang}',              '{}'),
+      ('ar',  null,                  null,      '{lawang}',              null),
+      ('gad', 'admin',               'global',  '{}',                    '{facturas,gastos,bancos,comisiones}')) v(k, rol, amb, emps, herr) loop
+    select u2.user_id into uid from public.usuarios u2
+     where u2.activo and u2.rol = 'agente' and u2.user_id is distinct from jv and u2.user_id is distinct from ctl
+       and not exists (select 1 from jsonb_each(per) x where x.value->>'sub' = u2.user_id::text)
+       and not exists (select 1 from public.solicitudes_pago s
+                        where s.id in (s_l, s_s)
+                          and (s.importe_editado_por = u2.user_id
+                               or s.beneficiario_email is not null and lower(s.beneficiario_email) = lower(u2.email)))
+     order by u2.creado_en, u2.user_id limit 1;   -- desempate: la carga inicial dio el mismo creado_en a todos
+    if pe.rol is null then   -- ar: solo el alcance restringido, el resto de su ficha como está
+      update public.usuarios set empresas = pe.emps::text[] where user_id = uid returning user_id, email into uid, mail;
+    else
+      update public.usuarios set rol = pe.rol, ambito = pe.amb, empresas = pe.emps::text[], proyectos = '{}', proyectos_supervisados = '{}',
+             herramientas = pe.herr::text[], tipos_contrato = '{}' where user_id = uid returning user_id, email into uid, mail;
+    end if;
+    per := per || jsonb_build_object(pe.k, jsonb_build_object('sub', uid, 'email', mail));
   end loop;
-  select user_id into ctl from public.usuarios where email = 'eduxzone@gmail.com';
-  select user_id into ar from public.usuarios where email = 'santiator97@gmail.com';
-  update public.usuarios set empresas = '{lawang}' where user_id = ar;
-  select user_id into gad from public.usuarios where email = 'balianhills@gmail.com';
-  per := per || jsonb_build_object('ctl', jsonb_build_object('sub', ctl, 'email', 'eduxzone@gmail.com'),
-                                    'ar',  jsonb_build_object('sub', ar,  'email', 'santiator97@gmail.com'),
-                                    'gad', jsonb_build_object('sub', gad, 'email', 'balianhills@gmail.com'),
-                                    'jv',  jsonb_build_object('sub', jv,  'email', 'jvr.cervantes@gmail.com'));
+  ya := (per->'ya'->>'sub')::uuid; cr := (per->'cr'->>'sub')::uuid; ad4 := (per->'ad4'->>'sub')::uuid; ad0 := (per->'ad0'->>'sub')::uuid;
+  ar := (per->'ar'->>'sub')::uuid; gad := (per->'gad'->>'sub')::uuid;
+  -- sin una persona la prueba no mide sus casos: cuenta como fallo, nunca como verde
+  select string_agg(k, ',') into sub from unnest(array['jv', 'ctl', 'ya', 'cr', 'ad4', 'ad0', 'ar', 'gad']) k
+   where coalesce(per->k->>'sub', '') = '';
+  if sub is not null then r := r || 'FALLO [P0] personas sin usuario (no hay agentes activos de sobra): ' || sub || E'\n'; fallos := fallos + 1; end if;
 
   select e2.sociedad_clave into soc_l from public.empresas e2 where e2.clave = 'lawang';
   select e2.sociedad_clave into soc_s from public.empresas e2 where e2.clave = 'sandal_woods';
@@ -85,10 +116,19 @@ begin
   insert into public.facturas (numero, tipo, sociedad, proyecto_id, total, moneda, fecha_emision, creado_por, created_at) values
     ('TESTB2-FS2', 'factura', soc_s, ps, 62, 'EUR', current_date, 'ajeno@test.b2', '2026-01-01') returning id into f_fs2;
 
-  select s.id into s_l from public.solicitudes_pago s join public.contratos c1 on c1.id = s.contrato_id join public.proyectos pr on pr.id = c1.proyecto_id
-   where s.estado = 'pendiente' and pr.empresa = 'lawang' order by s.creado_en limit 1;
-  select s.id into s_s from public.solicitudes_pago s join public.contratos c1 on c1.id = s.contrato_id join public.proyectos pr on pr.id = c1.proyecto_id
-   where s.estado = 'pendiente' and pr.empresa = 'sandal_woods' order by s.creado_en limit 1;
+  -- Las solicitudes de los casos B (elegidas arriba, antes que las personas): sin una, o si a pesar de todo una persona que la
+  -- aprueba es su beneficiaria o editó su importe, los casos B no miden y es un fallo, nunca un verde.
+  if s_l is null or s_s is null then
+    r := r || 'FALLO [P0] sin solicitud pendiente en ' || concat_ws(',', case when s_l is null then 'lawang' end,
+         case when s_s is null then 'sandal_woods' end) || E': los casos B no miden\n';
+    fallos := fallos + 1;
+  end if;
+  if exists (select 1 from public.solicitudes_pago s join public.usuarios u on u.user_id in (ya, cr, ad4, gad)
+              where s.id in (s_l, s_s)
+                and (s.importe_editado_por = u.user_id or lower(s.beneficiario_email) = lower(u.email))) then
+    r := r || E'FALLO [P0] una persona que aprueba en los casos B es beneficiaria o editó el importe de su solicitud\n';
+    fallos := fallos + 1;
+  end if;
 
   insert into public.proveedores (nombre, empresa) values ('TESTB2 prov lawang', 'lawang') returning id into pv_l;
   insert into public.proveedores (nombre, empresa) values ('TESTB2 prov sandal', 'sandal_woods') returning id into pv_s;
@@ -225,7 +265,9 @@ begin
     pg_temp.ce('cr',  format('select public.cuenta_bancaria_guarda(%L, %L::jsonb, false, %L::jsonb)', 'sandalwoods_danamon_eur', '{"label":"Danamon EUR"}', format('[{"proyecto_id":"%s","slug":"*","claves":["contractor_tepisungai"]}]', ps)), '42501', 'E8 reparto con una cuenta de la otra empresa NO') ||
     pg_temp.ce('cr',  format('select public.cuenta_bancaria_guarda(%L, %L::jsonb, false, %L::jsonb)', 'sandalwoods_danamon_eur', '{"label":"Danamon EUR"}', '[{"slug":"ppjb","claves":["sandalwoods_danamon_eur"]}]'), '42501', 'E9 reparto de la plantilla global NO') ||
     pg_temp.ce('jv',  format('select public.cuenta_bancaria_guarda(%L, %L::jsonb, false)', 'contractor_tepisungai', '{"label":"OCBC"}'), 'ok', 'E10 el propietario edita cualquiera') ||
-    pg_temp.ce('cr',  format('select public.sociedad_guarda(%L, %L::jsonb, false)', soc_s, '{"label":"PT San Dal Woods"}'), 'ok', 'E11 super_admin_empresa edita la sociedad de su empresa') ||
+    -- E11, F26 y F32-F34 (15-oct-2026): las sociedades emisoras son solo del propietario desde la orden del owner del 7-oct
+    -- (20261008970100_f2_b12_2_sociedades_solo_propietario); la prueba del 8-oct esperaba el permiso del bloque 2 que esa migración retiró.
+    pg_temp.ce('cr',  format('select public.sociedad_guarda(%L, %L::jsonb, false)', soc_s, '{"label":"PT San Dal Woods"}'), '42501', 'E11 super_admin_empresa NO edita ni la sociedad de su empresa (solo el propietario, 7-oct)') ||
     pg_temp.ce('cr',  format('select public.sociedad_guarda(%L, %L::jsonb, false)', soc_l, '{"label":"x"}'), '42501', 'E12 super_admin_empresa NO edita la sociedad de la otra') ||
     pg_temp.ce('cr',  format('select public.sociedad_guarda(%L, %L::jsonb, true)', 'zz_nueva_b2', '{"label":"x","razon":"x","domicilio":"x"}'), '42501', 'E13 super_admin_empresa NO da de alta sociedades') ||
     pg_temp.ce('ya',  format('select public.sociedad_guarda(%L, %L::jsonb, false)', soc_l, '{"label":"x"}'), '42501', 'E14 admin_empresa NO edita sociedades (solo super)') ||
@@ -238,12 +280,14 @@ begin
   end if;
 
   cs_ids := cs_ids ||
-    pg_temp.ce('ya',  'select count(*) from public.gastos', 'n:' || (select count(*) from public.gastos g left join public.proyectos p on p.id = g.proyecto_id left join public.empresas x on x.sociedad_clave = g.sociedad where (case when g.proyecto_id is not null then p.empresa else x.clave end) = 'lawang'), 'F1 gastos que ve admin_empresa Lawang') ||
-    pg_temp.ce('cr',  'select count(*) from public.gastos', 'n:' || (select count(*) from public.gastos g left join public.proyectos p on p.id = g.proyecto_id left join public.empresas x on x.sociedad_clave = g.sociedad where (case when g.proyecto_id is not null then p.empresa else x.clave end) = 'sandal_woods'), 'F2 gastos que ve super_admin_empresa Sandal Woods') ||
-    pg_temp.ce('ad4', 'select count(*) from public.gastos', 'n:' || (select count(*) from public.gastos g left join public.proyectos p on p.id = g.proyecto_id left join public.empresas x on x.sociedad_clave = g.sociedad where (case when g.proyecto_id is not null then p.empresa else x.clave end) in ('lawang','sandal_woods')), 'F3 gastos que ve admin con las dos') ||
-    pg_temp.ce('ad0', 'select count(*) from public.gastos', 'n:0', 'F4 sin la casilla Gastos no ve ninguno') ||
-    pg_temp.ce('ctl', 'select count(*) from public.gastos', 'n:0', 'F5 agente de control no ve ninguno') ||
-    pg_temp.ce('gad', 'select count(*) from public.gastos', 'n:' || (select count(*) from public.gastos), 'F6 admin global con casilla los ve todos') ||
+    -- F1-F6 (15-oct-2026): la tabla gastos está cerrada al navegador desde LAW-338 L3 (20261011072349, 11-oct): se mide por
+    -- gastos_panel_datos, que es lo que lee la pantalla (sin casilla Gastos ni rol de administración, rechaza con 42501).
+    pg_temp.ce('ya',  'select count(*) from public.gastos', '42501', 'F1 gastos: la tabla directa no es de authenticated (LAW-338 L3; solo por gastos_panel_datos)') ||
+    pg_temp.ce('cr',  'select jsonb_array_length(public.gastos_panel_datos()->''gastos'')', 'n:' || (select count(*) from public.gastos g left join public.proyectos p on p.id = g.proyecto_id left join public.empresas x on x.sociedad_clave = g.sociedad where (case when g.proyecto_id is not null then p.empresa else x.clave end) = 'sandal_woods'), 'F2 gastos que ve super_admin_empresa Sandal Woods') ||
+    pg_temp.ce('ad4', 'select jsonb_array_length(public.gastos_panel_datos()->''gastos'')', 'n:' || (select count(*) from public.gastos g left join public.proyectos p on p.id = g.proyecto_id left join public.empresas x on x.sociedad_clave = g.sociedad where (case when g.proyecto_id is not null then p.empresa else x.clave end) in ('lawang','sandal_woods')), 'F3 gastos que ve admin con las dos') ||
+    pg_temp.ce('ad0', 'select jsonb_array_length(public.gastos_panel_datos()->''gastos'')', '42501', 'F4 sin la casilla Gastos no entra') ||
+    pg_temp.ce('ctl', 'select jsonb_array_length(public.gastos_panel_datos()->''gastos'')', '42501', 'F5 agente de control no entra') ||
+    pg_temp.ce('gad', 'select jsonb_array_length(public.gastos_panel_datos()->''gastos'')', 'n:' || (select count(*) from public.gastos), 'F6 admin global con casilla los ve todos') ||
     pg_temp.ce('ya',  'select jsonb_array_length(public.gastos_panel_datos()->''gastos'')', 'n:' || (select count(*) from public.gastos g left join public.proyectos p on p.id = g.proyecto_id left join public.empresas x on x.sociedad_clave = g.sociedad where (case when g.proyecto_id is not null then p.empresa else x.clave end) = 'lawang'), 'F7 gastos_panel_datos: gastos de su empresa') ||
     pg_temp.ce('ya',  'select jsonb_array_length(public.gastos_panel_datos()->''proveedores'')', 'n:' || (select count(*) from public.proveedores where empresa = 'lawang'), 'F8 gastos_panel_datos: proveedores de su empresa') ||
     pg_temp.ce('gad', 'select jsonb_array_length(public.gastos_panel_datos()->''proveedores'')', 'n:' || (select count(*) from public.proveedores), 'F9 gastos_panel_datos: el admin global ve todos los proveedores') ||
@@ -262,15 +306,16 @@ begin
     pg_temp.ce('ya',  'select count(*) from jsonb_array_elements(coalesce(public.bancos_resumen(), ''[]''::jsonb)) x where x->>''cuenta'' = ''sandalwoods_danamon_eur''', 'n:0', 'F22 bancos_resumen: sin la cuenta de la otra empresa') ||
     pg_temp.ce('ctl', 'select jsonb_array_length(coalesce(public.bancos_resumen(), ''[]''::jsonb))', 'n:0', 'F23 bancos_resumen: el agente de control no recibe nada') ||
     pg_temp.ce('ctl', 'select jsonb_array_length(public.panel_bancos_datos()->''movimientos'')', '42501', 'F24 panel de bancos: agente de control rechazado') ||
-    pg_temp.ce('cr',  'select count(*) from public.sociedades_log', 'n:' || (select count(*) from public.sociedades_log where clave = (select e3.sociedad_clave from public.empresas e3 where e3.clave = 'sandal_woods')), 'F26 sociedades_log: super_admin_empresa ve el de su sociedad') ||
+    pg_temp.ce('cr',  'select count(*) from public.sociedades_log', 'n:0', 'F26 sociedades_log: super_admin_empresa no ve ninguno (solo el propietario, 7-oct)') ||
     pg_temp.ce('ya',  'select count(*) from public.sociedades_log', 'n:0', 'F27 sociedades_log: admin_empresa (no super) no ve ninguno') ||
     pg_temp.ce('jv',  'select count(*) from public.sociedades_log', 'n:' || (select count(*) from public.sociedades_log), 'F28 sociedades_log: el propietario los ve todos') ||
     pg_temp.ce('ya',  'select count(*) from public.cuentas_uso()', 'n:0', 'F29 cuentas_uso: admin_empresa no ve ninguna') ||
     pg_temp.ce('cr',  'select count(*) from public.cuentas_uso()', 'n:' || (select count(*) from public.cuentas_bancarias where empresa = 'sandal_woods'), 'F30 cuentas_uso: super_admin_empresa ve las de su empresa') ||
     pg_temp.ce('jv',  'select count(*) from public.cuentas_uso()', 'n:' || (select count(*) from public.cuentas_bancarias), 'F31 cuentas_uso: propietario todas') ||
-    pg_temp.ce('ya',  'select jsonb_array_length(public.sociedades_ajustes_datos()->''sociedades'')', 'n:1', 'F32 sociedades_ajustes_datos: admin_empresa ve solo la de su empresa') ||
-    pg_temp.ce('ad4', 'select jsonb_array_length(public.sociedades_ajustes_datos()->''sociedades'')', 'n:2', 'F33 sociedades_ajustes_datos: admin con las dos') ||
-    pg_temp.ce('gad', 'select jsonb_array_length(public.sociedades_ajustes_datos()->''sociedades'')', 'n:' || (select count(*) from public.sociedades), 'F34 sociedades_ajustes_datos: admin global todas') ||
+    pg_temp.ce('ya',  'select jsonb_array_length(public.sociedades_ajustes_datos()->''sociedades'')', '42501', 'F32 sociedades_ajustes_datos: admin_empresa no entra (solo el propietario, 7-oct)') ||
+    pg_temp.ce('ad4', 'select jsonb_array_length(public.sociedades_ajustes_datos()->''sociedades'')', '42501', 'F33 sociedades_ajustes_datos: admin con las dos no entra') ||
+    pg_temp.ce('gad', 'select jsonb_array_length(public.sociedades_ajustes_datos()->''sociedades'')', '42501', 'F34 sociedades_ajustes_datos: admin global no super no entra') ||
+    pg_temp.ce('jv',  'select jsonb_array_length(public.sociedades_ajustes_datos()->''sociedades'')', 'n:' || (select count(*) from public.sociedades), 'F34b sociedades_ajustes_datos: el propietario las ve todas') ||
     pg_temp.ce('ctl', 'select jsonb_array_length(public.sociedades_ajustes_datos()->''sociedades'')', '42501', 'F35 sociedades_ajustes_datos: agente de control rechazado') ||
     pg_temp.ce('ya',  'select count(*) from public.solicitudes_pago s where public.empresa_de_solicitud_pago(s.id) = ''sandal_woods'' and s.creado_por is distinct from (select auth.uid()) and s.beneficiario_email is distinct from (select auth.email())', 'n:0', 'F36 solicitudes_pago: admin_empresa no ve las ajenas de la otra empresa') ||
     pg_temp.ce('ya',  'select count(*) from public.solicitudes_pago s where public.empresa_de_solicitud_pago(s.id) = ''lawang''', 'n:' || (select count(*) from public.solicitudes_pago s join public.contratos c1 on c1.id = s.contrato_id join public.proyectos p on p.id = c1.proyecto_id where p.empresa = 'lawang'), 'F37 solicitudes_pago: ve todas las de su empresa') ||

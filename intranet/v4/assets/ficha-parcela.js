@@ -161,9 +161,19 @@
       m.ventaOculta = !!R && !m.contratos.some(function (c) { return c.raiz; });
     }
 
-    /* Pactado por cobrar: las cifras de la fila, restadas. Sin cobro visible no se calcula. */
+    /* Pactado por cobrar: las cifras de la fila, restadas. Sin cobro visible no se calcula. Sin venta (la parcela
+       no tiene contrato) no hay nada por cobrar: el precio de catálogo no se le debe a nadie y la ayuda hablaría de
+       «la venta» (Calidad, 15-oct-2026: SH-128 enseñaba «Por cobrar del precio 260.875 EUR»). */
     var suelo = h.precioParte(u, 'suelo'), obra = h.precioParte(u, 'obra');
-    if (suelo != null || obra != null) {
+    // Con algo cobrado sí se calcula aunque la fila no traiga la venta: el resto (o lo cobrado de más) no se esconde.
+    // Y con el cobro NO visible (sin permiso), una parcela reservada, bloqueada, vendida o cobrada se trata como con
+    // venta aunque la fila no traiga `contrato_id`: sale «no visible», no nada. Solo entonces: «bloqueada» se puede
+    // poner a mano en una parcela sin contrato, y con el cobro visible eso volvería a enseñar un «por cobrar» sin
+    // venta (SH-128; revisor, 15-oct-2026).
+    var conVenta = !!R || u.obra_de_contrato === true || u.obra_firmada === true ||
+      ((u.cobrado_suelo == null || u.cobrado_obra == null) && ['reservada', 'bloqueada', 'vendida', 'cobrada'].indexOf(u.estado) >= 0) ||
+      (Number(u.cobrado_suelo) || 0) + (Number(u.cobrado_obra) || 0) > 0;
+    if (conVenta && (suelo != null || obra != null)) {
       if (u.cobrado_suelo == null || u.cobrado_obra == null) m.pactado = { noVisible: true };
       else {
         var cobrado = (Number(u.cobrado_suelo) || 0) + (Number(u.cobrado_obra) || 0);
@@ -338,7 +348,10 @@
   function htmlDocsResumen(m) {
     if (!m.docs) return '';
     if (m.docs.error) return esc(T('Documentos'));
-    var g = m.docs.grupos, partes = [T('%n facturas', { n: g.factura.length }), T('%n recibís', { n: g.recibi.length }), T('%n proformas', { n: g.proforma.length })];
+    // Singular y plural son dos claves enteras (i18n.js): «1 facturas» / «1 invoices» salía así hasta el 15-oct.
+    var cuenta = function (n, uno, varios) { return T(n === 1 ? uno : varios, { n: n }); };
+    var g = m.docs.grupos, partes = [cuenta(g.factura.length, '%n factura', '%n facturas'), cuenta(g.recibi.length, '%n recibí', '%n recibís'),
+      cuenta(g.proforma.length, '%n proforma', '%n proformas')];
     var sf = m.cadenas.filter(function (x) { return !x.error && !x.noVisible; });
     // En una venta de varias parcelas «Sin facturar» es de la venta: se dice en el cuerpo, no en el resumen.
     if (sf.length === 1 && !(m.venta && m.venta.parcelas > 1))

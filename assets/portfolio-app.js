@@ -991,9 +991,9 @@
   // Reemplaza la lista de tamaños del paso "Choose your plot" cuando la ficha trae
   // p.masterplanImage + p.masterplanPlots (código+posición, puestos a mano desde el admin,
   // mismo patrón que los hotspots del aéreo). El estado (disponible/reservada/vendida) NO
-  // vive en data.json: se pide en vivo a una función pública de Supabase que solo devuelve
-  // codigo/estado/superficie_m2 de los códigos que esta misma ficha declara — nunca
-  // precio/contrato_id/notas (ver operaciones/sql/unidades_estado_publico_rpc.sql). Si la
+  // vive en data.json: llega con el documento vivo de la intranet (DATA_LIVE, plotsFromDoc) —
+  // codigo/estado/superficie_m2, nunca precio/contrato_id/notas; sin el documento vivo no se pide
+  // a la base (LAW-428, ver fetchPlotsStatus). Si la
   // petición falla, los pines quedan "sin dato" y SIGUEN siendo clicables: un fallo de red no
   // debe impedir vender (degradación silenciosa). Pero si la petición SÍ responde y un código
   // concreto no aparece en la respuesta -- no tiene fila en `unidades`, típicamente un pin que el
@@ -1013,23 +1013,9 @@
   }
   function fetchPlotsStatus(p){
     if(DATA_LIVE){ plotsFromDoc(p); return; }   // v2: jamas se pregunta a Supabase desde el navegador
-    var base = L.SETTINGS && L.SETTINGS.supabaseUrl, key = L.SETTINGS && L.SETTINGS.supabaseKey;
-    if(!base || !key || !p.masterplanProject || !p.masterplanPlots || !p.masterplanPlots.length) return;
-    if(S.plotsStatusFor===p.id) return;  // ya pedido (con éxito o fallo) para esta ficha
-    S.plotsStatusFor = p.id;
-    var codes = p.masterplanPlots.map(function(pt){ return pt.code; });
-    fetch(base+'/rest/v1/rpc/unidades_estado_publico', {
-      method:"POST",
-      headers:{"Content-Type":"application/json","apikey":key,"Authorization":"Bearer "+key},
-      body: JSON.stringify({p_proyecto:p.masterplanProject, p_codigos:codes})
-    }).then(function(r){ return r.ok ? r.json() : []; }).then(function(rows){
-      var map={}; (rows||[]).forEach(function(row){ map[row.codigo]=row; });
-      S.plotsStatus = map;
-      S.plotsStatusOk = true;
-      render();
-    }).catch(function(){ /* MUDO A PROPOSITO: sin red los pines siguen "sin dato" y
-       clicables (plotsStatusOk queda false), que es el estado honesto — el mapa
-       no dice que esten libres, dice que no lo sabe. */ });
+    // Sin documento vivo los pines quedan «sin dato» y clicables (el estado honesto). LAW-428 (15-oct-2026): aqui se pedia
+    // unidades_estado_publico por el NOMBRE del proyecto (masterplanProject); ninguna ficha publicada lo rellena (0 de 44 en
+    // data.json, 0 llamadas en los logs) y la funcion no tiene gemela por id: el estado en vivo llega solo por el documento vivo.
   }
   // Emparejar el m² real de la parcela con el escalón de precio del configurador (landOptions
   // viene por tamaño, no por código individual — así lo carga hoy el admin).

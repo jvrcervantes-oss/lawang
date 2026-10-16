@@ -61,6 +61,52 @@ async function sha256(s: string) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+/** HMAC-SHA256 de la IP (clave: la service_role de la edge, etiqueta propia), en hex. */
+async function hmacIp(ip: string) {
+  const enc = new TextEncoder();
+  const k = await crypto.subtle.importKey('raw', enc.encode(SERVICE), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const firma = new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode('lawang-alta-ip:' + ip)));
+  return Array.from(firma, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+/** La IP de quien llama: SOLO cf-connecting-ip, con forma de IP; '' si falta. MISMA función en portal-acceso (15-oct-2026). */
+function ipDe(req: Request): string {
+  const v = (req.headers.get('cf-connecting-ip') ?? '').trim();
+  return /^[0-9a-fA-F:.]{3,45}$/.test(v) ? v : '';
+}
+/** La clave del cubo de una IP: una IPv4, tal cual; una IPv6, su /64 (una máquina tiene el bloque entero y estrenaría una
+ *  dirección en cada petición); una IPv4 mapeada en IPv6 (::ffff:a.b.c.d), la IPv4. '' si no se puede leer.
+ *  MISMA función en portal-acceso (15-oct-2026): si cambia, en las dos (las edges no comparten módulo). */
+function claveIp(ip: string): string {
+  const s = (ip ?? '').trim().toLowerCase();
+  if (!s) return '';
+  if (!s.includes(':')) return /^\d{1,3}(\.\d{1,3}){3}$/.test(s) ? s : '';
+  const v4 = (t: string) => {
+    const o = t.split('.').map(Number);
+    return o.length === 4 && o.every((x) => Number.isInteger(x) && x >= 0 && x <= 255)
+      ? [((o[0] << 8) | o[1]).toString(16), ((o[2] << 8) | o[3]).toString(16)] : null;
+  };
+  const partes = s.split('::');
+  if (partes.length > 2) return '';
+  const trozos = (p: string) => {
+    if (!p) return [] as string[];
+    const g = p.split(':');
+    const ult = g[g.length - 1];
+    if (ult.includes('.')) { const h = v4(ult); if (!h) return null; g.splice(g.length - 1, 1, ...h); }
+    return g;
+  };
+  const cab = trozos(partes[0]);
+  const col = partes.length === 2 ? trozos(partes[1]) : [];
+  if (!cab || !col) return '';
+  const faltan = 8 - cab.length - col.length;
+  if (partes.length === 2 ? faltan < 1 : faltan !== 0) return '';
+  const g = [...cab, ...Array(faltan).fill('0'), ...col];
+  if (!g.every((x) => /^[0-9a-f]{1,4}$/.test(x))) return '';
+  const n = g.map((x) => parseInt(x, 16));
+  if (n.slice(0, 5).every((x) => x === 0) && n[5] === 0xffff) {
+    return [n[6] >> 8, n[6] & 255, n[7] >> 8, n[7] & 255].join('.');
+  }
+  return n.slice(0, 4).map((x) => x.toString(16)).join(':') + '::/64';
+}
 // Texto libre del formulario: recortado, sin controles, con tope de longitud.
 function txt(v: unknown, max: number) {
   return String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -118,11 +164,13 @@ Deno.serve(async (req) => {
     if (String(body.web ?? '').trim()) return json({ ok: true });
     if (!EMAIL_RE.test(email)) return json({ ok: false, error: 'email' }, 400);
 
-    // cf-connecting-ip la pone el proxy y el cliente no la puede falsear; si falta, la
-    // ÚLTIMA entrada de x-forwarded-for (la añade el proxy), nunca la primera.
-    const xff = (req.headers.get('x-forwarded-for') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
-    const ip = (req.headers.get('cf-connecting-ip') ?? '').trim() || xff[xff.length - 1] || 'sin-ip';
-    const ipHash = await sha256('lawang-alta:' + ip);
+    // La IP, SOLO de cf-connecting-ip (la pone el borde de Supabase): x-forwarded-for lo escribe el cliente, y con él cada
+    // petición estrenaba IP y el tope por IP no saltaba nunca (15-oct-2026, Seguridad, revisión previa #373 de portal-acceso:
+    // misma clase). Una IPv6 cuenta por su /64. Sin IP legible, el cubo común 'sin-ip' de siempre (medido el 15-oct: el borde la
+    // manda en todas las peticiones). Y como HMAC con clave, no sha256: el sha256 de una IPv4 se deshace probando las ~4.300
+    // millones (el cambio reinicia una vez los contadores de la hora en curso).
+    const ip = claveIp(ipDe(req)) || 'sin-ip';
+    const ipHash = await hmacIp(ip);
 
     // ── 1. código ─────────────────────────────────────────────────────────
     if (accion === 'codigo') {

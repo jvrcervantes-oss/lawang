@@ -120,8 +120,8 @@ assert.ok(/from\('unidades_estado'\)\s*\.select\('\*'\)/.test(src),
   'el cajón tiene que pedir unidades_estado con select(*): las columnas suelo_pactado / obra_pactada no existen en todas las bases que comparten esta pantalla');
 assert.ok(src.includes("precioParte(u, 'suelo')") && src.includes("precioParte(u, 'obra')"), 'tarjeta y ficha pintan el precio con precioParte');
 assert.ok(src.includes('repartoPorRegla(fam, uu)'), 'las barras del proyecto usan repartoPorRegla');
-assert.ok(src.includes('var dpTotal = (dpSuelo != null && dpObra != null) ? dpSuelo + dpObra : u.precio;'),
-  'el Total de la ficha es la suma de las dos partes que enseña');
+assert.ok(src.includes('var dpTotal = precioTotal(u);') && src.includes("pon('u-total', fmtConEstimado(precioTotal(u), u.moneda), f);"),
+  'el Total de la ficha y el Pactado de la tarjeta son la misma cuenta (precioTotal = suelo + obra, 15-oct-2026)');
 assert.ok(src.includes('(fam.sinAtribuir || 0) - reparto.absorbido'), 'el aviso de «sin atribuir» descuenta lo que la regla ya repartió');
 assert.ok(src.includes('cad.conFamilia = true') && src.includes('cadO.otros += cobradoC'), 'las ventas se montan con conFamilia y otros');
 assert.ok(!/Math\.min\([^)]*precio_suelo/.test(src), 'datos.js no recalcula la cascada contra precio_suelo: la regla vive en la base');

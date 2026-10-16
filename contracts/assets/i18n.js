@@ -66,6 +66,25 @@
        de antes del `~`.
      ========================================================================== */
   var EN = {
+    /* ── Tarjeta del parcelario y ficha de la parcela (/v4/proyectos/, 15-oct-2026): lo que Calidad encontró en
+       español con la interfaz en inglés. Lo comprueba intranet/v4/assets/ficha_parcela.test.js. ── */
+    'Pactado': 'Agreed',
+    'Cobrado · suelo | obra': 'Collected · land | construction',
+    'sin cartera': 'no portfolio',
+    'con Carta': 'with Reservation Letter',
+    'Reservada con Carta de Reserva firmada: aún no es compraventa': 'Reserved with a signed Reservation Letter: not a sale yet',
+    'Editar %c': 'Edit %c',
+    'Editar unidad': 'Edit unit',
+    'Sin socio': 'No partner',
+    'Socio: %s': 'Partner: %s',
+    'Arquitecto: %s': 'Architect: %s',
+    '%s (de baja)': '%s (inactive)',
+    'Este proyecto no tiene unidades dadas de alta.': 'This project has no units set up.',
+    'Cerrar · volver a': 'Close · back to',
+    'Fase / zona del masterplan': 'Masterplan phase / zone',
+    'Precio y cobro': 'Price and collection',
+    'Precio de suelo por m²': 'Land price per m²',
+    '%n recibí': '%n receipt',
     /* ── Reclamar pago en la ficha de parcela (/v4/proyectos/, 8-oct-2026). Solo ES y EN: la suite no tiene interfaz en indonesio. ── */
     'Recordatorio de pago': 'Payment reminder',
     'Envía un correo amistoso a quien compró esta parcela. Es un recordatorio, no una notificación formal de mora.': 'Send a friendly email to whoever bought this plot. It is a reminder, not a formal notice of default.',
