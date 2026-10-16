@@ -154,7 +154,7 @@
   /* ── pintar ───────────────────────────────────────────────────────────────────────────────────────────────── */
   function cabecera(etq, titulo, texto) {
     var h = el('div', 'px-8 pt-8 pb-4 flex flex-col gap-1 border-b border-outline-variant/40');
-    h.appendChild(el('span', C_ETQ, etq));
+    if (etq) h.appendChild(el('span', C_ETQ, etq));
     h.appendChild(el('h2', 'font-headline-sm text-headline-sm text-deep-lagoon tracking-tight', titulo));
     if (texto) h.appendChild(el('p', C_PEQ, texto));
     return h;
@@ -216,6 +216,7 @@
     malla.appendChild(cifra(T('Suspendidas por impago'), String(sus), el('span', C_PEQ, sus ? T('se quita en su tarjeta, en «Empresas»') : T('ninguna'))));
     a.c.appendChild(malla);
     if (I.margen_pct == null) a.c.appendChild(el('p', 'font-body-sm text-body-sm text-error', T('Falta el margen: sin él el asistente no arranca. Ponlo en el paso 1.')));
+    if (I.actualizado_en) a.c.appendChild(el('p', C_PEQ, T('Último cambio de estos ajustes: %q, %f.', { q: I.actualizado_por || '—', f: fecha(I.actualizado_en) })));
     raiz.appendChild(a.s);
   }
 
@@ -275,10 +276,9 @@
     p3.c.appendChild(filaMotivo(p3.s, null));
     vigila(p3.s);
     raiz.appendChild(p3.s);
-    if (I.actualizado_en) raiz.appendChild(el('p', 'px-2 ' + C_PEQ, T('Último cambio: %q, %f.', { q: I.actualizado_por || '—', f: fecha(I.actualizado_en) })));
 
     // Empresas: una tarjeta por empresa
-    var b = seccion(T('Por empresa'), T('Empresas'),
+    var b = seccion(null, T('Empresas'),
       T('Enciende el asistente a cada empresa y, si no paga, suspéndela: se apagan todos sus servicios de pago hasta que quites la suspensión. Nada se apaga solo.'));
     if (!empresas.length) b.c.appendChild(el('p', C_PEQ, T('No hay empresas activas. Se dan de alta en Sociedades.')));
     empresas.forEach(function (e) {
@@ -343,7 +343,7 @@
     raiz.appendChild(b.s);
 
     // Extracto mensual
-    var x = seccion(T('Facturación'), T('Extracto para la factura de mantenimiento'),
+    var x = seccion(null, T('Extracto para la factura de mantenimiento'),
       T('Últimos tres meses, por empresa, en USD y sin impuestos (el mes es el de Bali). Se factura solo lo que terminó bien; lo que falló después de enviarse lo pagó AxisWorks al proveedor y no se repercute. Cada consulta guarda su margen: un cambio de margen no cambia lo ya gastado.'));
     var filas = D.extracto || [];
     if (!filas.length) x.c.appendChild(el('p', C_PEQ, T('Todavía no hay consultas.')));
@@ -372,7 +372,7 @@
     raiz.appendChild(x.s);
 
     // Registro: quién, cuándo, de qué (en palabras) y qué cambió, con su antes y su después
-    var r = seccion(T('Historial'), T('Registro de cambios'), null);
+    var r = seccion(null, T('Registro de cambios'), null);
     var reg = D.registro || [];
     if (!reg.length) r.c.appendChild(el('p', C_PEQ, T('Sin cambios todavía.')));
     var lista = el('ul', 'flex flex-col'); r.c.appendChild(lista);

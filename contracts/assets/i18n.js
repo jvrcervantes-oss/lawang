@@ -5550,7 +5550,7 @@
     '¿Por qué lo cambias?': 'Why are you changing it?',
     'Queda en el registro de cambios, abajo, con tu nombre y la hora.': 'It stays in the change log below, with your name and the time.',
     '%p % del tope gastado': '%p % of the cap spent',
-    'Por empresa': 'Per company',
+    'Último cambio de estos ajustes: %q, %f.': 'Last change to these settings: %q, %f.',
     'Enciende el asistente a cada empresa y, si no paga, suspéndela: se apagan todos sus servicios de pago hasta que quites la suspensión. Nada se apaga solo.': 'Switch the assistant on for each company and, if it does not pay, suspend it: all its paid services switch off until you lift the suspension. Nothing switches off by itself.',
     'No hay empresas activas. Se dan de alta en Sociedades.': 'There are no active companies. They are added in Companies.',
     'Asistente encendido': 'Assistant on',
