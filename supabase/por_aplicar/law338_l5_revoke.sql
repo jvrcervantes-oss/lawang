@@ -111,6 +111,12 @@ alter policy "equipo ve hilos de mensajes" on public.mensajes_comprador to lw_le
 alter policy "cada uno ve lo suyo, el admin todo" on public.notificaciones to lw_lector;
 alter policy "agentes ven accesos del portal" on public.portal_accesos to lw_lector;
 
+-- los comentarios de 20261015062313 decían «INVOKER: la RLS de quien pide»; desde 20261016063536 son DEFINER-lw_lector
+comment on function public.contratos_busca(text) is
+  'Busqueda sin tildes (15-oct-2026): ventas para el asistente de contrato (asistente-contrato.js). DEFINER de lw_lector desde LAW-338 L5 (16-oct-2026): decide la RLS de lw_lector con uid_sesion() de quien pide. Menos de 2 letras = las 10 ultimas.';
+comment on function public.clientes_busca(text) is
+  'Busqueda sin tildes (15-oct-2026): clientes por nombre, pasaporte, correo o telefono para la edge asistente-peticiones. DEFINER de lw_lector desde LAW-338 L5 (16-oct-2026): decide la RLS de lw_lector con uid_sesion() de quien pide.';
+
 do $$
 declare t text;
 begin
