@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta name="lw-version" content="9f5d1c600df1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://vtulllundrfennhjddhc.supabase.co; form-action 'self' https://vtulllundrfennhjddhc.supabase.co https://claude.ai https://claude.com https://chatgpt.com https://chat.openai.com; base-uri 'none'; object-src 'none'">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Conectar un asistente · Lawang</title>
+<!-- Página de conexión del MCP de Lawang (F1-P4, 16-oct-2026; encargo agencia encargos/20261015_erp_mcp.md).
+     Un asistente (Claude o ChatGPT) manda aquí a la persona con ?p=<petición>. Se pide la contraseña OTRA vez con un
+     cliente de Supabase PROPIO (sin guardar sesión: no pisa la de la intranet), se enseña qué podrá leer y, al permitir,
+     un formulario de primer nivel lleva la sesión recién creada a la edge `mcp` (/conectar), que la cierra y redirige al
+     asistente. Sin guard.js a propósito: rebotaría a /intranet/ y se perdería ?p=.
+     CSP en la propia página: nada en línea (ni <script>, ni <style>, ni style=""). El JS y el CSS van en
+     intranet/v4/assets/ia-conectar.{js,css}: ahí los sella sella_assets.py (?v= por hash), en esta carpeta no.
+     Textos en es/en/id con diccionario PROPIO (ia-conectar.js, atributo data-k), no data-lwt: la suite solo tiene es/en y
+     esta página no puede depender ni ensuciar el diccionario común (i18n.js). -->
+<link rel="icon" href="/favicon.png">
+<link href="/intranet/v4/assets/fonts/fonts.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/instancia.js?v=33f2980c"></script>
+<script src="/contracts/assets/version.js?v=19c524f3"></script>
+<script src="/intranet/v4/assets/ia-conectar.js?v=b79e6d10" defer></script>
+<link href="/intranet/v4/assets/tw.css?v=b1c13f90" rel="stylesheet">
+<link href="/intranet/v4/assets/ia-conectar.css?v=b0b4eac3" rel="stylesheet">
+</head>
+<body class="ic-cuerpo">
+<main class="ic-marco">
+  <header class="ic-cabecera">
+    <span class="ic-marca" data-ic-marca>LAWANG</span>
+    <div class="ic-idiomas" role="group" aria-label="Idioma" data-k-aria="idioma">
+      <button type="button" class="ic-idioma" data-ic-idioma="es" aria-pressed="true">ES</button>
+      <button type="button" class="ic-idioma" data-ic-idioma="en" aria-pressed="false">EN</button>
+      <button type="button" class="ic-idioma" data-ic-idioma="id" aria-pressed="false">ID</button>
+    </div>
+  </header>
+
+  <!-- Sin aria-live en la tarjeta: el reloj cambia cada segundo. El cambio de paso lo anuncia el foco (al título o al
+       primer campo) y los avisos van con role="alert". -->
+  <section class="ic-tarjeta">
+    <noscript><p class="ic-texto">Esta página necesita JavaScript. / This page needs JavaScript. / Halaman ini memerlukan JavaScript.</p></noscript>
+
+    <!-- Arrancando: lo que se ve hasta que conectar.js decide el estado -->
+    <div data-ic-paso="arranque">
+      <p class="ic-texto ic-suave" data-k="cargando">Cargando…</p>
+    </div>
+
+    <!-- Aviso (error que devuelve la edge, o motivo de «no puede»). Lo rellena conectar.js con textContent -->
+    <div class="ic-aviso" role="alert" data-ic-aviso hidden>
+      <p class="ic-aviso-texto" data-ic-aviso-texto></p>
+    </div>
+
+    <!-- Sin petición válida: no hay nada que hacer aquí -->
+    <div data-ic-paso="sin-peticion" hidden>
+      <h1 class="ic-titulo" data-k="sin_peticion_titulo">Este enlace no sirve</h1>
+      <p class="ic-texto" data-k="sin_peticion_texto">Vuelve a pedir la conexión desde tu asistente (Claude o ChatGPT): te traerá aquí con un enlace nuevo.</p>
+    </div>
+
+    <!-- Paso 1: correo y contraseña. Oculto en el HTML: solo se enseña con su manejador ya puesto, para que nunca se envíe solo -->
+    <form data-ic-paso="entrar" method="post" action="#" novalidate hidden>
+      <h1 class="ic-titulo" data-k="entrar_titulo">Conectar un asistente</h1>
+      <p class="ic-texto" data-k="entrar_texto">Entra con tu usuario de Lawang para confirmar que eres tú.</p>
+      <div class="ic-campo">
+        <label class="ic-etiqueta" for="ic-correo" data-k="correo">Correo</label>
+        <input class="ic-input" id="ic-correo" name="correo" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required>
+      </div>
+      <div class="ic-campo">
+        <label class="ic-etiqueta" for="ic-clave" data-k="contrasena">Contraseña</label>
+        <input class="ic-input" id="ic-clave" name="clave" type="password" autocomplete="current-password" required>
+      </div>
+      <p class="ic-error" data-ic-error="entrar" role="alert" hidden></p>
+      <button class="ic-boton ic-principal" type="submit" data-accion="entrar" data-k="entrar">Entrar</button>
+    </form>
+
+    <!-- Paso 2: código del segundo factor (solo si la cuenta lo tiene) -->
+    <form data-ic-paso="codigo" method="post" action="#" novalidate hidden>
+      <h1 class="ic-titulo" data-k="codigo_titulo">Código de verificación</h1>
+      <p class="ic-texto" data-k="codigo_texto">Escribe el código de 6 cifras de tu aplicación de verificación.</p>
+      <div class="ic-campo">
+        <label class="ic-etiqueta" for="ic-codigo" data-k="codigo">Código</label>
+        <input class="ic-input ic-cifras" id="ic-codigo" name="codigo" type="text" autocomplete="one-time-code" inputmode="numeric" maxlength="12" required>
+      </div>
+      <p class="ic-reloj" data-ic-reloj></p>
+      <p class="ic-error" data-ic-error="codigo" role="alert" hidden></p>
+      <div class="ic-botones">
+        <button class="ic-boton ic-principal" type="submit" data-accion="verificar" data-k="verificar">Verificar</button>
+        <button class="ic-boton ic-secundario" type="button" data-accion="cancelar" data-k="cancelar">Cancelar</button>
+      </div>
+    </form>
+
+    <!-- Comprobando la petición con la sesión recién creada -->
+    <div data-ic-paso="comprobando" hidden>
+      <p class="ic-texto ic-suave" data-k="comprobando">Comprobando la petición…</p>
+    </div>
+
+    <!-- No se ha podido MIRAR (red, servidor): distinto de «no puede» -->
+    <div data-ic-paso="sin-mirar" hidden>
+      <h1 class="ic-titulo" data-k="sin_mirar_titulo">No he podido comprobar la petición</h1>
+      <p class="ic-texto" data-k="sin_mirar_texto">No es que no puedas conectar: es que Lawang no ha contestado. Revisa tu conexión e inténtalo otra vez.</p>
+      <div class="ic-botones">
+        <button class="ic-boton ic-principal" type="button" data-accion="reintentar" data-k="reintentar">Intentar otra vez</button>
+        <button class="ic-boton ic-secundario" type="button" data-accion="cancelar" data-k="cancelar">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Consentimiento -->
+    <div data-ic-paso="consentir" hidden>
+      <h1 class="ic-titulo" data-k="consentir_titulo">¿Permitir el acceso?</h1>
+      <p class="ic-texto ic-destacado" data-ic-consentimiento></p>
+      <p class="ic-texto ic-suave" data-ic-cuenta></p>
+      <p class="ic-texto ic-suave" data-ic-destino></p>
+      <p class="ic-reloj" data-ic-reloj></p>
+      <div class="ic-botones">
+        <button class="ic-boton ic-principal" type="button" data-accion="permitir" data-k="permitir">Permitir</button>
+        <button class="ic-boton ic-secundario" type="button" data-accion="cancelar" data-k="cancelar">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Enviando a la edge -->
+    <div data-ic-paso="enviando" hidden>
+      <p class="ic-texto ic-suave" data-ic-enviando></p>
+    </div>
+
+    <!-- Cancelado -->
+    <div data-ic-paso="cancelado" hidden>
+      <h1 class="ic-titulo" data-k="cancelado_titulo">No se ha conectado nada</h1>
+      <p class="ic-texto" data-k="cancelado_texto">Has cancelado. Puedes cerrar esta pestaña y volver a tu asistente.</p>
+    </div>
+  </section>
+
+  <!-- El formulario que lleva la sesión a la edge: navegación de PRIMER NIVEL (no fetch), para que el 302 al asistente lo siga
+       el navegador. Los ocultos empiezan vacíos; `sesion` se rellena solo en el clic de Permitir, justo antes de enviar. -->
+  <form data-ic-envio method="post" action="https://vtulllundrfennhjddhc.supabase.co/functions/v1/mcp/conectar" enctype="application/x-www-form-urlencoded" autocomplete="off" hidden>
+    <input type="hidden" name="peticion" value="">
+    <input type="hidden" name="sesion" value="">
+  </form>
+  <!-- «Cancelar» en el consentimiento: solo la petición (sin sesión); la edge devuelve error=access_denied al asistente -->
+  <form data-ic-deniega method="post" action="https://vtulllundrfennhjddhc.supabase.co/functions/v1/mcp/deniega" enctype="application/x-www-form-urlencoded" autocomplete="off" hidden>
+    <input type="hidden" name="peticion" value="">
+  </form>
+</main>
+</body>
+</html>

@@ -420,7 +420,14 @@ RedirectMatch 404 (?i)/_diag_
   #                        sitio — tools/empaqueta_css.py + tailwind/tailwind.json.
   #                        No volver a meterlo: un script externo sin version fija
   #                        en pantallas con PII.)
+  # Excepcion: la pagina de conexion del MCP (/intranet/v4/ia/conectar/) NO lleva esta cabecera.
+  # Su formulario va a la edge `mcp` y la edge responde 302 al asistente: con este form-action,
+  # al pasar a enforce, el navegador cortaria esa vuelta. La pagina trae su PROPIA CSP en <meta>,
+  # mas estricta (default-src 'none', nada en linea, form-action solo a la edge y a los asistentes);
+  # el iframe lo sigue cerrando el X-Frame-Options de arriba (Seguridad, 16-oct-2026).
+  SetEnvIf Request_URI "^/intranet/v4/ia/conectar/" LW_IA_CONECTAR
   Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://connect.facebook.net https://*.leadconnectorhq.com https://assets.calendly.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://assets.calendly.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://www.facebook.com; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co https://contracts-pdf-service-production.up.railway.app https://*.leadconnectorhq.com https://open.er-api.com https://connect.facebook.net https://www.facebook.com; frame-src 'self' https://drive.google.com https://maps.google.com https://www.google.com https://*.supabase.co https://calendly.com https://*.calendly.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://*.leadconnectorhq.com; object-src 'none'"
+  Header always unset Content-Security-Policy-Report-Only env=LW_IA_CONECTAR
 
   # Piezas COMPARTIDAS de la suite interna: el servidor las servia con
   # max-age=604800 (7 dias). El 29-jul eso dejo a los agentes con un guard.js

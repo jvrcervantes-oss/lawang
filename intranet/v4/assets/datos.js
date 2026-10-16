@@ -830,7 +830,9 @@
         sc.onload = function () { ok(true); }; sc.onerror = function () { ok(false); };
         document.head.appendChild(sc);
       });
-      sb.from('documentos_desactualizados').select('id,numero,congelado,ficha,diferencias').eq('tipo', o.tipo).then(function (r) {
+      // LAW-338 L5: por el servidor (documentos_desactualizados_datos, filtro por tipo); misma forma {data, error}
+      Promise.resolve(window.lwDatos('documentos_desactualizados_datos', { p_tipo: o.tipo, p_client: null, p_id: null })).then(function (r0) {
+        var r = r0.error ? r0 : { data: (r0.data && r0.data.documentos) || [] };
         if (r.error) return falla(r.error.message);
         return texto.then(function (hay) {
           if (!hay) return falla('no cargó ficha_divergencia.js');
@@ -898,11 +900,14 @@
         .order('estado', { ascending: false }).limit(TOPE_FIRMA_PARCIAL), 'firmas')
     ]);
   }
+  /* LAW-338 L5 (16-oct-2026): el resumen de soporte lo da el servidor (comprador_ficha_datos, parte «soporte»: último
+     mensaje y estado de sus hilos). Devuelve la misma pareja de respuestas que las dos lecturas directas de antes. */
   function clientesSoporteResumen(sb, clientId) {
-    return Promise.all([
-      sb.from('mensajes_comprador').select('de,texto,creado_en').eq('client_id', clientId).order('creado_en', { ascending: false }).limit(1),
-      sb.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', clientId)
-    ]);
+    return Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: clientId, p_partes: ['soporte'] })).then(function (r) {
+      if (r.error) return [{ data: null, error: r.error }, { data: null, error: r.error }];
+      var s = (r.data && r.data.soporte) || {};
+      return [{ data: s.ultimo ? [s.ultimo] : [], error: null }, { data: s.hilos || [], error: null }];
+    });
   }
   function enlaceFichaContrato(x) {
     return '<a href="#" data-lw-ficha-contrato="' + esc(x.id) + '" style="color:#104C4F;font-weight:600;text-decoration:underline">' + esc(x.numero) + '</a>' +
@@ -1669,12 +1674,15 @@
       var clientIds = vins.map(function (v) { return v.client_id; });
       var KYC_ES = { pending: tx('Pendiente'), submitted: tx('En revisión'), verified: tx('Aprobado'), rejected: tx('Rechazado') };
       var DOC_ES = { passport: tx('Pasaporte'), npwp: 'NPWP', visa: tx('Visado'), proof_of_funds: tx('Justificante de fondos'), proof_of_address: tx('Justificante de domicilio'), signed_contract: tx('Contrato firmado'), other: tx('Otro') };
+      /* LAW-338 L5 (16-oct-2026): fichas y documentación por el servidor (operacion_compradores_datos), una llamada;
+         la regla de qué se ve sigue en las policies de clients y documents. */
       Promise.all([
-        clientIds.length ? sb.from('clients').select('id,full_name,kyc_status').in('id', clientIds) : Promise.resolve({ data: [] }),
-        clientIds.length ? sb.from('contrato_compradores').select('client_id,contrato_id').in('client_id', clientIds) : Promise.resolve({ data: [] }),
-        sb.from('documents').select('doc_type,uploaded_at,caduca_el,client_id').or(clientIds.length ? 'contrato_id.eq.' + id + ',client_id.in.(' + clientIds.join(',') + ')' : 'contrato_id.eq.' + id)
+        Promise.resolve(window.lwDatos('operacion_compradores_datos', { p_contrato: id, p_clientes: clientIds })),
+        clientIds.length ? sb.from('contrato_compradores').select('client_id,contrato_id').in('client_id', clientIds) : Promise.resolve({ data: [] })
       ]).then(function (rr) {
-        var rc = rr[0], rv2 = rr[1], rd = rr[2];
+        var ro = rr[0], rv2 = rr[1];
+        var rc = ro.error ? { error: ro.error } : { data: (ro.data && ro.data.clientes) || [] };
+        var rd = ro.error ? { error: ro.error } : { data: (ro.data && ro.data.documentos) || [] };
         var ficha = {}; (rc.error ? [] : (rc.data || [])).forEach(function (k) { ficha[k.id] = k; });
         var sec = caj.cuerpo.querySelector('[data-cajon-sec="compradores"] > div');
         /* La línea de documentación (KYC) que se cuelga al final de Comprador:
@@ -1698,7 +1706,10 @@
           var cad = !peor ? '' : (peor.dd < 0
             ? ' · ' + H.tag(tx('%t caducado hace %n d', { t: peor.tipo, n: -peor.dd }), 'mal')
             : (peor.dd <= 60 ? ' · ' + H.tag(tx('%t caduca en %n d', { t: peor.tipo, n: peor.dd }), 'espera') : ''));
-          lineaDocs = H.dato('Documentación', esc(tx(docs.length === 1 ? '%n documento' : '%n documentos', { n: docs.length })) + cad + enlaceFicha, { html: 1 });
+          // tope del servidor (1000): si llega recortada, la cifra es «al menos» y la caducidad puede no ser la peor
+          var recorte = ((ro.data && ro.data.recortado) || []).indexOf('documentos') > -1
+            ? ' · ' + H.tag(tx('lista recortada: mira la ficha'), 'espera') : '';
+          lineaDocs = H.dato('Documentación', esc(tx(docs.length === 1 ? '%n documento' : '%n documentos', { n: docs.length })) + cad + recorte + enlaceFicha, { html: 1 });
         })();
         var ponDocs = function () { if (sec && lineaDocs) sec.insertAdjacentHTML('beforeend', lineaDocs); };
         if (sec && !vins.length) ponDocs();
@@ -2859,7 +2870,11 @@
            regla de los contratos, así que sus ids son justo las fichas que se abren enteras. El resto se abre en SOLO
            LECTURA y no cuenta como «con contrato» / «sin contrato» (no se ven sus contratos: decir «sin contrato» sería
            mentir). Si falla, null: no se marca ninguna (nunca se oculta una ficha por un fallo de red). */
-        vig(sb.from('clients').select('id')).then(function (r) { return r.error ? null : (r.data || []); })
+        /* LAW-338 L5: por el servidor (clientes_lista_datos, la misma regla de clients). Si la lista vino recortada, no es
+           fiable para marcar nada: null. */
+        vig(window.lwDatos('clientes_lista_datos', {})).then(function (r) {
+          return (r.error || !r.data || (r.data.recortado || []).length) ? null : (r.data.clientes || []);
+        })
         ]);
       };
       var espera = esperaModulos();
@@ -3046,11 +3061,14 @@
         /* La ficha COMPLETA se pide al abrir, y solo la de ese comprador. Si
            la consulta falla se pinta con lo que el listado ya sabe y se avisa:
            una ficha a medias sin decirlo es la familia de LAW-186. */
-        var CAMPOS_FICHA = 'id,numero_cliente,full_name,email,phone,nationality,passport_number,tipo,forma_juridica,registro_num,rep_nombre,rep_cargo,kyc_status,idioma_comunicacion,propietario,created_at';   // sin `notes`: las notas son su sección (cliente_notas_datos)
+        // Los campos de la ficha los fija el servidor (comprador_ficha_datos, LAW-338 L5); sin `notes`: las notas son su sección (cliente_notas_datos)
         function abreFicha(c0) {
           var H = window.lwCajonHtml;
           if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
-          sb.from('clients').select(CAMPOS_FICHA).eq('id', c0.id).maybeSingle().then(function (r) {
+          /* LAW-338 L5 (16-oct-2026): la ficha la da el servidor (comprador_ficha_datos, parte «ficha»: los campos de siempre, sin el domicilio, que solo trae la parte «documento»);
+             `ficha` null = la base no te deja verla entera, igual que antes la fila vacía. */
+          Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: c0.id, p_partes: ['ficha'] })).then(function (r0) {
+            var r = r0.error ? r0 : { data: (r0.data && r0.data.ficha) || null };
             if (r.error) {
               console.error('[v4 datos] ficha de comprador', r.error);
               toastMal('No se pudo leer la ficha completa: se enseña lo que hay en el listado.');
@@ -3304,7 +3322,9 @@
              cliente y pedida DESPUÉS de pintar. Vivo = se pone al día abriéndolo; congelado (firmado, enviado o anulado) = no
              se toca, si el dato importa se reemite (suite_lawang.md → «Un documento vivo no puede contradecir a su ficha»).
              Si no se puede mirar se DICE: «ninguna diferencia» no puede leerse igual que «no he podido mirar». */
-          if (conC) sb.from('documentos_desactualizados').select('tipo,id,numero,congelado,diferencias').eq('client_id', c2.id).then(function (rd) {
+          // LAW-338 L5: por el servidor (documentos_desactualizados_datos, filtro por cliente); misma forma {data, error}
+          if (conC) Promise.resolve(window.lwDatos('documentos_desactualizados_datos', { p_tipo: null, p_client: c2.id, p_id: null })).then(function (r0) {
+            var rd = r0.error ? r0 : { data: (r0.data && r0.data.documentos) || [] };
             /* lwCajon rehace el cuerpo en cada apertura: si entretanto se abrió otra ficha, este cuerpo ya no está en la
                página y la respuesta de ESTE cliente no se pinta en la del siguiente */
             var sid = cj.cuerpo && cj.cuerpo.isConnected && cj.cuerpo.querySelector('[data-cajon-sec="identidad"] > div');
@@ -3435,92 +3455,27 @@
           };
 
           /* Notas de la ficha (15-oct-2026, owner: «crea un apartado de notas en la ficha del cliente»). Un historial:
-             cada nota con su autor y su fecha, que pone el servidor; ninguna se edita. Se RETIRA con motivo y su texto se
-             borra de verdad (queda solo constancia de quién, cuándo y por qué: UU PDP, Legal). Lee cliente_notas_datos y
-             escribe por cliente_nota_agrega / cliente_nota_retira (supabase/migrations/20261015075011_cliente_notas.sql):
-             quién las ve es quien ve esta ficha completa, y quién puede retirar lo decide el servidor. El botón «Retirar»
-             solo sale a su autor y a un administrador; si se equivoca, el servidor lo dice. El texto de una nota va SIEMPRE
-             por esc() y con white-space:pre-wrap: nunca como HTML ni convertido en enlace (Seguridad). */
+             cada nota con su autor y su fecha, que pone el servidor; ninguna se edita; se RETIRA con motivo y su texto se
+             borra de verdad (UU PDP, Legal). Lo pinta y lo conduce la pieza común contracts/assets/notas-historial.js
+             (LW_NOTAS), la misma que la ficha de la parcela: aquí solo se dice qué funciones de la base usa y con qué
+             rótulos. Quién las ve, quién escribe y quién retira lo decide el servidor (cliente_notas_datos devuelve
+             autor_nombre y puede_retirar por nota). Sin la pieza cargada la ficha se pinta igual y la sección lo dice. */
           (function () {
             var sec = cj.cuerpo.querySelector('[data-cajon-sec="notas"] > div');
             if (!sec) return;
-            var GRIS = 'color:rgb(var(--tema-on-surface-variant))';
-            var MOTIVOS = [['rectificacion', 'Es incorrecta'], ['dato_sensible', 'Lleva un dato sensible'],
-                           ['oposicion', 'El comprador se opone a que se guarde'], ['autoridad', 'Lo pide una autoridad'], ['otro', 'Otro motivo']];
-            var ORIGEN = { campo_notas: 'escrita en el campo «Notas» de la ficha', antigua: 'nota anterior al historial, sin autor ni fecha de origen' };
-            var yoId = String(window.LW_V4.miId || '');   // por id, no por email (todo apunta por ID; revisor, 15-oct)
-            var caja = '<div style="margin-top:10px">' +
-              '<textarea class="las-in" data-lw="nota-texto" rows="3" maxlength="4000" aria-label="' + esc(tx('Nueva nota')) + '" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>' +
-              '<p style="margin:4px 0 8px;font-size:11.5px;' + GRIS + '">' + esc(tx('No escribas pasaporte/NIK, datos bancarios, salud, religión ni datos de menores. Escribe como si el comprador fuera a leerla: puede pedir una copia.')) + '</p>' +
-              '<button type="button" class="las-btn1" data-accion="nota-agrega">' + esc(tx('Añadir nota')) + '</button></div>';
-            function lista(notas, recortado) {
-              if (!notas.length) return '<p style="margin:0;font-size:12.5px;' + GRIS + '">' + esc(tx('Sin notas todavía.')) + '</p>';
-              return notas.map(function (n) {
-                var mail = String(n.autor_email || '').toLowerCase();
-                var quien = n.autor_id ? (nombreEquipo[mail] || n.autor_email || tx('alguien del equipo')) : '';
-                var meta = [fFechaHoraCorta(n.creado_en), quien, n.origen !== 'nota' && ORIGEN[n.origen] ? tx(ORIGEN[n.origen]) : '']
-                  .filter(Boolean).join(' · ');
-                // solo para enseñar el botón: quien decide es cliente_nota_retira (autor, es_admin o admin_de_cliente). El admin
-                // de empresa también lo ve (revisor, 15-oct); si la ficha no es de su empresa, el servidor lo rechaza y se dice.
-                var rolN = window.LW_ROL ? LW_ROL.efectivo(window.LW_V4 && window.LW_V4.ficha) : '';
-                var puede = (n.autor_id && yoId && String(n.autor_id) === yoId) || !!window.LW_V4.esAdmin || rolN === 'admin' || rolN === 'super_admin';
-                return '<article class="lwc-nota" data-nota="' + esc(String(n.id)) + '" style="padding:9px 0;border-bottom:1px solid rgb(var(--tema-outline-variant))">' +
-                  '<p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(n.texto) + '</p>' +
-                  '<p style="margin:4px 0 0;font-size:11.5px;' + GRIS + '">' + esc(meta) +
-                  (puede ? ' · <button type="button" class="las-btn2" data-accion="nota-retira" style="padding:2px 10px;font-size:11.5px">' + esc(tx('Retirar')) + '</button>' : '') +
-                  '</p></article>';
-              }).join('') + (recortado ? '<p style="margin:8px 0 0;font-size:11.5px;' + GRIS + '">' + esc(tx('Se enseñan las 500 más recientes.')) + '</p>' : '');
+            if (!window.LW_NOTAS) {
+              sec.innerHTML = H.nota(esc(tx('No se han podido cargar las notas: %e', { e: tx('falta un fichero de la página, recárgala') })), true);
+              return;
             }
-            function carga() {
-              sb.rpc('cliente_notas_datos', { p_client: c2.id }).then(function (r) {
-                if (r.error) {
-                  console.error('[v4 datos] notas de la ficha', r.error);
-                  sec.innerHTML = H.nota(esc(tx('No se han podido cargar las notas: %e', { e: r.error.message })), true);
-                  return;
-                }
-                var d = r.data || {};
-                sec.innerHTML = lista(d.notas || [], !!d.recortado) + caja;
-              });
-            }
-            sec.addEventListener('click', function (e) {
-              var b = e.target.closest('[data-accion]'); if (!b || !sec.contains(b)) return;
-              var acc = b.getAttribute('data-accion');
-              var art = b.closest('.lwc-nota');
-              if (acc === 'nota-agrega') {
-                var ta = sec.querySelector('[data-lw="nota-texto"]');
-                var t = String((ta && ta.value) || '').trim();
-                if (!t) { toastMal(tx('Escribe la nota antes de añadirla.')); return; }
-                b.disabled = true;
-                sb.rpc('cliente_nota_agrega', { p_client: c2.id, p_texto: t }).then(function (r) {
-                  b.disabled = false;
-                  if (r.error) { toastMal(lwErrorHumano(r.error, tx('No se ha guardado la nota'))); return; }
-                  toast(tx('Nota añadida')); carga();
-                });
-              } else if (acc === 'nota-retira') {
-                if (!art || art.querySelector('[data-lw="nota-motivo"]')) return;
-                art.insertAdjacentHTML('beforeend', '<div data-lw="nota-retira-caja">' +
-                  '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
-                  '<select class="las-in" data-lw="nota-motivo" aria-label="' + esc(tx('Por qué se retira')) + '"><option value="">' + esc(tx('¿Por qué se retira?')) + '</option>' +
-                  MOTIVOS.map(function (m) { return '<option value="' + m[0] + '">' + esc(tx(m[1])) + '</option>'; }).join('') + '</select>' +
-                  '<button type="button" class="las-btn1" data-accion="nota-retira-ok">' + esc(tx('Retirar nota')) + '</button>' +
-                  '<button type="button" class="las-btn2" data-accion="nota-retira-no">' + esc(tx('Cancelar')) + '</button></div>' +
-                  '<p style="margin:6px 0 0;font-size:11.5px;' + GRIS + '">' + esc(tx('Al retirarla, su texto se borra y no se puede recuperar. Queda constancia de quién la retiró, cuándo y por qué.')) + '</p></div>');
-              } else if (acc === 'nota-retira-no') {
-                // solo se quita el bloque del motivo: recargar la sección borraba lo escrito en la caja de nota nueva
-                var cajaR = art && art.querySelector('[data-lw="nota-retira-caja"]');
-                if (cajaR) cajaR.remove();
-              } else if (acc === 'nota-retira-ok' && art) {
-                var motivo = (art.querySelector('[data-lw="nota-motivo"]') || {}).value || '';
-                if (!motivo) { toastMal(tx('Elige por qué se retira.')); return; }
-                b.disabled = true;
-                sb.rpc('cliente_nota_retira', { p_nota: Number(art.getAttribute('data-nota')), p_motivo: motivo }).then(function (r) {
-                  b.disabled = false;
-                  if (r.error) { toastMal(lwErrorHumano(r.error, tx('No se ha retirado la nota'))); return; }
-                  toast(tx('Nota retirada')); carga();
-                });
-              }
-            });
-            carga();
+            window.LW_NOTAS.monta(sec, {
+              sb: sb, argId: 'p_client',
+              rpc: { datos: 'cliente_notas_datos', agrega: 'cliente_nota_agrega', retira: 'cliente_nota_retira' },
+              motivos: [['rectificacion', 'Es incorrecta'], ['dato_sensible', 'Lleva un dato sensible'],
+                        ['oposicion', 'El comprador se opone a que se guarde'], ['autoridad', 'Lo pide una autoridad'], ['otro', 'Otro motivo']],
+              origenes: { campo_notas: 'escrita en el campo «Notas» de la ficha', antigua: 'nota anterior al historial, sin autor ni fecha de origen' },
+              aviso: 'No escribas pasaporte/NIK, datos bancarios, salud, religión ni datos de menores. Escribe como si el comprador fuera a leerla: puede pedir una copia.',
+              clases: { in: 'las-in', btn1: 'las-btn1', btn2: 'las-btn2' }
+            }).abre(c2.id);
           })();
           var ids = vins.map(function (v) { return v.contrato_id; });
 
@@ -3549,10 +3504,10 @@
              para enseñarlo aquí. */
           (function () {
             if (!ids.length) return pinta('envios', H.nota('Sin contratos enlazados: no hay envíos que atarle.'));
-            sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en,contrato_id,factura_id')
-              .in('contrato_id', ids).order('enviado_en', { ascending: false }).limit(200).then(function (re) {
+            // LAW-338 L5: por el servidor (correos_registro_datos, tope 200, los más recientes primero)
+            Promise.resolve(window.lwDatos('correos_registro_datos', { p_contratos: ids, p_factura: null })).then(function (re) {
                 if (re.error) return pinta('envios', H.nota(tx('No se pudo leer el registro de envíos: %e', { e: re.error.message })));
-                var filas = re.data || [];
+                var filas = (re.data && re.data.correos) || [];
                 if (!filas.length) return pinta('envios', H.nota('Sin correos registrados para sus contratos. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.'));
                 var via = function (v) { return typeof lwViaCorreo === 'function' ? lwViaCorreo(v) : (v || '—'); };
                 pinta('envios', H.tabla(['Cuándo', 'Contrato', 'Para', 'Vía', 'Quién'], filas.map(function (x) {
@@ -3628,14 +3583,11 @@
               !vins.some(function (v) { return porC[v.contrato_id] && porC[v.contrato_id].bloqueado; }));
             /* ¿Ves esta ficha? La del directorio puede ser de un compañero: sus documentos no se leen (policy
                del 27-sep) y «Sin documentos todavía» mentiría e invitaría a subir uno que el servidor rechaza. */
-            Promise.all([
-              sb.from('clients').select('id').eq('id', c2.id).maybeSingle(),
-              sb.from('documents').select('id,doc_type,storage_path,uploaded_at,caduca_el').eq('client_id', c2.id).order('uploaded_at', { ascending: false })
-            ]).then(function (rr) {
-                if (!rr[0].error && !rr[0].data) return pinta('docs', H.nota('Los documentos de este comprador solo los ven quien lo dio de alta, su manager y administración.'));
-                var rd = rr[1];
+            // LAW-338 L5: «¿la ves?» y sus documentos en una sola lectura del servidor (comprador_ficha_datos, parte «documentos»)
+            Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: c2.id, p_partes: ['documentos'] })).then(function (rd) {
+                if (!rd.error && rd.data && rd.data.ve === false) return pinta('docs', H.nota('Los documentos de este comprador solo los ven quien lo dio de alta, su manager y administración.'));
                 if (rd.error) return pinta('docs', H.nota(tx('No se pudieron leer los documentos: %e', { e: rd.error.message })));
-                var ds = rd.data || [];
+                var ds = (rd.data && rd.data.documentos) || [];
                 var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
                 var tablaDocs = ds.length ? H.tabla(['Documento', 'Subido', 'Caduca', ''], ds.map(function (d) {
                   var cad = '<span style="color:#75786e">' + esc(tx('sin caducidad')) + '</span>';
@@ -3755,9 +3707,10 @@
           var avisoGestPortal = puedeGestPortal ? Promise.resolve() : Promise.resolve(sb.rpc('portal_puede_gestionar', { p_ids: [c2.id] }))
             .then(function (g) { puedeGestPortal = !g.error && g.data === true; }, function () { puedeGestPortal = false; });
           function cargaPortal() {
-            avisoGestPortal.then(function () { return sb.from('portal_accesos').select('email,activo,ultimo_acceso,accesos').eq('client_id', c2.id); }).then(function (rp) {
+            // LAW-338 L5: por el servidor (comprador_ficha_datos, parte «portal»)
+            avisoGestPortal.then(function () { return window.lwDatos('comprador_ficha_datos', { p_client: c2.id, p_partes: ['portal'] }); }).then(function (rp) {
               if (rp.error) return pinta('portal', H.nota(tx('No se pudo leer el acceso al portal: %e', { e: rp.error.message })));
-              var suyos = rp.data || [], activos = suyos.filter(function (x) { return x.activo; });
+              var suyos = (rp.data && rp.data.portal) || [], activos = suyos.filter(function (x) { return x.activo; });
               var rastro = function (a) {
                 return !a.accesos ? H.tag('sin estrenar', 'espera')
                   : H.tag(tx(a.accesos === 1 ? '%n entrada' : '%n entradas', { n: a.accesos }), 'ok') + (a.ultimo_acceso ? ' <span style="font-size:11px;color:#75786e">' + esc(tx('última: %f', { f: fFecha(a.ultimo_acceso) })) + '</span>' : '');
@@ -3867,7 +3820,10 @@
             var pFacturas = idsC.length
               ? sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_numero,proyecto_nombre,total,moneda,fecha_emision,anulada').in('contrato_id', idsC).order('fecha_emision', { ascending: false })
               : Promise.resolve({ data: [] });
-            var pDocs = sb.from('documents').select('id,doc_type,uploaded_at').eq('client_id', c2.id).order('uploaded_at', { ascending: false });
+            // LAW-338 L5: documentos por el servidor (comprador_ficha_datos, parte «documentos»); misma forma {data} que antes
+            var pDocs = Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: c2.id, p_partes: ['documentos'] })).then(function (rd) {
+              return rd.error ? rd : { data: (rd.data && rd.data.documentos) || [] };
+            });
             Promise.all([pContratos, pFacturas, pDocs]).then(function (r) {
               var cts = r[0].data || [];
               var facs = (r[1] && r[1].data) || [];
@@ -7004,7 +6960,8 @@
            tenga enlaces vivos linkables»): la campana viva ya lo usa, aqui
            se leia solo el titulo. 30 y no 8: los que sobran de 6 se pliegan
            bajo «ver mas», sin segunda consulta. */
-        q(sb.from('notificaciones').select('titulo,detalle,enlace,creado_en').order('creado_en', { ascending: false }).limit(30), 'auditoría'),
+        // LAW-338 L5: por el servidor (notificaciones_datos); null = no se pudo mirar (q ya avisa), igual que antes
+        q(window.lwDatos('notificaciones_datos', { p_limite: 30 }), 'auditoría').then(function (d) { return d && (d.notificaciones || []); }),
         // nombres de proyecto para la ficha: `usuarios.proyectos` guarda ids
         q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
         cargaTiposPropios(sb)   // nombres de los contratos propios de las empresas (E9): la ficha los enseña en vez del slug crudo
@@ -7402,20 +7359,21 @@
       }
       /* ── fin de las piezas sin red de Soporte ── */
 
+      /* LAW-338 L5 (16-oct-2026): hilos, mensajes (600 más recientes) y las fichas que nombran, en UNA lectura del servidor
+         (soporte_datos). Los hilos van todos, sin `limit` (auditoría 19-sep-2026: recortar dejaba tickets fuera sin decirlo);
+         si el servidor tuviera que recortar, datosDe lo avisa. null = la base no contestó (ya avisado). */
+      var pSoporte = datosDe('soporte_datos', {}, 'soporte');
       Promise.all([
-        // sin `limit`: la viva carga todos los hilos y aquí 80 → 25 pintados dejaba
-        // tickets fuera sin decirlo (auditoría 19-sep-2026)
-        q(sb.from('hilo_soporte').select('id,client_id,categoria,estado,actualizado_en').order('actualizado_en', { ascending: false }), 'hilos'),
-        q(sb.from('clients').select('id,full_name,email,phone,tipo'), 'clientes de soporte'),
-        q(sb.from('mensajes_comprador').select('hilo_id,client_id,de,autor,texto,creado_en').order('creado_en', { ascending: false }).limit(600), 'mensajes'),
+        pSoporte.then(function (d) { return d ? (d.hilos || []) : null; }),
+        pSoporte.then(function (d) { return d ? (d.clientes || []) : null; }),
+        pSoporte.then(function (d) { return d ? (d.mensajes || []) : null; }),
         /* A qué factura o contrato se refiere un ticket (7-oct-2026, portal con «Preguntar sobre…»).
-           Consulta APARTE a propósito: si algo fallara, la bandeja de arriba sigue entera y solo falta
-           la línea «Sobre». Los números salen de las RPC de equipo (`facturas_equipo` / `contratos_equipo`),
-           NUNCA de un embed sobre `facturas`/`contratos`: esas tablas tienen RLS por agente y el embed
-           devolvería null sin error para lo ajeno (la línea desaparecería sin aviso). El número es el de
-           la factura o el contrato vivos, no una copia guardada en el hilo. */
-        q(sb.from('hilo_soporte').select('id,factura_id,contrato_id').or('factura_id.not.is.null,contrato_id.not.is.null'), 'referencias de tickets').then(function (rs) {
-          rs = rs || [];
+           Los números salen de las RPC de equipo (`facturas_equipo` / `contratos_equipo`), NUNCA de un embed sobre
+           `facturas`/`contratos`: esas tablas tienen RLS por agente y el embed devolvería null sin error para lo ajeno
+           (la línea desaparecería sin aviso). Si fallan, la bandeja sigue entera y solo falta la línea «Sobre». El número
+           es el de la factura o el contrato vivos, no una copia guardada en el hilo. */
+        pSoporte.then(function (d) {
+          var rs = ((d && d.hilos) || []).filter(function (h) { return h.factura_id || h.contrato_id; });
           var fi = rs.map(function (x) { return x.factura_id; }).filter(Boolean);
           var ci = rs.map(function (x) { return x.contrato_id; }).filter(Boolean);
           if (!fi.length && !ci.length) return { rs: rs, f: {}, c: {} };
@@ -11130,7 +11088,7 @@
   /* Pantallas de la v4 que pintan con su PROPIO script (panel-*.js,
      comunicacion.js, el asistente) y no tienen handler aqui: tambien nacian en
      «—» y sin velo. Se tapan igual; el destape lo decide el contador de red. */
-  var PROPIAS = { finanzas: 1, gastos: 1, bancos: 1, comunicacion: 1, asistente: 1, 'asistente-correos': 1 };
+  var PROPIAS = { finanzas: 1, gastos: 1, bancos: 1, comunicacion: 1, asistente: 1, 'asistente-correos': 1, ia: 1 };   // ia: «Apps conectadas» (ia-conexiones.js)
   if (REG[seg] || PROPIAS[seg]) ponVelo();
   /* Una pantalla de la v4 que cargue shell.css y NO tenga handler nace oculta
      por la regla de arriba y nadie la destaparia hasta el rescate de los 12 s.

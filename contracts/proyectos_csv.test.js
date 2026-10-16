@@ -88,8 +88,8 @@ ok('«sin dato» no puede borrar una columna que el CSV ni menciona', () => {
 ok('CSV/formula injection: un valor que empieza por = se neutraliza', () => {
   assert.strictEqual(lwCsvAntiFormula('=1+1'), "'=1+1");
   assert.strictEqual(lwCsvAntiFormula('normal'), 'normal');
-  const r = lwCsvAnaliza('codigo,proyecto,notas\nB1,Bonian Village,=CMD()\n', CTX);
-  assert.strictEqual(r.analizadas[0].notas, "'=CMD()");
+  const r = lwCsvAnaliza('codigo,proyecto,modelo\nB1,Bonian Village,=CMD()\n', CTX);
+  assert.strictEqual(r.analizadas[0].modelo, "'=CMD()");
 });
 
 ok('los importes pasan por lwParseImporte, no por Number()', () => {
@@ -175,15 +175,54 @@ ok('`estado` y `contrato_id` no pueden colarse ni por el allowlist', () => {
 });
 
 ok('🔴 30-sep: CSV con `;` (Excel en español) y con BOM se lee igual que con comas', () => {
-  const coma = 'codigo,proyecto,superficie_m2,notas\nA1,Sumba Hills,355,"a, b"\n';
-  const pyc = '﻿codigo;proyecto;superficie_m2;notas\r\nA1;Sumba Hills;355;"a; b"\r\n';
+  const coma = 'codigo,proyecto,superficie_m2,modelo\nA1,Sumba Hills,355,"a, b"\n';
+  const pyc = '﻿codigo;proyecto;superficie_m2;modelo\r\nA1;Sumba Hills;355;"a; b"\r\n';
   const rc = lwCsvAnaliza(coma, CTX), rp = lwCsvAnaliza(pyc, CTX);
   assert.ok(!rp.error, rp.error);
   assert.deepStrictEqual(rp.ignoradas, []);
   assert.strictEqual(rp.validas.length, 1);
   assert.strictEqual(rp.validas[0].superficie_m2, rc.validas[0].superficie_m2);
-  assert.strictEqual(rp.validas[0].notas, 'a; b', 'un ; ENTRECOMILLADO es texto, no separador');
-  assert.strictEqual(rc.validas[0].notas, 'a, b');
+  assert.strictEqual(rp.validas[0].modelo, 'a; b', 'un ; ENTRECOMILLADO es texto, no separador');
+  assert.strictEqual(rc.validas[0].modelo, 'a, b');
+});
+
+ok('🔴 15-oct: `notas` ya no es columna — un CSV viejo que la trae la ve ignorada y nunca se manda', () => {
+  // Las notas de una parcela son un historial con autor y fecha (unidad_nota_agrega); la columna de la fila ya no existe.
+  const r = lwCsvAnaliza('codigo,proyecto,Notas,modelo\nSH-1,Sumba Hills,ojo con la valla,V1\nSH-9,Sumba Hills,otra,V2\n', CTX);
+  assert.ok(!r.error, r.error);
+  assert.ok(r.ignoradas.includes('notas'), 'el aviso de «columnas ignoradas» la nombra');
+  assert.ok(!r.camposPresentes.has('notas'));
+  r.analizadas.forEach(f => assert.ok(!('notas' in f), 'ninguna fila analizada lleva notas'));
+  const lotes = lwCsvLotesParaGuardar(r.validas, r.camposPresentes);
+  assert.strictEqual(lotes.reduce((n, l) => n + l.length, 0), 2);
+  lotes.forEach(l => l.forEach(f => assert.ok(!('notas' in f), 'ningún lote manda notas a unidades')));
+  const { LW_CSV_ESCRIBIBLES, LW_CSV_PLANTILLA_COLS } = require(path.join(__dirname, 'assets', 'proyectos_csv.js'));
+  assert.ok(!LW_CSV_ESCRIBIBLES.includes('notas') && !LW_CSV_PLANTILLA_COLS.includes('notas'));
+  assert.ok(!Object.values(LW_CSV_COLUMNAS).includes('notas'));
+});
+
+ok('la plantilla: cada columna la reconoce el importador, y las filas de editores.js tienen su misma aridad', () => {
+  const { LW_CSV_PLANTILLA_COLS } = require(path.join(__dirname, 'assets', 'proyectos_csv.js'));
+  LW_CSV_PLANTILLA_COLS.forEach(c => assert.ok(LW_CSV_COLUMNAS[c], 'columna de plantilla que el importador no reconoce: ' + c));
+  /* El select y las filas de la plantilla en editores.js van a mano y en el mismo orden (ver su comentario): se cuentan. */
+  const fs = require('fs');
+  const ed = fs.readFileSync(path.join(__dirname, '..', 'intranet', 'v4', 'assets', 'editores.js'), 'utf8');
+  const i = ed.indexOf("var cols = LW_CSV_PLANTILLA_COLS;");
+  assert.ok(i > 0, 'editores.js arma la plantilla con LW_CSV_PLANTILLA_COLS');
+  const trozo = ed.slice(i, ed.indexOf('descargaCsv(', i));
+  const sel = /select\('([^']+)'\)/.exec(trozo)[1].split(',');
+  assert.ok(!sel.includes('notas'), 'la plantilla ya no lee unidades.notas');
+  const filaU = /return \[(u\.codigo[^\]]*)\]/.exec(trozo)[1].split(',');
+  const filaEj = /: \[\[('P-01'[^\]]*)\]\]/.exec(trozo)[1].split(',');
+  assert.strictEqual(filaU.length, LW_CSV_PLANTILLA_COLS.length, 'fila con datos: tantas celdas como columnas');
+  assert.strictEqual(filaEj.length, LW_CSV_PLANTILLA_COLS.length, 'fila de ejemplo: tantas celdas como columnas');
+  assert.ok(!/u\.notas/.test(trozo));
+  // Y el editor de la parcela tampoco manda `notas` a unidad_guarda (Nueva unidad y Editar parcela).
+  assert.ok(!/notas:\s*(v\.notas|txt\(v\.notas\))/.test(ed) && !/k: 'notas', label: 'Notas', tipo: 'textarea'(, valor: n0\(u\.notas\))? \}/.test(ed),
+    'ni campo «Notas» ni clave notas en el envío de la unidad');
+  // El reenvío de la nota que protegía contra publicar la pantalla antes que la base se quitó al aplicar
+  // 20261016001810 (16-oct): la columna ya solo admite null y ninguna pantalla manda la clave.
+  assert.ok(!/notas:\s*u\.notas/.test(ed), 'Editar parcela ya no reenvía u.notas');
 });
 
 console.log(fallos ? `\n${fallos} fallo(s)` : '\nOK proyectos_csv.test.js — las reglas del import se sostienen');

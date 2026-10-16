@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68)
--- REVERSION de 20261015214000_proyecto_por_id_intranet.sql (15-oct-2026, sesion proyecto-por-id, LAW-428 fase 2B).
+-- REVERSION de 20261016002630_proyecto_por_id_intranet.sql (15-oct-2026, sesion proyecto-por-id, LAW-428 fase 2B).
 -- ORDEN: 1) la intranet a su version anterior si ya llama a las *_por_id (fase 3), 2) ESTE fichero, en una transaccion.
 -- Devuelve LITERALES las 5 recableadas a su cuerpo vivo del 15-oct (md5(prosrc) anotado) y borra las 5 nuevas (nadie mas las llama).
 -- destructivo-ok: solo borra funciones que creo la migracion; no hay datos

@@ -827,7 +827,8 @@
   var tVenta = null;
   function buscaVentas(texto) {
     RT.qVenta = texto;
-    // Busqueda sin tildes (15-oct-2026): el servidor normaliza y compara (contratos_busca, INVOKER: la RLS decide que se ve);
+    // Busqueda sin tildes (15-oct-2026): el servidor normaliza y compara (contratos_busca, DEFINER de lw_lector desde LAW-338 L5:
+    // la RLS de quien llama sigue decidiendo que se ve);
     // tambien encuentra por el nombre de hoy de la ficha. Con menos de 2 letras devuelve las 10 ultimas, como antes.
     var yo = texto;
     Promise.resolve(sb.rpc('contratos_busca', { p_q: String(texto || '').slice(0, 120) })).then(function (r) {

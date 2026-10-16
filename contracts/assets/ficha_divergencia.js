@@ -25,9 +25,10 @@
    Solo trae los que TIENEN diferencias: la lista completa no le sirve a nadie. */
 async function lwDivergencias(sb, tipo){
   const fuera = new Map();
-  if(!sb) return fuera;
-  const { data, error } = await sb.from('documentos_desactualizados')
-    .select('id,numero,congelado,ficha,diferencias').eq('tipo', tipo);
+  if(!sb || typeof window.lwDatos !== 'function') return fuera;
+  // LAW-338 L5 (16-oct-2026): por el servidor (documentos_desactualizados_datos, filtro por tipo)
+  const r = await Promise.resolve(window.lwDatos('documentos_desactualizados_datos', { p_tipo: tipo, p_client: null, p_id: null }));
+  const error = r.error, data = r.data && r.data.documentos;
   if(error || !data) return fuera;   // un aviso que falla no puede tumbar un listado
   data.forEach(d => {
     if(Array.isArray(d.diferencias) && d.diferencias.length) fuera.set(d.id, d);

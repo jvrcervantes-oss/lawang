@@ -2627,18 +2627,21 @@
      (Seguridad #79.4 y #79.5): ni pasaportes ni emails de todo el directorio en memoria, y nunca
      `compradores_directorio` (DEFINER, lista a todos) — ofrecería clientes que la base luego
      rechaza. Documento y email se piden al elegir, uno solo. Resuelve null si se cancela. */
+  /* LAW-338 L5 (16-oct-2026): la lista y la ficha elegida las da el servidor (clientes_lista_datos y comprador_ficha_datos,
+     parte «documento»), con la misma regla de clients. */
   function eligeClienteDoc(sb, actual) {
-    return sb.from('clients').select('id,full_name').order('full_name').then(function (r) {
+    return Promise.resolve(window.lwDatos('clientes_lista_datos', {})).then(function (r) {
       if (r.error) { toastMal(lwErrorHumano(r.error, edT('No se pudo cargar la lista de clientes'))); return null; }
-      var cs = (r.data || []).filter(function (c) { return c.full_name; });
+      if (r.data && (r.data.recortado || []).length) toastMal(edT('La lista de clientes no cabe entera: busca por nombre y, si no sale, avisa.'));
+      var cs = ((r.data && r.data.clientes) || []).filter(function (c) { return c.full_name; });
       if (!cs.length) { toastMal('No tienes ningún cliente todavía: da de alta su ficha en Clientes.'); return null; }
       return lwElegir({ titulo: 'Elige el cliente', buscarPh: 'Nombre del cliente…', valor: actual || null,
         opciones: cs.map(function (c) { return { valor: c.id, texto: c.full_name }; }) })
         .then(function (id) {
           if (!id) return null;
-          return sb.from('clients').select('id,full_name,email,passport_number,registro_num,address').eq('id', id).maybeSingle().then(function (rc) {
-            if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente'))); return null; }
-            var c = rc.data;
+          return Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: id, p_partes: ['documento'] })).then(function (rc) {
+            var c = !rc.error && rc.data && rc.data.documento;
+            if (!c) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente'))); return null; }
             return { id: c.id, nombre: c.full_name || '', documento: c.passport_number || c.registro_num || '', email: c.email || '', domicilio: c.address || '' };
           });
         });
@@ -3427,11 +3430,12 @@
     var H = window.lwCajonHtml;
     var via = function (x) { return typeof lwViaCorreo === 'function' ? lwViaCorreo(x) : (x || '—'); };
     var fecha = function (iso) { return iso ? new Date(iso).toLocaleString(window.lwLocale ? lwLocale() : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; };
-    sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en')
-      .eq('factura_id', saved.id).order('enviado_en', { ascending: false }).limit(200).then(function (r) {
+    // LAW-338 L5: por el servidor (correos_registro_datos, tope 200, los más recientes primero)
+    Promise.resolve(window.lwDatos('correos_registro_datos', { p_contratos: null, p_factura: saved.id })).then(function (r) {
+        var filas = (!r.error && r.data && r.data.correos) || [];
         var cuerpo = r.error ? H.nota(edT('No se pudo cargar el registro: ') + r.error.message)
-          : (r.data || []).length
-            ? H.tabla(['Cuándo', 'Para', 'Vía', 'Quién', 'Asunto'], r.data.map(function (m) {
+          : filas.length
+            ? H.tabla(['Cuándo', 'Para', 'Vía', 'Quién', 'Asunto'], filas.map(function (m) {
                 return [esc(fecha(m.enviado_en)), esc(m.para), esc(via(m.via)), esc(m.enviado_por || edT('Automático')), esc(m.asunto)];
               }))
             : H.nota('Sin correos registrados para este documento.');
@@ -4100,9 +4104,11 @@
             if (campoDom && !(inicial && campoDom.value)) {
               campoDom.value = ''; repintaPreview();
               if (res.clienteId) {
-                sb.from('clients').select('address').eq('id', res.clienteId).maybeSingle().then(function (rd) {
+                // LAW-338 L5: por el servidor (comprador_ficha_datos, parte «documento», que trae el domicilio)
+                Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: res.clienteId, p_partes: ['documento'] })).then(function (rd) {
                   if (rd.error) { console.error('[facturas] domicilio del comprador:', rd.error); toastMal(lwErrorHumano(rd.error, edT('No se pudo traer el domicilio del cliente: escríbelo a mano'))); return; }
-                  if (rd.data && rd.data.address && estadoContrato.id === id) { campoDom.value = rd.data.address; repintaPreview(); }
+                  var dom = rd.data && rd.data.documento && rd.data.documento.address;
+                  if (dom && estadoContrato.id === id) { campoDom.value = dom; repintaPreview(); }
                 });
               }
             }
@@ -4299,9 +4305,10 @@
      dice con un toast y el editor sigue abierto. */
   function ofreceTraerFichaDoc(sb, id) {
     var ficha = { nombre: 'cliente_nombre', identidad: 'cliente_documento', email: 'cliente_email' };
-    sb.from('documentos_desactualizados').select('id,congelado,ficha,diferencias').eq('id', id).maybeSingle().then(function (r) {
+    // LAW-338 L5: por el servidor (documentos_desactualizados_datos, filtro por id del documento)
+    Promise.resolve(window.lwDatos('documentos_desactualizados_datos', { p_tipo: null, p_client: null, p_id: id })).then(function (r) {
       if (r.error) { toastMal(edT('No se ha podido comprobar si la ficha del cliente dice otra cosa: ') + r.error.message); return; }
-      var d = r.data;
+      var d = ((r.data && r.data.documentos) || [])[0] || null;
       if (!d || d.congelado || !Array.isArray(d.diferencias) || !d.diferencias.length) return;
       return cargaModuloDoc('divergencia').then(function () {
         return window.lwConfirmar({ titulo: 'La ficha del cliente dice otra cosa', cuerpo: lwTextoDivergencia(d),
@@ -4540,9 +4547,10 @@
           /* Primera factura SUELTA (sin contrato) en una empresa que lo permite: el recibí pasa a ser
              de su cliente. Los datos del cliente salen de su ficha, uno solo, con la RLS de quien emite. */
           function pasaACliente(f) {
-            return sb.from('clients').select('id,full_name,email,passport_number,registro_num').eq('id', f.client_id).maybeSingle().then(function (rc) {
-              if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente de esa factura'))); return false; }
-              var c = rc.data;
+            // LAW-338 L5: por el servidor (comprador_ficha_datos, parte «documento»)
+            return Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: f.client_id, p_partes: ['documento'] })).then(function (rc) {
+              var c = !rc.error && rc.data && rc.data.documento;
+              if (!c) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente de esa factura'))); return false; }
               estadoContrato.id = null; estadoContrato.numero = ''; estadoContrato.sinContrato = true; estadoContrato.clienteId = c.id;
               estadoContrato.clienteNombre = c.full_name || f.cliente_nombre || '';
               estadoContrato.clienteDocumento = c.passport_number || c.registro_num || '';
@@ -6893,8 +6901,9 @@
             { tipo: 'lectura', label: 'Precio de suelo', medio: 1, dataMostrar: 'precio-suelo-calc', valor: 'rellena la superficie primero' },
             { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', medio: 1 },
             { tipo: 'nota', label: 'Precio de suelo = superficie × precio por m². Precio total = suelo + construcción. Ninguno de los dos se escribe a mano: los calcula siempre la base.' },
-            { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: 'EUR' },
-            { k: 'notas', label: 'Notas', tipo: 'textarea' }
+            { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: 'EUR' }
+            // Sin «Notas» (15-oct-2026): las notas de una parcela son su historial en la ficha (unidad_nota_agrega), con
+            // autor y fecha; el campo suelto de la fila ya no existe (la base lo deja siempre vacío).
           );
           modal('Nueva unidad', camposU, 'Crear unidad', function (v) {
             // Campos `type:'number'` nativos: el valor ya llega en punto decimal
@@ -6908,7 +6917,7 @@
               tipo: v.tipo, modelo: v.modelo ? v.modelo.trim() : null, superficie_m2: supNueva,
               precio_suelo: (supNueva && pm2Nueva != null) ? Math.round(supNueva * pm2Nueva * 100) / 100 : null,
               precio_construccion: num(v.precio_construccion),
-              moneda: v.moneda, notas: v.notas.trim() || null
+              moneda: v.moneda
             };
             if (v.fase_masterplan) fila.fase_masterplan = v.fase_masterplan.trim();
             if (v.zona_masterplan) fila.zona_masterplan = v.zona_masterplan.trim();
@@ -7112,7 +7121,7 @@
           } else {
             SOC = null;
           }
-          campos.push({ k: 'notas', label: 'Notas', tipo: 'textarea', valor: n0(u.notas) });
+          // Sin campo «Notas» (15-oct-2026): van en el historial de la ficha de la parcela (notas-historial.js).
 
           /* El bloque de SOLO LECTURA que corona el panel. Es de solo lectura a
              proposito, igual que en la herramienta viva: el vinculo con el
@@ -7177,7 +7186,9 @@
               codigo: v.codigo.trim(), proyecto: v.proyecto, tipo: v.tipo,
               modelo: txt(v.modelo), superficie_m2: supGuardar,
               precio_construccion: num(v.precio_construccion),
-              moneda: v.moneda, notas: txt(v.notas)
+              moneda: v.moneda
+              // Sin `notas` (16-oct-2026): desde 20261016001810 la columna está vacía por un check y las notas son el historial
+              // de la ficha (unidad_nota_agrega). unidad_guarda escribe null cuando falta la clave, que es lo único que admite.
               // `precio` no va aqui a proposito — ver la cabecera de esta funcion.
             };
             // `precio_suelo` SOLO si se tocó superficie o €/m² (ver pm2Inicial arriba)
@@ -7463,16 +7474,16 @@
         aviso('Preparando la plantilla de ' + p.nombre + '…');
         if (typeof LW_CSV_PLANTILLA_COLS === 'undefined') return aviso('El importador no ha cargado (proyectos_csv.js). Recarga la página.', '#ba1a1a');
         var cols = LW_CSV_PLANTILLA_COLS;
-        sb.from('unidades').select('codigo,tipo,modelo,superficie_m2,precio_suelo,precio_construccion,precio,moneda,notas,fase_masterplan,zona_masterplan')
+        sb.from('unidades').select('codigo,tipo,modelo,superficie_m2,precio_suelo,precio_construccion,precio,moneda,fase_masterplan,zona_masterplan')
           .eq('proyecto_id', p.id).order('codigo_orden').range(0, 999).then(function (r) {
             if (r.error) return aviso('No se pudo preparar la plantilla: ' + r.error.message, '#ba1a1a');
             var us = r.data || [];
             var v = function (x) { return x == null ? '' : x; };
             var filas = us.length
               ? us.map(function (u) {
-                  return [u.codigo, p.nombre, v(u.tipo), v(u.modelo), v(u.superficie_m2), v(u.precio_suelo), v(u.precio_construccion), v(u.precio), v(u.moneda), v(u.notas), v(u.fase_masterplan), v(u.zona_masterplan)];
+                  return [u.codigo, p.nombre, v(u.tipo), v(u.modelo), v(u.superficie_m2), v(u.precio_suelo), v(u.precio_construccion), v(u.precio), v(u.moneda), v(u.fase_masterplan), v(u.zona_masterplan)];
                 })
-              : [['P-01', p.nombre, 'parcela', '', '', '', '', '', 'EUR', '', '', '']];
+              : [['P-01', p.nombre, 'parcela', '', '', '', '', '', 'EUR', '', '']];
             descargaCsv(slugDe(lwMarca('%marca')) + '-' + slugDe(p.nombre) + '-plantilla-parcelario.csv', cols, filas);
             aviso(us.length
               ? 'Plantilla con las ' + us.length + ' unidades actuales' + (us.length >= 1000 ? ' (tope de 1.000: si hay más, no salen todas)' : '') + '. Edita y vuelve a importarla.'
@@ -8729,7 +8740,7 @@
       var sb = aut.sb;
       // mismos 5 roles que /intranet/usuarios/ (ROLES) — antes solo llevaba
       // agente/admin/super_admin y sales_manager/project_manager no aparecían.
-      var ETIQ_ROL = { agente: 'Agente', sales_manager: 'Sales manager', project_manager: 'Project manager', admin: 'Administrador', super_admin: 'Super admin', admin_empresa: 'Admin de empresa', super_admin_empresa: 'Super admin de empresa' };
+      var ETIQ_ROL = (window.LW_ROL && LW_ROL.ETIQUETAS) || {};   // la lista vive en contracts/assets/roles.js (16-oct-2026)
       var ROLES_ED = ['agente', 'sales_manager', 'project_manager', 'admin'].concat(aut.ficha.rol === 'super_admin' ? ['super_admin'] : []);
       var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       window.LW_V4 = window.LW_V4 || {};

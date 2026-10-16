@@ -1,4 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68); el maestro recibe estas gemelas en su propia subtarea (LAW-428 2M)
+-- destructivo-ok: no borra filas al aplicar; las funciones re-emitidas contienen delete from detrás de sus comprobaciones (borrar_proyecto_por_id, carta_cobrado_recalcula). Válvula del owner abierta el 16-oct (agencia-c0)
 -- LA INTRANET PREGUNTA POR EL ID DEL PROYECTO, NUNCA POR SU NOMBRE — 15-oct-2026, LAW-428 fase 2, tanda B (sesión proyecto-por-id).
 -- Encargo: encargos/20260929_lawang_proyecto_por_id.md. Revisión previa #152 (29-sep) y #381 (15-oct, Backend + Seguridad).
 -- Cuerpos GENERADOS desde pg_get_functiondef de la viva del 15-oct con reemplazos literales y recuento exacto (gen_2b.py de la sesión):
