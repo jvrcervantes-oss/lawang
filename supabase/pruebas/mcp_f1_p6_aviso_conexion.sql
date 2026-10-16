@@ -185,6 +185,16 @@ begin
                       'C3b con los envíos en pausa y el aviso recién encolado, el token llama (aún dentro de las 24 h) → ' || left(j::text, 60));
   update public.ia_conexiones set creada_en = now() - interval '25 hours' where id = con2;
   update public.correos_cola set encolado_en = now() - interval '25 hours' where ia_conexion_id = con2;
+  -- «apps conectadas» (20261016230000) ya la enseña cortada antes de su siguiente uso, sin escribir nada
+  if pg_get_functiondef('public.ia_mis_conexiones()'::regprocedure) like '%sin_aviso%' then
+    v := pg_temp.sesion(b.uid, b.em, 'select public.ia_mis_conexiones()::text');
+    select x into j from jsonb_array_elements(case when v like '{%' then v::jsonb -> 'conexiones' else '[]'::jsonb end) x where x ->> 'id' = con2::text;
+    r := r || pg_temp.l(j ->> 'viva' = 'false' and j ->> 'revocada_motivo' = 'sin_aviso' and j ->> 'revocada_en' is not null
+                        and (select revocada_en is null from public.ia_conexiones where id = con2),
+                        'C3b «apps conectadas» la enseña cortada (sin_aviso) y la fila aún no está revocada → ' || left(coalesce(j::text, v), 90));
+  else
+    r := r || pg_temp.l(false, 'C3b «apps conectadas» OMITIDA: la 20261016230000 no está aplicada en esta rama');
+  end if;
   j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'mcp_resumen_semana'));
   r := r || pg_temp.l(j ->> 'error' = 'invalid_token'
                       and (select revocada_motivo from public.ia_conexiones where id = con2) = 'sin_aviso'

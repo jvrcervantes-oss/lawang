@@ -16,6 +16,10 @@ begin
      and has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
     raise exception 'vuelta_atras_p6: primero apagar la IA (Ajustes › IA) o deshacer la 20261016140000; no se aplica nada';
   end if;
+  -- la 20261016230000 lee la regla con el EXECUTE que esto quita: se deshace ella antes (vuelta_atras_mis_conexiones.sql)
+  if pg_get_functiondef('public.ia_mis_conexiones()'::regprocedure) like '%_correo_cola_regla%' then
+    raise exception 'vuelta_atras_p6: primero vuelta_atras_mis_conexiones.sql (la 20261016230000 usa la regla del aviso); no se aplica nada';
+  end if;
 end $g$;
 
 -- 1. lo que quedaba por enviar se cancela; el disparador de P6 corta su conexión

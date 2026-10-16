@@ -46,14 +46,26 @@
 --   privado.ia_aviso_destino(uuid)       <- public.correo_cola_reclamar y public.ia_aviso_conexion_datos (DEFINER de postgres).
 --   privado.ia_aviso_nombre(text)        <- public.ia_aviso_conexion_datos. Sin EXECUTE para nadie.
 --   public.ia_aviso_conexion_datos(uuid) <- edge envia-correo (service_role). Solo service_role.
---   public._correo_cola_regla(text)      <- EXECUTE nuevo a ia_puente_rol; su llamador: privado.ia_conexion_motivo (§7b).
+--   public._correo_cola_regla(text)      <- EXECUTE nuevo a ia_puente_rol; sus llamadores: privado.ia_conexion_motivo (§7b) y
+--                                           public.ia_mis_conexiones (20261016230000, la misma regla en «apps conectadas»).
 --
--- MD5 DE LAS DEFINICIONES VIVAS DE LAS QUE PARTE (md5(pg_get_functiondef), Lawang, 16-oct; volver a medir antes de aplicar):
+-- MD5 DE LAS DEFINICIONES VIVAS DE LAS QUE PARTE (md5(pg_get_functiondef), Lawang, 16-oct; el paso 0 los comprueba al aplicar):
 --   correo_cola_reclamar 51e48bd6aa431d3f85f44ad9b4e56af7 · correo_cola_ok cb7e41223cea6f9d834b361e9c015697
 --   _correo_cola_regla 9edf5cf203bf902ed68077521e3e93ac · privado.ia_conexion_motivo 3c7260d0910a6216d5051f227d904845
 -- ============================================================================
 
 set local lock_timeout = '5s';
+
+-- ── 0. de partida: las cuatro definiciones vivas de arriba; si otra sesión cambió alguna antes, no se pisa (revisor, 17-oct) ──
+do $g$
+begin
+  if md5(pg_get_functiondef('public._correo_cola_regla(text)'::regprocedure)) <> '9edf5cf203bf902ed68077521e3e93ac'
+     or md5(pg_get_functiondef('public.correo_cola_reclamar(integer)'::regprocedure)) <> '51e48bd6aa431d3f85f44ad9b4e56af7'
+     or md5(pg_get_functiondef('public.correo_cola_ok(uuid,text,text)'::regprocedure)) <> 'cb7e41223cea6f9d834b361e9c015697'
+     or md5(pg_get_functiondef('privado.ia_conexion_motivo(uuid)'::regprocedure)) <> '3c7260d0910a6216d5051f227d904845' then
+    raise exception 'P6: una de las funciones de partida cambió desde el 16-oct; no se aplica (rehacer sobre el texto vivo nuevo)';
+  end if;
+end $g$;
 
 -- ── 1. la conexión: rastro del aviso, motivo de corte nuevo y el índice del tope ──────────────────
 alter table public.ia_conexiones add column avisada_en timestamptz;
