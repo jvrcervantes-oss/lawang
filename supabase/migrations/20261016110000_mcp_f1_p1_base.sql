@@ -4,7 +4,7 @@
 -- supabase»). Revisiones previas #393, #394 y #395 (Seguridad + Backend), incorporadas.
 --
 -- QUÉ CONSTRUYE (solo construye: no toca Auth, ni edges, ni nada existente; NO abre nada a anon — eso va aparte en
--- supabase/propuestas/20261016110500_mcp_f1_p1_abre_anon.sql, parada del owner: fuera de migrations/ hasta su OK):
+-- supabase/propuestas/20261016140000_mcp_f1_abre_conexion.sql, parada del owner: fuera de migrations/ hasta su OK):
 --   1. Rol `ia_puente_rol` NOLOGIN NOINHERIT NOBYPASSRLS. Es dueño de las tablas ia_* y de las funciones del puente, y de nada
 --      más: es la ÚNICA pieza que actúa como una persona (fija sus claims y llama a una mcp_* de lista cerrada). Sin escritura
 --      fuera de ia_*. Llamador con nombre: la edge `mcp` (vía public.ia_puente) y la página de conexión de la intranet.
@@ -20,7 +20,8 @@
 --      reuso = revoca) · revoca · comprueba · llama (fija claims del usuario y despacha). Los tokens llegan EN CLARO y se
 --      convierten en hash aquí (un hash de un volcado no sirve para llamar). Rechaza GET y cualquier `Prefer: tx=`.
 --   6. public.ia_conexion_autoriza(peticion) y public.ia_conexion_revoca(conexion): RPC de authenticated (la primera la llama la
---      edge con la sesión RECIÉN creada por la página de conexión; la segunda, «apps conectadas» y Ajustes).
+--      edge con la sesión RECIÉN creada por la página de conexión, y su EXECUTE lo da la propuesta 140000 con el OK del owner;
+--      la segunda, «apps conectadas» y Ajustes, ya aquí).
 --   7. privado.ia_despacha: STUB que P2 (20261016120000_mcp_f1_p2_herramientas.sql) sustituye por la lista CASE literal.
 --   8. privado.ia_purga() y su cron diario: borra peticiones y tokens caducados. ia_llamadas NO se purga aquí: su retención la
 --      fijan Legal y el owner (fila en el encargo).
@@ -356,7 +357,7 @@ set search_path = ''
 as $$
 declare
   d jsonb := coalesce(p_datos, '{}'::jsonb);
-  h jsonb; a public.ia_ajustes; t public.ia_tokens; c public.ia_conexiones; p public.ia_peticiones;
+  h jsonb; a public.ia_ajustes; t public.ia_tokens; hijo public.ia_tokens; c public.ia_conexiones; p public.ia_peticiones;
   v text; v_motivo text; v_acc text; v_ref text; u jsonb; v_res jsonb; v_cli uuid; v_vivas integer;
 begin
   -- Solo POST (un GET de PostgREST corre en transacción de solo lectura: el registro no se escribiría) y sin `Prefer: tx=`
@@ -444,10 +445,12 @@ begin
     select * into c from public.ia_conexiones where id = t.conexion_id;
     if (d ->> 'cliente_id') is distinct from c.cliente_id::text then return jsonb_build_object('error', 'invalid_grant'); end if;
     if t.usado_en is not null then
-      if t.usado_en > now() - interval '10 seconds' then
-        -- reintento del asistente tras un timeout: par nuevo y se mata el hijo anterior (nunca se guarda un token en claro: #395)
-        update public.ia_tokens set caduca_en = least(caduca_en, now()), usado_en = coalesce(usado_en, now())
-         where hash = t.sustituido_por;
+      -- Reintento del asistente tras un timeout (≤10 s): solo vale si el hijo existe y sigue SIN usar; se mata y se da par
+      -- nuevo (nunca se guarda un token en claro: #395). Un hijo ya usado, o un token sin hijo (uno matado por un reintento),
+      -- es reúso: se revoca la conexión entera. Así nunca hay dos cadenas vivas (Seguridad, 16-oct).
+      select * into hijo from public.ia_tokens where hash = t.sustituido_por for update;
+      if t.usado_en > now() - interval '10 seconds' and hijo.hash is not null and hijo.usado_en is null then
+        update public.ia_tokens set caduca_en = least(caduca_en, now()), usado_en = now() where hash = hijo.hash;
       else
         perform privado.ia_revoca(c.id, 'reuso_refresco');
         return jsonb_build_object('error', 'invalid_grant');
@@ -506,9 +509,11 @@ end $$;
 
 -- ── 7. RPC de la persona (authenticated) ──────────────────────────────────────────────────────────────────────────────────
 -- La llama la edge `mcp` con la sesión RECIÉN creada en la página de conexión (contraseña puesta otra vez); la edge hace el 302
--- y el JavaScript de la intranet no ve el código. No es una frontera de seguridad: es de authenticated y la llamaría también
--- cualquier sesión con la contraseña recién puesta, pero el código no sirve sin el verificador PKCE, que solo tiene el
--- asistente que pidió la conexión (revisor, 16-oct).
+-- y el JavaScript de la intranet no ve el código. El PKCE NO protege aquí: quien llama a `pide` elige el verificador, así que
+-- un tercero con la sesión de la persona podría pedir y autorizar su propia conexión. La barrera real es la contraseña puesta
+-- hace ≤120 s (y el segundo factor si lo tiene). Ojo: la conexión sobrevive a cerrar sesión, a «cerrar todas las sesiones» y
+-- a cambios de MFA (la huella solo cubre contraseña y baneo); por eso el aviso por correo de cada conexión nueva es condición
+-- para abrir el puente (Seguridad, 16-oct; pendientes).
 create or replace function public.ia_conexion_autoriza(p_peticion text)
 returns jsonb
 language plpgsql
@@ -613,10 +618,11 @@ begin
   end loop;
 end $$;
 -- la puerta y el cierre: sin grants; las puertas privado.mcp_<x> de P2 (dueño postgres) los alcanzan por pertenencia a ia_puente_rol
--- la página de conexión (vía la edge) y «apps conectadas»
-grant execute on function public.ia_conexion_autoriza(text) to authenticated;
+-- «apps conectadas»: revocar lo suyo (llamador: intranet/v4/assets/ia-conexiones.js)
 grant execute on function public.ia_conexion_revoca(uuid) to authenticated;
--- public.ia_puente: SIN grant a anon aquí. Lo abre supabase/propuestas/20261016110500_mcp_f1_p1_abre_anon.sql, que pasa a migrations/ con el OK del owner.
+-- public.ia_puente (anon) y public.ia_conexion_autoriza (authenticated): SIN grant aquí. Su único llamador es la edge `mcp` y la
+-- página ia/conectar/, que salen juntas con el OK del owner: los abre supabase/propuestas/20261016140000_mcp_f1_abre_conexion.sql
+-- (Seguridad, 16-oct: nada expuesto sin llamador vivo).
 
 revoke create on schema public from ia_puente_rol;
 revoke create on schema privado from ia_puente_rol;

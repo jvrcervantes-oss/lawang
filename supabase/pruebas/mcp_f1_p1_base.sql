@@ -1,5 +1,5 @@
 -- Prueba de la base del puente MCP (16-oct-2026, migración 20261016110000_mcp_f1_p1_base.sql; se corre también con
--- supabase/propuestas/20261016110500_mcp_f1_p1_abre_anon.sql (pendiente del OK del owner) aplicada o sin ella: si anon no tiene EXECUTE, la prueba se lo da DENTRO de la
+-- supabase/propuestas/20261016140000_mcp_f1_abre_conexion.sql (pendiente del OK del owner) aplicada o sin ella: si anon no tiene EXECUTE, la prueba se lo da DENTRO de la
 -- transacción, que se deshace). Solo en rama: siembra usuarios en auth.users. Termina en raise: no deja rastro.
 -- Lo que prueba (prueba-trampa de #394/#395, cada línea con su resultado):
 --   A  default-deny: anon/authenticated sin nada en las 8 tablas ia_*; las funciones del puente con su EXECUTE exacto (aclexplode)
@@ -8,7 +8,8 @@
 --   D  canjea: verificador malo → invalid_grant; bueno → par de tokens; el mismo código otra vez → invalid_grant y conexión revocada
 --   E  llama: la persona dentro de la herramienta es la del token (auth.uid() y auth.email()); queda fila ok en ia_llamadas
 --   F  tope del día: la llamada de más → «tope», con su fila; la base de negocio no cambia
---   G  refresca: rota R1→R2; R1 otra vez pasados 10 s → invalid_grant, conexión revocada y su access ya no llama
+--   G  refresca: rota R1→R2; R1 en ≤10 s con R2 sin usar → R3 y R2 muerto; R2 vuelve → revocada; R1 en ≤10 s con R2 ya usado
+--      → revocada; R1 otra vez pasados 10 s → invalid_grant, conexión revocada y su access ya no llama
 --   H  revocar: otro usuario → 42501; la persona → ok y el access muere en el acto
 --   I  día 8 → invalid_token · contraseña cambiada → invalid_token y revocada · permiso quitado → invalid_token · apagado → no llama
 --   J  GET y Prefer tx=rollback → rechazados · 300 tokens inventados → 0 escrituras · herramienta fuera de lista → error
@@ -59,7 +60,7 @@ do $todo$
 declare
   r text := ''; v text; j jsonb; n bigint; n2 bigint;
   a _tp; b _tp; cli uuid; red text := 'https://claude.ai/api/mcp/auth_callback'; rec text;
-  ver text := repeat('v', 50); cha text; pet text; cod text; acc text; ref text; ref2 text; acc2 text; con uuid;
+  ver text := repeat('v', 50); cha text; pet text; cod text; acc text; ref text; ref2 text; acc2 text; ref3 text; acc3 text; con uuid;
   c_fin constant text := 'FIN DE PRUEBAS MCP P1 BASE (se deshace todo):%';
 begin
   if coalesce(current_setting('erp.en_rama', true), '') <> 'si' then
@@ -80,8 +81,15 @@ begin
     select recurso into rec from public.ia_ajustes where id;
     insert into public.ia_clientes (asistente, nombre, redirect_uris, activo) values ('claude', 'Claude', array[red], true) returning id into cli;
     insert into public.ia_permisos (usuario_id) values (a.uid);
+    -- la entrada (anon) y el «sí» de la persona (authenticated) se abren JUNTOS (propuestas/20261016140000): o los dos o ninguno
+    r := r || pg_temp.l(has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute')
+                        = has_function_privilege('authenticated', 'public.ia_conexion_autoriza(text)', 'execute'),
+                        'A0 ia_puente (anon) e ia_conexion_autoriza (authenticated) abiertos a la vez o cerrados a la vez');
     if not has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
-      grant execute on function public.ia_puente(text, jsonb) to anon;   -- propuestas/20261016110500 lo hace en la viva con el OK del owner
+      grant execute on function public.ia_puente(text, jsonb) to anon;   -- propuestas/20261016140000 lo hace en la viva con el OK del owner
+    end if;
+    if not has_function_privilege('authenticated', 'public.ia_conexion_autoriza(text)', 'execute') then
+      grant execute on function public.ia_conexion_autoriza(text) to authenticated;   -- ídem
     end if;
     -- herramienta de prueba: dueño postgres, como las puertas privado.mcp_<x> de P2; devuelve quién es la persona dentro
     grant create on schema privado to ia_puente_rol;
@@ -216,6 +224,43 @@ begin
   j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref, 'cliente_id', cli));
   ref2 := j ->> 'refresh_token'; acc2 := j ->> 'access_token';
   r := r || pg_temp.l(length(ref2) = 43 and ref2 <> ref, 'G1 refresca R1 → R2 nuevo');
+  -- reintento tras un timeout (≤10 s; now() no avanza en la transacción) con el hijo SIN usar: par nuevo y el hijo muere
+  j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref, 'cliente_id', cli));
+  ref3 := j ->> 'refresh_token'; acc3 := j ->> 'access_token';
+  r := r || pg_temp.l(length(ref3) = 43 and ref3 <> ref2
+                      and exists (select 1 from public.ia_tokens x where x.hash = sha256(convert_to(ref2, 'UTF8'))
+                                     and x.usado_en is not null and x.caduca_en <= now()),
+                      'G5 R1 otra vez en ≤10 s con R2 sin usar → R3 nuevo y R2 muerto (' || coalesce(j ->> 'error', 'par') || ')');
+  -- el hijo matado vuelve a aparecer: es reúso, se revoca todo (nunca dos cadenas vivas: Seguridad, 16-oct)
+  j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref2, 'cliente_id', cli));
+  select count(*) into n from public.ia_conexiones where id = con and revocada_motivo = 'reuso_refresco';
+  r := r || pg_temp.l(j ->> 'error' = 'invalid_grant' and n = 1, 'G6 R2 (matado por el reintento) aparece → invalid_grant y conexión revocada');
+  j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref3, 'cliente_id', cli));
+  r := r || pg_temp.l(j ->> 'error' = 'invalid_grant', 'G7 y R3 ya no refresca → ' || j::text);
+  j := pg_temp.edge('llama', jsonb_build_object('access_token', acc3, 'recurso', rec, 'herramienta', 'zz_quien'));
+  r := r || pg_temp.l(j ->> 'error' = 'invalid_token', 'G7b ni el access de R3 llama → ' || j::text);
+
+  -- conexión nueva: reintento en ≤10 s cuando el hijo YA se usó (lo robado siguió la cadena) → reúso
+  j := pg_temp.edge('pide', jsonb_build_object('cliente_id', cli, 'redirect_uri', red, 'code_challenge', cha, 'code_challenge_method', 'S256', 'recurso', rec));
+  v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', j ->> 'peticion'));
+  j := pg_temp.edge('canjea', jsonb_build_object('codigo', v::jsonb ->> 'code', 'code_verifier', ver, 'cliente_id', cli, 'redirect_uri', red, 'recurso', rec));
+  ref := j ->> 'refresh_token';
+  select id into con from public.ia_conexiones where usuario_id = a.uid and revocada_en is null;
+  j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref, 'cliente_id', cli));
+  ref2 := j ->> 'refresh_token';
+  j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref2, 'cliente_id', cli));
+  j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref, 'cliente_id', cli));
+  select count(*) into n from public.ia_conexiones where id = con and revocada_motivo = 'reuso_refresco';
+  r := r || pg_temp.l(j ->> 'error' = 'invalid_grant' and n = 1, 'G8 R1 en ≤10 s con R2 ya usado → invalid_grant y conexión revocada');
+
+  -- conexión nueva para G2-G4
+  j := pg_temp.edge('pide', jsonb_build_object('cliente_id', cli, 'redirect_uri', red, 'code_challenge', cha, 'code_challenge_method', 'S256', 'recurso', rec));
+  v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', j ->> 'peticion'));
+  j := pg_temp.edge('canjea', jsonb_build_object('codigo', v::jsonb ->> 'code', 'code_verifier', ver, 'cliente_id', cli, 'redirect_uri', red, 'recurso', rec));
+  ref := j ->> 'refresh_token';
+  select id into con from public.ia_conexiones where usuario_id = a.uid and revocada_en is null;
+  j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref, 'cliente_id', cli));
+  ref2 := j ->> 'refresh_token'; acc2 := j ->> 'access_token';
   update public.ia_tokens set usado_en = now() - interval '20 seconds' where hash = sha256(convert_to(ref, 'UTF8'));
   j := pg_temp.edge('refresca', jsonb_build_object('refresh_token', ref, 'cliente_id', cli));
   select count(*) into n from public.ia_conexiones where id = con and revocada_motivo = 'reuso_refresco';

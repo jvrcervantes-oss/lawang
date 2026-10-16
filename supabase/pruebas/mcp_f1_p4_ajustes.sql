@@ -62,6 +62,9 @@ begin
       select t.uid, t.em, 'ZZ-MCP4 ' || t.et, t.rol, 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{}'::text[], '{}'::text[], t.activo
         from _tp t;
     update public.ia_ajustes set encendido = false, tope_dia = 0 where id;
+    if not has_function_privilege('authenticated', 'public.ia_peticion_datos(text)', 'execute') then
+      grant execute on function public.ia_peticion_datos(text) to authenticated;   -- propuestas/20261016140000 lo hace en la viva con el OK del owner
+    end if;
     insert into public.ia_clientes (asistente, nombre, redirect_uris, activo) values ('claude', 'Claude', array[red], true) returning id into cli;
     insert into public.ia_permisos (usuario_id) values (a.uid), (b.uid);
     insert into public.ia_conexiones (usuario_id, cliente_id, recurso, huella, aal, expira_en)

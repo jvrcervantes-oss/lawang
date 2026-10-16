@@ -3,7 +3,8 @@
 --
 -- QUÉ CONSTRUYE (solo construye; no toca Auth, ni anon, ni nada existente fuera de ia_*):
 --   1. public.ia_peticion_datos(peticion)  · authenticated · la página /intranet/ia/conectar/: qué asistente pide entrar y si
---      esta persona puede conectarlo (no gasta la petición; la gasta ia_conexion_autoriza).
+--      esta persona puede conectarlo (no gasta la petición; la gasta ia_conexion_autoriza). Su EXECUTE no se da aquí: va con la
+--      página y la edge en supabase/propuestas/20261016140000_mcp_f1_abre_conexion.sql (OK del owner; Seguridad, 16-oct).
 --   2. public.ia_mis_conexiones()          · authenticated · «apps conectadas»: las conexiones de la propia persona.
 --   3. public.ia_ajustes_datos()           · super admin   · Ajustes › IA: interruptor, tope, clientes, quién y conexiones vivas.
 --   4. public.ia_ajustes_guarda(datos)     · super admin   · encender/apagar, tope diario, duración y máximo de conexiones.
@@ -289,8 +290,8 @@ begin
     execute format('revoke all on function %s from public, anon, authenticated, service_role', f);
   end loop;
 end $$;
--- las pantallas de la intranet (la sesión de la persona; el super admin lo comprueba cada función por dentro)
-grant execute on function public.ia_peticion_datos(text) to authenticated;
+-- las pantallas de la intranet (la sesión de la persona; el super admin lo comprueba cada función por dentro).
+-- public.ia_peticion_datos: sin grant aquí (propuestas/20261016140000, con la página de conexión).
 grant execute on function public.ia_mis_conexiones() to authenticated;
 grant execute on function public.ia_ajustes_datos() to authenticated;
 grant execute on function public.ia_ajustes_guarda(jsonb) to authenticated;
