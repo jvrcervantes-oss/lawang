@@ -260,6 +260,10 @@ async function lwOperacionesCargar(SB, avisar){
      muere en «Assignment to constant variable» y la tabla dice «No se
      pudieron cargar» sin más pista. */
   let RECORTES = [], POR_CLIENTE = {}, EQUIPO = {}, OPS = [];
+  // LAW-338 L5: compradores y documentos en una lectura del servidor (ver abajo); sin el transporte, falla como antes.
+  const COMPRADORES_P = typeof window.lwDatos !== 'function'
+    ? Promise.resolve({ data: null, error: { message: 'lwDatos no cargado' } })
+    : Promise.resolve(window.lwDatos('operaciones_compradores_datos', {}));
   const [c, f, s, cc, dc, eq, cb, pe, ro] = await Promise.all([
     /* ⚠️ NADA QUE SALGA DE `datos` EN ESTA CONSULTA. Medido el 24-ago-2026
        sobre la tabla real: pedir `hitos:datos->hitos` la deja en **3.852 ms**;
@@ -295,13 +299,14 @@ async function lwOperacionesCargar(SB, avisar){
     // `snapshot_path` se pide solo para poder limpiar el almacenamiento al
     // borrar una operación: ver borrarOperacion().
     SB.rpc('contrato_firmas_equipo').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en,snapshot_path').order('creado_en',{ascending:false}).limit(TOPE_FIRMAS + 1),
-    // fichas reales de comprador. Si la tabla todavía no existe (migración sin
-    // correr), esto falla solo y la ficha cae al nombre suelto del contrato.
-    SB.from('contrato_compradores').select('contrato_id,rol,clients(id,full_name,email,phone,passport_number,kyc_status)'),
-    // documentación del comprador (KYC). Se ata por `client_id`, no por
-    // contrato: el pasaporte es de la persona, no de una venta, y sirve para
-    // todas las que tenga.
-    SB.from('documents').select('id,client_id,contrato_id,doc_type,storage_path,status,uploaded_at,caduca_el'),
+    // fichas reales de comprador (vínculo contrato→cliente con su ficha) y su
+    // documentación KYC, que se ata por `client_id`, no por contrato: el
+    // pasaporte es de la persona, no de una venta. LAW-338 L5 (16-oct-2026):
+    // las dos por el servidor en UNA lectura (operaciones_compradores_datos); la
+    // forma de cada lista es la de antes (`clients` = la ficha o null si no la ves).
+    // Si falla, la ficha cae al nombre suelto del contrato, como antes.
+    COMPRADORES_P.then(x => x.error ? x : { data: (x.data.vinculos || []).map(v => ({ contrato_id: v.contrato_id, rol: v.rol, clients: v.cliente })), error: null }),
+    COMPRADORES_P.then(x => x.error ? x : { data: x.data.documentos || [], error: null }),
     // email → nombre del equipo, solo para ENSEÑAR quién creó la operación.
     // `contratos.creado_por` guarda el email y así se queda: es la identidad con
     // la que la RLS decide quién edita lo suyo. Ojo: la RLS de `usuarios` deja
@@ -340,6 +345,9 @@ async function lwOperacionesCargar(SB, avisar){
   c.data = recorta(c, TOPE_CONTRATOS, 'contratos');
   f.data = recorta(f, TOPE_FACTURAS,  'facturas');
   s.data = recorta(s, TOPE_FIRMAS,    'firmas');
+  // lo que el SERVIDOR ya recortó (operaciones_compradores_datos, tope 5000 por lista) también se dice
+  const recServ = await COMPRADORES_P.then(x => (!x.error && x.data && x.data.recortado) || []);
+  recServ.forEach(n => RECORTES.push(n === 'vinculos' ? 'compradores' : 'documentos'));
 
   const facturas = f.error ? [] : (f.data || []);
   const firmas   = s.error ? [] : (s.data || []);
@@ -377,7 +385,7 @@ async function lwOperacionesCargar(SB, avisar){
   /* El recorte por tope se DEVUELVE, no se pinta: quien llama decide dónde
      ponerlo. Decirlo no es opcional — unos totales parciales que no avisan
      de que son parciales son un número que miente. */
-  const topes = { contratos:TOPE_CONTRATOS, facturas:TOPE_FACTURAS, firmas:TOPE_FIRMAS };
+  const topes = { contratos:TOPE_CONTRATOS, facturas:TOPE_FACTURAS, firmas:TOPE_FIRMAS, compradores:5000, documentos:5000 };
 
 
   OPS = (c.data || []).map(ct => ({

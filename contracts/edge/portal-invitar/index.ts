@@ -165,8 +165,11 @@ export async function manejador(req: Request): Promise<Response> {
     const veTodas = async (ids: string[]) => {
       const unicos = [...new Set(ids)];
       if (!unicos.length) return true;
-      const { data, error } = await usuario.from('clients').select('id').in('id', unicos);
-      if (error || (data ?? []).length !== unicos.length) return false;
+      // LAW-338 L5 (16-oct-2026): por la lectura del servidor (clientes_lista_datos), no la tabla, que se cierra a authenticated
+      const { data, error } = await usuario.rpc('clientes_lista_datos', { p_ids: unicos });
+      const vis = data as { clientes?: { id: string }[]; recortado?: string[] } | null;
+      const vistos = new Set((vis?.clientes ?? []).map((x) => x.id));
+      if (error || !vis || (vis.recortado ?? []).length || !unicos.every((i) => vistos.has(i))) return false;
       const { data: puede, error: eRpc } = await usuario.rpc('portal_puede_gestionar', { p_ids: unicos });
       return !eRpc && puede === true;
     };

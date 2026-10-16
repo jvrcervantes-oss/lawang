@@ -2627,18 +2627,21 @@
      (Seguridad #79.4 y #79.5): ni pasaportes ni emails de todo el directorio en memoria, y nunca
      `compradores_directorio` (DEFINER, lista a todos) — ofrecería clientes que la base luego
      rechaza. Documento y email se piden al elegir, uno solo. Resuelve null si se cancela. */
+  /* LAW-338 L5 (16-oct-2026): la lista y la ficha elegida las da el servidor (clientes_lista_datos y comprador_ficha_datos,
+     parte «documento»), con la misma regla de clients. */
   function eligeClienteDoc(sb, actual) {
-    return sb.from('clients').select('id,full_name').order('full_name').then(function (r) {
+    return Promise.resolve(window.lwDatos('clientes_lista_datos', {})).then(function (r) {
       if (r.error) { toastMal(lwErrorHumano(r.error, edT('No se pudo cargar la lista de clientes'))); return null; }
-      var cs = (r.data || []).filter(function (c) { return c.full_name; });
+      if (r.data && (r.data.recortado || []).length) toastMal(edT('La lista de clientes no cabe entera: busca por nombre y, si no sale, avisa.'));
+      var cs = ((r.data && r.data.clientes) || []).filter(function (c) { return c.full_name; });
       if (!cs.length) { toastMal('No tienes ningún cliente todavía: da de alta su ficha en Clientes.'); return null; }
       return lwElegir({ titulo: 'Elige el cliente', buscarPh: 'Nombre del cliente…', valor: actual || null,
         opciones: cs.map(function (c) { return { valor: c.id, texto: c.full_name }; }) })
         .then(function (id) {
           if (!id) return null;
-          return sb.from('clients').select('id,full_name,email,passport_number,registro_num,address').eq('id', id).maybeSingle().then(function (rc) {
-            if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente'))); return null; }
-            var c = rc.data;
+          return Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: id, p_partes: ['documento'] })).then(function (rc) {
+            var c = !rc.error && rc.data && rc.data.documento;
+            if (!c) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente'))); return null; }
             return { id: c.id, nombre: c.full_name || '', documento: c.passport_number || c.registro_num || '', email: c.email || '', domicilio: c.address || '' };
           });
         });
@@ -3427,11 +3430,12 @@
     var H = window.lwCajonHtml;
     var via = function (x) { return typeof lwViaCorreo === 'function' ? lwViaCorreo(x) : (x || '—'); };
     var fecha = function (iso) { return iso ? new Date(iso).toLocaleString(window.lwLocale ? lwLocale() : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; };
-    sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en')
-      .eq('factura_id', saved.id).order('enviado_en', { ascending: false }).limit(200).then(function (r) {
+    // LAW-338 L5: por el servidor (correos_registro_datos, tope 200, los más recientes primero)
+    Promise.resolve(window.lwDatos('correos_registro_datos', { p_contratos: null, p_factura: saved.id })).then(function (r) {
+        var filas = (!r.error && r.data && r.data.correos) || [];
         var cuerpo = r.error ? H.nota(edT('No se pudo cargar el registro: ') + r.error.message)
-          : (r.data || []).length
-            ? H.tabla(['Cuándo', 'Para', 'Vía', 'Quién', 'Asunto'], r.data.map(function (m) {
+          : filas.length
+            ? H.tabla(['Cuándo', 'Para', 'Vía', 'Quién', 'Asunto'], filas.map(function (m) {
                 return [esc(fecha(m.enviado_en)), esc(m.para), esc(via(m.via)), esc(m.enviado_por || edT('Automático')), esc(m.asunto)];
               }))
             : H.nota('Sin correos registrados para este documento.');
@@ -4100,9 +4104,11 @@
             if (campoDom && !(inicial && campoDom.value)) {
               campoDom.value = ''; repintaPreview();
               if (res.clienteId) {
-                sb.from('clients').select('address').eq('id', res.clienteId).maybeSingle().then(function (rd) {
+                // LAW-338 L5: por el servidor (comprador_ficha_datos, parte «documento», que trae el domicilio)
+                Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: res.clienteId, p_partes: ['documento'] })).then(function (rd) {
                   if (rd.error) { console.error('[facturas] domicilio del comprador:', rd.error); toastMal(lwErrorHumano(rd.error, edT('No se pudo traer el domicilio del cliente: escríbelo a mano'))); return; }
-                  if (rd.data && rd.data.address && estadoContrato.id === id) { campoDom.value = rd.data.address; repintaPreview(); }
+                  var dom = rd.data && rd.data.documento && rd.data.documento.address;
+                  if (dom && estadoContrato.id === id) { campoDom.value = dom; repintaPreview(); }
                 });
               }
             }
@@ -4299,9 +4305,10 @@
      dice con un toast y el editor sigue abierto. */
   function ofreceTraerFichaDoc(sb, id) {
     var ficha = { nombre: 'cliente_nombre', identidad: 'cliente_documento', email: 'cliente_email' };
-    sb.from('documentos_desactualizados').select('id,congelado,ficha,diferencias').eq('id', id).maybeSingle().then(function (r) {
+    // LAW-338 L5: por el servidor (documentos_desactualizados_datos, filtro por id del documento)
+    Promise.resolve(window.lwDatos('documentos_desactualizados_datos', { p_tipo: null, p_client: null, p_id: id })).then(function (r) {
       if (r.error) { toastMal(edT('No se ha podido comprobar si la ficha del cliente dice otra cosa: ') + r.error.message); return; }
-      var d = r.data;
+      var d = ((r.data && r.data.documentos) || [])[0] || null;
       if (!d || d.congelado || !Array.isArray(d.diferencias) || !d.diferencias.length) return;
       return cargaModuloDoc('divergencia').then(function () {
         return window.lwConfirmar({ titulo: 'La ficha del cliente dice otra cosa', cuerpo: lwTextoDivergencia(d),
@@ -4540,9 +4547,10 @@
           /* Primera factura SUELTA (sin contrato) en una empresa que lo permite: el recibí pasa a ser
              de su cliente. Los datos del cliente salen de su ficha, uno solo, con la RLS de quien emite. */
           function pasaACliente(f) {
-            return sb.from('clients').select('id,full_name,email,passport_number,registro_num').eq('id', f.client_id).maybeSingle().then(function (rc) {
-              if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente de esa factura'))); return false; }
-              var c = rc.data;
+            // LAW-338 L5: por el servidor (comprador_ficha_datos, parte «documento»)
+            return Promise.resolve(window.lwDatos('comprador_ficha_datos', { p_client: f.client_id, p_partes: ['documento'] })).then(function (rc) {
+              var c = !rc.error && rc.data && rc.data.documento;
+              if (!c) { toastMal(lwErrorHumano(rc.error || { message: edT('cliente no encontrado') }, edT('No se pudo cargar el cliente de esa factura'))); return false; }
               estadoContrato.id = null; estadoContrato.numero = ''; estadoContrato.sinContrato = true; estadoContrato.clienteId = c.id;
               estadoContrato.clienteNombre = c.full_name || f.cliente_nombre || '';
               estadoContrato.clienteDocumento = c.passport_number || c.registro_num || '';

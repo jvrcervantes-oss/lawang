@@ -242,8 +242,13 @@ Deno.serve(async (req) => {
     }
 
     // Para subir y registrar hay que VER al comprador (RLS de clients con la sesión del usuario).
-    const { data: c, error: eC } = await usuario.from('clients').select('id').eq('id', clientId).maybeSingle();
-    if (eC || !c) return json({ ok: false, error: 'comprador_no_visible' }, 403);
+    // LAW-338 L5 (16-oct-2026): la base decide por la lectura del servidor (clientes_lista_datos, la regla de clients), no
+    // leyendo la tabla, que se cierra a authenticated. Falla cerrado: error, recortado o id distinto = no visible.
+    const { data: vis, error: eC } = await usuario.rpc('clientes_lista_datos', { p_ids: [clientId] });
+    const visibles = (vis as { clientes?: { id: string }[]; recortado?: string[] } | null);
+    if (eC || !visibles || (visibles.recortado ?? []).length || !(visibles.clientes ?? []).some((x) => x.id === clientId)) {
+      return json({ ok: false, error: 'comprador_no_visible' }, 403);
+    }
 
     // ── preparar la subida ───────────────────────────────────────────────
     if (accion === 'subida_url') {
