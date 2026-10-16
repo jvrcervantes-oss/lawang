@@ -3,7 +3,7 @@
 -- bot_*, alcance A de BOT-S1; fila «sonda viva de proacl para bot_*» de contexto/seguridad_2026.md §7 de la agencia).
 --
 -- MEDIDO el 16-oct en la base de Lawang, en solo lectura (erp/sql.py lawang, con permiso del owner), con la consulta del bloque `bot`: las
--- cuatro salen ejecutables por service_role. bot_temas_resumen lo tenía CONCEDIDO a mano (20260922210000_bot_faq_temas.sql:429, «to
+-- cuatro salen ejecutables por service_role. bot_temas_resumen lo tenía CONCEDIDO a mano (20260922210000_bot_faq_temas.sql:430, «to
 -- authenticated, service_role»); las otras tres lo heredan de los permisos por defecto del esquema al crearlas (sus migraciones,
 -- 20260927150000 y 20260927171000, conceden solo a authenticated).
 --
