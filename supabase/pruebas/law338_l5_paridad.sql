@@ -16,17 +16,26 @@
 --  P5 contratos_busca y bot_pendientes como authenticated (DEFINER-lw_lector) dan lo mismo que su cuerpo leído directo.
 --  P6 tiempo de documentos_desactualizados_datos por cliente y por id: 7 llamadas seguidas (la 6.ª ya puede ir con plan genérico).
 -- Los nombres de las tablas aparecen en SQL dinámico de pg_temp: no son funciones INVOKER de public.
+-- FILAS PROPIAS (16-oct): la rama de Lawang se restaura SIN filas (rama_prueba: «cada prueba de Lawang trae sus filas»), así
+-- que P0 monta un fixture ZZ-L5 como postgres: empresa, proyecto, 5 usuarios (super_admin, agente A con el asistente, agente B
+-- sin él, admin_empresa y una sesión de portal), 4 fichas (2 de A, 2 de B), un contrato con dos compradores y datos de comprador
+-- que difieren de la ficha (fila en documentos_desactualizados), documentos, acceso al portal, hilo con mensajes, avisos y
+-- correos. Contratos, documentos, soporte, avisos y correos se siembran con session_replication_role = replica (sin los ~40
+-- disparadores del contrato ni las claves ajenas de factura: lo que se prueba es la LECTURA); usuarios y fichas, con sus
+-- disparadores (numero_usuario y numero_cliente salen de ellos).
 
 create temp table _u (uid uuid, em text, rol text, portal boolean);
 create temp table _r (chk text, uid uuid, ok boolean, lleno boolean, err text);
 create temp table _s (k text, v uuid, vs uuid[]);
 
 -- ejecuta como authenticated con las claims de la persona: el jsonb o {"__err": sqlstate}
-create function pg_temp.q(p_uid uuid, p_em text, p_sql text) returns jsonb language plpgsql as $f$
+-- p_portal: la sesión del portal lleva app_metadata.portal=true en el JWT (es_portal() lo lee), como el token real
+create function pg_temp.q(p_uid uuid, p_em text, p_sql text, p_portal boolean default false) returns jsonb language plpgsql as $f$
 declare r jsonb;
 begin
   perform set_config('request.jwt.claims', case when p_uid is null then '' else
-          json_build_object('sub', p_uid, 'role', 'authenticated', 'email', p_em)::text end, true);
+          json_build_object('sub', p_uid, 'role', 'authenticated', 'email', p_em,
+                            'app_metadata', json_build_object('portal', coalesce(p_portal, false)))::text end, true);
   execute 'set local role authenticated';
   begin execute p_sql into r;
   exception when others then r := jsonb_build_object('__err', sqlstate || ' ' || left(sqlerrm, 160)); end;
@@ -44,8 +53,8 @@ $f$;
 create function pg_temp.par(p_chk text, u _u, p_dir text, p_rpc text) returns void language plpgsql as $f$
 declare d jsonb; r jsonb;
 begin
-  d := pg_temp.q(u.uid, u.em, p_dir);
-  r := pg_temp.q(u.uid, u.em, p_rpc);
+  d := pg_temp.q(u.uid, u.em, p_dir, u.portal);
+  r := pg_temp.q(u.uid, u.em, p_rpc, u.portal);
   insert into _r values (p_chk, u.uid, d is not distinct from r, pg_temp.lleno(r),
                          coalesce(d->>'__err', r->>'__err'));
 end $f$;
@@ -57,12 +66,75 @@ do $todo$
 declare
   u _u; x uuid; k uuid; ks uuid[]; cs uuid[]; f uuid; res text := ''; v jsonb; t0 timestamptz; ms int[] := '{}';
   v_chk text; n_u int; dif int; llenos int; errs int; agente _u; nove uuid; fichas uuid[];
+  fdd uuid;
+  c_emp constant text := 'zz-l5'; pL uuid; kZ uuid; hZ uuid; cA uuid; cA2 uuid; cB uuid; cB2 uuid;
+  uS uuid := gen_random_uuid(); uA uuid := gen_random_uuid(); uB uuid := gen_random_uuid(); uE uuid := gen_random_uuid();
+  uP uuid := gen_random_uuid(); fZ uuid := gen_random_uuid();
+  eS constant text := 'zz-l5-super@prueba.invalid'; eA constant text := 'zz-l5-a@prueba.invalid';
+  eB constant text := 'zz-l5-b@prueba.invalid'; eE constant text := 'zz-l5-ae@prueba.invalid';
+  eP constant text := 'zz-l5-portal@prueba.invalid';
   DOCF constant text := 'jsonb_build_object(''id'', d.id, ''doc_type'', d.doc_type, ''storage_path'', d.storage_path, ''uploaded_at'', d.uploaded_at, ''caduca_el'', d.caduca_el)';
 begin
   if coalesce(current_setting('erp.en_rama', true), '') <> 'si' then
     raise exception 'FIN DE PRUEBAS LAW-338 L5:%', E'\nP0 esta prueba crea funciones temporales: solo corre en rama → FALLA';
   end if;
   perform set_config('request.jwt.claims', '', true);
+
+  -- ── P0 montaje del fixture propio (como postgres, sin sesión) ─────────────────────────────────────────────────────────
+  begin
+    insert into public.empresas (clave, nombre) values (c_emp, 'ZZ-L5 Empresa');
+    insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-L5 Proyecto', 'zz-l5-proyecto', c_emp, true) returning id into pL;
+    insert into auth.users (id, instance_id, email, aud, role) values
+      (uS, '00000000-0000-0000-0000-000000000000', eS, 'authenticated', 'authenticated'),
+      (uA, '00000000-0000-0000-0000-000000000000', eA, 'authenticated', 'authenticated'),
+      (uB, '00000000-0000-0000-0000-000000000000', eB, 'authenticated', 'authenticated'),
+      (uE, '00000000-0000-0000-0000-000000000000', eE, 'authenticated', 'authenticated'),
+      (uP, '00000000-0000-0000-0000-000000000000', eP, 'authenticated', 'authenticated');
+    -- A con el asistente (busca clientes), B sin él (P4c); el admin de empresa ve por la empresa de quien es dueño de la ficha
+    insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo) values
+      (uS, eS, 'ZZ-L5 Super admin', 'super_admin', 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{}'::text[], '{}'::text[], true),
+      (uA, eA, 'ZZ-L5 Agente A', 'agente', 'global', array[c_emp], array[pL], '{}'::uuid[], '{contratos,asistente}'::text[], '{contrato_general}'::text[], true),
+      (uB, eB, 'ZZ-L5 Agente B', 'agente', 'global', array[c_emp], array[pL], '{}'::uuid[], '{contratos}'::text[], '{contrato_general}'::text[], true),
+      (uE, eE, 'ZZ-L5 Admin empresa', 'admin_empresa', 'empresa', array[c_emp], '{}'::uuid[], '{}'::uuid[], '{contratos}'::text[], '{}'::text[], true);
+    insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality, kyc_status)
+      values ('ZZ-L5 Ana de A', eA, 'ZZL5A1', 'zz-l5-ana@ejemplo.invalid', '+00 000 0101', 'ZZ-domicilio A1', 'ZZ', 'pending') returning id into cA;
+    insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
+      values ('ZZ-L5 Segundo de A', eA, 'ZZL5A2', 'zz-l5-a2@ejemplo.invalid', '+00 000 0102', 'ZZ-domicilio A2', 'ZZ') returning id into cA2;
+    insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
+      values ('ZZ-L5 Bea de B', eB, 'ZZL5B1', 'zz-l5-bea@ejemplo.invalid', '+00 000 0201', 'ZZ-domicilio B1', 'ZZ') returning id into cB;
+    insert into public.clients (full_name, propietario, passport_number, email, phone, address, nationality)
+      values ('ZZ-L5 Segundo de B', eB, 'ZZL5B2', 'zz-l5-b2@ejemplo.invalid', '+00 000 0202', 'ZZ-domicilio B2', 'ZZ') returning id into cB2;
+    set local session_replication_role = replica;
+    -- contrato de A con dos compradores; el adquiriente_1 firmó con otro nombre → fila de documentos_desactualizados
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, fecha_firma, datos, datos_fields)
+      values ('ZZ-L5-001', 'contrato_general', pL, 'ZZ-L5 Proyecto', current_date, '{}'::jsonb,
+              jsonb_build_object('adq1_nombre', 'ZZ-L5 Ana Antigua', 'adq1_pasaporte', 'ZZL5A1', 'adq1_email', 'zz-l5-ana@ejemplo.invalid'))
+      returning id into kZ;
+    insert into public.contrato_compradores (contrato_id, client_id, rol) values (kZ, cA, 'adquiriente_1'), (kZ, cB, 'adquiriente_2');
+    insert into public.documents (client_id, contrato_id, doc_type, storage_path, status, uploaded_at, caduca_el) values
+      (cA, null, 'passport', 'zz-l5/a1-pasaporte.pdf', 'verified', now() - interval '3 day', current_date + 400),
+      (cA, kZ, 'signed_contract', 'zz-l5/a1-contrato.pdf', 'pending', now() - interval '2 day', null),
+      (cB, null, 'passport', 'zz-l5/b1-pasaporte.pdf', 'pending', now() - interval '1 day', current_date + 30),
+      (cB2, null, 'npwp', 'zz-l5/b2-npwp.pdf', 'pending', now(), null);
+    insert into public.portal_accesos (client_id, email, activo) values (cA, eP, true);
+    insert into public.hilo_soporte (client_id, categoria, estado, contrato_id) values (cA, 'Pagos', 'abierto', kZ) returning id into hZ;
+    insert into public.hilo_soporte (client_id, categoria, estado, factura_id) values (cB, 'General', 'resuelto', fZ);
+    insert into public.mensajes_comprador (hilo_id, client_id, de, autor, texto, creado_en) values
+      (hZ, cA, 'cliente', null, 'ZZ-L5 consulta de pago', now() - interval '1 hour'),
+      (hZ, cA, 'equipo', eA, 'ZZ-L5 respuesta del equipo', now());
+    insert into public.notificaciones (tipo, titulo, detalle, enlace, destinatario, contrato_id) values
+      ('aviso', 'ZZ-L5 aviso para A', 'detalle A', '/v4/', eA, kZ),
+      ('aviso', 'ZZ-L5 aviso para B', 'detalle B', null, eB, null),
+      ('aviso', 'ZZ-L5 aviso del portal', null, null, eP, null),
+      ('aviso', 'ZZ-L5 aviso general', null, null, null, null);
+    insert into public.correos_enviados (para, asunto, via, enviado_por, enviado_en, contrato_id, factura_id) values
+      ('zz-l5-ana@ejemplo.invalid', 'ZZ-L5 enlace de firma', 'enlace_firma', eA, now() - interval '2 hour', kZ, null),
+      ('zz-l5-bea@ejemplo.invalid', 'ZZ-L5 copia', 'manual', eB, now() - interval '1 hour', kZ, null),
+      ('zz-l5-bea@ejemplo.invalid', 'ZZ-L5 factura', 'factura', eS, now(), null, fZ);
+    set local session_replication_role = origin;
+  exception when others then
+    raise exception 'FIN DE PRUEBAS LAW-338 L5 (se deshace todo):%', pg_temp.l(false, 'P0 montaje del fixture propio: ' || sqlstate || ' ' || left(sqlerrm, 300));
+  end;
 
   -- ── quién: usuarios activos + sesiones de portal (sin ficha en usuarios) ─────────────────────────────────────────────
   insert into _u select u2.user_id, u2.email, u2.rol, false from public.usuarios u2 where u2.activo;
@@ -82,6 +154,8 @@ begin
     union all (select c.id from public.clients c order by c.created_at limit 2)) s;
   select cc.contrato_id into k from public.contrato_compradores cc
    where exists (select 1 from public.documents d where d.client_id = cc.client_id) order by cc.contrato_id limit 1;
+  select coalesce((select d.client_id from public.documentos_desactualizados d where d.client_id = any(fichas)
+                     and jsonb_typeof(d.diferencias) = 'array' and jsonb_array_length(d.diferencias) > 0 limit 1), fichas[1]) into fdd;
   select array_agg(cc.client_id order by cc.client_id) into cs from public.contrato_compradores cc where cc.contrato_id = k;
   select array_agg(z) into ks from (select distinct e.contrato_id z from public.correos_enviados e where e.contrato_id is not null limit 4) s;
   select e.factura_id into f from public.correos_enviados e where e.factura_id is not null order by e.enviado_en desc limit 1;
@@ -134,8 +208,8 @@ begin
       format('select coalesce(jsonb_agg(jsonb_build_object(''para'', e.para, ''asunto'', e.asunto, ''via'', e.via, ''enviado_por'', e.enviado_por, ''enviado_en'', e.enviado_en, ''contrato_id'', e.contrato_id, ''factura_id'', e.factura_id) order by e.enviado_en desc, e.id desc), ''[]'') from (select * from public.correos_enviados x where x.factura_id = %L order by x.enviado_en desc, x.id desc limit 200) e', f),
       format('select public.correos_registro_datos(null, %L)->''correos''', f));
     perform pg_temp.par('ficha_distinta(cliente)', u,
-      format('select coalesce(jsonb_agg(jsonb_build_object(''tipo'', d.tipo, ''id'', d.id, ''numero'', d.numero, ''congelado'', d.congelado, ''ficha'', d.ficha, ''diferencias'', d.diferencias) order by d.tipo, d.id), ''[]'') from public.documentos_desactualizados d where d.client_id = %L and jsonb_typeof(d.diferencias) = ''array'' and jsonb_array_length(d.diferencias) > 0', fichas[1]),
-      format('select public.documentos_desactualizados_datos(null, %L, null)->''documentos''', fichas[1]));
+      format('select coalesce(jsonb_agg(jsonb_build_object(''tipo'', d.tipo, ''id'', d.id, ''numero'', d.numero, ''congelado'', d.congelado, ''ficha'', d.ficha, ''diferencias'', d.diferencias) order by d.tipo, d.id), ''[]'') from public.documentos_desactualizados d where d.client_id = %L and jsonb_typeof(d.diferencias) = ''array'' and jsonb_array_length(d.diferencias) > 0', fdd),
+      format('select public.documentos_desactualizados_datos(null, %L, null)->''documentos''', fdd));
   end loop;
   -- la vista por TIPO es cara (~12 s): un usuario por rol
   for u in select distinct on (rol) * from _u order by rol, uid loop
