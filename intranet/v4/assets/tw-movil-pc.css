@@ -2445,6 +2445,42 @@ select {
   color: rgb(var(--tema-outline) / var(--tw-text-opacity, 1));
 }
 
+.before\:block::before {
+  content: var(--tw-content);
+  display: block;
+}
+
+.before\:font-label-md::before {
+  content: var(--tw-content);
+  font-family: Neue Kabel, sans-serif;
+}
+
+.before\:text-\[11px\]::before {
+  content: var(--tw-content);
+  font-size: 11px;
+}
+
+.before\:uppercase::before {
+  content: var(--tw-content);
+  text-transform: uppercase;
+}
+
+.before\:tracking-wider::before {
+  content: var(--tw-content);
+  letter-spacing: 0.05em;
+}
+
+.before\:text-outline::before {
+  content: var(--tw-content);
+  --tw-text-opacity: 1;
+  color: rgb(var(--tema-outline) / var(--tw-text-opacity, 1));
+}
+
+.before\:content-\[attr\(data-l\)\]::before {
+  --tw-content: attr(data-l);
+  content: var(--tw-content);
+}
+
 .last\:border-0:last-child {
   border-width: 0px;
 }
@@ -2615,6 +2651,26 @@ select {
 }
 
 @media (min-width: 768px) {
+  .md\:table {
+    display: table;
+  }
+
+  .md\:table-cell {
+    display: table-cell;
+  }
+
+  .md\:table-header-group {
+    display: table-header-group;
+  }
+
+  .md\:table-row-group {
+    display: table-row-group;
+  }
+
+  .md\:table-row {
+    display: table-row;
+  }
+
   .md\:w-24 {
     width: 6rem;
   }
@@ -2680,8 +2736,23 @@ select {
     padding-right: 2rem;
   }
 
+  .md\:py-0 {
+    padding-top: 0px;
+    padding-bottom: 0px;
+  }
+
+  .md\:py-3 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
   .md\:pt-8 {
     padding-top: 2rem;
+  }
+
+  .md\:before\:content-none::before {
+    --tw-content: none;
+    content: var(--tw-content);
   }
 }
 

@@ -10541,6 +10541,8 @@
   // Esta página no carga lawang.css (su [hidden]{display:none!important}): una clase flex le gana a [hidden]. Ocultar siempre por aquí.
   function ocultaRes(n, si) { n.hidden = !!si; n.style.display = si ? 'none' : ''; }
   function nombreParametro(r) { var t = RES_TEXTOS[r.clave]; return t ? tx(t[0]) : tx(r.etiqueta || r.clave); }
+  // Para el Registro de cambios de Ajustes (ajustes.js): el nombre en pantalla de un parámetro, o '' si no lo conocemos.
+  window.lwNombreParametro = function (clave) { var t = RES_TEXTOS[clave]; return t ? tx(t[0]) : ''; };
 
   REG['ajustes'] = function (sb) {
     if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }

@@ -242,6 +242,12 @@
     if (v === '') return '(' + T('vacío') + ')';
     return typeof v === 'string' ? v : JSON.stringify(v);
   }
+  // El ajuste por su nombre en pantalla (el de esta página, o el de Reservas que expone datos.js). Sin nombre conocido, '' y sale la clave.
+  function nombreAjusteLog(clave) {
+    var todos = CAMPOS.empresa.concat(CAMPOS_CORREO_BASE || CAMPOS.correo, EXTRA_CORREO, DIRECCIONES);
+    for (var i = 0; i < todos.length; i++) if (todos[i].clave === clave) return T(todos[i].etiqueta);
+    return typeof window.lwNombreParametro === 'function' ? (window.lwNombreParametro(clave) || '') : '';
+  }
   function cargaRegistro(forzar) {
     var cont = document.getElementById('lw-aj-registro');
     if (!cont || (registroCargado && !forzar)) return;
@@ -267,16 +273,19 @@
         return;
       }
       var th = function (t, extra) { return '<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline' + (extra || '') + '">' + esc(T(t)) + '</th>'; };
-      cont.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="border-b border-outline-variant/60 bg-surface-container-low">' +
+      // En móvil cada fila es una ficha: las celdas van una debajo de otra, cada una con su rótulo (data-l). En escritorio, la tabla de siempre.
+      var td = function (t, color) { return '<td class="px-5 py-1 md:py-3 block md:table-cell font-body-sm text-body-sm before:content-[attr(data-l)] before:block before:font-label-md before:text-[11px] before:uppercase before:tracking-wider before:text-outline md:before:content-none ' + color + '" data-l="' + esc(T(t)) + '">'; };
+      cont.innerHTML = '<div class="overflow-x-auto"><table class="block md:table w-full text-left border-collapse"><thead class="hidden md:table-header-group"><tr class="border-b border-outline-variant/60 bg-surface-container-low">' +
         th('Cuándo') + th('Quién') + th('Ajuste') + th('Antes') + th('Después') + th('Motivo') +
-        '</tr></thead><tbody>' + filas.map(function (f) {
-          return '<tr class="border-b border-outline-variant/30" data-ajuste-log="' + esc(f.id) + '">' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-outline">' + esc(fecha(f.cuando)) + '</td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-on-surface">' + esc(f.quien) + '</td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-on-surface"><code>' + esc(f.tabla + ' · ' + f.clave) + '</code></td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-on-surface-variant">' + esc(valorTxt(f.antes)) + '</td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-on-surface">' + esc(valorTxt(f.despues)) + '</td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-outline">' + esc(f.motivo || '—') + '</td></tr>';
+        '</tr></thead><tbody class="block md:table-row-group">' + filas.map(function (f) {
+          var nom = nombreAjusteLog(f.clave);
+          return '<tr class="block md:table-row py-3 md:py-0 border-b border-outline-variant/30" data-ajuste-log="' + esc(f.id) + '">' +
+            td('Cuándo', 'text-outline') + esc(fecha(f.cuando)) + '</td>' +
+            td('Quién', 'text-on-surface') + esc(f.quien) + '</td>' +
+            td('Ajuste', 'text-on-surface') + (nom ? '<span title="' + esc(f.tabla + ' · ' + f.clave) + '">' + esc(nom) + '</span>' : '<code>' + esc(f.tabla + ' · ' + f.clave) + '</code>') + '</td>' +
+            td('Antes', 'text-on-surface-variant break-words') + esc(valorTxt(f.antes)) + '</td>' +
+            td('Después', 'text-on-surface break-words') + esc(valorTxt(f.despues)) + '</td>' +
+            td('Motivo', 'text-outline') + esc(f.motivo || '—') + '</td></tr>';
         }).join('') + '</tbody></table></div>' +
         (r.data.hay_mas ? '<p class="px-8 py-4 border-t border-outline-variant/40 font-body-sm text-body-sm text-outline">' + esc(T('Se muestran los 200 últimos cambios.')) + '</p>' : '');
     });
@@ -1042,6 +1051,18 @@
       if (b && !b.disabled && b.offsetParent !== null) { ev.preventDefault(); b.click(); }
     });
     cablePestanas();
+    var pu = document.getElementById('lw-panel-usuarios');
+    if (pu && !pu.querySelector('[data-accion="ajustes-ir-usuarios"]')) {
+      var ir = document.createElement('div');
+      ir.className = 'px-8 pb-6';
+      var a = document.createElement('a');
+      a.href = '../usuarios/';
+      a.setAttribute('data-accion', 'ajustes-ir-usuarios');
+      a.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md';
+      a.textContent = T('Abrir Usuarios');
+      ir.appendChild(a);
+      pu.appendChild(ir);
+    }
     document.addEventListener('click', function (ev) {
       var b = ev.target.closest && ev.target.closest('[data-accion]');
       if (!b || !b.hasAttribute('data-real')) return;

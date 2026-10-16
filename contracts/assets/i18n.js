@@ -5772,6 +5772,7 @@
     'Código técnico': 'Technical code',
     'No se ha podido leer el estado del servidor': 'The server status could not be read',
     'Direcciones de los correos': 'Email addresses',
+    'Abrir Usuarios': 'Open Users',
     'Quién firma y adónde se responde': 'Who signs and where replies go',
     'Quién recibe los avisos internos': 'Who receives internal alerts',
     'Avisos de reservas y del CRM, y asunto': 'Reservation and CRM alerts, and subject',
