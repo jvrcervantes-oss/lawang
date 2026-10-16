@@ -223,6 +223,8 @@
   var MASCOTA_V = '20260930b';
   /* novedades.js (el pop-up de novedades, 30-sep-2026) tampoco lo sella sella_assets: sube NOVEDADES_V al cambiarlo. */
   var NOVEDADES_V = '20261014';
+  /* aviso-ia.js (la invitación de la cabecera a conectar el asistente de IA, 16-oct-2026) tampoco: sube AVISO_IA_V al cambiarlo. */
+  var AVISO_IA_V = '20261016';
   /* MOVIMIENTO (26-sep-2026, owner: mezcla A+B+D). La entrada de cada pantalla
      vive en assets/motion.js; aquí solo se MARCA `html.lw-mov`, ya, antes de que
      vuelva ninguna consulta, para que shell.css retenga el contenido hasta que
@@ -1172,6 +1174,13 @@
         var sn = document.createElement('script');
         sn.src = ROOT + 'assets/novedades.js?v=' + NOVEDADES_V;
         document.head.appendChild(sn);
+      }
+      /* La invitación a conectar el asistente de IA, en la cabecera (MCP de Lawang, 16-oct-2026). A quién le sale lo decide
+         la base (ia_mis_conexiones) dentro de aviso-ia.js. En una instancia del ERP no nace: las ia_* solo existen en Lawang. */
+      if (aut && aut.ficha && !window.AXW_NUCLEO_OPERACION) {
+        var sa = document.createElement('script');
+        sa.src = ROOT + 'assets/aviso-ia.js?v=' + AVISO_IA_V;
+        document.head.appendChild(sa);
       }
     });
   }

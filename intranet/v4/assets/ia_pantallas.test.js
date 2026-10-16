@@ -111,6 +111,13 @@ igual(IA.motivoTexto('persona'), 'la cortaste tú', 'motivo en llano');
 igual(IA.motivoTexto('otro'), 'cortada', 'motivo desconocido: «cortada» a secas');
 igual(IA.asistenteTexto('chatgpt'), 'ChatGPT', 'nombre del asistente');
 igual(IA.urlConector(), '', 'sin guard.js (lwEdge) no se inventa la dirección del conector');
+const bl = (d) => { const b = IA.bloques(d); return [b.conLista, b.vacio, b.claude && b.claude.map((k) => k.id), b.chatgpt && b.chatgpt.map((k) => k.id)]; };
+igual(bl({ conexiones: [] }), [false, false, null, null], 'bloques sin lista de la base: los dos asistentes, sin identificador');
+igual(bl(null), [false, false, null, null], 'bloques sin datos no revienta');
+igual(bl({ clientes: [] }), [true, true, [], []], 'bloques con la lista vacía: ningún asistente activo');
+igual(bl({ clientes: [{ id: 'c1', asistente: 'claude' }] }), [true, false, ['c1'], []], 'bloques solo con Claude: no enseña ChatGPT');
+igual(bl({ clientes: [{ id: 'g1', asistente: 'chatgpt' }, null] }), [true, false, [], ['g1']], 'bloques solo con ChatGPT (y una fila nula ignorada)');
+igual(bl({ clientes: [{ id: 'c1', asistente: 'claude' }, { id: 'g1', asistente: 'chatgpt' }, { id: 'c2', asistente: 'claude' }] }), [true, false, ['c1', 'c2'], ['g1']], 'bloques con los dos: cada identificador en su asistente');
 
 /* ── 5. frontera y pintado ── */
 [['ia-conexiones.js', comun], ['ajustes-ia.js', aj]].forEach(([n, js]) => {
@@ -151,11 +158,44 @@ igual(/VUELTA = \{\s*claude: 'https:\/\/claude\.ai\/api\/mcp\/auth_callback',\s*
 const rv = /when 'claude'\s+then p_uri ~ '([^']+)'\s+when 'chatgpt' then p_uri ~ '([^']+)'/.exec(p4);
 igual(!!rv && new RegExp(rv[1]).test('https://claude.ai/api/mcp/auth_callback') && new RegExp(rv[2]).test('https://chatgpt.com/connector_platform_oauth_redirect'), true, 'las direcciones propuestas pasan la validación de la base');
 
-/* ── 7. inglés de cada frase de las dos pantallas ── */
+/* ── 6b. la invitación de la cabecera (aviso-ia.js, 16-oct-2026, sesión mcp-aviso; revisión previa #403) ── */
+const avisoJs = leer('intranet', 'v4', 'assets', 'aviso-ia.js');
+const AV = require('./aviso-ia.js');
+const VIVA = { id: 'v', viva: true, revocada_en: null }, CADUCADA = { id: 'k', viva: false, revocada_en: null }, CORTADA = { id: 'x', viva: false, revocada_en: 't' };
+const base = (o) => Object.assign({ encendido: true, permiso: true, conexiones: [] }, o);
+igual([
+  AV.queAviso(base({}), true), AV.queAviso(base({}), false),
+  AV.queAviso(base({ clientes: [{ id: 'c', asistente: 'claude' }] }), false), AV.queAviso(base({ clientes: [] }), true),
+  AV.queAviso(base({ encendido: false }), true), AV.queAviso(base({ permiso: false }), true),
+  AV.queAviso(base({ conexiones: [VIVA] }), true), AV.queAviso(base({ conexiones: [CADUCADA] }), true),
+  AV.queAviso(base({ conexiones: [CORTADA] }), true), AV.queAviso(base({ conexiones: [CADUCADA, VIVA] }), true),
+  AV.queAviso(base({ conexiones: null }), true), AV.queAviso(null, true)
+], ['conecta', null, 'conecta', null, null, null, null, 'reconecta', 'conecta', null, null, null],
+'aviso de la cabecera: sale con IA encendida + permiso + 0 vivas; sin la lista de asistentes, solo al super admin; con ella, si hay uno activo; caducada sola = «vuelve a conectar»');
+const ahora = 1e12;
+igual([AV.fresco({ t: ahora - 60000, aviso: 'conecta' }, ahora), AV.fresco({ t: ahora - AV.MINUTOS * 60000, aviso: null }, ahora),
+  AV.fresco({ t: ahora + 5, aviso: null }, ahora), AV.fresco({ t: ahora, aviso: 'otro' }, ahora), AV.fresco(null, ahora)],
+  [true, false, false, false, false], 'el recuerdo de la respuesta vale 3 min, nunca del futuro ni con un valor raro');
+{
+  const sin = avisoJs.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  igual(rpcDe(avisoJs), ['ia_mis_conexiones'], 'aviso-ia.js solo lee ia_mis_conexiones');
+  if (/\.from\(|innerHTML|insertAdjacentHTML|outerHTML/.test(sin)) falla('aviso-ia.js lee una tabla o pinta con HTML');
+  if (/querySelector[^;]*(Conecta|Notificaciones|Buscar)/.test(sin)) falla('aviso-ia.js se engancha por un rótulo: va por data-lw="k-avisos"');
+  igual(/querySelector\('header \[data-lw="k-avisos"\]'\)/.test(sin) && /'data-accion', 'aviso-ia-abrir'/.test(sin) && /'data-accion', 'aviso-ia-cerrar'/.test(sin), true, 'aviso-ia.js se engancha por la campana y lleva data-accion');
+  igual(/raiz\.AXW_NUCLEO_OPERACION/.test(sin) && /\/intranet\/v4\/ia\//.test(sin), true, 'aviso-ia.js no nace en una instancia ni en /v4/ia/');
+  igual(/#[0-9A-Fa-f]{3,8}\b/.test(sin), false, 'aviso-ia.js no lleva un hex suelto: color por token');
+  igual(/@media \(max-width:639px\)\{\.lw-aviso-ia\{display:none\}\}/.test(sin), true,
+    'aviso-ia.js no sale por debajo de 640 px (le quitaba una línea al nombre de la cabecera: medido el 16-oct)');
+}
+igual(/var AVISO_IA_V = '\d{8}[a-z]?';/.test(nav) && /aut && aut\.ficha && !window\.AXW_NUCLEO_OPERACION\) \{\s+var sa = document\.createElement\('script'\);\s+sa\.src = ROOT \+ 'assets\/aviso-ia\.js\?v=' \+ AVISO_IA_V;/.test(nav), true,
+  'nav.js inyecta aviso-ia.js tras LW_AUTH, con su sello AVISO_IA_V y nunca en una instancia del ERP');
+
+/* ── 7. inglés de cada frase de las dos pantallas y de la invitación ── */
 const w = {}; new Function('window', leer('contracts', 'assets', 'i18n.js'))(w);
 const EN = w.LW_EN;
 const frases = new Set();
-[comun, aj].forEach((js) => {
+Object.values(AV.TEXTOS).forEach((t) => frases.add(t));
+[comun, aj, avisoJs].forEach((js) => {
   for (const m of js.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)) frases.add(m[1].replace(/\\'/g, "'"));
   ['MOTIVOS', 'ERR', 'ERR_CLIENTE', 'ERR_CORTAR', 'ERR_PERMISO'].forEach((n) => {
     const b = bloque(js, n);
