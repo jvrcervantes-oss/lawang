@@ -83,8 +83,8 @@ begin
     if not has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
       grant execute on function public.ia_puente(text, jsonb) to anon;   -- la 110500 lo hace en la viva con el OK del owner
     end if;
-    -- herramienta de prueba: dueño lw_lector, como las mcp_*; devuelve quién es la persona dentro
-    grant create on schema privado to lw_lector, ia_puente_rol;
+    -- herramienta de prueba: dueño postgres, como las puertas privado.mcp_<x> de P2; devuelve quién es la persona dentro
+    grant create on schema privado to ia_puente_rol;
     create function privado.mcp_zz_quien() returns jsonb language plpgsql security definer set search_path = '' as $q$
     declare p jsonb;
     begin
@@ -93,8 +93,8 @@ begin
       perform privado.mcp_cierra((p ->> 'llamada')::bigint, 1, 'ok');
       return jsonb_build_object('uid', public.uid_sesion(), 'super', public.es_super_admin());
     end $q$;
-    alter function privado.mcp_zz_quien() owner to lw_lector;
-    revoke all on function privado.mcp_zz_quien() from public, anon, authenticated;
+    alter function privado.mcp_zz_quien() owner to postgres;
+    revoke all on function privado.mcp_zz_quien() from public, anon, authenticated, service_role;
     grant execute on function privado.mcp_zz_quien() to ia_puente_rol;
     create or replace function privado.ia_despacha(p_herramienta text, p_args jsonb) returns jsonb language plpgsql
       security definer set search_path = '' as $q$
@@ -105,7 +105,7 @@ begin
       end case;
     end $q$;
     alter function privado.ia_despacha(text, jsonb) owner to ia_puente_rol;
-    revoke create on schema privado from lw_lector, ia_puente_rol;
+    revoke create on schema privado from ia_puente_rol;
     r := r || pg_temp.l(true, 'P montaje: A super admin con permiso de IA, B agente sin permiso, cliente Claude activo, tope 3');
   exception when others then
     raise exception using message = replace(c_fin, '%', r || pg_temp.l(false, 'P montaje: ' || sqlstate || ' ' || left(sqlerrm, 300)));

@@ -165,6 +165,22 @@ test('sin llaves: el directorio de la edge no nombra la clave de servicio ni pid
   }
 });
 
+test('la lista de la edge es EXACTAMENTE la del despacho de la base (última migración que define privado.ia_despacha)', () => {
+  const dir = join(AQUI, '..', '..', 'migrations');
+  const con = readdirSync(dir).filter((f) => f.endsWith('.sql') && /function privado\.ia_despacha\(/.test(readFileSync(join(dir, f), 'utf8'))).sort();
+  assert.ok(con.length > 0, 'ninguna migración define privado.ia_despacha');
+  const t = readFileSync(join(dir, con[con.length - 1]), 'utf8');
+  const cuerpo = t.slice(t.lastIndexOf('function privado.ia_despacha('));
+  const enBase = [...cuerpo.matchAll(/when '([a-z_]+)'\s+then return privado\.mcp_\1\(/g)].map((m) => m[1]).sort();
+  assert.deepEqual(enBase, HERRAMIENTAS.map((h) => h.name).sort());
+  for (const h of HERRAMIENTAS) {
+    const permitidas = (cuerpo.match(new RegExp(`when '${h.name}'\\s+then array\\[([^\\]]*)\\]`)) || [])[1];
+    assert.notEqual(permitidas, undefined, h.name + ' sin lista de argumentos en la base');
+    const enBaseArgs = [...permitidas.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
+    assert.deepEqual(enBaseArgs, Object.keys(h.inputSchema.properties).sort(), h.name);
+  }
+});
+
 test('herramientas: nombres únicos en minúscula, esquema de objeto y descripción que avisa de que son datos', () => {
   const nombres = HERRAMIENTAS.map((h) => h.name);
   assert.equal(new Set(nombres).size, nombres.length);

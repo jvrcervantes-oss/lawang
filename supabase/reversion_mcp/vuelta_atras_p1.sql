@@ -41,7 +41,7 @@ drop table if exists public.ia_clientes;
 drop table if exists public.ia_ajustes;
 revoke execute on function public.uid_sesion() from ia_puente_rol;
 revoke execute on function public.es_super_admin() from ia_puente_rol;
-revoke usage on schema privado from ia_puente_rol, lw_lector;
+revoke usage on schema privado from ia_puente_rol;
 revoke usage on schema public from ia_puente_rol;
 drop role if exists ia_puente_rol;
 commit;

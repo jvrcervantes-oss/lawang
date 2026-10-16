@@ -14,8 +14,8 @@
 --      MFA; NO escribe en auth) y privado.ia_aleatorio (32 bytes de pgcrypto).
 --   4. privado.mcp_puerta / privado.mcp_cierra: encendido, cliente activo, permiso, usuario activo, sin ban, contraseña sin
 --      cambiar desde que se conectó, 7 días, tope diario con contador atómico, y registro en ia_llamadas. Una denegación
---      DEVUELVE el resultado y confirma la transacción (no lanza: el registro se perdería). EXECUTE solo a lw_lector (dueño de
---      las mcp_*); postgres, dueño de mcp_cambios_estado_semana, las ejecuta de por sí.
+--      DEVUELVE el resultado y confirma la transacción (no lanza: el registro se perdería). Sin EXECUTE para nadie: las llaman
+--      las puertas privado.mcp_<x> de P2, con dueño postgres, que las alcanza por pertenencia a ia_puente_rol.
 --   5. public.ia_puente(accion, datos): la entrada de la edge. pide · canjea (PKCE S256 dentro de la base) · refresca (rotación,
 --      reuso = revoca) · revoca · comprueba · llama (fija claims del usuario y despacha). Los tokens llegan EN CLARO y se
 --      convierten en hash aquí (un hash de un volcado no sirve para llamar). Rechaza GET y cualquier `Prefer: tx=`.
@@ -46,7 +46,7 @@ end $$;
 alter role ia_puente_rol nologin noinherit nobypassrls nocreatedb nocreaterole noreplication;
 grant ia_puente_rol to postgres with inherit true, set true;
 grant usage on schema public to ia_puente_rol;
-grant usage on schema privado to ia_puente_rol, lw_lector;
+grant usage on schema privado to ia_puente_rol;   -- lw_lector NO: el invariante «lw_lector es un lector» de salud_lawang (patas d/e)
 -- CREATE solo mientras se cambian dueños (ALTER OWNER exige CREATE del nuevo dueño en el esquema); se revoca al final.
 grant create on schema public to ia_puente_rol;
 grant create on schema privado to ia_puente_rol;
@@ -578,9 +578,7 @@ begin
     execute format('revoke all on function %s from public, anon, authenticated, service_role', f);
   end loop;
 end $$;
--- las mcp_* (dueño lw_lector) llaman a la puerta y al cierre
-grant execute on function privado.mcp_puerta(text, jsonb) to lw_lector;
-grant execute on function privado.mcp_cierra(bigint, integer, text) to lw_lector;
+-- la puerta y el cierre: sin grants; las puertas privado.mcp_<x> de P2 (dueño postgres) los alcanzan por pertenencia a ia_puente_rol
 -- la página de conexión (vía la edge) y «apps conectadas»
 grant execute on function public.ia_conexion_autoriza(text) to authenticated;
 grant execute on function public.ia_conexion_revoca(uuid) to authenticated;
