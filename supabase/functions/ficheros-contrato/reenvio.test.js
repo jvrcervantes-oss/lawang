@@ -1,7 +1,7 @@
 /* node reenvio.test.js — la regla de «Reenviar todas» (ficheros-contrato/reenvio.ts, mejora 5b, 17-oct-2026), con el .ts REAL
    (node ≥ 22.18 le quita los tipos), sin red. Qué fija (revisión previa Backend + Seguridad del 17-oct): solo se reenvía la
    ÚNICA firma pendiente si ya caducó; nunca con una firma a medias, un contrato bloqueado o liberado, un firmante que ya firmó
-   o sin huella del documento; el documento tiene que casar con la huella; y el tope por persona. */
+   o sin huella del documento; el documento tiene que casar con la huella; y el tope de todo el equipo. */
 const assert = require('assert');
 const path = require('path');
 const { pathToFileURL } = require('url');

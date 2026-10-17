@@ -1311,7 +1311,11 @@
      confirmación con esa lista, luego el envío con el resultado en cada fila.
      El botón nace OCULTO y solo aparece si el servidor ya sabe hacerlo (una `ver` del primero contesta): así esta pantalla
      puede publicarse antes que la edge sin enseñar un botón muerto. Decisión por defecto (CEO, 17-oct). */
-  var REENVIO_TOPE = 20;   // el mismo tope por persona que pone el servidor (reenvio.ts → TOPE_REENVIOS)
+  var REENVIO_TOPE = 20;   // el mismo tope de todo el equipo que pone el servidor (reenvio.ts → TOPE_REENVIOS)
+  // Pausa entre dos reenvíos de verdad: la cola manda los enlaces de firma sin espera y cada encolado la despierta, así que
+  // el ritmo real es el de este bucle; 5 s es el esperaMs de cola-correos-envio (Backend, 17-oct: una ráfaga y Hostinger
+  // bloquea el buzón, y con él TODOS los correos de Lawang).
+  var REENVIO_PAUSA_MS = 5000;
   var REENVIO_MOTIVOS = {
     cola_apagada: 'El correo de firma por la cola está apagado: reenvíalo desde el generador.',
     bloqueado: 'El contrato está bloqueado.',
@@ -1348,7 +1352,7 @@
     var textoError = function (r) {
       if (r.status === 403) return T('No puedes mandar este contrato a firma.');
       if (r.status === 401) return T('Tu sesión ha caducado. Vuelve a entrar.');
-      if (r.status === 429 && r.j.error === 'demasiados_reenvios') return T('Has llegado al tope de %n reenvíos en %m minutos: espera y vuelve a intentarlo.', { n: r.j.tope, m: r.j.minutos });
+      if (r.status === 429 && r.j.error === 'demasiados_reenvios') return T('El equipo ha llegado al tope de %n reenvíos en %m minutos: espera y vuelve a intentarlo.', { n: r.j.tope, m: r.j.minutos });
       return String(r.j.error || T('No se ha podido.'));
     };
     var b = document.createElement('button');
@@ -1393,11 +1397,12 @@
         return pide.then(function (vale) {
           if (!vale) { b.disabled = false; b.textContent = T('Reenviar todas'); return; }
           b.textContent = T('Reenviando…');
-          var parado = false, bien = 0;
+          var parado = false, bien = 0, primero = true;
+          var espera = function () { if (primero) { primero = false; return Promise.resolve(); } return new Promise(function (ok) { setTimeout(ok, REENVIO_PAUSA_MS); }); };
           return corre(si.map(function (v) { return v.cid; }), function (cid) {
             if (parado) { pon(cid, T('No enviado: se ha parado antes.'), 'mal'); return Promise.resolve(); }
-            pon(cid, T('Reenviando…'), '');
-            return llama({ contrato_id: cid }).then(function (r) {
+            pon(cid, T('En cola…'), '');
+            return espera().then(function () { pon(cid, T('Reenviando…'), ''); return llama({ contrato_id: cid }); }).then(function (r) {
               if (r.status === 200 && r.j.correo === true) { bien++; pon(cid, T('Enviado a %e', { e: r.j.para || '—' }), 'ok'); return; }
               if (r.status === 200 && r.j.puede === false) { pon(cid, motivo(r.j.motivo), 'mal'); return; }
               if (r.status === 200 && r.j.enlace) { pon(cid, motivo(r.j.motivo), 'mal'); return; }

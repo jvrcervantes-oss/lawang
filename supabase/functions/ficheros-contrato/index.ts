@@ -294,10 +294,11 @@ Deno.serve(async (req) => {
       // la huella se comprueba en el envío, y si no casa la fila lo dice entonces (documento_cambiado / falta_el_documento).
       if (body.ver === true) return json({ ok: true, puede: true, ...base });
 
-      // Tope por persona, contado en la base (no en la memoria de esta edge): ver reenvio.ts.
+      // Tope de TODO el equipo (no por persona: dos admins a la vez doblarían la ráfaga), contado en la base y no en la
+      // memoria de esta edge: ver reenvio.ts.
       const desde = new Date(Date.now() - VENTANA_TOPE_MIN * 60_000).toISOString();
       const { count, error: eT } = await admin.from('contrato_firmas').select('id', { count: 'exact', head: true })
-        .eq('anulado_por', quien.user.email ?? '').eq('anulado_motivo', 'nuevo_enlace').gte('anulado_en', desde);
+        .eq('anulado_motivo', 'nuevo_enlace').gte('anulado_en', desde);
       if (eT) return json({ ok: false, error: 'no_se_pudo_comprobar_el_tope' }, 500);
       if (superaTope(count ?? 0)) return json({ ok: false, error: 'demasiados_reenvios', tope: TOPE_REENVIOS, minutos: VENTANA_TOPE_MIN }, 429);
 
@@ -313,8 +314,11 @@ Deno.serve(async (req) => {
 
       // contrato_envia_firma anula TODAS las pendientes del contrato: justo antes se vuelve a mirar que la única sigue siendo
       // la caducada que se comprobó (revisor, 17-oct). Si entretanto alguien generó un enlace vivo desde el generador, no se
-      // le anula. Queda una ventana de milisegundos entre esta lectura y la RPC; cerrarla del todo pide que la RPC reciba el
-      // id esperado (migración, anotada para Backend).
+      // le anula. Entre esta lectura y la RPC quedan milisegundos, y se aceptan (Backend, 17-oct): dos reenvíos a la vez los
+      // para el índice único contrato_firmas_un_pendiente_por_rol (la segunda RPC da 23505 y se deshace), y un enlace del
+      // generador creado justo en ese hueco queda anulado y su envío falla a la vista por el candado de destino de
+      // send-contract-email. Si algún día se quiere cerrar del todo: una RPC NUEVA (contrato_reenvia_caducada con el id
+      // esperado), nunca un parámetro con valor por defecto en contrato_envia_firma (dos versiones y PostgREST no elige).
       const { data: rf2, error: eF2 } = await admin.from('contrato_firmas')
         .select('id, estado, expira_en, firmante_nombre, firmante_email, firmante_rol, orden, snapshot_hash, creado_en').eq('contrato_id', contratoId);
       if (eF2) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);

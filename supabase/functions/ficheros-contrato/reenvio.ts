@@ -25,8 +25,9 @@ export type FilaFirma = {
 export type ContratoReenvio = { bloqueado: boolean | null; liberado_en: string | null } | null;
 export type Decision = { ok: true; fila: FilaFirma } | { ok: false; motivo: string };
 
-// Tope por persona: reenvíos hechos con esta acción en la ventana. La cola manda los enlaces de firma (prioridad 1) sin
-// pausa entre correos y Hostinger ya bloqueó admin@ por una ráfaga (app.html, «Asunto con el número del documento»).
+// Tope de todo el equipo: enlaces sustituidos en la ventana, los haga quien los haga (Backend, 17-oct: contado por persona,
+// dos admins eran 40). La cola manda los enlaces de firma (prioridad 1) sin pausa entre correos y Hostinger ya bloqueó
+// admin@ por una ráfaga (app.html, «Asunto con el número del documento»); un bloqueo pausa TODOS los correos de Lawang.
 // 20 en 15 min: decisión por defecto del 17-oct (Backend propuso 20 por pulsación); se cambia aquí.
 export const TOPE_REENVIOS = 20;
 export const VENTANA_TOPE_MIN = 15;
@@ -55,9 +56,9 @@ export function documentoCasa(hashFijo: string, fila: FilaFirma): boolean {
   return /^[0-9a-f]{64}$/.test(hashFijo) && hashFijo === fila.snapshot_hash;
 }
 
-/** `hechos` = enlaces que esta persona ha sustituido en la ventana: filas de contrato_firmas con `anulado_por` = su email y
- *  `anulado_motivo` = 'nuevo_enlace' (lo apunta contrato_envia_firma). Cuenta también los del generador: nadie regenera 20
- *  contratos en un cuarto de hora a mano, y así el freno vive en la base y no en la memoria de la edge. */
+/** `hechos` = enlaces sustituidos en la ventana por cualquiera del equipo: filas de contrato_firmas con `anulado_motivo` =
+ *  'nuevo_enlace' (lo apunta contrato_envia_firma). Cuenta también los del generador: nadie regenera 20 contratos en un
+ *  cuarto de hora a mano, y así el freno vive en la base y no en la memoria de la edge. */
 export function superaTope(hechos: number): boolean {
   return hechos >= TOPE_REENVIOS;
 }

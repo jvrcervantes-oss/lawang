@@ -6,7 +6,7 @@
      · el correo va por la cola (correo_encolar con la firma nueva); si encolar falla se dice y no se cae a otro envío;
      · la 2.ª llamada con el mismo contrato no crea otro enlace ni otro correo;
      · documento cambiado, cola apagada, liberado: no se crea nada;
-     · el tope por persona corta antes de la RPC. */
+     · el tope de todo el equipo (no por persona) corta antes de la RPC. */
 const assert = require('assert');
 const path = require('path');
 const { pathToFileURL } = require('url');
@@ -21,7 +21,7 @@ const HASH = crypto.createHash('sha256').update(DOC).digest('hex');
 let E;   // estado de la base de mentira
 function reinicia(o = {}) {
   E = Object.assign({
-    sesion: true, agente: true, permiso: true, cola: 'cola', doc: DOC, liberado: null, encolarFalla: false, anuladosPorMi: 0,
+    sesion: true, agente: true, permiso: true, cola: 'cola', doc: DOC, liberado: null, encolarFalla: false, anuladosEquipo: 0,
     firmas: [{ id: 'f-cad', contrato_id: CID, estado: 'pendiente', expira_en: '2026-10-01T00:00:00Z', firmante_nombre: 'Ana Compradora',
       firmante_email: 'ana@ejemplo.com', firmante_rol: 'adquiriente_1', orden: 1, snapshot_hash: HASH, creado_en: '2026-09-01T00:00:00Z' }],
     eventos: [], llamadas: [],
@@ -49,7 +49,8 @@ function consulta(tabla) {
     limit() { return q; },
     maybeSingle() { const f = filas(); return Promise.resolve(f.length > 1 ? { data: null, error: { message: 'varias' } } : { data: f[0] ?? null, error: null }); },
     then(res, rej) {
-      if (cuenta) return Promise.resolve({ count: tabla === 'contrato_firmas' ? E.anuladosPorMi + filas().length : 0, error: null }).then(res, rej);
+      if (cuenta) { E.filtrosTope = filtros.map(([, k]) => k); }
+      if (cuenta) return Promise.resolve({ count: tabla === 'contrato_firmas' ? E.anuladosEquipo + filas().length : 0, error: null }).then(res, rej);
       return Promise.resolve({ data: filas(), error: null }).then(res, rej);
     },
   };
@@ -147,9 +148,10 @@ const hizo = (fn) => E.llamadas.filter((l) => l[1] === fn);
   igual(E.firmas.find((f) => f.id === 'f-viva').estado, 'pendiente', 'el enlace vivo del otro sigue vivo');
 
   // ── tope ──
-  reinicia({ anuladosPorMi: 20 }); r = await llama(PIDE);
-  igual([r.status, r.cuerpo.error], [429, 'demasiados_reenvios'], 'en el tope se para'); igual(hizo('contrato_envia_firma').length, 0, 'antes de la RPC');
-  reinicia({ anuladosPorMi: 19 }); r = await llama(PIDE); igual(r.cuerpo.correo, true, 'justo por debajo del tope pasa');
+  reinicia({ anuladosEquipo: 20 }); r = await llama(PIDE);
+  igual([r.status, r.cuerpo.error], [429, 'demasiados_reenvios'], 'en el tope se para');
+  igual(E.filtrosTope.includes('anulado_por'), false, 'el tope cuenta a todo el equipo, no solo a quien pulsa'); igual(hizo('contrato_envia_firma').length, 0, 'antes de la RPC');
+  reinicia({ anuladosEquipo: 19 }); r = await llama(PIDE); igual(r.cuerpo.correo, true, 'justo por debajo del tope pasa');
 
   // ── encolar falla ──
   reinicia({ encolarFalla: true }); r = await llama(PIDE);
