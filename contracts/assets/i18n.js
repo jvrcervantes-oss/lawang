@@ -5949,6 +5949,7 @@
     // Nuevo cliente en pasos (17-oct-2026, mejora 6)
     'Quién es': 'Who they are',
     'Pasos del alta': 'Sign-up steps',
+    '(hecho)': '(done)',
     'Por la nacionalidad (%p). Se puede cambiar.': 'From the nationality (%p). You can change it.',
     'Falta 1 de %m datos obligatorios': '1 of %m required fields missing',
     'Directorio de Clientes & Inversores': 'Clients & Investors Directory',

@@ -669,12 +669,17 @@
       /* alta en pasos (mejora 6, 17-oct-2026): solo se ve el paso en curso; la lista de pasos lleva a los ya vistos */
       '.las-form > [data-paso][hidden]{display:none!important}',
       '.las-pasos{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}',
-      '.las-paso-b{display:inline-flex;align-items:center;padding:8px 14px;border-radius:9999px;border:1px solid var(--las-borde);background:#fff;font:500 13px/1.2 Jost,system-ui,sans-serif;color:#57534e;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .12s var(--las-sale)}',
+      '.las-paso-b{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 16px;border-radius:9999px;border:1px solid var(--las-borde);background:#fff;font:500 13px/1.2 Jost,system-ui,sans-serif;color:#57534e;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .12s var(--las-sale)}',
       '.las-paso-b:hover:not(:disabled){border-color:#d6cfc2}',
       '.las-paso-b:active:not(:disabled){transform:scale(.97)}',
       '.las-paso-b.las-paso-hecho{color:var(--las-lago);border-color:var(--las-lago)}',
-      '.las-paso-b[aria-current="step"]{background:var(--las-lago);border-color:var(--las-lago);color:#fff;font-weight:600}',
-      '.las-paso-b:disabled{cursor:default;background:transparent;color:var(--las-apagado)}',
+      '.las-paso-b[aria-current="step"]{background:var(--las-lago);border-color:var(--las-lago);color:#fff}',
+      '.las-paso-b:disabled{cursor:default;background:transparent;color:var(--las-apagado);border-style:dashed}',
+      '.las-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+      /* el alta en pasos (las-con-pasos): sin el número repetido en cada sección ni el «Solo empresa» en un paso que solo
+         existe para empresas (Diseño, 17-oct). Acotado a la clase: el formulario de ~l.903 comparte esta hoja. */
+      '.las-con-pasos .las-form > [data-paso] .las-n{display:none}',
+      '.las-con-pasos [data-paso="empresa"] :is(.las-etq-sec,.las-insignia,.las-bloque-s){display:none}',
       '.las-pie{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 32px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-top:1px solid var(--las-borde)}',
       '.las-pie-izq{display:flex;align-items:center;gap:8px;font-size:12px;color:#78716c;min-width:0}',
       '.las-punto{width:8px;height:8px;flex:none;border-radius:9999px;background:#f59e0b;transition:background .2s}',
@@ -776,7 +781,11 @@
       '.las-scroll{overflow:visible;padding:20px}',
       '.las-cab{padding:16px 20px}',
       '.las-pie{position:sticky;bottom:0;padding:14px 20px}',
+      '.las-derecha.las-con-pasos{flex:1 0 auto}',
+      '.las-con-pasos .las-scroll{flex:1 0 auto}',
       '}',
+      '@media (max-width:640px){.las-con-pasos .las-pasos{flex-wrap:nowrap}.las-con-pasos .las-paso-b:not([aria-current]){width:40px;padding:0}.las-con-pasos .las-paso-b:not([aria-current]) .las-paso-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}' +
+      '.las-con-pasos .las-pie-der{width:100%}.las-con-pasos .las-pie-der .las-btn1{flex:1}.las-con-pasos .las-pie-der .las-btn2{flex:none;min-width:96px}}',
       '@media (max-width:640px){.las-sep{display:none}.las-bloque-t h3{font-size:13px}.las-fila,.las-fila-tel,.las-pildoras{grid-template-columns:1fr}.las-pie-izq{display:none}.las-pie{justify-content:flex-end}.las-bloque{padding:18px}}',
       '@media (prefers-reduced-motion:reduce){.las-panel,.las-velo{transition:opacity .2s!important}.las-panel{transform:none}.las-panel:not(.las-dentro){opacity:0}.las-dentro *{animation:none!important}.las-tiembla{animation:none}.las-punto.las-listo{animation:none}}',
       /* CAJÓN DE FICHA con la piel del alta (25-sep-2026, owner: «Aplícalas»,
@@ -8242,7 +8251,7 @@
           '<p class="las-pie-lado">' + esc(tS('Una vez creada, la ficha la corrigen su autor —mientras no cuelgue de un contrato firmado— o un administrador.')) + '</p>' +
           '</section>' +
           /* columna derecha: el formulario */
-          '<div class="las-derecha"><div class="las-scroll"><div class="las-form">' +
+          '<div class="las-derecha las-con-pasos"><div class="las-scroll"><div class="las-form">' +
           /* los pasos (mejora 6): la lista la pinta pintaPasos(); cada sección `data-paso` es un paso */
           '<ol class="las-pasos" data-p="pasos" aria-label="' + esc(tS('Pasos del alta')) + '"></ol>' +
           '<section class="las-bloque" data-paso="quien"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n" data-p="n-quien">01</span><h3>' + esc(tS('Quién es')) + '</h3></div>' +
@@ -8354,7 +8363,9 @@
           ps.forEach(function (k, j) { var n = $('[data-p="n-' + k + '"]'); if (n) n.textContent = '0' + (j + 1); });
           $('[data-p="pasos"]').innerHTML = ps.map(function (k, j) {
             return '<li><button type="button" class="las-paso-b' + (j < i ? ' las-paso-hecho' : '') + '" data-paso-ir="' + k + '"' +
-              (j === i ? ' aria-current="step"' : '') + (j <= i || vistos[k] ? '' : ' disabled') + '>' + (j + 1) + ' · ' + esc(tS(PASOS[k])) + '</button></li>';
+              (j === i ? ' aria-current="step"' : '') + (j <= i || vistos[k] ? '' : ' disabled') + '>' +
+              '<span class="las-paso-n" aria-hidden="true">' + (j < i ? '✓' : (j + 1)) + '</span><span class="las-paso-t">' + esc(tS(PASOS[k])) + '</span>' +
+              (j < i ? '<span class="las-sr"> ' + esc(tS('(hecho)')) + '</span>' : '') + '</button></li>';
           }).join('');
           $('[data-p="btn-t"]').textContent = esUltimo() ? tS('Dar de alta') : tS('Siguiente');
           $('[data-e="atras"]').hidden = i === 0;
