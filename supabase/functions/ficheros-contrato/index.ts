@@ -26,10 +26,14 @@
 //   pdf_manual_url   {contrato_id}    → {path, token}  PDF firmado a mano
 //   cierra_manual    {contrato_id}    → {path, hash, anulados}
 //   limpia_borradores {}              → {borrados}     borradores de firma de contratos que ya no existen
+//   reenvia_caducada {contrato_id, ver?} → {puede:false, motivo} | {puede:true, para, …} (ver) | {enlace, correo, motivo?}
+//                    enlace caducado → enlace nuevo para el MISMO firmante y el MISMO documento + correo por la cola
+//                    (17-oct-2026, «Reenviar todas» de Hoy toca; la regla en reenvio.ts)
 //
 // verify_jwt=false por el mismo motivo que send-contract-email (CORS del preflight); el JWT
 // se valida a mano.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { constanciaHeredada, decideReenvio, documentoCasa, superaTope, TOPE_REENVIOS, VENTANA_TOPE_MIN, type FilaFirma } from './reenvio.ts';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -252,6 +256,114 @@ Deno.serve(async (req) => {
         if (eRm) console.error('ficheros-contrato: no se pudo borrar ' + espera + ': ' + eRm.message);
       }
       return json({ ok: true, ...(r as Record<string, unknown>) });
+    }
+
+    // ── reenviar un enlace de firma CADUCADO (17-oct-2026, mejora 5b: «Reenviar todas» en Hoy toca) ──────────
+    // Un contrato por llamada: la pantalla los recorre de uno en uno y pinta el resultado de cada fila (una petición larga
+    // con todos dejaría el estado sin decir si se corta a la mitad). `ver:true` solo dice qué se haría, con la MISMA regla
+    // que el envío (reenvio.ts). Del cuerpo solo se usa `contrato_id`: el firmante sale de la fila caducada, el documento es
+    // el fijo con su hash recalculado aquí y el correo lo compone la cola (plantilla enlace_firma_cadena: destinatario = el
+    // firmante de la fila, texto del servidor), nunca send-contract-email con el texto del navegador.
+    if (accion === 'reenvia_caducada') {
+      if (!esUuid(contratoId)) return json({ ok: false, error: 'contrato_invalido' }, 400);
+      // permiso con la sesión de la persona: el mismo que «Generar enlace de firma» (raise si no puede o está bloqueado)
+      const { error: eEst } = await usuario.rpc('contrato_firma_estado', { p_contrato: contratoId });
+      if (eEst) return errRpc(eEst);
+      const [rc, rf, rq] = await Promise.all([
+        admin.from('contratos').select('numero, bloqueado, liberado_en').eq('id', contratoId).maybeSingle(),
+        admin.from('contrato_firmas').select('id, estado, expira_en, firmante_nombre, firmante_email, firmante_rol, orden, snapshot_hash, creado_en')
+          .eq('contrato_id', contratoId),
+        admin.from('config_instancia').select('valor').eq('clave', 'correo_cola_firma_submit').maybeSingle(),
+      ]);
+      if (rc.error || rf.error || rq.error) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
+      const numero = (rc.data?.numero as string | undefined) ?? null;
+      // La cola es la única salida del correo de este reenvío. Con el interruptor de la cola apagado (AXW-202: encendido el
+      // 5-oct con el OK del owner) no se crea el enlace: quedaría un enlace nuevo sin correo. Al generador, uno a uno.
+      if (rq.data?.valor !== 'cola') return json({ ok: true, puede: false, motivo: 'cola_apagada', numero });
+      const dec = decideReenvio(rc.data, (rf.data ?? []) as FilaFirma[], Date.now());
+      if (!dec.ok) return json({ ok: true, puede: false, motivo: dec.motivo, numero });
+      const f = dec.fila;
+      // Si el enlace caducado salió sin un anexo (LAW-406/410), se dice en la vista previa: en el generador eso pide
+      // «Enviar igualmente» y aquí no hay ese paso. Y la constancia viaja al enlace nuevo (revisor, 17-oct): la base solo
+      // deduce sola un modelo apagado o sin plano; lo que declaró la PANTALLA (un PDF que no se pudo incrustar, motivo
+      // 'fallo') no lo ve, y sin esto la firma nueva —la que se firma— saldría con el mismo documento y sin constancia.
+      // Es un dato que lee el servidor de su evento, no del navegador; contrato_envia_firma lo valida y solo suma.
+      const { data: ev, error: eEv } = await admin.from('contrato_eventos').select('detalle')
+        .eq('contrato_id', contratoId).eq('evento', 'envio_sin_anexo_confirmado').eq('detalle->>firma_id', f.id).limit(1);
+      if (eEv) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
+      const det = (ev?.[0]?.detalle ?? null) as { motivo?: string; motivo_pantalla?: string; faltan?: unknown; declarado_por?: string } | null;
+      const sinAnexo = det?.motivo ?? null;
+      const constancia = constanciaHeredada(det);
+      // Constancias de ANTES de LAW-406 (27-28 sep): las escribía la función suelta que retiró LAW-406, SIN firma_id, así que la búsqueda
+      // de arriba no las ve (revisor, 17-oct; esos enlaces caducan el 27-28 oct). Una sin firma_id que puede ser la suya frena el
+      // reenvío en bloque —saldría el enlace nuevo sin constancia— y el contrato va al generador, que pide «Enviar igualmente».
+      // SIN cota de fecha: del 28-sep 00:42 al 08:42 la edge apuntaba la constancia ANTES de crear el enlace (dos llamadas
+      // sueltas, milisegundos antes que él), y en una cadena de firmantes el enlace del 2.º nace después de firmar el 1.º, así
+      // que ninguna fecha de corte las cubre todas (revisor 2.ª vuelta y buscador B, 17-oct). Son un conjunto cerrado (la
+      // función que las escribía se retiró el 28-sep; contrato_envia_firma siempre pone firma_id) y cerrar de más solo manda
+      // ese contrato al generador.
+      if (!det) {
+        const { data: evViejo, error: eV } = await admin.from('contrato_eventos').select('id')
+          .eq('contrato_id', contratoId).eq('evento', 'envio_sin_anexo_confirmado').is('detalle->>firma_id', null).limit(1);
+        if (eV) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
+        if (evViejo?.length) return json({ ok: true, puede: false, motivo: 'constancia_sin_enlace', numero });
+      }
+      const base = { numero, para: f.firmante_email, nombre: f.firmante_nombre, enviado_en: f.creado_en ?? null, caduco_en: f.expira_en, sin_anexo: sinAnexo, tope: TOPE_REENVIOS };
+      // La vista previa NO descarga el documento (revisor, 17-oct: con anexos pesa hasta 20 MB y se piden hasta 20 seguidos):
+      // la huella se comprueba en el envío, y si no casa la fila lo dice entonces (documento_cambiado / falta_el_documento).
+      if (body.ver === true) return json({ ok: true, puede: true, ...base });
+
+      // Tope de TODO el equipo (no por persona: dos admins a la vez doblarían la ráfaga), contado en la base y no en la
+      // memoria de esta edge: ver reenvio.ts.
+      const desde = new Date(Date.now() - VENTANA_TOPE_MIN * 60_000).toISOString();
+      const { count, error: eT } = await admin.from('contrato_firmas').select('id', { count: 'exact', head: true })
+        .eq('anulado_motivo', 'nuevo_enlace').gte('anulado_en', desde);
+      if (eT) return json({ ok: false, error: 'no_se_pudo_comprobar_el_tope' }, 500);
+      if (superaTope(count ?? 0)) return json({ ok: false, error: 'demasiados_reenvios', tope: TOPE_REENVIOS, minutos: VENTANA_TOPE_MIN }, 429);
+
+      // Siempre el FIJO, nunca una ruta de espera (una generación a medias que nadie envió): y tiene que ser el que se mandó.
+      const rDoc = await leeFresco(BUCKET_FIRMAS, `pendientes/${contratoId}.html`);
+      if (!rDoc.ok) {
+        return rDoc.status === 400 || rDoc.status === 404
+          ? json({ ok: true, puede: false, motivo: 'falta_el_documento', numero })
+          : json({ ok: false, error: 'No se ha podido leer el documento a firmar (almacenamiento ' + rDoc.status + '): vuelve a intentarlo' }, 502);
+      }
+      const hash = await sha256hex(await rDoc.text());
+      if (!documentoCasa(hash, f)) return json({ ok: true, puede: false, motivo: 'documento_cambiado', numero });
+
+      // contrato_envia_firma anula TODAS las pendientes del contrato: justo antes se vuelve a mirar que la única sigue siendo
+      // la caducada que se comprobó (revisor, 17-oct). Si entretanto alguien generó un enlace vivo desde el generador, no se
+      // le anula. Entre esta lectura y la RPC quedan milisegundos, y se aceptan (Backend, 17-oct): dos reenvíos a la vez los
+      // para el índice único contrato_firmas_un_pendiente_por_rol (la segunda RPC da 23505 y se deshace), y un enlace del
+      // generador creado justo en ese hueco queda anulado y su envío falla a la vista por el candado de destino de
+      // send-contract-email. Si algún día se quiere cerrar del todo: una RPC NUEVA (contrato_reenvia_caducada con el id
+      // esperado), nunca un parámetro con valor por defecto en contrato_envia_firma (dos versiones y PostgREST no elige).
+      const { data: rf2, error: eF2 } = await admin.from('contrato_firmas')
+        .select('id, estado, expira_en, firmante_nombre, firmante_email, firmante_rol, orden, snapshot_hash, creado_en').eq('contrato_id', contratoId);
+      if (eF2) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
+      const dec2 = decideReenvio(rc.data, (rf2 ?? []) as FilaFirma[], Date.now());
+      if (!dec2.ok || dec2.fila.id !== f.id) return json({ ok: true, puede: false, motivo: dec2.ok ? 'otro_envio_a_la_vez' : dec2.motivo, numero });
+
+      const { data: r, error: eEnv } = await usuario.rpc('contrato_envia_firma', {
+        p_contrato: contratoId, p_nombre: f.firmante_nombre ?? '', p_email: f.firmante_email ?? '',
+        p_rol: f.firmante_rol ?? '', p_orden: f.orden ?? 1, p_snapshot_hash: hash,
+        ...(constancia ? { p_sin_anexo: constancia } : {}),
+      });
+      if (eEnv) return errRpc(eEnv);
+      // contrato_envia_firma no devuelve el id de la firma nueva: es la pendiente con ESTA huella. Si ya no lo es, otro envío
+      // del mismo contrato se ha cruzado (milisegundos): el enlace vivo es el suyo y el correo lo manda quien lo creó.
+      const { data: nueva, error: eN } = await admin.from('contrato_firmas').select('id, snapshot_hash')
+        .eq('contrato_id', contratoId).eq('estado', 'pendiente').maybeSingle();
+      if (eN || !nueva || nueva.snapshot_hash !== hash) {
+        return json({ ok: true, enlace: true, correo: false, motivo: eN ? 'no_se_pudo_comprobar' : 'otro_envio_a_la_vez', ...base });
+      }
+      const { data: enc, error: eQ } = await admin.rpc('correo_encolar', { p_clave: 'enlace_firma_cadena', p_firma: nueva.id });
+      if (eQ || !enc || typeof (enc as { id?: unknown }).id !== 'string') {
+        // Sin caer al envío directo con un texto del navegador: se dice y el generador lo deja reenviar.
+        console.error('ficheros-contrato reenvia_caducada: enlace creado, correo no encolado', numero, String(eQ?.message ?? 'sin id').slice(0, 200));
+        return json({ ok: true, enlace: true, correo: false, motivo: 'correo_no_encolado', ...base });
+      }
+      return json({ ok: true, enlace: true, correo: true, anulados: (r as { anulados?: number })?.anulados ?? null, ...base });
     }
 
     // ── PDF firmado a mano ───────────────────────────────────────────────

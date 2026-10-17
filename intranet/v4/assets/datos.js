@@ -330,6 +330,9 @@
     if (url) { tr.style.cursor = 'pointer'; tr.addEventListener('click', function () { location.href = url; }); }
     pl.tbody.appendChild(tr);
   }
+  // Nombre de persona o empresa para ENSEÑAR (suite-comun.js, 17-oct): el que llega entero en mayúsculas sale en tipo normal.
+  // Nulo se devuelve nulo: fila() deja entonces el «—» de la plantilla.
+  function nomV(s) { return (s == null || typeof lwNombreVisible !== 'function') ? s : lwNombreVisible(s); }
 
   /* QUIÉN LO CREÓ — una sola forma de convertir el autor guardado en un nombre
      (23-sep-2026, owner: «en toda la v4 quiero trazabilidad de qué agente ha
@@ -1120,7 +1123,7 @@
   function bandejaHoy(sb) {
     var caja = document.getElementById('lw-hoy'), lista = document.getElementById('lw-hoy-lista');
     if (!caja || !lista) return;
-    var T = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+    var T = function (x, h) { return (typeof lwT === 'function') ? lwT(x, h) : x; };
     var hoy = hoyLocal();
     var suave = function (p) { return vig(p).then(function (r) { if (r.error) { console.error('[v4] hoy toca:', r.error); return null; } return r.data || []; }, function (e) { console.error('[v4] hoy toca:', e); return null; }); };
     Promise.all([
@@ -1130,7 +1133,7 @@
       // Desde el 18-ago-2026, día en que se activó la factura automática: lo
       // anterior es alta de histórico y se revisa aparte. Misma regla que
       // public.hitos_sin_factura() (ver su COMMENT): si cambia, cambiar las dos.
-      suave(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto,contratos!inner(numero,bloqueado,liberado_en)')
+      suave(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto,contratos!inner(numero,bloqueado,liberado_en,moneda)')
         .eq('contratos.bloqueado', true).is('contratos.liberado_en', null).is('factura_id', null).eq('no_facturar', false)
         .lt('fecha', hoy).gte('fecha', '2026-08-18').order('fecha')),
       suave(sb.rpc('facturas_pendiente_equipo')),
@@ -1139,27 +1142,47 @@
       // la fila del saldo pendiente suma en la moneda base (conMonedaBase; en Lawang, en el acto y en EUR, como siempre)
       conMonedaBase(function (mb, motivo) {
       var FILAS = [];
-      var fila = function (tono, icono, titulo, detalle, n, href, cta) { FILAS.push({ tono: tono, icono: icono, titulo: titulo, detalle: detalle, n: n, href: href, cta: cta }); };
+      /* `items` (17-oct-2026, mejora 5 de Experiencia): las MISMAS filas que se han contado, cada una con su acción.
+         Pulsar el aviso abre esa lista en el cajón (abreHoy), así que el número del aviso y el de la lista no pueden
+         separarse: antes llevaba a la pantalla sin filtrar, con otras cifras, o solo al primer contrato. `href` y
+         `abrir` siguen siendo la pantalla entera (pie del cajón y destino si el cajón no ha cargado). */
+      var fila = function (tono, icono, titulo, detalle, n, href, abrir, items) { FILAS.push({ tono: tono, icono: icono, titulo: titulo, detalle: detalle, n: n, href: href, abrir: abrir, items: items || [] }); };
       var diasA = function (iso) { return Math.round((new Date(iso + 'T00:00:00') - new Date(hoy + 'T00:00:00')) / 864e5); };
       var lista3 = function (xs) { return xs.slice(0, 3).join(' · ') + (xs.length > 3 ? ' · +' + (xs.length - 3) : ''); };
+      var enOps = function (num) { return '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num || ''); };
+      var itemReserva = function (x) {
+        return { que: x.num, quien: x.comp, det: x.d < 0 ? T('venció hace %n d', { n: -x.d }) : x.d === 0 ? T('vence hoy') : x.d === 1 ? T('mañana') : T('pasado mañana'),
+          acc: [{ t: T('Abrir la operación'), href: enOps(x.num) }] };
+      };
 
       // 1 y 2 · reservas (la cuenta vive en window.lwReservasUrgentes, la comparte el Asistente)
       if (r[0]) {
         var ur = window.lwReservasUrgentes(r[0], hoy), venc = ur.vencidas, pronto = ur.pronto;
-        if (venc.length) fila('mal', 'event_busy', T('Reservas vencidas pendientes de liberar'), lista3(venc.map(function (x) { return x.num + ' (' + (x.comp || '—') + ')'; })), venc.length, '/intranet/v4/reservas/', T('Decidir'));
-        if (pronto.length) fila('mal', 'schedule', T('Reservas que vencen en 1–2 días'), lista3(pronto.map(function (x) { return x.num + ' · ' + (x.d === 1 ? T('mañana') : T('pasado mañana')); })), pronto.length, '/intranet/v4/reservas/', T('Prorrogar o pasar a Bloqueo'));
+        if (venc.length) fila('mal', 'event_busy', T('Reservas vencidas pendientes de liberar'), lista3(venc.map(function (x) { return x.num + ' (' + (x.comp || '—') + ')'; })), venc.length, '/intranet/v4/reservas/', T('Abrir Reservas'), venc.map(itemReserva));
+        if (pronto.length) fila('mal', 'schedule', T('Reservas que vencen en 1–2 días'), lista3(pronto.map(function (x) { return x.num + ' · ' + (x.d === 1 ? T('mañana') : T('pasado mañana')); })), pronto.length, '/intranet/v4/reservas/', T('Abrir Reservas'), pronto.map(itemReserva));
       }
       // 3 · firmas caducadas (instante contra instante; fuera firmados y liberados)
       if (r[1] && r[2]) {
         var cs = {}; r[2].forEach(function (c) { cs[c.id] = c; });
-        var vivas = {}, cad = {};
+        var vivas = {}, cad = {}, caducoEl = {};
         r[1].forEach(function (f) {
           var c = cs[f.contrato_id]; if (!c || c.bloqueado || c.liberado_en) return;
-          if (f.expira_en && new Date(f.expira_en) < new Date()) cad[f.contrato_id] = c; else vivas[f.contrato_id] = c;
+          if (f.expira_en && new Date(f.expira_en) < new Date()) {
+            cad[f.contrato_id] = c;
+            if (!caducoEl[f.contrato_id] || f.expira_en > caducoEl[f.contrato_id]) caducoEl[f.contrato_id] = f.expira_en;   // la más reciente
+          } else vivas[f.contrato_id] = c;
         });
         Object.keys(vivas).forEach(function (k) { delete cad[k]; });   // si hay una firma viva, no está parado
         var cadL = Object.keys(cad).map(function (k) { return cad[k]; });
-        if (cadL.length) fila('mal', 'link_off', T('Firmas caducadas sin firmar'), lista3(cadL.map(function (c) { return c.numero + ' (' + (c.comprador_nombre || '—') + ')'; })), cadL.length, '/intranet/v4/contratos/?contrato=' + encodeURIComponent(cadL[0].numero), T('Reenviar'));
+        cadL.sort(function (a, b) { return caducoEl[a.id] < caducoEl[b.id] ? 1 : -1; });   // lo que caducó antes, abajo
+        // «Reenviar» abre el generador con la ventana «Enviar a firma» a la vista (?firma=1, contracts/app.html): generar sigue siendo allí
+        if (cadL.length) fila('mal', 'link_off', T('Firmas caducadas sin firmar'), lista3(cadL.map(function (c) { return c.numero + ' (' + (c.comprador_nombre || '—') + ')'; })), cadL.length, '/intranet/v4/contratos/', T('Abrir Contratos'),
+          cadL.map(function (c) {
+            var d = Math.max(0, Math.floor((new Date() - new Date(caducoEl[c.id])) / 864e5));
+            return { que: c.numero, quien: c.comprador_nombre, det: d ? T('caducó hace %n d', { n: d }) : T('caducó hoy'), cid: c.id,
+              acc: [{ t: T('Reenviar'), href: '/contracts/app.html?contrato=' + encodeURIComponent(c.id) + '&firma=1', fuerte: true },
+                    { t: T('Ficha'), href: '/intranet/v4/contratos/?contrato=' + encodeURIComponent(c.numero) }] };
+          }));
         pintaFirmasHome(Object.keys(vivas).length, cadL.length);
       } else pintaFirmasHome('—', 0);   // sin lectura: nunca dejar el dibujo de la maqueta como verdad
       // 4 · hitos vencidos sin factura
@@ -1186,7 +1209,12 @@
         });
         if (hitos.length) {
           var h0 = hitos[0];
-          fila('espera', 'receipt_long', T('Hitos vencidos sin factura'), T('La factura automática no cubre lo que llega tarde') + ' · ' + T('el más antiguo') + ': ' + (h0.contratos && h0.contratos.numero || '—') + ' · ' + (h0.descripcion || T('hito')) + ' · ' + fFecha(h0.fecha), hitos.length, '/intranet/v4/vencimientos/', T('Revisar'));
+          fila('espera', 'receipt_long', T('Hitos vencidos sin factura'), T('La factura automática no cubre lo que llega tarde') + ' · ' + T('el más antiguo') + ': ' + (h0.contratos && h0.contratos.numero || '—') + ' · ' + (h0.descripcion || T('hito')) + ' · ' + fFecha(h0.fecha), hitos.length, '/intranet/v4/vencimientos/', T('Abrir Vencimientos'),
+            hitos.map(function (h) {
+              var num = h.contratos && h.contratos.numero, mon = h.contratos && h.contratos.moneda;
+              return { que: num || '—', quien: h.descripcion || T('hito'), det: fFecha(h.fecha) + (h.monto != null && mon ? ' · ' + fmt(h.monto, mon) : ''),
+                acc: [{ t: T('Abrir la operación'), href: enOps(num) }] };
+            }));
         }
       }
       // 5 · facturas con saldo · 6 · recibís sin justificante
@@ -1202,13 +1230,21 @@
           var con = !r[2] ? [] : r[5].filter(function (f) { return f.tipo === 'factura' && !f.anulada && pend[f.id] > 0.005 && vivoFirmado[f.contrato_id]; });
           if (con.length) {
             var enBase = 0, otras = 0; if (mb) con.forEach(function (f) { if ((f.moneda || mb) === mb) enBase += pend[f.id]; else otras++; });
-            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), mb ? fmt(enBase, mb) + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : '') : T(motivo), con.length, '/intranet/v4/facturas/', T('Ver'));
+            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), mb ? fmt(enBase, mb) + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : '') : T(motivo), con.length, '/intranet/v4/facturas/', T('Abrir Facturas'),
+              con.map(function (f) {
+                return { que: f.numero, quien: f.cliente_nombre, det: T('pendiente') + ': ' + fmt(pend[f.id], f.moneda || mb || 'EUR'),
+                  acc: [{ t: T('Abrir la factura'), href: '/intranet/v4/facturas/?id=' + encodeURIComponent(f.id) }] };
+              }));
           }
         }
         /* LAW-40 (owner 10-oct-2026): los recibís de antes del 11-ago-2026 marcados `historico_sin_justificante`
            se quedan sin justificante por decisión del owner; no son trabajo pendiente y no avisan. */
         var sinJ = r[5].filter(function (f) { return f.tipo === 'recibi' && reciboFaltaJustificante(f); });
-        if (sinJ.length) fila('neutro', 'attach_file', T('Recibís sin justificante'), lista3(sinJ.map(function (f) { return f.numero + ' (' + (f.cliente_nombre || '—') + ')'; })), sinJ.length, '/intranet/v4/recibos/', T('Subir'));
+        if (sinJ.length) fila('neutro', 'attach_file', T('Recibís sin justificante'), lista3(sinJ.map(function (f) { return f.numero + ' (' + (f.cliente_nombre || '—') + ')'; })), sinJ.length, '/intranet/v4/recibos/', T('Abrir Recibos'),
+          sinJ.map(function (f) {
+            return { que: f.numero, quien: f.cliente_nombre, det: fFecha(f.fecha_emision || f.created_at),
+              acc: [{ t: T('Subir el justificante'), href: '/intranet/v4/recibos/?id=' + encodeURIComponent(f.id) }] };
+          }));
       }
 
       // una consulta caída no es «0 pendientes» (consulta de deploy, Desarrollo, 23-sep)
@@ -1222,17 +1258,169 @@
       }
       var total = FILAS.reduce(function (a, x) { return a + x.n; }, 0);
       pon2('k-hoy-n', String(total));
-      lista.innerHTML = FILAS.map(function (x) {
+      lista._hoy = FILAS;
+      if (!lista._cableado) {
+        lista._cableado = true;
+        lista.addEventListener('click', function (ev) {
+          var a = ev.target.closest && ev.target.closest('[data-accion="hoy-fila"]');
+          if (!a || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) return;   // abrir en pestaña nueva: la pantalla entera, como antes
+          var x = (lista._hoy || [])[+a.getAttribute('data-hoy-i')];
+          if (!x || !x.items.length || !window.lwCajon) return;   // sin cajón: el enlace lleva a la pantalla
+          ev.preventDefault(); ev.stopPropagation();
+          abreHoy(x, a, sb);
+        });
+      }
+      lista.innerHTML = FILAS.map(function (x, i) {
         var t = LW_TONOS[x.tono] || LW_TONOS.neutro;
-        return '<a href="' + esc(x.href) + '" style="display:grid;grid-template-columns:4px 36px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 24px 12px 0;border-top:1px solid #EFECE4;text-decoration:none;color:#2E3437">' +
+        return '<a href="' + esc(x.href) + '" data-accion="hoy-fila" data-hoy-i="' + i + '" style="display:grid;grid-template-columns:4px 36px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 24px 12px 0;border-top:1px solid #EFECE4;text-decoration:none;color:#2E3437">' +
           '<span style="align-self:stretch;border-radius:0 3px 3px 0;background:' + t.borde + '"></span>' +
           '<span style="width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:' + t.suave + ';color:' + t.tinta + '"><span class="material-symbols-outlined" style="font-size:19px">' + x.icono + '</span></span>' +
           '<span style="min-width:0"><span style="display:block;font:600 14px \'Neue Kabel\',sans-serif">' + esc(x.titulo) + '</span>' +
           '<span style="display:block;font:500 12px \'Neue Kabel\',sans-serif;color:#75786e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.detalle) + '</span></span>' +
           '<span style="display:flex;align-items:center;gap:12px;white-space:nowrap"><span style="font:700 20px \'Neue Kabel\',sans-serif;color:#104C4F">' + x.n + '</span>' +
-          '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(x.cta) + ' →</span></span></a>';
+          '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(T('Ver la lista')) + ' →</span></span></a>';
       }).join('') + avisoCaidas;
       caja.hidden = false;
+      });
+    });
+  }
+  /* El cajón de un aviso de «Hoy toca»: sus filas, ya contadas, cada una con su acción (enlaces: nada escribe desde
+     aquí). Todo lo que viene de la base pasa por esc(). */
+  function abreHoy(x, desde, sb) {
+    var T = function (s, h) { return (typeof lwT === 'function') ? lwT(s, h) : s; };
+    var H = window.lwCajonHtml;
+    var filas = x.items.map(function (it) {
+      return ['<b>' + esc(it.que || '—') + '</b>' + (it.quien ? '<br><span style="color:#75786e">' + esc(it.quien) + '</span>' : ''),
+        esc(it.det || '') + (it.cid ? '<span data-lw="reenvio-estado" data-cid="' + esc(it.cid) + '" style="display:block;margin-top:4px;font-weight:600"></span>' : ''),
+        '<span style="display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:flex-end">' + it.acc.map(function (a) {
+          return '<a href="' + esc(a.href) + '" style="font-weight:' + (a.fuerte ? 700 : 600) + ';color:#104C4F;text-decoration:underline;white-space:nowrap">' + esc(a.t) + '</a>';
+        }).join('') + '</span>'];
+    });
+    var caj = window.lwCajon({
+      titulo: x.titulo, sub: 'Hoy toca', desde: desde, ancho: 'min(720px,96vw)',
+      bajoTitulo: T('%n en la lista: los mismos que cuenta el aviso.', { n: x.items.length }),
+      cuerpo: H.tabla(['Documento', 'Detalle', ''], filas, { apila: true }),
+      acciones: [{ texto: x.abrir, href: x.href }, { texto: 'Cerrar', cerrar: true }]
+    });
+    var cids = x.items.map(function (it) { return it.cid; }).filter(Boolean);
+    if (cids.length && sb && caj && caj.pie) reenvioEnBloque(sb, caj, cids, T);
+  }
+
+  /* «Reenviar todas» (17-oct-2026, mejora 5b): enlace nuevo para el MISMO firmante y el MISMO documento de cada firma
+     caducada, con el correo por la cola. Lo decide y lo hace el servidor (ficheros-contrato → reenvia_caducada, regla en
+     supabase/functions/ficheros-contrato/reenvio.ts): de aquí solo sale el id del contrato, nunca un email ni un texto.
+     De uno en uno y en orden (nunca en paralelo: la cola manda los enlaces de firma sin pausa y Hostinger ya bloqueó una
+     ráfaga), primero la vista previa (`ver`) que dice a quién iría cada uno y cuál se queda fuera y por qué, luego la
+     confirmación con esa lista, luego el envío con el resultado en cada fila.
+     El botón nace OCULTO y solo aparece si el servidor ya sabe hacerlo (una `ver` del primero contesta): así esta pantalla
+     puede publicarse antes que la edge sin enseñar un botón muerto. Decisión por defecto (CEO, 17-oct). */
+  var REENVIO_TOPE = 20;   // solo hasta que conteste la vista previa, que trae el del servidor (reenvio.ts → TOPE_REENVIOS)
+  // Pausa entre dos reenvíos de verdad: la cola manda los enlaces de firma sin espera y cada encolado la despierta, así que
+  // el ritmo real es el de este bucle; 5 s es el esperaMs de cola-correos-envio (Backend, 17-oct: una ráfaga y Hostinger
+  // bloquea el buzón, y con él TODOS los correos de Lawang).
+  var REENVIO_PAUSA_MS = 5000;
+  // Qué faltaba en el envío del enlace caducado (motivo de la constancia LAW-406/410), para la vista previa.
+  var REENVIO_SIN_ANEXO = { ninguno: 'salió sin ningún anexo', sin_apendice_a: 'salió sin Apéndice A', fallo: 'salió con un anexo que no se pudo incluir' };
+  var REENVIO_MOTIVOS = {
+    cola_apagada: 'El correo de firma por la cola está apagado: reenvíalo desde el generador.',
+    bloqueado: 'El contrato está bloqueado.',
+    liberado: 'La reserva está liberada.',
+    firma_a_medias: 'Hay una firma a medias de guardar: prueba en un minuto.',
+    sin_enlace_pendiente: 'Ya no tiene el enlace caducado (¿ya se reenvió?).',
+    varios_pendientes: 'Tiene más de un enlace pendiente: hazlo desde el generador.',
+    enlace_vivo: 'Ya tiene un enlace vivo.',
+    ya_firmo: 'Ese firmante ya ha firmado.',
+    sin_huella: 'Enlace de antes del 26-sep: hay que generarlo de nuevo con «Reenviar».',
+    constancia_sin_enlace: 'Salió sin algún anexo (constancia de antes del 28-sep): reenvíalo con «Reenviar», que pide confirmarlo.',
+    sin_email: 'Al firmante le falta un dato: hazlo con «Reenviar».',
+    firmante_raro: 'Al firmante le falta un dato: hazlo con «Reenviar».',
+    documento_cambiado: 'El documento ya no es el que se envió: genéralo de nuevo con «Reenviar».',
+    falta_el_documento: 'No se encuentra el documento que se envió: genéralo de nuevo con «Reenviar».',
+    contrato_no_encontrado: 'No se encuentra el contrato.',
+    correo_no_encolado: 'Enlace nuevo creado, pero el correo no ha salido: mándalo con «Reenviar».',
+    otro_envio_a_la_vez: 'Alguien lo ha reenviado a la vez: vale su enlace.',
+    no_se_pudo_comprobar: 'Enlace nuevo creado; no se ha podido confirmar el correo: míralo con «Reenviar».'
+  };
+  function reenvioEnBloque(sb, caj, cids, T) {
+    var estado = function (cid) { return caj.el.querySelector('[data-lw="reenvio-estado"][data-cid="' + cid.replace(/[^0-9a-f-]/gi, '') + '"]'); };
+    var pon = function (cid, texto, tono) { var e = estado(cid); if (e) { e.textContent = texto; e.style.color = tono === 'ok' ? '#3F5230' : tono === 'mal' ? '#93000A' : '#75786e'; } };
+    var motivo = function (m) { return T(REENVIO_MOTIVOS[m] || m || 'No se ha podido.'); };
+    var llama = function (body) {
+      return sb.auth.getSession().then(function (s) {
+        var t = s && s.data && s.data.session && s.data.session.access_token;
+        if (!t) return { status: 401, j: { error: 'sin_sesion' } };
+        return fetch(window.lwEdge('ficheros-contrato'), {
+          method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + t },
+          body: JSON.stringify(Object.assign({ accion: 'reenvia_caducada' }, body))
+        }).then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j || {} }; }, function () { return { status: r.status, j: {} }; }); });
+      }).catch(function (e) { return { status: 0, j: { error: String((e && e.message) || e) } }; });
+    };
+    var textoError = function (r) {
+      if (r.status === 403) return T('No puedes mandar este contrato a firma.');
+      if (r.status === 401) return T('Tu sesión ha caducado. Vuelve a entrar.');
+      if (r.status === 429 && r.j.error === 'demasiados_reenvios') return T('El equipo ha llegado al tope de %n reenvíos en %m minutos: espera y vuelve a intentarlo.', { n: r.j.tope, m: r.j.minutos });
+      return String(r.j.error || T('No se ha podido.'));
+    };
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'las-btn1'; b.hidden = true;
+    b.setAttribute('data-accion', 'hoy-reenviar-todas');
+    b.textContent = T('Reenviar todas');
+    caj.pie.insertBefore(b, caj.pie.firstChild);
+    // ¿El servidor ya lo sabe hacer? Una vista previa (sin efectos en la base) de los primeros, hasta que uno conteste:
+    // si el primero es de un contrato que esta persona no puede mandar (403), el botón no debe depender de él (revisor, 17-oct).
+    (function sondea(i) {
+      if (i >= Math.min(cids.length, 3)) return;
+      llama({ contrato_id: cids[i], ver: true }).then(function (r) {
+        if (r.status === 200 && r.j && typeof r.j.puede === 'boolean') { b.hidden = false; if (r.j.tope > 0) topeServidor = r.j.tope; }
+        else if (r.status === 403) sondea(i + 1);
+      });
+    })(0);
+    var topeServidor = 0;
+    var corre = function (lista, fn) {   // de uno en uno, en orden
+      var out = [];
+      return lista.reduce(function (p, cid) { return p.then(function () { return fn(cid).then(function (v) { out.push(v); }); }); }, Promise.resolve()).then(function () { return out; });
+    };
+    b.addEventListener('click', function () {
+      b.disabled = true; b.textContent = T('Comprobando…');
+      var tanda = cids.slice(0, topeServidor || REENVIO_TOPE);
+      corre(tanda, function (cid) {
+        pon(cid, T('Comprobando…'), '');
+        return llama({ contrato_id: cid, ver: true }).then(function (r) {
+          if (r.status === 200 && r.j.puede === true) { pon(cid, T('Irá a %e', { e: r.j.para || '—' }) + (r.j.sin_anexo ? ' · ' + T(REENVIO_SIN_ANEXO[r.j.sin_anexo] || 'salió sin algún anexo') : ''), ''); return { cid: cid, si: true, v: r.j }; }
+          pon(cid, r.status === 200 ? motivo(r.j.motivo) : textoError(r), 'mal'); return { cid: cid, si: false };
+        });
+      }).then(function (vistos) {
+        var si = vistos.filter(function (v) { return v.si; });
+        if (!si.length) { b.textContent = T('Ninguno se puede reenviar desde aquí'); return; }
+        var lista = '<ul style="margin:8px 0 0;padding-left:18px">' + si.map(function (v) {
+          return '<li><b>' + esc(v.v.numero || '—') + '</b> → ' + esc(v.v.para || '—') + (v.v.sin_anexo ? ' <span style="color:#93000A">(' + esc(T(REENVIO_SIN_ANEXO[v.v.sin_anexo] || 'salió sin algún anexo')) + ')</span>' : '') + '</li>';
+        }).join('') + '</ul>';
+        var fuera = vistos.length - si.length;
+        var resto = cids.length - tanda.length;
+        var cuerpo = '<p style="margin:0">' + esc(T('Cada uno recibe un enlace nuevo para el mismo documento que se le mandó, y el anterior queda anulado.')) + '</p>' + lista +
+          (fuera ? '<p style="margin:10px 0 0">' + esc(fuera === 1 ? T('1 se queda fuera: el motivo está en su fila.') : T('%n se quedan fuera: el motivo está en su fila.', { n: fuera })) + '</p>' : '') +
+          (resto ? '<p style="margin:10px 0 0">' + esc(T('Van los %n primeros; los demás, en otra tanda.', { n: tanda.length })) + '</p>' : '');
+        var pide = window.lwConfirmar ? window.lwConfirmar({ titulo: T('¿Reenviar %n enlaces de firma?', { n: si.length }), cuerpo: cuerpo, confirmar: T('Reenviar %n', { n: si.length }) }) : Promise.resolve(false);
+        return pide.then(function (vale) {
+          if (!vale) { b.disabled = false; b.textContent = T('Reenviar todas'); return; }
+          b.textContent = T('Reenviando…');
+          var parado = false, bien = 0, primero = true;
+          var espera = function () { if (primero) { primero = false; return Promise.resolve(); } return new Promise(function (ok) { setTimeout(ok, REENVIO_PAUSA_MS); }); };
+          return corre(si.map(function (v) { return v.cid; }), function (cid) {
+            if (parado) { pon(cid, T('No enviado: se ha parado antes.'), 'mal'); return Promise.resolve(); }
+            pon(cid, T('En cola…'), '');
+            return espera().then(function () { pon(cid, T('Reenviando…'), ''); return llama({ contrato_id: cid }); }).then(function (r) {
+              if (r.status === 200 && r.j.correo === true) { bien++; pon(cid, T('Enviado a %e', { e: r.j.para || '—' }), 'ok'); return; }
+              if (r.status === 200 && r.j.puede === false) { pon(cid, motivo(r.j.motivo), 'mal'); return; }
+              if (r.status === 200 && r.j.enlace) { pon(cid, motivo(r.j.motivo), 'mal'); return; }
+              if (r.status === 429 || r.status === 401) parado = true;
+              pon(cid, textoError(r), 'mal');
+            });
+          }).then(function () {
+            b.textContent = T('%n de %t reenviados', { n: bien, t: si.length });
+            if (bien) bandejaHoy(sb);   // la bandeja de Home, al día (el cajón sigue abierto con el resultado)
+          });
+        });
       });
     });
   }
@@ -2165,7 +2353,7 @@
     var OFF = cont.getAttribute('data-lw-off') || 'bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high';
     var BASE = cont.getAttribute('data-lw-base') || 'px-3.5 py-1.5 rounded-full font-label-md text-body-sm transition-colors';
     opciones.forEach(function (o, i) {
-      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-real', '');
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-real', ''); b.setAttribute('data-lw-chip', o.clave);
       b.className = BASE + ' ' + (i === 0 ? ON : OFF);
       b.textContent = ts(o.texto) + (o.n != null ? ' ' + o.n : '');
       b.addEventListener('click', function (ev) {
@@ -2176,6 +2364,22 @@
       });
       cont.appendChild(b);
     });
+    /* Con data-lw-chips-max="N" en el contenedor solo se ven los N primeros (van ordenados por uso) y un botón
+       «Más tipos» enseña el resto (Experiencia CO2, 17-oct: Contratos tenía 13 tipos en 3 líneas). */
+    var max = parseInt(cont.getAttribute('data-lw-chips-max'), 10) || 0;
+    var chips = cont.querySelectorAll('button[data-lw-chip]');
+    if (max && chips.length > max + 1) {
+      for (var i = max; i < chips.length; i++) chips[i].hidden = true;
+      var mas = document.createElement('button'); mas.type = 'button'; mas.setAttribute('data-real', ''); mas.setAttribute('data-lw-chips-mas', '');
+      mas.className = BASE + ' ' + OFF;
+      mas.textContent = ts('Más tipos') + ' ' + (chips.length - max);
+      mas.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        Array.prototype.forEach.call(chips, function (x) { x.hidden = false; });
+        mas.remove();
+      });
+      cont.appendChild(mas);
+    }
   }
   /* ── EMPRESAS EN LAS LISTAS (cierre del encargo «dos empresas», 7-oct-2026) ─────────────────────────────────────────────
      Quien trabaja con más de una empresa (el propietario, un super global, un rol con dos) ve un filtro «Todas · Lawang ·
@@ -2235,7 +2439,44 @@
       tr.style.display = ok ? '' : 'none';
       if (ok) n++;
     });
+    paginaFilas(tbody, true);   // cada filtro nuevo vuelve a la página 1
     if (alTerminar) alTerminar(n);
+  }
+  /* PÁGINAS DE 25 (Experiencia, 17-oct: O2/CO4/FA1), como Vencimientos. Solo en las listas cuyo <tbody> lleva
+     data-lw-pagina="25"; los botones son el [data-lw="paginas"] de la misma pantalla. El filtro sigue usando
+     style.display y la página usa el atributo hidden (shell.css lo hace ganar), así que no se pisan: los totales y
+     «Mostrando N» siguen contando todo lo que pasa el filtro, no solo la página. Sin el atributo (Facturas «Por
+     contrato», que va por grupos) se enseña todo. */
+  function paginaFilas(tbody, reinicia) {
+    if (!tbody) return;
+    var por = parseInt(tbody.getAttribute('data-lw-pagina'), 10) || 0;
+    var caja = document.querySelector('[data-lw="paginas"]');
+    var todas = tbody.querySelectorAll('tr[data-lw-fila]');
+    if (!por) {
+      if (tbody._lwPag) { Array.prototype.forEach.call(todas, function (tr) { tr.hidden = false; }); if (caja) caja.hidden = true; }
+      return;
+    }
+    var st = tbody._lwPag;
+    if (!st) {
+      st = tbody._lwPag = { p: 0 };
+      var antes = caja && caja.querySelector('[data-lw="pag-antes"]'), despues = caja && caja.querySelector('[data-lw="pag-despues"]');
+      if (antes) antes.addEventListener('click', function (ev) { ev.stopPropagation(); if (st.p > 0) { st.p--; paginaFilas(tbody); } });
+      if (despues) despues.addEventListener('click', function (ev) { ev.stopPropagation(); st.p++; paginaFilas(tbody); });
+    }
+    if (reinicia) st.p = 0;
+    var vis = Array.prototype.filter.call(todas, function (tr) { tr.hidden = false; return tr.style.display !== 'none'; });
+    var paginas = Math.max(1, Math.ceil(vis.length / por));
+    if (st.p >= paginas) st.p = paginas - 1;
+    var desde = st.p * por;
+    vis.forEach(function (tr, i) { tr.hidden = i < desde || i >= desde + por; });
+    if (!caja) return;
+    caja.hidden = vis.length <= por;
+    var info = caja.querySelector('[data-lw="pag-info"]');
+    if (info) info.textContent = tx('%n de %t', { n: (desde + 1) + '–' + Math.min(desde + por, vis.length), t: vis.length });
+    var bA = caja.querySelector('[data-lw="pag-antes"]'), bD = caja.querySelector('[data-lw="pag-despues"]');
+    if (bA) bA.disabled = st.p === 0;
+    if (bD) bD.disabled = st.p >= paginas - 1;
+    if (!reinicia) { var tabla = tbody.closest('table'); if (tabla && tabla.getBoundingClientRect().top < 0) tabla.scrollIntoView({ block: 'start' }); }
   }
   /* CSV de lo que la pantalla ya tiene en memoria: sin ir a la base otra vez y
      sin fichero «generado» de mentira. Separador «;» (Excel en español), BOM
@@ -2290,8 +2531,9 @@
           var d = new Date(f.fecha_emision || f.created_at);
           if (d >= iniPrev && d < ini) prev += Number(f.total) || 0;
         });
-        // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra
-        pon2('k-cobrado-tend', prev ? ((s.suma >= prev ? '+' : '') + Math.round((s.suma - prev) / prev * 1000) / 10 + '%') : '—');
+        // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra. Con la base casi vacía (la cifra de ahora más de 10
+        // veces la del mes pasado) un +4.000 % no dice nada: «—», igual que sin mes anterior (Experiencia, 17-oct; misma regla que Finanzas).
+        pon2('k-cobrado-tend', prev > 0 && Math.abs(s.suma) <= 10 * prev ? new Intl.NumberFormat(loc(), { style: 'percent', maximumFractionDigits: 1, signDisplay: 'exceptZero' }).format(Math.round((s.suma - prev) / prev * 1000) / 1000) : '—');
         });
         var t = tablaPor('tabla-documentos');
         if (t) {
@@ -2300,7 +2542,7 @@
           var ult = fs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 8);
           ult.forEach(function (f) {
             porIdF[f.id] = f;
-            fila(pl, [tipoDoc(f.tipo), f.numero, f.cliente_nombre, f.proyecto_nombre || '—', fmt(f.total, f.moneda), fFecha(f.created_at), '']);
+            fila(pl, [tipoDoc(f.tipo), f.numero, nomV(f.cliente_nombre), f.proyecto_nombre || '—', fmt(f.total, f.moneda), fFecha(f.created_at), '']);
             var tr = pl.tbody.lastElementChild; tr.setAttribute('data-lw-id', f.id); tr.style.cursor = 'pointer';
             var tds = tr.querySelectorAll('td'); var est = estadoDoc(f);
             if (tds[6]) tds[6].innerHTML = pill(est[0], est[1]);
@@ -2344,7 +2586,7 @@
         pon2('k-reservadas', c.unidades_reservadas != null ? String(c.unidades_reservadas) : '—');
       });
       // módulos laterales: nunca dejar las tarjetas mock como "verdad"
-      q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,contratos!inner(numero,bloqueado)')
+      q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,contratos!inner(numero,bloqueado,moneda)')
           .eq('contratos.bloqueado', true).gte('fecha', hoy).order('fecha').limit(3), 'vencimientos críticos')
         .then(function (vs) {
           if (vs == null) return;
@@ -2353,7 +2595,7 @@
           var card = tarjetaDe(anc);
           for (var i = 0; i < 3 && card.parentElement && card.querySelectorAll('*').length < 12; i++) card = card.parentElement;
           card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">' + esc(tx('Vencimientos críticos')) + '</p>' +
-            (vs.length ? vs.map(function (v) { return itemPanel(esc(v.descripcion || tx('Hito')) + ' · ' + esc(v.contratos.numero), fFecha(v.fecha), v.monto ? esc(v.monto) : (v.pct ? esc(v.pct) + ' %' : '—')); }).join('')
+            (vs.length ? vs.map(function (v) { return itemPanel(esc(v.descripcion || tx('Hito')) + ' · ' + esc(v.contratos.numero), fFecha(v.fecha), v.monto ? esc(fmt(v.monto, v.contratos.moneda)) : (v.pct ? esc(new Intl.NumberFormat(loc(), { maximumFractionDigits: 2 }).format(v.pct)) + ' %' : '—')); }).join('')
                        : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f">' + esc(tx('Ninguno con fecha futura en contratos firmados.')) + '</p>') +
             '<a href="/intranet/v4/vencimientos/" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(tx('Abrir vencimientos')) + ' →</a>';
         });
@@ -2411,8 +2653,8 @@
           }
           window.LW_V4 = window.LW_V4 || {};
           window.LW_V4.contratosLista = {};
-          var porNum = {};
-          cs.forEach(function (c) { window.LW_V4.contratosLista[c.id] = c; porNum[c.numero] = c; });
+          var porNum = {}, porIdC = {};
+          cs.forEach(function (c) { window.LW_V4.contratosLista[c.id] = c; porNum[c.numero] = c; porIdC[c.id] = c; });
 
           // «Registro de firmas» (cabecera): cajón con las últimas solicitudes de firma del equipo
           var bReg = boton('registro-firmas');
@@ -2481,10 +2723,12 @@
           chipsReales(document.querySelector('[data-lw-chips="tipo"]'), 'tipo', opsTipo, estado, aplicar);
           chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', opsEstado, estado, aplicar);
           buscadorDe(aplicar, function (v) { texto = v; });
+          aplicar();   // ya en páginas de 25 desde el primer pintado
 
-          // ?contrato=NUM abre la ficha directamente (enlaces de la auditoría, de Home, etc.)
+          // ?contrato=<id> (el buscador de la cabecera, 17-oct) o ?contrato=NUM (auditoría, Home…) abre la ficha directamente
           var pedido = new URLSearchParams(location.search).get('contrato');
-          if (pedido && porNum[pedido]) cuandoCajon(function () { fichaContrato(sb, porNum[pedido]); });
+          var elegidoC = pedido ? (porIdC[pedido] || porNum[pedido]) : null;
+          if (elegidoC) cuandoCajon(function () { fichaContrato(sb, elegidoC); });
         });
     },
 
@@ -2673,6 +2917,7 @@
             // siguen a un clic.
             var estado = { tipo: { attr: 'tipo', valor: 'factura' } }, texto = '', vista = 'lista';
             var aplicar = function () {
+              if (vista === 'lista') pl.tbody.setAttribute('data-lw-pagina', '25'); else pl.tbody.removeAttribute('data-lw-pagina');   // los grupos no se parten en páginas
               aplicaFiltros(pl.tbody, estado, ['tipo', 'estado', 'cobro', 'emp'], texto, function (n) { pon2('p-desde', String(n)); });
               sincronizaCabecerasGrupo();
             };
@@ -2804,14 +3049,29 @@
             });
             var estado = {}, texto = '';
             var aplicar = function () { aplicaFiltros(pl.tbody, estado, ['moneda', 'estado', 'emp'], texto, function (n) { pon2('p-desde', String(n)); }); };
-            filtroEmpresaListado(pl.tbody, estado, aplicar, document.querySelector('[data-lw-chips="moneda"]'));
-            chipsReales(document.querySelector('[data-lw-chips="moneda"]'), 'moneda',
+            var chMon = document.querySelector('[data-lw-chips="moneda"]');
+            filtroEmpresaListado(pl.tbody, estado, aplicar, chMon);
+            chipsReales(chMon, 'moneda',
               [{ clave: '*', texto: 'Todas', n: rs.length }].concat(Object.keys(porMon).sort().map(function (m) { return { clave: m, texto: tx('Divisa %m', { m: m }), n: porMon[m] }; })), estado, aplicar);
+            // Con una sola divisa el filtro no filtra nada: se oculta (Experiencia, 17-oct). filtroEmpresaListado copia la clase del
+            // contenedor, no el atributo, así que el filtro de empresa no hereda el `hidden`.
+            if (chMon) chMon.hidden = Object.keys(porMon).length < 2;
             chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', [
               { clave: '*', texto: 'Todos', n: rs.length },
               { clave: 'emitido', texto: 'Emitidos', n: rs.length - anul },
               { clave: 'anulado', texto: 'Anulados', n: anul },
-              { clave: '0', atributo: 'just', texto: 'Sin justificante', n: rs.filter(reciboFaltaJustificante).length }], estado, aplicar);
+              { clave: '0', atributo: 'just', texto: 'Sin justificante', n: rs.filter(reciboFaltaJustificante).length }]
+              .concat(histJ ? [{ clave: 'historico', atributo: 'just', texto: 'Históricos sin justificante', n: histJ }] : []), estado, aplicar);
+            // «Nota → número y enlace» (Experiencia, 17-oct): el pie del indicador nombra los históricos y «ver» los filtra en la lista.
+            var pieJ = document.querySelector('[data-lw="k-sinjust-pie"]');
+            var chipH = document.querySelector('[data-lw-chips="estado"] [data-lw-chip="historico"]');
+            if (pieJ && chipH && !pieJ.querySelector('[data-lw="ver-historicos"]')) {
+              var verH = document.createElement('button'); verH.type = 'button'; verH.setAttribute('data-lw', 'ver-historicos');
+              verH.style.cssText = 'margin-left:6px;text-decoration:underline;color:inherit;font:inherit;background:none;border:0;padding:0;cursor:pointer';
+              verH.textContent = tx('ver');
+              verH.addEventListener('click', function (ev) { ev.stopPropagation(); chipH.click(); var tb = document.querySelector('[data-lw="tabla-recibos"]'); if (tb) tb.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+              pieJ.appendChild(verH);
+            }
             buscadorDe(aplicar, function (v) { texto = v; });
           }
           var pedido = new URLSearchParams(location.search).get('id');
@@ -2926,6 +3186,9 @@
         if (conContratos) {
           pon2('k-capital', fmt(capital, 'EUR'));
           pon2('k-capital-chip', capital ? tx('%n% cobrado', { n: Math.round(pagado / capital * 100) }) : tx('sin contratos EUR'));
+          // la barra era un 78 % fijo de la maqueta (17-oct): ahora es el mismo % que dice el texto de al lado
+          var barCap = document.querySelector('[data-lw-barra="k-capital"]');
+          if (barCap) barCap.style.width = (capital ? Math.min(100, Math.round(pagado / capital * 100)) : 0) + '%';
           if (fueraEur) bandaNota('El capital es SOLO en euros: ' + fueraEur + ' contrato(s) en otra moneda quedan fuera de la suma.', '#8A6A34');
         } else {
           /* Sin el módulo de contratos no hay capital ni cobrado: se OCULTA la tarjeta. Un «0 €» o un «—» leería
@@ -4175,7 +4438,7 @@
         }
         var bAct = boton('actualizar');
         if (bAct) { bAct.setAttribute('data-real', ''); bAct.addEventListener('click', function (ev) { ev.stopPropagation(); location.reload(); }); }
-        pintaTotales();
+        aplicar();   // pinta los totales y deja la lista en páginas de 25
 
         /* ?filtro= — claves de la clásica (FILTROS) y las del Home; el alias
            `firma_viva` lo sigue usando el Home CLÁSICO (intranet/index.html). */
@@ -4411,7 +4674,7 @@
       function pintarAvisos(m) {
         var cont = document.getElementById('venc-avisos'); if (!cont) return;
         var partes = [];
-        if (m.nSinFecha) partes.push(tx('%n vencimiento(s) sin fecha — no se pueden vigilar; usa el filtro «Sin fecha»', { n: m.nSinFecha }));
+        if (m.nSinFecha) partes.push(tx(m.nSinFecha === 1 ? '1 vencimiento sin fecha: no se puede vigilar. Míralo con el filtro «Sin fecha»' : '%n vencimientos sin fecha: no se pueden vigilar. Míralos con el filtro «Sin fecha»', { n: m.nSinFecha }));
         var sinCal = (m.avisos || []).filter(function (a) { return a.tipo === 'sin_calendario'; });
         if (sinCal.length) partes.push(tx(sinCal.length === 1 ? '%n contrato con precio y sin calendario de pagos' : '%n contratos con precio y sin calendario de pagos', { n: sinCal.length }));
         // pct_no_100 (hallazgo del code-review de esta subtarea): modeloFinanciero()
@@ -4457,8 +4720,10 @@
         var venc = m.filas.filter(function (f) { return f.estado === 'vencido'; }).sort(function (a, b) { return (a.fecha || '') < (b.fecha || '') ? -1 : 1; });
         var nCon = {}; venc.forEach(function (f) { nCon[f.contrato_id] = 1; });
         var nc = Object.keys(nCon).length;
-        pon2('k-vencidos-n', tx(nc === 1 ? '%n contrato' : '%n contratos', { n: nc }));
-        pon2('k-vencidos-total', tx('Total: %t', { t: fmt(m.vencido, MONEDA) }));
+        // Un solo número (Experiencia V1, 17-oct): el indicador cuenta CUOTAS, como el chip «Vencidos» de la lista, y
+        // dice debajo de cuántos contratos son. Antes el indicador contaba contratos y el chip cuotas, con el mismo nombre.
+        pon2('k-vencidos-n', tx(venc.length === 1 ? '%n cuota' : '%n cuotas', { n: venc.length }));
+        pon2('k-vencidos-total', tx(nc === 1 ? 'de %c contrato · total %t' : 'de %c contratos · total %t', { c: nc, t: fmt(m.vencido, MONEDA) }));
         pon2('k-vencidos-chip', venc.length ? tx('el más antiguo, del %f', { f: fFecha(venc[0].fecha) }) : ts('nada vencido'));
         // Cobrado y Cartera salieron de esta pantalla el 30-sep-2026 (owner): están
         // en Resumen y en las columnas de «Por proyecto».
@@ -6441,7 +6706,11 @@
            con el cajón cerrado (11-sep-2026: antes se abría solo con el
            proyecto de más unidades, y parecía un desplegable roto). */
         var pedido = new URLSearchParams(location.search).get('proyecto');
-        if (pedido && ps.some(function (p) { return p.nombre === pedido; })) {
+        // por id (el buscador de la cabecera, 17-oct: «todo apunta por ID») o por nombre (los enlaces de siempre)
+        var pedidoP = pedido ? ps.filter(function (p) { return p.id === pedido; })[0] : null;
+        if (pedidoP) {
+          abrirCajon(pedidoP.nombre, { mostrar: true, empujarUrl: false });
+        } else if (pedido && ps.some(function (p) { return p.nombre === pedido; })) {
           abrirCajon(pedido, { mostrar: true, empujarUrl: false });
         } else if (pedido && typeof LW_PROYECTOS_GENERALES !== 'undefined' && LW_PROYECTOS_GENERALES.indexOf(pedido) !== -1) {
           /* Un enlace viejo de la clásica (/intranet/documentacion/?proyecto=Lawang (general),
@@ -6479,11 +6748,12 @@
         q(sb.from('modelos_villa').select('id,modelo_id,modelo,proyecto,proyecto_id,precio_construccion,moneda'), 'precios por proyecto'),
         q(sb.from('unidades').select('id,proyecto,precio_suelo').not('precio_suelo', 'is', null), 'suelo del inventario'),
         /* Fotos del deck (23-sep-2026, owner: «no puedo ver sus fotos»): la
-           tarjeta y la ficha enseñan las que ya hay. Bucket `deck` PÚBLICO (lo
-           que se sube ahí ya está publicado, ver deck_fotos.js), así que la URL
-           pública es la correcta, no una firmada. Gestionarlas sigue siendo
-           «Fotos del deck» (pieza compartida, no se duplica aquí). */
-        q(sb.from('deck_fotos').select('modelo_id,path,uso,orden').eq('ambito', 'modelo').order('uso').order('orden'), 'fotos del deck'),
+           tarjeta y la ficha enseñan las que ya hay. La URL la da el servidor
+           por id (`lwFotoUrls`, 17-oct-2026): en Lawang `deck` es público y sale
+           la misma de siempre; en una instancia del ERP es privado y sale
+           firmada. Gestionarlas sigue siendo «Fotos del deck» (pieza
+           compartida, no se duplica aquí). */
+        q(sb.from('deck_fotos').select('id,modelo_id,path,uso,orden').eq('ambito', 'modelo').order('uso').order('orden'), 'fotos del deck'),
         // Ficha por bloques (23-sep-2026): techos y extras se VEN en la ficha,
         // no solo dentro del editor. Tablas pequeñas: se cargan enteras.
         // 30-sep-2026: `activo` y `alcance` (+ la lista de proyectos del alcance) para que la ficha
@@ -6500,7 +6770,32 @@
         var TECHOS = r[8] || [], EXTRAS = r[9] || [], MEX = r[10] || [], TECHO_PROY = r[11] || [];
         var fotosModelo = {};
         FOTOS.forEach(function (f) { if (f.modelo_id && f.path) (fotosModelo[f.modelo_id] = fotosModelo[f.modelo_id] || []).push(f); });
-        var urlFoto = function (path) { return sb.storage.from('deck').getPublicUrl(path).data.publicUrl; };
+        /* Las URL de las fotos, de una vez para toda la pantalla y por el
+           servidor (`lwFotoUrls`, guard.js). Firmadas caducan (`caduca_seg`):
+           pasado ese tiempo se vuelven a pedir, así la galería que se abre una
+           hora después no enseña enlaces muertos. Si el servidor falla, las
+           tarjetas se pintan igual, sin foto, y se dice una vez. */
+        var urlsFoto = null, urlsFotoHasta = 0, urlsFotoAvisado = false;
+        var pideUrlsFoto = function () {
+          if (urlsFoto && Date.now() < urlsFotoHasta) return urlsFoto;
+          urlsFotoHasta = Infinity;
+          var pedida;
+          try {   // si lwFotoUrls lanza en vez de rechazar, también se reintenta la próxima vez
+            pedida = typeof window.lwFotoUrls === 'function'
+              ? Promise.resolve(window.lwFotoUrls(sb, FOTOS))
+              : Promise.reject(new Error('Falta guard.js actualizado: recarga la página'));
+          } catch (e) { pedida = Promise.reject(e); }
+          urlsFoto = pedida.then(function (r) {
+            urlsFotoHasta = Date.now() + Math.max(60, (Number(r.caduca_seg) || 3600) - 60) * 1000;
+            return r.urls || {};
+          }, function (e) {
+            urlsFoto = null; urlsFotoHasta = 0;
+            console.warn('[modelos] fotos:', (e && e.message) || e);
+            if (!urlsFotoAvisado) { urlsFotoAvisado = true; (typeof toastMal === 'function' ? toastMal : console.warn)(tx('No se han podido cargar las fotos de los modelos: recarga la página para volver a intentarlo.')); }
+            return {};
+          });
+          return urlsFoto;
+        };
         window.LW_V4 = window.LW_V4 || {};
         /* Compartida con el editor de la previsión (editores.js): una sola
            cuenta de «lo que debería ser» la base, no dos. */
@@ -6645,8 +6940,9 @@
             cab.innerHTML = '';
             cab.style.cssText = 'padding:0;overflow:hidden;position:relative';
             var im = document.createElement('img');
-            im.src = urlFoto(fs[0].path); im.alt = m.nombre || ''; im.loading = 'lazy';
+            im.alt = m.nombre || ''; im.loading = 'lazy';
             im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+            pideUrlsFoto().then(function (u) { if (u[fs[0].id]) im.src = u[fs[0].id]; else im.remove(); });
             cab.appendChild(im);
             var nf = document.createElement('span');
             nf.textContent = fs.length + (fs.length === 1 ? ' foto' : ' fotos');
@@ -6809,13 +7105,15 @@
           }
           fs.forEach(function (f) {
             var a = document.createElement('a');
-            a.href = urlFoto(f.path); a.target = '_blank'; a.rel = 'noopener';
+            a.target = '_blank'; a.rel = 'noopener';
             a.style.cssText = 'flex:0 0 auto;display:block;width:168px;height:112px;border-radius:12px;overflow:hidden;background:#efeee8';
             var im = document.createElement('img');
-            im.src = a.href; im.alt = (el.nombre || '') + ' · ' + (f.uso || 'foto'); im.loading = 'lazy';
+            im.alt = (el.nombre || '') + ' · ' + (f.uso || 'foto'); im.loading = 'lazy';
             im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
             a.appendChild(im);
             gal.appendChild(a);
+            // la galería se abre al pinchar: pide (o renueva) las URL en ese momento
+            pideUrlsFoto().then(function (u) { if (u[f.id]) { a.href = u[f.id]; im.src = u[f.id]; } else a.remove(); });
           });
         }
       });
@@ -7475,7 +7773,7 @@
           var c = cli[h.client_id] || {};
           var u = ultimo[h.id] || ultimo[h.client_id];
           pon3('t-num', '#' + String(h.id).slice(0, 6));
-          pon3('t-nombre', c.full_name || 'Cliente');
+          pon3('t-nombre', nomV(c.full_name) || 'Cliente');
           pon3('t-estado', (h.estado || '—').replace(/_/g, ' ').toUpperCase());
           pon3('t-asunto', u ? u.texto : 'Sin mensajes en el hilo');
           pon3('t-cat', h.categoria || 'general');
@@ -7583,7 +7881,7 @@
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.hilo = el; window.LW_V4.hiloCliente = c;
         var msgs = (deHilo[el.id] || deHilo[el.client_id] || []).slice().reverse();
         pon2('h-num', 'Hilo #' + String(el.id).slice(0, 6));
-        pon2('h-nombre', c.full_name || 'Cliente');
+        pon2('h-nombre', nomV(c.full_name) || 'Cliente');
         pon2('h-sub', (el.categoria || 'general') + (refDe[el.id] ? ' · sobre ' + refDe[el.id] : '') + ' · ' + msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') + ' · ' + (el.estado || '—'));
         pon2('h-chip', c.tipo === 'empresa' ? 'Empresa' : 'Persona física');
         pon2('cv-tel', c.phone || 'sin teléfono en ficha');
@@ -7878,7 +8176,8 @@
         });
 
         pon2('k-pendientes', String(pend.length));
-        pon2('k-pendientes-pie', pend.length ? 'la mas vieja lleva ' + diasDesde(pend[pend.length - 1].creado_en) + ' dias' : 'nada esperando');
+        var diasVieja = pend.length ? diasDesde(pend[pend.length - 1].creado_en) : 0;
+        pon2('k-pendientes-pie', pend.length ? 'la más antigua lleva ' + diasVieja + (diasVieja === 1 ? ' día' : ' días') : 'nada esperando');
         pon2('k-aprobadas', String(aprob.length));
         pon2('k-aprobadas-pie', aprob.length ? sumas : 'nada aprobado sin pagar');
         pon2('k-pagadas', String(pagadasMes.length));
@@ -8058,7 +8357,11 @@
         }
         // TODAS las filas, como la viva (/intranet/solicitudes/): los chips contaban
         // sobre todas pero filtraban sobre las 25 pintadas (auditoría 19-sep-2026).
-        tabla.innerHTML = ss.map(function (x) {
+        // CM1 (Experiencia, 17-oct): las pendientes arriba y la más antigua primero —antes la que llevaba 23 días esperando salía al
+        // fondo—; el resto, de la más nueva a la más vieja, como venía de la base.
+        var enOrden = pend.slice().sort(function (a, b) { return a.creado_en < b.creado_en ? -1 : a.creado_en > b.creado_en ? 1 : 0; })
+          .concat(ss.filter(function (x) { return x.estado !== 'pendiente'; }));
+        tabla.innerHTML = enOrden.map(function (x) {
           var c = ct[x.contrato_id]; var u = us[x.creado_por];
           /* Marca visual: solo las nacidas solas de una comisión de manager llevan
              el badge — el resto (`origen='manual'`) es lo que ya se veía antes. */
@@ -8125,6 +8428,14 @@
         });
         var buscador = document.getElementById('lw-buscar');
         if (buscador) buscador.addEventListener('input', aplicaFiltrosLawang);
+        // Con algo esperando, la pantalla abre en «Pendientes» (CM1): es lo que hay que resolver. Sin nada, en «Todas».
+        // Solo la primera vez que se pinta (si se repinta, se respeta el filtro que eligió el usuario) y no con ?id=,
+        // que abre una ficha concreta que puede estar ya resuelta.
+        var chipPend = chipsComisiones.filter(function (b) { return b.getAttribute('data-chip-clave') === 'pendiente'; })[0];
+        if (chipPend && !chipPend.hasAttribute('data-lw-abierta')) {
+          chipPend.setAttribute('data-lw-abierta', '');
+          if (pend.length && !new URLSearchParams(location.search).get('id')) chipPend.click();
+        }
 
         // filtro por agente: SOLO admin (un agente ya ve solo lo suyo) y solo si
         // hay mas de uno entre lo que la RLS dejo ver — mismo criterio que
@@ -8949,7 +9260,7 @@
     if (!eq) {
       pon2('me-titulo', ctx.esAdm ? T('Elige un equipo') : T('Todavía no diriges ningún equipo'));
       pon2('me-sub', ctx.esAdm
-        ? T('Elige un equipo en el filtro de «Miembros» para gestionar sus miembros, roles, plantilla y lo que ven sus closers.')
+        ? T('Elige un equipo aquí para gestionar sus miembros, roles, plantilla y lo que ven sus closers.')
         : T('Cuando administración te asigne un equipo, aquí gestionarás sus miembros, roles y reparto.'));
       var sinEq = T('Primero hace falta un equipo');
       [bAnadir, bInt, bFila, bGuarda].forEach(function (b) { apaga(b, sinEq); });
@@ -9218,6 +9529,12 @@
       pon2('k-managers', String(Object.keys(managers).length));
       pon2('k-managers-pie', 'al frente de un equipo activo');
       pon2('k-sin-miembros', String(sinMiembros.length));
+      // Con 0 no hay nada que mirar: icono neutro en vez de la alarma roja (Experiencia, 17-oct)
+      var icoSin = document.querySelector('[data-lw="k-sin-miembros-icono"]');
+      if (icoSin) {
+        icoSin.className = 'w-10 h-10 rounded-xl flex items-center justify-center ' + (sinMiembros.length ? 'bg-error-container/60 text-error' : 'bg-surface-container text-territorial-green');
+        if (icoSin.firstElementChild) icoSin.firstElementChild.textContent = sinMiembros.length ? 'report' : 'check_circle';
+      }
       pon2('k-sin-miembros-pie', sinMiembros.length
         ? sinMiembros.slice(0, 3).map(function (e) { return e.nombre; }).join(' · ')
         : 'todos con closers activos');
@@ -9294,6 +9611,22 @@
         ctxMe.filtroId = (selEq && selEq.value) || null;
         pintaVentasPorSuCuenta(sb, ctxMe);
       };
+      // El mismo filtro, repetido dentro de «Mi equipo» para admin (Experiencia, 17-oct): antes el bloque mandaba a buscar el
+      // de «Miembros», más abajo. Los dos van sincronizados; el de «Miembros» sigue siendo el que manda.
+      var selMe = document.querySelector('[data-lw="me-elige"]');
+      if (selMe && selEq && esAdmEq) {
+        var Tme = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+        selMe.setAttribute('aria-label', Tme('Equipo'));
+        selMe.innerHTML = '<option value="">' + esc(Tme('Elige un equipo')) + '</option>' +
+          equipos.filter(function (e) { return e.activo; }).map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(etqE(e)) + '</option>'; }).join('');
+        selMe.value = selEq.value; if (selMe.value !== selEq.value) selMe.value = '';
+        selMe.hidden = false;
+        if (!selMe.hasAttribute('data-lw-enlazado')) {
+          selMe.setAttribute('data-lw-enlazado', '');
+          selMe.addEventListener('change', function () { selEq.value = selMe.value; selEq.dispatchEvent(new Event('change')); });
+          selEq.addEventListener('change', function () { selMe.value = selEq.value; if (selMe.value !== selEq.value) selMe.value = ''; });
+        }
+      }
       repintaMe();
       if (selEq) selEq.addEventListener('change', function () { pintaMiembros(); repintaMe(); });
 
@@ -9421,6 +9754,9 @@
       if (selProyecto) selProyecto.innerHTML = '<option value="">Todos los proyectos</option>' +
         proyectos.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>'; }).join('');
 
+      /* Las inactivas y las cerradas van plegadas tras «Ver …» (Experiencia CM5, 17-oct: 18 vigentes mezcladas con 18
+         inactivas). Plegar no las quita de nada: siguen en la cuenta de arriba y al desplegarlas tienen sus acciones. */
+      var verPlegadas = false;
       function pinta() {
         if (!cuerpo) return;
         var fe = selEquipo ? selEquipo.value : '', fp = selProyecto ? selProyecto.value : '';
@@ -9431,7 +9767,8 @@
           var okEmpresa = !empFiltroC || c.empresa === empFiltroC;
           return okEquipo && okProyecto && okEmpresa;
         });
-        var enVigor = lista.filter(function (c) { return estadoCond(c) !== 'cerrada'; });
+        var enVigor = lista.filter(function (c) { var e = estadoCond(c); return e === 'vigente' || e === 'futura'; });
+        var inactivas = lista.filter(function (c) { return estadoCond(c) === 'inactiva'; });
         var cerradas = lista.filter(function (c) { return estadoCond(c) === 'cerrada'; })
           .sort(function (a, b) { return String(b.vigente_hasta).localeCompare(String(a.vigente_hasta)); });
         var fila = function (c) {
@@ -9495,9 +9832,17 @@
         var sep = function (txt) {
           return '<tr class="bg-surface-container-low"><td colspan="7" class="px-5 py-3 font-label-md text-[11px] uppercase tracking-[0.16em] text-outline font-bold">' + esc(txt) + '</td></tr>';
         };
+        var nPleg = inactivas.length + cerradas.length;
+        var bVer = nPleg
+          ? '<tr><td colspan="7" class="px-5 py-3 text-center"><button type="button" data-real data-lw-ver-inactivas aria-expanded="' + (verPlegadas ? 'true' : 'false') + '" ' +
+            'class="px-4 py-1.5 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]">' +
+            esc(verPlegadas ? T('Ocultar inactivas y cerradas') : T(nPleg === 1 ? 'Ver %n inactiva o cerrada' : 'Ver %n inactivas o cerradas', { n: nPleg })) + '</button></td></tr>'
+          : '';
         cuerpo.innerHTML = lista.length
           ? (enVigor.length ? enVigor.map(fila).join('') : '<tr><td colspan="7" class="px-5 py-6 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Ninguna condición en vigor para este filtro.')) + '</td></tr>') +
-            (cerradas.length ? sep(T('Cerradas: siguen pagando las ventas de su periodo; no se reabren ni se borran')) + cerradas.map(fila).join('') : '')
+            bVer +
+            (verPlegadas && inactivas.length ? sep(T('Inactivas')) + inactivas.map(fila).join('') : '') +
+            (verPlegadas && cerradas.length ? sep(T('Cerradas: siguen pagando las ventas de su periodo; no se reabren ni se borran')) + cerradas.map(fila).join('') : '')
           : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
       }
       pinta();
@@ -9510,10 +9855,23 @@
         selEmpC.innerHTML = '<option value="">' + esc(T('Todas las empresas')) + '</option>' +
           ev.mias.map(function (e) { return '<option value="' + esc(e.clave) + '">' + esc(e.nombre) + '</option>'; }).join('');
         selEmpC.addEventListener('change', function () { empFiltroC = selEmpC.value; pinta(); });
-        selEquipo.parentNode.insertBefore(selEmpC, selEquipo);
+        var cajaEq = selEquipo.closest('[data-lw-filtro]');
+        if (cajaEq) {
+          var cajaEmp = cajaEq.cloneNode(false); cajaEmp.setAttribute('data-lw-filtro', 'empresa');
+          var etqEq = cajaEq.querySelector('label');
+          var etqEmp = document.createElement('label'); etqEmp.className = etqEq ? etqEq.className : ''; etqEmp.htmlFor = 'lw-co-empresa';
+          etqEmp.textContent = T('Empresa');
+          cajaEmp.appendChild(etqEmp); cajaEmp.appendChild(selEmpC);
+          cajaEq.parentNode.insertBefore(cajaEmp, cajaEq);
+        } else selEquipo.parentNode.insertBefore(selEmpC, selEquipo);
       }
 
       if (cuerpo) cuerpo.addEventListener('click', function (ev) {
+        if (ev.target.closest && ev.target.closest('[data-lw-ver-inactivas]')) {
+          ev.preventDefault(); ev.stopPropagation();
+          verPlegadas = !verPlegadas; pinta();
+          return;
+        }
         var bE = ev.target.closest && ev.target.closest('[data-lw-edita-cond]');
         if (bE) {
           ev.preventDefault(); ev.stopPropagation();
@@ -10379,7 +10737,9 @@
           '<div class="lw-res-vence"><span class="lw-res-lbl">' + esc(T('Vence')) + '</span><span>' + esc(fecha(c.vence)) + '</span>' +
             (c.prorrogas ? '<span class="lw-res-lbl">' + c.prorrogas + ' ' + esc(T(c.prorrogas > 1 ? 'prórrogas' : 'prórroga')) + (c.prorrogas >= 2 ? ' · ' + esc(T('la 3ª solo admin')) : '') + '</span>' : '') + '</div>' +
           '<div class="lw-res-est">' + estado(c) + (extra ? '<span class="lw-res-extra">' + esc(extra) + '</span>' : '') + '</div>' +
-          '<span class="lw-res-abrir">' + esc(T('Abrir ficha')) + ' →</span></a>';
+          /* La ficha se abre aquí mismo y lleva Prorrogar y Liberar con sus candados (Experiencia R2, 17-oct: «hay que irse a
+             Operaciones»). Donde toca decidir —vencida o vence esta semana— el rótulo lo dice. */
+          '<span class="lw-res-abrir">' + esc(T(c.banda === 'gracia' || c.banda === 'semana' ? 'Prorrogar o liberar' : 'Abrir ficha')) + ' →</span></a>';
       }
       var BANDAS = [
         ['gracia', 'Vencidas — pendientes de liberar', 'mal'],
@@ -10477,7 +10837,7 @@
         });
         (r[2] || []).forEach(function (k) {
           if (!k.liberado_en || k.liberado_en < hace14 || !esPreliminar(k)) return;
-          ev.push({ cuando: k.liberado_en, html: '<b>' + esc(k.numero) + '</b> · ' + esc(k.comprador_nombre || '—') + (k.parcela_codigo ? ' · ' + esc(k.parcela_codigo) : '') + (k.liberado_motivo ? ' · ' + esc(k.liberado_motivo) : ''), tag: pill(T('Liberada'), 'neutro') });
+          ev.push({ cuando: k.liberado_en, html: '<b>' + esc(k.numero) + '</b> · ' + esc(k.comprador_nombre || '—') + (k.parcela_codigo ? ' · ' + esc(k.parcela_codigo) : '') + (k.liberado_motivo ? ' · ' + esc(k.liberado_motivo === 'desistida' ? T('el cliente desistió') : T('plazo vencido')) : ''), tag: pill(T('Liberada'), 'neutro') });
         });
         ev.sort(function (a, b) { return a.cuando < b.cuando ? 1 : -1; });
         if (ev.length && actCaja) {

@@ -21,7 +21,10 @@
 
   var TC = window.LW_TEXTOS;
   if (!TC) { console.error('[textos-contrato] falta textos-contrato-nucleo.js'); return; }
-  var T = function (s, h) { return window.lwT ? window.lwT(s, h) : s; };
+  var T = function (s, h) {
+    if (window.lwT) return window.lwT(s, h);
+    return h ? String(s).replace(/%(\w+)/g, function (m, k) { return Object.prototype.hasOwnProperty.call(h, k) ? String(h[k]) : m; }) : s;
+  };
   var esc = TC.esc;
   var $ = function (id) { return document.getElementById(id); };
   var IDIOMAS = [['es', 'Español'], ['en', 'English'], ['id', 'Bahasa']];
@@ -204,19 +207,19 @@
     var semilla = vs.filter(function (v) { return v.origen === 'semilla'; })[0];
     var colAct = activa
       ? '<div class="tc-fuerte">v' + esc(activa.version) + '</div><div class="tc-peq">' + esc(fFecha(activa.activado_en)) + (activa.activado_por ? ' · ' + esc(activa.activado_por) : '') + '</div>'
-      : pill(T('Ninguna activa'), 'neutro') + '<div class="tc-peq">' + esc(T('Los contratos usan la copia inicial del estudio')) + '</div>';
+      : pill(T('Ninguna activa'), 'neutro');   // sin la nota «Los contratos usan la copia inicial» en cada fila: el chip «Copia inicial del estudio · vN» de la misma fila ya lo dice (Experiencia, 17-oct)
     var colBor = borrador
       ? '<div class="tc-fuerte">v' + esc(borrador.version) + '</div><div class="tc-peq">' + esc(fFechaHora(borrador.fecha)) + ' · ' + esc(borrador.autor) + '</div>'
         + (borrador.activable ? '' : '<div class="tc-peq tc-aviso-txt" data-tc-bloqueo="1">' + esc(borrador.bloqueo_motivo || '') + '</div>')
       : '<span class="tc-peq">—</span>';
     var chips = [];
-    if (!activa && semilla) chips.push(pill(T('Semilla del estudio v') + semilla.version, 'neutro'));
+    if (!activa && semilla) chips.push(pill(T('Copia inicial del estudio · v%n', { n: semilla.version }), 'neutro'));
     if (borrador && borrador.activable) chips.push(pill(T('Borrador listo para activar'), 'ok'));
     if (nOtras) chips.push('<button type="button" class="tc-chip" data-real="1" data-tc-ver-revs="' + esc(slug) + '">' + esc(nOtras === 1 ? T('1 revisión más') : T('%n revisiones más', { n: nOtras })) + '</button>');
     var acc = '<button type="button" class="tc-btn" data-real="1" data-tc-editar="' + esc(slug) + '">' + esc(borrador ? T('Seguir editando') : T('Editar')) + '</button>'
       + '<button type="button" class="tc-btn tc-btn-suave" data-real="1" data-tc-historial="' + esc(slug) + '">' + esc(T('Historial')) + '</button>'
       + (borrador ? '<button type="button" class="tc-btn tc-btn-suave tc-peligro" data-real="1" data-tc-descartar="' + esc(borrador.id) + '">' + esc(T('Descartar borrador')) + '</button>' : '');
-    return '<tr' + (slug === E.slug ? ' class="tc-fila-sel"' : '') + '><td><div class="tc-fuerte">' + esc(nombreDe(slug)) + '</div><div class="tc-peq">' + esc(slug) + '</div></td>'
+    return '<tr' + (slug === E.slug ? ' class="tc-fila-sel"' : '') + '><td><div class="tc-fuerte">' + esc(nombreDe(slug)) + '</div></td>'
       + '<td>' + colAct + '</td><td>' + colBor + '</td><td>' + (chips.join(' ') || '<span class="tc-peq">—</span>') + '</td><td class="tc-acc">' + acc + '</td></tr>';
   }
 
@@ -349,7 +352,7 @@
 
   function origenTxt(d) {
     if (d.estado === 'activa') return T('la versión activa');
-    if (d.origen === 'semilla') return T('la copia inicial del estudio («semilla»)');
+    if (d.origen === 'semilla') return T('la copia inicial del estudio');
     return T('tu borrador');
   }
   function pintaCabecera() {
@@ -922,7 +925,7 @@
     var rev = vs.filter(function (v) { return v.variante_nombre; })[0];
     caja.hidden = false; $('tc-hist-titulo').textContent = nombreDe(slug) + (vr !== 'estandar' ? ' · ' + (rev ? rev.variante_nombre : vr) : ''); $('tc-diff').hidden = true;
     $('tc-hist-cuerpo').innerHTML = vs.map(function (v) {
-      var estado = v.estado === 'activa' ? pill(T('Activa'), 'ok') : (v.estado === 'retirada' ? pill(T('Retirada'), 'neutro') : pill(v.origen === 'semilla' ? T('Semilla del estudio') : T('Borrador'), 'aviso'));
+      var estado = v.estado === 'activa' ? pill(T('Activa'), 'ok') : (v.estado === 'retirada' ? pill(T('Retirada'), 'neutro') : pill(v.origen === 'semilla' ? T('Copia inicial del estudio') : T('Borrador'), 'aviso'));
       var conf = v.estado === 'activa' || v.activado_por
         ? '<div class="tc-peq">' + esc(T('Activada por')) + ' ' + esc(v.activado_por || '—') + ' · ' + esc(fFechaHora(v.activado_en)) + '</div>'
           + (v.confirmacion_nombre ? '<div class="tc-peq">' + esc(T('Confirmó')) + ': ' + esc(v.confirmacion_nombre) + '</div>' : '') : '';

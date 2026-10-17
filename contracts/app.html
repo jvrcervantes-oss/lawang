@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="4cfa074fa286">
+<meta name="lw-version" content="1b1de8a1788f">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,9 +40,9 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=b389f930"></script>
-<script src="/contracts/assets/herramientas.js?v=b3b6465e"></script>
-<script src="assets/avisos.js?v=ee138378" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
+<script src="/contracts/assets/i18n.js?v=eba7b6bd"></script>
+<script src="/contracts/assets/herramientas.js?v=cae7866f"></script>
+<script src="assets/avisos.js?v=fe349096" defer></script><script src="assets/topbar.js?v=b312e959" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -56,13 +56,13 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/roles.js?v=c2b17a43"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=33f2980c"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=5e4decfa"></script>
+<script src="/contracts/assets/roles.js?v=c2b17a43"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=33f2980c"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=9f7cefa8"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
 <script src="assets/entities.js?v=65021341"></script>
-<script src="assets/geo.js?v=cc6b09b2"></script>
+<script src="assets/geo.js?v=1e3c01e6"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <script src="assets/vocabulario.js?v=10909e19"></script>
 <script src="assets/dinero.js?v=3a926fda"></script>
@@ -114,7 +114,7 @@
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
 <script src="/contracts/assets/asistente-contrato.js?v=6d94b612"></script>
-<script src="/intranet/v4/assets/nav.js?v=a02e052b" defer></script>
+<script src="/intranet/v4/assets/nav.js?v=33355231" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -5286,8 +5286,13 @@ function contractPayload(){
    CC00020, 76.500 € contados dos veces). Corte gemelo al de firma-submit
    (enviarProformaTotal), que hace lo mismo al FIRMAR. */
 const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
-/* PARADA (30-sep-2026, owner; pendiente LAW-471): el comentario de arriba describe el flujo activo. No descuenta el descuento comercial. Gemelo de
-   PROFORMA_AUTO_PARADA en firma-submit; reactivar solo cuando reste el neto. */
+/* PARADA (30-sep-2026, owner; pendiente LAW-471): el comentario de arriba describe el flujo activo. Gemelo de
+   PROFORMA_AUTO_PARADA en firma-submit. Motivo de la parada: la proforma salía sin el descuento comercial.
+   OJO al reactivar (Administración, revisión previa #428, 17-oct): `precio_total` YA ES EL NETO —con techo lo
+   rebaja syncPrecioTechoExtras (techo_extras.js) y en Bloqueo es lista − descuento—, así que la proforma lo usa
+   TAL CUAL. NO se le resta `descuento_comercial` otra vez: sería restarlo dos veces. Lista y descuento, si se
+   enseñan, van solo como líneas informativas. Antes de poner false: un contrato de prueba con descuento y
+   comprobar que la proforma = precio_total del contrato. */
 const PROFORMA_AUTO_PARADA = true;
 async function crearProformaAutomatica(contratoId, numero, payload){
   if(PROFORMA_AUTO_PARADA) return;
@@ -7699,6 +7704,19 @@ async function init(){
       try{ history.replaceState(null, '', location.pathname + '?' + par.toString()); }catch(_){ /* MUDO A PROPOSITO: sin historial (iframe, file:) solo queda el parametro en la barra; el borrador sale igual */ }
       // los anexos del archivo llegan después de abrir: sin esperar, el borrador salía con huecos (LAW-78)
       if(SAVED_CONTRACT){ await CARGA_ANEXOS; imprimirBorrador(); }
+    }
+    /* ?firma=1 — «Reenviar» de las firmas caducadas en «Hoy toca» (Home v4, 17-oct-2026): abre el
+       contrato y enseña la ventana «Enviar a firma», nada más. Generar el enlace sigue siendo el botón
+       de dentro (anula el vivo y crea otro). Va por el mismo botón que se pulsa a mano: si está apagado
+       (firmado, firmas a medias, sin guardar) no se abre y se dice su motivo. Se quita de la barra en el
+       acto para que un F5 no vuelva a abrirla. openSavedContract ya esperó a cargarEstadoFirma. */
+    if(par.get('firma') === '1'){
+      par.delete('firma');
+      try{ history.replaceState(null, '', location.pathname + '?' + par.toString()); }catch(_){ /* MUDO A PROPOSITO: sin historial (iframe, file:) solo queda el parametro en la barra; la ventana sale igual */ }
+      const bFirma = $('#btnEnviarFirma');
+      // sin await: la ventana puede pedir una confirmación (cadena rota) y la página no se queda esperando para enseñarse
+      if(SAVED_CONTRACT && bFirma && bFirma.style.display !== 'none' && !bFirma.disabled) openFirmaModal().catch(e => toastMal(String((e && e.message) || e)));
+      else if(bFirma && bFirma.title) toastMal(bFirma.title);
     }
   } else if(par.has('nuevo') || par.has('cliente') || par.has('lead')){
     // recargar esta URL directamente (F5, o entrar por ella a pelo) es una

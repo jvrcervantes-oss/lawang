@@ -26,6 +26,7 @@ const CLAVE_MENU = Function('return ' + m[1])();
 
 const norma = k => [].concat(k).slice().sort().join(',');
 const errores = [];
+const esperas = [];   // comprobaciones con promesas (lee() del buscador)
 
 for (const carpeta of fs.readdirSync(V4, { withFileTypes: true })) {
   if (!carpeta.isDirectory() || carpeta.name === 'assets') continue;
@@ -280,11 +281,47 @@ for (const [fich, herr, ids, extra] of PAGINAS_CROMO) {
 }
 /* desplegables.js es la única copia del cierre de los <details> (salió de topbar.js):
    quien tenga un details.lw-menu tiene que cargarlo. */
-for (const fich of ['intranet/dossier/builder.html', 'contracts/app.html', 'intranet/facturas/index.html', 'intranet/leads/index.html']) {
+for (const fich of ['intranet/dossier/builder.html', 'contracts/app.html', 'intranet/facturas/index.html', 'intranet/leads/index.html', 'intranet/v4/contratos/index.html']) {
   const s = fs.readFileSync(path.join(RAIZ, fich), 'utf8');
   if (/<details[^>]+class="[^"]*\b(lw|pv)-menu\b/.test(s) && posScript(s, 'contracts/assets/desplegables.js') === -1) errores.push(`${fich}: tiene un details.lw-menu/.pv-menu y no carga desplegables.js`);
 }
 if (/details\.lw-menu/.test(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'topbar.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''))) errores.push('topbar.js vuelve a llevar el cierre de los <details>: vive en desplegables.js');
 
-assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
-console.log('nav.test.js OK (' + enMenu.length + ' casillas situadas en el menú)');
+{
+  const nav = fs.readFileSync(path.join(RAIZ, 'intranet', 'v4', 'assets', 'nav.js'), 'utf8');
+  const grupos = (nav.match(/var GRUPOS_DATOS = \[[\s\S]*?\n    \];/) || [''])[0];
+  if (!grupos) errores.push('nav.js: falta GRUPOS_DATOS (buscador de clientes, contratos y unidades)');
+  (grupos.match(/path: '([a-z-]+)'/g) || []).forEach(m => {
+    const dp = m.slice(7, -1);
+    if (!new RegExp("path: '" + dp + "'").test(nav.split('var GRUPOS_DATOS')[0])) errores.push(`nav.js: el grupo de búsqueda «${dp}» no es una herramienta del menú`);
+  });
+  if (/contratos_equipo/.test(nav.replace(/\/\*[\s\S]*?\*\//g, ''))) errores.push('nav.js: el buscador no pide contratos_equipo() entero: usa contratos_busca');
+  // la pantalla pide al servidor, no lee la tabla (owner 15-oct; el gate escrituras_front paró `from('unidades')` el 17-oct)
+  if (/\.from\(/.test(grupos)) errores.push('nav.js: el buscador lee una tabla desde el navegador: va por una RPC (contratos_busca, unidades_busca)');
+  // un grupo sin su función (PGRST202) o sin permiso (42501) no se repide en cada tecla mientras el buscador sigue abierto
+  const trozo = (nav.match(/function sinPermisoONoExiste[\s\S]*?\n      return p;\n    \}/) || [''])[0];
+  if (!trozo) errores.push('nav.js: no se encuentra lee() del buscador');
+  else {
+    const hazLee = new Function('memo', trozo + '\nreturn lee;');
+    const prueba = (codigo, porConsulta) => {
+      let n = 0; const memo = {}; const lee = hazLee(memo);
+      const g = { path: 'proyectos', porConsulta, vale: () => true, pide: () => { n++; return codigo ? { error: { code: codigo } } : { data: [] }; } };
+      return lee(g, {}, 'ab').then(() => lee(g, {}, 'abc')).then(() => n);
+    };
+    esperas.push(prueba('PGRST202', true).then(n => { if (n !== 1) errores.push(`nav.js: el grupo sin su función se pidió ${n} veces en dos teclas (debe ser 1)`); }));
+    esperas.push(prueba('42501', true).then(n => { if (n !== 1) errores.push(`nav.js: el grupo sin permiso se pidió ${n} veces en dos teclas (debe ser 1)`); }));
+    esperas.push(prueba('500', true).then(n => { if (n !== 2) errores.push(`nav.js: un fallo del servidor (no de permiso) dejó de reintentarse en la tecla siguiente (${n} llamadas)`); }));
+    // los grupos de una carga por apertura (Clientes): el fallo del servidor tampoco se queda guardado; el permiso sí
+    esperas.push(prueba('500', false).then(n => { if (n !== 2) errores.push(`nav.js: Clientes guardó un fallo del servidor para toda la apertura (${n} llamadas)`); }));
+    esperas.push(prueba('PGRST202', false).then(n => { if (n !== 1) errores.push(`nav.js: Clientes sin su función se repidió (${n} llamadas)`); }));
+    esperas.push(prueba(null, false).then(n => { if (n !== 1) errores.push(`nav.js: Clientes se pidió ${n} veces en una apertura (una carga por apertura)`); }));
+  }
+  if (/(localStorage|sessionStorage)/.test(grupos)) errores.push('nav.js: los resultados del buscador no se guardan en el navegador');
+  (grupos.match(/encodeURIComponent\(([a-z]+)\.([a-z_]+)\)/g) || []).forEach(m => {
+    if (!/\.(id|proyecto_id)\)$/.test(m)) errores.push(`nav.js: el buscador enlaza por ${m}: por el id de la fila, nunca por un nombre o un número`);
+  });
+}
+Promise.all(esperas).then(() => {
+  assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
+  console.log('nav.test.js OK (' + enMenu.length + ' casillas situadas en el menú)');
+}).catch(e => { console.error(e.message); process.exit(1); });

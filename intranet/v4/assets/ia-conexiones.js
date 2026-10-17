@@ -268,11 +268,11 @@
     }
     var dias = Number(d && d.duracion_dias) > 0 ? Number(d.duracion_dias) : 0;
     c.appendChild(el('p', 'font-body-md text-body-md text-on-surface-variant', dias
-      ? T('Tu asistente podrá LEER, con tu usuario, lo que tú ves en la intranet de Dirección y Contabilidad. No ve pasaportes ni documentos de los compradores. Cada consulta queda registrada y la conexión dura %n días.', { n: dias })
-      : T('Tu asistente podrá LEER, con tu usuario, lo que tú ves en la intranet de Dirección y Contabilidad. No ve pasaportes ni documentos de los compradores. Cada consulta queda registrada y la conexión caduca sola: la fecha sale junto a cada una.')));
+      ? T('Tu asistente podrá leer, con tu usuario, lo que tú ves en la intranet de Dirección y Contabilidad. No ve pasaportes ni documentos de los compradores. Cada consulta queda registrada y la conexión dura %n días.', { n: dias })
+      : T('Tu asistente podrá leer, con tu usuario, lo que tú ves en la intranet de Dirección y Contabilidad. No ve pasaportes ni documentos de los compradores. Cada consulta queda registrada y la conexión caduca sola: la fecha sale junto a cada una.')));
 
     if (!b.conLista || b.claude.length) {
-      var h = el('h3', 'font-label-md text-label-md text-on-surface pt-2', T('En Claude'));
+      var h = el('h3', 'font-headline-sm text-[18px] text-deep-lagoon tracking-tight pt-2', T('En Claude'));
       h.setAttribute('data-ia-pasos', 'claude');
       c.appendChild(h);
       var ol = el('ol', 'flex flex-col gap-4');
@@ -289,7 +289,7 @@
       c.appendChild(el('p', 'font-body-sm text-body-sm text-on-surface-variant', T('Si no ves «Añadir conector personalizado», tu plan de Claude o quien administra tu organización en Claude no lo permite.')));
     }
     if (!b.conLista || b.chatgpt.length) {
-      var g = el('h3', 'font-label-md text-label-md text-on-surface pt-2', T('En ChatGPT'));
+      var g = el('h3', 'font-headline-sm text-[18px] text-deep-lagoon tracking-tight pt-2', T('En ChatGPT'));
       g.setAttribute('data-ia-pasos', 'chatgpt');
       c.appendChild(g);
       c.appendChild(el('p', 'font-body-md text-body-md text-on-surface-variant', T('Solo con un plan Business o Enterprise de ChatGPT, que no entrenan con tus datos. Se añade como conector con la misma dirección y el identificador de ChatGPT, y después entras con tu usuario de Lawang igual que en Claude.')));
@@ -323,6 +323,12 @@
     } else {
       var v = el('div', 'flex flex-col gap-3'); v.setAttribute('data-ia-vacio', '');
       v.appendChild(el('p', 'font-body-md text-body-md text-on-surface', T('No tienes ningún asistente de IA conectado.')));
+      if (!a) {   // sin aviso se pinta «Cómo se conecta» justo debajo (Experiencia, 17-oct: el vacío no tenía salida)
+        var ir = boton(T('Conectar ahora'), 'ia-ir-pasos');
+        ir.classList.add('self-start');
+        ir.addEventListener('click', function () { var como = document.querySelector('[data-ia-bloque="como"]'); if (como) como.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+        v.appendChild(ir);
+      }
       s.c.appendChild(v);
     }
     r.appendChild(s.s);

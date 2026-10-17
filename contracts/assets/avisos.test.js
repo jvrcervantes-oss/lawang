@@ -132,6 +132,32 @@ assert.ok(ta.some(x => /F2/.test(x)) && ta.some(x => /F3/.test(x)) && ta.some(x 
 // sin vistoHasta todo hecho es nuevo
 assert.ok(ad.avisos.find(a => a.titulo === 'Visto').nuevo);
 
+// --- leído al pulsar (H7, 17-oct-2026): ids de todas las copias, «nuevo» mientras quede una sin leer ---
+const TL = '2026-09-22T08:00:00.100+00:00';
+const leidas = lwAvisosArmar([ok([
+  { id: 'n1', tipo: 'reserva_por_vencer', titulo: 'Reserva CR9 vence mañana', destinatario: 'm1@x', creado_en: TL, leida: true },
+  { id: 'n2', tipo: 'reserva_por_vencer', titulo: 'Reserva CR9 vence mañana', destinatario: 'm2@x', creado_en: TL, leida: false },
+  { id: 'n3', tipo: 'contrato_firmado', titulo: 'Contrato CC1 firmado', destinatario: null, creado_en: TL, leida: true },
+  { id: 'n4', tipo: 'contrato_firmado', titulo: 'Contrato CC2 firmado', destinatario: null, creado_en: '2026-09-10T08:00:00+00:00', leida: false },
+]), ok([]), ok([]), ok([])], { esAdmin: true, email: 'jefe@x', vistoHasta: '2026-09-15T00:00:00Z', ahora: AHORA });
+const porTit = t => leidas.avisos.find(a => a.titulo === t);
+assert.deepStrictEqual(porTit('Reserva CR9 vence mañana').ids, ['n1', 'n2'], 'el suceso fundido lleva los ids de todas sus copias');
+assert.strictEqual(porTit('Reserva CR9 vence mañana').nuevo, true, 'una copia sin leer lo deja nuevo');
+assert.strictEqual(porTit('Contrato CC1 firmado').nuevo, false, 'leído en la base = no es nuevo aunque sea posterior a la marca');
+assert.strictEqual(porTit('Contrato CC2 firmado').nuevo, false, 'anterior a la marca de «todo leído» = no es nuevo');
+assert.strictEqual(leidas.porAviso, true);
+assert.strictEqual(leidas.sinLeer, 1);
+assert.strictEqual(leidas.novedades, 1, 'novedades = sin leer que no son alertas');
+assert.ok(ag.sinLeer > ag.novedades, 'las alertas cuentan en el contador pero no en novedades (Marcar todo no las limpia)');
+assert.strictEqual(ag.novedades, ag.avisos.filter(a => a.nuevo && a.clase !== 'alerta').length);
+// una instancia sin la migración: sin `id` ni `leida`, todo como antes (abrir marca) y nada con ids
+const sinId = lwAvisosArmar([ok([{ tipo: 'contrato_firmado', titulo: 'Contrato CC3 firmado', destinatario: null, creado_en: TL }]), ok([]), ok([]), ok([])],
+  { esAdmin: true, email: 'jefe@x', vistoHasta: '2026-09-15T00:00:00Z', ahora: AHORA });
+assert.strictEqual(sinId.porAviso, false, 'sin id en la respuesta, abrir sigue dándolo por visto');
+assert.deepStrictEqual(sinId.avisos[0].ids, []);
+assert.strictEqual(sinId.avisos[0].nuevo, true);
+assert.strictEqual(lwAvisosArmar([ok([]), ok([]), ok([]), ok([])], { ahora: AHORA }).porAviso, false, 'sin avisos no hay nada que marcar de uno en uno');
+
 // --- una consulta con error no rompe las demás ---
 const conFallo = lwAvisosArmar([{ data: null, error: { message: 'x' } }, r[1], r[2], r[3]], { esAdmin: false, email: yo, ahora: AHORA });
 assert.ok(conFallo.avisos.length > 0);

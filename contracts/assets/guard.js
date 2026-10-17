@@ -277,8 +277,10 @@
      fotos de proyectos SIN deck abierto viven en el bucket privado `deck-privado`: su URL es firmada (1 h) y la da el
      servidor (edge `ficheros`, acción `urls`), que saca la ruta de `deck_fotos` y el bucket de `storage.objects` —
      aquí solo viajan ids. La URL firmada NO se guarda nunca (ni en un estado, ni en localStorage): se pide al pintar.
-     `fotos`: ids, o filas {id, ambito, path}. Una fila de MODELO sigue siendo pública (bucket `deck`) y se resuelve
-     aquí mismo, sin ir al servidor. Lotes de 200 (el tope de la edge) en paralelo.
+     `fotos`: ids, o filas {id, ambito, path}. Las de MODELO también van al servidor (17-oct-2026): antes se armaba
+     aquí su URL pública de `deck`, pero en una instancia del ERP `deck` es privado y esa URL no carga. La edge firma si
+     el bucket es privado y da la misma pública si no lo es (Lawang: misma URL que antes). Lotes de 200 (el tope de la
+     edge) en paralelo.
      Resuelve {urls: {id: url|null}, caduca_seg}; `null` = la fila existe pero su fichero no. Si el servidor falla,
      RECHAZA con `.clave = 'urls_fallan'`: la pantalla tiene que decir «no he podido pedirlas», que no es lo mismo
      que «no hay fotos». */
@@ -287,7 +289,6 @@
     (fotos || []).forEach(function (f) {
       var id = typeof f === 'string' ? f : f && f.id;
       if (!id || Object.prototype.hasOwnProperty.call(urls, id)) return;
-      if (f && f.ambito === 'modelo' && f.path) { urls[id] = sb.storage.from('deck').getPublicUrl(f.path).data.publicUrl; return; }
       urls[id] = null;
       pedir.push(id);
     });

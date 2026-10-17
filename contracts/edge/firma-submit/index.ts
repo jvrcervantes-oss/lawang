@@ -500,8 +500,12 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
   const hitos = Array.isArray(o.ct.hitos) ? o.ct.hitos : [];
   if (!hitos.length) return { emitida: false, mensaje: 'contrato sin calendario de pagos: no se emite factura' };
 
-  const moneda = f.moneda || o.ct.moneda || 'EUR';
-  const precio = C.parseImporte(f.precio_total) || Number(o.ct.precio_total) || 0;
+  // Moneda también de la columna primero (buscador, 17-oct): la fija la base desde la unidad (LAW-261) y
+  // _factura_moneda_valida exige la del contrato; el campo puede haberse quedado en EUR.
+  const moneda = o.ct.moneda || f.moneda || 'EUR';
+  // La columna primero (17-oct): es la cifra que acotan los triggers de la base; el campo de datos->fields
+  // lo escribió la pantalla y solo sirve de respaldo si la columna viniera vacía.
+  const precio = Number(o.ct.precio_total) || C.parseImporte(f.precio_total) || 0;
   const h = hitos[0];
   const pct = C.parseImporte(h.pct);
   const monto = C.parseImporte(h.monto) || (pct && precio ? Math.round(precio * pct / 100 * 100) / 100 : 0);
@@ -612,8 +616,12 @@ const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
 /* PARADA (30-sep-2026, owner; pendiente LAW-471): el comentario de arriba describe el flujo activo.
    Motivo: la proforma automática no descuenta el descuento
    comercial y sale con importe equivocado. Se corta aquí (al firmar) y en
-   contracts/app.html (al guardar) hasta que use el precio NETO. Para reactivarla:
-   poner a false, y comprobar antes que la proforma resta `descuento_comercial`. */
+   contracts/app.html (al guardar) hasta que use el precio NETO. Para reactivarla: poner a false.
+   OJO (Administración, revisión previa #428, 17-oct): `precio_total` YA ES EL NETO (con techo lo rebaja la
+   pantalla y la base lo acota; en Bloqueo es lista − descuento). La proforma lo usa TAL CUAL y NO resta
+   `descuento_comercial`: restarlo sería cobrarlo dos veces. Antes de reactivar, un contrato de prueba con
+   descuento y comprobar que la proforma = la columna precio_total. Y REDESPLEGAR esta edge: la desplegada es
+   anterior al 17-oct y aún lee el campo de la pantalla antes que la columna (revisor, 17-oct). */
 const PROFORMA_AUTO_PARADA = true;
 async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: any })
     : Promise<{ emitida: boolean; mensaje: string }> {
@@ -622,8 +630,12 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
   }
   const C = await compartidos();
   const f = o.ct.fields || {};
-  const moneda = f.moneda || o.ct.moneda || 'EUR';
-  const precio = C.parseImporte(f.precio_total) || Number(o.ct.precio_total) || 0;
+  // Moneda también de la columna primero (buscador, 17-oct): la fija la base desde la unidad (LAW-261) y
+  // _factura_moneda_valida exige la del contrato; el campo puede haberse quedado en EUR.
+  const moneda = o.ct.moneda || f.moneda || 'EUR';
+  // La columna primero (17-oct): es la cifra que acotan los triggers de la base; el campo de datos->fields
+  // lo escribió la pantalla y solo sirve de respaldo si la columna viniera vacía.
+  const precio = Number(o.ct.precio_total) || C.parseImporte(f.precio_total) || 0;
   if (!precio) return { emitida: false, mensaje: 'contrato sin precio_total: no se emite proforma' };
 
   const compradores = C.compradoresDeContrato(f, o.ct.extras);

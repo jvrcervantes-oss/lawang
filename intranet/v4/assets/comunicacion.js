@@ -181,7 +181,7 @@
       var todos = del.every(function (u) { return marcados[u.user_id] || yaCubierto(u.user_id); });
       return '<button type="button" data-rol="' + r.k + '" aria-pressed="' + todos + '" class="px-3 py-1.5 rounded-full font-label-md text-[12px] border ' +
         (todos ? 'bg-deep-lagoon text-on-primary border-deep-lagoon' : 'border-outline-variant text-on-surface-variant hover:bg-surface-container-high') + '">' +
-        esc(r.t) + ' · ' + del.length + '</button>';
+        esc(tC(r.t)) + ' · ' + del.length + '</button>';
     }).join('');
   }
   function pintaPersonas() {
@@ -192,7 +192,7 @@
       return '<label for="' + id + '" class="flex items-center gap-3 py-1.5 border-b border-outline-variant/20 cursor-pointer' + (cubierto ? ' opacity-60' : '') + '">' +
         '<input type="checkbox" id="' + id + '" data-uid="' + esc(u.user_id) + '"' + (cubierto || marcados[u.user_id] ? ' checked' : '') + (cubierto ? ' disabled' : '') + '>' +
         '<span class="min-w-0"><span class="block font-body-md text-body-md text-on-surface truncate">' + esc(u.nombre || u.email) + '</span>' +
-        '<span class="block font-body-sm text-[12px] text-outline truncate">' + esc(u.email) + ' · ' + esc(u.rol) + '</span></span>' + nota + '</label>';
+        '<span class="block font-body-sm text-[12px] text-outline truncate">' + esc(u.email) + ' · ' + esc(tC(window.LW_ROL ? LW_ROL.etiqueta(u.rol) : u.rol)) + '</span></span>' + nota + '</label>';
     }).join('');
     pintaRoles();
     pintaBotonEnviar();

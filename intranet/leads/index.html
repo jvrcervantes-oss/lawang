@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="leads">
 <head>
-<meta name="lw-version" content="b1f578e7447c">
+<meta name="lw-version" content="56456f4104e1">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -75,9 +75,9 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=b389f930"></script>
-<script src="/contracts/assets/herramientas.js?v=b3b6465e"></script>
-<script src="/contracts/assets/avisos.js?v=ee138378" defer></script>
+<script src="/contracts/assets/i18n.js?v=eba7b6bd"></script>
+<script src="/contracts/assets/herramientas.js?v=cae7866f"></script>
+<script src="/contracts/assets/avisos.js?v=fe349096" defer></script>
 <!-- Cromo v4 (27-sep-2026): fuentes de la v4 solo para el menú y la cabecera, su
      hoja, y los tres scripts EN ESTE ORDEN (defer respeta el orden): cabecera.js
      antes de nav-montaje.js, que la llama; nav-montaje.js antes de nav.js, que
@@ -85,14 +85,14 @@
 <link rel="stylesheet" href="/intranet/v4/assets/fonts/fonts.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
 <link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=03c581bb">
-<script src="/intranet/v4/assets/cabecera.js?v=82d90529" defer></script>
+<script src="/intranet/v4/assets/cabecera.js?v=3e80d0ac" defer></script>
 <script src="/intranet/v4/assets/nav-montaje.js?v=64d38c16" defer></script>
 <script src="/contracts/assets/vocabulario.js?v=10909e19"></script>
-<script src="/intranet/v4/assets/nav.js?v=a02e052b" defer></script>
+<script src="/intranet/v4/assets/nav.js?v=33355231" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/roles.js?v=c2b17a43"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=33f2980c"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=5e4decfa" data-herramienta="leads"></script>
+<script src="/contracts/assets/roles.js?v=c2b17a43"></script><script src="/contracts/assets/cierre.js?v=b5c126ab"></script><script src="/contracts/assets/instancia.js?v=33f2980c"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=9f7cefa8" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
-<link rel="stylesheet" href="/intranet/leads/leads.css?v=15">
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=16">
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
@@ -110,6 +110,11 @@
        vacía se lee como una herramienta rota, no como "no te han dado ninguna campaña".
        Este aviso es la diferencia entre las dos cosas. -->
   <div id="avisoAlcance" class="aviso" hidden style="margin:12px 16px 0"></div>
+
+  <!-- Título de página, como el resto de la suite (Experiencia C4, 17-oct-2026): era la única pantalla sin él.
+       La LETRA no se cambia: la piel propia del CRM la eligió el owner (14-sep-2026, ver la cabecera de
+       intranet/v4/leads/index.html); el título va con la de sus encabezados. -->
+  <div class="crm-titulo"><h1 data-lwt>CRM</h1></div>
 
   <!-- «Refrescar» vivía en la barra clásica; con la cabecera v4 pasa junto a las
        pestañas (27-sep-2026), FUERA del tablist (un botón que no es pestaña no va
@@ -153,6 +158,12 @@
          otros aparecen sus clientes (revisión previa #49, Seguridad). -->
     <button role="tab" data-v="trazabilidad" aria-selected="false" id="tabTrazabilidad" hidden><i class="ph ph-git-merge"></i><span data-lwt>Trazabilidad</span></button>
   </nav>
+  <!-- «Más» (17-oct-2026): fuera de la nav porque la nav desliza (overflow) y recortaría el desplegable.
+       leads.js → colocaPestanas() mueve aquí las pestañas que no van a la vista; vacío, se esconde. -->
+  <div class="crm-mas" id="navMasCaja" hidden>
+    <button type="button" class="crm-mas-btn" id="navMas" aria-haspopup="true" aria-expanded="false" aria-controls="navMasMenu"><span data-lwt>Más</span><i class="ph ph-caret-down" aria-hidden="true"></i></button>
+    <div class="crm-mas-menu" id="navMasMenu" role="group" aria-label="Más pestañas" data-lwt-aria hidden></div>
+  </div>
   <button type="button" class="lw-btn" id="btnRefrescar" aria-label="Refrescar" data-lwt-aria><i class="ph ph-arrows-clockwise"></i><span data-lwt>Refrescar</span></button>
   </div>
 
@@ -169,6 +180,12 @@
       <header><div><h2 data-lwt="Lo que toca hoy">Lo que toca hoy</h2>
         <p data-lwt="Vencidas y de hoy. El próximo paso de cada lead se pone desde su ficha.">Vencidas y de hoy. El próximo paso de cada lead se pone desde su ficha.</p></div></header>
       <div id="listaHoy" class="citas"></div>
+    </div>
+    <!-- Parados sin próximo paso (17-oct-2026): los que «Hoy» no cuenta porque no tienen tarea. leads.js → pintarParados(). -->
+    <div class="caja caja-parados" id="cajaParados" hidden>
+      <header><div><h2 data-lwt="Parados sin próximo paso">Parados sin próximo paso</h2>
+        <p id="paradosSub"></p></div></header>
+      <div id="listaParados" class="citas"></div>
     </div>
   </section>
 
@@ -457,7 +474,7 @@
   <div class="toast" id="toast"></div>
 
 <script src="/contracts/assets/dialogo.js?v=0c18d745"></script>
-<script src="/contracts/assets/suite-comun.js?v=9088e0f9"></script>
+<script src="/contracts/assets/suite-comun.js?v=c5181ea6"></script>
 <script src="/intranet/leads/buscador.js?v=1"></script>
 <script src="/intranet/leads/leads.js?v=26"></script>
 </body>
