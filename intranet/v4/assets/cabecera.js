@@ -63,12 +63,25 @@
   // la paleta ÚNICA de la v4 (LW_TONOS, arriba): el nivel de avisos.js se traduce a ella
   var NIVEL_A_TONO = { mal: 'mal', atencion: 'espera', ok: 'ok', neutro: 'neutro' };
   function tonoAviso(nivel) { return LW_TONOS[NIVEL_A_TONO[nivel] || 'neutro']; }
+  /* LA ACCIÓN EN LA FILA (H7, 17-oct-2026, Experiencia: «las filas no tienen acción directa»). Cada aviso ya era un enlace,
+     pero no lo parecía: ahora dice a dónde lleva. Solo lleva: reenviar, cobrar o aprobar se hacen allí, con sus candados
+     (desde la campana nada escribe ni manda nada a un tercero). Por la herramienta de destino, no por el texto del aviso. */
+  var ACCION_DE = { operaciones: 'Abrir operación', contratos: 'Abrir contrato', facturas: 'Ver facturas', comisiones: 'Ver comisiones',
+                    leads: 'Abrir CRM', reservas: 'Ver reservas', compradores: 'Abrir ficha', soporte: 'Abrir ticket' };
+  function accionAviso(href) {
+    if (!href || href === '#') return '';
+    var m = /^\/intranet\/(?:v4\/)?([a-z-]+)/.exec(href);
+    return T((m && ACCION_DE[m[1]]) || 'Abrir');
+  }
+  // «caduca en 3 d» no deja la «d» sola en la línea siguiente (H7): espacio duro entre la cifra y su unidad
+  function sinPartir(s) { return String(s == null ? '' : s).replace(/(\d) (d|h|min)(?![0-9A-Za-zÀ-ÿ])/g, '$1\u00a0$2'); }
   /* VISTA DE FILAS (23-sep-2026, owner: «la información está concentrada y
      muy vacía»). El cajón vuelve a su ancho de siempre y cada aviso es UNA
      fila que reparte lo que dice por el ancho, como una tabla: estado ·
      aviso · detalle · fecha. En móvil (menos de 720 px) la fila se apila en
      dos líneas. Colores: los de la paleta única (LW_TONOS). */
-  function pintaAvisos(avisos, aV4) {
+  // `opc.marcarTodo`: la base marca de uno en uno (avisos.js → porAviso) y hay botón «Marcar todo como leído»
+  function pintaAvisos(avisos, aV4, opc) {
     var alertas = avisos.filter(function (a) { return a.clase === 'alerta'; })
       // lo más urgente primero: vencido antes que por vencer, y dentro, lo más antiguo
       .sort(function (a, b) { return (a.nivel === 'mal' ? 0 : 1) - (b.nivel === 'mal' ? 0 : 1) || new Date(a.cuando) - new Date(b.cuando); });
@@ -81,10 +94,14 @@
         '<span class="material-symbols-outlined" style="font-size:15px">' + t.icono + '</span>' + n + ' ' + esc(T(texto)) + '</span>' : '';
     };
     var resumen = (nMal || nAt || nNuevos)
-      ? '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
+      ? '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">' +
           chip(nMal, nMal === 1 ? 'vencido o caducado' : 'vencidos o caducados', LW_TONOS.mal) +
           chip(nAt, 'por vencer', LW_TONOS.espera) +
-          chip(nNuevos, nNuevos === 1 ? 'novedad sin ver' : 'novedades sin ver', LW_TONOS.neutro) + '</div>'
+          chip(nNuevos, nNuevos === 1 ? 'novedad sin ver' : 'novedades sin ver', LW_TONOS.neutro) +
+          (opc && opc.marcarTodo && nNuevos
+            ? '<button type="button" data-accion="avisos-marcar-todo" data-real style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;border:1px solid rgb(var(--tema-warm-border, 228 220 203));background:rgb(var(--tema-surface-container-lowest, 255 255 255));color:rgb(var(--tema-deep-lagoon, 16 76 79));font:inherit;font-size:12px;font-weight:700;cursor:pointer">' +
+              '<span class="material-symbols-outlined" style="font-size:15px" aria-hidden="true">done_all</span>' + esc(T('Marcar todo como leído')) + '</button>'
+            : '') + '</div>'
       : '';
     var hoyAnio = new Date().getFullYear();
     var fechaCorta = function (x) {
@@ -94,33 +111,38 @@
       return d.toLocaleDateString(locale(), d.getFullYear() === hoyAnio ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
     };
     var css = '<style>' +
-      '.lw-av{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;align-items:center;gap:12px;padding:9px 14px;border-radius:10px;border:1px solid rgb(var(--tema-warm-border, 228 220 203));color:rgb(var(--tema-on-surface, 27 28 25));text-decoration:none;transition:filter .15s}' +
+      '.lw-av{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px 118px;align-items:center;gap:12px;padding:9px 14px;border-radius:10px;border:1px solid rgb(var(--tema-warm-border, 228 220 203));color:rgb(var(--tema-on-surface, 27 28 25));text-decoration:none;transition:filter .15s}' +
       '.lw-av:hover{filter:brightness(.97)}' +
-      '.lw-av-cab{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;gap:12px;padding:0 15px 2px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--tema-control-border, 138 132 116))}' +
+      '.lw-av-cab{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px 118px;gap:12px;padding:0 15px 2px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--tema-control-border, 138 132 116))}' +
       '.lw-av-t{font-size:13px;line-height:1.35;overflow-wrap:anywhere}' +
       '.lw-av-d{font-size:12px;color:rgb(var(--tema-on-surface-variant, 68 72 63));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
       '.lw-av-f{font-size:11.5px;color:rgb(var(--tema-outline, 117 120 110));text-align:right;white-space:nowrap}' +
+      '.lw-av-a{font-size:12px;font-weight:700;color:rgb(var(--tema-deep-lagoon, 16 76 79));text-align:right;white-space:nowrap}' +
       '@media (max-width:720px){.lw-av-cab{display:none}.lw-av{grid-template-columns:20px minmax(0,1fr) auto;gap:4px 10px}' +
-      '.lw-av .lw-av-e{grid-column:2;grid-row:2}.lw-av .lw-av-t{grid-column:2;grid-row:1}.lw-av .lw-av-d{grid-column:2 / 4;grid-row:3;white-space:normal}.lw-av .lw-av-f{grid-column:3;grid-row:1}}' +
+      '.lw-av .lw-av-e{grid-column:2;grid-row:2}.lw-av .lw-av-t{grid-column:2;grid-row:1}.lw-av .lw-av-d{grid-column:2 / 4;grid-row:3;white-space:normal}.lw-av .lw-av-f{grid-column:3;grid-row:1}.lw-av .lw-av-a{grid-column:3;grid-row:2}}' +
       '</style>';
     var fila = function (a) {
       var t = tonoAviso(a.nivel);
       var fondo = (a.clase === 'alerta' || a.nuevo) ? t.suave : 'rgb(var(--tema-surface-container-lowest, 255 255 255))';
-      return '<a class="lw-av" href="' + esc(aV4(a.enlace)) + '" title="' + esc(a.titulo + (a.detalle ? ' — ' + a.detalle : '')) + '" style="border-left:4px solid ' + t.borde + ';background:' + fondo + '">' +
+      var destino = aV4(a.enlace), accion = accionAviso(destino);
+      // los ids de todas las copias del suceso: pulsar la fila las da por leídas (solo si queda alguna sin leer)
+      var ids = (a.nuevo && a.clase !== 'alerta' && a.ids && a.ids.length) ? ' data-lw-aviso-ids="' + esc(a.ids.join(',')) + '"' : '';
+      return '<a class="lw-av" href="' + esc(destino) + '"' + ids + ' title="' + esc(a.titulo + (a.detalle ? ' — ' + a.detalle : '')) + '" style="border-left:4px solid ' + t.borde + ';background:' + fondo + '">' +
         '<span class="material-symbols-outlined" style="font-size:19px;color:' + t.borde + '">' + t.icono + '</span>' +
         '<span class="lw-av-e" style="display:flex;flex-wrap:wrap;gap:4px">' +
           '<span style="padding:1px 8px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(T(a.etiqueta || 'Aviso')) + '</span>' +
           (a.nuevo && a.clase !== 'alerta' ? '<span style="padding:1px 8px;border-radius:999px;background:rgb(var(--tema-volcanic-ash, 46 52 55));color:rgb(var(--tema-on-primary, 255 255 255));font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(T('Nuevo')) + '</span>' : '') +
         '</span>' +
-        '<span class="lw-av-t" style="font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + '">' + esc(a.titulo) + '</span>' +
+        '<span class="lw-av-t" style="font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + '">' + esc(sinPartir(a.titulo)) + '</span>' +
         '<span class="lw-av-d">' + esc(a.detalle || '') + '</span>' +
         '<span class="lw-av-f">' + esc(fechaCorta(a.cuando)) + '</span>' +
+        '<span class="lw-av-a">' + (accion ? esc(accion) + ' →' : '') + '</span>' +
       '</a>';
     };
     var bloque = function (titulo, lista) {
       return lista.length ? '<section style="display:grid;gap:6px">' +
         '<h4 style="margin:6px 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgb(var(--tema-outline, 117 120 110))">' + esc(T(titulo)) + ' (' + lista.length + ')</h4>' +
-        '<div class="lw-av-cab"><span></span><span>' + esc(T('Estado')) + '</span><span>' + esc(T('Aviso')) + '</span><span>' + esc(T('Detalle')) + '</span><span style="text-align:right">' + esc(T('Fecha')) + '</span></div>' +
+        '<div class="lw-av-cab"><span></span><span>' + esc(T('Estado')) + '</span><span>' + esc(T('Aviso')) + '</span><span>' + esc(T('Detalle')) + '</span><span style="text-align:right">' + esc(T('Fecha')) + '</span><span></span></div>' +
         lista.map(fila).join('') + '</section>' : '';
     };
     return css + resumen + bloque('Requiere atención', alertas) + bloque('Actividad reciente', hechos);
@@ -177,6 +199,67 @@
       cierraDesplegable();
       setTimeout(function () { window.lwNovedades.abre(); }, 360);   // deja recogerse al cajón y sale de la campana
     }, true);   // en captura: el cajón corta la propagación de los clics de dentro
+    /* LEÍDO AL PULSAR (H7, 17-oct-2026). En captura, como el de novedades: el cajón corta la propagación de los clics de
+       dentro. Pulsar un aviso marca todas sus copias (`data-lw-aviso-ids`, los ids que da notificaciones_datos) y después
+       navega: salir de la página corta la petición, así que se espera a la marca como mucho 1,2 s. Un error (sin permiso,
+       sin red) no impide ir: el aviso solo se queda «nuevo». Con Ctrl/Cmd/Mayús o con la rueda se abre otra pestaña y no
+       se espera. La persona la pone el servidor (uid_sesion), y la RPC solo marca lo que la policy le deja ver. */
+    var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    function quitaNuevos(cumple) {
+      if (!ULTIMO) return 0;
+      var n = 0;
+      ULTIMO.avisos.forEach(function (a) { if (a.nuevo && a.clase !== 'alerta' && cumple(a)) { a.nuevo = false; n++; } });
+      ULTIMO.sinLeer = Math.max(0, (ULTIMO.sinLeer || 0) - n);
+      pintaContador(ULTIMO.sinLeer, ULTIMO.avisos);
+      return n;
+    }
+    function repintaLista() {
+      var cont = document.querySelector('[data-lw="avisos-lista"]');
+      if (cont && ULTIMO) cont.innerHTML = pintaAvisos(ULTIMO.avisos, aV4, { marcarTodo: !!ULTIMO.porAviso });   // plantilla propia, datos con esc()
+    }
+    function marcaAviso(fila) {
+      var ids = String(fila.getAttribute('data-lw-aviso-ids') || '').split(',').filter(function (x) { return UUID.test(x); }).slice(0, 50);
+      fila.removeAttribute('data-lw-aviso-ids');
+      if (!ids.length) return Promise.resolve();
+      quitaNuevos(function (a) { return (a.ids || []).some(function (x) { return ids.indexOf(x) !== -1; }); });
+      return Promise.resolve(aut.sb.rpc('notificaciones_marca_leidas', { p_ids: ids })).then(function (r) {
+        if (r && r.error) console.error('[v4 cabecera] marcar aviso:', r.error);
+      }, function (e) { console.error('[v4 cabecera] marcar aviso:', e); });
+    }
+    function marcaTodo(btn) {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      Promise.resolve(aut.sb.rpc('marcar_notificaciones_leidas')).then(function (r) {
+        if (r && r.error) throw r.error;
+        quitaNuevos(function () { return true; });
+        repintaLista();
+      }).catch(function (e) {
+        console.error('[v4 cabecera] marcar todo:', e);
+        btn.disabled = false;
+        if (typeof toast === 'function') toast(T('No se ha podido marcar como leído. Prueba de nuevo.'));
+      });
+    }
+    document.addEventListener('click', function (ev) {
+      var el = ev.target && ev.target.closest ? ev.target : null;
+      if (!el) return;
+      var todo = el.closest('[data-accion="avisos-marcar-todo"]');
+      if (todo) { ev.preventDefault(); marcaTodo(todo); return; }
+      var fila = el.closest('a.lw-av[data-lw-aviso-ids]');
+      if (!fila) return;
+      var marca = marcaAviso(fila);
+      if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;   // otra pestaña: esta página sigue viva
+      ev.preventDefault();
+      var href = fila.getAttribute('href') || '#';
+      if (href === '#') { repintaLista(); return; }
+      var ido = false;
+      var ve = function () { if (!ido) { ido = true; location.href = href; } };
+      marca.then(ve, ve);
+      setTimeout(ve, 1200);
+    }, true);
+    document.addEventListener('auxclick', function (ev) {
+      var fila = ev.button === 1 && ev.target && ev.target.closest && ev.target.closest('a.lw-av[data-lw-aviso-ids]');
+      if (fila) marcaAviso(fila);
+    }, true);
     var TITULO = 'Avisos', BAJO = 'Lo que ha pasado y lo que vence en los próximos 15 días.';
     function abre() {
       if (conCajon && typeof window.lwCajon !== 'function') {
@@ -191,7 +274,7 @@
         var notaFallo = (out && out.fallos) ? nota(T(out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Alguna de las consultas de avisos falló: la lista puede estar incompleta.')) : '';
         if (!out) cuerpo = nota(T('No se pudieron cargar los avisos. Prueba a recargar la página.'));
         else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:rgb(var(--tema-control-border, 138 132 116))">' + esc(T('Nada nuevo.')) + '</p>';
-        else cuerpo = notaFallo + pintaAvisos(out.avisos, aV4);
+        else cuerpo = notaFallo + '<div data-lw="avisos-lista" style="display:grid;gap:12px">' + pintaAvisos(out.avisos, aV4, { marcarTodo: !!out.porAviso }) + '</div>';
         cuerpo = filaNovedades() + cuerpo;
         // ancho de siempre (owner: «que fuese muy amplia nunca fue un problema»);
         // `desde`: el cajón crece desde la campana y se recoge hacia ella
@@ -200,8 +283,10 @@
         if (conCajon) window.lwCajon({ titulo: T(TITULO), bajoTitulo: T(BAJO), cuerpo: cuerpo, desde: boton });
         else abreDesplegable(cuerpo);
       };
-      // abrir = dar los hechos por vistos (las alertas de ≤5 días siguen contando, como en la viva)
-      if (ULTIMO && ULTIMO.sinLeer) {
+      /* Abrir ya no da nada por visto cuando la base sabe marcar de uno en uno (H7, 17-oct-2026, Experiencia: «abrir = todo
+         leído → leído al pulsar»): se marca al pulsar cada aviso o con «Marcar todo como leído». Sin eso (una instancia sin la
+         migración 20261017200000), como siempre: abrir da los hechos por vistos (las alertas de ≤5 días siguen contando). */
+      if (ULTIMO && ULTIMO.sinLeer && !ULTIMO.porAviso) {
         aut.sb.rpc('marcar_notificaciones_leidas').then(function (r) { if (r && r.error) console.error('[v4 cabecera] marcar avisos:', r.error); });
         pintaContador(0);
       }

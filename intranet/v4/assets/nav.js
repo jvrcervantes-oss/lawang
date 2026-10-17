@@ -1099,13 +1099,14 @@
          `from('unidades')` es lector directo apuntado en el inventario de L6 (LAW-338).
        · Una instancia sin la función o sin permiso (PGRST202 / 42501, p. ej. el ERP fijado) esconde el grupo sin
          aviso; la línea «No se ha podido buscar en …» queda para la red o un fallo del servidor, sin su mensaje.
-       · Texto por textContent y enlaces a rutas propias con encodeURIComponent; nunca innerHTML con un dato. */
+       · Texto por textContent y enlaces a rutas propias con encodeURIComponent; nunca innerHTML con un dato.
+       · Cada enlace lleva el ID de la fila (contrato, cliente, proyecto), nunca su número ni su nombre. */
     var GRUPOS_DATOS = [
       { path: 'contratos', titulo: 'Contratos', porConsulta: true,
         pide: function (sb, q) { return sb.rpc('contratos_busca', { p_q: q.slice(0, 120) }); },
         casa: null,
-        fila: function (c) { return [c.numero + (c.comprador_nombre ? ' · ' + c.comprador_nombre : ''), [c.proyecto_nombre, c.parcela_codigo].filter(Boolean).join(' · '), ROOT + 'contratos/?contrato=' + encodeURIComponent(c.numero)]; },
-        vale: function (c) { return c && c.numero; } },
+        fila: function (c) { return [c.numero + (c.comprador_nombre ? ' · ' + c.comprador_nombre : ''), [c.proyecto_nombre, c.parcela_codigo].filter(Boolean).join(' · '), ROOT + 'contratos/?contrato=' + encodeURIComponent(c.id)]; },
+        vale: function (c) { return c && c.id && c.numero; } },
       { path: 'compradores', titulo: 'Clientes',
         pide: function (sb) { return sb.rpc('compradores_lista').select('id,full_name'); },
         casa: function (c, q) { return lwBuscaEn([c.full_name], q); },
@@ -1114,9 +1115,9 @@
       { path: 'proyectos', titulo: 'Unidades',
         pide: function (sb) { return sb.from('unidades').select('id,codigo,proyecto,proyecto_id'); },
         casa: function (u, q) { return lwBuscaEn([u.codigo, u.proyecto], q); },
-        // Proyectos abre su cajón por ?proyecto=<nombre> (su contrato de hoy); el nombre sale de la fila al momento
-        fila: function (u) { return [u.codigo, u.proyecto || '', ROOT + 'proyectos/?proyecto=' + encodeURIComponent(u.proyecto || '')]; },
-        vale: function (u) { return u && u.codigo; } }
+        // por id, nunca por el nombre (máxima «todo apunta por ID»): Proyectos abre su cajón con ?proyecto=<id> desde el 17-oct
+        fila: function (u) { return [u.codigo, u.proyecto || '', ROOT + 'proyectos/?proyecto=' + encodeURIComponent(u.proyecto_id)]; },
+        vale: function (u) { return u && u.codigo && u.proyecto_id; } }
     ];
     var POR_GRUPO = 5;
     function tiene(dp) {

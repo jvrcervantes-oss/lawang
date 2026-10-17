@@ -2653,8 +2653,8 @@
           }
           window.LW_V4 = window.LW_V4 || {};
           window.LW_V4.contratosLista = {};
-          var porNum = {};
-          cs.forEach(function (c) { window.LW_V4.contratosLista[c.id] = c; porNum[c.numero] = c; });
+          var porNum = {}, porIdC = {};
+          cs.forEach(function (c) { window.LW_V4.contratosLista[c.id] = c; porNum[c.numero] = c; porIdC[c.id] = c; });
 
           // «Registro de firmas» (cabecera): cajón con las últimas solicitudes de firma del equipo
           var bReg = boton('registro-firmas');
@@ -2725,9 +2725,10 @@
           buscadorDe(aplicar, function (v) { texto = v; });
           aplicar();   // ya en páginas de 25 desde el primer pintado
 
-          // ?contrato=NUM abre la ficha directamente (enlaces de la auditoría, de Home, etc.)
+          // ?contrato=<id> (el buscador de la cabecera, 17-oct) o ?contrato=NUM (auditoría, Home…) abre la ficha directamente
           var pedido = new URLSearchParams(location.search).get('contrato');
-          if (pedido && porNum[pedido]) cuandoCajon(function () { fichaContrato(sb, porNum[pedido]); });
+          var elegidoC = pedido ? (porIdC[pedido] || porNum[pedido]) : null;
+          if (elegidoC) cuandoCajon(function () { fichaContrato(sb, elegidoC); });
         });
     },
 
@@ -6705,7 +6706,11 @@
            con el cajón cerrado (11-sep-2026: antes se abría solo con el
            proyecto de más unidades, y parecía un desplegable roto). */
         var pedido = new URLSearchParams(location.search).get('proyecto');
-        if (pedido && ps.some(function (p) { return p.nombre === pedido; })) {
+        // por id (el buscador de la cabecera, 17-oct: «todo apunta por ID») o por nombre (los enlaces de siempre)
+        var pedidoP = pedido ? ps.filter(function (p) { return p.id === pedido; })[0] : null;
+        if (pedidoP) {
+          abrirCajon(pedidoP.nombre, { mostrar: true, empujarUrl: false });
+        } else if (pedido && ps.some(function (p) { return p.nombre === pedido; })) {
           abrirCajon(pedido, { mostrar: true, empujarUrl: false });
         } else if (pedido && typeof LW_PROYECTOS_GENERALES !== 'undefined' && LW_PROYECTOS_GENERALES.indexOf(pedido) !== -1) {
           /* Un enlace viejo de la clásica (/intranet/documentacion/?proyecto=Lawang (general),

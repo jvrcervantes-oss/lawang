@@ -152,7 +152,7 @@ function lwAvisosArmar(r, opts) {
     var cod = codigoGeneral(n.titulo);
     if (cod) generalUnidad[segundo(n.creado_en) + '|' + cod] = true;
   });
-  var vistos = {};
+  var vistos = {};   // clave del suceso → su aviso (para sumarle los ids de las copias)
   var avisos = [];
   /* «TU …» DE OTRO (23-sep-2026, owner: «he rechazado la solicitud de un
      agente y me pone a mí como si fuese rechazada para mí»). El aviso personal
@@ -169,13 +169,24 @@ function lwAvisosArmar(r, opts) {
     if (n.tipo === 'unidad_estado' && ajeno(n) && generalUnidad[seg + '|' + codigoCopia(n.titulo)]) return;
     if (ajeno(n) && /^Tu /.test(n.titulo || '')) n = Object.assign({}, n, { titulo: sinTu(n.titulo) });
     var clave = (n.tipo || '') + '|' + (n.titulo || '') + '|' + seg;
-    if (vistos[clave]) return;
-    vistos[clave] = true;
+    /* LEÍDO AL PULSAR (H7, 17-oct-2026): la base dice de cada fila si ESTA persona ya la abrió (`leida`). Un suceso
+       fundido sigue «nuevo» mientras le quede una copia sin leer, y lleva los ids de todas: pulsarlo las marca todas. */
+    var nuevoFila = (!vistoHasta || new Date(n.creado_en) > vistoHasta) && n.leida !== true;
+    var ya = vistos[clave];
+    if (ya) {
+      if (n.id) ya.ids.push(String(n.id));
+      if (nuevoFila) ya.nuevo = true;
+      return;
+    }
     var tono = lwAvisoTonoHecho(n.tipo, n.titulo);
-    avisos.push({ titulo: n.titulo, detalle: n.detalle, enlace: lwAvisoEnlace(n.enlace), cuando: n.creado_en,
-             nuevo: !vistoHasta || new Date(n.creado_en) > vistoHasta,
-             clase: 'hecho', nivel: tono[0], etiqueta: tono[1] });
+    vistos[clave] = { titulo: n.titulo, detalle: n.detalle, enlace: lwAvisoEnlace(n.enlace), cuando: n.creado_en,
+             nuevo: nuevoFila, ids: n.id ? [String(n.id)] : [],
+             clase: 'hecho', nivel: tono[0], etiqueta: tono[1] };
+    avisos.push(vistos[clave]);
   });
+  /* `porAviso`: la base ya sabe marcar de uno en uno (cada fila trae su id). Si falta en alguna —una instancia sin la
+     migración 20261017200000, o el ERP fijado—, todo sigue como antes: abrir la campana lo da por visto. */
+  var porAviso = crudos.length > 0 && crudos.every(function (n) { return !!n.id; });
 
   var pendientes = {};
   datos(3).forEach(function (x) { pendientes[x.factura_id] = Number(x.pendiente) || 0; });
@@ -221,7 +232,8 @@ function lwAvisosArmar(r, opts) {
 
   avisos.sort(function (a, b) { return new Date(b.cuando) - new Date(a.cuando); });
   var lista = avisos.slice(0, LW_AVISOS_LIMITE);
-  return { avisos: lista, sinLeer: avisos.filter(function (a) { return a.nuevo; }).length, cobroSinComprobar: cobroSinComprobar };
+  return { avisos: lista, sinLeer: avisos.filter(function (a) { return a.nuevo; }).length, cobroSinComprobar: cobroSinComprobar,
+           porAviso: porAviso };
 }
 
 /* Las cuatro consultas + el armado. Devuelve una promesa de
