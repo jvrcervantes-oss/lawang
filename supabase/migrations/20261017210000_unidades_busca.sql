@@ -14,13 +14,14 @@
 --   · COSTE (Backend, 17-oct): lo caro es la RLS de `unidades`, que llama a proyecto_visible (DEFINER) por fila: ~0,2 s por
 --     llamada de un agente con las 565 unidades de hoy (escalado de 0,18 s/464 filas, 20261007000950:3). Se paga en cada tecla
 --     (250 ms de espera, ≥2 letras). La prueba lo mide con 600 unidades de fixture (T1, tope 300 ms). Lo que lo arregla es la
---     policy con la lista de proyectos calculada una vez por consulta (patrón de contratos, 20261007001000:61), apuntado en L6;
---     un índice no sirve.
+--     policy con la lista de proyectos calculada una vez por consulta (patrón de contratos, 20261007001000:61): va en
+--     20261017205000_law338_l6_unidades_policy, que se aplica ANTES que esta (ensayo 7a125126: 617 ms sin ella); un índice no sirve.
+--     Por lo mismo es_agente() va como initPlan `(select …)` en el WHERE.
 -- PERMISOS: nace cerrada: revoke de PUBLIC, anon y service_role; EXECUTE solo a authenticated. Llamador con nombre: nav.js.
 -- ORDEN: independiente del front. Sin esta función el front recibe PGRST202 y esconde solo el grupo «Unidades» (nav.js,
 -- sinPermisoONoExiste); herramientas, clientes y contratos siguen buscando (agencia-cd, 17-oct: el tren 6 aterriza antes).
 -- PRUEBA (solo en rama, fixture propio, rol real): supabase/pruebas/unidades_busca.sql
---   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261017210000_unidades_busca.sql --prueba unidades_busca.sql
+--   python erp/rama_prueba.py lawang --lawang <copia> --aplica 20261017205000_law338_l6_unidades_policy.sql,20261017210000_unidades_busca.sql --prueba unidades_busca.sql
 -- VUELTA ATRÁS: supabase/reversion_unidades_busca/REVERSION.sql (el grupo vuelve a esconderse solo).
 -- destructivo-ok: crea una función nueva; no toca tablas ni datos
 set local lock_timeout = '5s';
@@ -38,7 +39,7 @@ as $f$
     from public.unidades u
     cross join q
     left join public.proyectos pr on pr.id = u.proyecto_id   -- el nombre de HOY del proyecto, no la copia de la unidad
-   where public.es_agente()
+   where (select public.es_agente())   -- una vez por consulta, no por fila (DEFINER: no se pliega sola)
      and char_length(q.v) >= 2
      and u.proyecto_id is not null
      and (strpos(public.normaliza_busqueda(u.codigo), q.v) > 0

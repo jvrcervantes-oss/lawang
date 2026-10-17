@@ -5,7 +5,7 @@
 -- por cada caso que se NIEGA.
 --
 -- !! SOLO EN RAMA: monta empresa, dos proyectos, personas y unidades.
---    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261017210000_unidades_busca.sql --prueba unidades_busca.sql
+--    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261017205000_law338_l6_unidades_policy.sql,20261017210000_unidades_busca.sql --prueba unidades_busca.sql
 --    Fuera de una rama (sin `erp.en_rama = si`, que pone rama_prueba) se niega a empezar, antes de tocar nada.
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». Todo se deshace con el raise final.
 -- FIXTURE PROPIO (la rama recibe solo la estructura), como postgres y SIN sesión (así pasa el candado de alta de `usuarios`):
