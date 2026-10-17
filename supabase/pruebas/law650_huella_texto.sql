@@ -1,8 +1,11 @@
 -- Prueba de LAW-650 (17-oct-2026, sesión lawang-mejoras-ux): la migración 20261017132000_law650_huella_texto_correos.sql.
--- Se ensaya con `--aplica 20260927130000_law343_prueba_envios_y_reactivar.sql,20261017132000_law650_huella_texto_correos.sql`:
+-- Se ensaya con `--aplica 20260927130000_law343_prueba_envios_y_reactivar.sql,20261016112502_law338_l5_revoke.sql,20261017132000_law650_huella_texto_correos.sql`:
 -- la rama de Lawang nace sin filas ni buckets, y la 343 crea `correos-enviados` como está en producción (privado, solo
 -- application/pdf); el resto de la 343 ya está en la estructura y no cambia nada (add column if not exists, on conflict do
 -- nothing, y su bloque de usuario_guarda_permisos vuelve al ver su marca). Así la 650 se mide sobre el bucket real.
+-- La L5 (cierre de correos_enviados al navegador, aplicada en la viva el 16-oct) va antes porque la rama restaura la estructura
+-- y luego reaplica los privilegios por defecto, que vuelven a dar SELECT a authenticated (1.er ensayo, 17-oct: E1/E3 en rojo
+-- sin ella; mismo patrón que law338_l5_ataque.sql). Sin la L5 en la rama la prueba para en P0 en vez de dar un rojo falso.
 -- Termina en raise: no deja rastro. Cada línea con su resultado:
 --   A  las 5 columnas que escribe la fila de un contrato (las 2 nuevas + las 3 de LAW-343) y los comentarios
 --   B  una fila VIEJA (huella y ruta nulas) pasa los dos checks, y los checks nacieron validados contra las filas que había
@@ -23,6 +26,11 @@ declare
   tipos text[];
   n int;
 begin
+  if has_table_privilege('authenticated', 'public.correos_enviados', 'select') then
+    raise exception using message = replace(c_fin, '%', pg_temp.l(false,
+      'P0 el cierre L5 no está en la rama (authenticated lee correos_enviados): falta --aplica 20261016112502_law338_l5_revoke.sql antes de la 650'));
+  end if;
+
   -- ============================================================ A. columnas
   select count(*) into n from information_schema.columns
    where table_schema = 'public' and table_name = 'correos_enviados'
