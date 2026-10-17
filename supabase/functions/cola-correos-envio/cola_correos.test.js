@@ -197,7 +197,7 @@ const SIN_COMENTARIOS_SQL = (s) => s.replace(/^\s*--.*$/gm, '');
   // «Reclamar pago» (8-oct-2026) es la 9ª: su regla vive en la migración 20261010070000 (ancla propia, soportada=false A PROPÓSITO para que
   // correo_encolar la rechace) y la edge SÍ la resuelve; se comprueba aparte abajo. Las 8 de siempre siguen cruzadas como antes.
   // «Invitar al portal» (15-oct-2026) es la 10ª, con el mismo trato que reclamo_pago (migración 20261015071004): las dos de la ficha de parcela.
-  // El aviso de asistente conectado (16-oct-2026, MCP P6) es la 11ª, con el mismo trato (ancla propia ia_conexion_id, migración 20261016135900).
+  // El aviso de asistente conectado (16-oct-2026, MCP P6) es la 11ª, con el mismo trato (ancla propia ia_conexion_id, migración 20261017015111).
   const DE_PARCELA = ['reclamo_pago', 'invitacion_portal', 'aviso_ia_conexion'];
   const plantillas = plantillasTodas.filter((x) => !DE_PARCELA.includes(x.clave));
   igual(plantillasTodas.map((x) => x.clave).sort(), [...plantillas.map((x) => x.clave), ...DE_PARCELA].sort(), 'PLANTILLAS = las 8 + las 2 de la ficha de parcela + el aviso de conexión');

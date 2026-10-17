@@ -1,5 +1,5 @@
 -- Prueba de P6 del puente MCP: el correo a la persona en cada conexión nueva (16-oct-2026, migración
--- 20261016135900_mcp_f1_p6_aviso_conexion.sql; se corre con la propuesta 20261016140000 aplicada o sin ella: si authenticated no tiene
+-- 20261017015111_mcp_f1_p6_aviso_conexion.sql; se corre con la propuesta 20261017015135 aplicada o sin ella: si authenticated no tiene
 -- EXECUTE sobre ia_conexion_autoriza, la prueba se lo da DENTRO de la transacción, que se deshace). Solo en rama: siembra usuarios en
 -- auth.users. Termina en raise: no deja rastro. Revisión previa #404 (Seguridad + Base de datos); cada línea con su resultado:
 --   A  permisos: las funciones nuevas sin EXECUTE para nadie salvo ia_aviso_conexion_datos (solo service_role); correo_encolar rechaza la clave
@@ -9,7 +9,7 @@
 --   C  el aviso no sale ⇒ la conexión se corta (sin_aviso) y su token muere: fallo final, tope de antigüedad y sin destinatario
 --   D  tope de altas: la 6ª de una persona en una hora (cortadas incluidas) y la 21ª de la base ⇒ demasiadas_altas, sin conexión ni fila
 --   E  el nombre del asistente pasa por la regla de las notas; el CHECK ata la clave a su ancla y vars vacío
---   F  «cambia tu contraseña» del correo es verdad: la huella de la conexión lleva la contraseña (propuesta 20261016140000)
+--   F  «cambia tu contraseña» del correo es verdad: la huella de la conexión lleva la contraseña (propuesta 20261017015135)
 -- destructivo-ok: prueba en transacción que termina en raise (rollback)
 create temp table _tp (et text primary key, uid uuid, em text);
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
@@ -90,7 +90,7 @@ begin
     insert into public.ia_clientes (asistente, nombre, redirect_uris, activo) values ('claude', 'Claude de prueba', array[red], true) returning id into cli;
     insert into public.ia_permisos (usuario_id) select t.uid from _tp t;
     if not has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
-      grant execute on function public.ia_puente(text, jsonb) to anon;              -- 20261016140000 lo hace en la viva
+      grant execute on function public.ia_puente(text, jsonb) to anon;              -- 20261017015135 lo hace en la viva
     end if;
     if not has_function_privilege('authenticated', 'public.ia_conexion_autoriza(text)', 'execute') then
       grant execute on function public.ia_conexion_autoriza(text) to authenticated; -- ídem
@@ -185,7 +185,7 @@ begin
                       'C3b con los envíos en pausa y el aviso recién encolado, el token llama (aún dentro de las 24 h) → ' || left(j::text, 60));
   update public.ia_conexiones set creada_en = now() - interval '25 hours' where id = con2;
   update public.correos_cola set encolado_en = now() - interval '25 hours' where ia_conexion_id = con2;
-  -- «apps conectadas» (20261016230000) ya la enseña cortada antes de su siguiente uso, sin escribir nada
+  -- «apps conectadas» (20261017015203) ya la enseña cortada antes de su siguiente uso, sin escribir nada
   if position('sin_aviso' in pg_get_functiondef('public.ia_mis_conexiones()'::regprocedure)) > 0 then
     v := pg_temp.sesion(b.uid, b.em, 'select public.ia_mis_conexiones()::text');
     select x into j from jsonb_array_elements(case when v like '{%' then v::jsonb -> 'conexiones' else '[]'::jsonb end) x where x ->> 'id' = con2::text;
@@ -200,7 +200,7 @@ begin
                         'C3c caducada y sin aviso: «apps conectadas» la da por caducada, no por sin_aviso → ' || left(coalesce(j::text, v), 90));
     update public.ia_conexiones set expira_en = expira_en + interval '400 days' where id = con2;
   else
-    r := r || pg_temp.l(false, 'C3b «apps conectadas» OMITIDA: la 20261016230000 no está aplicada en esta rama');
+    r := r || pg_temp.l(false, 'C3b «apps conectadas» OMITIDA: la 20261017015203 no está aplicada en esta rama');
   end if;
   j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'mcp_resumen_semana'));
   r := r || pg_temp.l(j ->> 'error' = 'invalid_token'

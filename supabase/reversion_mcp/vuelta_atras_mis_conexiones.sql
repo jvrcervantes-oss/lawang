@@ -1,4 +1,4 @@
--- VUELTA ATRÁS de 20261016230000_ia_mis_conexiones_clientes.sql («apps conectadas» con los asistentes con los que se conecta).
+-- VUELTA ATRÁS de 20261017015203_ia_mis_conexiones_clientes.sql («apps conectadas» con los asistentes con los que se conecta).
 -- Deja public.ia_mis_conexiones() EXACTAMENTE como estaba en la viva el 16-oct (texto de pg_get_functiondef; md5 al final: si no
 -- casa, no se aplica nada). No destruye nada: solo deja de devolver `clientes` y `duracion_dias`; la web vuelve sola a decir
 -- dónde está el identificador. create or replace conserva dueño (ia_puente_rol) y EXECUTE (authenticated).

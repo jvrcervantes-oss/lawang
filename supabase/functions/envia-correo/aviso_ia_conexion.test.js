@@ -1,5 +1,5 @@
 /* node aviso_ia_conexion.test.js — la plantilla «aviso_ia_conexion» (aviso a la persona de cada asistente conectado al puente MCP),
-   16-oct-2026, P6. SOLO en Lawang (plantillas_arnes.mjs → SOLO_LAWANG). Migración 20261016135900_mcp_f1_p6_aviso_conexion.sql.
+   16-oct-2026, P6. SOLO en Lawang (plantillas_arnes.mjs → SOLO_LAWANG). Migración 20261017015111_mcp_f1_p6_aviso_conexion.sql.
    Con el index.ts REAL, sin red, sin enviar nada.
    1. Fábrica ⇔ catálogo sellado de la migración (resuelve produce TODAS las permitidas; las obligatorias del aviso no se pueden quitar).
    2. Texto bilingüe (inglés primero) palabra por palabra; hora de Bali; asistente de la lista cerrada y, si lo tiene, su nombre.

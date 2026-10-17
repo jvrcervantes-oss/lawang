@@ -1,7 +1,7 @@
--- destructivo-ok: VUELTA ATRÁS de 20261016135900_mcp_f1_p6_aviso_conexion.sql (el correo en cada conexión nueva del MCP de Lawang).
+-- destructivo-ok: VUELTA ATRÁS de 20261017015111_mcp_f1_p6_aviso_conexion.sql (el correo en cada conexión nueva del MCP de Lawang).
 -- Quita los dos disparadores y las funciones de P6 y deja las tres funciones de la cola y privado.ia_conexion_motivo EXACTAMENTE como estaban en la viva el
 -- 16-oct (texto sacado con pg_get_functiondef; el md5 de cada una va encima y se comprueba al final: si no casa, ROLLBACK).
--- ANTES: apagar la IA (Ajustes › IA › Apagado) o deshacer la propuesta 20261016140000. Sin P6 una conexión nueva ya no avisa a
+-- ANTES: apagar la IA (Ajustes › IA › Apagado) o deshacer la propuesta 20261017015135. Sin P6 una conexión nueva ya no avisa a
 -- nadie: con la IA encendida esto deja abierta la puerta que P6 cierra.
 -- No borra datos: las columnas (ia_conexiones.avisada_en, correos_cola.ia_conexion_id), las restricciones, el índice y la fila
 -- de plantilla se quedan (quitarlas es destructivo y lo decide el owner). Un aviso que aún no había salido se cancela y, como
@@ -14,11 +14,11 @@ do $g$
 begin
   if coalesce((select encendido from public.ia_ajustes where id), false)
      and has_function_privilege('anon', 'public.ia_puente(text,jsonb)', 'execute') then
-    raise exception 'vuelta_atras_p6: primero apagar la IA (Ajustes › IA) o deshacer la 20261016140000; no se aplica nada';
+    raise exception 'vuelta_atras_p6: primero apagar la IA (Ajustes › IA) o deshacer la 20261017015135; no se aplica nada';
   end if;
-  -- la 20261016230000 lee la regla con el EXECUTE que esto quita: se deshace ella antes (vuelta_atras_mis_conexiones.sql)
+  -- la 20261017015203 lee la regla con el EXECUTE que esto quita: se deshace ella antes (vuelta_atras_mis_conexiones.sql)
   if position('_correo_cola_regla' in pg_get_functiondef('public.ia_mis_conexiones()'::regprocedure)) > 0 then
-    raise exception 'vuelta_atras_p6: primero vuelta_atras_mis_conexiones.sql (la 20261016230000 usa la regla del aviso); no se aplica nada';
+    raise exception 'vuelta_atras_p6: primero vuelta_atras_mis_conexiones.sql (la 20261017015203 usa la regla del aviso); no se aplica nada';
   end if;
 end $g$;
 
