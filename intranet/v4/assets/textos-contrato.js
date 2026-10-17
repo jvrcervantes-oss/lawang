@@ -21,7 +21,10 @@
 
   var TC = window.LW_TEXTOS;
   if (!TC) { console.error('[textos-contrato] falta textos-contrato-nucleo.js'); return; }
-  var T = function (s, h) { return window.lwT ? window.lwT(s, h) : s; };
+  var T = function (s, h) {
+    if (window.lwT) return window.lwT(s, h);
+    return h ? String(s).replace(/%(\w+)/g, function (m, k) { return Object.prototype.hasOwnProperty.call(h, k) ? String(h[k]) : m; }) : s;
+  };
   var esc = TC.esc;
   var $ = function (id) { return document.getElementById(id); };
   var IDIOMAS = [['es', 'Español'], ['en', 'English'], ['id', 'Bahasa']];

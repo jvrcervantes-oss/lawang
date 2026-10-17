@@ -113,7 +113,7 @@ const LW_HERRAMIENTAS = [
      TICKETS por comprador — con su propia bandeja en las dos versiones. */
   /* Reservas por vencer (23-sep-2026, owner): Cartas de Reserva vivas sin
      Bloqueo y cuándo vencen. Clave propia desde el primer día. */
-  { grupo:'Seguimiento', nombre:'Reservas por vencer', icon:'ph-hourglass-medium', href:'/intranet/v4/reservas/', herr:'reservas',
+  { grupo:'Seguimiento', nombre:'Reservas', icon:'ph-hourglass-medium', href:'/intranet/v4/reservas/', herr:'reservas',
     para:'Cartas de Reserva que aún no tienen Bloqueo de Parcela y cuándo vencen.',
     claves:'reservas vencer vencimiento carta reserva bloqueo parcela gracia prorroga reservations expiring hold plot extension' },
 
