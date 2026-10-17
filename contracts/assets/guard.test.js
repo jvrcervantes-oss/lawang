@@ -222,5 +222,33 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
   await ctxF.lwFicheros(sbF, 'limpia_borradores', {});
   assert.ok(/\/functions\/v1\/ficheros-contrato$/.test(llamadas[2].u), 'lo demás sigue en ficheros-contrato: ' + llamadas[2].u);
   assert.deepStrictEqual(llamadas[2].cuerpo, { accion: 'limpia_borradores' });
+  // 17-oct-2026: las fotos de MODELO también se piden al servidor. En una instancia del ERP `deck` es privado y la URL
+  // pública que se armaba aquí no carga; la edge firma si es privado y da la misma pública si no (Lawang, sin cambio).
+  // Antes del arreglo la fila de modelo nunca salía del navegador.
+  const pedidas = [];
+  ctxF.fetch = (u, o) => { const c = JSON.parse(o.body); pedidas.push({ u, cuerpo: c });
+    return Promise.resolve({ status: 200, json: () => Promise.resolve({ ok: true, caduca_seg: 3600,
+      urls: Object.fromEntries(c.foto_ids.map(i => [i, 'https://srv/firmada/' + i])) }) }); };
+  const sbFotos = Object.assign({}, sbF, { storage: { from: () => ({ getPublicUrl: p => ({ data: { publicUrl: 'https://pub/' + p } }) }) } });
+  const fu = await ctxF.lwFotoUrls(sbFotos, [{ id: 'm1', ambito: 'modelo', path: 'modelos/a.webp' }, { id: 'p1', ambito: 'proyecto', path: 'x.webp' }]);
+  assert.strictEqual(pedidas.length, 1, 'una sola llamada para el lote');
+  assert.ok(/\/functions\/v1\/ficheros$/.test(pedidas[0].u), 'las URL de fotos las da la edge ficheros: ' + pedidas[0].u);
+  assert.deepStrictEqual(pedidas[0].cuerpo, { foto_ids: ['m1', 'p1'], accion: 'urls', clase: 'deck_foto' }, 'la foto de modelo va al servidor como las demás');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(fu.urls)), { m1: 'https://srv/firmada/m1', p1: 'https://srv/firmada/p1' }, 'la URL de la foto de modelo es la del servidor, no una pública armada aquí');
+  assert.strictEqual(fu.caduca_seg, 3600);
+  // … y ninguna pantalla vuelve a armarse la URL pública de `deck` por su cuenta (eran guard.js y v4/datos.js). La edge
+  // (supabase/) sí puede: decide ella si el bucket es público. Los arneses llevan un Storage falso.
+  const RAIZ = path.join(__dirname, '..', '..');
+  const armanPublica = [];
+  const recorre = d => {
+    for (const n of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, n.name);
+      if (n.isDirectory()) { if (n.name !== 'node_modules' && n.name !== 'vendor') recorre(p); continue; }
+      if (!/\.(js|html|php)$/.test(n.name) || /^arnes_/.test(n.name) || /\.test\.js$/.test(n.name)) continue;
+      if (/storage\.from\(\s*['"]deck['"]\s*\)\.getPublicUrl/.test(fs.readFileSync(p, 'utf8'))) armanPublica.push(path.relative(RAIZ, p));
+    }
+  };
+  ['contracts', 'intranet', 'portal'].forEach(d => { if (fs.existsSync(path.join(RAIZ, d))) recorre(path.join(RAIZ, d)); });
+  assert.deepStrictEqual(armanPublica, [], 'URL pública de `deck` armada en el navegador (en una instancia del ERP no carga): ' + armanPublica.join(', '));
   console.log('guard.test.js OK');
 })().catch(e => { console.error(e); process.exit(1); });

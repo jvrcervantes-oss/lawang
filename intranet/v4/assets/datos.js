@@ -6664,11 +6664,12 @@
         q(sb.from('modelos_villa').select('id,modelo_id,modelo,proyecto,proyecto_id,precio_construccion,moneda'), 'precios por proyecto'),
         q(sb.from('unidades').select('id,proyecto,precio_suelo').not('precio_suelo', 'is', null), 'suelo del inventario'),
         /* Fotos del deck (23-sep-2026, owner: «no puedo ver sus fotos»): la
-           tarjeta y la ficha enseñan las que ya hay. Bucket `deck` PÚBLICO (lo
-           que se sube ahí ya está publicado, ver deck_fotos.js), así que la URL
-           pública es la correcta, no una firmada. Gestionarlas sigue siendo
-           «Fotos del deck» (pieza compartida, no se duplica aquí). */
-        q(sb.from('deck_fotos').select('modelo_id,path,uso,orden').eq('ambito', 'modelo').order('uso').order('orden'), 'fotos del deck'),
+           tarjeta y la ficha enseñan las que ya hay. La URL la da el servidor
+           por id (`lwFotoUrls`, 17-oct-2026): en Lawang `deck` es público y sale
+           la misma de siempre; en una instancia del ERP es privado y sale
+           firmada. Gestionarlas sigue siendo «Fotos del deck» (pieza
+           compartida, no se duplica aquí). */
+        q(sb.from('deck_fotos').select('id,modelo_id,path,uso,orden').eq('ambito', 'modelo').order('uso').order('orden'), 'fotos del deck'),
         // Ficha por bloques (23-sep-2026): techos y extras se VEN en la ficha,
         // no solo dentro del editor. Tablas pequeñas: se cargan enteras.
         // 30-sep-2026: `activo` y `alcance` (+ la lista de proyectos del alcance) para que la ficha
@@ -6685,7 +6686,28 @@
         var TECHOS = r[8] || [], EXTRAS = r[9] || [], MEX = r[10] || [], TECHO_PROY = r[11] || [];
         var fotosModelo = {};
         FOTOS.forEach(function (f) { if (f.modelo_id && f.path) (fotosModelo[f.modelo_id] = fotosModelo[f.modelo_id] || []).push(f); });
-        var urlFoto = function (path) { return sb.storage.from('deck').getPublicUrl(path).data.publicUrl; };
+        /* Las URL de las fotos, de una vez para toda la pantalla y por el
+           servidor (`lwFotoUrls`, guard.js). Firmadas caducan (`caduca_seg`):
+           pasado ese tiempo se vuelven a pedir, así la galería que se abre una
+           hora después no enseña enlaces muertos. Si el servidor falla, las
+           tarjetas se pintan igual, sin foto, y se dice una vez. */
+        var urlsFoto = null, urlsFotoHasta = 0, urlsFotoAvisado = false;
+        var pideUrlsFoto = function () {
+          if (urlsFoto && Date.now() < urlsFotoHasta) return urlsFoto;
+          urlsFotoHasta = Infinity;
+          urlsFoto = (typeof window.lwFotoUrls === 'function'
+            ? window.lwFotoUrls(sb, FOTOS)
+            : Promise.reject(new Error(tx('Falta guard.js actualizado: recarga la página')))
+          ).then(function (r) {
+            urlsFotoHasta = Date.now() + Math.max(60, (Number(r.caduca_seg) || 3600) - 60) * 1000;
+            return r.urls || {};
+          }, function (e) {
+            urlsFoto = null; urlsFotoHasta = 0;
+            if (!urlsFotoAvisado) { urlsFotoAvisado = true; (typeof toastMal === 'function' ? toastMal : console.warn)((e && e.message) || String(e)); }
+            return {};
+          });
+          return urlsFoto;
+        };
         window.LW_V4 = window.LW_V4 || {};
         /* Compartida con el editor de la previsión (editores.js): una sola
            cuenta de «lo que debería ser» la base, no dos. */
@@ -6830,8 +6852,9 @@
             cab.innerHTML = '';
             cab.style.cssText = 'padding:0;overflow:hidden;position:relative';
             var im = document.createElement('img');
-            im.src = urlFoto(fs[0].path); im.alt = m.nombre || ''; im.loading = 'lazy';
+            im.alt = m.nombre || ''; im.loading = 'lazy';
             im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+            pideUrlsFoto().then(function (u) { if (u[fs[0].id]) im.src = u[fs[0].id]; else im.remove(); });
             cab.appendChild(im);
             var nf = document.createElement('span');
             nf.textContent = fs.length + (fs.length === 1 ? ' foto' : ' fotos');
@@ -6994,13 +7017,15 @@
           }
           fs.forEach(function (f) {
             var a = document.createElement('a');
-            a.href = urlFoto(f.path); a.target = '_blank'; a.rel = 'noopener';
+            a.target = '_blank'; a.rel = 'noopener';
             a.style.cssText = 'flex:0 0 auto;display:block;width:168px;height:112px;border-radius:12px;overflow:hidden;background:#efeee8';
             var im = document.createElement('img');
-            im.src = a.href; im.alt = (el.nombre || '') + ' · ' + (f.uso || 'foto'); im.loading = 'lazy';
+            im.alt = (el.nombre || '') + ' · ' + (f.uso || 'foto'); im.loading = 'lazy';
             im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
             a.appendChild(im);
             gal.appendChild(a);
+            // la galería se abre al pinchar: pide (o renueva) las URL en ese momento
+            pideUrlsFoto().then(function (u) { if (u[f.id]) { a.href = u[f.id]; im.src = u[f.id]; } });
           });
         }
       });
