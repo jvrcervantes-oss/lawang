@@ -148,7 +148,7 @@ begin
     plan := v::jsonb;
     select string_agg(f #>> '{}', ' | ') into filtro
       from jsonb_path_query(plan, 'lax $.** ? (@."Relation Name" == "unidades")."Filter"') f;
-    r := r || pg_temp.l(filtro is not null and filtro !~ '(unidad_visible|proyecto_visible|mis_proyectos_visibles)\(' and v ~ 'InitPlan' and v ~ 'mis_proyectos_visibles\(',
+    r := r || pg_temp.l(filtro is not null and filtro !~ '(unidad_visible|proyecto_visible|mis_proyectos_visibles|es_agente|es_admin)\(' and v ~ 'InitPlan' and v ~ 'mis_proyectos_visibles\(',
                         'I1 el filtro de unidades no llama a ninguna función por fila; mis_proyectos_visibles va en un InitPlan (filtro: ' || left(coalesce(filtro, 'sin filtro'), 160) || ')');
   end if;
 

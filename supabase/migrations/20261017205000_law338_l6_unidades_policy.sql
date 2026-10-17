@@ -17,10 +17,14 @@
 --   · la regla NO se reescribe: la función llama a la misma proyecto_visible. Si proyecto_visible cambia, esto la sigue.
 -- QUÉ NO CAMBIA: las policies de UPDATE e INSERT de unidades siguen con unidad_visible (una fila por escritura: no hay coste que
 -- arreglar); unidad_visible y proyecto_visible no se tocan (las usan otras policies, unidades_estado y la copia del MCP).
--- PERMISOS: mis_proyectos_visibles nace con EXECUTE solo para authenticated y lw_lector, los dos roles de la policy (una policy se
--- evalúa con los privilegios de quien consulta). Llamador con nombre: esta policy. Precedente: mis_proyectos_admin_empresa y
--- alcance_restringido (20261007001500:51-61). Sin anon ni service_role (service_role se salta la RLS: nunca la evalúa).
--- Devuelve ids de proyectos, no datos: quien la llame directamente solo sabe qué proyectos ve, lo mismo que ya le enseña Proyectos.
+-- PERMISOS (Seguridad, consulta del 18-oct): EXECUTE exactamente para postgres (dueño), authenticated y lw_lector, los dos roles
+-- de la policy (una policy se evalúa con los privilegios de quien consulta); sin anon ni service_role (service_role se salta la
+-- RLS: nunca la evalúa). Llamador con nombre: esta policy (alta en contexto/seguridad_2026.md §1.ter de la agencia).
+-- En `public` y no en `privado` (la regla del 15-oct para ayudantes nuevos): lw_lector también evalúa esta policy y
+-- tools/salud_lawang.py marca como fallo cualquier EXECUTE de lw_lector fuera de `public`. La fuga por /rpc/ es nula: toda rama de
+-- proyecto_visible que da true exige ficha activa o es_admin (que también la exige), así que devuelve lo mismo que
+-- `select id from proyectos` bajo «agentes leen proyectos» (20260911033802:71-72), que authenticated ya lee, y
+-- proyecto_visible(uuid) ya está abierta a authenticated. Sacar de la API los ayudantes de policy es una tarea de clase de Seguridad.
 -- HUELLA: tools/salud_lawang.py (_MCP_COPIAS) congela md5(qual) de esta policy (ba7ae87af69245a9b5305663e66f74ee). Tras aplicar,
 -- la huella nueva (la imprime la prueba, línea H1) se pone allí en el mismo aterrizaje; la copia de mcp_cambios_estado_semana
 -- (20261016073333:454, «es_agente() and unidad_visible(u.proyecto_id)») sigue valiendo porque la prueba demuestra que es la misma regla.
@@ -50,10 +54,10 @@ begin
   select p.prosecdef, p.proconfig, pg_get_userbyid(p.proowner) as dueno,
          exists (select 1 from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
                   where a.grantee = 0 and a.privilege_type = 'EXECUTE') as pub,
-         exists (select 1 from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a join pg_roles r on r.oid = a.grantee
-                  where r.rolname in ('anon', 'service_role') and a.privilege_type = 'EXECUTE') as api_mal,
-         (select count(*) from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a join pg_roles r on r.oid = a.grantee
-           where r.rolname in ('authenticated', 'lw_lector') and a.privilege_type = 'EXECUTE') as n_ok
+         -- quién ejecuta, EXACTAMENTE (caza también un permiso por defecto a otro rol, no solo anon y service_role)
+         (select array_agg(distinct coalesce(r.rolname::text, '#' || a.grantee::text) order by coalesce(r.rolname::text, '#' || a.grantee::text))
+            from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a left join pg_roles r on r.oid = a.grantee
+           where a.privilege_type = 'EXECUTE' and a.grantee <> 0) as ejecutan
     into x
     from pg_proc p
    where p.oid = to_regprocedure('public.mis_proyectos_visibles()');
@@ -62,8 +66,9 @@ begin
   if x.dueno <> 'postgres' then v_mal := v_mal || 'dueño ' || x.dueno || '; '; end if;
   if x.proconfig is null or not ('search_path=""' = any (x.proconfig)) then v_mal := v_mal || 'search_path no vacío; '; end if;
   if x.pub then v_mal := v_mal || 'PUBLIC ejecuta; '; end if;
-  if x.api_mal then v_mal := v_mal || 'anon o service_role ejecutan; '; end if;
-  if x.n_ok <> 2 then v_mal := v_mal || 'authenticated y lw_lector no ejecutan los dos; '; end if;
+  if x.ejecutan is distinct from array['authenticated', 'lw_lector', 'postgres'] then
+    v_mal := v_mal || 'ejecutan ' || coalesce(x.ejecutan::text, 'nadie') || ' (debe ser {authenticated,lw_lector,postgres}); ';
+  end if;
 
   select pl.polcmd, pg_get_expr(pl.polqual, pl.polrelid) as qual,
          (select array_agg(s.n order by s.n)
