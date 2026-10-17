@@ -6,6 +6,9 @@
 --   A   el agente CON las casillas (AG, su proyecto pX) no ve nada de lo sembrado en pM (0 filas de más que su pantalla) y
 --       sí su parcela de pX; las herramientas de rol admin le contestan «sin_permiso».
 --   N   el agente SIN casillas (AGN): «sin_permiso» en las 10.
+--   O   (17-oct, Seguridad, al abrir el conector a todo el equipo) admin_empresa, super_admin_empresa, project_manager y
+--       sales_manager de OTRA empresa (zz_otra), con todas las casillas: «sin_permiso» o una respuesta sin ids ni nombres de zz_mcp;
+--       las de rol admin, «sin_permiso» exacto a PM/SM; y control positivo: cada uno VE lo sembrado en zz_otra (cifras exactas).
 --   K   ningún resultado lleva claves de comprador ni texto libre (email, nombre_comprador, passport, notas, concepto,
 --       motivo, detalle, datos anidado), ni los textos sembrados como cebo («ZZ-SECRETO»).
 --   E   exposición: dueños, volatilidad, EXECUTE, sin SQL dinámico, y las patas (d)+(e) del invariante de salud de lw_lector.
@@ -93,13 +96,18 @@ insert into _h values
 
 insert into _tp values ('SA',  gen_random_uuid(), 'zz-mcp-super@prueba.invalid',  '{"provider":"email","providers":["email"]}'),
                        ('AG',  gen_random_uuid(), 'zz-mcp-agente@prueba.invalid', '{"provider":"email","providers":["email"]}'),
-                       ('AGN', gen_random_uuid(), 'zz-mcp-sin@prueba.invalid',    '{"provider":"email","providers":["email"]}');
+                       ('AGN', gen_random_uuid(), 'zz-mcp-sin@prueba.invalid',    '{"provider":"email","providers":["email"]}'),
+                       -- O (Seguridad, 17-oct): los otros cuatro roles, todos de OTRA empresa (zz_otra) y con todas las casillas
+                       ('AE',  gen_random_uuid(), 'zz-otra-ae@prueba.invalid',     '{"provider":"email","providers":["email"]}'),
+                       ('SAE', gen_random_uuid(), 'zz-otra-sae@prueba.invalid',    '{"provider":"email","providers":["email"]}'),
+                       ('PM',  gen_random_uuid(), 'zz-otra-pm@prueba.invalid',     '{"provider":"email","providers":["email"]}'),
+                       ('SM',  gen_random_uuid(), 'zz-otra-sm@prueba.invalid',     '{"provider":"email","providers":["email"]}');
 
 do $todo$
 declare
   r text := ''; v text; j jsonb; n bigint; h record; t0 timestamptz; ms numeric; cebo text;
-  sa _tp; ag _tp; agn _tp;
-  pM uuid; pX uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid; r2 uuid; m2 uuid; m3 uuid;
+  sa _tp; ag _tp; agn _tp; o _tp;
+  pM uuid; pX uuid; pO uuid; uO uuid; cO uuid; fO uuid; rO uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid; r2 uuid; m2 uuid; m3 uuid;
   v_hoy date := (now() at time zone 'Asia/Makassar')::date;
   c_fin constant text := 'FIN DE PRUEBAS MCP F1-P2 (se deshace todo):%';
 begin
@@ -117,6 +125,11 @@ begin
     update public.empresas set sociedad_clave = 'zz_mcp' where clave = 'zz_mcp';
     insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-MCP Proyecto', 'zz-mcp-proyecto', 'zz_mcp', true) returning id into pM;
     insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-MCP Proyecto agente', 'zz-mcp-proyecto-ag', 'zz_mcp', true) returning id into pX;
+    insert into public.empresas (clave, nombre) values ('zz_otra', 'ZZ-OTRA Empresa');
+    insert into public.sociedades (clave, label, razon, domicilio) values ('zz_otra', 'ZZ-OTRA', 'ZZ-OTRA PT', 'ZZ-domicilio')
+      on conflict (clave) do nothing;
+    update public.empresas set sociedad_clave = 'zz_otra' where clave = 'zz_otra';
+    insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-OTRA Proyecto', 'zz-otra-proyecto', 'zz_otra', true) returning id into pO;
     insert into public.contrato_tipo_etapa (tipo, etapa, es_obra) values ('reserva_parcela', 'reserva', false), ('construccion', 'contrato', true)
       on conflict do nothing;
     insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
@@ -127,6 +140,11 @@ begin
       (ag.uid,  ag.em,  'ZZ-MCP Agente', 'agente',      'global', array['zz_mcp'],     array[pX],      '{}'::uuid[],
        '{unidades,contratos,facturas,recibos,comisiones_reparto}'::text[], '{}'::text[], true),
       (agn.uid, agn.em, 'ZZ-MCP Sin',    'agente',      'global', array['zz_mcp'],     array[pX],      '{}'::uuid[], '{}'::text[], '{}'::text[], true);
+    insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo)
+      select t.uid, t.em, 'ZZ-OTRA ' || t.et, x.rol, x.ambito, array['zz_otra'], array[pO], array[pO],
+             '{unidades,contratos,facturas,recibos,comisiones_reparto,obra}'::text[], '{}'::text[], true
+        from _tp t join (values ('AE', 'admin_empresa', 'empresa'), ('SAE', 'super_admin_empresa', 'empresa'),
+                                ('PM', 'project_manager', 'global'), ('SM', 'sales_manager', 'global')) x(et, rol, ambito) on x.et = t.et;
     -- el resto SIN disparadores (como precio_cadena_vigente.sql): en la rama no hay series ni cobros con los que cuadren,
     -- y los registros que escribirían los triggers (unidades_log, contrato_eventos) van a mano, con cebos de texto.
     execute 'set local session_replication_role = replica';
@@ -345,6 +363,75 @@ begin
   for h in select * from _h order by herr loop
     v := pg_temp.mcp(agn.uid, agn.em, agn.app, h.q);
     r := r || pg_temp.l(pg_temp.js(v)->>'error' = 'sin_permiso', 'N ' || h.herr || ': AGN (sin la casilla) → sin_permiso (' || left(v, 60) || ')');
+  end loop;
+
+  -- ============================================================ O. los otros roles de OTRA empresa no ven nada de zz_mcp
+  -- (Seguridad, 17-oct: al abrir el conector a todo el equipo, cada rol tiene que quedarse en lo suyo; ni ids ni nombres de pM/pX)
+  -- Control positivo (Seguridad, 2.ª consulta): zz_otra tiene lo suyo (parcela libre con fecha de entrega, factura 300 con un
+  -- recibí 200 aplicado 100, un parte de obra) y cada rol tiene que VERLO; si no, «sin nada de zz_mcp» pasaría con 0 filas.
+  -- Se siembra aquí, después de S/A/N, para no mover sus cifras exactas; un parte en pM hace de cebo para partes_total.
+  -- El rol `admin` no está: siempre es global (usuarios_ambito_rol_check) y lo ve todo, igual que en la intranet.
+  begin
+    execute 'set local session_replication_role = replica';
+    insert into public.unidades (codigo, proyecto, proyecto_id, tipo, moneda, precio, superficie_m2, estado, obra_fecha_entrega)
+      values ('ZZ-OTRA-1', 'ZZ-OTRA Proyecto', pO, 'parcela', 'EUR', 60000, 300, 'disponible', date '2027-02-01') returning id into uO;
+    -- toda factura lleva contrato (facturas_contrato_obligatorio; el ensayo lawang-202610171325-ed3eea9e lo cazó): una reserva SIN
+    -- firmar (no es venta ni reserva caída: no mueve las cifras de resumen_semana) y del mismo precio (no sale de más)
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, bloqueado,
+                                  comprador_nombre, datos, creado_por, created_at)
+      values ('ZZ-OTRA-C1', 'reserva_parcela', pO, 'ZZ-OTRA Proyecto', 'EUR', 300, false, 'ZZ-OTRA Comprador',
+              '{"fields":{}}'::jsonb, sa.em, now() - interval '1 day') returning id into cO;
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, proyecto_id, total, moneda, fecha_emision, creado_por, datos)
+      values ('factura', 'ZZ-OTRA-F1', 'zz_otra', cO, pO, 300, 'EUR', v_hoy, sa.em, '{"fields":{}}'::jsonb) returning id into fO;
+    -- y todo recibí lleva justificante (facturas_recibi_justificante_obligatorio; ensayo lawang-202610171332-7504545f)
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, proyecto_id, total, moneda, fecha_emision, creado_por, datos,
+                                 justificante_path)
+      values ('recibi', 'ZZ-OTRA-R1', 'zz_otra', cO, pO, 200, 'EUR', v_hoy, sa.em, '{"fields":{}}'::jsonb,
+              'zz-otra/justificante-r1.pdf') returning id into rO;
+    insert into public.recibi_aplicaciones (recibi_id, factura_id, importe_aplicado) values (rO, fO, 100);
+    insert into public.obra_partes_trabajo (proyecto_id, fase_masterplan, zona_masterplan, fase_nueva, fecha)
+      select x.p, 'zz', 'zz', coalesce((select min(f.clave) from public.obra_fases f), 'zz'), v_hoy from (values (pO), (pM)) x(p);
+    execute 'set local session_replication_role = origin';
+  exception when others then
+    raise exception using message = replace(c_fin, '%', r || pg_temp.l(false, 'O montaje: ' || sqlstate || ' ' || left(sqlerrm, 300)));
+  end;
+  for o in select * from _tp where et in ('AE', 'SAE', 'PM', 'SM') order by et loop
+    for h in select * from _h order by herr loop
+      v := pg_temp.mcp(o.uid, o.em, o.app, h.q);
+      j := pg_temp.js(v);
+      if h.rol_admin and (o.et in ('PM', 'SM') or h.herr = 'cambios_estado_semana') then
+        -- pantalla de rol admin: project/sales manager nunca; cambios_estado_semana solo es_admin() (admin y super admin globales)
+        r := r || pg_temp.l(j->>'error' = 'sin_permiso', 'O ' || o.et || ' ' || h.herr || ': pantalla de rol admin → sin_permiso (' || left(v, 80) || ')');
+      else
+        r := r || pg_temp.l(j->>'error' = 'sin_permiso' or (j is not null and not (j ? 'error') and v !~ cebo and v !~* 'zz.mcp' and v !~ u3::text
+                                                              and v !~ pM::text and v !~ pX::text),
+                            'O ' || o.et || ' ' || h.herr || ': otra empresa → sin_permiso o respuesta sin nada de zz_mcp (' || left(v, 80) || ')');
+      end if;
+      if h.herr = 'parcelas_libres' then
+        r := r || pg_temp.l(not (j ? 'error') and v ~ uO::text, 'O ' || o.et || ' parcelas_libres: ve su parcela de zz_otra (control positivo)');
+      end if;
+      -- las dos de dinero que admin_empresa / super_admin_empresa pasan por rol solo devuelven ids de proyecto y cifras: un
+      -- patrón no las caza (revisor, 17-oct). Tienen que contestar (nunca sin_permiso) con EXACTAMENTE lo de zz_otra.
+      if h.herr = 'cobros_por_proyecto_mes' and o.et in ('AE', 'SAE') then
+        r := r || pg_temp.l(not (j ? 'error') and jsonb_typeof(j->'datos') = 'array' and jsonb_array_length(j->'datos') = 1
+                            and j->'datos'->0->>'proyecto_id' = pO::text and j->'datos'->0->>'moneda' = 'EUR'
+                            and (j->'datos'->0->>'cobrado_mes')::numeric = 200 and (j->'datos'->0->>'recibis_mes')::int = 1
+                            and (j->'datos'->0->>'facturado_sin_cobrar_hoy')::numeric = 200,
+                            'O ' || o.et || ' cobros_por_proyecto_mes: solo pO, cobrado 200 y pendiente 200 (' || left(v, 160) || ')');
+      elsif h.herr = 'resumen_semana' and o.et in ('AE', 'SAE') then
+        r := r || pg_temp.l(not (j ? 'error') and jsonb_typeof(j->'datos'->'por_moneda') = 'array' and jsonb_array_length(j->'datos'->'por_moneda') = 1
+                            and j->'datos'->'por_moneda'->0->>'moneda' = 'EUR'
+                            and (j->'datos'->'por_moneda'->0->>'operaciones_firmadas')::int = 0
+                            and (j->'datos'->'por_moneda'->0->>'piezas_firmadas')::int = 0
+                            and (j->'datos'->'por_moneda'->0->>'importe_firmado')::numeric = 0
+                            and (j->'datos'->'por_moneda'->0->>'cobrado')::numeric = 200
+                            and (j->'datos'->>'reservas_caidas')::int = 0
+                            and (j->'datos'->'obra'->>'entregas_con_fecha_total')::int = 1
+                            and (j->'datos'->'obra'->>'partes_total')::int = 1,
+                            'O ' || o.et || ' resumen_semana: solo lo de zz_otra (cobrado 200, 0 ventas, 1 entrega, 1 parte) (' || left(v, 200) || ')');
+      end if;
+      r := r || pg_temp.l(v ~ '^ERR' or pg_temp.limpio(v), 'K ' || h.herr || ' (' || o.et || '): sin claves de comprador ni texto libre ni cebos');
+    end loop;
   end loop;
 
   -- ============================================================ E. exposición

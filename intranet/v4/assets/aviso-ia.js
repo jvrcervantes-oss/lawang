@@ -3,7 +3,8 @@
  * (agencia), sesión mcp-aviso; revisión previa #403 (Experiencia). Lleva a /intranet/v4/ia/ («Apps conectadas»): pasos y conexiones.
  *
  * A QUIÉN LE SALE lo decide la base, no el navegador: ia_mis_conexiones() (20261016073530, ya en la viva) dice si la IA está
- * encendida, si ESTA persona tiene permiso vigente y qué conexiones tiene. Sale con las tres a la vez: encendida, con permiso y sin
+ * encendida, si ESTA persona puede conectar (`permiso`: desde el 17-oct-2026, 20261017043002_mcp_todos, es «usuario activo y sin
+ * bloqueo»; ya no hay permiso por persona) y qué conexiones tiene. Sale con las tres a la vez: encendida, puede conectar y sin
  * ninguna conexión viva. A quien no puede conectarse no se le invita (sería un botón roto); a quien ya está conectado, tampoco.
  * Y además tiene que poder TERMINAR (#403, «bloquea»): para conectar hace falta el identificador del asistente (ia_clientes.id).
  *  · si la base dice qué asistentes están activos (`clientes`, la migración supabase/migrations/20261017015203_ia_mis_conexiones_clientes.sql),

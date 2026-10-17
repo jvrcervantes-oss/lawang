@@ -10,6 +10,8 @@
 -- L12 borrar el aviso borra su marca. L13 forma: dueños, DEFINER, search_path y permisos de las tres funciones y de la tabla.
 -- !! CREA USUARIOS, CONTRATOS Y AVISOS: SOLO EN RAMA, NUNCA EN LA BASE VIVA.
 --    python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261017200000_notificaciones_leidas.sql --prueba notificaciones_leidas.sql
+--    Si el volcado es anterior a 20261016112502_law338_l5_revoke (el nombre del volcado va en hora local +8; las versiones, en UTC),
+--    van antes en el mismo --aplica las aplicadas en la viva despues del volcado: sin ellas L0 sale TO public y no es la base de verdad.
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada linea acaba en «→ ok» o «→ FALLA». Todo va marcado ZZ-NL.
 -- destructivo-ok: prueba en transaccion que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);
@@ -40,7 +42,8 @@ do $todo$
 declare
   r text := ''; v text; v2 text; n bigint;
   a _tp; b _tp; ad _tp; ae _tp; p _tp;
-  c_e1 constant text := 'ZZNL1'; c_e2 constant text := 'ZZNL2';
+  -- empresas.clave es ^[a-z][a-z0-9_]{2,40}$ (20261007000500): en minusculas (ensayo ca31f63d, 23514 con 'ZZNL1')
+  c_e1 constant text := 'zz_nl_e1'; c_e2 constant text := 'zz_nl_e2';
   p1 uuid; p2 uuid; k1 uuid; k2 uuid;
   nA uuid; nB uuid; nG uuid; nSP uuid; nE1 uuid; nE2 uuid; nP uuid;
   q_leida constant text := 'select coalesce((select x->>''leida'' from jsonb_array_elements((public.notificaciones_datos(400))->''notificaciones'') x where x->>''id'' = %L), ''no-la-ve'')';
@@ -54,12 +57,19 @@ begin
   select * into ad from _tp where et = 'AD'; select * into ae from _tp where et = 'AE'; select * into p from _tp where et = 'P';
 
   -- ============================================================ L0 la policy que la RPC pregunta (condicion previa de Seguridad #429)
-  select array_to_string(array(select rolname from pg_roles where oid = any (pl.polroles) order by 1), ',') as roles,
+  -- el oid 0 de polroles es PUBLIC y no tiene fila en pg_roles: se escribe «public» (ensayo ca31f63d salio «TO ,» = la policy de antes de L5)
+  select array_to_string(array(select coalesce((select ro.rolname::text from pg_roles ro where ro.oid = o),
+                                               case when o = 0 then 'public' else '#' || o::text end)
+                                 from unnest(pl.polroles) o order by 1), ',') as roles,
          pg_get_expr(pl.polqual, pl.polrelid) as qual into x
-    from pg_policy pl where pl.polrelid = 'public.notificaciones'::regclass and pl.polcmd in ('r', '*');
+    from pg_policy pl where pl.polrelid = 'public.notificaciones'::regclass and pl.polcmd in ('r', '*') order by pl.polname limit 1;
+  n := (select count(*) from pg_policy where polrelid = 'public.notificaciones'::regclass);
   r := r || pg_temp.l(x.roles = 'lw_lector' and x.qual ~ 'es_admin' and x.qual ~ 'solicitud_pago' and x.qual ~ 'email'
-                      and x.qual ~ 'mis_contratos_admin_empresa' and (select count(*) from pg_policy where polrelid = 'public.notificaciones'::regclass) = 1,
-                      'L0 notificaciones tiene UNA policy, TO ' || coalesce(x.roles, '?') || ', con sus tres ramas (admin sin solicitud_pago, destinatario, admin de empresa)');
+                      and x.qual ~ 'mis_contratos_admin_empresa' and n = 1,
+                      'L0 notificaciones tiene UNA policy (hay ' || n || '), TO ' || coalesce(x.roles, '?') || ', con sus tres ramas (admin sin solicitud_pago, destinatario, admin de empresa)'
+                      || case when x.qual is null then ' [sin policy de lectura]'
+                              when x.qual ~ 'mis_contratos_admin_empresa' and x.qual ~ 'email' and x.qual ~ 'es_admin' then '' else ' [falta alguna rama]' end
+                      || case when x.roles = 'public' then ' [TO public = antes de 20261016112502_law338_l5_revoke: aplicala antes en la rama]' else '' end);
 
   -- ============================================================ P. montaje (como postgres, SIN sesion)
   perform set_config('request.jwt.claims', '', true);

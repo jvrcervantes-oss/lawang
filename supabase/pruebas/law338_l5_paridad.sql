@@ -1,6 +1,11 @@
 -- LAW-338 L5 (16-oct-2026): PARIDAD de las 8 lecturas nuevas contra la lectura directa de hoy, usuario a usuario, con el rol real.
 -- Migración: 20261016063536_law338_l5_compradores_datos.sql. Revisión previa #396 (Seguridad 2 y 3, Backend 4 y 5).
 --   python erp/rama_prueba.py lawang --lawang <copia de Lawang> --aplica 20261016063536_law338_l5_compradores_datos.sql --prueba law338_l5_paridad.sql
+-- DESDE EL REVOKE (18-oct, ensayo 13f3f2c9 de la 200000: 15 P1, P4b y P5b en rojo por «42501 permission denied for table …» de la
+-- lectura directa, no de las RPC): 20261016112502_law338_l5_revoke (viva desde el 16-oct; posterior al volcado 1859, así que va en
+-- --aplica) quita a authenticated la lectura de las 8. La referencia de P1 y P5b se lee ahora como lw_lector con las mismas claims
+-- (mismo cuerpo de policy que tenía authenticated) y cada caso exige además que authenticated leyendo directo dé 42501. Sin la
+-- 112502 aplicada, P1 sale «ABIERTA».
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». Solo LEE (todo en una
 -- transacción que acaba en raise = rollback); va en rama porque crea funciones temporales y las RPC aún no están en la viva.
 -- Qué mide:
@@ -30,13 +35,14 @@ create temp table _s (k text, v uuid, vs uuid[]);
 
 -- ejecuta como authenticated con las claims de la persona: el jsonb o {"__err": sqlstate}
 -- p_portal: la sesión del portal lleva app_metadata.portal=true en el JWT (es_portal() lo lee), como el token real
-create function pg_temp.q(p_uid uuid, p_em text, p_sql text, p_portal boolean default false) returns jsonb language plpgsql as $f$
+-- p_rol: el rol de base de datos (las claims siguen siendo las de authenticated); lw_lector solo para la lectura de referencia
+create function pg_temp.q(p_uid uuid, p_em text, p_sql text, p_portal boolean default false, p_rol text default 'authenticated') returns jsonb language plpgsql as $f$
 declare r jsonb;
 begin
   perform set_config('request.jwt.claims', case when p_uid is null then '' else
           json_build_object('sub', p_uid, 'role', 'authenticated', 'email', p_em,
                             'app_metadata', json_build_object('portal', coalesce(p_portal, false)))::text end, true);
-  execute 'set local role authenticated';
+  execute format('set local role %I', p_rol);
   begin execute p_sql into r;
   exception when others then r := jsonb_build_object('__err', sqlstate || ' ' || left(sqlerrm, 160)); end;
   execute 'reset role';
@@ -49,14 +55,20 @@ create function pg_temp.lleno(j jsonb) returns boolean language sql as $f$
               when jsonb_typeof(j) = 'object' then exists (select 1 from jsonb_each(j) e where pg_temp.lleno(e.value))
               else true end
 $f$;
--- compara directo vs RPC para un usuario
-create function pg_temp.par(p_chk text, u _u, p_dir text, p_rpc text) returns void language plpgsql as $f$
-declare d jsonb; r jsonb;
+-- compara directo vs RPC para un usuario. Desde 20261016112502 (L5 revoke, viva) authenticated ya no lee estas tablas: la lectura
+-- de referencia va como lw_lector con las MISMAS claims (las policies pasaron a «to lw_lector» con el cuerpo que tenían para
+-- authenticated: lo que la persona veía antes del revoke), y además authenticated leyendo directo tiene que dar 42501.
+-- p_cerrada = false solo donde la lectura directa nombra tablas que siguen abiertas (contratos_busca lee contratos).
+create function pg_temp.par(p_chk text, u _u, p_dir text, p_rpc text, p_cerrada boolean default true) returns void language plpgsql as $f$
+declare d jsonb; r jsonb; a jsonb;
 begin
-  d := pg_temp.q(u.uid, u.em, p_dir, u.portal);
+  d := pg_temp.q(u.uid, u.em, p_dir, u.portal, case when p_cerrada then 'lw_lector' else 'authenticated' end);
   r := pg_temp.q(u.uid, u.em, p_rpc, u.portal);
+  if p_cerrada then a := pg_temp.q(u.uid, u.em, p_dir, u.portal); end if;
   insert into _r values (p_chk, u.uid, d is not distinct from r, pg_temp.lleno(r),
-                         coalesce(d->>'__err', r->>'__err'));
+                         coalesce('directo ' || (d->>'__err'), 'rpc ' || (r->>'__err'),
+                                  case when p_cerrada and coalesce(a->>'__err', '') not like '42501%'
+                                       then 'ABIERTA: authenticated lee directo sin 42501' end));
 end $f$;
 create function pg_temp.l(c boolean, t text) returns text language sql as $f$
   select E'\n' || replace(t, E'\n', ' ') || case when coalesce(c, false) then ' → ok' else ' → FALLA' end
@@ -66,7 +78,7 @@ do $todo$
 declare
   u _u; x uuid; k uuid; ks uuid[]; cs uuid[]; f uuid; res text := ''; v jsonb; t0 timestamptz; ms int[] := '{}';
   v_chk text; n_u int; dif int; llenos int; errs int; agente _u; nove uuid; fichas uuid[];
-  fdd uuid;
+  fdd uuid; em_x text;
   c_emp constant text := 'zz_l5'; pL uuid; kZ uuid; hZ uuid; cA uuid; cA2 uuid; cB uuid; cB2 uuid;
   uS uuid := gen_random_uuid(); uA uuid := gen_random_uuid(); uB uuid := gen_random_uuid(); uE uuid := gen_random_uuid();
   uP uuid := gen_random_uuid(); fZ uuid := gen_random_uuid(); uM uuid := gen_random_uuid();
@@ -275,9 +287,10 @@ begin
   select * into u from _u w where not w.portal and w.rol in ('super_admin', 'admin') order by w.rol desc, w.uid limit 1;
   v := pg_temp.q(u.uid, u.em, 'select coalesce(jsonb_agg(b), ''[]'') from public.clientes_busca(''%@%'') b');
   res := res || pg_temp.l(v = '[]'::jsonb, 'P4a clientes_busca(''%@%'') no lista nada (' || left(v::text, 60) || ')');
-  select c.id into x from public.clients c where c.email like '%@%' order by c.created_at limit 1;
-  v := pg_temp.q(u.uid, u.em, format('select coalesce(jsonb_agg(b.id), ''[]'') from public.clientes_busca((select upper(c.email) from public.clients c where c.id = %L)) b', x));
-  res := res || pg_temp.l(v @> to_jsonb(array[x]), 'P4b el correo exacto (en mayúsculas) de una ficha visible la encuentra');
+  -- el correo se saca aquí, como postgres: dentro de la sesión, leer clients ya es 42501 desde el revoke (ensayo 13f3f2c9)
+  select c.id, upper(c.email) into x, em_x from public.clients c where c.email like '%@%' order by c.created_at limit 1;
+  v := pg_temp.q(u.uid, u.em, format('select coalesce(jsonb_agg(b.id), ''[]'') from public.clientes_busca(%L) b', em_x));
+  res := res || pg_temp.l(v @> to_jsonb(array[x]), 'P4b el correo exacto (en mayúsculas) de una ficha visible la encuentra (' || left(v::text, 60) || ')');
   select * into agente from _u w where not w.portal and w.rol = 'agente'
      and not exists (select 1 from public.usuarios u4 where u4.user_id = w.uid and 'asistente' = any(u4.herramientas)) limit 1;
   v := pg_temp.q(agente.uid, agente.em, 'select coalesce(jsonb_agg(b), ''[]'') from public.clientes_busca(''ana'') b');
@@ -288,7 +301,8 @@ begin
   for u in select * from _u w where not w.portal loop
     perform pg_temp.par('contratos_busca', u,
       'select coalesce(jsonb_agg(to_jsonb(b) order by b.created_at desc, b.id), ''[]'') from (select c.id, c.numero, c.created_at from public.contratos c where public.es_agente() and c.numero is not null order by c.created_at desc limit 10) b',
-      'select coalesce(jsonb_agg(jsonb_build_object(''id'', b.id, ''numero'', b.numero, ''created_at'', b.created_at) order by b.created_at desc, b.id), ''[]'') from public.contratos_busca('''') b');
+      'select coalesce(jsonb_agg(jsonb_build_object(''id'', b.id, ''numero'', b.numero, ''created_at'', b.created_at) order by b.created_at desc, b.id), ''[]'') from public.contratos_busca('''') b',
+      false);
   end loop;
   select count(*), count(*) filter (where not r.ok), count(*) filter (where r.lleno), count(*) filter (where r.err is not null)
     into n_u, dif, llenos, errs from _r r where r.chk = 'contratos_busca';
