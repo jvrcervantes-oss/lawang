@@ -330,6 +330,9 @@
     if (url) { tr.style.cursor = 'pointer'; tr.addEventListener('click', function () { location.href = url; }); }
     pl.tbody.appendChild(tr);
   }
+  // Nombre de persona o empresa para ENSEÑAR (vocabulario.js, 17-oct): el que llega entero en mayúsculas sale en tipo normal.
+  // Nulo se devuelve nulo: fila() deja entonces el «—» de la plantilla.
+  function nomV(s) { return (s == null || typeof lwNombreVisible !== 'function') ? s : lwNombreVisible(s); }
 
   /* QUIÉN LO CREÓ — una sola forma de convertir el autor guardado en un nombre
      (23-sep-2026, owner: «en toda la v4 quiero trazabilidad de qué agente ha
@@ -2350,7 +2353,7 @@
     var OFF = cont.getAttribute('data-lw-off') || 'bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high';
     var BASE = cont.getAttribute('data-lw-base') || 'px-3.5 py-1.5 rounded-full font-label-md text-body-sm transition-colors';
     opciones.forEach(function (o, i) {
-      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-real', '');
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-real', ''); b.setAttribute('data-lw-chip', o.clave);
       b.className = BASE + ' ' + (i === 0 ? ON : OFF);
       b.textContent = ts(o.texto) + (o.n != null ? ' ' + o.n : '');
       b.addEventListener('click', function (ev) {
@@ -2475,8 +2478,9 @@
           var d = new Date(f.fecha_emision || f.created_at);
           if (d >= iniPrev && d < ini) prev += Number(f.total) || 0;
         });
-        // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra
-        pon2('k-cobrado-tend', prev ? new Intl.NumberFormat(loc(), { style: 'percent', maximumFractionDigits: 1, signDisplay: 'exceptZero' }).format(Math.round((s.suma - prev) / prev * 1000) / 1000) : '—');
+        // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra. Con la base casi vacía (la cifra de ahora más de 10
+        // veces la del mes pasado) un +4.000 % no dice nada: «—», igual que sin mes anterior (Experiencia, 17-oct; misma regla que Finanzas).
+        pon2('k-cobrado-tend', prev > 0 && Math.abs(s.suma) <= 10 * prev ? new Intl.NumberFormat(loc(), { style: 'percent', maximumFractionDigits: 1, signDisplay: 'exceptZero' }).format(Math.round((s.suma - prev) / prev * 1000) / 1000) : '—');
         });
         var t = tablaPor('tabla-documentos');
         if (t) {
@@ -2485,7 +2489,7 @@
           var ult = fs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 8);
           ult.forEach(function (f) {
             porIdF[f.id] = f;
-            fila(pl, [tipoDoc(f.tipo), f.numero, f.cliente_nombre, f.proyecto_nombre || '—', fmt(f.total, f.moneda), fFecha(f.created_at), '']);
+            fila(pl, [tipoDoc(f.tipo), f.numero, nomV(f.cliente_nombre), f.proyecto_nombre || '—', fmt(f.total, f.moneda), fFecha(f.created_at), '']);
             var tr = pl.tbody.lastElementChild; tr.setAttribute('data-lw-id', f.id); tr.style.cursor = 'pointer';
             var tds = tr.querySelectorAll('td'); var est = estadoDoc(f);
             if (tds[6]) tds[6].innerHTML = pill(est[0], est[1]);
@@ -2989,14 +2993,29 @@
             });
             var estado = {}, texto = '';
             var aplicar = function () { aplicaFiltros(pl.tbody, estado, ['moneda', 'estado', 'emp'], texto, function (n) { pon2('p-desde', String(n)); }); };
-            filtroEmpresaListado(pl.tbody, estado, aplicar, document.querySelector('[data-lw-chips="moneda"]'));
-            chipsReales(document.querySelector('[data-lw-chips="moneda"]'), 'moneda',
+            var chMon = document.querySelector('[data-lw-chips="moneda"]');
+            filtroEmpresaListado(pl.tbody, estado, aplicar, chMon);
+            chipsReales(chMon, 'moneda',
               [{ clave: '*', texto: 'Todas', n: rs.length }].concat(Object.keys(porMon).sort().map(function (m) { return { clave: m, texto: tx('Divisa %m', { m: m }), n: porMon[m] }; })), estado, aplicar);
+            // Con una sola divisa el filtro no filtra nada: se oculta (Experiencia, 17-oct). filtroEmpresaListado copia la clase del
+            // contenedor, no el atributo, así que el filtro de empresa no hereda el `hidden`.
+            if (chMon) chMon.hidden = Object.keys(porMon).length < 2;
             chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', [
               { clave: '*', texto: 'Todos', n: rs.length },
               { clave: 'emitido', texto: 'Emitidos', n: rs.length - anul },
               { clave: 'anulado', texto: 'Anulados', n: anul },
-              { clave: '0', atributo: 'just', texto: 'Sin justificante', n: rs.filter(reciboFaltaJustificante).length }], estado, aplicar);
+              { clave: '0', atributo: 'just', texto: 'Sin justificante', n: rs.filter(reciboFaltaJustificante).length }]
+              .concat(histJ ? [{ clave: 'historico', atributo: 'just', texto: 'Históricos sin justificante', n: histJ }] : []), estado, aplicar);
+            // «Nota → número y enlace» (Experiencia, 17-oct): el pie del indicador nombra los históricos y «ver» los filtra en la lista.
+            var pieJ = document.querySelector('[data-lw="k-sinjust-pie"]');
+            var chipH = document.querySelector('[data-lw-chips="estado"] [data-lw-chip="historico"]');
+            if (pieJ && chipH && !pieJ.querySelector('[data-lw="ver-historicos"]')) {
+              var verH = document.createElement('button'); verH.type = 'button'; verH.setAttribute('data-lw', 'ver-historicos');
+              verH.style.cssText = 'margin-left:6px;text-decoration:underline;color:inherit;font:inherit;background:none;border:0;padding:0;cursor:pointer';
+              verH.textContent = tx('ver');
+              verH.addEventListener('click', function (ev) { ev.stopPropagation(); chipH.click(); var tb = document.querySelector('[data-lw="tabla-recibos"]'); if (tb) tb.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+              pieJ.appendChild(verH);
+            }
             buscadorDe(aplicar, function (v) { texto = v; });
           }
           var pedido = new URLSearchParams(location.search).get('id');
@@ -7689,7 +7708,7 @@
           var c = cli[h.client_id] || {};
           var u = ultimo[h.id] || ultimo[h.client_id];
           pon3('t-num', '#' + String(h.id).slice(0, 6));
-          pon3('t-nombre', c.full_name || 'Cliente');
+          pon3('t-nombre', nomV(c.full_name) || 'Cliente');
           pon3('t-estado', (h.estado || '—').replace(/_/g, ' ').toUpperCase());
           pon3('t-asunto', u ? u.texto : 'Sin mensajes en el hilo');
           pon3('t-cat', h.categoria || 'general');
@@ -7797,7 +7816,7 @@
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.hilo = el; window.LW_V4.hiloCliente = c;
         var msgs = (deHilo[el.id] || deHilo[el.client_id] || []).slice().reverse();
         pon2('h-num', 'Hilo #' + String(el.id).slice(0, 6));
-        pon2('h-nombre', c.full_name || 'Cliente');
+        pon2('h-nombre', nomV(c.full_name) || 'Cliente');
         pon2('h-sub', (el.categoria || 'general') + (refDe[el.id] ? ' · sobre ' + refDe[el.id] : '') + ' · ' + msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') + ' · ' + (el.estado || '—'));
         pon2('h-chip', c.tipo === 'empresa' ? 'Empresa' : 'Persona física');
         pon2('cv-tel', c.phone || 'sin teléfono en ficha');
@@ -8092,7 +8111,8 @@
         });
 
         pon2('k-pendientes', String(pend.length));
-        pon2('k-pendientes-pie', pend.length ? 'la mas vieja lleva ' + diasDesde(pend[pend.length - 1].creado_en) + ' dias' : 'nada esperando');
+        var diasVieja = pend.length ? diasDesde(pend[pend.length - 1].creado_en) : 0;
+        pon2('k-pendientes-pie', pend.length ? 'la más antigua lleva ' + diasVieja + (diasVieja === 1 ? ' día' : ' días') : 'nada esperando');
         pon2('k-aprobadas', String(aprob.length));
         pon2('k-aprobadas-pie', aprob.length ? sumas : 'nada aprobado sin pagar');
         pon2('k-pagadas', String(pagadasMes.length));
@@ -8272,7 +8292,11 @@
         }
         // TODAS las filas, como la viva (/intranet/solicitudes/): los chips contaban
         // sobre todas pero filtraban sobre las 25 pintadas (auditoría 19-sep-2026).
-        tabla.innerHTML = ss.map(function (x) {
+        // CM1 (Experiencia, 17-oct): las pendientes arriba y la más antigua primero —antes la que llevaba 23 días esperando salía al
+        // fondo—; el resto, de la más nueva a la más vieja, como venía de la base.
+        var enOrden = pend.slice().sort(function (a, b) { return a.creado_en < b.creado_en ? -1 : a.creado_en > b.creado_en ? 1 : 0; })
+          .concat(ss.filter(function (x) { return x.estado !== 'pendiente'; }));
+        tabla.innerHTML = enOrden.map(function (x) {
           var c = ct[x.contrato_id]; var u = us[x.creado_por];
           /* Marca visual: solo las nacidas solas de una comisión de manager llevan
              el badge — el resto (`origen='manual'`) es lo que ya se veía antes. */
@@ -8339,6 +8363,9 @@
         });
         var buscador = document.getElementById('lw-buscar');
         if (buscador) buscador.addEventListener('input', aplicaFiltrosLawang);
+        // Con algo esperando, la pantalla abre en «Pendientes» (CM1): es lo que hay que resolver. Sin nada, en «Todas».
+        var chipPend = chipsComisiones.filter(function (b) { return b.getAttribute('data-chip-clave') === 'pendiente'; })[0];
+        if (pend.length && chipPend) chipPend.click();
 
         // filtro por agente: SOLO admin (un agente ya ve solo lo suyo) y solo si
         // hay mas de uno entre lo que la RLS dejo ver — mismo criterio que
@@ -9163,7 +9190,7 @@
     if (!eq) {
       pon2('me-titulo', ctx.esAdm ? T('Elige un equipo') : T('Todavía no diriges ningún equipo'));
       pon2('me-sub', ctx.esAdm
-        ? T('Elige un equipo en el filtro de «Miembros» para gestionar sus miembros, roles, plantilla y lo que ven sus closers.')
+        ? T('Elige un equipo aquí para gestionar sus miembros, roles, plantilla y lo que ven sus closers.')
         : T('Cuando administración te asigne un equipo, aquí gestionarás sus miembros, roles y reparto.'));
       var sinEq = T('Primero hace falta un equipo');
       [bAnadir, bInt, bFila, bGuarda].forEach(function (b) { apaga(b, sinEq); });
@@ -9432,6 +9459,12 @@
       pon2('k-managers', String(Object.keys(managers).length));
       pon2('k-managers-pie', 'al frente de un equipo activo');
       pon2('k-sin-miembros', String(sinMiembros.length));
+      // Con 0 no hay nada que mirar: icono neutro en vez de la alarma roja (Experiencia, 17-oct)
+      var icoSin = document.querySelector('[data-lw="k-sin-miembros-icono"]');
+      if (icoSin) {
+        icoSin.className = 'w-10 h-10 rounded-xl flex items-center justify-center ' + (sinMiembros.length ? 'bg-error-container/60 text-error' : 'bg-surface-container text-territorial-green');
+        if (icoSin.firstElementChild) icoSin.firstElementChild.textContent = sinMiembros.length ? 'report' : 'check_circle';
+      }
       pon2('k-sin-miembros-pie', sinMiembros.length
         ? sinMiembros.slice(0, 3).map(function (e) { return e.nombre; }).join(' · ')
         : 'todos con closers activos');
@@ -9508,6 +9541,22 @@
         ctxMe.filtroId = (selEq && selEq.value) || null;
         pintaVentasPorSuCuenta(sb, ctxMe);
       };
+      // El mismo filtro, repetido dentro de «Mi equipo» para admin (Experiencia, 17-oct): antes el bloque mandaba a buscar el
+      // de «Miembros», más abajo. Los dos van sincronizados; el de «Miembros» sigue siendo el que manda.
+      var selMe = document.querySelector('[data-lw="me-elige"]');
+      if (selMe && selEq && esAdmEq) {
+        var Tme = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+        selMe.setAttribute('aria-label', Tme('Equipo'));
+        selMe.innerHTML = '<option value="">' + esc(Tme('Elige un equipo')) + '</option>' +
+          equipos.filter(function (e) { return e.activo; }).map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(etqE(e)) + '</option>'; }).join('');
+        selMe.value = selEq.value; if (selMe.value !== selEq.value) selMe.value = '';
+        selMe.hidden = false;
+        if (!selMe.hasAttribute('data-lw-enlazado')) {
+          selMe.setAttribute('data-lw-enlazado', '');
+          selMe.addEventListener('change', function () { selEq.value = selMe.value; selEq.dispatchEvent(new Event('change')); });
+          selEq.addEventListener('change', function () { selMe.value = selEq.value; if (selMe.value !== selEq.value) selMe.value = ''; });
+        }
+      }
       repintaMe();
       if (selEq) selEq.addEventListener('change', function () { pintaMiembros(); repintaMe(); });
 

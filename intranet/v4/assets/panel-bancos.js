@@ -274,7 +274,7 @@
   function importar() {
     var cuentas = cuentasImportables();
     if (!cuentas.length) {
-      window.lwVentana(T('Importar extracto'), [{ tipo: 'nota', label: T('No hay ninguna cuenta marcada como propia de la sociedad. Ve a Cuentas, da de alta la cuenta (por ejemplo la de Statrys) y marca «De la sociedad». Luego vuelve aquí.') }],
+      window.lwVentana(T('Importar extracto'), [{ tipo: 'nota', label: T('No hay ninguna cuenta marcada como propia de la sociedad. Ve a Ajustes › Cuentas bancarias, da de alta la cuenta (por ejemplo la de Statrys) y marca «De la sociedad». Luego vuelve aquí.') }],
         T('Entendido'), function () { return null; }, { sinRecarga: true, sub: T('Bancos') });
       return;
     }

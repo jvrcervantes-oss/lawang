@@ -35,6 +35,23 @@
    parte del documento —sticky dentro del flujo—, y ahi su sitio es sobre el
    contenido (z-50 de Tailwind) y por debajo de cualquier overlay. */
 
+/* ═══════════════ [hidden] GANA SIEMPRE (17-oct-2026) ═══════════════
+   El `[hidden]` de Tailwind (preflight de tw.css) pesa lo mismo que una clase y
+   va antes que las utilidades, así que `flex`, `grid` o `block` le ganaban: un
+   elemento con `hidden` y una de esas clases se seguía viendo. En Finanzas los
+   cuatro paneles de pestaña salían a la vez —una página de ~6.700 px con la
+   pestaña «Otros» marcada estando arriba (Experiencia, 17-oct)—; textos-contrato.css
+   lo iba parcheando regla a regla (nueve) y emitir, gastos, reservas o
+   vencimientos tenían el mismo `hidden` sobre un `flex`. Una regla aquí, que
+   cargan todas las pantallas v4 con cáscara, como la de topbar/lawang.css de la
+   suite clásica (6-ago-2026). Auditado el 17-oct: los 93 `hidden` estáticos de
+   las pantallas con cáscara y los que crea el JS se enseñan por `.hidden`,
+   ninguno solo con `style.display`. De paso dejan de verse a quien no toca los
+   botones de alta que su código ya escondía (Cuentas, Plantillas, Productos,
+   Sociedades, Proyectos, Modelos, Creatividades). La impresión de Finanzas, que
+   enseña todos los paneles, sigue ganando con su propio `!important`. */
+[hidden]{display:none!important}
+
 /* El cajon de proyecto pide su altura por clase de Tailwind (`z-50`) dentro de
    /v4/proyectos/. Se repunta aqui, en un solo sitio, en vez de editar el HTML:
    la escalera vive entera en este fichero o no es una escalera. */

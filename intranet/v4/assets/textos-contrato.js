@@ -207,7 +207,7 @@
     var semilla = vs.filter(function (v) { return v.origen === 'semilla'; })[0];
     var colAct = activa
       ? '<div class="tc-fuerte">v' + esc(activa.version) + '</div><div class="tc-peq">' + esc(fFecha(activa.activado_en)) + (activa.activado_por ? ' · ' + esc(activa.activado_por) : '') + '</div>'
-      : pill(T('Ninguna activa'), 'neutro') + '<div class="tc-peq">' + esc(T('Los contratos usan la copia inicial del estudio')) + '</div>';
+      : pill(T('Ninguna activa'), 'neutro');   // sin la nota «Los contratos usan la copia inicial» en cada fila: el chip «Copia inicial del estudio · vN» de la misma fila ya lo dice (Experiencia, 17-oct)
     var colBor = borrador
       ? '<div class="tc-fuerte">v' + esc(borrador.version) + '</div><div class="tc-peq">' + esc(fFechaHora(borrador.fecha)) + ' · ' + esc(borrador.autor) + '</div>'
         + (borrador.activable ? '' : '<div class="tc-peq tc-aviso-txt" data-tc-bloqueo="1">' + esc(borrador.bloqueo_motivo || '') + '</div>')

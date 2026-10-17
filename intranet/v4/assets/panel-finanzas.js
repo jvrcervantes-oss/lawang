@@ -204,8 +204,11 @@
 
   function vacio(el, texto) { if (el) el.innerHTML = '<p class="py-6 text-center font-body-md text-body-md text-on-surface-variant">' + esc(texto) + '</p>'; }
   function pct(a, b) { return b ? Math.round(a / b * 1000) / 10 : null; }
+  /* F1 (Experiencia, 17-oct): contra un mes casi vacío salía un porcentaje de cinco cifras que no dice nada. Con la base por debajo
+     de una décima parte de la cifra de ahora (más de +900 %), o en negativo, se dice «sin comparación» en vez del número. */
   function variacion(a, b) {
     if (!b) return null;
+    if (b < 0 || Math.abs(a) > 10 * b) return T('sin comparación');
     var v = Math.round((a - b) / b * 1000) / 10;
     return (v >= 0 ? '+' : '') + String(v).replace('.', ',') + ' %';
   }
