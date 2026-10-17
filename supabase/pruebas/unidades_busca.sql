@@ -38,7 +38,7 @@ insert into _tp values ('jv', gen_random_uuid(), 'zz-ubusca-super@prueba.invalid
 
 do $todo$
 declare
-  r text := ''; rp text := ''; v text; v2 text; x record; t0 timestamptz; ms numeric;
+  r text := ''; rp text := ''; v text; v2 text; x record; t0 timestamptz; ms numeric; rls_ms numeric; cuerpo_ms numeric;
   jv _tp; a _tp; fx _tp;
   p1 uuid; p2 uuid; uTilde uuid; uOtro uuid; i int;
   c_emp constant text := 'zz_ubusca';
@@ -73,7 +73,7 @@ begin
     insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo) values
       (jv.uid, jv.em, 'ZZ-UBUSCA Super admin', 'super_admin', 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{}'::text[], '{}'::text[], true),
       (a.uid,  a.em,  'ZZ-UBUSCA Agente A',    'agente',      'global', array[c_emp], array[p1],   '{}'::uuid[], '{proyectos}'::text[], '{contrato_general}'::text[], true);
-    -- unidades.tipo apunta a tipos_vivienda(clave) y la rama sale sin filas (ensayo f2175b16, 23503 unidades_tipo_fkey): como invitacion_portal.sql
+    -- unidades.tipo apunta a tipos_vivienda(clave) y la rama sale sin filas (ensayo f2175b16, 23503 unidades_tipo_fkey): como carta_liberada_mismo_comprador.sql:81
     insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
     insert into public.unidades (codigo, proyecto, proyecto_id, tipo) values ('ZZU-Ñ1 Bambú', 'ZZ-UBUSCA Jardín Ñandú', p1, 'parcela') returning id into uTilde;
     for i in 1..11 loop
@@ -102,8 +102,13 @@ begin
   -- ============================================================ U. lo que devuelve, por perfil
   v := pg_temp.val(a.uid, a.em, format('select count(*) from public.unidades_busca(%L) where id = %L', 'zzu n1 bambu', uTilde));
   r := r || pg_temp.l(v = '1', 'U1 ENTRA: A encuentra «ZZU-Ñ1 Bambú» tecleando «zzu n1 bambu» (' || pg_temp.e(v) || ')');
-  v := pg_temp.val(a.uid, a.em, format('select proyecto || ''|'' || proyecto_id from public.unidades_busca(%L) where id = %L', 'jardin nandu', uTilde));
-  r := r || pg_temp.l(v = 'ZZ-UBUSCA Jardín Ñandú|' || p1::text, 'U2 ENTRA: por el nombre del proyecto sin tildes, y trae el id del proyecto (' || pg_temp.e(v) || ')');
+  -- Las 12 de p1 casan por el nombre del proyecto y el tope es 10: se mira el resultado ENTERO, no una fila (ensayo 7a125126: por
+  -- codigo_orden «zzu-ñ…» va detrás de «zzu-0…» y uTilde, la 12.ª, quedaba fuera; U2 y R1 daban null sin que la función fallara).
+  v := pg_temp.val(a.uid, a.em, 'select count(*) || ''|'' || count(*) filter (where proyecto_id = ' || quote_literal(p1) || '::uuid'
+                                || ' and proyecto = ''ZZ-UBUSCA Jardín Ñandú'') from public.unidades_busca(''jardin nandu'')');
+  r := r || pg_temp.l(v = '10|10', 'U2 ENTRA: por el nombre del proyecto sin tildes: 10 filas, todas con el id y el nombre de p1 (filas|de p1: ' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select count(*) from public.proyectos where id = %L', p1));
+  r := r || pg_temp.l(v = '1', 'U2b A ve p1 en proyectos (el join trae el nombre de hoy, no la copia) (' || pg_temp.e(v) || ')');
   v := pg_temp.val(a.uid, a.em, 'select count(*) from public.unidades_busca(''zzu otro'')');
   r := r || pg_temp.l(v = '0', 'U3 NIEGA: A no recibe la unidad del proyecto que no ve (la RLS de unidades decide) (' || pg_temp.e(v) || ')');
   v := pg_temp.val(jv.uid, jv.em, format('select count(*) from public.unidades_busca(%L) where id = %L', 'zzu otro', uOtro));
@@ -134,10 +139,10 @@ begin
   alter table public.proyectos enable trigger user;
   r := r || pg_temp.l((select proyecto from public.unidades where id = uTilde) = 'ZZ-UBUSCA Jardín Ñandú',
                       'R0 la copia de la unidad sigue con el nombre viejo (el caso mide el join, no la copia)');
-  v := pg_temp.val(a.uid, a.em, format('select proyecto from public.unidades_busca(%L) where id = %L', 'kebun baru', uTilde));
-  r := r || pg_temp.l(v = 'ZZ-UBUSCA Kebun Baru', 'R1 ENTRA: renombrado el proyecto, se encuentra por el nombre nuevo y lo enseña (' || pg_temp.e(v) || ')');
-  v := pg_temp.val(a.uid, a.em, format('select count(*) from public.unidades_busca(%L) where id = %L', 'jardin nandu', uTilde));
-  r := r || pg_temp.l(v = '0', 'R3 NIEGA: ya no sale por el nombre viejo que guarda la copia (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, 'select count(*) || ''|'' || count(*) filter (where proyecto = ''ZZ-UBUSCA Kebun Baru'') from public.unidades_busca(''kebun baru'')');
+  r := r || pg_temp.l(v = '10|10', 'R1 ENTRA: renombrado el proyecto, se encuentra por el nombre nuevo y lo enseña en todas (filas|con el nuevo: ' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, 'select count(*) from public.unidades_busca(''jardin nandu'')');
+  r := r || pg_temp.l(v = '0', 'R3 NIEGA: ninguna sale ya por el nombre viejo que guardan las copias (' || pg_temp.e(v) || ')');
   v := pg_temp.val(a.uid, a.em, format('select count(*) from public.unidades_busca(%L) where id = %L', 'zzu n1', uTilde));
   r := r || pg_temp.l(v = '1', 'R2 ENTRA: el enlace no depende del nombre: sigue saliendo por su código (' || pg_temp.e(v) || ')');
 
@@ -145,10 +150,21 @@ begin
   -- llama a proyecto_visible por fila; la rama trae la estructura sin datos, así que el volumen lo pone el fixture: 600 más en p1)
   insert into public.unidades (codigo, proyecto, proyecto_id, tipo)
     select 'ZZU-V' || lpad(g::text, 4, '0'), 'ZZ-UBUSCA Kebun Baru', p1, 'parcela' from generate_series(1, 600) g;
+  -- desglose, para que un rojo diga dónde está el coste sin otro ensayo: solo la RLS (contar unidades como A) y solo el cuerpo
+  -- (la misma búsqueda como postgres con los claims de A: es_agente() vale y la RLS no se aplica)
+  t0 := clock_timestamp();
+  v2 := pg_temp.val(a.uid, a.em, 'select count(*) from public.unidades');
+  rls_ms := round(extract(epoch from clock_timestamp() - t0) * 1000);
+  perform set_config('request.jwt.claims', json_build_object('sub', a.uid, 'role', 'authenticated', 'email', a.em)::text, true);
+  t0 := clock_timestamp();
+  perform count(*) from public.unidades_busca('zzu v05');
+  cuerpo_ms := round(extract(epoch from clock_timestamp() - t0) * 1000);
+  perform set_config('request.jwt.claims', '', true);
   t0 := clock_timestamp();
   v := pg_temp.val(a.uid, a.em, 'select count(*) from public.unidades_busca(''zzu v05'')');
   ms := round(extract(epoch from clock_timestamp() - t0) * 1000);
-  r := r || pg_temp.l(v = '10' and ms < 300, 'T1 agente acotado con 612 unidades visibles: ' || pg_temp.e(v) || ' filas en ' || ms || ' ms (tope 300; por encima, la policy de L6, no un índice)');
+  r := r || pg_temp.l(v = '10' and ms < 300, 'T1 agente acotado con 612 unidades visibles: ' || pg_temp.e(v) || ' filas en ' || ms || ' ms (tope 300) [solo RLS: '
+                      || pg_temp.e(v2) || ' filas en ' || rls_ms || ' ms; solo cuerpo, sin RLS: ' || cuerpo_ms || ' ms]');
   t0 := clock_timestamp();
   v := pg_temp.val(a.uid, a.em, 'select count(*) from public.unidades_busca(''nada que case'')');
   ms := round(extract(epoch from clock_timestamp() - t0) * 1000);
