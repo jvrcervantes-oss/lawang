@@ -7527,7 +7527,29 @@
             if (okE && okQ) vistas++;
             lista.insertBefore(f, vacioF);
           });
-          if (vacioF) vacioF.style.display = vistas ? 'none' : '';
+          if (vacioF) pintaVacioF(vistas, v);
+        }
+        /* Filtro vacío que dice por qué (mejora 7 de Experiencia, 17-oct-2026): en «Abiertos» sin ninguno abierto se leía «Nada
+           que enseñar con este filtro» con el hilo resuelto a la vista. Ahora lo dice y lleva al otro chip. Con texto en el
+           buscador, o en «Todos», sigue siendo cosa del filtro. */
+        function pintaVacioF(vistas, q) {
+          vacioF.style.display = vistas ? 'none' : '';
+          if (vistas) return;
+          var t = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+          if (q || estadoF === 'todos') { vacioF.textContent = t('Nada que enseñar con este filtro.'); return; }
+          var otro = estadoF === 'abiertos' ? 'resueltos' : 'abiertos';
+          var nOtro = (otro === 'resueltos' ? resueltos : abiertos).length;
+          vacioF.textContent = t(estadoF === 'abiertos' ? 'No hay tickets abiertos.' : 'Ningún ticket resuelto todavía.');
+          if (!nOtro) return;
+          var b = document.createElement('button'); b.type = 'button';
+          b.setAttribute('data-accion', 'soporte-ver-' + otro); b.setAttribute('data-real', '');
+          b.className = 'ml-1.5 font-semibold text-deep-lagoon underline';
+          b.textContent = t(otro === 'resueltos' ? 'Ver los resueltos' : 'Ver los abiertos') + ' (' + nOtro + ')';
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();   // como los chips: que maqueta.js no la vea pasar
+            var c = chipsSoporte.filter(function (x) { return x.getAttribute('data-chip-clave') === otro; })[0]; if (c) c.click();
+          });
+          vacioF.appendChild(b);
         }
         var chipsSoporte = ['abiertos', 'resueltos', 'todos'].map(function (k) {
           var sp = document.querySelector('[data-lw="c-' + k + '"]'); var b = sp && sp.closest('button');

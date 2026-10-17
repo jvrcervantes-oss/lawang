@@ -6986,6 +6986,20 @@
     'contrato sin firmar': 'unsigned contract',
     'cobro no visible': 'payments not visible',
     'cobrado %a': 'collected %a',
+    /* ── Pantallas vacías que dicen por qué (mejora 7 de Experiencia, 17-oct-2026). ── */
+    'No hay piezas activas; %n en el archivo.': 'No active pieces; %n in the archive.',
+    'No hay piezas en este estado.': 'No pieces in this status.',
+    'Quitar los filtros': 'Clear the filters',
+    'Ver el archivo': 'See the archive',
+    'Registra el primer gasto': 'Record the first expense',
+    'Cada factura de un proveedor, con su sociedad, su proyecto y su categoría. En cuanto haya uno, aquí verás lo pendiente de pagar, lo vencido y lo gastado en el mes.': 'Each supplier invoice, with its company, project and category. As soon as there is one, you will see here what is due, what is overdue and what was spent this month.',
+    'Tres notas antes de apuntar un gasto': 'Three notes before recording an expense',
+    'Descarga el extracto en CSV desde la banca online e impórtalo: aquí verás el saldo de cada cuenta y lo que falta por conciliar.': 'Download the statement as CSV from online banking and import it: you will see each account balance here and what is left to reconcile.',
+    'Ir a Cuentas bancarias': 'Go to Bank accounts',
+    'No hay tickets abiertos.': 'No open tickets.',
+    'Ningún ticket resuelto todavía.': 'No resolved tickets yet.',
+    'Ver los resueltos': 'See the resolved ones',
+    'Ver los abiertos': 'See the open ones',
   };
 
   window.LW_EN = EN;
