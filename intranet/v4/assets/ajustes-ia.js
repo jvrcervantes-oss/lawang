@@ -330,6 +330,43 @@
     if (!hay.length) { lista.appendChild(el('p', C_PEQ, (D.usuarios || []).length ? T('Nadie con ese nombre.') : T('No hay nadie activo en el equipo.'))); return; }
     hay.forEach(function (u) { lista.appendChild(filaPersona(u)); });
   }
+  /* «Dar permiso a todo el equipo» (17-oct-2026, sesión mcp-ventana; owner: «todos desde hoy»). No hay función nueva en la base: es la
+     misma ia_permiso_guarda persona a persona, y cada llamada la autoriza la base. Una a una y en orden (34 personas: segundos), para
+     decir al final quién no ha podido y por qué; las que fallan quedan sin permiso y se ven en la lista. Quien entre después al
+     equipo necesita su «Dar permiso» (no hay «todos los futuros»: encargo, «Para después»). */
+  function botonTodos(sin) {
+    var b = IA.boton(T('Dar permiso a todo el equipo (%n)', { n: sin.length }), 'ia-permiso-dar-todos');
+    b.addEventListener('click', function () {
+      var q = window.lwConfirmar ? window.lwConfirmar({
+        titulo: T('¿Dar permiso a %n personas?', { n: sin.length }),
+        cuerpo: '<p>' + IA.esc(T('Podrán conectar su asistente de IA con su propio usuario. Cada una verá solo lo que ya ve en la intranet, con el tope de consultas al día de cada persona.')) + '</p>',
+        confirmar: T('Sí, dar permiso')
+      }) : Promise.resolve(false);
+      q.then(function (si) {
+        if (!si) return;
+        b.disabled = true;
+        var mal = [], hechos = 0;
+        var una = function (i) {
+          if (i >= sin.length) {
+            b.disabled = false;
+            if (mal.length) IA.mal(T('Permiso dado a %h de %t. Sin permiso: %l', { h: hechos, t: sin.length, l: mal.join(' · ') }));
+            else IA.bien(T('Permiso dado a %t personas.', { t: hechos }));
+            carga();
+            return;
+          }
+          var u = sin[i];
+          var falla = function (m) { mal.push((u.nombre || T('(sin nombre)')) + ' (' + m + ')'); una(i + 1); };
+          sb.rpc('ia_permiso_guarda', { p_usuario: u.user_id, p_concede: true }).then(function (r) {
+            var e = IA.textoError(r, ERR_PERMISO);
+            if (e) return falla(e);
+            hechos++; una(i + 1);
+          }, function (x) { falla((x && x.message) || T('sin respuesta')); });
+        };
+        una(0);
+      });
+    });
+    return b;
+  }
   function bloquePermisos(raiz) {
     var us = D.usuarios || [];
     var con = us.filter(function (u) { return u.permiso; }).length;
@@ -337,7 +374,9 @@
       T('Solo quien tenga permiso puede conectar un asistente, y el asistente ve solo lo que esa persona ve. Quitar el permiso corta en el acto sus conexiones.'));
     s.s.setAttribute('data-ia-bloque', 'permisos');
     s.c.appendChild(el('p', C_PEQ, T('%n de %t personas del equipo pueden conectar.', { n: con, t: us.length })));
-    var bus = el('input', C_INPUT + ' md:w-80'); bus.type = 'search'; bus.autocomplete = 'off'; bus.value = filtro;
+    var sin = us.filter(function (u) { return !u.permiso; });
+    if (sin.length) s.c.appendChild(botonTodos(sin));
+    var bus =el('input', C_INPUT + ' md:w-80'); bus.type = 'search'; bus.autocomplete = 'off'; bus.value = filtro;
     bus.setAttribute('data-ia-buscar', '');
     s.c.appendChild(campo(T('Buscar persona'), null, bus));
     var lista = el('div', 'flex flex-col'); lista.setAttribute('data-ia-personas', '');
