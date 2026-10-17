@@ -7,7 +7,9 @@
 //    ia_ajustes_guarda {p_datos} SOLO con el tope cambiado (lo de siempre);
 //  · el interruptor sigue igual: «Encender la IA» a la vista y, con el tope a 0, no manda nada y lleva el foco al tope;
 //  · la ficha de un asistente no repite su nombre («Claude Claude»);
-//  · sin scroll horizontal.
+//  · sin scroll horizontal;
+//  · «Dar permiso a todo el equipo» (17-oct-2026): pide confirmación, manda ia_permiso_guarda {p_usuario, p_concede:true} SOLO a quien
+//    no tiene permiso, y si la base rechaza a alguien lo dice en el aviso de error (que SE VE: toastMal es global, no de window).
 // La interfaz se maneja por data-* (data-ia-*, data-accion), nunca por rótulo. Sale 1 si falla.
 const fs = require('fs'), path = require('path'), http = require('http');
 const { chromium } = require(process.env.PLAYWRIGHT_CORE || 'C:/Users/jvrce/AppData/Roaming/npm/node_modules/@playwright/mcp/node_modules/playwright-core');
@@ -23,7 +25,8 @@ const VER = {
   ajustes: { encendido: false, tope_dia: 0, duracion_dias: 7, max_conexiones: 2, actualizado_en: '2026-10-16T09:00:00Z', actualizado_por: 'u-prueba' },
   clientes: [{ id: 'k1', asistente: 'claude', nombre: 'Claude', redirect_uris: ['https://claude.ai/api/mcp/auth_callback'], activo: true }],
   usuarios: [{ user_id: 'u-prueba', nombre: 'Persona de prueba', rol: 'super_admin', permiso: true, uso_hoy: 3 },
-             { user_id: 'u-2', nombre: 'Ana Gestora', rol: 'admin', permiso: false, uso_hoy: 0 }],
+             { user_id: 'u-2', nombre: 'Ana Gestora', rol: 'admin', permiso: false, uso_hoy: 0 },
+             { user_id: 'u-3', nombre: 'Baja Reciente', rol: 'agente', permiso: false, uso_hoy: 0 }],
   conexiones: [{ id: 'c1', usuario_id: 'u-2', cliente_id: 'k1', creada_en: '2026-10-15T02:00:00Z', expira_en: '2026-10-22T02:00:00Z', aal: 'aal1' }]
 };
 const FALSO = `(function () {
@@ -56,7 +59,12 @@ const FALSO = `(function () {
     from: cadena,
     rpc: function (n, a) {
       // solo las escrituras: ia_mis_conexiones (aviso de la barra) e ia_ajustes_ver son lecturas
-      if (/^ia_.*(_guarda|_revoca)$/.test(n)) { window.__LLAMADAS.push([n, JSON.parse(JSON.stringify(a || {}))]); return Promise.resolve({ data: { ok: true }, error: null }); }
+      if (/^ia_.*(_guarda|_revoca)$/.test(n)) {
+        window.__LLAMADAS.push([n, JSON.parse(JSON.stringify(a || {}))]);
+        // u-3 la rechaza la base como desactivada: el botón de todo el equipo tiene que decirlo
+        if (n === 'ia_permiso_guarda' && a && a.p_usuario === 'u-3') return Promise.resolve({ data: { error: 'usuario_inactivo' }, error: null });
+        return Promise.resolve({ data: { ok: true }, error: null });
+      }
       if (RPC[n] !== undefined) return Promise.resolve({ data: JSON.parse(JSON.stringify(RPC[n])), error: null });
       return Promise.resolve({ data: null, error: { message: '(arnés) sin dato para ' + n } });
     },
@@ -118,6 +126,23 @@ srv.listen(0, async () => {
         const ll = await p.evaluate(() => window.__LLAMADAS);
         ok(pre + 'se manda ia_ajustes_guarda {p_datos} solo con lo cambiado (' + JSON.stringify(ll) + ')',
           ll.length === 1 && ll[0][0] === 'ia_ajustes_guarda' && JSON.stringify(ll[0][1]) === JSON.stringify({ p_datos: { duracion_dias: 14 } }));
+        // «Dar permiso a todo el equipo»: 2 sin permiso (u-2, u-3); u-3 la rechaza la base
+        await p.evaluate(() => { window.__LLAMADAS.length = 0; });
+        await p.click('[data-accion="ia-permiso-dar-todos"]');
+        await p.waitForSelector('.lw-dlg .lw-dlg-pie .btn.primary', { timeout: 5000 }).catch(() => null);
+        const confirmar = await p.$('.lw-dlg .lw-dlg-pie .btn.primary');
+        ok(pre + 'todo el equipo: pide confirmación antes de mandar nada', !!confirmar && (await p.evaluate(() => window.__LLAMADAS.length)) === 0);
+        if (confirmar) await confirmar.click();
+        await p.waitForFunction(() => window.__LLAMADAS.length >= 2, null, { timeout: 5000 }).catch(() => null);
+        const lt = await p.evaluate(() => window.__LLAMADAS);
+        ok(pre + 'todo el equipo: ia_permiso_guarda con p_concede:true solo a u-2 y u-3 (' + JSON.stringify(lt) + ')',
+          JSON.stringify(lt) === JSON.stringify([['ia_permiso_guarda', { p_usuario: 'u-2', p_concede: true }], ['ia_permiso_guarda', { p_usuario: 'u-3', p_concede: true }]]));
+        // el aviso es position:fixed (offsetParent siempre null): «se ve» = encendido (clase show) y con opacidad
+        const seVe = () => { const t = document.getElementById('toastMal'); if (!t) return null;
+          const cs = getComputedStyle(t); return t.classList.contains('show') && cs.display !== 'none' && cs.visibility !== 'hidden' ? t.textContent.trim() : null; };
+        await p.waitForFunction(seVe, null, { timeout: 5000 }).catch(() => null);
+        const avisoMal = await p.evaluate(seVe);
+        ok(pre + 'todo el equipo: el aviso de error SE VE y nombra a quien no pudo (' + avisoMal + ')', !!avisoMal && /Baja Reciente/.test(avisoMal));
       }
       await ctx.close();
     }

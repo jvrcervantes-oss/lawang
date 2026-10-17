@@ -63,7 +63,8 @@ igual(rpcDe(aj), ['ia_ajustes_guarda', 'ia_ajustes_ver', 'ia_cliente_guarda', 'i
 });
 // los parámetros que manda cada llamada son los que declara la función (un nombre mal escrito da 404 de PostgREST, no un error legible)
 const llamadas = [...(comun + aj).matchAll(/(?:\.rpc|\bguarda)\('([a-z_]+)', \{([^}]*)\}/g)];
-igual(llamadas.map((m) => m[1]).sort(), ['ia_ajustes_guarda', 'ia_cliente_guarda', 'ia_conexion_revoca', 'ia_permiso_guarda'], 'se leen las cuatro llamadas con parámetros');
+igual(llamadas.map((m) => m[1]).sort(), ['ia_ajustes_guarda', 'ia_cliente_guarda', 'ia_conexion_revoca', 'ia_permiso_guarda', 'ia_permiso_guarda'],
+  'se leen las cinco llamadas con parámetros (ia_permiso_guarda dos veces: la persona y «a todo el equipo», 17-oct)');
 llamadas.forEach(([, f, args]) => {
   const declarados = (funcion(f) || { params: '' }).params.split(',').map((x) => x.trim().split(/\s+/)[0]).filter(Boolean).sort();
   const mandados = [...args.matchAll(/\b(p_[a-z_]+):/g)].map((m) => m[1]).sort();
@@ -187,6 +188,18 @@ igual([AV.fresco({ t: ahora - 60000, aviso: 'conecta' }, ahora), AV.fresco({ t: 
   igual(/@media \(max-width:639px\)\{\.lw-aviso-ia\{display:none\}\}/.test(sin), true,
     'aviso-ia.js no sale por debajo de 640 px (le quitaba una línea al nombre de la cabecera: medido el 16-oct)');
 }
+/* El banner de la portada (17-oct-2026, sesión mcp-ventana): misma regla (queAviso), su hueco por data-lw, data-accion en sus dos
+   botones, los dos avisos con todos sus textos, y en la portada no sale la píldora de la cabecera. */
+{
+  const sin = avisoJs.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  igual(/querySelector\('\[data-lw="banner-ia"\]'\)/.test(sin) && /'data-accion', 'banner-ia-abrir'/.test(sin) && /'data-accion', 'banner-ia-cerrar'/.test(sin), true,
+    'el banner se engancha por data-lw="banner-ia" y lleva data-accion en sus dos botones');
+  igual(/if \(hueco\) pintaBanner\(uid, aviso, hueco\); else pinta\(uid, aviso\);/.test(sin), true, 'con el hueco del banner no sale la píldora (y la regla es la misma queAviso)');
+  igual(['conecta', 'reconecta'].every((k) => AV.BANNER[k] && ['antetitulo', 'titulo', 'texto', 'boton', 'nota'].every((c) => typeof AV.BANNER[k][c] === 'string' && AV.BANNER[k][c].length > 0)), true,
+    'el banner tiene sus cinco textos para «conecta» y para «reconecta»');
+  const home = leer('intranet', 'v4', 'home', 'index.html');
+  igual((home.match(/<div data-lw="banner-ia" hidden><\/div>/g) || []).length, 1, 'la portada tiene UN hueco del banner, oculto hasta que la base diga que toca');
+}
 igual(/var AVISO_IA_V = '\d{8}[a-z]?';/.test(nav) && /aut && aut\.ficha && !window\.AXW_NUCLEO_OPERACION\) \{\s+var sa = document\.createElement\('script'\);\s+sa\.src = ROOT \+ 'assets\/aviso-ia\.js\?v=' \+ AVISO_IA_V;/.test(nav), true,
   'nav.js inyecta aviso-ia.js tras LW_AUTH, con su sello AVISO_IA_V y nunca en una instancia del ERP');
 
@@ -195,6 +208,8 @@ const w = {}; new Function('window', leer('contracts', 'assets', 'i18n.js'))(w);
 const EN = w.LW_EN;
 const frases = new Set();
 Object.values(AV.TEXTOS).forEach((t) => frases.add(t));
+Object.values(AV.BANNER).forEach((b) => Object.values(b).forEach((t) => frases.add(t)));
+AV.EJEMPLOS.forEach((t) => frases.add(t));
 [comun, aj, avisoJs].forEach((js) => {
   for (const m of js.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)) frases.add(m[1].replace(/\\'/g, "'"));
   ['MOTIVOS', 'ERR', 'ERR_CLIENTE', 'ERR_CORTAR', 'ERR_PERMISO'].forEach((n) => {

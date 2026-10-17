@@ -25,6 +25,14 @@
  *    que además desaparece solo en todos los dispositivos en cuanto la persona se conecta. Cómo revertir: una columna/RPC por
  *    usuario y leerla aquí en vez de localStorage.
  * Se engancha por data-lw="k-avisos" (la campana) y data-accion, nunca por un rótulo. Todo con createElement/textContent.
+ *
+ * EL BANNER DE LA PORTADA (17-oct-2026, sesión mcp-ventana). Owner, 17-oct: «en la home haz un banner llamativo para el mcp».
+ * Misma regla de a quién le sale (queAviso) y mismo recuerdo de 3 min: no hay una segunda copia de la regla. Sale donde la
+ * página tenga el hueco data-lw="banner-ia" (hoy solo /intranet/v4/home/); en esa página NO sale la píldora de la cabecera
+ * (serían dos invitaciones a lo mismo). Sí sale en el móvil: en la portada hay sitio, a diferencia de la cabecera.
+ * Su × tiene su propio recuerdo (lw-banner-ia:cerrado:<uid>), porque quien cerró la píldora el 16-oct no ha visto el banner;
+ * cerrar el banner cierra también la píldora. Decisión por defecto (17-oct, mcp-ventana). Cómo revertir: que el banner lea
+ * y escriba la clave de la píldora.
  */
 (function (raiz) {
   'use strict';
@@ -45,7 +53,25 @@
       (g.aviso === null || g.aviso === 'conecta' || g.aviso === 'reconecta');
   }
   var TEXTOS = { conecta: 'Conecta tu asistente de IA', reconecta: 'Vuelve a conectar tu asistente de IA' };
-  if (typeof module !== 'undefined' && module.exports) module.exports = { queAviso: queAviso, fresco: fresco, MINUTOS: MINUTOS, TEXTOS: TEXTOS };
+  /* Los textos del banner, por aviso. Los ejemplos son preguntas, no datos: cada persona verá la respuesta según sus permisos. */
+  var BANNER = {
+    conecta: {
+      antetitulo: 'Nuevo en la intranet',
+      titulo: 'Pregúntale a tu IA por Lawang',
+      texto: 'Conecta Claude con tu usuario y pregúntale en lenguaje normal lo que ves en la intranet. Solo ve lo que tú ves, no ve pasaportes ni documentos de los compradores y cada consulta queda registrada.',
+      boton: 'Conectar mi asistente',
+      nota: 'Son 2 minutos, desde el ordenador.'
+    },
+    reconecta: {
+      antetitulo: 'Tu asistente de IA',
+      titulo: 'Tu asistente se ha desconectado',
+      texto: 'Por seguridad, cada conexión dura unos días y luego caduca sola. Vuelve a conectarlo para seguir preguntándole por Lawang.',
+      boton: 'Volver a conectar',
+      nota: 'Entras otra vez con tu usuario y tu contraseña.'
+    }
+  };
+  var EJEMPLOS = ['¿Qué facturas siguen sin cobrar?', '¿Cuánto hemos cobrado este mes por proyecto?', '¿Qué parcelas quedan libres?'];
+  if (typeof module !== 'undefined' && module.exports) module.exports = { queAviso: queAviso, fresco: fresco, MINUTOS: MINUTOS, TEXTOS: TEXTOS, BANNER: BANNER, EJEMPLOS: EJEMPLOS };
   if (typeof document === 'undefined') return;
   if (raiz.__lwAvisoIa) return;
   raiz.__lwAvisoIa = true;
@@ -76,6 +102,92 @@
     '.lw-aviso-ia button .material-symbols-outlined{font-size:16px}' +
     '.lw-aviso-ia a:focus-visible,.lw-aviso-ia button:focus-visible{outline:2px solid rgb(var(--tema-deep-lagoon, 16 76 79));outline-offset:2px}' +
     '@media (max-width:639px){.lw-aviso-ia{display:none}}';
+
+  /* El banner: fondo deep-lagoon y texto on-primary (contraste 9,6:1), botón claro de 44 px, × con diana de 44 px. Por token,
+     con el valor de Lawang de reserva por si una pantalla no carga tw.css. De una columna por debajo de 768 px. */
+  var C = function (t, r) { return 'rgb(var(--tema-' + t + ', ' + r + '))'; };
+  var CSS_BANNER =
+    '.lw-banner-ia{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,22rem);gap:28px;align-items:center;' +
+    'padding:28px 72px 28px 32px;border-radius:16px;overflow:hidden;background:' + C('deep-lagoon', '16 76 79') + ';color:' + C('on-primary', '255 255 255') + '}' +
+    '.lw-banner-ia::before{content:"";position:absolute;right:-90px;top:-110px;width:320px;height:320px;border-radius:50%;' +
+    'background:' + C('secondary-fixed-dim', '154 208 211') + ';opacity:.14;pointer-events:none}' +
+    '.lw-banner-ia>*{position:relative}' +
+    '.lw-banner-ia .lw-bia-ante{display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;padding:4px 10px;border-radius:999px;' +
+    'background:rgb(255 255 255 / .14);font:600 11px/1.2 "Neue Kabel",system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase}' +
+    '.lw-banner-ia .lw-bia-ante .material-symbols-outlined{font-size:16px}' +
+    '.lw-banner-ia h2{margin:0;font:600 clamp(24px,2.4vw,32px)/1.15 "Neue Kabel",system-ui,sans-serif;letter-spacing:-.01em}' +
+    '.lw-banner-ia .lw-bia-texto{margin:10px 0 0;max-width:40rem;font:400 15px/1.55 "Neue Kabel",system-ui,sans-serif;opacity:.92}' +
+    '.lw-banner-ia .lw-bia-acciones{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-top:20px}' +
+    '.lw-banner-ia .lw-bia-boton{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 22px;border-radius:999px;' +
+    'background:' + C('surface-container-lowest', '255 255 255') + ';color:' + C('deep-lagoon', '16 76 79') + ';font:600 14px/1 "Neue Kabel",system-ui,sans-serif;text-decoration:none}' +
+    '.lw-banner-ia .lw-bia-boton:hover{background:' + C('secondary-fixed', '182 236 239') + '}' +
+    '.lw-banner-ia .lw-bia-boton .material-symbols-outlined{font-size:18px}' +
+    '.lw-banner-ia .lw-bia-nota{font:400 13px/1.4 "Neue Kabel",system-ui,sans-serif;opacity:.8}' +
+    '.lw-banner-ia .lw-bia-ejemplos{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}' +
+    '.lw-banner-ia .lw-bia-ejemplos li{display:flex;align-items:flex-start;gap:8px;padding:12px 14px;border-radius:14px 14px 14px 4px;' +
+    'background:rgb(255 255 255 / .1);border:1px solid rgb(255 255 255 / .18);font:400 14px/1.4 "Neue Kabel",system-ui,sans-serif}' +
+    '.lw-banner-ia .lw-bia-ejemplos .material-symbols-outlined{font-size:18px;opacity:.75}' +
+    '.lw-banner-ia .lw-bia-cerrar{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;justify-content:center;' +
+    'width:44px;height:44px;border:0;border-radius:999px;background:transparent;color:inherit;cursor:pointer;opacity:.85}' +
+    '.lw-banner-ia .lw-bia-cerrar:hover{background:rgb(255 255 255 / .14);opacity:1}' +
+    '.lw-banner-ia a:focus-visible,.lw-banner-ia button:focus-visible{outline:2px solid ' + C('on-primary', '255 255 255') + ';outline-offset:3px}' +
+    '@media (max-width:767px){.lw-banner-ia{grid-template-columns:minmax(0,1fr);gap:20px;padding:24px 20px}' +
+    '.lw-banner-ia .lw-bia-cabeza{padding-right:40px}.lw-banner-ia .lw-bia-cerrar{top:8px;right:8px}' +
+    '.lw-banner-ia .lw-bia-ejemplos li:nth-child(3){display:none}}';
+
+  function pintaBanner(uid, aviso, hueco) {
+    if (hueco.querySelector('.lw-banner-ia')) return;
+    if (!document.getElementById('lw-banner-ia-css')) { var st = el('style'); st.id = 'lw-banner-ia-css'; st.textContent = CSS_BANNER; document.head.appendChild(st); }
+    var t = BANNER[aviso];
+    var caja = el('section', 'lw-banner-ia');
+    caja.setAttribute('data-lw-aviso-ia', aviso);
+    caja.setAttribute('aria-labelledby', 'lw-bia-titulo');
+
+    var izq = el('div', 'lw-bia-cabeza');
+    var ante = el('p', 'lw-bia-ante');
+    var ai = el('span', 'material-symbols-outlined', 'auto_awesome'); ai.setAttribute('aria-hidden', 'true');
+    ante.appendChild(ai); ante.appendChild(el('span', null, T(t.antetitulo)));
+    var h = el('h2', null, T(t.titulo)); h.id = 'lw-bia-titulo';
+    izq.appendChild(ante); izq.appendChild(h); izq.appendChild(el('p', 'lw-bia-texto', T(t.texto)));
+    var acc = el('div', 'lw-bia-acciones');
+    var a = el('a', 'lw-bia-boton');
+    a.href = '/intranet/v4/ia/';
+    a.setAttribute('data-accion', 'banner-ia-abrir');
+    a.setAttribute('data-real', '');
+    a.appendChild(el('span', null, T(t.boton)));
+    var fl = el('span', 'material-symbols-outlined', 'arrow_forward'); fl.setAttribute('aria-hidden', 'true'); a.appendChild(fl);
+    acc.appendChild(a); acc.appendChild(el('span', 'lw-bia-nota', T(t.nota)));
+    izq.appendChild(acc);
+    caja.appendChild(izq);
+
+    var ej = el('ul', 'lw-bia-ejemplos');
+    ej.setAttribute('aria-label', T('Ejemplos de preguntas'));
+    EJEMPLOS.forEach(function (q) {
+      var li = el('li');
+      var qi = el('span', 'material-symbols-outlined', 'chat_bubble'); qi.setAttribute('aria-hidden', 'true');
+      li.appendChild(qi); li.appendChild(el('span', null, T(q)));
+      ej.appendChild(li);
+    });
+    caja.appendChild(ej);
+
+    var x = el('button', 'lw-bia-cerrar'); x.type = 'button';
+    x.setAttribute('data-accion', 'banner-ia-cerrar');
+    x.setAttribute('data-real', '');
+    x.setAttribute('aria-label', T('No volver a mostrar este aviso'));
+    x.title = T('No volver a mostrar este aviso');
+    var xi = el('span', 'material-symbols-outlined', 'close'); xi.setAttribute('aria-hidden', 'true');
+    x.appendChild(xi);
+    x.addEventListener('click', function () {
+      guarda('localStorage', 'lw-banner-ia:cerrado:' + uid, aviso);
+      guarda('localStorage', 'lw-aviso-ia:cerrado:' + uid, aviso);
+      hueco.hidden = true;
+      caja.remove();
+      var foco = document.querySelector('[data-lw="buscador"]'); if (foco) foco.focus();   // el foco no se pierde con el banner
+    });
+    caja.appendChild(x);
+    hueco.appendChild(caja);
+    hueco.hidden = false;
+  }
 
   function pinta(uid, aviso) {
     var campana = document.querySelector('header [data-lw="k-avisos"]');
@@ -119,8 +231,12 @@
     if (!uid) return;
     var kResp = 'lw-aviso-ia:resp:' + uid;
     if (location.pathname.indexOf('/intranet/v4/ia/') !== -1) { borra('sessionStorage', kResp); return; }
-    var cerrado = lee('localStorage', 'lw-aviso-ia:cerrado:' + uid);
-    var muestra = function (aviso) { if (aviso && aviso !== cerrado) pinta(uid, aviso); };
+    var hueco = document.querySelector('[data-lw="banner-ia"]');
+    var cerrado = lee('localStorage', (hueco ? 'lw-banner-ia' : 'lw-aviso-ia') + ':cerrado:' + uid);
+    var muestra = function (aviso) {
+      if (!aviso || aviso === cerrado) return;
+      if (hueco) pintaBanner(uid, aviso, hueco); else pinta(uid, aviso);
+    };
     var g = null;
     try { g = JSON.parse(lee('sessionStorage', kResp) || 'null'); } catch (e) { g = null; }   // un recuerdo roto = preguntar otra vez
     if (fresco(g, Date.now())) { muestra(g.aviso); return; }
