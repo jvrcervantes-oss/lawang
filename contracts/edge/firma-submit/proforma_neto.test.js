@@ -16,7 +16,7 @@ const cuerpo = (src, desde, hasta) => {
   const j = src.indexOf(hasta, i + desde.length);
   return src.slice(i, j < 0 ? undefined : j);
 };
-for (const [fn, fin] of [['async function enviarProformaTotal', '\nasync function '], ['async function facturarPrimerHito', '\nconst TIPOS_CON_PROFORMA_AUTO']]) {
+for (const [fn, fin] of [['async function enviarProformaTotal', '\nDeno.serve('], ['async function facturarPrimerHito', '\nconst TIPOS_CON_PROFORMA_AUTO']]) {
   const c = cuerpo(edge, fn, fin);
   assert.ok(/const precio = Number\(o\.ct\.precio_total\) \|\| C\.parseImporte\(f\.precio_total\) \|\| 0;/.test(c),
     fn + ': el precio debe salir de la columna precio_total antes que del campo');
