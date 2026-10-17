@@ -367,8 +367,24 @@ begin
     for h in select * from _h order by herr loop
       v := pg_temp.mcp(o.uid, o.em, o.app, h.q);
       j := pg_temp.js(v);
-      r := r || pg_temp.l(j->>'error' = 'sin_permiso' or (j is not null and not (j ? 'error') and v !~ cebo and v !~* 'zz.mcp' and v !~ u3::text),
+      r := r || pg_temp.l(j->>'error' = 'sin_permiso' or (j is not null and not (j ? 'error') and v !~ cebo and v !~* 'zz.mcp' and v !~ u3::text
+                                                            and v !~ pM::text and v !~ pX::text),
                           'O ' || o.et || ' ' || h.herr || ': otra empresa → sin_permiso o respuesta sin nada de zz_mcp (' || left(v, 80) || ')');
+      -- las dos de dinero que admin_empresa / super_admin_empresa pasan por rol solo devuelven ids de proyecto y cifras: un
+      -- patrón no las caza (revisor, 17-oct). Su rol les deja pasar (respuesta, nunca sin_permiso: si no, esto no mediría nada)
+      -- y zz_otra no tiene nada sembrado, así que lo único correcto es VACÍO o todo a 0.
+      if h.herr = 'cobros_por_proyecto_mes' and o.et in ('AE', 'SAE') then
+        r := r || pg_temp.l(not (j ? 'error') and jsonb_typeof(j->'datos') = 'array' and jsonb_array_length(j->'datos') = 0,
+                            'O ' || o.et || ' cobros_por_proyecto_mes: otra empresa sin cobros → datos vacío (' || left(v, 120) || ')');
+      elsif h.herr = 'resumen_semana' and o.et in ('AE', 'SAE') then
+        r := r || pg_temp.l(not (j ? 'error') and j->'datos' is not null
+                            and not exists (select 1 from jsonb_array_elements(coalesce(j->'datos'->'por_moneda', '[]'::jsonb)) e
+                                             where coalesce((e->>'operaciones_firmadas')::numeric, 0) <> 0 or coalesce((e->>'piezas_firmadas')::numeric, 0) <> 0
+                                                or coalesce((e->>'importe_firmado')::numeric, 0) <> 0 or coalesce((e->>'cobrado')::numeric, 0) <> 0)
+                            and coalesce((j->'datos'->>'reservas_caidas')::int, 0) = 0
+                            and coalesce((j->'datos'->'obra'->>'entregas_con_fecha_total')::int, 0) = 0,
+                            'O ' || o.et || ' resumen_semana: otra empresa sin ventas → todo a 0 (' || left(v, 160) || ')');
+      end if;
       r := r || pg_temp.l(v ~ '^ERR' or pg_temp.limpio(v), 'K ' || h.herr || ' (' || o.et || '): sin claves de comprador ni texto libre ni cebos');
     end loop;
   end loop;
