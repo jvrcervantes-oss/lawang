@@ -95,7 +95,7 @@
     if (document.getElementById('lw-opsg-css')) return;
     var st = document.createElement('style'); st.id = 'lw-opsg-css';
     st.textContent =
-      '.opsg-buscar::placeholder{color:rgb(190 179 165)}' +
+      '.opsg-buscar::placeholder{color:rgb(var(--tema-stone-sand))}' +
       '.opsg-filas>:not([hidden])~:not([hidden]){border-color:rgb(233 232 227/.4)}' +
       '.opsg-pie{padding-top:.875rem;padding-bottom:.875rem;background-color:rgb(245 244 238/.4)}' +
       '.opsg-buscar:focus{outline:2px solid transparent;outline-offset:2px}' +
