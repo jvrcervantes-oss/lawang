@@ -81,6 +81,8 @@ const err = (status, codigo, extra = {}) => ({ status, body: Object.assign({ ok:
   const hay = async (p, sel) => (await p.$$(sel)).length > 0;
   const espera = (p, sel) => p.waitForSelector(sel, { timeout: 4000 });
   const sinSecretos = async (p) => { const h = await p.content(); const v = await p.evaluate(() => [...document.querySelectorAll('input')].map((i) => i.value).join('|')); return !h.includes(SECRETO) && !v.includes(SECRETO) && !h.includes(CUENTA) && !v.includes(CUENTA); };
+  const visible = (p, sel) => p.$eval(sel, (e) => e.offsetParent !== null).catch(() => false);
+  const visibles = (p, sel) => p.$$eval(sel, (es) => es.filter((e) => e.offsetParent !== null).length);
   const foto = async (p, nombre) => { if (PREF) await p.screenshot({ path: PREF + nombre + '.png', fullPage: true }); };
 
   // 1. Estado configurado: UNA llamada (estado), con la sesión; servidor plegado con «puesta el … por …» y Cambiar; las 4 direcciones salen del estado
@@ -259,7 +261,12 @@ const err = (status, codigo, extra = {}) => ({ status, body: Object.assign({ ok:
     });
     await espera(p, '[data-correo-fila="email_from"]');
     const f = '[data-correo-fila="email_from"] ';
-    await p.click(f + '[data-accion="correo-ajuste-pedir"]');
+    ok('en reposo «Pedir código» no se ve (la casilla tiene el valor actual)', !(await visible(p, f + '[data-accion="correo-ajuste-pedir"]')));
+    await p.fill(cam('dir-email_from'), 'otro@negocio.com');
+    ok('al cambiar el valor sale «Pedir código» y el valor actual', await visible(p, f + '[data-accion="correo-ajuste-pedir"]') && await visible(p, '[data-correo="actual-email_from"]'));
+    await p.fill(cam('dir-email_from'), 'hola@negocio.com');
+    ok('al volver al valor actual se esconde otra vez, sin llamar a la edge', !(await visible(p, f + '[data-accion="correo-ajuste-pedir"]')) && llamadas.length === 1);
+    await p.$eval(f + '[data-accion="correo-ajuste-pedir"]', (b) => b.click());   // la guarda de «sin cambios» sigue aunque el botón no se vea
     ok('mismo valor que el actual: lo dice y no llama a la edge', /ya es el actual/.test(await txt(p, '[data-correo="resultado-email_from"]')) && llamadas.length === 1);
     await p.fill(cam('dir-email_from'), 'no-es-un-correo');
     await p.click(f + '[data-accion="correo-ajuste-pedir"]');
@@ -374,6 +381,54 @@ const err = (status, codigo, extra = {}) => ({ status, body: Object.assign({ ok:
     await espera(p, cam('dir-codigo-email_from'));
     ok('móvil 390px: sin desbordamiento horizontal con el código pedido', await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
     await foto(p, '6_movil_390');
+    await ctx.close();
+  }
+  // 9. UX por bloques (17-oct-2026): en reposo solo las casillas; cada botón sale en la casilla que cambia; el motivo debajo de la última cambiada
+  {
+    const { p, ctx, llamadas } = await abre({ datos: DATOS() }, (c) => c.accion === 'estado' ? { status: 200, body: ESTADO() } : CODIGO_OK);
+    await espera(p, '[data-correo-fila="email_from"]');
+    ok('reposo: ningún «Pedir código», «Guardar», motivo ni «Valor actual» a la vista', await visibles(p, '[data-accion="correo-ajuste-pedir"], [data-accion="ajuste-guardar"], [data-ajuste-motivo-fila], [data-correo^="actual-"]') === 0);
+    ok('direcciones en dos grupos con su título (firma · avisos)', JSON.stringify(await p.$$eval('[data-correo-grupo]', (es) => es.map((e) => e.getAttribute('data-correo-grupo')))) === '["firma","avisos"]');
+    const porGrupo = await p.evaluate(() => { const r = {}; let g = ''; document.querySelectorAll('#lw-aj-correo-servidor [data-correo-grupo], #lw-aj-correo-servidor [data-correo-fila]').forEach((e) => { if (e.hasAttribute('data-correo-grupo')) { g = e.getAttribute('data-correo-grupo'); r[g] = 0; } else r[g]++; }); return r; });
+    ok('cada grupo de direcciones lleva de 1 a 3 casillas', Object.values(porGrupo).length === 2 && Object.values(porGrupo).every((n) => n >= 1 && n <= 3), JSON.stringify(porGrupo));
+    ok('el formulario sin código lleva su cabecera y 3 casillas como mucho', await hay(p, '#lw-aj-correo [data-ajuste-cabecera="correo"]') && (await p.$$('#lw-aj-correo [data-ajuste-fila]')).length <= 3);
+    await p.fill('[data-ajuste="email_avisos_crm"]', 'crm@negocio.com');
+    ok('al cambiar el CRM sale SU «Guardar» y el motivo justo debajo', await visible(p, '[data-ajuste-clave="email_avisos_crm"]') && await visibles(p, '[data-accion="ajuste-guardar"]') === 1
+      && await p.$eval('[data-ajuste-fila="email_avisos_crm"]', (f) => !!f.nextElementSibling && f.nextElementSibling.hasAttribute('data-ajuste-motivo-fila') && f.nextElementSibling.offsetParent !== null));
+    await p.fill('[data-ajuste="asunto_por_defecto"]', 'Asunto nuevo');
+    await p.fill('#lw-aj-correo [data-ajuste-motivo]', 'cambio de prueba');
+    await p.click('[data-ajuste-clave="asunto_por_defecto"]');
+    await p.waitForFunction(() => window.__guardados.length === 1);
+    await p.waitForFunction(() => /Guardado/.test((document.querySelector('[data-ajuste-estado="asunto_por_defecto"]') || {}).textContent || ''));
+    ok('guardar el asunto manda solo el asunto, por la RPC de siempre', JSON.stringify(await p.evaluate(() => window.__guardados)) === JSON.stringify([['asunto_por_defecto', 'Asunto nuevo']]) && llamadas.length === 1);
+    ok('tras repintar, lo escrito en el CRM sigue y su «Guardar» también; el del asunto ya no', await p.$eval('[data-ajuste="email_avisos_crm"]', (e) => e.value) === 'crm@negocio.com'
+      && await visible(p, '[data-ajuste-clave="email_avisos_crm"]') && !(await visible(p, '[data-ajuste-clave="asunto_por_defecto"]')));
+    await p.focus('[data-ajuste="email_avisos_crm"]');
+    await p.keyboard.press('Enter');
+    await p.waitForFunction(() => window.__guardados.length === 2);
+    ok('Enter en la casilla guarda esa casilla', JSON.stringify((await p.evaluate(() => window.__guardados))[1]) === JSON.stringify(['email_avisos_crm', 'crm@negocio.com']));
+    await p.fill(cam('dir-email_avisos_soporte'), 'ayuda@negocio.com');
+    await p.focus(cam('dir-email_avisos_soporte'));
+    await p.keyboard.press('Enter');
+    await espera(p, cam('dir-codigo-email_avisos_soporte'));
+    ok('Enter en una dirección cambiada pide su código (mismo cuerpo de siempre)', JSON.stringify(llamadas[1].cuerpo) === JSON.stringify({ accion: 'pedir_codigo', alcance: 'ajuste', clave: 'email_avisos_soporte', valor: 'ayuda@negocio.com' }));
+    await ctx.close();
+  }
+  {
+    const { p, ctx } = await abre({ datos: DATOS() }, (c) => ({ status: 200, body: ESTADO() }), '#correo', 390);
+    await espera(p, '[data-correo-fila="email_from"]');
+    ok('móvil 390px en reposo: sin desbordamiento horizontal', await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+    await ctx.close();
+  }
+  {
+    const { p, ctx } = await abre({ datos: DATOS({ valores: { marca: 'Mi Negocio', email_avisos_reservas: 'res@negocio.com' } }) }, (c) => ({ status: 200, body: ESTADO() }), '#empresa');
+    await espera(p, '[data-ajuste="marca"]');
+    ok('Empresa en reposo: ningún «Guardar» ni motivo a la vista', await visibles(p, '#lw-aj-empresa [data-accion="ajuste-guardar"], #lw-aj-empresa [data-ajuste-motivo-fila]') === 0);
+    await p.fill('[data-ajuste="marca"]', 'Mi Negocio Nuevo');
+    ok('Empresa: al cambiar la marca sale su «Guardar»', await visible(p, '[data-ajuste-clave="marca"]'));
+    await p.click('[data-ajuste-clave="marca"]');
+    await p.waitForFunction(() => window.__guardados.length === 1);
+    ok('Empresa: guarda por ajustes_config_guardar lo mismo que antes', JSON.stringify(await p.evaluate(() => window.__guardados)) === JSON.stringify([['marca', 'Mi Negocio Nuevo']]));
     await ctx.close();
   }
   await b.close();

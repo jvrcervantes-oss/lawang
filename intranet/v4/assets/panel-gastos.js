@@ -201,7 +201,19 @@
         '<td class="px-5 py-3">' + (p.activo ? pill('pagado').replace(esc(T('Pagado')), esc(T('Activo'))) : '<span class="text-outline font-body-sm text-body-sm">' + esc(T('Desactivado')) + '</span>') + '</td></tr>';
     }).join('');
   }
-  function pintaTodo() { llenaFiltros(); pintaKpis(); pintaLista(); pintaProveedores(); if (typeof lwIdiomaAplicar === 'function') { try { lwIdiomaAplicar(); } catch (_) { /* traducir no tumba */ } } }
+  /* Sin ningún gasto (mejora 7 de Experiencia, 17-oct-2026): la tarjeta «Registra el primer gasto» con su botón, en vez de
+     4 cifras a 0, 6 filtros y una tabla vacía que mandaba a «Nuevo gasto», más arriba. Las notas se pliegan y no hay nada
+     que exportar. Solo tras leer bien: si la lectura falla no se llega aquí y lo dice el aviso rojo. */
+  function pintaVacio() {
+    var vacio = !D.gastos.length;
+    $('lw-gas-vacio').style.display = vacio ? '' : 'none';
+    $('lw-gas-kpis').style.display = vacio ? 'none' : '';
+    $('lw-gas-libro').style.display = vacio ? 'none' : '';
+    $('lw-gas-notas').open = !vacio;
+    $('lw-gas-csv').disabled = vacio;
+    $('lw-gas-csv').classList.toggle('opacity-50', vacio);
+  }
+  function pintaTodo() { pintaVacio(); llenaFiltros(); pintaKpis(); pintaLista(); pintaProveedores(); if (typeof lwIdiomaAplicar === 'function') { try { lwIdiomaAplicar(); } catch (_) { /* traducir no tumba */ } } }
 
   /* ── FORMULARIOS ───────────────────────────────────────────────────────── */
   /* «Pagado desde la cuenta»: solo cuentas marcadas como PROPIAS en Cuentas
@@ -463,6 +475,7 @@
     document.querySelectorAll('[data-gas-vista]').forEach(function (b) { b.addEventListener('click', function () { cambiaVista(b.getAttribute('data-gas-vista')); }); });
     $('lw-gas-nuevo').addEventListener('click', function (ev) { ev.stopPropagation(); if (VISTA === 'gastos') nuevoGasto(); else formProveedor(null); });
     $('lw-gas-csv').addEventListener('click', exportaCSV);
+    document.querySelector('[data-accion="gasto-primero"]').addEventListener('click', function (ev) { ev.stopPropagation(); nuevoGasto(); });
     $('lw-gas-nuevo-txt').textContent = VISTA === 'gastos' ? T('Nuevo gasto') : T('Nuevo proveedor');   // el rótulo del HTML, en su idioma desde el arranque (idiomas-pH)
     var abre = function (ev) {
       if (ev.type === 'keydown' && ev.key !== 'Enter' && ev.key !== ' ') return;

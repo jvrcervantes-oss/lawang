@@ -216,7 +216,7 @@
         e.stopPropagation();
         API.deshacerPar();
         aplica(d.propuesta, d.uso, T('Asistente IA: %i', { i: instr }));
-        if (typeof window.toast === 'function') window.toast(T('Propuesta puesta en el texto. Revísala y guarda el borrador.'));
+        if (typeof toast === 'function') toast(T('Propuesta puesta en el texto. Revísala y guarda el borrador.'));
       });
       de.addEventListener('click', function (e) { e.stopPropagation(); res.textContent = ''; res.appendChild(el('p', 'tc-peq', T('Propuesta descartada: no se ha cambiado nada.'))); });
       f.appendChild(ac); f.appendChild(de); res.appendChild(f);
@@ -323,7 +323,7 @@
         Promise.all(hs).then(function (lista) {
           lista.forEach(function (h) { if (h) IA.marcasLocal[lang + '|' + h] = true; });
           aplica(r.d.propuesta, r.d.uso, T('Traducción automática de «%s»', { s: API.tituloSec(sec) }));
-          if (typeof window.toast === 'function') window.toast(T('Cláusula traducida. Revísala y guarda el borrador.'));
+          if (typeof toast === 'function') toast(T('Cláusula traducida. Revísala y guarda el borrador.'));
         });
       });
     });

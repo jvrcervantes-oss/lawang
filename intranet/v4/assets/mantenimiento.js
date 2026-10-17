@@ -49,7 +49,7 @@
       (pausa
         ? '<button type="button" id="lw-mant-reanudar" class="shrink-0 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">' + T('Reanudar envíos') + '</button>'
         : '<div class="flex flex-col md:flex-row gap-3 md:items-center">' +
-            '<input id="lw-mant-motivo" maxlength="300" placeholder="' + esc(T('Motivo (lo verá todo el equipo)')) + '" class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
+            '<input id="lw-mant-motivo" maxlength="300" aria-label="' + esc(T('Motivo (lo verá todo el equipo)')) + '" placeholder="' + esc(T('Motivo (lo verá todo el equipo)')) + '" class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
             '<button type="button" id="lw-mant-pausar" class="shrink-0 px-5 py-2.5 rounded-full bg-error text-on-error hover:opacity-90 font-label-md text-label-md">' + T('Pausar todos los envíos') + '</button>' +
           '</div>');
     var bp = document.getElementById('lw-mant-pausar'), br = document.getElementById('lw-mant-reanudar');
@@ -93,7 +93,7 @@
       (cerrada
         ? '<button type="button" id="lw-int-abrir" class="shrink-0 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">' + T('Reabrir la intranet') + '</button>'
         : '<div class="flex flex-col md:flex-row gap-3 md:items-center">' +
-            '<input id="lw-int-motivo" maxlength="300" placeholder="' + esc(T('Motivo (lo verá el equipo)')) + '" class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
+            '<input id="lw-int-motivo" maxlength="300" aria-label="' + esc(T('Motivo (lo verá el equipo)')) + '" placeholder="' + esc(T('Motivo (lo verá el equipo)')) + '" class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
             '<button type="button" id="lw-int-cerrar" class="shrink-0 px-5 py-2.5 rounded-full bg-error text-on-error hover:opacity-90 font-label-md text-label-md">' + T('Cerrar al equipo') + '</button>' +
           '</div>');
     var bc = document.getElementById('lw-int-cerrar'), ba = document.getElementById('lw-int-abrir');

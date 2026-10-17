@@ -119,7 +119,7 @@
           '<input id="' + id + '" type="' + c.tipo + '" maxlength="' + c.max + '" autocomplete="off" spellcheck="false" data-ajuste="' + esc(c.clave) + '"' +
             (c.ejemplo ? ' placeholder="' + esc(c.ejemplo) + '"' : '') + (puede ? '' : ' disabled') +
             ' class="w-full rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
-          (puede ? '<button type="button" data-real data-accion="ajuste-guardar" data-ajuste-clave="' + esc(c.clave) + '" class="shrink-0 px-4 py-2 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">' + esc(T('Guardar')) + '</button>' : '') +
+          (puede ? '<button type="button" data-real data-accion="ajuste-guardar" data-ajuste-clave="' + esc(c.clave) + '" hidden style="display:none" class="shrink-0 px-4 py-2 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">' + esc(T('Guardar')) + '</button>' : '') +
         '</div>' +
         '<span class="font-body-sm text-body-sm text-outline" role="status" aria-live="polite" data-ajuste-estado="' + esc(c.clave) + '"></span>' +
       '</div>' +
@@ -134,11 +134,15 @@
     var previo = {};
     cont.querySelectorAll('[data-ajuste]').forEach(function (i) { previo[i.getAttribute('data-ajuste')] = i.value; });
     var puede = !!datos.puede_escribir;
-    cont.innerHTML = CAMPOS[nombre].map(function (c) {
+    var cab = CABECERA_FORM[nombre];
+    cont.innerHTML = (cab ? '<div class="px-8 pt-8 pb-4 flex flex-col gap-1 border-b border-outline-variant/40" data-ajuste-cabecera="' + nombre + '">' +
+        '<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">' + esc(T(cab[0])) + '</h2>' +
+        '<p class="font-body-sm text-body-sm text-outline">' + esc(T(cab[1])) + '</p></div>' : '') +
+      CAMPOS[nombre].map(function (c) {
       return filaCampo(c, (datos.valores || {})[c.clave], (datos.actualizado || {})[c.clave], puede);
     }).join('') +
       (puede
-        ? '<div class="px-8 py-5 flex flex-col md:flex-row md:items-center gap-3">' +
+        ? '<div class="px-8 py-5 flex flex-col md:flex-row md:items-center gap-3 border-b border-outline-variant/30" data-ajuste-motivo-fila hidden style="display:none">' +
             '<label for="lw-aj-motivo-' + nombre + '" class="font-label-md text-label-md text-on-surface">' + esc(T('Motivo del cambio')) + ' <span class="text-outline">(' + esc(T('opcional')) + ')</span></label>' +
             '<input id="lw-aj-motivo-' + nombre + '" type="text" maxlength="500" data-ajuste-motivo autocomplete="off" placeholder="' + esc(T('Queda en el registro de cambios')) + '"' +
               ' class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
@@ -151,6 +155,26 @@
       var antes = ant && (ant.valores || {})[c.clave];
       if (inp && c.clave !== guardada && c.clave in previo && previo[c.clave] !== (antes == null ? '' : String(antes))) inp.value = previo[c.clave];
     });
+    miraFormulario(cont);
+  }
+
+  // Ocultar de verdad: esta página no carga lawang.css y una clase flex de Tailwind le gana a [hidden] (lección de Servicios, 16-oct-2026).
+  function ocultaAj(n, si) { if (!n) return; n.hidden = !!si; n.style.display = si ? 'none' : ''; }
+  // «Guardar» solo en la casilla cuyo valor ya no es el guardado, y el motivo justo debajo de la última cambiada (UX de Ajustes, 17-oct-2026).
+  // Se compara con lo que dio la base (datos.valores), no con lo pintado: tras un repintado lo pendiente sigue con su botón.
+  function miraFormulario(cont) {
+    if (!cont) return;
+    var ultima = null;
+    cont.querySelectorAll('[data-ajuste-fila]').forEach(function (f) {
+      var inp = f.querySelector('[data-ajuste]'), c = inp && inp.getAttribute('data-ajuste');
+      var v = c && datos ? (datos.valores || {})[c] : null;
+      var distinto = !!inp && inp.value.trim() !== (v == null ? '' : String(v)).trim();
+      if (distinto) ultima = f;
+      ocultaAj(f.querySelector('[data-accion="ajuste-guardar"]'), !distinto);
+    });
+    var mot = cont.querySelector('[data-ajuste-motivo-fila]');
+    if (mot && ultima && ultima.nextSibling !== mot) ultima.parentNode.insertBefore(mot, ultima.nextSibling);
+    ocultaAj(mot, !ultima);
   }
 
   function errorLectura(contenedorId, err) {
@@ -218,6 +242,12 @@
     if (v === '') return '(' + T('vacío') + ')';
     return typeof v === 'string' ? v : JSON.stringify(v);
   }
+  // El ajuste por su nombre en pantalla (el de esta página, o el de Reservas que expone datos.js). Sin nombre conocido, '' y sale la clave.
+  function nombreAjusteLog(clave) {
+    var todos = CAMPOS.empresa.concat(CAMPOS_CORREO_BASE || CAMPOS.correo, EXTRA_CORREO, DIRECCIONES);
+    for (var i = 0; i < todos.length; i++) if (todos[i].clave === clave) return T(todos[i].etiqueta);
+    return typeof window.lwNombreParametro === 'function' ? (window.lwNombreParametro(clave) || '') : '';
+  }
   function cargaRegistro(forzar) {
     var cont = document.getElementById('lw-aj-registro');
     if (!cont || (registroCargado && !forzar)) return;
@@ -243,16 +273,19 @@
         return;
       }
       var th = function (t, extra) { return '<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline' + (extra || '') + '">' + esc(T(t)) + '</th>'; };
-      cont.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="border-b border-outline-variant/60 bg-surface-container-low">' +
+      // En móvil cada fila es una ficha: las celdas van una debajo de otra, cada una con su rótulo (data-l). En escritorio, la tabla de siempre.
+      var td = function (t, color) { return '<td class="px-5 py-1 md:py-3 block md:table-cell font-body-sm text-body-sm before:content-[attr(data-l)] before:block before:font-label-md before:text-[11px] before:uppercase before:tracking-wider before:text-outline md:before:content-none ' + color + '" data-l="' + esc(T(t)) + '">'; };
+      cont.innerHTML = '<div class="overflow-x-auto"><table class="block md:table w-full text-left border-collapse"><thead class="hidden md:table-header-group"><tr class="border-b border-outline-variant/60 bg-surface-container-low">' +
         th('Cuándo') + th('Quién') + th('Ajuste') + th('Antes') + th('Después') + th('Motivo') +
-        '</tr></thead><tbody>' + filas.map(function (f) {
-          return '<tr class="border-b border-outline-variant/30" data-ajuste-log="' + esc(f.id) + '">' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-outline">' + esc(fecha(f.cuando)) + '</td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-on-surface">' + esc(f.quien) + '</td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-on-surface"><code>' + esc(f.tabla + ' · ' + f.clave) + '</code></td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-on-surface-variant">' + esc(valorTxt(f.antes)) + '</td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-on-surface">' + esc(valorTxt(f.despues)) + '</td>' +
-            '<td class="px-5 py-3 font-body-sm text-body-sm text-outline">' + esc(f.motivo || '—') + '</td></tr>';
+        '</tr></thead><tbody class="block md:table-row-group">' + filas.map(function (f) {
+          var nom = nombreAjusteLog(f.clave);
+          return '<tr class="block md:table-row py-3 md:py-0 border-b border-outline-variant/30" data-ajuste-log="' + esc(f.id) + '">' +
+            td('Cuándo', 'text-outline') + esc(fecha(f.cuando)) + '</td>' +
+            td('Quién', 'text-on-surface') + esc(f.quien) + '</td>' +
+            td('Ajuste', 'text-on-surface') + (nom ? '<span title="' + esc(f.tabla + ' · ' + f.clave) + '">' + esc(nom) + '</span>' : '<code>' + esc(f.tabla + ' · ' + f.clave) + '</code>') + '</td>' +
+            td('Antes', 'text-on-surface-variant break-words') + esc(valorTxt(f.antes)) + '</td>' +
+            td('Después', 'text-on-surface break-words') + esc(valorTxt(f.despues)) + '</td>' +
+            td('Motivo', 'text-outline') + esc(f.motivo || '—') + '</td></tr>';
         }).join('') + '</tbody></table></div>' +
         (r.data.hay_mas ? '<p class="px-8 py-4 border-t border-outline-variant/40 font-body-sm text-body-sm text-outline">' + esc(T('Se muestran los 200 últimos cambios.')) + '</p>' : '');
     });
@@ -388,15 +421,18 @@
       ayuda: 'El asunto de los correos que no traen el suyo. Vacío = el de fábrica («Documento — marca»).' }
   ];
   var DIRECCIONES = [
-    { clave: 'email_from', etiqueta: 'Remitente de los correos', max: 254,
+    { clave: 'email_from', grupo: 'firma', etiqueta: 'Remitente de los correos', max: 254,
       ayuda: 'La dirección desde la que salen todos los correos. Tiene que ser del mismo dominio que el buzón del servidor.' },
-    { clave: 'email_reply_to', etiqueta: 'Responder a', max: 254, opcional: true,
+    { clave: 'email_reply_to', grupo: 'firma', etiqueta: 'Responder a', max: 254, opcional: true,
       ayuda: 'Adónde llegan las respuestas de quien recibe un correo. Vacío = responde al remitente.' },
-    { clave: 'email_avisos_soporte', etiqueta: 'Buzón de avisos de soporte', max: 254,
+    { clave: 'email_avisos_soporte', grupo: 'avisos', etiqueta: 'Buzón de avisos de soporte', max: 254,
       ayuda: 'Recibe los avisos de soporte. Un solo correo, del dominio de la instalación, del remitente o del servidor de correo.' },
-    { clave: 'email_avisos_sistema', etiqueta: 'Buzón de avisos del sistema', max: 254,
+    { clave: 'email_avisos_sistema', grupo: 'avisos', etiqueta: 'Buzón de avisos del sistema', max: 254,
       ayuda: 'Recibe los avisos del sistema, entre ellos el de «han cambiado el servidor de correo». Un solo correo, del dominio de la instalación, del remitente o del servidor de correo.' }
   ];
+  var GRUPOS_DIRECCION = { firma: 'Quién firma y adónde se responde', avisos: 'Quién recibe los avisos internos' };
+  // El formulario base de Correo (sin código) lleva su propia cabecera: si no, se leía como una dirección más del bloque de arriba.
+  var CABECERA_FORM = { correo: ['Avisos de reservas y del CRM, y asunto', 'Se guardan al momento, sin código.'] };
   var CAMPOS_CORREO_BASE = null;
   // La casilla nueva sale SOLO si la base ya la declara editable (migración 20261010060000): sin ella guardar daría «clave no editable».
   function ajustaCamposCorreo() {
@@ -761,7 +797,12 @@
 
   function pintaDirecciones(cont, previo) {
     cont.appendChild(cabecera('Direcciones de los correos', 'Quién envía los correos, adónde llegan las respuestas y quién recibe los avisos. Cambiar una dirección pide un código que te mandamos a tu correo.'));
+    var grupoAnt = '';
     DIRECCIONES.forEach(function (d) {
+      if (d.grupo !== grupoAnt) {
+        grupoAnt = d.grupo;
+        cont.appendChild(nodo('h3', 'px-8 pt-6 pb-1 font-label-md text-[15px] font-bold text-deep-lagoon', T(GRUPOS_DIRECCION[d.grupo]), { 'data-correo-grupo': d.grupo }));
+      }
       var u = un(d.clave);
       var actual = valorDireccion(d.clave);
       var campo = 'dir-' + d.clave;
@@ -770,7 +811,7 @@
       u.reponer = false;
       if (bloqueado(u)) inp.setAttribute('readonly', '');
       var extras = [];
-      extras.push(nodo('span', 'font-body-sm text-body-sm text-outline', T('Valor actual') + ': ' + (actual || T('sin valor')), { 'data-correo': 'actual-' + d.clave }));
+      extras.push(nodo('span', 'font-body-sm text-body-sm text-outline', T('Valor actual') + ': ' + (actual || T('sin valor')), { 'data-correo': 'actual-' + d.clave }));   // sale solo al cambiar (miraDireccion)
       var cola = nodo('div', 'flex flex-col gap-2');
       var cod = null;
       if (u.fase === 'esperando' || u.fase === 'guardando') {
@@ -778,7 +819,7 @@
         if (previo['dir-codigo-' + d.clave] != null) bc.cod.value = previo['dir-codigo-' + d.clave];
         cola.appendChild(bc.caja); cod = bc;
       }
-      var filaB = nodo('div', 'flex flex-wrap items-center gap-3');
+      var filaB = nodo('div', 'flex flex-wrap items-center gap-3', null, { 'data-correo-acciones': d.clave });
       var attrs = { 'data-correo-clave': d.clave };
       if (u.fase === 'idle' || u.fase === 'pidiendo') {
         var bp = botonCorreo(u.fase === 'pidiendo' ? 'Pidiendo el código…' : 'Pedir código', 'correo-ajuste-pedir', attrs);
@@ -796,8 +837,20 @@
       var f = campoServidor('lw-aj-dir-' + d.clave, d.etiqueta, d.ayuda, inp, d.opcional, extras);
       f.fila.setAttribute('data-correo-fila', d.clave);
       cont.appendChild(f.fila);
+      miraDireccion(f.fila);
     });
     cont.appendChild(nodo('div', 'border-b border-outline-variant/40'));
+  }
+
+  // En reposo una dirección es solo su casilla: «Valor actual» y «Pedir código» salen cuando lo escrito ya no es el valor actual, con un código
+  // pedido o tras un fallo. Se recalcula en cada repintado (lo tecleado sobrevive a él) y al teclear. El resultado («Guardado.») no se oculta nunca.
+  function miraDireccion(fila) {
+    var clave = fila && fila.getAttribute('data-correo-fila');
+    if (!clave) return;
+    var u = un(clave), inp = fila.querySelector('[data-ajuste-correo]');
+    var reposo = u.fase === 'idle' && !u.codigo && !!inp && inp.value.trim() === valorDireccion(clave);
+    ocultaAj(fila.querySelector('[data-correo-acciones]'), reposo);
+    ocultaAj(fila.querySelector('[data-correo="actual-' + clave + '"]'), reposo);
   }
 
   function cargaEstadoCorreo(silencioso) {
@@ -981,7 +1034,35 @@
       if (tl && window.matchMedia && window.matchMedia('(min-width:1024px)').matches) tl.setAttribute('aria-orientation', 'vertical');
     }
     document.addEventListener('change', cambiaIdioma);
+    document.addEventListener('input', function (ev) {
+      var t = ev.target;
+      if (!t || !t.closest) return;
+      if (t.hasAttribute('data-ajuste')) miraFormulario(t.closest('#lw-aj-empresa, #lw-aj-correo'));
+      else if (t.hasAttribute('data-ajuste-correo')) miraDireccion(t.closest('[data-correo-fila]'));
+    });
+    document.addEventListener('keydown', function (ev) {
+      var t = ev.target;
+      if (ev.key !== 'Enter' || ev.isComposing || !t || !t.closest) return;
+      var base = t.hasAttribute('data-ajuste');
+      var fila = base ? t.closest('[data-ajuste-fila]') : t.hasAttribute('data-ajuste-correo') ? t.closest('[data-correo-fila]') : null;
+      // En una dirección, Intro solo pide el código: el botón de su fila de acciones y únicamente si es el de pedir (con el código pedido, no hace nada).
+      var b = fila && fila.querySelector(base ? '[data-accion="ajuste-guardar"]' : '[data-correo-acciones] [data-real]');
+      if (b && !base && b.getAttribute('data-accion') !== 'correo-ajuste-pedir') b = null;
+      if (b && !b.disabled && b.offsetParent !== null) { ev.preventDefault(); b.click(); }
+    });
     cablePestanas();
+    var pu = document.getElementById('lw-panel-usuarios');
+    if (pu && !pu.querySelector('[data-accion="ajustes-ir-usuarios"]')) {
+      var ir = document.createElement('div');
+      ir.className = 'px-8 pb-6';
+      var a = document.createElement('a');
+      a.href = '../usuarios/';
+      a.setAttribute('data-accion', 'ajustes-ir-usuarios');
+      a.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md';
+      a.textContent = T('Abrir Usuarios');
+      ir.appendChild(a);
+      pu.appendChild(ir);
+    }
     document.addEventListener('click', function (ev) {
       var b = ev.target.closest && ev.target.closest('[data-accion]');
       if (!b || !b.hasAttribute('data-real')) return;

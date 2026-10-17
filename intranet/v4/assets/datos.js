@@ -362,7 +362,7 @@
     var tr = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
     var n = nombreAutor(mapa, v);
     return n ? '<span class="font-body-md" title="' + esc(v) + '">' + esc(n) + '</span>'
-      : '<span style="color:#BEB3A5" title="' + esc(tr('Documento anterior al registro de autor')) + '">' + esc(tr('sin registrar')) + '</span>';
+      : '<span style="color:rgb(var(--tema-stone-sand))" title="' + esc(tr('Documento anterior al registro de autor')) + '">' + esc(tr('sin registrar')) + '</span>';
   }
   window.LW_V4 = window.LW_V4 || {};
   window.LW_V4.autores = autores; window.LW_V4.nombreAutor = nombreAutor;
@@ -821,7 +821,7 @@
     function carga() {
       var falla = function (msg) {
         console.error('[v4 datos] ficha≠', o.tipo, msg);
-        (window.toastMal || toast)('No se ha podido comprobar qué ' + o.cuales + ' dicen algo distinto de la ficha del cliente: la marca «Ficha ≠» no sale en esta carga.');
+        (typeof toastMal === 'function' ? toastMal : typeof toast === 'function' ? toast : console.warn)('No se ha podido comprobar qué ' + o.cuales + ' dicen algo distinto de la ficha del cliente: la marca «Ficha ≠» no sale en esta carga.');
       };
       var texto = new Promise(function (ok) {
         if (typeof window.lwTextoDivergencia === 'function') return ok(true);
@@ -2597,7 +2597,7 @@
                   : cobro === 'pendiente' ? pill('Sin cobrar', 'espera')
                   : cobro === 'parcial' ? pill('Parcial', 'espera') + '<div style="margin-top:3px;font-size:11.5px;color:#75786e;white-space:nowrap">' +
                       esc(tx('%a de %b', { a: fmt(tot - pend, f.moneda), b: fmt(tot, f.moneda) })) + '</div>'
-                  : '<span style="color:#BEB3A5">—</span>';
+                  : '<span style="color:rgb(var(--tema-stone-sand))">—</span>';
               }
               if (tds[8]) tds[8].innerHTML = htmlAutor(AUT, f.creado_por);
               if (tds[9]) tds[9].innerHTML = pill(est[0], est[1]) + FD.tag(f.id);
@@ -7164,7 +7164,7 @@
               else if (nx.enlace && nx.enlace.indexOf(location.origin + '/') === 0) enlace = nx.enlace;
               // plegado con style y no con `hidden`: la clase `flex` gana al atributo y el «ver más» no plegaba nada (12-oct-2026)
               return '<div class="flex items-start gap-3"' + (i >= 6 ? ' data-audit-mas hidden style="display:none"' : '') + '>' +
-                '<div class="w-2 h-2 rounded-full ' + (enlace ? 'bg-deep-lagoon' : 'bg-stone-sand') + ' mt-1.5 shrink-0"></div>' +
+                '<div class="w-2 h-2 rounded-full ' + (enlace ? 'bg-deep-lagoon' : 'bg-outline-variant') + ' mt-1.5 shrink-0"></div>' +
                 '<div class="flex flex-col min-w-0">' +
                 (enlace
                   ? '<a href="' + esc(enlace) + '" class="text-body-sm text-deep-lagoon font-medium hover:underline">' + titulo + '</a>'
@@ -7527,7 +7527,29 @@
             if (okE && okQ) vistas++;
             lista.insertBefore(f, vacioF);
           });
-          if (vacioF) vacioF.style.display = vistas ? 'none' : '';
+          if (vacioF) pintaVacioF(vistas, v);
+        }
+        /* Filtro vacío que dice por qué (mejora 7 de Experiencia, 17-oct-2026): en «Abiertos» sin ninguno abierto se leía «Nada
+           que enseñar con este filtro» con el hilo resuelto a la vista. Ahora lo dice y lleva al otro chip. Con texto en el
+           buscador, o en «Todos», sigue siendo cosa del filtro. */
+        function pintaVacioF(vistas, q) {
+          vacioF.style.display = vistas ? 'none' : '';
+          if (vistas) return;
+          var t = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+          if (q || estadoF === 'todos') { vacioF.textContent = t('Nada que enseñar con este filtro.'); return; }
+          var otro = estadoF === 'abiertos' ? 'resueltos' : 'abiertos';
+          var nOtro = (otro === 'resueltos' ? resueltos : abiertos).length;
+          vacioF.textContent = t(estadoF === 'abiertos' ? 'No hay tickets abiertos.' : 'Ningún ticket resuelto todavía.');
+          if (!nOtro) return;
+          var b = document.createElement('button'); b.type = 'button';
+          b.setAttribute('data-accion', 'soporte-ver-' + otro); b.setAttribute('data-real', '');
+          b.className = 'ml-1.5 font-semibold text-deep-lagoon underline';
+          b.textContent = t(otro === 'resueltos' ? 'Ver los resueltos' : 'Ver los abiertos') + ' (' + nOtro + ')';
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();   // como los chips: que maqueta.js no la vea pasar
+            var c = chipsSoporte.filter(function (x) { return x.getAttribute('data-chip-clave') === otro; })[0]; if (c) c.click();
+          });
+          vacioF.appendChild(b);
         }
         var chipsSoporte = ['abiertos', 'resueltos', 'todos'].map(function (k) {
           var sp = document.querySelector('[data-lw="c-' + k + '"]'); var b = sp && sp.closest('button');
@@ -10508,57 +10530,140 @@
 
   REG.reparto = function (sb) { return REG.comisiones(sb, { soloEquipo: true }); };
 
+  /* Ajustes › Reservas (ajustes-ux, 16-oct-2026; owner: «que todo esté por pasos o bien separadito», norma del 15-oct: 1-3 campos por
+     bloque). Hasta hoy era una tabla de 7 filas con el rótulo de la base en español también con la pantalla en inglés, la clave interna a
+     la vista (`reservas.dias_gracia`) y un «Guardar» por fila siempre puesto. Ahora:
+      · cada ajuste en su bloque con un título en llano (RES_BLOQUES); lo que la base traiga y no esté aquí va a «Otros ajustes» con su
+        rótulo de la base: ningún ajuste se pierde. Solo se pinta lo que LLEGA de la base (una clave del mapa que no existe no pinta campo:
+        parametro_set escribiría una fila nueva);
+      · el nombre y la ayuda salen de RES_TEXTOS por la CLAVE (no por el rótulo de la base) y pasan por lwT; la clave no se enseña;
+      · el «Guardar» de cada ajuste solo aparece cuando su valor cambia, y lo escrito en los demás sobrevive al guardar uno.
+     Enganches de siempre: #lw-ajustes-lista (ancla de la sección: secPlazos e impuestosAjustes cuelgan de su closest('section')),
+     [data-clave] en cada ajuste, [data-k="valor"] y [data-guardar]. El envío es el mismo: parametro_set {p_clave, p_valor}.
+     Prueba: intranet/v4/assets/ajustes_reservas.harness.cjs. */
+  var RES_BLOQUES = [
+    { id: 'vence', titulo: 'Cuándo vence una reserva', para: 'Qué pasa con una Carta de Reserva al llegar su fecha.',
+      claves: ['reservas.dias_gracia', 'reservas.aviso_dias_antes', 'reservas.aviso_owner_dias_antes'] },
+    { id: 'manager', titulo: 'Prórrogas de un sales manager', para: 'Hasta dónde puede alargar una reserva sin pedírselo a un admin.',
+      claves: ['reservas.prorrogas_max_manager', 'reservas.prorroga_dias_max_manager'] },
+    { id: 'prorroga', titulo: 'Al prorrogar', para: 'Lo que propone el formulario de prórroga y el máximo cuando prorroga un admin.',
+      claves: ['reservas.prorroga_dias_defecto', 'reservas.prorroga_dias_max_admin'] },
+    { id: 'construccion', titulo: 'Pagos de construcción', para: null, claves: ['construccion.pago_unico_max_dias'] }
+  ];
+  var RES_TEXTOS = {
+    'reservas.dias_gracia': ['Días de gracia tras vencer', 'El día que vence se avisa a los managers. Si nadie la prorroga ni la libera, la parcela queda libre pasados estos días. 0 = ese mismo día.', 'días'],
+    'reservas.aviso_dias_antes': ['Aviso a los managers', 'Cuántos días antes de vencer. 0 = sin aviso previo.', 'días'],
+    'reservas.aviso_owner_dias_antes': ['Aviso por Telegram', 'Cuántos días antes de vencer llega el aviso con los botones Prorrogar y Dejar vencer.', 'días'],
+    'reservas.prorrogas_max_manager': ['Prórrogas por Carta', 'Las que puede dar a una misma Carta de Reserva. Después, solo un admin.', 'prórrogas'],
+    'reservas.prorroga_dias_max_manager': ['Días como máximo en cada prórroga', null, 'días'],
+    'reservas.prorroga_dias_defecto': ['Días que propone el formulario', 'Lo que trae «Prorrogar» antes de tocarlo.', 'días'],
+    'reservas.prorroga_dias_max_admin': ['Días como máximo si prorroga un admin', null, 'días'],
+    'construccion.pago_unico_max_dias': ['Días como máximo para el pago único', 'Desde la firma: hasta cuándo puede un agente poner el vencimiento del pago único. Un admin puede pasarse.', 'días']
+  };
+  // Esta página no carga lawang.css (su [hidden]{display:none!important}): una clase flex le gana a [hidden]. Ocultar siempre por aquí.
+  function ocultaRes(n, si) { n.hidden = !!si; n.style.display = si ? 'none' : ''; }
+  function nombreParametro(r) { var t = RES_TEXTOS[r.clave]; return t ? tx(t[0]) : tx(r.etiqueta || r.clave); }
+  // Para el Registro de cambios de Ajustes (ajustes.js): el nombre en pantalla de un parámetro, o '' si no lo conocemos.
+  window.lwNombreParametro = function (clave) { var t = RES_TEXTOS[clave]; return t ? tx(t[0]) : ''; };
+
   REG['ajustes'] = function (sb) {
     if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
     var cuerpo = document.getElementById('lw-ajustes-lista');
     var soloLee = !(window.LW_V4 && window.LW_V4.esSuperAdmin);
     function fFechaHora(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleString(loc()); }
-    function pinta() {
+    function campo(r) {
+      var t = RES_TEXTOS[r.clave], esNum = typeof r.valor === 'number';
+      var ayuda = t ? (t[1] ? tx(t[1]) : '') : (r.ayuda ? tx(r.ayuda) : '');
+      var rango = !esNum ? '' : r.minimo != null && r.maximo != null ? tx('Entre %a y %b.', { a: r.minimo, b: r.maximo })
+        : r.minimo != null ? tx('Desde %a.', { a: r.minimo }) : r.maximo != null ? tx('Hasta %b.', { b: r.maximo }) : '';
+      var id = 'lw-res-in-' + String(r.clave).replace(/[^a-z0-9_]/gi, '-');
+      var cambio = r.actualizado_en ? (r.actualizado_por ? tx('Último cambio: %f, por %q.', { f: fFechaHora(r.actualizado_en), q: r.actualizado_por }) : tx('Último cambio') + ': ' + fFechaHora(r.actualizado_en)) : '';
+      return '<div class="flex flex-col md:flex-row md:items-start gap-3 md:gap-8 py-4" data-clave="' + esc(r.clave) + '">' +
+        '<div class="flex flex-col gap-1 md:flex-1 min-w-0">' +
+          '<label class="font-label-md text-label-md text-on-surface"' + (esNum ? ' for="' + esc(id) + '"' : '') + '>' + esc(nombreParametro(r)) + '</label>' +
+          (ayuda || rango ? '<span class="font-body-sm text-body-sm text-outline">' + esc([ayuda, rango].filter(Boolean).join(' ')) + '</span>' : '') +
+          (cambio ? '<span class="font-body-sm text-[11px] text-outline">' + esc(cambio) + '</span>' : '') +
+        '</div>' +
+        '<div class="flex flex-wrap items-center gap-3 md:justify-end">' + (esNum
+          ? '<input id="' + esc(id) + '" type="number" step="1" inputmode="numeric" data-k="valor" value="' + esc(r.valor) + '" data-antes="' + esc(r.valor) + '"' +
+              (r.minimo != null ? ' min="' + esc(r.minimo) + '"' : '') + (r.maximo != null ? ' max="' + esc(r.maximo) + '"' : '') + (soloLee ? ' disabled' : '') +
+              ' class="w-28 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
+            (t && t[2] ? '<span class="font-body-sm text-body-sm text-on-surface-variant md:w-24">' + esc(tx(t[2])) + '</span>' : '') +
+            (soloLee ? '' : '<button type="button" data-guardar="1" style="display:none" hidden class="shrink-0 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">' + esc(tx('Guardar')) + '</button>')
+          : '<code class="font-body-sm text-body-sm">' + esc(JSON.stringify(r.valor)) + '</code>') +
+        '</div></div>';
+    }
+    function bloque(b, filas) {
+      return '<div class="px-8 py-6 border-b border-outline-variant/40 last:border-b-0" data-res-bloque="' + esc(b.id) + '">' +
+        '<h3 class="font-label-md text-[15px] font-bold text-deep-lagoon">' + esc(tx(b.titulo)) + '</h3>' +
+        (b.para ? '<p class="font-body-sm text-body-sm text-outline mt-1">' + esc(tx(b.para)) + '</p>' : '') +
+        '<div class="flex flex-col divide-y divide-outline-variant/30 mt-2">' + filas.map(campo).join('') + '</div></div>';
+    }
+    // Lo escrito y sin guardar (menos el ajuste que se acaba de guardar) sobrevive al repintado.
+    function pendiente(salvo) {
+      var p = {};
+      if (cuerpo) [].forEach.call(cuerpo.querySelectorAll('[data-clave]'), function (f) {
+        var k = f.getAttribute('data-clave'), i = f.querySelector('[data-k="valor"]');
+        if (k !== salvo && i && i.value !== i.getAttribute('data-antes')) p[k] = i.value;
+      });
+      return p;
+    }
+    function mira(f) {
+      var i = f.querySelector('[data-k="valor"]'), b = f.querySelector('[data-guardar]');
+      if (i && b) ocultaRes(b, i.value === i.getAttribute('data-antes') && !(i.validity && i.validity.badInput));
+    }
+    function pinta(pend) {
       q(sb.from('parametros').select('*').order('grupo').order('orden'), 'ajustes', cuerpo).then(function (rows) {
         if (!rows) return;
         rows = parametrosVisibles(rows, moduloEncendido);
         // instancia sin el módulo reservas y sin otra fila que enseñar: la sección (su título habla de Cartas de Reserva) no se pinta.
-        // La pestaña sigue: ahí vive también Impuestos (el asistente de setup manda a /ajustes/#reservas). Por el id de la tabla, no por rótulo.
+        // La pestaña sigue: ahí vive también Impuestos (el asistente de setup manda a /ajustes/#reservas). Por el id de la lista, no por rótulo.
         var secPlazos = cuerpo && cuerpo.closest && cuerpo.closest('section');
         if (secPlazos) secPlazos.hidden = !rows.length && !moduloEncendido('reservas');
-        if (!rows.length) { cuerpo.innerHTML = '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(tx('No hay ajustes dados de alta.')) + '</td></tr>'; return; }
-        cuerpo.innerHTML = rows.map(function (r) {
-          var esNum = typeof r.valor === 'number';
-          var rango = esNum && (r.minimo != null || r.maximo != null) ? ' <span class="text-outline">(' + (r.minimo != null ? r.minimo : '…') + ' – ' + (r.maximo != null ? r.maximo : '…') + ')</span>' : '';
-          return '<tr class="border-b border-outline-variant/30" data-clave="' + esc(r.clave) + '">' +
-            '<td class="px-5 py-4"><div class="font-label-md text-label-md text-on-surface">' + esc(r.etiqueta) + '</div>' +
-              (r.ayuda ? '<div class="font-body-sm text-body-sm text-outline mt-1">' + esc(r.ayuda) + '</div>' : '') +
-              '<div class="font-body-sm text-[11px] text-outline mt-1"><code>' + esc(r.clave) + '</code>' + rango + '</div></td>' +
-            '<td class="px-5 py-4">' + (esNum
-              ? '<input type="number" step="1" data-k="valor" value="' + esc(r.valor) + '"' + (r.minimo != null ? ' min="' + esc(r.minimo) + '"' : '') + (r.maximo != null ? ' max="' + esc(r.maximo) + '"' : '') + (soloLee ? ' disabled' : '') +
-                ' style="width:110px;padding:8px 10px;border:1px solid #E4DCCB;border-radius:10px;font:inherit">'
-              : '<code>' + esc(JSON.stringify(r.valor)) + '</code>') + '</td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFechaHora(r.actualizado_en)) + (r.actualizado_por ? '<br>' + esc(r.actualizado_por) : '') + '</td>' +
-            '<td class="px-5 py-4 text-right">' + (esNum && !soloLee
-              ? '<button type="button" data-guardar="1" class="px-4 py-2 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">Guardar</button>'
-              : '') + '</td></tr>';
+        if (!rows.length) { cuerpo.innerHTML = '<p class="px-8 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(tx('No hay ajustes dados de alta.')) + '</p>'; return; }
+        var porClave = {}, usadas = {};
+        rows.forEach(function (r) { porClave[r.clave] = r; });
+        var html = RES_BLOQUES.map(function (b) {
+          var filas = b.claves.filter(function (k) { return porClave[k]; }).map(function (k) { usadas[k] = 1; return porClave[k]; });
+          return filas.length ? bloque(b, filas) : '';
         }).join('');
+        var otras = rows.filter(function (r) { return !usadas[r.clave]; });
+        if (otras.length) html += bloque({ id: 'otros', titulo: 'Otros ajustes', para: null }, otras);
+        cuerpo.innerHTML = html;
+        Object.keys(pend || {}).forEach(function (k) {
+          [].forEach.call(cuerpo.querySelectorAll('[data-clave]'), function (f) {
+            if (f.getAttribute('data-clave') !== k) return;
+            var i = f.querySelector('[data-k="valor"]'); if (i) { i.value = pend[k]; mira(f); }
+          });
+        });
       });
     }
     // en una instancia, pintar cuando la base ha dicho qué módulos hay (las filas reservas.* dependen de ello); sin bandera, en el acto
     var espModulos = esperaModulos();
-    if (espModulos) espModulos.then(pinta); else pinta();
+    if (espModulos) espModulos.then(function () { pinta(); }); else pinta();
     if (cuerpo && !cuerpo._wired) {
       cuerpo._wired = true;
+      cuerpo.addEventListener('input', function (ev) { var f = ev.target.closest && ev.target.closest('[data-clave]'); if (f) mira(f); });
+      cuerpo.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter' || !ev.target.matches || !ev.target.matches('[data-k="valor"]')) return;
+        var b = ev.target.closest('[data-clave]').querySelector('[data-guardar]');
+        if (b && !b.hidden) { ev.preventDefault(); b.click(); }
+      });
       cuerpo.addEventListener('click', function (ev) {
         var b = ev.target.closest && ev.target.closest('[data-guardar]');
         if (!b) return;
         ev.preventDefault(); ev.stopPropagation();
-        var tr = b.closest('tr'); var clave = tr.getAttribute('data-clave');
-        var inp = tr.querySelector('[data-k="valor"]');
+        var f = b.closest('[data-clave]'); var clave = f.getAttribute('data-clave');
+        var inp = f.querySelector('[data-k="valor"]');
         var n = parseInt(inp.value, 10);
-        if (!isFinite(n)) { toast('Pon un número entero.'); return; }
+        if (!isFinite(n)) { toast(tx('Pon un número entero.')); return; }
+        var nombre = f.querySelector('label') ? f.querySelector('label').textContent : clave;
         b.disabled = true;
         sb.rpc('parametro_set', { p_clave: clave, p_valor: n }).then(function (rr) {
           b.disabled = false;
-          if (rr.error) { toast('No se guardó: ' + (rr.error.message || 'sin detalle')); return; }
-          toast('Guardado: ' + clave + ' = ' + n + '. Se aplica desde ahora (la próxima pasada del automatismo, la próxima prórroga).');
-          pinta();
+          if (rr.error) { toast(tx('No se guardó') + ': ' + (rr.error.message || tx('sin detalle'))); return; }
+          toast(tx('Guardado: %n = %v. Se aplica desde ahora (la próxima pasada del automatismo, la próxima prórroga).', { n: nombre, v: n }));
+          pinta(pendiente(clave));
         });
       });
     }

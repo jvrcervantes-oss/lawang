@@ -455,7 +455,7 @@
       var e = w.querySelector('[data-e="error"]');
       e.textContent = msg; e.style.display = 'block';
       try { e.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { e.scrollIntoView(false); }
-      if (typeof window.toastMal === 'function') window.toastMal(msg);
+      if (typeof toastMal === 'function') toastMal(msg);   // const global de suite-comun.js, no de window (17-oct-2026)
     };
     /* Un campo que el navegador rechaza (un email mal formado traído de la ficha) dentro de una sección
        plegada no se puede enfocar: el navegador cancela el envío y solo lo dice en la consola (14-oct-2026).

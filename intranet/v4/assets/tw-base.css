@@ -1,6 +1,6 @@
 /* GENERADO por tools/empaqueta_css.py desde tailwind/tailwind.json (tema «suite») — NO SE EDITA A MANO.
    Tailwind v3.4.17 compilado; el pre-commit lo regenera y --check falla si está desfasado. */
-:root{--tema-accent-gold:200 155 92;--tema-background:251 249 244;--tema-burnt-earth:66 33 11;--tema-control-border:138 132 116;--tema-deep-lagoon:16 76 79;--tema-error:186 26 26;--tema-error-container:255 218 214;--tema-fiduciary-green:63 82 48;--tema-inverse-on-surface:242 241 235;--tema-inverse-primary:184 206 161;--tema-inverse-surface:48 49 45;--tema-on-background:27 28 25;--tema-on-error:255 255 255;--tema-on-error-container:147 0 10;--tema-on-primary:255 255 255;--tema-on-primary-container:188 210 165;--tema-on-primary-fixed:15 32 3;--tema-on-primary-fixed-variant:58 76 42;--tema-on-secondary:255 255 255;--tema-on-secondary-container:53 107 110;--tema-on-secondary-fixed:0 32 33;--tema-on-secondary-fixed-variant:20 78 81;--tema-on-surface:27 28 25;--tema-on-surface-variant:68 72 63;--tema-on-tertiary:255 255 255;--tema-on-tertiary-container:237 189 216;--tema-on-tertiary-fixed:46 17 37;--tema-on-tertiary-fixed-variant:95 60 82;--tema-outline:117 120 110;--tema-outline-variant:197 200 188;--tema-primary:49 67 34;--tema-primary-container:72 91 55;--tema-primary-fixed:211 234 187;--tema-primary-fixed-dim:184 206 161;--tema-raw-linen:245 240 230;--tema-secondary:49 102 105;--tema-secondary-container:179 233 237;--tema-secondary-fixed:182 236 239;--tema-secondary-fixed-dim:154 208 211;--tema-soft-canopy:143 155 122;--tema-stone-sand:190 179 165;--tema-surface:251 249 244;--tema-surface-alt:241 235 221;--tema-surface-bright:251 249 244;--tema-surface-container:239 238 232;--tema-surface-container-high:233 232 227;--tema-surface-container-highest:228 226 221;--tema-surface-container-low:245 244 238;--tema-surface-container-lowest:255 255 255;--tema-surface-dim:219 218 213;--tema-surface-tint:81 100 63;--tema-surface-variant:228 226 221;--tema-territorial-green:72 91 55;--tema-tertiary:86 51 73;--tema-tertiary-container:111 74 97;--tema-tertiary-fixed:255 216 237;--tema-tertiary-fixed-dim:233 185 212;--tema-volcanic-ash:46 52 55;--tema-warm-border:228 220 203}
+:root{--tema-accent-gold:200 155 92;--tema-background:251 249 244;--tema-burnt-earth:66 33 11;--tema-control-border:138 132 116;--tema-deep-lagoon:16 76 79;--tema-error:186 26 26;--tema-error-container:255 218 214;--tema-fiduciary-green:63 82 48;--tema-inverse-on-surface:242 241 235;--tema-inverse-primary:184 206 161;--tema-inverse-surface:48 49 45;--tema-on-background:27 28 25;--tema-on-error:255 255 255;--tema-on-error-container:147 0 10;--tema-on-primary:255 255 255;--tema-on-primary-container:188 210 165;--tema-on-primary-fixed:15 32 3;--tema-on-primary-fixed-variant:58 76 42;--tema-on-secondary:255 255 255;--tema-on-secondary-container:53 107 110;--tema-on-secondary-fixed:0 32 33;--tema-on-secondary-fixed-variant:20 78 81;--tema-on-surface:27 28 25;--tema-on-surface-variant:68 72 63;--tema-on-tertiary:255 255 255;--tema-on-tertiary-container:237 189 216;--tema-on-tertiary-fixed:46 17 37;--tema-on-tertiary-fixed-variant:95 60 82;--tema-outline:117 120 110;--tema-outline-variant:197 200 188;--tema-primary:49 67 34;--tema-primary-container:72 91 55;--tema-primary-fixed:211 234 187;--tema-primary-fixed-dim:184 206 161;--tema-raw-linen:245 240 230;--tema-secondary:49 102 105;--tema-secondary-container:179 233 237;--tema-secondary-fixed:182 236 239;--tema-secondary-fixed-dim:154 208 211;--tema-soft-canopy:143 155 122;--tema-stone-sand:111 101 86;--tema-surface:251 249 244;--tema-surface-alt:241 235 221;--tema-surface-bright:251 249 244;--tema-surface-container:239 238 232;--tema-surface-container-high:233 232 227;--tema-surface-container-highest:228 226 221;--tema-surface-container-low:245 244 238;--tema-surface-container-lowest:255 255 255;--tema-surface-dim:219 218 213;--tema-surface-tint:81 100 63;--tema-surface-variant:228 226 221;--tema-territorial-green:72 91 55;--tema-tertiary:86 51 73;--tema-tertiary-container:111 74 97;--tema-tertiary-fixed:255 216 237;--tema-tertiary-fixed-dim:233 185 212;--tema-volcanic-ash:46 52 55;--tema-warm-border:228 220 203}
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -717,6 +717,10 @@ video {
   margin-bottom: 2rem;
 }
 
+.ml-1\.5 {
+  margin-left: 0.375rem;
+}
+
 .ml-2 {
   margin-left: 0.5rem;
 }
@@ -1260,6 +1264,10 @@ video {
   border-bottom-width: calc(1px * var(--tw-divide-y-reverse));
 }
 
+.divide-outline-variant\/30 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(var(--tema-outline-variant) / 0.3);
+}
+
 .divide-surface-container > :not([hidden]) ~ :not([hidden]) {
   --tw-divide-opacity: 1;
   border-color: rgb(var(--tema-surface-container) / var(--tw-divide-opacity, 1));
@@ -1502,6 +1510,11 @@ video {
   background-color: rgb(var(--tema-error-container) / 0.6);
 }
 
+.bg-outline-variant {
+  --tw-bg-opacity: 1;
+  background-color: rgb(var(--tema-outline-variant) / var(--tw-bg-opacity, 1));
+}
+
 .bg-primary {
   --tw-bg-opacity: 1;
   background-color: rgb(var(--tema-primary) / var(--tw-bg-opacity, 1));
@@ -1566,11 +1579,6 @@ video {
 
 .bg-soft-canopy\/25 {
   background-color: rgb(var(--tema-soft-canopy) / 0.25);
-}
-
-.bg-stone-sand {
-  --tw-bg-opacity: 1;
-  background-color: rgb(var(--tema-stone-sand) / var(--tw-bg-opacity, 1));
 }
 
 .bg-surface {
@@ -1691,12 +1699,12 @@ video {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
-.to-secondary-container {
-  --tw-gradient-to: rgb(var(--tema-secondary-container) / 1) var(--tw-gradient-to-position);
+.to-outline-variant {
+  --tw-gradient-to: rgb(var(--tema-outline-variant) / 1) var(--tw-gradient-to-position);
 }
 
-.to-stone-sand {
-  --tw-gradient-to: rgb(var(--tema-stone-sand) / 1) var(--tw-gradient-to-position);
+.to-secondary-container {
+  --tw-gradient-to: rgb(var(--tema-secondary-container) / 1) var(--tw-gradient-to-position);
 }
 
 .to-territorial-green\/20 {
@@ -1745,6 +1753,10 @@ video {
 
 .p-6 {
   padding: 1.5rem;
+}
+
+.p-8 {
+  padding: 2rem;
 }
 
 .px-1 {
@@ -2415,6 +2427,10 @@ video {
   color: rgb(var(--tema-on-surface-variant) / 0.7);
 }
 
+.opacity-50 {
+  opacity: 0.5;
+}
+
 .opacity-60 {
   opacity: 0.6;
 }
@@ -2555,6 +2571,42 @@ video {
 .placeholder\:text-stone-sand::placeholder {
   --tw-text-opacity: 1;
   color: rgb(var(--tema-stone-sand) / var(--tw-text-opacity, 1));
+}
+
+.before\:block::before {
+  content: var(--tw-content);
+  display: block;
+}
+
+.before\:font-label-md::before {
+  content: var(--tw-content);
+  font-family: Neue Kabel;
+}
+
+.before\:text-\[11px\]::before {
+  content: var(--tw-content);
+  font-size: 11px;
+}
+
+.before\:uppercase::before {
+  content: var(--tw-content);
+  text-transform: uppercase;
+}
+
+.before\:tracking-wider::before {
+  content: var(--tw-content);
+  letter-spacing: 0.05em;
+}
+
+.before\:text-outline::before {
+  content: var(--tw-content);
+  --tw-text-opacity: 1;
+  color: rgb(var(--tema-outline) / var(--tw-text-opacity, 1));
+}
+
+.before\:content-\[attr\(data-l\)\]::before {
+  --tw-content: attr(data-l);
+  content: var(--tw-content);
 }
 
 .last\:border-0:last-child {
@@ -2840,6 +2892,30 @@ video {
 }
 
 @media (min-width: 768px) {
+  .md\:table {
+    display: table;
+  }
+
+  .md\:table-cell {
+    display: table-cell;
+  }
+
+  .md\:table-header-group {
+    display: table-header-group;
+  }
+
+  .md\:table-row-group {
+    display: table-row-group;
+  }
+
+  .md\:table-row {
+    display: table-row;
+  }
+
+  .md\:w-24 {
+    width: 6rem;
+  }
+
   .md\:w-40 {
     width: 10rem;
   }
@@ -2850,6 +2926,10 @@ video {
 
   .md\:w-96 {
     width: 24rem;
+  }
+
+  .md\:flex-1 {
+    flex: 1 1 0%;
   }
 
   .md\:grid-cols-2 {
@@ -2872,12 +2952,24 @@ video {
     flex-direction: row;
   }
 
+  .md\:items-start {
+    align-items: flex-start;
+  }
+
   .md\:items-end {
     align-items: flex-end;
   }
 
   .md\:items-center {
     align-items: center;
+  }
+
+  .md\:justify-end {
+    justify-content: flex-end;
+  }
+
+  .md\:gap-8 {
+    gap: 2rem;
   }
 
   .md\:self-end {
@@ -2889,8 +2981,23 @@ video {
     padding-right: 2rem;
   }
 
+  .md\:py-0 {
+    padding-top: 0px;
+    padding-bottom: 0px;
+  }
+
+  .md\:py-3 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
   .md\:pt-8 {
     padding-top: 2rem;
+  }
+
+  .md\:before\:content-none::before {
+    --tw-content: none;
+    content: var(--tw-content);
   }
 }
 
@@ -2923,8 +3030,8 @@ video {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .lg\:grid-cols-\[1fr_340px\] {
-    grid-template-columns: 1fr 340px;
+  .lg\:grid-cols-\[minmax\(0\2c 1fr\)_340px\] {
+    grid-template-columns: minmax(0,1fr) 340px;
   }
 
   .lg\:flex-row {
