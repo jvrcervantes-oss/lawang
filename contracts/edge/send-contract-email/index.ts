@@ -123,7 +123,8 @@ const b64 = (u8: Uint8Array) => {
    así que no cambia nada para quien lo usa bien. El texto sigue siendo editable (decisión de producto: el agente saluda a su
    manera). OJO, cierra SOLO esta vía: `via` lo pone el navegador, y un correo con otra vía (o sin ella, o con PDF) sigue
    pudiendo salir a cualquier dirección con texto libre, anclado a un contrato visible — así envía el generador el contrato
-   a abogados y terceros. Cerrar eso es decisión de producto y está en contexto/pendientes.md (revisor, 17-oct).
+   a abogados y terceros. Cerrar eso lo decide el owner: fila [lawang-correo-libre-destinatarios] de contexto/pendientes.md
+   (revisor y Seguridad, 17-oct); y esta edge no se despliega sin la huella del texto en correos_enviados (misma fila).
    Devuelve '' si vale, o el motivo. */
 async function motivoEnlaceFirmaNoVale(contratoId: string, to: string, message: string): Promise<string> {
   const { data, error } = await admin.from('contrato_firmas').select('firmante_email, enlace_firma')
