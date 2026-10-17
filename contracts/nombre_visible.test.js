@@ -1,6 +1,6 @@
 /* NOMBRE PARA ENSEÑAR — 17-oct-2026 (Experiencia, propuestas H3 y S2 de la intranet).
    `node contracts/nombre_visible.test.js`. Lo corre tools/test.py.
-   Prueba lwNombreVisible (contracts/assets/vocabulario.js): un nombre entero en mayúsculas se
+   Prueba lwNombreVisible (contracts/assets/suite-comun.js): un nombre entero en mayúsculas se
    enseña en tipo normal; uno con alguna minúscula, siglas de sociedad y lo vacío no se tocan. */
 'use strict';
 const fs = require('fs');
@@ -9,7 +9,7 @@ const vm = require('vm');
 
 const ctx = { window: {} };
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(path.join(__dirname, 'assets', 'vocabulario.js'), 'utf8') +
+vm.runInContext(fs.readFileSync(path.join(__dirname, 'assets', 'suite-comun.js'), 'utf8') +
   '\n;globalThis.__n = lwNombreVisible;', ctx);
 const lwNombreVisible = ctx.__n;
 

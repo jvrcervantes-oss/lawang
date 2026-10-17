@@ -196,25 +196,6 @@ function lwPliegaTexto(s){
 function lwNormaliza(s){
   return lwPliegaTexto(s).trim();
 }
-/* NOMBRE PARA ENSEÑAR (17-oct-2026, Experiencia): un nombre de persona o empresa que llega
-   entero en mayúsculas («MARIA DE LA CRUZ») se enseña en tipo normal («Maria de la Cruz»):
-   en mayúsculas ocupaba hasta 6 líneas en una columna estrecha y se leía a gritos. Si trae
-   alguna minúscula se deja tal cual (alguien lo escribió así a propósito: «McGregor», «PT
-   Lawang»). Solo presentación: nunca se guarda, ni se ordena ni se compara con esto. */
-const LW_NOMBRE_SIGLAS = new Set(['PT', 'CV', 'UD', 'LLC', 'LTD', 'SL', 'SA', 'SLU', 'BV', 'GMBH', 'INC', 'II', 'III', 'IV']);
-const LW_NOMBRE_PARTICULAS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'van', 'von', 'der', 'den', 'da', 'dos', 'bin', 'binti']);
-function lwNombreVisible(s){
-  const t = String(s == null ? '' : s);
-  if (!/\p{Lu}/u.test(t) || /\p{Ll}/u.test(t)) return t;
-  let i = 0;
-  return t.replace(/[\p{L}\p{M}]+/gu, w => {
-    const pos = i++;
-    if (LW_NOMBRE_SIGLAS.has(w)) return w;
-    const m = w.toLocaleLowerCase('es');
-    if (pos > 0 && LW_NOMBRE_PARTICULAS.has(m)) return m;
-    return m.charAt(0).toLocaleUpperCase('es') + m.slice(1);
-  });
-}
 /* Donde casa `q` dentro de `texto`, en posiciones del texto ORIGINAL: para
    resaltar con <mark> sin perder la tilde que se ve (buscar "jose" marca el
    "Jose" con tilde tal como esta escrito). Normalizar el texto entero y cortar

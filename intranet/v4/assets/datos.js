@@ -330,7 +330,7 @@
     if (url) { tr.style.cursor = 'pointer'; tr.addEventListener('click', function () { location.href = url; }); }
     pl.tbody.appendChild(tr);
   }
-  // Nombre de persona o empresa para ENSEÑAR (vocabulario.js, 17-oct): el que llega entero en mayúsculas sale en tipo normal.
+  // Nombre de persona o empresa para ENSEÑAR (suite-comun.js, 17-oct): el que llega entero en mayúsculas sale en tipo normal.
   // Nulo se devuelve nulo: fila() deja entonces el «—» de la plantilla.
   function nomV(s) { return (s == null || typeof lwNombreVisible !== 'function') ? s : lwNombreVisible(s); }
 

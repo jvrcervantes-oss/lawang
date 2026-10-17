@@ -224,3 +224,25 @@ if (typeof module !== 'undefined' && module.exports)
    ninguna. */
 const LW_PROYECTOS_GENERALES = ['Lawang (general)', 'Sumba (general)'];
 const lwEsDocGeneral = d => !!d && (d.general === true || LW_PROYECTOS_GENERALES.includes(d.proyecto));
+
+/* NOMBRE PARA ENSEÑAR (17-oct-2026, Experiencia): un nombre de persona o empresa que llega
+   entero en mayúsculas («MARIA DE LA CRUZ») se enseña en tipo normal («Maria de la Cruz»):
+   en mayúsculas ocupaba hasta 6 líneas en una columna estrecha y se leía a gritos. Si trae
+   alguna minúscula se deja tal cual (alguien lo escribió así a propósito: «McGregor», «PT
+   Lawang»). Solo presentación: nunca se guarda, ni se ordena ni se compara con esto (para
+   comparar, lwNormaliza de vocabulario.js). Vive aquí y no en vocabulario.js porque
+   aquel va empaquetado en las edges de firma y factura, y esto es solo de pantalla. */
+const LW_NOMBRE_SIGLAS = new Set(['PT', 'CV', 'UD', 'LLC', 'LTD', 'SL', 'SA', 'SLU', 'BV', 'GMBH', 'INC', 'II', 'III', 'IV']);
+const LW_NOMBRE_PARTICULAS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'van', 'von', 'der', 'den', 'da', 'dos', 'bin', 'binti']);
+function lwNombreVisible(s){
+  const t = String(s == null ? '' : s);
+  if (!/\p{Lu}/u.test(t) || /\p{Ll}/u.test(t)) return t;
+  let i = 0;
+  return t.replace(/[\p{L}\p{M}]+/gu, w => {
+    const pos = i++;
+    if (LW_NOMBRE_SIGLAS.has(w)) return w;
+    const m = w.toLocaleLowerCase('es');
+    if (pos > 0 && LW_NOMBRE_PARTICULAS.has(m)) return m;
+    return m.charAt(0).toLocaleUpperCase('es') + m.slice(1);
+  });
+}
