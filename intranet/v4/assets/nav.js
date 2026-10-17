@@ -707,6 +707,13 @@
       document.head.appendChild(st);
       var h1 = main.querySelector('h1');
       if (h1) h1.textContent = T('Mis comisiones');
+      /* La pestaña también: lwFichaAplicar compone «<data-lw-base> — <marca>» y lo repite al cambiar de idioma. */
+      var tt = document.querySelector('title[data-lw-titulo]');
+      if (tt) {
+        tt.setAttribute('data-lw-base', 'Mis comisiones');
+        var corte = document.title.indexOf(' — ');
+        document.title = T('Mis comisiones') + (corte >= 0 ? document.title.slice(corte) : '');
+      }
       var sub = h1 && h1.parentNode && h1.parentNode.querySelector('p');
       if (sub) sub.textContent = T('Lo que te toca por cada venta y si tu manager ya te lo ha pagado. Solo ves lo tuyo.');
     }

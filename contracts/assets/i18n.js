@@ -4744,6 +4744,7 @@
     'Faltan fotos': 'Photos missing',
     'Imprimir igualmente': 'Print anyway',
     'No se han podido actualizar las fotos de este dossier antiguo: ': 'Could not update the photos of this older dossier: ',
+    'No se han podido cargar las fotos de los modelos: recarga la página para volver a intentarlo.': 'Could not load the model photos: reload the page to try again.',
     'No se imprime: no se han podido pedir las fotos. ': 'Not printed: the photos could not be requested. ',
     'Preparando las fotos para imprimir…': 'Preparing the photos for printing…',
     'Esa foto no tiene fichero: súbela otra vez desde Proyectos.': 'That photo has no file: upload it again from Projects.',
