@@ -10732,7 +10732,9 @@
           '<div class="lw-res-vence"><span class="lw-res-lbl">' + esc(T('Vence')) + '</span><span>' + esc(fecha(c.vence)) + '</span>' +
             (c.prorrogas ? '<span class="lw-res-lbl">' + c.prorrogas + ' ' + esc(T(c.prorrogas > 1 ? 'prórrogas' : 'prórroga')) + (c.prorrogas >= 2 ? ' · ' + esc(T('la 3ª solo admin')) : '') + '</span>' : '') + '</div>' +
           '<div class="lw-res-est">' + estado(c) + (extra ? '<span class="lw-res-extra">' + esc(extra) + '</span>' : '') + '</div>' +
-          '<span class="lw-res-abrir">' + esc(T('Abrir ficha')) + ' →</span></a>';
+          /* La ficha se abre aquí mismo y lleva Prorrogar y Liberar con sus candados (Experiencia R2, 17-oct: «hay que irse a
+             Operaciones»). Donde toca decidir —vencida o vence esta semana— el rótulo lo dice. */
+          '<span class="lw-res-abrir">' + esc(T(c.banda === 'gracia' || c.banda === 'semana' ? 'Prorrogar o liberar' : 'Abrir ficha')) + ' →</span></a>';
       }
       var BANDAS = [
         ['gracia', 'Vencidas — pendientes de liberar', 'mal'],

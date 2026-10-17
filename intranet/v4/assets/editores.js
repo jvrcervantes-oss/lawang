@@ -4973,6 +4973,13 @@
       // «Formulario clásico» ya sale visible en el HTML para todos: aquí solo se ata el clic.
       ata('formulario-clasico', function () { location.href = '/contracts/app.html?nuevo=1'; });
       ata('nuevo-contrato', function () { location.href = '/contracts/app.html?nuevo=1&asistente=1'; });
+      // «Otras formas» (CO1, 17-oct) se cierra al pulsar fuera o con Escape, como cualquier desplegable de la suite
+      var otras = document.querySelector('[data-lw="otras-formas"]');
+      if (otras && !otras._lwOk) {
+        otras._lwOk = true;
+        document.addEventListener('click', function (ev) { if (otras.open && !otras.contains(ev.target)) otras.open = false; });
+        otras.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && otras.open) { otras.open = false; otras.querySelector('summary').focus(); } });
+      }
     },
 
 

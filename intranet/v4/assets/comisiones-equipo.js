@@ -16,6 +16,12 @@
 
   var ROL = { setter: 'Setter', team_lead: 'Team Lead' };
   var EST = { pendiente: 'Pendiente de tu manager', aprobada: 'Aprobada', rechazada: 'Rechazada', retirada: 'Retirada' };
+  // el diccionario común (i18n.js); sin él, la frase española tal cual
+  function T(s, h) {
+    if (typeof lwT === 'function') return lwT(s, h);
+    var t = String(s); if (h) for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) t = t.split('%' + k).join(h[k]);
+    return t;
+  }
   var TONO = { pendiente: ['#FFF1D6', '#7A5200'], aprobada: ['#D3EABB', '#0F2003'], rechazada: ['#FFDAD6', '#93000A'], retirada: ['#E4E2DD', '#44483F'] };
 
   function esc(v) {
@@ -82,17 +88,17 @@
       var COLS = [['venta', 'Venta'], ['closer', 'Closer'], ['setter', 'Setter'], ['team_lead', 'Team Lead'], ['propia', 'Venta propia']]
         .filter(function (c) { return hay[c[0]] !== false; });
       var intro = gestiono
-        ? lwMarca('Quién hizo de Setter y de Team Lead en cada venta (lo pagas tú, como al closer: acuerdo privado, %marca no retiene nada) y las reclamaciones de venta propia de tu equipo.')
-        : lwMarca('Tus ventas de equipo. Si el cliente es tuyo —no un lead del equipo— puedes reclamar la venta como propia: si tu manager la aprueba, cobras su comisión entera y la paga %marca.');
+        ? lwMarca(T('Quién hizo de Setter y de Team Lead en cada venta (lo pagas tú, como al closer: acuerdo privado, %marca no retiene nada) y las reclamaciones de venta propia de tu equipo.'))
+        : lwMarca(T('Tus ventas de equipo. Si el cliente es tuyo —no un lead del equipo— puedes reclamar la venta como propia: si tu manager la aprueba, cobras su comisión entera y la paga %marca.'));
       sec.innerHTML =
         '<div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px">' +
-          '<h2 class="font-headline-sm text-headline-sm text-on-surface" style="margin:0">Ventas del equipo</h2>' +
-          (pendientes.length && gestiono ? pill(pendientes.length + (pendientes.length === 1 ? ' reclamación por resolver' : ' reclamaciones por resolver'), TONO.pendiente) : '') +
+          '<h2 class="font-headline-sm text-headline-sm text-on-surface" style="margin:0">' + esc(T('Ventas del equipo')) + '</h2>' +
+          (pendientes.length && gestiono ? pill(T(pendientes.length === 1 ? '%n reclamación por resolver' : '%n reclamaciones por resolver', { n: pendientes.length }), TONO.pendiente) : '') +
         '</div>' +
         '<p class="font-body-md text-body-md text-on-surface-variant" style="margin:0">' + esc(intro) + '</p>' +
         '<div style="overflow-x:auto"><table class="w-full text-left" style="border-collapse:collapse;min-width:640px"><thead><tr>' +
           COLS.map(function (c) {
-            return '<th class="px-4 py-2 font-label-md text-[11px] uppercase tracking-wider text-on-surface-variant">' + c[1] + '</th>';
+            return '<th class="px-4 py-2 font-label-md text-[11px] uppercase tracking-wider text-on-surface-variant">' + esc(T(c[1])) + '</th>';
           }).join('') +
         '</tr></thead><tbody data-lw-ve></tbody></table></div>';
       var tb = sec.querySelector('[data-lw-ve]');
@@ -109,7 +115,7 @@
           closer: '<td class="px-4 py-3 font-body-md text-body-md text-on-surface-variant">' + esc(quien(v.closer_email)) + '</td>',
           setter: '<td class="px-4 py-3 font-body-md text-body-md text-on-surface-variant">' + esc(v.setter_email ? quien(v.setter_email) : '—') + '</td>',
           team_lead: '<td class="px-4 py-3 font-body-md text-body-md text-on-surface-variant">' + esc(v.team_lead_email ? quien(v.team_lead_email) : '—') + '</td>',
-          propia: '<td class="px-4 py-3">' + (v.reclamacion_estado ? pill(EST[v.reclamacion_estado] || v.reclamacion_estado, TONO[v.reclamacion_estado]) : '<span class="font-body-sm text-body-sm text-outline">—</span>') + '</td>'
+          propia: '<td class="px-4 py-3">' + (v.reclamacion_estado ? pill(EST[v.reclamacion_estado] ? T(EST[v.reclamacion_estado]) : v.reclamacion_estado, TONO[v.reclamacion_estado]) : '<span class="font-body-sm text-body-sm text-outline">—</span>') + '</td>'
         };
         tr.innerHTML = COLS.map(function (c) { return celda[c[0]]; }).join('');
         tr.addEventListener('click', function () { abre(v, miembros, quien); });
