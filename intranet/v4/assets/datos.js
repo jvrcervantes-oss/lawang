@@ -362,7 +362,7 @@
     var tr = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
     var n = nombreAutor(mapa, v);
     return n ? '<span class="font-body-md" title="' + esc(v) + '">' + esc(n) + '</span>'
-      : '<span style="color:#BEB3A5" title="' + esc(tr('Documento anterior al registro de autor')) + '">' + esc(tr('sin registrar')) + '</span>';
+      : '<span style="color:rgb(var(--tema-stone-sand))" title="' + esc(tr('Documento anterior al registro de autor')) + '">' + esc(tr('sin registrar')) + '</span>';
   }
   window.LW_V4 = window.LW_V4 || {};
   window.LW_V4.autores = autores; window.LW_V4.nombreAutor = nombreAutor;
@@ -2597,7 +2597,7 @@
                   : cobro === 'pendiente' ? pill('Sin cobrar', 'espera')
                   : cobro === 'parcial' ? pill('Parcial', 'espera') + '<div style="margin-top:3px;font-size:11.5px;color:#75786e;white-space:nowrap">' +
                       esc(tx('%a de %b', { a: fmt(tot - pend, f.moneda), b: fmt(tot, f.moneda) })) + '</div>'
-                  : '<span style="color:#BEB3A5">—</span>';
+                  : '<span style="color:rgb(var(--tema-stone-sand))">—</span>';
               }
               if (tds[8]) tds[8].innerHTML = htmlAutor(AUT, f.creado_por);
               if (tds[9]) tds[9].innerHTML = pill(est[0], est[1]) + FD.tag(f.id);
@@ -7164,7 +7164,7 @@
               else if (nx.enlace && nx.enlace.indexOf(location.origin + '/') === 0) enlace = nx.enlace;
               // plegado con style y no con `hidden`: la clase `flex` gana al atributo y el «ver más» no plegaba nada (12-oct-2026)
               return '<div class="flex items-start gap-3"' + (i >= 6 ? ' data-audit-mas hidden style="display:none"' : '') + '>' +
-                '<div class="w-2 h-2 rounded-full ' + (enlace ? 'bg-deep-lagoon' : 'bg-stone-sand') + ' mt-1.5 shrink-0"></div>' +
+                '<div class="w-2 h-2 rounded-full ' + (enlace ? 'bg-deep-lagoon' : 'bg-outline-variant') + ' mt-1.5 shrink-0"></div>' +
                 '<div class="flex flex-col min-w-0">' +
                 (enlace
                   ? '<a href="' + esc(enlace) + '" class="text-body-sm text-deep-lagoon font-medium hover:underline">' + titulo + '</a>'
