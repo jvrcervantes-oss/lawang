@@ -291,6 +291,9 @@ export const PLANTILLAS: Record<string, SpecPlantilla> = {
   // 10ª (15-oct-2026, «Invitar al portal» desde la ficha de parcela): como reclamo_pago, `invitacion` = id de la fila de la cola; sin sociedad
   // (la invitación es al portal de la instancia, firma la marca). Solo Lawang la sirve (el maestro no tiene reclamos_pago).
   invitacion_portal:       { adjunto: false, ids: ['contrato_id'], editables: ['invitacion'], soloServicio: true },
+  // 11ª (16-oct-2026, MCP P6): aviso a la persona de cada asistente conectado. Solo la cola; `aviso` = id de la fila de la cola, sin
+  // ningún id de documento (el ancla es la conexión). Solo Lawang la sirve (el maestro no tiene el puente MCP).
+  aviso_ia_conexion:       { adjunto: false, ids: [], editables: ['aviso'], soloServicio: true },
 };
 export const LIMITES_PLANTILLA = { asunto: 200, cuerpo: 5000, valor: 300 };
 /** Vías que pueden usar una plantilla: la de aviso interno (sin sesión) y cualquier otra no. */

@@ -24,7 +24,7 @@
   var RE_PETICION = /^[A-Za-z0-9_-]{43}$/;
   var PLAZO_MS = 105000;                 // de los 120 s de la base: margen para el viaje y el reloj del servidor
   var CODIGOS = ['contrasena_no_reciente', 'apagado', 'sin_permiso', 'usuario_inactivo', 'falta_segundo_factor',
-                 'peticion_invalida', 'cliente', 'demasiadas_conexiones', 'invalid_request', 'server_error', 'error'];
+                 'peticion_invalida', 'cliente', 'demasiadas_conexiones', 'demasiadas_altas', 'invalid_request', 'server_error', 'error'];
   // Tras estos se puede volver a entrar desde aquí mismo; el resto no se arregla reintentando (apagado, sin permiso…).
   var REINTENTABLE = { contrasena_no_reciente: 1, falta_segundo_factor: 1, demasiadas_conexiones: 1,
                        invalid_request: 1, server_error: 1, error: 1 };
@@ -84,6 +84,7 @@
       error_peticion_invalida: 'Esta petición ya se usó o ha caducado. Vuelve a pedir la conexión desde tu asistente.',
       error_cliente: 'Este asistente no está autorizado en %marca. Pídele a un administrador que lo active.',
       error_demasiadas_conexiones: 'Ya tienes el máximo de asistentes conectados. Corta uno en Apps conectadas y vuelve a intentarlo.',
+      error_demasiadas_altas: 'Se han conectado demasiados asistentes en la última hora. Por seguridad, espera una hora y vuelve a pedir la conexión desde tu asistente.',
       error_invalid_request: 'La petición no se ha podido validar. Vuelve a entrar; si se repite, pide la conexión de nuevo desde tu asistente.',
       error_server_error: '%marca no ha podido terminar la conexión. Inténtalo otra vez en un momento.',
       error_error: 'No se ha podido conectar. Inténtalo otra vez.'
@@ -142,6 +143,7 @@
       error_peticion_invalida: 'This request was already used or has expired. Request the connection again from your assistant.',
       error_cliente: 'This assistant is not authorised in %marca. Ask an administrator to enable it.',
       error_demasiadas_conexiones: 'You already have the maximum number of connected assistants. Cut one off in Connected apps and try again.',
+      error_demasiadas_altas: 'Too many assistants have been connected in the last hour. For security, wait an hour and request the connection again from your assistant.',
       error_invalid_request: 'The request could not be validated. Sign in again; if it happens again, request the connection anew from your assistant.',
       error_server_error: '%marca could not complete the connection. Try again in a moment.',
       error_error: 'Could not connect. Please try again.'
@@ -200,6 +202,7 @@
       error_peticion_invalida: 'Permintaan ini sudah digunakan atau sudah kedaluwarsa. Minta koneksi lagi dari asisten Anda.',
       error_cliente: 'Asisten ini tidak diizinkan di %marca. Minta administrator untuk mengaktifkannya.',
       error_demasiadas_conexiones: 'Anda sudah mencapai jumlah maksimum asisten yang terhubung. Putuskan salah satu di Aplikasi terhubung lalu coba lagi.',
+      error_demasiadas_altas: 'Terlalu banyak asisten yang terhubung dalam satu jam terakhir. Demi keamanan, tunggu satu jam lalu minta koneksi lagi dari asisten Anda.',
       error_invalid_request: 'Permintaan tidak dapat divalidasi. Masuk lagi; jika terulang, minta koneksi baru dari asisten Anda.',
       error_server_error: '%marca tidak dapat menyelesaikan koneksi. Coba lagi sebentar lagi.',
       error_error: 'Tidak dapat terhubung. Silakan coba lagi.'

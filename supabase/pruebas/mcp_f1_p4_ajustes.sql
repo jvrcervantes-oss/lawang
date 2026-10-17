@@ -8,7 +8,7 @@
 --      conexiones vivas quedan revocadas en el acto
 --   E  ia_permiso_guarda: usuario inactivo → error; conceder → permiso; quitar → sin permiso y conexiones revocadas en el acto
 --   F  ia_peticion_ver: petición inventada → error; buena → asistente y «puede»; sin permiso → puede=false; no gasta la petición
---   G  ia_mis_conexiones: cada persona ve solo las suyas; con la propuesta 20261016230000, los identificadores de los clientes
+--   G  ia_mis_conexiones: cada persona ve solo las suyas; con la propuesta 20261017015203, los identificadores de los clientes
 --      activos solo a quien puede conectar y con la IA encendida (G2-G4; sin la propuesta, una línea roja «OMITIDAS»)
 -- destructivo-ok: prueba en transacción que termina en raise (rollback)
 create temp table _tp (et text primary key, uid uuid, em text, rol text, activo boolean);
@@ -62,9 +62,10 @@ begin
     insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo)
       select t.uid, t.em, 'ZZ-MCP4 ' || t.et, t.rol, 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{}'::text[], '{}'::text[], t.activo
         from _tp t;
+    insert into public.ia_ajustes default values on conflict do nothing;   -- la fila única que siembra 073011 (una rama sin filas no la trae)
     update public.ia_ajustes set encendido = false, tope_dia = 0 where id;
     if not has_function_privilege('authenticated', 'public.ia_peticion_ver(text)', 'execute') then
-      grant execute on function public.ia_peticion_ver(text) to authenticated;   -- propuestas/20261016140000 lo hace en la viva con el OK del owner
+      grant execute on function public.ia_peticion_ver(text) to authenticated;   -- 20261017015135 lo hace en la viva (OK del owner, LAW-642)
     end if;
     insert into public.ia_clientes (asistente, nombre, redirect_uris, activo) values ('claude', 'Claude', array[red], true) returning id into cli;
     insert into public.ia_permisos (usuario_id) values (a.uid), (b.uid);
@@ -188,7 +189,7 @@ begin
                       and exists (select 1 from jsonb_array_elements(j -> 'conexiones') x where x ->> 'id' = con_b::text)
                       and not (j ->> 'permiso')::boolean,
                       'G1 B ve solo las suyas y que no tiene permiso (' || jsonb_array_length(j -> 'conexiones') || ' conexiones)');
-  -- G2-G4 con qué se conecta: solo con la propuesta 20261016230000 aplicada (allí nacen `clientes` y `duracion_dias`)
+  -- G2-G4 con qué se conecta: solo con la propuesta 20261017015203 aplicada (allí nacen `clientes` y `duracion_dias`)
   if pg_get_functiondef('public.ia_mis_conexiones()'::regprocedure) like '%''clientes''%' then
     r := r || pg_temp.l(jsonb_typeof(j -> 'clientes') = 'array' and jsonb_array_length(j -> 'clientes') = 0,
                         'G2 B sin permiso: ningún identificador de cliente (' || coalesce(j ->> 'clientes', 'null') || ')');
@@ -207,7 +208,7 @@ begin
     update public.ia_ajustes set encendido = true where id;
   else
     -- sin la propuesta aplicada G2-G4 no se pueden medir: sale en rojo, para que un «no medido» nunca parezca un aprobado (Seguridad, 16-oct)
-    r := r || pg_temp.l(false, 'G2-G4 OMITIDAS: la propuesta 20261016230000 no está aplicada en esta rama');
+    r := r || pg_temp.l(false, 'G2-G4 OMITIDAS: la propuesta 20261017015203 no está aplicada en esta rama');
   end if;
 
   raise exception using message = replace(c_fin, '%', r);

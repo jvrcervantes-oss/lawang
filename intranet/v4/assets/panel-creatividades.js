@@ -40,7 +40,7 @@
     p.className = 'rounded-xl border px-5 py-4 font-body-sm text-body-sm ' + (tono === 'mal' ? 'border-error/40 bg-error-container/40 text-on-surface' : 'border-burnt-earth/30 bg-surface-alt text-on-surface-variant');
     p.textContent = texto; caja.appendChild(p);
   }
-  function mal(e) { var m = (e && e.message) || String(e); if (window.toastMal) toastMal(m); else aviso(m, 'mal'); }
+  function mal(e) { var m = (e && e.message) || String(e); if (typeof toastMal === 'function') toastMal(m); else aviso(m, 'mal'); }
 
   var FICHA = null, SB = null, PROY = {}, TODAS = [];
   var FILTRO = { estado: 'todo', tipo: '', proyecto_id: '' };
@@ -95,7 +95,7 @@
       var url = await lwCreatividades.urlDescarga(c.id, c.path, nombreFichero(c));
       var a = document.createElement('a'); a.href = url; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
     } catch (e) {
-      if (window.toastMal) toastMal(T('No se pudo descargar: ') + ((e && e.message) || e)); else aviso(T('No se pudo descargar.'), 'mal');
+      if (typeof toastMal === 'function') toastMal(T('No se pudo descargar: ') + ((e && e.message) || e)); else aviso(T('No se pudo descargar.'), 'mal');
     } finally { btn.disabled = false; }
   }
 
@@ -113,7 +113,7 @@
     btn.disabled = true;
     try {
       await lwCreatividades.cambiarEstado(c.id, destino);
-      if (window.toast) toast(T('Hecho: ') + T(lwCreatividades.ESTADOS[destino]).toLowerCase());
+      if (typeof toast === 'function') toast(T('Hecho: ') + T(lwCreatividades.ESTADOS[destino]).toLowerCase());
       await recarga();
     } catch (e) { btn.disabled = false; mal(e); }
   }
@@ -205,13 +205,43 @@
   function pintaLista() {
     var caja = $('lw-cre-lista'); caja.innerHTML = '';
     var filas = TODAS.filter(function (c) { return pasaFiltro(c, FILTRO.estado); });
-    if (!filas.length) {
-      var p = document.createElement('p'); p.className = 'col-span-full text-center font-body-md text-body-md text-on-surface-variant py-8';
-      p.textContent = soloVe() ? T('Todavía no hay piezas aprobadas para descargar.')
-        : (TODAS.length ? T('Nada con estos filtros.') : T('La biblioteca está vacía. Crea la primera pieza o monta un dossier desde la base.'));
-      caja.appendChild(p); return;
-    }
+    if (!filas.length) { caja.appendChild(vacio()); return; }
     filas.forEach(function (c) { caja.appendChild(tarjeta(c)); });
+  }
+  /* Lista vacía (mejora 7 de Experiencia, 17-oct-2026): dice POR QUÉ está vacía y lleva el botón para
+     seguir. Antes «Nada con estos filtros» salía también sin filtro puesto, con 20 dossiers en el
+     archivo. Un fallo al leer no llega aquí: lo dice recarga() en rojo. */
+  function vacio() {
+    var d = document.createElement('div'); d.className = 'col-span-full flex flex-col items-center gap-4 text-center py-8';
+    var p = document.createElement('p'); p.className = 'font-body-md text-body-md text-on-surface-variant'; d.appendChild(p);
+    var acc = document.createElement('div'); acc.className = 'flex flex-wrap justify-center gap-2';
+    var conFiltro = !!(FILTRO.tipo || FILTRO.proyecto_id);
+    var archivo = TODAS.filter(function (c) { return c.estado === 'archivada'; }).length;
+    function btn(texto, fn, pri) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-real', '');
+      b.className = 'cre-btn' + (pri ? ' pri' : ''); b.textContent = T(texto); b.onclick = fn; acc.appendChild(b);
+    }
+    function crea(id) {   // los mismos destinos que «Nueva pieza» / «Nuevo dossier» de la cabecera, si los ve
+      var o = $(id); if (!o || o.hidden) return;
+      var a = document.createElement('a'); a.href = o.getAttribute('href'); a.setAttribute('data-real', '');
+      a.className = 'cre-btn' + (id === 'lw-cre-pieza' ? ' pri' : '');
+      a.textContent = id === 'lw-cre-pieza' ? T('Nueva pieza') : T('Nuevo dossier'); acc.appendChild(a);
+    }
+    if (soloVe()) p.textContent = T('Todavía no hay piezas aprobadas para descargar.');
+    else if (!TODAS.length) p.textContent = T('La biblioteca está vacía. Crea la primera pieza o monta un dossier desde la base.');
+    else if (conFiltro) {
+      p.textContent = T('Nada con estos filtros.');
+      btn('Quitar los filtros', function () {
+        FILTRO.tipo = ''; FILTRO.proyecto_id = ''; $('lw-cre-tipo').value = ''; $('lw-cre-proy').value = '';
+        pintaSegmentos(); pintaLista();
+      });
+    } else if (FILTRO.estado === 'todo' && archivo) {
+      p.textContent = (typeof lwT === 'function') ? lwT('No hay piezas activas; %n en el archivo.', { n: archivo }) : 'No hay piezas activas; ' + archivo + ' en el archivo.';
+      btn('Ver el archivo', function () { FILTRO.estado = 'archivada'; pintaSegmentos(); pintaLista(); });
+    } else p.textContent = T('No hay piezas en este estado.');
+    if (!soloVe() && !conFiltro) { crea('lw-cre-pieza'); crea('lw-cre-dossier'); }
+    if (acc.childNodes.length) d.appendChild(acc);
+    return d;
   }
   var recortadaAvisada = false;
   async function recarga() {
