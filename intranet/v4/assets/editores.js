@@ -666,6 +666,15 @@
       '.las-pildora:active{transform:scale(.98)}',
       '.las-pildora[aria-pressed="true"]{border-color:var(--las-lago);box-shadow:inset 0 0 0 1px var(--las-lago);background:#fafaf9;color:var(--las-lago);font-weight:600}',
       '.las-error{margin:0;padding:12px 14px;border-radius:8px;background:#9E2F26;color:#fff;font-weight:600;font-size:14px;line-height:1.4}',
+      /* alta en pasos (mejora 6, 17-oct-2026): solo se ve el paso en curso; la lista de pasos lleva a los ya vistos */
+      '.las-form > [data-paso][hidden]{display:none!important}',
+      '.las-pasos{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}',
+      '.las-paso-b{display:inline-flex;align-items:center;padding:8px 14px;border-radius:9999px;border:1px solid var(--las-borde);background:#fff;font:500 13px/1.2 Jost,system-ui,sans-serif;color:#57534e;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .12s var(--las-sale)}',
+      '.las-paso-b:hover:not(:disabled){border-color:#d6cfc2}',
+      '.las-paso-b:active:not(:disabled){transform:scale(.97)}',
+      '.las-paso-b.las-paso-hecho{color:var(--las-lago);border-color:var(--las-lago)}',
+      '.las-paso-b[aria-current="step"]{background:var(--las-lago);border-color:var(--las-lago);color:#fff;font-weight:600}',
+      '.las-paso-b:disabled{cursor:default;background:transparent;color:var(--las-apagado)}',
       '.las-pie{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 32px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-top:1px solid var(--las-borde)}',
       '.las-pie-izq{display:flex;align-items:center;gap:8px;font-size:12px;color:#78716c;min-width:0}',
       '.las-punto{width:8px;height:8px;flex:none;border-radius:9999px;background:#f59e0b;transition:background .2s}',
@@ -8234,7 +8243,9 @@
           '</section>' +
           /* columna derecha: el formulario */
           '<div class="las-derecha"><div class="las-scroll"><div class="las-form">' +
-          '<section class="las-bloque"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n">01</span><h3>' + esc(tS('Identificación & contacto principal')) + '</h3></div>' +
+          /* los pasos (mejora 6): la lista la pinta pintaPasos(); cada sección `data-paso` es un paso */
+          '<ol class="las-pasos" data-p="pasos" aria-label="' + esc(tS('Pasos del alta')) + '"></ol>' +
+          '<section class="las-bloque" data-paso="quien"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n" data-p="n-quien">01</span><h3>' + esc(tS('Quién es')) + '</h3></div>' +
           '<span class="las-req-nota">* ' + esc(tS('Campos requeridos')) + '</span></div>' +
           '<div class="las-campo"><span class="las-etq" id="las-tipo-etq">' + esc(tS('Tipo de cliente')) + '</span>' +
           '<input type="hidden" data-k="tipo" value="persona">' +
@@ -8243,17 +8254,23 @@
           '<button type="button" class="las-pildora" data-tipo="empresa" aria-pressed="false">' + svg(I.empresa) + '<span>' + esc(tS('Persona jurídica (Empresa)')) + '</span></button>' +
           '</div></div>' +
           campo('full_name', 'Nombre completo / Razón social', { req: 1, ico: I.nombre, ph: 'Nombre y apellidos, o razón social', auto: 'off' }) +
+          campo('nationality', 'Nacionalidad', { req: 1, ico: I.globo, ph: 'Elige el país', ayuda: 'Pulsa para elegir el país.' }) +
+          '</section>' +
+          '<section class="las-bloque" data-paso="contacto"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n" data-p="n-contacto">02</span><h3>' + esc(tS('Contacto')) + '</h3></div>' +
+          '<span class="las-req-nota">* ' + esc(tS('Campos requeridos')) + '</span></div>' +
           campo('email', 'Email', { req: 1, ico: I.mail, tipo: 'email', ph: 'nombre@dominio.com', auto: 'off' }) +
           '<div class="las-fila las-fila-tel">' +
           campo('prefijo', 'Prefijo', { req: 1, mono: 1, ph: '+34', ayuda: '+34, +62, +61…', auto: 'off' }) +
           campo('telefono', 'Teléfono', { req: 1, ico: I.tel, tipo: 'tel', ph: 'Número sin prefijo', auto: 'off' }) +
-          '</div><div class="las-fila">' +
-          campo('nationality', 'Nacionalidad', { req: 1, ico: I.globo, ph: 'Elige el país', ayuda: 'Pulsa para elegir el país.' }) +
-          campo('passport_number', 'Pasaporte / NPWP', { req: 1, ico: I.doc, mono: 1, cls: 'las-mayus', ph: 'Nº del documento', ayuda: 'Es lo que se imprime en el contrato.', auto: 'off' }) +
-          '</div>' + bloqueDoc +
+          '</div>' +
           campo('idioma_comunicacion', 'Idioma de comunicación', { select: '<option value="es">' + esc(tS('Español')) + '</option><option value="en">English</option><option value="id">Bahasa Indonesia</option>' }) +
           '</section>' +
-          '<div class="las-emp-caja" data-emp-caja><section class="las-bloque las-emp" data-emp><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n las-n-verde">02</span><div>' +
+          '<section class="las-bloque" data-paso="documento"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n" data-p="n-documento">03</span><h3>' + esc(tS('Documento')) + '</h3></div>' +
+          '<span class="las-req-nota">* ' + esc(tS('Campos requeridos')) + '</span></div>' +
+          campo('passport_number', 'Pasaporte / NPWP', { req: 1, ico: I.doc, mono: 1, cls: 'las-mayus', ph: 'Nº del documento', ayuda: 'Es lo que se imprime en el contrato.', auto: 'off' }) +
+          bloqueDoc +
+          '</section>' +
+          '<div class="las-emp-caja" data-emp-caja data-paso="empresa"><section class="las-bloque las-emp" data-emp><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n las-n-verde" data-p="n-empresa">02</span><div>' +
           '<h3>' + esc(tS('Información mercantil & representación')) + '</h3><p class="las-bloque-s">' + esc(tS('Solo se guarda si el cliente es una empresa.')) + '</p></div></div>' +
           '<span class="las-insignia las-insignia-on">' + esc(tS('Solo empresa')) + '</span></div>' +
           '<div class="las-fila">' +
@@ -8266,9 +8283,10 @@
           '<p data-e="error" role="alert" class="las-error" hidden></p>' +
           '</div></div>' +
           /* barra de acciones */
-          '<footer class="las-pie"><div class="las-pie-izq"><span class="las-punto" data-p="punto"></span><span data-p="faltan">' + esc(tH('Faltan %n de %m datos obligatorios', { n: 6, m: 6 })) + '</span></div>' +
+          '<footer class="las-pie"><div class="las-pie-izq"><span class="las-punto" data-p="punto" hidden></span><span data-p="faltan">' + esc(tH('Paso %n de %t', { n: 1, t: 3 })) + '</span></div>' +
           '<div class="las-pie-der"><button type="button" data-e="cancelar" class="las-btn2">' + esc(tS('Cancelar')) + '</button>' +
-          '<button type="submit" data-e="guardar" class="las-btn1"><span class="las-txt">' + esc(tS('Dar de alta')) + svg(I.flecha, 'las-ico las-flecha') + '</span>' +
+          '<button type="button" data-e="atras" class="las-btn2" hidden>' + esc(tS('Atrás')) + '</button>' +
+          '<button type="submit" data-e="guardar" class="las-btn1"><span class="las-txt"><span data-p="btn-t">' + esc(tS('Siguiente')) + '</span>' + svg(I.flecha, 'las-ico las-flecha') + '</span>' +
           '<span class="las-giro" aria-hidden="true"><i></i></span><span class="las-ok">' + esc(tS('Guardado')) + ' ✓</span></button></div></footer>' +
           '</div></div></form></div>';
         document.body.appendChild(w);
@@ -8312,9 +8330,85 @@
           $('[data-p="doc"]').textContent = val('passport_number').toUpperCase() || '—';
           $('[data-p="tel"]').textContent = val('telefono') ? (val('prefijo') + ' ' + val('telefono')).trim() : '—';
           var faltan = OBLIG.filter(function (k) { return !val(k); }).length + (exigeDoc && !docsElegidos().length ? 1 : 0);
-          $('[data-p="faltan"]').textContent = faltan ? tH('Faltan %n de %m datos obligatorios', { n: faltan, m: OBLIG.length + (exigeDoc ? 1 : 0) }) : tS('Listo para dar de alta');
+          // Lo que falta solo se cuenta en el último paso: abrir el alta con «Faltan 7 de 7» desanimaba (mejora 6).
+          var ult = esUltimo(), ps = pasos();
+          $('[data-p="faltan"]').textContent = !ult ? tH('Paso %n de %t', { n: ps.indexOf(paso) + 1, t: ps.length })
+            : faltan ? tH(faltan === 1 ? 'Falta 1 de %m datos obligatorios' : 'Faltan %n de %m datos obligatorios', { n: faltan, m: OBLIG.length + (exigeDoc ? 1 : 0) }) : tS('Listo para dar de alta');
+          $('[data-p="punto"]').hidden = !ult;
           $('[data-p="punto"]').classList.toggle('las-listo', !faltan);
         }
+
+        /* NUEVO CLIENTE EN PASOS (mejora 6, 17-oct-2026; Experiencia: «9 campos en una pantalla → 3 pasos de 3»,
+           regla del owner de 1 a 3 campos por paso). Solo la INTERFAZ: los campos son los nodos de siempre repartidos
+           en secciones `data-paso`, y el guardado (submit → altaConDocumento / guardaAltaComprador) no cambia.
+           «Siguiente» es el mismo botón de enviar: en un paso que no es el último, enviar = comprobar ESE paso y
+           pasar al siguiente (así Enter también avanza). Una empresa trae un paso más con sus 4 datos opcionales. */
+        var PASOS = { quien: 'Quién es', empresa: 'Empresa', contacto: 'Contacto', documento: 'Documento' };
+        var paso = 'quien', vistos = { quien: 1 };
+        function pasos() { return ['quien'].concat(tipoInput.value === 'empresa' ? ['empresa'] : [], ['contacto', 'documento']); }
+        function esUltimo() { var ps = pasos(); return ps.indexOf(paso) === ps.length - 1; }
+        function pintaPasos() {
+          var ps = pasos(), i = ps.indexOf(paso);
+          if (i < 0) { paso = 'quien'; i = 0; }
+          w.querySelectorAll('.las-form > [data-paso]').forEach(function (s) { s.hidden = s.getAttribute('data-paso') !== paso; });
+          ps.forEach(function (k, j) { var n = $('[data-p="n-' + k + '"]'); if (n) n.textContent = '0' + (j + 1); });
+          $('[data-p="pasos"]').innerHTML = ps.map(function (k, j) {
+            return '<li><button type="button" class="las-paso-b' + (j < i ? ' las-paso-hecho' : '') + '" data-paso-ir="' + k + '"' +
+              (j === i ? ' aria-current="step"' : '') + (j <= i || vistos[k] ? '' : ' disabled') + '>' + (j + 1) + ' · ' + esc(tS(PASOS[k])) + '</button></li>';
+          }).join('');
+          $('[data-p="btn-t"]').textContent = esUltimo() ? tS('Dar de alta') : tS('Siguiente');
+          $('[data-e="atras"]').hidden = i === 0;
+          $('[data-e="cancelar"]').hidden = i > 0;
+          resumen();
+        }
+        function irA(k) {
+          paso = k; vistos[k] = 1;
+          pintaPasos();
+          $('[data-p="pasos"]').scrollIntoView({ block: 'nearest' });
+          var sec = $('.las-form > [data-paso="' + k + '"]'), ins = sec ? sec.querySelectorAll('input.las-in, .las-sel-btn') : [];
+          var p = Array.prototype.filter.call(ins, function (x) { return x.tagName === 'INPUT' && !x.value; })[0] || ins[0];
+          if (p) p.focus({ preventScroll: true });
+        }
+        // Los obligatorios que faltan y el correo mal escrito: de un paso (`sec`) o, sin él, de todo el alta.
+        function faltasEn(sec) {
+          var en = function (k) { return !sec || !!sec.querySelector('[data-req="' + k + '"]'); }, malos = [];
+          OBLIG.forEach(function (k) { if (en(k) && !val(k)) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
+          if (en('email') && val('email') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('email'))) malos.push(['email', tS('No parece una dirección de correo válida.')]);
+          return malos;
+        }
+        function siguiente() {
+          var sec = $('.las-form > [data-paso="' + paso + '"]'), malos = faltasEn(sec);
+          sec.querySelectorAll('.las-campo.las-mal').forEach(function (c) { c.classList.remove('las-mal'); });
+          if (malos.length) {
+            malos.forEach(function (m) { marcaCampo(m[0], m[1]); });
+            var p = $('[data-req="' + malos[0][0] + '"] input');
+            if (p) p.focus({ preventScroll: true });
+            return;
+          }
+          var ps = pasos();
+          irA(ps[ps.indexOf(paso) + 1]);
+        }
+        $('[data-p="pasos"]').addEventListener('click', function (e) {
+          var b = e.target.closest('[data-paso-ir]');
+          if (b && !b.disabled) irA(b.getAttribute('data-paso-ir'));
+        });
+        $('[data-e="atras"]').addEventListener('click', function () { var ps = pasos(); irA(ps[Math.max(0, ps.indexOf(paso) - 1)]); });
+
+        /* El prefijo sale de la nacionalidad (geo.js) y se puede cambiar: si el agente lo escribe a mano, otra
+           nacionalidad ya no lo pisa. Sin geo.js (otra página u otra instancia), el campo es el de siempre. */
+        var prefijoPuesto = '', prefIn = $('[data-k="prefijo"]'), prefAyuda = $('#las-prefijo-a'), prefAyudaBase = prefAyuda ? prefAyuda.textContent : '';
+        $('[data-k="nationality"]').addEventListener('change', function () {
+          if (typeof prefijoDeNacionalidad !== 'function') return;
+          var p = prefijoDeNacionalidad(val('nationality')), ahora = prefIn.value.trim();
+          if (!p || (ahora && ahora !== prefijoPuesto)) return;
+          prefIn.value = prefijoPuesto = p;
+          prefIn.closest('.las-campo').classList.remove('las-mal');
+          if (prefAyuda) prefAyuda.textContent = tH('Por la nacionalidad (%p). Se puede cambiar.', { p: val('nationality') });
+          resumen();
+        });
+        prefIn.addEventListener('input', function () {
+          if (prefAyuda && prefIn.value.trim() !== prefijoPuesto) prefAyuda.textContent = prefAyudaBase;
+        });
         function ponTipo(t) {
           tipoInput.value = t;
           w.querySelectorAll('.las-pildora').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-tipo') === t)); });
@@ -8330,7 +8424,7 @@
             $('[data-p="doc-etq"]').textContent = tS(dd.etq);
             $('[data-p="doc-ayuda"]').textContent = tS(dd.ayuda);
           }
-          resumen();
+          pintaPasos();   // la empresa añade su paso
         }
         w.querySelectorAll('.las-pildora').forEach(function (b) { b.addEventListener('click', function () { ponTipo(b.getAttribute('data-tipo')); }); });
         ponTipo('persona');
@@ -8367,17 +8461,19 @@
         form.addEventListener('submit', function (ev) {
           ev.preventDefault();
           caja.hidden = true;
+          if (!esUltimo()) { siguiente(); return; }   // «Siguiente» (y Enter) en un paso que no es el último
           var v = {};
           w.querySelectorAll('[data-k]').forEach(function (el) { v[el.getAttribute('data-k')] = el.value.trim(); });
           // Los que faltan se marcan en su sitio: tiemblan, rojo y su mensaje debajo.
-          var malos = [];
-          OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
-          if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', tS('No parece una dirección de correo válida.')]);
+          var malos = faltasEn(null);
           var docMal = exigeDoc ? problemaDocs(docsElegidos()) : '';
           if (docMal) malos.push(['doc_identidad', docMal]);
           w.querySelectorAll('.las-campo.las-mal').forEach(function (c) { c.classList.remove('las-mal'); });
           if (malos.length) {
             malos.forEach(function (m) { marcaCampo(m[0], m[1]); });
+            // si el primero que falta es de un paso anterior (se borró al volver atrás), se va a ese paso
+            var pasoMal = ($('[data-req="' + malos[0][0] + '"]') || form).closest('[data-paso]');
+            if (pasoMal && pasoMal.getAttribute('data-paso') !== paso) irA(pasoMal.getAttribute('data-paso'));
             // `input` antes que `.las-in`: en el del documento, `.las-in` es la etiqueta que lo envuelve y no coge el foco
             var primero = $('[data-req="' + malos[0][0] + '"] input') || $('[data-req="' + malos[0][0] + '"] .las-in');
             if (primero) { primero.focus({ preventScroll: true }); primero.scrollIntoView({ block: 'center', behavior: 'smooth' }); }

@@ -82,6 +82,22 @@ const PREFIJOS = [['+93','Afganistán'],['+355','Albania'],['+49','Alemania'],['
   ['+58','Venezuela'],['+84','Vietnam'],['+967','Yemen'],['+253','Yibuti'],['+260','Zambia'],
   ['+263','Zimbabue']];
 
+/* Prefijo a partir de la nacionalidad (mejora 6, 17-oct-2026: el alta de cliente pone el prefijo sola al
+   elegir el país y el agente lo puede cambiar). Se busca el país en PREFIJOS —una entrada «A / B» vale para
+   los dos y lo de entre paréntesis no cuenta—. El Caribe angloparlante, que PREFIJOS agrupa en el «+1» de la
+   nota de arriba, va por su propia lista. Sin coincidencia devuelve '' y el campo se queda como esté. Que
+   ninguna nacionalidad se quede sin prefijo lo fija geo_prefijo.test.js. */
+const NANP_CARIBE = ['Antigua y Barbuda','Bahamas','Barbados','Dominica','Granada','Jamaica','República Dominicana',
+  'San Cristóbal y Nieves','San Vicente y las Granadinas','Santa Lucía','Trinidad y Tobago'];
+function prefijoDeNacionalidad(nac){
+  const limpio = s => String(s||'').replace(/\s*\(.*\)/,'').trim();
+  const n = limpio(nac);
+  if(!n) return '';
+  if(NANP_CARIBE.includes(n)) return '+1';
+  const p = PREFIJOS.find(([, nom]) => nom.split(' / ').some(x => limpio(x) === n));
+  return p ? p[0] : '';
+}
+
 /* Separa un teléfono guardado ("+34 612345678") en prefijo+número para
    precargar los dos campos. Prueba los prefijos más largos primero (evita que
    un "+1" de 2 caracteres se coma el principio de un número que en realidad
