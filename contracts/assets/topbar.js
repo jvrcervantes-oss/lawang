@@ -317,11 +317,15 @@ function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
        misma función la usa la campana de la intranet v4. Aquí solo se pinta.
        Si la página no carga avisos.js, se DICE en la lista en vez de dejar la
        campana vacía, que se leería como «nada nuevo» (avisos.test.js exige
-       además que toda página con topbar.js lo cargue). */
+       además que toda página con topbar.js lo cargue).
+       Las tres frases son las MISMAS que pinta la campana de la v4
+       (intranet/v4/assets/cabecera.js) y pasan por el diccionario de la suite:
+       antes iban fijas en español y salían así con la intranet en inglés
+       (17-oct-2026). */
     function cargar() {
       if (typeof lwAvisos !== 'function') {
         console.error('[topbar] falta contracts/assets/avisos.js en esta página');
-        lista.innerHTML = '<p class="lw-campana-vacio">No se pudieron cargar los avisos.</p>';
+        lista.innerHTML = '<p class="lw-campana-vacio">' + esc(tbT('No se pudieron cargar los avisos. Prueba a recargar la página.')) + '</p>';
         return;
       }
       lwAvisos(sb, { esAdmin: esAdmin, email: email, vistoHasta: vistoHasta })
@@ -329,11 +333,11 @@ function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
           pintar(out.avisos, out.sinLeer);
           // una consulta caída no se lee como «nada nuevo»: se dice
           if (out.fallos) lista.insertAdjacentHTML('afterbegin', '<p class="lw-campana-vacio">' +
-            (out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Algún aviso no se pudo cargar: la lista puede estar incompleta.') + '</p>');
+            esc(tbT(out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Alguna de las consultas de avisos falló: la lista puede estar incompleta.')) + '</p>');
         })
         .catch(function (e) {
           console.error('[topbar] avisos:', e);
-          lista.innerHTML = '<p class="lw-campana-vacio">No se pudieron cargar los avisos.</p>';
+          lista.innerHTML = '<p class="lw-campana-vacio">' + esc(tbT('No se pudieron cargar los avisos. Prueba a recargar la página.')) + '</p>';
         });
     }
 
