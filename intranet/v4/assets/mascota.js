@@ -155,6 +155,13 @@
     'html:has(#lw-cajon) #lw-masc,html:has(#lw-editor) #lw-masc,html:has(#cajon-detalle:not(.translate-x-full)) #lw-masc,' +
     'html:has(#lw-com-previa-caja:not([hidden])) #lw-masc,html:has(.lw-dlg-fondo.abierto) #lw-masc,html:has(#lw-novedades) #lw-masc,html:has(body.v4-nav-abierta) #lw-masc{visibility:hidden}' +
     '@media (max-width:767px){#lw-masc{right:14px;bottom:14px}#lw-masc .lwm-yo{width:72px;height:72px}#lw-masc .lwm-yo::before{inset:7px}#lw-masc svg{width:50px;height:50px;margin:-25px 0 0 -25px}#lw-masc .lwm-bur{right:-2px;bottom:88px}#lw-masc .lwm-bur::after{right:28px}}' +
+    /* encogido (ver encoge()): 44 px pegado a la esquina; los selectores llevan la clase, así que también mandan dentro del @media del móvil */
+    '#lw-masc.lwm-mini{right:16px;bottom:16px}' +
+    '#lw-masc.lwm-mini .lwm-yo{width:44px;height:44px;box-shadow:0 8px 18px -8px rgba(16,76,79,.6)}' +
+    '#lw-masc.lwm-mini .lwm-yo::before{inset:4px}' +
+    '#lw-masc.lwm-mini svg{width:32px;height:32px;margin:-16px 0 0 -16px}' +
+    '#lw-masc.lwm-mini .lwm-punto{top:-2px;right:-2px;width:14px;height:14px;border-width:2px}' +
+    '@media (prefers-reduced-motion:no-preference){#lw-masc,#lw-masc .lwm-yo,#lw-masc svg{transition:right .2s ease,bottom .2s ease,width .2s ease,height .2s ease,margin .2s ease}}' +
     '@media print{#lw-masc{display:none}}';
 
   function el(tag, cls, txt) {
@@ -214,6 +221,45 @@
       brote.classList.add('baila');
     }
 
+    /* ── Encogerse para no tapar (Experiencia, 17-oct-2026: a 88 px tapaba la última columna o el botón de acción
+       de la tabla en 8 pantallas) ──
+       Se queda en 44 px en la esquina cuando la página ha bajado o cuando, a tamaño entero, tendría debajo una tabla
+       o un control. Se mira la huella GRANDE, no la actual: si no, al encogerse dejaría de ver lo que tapaba y volvería
+       a crecer encima. Con el bocadillo abierto va entero (el bocadillo está colocado para ese tamaño), y durante la
+       presentación no se toca. Se reevalúa al hacer scroll (cualquier contenedor), al cambiar el tamaño y cada 1,2 s,
+       porque las tablas llegan por red sin que nadie mueva nada. */
+    var TAPABLE = 'td,th,button,a[href],input,select,textarea,[data-accion],[role="button"]';
+    function tendriaDebajo() {
+      var movil = window.matchMedia && window.matchMedia('(max-width:767px)').matches;
+      var lado = movil ? 72 : 88, der = movil ? 14 : 24, abajo = movil ? 14 : 22;
+      var x0 = window.innerWidth - der - lado, y0 = window.innerHeight - abajo - lado;
+      for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) {
+        var capas = document.elementsFromPoint(x0 + lado * (i + .5) / 3, y0 + lado * (j + .5) / 3);
+        for (var k = 0; k < capas.length; k++) {
+          if (raiz.contains(capas[k])) continue;
+          if (capas[k].closest && capas[k].closest(TAPABLE)) return true;
+          break;   // solo cuenta lo que está justo debajo
+        }
+      }
+      return false;
+    }
+    var pendienteEncoge = false;
+    function encoge() {
+      pendienteEncoge = false;
+      if (raiz.style.visibility === 'hidden' || !bur.hidden) { raiz.classList.remove('lwm-mini'); return; }
+      var bajado = (window.scrollY || document.documentElement.scrollTop || 0) > 40;
+      raiz.classList.toggle('lwm-mini', bajado || tendriaDebajo());
+    }
+    function pideEncoge() {
+      if (pendienteEncoge) return;
+      pendienteEncoge = true;
+      (window.requestAnimationFrame || setTimeout)(encoge);
+    }
+    document.addEventListener('scroll', pideEncoge, { capture: true, passive: true });
+    window.addEventListener('resize', pideEncoge, { passive: true });
+    setInterval(function () { if (!document.hidden) pideEncoge(); }, 1200);
+    encoge();
+
     /* ── bocadillo ── */
     var alCerrar = null;
     function cierra() {
@@ -221,6 +267,7 @@
       bur.hidden = true;
       ojos.classList.remove('mira');
       yo.setAttribute('aria-expanded', 'false');
+      encoge();
       var f = alCerrar; alCerrar = null;
       if (f) f();
     }
@@ -234,6 +281,7 @@
       bur.appendChild(x);
       contenido.forEach(function (n) { bur.appendChild(n); });
       bur.hidden = false;
+      raiz.classList.remove('lwm-mini');
       yo.setAttribute('aria-expanded', 'true');
       ojos.classList.add('mira');
       if (!QUIETO && bur.animate) bur.animate([{ opacity: 0, transform: 'translateY(6px) scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.2,.9,.3,1)' });

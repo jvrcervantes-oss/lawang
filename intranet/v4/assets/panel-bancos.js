@@ -194,10 +194,24 @@
     if (D.resumen == null) {
       caja.innerHTML = tarjeta('<p class="font-body-md text-body-md text-on-surface-variant">' + esc(T('Tu usuario no ve los bancos: hace falta ser admin y tener «Bancos» marcado en Usuarios.')) + '</p>'); return;
     }
+    /* Sin ningún extracto (mejora 7 de Experiencia, 17-oct-2026): UN solo vacío, con su botón dentro. Antes lo decían
+       esta tarjeta y la tabla de abajo, sin botón, y mandaba a «Importar extracto», más arriba. Sin cuentas propias el
+       botón es el enlace a Cuentas bancarias, donde se marcan. pintaTodo() esconde la tabla mientras tanto. */
     if (!D.resumen.length) {
       var nProp = cuentasImportables().length;
-      caja.innerHTML = tarjeta('<p class="font-label-md text-label-md text-on-surface">' + esc(T('Todavía no hay ningún extracto importado.')) + '</p>' +
-        '<p class="font-body-sm text-body-sm text-on-surface-variant">' + esc(nProp ? T('Empieza con «Importar extracto».') : T('Antes, marca en Cuentas qué cuentas son de la sociedad: solo esas se pueden importar.')) + '</p>');
+      var btn = 'inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm';
+      caja.innerHTML = '<div class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col items-start gap-4" style="grid-column:1/-1">' +
+        '<span class="material-symbols-outlined text-[32px] text-deep-lagoon" aria-hidden="true">account_balance</span>' +
+        '<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">' + esc(T('Todavía no hay ningún extracto importado.')) + '</h2>' +
+        '<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">' + esc(nProp
+          ? T('Descarga el extracto en CSV desde la banca online e impórtalo: aquí verás el saldo de cada cuenta y lo que falta por conciliar.')
+          : T('Antes, marca en Cuentas qué cuentas son de la sociedad: solo esas se pueden importar.')) + '</p>' +
+        (nProp
+          ? '<button type="button" class="' + btn + '" data-accion="ban-importar" data-real><span class="material-symbols-outlined text-[18px]" aria-hidden="true">upload_file</span>' + esc(T('Importar extracto')) + '</button>'
+          : '<a class="' + btn + '" href="/intranet/v4/cuentas/" data-real><span class="material-symbols-outlined text-[18px]" aria-hidden="true">account_balance</span>' + esc(T('Ir a Cuentas bancarias')) + '</a>') +
+        '</div>';
+      var b = caja.querySelector('[data-accion="ban-importar"]');
+      if (b) b.addEventListener('click', function (ev) { ev.stopPropagation(); importar(); });
       return;
     }
     caja.innerHTML = D.resumen.map(function (c) {
@@ -234,7 +248,12 @@
     var porM = {}; fs.forEach(function (m) { var x = porM[m.moneda] = porM[m.moneda] || { e: 0, s: 0 }; if (m.importe > 0) x.e += Number(m.importe); else x.s += Number(m.importe); });
     pon('suma', fs.length + ' ' + T(fs.length === 1 ? 'movimiento' : 'movimientos') + ' · ' + Object.keys(porM).sort().map(function (k) { return fmtS(porM[k].e, k) + ' / ' + fmtS(porM[k].s, k); }).join(' · '));
   }
-  function pintaTodo() { llenaFiltros(); pintaCuentas(); pintaLista(); if (typeof lwIdiomaAplicar === 'function') { try { lwIdiomaAplicar(); } catch (_) { /* MUDO A PROPOSITO: traducir no tumba la pantalla */ } } }
+  function pintaTodo() {
+    // Sin extractos el vacío lo dice pintaCuentas() una sola vez: la tabla y el CSV esperan a que haya movimientos
+    var sinNada = !D.movs.length && !!D.resumen && !D.resumen.length;
+    $('lw-ban-libro').style.display = sinNada ? 'none' : '';
+    $('lw-ban-csv').disabled = !D.movs.length; $('lw-ban-csv').classList.toggle('opacity-50', !D.movs.length);
+    llenaFiltros(); pintaCuentas(); pintaLista(); if (typeof lwIdiomaAplicar === 'function') { try { lwIdiomaAplicar(); } catch (_) { /* MUDO A PROPOSITO: traducir no tumba la pantalla */ } } }
   function refrescar() {
     limpiaRecortado();   // «recortado» lo vuelve a poner cargar() si sigue haciendo falta; el fallo de un refresco anterior se va
     return cargar().then(pintaTodo, function (e) {
