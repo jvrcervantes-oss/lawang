@@ -26,6 +26,7 @@ const CLAVE_MENU = Function('return ' + m[1])();
 
 const norma = k => [].concat(k).slice().sort().join(',');
 const errores = [];
+const esperas = [];   // comprobaciones con promesas (lee() del buscador)
 
 for (const carpeta of fs.readdirSync(V4, { withFileTypes: true })) {
   if (!carpeta.isDirectory() || carpeta.name === 'assets') continue;
@@ -297,10 +298,26 @@ if (/details\.lw-menu/.test(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets
   if (/contratos_equipo/.test(nav.replace(/\/\*[\s\S]*?\*\//g, ''))) errores.push('nav.js: el buscador no pide contratos_equipo() entero: usa contratos_busca');
   // la pantalla pide al servidor, no lee la tabla (owner 15-oct; el gate escrituras_front paró `from('unidades')` el 17-oct)
   if (/\.from\(/.test(grupos)) errores.push('nav.js: el buscador lee una tabla desde el navegador: va por una RPC (contratos_busca, unidades_busca)');
+  // un grupo sin su función (PGRST202) o sin permiso (42501) no se repide en cada tecla mientras el buscador sigue abierto
+  const trozo = (nav.match(/function sinPermisoONoExiste[\s\S]*?\n      return p;\n    \}/) || [''])[0];
+  if (!trozo) errores.push('nav.js: no se encuentra lee() del buscador');
+  else {
+    const hazLee = new Function('memo', trozo + '\nreturn lee;');
+    const prueba = (codigo, porConsulta) => {
+      let n = 0; const memo = {}; const lee = hazLee(memo);
+      const g = { path: 'proyectos', porConsulta, vale: () => true, pide: () => { n++; return { error: { code: codigo } }; } };
+      return lee(g, {}, 'ab').then(() => lee(g, {}, 'abc')).then(() => n);
+    };
+    esperas.push(prueba('PGRST202', true).then(n => { if (n !== 1) errores.push(`nav.js: el grupo sin su función se pidió ${n} veces en dos teclas (debe ser 1)`); }));
+    esperas.push(prueba('42501', true).then(n => { if (n !== 1) errores.push(`nav.js: el grupo sin permiso se pidió ${n} veces en dos teclas (debe ser 1)`); }));
+    esperas.push(prueba('500', true).then(n => { if (n !== 2) errores.push(`nav.js: un fallo del servidor (no de permiso) dejó de reintentarse en la tecla siguiente (${n} llamadas)`); }));
+  }
   if (/(localStorage|sessionStorage)/.test(grupos)) errores.push('nav.js: los resultados del buscador no se guardan en el navegador');
   (grupos.match(/encodeURIComponent\(([a-z]+)\.([a-z_]+)\)/g) || []).forEach(m => {
     if (!/\.(id|proyecto_id)\)$/.test(m)) errores.push(`nav.js: el buscador enlaza por ${m}: por el id de la fila, nunca por un nombre o un número`);
   });
 }
-assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
-console.log('nav.test.js OK (' + enMenu.length + ' casillas situadas en el menú)');
+Promise.all(esperas).then(() => {
+  assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
+  console.log('nav.test.js OK (' + enMenu.length + ' casillas situadas en el menú)');
+}).catch(e => { console.error(e.message); process.exit(1); });

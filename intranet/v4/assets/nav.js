@@ -1140,8 +1140,13 @@
     function sinPermisoONoExiste(e) { return e && (e.code === 'PGRST202' || e.code === '42501'); }
     function lee(g, sb, q) {
       if (!g.porConsulta && memo[g.path]) return memo[g.path];
+      // sin la función o sin permiso no se vuelve a pedir en cada tecla mientras dure esta apertura
+      if (memo['no:' + g.path]) return memo['no:' + g.path];
       var p = Promise.resolve(g.pide(sb, q)).then(function (r) {
-        if (r && r.error) return { error: r.error };
+        if (r && r.error) {
+          if (sinPermisoONoExiste(r.error)) memo['no:' + g.path] = Promise.resolve({ error: r.error });
+          return { error: r.error };
+        }
         return { filas: ((r && r.data) || []).filter(g.vale) };
       }, function (e) { return { error: e || {} }; });
       if (!g.porConsulta) memo[g.path] = p;
