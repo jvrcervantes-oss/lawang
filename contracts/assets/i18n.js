@@ -7000,6 +7000,22 @@
     'Ningún ticket resuelto todavía.': 'No resolved tickets yet.',
     'Ver los resueltos': 'See the resolved ones',
     'Ver los abiertos': 'See the open ones',
+    // «Hoy toca» abre su lista (17-oct-2026, mejora 5)
+    'venció hace %n d': 'overdue by %n d',
+    'vence hoy': 'due today',
+    'caducó hace %n d': 'expired %n d ago',
+    'caducó hoy': 'expired today',
+    'Abrir la operación': 'Open the deal',
+    'Abrir Reservas': 'Open Reservations',
+    'Abrir Contratos': 'Open Contracts',
+    'Abrir Vencimientos': 'Open Payment schedule',
+    'Abrir Facturas': 'Open Invoices',
+    'Abrir Recibos': 'Open Receipts',
+    'Abrir la factura': 'Open the invoice',
+    'Subir el justificante': 'Upload the proof',
+    'Ver la lista': 'See the list',
+    '%n en la lista: los mismos que cuenta el aviso.': '%n in the list: the same ones the alert counts.',
+    'Lo que está esperando a alguien. Cada fila abre su lista, con lo que hay que hacer en cada uno.': 'What is waiting on someone. Each row opens its list, with what to do on each one.',
   };
 
   window.LW_EN = EN;

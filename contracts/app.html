@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="f39c05e1cfba">
+<meta name="lw-version" content="68be197a9f43">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=d172e291"></script>
+<script src="/contracts/assets/i18n.js?v=cd1c7fb4"></script>
 <script src="/contracts/assets/herramientas.js?v=b3b6465e"></script>
 <script src="assets/avisos.js?v=ee138378" defer></script><script src="assets/topbar.js?v=0906fb5b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -7699,6 +7699,19 @@ async function init(){
       try{ history.replaceState(null, '', location.pathname + '?' + par.toString()); }catch(_){ /* MUDO A PROPOSITO: sin historial (iframe, file:) solo queda el parametro en la barra; el borrador sale igual */ }
       // los anexos del archivo llegan después de abrir: sin esperar, el borrador salía con huecos (LAW-78)
       if(SAVED_CONTRACT){ await CARGA_ANEXOS; imprimirBorrador(); }
+    }
+    /* ?firma=1 — «Reenviar» de las firmas caducadas en «Hoy toca» (Home v4, 17-oct-2026): abre el
+       contrato y enseña la ventana «Enviar a firma», nada más. Generar el enlace sigue siendo el botón
+       de dentro (anula el vivo y crea otro). Va por el mismo botón que se pulsa a mano: si está apagado
+       (firmado, firmas a medias, sin guardar) no se abre y se dice su motivo. Se quita de la barra en el
+       acto para que un F5 no vuelva a abrirla. openSavedContract ya esperó a cargarEstadoFirma. */
+    if(par.get('firma') === '1'){
+      par.delete('firma');
+      try{ history.replaceState(null, '', location.pathname + '?' + par.toString()); }catch(_){ /* MUDO A PROPOSITO: sin historial (iframe, file:) solo queda el parametro en la barra; la ventana sale igual */ }
+      const bFirma = $('#btnEnviarFirma');
+      // sin await: la ventana puede pedir una confirmación (cadena rota) y la página no se queda esperando para enseñarse
+      if(SAVED_CONTRACT && bFirma && bFirma.style.display !== 'none' && !bFirma.disabled) openFirmaModal().catch(e => toastMal(String((e && e.message) || e)));
+      else if(bFirma && bFirma.title) toastMal(bFirma.title);
     }
   } else if(par.has('nuevo') || par.has('cliente') || par.has('lead')){
     // recargar esta URL directamente (F5, o entrar por ella a pelo) es una
