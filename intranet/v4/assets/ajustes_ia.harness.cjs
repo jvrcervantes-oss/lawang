@@ -8,8 +8,9 @@
 //  · el interruptor sigue igual: «Encender la IA» a la vista y, con el tope a 0, no manda nada y lleva el foco al tope;
 //  · la ficha de un asistente no repite su nombre («Claude Claude»);
 //  · sin scroll horizontal;
-//  · «Dar permiso a todo el equipo» (17-oct-2026): pide confirmación, manda ia_permiso_guarda {p_usuario, p_concede:true} SOLO a quien
-//    no tiene permiso, y si la base rechaza a alguien lo dice en el aviso de error (que SE VE: toastMal es global, no de window).
+//  · el equipo (17-oct-2026, sin permiso por persona: puede conectar todo el equipo activo): solo para mirar, sin ningún botón de
+//    permiso, con las consultas de hoy y las conexiones vivas de cada persona;
+//  · si la base rechaza un guardado, el aviso de error SE VE (toastMal es global, no de window).
 // La interfaz se maneja por data-* (data-ia-*, data-accion), nunca por rótulo. Sale 1 si falla.
 const fs = require('fs'), path = require('path'), http = require('http');
 const { chromium } = require(process.env.PLAYWRIGHT_CORE || 'C:/Users/jvrce/AppData/Roaming/npm/node_modules/@playwright/mcp/node_modules/playwright-core');
@@ -61,8 +62,8 @@ const FALSO = `(function () {
       // solo las escrituras: ia_mis_conexiones (aviso de la barra) e ia_ajustes_ver son lecturas
       if (/^ia_.*(_guarda|_revoca)$/.test(n)) {
         window.__LLAMADAS.push([n, JSON.parse(JSON.stringify(a || {}))]);
-        // u-3 la rechaza la base como desactivada: el botón de todo el equipo tiene que decirlo
-        if (n === 'ia_permiso_guarda' && a && a.p_usuario === 'u-3') return Promise.resolve({ data: { error: 'usuario_inactivo' }, error: null });
+        // 99 días la rechaza la base (fuera de rango): el aviso de error tiene que verse
+        if (n === 'ia_ajustes_guarda' && a && a.p_datos && a.p_datos.duracion_dias === 99) return Promise.resolve({ data: { error: 'fuera_de_rango' }, error: null });
         return Promise.resolve({ data: { ok: true }, error: null });
       }
       if (RPC[n] !== undefined) return Promise.resolve({ data: JSON.parse(JSON.stringify(RPC[n])), error: null });
@@ -126,24 +127,27 @@ srv.listen(0, async () => {
         const ll = await p.evaluate(() => window.__LLAMADAS);
         ok(pre + 'se manda ia_ajustes_guarda {p_datos} solo con lo cambiado (' + JSON.stringify(ll) + ')',
           ll.length === 1 && ll[0][0] === 'ia_ajustes_guarda' && JSON.stringify(ll[0][1]) === JSON.stringify({ p_datos: { duracion_dias: 14 } }));
-        // «Dar permiso a todo el equipo»: 2 sin permiso (u-2, u-3); u-3 la rechaza la base
-        await p.evaluate(() => { window.__LLAMADAS.length = 0; });
-        await p.click('[data-accion="ia-permiso-dar-todos"]');
-        await p.waitForSelector('.lw-dlg .lw-dlg-pie .btn.primary', { timeout: 5000 }).catch(() => null);
-        const confirmar = await p.$('.lw-dlg .lw-dlg-pie .btn.primary');
-        ok(pre + 'todo el equipo: pide confirmación antes de mandar nada', !!confirmar && (await p.evaluate(() => window.__LLAMADAS.length)) === 0);
-        if (confirmar) await confirmar.click();
-        await p.waitForFunction(() => window.__LLAMADAS.length >= 2, null, { timeout: 5000 }).catch(() => null);
-        const lt = await p.evaluate(() => window.__LLAMADAS);
-        ok(pre + 'todo el equipo: ia_permiso_guarda con p_concede:true solo a u-2 y u-3 (' + JSON.stringify(lt) + ')',
-          JSON.stringify(lt) === JSON.stringify([['ia_permiso_guarda', { p_usuario: 'u-2', p_concede: true }], ['ia_permiso_guarda', { p_usuario: 'u-3', p_concede: true }]]));
-        // el aviso es position:fixed (offsetParent siempre null): «se ve» = encendido (clase show) y con opacidad
+        // un guardado que la base rechaza: el aviso es position:fixed (offsetParent siempre null): «se ve» = encendido (clase show)
+        await p.waitForSelector(PIE, { state: 'hidden', timeout: 5000 }).catch(() => null);
+        await p.fill('[data-ia-tope="duracion_dias"]', '99');
+        await p.click(PIE);
         const seVe = () => { const t = document.getElementById('toastMal'); if (!t) return null;
           const cs = getComputedStyle(t); return t.classList.contains('show') && cs.display !== 'none' && cs.visibility !== 'hidden' ? t.textContent.trim() : null; };
         await p.waitForFunction(seVe, null, { timeout: 5000 }).catch(() => null);
         const avisoMal = await p.evaluate(seVe);
-        ok(pre + 'todo el equipo: el aviso de error SE VE y nombra a quien no pudo (' + avisoMal + ')', !!avisoMal && /Baja Reciente/.test(avisoMal));
+        ok(pre + 'guardado rechazado por la base: el aviso de error SE VE (' + avisoMal + ')', !!avisoMal);
       }
+      // el equipo: solo para mirar (17-oct, sin permiso por persona)
+      const eq = await p.evaluate(() => {
+        const b = document.querySelector('[data-ia-bloque="equipo"]');
+        const filas = b ? [...b.querySelectorAll('[data-ia-usuario-fila]')] : [];
+        return { hay: !!b, filas: filas.length, botones: document.querySelectorAll('[data-accion^="ia-permiso"]').length,
+                 viejo: !!document.querySelector('[data-ia-bloque="permisos"]'),
+                 u2: (filas.find(f => f.getAttribute('data-ia-usuario-fila') === 'u-2') || {}).innerText || '' };
+      });
+      ok(pre + 'equipo: las 3 personas, sin ningún botón de permiso ni el bloque viejo (' + JSON.stringify(eq) + ')',
+        eq.hay && eq.filas === 3 && eq.botones === 0 && !eq.viejo);
+      ok(pre + 'equipo: la persona con una conexión viva lo dice (' + eq.u2.replace(/\s+/g, ' ') + ')', /\b1\b/.test(eq.u2) && eq.u2.length > 0);
       await ctx.close();
     }
   } finally { await b.close(); srv.close(); }

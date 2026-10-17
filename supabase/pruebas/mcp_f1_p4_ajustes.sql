@@ -10,6 +10,8 @@
 --   F  ia_peticion_ver: petición inventada → error; buena → asistente y «puede»; sin permiso → puede=false; no gasta la petición
 --   G  ia_mis_conexiones: cada persona ve solo las suyas; con la propuesta 20261017015203, los identificadores de los clientes
 --      activos solo a quien puede conectar y con la IA encendida (G2-G4; sin la propuesta, una línea roja «OMITIDAS»)
+--   Con 20261017043002_mcp_todos (17-oct): A1 ia_permiso_guarda cerrada, E0 en vez de E1-E4, F4 B puede y F4b C (baja) no,
+--   G1/G2 B agente activo puede y ve el cliente, G2b C (baja) no puede ni ve clientes
 -- destructivo-ok: prueba en transacción que termina en raise (rollback)
 create temp table _tp (et text primary key, uid uuid, em text, rol text, activo boolean);
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
@@ -48,6 +50,8 @@ declare
   a _tp; b _tp; c _tp; cli uuid; cli2 uuid; con_a uuid; con_b uuid; pet text := repeat('P', 43);
   red text := 'https://claude.ai/api/mcp/auth_callback';
   c_fin constant text := 'FIN DE PRUEBAS MCP P4 AJUSTES (se deshace todo):%';
+  -- con 20261017043002_mcp_todos (17-oct, owner: «activa el mcp a todos») ya no hay permiso por persona y ia_permiso_guarda se cierra
+  todos constant boolean := pg_get_functiondef('public.ia_conexion_autoriza(text)'::regprocedure) !~ 'ia_permisos';
 begin
   if coalesce(current_setting('erp.en_rama', true), '') <> 'si' then
     raise exception 'FIN DE PRUEBAS MCP P4 AJUSTES:%', E'\nP0 esta prueba siembra usuarios en auth.users: solo corre en rama → FALLA';
@@ -84,6 +88,11 @@ begin
   foreach f in array array['public.ia_peticion_ver(text)', 'public.ia_mis_conexiones()', 'public.ia_ajustes_ver()',
                            'public.ia_ajustes_guarda(jsonb)', 'public.ia_cliente_guarda(uuid,text,text,text[],boolean)',
                            'public.ia_permiso_guarda(uuid,boolean)'] loop
+    if todos and f = 'public.ia_permiso_guarda(uuid,boolean)' then   -- sin llamador desde el 17-oct: cerrada a los dos
+      r := r || pg_temp.l(not has_function_privilege('anon', f, 'execute') and not has_function_privilege('authenticated', f, 'execute'),
+                          'A1 ' || f || ': ni anon ni authenticated (sin permiso por persona)');
+      continue;
+    end if;
     r := r || pg_temp.l(not has_function_privilege('anon', f, 'execute') and has_function_privilege('authenticated', f, 'execute'),
                         'A1 ' || f || ': anon no, authenticated sí');
   end loop;
@@ -154,6 +163,13 @@ begin
     values (b.uid, cli, 'https://x.invalid/mcp', 'h', 'aal1', now() + interval '7 days') returning id into con_b;
 
   -- ============================================================ E permisos
+  if todos then
+    -- sin permiso por persona: ni el super admin la llama, y la fila vieja de B no se toca
+    v := pg_temp.sesion(a.uid, a.em, format('select public.ia_permiso_guarda(%L, false)::text', b.uid));
+    r := r || pg_temp.l(v like 'ERR42501%' and exists (select 1 from public.ia_permisos where usuario_id = b.uid and quitado_en is null)
+                        and exists (select 1 from public.ia_conexiones where id = con_b and revocada_en is null),
+                        'E0 super admin llama a ia_permiso_guarda → ' || left(v, 80) || ' (nada cambia)');
+  else
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_permiso_guarda(%L, true)::text', c.uid));
   r := r || pg_temp.l(pg_temp.js(v) ->> 'error' = 'usuario_inactivo', 'E1 permiso a un usuario inactivo → ' || v);
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_permiso_guarda(%L, true)::text', gen_random_uuid()));
@@ -166,6 +182,7 @@ begin
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_permiso_guarda(%L, true)::text', b.uid));
   select count(*) into n from public.ia_permisos where usuario_id = b.uid and concedido_por = a.uid and quitado_en is null and quitado_por is null;
   r := r || pg_temp.l(n = 1, 'E4 volver a darle permiso → con quién lo concedió y sin la marca de quitado');
+  end if;
 
   -- ============================================================ F página de conexión
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_peticion_ver(%L)::text', repeat('Q', 43)));
@@ -178,7 +195,14 @@ begin
                       'F3 A con permiso, con el dominio de vuelta y los segundos que le quedan → ' || v);
   update public.ia_permisos set quitado_en = now() where usuario_id = b.uid;
   v := pg_temp.sesion(b.uid, b.em, format('select public.ia_peticion_ver(%L)::text', pet));
-  r := r || pg_temp.l(not (pg_temp.js(v) ->> 'puede')::boolean and pg_temp.js(v) ->> 'motivo' = 'sin_permiso', 'F4 B sin permiso → ' || v);
+  if todos then
+    r := r || pg_temp.l((pg_temp.js(v) ->> 'puede')::boolean, 'F4 B agente activo sin fila viva en ia_permisos → puede (' || v || ')');
+    v := pg_temp.sesion(c.uid, c.em, format('select public.ia_peticion_ver(%L)::text', pet));
+    r := r || pg_temp.l(not (pg_temp.js(v) ->> 'puede')::boolean and pg_temp.js(v) ->> 'motivo' = 'usuario_inactivo',
+                        'F4b C dado de baja → no puede, usuario_inactivo (' || v || ')');
+  else
+    r := r || pg_temp.l(not (pg_temp.js(v) ->> 'puede')::boolean and pg_temp.js(v) ->> 'motivo' = 'sin_permiso', 'F4 B sin permiso → ' || v);
+  end if;
   select count(*) into n from public.ia_peticiones where id_hash = privado.ia_hash(pet) and usada_en is null;
   r := r || pg_temp.l(n = 1, 'F5 consultar la petición no la gasta');
 
@@ -187,12 +211,19 @@ begin
   j := pg_temp.js(v);
   r := r || pg_temp.l(not exists (select 1 from jsonb_array_elements(j -> 'conexiones') x where x ->> 'id' = con_a::text)
                       and exists (select 1 from jsonb_array_elements(j -> 'conexiones') x where x ->> 'id' = con_b::text)
-                      and not (j ->> 'permiso')::boolean,
-                      'G1 B ve solo las suyas y que no tiene permiso (' || jsonb_array_length(j -> 'conexiones') || ' conexiones)');
+                      and (j ->> 'permiso')::boolean = todos,
+                      'G1 B ve solo las suyas y si puede conectar (' || jsonb_array_length(j -> 'conexiones') || ' conexiones, permiso ' || coalesce(j ->> 'permiso', '-') || ')');
   -- G2-G4 con qué se conecta: solo con la propuesta 20261017015203 aplicada (allí nacen `clientes` y `duracion_dias`)
   if pg_get_functiondef('public.ia_mis_conexiones()'::regprocedure) like '%''clientes''%' then
-    r := r || pg_temp.l(jsonb_typeof(j -> 'clientes') = 'array' and jsonb_array_length(j -> 'clientes') = 0,
-                        'G2 B sin permiso: ningún identificador de cliente (' || coalesce(j ->> 'clientes', 'null') || ')');
+    r := r || pg_temp.l(jsonb_typeof(j -> 'clientes') = 'array' and jsonb_array_length(j -> 'clientes') = case when todos then 1 else 0 end,
+                        'G2 B ' || case when todos then 'agente activo: el cliente activo' else 'sin permiso: ningún identificador de cliente' end
+                        || ' (' || coalesce(j ->> 'clientes', 'null') || ')');
+    if todos then
+      v := pg_temp.sesion(c.uid, c.em, 'select public.ia_mis_conexiones()::text');
+      j := pg_temp.js(v);
+      r := r || pg_temp.l(not (j ->> 'permiso')::boolean and jsonb_array_length(j -> 'clientes') = 0,
+                          'G2b C dado de baja: no puede y ningún identificador de cliente (' || left(v, 120) || ')');
+    end if;
     v := pg_temp.sesion(a.uid, a.em, 'select public.ia_mis_conexiones()::text');
     j := pg_temp.js(v);
     r := r || pg_temp.l(jsonb_array_length(j -> 'clientes') = 1 and j -> 'clientes' -> 0 ->> 'id' = cli::text
