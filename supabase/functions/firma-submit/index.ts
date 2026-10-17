@@ -500,7 +500,9 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
   const hitos = Array.isArray(o.ct.hitos) ? o.ct.hitos : [];
   if (!hitos.length) return { emitida: false, mensaje: 'contrato sin calendario de pagos: no se emite factura' };
 
-  const moneda = f.moneda || o.ct.moneda || 'EUR';
+  // Moneda también de la columna primero (buscador, 17-oct): la fija la base desde la unidad (LAW-261) y
+  // _factura_moneda_valida exige la del contrato; el campo puede haberse quedado en EUR.
+  const moneda = o.ct.moneda || f.moneda || 'EUR';
   // La columna primero (17-oct): es la cifra que acotan los triggers de la base; el campo de datos->fields
   // lo escribió la pantalla y solo sirve de respaldo si la columna viniera vacía.
   const precio = Number(o.ct.precio_total) || C.parseImporte(f.precio_total) || 0;
@@ -628,7 +630,9 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
   }
   const C = await compartidos();
   const f = o.ct.fields || {};
-  const moneda = f.moneda || o.ct.moneda || 'EUR';
+  // Moneda también de la columna primero (buscador, 17-oct): la fija la base desde la unidad (LAW-261) y
+  // _factura_moneda_valida exige la del contrato; el campo puede haberse quedado en EUR.
+  const moneda = o.ct.moneda || f.moneda || 'EUR';
   // La columna primero (17-oct): es la cifra que acotan los triggers de la base; el campo de datos->fields
   // lo escribió la pantalla y solo sirve de respaldo si la columna viniera vacía.
   const precio = Number(o.ct.precio_total) || C.parseImporte(f.precio_total) || 0;

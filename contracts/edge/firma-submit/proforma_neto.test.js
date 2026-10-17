@@ -20,6 +20,8 @@ for (const [fn, fin] of [['async function enviarProformaTotal', '\nDeno.serve(']
   const c = cuerpo(edge, fn, fin);
   assert.ok(/const precio = Number\(o\.ct\.precio_total\) \|\| C\.parseImporte\(f\.precio_total\) \|\| 0;/.test(c),
     fn + ': el precio debe salir de la columna precio_total antes que del campo');
+  assert.ok(/const moneda = o\.ct\.moneda \|\| f\.moneda \|\| 'EUR';/.test(c),
+    fn + ': la moneda debe salir de la columna antes que del campo');
   assert.ok(!/descuento_comercial/.test(c), fn + ': no debe restar descuento_comercial (precio_total ya es el neto)');
 }
 
@@ -33,4 +35,4 @@ for (const [nombre, src] of [['firma-submit', edge], ['app.html', app]]) {
   assert.ok(!/comprobar antes que la proforma resta/.test(src), nombre + ': la nota vieja invitaba a restar el descuento dos veces');
   assert.ok(/NO (se le )?resta/.test(src), nombre + ': falta la nota de que la proforma NO resta descuento_comercial');
 }
-console.log('OK proforma_neto.test.js — la proforma usa precio_total (neto) tal cual, de la columna primero, sin restar el descuento');
+console.log('OK proforma_neto.test.js — la proforma usa precio_total (neto) tal cual, de la columna primero (precio y moneda), sin restar el descuento');
