@@ -116,6 +116,23 @@ const b64 = (u8: Uint8Array) => {
   return btoa(s);
 };
 
+/* El correo del enlace de firma va SOLO al firmante de un enlace vivo de ese contrato y lleva ESE enlace (17-oct-2026,
+   revisión previa de Seguridad de «Reenviar todas», punto 1). Antes, con via:'enlace_firma', valía cualquier dirección y
+   cualquier texto con el buzón de Lawang, y en los correos de contrato no se guarda el texto: un «paga a esta otra cuenta»
+   no dejaba rastro. El generador ya manda exactamente esto (app.html: FIRMA_ENVIO = {to: el email del envía_firma, link}),
+   así que no cambia nada para quien lo usa bien. El texto sigue siendo editable (decisión de producto: el agente saluda a su
+   manera); lo que no puede es ir a otra persona ni quitar el enlace. Devuelve '' si vale, o el motivo. */
+async function motivoEnlaceFirmaNoVale(contratoId: string, to: string, message: string): Promise<string> {
+  const { data, error } = await admin.from('contrato_firmas').select('firmante_email, enlace_firma')
+    .eq('contrato_id', contratoId).eq('estado', 'pendiente').gt('expira_en', new Date().toISOString());
+  if (error) return 'no_se_pudo_comprobar';
+  const vivas = (data ?? []) as { firmante_email: string | null; enlace_firma: string | null }[];
+  const suya = vivas.filter((f) => String(f.firmante_email ?? '').trim().toLowerCase() === to.trim().toLowerCase());
+  if (!suya.length) return 'destinatario_no_es_el_firmante';
+  if (!suya.some((f) => !!f.enlace_firma && message.includes(f.enlace_firma))) return 'mensaje_sin_el_enlace';
+  return '';
+}
+
 /* AXW-202 C3 (5-oct-2026): el aviso de anulación de firma puede ir por la cola de correos. Solo cuando
    config_instancia.correo_cola_aviso_anulacion = «cola» (nace «directo»): la RPC correo_aviso_anulacion_encolar lee el
    interruptor UNA vez y, si está en cola, anota «hay que mandar el aviso de ESTA firma anulada» (la firma la elige la base,
@@ -388,6 +405,14 @@ Deno.serve(async (req) => {
     if (contratoId && !filaFactura) {
       const { data: cv, error: eC } = await usuario.from('contratos').select('id').eq('id', contratoId).maybeSingle();
       if (eC || !cv) return json({ ok: false, error: 'contrato_no_visible' }, 403);
+    }
+
+    // El enlace de firma, solo a su firmante y con su enlace (ver motivoEnlaceFirmaNoVale). Detrás de la RLS del contrato.
+    if (via === 'enlace_firma' && contratoId) {
+      const malo = await motivoEnlaceFirmaNoVale(contratoId, to, message);
+      if (malo === 'no_se_pudo_comprobar') return json({ ok: false, codigo: malo, error: 'No se ha podido comprobar el enlace de firma: vuelve a intentarlo.' }, 500);
+      if (malo === 'destinatario_no_es_el_firmante') return json({ ok: false, codigo: malo, error: 'Este correo no es el del firmante del enlace vivo de este contrato. Genera el enlace para esa persona y envíalo desde ahí.' }, 409);
+      if (malo) return json({ ok: false, codigo: malo, error: 'El mensaje tiene que llevar el enlace de firma vigente: vuelve a generarlo o pega el enlace en el texto.' }, 409);
     }
 
     // AXW-202 C3: con el interruptor en «cola», el aviso de anulación lo manda la cola (ver encolaAvisoAnulacion).
