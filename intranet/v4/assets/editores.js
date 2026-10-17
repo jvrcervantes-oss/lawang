@@ -8426,12 +8426,12 @@
           if (mirando) return Promise.resolve(false);
           mirando = true;
           var correo = val('email').toLowerCase(), tipo = tipoInput.value;
-          return sb.rpc('compradores_lista').select('id,full_name,email,tipo').then(function (r) {
+          return sb.rpc('compradores_lista').select('id,full_name,email,tipo,phone').then(function (r) {
             var otro = !r.error && r.data ? r.data.filter(function (x) { return (x.email || '').toLowerCase() === correo && x.tipo === tipo; })[0] : null;
             if (otro) { marcaRepetido('email', tS('Ya hay otra ficha de este tipo con ese correo:'), otro); return false; }
             var telAlta = telefonoAlta({ prefijo: val('prefijo'), telefono: val('telefono') });
             if (telConfirmado !== null && telConfirmado === telAlta) return true;
-            return telefonoRepetidoSigue(telAlta, null).then(function (sigue) {
+            return telefonoRepetidoSigue(telAlta, null, !r.error && r.data ? r.data : null).then(function (sigue) {
               if (sigue === true) { telConfirmado = telAlta; return true; }
               marcaCampo('telefono', sigue && sigue.error ? sigue.error.message : tS('Falta este dato.'));
               var t = $('[data-k="telefono"]'); if (t) t.focus({ preventScroll: true });
@@ -8761,7 +8761,13 @@
           var cola = '\u2026' + q.slice(-4).toUpperCase();
           sb.rpc('comprador_buscar', { p_q: q }).then(function (r) {
             if (r.error || !r.data || pasIn.value.trim() !== q) return;
-            var otro = r.data.filter(function (x) { return String(x.passport_hint || '').toUpperCase() === cola; })[0];
+            // comprador_buscar también trae fichas cuyo nombre o correo contienen lo escrito: esas no son el pasaporte, fuera
+            // (un falso positivo bloquearía el alta sin salida).
+            var qn = q.toLowerCase();
+            var otro = r.data.filter(function (x) {
+              return String(x.passport_hint || '').toUpperCase() === cola &&
+                String(x.full_name || '').toLowerCase().indexOf(qn) < 0 && String(x.email || '').toLowerCase().indexOf(qn) < 0;
+            })[0];
             if (otro) { pasRepe = { q: q.toUpperCase(), fila: otro }; marcaRepetido('passport_number', tS('Ese pasaporte / NPWP ya está en otra ficha:'), otro); }
           });
         });
@@ -8784,9 +8790,11 @@
          Devuelve `true` para seguir, o un `{ error }` que `modal()` pinta en rojo
          dejando el formulario abierto. Si el directorio no se puede leer se
          sigue: el aviso es una ayuda, no un candado. */
-      function telefonoRepetidoSigue(tel, excluirId) {
+      // `filas`: el directorio ya leído (el alta en pasos lo lee una vez para el correo y el teléfono); sin él, se lee aquí.
+      function telefonoRepetidoSigue(tel, excluirId, filas) {
         if (typeof fichasConMismoTelefono !== 'function' || telefonoDigitos(tel).length < 7) return Promise.resolve(true);
-        return sb.rpc('compradores_lista').select('id,full_name,phone').then(function (r) {
+        var lee = filas ? Promise.resolve({ data: filas }) : sb.rpc('compradores_lista').select('id,full_name,phone');
+        return lee.then(function (r) {
           if (r.error || !r.data) return true;
           var mismos = fichasConMismoTelefono(r.data, tel, excluirId);
           if (!mismos.length) return true;
