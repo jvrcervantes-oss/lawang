@@ -32,7 +32,8 @@
 -- VUELTA ATRÁS (no destruye nada): supabase/reversion_mcp_todos/vuelta_atras.sql — vuelve a dejar las 5 con el texto vivo del 17-oct
 -- (y lo comprueba por md5) y devuelve el EXECUTE de ia_permiso_guarda a authenticated. Con ella, solo vuelve a poder conectar
 -- quien tenga fila viva en ia_permisos (hoy, el owner); las conexiones de los demás se cortan en su siguiente uso ('permiso').
-begin;
+-- Sin begin/commit propios, como las hermanas: la transacción es la de quien aplica (el ensayo del 17-oct, lawang-202610171318-
+-- ea4185cd, avisó «there is already a transaction in progress» y un commit aquí cerraría la suya antes de tiempo).
 set local lock_timeout = '5s';
 
 CREATE OR REPLACE FUNCTION privado.ia_conexion_motivo(p_conexion uuid)
@@ -244,4 +245,3 @@ begin
     raise exception 'mcp_todos: ia_permiso_guarda sigue abierta a authenticated; no se aplica nada';
   end if;
 end $c$;
-commit;

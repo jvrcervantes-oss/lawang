@@ -107,7 +107,7 @@ do $todo$
 declare
   r text := ''; v text; j jsonb; n bigint; h record; t0 timestamptz; ms numeric; cebo text;
   sa _tp; ag _tp; agn _tp; o _tp;
-  pM uuid; pX uuid; pO uuid; uO uuid; fO uuid; rO uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid; r2 uuid; m2 uuid; m3 uuid;
+  pM uuid; pX uuid; pO uuid; uO uuid; cO uuid; fO uuid; rO uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid; r2 uuid; m2 uuid; m3 uuid;
   v_hoy date := (now() at time zone 'Asia/Makassar')::date;
   c_fin constant text := 'FIN DE PRUEBAS MCP F1-P2 (se deshace todo):%';
 begin
@@ -375,10 +375,19 @@ begin
     execute 'set local session_replication_role = replica';
     insert into public.unidades (codigo, proyecto, proyecto_id, tipo, moneda, precio, superficie_m2, estado, obra_fecha_entrega)
       values ('ZZ-OTRA-1', 'ZZ-OTRA Proyecto', pO, 'parcela', 'EUR', 60000, 300, 'disponible', date '2027-02-01') returning id into uO;
-    insert into public.facturas (tipo, numero, sociedad, proyecto_id, total, moneda, fecha_emision, creado_por, datos)
-      values ('factura', 'ZZ-OTRA-F1', 'zz_otra', pO, 300, 'EUR', v_hoy, sa.em, '{"fields":{}}'::jsonb) returning id into fO;
-    insert into public.facturas (tipo, numero, sociedad, proyecto_id, total, moneda, fecha_emision, creado_por, datos)
-      values ('recibi', 'ZZ-OTRA-R1', 'zz_otra', pO, 200, 'EUR', v_hoy, sa.em, '{"fields":{}}'::jsonb) returning id into rO;
+    -- toda factura lleva contrato (facturas_contrato_obligatorio; el ensayo lawang-202610171325-ed3eea9e lo cazó): una reserva SIN
+    -- firmar (no es venta ni reserva caída: no mueve las cifras de resumen_semana) y del mismo precio (no sale de más)
+    insert into public.contratos (numero, tipo, proyecto_id, proyecto_nombre, moneda, precio_total, bloqueado,
+                                  comprador_nombre, datos, creado_por, created_at)
+      values ('ZZ-OTRA-C1', 'reserva_parcela', pO, 'ZZ-OTRA Proyecto', 'EUR', 300, false, 'ZZ-OTRA Comprador',
+              '{"fields":{}}'::jsonb, sa.em, now() - interval '1 day') returning id into cO;
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, proyecto_id, total, moneda, fecha_emision, creado_por, datos)
+      values ('factura', 'ZZ-OTRA-F1', 'zz_otra', cO, pO, 300, 'EUR', v_hoy, sa.em, '{"fields":{}}'::jsonb) returning id into fO;
+    -- y todo recibí lleva justificante (facturas_recibi_justificante_obligatorio; ensayo lawang-202610171332-7504545f)
+    insert into public.facturas (tipo, numero, sociedad, contrato_id, proyecto_id, total, moneda, fecha_emision, creado_por, datos,
+                                 justificante_path)
+      values ('recibi', 'ZZ-OTRA-R1', 'zz_otra', cO, pO, 200, 'EUR', v_hoy, sa.em, '{"fields":{}}'::jsonb,
+              'zz-otra/justificante-r1.pdf') returning id into rO;
     insert into public.recibi_aplicaciones (recibi_id, factura_id, importe_aplicado) values (rO, fO, 100);
     insert into public.obra_partes_trabajo (proyecto_id, fase_masterplan, zona_masterplan, fase_nueva, fecha)
       select x.p, 'zz', 'zz', coalesce((select min(f.clave) from public.obra_fases f), 'zz'), v_hoy from (values (pO), (pM)) x(p);
