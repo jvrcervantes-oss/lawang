@@ -210,13 +210,13 @@
         + (borrador.activable ? '' : '<div class="tc-peq tc-aviso-txt" data-tc-bloqueo="1">' + esc(borrador.bloqueo_motivo || '') + '</div>')
       : '<span class="tc-peq">—</span>';
     var chips = [];
-    if (!activa && semilla) chips.push(pill(T('Semilla del estudio v') + semilla.version, 'neutro'));
+    if (!activa && semilla) chips.push(pill(T('Copia inicial del estudio · v%n', { n: semilla.version }), 'neutro'));
     if (borrador && borrador.activable) chips.push(pill(T('Borrador listo para activar'), 'ok'));
     if (nOtras) chips.push('<button type="button" class="tc-chip" data-real="1" data-tc-ver-revs="' + esc(slug) + '">' + esc(nOtras === 1 ? T('1 revisión más') : T('%n revisiones más', { n: nOtras })) + '</button>');
     var acc = '<button type="button" class="tc-btn" data-real="1" data-tc-editar="' + esc(slug) + '">' + esc(borrador ? T('Seguir editando') : T('Editar')) + '</button>'
       + '<button type="button" class="tc-btn tc-btn-suave" data-real="1" data-tc-historial="' + esc(slug) + '">' + esc(T('Historial')) + '</button>'
       + (borrador ? '<button type="button" class="tc-btn tc-btn-suave tc-peligro" data-real="1" data-tc-descartar="' + esc(borrador.id) + '">' + esc(T('Descartar borrador')) + '</button>' : '');
-    return '<tr' + (slug === E.slug ? ' class="tc-fila-sel"' : '') + '><td><div class="tc-fuerte">' + esc(nombreDe(slug)) + '</div><div class="tc-peq">' + esc(slug) + '</div></td>'
+    return '<tr' + (slug === E.slug ? ' class="tc-fila-sel"' : '') + '><td><div class="tc-fuerte">' + esc(nombreDe(slug)) + '</div></td>'
       + '<td>' + colAct + '</td><td>' + colBor + '</td><td>' + (chips.join(' ') || '<span class="tc-peq">—</span>') + '</td><td class="tc-acc">' + acc + '</td></tr>';
   }
 
@@ -349,7 +349,7 @@
 
   function origenTxt(d) {
     if (d.estado === 'activa') return T('la versión activa');
-    if (d.origen === 'semilla') return T('la copia inicial del estudio («semilla»)');
+    if (d.origen === 'semilla') return T('la copia inicial del estudio');
     return T('tu borrador');
   }
   function pintaCabecera() {
@@ -922,7 +922,7 @@
     var rev = vs.filter(function (v) { return v.variante_nombre; })[0];
     caja.hidden = false; $('tc-hist-titulo').textContent = nombreDe(slug) + (vr !== 'estandar' ? ' · ' + (rev ? rev.variante_nombre : vr) : ''); $('tc-diff').hidden = true;
     $('tc-hist-cuerpo').innerHTML = vs.map(function (v) {
-      var estado = v.estado === 'activa' ? pill(T('Activa'), 'ok') : (v.estado === 'retirada' ? pill(T('Retirada'), 'neutro') : pill(v.origen === 'semilla' ? T('Semilla del estudio') : T('Borrador'), 'aviso'));
+      var estado = v.estado === 'activa' ? pill(T('Activa'), 'ok') : (v.estado === 'retirada' ? pill(T('Retirada'), 'neutro') : pill(v.origen === 'semilla' ? T('Copia inicial del estudio') : T('Borrador'), 'aviso'));
       var conf = v.estado === 'activa' || v.activado_por
         ? '<div class="tc-peq">' + esc(T('Activada por')) + ' ' + esc(v.activado_por || '—') + ' · ' + esc(fFechaHora(v.activado_en)) + '</div>'
           + (v.confirmacion_nombre ? '<div class="tc-peq">' + esc(T('Confirmó')) + ': ' + esc(v.confirmacion_nombre) + '</div>' : '') : '';
