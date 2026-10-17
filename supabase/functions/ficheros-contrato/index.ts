@@ -295,13 +295,18 @@ Deno.serve(async (req) => {
       const sinAnexo = det?.motivo ?? null;
       const constancia = constanciaHeredada(det);
       // Constancias de ANTES de LAW-406 (27-28 sep): las escribía la función suelta que retiró LAW-406, SIN firma_id, así que la búsqueda
-      // de arriba no las ve (revisor, 17-oct; esos enlaces caducan el 27-28 oct). Una sin firma_id escrita desde que se creó
-      // este enlace puede ser la suya: entonces no se reenvía en bloque —saldría el enlace nuevo sin constancia— y va al
-      // generador, que pide «Enviar igualmente». Esa función se retiró el 28-sep, así que no aparecen nuevas.
+      // de arriba no las ve (revisor, 17-oct; esos enlaces caducan el 27-28 oct). Una sin firma_id que puede ser la suya frena el
+      // reenvío en bloque —saldría el enlace nuevo sin constancia— y el contrato va al generador, que pide «Enviar igualmente».
+      // «Puede ser la suya» = escrita después del enlace ANTERIOR de este contrato, no después de este: del 28-sep 00:42 al
+      // 08:42 la edge apuntaba la constancia ANTES de crear el enlace (dos llamadas sueltas), unos milisegundos antes que él
+      // (revisor, 2.ª vuelta). Sin enlace anterior, cualquiera vale. Cerrar de más solo manda el contrato al generador. Esa
+      // función se retiró el 28-sep, así que no aparecen nuevas.
       if (!det) {
         let qv = admin.from('contrato_eventos').select('id')
           .eq('contrato_id', contratoId).eq('evento', 'envio_sin_anexo_confirmado').is('detalle->>firma_id', null);
-        if (f.creado_en) qv = qv.gte('creado_en', f.creado_en);
+        const desde = ((rf.data ?? []) as FilaFirma[]).map((x) => x.creado_en ?? '')
+          .filter((c) => c && f.creado_en && c < f.creado_en).sort().pop();
+        if (desde) qv = qv.gte('creado_en', desde);
         const { data: evViejo, error: eV } = await qv.limit(1);
         if (eV) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
         if (evViejo?.length) return json({ ok: true, puede: false, motivo: 'constancia_sin_enlace', numero });
