@@ -676,10 +676,12 @@
       '.las-paso-b[aria-current="step"]{background:var(--las-lago);border-color:var(--las-lago);color:#fff}',
       '.las-paso-b:disabled{cursor:default;background:transparent;color:var(--las-apagado);border-style:dashed}',
       '.las-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
-      /* el alta en pasos (las-con-pasos): sin el número repetido en cada sección ni el «Solo empresa» en un paso que solo
-         existe para empresas (Diseño, 17-oct). Acotado a la clase: el formulario de ~l.903 comparte esta hoja. */
+      /* el alta en pasos (las-con-pasos): sin el número repetido en cada sección (Diseño, 17-oct). Acotado a la clase:
+         el formulario de ~l.903 comparte esta hoja. La línea del idioma y el plegable del registro (Experiencia H4/H5). */
       '.las-con-pasos .las-form > [data-paso] .las-n{display:none}',
-      '.las-con-pasos [data-paso="empresa"] :is(.las-etq-sec,.las-insignia,.las-bloque-s){display:none}',
+      '.las-idioma-l{margin:0;font-size:13px;color:var(--las-apagado)}.las-idioma-l b{font-weight:600}',
+      '.las-enlace{all:unset;cursor:pointer;font-weight:600;color:var(--las-lago);text-decoration:underline;padding:6px 2px}.las-enlace:focus-visible{outline:2px solid var(--las-lago);outline-offset:2px}',
+      '.las-det>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--las-lago);padding:10px 0}.las-det[open]>summary{margin-bottom:8px}',
       '.las-pie{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 32px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-top:1px solid var(--las-borde)}',
       '.las-pie-izq{display:flex;align-items:center;gap:8px;font-size:12px;color:#78716c;min-width:0}',
       '.las-punto{width:8px;height:8px;flex:none;border-radius:9999px;background:#f59e0b;transition:background .2s}',
@@ -8122,7 +8124,9 @@
           if (faltan.length) return Promise.resolve({ error: { message: 'faltan datos obligatorios — ' + faltan.join(', ') } });
         }
         var telAlta = telefonoAlta(v);
-        return telefonoRepetidoSigue(telAlta, null).then(function (sigue) {
+        // `_telOk`: el teléfono que ya se miró (y, si estaba repetido, se confirmó) al salir del paso Contacto (H1).
+        var tel = v._telOk && v._telOk === telAlta ? Promise.resolve(true) : telefonoRepetidoSigue(telAlta, null);
+        return tel.then(function (sigue) {
           if (sigue !== true) return sigue;
           // Por el servidor (27-sep-2026, LAW-336 bloque 2): cliente_guarda comprueba los datos del alta y
           // pone el dueño de la ficha; nombre y pasaporte en MAYÚSCULAS los deja él.
@@ -8179,11 +8183,10 @@
               '<input id="' + id + '" data-k="' + k + '" type="' + (o.tipo || 'text') + '" class="las-in' + (o.ico ? ' las-con-ico' : '') + (o.mono ? ' las-mono' : '') + '"' +
               (o.ph ? ' placeholder="' + esc(tS(o.ph)) + '"' : '') + (o.auto ? ' autocomplete="' + o.auto + '"' : '') + idA + '></div>';
           return '<div class="las-campo' + (o.cls ? ' ' + o.cls : '') + '"' + (o.req ? ' data-req="' + k + '"' : '') + '>' +
-            '<label for="' + id + '" class="las-etq">' + esc(tS(etq)) + (o.req ? ' <span class="las-rojo">*</span>' : '') + (o.extra || '') + '</label>' + ctl +
+            '<label for="' + id + '" class="las-etq"><span class="las-etq-t">' + esc(tS(etq)) + '</span>' + (o.req ? ' <span class="las-rojo">*</span>' : '') + (o.extra || '') + '</label>' + ctl +
             (o.ayuda ? '<p id="' + id + '-a" class="las-ayuda">' + esc(tS(o.ayuda)) + '</p>' : '') +
             '<p class="las-msg" role="alert"></p></div>';
         };
-        var soloEmp = ' <span class="las-etq-sec">' + esc(tS('(Solo empresa)')) + '</span>';
 
         /* DOCUMENTO DE IDENTIDAD EN EL ALTA (13-oct-2026, petición del cliente vía owner: «que para dar de
            alta nuevos clientes pida adjuntar una imagen como pasaporte, parecido a los recibís»). Desde LAW-557
@@ -8262,7 +8265,7 @@
           '<button type="button" class="las-pildora" data-tipo="persona" aria-pressed="true">' + svg(I.user) + '<span>' + esc(tS('Persona física')) + '</span></button>' +
           '<button type="button" class="las-pildora" data-tipo="empresa" aria-pressed="false">' + svg(I.empresa) + '<span>' + esc(tS('Persona jurídica (Empresa)')) + '</span></button>' +
           '</div></div>' +
-          campo('full_name', 'Nombre completo / Razón social', { req: 1, ico: I.nombre, ph: 'Nombre y apellidos, o razón social', auto: 'off' }) +
+          campo('full_name', 'Nombre completo', { req: 1, ico: I.nombre, ph: 'Nombre y apellidos', auto: 'off' }) +
           campo('nationality', 'Nacionalidad', { req: 1, ico: I.globo, ph: 'Elige el país', ayuda: 'Pulsa para elegir el país.' }) +
           '</section>' +
           '<section class="las-bloque" data-paso="contacto"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n" data-p="n-contacto">02</span><h3>' + esc(tS('Contacto')) + '</h3></div>' +
@@ -8272,7 +8275,10 @@
           campo('prefijo', 'Prefijo', { req: 1, mono: 1, ph: '+34', ayuda: '+34, +62, +61…', auto: 'off' }) +
           campo('telefono', 'Teléfono', { req: 1, ico: I.tel, tipo: 'tel', ph: 'Número sin prefijo', auto: 'off' }) +
           '</div>' +
-          campo('idioma_comunicacion', 'Idioma de comunicación', { select: '<option value="es">' + esc(tS('Español')) + '</option><option value="en">English</option><option value="id">Bahasa Indonesia</option>' }) +
+          /* El idioma, en una línea (Experiencia H4): sale de la nacionalidad y casi nunca se toca; «Cambiar» abre el campo. */
+          '<p class="las-idioma-l" data-p="idioma-l">' + esc(tS('Idioma de comunicación')) + ': <b data-p="idioma-v">' + esc(tS('Español')) + '</b> · ' +
+          '<button type="button" data-e="idioma-cambia" class="las-enlace">' + esc(tS('Cambiar')) + '</button></p>' +
+          campo('idioma_comunicacion', 'Idioma de comunicación', { cls: 'las-idioma-campo', select: '<option value="es">' + esc(tS('Español')) + '</option><option value="en">English</option><option value="id">Bahasa Indonesia</option>' }) +
           '</section>' +
           '<section class="las-bloque" data-paso="documento"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n" data-p="n-documento">03</span><h3>' + esc(tS('Documento')) + '</h3></div>' +
           '<span class="las-req-nota">* ' + esc(tS('Campos requeridos')) + '</span></div>' +
@@ -8280,15 +8286,17 @@
           bloqueDoc +
           '</section>' +
           '<div class="las-emp-caja" data-emp-caja data-paso="empresa"><section class="las-bloque las-emp" data-emp><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n las-n-verde" data-p="n-empresa">02</span><div>' +
-          '<h3>' + esc(tS('Información mercantil & representación')) + '</h3><p class="las-bloque-s">' + esc(tS('Solo se guarda si el cliente es una empresa.')) + '</p></div></div>' +
-          '<span class="las-insignia las-insignia-on">' + esc(tS('Solo empresa')) + '</span></div>' +
+          '<h3>' + esc(tS('Información mercantil & representación')) + '</h3></div></div>' +
+          '<span class="las-req-nota">' + esc(tS('Opcional')) + '</span></div>' +
+          /* Dos a la vista y dos plegados (Experiencia H5): el representante sale en los contratos de empresa; forma
+             jurídica y registro, en menos. Todo sigue siendo opcional y se guarda igual. */
           '<div class="las-fila">' +
-          campo('forma_juridica', 'Forma jurídica', { extra: soloEmp, ph: 'S.L., LLC, PT PMA, GmbH…', ayuda: 'S.L., LLC, PT PMA, GmbH…', auto: 'off' }) +
-          campo('registro_num', 'Nº de registro mercantil', { extra: soloEmp, ph: 'Número en el registro', auto: 'off' }) +
-          '</div><div class="las-fila">' +
-          campo('rep_nombre', 'Representante legal', { extra: soloEmp, ph: 'Nombre y apellidos', auto: 'off' }) +
-          campo('rep_cargo', 'Cargo del representante', { extra: soloEmp, ph: 'Administrador, director…', auto: 'off' }) +
-          '</div></section></div>' +
+          campo('rep_nombre', 'Representante legal', { ph: 'Nombre y apellidos', auto: 'off' }) +
+          campo('rep_cargo', 'Cargo del representante', { ph: 'Administrador, director…', auto: 'off' }) +
+          '</div><details class="las-det"><summary>' + esc(tS('Datos del registro (opcional)')) + '</summary><div class="las-fila">' +
+          campo('forma_juridica', 'Forma jurídica', { ph: 'S.L., LLC, PT PMA, GmbH…', auto: 'off' }) +
+          campo('registro_num', 'Nº de registro mercantil', { ph: 'Número en el registro', auto: 'off' }) +
+          '</div></details></section></div>' +
           '<p data-e="error" role="alert" class="las-error" hidden></p>' +
           '</div></div>' +
           /* barra de acciones */
@@ -8316,6 +8324,7 @@
           var fs = docsElegidos();
           $('[data-p="doc-nombre"]').textContent = !fs.length ? tS('Elegir fichero') : fs.length === 1 ? fs[0].name : tH('%n ficheros', { n: fs.length });
           docIn.closest('.las-campo').classList.toggle('las-file-on', !!fs.length);
+          if (fs.length && val('passport_number')) { var g = $('[data-e="guardar"]'); if (g) g.focus({ preventScroll: true }); }   // H7
         });
 
         var btnAviso = $('[data-e="aviso-doc"]');
@@ -8336,6 +8345,7 @@
           $('[data-p="nombre"]').textContent = n || tS('Sin titular asignado');
           $('[data-p="ini"]').textContent = ini || '--';
           $('[data-p="tipo"]').textContent = tS(tipoInput.value === 'empresa' ? 'Persona jurídica' : 'Persona física') + ' • ' + (IDIOMA[val('idioma_comunicacion')] || tS('Español'));
+          $('[data-p="idioma-v"]').textContent = IDIOMA[val('idioma_comunicacion')] || tS('Español');
           $('[data-p="doc"]').textContent = val('passport_number').toUpperCase() || '—';
           $('[data-p="tel"]').textContent = val('telefono') ? (val('prefijo') + ' ' + val('telefono')).trim() : '—';
           var faltan = OBLIG.filter(function (k) { return !val(k); }).length + (exigeDoc && !docsElegidos().length ? 1 : 0);
@@ -8383,7 +8393,7 @@
         // Los obligatorios que faltan y el correo mal escrito: de un paso (`sec`) o, sin él, de todo el alta.
         function faltasEn(sec) {
           var en = function (k) { return !sec || !!sec.querySelector('[data-req="' + k + '"]'); }, malos = [];
-          OBLIG.forEach(function (k) { if (en(k) && !val(k)) malos.push([k, tS('Este dato hace falta para dar de alta.')]); });
+          OBLIG.forEach(function (k) { if (en(k) && !val(k)) malos.push([k, tS(sec ? 'Falta este dato.' : 'Este dato hace falta para dar de alta.')]); });
           if (en('email') && val('email') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('email'))) malos.push(['email', tS('No parece una dirección de correo válida.')]);
           return malos;
         }
@@ -8391,13 +8401,56 @@
           var sec = $('.las-form > [data-paso="' + paso + '"]'), malos = faltasEn(sec);
           sec.querySelectorAll('.las-campo.las-mal').forEach(function (c) { c.classList.remove('las-mal'); });
           if (malos.length) {
+            // Enter tras escribir un dato: si lo único que falta es un campo que aún no se ha tocado, se va a él sin
+            // ponerlo en rojo (Experiencia H6: tras el nombre, la nacionalidad salía en rojo antes de verla).
+            var sig = malos.length === 1 && !tocados[malos[0][0]] && $('[data-req="' + malos[0][0] + '"] input');
+            if (sig) { tocados[malos[0][0]] = 1; sig.focus({ preventScroll: true }); return; }
             malos.forEach(function (m) { marcaCampo(m[0], m[1]); });
             var p = $('[data-req="' + malos[0][0] + '"] input');
             if (p) p.focus({ preventScroll: true });
             return;
           }
-          var ps = pasos();
-          irA(ps[ps.indexOf(paso) + 1]);
+          var ps = pasos(), luego = ps[ps.indexOf(paso) + 1];
+          if (paso === 'contacto') { repetidosContacto().then(function (sigue) { if (sigue) irA(luego); }); return; }
+          irA(luego);
+        }
+        var tocados = {};
+        form.addEventListener('focusout', function (e) { var k = e.target.getAttribute && e.target.getAttribute('data-k'); if (k) tocados[k] = 1; });
+
+        /* REPETIDOS AL SALIR DE CONTACTO (Experiencia H1, 17-oct-2026): antes se descubrían en el último paso, con el
+           correo o el teléfono ya escondidos y sin salida. Correo del mismo tipo: la base no lo deja (clients_email_tipo_key),
+           así que se para aquí con el enlace a esa ficha. Teléfono: el aviso de siempre, que deja seguir. Se mira el
+           DIRECTORIO (las fichas de los compañeros también). Si no se puede leer se sigue: al guardar manda la base. */
+        var mirando = false;
+        function repetidosContacto() {
+          if (mirando) return Promise.resolve(false);
+          mirando = true;
+          var correo = val('email').toLowerCase(), tipo = tipoInput.value;
+          return sb.rpc('compradores_lista').select('id,full_name,email,tipo').then(function (r) {
+            var otro = !r.error && r.data ? r.data.filter(function (x) { return (x.email || '').toLowerCase() === correo && x.tipo === tipo; })[0] : null;
+            if (otro) { marcaRepetido('email', tS('Ya hay otra ficha de este tipo con ese correo:'), otro); return false; }
+            var telAlta = telefonoAlta({ prefijo: val('prefijo'), telefono: val('telefono') });
+            if (telConfirmado !== null && telConfirmado === telAlta) return true;
+            return telefonoRepetidoSigue(telAlta, null).then(function (sigue) {
+              if (sigue === true) { telConfirmado = telAlta; return true; }
+              marcaCampo('telefono', sigue && sigue.error ? sigue.error.message : tS('Falta este dato.'));
+              var t = $('[data-k="telefono"]'); if (t) t.focus({ preventScroll: true });
+              return false;
+            });
+          }).then(function (sigue) { mirando = false; return sigue; }, function () { mirando = false; return true; });
+        }
+        // El aviso de un dato repetido, con el enlace a la ficha que ya lo tiene (en otra pestaña: el alta no se pierde).
+        function marcaRepetido(k, texto, fila) {
+          marcaCampo(k, texto + ' ' + (fila.full_name || tS('Sin nombre')) + '.');
+          var msg = $('[data-req="' + k + '"] .las-msg');
+          if (msg && /^[0-9a-f-]{36}$/i.test(String(fila.id || ''))) {
+            var a = document.createElement('a');
+            a.href = location.pathname + '?id=' + encodeURIComponent(fila.id);
+            a.target = '_blank'; a.rel = 'noopener'; a.className = 'las-enlace';
+            a.textContent = tS('Abrir su ficha');
+            msg.appendChild(document.createTextNode(' ')); msg.appendChild(a);
+          }
+          var inp = $('[data-req="' + k + '"] input'); if (inp) inp.focus({ preventScroll: true });
         }
         $('[data-p="pasos"]').addEventListener('click', function (e) {
           var b = e.target.closest('[data-paso-ir]');
@@ -8408,7 +8461,19 @@
         /* El prefijo sale de la nacionalidad (geo.js) y se puede cambiar: si el agente lo escribe a mano, otra
            nacionalidad ya no lo pisa. Sin geo.js (otra página u otra instancia), el campo es el de siempre. */
         var prefijoPuesto = '', prefIn = $('[data-k="prefijo"]'), prefAyuda = $('#las-prefijo-a'), prefAyudaBase = prefAyuda ? prefAyuda.textContent : '';
+        var idiomaSel = $('[data-k="idioma_comunicacion"]'), idiomaCampo = idiomaSel.closest('.las-campo'), idiomaManual = false;
+        idiomaCampo.style.display = 'none';
+        $('[data-e="idioma-cambia"]').addEventListener('click', function () {
+          idiomaManual = true;   // desde aquí lo decide el agente: otra nacionalidad ya no lo cambia
+          $('[data-p="idioma-l"]').style.display = 'none';
+          idiomaCampo.style.display = '';
+          var c = idiomaCampo.querySelector('.las-sel-btn') || idiomaSel; c.focus({ preventScroll: true });
+        });
         $('[data-k="nationality"]').addEventListener('change', function () {
+          if (!idiomaManual && typeof idiomaDeNacionalidad === 'function') {
+            var idm = idiomaDeNacionalidad(val('nationality'));
+            if (idm) { idiomaSel.value = idm; resumen(); }
+          }
           if (typeof prefijoDeNacionalidad !== 'function') return;
           var p = prefijoDeNacionalidad(val('nationality')), ahora = prefIn.value.trim();
           if (!p || (ahora && ahora !== prefijoPuesto)) return;
@@ -8424,6 +8489,12 @@
           tipoInput.value = t;
           w.querySelectorAll('.las-pildora').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-tipo') === t)); });
           var esEmp = t === 'empresa';
+          // Las mismas etiquetas que el formulario de editar (Experiencia H8): una empresa no tiene «nacionalidad».
+          var etq = function (k, s) { var e = $('label[for="las-' + k + '"] .las-etq-t'); if (e) e.textContent = tS(s); };
+          etq('full_name', esEmp ? 'Razón social' : 'Nombre completo');
+          etq('nationality', esEmp ? 'País de constitución' : 'Nacionalidad');
+          etq('passport_number', esEmp ? 'Identificación fiscal' : 'Pasaporte / NPWP');
+          $('[data-k="full_name"]').placeholder = tS(esEmp ? 'Razón social de la empresa' : 'Nombre y apellidos');
           /* Persona física: el bloque de empresa no pinta nada, así que no está
              (owner, 25-sep-2026). Se vacía al ocultarse: lo tecleado para una
              empresa no debe quedarse escondido en el formulario. */
@@ -8459,15 +8530,27 @@
            otro editor lo cierra) — si no, un Escape posterior tiraría ese otro. */
         /* Con el alta o la subida en marcha no se cierra (revisor, 13-oct): a medias no se sabría qué ha entrado. */
         var ocupado = function () { return !!w.querySelector('[data-e="guardar"].las-guardando'); };
-        var teclas = function (e) { if (e.key === 'Escape' && !ocupado()) cierraModal(); };
+        /* Cerrar con algo escrito pregunta antes (Experiencia H3, 17-oct): la X, Cancelar, el velo o Escape tiraban el
+           alta entera sin avisar. `cerrar` sigue tal cual para listo(), donde ya no hay nada que perder. */
+        var sucio = function () {
+          return ['full_name', 'nationality', 'email', 'telefono', 'passport_number', 'rep_nombre', 'rep_cargo', 'forma_juridica', 'registro_num']
+            .some(function (k) { return !!val(k); }) || docsElegidos().length > 0;
+        };
+        var cierraSiQuiere = function () {
+          if (ocupado()) return;
+          if (!sucio() || typeof lwConfirmar !== 'function') return cierraModal();
+          Promise.resolve(lwConfirmar({ titulo: '¿Descartar este cliente?', cuerpo: '<p>' + esc(tS('Lo que has escrito no se guarda.')) + '</p>',
+            confirmar: 'Descartar', cancelar: 'Seguir rellenando' })).then(function (ok) { if (ok && !ocupado()) cierraModal(); });
+        };
+        var teclas = function (e) { if (e.key === 'Escape' && !ocupado()) cierraSiQuiere(); };
         var cerrar = function () { if (!ocupado()) cierraModal(); };
         document.addEventListener('keydown', teclas);
         w._alCerrar = function () { document.removeEventListener('keydown', teclas); if (exigeDoc) alCerrarAlta(); };
-        $('[data-e="cerrar"]').addEventListener('click', cerrar);
-        $('[data-e="cancelar"]').addEventListener('click', cerrar);
-        fondo.addEventListener('click', cerrar);
+        $('[data-e="cerrar"]').addEventListener('click', cierraSiQuiere);
+        $('[data-e="cancelar"]').addEventListener('click', cierraSiQuiere);
+        fondo.addEventListener('click', cierraSiQuiere);
 
-        var btn = $('[data-e="guardar"]'), caja = $('[data-e="error"]');
+        var btn = $('[data-e="guardar"]'), caja = $('[data-e="error"]'), pasRepe = null;
         var error = function (msg) { caja.textContent = msg; caja.hidden = false; caja.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
         form.addEventListener('submit', function (ev) {
           ev.preventDefault();
@@ -8475,6 +8558,7 @@
           if (!esUltimo()) { siguiente(); return; }   // «Siguiente» (y Enter) en un paso que no es el último
           var v = {};
           w.querySelectorAll('[data-k]').forEach(function (el) { v[el.getAttribute('data-k')] = el.value.trim(); });
+          v._telOk = telConfirmado;   // no viaja a la base: datosAltaComprador elige sus campos
           // Los que faltan se marcan en su sitio: tiemblan, rojo y su mensaje debajo.
           var malos = faltasEn(null);
           var docMal = exigeDoc ? problemaDocs(docsElegidos()) : '';
@@ -8490,12 +8574,19 @@
             if (primero) { primero.focus({ preventScroll: true }); primero.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
             return;
           }
+          // El pasaporte que ya se vio repetido al salir del campo para aquí también: la base lo rechazaría igual.
+          if (pasRepe && val('passport_number').toUpperCase() === pasRepe.q) { marcaRepetido('passport_number', tS('Ese pasaporte / NPWP ya está en otra ficha:'), pasRepe.fila); return; }
           btn.classList.add('las-guardando'); btn.disabled = true;
           // Sin el interruptor, el alta de siempre (cliente_guarda), intacta. Con él, ficha y documento juntos.
           Promise.resolve(exigeDoc ? altaConDocumento(v) : guardaAltaComprador(v)).then(function (r) {
             if (r && r.error) {
               btn.classList.remove('las-guardando'); btn.disabled = false;
               if (r.error.duda) return error(r.error.message);
+              if (r.error.campo) {   // el correo o el pasaporte ya estaban en otra ficha: a su paso, con el campo en rojo
+                var pc = ($('[data-req="' + r.error.campo + '"]') || form).closest('[data-paso]');
+                if (pc && pc.getAttribute('data-paso') !== paso) irA(pc.getAttribute('data-paso'));
+                marcaCampo(r.error.campo, r.error.message);
+              }
               return error(tS('No se pudo dar de alta:') + ' ' + (r.error.message || r.error) +
                 (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — ' + tS('tu usuario no tiene ese permiso.') : ''));
             }
@@ -8655,9 +8746,25 @@
         }
 
         // Nacionalidad como picker de nombre completo (geo.js + dialogo.js), igual que el resto de la suite.
+        // Elegido el país, el foco pasa a «Siguiente»: con él en el campo, Enter volvía a abrir la lista (Experiencia H2).
         if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {
-          window.lwPicker($('[data-k="nationality"]'), NACIONALIDADES, { titulo: 'Nacionalidad' });
+          window.lwPicker($('[data-k="nationality"]'), NACIONALIDADES, { titulo: 'Nacionalidad',
+            despues: function () { var g = $('[data-e="guardar"]'); if (g) g.focus({ preventScroll: true }); } });
         }
+        /* Pasaporte repetido al salir del campo (Experiencia H1). comprador_buscar lo encuentra solo escrito ENTERO y si la
+           ficha está a tu alcance, y lo devuelve enmascarado («…1234»): se compara esa cola. Lo que no vea lo sigue
+           parando la base al guardar (clients_pasaporte_uniq → errorClienteHumano, con su campo). */
+        var pasIn = $('[data-k="passport_number"]');   // pasRepe (var, arriba en el submit): el último repetido encontrado
+        pasIn.addEventListener('blur', function () {
+          var q = pasIn.value.trim();
+          if (q.length < 5) return;
+          var cola = '\u2026' + q.slice(-4).toUpperCase();
+          sb.rpc('comprador_buscar', { p_q: q }).then(function (r) {
+            if (r.error || !r.data || pasIn.value.trim() !== q) return;
+            var otro = r.data.filter(function (x) { return String(x.passport_hint || '').toUpperCase() === cola; })[0];
+            if (otro) { pasRepe = { q: q.toUpperCase(), fila: otro }; marcaRepetido('passport_number', tS('Ese pasaporte / NPWP ya está en otra ficha:'), otro); }
+          });
+        });
         setTimeout(function () { var p = $('[data-k="full_name"]'); if (p) p.focus({ preventScroll: true }); }, 420);
       }
 
@@ -8703,6 +8810,7 @@
       function errorClienteHumano(r) {
         if (!(r && r.error)) return r;
         var msg = String(r.error.message || ''), code = String(r.error.code || '');
+        var campo = /clients_pasaporte_uniq/.test(msg) ? 'passport_number' : /clients_email_tipo_key|clients_email_key/.test(msg) ? 'email' : null;
         var m = /clients_pasaporte_uniq/.test(msg)
           ? 'Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Esa ficha puede ser de un compañero: búscala en el directorio antes de crear otra.'
           : /clients_email_tipo_key|clients_email_key/.test(msg)
@@ -8712,7 +8820,7 @@
           : /PGRST116/.test(code) || /ninguna fila/.test(msg)
           ? 'No se ha guardado: la base no te deja editar esta ficha. Suele ser porque no la diste de alta tú, o porque ya cuelga de un contrato firmado. Habla con un administrador — recargar no lo arregla.'
           : null;
-        return m ? { error: { message: tS(m) } } : r;
+        return m ? { error: { message: tS(m), campo: campo } } : r;
       }
       var miEmailC = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       var pideCambio = function (c, accion, nuevos, motivo) {

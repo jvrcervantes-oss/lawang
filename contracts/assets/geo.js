@@ -98,6 +98,18 @@ function prefijoDeNacionalidad(nac){
   return p ? p[0] : '';
 }
 
+/* Idioma de comunicación a partir de la nacionalidad (mejora 6, Experiencia H4, 17-oct-2026): el alta empezaba en
+   «Español» para todos. Indonesia → indonesio, los países de habla hispana → español, el resto → inglés (los tres que
+   admite la base). Se puede cambiar; sin nacionalidad devuelve '' y el campo se queda como esté. */
+const PAISES_ES = ['Argentina','Bolivia','Chile','Colombia','Costa Rica','Cuba','Ecuador','El Salvador','España','Guatemala',
+  'Guinea Ecuatorial','Honduras','México','Nicaragua','Panamá','Paraguay','Perú','República Dominicana','Uruguay','Venezuela'];
+function idiomaDeNacionalidad(nac){
+  const n = String(nac||'').replace(/\s*\(.*\)/,'').trim();
+  if(!n) return '';
+  if(n === 'Indonesia') return 'id';
+  return PAISES_ES.includes(n) ? 'es' : 'en';
+}
+
 /* Separa un teléfono guardado ("+34 612345678") en prefijo+número para
    precargar los dos campos. Prueba los prefijos más largos primero (evita que
    un "+1" de 2 caracteres se coma el principio de un número que en realidad
