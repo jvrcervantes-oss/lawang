@@ -1,5 +1,5 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68). La pareja del maestro NO va en esta vuelta: espera a la gemela
--- de notificaciones_datos (20261016090000 b10_l5, fila AXW-357 [b10-l5-cierre-maestro]) y entonces lleva el disparador
+-- de notificaciones_datos (erp/migraciones/20261016090000_b10_l5, fila [h7-maestro-notificaciones-leidas]) y entonces lleva el disparador
 -- _cuenta_pruebas_corta en la tabla nueva (canon 7.zb) y el doble de demo_datos.js:856 con `id` y `leida`.
 -- H7 de Experiencia (17-oct-2026, sesión lawang-mejoras-ux, tren 6): un aviso de la campana se da por leído AL PULSARLO, no al
 -- abrir la campana (hoy cabecera.js llama a marcar_notificaciones_leidas() al abrir y lo da todo por visto aunque no se lea).
