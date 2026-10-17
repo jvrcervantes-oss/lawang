@@ -97,7 +97,8 @@ const PREGUNTA = {
    redeclarar aqui: dos `const`/`function` del mismo nombre en el mismo scope
    global revientan el script entero con «Identifier ya declarado» y ninguna
    de las cuatro vistas llega a pintarse (incidente 10-sep-2026). */
-const dias = iso => { const d = new Date(iso); return isNaN(d) ? null : Math.floor((Date.now() - d) / 864e5); };
+// Sin fecha, null (revisor, 17-oct): new Date(null) es 1970 y un lead sin estado_desde salía «parado» con 20.000 días.
+const dias = iso => { if (!iso) return null; const d = new Date(iso); return isNaN(d) ? null : Math.floor((Date.now() - d) / 864e5); };
 const fecha = iso => { const d = new Date(iso); return isNaN(d) ? (iso || '')
   : d.toLocaleDateString(lwLocale(), { day:'numeric', month:'short', year:'numeric' }); };
 const fechaHora = iso => { const d = new Date(iso); return isNaN(d) ? (iso || '')
@@ -431,7 +432,7 @@ function actualizarCuentaHoy(){
 const CERRADOS_CRM = ['reserva', 'contrato', 'perdido'];
 const TOPE_PARADOS = 50;
 function paradosSinPaso(){
-  return LEADS.filter(l => !CERRADOS_CRM.includes(l.estado) && !l.accion_id && dias(l.estado_desde) >= DIAS_VIEJO && (!SOLO_MIAS || esMio(l)))
+  return LEADS.filter(l => !CERRADOS_CRM.includes(l.estado) && !l.accion_id && l.estado_desde && dias(l.estado_desde) >= DIAS_VIEJO && (!SOLO_MIAS || esMio(l)))
     .sort((a, b) => dias(b.estado_desde) - dias(a.estado_desde));
 }
 function pintarParados(){
@@ -1568,7 +1569,7 @@ async function cargarPanel(){
 
 function pintarPanel(){
   const totalLeads = LEADS.length;
-  const leads7 = LEADS.filter(l => dias(l.created_at) <= 7).length;
+  const leads7 = LEADS.filter(l => { const d = dias(l.created_at); return d !== null && d <= 7; }).length;
   const gasto = CAMPANAS.reduce((a, c) => a + Number(c.gasto || 0), 0);
   const leadsCamp = CAMPANAS.reduce((a, c) => a + Number(c.leads || 0), 0);
   const mon = (CAMPANAS.find(c => c.moneda) || {}).moneda || '';

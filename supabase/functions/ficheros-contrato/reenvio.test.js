@@ -44,5 +44,11 @@ const { pathToFileURL } = require('url');
   igual(R.superaTope(R.TOPE_REENVIOS - 1), false, 'por debajo del tope');
   igual(R.superaTope(R.TOPE_REENVIOS), true, 'en el tope, se para');
 
+  igual(R.constanciaHeredada(null), null, 'sin constancia, nada');
+  igual(R.constanciaHeredada({ motivo: 'sin_apendice_a', faltan: ['A'], declarado_por: 'servidor' }), null, 'la deducida por la base no se hereda');
+  igual(R.constanciaHeredada({ motivo: 'fallo', faltan: ['B', 3], declarado_por: 'pantalla' }), { motivo: 'fallo', faltan: ['B'] }, 'la de la pantalla, con sus textos');
+  igual(R.constanciaHeredada({ motivo: 'sin_apendice_a', motivo_pantalla: 'fallo', faltan: ['A', 'B'], declarado_por: 'ambos' }), { motivo: 'fallo', faltan: ['A', 'B'] }, 'ambos: el motivo de la pantalla');
+  igual(R.constanciaHeredada({ motivo: 'otro', declarado_por: 'pantalla' }), null, 'motivo raro: nada');
+
   console.log('reenvio.test.js: ' + n + ' comprobaciones en verde');
 })().catch((e) => { console.error(e); process.exit(1); });

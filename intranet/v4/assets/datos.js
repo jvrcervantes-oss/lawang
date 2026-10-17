@@ -1311,11 +1311,13 @@
      confirmación con esa lista, luego el envío con el resultado en cada fila.
      El botón nace OCULTO y solo aparece si el servidor ya sabe hacerlo (una `ver` del primero contesta): así esta pantalla
      puede publicarse antes que la edge sin enseñar un botón muerto. Decisión por defecto (CEO, 17-oct). */
-  var REENVIO_TOPE = 20;   // el mismo tope de todo el equipo que pone el servidor (reenvio.ts → TOPE_REENVIOS)
+  var REENVIO_TOPE = 20;   // solo hasta que conteste la vista previa, que trae el del servidor (reenvio.ts → TOPE_REENVIOS)
   // Pausa entre dos reenvíos de verdad: la cola manda los enlaces de firma sin espera y cada encolado la despierta, así que
   // el ritmo real es el de este bucle; 5 s es el esperaMs de cola-correos-envio (Backend, 17-oct: una ráfaga y Hostinger
   // bloquea el buzón, y con él TODOS los correos de Lawang).
   var REENVIO_PAUSA_MS = 5000;
+  // Qué faltaba en el envío del enlace caducado (motivo de la constancia LAW-406/410), para la vista previa.
+  var REENVIO_SIN_ANEXO = { ninguno: 'salió sin ningún anexo', sin_apendice_a: 'salió sin Apéndice A', fallo: 'salió con un anexo que no se pudo incluir' };
   var REENVIO_MOTIVOS = {
     cola_apagada: 'El correo de firma por la cola está apagado: reenvíalo desde el generador.',
     bloqueado: 'El contrato está bloqueado.',
@@ -1365,28 +1367,29 @@
     (function sondea(i) {
       if (i >= Math.min(cids.length, 3)) return;
       llama({ contrato_id: cids[i], ver: true }).then(function (r) {
-        if (r.status === 200 && r.j && typeof r.j.puede === 'boolean') b.hidden = false;
+        if (r.status === 200 && r.j && typeof r.j.puede === 'boolean') { b.hidden = false; if (r.j.tope > 0) topeServidor = r.j.tope; }
         else if (r.status === 403) sondea(i + 1);
       });
     })(0);
+    var topeServidor = 0;
     var corre = function (lista, fn) {   // de uno en uno, en orden
       var out = [];
       return lista.reduce(function (p, cid) { return p.then(function () { return fn(cid).then(function (v) { out.push(v); }); }); }, Promise.resolve()).then(function () { return out; });
     };
     b.addEventListener('click', function () {
       b.disabled = true; b.textContent = T('Comprobando…');
-      var tanda = cids.slice(0, REENVIO_TOPE);
+      var tanda = cids.slice(0, topeServidor || REENVIO_TOPE);
       corre(tanda, function (cid) {
         pon(cid, T('Comprobando…'), '');
         return llama({ contrato_id: cid, ver: true }).then(function (r) {
-          if (r.status === 200 && r.j.puede === true) { pon(cid, T('Irá a %e', { e: r.j.para || '—' }) + (r.j.sin_anexo ? ' · ' + T('salió sin Apéndice A') : ''), ''); return { cid: cid, si: true, v: r.j }; }
+          if (r.status === 200 && r.j.puede === true) { pon(cid, T('Irá a %e', { e: r.j.para || '—' }) + (r.j.sin_anexo ? ' · ' + T(REENVIO_SIN_ANEXO[r.j.sin_anexo] || 'salió sin algún anexo') : ''), ''); return { cid: cid, si: true, v: r.j }; }
           pon(cid, r.status === 200 ? motivo(r.j.motivo) : textoError(r), 'mal'); return { cid: cid, si: false };
         });
       }).then(function (vistos) {
         var si = vistos.filter(function (v) { return v.si; });
         if (!si.length) { b.textContent = T('Ninguno se puede reenviar desde aquí'); return; }
         var lista = '<ul style="margin:8px 0 0;padding-left:18px">' + si.map(function (v) {
-          return '<li><b>' + esc(v.v.numero || '—') + '</b> → ' + esc(v.v.para || '—') + (v.v.sin_anexo ? ' <span style="color:#93000A">(' + esc(T('salió sin Apéndice A')) + ')</span>' : '') + '</li>';
+          return '<li><b>' + esc(v.v.numero || '—') + '</b> → ' + esc(v.v.para || '—') + (v.v.sin_anexo ? ' <span style="color:#93000A">(' + esc(T(REENVIO_SIN_ANEXO[v.v.sin_anexo] || 'salió sin algún anexo')) + ')</span>' : '') + '</li>';
         }).join('') + '</ul>';
         var fuera = vistos.length - si.length;
         var resto = cids.length - tanda.length;

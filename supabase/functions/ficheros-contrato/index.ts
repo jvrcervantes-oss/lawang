@@ -33,7 +33,7 @@
 // verify_jwt=false por el mismo motivo que send-contract-email (CORS del preflight); el JWT
 // se valida a mano.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { decideReenvio, documentoCasa, superaTope, TOPE_REENVIOS, VENTANA_TOPE_MIN, type FilaFirma } from './reenvio.ts';
+import { constanciaHeredada, decideReenvio, documentoCasa, superaTope, TOPE_REENVIOS, VENTANA_TOPE_MIN, type FilaFirma } from './reenvio.ts';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -283,13 +283,18 @@ Deno.serve(async (req) => {
       const dec = decideReenvio(rc.data, (rf.data ?? []) as FilaFirma[], Date.now());
       if (!dec.ok) return json({ ok: true, puede: false, motivo: dec.motivo, numero });
       const f = dec.fila;
-      // Si el enlace caducado salió «sin Apéndice A» (LAW-406/410), se dice en la vista previa: en el generador eso pide
-      // «Enviar igualmente» y aquí no hay ese paso. contrato_envia_firma vuelve a apuntar la constancia ella sola.
+      // Si el enlace caducado salió sin un anexo (LAW-406/410), se dice en la vista previa: en el generador eso pide
+      // «Enviar igualmente» y aquí no hay ese paso. Y la constancia viaja al enlace nuevo (revisor, 17-oct): la base solo
+      // deduce sola un modelo apagado o sin plano; lo que declaró la PANTALLA (un PDF que no se pudo incrustar, motivo
+      // 'fallo') no lo ve, y sin esto la firma nueva —la que se firma— saldría con el mismo documento y sin constancia.
+      // Es un dato que lee el servidor de su evento, no del navegador; contrato_envia_firma lo valida y solo suma.
       const { data: ev, error: eEv } = await admin.from('contrato_eventos').select('detalle')
         .eq('contrato_id', contratoId).eq('evento', 'envio_sin_anexo_confirmado').eq('detalle->>firma_id', f.id).limit(1);
       if (eEv) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
-      const sinAnexo = (ev?.[0]?.detalle as { motivo?: string } | undefined)?.motivo ?? null;
-      const base = { numero, para: f.firmante_email, nombre: f.firmante_nombre, enviado_en: f.creado_en ?? null, caduco_en: f.expira_en, sin_anexo: sinAnexo };
+      const det = (ev?.[0]?.detalle ?? null) as { motivo?: string; motivo_pantalla?: string; faltan?: unknown; declarado_por?: string } | null;
+      const sinAnexo = det?.motivo ?? null;
+      const constancia = constanciaHeredada(det);
+      const base = { numero, para: f.firmante_email, nombre: f.firmante_nombre, enviado_en: f.creado_en ?? null, caduco_en: f.expira_en, sin_anexo: sinAnexo, tope: TOPE_REENVIOS };
       // La vista previa NO descarga el documento (revisor, 17-oct: con anexos pesa hasta 20 MB y se piden hasta 20 seguidos):
       // la huella se comprueba en el envío, y si no casa la fila lo dice entonces (documento_cambiado / falta_el_documento).
       if (body.ver === true) return json({ ok: true, puede: true, ...base });
@@ -328,6 +333,7 @@ Deno.serve(async (req) => {
       const { data: r, error: eEnv } = await usuario.rpc('contrato_envia_firma', {
         p_contrato: contratoId, p_nombre: f.firmante_nombre ?? '', p_email: f.firmante_email ?? '',
         p_rol: f.firmante_rol ?? '', p_orden: f.orden ?? 1, p_snapshot_hash: hash,
+        ...(constancia ? { p_sin_anexo: constancia } : {}),
       });
       if (eEnv) return errRpc(eEnv);
       // contrato_envia_firma no devuelve el id de la firma nueva: es la pendiente con ESTA huella. Si ya no lo es, otro envío

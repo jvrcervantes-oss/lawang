@@ -160,6 +160,17 @@ const hizo = (fn) => E.llamadas.filter((l) => l[1] === fn);
   // ── la constancia sin anexo del enlace caducado sale en la vista previa ──
   reinicia({ eventos: [{ contrato_id: CID, evento: 'envio_sin_anexo_confirmado', detalle: { firma_id: 'f-cad', motivo: 'sin_apendice_a' } }] });
   r = await llama(Object.assign({ ver: true }, PIDE)); igual(r.cuerpo.sin_anexo, 'sin_apendice_a', 'ver avisa de que salió sin Apéndice A');
+  igual(r.cuerpo.tope, 20, 'la vista previa dice el tope del servidor');
+
+  // ── y la constancia que declaró la pantalla viaja al enlace nuevo (revisor, 17-oct) ──
+  reinicia({ eventos: [{ contrato_id: CID, evento: 'envio_sin_anexo_confirmado', detalle: { firma_id: 'f-cad', motivo: 'fallo', faltan: ['Anexo B'], declarado_por: 'pantalla' } }] });
+  r = await llama(PIDE);
+  igual(hizo('contrato_envia_firma')[0][2].p_sin_anexo, { motivo: 'fallo', faltan: ['Anexo B'] }, 'el enlace nuevo lleva la constancia de la pantalla');
+  reinicia({ eventos: [{ contrato_id: CID, evento: 'envio_sin_anexo_confirmado', detalle: { firma_id: 'f-cad', motivo: 'sin_apendice_a', faltan: ['Apéndice A'], declarado_por: 'servidor' } }] });
+  r = await llama(PIDE);
+  igual('p_sin_anexo' in hizo('contrato_envia_firma')[0][2], false, 'lo que dedujo la base no se re-declara: lo vuelve a deducir ella');
+  reinicia(); r = await llama(PIDE);
+  igual('p_sin_anexo' in hizo('contrato_envia_firma')[0][2], false, 'sin constancia, no viaja nada');
 
   console.log('reenvia_caducada.test.js: ' + n + ' comprobaciones en verde');
 })().catch((e) => { console.error(e); process.exit(1); });

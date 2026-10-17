@@ -51,6 +51,18 @@ export function decideReenvio(c: ContratoReenvio, filas: FilaFirma[], ahora: num
   return { ok: true, fila: f };
 }
 
+/** La constancia «enviado sin anexo» que el enlace caducado deja al nuevo (revisor, 17-oct). Solo lo que declaró la
+ *  PANTALLA (declarado_por pantalla|ambos): lo deducido por la base lo vuelve a deducir contrato_envia_firma ella sola.
+ *  Va con el motivo de la pantalla y la lista de lo que faltaba; la RPC lo valida (motivo, ≤20 textos) y solo suma. */
+export function constanciaHeredada(det: { motivo?: string; motivo_pantalla?: string; faltan?: unknown; declarado_por?: string } | null):
+  { motivo: string; faltan: string[] } | null {
+  if (!det || (det.declarado_por !== 'pantalla' && det.declarado_por !== 'ambos')) return null;
+  const motivo = det.motivo_pantalla ?? det.motivo;
+  if (motivo !== 'ninguno' && motivo !== 'sin_apendice_a' && motivo !== 'fallo') return null;
+  const faltan = Array.isArray(det.faltan) ? det.faltan.filter((x): x is string => typeof x === 'string').slice(0, 20) : [];
+  return { motivo, faltan };
+}
+
 /** El documento fijo es el mismo que se mandó a firmar con el enlace caducado. */
 export function documentoCasa(hashFijo: string, fila: FilaFirma): boolean {
   return /^[0-9a-f]{64}$/.test(hashFijo) && hashFijo === fila.snapshot_hash;
