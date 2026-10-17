@@ -88,8 +88,8 @@
     var hechos = avisos.filter(function (a) { return a.clase !== 'alerta'; });
     var nMal = alertas.filter(function (a) { return a.nivel === 'mal'; }).length;
     var nAt = alertas.length - nMal;
-    // `opc.sinLeer`: el total sin leer (el del contador), que puede pasar de los que caben en la lista; sin él, el
-    // contador se quedaría en N sin botón ni fila que lo limpie al leer uno a uno los visibles
+    // `opc.sinLeer`: las novedades sin leer (avisos.js → novedades, sin las alertas, que salen por plazo), que pueden pasar
+    // de las que caben en la lista; sin él, el contador se quedaría en N sin botón ni fila que lo limpie al leer las visibles
     var nNuevos = Math.max(hechos.filter(function (a) { return a.nuevo; }).length, (opc && opc.sinLeer) || 0);
     var chip = function (n, texto, t) {
       return n ? '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:12px;font-weight:700">' +
@@ -212,12 +212,13 @@
       var n = 0;
       ULTIMO.avisos.forEach(function (a) { if (a.nuevo && a.clase !== 'alerta' && cumple(a)) { a.nuevo = false; n++; } });
       ULTIMO.sinLeer = Math.max(0, (ULTIMO.sinLeer || 0) - n);
+      ULTIMO.novedades = Math.max(0, (ULTIMO.novedades || 0) - n);
       pintaContador(ULTIMO.sinLeer, ULTIMO.avisos);
       return n;
     }
     function repintaLista() {
       var cont = document.querySelector('[data-lw="avisos-lista"]');
-      if (cont && ULTIMO) cont.innerHTML = pintaAvisos(ULTIMO.avisos, aV4, { marcarTodo: !!ULTIMO.porAviso, sinLeer: ULTIMO.porAviso ? ULTIMO.sinLeer : 0 });   // plantilla propia, datos con esc()
+      if (cont && ULTIMO) cont.innerHTML = pintaAvisos(ULTIMO.avisos, aV4, { marcarTodo: !!ULTIMO.porAviso, sinLeer: ULTIMO.porAviso ? ULTIMO.novedades : 0 });   // plantilla propia, datos con esc()
     }
     function marcaAviso(fila) {
       var ids = String(fila.getAttribute('data-lw-aviso-ids') || '').split(',').filter(function (x) { return UUID.test(x); }).slice(0, 50);
@@ -234,8 +235,12 @@
       Promise.resolve(aut.sb.rpc('marcar_notificaciones_leidas')).then(function (r) {
         if (r && r.error) throw r.error;
         quitaNuevos(function () { return true; });
-        // la marca de agua cubre también los que no caben en la lista
-        if (ULTIMO) { ULTIMO.sinLeer = 0; pintaContador(0, ULTIMO.avisos); }
+        // la marca de agua cubre también las novedades que no caben en la lista; las alertas siguen (salen por plazo)
+        if (ULTIMO) {
+          ULTIMO.sinLeer = Math.max(0, (ULTIMO.sinLeer || 0) - (ULTIMO.novedades || 0));
+          ULTIMO.novedades = 0;
+          pintaContador(ULTIMO.sinLeer, ULTIMO.avisos);
+        }
         repintaLista();
       }).catch(function (e) {
         console.error('[v4 cabecera] marcar todo:', e);
@@ -278,7 +283,7 @@
         var notaFallo = (out && out.fallos) ? nota(T(out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Alguna de las consultas de avisos falló: la lista puede estar incompleta.')) : '';
         if (!out) cuerpo = nota(T('No se pudieron cargar los avisos. Prueba a recargar la página.'));
         else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:rgb(var(--tema-control-border, 138 132 116))">' + esc(T('Nada nuevo.')) + '</p>';
-        else cuerpo = notaFallo + '<div data-lw="avisos-lista" style="display:grid;gap:12px">' + pintaAvisos(out.avisos, aV4, { marcarTodo: !!out.porAviso, sinLeer: out.porAviso ? out.sinLeer : 0 }) + '</div>';
+        else cuerpo = notaFallo + '<div data-lw="avisos-lista" style="display:grid;gap:12px">' + pintaAvisos(out.avisos, aV4, { marcarTodo: !!out.porAviso, sinLeer: out.porAviso ? out.novedades : 0 }) + '</div>';
         cuerpo = filaNovedades() + cuerpo;
         // ancho de siempre (owner: «que fuese muy amplia nunca fue un problema»);
         // `desde`: el cajón crece desde la campana y se recoge hacia ella

@@ -147,6 +147,9 @@ assert.strictEqual(porTit('Contrato CC1 firmado').nuevo, false, 'leído en la ba
 assert.strictEqual(porTit('Contrato CC2 firmado').nuevo, false, 'anterior a la marca de «todo leído» = no es nuevo');
 assert.strictEqual(leidas.porAviso, true);
 assert.strictEqual(leidas.sinLeer, 1);
+assert.strictEqual(leidas.novedades, 1, 'novedades = sin leer que no son alertas');
+assert.ok(ag.sinLeer > ag.novedades, 'las alertas cuentan en el contador pero no en novedades (Marcar todo no las limpia)');
+assert.strictEqual(ag.novedades, ag.avisos.filter(a => a.nuevo && a.clase !== 'alerta').length);
 // una instancia sin la migración: sin `id` ni `leida`, todo como antes (abrir marca) y nada con ids
 const sinId = lwAvisosArmar([ok([{ tipo: 'contrato_firmado', titulo: 'Contrato CC3 firmado', destinatario: null, creado_en: TL }]), ok([]), ok([]), ok([])],
   { esAdmin: true, email: 'jefe@x', vistoHasta: '2026-09-15T00:00:00Z', ahora: AHORA });

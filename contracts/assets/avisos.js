@@ -232,8 +232,9 @@ function lwAvisosArmar(r, opts) {
 
   avisos.sort(function (a, b) { return new Date(b.cuando) - new Date(a.cuando); });
   var lista = avisos.slice(0, LW_AVISOS_LIMITE);
+  // `novedades`: lo sin leer que NO es alerta (las alertas salen por plazo y «Marcar todo» no las limpia)
   return { avisos: lista, sinLeer: avisos.filter(function (a) { return a.nuevo; }).length, cobroSinComprobar: cobroSinComprobar,
-           porAviso: porAviso };
+           porAviso: porAviso, novedades: avisos.filter(function (a) { return a.nuevo && a.clase !== 'alerta'; }).length };
 }
 
 /* Las cuatro consultas + el armado. Devuelve una promesa de

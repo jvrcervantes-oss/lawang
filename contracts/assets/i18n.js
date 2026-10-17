@@ -6881,7 +6881,7 @@
     '%n reclamación por resolver': '%n claim to resolve',
     '%n reclamaciones por resolver': '%n claims to resolve',
     'Quién hizo de Setter y de Team Lead en cada venta (lo pagas tú, como al closer: acuerdo privado, %marca no retiene nada) y las reclamaciones de venta propia de tu equipo.': 'Who acted as Setter and Team Lead on each sale (you pay them, as with the closer: a private agreement, %marca keeps nothing) and your team\'s own-sale claims.',
-    'Tus ventas de equipo. Si el cliente es tuyo —no un lead del equipo— puedes reclamar la venta como propia: si tu manager la aprueba, cobras su comisión entera y la paga %marca.': 'Your team sales. If the client is yours (not a team lead), you can claim the sale as your own: if your manager approves it, you get its full commission and %marca pays it.',
+    'Tus ventas de equipo. Si el cliente es tuyo —no un lead del equipo— puedes reclamar la venta como propia: si tu manager la aprueba, cobras su comisión entera y la paga %marca.': 'Your team sales. If the client is yours (not a lead that came through the team), you can claim the sale as your own: if your manager approves it, you get its full commission and %marca pays it.',
     'Ocultar inactivas y cerradas': 'Hide inactive and closed',
     'Ver %n inactiva o cerrada': 'Show %n inactive or closed',
     'Ver %n inactivas o cerradas': 'Show %n inactive or closed',
