@@ -10,8 +10,9 @@
 -- Formato de erp/pruebas/corre.py: termina en «FIN DE PRUEBAS» y cada línea acaba en «→ ok» o «→ FALLA». Todo se deshace con el raise final.
 -- FIXTURE PROPIO (la rama recibe solo la estructura), como postgres y SIN sesión (así pasa el candado de alta de `usuarios`):
 --   empresa zz_ubusca con dos proyectos («ZZ-UBUSCA Jardín Ñandú» y «ZZ-UBUSCA Otro»); un super_admin global; el agente A ACOTADO
---   al primero (como los reales); el agente B sin la herramienta de proyectos, también en el primero; una persona en auth.users sin
---   fila en usuarios (no es del equipo); 12 unidades en el primero (una con tildes en el código) y una en el segundo.
+--   al primero (como los reales); una persona en auth.users sin fila en usuarios (no es del equipo); 12 unidades en el primero
+--   (una con tildes en el código) y una en el segundo. La herramienta del menú no es barrera aquí: lo que el agente ve lo decide la
+--   RLS de `unidades`, la misma que ya le deja leer esas filas en Proyectos (se revisa al pasar a DEFINER en L6).
 -- destructivo-ok: prueba en transacción que termina en raise (rollback); solo en rama
 create temp table _tp (et text primary key, uid uuid, em text);
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
