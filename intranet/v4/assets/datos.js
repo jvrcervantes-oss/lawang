@@ -1328,6 +1328,7 @@
     enlace_vivo: 'Ya tiene un enlace vivo.',
     ya_firmo: 'Ese firmante ya ha firmado.',
     sin_huella: 'Enlace de antes del 26-sep: hay que generarlo de nuevo con «Reenviar».',
+    constancia_sin_enlace: 'Salió sin algún anexo (constancia de antes del 28-sep): reenvíalo con «Reenviar», que pide confirmarlo.',
     sin_email: 'Al firmante le falta un dato: hazlo con «Reenviar».',
     firmante_raro: 'Al firmante le falta un dato: hazlo con «Reenviar».',
     documento_cambiado: 'El documento ya no es el que se envió: genéralo de nuevo con «Reenviar».',

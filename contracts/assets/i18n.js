@@ -7072,6 +7072,7 @@
     'salió sin ningún anexo': 'was sent without any appendix',
     'salió con un anexo que no se pudo incluir': 'was sent with an appendix that could not be included',
     'salió sin algún anexo': 'was sent with an appendix missing',
+    'Salió sin algún anexo (constancia de antes del 28-sep): reenvíalo con «Reenviar», que pide confirmarlo.': 'It was sent with an appendix missing (record from before 28 Sep): resend it with «Resend», which asks you to confirm.',
     'No se ha podido.': 'It could not be done.',
     'No puedes mandar este contrato a firma.': 'You cannot send this contract for signature.',
     'El equipo ha llegado al tope de %n reenvíos en %m minutos: espera y vuelve a intentarlo.': 'The team has reached the limit of %n resends in %m minutes: wait and try again.',
