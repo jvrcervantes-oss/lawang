@@ -618,7 +618,8 @@ const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
    OJO (Administración, revisión previa #428, 17-oct): `precio_total` YA ES EL NETO (con techo lo rebaja la
    pantalla y la base lo acota; en Bloqueo es lista − descuento). La proforma lo usa TAL CUAL y NO resta
    `descuento_comercial`: restarlo sería cobrarlo dos veces. Antes de reactivar, un contrato de prueba con
-   descuento y comprobar que la proforma = la columna precio_total. */
+   descuento y comprobar que la proforma = la columna precio_total. Y REDESPLEGAR esta edge: la desplegada es
+   anterior al 17-oct y aún lee el campo de la pantalla antes que la columna (revisor, 17-oct). */
 const PROFORMA_AUTO_PARADA = true;
 async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: any })
     : Promise<{ emitida: boolean; mensaje: string }> {
