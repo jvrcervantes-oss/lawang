@@ -294,6 +294,18 @@ Deno.serve(async (req) => {
       const det = (ev?.[0]?.detalle ?? null) as { motivo?: string; motivo_pantalla?: string; faltan?: unknown; declarado_por?: string } | null;
       const sinAnexo = det?.motivo ?? null;
       const constancia = constanciaHeredada(det);
+      // Constancias de ANTES de LAW-406 (27-28 sep): las escribía la función suelta que retiró LAW-406, SIN firma_id, así que la búsqueda
+      // de arriba no las ve (revisor, 17-oct; esos enlaces caducan el 27-28 oct). Una sin firma_id escrita desde que se creó
+      // este enlace puede ser la suya: entonces no se reenvía en bloque —saldría el enlace nuevo sin constancia— y va al
+      // generador, que pide «Enviar igualmente». Esa función se retiró el 28-sep, así que no aparecen nuevas.
+      if (!det) {
+        let qv = admin.from('contrato_eventos').select('id')
+          .eq('contrato_id', contratoId).eq('evento', 'envio_sin_anexo_confirmado').is('detalle->>firma_id', null);
+        if (f.creado_en) qv = qv.gte('creado_en', f.creado_en);
+        const { data: evViejo, error: eV } = await qv.limit(1);
+        if (eV) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
+        if (evViejo?.length) return json({ ok: true, puede: false, motivo: 'constancia_sin_enlace', numero });
+      }
       const base = { numero, para: f.firmante_email, nombre: f.firmante_nombre, enviado_en: f.creado_en ?? null, caduco_en: f.expira_en, sin_anexo: sinAnexo, tope: TOPE_REENVIOS };
       // La vista previa NO descarga el documento (revisor, 17-oct: con anexos pesa hasta 20 MB y se piden hasta 20 seguidos):
       // la huella se comprueba en el envío, y si no casa la fila lo dice entonces (documento_cambiado / falta_el_documento).
