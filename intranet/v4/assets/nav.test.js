@@ -305,12 +305,16 @@ if (/details\.lw-menu/.test(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets
     const hazLee = new Function('memo', trozo + '\nreturn lee;');
     const prueba = (codigo, porConsulta) => {
       let n = 0; const memo = {}; const lee = hazLee(memo);
-      const g = { path: 'proyectos', porConsulta, vale: () => true, pide: () => { n++; return { error: { code: codigo } }; } };
+      const g = { path: 'proyectos', porConsulta, vale: () => true, pide: () => { n++; return codigo ? { error: { code: codigo } } : { data: [] }; } };
       return lee(g, {}, 'ab').then(() => lee(g, {}, 'abc')).then(() => n);
     };
     esperas.push(prueba('PGRST202', true).then(n => { if (n !== 1) errores.push(`nav.js: el grupo sin su función se pidió ${n} veces en dos teclas (debe ser 1)`); }));
     esperas.push(prueba('42501', true).then(n => { if (n !== 1) errores.push(`nav.js: el grupo sin permiso se pidió ${n} veces en dos teclas (debe ser 1)`); }));
     esperas.push(prueba('500', true).then(n => { if (n !== 2) errores.push(`nav.js: un fallo del servidor (no de permiso) dejó de reintentarse en la tecla siguiente (${n} llamadas)`); }));
+    // los grupos de una carga por apertura (Clientes): el fallo del servidor tampoco se queda guardado; el permiso sí
+    esperas.push(prueba('500', false).then(n => { if (n !== 2) errores.push(`nav.js: Clientes guardó un fallo del servidor para toda la apertura (${n} llamadas)`); }));
+    esperas.push(prueba('PGRST202', false).then(n => { if (n !== 1) errores.push(`nav.js: Clientes sin su función se repidió (${n} llamadas)`); }));
+    esperas.push(prueba(null, false).then(n => { if (n !== 1) errores.push(`nav.js: Clientes se pidió ${n} veces en una apertura (una carga por apertura)`); }));
   }
   if (/(localStorage|sessionStorage)/.test(grupos)) errores.push('nav.js: los resultados del buscador no se guardan en el navegador');
   (grupos.match(/encodeURIComponent\(([a-z]+)\.([a-z_]+)\)/g) || []).forEach(m => {

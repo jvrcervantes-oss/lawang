@@ -13,7 +13,7 @@
 --   al primero (como los reales); una persona en auth.users sin fila en usuarios (no es del equipo); 12 unidades en el primero
 --   (una con tildes en el código) y una en el segundo. La herramienta del menú no es barrera aquí: lo que el agente ve lo decide la
 --   RLS de `unidades`, la misma que ya le deja leer esas filas en Proyectos (se revisa al pasar a DEFINER en L6).
--- destructivo-ok: prueba en transacción que termina en raise (rollback); solo en rama
+-- destructivo-ok: prueba en transacción que termina en raise (rollback); solo en rama; apaga los disparadores de usuario de `proyectos` solo para un renombrado dentro de la transacción
 create temp table _tp (et text primary key, uid uuid, em text);
 create or replace function pg_temp.l(c boolean, t text) returns text language sql as $f$
   select E'\n' || replace(t, E'\n', ' ') || case when coalesce(c, false) then ' → ok' else ' → FALLA' end
@@ -125,9 +125,17 @@ begin
   r := r || pg_temp.l(pg_temp.err(v) = '42501', 'U12 NIEGA: anon no puede llamarla (' || pg_temp.e(v) || ')');
 
   -- ============================================================ R. el nombre de HOY del proyecto (la unidad guarda una copia)
+  -- Se renombra con los disparadores de `proyectos` apagados (propaga_nombre_proyecto reescribiría la copia de la unidad y R1
+  -- pasaría sin el join: buscador de fallos, 17-oct). Así la copia queda vieja a propósito y solo el join da el nombre nuevo.
+  alter table public.proyectos disable trigger user;
   update public.proyectos set nombre = 'ZZ-UBUSCA Kebun Baru' where id = p1;
+  alter table public.proyectos enable trigger user;
+  r := r || pg_temp.l((select proyecto from public.unidades where id = uTilde) = 'ZZ-UBUSCA Jardín Ñandú',
+                      'R0 la copia de la unidad sigue con el nombre viejo (el caso mide el join, no la copia)');
   v := pg_temp.val(a.uid, a.em, format('select proyecto from public.unidades_busca(%L) where id = %L', 'kebun baru', uTilde));
   r := r || pg_temp.l(v = 'ZZ-UBUSCA Kebun Baru', 'R1 ENTRA: renombrado el proyecto, se encuentra por el nombre nuevo y lo enseña (' || pg_temp.e(v) || ')');
+  v := pg_temp.val(a.uid, a.em, format('select count(*) from public.unidades_busca(%L) where id = %L', 'jardin nandu', uTilde));
+  r := r || pg_temp.l(v = '0', 'R3 NIEGA: ya no sale por el nombre viejo que guarda la copia (' || pg_temp.e(v) || ')');
   v := pg_temp.val(a.uid, a.em, format('select count(*) from public.unidades_busca(%L) where id = %L', 'zzu n1', uTilde));
   r := r || pg_temp.l(v = '1', 'R2 ENTRA: el enlace no depende del nombre: sigue saliendo por su código (' || pg_temp.e(v) || ')');
 

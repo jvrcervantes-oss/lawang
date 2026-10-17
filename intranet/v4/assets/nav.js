@@ -1145,6 +1145,7 @@
       var p = Promise.resolve(g.pide(sb, q)).then(function (r) {
         if (r && r.error) {
           if (sinPermisoONoExiste(r.error)) memo['no:' + g.path] = Promise.resolve({ error: r.error });
+          else if (memo[g.path] === p) delete memo[g.path];   // un fallo del servidor se reintenta en la tecla siguiente
           return { error: r.error };
         }
         return { filas: ((r && r.data) || []).filter(g.vale) };
