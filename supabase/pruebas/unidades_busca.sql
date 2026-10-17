@@ -73,6 +73,8 @@ begin
     insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo) values
       (jv.uid, jv.em, 'ZZ-UBUSCA Super admin', 'super_admin', 'global', '{}'::text[], '{}'::uuid[], '{}'::uuid[], '{}'::text[], '{}'::text[], true),
       (a.uid,  a.em,  'ZZ-UBUSCA Agente A',    'agente',      'global', array[c_emp], array[p1],   '{}'::uuid[], '{proyectos}'::text[], '{contrato_general}'::text[], true);
+    -- unidades.tipo apunta a tipos_vivienda(clave) y la rama sale sin filas (ensayo f2175b16, 23503 unidades_tipo_fkey): como invitacion_portal.sql
+    insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
     insert into public.unidades (codigo, proyecto, proyecto_id, tipo) values ('ZZU-Ñ1 Bambú', 'ZZ-UBUSCA Jardín Ñandú', p1, 'parcela') returning id into uTilde;
     for i in 1..11 loop
       insert into public.unidades (codigo, proyecto, proyecto_id, tipo) values ('ZZU-' || lpad(i::text, 2, '0'), 'ZZ-UBUSCA Jardín Ñandú', p1, 'parcela');
