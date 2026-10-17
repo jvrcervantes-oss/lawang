@@ -891,8 +891,8 @@
 
   /* «APPS CONECTADAS» (MCP de Lawang F1-P4, 16-oct-2026): los asistentes de IA que la persona ha conectado con SU usuario.
      Es de cada persona, no una herramienta del negocio: va en el pie de la barra, junto a «Idioma» y «Cerrar Sesión» (lo que es de
-     la cuenta), y por eso NO está en MENU_V4 ni lleva casilla — en /v4/usuarios/ no hay nada que conceder (el permiso de IA lo da el
-     super admin en Ajustes › IA) y la página la abre cualquier ficha (su guard.js va sin data-herramienta ni data-rol).
+     la cuenta), y por eso NO está en MENU_V4 ni lleva casilla — en /v4/usuarios/ no hay nada que conceder (desde el 17-oct puede conectar
+     todo el equipo activo, sin permiso por persona) y la página la abre cualquier ficha (su guard.js va sin data-herramienta ni data-rol).
      Se clona el enlace de salida (mismas clases) y va encima de él. En una instancia del ERP no nace: las ia_* solo existen en Lawang. */
   function injertaCuenta(aside) {
     if (window.AXW_NUCLEO_OPERACION || aside.querySelector('a[data-path="ia"]')) return;

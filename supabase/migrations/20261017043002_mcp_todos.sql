@@ -11,8 +11,10 @@
 --   · public.ia_peticion_ver       en vez de «sin_permiso», «usuario_inactivo» (baja o bloqueo), la misma puerta que autoriza:
 --                                  la pantalla de «Conectar» no dice «puedes» a quien no podrá.
 --   · public.ia_mis_conexiones     `permiso` pasa a significar «puede conectar» (activo y sin bloqueo, de privado.ia_auth_usuario,
---                                  la misma regla que las dos de arriba): así la web de hoy (aviso-ia.js, ia-conexiones.js) y la
---                                  nueva funcionan las dos, en cualquier orden de publicación.
+--                                  la misma regla que las dos de arriba): así la web de hoy (aviso-ia.js, ia-conexiones.js) sigue
+--                                  funcionando con esta base. ORDEN: PRIMERO esta migración y DESPUÉS la web (Backend, 17-oct): la
+--                                  web nueva con la base vieja diría «desactivado o bloqueado» a quien solo no tiene la fila vieja
+--                                  de ia_permisos (33 de 34 hoy); al revés solo el super admin ve un «Quitar el permiso» que da 42501.
 --   · public.ia_ajustes_ver        `usuarios` sigue siendo el equipo activo con sus consultas de hoy; `permiso` va a true para la
 --                                  web anterior, que deja de leerlo en esta misma tanda (ajustes-ia.js sin «Dar permiso»).
 --   · revoke execute on public.ia_permiso_guarda from authenticated: se queda sin llamador (Ajustes › IA ya no tiene el

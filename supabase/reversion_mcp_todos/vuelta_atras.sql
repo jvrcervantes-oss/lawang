@@ -217,5 +217,10 @@ begin
   if md5(pg_get_functiondef('public.ia_ajustes_ver()'::regprocedure)) <> '456120fc5c391de01163d2d34a782ae9' then
     raise exception 'vuelta_atras mcp_todos: public.ia_ajustes_ver() no es la del 17-oct; no se aplica nada';
   end if;
+  -- el permiso de ia_permiso_guarda, el medido en la viva el 17-oct antes del cambio (Backend, consulta de deploy)
+  if (select proacl::text from pg_proc where oid = 'public.ia_permiso_guarda(uuid, boolean)'::regprocedure)
+     <> '{ia_puente_rol=X/ia_puente_rol,authenticated=X/ia_puente_rol}' then
+    raise exception 'vuelta_atras mcp_todos: el permiso de public.ia_permiso_guarda no queda como el del 17-oct; no se aplica nada';
+  end if;
 end $c$;
 commit;
