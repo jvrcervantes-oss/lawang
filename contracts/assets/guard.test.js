@@ -238,14 +238,20 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
   assert.strictEqual(fu.caduca_seg, 3600);
   // … y ninguna pantalla vuelve a armarse la URL pública de `deck` por su cuenta (eran guard.js y v4/datos.js). La edge
   // (supabase/) sí puede: decide ella si el bucket es público. Los arneses llevan un Storage falso.
+  // Las dos formas: getPublicUrl y la ruta /object/public/deck/ montada a mano. Fuera del escaneo quedan las páginas
+  // públicas de Lawang (investor-deck/, coleccion/), que el ERP no copia a sus instancias.
   const RAIZ = path.join(__dirname, '..', '..');
+  const ARMA_PUBLICA = /storage\.from\(\s*['"]deck['"]\s*\)\.getPublicUrl|\/object\/public\/deck\//;
+  // builder.html guarda la ruta del formato viejo solo para que migrate() la traduzca a `deck:<id>`; nunca la pinta.
+  const SOLO_RECONOCE = new Set([path.join('intranet', 'dossier', 'builder.html')]);
   const armanPublica = [];
   const recorre = d => {
     for (const n of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, n.name);
       if (n.isDirectory()) { if (n.name !== 'node_modules' && n.name !== 'vendor') recorre(p); continue; }
       if (!/\.(js|html|php)$/.test(n.name) || /^arnes_/.test(n.name) || /\.test\.js$/.test(n.name)) continue;
-      if (/storage\.from\(\s*['"]deck['"]\s*\)\.getPublicUrl/.test(fs.readFileSync(p, 'utf8'))) armanPublica.push(path.relative(RAIZ, p));
+      if (SOLO_RECONOCE.has(path.relative(RAIZ, p))) continue;
+      if (ARMA_PUBLICA.test(fs.readFileSync(p, 'utf8'))) armanPublica.push(path.relative(RAIZ, p));
     }
   };
   ['contracts', 'intranet', 'portal'].forEach(d => { if (fs.existsSync(path.join(RAIZ, d))) recorre(path.join(RAIZ, d)); });

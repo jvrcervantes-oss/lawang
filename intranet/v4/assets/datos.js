@@ -6695,15 +6695,19 @@
         var pideUrlsFoto = function () {
           if (urlsFoto && Date.now() < urlsFotoHasta) return urlsFoto;
           urlsFotoHasta = Infinity;
-          urlsFoto = (typeof window.lwFotoUrls === 'function'
-            ? window.lwFotoUrls(sb, FOTOS)
-            : Promise.reject(new Error(tx('Falta guard.js actualizado: recarga la página')))
-          ).then(function (r) {
+          var pedida;
+          try {   // si lwFotoUrls lanza en vez de rechazar, también se reintenta la próxima vez
+            pedida = typeof window.lwFotoUrls === 'function'
+              ? Promise.resolve(window.lwFotoUrls(sb, FOTOS))
+              : Promise.reject(new Error('Falta guard.js actualizado: recarga la página'));
+          } catch (e) { pedida = Promise.reject(e); }
+          urlsFoto = pedida.then(function (r) {
             urlsFotoHasta = Date.now() + Math.max(60, (Number(r.caduca_seg) || 3600) - 60) * 1000;
             return r.urls || {};
           }, function (e) {
             urlsFoto = null; urlsFotoHasta = 0;
-            if (!urlsFotoAvisado) { urlsFotoAvisado = true; (typeof toastMal === 'function' ? toastMal : console.warn)((e && e.message) || String(e)); }
+            console.warn('[modelos] fotos:', (e && e.message) || e);
+            if (!urlsFotoAvisado) { urlsFotoAvisado = true; (typeof toastMal === 'function' ? toastMal : console.warn)(tx('No se han podido cargar las fotos de los modelos: recarga la página para volver a intentarlo.')); }
             return {};
           });
           return urlsFoto;
@@ -7025,7 +7029,7 @@
             a.appendChild(im);
             gal.appendChild(a);
             // la galería se abre al pinchar: pide (o renueva) las URL en ese momento
-            pideUrlsFoto().then(function (u) { if (u[f.id]) { a.href = u[f.id]; im.src = u[f.id]; } });
+            pideUrlsFoto().then(function (u) { if (u[f.id]) { a.href = u[f.id]; im.src = u[f.id]; } else a.remove(); });
           });
         }
       });
