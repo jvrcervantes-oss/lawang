@@ -362,7 +362,7 @@
     var tr = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
     var n = nombreAutor(mapa, v);
     return n ? '<span class="font-body-md" title="' + esc(v) + '">' + esc(n) + '</span>'
-      : '<span style="color:#BEB3A5" title="' + esc(tr('Documento anterior al registro de autor')) + '">' + esc(tr('sin registrar')) + '</span>';
+      : '<span style="color:rgb(var(--tema-stone-sand))" title="' + esc(tr('Documento anterior al registro de autor')) + '">' + esc(tr('sin registrar')) + '</span>';
   }
   window.LW_V4 = window.LW_V4 || {};
   window.LW_V4.autores = autores; window.LW_V4.nombreAutor = nombreAutor;
@@ -2597,7 +2597,7 @@
                   : cobro === 'pendiente' ? pill('Sin cobrar', 'espera')
                   : cobro === 'parcial' ? pill('Parcial', 'espera') + '<div style="margin-top:3px;font-size:11.5px;color:#75786e;white-space:nowrap">' +
                       esc(tx('%a de %b', { a: fmt(tot - pend, f.moneda), b: fmt(tot, f.moneda) })) + '</div>'
-                  : '<span style="color:#BEB3A5">—</span>';
+                  : '<span style="color:rgb(var(--tema-stone-sand))">—</span>';
               }
               if (tds[8]) tds[8].innerHTML = htmlAutor(AUT, f.creado_por);
               if (tds[9]) tds[9].innerHTML = pill(est[0], est[1]) + FD.tag(f.id);
@@ -7164,7 +7164,7 @@
               else if (nx.enlace && nx.enlace.indexOf(location.origin + '/') === 0) enlace = nx.enlace;
               // plegado con style y no con `hidden`: la clase `flex` gana al atributo y el «ver más» no plegaba nada (12-oct-2026)
               return '<div class="flex items-start gap-3"' + (i >= 6 ? ' data-audit-mas hidden style="display:none"' : '') + '>' +
-                '<div class="w-2 h-2 rounded-full ' + (enlace ? 'bg-deep-lagoon' : 'bg-stone-sand') + ' mt-1.5 shrink-0"></div>' +
+                '<div class="w-2 h-2 rounded-full ' + (enlace ? 'bg-deep-lagoon' : 'bg-outline-variant') + ' mt-1.5 shrink-0"></div>' +
                 '<div class="flex flex-col min-w-0">' +
                 (enlace
                   ? '<a href="' + esc(enlace) + '" class="text-body-sm text-deep-lagoon font-medium hover:underline">' + titulo + '</a>'
@@ -7527,7 +7527,29 @@
             if (okE && okQ) vistas++;
             lista.insertBefore(f, vacioF);
           });
-          if (vacioF) vacioF.style.display = vistas ? 'none' : '';
+          if (vacioF) pintaVacioF(vistas, v);
+        }
+        /* Filtro vacío que dice por qué (mejora 7 de Experiencia, 17-oct-2026): en «Abiertos» sin ninguno abierto se leía «Nada
+           que enseñar con este filtro» con el hilo resuelto a la vista. Ahora lo dice y lleva al otro chip. Con texto en el
+           buscador, o en «Todos», sigue siendo cosa del filtro. */
+        function pintaVacioF(vistas, q) {
+          vacioF.style.display = vistas ? 'none' : '';
+          if (vistas) return;
+          var t = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+          if (q || estadoF === 'todos') { vacioF.textContent = t('Nada que enseñar con este filtro.'); return; }
+          var otro = estadoF === 'abiertos' ? 'resueltos' : 'abiertos';
+          var nOtro = (otro === 'resueltos' ? resueltos : abiertos).length;
+          vacioF.textContent = t(estadoF === 'abiertos' ? 'No hay tickets abiertos.' : 'Ningún ticket resuelto todavía.');
+          if (!nOtro) return;
+          var b = document.createElement('button'); b.type = 'button';
+          b.setAttribute('data-accion', 'soporte-ver-' + otro); b.setAttribute('data-real', '');
+          b.className = 'ml-1.5 font-semibold text-deep-lagoon underline';
+          b.textContent = t(otro === 'resueltos' ? 'Ver los resueltos' : 'Ver los abiertos') + ' (' + nOtro + ')';
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();   // como los chips: que maqueta.js no la vea pasar
+            var c = chipsSoporte.filter(function (x) { return x.getAttribute('data-chip-clave') === otro; })[0]; if (c) c.click();
+          });
+          vacioF.appendChild(b);
         }
         var chipsSoporte = ['abiertos', 'resueltos', 'todos'].map(function (k) {
           var sp = document.querySelector('[data-lw="c-' + k + '"]'); var b = sp && sp.closest('button');
