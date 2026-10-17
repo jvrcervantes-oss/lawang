@@ -295,6 +295,8 @@ if (/details\.lw-menu/.test(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets
     if (!new RegExp("path: '" + dp + "'").test(nav.split('var GRUPOS_DATOS')[0])) errores.push(`nav.js: el grupo de búsqueda «${dp}» no es una herramienta del menú`);
   });
   if (/contratos_equipo/.test(nav.replace(/\/\*[\s\S]*?\*\//g, ''))) errores.push('nav.js: el buscador no pide contratos_equipo() entero: usa contratos_busca');
+  // la pantalla pide al servidor, no lee la tabla (owner 15-oct; el gate escrituras_front paró `from('unidades')` el 17-oct)
+  if (/\.from\(/.test(grupos)) errores.push('nav.js: el buscador lee una tabla desde el navegador: va por una RPC (contratos_busca, unidades_busca)');
   if (/(localStorage|sessionStorage)/.test(grupos)) errores.push('nav.js: los resultados del buscador no se guardan en el navegador');
   (grupos.match(/encodeURIComponent\(([a-z]+)\.([a-z_]+)\)/g) || []).forEach(m => {
     if (!/\.(id|proyecto_id)\)$/.test(m)) errores.push(`nav.js: el buscador enlaza por ${m}: por el id de la fila, nunca por un nombre o un número`);

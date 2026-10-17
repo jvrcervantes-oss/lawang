@@ -1094,9 +1094,11 @@
          limita de verdad es es_agente() y la RLS de cada lectura (son las mismas que usan sus pantallas).
        · Contratos por contratos_busca (busca en el servidor, sin tildes, 10 filas): nunca contratos_equipo() entero, que
          arma la fila completa de todos los contratos (el IO de Lawang cayó así el 1-oct).
-       · Clientes (solo id y nombre) y unidades (id, código, proyecto) se piden UNA vez por apertura y se filtran aquí
-         con lwBuscaEn. Viven en memoria mientras el buscador está abierto: nada en localStorage ni sessionStorage.
-         `from('unidades')` es lector directo apuntado en el inventario de L6 (LAW-338).
+       · Unidades por unidades_busca (17-oct, migración 20261017210000: busca en el servidor por código o nombre de HOY del
+         proyecto, sin tildes, 10 filas, INVOKER con la RLS de unidades). La pantalla no lee la tabla (norma del owner del
+         15-oct, gate escrituras_front). Sin la migración aplicada, PGRST202 esconde solo este grupo.
+       · Clientes (solo id y nombre) se piden UNA vez por apertura y se filtran aquí con lwBuscaEn. Viven en memoria
+         mientras el buscador está abierto: nada en localStorage ni sessionStorage.
        · Una instancia sin la función o sin permiso (PGRST202 / 42501, p. ej. el ERP fijado) esconde el grupo sin
          aviso; la línea «No se ha podido buscar en …» queda para la red o un fallo del servidor, sin su mensaje.
        · Texto por textContent y enlaces a rutas propias con encodeURIComponent; nunca innerHTML con un dato.
@@ -1112,9 +1114,9 @@
         casa: function (c, q) { return lwBuscaEn([c.full_name], q); },
         fila: function (c) { return [c.full_name, '', ROOT + 'compradores/?id=' + encodeURIComponent(c.id)]; },
         vale: function (c) { return c && c.id && c.full_name; } },
-      { path: 'proyectos', titulo: 'Unidades',
-        pide: function (sb) { return sb.from('unidades').select('id,codigo,proyecto,proyecto_id'); },
-        casa: function (u, q) { return lwBuscaEn([u.codigo, u.proyecto], q); },
+      { path: 'proyectos', titulo: 'Unidades', porConsulta: true,
+        pide: function (sb, q) { return sb.rpc('unidades_busca', { p_q: q.slice(0, 120) }); },
+        casa: null,
         // por id, nunca por el nombre (máxima «todo apunta por ID»): Proyectos abre su cajón con ?proyecto=<id> desde el 17-oct
         fila: function (u) { return [u.codigo, u.proyecto || '', ROOT + 'proyectos/?proyecto=' + encodeURIComponent(u.proyecto_id)]; },
         vale: function (u) { return u && u.codigo && u.proyecto_id; } }
