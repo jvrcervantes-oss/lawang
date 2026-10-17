@@ -1,6 +1,6 @@
 -- MCP de Lawang · F1 · purga diaria de lo operativo del puente (16-oct-2026, sesión mcp-lawang). Va DESPUÉS de 20261016073011.
 -- Sale de la 110000 porque borra filas (tools/no_destruir.py: un DELETE no entra en una migración que construye). Se aplica con el
--- OK del owner a abrir el puente [mcp-abrir-puente], junto con 20261016140000: antes no hay conexiones, ni peticiones ni tokens
+-- OK del owner a abrir el puente [mcp-abrir-puente], junto con 20261017015135: antes no hay conexiones, ni peticiones ni tokens
 -- que caduquen, así que no hay nada que purgar.
 -- destructivo-ok: borra SOLO filas operativas caducadas hace más de un día de public.ia_peticiones (peticiones de conexión de
 -- 5 minutos) y public.ia_tokens (tokens ya inservibles). No toca ia_llamadas (el registro de quién consultó qué: su retención la

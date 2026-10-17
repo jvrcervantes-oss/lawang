@@ -20,7 +20,11 @@ async function rpc(nombre: string, cuerpo: unknown, bearer = PUBLICA) {
     signal: AbortSignal.timeout(8000),
   });
   if (r.status === 401 || r.status === 403) return { error: 'invalid_request' };
-  if (!r.ok) return { error: 'server_error' };
+  if (!r.ok) {
+    // el tope de altas (trigger de ia_conexiones, MCP P6) lanza 'demasiadas_altas': la página lo explica; cualquier otro error, genérico
+    const e = await r.json().catch(() => null);
+    return { error: e?.message === 'demasiadas_altas' ? 'demasiadas_altas' : 'server_error' };
+  }
   return await r.json();
 }
 

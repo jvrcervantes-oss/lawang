@@ -26,7 +26,7 @@
   var ASISTENTES = { claude: 'Claude', chatgpt: 'ChatGPT' };   // la lista cerrada de la base (ia_clientes.asistente)
   function asistenteTexto(a) { return ASISTENTES[a] || String(a || '—'); }
 
-  /* revocada_motivo: los 10 valores del CHECK de ia_conexiones. Uno que no esté aquí se enseña como «cortada» a secas. */
+  /* revocada_motivo: los 11 valores del CHECK de ia_conexiones. Uno que no esté aquí se enseña como «cortada» a secas. */
   var MOTIVOS = {
     persona: 'la cortaste tú',
     admin: 'la cortó el super admin',
@@ -37,7 +37,8 @@
     permiso: 'se cortó porque se quitó el permiso para conectar asistentes',
     apagado: 'se cortó porque se apagó la IA en la intranet',
     usuario_inactivo: 'se cortó porque el usuario está desactivado',
-    cliente: 'se cortó porque el super admin apagó ese asistente'
+    cliente: 'se cortó porque el super admin apagó ese asistente',
+    sin_aviso: 'se cortó por seguridad: no pudimos enviarte el correo que avisa de la conexión'
   };
   function motivoTexto(m) { return MOTIVOS[m] ? T(MOTIVOS[m]) : T('cortada'); }
 
@@ -220,8 +221,8 @@
 
   /* «Cómo se conecta» en pasos (16-oct-2026, sesión mcp-aviso; lo abre la invitación de la cabecera, aviso-ia.js). Los pasos son
      de Claude, por la decisión del owner del 15-oct (Claude desde el principio; ChatGPT solo en planes Business o Enterprise).
-     El identificador del cliente (ia_clientes.id): si la base dice qué asistentes están activos (`clientes`, propuesta
-     supabase/propuestas/20261016230000_ia_mis_conexiones_clientes.sql), sale aquí con su botón Copiar y solo se enseñan los
+     El identificador del cliente (ia_clientes.id): si la base dice qué asistentes están activos (`clientes`, migración
+     supabase/migrations/20261017015203_ia_mis_conexiones_clientes.sql), sale aquí con su botón Copiar y solo se enseñan los
      pasos de los asistentes activos; mientras no lo diga, se dice dónde está (Ajustes › IA), con el enlace si quien mira es el
      super admin. Nada de rutas de menú de ChatGPT sin comprobar. */
   function paso(n, texto) {

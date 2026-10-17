@@ -821,7 +821,7 @@
     function carga() {
       var falla = function (msg) {
         console.error('[v4 datos] ficha≠', o.tipo, msg);
-        (window.toastMal || toast)('No se ha podido comprobar qué ' + o.cuales + ' dicen algo distinto de la ficha del cliente: la marca «Ficha ≠» no sale en esta carga.');
+        (typeof toastMal === 'function' ? toastMal : typeof toast === 'function' ? toast : console.warn)('No se ha podido comprobar qué ' + o.cuales + ' dicen algo distinto de la ficha del cliente: la marca «Ficha ≠» no sale en esta carga.');
       };
       var texto = new Promise(function (ok) {
         if (typeof window.lwTextoDivergencia === 'function') return ok(true);

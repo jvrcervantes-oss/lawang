@@ -45,13 +45,16 @@ export const IDS_POR_CLAVE: Record<string, string[]> = {
   aviso_anulacion: ['contrato_id'],
   reclamo_pago: ['contrato_id'],   // + vars.reclamo (id de la fila) y `sociedad`: ver enviar()
   invitacion_portal: ['contrato_id'],   // + vars.invitacion (id de la fila): ver enviar()
+  aviso_ia_conexion: [],                // + vars.aviso (id de la fila); su ancla es la conexión del asistente (MCP P6, 16-oct)
 };
 
-// Correos de la ficha de parcela (libro reclamos_pago): a envia-correo solo viaja el id de la fila de la cola, con el nombre de
-// variable de su plantilla; envia-correo lee el resto de la base. `sociedad`: solo reclamo_pago firma con la sociedad del CONTRATO.
+// Correos de la ficha de parcela (libro reclamos_pago) y el aviso de asistente conectado (MCP P6): a envia-correo solo viaja el id
+// de la fila de la cola, con el nombre de variable de su plantilla; envia-correo lee el resto de la base. `sociedad`: solo
+// reclamo_pago firma con la sociedad del CONTRATO.
 const DE_PARCELA: Record<string, { variable: string; conSociedad: boolean }> = {
   reclamo_pago: { variable: 'reclamo', conSociedad: true },
   invitacion_portal: { variable: 'invitacion', conSociedad: false },
+  aviso_ia_conexion: { variable: 'aviso', conSociedad: false },
 };
 
 type Fila = {

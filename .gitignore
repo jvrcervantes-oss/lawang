@@ -26,6 +26,9 @@ Marketing/
 !supabase/functions/envia-correo/README.md
 # LAW-1 S0 (11-oct-2026): la carpeta de portal-acceso solo lleva este README (el codigo va por `entrypoint` de config.toml). Mismo motivo: supabase/ no se sirve.
 !supabase/functions/portal-acceso/README.md
+# REVIEW.md (17-oct-2026): lo que ya ha fallado en este repo, lo lee el revisor-codigo antes del diff. En la raiz SI se serviria
+# por ruta, pero el <FilesMatch> por extension del .htaccess (.md -> 404, 14-oct) lo cierra igual que al resto de notas.
+!/REVIEW.md
 # LAW-1 S2 (11-oct-2026): igual para portal-invitar (el symlink de 47 bytes se cambio por `entrypoint`).
 !supabase/functions/portal-invitar/README.md
 # send-contract-email (11-oct-2026): igual (el symlink se cambio por `entrypoint`).

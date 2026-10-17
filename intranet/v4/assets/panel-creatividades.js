@@ -40,7 +40,7 @@
     p.className = 'rounded-xl border px-5 py-4 font-body-sm text-body-sm ' + (tono === 'mal' ? 'border-error/40 bg-error-container/40 text-on-surface' : 'border-burnt-earth/30 bg-surface-alt text-on-surface-variant');
     p.textContent = texto; caja.appendChild(p);
   }
-  function mal(e) { var m = (e && e.message) || String(e); if (window.toastMal) toastMal(m); else aviso(m, 'mal'); }
+  function mal(e) { var m = (e && e.message) || String(e); if (typeof toastMal === 'function') toastMal(m); else aviso(m, 'mal'); }
 
   var FICHA = null, SB = null, PROY = {}, TODAS = [];
   var FILTRO = { estado: 'todo', tipo: '', proyecto_id: '' };
@@ -95,7 +95,7 @@
       var url = await lwCreatividades.urlDescarga(c.id, c.path, nombreFichero(c));
       var a = document.createElement('a'); a.href = url; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
     } catch (e) {
-      if (window.toastMal) toastMal(T('No se pudo descargar: ') + ((e && e.message) || e)); else aviso(T('No se pudo descargar.'), 'mal');
+      if (typeof toastMal === 'function') toastMal(T('No se pudo descargar: ') + ((e && e.message) || e)); else aviso(T('No se pudo descargar.'), 'mal');
     } finally { btn.disabled = false; }
   }
 
@@ -113,7 +113,7 @@
     btn.disabled = true;
     try {
       await lwCreatividades.cambiarEstado(c.id, destino);
-      if (window.toast) toast(T('Hecho: ') + T(lwCreatividades.ESTADOS[destino]).toLowerCase());
+      if (typeof toast === 'function') toast(T('Hecho: ') + T(lwCreatividades.ESTADOS[destino]).toLowerCase());
       await recarga();
     } catch (e) { btn.disabled = false; mal(e); }
   }
