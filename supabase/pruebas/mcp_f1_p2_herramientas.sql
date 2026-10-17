@@ -6,6 +6,8 @@
 --   A   el agente CON las casillas (AG, su proyecto pX) no ve nada de lo sembrado en pM (0 filas de más que su pantalla) y
 --       sí su parcela de pX; las herramientas de rol admin le contestan «sin_permiso».
 --   N   el agente SIN casillas (AGN): «sin_permiso» en las 10.
+--   O   (17-oct, Seguridad, al abrir el conector a todo el equipo) admin_empresa, super_admin_empresa, project_manager y
+--       sales_manager de OTRA empresa (zz_otra), con todas las casillas: «sin_permiso» o una respuesta sin ids ni nombres de zz_mcp.
 --   K   ningún resultado lleva claves de comprador ni texto libre (email, nombre_comprador, passport, notas, concepto,
 --       motivo, detalle, datos anidado), ni los textos sembrados como cebo («ZZ-SECRETO»).
 --   E   exposición: dueños, volatilidad, EXECUTE, sin SQL dinámico, y las patas (d)+(e) del invariante de salud de lw_lector.
@@ -93,13 +95,18 @@ insert into _h values
 
 insert into _tp values ('SA',  gen_random_uuid(), 'zz-mcp-super@prueba.invalid',  '{"provider":"email","providers":["email"]}'),
                        ('AG',  gen_random_uuid(), 'zz-mcp-agente@prueba.invalid', '{"provider":"email","providers":["email"]}'),
-                       ('AGN', gen_random_uuid(), 'zz-mcp-sin@prueba.invalid',    '{"provider":"email","providers":["email"]}');
+                       ('AGN', gen_random_uuid(), 'zz-mcp-sin@prueba.invalid',    '{"provider":"email","providers":["email"]}'),
+                       -- O (Seguridad, 17-oct): los otros cuatro roles, todos de OTRA empresa (zz_otra) y con todas las casillas
+                       ('AE',  gen_random_uuid(), 'zz-otra-ae@prueba.invalid',     '{"provider":"email","providers":["email"]}'),
+                       ('SAE', gen_random_uuid(), 'zz-otra-sae@prueba.invalid',    '{"provider":"email","providers":["email"]}'),
+                       ('PM',  gen_random_uuid(), 'zz-otra-pm@prueba.invalid',     '{"provider":"email","providers":["email"]}'),
+                       ('SM',  gen_random_uuid(), 'zz-otra-sm@prueba.invalid',     '{"provider":"email","providers":["email"]}');
 
 do $todo$
 declare
   r text := ''; v text; j jsonb; n bigint; h record; t0 timestamptz; ms numeric; cebo text;
-  sa _tp; ag _tp; agn _tp;
-  pM uuid; pX uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid; r2 uuid; m2 uuid; m3 uuid;
+  sa _tp; ag _tp; agn _tp; o _tp;
+  pM uuid; pX uuid; pO uuid; u1 uuid; u2 uuid; u3 uuid; c1 uuid; c2 uuid; f1 uuid; r1 uuid; g1 uuid; m1 uuid; cd1 uuid; r2 uuid; m2 uuid; m3 uuid;
   v_hoy date := (now() at time zone 'Asia/Makassar')::date;
   c_fin constant text := 'FIN DE PRUEBAS MCP F1-P2 (se deshace todo):%';
 begin
@@ -117,6 +124,8 @@ begin
     update public.empresas set sociedad_clave = 'zz_mcp' where clave = 'zz_mcp';
     insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-MCP Proyecto', 'zz-mcp-proyecto', 'zz_mcp', true) returning id into pM;
     insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-MCP Proyecto agente', 'zz-mcp-proyecto-ag', 'zz_mcp', true) returning id into pX;
+    insert into public.empresas (clave, nombre) values ('zz_otra', 'ZZ-OTRA Empresa');
+    insert into public.proyectos (nombre, slug, empresa, activo) values ('ZZ-OTRA Proyecto', 'zz-otra-proyecto', 'zz_otra', true) returning id into pO;
     insert into public.contrato_tipo_etapa (tipo, etapa, es_obra) values ('reserva_parcela', 'reserva', false), ('construccion', 'contrato', true)
       on conflict do nothing;
     insert into public.tipos_vivienda (clave, etiqueta) values ('parcela', 'Parcela') on conflict (clave) do nothing;
@@ -127,6 +136,11 @@ begin
       (ag.uid,  ag.em,  'ZZ-MCP Agente', 'agente',      'global', array['zz_mcp'],     array[pX],      '{}'::uuid[],
        '{unidades,contratos,facturas,recibos,comisiones_reparto}'::text[], '{}'::text[], true),
       (agn.uid, agn.em, 'ZZ-MCP Sin',    'agente',      'global', array['zz_mcp'],     array[pX],      '{}'::uuid[], '{}'::text[], '{}'::text[], true);
+    insert into public.usuarios (user_id, email, nombre, rol, ambito, empresas, proyectos, proyectos_supervisados, herramientas, tipos_contrato, activo)
+      select t.uid, t.em, 'ZZ-OTRA ' || t.et, x.rol, x.ambito, array['zz_otra'], array[pO], array[pO],
+             '{unidades,contratos,facturas,recibos,comisiones_reparto}'::text[], '{}'::text[], true
+        from _tp t join (values ('AE', 'admin_empresa', 'empresa'), ('SAE', 'super_admin_empresa', 'empresa'),
+                                ('PM', 'project_manager', 'global'), ('SM', 'sales_manager', 'global')) x(et, rol, ambito) on x.et = t.et;
     -- el resto SIN disparadores (como precio_cadena_vigente.sql): en la rama no hay series ni cobros con los que cuadren,
     -- y los registros que escribirían los triggers (unidades_log, contrato_eventos) van a mano, con cebos de texto.
     execute 'set local session_replication_role = replica';
@@ -345,6 +359,18 @@ begin
   for h in select * from _h order by herr loop
     v := pg_temp.mcp(agn.uid, agn.em, agn.app, h.q);
     r := r || pg_temp.l(pg_temp.js(v)->>'error' = 'sin_permiso', 'N ' || h.herr || ': AGN (sin la casilla) → sin_permiso (' || left(v, 60) || ')');
+  end loop;
+
+  -- ============================================================ O. los otros roles de OTRA empresa no ven nada de zz_mcp
+  -- (Seguridad, 17-oct: al abrir el conector a todo el equipo, cada rol tiene que quedarse en lo suyo; ni ids ni nombres de pM/pX)
+  for o in select * from _tp where et in ('AE', 'SAE', 'PM', 'SM') order by et loop
+    for h in select * from _h order by herr loop
+      v := pg_temp.mcp(o.uid, o.em, o.app, h.q);
+      j := pg_temp.js(v);
+      r := r || pg_temp.l(j->>'error' = 'sin_permiso' or (j is not null and not (j ? 'error') and v !~ cebo and v !~* 'zz.mcp' and v !~ u3::text),
+                          'O ' || o.et || ' ' || h.herr || ': otra empresa → sin_permiso o respuesta sin nada de zz_mcp (' || left(v, 80) || ')');
+      r := r || pg_temp.l(v ~ '^ERR' or pg_temp.limpio(v), 'K ' || h.herr || ' (' || o.et || '): sin claves de comprador ni texto libre ni cebos');
+    end loop;
   end loop;
 
   -- ============================================================ E. exposición

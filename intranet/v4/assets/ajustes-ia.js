@@ -3,10 +3,12 @@
  * Servidor: supabase/migrations/20261016073530_mcp_f1_p4_ajustes.sql.
  *
  * Qué hace esta pieza (y solo esto), solo para el super administrador GLOBAL:
- *  · lee todo de una vez por `ia_ajustes_ver` (interruptor y topes, asistentes, equipo con su permiso y su uso de hoy, conexiones vivas);
+ *  · lee todo de una vez por `ia_ajustes_ver` (interruptor y topes, asistentes, equipo con su uso de hoy, conexiones vivas);
  *  · encender/apagar y los tres topes → `ia_ajustes_guarda` (solo lo que cambió: la base admite un subconjunto);
  *  · un cliente por asistente (Claude, ChatGPT) con sus direcciones de vuelta → `ia_cliente_guarda`; nace APAGADO (lo nuevo nace cerrado);
- *  · quién puede conectar → `ia_permiso_guarda` (quitarlo corta sus conexiones en el acto: se avisa ANTES);
+ *  · el equipo y sus consultas de hoy, solo para mirar: desde el 17-oct-2026 puede conectar todo el equipo activo (owner: «activa el
+ *    mcp a todos… se tienen que loguear»; migración 20261017043002_mcp_todos). No hay permiso por persona: quien deja de poder es
+ *    quien se desactiva en Usuarios, y su conexión deja de funcionar en la siguiente consulta;
  *  · cortar cualquier conexión viva → `ia_conexion_revoca` (LW_IA.cortar, compartido con /v4/ia/).
  * Lo que NO hace: decidir quién puede. La base lo comprueba en cada función (es_super_admin(): 42501 si no); aquí la pestaña solo se
  * destapa para quien la base va a dejar, y en una instancia del ERP no se destapa (allí las ia_* no existen). No valida rangos por su
@@ -98,7 +100,7 @@
   function bloqueInterruptor(raiz) {
     var A = D.ajustes || {};
     var s = IA.seccion('', T('Conexión con asistentes de IA'),
-      T('Encendida, las personas con permiso pueden consultar Lawang desde Claude o ChatGPT: cada una ve solo lo que ya ve en la intranet, y cada consulta queda registrada. Apagada, ningún asistente puede consultar nada.'));
+      T('Encendida, cualquier persona activa del equipo puede consultar Lawang desde Claude o ChatGPT con su propio usuario: cada una ve solo lo que ya ve en la intranet, y cada consulta queda registrada. Apagada, ningún asistente puede consultar nada.'));
     s.s.setAttribute('data-ia-bloque', 'interruptor');
     var enc = A.encendido === true;
     var st = el('p', 'font-body-md text-body-md ' + (enc ? 'text-on-surface' : 'text-on-surface-variant'),
@@ -110,11 +112,9 @@
     }
     // Lo que conviene tener antes de encender. Solo el tope lo exige la base (falta_tope); lo demás se avisa, no se impone.
     var activos = (D.clientes || []).filter(function (k) { return k.activo; }).length;
-    var conPermiso = (D.usuarios || []).filter(function (u) { return u.permiso; }).length;
     var lista = el('ul', 'flex flex-col gap-1');
     [[Number(A.tope_dia) > 0, Number(A.tope_dia) > 0 ? T('Tope fijado: %n consultas al día por persona.', { n: A.tope_dia }) : T('Falta el tope de consultas al día (paso de abajo): sin él no se enciende.')],
-     [activos > 0, activos > 0 ? T('Asistentes encendidos: %n.', { n: activos }) : T('Ningún asistente encendido todavía: nadie podría conectarse.')],
-     [conPermiso > 0, conPermiso > 0 ? T('Personas con permiso: %n.', { n: conPermiso }) : T('Nadie tiene permiso todavía para conectar.')]
+     [activos > 0, activos > 0 ? T('Asistentes encendidos: %n.', { n: activos }) : T('Ningún asistente encendido todavía: nadie podría conectarse.')]
     ].forEach(function (x) {
       var li = el('li', 'flex items-start gap-2 font-body-sm text-body-sm ' + (x[0] ? 'text-on-surface' : 'text-burnt-earth'));
       var ic = el('span', 'material-symbols-outlined text-[18px] shrink-0', x[0] ? 'check_circle' : 'error'); ic.setAttribute('aria-hidden', 'true');
@@ -135,7 +135,7 @@
         confirmar: T('Sí, apagar'), tono: 'peligro'
       } : {
         titulo: T('¿Encender la IA?'),
-        cuerpo: '<p>' + IA.esc(T('Las personas con permiso podrán consultar Lawang desde su asistente, con un máximo de %n consultas al día cada una.', { n: A.tope_dia })) + '</p>',
+        cuerpo: '<p>' + IA.esc(T('Todo el equipo activo podrá consultar Lawang desde su asistente, con un máximo de %n consultas al día cada persona.', { n: A.tope_dia })) + '</p>',
         confirmar: T('Sí, encender')
       }) : Promise.resolve(false);
       q.then(function (si) { if (si) guardaAjustes({ encendido: !enc }, b); });
@@ -288,36 +288,18 @@
     raiz.appendChild(s.s);
   }
 
-  /* ── 4. quién puede conectar ───────────────────────────────────────────────────────────────────────────────────────── */
-  var ERR_PERMISO = {
-    usuario_inactivo: 'Ese usuario está desactivado: actívalo antes en Usuarios.',
-    datos_invalidos: 'Faltan datos: recarga la página.'
-  };
+  /* ── 4. el equipo y sus consultas de hoy (solo para mirar) ─────────────────────────────────────────────────────────── */
+  /* Desde el 17-oct-2026 puede conectar todo el equipo activo (owner: «quita lo de dar permiso porque se tienen que loguear»): aquí no
+     hay botones. Quien deja de poder es quien se desactiva en Usuarios; la base lo comprueba en cada consulta (privado.ia_conexion_motivo). */
   function filaPersona(u) {
-    var f = el('div', 'flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3 border-b border-outline-variant/30');
+    var f = el('div', 'flex flex-col py-3 border-b border-outline-variant/30');
     f.setAttribute('data-ia-usuario-fila', u.user_id);
-    var izq = el('div', 'flex flex-col min-w-0');
-    izq.appendChild(el('span', 'font-label-md text-label-md text-on-surface break-words', u.nombre || T('(sin nombre)')));
+    f.appendChild(el('span', 'font-label-md text-label-md text-on-surface break-words', u.nombre || T('(sin nombre)')));
     var linea = u.rol ? T(window.LW_ROL ? LW_ROL.etiqueta(u.rol) : u.rol) : '—';
-    if (u.permiso) linea += ' · ' + (Number(u.uso_hoy) === 1 ? T('hoy, 1 consulta') : T('hoy, %n consultas', { n: Number(u.uso_hoy) || 0 }));
-    izq.appendChild(el('span', C_PEQ, linea));
-    f.appendChild(izq);
-    var b = IA.boton(u.permiso ? T('Quitar el permiso') : T('Dar permiso'), u.permiso ? 'ia-permiso-quitar' : 'ia-permiso-dar');
-    b.setAttribute('data-ia-usuario', u.user_id);
-    b.setAttribute('aria-label', u.permiso ? T('Quitar el permiso a %n', { n: u.nombre || '' }) : T('Dar permiso a %n', { n: u.nombre || '' }));
-    b.addEventListener('click', function () {
-      var n = vivasDe('usuario_id', u.user_id);
-      var q = !u.permiso ? Promise.resolve(true) : (window.lwConfirmar ? window.lwConfirmar({
-        titulo: T('¿Quitar el permiso a %n?', { n: u.nombre || '' }),
-        cuerpo: '<p>' + IA.esc(T('Deja de poder conectar asistentes de IA.') + (n ? ' ' + (n === 1 ? T('Su conexión viva se corta en el acto.') : T('Sus %c conexiones vivas se cortan en el acto.', { c: n })) : '')) + '</p>',
-        confirmar: T('Sí, quitar'), tono: 'peligro'
-      }) : Promise.resolve(false));
-      q.then(function (si) {
-        if (si) guarda('ia_permiso_guarda', { p_usuario: u.user_id, p_concede: !u.permiso }, ERR_PERMISO, b,
-          u.permiso ? T('Permiso quitado.') : T('Permiso concedido.'), 'No se ha cambiado el permiso: %m');
-      });
-    });
-    f.appendChild(b);
+    linea += ' · ' + (Number(u.uso_hoy) === 1 ? T('hoy, 1 consulta') : T('hoy, %n consultas', { n: Number(u.uso_hoy) || 0 }));
+    var n = vivasDe('usuario_id', u.user_id);
+    if (n) linea += ' · ' + (n === 1 ? T('1 conexión viva') : T('%n conexiones vivas', { n: n }));
+    f.appendChild(el('span', C_PEQ, linea));
     return f;
   }
   function pintaPersonas(lista) {
@@ -330,52 +312,12 @@
     if (!hay.length) { lista.appendChild(el('p', C_PEQ, (D.usuarios || []).length ? T('Nadie con ese nombre.') : T('No hay nadie activo en el equipo.'))); return; }
     hay.forEach(function (u) { lista.appendChild(filaPersona(u)); });
   }
-  /* «Dar permiso a todo el equipo» (17-oct-2026, sesión mcp-ventana; owner: «todos desde hoy»). No hay función nueva en la base: es la
-     misma ia_permiso_guarda persona a persona, y cada llamada la autoriza la base. Una a una y en orden (34 personas: segundos), para
-     decir al final quién no ha podido y por qué; las que fallan quedan sin permiso y se ven en la lista. Quien entre después al
-     equipo necesita su «Dar permiso» (no hay «todos los futuros»: encargo, «Para después»). */
-  function botonTodos(sin) {
-    var b = IA.boton(T('Dar permiso a todo el equipo (%n)', { n: sin.length }), 'ia-permiso-dar-todos');
-    b.addEventListener('click', function () {
-      var q = window.lwConfirmar ? window.lwConfirmar({
-        titulo: T('¿Dar permiso a %n personas?', { n: sin.length }),
-        cuerpo: '<p>' + IA.esc(T('Podrán conectar su asistente de IA con su propio usuario. Cada una verá solo lo que ya ve en la intranet, con el tope de consultas al día de cada persona.')) + '</p>',
-        confirmar: T('Sí, dar permiso')
-      }) : Promise.resolve(false);
-      q.then(function (si) {
-        if (!si) return;
-        b.disabled = true;
-        var mal = [], hechos = 0;
-        var una = function (i) {
-          if (i >= sin.length) {
-            b.disabled = false;
-            if (mal.length) IA.mal(T('Permiso dado a %h de %t. Sin permiso: %l', { h: hechos, t: sin.length, l: mal.join(' · ') }));
-            else IA.bien(T('Permiso dado a %t personas.', { t: hechos }));
-            carga();
-            return;
-          }
-          var u = sin[i];
-          var falla = function (m) { mal.push((u.nombre || T('(sin nombre)')) + ' (' + m + ')'); una(i + 1); };
-          sb.rpc('ia_permiso_guarda', { p_usuario: u.user_id, p_concede: true }).then(function (r) {
-            var e = IA.textoError(r, ERR_PERMISO);
-            if (e) return falla(e);
-            hechos++; una(i + 1);
-          }, function (x) { falla((x && x.message) || T('sin respuesta')); });
-        };
-        una(0);
-      });
-    });
-    return b;
-  }
-  function bloquePermisos(raiz) {
+  function bloqueEquipo(raiz) {
     var us = D.usuarios || [];
-    var con = us.filter(function (u) { return u.permiso; }).length;
-    var s = IA.seccion('', T('Quién puede conectar'),
-      T('Solo quien tenga permiso puede conectar un asistente, y el asistente ve solo lo que esa persona ve. Quitar el permiso corta en el acto sus conexiones.'));
-    s.s.setAttribute('data-ia-bloque', 'permisos');
-    s.c.appendChild(el('p', C_PEQ, T('%n de %t personas del equipo pueden conectar.', { n: con, t: us.length })));
-    var sin = us.filter(function (u) { return !u.permiso; });
-    if (sin.length) s.c.appendChild(botonTodos(sin));
+    var s = IA.seccion('', T('Equipo y consultas de hoy'),
+      T('Puede conectar cualquier persona activa del equipo, con su usuario y su contraseña, y su asistente ve solo lo que esa persona ve. Para que alguien deje de poder, desactívalo en Usuarios: su conexión deja de funcionar en la siguiente consulta.'));
+    s.s.setAttribute('data-ia-bloque', 'equipo');
+    s.c.appendChild(el('p', C_PEQ, us.length === 1 ? T('1 persona activa en el equipo.') : T('%t personas activas en el equipo.', { t: us.length })));
     var bus = el('input', C_INPUT + ' md:w-80'); bus.type = 'search'; bus.autocomplete = 'off'; bus.value = filtro;
     bus.setAttribute('data-ia-buscar', '');
     s.c.appendChild(campo(T('Buscar persona'), null, bus));
@@ -422,7 +364,7 @@
     bloqueInterruptor(raiz);
     bloqueTopes(raiz);
     bloqueClientes(raiz);
-    bloquePermisos(raiz);
+    bloqueEquipo(raiz);
     bloqueConexiones(raiz);
   }
 

@@ -56,15 +56,19 @@ const abiertas = new Set([...mig.matchAll(/grant execute on function public\.([a
 // las escrituras de Ajustes › IA pasan por guarda('ia_…', {…}), el camino común de ajustes-ia.js (16-oct)
 const rpcDe = (js) => [...new Set([...js.matchAll(/(?:rpc|lwDatos|\bguarda)\('([a-z_]+)'/g)].map((m) => m[1]))].sort();
 igual(rpcDe(comun), ['ia_conexion_revoca', 'ia_mis_conexiones'], 'ia-conexiones.js llama solo a ia_mis_conexiones e ia_conexion_revoca');
-igual(rpcDe(aj), ['ia_ajustes_guarda', 'ia_ajustes_ver', 'ia_cliente_guarda', 'ia_permiso_guarda'], 'ajustes-ia.js llama solo a las cuatro de Ajustes › IA (cortar va por LW_IA)');
+igual(rpcDe(aj), ['ia_ajustes_guarda', 'ia_ajustes_ver', 'ia_cliente_guarda'], 'ajustes-ia.js llama solo a las tres de Ajustes › IA (cortar va por LW_IA; sin permiso por persona desde el 17-oct)');
+// 17-oct-2026 (owner: «quita lo de dar permiso porque se tienen que loguear»): ia_permiso_guarda se cierra a authenticated
+const todos = leer('supabase', 'migrations', '20261017043002_mcp_todos.sql');
+igual(/revoke execute on function public\.ia_permiso_guarda\(uuid, boolean\) from authenticated;/.test(todos), true, 'mcp_todos cierra ia_permiso_guarda a authenticated (ninguna pantalla la llama)');
+igual(/ia_permiso_guarda/.test(aj + comun), false, 'ninguna pantalla nombra ia_permiso_guarda');
 [...rpcDe(comun), ...rpcDe(aj)].forEach((f) => {
   if (!abiertas.has(f)) falla(f + ' no se abre a authenticated en las migraciones');
   if (!funcion(f)) falla(f + ' no está definida en las migraciones de P1/P4');
 });
 // los parámetros que manda cada llamada son los que declara la función (un nombre mal escrito da 404 de PostgREST, no un error legible)
 const llamadas = [...(comun + aj).matchAll(/(?:\.rpc|\bguarda)\('([a-z_]+)', \{([^}]*)\}/g)];
-igual(llamadas.map((m) => m[1]).sort(), ['ia_ajustes_guarda', 'ia_cliente_guarda', 'ia_conexion_revoca', 'ia_permiso_guarda', 'ia_permiso_guarda'],
-  'se leen las cinco llamadas con parámetros (ia_permiso_guarda dos veces: la persona y «a todo el equipo», 17-oct)');
+igual(llamadas.map((m) => m[1]).sort(), ['ia_ajustes_guarda', 'ia_cliente_guarda', 'ia_conexion_revoca'],
+  'se leen las tres llamadas con parámetros');
 llamadas.forEach(([, f, args]) => {
   const declarados = (funcion(f) || { params: '' }).params.split(',').map((x) => x.trim().split(/\s+/)[0]).filter(Boolean).sort();
   const mandados = [...args.matchAll(/\b(p_[a-z_]+):/g)].map((m) => m[1]).sort();
@@ -73,10 +77,9 @@ llamadas.forEach(([, f, args]) => {
 igual(/lwDatos\(/.test(aj) || /lwDatos\(/.test(comun) || /_datos'/.test(aj + comun), false, 'ninguna pantalla del puente usa lwDatos ni una *_datos: son lecturas de ia_puente_rol, no de lw_lector (080000)');
 
 /* ── 2. códigos de error → frase ── */
-const ERR = clavesDe(bloque(aj, 'ERR')), ERR_CLIENTE = clavesDe(bloque(aj, 'ERR_CLIENTE')), ERR_PERMISO = clavesDe(bloque(aj, 'ERR_PERMISO')), ERR_CORTAR = clavesDe(bloque(comun, 'ERR_CORTAR'));
+const ERR = clavesDe(bloque(aj, 'ERR')), ERR_CLIENTE = clavesDe(bloque(aj, 'ERR_CLIENTE')), ERR_CORTAR = clavesDe(bloque(comun, 'ERR_CORTAR'));
 igual(ERR.slice().sort(), codigos('ia_ajustes_guarda'), 'Topes/interruptor: una frase por cada error de ia_ajustes_guarda');
 igual(ERR_CLIENTE.slice().sort(), codigos('ia_cliente_guarda'), 'Asistentes: una frase por cada error de ia_cliente_guarda');
-igual(ERR_PERMISO.slice().sort(), codigos('ia_permiso_guarda'), 'Quién puede conectar: una frase por cada error de ia_permiso_guarda');
 igual(ERR_CORTAR.slice().sort(), codigos('ia_conexion_revoca'), 'Cortar: una frase por cada error de ia_conexion_revoca');
 igual(/falta_tope/.test(codigos('ia_ajustes_guarda').join()), true, 'la base sigue rechazando encender con tope 0 (falta_tope)');
 
@@ -134,7 +137,7 @@ igual(bl({ clientes: [{ id: 'c1', asistente: 'claude' }, { id: 'g1', asistente: 
   if (/\btoast\(/.test(sinComent.replace(/raiz\.toast\(m\)|typeof raiz\.toast/g, ''))) falla(n + ': un aviso con toast() suelto: los errores van por toastMal (LW_IA.mal)');
 });
 igual(/b\.setAttribute\('data-real', ''\)/.test(comun), true, 'boton() pone data-real');
-igual((aj.match(/tono: 'peligro'/g) || []).length, 3, 'apagar la IA, apagar un asistente y quitar un permiso paran con diálogo de peligro');
+igual((aj.match(/tono: 'peligro'/g) || []).length, 2, 'apagar la IA y apagar un asistente paran con diálogo de peligro');
 igual(/tono: 'peligro'/.test(comun), true, 'cortar una conexión para con diálogo de peligro');
 
 /* ── 6. puertas y cableado ── */

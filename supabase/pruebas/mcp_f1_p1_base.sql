@@ -5,6 +5,8 @@
 --   A  default-deny: anon/authenticated sin nada en las 8 tablas ia_*; las funciones del puente con su EXECUTE exacto (aclexplode)
 --   B  pide: redirect cambiado en un byte, PKCE plain, recurso ajeno, cliente apagado → error y 0 filas; la buena → petición
 --   C  autoriza: contraseña de hace 5 min, sin permiso de IA, petición inventada → error; la buena → código; petición repetida → error
+--      (con 20261017043002_mcp_todos: C2 es un agente dado de baja → usuario_inactivo; C6 un agente activo sin fila en ia_permisos conecta;
+--      I3 quitar la fila de ia_permisos ya no corta; I3b darle de baja en Usuarios sí)
 --   D  canjea: verificador malo → invalid_grant; bueno → par de tokens; el mismo código otra vez → invalid_grant y conexión revocada
 --   E  llama: la persona dentro de la herramienta es la del token (auth.uid() y auth.email()); queda fila ok en ia_llamadas
 --   F  tope del día: la llamada de más → «tope», con su fila; la base de negocio no cambia
@@ -68,6 +70,8 @@ declare
   a _tp; b _tp; cli uuid; red text := 'https://claude.ai/api/mcp/auth_callback'; rec text;
   ver text := repeat('v', 50); cha text; pet text; cod text; acc text; ref text; ref2 text; acc2 text; ref3 text; acc3 text; con uuid;
   c_fin constant text := 'FIN DE PRUEBAS MCP P1 BASE (se deshace todo):%';
+  -- con 20261017043002_mcp_todos (17-oct, owner: «activa el mcp a todos») ya no hay permiso por persona: conecta el equipo activo
+  todos constant boolean := pg_get_functiondef('public.ia_conexion_autoriza(text)'::regprocedure) !~ 'ia_permisos';
 begin
   if coalesce(current_setting('erp.en_rama', true), '') <> 'si' then
     raise exception 'FIN DE PRUEBAS MCP P1 BASE:%', E'\nP0 esta prueba siembra usuarios en auth.users: solo corre en rama → FALLA';
@@ -166,8 +170,16 @@ begin
   -- ============================================================ C. autoriza (con la sesión fresca de la persona)
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', pet), 300);
   r := r || pg_temp.l(v::jsonb ->> 'error' = 'contrasena_no_reciente', 'C1 contraseña puesta hace 5 min → ' || v);
-  v := pg_temp.sesion(b.uid, b.em, format('select public.ia_conexion_autoriza(%L)::text', pet));
-  r := r || pg_temp.l(v::jsonb ->> 'error' = 'sin_permiso', 'C2 B sin permiso de IA → ' || v);
+  if todos then
+    -- sin permiso por persona, lo que cierra es la ficha: un agente dado de baja en Usuarios no conecta
+    update public.usuarios set activo = false where user_id = b.uid;
+    v := pg_temp.sesion(b.uid, b.em, format('select public.ia_conexion_autoriza(%L)::text', pet));
+    r := r || pg_temp.l(v::jsonb ->> 'error' = 'usuario_inactivo', 'C2 B agente dado de baja → ' || v);
+    update public.usuarios set activo = true where user_id = b.uid;
+  else
+    v := pg_temp.sesion(b.uid, b.em, format('select public.ia_conexion_autoriza(%L)::text', pet));
+    r := r || pg_temp.l(v::jsonb ->> 'error' = 'sin_permiso', 'C2 B sin permiso de IA → ' || v);
+  end if;
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', 'inventada'));
   r := r || pg_temp.l(v::jsonb ->> 'error' = 'peticion_invalida', 'C3 petición inventada → ' || v);
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', pet));
@@ -175,6 +187,14 @@ begin
   r := r || pg_temp.l(length(cod) = 43 and v::jsonb ->> 'state' = 'xyz' and v::jsonb ->> 'redirect_uri' = red, 'C4 A, contraseña de hace 5 s → código, state y su redirect');
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', pet));
   r := r || pg_temp.l(v::jsonb ->> 'error' = 'peticion_invalida', 'C5 la misma petición otra vez → ' || v);
+  if todos then
+    -- C6 un agente activo SIN fila en ia_permisos conecta (y su conexión es suya, no de A)
+    j := pg_temp.edge('pide', jsonb_build_object('cliente_id', cli, 'redirect_uri', red, 'code_challenge', cha, 'code_challenge_method', 'S256', 'recurso', rec));
+    v := pg_temp.sesion(b.uid, b.em, format('select public.ia_conexion_autoriza(%L)::text', j ->> 'peticion'));
+    r := r || pg_temp.l(length(v::jsonb ->> 'code') = 43 and not exists (select 1 from public.ia_permisos where usuario_id = b.uid)
+                        and exists (select 1 from public.ia_conexiones where usuario_id = b.uid and revocada_en is null),
+                        'C6 B agente activo, sin fila en ia_permisos → código y conexión suya');
+  end if;
 
   -- ============================================================ D. canjea
   j := pg_temp.edge('canjea', jsonb_build_object('codigo', cod, 'code_verifier', repeat('w', 50), 'cliente_id', cli, 'redirect_uri', red, 'recurso', rec));
@@ -341,8 +361,19 @@ begin
   acc := j ->> 'access_token';
   update public.ia_permisos set quitado_en = now() where usuario_id = a.uid;
   j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'zz_quien'));
-  r := r || pg_temp.l(j ->> 'motivo' = 'permiso', 'I3 permiso de IA quitado → ' || j::text);
+  if todos then   -- la fila vieja de ia_permisos ya no cuenta: sigue llamando
+    r := r || pg_temp.l((j ->> 'uid')::uuid = a.uid, 'I3 fila de ia_permisos quitada → sigue llamando (' || j::text || ')');
+  else
+    r := r || pg_temp.l(j ->> 'motivo' = 'permiso', 'I3 permiso de IA quitado → ' || j::text);
+  end if;
   update public.ia_permisos set quitado_en = null where usuario_id = a.uid;
+  if todos then
+    -- I3b dar de baja a la persona en Usuarios corta su conexión en su siguiente uso
+    update public.usuarios set activo = false where user_id = a.uid;
+    j := pg_temp.edge('llama', jsonb_build_object('access_token', acc, 'recurso', rec, 'herramienta', 'zz_quien'));
+    r := r || pg_temp.l(j ->> 'motivo' = 'usuario_inactivo', 'I3b A dada de baja en Usuarios → no llama (' || j::text || ')');
+    update public.usuarios set activo = true where user_id = a.uid;
+  end if;
   -- I4 apagado
   j := pg_temp.edge('pide', jsonb_build_object('cliente_id', cli, 'redirect_uri', red, 'code_challenge', cha, 'code_challenge_method', 'S256', 'recurso', rec));
   v := pg_temp.sesion(a.uid, a.em, format('select public.ia_conexion_autoriza(%L)::text', j ->> 'peticion'));

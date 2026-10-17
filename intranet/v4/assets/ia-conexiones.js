@@ -309,7 +309,8 @@
       av.appendChild(ic);
       av.appendChild(el('p', 'font-body-sm text-body-sm text-on-surface-variant', a === 'apagado'
         ? T('La conexión con asistentes de IA está apagada en esta intranet. Cuando el super admin la encienda (Ajustes › IA) podrás conectar Claude o ChatGPT; mientras tanto ningún asistente puede consultar nada.')
-        : T('Todavía no tienes permiso para conectar un asistente de IA. Lo concede el super admin en Ajustes › IA: pídeselo si lo necesitas.')));
+        // `permiso` = puede conectar (17-oct-2026, sin permiso por persona): false solo si su usuario está desactivado o bloqueado
+        : T('Tu usuario no puede conectar un asistente de IA porque está desactivado o bloqueado. Habla con un administrador.')));
       r.appendChild(av);
     }
     var p = separa(d.conexiones, d.encendido);
