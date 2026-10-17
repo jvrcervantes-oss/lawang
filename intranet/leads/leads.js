@@ -97,7 +97,8 @@ const PREGUNTA = {
    redeclarar aqui: dos `const`/`function` del mismo nombre en el mismo scope
    global revientan el script entero con «Identifier ya declarado» y ninguna
    de las cuatro vistas llega a pintarse (incidente 10-sep-2026). */
-const dias = iso => { const d = new Date(iso); return isNaN(d) ? null : Math.floor((Date.now() - d) / 864e5); };
+// Sin fecha, null (revisor, 17-oct): new Date(null) es 1970 y un lead sin estado_desde salía «parado» con 20.000 días.
+const dias = iso => { if (!iso) return null; const d = new Date(iso); return isNaN(d) ? null : Math.floor((Date.now() - d) / 864e5); };
 const fecha = iso => { const d = new Date(iso); return isNaN(d) ? (iso || '')
   : d.toLocaleDateString(lwLocale(), { day:'numeric', month:'short', year:'numeric' }); };
 const fechaHora = iso => { const d = new Date(iso); return isNaN(d) ? (iso || '')
@@ -158,11 +159,70 @@ function aplicarRuta(){
 
 window.addEventListener('hashchange', aplicarRuta);
 
+/* ---------- pestañas: las que caben a la vista y el resto en «Más» (17-oct-2026) ----------
+   Eran diez en una barra que se deslizaba sin barra visible: a 1440 px «Closers» y «Trazabilidad» no se
+   veían y «Configurar bot» salía cortado (mejora 9 de Experiencia). Ahora hay como mucho MAX_TABS a la vista,
+   elegidas por PRIORIDAD_TABS entre las que ESTE usuario ve (las ocultas por permiso no cuentan), y si ni así
+   caben (móvil) bajan más a «Más», de la menos usada a la más. Los botones se MUEVEN, no se copian: siguen
+   llevando su data-v, así que ir(), vistaPermitida() y el permiso (`hidden`) funcionan igual; el clic de los
+   de «Más» va por su propio escuchador, que hace lo mismo que el de #nav. Los separadores («· WhatsApp Bot»,
+   «· Dirección») se quedan en la barra solo si su grupo tiene alguna pestaña en ella, y en el menú salen como
+   título de su grupo. */
+const PRIORIDAD_TABS = ['hoy', 'pipeline', 'bandeja', 'setter', 'agenda', 'panel', 'closers', 'automatismos', 'config', 'trazabilidad'];
+const MAX_TABS = 5;
+let ORDEN_NAV = null;   // los hijos de #nav en su orden del HTML, capturado la primera vez
+function colocaPestanas(){
+  const nav = $('#nav'), caja = $('#navMasCaja'), menu = $('#navMasMenu');
+  if(!nav || !caja || !menu) return;
+  if(!ORDEN_NAV) ORDEN_NAV = Array.from(nav.children);
+  const visibles = ORDEN_NAV.filter(el => el.dataset.v && !el.hidden);
+  const rango = v => { const i = PRIORIDAD_TABS.indexOf(v); return i < 0 ? PRIORIDAD_TABS.length : i; };
+  const porPrioridad = visibles.slice().sort((a, b) => rango(a.dataset.v) - rango(b.dataset.v));
+  const pinta = enBarra => {
+    menu.textContent = '';
+    let grupoNav = null, grupoMenu = null, sepPendiente = null;
+    ORDEN_NAV.forEach(el => {
+      if(!el.dataset.v){
+        if(el.classList.contains('crm-nav-sep')){ grupoNav = el; grupoMenu = el; sepPendiente = el; el.hidden = true; nav.appendChild(el); }
+        return;
+      }
+      if(el.hidden || enBarra.has(el)){
+        if(!el.hidden && grupoNav){ grupoNav.hidden = false; grupoNav = null; }
+        nav.appendChild(el); return;
+      }
+      if(grupoMenu && sepPendiente === grupoMenu){
+        const t = document.createElement('div'); t.className = 'crm-mas-grupo'; t.setAttribute('aria-hidden', 'true');
+        t.textContent = grupoMenu.textContent.replace(/^·\s*/, ''); menu.appendChild(t); sepPendiente = null;
+      }
+      menu.appendChild(el);
+    });
+    caja.hidden = !menu.querySelector('[data-v]');
+  };
+  const enBarra = new Set(porPrioridad.slice(0, MAX_TABS));
+  pinta(enBarra);
+  // ¿cabe? si no, la menos prioritaria de la barra baja a «Más» (siempre quedan al menos dos a la vista)
+  for(let i = porPrioridad.length - 1; i >= 2 && nav.scrollWidth > nav.clientWidth + 1; i--){
+    if(!enBarra.has(porPrioridad[i])) continue;
+    enBarra.delete(porPrioridad[i]); pinta(enBarra);
+  }
+  marcaMas();
+}
+function marcaMas(){
+  const caja = $('#navMasCaja'); if(!caja) return;
+  caja.classList.toggle('activa', !!$('#navMasMenu [aria-selected="true"]'));
+}
+function abreMas(abrir){
+  const b = $('#navMas'), menu = $('#navMasMenu'); if(!b || !menu) return;
+  menu.hidden = !abrir; b.setAttribute('aria-expanded', String(!!abrir));
+}
+
 /* ---------- navegación entre vistas ---------- */
 function ir(v){
   VISTA = v;
-  document.querySelectorAll('.crm-nav button').forEach(b =>
+  // las de «Más» viven en #navMasMenu, fuera de la nav (colocaPestanas)
+  document.querySelectorAll('#nav [data-v], #navMasMenu [data-v]').forEach(b =>
     b.setAttribute('aria-selected', String(b.dataset.v === v)));
+  marcaMas();
   document.querySelectorAll('.crm-vista').forEach(s =>
     s.hidden = s.id !== 'v-' + v);
   if(v === 'panel' && !CARGADO.panel) cargarPanel();
@@ -360,6 +420,40 @@ let HOY = [], SOLO_MIAS = false;
 function actualizarCuentaHoy(){
   const n = LEADS.filter(l => l.accion_cuando && diasHasta(l.accion_cuando) <= 0).length;
   $('#c-hoy').textContent = n;
+  pintarParados();   // los mismos cuatro sitios cambian también quién tiene próximo paso
+}
+
+/* ---------- Parados sin próximo paso (17-oct-2026, mejora 9 de Experiencia) ----------
+   «Hoy» solo cuenta tareas con fecha, y un lead SIN tarea no salía en ningún sitio: «Hoy 0» y «Con retraso 0»
+   mientras unos 8 de cada 10 contactos llevaban días en «Contactado» con el contador en rojo. Esto los junta:
+   sin próximo paso, en una columna abierta (fuera reserva, contrato y perdido) y con el MISMO umbral que pone
+   rojo el contador de la tarjeta (DIAS_VIEJO). Sale de LEADS, que ya está en memoria: ni una llamada más.
+   Respeta «Solo mías». */
+const CERRADOS_CRM = ['reserva', 'contrato', 'perdido'];
+const TOPE_PARADOS = 50;
+function paradosSinPaso(){
+  return LEADS.filter(l => !CERRADOS_CRM.includes(l.estado) && !l.accion_id && l.estado_desde && dias(l.estado_desde) >= DIAS_VIEJO && (!SOLO_MIAS || esMio(l)))
+    .sort((a, b) => dias(b.estado_desde) - dias(a.estado_desde));
+}
+function pintarParados(){
+  const caja = $('#cajaParados'), lista = $('#listaParados'); if(!caja || !lista) return;
+  const ps = paradosSinPaso();
+  const k = $('#kpiParados'); if(k) k.textContent = ps.length;
+  caja.hidden = !ps.length;
+  if(!ps.length){ lista.textContent = ''; return; }
+  $('#paradosSub').textContent = lwT('Llevan más de %d días en la misma columna y nadie tiene una tarea con ellos. Abre la ficha y ponles el próximo paso.', { d: DIAS_VIEJO });
+  const titulo = e => (COLS.find(c => c[0] === e) || [])[1] || e || '—';
+  lista.innerHTML = ps.slice(0, TOPE_PARADOS).map(l => `
+    <article class="cita urge" data-lead="${esc(l.id)}">
+      <div class="avatar">${esc(iniciales(l.name))}</div>
+      <div class="cuerpo">
+        <div class="cuando">${esc(lwT('%n días en «%c»', { n: dias(l.estado_desde), c: titulo(l.estado) }))}</div>
+        <div class="quien">${esc(l.name || lwT('sin nombre'))}</div>
+        <div class="sub">${esc(canal(l.source))} · ${esc(l.dueno ? (l.dueno_nombre || l.dueno) : lwT('Sin dueño'))}</div>
+      </div>
+      <div class="acciones"><button class="btn mini pri" data-abrir-parado="${esc(l.id)}">${lwT('Poner próximo paso')}</button></div>
+    </article>`).join('') +
+    (ps.length > TOPE_PARADOS ? `<p class="vacio">${esc(lwT('Y %n más: están en Pipeline.', { n: ps.length - TOPE_PARADOS }))}</p>` : '');
 }
 
 async function cargarHoy(){
@@ -377,7 +471,10 @@ function pintarHoy(){
     <div class="kpi fuerte"><div class="rot">${lwT('Para hoy')}<i class="ph ph-flag"></i></div>
       <p class="cifra">${HOY.length}</p><p class="pie">${lwT(SOLO_MIAS ? 'tuyas' : 'de todo el equipo')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Con retraso')}<i class="ph ph-warning-circle"></i></div>
-      <p class="cifra oro">${vencidas}</p><p class="pie">${lwT('deberían estar hechas')}</p></div>`;
+      <p class="cifra oro">${vencidas}</p><p class="pie">${lwT('deberían estar hechas')}</p></div>
+    <div class="kpi"><div class="rot">${lwT('Parados sin próximo paso')}<i class="ph ph-pause-circle"></i></div>
+      <p class="cifra oro" id="kpiParados">—</p><p class="pie">${esc(lwT('más de %d días y sin tarea', { d: DIAS_VIEJO }))}</p></div>`;
+  pintarParados();
 
   const caja = $('#listaHoy');
   if(!HOY.length){
@@ -1472,7 +1569,7 @@ async function cargarPanel(){
 
 function pintarPanel(){
   const totalLeads = LEADS.length;
-  const leads7 = LEADS.filter(l => dias(l.created_at) <= 7).length;
+  const leads7 = LEADS.filter(l => { const d = dias(l.created_at); return d !== null && d <= 7; }).length;
   const gasto = CAMPANAS.reduce((a, c) => a + Number(c.gasto || 0), 0);
   const leadsCamp = CAMPANAS.reduce((a, c) => a + Number(c.leads || 0), 0);
   const mon = (CAMPANAS.find(c => c.moneda) || {}).moneda || '';
@@ -2582,6 +2679,26 @@ $('#nav').addEventListener('click', e => {
   if(location.hash === destino) aplicarRuta();   // mismo hash: hashchange no dispara
   else location.hash = destino;
 });
+// «Más»: abrir/cerrar, y sus pestañas hacen lo mismo que las de la barra (colocaPestanas)
+$('#navMas').addEventListener('click', e => { e.stopPropagation(); abreMas($('#navMasMenu').hidden); });
+$('#navMasMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-v]'); if(!b) return;
+  abreMas(false);
+  const destino = '#' + b.dataset.v;
+  if(location.hash === destino) aplicarRuta(); else location.hash = destino;
+});
+document.addEventListener('click', e => { if(!e.target.closest('#navMasCaja')) abreMas(false); });
+// «Poner próximo paso» de los parados: la ficha del lead, donde se pone la tarea (pintarParados)
+$('#listaParados').addEventListener('click', e => {
+  const b = e.target.closest('[data-abrir-parado]'); if(!b) return;
+  e.stopPropagation();
+  const l = LEADS.find(x => x.id === b.dataset.abrirParado); if(l) abrirFicha(l);
+});
+document.addEventListener('keydown', e => { if(e.key === 'Escape') abreMas(false); });
+let RECOLOCA = 0;
+window.addEventListener('resize', () => { clearTimeout(RECOLOCA); RECOLOCA = setTimeout(colocaPestanas, 150); });
+// las letras llegan después: con ellas las pestañas ocupan otra cosa
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(colocaPestanas);
 $('#canales').addEventListener('click', e => {
   const b = e.target.closest('[data-c]'); if(!b) return;
   CANAL = b.dataset.c; pintarPipeline();
@@ -2796,6 +2913,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   /* Trazabilidad: solo super_admin, ni por casilla (revisión previa #49). Candado de
      comodidad: el de verdad es es_super_admin() dentro de cada traza_* de la base. */
   $('#tabTrazabilidad').hidden = !PUEDE_ESTRUCTURA;
+  colocaPestanas();   // con los permisos ya puestos: cuáles a la vista y cuáles en «Más»
   // Con la sesión ya conocida, fuera lo que el navegador haya dejado en los buscadores.
   BUSCADORES.forEach(b => b.barrer());
   await pintarAlcance();

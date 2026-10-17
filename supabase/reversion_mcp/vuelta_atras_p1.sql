@@ -1,9 +1,11 @@
--- destructivo-ok: VUELTA ATRÁS de 20261016073011_mcp_f1_p1_base.sql y, si se llegaron a aplicar, supabase/propuestas/20261016140000_mcp_f1_abre_conexion.sql y 20261016150000_mcp_f1_purga.sql (puente MCP de Lawang).
+-- destructivo-ok: VUELTA ATRÁS de 20261016073011_mcp_f1_p1_base.sql y, si se llegaron a aplicar, 20261017015135_mcp_f1_abre_conexion.sql y supabase/propuestas/20261016150000_mcp_f1_purga.sql (puente MCP de Lawang).
 -- Solo a mano, con OK del owner y su válvula (tools/no_destruir.py), y con copia previa:
 --   python erp/respaldo_instancia.py lawang --previa "antes de revertir el puente MCP P1"
 -- PASO 1 — PARAR (no borra nada; basta casi siempre): `update public.ia_ajustes set encendido = false` (Ajustes › IA) y, si hace
 -- falta cerrar la puerta, `revoke execute on function public.ia_puente(text, jsonb) from anon;`. Con eso ninguna conexión llama.
 -- PASO 2 — QUITAR LA PIEZA: antes, retirar la edge `mcp` (supabase functions delete mcp) y revertir P2 (vuelta_atras_p2.sql).
+-- Y P6 (vuelta_atras_p6.sql): deja correos_cola.ia_conexion_id con su clave ajena a ia_conexiones, así que el drop de abajo FALLA
+-- hasta que, con el OK del owner, se quiten esa columna y sus restricciones (correos_cola_ia_clave, la 5.ª ancla de un_ancla).
 -- ia_llamadas es el registro de quién consultó qué: con filas, este bloque PARA. Exportarlo y decidir con el owner.
 begin;
 do $$

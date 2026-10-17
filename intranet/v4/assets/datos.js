@@ -1120,7 +1120,7 @@
   function bandejaHoy(sb) {
     var caja = document.getElementById('lw-hoy'), lista = document.getElementById('lw-hoy-lista');
     if (!caja || !lista) return;
-    var T = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+    var T = function (x, h) { return (typeof lwT === 'function') ? lwT(x, h) : x; };
     var hoy = hoyLocal();
     var suave = function (p) { return vig(p).then(function (r) { if (r.error) { console.error('[v4] hoy toca:', r.error); return null; } return r.data || []; }, function (e) { console.error('[v4] hoy toca:', e); return null; }); };
     Promise.all([
@@ -1130,7 +1130,7 @@
       // Desde el 18-ago-2026, día en que se activó la factura automática: lo
       // anterior es alta de histórico y se revisa aparte. Misma regla que
       // public.hitos_sin_factura() (ver su COMMENT): si cambia, cambiar las dos.
-      suave(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto,contratos!inner(numero,bloqueado,liberado_en)')
+      suave(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto,contratos!inner(numero,bloqueado,liberado_en,moneda)')
         .eq('contratos.bloqueado', true).is('contratos.liberado_en', null).is('factura_id', null).eq('no_facturar', false)
         .lt('fecha', hoy).gte('fecha', '2026-08-18').order('fecha')),
       suave(sb.rpc('facturas_pendiente_equipo')),
@@ -1139,27 +1139,47 @@
       // la fila del saldo pendiente suma en la moneda base (conMonedaBase; en Lawang, en el acto y en EUR, como siempre)
       conMonedaBase(function (mb, motivo) {
       var FILAS = [];
-      var fila = function (tono, icono, titulo, detalle, n, href, cta) { FILAS.push({ tono: tono, icono: icono, titulo: titulo, detalle: detalle, n: n, href: href, cta: cta }); };
+      /* `items` (17-oct-2026, mejora 5 de Experiencia): las MISMAS filas que se han contado, cada una con su acción.
+         Pulsar el aviso abre esa lista en el cajón (abreHoy), así que el número del aviso y el de la lista no pueden
+         separarse: antes llevaba a la pantalla sin filtrar, con otras cifras, o solo al primer contrato. `href` y
+         `abrir` siguen siendo la pantalla entera (pie del cajón y destino si el cajón no ha cargado). */
+      var fila = function (tono, icono, titulo, detalle, n, href, abrir, items) { FILAS.push({ tono: tono, icono: icono, titulo: titulo, detalle: detalle, n: n, href: href, abrir: abrir, items: items || [] }); };
       var diasA = function (iso) { return Math.round((new Date(iso + 'T00:00:00') - new Date(hoy + 'T00:00:00')) / 864e5); };
       var lista3 = function (xs) { return xs.slice(0, 3).join(' · ') + (xs.length > 3 ? ' · +' + (xs.length - 3) : ''); };
+      var enOps = function (num) { return '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num || ''); };
+      var itemReserva = function (x) {
+        return { que: x.num, quien: x.comp, det: x.d < 0 ? T('venció hace %n d', { n: -x.d }) : x.d === 0 ? T('vence hoy') : x.d === 1 ? T('mañana') : T('pasado mañana'),
+          acc: [{ t: T('Abrir la operación'), href: enOps(x.num) }] };
+      };
 
       // 1 y 2 · reservas (la cuenta vive en window.lwReservasUrgentes, la comparte el Asistente)
       if (r[0]) {
         var ur = window.lwReservasUrgentes(r[0], hoy), venc = ur.vencidas, pronto = ur.pronto;
-        if (venc.length) fila('mal', 'event_busy', T('Reservas vencidas pendientes de liberar'), lista3(venc.map(function (x) { return x.num + ' (' + (x.comp || '—') + ')'; })), venc.length, '/intranet/v4/reservas/', T('Decidir'));
-        if (pronto.length) fila('mal', 'schedule', T('Reservas que vencen en 1–2 días'), lista3(pronto.map(function (x) { return x.num + ' · ' + (x.d === 1 ? T('mañana') : T('pasado mañana')); })), pronto.length, '/intranet/v4/reservas/', T('Prorrogar o pasar a Bloqueo'));
+        if (venc.length) fila('mal', 'event_busy', T('Reservas vencidas pendientes de liberar'), lista3(venc.map(function (x) { return x.num + ' (' + (x.comp || '—') + ')'; })), venc.length, '/intranet/v4/reservas/', T('Abrir Reservas'), venc.map(itemReserva));
+        if (pronto.length) fila('mal', 'schedule', T('Reservas que vencen en 1–2 días'), lista3(pronto.map(function (x) { return x.num + ' · ' + (x.d === 1 ? T('mañana') : T('pasado mañana')); })), pronto.length, '/intranet/v4/reservas/', T('Abrir Reservas'), pronto.map(itemReserva));
       }
       // 3 · firmas caducadas (instante contra instante; fuera firmados y liberados)
       if (r[1] && r[2]) {
         var cs = {}; r[2].forEach(function (c) { cs[c.id] = c; });
-        var vivas = {}, cad = {};
+        var vivas = {}, cad = {}, caducoEl = {};
         r[1].forEach(function (f) {
           var c = cs[f.contrato_id]; if (!c || c.bloqueado || c.liberado_en) return;
-          if (f.expira_en && new Date(f.expira_en) < new Date()) cad[f.contrato_id] = c; else vivas[f.contrato_id] = c;
+          if (f.expira_en && new Date(f.expira_en) < new Date()) {
+            cad[f.contrato_id] = c;
+            if (!caducoEl[f.contrato_id] || f.expira_en > caducoEl[f.contrato_id]) caducoEl[f.contrato_id] = f.expira_en;   // la más reciente
+          } else vivas[f.contrato_id] = c;
         });
         Object.keys(vivas).forEach(function (k) { delete cad[k]; });   // si hay una firma viva, no está parado
         var cadL = Object.keys(cad).map(function (k) { return cad[k]; });
-        if (cadL.length) fila('mal', 'link_off', T('Firmas caducadas sin firmar'), lista3(cadL.map(function (c) { return c.numero + ' (' + (c.comprador_nombre || '—') + ')'; })), cadL.length, '/intranet/v4/contratos/?contrato=' + encodeURIComponent(cadL[0].numero), T('Reenviar'));
+        cadL.sort(function (a, b) { return caducoEl[a.id] < caducoEl[b.id] ? 1 : -1; });   // lo que caducó antes, abajo
+        // «Reenviar» abre el generador con la ventana «Enviar a firma» a la vista (?firma=1, contracts/app.html): generar sigue siendo allí
+        if (cadL.length) fila('mal', 'link_off', T('Firmas caducadas sin firmar'), lista3(cadL.map(function (c) { return c.numero + ' (' + (c.comprador_nombre || '—') + ')'; })), cadL.length, '/intranet/v4/contratos/', T('Abrir Contratos'),
+          cadL.map(function (c) {
+            var d = Math.max(0, Math.floor((new Date() - new Date(caducoEl[c.id])) / 864e5));
+            return { que: c.numero, quien: c.comprador_nombre, det: d ? T('caducó hace %n d', { n: d }) : T('caducó hoy'), cid: c.id,
+              acc: [{ t: T('Reenviar'), href: '/contracts/app.html?contrato=' + encodeURIComponent(c.id) + '&firma=1', fuerte: true },
+                    { t: T('Ficha'), href: '/intranet/v4/contratos/?contrato=' + encodeURIComponent(c.numero) }] };
+          }));
         pintaFirmasHome(Object.keys(vivas).length, cadL.length);
       } else pintaFirmasHome('—', 0);   // sin lectura: nunca dejar el dibujo de la maqueta como verdad
       // 4 · hitos vencidos sin factura
@@ -1186,7 +1206,12 @@
         });
         if (hitos.length) {
           var h0 = hitos[0];
-          fila('espera', 'receipt_long', T('Hitos vencidos sin factura'), T('La factura automática no cubre lo que llega tarde') + ' · ' + T('el más antiguo') + ': ' + (h0.contratos && h0.contratos.numero || '—') + ' · ' + (h0.descripcion || T('hito')) + ' · ' + fFecha(h0.fecha), hitos.length, '/intranet/v4/vencimientos/', T('Revisar'));
+          fila('espera', 'receipt_long', T('Hitos vencidos sin factura'), T('La factura automática no cubre lo que llega tarde') + ' · ' + T('el más antiguo') + ': ' + (h0.contratos && h0.contratos.numero || '—') + ' · ' + (h0.descripcion || T('hito')) + ' · ' + fFecha(h0.fecha), hitos.length, '/intranet/v4/vencimientos/', T('Abrir Vencimientos'),
+            hitos.map(function (h) {
+              var num = h.contratos && h.contratos.numero, mon = h.contratos && h.contratos.moneda;
+              return { que: num || '—', quien: h.descripcion || T('hito'), det: fFecha(h.fecha) + (h.monto != null && mon ? ' · ' + fmt(h.monto, mon) : ''),
+                acc: [{ t: T('Abrir la operación'), href: enOps(num) }] };
+            }));
         }
       }
       // 5 · facturas con saldo · 6 · recibís sin justificante
@@ -1202,13 +1227,21 @@
           var con = !r[2] ? [] : r[5].filter(function (f) { return f.tipo === 'factura' && !f.anulada && pend[f.id] > 0.005 && vivoFirmado[f.contrato_id]; });
           if (con.length) {
             var enBase = 0, otras = 0; if (mb) con.forEach(function (f) { if ((f.moneda || mb) === mb) enBase += pend[f.id]; else otras++; });
-            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), mb ? fmt(enBase, mb) + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : '') : T(motivo), con.length, '/intranet/v4/facturas/', T('Ver'));
+            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), mb ? fmt(enBase, mb) + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : '') : T(motivo), con.length, '/intranet/v4/facturas/', T('Abrir Facturas'),
+              con.map(function (f) {
+                return { que: f.numero, quien: f.cliente_nombre, det: T('pendiente') + ': ' + fmt(pend[f.id], f.moneda || mb || 'EUR'),
+                  acc: [{ t: T('Abrir la factura'), href: '/intranet/v4/facturas/?id=' + encodeURIComponent(f.id) }] };
+              }));
           }
         }
         /* LAW-40 (owner 10-oct-2026): los recibís de antes del 11-ago-2026 marcados `historico_sin_justificante`
            se quedan sin justificante por decisión del owner; no son trabajo pendiente y no avisan. */
         var sinJ = r[5].filter(function (f) { return f.tipo === 'recibi' && reciboFaltaJustificante(f); });
-        if (sinJ.length) fila('neutro', 'attach_file', T('Recibís sin justificante'), lista3(sinJ.map(function (f) { return f.numero + ' (' + (f.cliente_nombre || '—') + ')'; })), sinJ.length, '/intranet/v4/recibos/', T('Subir'));
+        if (sinJ.length) fila('neutro', 'attach_file', T('Recibís sin justificante'), lista3(sinJ.map(function (f) { return f.numero + ' (' + (f.cliente_nombre || '—') + ')'; })), sinJ.length, '/intranet/v4/recibos/', T('Abrir Recibos'),
+          sinJ.map(function (f) {
+            return { que: f.numero, quien: f.cliente_nombre, det: fFecha(f.fecha_emision || f.created_at),
+              acc: [{ t: T('Subir el justificante'), href: '/intranet/v4/recibos/?id=' + encodeURIComponent(f.id) }] };
+          }));
       }
 
       // una consulta caída no es «0 pendientes» (consulta de deploy, Desarrollo, 23-sep)
@@ -1222,17 +1255,168 @@
       }
       var total = FILAS.reduce(function (a, x) { return a + x.n; }, 0);
       pon2('k-hoy-n', String(total));
-      lista.innerHTML = FILAS.map(function (x) {
+      lista._hoy = FILAS;
+      if (!lista._cableado) {
+        lista._cableado = true;
+        lista.addEventListener('click', function (ev) {
+          var a = ev.target.closest && ev.target.closest('[data-accion="hoy-fila"]');
+          if (!a || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) return;   // abrir en pestaña nueva: la pantalla entera, como antes
+          var x = (lista._hoy || [])[+a.getAttribute('data-hoy-i')];
+          if (!x || !x.items.length || !window.lwCajon) return;   // sin cajón: el enlace lleva a la pantalla
+          ev.preventDefault(); ev.stopPropagation();
+          abreHoy(x, a, sb);
+        });
+      }
+      lista.innerHTML = FILAS.map(function (x, i) {
         var t = LW_TONOS[x.tono] || LW_TONOS.neutro;
-        return '<a href="' + esc(x.href) + '" style="display:grid;grid-template-columns:4px 36px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 24px 12px 0;border-top:1px solid #EFECE4;text-decoration:none;color:#2E3437">' +
+        return '<a href="' + esc(x.href) + '" data-accion="hoy-fila" data-hoy-i="' + i + '" style="display:grid;grid-template-columns:4px 36px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 24px 12px 0;border-top:1px solid #EFECE4;text-decoration:none;color:#2E3437">' +
           '<span style="align-self:stretch;border-radius:0 3px 3px 0;background:' + t.borde + '"></span>' +
           '<span style="width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:' + t.suave + ';color:' + t.tinta + '"><span class="material-symbols-outlined" style="font-size:19px">' + x.icono + '</span></span>' +
           '<span style="min-width:0"><span style="display:block;font:600 14px \'Neue Kabel\',sans-serif">' + esc(x.titulo) + '</span>' +
           '<span style="display:block;font:500 12px \'Neue Kabel\',sans-serif;color:#75786e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.detalle) + '</span></span>' +
           '<span style="display:flex;align-items:center;gap:12px;white-space:nowrap"><span style="font:700 20px \'Neue Kabel\',sans-serif;color:#104C4F">' + x.n + '</span>' +
-          '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(x.cta) + ' →</span></span></a>';
+          '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(T('Ver la lista')) + ' →</span></span></a>';
       }).join('') + avisoCaidas;
       caja.hidden = false;
+      });
+    });
+  }
+  /* El cajón de un aviso de «Hoy toca»: sus filas, ya contadas, cada una con su acción (enlaces: nada escribe desde
+     aquí). Todo lo que viene de la base pasa por esc(). */
+  function abreHoy(x, desde, sb) {
+    var T = function (s, h) { return (typeof lwT === 'function') ? lwT(s, h) : s; };
+    var H = window.lwCajonHtml;
+    var filas = x.items.map(function (it) {
+      return ['<b>' + esc(it.que || '—') + '</b>' + (it.quien ? '<br><span style="color:#75786e">' + esc(it.quien) + '</span>' : ''),
+        esc(it.det || '') + (it.cid ? '<span data-lw="reenvio-estado" data-cid="' + esc(it.cid) + '" style="display:block;margin-top:4px;font-weight:600"></span>' : ''),
+        '<span style="display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:flex-end">' + it.acc.map(function (a) {
+          return '<a href="' + esc(a.href) + '" style="font-weight:' + (a.fuerte ? 700 : 600) + ';color:#104C4F;text-decoration:underline;white-space:nowrap">' + esc(a.t) + '</a>';
+        }).join('') + '</span>'];
+    });
+    var caj = window.lwCajon({
+      titulo: x.titulo, sub: 'Hoy toca', desde: desde, ancho: 'min(720px,96vw)',
+      bajoTitulo: T('%n en la lista: los mismos que cuenta el aviso.', { n: x.items.length }),
+      cuerpo: H.tabla(['Documento', 'Detalle', ''], filas, { apila: true }),
+      acciones: [{ texto: x.abrir, href: x.href }, { texto: 'Cerrar', cerrar: true }]
+    });
+    var cids = x.items.map(function (it) { return it.cid; }).filter(Boolean);
+    if (cids.length && sb && caj && caj.pie) reenvioEnBloque(sb, caj, cids, T);
+  }
+
+  /* «Reenviar todas» (17-oct-2026, mejora 5b): enlace nuevo para el MISMO firmante y el MISMO documento de cada firma
+     caducada, con el correo por la cola. Lo decide y lo hace el servidor (ficheros-contrato → reenvia_caducada, regla en
+     supabase/functions/ficheros-contrato/reenvio.ts): de aquí solo sale el id del contrato, nunca un email ni un texto.
+     De uno en uno y en orden (nunca en paralelo: la cola manda los enlaces de firma sin pausa y Hostinger ya bloqueó una
+     ráfaga), primero la vista previa (`ver`) que dice a quién iría cada uno y cuál se queda fuera y por qué, luego la
+     confirmación con esa lista, luego el envío con el resultado en cada fila.
+     El botón nace OCULTO y solo aparece si el servidor ya sabe hacerlo (una `ver` del primero contesta): así esta pantalla
+     puede publicarse antes que la edge sin enseñar un botón muerto. Decisión por defecto (CEO, 17-oct). */
+  var REENVIO_TOPE = 20;   // solo hasta que conteste la vista previa, que trae el del servidor (reenvio.ts → TOPE_REENVIOS)
+  // Pausa entre dos reenvíos de verdad: la cola manda los enlaces de firma sin espera y cada encolado la despierta, así que
+  // el ritmo real es el de este bucle; 5 s es el esperaMs de cola-correos-envio (Backend, 17-oct: una ráfaga y Hostinger
+  // bloquea el buzón, y con él TODOS los correos de Lawang).
+  var REENVIO_PAUSA_MS = 5000;
+  // Qué faltaba en el envío del enlace caducado (motivo de la constancia LAW-406/410), para la vista previa.
+  var REENVIO_SIN_ANEXO = { ninguno: 'salió sin ningún anexo', sin_apendice_a: 'salió sin Apéndice A', fallo: 'salió con un anexo que no se pudo incluir' };
+  var REENVIO_MOTIVOS = {
+    cola_apagada: 'El correo de firma por la cola está apagado: reenvíalo desde el generador.',
+    bloqueado: 'El contrato está bloqueado.',
+    liberado: 'La reserva está liberada.',
+    firma_a_medias: 'Hay una firma a medias de guardar: prueba en un minuto.',
+    sin_enlace_pendiente: 'Ya no tiene el enlace caducado (¿ya se reenvió?).',
+    varios_pendientes: 'Tiene más de un enlace pendiente: hazlo desde el generador.',
+    enlace_vivo: 'Ya tiene un enlace vivo.',
+    ya_firmo: 'Ese firmante ya ha firmado.',
+    sin_huella: 'Enlace de antes del 26-sep: hay que generarlo de nuevo con «Reenviar».',
+    sin_email: 'Al firmante le falta un dato: hazlo con «Reenviar».',
+    firmante_raro: 'Al firmante le falta un dato: hazlo con «Reenviar».',
+    documento_cambiado: 'El documento ya no es el que se envió: genéralo de nuevo con «Reenviar».',
+    falta_el_documento: 'No se encuentra el documento que se envió: genéralo de nuevo con «Reenviar».',
+    contrato_no_encontrado: 'No se encuentra el contrato.',
+    correo_no_encolado: 'Enlace nuevo creado, pero el correo no ha salido: mándalo con «Reenviar».',
+    otro_envio_a_la_vez: 'Alguien lo ha reenviado a la vez: vale su enlace.',
+    no_se_pudo_comprobar: 'Enlace nuevo creado; no se ha podido confirmar el correo: míralo con «Reenviar».'
+  };
+  function reenvioEnBloque(sb, caj, cids, T) {
+    var estado = function (cid) { return caj.el.querySelector('[data-lw="reenvio-estado"][data-cid="' + cid.replace(/[^0-9a-f-]/gi, '') + '"]'); };
+    var pon = function (cid, texto, tono) { var e = estado(cid); if (e) { e.textContent = texto; e.style.color = tono === 'ok' ? '#3F5230' : tono === 'mal' ? '#93000A' : '#75786e'; } };
+    var motivo = function (m) { return T(REENVIO_MOTIVOS[m] || m || 'No se ha podido.'); };
+    var llama = function (body) {
+      return sb.auth.getSession().then(function (s) {
+        var t = s && s.data && s.data.session && s.data.session.access_token;
+        if (!t) return { status: 401, j: { error: 'sin_sesion' } };
+        return fetch(window.lwEdge('ficheros-contrato'), {
+          method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + t },
+          body: JSON.stringify(Object.assign({ accion: 'reenvia_caducada' }, body))
+        }).then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j || {} }; }, function () { return { status: r.status, j: {} }; }); });
+      }).catch(function (e) { return { status: 0, j: { error: String((e && e.message) || e) } }; });
+    };
+    var textoError = function (r) {
+      if (r.status === 403) return T('No puedes mandar este contrato a firma.');
+      if (r.status === 401) return T('Tu sesión ha caducado. Vuelve a entrar.');
+      if (r.status === 429 && r.j.error === 'demasiados_reenvios') return T('El equipo ha llegado al tope de %n reenvíos en %m minutos: espera y vuelve a intentarlo.', { n: r.j.tope, m: r.j.minutos });
+      return String(r.j.error || T('No se ha podido.'));
+    };
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'las-btn1'; b.hidden = true;
+    b.setAttribute('data-accion', 'hoy-reenviar-todas');
+    b.textContent = T('Reenviar todas');
+    caj.pie.insertBefore(b, caj.pie.firstChild);
+    // ¿El servidor ya lo sabe hacer? Una vista previa (sin efectos en la base) de los primeros, hasta que uno conteste:
+    // si el primero es de un contrato que esta persona no puede mandar (403), el botón no debe depender de él (revisor, 17-oct).
+    (function sondea(i) {
+      if (i >= Math.min(cids.length, 3)) return;
+      llama({ contrato_id: cids[i], ver: true }).then(function (r) {
+        if (r.status === 200 && r.j && typeof r.j.puede === 'boolean') { b.hidden = false; if (r.j.tope > 0) topeServidor = r.j.tope; }
+        else if (r.status === 403) sondea(i + 1);
+      });
+    })(0);
+    var topeServidor = 0;
+    var corre = function (lista, fn) {   // de uno en uno, en orden
+      var out = [];
+      return lista.reduce(function (p, cid) { return p.then(function () { return fn(cid).then(function (v) { out.push(v); }); }); }, Promise.resolve()).then(function () { return out; });
+    };
+    b.addEventListener('click', function () {
+      b.disabled = true; b.textContent = T('Comprobando…');
+      var tanda = cids.slice(0, topeServidor || REENVIO_TOPE);
+      corre(tanda, function (cid) {
+        pon(cid, T('Comprobando…'), '');
+        return llama({ contrato_id: cid, ver: true }).then(function (r) {
+          if (r.status === 200 && r.j.puede === true) { pon(cid, T('Irá a %e', { e: r.j.para || '—' }) + (r.j.sin_anexo ? ' · ' + T(REENVIO_SIN_ANEXO[r.j.sin_anexo] || 'salió sin algún anexo') : ''), ''); return { cid: cid, si: true, v: r.j }; }
+          pon(cid, r.status === 200 ? motivo(r.j.motivo) : textoError(r), 'mal'); return { cid: cid, si: false };
+        });
+      }).then(function (vistos) {
+        var si = vistos.filter(function (v) { return v.si; });
+        if (!si.length) { b.textContent = T('Ninguno se puede reenviar desde aquí'); return; }
+        var lista = '<ul style="margin:8px 0 0;padding-left:18px">' + si.map(function (v) {
+          return '<li><b>' + esc(v.v.numero || '—') + '</b> → ' + esc(v.v.para || '—') + (v.v.sin_anexo ? ' <span style="color:#93000A">(' + esc(T(REENVIO_SIN_ANEXO[v.v.sin_anexo] || 'salió sin algún anexo')) + ')</span>' : '') + '</li>';
+        }).join('') + '</ul>';
+        var fuera = vistos.length - si.length;
+        var resto = cids.length - tanda.length;
+        var cuerpo = '<p style="margin:0">' + esc(T('Cada uno recibe un enlace nuevo para el mismo documento que se le mandó, y el anterior queda anulado.')) + '</p>' + lista +
+          (fuera ? '<p style="margin:10px 0 0">' + esc(fuera === 1 ? T('1 se queda fuera: el motivo está en su fila.') : T('%n se quedan fuera: el motivo está en su fila.', { n: fuera })) + '</p>' : '') +
+          (resto ? '<p style="margin:10px 0 0">' + esc(T('Van los %n primeros; los demás, en otra tanda.', { n: tanda.length })) + '</p>' : '');
+        var pide = window.lwConfirmar ? window.lwConfirmar({ titulo: T('¿Reenviar %n enlaces de firma?', { n: si.length }), cuerpo: cuerpo, confirmar: T('Reenviar %n', { n: si.length }) }) : Promise.resolve(false);
+        return pide.then(function (vale) {
+          if (!vale) { b.disabled = false; b.textContent = T('Reenviar todas'); return; }
+          b.textContent = T('Reenviando…');
+          var parado = false, bien = 0, primero = true;
+          var espera = function () { if (primero) { primero = false; return Promise.resolve(); } return new Promise(function (ok) { setTimeout(ok, REENVIO_PAUSA_MS); }); };
+          return corre(si.map(function (v) { return v.cid; }), function (cid) {
+            if (parado) { pon(cid, T('No enviado: se ha parado antes.'), 'mal'); return Promise.resolve(); }
+            pon(cid, T('En cola…'), '');
+            return espera().then(function () { pon(cid, T('Reenviando…'), ''); return llama({ contrato_id: cid }); }).then(function (r) {
+              if (r.status === 200 && r.j.correo === true) { bien++; pon(cid, T('Enviado a %e', { e: r.j.para || '—' }), 'ok'); return; }
+              if (r.status === 200 && r.j.puede === false) { pon(cid, motivo(r.j.motivo), 'mal'); return; }
+              if (r.status === 200 && r.j.enlace) { pon(cid, motivo(r.j.motivo), 'mal'); return; }
+              if (r.status === 429 || r.status === 401) parado = true;
+              pon(cid, textoError(r), 'mal');
+            });
+          }).then(function () {
+            b.textContent = T('%n de %t reenviados', { n: bien, t: si.length });
+            if (bien) bandejaHoy(sb);   // la bandeja de Home, al día (el cajón sigue abierto con el resultado)
+          });
+        });
       });
     });
   }

@@ -224,7 +224,7 @@
   /* novedades.js (el pop-up de novedades, 30-sep-2026) tampoco lo sella sella_assets: sube NOVEDADES_V al cambiarlo. */
   var NOVEDADES_V = '20261014';
   /* aviso-ia.js (la invitación de la cabecera a conectar el asistente de IA, 16-oct-2026) tampoco: sube AVISO_IA_V al cambiarlo. */
-  var AVISO_IA_V = '20261016';
+  var AVISO_IA_V = '20261017';
   /* MOVIMIENTO (26-sep-2026, owner: mezcla A+B+D). La entrada de cada pantalla
      vive en assets/motion.js; aquí solo se MARCA `html.lw-mov`, ya, antes de que
      vuelva ninguna consulta, para que shell.css retenga el contenido hasta que

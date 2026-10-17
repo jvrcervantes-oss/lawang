@@ -1,13 +1,13 @@
 -- MCP de Lawang · F1 · abre la entrada del puente: la edge `mcp` (anon) y la página de conexión (authenticated) (16-oct-2026,
 -- sesión mcp-lawang). Va DESPUÉS de 20261016080111: ia_peticion_ver nace en la 073530 como ia_peticion_datos y se renombra allí.
--- PARADA DEL OWNER: abre una función a `anon` (CLAUDE.md, Política de autonomía; departamentos/backend/prompt.md → Supabase).
--- No se aplica en la viva sin su OK escrito; hasta entonces vive en supabase/propuestas/ (fuera de migrations/: revisor, 16-oct) y
--- con el OK pasa a migrations/. Sale JUNTO con el despliegue de la edge `mcp` y la página intranet/v4/ia/conectar/: sin ellos
--- estas tres funciones no tendrían llamador (Seguridad, 16-oct; contexto/seguridad_2026.md §1.ter). La página (index.html,
--- ia-conectar.js e ia-conectar.css) espera en supabase/propuestas/web/ con sus rutas de destino: con el OK vuelve a su sitio,
--- se resella (tools/sella_assets.py) y sale en el mismo aterrizaje que esta migración y el despliegue de la edge.
--- Condiciones para el OK (contexto/pendientes.md): aviso por correo a la persona en cada conexión nueva, tope de peticiones `pide`
--- sin conexión (riesgo residual de abuso) y que el OK nombre la lectura de unidades_log (herramienta de cambios de estado).
+-- PARADA DEL OWNER, YA DADA: abre una función a `anon` (CLAUDE.md, Política de autonomía; departamentos/backend/prompt.md → Supabase).
+-- OK del owner el 16-oct (LAW-642 [mcp-abrir-puente], por AskUserQuestion en agencia-cd): «Sí, solo para mí» — para SU prueba, no
+-- para el equipo: ia_permisos solo lo tiene él y encender es suyo en Ajustes › IA. Acepta lo que nombraba la fila: el tope de `pide`
+-- acota el abuso sin eliminarlo y la herramienta de cambios de estado lee unidades_log. La purga (propuesta 20261016150000) NO entra:
+-- la retención no está decidida (LAW-641). Desde ese OK vive en migrations/ (antes en propuestas/, revisor 16-oct).
+-- Sale JUNTO con el despliegue de la edge `mcp` y la página intranet/v4/ia/conectar/: sin ellos estas tres funciones no tendrían
+-- llamador (Seguridad, 16-oct; contexto/seguridad_2026.md §1.ter). Y DESPUÉS de 20261016135900 (P6, el correo a la persona en cada
+-- conexión nueva, condición de Seguridad): con el grant de abajo y sin P6 nacería una conexión de la que nadie se entera.
 --
 -- Por qué a anon. La edge `mcp` no tiene llaves (ni service_role ni secretos): llega a la base solo con la clave publicable, es
 -- decir, como anon. public.ia_puente solo hace algo si le llega un token, un código o una petición válidos (256 bits aleatorios,
