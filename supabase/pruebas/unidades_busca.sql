@@ -38,7 +38,7 @@ insert into _tp values ('jv', gen_random_uuid(), 'zz-ubusca-super@prueba.invalid
 
 do $todo$
 declare
-  r text := ''; rp text := ''; v text; v2 text; x record;
+  r text := ''; rp text := ''; v text; v2 text; x record; t0 timestamptz; ms numeric;
   jv _tp; a _tp; fx _tp;
   p1 uuid; p2 uuid; uTilde uuid; uOtro uuid; i int;
   c_emp constant text := 'zz_ubusca';
@@ -138,6 +138,19 @@ begin
   r := r || pg_temp.l(v = '0', 'R3 NIEGA: ya no sale por el nombre viejo que guarda la copia (' || pg_temp.e(v) || ')');
   v := pg_temp.val(a.uid, a.em, format('select count(*) from public.unidades_busca(%L) where id = %L', 'zzu n1', uTilde));
   r := r || pg_temp.l(v = '1', 'R2 ENTRA: el enlace no depende del nombre: sigue saliendo por su código (' || pg_temp.e(v) || ')');
+
+  -- ============================================================ T. coste con el volumen de Lawang (Backend, 17-oct: la RLS de unidades
+  -- llama a proyecto_visible por fila; la rama trae la estructura sin datos, así que el volumen lo pone el fixture: 600 más en p1)
+  insert into public.unidades (codigo, proyecto, proyecto_id, tipo)
+    select 'ZZU-V' || lpad(g::text, 4, '0'), 'ZZ-UBUSCA Kebun Baru', p1, 'parcela' from generate_series(1, 600) g;
+  t0 := clock_timestamp();
+  v := pg_temp.val(a.uid, a.em, 'select count(*) from public.unidades_busca(''zzu v05'')');
+  ms := round(extract(epoch from clock_timestamp() - t0) * 1000);
+  r := r || pg_temp.l(v = '10' and ms < 300, 'T1 agente acotado con 612 unidades visibles: ' || pg_temp.e(v) || ' filas en ' || ms || ' ms (tope 300; por encima, la policy de L6, no un índice)');
+  t0 := clock_timestamp();
+  v := pg_temp.val(a.uid, a.em, 'select count(*) from public.unidades_busca(''nada que case'')');
+  ms := round(extract(epoch from clock_timestamp() - t0) * 1000);
+  r := r || pg_temp.l(v = '0' and ms < 300, 'T2 sin coincidencias recorre todo: ' || pg_temp.e(v) || ' filas en ' || ms || ' ms (tope 300)');
 
   raise exception 'FIN DE PRUEBAS UNIDADES_BUSCA (se deshace todo):%', r;
 end $todo$;

@@ -11,6 +11,11 @@
 --     authenticated, esta pasa a DEFINER de lw_lector como hizo L5 con contratos_busca (apuntado en el inventario de L6).
 --   · columnas explícitas: id, código, proyecto_id y el nombre de HOY del proyecto (unido por proyecto_id; si no se ve, la
 --     copia de la unidad). Busca por código y por ese nombre. El enlace del front va por proyecto_id (máxima «todo por ID»).
+--   · COSTE (Backend, 17-oct): lo caro es la RLS de `unidades`, que llama a proyecto_visible (DEFINER) por fila: ~0,2 s por
+--     llamada de un agente con las 565 unidades de hoy (escalado de 0,18 s/464 filas, 20261007000950:3). Se paga en cada tecla
+--     (250 ms de espera, ≥2 letras). La prueba lo mide con 600 unidades de fixture (T1, tope 300 ms). Lo que lo arregla es la
+--     policy con la lista de proyectos calculada una vez por consulta (patrón de contratos, 20261007001000:61), apuntado en L6;
+--     un índice no sirve.
 -- PERMISOS: nace cerrada: revoke de PUBLIC, anon y service_role; EXECUTE solo a authenticated. Llamador con nombre: nav.js.
 -- ORDEN: independiente del front. Sin esta función el front recibe PGRST202 y esconde solo el grupo «Unidades» (nav.js,
 -- sinPermisoONoExiste); herramientas, clientes y contratos siguen buscando (agencia-cd, 17-oct: el tren 6 aterriza antes).
@@ -27,7 +32,8 @@ create or replace function public.unidades_busca(p_q text)
  security invoker
  set search_path = ''
 as $f$
-  with q as (select public.normaliza_busqueda(left(p_q, 200)) as v)   -- tope en el servidor: la pantalla corta a 120, el servidor no se fía
+  -- tope en el servidor: la pantalla corta a 120, el servidor no se fía. MATERIALIZED: el término se pliega una vez, no por fila
+  with q as materialized (select public.normaliza_busqueda(left(p_q, 200)) as v)
   select u.id, u.codigo, coalesce(pr.nombre, u.proyecto), u.proyecto_id
     from public.unidades u
     cross join q
