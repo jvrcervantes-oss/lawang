@@ -1,6 +1,6 @@
 -- LAW-650 (17-oct-2026, sesión lawang-mejoras-ux): huella y copia del TEXTO de cada correo de contrato que sale por
 -- APLICADA en la viva el 17-oct-2026 como 20261017062042 (agencia-cd, fichero tal cual: sha256 ab8e8f39e4c210ae300e484a5ec3d463955f
--- 5426773f32d9f6861c83b5b1bbf3, antes de esta línea); escrita como 20261017132000. Ensayo VERDE lawang-202610171419-af44269e.
+-- 5426773f32d9f6861c83b5b1bbf3, sin estas 2 líneas); escrita como 20261017132000. Ensayo VERDE lawang-202610171419-af44269e.
 -- send-contract-email. Condición de Seguridad para desplegar esa edge (fila [lawang-correo-libre-destinatarios] de
 -- contexto/pendientes.md): el texto lo escribe el navegador y, hasta hoy, de un correo de contrato solo quedaba a quién y
 -- con qué asunto. Un «paga a esta otra cuenta» mandado desde el buzón de Lawang no dejaba rastro de lo que decía.
