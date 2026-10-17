@@ -84,6 +84,27 @@
    la fila, para que el botón quede dentro de ella y no debajo. */
 .crm-nav-fila { display: flex; align-items: center; background: var(--panel); border-bottom: 1px solid var(--line); }
 .crm-nav-fila > .crm-nav { flex: 1 1 auto; min-width: 0; border-bottom: 0; }
+/* «Más» (17-oct-2026): lo que no cabe a la vista, en un desplegable. Las pestañas de dentro son las MISMAS
+   (se mueven, no se copian): aquí solo cambia cómo se ven. */
+.crm-mas { position: relative; flex: 0 0 auto; }
+.crm-mas[hidden] { display: none; }
+.crm-mas-btn { background: none; border: 0; border-bottom: 2px solid transparent; cursor: pointer;
+  font: 600 13px/1 var(--text); letter-spacing: .01em; color: var(--mist); padding: 14px 12px 12px;
+  display: flex; align-items: center; gap: 6px; }
+.crm-mas-btn:hover, .crm-mas-btn[aria-expanded="true"] { color: var(--slate); }
+.crm-mas.activa .crm-mas-btn { color: var(--primary); border-bottom-color: var(--primary); }
+.crm-mas-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 220px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-box); box-shadow: var(--e2, 0 8px 24px rgba(0,0,0,.12));
+  padding: 6px; display: flex; flex-direction: column; }
+.crm-mas-menu[hidden] { display: none; }
+.crm-mas-menu button { background: none; border: 0; border-radius: 8px; cursor: pointer; text-align: left;
+  font: 600 13px/1 var(--text); color: var(--slate); padding: 11px 12px; display: flex; align-items: center; gap: 8px; }
+.crm-mas-menu button:hover { background: var(--line-soft); }
+.crm-mas-menu button[aria-selected="true"] { color: var(--primary); background: var(--primary-soft); }
+.crm-mas-grupo { font: 600 10px/1 var(--text); letter-spacing: .06em; text-transform: uppercase; color: var(--mist);
+  padding: 10px 12px 4px; border-top: 1px solid var(--line); margin-top: 4px; }
+.crm-mas-menu > .crm-mas-grupo:first-child { border-top: 0; margin-top: 0; }
+.caja-parados { margin-top: 16px; }
 .crm-nav-fila > #btnRefrescar { flex: 0 0 auto; margin: 0 16px 0 8px; }
 @media (max-width: 600px) {
   .crm-nav-fila > #btnRefrescar { margin: 0 8px 0 4px; }

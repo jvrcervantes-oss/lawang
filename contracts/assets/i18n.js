@@ -7016,6 +7016,14 @@
     'Ver la lista': 'See the list',
     '%n en la lista: los mismos que cuenta el aviso.': '%n in the list: the same ones the alert counts.',
     'Lo que está esperando a alguien. Cada fila abre su lista, con lo que hay que hacer en cada uno.': 'What is waiting on someone. Each row opens its list, with what to do on each one.',
+    // CRM: pestañas en «Más» y parados sin próximo paso (17-oct-2026, mejora 9)
+    'Más': 'More',
+    'Más pestañas': 'More tabs',
+    'Parados sin próximo paso': 'Stalled with no next step',
+    'Llevan más de %d días en la misma columna y nadie tiene una tarea con ellos. Abre la ficha y ponles el próximo paso.': 'They have been in the same column for more than %d days and nobody has a task with them. Open the record and set the next step.',
+    '%n días en «%c»': '%n days in “%c”',
+    'Y %n más: están en Pipeline.': 'And %n more: they are in Pipeline.',
+    'más de %d días y sin tarea': 'over %d days and no task',
   };
 
   window.LW_EN = EN;
