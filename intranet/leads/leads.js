@@ -737,7 +737,7 @@ function tarjetaHTML(l){
     <div class="meta">
       <span class="chip meta">${esc(canal(l.source))}</span>
       <span class="${viejo ? 'viejo' : ''}">${esc(edad(d))}</span>
-      ${l.notas ? `<span><i class="ph ph-note"></i> ${l.notas}</span>` : ''}
+      ${l.notas ? `<span><i class="ph ph-note"></i> ${esc(l.notas)}</span>` : ''}
     </div>
     ${presu || l.contrato_numero ? `<div class="meta">
       ${presu ? `<span class="chip oro">${esc([].concat(presu)[0])}</span>` : ''}
@@ -1546,7 +1546,7 @@ function pintarBandeja(){
         <td><span class="chip meta">${esc(canal(l.source))}</span></td>
         <td><span class="chip gris">${esc(nombreCol(l.estado))}</span></td>
         <td class="${viejo ? '' : ''}" style="${viejo ? 'color:var(--danger);font-weight:600' : ''}">${esc(edad(d))}</td>
-        <td class="num">${l.notas || ''}</td>
+        <td class="num">${esc(l.notas || '')}</td>
         <td style="text-align:right"><i class="ph ph-caret-right" style="color:var(--mist)"></i></td>
       </tr>`;
     }).join('')}</tbody></table></div></div>`;

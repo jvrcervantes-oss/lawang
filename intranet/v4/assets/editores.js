@@ -4978,7 +4978,7 @@
 
     modelos: function (aut) {
       var sb = aut.sb, admin = esAdmin(aut.ficha);
-      var soloAdmin = function () { aviso('La familia de modelos la escribe solo administración (policy es_admin) — tu sesión es de ' + ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34'); };
+      var soloAdmin = function () { aviso(edT('Solo los admins pueden crear o editar modelos de casas.'), '#8A6A34'); };
       var SLUG_VALIDO = /^[a-z0-9-]+$/;
       ata('nuevo-modelo', function () {
         if (!admin) return soloAdmin();
@@ -7643,7 +7643,7 @@
     vencimientos: function (aut) {
       var sb = aut.sb;
       ata('registrar-hito', function () {
-        if (!puedeH(aut.ficha, 'vencimientos')) return aviso('Ajustar hitos exige la herramienta Vencimientos (policy puede(\'vencimientos\')).', '#8A6A34');
+        if (!puedeH(aut.ficha, 'vencimientos')) return aviso(edT('Para ajustar hitos necesitas acceso a Vencimientos. Pídeselo a un admin.'), '#8A6A34');
         /* Un hito NUEVO no se crea aqui a proposito: nacen del calendario del
            contrato (sincroniza_vencimientos) y la tabla no tiene policy de
            INSERT. Lo que si se hace aqui es AJUSTAR: fecha y nota — con
@@ -7731,7 +7731,7 @@
         // obra exigen puede('obra') — con el gate viejo, un agente con
         // Unidades pero sin Obra veía el flujo entero y fallaba al guardar.
         if (!puedeEditarCatalogo(aut.ficha)) return aviso('El avance de obra lo registra administración o el encargado del proyecto; tú puedes consultarlo.', '#8A6A34');
-        if (!puedeH(aut.ficha, 'obra')) return aviso('El avance de obra exige la herramienta Obra (policy puede(\'obra\')).', '#8A6A34');
+        if (!puedeH(aut.ficha, 'obra')) return aviso(edT('Para apuntar el avance de obra necesitas acceso a Obra. Pídeselo a un admin.'), '#8A6A34');
         Promise.all([
           sb.from('unidades_estado').select('id,codigo,proyecto,obra_fase,obra_fecha_entrega').order('codigo_orden').limit(500),
           sb.from('obra_fases').select('*').order('orden')
@@ -7771,7 +7771,7 @@
         if (!puedeEditarCatalogo(aut.ficha))
           return aviso('Los partes de trabajo los registra administración o el encargado del proyecto; tú puedes consultarlos.', '#8A6A34');
         if (!puedeH(aut.ficha, 'obra'))
-          return aviso('Los partes de trabajo exigen la herramienta Obra (policy puede(\'obra\')).', '#8A6A34');
+          return aviso(edT('Para los partes de trabajo necesitas acceso a Obra. Pídeselo a un admin.'), '#8A6A34');
 
         Promise.all([
           sb.from('proyectos').select('id,nombre,estado').eq('estado', 'en_construccion').order('nombre'),
@@ -9410,8 +9410,7 @@
       var sb = aut.sb, admin = esAdmin(aut.ficha);
       window.LW_V4 = window.LW_V4 || {};
       var soloAdmin = function () {
-        return aviso('Los equipos de venta los da de alta solo administración (policy es_admin) — tu sesión es de ' +
-          ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+        return aviso(edT('Solo los admins pueden crear o desactivar equipos de venta.'), '#8A6A34');
       };
 
       ata('nuevo-equipo', function () {
@@ -10509,8 +10508,7 @@
     cuentas: function (aut) {
       var sb = aut.sb, superAdmin = LW_ROL.esSuperAdmin(aut.ficha);   // el super de empresa crea y edita las cuentas de cobro de SU empresa (cuenta_bancaria_guarda)
       var soloSuper = function () {
-        return aviso('Cambiar una cuenta de cobro o su reparto es solo para super_admin (policy es_super_admin) — tu sesión es de ' +
-          ((aut.ficha && aut.ficha.rol) || 'agente') + '. Puedes verlo en las tablas.', '#8A6A34');
+        return aviso(edT('Solo el super admin puede cambiar una cuenta de cobro o su reparto. Tú puedes verlo en las tablas.'), '#8A6A34');
       };
       // los datos que `datos.js` ya leyo y publico: abrir un cajon no vuelve a consultar
       var D = function () { return (window.LW_V4 && window.LW_V4.cuentas) || null; };

@@ -2476,7 +2476,7 @@
           if (d >= iniPrev && d < ini) prev += Number(f.total) || 0;
         });
         // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra
-        pon2('k-cobrado-tend', prev ? ((s.suma >= prev ? '+' : '') + Math.round((s.suma - prev) / prev * 1000) / 10 + '%') : '—');
+        pon2('k-cobrado-tend', prev ? new Intl.NumberFormat(loc(), { style: 'percent', maximumFractionDigits: 1, signDisplay: 'exceptZero' }).format(Math.round((s.suma - prev) / prev * 1000) / 1000) : '—');
         });
         var t = tablaPor('tabla-documentos');
         if (t) {
@@ -2529,7 +2529,7 @@
         pon2('k-reservadas', c.unidades_reservadas != null ? String(c.unidades_reservadas) : '—');
       });
       // módulos laterales: nunca dejar las tarjetas mock como "verdad"
-      q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,contratos!inner(numero,bloqueado)')
+      q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,contratos!inner(numero,bloqueado,moneda)')
           .eq('contratos.bloqueado', true).gte('fecha', hoy).order('fecha').limit(3), 'vencimientos críticos')
         .then(function (vs) {
           if (vs == null) return;
@@ -2538,7 +2538,7 @@
           var card = tarjetaDe(anc);
           for (var i = 0; i < 3 && card.parentElement && card.querySelectorAll('*').length < 12; i++) card = card.parentElement;
           card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">' + esc(tx('Vencimientos críticos')) + '</p>' +
-            (vs.length ? vs.map(function (v) { return itemPanel(esc(v.descripcion || tx('Hito')) + ' · ' + esc(v.contratos.numero), fFecha(v.fecha), v.monto ? esc(v.monto) : (v.pct ? esc(v.pct) + ' %' : '—')); }).join('')
+            (vs.length ? vs.map(function (v) { return itemPanel(esc(v.descripcion || tx('Hito')) + ' · ' + esc(v.contratos.numero), fFecha(v.fecha), v.monto ? esc(fmt(v.monto, v.contratos.moneda)) : (v.pct ? esc(new Intl.NumberFormat(loc(), { maximumFractionDigits: 2 }).format(v.pct)) + ' %' : '—')); }).join('')
                        : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f">' + esc(tx('Ninguno con fecha futura en contratos firmados.')) + '</p>') +
             '<a href="/intranet/v4/vencimientos/" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(tx('Abrir vencimientos')) + ' →</a>';
         });
@@ -10662,7 +10662,7 @@
         });
         (r[2] || []).forEach(function (k) {
           if (!k.liberado_en || k.liberado_en < hace14 || !esPreliminar(k)) return;
-          ev.push({ cuando: k.liberado_en, html: '<b>' + esc(k.numero) + '</b> · ' + esc(k.comprador_nombre || '—') + (k.parcela_codigo ? ' · ' + esc(k.parcela_codigo) : '') + (k.liberado_motivo ? ' · ' + esc(k.liberado_motivo) : ''), tag: pill(T('Liberada'), 'neutro') });
+          ev.push({ cuando: k.liberado_en, html: '<b>' + esc(k.numero) + '</b> · ' + esc(k.comprador_nombre || '—') + (k.parcela_codigo ? ' · ' + esc(k.parcela_codigo) : '') + (k.liberado_motivo ? ' · ' + esc(k.liberado_motivo === 'desistida' ? T('el cliente desistió') : T('plazo vencido')) : ''), tag: pill(T('Liberada'), 'neutro') });
         });
         ev.sort(function (a, b) { return a.cuando < b.cuando ? 1 : -1; });
         if (ev.length && actCaja) {
