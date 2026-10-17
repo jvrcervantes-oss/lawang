@@ -283,6 +283,24 @@ Deno.serve(async (req) => {
       const dec = decideReenvio(rc.data, (rf.data ?? []) as FilaFirma[], Date.now());
       if (!dec.ok) return json({ ok: true, puede: false, motivo: dec.motivo, numero });
       const f = dec.fila;
+      // Si el enlace caducado salió «sin Apéndice A» (LAW-406/410), se dice en la vista previa: en el generador eso pide
+      // «Enviar igualmente» y aquí no hay ese paso. contrato_envia_firma vuelve a apuntar la constancia ella sola.
+      const { data: ev, error: eEv } = await admin.from('contrato_eventos').select('detalle')
+        .eq('contrato_id', contratoId).eq('evento', 'envio_sin_anexo_confirmado').eq('detalle->>firma_id', f.id).limit(1);
+      if (eEv) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
+      const sinAnexo = (ev?.[0]?.detalle as { motivo?: string } | undefined)?.motivo ?? null;
+      const base = { numero, para: f.firmante_email, nombre: f.firmante_nombre, enviado_en: f.creado_en ?? null, caduco_en: f.expira_en, sin_anexo: sinAnexo };
+      // La vista previa NO descarga el documento (revisor, 17-oct: con anexos pesa hasta 20 MB y se piden hasta 20 seguidos):
+      // la huella se comprueba en el envío, y si no casa la fila lo dice entonces (documento_cambiado / falta_el_documento).
+      if (body.ver === true) return json({ ok: true, puede: true, ...base });
+
+      // Tope por persona, contado en la base (no en la memoria de esta edge): ver reenvio.ts.
+      const desde = new Date(Date.now() - VENTANA_TOPE_MIN * 60_000).toISOString();
+      const { count, error: eT } = await admin.from('contrato_firmas').select('id', { count: 'exact', head: true })
+        .eq('anulado_por', quien.user.email ?? '').eq('anulado_motivo', 'nuevo_enlace').gte('anulado_en', desde);
+      if (eT) return json({ ok: false, error: 'no_se_pudo_comprobar_el_tope' }, 500);
+      if (superaTope(count ?? 0)) return json({ ok: false, error: 'demasiados_reenvios', tope: TOPE_REENVIOS, minutos: VENTANA_TOPE_MIN }, 429);
+
       // Siempre el FIJO, nunca una ruta de espera (una generación a medias que nadie envió): y tiene que ser el que se mandó.
       const rDoc = await leeFresco(BUCKET_FIRMAS, `pendientes/${contratoId}.html`);
       if (!rDoc.ok) {
@@ -292,21 +310,16 @@ Deno.serve(async (req) => {
       }
       const hash = await sha256hex(await rDoc.text());
       if (!documentoCasa(hash, f)) return json({ ok: true, puede: false, motivo: 'documento_cambiado', numero });
-      // Si el enlace caducado salió «sin Apéndice A» (LAW-406/410), se dice en la vista previa: en el generador eso pide
-      // «Enviar igualmente» y aquí no hay ese paso. contrato_envia_firma vuelve a apuntar la constancia ella sola.
-      const { data: ev, error: eEv } = await admin.from('contrato_eventos').select('detalle')
-        .eq('contrato_id', contratoId).eq('evento', 'envio_sin_anexo_confirmado').eq('detalle->>firma_id', f.id).limit(1);
-      if (eEv) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
-      const sinAnexo = (ev?.[0]?.detalle as { motivo?: string } | undefined)?.motivo ?? null;
-      const base = { numero, para: f.firmante_email, nombre: f.firmante_nombre, enviado_en: f.creado_en ?? null, caduco_en: f.expira_en, sin_anexo: sinAnexo };
-      if (body.ver === true) return json({ ok: true, puede: true, ...base });
 
-      // Tope por persona, contado en la base (no en la memoria de esta edge): ver reenvio.ts.
-      const desde = new Date(Date.now() - VENTANA_TOPE_MIN * 60_000).toISOString();
-      const { count, error: eT } = await admin.from('contrato_firmas').select('id', { count: 'exact', head: true })
-        .eq('anulado_por', quien.user.email ?? '').eq('anulado_motivo', 'nuevo_enlace').gte('anulado_en', desde);
-      if (eT) return json({ ok: false, error: 'no_se_pudo_comprobar_el_tope' }, 500);
-      if (superaTope(count ?? 0)) return json({ ok: false, error: 'demasiados_reenvios', tope: TOPE_REENVIOS, minutos: VENTANA_TOPE_MIN }, 429);
+      // contrato_envia_firma anula TODAS las pendientes del contrato: justo antes se vuelve a mirar que la única sigue siendo
+      // la caducada que se comprobó (revisor, 17-oct). Si entretanto alguien generó un enlace vivo desde el generador, no se
+      // le anula. Queda una ventana de milisegundos entre esta lectura y la RPC; cerrarla del todo pide que la RPC reciba el
+      // id esperado (migración, anotada para Backend).
+      const { data: rf2, error: eF2 } = await admin.from('contrato_firmas')
+        .select('id, estado, expira_en, firmante_nombre, firmante_email, firmante_rol, orden, snapshot_hash, creado_en').eq('contrato_id', contratoId);
+      if (eF2) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
+      const dec2 = decideReenvio(rc.data, (rf2 ?? []) as FilaFirma[], Date.now());
+      if (!dec2.ok || dec2.fila.id !== f.id) return json({ ok: true, puede: false, motivo: dec2.ok ? 'otro_envio_a_la_vez' : dec2.motivo, numero });
 
       const { data: r, error: eEnv } = await usuario.rpc('contrato_envia_firma', {
         p_contrato: contratoId, p_nombre: f.firmante_nombre ?? '', p_email: f.firmante_email ?? '',

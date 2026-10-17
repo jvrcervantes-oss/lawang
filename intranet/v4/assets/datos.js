@@ -1356,10 +1356,15 @@
     b.setAttribute('data-accion', 'hoy-reenviar-todas');
     b.textContent = T('Reenviar todas');
     caj.pie.insertBefore(b, caj.pie.firstChild);
-    // ¿El servidor ya lo sabe hacer? Una vista previa del primero: sin efectos en la base.
-    llama({ contrato_id: cids[0], ver: true }).then(function (r) {
-      if (r.status === 200 && r.j && typeof r.j.puede === 'boolean') b.hidden = false;
-    });
+    // ¿El servidor ya lo sabe hacer? Una vista previa (sin efectos en la base) de los primeros, hasta que uno conteste:
+    // si el primero es de un contrato que esta persona no puede mandar (403), el botón no debe depender de él (revisor, 17-oct).
+    (function sondea(i) {
+      if (i >= Math.min(cids.length, 3)) return;
+      llama({ contrato_id: cids[i], ver: true }).then(function (r) {
+        if (r.status === 200 && r.j && typeof r.j.puede === 'boolean') b.hidden = false;
+        else if (r.status === 403) sondea(i + 1);
+      });
+    })(0);
     var corre = function (lista, fn) {   // de uno en uno, en orden
       var out = [];
       return lista.reduce(function (p, cid) { return p.then(function () { return fn(cid).then(function (v) { out.push(v); }); }); }, Promise.resolve()).then(function () { return out; });

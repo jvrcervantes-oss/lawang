@@ -121,7 +121,10 @@ const b64 = (u8: Uint8Array) => {
    cualquier texto con el buzón de Lawang, y en los correos de contrato no se guarda el texto: un «paga a esta otra cuenta»
    no dejaba rastro. El generador ya manda exactamente esto (app.html: FIRMA_ENVIO = {to: el email del envía_firma, link}),
    así que no cambia nada para quien lo usa bien. El texto sigue siendo editable (decisión de producto: el agente saluda a su
-   manera); lo que no puede es ir a otra persona ni quitar el enlace. Devuelve '' si vale, o el motivo. */
+   manera). OJO, cierra SOLO esta vía: `via` lo pone el navegador, y un correo con otra vía (o sin ella, o con PDF) sigue
+   pudiendo salir a cualquier dirección con texto libre, anclado a un contrato visible — así envía el generador el contrato
+   a abogados y terceros. Cerrar eso es decisión de producto y está en contexto/pendientes.md (revisor, 17-oct).
+   Devuelve '' si vale, o el motivo. */
 async function motivoEnlaceFirmaNoVale(contratoId: string, to: string, message: string): Promise<string> {
   const { data, error } = await admin.from('contrato_firmas').select('firmante_email, enlace_firma')
     .eq('contrato_id', contratoId).eq('estado', 'pendiente').gt('expira_en', new Date().toISOString());
@@ -410,6 +413,7 @@ Deno.serve(async (req) => {
     // El enlace de firma, solo a su firmante y con su enlace (ver motivoEnlaceFirmaNoVale). Detrás de la RLS del contrato.
     if (via === 'enlace_firma' && contratoId) {
       const malo = await motivoEnlaceFirmaNoVale(contratoId, to, message);
+      if (malo) ultimoEnvio.delete(claveCd);   // un rechazo no gasta la espera: se corrige y se reenvía al momento
       if (malo === 'no_se_pudo_comprobar') return json({ ok: false, codigo: malo, error: 'No se ha podido comprobar el enlace de firma: vuelve a intentarlo.' }, 500);
       if (malo === 'destinatario_no_es_el_firmante') return json({ ok: false, codigo: malo, error: 'Este correo no es el del firmante del enlace vivo de este contrato. Genera el enlace para esa persona y envíalo desde ahí.' }, 409);
       if (malo) return json({ ok: false, codigo: malo, error: 'El mensaje tiene que llevar el enlace de firma vigente: vuelve a generarlo o pega el enlace en el texto.' }, 409);

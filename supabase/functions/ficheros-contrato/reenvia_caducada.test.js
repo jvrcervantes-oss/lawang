@@ -82,6 +82,7 @@ globalThis.__sbFalso = (clave, opciones) => {
 globalThis.fetch = async (u) => {
   const url = String(u);
   E.llamadas.push(['fetch', url]);
+  if (url.includes('/storage/v1/object/authenticated/contratos-firmados/pendientes/' + CID + '.html') && E.alLeerDoc) E.alLeerDoc();
   if (url.includes('/storage/v1/object/authenticated/contratos-firmados/pendientes/' + CID + '.html')) return E.doc == null ? new Response('no', { status: 404 }) : new Response(E.doc, { status: 200 });
   throw new Error('fetch no previsto ' + url);
 };
@@ -115,6 +116,7 @@ const hizo = (fn) => E.llamadas.filter((l) => l[1] === fn);
   reinicia(); r = await llama(Object.assign({ ver: true }, PIDE));
   igual([r.status, r.cuerpo.puede, r.cuerpo.para, r.cuerpo.numero], [200, true, 'ana@ejemplo.com', 'RP00041'], 'ver: dice a quién iría');
   igual(hizo('contrato_envia_firma').length + hizo('correo_encolar').length, 0, 'ver no crea ni encola nada');
+  igual(E.llamadas.filter((l) => l[0] === 'fetch').length, 0, 'ver no descarga el documento (hasta 20 MB con anexos)');
 
   // ── permitida: el cuerpo no manda ──
   reinicia(); r = await llama(Object.assign({ email: 'malo@ataque.com', to: 'malo@ataque.com', message: 'paga aquí', nombre: 'X', rol: 'adquiriente_9', orden: 7 }, PIDE));
@@ -136,6 +138,13 @@ const hizo = (fn) => E.llamadas.filter((l) => l[1] === fn);
   reinicia({ cola: null }); r = await llama(PIDE); igual(r.cuerpo.motivo, 'cola_apagada', 'sin interruptor');
   reinicia({ liberado: '2026-10-02T00:00:00Z' }); r = await llama(PIDE); igual(r.cuerpo.motivo, 'liberado', 'reserva liberada');
   igual(hizo('contrato_envia_firma').length, 0, 'en ninguno de estos se ha creado enlace');
+
+  // ── carrera: alguien genera un enlace vivo mientras esta llamada lee el documento → no se le anula ──
+  reinicia({ alLeerDoc: () => { E.firmas.push({ id: 'f-viva', contrato_id: CID, estado: 'pendiente', expira_en: new Date(Date.now() + 864e5).toISOString(),
+    firmante_nombre: 'Ana Compradora', firmante_email: 'ana@ejemplo.com', firmante_rol: 'adquiriente_1', orden: 1, snapshot_hash: HASH }); E.alLeerDoc = null; } });
+  r = await llama(PIDE);
+  igual([r.cuerpo.puede, hizo('contrato_envia_firma').length], [false, 0], 'se vuelve a mirar justo antes de la RPC y no se crea nada');
+  igual(E.firmas.find((f) => f.id === 'f-viva').estado, 'pendiente', 'el enlace vivo del otro sigue vivo');
 
   // ── tope ──
   reinicia({ anuladosPorMi: 20 }); r = await llama(PIDE);
