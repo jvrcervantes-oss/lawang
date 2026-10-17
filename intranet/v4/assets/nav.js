@@ -1088,36 +1088,121 @@
     function sinTildes(t) { return lwNormaliza(t); }   // la pieza comun (contracts/assets/vocabulario.js, 15-oct)
     function cierra() { if (caja) { caja.remove(); caja = null; document.removeEventListener('click', fuera, true); } }
     function fuera(ev) { if (caja && !caja.contains(ev.target) && !lupa.contains(ev.target)) cierra(); }
+    /* CLIENTES, CONTRATOS Y UNIDADES (Experiencia H6, 17-oct-2026: «menú, herramienta y buscar: 3 clics»). Revisión
+       previa #429 de Seguridad y Backend:
+       · Solo se PIDE el grupo cuya herramienta enseña el menú a esta sesión. Eso es comodidad, no la barrera: lo que
+         limita de verdad es es_agente() y la RLS de cada lectura (son las mismas que usan sus pantallas).
+       · Contratos por contratos_busca (busca en el servidor, sin tildes, 10 filas): nunca contratos_equipo() entero, que
+         arma la fila completa de todos los contratos (el IO de Lawang cayó así el 1-oct).
+       · Clientes (solo id y nombre) y unidades (id, código, proyecto) se piden UNA vez por apertura y se filtran aquí
+         con lwBuscaEn. Viven en memoria mientras el buscador está abierto: nada en localStorage ni sessionStorage.
+         `from('unidades')` es lector directo apuntado en el inventario de L6 (LAW-338).
+       · Una instancia sin la función o sin permiso (PGRST202 / 42501, p. ej. el ERP fijado) esconde el grupo sin
+         aviso; la línea «No se ha podido buscar en …» queda para la red o un fallo del servidor, sin su mensaje.
+       · Texto por textContent y enlaces a rutas propias con encodeURIComponent; nunca innerHTML con un dato. */
+    var GRUPOS_DATOS = [
+      { path: 'contratos', titulo: 'Contratos', porConsulta: true,
+        pide: function (sb, q) { return sb.rpc('contratos_busca', { p_q: q.slice(0, 120) }); },
+        casa: null,
+        fila: function (c) { return [c.numero + (c.comprador_nombre ? ' · ' + c.comprador_nombre : ''), [c.proyecto_nombre, c.parcela_codigo].filter(Boolean).join(' · '), ROOT + 'contratos/?contrato=' + encodeURIComponent(c.numero)]; },
+        vale: function (c) { return c && c.numero; } },
+      { path: 'compradores', titulo: 'Clientes',
+        pide: function (sb) { return sb.rpc('compradores_lista').select('id,full_name'); },
+        casa: function (c, q) { return lwBuscaEn([c.full_name], q); },
+        fila: function (c) { return [c.full_name, '', ROOT + 'compradores/?id=' + encodeURIComponent(c.id)]; },
+        vale: function (c) { return c && c.id && c.full_name; } },
+      { path: 'proyectos', titulo: 'Unidades',
+        pide: function (sb) { return sb.from('unidades').select('id,codigo,proyecto,proyecto_id'); },
+        casa: function (u, q) { return lwBuscaEn([u.codigo, u.proyecto], q); },
+        // Proyectos abre su cajón por ?proyecto=<nombre> (su contrato de hoy); el nombre sale de la fila al momento
+        fila: function (u) { return [u.codigo, u.proyecto || '', ROOT + 'proyectos/?proyecto=' + encodeURIComponent(u.proyecto || '')]; },
+        vale: function (u) { return u && u.codigo; } }
+    ];
+    var POR_GRUPO = 5;
+    function tiene(dp) {
+      var a = document.querySelector('aside nav a[data-path="' + dp + '"]');
+      if (!a || a.style.display === 'none') return false;
+      var g = a.parentElement; return !(g && g.style.display === 'none');
+    }
+    function resultado(txt, sub, href) {
+      var o = document.createElement('a');
+      o.href = href; o.textContent = txt;
+      o.style.cssText = 'display:block;padding:9px 12px;border-radius:8px;color:#292524;text-decoration:none;font:500 14px/1.35 Jost,system-ui,sans-serif';
+      if (sub) { var s = document.createElement('span'); s.textContent = sub; s.style.cssText = 'display:block;font:400 12px/1.35 Jost,system-ui,sans-serif;color:#78716c'; o.appendChild(s); }
+      o.addEventListener('mouseenter', function () { o.style.background = '#F3F0E8'; });
+      o.addEventListener('mouseleave', function () { o.style.background = ''; });
+      return o;
+    }
+    var memo = {}, turno = 0, espera = null;
+    function sinPermisoONoExiste(e) { return e && (e.code === 'PGRST202' || e.code === '42501'); }
+    function lee(g, sb, q) {
+      if (!g.porConsulta && memo[g.path]) return memo[g.path];
+      var p = Promise.resolve(g.pide(sb, q)).then(function (r) {
+        if (r && r.error) return { error: r.error };
+        return { filas: ((r && r.data) || []).filter(g.vale) };
+      }, function (e) { return { error: e || {} }; });
+      if (!g.porConsulta) memo[g.path] = p;
+      return p;
+    }
+    function buscaDatos(texto, dest) {
+      clearTimeout(espera);
+      var mio = ++turno;
+      var q = sinTildes(texto);
+      var grupos = GRUPOS_DATOS.filter(function (g) { return tiene(g.path); });
+      if (q.length < 2 || !grupos.length || !window.LW_AUTH || typeof window.LW_AUTH.then !== 'function') { dest.innerHTML = ''; return; }
+      espera = setTimeout(function () {
+        window.LW_AUTH.then(function (aut) {
+          var sb = aut && aut.sb; if (!sb) return [];
+          return Promise.all(grupos.map(function (g) { return lee(g, sb, texto).then(function (r) { return { g: g, r: r }; }); }));
+        }).then(function (res) {
+          if (mio !== turno || !caja) return;   // ya se tecleó otra cosa o se cerró
+          dest.innerHTML = '';
+          (res || []).forEach(function (x) {
+            var g = x.g, r = x.r;
+            if (r.error) {
+              if (sinPermisoONoExiste(r.error)) return;
+              var f = document.createElement('p'); f.textContent = T('No se ha podido buscar en %g.', { g: T(g.titulo) }).split('%g').join(T(g.titulo));
+              f.style.cssText = 'margin:6px 8px;font:400 12px Jost,system-ui,sans-serif;color:#a8a29e'; dest.appendChild(f); return;
+            }
+            var hay = g.casa ? r.filas.filter(function (c) { return g.casa(c, q); }) : r.filas;
+            if (!hay.length) return;
+            var h = document.createElement('p'); h.textContent = T(g.titulo);
+            h.style.cssText = 'margin:10px 12px 2px;font:600 11px Jost,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#a8a29e';
+            dest.appendChild(h);
+            hay.slice(0, POR_GRUPO).forEach(function (c) { var v = g.fila(c); dest.appendChild(resultado(v[0], v[1], v[2])); });
+          });
+        });
+      }, 250);
+    }
     function abre() {
       if (caja) { cierra(); return; }
+      memo = {};   // una carga por apertura: lo que se abra mañana trae lo de mañana
       caja = document.createElement('div');
-      caja.style.cssText = 'position:fixed;top:60px;right:24px;z-index:var(--z-modal,400);width:300px;max-width:calc(100vw - 32px);' +
+      caja.style.cssText = 'position:fixed;top:60px;right:24px;z-index:var(--z-modal,400);width:340px;max-width:calc(100vw - 32px);' +
         'background:#fff;border:1px solid #E7E4DC;border-radius:12px;box-shadow:0 18px 40px -12px rgba(30,37,34,.22),0 2px 6px rgba(30,37,34,.06);padding:8px;font-family:Jost,system-ui,sans-serif';   // piel del desplegable del alta (26-sep-2026)
       var inp = document.createElement('input');
-      inp.type = 'search'; inp.placeholder = T('Buscar herramienta…');
-      inp.setAttribute('aria-label', T('Buscar herramienta'));
+      var conDatos = GRUPOS_DATOS.some(function (g) { return tiene(g.path); });
+      inp.type = 'search'; inp.placeholder = T(conDatos ? 'Buscar herramienta, cliente, contrato o unidad…' : 'Buscar herramienta…');
+      inp.setAttribute('aria-label', T(conDatos ? 'Buscar herramienta, cliente, contrato o unidad' : 'Buscar herramienta'));
       inp.style.cssText = 'width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid #E7E4DC;border-radius:8px;font:400 14px/1.43 Jost,system-ui,sans-serif;color:#1c1917;background:rgba(250,250,249,.5);outline:none';
       inp.addEventListener('focus', function () { inp.style.borderColor = '#104C4F'; inp.style.boxShadow = '0 0 0 2px #104C4F'; inp.style.background = '#fff'; });
       inp.addEventListener('blur', function () { inp.style.borderColor = '#E7E4DC'; inp.style.boxShadow = 'none'; inp.style.background = 'rgba(250,250,249,.5)'; });
       var lista = document.createElement('div');
       lista.style.cssText = 'display:grid;gap:2px;margin-top:8px;max-height:60vh;overflow-y:auto';
       caja.appendChild(inp); caja.appendChild(lista);
+      var herr = document.createElement('div'), datos = document.createElement('div');
+      herr.style.cssText = datos.style.cssText = 'display:grid;gap:2px';
+      lista.appendChild(herr); lista.appendChild(datos);
       function pinta() {
         var q = sinTildes(inp.value.trim());
-        lista.innerHTML = '';
+        herr.innerHTML = '';
         var hay = enlaces().filter(function (a) { return lwBuscaEn([a.nombre, a.alias], q); });
         if (!hay.length) {
           var p = document.createElement('p'); p.textContent = T('Ninguna herramienta con ese nombre.');
-          p.style.cssText = 'margin:6px 8px;font:400 13px Jost,system-ui,sans-serif;color:#a8a29e;font-style:italic'; lista.appendChild(p); return;
+          p.style.cssText = 'margin:6px 8px;font:400 13px Jost,system-ui,sans-serif;color:#a8a29e;font-style:italic'; herr.appendChild(p);
         }
-        hay.forEach(function (a) {
-          var o = document.createElement('a');
-          o.href = a.href; o.textContent = a.nombre;
-          o.style.cssText = 'display:block;padding:9px 12px;border-radius:8px;color:#292524;text-decoration:none;font:500 14px/1.35 Jost,system-ui,sans-serif';
-          o.addEventListener('mouseenter', function () { o.style.background = '#F3F0E8'; });
-          o.addEventListener('mouseleave', function () { o.style.background = ''; });
-          lista.appendChild(o);
-        });
+        hay.forEach(function (a) { herr.appendChild(resultado(a.nombre, '', a.href)); });
+        buscaDatos(inp.value.trim(), datos);
       }
       inp.addEventListener('input', pinta);
       inp.addEventListener('keydown', function (ev) {

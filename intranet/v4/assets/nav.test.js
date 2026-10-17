@@ -280,11 +280,22 @@ for (const [fich, herr, ids, extra] of PAGINAS_CROMO) {
 }
 /* desplegables.js es la única copia del cierre de los <details> (salió de topbar.js):
    quien tenga un details.lw-menu tiene que cargarlo. */
-for (const fich of ['intranet/dossier/builder.html', 'contracts/app.html', 'intranet/facturas/index.html', 'intranet/leads/index.html']) {
+for (const fich of ['intranet/dossier/builder.html', 'contracts/app.html', 'intranet/facturas/index.html', 'intranet/leads/index.html', 'intranet/v4/contratos/index.html']) {
   const s = fs.readFileSync(path.join(RAIZ, fich), 'utf8');
   if (/<details[^>]+class="[^"]*\b(lw|pv)-menu\b/.test(s) && posScript(s, 'contracts/assets/desplegables.js') === -1) errores.push(`${fich}: tiene un details.lw-menu/.pv-menu y no carga desplegables.js`);
 }
 if (/details\.lw-menu/.test(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'topbar.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''))) errores.push('topbar.js vuelve a llevar el cierre de los <details>: vive en desplegables.js');
 
+{
+  const nav = fs.readFileSync(path.join(RAIZ, 'intranet', 'v4', 'assets', 'nav.js'), 'utf8');
+  const grupos = (nav.match(/var GRUPOS_DATOS = \[[\s\S]*?\n    \];/) || [''])[0];
+  if (!grupos) errores.push('nav.js: falta GRUPOS_DATOS (buscador de clientes, contratos y unidades)');
+  (grupos.match(/path: '([a-z-]+)'/g) || []).forEach(m => {
+    const dp = m.slice(7, -1);
+    if (!new RegExp("path: '" + dp + "'").test(nav.split('var GRUPOS_DATOS')[0])) errores.push(`nav.js: el grupo de búsqueda «${dp}» no es una herramienta del menú`);
+  });
+  if (/contratos_equipo/.test(nav.replace(/\/\*[\s\S]*?\*\//g, ''))) errores.push('nav.js: el buscador no pide contratos_equipo() entero: usa contratos_busca');
+  if (/(localStorage|sessionStorage)/.test(grupos)) errores.push('nav.js: los resultados del buscador no se guardan en el navegador');
+}
 assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
 console.log('nav.test.js OK (' + enMenu.length + ' casillas situadas en el menú)');
