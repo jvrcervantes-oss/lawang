@@ -179,19 +179,19 @@ const hizo = (fn) => E.llamadas.filter((l) => l[1] === fn);
   igual([r.cuerpo.puede, r.cuerpo.motivo], [false, 'constancia_sin_enlace'], 'constancia vieja de este enlace: vista previa al generador');
   r = await llama(PIDE);
   igual([r.cuerpo.puede, r.cuerpo.motivo, hizo('contrato_envia_firma').length], [false, 'constancia_sin_enlace', 0], 'constancia vieja: no se crea enlace');
-  // del 28-sep 00:42 al 08:42 la constancia se apuntaba milisegundos ANTES de crear su enlace: también es suya (revisor, 2.ª vuelta)
+  // sin cota de fecha: la escrita antes de su enlace, o antes del enlace del firmante anterior de la cadena, también frena
   reinicia({ eventos: [{ contrato_id: CID, evento: 'envio_sin_anexo_confirmado', detalle: { motivo: 'sin_apendice_a' }, creado_en: '2026-08-31T23:59:59Z' }] });
   r = await llama(PIDE);
   igual([r.cuerpo.motivo, hizo('contrato_envia_firma').length], ['constancia_sin_enlace', 0], 'constancia vieja escrita justo ANTES de su enlace: también frena');
-  // con un enlace anterior en el contrato, solo cuenta lo escrito desde él
   reinicia(); const CAD = { ...E.firmas[0] };
-  const ANTERIOR = { id: 'f-ant', contrato_id: CID, estado: 'anulada', expira_en: '2026-08-10T00:00:00Z', firmante_nombre: 'Ana', firmante_email: 'ana@ejemplo.com', firmante_rol: 'comprador', orden: 1, snapshot_hash: 'x', creado_en: '2026-08-01T00:00:00Z' };
-  reinicia({ firmas: [{ ...CAD }, { ...ANTERIOR }], eventos: [{ contrato_id: CID, evento: 'envio_sin_anexo_confirmado', detalle: { motivo: 'sin_apendice_a' }, creado_en: '2026-07-31T23:59:59Z' }] });
+  const PRIMERO = { id: 'f-1', contrato_id: CID, estado: 'firmado', expira_en: '2026-08-10T00:00:00Z', firmante_nombre: 'Luis', firmante_email: 'luis@ejemplo.com', firmante_rol: 'adquiriente_2', orden: 1, snapshot_hash: HASH, creado_en: '2026-08-01T00:00:00Z' };
+  reinicia({ firmas: [{ ...CAD, orden: 2 }, { ...PRIMERO }], eventos: [{ contrato_id: CID, evento: 'envio_sin_anexo_confirmado', detalle: { motivo: 'sin_apendice_a' }, creado_en: '2026-07-31T23:59:59Z' }] });
   r = await llama(PIDE);
-  igual(hizo('contrato_envia_firma').length, 1, 'una constancia vieja de antes del enlace ANTERIOR no es de este: se reenvía');
-  reinicia({ firmas: [{ ...CAD }, { ...ANTERIOR }], eventos: [{ contrato_id: CID, evento: 'envio_sin_anexo_confirmado', detalle: { motivo: 'sin_apendice_a' }, creado_en: '2026-08-15T00:00:00Z' }] });
+  igual([r.cuerpo.motivo, hizo('contrato_envia_firma').length], ['constancia_sin_enlace', 0], 'cadena: la constancia de antes del enlace del 1.er firmante también frena el del 2.º');
+  // una constancia CON firma_id de otro enlace no es «sin enlace»: no frena
+  reinicia({ eventos: [{ contrato_id: CID, evento: 'envio_sin_anexo_confirmado', detalle: { motivo: 'sin_apendice_a', firma_id: 'f-otra' }, creado_en: '2026-08-31T23:59:59Z' }] });
   r = await llama(PIDE);
-  igual([r.cuerpo.motivo, hizo('contrato_envia_firma').length], ['constancia_sin_enlace', 0], 'entre el enlace anterior y este: frena');
+  igual(hizo('contrato_envia_firma').length, 1, 'constancia ligada a OTRO enlace: no es vieja, se reenvía');
 
   console.log('reenvia_caducada.test.js: ' + n + ' comprobaciones en verde');
 })().catch((e) => { console.error(e); process.exit(1); });
