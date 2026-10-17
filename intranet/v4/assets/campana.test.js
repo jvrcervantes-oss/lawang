@@ -33,6 +33,12 @@ const filaSin = con.split('<a class="lw-av"').find(x => x.includes('Sin enlace')
 assert.ok(filaSin && filaSin.includes('<span class="lw-av-a"></span>'), 'sin destino no se promete acción');
 assert.ok(!con.includes('<b>CC2</b>') && con.includes('&lt;b&gt;CC2&lt;/b&gt;'), 'el título va escapado');
 
+// más sin leer de los que caben en la lista: leídos los visibles, el botón sigue para limpiar el contador
+const leidos = av.map(a => Object.assign({}, a, { nuevo: false }));
+assert.ok(!pintaAvisos(leidos, aV4, { marcarTodo: true }).includes('avisos-marcar-todo'), 'sin nada sin leer no hay botón');
+const fuera = pintaAvisos(leidos, aV4, { marcarTodo: true, sinLeer: 3 });
+assert.ok(fuera.includes('avisos-marcar-todo') && fuera.includes('3 novedades sin ver'), 'con 3 sin leer fuera de la lista sale el botón y el total');
+
 // la base sin `id` (porAviso false): ni botón ni ids → el enlace navega como siempre
 const sinIds = av.map(a => Object.assign({}, a, { ids: [] }));
 const sin = pintaAvisos(sinIds, aV4);

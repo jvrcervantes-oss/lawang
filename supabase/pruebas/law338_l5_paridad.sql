@@ -209,7 +209,8 @@ begin
       'select jsonb_build_object(''hilos'', r->''hilos'', ''mensajes'', r->''mensajes'', ''clientes'', r->''clientes'') from (select public.soporte_datos() r) s');
     perform pg_temp.par('notificaciones', u,
       'select coalesce(jsonb_agg(jsonb_build_object(''tipo'', t.tipo, ''titulo'', t.titulo, ''detalle'', t.detalle, ''enlace'', t.enlace, ''creado_en'', t.creado_en, ''destinatario'', t.destinatario) order by t.creado_en desc, t.id desc), ''[]'') from (select * from public.notificaciones n order by n.creado_en desc, n.id desc limit 400) t',
-      'select public.notificaciones_datos(400)->''notificaciones''');
+      -- sin id ni leida (20261017200000, H7): la paridad con L5 es la de los campos de entonces, antes y después de esa migración
+      'select coalesce(jsonb_agg(e.v - ''id'' - ''leida'' order by e.i), ''[]'') from jsonb_array_elements(public.notificaciones_datos(400)->''notificaciones'') with ordinality e(v, i)');
     perform pg_temp.par('correos(contratos)', u,
       format('select coalesce(jsonb_agg(jsonb_build_object(''para'', e.para, ''asunto'', e.asunto, ''via'', e.via, ''enviado_por'', e.enviado_por, ''enviado_en'', e.enviado_en, ''contrato_id'', e.contrato_id, ''factura_id'', e.factura_id) order by e.enviado_en desc, e.id desc), ''[]'') from (select * from public.correos_enviados x where x.contrato_id = any(%L::uuid[]) order by x.enviado_en desc, x.id desc limit 200) e', ks),
       format('select public.correos_registro_datos(%L::uuid[], null)->''correos''', ks));
