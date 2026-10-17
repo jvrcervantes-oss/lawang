@@ -3014,10 +3014,6 @@ video {
     width: 24rem;
   }
 
-  .lg\:w-auto {
-    width: auto;
-  }
-
   .lg\:min-w-\[340px\] {
     min-width: 340px;
   }
@@ -3057,10 +3053,6 @@ video {
   .lg\:px-8 {
     padding-left: 2rem;
     padding-right: 2rem;
-  }
-
-  .lg\:pb-0 {
-    padding-bottom: 0px;
   }
 }
 

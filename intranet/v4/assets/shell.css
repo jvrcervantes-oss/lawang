@@ -52,6 +52,25 @@
    enseña todos los paneles, sigue ganando con su propio `!important`. */
 [hidden]{display:none!important}
 
+/* COLUMNA DE ACCIÓN FIJA (17-oct-2026, Experiencia RE1): en una tabla ancha (Recibos tiene 11 columnas) la
+   última, la de los botones, quedaba cortada a la derecha y había que desplazar la tabla para llegar a ella.
+   Con la clase `lw-accion-fija` en la <table>, la última columna se queda pegada al borde derecho mientras el
+   resto se desplaza. Fondo opaco para que no se transparente lo que pasa por debajo. */
+table.lw-accion-fija th:last-child,
+table.lw-accion-fija td:last-child{position:sticky;right:0;z-index:1;background:rgb(var(--tema-surface-container-lowest, 255 255 255));box-shadow:-8px 0 8px -8px rgba(0,0,0,.12)}
+table.lw-accion-fija thead th:last-child{background:rgb(var(--tema-surface-container-low, 245 244 238))}
+
+/* INDICADORES COMPACTOS (17-oct-2026, Experiencia O1/CL2): en Operaciones y Clientes las tarjetas de arriba
+   medían ~280 px, el importe se partía en dos líneas y al abrir solo se veían 1-2 filas de la lista. Con la
+   clase `lw-kpis-compactos` en la rejilla, cada tarjeta pierde aire, el icono encoge y la cifra cabe en una
+   línea. Solo toca medidas: los datos y los data-lw de dentro no cambian. */
+.lw-kpis-compactos > div{padding:14px 18px !important}
+.lw-kpis-compactos > div > .mt-4, .lw-kpis-compactos > div > .mt-3{margin-top:6px !important}
+.lw-kpis-compactos > div > .mb-2{margin-bottom:4px !important}
+.lw-kpis-compactos .font-kpi-number{font-size:24px !important;line-height:1.25 !important;white-space:nowrap}
+.lw-kpis-compactos > div > div:first-child .material-symbols-outlined{font-size:16px !important}
+.lw-kpis-compactos > div > div:first-child > span:last-child, .lw-kpis-compactos > div > div:first-child > div:last-child{width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center}
+
 /* El cajon de proyecto pide su altura por clase de Tailwind (`z-50`) dentro de
    /v4/proyectos/. Se repunta aqui, en un solo sitio, en vez de editar el HTML:
    la escalera vive entera en este fichero o no es una escalera. */

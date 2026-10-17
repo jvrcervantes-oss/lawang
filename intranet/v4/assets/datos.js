@@ -2364,6 +2364,22 @@
       });
       cont.appendChild(b);
     });
+    /* Con data-lw-chips-max="N" en el contenedor solo se ven los N primeros (van ordenados por uso) y un botón
+       «Más tipos» enseña el resto (Experiencia CO2, 17-oct: Contratos tenía 13 tipos en 3 líneas). */
+    var max = parseInt(cont.getAttribute('data-lw-chips-max'), 10) || 0;
+    var chips = cont.querySelectorAll('button[data-lw-chip]');
+    if (max && chips.length > max + 1) {
+      for (var i = max; i < chips.length; i++) chips[i].hidden = true;
+      var mas = document.createElement('button'); mas.type = 'button'; mas.setAttribute('data-real', ''); mas.setAttribute('data-lw-chips-mas', '');
+      mas.className = BASE + ' ' + OFF;
+      mas.textContent = ts('Más tipos') + ' ' + (chips.length - max);
+      mas.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        Array.prototype.forEach.call(chips, function (x) { x.hidden = false; });
+        mas.remove();
+      });
+      cont.appendChild(mas);
+    }
   }
   /* ── EMPRESAS EN LAS LISTAS (cierre del encargo «dos empresas», 7-oct-2026) ─────────────────────────────────────────────
      Quien trabaja con más de una empresa (el propietario, un super global, un rol con dos) ve un filtro «Todas · Lawang ·
@@ -2423,7 +2439,44 @@
       tr.style.display = ok ? '' : 'none';
       if (ok) n++;
     });
+    paginaFilas(tbody, true);   // cada filtro nuevo vuelve a la página 1
     if (alTerminar) alTerminar(n);
+  }
+  /* PÁGINAS DE 25 (Experiencia, 17-oct: O2/CO4/FA1), como Vencimientos. Solo en las listas cuyo <tbody> lleva
+     data-lw-pagina="25"; los botones son el [data-lw="paginas"] de la misma pantalla. El filtro sigue usando
+     style.display y la página usa el atributo hidden (shell.css lo hace ganar), así que no se pisan: los totales y
+     «Mostrando N» siguen contando todo lo que pasa el filtro, no solo la página. Sin el atributo (Facturas «Por
+     contrato», que va por grupos) se enseña todo. */
+  function paginaFilas(tbody, reinicia) {
+    if (!tbody) return;
+    var por = parseInt(tbody.getAttribute('data-lw-pagina'), 10) || 0;
+    var caja = document.querySelector('[data-lw="paginas"]');
+    var todas = tbody.querySelectorAll('tr[data-lw-fila]');
+    if (!por) {
+      if (tbody._lwPag) { Array.prototype.forEach.call(todas, function (tr) { tr.hidden = false; }); if (caja) caja.hidden = true; }
+      return;
+    }
+    var st = tbody._lwPag;
+    if (!st) {
+      st = tbody._lwPag = { p: 0 };
+      var antes = caja && caja.querySelector('[data-lw="pag-antes"]'), despues = caja && caja.querySelector('[data-lw="pag-despues"]');
+      if (antes) antes.addEventListener('click', function (ev) { ev.stopPropagation(); if (st.p > 0) { st.p--; paginaFilas(tbody); } });
+      if (despues) despues.addEventListener('click', function (ev) { ev.stopPropagation(); st.p++; paginaFilas(tbody); });
+    }
+    if (reinicia) st.p = 0;
+    var vis = Array.prototype.filter.call(todas, function (tr) { tr.hidden = false; return tr.style.display !== 'none'; });
+    var paginas = Math.max(1, Math.ceil(vis.length / por));
+    if (st.p >= paginas) st.p = paginas - 1;
+    var desde = st.p * por;
+    vis.forEach(function (tr, i) { tr.hidden = i < desde || i >= desde + por; });
+    if (!caja) return;
+    caja.hidden = vis.length <= por;
+    var info = caja.querySelector('[data-lw="pag-info"]');
+    if (info) info.textContent = tx('%n de %t', { n: (desde + 1) + '–' + Math.min(desde + por, vis.length), t: vis.length });
+    var bA = caja.querySelector('[data-lw="pag-antes"]'), bD = caja.querySelector('[data-lw="pag-despues"]');
+    if (bA) bA.disabled = st.p === 0;
+    if (bD) bD.disabled = st.p >= paginas - 1;
+    if (!reinicia) { var tabla = tbody.closest('table'); if (tabla && tabla.getBoundingClientRect().top < 0) tabla.scrollIntoView({ block: 'start' }); }
   }
   /* CSV de lo que la pantalla ya tiene en memoria: sin ir a la base otra vez y
      sin fichero «generado» de mentira. Separador «;» (Excel en español), BOM
@@ -2670,6 +2723,7 @@
           chipsReales(document.querySelector('[data-lw-chips="tipo"]'), 'tipo', opsTipo, estado, aplicar);
           chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', opsEstado, estado, aplicar);
           buscadorDe(aplicar, function (v) { texto = v; });
+          aplicar();   // ya en páginas de 25 desde el primer pintado
 
           // ?contrato=NUM abre la ficha directamente (enlaces de la auditoría, de Home, etc.)
           var pedido = new URLSearchParams(location.search).get('contrato');
@@ -2862,6 +2916,7 @@
             // siguen a un clic.
             var estado = { tipo: { attr: 'tipo', valor: 'factura' } }, texto = '', vista = 'lista';
             var aplicar = function () {
+              if (vista === 'lista') pl.tbody.setAttribute('data-lw-pagina', '25'); else pl.tbody.removeAttribute('data-lw-pagina');   // los grupos no se parten en páginas
               aplicaFiltros(pl.tbody, estado, ['tipo', 'estado', 'cobro', 'emp'], texto, function (n) { pon2('p-desde', String(n)); });
               sincronizaCabecerasGrupo();
             };
@@ -3130,6 +3185,9 @@
         if (conContratos) {
           pon2('k-capital', fmt(capital, 'EUR'));
           pon2('k-capital-chip', capital ? tx('%n% cobrado', { n: Math.round(pagado / capital * 100) }) : tx('sin contratos EUR'));
+          // la barra era un 78 % fijo de la maqueta (17-oct): ahora es el mismo % que dice el texto de al lado
+          var barCap = document.querySelector('[data-lw-barra="k-capital"]');
+          if (barCap) barCap.style.width = (capital ? Math.min(100, Math.round(pagado / capital * 100)) : 0) + '%';
           if (fueraEur) bandaNota('El capital es SOLO en euros: ' + fueraEur + ' contrato(s) en otra moneda quedan fuera de la suma.', '#8A6A34');
         } else {
           /* Sin el módulo de contratos no hay capital ni cobrado: se OCULTA la tarjeta. Un «0 €» o un «—» leería
@@ -4379,7 +4437,7 @@
         }
         var bAct = boton('actualizar');
         if (bAct) { bAct.setAttribute('data-real', ''); bAct.addEventListener('click', function (ev) { ev.stopPropagation(); location.reload(); }); }
-        pintaTotales();
+        aplicar();   // pinta los totales y deja la lista en páginas de 25
 
         /* ?filtro= — claves de la clásica (FILTROS) y las del Home; el alias
            `firma_viva` lo sigue usando el Home CLÁSICO (intranet/index.html). */
@@ -4615,7 +4673,7 @@
       function pintarAvisos(m) {
         var cont = document.getElementById('venc-avisos'); if (!cont) return;
         var partes = [];
-        if (m.nSinFecha) partes.push(tx('%n vencimiento(s) sin fecha — no se pueden vigilar; usa el filtro «Sin fecha»', { n: m.nSinFecha }));
+        if (m.nSinFecha) partes.push(tx(m.nSinFecha === 1 ? '1 vencimiento sin fecha: no se puede vigilar. Míralo con el filtro «Sin fecha»' : '%n vencimientos sin fecha: no se pueden vigilar. Míralos con el filtro «Sin fecha»', { n: m.nSinFecha }));
         var sinCal = (m.avisos || []).filter(function (a) { return a.tipo === 'sin_calendario'; });
         if (sinCal.length) partes.push(tx(sinCal.length === 1 ? '%n contrato con precio y sin calendario de pagos' : '%n contratos con precio y sin calendario de pagos', { n: sinCal.length }));
         // pct_no_100 (hallazgo del code-review de esta subtarea): modeloFinanciero()
@@ -4661,8 +4719,10 @@
         var venc = m.filas.filter(function (f) { return f.estado === 'vencido'; }).sort(function (a, b) { return (a.fecha || '') < (b.fecha || '') ? -1 : 1; });
         var nCon = {}; venc.forEach(function (f) { nCon[f.contrato_id] = 1; });
         var nc = Object.keys(nCon).length;
-        pon2('k-vencidos-n', tx(nc === 1 ? '%n contrato' : '%n contratos', { n: nc }));
-        pon2('k-vencidos-total', tx('Total: %t', { t: fmt(m.vencido, MONEDA) }));
+        // Un solo número (Experiencia V1, 17-oct): el indicador cuenta CUOTAS, como el chip «Vencidos» de la lista, y
+        // dice debajo de cuántos contratos son. Antes el indicador contaba contratos y el chip cuotas, con el mismo nombre.
+        pon2('k-vencidos-n', tx(venc.length === 1 ? '%n cuota' : '%n cuotas', { n: venc.length }));
+        pon2('k-vencidos-total', tx(nc === 1 ? 'de %c contrato · total %t' : 'de %c contratos · total %t', { c: nc, t: fmt(m.vencido, MONEDA) }));
         pon2('k-vencidos-chip', venc.length ? tx('el más antiguo, del %f', { f: fFecha(venc[0].fecha) }) : ts('nada vencido'));
         // Cobrado y Cartera salieron de esta pantalla el 30-sep-2026 (owner): están
         // en Resumen y en las columnas de «Por proyecto».
@@ -8364,8 +8424,13 @@
         var buscador = document.getElementById('lw-buscar');
         if (buscador) buscador.addEventListener('input', aplicaFiltrosLawang);
         // Con algo esperando, la pantalla abre en «Pendientes» (CM1): es lo que hay que resolver. Sin nada, en «Todas».
+        // Solo la primera vez que se pinta (si se repinta, se respeta el filtro que eligió el usuario) y no con ?id=,
+        // que abre una ficha concreta que puede estar ya resuelta.
         var chipPend = chipsComisiones.filter(function (b) { return b.getAttribute('data-chip-clave') === 'pendiente'; })[0];
-        if (pend.length && chipPend) chipPend.click();
+        if (chipPend && !chipPend.hasAttribute('data-lw-abierta')) {
+          chipPend.setAttribute('data-lw-abierta', '');
+          if (pend.length && !new URLSearchParams(location.search).get('id')) chipPend.click();
+        }
 
         // filtro por agente: SOLO admin (un agente ya ve solo lo suyo) y solo si
         // hay mas de uno entre lo que la RLS dejo ver — mismo criterio que
