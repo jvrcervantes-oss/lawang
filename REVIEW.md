@@ -4,7 +4,7 @@ No copia normas: cada línea dice qué pasó, cuándo y dónde está la regla (l
 Grave = las 5 clases del revisor. Cuenta como código: quitar una línea pasa por el revisor. Tope 40 líneas. El servidor no lo sirve (`.htaccess`, `.md` → 404).
 
 ## El navegador escribe o decide (máxima «el backend jamás se cree el frontend»)
-- **Guardar en dos escrituras desde el navegador** (datos): el modelo de contrato quedaba a medias; el autor escribió «no es una transacción» y lo subió. 16-sep, b0ed4ac90e. Regla: `contexto/patrones_tecnicos.md` → «Frontera frontend / backend»; gate `tools/escrituras_front.py`.
+- **Guardar en dos escrituras desde el navegador** (datos): el modelo de contrato quedaba a medias; el autor escribió «no es una transacción» y lo subió. Visto el 26-sep (`.claude/agents/revisor-codigo.md` de la agencia); la frase no está en b0ed4ac90e (16-sep, el commit de modelos): sha por localizar. Regla: `contexto/patrones_tecnicos.md` → «Frontera frontend / backend»; gate `tools/escrituras_front.py`.
 - **Estado de dinero marcado desde la pantalla** (dinero): una factura quedaba «enviada» porque lo decía el navegador. 11-ago, a99bf44871.
 - **Total o importe que calcula la pantalla** (dinero): la base se creía el total y un agente podía facturar sobre el contrato de otro. 26-sep (`CLAUDE.md` → máximas).
 - **Enganchar por rótulo, cabecera o texto** (deja de funcionar): un cambio «solo de texto» dejó tres días muerto un alta. 29-sep. Se engancha por `data-accion`, `data-lw` o el id (`contexto/suite_lawang.md`, `contexto/patrones_tecnicos.md` → «Enganche por identificador estable»).
@@ -24,5 +24,3 @@ Grave = las 5 clases del revisor. Cuenta como código: quitar una línea pasa po
 
 ## Pruebas y migraciones (`supabase/migrations/`, `supabase/pruebas/`, `reversion_*`)
 - **PL/pgSQL `raise exception` con una variable como formato** (seguridad): error de sintaxis al compilar; la prueba de revoke nunca llegaba a su fin. 17-oct, CAMBIOS d7d70213e.
-- **Migración que destruye o abre acceso** (datos, seguridad): el DDL que construye se aplica solo; el que borra, desactiva RLS o toca `auth` para (`CLAUDE.md` → Política de autonomía; `departamentos/backend/prompt.md` → Supabase).
-- **Ampliar la intranet no es empezar de cero** (deja de funcionar): una herramienta nueva usa el menú, el pie y los assets comunes. `contexto/suite_lawang.md` → Regla 0.
