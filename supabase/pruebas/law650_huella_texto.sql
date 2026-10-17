@@ -1,5 +1,5 @@
--- Prueba de LAW-650 (17-oct-2026, sesión lawang-mejoras-ux): la migración 20261017132000_law650_huella_texto_correos.sql.
--- Se ensaya con `--aplica 20260927130000_law343_prueba_envios_y_reactivar.sql,20261016112502_law338_l5_revoke.sql,20261017132000_law650_huella_texto_correos.sql`:
+-- Prueba de LAW-650 (17-oct-2026, sesión lawang-mejoras-ux): la migración 20261017062042_law650_huella_texto_correos.sql.
+-- Se ensaya con `--aplica 20260927130000_law343_prueba_envios_y_reactivar.sql,20261016112502_law338_l5_revoke.sql,20261017062042_law650_huella_texto_correos.sql`:
 -- la rama de Lawang nace sin filas ni buckets, y la 343 crea `correos-enviados` como está en producción (privado, solo
 -- application/pdf); el resto de la 343 ya está en la estructura y no cambia nada (add column if not exists, on conflict do
 -- nothing, y su bloque de usuario_guarda_permisos vuelve al ver su marca). Así la 650 se mide sobre el bucket real.
