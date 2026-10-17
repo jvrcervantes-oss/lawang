@@ -58,7 +58,7 @@
     conecta: {
       antetitulo: 'Nuevo en la intranet',
       titulo: 'Pregúntale a tu IA por Lawang',
-      texto: 'Conecta Claude con tu usuario y pregúntale en lenguaje normal lo que ves en la intranet. Ve solo lo que tú ves, no ve pasaportes ni documentos de los compradores y cada consulta queda registrada.',
+      texto: 'Conecta Claude con tu usuario y pregúntale en lenguaje normal lo que ves en la intranet. Solo ve lo que tú ves, no ve pasaportes ni documentos de los compradores y cada consulta queda registrada.',
       boton: 'Conectar mi asistente',
       nota: 'Son 2 minutos, desde el ordenador.'
     },
@@ -126,7 +126,6 @@
     '.lw-banner-ia .lw-bia-ejemplos{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}' +
     '.lw-banner-ia .lw-bia-ejemplos li{display:flex;align-items:flex-start;gap:8px;padding:12px 14px;border-radius:14px 14px 14px 4px;' +
     'background:rgb(255 255 255 / .1);border:1px solid rgb(255 255 255 / .18);font:400 14px/1.4 "Neue Kabel",system-ui,sans-serif}' +
-    '.lw-banner-ia .lw-bia-ejemplos li:nth-child(2){margin-left:24px}' +
     '.lw-banner-ia .lw-bia-ejemplos .material-symbols-outlined{font-size:18px;opacity:.75}' +
     '.lw-banner-ia .lw-bia-cerrar{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;justify-content:center;' +
     'width:44px;height:44px;border:0;border-radius:999px;background:transparent;color:inherit;cursor:pointer;opacity:.85}' +
@@ -134,7 +133,7 @@
     '.lw-banner-ia a:focus-visible,.lw-banner-ia button:focus-visible{outline:2px solid ' + C('on-primary', '255 255 255') + ';outline-offset:3px}' +
     '@media (max-width:767px){.lw-banner-ia{grid-template-columns:minmax(0,1fr);gap:20px;padding:24px 20px}' +
     '.lw-banner-ia .lw-bia-cabeza{padding-right:40px}.lw-banner-ia .lw-bia-cerrar{top:8px;right:8px}' +
-    '.lw-banner-ia .lw-bia-ejemplos li:nth-child(2){margin-left:0}.lw-banner-ia .lw-bia-ejemplos li:nth-child(3){display:none}}';
+    '.lw-banner-ia .lw-bia-ejemplos li:nth-child(3){display:none}}';
 
   function pintaBanner(uid, aviso, hueco) {
     if (hueco.querySelector('.lw-banner-ia')) return;

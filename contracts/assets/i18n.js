@@ -119,7 +119,7 @@
     /* El banner de la portada (aviso-ia.js, 17-oct-2026, sesión mcp-ventana). */
     'Nuevo en la intranet': 'New in the intranet',
     'Pregúntale a tu IA por Lawang': 'Ask your AI about Lawang',
-    'Conecta Claude con tu usuario y pregúntale en lenguaje normal lo que ves en la intranet. Ve solo lo que tú ves, no ve pasaportes ni documentos de los compradores y cada consulta queda registrada.': 'Connect Claude with your user and ask it, in plain words, about what you see in the intranet. It sees only what you see, never buyers’ passports or documents, and every query is logged.',
+    'Conecta Claude con tu usuario y pregúntale en lenguaje normal lo que ves en la intranet. Solo ve lo que tú ves, no ve pasaportes ni documentos de los compradores y cada consulta queda registrada.': 'Connect Claude with your user and ask it, in plain words, about what you see in the intranet. It only sees what you see, never buyers’ passports or documents, and every query is logged.',
     'Conectar mi asistente': 'Connect my assistant',
     'Son 2 minutos, desde el ordenador.': 'It takes 2 minutes, from a computer.',
     'Tu asistente de IA': 'Your AI assistant',
