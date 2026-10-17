@@ -8766,7 +8766,7 @@
             var qn = q.toLowerCase();
             var otro = r.data.filter(function (x) {
               return String(x.passport_hint || '').toUpperCase() === cola &&
-                String(x.full_name || '').toLowerCase().indexOf(qn) < 0 && String(x.email || '').toLowerCase().indexOf(qn) < 0;
+                String(x.full_name || '').toLowerCase().indexOf(qn) < 0 && String(x.email || '').toLowerCase().indexOf(qn) < 0; // BUSQUEDA A PROPOSITO: deduplicar, descarta las fichas que comprador_buscar trae por nombre o correo y no por el pasaporte
             })[0];
             if (otro) { pasRepe = { q: q.toUpperCase(), fila: otro }; marcaRepetido('passport_number', tS('Ese pasaporte / NPWP ya está en otra ficha:'), otro); }
           });
