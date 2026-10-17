@@ -19,8 +19,16 @@
   'use strict';
   function T(s, h) { if (raiz.lwT) return raiz.lwT(s, h); var v = String(s); for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) v = v.split('%' + k).join(h[k]); return v; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function bien(m) { if (typeof raiz.toast === 'function') raiz.toast(m); }
-  function mal(m) { if (typeof raiz.toastMal === 'function') raiz.toastMal(m); else if (typeof raiz.toast === 'function') raiz.toast(m); }
+  /* toast y toastMal son `const` de primer nivel de suite-comun.js: viven en el ámbito global de los scripts, NO en window. Por eso se
+     llaman por su nombre suelto, como en el resto de la suite; con raiz.toast no salía ningún aviso de Ajustes › IA ni de las apps
+     conectadas (revisor, 17-oct-2026). raiz.* queda para el arnés, que los pone en window. */
+  function avisa(m, error) {
+    var f = error && typeof toastMal === 'function' ? toastMal : (typeof toast === 'function' ? toast : null);
+    if (!f) f = error && typeof raiz.toastMal === 'function' ? raiz.toastMal : (typeof raiz.toast === 'function' ? raiz.toast : null);
+    if (f) f(m);
+  }
+  function bien(m) { avisa(m, false); }
+  function mal(m) { avisa(m, true); }
 
   /* ── lógica pura (la prueba la usa sin navegador) ──────────────────────────────────────────────────────────────────── */
   var ASISTENTES = { claude: 'Claude', chatgpt: 'ChatGPT' };   // la lista cerrada de la base (ia_clientes.asistente)

@@ -376,7 +376,7 @@
     s.c.appendChild(el('p', C_PEQ, T('%n de %t personas del equipo pueden conectar.', { n: con, t: us.length })));
     var sin = us.filter(function (u) { return !u.permiso; });
     if (sin.length) s.c.appendChild(botonTodos(sin));
-    var bus =el('input', C_INPUT + ' md:w-80'); bus.type = 'search'; bus.autocomplete = 'off'; bus.value = filtro;
+    var bus = el('input', C_INPUT + ' md:w-80'); bus.type = 'search'; bus.autocomplete = 'off'; bus.value = filtro;
     bus.setAttribute('data-ia-buscar', '');
     s.c.appendChild(campo(T('Buscar persona'), null, bus));
     var lista = el('div', 'flex flex-col'); lista.setAttribute('data-ia-personas', '');
