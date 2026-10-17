@@ -294,6 +294,20 @@ Deno.serve(async (req) => {
       const det = (ev?.[0]?.detalle ?? null) as { motivo?: string; motivo_pantalla?: string; faltan?: unknown; declarado_por?: string } | null;
       const sinAnexo = det?.motivo ?? null;
       const constancia = constanciaHeredada(det);
+      // Constancias de ANTES de LAW-406 (27-28 sep): las escribía la función suelta que retiró LAW-406, SIN firma_id, así que la búsqueda
+      // de arriba no las ve (revisor, 17-oct; esos enlaces caducan el 27-28 oct). Una sin firma_id que puede ser la suya frena el
+      // reenvío en bloque —saldría el enlace nuevo sin constancia— y el contrato va al generador, que pide «Enviar igualmente».
+      // SIN cota de fecha: del 28-sep 00:42 al 08:42 la edge apuntaba la constancia ANTES de crear el enlace (dos llamadas
+      // sueltas, milisegundos antes que él), y en una cadena de firmantes el enlace del 2.º nace después de firmar el 1.º, así
+      // que ninguna fecha de corte las cubre todas (revisor 2.ª vuelta y buscador B, 17-oct). Son un conjunto cerrado (la
+      // función que las escribía se retiró el 28-sep; contrato_envia_firma siempre pone firma_id) y cerrar de más solo manda
+      // ese contrato al generador.
+      if (!det) {
+        const { data: evViejo, error: eV } = await admin.from('contrato_eventos').select('id')
+          .eq('contrato_id', contratoId).eq('evento', 'envio_sin_anexo_confirmado').is('detalle->>firma_id', null).limit(1);
+        if (eV) return json({ ok: false, error: 'no_se_pudo_leer_el_contrato' }, 500);
+        if (evViejo?.length) return json({ ok: true, puede: false, motivo: 'constancia_sin_enlace', numero });
+      }
       const base = { numero, para: f.firmante_email, nombre: f.firmante_nombre, enviado_en: f.creado_en ?? null, caduco_en: f.expira_en, sin_anexo: sinAnexo, tope: TOPE_REENVIOS };
       // La vista previa NO descarga el documento (revisor, 17-oct: con anexos pesa hasta 20 MB y se piden hasta 20 seguidos):
       // la huella se comprueba en el envío, y si no casa la fila lo dice entonces (documento_cambiado / falta_el_documento).
