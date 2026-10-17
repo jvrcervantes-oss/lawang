@@ -229,7 +229,7 @@
   /* «Cómo se conecta» en pasos (16-oct-2026, sesión mcp-aviso; lo abre la invitación de la cabecera, aviso-ia.js). Los pasos son
      de Claude, por la decisión del owner del 15-oct (Claude desde el principio; ChatGPT solo en planes Business o Enterprise).
      El identificador del cliente (ia_clientes.id): si la base dice qué asistentes están activos (`clientes`, propuesta
-     supabase/propuestas/20261016230000_ia_mis_conexiones_clientes.sql), sale aquí con su botón Copiar y solo se enseñan los
+     supabase/propuestas/20261017015203_ia_mis_conexiones_clientes.sql), sale aquí con su botón Copiar y solo se enseñan los
      pasos de los asistentes activos; mientras no lo diga, se dice dónde está (Ajustes › IA), con el enlace si quien mira es el
      super admin. Nada de rutas de menú de ChatGPT sin comprobar. */
   function paso(n, texto) {

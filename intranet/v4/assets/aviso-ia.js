@@ -6,7 +6,7 @@
  * encendida, si ESTA persona tiene permiso vigente y qué conexiones tiene. Sale con las tres a la vez: encendida, con permiso y sin
  * ninguna conexión viva. A quien no puede conectarse no se le invita (sería un botón roto); a quien ya está conectado, tampoco.
  * Y además tiene que poder TERMINAR (#403, «bloquea»): para conectar hace falta el identificador del asistente (ia_clientes.id).
- *  · si la base dice qué asistentes están activos (`clientes`, la propuesta supabase/propuestas/20261016230000_ia_mis_conexiones_clientes.sql),
+ *  · si la base dice qué asistentes están activos (`clientes`, la propuesta supabase/propuestas/20261017015203_ia_mis_conexiones_clientes.sql),
  *    sale solo con uno activo o más;
  *  · mientras no lo diga, sale solo al super admin, que es quien ve los identificadores en Ajustes › IA.
  * Si la lectura falla, no sale: es una invitación, no un aviso de algo que va mal (callarse aquí no esconde ningún fallo).
