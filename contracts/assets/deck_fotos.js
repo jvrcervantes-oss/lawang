@@ -56,7 +56,7 @@
 
   function T(s) { return window.lwT ? lwT(s) : s; }
   function E(s) { return window.esc ? esc(s) : String(s == null ? '' : s); }
-  function aviso(s) { if (window.toast) toast(s); }
+  function aviso(s) { if (typeof toast === 'function') toast(s); }
 
   /* Recodificado. `createImageBitmap` es el que de verdad decide si esto era una
      imagen: con cualquier otra cosa lanza, y ahí se acaba el camino. */

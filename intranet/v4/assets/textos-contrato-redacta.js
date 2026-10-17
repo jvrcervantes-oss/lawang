@@ -185,7 +185,7 @@
         vacia();
         API.cargaLista().then(function () {
           if (E.empresa !== emp) return;
-          if (typeof window.toast === 'function') window.toast(T('Contrato «%n» creado en borrador. Revísalo antes de activarlo.', { n: d.nombre }));
+          if (typeof toast === 'function') toast(T('Contrato «%n» creado en borrador. Revísalo antes de activarlo.', { n: d.nombre }));
           document.dispatchEvent(new CustomEvent('lw-tc-ir', { detail: { tab: 'textos' } }));
           API.abreEditor(d.slug, 'estandar');
         });
