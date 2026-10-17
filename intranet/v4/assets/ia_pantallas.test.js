@@ -58,7 +58,7 @@ const rpcDe = (js) => [...new Set([...js.matchAll(/(?:rpc|lwDatos|\bguarda)\('([
 igual(rpcDe(comun), ['ia_conexion_revoca', 'ia_mis_conexiones'], 'ia-conexiones.js llama solo a ia_mis_conexiones e ia_conexion_revoca');
 igual(rpcDe(aj), ['ia_ajustes_guarda', 'ia_ajustes_ver', 'ia_cliente_guarda'], 'ajustes-ia.js llama solo a las tres de Ajustes › IA (cortar va por LW_IA; sin permiso por persona desde el 17-oct)');
 // 17-oct-2026 (owner: «quita lo de dar permiso porque se tienen que loguear»): ia_permiso_guarda se cierra a authenticated
-const todos = leer('supabase', 'migrations', '20261017043002_mcp_todos.sql');
+const todos = leer('supabase', 'migrations', '20261017162345_mcp_todos.sql');
 igual(/revoke execute on function public\.ia_permiso_guarda\(uuid, boolean\) from authenticated;/.test(todos), true, 'mcp_todos cierra ia_permiso_guarda a authenticated (ninguna pantalla la llama)');
 igual(/ia_permiso_guarda/.test(aj + comun), false, 'ninguna pantalla nombra ia_permiso_guarda');
 [...rpcDe(comun), ...rpcDe(aj)].forEach((f) => {
