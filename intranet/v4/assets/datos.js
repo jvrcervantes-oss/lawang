@@ -9749,6 +9749,9 @@
       if (selProyecto) selProyecto.innerHTML = '<option value="">Todos los proyectos</option>' +
         proyectos.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>'; }).join('');
 
+      /* Las inactivas y las cerradas van plegadas tras «Ver …» (Experiencia CM5, 17-oct: 18 vigentes mezcladas con 18
+         inactivas). Plegar no las quita de nada: siguen en la cuenta de arriba y al desplegarlas tienen sus acciones. */
+      var verPlegadas = false;
       function pinta() {
         if (!cuerpo) return;
         var fe = selEquipo ? selEquipo.value : '', fp = selProyecto ? selProyecto.value : '';
@@ -9759,7 +9762,8 @@
           var okEmpresa = !empFiltroC || c.empresa === empFiltroC;
           return okEquipo && okProyecto && okEmpresa;
         });
-        var enVigor = lista.filter(function (c) { return estadoCond(c) !== 'cerrada'; });
+        var enVigor = lista.filter(function (c) { var e = estadoCond(c); return e === 'vigente' || e === 'futura'; });
+        var inactivas = lista.filter(function (c) { return estadoCond(c) === 'inactiva'; });
         var cerradas = lista.filter(function (c) { return estadoCond(c) === 'cerrada'; })
           .sort(function (a, b) { return String(b.vigente_hasta).localeCompare(String(a.vigente_hasta)); });
         var fila = function (c) {
@@ -9823,9 +9827,17 @@
         var sep = function (txt) {
           return '<tr class="bg-surface-container-low"><td colspan="7" class="px-5 py-3 font-label-md text-[11px] uppercase tracking-[0.16em] text-outline font-bold">' + esc(txt) + '</td></tr>';
         };
+        var nPleg = inactivas.length + cerradas.length;
+        var bVer = nPleg
+          ? '<tr><td colspan="7" class="px-5 py-3 text-center"><button type="button" data-real data-lw-ver-inactivas aria-expanded="' + (verPlegadas ? 'true' : 'false') + '" ' +
+            'class="px-4 py-1.5 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]">' +
+            esc(verPlegadas ? T('Ocultar inactivas y cerradas') : T(nPleg === 1 ? 'Ver %n inactiva o cerrada' : 'Ver %n inactivas o cerradas', { n: nPleg })) + '</button></td></tr>'
+          : '';
         cuerpo.innerHTML = lista.length
           ? (enVigor.length ? enVigor.map(fila).join('') : '<tr><td colspan="7" class="px-5 py-6 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Ninguna condición en vigor para este filtro.')) + '</td></tr>') +
-            (cerradas.length ? sep(T('Cerradas: siguen pagando las ventas de su periodo; no se reabren ni se borran')) + cerradas.map(fila).join('') : '')
+            bVer +
+            (verPlegadas && inactivas.length ? sep(T('Inactivas')) + inactivas.map(fila).join('') : '') +
+            (verPlegadas && cerradas.length ? sep(T('Cerradas: siguen pagando las ventas de su periodo; no se reabren ni se borran')) + cerradas.map(fila).join('') : '')
           : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
       }
       pinta();
@@ -9838,10 +9850,23 @@
         selEmpC.innerHTML = '<option value="">' + esc(T('Todas las empresas')) + '</option>' +
           ev.mias.map(function (e) { return '<option value="' + esc(e.clave) + '">' + esc(e.nombre) + '</option>'; }).join('');
         selEmpC.addEventListener('change', function () { empFiltroC = selEmpC.value; pinta(); });
-        selEquipo.parentNode.insertBefore(selEmpC, selEquipo);
+        var cajaEq = selEquipo.closest('[data-lw-filtro]');
+        if (cajaEq) {
+          var cajaEmp = cajaEq.cloneNode(false); cajaEmp.setAttribute('data-lw-filtro', 'empresa');
+          var etqEq = cajaEq.querySelector('label');
+          var etqEmp = document.createElement('label'); etqEmp.className = etqEq ? etqEq.className : ''; etqEmp.htmlFor = 'lw-co-empresa';
+          etqEmp.textContent = T('Empresa');
+          cajaEmp.appendChild(etqEmp); cajaEmp.appendChild(selEmpC);
+          cajaEq.parentNode.insertBefore(cajaEmp, cajaEq);
+        } else selEquipo.parentNode.insertBefore(selEmpC, selEquipo);
       }
 
       if (cuerpo) cuerpo.addEventListener('click', function (ev) {
+        if (ev.target.closest && ev.target.closest('[data-lw-ver-inactivas]')) {
+          ev.preventDefault(); ev.stopPropagation();
+          verPlegadas = !verPlegadas; pinta();
+          return;
+        }
         var bE = ev.target.closest && ev.target.closest('[data-lw-edita-cond]');
         if (bE) {
           ev.preventDefault(); ev.stopPropagation();

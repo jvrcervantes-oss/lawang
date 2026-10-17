@@ -62,6 +62,12 @@
 
 .crm h1, .crm h2, .crm h3, .crm .display { font-family: var(--sans); letter-spacing: -.02em; }
 
+/* ---- Título de página (17-oct-2026, Experiencia C4) ----------------------
+   Las demás pantallas de la suite abren con su título y el CRM no tenía. Compacto a propósito: el kanban
+   necesita el alto, así que es una línea, no la cabecera grande de la v4. */
+.crm-titulo { padding: 14px 16px 6px; background: var(--panel); }
+.crm-titulo h1 { margin: 0; font-size: 22px; line-height: 1.2; font-weight: 700; color: var(--slate); }
+
 /* ---- Pestañas de las cuatro vistas --------------------------------------- */
 .crm-nav { display: flex; gap: 2px; padding: 0 16px; background: var(--panel);
   border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }

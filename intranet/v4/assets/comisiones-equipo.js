@@ -41,6 +41,9 @@
     var yo = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
     var rol = (aut.ficha && aut.ficha.rol) || '';
     var esAdmin = LW_ROL.esAdmin(aut.ficha);
+    // Texto según el rol (Experiencia CM2, 17-oct): al admin le decía «Solo ves tu equipo» y ve todos.
+    var sub = document.querySelector('[data-lw="reparto-sub"]');
+    if (sub && esAdmin) sub.textContent = (typeof lwT === 'function') ? lwT('Lo que se ha generado para cada closer de todos los equipos, y qué se ha marcado ya como pagado.') : 'Lo que se ha generado para cada closer de todos los equipos, y qué se ha marcado ya como pagado.';
 
     Promise.all([
       sb.rpc('comisiones_ventas_equipo'),
@@ -69,6 +72,15 @@
       sec.id = 'lw-ventas-equipo';
       sec.className = 'bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-3';
       sec.style.marginBottom = '24px';
+      /* Columnas que salen vacías en TODAS las filas, fuera (Experiencia CM2, 17-oct: 54 ventas con Setter, Team Lead y
+         Venta propia en blanco). La ficha de cada venta sigue dejando asignarlos. */
+      var hay = {
+        setter: ventas.some(function (v) { return v.setter_email; }),
+        team_lead: ventas.some(function (v) { return v.team_lead_email; }),
+        propia: ventas.some(function (v) { return v.reclamacion_estado; })
+      };
+      var COLS = [['venta', 'Venta'], ['closer', 'Closer'], ['setter', 'Setter'], ['team_lead', 'Team Lead'], ['propia', 'Venta propia']]
+        .filter(function (c) { return hay[c[0]] !== false; });
       var intro = gestiono
         ? lwMarca('Quién hizo de Setter y de Team Lead en cada venta (lo pagas tú, como al closer: acuerdo privado, %marca no retiene nada) y las reclamaciones de venta propia de tu equipo.')
         : lwMarca('Tus ventas de equipo. Si el cliente es tuyo —no un lead del equipo— puedes reclamar la venta como propia: si tu manager la aprueba, cobras su comisión entera y la paga %marca.');
@@ -79,8 +91,8 @@
         '</div>' +
         '<p class="font-body-md text-body-md text-on-surface-variant" style="margin:0">' + esc(intro) + '</p>' +
         '<div style="overflow-x:auto"><table class="w-full text-left" style="border-collapse:collapse;min-width:640px"><thead><tr>' +
-          ['Venta', 'Closer', 'Setter', 'Team Lead', 'Venta propia'].map(function (h) {
-            return '<th class="px-4 py-2 font-label-md text-[11px] uppercase tracking-wider text-on-surface-variant">' + h + '</th>';
+          COLS.map(function (c) {
+            return '<th class="px-4 py-2 font-label-md text-[11px] uppercase tracking-wider text-on-surface-variant">' + c[1] + '</th>';
           }).join('') +
         '</tr></thead><tbody data-lw-ve></tbody></table></div>';
       var tb = sec.querySelector('[data-lw-ve]');
@@ -91,20 +103,25 @@
         var tr = document.createElement('tr');
         tr.className = 'border-b border-outline-variant/30';
         tr.style.cursor = 'pointer';
-        tr.innerHTML =
-          '<td class="px-4 py-3 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(v.numero || '—') +
-            '<div class="font-body-sm text-body-sm text-outline">' + esc([v.proyecto_nombre, v.equipo_nombre].filter(Boolean).join(' · ')) + '</div></td>' +
-          '<td class="px-4 py-3 font-body-md text-body-md text-on-surface-variant">' + esc(quien(v.closer_email)) + '</td>' +
-          '<td class="px-4 py-3 font-body-md text-body-md text-on-surface-variant">' + esc(v.setter_email ? quien(v.setter_email) : '—') + '</td>' +
-          '<td class="px-4 py-3 font-body-md text-body-md text-on-surface-variant">' + esc(v.team_lead_email ? quien(v.team_lead_email) : '—') + '</td>' +
-          '<td class="px-4 py-3">' + (v.reclamacion_estado ? pill(EST[v.reclamacion_estado] || v.reclamacion_estado, TONO[v.reclamacion_estado]) : '<span class="font-body-sm text-body-sm text-outline">—</span>') + '</td>';
+        var celda = {
+          venta: '<td class="px-4 py-3 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(v.numero || '—') +
+            '<div class="font-body-sm text-body-sm text-outline">' + esc([v.proyecto_nombre, v.equipo_nombre].filter(Boolean).join(' · ')) + '</div></td>',
+          closer: '<td class="px-4 py-3 font-body-md text-body-md text-on-surface-variant">' + esc(quien(v.closer_email)) + '</td>',
+          setter: '<td class="px-4 py-3 font-body-md text-body-md text-on-surface-variant">' + esc(v.setter_email ? quien(v.setter_email) : '—') + '</td>',
+          team_lead: '<td class="px-4 py-3 font-body-md text-body-md text-on-surface-variant">' + esc(v.team_lead_email ? quien(v.team_lead_email) : '—') + '</td>',
+          propia: '<td class="px-4 py-3">' + (v.reclamacion_estado ? pill(EST[v.reclamacion_estado] || v.reclamacion_estado, TONO[v.reclamacion_estado]) : '<span class="font-body-sm text-body-sm text-outline">—</span>') + '</td>'
+        };
+        tr.innerHTML = COLS.map(function (c) { return celda[c[0]]; }).join('');
         tr.addEventListener('click', function () { abre(v, miembros, quien); });
         tb.appendChild(tr);
       });
 
       var tabla = document.getElementById('lw-filas-equipo');
       var ancla = tabla && (tabla.closest('[data-lw-panel]') || tabla.closest('section'));
-      if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(sec, ancla);
+      /* Lo que hay que pagar va primero (Experiencia CM2, 17-oct: «Marcar pagada» quedaba ~4.000 px más abajo). Este bloque
+         solo se pone delante cuando hay reclamaciones que el manager tiene que resolver. */
+      var delante = gestiono && pendientes.length;
+      if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(sec, delante ? ancla : ancla.nextSibling);
       else (document.querySelector('main') || document.body).appendChild(sec);
     }
 
